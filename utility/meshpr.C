@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // meshpr.C:  utility to generate mesh nodes from mesh description file.
 //
-// Copyright (c) 1995 Hugh Blackburn
+// Copyright (c) 1995,2003 Hugh Blackburn
 //
 // Prism-compatible output.
 //

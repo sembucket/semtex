@@ -1403,8 +1403,9 @@ void CircularArc::printNek () const
 // Routines to deal with spline curve mesh sides.
 //////////////////////////////////////////////////////////////////////////////
 
-static Point     ga, gp;
-static spline2D* gs;
+static Point             ga, gp;
+static spline2D*         gs;
+static vector<spline2D*> gcurve;
 
 
 Spline::Spline (const int   id      ,
@@ -1414,35 +1415,36 @@ Spline::Spline (const int   id      ,
 // Constructor, calls getGeom, computes starting and ending arc parameters.
 // ---------------------------------------------------------------------------
 {
-  strcpy ((name = new char [strlen(filename) + 1]), filename);
+  strcpy ((_name = new char [strlen(filename) + 1]), filename);
   curveSide = S;
-  geom      = Spline::getGeom (filename);
+  _geom     = Spline::getGeom (filename);
 
   const char routine[] = "Spline::Spline";
-  const int verbose = static_cast<int>(Femlib::value ("VERBOSE"));
-  Point p1 = S -> startNode -> loc;
-  Point p2 = S -> endNode   -> loc;
+  const int  verbose = static_cast<int>(Femlib::value ("VERBOSE"));
+  Point      p1 = S -> startNode -> loc;
+  Point      p2 = S -> endNode   -> loc;
 
   VERBOSE cerr << routine << ": --" << endl;
 
   // -- Set global variables used in locating arc parameters.
 
-  gs   = geom;
+  gs   = _geom;
+
   gp   = p1;
   ga.x = p1.x - (p2.y - p1.y);
   ga.y = p1.y + (p2.x - p1.x);
   
-  startarc = arcCoord ();
+  _startarc = this -> arcCoord ();
 
-  VERBOSE cerr << "    location of p1: " << startarc << endl;
+  VERBOSE cerr << "    location of p1: " << _startarc << endl;
 
   gp   = p2;
   ga.x = p2.x - (p2.y - p1.y);
   ga.y = p2.y + (p2.x - p1.x);
   
-  endarc = arcCoord ();
+  _endarc = this -> arcCoord ();
 
-  VERBOSE cerr << "    location of p2: " << endarc << endl;
+  VERBOSE cerr << "    location of p2: " << _endarc << endl;
 }
 
 
@@ -1454,20 +1456,20 @@ void Spline::compute (const int   np     ,
 // ---------------------------------------------------------------------------
 {
   const int  nm = np - 1;
-  const real darc = endarc - startarc;
+  const real darc = _endarc - _startarc;
   Point      P1 = curveSide -> startNode -> loc;
   Point      P2 = curveSide -> endNode   -> loc;
   real       s;
 
-  knot[ 0].x = P1.x;  knot[ 0].y  = P1.y;
+  knot[ 0].x = P1.x;  knot[ 0].y = P1.y;
   knot[nm].x = P2.x;  knot[nm].y = P2.y;
 
   for (int i = 1; i < nm; i++) {
-    s = startarc + darc * 0.5 * (spacing[i] + 1.0);
-    knot[i].x = Veclib::splint (geom->x.size(), s, 
-				&geom->arclen[0], &geom->x[0], &geom->sx[0]);
-    knot[i].y = Veclib::splint (geom->x.size(), s,
-				&geom->arclen[0], &geom->y[0], &geom->sy[0]);
+    s = _startarc + darc * 0.5 * (spacing[i] + 1.0);
+    knot[i].x = Veclib::splint (_geom->x.size(), s, &_geom->arclen[0],
+				&_geom->x[0], &_geom->sx[0]);
+    knot[i].y = Veclib::splint (_geom->x.size(), s, &_geom->arclen[0],
+				&_geom->y[0], &_geom->sy[0]);
 
   }
 }
@@ -1489,25 +1491,27 @@ spline2D* Spline::getGeom (const char* name)
 // based on the knots it contains.
 // ---------------------------------------------------------------------------
 {
-  const char routine[] = "getGeom";
+  const char routine[] = "Spline::getGeom";
   const int  verbose = static_cast<int>(Femlib::value("VERBOSE"));
-  vector<spline2D*>           curve;
-  vector<spline2D*>::iterator k;
-  bool                        found(false);
-  spline2D*                   c;
-  char                        err[StrMax];
+  bool       found(false);
+  spline2D*  c;
+  char       err[StrMax];
 
-  VERBOSE cerr << "spline filename: " << name << endl;
+  VERBOSE cerr << routine << ": spline filename: " << name << endl;
 
-  for (k = curve.begin(); !found && k != curve.end(); k++) {
-    c = *k; found = c->name == name;
+  for (vector<spline2D*>::iterator k = gcurve.begin();
+       !found && k != gcurve.end(); k++) {
+    c = *k; found = (strcmp (c->name, name) == 0);
   }
 
   if (!found) {
 
+    VERBOSE cerr << routine << ": adding new spline curve" << endl;
+
     ifstream     file (name);   
     real         x, y;
-    int          j, N;
+    int          i, j, N;
+    const int    SECTOR_MAX = 16;
     vector<real> tmp;
 
     if (file.bad()) {
@@ -1528,6 +1532,8 @@ spline2D* Spline::getGeom (const char* name)
 
     N = c->x.size();
     
+    VERBOSE cerr << routine << ": " << N << " data points" << endl;
+
     c->sx.resize     (N);
     c->sy.resize     (N);
     c->arclen.resize (N);
@@ -1539,20 +1545,42 @@ spline2D* Spline::getGeom (const char* name)
     Veclib::spline (N, FLT_MAX, FLT_MAX, &tmp[0], &c->y[0], &c->sy[0]);
 
     for (c -> arclen[0] = 0.0, j = 0; j < N - 1; j++) {
-      real p0x = c->x[j];
-      real p0y = c->y[j];
-      real p1x = Veclib::splint (N, j+1.0/3.0, &tmp[0], &c->x[0], &c->sx[0]);
-      real p1y = Veclib::splint (N, j+1.0/3.0, &tmp[0], &c->y[0], &c->sy[0]);
-      real p2x = Veclib::splint (N, j+2.0/3.0, &tmp[0], &c->x[0], &c->sx[0]);
-      real p2y = Veclib::splint (N, j+2.0/3.0, &tmp[0], &c->y[0], &c->sy[0]);
-      real p3x = c->x[j+1];
-      real p3y = c->y[j+1];
-      
-      c -> arclen[j+1] =
-	c -> arclen[j]           +
-	hypot (p1x-p0x, p1y-p0y) +
-	hypot (p2x-p1x, p2y-p1y) +
-	hypot (p3x-p2x, p3y-p2y) ;
+
+      c -> arclen[j+1] = c -> arclen[j];
+
+      for (i = 0; i < SECTOR_MAX; i++) {
+	real p0x, p0y, p1x, p1y;
+
+	if (i == 0) {
+	  p0x = c->x[j];
+	  p0y = c->y[j];
+	  p1x = Veclib::splint (N, j+(i+1.0)/SECTOR_MAX,
+			       &tmp[0],&c->x[0],&c->sx[0]);
+	  p1y = Veclib::splint (N, j+(i+1.0)/SECTOR_MAX,
+				&tmp[0], &c->y[0], &c->sy[0]);
+
+	} else if (i == (SECTOR_MAX - 1)) {
+	  p0x = Veclib::splint (N, j+(i*1.0)/SECTOR_MAX,
+				&tmp[0], &c->x[0], &c->sx[0]);
+	  p0y = Veclib::splint (N, j+(i*1.0)/SECTOR_MAX,
+				&tmp[0], &c->y[0], &c->sy[0]);
+
+	  p1x = c->x[j+1];
+	  p1y = c->y[j+1];
+
+	} else {
+	  p0x = Veclib::splint (N, j+(i*1.0)/SECTOR_MAX,
+				&tmp[0], &c->x[0], &c->sx[0]);
+	  p0y = Veclib::splint (N, j+(i*1.0)/SECTOR_MAX,
+				&tmp[0], &c->y[0], &c->sy[0]);
+	  p1x = Veclib::splint (N, j+(i+1.0)/SECTOR_MAX,
+				&tmp[0], &c->x[0], &c->sx[0]);
+	  p1y = Veclib::splint (N, j+(i+1.0)/SECTOR_MAX,
+				&tmp[0], &c->y[0], &c->sy[0]);
+
+	}
+	c -> arclen [j+1] += hypot (p1x-p0x, p1y-p0y);
+      }
     }
     
     Veclib::spline (N, FLT_MAX, FLT_MAX, &c->arclen[0], &c->x[0], &c->sx[0]);
@@ -1560,7 +1588,7 @@ spline2D* Spline::getGeom (const char* name)
     
     VERBOSE cerr << "arclength: " << c -> arclen[j] << endl;
 
-    curve.insert (curve.end(), c);
+    gcurve.insert (gcurve.end(), c);
 
     file.close();
   }
@@ -1571,7 +1599,8 @@ spline2D* Spline::getGeom (const char* name)
 
 int Spline::closest (const Point& p)
 // ---------------------------------------------------------------------------
-// Return the index of the knot point that lies closest to point gp.
+// Return the index of the knot point that lies closest to point gp. 
+// Adjust for ends of interval.
 // ---------------------------------------------------------------------------
 {
   const int    M = gs->arclen.size();
@@ -1583,14 +1612,16 @@ int Spline::closest (const Point& p)
   for (i = 0; i < N; i++) len[i] = hypot (p.x - x[i], p.y - y[i]);
 
   i = Veclib::imin (N, &len[0], 1) + gs->pos;
+
   i = min (i, M - 2);
 
   if (i && i == gs->pos) {
     gs->pos = 0;
     i = closest (p);
   }
-
   return gs->pos = i;
+
+  return i;
 }
 
 
@@ -1605,7 +1636,7 @@ static real getAngl (const real& s)
 // ---------------------------------------------------------------------------
 {
   real xs = Veclib::splint(gs->x.size(),s,&gs->arclen[0],&gs->x[0],&gs->sx[0]);
-  real ys = Veclib::splint(gs->x.size(),s,&gs->arclen[0],&gs->y[0],&gs->sy[0]);
+  real ys = Veclib::splint(gs->y.size(),s,&gs->arclen[0],&gs->y[0],&gs->sy[0]);
 
   real dxp = gp.x - ga.x;
   real dyp = gp.y - ga.y;
@@ -1625,7 +1656,7 @@ real Spline::arcCoord ()
 {
   const int i  = closest (gp);
   const int ip = i + 1;
-  real      TOL = 1.0e-4;
+  real      TOL = 1.0e-6;
   real      s0, s1, s2;
   real      f0, f1, f2;
 
@@ -1633,7 +1664,10 @@ real Spline::arcCoord ()
   s1 = gs->arclen[ip];
   
   Recipes::mnbrak (s0, s1, s2, f0, f1, f2, ::getAngl);
-  if (fabs (f1) > TOL) Recipes::brent (s0, s1, s2, ::getAngl, TOL, f1);
+  if (fabs (f1) > TOL) {
+    Recipes::brent (s0, s1, s2, ::getAngl, TOL, f1);
+    s1 = f1;
+  }
 
   return s1;
 }
