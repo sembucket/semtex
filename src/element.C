@@ -723,8 +723,8 @@ void Element::HelmholtzOp (const real  lambda2,
 
   Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
-  Blas::gemm ("N", "N", np, np, np, 1.0, *DT, np, src, np, 0.0, R, np);
-  Blas::gemm ("N", "N", np, np, np, 1.0, src, np, *DV, np, 0.0, S, np);
+  Blas::mxm (src, np, *DT, np, R, np);
+  Blas::mxm (*DV, np, src, np, S, np);
 
   if (Geometry::system() == Geometry::Cylindrical) {
     if (g3) {
@@ -777,8 +777,9 @@ void Element::HelmholtzOp (const real  lambda2,
 #endif
   }
 
-  Blas::gemm ("N", "N", np, np, np, 1.0,  S,  np, *DT, np, 1.0, tgt, np);
-  Blas::gemm ("N", "N", np, np, np, 1.0, *DV, np,  R,  np, 1.0, tgt, np);
+  Blas::mxma (*DT, np, S, np, tgt, np);
+  Blas::mxma (R, np, *DV, np, tgt, np);
+
 }
 
 

@@ -18,9 +18,10 @@ ModalMatrixSystem::ModalMatrixSystem (const real              lambda2 ,
 				      const vector<Element*>& Elmt    ,
 				      const NumberSystem**    Nsys    )
 // ---------------------------------------------------------------------------
-// Generate or retrieve from internal database MS the vector of MatrixSystems
-// which will be used to solve all the Fourier-mode discrete Helmholtz
-// problems for the associated scalar Fields (called out by names).
+// Generate or retrieve from internal database MS the vector of
+// MatrixSystems which will be used to solve all the Fourier-mode
+// discrete Helmholtz problems for the associated scalar Fields
+// (called out by names).
 //
 // Input variables:
 //   lambda2: Helmholtz constant for the problem,	
@@ -37,11 +38,15 @@ ModalMatrixSystem::ModalMatrixSystem (const real              lambda2 ,
 
   fields = strdup (Nsys[0] -> fields());
   Msys.setSize (numModes);
-  cout << "-- Installing matrices for field '" << name << "' [";
 
-  for (k = baseMode; k < numModes; k++) {
-    trunc   = min (k, (integer) 2);
-    betak2  = sqr (Field::modeConstant (name, k, beta));
+  ROOTONLY cout << "-- Installing matrices for field '" << name << "' [";
+  cout.flush();
+
+  Femlib::synchronize();
+
+  for (k = 0; k < numModes; k++) {
+    trunc   = min (baseMode + k, (integer) 2);
+    betak2  = sqr (Field::modeConstant (name, baseMode + k, beta));
     found   = 0;
     for (m.reset(); !found && m.more(); m.next()) {
       M     = m.current();
@@ -49,15 +54,18 @@ ModalMatrixSystem::ModalMatrixSystem (const real              lambda2 ,
     }
     if (found) {
       Msys[k] = M;
-      cout << '.';
+      cout << '.';  cout.flush();
     } else {
       Msys[k] = new MatrixSystem (lambda2, betak2, Elmt, Nsys[trunc]);
       MS.add (Msys[k]);
-      cout << '*';
+      cout << '*'; cout.flush();
     }
   }
 
-  cout << "]" << endl;
+  Femlib::synchronize();
+
+  ROOTONLY cout << "]" << endl;
+  cout.flush();
 }
 
 
@@ -80,23 +88,20 @@ MatrixSystem::MatrixSystem (const real              lambda2,
 //                              and column-major     (hbi) formats.
 // ---------------------------------------------------------------------------
 {
-  const char    routine[] = "MatrixSystem::MatrixSystem";
-  const integer verbose = (integer) Femlib::value ("VERBOSE");
-  const real    EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
-  
+  const char       routine[] = "MatrixSystem::MatrixSystem";
+  const integer    verbose = (integer) Femlib::value ("VERBOSE");
+  const real       EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
   register integer i, j, k, m, n;
   const integer*   bmap;
   integer          next, nint, info;
   real             *hbb, *rmat, *rwrk;
   Element*         E;
-
   vector<real>     work (sqr (Geometry::nExtElmt()) + sqr (Geometry::nP()) +
 		              Geometry::nExtElmt() * Geometry::nTotElmt());
 
-  hbb  = work();
-  rmat = hbb  + sqr (Geometry::nExtElmt());
-  rwrk = rmat + sqr (Geometry::nP());
-
+  hbb      = work();
+  rmat     = hbb  + sqr (Geometry::nExtElmt());
+  rwrk     = rmat + sqr (Geometry::nP());
   singular = fabs (HelmholtzConstant+FourierConstant) < EPS && !N-> fmask();
   nsolve   = (singular) ? N -> nSolve() - 1 : N -> nSolve();
 
@@ -166,7 +171,7 @@ MatrixSystem::MatrixSystem (const real              lambda2,
     work.setSize (3 * nsolve);
     rwrk = work();
 
-    Lapack::pbcon ("U",nsolve,nband-1,H,nband,1.0,cond, rwrk,iwrk(),info);
+    Lapack::pbcon ("U", nsolve, nband-1, H, nband, 1.0,cond, rwrk,iwrk(),info);
     cout << ", condition number: " << cond << endl;
   }
 }
@@ -176,9 +181,10 @@ integer MatrixSystem::match (const real          lambda2,
 			     const real          betak2 ,
 			     const NumberSystem* nScheme) const
 // ---------------------------------------------------------------------------
-// The unique identifiers of a MatrixSystem are presumed to be given by the
-// constants and the numbering system used.  Other things that could be
-// checked but aren't (yet) include geometric systems and quadrature schemes.
+// The unique identifiers of a MatrixSystem are presumed to be given
+// by the constants and the numbering system used.  Other things that
+// could be checked but aren't (yet) include geometric systems and
+// quadrature schemes.
 // ---------------------------------------------------------------------------
 {
   const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;

@@ -1,7 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // statistics.C: routines for statistical analysis of AuxFields.
 //
-// At present, this is limited to running averages.
+// At present, this is limited to running averages, but could be
+// modified for computing Reynolds stresses, etc.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char
@@ -15,10 +16,12 @@ Statistics::Statistics (Domain&            D    ,
                         name (D.name),
 			base (D)
 // ---------------------------------------------------------------------------
-// Store averages for all Domain Fields, and any extra AuxFields supplied.
+// Store averages for all Domain Fields, and any extra AuxFields
+// supplied.
 //
-// Try to initialize from file session.avg, failing that set all buffers
-// to zero.  Number of fields in file should be same as Statistics::avg buffer.
+// Try to initialize from file session.avg, failing that set all
+// buffers to zero.  Number of fields in file should be same as
+// Statistics::avg buffer.
 // ---------------------------------------------------------------------------
 {
   integer       i;
@@ -26,7 +29,7 @@ Statistics::Statistics (Domain&            D    ,
   const integer NE = extra.getSize();
   const integer NT = NF + NE;
 
-  cout << "-- Initializing averaging  : ";  
+  ROOTONLY cout << "-- Initializing averaging  : ";  
 
   // -- Set pointers, allocate storage.
 
@@ -45,24 +48,28 @@ Statistics::Statistics (Domain&            D    ,
   ifstream file (strcat (strcpy (s, name), ".avg"));
 
   if (file) {
-    cout << "read from file " << s;
+    ROOTONLY {
+      cout << "read from file " << s;
+      cout.flush();
+    }
     file >> *this;
     file.close();
     for (i = 0; i < NT; i++) avg[i] -> transform (+1);
   
   } else {			// -- No file, set to zero.
-    cout << "set to zero";
+    ROOTONLY cout << "set to zero";
     for (i = 0; i < NT; i++) *avg[i] = 0.0;
     navg = 0;
   }
 
-  cout << endl;
+  ROOTONLY cout << endl;
 }
 
 
-void Statistics::update ()
+void Statistics::update (AuxField*** work)
 // ---------------------------------------------------------------------------
-// Update running averages.
+// Update running averages.  Zeroth time level of work is available as
+// workspace, but not used yet.
 // ---------------------------------------------------------------------------
 {
   integer       i;
@@ -89,42 +96,44 @@ void Statistics::dump ()
 
   if (!(periodic || final)) return;
 
-  const char    routine[] = "Statistics::dump";
-  const integer verbose   = (integer) Femlib::value ("VERBOSE");
-  const integer chkpoint  = (integer) Femlib::value ("CHKPOINT");
-  const int     N         = avg.getSize();
-  ofstream      output;
-  char          dumpfl[StrMax], backup[StrMax], command[StrMax];
+  integer   i;
+  const int N = avg.getSize();
+  ofstream  output;
 
-  if (chkpoint) {
-    if (final) {
-      strcat (strcpy (dumpfl, name), ".avg");
-      output.open (dumpfl, ios::out);
-    } else {
-      strcat (strcpy (dumpfl, name), ".ave");
-      if (!initial) {
-	strcat  (strcpy (backup, name), ".ave.bak");
-	sprintf (command, "mv ./%s ./%s", dumpfl, backup);
-	system  (command);
+  ROOTONLY {
+    const char    routine[] = "Statistics::dump";
+    const integer verbose   = (integer) Femlib::value ("VERBOSE");
+    const integer chkpoint  = (integer) Femlib::value ("CHKPOINT");
+    char          dumpfl[StrMax], backup[StrMax], command[StrMax];
+
+    if (chkpoint) {
+      if (final) {
+	strcat (strcpy (dumpfl, name), ".avg");
+	output.open (dumpfl, ios::out);
+      } else {
+	strcat (strcpy (dumpfl, name), ".ave");
+	if (!initial) {
+	  strcat  (strcpy (backup, name), ".ave.bak");
+	  sprintf (command, "mv ./%s ./%s", dumpfl, backup);
+	  system  (command);
+	}
+	output.open (dumpfl, ios::out);
       }
-      output.open (dumpfl, ios::out);
+    } else {
+      strcat (strcpy (dumpfl, name), ".avg");
+      if   (initial) output.open (dumpfl, ios::out);
+      else           output.open (dumpfl, ios::app);
     }
-  } else {
-    strcat (strcpy (dumpfl, name), ".avg");
-    if   (initial) output.open (dumpfl, ios::out);
-    else           output.open (dumpfl, ios::app);
+
+    if (!output) message (routine, "can't open dump file", ERROR);
+    if (verbose) message (routine, ": writing field dump", REMARK);
   }
-
-  if (!output) message (routine, "can't open dump file", ERROR);
-  if (verbose) message (routine, ": writing field dump", REMARK);
-
-  integer i;
 
   for (i = 0; i < N; i++) avg[i] -> transform (-1);
   output << *this;
   for (i = 0; i < N; i++) avg[i] -> transform (+1);
 
-  output.close();
+  ROOTONLY output.close();
 }
 
 
@@ -146,54 +155,58 @@ ostream& operator << (ostream&    strm,
     "%-25s "    "Fields written\n",
     "%-25s "    "Format\n"
   }; 
+
   const char    routine[] = "ostream<<Statistics";
   const integer N    = src.avg.getSize();
   const real    time = src.base.time;
+  integer       k;
   char          s1[StrMax], s2[StrMax];
   time_t        tp (::time (0));
 
+  ROOTONLY {
+    sprintf (s1, hdr_fmt[0], src.name);
+    strm << s1;
 
-  sprintf (s1, hdr_fmt[0], src.name);
-  strm << s1;
+    strftime (s2, 25, "%a %b %d %H:%M:%S %Y", localtime (&tp));
+    sprintf  (s1, hdr_fmt[1], s2);
+    strm << s1;
 
-  strftime (s2, 25, "%a %b %d %H:%M:%S %Y", localtime (&tp));
-  sprintf  (s1, hdr_fmt[1], s2);
-  strm << s1;
+    src.avg[0] -> describe (s2);
+    sprintf (s1, hdr_fmt[2], s2);
+    strm << s1;
 
-  src.avg[0] -> describe (s2);
-  sprintf (s1, hdr_fmt[2], s2);
-  strm << s1;
+    sprintf (s1, hdr_fmt[3], src.navg);
+    strm << s1;
 
-  sprintf (s1, hdr_fmt[3], src.navg);
-  strm << s1;
+    sprintf (s1, hdr_fmt[4], time);
+    strm << s1;
 
-  sprintf (s1, hdr_fmt[4], time);
-  strm << s1;
+    sprintf (s1, hdr_fmt[5], Femlib::value ("D_T"));
+    strm << s1;
 
-  sprintf (s1, hdr_fmt[5], Femlib::value ("D_T"));
-  strm << s1;
+    sprintf (s1, hdr_fmt[6], Femlib::value ("KINVIS"));
+    strm << s1;
+  
+    sprintf (s1, hdr_fmt[7], Femlib::value ("BETA"));
+    strm << s1;
 
-  sprintf (s1, hdr_fmt[6], Femlib::value ("KINVIS"));
-  strm << s1;
+    for (k = 0; k < N; k++) s2[k] = src.avg[k] -> name();
+    s2[k] = '\0';
+    sprintf (s1, hdr_fmt[8], s2);
+    strm << s1;
 
-  sprintf (s1, hdr_fmt[7], Femlib::value ("BETA"));
-  strm << s1;
-
-  integer k;
-  for (k = 0; k < N; k++) s2[k] = src.avg[k] -> name();
-  s2[k] = '\0';
-  sprintf (s1, hdr_fmt[8], s2);
-  strm << s1;
-
-  sprintf (s2, "binary ");
-  Veclib::describeFormat (s2 + strlen (s2));
-  sprintf (s1, hdr_fmt[9], s2);
-  strm << s1;
+    sprintf (s2, "binary ");
+    Veclib::describeFormat (s2 + strlen (s2));
+    sprintf (s1, hdr_fmt[9], s2);
+    strm << s1;
+  }
 
   for (k = 0; k < N; k++) strm << *src.avg[k];
 
-  if (!strm) message (routine, "failed writing average file", ERROR);
-  strm << flush;
+  ROOTONLY {
+    if (!strm) message (routine, "failed writing average file", ERROR);
+    strm << flush;
+  }
 
   return strm;
 }
@@ -259,7 +272,10 @@ istream& operator >> (istream&    strm,
   else {
     swap = ((strstr (s, "big") && strstr (f, "little")) ||
 	    (strstr (f, "big") && strstr (s, "little")) );
-    if (swap) cout << " (byte-swapping)";
+    ROOTONLY {
+      if (swap) cout << " (byte-swapping)";
+      cout.flush();
+    }
   }
     
   for (j = 0; j < nfields; j++) {
@@ -269,7 +285,8 @@ istream& operator >> (istream&    strm,
     if (swap) tgt.avg[i] -> reverse();
   }
   
-  if (strm.bad()) message (routine, "failed reading average file", ERROR);
+  ROOTONLY if (strm.bad())
+    message (routine, "failed reading average file", ERROR);
 
   return strm;
 }
