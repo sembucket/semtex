@@ -34,7 +34,7 @@ SEMHDR   = Sem.h
 # ----------------------------------------------------------------------------
 # Default build for Navier-Stokes solver.
 #
-NS_FILES = drive NS dnsanalysis
+NS_FILES = drive integrateNS dnsanalysis
 NS_OBJ   = $(addsuffix .o,$(NS_FILES))
 
 $(PROG): sem $(SEMOBJ) $(NS_OBJ) 
