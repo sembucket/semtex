@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// BCmgr.C: class functions for managing boundary conditions.
+// bcmgr.C: class functions for managing boundary conditions.
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
@@ -471,8 +471,7 @@ NumberSys* BCmgr::getNumberSys (const char  name,
 {
   const char  routine[] = "BCmgr::getNumberSys";
   const int_t nsys  = _numsys.size();
-  const int_t cmode = clamp (mode, static_cast<int_t>(0),
-			             static_cast<int_t>(2));
+  const int_t cmode = clamp (mode,static_cast<int_t>(0),static_cast<int_t>(2));
   char        err[StrMax], selectname = name;
   NumberSys*  N = 0;
 
@@ -547,7 +546,7 @@ void BCmgr::buildnum (const char*       session,
       }
     }
 
-    Femlib::synchronize();      // -- Ensure creation has completed.            
+    Femlib::synchronize();      // -- Ensure creation has completed.
     num.clear ();
     num.open  (file);
 
@@ -807,3 +806,20 @@ void BCmgr::buildsurf (FEML*             file,
     }
   }
 }
+
+
+int_t BCmgr::nWalls () const
+// ---------------------------------------------------------------------------
+// Return the number of edges that have descriptor of "wall".
+// ---------------------------------------------------------------------------
+{
+  vector<char*>::const_iterator bc ;
+  int_t                         count = 0;
+
+  for (bc = _descript.begin(); bc != _descript.end(); bc++)
+    if (!strcmp (*bc, "wall")) count++;
+
+  return count;
+}
+
+

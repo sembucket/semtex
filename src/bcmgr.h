@@ -1,7 +1,6 @@
 #ifndef BCMGR_H
 #define BCMGR_H
 
-
 typedef struct bctriple { char group; int_t elmt; int_t side; } BCtriple;
 
 
@@ -21,6 +20,7 @@ public:
   NumberSys*         getNumberSys (const char, const int_t = 0);
   vector<BCtriple*>& getBCedges   () { return _elmtbc; }
   int_t              nBCedges     () const { return _elmtbc.size(); }
+  int_t              nWalls       () const;
 
   class CondRecd {
   public: 

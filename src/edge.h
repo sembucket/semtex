@@ -22,14 +22,21 @@ public:
   void   mulY      (real_t*)                                             const;
   void   divY      (real_t*)                                             const;
 
+  bool   inGroup     (const char* grp) const { return !(strcmp (grp,_group)); }
   void   addForGroup (const char*,const real_t,real_t*)                  const;
   void   setForGroup (const char*,const real_t,real_t*)                  const;
 
-  real_t normalFlux  (const char*,const real_t*,const real_t*,real_t*)   const;
-  real_t gradientFlux(const char*,const real_t*,real_t*)                 const;
+  real_t vectorFlux (const char*,const real_t*,const real_t*,real_t*)    const;
+  real_t scalarFlux (const char*,const real_t*,real_t*)                  const;
 
-  Vector normalTraction (const char*,const real_t*,real_t*)              const;
-  Vector tangentTraction(const char*,const real_t*,const real_t*,real_t*)const;
+  Vector normTraction (const char*,const real_t*,real_t*)                const;
+  Vector tangTraction (const char*,const real_t*,const real_t*,real_t*)  const;
+
+  void traction (const int_t,const real_t, 
+		 const real_t*,const real_t*,const real_t*,const real_t*,
+		 const real_t*,const real_t*,const real_t*,const real_t*,
+		 real_t*,real_t*,real_t*,real_t*,real_t*,
+		 real_t*,real_t*,real_t*,real_t*,real_t*,real_t*)        const;
 
 protected:
   int_t          _np     ;	// Matches Geometry::nP().

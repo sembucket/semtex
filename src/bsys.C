@@ -27,9 +27,9 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
 // ---------------------------------------------------------------------------
 // Construct internal storage for boundary systems for all modes.
 // ---------------------------------------------------------------------------
-  field_name (name),
-  nbound     (bcmgr -> nBCedges()),
-  mixed      (0)
+  _field_name (name),
+  _nbound     (bcmgr -> nBCedges()),
+  _mixed      (0)
 {
   const int_t                 np = Geometry::nP();
   vector<BCtriple*>::iterator edge;
@@ -39,34 +39,34 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
   char                        buf[StrMax], group;
   int_t                       i, j, k, offset;
 
-  number = new NumberSys* [3];
-  for (i = 0; i < 3; i++) number[i] = bcmgr -> getNumberSys (field_name, i);
+  _number = new NumberSys* [3];
+  for (i = 0; i < 3; i++) _number[i] = bcmgr -> getNumberSys (_field_name, i);
 
-  boundary = new vector<Boundary*> [3];
+  _boundary = new vector<Boundary*> [3];
 
-  if (!nbound) { for (i = 0; i < 3; i++) boundary[i].resize (0); return; }
+  if (!_nbound) { for (i = 0; i < 3; i++) _boundary[i].resize (0); return; }
 
-  // -- Construct vectors of Boundary pointers using BCmgr.
+  // -- Construct vectors of Boundary pointers using bcmgr.
 
-  for (i = 0; i < 3; i++) boundary[i].resize (nbound);
+  for (i = 0; i < 3; i++) _boundary[i].resize (_nbound);
  
   // -- Mode 0 boundaries, and default settings for other modes.
 
   edge = bcmgr -> getBCedges().begin();  
-  for (offset = 0, i = 0; i < nbound; i++, edge++, offset += np) {
+  for (offset = 0, i = 0; i < _nbound; i++, edge++, offset += np) {
     BCT   = *edge;
     group = BCT -> group;
     j     = BCT -> elmt;
     k     = BCT -> side;
     S     = bcmgr -> groupInfo    (group);
-    C     = bcmgr -> getCondition (group, field_name, 0);
+    C     = bcmgr -> getCondition (group, _field_name, 0);
     
     C -> describe (buf);
-    if (strstr (buf, "mixed")) mixed = 1;
+    if (strstr (buf, "mixed")) _mixed = true;
     
-    boundary[0][i] =
-    boundary[1][i] =
-    boundary[2][i] = new Boundary (i, S, C, elmt[j], k);
+    _boundary[0][i] =
+    _boundary[1][i] =
+    _boundary[2][i] = new Boundary (i, S, C, elmt[j], k);
   }
 
   if (!(Geometry::system() == Geometry::Cylindrical && Geometry::nDim() == 3))
@@ -75,31 +75,31 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
   // -- Mode 1 boundaries, adjusted on axis.
 
   edge = bcmgr -> getBCedges().begin();  
-  for (offset = 0, i = 0; i < nbound; i++, edge++, offset += np) {
+  for (offset = 0, i = 0; i < _nbound; i++, edge++, offset += np) {
     BCT   = *edge;
     group = BCT -> group;
     j     = BCT -> elmt;
     k     = BCT -> side;
     S     = bcmgr -> groupInfo    (group);
-    C     = bcmgr -> getCondition (group, field_name, 1);
+    C     = bcmgr -> getCondition (group, _field_name, 1);
 
     if (strstr (S, "axis"))
-      boundary[1][i] = new Boundary (i, "axis", C, elmt[j], k);
+      _boundary[1][i] = new Boundary (i, "axis", C, elmt[j], k);
   }
 
   // -- Mode 2 boundaries,adjusted on axis.
   
   edge = bcmgr -> getBCedges().begin();
-  for (offset = 0, i = 0; i < nbound; i++, edge++, offset += np) {
+  for (offset = 0, i = 0; i < _nbound; i++, edge++, offset += np) {
     BCT   = *edge;
     group = BCT -> group;
     j     = BCT -> elmt;
     k     = BCT -> side;
     S     = bcmgr -> groupInfo    (group);
-    C     = bcmgr -> getCondition (group, field_name, 2);
+    C     = bcmgr -> getCondition (group, _field_name, 2);
 
     if (strstr (bcmgr -> groupInfo (group), "axis"))
-      boundary[2][i] = new Boundary (i, "axis", C, elmt[j], k);
+      _boundary[2][i] = new Boundary (i, "axis", C, elmt[j], k);
   }
 }
 
@@ -112,7 +112,7 @@ const vector<Boundary*>& BoundarySys::BCs (const int_t mode) const
 // ---------------------------------------------------------------------------
 {
   return
-    boundary [clamp (mode,static_cast<int_t>(0),static_cast<int_t>(2))];
+    _boundary [clamp (mode,static_cast<int_t>(0),static_cast<int_t>(2))];
 }
 
 
@@ -123,7 +123,7 @@ const NumberSys* BoundarySys::Nsys (const int_t mode) const
 // ---------------------------------------------------------------------------
 {
   return
-    number [clamp (mode,static_cast<int_t>(0),static_cast<int_t>(2))];
+    _number [clamp(mode,static_cast<int_t>(0),static_cast<int_t>(2))];
 }
 
 
@@ -134,5 +134,5 @@ const real_t* BoundarySys::Imass (const int_t mode) const
 // ---------------------------------------------------------------------------
 {
   return 
-    number [clamp (mode,static_cast<int_t>(0),static_cast<int_t>(2))]->imass();
+    _number [clamp(mode,static_cast<int_t>(0),static_cast<int_t>(2))]->imass();
 }

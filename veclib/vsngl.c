@@ -6,8 +6,6 @@
 
 #include <cfemdef.h>
 
-
-
 void vsngl (integer n, const double *x, integer incx, float *y, integer incy)
 {
   register integer i;

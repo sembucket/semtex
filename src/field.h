@@ -34,12 +34,15 @@ public:
   void addToM0Boundaries     (const real_t, const char*);
   void bTransform            (const int_t);
 
-  static real_t gradientFlux    (const Field*);
-  static Vector normalTraction  (const Field*);
-  static Vector tangentTraction (const Field*, const Field*, const Field* = 0);
-  static void   normTractionV   (real_t*, real_t*, const Field*);
-  static void   tangTractionV   (real_t*, real_t*, real_t*, const Field*,
-				 const Field*, const Field* = 0);
+  static real_t scalarFlux    (const Field*);
+  static Vector normTraction  (const Field*);
+  static Vector tangTraction  (const Field*, const Field*, const Field* = 0);
+  static void   normTractionV (real_t*, real_t*, const Field*);
+  static void   tangTractionV (real_t*, real_t*, real_t*, const Field*,
+			       const Field*, const Field* = 0);
+  static void   traction      (real_t*, real_t*, real_t*, real_t*, real_t*,
+			       const int_t, const Field*,
+			       const Field*, const Field*, const Field* = 0);
 
   static void   coupleBCs    (Field*, Field*, const int_t);
   static real_t modeConstant (const char, const int_t, const real_t);

@@ -98,7 +98,7 @@ void writeField (ofstream&          file   ,
   const char routine [] = "writeField";
   const char *hdr_fmt[] = { 
     "%-25s "    "Session\n",
-    "%-25s "     "Created\n",
+    "%-25s "    "Created\n",
     "%-25s "    "Nr, Ns, Nz, Elements\n",
     "%-25d "    "Step\n",
     "%-25.6g "  "Time\n",
@@ -109,8 +109,8 @@ void writeField (ofstream&          file   ,
     "%-25s "    "Format\n"
   };
 
-  char          s1[StrMax], s2[StrMax];
-  time_t        tp (time (0));
+  char        s1[StrMax], s2[StrMax];
+  time_t      tp (time (0));
   int_t       i;
   const int_t N = field.size();
 
@@ -160,7 +160,6 @@ void writeField (ofstream&          file   ,
     file << flush;
   }
 }
-
 
 
 Header::Header ()
