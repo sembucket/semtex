@@ -806,7 +806,7 @@ static void Finterp (vector<AuxField*>& u   ,
       if (NZ & 1) {
 
 	data[i] = 0.5 * work[0];
-	for (k = 1; k < NZH; k++) {
+	for (k = 1; k <= NZH; k++) {
 	  Im       = k  + k;
 	  Re       = Im - 1;
 	  phase    = k * betaZ;
@@ -816,7 +816,7 @@ static void Finterp (vector<AuxField*>& u   ,
       } else {
 
 	data[i] = 0.5 * work[0];
-	for (k = 1; k < NHM; k++) {
+	for (k = 1; k <= NHM; k++) {
 	  Im       = k  + k;
 	  Re       = Im - 1;
 	  phase    = k * betaZ;
