@@ -58,6 +58,18 @@ avgdump moden noiz rstress xplane sem2tec convert repeatz: \
 meshpr:	feml.o mesh.o meshpr.o $(SEMHDR)
 	$(LD) -o $@ $@.o feml.o mesh.o $(LDFLAGS)
 
+
+# ----------------------------------------------------------------------------
+# Build wallmesh, 2D mesh filter utility for use with meshpr.
+#
+WALOBJ = wallmesh.o bsys.o bcmgr.o condition.o pressure.o edge.o	\
+	 family.o feml.o mesh.o element.o geometry.o integration.o
+         
+$(WALOBJ): $(SEMHDR)
+
+wallmesh: $(WALOBJ)
+	$(LD) -o $@ $(WALOBJ) $(LDFLAGS)
+
 # ----------------------------------------------------------------------------
 # Build calc, an interactive interface to the alplib function parser.
 #

@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// meshpr.C:  utility to generate mesh nodes from mesh description file.
+// meshpr.C: utility to generate mesh nodes from mesh description file.
 //
 // Copyright (c) 1995 <--> $Date$, Hugh Blackburn
 //
@@ -17,7 +17,7 @@
 //   -b <num> ... override wavenumber beta to be <num> (3D)
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id";
+static char RCS[] = "$Id$";
 
 #include <cstdlib>
 #include <iostream>
@@ -25,14 +25,14 @@ static char RCS[] = "$Id";
 
 using namespace std;
 
-#include <cfemdef.h>
-#include <femlib.h>
-#include <utility.h>
-#include <mesh.h>
+#include "cfemdef.h"
+#include "femlib.h"
+#include "utility.h"
+#include "mesh.h"
 
 static char prog[] = "meshpr";
-static void getargs (int, char**, char*&, int&, int&,
-		     int&, int&, int&, int&, real&);
+static void getargs (int_t, char**, char*&, int_t&, int_t&,
+		     int_t&, int_t&, int_t&, int_t&, real_t&);
 
 int main (int    argc,
 	  char** argv)
@@ -43,14 +43,14 @@ int main (int    argc,
 {
   // -- Set defaults & parse command line.
 
-  char* session = 0;
-  int   verb    = 0,
-        check   = 1,
-        threed  = 0,
-        np      = 0,
-        nz      = 0,
-        basis   = GLJ;
-  real  beta    = -1.;
+  char*  session = 0;
+  int_t  verb    = 0,
+         check   = 1,
+         threed  = 0,
+         np      = 0,
+         nz      = 0,
+         basis   = GLJ;
+  real_t beta    = -1.;
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session, verb, check, np, nz, threed, basis, beta);
@@ -59,11 +59,11 @@ int main (int    argc,
 
   FEML feml (session);
 
-  if   (verb)                 Femlib::value ("VERBOSE", verb);
-  if   (np)                   Femlib::value ("N_P",  np  );
-  else  np = static_cast<int>(Femlib::value ("N_P"       ));
-  if   (nz)                   Femlib::value ("N_Z",     nz  );
-  else  nz = static_cast<int>(Femlib::value ("N_Z"          ));
+  if   (verb) Femlib::ivalue ("VERBOSE", verb);
+  if   (np)   Femlib::ivalue ("N_P",     np  );
+  else  np =  Femlib::ivalue ("N_P");
+  if   (nz)   Femlib::ivalue ("N_Z",     nz  );
+  else  nz =  Femlib::ivalue ("N_Z");
 
   if (nz > 1 && beta > 0.0) Femlib::value ("BETA", beta);
 
@@ -73,14 +73,14 @@ int main (int    argc,
 
   // -- Generate mesh knots and print up.
 
-  const int    NEL  = M.nEl();
-  const int    NTOT = np * np;
-  const real   dz   = Femlib::value ("TWOPI/BETA") / nz;
-  register int ID, j, k;
-  vector<real> x (np*np), y (np*np), unimesh (np);
-  real         *mesh_r, *mesh_s;
-  const real   *zero_r, *zero_s;
-  real         z;
+  const int_t    NEL  = M.nEl();
+  const int_t    NTOT = np * np;
+  const real_t   dz   = Femlib::value ("TWOPI/BETA") / nz;
+  register int_t ID, j, k;
+  vector<real_t> x (np*np), y (np*np), unimesh (np);
+  real_t         *mesh_r, *mesh_s;
+  const real_t   *zero_r, *zero_s;
+  real_t         z;
 
   if (!threed) cout
       << np  << " "
@@ -93,12 +93,12 @@ int main (int    argc,
     zero_r = zero_s = &unimesh[0];
   } else {
     Femlib::quadrature (&zero_r, 0, 0, 0, np, 'L', 0.0, 0.0);
-    Femlib::quadrature (&zero_s, 0, 0, 0, np, 'L', 0.0, 1.0);
+    Femlib::quadrature (&zero_s, 0, 0, 0, np, 'L', 0.0, 0.0);
   }
 
   if (threed) {
 
-    // -- Print out x, y, z for every mesh location, in planes.
+    // -- Print_t out x, y, z for every mesh location, in planes.
 
     nz = (nz > 1) ? nz : 0;
     for (k = 0; k <= nz; k++) {
@@ -112,7 +112,7 @@ int main (int    argc,
 
   } else {
    
-    // -- Print out x-y mesh.
+    // -- Print_t out x-y mesh.
 
     for (ID = 0; ID < NEL; ID++) {
       M.meshElmt (ID, np, zero_r, zero_r, &x[0], &y[0]);
@@ -120,7 +120,7 @@ int main (int    argc,
 	cout << setw(15) << x[j] << setw(15) << y[j] << endl;
     }
   
-    // -- Print out z-mesh.
+    // -- Print_t out z-mesh.
     
     if (nz > 1) for (j = 0; j <= nz; j++) cout << setw(15) << j * dz << endl;
   }
@@ -130,16 +130,16 @@ int main (int    argc,
 }
 
 
-static void getargs (int    argc   , 
-		     char** argv   ,
-		     char*& session,
-		     int&   verb   ,
-		     int&   check  ,
-		     int&   np     ,
-		     int&   nz     ,
-		     int&   threed ,
-		     int&   basis  ,
-		     real&  beta   )
+static void getargs (int     argc   , 
+		     char**  argv   ,
+		     char*&  session,
+		     int_t&  verb   ,
+		     int_t&  check  ,
+		     int_t&  np     ,
+		     int_t&  nz     ,
+		     int_t&  threed ,
+		     int_t&  basis  ,
+		     real_t& beta   )
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------

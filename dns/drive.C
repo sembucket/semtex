@@ -29,7 +29,7 @@ static char RCS[] = "$Id$";
 static char prog[] = "dns";
 static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
-			BCmgr*&, BoundarySys*&, Domain*&);
+			BCmgr*&, Domain*&);
 
 void integrateNS (Domain*, DNSAnalyser*, Flowrate*);
 
@@ -45,7 +45,6 @@ int main (int    argc,
   FEML*            file;
   Mesh*            mesh;
   BCmgr*           bman;
-  BoundarySys*     bsys;
   Domain*          domain;
   DNSAnalyser*     analyst;
   Flowrate*        discharge = 0;
@@ -53,7 +52,7 @@ int main (int    argc,
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session);
 
-  preprocess (session, file, mesh, elmt, bman, bsys, domain);
+  preprocess (session, file, mesh, elmt, bman, domain);
 
   analyst = new DNSAnalyser (domain, bman, file);
   
@@ -130,7 +129,6 @@ static void preprocess (const char*       session,
 			Mesh*&            mesh   ,
 			vector<Element*>& elmt   ,
 			BCmgr*&           bman   ,
-			BoundarySys*&     bsys   ,
 			Domain*&          domain )
 // ---------------------------------------------------------------------------
 // Create objects needed for execution, given the session file name.

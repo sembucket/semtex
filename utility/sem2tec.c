@@ -13,9 +13,9 @@ static char RCS[] = "$Id$";
 #include <string.h>
 #include <ctype.h>
 
-#include <cfemdef.h>
-#include <cveclib.h>
-#include <cfemlib.h>
+#include "cfemdef.h"
+#include "cveclib.h"
+#include "cfemlib.h"
 
 #define MAXFIELDS 32
 

@@ -28,7 +28,7 @@
 
 static char RCS[] = "$Id$";
 
-#include <sem.h>
+#include "sem.h"
 
 static int uniform = 0;
 
