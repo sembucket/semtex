@@ -44,6 +44,8 @@ void   dgll     (const integer, const double*, double**, double**);
 void    uniknot      (const integer, double*);
 integer quadComplete (const integer, const integer);
 
+double pnmod    (const double, const integer);
+
 /* -- Routines from operators.c: */
 
 void  dQuadOps(const integer   rule, /* input: quadrature rule: GL or LL     */

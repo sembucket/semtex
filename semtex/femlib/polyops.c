@@ -510,7 +510,7 @@ double pnleg (const double  z,
   register integer k;
   register double  dk, p1, p2, p3;
  
-  if (n == 0) return 1.0;
+  if (n < 1) return 1.0;
 
   p1 = 1.0;
   p3 = p2 = z;
@@ -536,7 +536,7 @@ double pndleg (const double  z,
   register integer k;
   register double  dk, p1, p2, p3, p1d, p2d, p3d;
 
-  if (n == 0) return 0.0;
+  if (n < 1) return 0.0;
 
   p2  = z;
   p1d = 0.0;
@@ -654,4 +654,39 @@ integer quadComplete (const integer dim,
   n >>= 1;
 
   return MAX (n, 2);
+}
+
+
+double pnmod (const double  z,
+	      const integer n)
+/* ------------------------------------------------------------------------- *
+ * Compute the value of the nth order modal basis function at z.
+ *
+ * p_0(z) = 0.5  (1 + z)
+ *
+ * p_1(z) = 0.5  (1 - z)
+ *                                1,1
+ * p_n(z) = 0.25 (1 + z) (1 - z) J   (z)   n >= 2.
+ *                                n-2
+ *
+ * where J is a Jacobi polynomial.
+ *
+ * Refs:
+ *
+ * eq.(2.16), R.D. Henderson, "Adaptive Spectral Element Methods", in
+ * "High-Order Methods for Computational Physics", eds T.J. Barth &
+ * H. Deconinck, Springer, 1999.
+ *
+ * eq.(2.40), G.E. Karniadakis & S.J. Sherwin, "Spectral/hp Element
+ * Methods for CFD", Oxford, 1999.
+ * ------------------------------------------------------------------------- */
+{
+  double poly, pder, polym1, pderm1, polym2, pderm2;
+ 
+  if (n  < 1) return 0.5 * (1.0 + z);
+  if (n == 1) return 0.5 * (1.0 - z);
+
+  jacobf (n-2, z, 1.0, 1.0, &poly, &pder, &polym1, &pderm1, &polym2, &pderm2);
+
+  return 0.25 * (1.0 + z) * (1.0 - z) * poly;
 }

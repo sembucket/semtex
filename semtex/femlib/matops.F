@@ -134,7 +134,7 @@ C
       CALL DGEMM ('N','N',NP,NP*NEL,NP,1.0D0,DT,NP,X,NP,0.0D0,T,NP)
       DO I = 1, NEL
          CALL DGEMM ('N','N',NP,NP,NP,1.0D0,T(1,1,I),
-     +        NP,DV,NP,0.0D0,Y(1,1,I),NP)
+     +        NP,DV ,NP,0.0D0,Y(1,1,I),NP)
       ENDDO
 #endif
       RETURN

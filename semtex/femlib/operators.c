@@ -351,7 +351,7 @@ void dglldpc (const integer  np,
       k = i + np * np;
       p -> dtab[k] = (i < nm) ?  0.5*(i+i+1) : 0.5*nm;
       for (j = 0; j < np; j++) {
-	k = j + i * np;
+	k = i + j * np;
 	p -> dtab[k] = pnleg (z[j], i);
       }
     }
@@ -402,7 +402,7 @@ void dglldpt (const integer  np,
  * quadrature point, Ck correspond to 1/\gamma_k in Canuto et al., and
  * Wj are the quadrature weights for the corresponding points.
  *
- * The equivalent 2D tensor-product relationships are
+ * The equivalent 2D tensor-product (or sum-factorisation) relationships are
  *                                            t
  *   Aij = Ci Cj Wp Lip Wq Upq Ljq = Rip Upq Rqj
  *                                    t
@@ -433,7 +433,7 @@ void dglldpt (const integer  np,
     register integer i, j, k, l, r, s;
     const integer    np2 = np * np;
     const double     *tab, *w;
-    double           ci, cj;
+    double           ci;
 
     p = (legTran*) calloc (1, sizeof (legTran));
     if (lThead) p -> next = lThead;
@@ -488,3 +488,247 @@ void dglldpt (const integer  np,
   if (fu) *fu = (const double*) p -> UF;
   if (bu) *bu = (const double*) p -> UB;
 }
+
+
+typedef struct modcoef {	/* -- Table for modal expansion transform -- */
+  integer         np  ;		/* Number of mesh points                     */
+  double*         dtab;		/* np*np table of basis function values      */
+  struct modcoef* next;		/* link to next one                          */
+} modCoef;			/* ----------------------------------------- */
+
+static modCoef* mChead = 0;
+
+
+void dglmdpc (const integer  np,
+	      const double** cd)
+/* ------------------------------------------------------------------------- *
+ * Return pointers to look-up tables of modal expansion functions and
+ * weights, based on the Gauss--Lobatto nodes.  The tables can be used
+ * in calculating discrete Legendre transforms.
+ *
+ * Tables contain values of modal expansion functions evaluated at GLL
+ * quadrature points, and the associated quadrature weights.  Storage
+ * is row-major: the first np points contain values of the zeroth
+ * modal basis function at the GLL points, the second np points the
+ * values of the first basis function, etc.  So rows index polynomial,
+ * while columns index spatial location.
+ *
+ * The modal expansion functions are a set of hierarchical functions
+ * based on the Jacobi polynomials.
+ *
+ * p_0(z) = 0.5  (1 + z)
+ *
+ * p_1(z) = 0.5  (1 - z)
+ *                                1,1
+ * p_n(z) = 0.25 (1 + z) (1 - z) J   (z)   n >= 2.
+ *                                n-2
+ *
+ * where J is a Jacobi polynomial.
+ * ------------------------------------------------------------------------- */
+{
+  register integer  found = 0;
+  register modCoef* p;
+
+  for (p = mChead; p; p = p->next) {
+    found = p -> np == np;
+    if (found) break;
+  }
+
+  if (!found) {		/* -- Make more storage and operators. */
+    register integer i, j, k;
+    const double     *z;
+
+    p = (modCoef*) calloc (1, sizeof (modCoef));
+    if (mChead) p -> next = mChead;
+    mChead = p;
+
+    p -> np   = np;
+    p -> dtab = dvector (0, np * np - 1);
+
+    dQuadOps (LL, np, np, &z, 0, 0, 0, 0, 0, 0);
+
+    for (i = 0; i < np; i++)
+      for (j = 0; j < np; j++) {
+	k = i + j * np;
+	p -> dtab[k] = pnmod (z[j], i);
+      }
+  }
+
+  /* -- p now points to valid storage: return requested operators. */
+
+  if (cd) *cd = (const double*) p -> dtab;
+}
+
+
+typedef struct modtran {	/* - GL modal expansion transform matrices - */
+  integer         np  ;		/* Number of mesh points                     */
+  double*         FW  ;		/* np*np forward modal transform matrix.     */
+  double*         FT  ;		/* Transpose of FW.                          */
+  double*         BW  ;		/* np*np inverse modal transform matrix.     */
+  double*         BT  ;		/* Transpose of BW.                          */
+  double*         UF  ;		/* np^2*np^2 forward transform matrix.       */
+  double*         UB  ;		/* np^2*np^2 inverse transform matrix.       */
+  struct modtran* next;		/* link to next one                          */
+} modTran;			/* ----------------------------------------- */
+
+static modTran* mThead = 0;
+
+
+void dglmdpt (const integer  np,
+	      const double** fw,
+	      const double** ft,
+	      const double** bw,
+	      const double** bt,
+	      const double** fu,
+	      const double** bu)
+/* ------------------------------------------------------------------------- *
+
+ * Return pointers to matrices for 1D and 2D modal expansion
+ * transforms of np data, based on the Gauss--Lobatto nodes.  The
+ * "modal" expansion functions are a set of hierarchical basis
+ * functions closely associated with the GLL Lagrange basis. The
+ * transform equations are just the standard "Normal form" projections
+ * of one basis onto another.  (For a Legendre tranform -- see dglldpt
+ * -- the equations are simplified by the discrete orthogonality of
+ * all the basis functions.)  Here, not all (but most) of the basis
+ * functions are orthogonal.  The treatment and intended use of the
+ * transform matrices is similar to that for dglldpt.
+ *
+ * The 1D discrete forward transform is defined as
+ *
+ *   ^         t -1
+ *   u = [B W B ]   B W u  = F u
+ *   ~                  ~      ~
+ * 
+ * with inverse
+ *
+ *         ^
+ *   u = B u
+ *   ~     ~
+ *
+ * where u_i is a vector of function values evaluated at the ith
+ * quadrature point, B_ji is the jth basis function evaluated at the
+ * ith quadrature point and W_i are the associated quadrature weights.
+ * The vector of coefficients of the new basis functions is u^.
+ *
+ * The equivalent 2D tensor-product (sum-factorisation) relationships are
+ *   ^              t
+ *   uij = Fip upq Fqj
+ *             ^    t
+ *   uij = Bip upq Bqj
+ *
+ * Instead of these tensor-product forms, we can also "unroll" the
+ * matrix multiplies above to be a single matrix-vector product in
+ * each case, so that
+ *   ^                             ^
+ *   uij = Fijpq upq,  uij = Bijpq upq.
+ *
+ * This form, although involving more operations, can actually be
+ * faster on vector architectures (depending on np).
+ *
+ * This routine supplies the transform matrices.  If any pointer is
+ * passed in as NULL, we don't return the corresponding value.
+ * Matrices are supplied 1D, with row-major ordering.
+ *
+ * Refs:
+ *
+ * eq.(2.16), R.D. Henderson, "Adaptive Spectral Element Methods", in
+ * "High-Order Methods for Computational Physics", eds T.J. Barth &
+ * H. Deconinck, Springer, 1999.
+ *
+ * eq.(2.40), G.E. Karniadakis & S.J. Sherwin, "Spectral/hp Element
+ * Methods for CFD", Oxford, 1999.
+ * ------------------------------------------------------------------------- */
+{
+  const char routine[] = "dglmdpt";
+
+  register integer  found = 0;
+  register modTran* p;
+
+  for (p = mThead; p; p = p->next) {
+    found = p -> np == np;
+    if (found) break;
+  }
+
+  if (!found) {		/* -- Make more storage and operators. */
+    register integer i, j, k, l, r, s;
+    const integer    np2 = np * np;
+    const double     *B, *W;
+    double           *work, *BtW, *BtWB, *rwrk;
+    integer          *iwrk, info;
+
+    p = (modTran*) calloc (1, sizeof (modTran));
+    if (mThead) p -> next = mThead;
+    mThead = p;
+
+    p -> np = np;
+    p -> FW = dvector (0, 4 * np2 + 2 * np2*np2 - 1);
+    p -> FT = p -> FW + np2;
+    p -> BW = p -> FT + np2;
+    p -> BT = p -> BW + np2;
+    p -> UF = p -> BT + np2;
+    p -> UB = p -> UF + np2*np2;
+
+    dglmdpc  (np, &B);
+    dQuadOps (LL, np, np, 0, 0, &W, 0, 0, 0, 0);
+
+    iwrk = ivector (0, np - 1);
+    work = dvector (0, 4 * np2 - 1);
+    BtW  = work + np2;
+    BtWB = BtW  + np2;
+    rwrk = BtWB + np2;
+
+    /* -- Create matrices BtW & (symmetric) BtWB. */
+    
+    for (i = 0; i < np; i++)
+      dsmul (np, W[i], B + i * np, 1, BtW + i, np);
+
+    dmxm (BtW, np, (double*) B, np, BtWB, np);
+
+    /* -- Invert BtWB. */
+
+    dgetrf (np, np, BtWB, np, iwrk, &info);
+    if (info) message (routine, "matrix BtWB has singular factor", ERROR);
+
+    dgetri (np, BtWB, np, iwrk, rwrk, 2*np2, &info);
+    if (info) message (routine, "matrix BtWB is singular", ERROR);
+
+    /* -- Create forward (FW) & inverse (BW) 1D transform matrices. */
+
+    dmxm  (BtWB, np, BtW, np, p->FW, np);
+    dcopy (np2, B, 1,         p->BW,  1);
+
+    /* -- And their transposes. */
+
+    for (i = 0; i < np; i++)
+      for (j = 0; j < np; j++) {
+	p->FT[i*np + j] = p->FW[j*np + i];
+	p->BT[i*np + j] = p->BW[j*np + i];
+      }
+
+    /* -- Manufacture 2D forward, inverse DPT matrices. */
+
+    for (k = 0, i = 0; i < np; i++)
+      for (j = 0; j < np; j++, k++)
+	for (l = 0, r = 0; r < np; r++)
+	  for (s = 0; s < np; s++, l++) {
+	    p->UF[k*np2 + l] = p->FW[i*np + r] * p->FT[s*np + j];
+	    p->UB[k*np2 + l] = p->BW[i*np + r] * p->BT[s*np + j];
+	  }
+
+    freeIvector (iwrk, 0);
+    freeDvector (work, 0);
+  }
+
+  /* p now points to valid storage: return requested operators. */
+
+  if (fw) *fw = (const double*) p -> FW;
+  if (ft) *ft = (const double*) p -> FT;
+  if (bw) *bw = (const double*) p -> BW;
+  if (bt) *bt = (const double*) p -> BT;
+  if (fu) *fu = (const double*) p -> UF;
+  if (bu) *bu = (const double*) p -> UB;
+}
+
+
+

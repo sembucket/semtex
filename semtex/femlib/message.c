@@ -1,9 +1,8 @@
 /*****************************************************************************
  * message.c: message-passing routines, currently MPI-specific.
+ *
+ * $Id$
  *****************************************************************************/
-
-static char
-RCSid[] = "$Id$";
 
 #include <stdio.h>
 #include <string.h>
