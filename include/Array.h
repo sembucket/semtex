@@ -118,7 +118,7 @@ public:
 
   matrix<T>& operator = (const T& src) {
     const long nelts = nr * nc;
-    for (register long i = 0; i < nelts; i++) data[i] = src.data[i];
+    for (register long i = 0; i < nelts; i++) data[i] = src;
     return *this;
   }
 
