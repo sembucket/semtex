@@ -46,7 +46,7 @@
 //     ed E. Doedel & L.S. Tuckerman, Springer. 453--466.
 // [3] R. Barrett, M. Berry, T. Chan, J. Demmel, J. Donato, J. Dongarra, 
 //     V. Eijkhout, R. Pozo, C. Romine & H. van der Vorst (1993),
-      "Templates for the Solution of Linear Systems: Building Blocks for
+//     "Templates for the Solution of Linear Systems: Building Blocks for
 //     Iterative Methods", SIAM Publications.
 // [4] T. C. Oppe, W. D. Joubert & D. R. Kincaid (1988), "NSPCG User's Guide",
 //     Center for Numerical Analysis, University of Texas at Austin.

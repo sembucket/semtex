@@ -41,11 +41,9 @@ void integrate (Domain*        D,
   C3D  = CYL && NDIM == 3;
 
   integer       i, j, k;
-  const real    dt     =           Femlib::value ("D_T");
-  const integer nStep  = (integer) Femlib::value ("N_STEP");
-  const integer nZ     = Geometry::nZProc();
-  const integer ntot   = Geometry::nTotProc();
-  real*         alloc  = new real [(size_t) 2 * NCOM * NORD * ntot];
+  const real    dt    =           Femlib::value ("D_T");
+  const integer nStep = (integer) Femlib::value ("N_STEP");
+  const integer nZ    = Geometry::nZProc();
   Msys**        MMS;
 
   static Msys**      MMSL;
@@ -62,9 +60,11 @@ void integrate (Domain*        D,
   if (!Us) {
     
     // -- Create multi-level storage for velocities and forcing.
-
-    Us = new AuxField** [(size_t) 2 * NORD];
-    Uf = Us + NORD;
+    
+    const integer ntot  = Geometry::nTotProc();
+    real*         alloc = new real [(size_t) 2 * NCOM * NORD * ntot];
+    Us                  = new AuxField** [(size_t) 2 * NORD];
+    Uf                  = Us + NORD;
 
     for (k = 0, i = 0; i < NORD; i++) {
       Us[i] = new AuxField* [(size_t) 2 * NCOM];

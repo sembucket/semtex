@@ -426,6 +426,8 @@ static void readdata (hdr_info&      bhead,
   }
 
   // -- Compute the 2-norms of base and perturbation flows, scale perturbation.
+  //    If the base flow's energy is zero (i.e. we just want to look at the
+  //    perturbation field, have used a zero base field), reset it to be 1.0.
 
   for (i = 0; i < nPfield; i++) {
     U2 += Blas::nrm2 (ntotelmt, u(i), 1);
@@ -433,6 +435,8 @@ static void readdata (hdr_info&      bhead,
       u2 += Blas::nrm2 (ntotelmt, utmp(i)+j*planesize, 1);
     }
   }
+
+  U2 = (U2 < EPSDP) ? 1.0 : U2;
   
   for (i = 0; i < nPfield; i++)
     for (j = 0; j < nzP; j++)

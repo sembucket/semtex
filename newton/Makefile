@@ -8,11 +8,6 @@
 SEM   = ../semtex
 VPATH = $(SEM)/src
 
-ifdef NSPCG
-  F77LIBS += -lnspcg
-  DEFINES += -DNSPCG
-endif
-
 # ----------------------------------------------------------------------------
 # Semtex standard sources.
 #
@@ -27,10 +22,9 @@ SEMHDR   = Sem.h
 
 N_FILES = newton advect integrate bicgstab
 N_OBJ   = $(addsuffix .o,$(N_FILES))
-#	$(LD) -o $@ $(N_OBJ) $(SEMOBJ) $(LDFLAGS) -L. -lnspcg -lftn
 
 newton: sem $(N_OBJ) $(SEMOBJ) newt.h
-	$(LD) -o $@ $(N_OBJ) $(SEMOBJ) -L. -lnspcg -L../semtex/lib/IRIX64 -lfem -lalp -lcomplib.sgimath -lftn -lm 
+	$(LD) -o $@ $(N_OBJ) $(SEMOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Header dependency.
@@ -40,7 +34,17 @@ $(SEMOBJ): $(SEMHDR)
 # ----------------------------------------------------------------------------
 # Standard rules and definitions.
 #
+
 include $(VPATH)/Makefile
+
+# ----------------------------------------------------------------------------
+# Change variables to use NSPCG library, assumed linked to local directory.
+#
+
+ifdef NSPCG
+  F77LIBS := -L. -lnspcg $(F77LIBS)
+  DEFINES += -DNSPCG
+endif
 
 #-----------------------------------------------------------------------------
 # Machine-dependent compilations.
