@@ -1,35 +1,85 @@
-/*****************************************************************************
- * CALC: a basic calculator using the function parser.
- *
- * Usage: calc [-]
- *****************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+// calc: a basic calculator using the function parser.
+//
+// Usage: calc [-h] [file]
+///////////////////////////////////////////////////////////////////////////////
 
-// $Id$ 
+static char
+RCSid[] = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <iostream.h>
+#include <fstream.h>
+#include <iomanip.h>
 
+#include <Utility.h>
 #include <Femlib.h>
 
-static char buf[FILENAME_MAX];
+static char prog[] = "calc";
+static void getargs (int, char**, ifstream&);
 
 
-int main (int argc, char *argv[])
-/* ========================================================================= *
+int main (int    argc,
+	  char** argv)
+/* ------------------------------------------------------------------------- *
  * Driver.
- * ========================================================================= */
+ * ------------------------------------------------------------------------- */
 {
-  char  *c;
+  char     buf[StrMax];
+  char*    c;
+  ifstream file;
+  
 
-  initialize();
+  Femlib::prep ();
 
-  while (gets (buf)) {
+  getargs (argc, argv, file);
+
+  while (file.getline (buf, FILENAME_MAX))
     if ( (c = strstr (buf, "=")) )
-      interpret(buf);
+      Femlib::value (buf);
     else
-       printf("%-.17g\n", interpret(buf));
-  }
+      cout << setprecision(17) << Femlib::value (buf) << endl;
 
   return EXIT_SUCCESS;
 }
+
+
+static void getargs (int       argc,
+		     char**    argv,
+		     ifstream& file)
+// ---------------------------------------------------------------------------
+// Parse command-line arguments.
+// ---------------------------------------------------------------------------
+{
+  char buf[StrMax], c;
+  char usage[] = "Usage: %s [-h] [file]\n";
+ 
+  while (--argc  && **++argv == '-')
+    switch (c = *++argv[0]) {
+    case 'h':
+      cerr << "-- Calculator operators and functions:" << endl;
+      yy_help ();
+      cerr << endl << "-- Preset internal variables:"  << endl;
+      yy_show ();
+      exit (EXIT_SUCCESS);
+      break;
+    default:
+      sprintf (buf, usage, prog);
+      cout << buf;
+      exit (EXIT_FAILURE);
+      break;
+    }
+  
+  if   (argc == 1) file.open   (*argv, ios::in);
+  else             file.attach (0);
+
+  if (!file) {
+    sprintf (buf, usage, prog);
+    cerr << buf;
+    sprintf (buf, "unable to open file: %s", *argv);
+    message (prog, buf, ERROR);
+  }
+}
+
