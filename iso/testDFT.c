@@ -19,11 +19,11 @@ main()
 /*===========================================================================*/
 {
   int                   c, i, j, k, Npts, TabLen;
-  complex_vector_field  IC;
-  component_handle      head;
-  ivector               Dimension;
-  cvector               Wtab;
-  float                 DFTF;
+  CVF  IC;
+  real**      head;
+  int*               Dimension;
+  complex*               Wtab;
+  real                 DFTF;
 
 
   Dimension = ivect(1, 3);

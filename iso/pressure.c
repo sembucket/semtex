@@ -9,14 +9,14 @@
 
 #include "globals.h"
 
-void pressure(/* input     */ complex_vector_field V,
-                              complex_vector_field G,
-              /* output    */ complex_box          P,
-              /* workspace */ complex_vector_field WK,
-                              complex_box          VV,
-              /* using     */ cvector              Wtab,
-	                      cvector              Stab,
-                              ivector              Dim)
+void pressure(/* input     */ CVF V,
+                              CVF G,
+              /* output    */ CF          P,
+              /* workspace */ CVF WK,
+                              CF          VV,
+              /* using     */ complex*              Wtab,
+	                      complex*              Stab,
+                              int*              Dim)
 /*===========================================================================*/
 /* From the Fourier coefficients of the velocity field (V) and the nonlinear */
 /* terms in the evolution equations (G), compute the Fourier coefficients of */

@@ -1,195 +1,222 @@
-/*===========================================================================
- * RCS Information:
- * ----------------
- * $Author$
- * $Date$
- * $Source$
- * $Revision$
- *===========================================================================*/
+/*****************************************************************************
+ * io.c: I/O, miscellaneous routines.
+ *
+ * $Id$
+ *****************************************************************************/
 
 #include "globals.h"
 
 
-int ispow2(int num)
-/*===========================================================================*/
-/* Is num a strictly positive integer power of two? Yes ==> 1, No ==> 0      */
-/*===========================================================================*/
+void  message (const char* routine, const char* text, int level)
+/* ------------------------------------------------------------------------- *
+ * A simple error handler.
+ * ------------------------------------------------------------------------- */
 {
-  while (num % 2 == 0 && num > 2) num /= 2;
-
-  if (num != 2) return 0; else return 1;
-}
-
-
-FILE *efopen(char *file, char *mode)
-/*===========================================================================*/
-/* fopen file, die if can't.   Legal modes are "r",  "w",  "a" and the       */
-/* extended forms "r+", "w+", "a+": see the man page for more details.       */
-/*===========================================================================*/
-{
-  FILE *fp;
-  
-  if ((fp = fopen(file,mode)) != NULL)
-    return fp;
-  fprintf(stderr, "can't open file %s mode %s\n", file, mode);
-  exit(1);
-  /* NOTREACHED */
-}
-
-void error(/* message */ string error_text)
-/*===========================================================================*/
-/* Error handler...abort.                                                    */
-/*===========================================================================*/
-{
-  (void) fprintf(stderr, "iso: Run-time error...aborting\n");
-  (void) fprintf(stderr, "%s\n", error_text);
-  exit(1);
-}
-
-
-void getargs(int argc, char *argv[], int *Start, string Input_file)
-/*===========================================================================*/
-/* Process command-line arguments.                                           */
-/* Usage: iso -s <start_file> || -r <restart_file>                           */
-/*===========================================================================*/
-{
-  if (argc == 3) {
-    if (argv[1][0] == '-' && argv[1][1] == 'r') {
-      *Start = FALSE;
-      (void) strcpy(Input_file, argv[2]);
-    } else if (argv[1][0] == '-' && argv[1][1] == 's') {
-      (void) strcpy(Input_file, argv[2]);
-    } else {
-      (void) fprintf(stderr, "iso: bad flag %s\n", argv[1]);
-      error("Usage: iso -s <start_file> || -r <restart_file>");
-    }
-  } else {
-    (void) fprintf(stderr, "iso: arg count\n");
-    error("Usage: iso -s <start_file> || -r <restart_file>");
+  switch (level) {
+  case WARNING:
+    fprintf (stderr, "WARNING: %s: %s\n", routine, text); 
+    break;
+  case ERROR:
+    fprintf (stderr, "ERROR: %s: %s\n", routine, text); 
+    break;
+  case REMARK:
+    fprintf (stdout, "%s: %s\n", routine, text);
+    break;
+  default:
+    fprintf (stderr, "bad error level in message: %d\n", level);
+    exit (EXIT_FAILURE);
+    break;
   }
+
+  if (level == ERROR) exit (EXIT_FAILURE);
 }
 
 
-void read_start_file(/* from   */ FILE   *fp,
-                     /* return */ header *Run_info)
-/*===========================================================================*/
-/* Start-up file is a normal ASCII file, with information about simulation   */
-/* parameters.  We store it all in Run-info.  Do some elementary checks.     */
-/* If it all looks OK, we put in a magic number to identify (binary) restart */
-/* files.                                                                    */
-/*===========================================================================*/
+FILE*  efopen (char* file, char* mode)
+/* ------------------------------------------------------------------------- *
+ * fopen file, die if can't.   Legal modes are "r",  "w",  "a" and the
+ * extended forms "r+", "w+", "a+": see the man page for more details.
+ * ------------------------------------------------------------------------- */
 {
-  string line;
-  int    i;
+  FILE*  fp;
+  char   s[STRMAX];
+  
+  if ((fp = fopen (file, mode)) != NULL) return fp;
+
+  sprintf (s, "can't open file %s mode %s\n", file, mode);
+  message ("efopen", s, ERROR);
+}
 
 
-  (void) fgets(Run_info->Title, MAXSTR, fp);
-  i = MAXSTR;
-  while (!(isprint(Run_info->Title[i-1])) && i>0) i--;
-  Run_info->Title[i] = '\0';
-  (void) fprintf(stdout, "Title: %s\n", Run_info->Title);
+void  read_start_file (FILE*    fp,
+		       header*  Info)
+/* ------------------------------------------------------------------------- *
+ * Start-up file is a normal ASCII file, with information about simulation
+ * parameters.  We store it all in Run-info.  Do some elementary checks.
+ * If it all looks OK, we put in a magic number to identify (binary) restart
+ * files.
+ * ------------------------------------------------------------------------- */
+{
+  char    routine[] = "read_start_file";
+  string  line;
+  int     i;
+
+
+  fgets (Info -> Title, STRMAX, fp);
+  i = STRMAX;
+  while (!(isprint (Info -> Title[i-1])) && i>0) i--;
+  Info->Title[i] = '\0';
+  fprintf (stdout, "Title: %s\n", Info -> Title);
 
   i = 0;
-  (void) fgets(line, MAXSTR, fp);
-  while (isspace(line[i])) i++;
-  while (!(isspace(line[i])) && isprint(line[i])) i++;
+  fgets (line, STRMAX, fp);
+  while (isspace (line[i])) i++;
+  while (!(isspace (line[i])) && isprint(line[i])) i++;
   line[i] = '\0';
-  (void) sscanf(line, "%s", Run_info->IC_File);
-  (void) fprintf(stdout, "IC file:             %s\n", Run_info->IC_File);
+  sscanf  (line, "%s", Info -> IC_File);
+  fprintf (stdout, "IC file:             %s\n", Info -> IC_File);
 
-  (void) fgets(line, MAXSTR, fp);
-  (void) sscanf(line, "%d", &Run_info->N_Grid);
-  (void) fprintf(stdout, "Grid size:           %d\n", Run_info->N_Grid);
+  fgets   (line, STRMAX, fp);
+  sscanf  (line, "%d", &Info -> N_Grid);
+  fprintf (stdout, "Grid size:           %d\n", Info -> N_Grid);
 
-  (void) fgets(line, MAXSTR, fp);
-  (void) sscanf(line, "%f", &Run_info->Delta_T);
-  (void) fprintf(stdout, "Time step:           %.2e\n", Run_info->Delta_T);
+  fgets   (line, STRMAX, fp);
+  sscanf  (line, "%f", &Info -> Delta_T);
+  fprintf (stdout, "Time step:           %.2e\n", Info -> Delta_T);
 
-  (void) fgets(line, MAXSTR, fp);
-  (void) sscanf(line, "%d", &Run_info->N_Save);
-  (void) fprintf(stdout, "Save increment:      %d\n", Run_info->N_Save);
+  fgets   (line, STRMAX, fp);
+  sscanf  (line, "%d", &Info -> N_Save);
+  fprintf (stdout, "Save increment:      %d\n", Info -> N_Save);
 
-  (void) fgets(line, MAXSTR, fp);
-  (void) sscanf(line, "%d", &Run_info->Max_Step);
-  (void) fprintf(stdout, "Maximum steps:       %d\n", Run_info->Max_Step);
+  fgets   (line, STRMAX, fp);
+  sscanf  (line, "%d", &Info -> Max_Step);
+  fprintf (stdout, "Maximum steps:       %d\n", Info -> Max_Step);
 
-  (void) fgets(line, MAXSTR, fp);
-  (void) sscanf(line, "%f", &Run_info->K_Visc);
-  (void) fprintf(stdout, "Kinematic viscosity: %.2e\n", Run_info->K_Visc);
+  fgets   (line, STRMAX, fp);
+  sscanf  (line, "%f", &Info -> K_Visc);
+  fprintf (stdout, "Kinematic viscosity: %.2e\n", Info -> K_Visc);
 
 
-  if (!(ispow2(Run_info->N_Grid)))
-    error("Number of modes must be a power of 2");
-  if (Run_info->Delta_T <= 0.0)
-    error("Need a positive timestep");
-  if (Run_info->N_Save > Run_info->Max_Step)
-    error("Save increment must be less than the maximum number of steps");
-  if (Run_info->K_Visc < 0.0)
-    error("Need a non-negative viscosity");
+  if (!(ispow2 (Info -> N_Grid)))
+    message (routine, "Number of modes must be a power of 2",           ERROR);
+  if (Info -> Delta_T <= 0.0)
+    message (routine, "Need a positive timestep",                       ERROR);
+  if (Info -> N_Save > Info -> Max_Step)
+    message (routine, "Save increment exceeds maximum number of steps", ERROR);
+  if (Info -> K_Visc < 0.0)
+    message (routine, "Need a non-negative viscosity",                  ERROR);
 
-  Run_info->Magic = MAGIC;
+  Info -> Magic = MAGIC;
 }
   
 
-void read_components(/* from  */ FILE                  *fp,
-		     /* get   */ complex_vector_field  Z,
-		     /* using */ int                   Npts)
-/*===========================================================================*/
-/* Read the 3 vector components of Z for each location in Fourier space.     */
-/*===========================================================================*/
+void  read_field (FILE*      fp  ,
+		  CVF        Z   ,
+		  const int  Npts)
+/* ------------------------------------------------------------------------- *
+ * Read the 3 components of Z.
+ * ------------------------------------------------------------------------- */
 {
-  if (fread((char *)&Z[1][0][0][0],sizeof(complex), Npts, fp) != Npts)
-    error("Unable to read first component data");
-  if (fread((char *)&Z[2][0][0][0],sizeof(complex), Npts, fp) != Npts)
-    error("Unable to read second component data");
-  if (fread((char *)&Z[3][0][0][0],sizeof(complex), Npts, fp) != Npts)
-    error("Unable to read third component data");
+  const char routine[] = "read_field";
+
+  if (fread (&Z[1][0][0][0], sizeof (complex), Npts, fp) != Npts)
+    message (routine, "Unable to read first component data",  ERROR);
+  if (fread (&Z[2][0][0][0], sizeof (complex), Npts, fp) != Npts)
+    message (routine, "Unable to read second component data", ERROR);
+  if (fread (&Z[3][0][0][0], sizeof (complex), Npts, fp) != Npts)
+    message (routine, "Unable to read third component data",  ERROR);
+}
+  
+
+void write_field (FILE*      fp  ,
+		  CVF        Z   ,
+		  const int  Npts)
+/* ------------------------------------------------------------------------- *
+ * Write the 3 components of Z.
+ * ------------------------------------------------------------------------- */
+{
+  const char routine[] = "write_field";
+
+  if (fwrite (&Z[1][0][0][0], sizeof (complex), Npts, fp) != Npts)
+    message (routine, "Unable to write first component data",  ERROR);
+  if (fwrite (&Z[2][0][0][0], sizeof (complex), Npts, fp) != Npts)
+    message (routine, "Unable to write second component data", ERROR);
+  if (fwrite (&Z[3][0][0][0], sizeof (complex), Npts, fp) != Npts)
+    message (routine, "Unable to write third component data",  ERROR);
 }
 
 
-void make_file_name(/* using  */ header Run_info,
-                    /* return */ string Restart_file)
-/*===========================================================================*/
-/* Restart file names are generated by appending a numeric tag to the end of */
-/* the initial condition filename given in Run_info.  The tag number is the  */
-/* number of timesteps divided by the save interval.                         */
-/*===========================================================================*/
+void make_file_name (const header*  Info,
+		     string         Restart_file)
+/* ------------------------------------------------------------------------- *
+ * Restart file names are generated by appending a numeric tag to the end of
+ * the initial condition filename given in Info.  The tag number is the
+ * number of timesteps divided by the save interval.
+ * ------------------------------------------------------------------------- */
 {
   string tag;
 
-  (void) sprintf(tag, "%d", Run_info.N_Step / Run_info.N_Save); 
-  Restart_file = strcpy(Restart_file, Run_info.IC_File);
-  Restart_file = strcat(Restart_file, ".");
-  Restart_file = strcat(Restart_file, tag);
+  sprintf (tag, "%d", Info -> N_Step / Info -> N_Save); 
+  Restart_file = strcpy (Restart_file, Info -> IC_File);
+  Restart_file = strcat (Restart_file, ".");
+  Restart_file = strcat (Restart_file, tag);
 }
 
 
-void write_restart(/* on    */ FILE                  *fp, 
-		   /* put   */ header                Run_info, 
-		               complex_vector_field  Vel,
-		               complex_vector_field  G_old,
-                   /* using */ int                   Npts)
-/*===========================================================================*/
-/* Save a binary restart-file.                                               */
-/*===========================================================================*/
+void write_restart (FILE*          fp      , 
+		    const header*  Info, 
+		    const CVF      Vel     ,
+		    const CVF      G_old   ,
+		    const int      Npts    )
+/* ------------------------------------------------------------------------- *
+ * Save a binary restart-file.
+ * ------------------------------------------------------------------------- */
 {
-  if (fwrite((char *)&Run_info, 1, sizeof(header), fp) != sizeof(header))
-    error("Couldn't put header on restart file");
-
-  if (fwrite((char *)&Vel[1][0][0][0],sizeof(complex), Npts, fp) != Npts)
-    error("Unable to write first velocity component data on restart file");
-  if (fwrite((char *)&Vel[2][0][0][0],sizeof(complex), Npts, fp) != Npts)
-    error("Unable to write second velocity component data on restart file");
-  if (fwrite((char *)&Vel[3][0][0][0],sizeof(complex), Npts, fp) != Npts)
-    error("Unable to write third velocity component data on restart file");
-
-  if (fwrite((char *)&G_old[1][0][0][0],sizeof(complex), Npts, fp) != Npts)
-    error("Unable to write first G_old component data on restart file");
-  if (fwrite((char *)&G_old[2][0][0][0],sizeof(complex), Npts, fp) != Npts)
-    error("Unable to write second G_old component data on restart file");
-  if (fwrite((char *)&G_old[3][0][0][0],sizeof(complex), Npts, fp) != Npts)
-    error("Unable to write third G_old component data on restart file");
+  write_header (fp, Info);
+  write_field  (fp, Vel,   Npts);
+  write_field  (fp, G_old, Npts);
 }
 
 
-  
+void  print_header (FILE*          fp,
+		    const header*  H )
+/* ------------------------------------------------------------------------- *
+ * Output header info (ASCII).
+ * ------------------------------------------------------------------------- */
+{
+  fprintf (fp, "Simulation name:                  %s\n",  H -> Title   );
+  fprintf (fp, "Root for file names:              %s\n",  H -> IC_File );
+  fprintf (fp, "Grid size:                        %1d\n", H -> N_Grid  );
+  fprintf (fp, "Time step:                        %g\n",  H -> Delta_T );
+  fprintf (fp, "Number of steps between restarts: %1d\n", H -> N_Save  );
+  fprintf (fp, "Maximum number of steps:          %1d\n", H -> Max_Step);
+  fprintf (fp, "Number of steps so far:           %1d\n", H -> N_Step  );
+  fprintf (fp, "Kinematic viscosity:              %g\n",  H -> K_Visc  );
+}
+
+
+void  read_header (FILE*    fp,
+		   header*  H )
+/* ------------------------------------------------------------------------- *
+ * Read header info (binary).
+ * ------------------------------------------------------------------------- */
+{
+  char routine[] = "read_header";
+
+  if (fread (H, 1, sizeof (header), fp) != sizeof (header))
+    message (routine, "Can't get header from file", ERROR);
+
+  if (H -> Magic != MAGIC)
+    message (routine, "input file not an ISO field file", ERROR);   
+}
+
+
+void  write_header (FILE*          fp,
+		    const header*  H )
+/* ------------------------------------------------------------------------- *
+ * Output header info (binary).
+ * ------------------------------------------------------------------------- */
+{
+  if (fwrite (H, 1, sizeof (header), fp) != sizeof (header))
+    message ("write_header", "Can't put header on file", ERROR);
+}

@@ -20,13 +20,13 @@
 
 main(int argc, char *argv[])
 {
-  complex_vector_field U, D;
-  component_handle     headU, headD;
-  ivector              Dim;
-  cvector              Wtab;
+  CVF U, D;
+  real**     headU, headD;
+  int*              Dim;
+  complex*              Wtab;
   header               Run_info;
   int                  i, c, Npts;
-  float                div, Max=0.0;
+  real                div, Max=0.0;
   FILE                 *fp;
 
   if (argc != 2) {

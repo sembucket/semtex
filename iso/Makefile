@@ -1,72 +1,111 @@
 ##############################################################################
 # This directory contains code for simulation of isotropic turbulence by a
-# Fourier Galerkin pseudo-spectral method.   See more extensive comments in 
-# the driver file drive.c
+# Fourier--Galerkin pseudo-spectral method.   See more extensive comments
+# in file drive.c
+#
+# Hugh Blackburn
+# Department of Mechanical Engineering
+# Monash University
+# Clayton 3168
+# Australia
+# hmb@artemis.eng.monash.edu.au
+#
 # $Id$
-
-
 ##############################################################################
-# Compile for SGI 4D and INDIGO running IRIX.R4
-.SUFFIXES:
-.SUFFIXES: .c .o
-DEBUGF    = -g -fullwarn -woff 269-270,287 -float
-DEBUGN    = iso.db
-FINALF    = -O3 -float
-FINALN    = iso
-LIBS      = -lm
-CC        = cc
+# Compilation options and flags.
+
+ISO      = .
+VPATH    = $(ISO)/src
+
+ARCH     = $(shell uname -s)
+PROG     = iso
+
+DEFINES  =
+
+CPPFLAGS = -I.
+
+# ----------- Compiler options for specific machines -------------------------
+
+ifeq ($(ARCH),IRIX)		# -- SGI MIPS R4xxx IRIX5x
+CC	 = cc
+LD	 = cc
+CFLAGS   = -mips2 -fullwarn -g
+LDFLAGS  = $(CFLAGS) -lfpe -lmalloc -lm
+endif
+
+ifeq ($(ARCH),IRIX64)		# -- SGI MIPS R8xxx IRIX6x
+CC       = cc
+LD       = cc
+CFLAGS   = -O3
+LDFLAGS  = $(CFLAGS) -lmalloc -lm
+endif
+
+ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha
+CC       = cc
+LD	 = cc
+CFLAGS   = -O2 -migrate -tune host
+LDFLAGS  = $(CFLAGS) -lm
+endif
 
 HEADER    = globals.h
 
-.c.o:; cc -c -o $@ $(DEBUGF) $*.c
-
 ##############################################################################
-# Make iso.db with debugging compilation. (DEFAULT).
-ISOOBJ    = allocate.o io.o convolve.o integrate.o nonlin.o rc3DFT.o\
-            rcZFFT.o cZFFT.o cYFFT.o cXFFT.o pcYFFT.o pcXFFT.o\
-            maketables.o drive.o energy.o
+# Make iso application.
+ISOOBJ    = allocate.o io.o nonlin.o convolve.o integrate.o energy.o	\
+            FFT.o drive.o
 
-iso.db: $(ISOOBJ) $(HEADER)
-	$(CC) $(DEBUGF) -o $(DEBUGN) $(ISOOBJ) $(LIBS)
-
-
-##############################################################################
-# Make iso with -O3 optimization, after debugging.
-ISOSRC    = allocate.c io.c convolve.c integrate.c nonlin.c rc3DFT.c\
-            rcZFFT.c cZFFT.c cYFFT.c cXFFT.c pcYFFT.c pcXFFT.c\
-            maketables.c drive.c energy.c
-
-iso: 	$(ISOSRC) $(HEADER)
-	$(CC) $(FINALF) -s -o $(FINALN) $(ISOSRC) $(LIBS)
-
+$(PROG): $(ISOOBJ) $(HEADER)
+	$(LD) $(ISOOBJ) -o $@ $(LDFLAGS)
 
 ##############################################################################
 # Make a top-hat spectrum initial conditions file.
-IC1OBJ = allocate.o io.o normalize.o ran2PI.o tophat.o rc3DFT.o\
-         rcZFFT.o cZFFT.o cYFFT.o cXFFT.o pcYFFT.o pcXFFT.o\
-	 makeIC1.o energy.o maketables.o
+IC1OBJ = allocate.o io.o normalize.o energy.o ran2PI.o tophat.o FFT.o makeIC1.o
 
-makeIC: $(IC1OBJ) $(HEADER)
-	$(CC) $(DEBUGF) -o makeIC $(IC1OBJ) $(LIBS)
+makeIC1: $(IC1OBJ) $(HEADER)
+	$(LD) $(IC1OBJ) -o $@ $(LDFLAGS)
 
+##############################################################################
+# Make ICs for 3D Taylor-Green vortex.
+IC2OBJ = allocate.o io.o FFT.o taylorgreen.o makeIC2.o
+
+makeIC2: $(IC2OBJ) $(HEADER)
+	$(LD) $(IC2OBJ) -o $@ $(LDFLAGS)
+
+##############################################################################
+# Make ICs for 3D Taylor-Green vortex.
+IC3OBJ = allocate.o io.o FFT.o taylor.o makeIC3.o
+IC3CHK = allocate.o io.o energy.o FFT.o taylor.o taylor2D_chk.o
+
+makeIC3: $(IC3OBJ) $(IC3CHK) $(HEADER)
+	$(LD) $(IC3OBJ) -o $@ $(LDFLAGS)
+	$(LD) $(IC3CHK) -o taylor2D_chk $(LDFLAGS)
 
 ##############################################################################
 # Test the FFT routines.
-TESTOBJ = allocate.o io.o testDFT.o maketables.o rc3DFT.o\
-          rcZFFT.o cZFFT.o cYFFT.o cXFFT.o pcYFFT.o pcXFFT.o
+TESTOBJ = allocate.o io.o FFT.o testDFT.o
 
-testDFT:	$(TESTOBJ) $(HEADER)
+testDFT: $(TESTOBJ) $(HEADER)
 	$(CC) $(DEBUGF) -o $@ $(TESTOBJ) $(LIBS)
 
 ##############################################################################
 # Divergence-checking diagnostic.
-CHKOBJ = allocate.o io.o maketables.o deriv.o div_chk.o rc3DFT.o\
-         rcZFFT.o cZFFT.o cYFFT.o cXFFT.o pcYFFT.o pcXFFT.o
+CHKOBJ = allocate.o io.o derivative.o FFT.o div_chk.o
 
 div_chk: $(CHKOBJ) $(HEADER)
 	$(CC) $(DEBUGF) -o $@ $(CHKOBJ) $(LIBS)
 
 ##############################################################################
+# Convert field file to tecplot format, with vorticity too.
+TECOBJ = allocate.o io.o derivative.o truncation.o FFT.o iso2tec.o
+
+iso2tec: $(TECOBJ) $(HEADER)
+	$(LD) $(CFLAGS) -o $@ $(TECOBJ) $(LDFLAGS)
+
+
+##############################################################################
 # Clean up.
 clean:
-	rm *.o *.u
+	rm *.o *~
+
+
+
