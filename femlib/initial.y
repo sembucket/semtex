@@ -1,49 +1,52 @@
 %{
 /*****************************************************************************
- * INITIAL: yacc code for maintaining lists used for parameter and flag
- * lookup, along with a simple function interpreter.  Initialize() routine
- * must be called before the other parts of the code will work.
+ * Synopsis
+ * --------
+ * initial.y: yacc code for a simple function interpreter, which also allows
+ * lookup for named tokens (all are double precision).
  *
- * Modelled on hoc3 in Chapter 8 of "The UNIX Programming Environment" by
- * Kernighan & Pike.
+ * Modelled on "hoc3" in Chapter 8 of "The UNIX Programming Environment"
+ * by Kernighan & Pike, Prentice-Hall 1984.  A hash-table data structure is
+ * used in place of the linked list of Symbols which they employed.
+ * Hashing code from Chapter 6 of "The C Programming Language", 2nd Edn,
+ * by Kernighan & Ritchie, Prentice-Hall 1988.
  *
- * We maintain 3 externally-accessible lists:
- *   iparam:  named integer parameters;
- *   oparam:  named integer options (flags);
- *   dparam:  named double parameters.
- * The lists get preloaded with default values and useful constants by
- * initial().  Once initialized, the lists are accessible only through calls
- * to routines located in this file.
+ * Summary
+ * -------
+ * void   yy_initialize (void);
+ * void   yy_help       (void);
+ * void   yy_show       (void);
+ * int    yy_dump       (char*, const int);
  *
- * In addition a list of symbols, symlist, is maintained for use by the
- * function interpreter.  This is externally accessible through the routine
- * interpret(), which returns double.  Operations include single-argument
- * functions, unary minus and the binary operators ^ (exponentiation) and
- * ~ (atan2), and the Heaviside function heav.
+ * double yy_interpret  (const char*);
  *
- * Summary of externally-accessible functions:
+ * void   yy_vec_init   (const char*, const char*);
+ * void   yy_vec_interp (const int, ...);
  *
- * void   initialize (void);
- * double interpret  (const char *);
+ * Notes
+ * -----
+ * 1. yy_initialize must be called before other routines will work.
+ * 2. yy_help prints a summary of available functions on stdout.
+ * 3. yy_show prints a summary of installed variables on stdout.
+ * 4. yy_dump is similar to yy_show, but prints into a string of given length.
+ * 5. yy_interpret is the central routine.  It can be used:
+ *    (a), to install a named symbol in internal tables: e.g. "name = value";
+ *    (b), to retrieve the value of an installed symbol: e.g. "name";
+ *    (c), to evaluate a function string: e.g. "cos(x)*exp(-t)".
+ * 6. yy_vec_init is used to set up the interpreter for vector evaluation.
+ * 7. yy_vec_interp subsequently used for vectorized calls to yy_interpret.
  *
- * void   vecInit    (const char *, const char *);
- * void   vecInterp  (int   , ...   );
- *
- * void   setOption  (const char *, int);
- * int    getOption     (const char *);
- * void   showOption (void);
- *
- * void   setIparam  (const char *, int);
- * int    getIparam     (const char *);
- * void   showIparam (void);
- *
- * void   setDparam  (const char *, double);
- * double getDparam     (const char *);
- * void   showDparam (void);
- *
- * $Id$
+ * Operators
+ * ---------
+ * Unary:     -
+ * Binary:    -, +, *, /, ^ (exponentiation), ~ (atan2)
+ * Functions: sin,  cos,  tan,  int, abs, floor, ceil, heav (Heaviside),
+ *            asin, acos, atan, log, log10, exp, sqrt,
+ *            sinh, cosh, tanh 
  *****************************************************************************/
 
+static char
+RCSid_initial[] = "$Id$";
 
 #include <stdio.h>
 #include <malloc.h>
@@ -52,66 +55,48 @@
 #include <math.h>
 #include <stdarg.h>
 #include <errno.h>
-extern int errno;
 
 #include <alplib.h>
 
-int yyparse (void);
+#define HASHSIZE 199
+#define HASHSEED 31
+#define VEC_MAX  32
 
+typedef double (*PFD) (double);
 
-/* ------------------------------------------------------------------------- *
- * File-scope type definitions.
- * ------------------------------------------------------------------------- */
-
-typedef double (*PFD) (double);	/* Pointer to function returning double */
-
-typedef struct symbol {		/* Symbol table entry */
-  char *name;
-  int   type;			/* VAR, BLTIN, UNDEF, DPARAM, IPARAM, OPTION */
+typedef struct symbol {
+  char* name;
+  short type;
   union {
-    double dval;		/* If VAR, DPARAM    */
-    int    ival;		/* If IPARAM, OPTION */
-    PFD    ptr;			/* If BLTIN          */
+    double val;			/* -- If VAR.   */
+    PFD    ptr;			/* -- If BLTIN. */
   } u;
-  struct symbol *next;
+  struct symbol* next;
 } Symbol;
-
-    
-/* ------------------------------------------------------------------------- *
- * File-scope prototypes.
- * ------------------------------------------------------------------------- */
 
 static double  Log  (double),          Log10   (double),
                Exp  (double),          Sqrt    (double),
                Asin (double),          Acos    (double),
                Pow  (double, double),  integer (double),
                Sinh (double),          Cosh    (double),
-               Tanh (double),          Heavi   (double);
-						     
+               Tanh (double),          Heavi   (double),
+               errcheck (const double, const char*);
 
-static Symbol *lookup  (const char *);
-static Symbol *install (const char *, int, ...);
-static void   *emalloc (size_t);
+static unsigned hash     (const char*);
+static Symbol*  lookup   (const char*);
+static Symbol*  install  (const char*, const int, const double);
+static void*    emalloc  (const size_t);
+       int      yyparse  (void);
 
-
-/* ------------------------------------------------------------------------- *
- * File-scope variables.
- * ------------------------------------------------------------------------- */
-
-static Symbol *symlist = NULL;      /* Internal use for function interpreter */
-static Symbol *dlist   = NULL;      /* Storage of double lookup parameters   */
-static Symbol *ilist   = NULL;      /* Storage of integer lookup parameters  */
-static Symbol *olist   = NULL;      /* Storage for option lookup             */
-
-static char   func_string[STR_MAX], *cur_string;
-static double value;
-
-#define VEC_MAX 16
+static double  value;
+static Symbol* hashtab[HASHSIZE];
+static char    func_string[STR_MAX], *cur_string;
 static int     nvec = 0;
-static Symbol *vs[VEC_MAX];	    /* Storage for vector parser variables   */
+static Symbol* vs[VEC_MAX];
+extern int     errno;
 
-static struct {			    /* Built-in functions                    */
-  char *name;
+static struct {			    /* -- Built-in functions. */
+  char* name;
   PFD   func;
 } builtin[] = {
   "sin"   ,  sin     ,
@@ -138,15 +123,13 @@ static struct {			    /* Built-in functions                    */
 #include "defaults.h"
 
 %}
-/* ------------------------------------------------------------------------- *
- * Yacc grammar follows.
- * ------------------------------------------------------------------------- */
+/* -- Yacc grammar follows: */
 %union {			/* yacc stack type      */
   double  val;			/* actual value         */
-  Symbol *sym;			/* symbol table pointer */
+  Symbol* sym;			/* symbol table pointer */
 }
 %token <val>   NUMBER
-%token <sym>   VAR BLTIN UNDEF DPARAM IPARAM OPTION
+%token <sym>   VAR BLTIN UNDEF
 %type  <val>   expr asgn
 %right '='
 %left  '+' '-'
@@ -159,46 +142,42 @@ list:     /* nothing */
         | list asgn '\n'
         | list expr '\n'     { value = $2; }
         ;
-asgn:     VAR '=' expr       { $$=$1->u.dval=$3; $1->type = VAR; }
+asgn:     VAR '=' expr       { $$=$1->u.val=$3; $1->type = VAR; }
         ;
 expr:     NUMBER
         | VAR                { if ($1->type == UNDEF) {
-				 message("in yyparse(): undefined variable ",
-					 $1->name, WARNING);
+				 message ("yyparse: undefined variable ",
+					  $1->name, WARNING);
 			       }
-			       $$ = $1->u.dval;
+			       $$ = $1->u.val;
 			     }
         | asgn
         | BLTIN '(' expr ')' { $$ = (*($1->u.ptr))($3); }
         | expr '+' expr      { $$ = $1 + $3; }
         | expr '-' expr      { $$ = $1 - $3; }
         | expr '*' expr      { $$ = $1 * $3; }
-        | expr '/' expr      { if ($3 == 0.0)
-				 message("in yyparse()",
-					 " division by zero.", ERROR);
+        | expr '/' expr      { if ($3 == 0.0) 
+				 message ("yyparse",
+					  "division by zero", ERROR);
 			       $$ = $1 / $3;
 			     }
-        | expr '^' expr      { $$ = Pow($1, $3); }
-        | expr '~' expr      { $$ = atan2($1, $3); }
+        | expr '^' expr      { $$ = Pow   ($1, $3); }
+        | expr '~' expr      { $$ = atan2 ($1, $3); }
         | '(' expr ')'       { $$ = $2; }
         | '-' expr %prec UNARYMINUS { $$ = -$2; }
         ;
 %%
 
 
-/*****************************************************************************
- * Externally-visible functions follow.
- *****************************************************************************/
-
-
-void initialize (void)
-/* ========================================================================= *
+void yy_initialize (void)
+/* ------------------------------------------------------------------------- *
  * Load lookup tables and symbol table with default values.
  *
  * This routine should be called at start of run-time.
- * ========================================================================= */
+ * ------------------------------------------------------------------------- */
 {
-  int i;
+  register int     i;
+  register Symbol* s;
 
 #ifdef __sgi			/* Enable floating-point traps. */
 #include <sigfpe.h>
@@ -223,30 +202,23 @@ void initialize (void)
 #endif
 #endif
 
-  for (i=0; consts[i].name; i++)
-    install (consts[i].name, DPARAM, consts[i].cval);
+  for (i = 0; consts[i].name; i++)
+    install (consts[i].name, VAR, consts[i].cval);
 
-  for (i=0; option_init[i].name; i++) 
-    install (option_init[i].name, OPTION, option_init[i].oval);
-
-  for (i=0; iparam_init[i].name; i++)
-    install (iparam_init[i].name, IPARAM, iparam_init[i].ival);
-
-  for (i=0; dparam_init[i].name; i++)
-    install (dparam_init[i].name, DPARAM, dparam_init[i].dval);
-
-  for (i=0; builtin[i].name; i++)
-    install (builtin[i].name, BLTIN, builtin[i].func);
+  for (i = 0; builtin[i].name; i++) {
+    s = install (builtin[i].name, BLTIN, 0.0);
+    s -> u.ptr = builtin[i].func;
+  }
 }
 
 
-double interpret (const char *s)
-/* ========================================================================= *
- * Given a string, interpret it as a function using yacc-generated yyparse().
- * ========================================================================= */
+double yy_interpret (const char* s)
+/* ------------------------------------------------------------------------- *
+ * Given a string, interpret it as a function using yacc-generated yyparse.
+ * ------------------------------------------------------------------------- */
 {
   if (strlen (s) > STR_MAX)
-    message ("in interpret(): too many characters passed\n", s, ERROR);
+    message ("yy_interpret: too many characters passed:\n", s, ERROR);
   
   strcat (strcpy (func_string, s), "\n");
   
@@ -257,8 +229,9 @@ double interpret (const char *s)
 }
 
 
-void vecInit (const char *names, const char *fn)
-/* ========================================================================= *
+void yy_vec_init (const char* names,
+		  const char* fn   )
+/* ------------------------------------------------------------------------- *
  * Set up the vector parser.
  *
  * names contains a list of variable names  e.g. "x y z",
@@ -266,7 +239,7 @@ void vecInit (const char *names, const char *fn)
  *
  * Valid separator characters in name are space, tab, comma, (semi-)colon.
  * Function string can contain previously-defined symbols (e.g. PI).
- * ========================================================================= */
+ * ------------------------------------------------------------------------- */
 {
   char    routine   [] = "vecInit()";
   char    separator [] = " ,:;\t";
@@ -285,16 +258,16 @@ void vecInit (const char *names, const char *fn)
   p = strtok (tmp, separator);
   do {
     if (nvec++ > VEC_MAX) message (routine, "too many variables", ERROR); 
-    vs[nvec-1] = (s=lookup(p)) ? s : install (p, VAR, 0.0);
+    vs[nvec-1] = (s = lookup (p)) ? s : install (p, VAR, 0.0);
   } while (p = strtok (NULL, separator));
 
   
-  strcat (strcpy(func_string, fn), "\n");
+  strcat (strcpy (func_string, fn), "\n");
 }
 
 
-void vecInterp (int ntot, ...)
-/* ========================================================================= *
+void yy_vec_interp (const int ntot, ...)
+/* ------------------------------------------------------------------------- *
  * Vector parser.  Following ntot there should be passed a number of
  * pointers to double (vectors), of which there should be in number the
  * number of variables named previously to vecInit, plus one: the result of
@@ -303,14 +276,13 @@ void vecInterp (int ntot, ...)
  *
  * To follow on from the previous example, four vectors would be passed,
  * i.e.  vecInterp(ntot, x, y, z, u); the result fn(x,y,z) is placed in u.
- *
- * ========================================================================= */
+ * ------------------------------------------------------------------------- */
 {
-  char       routine[] = "vecInterp()";
-  register   i, n;
-  double    *x[VEC_MAX];
-  double    *fx = NULL;
-  va_list    ap;
+  char         routine[] = "yy_vec_interp";
+  register int i, n;
+  double*      x[VEC_MAX];
+  double*      fx = NULL;
+  va_list      ap;
   
   va_start (ap, ntot);
   for (i = 0; i < nvec; i++) {
@@ -324,380 +296,238 @@ void vecInterp (int ntot, ...)
 
   for (n = 0; n < ntot; n++) {
     cur_string = func_string;
-    for (i = 0; i < nvec; i++) vs[i]->u.dval = x[i][n];
+    for (i = 0; i < nvec; i++) vs[i]->u.val = x[i][n];
     yyparse ();
     fx[n] = value;
   }
 }
 
 
-void setOption (const char *s, int v)
-/* ========================================================================= *
- * Set option on list true/false, or install it.
- * ========================================================================= */
+void yy_help (void)
+/* ------------------------------------------------------------------------- *
+ * Print details of callable functions to stderr.
+ * ------------------------------------------------------------------------- */
 {
-  Symbol *sp;
- 
-  for (sp = olist; sp; sp = sp->next)
-    if (strcmp (sp->name, s) == 0) {
-      sp->u.ival = v;
-      break;
-    }
-  
-  if (!sp) sp = install (s, OPTION, v);
+  fprintf 
+    (stderr, 
+     "Unary    : -\n"
+     "Binary   : -, +, *, /, ^ (exponentiation), ~ (atan2)\n"
+     "Functions: sin,  cos,  tan,  int, abs, floor, ceil, heav (Heaviside),\n"
+     "           asin, acos, atan, log, log10, exp, sqrt,\n"
+     "           sinh, cosh, tanh\n");
 }
 
 
-int getOption (const char *s)
-/* ========================================================================= *
- * Retrieve value from option list.
- * ========================================================================= */
+void yy_show (void)
+/* ------------------------------------------------------------------------- *
+ * Print details of installed variables to stderr.
+ * ------------------------------------------------------------------------- */
 {
-  Symbol *sp;
- 
-  for (sp = olist; sp; sp = sp->next)
-    if (strcmp (sp->name, s) == 0)
-      return sp->u.ival;
+  register int i;
+  register Symbol* sp;
 
-  message ("getOption(): name not found", s, WARNING);
-  return 0;
-}
-    
-
-void showOption (void)
-/* ========================================================================= *
- * Echo option list to stdout.
- * ========================================================================= */
-{
-  Symbol *sp;
-
-  for (sp = olist; sp; sp = sp->next)
-    printf ("%-12s%-3d\n", sp->name, sp->u.ival);
+  for (i = 0; i < HASHSIZE; i++)
+    for (sp = hashtab[i]; sp; sp = sp -> next)
+      if (sp -> type == VAR) 
+	fprintf (stderr, "%-15s = %-.17g\n", sp -> name, sp -> u.val);
 }
 
 
-void setIparam (const char *s, int v)
-/* ========================================================================= *
- * Set or install iparam on list.
- * ========================================================================= */
+int yydump (char*     str,
+	    const int max)
+/* ------------------------------------------------------------------------- *
+ * Load description of internal variables into string, to length max.
+ * If string overflows, return 0, else 1.
+ * ------------------------------------------------------------------------- */
 {
-  Symbol *sp;
+  register int i, n = 0;
+  register Symbol* sp;
+  char     buf[FILENAME_MAX];
 
-  for (sp = ilist; sp; sp = sp->next)
-    if (strcmp (sp->name, s) == 0) {
-      sp->u.ival = v;
-      break;
-    }
-  
-  if (!sp) sp = install (s, IPARAM, v);
+  for (i = 0; i < HASHSIZE; i++)
+    for (sp = hashtab[i]; sp; sp = sp -> next)
+      if (sp -> type == VAR) {
+	sprintf (buf, "%-15s = %-.17g\n", sp -> name, sp -> u.val);
+	if ((n += strlen (buf)) > max - 2)
+	  return 0;
+	else
+	  strcat (str, buf);
+      }
+
+  return 1;
 }
-
-
-int getIparam (const char *s)
-/* ========================================================================= *
- * Retrieve value from iparam list.
- * ========================================================================= */
-{
-  Symbol *sp;
- 
-  for (sp = ilist; sp; sp = sp->next)
-    if (strcmp (sp->name, s) == 0)
-      return sp->u.ival;
-
-  message ("getIparam(): name not found", s, WARNING);
-  return 0;
-}
-
-
-void showIparam (void)
-/* ========================================================================= *
- * Echo iparam list to stdout.
- * ========================================================================= */
-{
-  Symbol *sp;
-  
-  for (sp = ilist; sp; sp = sp->next)
-    printf ("%-12s%-3d\n", sp->name, sp->u.ival);
-}
-
-
-void setDparam (const char *s, double v)
-/* ========================================================================= *
- * Set or install dparam on list.
- * ========================================================================= */
-{
-  Symbol *sp;
-
-  for (sp = dlist; sp; sp = sp->next)
-    if (strcmp (sp->name, s) == 0) {
-      sp->u.dval = v;
-      break;
-    }
-  
-  for (sp = symlist; sp; sp = sp->next)
-    if (strcmp (sp->name, s) == 0) {
-      sp->u.dval = v;
-      break;
-    }
-  
-  if (!sp) sp = install (s, DPARAM, v);
-}
-
-
-double getDparam (const char *s)
-/* ========================================================================= *
- * Retrieve value from dparam list.
- * ========================================================================= */
-{
-  Symbol *sp;
-  
-  for (sp = dlist; sp; sp = sp->next)
-    if (strcmp (sp->name, s) == 0)
-      return sp->u.dval;
-
-  message ("getDparam(): name not found", s, WARNING);
-  return 0;
-}
-
-
-void showDparam (void)
-/* ========================================================================= *
- * Echo dparam list to stdout.
- * ========================================================================= */
-{
-  Symbol *sp;
-  
-  for (sp = dlist; sp; sp = sp->next)
-    printf ("%-12s%-.6g\n", sp->name, sp->u.dval);
-}
-
-
-/* ##################### FILE-SCOPE ROUTINES FOLLOW ######################## */
 
 
 static int yylex (void)
-/* ========================================================================= *
+/* ------------------------------------------------------------------------- *
  * Lexical analysis routine called by yyparse, using string loaded by
- * interpret().
- * ========================================================================= */
+ * yy_interpret.
+ * ------------------------------------------------------------------------- */
 {
-  int c;
+  register int c;
 
   while ((c = *cur_string++) == ' ' || c == '\t');
 
-  if (c == EOF)
-    return 0;
-  if (c == '.' || isdigit (c)) {	/* number */
+  if (c == EOF) return 0;
+
+  if (c == '.' || isdigit (c)) {
     yylval.val = strtod (--cur_string, &cur_string);
     return NUMBER;
   }
-  if (isalpha (c)) {		/* symbol */
-    Symbol *s;
-    char    sbuf[STR_MAX], *p = sbuf;
+
+  if (isalpha (c)) {
+    register Symbol* s;
+    register char    sbuf[STR_MAX];
+    register char*   p = sbuf;
     do {
       *p++ = c;
     } while ((c = *cur_string++) != EOF && (isalnum (c) || c == '_'));
     cur_string--;
     *p = '\0';
-    if ((s = lookup (sbuf)) == NULL)
-      s = install (sbuf, UNDEF, 0.0);
+    if ((s = lookup (sbuf)) == NULL) s = install (sbuf, UNDEF, 0.0);
     yylval.sym = s;
-    return (s->type == UNDEF || s->type == DPARAM) ? VAR : s->type;
+    return (s -> type == UNDEF) ? VAR : s -> type;
   }
+
   return c;
 }
 
 
-static Symbol *lookup(const char *s)
-/* ========================================================================= *
- * Find s in symbol table.
- * ========================================================================= */
+static unsigned hash (const char* s)
+/* ------------------------------------------------------------------------- *
+ * Generate hash table index.
+ * ------------------------------------------------------------------------- */
 {
-  Symbol *sp;
+  register unsigned hashval;
+
+  for (hashval = 0; *s != '\0'; s++) hashval = *s + HASHSEED * hashval;
   
-  for (sp = symlist; sp; sp = sp->next)
-    if (strcmp (sp->name, s) == 0)
-      return sp;
+  return hashval % HASHSIZE;
+}
+
+
+static Symbol* lookup (const char* s)
+/* ------------------------------------------------------------------------- *
+ * Find s in symbol hashtable.
+ * ------------------------------------------------------------------------- */
+{
+  register Symbol* sp;
+  
+  for (sp = hashtab[hash (s)]; sp; sp = sp->next)
+    if (strcmp (s, sp->name) == 0) return sp;
 
   return NULL;
 }
 
 
-static Symbol *install(const char *s, int t, ...)
-/* ========================================================================= *
- * Install value of variable type into appropriate lists.
- * Note that variables of type DPARAM get mounted in both symlist and dlist.
- * ========================================================================= */
+static Symbol* install (const char*  s,
+			const int    t,
+			const double d)
+/* ------------------------------------------------------------------------- *
+ * Install s in symbol hashtable.
+ * ------------------------------------------------------------------------- */
 {
-  Symbol *sp;
-  va_list ap;
-  
-  va_start (ap, t);
+  register Symbol*  sp;
+  register unsigned hashval;
 
-  sp       = (Symbol *) emalloc (sizeof(Symbol));
-  sp->name = emalloc (strlen(s)+1);
-  strcpy (sp->name, s);
-
-  switch (sp->type = t) {
-  case OPTION:
-    sp->u.ival = va_arg (ap, int);
-    sp->next   = olist;
-    olist      = sp;
-    break;
-  case IPARAM:
-    sp->u.ival = va_arg (ap, int);
-    sp->next   = ilist;
-    ilist      = sp;
-    break;
-  case DPARAM:
-    sp->u.dval = va_arg (ap, double);
-    sp->next   = dlist;
-    dlist      = sp;
-    sp         = (Symbol *) emalloc (sizeof(Symbol));
-    memcpy (sp, dlist, sizeof (Symbol));
-    sp->name = emalloc (strlen (s)+1);
-    strcpy (sp->name, s);
-    sp->next   = symlist;
-    symlist    = sp;
-    break;
-  case VAR:
-  case UNDEF:
-    sp->u.dval = va_arg (ap, double);
-    sp->next   = symlist;
-    symlist    = sp;
-    break;
-  case BLTIN:
-    sp->u.ptr  = va_arg (ap, PFD);
-    sp->next   = symlist;
-    symlist    = sp;
-    break;
-  default:
-    sp->u.dval = va_arg (ap, double);
-    sp->type   = UNDEF;
-    sp->next   = symlist;
-    symlist    = sp;
-    break;
+  if (!(sp = lookup (s))) {	/* -- Not found, install in hashtab. */
+    sp = (Symbol *) emalloc (sizeof (Symbol));
+    if (sp == NULL || (sp -> name = strdup (s)) == NULL) return NULL;
+    hashval          = hash (s);
+    sp -> next       = hashtab[hashval];
+    hashtab[hashval] = sp;
   }
 
-  va_end (ap);
-
+  sp -> type  = t;
+  sp -> u.val = d;
+  
   return sp;
 }
 
 
-static void *emalloc (size_t n)
-/* ========================================================================= *
- * Check return from malloc().
- * ========================================================================= */
+static void *emalloc (const size_t n)
+/* ------------------------------------------------------------------------- *
+ * Check return from malloc.
+ * ------------------------------------------------------------------------- */
 {
-  void *p;
+  void* p;
 
-  if (!(p = (void *) malloc (n)))
-    message("emalloc()", "out of memory", ERROR);
+  if (!(p = (void *) malloc (n))) message ("emalloc", "out of memory", ERROR);
  
   return p;
 }
 
 
 static void yyerror (char *s)
-/* ========================================================================= *
- * Handler for yyparse() syntax errors.
- * ========================================================================= */
+/* ------------------------------------------------------------------------- *
+ * Handler for yyparse syntax errors.
+ * ------------------------------------------------------------------------- */
 {
-  message("yyparse()", s, WARNING);
+  message ("yyparse", s, WARNING);
 }
 
 
-static double errcheck (double d, char *s)
-/* ========================================================================= *
+static double errcheck (const double d,
+			const char*  s)
+/* ------------------------------------------------------------------------- *
  * Check result of math library call.
- * ========================================================================= */
+ * ------------------------------------------------------------------------- */
 {
   if (errno == EDOM) {
     errno = 0;
-    message ("errcheck(): argument out of domain in call to", s, ERROR);
+    message ("errcheck: argument out of domain in call to", s, ERROR);
   } else if (errno == ERANGE) {
     errno = 0;
-    message ("errcheck(): result out of range in call to", s, ERROR);
+    message ("errcheck: result out of range in call to", s, ERROR);
   }
 
   return d;
 }
 
 
-/*****************************************************************************
- * Remaining routines do error-checking calls to math library routines.
- *****************************************************************************/
-
-
 static double Heavi (double x)
-{
-  return (x >= 0.0) ? 1.0 : 0.0;
-}
+{ return (x >= 0.0) ? 1.0 : 0.0;}
 
 
 static double Log (double x)
-{
-  return errcheck (log(x), "log");
-}
+{ return errcheck (log (x), "log"); }
 
 
 static double Log10 (double x)
-{
-  return errcheck (log10(x), "log10");
-}
+{ return errcheck (log10 (x), "log10"); }
 
 
 static double Exp (double x)
-{
-  return errcheck (exp(x), "exp");
-}
+{ return errcheck (exp (x), "exp"); }
 
 
 static double Sqrt (double x)
-{
-  return errcheck (sqrt(x), "sqrt");
-}
+{ return errcheck (sqrt (x), "sqrt"); }
 
 
 static double Pow (double x, double y)
-{
-  return errcheck (pow(x, y), "exponentiation");
-}
+{ return errcheck (pow (x, y), "exponentiation"); }
 
 
 static double Acos (double x)
-{
-  return errcheck (acos(x), "acos");
-}
-
+{ return errcheck (acos (x), "acos"); }
 
 
 static double Asin (double x)
-{
-  return errcheck (asin(x), "asin");
-}
+{ return errcheck (asin (x), "asin"); }
 
 
 static double integer (double x)
-{
-  return (double) (long)x;
-}
+{ return rint (x); }
 
 
 static double Sinh (double x)
-{
-  return errcheck (sinh(x), "sinh");
-}
+{ return errcheck (sinh (x), "sinh"); }
 
 
 static double Cosh (double x)
-{
-  return errcheck (cosh(x), "cosh");
-}
+{ return errcheck (cosh (x), "cosh"); }
 
 
 static double Tanh (double x)
-{
-  return errcheck (tanh(x), "tanh");
-}
+{ return errcheck (tanh (x), "tanh"); }
