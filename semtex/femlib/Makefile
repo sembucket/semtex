@@ -59,11 +59,11 @@ install:
 		rm -f $(SEM)/lib/$(ARCH)/$(LIB)	;		\
 		cp $(LIB) $(SEM)/lib/$(ARCH)	;	fi
 
-	rm -f $(SEM)/include/femdef.h;				\
-	rm -f $(SEM)/include/femlib.h;				\
-	rm -f $(SEM)/include/Femlib.h;				\
-	rm -f $(SEM)/include/nr77.h;				\
-	rm -r $(SEM)/include/polylib.h
+	rm -f $(SEM)/include/femdef.h   ;			\
+	rm -f $(SEM)/include/femlib.h   ;			\
+	rm -f $(SEM)/include/Femlib.h   ;			\
+	rm -f $(SEM)/include/nr77.h     ;			\
+	rm -r $(SEM)/include/polylib.h  ;
 
 	cp femdef.h    $(SEM)/include	;			\
 	cp femlib.h    $(SEM)/include	;			\
