@@ -18,8 +18,8 @@ endif
 # ----------------------------------------------------------------------------
 #
 SEMFILES  = analysis auxfield BCmgr boundary bsys condition	\
-	    domain element feml field geometry integration	\
-	    matrix mesh misc pressure statistics
+	    domain element feml field geometry history integration	\
+	    matrix mesh misc particle pressure statistics
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
 SEMHDR    = Sem.h
 

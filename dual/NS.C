@@ -102,15 +102,16 @@ void NavierStokes (Domain*       D,
     // -- Unconstrained forcing substep.
 
     nonLinear (D, Us[0], Uf[0], ff);
-    waveProp  (D, Us, Uf);
+    waveProp  (D, (const AuxField***) Us, (const AuxField***) Uf);
 
     // -- Pressure projection substep.
 
-    PBCmgr::maintain (D -> step, Pressure, Us[0], Uf[0]);
+    PBCmgr::maintain (D -> step, Pressure,
+		      (const AuxField**) Us[0], (const AuxField**) Uf[0]);
     Pressure -> evaluateBoundaries (D -> step);
     for (i = 0; i < NDIM; i++) AuxField::swapData (D -> u[i], Us[0][i]);
     rollm     (Uf, NORD, NDIM);
-    setPForce (Us[0], Uf[0]);
+    setPForce ((const AuxField**) Us[0], Uf[0]);
     Solve     (D, NDIM,  Uf[0][0], MMS[NDIM]);
     project   (D, Us[0], Uf[0]);
 

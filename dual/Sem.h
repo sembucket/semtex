@@ -280,6 +280,8 @@ public:
 
   static void swapData  (AuxField*, AuxField*);
   static void couple    (AuxField*, AuxField*, const integer);
+
+  AuxField& projStab    (const real, AuxField&);
 };
 
 
