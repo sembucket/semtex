@@ -5,7 +5,8 @@
 
 if (!(-e elliptic)) then
 	echo "Building application, please wait..."
-	make
+	gmake
+	gmake clean
 	echo "done"
 	echo ""
 endif
@@ -20,6 +21,7 @@ if (!(-e laplace5)) cp ../mesh/laplace5 .
 if (!(-e laplace6)) cp ../mesh/laplace6 .
 if (!(-e laplace7)) cp ../mesh/laplace7 .
 if (!(-e laplace3)) cp ../mesh/laplace3 .
+if (!(-e laplace8)) cp ../mesh/laplace8 .
 if (!(-e poisson1)) cp ../mesh/poisson1 .
 if (!(-e helmholtz1)) cp ../mesh/helmholtz1 .
 
@@ -30,6 +32,7 @@ elliptic laplace1
 echo ""
 echo "-- 2D LAPLACE PROBLEM, DIRICHLET BCS, ITERATIVE SOLVER"
 elliptic -i laplace1
+rm laplace1*
 
 echo ""
 echo "-- 2D LAPLACE PROBLEM, ONE NEUMAN BOUNDARY"
@@ -38,28 +41,46 @@ elliptic laplace4
 echo ""
 echo "-- 2D LAPLACE PROBLEM, ONE NEUMAN BOUNDARY, ITERATIVE SOLVER"
 elliptic -i laplace4
+rm laplace4*
 
 echo ""
 echo "-- 2D LAPLACE PROBLEM, NONHOMOGENOUS DIRICHLET BC"
 elliptic laplace5
+rm laplace5*
 
 echo ""
 echo "-- 2D LAPLACE PROBLEM, DIRICHLET BC, CURVED BOUNDARY"
 elliptic laplace6
+rm laplace6*
 
 echo ""
 echo "-- 2D LAPLACE PROBLEM, DIRICHLET AND NEUMANN BCS"
 elliptic laplace7
+rm laplace7*
 
 echo ""
 echo "-- 3D LAPLACE PROBLEM, DIRICHLET BOUNDARIES"
-echo "   WARNING: ERROR ESTIMATES ARE PRESENTLY INCORRECT"
 elliptic laplace3
+compare  laplace3 laplace3.fld > /dev/null
+rm laplace3*
+
+echo ""
+echo "-- 3D LAPLACE PROBLEM, CYLINDRICAL DIRECT SOLVER"
+elliptic laplace8
+compare  laplace8 laplace8.fld > /dev/null
+
+echo ""
+echo "-- 3D LAPLACE PROBLEM, CYLINDRICAL ITERATIVE SOLVER"
+elliptic -i laplace8
+compare  laplace8 laplace8.fld > /dev/null
+rm laplace8*
 
 echo ""
 echo "-- 2D POISSON PROBLEM, DIRICHLET BCS"
 elliptic poisson1
+rm poisson1*
 
 echo ""
 echo "-- 2D HELMHOLTZ PROBLEM, DIRICHLET BCS"
 elliptic helmholtz1
+rm helmholtz1*
