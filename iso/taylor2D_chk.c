@@ -12,7 +12,8 @@
 #include "iso.h"
 
 
-int main (int argc, char *argv[])
+int main (int    argc,
+	  char** argv)
 {
   CVF           U;
   CF            Work;
@@ -36,7 +37,7 @@ int main (int argc, char *argv[])
   fp = efopen (argv[3], "r");
 
   readParam  (fp,     Info);
-  printParam (stderr, Info, "$RCSfile$", "$Revision$");
+  printParam (stderr, Info, "$RCSfile$","$Revision$");
 
   /* -- Set up the problem size. */
 
@@ -53,7 +54,7 @@ int main (int argc, char *argv[])
   readCVF  (fp, U, Dim);
   fclose   (fp);
 
-  fprintf (stderr, "Solution energy:                  %g\n", energyF (U, Dim));
+  fprintf (stderr, "Solution energy:               %g\n", energyF (U, Dim));
 
   /* -- Transform to PHYSICAL space. */
 
@@ -64,9 +65,9 @@ int main (int argc, char *argv[])
 
   /* -- Compute maximum velocity component. */
 
-  fprintf (stderr, "Maximum U-velocity: %g\n", amaxf (U[1], Dim));
-  fprintf (stderr, "Maximum V-velocity: %g\n", amaxf (U[2], Dim));
-  fprintf (stderr, "Maximum W-velocity: %g\n", amaxf (U[3], Dim));
+  fprintf (stderr, "Maximum U-velocity:            %g\n", amaxf (U[1], Dim));
+  fprintf (stderr, "Maximum V-velocity:            %g\n", amaxf (U[2], Dim));
+  fprintf (stderr, "Maximum W-velocity:            %g\n", amaxf (U[3], Dim));
 
   /* -- Subtract off exact solution. */
 
@@ -74,9 +75,9 @@ int main (int argc, char *argv[])
 
   /* -- Compute maximum error velocity component. */
 
-  fprintf (stderr, "Maximum U-velocity error: %g\n", amaxf (U[1], Dim));
-  fprintf (stderr, "Maximum V-velocity error: %g\n", amaxf (U[2], Dim));
-  fprintf (stderr, "Maximum W-velocity error: %g\n", amaxf (U[3], Dim));
+  fprintf (stderr, "Maximum U-velocity error:      %g\n", amaxf (U[1], Dim));
+  fprintf (stderr, "Maximum V-velocity error:      %g\n", amaxf (U[2], Dim));
+  fprintf (stderr, "Maximum W-velocity error:      %g\n", amaxf (U[3], Dim));
 
   /* -- Transform back to FOURIER space. */
 
@@ -85,7 +86,7 @@ int main (int argc, char *argv[])
     scaleFT (U[c], Dim);
   }
 
-  fprintf (stderr, "Error energy:                     %g\n", energyF (U, Dim));
+  fprintf (stderr, "Error energy:                  %g\n", energyF (U, Dim));
 
   /* -- Output error field. */
 

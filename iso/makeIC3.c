@@ -31,19 +31,20 @@
 #include "iso.h"
 
 
-int main (int argc, char *argv[])
+int main (int    argc,
+	  char** argv)
 {
-  FILE*      fp;
-  char       filename[STR_MAX];
-  int        c, i, argnr, cubesize;
-  int        paramerr = FALSE, seed = -1;
-  int        code = 0;
-  CVF        IC;
-  real**     head;
-  int*       Dim;
-  complex*   Wtab;
-  Param     *Info = (Param*) calloc (1, sizeof (Param));
-  real       Max_Vel;
+  FILE*    fp;
+  char     filename[STR_MAX];
+  int      c, i, argnr, cubesize;
+  int      paramerr = FALSE, seed = -1;
+  int      code = 0;
+  CVF      IC;
+  real**   head;
+  int*     Dim;
+  complex* Wtab;
+  Param*   Info = (Param*) calloc (1, sizeof (Param));
+  real     Max_Vel;
 
   /* -- Process command-line arguments. */
 
@@ -87,8 +88,16 @@ int main (int argc, char *argv[])
     fprintf (stderr,
 	     "Usage: makeIC3 -n <cubesize> -o <outfilename> -p <0||1||2>\n");
     exit (EXIT_FAILURE);
-  } else
-    fprintf (stderr, "Taylor 2D Initial Condition\n");
+  } else {
+    fprintf (stderr, "Taylor 2D initial condition, ");
+    switch (code) {
+    case 0: fprintf (stderr, "x--y, uniform in z\n"); break;
+    case 1: fprintf (stderr, "x--z, uniform in y\n"); break;
+    case 2: fprintf (stderr, "y--z, uniform in x\n"); break;
+    default:
+      break;
+    }
+  }
 
   /* -- Allocate storage of IC components, zero all locations. */
 

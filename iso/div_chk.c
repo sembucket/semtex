@@ -9,17 +9,18 @@
 #include "iso.h"
 
 
-int main (int argc, char *argv[])
+int main (int    argc,
+	  char** argv)
 {
-  CVF        U, D;
-  real**     headU;
-  real**     headD;
-  int*       Dim;
-  complex*   Wtab;
-  Param*     Info = (Param*) calloc (1, sizeof (Param));
-  int        i, c, Npts;
-  real       div, Max=0.0;
-  FILE*      fp;
+  CVF      U, D;
+  real**   headU;
+  real**   headD;
+  int*     Dim;
+  complex* Wtab;
+  Param*   Info = (Param*) calloc (1, sizeof (Param));
+  int      i, c, Npts;
+  real     div, Max=0.0;
+  FILE*    fp;
 
   if (argc != 2) {
     fprintf (stderr, "div_chk: arg count\n");

@@ -7,21 +7,17 @@
 #include "iso.h"
 
 
-void  message (const char* routine, const char* text, int level)
+void message (const char* routine,
+	      const char* text   ,
+	      int         level  )
 /* ------------------------------------------------------------------------- *
  * A simple error handler.
  * ------------------------------------------------------------------------- */
 {
   switch (level) {
-  case WARNING:
-    fprintf (stderr, "WARNING: %s: %s\n", routine, text); 
-    break;
-  case ERROR:
-    fprintf (stderr, "ERROR: %s: %s\n", routine, text); 
-    break;
-  case REMARK:
-    fprintf (stdout, "%s: %s\n", routine, text);
-    break;
+  case WARNING: fprintf (stderr, "WARNING: %s: %s\n", routine, text); break;
+  case ERROR:   fprintf (stderr, "ERROR: %s: %s\n",   routine, text); break;
+  case REMARK:  fprintf (stdout, "%s: %s\n",          routine, text); break;
   default:
     fprintf (stderr, "bad error level in message: %d\n", level);
     exit (EXIT_FAILURE);
@@ -32,14 +28,15 @@ void  message (const char* routine, const char* text, int level)
 }
 
 
-FILE*  efopen (const char* file, const char* mode)
+FILE* efopen (const char* file,
+	      const char* mode)
 /* ------------------------------------------------------------------------- *
  * fopen file, die if can't.   Legal modes are "r",  "w",  "a" and the
  * extended forms "r+", "w+", "a+": see the man page for more details.
  * ------------------------------------------------------------------------- */
 {
-  FILE*  fp;
-  char   s[STR_MAX];
+  FILE* fp;
+  char  s[STR_MAX];
   
   if ((fp = fopen (file, mode)) != NULL) return fp;
 
@@ -49,13 +46,15 @@ FILE*  efopen (const char* file, const char* mode)
 }
 
 
-void  readCVF (FILE* fp, CVF Z, const int* Dim)
+void  readCVF (FILE*      fp ,
+	       CVF        Z  ,
+	       const int* Dim)
 /* ------------------------------------------------------------------------- *
  * Read the 3 components of Z.
  * ------------------------------------------------------------------------- */
 {
-  const char  routine[] = "readCVF";
-  const int   Npts = Dim[1] * Dim[2] * Dim[3];
+  const char routine[] = "readCVF";
+  const int  Npts = Dim[1] * Dim[2] * Dim[3];
 
   if (fread (&Z[1][0][0][0], sizeof (complex), Npts, fp) != Npts)
     message (routine, "Unable to read first component data",  ERROR);
@@ -66,13 +65,15 @@ void  readCVF (FILE* fp, CVF Z, const int* Dim)
 }
   
 
-void  writeCVF (FILE* fp, const CVF Z, const int* Dim)
+void  writeCVF (FILE*      fp ,
+		const CVF  Z  ,
+		const int* Dim)
 /* ------------------------------------------------------------------------- *
  * Write the 3 components of Z.
  * ------------------------------------------------------------------------- */
 {
-  const char  routine[] = "writeCVF";
-  const int   Npts = Dim[1] * Dim[2] * Dim[3];
+  const char routine[] = "writeCVF";
+  const int  Npts = Dim[1] * Dim[2] * Dim[3];
 
   if (fwrite (&Z[1][0][0][0], sizeof (complex), Npts, fp) != Npts)
     message (routine, "Unable to write first component data",  ERROR);
@@ -83,12 +84,15 @@ void  writeCVF (FILE* fp, const CVF Z, const int* Dim)
 }
 
 
-void  printParam (FILE* fp, const Param* H, const char* prog, const char* rev)
+void printParam (FILE*        fp  ,
+		 const Param* H   ,
+		 const char*  prog,
+		 const char*  rev )
 /* ------------------------------------------------------------------------- *
  * Output Param info (ASCII).
  * ------------------------------------------------------------------------- */
 {
-  fprintf (fp, "%s; %s\n",  prog, rev);
+  if (prog) fprintf (fp, "%s; %s\n",  prog, rev);
 
   fprintf (fp, "Session name:                  %s\n",  H -> name    );
   fprintf (fp, "Grid size:                     %1d\n", H -> modes   );
@@ -97,24 +101,24 @@ void  printParam (FILE* fp, const Param* H, const char* prog, const char* rev)
   fprintf (fp, "Reynolds number:               %g\n",  H -> Re      );
   fprintf (fp, "Time step:                     %g\n",  H -> dt      );
   fprintf (fp, "Time:                          %g\n",  H -> time    );
-
 }
 
 
-void  readParam (FILE* fp, Param* I)
+void readParam (FILE*  fp,
+		Param* I )
 /* ------------------------------------------------------------------------- *
  * Read Param info (binary).  Must be matched to writeParam.
  * ------------------------------------------------------------------------- */
 {
-  char    routine[] = "readParam";
-  char    s[STR_MAX], err[STR_MAX];
-  int     modes;
-  double  time, Re;
+  char   routine[] = "readParam";
+  char   s[STR_MAX], err[STR_MAX];
+  int    modes;
+  double time, Re;
 
   fread  (s, 1, sizeof (s), fp);
   fread  (s, 1, sizeof (s), fp);
   sscanf (s, "%d", &modes);
-  if (! ispow2 (modes)) {
+  if (!ispow2 (modes)) {
     sprintf (err, "value read for modes (%1d) not a power of 2", modes);
     message (routine, err, ERROR);
   }
@@ -131,14 +135,15 @@ void  readParam (FILE* fp, Param* I)
 }
 
 
-void  writeParam (FILE* fp, const Param* I)
+void writeParam (FILE*        fp,
+		 const Param* I )
 /* ------------------------------------------------------------------------- *
  * Output Param info (binary).
  * ------------------------------------------------------------------------- */
 {
-  char    routine[] = "writeParam";
-  char    s[STR_MAX], err[STR_MAX];
-  char    *hdr_fmt[]  = {
+  char routine[] = "writeParam";
+  char s[STR_MAX], err[STR_MAX];
+  char *hdr_fmt[]  = {
     "%-25s  Session\n",
     "%-25d  Fourier modes\n",
     "%-25d  Step\n",
@@ -172,13 +177,16 @@ void  writeParam (FILE* fp, const Param* I)
 }
 
 
-void  startup (FILE* fp, Param* I, const char* session, const int chkpoint)
+void startup (FILE*       fp      ,
+	      Param*      I       ,
+	      const char* session ,
+	      const int   chkpoint)
 /* ------------------------------------------------------------------------- *
  * Read runtime directives from fp.
  * ------------------------------------------------------------------------- */
 {
-  char  routine[] = "startup";
-  char  s[STR_MAX], err[STR_MAX];
+  char routine[] = "startup";
+  char s[STR_MAX], err[STR_MAX];
 
   /* -- Save session name, create output file. */
 
@@ -254,16 +262,18 @@ void  startup (FILE* fp, Param* I, const char* session, const int chkpoint)
 }
 
 
-void  initialize (CVF U, Param *I, const int* Dim)
+void initialize (CVF        U  ,
+		 Param*     I  ,
+		 const int* Dim)
 /* ------------------------------------------------------------------------- *
  * Get initial conditions from restart file, check match with declared size.
  * ------------------------------------------------------------------------- */
 {
-  char   routine[STR_MAX] = "initialize";
-  char   s[STR_MAX], err[STR_MAX];
-  FILE*  fp;
-  int    modes = I -> modes;
-  real   Re    = I -> Re;
+  char  routine[STR_MAX] = "initialize";
+  char  s[STR_MAX], err[STR_MAX];
+  FILE* fp;
+  int   modes = I -> modes;
+  real  Re    = I -> Re;
   real   dt    = I -> dt;
   
   strcat (strcpy (s, I -> name), ".rst");
@@ -282,7 +292,10 @@ void  initialize (CVF U, Param *I, const int* Dim)
 }
 
 
-void  analyze (CVF U, Param* I, const complex* Wtab, const int* Dim)
+void analyze (CVF            U   ,
+	      Param*         I   ,
+	      const complex* Wtab,
+	      const int*     Dim )
 /* ------------------------------------------------------------------------- *
  * Carry out periodic analysis of data.
  * ------------------------------------------------------------------------- */
@@ -298,7 +311,10 @@ void  analyze (CVF U, Param* I, const complex* Wtab, const int* Dim)
 }
 
 
-void  dump (const CVF U, Param* I, const int chkpnt, const int* Dim)
+void dump (const CVF  U     ,
+	   Param*     I     ,
+	   const int  chkpnt,
+	   const int* Dim   )
 /* ------------------------------------------------------------------------- *
  * Write/append a field dump to output file.
  * ------------------------------------------------------------------------- */
@@ -322,7 +338,8 @@ void  dump (const CVF U, Param* I, const int chkpnt, const int* Dim)
 }
 
 
-void  cleanup (Param* I, const int chkpnt)
+void cleanup (Param*    I     ,
+	      const int chkpnt)
 /* ------------------------------------------------------------------------- *
  * Final operations on field files.
  * ------------------------------------------------------------------------- */

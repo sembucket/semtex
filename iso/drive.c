@@ -104,20 +104,21 @@ static void getargs (int, char**, char**, int*);
 static char prog[] = "iso";
 
 
-int main (int argc, char **argv)
+int main (int    argc,
+	  char** argv)
 /* ------------------------------------------------------------------------- *
  * Driver routine for simulation code.
  * ------------------------------------------------------------------------- */
 {
-  CVF       U, G, G_old, work;
-  CF        F, F_;
-  int*      Dim  = ivector (1, 3);
-  complex*  Wtab;
-  complex*  Stab;
-  Param*    runInfo = calloc (1, sizeof (Param));
-  char*     session;
-  FILE*     fp;
-  int       chkpoint = FALSE;
+  CVF      U, G, G_old, work;
+  CF       F, F_;
+  int*     Dim  = ivector (1, 3);
+  complex* Wtab;
+  complex* Stab;
+  Param*   runInfo = calloc (1, sizeof (Param));
+  char*    session;
+  FILE*    fp;
+  int      chkpoint = FALSE;
 
   /* -- Set up. */
 
