@@ -73,7 +73,7 @@ endif
 ifeq ($(ARCH),SUPER-UX)         # -- NEC SX-4.
 LIBDIR   = -L$(SEM)/lib/$(ARCH) 
 LIBDIR  += 
-LIBS     = -lfem -lalp -llapack -lblas	\
+LIBS     = -lfem -llapack_64 -lalp -lblas_64	\
            -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm
 CC       = cc
 FC       = f77
