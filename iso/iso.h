@@ -15,6 +15,9 @@
 #include <string.h>
 #include <math.h>
 
+extern int N, K, FourKon3;	/* Global sizes: N = 2*K = grid size.   */
+				/* These are the only global variables. */
+
 #define STR_MAX 256
 #define TRUE    1
 #define FALSE   0
@@ -25,10 +28,10 @@
 #define MIN(a,b)     ((a) < (b) ? (a) : (b))
 #define MAX(a,b)     ((a) > (b) ? (a) : (b))
 #define CLAMP(t,a,b) (MAX(MIN((t),(b)),(a)))
-#define rm(i,j,k)    ((k) + K * ((j) + N * (i)))
-#define INSIDE       < FourKon3
-#define OUTSIDE      >= FourKon3
-#define MAG(Z)       (Z).Re*(Z).Re + (Z).Im*(Z).Im
+#define RM(i,j,k)    ((k) + K * ((j) + N * (i)))
+#define INSIDE       <= FourKon3
+#define OUTSIDE      >  FourKon3
+#define MAG(Z)       ((Z).Re*(Z).Re + (Z).Im*(Z).Im)
 #define SHIFT(Z, W)  tempRe = (Z).Re; \
                      (Z).Re = tempRe*(W).Re - (Z).Im*(W).Im; \
                      (Z).Im = (Z).Im*(W).Re + tempRe*(W).Im
@@ -56,8 +59,6 @@ typedef struct {
   real  time;			/* Evolution time                      */
   real  kinvis;			/* Kinematic viscosity                 */
 } Param;
-
-extern int N, K, FourKon3;	/* Global sizes: N = 2*K = grid size. */
 
 /* -- io.c */
 
@@ -108,20 +109,21 @@ void integrate (CVF, const CVF*, const Param*);
 
 real  energyP     (CVF V, const complex*);
 real  energyF     (const CVF);
+real  enstrophyF  (const CVF, CVF, CF);
 real  rmsEns      (const CVF);
 real  L2norm      (const CF);
 real  amaxF       (const CF);
-void  normalizeVF (CVF);
+void  normaliseVF (CVF);
 void  energySpec  (const CVF, real*);
 
-/* -- derivative.c */
+/* -- operator.c */
 
-void  deriv (const CVF, const int, CF, const int);
-void  curl  (const CVF, CVF, CF);
+void  deriv    (const CVF, const int, CF, const int);
+void  curl     (const CVF, CVF, CF);
 
-/* -- pressure.c */
+/* -- pressure.c *./
 
-void  pressure (CVF, CVF, CF, CVF, CF, complex*, complex*);
+void  pressure (CVF, CVF, CF, CVF, CF, const complex*, const complex*);
 
 /* -- taylor.c */
 
@@ -153,7 +155,7 @@ void  projectVF  (CVF, CF);
 
 /* -- random.c */
 
-void  randomise (int, CVF);
+void  randomise (CVF, int*, CF);
 real  ran2PI    (int*);
 
 /* -- filter.c */
