@@ -26,7 +26,7 @@
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include "nnewt.h"
+#include <nnewt.h>
 
 static char prog[] = "nnewt";
 static void getargs    (int, char**, char*&);

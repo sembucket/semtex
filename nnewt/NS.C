@@ -37,7 +37,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "nnewt.h"
+#include <nnewt.h>
 
 typedef ModalMatrixSys Msys;
 static  int_t          NORD, NDIM, NCOM;
@@ -161,7 +161,7 @@ void NavierStokes (Domain*        D,
     
     // -- Correct velocities for pressure gradient.
 
-    project   (D, Us[0], Uf[0]);
+    project (D, Us[0], Uf[0]);
 
     // -- Update multilevel velocity storage.
 
@@ -521,7 +521,8 @@ static void nonLinear (Domain*         D ,
 
   for (i = 0; i < NCOM; i++) {
     AuxField::swapData (D -> u[i], Us[i]);
-    Uf[i] -> transform32 (FORWARD, n32[i]);
+    Uf[i]  -> transform32 (FORWARD, n32[i]);
+    master -> smooth (Uf[i]);
     ROOTONLY if (fabs (ff[i]) > EPS)
       if (Geometry::cylindrical()) {
 	Veclib::fill (nP, -2.0*ff[i], tmp, 1);

@@ -3,14 +3,14 @@
 //prints out forces exerted on "wall" boundary group in non-Newtonian
 //flows.  The viscosity is a function of space and time.
 //
-// Copyright (C) 1999 Hugh Blackburn
-//
-// $Id$
+// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
  
 #include <nnewt.h>
 
-nnewtAnalyser::nnewtAnalyser (Domain* D    ,
+nnewtAnalyser::nnewtAnalyser (Domain* D   ,
 			      FEML*   feml) : Analyser (D, feml)
 // ---------------------------------------------------------------------------
 // Extensions to Analyser class.
