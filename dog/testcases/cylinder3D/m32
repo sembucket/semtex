@@ -31,7 +31,7 @@
 
 	BASE_DT   = PERIOD/32
 
-	BETA      = TWOPI/3.28
+	BETA      = 1.7
 	DUMP      = 0
 	OUTSTEP   = 0 
 	IO_EIG    = 2
