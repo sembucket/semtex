@@ -261,7 +261,7 @@ static void nonLinear (Domain*         D ,
 
       // -- Smooth, add forcing.
       
-//      master -> smooth (N[i]);
+      master -> smooth (N[i]);
       if (fabs (ff[i]) > EPS) N[i] -> addToPlane (0, -2.0*ff[i]);
       *N[i] *= -0.5;
     }
@@ -290,7 +290,7 @@ static void nonLinear (Domain*         D ,
 
       // -- Smooth, add forcing.
       
-//    master -> smooth (N[i]);
+      master -> smooth (N[i]);
       if (fabs (ff[i]) > EPS) N[i] -> addToPlane (0, -2.0*ff[i]);
       *N[i] *= -0.5;
     }
