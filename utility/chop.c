@@ -2,7 +2,7 @@
  * chop: read an input file and reproduce a specified number of lines on
  * standard output.
  * 
- * Copyright (c) 1990,2004 Hugh Blackburn
+ * Copyright (c) 1990 <--> $Date$, Hugh Blackburn
  *
  * Usage: chop [-h] [-s startline] [-n number of lines] [-S skip] [file]
  *
@@ -46,28 +46,16 @@ int main (int argc, char *argv[])
       exit    (EXIT_SUCCESS);
       break;
     case 'n':
-      if (*++argv[0])
-	nlines = atoi (*argv);
-      else {
-	--argc;
-	nlines = atoi (*++argv);
-      }
+      if (*++argv[0]) nlines = atoi (*argv);
+      else { --argc; nlines = atoi (*++argv); }
       break;
     case 's':
-      if (*++argv[0])
-	start = atoi (*argv);
-      else {
-	--argc;
-	start = atoi (*++argv);
-      }
+      if (*++argv[0]) start = atoi (*argv);
+      else { --argc;  start = atoi (*++argv); }
       break;
     case 'S':
-      if (*++argv[0])
-	skip = atoi (*argv);
-      else {
-	--argc;
-	skip = atoi (*++argv);
-      }
+      if (*++argv[0]) skip = atoi (*argv);
+      else { --argc; skip = atoi (*++argv); }
       break;
     default:
       fprintf (stderr, "chop: unknown arg %s\n", *argv);
@@ -121,18 +109,13 @@ static void chop (FILE* file ,
 	fprintf (stderr, "chop: Reached EOF prematurely.\n") ;
 	exit    (EXIT_FAILURE);
       }
-      if (n % skip == 0) {
-	fputs (buf, stdout);
-	--nline;
-      }
+      if (n % skip == 0) { fputs (buf, stdout);  --nline; }
       ++n;
     }
 
   } else
     while (fgets (buf, BUFSIZ, file)) {
-      if (n % skip == 0) {
-	fputs (buf, stdout);
-      }
+      if (n % skip == 0) fputs (buf, stdout);
       ++n;
     }
 }

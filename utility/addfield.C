@@ -2,7 +2,8 @@
 // addfield.C: process sem field files, computing and adding vorticity and
 // divergence, rate of strain tensor, velocity gradient invariants, etc.
 //
-// Copyright (c) 1998,2004 Hugh Blackburn, Murray Rudman
+// Copyright (c) 1998 <--> $Date$, 
+//   Hugh Blackburn, Murray Rudman
 //
 // NB: the input field file is assumed to contain only velocity and
 // pressure data.
@@ -55,8 +56,9 @@
 // h -- helicity  0.5*(u*r + v*s + w*t)
 // i -- uu strain rate component
 // j -- uv strain rate component
+// J -- The vortex core identification measure of Jeong and Hussain, JFM 285.
 // k -- vv strain rate component
-// L -- Discriminant  of velocity gradient tensor 27/4 R^2 + Q^3
+// L -- Discriminant of velocity gradient tensor 27/4 R^2 + Q^3
 // l -- uw strain rate component
 // m -- vw strain rate component
 // n -- ww strain rate component
@@ -77,11 +79,12 @@
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include <sem.h>
 #include <ctime>
+#include "sem.h"
+#include "tensorcalcs.h"
 
 #define FLDS_MAX 64 // -- More than we'll ever want.
-#define FLAG_MAX 10 // -- NB: FLAG_MAX should tally with the following enum:
+#define FLAG_MAX 11 // -- NB: FLAG_MAX should tally with the following enum:
 enum {
   EGROWTH     ,
   ELLIPTICITY ,
@@ -92,13 +95,14 @@ enum {
   INVARIANTS  ,
   STRAINRATE  ,
   STRAINTENSOR,
-  VORTICITY
+  VORTICITY   ,
+  VORTEXCORE
 };
 
-static char prog[] = "addfield";
-static void getargs  (int, char**, char*&, char*&, char*&, int[]);
-static int  getDump  (Domain*, ifstream&);
-static void putDump  (Domain*, vector<AuxField*>&, int, ostream&);
+static char  prog[] = "addfield";
+static void  getargs  (int, char**, char*&, char*&, char*&, int_t[]);
+static int_t getDump  (Domain*, ifstream&);
+static void  putDump  (Domain*, vector<AuxField*>&, int_t, ostream&);
 
 
 int main (int    argc,
@@ -107,22 +111,26 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  Geometry::CoordSys system;
-  char               *session, *dump, *func, fields[StrMax];
-  int                i, j, k, np, nz, nel, allocSize, nComponent, iAdd = 0;
-  int                add[FLAG_MAX], need[FLAG_MAX];
-  ifstream           file;
-  FEML*              F;
-  Mesh*              M;
-  BCmgr*             B;
-  Domain*            D;
-  vector<Element*>   elmt;
-  real*              egrow;
-  AuxField           *Ens, *Hel, *Div, *InvQ, *InvR, *Disc, *Strain;
-  AuxField           *Func, *Ell, *Egr, *work;
-  vector<AuxField*>  velocity, vorticity, addField(FLDS_MAX);
-  AuxField***        Sij;
-  AuxField***        Vij; // -- Always computed, for internal use.
+  Geometry::CoordSys         system;
+  char                       *session, *dump, *func, fields[StrMax];
+  int_t                      i, j, k, p, q;
+  int_t                      np, nz, nel, allocSize, nComponent;
+  int_t                      iAdd = 0;
+  int_t                      add[FLAG_MAX], need[FLAG_MAX];
+  ifstream                   file;
+  FEML*                      F;
+  Mesh*                      M;
+  BCmgr*                     B;
+  Domain*                    D;
+  vector<Element*>           elmt;
+  AuxField                   *Ens, *Hel, *Div, *InvQ, *InvR, *Disc, *Strain;
+  AuxField                   *Func, *Ell, *Egr, *Vtx, *work;
+  vector<AuxField*>          velocity, vorticity, addField(FLDS_MAX);
+  vector<vector<AuxField*> > Sij;
+  vector<vector<AuxField*> > Vij;     // -- Always computed, for internal use.
+  vector<vector<real_t*> >   VijData; // -- For pointwise access.
+  real_t                     *egrow, *VtxData; // -- Ditto.
+  real_t                     tensor[9];
 
   Femlib::initialize (&argc, &argv);
   Veclib::zero (FLAG_MAX, add,  1);  // -- Requested fields.
@@ -163,7 +171,7 @@ int main (int    argc,
   // -- From the requested fields, flag dependencies.
 
   if  (nComponent < 3)
-    add[HELICITY] = add[INVARIANTS] = 0;
+    add[HELICITY] = add[INVARIANTS] = add[VORTEXCORE] = 0;
   if (Veclib::sum (FLAG_MAX, add, 1) == 0)
     message (prog, "nothing to be done", ERROR);
   for (i = 0; i < FLAG_MAX; i++) need[i] = add[i];
@@ -194,77 +202,86 @@ int main (int    argc,
 
   // -- Always compute the velocity gradient tensor for internal use.
 
-  Vij = new AuxField** [nComponent];
+  Vij    .resize (nComponent);
+  VijData.resize (nComponent);
   for (i = 0; i < nComponent; i++) {
-    Vij[i] = new AuxField* [nComponent];
+    Vij    [i].resize (nComponent);
+    VijData[i].resize (nComponent);
     for (j = 0; j < nComponent; j++) {
-       Vij[i][j] = new AuxField (new real[allocSize], nz, elmt);
-      *Vij[i][j] = 0.0;
+      VijData[i][j] = new real_t [allocSize];
+       Vij   [i][j] = new AuxField (VijData[i][j], nz, elmt);
+      *Vij   [i][j] = 0.0;
     }
   }
   
   // -- Fields without dependants.
 
-  work = new AuxField (new real[allocSize], nz, elmt);
+  work = new AuxField (new real_t[allocSize], nz, elmt);
 
   if (need[FUNCTION]) {
-    Func = new AuxField (new real[allocSize], nz, elmt, 'f');
+    Func = new AuxField (new real_t[allocSize], nz, elmt, 'f');
     addField[iAdd++] = Func;
   }
 
   if (need[DIVERGENCE]) {
-    Div  =  new AuxField (new real[allocSize], nz, elmt, 'd');
+    Div  =  new AuxField (new real_t[allocSize], nz, elmt, 'd');
     *Div = 0.0;
     addField[iAdd++] = Div;
   }
 
   if (need[INVARIANTS]) {
-    *(InvQ = new AuxField (new real[allocSize], nz, elmt, 'Q')) = 0.0;
-    *(InvR = new AuxField (new real[allocSize], nz, elmt, 'R')) = 0.0;
-    *(Disc = new AuxField (new real[allocSize], nz, elmt, 'L')) = 0.0;
+    *(InvQ = new AuxField (new real_t[allocSize], nz, elmt, 'Q')) = 0.0;
+    *(InvR = new AuxField (new real_t[allocSize], nz, elmt, 'R')) = 0.0;
+    *(Disc = new AuxField (new real_t[allocSize], nz, elmt, 'L')) = 0.0;
     addField[iAdd++] = InvQ;
     addField[iAdd++] = InvR;
     addField[iAdd++] = Disc;
+  }
+
+  if (need[VORTEXCORE]) {
+    VtxData = new real_t [allocSize];
+    Vtx = new AuxField (VtxData, nz, elmt, 'J');
+    addField[iAdd++] = Vtx;
   }
 
   // -- Vorticity and its dependants.
 
   if (need[VORTICITY])
     if (nComponent == 2) {
-      vorticity[0] = new AuxField (new real[allocSize], nz, elmt, 't');
+      vorticity[0] = new AuxField (new real_t[allocSize], nz, elmt, 't');
       if (add[VORTICITY])
 	addField[iAdd++] = vorticity[0];
     } else {
       for (i = 0; i < nComponent; i++)
-	vorticity[i] = new AuxField (new real[allocSize], nz, elmt, 'r' + i);
+	vorticity[i] = new AuxField (new real_t[allocSize], nz, elmt, 'r' + i);
       if (add[VORTICITY])
 	for (i = 0; i < 3; i++) addField[iAdd++] = vorticity[i];
     }
 
   if (need[ENSTROPHY]) {
-    Ens = new AuxField (new real[allocSize], nz, elmt, 'e');
+    Ens = new AuxField (new real_t[allocSize], nz, elmt, 'e');
     if (add[ENSTROPHY]) addField[iAdd++] = Ens;
   }
   
   if (need[HELICITY]) {
-    Hel = new AuxField (new real[allocSize], nz, elmt, 'h');
+    Hel = new AuxField (new real_t[allocSize], nz, elmt, 'h');
     if (add[HELICITY]) addField[iAdd++] = Hel;
   }
 
   if (need[ELLIPTICITY]) {
-    Ell = new AuxField (new real[allocSize], nz, elmt, 'b');
+    Ell = new AuxField (new real_t[allocSize], nz, elmt, 'b');
     if (add[ELLIPTICITY]) addField[iAdd++] = Ell;
   }
 
   // -- Rate of strain tensor and its dependants.
 
   if (need[STRAINTENSOR]) {
-    Sij = new AuxField** [nComponent];
+    Sij.resize (nComponent);
     for (k = 0, i = 0; i < nComponent; i++) {
-      Sij[i] = new AuxField* [nComponent];
+      Sij[i].resize (nComponent);
       for (j = 0; j < nComponent; j++) {
 	if (j >= i) {
-	  Sij[i][j] = new AuxField (new real[allocSize], nz, elmt, 'i' + k++);
+	  Sij[i][j] = new AuxField (new real_t[allocSize], nz, elmt, 'i'+k++);
 	} else
 	  Sij[i][j] = Sij[j][i];
       }
@@ -276,16 +293,15 @@ int main (int    argc,
   }
 
   if (need[STRAINRATE]) {
-    *(Strain = new AuxField (new real[allocSize], nz, elmt, 'G')) = 0.0;
+    *(Strain = new AuxField (new real_t[allocSize], nz, elmt, 'G')) = 0.0;
     if (add[STRAINRATE]) addField[iAdd++] = Strain;
   }
 
   if (need[EGROWTH]) {
-    egrow = new real[allocSize]; // -- A handle for direct access to data.
+    egrow = new real_t[allocSize]; // -- A handle for direct access to data.
     Egr = new AuxField (egrow, nz, elmt, 'a');
     if (add[EGROWTH]) addField[iAdd++] = Egr;
   }
-    
   
   // -- Cycle through field dump, first computing the velocity
   //    gradient tensor and then the needed quantities -- vorticity
@@ -407,6 +423,14 @@ int main (int    argc,
       Egr -> times (*Egr, *work);
     }
 
+    if (need[VORTEXCORE])	// -- Only done for 3-component fields.
+      for (i = 0; i < allocSize; i++)
+	for (k = 0, p = 0; p < 3; p++)
+	  for (q = 0; q < 3; q++, k++) {
+	    tensor [k] = VijData[p][q][i];
+	    VtxData[i] = lambda2 (tensor);
+	  }
+
     putDump (D, addField, iAdd, cout);
   }
   
@@ -421,7 +445,7 @@ static void getargs (int    argc   ,
 		     char*& session,
 		     char*& dump   ,
 		     char*& func   ,
-		     int*   flag   )
+		     int_t* flag   )
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
@@ -441,11 +465,12 @@ static void getargs (int    argc   ,
     "  -i        ... add invariants and discriminant of"
                      " velocity gradient tensor\n"
     "                NB: divergence is assumed to be zero. (3D only)\n"
+    "  -j        ... add vortex core measure of Jeong & Hussain\n"
     "  -a        ... add all fields derived from velocity (above)\n"
     "  -f <func> ... add a computed function <func> of x, y, z, t, etc.\n";
               
-  int  i, sum;
-  char buf[StrMax];
+  int_t i, sum;
+  char  buf[StrMax];
  
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
@@ -466,6 +491,7 @@ static void getargs (int    argc   ,
     case 'g': flag[STRAINRATE]   = 1; break;
     case 't': flag[STRAINTENSOR] = 1; break;
     case 'i': flag[INVARIANTS]   = 1; break;
+    case 'j': flag[VORTEXCORE]   = 1; break;
     case 'a': Veclib::fill(FLAG_MAX, 1, flag, 1); break;
     case 'f':
       if (*++argv[0]) func = *argv; else { --argc; func = *++argv; }
@@ -482,8 +508,8 @@ static void getargs (int    argc   ,
 }
 
 
-static int getDump (Domain*   D   ,
-		    ifstream& dump)
+static int_t getDump (Domain*   D   ,
+		      ifstream& dump)
 // ---------------------------------------------------------------------------
 // Read next set of field dumps from file.
 // ---------------------------------------------------------------------------
@@ -495,7 +521,7 @@ static int getDump (Domain*   D   ,
 
 static void putDump  (Domain*            D       ,
 		      vector<AuxField*>& addField,
-		      int                nOut    ,
+		      int_t              nOut    ,
 		      ostream&           strm    )
 // ---------------------------------------------------------------------------
 // This is a version of the normal Domain dump that adds extra AuxFields.
@@ -514,7 +540,7 @@ static void putDump  (Domain*            D       ,
     "%-25s "    "Format\n"
   };
 
-  int    i, nComponent;
+  int_t  i, nComponent;
   char   routine[] = "putDump";
   char   s1[StrMax], s2[StrMax];
   time_t tp (::time (0));
