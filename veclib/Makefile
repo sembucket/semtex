@@ -1,5 +1,6 @@
 ##############################################################################
-# Remake linear algebra primitive library (libalp.a).
+# Remake linear algebra primitive library (libalp.a), and maintain header
+# files for Veclib, BLAS, & LAPACK calls.
 #
 # Uses GNU make.
 #
@@ -53,7 +54,7 @@ REDUCTION  = icount  ifirst  iany    ixmax   ixmin   xsum
 CONVERSION = vdble   xvfloa  vsngl   xbrev
 
 MISC       = xscatr  xgathr  xramp   xcndst  xmask   xvpoly  xpolint \
-	     xspline xmxm    xmxv    xmxva   fftdf 
+	     xspline xmxm    xmxv    xmxva   fftdf   xgathr_scatr
 
 ALL        = $(UTIL)       $(MEMORY)    $(MATH)       $(OTHER)   $(TRIAD) \
              $(RELATIONAL) $(REDUCTION) $(CONVERSION) $(MISC)
@@ -66,17 +67,24 @@ $(LIB): $(LMD)
 
 install:
 	cd $(FEMHOME)/lib; rm -f $(LIB);			\
-	ln -s $(LIBHOME)/$(LIB) $(LIB)				\
+	ln -s $(LIBHOME)/$(LIB) $(LIB);				\
 	cd $(HOME)/lib; rm -f $(LIB);				\
 	ln -s $(LIBHOME)/$(LIB) $(LIB);				\
-	cd $(HOME)/include; rm -f alplib.h Veclib.h Util.h;	\
-	ln -s $(LIBHOME)/alplib.h alplib.h;  			\
-	ln -s $(LIBHOME)/Veclib.h Veclib.h;			\
-	ln -s $(LIBHOME)/Utility.h Utility.h;				
-	cd $(FEMHOME)/include; rm -f alplib.h Veclib.h Util.h;	\
-	ln -s $(LIBHOME)/alplib.h alplib.h;  			\
-	ln -s $(LIBHOME)/Veclib.h Veclib.h;			\
-	ln -s $(LIBHOME)/Utility.h Utility.h;
+	cd $(HOME)/include; 					\
+	rm -f alplib.h Veclib.h Utility.h Blas.h Lapack.h;	\
+	ln -s $(LIBHOME)/alplib.h    alplib.h;  		\
+	ln -s $(LIBHOME)/Veclib.h    Veclib.h;			\
+	ln -s $(LIBHOME)/Utility.h   Utility.h;			\
+	ln -s $(LIBHOME)/Blas.h      Blas.h;			\
+	ln -s $(LIBHOME)/Lapack.h    Lapack.h;
+
+	cd $(FEMHOME)/include; 					\
+	rm -f alplib.h Veclib.h Utility.h Blas.h Lapack.h;	\
+	ln -s $(LIBHOME)/alplib.h    alplib.h;  		\
+	ln -s $(LIBHOME)/Veclib.h    Veclib.h;			\
+	ln -s $(LIBHOME)/Utility.h   Utility.h;			\
+	ln -s $(LIBHOME)/Blas.h      Blas.h;			\
+	ln -s $(LIBHOME)/Lapack.h    Lapack.h
 
 tar:
 	tar cvf alplib.tar *
