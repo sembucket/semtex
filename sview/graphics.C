@@ -222,6 +222,9 @@ void display ()
 // GLUT callback for display of graphics window.
 // ---------------------------------------------------------------------------
 {
+  GLdouble AR =
+    glutGet (GLUT_WINDOW_WIDTH)/ (GLdouble) glutGet (GLUT_WINDOW_HEIGHT);
+
   glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   glPushMatrix ();
@@ -230,7 +233,7 @@ void display ()
 
   glMatrixMode   (GL_PROJECTION);
   glLoadIdentity ();
-  gluPerspective (State.wangle, 1.0, 0.01 * State.length, 100 * State.length);
+  gluPerspective (State.wangle, AR, 0.01 * State.length, 100 * State.length);
   glMatrixMode   (GL_MODELVIEW);
 
   if (State.drawbox) drawMesh ();
