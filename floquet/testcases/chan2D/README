@@ -1,7 +1,0 @@
-This is the case presented in Canuto et al. 1988 p.19--21, for 2D
-instability of laminar channel flow.  With a base flow U = (1-y*y), 2h
-= 2.0, alpha=1 (domain length 2PI), KINVIS=1/7500, the leading
-unstable mode has Omega.Re=0.24989154, Omega.Im=0.00223497.
-
-Run compare chan3_base > chan3.bse to create the base 2D velocity
-field for stability calculations.
