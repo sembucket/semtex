@@ -13,14 +13,12 @@ static int  nOrder (const void *a, const void *b)
 // ---------------------------------------------------------------------------
 { return ((int *)a)[0] - ((int *)b)[0]; }
 
+
 static int  sOrder (const void *a, const void *b)
 // ---------------------------------------------------------------------------
 // Used by qsort.  Compare second element (solve mask) of two arrays.
 // ---------------------------------------------------------------------------
 { return ((int *)b)[1] - ((int *)a)[1]; }
-
-
-
 
 
 Field::Field () :
@@ -41,9 +39,6 @@ n_band          (0),
 Hp              (0),
 Hc              (0)
 { }
-
-
-
 
 
 Field::Field (const Mesh& M, int np)
@@ -70,26 +65,23 @@ Field::Field (const Mesh& M, int np)
   elmt_bndry_gid  = ivector (n_elmt_bnodes);
   elmt_bndry_mask = ivector (n_elmt_bnodes);
 
-  real*  d = data;
-  real*  m = mesh;
-  int*   g = elmt_bndry_gid;
-  int*   s = elmt_bndry_mask;
+  int    offset = 0;
+  real*  m      = mesh;
+  int*   g      = elmt_bndry_gid;
+  int*   s      = elmt_bndry_mask;
 
   for (ListIterator<Element*> k(element_list); k.more(); k.next()) {
     E = k.current  ();
-    E -> install   (d, m, g, s);
+    E -> install   (offset, m, g, s);
     E -> mesh      (M);
-    d += E -> nTot ();
-    m += E -> nMsh ();
-    g += E -> nExt ();
-    s += E -> nExt ();
+    offset += E -> nTot ();
+    m      += E -> nMsh ();
+    g      += E -> nExt ();
+    s      += E -> nExt ();
   }
 
   field_name = 'u';
 }
-
-
-
 
  
 Field::Field (const Field& f, const Mesh& M, char tag)
@@ -110,10 +102,10 @@ Field::Field (const Field& f, const Mesh& M, char tag)
 // In both cases, new storage areas are intialized from input Field. 
 // ---------------------------------------------------------------------------
 {
-  Element* E;
-  real*    d;
-  int*     g;
-  int*     s;
+  Element*  E;
+  real*     d;
+  int*      g;
+  int*      s;
 
   memcpy (this, &f, sizeof (Field));
 
@@ -133,30 +125,29 @@ Field::Field (const Field& f, const Mesh& M, char tag)
     g = elmt_bndry_gid;
     s = elmt_bndry_mask;
     
+    int offset = 0;
     for (ListIterator<Element*> k(f.element_list); k.more(); k.next()) {
-      E = new Element (*k.current());
-      E -> install (d, 0, g, s);
+      E = new Element (*k.current ());
+      E -> install (offset, 0, g, s);
       element_list.add (E);
-      d += E -> nTot();
-      g += E -> nExt();
-      s += E -> nExt();
+      offset += E -> nTot();
+      g      += E -> nExt();
+      s      += E -> nExt();
     }
     
     if   (tag == PRESSURE) buildBoundaries (f);
     else                   buildBoundaries (M);
 
   } else {
+    int offset = 0;
     for (ListIterator<Element*> k(f.element_list); k.more(); k.next()) {
-      E = new Element (*k.current());
-      E -> install (d, 0, 0, 0);
+      E = new Element (*k.current ());
+      E -> install (offset, 0, 0, 0);
       element_list.add (E);
-      d += E -> nTot();
+      offset += E -> nTot();
     }
   }
 }
-
-
-
 
 
 
@@ -172,9 +163,6 @@ Field&  Field::operator = (real val)
 }
 
 
-
-
-
 Field&  Field::operator += (real val)
 // ---------------------------------------------------------------------------
 // Add val to field storage area.
@@ -186,9 +174,6 @@ Field&  Field::operator += (real val)
 }
 
 
-
-
-
 Field&  Field::operator -= (real val)
 // ---------------------------------------------------------------------------
 // Add -val to field storage area.
@@ -198,9 +183,6 @@ Field&  Field::operator -= (real val)
 
   return *this;
 }
-
-
-
 
 
 Field&  Field::operator *= (real val)
@@ -215,9 +197,6 @@ Field&  Field::operator *= (real val)
 }
 
 
-
-
-
 Field&  Field::operator /= (real val)
 // ---------------------------------------------------------------------------
 // Divide field storage area by val.
@@ -228,9 +207,6 @@ Field&  Field::operator /= (real val)
 
   return *this;
 }
-
-
-
 
 
 Field&  Field::operator = (const Field& f)
@@ -247,9 +223,6 @@ Field&  Field::operator = (const Field& f)
 }
 
 
-
-
-
 Field& Field::operator += (const Field& f)
 // ---------------------------------------------------------------------------
 // Add f's value to this Field's.
@@ -262,9 +235,6 @@ Field& Field::operator += (const Field& f)
 
   return *this;
 }
-
-
-
 
 
 Field&  Field::operator -= (const Field& f)
@@ -281,9 +251,6 @@ Field&  Field::operator -= (const Field& f)
 }
 
 
-
-
-
 Field&  Field::operator *= (const Field& f)
 // ---------------------------------------------------------------------------
 // Multiply this Field's value by f's value.
@@ -296,9 +263,6 @@ Field&  Field::operator *= (const Field& f)
 
   return *this;
 }
-
-
-
 
 
 Field&  Field::operator /= (const Field& f)
@@ -315,21 +279,16 @@ Field&  Field::operator /= (const Field& f)
 }
 
 
-
-
-
 Field&  Field:: operator = (const char* function)
 // ---------------------------------------------------------------------------
 // Set Field's value to temporo-spatially varying function.
 // ---------------------------------------------------------------------------
 {
-  for (ListIterator<Element*> k(element_list); k.more(); k.next())
-    k.current () -> evaluate (function);
+  vecInit   ("x y", function);
+  vecInterp (n_data, mesh, mesh + n_data, data);
 
   return *this;
 }
-
-
 
 
 Field&  Field::prod (const Field& a, const Field& b)
@@ -343,8 +302,6 @@ Field&  Field::prod (const Field& a, const Field& b)
 }
 
 
-
-
 Field&  Field::sum (const Field& a, const Field& b)
 // ---------------------------------------------------------------------------
 // Set this Field's value as the sum of a & b.
@@ -354,9 +311,6 @@ Field&  Field::sum (const Field& a, const Field& b)
 
   return *this;
 }
-
-
-
 
 
 Field&  Field::addprod (const Field& a, const Field& b)
@@ -370,9 +324,6 @@ Field&  Field::addprod (const Field& a, const Field& b)
 }
 
 
-
-
-
 Field&  Field::axpy (real alpha, const Field& x)
 // ---------------------------------------------------------------------------
 // Add alpha * x to this Field.
@@ -382,9 +333,6 @@ Field&  Field::axpy (real alpha, const Field& x)
 
   return *this;
 }
-
-
-
 
 
 void  Field::printMesh (Field* F)
@@ -403,9 +351,6 @@ void  Field::printMesh (Field* F)
 }
 
 
-
-
-
 void  Field::mapElements ()
 // ---------------------------------------------------------------------------
 // Carry out computation of mesh geometric factors for all elements.
@@ -414,9 +359,6 @@ void  Field::mapElements ()
   for (ListIterator<Element*> i(element_list); i.more(); i.next())
     i.current() -> map ();
 }
-
-
-
 
 
 void  Field::buildBoundaries (const Field& f)
@@ -434,9 +376,6 @@ void  Field::buildBoundaries (const Field& f)
     boundary_list.add (N);
   }
 }
-
-
-
 
 
 void  Field::buildBoundaries (const Mesh& M)
@@ -470,9 +409,6 @@ void  Field::buildBoundaries (const Mesh& M)
 }
 
 
-
-
-
 void  Field::printBoundaries (Field* F)
 // ---------------------------------------------------------------------------
 // (Debugging) Utility to print information contained in a Boundary list.
@@ -492,9 +428,6 @@ void  Field::printBoundaries (Field* F)
 }
 
 
-
-
-
 void  Field::evaluateBoundaries (int step)
 // ---------------------------------------------------------------------------
 // Traverse Boundaries and evaluate according to kind.
@@ -503,9 +436,6 @@ void  Field::evaluateBoundaries (int step)
   for (ListIterator<Boundary*> i(boundary_list); i.more(); i.next())
     i.current () -> evaluate (step);
 }
-
-
-
 
 
 void  Field::connect (Mesh& M, int np)
@@ -542,9 +472,6 @@ void  Field::connect (Mesh& M, int np)
 
   M.connectSC (2);		// -- Minimize M's internal storage.
 }
-
-
-
 
 
 void  Field::sortGid ()
@@ -592,9 +519,6 @@ void  Field::sortGid ()
 }
 
 
-
-
-
 void  Field::printConnect (Field* F)
 // ---------------------------------------------------------------------------
 // (Debugging) Utility to print up mesh connectivity information.
@@ -602,11 +526,15 @@ void  Field::printConnect (Field* F)
 {
   cout << "# -- ELEMENT-BOUNDARY CONNECTIVITY & VALUE INFORMATION --" << endl;
 
-  for (ListIterator<Element*> k(F->element_list); k.more(); k.next())
-    k.current() -> printBndry ();
+  Element  *E;
+  int       offset;
+
+  for (ListIterator<Element*> k (F -> element_list); k.more (); k.next ()) {
+    E      = k.current ();
+    offset = E -> nOff ();
+    E -> printBndry (F -> data + offset);
+  }
 } 
-
-
 
 
 void  Field::setMask ()
@@ -632,9 +560,6 @@ void  Field::setMask ()
 
   freeVector (gmask);
 }
-
-
-
 
 
 void  Field::renumber ()
@@ -665,7 +590,7 @@ void  Field::renumber ()
   fillAdjncy (adjncyList, adjncy, xadj, tabSize);
 
   genrcm (n_solve, xadj, adjncy, perm, mask, xls);
-  Veclib::sadd (n_solve, -1, perm, 1, perm, 1);
+  Veclib::sadd   (n_solve, -1, perm, 1, perm, 1);
 
   // -- Invert rcm's perm vector (identity for nodes that won't be changed).
 
@@ -680,6 +605,7 @@ void  Field::renumber ()
 
   // -- Clean up.
 
+
   delete [] adjncyList;
 
   freeVector (adjncy);
@@ -690,9 +616,6 @@ void  Field::renumber ()
   freeVector (invperm);
   freeVector (oldmap);
 }
-
-
-
 
 
 int  Field::buildAdjncy (List<int>* adjncyList) const
@@ -712,9 +635,6 @@ int  Field::buildAdjncy (List<int>* adjncyList) const
 
   return ntab;
 }
-
-
-
 
 
 void  Field::fillAdjncy (List<int>* adjncyList,
@@ -745,8 +665,6 @@ void  Field::fillAdjncy (List<int>* adjncyList,
 }
 
 
-
-
 Field&  Field::dsSmooth ()
 // ---------------------------------------------------------------------------
 // Smooth values along element boundaries by direct stiffness summation.
@@ -754,8 +672,9 @@ Field&  Field::dsSmooth ()
 // Simple average smoothing.
 // ---------------------------------------------------------------------------
 {
-  register int            i;
+  register int            i, offset;
   ListIterator<Element*>  k(element_list);
+  Element*                E;
 
   real* dssum = rvector (n_gid);
   real* denom = rvector (n_gid);
@@ -765,11 +684,19 @@ Field&  Field::dsSmooth ()
 
   for (i = 0; i < n_elmt_bnodes; i++) denom[elmt_bndry_gid[i]] += 1.0;
 
-  for (k.reset(); k.more(); k.next()) k.current() -> bndryDsSum  (dssum);
+  for (k.reset(); k.more(); k.next()) {
+    E      = k.current ();
+    offset = E -> nOff ();
+    E -> bndryDsSum  (data + offset, dssum);
+  }
 
   Veclib::vdiv (n_gid, dssum, 1, denom, 1, dssum, 1);
 
-  for (k.reset(); k.more(); k.next()) k.current() -> bndryInsert (dssum);
+  for (k.reset(); k.more(); k.next()) {
+    E      = k.current ();
+    offset = E -> nOff ();
+    E -> bndryInsert (dssum, data + offset);
+  }
 
   freeVector (dssum);
   freeVector (denom);
@@ -778,25 +705,37 @@ Field&  Field::dsSmooth ()
 }
 
 
-
-
 Field&  Field::grad (int index)
 // ---------------------------------------------------------------------------
 // Operate on Field to produce the nominated index of the gradient.
 // ---------------------------------------------------------------------------
 {
-  ListIterator<Element*> i(element_list);
+  ListIterator<Element*>  i(element_list);
+  register     Element*   E;
+  register     int        offset;
 
   switch (index) {
-  case 0:  for     (; i.more(); i.next())  i.current() -> d_dx (); break;
-  case 1:  for     (; i.more(); i.next())  i.current() -> d_dy (); break;
-  default: message ("Field::grad(int)", "illegal index", ERROR);   break;
+  case 0:
+    for (; i.more(); i.next()) {
+      E      = i.current ();
+      offset = E -> nOff ();
+      E -> d_dx (data + offset);
+    }
+    break;
+  case 1: 
+    for (; i.more(); i.next()) {
+      E      = i.current ();
+      offset = E -> nOff ();
+      E -> d_dy (data + offset);
+    }
+    break;
+  default:
+    message ("Field::grad(int)", "illegal index", ERROR);
+    break;
   }
   
   return *this;
 }
-
-
 
 
 void  Field::buildSys (real lambda2)
@@ -952,9 +891,6 @@ void  Field::buildSys (real lambda2)
 }
 
 
-
-
-
 void  Field::solveSys (Field* F)
 // ---------------------------------------------------------------------------
 // Carry out direct solution of this Field using F as forcing.
@@ -983,7 +919,7 @@ void  Field::solveSys (Field* F)
 
   real* RHS  = rvector (n_gid);
   Veclib::zero (n_gid, RHS, 1);
-  buildRHS (F, RHS);
+  buildRHS     (F, RHS);
 
   // -- Solve for unknown global-node values (if any), applying Hc, then Hp.
 
@@ -1001,17 +937,17 @@ void  Field::solveSys (Field* F)
 
   // -- Resolve element external (and internal, if S-C) nodes.
 
-  ListIterator<Element*> f(F->element_list);
-  for (ListIterator<Element*> u(element_list);
-       u.more(), f.more();
-       u.next(), f.next())
-    u.current () -> resolveSC (RHS, f.current ());
+  Element*                U;
+  int                     offset;
+
+  for (ListIterator<Element*> u(element_list); u.more(); u.next()) {
+    U      = u.current ();
+    offset = U -> nOff ();
+    U -> resolveSC (RHS, F -> data + offset, data + offset);
+  }
 
   freeVector (RHS);
 }
-
-
-
 
 
 void Field::buildRHS (Field* F, real* RHS) const
@@ -1029,13 +965,16 @@ void Field::buildRHS (Field* F, real* RHS) const
 // for the current Field.
 // ---------------------------------------------------------------------------
 {
-  ListIterator<Element*>  u(element_list);
-  ListIterator<Element*>  f(F->element_list);
+  Element*  E;
+  int       offset;
 
-  for (; u.more(); u.next(), f.next())
-    f.current() -> dsForcingSC (u.current(), RHS);
+  for (ListIterator<Element*> u (element_list); u.more (); u.next ()) {
+    E      = u.current ();
+    offset = E -> nOff ();
+    E -> dsForcingSC (F -> data + offset, RHS);
+  }
 
-  if (n_solve == n_gid - 1) RHS [n_gid - 1] = 0.0;  // Fix last value.
+  if (n_solve == n_gid - 1) RHS [n_gid - 1] = 0.0;  // Pin last value to earth.
 
   Boundary *B;
   for (ListIterator<Boundary*> b(boundary_list); b.more(); b.next()) {
@@ -1044,9 +983,6 @@ void Field::buildRHS (Field* F, real* RHS) const
     else                      B -> dsSum   (RHS);
   }
 }
-
-
-
 
 
 int Field::globalBandwidth () const
@@ -1059,13 +995,10 @@ int Field::globalBandwidth () const
   for (ListIterator<Element*> k(element_list); k.more(); k.next())
     nband = max (k.current() -> bandwidthSC (), nband);
 
-  ++nband; // Diagonal.
+  ++nband; // -- Diagonal.
 
   return nband;
 }
-
-
-
 
 
 int  Field::switchPressureBCs (const BC* hopbc, const BC* zero)
@@ -1088,9 +1021,6 @@ int  Field::switchPressureBCs (const BC* hopbc, const BC* zero)
 }
 
 
-
-
-
 void  Field::errors (const char* function)
 // ---------------------------------------------------------------------------
 // Compare F with function, print the infinity-norm Li, the 2-norm L2
@@ -1100,7 +1030,7 @@ void  Field::errors (const char* function)
 // elements and high-order quadrature.
 // ---------------------------------------------------------------------------
 {
-  const int Nquad = 15;
+  const int NQUAD = 15;
 
   Element* E;
   Element* P;
@@ -1108,7 +1038,6 @@ void  Field::errors (const char* function)
   real     Li   = 0.0;
   real     L2   = 0.0;
   real     H1   = 0.0;
-  real*    tmp;
   real*    sol;
   real*    v;
   real*    x;
@@ -1116,33 +1045,29 @@ void  Field::errors (const char* function)
 
   for (ListIterator<Element*> k(element_list); k.more(); k.next()) {
     E = k.current ();
-    
-    P = new Element (*E, Nquad);
+    P = new Element (*E, NQUAD);
+
     ntot = P -> nTot ();
     nmsh = P -> nMsh ();
 
     v   = rvector (ntot);
     x   = rvector (nmsh);
-    tmp = rvector (ntot);
     sol = rvector (ntot);
 
-    P -> install (v, x, 0, 0);
-    P -> project (*E);
+    P -> install (0, x, 0, 0);
+    P -> project (*E, data + E -> nOff (), v);
     P -> map     ();
 
-    P -> extract  (tmp);
     P -> evaluate (function, sol);
-    Veclib::vsub  (ntot, tmp, 1, sol, 1, tmp, 1);
-    P -> insert   (tmp);
+    Veclib::vsub  (ntot, v, 1, sol, 1, v, 1);
 
     area += P -> area ();
-    Li    = max (Li, P -> norm_inf ());
-    L2   += P -> norm_L2 ();
-    H1   += P -> norm_H1 ();
+    Li    = max (Li, P -> norm_inf (v));
+    L2   += P -> norm_L2 (v);
+    H1   += P -> norm_H1 (v);
 
     freeVector (v);
     freeVector (x);
-    freeVector (tmp);
     freeVector (sol);
   }
   
@@ -1151,11 +1076,7 @@ void  Field::errors (const char* function)
 
   cout << "-- Error norms for Field " << field_name << " (inf, L2, H1):";
   cout << Li << "  " << L2 << "  " << H1 << endl;
-
 }
-
-
-
 
 
 Field&  Field::evaluate (const char* function)
@@ -1163,8 +1084,8 @@ Field&  Field::evaluate (const char* function)
 // Evaluate function over each element.
 // ---------------------------------------------------------------------------
 {
-  for (ListIterator<Element*> k(element_list); k.more(); k.next())
-    k.current () -> evaluate (function);
+  vecInit   ("x y", function);
+  vecInterp (n_data, mesh, mesh + n_data, data);
 
   return *this;
 }
