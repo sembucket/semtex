@@ -8,9 +8,23 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
+template<class T> class StackNode {
+public:
+  StackNode (T x) : next (0), datum (x) {}
+  StackNode<T>* next;
+  T     datum;
+};
 
 template<class T>
 class Stack {
+
+private:
+  StackNode<T>* top;
+  int   stack_depth;
+
+  Stack(const Stack<T>&);                // Prohibit, since not implemented.
+  Stack<T>& operator=(const Stack<T>&);  // Prohibit, since not implemented.
+
 public:
   Stack () : top (0), stack_depth (0) {}
  ~Stack ();
@@ -19,30 +33,17 @@ public:
   T     pop     ();
   int   depth   () const { return stack_depth; }
 
-private:
-  class Node {
-  public:
-    Node (T x) : next (0), datum (x) {}
-    Node* next;
-    T     datum;
-  };
-
-  Node* top;
-  int   stack_depth;
-
-  Stack(const Stack<T>&);                // Prohibit, since not implemented.
-  Stack<T>& operator=(const Stack<T>&);  // Prohibit, since not implemented.
 };
 
 
 template<class T>
 inline void Stack<T>::push(T x) {
   if (stack_depth) {
-    Node* p   = new Node (x);
+    StackNode<T>* p = new StackNode<T> (x);
     p -> next = top;
     top       = p;
   } else {
-    top = new Node (x);
+    top = new StackNode<T> (x);
   }
   stack_depth++;
 }
@@ -51,7 +52,7 @@ inline void Stack<T>::push(T x) {
 template<class T>
 inline T Stack<T>::pop() {
   if (stack_depth) {
-    Node* p     = top;
+    StackNode<T>* p = top;
     T     value = top -> datum;
     top         = top -> next;
     delete p;
@@ -67,7 +68,7 @@ inline T Stack<T>::pop() {
 template<class T>
 inline Stack<T>::~Stack() {
   while (stack_depth--) {
-    Node* p = top -> next;
+    StackNode<T>* p = top -> next;
     delete top;
     top = p;
   }
