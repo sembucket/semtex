@@ -7,12 +7,12 @@
 
 
 void dvpoly(int n, const double *x, int incx, int m,
-	                 double *c, int incc, 
+	           const double *c, int incc, 
 		         double *y, int incy)
 {
   register int     i,   j;
-  register double  sum, xval, *cp;
-           double *csave;
+  register double  sum, xval;
+  const    double *csave, *cp;
 
 
   csave = c;
@@ -39,12 +39,12 @@ void dvpoly(int n, const double *x, int incx, int m,
 
 
 void svpoly(int n, const float  *x, int incx, int m,
-	                 float  *c, int incc, 
+	           const float  *c, int incc, 
 		         float  *y, int incy)
 {
   register int    i,   j;
-  register float  sum, xval, *cp;
-           float *csave;
+  register float  sum, xval;
+  const    float *csave, *cp;
 
 
   csave = c;
