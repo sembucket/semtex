@@ -29,7 +29,7 @@ CPPFLAGS = -I.
 ifeq ($(ARCH),IRIX)		# -- SGI MIPS R4xxx IRIX5x
 CC	 = cc
 LD	 = cc
-CFLAGS   = -mips2 -fullwarn -g
+CFLAGS   = -mips2 -fullwarn -O2
 LDFLAGS  = $(CFLAGS) -lmalloc -lm
 endif
 
@@ -51,7 +51,8 @@ HEADER    = iso.h
 
 # ----------------------------------------------------------------------------
 # Make iso application.
-ISOOBJ    = allocate.o io.o nonlinear.o integrate.o energy.o FFT.o taylor.o drive.o
+ISOOBJ = allocate.o io.o nonlinear.o integrate.o energy.o FFT.o 	\
+	 taylor.o misc.o drive.o
 
 $(PROG): $(ISOOBJ) $(HEADER)
 	$(LD) $(ISOOBJ) -o $@ $(LDFLAGS)
@@ -60,42 +61,47 @@ $(PROG): $(ISOOBJ) $(HEADER)
 # Make a top-hat spectrum initial conditions file.
 IC1OBJ = allocate.o io.o normalize.o energy.o ran2PI.o tophat.o FFT.o makeIC1.o
 
-makeIC1: $(IC1OBJ) $(HEADER)
+IC1: $(IC1OBJ) $(HEADER)
 	$(LD) $(IC1OBJ) -o $@ $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
-# Make ICs for 3D Taylor-Green vortex.
-IC2OBJ = allocate.o io.o FFT.o taylor.o makeIC2.o
+# Make ICs for 3D Taylor--Green vortex.
+IC2OBJ = allocate.o io.o energy.o FFT.o taylor.o misc.o makeIC2.o
+IC2NNL = allocate.o io.o energy.o FFT.o taylor.o nonlinear_alt.o	\
+	 misc.o nl_chk.o
 
-makeIC2: $(IC2OBJ) $(HEADER)
-	$(LD) $(IC2OBJ) -o $@ $(LDFLAGS)
+IC2: $(IC2OBJ) $(IC2NNL) $(HEADER)
+	$(LD) $(IC2OBJ) -o makeIC2 $(LDFLAGS)
+	$(LD) $(IC2NNL) -o nl_chk  $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
-# Make ICs for 3D Taylor-Green vortex.
-IC3OBJ = allocate.o io.o FFT.o taylor.o makeIC3.o
-IC3CHK = allocate.o io.o energy.o FFT.o taylor.o taylor2D_chk.o
+# Make ICs for 2D Taylor vortex.
+IC3OBJ = allocate.o io.o energy.o FFT.o taylor.o misc.o makeIC3.o
+IC3CHK = allocate.o io.o energy.o FFT.o taylor.o misc.o taylor2D_chk.o
 
-makeIC3: $(IC3OBJ) $(IC3CHK) $(HEADER)
-	$(LD) $(IC3OBJ) -o $@ $(LDFLAGS)
+IC3: $(IC3OBJ) $(IC3CHK) $(HEADER)
+	$(LD) $(IC3OBJ) -o makeIC3 $(LDFLAGS)
 	$(LD) $(IC3CHK) -o taylor2D_chk $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Test the FFT routines.
-TESTOBJ = allocate.o io.o FFT.o testDFT.o
+TESTOBJ = allocate.o io.o energy.o misc.o FFT.o taylor.o DFT_chk.o
 
-testDFT: $(TESTOBJ) $(HEADER)
-	$(CC) -o $@ $(TESTOBJ) $(LDFLAGS)
+DFT: $(TESTOBJ) $(HEADER)
+	$(CC) -o DFT_chk $(TESTOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Divergence-checking diagnostic.
-CHKOBJ = allocate.o io.o derivative.o FFT.o truncation.o div_chk.o
+CHKOBJ = allocate.o io.o derivative.o energy.o FFT.o truncation.o	\
+	 misc.c taylor.o div_chk.o
 
 div_chk: $(CHKOBJ) $(HEADER)
 	$(CC) -o $@ $(CHKOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Convert field file to tecplot format, with vorticity too.
-TECOBJ = allocate.o io.o derivative.o truncation.o FFT.o iso2tec.o
+TECOBJ = allocate.o io.o energy.o derivative.o truncation.o misc.o 	\
+	 taylor.o FFT.o iso2tec.o
 
 iso2tec: $(TECOBJ) $(HEADER)
 	$(LD) $(CFLAGS) -o $@ $(TECOBJ) $(LDFLAGS)
