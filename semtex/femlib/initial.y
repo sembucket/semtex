@@ -52,13 +52,12 @@ static char
 #include <stdarg.h>
 #include <errno.h>
 
-#include <linalp.h>
+#include <alplib.h>
 
 extern int errno;
 
-#ifdef _mips			/* We have a MIPS floating-point accelerator */
+#ifdef __sgi
   #include <sigfpe.h>
-  extern struct sigfpe_template sigfpe_[_N_EXCEPTION_TYPES+1];
 #endif
 
 
@@ -197,14 +196,13 @@ void initialize(void)
   int i;
  
 
-#ifdef _mips
+#ifdef __sgi
 
-  sigfpe_[_UNDERFL].repls = _ZERO;
   sigfpe_[ _OVERFL].abort = 1;
   sigfpe_[_DIVZERO].abort = 1;
   sigfpe_[_INVALID].abort = 1;
 
-  handle_sigfpe(_ON, _EN_UNDERFL | _EN_OVERFL | _EN_DIVZERO | _EN_INVALID,
+  handle_sigfpes(_ON, _EN_OVERFL | _EN_DIVZERO | _EN_INVALID,
 		NULL, _ABORT_ON_ERROR, NULL);
 #endif
 
