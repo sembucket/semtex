@@ -15,11 +15,7 @@
 
 static char RCS[] = "$Id$";
 
-#include<vector>
-
-#include <femdef.h>
-#include <Veclib.h>
-
+#include<Sem.h>
 class rvect { public: int size; real* data; int nrep; };
 
 static vector<rvect*> rv;
