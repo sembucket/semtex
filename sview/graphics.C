@@ -7,6 +7,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <Sview.h>
+using namespace std;
 
 // -- Materials definitions, in display order ---
 //    blue, red, yellow, green, purple, white, turquoise, grey-blue

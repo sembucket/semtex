@@ -32,8 +32,8 @@ const int    FldMax = 32;
 
 template<class T> inline T sqr(T x)      { return x * x;            }
 template<class T> inline T sgn(T x)      { return (x < 0) ? -1 : 1; }
-template<class T> inline T min(T a, T b) { return (a < b) ?  a : b; }
-template<class T> inline T max(T a, T b) { return (a > b) ?  a : b; }
+template<class T> inline T MIN(T a, T b) { return (a < b) ?  a : b; }
+template<class T> inline T MAX(T a, T b) { return (a > b) ?  a : b; }
 
 typedef struct flag {		/* Global state variables.              */
   GLboolean drawbox;		/* Toggle drawing spectral elements.    */
@@ -105,7 +105,7 @@ extern Iso**        Surface;	/* Array of stored isosurfaces.             */
 extern Iso**        Display;	/* Array of isosurfaces chosen for display. */
 extern Sem*         Mesh;	/* Element nodal location data.             */
 extern Data*        Fields;	/* Scalar field data structure/retrieval.   */
-extern vector<Pnt*> Point;	/* Punctual data.                           */
+extern std::vector<Pnt*> Point;	/* Punctual data.                           */
 
 /* -- External routines in main.C: */
 

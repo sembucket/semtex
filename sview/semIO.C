@@ -145,12 +145,12 @@ Sem* loadMesh (const char* fname)
     x = xg[i];
     y = yg[i];
     z = zg[i];
-    xmin = min (xmin, x);
-    xmax = max (xmax, x);
-    ymin = min (ymin, y);
-    ymax = max (ymax, y);
-    zmin = min (zmin, z);
-    zmax = max (zmax, z);
+    xmin = MIN (xmin, x);
+    xmax = MAX (xmax, x);
+    ymin = MIN (ymin, y);
+    ymax = MAX (ymax, y);
+    zmin = MIN (zmin, z);
+    zmax = MAX (zmax, z);
   }
 
   xavg = 0.5 * (xmin + xmax);
@@ -173,8 +173,8 @@ Sem* loadMesh (const char* fname)
   State.yavg = yavg;
   State.zavg = zavg;
 
-  State.length = max (hypot (xmax, ymax), hypot (xmax, zmax));
-  State.length = max (State.length,       hypot (ymax, zmax));
+  State.length = MAX (hypot (xmax, ymax), hypot (xmax, zmax));
+  State.length = MAX (State.length,       hypot (ymax, zmax));
   State.length *= 2.0;
 
   mfile.close();
@@ -337,8 +337,8 @@ int loadData (Data* F   ,
       Linv2 = j * skip + k * np2;
       for (i = 0; i < np2; i++) {
 	datum = E[Linv1 + i] = tmp[Linv2 + i];
-	dmin  = min (dmin, datum);
-	dmax  = max (dmax, datum);
+	dmin  = MIN (dmin, datum);
+	dmax  = MAX (dmax, datum);
       }
     }
   }

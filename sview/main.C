@@ -35,6 +35,7 @@
 #include <Sview.h>
 
 static char prog[] = "sview";
+using namespace std;
 
 // -- Global variables needed for graphics routines.
 
