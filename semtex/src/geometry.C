@@ -16,21 +16,21 @@ static char RCS[] = "$Id$";
 #include "geometry.h"
 #include "femlib.h"
 
-integer            Geometry::_pid   = 0;
-integer            Geometry::_nproc = 0;
-integer            Geometry::_ndim  = 0;
-integer            Geometry::_np    = 0;
-integer            Geometry::_nz    = 0;
-integer            Geometry::_nzp   = 0;
-integer            Geometry::_nel   = 0;
-integer            Geometry::_psize = 0;
-integer            Geometry::_kfund = 0;
+int_t Geometry::_pid   = 0;
+int_t Geometry::_nproc = 0;
+int_t Geometry::_ndim  = 0;
+int_t Geometry::_np    = 0;
+int_t Geometry::_nz    = 0;
+int_t Geometry::_nzp   = 0;
+int_t Geometry::_nel   = 0;
+int_t Geometry::_psize = 0;
+int_t Geometry::_kfund = 0;
 Geometry::CoordSys Geometry::_csys  = Geometry::Cartesian;
 
 
-void Geometry::set (const integer  NP,
-		    const integer  NZ,
-		    const integer  NE,
+void Geometry::set (const int_t    NP,
+		    const int_t    NZ,
+		    const int_t    NE,
 		    const CoordSys CS)
 // ---------------------------------------------------------------------------
 // Load values of static internal variables.
@@ -41,15 +41,15 @@ void Geometry::set (const integer  NP,
 // be even, unless NZ == 1.
 //
 // NB: the value of psize is the value of nPlane, but rounded up if
-// necessary to be an even number and also an integer multiple of the
+// necessary to be an even number and also an int_t multiple of the
 // number of processors.  The even number restriction is to simplify
 // the handling of Fourier transforms, which can be based on a
 // real--complex transform on some platforms.  The restriction to be
-// an integer multiple of the number of processors is to simplify the
+// an int_t multiple of the number of processors is to simplify the
 // structure of memory exchanges required for Fourier transforms.
 //
 // With the introduction of Geometry::kFund(), the first non-zero
-// Fourier mode for 3D problems can have an assigned integer
+// Fourier mode for 3D problems can have an assigned int_t
 // wavenumber K_FUND, in addition to its wavelength parameter BETA.
 // For cylindrical problems where axis BCs have a wavenumber
 // dependence, we can then obtain the correct set of BCs even if the
