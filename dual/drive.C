@@ -1,11 +1,18 @@
 //////////////////////////////////////////////////////////////////////////////
 // drive.C: control spectral element DNS for incompressible flows.
 //
+// This version is explicitly 3D and in addition is restricted to a
+// single non-zero Fourier mode (in addition to the mean flow),
+// i.e. the three-dimensionality is restricted to a single wavenumber.
+// Nonlinear terms in the evolution equations are to be calculated
+// using convolution sums in Fourier space.  The code is designed to
+// run on a single process, with N_Z = 3.
+//
 // Copyright (C) 1994, 2000  Hugh Blackburn.
 //
 // USAGE:
 // -----
-// dns [options] session
+// dual [options] session
 //   options:
 //   -h       ... print usage prompt
 //   -i[i]    ... use iterative solver for viscous [and pressure] steps
@@ -24,10 +31,10 @@
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include <dns.h>
+#include <dual.h>
 #include <new.h>
 
-static char prog[] = "dns";
+static char prog[] = "dual";
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
@@ -54,14 +61,14 @@ int main (int    argc,
   BCmgr*           bman;
   BoundarySys*     bsys;
   Domain*          domain;
-  DNSAnalyser*     analyst;
+  DaulAnalyser*    analyst;
   
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session);
 
   preprocess (session, file, mesh, elmt, bman, bsys, domain);
 
-  analyst = new DNSAnalyser (domain, file);
+  analyst = new DualAnalyser (domain, file);
 
   domain -> restart();
 
