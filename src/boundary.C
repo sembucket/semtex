@@ -3,7 +3,7 @@
  *****************************************************************************/
 
 static char
-RCSid[]= "$Id$";
+RCSid[] = "$Id$";
 
 #include "Fem.h"
 
@@ -32,7 +32,8 @@ Boundary::Boundary (const Boundary& B, const List<Element*>& E)
 // Make a copy of an existing Boundary edge, with new data storage area
 // and with element pointer into the list of associated new Elements (input).
 //
-// The boundary condition is set to the input condition.
+// The boundary condition is set according to the input condition's tag and
+// the state of BCmanager::currentVar.
 // ---------------------------------------------------------------------------
 {
   char routine[] = "Boundary::Boundary(Boundary&, List<Element*>&)";
@@ -40,11 +41,11 @@ Boundary::Boundary (const Boundary& B, const List<Element*>& E)
   memcpy (this, &B, sizeof (Boundary));
 
   int found = 0;
-  for (ListIterator<Element*> k(E); !found && k.more(); k.next())
+  for (ListIterator<Element*> k (E); !found && k.more (); k.next ())
     if (found = k.current () -> ID () == elmt -> ID ()) {
       elmt      = k.current ();
       value     = rvector (elmt -> nKnot());
-      condition = B.condition;
+      condition = BCmanager::getBC (B.condition -> tag);
     }
 
   if (!found) message (routine, "can't find a match to new element id", ERROR);
