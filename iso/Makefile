@@ -31,6 +31,10 @@ ifdef INVISCID
   DEFINES += -DINVISCID
 endif
 
+ifdef DEBUG
+  DEFINES += -DDEBUG
+endif
+
 CPPFLAGS = -I.
 
 # ----------- Compiler options for specific machines -------------------------
