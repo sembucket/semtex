@@ -1,5 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////
-// drive.C: control finite-element flow solver.
+//
+// drive.C: control spectral element flow solver.
 //
 // Usage:
 // =====
@@ -7,6 +8,7 @@
 //   options:
 //   -h       ... print usage prompt
 //   -i[i]    ... use iterative solver for viscous [and pressure] steps
+//   -O[<n>]  ... define bandwidth optimization level
 //   -v[v...] ... increase verbosity level
 //   -chk     ... checkpoint field dumps
 //
@@ -110,7 +112,9 @@ int main (int argc, char *argv[])
   char       s[StrMax];
 
   // -- Initialization section.
-  
+
+//  FamilyMgr::active = 0;
+
   cout << prog << ": aeroelastic Navier--Stokes solver"  << endl;
   cout << "      (c) Hugh Blackburn 1995, 1996." << endl << endl;
 
@@ -175,13 +179,14 @@ static void getArgs (int argc, char** argv, char*& session)
 // arguments.  Last argument is name of a session file, not dealt with here.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "getArgs";
   char buf[StrMax], c;
+  int  level;
   char usage[]   =
     "Usage: %s [options] session-file\n"
     "  [options]:\n"
     "  -h        ... print this message\n"
     "  -i[i]     ... use iterative solver for viscous [& pressure] steps\n"
+    "  -O[<n>]   ... set bandwidth optimizer 0, 1 (default), 2 or 3\n"
     "  -v[v...]  ... increase verbosity level\n"
     "  -chk      ... checkpoint field dumps\n";
  
@@ -209,6 +214,19 @@ static void getArgs (int argc, char** argv, char*& session)
 	fprintf (stdout, usage, prog);
 	exit (EXIT_FAILURE);	  
       }
+      break;
+    case 'O':
+      if (*++argv[0])
+        level = atoi(*argv);
+      else {
+        --argc;
+        level = atoi(*++argv);
+      }
+      if (level < 0 || level > 3) {
+	fprintf (stdout, usage, prog);
+	exit (EXIT_FAILURE);	  
+      } else
+	setOption ("OPTIMIZE", level);
       break;
     default:
       sprintf (buf, usage, prog);
