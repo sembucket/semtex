@@ -419,7 +419,6 @@ C
       DOUBLE PRECISION TRIG (2,0:NZ-1)
       LOGICAL          NZODD
 C 
-C 
       NPH  = NP / 2
       NZH  = NZ / 2
       NZHM = NZH - 1
@@ -439,10 +438,10 @@ C
                MJ = NZ - J
                DO 20 I = 1, NPH
                   IP = I + NPH
-                  V (I,  JO) = 0.5 * (W (I, 1,  J) + W (I, 1, MJ))
-                  V (I,  JE) = 0.5 * (W (I, 2,  J) - W (I, 2, MJ))
-                  V (IP, JO) = 0.5 * (W (I, 2,  J) + W (I, 2, MJ))
-                  V (IP, JE) = 0.5 * (W (I, 1, MJ) - W (I, 1,  J))
+                  V (I,  JO) = 0.5D0 * (W (I, 1,  J) + W (I, 1, MJ))
+                  V (I,  JE) = 0.5D0 * (W (I, 2,  J) - W (I, 2, MJ))
+                  V (IP, JO) = 0.5D0 * (W (I, 2,  J) + W (I, 2, MJ))
+                  V (IP, JE) = 0.5D0 * (W (I, 1, MJ) - W (I, 1,  J))
  20            CONTINUE
  10         CONTINUE
             DO 30 I = 1, NPH
@@ -457,10 +456,10 @@ C
                MJ = NZ - J
                DO 50 I = 1, NPH
                   IP = I + NPH
-                  V (I,  JE) = 0.5 * (W (I, 1,  J) + W (I, 1, MJ))
-                  V (I,  JO) = 0.5 * (W (I, 2,  J) - W (I, 2, MJ))
-                  V (IP, JE) = 0.5 * (W (I, 2,  J) + W (I, 2, MJ))
-                  V (IP, JO) = 0.5 * (W (I, 1, MJ) - W (I, 1,  J))
+                  V (I,  JE) = 0.5D0 * (W (I, 1,  J) + W (I, 1, MJ))
+                  V (I,  JO) = 0.5D0 * (W (I, 2,  J) - W (I, 2, MJ))
+                  V (IP, JE) = 0.5D0 * (W (I, 2,  J) + W (I, 2, MJ))
+                  V (IP, JO) = 0.5D0 * (W (I, 1, MJ) - W (I, 1,  J))
  50            CONTINUE
  40         CONTINUE
             DO 60 I = 1, NPH
@@ -626,8 +625,8 @@ C
                      AP2 = A(IJ,2,I1) + A(IJ,2,I2)
                      C(IJ,1,J0) = A(IJ,1,I0) + AP1
                      C(IJ,2,J0) = A(IJ,2,I0) + AP2
-                     TA1 = A(IJ,1,I0) - 0.5 * AP1
-                     TA2 = A(IJ,2,I0) - 0.5 * AP2
+                     TA1 = A(IJ,1,I0) - 0.5D0 * AP1
+                     TA2 = A(IJ,2,I0) - 0.5D0 * AP2
                      AM1 = SN60 * (A(IJ,1,I1) - A(IJ,1,I2))
                      AM2 = SN60 * (A(IJ,2,I1) - A(IJ,2,I2))
                      C(IJ,1,J1) = TA1 - AM2
@@ -645,8 +644,8 @@ C
                      AP2 = A(IJ,2,I1) + A(IJ,2,I2)
                      C(IJ,1,J0) = A(IJ,1,I0) + AP1
                      C(IJ,2,J0) = A(IJ,2,I0) + AP2
-                     TA1 = A(IJ,1,I0) - 0.5 * AP1
-                     TA2 = A(IJ,2,I0) - 0.5 * AP2
+                     TA1 = A(IJ,1,I0) - 0.5D0 * AP1
+                     TA2 = A(IJ,2,I0) - 0.5D0 * AP2
                      AM1 = SN60 * (A(IJ,1,I1) - A(IJ,1,I2))
                      AM2 = SN60 * (A(IJ,2,I1) - A(IJ,2,I2))
                      T1 = TA1 - AM2
