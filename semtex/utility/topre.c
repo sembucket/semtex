@@ -31,11 +31,7 @@
  *                                                                           *
  *****************************************************************************/
 
-/*------------------*
- * RCS Information: *
- *------------------*/
-static char
-  RCSid[] = "$Id$";
+static char RCS[] = "$Id$";
 
 
 
@@ -43,7 +39,8 @@ static char
 #include <ctype.h>
 #include <string.h>
 #include <math.h>
-#include <veclib.h>		/* Like veclib */
+
+#include <cveclib>
 
 static char prog[] = "topre";
 

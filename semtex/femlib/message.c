@@ -7,12 +7,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <malloc.h>
-#include <femdef.h>
-#include <femlib.h>
 
 #if defined(MPI)
 #include <mpi.h>
 #endif
+
+#include <cfemdef>
+#include <cfemlib>
 
 
 void message_init (int*    argc,

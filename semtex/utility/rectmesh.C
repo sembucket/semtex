@@ -15,7 +15,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Sem.h>
+#include <sem_h>
 
 static char prog[] = "rectmesh";
 static void getargs (int, char**, istream*&);

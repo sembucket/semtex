@@ -17,9 +17,9 @@
 
 using namespace std;
 
-#include <femdef.h>
-#include <Utility.h>
-#include <Femlib.h>
+#include <cfemdef>
+#include <utility_h>
+#include <femlib_h>
 
 static char prog[] = "calc";
 static void getargs (int, char**, istream*&);

@@ -105,7 +105,7 @@
 
 static char RCS[] = "$Id$";
 
-#include <Sem.h>
+#include <sem_h>
 
 
 Field::Field (BoundarySys*      B,

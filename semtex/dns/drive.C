@@ -25,7 +25,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "dns.h"
+#include "dns_h"
 
 static char prog[] = "dns";
 static void getargs    (int, char**, char*&);

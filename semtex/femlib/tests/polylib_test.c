@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <math.h>
-#include "polylib.h"
+#include "cpolylib"
 
 /* --------------------------------------------------------------------
    To compile:

@@ -35,7 +35,7 @@
 
 static char RCS[] = "$Id$";
 
-#include <Sem.h>
+#include <sem_h>
 #include <ctime>
 
 static char    prog[]    = "compare";

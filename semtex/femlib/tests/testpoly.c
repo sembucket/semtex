@@ -7,8 +7,9 @@ RCSid[] = "$Id$";
 
 #include <stdio.h>
 #include <math.h>
-#include <alplib.h>
-#include <femlib.h>
+
+#include <cveclib>
+#include <cfemlib>
 
 
 void polcoe(int n, double *x, double *y, double *c);

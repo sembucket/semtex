@@ -18,9 +18,9 @@
 #include <ctype.h>
 #include <stdlib.h>
 
-#include <femlib.h>
-#include <femdef.h>
-#include <veclib.h>
+#include <cfemlib>
+#include <cfemdef>
+#include <cveclib>
 
 static void getargs (int, char**, FILE**, int*);
 

@@ -21,7 +21,7 @@
 
 static char RCS[] = "$Id$";
 
-#include <Sem.h>
+#include <sem_h>
 
 
 AuxField::AuxField (real*             alloc,

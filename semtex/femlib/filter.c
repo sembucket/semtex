@@ -1,7 +1,7 @@
 /*****************************************************************************
  * filter.c
  *
- * Copyright (c) Hugh Blackburn 1999-2001
+ * Copyright (c) Hugh Blackburn 1999,2003
  *
  * Routines for computing spectral filters.
  *
@@ -9,9 +9,10 @@
  *****************************************************************************/
 
 #include <math.h>
-#include <femdef.h>
 #include <stdio.h>
-#include <veclib.h>
+
+#include <cfemdef>
+#include <cveclib>
 
 
 void bvdFilter (const integer N     ,

@@ -3,8 +3,9 @@
 #include <stdio.h>
 #include <float.h>
 #include <math.h>
-#include "polylib.h"
-#include <float.h>
+
+#include "cpolylib"
+
 #define STOP  30 
 #define EPS   100*DBL_EPSILON
 #define sign(a,b) ((b)<0 ? -fabs(a) : fabs(a))

@@ -11,10 +11,11 @@
 
 #include <stdio.h>
 #include <malloc.h>
-#include <femdef.h>
-#include <veclib.h>
-#include <femlib.h>
-#include <polylib.h>
+
+#include <cfemdef>
+#include <cveclib>
+#include <cfemlib>
+#include <cpolylib>
 
 
 typedef struct dquadopr {	/* ---- quadrature operator information  --- */

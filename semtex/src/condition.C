@@ -25,7 +25,7 @@
 
 static char RCS[] = "$Id$";
 
-#include <Sem.h>
+#include <sem_h>
 
 
 void Essential::evaluate (const int      np  ,

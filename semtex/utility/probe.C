@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // probe.C: extract results from a field file at a set of 3D points.
 //
-// Copyright (C) 1997,2003 Hugh Blackburn
+// Copyright (c) 1997,2003 Hugh Blackburn
 //
 // Synopsis
 // --------
@@ -64,7 +64,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Sem.h>
+#include <sem_h>
 #include <ctime>
 
 static const int NPTS = 64;	// -- Default number of points for line/plane.
@@ -155,10 +155,9 @@ int main (int    argc,
   NZ  = static_cast<int>(Femlib::value ("N_Z"));
   
   Geometry::set (NP, NZ, NEL, Geometry::Cartesian);
-  Femlib::mesh  (GLL, GLL, NP, NP, &knot, 0, 0, 0, 0);
   Esys.resize   (NEL);
 
-  for (k = 0; k < NEL; k++) Esys[k] = new Element (k, M, knot, NP);
+  for (k = 0; k < NEL; k++) Esys[k] = new Element (k, NP, M);
   
   // -- Set up FFT work areas.
 

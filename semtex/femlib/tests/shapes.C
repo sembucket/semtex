@@ -17,18 +17,20 @@
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include <stdlib.h>
-#include <math.h>
+#include <cstdlib>
+#include <cmath>
 
-#include <iostream.h>
-#include <iomanip.h>
+#include <iostream>
+#include <iomanip>
 
-#include <femdef.h>
+using namespace std;
+
+#include <cfemdef>
 #include <Array.h>
-#include <Veclib.h>
-#include <Femlib.h>
-#include <Blas.h>
-#include <Utility.h>
+#include <veclib_h>
+#include <femlib_h>
+#include <blas_h>
+#include <utility_h>
 
 
 static void getargs (int     argc ,

@@ -13,9 +13,9 @@
 #include <string.h>
 #include <ctype.h>
 
-#include <femdef.h>
-#include <veclib.h>
-#include <femlib.h>
+#include <cfemdef>
+#include <cveclib>
+#include <cfemlib>
 
 #define   MAXFIELDS 16
 
