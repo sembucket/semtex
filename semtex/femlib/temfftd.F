@@ -2052,7 +2052,7 @@ C
 CDIR$ IVDEP,SHORTLOOP
 #elif defined(_SX)
 *VDIR NODEP, SHORTLOOP
-#elif defined__uxp__)
+#elif defined(__uxp__)
 !OCL NOVREC
 #endif
                         DO 130 L = 1 , NVEX
