@@ -7,6 +7,10 @@
 #include <math.h>
 #include <femdef.h>
 
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
 
 void dvatn2 (integer n, 
 	     const double* x, integer incx,

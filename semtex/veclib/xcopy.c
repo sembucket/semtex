@@ -10,6 +10,11 @@
 #include <femdef.h>
 
 
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
+
 void dcopy (integer n, const double* x, integer incx,
                              double* y, integer incy)
 {

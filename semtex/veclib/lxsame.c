@@ -12,6 +12,11 @@
 #define EPSSP   6.0e-7
 #define EPSDP   6.0e-14
 
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
+
 
 integer lisame (integer n,
 		const integer* x, integer incx,

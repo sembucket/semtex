@@ -8,6 +8,11 @@
 #include <math.h>
 #include <femdef.h>
 
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
+
 #define MAX(x, y) ( ((x)>(y)) ? (x) : (y))
 
 

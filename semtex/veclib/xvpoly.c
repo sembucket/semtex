@@ -9,6 +9,10 @@
 
 #include <femdef.h>
 
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
 
 void dvpoly (integer n,
 	     const double* x, integer incx, integer m,

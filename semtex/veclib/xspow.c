@@ -7,6 +7,10 @@
 #include <math.h>
 #include <femdef.h>
 
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
 
 void dspow (const integer n, const double alpha,
 	    const double* x, integer incx,
