@@ -1,12 +1,12 @@
 //////////////////////////////////////////////////////////////////////////////
-// drive.C: control spectral element unsteady incompressible/buoyant
-// flow solver.  Cartesian coordinates only.
+// drive.C: control spectral element solver for unsteady incompressible
+// flow with scalar transport.
 //
-// Copyright (C) 1997, 1999 Hugh Blackburn
+// Copyright (C) 1997, 2001 Hugh Blackburn
 //
 // USAGE:
 // -----
-// buoy [options] session
+// scat [options] session
 //   options:
 //   -h       ... print usage prompt
 //   -i[i]    ... use iterative solver for viscous [and pressure] steps
@@ -20,21 +20,21 @@
 // P.O. Box 56
 // Highett, Vic 3190
 // Australia
-// hmb@dbce.csiro.au
+// hugh.blackburn@csiro.au
 //
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include <buoy.h>
+#include "scat.h"
 #include <new.h>
 
-static char prog[] = "buoy";
+static char prog[] = "scat";
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, BoundarySys*&, Domain*&);
 
-void NavierStokes (Domain*, BuoyAnalyser*);
+void NavierStokes (Domain*, ScatAnalyser*);
 
 
 integer main (int    argc,
@@ -55,20 +55,20 @@ integer main (int    argc,
   BCmgr*           bman;
   BoundarySys*     bsys;
   Domain*          domain;
-  BuoyAnalyser*    adjunct;
+  ScatAnalyser*    analyst;
   
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session);
 
   preprocess (session, file, mesh, elmt, bman, bsys, domain);
 
-  adjunct = new BuoyAnalyser (domain, file);
+  analyst = new ScatAnalyser (domain, file);
 
   domain -> restart();
 
   ROOTONLY domain -> report();
   
-  NavierStokes (domain, adjunct);
+  NavierStokes (domain, analyst);
 
   Femlib::finalize();
 
@@ -102,12 +102,14 @@ static void getargs (int    argc   ,
       break;
     case 'i':
       do
-	Femlib::value ("ITERATIVE", (integer) Femlib::value ("ITERATIVE") + 1);
+	Femlib::value ("ITERATIVE",
+		       static_cast<integer>(Femlib::value ("ITERATIVE")) + 1);
       while (*++argv[0] == 'i');
       break;
     case 'v':
       do
-	Femlib::value ("VERBOSE",   (integer) Femlib::value ("VERBOSE")   + 1);
+	Femlib::value ("VERBOSE",
+		       static_cast<integer>(Femlib::value ("VERBOSE"))   + 1);
       while (*++argv[0] == 'v');
       break;
     case 'c':
@@ -143,7 +145,7 @@ static void preprocess (const char*       session,
 // They are listed in order of creation.
 // ---------------------------------------------------------------------------
 {
-  const integer      verbose = (integer) Femlib::value ("VERBOSE");
+  const integer      verbose = static_cast<integer>(Femlib::value ("VERBOSE"));
   Geometry::CoordSys space;
   const real*        z;
   integer            i, np, nz, nel;
@@ -153,7 +155,7 @@ static void preprocess (const char*       session,
   VERBOSE cout << "Building mesh ..." << endl;
 
   file = new FEML (session);
-  mesh = new Mesh (*file);
+  mesh = new Mesh (file);
 
   VERBOSE cout << "done" << endl;
 
@@ -162,9 +164,9 @@ static void preprocess (const char*       session,
   VERBOSE cout << "Setting geometry ... ";
 
   nel   = mesh -> nEl();
-  np    =  (integer) Femlib::value ("N_POLY");
-  nz    =  (integer) Femlib::value ("N_Z");
-  space = ((integer) Femlib::value ("CYLINDRICAL")) ? 
+  np    =  static_cast<integer>(Femlib::value ("N_POLY"));
+  nz    =  static_cast<integer>(Femlib::value ("N_Z"));
+  space = (static_cast<integer>(Femlib::value ("CYLINDRICAL"))) ? 
     Geometry::Cylindrical : Geometry::Cartesian;
   
   Geometry::set (np, nz, nel, space);

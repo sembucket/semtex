@@ -1,15 +1,14 @@
 ///////////////////////////////////////////////////////////////////////////////
 // This version of analysis.C is specialized so that it computes and
 // prints out the temperature flux on "wall" boundary group.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
  
-static char
-RCSid[] = "$Id$";
-
-#include <buoy.h>
+#include "scat.h"
 
 
-BuoyAnalyser::BuoyAnalyser (Domain* D   ,
+ScatAnalyser::ScatAnalyser (Domain* D   ,
 			    FEML*   feml) :
 // ---------------------------------------------------------------------------
 // Extensions to Analyser class.
@@ -32,7 +31,7 @@ BuoyAnalyser::BuoyAnalyser (Domain* D   ,
 }
 
 
-void BuoyAnalyser::analyse (AuxField*** work)
+void ScatAnalyser::analyse (AuxField** work)
 // ---------------------------------------------------------------------------
 // Step-by-step processing.
 // ---------------------------------------------------------------------------
