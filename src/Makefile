@@ -138,15 +138,15 @@ CXX	 = CC
 LD	 = CC
 CC       = cc
 FC       = f77
-CFLAGS   = $(DEFINES) -64 $(OPT)
-FFLAGS   = $(DEFINES) -64 $(OPT)
-CXXFLAGS = $(DEFINES) -64 $(OPT)
-LDFLAGS  = -64 $(OPT) $(LIBDIR) -lfem -lalp $(F77LIBS) -lm
+CFLAGS   = $(DEFINES) -n32 -mips4 $(OPT)
+FFLAGS   = $(DEFINES) -n32 -mips4 $(OPT)
+CXXFLAGS = $(DEFINES) -n32 -mips4 $(OPT)
+LDFLAGS  = -n32 -mips4 $(OPT) $(LIBDIR) -lfem -lalp $(F77LIBS) -lm
 RANLIB   =
 ifdef DEBUG
   OPT    = -g
 else
-  OPT    =  -r10000 -Ofast=$(MACH) -OPT:roundoff=3
+  OPT    =  -O3
 endif
 F77LIBS  = -lcomplib.sgimath -lftn
 CLDFLAGS = $(LDFLAGS)
