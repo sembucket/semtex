@@ -20,11 +20,8 @@
 // one at a time until all offset Nodes are consumed.  This is a
 // recursive process too.
 // 
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
-
 
 #include <qmesh.h>
 

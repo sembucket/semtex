@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// graphics.cc
+// graphics.C
 //
 // All drawing is done using Super Mongo graphics package.
 // Contact: Robert Lupton, rhl@astro.princeton.edu
@@ -7,11 +7,9 @@
 // GRAPHICS needs to be defined during compilation otherwise all calls
 // are to empty stubs.  This allows compilation on systems that don't
 // have SM graphics installed.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
-
 
 #include <qmesh.h>
 
@@ -45,7 +43,7 @@ void initGraphics (const char* device)
   sm_ptype    (pp(), 1);
   sm_lweight  (1);
   sm_erase    ();
-  sm_window   (1, 1, 1, 1, 1, 1);
+  sm_window   (1, 1, 1, 1);
 #endif
 }
 

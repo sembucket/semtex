@@ -1,6 +1,7 @@
-// mergebis.C: merge two files of nodes and elements into one, smooth, output.
+///////////////////////////////////////////////////////////////////////////////
+// merge.C: merge two files of nodes and elements into one, smooth, output.
 //
-// usage: mergebis file1 file2
+// usage: merge file1 [file2]
 //
 // Method: read in the predefined Node section of first file.  Then
 // read in the same information from the second file, but xadd the new
@@ -8,47 +9,33 @@
 // table of indices of the new Nodes and pointers to those in the
 // extended list.  Print up the data for the extended list of Nodes,
 // followed by the Element information in the first file and the
-// second file.  It is assumed that within each file (taken separately)
-// there are no redundant node indentifiers.
+// second file.  It is assumed that within each file (taken
+// separately) there are no redundant node indentifiers.
+//
+// If file2 is not specified, merge acts on the single input file,
+// i.e. just acts to smooth the mesh.
+//
+// The file formats are (nearly) standard FEML, with NODES and
+// ELEMENTS sections.  Each node has an additional character label: U,
+// F or M.  U ==> a (fixed) mesh boundary node, F ==> a fixed mesh
+// interior node and M ==> a moveable node.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <qmesh.h>
 
-#ifdef GRAPHICS
-  #include <sm_options.h>
-  #include <sm_declare.h>
-#endif
-
-int graphics = 1;
-
-char prog[] = "mergebis";
-
-real        Global::refCoeff  = 0.0;
-real        Global::gblSize   = 1.0;
-int         Global::nodeIdMax = 0;
-int         Global::loopIdMax = 0;
-int         Global::verbose   = 0;
-List<Node*> Global::nodeList;
+char prog[] = "merge";
 
 static const int NSMOOTH = 20;
 
-Node* Global::exist     (const Node*);
-
-static int getNum       (istream&, const char*);
-static void buildTable  (istream&, const int, const int, Node**);
-static void getElements (istream&, Node**, Quad**, const int);
+static int  getNum      (istream*, const char*);
+static void buildTable  (istream*, const int, const int, Node**);
+static void getElements (istream*, Node**, Quad**, const int);
 static void connect     (List<Node*>&, Quad**, const int);
 static void smooth      (List<Node*>&, const int);
 static void printUp     (ostream&, const List<Node*>&, Quad**, const int);
 
-static void smStart     (const char*);
-static void smStop      ();
-static void smBox       ();
-static void smDraw      (const Quad**, const int);
-static void smErase     ();
 
 int main (int    argc,
 	  char** argv)
@@ -56,23 +43,33 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  char   usage[] = "Usage: mergebis file1 file2\n";
-  char   buf[StrMax], err[StrMax];
-  int    nnod1, nnod2, nel1, nel2;
-  Node** nodeLUT;
-  Quad** Elmt;
+  char     usage[] = "Usage: merge file1 file2\n";
+  char     err[StrMax];
+  int      nnod1 = 0, nnod2 = 0, nel1 = 0, nel2 = 0;
+  ifstream *f1, *f2 = 0;
+  Node**   nodeLUT;
+  Quad**   Elmt;
 
   // -- Open files.
 
-  if (argc != 3) message (prog, usage, ERROR);
-  ifstream f1 (argv[1]), f2 (argv[2]);
-  if (!f1) {
-    sprintf (err, "can't open file: %s", argv[1]);
-    message (prog, err, ERROR);
-  }
-  if (!f2) {
-    sprintf (err, "can't open file: %s", argv[2]);
-    message (prog, err, ERROR);
+  switch (argc) {
+  case 3:			// -- Standard usage: merge and smooth.
+    f2 = new ifstream (argv[2]);
+    if (!*f2) {
+      sprintf (err, "can't open file: %s", argv[2]);
+      message (prog, err, ERROR);
+    }
+    // -- Fall through.
+  case 2:			// -- Just apply a smoothing to single file.
+    f1 = new ifstream (argv[1]);
+    if (!*f1) {
+      sprintf (err, "can't open file: %s", argv[1]);
+      message (prog, err, ERROR);
+    }
+    break;
+  default:
+    message (prog, usage, ERROR);
+    break;
   }
 
   // -- Find number of Nodes in each file.
@@ -99,31 +96,24 @@ int main (int    argc,
   getElements (f1, nodeLUT,         Elmt,        nel1);
   getElements (f2, nodeLUT + nnod1, Elmt + nel1, nel2);
 
-  smStart ("x11");
-  smBox   ();
-  smDraw  (Elmt, nel1 + nel2);
+  initGraphics ("x11");
+  drawBox      ();
+  drawMesh     (Global::quadList);
 
   // -- Process combined element information.
 
   connect (Global::nodeList, Elmt, nel1 + nel2);
   smooth  (Global::nodeList, NSMOOTH);
 
-  smErase ();
-  smBox   ();
-  smDraw  (Elmt, nel1 + nel2);
+  eraseGraphics ();
+  drawBox       ();
+  drawMesh      (Global::quadList);
 
-  sm_gflush    ();
-  sm_hardcopy  ();
-  sm_alpha     ();
+  Global::verbose = 1;
 
-  smStart ("postfile mesh.eps");
-  smBox   ();
-  smDraw  (Elmt, nel1 + nel2);
+  hardCopy      (Global::quadList);
 
-  sm_hardcopy  ();
-  sm_alpha     ();
-
-  smStop  ();
+  stopGraphics  ();
 
   // -- Print up.
 
@@ -133,7 +123,7 @@ int main (int    argc,
 }
 
 
-static int getNum (istream&    strm   ,
+static int getNum (istream*    strm   ,
 		   const char* keyword)
 // ---------------------------------------------------------------------------
 // Look for keyword NUMBER=num, extract & return num, leave stream after EOL.
@@ -143,9 +133,11 @@ static int getNum (istream&    strm   ,
   char buf[StrMax], err[StrMax], key[StrMax], sep[] = "=>", *tok;
   int  num;
 
+  if (!strm) return 0;
+
   sprintf (key, "%s NUMBER", keyword);
 
-  while (strm.getline (buf, StrMax)) {
+  while (strm -> getline (buf, StrMax)) {
     upperCase (buf);
     if (strstr (buf, key)) break;
   }
@@ -163,7 +155,7 @@ static int getNum (istream&    strm   ,
 }
 
 
-static void buildTable (istream&       strm  ,
+static void buildTable (istream*       strm  ,
 			const int      offset,
 			const int      nnodes,
 			Node**         table )
@@ -172,17 +164,19 @@ static void buildTable (istream&       strm  ,
 // ---------------------------------------------------------------------------
 {
   char  routine[] = "buildTable";
-  char  err[StrMax], buf[StrMax];
+  char  err[StrMax];
   int   i, id;
   real  z;
   char  kind;
   Point pnt;
   Node  *N, *O;
 
-  for (i = 0; i < nnodes; i++) {
-    strm >> id >> pnt >> z >> kind;
+  if (!strm) return;
 
-    if (!strm) {
+  for (i = 0; i < nnodes; i++) {
+    *strm >> id >> pnt >> z >> kind;
+
+    if (!*strm) {
       sprintf (err, "problem reading point %1d", i + 1);
       message (routine, err, ERROR);
     }
@@ -192,59 +186,31 @@ static void buildTable (istream&       strm  ,
     switch (toupper (kind)) {
     case 'U': N = new Node (id, pnt, z, Node::DOMAIN_BOUNDARY_FIXED); break;
     case 'F': N = new Node (id, pnt, z, Node::INTERIOR_FIXED);        break;
-    case 'M': N = new Node (id, pnt, z, Node::INTERIOR  );            break;
+    case 'M': N = new Node (id, pnt, z, Node::INTERIOR);              break;
     default:
       sprintf (err, "read unknown Node kind specifier: %c", kind);
       message (routine, err, ERROR);
       break;
     }
 
-    if ((O = Global::exist (N)) == N) {
+    if (O = Global::exist (N))
+      table [i + offset] = O;
+    else {
       delete N;
       id = ++Global::nodeIdMax;
       switch (toupper (kind)) {
       case 'U': N = new Node (id, pnt, z, Node::DOMAIN_BOUNDARY_FIXED); break;
       case 'F': N = new Node (id, pnt, z, Node::INTERIOR_FIXED);        break;
-      case 'M': N = new Node (id, pnt, z, Node::INTERIOR  );            break;
+      case 'M': N = new Node (id, pnt, z, Node::INTERIOR);              break;
       }
       Global::nodeList.add (N);
+      table [i + offset] = N;
     }
-    table [i + offset] = O;
   }
 }
 
 
-Node* Global::exist (const Node* N)
-// ---------------------------------------------------------------------------
-// Check if a Node corresponding to N has already been created.
-// Return pointer to old Node if it has, else pointer to new Node.
-// ---------------------------------------------------------------------------
-{
-  char           err[StrMax], routine[] = "Global::exist";
-  int            found = 0;
-  register Node* oldNode;
-  const Point    P    = N -> pos();
-  const real     size = lengthScale();
-  const real     TOL  = 0.001;
-  
-  ListIterator<Node*> n (nodeList);
-
-  for (n.reset(); !found && n.more(); n.next()) {
-    oldNode = n.current();
-    found   = oldNode -> pos().distance (P) / size < TOL;
-  }
-
-  if (found) {
-    sprintf (err, "position for Node %1d exists, deleting", N -> ID());
-    message (routine, err, WARNING);
-    return oldNode;
-  }
-  
-  return N;
-}
-
-
-static void getElements (istream&  strm   ,
+static void getElements (istream*  strm   ,
 			 Node**    nodeLUT,
 			 Quad**    Elmt   ,
 			 const int nElmt  )
@@ -255,19 +221,21 @@ static void getElements (istream&  strm   ,
   char         routine[] = "getElements", buf[StrMax], err[StrMax];
   register int i, j, id;
   Quad*        Q;
-  
+
+  if (!strm) return;
+
   for (i = 0; i < nElmt; i++) {
-    strm >> id >> buf;
-    if (!strm || !strstr (buf, "<Q>")) {
+    *strm >> id >> buf;
+    if (!*strm || !strstr (buf, "<Q>")) {
       sprintf (err, "problem reading element info, expected <Q>, got %s", buf);
       message (routine, err, ERROR);
     }
-    Elmt[i] = Q = new Quad;
+    Global::quadList.add (Elmt[i] = Q = new Quad);
     for (j = 0; j < 4; j++) {
-      strm >> id;
+      *strm >> id;
       Q -> vertex[j] = nodeLUT[--id];
     }
-    strm >> buf;
+    *strm >> buf;
   }
 }
 
@@ -360,114 +328,4 @@ static void printUp (ostream&            strm ,
     strm << "\t</Q>" << endl;
   }
   strm << "</ELEMENTS>" << endl << endl;
-}
-
-
-static void smStart (const char* device)
-// ---------------------------------------------------------------------------
-// Do whatever it takes to start up SuperMongo graphics stuff.
-// ---------------------------------------------------------------------------
-{
-#ifdef GRAPHICS
-  vector<float> pp (1);
-  pp[0] = 41.0;
-
-  if (sm_device( (char*) device)) {
-    cerr << "unable to initialize plotting device" << endl;
-    exit (EXIT_FAILURE);
-  }
- 
-  sm_graphics ();
-  sm_location (3000, 31000, 3000, 31000);
-  sm_defvar   ("TeX_strings", "1");
-  sm_expand   (1.0);
-  sm_ptype    (pp(), 1);
-  sm_lweight  (1);
-  sm_erase    ();
-  sm_window   (1, 1, 1, 1, 1, 1);
-#endif
-}
-
-
-static void smStop ()
-// ---------------------------------------------------------------------------
-// Shut down graphics.
-// ---------------------------------------------------------------------------
-{
-#ifdef GRAPHICS
-  char a;
-
-  sm_alpha ();
-
-  cerr << "Press <return> to exit" << endl;
-  sm_redraw (0);
-  cin.get(a);
-#endif
-}
-
-
-static void smBox ()
-// ---------------------------------------------------------------------------
-// Underloaded version of drawBox.  Look for limits in file "limits.sm",
-// otherwise use [-10, -10], [10, 10].
-// ---------------------------------------------------------------------------
-{
-#ifdef GRAPHICS
-  Point Pmax, Pmin, Centre, Range;
-  float xmin, xmax, ymin, ymax;
-
-  ifstream file ("limits.sm");
-
-  if (!file) {
-    xmin = -10.0;
-    xmax =  10.0;
-    ymin = -10.0;
-    ymax =  10.0;
-  } else
-    file >> xmin >> xmax >> ymin >> ymax;
-
-  sm_limits (xmin, xmax, ymin, ymax);
-  sm_box    (1, 2, 0, 0);
-  sm_gflush ();
-  sm_box    (1, 2, 0, 0);
-  sm_expand (1.6);
-  sm_gflush ();
-  sm_gflush ();
-#endif
-}
-
-
-static void smDraw (const Quad** E  ,
-		    const int    nEl)
-// ---------------------------------------------------------------------------
-// Draw elements of mesh.
-// ---------------------------------------------------------------------------
-{
-#ifdef GRAPHICS
-  int           i, j;
-  vector<float> x(32);
-  vector<float> y(32);
-  
-  for (i = 0; i < nEl; i++) {
-    for (j = 0; j < 4; j++) {
-      x[j] = E[i] -> vertex[j] -> pos().x;
-      y[j] = E[i] -> vertex[j] -> pos().y;
-    }
-    sm_conn   (x(), y(), 4);
-    sm_draw   (x[0], y[0]);
-  }
-      
-  sm_gflush ();
-#endif
-}
-
-
-static void smErase ()
-// ---------------------------------------------------------------------------
-// Clear window.
-// ---------------------------------------------------------------------------
-{
-#ifdef GRAPHICS
-  sm_erase ();
-#endif
 }

@@ -38,11 +38,13 @@ CXXFLAGS = $(DEFINES) -mips2 -fullwarn -smart -g
 LDFLAGS  = -L$(HOME)/lib -L/usr/local/lib/sm -mips2 -lm
 endif
 
-ifeq ($(ARCH),IRIX64)		# -- SGI MIPS R8xxx IRIX6x
+ifeq ($(ARCH),IRIX64)		# -- IRIX64
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = $(DEFINES) -O3
-LDFLAGS  = $(CXXFLAGS) -lm
+CXXFLAGS = $(DEFINES) -32 -g
+LDFLAGS  = $(CXXFLAGS)  -L/usr/local/lib/sm -L/usr/X11/lib -lm
+SMLIBS   = -lplotsub -ldevices -lutils
+X11LIBS  = -lX11
 endif
 
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha
@@ -63,21 +65,21 @@ endif
 
 # ----------------------------------------------------------------------------
 #
-HDR  = qmesh.h
+HDR = qmesh.h
 
 # ----------------------------------------------------------------------------
-# Make qmesh, mesh generation utility.
+# qmesh --- mesh generation utility.
 
-QSRC = main loop node point graphics misc
+QSRC = qmesh loop node point graphics misc global
 QOBJ = $(addsuffix .o,$(QSRC))
 
 qmesh: $(HDR) $(QOBJ)
-	$(LD) -o qmesh $(QOBJ) $(CPPFLAGS) $(LDFLAGS) $(SMLIBS) $(X11LIBS)
+	$(LD) -o qmesh $(QOBJ) $(CPPFLAGS) $(LDFLAGS) $(SMLIBS) $(X11LIBS) -lm
 
 $(QOBJ): $(HDR)
 
 # ----------------------------------------------------------------------------
-# Make reflect, mesh manipulation utility.
+# reflect --- mesh manipulation utility.
 
 RSRC = reflect node point misc
 ROBJ = $(addsuffix .o,$(RSRC))
@@ -88,7 +90,7 @@ reflect: $(HDR) $(ROBJ)
 $(ROBJ): $(HDR)
 
 # ----------------------------------------------------------------------------
-# Make outline, input generator for qmesh.
+# outline --- input generator for qmesh.
 
 OSRC = outline node point misc
 OOBJ = $(addsuffix .o,$(OSRC))
@@ -97,13 +99,22 @@ outline: $(HDR) $(OOBJ)
 	$(LD) -o outline $(OOBJ) $(CPPFLAGS) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
-# Make smooth, utility for Laplacian smoothing hand-built meshes.
+# smooth --- utility for Laplacian smoothing (hand-built) meshes.
 
 SSRC = smooth node point misc
 SOBJ = $(addsuffix .o,$(SSRC))
 
 smooth: $(HDR) $(SOBJ)
 	$(LD) -o smooth $(SOBJ) $(CPPFLAGS) $(LDFLAGS) $(SMLIBS) $(X11LIBS)
+
+# ----------------------------------------------------------------------------
+# merge --- combine two qmesh input files.
+
+MSRC = merge loop node point misc graphics global
+MOBJ = $(addsuffix .o,$(MSRC))
+
+merge: $(HDR) $(MOBJ)
+	$(LD) -o merge $(MOBJ) $(CPPFLAGS) $(LDFLAGS) $(SMLIBS) $(X11LIBS) -lm
 
 
 $(OOBJ): $(HDR)

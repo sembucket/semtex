@@ -167,8 +167,8 @@ public:
 
 class Global
 // ===========================================================================
-// Global maintains the global list of all allocated Nodes for the problem,
-// and other geometric data.
+// Global maintains the global list of all allocated Nodes for the
+// problem, and other geometric data.
 // ===========================================================================
 {
 public:
@@ -182,9 +182,9 @@ public:
   static real        lengthScale () { return gblSize; }
 
   static real        refCoeff;	// -- Refinement coefficient per Ref. [1].
-  static const real  C1 = 0.5;	// -- Angle  weight factor.
-  static const real  C2 = 0.3;	// -- Length weight factor.
-  static const real  C3 = 0.2;	// -- Error  weight factor.
+  static real        C1; 	// -- Angle  weight factor.
+  static real        C2; 	// -- Length weight factor.
+  static real        C3;	// -- Error  weight factor.
 
   static int         verbose;
 
