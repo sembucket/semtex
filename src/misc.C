@@ -251,7 +251,8 @@ ostream& operator << (ostream& file,
   return file;
 }
 
-int Header::swab() const
+
+bool Header::swab() const
 // ---------------------------------------------------------------------------
 // Return true if coding of binary information in *this conflicts with 
 // that for the machine (indicating byte swapping is required).
@@ -259,7 +260,7 @@ int Header::swab() const
 {
   char routine[] = "Header::swab";
   char machine[StrMax];
-  int  swap = 0;
+  bool  swap = false;
 
   Veclib::describeFormat (machine);
 
