@@ -1,3 +1,5 @@
+# -- 3D solid body rotation.
+##############################################################################
 # 4 element solid-body rotation.  No viscous stresses, pressure gradient
 # balances centripetal acceleration in radial direction.
 

@@ -18,7 +18,7 @@ class DNSAnalyser : public Analyser
 {
 public:
   DNSAnalyser  (Domain*, FEML*);
-  void analyse (AuxField***);
+  void analyse (AuxField**);
 
 private:
   ofstream flx_strm;

@@ -1,3 +1,5 @@
+# -- Poiseuille flow in a tube, 2D cylindrical solution, BC driven.
+##############################################################################
 # 4 element axisymmetric flow in a tube, parabolic input profile.
 
 <FIELDS>

@@ -1,3 +1,5 @@
+# -- Cylindrical Couette flow, solved in cylindrical coordinates.
+##############################################################################
 # 4 element Taylor--Couette flow, 3D, inner cylinder spinning at rate OMEGA.
 # A = -4.2631578947368434, B = 4.2631578947368434.
 # 1/6 of a full rev (BETA = 6).

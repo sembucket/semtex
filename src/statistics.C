@@ -96,7 +96,7 @@ Statistics::Statistics (Domain*            D    ,
 }
 
 
-void Statistics::update (AuxField*** work)
+void Statistics::update (AuxField** work)
 // ---------------------------------------------------------------------------
 // Update running averages, using zeroth time level of work as
 // workspace.  Reynolds stress terms are calculated without
@@ -115,22 +115,22 @@ void Statistics::update (AuxField*** work)
     // -- Running averages and Reynolds stresses.
 
     for (i = 0; i < ND; i++) {
-      *work[i][0] = *src[i];
-       work[i][0] -> transform (-1);
+      *work[i] = *src[i];
+       work[i] -> transform (-1);
     }
 
     for (i = 0; i < NT; i++) *avg[i] *= (real) navg;
 
     for (i = 0; i < NA; i++) *avg[i] += *src[i];
 
-    avg[NA + 0] -> timesPlus (*work[0][0], *work[0][0]);
-    avg[NA + 1] -> timesPlus (*work[0][0], *work[1][0]);
-    avg[NA + 2] -> timesPlus (*work[1][0], *work[1][0]);
+    avg[NA + 0] -> timesPlus (*work[0], *work[0]);
+    avg[NA + 1] -> timesPlus (*work[0], *work[1]);
+    avg[NA + 2] -> timesPlus (*work[1], *work[1]);
     
     if (ND > 2) {
-      avg[NA + 3] -> timesPlus (*work[0][0], *work[2][0]);
-      avg[NA + 4] -> timesPlus (*work[1][0], *work[2][0]);
-      avg[NA + 5] -> timesPlus (*work[2][0], *work[2][0]);
+      avg[NA + 3] -> timesPlus (*work[0], *work[2]);
+      avg[NA + 4] -> timesPlus (*work[1], *work[2]);
+      avg[NA + 5] -> timesPlus (*work[2], *work[2]);
     }
 
     for (i = 0; i < NT; i++) *avg[i] /= (real) (navg + 1);

@@ -128,7 +128,7 @@ Analyser::Analyser (Domain* D   ,
 }
 
 
-void Analyser::analyse (AuxField*** work)
+void Analyser::analyse (AuxField** work)
 // ---------------------------------------------------------------------------
 // Step-by-step processing.  If SPAWN was set, add more particles at
 // original absolute positions.
@@ -294,7 +294,7 @@ void Analyser::modalEnergy ()
 }
 
 
-void Analyser::divergence (AuxField*** Us) const
+void Analyser::divergence (AuxField** Us) const
 // ---------------------------------------------------------------------------
 // Print out the velocity field's divergence energy per unit area.  Us
 // is used as work area.
@@ -311,23 +311,23 @@ void Analyser::divergence (AuxField*** Us) const
   if (space == Geometry::Cartesian) {
 
     for (i = 0; i < DIM; i++) {
-      *Us[i][0] = *src -> u[i];
-      Us[i][0] -> gradient (i);
+      *Us[i] = *src -> u[i];
+      Us[i] -> gradient (i);
     }
 
   } else {			// -- Cylindrical.
 
-    for (i = 0; i < DIM; i++) *Us[i][0] = *src -> u[i];
-    Us[1][0] -> mulR();
-    for (i = 0; i < DIM; i++)  Us[i][0] -> gradient (i);
-    Us[1][0] -> divR();
-    if (DIM == 3) Us[2][0] -> divR();
+    for (i = 0; i < DIM; i++) *Us[i] = *src -> u[i];
+    Us[1] -> mulR();
+    for (i = 0; i < DIM; i++)  Us[i] -> gradient (i);
+    Us[1] -> divR();
+    if (DIM == 3) Us[2] -> divR();
 
   }
 
-  for (i = 1; i < DIM; i++) *Us[0][0] += *Us[i][0];
+  for (i = 1; i < DIM; i++) *Us[0] += *Us[i];
 
-  for (m = 0; m < N; m++) L2 += Us[0][0] -> mode_L2 (m);
+  for (m = 0; m < N; m++) L2 += Us[0] -> mode_L2 (m);
 
   L2 /= Lz;
 
