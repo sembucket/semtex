@@ -981,7 +981,10 @@ protected:
   Domain*               src      ; // Source information.
   ofstream              his_strm ; // File for history points.
   ofstream              int_strm ; // File for plane-integral dumps.
+  ofstream              mmt_strm ; // File for statistics of plane integrals.
   vector<HistoryPoint*> history  ; // Locations, etc. of history points.
+
+  void moments (vector<real>&, const integer, const real);
 };
 
 

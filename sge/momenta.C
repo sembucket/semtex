@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <float.h>
+#include <math.h>
 
 #include <Utility.h>
 #include <Stack.h>
@@ -37,19 +38,20 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  ifstream       file;
-  double         x, y, zmax, wmax;
-  doublet        datum;
-  Stack<doublet> data;
-  vector<double> ztmp, z, wtmp, w;
-  int            i, ihalf, imax, N, shift;
+  ifstream        file;
+  double          x, y, zpk, zav, wt, ww, dz, lz, shift;
+  double          sum, nfac, mean, sdev, var, skew, flat;
+  double          wmax = -FLT_MAX, zmin = FLT_MAX, zmax = -FLT_MAX;
+  doublet*        datum;
+  Stack<doublet*> data;
+  vector<double>  z, w;
+  int             i, N;
 
   while (--argc && **++argv == '-')
     switch (*++argv[0]) {
     case 'h': default:
       cout << prog << " [file]" << endl;
       return EXIT_SUCCESS;
-      break;
     }
 
   if   (argc == 1) file.open   (*argv, ios::in);
@@ -61,37 +63,69 @@ int main (int    argc,
   }
 
   while (file >> x >> y) {
+    zmin  = min (x, zmin);
+    zmax  = max (x, zmax);
     datum = new doublet (x, y);
     data.push (datum);
   }
 
-  z   .setSize (N = data.depth());
-  ztmp.setSize (N);
-  w   .setSize (N);
-  wtmp.setSize (N);
+  z.setSize (N = data.depth());
+  w.setSize (N);
 
-  for (i = 0; i < N; i++) {
+  lz  = zmax - zmin;
+  dz  = lz / (N - 1.0);
+  lz += dz;
+
+  for (sum = 0.0, i = 0; i < N; i++) {
     datum = data.pop();
-    ztmp[N-i-1] = datum -> z;
-    wtmp[N-i-1] = datum -> w;
+    x = datum -> z;
+    y = datum -> w;
+    if (fabs (y) > wmax) { wmax = fabs (y); zpk  = x; }
+    sum     += y;
+    z[N-i-1] = x;
+    w[N-i-1] = y;
   }
 
-  // -- Rearrange data to place maximum at central location in storage.
+  nfac = 1.0 / sum;
 
-  for (wmax = -FLT_MAX, i = 0; i < N; i++)
-    if (fabs (wtmp[i]) > wmax) {
-      wmax = fabs (wtmp[i]);
-      zmax = ztmp[i];
-      imax = i;
-    }
+  // -- Shift z locations so that peak is roughly centered in domain.
 
-  shift = imax - N / 2;
+  shift = zpk - 0.5*lz;
+  for (i = 0; i < N; i++) z[i] = fmod (z[i] - shift + lz, lz);
 
-  for (i = 0; i < N; i++) {
-    z [(i + N - shift) % N] = ztmp[i];
-    w [(i + N - shift) % N] = wtmp[i];
+  // -- Find z location of mean.
+
+  for (zav = 0.0, i = 0; i < N; i++) zav += z[i] * w[i];
+  zav *= nfac;
+
+  // -- Compute higher moments.
+
+  for (var = 0.0, skew = 0.0, flat = 0.0, i = 0; i < N; i++) {
+    wt    = z[i] - zav;
+    ww    = wt * wt * w[i];
+    var  += ww;
+    ww   *= wt;
+    skew += ww;
+    ww   *= wt;
+    flat += ww;
   }
-
   
+  mean  = zav + shift;
+  var  *= nfac;
+  skew *= nfac;
+  flat *= nfac;
+  
+  sdev  = sqrt (var);
+  skew  = skew / (var * sdev);
+  flat  = flat / (var * var ) - 3.0;
+
+  cout.precision (8);
+  cout
+    << mean << "  "
+    << sdev << "  "
+    << var  << "  "
+    << skew << "  "
+    << flat << endl;
+
   return EXIT_SUCCESS;
 }

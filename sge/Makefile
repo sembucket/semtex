@@ -126,11 +126,18 @@ SEMOBJ    = $(addsuffix .o,$(SEMFILES))
 SEMHDR    = Sem.h
 
 # ----------------------------------------------------------------------------
-# Default build for Navier-Stokes solver.
+# Default build for solver.
 NS_OBJ = drive.o patch.o transport.o
 
 $(PROG): sem $(SEMOBJ) $(NS_OBJ) 
 	$(LD) -o $@ $(NS_OBJ) $(SEMOBJ) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build post-processor for analysis of integrated concentration profiles.
+
+momenta: sem momenta.C
+	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
+
 
 # ----------------------------------------------------------------------------
 #

@@ -67,9 +67,23 @@ Analyser::Analyser (Domain* D   ,
     const real lz = Femlib::value ("TWOPI/ BETA");
     const int  nz = Geometry::nZ();
     int_strm.open (str, ios::out); 
-    int_strm << "#  " << lz << "  " << nz  << "     : Lz, Nz" << endl
-	     << "#  Time        Z-location         Amount"    << endl
-	     << "# --------------------------------------"    << endl;
+    int_strm.setf (ios::scientific, ios::floatfield);
+    int_strm.precision (8);
+    int_strm << "#  " << lz << "    " << nz  << "     : Lz, Nz"       << endl
+	     << "#  Time          Z-location       Amount"            << endl
+	     << "# ----------------------------------------------"    << endl;
+  }
+
+  // -- Set up for output of plane-integral moments.
+ 
+  strcat (strcpy (str, src -> name), ".mmt");
+  ROOTONLY {
+
+    mmt_strm.open (str, ios::out); 
+    mmt_strm.setf (ios::scientific, ios::floatfield);
+    mmt_strm.precision (8);
+    mmt_strm << "# Time Sum Mean Sdev Var Skew Flat"    << endl
+	     << "# --------------------------------"    << endl;
   }
 
 }
@@ -152,11 +166,15 @@ void Analyser::analyse ()
 
       for (i = 0; i < nz; i++)
 	int_strm << setw(10) << src -> time 
-		 << setw(15) << i * dz
-		 << setw(15) << tmp[i]
+		 << setw(17) << i * dz
+		 << setw(17) << tmp[i]
 		 << endl;
 
       int_strm.flush();
+
+      // -- Compute and output statistics.
+
+      moments (tmp, NZ, dz);
     }
   }
 
@@ -165,3 +183,68 @@ void Analyser::analyse ()
   src -> dump ();
 }
 
+
+void Analyser::moments (vector<real>& dist,
+			const integer nz  ,
+			const real    dz  )
+// ---------------------------------------------------------------------------
+// Compute and output moments to mmt_strm.
+// ---------------------------------------------------------------------------
+{
+  const real   lz = nz * dz;
+  integer      i;
+  real         conc, sum, nfac, zav, zpk, shift, mean, sdev, var, skew, flat;
+  real         wt, ww, wmax = -FLT_MAX;
+  vector<real> z (nz);
+
+  for (sum = 0.0, i = 0; i < nz; i++) {
+    z[i] = i * dz;
+    conc = dist[i];
+    sum += conc;
+    if (fabs (conc) > wmax) { wmax = fabs (conc); zpk  = z[i]; }
+  }
+
+  nfac = 1.0 / sum;
+
+  // -- Shift z locations so that peak is roughly centered in domain.
+
+  shift = zpk - 0.5*lz;
+  for (i = 0; i < nz; i++) z[i] = fmod (z[i] - shift + lz, lz);
+
+  // -- Find z location of mean.
+
+  for (zav = 0.0, i = 0; i < nz; i++) zav += z[i] * dist[i];
+  zav *= nfac;
+
+  // -- Compute higher moments.
+
+  for (var = 0.0, skew = 0.0, flat = 0.0, i = 0; i < nz; i++) {
+    wt    = z[i] - zav;
+    ww    = wt * wt * dist[i];
+    var  += ww;
+    ww   *= wt;
+    skew += ww;
+    ww   *= wt;
+    flat += ww;
+  }
+  
+  mean  = zav + shift;
+  var  *= nfac;
+  skew *= nfac;
+  flat *= nfac;
+  
+  sdev  = sqrt (var);
+  skew  = skew / (var * sdev);
+  flat  = flat / (var * var ) - 3.0;
+
+  mmt_strm
+    << src -> time << "  "
+    << sum  << "  "
+    << mean << "  "
+    << sdev << "  "
+    << var  << "  "
+    << skew << "  "
+    << flat << endl;
+
+  mmt_strm.flush();
+}
