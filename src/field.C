@@ -37,7 +37,9 @@ n_cons          (0),
 n_pack          (0),
 n_band          (0),
 Hp              (0),
-Hc              (0)
+Hc              (0),
+geometry_economized (0),
+matrices_economized (0)     
 { }
 
 
@@ -362,8 +364,15 @@ void  Field::mapElements ()
 // Carry out computation of mesh geometric factors for all elements.
 // ---------------------------------------------------------------------------
 {
-  for (ListIterator<Element*> i(element_list); i.more(); i.next())
-    i.current() -> map ();
+  Element* E;
+
+  for (ListIterator<Element*> i(element_list); i.more(); i.next()) {
+    E = i.current ();
+    E -> map ();
+    if (FamilyMgr::active) E -> economizeGeo ();
+  }
+  
+  geometry_economized = FamilyMgr::active;
 }
 
 
@@ -940,7 +949,11 @@ void  Field::buildSys (real lambda2)
     freeMatrix (hbb );
     freeMatrix (rmat);
     freeVector (rwrk);
+ 
+    if (FamilyMgr::active) E -> economizeMat ();
   }
+
+  matrices_economized = FamilyMgr::active;
 
   // -- Factor global Helmholtz matrix.
 
