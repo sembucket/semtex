@@ -38,30 +38,11 @@ C
            ENDDO
         ENDDO
       ENDDO
-#elif defined (__sgi) || defined (__alpha)
+#else
       CALL DGEMM ('N','N',NP,NP*NEL,NP,1.0D0,DT,NP,X,NP,1.0D0,UR,NP)
       DO I = 1, NEL
          CALL DGEMM ('N','N',NP,NP,NP,1.0D0,Y(1,1,I),
      +        NP,DV,NP,1.0D0,US(1,1,I),NP)
-      ENDDO
-#else
-      DO I = 1, NEL
-         DO J = 1, NP
-            DO L = 1, NP
-               DO K = 1, NP
-                  UR(K,J,I) = UR(K,J,I) + X(L,J,I) * DV(L,K)
-              ENDDO
-           ENDDO
-        ENDDO
-      ENDDO
-      DO I = 1, NEL
-         DO J = 1, NP
-            DO L = 1, NP
-               DO K = 1, NP
-                  US(K,J,I) = US(K,J,I) + Y(K,L,I) * DT(J,L)
-              ENDDO
-           ENDDO
-        ENDDO
       ENDDO
 #endif
       RETURN
