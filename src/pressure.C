@@ -3,7 +3,7 @@
  *****************************************************************************/
 
 static char 
-RCSid[]="$Id$";
+RCSid[] = "$Id$";
 
 #include "Fem.h"
 
@@ -14,12 +14,12 @@ RCSid[]="$Id$";
 
 // -- Static PBCmanager class variables: 
 
-HOBC*  PBCmanager::store     = 0;
-BC*    PBCmanager::essential = 0;
-BC*    PBCmanager::hopbc     = 0;
+PBCmanager::HOBC*  PBCmanager::store     = 0;
+BC*                PBCmanager::essential = 0;
+BC*                PBCmanager::hopbc     = 0;
 
 
-void  PBCmanager::build (Field& P)
+void  PBCmanager::build (BoundedField& P)
 // ---------------------------------------------------------------------------
 // Build class-scope storage structures required for high order PBCs.
 // Reset Field-boundary BCs to have type either HOPBC or ESSENTIAL (0.0).
@@ -35,18 +35,18 @@ void  PBCmanager::build (Field& P)
   // -- Initialize static storage.
 
   essential = new BC;
-  essential -> id    = 0;
+  essential -> tag   = 0;
   essential -> kind  = BC::essential;
   essential -> value = 0.0;
 
   hopbc = new BC;
-  hopbc -> id        = 0;
+  hopbc -> tag       = 0;
   hopbc -> kind      = BC::hopbc;
   hopbc -> value     = 0.0;
 
   int  nTime = iparam ("N_TIME");
-  int  nEdge = P.nBound    ();
-  int  ntot  = P.resetPBCs (hopbc, essential);
+  int  nEdge = P.nBound ();
+  int  ntot  = P.resetConstraintBCs (hopbc, essential);
   int  i, q;
 
   store = new HOBC [nEdge];
@@ -82,10 +82,10 @@ void  PBCmanager::build (Field& P)
 }
 
 
-void  PBCmanager::maintain (int            step  ,
-			    const Field*   master,
-			    const Field*** Us    ,
-			    const Field*** Uf    )
+void  PBCmanager::maintain (const int&           step  ,
+			    const BoundedField*  master,
+			    const Field***       Us    ,
+			    const Field***       Uf    )
 // ---------------------------------------------------------------------------
 // Update storage for evaluation of high-order pressure boundary condition.
 //
