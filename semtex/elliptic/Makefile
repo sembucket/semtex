@@ -14,6 +14,11 @@ ifdef DEBUG
 else
   DEFINES  =
 endif
+ifdef MPI
+  PROG = elliptic_mp
+else
+  PROG = elliptic
+endif
 
 CPPFLAGS = -I. -I$(SEM)/include
 
@@ -53,9 +58,14 @@ endif
 ifeq ($(ARCH),Linux)		# -- GNU/Linux system.
 CXX	 = g++
 LD	 = g++
-CXXFLAGS = $(DEFINES) -gstabs+
-F77LIBS  = -llapack -lblas -lf2c
-LDFLAGS  = -gstabs+ -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
+ifdef DEBUG
+  OPT    = -gstabs+
+else
+  OPT    = -O3
+endif	
+CXXFLAGS = $(DEFINES) $(OPT)
+F77LIBS  = -llapack -lblas -lg2c
+LDFLAGS  = $(OPT) -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
 	   -lfem -lalp $(F77LIBS)
 endif
 
@@ -95,8 +105,8 @@ endif
 # ----------------------------------------------------------------------------
 #
 
-SEMFILES  = auxfield BCmgr boundary domain element feml	\
-	    field geometry integration matrix mesh misc pressure
+SEMFILES  = auxfield BCmgr boundary bsys condition domain element feml	\
+	    field geometry integration matrix mesh misc pressure  
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
 SEMHDR    = Sem.h
 
@@ -106,7 +116,7 @@ SEMHDR    = Sem.h
 ELLOBJ = drive.o helmholtz.o
 
 elliptic: sem $(SEMHDR) $(SEMOBJ) $(ELLOBJ)
-	$(LD) -o elliptic $(ELLOBJ) $(SEMOBJ) $(CPPFLAGS) $(LDFLAGS)
+	$(LD) -o $(PROG) $(ELLOBJ) $(SEMOBJ) $(CPPFLAGS) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 #
