@@ -12,6 +12,7 @@ static char
 #include <sys/types.h>
 #include <malloc.h>
 #include <stdio.h>
+#include <time.h>
 #include <alplib.h>
 
 char    buf[STR_MAX];           /* General I-O buffer.  */
@@ -69,3 +70,27 @@ FILE *efopen(char *file, char *mode)
   sprintf(buf, "can't open %s mode %s", file, mode);
   message("efopen()", buf, ERROR);
 }
+
+
+#if !defined(i860) && !defined(dclock)
+
+double dclock(void)
+/* ========================================================================= *
+ * Double-precision timing routine.                                          *
+ * ========================================================================= */
+{
+  static double tps = 1.0 / CLOCKS_PER_SEC;
+  return (double) clock() * tps;
+}
+
+
+float sclock(void)
+/* ========================================================================= *
+ * Single-precision timing routine.                                          *
+ * ========================================================================= */
+{
+  static float tps = 1.0F / CLOCKS_PER_SEC;
+  return (float) clock() * tps;
+}
+
+#endif

@@ -22,7 +22,7 @@
 
 #if !defined(mxv)
 
-void dmxv(const double* A, int nra, const double* B, int nca, double *C)
+void dmxv(double* A, int nra, double* B, int nca, double *C)
 {
   register double *a = A,
                   *c = C;
@@ -40,7 +40,7 @@ void dmxv(const double* A, int nra, const double* B, int nca, double *C)
 
 
 
-void smxv(const float* A, int nra, const float* B, int nca, float *C)
+void smxv(float* A, int nra, float* B, int nca, float *C)
 {
   register float  *a = A,
                   *c = C;
