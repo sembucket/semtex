@@ -21,10 +21,11 @@ class vector
 public:
   // -- Creation/destruction.
 
-  vector (const long n)         { num_elts = n; data = (n) ? new T[n] : 0; }
-  vector ()                     { num_elts = 0; data = 0;                  } 
+  vector (const long n)         { num_elts = n;
+                                  data = (T*) (n) ? new T[(size_t) n] : 0; }
+  vector ()                     { num_elts = 0; data = 0; } 
   vector (const vector<T>& src) { num_elts = src.num_elts;
-				  data = new T[num_elts];
+				  data = (T*) new T[(size_t) num_elts];
 				  copy (src); } 
   ~vector ()                    { delete [] data; }
 
@@ -59,7 +60,7 @@ public:
       {
 	delete [] data;
 	num_elts = n;
-	data = (n) ? new T[n] : 0; 
+	data     = (T*) (n) ? new T[(size_t) n] : 0; 
       }
   }
 
@@ -81,12 +82,12 @@ template<class T> class matrix
 public:
   // -- Creation/destruction.
 
-  matrix (const int n_rows, const int n_cols) {
+  matrix (const long n_rows, const long n_cols) {
     nr   = n_rows;
     nc   = n_cols;
-    row  = new T* [nr];
-    data = new T  [nr * nc];
-    for (int i = 0; i < nr; i++) row[i] = data + i * nc;
+    row  = (T**) new T* [(size_t) nr];
+    data = (T*)  new T  [(size_t) (nr * nc)];
+    for (register long i = 0; i < nr; i++) row[i] = data + i * nc;
   }
   matrix () { 
     nr   = nc = 0;
@@ -96,9 +97,9 @@ public:
   matrix (const matrix<T>& src) { 
     nr   = src.nr;
     nc   = src.nc;
-    row  = new T* [nr];
-    data = new T  [nr * nc];
-    for (int i = 0; i < nr; i++) row[i] = data + i * nc;
+    row  = (T**) new T* [(size_t) nr];
+    data = (T*)  new T  [(size_t) (nr * nc)];
+    for (register long i = 0; i < nr; i++) row[i] = data + i * nc;
     copy (src); 
   } 
   ~matrix () {
@@ -111,12 +112,13 @@ public:
   matrix<T>& operator = (const matrix<T>& src) {
     if (data != src.data ) {
       setSize (src.nr, src.nc);
-      copy (src); }
+      copy    (src); }
     return *this;
   }
 
   matrix<T>& operator = (const T& src) {
-    register T* p = data + nr * nc; while (p > data) *--p = src;
+    const long nelts = nr * nc;
+    for (register long i = 0; i < nelts; i++) data[i] = src.data[i];
     return *this;
   }
 
@@ -125,39 +127,38 @@ public:
         T** operator () ()                          { return             row; }
   const T** operator () () const                    { return (const T**) row; }
   
-        T* operator () (const int i)                    { return row[i]; }
-  const T* operator () (const int i) const              { return row[i]; }
+        T* operator () (const long i)                    { return row[i]; }
+  const T* operator () (const long i) const              { return row[i]; }
   
-        T& operator () (const int i, const int j)       { return data[j+i*nc];}
-  const T& operator () (const int i, const int j) const { return data[j+i*nc];}
+        T& operator () (const long i, const long j)      {return data[j+i*nc];}
+  const T& operator () (const long i, const long j) const{return data[j+i*nc];}
 
   // -- Size operators/information.
 
-  int  nRows   () const      { return nr;      }
-  int  nCols   () const      { return nc;      }
-  int  getSize () const      { return nr * nc; }
-  void setSize (const int n_rows, const int n_cols) { 
+  long nRows   () const      { return nr;      }
+  long nCols   () const      { return nc;      }
+  long getSize () const      { return nr * nc; }
+  void setSize (const long n_rows, const long n_cols) { 
     if (n_rows != nr && n_cols != nc) 
       {
 	delete [] data;
 	delete [] row;
 	nr   = n_rows;
 	nc   = n_cols;
-	row  = (nr*nc) ? new T* [nr]    : 0;
-	data = (nr*nc) ? new T  [nr*nc] : 0;
-	for (int i = 0; i < nr; i++) row[i] = data + i * nc;
+	row  = (T**) (nr*nc) ? new T* [(size_t) nr]      : 0;
+	data = (T*)  (nr*nc) ? new T  [(size_t) (nr*nc)] : 0;
+	for (register long i = 0; i < nr; i++) row[i] = data + i * nc;
       }
   }
 
 private:
-  int  nr;
-  int  nc;
+  long nr;
+  long nc;
   T**  row;
   T*   data;
   void copy (const matrix<T>& src) {
-    register T* p =     data + nr * nc;
-    register T* q = src.data + nr * nc;
-    while (p > data) *--p = *--q;
+    const long nelts = nr * nc;
+    for (register long i = 0; i < nelts; i++) data[i] = src.data[i];
   }
 };
 
