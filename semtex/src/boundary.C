@@ -5,6 +5,7 @@
 static char
 RCSid[] = "$Id$";
 
+
 #include <Fem.h>
 
 
@@ -30,8 +31,8 @@ Boundary::Boundary (int       ident ,
 }
 
 
-Boundary::Boundary (const Boundary&        B,
-		    const List<Element*>&  E)
+Boundary::Boundary (const Boundary&         B,
+		    const vector<Element*>& E)
 // ---------------------------------------------------------------------------
 // Make a copy of an existing Boundary edge, with new data storage area
 // and with element pointer into the list of associated new Elements (input).
@@ -44,10 +45,12 @@ Boundary::Boundary (const Boundary&        B,
 
   memcpy (this, &B, sizeof (Boundary));
 
-  int found = 0;
-  for (ListIterator<Element*> k (E); !found && k.more (); k.next ())
-    if (found = k.current () -> ID () == elmt -> ID ()) {
-      elmt      = k.current ();
+  register int k, found = 0;
+  const int    N = E.getSize ();
+
+  for (k = 0; !found && k < N; k++)
+    if (found = E[k] -> ID () == elmt -> ID ()) {
+      elmt      = E[k];
       value     = rvector (elmt -> nKnot());
       condition = BCmanager::getBC (B.condition -> tag);
     }
