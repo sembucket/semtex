@@ -845,6 +845,8 @@ void Element::gradY (const real* yr,
 
 
 void Element::sideGeom (const integer side,
+			real*         x   ,
+			real*         y   ,
 			real*         nx  ,
 			real*         ny  ,
 			real*         area) const
@@ -878,7 +880,10 @@ void Element::sideGeom (const integer side,
     skip = 1;
     xr   = work();
     yr   = xr + np;
-    
+        
+    Veclib::copy  (np, xmesh + low, skip, x, 1);
+    Veclib::copy  (np, ymesh + low, skip, y, 1);
+
     Blas::gemv    ("T", np, np, 1.0, *D, np, xmesh+low, 1, 0.0, xr, 1);
     Blas::gemv    ("T", np, np, 1.0, *D, np, ymesh+low, 1, 0.0, yr, 1);
     Veclib::vmul  (np, xr, 1, xr, 1, area, 1);
@@ -896,6 +901,9 @@ void Element::sideGeom (const integer side,
     skip = np;
     xs   = work();
     ys   = xs + np;
+
+    Veclib::copy  (np, xmesh + low, skip, x, 1);
+    Veclib::copy  (np, ymesh + low, skip, y, 1);
       
     Blas::gemv    ("T", np, np, 1.0, *D, np, xmesh+low, np, 0.0, xs, 1);
     Blas::gemv    ("T", np, np, 1.0, *D, np, ymesh+low, np, 0.0, ys, 1);
@@ -915,6 +923,9 @@ void Element::sideGeom (const integer side,
     skip = -1;
     xr   = work();
     yr   = xr + np;
+    
+    Veclib::copy  (np, xmesh + low, skip, x, 1);
+    Veclib::copy  (np, ymesh + low, skip, y, 1);
 	
     Blas::gemv    ("T", np, np, 1.0, *D, np, xmesh+low, 1, 0.0, xr, 1);
     Blas::gemv    ("T", np, np, 1.0, *D, np, ymesh+low, 1, 0.0, yr, 1);
@@ -933,6 +944,9 @@ void Element::sideGeom (const integer side,
     skip = -np;
     xs   = work();
     ys   = xs + np;
+    
+    Veclib::copy  (np, xmesh + low, skip, x, 1);
+    Veclib::copy  (np, ymesh + low, skip, y, 1);
       
     Blas::gemv    ("T", np, np, 1.0, *D, np, xmesh+low, np, 0.0, xs, 1);
     Blas::gemv    ("T", np, np, 1.0, *D, np, ymesh+low, np, 0.0, ys, 1);

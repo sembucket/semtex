@@ -26,6 +26,7 @@ Boundary::Boundary (const integer    Ident ,
 // Constructor.  Allocate new memory for value & geometric factors.
 // ---------------------------------------------------------------------------
   id      (Ident ),
+  np      (Geometry::nP()),
   bgroup  (Bgroup),
   bcondn  (Bcondn),
   elmt    (Elmt  ),
@@ -36,6 +37,8 @@ Boundary::Boundary (const integer    Ident ,
   const integer npnp      = Geometry::nTotElmt();
   char          err[StrMax];
 
+  x    = new real [(size_t) np];
+  y    = new real [(size_t) np];
   nx   = new real [(size_t) np];
   ny   = new real [(size_t) np];
   area = new real [(size_t) np];
@@ -50,7 +53,24 @@ Boundary::Boundary (const integer    Ident ,
     sprintf (err, "cannot construct side %1d", side + 1);
     message (routine, err, ERROR);
   }
-  elmt -> sideGeom (side, nx, ny, area);
+  elmt -> sideGeom (side, x, y, nx, ny, area);
+}
+
+
+void Boundary::geometry (real* X   ,
+			 real* Y   ,
+			 real* Nx  ,
+			 real* Ny  ,
+			 real* Area) const
+// ---------------------------------------------------------------------------
+// Copy internal geometric info for exterior use.
+// ---------------------------------------------------------------------------
+{
+  Veclib::copy (np, x, 1, X, 1);
+  Veclib::copy (np, y, 1, Y, 1);
+  if (Nx)   Veclib::copy (np, nx,   1, Nx,   1);
+  if (Ny)   Veclib::copy (np, ny,   1, Ny,   1);
+  if (Area) Veclib::copy (np, area, 1, Area, 1);
 }
 
 
@@ -445,4 +465,24 @@ void Boundary::setForGroup (const char* grp,
 {
   if (strcmp (grp, bcondn -> group()) == 0)
     Veclib::fill (Geometry::nP(), val, tgt, 1);
+}
+
+
+void Boundary::get (const real* src,
+		    real*       tgt) const
+// ---------------------------------------------------------------------------
+// Load np-long tgt (representing storage along edge of element) from
+// element-wise data storage src.
+// ---------------------------------------------------------------------------
+{
+  Veclib::copy (np, src + doffset, dskip, tgt, 1);
+}
+
+
+const char* Boundary::group () const
+// ---------------------------------------------------------------------------
+// Return group of underlying boundary Condition.
+// ---------------------------------------------------------------------------
+{
+  return bcondn -> group();
 }
