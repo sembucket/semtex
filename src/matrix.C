@@ -78,10 +78,18 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
 
 ModalMatrixSys::~ModalMatrixSys ()
 // ---------------------------------------------------------------------------
-// Destructor hands off calls to MatrixSys::~MatrixSys.
+// Destructor hands off calls to MatrixSys::~MatrixSys.  Note there
+// can be side effects here, owing to the multiple use of MatrixSys*'s
+// in different ModalMatrixSys's.  If multiple related ModalMatrixSys's
+// exist, it is advisable to delete and recreate all of them before
+// attempting reuse.
 // ---------------------------------------------------------------------------
 {
+  integer       i;
+  const integer N = _Msys.getSize();
+  MatrixSys*    M;
 
+  for (i = 0; i < N; i++) delete (M = MS.remove (_Msys[i]));
 }
 
 
@@ -285,7 +293,6 @@ MatrixSys::~MatrixSys()
 // storage we use the Femlib family routines.
 // ---------------------------------------------------------------------------
 {
-  cout << "HEY" << endl;
   switch (_method) {
   case JACPCG:
     Femlib::abandon (&_PC);

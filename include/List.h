@@ -6,9 +6,9 @@
 // Reference: Barton & Nackman, "Scientific & Engineering C++".
 //
 // ListNode was made an unnested class to avoid problems with cfront.
-///////////////////////////////////////////////////////////////////////////////
-
+//
 // $Id$
+///////////////////////////////////////////////////////////////////////////////
 
 template<class T> class ListIterator;
 template<class T> class ListNode {
@@ -57,17 +57,20 @@ public:
     else          { add (x); return 1; }
   }
 
-  void remove (T x) {
-    ListNode<T>* prev = 0;
-    ListNode<T>* curr = head;
+  T remove (T x) {		// -- Return datum of removed node.
+    T            datum = 0;
+    ListNode<T>* prev  = 0;
+    ListNode<T>* curr  = head;
     while (curr != 0) {
       if (curr -> datum == x) {
 	if (prev == 0) {
-	  head = curr -> link;
+	  head  = curr -> link;
+	  datum = curr -> datum;
 	  delete curr;
 	  curr = head;
 	} else {
 	  prev -> link = curr -> link;
+	  datum = curr -> datum;
 	  delete curr;
 	  curr = prev -> link;
 	}
@@ -77,6 +80,7 @@ public:
 	curr = curr -> link;
       }
     }
+    return datum;
   }
 
   void clear  () { head = tail = 0; nel = 0; }
