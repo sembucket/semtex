@@ -32,8 +32,9 @@ static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, BoundarySys*&, Domain*&);
+static void getoptions (FEML*, char*&);
 
-void NavierStokes (Domain*, LESAnalyser*);
+void NavierStokes (Domain*, LESAnalyser*, const char*);
 
 
 int main (int    argc,
@@ -47,7 +48,7 @@ int main (int    argc,
   ios::sync_with_stdio();
 #endif
 
-  char             *session;
+  char             *session, *mask = 0;
   vector<Element*> elmt;
   FEML*            file;
   Mesh*            mesh;
@@ -60,6 +61,7 @@ int main (int    argc,
   getargs (argc, argv, session);
 
   preprocess (session, file, mesh, elmt, bman, bsys, domain);
+  getoptions (file, mask);
 
   adjunct = new LESAnalyser (domain, file);
 
@@ -67,7 +69,7 @@ int main (int    argc,
 
   ROOTONLY domain -> report();
   
-  NavierStokes (domain, adjunct);
+  NavierStokes (domain, adjunct, mask);
 
   Femlib::finalize();
 
@@ -195,4 +197,31 @@ static void preprocess (const char*       session,
   domain = new Domain (file, elmt, bman);
 
   VERBOSE cout << "done" << endl;
+}
+
+
+static void getoptions (FEML*  feml,
+			char*& mask)
+// ---------------------------------------------------------------------------
+// Try to load mask lag string from USER section of FEML file.
+// The section is not required to be present.
+// ---------------------------------------------------------------------------
+{
+  char routine[] = "options";
+  char s[StrMax];
+
+  if (feml -> seek ("USER")) {
+    feml -> stream().ignore (StrMax, '\n');
+
+    while (feml -> stream() >> s) {
+      if (strcmp (s, "</USER>") == 0) break;
+
+      upperCase (s);
+      if (strcmp (s, "MASK_LAG") == 0)
+	feml -> stream() >> (mask = new char [StrMax]);
+    }
+
+    if (strcmp (s, "</USER>") != 0)
+      message (routine, "couldn't sucessfully close <USER> section", ERROR);
+  }
 }

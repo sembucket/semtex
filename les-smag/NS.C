@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // NS.C: Unsteady Navier--Stokes solver, using "stiffly-stable" integration.
 //
-// Copyright (c) Hugh Blackburn 1998--1999.
+// Copyright (c) Hugh Blackburn 1998--2000.
 //
 // This version incorporates LES.  This is handled within the
 // framework of the DNS solver by splitting the SGS stress into two
@@ -53,7 +53,8 @@ static void   Solve     (Domain*, const integer, AuxField*, Msys*);
 
 
 void NavierStokes (Domain*      D,
-		   LESAnalyser* A)
+		   LESAnalyser* A,
+		   const char*  masklag)
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
 // constraint Field 'p'.
@@ -68,11 +69,12 @@ void NavierStokes (Domain*      D,
   C3D  = CYL && NDIM == 3;
 
   integer       i, j, k;
-  const real    dt     =           Femlib::value ("D_T"   );
-  const integer nStep  = (integer) Femlib::value ("N_STEP");
-  const integer nZ     = Geometry::nZProc();
-  const integer ntot   = Geometry::nTotProc();
-  real*         alloc  = new real [(size_t) (2 * NDIM + 1) * NORD * ntot];
+  const real    dt    =           Femlib::value ("D_T"   );
+  const integer nStep = (integer) Femlib::value ("N_STEP");
+  const integer nZ    = Geometry::nZProc();
+  const integer nP    = Geometry::planeSize();
+  const integer ntot  = Geometry::nTotProc();
+  real*         alloc = new real [(size_t) (2 * NDIM + 1) * NORD * ntot];
 
   // -- Create global matrix systems: rename viscosities beforehand.
 
@@ -126,6 +128,21 @@ void NavierStokes (Domain*      D,
   *EV = 0.0;
   ROOTONLY EV -> addToPlane (0, Femlib::value ("REFVIS - KINVIS"));
 
+  // -- Create filter mask.
+
+  AuxField* mask = (C3D && masklag) ?
+    new AuxField ((alloc = new real [(size_t) ntot]), nZ, D -> elmt, 'm') : 0;
+  if (mask) {
+    ROOTONLY cout << "-- Setting up filter mask AuxField." << endl;
+    mask -> buildMask (masklag);
+#if 1
+    ROOTONLY {
+      Veclib::fill (4*nP, 1.0, alloc,      1);
+      Veclib::zero (  nP,      alloc + nP, 1);
+    }
+#endif
+  }
+
   // -- Timestepping loop.
 
   while (D -> step < nStep) {
@@ -141,6 +158,11 @@ void NavierStokes (Domain*      D,
     // -- Unconstrained forcing substep.
 
     nonLinear (D, Us[0], Uf[0], EV, ff);
+#if 1
+    // -- Apply masking.
+
+    if (mask) for (i = 0; i < NDIM; i++) *Uf[0][i] *= *mask;
+#endif
     waveProp  (D, Us, Uf);
 
     // -- Pressure projection substep.
@@ -168,6 +190,12 @@ void NavierStokes (Domain*      D,
     for (i = 0; i < NDIM; i++) Solve (D, i, Uf[0][i], MMS[i]);
     if (C3D)
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
+
+#if 0
+    // -- Dump mask into pressure field for testing/postprocessing.
+
+    *D -> u[NDIM] = *mask;
+#endif
 
     // -- Process results of this step.
 
