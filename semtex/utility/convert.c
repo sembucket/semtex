@@ -1,7 +1,7 @@
 /*****************************************************************************
  * convert:  Format conversion program for sem-compatible field files.
  *
- * USAGE: convert [-h] [-format] [-v] [-o output] [input[.fld]
+ * USAGE: convert [-h] [-format] [-v] [-n dump] [-o output] [input[.fld]
  *
  * Default action is to convert binary to ASCII files or vice versa.
  *
@@ -57,11 +57,12 @@ static char  usage[] = "Usage: convert [-format] [-h] [-v] [-o output] "
                        "  -s ... force IEEE-binary output (byte-swapped)\n"
                        "other options are:\n"
                        "  -h        ... print this message\n"
+                       "  -n dump   ... select dump number\n"
                        "  -v        ... be verbose\n"
                        "  -o output ... output to named file\n";
     
 
-static void   getargs      (int, char**, FILE**, FILE**, FORMAT*);
+static void   getargs      (int, char**, FILE**, FILE**, FORMAT*, int*);
 static void   error        (const char*);
 static void   get_data     (FILE*, const FORMAT, const FORMAT,
 			    const int, const int, double**);
@@ -83,6 +84,7 @@ int main (int    argc,
   char     buf[BUFSIZ];
   double** data;
   int      nfields, npts, n, nr, ns, nz, nel;
+  int      ndump = 0, nread = 0, selected = 1;
   FILE*    fp_in    = stdin;
   FILE*    fp_out   = stdout;
   FORMAT   inputF   = UNKNOWN,
@@ -90,15 +92,17 @@ int main (int    argc,
            machineF = architecture();
 
 
-  getargs (argc, argv, &fp_in, &fp_out, &outputF);
+  getargs (argc, argv, &fp_in, &fp_out, &outputF, &ndump);
 
   while (fgets (buf, BUFSIZ, fp_in)) {
+
+    if (ndump) selected = ndump == ++nread;
 
     /* -- Find size information. */
 
     n = 3;
     while (--n) {
-      fputs (buf, fp_out);
+      if (selected) fputs (buf, fp_out);
       fgets (buf, BUFSIZ, fp_in);
     }
 
@@ -108,12 +112,12 @@ int main (int    argc,
    
     n = 7;
     while (--n) {
-      fputs (buf, fp_out);
+      if (selected) fputs (buf, fp_out);
       fgets (buf, BUFSIZ, fp_in);
     }
     
     nfields = count_fields (buf);
-    fputs (buf, fp_out);
+    if (selected) fputs (buf, fp_out);
 
     /* -- Set input and ouput formats. */
 
@@ -135,7 +139,7 @@ int main (int    argc,
 	       prog, nfields, npts);
     
     get_data (fp_in,  inputF, machineF, npts, nfields, data);
-    put_data (fp_out, inputF, outputF,  npts, nfields, data);
+    if (selected) put_data (fp_out, inputF, outputF,  npts, nfields, data);
 
     /* -- Deallocate storage. */
 
@@ -176,7 +180,8 @@ static void getargs (int     argc  ,
 		     char**  argv  ,
 		     FILE**  fp_in ,
 		     FILE**  fp_out,
-		     FORMAT* outf  )
+		     FORMAT* outf  ,
+		     int*    ndump )
 /* ------------------------------------------------------------------------- *
  * Parse command line arguments.
  * ------------------------------------------------------------------------- */
@@ -186,71 +191,79 @@ static void getargs (int     argc  ,
   char  fname[FILENAME_MAX];
 
   while (--argc && (*++argv)[0] == '-')
-    while (c = *++argv[0])
-      switch (c) {
-      case 'h':
-	fputs (usage, stderr);
-	exit  (EXIT_SUCCESS);
-	break;
+    switch (c = *++argv[0]) {
+    case 'h':
+      fputs (usage, stderr);
+      exit  (EXIT_SUCCESS);
+      break;
 
-      case 'a':
-	*outf = ASCII;
+    case 'a':
+      *outf = ASCII;
+      break;
+      
+    case 'b':
+      i = iformat ();
+      switch (i) {
+      case 1:
+	*outf = IEEE_LITTLE;
 	break;
-
-      case 'b':
-	i = iformat ();
-	switch (i) {
-	case 1:
-	  *outf = IEEE_LITTLE;
-	  break;
-	case 0:
-	  *outf = IEEE_BIG;
-	  break;
-	default:
-	  fprintf (stderr, "%s: non-IEEE internal storage -- fix me", prog);
-	  exit (EXIT_FAILURE);
-	  break;
-	}
+      case 0:
+	*outf = IEEE_BIG;
 	break;
-
-      case 's':
-	i = iformat ();
-	switch (i) {
-	case 1:
-	  *outf = IEEE_BIG;
-	  break;
-	case 0:
-	  *outf = IEEE_LITTLE;
-	  break;
-	default:
-	  fprintf (stderr, "%s: non-IEEE internal storage -- fix me", prog);
-	  exit (EXIT_FAILURE);
-	  break;
-	}
-	break;
-
-      case 'v':
-	verbose = 1;
-	break;
-
-      case 'o':
-	if (*++argv[0])
-	  strcpy (fname, *argv);
-	else {
-	  strcpy (fname, *++argv);
-	  argc--;
-	}
-	if ((*fp_out = fopen (fname,"w")) == (FILE*) NULL) {
-	  fprintf (stderr, "convert: unable to open output file: %s\n", fname);
-	  exit (EXIT_FAILURE);
-	}
-	*argv += strlen (*argv) - 1;
-	break;
-
       default:
-	fprintf (stderr, "%s: unknown option -- %c\n", prog, c);
+	fprintf (stderr, "%s: non-IEEE internal storage -- fix me", prog);
+	exit (EXIT_FAILURE);
 	break;
       }
+      break;
+
+    case 'n':
+      if (*++argv[0])
+	*ndump = atoi (*argv);
+      else {
+	*ndump = atoi (*++argv);
+	argc--;
+      }
+      break;
+      
+    case 's':
+      i = iformat ();
+      switch (i) {
+      case 1:
+	*outf = IEEE_BIG;
+	break;
+      case 0:
+	*outf = IEEE_LITTLE;
+	break;
+      default:
+	fprintf (stderr, "%s: non-IEEE internal storage -- fix me", prog);
+	exit (EXIT_FAILURE);
+	break;
+      }
+      break;
+
+    case 'v':
+      verbose = 1;
+      break;
+
+    case 'o':
+      if (*++argv[0])
+	strcpy (fname, *argv);
+      else {
+	strcpy (fname, *++argv);
+	argc--;
+      }
+      if ((*fp_out = fopen (fname,"w")) == (FILE*) NULL) {
+	fprintf (stderr, "convert: unable to open output file: %s\n", fname);
+	exit (EXIT_FAILURE);
+      }
+      *argv += strlen (*argv) - 1;
+      break;
+
+    default:
+      fprintf (stderr, "%s: unknown option -- %c\n", prog, c);
+      break;
+    }
 
   if (argc == 1)
     if ((*fp_in = fopen (*argv, "r")) == (FILE*) NULL) {
@@ -346,15 +359,9 @@ static FORMAT classify (const char* s)
     break;
 
   case 'b': case 'B':
-    if (!strstr (s, "IEEE"))
-      return architecture ();
-
-    else if (strstr (s, "little"))
-      return IEEE_LITTLE;
-
-    else if (strstr (s, "big"))
-      return IEEE_BIG;
-    
+    if      (!strstr (s, "IEEE"))   return architecture();
+    else if ( strstr (s, "little")) return IEEE_LITTLE;
+    else if ( strstr (s, "big"))    return IEEE_BIG;
     break;
 
   default:
