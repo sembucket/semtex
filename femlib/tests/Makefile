@@ -125,3 +125,7 @@ testDLT: testDLT.C
 testDLT2: testDLT2.C
 	$(CXX) -o $@ $@.C $(CXXFLAGS) -I$(SEMHOME)/include -I. -g \
 	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+
+testDLT3: testDLT3.C
+	$(CXX) -o $@ $@.C $(CXXFLAGS) -I$(SEMHOME)/include -I. -g \
+	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
