@@ -25,6 +25,8 @@ echo "\t******************************************************"
 
 rm -f *.num
 
+# -- Cartesian geometries.
+
 if (!(-e kovas1))  cp ../mesh/kovas1  .
 if (!(-e kovas2))  cp ../mesh/kovas2  .
 if (!(-e kovas3))  cp ../mesh/kovas3  .
@@ -34,6 +36,18 @@ if (!(-e taylor2)) cp ../mesh/taylor2 .
 if (!(-e taylor3)) cp ../mesh/taylor3 .
 if (!(-e taylor4)) cp ../mesh/taylor4 .
 if (!(-e taylor5)) cp ../mesh/taylor5 .
+
+# -- Cylindrical geometries.
+
+if (!(-e tube1))  cp ../mesh/tube1  .
+if (!(-e tube2))  cp ../mesh/tube2  .
+if (!(-e tube3))  cp ../mesh/tube3  .
+if (!(-e sbr))    cp ../mesh/sbr  .
+if (!(-e tc1))    cp ../mesh/tc1  .
+
+echo ""
+echo ""
+echo "-- CARTESIAN GEOMETRY --"
 
 echo "\n\t*** 2D TESTS ***"
 
@@ -96,3 +110,43 @@ echo "-- 3D KOVASZNAY FLOW, Y--Z PLANE, SEMI-PERIODIC BOUNDARIES"
 les -chk kovas5 > /dev/null
 compare kovas5 kovas5.fld > /dev/null
 rm kovas5*
+
+
+echo ""
+echo ""
+echo "-- CYLINDRICAL GEOMETRY --"
+
+echo ""
+echo "-- 2D POISEUILLE FLOW IN A TUBE"
+compare tube1 > tube1.rst
+les -chk tube1 > /dev/null
+compare tube1 tube1.fld > /dev/null
+rm tube1*
+
+echo ""
+echo "-- 3D POISEUILLE FLOW IN A TUBE"
+compare tube2 > tube2.rst
+les -chk tube2 > /dev/null
+compare tube2 tube2.fld > /dev/null
+rm tube2*
+
+echo ""
+echo "-- 3D UNIFORM FLOW NORMAL TO A TUBULAR VOLUME"
+compare tube3 > tube3.rst
+les -chk tube3 > /dev/null
+compare tube3 tube3.fld > /dev/null
+rm tube3*
+
+echo ""
+echo "-- 3D SOLID BODY ROTATION"
+compare sbr > sbr.rst
+les -chk sbr > /dev/null
+compare sbr sbr.fld > /dev/null
+rm sbr*
+
+echo ""
+echo "-- LOW TAYLOR NUMBER TAYLOR--COUETTE FLOW"
+compare tc1 > tc1.rst
+les -chk tc1 > /dev/null
+compare tc1 tc1.fld > /dev/null
+rm tc1*

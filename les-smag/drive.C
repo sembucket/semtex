@@ -3,7 +3,7 @@
 //
 // SYNOPSIS:
 // --------
-// Control spectral element unsteady incompressible flow solver.
+// Control spectral element LES for incompressible flows.
 //
 // USAGE:
 // -----
@@ -47,6 +47,7 @@ integer main (integer argc,
   ios::sync_with_stdio();
 #endif
 
+  Geometry::CoordSys system;
   char      *session, fields[StrMax];
   integer   np, nz, nel;
   FEML*     F;
@@ -55,18 +56,20 @@ integer main (integer argc,
   Domain*   D;
   Analyser* A;
   
-  Femlib::prep ();
-  getargs      (argc, argv, session);
+  Femlib::initialize (&argc, &argv);
+  getargs (argc, argv, session);
 
   F = new FEML  (session);
   M = new Mesh  (*F);
   B = new BCmgr (*F);
 
-  nel = M -> nEl();  
-  np  = (integer) Femlib::value ("N_POLY");
-  nz  = (integer) Femlib::value ("N_Z"   );
+  nel    =  M -> nEl();  
+  np     =  (integer) Femlib::value ("N_POLY");
+  nz     =  (integer) Femlib::value ("N_Z"   );
+  system = ((integer) Femlib::value ("CYLINDRICAL") ) ?
+                                Geometry::Cylindrical : Geometry::Cartesian;  
   
-  Geometry::set (np, nz, nel, Geometry::Cartesian);
+  Geometry::set (np, nz, nel, system);
   if   (nz > 1) strcpy (fields, "uvwp");
   else          strcpy (fields, "uvp" );
 
@@ -74,25 +77,27 @@ integer main (integer argc,
   A = new Analyser (*D, *F);
 
   D -> initialize();
-  D -> report();
+  ROOTONLY D -> report();
 
   NavierStokes (D, A);
+
+  Femlib::finalize();
 
   return EXIT_SUCCESS;
 }
 
 
-static void getargs (integer    argc   ,
-		     char** argv   ,
-		     char*& session)
+static void getargs (integer argc   ,
+		     char**  argv   ,
+		     char*&  session)
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
 // arguments.  Last argument is name of a session file, not dealt with here.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "getargs";
-  char buf[StrMax];
-  char usage[]   =
+  const char routine[] = "getargs";
+  char       buf[StrMax];
+  const char usage[]   =
     "Usage: %s [options] session-file\n"
     "  [options]:\n"
     "  -h        ... print this message\n"
