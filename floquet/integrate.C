@@ -14,9 +14,9 @@
 //   u <==> axial     velocity,  x <==> axial     coordinate direction,
 //   v <==> radial    velocity,  y <==> radial    coordinate direction,
 //   w <==> azimuthal velocity,  z <==> azimuthal coordinate direction.
-//
-// "$Id$";
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include "stab.h"
 
@@ -49,7 +49,6 @@ void integrate (Domain*       D,
   NBASE = Geometry::nBase();
   NZ    = Geometry::nZ();
   NORD  = static_cast<int>(Femlib::value ("N_TIME"));
-  CYL   = Geometry::system() == Geometry::Cylindrical;
   PROB  = Geometry::problem();
 
   int        i, j, k;
@@ -90,7 +89,7 @@ void integrate (Domain*       D,
 
     // -- Apply coupling to radial & azimuthal velocity BCs.
 
-    if (CYL && PROB != Geometry::O2_2D)
+    if (Geometry::cylindrical() && PROB != Geometry::O2_2D)
       Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
   }
     
@@ -118,18 +117,20 @@ void integrate (Domain*       D,
 
     linAdvect (D, Us[0], Uf[0]);
 
-    waveProp  (D, const_cast<const AuxField***>(Us),
-                  const_cast<const AuxField***>(Uf));
+    // -- Pressure substep.
 
-    // -- Pressure projection substep.
-
-    PBCmgr::maintain (D -> step, Pressure,
-		      const_cast<const AuxField**>(Us[0]), 
+    PBCmgr::maintain (D -> step, Pressure, 
+		      const_cast<const AuxField**>(Us[0]),
 		      const_cast<const AuxField**>(Uf[0]));
-
     Pressure -> evaluateBoundaries (D -> step);
 
+    if (Geometry::cylindrical()) { Us[0][0] -> mulY(); Us[0][1] -> mulY(); }
+
+    waveProp (D, const_cast<const AuxField***>(Us),
+	         const_cast<const AuxField***>(Uf));
+
     for (i = 0; i < NPERT; i++) AuxField::swapData (D -> u[i], Us[0][i]);
+
     rollm     (Uf, NORD, NPERT);
     setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);
     Solve     (D, NPERT,  Uf[0][0], MS[NPERT]);
@@ -142,7 +143,7 @@ void integrate (Domain*       D,
 
     // -- Viscous correction substep.
 
-    if (CYL && PROB != Geometry::O2_2D) {
+    if (Geometry::cylindrical() && PROB != Geometry::O2_2D) {
       AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
       AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     }
@@ -152,7 +153,7 @@ void integrate (Domain*       D,
 #endif 
       Solve (D, i, Uf[0][i], MS[i]);
     }
-    if (CYL && PROB != Geometry::O2_2D)
+    if (Geometry::cylindrical() && PROB != Geometry::O2_2D)
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 
     // -- Process results of this step.
@@ -210,12 +211,12 @@ static void linAdvect (Domain*    D ,
 
   // -- Centrifugal, Coriolis terms for cylindrical coords.
 
-  if (CYL) {
+  if (Geometry::cylindrical()) {
     if (NPERT == 3)
-     *N[2] += T -> times (*u[2], *U[1]) . divR();
+     *N[2] += T -> times (*u[2], *U[1]) . divY();
     if (NBASE == 3) {
-      N[1] -> axpy (-2.0, T -> times (*u[2], *U[2]) . divR());
-     *N[2] +=             T -> times (*u[1], *U[2]) . divR();
+      N[1] -> axpy (-2.0, T -> times (*u[2], *U[2]));
+     *N[2] += T -> times (*u[1], *U[2]) . divY();
     }
   }
 
@@ -224,15 +225,19 @@ static void linAdvect (Domain*    D ,
   for (i = 0; i < NPERT; i++)
     for (j = 0; j < NBASE; j++) {
       (*T = *u[i]) . gradient (j);
-      if (CYL && j == 2) T -> divR();
+      if      (Geometry::cylindrical() && i <  2 && j <  2) T -> mulY();
+      else if (Geometry::cylindrical() && i == 2 && j == 2) T -> divY();
       N[i] -> timesPlus (*T, *U[j]);
     }
 
   // -- N_i += u_j d(U_i) / dx_j; dU_i/dz=0.
 
   for (i = 0; i < NBASE; i++)
-    for (j = 0; j < 2; j++)
-      N[i] -> timesPlus (*u[j], (*U[NBASE] = *U[i]) . gradient (j));
+    for (j = 0; j < 2; j++) {
+      (*U[NBASE] = *U[i]) . gradient (j);
+      if (Geometry::cylindrical() && i < 2) U[NBASE] -> mulY();
+      N[i] -> timesPlus (*u[j], *U[NBASE]);
+    }
 
   for (i = 0; i < NPERT; i++) {
     T -> smooth (N[i]);
@@ -267,7 +272,7 @@ static void waveProp (Domain*           D ,
   
   Integration::StifflyStable (Je, &alpha[0]);
   Integration::Extrapolation (Je, &beta [0]);
-  Blas::scal (Je, Femlib::value ("D_T"), &beta[0],  1);
+  Blas::scal (Je, Femlib::value ("D_T"), &beta[0], 1);
 
   for (i = 0; i < NPERT; i++)
     for (q = 0; q < Je; q++) {
@@ -288,15 +293,9 @@ static void setPForce (const AuxField** Us,
   int        i;
   const real dt = Femlib::value ("D_T");
 
-  for (i = 0; i < NPERT; i++) (*Uf[i] = *Us[i]) . gradient(i);
-
-  if (PROB == Geometry::O2_3D_SYMM) *Uf[2] *= -1.0;
-
-  if (CYL && PROB != Geometry::O2_2D) Uf[2] -> divR();
-
-  for (i = 1; i < NPERT; i++) *Uf[0] += *Uf[i];  
-
-  if (CYL) *Uf[0] += (*Uf[1] = *Us[1]) . divR();
+  for (i = 0; i < NPERT; i++) (*Uf[i] = *Us[i]) . gradient (i);
+  if  (PROB == Geometry::O2_3D_SYMM) *Uf[2] *= -1.0;
+  for (i = 1; i < NPERT; i++) *Uf[0] += *Uf[i];
 
   *Uf[0] /= dt;
 }
@@ -316,18 +315,19 @@ static void project (const Domain* D ,
 // ---------------------------------------------------------------------------
 {
   int        i;
-  const real dt    = Femlib::value ("D_T");
   const real alpha = -1.0 / Femlib::value ("D_T * KINVIS");
+  const real beta  =  1.0 / Femlib::value ("KINVIS");
 
   for (i = 0; i < NPERT; i++) {
-    (*Uf[i] = *D -> u[NPERT]) . gradient (i);
-
-    if (CYL && i == 2) Uf[2] -> divR();
-
-    Us[i] -> axpy    (-dt, *Uf[i]);
     Field::swapData (Us[i], Uf[i]);
-   
+    if (Geometry::cylindrical() && i == 2) Uf[i] -> mulY();
     *Uf[i] *= alpha;
+  }
+
+  for (i = 0; i < NPERT; i++) {
+    (*Us[0] = *D -> u[NPERT]) . gradient (i);
+    if (Geometry::cylindrical() && i < 2) Us[0] -> mulY();
+    Uf[i] -> axpy (beta, *Us[0]);
   }
 }
 
@@ -348,7 +348,7 @@ static MatrixSys** preSolve (const Domain* D)
 
   MatrixSys**      system = new MatrixSys* [static_cast<size_t>(NPERT + 1)];
   MatrixSys*       M;
-  int              found;
+  bool             found;
   solver_kind      method;
   real             betak2;
   const NumberSys* N;
@@ -373,7 +373,7 @@ static MatrixSys** preSolve (const Domain* D)
   N      = D -> b[1] -> Nsys (bmode);
   betak2 = sqr (Field::modeConstant (D -> u[1] -> name(), mode, beta));
 
-  for (found = 0, m = MS.begin(); !found && m != MS.end(); m++) {
+  for (found = false, m = MS.begin(); !found && m != MS.end(); m++) {
     M = *m; found = M -> match (lambda2, betak2, N, method);
   }
   if (found) {
@@ -392,7 +392,7 @@ static MatrixSys** preSolve (const Domain* D)
     N      = D -> b[2] -> Nsys (bmode);
     betak2 = sqr (Field::modeConstant (D -> u[2] -> name(), mode, beta));
 
-    for (found = 0, m = MS.begin(); !found && m != MS.end(); m++) {
+    for (found = false, m = MS.begin(); !found && m != MS.end(); m++) {
       M = *m; found = M -> match (lambda2, betak2, N, method);
     }
     if (found) {

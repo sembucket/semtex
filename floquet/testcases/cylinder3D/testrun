@@ -7,4 +7,4 @@ dns m32_2D > /dev/null
 mv  m32_2D.fld m32.bse
 
 enumerate -O3 m32 > m32.num
-../../arnoldi -k 12 -n 1 -m 20 m32 > /dev/null
+../../arnoldi -k 12 -n 1 -m 20 -O-1 m32 > /dev/null

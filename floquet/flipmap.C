@@ -25,9 +25,9 @@
 // first mapping found for each case (reflect positive->negative,
 // *and* negative->positive). This way a single gather will do the
 // reflection, and leave no holes.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include "Sem.h"
 

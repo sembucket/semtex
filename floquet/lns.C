@@ -21,9 +21,9 @@
 // Highett, Vic 3190
 // Australia
 // hugh.blackburn@csiro.au
-//
-// $Id$
 //////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include "stab.h"
 
@@ -82,7 +82,8 @@ static void getargs (int    argc   ,
     "  -h        ... print this message\n"
     "  -i[i]     ... use iterative solver for viscous [& pressure] steps\n"
     "  -v[v...]  ... increase verbosity level\n"
-    "  -chk      ... checkpoint field dumps\n";
+    "  -chk      ... checkpoint field dumps\n"
+    "  -O <num> ... set numbering scheme optimisation level, Default=3\n";
  
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
@@ -111,6 +112,14 @@ static void getargs (int    argc   ,
 	exit (EXIT_FAILURE);	  
       }
       break;
+    case 'O': {
+      int level;
+      if (*++argv[0]) level = atoi (*argv);
+      else {level = atoi (*++argv); argc--;}
+      level = clamp (level, -1, 3);
+      Femlib::value ("NUMOPTLEVEL", static_cast<double>(level));
+      break;
+    }
     default:
       sprintf (buf, usage, prog);
       cout << buf;
@@ -139,6 +148,10 @@ static void preprocess (const char*       session,
   const real* z;
   int         i, np, nel, npert;
 
+  // -- Set default additional tokens.
+
+  Femlib::value ("BASE_PERIOD", 0.0);
+
   // -- Initialise problem and set up mesh geometry.
 
   VERBOSE cout << "Building mesh ..." << endl;
@@ -164,10 +177,8 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "Building elements ... ";
 
-  Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
-
   elmt.resize (nel);
-  for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
+  for (i = 0; i < nel; i++) elmt[i] = new Element (i, np, mesh);
 
   VERBOSE cout << "done" << endl;
 

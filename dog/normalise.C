@@ -14,9 +14,9 @@
 // values.
 //
 // NBB: The input field is assumed to contain velocities and pressure ONLY!
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <stdarg.h>
 #include <stdlib.h>

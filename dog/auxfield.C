@@ -4,11 +4,11 @@
 // Copyright (C) 1994,2003 Hugh Blackburn.
 //
 // Modified for stability analysis.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Sem.h>
+static char RCS[] = "$Id$";
+
+#include "Sem.h"
 
 AuxField::AuxField (real*             alloc,
 		    const int         nz   ,
@@ -285,62 +285,40 @@ AuxField& AuxField::gradient (const int dir)
   const int    npnp = np  * np;
   const int    ntot = nel * npnp;
   const int    nP   = Geometry::planeSize();
-  const real   **DV, **DT;
-  vector<real> work (2 * nP);
-  real         *xr, *xs, *tmp;
   int          i, k;
-
-  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+  vector<real> work;
+  real         *tmp;
 
   switch (dir) {
 
   case 0:
-    xr = &work[0];
-    xs = xr + nP;
-    
+    work.resize (2 * npnp);
     for (k = 0; k < _nz; k++) {
-      tmp = _plane[k];
-
-      Veclib::zero  (2 * nP, xr, 1);
-      Femlib::grad2 (tmp, tmp, xr, xs, *DV, *DT, np, nel);
-
-      for (i = 0; i < nel; i++, xr += npnp, xs += npnp, tmp += npnp)
-	_elmt[i] -> gradX (xr, xs, tmp);
-      
-      xr -= ntot;
-      xs -= ntot;
+     tmp = _plane[k];
+     for (i = 0; i < nel; i++, tmp += npnp)
+       _elmt[i] -> grad (tmp, 0, &work[0]);
     }
     break;
 
   case 1:
-    xr = &work[0];
-    xs = xr + nP;
-
+    work.resize (2 * npnp);
     for (k = 0; k < _nz; k++) {
       tmp = _plane[k];
-
-      Veclib::zero  (2 * nP, xr, 1);
-      Femlib::grad2 (tmp, tmp, xr, xs, *DV, *DT, np, nel);
-
-      for (i = 0; i < nel; i++, xr += npnp, xs += npnp, tmp += npnp)
-	_elmt[i] -> gradY (xr, xs, tmp);
-      
-      xr -= ntot;
-      xs -= ntot;
+      for (i = 0; i < nel; i++, tmp += npnp)
+	_elmt[i] -> grad (0, tmp, &work[0]);
     }
     break;
 
   case 2: {
     const real beta = Femlib::value ("BETA");
-    xr = &work[0];
-    xs = xr + nP;
 
     if (_nz == 1)          // -- Half-complex (may need sign change).
       Blas::scal (nP, beta, _plane[0], 1);
     else {			// -- Full-complex.
-      Veclib::copy (nP,        _plane[0], 1, xr,        1);
+      work.resize  (nP);
+      Veclib::copy (nP,        _plane[0], 1,  &work[0], 1);
       Veclib::smul (nP, -beta, _plane[1], 1, _plane[0], 1);
-      Veclib::smul (nP,  beta, xr,        1, _plane[1], 1);
+      Veclib::smul (nP,  beta,  &work[0], 1, _plane[1], 1);
     }
   } break;
   default:
@@ -405,8 +383,8 @@ real AuxField::integral () const
 }
 
 
-ofstream& operator << (ofstream& strm,
-		       AuxField& F   )
+ostream& operator << (ostream& strm,
+		      AuxField& F   )
 // ---------------------------------------------------------------------------
 // Binary write of F's data area.
 //
@@ -416,7 +394,7 @@ ofstream& operator << (ofstream& strm,
 // needs access to the output stream.
 // ---------------------------------------------------------------------------
 {
-  const char   routine[] = "ofstream<<AuxField";
+  const char   routine[] = "ostream<<AuxField";
   const int    NP    = Geometry::planeSize();
   const int    nP    = Geometry::nPlane();
   const int    nProc = Geometry::nProc();
@@ -455,8 +433,8 @@ ofstream& operator << (ofstream& strm,
 }
 
 
-ifstream& operator >> (ifstream& strm,
-		       AuxField& F   )
+istream& operator >> (istream& strm,
+		      AuxField& F   )
 // ---------------------------------------------------------------------------
 // Binary read of F's data area.  Zero any unused storage areas.
 //
@@ -464,7 +442,7 @@ ifstream& operator >> (ifstream& strm,
 // This precaution is possibly unnecessary for input.
 // ---------------------------------------------------------------------------
 {
-  const char   routine[] = "ifstream>>AuxField";
+  const char   routine[] = "istream>>AuxField";
   const int    nP    = Geometry::nPlane();
   const int    NP    = Geometry::planeSize();
   const int    nProc = Geometry::nProc();
@@ -701,7 +679,7 @@ void AuxField::couple (AuxField* v  ,
 }
 
 
-AuxField& AuxField::divR ()
+AuxField& AuxField::divY ()
 // ---------------------------------------------------------------------------
 // Divide data values by radius (i.e. y in cylindrical coords).
 // ---------------------------------------------------------------------------
@@ -713,13 +691,13 @@ AuxField& AuxField::divR ()
 
   for (k = 0; k < _nz; k++)
     for (p = _plane[k], i = 0; i < nel; i++, p += npnp)
-      _elmt[i] -> divR (p);
+      _elmt[i] -> divY (p);
   
   return *this;
 }
 
 
-AuxField& AuxField::mulR ()
+AuxField& AuxField::mulY ()
 // ---------------------------------------------------------------------------
 // Multiply data values by radius (i.e. y in cylindrical coords).
 // ---------------------------------------------------------------------------
@@ -731,7 +709,7 @@ AuxField& AuxField::mulR ()
 
   for (k = 0; k < _nz; k++)
     for (p = _plane[k], i = 0; i < nel; i++, p += npnp)
-      _elmt[i] -> mulR (p);
+      _elmt[i] -> mulY (p);
   
   return *this;
 }
@@ -745,8 +723,8 @@ real AuxField::probe (const Element* E,
 // Return the value of data on plane k, in Element E, location r, s.
 // ---------------------------------------------------------------------------
 {
-  const int           offset = E -> ID() * Geometry::nTotElmt();
-  static vector<real> work (3 * Geometry::nP());
+  const int    offset = E -> ID() * Geometry::nTotElmt();
+  vector<real> work (3 * Geometry::nP());
   
   return E -> probe (r, s, _plane[k] + offset, &work[0]);
 }
@@ -833,18 +811,18 @@ real AuxField::CFL (const int dir) const
 // AuxField is presumed to have been Fourier transformed in 3rd direction.
 // ---------------------------------------------------------------------------
 {
-  const char          routine[] = "AuxField::CFL";
-  const int           nel  = Geometry::nElmt();
-  const int           npnp = Geometry::nTotElmt();
-  register int        i;
-  register real*      p;
-  real                dxy, CFL = 0.0;
-  static vector<real> work (npnp);
+  const char     routine[] = "AuxField::CFL";
+  const int      nel  = Geometry::nElmt();
+  const int      npnp = Geometry::nTotElmt();
+  register int   i;
+  register real* p;
+  real           dxy, CFL = 0.0;
+  vector<real>    work (npnp);
   
   {
     const int   nP = Geometry::nP();
     const real* z;
-    Femlib::quad (LL, nP, nP, &z, 0, 0, 0, 0, 0, 0);
+    Femlib::quadrature (&z, 0, 0, 0, nP, 'L', 0.0, 0.0);
     dxy = z[1] - z[0];
   }
 
@@ -874,10 +852,10 @@ real AuxField::CFL (const int dir) const
 }
 
 
-AuxField& AuxField::update (const int nSlice ,
-			    const real*   FFTdata,
-			    const real    time   ,
-			    const real    period )
+AuxField& AuxField::update (const int   nSlice ,
+			    const real* FFTdata,
+			    const real  time   ,
+			    const real  period )
 // ---------------------------------------------------------------------------
 // Fourier series reconstruction of base flow, if it is periodic in time.
 //

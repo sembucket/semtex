@@ -9,12 +9,13 @@
 //
 // It is assumed that the first 2 or 3 (for 3D) entries in the Domain
 // u vector are velocity fields.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Sem.h>
+static char RCS[] = "$Id$";
+
+#include "Sem.h"
 #include <unistd.h>
+
 
 Analyser::Analyser (Domain* D   ,
 		    FEML*   file) :
@@ -177,10 +178,10 @@ void Analyser::divergence (AuxField** Us) const
     }
   } else {
     for (i = 0; i < NC; i++) *Us[i] = *src -> u[i];
-    Us[1] -> mulR();
+    Us[1] -> mulY();
     for (i = 0; i < NC; i++)  Us[i] -> gradient (i);
-    Us[1] -> divR();
-    if (NC == 3) Us[2] -> divR();
+    Us[1] -> divY();
+    if (NC == 3) Us[2] -> divY();
   }
 
   if (Geometry::problem() == Geometry::O2_3D_SYMM) *Us[2] *= -1.0;

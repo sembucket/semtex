@@ -68,9 +68,9 @@
 //      ed E. Doedel & L.S. Tuckerman, Springer. 453--466.
 // [4]  J. W. Swift & K. Wiesenfeld (1984), "Suppression of period doubling
 //      in symmetric systems", Phys. Rev. Lett. 52(9), 705--708.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include "stab.h"
 
@@ -700,7 +700,8 @@ static void getargs (int    argc   ,
     "-k <num> ... set dimension of subspace (maximum number of pairs) to num\n"
     "-m <num> ... set maximum number of iterations         (m >= k)\n"
     "-n <num> ... compute num eigenvalue/eigenvector pairs (n <= k)\n"
-    "-t <num> ... set eigenvalue tolerance to num [Default 1e-6]\n";
+    "-t <num> ... set eigenvalue tolerance to num [Default 1e-6]\n"
+    "  -O <num> ... set numbering scheme optimisation level, Default=3\n";
 
   while (--argc && **++argv == '-')
     switch (*++argv[0]) {
@@ -729,6 +730,14 @@ static void getargs (int    argc   ,
       if (*++argv[0]) evtol = atof (  *argv);
       else { --argc;  evtol = atof (*++argv); }
       break;
+    case 'O': {
+      int level;
+      if (*++argv[0]) level = atoi (*argv);
+      else {level = atoi (*++argv); argc--;}
+      level = clamp (level, -1, 3);
+      Femlib::value ("NUMOPTLEVEL", level);
+      break;
+    }
     default:
       cerr << usage;
       exit (EXIT_FAILURE);
@@ -751,6 +760,12 @@ static int preprocess (const char* session)
   const real* z;
   int   i, np, nel, npert;
 
+  // -- Set default additional tokens.
+
+  Femlib::value ("BASE_PERIOD", 0.0);
+
+  // -- Start up dealing with session file.
+
   file  = new FEML (session);
   mesh  = new Mesh (file);
 
@@ -759,10 +774,8 @@ static int preprocess (const char* session)
   npert = file -> attribute ("FIELDS", "NUMBER") - 1;
   Geometry::set (nel, npert);
 
-  Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
-
   elmt.resize (nel);
-  for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
+  for (i = 0; i < nel; i++) elmt[i] = new Element (i, np, mesh);
 
   bman    = new BCmgr        (file, elmt);
   domain  = new Domain       (file, elmt, bman);

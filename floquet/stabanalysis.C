@@ -3,11 +3,11 @@
 // prints out base history point information.
 //
 // Copyright (C) 1994,2003 Hugh Blackburn
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
  
-#include <stab.h>
+#include "stab.h"
 
 
 StabAnalyser::StabAnalyser (Domain* D   ,

@@ -3,11 +3,11 @@
 // routines that don't fit class structures.
 //
 // Copyright (C) 1994,2003 Hugh BLackburn
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Sem.h>
+static char RCS[] = "$Id$";
+
+#include "Sem.h"
 #include <time.h>
 
 
@@ -180,13 +180,13 @@ Header::Header ()
 }
 
 
-ifstream& operator >> (ifstream& file,
-		       Header&   hdr )
+istream& operator >> (istream& file,
+		      Header&   hdr )
 // ---------------------------------------------------------------------------
 // Insert data into Header struct from file.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "operator: ifstream >> Header";
+  char routine[] = "operator: istream >> Header";
   char s[StrMax];
 
   if (file.get(hdr.sess, 25).eof()) return file; file.getline(s, StrMax);
@@ -205,8 +205,8 @@ ifstream& operator >> (ifstream& file,
 }
 
 
-ofstream& operator << (ofstream& file,
-		       Header&   hdr )
+ostream& operator << (ostream& file,
+		      Header&   hdr )
 // ---------------------------------------------------------------------------
 // Put data from Header struct onto file. Use current time info.
 // ---------------------------------------------------------------------------

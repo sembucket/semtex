@@ -1,24 +1,24 @@
 ///////////////////////////////////////////////////////////////////////////////
 // pressure.C: routines to deal with pressure field boundary conditions.
 //
-// Copyright (C) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994,2003 Hugh Blackburn
 //
-// Class variables Pn & Un provide storage for the mode equivalents of
-//   Pn:  normal gradient of the pressure field,
-//   Un: normal component of velocity,
-// and are used to construct explicit extrapolative estimates of the natural
-// BCs for the pressure field at the next time level.
+// Class variables _Pn & _Un provide storage for the mode equivalents of
+//   _Pn:  normal gradient of the pressure field,
+//   _Un: normal component of velocity,
+// and are used to construct explicit extrapolative estimates of the
+// natural BCs for the pressure field at the next time level.
 //
 // Reference: Karniadakis, Israeli & Orszag 1991.  "High-order splitting
 // methods for the incompressible Navier--Stokes equations", JCP 9(2).
 //
-// Pn & Un are indexed by time level, boundary, data plane, and location in
-// that order (e.g. Pn[time][boundary][plane][i]).
-//
-// $Id$
+// _Pn & _Un are indexed by time level, boundary, data plane, and
+// location in that order (e.g. _Pn[time][boundary][plane][i]).
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Sem.h>
+static char RCS[] = "$Id$";
+
+#include "Sem.h"
 
 real**** PBCmgr::_Pnx = 0;
 real**** PBCmgr::_Pny = 0;
@@ -75,7 +75,7 @@ void PBCmgr::maintain (const int        step   ,
 		       const Field*     P      ,
 		       const AuxField** Us     ,
 		       const AuxField** Uf     ,
-		       const int        timedep)
+		       const bool       timedep)
 // ---------------------------------------------------------------------------
 // Update storage for evaluation of high-order pressure boundary condition.
 // Storage order for each edge represents a CCW traverse of element boundaries.
@@ -107,7 +107,6 @@ void PBCmgr::maintain (const int        step   ,
   const AuxField* Ux = Us[0];
   const AuxField* Uy = Us[1];
   const AuxField* Uz = (Geometry::nPert() == 3) ? Us[2] : 0;
-  real            *UxRe, *UxIm, *UyRe, *UyIm, *UzRe, *UzIm, *tmp;
 
   const AuxField* Nx = Uf[0];
   const AuxField* Ny = Uf[1];
@@ -116,8 +115,6 @@ void PBCmgr::maintain (const int        step   ,
   register Boundary*       B;
   register int             i, k, q;
   int                      offset, skip, Je;
-
-  vector<real> work (4 * nP + Integration::OrderMax + 1);
 
   // -- Roll grad P storage area up, load new level of nonlinear terms Uf.
 
@@ -138,11 +135,14 @@ void PBCmgr::maintain (const int        step   ,
   // -- Add in -nu * curl curl u. There are 3 cases to deal with:
   //    perturbation is real, half-complex or full-complex.
 
-  real* xr    = &work[0];
-  real* xi    = xr + nP;
-  real* yr    = xi + nP;
-  real* yi    = yr + nP;
-  real* alpha = yi + nP;
+  vector<real> work (5 * sqr(nP) + 7 * nP + Integration::OrderMax + 1);
+  real         *UxRe, *UxIm, *UyRe, *UyIm, *UzRe, *UzIm, *tmp;
+  real*        wrk   = &work[0];
+  real*        xr    = wrk + 5*sqr(nP) + 3*nP;
+  real*        xi    = xr + nP;
+  real*        yr    = xi + nP;
+  real*        yi    = yr + nP;
+  real*        alpha = yi + nP;
 
   for (i = 0; i < nEdge; i++) {
     B      = BC[i];
@@ -155,10 +155,10 @@ void PBCmgr::maintain (const int        step   ,
       UyRe = Uy -> _plane[0];
 
       if (Geometry::problem() == Geometry::O2_2D) { // -- Real perturbation.
-	B->curlCurl(0,UxRe,0,UyRe,0,0,0,xr,0,yr,0);
+	B->curlCurl(0,UxRe,0,UyRe,0,0,0,xr,0,yr,0,wrk);
       } else {			    // -- Half-complex perturbation.
 	UzIm = Uz -> _plane[0];
-	B->curlCurl(1,UxRe,0,UyRe,0,0,UzIm,xr,0,yr,0);
+	B->curlCurl(1,UxRe,0,UyRe,0,0,UzIm,xr,0,yr,0,wrk);
       }
       Blas::axpy (nP, -nu, xr, 1, _Pnx[0][i][0], 1);
       Blas::axpy (nP, -nu, yr, 1, _Pny[0][i][0], 1);
@@ -171,7 +171,7 @@ void PBCmgr::maintain (const int        step   ,
       UzRe = Uz -> _plane[0];
       UzIm = Uz -> _plane[1];
 
-      B->curlCurl(1,UxRe,UxIm,UyRe,UyIm,UzRe,UzIm,xr,xi,yr,yi);
+      B->curlCurl(1,UxRe,UxIm,UyRe,UyIm,UzRe,UzIm,xr,xi,yr,yi,wrk);
 
       Blas::axpy (nP, -nu, xr, 1, _Pnx[0][i][0], 1);
       Blas::axpy (nP, -nu, xi, 1, _Pnx[0][i][1], 1);
@@ -201,12 +201,14 @@ void PBCmgr::maintain (const int        step   ,
 	  Blas::scal   (nP, alpha[0], tmp, 1);
 	  for (q = 0; q < Je; q++)
 	    Blas::axpy (nP, alpha[q + 1], _Unx[q][i][k], 1, tmp, 1);
+	  if (Geometry::cylindrical()) B -> mulY (tmp);
 	  Blas::axpy (nP, -invDt, tmp, 1, _Pnx[0][i][k], 1);
 	  
 	  Veclib::copy (nP, Uy -> _plane[k] + offset, skip, tmp, 1);
 	  Blas::scal   (nP, alpha[0], tmp, 1);
 	  for (q = 0; q < Je; q++)
 	    Blas::axpy (nP, alpha[q + 1], _Uny[q][i][k], 1, tmp, 1);
+	  if (Geometry::cylindrical()) B -> mulY (tmp);
 	  Blas::axpy (nP, -invDt, tmp, 1, _Pny[0][i][k], 1);
 	}
       }
@@ -231,13 +233,13 @@ void PBCmgr::maintain (const int        step   ,
 }
 
 
-void PBCmgr::evaluate (const int id   ,
-		       const int np   ,
-		       const int plane,
-		       const int step ,
-		       const real*   nx   ,
-		       const real*   ny   ,
-		       real*         tgt  )
+void PBCmgr::evaluate (const int   id   ,
+		       const int   np   ,
+		       const int   plane,
+		       const int   step ,
+		       const real* nx   ,
+		       const real* ny   ,
+		       real*       tgt  )
 // ---------------------------------------------------------------------------
 // Load PBC value with values obtained from HOBC multi-level storage.
 //
@@ -253,7 +255,7 @@ void PBCmgr::evaluate (const int id   ,
 {
   if (step < 1) return;
 
-  register int q, Je = (int) Femlib::value ("N_TIME");
+  register int q, Je = static_cast<int>(Femlib::value ("N_TIME"));
   vector<real>     work (Integration::OrderMax + 2 * np);
   real*            beta  = &work[0];
   real*            tmpX  = beta + Integration::OrderMax;
@@ -268,8 +270,7 @@ void PBCmgr::evaluate (const int id   ,
     Blas::axpy (np, beta[q], _Pny[q][id][plane], 1, tmpY, 1);
   }
     
-  Veclib::vmul  (np, nx, 1, tmpX, 1, tgt, 1);
-  Veclib::vvtvp (np, ny, 1, tmpY, 1, tgt, 1, tgt, 1);
+  Veclib::vvtvvtp (np, nx, 1, tmpX, 1, ny, 1, tmpY, 1, tgt, 1);
 }
 
 

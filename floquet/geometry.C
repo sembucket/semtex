@@ -4,12 +4,12 @@
 // Copyright (C) 1994,2003 Hugh Blackburn.
 //
 // Most routines are inlined in header file Geometry.h.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <stdio.h>
-#include <iostream.h>
+static char RCS[] = "$Id$";
+
+#include <cstdio>
+#include <iostream>
 
 #include <femdef.h>
 #include <Utility.h>
@@ -56,8 +56,6 @@ void Geometry::set (const int nel  ,
   _psize     = nPlane() + (nPlane() % 2);
 
   _nz = _nzp = static_cast<int>(Femlib::value ("N_Z"));
-
-//  _ndim = (_nbase == _npert && _nz == 1) ? 2 : 3;
 
   if      (_nbase == 2 && _npert == 2 && _nz == 1) _cat = O2_2D;
   else if (_nbase == 2 && _npert == 3 && _nz == 1) _cat = O2_3D_SYMM;

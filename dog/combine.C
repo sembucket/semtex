@@ -40,9 +40,9 @@
 // the respective fields, NB not the same as the L2-norms, as the
 // 2-norm does not account for the mass-matrix weighting of different
 // nodal values.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -333,6 +333,7 @@ static int roundup (int&            mode ,
     } while (n == 0);
     nz = n;
   }
+  return nz;
 }
 
 

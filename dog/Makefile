@@ -21,12 +21,17 @@ ifdef TBCS		# -- Recompute mode 0 velocity BCs every time step.
   KPROG := $(KPROG)_tbcs
 endif
 
+ifdef OLDCODE		# -- Make the old cylindrical code version.
+  DEFINES += -DOLDCODE
+  KPROG   := $(KPROG)_old
+endif
+
 
 # ----------------------------------------------------------------------------
 # Semtex standard sources.
 #
 SEMFILES = analysis auxfield BCmgr boundary bsys condition domain	\
-	   element feml field geometry history integration		\
+	   element family feml field geometry history integration	\
 	   matrix mesh misc particle pressure
 SEMOBJ   = $(addsuffix .o,$(SEMFILES))
 SEMHDR   = Sem.h

@@ -2,11 +2,11 @@
 // domain.C: implement domain class functions.
 //
 // Copyright (C) 1994,2003 Hugh Blackburn
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Sem.h>
+static char RCS[] = "$Id$";
+
+#include "Sem.h"
 
 Domain::Domain (FEML*             F,
 		vector<Element*>& E,
@@ -390,8 +390,9 @@ void Domain::loadBase()
   if (i != nSlice)
     message (routine, "mismatch: No. of base slices/declaration", ERROR);
 
-  if (nSlice > 1) { 
-    period = dt * i / (i - 1.0);
+  if (nSlice > 1) {
+    period = Femlib::value ("BASE_PERIOD"); // -- Use this if installed.
+    if (period < EPSDP) period = dt * i / (i - 1.0);
     // -- Fourier transform in time, scale for reconstruction.
     for (i = 0; i < nBase; i++) {
       Femlib::DFTr (baseFlow[i], nSlice, nTot, FORWARD);
