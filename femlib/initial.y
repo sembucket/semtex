@@ -1,46 +1,46 @@
 %{
 /*****************************************************************************
- * INITIAL: yacc code for maintaining lists used for parameter and flag      *
- * lookup, along with a simple function interpreter.  Initialize() routine   *
- * must be called before the other parts of the code will work.              *
- *                                                                           *
- * Modelled on hoc3 in Chapter 8 of "The UNIX Programming Environment" by    *
- * Kernighan & Pike.                                                         *
- *                                                                           *
- * We maintain 3 externally-accessible lists:                                *
- *   iparam:  named integer parameters;                                      *
- *   oparam:  named integer options (flags);                                 *
- *   dparam:  named double parameters.                                       *
- * The lists get preloaded with default values and useful constants by       *
- * initial().  Once initialized, the lists are accessible only through calls *
- * to routines located in this file.                                         *
- *                                                                           *
- * In addition a list of symbols, symlist, is maintained for use by the      *
- * function interpreter.  This is externally accessible through the routine  *
- * interpret(), which returns double.  Operations include single-argument    *
- * functions, unary minus and the binary operators ^ (exponentiation) and    *
- * ~ (atan2).                                                                *
- *                                                                           *
- * Summary of externally-accessible functions:                               *
- *                                                                           *
- * void   initialize (void);                                                 *
- * double interpret  (const char *);                                         *
- *                                                                           *
- * void   vecInit    (const char *, const char *);                           *
- * void   vecInterp  (int   , ...   );                                       *
- *                                                                           *
- * void   setOption  (const char *, int);                                    *
- * int    option     (const char *);                                         *
- * void   showOption (void);                                                 *
- *                                                                           *
- * void   setIparam  (const char *, int);                                    *
- * int    iparam     (const char *);                                         *
- * void   showIparam (void);                                                 *
- *                                                                           *
- * void   setDparam  (const char *, double);                                 *
- * double dparam     (const char *);                                         *
- * void   showDparam (void);                                                 *
- *                                                                           *
+ * INITIAL: yacc code for maintaining lists used for parameter and flag
+ * lookup, along with a simple function interpreter.  Initialize() routine
+ * must be called before the other parts of the code will work.
+ *
+ * Modelled on hoc3 in Chapter 8 of "The UNIX Programming Environment" by
+ * Kernighan & Pike.
+ *
+ * We maintain 3 externally-accessible lists:
+ *   iparam:  named integer parameters;
+ *   oparam:  named integer options (flags);
+ *   dparam:  named double parameters.
+ * The lists get preloaded with default values and useful constants by
+ * initial().  Once initialized, the lists are accessible only through calls
+ * to routines located in this file.
+ *
+ * In addition a list of symbols, symlist, is maintained for use by the
+ * function interpreter.  This is externally accessible through the routine
+ * interpret(), which returns double.  Operations include single-argument
+ * functions, unary minus and the binary operators ^ (exponentiation) and
+ * ~ (atan2), and the Heaviside function heav.
+ *
+ * Summary of externally-accessible functions:
+ *
+ * void   initialize (void);
+ * double interpret  (const char *);
+ *
+ * void   vecInit    (const char *, const char *);
+ * void   vecInterp  (int   , ...   );
+ *
+ * void   setOption  (const char *, int);
+ * int    option     (const char *);
+ * void   showOption (void);
+ *
+ * void   setIparam  (const char *, int);
+ * int    iparam     (const char *);
+ * void   showIparam (void);
+ *
+ * void   setDparam  (const char *, double);
+ * double dparam     (const char *);
+ * void   showDparam (void);
+ *
  *****************************************************************************/
 
 static char
@@ -62,7 +62,7 @@ int yyparse (void);
 
 
 /* ------------------------------------------------------------------------- *
- * File-scope type definitions.                                              *
+ * File-scope type definitions.
  * ------------------------------------------------------------------------- */
 
 typedef double (*PFD) (double);	/* Pointer to function returning double */
@@ -82,7 +82,7 @@ typedef struct symbol {		/* Symbol table entry */
     
 
 /* ------------------------------------------------------------------------- *
- * File-scope prototypes.                                                    *
+ * File-scope prototypes.
  * ------------------------------------------------------------------------- */
 
 static double  Log  (double),          Log10   (double),
@@ -90,7 +90,7 @@ static double  Log  (double),          Log10   (double),
                Asin (double),          Acos    (double),
                Pow  (double, double),  integer (double),
                Sinh (double),          Cosh    (double),
-               Tanh (double);
+               Tanh (double),          Heavi   (double);
 						     
 
 static Symbol *lookup  (const char *);
@@ -100,7 +100,7 @@ static void   *emalloc (size_t);
 
 
 /* ------------------------------------------------------------------------- *
- * File-scope variables.                                                     *
+ * File-scope variables.
  * ------------------------------------------------------------------------- */
 
 static Symbol *symlist = NULL;      /* Internal use for function interpreter */
@@ -127,6 +127,7 @@ static struct {			    /* Built-in functions                    */
   "abs"   ,  fabs    ,
   "floor" ,  floor   ,
   "ceil"  ,  ceil    ,
+  "heav"  ,  Heavi   ,
   "asin"  ,  Asin    ,		    /* Rest do error-checking */
   "acos"  ,  Acos    ,
   "log"   ,  Log     ,
@@ -143,7 +144,7 @@ static struct {			    /* Built-in functions                    */
 
 %}
 /* ------------------------------------------------------------------------- *
- * Yacc grammar follows.                                                     *
+ * Yacc grammar follows.
  * ------------------------------------------------------------------------- */
 %union {			/* yacc stack type      */
   double  val;			/* actual value         */
@@ -191,15 +192,15 @@ expr:     NUMBER
 
 
 /*****************************************************************************
- * Externally-visible functions follow.                                      *
+ * Externally-visible functions follow.
  *****************************************************************************/
 
 
 void initialize (void)
 /* ========================================================================= *
- * Load lookup tables and symbol table with default values.                  *
- *                                                                           *
- * This routine should be called at start of run-time.                       *
+ * Load lookup tables and symbol table with default values.
+ *
+ * This routine should be called at start of run-time.
  * ========================================================================= */
 {
   int i;
@@ -250,7 +251,7 @@ void initialize (void)
 
 double interpret (const char *s)
 /* ========================================================================= *
- * Given a string, interpret it as a function using yacc-generated yyparse().*
+ * Given a string, interpret it as a function using yacc-generated yyparse().
  * ========================================================================= */
 {
   if (strlen (s) > STR_MAX)
@@ -270,13 +271,13 @@ double interpret (const char *s)
 
 void vecInit (const char *names, const char *fn)
 /* ========================================================================= *
- * Set up the vector parser.                                                 *
- *                                                                           *
- * names contains a list of variable names  e.g. "x y z",                    *
- * fn    contains a function for evaluation e.g. "sin(x)*cos(y)*exp(z)".     *
- *                                                                           *
- * Valid separator characters in name are space, tab, comma, (semi-)colon.   *
- * Function string can contain previously-defined symbols (e.g. PI).         *
+ * Set up the vector parser.
+ *
+ * names contains a list of variable names  e.g. "x y z",
+ * fn    contains a function for evaluation e.g. "sin(x)*cos(y)*exp(z)".
+ *
+ * Valid separator characters in name are space, tab, comma, (semi-)colon.
+ * Function string can contain previously-defined symbols (e.g. PI).
  * ========================================================================= */
 {
   char    routine   [] = "vecInit()";
@@ -309,15 +310,15 @@ void vecInit (const char *names, const char *fn)
 
 void vecInterp (int ntot, ...)
 /* ========================================================================= *
- * Vector parser.  Following ntot there should be passed a number of         *
- * pointers to double (vectors), of which there should be in number the      *
- * number of variables named previously to vecInit, plus one: the result of  *
- * continually re-parsing the string "fn" is placed in the last vector, for  *
- * a total of ntot parsings.                                                 *
- *                                                                           *
- * To follow on from the previous example, four vectors would be passed,     *
- * i.e.  vecInterp(ntot, x, y, z, u); the result fn(x,y,z) is placed in u.   *
- *                                                                           *
+ * Vector parser.  Following ntot there should be passed a number of
+ * pointers to double (vectors), of which there should be in number the
+ * number of variables named previously to vecInit, plus one: the result of
+ * continually re-parsing the string "fn" is placed in the last vector, for
+ * a total of ntot parsings.
+ *
+ * To follow on from the previous example, four vectors would be passed,
+ * i.e.  vecInterp(ntot, x, y, z, u); the result fn(x,y,z) is placed in u.
+ *
  * ========================================================================= */
 {
   char       routine[] = "vecInterp()";
@@ -351,7 +352,7 @@ void vecInterp (int ntot, ...)
 
 void setOption (const char *s, int v)
 /* ========================================================================= *
- * Set option on list true/false, or install it.                             *
+ * Set option on list true/false, or install it.
  * ========================================================================= */
 {
   Symbol *sp;
@@ -372,7 +373,7 @@ void setOption (const char *s, int v)
 
 int option (const char *s)
 /* ========================================================================= *
- * Retrieve value from option list.                                          *
+ * Retrieve value from option list.
  * ========================================================================= */
 {
   Symbol *sp;
@@ -392,7 +393,7 @@ int option (const char *s)
 
 void showOption (void)
 /* ========================================================================= *
- * Echo option list to stdout.                                               *
+ * Echo option list to stdout.
  * ========================================================================= */
 {
   Symbol *sp;
@@ -408,7 +409,7 @@ void showOption (void)
 
 void setIparam (const char *s, int v)
 /* ========================================================================= *
- * Set or install iparam on list.                                            *
+ * Set or install iparam on list.
  * ========================================================================= */
 {
   Symbol *sp;
@@ -429,7 +430,7 @@ void setIparam (const char *s, int v)
 
 int iparam (const char *s)
 /* ========================================================================= *
- * Retrieve value from iparam list.                                          *
+ * Retrieve value from iparam list.
  * ========================================================================= */
 {
   Symbol *sp;
@@ -449,7 +450,7 @@ int iparam (const char *s)
 
 void showIparam (void)
 /* ========================================================================= *
- * Echo iparam list to stdout.                                               *
+ * Echo iparam list to stdout.
  * ========================================================================= */
 {
   Symbol *sp;
@@ -465,7 +466,7 @@ void showIparam (void)
 
 void setDparam (const char *s, double v)
 /* ========================================================================= *
- * Set or install dparam on list.                                            *
+ * Set or install dparam on list.
  * ========================================================================= */
 {
   Symbol *sp;
@@ -492,7 +493,7 @@ void setDparam (const char *s, double v)
 
 double dparam (const char *s)
 /* ========================================================================= *
- * Retrieve value from dparam list.                                          *
+ * Retrieve value from dparam list.
  * ========================================================================= */
 {
   Symbol *sp;
@@ -511,7 +512,7 @@ double dparam (const char *s)
 
 void showDparam (void)
 /* ========================================================================= *
- * Echo dparam list to stdout.                                               *
+ * Echo dparam list to stdout.
  * ========================================================================= */
 {
   Symbol *sp;
@@ -527,8 +528,8 @@ void showDparam (void)
 
 static int yylex (void)
 /* ========================================================================= *
- * Lexical analysis routine called by yyparse, using string loaded by        *
- * interpret().                                                              *
+ * Lexical analysis routine called by yyparse, using string loaded by
+ * interpret().
  * ========================================================================= */
 {
   int c;
@@ -564,7 +565,7 @@ static int yylex (void)
 
 static Symbol *lookup(const char *s)
 /* ========================================================================= *
- * Find s in symbol table.                                                   *
+ * Find s in symbol table.
  * ========================================================================= */
 {
   Symbol *sp;
@@ -583,8 +584,8 @@ static Symbol *lookup(const char *s)
 
 static Symbol *install(const char *s, int t, ...)
 /* ========================================================================= *
- * Install value of variable type into appropriate lists.                    *
- * Note that variables of type DPARAM get mounted in both symlist and dlist. *
+ * Install value of variable type into appropriate lists.
+ * Note that variables of type DPARAM get mounted in both symlist and dlist.
  * ========================================================================= */
 {
   Symbol *sp;
@@ -649,7 +650,7 @@ static Symbol *install(const char *s, int t, ...)
 
 static void *emalloc (size_t n)
 /* ========================================================================= *
- * Check return from malloc().                                               *
+ * Check return from malloc().
  * ========================================================================= */
 {
   void *p;
@@ -667,7 +668,7 @@ static void *emalloc (size_t n)
 
 static void yyerror (char *s)
 /* ========================================================================= *
- * Handler for yyparse() syntax errors.                                      *
+ * Handler for yyparse() syntax errors.
  * ========================================================================= */
 {
   message("yyparse()", s, WARNING);
@@ -679,7 +680,7 @@ static void yyerror (char *s)
 
 static double errcheck (double d, char *s)
 /* ========================================================================= *
- * Check result of math library call.                                        *
+ * Check result of math library call.
  * ========================================================================= */
 {
   if (errno == EDOM) {
@@ -695,8 +696,14 @@ static double errcheck (double d, char *s)
 
 
 /*****************************************************************************
- * Remaining routines do error-checking calls to math library routines.      *
+ * Remaining routines do error-checking calls to math library routines.
  *****************************************************************************/
+
+
+static double Heavi (double x)
+{
+  return (x >= 0.0) ? 1.0 : 0.0;
+}
 
 
 static double Log (double x)
