@@ -253,10 +253,6 @@ void Statistics::update (AuxField** wrka,
   Field* master = _base -> u[0];
   map<char, AuxField*>::iterator k;
   
-  // ** NEW ** Add reference viscosity back!
-
-  ROOTONLY _raw['l'] -> addToPlane (0, Femlib::value ("KINVIS"));
-
   // -- Weight old running averages.
 
   for (k = _avg.begin(); k != _avg.end(); k++)
