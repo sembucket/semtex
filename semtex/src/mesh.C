@@ -4,8 +4,8 @@
  * Here is an example mesh description.  Note that all sections of mesh
  * description are required.
  *
- * ** mesh information
- *
+ * mesh 
+ * {
  * 9	vertices
  * #id  x       y       z
  * 1	0.0	0.0	0.0
@@ -35,6 +35,7 @@
  * 1	curve
  * #id   kind   elmt   side   param   param
  * 1	 c	1      2      1.0     +
+ * }
  *****************************************************************************/
 
 // $Id$
@@ -47,9 +48,9 @@
   #pragma define_template Array1d<Mesh::Side*>
 #endif
 
+
 static const int UNSET = -1;
 static const int NIL   =  0;
-
 
 
 class Curve {
@@ -139,10 +140,13 @@ CircularArc::CircularArc (const char* s, const Mesh& m)
 {
   char   routine[] = "CircularArc::CircularArc";
   char   err[StrMax];
+  int    verbose  = option ("VERBOSE");
 
   int    cid, elmt, side, convexity;
 
   istrstream strm (s, StrMax);
+
+  if (verbose == 2) message (routine, s, REMARK);
 
   strm >> cid >> err[0] >> elmt >> side >> radius >> err[0];
 
@@ -441,7 +445,7 @@ void  operator << (ostream& strm, Mesh::Elmt& e)
     strm << " " << i.current().ID;
   }
   
-  strm << ", Connectivity:";
+  strm << ", Mating:";
 
   for (Mesh::SidesOfElmt s(e); s.more(); s.next()) {
     Mesh::Side& S = s.current ();
@@ -463,21 +467,19 @@ istream&  operator >> (istream& strm, Mesh& m)
 // ---------------------------------------------------------------------------
 {
   char  routine[] = "Mesh::operator >>";
-  char  s[StrMax], err[StrMax];
+  char  s[StrMax],  err[StrMax];
+  int   verbose   = option ("VERBOSE");
 
   // -- Look for number of mesh vertices, then input table.
-
-  strm.getline(s, StrMax).getline(s, StrMax);
 
   int          i, nVert;
   Mesh::Node*  N;
 
-  upperCase (s);
+  strm >> nVert;
+  strm.getline (s, StrMax);
+  upperCase    (s);
   if (strstr (s, "VERT")) {
-    if (sscanf (s, "%d", &nVert) != 1) {
-      sprintf (err, "can't parse integer number of vertices from: %s", s);
-      message (routine, err, ERROR);
-    } else if (nVert < 3) {
+    if (nVert < 3) {
       sprintf (err, "need at least 3 vertices, got: %1d", nVert);
       message (routine, err, ERROR);
     }
@@ -498,14 +500,11 @@ istream&  operator >> (istream& strm, Mesh& m)
   Mesh::Elmt*  E;
   NodeReader   reader (m, strm);
 
-  strm.getline(s, StrMax).getline(s, StrMax).getline(s, StrMax);
-
-  upperCase  (s);
+  strm >> nElmt;
+  strm.getline (s, StrMax);
+  upperCase    (s);
   if (strstr (s, "ELEMENT")) {
-    if (sscanf (s, "%d", &nElmt) != 1) {
-      sprintf (err, "can't parse integer number of elements from: %s", s);
-      message (routine, err, ERROR);
-    } else if (nElmt < 1) {
+    if (nElmt < 1) {
       sprintf (err, "need at least one element, got: %1d", nElmt);
       message (routine, err, ERROR);
     }
@@ -528,14 +527,11 @@ istream&  operator >> (istream& strm, Mesh& m)
 
   int nBound, iTag;
 
-  strm.getline(s, StrMax).getline(s, StrMax).getline(s, StrMax);
-
-  upperCase  (s);
+  strm >> nBound;
+  strm.getline (s, StrMax);
+  upperCase    (s);
   if (strstr (s, "BOUNDAR")) {
-    if (sscanf (s, "%d", &nBound) != 1) {
-      sprintf (err, "can't parse integer number of boundaries from: %s", s);
-      message (routine, err, ERROR);
-    } else if (nBound < 1) {
+    if (nBound < 1) {
       sprintf (err, "need at least one declared boundary, got: %1d", nBound);
       message (routine, err, ERROR);
     }
@@ -559,14 +555,11 @@ istream&  operator >> (istream& strm, Mesh& m)
   int     nCurve;
   Curve*  C;
 
-  strm.getline(s, StrMax).getline(s, StrMax).getline(s, StrMax);
-
-  upperCase  (s);
+  strm >> nCurve;
+  strm.getline (s, StrMax);
+  upperCase    (s);
   if (strstr (s, "CURVE")) {
-    if (sscanf (s, "%d", &nCurve) != 1) {
-      sprintf (err, "can't parse integer number of curves from: %s", s);
-      message (routine, err, ERROR);
-    } else if (nCurve < 0) {
+    if (nCurve < 0) {
       sprintf (err, "can't have a negative number of curves: %1d", nBound);
       message (routine, err, ERROR);
     }
@@ -574,8 +567,6 @@ istream&  operator >> (istream& strm, Mesh& m)
     sprintf (err, "expected number of curves, got: %s", s);
     message (routine, err, ERROR);
   }
-
-  strm.getline(s, StrMax);
 
   for (i = 0; i < nCurve; i++) {
     strm.getline (s, StrMax);
@@ -643,11 +634,9 @@ void Mesh::printAssembly (Mesh& m)
 // Print edge--edge connectivity information.
 // ---------------------------------------------------------------------------
 {
-  cout << "-- MESH INFORMATION: " << m.elmtList.length () << " elements";
-  cout << endl;
+  cout << m.elmtList.length () << " elements" << endl;
 
-  for (ElmtsOfMesh  i(m); i.more(); i.next())
-    cout << i.current();
+  for (ElmtsOfMesh  i(m); i.more(); i.next()) cout << i.current ();
 }
 
 
