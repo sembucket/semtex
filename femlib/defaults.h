@@ -1,13 +1,11 @@
 /*****************************************************************************
- * DEFAULTS.H:  default parameter initializations for initial.y.             *
+ * DEFAULTS.H:  default parameter initializations for initial.y.
  *****************************************************************************/
 
-/*------------------*
- * RCS Information: *
- *------------------*/
 /* $Id$ */
 
-#include <femdef.h>
+#include <femtype.h>
+#include <femlib.h>
 
 
 static struct {			/* Math constants */
@@ -25,36 +23,36 @@ static struct {			/* Math constants */
 static struct {			/* Default options (global flags) */
   char *name;
   int   oval;
-} option[] = {
-  "binary",  1 ,		/* Save field-files in binary form */
-  "core"  ,  1 ,		/* Do matrix solves in memory      */
+} option_init[] = {
+  "BINARY"  ,  0         ,	/* Save field-files in binary form */
+  "CORE"    ,  1         ,	/* Do matrix solves in memory      */
+  "BASIS"   ,  GLL       ,	/* GLL basis functions             */
+  "RULE"    ,  GL        ,	/* Gauss-Legendre quadrature rule  */
+  "PROBLEM" ,  POTENTIAL ,	/* Potential (flow) problem        */
   NULL    ,  0
 };
 
 static struct {			/* Default integer parameters */
   char *name;
   int   ival;
-} iparam[] = {
-  "ndim"          ,  2            ,
-  "nz"            ,  1            ,
-  "nsteps"        ,  1            ,
-  "io-step"       ,  0            ,
-  "verbose"       ,  0            ,
-  "problem-type"  ,  SNSE         ,
-  "problem-form"  ,  PENALTY      ,
-  "element-type"  ,  QUAD         ,
-  "element-order" ,  2            ,
-  NULL            ,  0
+} iparam_init[] = {
+  "NDIM"     ,  2 ,
+  "NZ"       ,  1 ,
+  "NSTEPS"   ,  1 ,
+  "IOSTEP"   ,  1 ,
+  "VERBOSE"  ,  0 ,
+  NULL       ,  0
 };
 
 static struct {			/* Default double parameters */
   char  *name;
   double dval;
-} dparam[] = {
-  "delta-t"   ,    0.05,
-  "tolabs"    ,    1.0e-8,
-  "tolrel"    ,    1.0e-4,
-  "kinvisc"   ,    1.0,
-  "rho"       ,    1.0,
+} dparam_init[] = {
+  "BETA"      ,    0.0,
+  "DELTAT"    ,    0.05,
+  "TOLABS"    ,    1.0e-8,
+  "TOLREL"    ,    1.0e-4,
+  "KINVIS"    ,    1.0,
+  "RHO"       ,    1.0,
   NULL        ,    0.0
 };
