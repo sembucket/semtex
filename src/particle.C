@@ -44,6 +44,7 @@ FluidParticle::FluidParticle (Domain*   d,
   // -- Try to locate particle, stop if can't.
 
   register int k;
+  const int    guess = 1;
 
   E = 0;
   for (k = 0; k < NEL; k++) {
@@ -86,8 +87,9 @@ void FluidParticle::integrate (const int step)
   if (!E) return;
 
   register int i;
-  const int    N  = min (step, TORD);
-  const int    NP = N + 1;
+  const int    N     = min (step, TORD);
+  const int    NP    = N + 1;
+  const int    guess = 1;
   real         xp, yp, zp, up, vp, wp;
 
   if (NDIM == 2) {		// -- 2D integration.
