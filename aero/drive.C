@@ -118,7 +118,7 @@ int main (int argc, char *argv[])
   cout << prog << ": aeroelastic Navier--Stokes solver"  << endl;
   cout << "      (c) Hugh Blackburn 1995, 1996." << endl << endl;
 
-  initialize    ();
+  Femlib::prep  ();
   getArgs       (argc, argv, session);
   input -> open (session);
   setUp         (*input);
@@ -130,12 +130,12 @@ int main (int argc, char *argv[])
   
   // -- Set up domain with single field, 'u'.
 
-  Domain*  D = new Domain (*M, session, iparam ("N_POLY"));
+  Domain*  D = new Domain (*M, session, Femlib::integer ("N_POLY"));
   D -> u[0] -> setName ('u');
 
   // -- Add remaining velocity fields.
 
-  const int DIM = iparam ("N_VAR");
+  const int DIM = Femlib::integer ("N_VAR");
   SystemField*  newField;
   for (int i = 1; i < DIM; i++) {
     newField = new SystemField (*D -> u[0]);
@@ -149,7 +149,7 @@ int main (int argc, char *argv[])
   D -> addField (Pressure);
   Pressure -> setName ('p');  
   PBCmanager::build (*Pressure);
-  Pressure -> connect (*M, iparam ("N_POLY"));
+  Pressure -> connect (*M, Femlib::integer ("N_POLY"));
 
   // -- Startup.
 
@@ -199,12 +199,12 @@ static void getArgs (int argc, char** argv, char*& session)
       break;
     case 'i':
       do
-	setOption ("ITERATIVE", option ("ITERATIVE") + 1);
+	setOption ("ITERATIVE", Femlib::option ("ITERATIVE") + 1);
       while (*++argv[0] == 'i');
       break;
     case 'v':
       do
-	setOption ("VERBOSE",   option ("VERBOSE")   + 1);
+	setOption ("VERBOSE",   Femlib::option ("VERBOSE")   + 1);
       while (*++argv[0] == 'v');
       break;
     case 'c':
@@ -280,7 +280,7 @@ static void setUp (ifstream& file)
 	}
 	
       } else if (strcmp (s, "FORCING") == 0) { // -- Read, but take no action.
-	int  i, nstrng = iparam ("N_VAR");
+	int  i, nstrng = Femlib::integer ("N_VAR");
 	for (i = 0; i < nstrng; i++) file >> err;
 	
       } else {

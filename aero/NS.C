@@ -39,10 +39,10 @@ void NavierStokes (Domain* D, Body* B, Analyser* A)
 // Uf is multi-level auxillary Field storage for nonlinear forcing terms.
 // ---------------------------------------------------------------------------
 {
-  const real  dt     = dparam ("DELTAT");
-  const int   nOrder = iparam ("N_TIME");
-  const int   nStep  = iparam ("N_STEP");
-  const int   DIM    = iparam ("N_VAR" );
+  const real  dt     = Femlib::parameter ("DELTAT");
+  const int   nOrder = Femlib::integer   ("N_TIME");
+  const int   nStep  = Femlib::integer   ("N_STEP");
+  const int   DIM    = Femlib::integer   ("N_VAR" );
 
   Vector  a = {0.0, 0.0, 0.0};   // -- Frame acceleration for N--S.
   Vector  v = {0.0, 0.0, 0.0};	 // -- Body velocity, to adjust velocity BCs.
@@ -65,7 +65,7 @@ void NavierStokes (Domain* D, Body* B, Analyser* A)
 
   real* alpha = rvector (Integration::OrderMax + 1);
   Integration::StifflyStable (nOrder, alpha);
-  const real lambda2 = alpha[0] / (dt * dparam ("KINVIS"));
+  const real lambda2 = alpha[0] / (dt * Femlib::parameter ("KINVIS"));
   freeVector (alpha);  
 
   preSolve (D -> u[0], lambda2);
@@ -236,7 +236,7 @@ static void  waveProp (Domain*   D ,
   Field& Hx = *D -> u[0] = 0.0;
   Field& Hy = *D -> u[1] = 0.0;
 
-  int  Je = iparam ("N_TIME");
+  int  Je = Femlib::integer ("N_TIME");
   Je = min (D -> step (), Je);
   
   real* alpha = rvector (Integration::OrderMax + 1);
@@ -244,7 +244,7 @@ static void  waveProp (Domain*   D ,
   
   Integration::StifflyStable (Je, alpha);
   Integration::Extrapolation (Je, beta );
-  Blas::scal (Je, dparam ("DELTAT"), beta,  1);
+  Blas::scal (Je, Femlib::parameter ("DELTAT"), beta,  1);
 
   for (int q = 0; q < Je; q++) {
     Hx . axpy (-alpha[q + 1], *Us[0][q]) . axpy (beta[q], *Uf[0][q]);
@@ -271,7 +271,7 @@ static void setPForce (Field***  Us, Field***  Uf)
   Uf[1][0] -> grad (0, 1);
 
   *Uf[0][0] += *Uf[1][0];
-  *Uf[0][0] /= dparam ("DELTAT");
+  *Uf[0][0] /= Femlib::parameter ("DELTAT");
 }
 
 
@@ -284,7 +284,7 @@ static void project (const Domain* D, Field*** Us, Field*** Uf)
 // ---------------------------------------------------------------------------
 {
   const int   DIM = D -> nField () - 1;
-  const real  dt  = dparam ("DELTAT");
+  const real  dt  = Femlib::parameter ("DELTAT");
 
   for (int i = 0; i < DIM; i++)
     *Uf[i][0] = *D -> u[DIM];
@@ -305,8 +305,9 @@ static void setUForce (Domain* D, Field*** Uf)
 // Multiply by -1.0 / (DELTAT * KINVIS) to create forcing for viscous step.
 // ---------------------------------------------------------------------------
 {
-  const int   DIM   = D -> nField () - 1;
-  const real  alpha = -1.0 / (dparam ("DELTAT") * dparam ("KINVIS"));
+  const int  DIM   = D -> nField () - 1;
+  const real alpha =
+    -1.0 / (Femlib::parameter ("DELTAT") * Femlib::parameter ("KINVIS"));
 
   for (int i = 0; i < DIM; i++)
     *Uf[i][0] *= alpha;
@@ -321,7 +322,7 @@ static void preSolve (SystemField* F, const real& lambda2)
   char  routine[] = "preSolve";
 
   const char name      = F -> getName ();
-  const int  iterative = option ("ITERATIVE");
+  const int  iterative = Femlib::option ("ITERATIVE");
   const int  velocity  = name == 'u' || name == 'v' || name == 'w';
   const int  pressure  = name == 'p';
 
@@ -355,7 +356,7 @@ static void Solve (SystemField*  U     ,
   char routine[] = "Solve";
 
   const char name      = U -> getName ();
-  const int  iterative = option ("ITERATIVE");
+  const int  iterative = Femlib::option ("ITERATIVE");
   const int  velocity  = name == 'u' || name == 'v' || name == 'w';
   const int  pressure  = name == 'p';
 
@@ -372,8 +373,8 @@ static void Solve (SystemField*  U     ,
     if (iterative || step < nOrder) {
       const int   Je     = min (step, nOrder);
       real*       alpha  = rvector (Je + 1);
-      const real  dt     = dparam  ("DELTAT");
-      const real  KinVis = dparam  ("KINVIS");
+      const real  dt     = Femlib::parameter  ("DELTAT");
+      const real  KinVis = Femlib::parameter  ("KINVIS");
 
       Integration::StifflyStable (Je, alpha);
       const real lambda2 = alpha[0] / (dt * KinVis);

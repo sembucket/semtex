@@ -227,9 +227,9 @@ void Cosine::move (const int& dummi)
 // Update state variables.  Dummy input variable not used.
 // ---------------------------------------------------------------------------
 {
-  real mag   = interpret (amplitude);
-  real omega = dparam ("TWOPI") * interpret (frequency);
-  real angle = omega * dparam ("t") + interpret (phaseangl);
+  real mag   = Femlib::ator (amplitude);
+  real omega = Femlib::parameter ("TWOPI") * Femlib::ator (frequency);
+  real angle = omega * Femlib::parameter ("t") + Femlib::ator (phaseangl);
 
   pos =                  mag * cos (angle);
   vel =         -omega * mag * sin (angle);
@@ -277,9 +277,9 @@ Function::Function (char* s)
     message (routine, err, ERROR);
   }
 
-  pos = interpret (position);
-  vel = interpret (velocity);
-  acc = interpret (acceleration);
+  pos = Femlib::ator (position);
+  vel = Femlib::ator (velocity);
+  acc = Femlib::ator (acceleration);
 }
 
 
@@ -288,9 +288,9 @@ void Function::move (const int& dummi)
 // Update state variables.  Neither input is used.
 // ---------------------------------------------------------------------------
 {
-  pos = interpret (position);
-  vel = interpret (velocity);
-  acc = interpret (acceleration);
+  pos = Femlib::ator (position);
+  vel = Femlib::ator (velocity);
+  acc = Femlib::ator (acceleration);
 }
 
  
@@ -347,12 +347,12 @@ void SMD::move (const int& step)
 // On exit, position and velocity have been integrated to end of new step.
 // ---------------------------------------------------------------------------
 {
-  real w = dparam ("TWOPI") * interpret (natf);
-  real z = interpret (zeta);
+  real w = Femlib::parameter ("TWOPI") * Femlib::ator (natf);
+  real z = Femlib::ator (zeta);
 
-  int  Jmax  = iparam ("N_TIME");
+  int  Jmax  = Femlib::integer ("N_TIME");
   int  q, Je = min (max (1, step), Jmax);
-  real dt    = dparam ("DELTAT");
+  real dt    = Femlib::parameter ("DELTAT");
 
   real* alpha  = rvector (Je + 1);
   real* betaDt = rvector (Je);
@@ -394,11 +394,11 @@ void SMD::force (const real& F)
 // F is the tractive force on this axis at end of current time step.
 // ---------------------------------------------------------------------------
 {
-  real m = interpret (mass);
-  real w = dparam ("TWOPI") * interpret (natf);
-  real z = interpret (zeta);
+  real m = Femlib::ator (mass);
+  real w = Femlib::parameter ("TWOPI") * Femlib::ator (natf);
+  real z = Femlib::ator (zeta);
 
-  int  Jmax = iparam ("N_TIME");
+  int  Jmax = Femlib::integer ("N_TIME");
 
   roll (f, Jmax);
   f[0] = F / m;
