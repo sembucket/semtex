@@ -6,12 +6,14 @@
 # $Id$
 ##############################################################################
 
+PROG  = dual
+
 SEM   = ../semtex
 VPATH = $(SEM)/src
-PROG  = dual
 
 ifdef STOKES
   DEFINES += -DSTOKES
+  PROG    := $(PROG)_stokes
 endif
 
 #

@@ -192,8 +192,6 @@ static void nonLinear (Domain*       D ,
 
 #else
 
-  const integer     nZ = Geometry::nZ();
-  const integer     nP = Geometry::planeSize();
   vector<AuxField*> U (NDIM), N(NDIM), T(NDIM);
   Field*            master = D -> u[0];
 
@@ -252,6 +250,8 @@ static void nonLinear (Domain*       D ,
   } else {			// -- Cartesian coordinates.
 
     for (i = 0; i < NDIM; i++) {
+      *N[i] = 0.0;
+
       for (j = 0; j < NDIM; j++) {
       
 	// -- Perform n_i += u_j d(u_i) / dx_j.
@@ -259,7 +259,7 @@ static void nonLinear (Domain*       D ,
 	*T[0] = *U[i];
 	 T[0] -> gradient (j);
 	 T[1] -> convolve (*U[j], *T[0]);
-	*N[i] = *T[1];
+	*N[i] += *T[1];
 
 	// -- Perform n_i += d(u_i u_j) / dx_j.
 
