@@ -9,6 +9,7 @@
 //   -v   ... set verbose output
 //   -u   ... set uniform spacing [Default: GLL]
 //   -n N ... override element order to be N
+//   -z N ... override number of planes to be N
 //
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -25,11 +26,12 @@ RCSid[] = "$Id$";
 #include <Mesh.h>
 
 static char prog[] = "meshpr";
-static void getargs (integer, char**, char*&, integer&, integer&, integer&);
+static void getargs (int, char**, char*&,
+		     integer&, integer&, integer&, integer&);
 
 
-integer main (integer argc,
-	      char**  argv)
+int main (int     argc,
+	  char**  argv)
 // ---------------------------------------------------------------------------
 // From FEML file named on command line, generate mesh knot
 // information and print up on standard output.
@@ -40,18 +42,21 @@ integer main (integer argc,
   char*   session = 0;
   integer verb    = 0,
           np      = 0,
+          nz      = 0,
           basis   = GLL;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, session, verb, np, basis);
+  getargs (argc, argv, session, verb, np, nz, basis);
 
   // -- Set up to read from file, initialize Femlib parsing.
 
   FEML feml (session);
 
   if (verb)            Femlib::value ("VERBOSE", verb);
-  if   (np)            Femlib::value ("N_POLY", np);
-  else  np = (integer) Femlib::value ("N_POLY");
+  if   (np)            Femlib::value ("N_POLY",  np  );
+  else  np = (integer) Femlib::value ("N_POLY"       );
+  if   (nz)            Femlib::value ("N_Z",     nz  );
+  else  nz = (integer) Femlib::value ("N_Z"          );
 
   // -- Build mesh from session file information.
 
@@ -61,12 +66,11 @@ integer main (integer argc,
 
   const integer    NEL  = M.nEl();
   const integer    NTOT = np * np;
-  const integer    NZ   = (integer) Femlib::value ("N_Z");
   register integer ID, j;
   vector<real>     x (np*np), y (np*np);
   const real*      z;
 
-  cout << np << " " << np << " " << NZ << " " << NEL << " NR NS NZ NEL"<< endl;
+  cout << np << " " << np << " " << nz << " " << NEL << " NR NS NZ NEL"<< endl;
 
   Femlib::mesh (basis, basis, np, np, &z, 0, 0, 0, 0);
 
@@ -81,9 +85,9 @@ integer main (integer argc,
   
   // -- Print out z-mesh.
 
-  if (NZ > 1) {
-    const real dz = Femlib::value ("TWOPI/BETA") / NZ;
-    for (j = 0; j <= NZ; j++)
+  if (nz > 1) {
+    const real dz = Femlib::value ("TWOPI/BETA") / nz;
+    for (j = 0; j <= nz; j++)
       cout << setw (15) << j * dz << endl;
   }
 
@@ -97,6 +101,7 @@ static void getargs (integer  argc   ,
 		     char*&   session,
 		     integer& verb   ,
 		     integer& np     ,
+		     integer& nz     ,
 		     integer& basis  )
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
@@ -107,7 +112,8 @@ static void getargs (integer  argc   ,
                  "  -h   ... display this message\n"
                  "  -v   ... set verbose output\n"
                  "  -u   ... set uniform spacing [Default: GLL]\n"
-		 "  -n N ... override number of element knots to be N\n";
+		 "  -n N ... override number of element knots to be N\n"
+                 "  -z N ... override number of planes to be N\n";
   char err[StrMax], c;
 
   while (--argc && **++argv == '-')
@@ -128,6 +134,14 @@ static void getargs (integer  argc   ,
       else {
 	--argc;
 	np = atoi (*++argv);
+      }
+      break;
+    case 'z':
+      if (*++argv[0])
+	nz = atoi (*argv);
+      else {
+	--argc;
+	nz = atoi (*++argv);
       }
       break;
     default:
