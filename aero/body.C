@@ -480,11 +480,12 @@ AxisMotion* createAxis (char* s)
   AxisMotion* base = 0;
 
   const char  routine[]  = "createAxis";
-  char        err[StrMax], sep[] = " \t";
+  char        err[StrMax], buf[StrMax], sep[] = " \t";
   char*       kind;
   char*       tail;
   
-  kind = strtok (s, sep);
+  strcpy (buf, s);
+  kind = strtok (buf, sep);
   tail = strtok (0, "\0");
 
   if (strstr (kind, "fixed"))
