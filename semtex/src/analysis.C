@@ -50,7 +50,7 @@ Analyser::Analyser (Domain* D   ,
 
     if (!pfile.fail()) {
       const integer  add = (integer) Femlib::value ("SPAWN");
-      integer        id;
+      integer        id, i = 0;
       Point          P, *I;
       FluidParticle* F;
 
@@ -59,13 +59,16 @@ Analyser::Analyser (Domain* D   ,
       par_strm.precision (6);
 
       while (pfile >> id >> P.x >> P.x >> P.y >> P.z) {
-	F = new FluidParticle (src, id, P);
+	F = new FluidParticle (src, ++i, P);
 	if (!(F -> inMesh())) {
 	  sprintf (str, "Particle at (%f, %f, %f) not in mesh", P.x, P.y, P.z);
 	  message (routine, str, WARNING);
-	} else {
+	} else
 	  particle.add (F);
-	  if (add) initial.add (F);
+	if (add && F -> inMesh()) {
+	  I = new Point;
+	  I -> x = P.x; I -> y = P.y; I -> z = P.z;
+	  initial.add (I);
 	}
       }
     }
@@ -149,14 +152,14 @@ void Analyser::analyse (AuxField** work)
     // -- Track particles.
 
     if (add) {
-      FluidParticle *I, *F;
-      Point          P;
+      FluidParticle  *F;
+      Point          P, *I;
+      integer        i = 0;
 
-      for (ListIterator<FluidParticle*> t (initial); t.more(); t.next()) {
+      for (ListIterator<Point*> t (initial); t.more(); t.next()) {
 	I  = t.current();
-	P  = I -> location();
-	F  = new FluidParticle (src, I -> ID(), P);
-	if ((F -> inMesh())) particle.add (F);
+	P.x = I -> x; P.y = I -> y; P.z = I -> z;
+	particle.add (F = new FluidParticle (src, ++i, P));
       }
     }
 
