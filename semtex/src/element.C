@@ -638,6 +638,20 @@ void  Element::dsForcingSC (real* F, real* target) const
 }
 
 
+void  Element::dsForcing (real* F) const
+// ---------------------------------------------------------------------------
+// Input F is negated and weighted by elemental mass matrix so
+// that it contains the weak form of the forcing:
+//   F = - mass * value.
+// ---------------------------------------------------------------------------
+{
+  int  ntot = nTot ();
+
+  Veclib::neg  (ntot, F, 1);
+  Veclib::vmul (ntot, F, 1, mass, 1, F, 1);
+}
+
+
 void  Element::resolveSC (const real* RHS, real* F, real* target) const
 // ---------------------------------------------------------------------------
 // Complete static condensation solution for internal values of Element.
@@ -696,12 +710,10 @@ int Element::bandwidthSC () const
 }
 
 
-void  Element::HelmholtzSC (const real  lambda2, // Using, 
-				
-			    real**      hbb    , // compute,
-
-			    real**      rmat   , // work arrays.
-			    real*       rwrk   ) 
+void  Element::HelmholtzSC (const real&  lambda2,
+			    real*        hbb    ,
+			    real*        rmat   ,
+			    real*        rwrk   ) 
 // ---------------------------------------------------------------------------
 // Compute the discrete elemental Helmholtz matrix and return the
 // statically condensed form in hbb, retain the interior-exterior coupling
@@ -729,10 +741,10 @@ void  Element::HelmholtzSC (const real  lambda2, // Using,
 // In addition, the interior-exterior partition hbi is postmultiplied
 // by hii(inverse) for convenience in the resolution stage.
 //
-// hbb:    nExt  by nExt    matrix;
-// hbi:    nExt  by nInt    matrix;  (but kept as packed storage).
-// hii:    nInt  by nInt    matrix;  (but kept as a 1D array).
-// rmat:   nKnot by nKnot   matrix;
+// hbb:    nExt  by nExt    matrix;  (row-major 1D storage).
+// hbi:    nExt  by nInt    matrix;  (row-major 1D storage).
+// hii:    nInt  by nInt    matrix;  (packed-symmetric 1D storage).
+// rmat:   nKnot by nKnot   matrix;  (row-major 1D storage).
 // rwrk:   nExt*(nExt+nInt) vector;
 // ---------------------------------------------------------------------------
 {
@@ -761,15 +773,19 @@ void  Element::HelmholtzSC (const real  lambda2, // Using,
       helmRow ((const real**) IT, (const real**) DV, (const real**) DT,
 	       lambda2, i, j, rmat, rwrk, rwrk+nq, rwrk+nq+nq);
 
-      Veclib::gathr (ntot, *rmat, emap, rwrk);
+      Veclib::gathr (ntot, rmat, emap, rwrk);
 
       if ( (eq = pmap[ij]) < next ) {
-	Veclib::copy (next, rwrk, 1, hbb[eq], 1);
+	Veclib::copy (next, rwrk, 1, hbb + eq * next, 1);
 	if (nint) Veclib::copy (nint, rwrk+next, 1, hbi + eq*nint, 1);
       } else
 	for (k = eq; k < ntot; k++)
 	  hii[Lapack::pack_addr (eq - next, k - next)] = rwrk[k];
     }
+
+#ifdef DEBUG
+  if (option ("VERBOSE") > 3) printMatSC (hbb);
+#endif
 
   // -- Carry out static condensation step.
 
@@ -786,20 +802,16 @@ void  Element::HelmholtzSC (const real  lambda2, // Using,
     Veclib::copy  (nint*next, hbi, 1, rwrk, 1);
     Lapack::pptrs ("U", nint, next, hii, rwrk, nint, info);
     Blas::gemm    ("T", "N", next, next, nint, -1.0, hbi,
-		   nint, rwrk, nint, 1.0, *hbb, next); 
+		   nint, rwrk, nint, 1.0, hbb, next); 
 
     // -- Create hib*hii(inverse), leave in hbi.
 
     Lapack::pptrs ("U", nint, next, hii, hbi, nint, info);
   }
-
-#ifdef DEBUG
-  if (option ("VERBOSE") > 3) printMatSC (hbb);
-#endif
 }
 
 
-void  Element::printMatSC (const real** hbb) const
+void  Element::printMatSC (const real* hbb) const
 // ---------------------------------------------------------------------------
 // (Debugging) utility to print up element matrices.
 // ---------------------------------------------------------------------------
@@ -807,7 +819,7 @@ void  Element::printMatSC (const real** hbb) const
   char  s[8*StrMax];
   int   i, j, next = nExt(), nint = nInt(), ntot = nTot();
 
-  sprintf (s, "-- Statically condensed Helmholtz matrices, element &1d", id);
+  sprintf (s, "-- Uncondensed Helmholtz matrices, element %1d", id);
   message ("", s, REMARK);
 
   sprintf (s, "-- hbb:");
@@ -815,7 +827,7 @@ void  Element::printMatSC (const real** hbb) const
 
   for (i = 0; i < next; i++) {
     for (j = 0; j < next; j++)
-      cout << setw (10) << hbb[i][j];
+      cout << setw (10) << hbb[Veclib::row_major (i, j, next)];
     cout << endl;
   }
 
@@ -828,36 +840,35 @@ void  Element::printMatSC (const real** hbb) const
     cout << endl;
   }
 
-  sprintf (s, "-- hbi/hii:");
+  sprintf (s, "-- hbi:");
   message ("", s, REMARK);
 
-  for (i = 0; i < nint; i++) {
-    for (j = 0; j < next; j++)
-      cout << setw (10) << hbi[j + i * nint];
+  for (i = 0; i < next; i++) {
+    for (j = 0; j < nint; j++)
+      cout << setw (10) << hbi[Veclib::row_major (i, j, nint)];
     cout << endl;
   }
 }
 
 
-void  Element::Helmholtz (const real  lambda2, // Using,
-			  
-			  real**      h      , // compute,
-			  
-			  real**      rmat   , // work arrays.
-			  real*       rwrk   ) const
+void  Element::Helmholtz (const real&  lambda2,
+			  real*        h      ,
+			  real*        rmat   ,
+			  real*        rwrk   ) const
 // ---------------------------------------------------------------------------
 // Compute the discrete elemental Helmholtz matrix, return in h.
 //
 // This routine can be used when static condensation is not employed, and is
 // included mainly to ease checking of entire element matrices.
+// Node ordering produced is column-major.
 //
-// rmat:   np   by np            matrix;
-// rwrk:   sqr(nq) + 2*nq length vector.
+// rmat: vector, length np*np;
+// rwrk: vector, length nq*nq + 2*nq.
 // ---------------------------------------------------------------------------
 {
   register  int ij = 0;
-  int       ntot = nTot();
-  real  **IT, **DV, **DT;
+  int       ntot   = nTot ();
+  real    **IT, **DV, **DT;
 
   quadOps (rule, np, nq, 0, 0, 0, 0, &IT, &DV, &DT);
 
@@ -865,7 +876,7 @@ void  Element::Helmholtz (const real  lambda2, // Using,
     for (register int j =0; j < np; j++, ij++) {
       helmRow ((const real**) IT, (const real**) DV, (const real**) DT,
 	       lambda2, i, j, rmat, rwrk, rwrk+nq, rwrk+nq+nq);
-      Veclib::copy (ntot, *rmat, 1, h[ij], 1);
+      Veclib::copy (ntot, rmat, 1, h + ij * nq, 1);
     }
 }
 
@@ -873,16 +884,13 @@ void  Element::Helmholtz (const real  lambda2, // Using,
 void Element::helmRow (const real**  IT     ,
 		       const real**  DV     ,
 		       const real**  DT     ,
-
 		       const real    lambda2,
 		       const int     i      ,
 		       const int     j      ,
-
-		       real**        hij    ,   // Compute.
- 
-		       real*         W1     ,   // Work arrays.
+		       real*         hij    ,
+		       real*         W1     ,
 		       real*         W2     ,
-		       real*         W0     )  const
+		       real*         W0     ) const
 // ---------------------------------------------------------------------------
 // Build row [i,j] of the elemental Helmholtz matrix in array hij (np x np).
 //
@@ -919,25 +927,28 @@ void Element::helmRow (const real**  IT     ,
 
   if (rule == LL) {		// -- Lobatto quadrature:
 
-    Veclib::zero (ntot, *hij, 1);
+    Veclib::zero (ntot, hij, 1);
 
     for (n = 0; n < nq; n++) {
       Veclib::vmul (nq, DT[j], 1, DT[n], 1, W1, 1);
-      hij[i][n]  = Blas::dot (nq, G1 + i*nq, 1, W1, 1);
+      hij[Veclib::row_major (i, n, nq)]  = Blas::dot (nq, G1 + i*nq, 1, W1, 1);
     }
 
     for (m = 0; m < nq; m++) {
       Veclib::vmul (nq, DT[i], 1, DT[m], 1, W1, 1);
-      hij[m][j] += Blas::dot (nq, G2 + j,   nq, W1, 1);
+      hij[Veclib::row_major (m, j, nq)] += Blas::dot (nq, G2 + j,   nq, W1, 1);
     }
 
     for (m = 0; m < nq; m++)
       for (n = 0; n < nq; n++) {
-	hij[m][n] += G3[Veclib::row_major (i, n, nq)] * DV[n][j] * DV[i][m];
-	hij[m][n] += G3[Veclib::row_major (m, j, nq)] * DV[j][n] * DV[m][i];
+	hij [Veclib::row_major (m, n, nq)] +=
+	  G3[Veclib::row_major (i, n, nq)] * DV[n][j] * DV[i][m];
+	hij [Veclib::row_major (m, n, nq)] +=
+	  G3[Veclib::row_major (m, j, nq)] * DV[j][n] * DV[m][i];
       }
 
-    hij[i][j] += lambda2 * G4[Veclib::row_major (i, j, nq)];
+    hij[Veclib::row_major (i, j, nq)] +=
+      lambda2 * G4[Veclib::row_major (i, j, nq)];
  
   } else {			// -- Gauss quadrature:
 
@@ -948,44 +959,43 @@ void Element::helmRow (const real**  IT     ,
 	Veclib::vmul (nq, IT[i], 1, IT[m], 1, W1, 1);
 	Veclib::vmul (nq, DT[j], 1, DT[n], 1, W2, 1);
 	Blas::ger    (nq, nq, 1.0, W2, 1, W1, 1, W0, nq);
-	hij[m][n] = Blas::dot (ntot, G1, 1, W0, 1);
+	hij[Veclib::row_major (m, n, np)] = Blas::dot (ntot, G1, 1, W0, 1);
 
 	Veclib::zero (ntot, W0, 1);
 	Veclib::vmul (nq, DT[i], 1, DT[m], 1, W1, 1);
 	Veclib::vmul (nq, IT[j], 1, IT[n], 1, W2, 1);
 	Blas::ger    (nq, nq, 1.0, W2, 1, W1, 1, W0, nq);
-	hij[m][n] += Blas::dot (ntot, G2, 1, W0, 1);
+	hij[Veclib::row_major (m, n, np)] += Blas::dot (ntot, G2, 1, W0, 1);
 
 	Veclib::zero (ntot, W0, 1);
 	Veclib::vmul (nq, DT[i], 1, IT[m], 1, W1, 1);
 	Veclib::vmul (nq, IT[j], 1, DT[n], 1, W2, 1);
 	Blas::ger    (nq, nq, 1.0, W2, 1, W1, 1, W0, nq);
-	hij[m][n] += Blas::dot (ntot, G3, 1, W0, 1);
+	hij[Veclib::row_major (m, n, np)] += Blas::dot (ntot, G3, 1, W0, 1);
 
 	Veclib::zero (ntot, W0, 1);
 	Veclib::vmul (nq, IT[i], 1, DT[m], 1, W1, 1);
 	Veclib::vmul (nq, DT[j], 1, IT[n], 1, W2, 1);
 	Blas::ger    (nq, nq, 1.0, W2, 1, W1, 1, W0, nq);
-	hij[m][n] += Blas::dot (ntot, G3, 1, W0, 1);
+	hij[Veclib::row_major (m, n, np)] += Blas::dot (ntot, G3, 1, W0, 1);
 
 	Veclib::zero (ntot, W0, 1);
 	Veclib::vmul (nq, IT[i], 1, IT[m], 1, W1, 1);
 	Veclib::vmul (nq, IT[j], 1, IT[n], 1, W2, 1);
 	Blas::ger    (nq, nq, 1.0, W2, 1, W1, 1, W0, nq);
-	hij[m][n] += lambda2 * Blas::dot (ntot, G4, 1, W0, 1);
+	hij[Veclib::row_major (m, n, np)] +=
+	  lambda2 * Blas::dot (ntot, G4, 1, W0, 1);
       }
   }
 }
 
 
-void  Element::post (real**  hbb    , // Post,
-
-		     real*   Hp     , // into,
-		     real**  Hc     ,
-
-		     int     nsolve ,
-		     int     ncons  ,
-		     int     nband  ) const
+void  Element::assemble (const real*  hbb    ,
+			 real*        Hp     ,
+			 real*        Hc     ,
+			 const int    nsolve ,
+			 const int    ncons  ,
+			 const int    nband  ) const
 // ---------------------------------------------------------------------------
 // Post elemental external node matrix hbb into global Helmholtz matrix Hp
 // and constraint partition Hc using direct stiffness summation.
@@ -994,7 +1004,7 @@ void  Element::post (real**  hbb    , // Post,
   if (!nsolve) return;
 
   register int  i, j, m, n;
-  int           next = nExt();
+  int           next = nExt ();
 
   if (nband) {		          // -- LAPACK upper triangular band storage.
 
@@ -1002,7 +1012,8 @@ void  Element::post (real**  hbb    , // Post,
       if ((m = bmap[i]) < nsolve)
 	for (j = 0; j < next; j++)
 	  if ((n = bmap[j]) < nsolve && n >= m)
-	    Hp[Lapack::band_addr (m, n, nband)] += hbb[i][j];
+	    Hp[Lapack::band_addr (m, n, nband)] +=
+	      hbb[Veclib::row_major (i, j, next)];
 
   } else {			 // -- LAPACK upper triangular packed storage.
 
@@ -1010,7 +1021,8 @@ void  Element::post (real**  hbb    , // Post,
       if ((m = bmap[i]) < nsolve)
 	for (j = 0; j < next; j++)
  	  if ((n = bmap[j]) < nsolve && n >= m)
-	    Hp[Lapack::pack_addr (m, n)] += hbb[i][j];
+	    Hp[Lapack::pack_addr (m, n)] += 
+	      hbb[Veclib::row_major (i, j, next)];
   }
 
   if (ncons > 1)       		 // -- A constraint partition must exist...
@@ -1018,7 +1030,8 @@ void  Element::post (real**  hbb    , // Post,
       if ((m = bmap[i]) < nsolve)
 	for (j = 0; j < next; j++)
 	  if ((n = bmap[j]) >= nsolve)
-	    Hc[m][n-nsolve] += hbb[i][j];
+	    Hc[Veclib::row_major (m, n - nsolve, ncons)] +=
+	      hbb[Veclib::row_major (i, j, next)];
 }
 
 
@@ -1290,6 +1303,32 @@ void  Element::sideMask (int side, int* gmask) const
 
   for (i = 0; i < nm; i++) gmask[bmap[side*nm + i]] &= 0;
   gmask[bmap[nm*(side + 1) % nExt()]]               &= 0;
+}
+
+
+void  Element::sideMask (int side, real* gnode) const
+// ---------------------------------------------------------------------------
+// Switch off globally-numbered gnode at ESSENTIAL BC locations.
+// ---------------------------------------------------------------------------
+{
+  register int i, nm = np - 1;
+
+  --side;
+
+  for (i = 0; i < nm; i++) gnode[bmap[side * nm + i]] = 0.0;
+  gnode[bmap[nm*(side + 1) % nExt()]]             = 0.0;
+}
+
+
+void Element::bndryMask (real* essl, real* othr) const
+// ---------------------------------------------------------------------------
+// Switch off globally-numbered gnode at ESSENTIAL BC locations, or at other.
+// ---------------------------------------------------------------------------
+{
+  register int  i, next = nExt ();
+
+  if (essl) for (i = 0; i < next; i++) essl[bmap[i]] *= solve[i] ? 1.0 : 0.0;
+  if (othr) for (i = 0; i < next; i++) othr[bmap[i]] *= solve[i] ? 0.0 : 1.0;
 }
 
 
@@ -1608,4 +1647,84 @@ void  Element::economizeMat ()
   size = next * nint;
 
   hbi  = FamilyMgr::insert (size, hbi);
+}
+
+
+void  Element::condense (const real* src, real* external, real* internal) const
+// ---------------------------------------------------------------------------
+// Load this element's boundary data into globally-numbered external, and
+// internal data into un-numbered internal.
+// ---------------------------------------------------------------------------
+{
+  register int  next = nExt ();
+
+  Veclib::gathr_scatr (next,    src, emap,  bmap, external);
+  Veclib::gathr       (nInt (), src, emap + next, internal);
+}
+
+
+void  Element::expand (real* targ, const real* external, const real* internal)
+// ---------------------------------------------------------------------------
+// Load this element's boundary data from globally-numbered external, and
+// internal data from un-numbered internal.
+// ---------------------------------------------------------------------------
+{
+  register int  next = nExt ();
+
+  Veclib::gathr_scatr (next,    external, bmap,  emap, targ);
+  Veclib::scatr       (nInt (), internal, emap + next, targ);
+}
+
+
+void Element::dsSum (const real* src, real* external, real* internal) const
+// ---------------------------------------------------------------------------
+// Sum this src's boundary data into globally-numbered external, and
+// internal data into un-numbered internal.
+// ---------------------------------------------------------------------------
+{
+  register int  next = nExt ();
+
+  Veclib::gathr_scatr_sum (next,    src, emap,  bmap, external);
+  Veclib::gathr_sum       (nInt (), src, emap + next, internal);
+}
+
+
+void Element::HelmholtzOperator (const real* src, real* tgt, 
+				 const real& L2,  real* wrk) const
+// ---------------------------------------------------------------------------
+// Apply elemental discrete Helmholtz operator on src to make tgt.
+// This routine is specific to 2D Cartesian space with GLL integration.
+//
+// Workspace vector wrk must hold 2 * nTot () elements.
+// ---------------------------------------------------------------------------
+{
+  register int   ij, nt = nTot ();
+  register real  tmp;
+  real*          R = wrk;
+  real*          S = R + nTot ();
+  real**         DV;
+  real**         DT;
+
+  quadOps (rule, np, nq, 0, 0, 0, 0, 0, &DV, &DT);
+
+  Blas::gemm ("N", "N", np, np, np, 1.0, *DT, np, src, np, 0.0, R, np);
+  Blas::gemm ("N", "N", np, np, np, 1.0, src, np, *DV, np, 0.0, S, np);
+
+  if (G3) {
+    for (ij = 0; ij < nt; ij++) {
+      tmp      = R [ij];
+      R  [ij]  = G1[ij] * R  [ij] + G3[ij] * S  [ij];
+      S  [ij]  = G2[ij] * S  [ij] + G3[ij] * tmp;
+      tgt[ij]  = G4[ij] * src[ij];
+    }
+  } else {
+    for (ij = 0; ij < nt; ij++) {
+      R  [ij] *= G1[ij];
+      S  [ij] *= G2[ij];
+      tgt[ij]  = G4[ij] * src[ij];
+    }
+  }
+
+  Blas::gemm ("N", "N", np, np, np, 1.0,  S,  np, *DT, np, L2,  tgt, np);
+  Blas::gemm ("N", "N", np, np, np, 1.0, *DV, np,  R,  np, 1.0, tgt, np);
 }
