@@ -209,7 +209,7 @@ Field::Field (FEML&                feml ,
 
   for (i = 0; i < Nsurf; i++) {
 
-    while ((nextc = feml.stream().peek()) == '#') // -- Skip comments.
+    while ((feml.stream().peek()) == '#') // -- Skip comments.
       feml.stream().ignore (StrMax, '\n');
 
     // -- Get element and side number information, tag.
@@ -284,6 +284,8 @@ Field::Field (FEML&                feml ,
   }
 
   // -- Allocate storage for boundary data.
+
+  if (n_line & 1) n_line++;	// -- Round up to aid Fourier transform.
   
   line  = new real* [nZ];
   sheet = new real  [nZ * n_line];
@@ -320,45 +322,7 @@ void Field::bTransform (const int sign)
 // physical space values.  See also comments for AuxField::transform.
 // ---------------------------------------------------------------------------
 {
-  const int nZ = Geometry::nZ();
-  if (nZ < 2) return;
-
-  register int i;
-  const int    ntot = nZ * n_line;
-  vector<real> work (3 * nZ + 15);
-  real*        tmp  = work();
-  real*        Wtab = tmp + nZ;
-  real*        ptr  = sheet;
-
-  Femlib::rffti (nZ, Wtab);
-
-  switch (sign) {
-
-  case 1:
-    for (i = 0; i < n_line; i++, ptr++) {
-      Veclib::copy  (nZ, ptr, n_line, tmp, 1);
-      Femlib::rfftf (nZ, tmp, Wtab);
-      Veclib::copy  (nZ - 2, tmp + 1, 1, ptr + 2 * n_line, n_line);
-      ptr[0]      = tmp[0];
-      ptr[n_line] = tmp[nZ - 1];
-    }
-    Blas::scal (ntot, 1.0 / nZ, sheet, 1);
-    break;
-
-  case -1:
-    for (i = 0; i < n_line; i++, ptr++) {
-      tmp[0]      = ptr[0];
-      tmp[nZ - 1] = ptr[n_line];
-      Veclib::copy  (nZ - 2, ptr + 2 * n_line, n_line, tmp + 1, 1);
-      Femlib::rfftb (nZ, tmp, Wtab);
-      Veclib::copy  (nZ, tmp, 1, ptr, n_line);
-    }
-    break;
-
-  default:
-    message ("Field::bTransform", "illegal direction flag", ERROR);
-    break;
-  }
+  Femlib::DFTr (sheet, Geometry::nZ(), n_line, sign);
 }
 
 
@@ -462,7 +426,6 @@ Field& Field::smooth (AuxField* slave)
   const int         nZ      = Geometry::nZ();
   vector<real>      work (nglobal);
   real              *src, *dssum = work();
-
 
   for (k = 0; k < nZ; k++) {
 
@@ -682,27 +645,29 @@ Field& Field::solve (AuxField*  f      ,
   char         routine[] = "Field::solve";
   register int i, j, k, m;
   int          singular, nsolve, nzero;
-  real         rho1, rho2, alpha, beta, epsb, betak2;
+  real         rho1, rho2, alpha, beta, r2, epsb2, betak2, dotp;
   real         *forcing, *unknown, *bc;
   const int    nZ      = Geometry::nZ();
   const int    nglobal = Nsys[0] -> nGlobal();
   const int    StepMax = (int) Femlib::value ("STEP_MAX");
   const int    npts    = nglobal + Geometry::nInode();
   const real   betaZ   = Femlib::value ("BETA");
-  const real   EPS     = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  const real   FTINY   = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
   
   const NumberSystem* N;
   const Boundary**    B;
 
   // -- Allocate storage.
   
-  vector<real> workspace (4 * npts + 4 * Geometry::nTotElmt());
+  vector<real> workspace (6 * npts + 4 * Geometry::nTotElmt());
 
   real* r   = workspace();
-  real* p   = r + npts;
-  real* w   = p + npts;
-  real* x   = w + npts;
-  real* wrk = x + npts;
+  real* p   = r  + npts;
+  real* q   = p  + npts;
+  real* x   = q  + npts;
+  real* z   = x  + npts;
+  real* PC  = z  + npts;
+  real* wrk = PC + npts;
 
   for (k = 0; k < nZ; k++) {	// -- Loop over planes of data.
 
@@ -717,13 +682,17 @@ Field& Field::solve (AuxField*  f      ,
     B        = (const Boundary**) boundary[j];
     N        = Nsys[j];
     nsolve   = N -> nSolve();
-    singular = nglobal == nsolve && fabs (lambda2 + betak2) < EPS;
+    singular = nglobal == nsolve && fabs (lambda2 + betak2) < FTINY;
     nsolve   = (singular) ? nsolve - 1 : nsolve;
     nzero    = nglobal - nsolve;
 
     forcing = f -> plane[k];
     unknown = plane[k];
     bc      = line[k];
+    
+    // -- Build diagonal preconditioner.
+
+    jacobi (lambda2, betak2, PC, N);
 
     // -- f <-- - M f - H g, then (r = ) b = - M f - H g + <h, w>.
 
@@ -732,41 +701,62 @@ Field& Field::solve (AuxField*  f      ,
     constrain    (forcing, lambda2, betak2, x, N);
     buildRHS     (forcing, bc, r, r + nglobal, 0, nsolve, nzero, B, N);
 
-    epsb = Femlib::value ("TOL_REL") * sqrt (Blas::dot (npts, r, 1, r, 1));
+    epsb2  = Femlib::value ("TOL_REL") * sqrt (Blas::dot (npts, r, 1, r, 1))
+           + Femlib::value ("TOL_ABS");
+    epsb2 *= epsb2;
 
     // -- Build globally-numbered x from element store.
 
     local2global (unknown, x, N);
   
     // -- Compute first residual using initial guess: r = b - Ax.
-    
-    Veclib::copy (npts, x, 1, w, 1);
-    Veclib::zero (nzero, w + nsolve, 1);
 
-    HelmholtzOperator (w, p, lambda2, betak2, wrk, N);
+    Veclib::zero (nzero, x + nsolve, 1);   
+    Veclib::copy (npts,  x, 1, q, 1);
+
+    HelmholtzOperator (q, p, lambda2, betak2, wrk, N);
 
     Veclib::zero (nzero, p + nsolve, 1);
     Veclib::vsub (npts, r, 1, p, 1, r, 1);
 
-    rho1 = Blas::dot (npts, r, 1, r, 1);
+    r2 = Blas::dot (npts, r, 1, r, 1);
 
-    // -- CG iteration.  Vector x will not evolve at essential BC nodes.
+    // -- PCG iteration.
 
-    for (i = 0; sqrt (rho1) > epsb && i < StepMax; i++) {
+    i = 0;
+    while (r2 > epsb2 && ++i < StepMax) {
 
-      if   (i) Veclib::svtvp (npts, beta, p, 1, r, 1, p, 1); //  p = r + beta p
-      else     Veclib::copy  (npts,             r, 1, p, 1); //  p = r
+      // -- Preconditioner.
 
-      HelmholtzOperator (p, w, lambda2, betak2, wrk, N);
-      Veclib::zero (nzero, w + nsolve, 1);
+      Veclib::vmul (npts, PC, 1, r, 1, z, 1);
 
-      alpha = rho1 / Blas::dot (npts, p, 1, w, 1);
-      Blas::axpy (npts,  alpha, p, 1, x, 1); // -- x += alpha p
-      Blas::axpy (npts, -alpha, w, 1, r, 1); // -- r -= alpha w
+      rho1 = Blas::dot (npts, r, 1, z, 1);
+
+      // -- Update search direction.
+
+      if (i == 1)
+	Veclib::copy  (npts,             z, 1, p, 1); // -- p = z.
+      else {
+	beta = rho1 / rho2;	
+	Veclib::svtvp (npts, beta, p, 1, z, 1, p, 1); // -- p = z + beta p.
+      }
+
+      // -- Matrix-vector product.
+
+      HelmholtzOperator (p, q, lambda2, betak2, wrk, N);
+      Veclib::zero (nzero, q + nsolve, 1);
+
+      // -- Move in conjugate direction.
+
+      dotp = Blas::dot (npts, p, 1, q, 1);
+      dotp = (dotp > FTINY) ? dotp : FTINY;
+			
+      alpha = rho1 / dotp;
+      Blas::axpy (npts,  alpha, p, 1, x, 1); // -- x += alpha p.
+      Blas::axpy (npts, -alpha, q, 1, r, 1); // -- r -= alpha q.
 
       rho2 = rho1;
-      rho1 = Blas::dot (npts, r, 1, r, 1);
-      beta = rho1 / rho2;
+      r2   = Blas::dot (npts, r, 1, r, 1);
     }
   
     if (i == StepMax) message (routine, "step limit exceeded", WARNING);
@@ -780,12 +770,56 @@ Field& Field::solve (AuxField*  f      ,
   
     if ((int) Femlib::value ("VERBOSE")) {
       char s[StrMax];
-      sprintf (s, ":%3d CG iterations, field '%c'", i, field_name);
+      sprintf (s, ":%3d iterations, field '%c'", i, field_name);
       message (routine, s, REMARK);
     }
   }
 
   return *this;
+}
+
+
+void Field::jacobi (const real          lambda2,
+		    const real          betak2 ,
+		    real*               PC     ,
+		    const NumberSystem* N      ) const
+// ---------------------------------------------------------------------------
+// Build diagonal (point Jacobi) preconditioner, PC, length npts.
+//
+// PC is arranged with global nodes first, followed by element-internal values.
+// ---------------------------------------------------------------------------
+{
+  register int      i, next, nint;
+  register Element* E;
+  const int         nE   = Geometry::nElmt();
+  const int         npts = N -> nGlobal() + Geometry::nInode();
+  const int*        btog = N -> btog();
+  real*             PCi  = PC + N -> nGlobal();
+  vector<real>      work (2 * Geometry::nTotElmt() + Geometry::nP());
+  real              *ed = work(), *ewrk = work() + Geometry::nTotElmt();
+  
+  Veclib::zero (npts, PC, 1);
+
+  for (i = 0; i < nE; i++) {
+    E    = Elmt[i];
+    next = E -> nExt();
+    nint = E -> nInt();
+
+    E -> HelmholtzDg (lambda2, betak2, ed, ewrk);
+    
+    Veclib::scatr_sum (next, ed, btog, PC);
+    Veclib::copy      (nint, ed + next, 1, PCi, 1);
+
+    btog += next;
+    PCi  += nint;
+  }
+
+#if 1
+  Veclib::vrecp (npts, PC, 1, PC, 1);
+#else  // -- Turn off preconditioner for testing.
+  Veclib::fill (npts, 1.0, PC, 1);
+#endif
+
 }
 
 
@@ -1078,23 +1112,23 @@ void Field::coupleBCs (Field*    v  ,
   if (Geometry::nDim() < 3) return;
 
   char         routine[] = "Field::couple";
-  register int k;
+  register int Re, Im, k;
   const int    nZ    = Geometry::nZ(),
                nL    = v -> n_line,
                nMode = nZ >> 1;
   vector<real> work (nL);
-  real         *Vr, *Vi, *Wr, *Wi, *tp;
+  real         *Vr, *Vi, *Wr, *Wi, *tp = work();
   
   if (dir == 1) {
 
     for (k = 1; k < nMode; k++) {
+      Re = k  + k;
+      Im = Re + 1;
 
-      tp = work();
-
-      Vr = v -> line[2 * k];
-      Vi = v -> line[2 * k + 1];
-      Wr = w -> line[2 * k];
-      Wi = w -> line[2 * k + 1];
+      Vr = v -> line[Re];
+      Vi = v -> line[Im];
+      Wr = w -> line[Re];
+      Wi = w -> line[Im];
 
       Veclib::copy (nL, Vr, 1, tp, 1);
       Veclib::vsub (nL, Vr, 1, Wi, 1, Vr, 1);
@@ -1102,23 +1136,21 @@ void Field::coupleBCs (Field*    v  ,
       Veclib::copy (nL, Vi, 1, tp, 1);
       Veclib::vadd (nL, Vi, 1, Wr, 1, Vi, 1);
       Veclib::neg  (nL, Wr, 1);
-      Veclib::vadd (nL, Wr, 1, tp, 1, Wr, 1);
-
-      tp                   = w -> line[2 * k];
-      w -> line[2 * k]     = w -> line[2 * k + 1];
-      w -> line[2 * k + 1] = tp;
+      Veclib::vadd (nL, Wr, 1, tp, 1, tp, 1);
+      Veclib::copy (nL, Wi, 1, Wr, 1);
+      Veclib::copy (nL, tp, 1, Wi, 1);
     }
 
   } else if (dir == -1) {
 
     for (k = 1; k < nMode; k++) {
+      Re = k  + k;
+      Im = Re + 1;
 
-      tp = work();
-
-      Vr = v -> line[2 * k];
-      Vi = v -> line[2 * k + 1];
-      Wr = w -> line[2 * k];
-      Wi = w -> line[2 * k + 1];
+      Vr = v -> line[Re];
+      Vi = v -> line[Im];
+      Wr = w -> line[Re];
+      Wi = w -> line[Im];
 
       Veclib::copy (nL, Vr, 1, tp, 1);
       Veclib::vadd (nL, Vr, 1, Wr, 1, Vr, 1);
@@ -1126,11 +1158,9 @@ void Field::coupleBCs (Field*    v  ,
       Veclib::copy (nL, Vi, 1, tp, 1);
       Veclib::vadd (nL, Vi, 1, Wi, 1, Vi, 1);
       Veclib::neg  (nL, Wi, 1);
-      Veclib::vadd (nL, Wi, 1, tp, 1, Wi, 1);
-
-      tp                   = w -> line[2 * k];
-      w -> line[2 * k]     = w -> line[2 * k + 1];
-      w -> line[2 * k + 1] = tp;
+      Veclib::vadd (nL, Wi, 1, tp, 1, tp, 1);
+      Veclib::copy (nL, Wr, 1, Wi, 1);
+      Veclib::copy (nL, tp, 1, Wi, 1);
     }
 
     Blas::scal (nL * (nZ - 2), 0.5, v -> sheet + 2 * nL, 1);
