@@ -10,13 +10,15 @@
 #include <iostream>
 #include <fstream>
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 
-#include <Utility.h>
+#include <utility_h>
+#include <lapack_h>
+
 #include <Stack.h>
 #include <Array.h>
-#include <Lapack.h>
+
 #include "nr77.h"
 
 using namespace std;

@@ -16,10 +16,12 @@ ifeq ($(ARCH),Linux)
   endif
 endif
 
-RECIPES = -L$(HOME)/lib/$(ARCH) -L/usr/local/lib -lrecipesDP
+#RECIPES = -L$(HOME)/lib/$(ARCH) -L/usr/local/lib -lrecipesDP
+RECIPES = -L$(HOME)/lib/ -lrecipesDP
 SEMHOME = ../semtex
 SEMHDR  = -I$(SEMHOME)/include
-VECLIB  = -L$(SEMHOME)/lib/$(ARCH)/ -lalp
+VECLIB  = -L$(SEMHOME)/lib/$(ARCH)/ -lvec
+
 
 ###############################################################################
 
@@ -72,7 +74,7 @@ embed: embed.C
 	$(CXX) -o $@ $@.C $(CXXFLAGS) $(SEMHDR) $(VECLIB) $(RECIPES) $(F77LIBS)
 
 odeint: odeint.C
-	$(CXX) -o $@ $@.C $(CXXFLAGS) $(SEMHDR) $(VECLIB) $(RECIPES) $(F77LIBS)
+	$(CXX) -o $@ $@.C $(CXXFLAGS) $(SEMHDR) $(VECLIB) $(RECIPES)
 
 zeros: zeros.C
 	$(CXX) -o $@ $@.C $(CXXFLAGS)
@@ -81,4 +83,6 @@ zeros: zeros.C
 # Standard rules and definitions.
 #
 include $(SEMHOME)/src/Makefile
-
+ifeq ($(ARCH),Darwin)
+F77LIBS += -L/sw/lib -lg2c
+endif

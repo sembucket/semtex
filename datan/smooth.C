@@ -31,8 +31,8 @@
 
 using namespace std;
 
-#include <Utility.h>
-#include <Veclib.h>
+#include <utility_h>
+#include <veclib_h>
 #include <Array.h>
 #include "nr77.h"
 
