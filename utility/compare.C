@@ -53,7 +53,8 @@ int main (int    argc,
   char               function[EXACT_MAX][StrMax];
   int                i, j, np, nz, nel, found;
   int                offset = 0, nexact = 0, nfields = 0, swab = 0, tran = 0;
-  real               t, *zeros;
+  real               t;
+  const real*        zeros;
   Geometry::CoordSys system;
   vector<Element*>   Esys;
   AuxField           *exact, *computed;
