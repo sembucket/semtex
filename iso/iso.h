@@ -115,9 +115,14 @@ real  Brachet        (const real);
 
 /* -- misc.c */
 
-void  zeroVF (CVF, const int*);
-void  zeroF  (CF,  const int*);
-void  copyF  (CF,  const CF, const int*);
-void  setF   (CF,  const CF, const int*);
-void  addF   (CF,  const CF, const int*);
-void  subF   (CF,  const CF, const int*);
+void  zeroVF  (CVF, const int*);
+void  zeroF   (CF,  const int*);
+void  copyF   (CF,  const CF, const int*);
+void  setF    (CF,  const CF, const int*);
+void  addF    (CF,  const CF, const int*);
+void  subF    (CF,  const CF, const int*);
+void  project (CVF, CF, const int*);
+
+/* -- random.c */
+
+real  ran2PI (int*);
