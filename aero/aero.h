@@ -22,6 +22,8 @@ public:
 private:
   Body&    body;
   ofstream sta_strm;
+  ofstream for_strm;
+  void     forceDist();
 };
 
 
