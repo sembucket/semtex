@@ -1,5 +1,11 @@
 /*****************************************************************************
  * DFT_chk.c: exercise 3D real--complex FFT routines.
+ * 
+ * Note that the DFT routines give magnitudes which are "low" by a factor
+ * of 2, e.g., the transform of a constant value, say 1, in physical
+ * space, delivers a value of 0.5 at the real part of the zero-wavenumber
+ * datum in Fourier space.  The routines below are adjusted to account for
+ * this.
  *
  * $Id$
  *****************************************************************************/
