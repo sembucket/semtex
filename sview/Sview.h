@@ -10,9 +10,11 @@
 
 #include <cctype>
 #include <cmath>
+#include <string>
 #include <iostream>
 #include <sstream>
 #include <fstream>
+
 
 #include <vector>
 #include <stack>
@@ -21,10 +23,12 @@
 
 #include <tiffio.h>		/* Sam Leffler's libtiff library. */
 
-enum  lev    {WARNING, ERROR, REMARK};
-const int    StrMax = 256;
-const int    IsoMax = 8;
-const int    FldMax = 32;
+using namespace std;
+
+enum  lev {WARNING, ERROR, REMARK};
+const int StrMax = 256;
+const int IsoMax = 16;
+const int FldMax = 32;
 
 template<class T> inline T sqr(T x)      { return x * x;            }
 template<class T> inline T sgn(T x)      { return (x < 0) ? -1 : 1; }

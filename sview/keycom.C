@@ -51,9 +51,9 @@ void processCommand (const char  command,
     "v <angle>             : angle of view, degrees (0 < v < 90)\n"
     "z <zoomfactor>        : specify magnification\n"
     "?                     : report current t/p/z state values\n";
-  char  name;
-  float value;
-  int   i, j, N;
+  char   name;
+  float  value;
+  int    i, j, N;
 
   switch (command) {
 
@@ -72,8 +72,8 @@ void processCommand (const char  command,
     if (!strlen (buf))
       Display[0] = Surface[0];	// -- Default.
     else {			// -- Parse list of indices.
-      istringstream strm (buf, strlen(buf));
-      int        count = 0;
+      istringstream strm (buf);
+      int           count = 0;
 
       while (strm >> i) {
 	if (++count >= IsoMax) {
@@ -95,8 +95,7 @@ void processCommand (const char  command,
     break;
 
   case 'f':
-    istringstream (buf, strlen(buf)) >> name;
-    loadData   (Fields, name);
+    { istringstream ibuf (buf); ibuf >> name; loadData (Fields, name); }
     break;
 
   case 'h':
@@ -108,7 +107,7 @@ void processCommand (const char  command,
     break;
 
   case 'm':
-    istringstream (buf, strlen (buf)) >> value;
+    istringstream (buf) >> value;
 
     if (Surface[0]) {
       delete [] Surface[0] -> info;
@@ -134,14 +133,14 @@ void processCommand (const char  command,
     }
     if (!strlen (buf)) flipNorms (Surface[0]);
     else {
-      istringstream (buf, strlen (buf)) >> i;
+      istringstream (buf) >> i;
 
       if (i >= 0 && i < (N = countSurf (Surface))) flipNorms (Surface[i]);
     }
     break;
 
   case 'p': {
-    istringstream strm(buf, strlen(buf));
+    istringstream strm(buf);
     double val[3];
 
     for (i = 0; i < 3; i++) strm >> val[i];
@@ -165,7 +164,7 @@ void processCommand (const char  command,
     if (!strlen (buf)) {
       message (routine, "no index flagged for deletion", WARNING);
     } else {
-      istringstream (buf, strlen (buf)) >> i;
+      istringstream (buf) >> i;
       
       if (i == 0)
 	message (routine, "can't delete default surface [0]", WARNING);
@@ -192,8 +191,8 @@ void processCommand (const char  command,
     break;
 
   case 't': {
-    istringstream strm(buf, strlen(buf));
-    float val[3];
+    istringstream strm(buf);
+    float         val[3];
 
     for (i = 0; i < 3; i++) strm >> val[i];
 
@@ -209,8 +208,8 @@ void processCommand (const char  command,
   }
 
   case 'v': {
-    istringstream strm(buf, strlen(buf));
-    float val;
+    istringstream strm(buf);
+    float         val;
 
     strm >> val;
 
@@ -224,8 +223,8 @@ void processCommand (const char  command,
   }
 
   case 'z': {
-    istringstream strm(buf, strlen(buf));
-    float val;
+    istringstream strm(buf);
+    float         val;
 
     strm >> val;
 

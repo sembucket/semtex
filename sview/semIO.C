@@ -209,7 +209,7 @@ Data* setFields (const char* fname)
   }
 
   D -> file.getline(buf, StrMax).getline(buf, StrMax);
-  istringstream (buf, strlen (buf)) >> nr >> ns >> nz >> nel;
+  istringstream (buf) >> nr >> ns >> nz >> nel;
 
   if (nr  != ns ) message (routine, "element NR != NS",      ERROR);
   if (nr  != NP ) message (routine, "element size mismatch", ERROR);
