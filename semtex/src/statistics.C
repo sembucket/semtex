@@ -124,13 +124,15 @@ Statistics::Statistics (Domain* D) :
 
     _avg['r'] = new AuxField (new real_t[ntot],nz,_base->elmt,'r'); ++_neng;
     _avg['s'] = new AuxField (new real_t[ntot],nz,_base->elmt,'s'); ++_neng;
-    if (_nvel == 3)
+    if (_nvel == 3) {
       _avg['t'] = new AuxField (new real_t[ntot],nz,_base->elmt,'t'); ++_neng;
+    }
 
     _avg['a'] = new AuxField (new real_t[ntot],nz,_base->elmt,'a'); ++_neng;
     _avg['b'] = new AuxField (new real_t[ntot],nz,_base->elmt,'b'); ++_neng;
-    if (_nvel == 3)
+    if (_nvel == 3) {
       _avg['c'] = new AuxField (new real_t[ntot],nz,_base->elmt,'c'); ++_neng;
+    }
       
     // -- Tensor.
     
