@@ -116,11 +116,14 @@ void message_dtranspose (double*       data,
   const int    NM = nP * nZ / np;  /* Size of message block.             */
   const int    dsize = sizeof (double);
   double*      tmp;
-  MPI_Status   status;
+  MPI_Request* request;
+  MPI_Status*  status;
 
   if (np == 1) return;
 
-  tmp = (double*) malloc (nB * dsize);
+  tmp     = (double*)      malloc (nB           * dsize);
+  request = (MPI_Request*) malloc (2 * (np - 1) * sizeof (MPI_Request));
+  status  = (MPI_Status*)  malloc (2 * (np - 1) * sizeof (MPI_Status));
 
   if (sign == 1) {		/* -- "Forwards" transpose. */
 
@@ -177,21 +180,24 @@ void message_dtranspose (double*       data,
 
     /* -- Inter-processor transpose, with NB blocks size nZ*nB / processor. */
 
-    for (i = 0; i < np; i++)
+    for (i = 0, j = 0; i < np; i++)
       if (i != ip) {
-	MPI_Send (data + i*NM, NM, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
-	MPI_Recv (data + i*NM, NM, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, &status);
+	MPI_Isend (data+i*NM, NM, MPI_DOUBLE, i,0,MPI_COMM_WORLD, request+j++);
+	MPI_Irecv (data+i*NM, NM, MPI_DOUBLE, i,0,MPI_COMM_WORLD, request+j++);
       }
+    MPI_Waitall (2 * (np - 1), request, status);
 
   } else {			/* -- "Backwards" transpose. */
 
-    for (i = 0; i < np; i++)
+    for (i = 0, j = 0; i < np; i++)
       if (i != ip) {
-	MPI_Send (data + i*NM, NM, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
-	MPI_Recv (data + i*NM, NM, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, &status);
+	MPI_Isend (data+i*NM, NM, MPI_DOUBLE, i,0,MPI_COMM_WORLD, request+j++);
+	MPI_Irecv (data+i*NM, NM, MPI_DOUBLE, i,0,MPI_COMM_WORLD, request+j++);
       }
+    MPI_Waitall (2 * (np - 1), request, status);
 
     if (NB == nZ) {
+
       for (i = 0; i < nZ; i++)
 	for (j = i; j < nZ; j++) {
 	  if (i != j) {
@@ -202,12 +208,13 @@ void message_dtranspose (double*       data,
 	}
 
     } else {
+
       int       k, knext, kconf, *kmove, *kpost;
       const int NBnZm = NB * nZ - 1;
 
       kmove = (int*) malloc (2*nZ*NB * sizeof (int));
       kpost = kmove + nZ*NB;
-  
+
       for (i = 0; i < NB; i++)
 	for (j = 0; j < nZ; j++)
 	  kpost[i * nZ + j] = j * NB + i;
@@ -233,11 +240,12 @@ void message_dtranspose (double*       data,
       }
       
       free (kmove);
-      
     }
   }
 
   free (tmp);
+  free (request);
+  free (status);
 #endif
 }
 
@@ -260,11 +268,14 @@ void message_stranspose (float*        data,
   const int    NM = nP * nZ / np;
   const int    dsize = sizeof (float);
   float*       tmp;
-  MPI_Status   status;
+  MPI_Request* request;
+  MPI_Status*  status;
 
   if (np == 1) return;
 
-  tmp = (float*) malloc (nB * dsize);
+  tmp     = (float*)       malloc (nB           * dsize);
+  request = (MPI_Request*) malloc (2 * (np - 1) * sizeof (MPI_Request));
+  status  = (MPI_Status*)  malloc (2 * (np - 1) * sizeof (MPI_Status));
 
   if (sign == 1) {		/* -- "Forward" transpose. */
 
@@ -318,21 +329,21 @@ void message_stranspose (float*        data,
       free (kmove);
     }
 
-    /* -- Inter-processor transpose, with NB blocks size nZ*nB / processor. */
-
-    for (i = 0; i < np; i++)
+    for (i = 0, j = 0; i < np; i++)
       if (i != ip) {
-	MPI_Send (data + i*NM, NM, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
-	MPI_Recv (data + i*NM, NM, MPI_FLOAT, i, 0, MPI_COMM_WORLD, &status);
+	MPI_Isend (data+i*NM, NM, MPI_FLOAT, i,0,MPI_COMM_WORLD, request+j++);
+	MPI_Irecv (data+i*NM, NM, MPI_FLOAT, i,0,MPI_COMM_WORLD, request+j++);
       }
+    MPI_Waitall (2 * (np - 1), request, status);
 
   } else {			/* -- "Backwards" transpose. */
 
-    for (i = 0; i < np; i++)
+    for (i = 0, j = 0; i < np; i++)
       if (i != ip) {
-	MPI_Send (data + i*NM, NM, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
-	MPI_Recv (data + i*NM, NM, MPI_FLOAT, i, 0, MPI_COMM_WORLD, &status);
+	MPI_Isend (data+i*NM, NM, MPI_FLOAT, i,0,MPI_COMM_WORLD, request+j++);
+	MPI_Irecv (data+i*NM, NM, MPI_FLOAT, i,0,MPI_COMM_WORLD, request+j++);
       }
+    MPI_Waitall (2 * (np - 1), request, status);
 
     if (NB == nZ) {
       for (i = 0; i < nZ; i++)
@@ -380,6 +391,8 @@ void message_stranspose (float*        data,
   }
 
   free (tmp);
+  free (request);
+  free (status);
 #endif
 }
 
@@ -393,105 +406,21 @@ void message_itranspose (integer*      data,
  * ------------------------------------------------------------------------- */
 {
 #if defined(MPI)
-
   register int i, j;
   const int    ip = (int) yy_interpret ("I_PROC");
   const int    np = (int) yy_interpret ("N_PROC");
-  const int    nB = nP / np;	   /* Size of intra-processor block.     */
-  const int    NB = nP / nB;	   /* Number of these blocks in a plane. */
-  const int    NM = nP * nZ / np;  /* Size of message block.             */
+  const int    nB = nP / np;
+  const int    NB = nP / nB;
+  const int    NM = nP * nZ / np;
   const int    dsize = sizeof (integer);
   integer*     tmp;
-  MPI_Status   status;
-
+  MPI_Request* request;
+  MPI_Status*  status;
   if (np == 1) return;
-
-  tmp = (integer*) malloc (nB * dsize);
-
-  if (sign == 1) {		/* -- "Forward" transpose. */
-
-    /* -- Intra-processor transpose. */
-
-    if (NB == nZ) {		/* -- Symmetric transpose. */
-      for (i = 0; i < nZ; i++)
-	for (j = i; j < nZ; j++) {
-	  if (i != j) {
-	    memcpy (tmp,                data + (i*nZ+j)*nB, nB * dsize);
-	    memcpy (data + (i*nZ+j)*nB, data + (j*nZ+i)*nB, nB * dsize);
-	    memcpy (data + (j*nZ+i)*nB, tmp,                nB * dsize);
-	  }
-	}
-
-    } else {			/* -- Asymmetric transpose. */
-      int       k, knext, kconf, *kmove, *kpost;
-      const int NBnZm = NB * nZ - 1;
-
-      kmove = (int*) malloc (2*nZ*NB * sizeof (int));
-      kpost = kmove + nZ*NB;
-
-      /* -- Build scatter indices. */
-    
-      for (i = 0; i < NB; i++)
-	for (j = 0; j < nZ; j++)
-	  kpost[j * NB + i] = i * nZ + j;
-
-      for (i = 1; i < NBnZm; i++) kmove[i] = 1;
-      kmove[0] = kmove[NBnZm] = 0;
-
-      /* -- Do "in-place" scatter. */
-
-      while (k = first (nZ*NB, kmove)) {
-	knext = kconf = kpost[k];
-	memcpy (tmp, data + kconf * nB, nB * dsize);
-	do {
-	  memcpy (data + knext * nB, data + k * nB, nB * dsize);
-	  kmove[k] = 0;
-	  for (i = 1; i < NBnZm; i++)
-	    if (kpost[i] == k) {
-	      k     = i;
-	      knext = kpost[k];
-	      break;
-	    }
-	} while (k != kconf);
-	memcpy (data + knext * nB, tmp, nB * dsize);
-	kmove[k] = 0;
-      }
-      
-      free (kmove);
-    }    
-    
-    /* -- Inter-processor transpose, with NB blocks size nZ*nB / processor. */
-
-    if (sizeof (integer) == sizeof (int)) {
-      for (i = 0; i < np; i++)
-	if (i != ip) {
-	  MPI_Send (data + i*NM, NM, MPI_INT, i, 0, MPI_COMM_WORLD);
-	  MPI_Recv (data + i*NM, NM, MPI_INT, i, 0, MPI_COMM_WORLD, &status);
-	}
-    } else {
-      for (i = 0; i < np; i++)
-	if (i != ip) {
-	  MPI_Send (data + i*NM, NM, MPI_LONG, i, 0, MPI_COMM_WORLD);
-	  MPI_Recv (data + i*NM, NM, MPI_LONG, i, 0, MPI_COMM_WORLD, &status);
-	}
-    }
-
-  } else {			/* -- "Backwards" transpose. */
-
-    if (sizeof (integer) == sizeof (int)) {
-      for (i = 0; i < np; i++)
-	if (i != ip) {
-	  MPI_Send (data + i*NM, NM, MPI_INT, i, 0, MPI_COMM_WORLD);
-	  MPI_Recv (data + i*NM, NM, MPI_INT, i, 0, MPI_COMM_WORLD, &status);
-	}
-    } else {
-      for (i = 0; i < np; i++)
-	if (i != ip) {
-	  MPI_Send (data + i*NM, NM, MPI_LONG, i, 0, MPI_COMM_WORLD);
-	  MPI_Recv (data + i*NM, NM, MPI_LONG, i, 0, MPI_COMM_WORLD, &status);
-	}
-    }
-
+  tmp     = (integer*)     malloc (nB           * dsize);
+  request = (MPI_Request*) malloc (2 * (np - 1) * sizeof (MPI_Request));
+  status  = (MPI_Status*)  malloc (2 * (np - 1) * sizeof (MPI_Status));
+  if (sign == 1) {
     if (NB == nZ) {
       for (i = 0; i < nZ; i++)
 	for (j = i; j < nZ; j++) {
@@ -501,21 +430,16 @@ void message_itranspose (integer*      data,
 	    memcpy (data + (j*nZ+i)*nB, tmp,                nB * dsize);
 	  }
 	}
-
     } else {
       int       k, knext, kconf, *kmove, *kpost;
       const int NBnZm = NB * nZ - 1;
-
       kmove = (int*) malloc (2*nZ*NB * sizeof (int));
       kpost = kmove + nZ*NB;
-  
       for (i = 0; i < NB; i++)
 	for (j = 0; j < nZ; j++)
-	  kpost[i * nZ + j] = j * NB + i;
-
+	  kpost[j * NB + i] = i * nZ + j;
       for (i = 1; i < NBnZm; i++) kmove[i] = 1;
       kmove[0] = kmove[NBnZm] = 0;
-
       while (k = first (nZ*NB, kmove)) {
 	knext = kconf = kpost[k];
 	memcpy (tmp, data + kconf * nB, nB * dsize);
@@ -532,12 +456,80 @@ void message_itranspose (integer*      data,
 	memcpy (data + knext * nB, tmp, nB * dsize);
 	kmove[k] = 0;
       }
-      
+      free (kmove);
+    }    
+    if (sizeof (integer) == sizeof (int)) {
+      for (i = 0, j = 0; i < np; i++)
+	if (i != ip) {
+	  MPI_Isend (data+i*NM, NM, MPI_INT, i,0,MPI_COMM_WORLD, request+j++);
+	  MPI_Irecv (data+i*NM, NM, MPI_INT, i,0,MPI_COMM_WORLD, request+j++);
+	}
+      MPI_Waitall (2 * (np - 1), request, status);
+    } else {
+      for (i = 0, j = 0; i < np; i++)
+	if (i != ip) {
+	  MPI_Isend (data+i*NM, NM, MPI_LONG, i,0,MPI_COMM_WORLD, request+j++);
+	  MPI_Irecv (data+i*NM, NM, MPI_LONG, i,0,MPI_COMM_WORLD, request+j++);
+	}
+      MPI_Waitall (2 * (np - 1), request, status);
+    }
+  } else {
+    if (sizeof (integer) == sizeof (int)) {
+      for (i = 0, j = 0; i < np; i++)
+	if (i != ip) {
+	  MPI_Isend (data+i*NM, NM, MPI_INT, i,0,MPI_COMM_WORLD, request+j++);
+	  MPI_Irecv (data+i*NM, NM, MPI_INT, i,0,MPI_COMM_WORLD, request+j++);
+	}
+      MPI_Waitall (2 * (np - 1), request, status);
+    } else {
+      for (i = 0, j = 0; i < np; i++)
+	if (i != ip) {
+	  MPI_Isend (data+i*NM, NM, MPI_LONG, i,0,MPI_COMM_WORLD, request+j++);
+	  MPI_Irecv (data+i*NM, NM, MPI_LONG, i,0,MPI_COMM_WORLD, request+j++);
+	}
+      MPI_Waitall (2 * (np - 1), request, status);
+    }
+    if (NB == nZ) {
+      for (i = 0; i < nZ; i++)
+	for (j = i; j < nZ; j++) {
+	  if (i != j) {
+	    memcpy (tmp,                data + (i*nZ+j)*nB, nB * dsize);
+	    memcpy (data + (i*nZ+j)*nB, data + (j*nZ+i)*nB, nB * dsize);
+	    memcpy (data + (j*nZ+i)*nB, tmp,                nB * dsize);
+	  }
+	}
+    } else {
+      int       k, knext, kconf, *kmove, *kpost;
+      const int NBnZm = NB * nZ - 1;
+      kmove = (int*) malloc (2*nZ*NB * sizeof (int));
+      kpost = kmove + nZ*NB;
+      for (i = 0; i < NB; i++)
+	for (j = 0; j < nZ; j++)
+	  kpost[i * nZ + j] = j * NB + i;
+      for (i = 1; i < NBnZm; i++) kmove[i] = 1;
+      kmove[0] = kmove[NBnZm] = 0;
+      while (k = first (nZ*NB, kmove)) {
+	knext = kconf = kpost[k];
+	memcpy (tmp, data + kconf * nB, nB * dsize);
+	do {
+	  memcpy (data + knext * nB, data + k * nB, nB * dsize);
+	  kmove[k] = 0;
+	  for (i = 1; i < NBnZm; i++)
+	    if (kpost[i] == k) {
+	      k     = i;
+	      knext = kpost[k];
+	      break;
+	    }
+	} while (k != kconf);
+	memcpy (data + knext * nB, tmp, nB * dsize);
+	kmove[k] = 0;
+      }
       free (kmove);
     }
   }
-
   free (tmp);
+  free (request);
+  free (status);
 #endif
 }
 
