@@ -72,7 +72,7 @@ class MixPatch
 // ============================================================================
 {
 public:
-  MixPatch::MixPatch (const Domain*, const Domain*);
+  MixPatch     (const Domain*, const Domain*);
   integer      np;
   integer      nz;
   List<Patch*> patches;
@@ -97,27 +97,27 @@ class Element
 // ===========================================================================
 {
 private:
-  const integer  id  ;		// Element identifier.
-  const integer  np  ;		// Number of points on an edge.
-  const integer  npnp;		// Total number = np * np.
-  const integer  next;		// Number of points on periphery.
-  const integer  nint;		// Number of internal points.
+  const integer  _id  ;		// Element identifier.
+  const integer  _np  ;		// Number of points on an edge.
+  const integer  _npnp;		// Total number = np * np.
+  const integer  _next;		// Number of points on periphery.
+  const integer  _nint;		// Number of internal points.
 
-  integer* emap;		// Indices of edges in nodal matrices.
-  integer* pmap;		// Inversion of emap (pmap[emap[i]] = i).
+  integer* _emap;		// Indices of edges in nodal matrices.
+  integer* _pmap;		// Inversion of emap (pmap[emap[i]] = i).
 
-  real*    xmesh;		// Physical space mesh.
-  real*    ymesh;		// 2D row-major store.
+  real*    _xmesh;		// Physical space mesh.
+  real*    _ymesh;		// 2D row-major store.
 
-  real*    drdx ;		// Partial derivatives (x, y) --> (r, s),
-  real*    dsdx ;		//   evaluated at quadrature points.
-  real*    drdy ;		//   (2D row-major storage.)
-  real*    dsdy ;		//
-  real*    G1   ;		// Geometric factor 1 at quadrature points.
-  real*    G2   ;		// Geometric factor 2 at quadrature points.
-  real*    G3   ;		// Geometric factor 3 at quadrature points.
-  real*    G4   ;		// Geometric factor 4 at quadrature points.
-  real*    delta;		// Local length scale.
+  real*    _drdx ;		// Partial derivatives (x, y) --> (r, s),
+  real*    _dsdx ;		//   evaluated at quadrature points.
+  real*    _drdy ;		//   (2D row-major storage.)
+  real*    _dsdy ;		//
+  real*    _G1   ;		// Geometric factor 1 at quadrature points.
+  real*    _G2   ;		// Geometric factor 2 at quadrature points.
+  real*    _G3   ;		// Geometric factor 3 at quadrature points.
+  real*    _G4   ;		// Geometric factor 4 at quadrature points.
+  real*    _delta;		// Local length scale.
 
   void map();
   void terminal (const integer side ,
@@ -126,10 +126,10 @@ private:
     // -- BLAS-conforming edge offsets & skips for element-edge traverses.
     {
       switch (side) {
-      case 0: start = 0;           skip  = 1;   break;
-      case 1: start = np - 1;      skip  = np;  break;
-      case 2: start = np*(np - 1); skip  = -1;  break;
-      case 3: start = 0;           skip  = -np; break;
+      case 0: start = 0;             skip  = 1;   break;
+      case 1: start = _np - 1;       skip  = _np;  break;
+      case 2: start = _np*(_np - 1); skip  = -1;  break;
+      case 3: start = 0;             skip  = -_np; break;
       }
     }
 
@@ -141,7 +141,7 @@ public:
   Element (const integer, const Mesh*, const real*, const integer);
  ~Element ();
 
-  integer ID () const { return id; }
+  integer ID () const { return _id; }
 
   // -- Elemental Helmholtz matrix construction, manipulation, operator.
 
@@ -161,7 +161,7 @@ public:
 
   void sideGeom  (const integer, real*, real*, real*, real*, real*) const;
   void sideEval  (const integer, real*, const  char*)               const;
-  void sideGrad  (const integer, const real*, real*, real*)         const;
+  void sideGrad  (const integer, const real*, real*, real*, real*)  const;
   void sideGet   (const integer, const real*, real*)                const;
   void sideGetR  (const integer, real*)                             const;
   void sideDivR  (const integer, const real*, real*)                const;
@@ -175,6 +175,7 @@ public:
 
   void divR (real*) const;
   void mulR (real*) const;
+  void mulX (real*) const;
 
   void evaluate (const char*, real*) const;
 
@@ -183,24 +184,24 @@ public:
   real area     ()                   const;
   void weight   (real*)              const;
 
-  void lengthScale (real*)                                const;
-  real CFL         (const real, const real*, const real*) const;
+  void lengthScale (real*)                                       const;
+  real CFL         (const real, const real*, const real*, real*) const;
        
   real norm_inf (const real*) const;
   real norm_L2  (const real*) const;
   real norm_H1  (const real*) const;
        
-  void e2g      (const real*, const integer*, real*, real*)       const;
-  void e2gSum   (const real*, const integer*, real*, real*)       const;
-  void g2e      (real*, const integer*, const real*, const real*) const;
+  void e2g      (const real*, const integer*, real*, real*)        const;
+  void e2gSum   (const real*, const integer*, real*, real*)        const;
+  void g2e      (real*, const integer*, const real*, const real*)  const;
   void g2eSC    (const real*, const integer*, real*,
-		 real*, const real*, const real*, real*)          const;
-  void e2gSumSC (real*, const integer*, real*, const real*)       const;
+		 real*, const real*, const real*, real*)           const;
+  void e2gSumSC (real*, const integer*, real*, const real*, real*) const;
 
   // -- Probe functions.
 
   integer locate (const real, const real, real&, real&, const integer=0) const;
-  real    probe  (const real, const real, const real*)                   const;
+  real    probe  (const real, const real, const real*, real*)            const;
 
   // -- Debugging/informational routines.
 
@@ -226,10 +227,12 @@ friend class     Field;
 friend class     PBCmgr;
 
 public:
-  AuxField (vector<Element*>&, const char = 0);
+  AuxField (real*, const integer, vector<Element*>&, const char = 0);
 
-  char name     () const { return field_name; }
+  char name     () const { return _name; }
   void describe (char*) const;
+
+  AuxField& setInput    (real*, const integer);
 
   AuxField& operator  = (const real);
   AuxField& operator += (const real);
@@ -240,6 +243,7 @@ public:
   AuxField& operator  = (const AuxField&);
   AuxField& operator += (const AuxField&);
   AuxField& operator -= (const AuxField&);
+  AuxField& operator *= (const AuxField&);
 
   AuxField& operator  = (const char*);
   AuxField& axpy        (const real, const AuxField&);
@@ -259,13 +263,16 @@ public:
   AuxField& setPlane    (const integer, const real);
 
   AuxField& gradient (const integer);
-  AuxField& root     ();
+  AuxField& sqroot   ();
   AuxField& mulR     ();
+  AuxField& mulX     ();
   AuxField& divR     ();
+  AuxField& sgn      ();
 
   void gradient (const integer, const integer, real*, const integer) const;
   void mulR     (const integer, real*)                               const;
   void divR     (const integer, real*)                               const;
+  void mulX     (const integer, real*)                               const;
 
   void errors      (const Mesh*, const char*);
   void lengthScale (real*)                     const;
@@ -280,20 +287,23 @@ public:
 
   AuxField& reverse     ();
   AuxField& zeroNyquist ();
+  AuxField& buildMask   (const char*);
 
   static void swapData  (AuxField*, AuxField*);
   static void couple    (AuxField*, AuxField*, const integer);
 
-protected:
-  char              field_name ; // Identification tag.  '\0' by default.
-  
-  vector<Element*>& Elmt       ; // Quadrilateral elements.
-  real*             data       ; // 2/3D data area, element x element x plane.
-  real**            plane      ; // Pointer into data for each 2D frame.
+  AuxField& projStab    (const real, AuxField&);
 
+protected:
+  char              _name ;	// Identification tag.  '\0' by default.
+  vector<Element*>& _elmt ;	// Quadrilateral elements.
+  integer           _nz   ;	// number of data planes (per process).
+  integer           _size ;	// _nz * Geometry::planeSize().
+  real*             _data ;	// 2/3D data area, element x element x plane.
+  real**            _plane;
+ 
 private:
   AuxField& operator /= (const AuxField&) { return *this; }
-  AuxField& operator *= (const AuxField&) { return *this; }
 };
 
 
@@ -329,12 +339,12 @@ public:
 			  const real*, real*)                        const = 0;
   virtual void describe  (char* tgt)                                 const = 0;
 
-  const char* group      () const { return grp; }
+  const char* group      () const { return _grp; }
 
   virtual ~Condition()   { }
 
 protected:
-  char* grp;
+  char* _grp;
 };
 
 
@@ -361,7 +371,7 @@ public:
 			  const real*, real*)                           const;
   virtual void describe  (char*)                                        const;
 private:
-  real value;
+  real _value;
 };
 
 
@@ -388,7 +398,7 @@ public:
 			  const real*, real*)                           const;
   virtual void describe  (char*)                                        const;
 private:
-  char* function;
+  char* _function;
 };
 
 
@@ -415,7 +425,7 @@ public:
 			  const real*, real*)                           const;
   virtual void describe  (char*)                                        const;
 private:
-  real value;
+  real _value;
 };
 
 
@@ -442,7 +452,7 @@ public:
 			  const real*, real*)                           const;
   virtual void describe  (char*)                                        const;
 private:
-  char* function;
+  char* _function;
 };
 
 
@@ -498,8 +508,8 @@ public:
 			  const real*, real*)                           const;
   virtual void describe  (char*)                                        const;
 private:
-  real K;		// -- This is "K" above.
-  real C;		// -- This is "C" above.
+  real _K_;		// -- This is "K" above.
+  real _C_;		// -- This is "C" above.
 };
 
 
@@ -508,17 +518,35 @@ class Boundary
 // Physical field element-wise boundary class.
 // ===========================================================================
 {
+private:
+  integer          _id     ;	// Ident number.
+  integer          _np     ;     // Matches Geometry::nP().
+  const char*      _bgroup ;	// Group string.
+  const Condition* _bcondn ;	// Boundary condition.
+
+  const Element*   _elmt   ;	// Corresponding element.
+  integer          _side   ;	// Corresponding side.
+
+  integer          _doffset;	// Offset in Field data plane (matches BLAS).
+  integer          _dskip  ;	// Skip   in Field data plane (matches BLAS).
+
+  real*            _x      ;     // Node locations.
+  real*            _y      ;     //
+  real*            _nx     ;	// Unit outward normal components at nodes.
+  real*            _ny     ;	// 
+  real*            _area   ;	// Weighted multiplier for parametric mapping.
+
 public:
   Boundary (const integer, const char*, const Condition*,
 	    const Element*, const integer); 
 
   const char* group () const;
 
-  integer bOff  () const { return elmt -> ID() * Geometry::nExtElmt(); }
-  integer dOff  () const { return doffset; }
-  integer dSkip () const { return dskip; }
+  integer bOff  () const { return _elmt -> ID() * Geometry::nExtElmt(); }
+  integer dOff  () const { return _doffset; }
+  integer dSkip () const { return _dskip; }
 
-  integer ID    () const { return id; }
+  integer ID    () const { return _id; }
   void    print () const;
 
   void   geometry  (real*, real*, real* = 0, real* = 0, real* = 0) const;
@@ -541,24 +569,6 @@ public:
   Vector normalTraction  (const char*, const real*, real*) const;
   Vector tangentTraction (const char*, const real*,
 			  const real*, real*, real*)       const;
-
-private:
-  integer          id     ;	// Ident number.
-  integer          np     ;     // Matches Geometry::nP().
-  const char*      bgroup ;	// Group string.
-  const Condition* bcondn ;	// Boundary condition.
-
-  const Element*   elmt   ;	// Corresponding element.
-  integer          side   ;	// Corresponding side.
-
-  integer          doffset;	// Offset in Field data plane (matches BLAS).
-  integer          dskip  ;	// Skip   in Field data plane (matches BLAS).
-
-  real*            x      ;     // Node locations.
-  real*            y      ;     //
-  real*            nx     ;	// Unit outward normal components at nodes.
-  real*            ny     ;	// 
-  real*            area   ;	// Weighted multiplier for parametric mapping.
 };
 
 
@@ -606,29 +616,32 @@ class NumberSys
 // ===========================================================================
 {
 friend class BCmgr;
-public:
-  integer nGlobal () const { return ns_nglobal; }
-  integer nSolve  () const { return ns_nsolve;  }
-  integer nBand   () const { return ns_nbandw;  }
-
-  const char*    fields () const { return ns_fields;              }
-  const integer* bmask  () const { return ns_bmask;               }
-  const integer* emask  () const { return ns_emask;               }
-  integer        fmask  () const { return ns_nglobal - ns_nsolve; }
-  const integer* btog   () const { return ns_btog;                }
-  const real*    imass  () const { return ns_imass;               }
 
 private:
-  integer  ns_optlev ;		// Optimization level used for btog.
-  integer  ns_nglobal;		// Length of inv_mass.
-  integer  ns_nsolve ;		// Number of non-masked global nodes.
-  integer  ns_nbandw ;		// Bandwidth of btog (includes diagonal).
+  integer  _optlev ;		// Optimization level used for btog.
+  integer  _nglobal;		// Length of inv_mass.
+  integer  _nsolve ;		// Number of non-masked global nodes.
+  integer  _nbandw ;		// Bandwidth of btog (includes diagonal).
 
-  char*    ns_fields ;		// String with character labels for Fields.
-  integer* ns_bmask  ;		// 1 for essential-BC nodes, 0 otherwise.
-  integer* ns_emask  ;		// 1 if associated Element has any esstl set.
-  integer* ns_btog   ;		// Gives numbers to all element-boundary knots.
-  real*    ns_imass  ;		// Inverse of global mass matrix;
+  char*    _fields ;		// String with character labels for Fields.
+  integer* _bmask  ;		// 1 for essential-BC nodes, 0 otherwise.
+  integer* _emask  ;		// 1 if associated Element has any esstl set.
+  integer* _btog   ;		// Gives numbers to all element-boundary knots.
+  real*    _imass  ;		// Inverse of global mass matrix;
+
+public:
+ ~NumberSys () { }; 
+
+  integer nGlobal () const { return _nglobal; }
+  integer nSolve  () const { return _nsolve;  }
+  integer nBand   () const { return _nbandw;  }
+
+  const char*    fields () const { return _fields;            }
+  const integer* bmask  () const { return _bmask;             }
+  const integer* emask  () const { return _emask;             }
+  integer        fmask  () const { return _nglobal - _nsolve; }
+  const integer* btog   () const { return _btog;              }
+  const real*    imass  () const { return _imass;             }
 };
 
 
@@ -645,12 +658,12 @@ class BCmgr
 public:
   BCmgr (FEML*, vector<Element*>&);
 
-  const char*      field        () const { return fields; }
+  const char*      field        () const { return _fields; }
   const char*      groupInfo    (const char);
   Condition*       getCondition (const char, const char, const integer = 0);
   NumberSys*       getNumberSys (const char, const integer = 0);
-  List<BCtriple*>& getBCedges   () { return elmtbc; }
-  integer          nBCedges     () const { return elmtbc.length(); }
+  List<BCtriple*>& getBCedges   () { return _elmtbc; }
+  integer          nBCedges     () const { return _elmtbc.length(); }
 
   class CondRecd {
   public: 
@@ -661,12 +674,12 @@ public:
   };
     
 private:
-  char*              fields  ;	// String containing field names.
-  vector<char>       group   ;	// Single-character group tags.
-  vector<char*>      descript;	// Group name strings.
-  List<CondRecd*>    cond    ;	// Conditions in storage.
-  List<BCtriple*>    elmtbc  ;	// Group tags for each element-side BC.
-  vector<NumberSys*> numsys  ;	// Numbering schemes in storage.
+  char*              _fields  ;	// String containing field names.
+  vector<char>       _group   ;	// Single-character group tags.
+  vector<char*>      _descript;	// Group name strings.
+  List<CondRecd*>    _cond    ;	// Conditions in storage.
+  List<BCtriple*>    _elmtbc  ;	// Group tags for each element-side BC.
+  vector<NumberSys*> _numsys  ;	// Numbering schemes in storage.
 
   void buildnum  (const char*, vector<Element*>&);
   void buildsurf (FEML*, vector<Element*>&);
@@ -681,8 +694,8 @@ class PBCmgr
 {
 public:
   static void build      (const Field*);
-  static void maintain   (const integer, const Field*, const AuxField***,
-			  const AuxField***, const integer);
+  static void maintain   (const integer, const Field*, const AuxField**,
+			  const AuxField**, const integer = 0);
    static void evaluate   (const integer, const integer, const integer,
 			  const integer, const real*, const real*, real*);
   static void accelerate (const Vector&, const Field*);
@@ -705,13 +718,14 @@ class BoundarySys
 {
 public:
   BoundarySys (BCmgr*, const vector<Element*>&, const char);
+  ~BoundarySys () { };
 
   char                     field () const { return field_name; }
   integer                  nSurf () const { return nbound; }
   integer                  mixBC () const { return mixed; }
-  const vector<Boundary*>& BCs   (const integer=0) const;
-  const NumberSys*         Nsys  (const integer=0) const;
-  const real*              Imass (const integer=0) const;
+  const vector<Boundary*>& BCs   (const integer) const;
+  const NumberSys*         Nsys  (const integer) const;
+  const real*              Imass (const integer) const;
 
 private:
   char               field_name;
@@ -731,32 +745,43 @@ class MatrixSys
 // ===========================================================================
 {
 friend class Field;
-friend ostream& operator << (ostream&, MatrixSys&);
-friend istream& operator >> (istream&, MatrixSys&);
+//friend ostream& operator << (ostream&, MatrixSys&);
+//friend istream& operator >> (istream&, MatrixSys&);
 public:
   MatrixSys     (const real, const real, const integer,
-		 const vector<Element*>&, const BoundarySys*);
-  integer match (const real, const real,  const NumberSys*) const;
+		 const vector<Element*>&, const BoundarySys*,
+		 const SolverKind);
+ ~MatrixSys     ();
+  integer match (const real, const real, const NumberSys*,
+		 const SolverKind) const;
 
 private:
-  real  HelmholtzConstant;	// Same for all modes.
-  real  FourierConstant  ;	// Varies with mode number.
+  real  _HelmholtzConstant;	// Same for all modes.
+  real  _FourierConstant  ;	// Varies with mode number.
  
-  const vector<Boundary*>& BC;	// Internal copy of Boundary conditions.
-  const NumberSys*         NS;	// Internal copy of NumberSys.
+  const vector<Boundary*>& _BC;	// Internal copy of Boundary conditions.
+  const NumberSys*         _NS;	// Internal copy of NumberSys.
 
-  integer  nel     ;		// Number of elemental matrices.
-  integer  nband   ;		// Bandwidth of global matrix (incl. diagonal).
-  integer  singular;		// If system is potentially singular.
-  integer  nsolve  ;		// System-specific number of global unknowns.
-  integer  npack   ;		// Number of reals for global matrix.
+  integer    _nel     ;		// Number of elemental matrices.
+  integer    _nglobal ;		// Number of unique element-boundary nodes.
+  integer    _singular;		// If system is potentially singular.
+  integer    _nsolve  ;		// System-specific number of global unknowns.
+  SolverKind _method  ;		// Flag specifies direct or iterative solver.
 
-  real*    H     ;		// (Factored) packed global Helmholtz matrix.
-  real**   hbi   ;		// Element external-internal coupling matrices.
-  real**   hii   ;		// (Factored) internal-internal matrices.
-  integer* bipack;		// Size of hbi for each element.
-  integer* iipack;		// Size of hii for each element.
-  
+  // -- For _method == DIRECT:
+
+  integer    _nband ;		// Bandwidth of global matrix (incl. diagonal).
+  integer    _npack ;		// Number of reals for global matrix.
+  real*      _H     ;		// (Factored) packed global Helmholtz matrix.
+  real**     _hbi   ;		// Element external-internal coupling matrices.
+  real**     _hii   ;		// (Factored) internal-internal matrices.
+  integer*   _bipack;		// Size of hbi for each element.
+  integer*   _iipack;		// Size of hii for each element.
+
+  // -- For _method == JACPCG:
+
+  integer    _npts;		// Total number of unique meshpoints.
+  real*      _PC  ;		// Diagonal preconditioner matrix.
 };
 
 ostream& operator << (ostream&, MatrixSys&);
@@ -770,13 +795,15 @@ class ModalMatrixSys
 {
 public:
   ModalMatrixSys (const real, const real, const integer, const integer,
-		  const vector<Element*>&, const BoundarySys*);
+		  const vector<Element*>&, const BoundarySys*, 
+		  const SolverKind);
+ ~ModalMatrixSys ();
 
-  const MatrixSys* operator [] (const integer i) const { return Msys[i]; }
+  const MatrixSys* operator [] (const integer i) const { return _Msys[i]; }
 
 private:
-  char*              fields;	// Character field tags for this system.
-  vector<MatrixSys*> Msys  ;	// One MatrixSys for each Fourier mode.
+  char*              _fields;	// Character field tags for this system.
+  vector<MatrixSys*> _Msys  ;	// One MatrixSys for each Fourier mode.
 };
   
 
@@ -796,7 +823,7 @@ class Field : public AuxField
 {
 friend class PBCmgr;
 public:
-  Field  (BoundarySys*, vector<Element*>&, const char);
+  Field  (BoundarySys*, real*, const integer, vector<Element*>&, const char);
  ~Field  () { }
 
   Field& operator = (const AuxField& z) {AuxField::operator=(z); return *this;}
@@ -804,7 +831,6 @@ public:
   Field& operator = (const char*     z) {AuxField::operator=(z); return *this;}
 
   Field& solve  (AuxField*, const ModalMatrixSys*);
-  Field& solve  (AuxField*, const real           );
 
   Field& smooth (AuxField* = 0);
   void   smooth (const int, real*) const;
@@ -812,9 +838,6 @@ public:
   void evaluateBoundaries    (const integer);
   void evaluateM0Boundaries  (const integer);
   void addToM0Boundaries     (const real, const char*);
-  
-  void setPatch (MixPatch*) const;
-  void getPatch (MixPatch*);
 
   static real   flux            (const Field*);
   static Vector normalTraction  (const Field*);
@@ -829,12 +852,14 @@ public:
   static void printBoundaries (const Field*);
   static void printConnect    (const Field*);
 
+  void   setPatch (MixPatch*) const;
+  void   getPatch (MixPatch*);
 private:
-  integer      nbound;		// Number of boundary edges.
-  integer      n_line;		// Length of one boundary line.
-  real*        sheet ;		// Wrap-around storage for data boundary.
-  real**       line  ;		// Single plane's worth of sheet.
-  BoundarySys* bsys  ;		// Boundary system information.
+  integer      _nbound;		// Number of boundary edges.
+  integer      _nline ;		// Length of one boundary line.
+  real*        _sheet ;		// Wrap-around storage for data boundary.
+  real**       _line  ;		// Single plane's worth of sheet.
+  BoundarySys* _bsys  ;		// Boundary system information.
 
   void bTransform        (const integer);
 
@@ -853,8 +878,6 @@ private:
 			  const vector<Boundary*>&, const NumberSys*) const;
   void HelmholtzOperator (const real*, real*, const real,
 			  const real, real*, const integer)           const;
-  void jacobi            (const real, const real, real*,
-			  const NumberSys*)                           const;
 };
 
 
@@ -877,6 +900,7 @@ public:
   integer               step;	// Runtime step number.
   real                  time;	// Simulation time.
   vector<Element*>&     elmt;	// Shared for equal-order interpolations.
+  vector<real*>         udat;	// Data storage area for solution fields.
   vector<Field*>        u   ;	// Solution fields: velocities, pressure.
   vector<BoundarySys*>  b   ;	// Field boundary systems.
 
@@ -949,21 +973,23 @@ class HistoryPoint
 // ===========================================================================
 {
 public:
-  HistoryPoint (const integer ID, const Element* e, const real R, 
-		const real S, const real Z):
-    id (ID), E (e), r (R), s (S), z (Z) { }
+  HistoryPoint (const integer id, const Element* e, const real r, 
+		const real s, const real x, const real y, const real z):
+    _id (id), _E (e), _r (r), _s (s), _x (x), _y (y), _z (z) { }
 
-  integer               ID () const { return id; } 
+  integer               ID () const { return _id; } 
   void                  extract (vector<AuxField*>&, real*) const;
   static const Element* locate (const real, const real,
 				vector<Element*>&, real&, real&);
 
 private:
-  const integer  id ;		// Numeric identifier.
-  const Element* E  ;		// Pointer to element.
-  const real     r  ;		// Canonical-space r-location.
-  const real     s  ;		// Canonical-space s-location.
-  const real     z  ;		// Location in homogeneous direction.
+  const integer  _id ;		// Numeric identifier.
+  const Element* _E  ;		// Pointer to element.
+  const real     _r  ;		// Canonical-space r-location.
+  const real     _s  ;		// Canonical-space s-location.
+  const real     _x  ;		// x location.
+  const real     _y  ;		// y location.
+  const real     _z  ;		// Location in homogeneous direction.
 };
 
 
@@ -1026,6 +1052,39 @@ template<class T> inline void roll (T* u, const integer n)
   for (register integer q(n - 1); q; q--)
     u[q] = u[q - 1];
   u[0] = tmp;
+}
+
+
+template<class T> inline void rollv (T* u, const integer n)
+// ===========================================================================
+// Stack roll template.  u is an array of type T, with at least n
+// elements.  Roll up by one element.
+// ===========================================================================
+{
+  if (n < 2) return;
+
+  T tmp(u[n - 1]);
+
+  for (register integer q(n - 1); q; q--)
+    u[q] = u[q - 1];
+  u[0] = tmp;
+}
+
+
+template<class T> inline void rollm (T** u, const integer m, const integer n)
+// ===========================================================================
+// Stack roll template.  u is an matrix of type T, with at least n*m
+// elements.  m = number of rows, n = number of columns. Roll up by one row.
+// ===========================================================================
+{
+  if (m < 2) return;
+  integer i, j;
+  for (j = 0; j < n; j++) {
+    T tmp (u[m-1][j]);
+    for (i = m - 1; i; i--)
+      u[i][j] = u[i-1][j];
+    u[0][j] = tmp;
+  }
 }
 
 // -- Routines from misc.C:

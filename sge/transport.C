@@ -27,7 +27,7 @@ static void  advection (AuxField*, AuxField*, const real*);
 static void  extrap    (AuxField*, AuxField**, AuxField**,
 			const int, const real);
 static Msys* preSolve  (const Domain*, const real);
-static void  Solve     (Field*, Field*, const AuxField*, const AuxField*,
+static void  Solve     (Domain*, Domain*, const AuxField*, const AuxField*,
 		        AuxField*, AuxField*, Msys*, Msys*,
 			MixPatch*, const int);
 
@@ -76,8 +76,10 @@ void transport (Domain*     d1   ,
 
   // -- Coupled diffusion substep work areas.
 
-  SET1; AuxField* tmp1 = new AuxField (d1 -> elmt, nz);
-  SET2; AuxField* tmp2 = new AuxField (d2 -> elmt, nz);
+  SET1;
+  AuxField* tmp1 = new AuxField (new real[Geometry::nTotProc()], nz, d1->elmt);
+  SET2;
+  AuxField* tmp2 = new AuxField (new real[Geometry::nTotProc()], nz, d2->elmt);
 
   // -- Create & initialise multi-level storage for old fields and advection.
 
@@ -87,10 +89,13 @@ void transport (Domain*     d1   ,
 
   for (i = 0; i < Je; i++) {
     SET1;
-    *(Us1[i] = new AuxField (d1 -> elmt, nz)) = 0.0;
-    *(Uf1[i] = new AuxField (d1 -> elmt, nz)) = 0.0;
+    *(Us1[i] =
+      new AuxField (new real [Geometry::nTotProc()], nz, d1 -> elmt)) = 0.0;
+    *(Uf1[i] =
+      new AuxField (new real [Geometry::nTotProc()], nz, d1 -> elmt)) = 0.0;
     SET2;
-    *(Us2[i] = new AuxField (d2 -> elmt, nz)) = 0.0;
+    *(Us2[i] =
+      new AuxField (new real [Geometry::nTotProc()], nz, d2 -> elmt)) = 0.0;
   }
 
   // -- Dump startup analysis information.
@@ -129,11 +134,11 @@ void transport (Domain*     d1   ,
 
     // -- Diffusion substep, coupling two domains over patch.
 
-    Solve (d1 -> u[0], d2 -> u[0],
-	   Us1[0],     Us2[0],
-	   tmp1,       tmp2,
-	   MMS1,       MMS2,
-	   patch,      order);
+    Solve (d1    , d2    ,
+	   Us1[0], Us2[0],
+	   tmp1  , tmp2  ,
+	   MMS1  , MMS2  ,
+	   patch , order );
 
     // -- Print diagnostic information.
 
@@ -214,24 +219,19 @@ static Msys* preSolve (const Domain* D             ,
   const int               nOrder = (int) Femlib::value ("N_TIME");
   const real              beta   = Femlib::value ("BETA");
   const real              dt     = Femlib::value ("D_T");
-  Msys*                   M;
   const vector<Element*>& E      = ((Domain*) D) -> elmt;
 
-  if (itLev < 1) {
-    vector<real> alpha (Integration::OrderMax + 1);
-    Integration::StifflyStable (nOrder, alpha());
-    const real lambda2 = alpha[0] / (dt * DiffusionCoeff);
+  vector<real> alpha (Integration::OrderMax + 1);
+  Integration::StifflyStable (nOrder, alpha());
+  const real lambda2 = alpha[0] / (dt * DiffusionCoeff);
 
-    M = new Msys (lambda2, beta, base, nmodes, E, D -> b[0]);
-
-  } else M = 0;
-
-  return M;
+  return new Msys
+    (lambda2, beta, base, nmodes, E, D -> b[0], (itLev<1)?DIRECT:JACPCG);
 }
 
 
-static void Solve (Field*          c1   ,
-		   Field*          c2   ,
+static void Solve (Domain*         d1   ,
+		   Domain*         d2   ,
 		   const AuxField* f1   ,
 		   const AuxField* f2   ,
 		   AuxField*       t1   ,
@@ -252,15 +252,18 @@ static void Solve (Field*          c1   ,
   static const real TOLREL  = Femlib::value ("TOL_REL");
   static const real DCON1   = Femlib::value ("DC_GAS");
   static const real DCON2   = Femlib::value ("DC_FIX");
+  static const real beta    = Femlib::value ("BETA");
   static const real DT      = Femlib::value ("D_T");
+  static const int  base    = Geometry::baseMode();
   static const int  nmodes  = Geometry::nModeProc();
 
-  const int       DIRECT = !(je < JE || M1 == 0);		     
-  vector<real>    alpha (Integration::OrderMax + 1);
-  vector<real>    L2new1 (nmodes), L2old1 (nmodes);
-  vector<real>    L2new2 (nmodes), L2old2 (nmodes);
-  vector<integer> test1  (nmodes), test2  (nmodes);
-  integer         i, k, converged;
+  const int    TMP_MSYS = (je < JE);
+  vector<real> alpha (Integration::OrderMax + 1);
+  vector<real> L2new1 (nmodes), L2old1 (nmodes);
+  vector<real> L2new2 (nmodes), L2old2 (nmodes);
+  vector<int>  test1  (nmodes), test2  (nmodes);
+  integer      i, k, converged;
+  Field        *c1 = d1 -> u[0], *c2 = d2 -> u[0];
 
   Integration::StifflyStable (je, alpha());
   const real lambda2_1 = alpha[0] / (DT * DCON1);
@@ -271,6 +274,13 @@ static void Solve (Field*          c1   ,
   test1  = 0;
   test2  = 0;
 
+  if (TMP_MSYS) {
+    SET1; M1 = new Msys
+      (lambda2_1, beta, base, nmodes, d1 -> elmt, d1 -> b[0], JACPCG);
+    SET2; M2 = new Msys
+      (lambda2_2, beta, base, nmodes, d2 -> elmt, d2 -> b[0], JACPCG);
+  }
+    
   for (converged = 0, i = 0; i < MAXITN && !converged; i++) {
     c1 -> setPatch (patch);
     c2 -> setPatch (patch);
@@ -278,20 +288,8 @@ static void Solve (Field*          c1   ,
     c1 -> getPatch (patch);
     c2 -> getPatch (patch);
 
-    SET1; *t1 = *f1;
-    SET2; *t2 = *f2;
-
-    if (DIRECT) {
-
-      SET1; c1 -> solve (t1, M1);
-      SET2; c2 -> solve (t2, M2);
-
-    } else {
-
-      SET1; c1 -> solve (t1, lambda2_1);
-      SET2; c2 -> solve (t2, lambda2_2);
-
-    }
+    SET1; *t1 = *f1; c1 -> solve (t1, M1);
+    SET2; *t2 = *f2; c2 -> solve (t2, M2);
 
     SET1;
     for (k = 0; k < nmodes; k++) {
@@ -318,6 +316,11 @@ static void Solve (Field*          c1   ,
 
     for (converged = 1, k = 0; converged && k < nmodes; k++)
       converged = converged && test1[k] && test2[k];
+  }
+
+  if (TMP_MSYS) {
+    delete M1;
+    delete M2;
   }
   
   cout << i << " BC iterations" << endl;

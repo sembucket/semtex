@@ -30,7 +30,7 @@ MixPatch::MixPatch (const Domain* d1,
 
   bsys  = d1 -> b[0];
   nsurf = bsys -> nSurf();
-  const vector<Boundary*>& BC1 = bsys -> BCs();
+  const vector<Boundary*>& BC1 = bsys -> BCs(0);
 
   for (i = 0; i < nsurf; i++) {
     B = BC1[i];
@@ -59,7 +59,7 @@ MixPatch::MixPatch (const Domain* d1,
 
   bsys  = d2 -> b[0];
   nsurf = bsys -> nSurf();
-  const vector<Boundary*>& BC2 = bsys -> BCs();
+  const vector<Boundary*>& BC2 = bsys -> BCs(0);
 
   for (i = 0; i < nsurf; i++) {
     B = BC2[i];
@@ -69,8 +69,8 @@ MixPatch::MixPatch (const Domain* d1,
 	P = p.current();
 	B -> geometry (tx, ty);
 	for (bad = 0, j = 0; !bad && j < np; j++)
-	  bad = ( fabs (P -> x[np - j - 1] - tx[j]) > EPSDP ||
-		  fabs (P -> y[np - j - 1] - ty[j]) > EPSDP );
+	  bad = ( fabs (P -> x[np - j - 1] - tx[j]) > EPSSP ||
+		  fabs (P -> y[np - j - 1] - ty[j]) > EPSSP );
 	if (!bad) { found = 1; break; }
       }
 
