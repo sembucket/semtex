@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Domain.C:  implement Domain class.                                        *
+ * Domain.C:  implement Domain class.
  *****************************************************************************/
 
 // $Id$
@@ -8,159 +8,307 @@
 #include "Fem.h"
 
 
-Domain::Domain() {
-  u  = 0;
-  uB = 0;
+static ifstream*  altFile     (ifstream&);
+static istream&   readOptions (istream&);
+static istream&   readIparams (istream&);
+static istream&   readFparams (istream&);
+static istream&   nextBlock   (istream&, char*);
 
-  domain_name      = new char[STR_MAX];
-  domain_field_tag = new char[STR_MAX];
-  domain_edge_tag  = new char[STR_MAX];
-  domain_name[0]   = domain_field_tag[0] = domain_edge_tag[0] = '\0';
-  domain_step      = 0;
-  domain_time      = 0.0;
-  domain_nfield    = 0;
-  domain_nedge     = 0;
-  domain_nel       = 0;
+
+
+
+
+Domain::Domain (const char* session)
+// ---------------------------------------------------------------------------
+// Construct a new Domain with a single Field from a named file.
+//
+// The named parts of input (separated by blank lines) are, in order:
+//   ** OPTION               parameters
+//   ** INTEGER              parameters
+//   ** FLOATing point       parameters
+//   ** BOUNDARY CONDITIONs
+//   ** CURVED   EDGEs
+//   ** MESH     INFORMATION
+//
+// On return, all information in Element and Boundary lists is set.
+// ---------------------------------------------------------------------------
+{
+  char routine[] = "Domain::Domain(const char*)";
+  char s[StrMax];
+
+  domain_name = new char[StrMax];
+  strcpy (domain_name, session);
+
+  ifstream file (domain_name);
+  if (!file) {
+    sprintf (s, "couldn't open session file %s", session);
+    message (routine, s, ERROR);
+  }
+
+  domain_step = 0;
+  domain_time = 0.0;
+  nfield      = 1;
+
+  u    = new Field* [nfield];
+  u[0] = new Field;
+
+  // -- Scan the parts of a session file.
+   
+  nextBlock (file, s);
+
+  if (strstr (s, "**") && strstr (s, "OPTION"))    {
+    readOptions (file);     
+    nextBlock   (file, s); 
+  }
+  
+  if (strstr (s, "**") && strstr (s, "INTEGER"))   {
+    readIparams (file);     
+    nextBlock   (file, s);
+  }
+  
+  if (strstr (s, "**") && strstr (s, "FLOAT"))     {
+    readFparams (file);     
+    nextBlock   (file, s); 
+  }
+ 
+  if (strstr (s, "**") && strstr (s, "BOUNDARY") && strstr (s, "CONDITION")) { 
+    if (!BCmanager::read (file)) message (routine, "no BCs set", ERROR);
+    nextBlock       (file, s); 
+  } else
+    message (routine, "can't find boundary conditions", ERROR);
+   
+  if (strstr (s, "**") && strstr (s, "CURVED") && strstr (s, "EDGE"))    {
+    // readCurvedEdges (file); 
+    nextBlock       (file, s); 
+  }
+  
+  if (strstr (s, "**") && strstr (s, "MESH") && strstr (s, "INFORMATION")) {
+    ifstream* meshfile = altFile (file);
+    u[0] -> readMesh (*meshfile);
+
+    if (!u[0] -> nEl()) message (routine, "no element information set", ERROR);
+    if (*meshfile != file) { meshfile -> close (); delete meshfile; }
+  } else
+    message (routine, "can't find mesh information", ERROR);
+
+  // -- Session input stage is over.
+
+  file.close();
+
+  // -- Complete computation of mesh geometric information.
+
+  u[0] -> mapElements ();
+
+  // -- Compute domain boundary edge information.
+  
+  u[0] -> buildBoundaries ();
+
+  // -- Input mesh topology information, do RCM renumbering.
+
+  u[0] -> readConnect (session);
+  u[0] -> renumber    ();
+
+  // -- Clean up.
+
+  state_file.open   (strcat(strcpy(s, domain_name), ".sta"));
+  history_file.open (strcat(strcpy(s, domain_name), ".his"));
+  field_file.open   (strcat(strcpy(s, domain_name), ".fld"));
+
+  if (!state_file)   message(routine, "can't open state file",   ERROR);
+  if (!history_file) message(routine, "can't open history file", ERROR);
+  if (!field_file)   message(routine, "can't open field file",   ERROR);
 }
 
-Domain::~Domain() {
-  delete [] domain_name;
-  delete [] domain_field_tag;
-  delete [] domain_edge_tag;
-  domain_state_file.  close();
-  domain_history_file.close();
-  domain_field_file.  close();
-}
-
-const char *Domain::name() const          { return domain_name;      }
-void        Domain::name(const char* s)   { strcpy (domain_name, s); }
-const char* Domain::fTag() const          { return domain_field_tag; }
-const char* Domain::eTag() const          { return domain_edge_tag;  }
-
-int&        Domain::step()                { return domain_step;   }
-double&     Domain::time()                { return domain_time;   }
-int         Domain::nField() const        { return domain_nfield; }
-int         Domain::nBedge() const        { return domain_nedge;  }
-int&        Domain::nEl()                 { return domain_nel;    }
-
-ofstream& Domain::stateout()              {
-  return domain_state_file; }
-void      Domain::stateout(const char* s) {
-  domain_state_file.close(); domain_state_file.open(s); }
-
-ofstream& Domain::histout()               {
-  return domain_history_file; }
-void      Domain::histout(const char* s)  {
-  domain_history_file.close(); domain_history_file.open(s); }
-
-ofstream& Domain::fieldout()              {
-  return domain_field_file; }
-void      Domain::fieldout(const char* s) {
-  domain_field_file.close(); domain_field_file.open(s); }
 
 
-void Domain::addField (Element *E) {
-  Element **X = new Element*[domain_nfield+1];
 
-  for (int i = 0; i < domain_nfield; i++) X[i] = u[i];
-  X[domain_nfield] = E;
+
+void Domain::addField (Field* F)
+// ---------------------------------------------------------------------------
+// Add a new Field pointer to Domain's array.
+// ---------------------------------------------------------------------------
+{
+  Field** X = new Field* [nfield + 1];
+
+  for (int i(0); i < nfield; i++) X[i] = u[i];
+  X[nfield] = F;
 
   delete [] u;
   u = X;
 
-  strncat (domain_field_tag, &(E -> name), 1);
-  domain_nfield++;
+  nfield++;
 }
 
 
-void Domain::addBedge (Bedge *B) {
-  Bedge **X = new Bedge*[domain_nedge+1];
-  
-  for (int i = 0; i < domain_nedge; i++) X[i] = uB[i];
-  X[domain_nedge] = B;
 
-  delete [] uB;
-  uB = X;
 
-  strncat (domain_edge_tag, &(B -> name), 1);
-  domain_nedge++;
-}
 
-#include <time.h>
-
-ostream& operator << (ostream& os, Domain& D)
-/* ========================================================================= *
- * Output all Domain field variables on ostream in prism-compatible form.    *
- * ========================================================================= */
+void Domain::restart ()
+// ---------------------------------------------------------------------------
+// If a restart file "name".rst can be found, use it to load
+// velocity fields.  Otherwise initialize velocity fields to zero.
+// ---------------------------------------------------------------------------
 {
-  char *hdr_fmt[] = { 
-    "%-25s "    "Session\n",
-    "%-25s "    "Created\n",
-    "%-25s "    "Nr, Ns, Nz, Elements\n",
-    "%-25d "    "Step\n",
-    "%-25.6g "  "Time\n",
-    "%-25.6g "  "Time step\n",
-    "%-25.6g "  "Kinvis\n",
-    "%-25.6g "  "Beta\n",
-    "%-25s "    "Fields Written\n",
-    "%-25s "    "Format\n"
-  };
+  char  restartfile[StrMax];
+  strcat (strcpy (restartfile, domain_name), ".rst");
 
-  char      routine[] = "Domain << operator";
-  char      buf1[STR_MAX], buf2[STR_MAX];
-  int       np   = D.u[0] -> np;
-  int       ntot = sqr(np) * D.domain_nel;
-  time_t    tp   = ::time(0);
+  ifstream file (restartfile);
 
-  sprintf (buf1, hdr_fmt[0], D.domain_name);
-  os << buf1;
+  if   (file) file >> *this;
+  else        for (int i(0); i < DIM; i++) *u[i] = 0.0;
+}
 
-  strftime (buf2, 25, "%a %b %d %H:%M:%S %Y", localtime(&tp));
-  sprintf  (buf1, hdr_fmt[1], buf2);
-  os << buf1;
 
-  sprintf (buf2, "%1d %1d %1d %1d", np, np, 1, D.domain_nel);
-  sprintf (buf1, hdr_fmt[2], buf2);
-  os << buf1;
 
-  sprintf (buf1, hdr_fmt[3], D.domain_step);
-  os << buf1;
 
-  sprintf (buf1, hdr_fmt[4], D.domain_time);
-  os << buf1;
 
-  sprintf (buf1, hdr_fmt[5], dparam("DELTAT"));
-  os << buf1;
+static istream& nextBlock (istream& istr, char* s)
+// ---------------------------------------------------------------------------
+// Advance to start of the next block of information in file, skipping
+// empty lines and comment lines (lines starting with '#').
+// Then uppercase the new start line.
+// ---------------------------------------------------------------------------
+{
+  while (istr.getline (s, StrMax)) if (s[0] != '#' && s[0] != '\n') break;
+  upperCase (s);
 
-  sprintf (buf1, hdr_fmt[6], dparam("KINVIS"));
-  os << buf1;
+  return istr;
+}
 
-  sprintf (buf1, hdr_fmt[7], dparam("BETA"));
-  os << buf1;
 
-  sprintf (buf1, hdr_fmt[8], D.domain_field_tag);
-  os << buf1;
 
-  sprintf (buf1, hdr_fmt[9], (option("BINARY")) ? "binary" : "ASCII");
-  os << buf1;
 
-  if (option ("BINARY")) {
-    register int n;
-    for (n = 0; n < D.domain_nfield; n++)
-      os.write((char*) *D.u[n] -> value, ntot*sizeof(double));
-  } else {
-    register int  i, n;
-    os.setf (ios::scientific, ios::floatfield);
-    os.setf (ios::uppercase);
-    for (i = 0; i < ntot; i++) {
-      for (n = 0; n < D.domain_nfield; n++)
-        os << setw(14) << D.u[n] -> value[0][i];
-      os << endl;
+
+static ifstream* altFile (ifstream& ist)
+// ---------------------------------------------------------------------------
+// Look in file for a new filename.  Open & return a pointer if it exists.
+// ---------------------------------------------------------------------------
+{
+  char routine[] = "altFile";
+  char s1[StrMax];
+
+  ist.getline(s1, StrMax);
+
+  if (   strstr (s1, "FILE") 
+      || strstr (s1, "File") 
+      || strstr (s1, "file") ) {
+
+    ifstream  *newfile;
+    char       s2[StrMax];
+
+    if (!(sscanf (s1, "%*s, %s", s2))) {
+      sprintf (s2, "couldn't get element file name from string: %s", s1);
+      message (routine, s2, ERROR);
+    } else if (!(newfile = new ifstream (s2))) {
+      sprintf (s1, "couldn't find alternate file %s", s2);
+      message (routine, s1, ERROR);
     }
-  }
 
-  os << flush;
-  if (!os) message (routine, "failed writing field file", ERROR);
+    return newfile;
 
-  return os;
+  } else
+    return &ist;
+}
+
+
+
+
+
+static istream& readOptions (istream& istr)
+// ---------------------------------------------------------------------------
+// Read solution options from istr, set into external list.
+//
+// Option parameters may be either integer or character (the first char of
+// a string), but in either case the integer representation is stored.  This
+// means that string option parameters can be distinguished if the first
+// character is unique (case sensitive).
+// ---------------------------------------------------------------------------
+{
+  char   routine[] = "readOptions";
+  char   s1[StrMax], s2[StrMax];
+  int    i;
+  
+  istr.getline (s1, StrMax).getline (s1, StrMax);
+
+  do {
+    if (isalpha (s1[0])) {
+      i = (int) s1[0];
+      if (sscanf (s1, "%*s %s", s2) != 1) {
+	sprintf (s2, "unable to scan character parameter from string %s", s1);
+	message (routine, s2, ERROR);
+      }
+    } else {
+      if (sscanf (s1, "%d %s", &i, s2) != 2) {
+	sprintf (s2, "unable to scan integer parameter from string %s", s1);
+	message (routine, s2, ERROR);
+      }
+    }
+
+    setOption (s2, i);
+    
+    istr.getline(s1, StrMax);
+  } while (s1[0]);
+
+  return istr;
+}
+
+
+
+
+
+static istream& readIparams (istream& istr)
+// ---------------------------------------------------------------------------
+// Read integer parameters from istr, set into external list.
+// ---------------------------------------------------------------------------
+{
+  char   routine[] = "readIparams";
+  char   s1[StrMax], s2[StrMax];
+  int    i;
+
+  istr.getline(s1, StrMax).getline(s1, StrMax);
+
+  do {
+    if (sscanf (s1, "%d %s", &i, s2) != 2) {
+      sprintf (s2, "unable to scan integer parameter from string %s", s1);
+      message (routine, s2, ERROR);
+    }
+    setIparam (s2, i);
+    
+    istr.getline(s1, StrMax);
+  } while (s1[0]);
+
+  return istr;
+}
+
+
+
+
+
+static istream& readFparams (istream& istr)
+// ---------------------------------------------------------------------------
+// Read floating-point parameters from istr, set into external list.
+//
+// Values may be defined in terms of previously-defined symbols.
+// Symbols are case-sensitive.
+//
+// Example:
+// 500      Re
+// 1/Re     KINVIS  (sets dparam "KINVIS" = 0.002).
+// ---------------------------------------------------------------------------
+{
+  char   routine[] = "readFparams";
+  char   s1[StrMax], s2[StrMax], s3[StrMax];
+
+  istr.getline(s1, StrMax).getline(s1, StrMax);
+
+  do {
+    if (sscanf (s1, "%s %s", s2, s3) != 2)
+      message (routine, strcat(s1, "?"), ERROR);
+
+    setDparam(s3, interpret (s2));
+    
+    istr.getline(s1, StrMax);
+  } while (s1[0]);
+
+  return istr;
 }
