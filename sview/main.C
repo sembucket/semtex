@@ -2,7 +2,7 @@
 // sview: Interactive display of isosurfaces.  This version works with
 // NEKTON/PRISM/SEMTEX multi-element 3D data, and uses OpenGL and GLUT.
 //
-// Copyright (C) 1999-2001 Hugh Blackburn
+// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 //
 // USAGE
 // -----
@@ -32,7 +32,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "sview_h"
+#include "sview.h"
 
 static char prog[] = "sview";
 using namespace std;
@@ -66,8 +66,7 @@ int main (int    argc,
   int  i;
   char *mfile, *ffile, *script = 0, *pfile = 0;
   char start[] = 
-    "-- sview : isosurface viewer for spectral element meshes --\n"
-    "           OpenGL version CSIRO 1999\n";
+    "-- sview : isosurface viewer for spectral element meshes --\n";
 
   // -- Set graphics state defaults.
 
@@ -77,6 +76,7 @@ int main (int    argc,
   State.rotate  = GL_TRUE;
   State.blackbk = GL_TRUE;
   State.alpha   = GL_TRUE;
+  State.alias   = GL_FALSE;
   State.fog     = GL_FALSE;
   State.cylind  = GL_FALSE;
   State.dump    = GL_FALSE;

@@ -1,7 +1,7 @@
 ##############################################################################
 # Makefile for sview, an isosurface visualisation tool for OpenGL.
 #
-# Copyright (C) 1999 Hugh Blackburn
+# Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 #
 # Set DEBUG=1  when making to make a debuggable executable.
 # Set PYTHON=1 when making to build bindings for python.
@@ -70,8 +70,6 @@ endif
 ifeq ($(ARCH),Darwin)		# -- Mac OSX (10.3).
 CXX = g++
 LD  = g++
-#GLUT_LIBS = -ltiff
-GLUT_LIBS = -ltiff -lglut
 CPPFLAGS = -I. -I/sw/include
 ifdef PYTHON
   CPPFLAGS += -I$(PYTHON_HDRS)
@@ -82,14 +80,16 @@ ifdef DEBUG
 else
   CXXFLAGS += -O2
 endif
-#LDFLAGS = -L/sw/lib -framework GLUT -framework OpenGL $(GLUT_LIBS) -lobjc
-LDFLAGS = -framework OpenGL -L/sw/lib $(GLUT_LIBS)
+#LDFLAGS = -framework GLUT -framework OpenGL -lobjc -L/sw/lib -ltiff
+# -- Using the OSX GLUT framework gives problems with command-line
+#    filename resolution. Instead, we use the fink-supplied libglut:
+LDFLAGS = -framework OpenGL -L/sw/lib -ltiff -lglut
 endif
 
 
 # -- Remainder is machine-independent.
 
-HDRS = ./Sview.h
+HDRS = ./sview.h
 SOBJ = main.o graphics.o image.o isowire.o keycom.o semIO.o
 
 DEPEND = $(SOBJ)

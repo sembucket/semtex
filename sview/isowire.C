@@ -13,7 +13,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <sview_h>
+#include "sview.h"
 
 const int VERT_MAX = 2000000;
 const int POLY_MAX = 2000000;
@@ -424,9 +424,11 @@ static int equal_vertex (float* new_vertex,
  *  4 decimal accuracy is considered to be sufficient.
  * ------------------------------------------------------------------------- */
 {
-  if ((int)(10000*new_vertex[0]) == (int)(10000*XVERTICES[old_vertex-1]) &&
-      (int)(10000*new_vertex[1]) == (int)(10000*YVERTICES[old_vertex-1]) &&
-      (int)(10000*new_vertex[2]) == (int)(10000*ZVERTICES[old_vertex-1])  )
+  const int EPS = 10000;
+
+  if ((int)(EPS*new_vertex[0]) == (int)(EPS*XVERTICES[old_vertex-1]) &&
+      (int)(EPS*new_vertex[1]) == (int)(EPS*YVERTICES[old_vertex-1]) &&
+      (int)(EPS*new_vertex[2]) == (int)(EPS*ZVERTICES[old_vertex-1])  )
     return 1;
   else
     return 0;

@@ -2,10 +2,12 @@
 // keycom.C: process commands typed by user into command window to generate
 // isosurfaces.
 //
+// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
+//
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <sview_h>
+#include "sview.h"
 
 static void catalogue ();
 static int  addSurf   ();

@@ -1,12 +1,12 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Input SEM mesh and field data.
 //
-// Copyright (C) 1999 Hugh Blackburn
+// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 // 
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <sview_h>
+#include "sview.h"
 
 static int  _swab;		// -- File-scope flag for byte-swapped input.
 static int  iformat ();

@@ -1,12 +1,13 @@
 ///////////////////////////////////////////////////////////////////////////////
 // graphics.C: All drawing is done through OpenGL commands and GLUT callbacks.
 //
-// Copyright (C) 1999 Hugh Blackburn
+// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <sview_h>
+#include "sview.h"
+
 using namespace std;
 
 // -- Materials definitions, in display order ---
@@ -64,6 +65,17 @@ void keyboard (unsigned char key,
       glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     } else {
       glDisable   (GL_BLEND);
+    }
+    break;
+  case 'A':
+    if (State.alias = !State.alias) {
+      glDisable (GL_LINE_SMOOTH);
+      glDisable (GL_POINT_SMOOTH);
+      glDisable (GL_POLYGON_SMOOTH);
+    } else {
+      glEnable  (GL_LINE_SMOOTH);
+      glEnable  (GL_POINT_SMOOTH);
+      glEnable  (GL_POLYGON_SMOOTH);
     }
     break;
   case 'b':
@@ -313,13 +325,20 @@ void initGraphics ()
   glEnable       (GL_BLEND);
   glBlendFunc    (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+  // -- Anti-aliasing (enabled by default);
+
+  glEnable       (GL_LINE_SMOOTH);
+  glEnable       (GL_POINT_SMOOTH);
+  glEnable       (GL_POLYGON_SMOOTH);
+
   // -- Shared material properties:
   //    both surfaces have white highlights,
   //    but only "front" surface is shiny.
 
   GLfloat specular[] = {1.0, 1.0, 1.0, 1.0};
 
-  glMaterialf    (GL_FRONT,          GL_SHININESS, 80.0); 
+  //  glMaterialf    (GL_FRONT,          GL_SHININESS, 80.0); 
+  glMaterialf    (GL_FRONT_AND_BACK,          GL_SHININESS, 80.0); 
   glMaterialfv   (GL_FRONT_AND_BACK, GL_SPECULAR,  specular);
 
   // -- Perspective.
@@ -482,7 +501,7 @@ static void drawSurf ()
 
 static void drawPoints ()
 // ---------------------------------------------------------------------------
-// Draw the isosurfaces selected for display.
+// Draw set of isolated points.
 // ---------------------------------------------------------------------------
 {
   const int    N = Point.size();

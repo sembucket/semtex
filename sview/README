@@ -98,16 +98,18 @@ Cartesian axes.
 
 Other key commands:
 
-'a': toggle alpha blending of isosurfaces. 
-'b': toggle rendering of mesh outlines.
+'a': toggle alpha blending of isosurfaces. Default: on.
+'A': toggle anti-aliasing. Default: on.
+'b': toggle rendering of mesh outlines. Default: on.
 'c': load isosurface colour tables from "colours.sv".
 'd': dump a TIFF image of window to file "sview.tif".
-'i': toggle inversion of background from black to white (default black).
+'f': toggle fog depth-cueing. Default: off.
+'i': toggle inversion of background from black to white. Default: black.
 'k': write viewpoint-setting commands to file "knobs.sv".
 'l': read viewing information from file "knobs.sv".
 'n': narrow the view angle in 5 deg steps (min 0).
 'r': reset view.
-'P': toggle drawing of particles.
+'P': toggle drawing of particles. Default: off.
 'q': quit sview (also in the terminal interface, see below).
 'w': widen the view angle in 5 degree steps (45 deg default, 90 deg max).
 ESC: iconifies the window and puts sview in isosurface manipulation mode.
