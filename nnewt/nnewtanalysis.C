@@ -22,7 +22,7 @@ nnewtAnalyser::nnewtAnalyser (Domain* D    ,
 
     // -- Open state-variable file.
 
-    flx_strm.open (strcat (strcpy (str, src -> name), ".flx"));
+    flx_strm.open (strcat (strcpy (str, _src -> name), ".flx"));
     if (!flx_strm) message (routine, "can't open flux file",  ERROR);
 
     flx_strm << "# nnewt state information file"      << endl;
@@ -42,9 +42,9 @@ void nnewtAnalyser::analyse (AuxField** work, AuxField** temp, AuxField* NNV)
   
   Analyser::analyse (work);
   
-  const integer periodic = !(src->step % (integer)Femlib::value("IO_HIS")) ||
-                           !(src->step % (integer)Femlib::value("IO_FLD"));
-  const integer final    =   src->step ==(integer)Femlib::value("N_STEP");
+  const integer periodic = !(_src->step % (integer)Femlib::value("IO_HIS")) ||
+                           !(_src->step % (integer)Femlib::value("IO_FLD"));
+  const integer final    =   _src->step ==(integer)Femlib::value("N_STEP");
   const integer state    = periodic || final;
   
   if (!state) return;
@@ -69,8 +69,8 @@ void nnewtAnalyser::analyse (AuxField** work, AuxField** temp, AuxField* NNV)
   // First do the 2-D components
   //
 
-  *(work[0]) = *(src -> u[0]);
-  *(temp[0]) = *(src -> u[1]);
+  *(work[0]) = *(_src -> u[0]);
+  *(temp[0]) = *(_src -> u[1]);
   *(work[1]) = *(work[0]);
   *(temp[1]) = *(temp[0]);
 
@@ -88,8 +88,8 @@ void nnewtAnalyser::analyse (AuxField** work, AuxField** temp, AuxField* NNV)
   ROOTONLY {
 
     tfor.z = pfor.z = vfor.z = 0.0;
-    pfor   = Field::normalTraction (src -> u[DIM]);
-    vfor   = Field::xytangTractionNN (src -> u[0], work, temp);
+    pfor   = Field::normTraction (_src -> u[DIM]);
+    vfor   = Field::xytangTractionNN (_src -> u[0], work, temp);
     tfor.x = pfor.x + vfor.x;
     tfor.y = pfor.y + vfor.y;
     tfor.z = pfor.z;
@@ -99,7 +99,7 @@ void nnewtAnalyser::analyse (AuxField** work, AuxField** temp, AuxField* NNV)
 
   if (DIM == 3) {
     
-    *(work[0]) = *(src -> u[2]);
+    *(work[0]) = *(_src -> u[2]);
     *(work[1]) = *(work[0]);
     
     for ( i=0 ; i<2 ; i++ ) {
@@ -111,7 +111,7 @@ void nnewtAnalyser::analyse (AuxField** work, AuxField** temp, AuxField* NNV)
     
     ROOTONLY {
       
-      vfor.z  = (Field::ztangTractionNN (src -> u[2], work)).z;
+      vfor.z  = (Field::ztangTractionNN (_src -> u[2], work)).z;
       tfor.z += vfor.z;
 
     }
@@ -123,7 +123,7 @@ void nnewtAnalyser::analyse (AuxField** work, AuxField** temp, AuxField* NNV)
 	     "%#10.6g %#10.6g %#10.6g "
 	     "%#10.6g %#10.6g %#10.6g "
 	     "%#10.6g %#10.6g %#10.6g",
-	     src -> step, src -> time,
+	     _src -> step, _src -> time,
 	     pfor.x,   vfor.x,   tfor.x,
 	     pfor.y,   vfor.y,   tfor.y,
 	     pfor.z,   vfor.z,   tfor.z);

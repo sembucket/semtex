@@ -360,7 +360,7 @@ void Field::smooth (const int_t nZ ,
 }
 
 
-real_t Field::gradientFlux (const Field* C)
+real_t Field::scalarFlux (const Field* C)
 // ---------------------------------------------------------------------------
 // Static member function.
 //
@@ -375,13 +375,13 @@ real_t Field::gradientFlux (const Field* C)
   register int_t           i;
   
   for (i = 0; i < C -> _nbound; i++)
-    F += BC[i] -> gradientFlux ("wall", C -> _data, &work[0]);
+    F += BC[i] -> scalarFlux ("wall", C -> _data, &work[0]);
 
   return F;
 }
 
 
-Vector Field::normalTraction (const Field* P)
+Vector Field::normTraction (const Field* P)
 // ---------------------------------------------------------------------------
 // Static member function.
 //
@@ -398,7 +398,7 @@ Vector Field::normalTraction (const Field* P)
   register int_t           i;
   
   for (i = 0; i < nsurf; i++) {
-    secF = BC[i] -> normalTraction ("wall", P -> _data, &work[0]);
+    secF = BC[i] -> normTraction ("wall", P -> _data, &work[0]);
     F.x += secF.x;
     F.y += secF.y;
   }
@@ -407,9 +407,9 @@ Vector Field::normalTraction (const Field* P)
 }
 
 
-Vector Field::tangentTraction (const Field* U,
-			       const Field* V,
-			       const Field* W)
+Vector Field::tangTraction (const Field* U,
+			    const Field* V,
+			    const Field* W)
 // ---------------------------------------------------------------------------
 // Static member function.
 //
@@ -440,10 +440,10 @@ Vector Field::tangentTraction (const Field* U,
   register int_t           i;
 
   for (i = 0; i < nbound; i++) {
-    secF = UBC[i] -> tangentTraction  ("wall", U->_data, V->_data, &work[0]);
+    secF = UBC[i] -> tangTraction  ("wall", U->_data, V->_data, &work[0]);
     F.x        -= mu * secF.x;
     F.y        -= mu * secF.y;
-    if (W) F.z -= mu * WBC[i] -> gradientFlux ("wall", W->_data, &work[0]);
+    if (W) F.z -= mu * WBC[i] -> scalarFlux ("wall", W->_data, &work[0]);
   }
 
   return F;
@@ -474,7 +474,7 @@ void Field::normTractionV (real_t*      fx,
   for (j = 0; j < nz; j++) {
     p = P -> _plane[j];
     for (i = 0; i < nsurf; i++) {
-      secF = BC[i] -> normalTraction ("wall", p, &work[0]);
+      secF = BC[i] -> normTraction ("wall", p, &work[0]);
       fx[j] += secF.x;
       fy[j] += secF.y;
     }
@@ -513,10 +513,10 @@ void Field::tangTractionV (real_t*      fx,
     v = V -> _plane[j];
     w = (W) ? W -> _plane[j] : 0;
     for (i = 0; i < nbound; i++) {
-      secF = UBC[i] -> tangentTraction ("wall", u, v, &work[0]);
+      secF = UBC[i] -> tangTraction ("wall", u, v, &work[0]);
              fx[j] -= mu * secF.x;
              fy[j] -= mu * secF.y;
-      if (W) fz[j] -= mu * WBC[i] -> gradientFlux ("wall", w, &work[0]);
+      if (W) fz[j] -= mu * WBC[i] -> scalarFlux ("wall", w, &work[0]);
     }
   }
 }

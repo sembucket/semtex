@@ -22,14 +22,21 @@ public:
   void   mulY      (real_t*)                                             const;
   void   divY      (real_t*)                                             const;
 
+  bool   inGroup     (const char* grp) const { return !(strcmp (grp,_group)); }
   void   addForGroup (const char*,const real_t,real_t*)                  const;
   void   setForGroup (const char*,const real_t,real_t*)                  const;
 
-  real_t normalFlux  (const char*,const real_t*,const real_t*,real_t*)   const;
-  real_t gradientFlux(const char*,const real_t*,real_t*)                 const;
+  real_t vectorFlux (const char*,const real_t*,const real_t*,real_t*)    const;
+  real_t scalarFlux (const char*,const real_t*,real_t*)                  const;
 
-  Vector normalTraction (const char*,const real_t*,real_t*)              const;
-  Vector tangentTraction(const char*,const real_t*,const real_t*,real_t*)const;
+  Vector normTraction (const char*,const real_t*,real_t*)                const;
+  Vector tangTraction (const char*,const real_t*,const real_t*,real_t*)  const;
+
+  void traction (const int_t,const real_t, 
+		 const real_t*,const real_t*,const real_t*,const real_t*,
+		 const real_t*,const real_t*,const real_t*,const real_t*,
+		 real_t*,real_t*,real_t*,real_t*,real_t*,
+		 real_t*,real_t*,real_t*,real_t*,real_t*,real_t*)        const;
 
   // -- Specials for nnewt:
 
@@ -43,6 +50,7 @@ protected:
   const Element* _elmt   ;	// Corresponding element.
   int_t          _side   ;	// Corresponding side.
 
+  int_t          _eoffset;      // Offset of corresponding element in Field.
   int_t          _doffset;	// Offset in Field data plane (matches BLAS).
   int_t          _dskip  ;	// Skip   in Field data plane (matches BLAS).
 
