@@ -13,6 +13,10 @@ else
   LIB = libfem.a
 endif
 
+ifdef DEBUG_FFT
+  DEFINES += -DDEBUG_FFT
+endif
+
 # ----------------------------------------------------------------------------
 # Create dependency list.
 #
