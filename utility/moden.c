@@ -7,7 +7,10 @@
  *
  * USAGE
  * -----
- * moden [-h] [-m mode] [input[.fld]
+ * moden [-h] [-m <mode>] [-z] [input[.fld]
+ *
+ * -m nominates mode to select [Default: 0]
+ * -z forces mode zero to be delt with as complex.
  *
  * $Id$
  *****************************************************************************/
@@ -22,7 +25,7 @@
 #include <femdef.h>
 #include <alplib.h>
 
-static void getargs (int, char**, FILE**, int*);
+static void getargs (int, char**, FILE**, int*, int*);
 static int  _index  (const char*, char);
 
 static char prog[] = "moden";
@@ -47,12 +50,12 @@ int main (int    argc,
  * ------------------------------------------------------------------------- */
 {
   char   buf[STR_MAX], fields[STR_MAX], fmt[STR_MAX];
-  int    i, j, n, np, nz, nel, mode = 0, swab = 0;
+  int    i, j, n, np, nz, nel, mode = 0, swab = 0, cmplx = 0;
   int    nfields, nplane, nplaneEven, npts, nptsEven, npad, ntot;
   FILE   *fp_in = stdin, *fp_out = stdout;
   double **data, *plane, *vcmpt;
 
-  getargs (argc, argv, &fp_in, &mode);
+  getargs (argc, argv, &fp_in, &mode, &cmplx);
   format  (fmt);
 
   while (fgets (buf, STR_MAX, fp_in)) { 
@@ -131,7 +134,7 @@ int main (int    argc,
 
     /* -- Add in imaginary part if not mode zero. */
 
-    if (mode) {
+    if (mode || cmplx) {
       vcmpt = data[_index (fields, 'u')] + (2 * mode + 1) * nplane;
       dvvtvp (nplane, vcmpt, 1, vcmpt, 1, plane, 1, plane, 1);
       vcmpt = data[_index (fields, 'v')] + (2 * mode + 1) * nplane;
@@ -158,13 +161,14 @@ int main (int    argc,
 static void getargs (int    argc ,
 		     char** argv ,
 		     FILE** fp_in,
-		     int*   mode )
+		     int*   mode ,
+		     int*   cmplx)
 /* ------------------------------------------------------------------------- *
  * Parse command line arguments.
  * ------------------------------------------------------------------------- */
 {
   char c, fname[FILENAME_MAX];
-  char usage[] = "moden [-h] [-m mode] [input[.fld]\n";
+  char usage[] = "moden [-h] [-m mode] [-z] [input[.fld]\n";
 
   while (--argc && (*++argv)[0] == '-')
     switch (c = *++argv[0]) {
@@ -175,6 +179,9 @@ static void getargs (int    argc ,
     case 'm':
       if (*++argv[0]) *mode = atoi (*argv);
       else { *mode = atoi (*++argv); argc--; }
+      break;
+    case 'z':
+      cmplx = 1;
       break;
     default:
       fprintf (stderr, "%s: unknown option -- %c\n", prog, c);
