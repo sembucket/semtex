@@ -107,8 +107,8 @@ void FluidParticle::integrate (const integer step)
     
     // -- Predictor.
 
-    u[0] = D -> u[0] -> probe (E, r, s, (const integer) 0);
-    v[0] = D -> u[1] -> probe (E, r, s, (const integer) 0);
+    u[0] = D -> u[0] -> probe (E, r, s, (integer) 0);
+    v[0] = D -> u[1] -> probe (E, r, s, (integer) 0);
 
     xp = P.x;
     yp = P.y;
@@ -131,8 +131,8 @@ void FluidParticle::integrate (const integer step)
 
     // -- Corrector.
 
-    up = D -> u[0] -> probe (E, r, s, (const integer) 0);
-    vp = D -> u[1] -> probe (E, r, s, (const integer) 0);
+    up = D -> u[0] -> probe (E, r, s, (integer) 0);
+    vp = D -> u[1] -> probe (E, r, s, (integer) 0);
 
     P.x += C_coeff[0] * up;
     P.y += C_coeff[0] * vp;
