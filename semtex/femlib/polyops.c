@@ -132,12 +132,12 @@ void dermat_k(int K, double *zero, double **D, double **DT)
 
    for (j=0; j<K; j++)
      for (k=0; k<K; k++)
-       if (j == k) {		/* Diagonal term:     use eq (2.5). */
+       if (j == k) {		    /* Diagonal term:     use eq (2.5). */
 	 sum = 0.0;
 	 for (l=0; l<K; l++)
 	   if (l != k) sum += 1.0 / (zero[k] - zero[l]);
 	 D[k][k] = DT[k][k] = sum;
-       } else {			/* Off-diagonal term: use eq (2.7). */
+       } else {			    /* Off-diagonal term: use eq (2.7). */
 	 prod = 1.0;
 	 for (l=0; l<K; l++) 
 	   if (l != j) prod *= zero[j] - zero[l];
@@ -193,11 +193,11 @@ void intmat_g(int K, double *zero, int I, double *x, double **IN, double **IT)
 
 
 
-void jacobf(int     n     ,  double  x     ,
-	    double  alpha ,  double  beta  ,
-	    double *poly  ,  double *pder  ,
-	    double *polym1,  double *pderm1,
-	    double *polym2,  double *pderm2)
+static void jacobf(int     n     ,  double  x     ,
+		   double  alpha ,  double  beta  ,
+		   double *poly  ,  double *pder  ,
+		   double *polym1,  double *pderm1,
+		   double *polym2,  double *pderm2)
 /* ========================================================================= *
  * Computes the Jacobi polynomial (poly) of degree n, and its derivative     *
  * (pder), at location x.  Values for lower degree are also returned.        *
@@ -628,8 +628,10 @@ void uniknot(int nk, double *k)
   int     i, nh;
   double  dx;
 
-
-  if (nk<2) message("uniknot()", "need at least 2 points in interval", ERROR);
+  if (nk < 2) {
+    *k = 0.0;
+    return;
+  }
 
   nh = nk >> 1;
 
