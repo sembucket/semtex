@@ -150,12 +150,12 @@ void Analyser::analyse (AuxField** work)
 
     if (add) {
       FluidParticle *I, *F;
+      Point          P;
 
       for (ListIterator<FluidParticle*> t (initial); t.more(); t.next()) {
 	I  = t.current();
-	F  = new FluidParticle (src,
-				I -> ID(),
-				const_cast<Point&>(I -> location()));
+	P  = I -> location();
+	F  = new FluidParticle (src, I -> ID(), P);
 	if ((F -> inMesh())) particle.add (F);
       }
     }
