@@ -1,93 +1,96 @@
-/*****************************************************************************
- * drive.C: compute solution to elliptic problem, compare to exact solution.
- *
- * Usage:
- * =====
- * elliptic [options] session
- *   options:
- *   -h       ... print usage prompt
- *   -v[v...] ... increase verbosity level
- *
- * Files:
- * =====
- * Set-up and execution of the problem is controlled by a session file,
- * which is block-structured.  Each block has a (pre-defined) name and
- * is delimited by '{' & '}'.  Contents of session files are case-insensitive,
- * *except* for function strings and named floating-point parameters.
- * Required blocks are: PROBLEM, PARAMETER, BOUNDARY and MESH.
- * Characters between block names and the opening '{' are ignored, and
- * can serve as comments.
- * 
- * PROBLEM block
- * -------------
- * This determines the type of problem to be solved and the kind of
- * geometry used (Cartesian, cylindrical, ...).
- *
- * (1)  Currently can solve Helmholtz (Possion, Laplace) and unsteady
- *      (Navier)--Stokes problems.
- * (2)  The default (and only current) geometry is 2D Cartesian.
- *
- * Example for a Helmholtz problem:
- *
- * problem {
- * helmholtz
- * [geometry   2D-Cartesian]
- * [forcing    function]
- * [exact      function]
- * }
- *
- * (1)  For a Helmholtz problem, the parameter "LAMBDA2" should be set in the
- *      floating point parameters section.  The default value (pre-installed)
- *      is zero, which converts the Helmholtz problem to a Poisson problem.
- * (2)  The forcing function describes (temporo-spatially-varying) forcing.
- *      If omitted, and LAMBDA2 == 0.0, the problem degenerates to Laplace.
- * (3)  Forcing function can use variables 'x' and 'y' for spatial variation
- *      and 't' for temporal variation.  Function should contain no spaces,
- *      which terminate scanning.
- *
- * PARAMETER block:
- * ---------------
- * In order, there should be option, integer and floating-point parameters.
- * The number of each type is given at the start of each sub-block.
- *
- * BOUNDARY block:
- * --------------
- * Boundary conditions for integer-tagged, non-overlapping boundary segments.
- * The number of segments is given at the start of the block.
- *
- * MESH block:
- * ----------
- * Commences with a list of vertices, followed by a list of elements with
- * corner vertices given as tags in vertex list.  The non-overlapping
- * boundary sectors are supplied as lists of vertices, together with an
- * integer tag which ties back to the BOUNDARY block.  Last comes
- * a list of curved edge specifiers, which are defined on a element-edge
- * basis.
- *
- * Program development by:
- * ======================
- * Hugh Blackburn
- * CSIRO
- * Division of Building, Construction and Engineering
- * P.O. Box 56
- * Highett, Vic 3190
- * Australia
- * hmb@dbce.csiro.au
- *
- *****************************************************************************/
+//////////////////////////////////////////////////////////////////////////////
+// drive.C: compute solution to elliptic problem, (compare to exact solution).
+//
+// Usage:
+// =====
+// elliptic [options] session
+//   options:
+//   -h        ... print usage prompt
+//   -i        ... use iterative solver
+//   -O[<num>] ... define bandwidth optimization level  
+//   -v[v...]  ... increase verbosity level
+//
+// Files:
+// =====
+// Set-up and execution of the problem is controlled by a session file,
+// which is block-structured.  Each block has a (pre-defined) name and
+// is delimited by '{' & '}'.  Contents of session files are case-insensitive,
+////except* for function strings and named floating-point parameters.
+// Required blocks are: PROBLEM, PARAMETER, BOUNDARY and MESH.
+// Characters between block names and the opening '{' are ignored, and
+// can serve as comments.
+// 
+// PROBLEM block
+// -------------
+// This determines the type of problem to be solved and the kind of
+// geometry used (Cartesian, cylindrical, ...).
+//
+// (1)  Currently can solve Helmholtz (i.e. also Possion, Laplace) problems.
+// (2)  The default (and only current) geometry is 2D Cartesian.
+//
+// Example for a Helmholtz problem:
+//
+// problem {
+// helmholtz
+// [geometry   2D-Cartesian]
+// [forcing    function]
+// [exact      function]
+// }
+//
+// (1)  For a Helmholtz problem, the parameter "LAMBDA2" should be set in the
+//      floating point parameters section.  The default value (pre-installed)
+//      is zero, which converts the Helmholtz problem to a Poisson problem.
+// (2)  The forcing function describes (temporo-spatially-varying) forcing.
+//      If omitted, and LAMBDA2 == 0.0, the problem degenerates to Laplace.
+// (3)  Forcing function can use variables 'x' and 'y' for spatial variation
+//      and 't' for temporal variation.  Function should contain no spaces,
+//      which terminate scanning.
+//
+// PARAMETER block:
+// ---------------
+// In order, there should be option, integer and floating-point parameters.
+// The number of each type is given at the start of each sub-block.
+//
+// BOUNDARY block:
+// --------------
+// Boundary conditions for integer-tagged, non-overlapping boundary segments.
+// The number of segments is given at the start of the block.
+//
+// MESH block:
+// ----------
+// Commences with a list of vertices, followed by a list of elements with
+// corner vertices given as tags in vertex list.  The non-overlapping
+// boundary sectors are supplied as lists of vertices, together with an
+// integer tag which ties back to the BOUNDARY block.  Last comes
+// a list of curved edge specifiers, which are defined on a element-edge
+// basis.
+//
+// Program development by:
+// ======================
+// Hugh Blackburn
+// CSIRO
+// Division of Building, Construction and Engineering
+// P.O. Box 56
+// Highett, Vic 3190
+// Australia
+// hmb@dbce.csiro.au
+//
+//////////////////////////////////////////////////////////////////////////////
 
-static char  RCSid[] = "$Id$";
+static char
+RCSid[] = "$Id$";
 
 #include <Fem.h>
 #include <new.h>
 
 static char  prog[]  = "elliptic";
 static void  memExhaust () { message ("new", "free store exhausted", ERROR); }
-static const int MATCH = 0;
 
-void         Helmholtz (Domain*, Mesh*, char*);
-static void  getArgs   (int, char**, char*&);
-static void  setUp     (ifstream&, char*&, char*&);
+
+extern void      Helmholtz  (Domain*, char*, const real&);
+static void      getArgs    (int, char**, char*&);
+static void      setUp      (ifstream&, char*&, char*&);
+static ofstream* createFile (const Domain*);
 
 
 int  main (int argc, char *argv[])
@@ -99,29 +102,33 @@ int  main (int argc, char *argv[])
 #ifndef __DECCXX
   ios::sync_with_stdio ();
 #endif
-
-  ifstream  file;
-  char*     session;
-  char*     forcing = 0;
-  char*     exact   = 0;
+  
+  ifstream*  input = new ifstream;
+  ofstream*  output;
+  char*      session;
+  char*      forcing = 0;
+  char*      exact   = 0;
 
   initialize ();
 
-  getArgs (argc, argv, session);
+  getArgs       (argc, argv, session);
+  input -> open (session);
+  setUp         (*input, forcing, exact);
 
-  file.open (session);
-  setUp   (file, forcing, exact);
-
-  Mesh*    M = preProcess (file);
+  Mesh*    M = preProcess (*input);
   Domain*  D = new Domain (*M, session, iparam ("N_POLY"));
+  D -> u[0] -> setName ('u');
 
-  file.close ();
+  input -> close ();
 
-  D -> openFiles ();
+  output = createFile (D);
 
-  Helmholtz (D, M, forcing);
+  Helmholtz (D, forcing, dparam ("LAMBDA2"));
 
   if (exact) D -> u[0] -> errors (exact);
+
+  D -> dump (*output);
+  output -> close ();
 
   return EXIT_SUCCESS;
 }
@@ -135,11 +142,14 @@ static void getArgs (int argc, char** argv, char*& session)
 {
   char routine[] = "getArgs";
   char buf[StrMax], c;
+  int  level;
   char usage[]   =
     "Usage: %s [options] session-file\n"
     "  [options]:\n"
-    "  -h        ... print this message\n"
-    "  -v[v...]  ... increase verbosity level\n";
+    "  -h       ... print this message\n"
+    "  -i       ... use iterative solver\n"
+    "  -O[<n>]  ... set bandwidth optimization level 0, 1 (default) or 2\n"
+    "  -v[v...] ... increase verbosity level\n";
  
   while (--argc  && **++argv == '-')
     switch (c = *++argv[0]) {
@@ -147,6 +157,22 @@ static void getArgs (int argc, char** argv, char*& session)
       sprintf (buf, usage, prog);
       cout << buf;
       exit (EXIT_SUCCESS);
+      break;
+    case 'i':
+      setOption ("ITERATIVE", 1);
+      break;
+    case 'O':
+      if (*++argv[0])
+        level = atoi(*argv);
+      else {
+        --argc;
+        level = atoi(*++argv);
+      }
+      if (level < 0 || level > 3) {
+	fprintf (stdout, usage, prog);
+	exit (EXIT_FAILURE);	  
+      } else
+	setOption ("OPTIMIZE", level);
       break;
     case 'v':
       do
@@ -171,6 +197,8 @@ static void setUp (ifstream& file, char*& force, char*& exact)
 // forcing and exact solution, if known.
 // ---------------------------------------------------------------------------
 {
+  const int MATCH = 0;
+
   if (file.fail ()) message (prog, "couldn't open session file", ERROR);
 
   char   routine[] = "setProblem";
@@ -223,4 +251,19 @@ static void setUp (ifstream& file, char*& force, char*& exact)
 }
 
 
+static ofstream* createFile (const Domain* D)
+// ---------------------------------------------------------------------------
+// Create and return a field file for writing.
+// ---------------------------------------------------------------------------
+{
+  char       routine[] = "createFile";
+  ofstream*  output    = new ofstream;
+  char       s[StrMax];
+
+  output -> open (strcat (strcpy (s, D -> name ()), ".fld"));
+
+  if (! *output) message (routine, "can't open field file", ERROR);
+
+  return output;
+}
 
