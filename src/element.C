@@ -692,12 +692,17 @@ void Element::HelmholtzOp (const real  lambda2,
 {
   register int  ij;
   const int     ntot = nTot();
-  register real tmp, *R, *S, r2, hCon;
+  register real tmp, r2, hCon;
+  register real *R, *S, *g1, *g2, *g3, *g4;
   const real    **DV, **DT;
   const real    EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
-  R = wrk;
-  S = R + ntot;
+  R  = wrk;
+  S  = R + ntot;
+  g1 = G1;
+  g2 = G2;
+  g3 = G3;
+  g4 = G4;
 
   Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
@@ -705,41 +710,54 @@ void Element::HelmholtzOp (const real  lambda2,
   Blas::gemm ("N", "N", np, np, np, 1.0, src, np, *DV, np, 0.0, S, np);
 
   if (Geometry::system() == Geometry::Cylindrical) {
-    if (G3) {
+    if (g3) {
       for (ij = 0; ij < ntot; ij++) {
 	r2       = sqr (ymesh[ij]);
 	hCon     = (r2 > EPS) ? (betak2 / r2 + lambda2) : 0.0;
 	tmp      = R [ij];
-	R  [ij]  = G1[ij] * R  [ij] + G3[ij] * S  [ij];
-	S  [ij]  = G2[ij] * S  [ij] + G3[ij] * tmp;
-	tgt[ij]  = G4[ij] * src[ij] * hCon;
+	R  [ij]  = g1[ij] * R  [ij] + g3[ij] * S  [ij];
+	S  [ij]  = g2[ij] * S  [ij] + g3[ij] * tmp;
+	tgt[ij]  = g4[ij] * src[ij] * hCon;
       }
     } else {
       for (ij = 0; ij < ntot; ij++) {
 	r2       = sqr (ymesh[ij]);
 	hCon     = (r2 > EPS) ? (betak2 / r2 + lambda2) : 0.0;
-	R  [ij] *= G1[ij];
-	S  [ij] *= G2[ij];
-	tgt[ij]  = G4[ij] * src[ij] * hCon;
+	R  [ij] *= g1[ij];
+	S  [ij] *= g2[ij];
+	tgt[ij]  = g4[ij] * src[ij] * hCon;
       }
     }
 
   } else {			// -- Cartesian.
     hCon = betak2 + lambda2;
-    if (G3) {
+#ifdef __uxp__
+    if (g3) {
+      Veclib::copy    (ntot,       R,  1, tgt, 1);
+      Veclib::vvtvvtp (ntot,       g1, 1, R,   1, g3,  1, S,   1, R, 1);
+      Veclib::vvtvvtp (ntot,       g2, 1, S,   1, g3,  1, tgt, 1, S, 1);
+      Veclib::svvtt   (ntot, hCon, g4, 1, src, 1, tgt, 1);
+    } else {
+      Veclib::vmul    (ntot,       R,  1, g1,  1, R,   1);
+      Veclib::vmul    (ntot,       S,  1, g2,  1, S,   1);
+      Veclib::svvtt   (ntot, hCon, g4, 1, src, 1, tgt, 1);
+    }
+#else
+    if (g3) {
       for (ij = 0; ij < ntot; ij++) {
 	tmp      = R [ij];
-	R  [ij]  = G1[ij] * R  [ij] + G3[ij] * S  [ij];
-	S  [ij]  = G2[ij] * S  [ij] + G3[ij] * tmp;
-	tgt[ij]  = G4[ij] * src[ij] * hCon;
+	R  [ij]  = g1[ij] * R  [ij] + g3[ij] * S  [ij];
+	S  [ij]  = g2[ij] * S  [ij] + g3[ij] * tmp;
+	tgt[ij]  = g4[ij] * src[ij] * hCon;
       }
     } else {
       for (ij = 0; ij < ntot; ij++) {
-	R  [ij] *= G1[ij];
-	S  [ij] *= G2[ij];
-	tgt[ij]  = G4[ij] * src[ij] * hCon;
+	R  [ij] *= g1[ij];
+	S  [ij] *= g2[ij];
+	tgt[ij]  = g4[ij] * src[ij] * hCon;
       }
     }
+#endif
   }
 
   Blas::gemm ("N", "N", np, np, np, 1.0,  S,  np, *DT, np, 1.0, tgt, np);
