@@ -183,6 +183,7 @@ static void getargs (int    argc ,
     case 'p':
       --argc;
       pfile = *++argv;
+      State.drawpar = GL_TRUE;
       break;
     case 'w':
       State.blackbk = !State.blackbk;

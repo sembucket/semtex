@@ -249,8 +249,8 @@ void display ()
   glMatrixMode   (GL_MODELVIEW);
 
   if (State.drawbox) drawMesh ();
-  if (State.drawiso) drawSurf ();
   if (State.drawpar) drawPoints();
+  if (State.drawiso) drawSurf ();
 
   drawSpecial();
 
@@ -308,6 +308,7 @@ void initGraphics ()
   else                 glClearColor (1.0, 1.0, 1.0, 0.0);
 
   glLineWidth (1.5);
+  glPointSize (2.5);
 
   // -- Isosurface shading.
 

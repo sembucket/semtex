@@ -413,7 +413,7 @@ void loadPnts (const char* pfile)
 // Intially put the data in a stack, then a global vector (Point).
 //
 // Points format:
-// id time x y z
+// id time ctime x y z
 // 
 // Initialise value entry to zero for each point.
 // Convert locations from cylindrical to Cartesian if required.
@@ -433,7 +433,7 @@ void loadPnts (const char* pfile)
 
   if (!file) message ("loadPnts", "cannot open file", ERROR);
 
-  while (file >> id >> time >> x >> y >> z) {
+  while (file >> id >> time >> time >> x >> y >> z) {
 
     if (State.cylind) 
       { r = y; cz = cos (z); sz = sin (z); y = r * cz; z  = r * sz; }

@@ -53,7 +53,7 @@ PARTICLES:
 
 Each line of point/particle files have form:
 
-id time x y z
+id time ctime x y z
 
 COLOURS:
 
