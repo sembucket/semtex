@@ -951,7 +951,7 @@ void Element::sideGrad (const int   side,
 // then a -1 skip when multiplying by dr/dx, ds/dx, etc.
 // ---------------------------------------------------------------------------
 {
-  register  int estart, skip, bstart, d;
+  register int d, estart, skip, bstart;
   terminal (side, estart, skip, bstart);
   
   vector<real> work (np + np);
@@ -1198,21 +1198,195 @@ void Element::g2e (real*       tgt     ,
 }
 
 
-void Element::divy (real* src) const
+void Element::divr (real* src) const
 // ---------------------------------------------------------------------------
 // Divide src by y (i.e. r in cylindrical coordinates), take special action
 // where r = 0.  This is used in taking theta component of gradient.
 // ---------------------------------------------------------------------------
 {
   register int   i;
-  register real  rinv;
+  register real  r, rinv;
   register real* y   = ymesh;
   const int      N   = nTot();
   const real     EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
-  for (i = 0; i < N; i++, y++, src++) {
-    rinv = (*y > EPS) ? 1.0 / *y : 0.0;
-    *src *= rinv;
+  for (i = 0; i < N; i++) {
+    r       = y[i];
+    rinv    = (r > EPS) ? 1.0 / r : 0.0;
+    src[i] *= rinv;
   }
+}
+
+
+void Element::sideDivr (const int   side,
+			const real* src ,
+			real*       tgt ) const
+// ---------------------------------------------------------------------------
+// Deliver in tgt the side traverse of src (elemental storage) divided by
+// y (i.e. r), take special action where r = 0.
+// ---------------------------------------------------------------------------
+{
+  register int  i, base, skip;
+  register real r, rinv;
+  register real *y, *s;
+  const int     N   = nTot();
+  const real    EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+
+  switch (side) {
+  case 0: 
+    base = 0;
+    skip = 1;
+    y    = ymesh;
+    s    = src;
+    break;
+  case 1:
+    base = np - 1;
+    skip = np;
+    y    = ymesh + base;
+    s    = src   + base;
+    break;
+  case 2:
+    base = np * np - 1;
+    skip = -1;
+    y    = ymesh + base;
+    s    = src   + base;
+    break;
+  case 3:
+    base = np * (np - 1);
+    skip = -np;
+    y    = ymesh + base;
+    s    = src   + base;
+    break;
+  }
+
+  for (i = 0; i < N; i++) {
+    r      = y[i*skip];
+    rinv   = (r > EPS) ? 1.0 / r : 0.0;
+    tgt[i] = rinv * s[i*skip];
+  }
+}
+
+
+void Element::sideDivr2 (const int   side,
+			 const real* src ,
+			 real*       tgt ) const
+// ---------------------------------------------------------------------------
+// Deliver in tgt the side traverse of src (elemental storage) divided by
+// y^2 (i.e. r^2), take special action where r = 0.
+// ---------------------------------------------------------------------------
+{
+  register int  i, base, skip;
+  register real r, rinv2;
+  register real *y, *s;
+  const int     N   = nTot();
+  const real    EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+
+  switch (side) {
+  case 0: 
+    base = 0;
+    skip = 1;
+    y    = ymesh;
+    s    = src;
+    break;
+  case 1:
+    base = np - 1;
+    skip = np;
+    y    = ymesh + base;
+    s    = src   + base;
+    break;
+  case 2:
+    base = np * np - 1;
+    skip = -1;
+    y    = ymesh + base;
+    s    = src   + base;
+    break;
+  case 3:
+    base = np * (np - 1);
+    skip = -np;
+    y    = ymesh + base;
+    s    = src   + base;
+    break;
+  }
+
+  for (i = 0; i < N; i++) {
+    r      = y[i*skip];
+    rinv2  = (r > EPS) ? 1.0 / sqr(r) : 0.0;
+    tgt[i] = rinv2 * s[i*skip];
+  }
+}
+
+
+int Element::locate (const real x,
+		     const real y,
+		     real&      r,
+		     real&      s) const
+// ---------------------------------------------------------------------------
+// If x & y fall in this element, compute the corresponding r & s values, 
+// and return 1.  Otherwise return 0.
+//
+// Input values of r & s are taken as initial values for N--R iteration;
+// r = s = 0.0 are reasonable initial guesses, as they must fall in [-1, 1].
+// ---------------------------------------------------------------------------
+{
+  const int    MaxItn = 32;
+  const real   EPS    = 4.0*((sizeof (double)==sizeof (real)) ? EPSDP : ESPSP);
+  const real   DIVERG = 1.0 + EPS;
+  real         *J, *F, *ir, *is, *dr, *ds, tp;
+  vector<real> work (5 * np + 6);
+  int          ipiv[2], info, i = 0;
+  
+  tp = work();
+  ir = tp + np;
+  is = ir + np;
+  dr = is + np;
+  ds = dr + np;
+  J  = ds + np;
+  F  = J  + 4;
+
+  do {
+    Femlib::interp (GLL, np, r, s, ir, is, dr, ds);
+
+               Blas::gemv ("T", np, np, 1.0, xmesh, np, ir, 1, tmp, 1);
+    F[0] = x - Blas::dot  (np, is, 1, tmp, 1);
+    J[2] =     Blas::dot  (np, ds, 1, tmp, 1);
+               Blas::gemv ("T", np, np, 1.0, ymesh, np, ir, 1, tmp, 1);
+    F[1] = y - Blas::dot  (np, is, 1, tmp, 1);
+    J[3] =     Blas::dot  (np, ds, 1, tmp, 1);
+               Blas::gemv ("T", np, np, 1.0, xmesh, np, dr, 1, tmp, 1);
+    J[0] =     Blas::dot  (np, is, 1, tmp, 1);
+               Blas::gemv ("T", np, np, 1.0, ymesh, np, dr, 1, tmp, 1);
+    J[2] =     Blas::dot  (np, is, 1, tmp, 1);
+    
+    Lapack::gesv (np, 1, J, np, piv, F, np, info);
+    
+    r += F[0];
+    s += F[1];
+
+    if (fabs (r) > DIVERG || fabs (s) > DIVERG) return 0;
+
+  } while (++i < MaxItn && (fabs (F[0]) > EPS || fabs (F[1]) > EPS));
+
+  return (i < MaxItn) ? 1 : 0;
+}
+
+
+real Element::probe (const real  r  ,
+		     const real  s  ,
+		     const real* src) const
+// ---------------------------------------------------------------------------
+// Return the value of field storage located at r, s, in this element.
+// ---------------------------------------------------------------------------
+{
+  real         *ir, *is, tp;
+  vector<real> work (3 * np);
+
+  ir = work;
+  is = ir + np;
+  tp = is + np;
+
+  Femlib::interp   (GLL, np, r, s, ir, is, 0, 0);
+  Blas::gemv       ("T", np, np, 1.0, src, np, ir, 1, tmp, 1);
+
+  return Blas::dot (np, is, 1, tp, 1);
 }
 
