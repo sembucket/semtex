@@ -1,12 +1,16 @@
 ///////////////////////////////////////////////////////////////////////////////
 // compare.C
 //
+// Copyright (C) Hugh Blackburn 1996-2003.
+//
 // SYNOPSIS
 // --------
 // Compute exact solution given in USER section of FEML file, subtract
-// numerical solution (if present), print up infinity norm (largest error)
-// and write field file of error field.  If no numerical solution is given,
-// output is exact solution.  Only designed for serial execution.
+// numerical solution (if present), print up infinity norm (largest
+// error) and write field file of error field.  If no numerical
+// solution is given, output is exact solution.  Only designed for
+// serial execution. When evaluating the exact solution, use the time
+// value found in the field file.
 //
 // USAGE
 // -----
@@ -124,7 +128,7 @@ int main (int    argc,
       message (prog, err, ERROR);
     }
 
-    // -- Find the fields it contains.
+    // -- Find the fields it contains, and set the time to found value.
 
     fieldfl .getline(buf, StrMax) .getline(buf, StrMax);
     
