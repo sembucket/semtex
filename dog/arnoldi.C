@@ -74,7 +74,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "stab.h"
+#include <stab.h>
 
 #ifdef FLIP
 static char             prog[] = "arnoldi-H";
@@ -356,7 +356,7 @@ static void EV_small (real_t**    Kseq   ,
 
   // -- Find eigenpairs of H using LAPACK routine dgeev (q.v.).
   //    For complex-conjugate eigenvalues, the corresponding
-  //    complex eigenvector is a real_t-imaginary pair of rows
+  //    complex eigenvector is a real-imaginary pair of rows
   //    of zvec.
 
   F77NAME(dgeev) ("N","V",kdim,H,kdim,wr,wi,0,1,zvec,kdim,rwork,lwork,ier);

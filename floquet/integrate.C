@@ -18,7 +18,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "stab.h"
+#include <stab.h>
 
 static integer            NORD, NPERT, NBASE, NZ, CYL, PROB;
 static vector<MatrixSys*> MS;

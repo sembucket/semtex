@@ -9,7 +9,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "sem.h"
+#include <sem.h>
 
 
 Edge::Edge (const char*    grp ,
@@ -240,9 +240,9 @@ void Edge::curlCurl (const integer k  ,
 }
 
 
-Vector Edge::normalTraction (const char* grp,
-			     const real* p  ,
-			     real*       wrk) const
+Vector Edge::normTraction (const char* grp,
+			   const real* p  ,
+			   real*       wrk) const
 // ---------------------------------------------------------------------------
 // Compute normal tractive force on this boundary segment, if it lies
 // in group called grp, using p as a pressure stress field data area.
@@ -267,10 +267,10 @@ Vector Edge::normalTraction (const char* grp,
 }
 
 
-Vector Edge::tangentTraction (const char* grp,
-			      const real* u  ,
-			      const real* v  ,
-			      real*       wrk) const
+Vector Edge::tangTraction (const char* grp,
+			   const real* u  ,
+			   const real* v  ,
+			   real*       wrk) const
 // ---------------------------------------------------------------------------
 // Compute viscous stress on this boundary segment, if it lies in group grp.
 // u is data area for first velocity component field, v is for second.
@@ -284,14 +284,14 @@ Vector Edge::tangentTraction (const char* grp,
     register integer i;
     real         *ux = wrk + 2 * _np, *uy = wrk + 3 * _np;
 
-    _elmt -> sideGrad (_side, u + _doffset, ux, uy, wrk);
+    _elmt -> sideGrad (_side, u + _eoffset, ux, uy, wrk);
 
     for (i = 0; i < _np; i++) {
       Force.x += (2.0*ux[i]*_nx[i] + uy[i]*_ny[i]) * _area[i];
       Force.y +=                     uy[i]*_nx[i]  * _area[i];
     }
 
-    _elmt -> sideGrad (_side, v + _doffset, ux, uy, wrk);
+    _elmt -> sideGrad (_side, v + _eoffset, ux, uy, wrk);
 
     for (i = 0; i < _np; i++) {
       Force.x +=                     ux[i]*_ny[i]  * _area[i];
@@ -303,7 +303,7 @@ Vector Edge::tangentTraction (const char* grp,
 }
 
 
-real Edge::normalFlux (const char* grp,
+real Edge::vectorFlux (const char* grp,
 		       const real* u  ,
 		       const real* v  ,
 		       real*       wrk) const
@@ -330,9 +330,9 @@ real Edge::normalFlux (const char* grp,
 }
 
 
-real Edge::gradientFlux (const char* grp,
-			 const real* src,
-			 real*       wrk) const
+real Edge::scalarFlux (const char* grp,
+		       const real* src,
+		       real*       wrk) const
 // ---------------------------------------------------------------------------
 // Compute wall-normal gradient flux of field src on this boundary
 // segment, if it lies in group grp.  Wrk is a work vector, 4 *
@@ -347,7 +347,7 @@ real Edge::gradientFlux (const char* grp,
     register integer  i;
     register real *cx = wrk, *cy = wrk + _np, *r = wrk + _np + _np;
 
-    _elmt -> sideGrad (_side, src + _doffset, cx, cy, r);
+    _elmt -> sideGrad (_side, src + _eoffset, cx, cy, r);
     for (i = 0; i < _np; i++)
       dcdn += (cx[i]*_nx[i] + cy[i]*_ny[i]) * _area[i];
   }

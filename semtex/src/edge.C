@@ -9,7 +9,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "sem.h"
+#include <sem.h>
 
 
 Edge::Edge (const char*    grp ,

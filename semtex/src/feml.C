@@ -28,10 +28,10 @@ static char RCS[] = "$Id$";
 #include <cstring>
 #include <cctype>
 
-#include "cfemdef.h"
-#include "utility.h"
-#include "feml.h"
-#include "femlib.h"
+#include <cfemdef.h>
+#include <utility.h>
+#include <feml.h>
+#include <femlib.h>
 
 
 FEML::FEML (const char* session)

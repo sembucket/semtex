@@ -26,7 +26,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "stab.h"
+#include <stab.h>
 
 static char prog[] = "lns";
 static void getargs    (int, char**, char*&);

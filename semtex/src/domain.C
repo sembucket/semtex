@@ -6,7 +6,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "sem.h"
+#include <sem.h>
 
 
 Domain::Domain (FEML*             F,

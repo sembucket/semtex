@@ -7,7 +7,7 @@
 
 static char RCS[] = "$Id$";
  
-#include "stab.h"
+#include <stab.h>
 
 
 StabAnalyser::StabAnalyser (Domain* D   ,
@@ -41,7 +41,7 @@ StabAnalyser::StabAnalyser (Domain* D   ,
       }
     }
     
-    bhs_strm.open (strcat (strcpy (str, src -> name), ".bhs"));
+    bhs_strm.open (strcat (strcpy (str, _src -> name), ".bhs"));
     bhs_strm.setf (ios::scientific, ios::floatfield);
     bhs_strm.precision (6);
     if (!bhs_strm) message (routine, "can't open history file", ERROR);
@@ -56,9 +56,9 @@ void StabAnalyser::analyse (AuxField** work)
 {
   Analyser::analyse (work);
 
-  const bool periodic = !(src -> step %  Femlib::ivalue ("IO_HIS")) ||
-                        !(src -> step %  Femlib::ivalue ("IO_FLD"));
-  const bool final    =   src -> step == Femlib::ivalue ("N_STEP");
+  const bool periodic = !(_src -> step %  Femlib::ivalue ("IO_HIS")) ||
+                        !(_src -> step %  Femlib::ivalue ("IO_FLD"));
+  const bool final    =   _src -> step == Femlib::ivalue ("N_STEP");
   const bool state    = periodic || final;
 
   if (!state) return;
@@ -73,14 +73,14 @@ void StabAnalyser::analyse (AuxField** work)
   vector<AuxField*> U     (NBF);
   
   for (k = 0; k < NBF; k++)
-    U[k] = src -> U[k];
+    U[k] = _src -> U[k];
 
   for (k = 0; k < NBH; k++) {
     HB = base_history[k];
     
     HB -> extract (U, &tmp_B[0]);
 
-    bhs_strm << setw(4) << HB->ID() << " " << setw(14) << src->time << " ";
+    bhs_strm << setw(4) << HB->ID() << " " << setw(14) << _src->time << " ";
     for (j = 0; j < NBF; j++) bhs_strm << setw(15) << tmp_B[j];
     bhs_strm << endl;
   }

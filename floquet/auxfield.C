@@ -8,7 +8,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "sem.h"
+#include <sem.h>
 
 AuxField::AuxField (real*             alloc,
 		    const integer     nz   ,

@@ -18,7 +18,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "sem.h"
+#include <sem.h>
 
 
 BoundarySys::BoundarySys (BCmgr*                  bcmgr,
