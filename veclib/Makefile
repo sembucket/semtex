@@ -54,7 +54,7 @@ CFLAGS     = -Wv,-m3,-Om
 endif
 
 ifeq ($(ARCH),SUPER-UX)                 # -- NEC SX-4
-CFLAGS     = -pvctl,fullmsg -c -O nooverlap
+CFLAGS     = -pvctl,fullmsg -O nooverlap -hfloat0
 endif
 
 # ----------------------------------------------------------------------------
