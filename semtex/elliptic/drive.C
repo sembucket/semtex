@@ -35,7 +35,7 @@ static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 
 extern void Helmholtz (Domain*, const char*);
 static void getargs   (int, char**, char*&);
-static void setup     (FEML&, char*&, char*&);
+static void setup     (FEML*, char*&, char*&);
 
 
 int main (int    argc,
@@ -51,7 +51,7 @@ int main (int    argc,
   
   char               *session, *forcing = 0, *exact = 0, fields[StrMax];
   int                np, nz, nel;
-  Geometry::CoordSys system;
+  Geometry::CoordSys space;
   FEML*              F;
   Mesh*              M;
   BCmgr*             B;
@@ -59,24 +59,25 @@ int main (int    argc,
   Femlib::prep();
 
   getargs (argc, argv, session);
-  strcpy  (fields, "u");
+  strcpy  (fields, "c");
 
   F = new FEML  (session);
   M = new Mesh  (*F);
   B = new BCmgr (*F);
 
-  nel    = M -> nEl();  
-  np     = (int) Femlib::value ("N_POLY");
-  nz     = (int) Femlib::value ("N_Z");
-  system = (Femlib::value ("AXIS"))?Geometry::Cylindrical:Geometry::Cartesian;
+  nel   = M -> nEl();  
+  np    =  (int) Femlib::value ("N_POLY");
+  nz    =  (int) Femlib::value ("N_Z");
+  space = ((int) Femlib::value ("CYLINDRICAL")) ? 
+    Geometry::Cylindrical : Geometry::Cartesian;
   
-  Geometry::set (np, nz, nel, system);
+  Geometry::set (np, nz, nel, space);
 
   Domain* D = new Domain (*F, *M, *B, fields, session);
 
   D -> initialize();
 
-  setup (*F, forcing, exact);
+  setup (F, forcing, exact);
 
   Helmholtz (D, forcing);
 
@@ -134,7 +135,7 @@ static void getargs (int    argc   ,
 }
 
 
-static void setup (FEML&  feml ,
+static void setup (FEML*  feml ,
 		   char*& force,
 		   char*& exact)
 // ---------------------------------------------------------------------------
@@ -151,22 +152,22 @@ static void setup (FEML&  feml ,
 // ---------------------------------------------------------------------------
 {
   char routine[] = "setup";
-  char s[StrMax], g[StrMax], err[StrMax];
+  char s[StrMax];
 
-  if (feml.seek ("USER")) {
-    feml.stream().ignore (StrMax, '\n');
+  if (feml -> seek ("USER")) {
+    feml -> stream().ignore (StrMax, '\n');
 
-    while (feml.stream() >> s) {
+    while (feml -> stream() >> s) {
       if (strcmp (s, "</USER>") == 0) break;
       upperCase (s);
 
       if (strcmp (s, "FORCING") == 0) {
 	force = new char [StrMax];
-	feml.stream() >> force;
+	feml -> stream() >> force;
 
       } else if (strcmp (s, "EXACT") == 0) {
 	exact = new char [StrMax];
-	feml.stream() >> exact;
+	feml -> stream() >> exact;
 	
       }
     }
