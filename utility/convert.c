@@ -22,8 +22,9 @@
  * ASCII                       Format
  *
  * Other recognized formats are: ascii (for backwards compatibility)
- *                               binary, IEEE little-endian
- *                               binary, IEEE big-endian
+ *                               binary/BINARY assumed to be machine's default.
+ *                               binary IEEE little-endian
+ *                               binary IEEE big-endian
  *****************************************************************************/
 
 static char
@@ -51,7 +52,7 @@ static void dswap        (int, double*);
 static int  count_fields (const char*);
 static int  iformat      ();
 static void format       (char*);
-static int  swap_format  (const char*, const char*);
+static int  swap_format  (char*, const char*);
 
 
 int main (int argc, char** argv)
@@ -63,7 +64,6 @@ int main (int argc, char** argv)
   char fmt[BUFSIZ];
   char *c;
   int  n, nr, ns, nz, nel;
-
 
   parse_args (argc, argv);
 
@@ -99,7 +99,7 @@ int main (int argc, char** argv)
 
     switch (*c) {
     case 'a': case 'A':
-      fprintf (fp_out, "binary, %-17s Format\n", "binary", fmt);
+      fprintf (fp_out, "binary %-18s Format\n", fmt);
       a_to_b  (nr * ns * nz * nel, n, fp_in, fp_out);
       break;
 
@@ -229,9 +229,6 @@ static void err_msg (const char *s)
 }
 
 
-
-
-
 static void parse_args (int argc, char *argv[])
 /* ------------------------------------------------------------------------- *
  * Parse command line arguments.
@@ -342,7 +339,7 @@ static void format (char* s)
 }
 
 
-static int swap_format (const char* input, const char* machine)
+static int swap_format (char* input, const char* machine)
 /* ------------------------------------------------------------------------- *
  * Compare strings describing binary input format and this machine's
  * internal storage format.
@@ -355,9 +352,14 @@ static int swap_format (const char* input, const char* machine)
  * ------------------------------------------------------------------------- */
 {
   if (!strstr (input, "IEEE")) {
-    char s[BUFSIZ];
-    sprintf (s, "unrecognized binary format \"%s\"", input);
-    err_msg (s);
+    char  s[BUFSIZ];
+    char  sep[] = " \t\n";
+    char* fmt;
+
+    fmt = strtok (input, sep);
+    fmt = strtok (0,     sep);
+    sprintf (s, "unrecognized binary format \"%s\"...using default...\n", fmt);
+    fprintf (stderr, s);
   }
   
   if (   (strstr (input, "little") && strstr (machine, "big"   ))
