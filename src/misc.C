@@ -256,7 +256,7 @@ istream& operator >> (istream& strm, Domain& D)
 // A friend of Field.
 // ---------------------------------------------------------------------------
 {
-  char          routine[] = "strm >> Domain";
+  char          routine[] = "strm>>Domain";
   int           i, np, ns, nz, nel, ntot;
   char          s[StrMax];
 
@@ -280,18 +280,18 @@ istream& operator >> (istream& strm, Domain& D)
   if (strstr (s, "binary")) {
     for (i = 0; i < D.nField () - 1; i++) {
       strm.read ((char *) D.u[i] -> data, ntot * sizeof (real));
-      if (!strm)
-	message (routine, "unable to read field from strm", ERROR);
+      if (strm.bad())
+	message (routine, "failed reading binary restart file", ERROR);
     }
     
   } else if (strstr (s, "ASCII")) {
     for (register int j = 0; j < ntot; j++) {
       strm.getline (s, StrMax);
-      if (!strm)
-	message (routine, "premature EOF", ERROR);
+      if (strm.fail()) 
+	message (routine, "premature EOF in ASCII restart file", ERROR);
       for (register int n = 0; n < D.nField () - 1; n++)
 	if (sscanf (s, "%lf", D.u[n] -> data + j) < 1)
-	  message (routine, "unable to read field from strm", ERROR);      
+	  message (routine, "failed reading ASCII restart file", ERROR);      
     }
   }
     

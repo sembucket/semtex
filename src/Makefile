@@ -44,7 +44,8 @@ endif
 # preferably as the variable SPECIAL.  The source code postfix (assumed .C) 
 # and object name (assumed .o) are generated automatically.
 
-FILES   = drive domain field element BC boundary pressure elliptic NS misc
+FILES   = drive     domain   field   element  BC     boundary   pressure \
+          elliptic  NS       misc    mesh
 SPECIAL =
 OBJS    = $(addsuffix .o,$(FILES))
 HEADER  = Fem.h
