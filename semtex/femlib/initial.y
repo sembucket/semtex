@@ -93,7 +93,7 @@ static Symbol*  lookup   (const char*);
 static Symbol*  install  (const char*, const integer, const double);
 static void*    emalloc  (const size_t);
 
-       integer  yyparse (void);
+       int      yyparse (void);
 static integer  yylex   (void);
 static void     yyerror (char*);
 
