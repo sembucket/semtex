@@ -75,8 +75,8 @@ endif
 
 ifeq ($(ARCH),UNIX_System_V)    # -- Fujitsu VPP300.
 CC       = vcc
-CXX      = /usr/uxp/C++/bin/CC
-LD       = /usr/uxp/C++/bin/CC
+CXX      = /home/home01/565/hmb565/C++/bin/CC
+LD       = /home/home01/565/hmb565/C++/bin/CC
 OPTIM    = -Wv,-m3,-Om,-te -Kpopt
 CXXFLAGS = $(DEFINES)  $(OPTIM)
 LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS)
