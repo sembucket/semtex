@@ -40,8 +40,9 @@ void eddyViscosity (const Domain* D ,
 
   ROOTONLY EV -> addToPlane (0, Femlib::value ("KINVIS"));
 
-  strainRate (D,  Us, Uf);
-  viscoModel (Us, Uf, EV);
+  strainRate  (D,  Us, Uf);
+  viscoModel  (Us, Uf, EV);
+  D -> u[0] -> smooth (EV);
 
   ROOTONLY EV -> addToPlane (0, Femlib::value ("-KINVIS"));
 
@@ -204,7 +205,7 @@ static void viscoModel (AuxField*** Us,
 	D2 = delta[i] * delta[i];
 	cutoff  = Cs4  * D2 * D2 / molvis3;
 	cutoff *= S[i] * S[i] * E[i];
-	
+
 	if      (cutoff <= C) 
 	  S[i] = molvis;
 	else if (cutoff > BIG)
@@ -248,11 +249,13 @@ static real RNG_quartic (const real x0,
     f   = a0 + x * (a1 + x3);
     dx  = -f / df;
     x  += dx;
-    if (dx * dx < EPS2 || fabs (f) < EPSSP) break;
+    if (dx * dx < EPS2) break;
   }
 
   if (i == ITR_MAX) message (routine, "failed to converge", ERROR);
-  else if (x < 1.0) message (routine, "invalid solution",   WARNING);
+#if defined(DEBUG)
+  if (x < 1.0) message (routine, "invalid solution",   WARNING);
+#endif
 
   return max (1.0, x);
 }
