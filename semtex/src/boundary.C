@@ -36,11 +36,11 @@ Boundary::Boundary (const integer    Ident ,
   const integer npnp      = Geometry::nTotElmt();
   char          err[StrMax];
 
-  x    = new real [(size_t) np];
-  y    = new real [(size_t) np];
-  nx   = new real [(size_t) np];
-  ny   = new real [(size_t) np];
-  area = new real [(size_t) np];
+  x    = new real [(size_t) 5 * np];
+  y    = x  + np;
+  nx   = y  + np;
+  ny   = nx + np;
+  area = ny + np;
 
   doffset = elmt -> ID() * npnp;
   switch (side) {
