@@ -43,6 +43,12 @@ combine: combine.o
 	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
+# Build normalise, a utility to normalise eigenvectors (2-norm based).
+#
+normalise: normalise.o
+	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
 # Header dependency.
 
 $(SEMOBJ): $(SEMHDR)

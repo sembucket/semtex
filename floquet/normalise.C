@@ -1,0 +1,296 @@
+///////////////////////////////////////////////////////////////////////////////
+// normalise.C: scale a flow field so that its 2-norm is 1.
+//
+// Copyright (c) 2002 Hugh Blackburn
+//
+// USAGE
+// -----
+// normalise file
+//
+// This utility can be used to normalise eigenvectors.
+//
+// NB: The 2-norm is not the same as the L2-norm, as the 2-norm does
+// not account for the mass-matrix weighting of different nodal
+// values.
+//
+// NBB: The input field is assumed to contain velocities and pressure ONLY!
+//
+// NBBB: normalise is redundant, since its function is in effect carried out
+// by combine if the norm of the base flow is zero.
+//
+// $Id$
+///////////////////////////////////////////////////////////////////////////////
+
+#include <stdarg.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+
+#include <iostream.h>
+#include <fstream.h>
+#include <strstream.h>
+#include <iomanip.h>
+
+#include <femdef.h>
+#include <Array.h>
+#include <Utility.h>
+#include <Blas.h>
+#include <Lapack.h>
+#include <Veclib.h>
+#include <Femlib.h>
+
+static char prog[] = "normalise";
+
+static char* hdr_fmt[] = { 
+  "%-25s "    "Session\n",
+  "%-25s "    "Created\n",
+  "%-25s "    "Nr, Ns, Nz, Elements\n",
+  "%-25d "    "Step\n",
+  "%-25.6g "  "Time\n",
+  "%-25.6g "  "Time step\n",
+  "%-25.6g "  "Kinvis\n",
+  "%-25.6g "  "Beta\n",
+  "%-25s "    "Fields written\n",
+  "%-25s "    "Format\n"
+};
+
+typedef struct hdr_data {
+  char   session[StrMax];
+  char   created[StrMax];
+  int    nr, ns, nz, nel;
+  int    step;
+  double time;
+  double timestep;
+  double kinvis;
+  double beta;
+  char   fields[StrMax];
+  char   format[StrMax];
+} hdr_info;
+
+static void getargs   (int, char**, ifstream&);
+static void gethead   (istream&, hdr_info&);
+static void allocate  (hdr_info&, vector<real*>&);
+static void readdata  (hdr_info&, istream&, vector<real*>&);
+static void scaledata (hdr_info&, vector<real*>&);
+static void writedata (hdr_info&, ostream&, vector<real*>&);
+static int  doswap    (const char*);
+
+
+int main (int    argc,
+	  char** argv)
+// ---------------------------------------------------------------------------
+// Driver.
+// ---------------------------------------------------------------------------
+{
+  ifstream      file;
+  hdr_info      head;
+  vector<real*> u;
+
+  Femlib::initialize (&argc, &argv);
+  getargs (argc, argv, file);
+  gethead (file, head);
+
+  allocate (head, u);
+  readdata (head, file, u);
+
+  file.close();
+  
+  scaledata (head, u);
+  writedata (head, cout, u);
+  
+  Femlib::finalize();
+  return EXIT_SUCCESS;
+}
+
+
+static void getargs (int       argc,
+		     char**    argv,
+		     ifstream& file)
+// ---------------------------------------------------------------------------
+// Deal with command-line arguments.
+// ---------------------------------------------------------------------------
+{
+  char usage[] = "Usage: normalise file\n";
+ 
+  if (argc == 2)
+    file.open (argv[1], ios::in);
+  else {
+    cerr << usage;
+    exit (EXIT_FAILURE);
+  }
+
+  if (!file) {
+    cerr << prog << ": unable to open file" << endl;
+    exit (EXIT_FAILURE);
+  }
+}
+
+
+static void gethead (istream&  file,
+		     hdr_info& head)
+// ---------------------------------------------------------------------------
+// Load data structure from file header info. Note that the field
+// names are packed into a string without spaces.
+// ---------------------------------------------------------------------------
+{
+  char    buf[StrMax];
+  integer i, j; 
+
+  file.get (head.session, 25); file.getline (buf, StrMax);
+  
+  if (!strstr (buf, "Session")) message (prog, "not a field file", ERROR);
+
+  file.get (head.created, 25); file.ignore (StrMax, '\n');
+
+  file >> head.nr >> head.ns >> head.nz >> head.nel;
+  file.ignore (StrMax, '\n');
+
+  file >> head.step;     file.ignore (StrMax, '\n');
+  file >> head.time;     file.ignore (StrMax, '\n');
+  file >> head.timestep; file.ignore (StrMax, '\n');
+  file >> head.kinvis;   file.ignore (StrMax, '\n');
+  file >> head.beta;     file.ignore (StrMax, '\n');
+
+  file.get (buf, 25);
+  for (i = 0, j = 0; i < 25; i++)
+    if (isalpha (buf[i])) head.fields[j++] = buf[i];
+  file.ignore (StrMax, '\n');
+  head.fields[j] = '\0';
+
+  file.get (head.format, 25); file.getline (buf, StrMax);
+
+  if (!strstr (head.format, "binary"))
+    message (prog, "input field file not in binary format", ERROR);
+  else if (!strstr (head.format, "-endia"))
+    message (prog, "input field file in unknown binary format", WARNING);
+}
+
+
+static void allocate (hdr_info&      head,
+		      vector<real*>& u   )
+// ---------------------------------------------------------------------------
+// Allocate enough storage to hold all the data fields (sem format).
+// ---------------------------------------------------------------------------
+{
+  const int nfield = strlen (head.fields);
+  const int ntot   = head.nr * head.ns * head.nel * head.nz;
+  int       i;
+
+  u.setSize (nfield);
+  
+  for (i = 0; i < nfield; i++) {
+    u[i] = new real [ntot];
+    Veclib::zero (ntot, u[i], 1);
+  }
+}
+
+
+static void readdata (hdr_info&      head,
+		      istream&       file,
+		      vector<real*>& u   )
+// ---------------------------------------------------------------------------
+// Binary read of data areas, with byte-swapping if required.
+// ---------------------------------------------------------------------------
+{
+  int   i, swab, len;
+  real* addr;
+
+  const int nfield = strlen (head.fields);
+  const int ntot   = head.nr * head.ns * head.nel * head.nz;
+
+  // -- Read the base flow into the first plane location of u.
+
+  swab = doswap (head.format);
+  
+  for (i = 0; i < nfield; i++) {
+    addr = u(i);
+    len  = ntot * sizeof (real);
+    file.read (reinterpret_cast<char*>(addr), len);
+    if (swab) Veclib::brev (ntot, addr, 1, addr, 1);
+  }
+}
+
+
+static void scaledata (hdr_info&     head,
+		      vector<real*>& u   )
+// ---------------------------------------------------------------------------
+// Scale the data such that the 2-norm of the velocities is unity.
+// ---------------------------------------------------------------------------
+{
+  int  i, swab;
+  real norm = 0.0;
+
+  const int nfield = strlen (head.fields);
+  const int ncomps = nfield - 1;
+  const int ntot   = head.nr * head.ns * head.nel * head.nz;
+
+  // -- Read the base flow into the first plane location of u.
+
+  swab = doswap (head.format);
+  
+  for (i = 0; i < ncomps; i++)
+    norm += Blas::nrm2 (ntot, u[i], 1);
+  
+  for (i = 0; i < nfield; i++)
+    Blas::scal (ntot, 1.0/norm, u[i], 1);
+}
+
+
+static void writedata (hdr_info&      head,
+		       ostream&       file,
+		       vector<real*>& u   )
+// ---------------------------------------------------------------------------
+// Write out the data, semtex format.
+// ---------------------------------------------------------------------------
+{
+  const int nfield = strlen (head.fields);
+  const int ntot   = head.nr * head.ns * head.nel * head.nz;
+  char      buf[StrMax], tmp[StrMax];
+  int       i, j;
+
+  sprintf (buf, hdr_fmt[0], head.session);
+  file << buf;
+  sprintf (buf, hdr_fmt[1], head.created);
+  file << buf;
+
+  sprintf (tmp, "%1d %1d %1d %1d", head.nr, head.ns, head.nz, head.nel);
+  sprintf (buf, hdr_fmt[2], tmp);
+  file << buf;
+
+  sprintf (buf, hdr_fmt[3], head.step);     file << buf;
+  sprintf (buf, hdr_fmt[4], head.time);     file << buf;
+  sprintf (buf, hdr_fmt[5], head.timestep); file << buf;
+  sprintf (buf, hdr_fmt[6], head.kinvis);   file << buf;
+  sprintf (buf, hdr_fmt[7], head.beta);     file << buf;
+
+  sprintf (buf, hdr_fmt[8], head.fields);
+  file << buf;  
+
+  sprintf (tmp, "binary ");
+  Veclib::describeFormat (tmp + strlen (tmp));
+  sprintf (buf, hdr_fmt[9], tmp);
+  file << buf;
+
+  for (i = 0; i < nfield; i++) 
+    file.write (reinterpret_cast<char*>(u[i]), ntot * sizeof (real));
+}
+
+
+static int doswap (const char* ffmt)
+// ---------------------------------------------------------------------------
+// Figure out if byte-swapping of input is required to make sense of input.
+// ---------------------------------------------------------------------------
+{
+  char mfmt[StrMax];
+
+  Veclib::describeFormat (mfmt);   
+
+  if (!strstr (ffmt, "binary"))
+    message (prog, "input field file not in binary format", ERROR);
+  else if (!strstr (ffmt, "-endia"))
+    message (prog, "input field file in unknown binary format", WARNING);
+
+  return (strstr (ffmt, "big") && strstr (mfmt, "little")) || 
+         (strstr (mfmt, "big") && strstr (ffmt, "little"));
+}
