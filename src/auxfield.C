@@ -578,7 +578,7 @@ ofstream& operator << (ofstream& strm,
   if (nProc > 1) {
 
     ROOTONLY {
-      vector<real> buffer (nT);
+      vector<real> buffer (NP);
 
       strm.rdbuf() -> sync();
 
@@ -587,19 +587,18 @@ ofstream& operator << (ofstream& strm,
 	if (n != nP * sizeof (real))
 	  message (routine, "unable to write binary input", ERROR);
 
-      for (k = 1; k < nProc; k++) {
-	Femlib::recv (buffer(), nT, k);
-	for (i = 0; i < nZ; i++)
-	n = write (fd, (buffer() + i*NP), nP * sizeof (real));
-	if (n != nP * sizeof (real))
-	  message (routine, "unable to write binary input", ERROR);
-      }
+      for (k = 1; k < nProc; k++)
+	for (i = 0; i < nZ; i++) {
+	  Femlib::recv (buffer(), NP, k);
+	  n = write (fd, buffer(), nP * sizeof (real));
+	  if (n != nP * sizeof (real))
+	    message (routine, "unable to write binary input", ERROR);
+	}
 
       strm.rdbuf() -> sync();      
       strm.flush();
 
-    } else
-      Femlib::send (F.data, nT, 0);
+    } else for (i = 0; i < nZ; i++) Femlib::send (F.plane[i], NP, 0);
 
   } else {
 
@@ -615,7 +614,6 @@ ofstream& operator << (ofstream& strm,
   strm.rdbuf() -> sync();
   return strm;
 }
-
 
 
 ifstream& operator >> (ifstream&  strm,
@@ -641,7 +639,7 @@ ifstream& operator >> (ifstream&  strm,
   if (nProc > 1) {
 
     ROOTONLY {
-      vector<real> buffer (nT);
+      vector<real> buffer (NP);
 
       strm.rdbuf() -> sync();     
 
@@ -654,16 +652,14 @@ ifstream& operator >> (ifstream&  strm,
 
       for (k = 1; k < nProc; k++) {
 	for (i = 0; i < nZ; i++) {
-	  n = read (fd, buffer() + i*NP, nP*sizeof (real));
+	  n = read (fd, buffer(), nP*sizeof (real));
 	  if (n != nP * sizeof (real))
 	    message (routine, "unable to read binary input", ERROR);
-	  Veclib::zero (NP - nP, buffer() + i * NP + nP, 1);
+	  Veclib::zero (NP - nP, buffer() + nP, 1);
+	  Femlib::send (buffer(), NP, k);
 	}
-	Femlib::send (buffer(), nT, k);
       }
-
-    } else
-      Femlib::recv (F.data, nT, 0);
+    } else for (i = 0; i < nZ; i++) Femlib::recv (F.plane[i], NP, 0);
 
   } else {
 
@@ -758,7 +754,8 @@ AuxField& AuxField::transform32 (real*         phys,
 // dealiasing.  Input pointer phys points to data in physical space,
 // which acts as input area if sign == +1, output area if sign == -1.
 // So transform is from phys to internal storage if sign == +1 and
-// vice versa.
+// vice versa.  After transform of either type, the data have normal
+// planar configuration.
 //
 // NB: dealiasing does not occur in multiple-processor execution, so phys
 // has the same number of data as *this.
@@ -1097,36 +1094,20 @@ real AuxField::probe (const Element* E,
 }
 
 
-AuxField& AuxField::Smagorinsky ()
+void AuxField::lengthScale (real* tgt) const
 // ---------------------------------------------------------------------------
-// Given that *this is the (Fourier-transformed) strain-rate magnitude S,
-// compute the Smagorinsky eddy-viscosity
-//                      \nu_T = (Cs delta)^2 S.
+// Load tgt with data which represents the mesh resolution lengthscale
+// at each planar location.
 // ---------------------------------------------------------------------------
 {
-  register integer  k, offset;
+  register integer  i;
   register Element* E;
-  const integer     nZ = Geometry::nZProc();
-  const integer     nE = Geometry::nElmt();
-  const integer     nP = Geometry::nPlane();
-  const real        Cs = Femlib::value ("C_SMAG");
-  vector<real>      work (nP);
+  const integer     nel = Geometry::nElmt();
 
-  for (k = 0; k < nE; k++) {
-    E      = Elmt[k];
-    offset = E -> dOff();
-    E -> lengthScale (work() + offset);
+  for (i = 0; i < nel; i++) {
+    E = Elmt[i];
+    E -> lengthScale (tgt + E -> dOff());
   }
-  
-  Blas::scal   (nP, Cs, work(), 1);
-  Veclib::vmul (nP, work(), 1, work(), 1, work(), 1);
-
-  for (k = 0; k < nZ; k++) {
-    ROOTONLY if (k == 1) continue;
-    Veclib::vmul (nP, work(), 1, plane[k], 1, plane[k], 1);
-  }
-
-  return *this;
 }
 
 
