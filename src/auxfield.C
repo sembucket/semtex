@@ -1122,7 +1122,7 @@ AuxField& AuxField::Smagorinsky ()
   Veclib::vmul (nP, work(), 1, work(), 1, work(), 1);
 
   for (k = 0; k < nZ; k++) {
-    if (k == 1) continue;
+    ROOTONLY if (k == 1) continue;
     Veclib::vmul (nP, work(), 1, plane[k], 1, plane[k], 1);
   }
 
