@@ -31,22 +31,33 @@ FluidParticle::FluidParticle (Domain*       d,
   _step (0),
   _p    (p)
 {
-  if (!D) {
+  register integer k;
+  const integer    guess = 1;
+
+  if (!D) {			// -- Set up first time through.
     D       = d;
     NDIM    = Geometry::nDim();
     NEL     = Geometry::nElmt();
     NZ      = Geometry::nZ();
-    TORD    = (integer) Femlib::value ("N_TIME");
     DT      =           Femlib::value ("D_T");
-    P_coeff = new real [(size_t) TORD];
-    C_coeff = new real [(size_t) (TORD + 1)];
-    Lz      = Femlib::value ("TWOPI / BETA");
+    Lz      =           Femlib::value ("TWOPI / BETA");
+    TORD    = (integer) Femlib::value ("N_TIME");
+    P_coeff = new real [size_t(TORD + TORD)];
+    C_coeff = new real [size_t(TORD*(TORD + 1))];
+
+    Veclib::zero (TORD*TORD,     P_coeff, 1);
+    Veclib::zero (TORD*(TORD+1), C_coeff, 1);
+    
+    for (k = 0; k < TORD; k++) {
+      Integration::AdamsBashforth (k+1, P_coeff+k* TORD   );
+      Integration::AdamsMoulton   (k+2, C_coeff+k*(TORD+1));
+    }
+
+    Blas::scal (TORD*TORD,     DT, P_coeff, 1);
+    Blas::scal (TORD*(TORD+1), DT, C_coeff, 1);
   }
 
   // -- Try to locate particle, stop if can't.
-
-  register integer k;
-  const integer    guess = 1;
 
   _E = 0;
   for (k = 0; k < NEL; k++) {
@@ -94,16 +105,13 @@ void FluidParticle::integrate ()
   register integer i;
   const integer    N     = min (++_step, TORD);
   const integer    NP    = N + 1;
+  const integer    NM    = N - 1;
   const integer    guess = 1;
   real             xp, yp, zp, up, vp, wp;
+  real             *predictor, *corrector;
 
-
-  if (N <= TORD) {
-    Integration::AdamsBashforth (N,      P_coeff   );
-    Integration::AdamsMoulton   (NP,     C_coeff   );
-    Blas::scal                  (N,  DT, P_coeff, 1);
-    Blas::scal                  (NP, DT, C_coeff, 1);
-  }
+  predictor = P_coeff + NM * TORD;
+  corrector = C_coeff + NM * (TORD+1);
 
   if (NDIM == 2) {		// -- 2D integration.
     
@@ -115,8 +123,8 @@ void FluidParticle::integrate ()
     xp = _p.x;
     yp = _p.y;
     for (i = 0; i < N; i++) {
-      xp += P_coeff[i] * _u[i];
-      yp += P_coeff[i] * _v[i];
+      xp += predictor[i] * _u[i];
+      yp += predictor[i] * _v[i];
     }
 
     if (!_E -> locate (xp, yp, _r, _s)) {
@@ -146,11 +154,11 @@ void FluidParticle::integrate ()
     up = D -> u[0] -> probe (_E, _r, _s, (integer) 0);
     vp = D -> u[1] -> probe (_E, _r, _s, (integer) 0);
 
-    _p.x += C_coeff[0] * up;
-    _p.y += C_coeff[0] * vp;
+    _p.x += corrector[0] * up;
+    _p.y += corrector[0] * vp;
     for (i = 1; i < NP; i++) {
-      _p.x += C_coeff[i] * _u[i - 1];
-      _p.y += C_coeff[i] * _v[i - 1];
+      _p.x += corrector[i] * _u[i - 1];
+      _p.y += corrector[i] * _v[i - 1];
     }
 
     if (!_E -> locate (_p.x, _p.y, _r, _s)) {
@@ -192,9 +200,9 @@ void FluidParticle::integrate ()
     yp = _p.y;
     zp = _p.z;
     for (i = 0; i < N; i++) {
-      xp += P_coeff[i] * _u[i];
-      yp += P_coeff[i] * _v[i];
-      zp += P_coeff[i] * _w[i];
+      xp += predictor[i] * _u[i];
+      yp += predictor[i] * _v[i];
+      zp += predictor[i] * _w[i];
     }
 
     if (!_E -> locate (xp, yp, _r, _s)) {
@@ -215,13 +223,13 @@ void FluidParticle::integrate ()
     vp = D -> u[1] -> probe (_E, _r, _s, zp);
     wp = D -> u[2] -> probe (_E, _r, _s, zp);
 
-    _p.x += C_coeff[0] * up;
-    _p.y += C_coeff[0] * vp;
-    _p.z += C_coeff[0] * wp;
+    _p.x += corrector[0] * up;
+    _p.y += corrector[0] * vp;
+    _p.z += corrector[0] * wp;
     for (i = 1; i < NP; i++) {
-      _p.x += C_coeff[i] * _u[i - 1];
-      _p.y += C_coeff[i] * _v[i - 1];
-      _p.z += C_coeff[i] * _w[i - 1];
+      _p.x += corrector[i] * _u[i - 1];
+      _p.y += corrector[i] * _v[i - 1];
+      _p.z += corrector[i] * _w[i - 1];
     }
 
     if (!_E -> locate (_p.x, _p.y, _r, _s)) {
