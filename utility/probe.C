@@ -55,6 +55,7 @@
 // -orig #           ... origin of the cutting plane along orthogonal axis
 // -nx #             ... resolution along the x-axis
 // -ny #             ... resolution along the y-axis
+// -swap             ... swap x <--> y in output file (rotate)
 // -tec              ... write TECPLOT-formatted ASCII output
 // -sm               ... write SM-formatted binary output
 //
@@ -79,7 +80,8 @@ typedef enum {			// -- Flags for coordinate axes.
 static char *prog;
 static void  memExhaust () { message ("new", "free store exhausted", ERROR); }
 
-static void  getargs     (int, char**, char*&, char*&, char*&, char*&, char*&);
+static void  getargs     (int, char**, char*&, char*&, int&,
+			  char*&, char*&, char*&);
 static int   loadPoints  (ifstream&, vector<Point*>&);
 static int   linePoints  (vector<Point*>&);
 static int   planePoints (vector<Point*>&, Mesh*);
@@ -87,7 +89,7 @@ static void  findPoints  (vector<Point*>&, vector<Element*>&,
 			  vector<Element*>&, vector<real>&, vector<real>&);
 static int   getDump     (ifstream&, vector<AuxField*>&, vector<Element*>&,
 			  const integer, const integer, const integer);
-static void  putData     (const char*, const char*, const char*,
+static void  putData     (const char*, const char*, const char*, int,
 			  int, vector<AuxField*>&,
 			  vector<Element*>&, vector<Point*>&, matrix<real>&);
 static void  Finterp     (vector<AuxField*>&, const Point*, const Element*,
@@ -105,7 +107,7 @@ int main (int    argc,
   char              *session, *dump, *format;
   char              *interface = 0, *points = 0;
   integer           NP, NZ,  NEL;
-  integer           i, j, k, nf, ntot = 0, doff = 0, boff = 0;
+  integer           i, j, k, nf, ntot = 0, doff = 0, boff = 0, rotswap = 0;
   ifstream          fldfile, pntfile;
   FEML*             F;
   Mesh*             M;
@@ -140,7 +142,7 @@ int main (int    argc,
 
   // -- Parse command line.
 
-  getargs (argc, argv, interface, format, session, dump, points);
+  getargs (argc, argv, interface, format, rotswap, session, dump, points);
 
   // -- Check presence of field file before proceeding.
 
@@ -200,7 +202,7 @@ int main (int    argc,
 
   // -- Output collected data.
 
-  putData (dump, interface, format, ntot, u, elmt, point, data);
+  putData (dump, interface, format, ntot, rotswap, u, elmt, point, data);
   
   Femlib::finalize();
   return EXIT_SUCCESS;
@@ -211,6 +213,7 @@ static void getargs (integer argc     ,
 		     char**  argv     ,
 		     char*&  interface,
 		     char*&  format   ,
+		     int&    swap     ,
 		     char*&  session  ,
 		     char*&  dump     ,
 		     char*&  points   )
@@ -347,6 +350,7 @@ static void getargs (integer argc     ,
       "-orig #           ... origin of the cutting plane along ortho axis\n"
       "-nx #             ... resolution along the x-axis\n"
       "-ny #             ... resolution along the y-axis\n"
+      "-swap             ... swap output x <--> y (rotate)\n"
       "-tec              ... write TECPLOT-formatted ASCII output\n"
       "-sm               ... write SM-formatted binary output\n";
     int nset = 0;
@@ -377,7 +381,8 @@ static void getargs (integer argc     ,
 	Femlib::value ("OFFSET", atof (*++argv));
 	break;
       case 's':
-	if (argv[0][1] == 'm') strcpy (format, "sm");
+	if      (argv[0][1] == 'm') strcpy (format, "sm");
+	else if (argv[0][1] == 'w') swap = 1;
 	else { --argc; session = *++argv; }
 	break;
       case 't':
@@ -832,6 +837,7 @@ static void putData (const char*        dump     ,
 		     const char*        interface,
 		     const char*        format   ,
 		     int                ntot     ,
+		     int                swap     ,
 		     vector<AuxField*>& u        ,
 		     vector<Element*>&  elmt     ,
 		     vector<Point*>&    point    ,
@@ -867,13 +873,26 @@ static void putData (const char*        dump     ,
     for (n = 0; n < nf; n++) {
       sprintf (fname, "%s.%c", base, u[n] -> name());
       out.open  (fname);
-      out.write ((char*) &nx, sizeof (int));
-      out.write ((char*) &ny, sizeof (int));
       
-      for (k = 0, j = 0; j < ny; j++) {
-	for (i = 0; i < nx; i++, k++) {
-	  float tmp = (float) data (k, n);
-	  out.write ((char*) &tmp, sizeof (float));
+      if (swap) {
+	out.write ((char*) &ny, sizeof (int));
+	out.write ((char*) &nx, sizeof (int));
+	
+	for (i = 0; i < nx; i++) {
+	  for (j = 0; j < ny; j++) {
+	    float tmp = (float) data (i + j*nx, n);
+	    out.write ((char*) &tmp, sizeof (float));
+	  }
+	}
+      } else {
+	out.write ((char*) &nx, sizeof (int));
+	out.write ((char*) &ny, sizeof (int));
+      
+	for (k = 0, j = 0; j < ny; j++) {
+	  for (i = 0; i < nx; i++, k++) {
+	    float tmp = (float) data (k, n);
+	    out.write ((char*) &tmp, sizeof (float));
+	  }
 	}
       }
       out.close();
