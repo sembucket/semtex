@@ -343,6 +343,8 @@ Field&  Field::axpy (real alpha, const Field& x)
 
 void  Field::printMesh (Field* F)
 // ---------------------------------------------------------------------------
+// Static member function.
+//
 // Mesh location information is written out element-by-element.
 // ---------------------------------------------------------------------------
 {
@@ -385,6 +387,9 @@ void  Field::buildBoundaries (const Field& f)
 void  Field::buildBoundaries (const Mesh& M)
 // ---------------------------------------------------------------------------
 // Construct a new list of Boundary edges, using BCmanager and Mesh M.
+//
+// NB: All boundary_lists made from the same mesh traverse elements/edges
+// in the same order.
 // ---------------------------------------------------------------------------
 {
   Element*   E;
@@ -415,6 +420,8 @@ void  Field::buildBoundaries (const Mesh& M)
 
 void  Field::printBoundaries (Field* F)
 // ---------------------------------------------------------------------------
+// Static member function.
+//
 // (Debugging) Utility to print information contained in a Boundary list.
 // ---------------------------------------------------------------------------
 {
@@ -460,7 +467,7 @@ void  Field::connect (Mesh& M, int np)
   Element*  E;
   int*      b;
 
-  n_gid = M.connectSC (np);
+  n_gid = M.connectSC (np);	// -- Set up M's internal storage.
 
   for (ListIterator<Element*> k(element_list); k.more(); k.next()) {
     E = k.current();
@@ -475,15 +482,12 @@ void  Field::connect (Mesh& M, int np)
     freeVector (b);
   }
 
-  setMask ();
-  
-  sortGid ();
+  M.connectSC   (2);		// -- Minimize M's internal storage.
 
-  M.connectSC (2);		// -- Minimize M's internal storage.
-
-  renumber ();
-
-  buildSmoother ();
+  setMask       ();		// -- Mask ESSENTIAL BC nodes.
+  sortGid       ();		// -- Sort ESSENTIAL BCs last.
+  renumber      ();		// -- RCM renumbering.
+  buildSmoother ();		// -- Global mass smoothing weights.
 
   if (option ("VERBOSE") > 1) {
     char  s[StrMax];
@@ -541,7 +545,9 @@ void  Field::sortGid ()
 
 void  Field::printConnect (Field* F)
 // ---------------------------------------------------------------------------
-// (Debugging) Utility to print up mesh connectivity information.
+// Static member function.
+//
+// (Debugging) utility to print up mesh connectivity information.
 // ---------------------------------------------------------------------------
 {
   Element  *E;
@@ -594,7 +600,7 @@ void  Field::renumber ()
 
   // -- Allocate memory.
 
-  int* adjncy = ivector (tabSize);
+  int* adjncy = ivector (tabSize+1);
   int* xadj   = ivector (n_solve+1);
   int* perm   = ivector (n_solve);
   int* mask   = ivector (n_solve);
@@ -632,6 +638,7 @@ void  Field::renumber ()
   freeVector (xls);
   freeVector (invperm);
   freeVector (oldmap);
+
 }
 
 
@@ -663,7 +670,7 @@ void  Field::fillAdjncy (List<int>* adjncyList,
 // adjncy & xadj required by genrcm.
 // ---------------------------------------------------------------------------
 {
-  char  routine[] = "Field::fillAdjncy";
+  char          routine[] = "Field::fillAdjncy";
   register int  i, k;
 
   k = 0;
@@ -678,7 +685,7 @@ void  Field::fillAdjncy (List<int>* adjncyList,
     message (routine, "after traversing list, k != tabSize", ERROR);
 
   adjncy[tabSize] = 0;
-  xadj[n_solve]   = k + 1;
+  xadj  [n_solve] = k + 1;
 }
 
 
@@ -709,7 +716,7 @@ void  Field::buildSmoother ()
 }
 
 
-Field&  Field::dsSmooth ()
+Field&  Field::smooth ()
 // ---------------------------------------------------------------------------
 // Smooth values along element boundaries by direct stiffness summation.
 //
@@ -745,6 +752,7 @@ Field&  Field::dsSmooth ()
 Field&  Field::grad (int index)
 // ---------------------------------------------------------------------------
 // Operate on Field to produce the nominated index of the gradient.
+// 1 ==> 1st index, 2 ==> 2nd index, etc.
 // ---------------------------------------------------------------------------
 {
   ListIterator<Element*>  i(element_list);
@@ -752,14 +760,14 @@ Field&  Field::grad (int index)
   register     int        offset;
 
   switch (index) {
-  case 0:
+  case 1:
     for (; i.more(); i.next()) {
       E      = i.current ();
       offset = E -> nOff ();
       E -> d_dx (data + offset);
     }
     break;
-  case 1: 
+  case 2: 
     for (; i.more(); i.next()) {
       E      = i.current ();
       offset = E -> nOff ();
@@ -898,15 +906,15 @@ void  Field::buildSys (real lambda2)
 
     if (verbose > 0) {
       if (n_band)
-	sprintf (s, ": Banded matrix system:      %1dx%1d", n_solve, n_band);
+	sprintf (s, ": Banded system matrix:     %1dx%1d\t(%1d words)",
+		 n_solve, n_band, n_pack);
       else
-	sprintf (s, ": Triangular matrix system:  %1dx%1d", n_solve, n_solve);
+	sprintf (s, ": Triangular system matrix: %1dx%1d\t(%1d words)",
+		 n_solve, n_solve, n_pack);
       message (routine, s, REMARK);
-      sprintf (s, ": Constraint matrix:         %1dx%1d",   n_solve, n_cons);
-      message (routine, s, REMARK);
-      sprintf (s, ": Words required for System: %1d; Constraint: %1d",
-	       n_pack, n_solve * n_cons);
-      message (routine, s, REMARK);
+      sprintf (s, "Constraint matrix:        %1dx%1d\t(%1d words)",
+	       n_solve, n_cons, n_solve * n_cons);
+      message ("                 ", s, REMARK);
     }
   }
 
@@ -949,8 +957,8 @@ void  Field::buildSys (real lambda2)
 				   condition, rwrk, iwrk, info);
       else          Lapack::ppcon ("U", n_solve,             Hp,         1.0,
 				   condition, rwrk, iwrk, info);
-      sprintf (s, ": Global matrix condition number: %g", condition);
-      message (routine, s, REMARK);
+      sprintf (s, "System condition number:  %g", condition);
+      message ("                 ", s, REMARK);
       freeVector (rwrk);
       freeVector (iwrk);
     }
@@ -1079,11 +1087,11 @@ void Field::buildRHS (Field* F, real* RHS) const
   Boundary *B;
   for (ListIterator<Boundary*> b(boundary_list); b.more(); b.next()) {
     B = b.current();
-    if   (B -> isEssential()) B -> enforce (RHS);
-    else                      B -> dsSum   (RHS);
+    if   (B -> isEssential ()) B -> enforce (RHS);
+    else                       B -> dsSum   (RHS);
   }
 
-  if (n_solve == n_gid - 1) RHS [n_gid - 1] = 0.0;  // Pin last value to earth.
+  if (n_solve == n_gid - 1) RHS[n_gid - 1] = 0.0;  // Pin last value to earth.
 }
 
 
@@ -1114,9 +1122,9 @@ int  Field::switchPressureBCs (const BC* hopbc, const BC* zero)
   int       ntot(0);
 
   for (ListIterator<Boundary*> j(boundary_list); j.more(); j.next()) {
-    B = j.current();
+    B = j.current ();
     B -> resetKind (hopbc, zero);
-    ntot += B -> nKnot();
+    ntot += B -> nKnot ();
   }
 
   return ntot;
@@ -1190,4 +1198,107 @@ Field&  Field::evaluate (const char* function)
   vecInterp (n_data, mesh, mesh + n_data, data);
 
   return *this;
+}
+
+
+Vector  Field::normalTraction (const Field& pre, const Field& vel)
+// ---------------------------------------------------------------------------
+// Static member function.
+//
+// Compute normal tractive forces on all WALL boundaries, taking pre to be
+// the pressure field and getting WALL BCs from vel (a velocity Field).
+//
+// Rely on the fact that all boundary lists traverse mesh in same order
+// (as made by field::buildBoundaries).
+// ---------------------------------------------------------------------------
+{
+  ListIterator<Boundary*>  p(pre.boundary_list);
+  ListIterator<Boundary*>  u(vel.boundary_list);
+  Boundary*                P;
+  Boundary*                U;
+  Vector                   secF, F = {0.0, 0.0, 0.0};
+  
+  for (; u.more(); u.next(), p.next()) {
+    P = p.current ();
+    U = u.current ();
+    if (U -> isWall ()) {
+      secF = P -> normalTraction (pre.data + P -> nOff (), P -> nSkip ());
+      F.x += secF.x;
+      F.y += secF.y;
+    }
+  }
+
+  return F;
+}
+
+
+Vector  Field::tangentTraction (const Field& U , const Field& V ,
+			              Field& Dx,       Field& Dy)
+// ---------------------------------------------------------------------------
+// Static member function.
+//
+// Compute (2D) tangential viscous tractive forces on all WALL boundaries,
+// treating U & V as first and second velocity components, respectively.
+// Du & Dv are workspace Field storage used for computation of velocity
+// gradients.
+//
+// Compute viscous tractive forces on wall from
+//
+//  t_i  = - T_ij * n_j       (minus sign for force exerted BY fluid ON wall),
+//
+// where
+//
+//  T_ij = viscous stress tensor
+//                          dU_i    dU_j
+//       = RHO * KINVIS * ( ----  + ---- ) .
+//                          dx_j    dx_i
+//
+// ---------------------------------------------------------------------------
+{
+  real                     mu = dparam ("KINVIS") * dparam ("RHO");
+  ListIterator<Boundary*>  u(U.boundary_list);
+  ListIterator<Boundary*>  v(V.boundary_list);
+  Boundary*                Bu;
+  Boundary*                Bv;
+  Vector                   secF, F = {0.0, 0.0, 0.0};
+
+  // -- Terms from du_1/dx_i.
+
+  Dx = Dy = U;
+  
+  Dx.grad(1).smooth();
+  Dy.grad(2).smooth();
+ 
+  for (; u.more(); u.next(), v.next ()) {
+    Bu = u.current ();
+    Bv = v.current ();
+    if (Bu -> isWall ()) {
+      secF = Bu -> tangentTraction (Dx.data + Bu -> nOff (),
+				    Dy.data + Bv -> nOff (),
+				    Bv -> nSkip (),  mu, 1);
+      F.x += secF.x;
+      F.y += secF.y;
+    }
+  }
+
+  // -- Terms form du_2/dx_i.
+
+  Dx = Dy = V;
+  
+  Dx.grad(1).smooth();
+  Dy.grad(2).smooth();
+
+  for (u.reset(), v.reset(); u.more(); u.next(), v.next ()) {
+    Bu = u.current ();
+    Bv = v.current ();
+    if (Bu -> isWall ()) {
+      secF = Bu -> tangentTraction (Dx.data + Bu -> nOff (),
+				    Dy.data + Bv -> nOff (), 
+				    Bv -> nSkip (),  mu, 2);
+      F.x += secF.x;
+      F.y += secF.y;
+    }
+  }
+
+  return F;
 }

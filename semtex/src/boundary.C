@@ -40,9 +40,9 @@ Boundary::Boundary (const Boundary& B, const List<Element*>& E)
 
   int found = 0;
   for (ListIterator<Element*> k(E); !found && k.more(); k.next())
-    if (found = k.current() -> ID () == elmt -> ID ()) {
-      elmt  = k.current();
-      value = rvector (elmt -> nKnot());
+    if (found = k.current () -> ID () == elmt -> ID ()) {
+      elmt      = k.current ();
+      value     = rvector (elmt -> nKnot());
       condition = B.condition;
     }
 
@@ -55,7 +55,7 @@ void  Boundary::evaluate (int step)
 // Load boundary condition storage area with numeric values.
 // ---------------------------------------------------------------------------
 {
-  int np = elmt -> nKnot();
+  int np = elmt -> nKnot ();
 
   switch (condition -> kind) {
   case ESSENTIAL: case NATURAL:
@@ -137,6 +137,15 @@ void  Boundary::dsSum (real* target) const
 }
 
 
+int  Boundary::isWall () const
+// ---------------------------------------------------------------------------
+// Return 1 for wall-type BC, 0 otherwise.
+// ---------------------------------------------------------------------------
+{
+  return condition -> kind == WALL;
+}
+
+
 int  Boundary::isEssential () const
 // ---------------------------------------------------------------------------
 // Return 1 for essential-type BC, 0 for natural.
@@ -207,4 +216,71 @@ void  Boundary::resetKind (const BC* new_other, const BC* new_outflow)
 {
   if (condition -> kind == OUTFLOW) condition = (BC*) new_outflow;
   else                              condition = (BC*) new_other;
+}
+
+
+Vector  Boundary::normalTraction (const real* src, const int skp) const
+// ---------------------------------------------------------------------------
+// Compute normal tractive force on this boundary segment, using src as
+// a pressure stress.
+// ---------------------------------------------------------------------------
+{
+  register int  i, np    = nKnot ();
+  Vector        Force    = {0.0, 0.0, 0.0};
+  real*         pressure = rvector (np);
+
+  Veclib::copy (np, src, skp, pressure, 1);
+
+  for (i = 0; i < np; i++) {
+    Force.x += nx[i] * pressure[i] * area[i];
+    Force.y += ny[i] * pressure[i] * area[i];
+  }
+
+  freeVector (pressure);
+
+  return Force;
+}
+
+
+Vector  Boundary::tangentTraction (const real*  dx       ,
+				   const real*  dy       ,
+				   const int    skp      ,
+				   const real   mu       ,
+				   const int    component) const
+// ---------------------------------------------------------------------------
+// Compute 1st or 2nd component of viscous stress on this boundary segment.
+// ---------------------------------------------------------------------------
+{
+  register int   i, np = nKnot ();
+  Vector         Force = {0.0, 0.0, 0.0};
+  real*          ux    = rvector (np);
+  real*          uy    = rvector (np);
+
+  Veclib::copy (np, dx, skp, ux, 1);
+  Veclib::copy (np, dy, skp, uy, 1);
+  
+  switch (component) {
+  case 1:
+    for (i = 0; i < np; i++) {
+      Force.x += (2.0*ux[i]*nx[i] + uy[i]*ny[i]) * area[i];
+      Force.y +=                    uy[i]*nx[i]  * area[i];
+    }
+    break;
+  case 2:
+    for (i = 0; i < np; i++) {
+      Force.x +=                    ux[i]*ny[i]  * area[i];
+      Force.y += (2.0*uy[i]*ny[i] + ux[i]*nx[i]) * area[i];
+    }
+    break;
+  default:
+    break;
+  }
+  
+  freeVector (ux);
+  freeVector (uy);
+
+  Force.x *= -mu;
+  Force.y *= -mu;
+
+  return Force;
 }
