@@ -553,6 +553,32 @@ real AuxField::mode_L2 (const integer mode) const
 }
 
 
+real AuxField::integral () const
+// ---------------------------------------------------------------------------
+// Return the total amount of scalar, integrated over spatial volume.
+// It is assumed that the AuxField is in the Fourier-transformed state,
+// so that the integration takes place over the zeroth Fourier mode
+// only, then is scaled for Fourier normalisation.
+// ---------------------------------------------------------------------------
+{
+  register integer  i, offset;
+  const integer     nE = Geometry::nElmt();
+  const real        Lz = (Geometry::nDim()>2)?Femlib::value("TWOPI/BETA"):1.0;
+  vector<real>      work (Geometry::nTotElmt());
+  real              total = 0.0, *tmp = work();
+  register Element* E;
+
+  ROOTONLY
+    for (i = 0; i < nE; i++) {
+      E      = Elmt[i];
+      offset = E -> dOff();
+      total += E -> integral (plane[0] + offset, tmp);
+    }
+
+  return Lz * total;
+}
+
+
 ofstream& operator << (ofstream& strm,
 		       AuxField& F  )
 // ---------------------------------------------------------------------------
