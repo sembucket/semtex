@@ -40,7 +40,7 @@ const Element* HistoryPoint::locate (const real        x   ,
   E = 0;
   for (i = 0; i < NEL; i++) {
     r = s = 0.0;
-    if (Esys[i] -> locate (x, y, r, s)) {
+    if (Esys[i] -> locate (x, y, r, s, guess)) {
       E = Esys[i];
       break;
     }
