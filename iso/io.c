@@ -93,8 +93,10 @@ void  printParam (FILE* fp, const Param* H, const char* prog, const char* rev)
   fprintf (fp, "Grid size:                     %1d\n", H -> modes   );
   fprintf (fp, "Number of steps between dumps: %1d\n", H -> stepSave);
   fprintf (fp, "Maximum number of steps:       %1d\n", H -> stepMax );
-  fprintf (fp, "Time step:                     %g\n",  H -> dt      );
   fprintf (fp, "Reynolds number:               %g\n",  H -> Re      );
+  fprintf (fp, "Time step:                     %g\n",  H -> dt      );
+  fprintf (fp, "Time:                          %g\n",  H -> time    );
+
 }
 
 
@@ -106,7 +108,7 @@ void  readParam (FILE* fp, Param* I)
   char    routine[] = "readParam";
   char    s[STR_MAX], err[STR_MAX];
   int     modes;
-  double  time;
+  double  time, Re;
 
   fread  (s, 1, sizeof (s), fp);
   fread  (s, 1, sizeof (s), fp);
@@ -117,10 +119,12 @@ void  readParam (FILE* fp, Param* I)
   }
   fread  (s, 1, sizeof (s), fp);
   fread  (s, 1, sizeof (s), fp);
+  sscanf (s, "%lf", &Re);
   fread  (s, 1, sizeof (s), fp);
   fread  (s, 1, sizeof (s), fp);
   sscanf (s, "%lf", &time);
 
+  I -> Re    = Re;
   I -> modes = modes;
   I -> time  = time;
 }
@@ -258,6 +262,7 @@ void  initialize (CVF U, Param *I, const int* Dim)
   char   s[STR_MAX], err[STR_MAX];
   FILE*  fp;
   int    modes = I -> modes;
+  real   Re    = I -> Re;
   
   strcat (strcpy (s, I -> name), ".rst");
   fp = efopen (s, "rb");
@@ -268,6 +273,8 @@ void  initialize (CVF U, Param *I, const int* Dim)
 	     modes, I -> modes);
     message (routine, err, ERROR);
   }
+  I -> Re = Re;
+
   readCVF   (fp, U, Dim);
 }
 
@@ -277,9 +284,12 @@ void  analyze (CVF U, Param* I, const complex* Wtab, const int* Dim)
  * Carry out periodic analysis of data.
  * ------------------------------------------------------------------------- */
 {
-  printf ("Step: %-8d Time: %-8g Energy: %-8g",
+  printf ("Step: %-8d Time: %-8g Energy: %-8g\n",
 	  I -> step, I -> time, energyF (U, Dim));
+
+/* -- Include for diagnostic of inviscid Taylor--Green vortex. 
   printf (" %-8g %-8g\n", rmsEns (U, Dim), Brachet (I -> time));
+*/
 }
 
 
