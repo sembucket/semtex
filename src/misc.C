@@ -1,8 +1,8 @@
 /*****************************************************************************
  * misc.C: miscellaneous routines for I/O, memory management.
+ *
+ * $Id$
  *****************************************************************************/
-
-// $Id$
 
 #include "Fem.h"
 #include <time.h>
@@ -161,28 +161,6 @@ ifstream*  altFile (ifstream& ist)
 }
 
 
-int  quadComplete (int dim, int np)
-// ---------------------------------------------------------------------------
-// Return the number of Gauss-Legendre quadrature points sufficient to
-// achieve the full rate of convergence for tensor-product element bases.
-//
-// Dim is the number of space dimensions, np the number of points defining
-// basis polynomials.
-//
-// References: Hughes \S 4.1, Strang & Fix \S 4.3.
-// ---------------------------------------------------------------------------
-{
-  int  n, ktot;
-  
-
-  ktot = (dim + 1)*(np - 1) - 2;
-  n = (ktot & 0) ? ktot + 2 : ktot + 1;
-  n >>= 1;
-
-  return max (n, 2);
-}
-
-
 ostream& operator << (ostream& strm, Domain& D)
 // ---------------------------------------------------------------------------
 // Output all Domain field variables on ostream in prism-compatible form.
@@ -235,7 +213,7 @@ ostream& operator << (ostream& strm, Domain& D)
   strm << s1;
 
   int k;
-  for (k = 0; k < D.nField(); k++) s2[k] = D.u[k] -> name();
+  for (k = 0; k < D.nField(); k++) s2[k] = D.u[k] -> name ();
   s2[k] = '\0';
   sprintf (s1, hdr_fmt[8], s2);
   strm << s1;
@@ -249,7 +227,7 @@ ostream& operator << (ostream& strm, Domain& D)
   } else {
     strm.setf (ios::scientific, ios::floatfield); strm.setf (ios::uppercase);
     for (register int i(0); i < ntot; i++) {
-      for (register int n(0); n < D.nField(); n++)
+      for (register int n(0); n < D.nField (); n++)
         strm << setw (14) << D.u[n] -> data[i];
       strm << endl;
     }
@@ -268,43 +246,61 @@ istream& operator >> (istream& strm, Domain& D)
 // A friend of Field.
 // ---------------------------------------------------------------------------
 {
-  char          routine[] = "strm>>Domain";
-  int           i, np, ns, nz, nel, ntot;
-  char          s[StrMax];
+  char  routine[] = "strm>>Domain";
+  int   np, ns, nz, nel, ntot, nfields;
+  char  s[StrMax];
 
-  for (i = 0; i < 3; i++) strm.getline (s, StrMax);
+  if (strm.getline(s, StrMax).eof()) return strm;
 
-  sscanf (s, "%d %d %d %d", &np, &ns, &nz, &nel);
-  if ((np != D.u[0] -> element_list.first() -> nKnot()) ||
-      (ns != D.u[0] -> element_list.first() -> nKnot()))
+  strm.getline(s, StrMax).getline(s, StrMax);
+
+  istrstream (s, strlen (s)) >> np >> ns >> nz >> nel;
+
+  if ((np != D.u[0] -> element_list.first() -> nKnot ()) ||
+      (ns != D.u[0] -> element_list.first() -> nKnot ()))
     message (routine, "element size mismatch",       ERROR);
   if (nz != 1)
     message (routine, "number of z planes mismatch", ERROR);
-  if (nel != D.u[0] -> nEl())
+  if (nel != D.u[0] -> nEl ())
     message (routine, "number of elements mismatch", ERROR);
   
   ntot = np * np * nz * nel;
   if (ntot != D.u[0] -> nTot ())
     message (routine, "declared sizes mismatch",     ERROR);
+
+  strm.getline(s, StrMax).getline(s, StrMax);
+
+  istrstream (s, strlen (s)) >> D.time ();
+  setDparam  ("t", D.time ());
   
-  for (i = 3; i < 10; i++) strm.getline (s, StrMax);
+  strm.getline(s,StrMax).getline(s,StrMax).getline(s,StrMax).getline(s,StrMax);
   
+  nfields = 0;
+  while (isalpha (s[nfields])) nfields++;
+  if (nfields > D.nField ())
+    message (routine, "number of fields in file > number in domain", ERROR);
+  nfields = 0;
+  while (isalpha (s[nfields])) {
+    D.u[nfields] -> field_name = s[nfields];
+    nfields++;
+  }
+  
+  strm.getline (s, StrMax);
   if (strstr (s, "binary")) {
-    for (i = 0; i < D.nField () - 1; i++) {
-      strm.read ((char *) D.u[i] -> data, ntot * sizeof (real));
-      if (strm.bad())
-	message (routine, "failed reading binary restart file", ERROR);
+    for (register int n = 0; n < nfields; n++) {
+      strm.read ((char *) D.u[n] -> data, ntot * sizeof (real));
+      if (strm.bad ())
+	message (routine, "failed reading binary field file", ERROR);
     }
     
   } else if (strstr (s, "ASCII")) {
-    for (register int j = 0; j < ntot; j++) {
-      strm.getline (s, StrMax);
-      if (strm.fail()) 
-	message (routine, "premature EOF in ASCII restart file", ERROR);
-      for (register int n = 0; n < D.nField () - 1; n++)
-	if (sscanf (s, "%lf", D.u[n] -> data + j) < 1)
-	  message (routine, "failed reading ASCII restart file", ERROR);      
-    }
+    for (register int j = 0; j < ntot; j++)
+      for (register int n = 0; n < nfields; n++) {
+	strm >> D.u[n] -> data[j];
+	if (strm.bad ()) 
+	  message (routine, "failed reading ASCII restart file", ERROR);
+      }
+    strm.getline (s, StrMax);
   }
     
   return strm;
@@ -432,7 +428,7 @@ istream& readOptions (istream& istr)
     istr >> p;
     istr >> s;
     if   (isalpha (p[0])) i = (int) p[0];
-    else                  istrstream (s, strlen (p)) >> i;
+    else                  i = atoi (p);
     setOption (s, i);
   }
 
@@ -552,10 +548,12 @@ Mesh*  preProcess (ifstream& strm)
   strm >> *M;
   endBlock  (strm);
 
-  if (verbose) {
+  if (verbose == 2) {
     message (routine, "-- MESH ASSEMBLY INFORMATION:", REMARK);
     Mesh::printAssembly (*M);
   }
 
   return M;
 }
+
+
