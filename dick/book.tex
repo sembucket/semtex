@@ -7,26 +7,49 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \documentclass[11pt,b5paper,titlepage]{book}
 %\usepackage{times}
-\usepackage{palatino}
 %\usepackage{garamond}
+\usepackage{palatino}
 \usepackage{pifont}
 \usepackage{endnotesn}
+%\usepackage{endnotes}
+\usepackage{graphicx}
 %\usepackage{bibtopic}
 %\usepackage{natbib}
 \usepackage{makeidx}
 \usepackage{setspace}
 \usepackage{fancyhdr}
+
+%\usepackage[%
+%     titleformat=italic,%
+%%     titleformat=all,%
+%%     titleformat=noreplace,%
+%     titleformat=commasep,%
+%     commabeforerest,%
+%     ibidem=strict,%
+%     opcit=chapter,%
+%     citefull=chapter,%
+%%     lookat,%
+%     oxford,%
+%%     pages=format,%
+%]{jurabib}
+
 \usepackage[%
   authorformat=year,%
   titleformat=italic,%
   titleformat=commasep,%
   ibidem=strict,%
-  citefull=first,oxford,%
+  opcit=chapter,%
+  citefull=first,
+  oxford,%
 %  pages=format,
-  opcit,%
-  commabeforerest,
+  commabeforerest,%
+%  citetoend=true,
 ]{jurabib}
 
+\AddTo\bibsenglish{%
+  \renewcommand{\ibidemname}{\textit{Ibid}.}
+  \renewcommand{\ibidemmidname}{\textit{ibid}.}
+}
 
 % -- The following for A4 paper.
 
@@ -61,10 +84,11 @@
   \noindent%
 }
 
+%\renewcommand{\bibtfont}{\itshape}
 %\renewcommand{\footnote}{\endnote}
 \let\footnote=\endnote
 \newcommand{\fn}[1]{\footnote{#1}}
-%\renewcommand{\bibtfont}{\itshape}
+%\newcommand{\fn}[1]{\footcite{#1}}
 
 \hyphenation{Ar-thur Arth-ur}
 \hyphenation{Mon-thly Month-ly}
@@ -89,6 +113,7 @@
 
 \includeonly{
    ack
+ ,maps
  ,ch01
  ,ch02
  ,ch03
@@ -105,10 +130,9 @@
  ,ch14
  ,ch15
  ,ch16
-% ,abbrev
  ,notes
-% ,selectbib
-% ,bibliography
+ ,selectbib2
+%% ,bibliography
 }
 
 \makeindex
@@ -133,16 +157,16 @@
 {\bfseries\sffamily\Huge Pioneering Irrigation \\[0.5ex]
 in Australia to 1920}
 
-\vspace*{20mm}
+%\vspace*{20mm}
 
-\begin{center}
-\begin{minipage}{85mm}
-\itshape Gerard ('Dick') Blackburn (1918--1999) was a research
-scientist with the CSIRO, employed in the Division of Soils,
-Adelaide. He had a life-long interest in Australian rural history and
-wrote this book in his retirement.
-\end{minipage}
-\end{center}
+%\begin{center}
+%\begin{minipage}{85mm}
+%\itshape Gerard ('Dick') Blackburn (1918--1999) was a research
+%scientist with the CSIRO, employed in the Division of Soils,
+%Adelaide. He had a life-long interest in Australian rural history and
+%wrote this book in his retirement.
+%\end{minipage}
+%\end{center}
 
 \end{center}
 \clearemptydoublepage
@@ -158,7 +182,7 @@ in Australia to 1920}
 {\bfseries\sffamily\huge Gerard Blackburn}
 
 \vspace*{\fill}
-{\bfseries\sffamily\slshape\Large Australian Scholarly Publishing}
+{\sffamily\slshape\Large Australian Scholarly Publishing}
 \end{center}
 \newpage
 
@@ -171,7 +195,7 @@ in Australia to 1920}
 \Pisymbol{psy}{211} Gerard Blackburn 1999
 
 \medskip
-First published 2003 by Australian Scholarly Publishing Pty Ltd\\
+First published 2004 by Australian Scholarly Publishing Pty Ltd\\
 PO Box 299, Kew, Victoria 3101\\
 Suite 102, 282 Collins Street, Melbourne, Victoria 3000\\
 Tel: (03) 9817 5208 \quad Fax: (03) 9817 6431\\
@@ -201,7 +225,10 @@ I. Title. II. Blackburn, Gerard.
 111.1111
 
 \medskip
-Reproduced from camera-ready copy typeset in \LaTeX.
+Reproduced from camera-ready copy typeset in \LaTeX\\
+Printing and binding by Mercury Printeam\\
+Cartography by Ophelia Leviny\\
+Cover design by Madame Fang
 
 \end{raggedright}
 \clearemptydoublepage
@@ -209,19 +236,19 @@ Reproduced from camera-ready copy typeset in \LaTeX.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \end{titlepage}
 
-%\maketitle
-%\clearemptydoublepage
-
 \pagestyle{plain}
+\begin{spacing}{0.93}
 \tableofcontents
-\clearemptydoublepage
+\end{spacing}
+\newpage
+\include{maps}
 \include{ch01}
 \clearemptydoublepage
 \include{ack}
 \clearemptydoublepage
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \mainmatter
-%\pagestyle{myheadings}
 \pagestyle{fancy}
 \renewcommand{\headrulewidth}{0.4pt}
 \fancyhead[LE,RO]{\sffamily \small \thepage}
@@ -260,18 +287,20 @@ Reproduced from camera-ready copy typeset in \LaTeX.
 \clearemptydoublepage
 
 \backmatter
-%\include{abbrev}
-%\clearemptydoublepage
+%%\include{abbrev}
+%%\clearemptydoublepage
 \include{notes}
 \clearemptydoublepage
-%\include{selectbib}
-%\include{bibliography}
-%\clearemptydoublepage
+\include{selectbib2}
+\clearemptydoublepage
+%%\include{bibliography}
+%%\clearemptydoublepage
 
 \fancyhead[RE]{\sffamily \small Index}
 \addcontentsline{toc}{chapter}{Index}
 {\small
 \printindex
 }
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \end{document}

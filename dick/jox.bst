@@ -1,54 +1,16 @@
-% [0.1j]   doubled commas after title and superfluous comma before brackets 
-%                removed (resulted by last changes), reported by Maarten Wisse
-% [0.1i]   some warnings for missing authors/editors corrected, reported by Maarten Wisse
-% [0.1h]   changed handling of authors/editors in @book, reported by Maaarten Wisse:
-%		The golden rule with regard to editors and authors is: 
-%			1. no author but only editor: then the 
-%	   		   editor goes before the title. 
-%			2. if there is an author \textbf{and} 
-%			   an editor, then the \emph{author} goes
-%			   \textbf{before} the title, and the 
-%			   \emph{editor} goes \textbf{after} it.
-% [0.1g]   superfluous \bibatsep in `format.title' removed, reported by Maarten Wisse
-% [0.1f]   forgotten argument of \jbbibargs inserted
-% [0.1e]   \bibbudcsep introduced instead of `~-- '
-% [0.1d]   \bibedinformat introduced for inline editors
-% [0.1c]   \el for bibliography renamed to \bibel, some stuff for identifying authors added
-% [0.1b]   format.pages added for @BOOK and @BOOKLET
-%          for names which should not be recognized by BibTex, use 
-%               `author = {Gregory{ }the{ }Great}'
-%           instead of
-%               `author = {{Gregory the Great}}'
-%          because of special functions for capitalizing the `von' part.
-% [0.1a]   \bibAnnote stuff added
-% [0.1]    jox.bst has reached beta stage 
-%
-% [0.0.1p] spaces after control sequences added for better linebreaking 
-%            regarding the well known bibtex bug
-% [0.0.1o] \volname added
-% [0.0.1n] @incollection: `booktitleaddon' follows booktitle and volume, preceds series;
-%          no \volumename if `volume' comes with citation of an essay;
-%          `capitalize.von.part' added (Thanks to Oren Patashnik)
-% [0.0.1m] `booktitleaddon' follows immediately booktitle, \volumename inserted in 
-%           `format.in.editor.booktitle.volume.voltitle'
-% [0.0.1l] bug in `format.in.editor.booktitle.volume.voltitle' removed (completely rewritten, 
-%           error message, if no volumetitle was given); a \bpubaddr replaced by \bibbdsep in `format.publisher';
-%           `format.titleaddon' added for @unpublished
-% [0.0.1k] experimental noed field added, noed=1 disables output of `(ed.)', removing `textedition'
-% [0.0.1j] bug in `format.in.editor.booktitle.volume.voltitle' removed (error message, if no editor was given)
-% [0.0.1i] `format.endnote' added to make the `endnote' option work
-% [0.0.1h] `format.in.editor.booktitle.volume.voltitle' introduced for non crossref'd incollections, 
-%           this makes `volformat=reversed' working for booktitle too
-% [0.0.1g] `format.bvolume.btitle' for non crossref'd incollections added
-% [0.0.1f] `volume' removed if volumetitle missing for incollection and inbook crossrefs
-% [0.0.1e] missing year (if publisher is not given) in format.publisher.* added, volformat=reversed implemented, 
-%          chapter for inbook moved back to pages 
-% [0.0.1d] incollection adapted to give the same output with or without crossref
-% [0.0.1c] comma before url for all types except @www
-% [0.0.1b] First try to adapt the @in* types
-% [0.0.1a] \artvolnumformat introduced, all types except the @in* adapted (oaddress.opublisher.oyear, make.translator, pseudonym etc.)
-
-FUNCTION {version} { " v0.1j" }
+%%
+%% This is file `jox.bst',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% jurabib.dtx  (with options: `joxbst')
+%% ----------------------------------------
+%% BibTeX style for use with the jurabib package version v0.6
+%% Copyright (C) 1999-2003 Jens Berger (http://www.jurabib.org)
+%% See jurabib.ins  for the copyright details.
+%% 
+FUNCTION {version} { " v0.1k" }
 
 ENTRY
   { address
@@ -74,7 +36,6 @@ ENTRY
     type
     volume
     year
-% 
     url
     urldate
     volumetitle
@@ -99,12 +60,9 @@ ENTRY
     pseudonym
     volformat
     noed
-%        
   }
   { repeat-authors }
-%   ^^^^^^^^^^^^^^ JB  
   { label dummy.label extra.label sort.label short.list current-authors }
-%         ^^^^^^^^^^^^^^^^^^^^^^^                       ^^^^^^^^^^^^^^^JB
 
 INTEGERS { output.state before.all mid.sentence }
 
@@ -114,12 +72,11 @@ FUNCTION {init.state.consts}
 }
 
 STRINGS { s t u v w x }
-%             ^^^^^^^ JB 
 
 FUNCTION {output.nonnull}
 { 's :=
   output.state mid.sentence =
-    { ", " * write$ }    
+    { ", " * write$ }
     { write$ mid.sentence 'output.state := }
   if$
   s
@@ -147,13 +104,7 @@ FUNCTION {format.endnote}
   if$
 }
 
-%% added JB
-%  FUNCTION {format.howcited}{ before.all 'output.state := "} {\bibhowcited}"  * }
 FUNCTION {format.howcited}{ before.all 'output.state := "} {\bibhowcited}" format.endnote * * }
-
-%% added JB, but not needed in oxford
-% FUNCTION {format.howcited.artperiod}
-% { before.all 'output.state := "} {\bibartperiodhowcited}" }
 
 INTEGERS { nameptr namesleft numnames }
 
@@ -166,7 +117,7 @@ FUNCTION {format.name.sig}
   { s nameptr "{ff}{ vv}{ ll}{ jj}" format.name$ 't :=
       nameptr #1 >
         { namesleft #1 >
-            { "" * t * }
+            { "sssss" * t * }
             {  t "others" =
                 { " et al." * }
                 { "" * t * }
@@ -201,41 +152,48 @@ FUNCTION {format.snd.editors}
   if$
 }
 
-%% added JB
+FUNCTION {count.authors.or.editors}
+{ 's :=
+  #1 'nameptr :=
+  s num.names$ 'numnames :=
+  numnames 'namesleft :=
+  { namesleft #0 > }
+  { "" 't :=
+      nameptr #1 >
+        { namesleft #1 >
+            { "" * }
+            { "s" * } % more than one author/editor, append `s'
+          if$
+        }
+        't
+      if$
+    nameptr #1 + 'nameptr :=
+    namesleft #1 - 'namesleft :=
+  }
+  while$
+}
+
 FUNCTION {set.after.author.sep}
-{ before.all 'output.state := 
+{ before.all 'output.state :=
   author missing$
      { editor missing$
           { organization missing$
                  { "} {empty} {} {" }
-% REMOVED                          ^ "*"
-                 { "} {" author format.name.sig * "} {au} {" * }
+                 { "} {" organization "} {org} {" * * }
             if$
           }
-          { "} {" editor format.name.sig * "} {ed} {" * }
+          { "} {" editor format.name.sig * "} {ed" editor count.authors.or.editors "} {" * * * }
       if$
      }
-     { "} {" author format.name.sig * "} {au} {" * }
+     { "} {" author format.name.sig * "} {au" author count.authors.or.editors "} {" * * * }
   if$
   author empty$
       { format.snd.editors }
       'skip$
   if$
-  "" *  
-%  "} {" "" * 
+  "" *
 }
 
-%% added JB
-FUNCTION {fin.entry}
-{ format.howcited
-  " \jbdoitem" * write$
-  annote missing$
-    { " \bibAnnoteFile {" cite$ * "}" * write$ newline$ }
-    { " \bibAnnote {" annote * "}" * write$ newline$ }
-  if$
-}
-
-%% added JB
 FUNCTION {format.note}
 { note empty$
       'skip$
@@ -247,7 +205,6 @@ FUNCTION {format.note}
   if$
 }
 
-FUNCTION {add.blank}{  " " * before.all 'output.state := }
 
 FUNCTION {not}
 {   { #0 }
@@ -269,7 +226,7 @@ FUNCTION {or}
 
 FUNCTION {non.stop}
 { duplicate$
-   "}" * %add.period$
+   "}" *
    #-1 #1 substring$ "." =
 }
 
@@ -319,7 +276,6 @@ FUNCTION {bbl.mthesis}
 FUNCTION {bbl.phdthesis}
 { "\phdthesisname {}"}
 
-% added + changed JB removed "{} " to make string solutions possible
 MACRO {jan} {"\janname"}
 MACRO {feb} {"\febname"}
 MACRO {mar} {"\marname"}
@@ -333,7 +289,6 @@ MACRO {oct} {"\octname"}
 MACRO {nov} {"\novname"}
 MACRO {dec} {"\decname"}
 
-% added JB
 FUNCTION {checked.emph.format}
 { type$ "book" = type$ "inbook" = type$ "proceedings" = type$ "inproceedings" = or or or
       { "\bibtfont {" }
@@ -341,17 +296,13 @@ FUNCTION {checked.emph.format}
   if$
 }
 
-% added JB
 FUNCTION {emphasize}
 { duplicate$ empty$
     { pop$ "" }
-    { checked.emph.format swap$ * "}" * 
-%      type$ "book" = { "\bhook" * } 'skip$ if$ 
-    }
+    { checked.emph.format swap$ * "}" * }
   if$
 }
 
-% added JB, for booktitle in incollection and inproceedings if crossref's are missing
 FUNCTION {b.emphasize}
 { duplicate$ empty$
     { pop$ "" }
@@ -359,26 +310,23 @@ FUNCTION {b.emphasize}
   if$
 }
 
-% added JB
 FUNCTION {write.url}
 { url empty$
       { urldate empty$
             'skip$
-            { "there's an urldate, but no url in " cite$ * warning$ }               % warning added JB
+            { "there's an urldate, but no url in " cite$ * warning$ }
         if$
       }
       { type$ "www" =
            'skip$
            { ", " * }
         if$
-        title empty$ output.state before.all = and                                  % added JB to avoid leading whitespace for minimal misc and www
-            { "" * mid.sentence 'output.state := }                                  % added JB to avoid leading whitespace for minimal misc and www
-            { " " * }                                                               % added JB to avoid leading whitespace for minimal misc and www
-        if$                                                                         % added JB to avoid leading whitespace for minimal misc and www
-% comma before URL??????
+        title empty$ output.state before.all = and
+            { "" * mid.sentence 'output.state := }
+            { " " * }
+        if$
         urldate empty$
                 { "\jburluse {" cite$ * "}" * * }
-%                { "\jburluse {" cite$ * "}~-- \urldatecomment " * urldate * * }
                 { "\jburluse {" cite$ * "}\bibbudcsep {}\urldatecomment " * urldate * * }
         if$
       }
@@ -396,7 +344,7 @@ FUNCTION {editorlastnamemarkup}
 { duplicate$ empty$
      { pop$ "" }
      { author empty$
-         { "\biblenf {" swap$ * "}" * } % lonely editor(s)!
+         { "\biblenf {" swap$ * "}" * }
          { "\bibenf {" swap$ * "}" * }
        if$
      }
@@ -408,6 +356,48 @@ FUNCTION {othermarkup}
        { pop$ " {}" }
        { " {" swap$ * "}" * }
   if$
+}
+
+FUNCTION {indexmarkup}
+{ duplicate$ empty$
+       { pop$ "{}" }
+       { "{" swap$ * "}" * }
+  if$
+}
+
+FUNCTION {format.names.for.index}
+{ 's :=
+  #1 'nameptr :=
+  s num.names$ 'numnames :=
+  numnames 'namesleft :=
+  { namesleft #0 > }
+  { s nameptr "{ll}" format.name$ 't := t indexmarkup 't :=
+    s nameptr "{ff}" format.name$ indexmarkup 'u :=
+    s nameptr "{f.}" format.name$ indexmarkup 'v :=
+    s nameptr "{vv}" format.name$ indexmarkup 'w :=
+    s nameptr "{jj}" format.name$ indexmarkup 'x :=
+    t u * v * w * x * 't :=
+    t "{others}{}{}{}{}" =
+      'skip$
+      { nameptr #1 >
+          { namesleft #1 >
+               { "; " * t * }
+               {
+                 t "others" =
+                    'skip$
+                    { "; " * t * }
+                 if$
+                }
+            if$
+          }
+          't
+       if$
+      }
+    if$
+    nameptr #1 + 'nameptr :=
+    namesleft #1 -  'namesleft :=
+  }
+  while$
 }
 
 FUNCTION {format.names}
@@ -427,19 +417,18 @@ FUNCTION {format.names}
           { numnames #3 >
                 { "" * }
                 { numnames #3 <
-                     { "\Bibbtasep " * t * }      % between (exactly) two authors
-                     { "\Bibbfsasep " * t * }     % between first and second author (if more than two)
+                     { "\Bibbtasep " * t * }
+                     { "\Bibbfsasep " * t * }
                   if$
                 }
             if$
           }
           { t "\bibnf {others} {} {} {} {}" =
-%            t "\bibnf {others} {} {} {} {} \editorsname" = or
             numnames #3 > or
                { "\bibimfont {\Bibetal}" * }
                { numnames #3 <
-                   { "\Bibbtasep " * t * }  % between (exactly) two authors
-                   { "\Bibbstasep " * t * } % between second and third author
+                   { "\Bibbtasep " * t * }
+                   { "\Bibbstasep " * t * }
                  if$
                }
             if$
@@ -471,8 +460,8 @@ FUNCTION {format.editor.names}
           { numnames #3 >
                 { "" * }
                 { numnames #3 <
-                     { "\Bibbtasep " * t * }      % between (exactly) two authors
-                     { "\Bibbfsasep " * t * }     % between first and second author (if more than two)
+                     { "\Bibbtasep " * t * }
+                     { "\Bibbfsasep " * t * }
                   if$
                 }
             if$
@@ -484,8 +473,8 @@ FUNCTION {format.editor.names}
             numnames #3 > or
                { "\bibimfont {\Bibetal}" * }
                { numnames #3 <
-                   { "\Bibbtasep " * t * }        % between (exactly) two authors
-                   { "\Bibbstasep " * t * }       % between second and third author
+                   { "\Bibbtasep " * t * }
+                   { "\Bibbstasep " * t * }
                  if$
                }
             if$
@@ -502,46 +491,42 @@ FUNCTION {format.editor.names}
 
 FUNCTION {format.authors}
 { author empty$
-    { pseudonym empty$                                                           % added JB
-        { "" }                                                                   % added JB NOT 'skip$ !!!!
-%        { "[" pseudonym * "]" * }                                               % added JB
-         { "[" pseudonym format.names * "]" * }                                  % added JB  ?????
-      if$                                                                        % added JB
+    { pseudonym empty$
+        { "" }
+        { "[" pseudonym format.names * "]" * }
+      if$
     }
-    { author format.names                                                        % added JB
-      pseudonym empty$                                                           % added JB
-        'skip$                                                                   % added JB NOT { "" } !!!!
-%        { " [" * pseudonym * "]" * }                                            % added JB
-        { " [" * pseudonym format.names * "]" * }                                % added JB  ????
-      if$      
+    { author format.names
+      pseudonym empty$
+        'skip$
+        { " [" * pseudonym format.names * "]" * }
+      if$
     }
   if$
 }
 
 FUNCTION {format.editors}
 { editor empty$
-    { pseudonym empty$                                                           % added JB
-         { "" }                                                                  % added JB NOT 'skip$ !!!!
-%        { "[" pseudonym * "]" * }                                               % added JB
-         { "[" pseudonym format.editor.names * "]" * }                           % added JB  ?????        
-      if$                                                                        % added JB
+    { pseudonym empty$
+         { "" }
+         { "[" pseudonym format.editor.names * "]" * }
+      if$
     }
     { editor format.editor.names
-      pseudonym empty$                                                           % added JB
-        'skip$                                                                   % added JB NOT { "" } !!!!
-%        { " [" * pseudonym * "]" * }                                            % added JB
-         { " [" * pseudonym format.editor.names * "]" * }                        % added JB  ?????        
-      if$                                                                        % added JB
-      noed missing$       
+      pseudonym empty$
+        'skip$
+         { " [" * pseudonym format.editor.names * "]" * }
+      if$
+      noed missing$
           { editor num.names$ #1 >
                  { editortype empty$
                       { "\bibedformat {\editorsname}" * }
-                      { "\bibedformat {" * editortype * "}" * } 
+                      { "\bibedformat {" * editortype * "}" * }
                    if$
                  }
                  { editortype empty$
                       { "\bibedformat {\editorname}" * }
-                      { "\bibedformat {" * editortype * "}" * } 
+                      { "\bibedformat {" * editortype * "}" * }
                    if$
                  }
             if$
@@ -552,15 +537,15 @@ FUNCTION {format.editors}
                  { editor num.names$ #1 >
                         { editortype empty$
                              { "\bibedformat {\editorsname}" * }
-                             { "\bibedformat {" * editortype * "}" * } 
+                             { "\bibedformat {" * editortype * "}" * }
                           if$
                         }
                         { editortype empty$
                              { "\bibedformat {\editorname}" * }
-                             { "\bibedformat {" * editortype * "}" * } 
+                             { "\bibedformat {" * editortype * "}" * }
                           if$
                         }
-                   if$                 
+                   if$
                  }
             if$
           }
@@ -571,28 +556,26 @@ FUNCTION {format.editors}
 
 FUNCTION {format.in.editors}
 { editor empty$
-    { pseudonym empty$                                                           % added JB
-        'skip$                                                                   % added JB
-%         { "[" pseudonym * "]" * }                                              % added JB
-          { "[" pseudonym format.editor.names * "]" * }                          % added JB  ?????        
-      if$                                                                        % added JB
+    { pseudonym empty$
+        'skip$
+          { "[" pseudonym format.editor.names * "]" * }
+      if$
     }
     { editor format.editor.names
-      pseudonym empty$                                                           % added JB
-        'skip$                                                                   % added JB
-%        { " [" * pseudonym * "]" * }                                            % added JB
-         { " [" * pseudonym format.editor.names * "]" * }                        % added JB  ?????        
-      if$                                                                        % added JB
-      noed missing$       
+      pseudonym empty$
+        'skip$
+         { " [" * pseudonym format.editor.names * "]" * }
+      if$
+      noed missing$
           { editor num.names$ #1 >
                  { editortype empty$
                       { " \bibedinformat {\editorsname}" * }
-                      { " \bibedinformat {" * editortype * "}" * } 
+                      { " \bibedinformat {" * editortype * "}" * }
                    if$
                  }
                  { editortype empty$
                       { " \bibedinformat {\editorname}" * }
-                      { " \bibedinformat {" * editortype * "}" * } 
+                      { " \bibedinformat {" * editortype * "}" * }
                    if$
                  }
             if$
@@ -603,15 +586,15 @@ FUNCTION {format.in.editors}
                  { editor num.names$ #1 >
                         { editortype empty$
                              { " \bibedinformat {\editorsname}" * }
-                             { " \bibedinformat {" * editortype * "}" * } 
+                             { " \bibedinformat {" * editortype * "}" * }
                           if$
                         }
                         { editortype empty$
                              { " \bibedinformat {\editorname}" * }
-                             { " \bibedinformat {" * editortype * "}" * } 
+                             { " \bibedinformat {" * editortype * "}" * }
                           if$
                         }
-                   if$                 
+                   if$
                  }
             if$
           }
@@ -620,7 +603,30 @@ FUNCTION {format.in.editors}
   if$
 }
 
-% added JB
+FUNCTION {fin.entry}
+{ format.howcited
+  " \jbdoitem {" *
+    author empty$
+      'skip$
+      { author format.names.for.index * }
+    if$
+    "} {"
+    editor empty$
+      'skip$
+      { editor format.names.for.index * }
+    if$
+    "} {" *
+    organization empty$
+      'skip$
+      { "{" organization * "}{}{}{}{}" * * }
+    if$
+    "}" * * write$
+  annote missing$
+    { " \bibAnnoteFile {" cite$ * "}" * write$ newline$ }
+    { " \bibAnnote {" annote * "}" * write$ newline$ }
+  if$
+}
+
 FUNCTION {format.titleaddon}
 { title empty$
     'skip$
@@ -629,10 +635,9 @@ FUNCTION {format.titleaddon}
          { ", " * titleaddon * }
      if$
     }
-  if$  
+  if$
 }
 
-% added JB
 FUNCTION {format.booktitleaddon}
 { booktitle empty$
     'skip$
@@ -645,24 +650,17 @@ FUNCTION {format.booktitleaddon}
 }
 
 FUNCTION {format.title}
-{ before.all 'output.state := % added JB
+{ before.all 'output.state :=
   title empty$
     { "" }
-    { title checked.emph.format swap$ * non.stop 
-% JB, ONLY FOR CMS 
-%       { before.all 'output.state := "\bibatsep} " *  }
-%       { before.all 'output.state := "\bibatsep} " * }       
-% CH 0.1g, superfluous \bibatsep  removed, reported by Maarten Wisse
+    { title checked.emph.format swap$ * non.stop
        { before.all 'output.state := "}" * }
-       { before.all 'output.state := "}" * }       
-%        { "}" * }        
-%        { "}" * }
+       { before.all 'output.state := "}" * }
       if$
     }
   if$
 }
 
-% added JB
 FUNCTION {journalnamemarkup}
 { duplicate$ empty$
     { pop$ "" }
@@ -842,7 +840,7 @@ FUNCTION {output.bibitem.fst}
       if$
       "}" write$
     }
-  if$  
+  if$
   edition empty$
     { "{}" write$ }
     { "{" convert.edition.superscript extract.num * "}" * write$ }
@@ -867,12 +865,12 @@ FUNCTION {output.bibitem.snd}
     { address empty$
          { year empty$
                { "          {" write$ }
-               { "          {" write$ 
-                            year write$ 
+               { "          {" write$
+                            year write$
                             extra.label "" =
                               'skip$
                               { "\el {" write$ extra.label write$ "}" write$ }
-                            if$                               
+                            if$
                }
            if$
          }
@@ -883,7 +881,7 @@ FUNCTION {output.bibitem.snd}
                             extra.label "" =
                               'skip$
                               { "\el {" write$ extra.label write$ "}" write$ }
-                            if$               
+                            if$
                }
            if$
          }
@@ -892,7 +890,7 @@ FUNCTION {output.bibitem.snd}
     { address empty$
         { year empty$
               { "          {" write$ publisher write$ }
-              { "          {" write$ publisher write$ "\bibbdsep {} " write$ 
+              { "          {" write$ publisher write$ "\bibbdsep {} " write$
                             year write$
                             extra.label "" =
                               'skip$
@@ -903,7 +901,7 @@ FUNCTION {output.bibitem.snd}
         }
         { year empty$
               { "          {" write$ address write$ "\bpubaddr {} " write$ publisher write$ }
-              { "          {" write$ address write$ "\bpubaddr {} " write$ publisher write$ "\bibbdsep {} " write$ 
+              { "          {" write$ address write$ "\bpubaddr {} " write$ publisher write$ "\bibbdsep {} " write$
                             year write$
                             extra.label "" =
                               'skip$
@@ -925,7 +923,23 @@ FUNCTION {output.bibitem.snd}
     { "          {}" write$ }
     { "          {" gender * "}" * write$ }
   if$
-  "{}{}{}{}{}{}{}}%" write$ newline$
+  oyear empty$
+    { "{}" write$ }
+    { "{" oyear * "}" * write$ }
+  if$
+  author empty$
+    { editor empty$
+         { "{4}" write$ }% author and editor empty
+         { "{3}" write$ }% author empty, editor not
+      if$
+    }
+    { editor empty$
+         { "{2}" write$ }% editor empty, author not
+         { "{1}" write$ }% both author and editor given
+      if$
+    }
+  if$
+  "{}{}{}{}{}}%" write$ newline$
   "        ]{" write$
   cite$ write$
   "}" write$
@@ -945,7 +959,6 @@ FUNCTION {word.in}
 { bbl.in
   " " * }
 
-% JB extra label stuff added in 0.1a
 FUNCTION {add.extra.label}
 {extra.label "" =
    'skip$
@@ -956,34 +969,32 @@ FUNCTION {add.extra.label}
 FUNCTION {format.date}
 { year empty$
     'skip$
-    { output.state before.all =                                                          % added JB to avoid leading whitespace for minimal misc
-            { "" * mid.sentence 'output.state := }                                       % added JB to avoid leading whitespace for minimal misc
-            { " " * }                                                                    % added JB to avoid leading whitespace for minimal misc
-      if$                                                                                % added JB to avoid leading whitespace for minimal misc
+    { output.state before.all =
+            { "" * mid.sentence 'output.state := }
+            { " " * }
+      if$
       "\dateldelim {}" *
       month empty$
           'skip$
           { month "{} " * * }
       if$
-      year * add.extra.label "\daterdelim {}" * 
+      year * add.extra.label "\daterdelim {}" *
     }
   if$
 }
 
 FUNCTION {format.btitle}
-{ before.all 'output.state :=                                                            % added JB to avoid leading comma
+{ before.all 'output.state :=
   title emphasize
 }
 
-% NEW 0.0.1h 
 FUNCTION {format.booktitle}
-{ before.all 'output.state :=                                                            % added JB to avoid leading comma
+{ before.all 'output.state :=
   booktitle b.emphasize
 }
 
-
 FUNCTION {format.booklet.title}
-{ before.all 'output.state :=                                                            % added JB to avoid leading comma
+{ before.all 'output.state :=
   title emphasize
 }
 
@@ -1002,62 +1013,49 @@ FUNCTION {either.or.check}
   if$
 }
 
-% added JB
 FUNCTION {format.bvolume}
 { volume empty$
     { " " }
-    { 
+    {
       volumetitle empty$
-        { 
-%           type$ "incollection" = type$ "inbook" = or % Added JB 0.0.1f, not sure about the types ...
-%              { volume }                              % no `volume' for missing volumetitle
-%              {                                       % Removed again in 0.0.1m (???)
-%                NEW 0.0.1n no \volumename for crossreff'ing works
-                 crossref missing$
+        { crossref missing$
                      { bbl.volume volume tie.or.space.connect }
-% NEW 0.0.1o no bbl.vol=volname added
                      { bbl.vol volume tie.or.space.connect }
                  if$
-%              } 
-%          if$
         }
         {
-%                NEW 0.0.1n no \volumename for crossreff'ing works         
           crossref missing$
               { bbl.volume volume tie.or.space.connect }
-% NEW 0.0.1o no bbl.vol=volname added
               { bbl.vol volume tie.or.space.connect }
           if$
-          ": \bibvtfont {" * volumetitle "}" * * 
+          ": \bibvtfont {" * volumetitle "}" * *
         }
       if$
-% JB removed       "volume and number" number either.or.check
     }
   if$
 }
 
-% added JB
 FUNCTION {format.bvolume.btitle.reversed}
 { volume empty$
     { title empty$
         'skip$
-        { 
+        {
           before.all 'output.state :=
-          title emphasize 
+          title emphasize
         }
-      if$    
+      if$
     }
     { volumetitle empty$
         { title empty$
              'skip$
-             { 
-                before.all 'output.state := 
+             {
+                before.all 'output.state :=
                 title emphasize
              }
           if$
         }
         { "\bibvtfont {" volumetitle * "}" * *
-          bbl.volume volume tie.or.space.connect 
+          bbl.volume volume tie.or.space.connect
           title empty$
             'skip$
             { bbl.of title emphasize * * }
@@ -1068,70 +1066,67 @@ FUNCTION {format.bvolume.btitle.reversed}
   if$
 }
 
-% added for volformat handling by JB, for @book and @inbook
 FUNCTION {format.bvolume.btitle}
 { volformat missing$
-     { 
+     {
        format.btitle "title" output.check format.bvolume output
      }
-     { volformat 's := 
+     { volformat 's :=
        s "reversed" =
             { volumetitle empty$
-                 { 
-                   "volformat given but no volumetitle in " cite$ * warning$ 
+                 {
+                   "volformat given but no volumetitle in " cite$ * warning$
                    format.bvolume.btitle.reversed output
                  }
-                 { 
+                 {
                    volume empty$
                         { "there's a volumetitle but no volume in " cite$ * warning$ * }
-                        'skip$                 
+                        'skip$
                    if$
                    title empty$
-                     { 
-                        "volformat given but no title in " cite$ * warning$ 
-                     } 
-                     { 
+                     {
+                        "volformat given but no title in " cite$ * warning$
+                     }
+                     {
                         format.bvolume.btitle.reversed output
                      }
                    if$
                  }
               if$
             }
-            { 
+            {
                 format.btitle "title" output.check format.bvolume output
-            }            
+            }
        if$
-     }     
+     }
   if$
 }
 
-
-% added JB, for @incollection (booktitle!)
 FUNCTION {format.bvolume.booktitle.reversed}
 { volume empty$
     { booktitle empty$
         'skip$
-        { 
+        {
           before.all 'output.state :=
-          booktitle b.emphasize 
+          booktitle b.emphasize
         }
-      if$    
+      if$
     }
     { volumetitle empty$
         { booktitle empty$
              'skip$
-             { 
-                before.all 'output.state := 
+             {
+                before.all 'output.state :=
                 bbl.volume volume tie.or.space.connect
                 booktitle empty$
                     'skip$
                     { bbl.of booktitle b.emphasize * * }
-                if$                
+                if$
              }
           if$
         }
         { "\bibvtfont {" volumetitle * "}" * *
-          bbl.volume volume tie.or.space.connect 
+          bbl.volume volume tie.or.space.connect
           booktitle empty$
             'skip$
             { bbl.of booktitle b.emphasize * * }
@@ -1142,10 +1137,9 @@ FUNCTION {format.bvolume.booktitle.reversed}
   if$
 }
 
-% added for volformat handling by JB
 FUNCTION {format.in.editor.booktitle.volume.voltitle}
 { editor empty$
-      { chapter empty$                                                              % no comma between chap. and `in:'
+      { chapter empty$
            { ", " * }
            { " " *  }
         if$
@@ -1155,54 +1149,52 @@ FUNCTION {format.in.editor.booktitle.volume.voltitle}
            { ", " * }
            { " " *  }
         if$
-        word.in format.in.editors * ", " * * 
+        word.in format.in.editors * ", " * *
       }
   if$
   volformat missing$
-     { 
+     {
        format.booktitle "booktitle" output.check
-       format.bvolume output                                                         % 
-       format.booktitleaddon                                                         % added JB 0.0.1m booktitleaddon
-     }                                                                               % after volume
-     { volformat 's := 
+       format.bvolume output
+       format.booktitleaddon
+     }
+     { volformat 's :=
        s "reversed" =
             { volumetitle empty$
-                 { 
-                    "volformat given but no volumetitle in " cite$ * warning$ 
+                 {
+                    "volformat given but no volumetitle in " cite$ * warning$
                     format.bvolume.booktitle.reversed output
-                    format.booktitleaddon                                            % added JB 0.0.1m                      
+                    format.booktitleaddon
                  }
-                 { 
+                 {
                    volume empty$
                         { "there's a volumetitle but no volume in " cite$ * warning$ * }
-                        'skip$                 
+                        'skip$
                    if$
                    booktitle empty$
-                     { 
-                        "volformat given but no booktitle in " cite$ * warning$ 
-                     } 
-                     { 
-                        format.bvolume.booktitle.reversed output 
-                        format.booktitleaddon                                        % added JB 0.0.1m                         
+                     {
+                        "volformat given but no booktitle in " cite$ * warning$
+                     }
+                     {
+                        format.bvolume.booktitle.reversed output
+                        format.booktitleaddon
                      }
                    if$
                  }
               if$
             }
-            { 
-               format.booktitle "booktitle" output.check
-               format.bvolume output                                                 %
-               format.booktitleaddon                                                 % added JB 0.0.1m booktitleaddon
-            }                                                                        % after volume
+            {  format.booktitle "booktitle" output.check
+               format.bvolume output
+               format.booktitleaddon
+            }
        if$
-     }     
+     }
  if$
 }
 
-% new function by JB
-FUNCTION {format.number.series.book}
+FUNCTION {format.number.series.book.old}
 { number empty$
-   { series seriesformat field.or.null }        
+   { series seriesformat field.or.null }
    { series empty$
        { "there's a number but no series in " cite$ * warning$ number }
        { series seriesformat number tie.or.space.connect }
@@ -1211,12 +1203,37 @@ FUNCTION {format.number.series.book}
  if$
 }
 
+FUNCTION {format.number.series.book}
+{ volume empty$
+  { number empty$
+     { series empty$
+          { "" }
+          { " \numberandseries {}{" series * "}" * }
+       if$
+     }
+     { series empty$
+         { " \numberandseries {" number * "}{}" * "There's a number but no series in " cite$ * warning$ }
+         { " \numberandseries {" number * "}{" * series "}" * * }
+       if$
+     }
+    if$
+   }
+   { series empty$
+      { "" }
+      { type$ "proceedings" =
+          { " \numberandseries {}{" series * "}" * } % { " (" series * ")" * }
+          { "" }
+        if$
+      }
+     if$
+   }
+  if$
+}
+
 FUNCTION {format.number.series}
 { volume empty$
     { number empty$
-% JB removed         { series field.or.null }
-        { series seriesformat field.or.null }        
-%                ^^^^^^^^^^^^ added JB
+        { series seriesformat field.or.null }
         { output.state mid.sentence =
             { bbl.number }
             { bbl.number capitalize }
@@ -1224,17 +1241,15 @@ FUNCTION {format.number.series}
           number tie.or.space.connect
           series empty$
             { "there's a number but no series in " cite$ * warning$ }
-% JB removed             { bbl.in space.word * series * }
             { bbl.in.series space.word * series seriesformat * }
-%                                               ^^^^^^^^^^^^ added JB            
           if$
         }
       if$
     }
     { type$ "incollection" = crossref missing$ and
-        { format.number.series.book }                                               % to make output equal to crossref ...
+        { format.number.series.book }
         { "" }
-      if$ 
+      if$
    }
    if$
 }
@@ -1307,10 +1322,8 @@ FUNCTION {multi.page.check}
 FUNCTION {format.pages}
 { pages empty$
     { "" }
-    { before.all 'output.state := % added JB
-% JB NO space before \jbPage(s), beause of a additional space after 
-% \@gobbl'ing their in citations, space is added by definition of \jbPage(s)!!!
-      "\jbPages {" pages n.dashify * "}" * 
+    { before.all 'output.state :=
+      "\jbPages {" pages n.dashify * "}" *
     }
   if$
 }
@@ -1326,8 +1339,6 @@ FUNCTION {format.journal.pages}
   if$
 }
 
-% added JB, pages after year!
-% \artvolnumformat introduced
 FUNCTION {format.vol.num.pages}
 { before.all 'output.state :=
   volume empty$
@@ -1337,13 +1348,22 @@ FUNCTION {format.vol.num.pages}
       if$
       number empty$
           { "" }
-          { "there's a number but no volume in " cite$ * warning$ 
-            "~\artvolnumformat {}{" number * "}" * }
+          { "there's a number but no volume in " cite$ * warning$
+            type$ "periodical" =
+               { "~\per" * }
+               { "~\art" * }
+            if$
+            "volnumformat {}{" number * "}" *
+          }
       if$
     }
-    { number empty$
-          { "~\artvolnumformat {" volume * "}{}" * }
-          { "~\artvolnumformat {" volume * "}{" number * "}" * * }
+    { type$ "periodical" =
+          { "~\per" * }
+          { "~\art" * }
+      if$
+      number empty$
+          { "volnumformat {" volume * "}{}" * }
+          { "volnumformat {" volume * "}{" number * "}" * * }
       if$
     }
   if$
@@ -1353,17 +1373,18 @@ FUNCTION {format.vol.num.pages}
          'skip$
       if$
     }
-    { month empty$
-        { " \artyearformat {" year * "}" * * }
-        { " \artyearformat {" month * "{} " * year * "}" * * }
+    { type$ "periodical" =
+         { " \per" * }
+         { " \art" * }
+      if$
+      month empty$
+        { "yearformat {" year * add.extra.label "}" * * }
+        { "yearformat {" month * "{} " * year * add.extra.label "}" * * }
       if$
     }
   if$
-% JB removed to abe able to put url before pages
-%  format.journal.pages
 }
 
-% new JB special function to place only chaptern not chapter and pages before crossref stuff for inbook
 FUNCTION {format.chapter.inbook.incoll}
 { chapter empty$
     { "" }
@@ -1381,15 +1402,12 @@ FUNCTION {format.chapter.pages}
 { chapter empty$
     'format.pages
     { type empty$
-% JB removed (INBOOK)       { bbl.chapter }    
         { before.all 'output.state := ", " bbl.chapter * }
-% JB removed (INBOOK)       { type "l" change.case$ }
         { ", " type * "l" change.case$ }
       if$
       chapter tie.or.space.connect
       pages empty$
         'skip$
-% JB removed         { ", " * format.pages * }        
         { format.pages * }
       if$
     }
@@ -1400,8 +1418,8 @@ FUNCTION {format.in.ed.booktitle}
 { booktitle empty$
     { "" }
     { editor empty$
-        { word.in booktitle b.emphasize format.booktitleaddon * }                            % booktitleaddon added in 0.0.1m
-        { word.in format.in.editors * ", " * booktitle b.emphasize format.booktitleaddon * } % booktitleaddon added in 0.0.1m
+        { word.in booktitle b.emphasize format.booktitleaddon * }
+        { word.in format.in.editors * ", " * booktitle b.emphasize format.booktitleaddon * }
       if$
     }
   if$
@@ -1427,16 +1445,13 @@ FUNCTION {format.tr.number}
   if$
 }
 
-% added JB
 FUNCTION {format.article.crossref}
 { " \protect\jbartcrossrefchecked {" crossref * "}" * }
 
-% changed JB
-FUNCTION {format.book.crossref}% only used by @book and @inbook
-{ type$ "book" = % make this difference (\jbcrossrefchecked[<volume>]{<key>}) only for books
+FUNCTION {format.book.crossref}
+{ type$ "book" =
     { volume empty$
-        { "empty volume in " cite$ * "'s crossref of " * crossref * warning$ 
-% JB removed     word.in
+        { "empty volume in " cite$ * "'s crossref of " * crossref * warning$
           "\protect\jbcrossrefchecked {" crossref * "}" * }
         { "\protect\jbcrossrefchecked[" volume * "]{" * crossref "}" * * }
       if$
@@ -1445,20 +1460,8 @@ FUNCTION {format.book.crossref}% only used by @book and @inbook
   if$
 }
 
-% added JB
-%FUNCTION {format.incoll.inproc.crossref.volume}
-%{ " \protect\jbincollcrossref {" crossref * "}" * 
-%  % check added, if editor for the crossref'd work is given, switch introduced for that problem.
-%  editor empty$
-%    { "{}" * }
-%    { "{1}" * }
-%  if$
-% "{" * volume * "}{" * volumetitle * "}" *
-%}
-
 FUNCTION {format.incoll.inproc.crossref}
-{ " \protect\jbincollcrossref {" crossref * "}" * 
-  % check added, if editor for the crossref'd work is given, switch introduced for that problem.
+{ " \protect\jbincollcrossref {" crossref * "}" *
   editor empty$
     { "{}" * }
     { "{1}" * }
@@ -1466,8 +1469,7 @@ FUNCTION {format.incoll.inproc.crossref}
 }
 
 FUNCTION {oaddress.opublisher.oyear.format}
-{ type$ "book" = 
-% ???? type$ "inbook" = type$ "incollection" = or or
+{ type$ "book" =
      { oyear empty$
             { opublisher empty$
                  { oaddress empty$
@@ -1505,10 +1507,8 @@ FUNCTION {oaddress.opublisher.oyear.format}
   if$
 }
 
-% added JB (completely rewritten function, cares about month; somewhat simple, but better to read)
-% \el stuff added in v0.1a
 FUNCTION {format.publisher}
-{ year empty$ month empty$ not and 
+{ year empty$ month empty$ not and
         { "there's a month but no year in " cite$ * warning$ }
         'skip$
   if$
@@ -1516,9 +1516,9 @@ FUNCTION {format.publisher}
      'skip$
      { " \apyformat {" * }
   if$
-  oaddress.opublisher.oyear.format                                              
+  oaddress.opublisher.oyear.format
   address empty$
-    { 
+    {
       publisher empty$
           {
             year empty$
@@ -1534,21 +1534,21 @@ FUNCTION {format.publisher}
             year empty$
                 { month empty$
                      { publisher * }
-                      'skip$                                                  
+                      'skip$
                   if$
                 }
                 { month empty$
                      { publisher "\bibbdsep {} " * year * * add.extra.label }
                      { publisher "\bibbdsep {} " * month "{} " * year * * * add.extra.label }
                   if$
-                }                    
+                }
             if$
           }
       if$
     }
-    { 
+    {
       publisher empty$
-          { 
+          {
             year empty$
                 { address * }
                 { month empty$
@@ -1558,22 +1558,22 @@ FUNCTION {format.publisher}
                 }
             if$
           }
-          { 
+          {
             year empty$
                 { month empty$
                      { address "\bpubaddr {} " * publisher * * }
-                      'skip$                                                  
+                      'skip$
                   if$
                 }
                 { month empty$
                      { address "\bpubaddr {} " * publisher "\bibbdsep {} " * year * * * add.extra.label }
                      { address "\bpubaddr {} " * publisher "\bibbdsep {} " * month "{} " * year * * * * add.extra.label }
                   if$
-                }                    
+                }
             if$
           }
       if$
-    }        
+    }
   if$
   address empty$ publisher empty$ year empty$ and and
      'skip$
@@ -1581,10 +1581,8 @@ FUNCTION {format.publisher}
   if$
 }
 
-% added JB (completely rewritten function, cares about month; somewhat simple, but better to read)
-% TODO: try to make one function for all (..., manual, techreport)
 FUNCTION {format.publisher.manual}
-{ year empty$ month empty$ not and 
+{ year empty$ month empty$ not and
         { "there's a month but no year in " cite$ * warning$ }
         'skip$
   if$
@@ -1593,7 +1591,7 @@ FUNCTION {format.publisher.manual}
      { " \apyformat {" * }
   if$
   address empty$
-    { 
+    {
       organization empty$
           {
             year empty$
@@ -1609,14 +1607,14 @@ FUNCTION {format.publisher.manual}
             year empty$
                 { month empty$
                      { organization * }
-                      'skip$                                                  
+                      'skip$
                   if$
                 }
                 { month empty$
                      { organization "\bibbdsep {} " * year * * add.extra.label }
                      { organization "\bibbdsep {} " * month "{} " * year * * * add.extra.label }
                   if$
-                }                    
+                }
             if$
           }
       if$
@@ -1634,18 +1632,18 @@ FUNCTION {format.publisher.manual}
           { year empty$
                 { month empty$
                      { address "\bpubaddr {} " * organization * * }
-                      'skip$                                                  
+                      'skip$
                   if$
                 }
                 { month empty$
                      { address "\bpubaddr {} " * organization "\bibbdsep {} " * year * * * add.extra.label }
                      { address "\bpubaddr {} " * organization "\bibbdsep {} " * month "{} " * year * * * * add.extra.label }
                   if$
-                }                    
+                }
             if$
           }
       if$
-    }        
+    }
   if$
   address empty$ organization empty$ year empty$ and and
      'skip$
@@ -1653,10 +1651,8 @@ FUNCTION {format.publisher.manual}
   if$
 }
 
-% added JB (completely rewritten function, cares about month; somewhat simple, but better to read)
-% TODO: try to make one function for all (..., manual, techreport)
 FUNCTION {format.publisher.techreport}
-{ year empty$ month empty$ not and 
+{ year empty$ month empty$ not and
         { "there's a month but no year in " cite$ * warning$ }
         'skip$
   if$
@@ -1665,7 +1661,7 @@ FUNCTION {format.publisher.techreport}
      { " \apyformat {" * }
   if$
   address empty$
-    { 
+    {
       institution empty$
           {
             year empty$
@@ -1681,14 +1677,14 @@ FUNCTION {format.publisher.techreport}
             year empty$
                 { month empty$
                      { institution * }
-                      'skip$                                                  
+                      'skip$
                   if$
                 }
                 { month empty$
                      { institution "\bibbdsep {} " * year * * add.extra.label }
                      { institution "\bibbdsep {} " * month "{} " * year * * * add.extra.label }
                   if$
-                }                    
+                }
             if$
           }
       if$
@@ -1706,18 +1702,18 @@ FUNCTION {format.publisher.techreport}
           { year empty$
                 { month empty$
                      { address "\bpubaddr {} " * institution * * }
-                      'skip$                                                  
+                      'skip$
                   if$
                 }
                 { month empty$
                      { address "\bpubaddr {} " * institution "\bibbdsep {} " * year * * * add.extra.label }
                      { address "\bpubaddr {} " * institution "\bibbdsep {} " * month "{} " * year * * * * add.extra.label }
                   if$
-                }                    
+                }
             if$
           }
       if$
-    }        
+    }
   if$
   address empty$ institution empty$ year empty$ and and
      'skip$
@@ -1725,31 +1721,25 @@ FUNCTION {format.publisher.techreport}
   if$
 }
 
-
-% added JB
 FUNCTION {format.edby.editors}
-{ author empty$                                                                     
-    'skip$                                                                          
-    { editor empty$                                                                 
-         'skip$                                                                     
+{ author empty$
+    'skip$
+    { editor empty$
+         'skip$
          { "\edbyname {} " editor format.editor.names * output }
-      if$                                                                           
-    }                                                                               
-  if$                                                                               
+      if$
+    }
+  if$
 }
 
 FUNCTION {make.translators}
-{ 
-% JB removed   before.all 'output.state :=
-  translator empty$
+{ translator empty$
     { flanguage empty$
         { "" }
         { "\translator {}{" flanguage "l" change.case$ * "}{1}" * }
       if$
     }
-    { 
-%      "\translator {" translator format.names * "}" *
-      "\translator {" translator * "}" *      
+    { "\translator {" translator * "}" *
       flanguage empty$
         { "{}{1}" * }
         { "{" * flanguage "l" change.case$ * "}{1}" * }
@@ -1761,53 +1751,53 @@ FUNCTION {make.translators}
 FUNCTION {article}
 { output.bibitem
   format.authors "author" output.check
-  set.after.author.sep output                                                       % added JB to set "}{" after the name
+  set.after.author.sep output
   format.title "title" output.check
-  format.titleaddon                                                                 % added JB because of moving format.titleaddon outside format.(b)title
+  format.titleaddon
   crossref missing$
-    { journal journalnamemarkup                                                     % added JB
+    { journal journalnamemarkup
       "journal" output.check
       format.vol.num.pages output
-      write.url                                                                     % added JB
-      format.journal.pages                                                          % added JB (extracted from format.vol.num.pages to place url before pages)
+      write.url
+      format.journal.pages
     }
     { format.article.crossref output.nonnull
       format.pages output
     }
   if$
-  format.note                                                                       % added JB
+  format.note
   fin.entry
 }
+
+FUNCTION {periodical} {article}
 
 FUNCTION {review}
 { output.bibitem
   format.authors "author" output.check
-  set.after.author.sep output                                                       % added JB to set "}{" after the name
+  set.after.author.sep output
   format.title "title" output.check
-  format.titleaddon                                                                 % added JB because of moving format.titleaddon outside format.(b)title
+  format.titleaddon
   crossref missing$
-    { journal journalnamemarkup                                                     % added JB
+    { journal journalnamemarkup
       "journal" output.check
       format.vol.num.pages output
-      write.url                                                                     % added JB
-      format.journal.pages                                                          % added JB (extracted from format.vol.num.pages to place url before pages)
+      write.url
+      format.journal.pages
     }
     { format.article.crossref output.nonnull
       format.pages output
     }
   if$
-  format.note                                                                       % added JB
+  format.note
   fin.entry
 }
 
 FUNCTION {format.editors.last}
 { editor empty$
    { "" before.all 'output.state := }
-%       ^^^^^^^^^^^^^^^^^^^^^^^^ CH 0.1j
    { author empty$ not
         { " \edbyname{} " editor format.editor.names * }
-        { "" before.all 'output.state := }                                        % CH 0.1h from 'skip$ to { "" }!
-%            ^^^^^^^^^^^^^^^^^^^^^^^^ CH 0.1j
+        { "" before.all 'output.state := }
     if$
    }
   if$
@@ -1816,36 +1806,27 @@ FUNCTION {format.editors.last}
 FUNCTION {book}
 { output.bibitem
   author empty$
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CH 0.1i %%%%%%%%%%%%%%%%%%%%%%%%                   % addedd JB, editors should appear first, if authors are missing 
     { editor empty$ not
-	 { format.editors output.nonnull                                           % JB output.checked removed 
-         }                                                                         
-	 { "neither author nor editor in " cite$ * warning$ }                      % added JB, print out warning only if neither author nor editor given
-      if$   
+     { format.editors output.nonnull }
+     { "neither author nor editor in " cite$ * warning$ }
+      if$
     }
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CH 0.1i %%%%%%%%%%%%%%%%%%%%%%%%
     { format.authors output.nonnull }
   if$
-  set.after.author.sep output                                                       % added JB to set "}{" after the name
+  set.after.author.sep output
   crossref missing$
-    { format.bvolume.btitle                                                         % added JB, complete handling of volume and volumetitle
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CH 0.1i %%%%%%%%%%%%%%%%%%%%%%%%%%  
-% author empty$ editor empty$ not and { 					    % removed JB, checks are done inside of format.editors.last 
-    format.editors.last output.nonnull                                              % JB output.checked removed 
-%    } 'skip$ if$                                                                   % removed JB, checks are done inside of format.editors.last
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%% CH 0.1i %%%%%%%%%%%%%%%%%%%%%%%%%
-      make.translators output                                                       % added JB      
-      format.titleaddon                                                             % added JB      
-      format.number.series.book output                                              % added JB
+    { format.bvolume.btitle
+      format.editors.last output.nonnull
+      make.translators output
+      format.titleaddon
+      format.number.series.book output
       format.edition output
-% added in 0.1b
       format.pages output
-      format.publisher                                                              % added JB 
-      write.url                                                                     % added JB (url before note) 
-      format.note                                                                   % added JB  
+      format.publisher
+      write.url
+      format.note
     }
-    {
-      format.btitle "title" output.check
+    { format.btitle "title" output.check
       format.book.crossref output.nonnull
     }
   if$
@@ -1855,87 +1836,38 @@ FUNCTION {book}
 FUNCTION {booklet}
 { output.bibitem
   format.authors output
-  set.after.author.sep output                                                       % added JB to set "}{" after the name  
+  set.after.author.sep output
   format.btitle "title" output.check
-  format.titleaddon                                                                 % added JB because of moving format.titleaddon outside format.(b)title
+  format.titleaddon
   howpublished output
   format.publisher
-% added in 0.1b
-  format.pages output  
-  write.url                                                                         % added JB (url before note)
-  format.note                                                                       % added JB  
+  format.pages output
+  write.url
+  format.note
   fin.entry
 }
 
-% JB removed FUNCTION {inbook}
-% JB removed { output.bibitem
-% JB removed   author empty$
-% JB removed     { format.editors "author and editor" output.check
-% JB removed % JB removed       editor format.key output
-% JB removed     }
-% JB removed     { format.authors output.nonnull
-% JB removed       crossref missing$
-% JB removed         { "author and editor" editor either.or.check }
-% JB removed         'skip$
-% JB removed       if$
-% JB removed     }
-% JB removed   if$
-% JB removed   set.after.author.sep output                                                       % added JB to set "}{" after the name  
-% JB removed   format.btitle "title" output.check
-% JB removed   crossref missing$
-% JB removed     {
-% JB removed       format.bvolume output
-% JB removed % JB removed       format.chapter.pages "chapter and pages" output.check            % chapter and pages together before publisher????
-% JB removed       format.chapter.inbook.incoll output                                           % put out only chapter before crossref stuff ...
-% JB removed       format.number.series output
-% JB removed       format.edition output
-% JB removed       format.titleaddon                                                             % added JB
-% JB removed % JB removed       note output
-% JB removed       format.publisher
-% JB removed       format.pages output                                                           % ... and put the pages after publisher      
-% JB removed       write.url                                                                     % added JB, moved up into non-crossref way othwerwise double url's
-% JB removed       format.note                                                                   % added JB        
-% JB removed     }
-% JB removed     {
-% JB removed % JB removed       format.chapter.pages "chapter and pages" output.check            %
-% JB removed       format.titleaddon                                                             % added JB
-% JB removed       format.chapter.inbook.incoll output                                           % put out only chapter before crossref stuff ...
-% JB removed       format.book.crossref output.nonnull
-% JB removed       format.pages output                                                           % ... and put the pages after crossref 
-% JB removed     }
-% JB removed   if$
-% JB removed %  note output %note moved
-% JB removed % JB removed   write.url
-% JB removed   fin.entry
-% JB removed % JB removed   write.url  
-% JB removed }
-
-FUNCTION {inbook} % copy of incollection v0.0.1d, only diff is the formatting of the title 
+FUNCTION {inbook}
 { output.bibitem
   format.authors "author" output.check
-  set.after.author.sep output                                                       % added JB to set "}{" after the name  
+  set.after.author.sep output
   crossref missing$
-    { format.bvolume.btitle                                                         % added JB, complete handling of volume and volumetitle
-%      format.in.ed.booktitle "booktitle" output.check                              % removed, no need for booktitle
-%      format.bvolume output
-%      format.booktitleaddon
-      format.titleaddon                                                             % added JB
-      make.translators output                                                       % added JB
+    { format.bvolume.btitle
+      format.titleaddon
+      make.translators output
       format.number.series output
       format.edition output
       format.publisher
-      write.url                                                                     % added JB, moved up into non-crossref way othwerwise double url's
-      format.chapter.inbook.incoll output                                           % chapter moved back to pages
-      format.pages output                                                           %     
-      format.note                                                                   % added JB      
+      write.url
+      format.chapter.inbook.incoll output
+      format.pages output
+      format.note
     }
     { format.btitle "title" output.check
-%            ^ !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      format.chapter.inbook.incoll output                                           % put out only chapter before crossref stuff ...
+      format.chapter.inbook.incoll output
       format.incoll.inproc.crossref output.nonnull
-      format.bvolume output                                                         % <volume> and <voluemtitle> after crossref      
-%      format.incoll.inproc.crossref.volume output.nonnull                           % <volume> and <voluemtitle> inside crossref ?
-      format.pages output                                                           % ... and put the pages after crossref       
+      format.bvolume output
+      format.pages output
     }
   if$
   fin.entry
@@ -1944,29 +1876,25 @@ FUNCTION {inbook} % copy of incollection v0.0.1d, only diff is the formatting of
 FUNCTION {incollection}
 { output.bibitem
   format.authors "author" output.check
-  set.after.author.sep output                                                       % added JB to set "}{" after the name  
+  set.after.author.sep output
   crossref missing$
     { format.btitle "title" output.check
-      format.titleaddon                                                             % ????? because of removing format.titleaddon from format.title
-                                                                                    % and placement inside crossref missing$-way.
-      format.chapter.inbook.incoll output                                           % put out only chapter before `in:' ...
-      format.in.editor.booktitle.volume.voltitle                                    % added JB, complete handling of volume and volumetitle
-      make.translators output                                                       % added JB      
+      format.titleaddon
+      format.chapter.inbook.incoll output
+      format.in.editor.booktitle.volume.voltitle
+      make.translators output
       format.number.series.book output
       format.edition output
-% JB removed       format.chapter.pages output
       format.publisher
-      write.url                                                                     % added JB, moved up into non-crossref way othwerwise double url's
-      format.note                                                                   % added JB      
-      format.pages output                                                           % ... and put the pages after all      
+      write.url
+      format.note
+      format.pages output
     }
     { format.title "title" output.check
-      format.chapter.inbook.incoll output                                           % put out only chapter before crossref stuff ...
+      format.chapter.inbook.incoll output
       format.incoll.inproc.crossref output.nonnull
-      format.bvolume output                                                         % <volume> and <voluemtitle> after crossref      
-%      format.incoll.inproc.crossref.volume output.nonnull                           % <volume> and <voluemtitle> inside crossref ?
-      format.pages output                                                           % ... and put the pages after crossref       
-% JB removed       format.chapter.pages output
+      format.bvolume output
+      format.pages output
     }
   if$
   fin.entry
@@ -1975,15 +1903,13 @@ FUNCTION {incollection}
 FUNCTION {inproceedings}
 { output.bibitem
   format.authors "author" output.check
-  set.after.author.sep output                                                       % added JB to set "}{" after the name  
+  set.after.author.sep output
   format.title "title" output.check
-  format.titleaddon                                                                 % ????? because of removing format.titleaddon from format.title  
+  format.titleaddon
   crossref missing$
     { format.in.ed.booktitle "booktitle" output.check
       format.bvolume output
       format.number.series output
-% JB      format.pages output
-% JB      note output
       publisher empty$
         { organization output
           format.publisher
@@ -1992,15 +1918,14 @@ FUNCTION {inproceedings}
           format.publisher
         }
       if$
-      write.url                                                                     % added JB
-      format.note                                                                   % added JB
-      format.pages output                                                           % added JB      
+      write.url
+      format.note
+      format.pages output
     }
     { format.incoll.inproc.crossref output.nonnull
       format.pages output
     }
   if$
-%  note output % note moved
   fin.entry
 }
 
@@ -2009,108 +1934,102 @@ FUNCTION {conference} { inproceedings }
 FUNCTION {manual}
 { output.bibitem
   format.authors output
-  set.after.author.sep output                                                       % added JB to set "}{" after the name  
+  set.after.author.sep output
   format.btitle "title" output.check
-  format.titleaddon                                                                 % added JB
+  format.titleaddon
   format.edition output
-  format.publisher.manual                                                           % added JB
-  write.url                                                                         % added JB
-  format.note                                                                       % added JB
+  format.publisher.manual
+  write.url
+  format.note
   fin.entry
 }
 
 FUNCTION {mastersthesis}
 { output.bibitem
   format.authors "author" output.check
-  set.after.author.sep output                                                       % added JB to set "}{" after the name  
+  set.after.author.sep output
   format.btitle "title" output.check
-  format.titleaddon                                                                 % added JB
+  format.titleaddon
   bbl.mthesis format.thesis.type output.nonnull
   school "school" output.check
   format.publisher
-  write.url                                                                         % added JB
-  format.note                                                                       % added JB  
+  write.url
+  format.note
   fin.entry
 }
 
 FUNCTION {misc}
 { output.bibitem
   format.authors output
-  set.after.author.sep output                                                       % added JB to set "}{" after the name  
-  format.btitle output % JB removed "title" output.check                            % added JB
-  format.titleaddon                                                                 % added JB
+  set.after.author.sep output
+  format.btitle output
+  format.titleaddon
   howpublished output
-  format.date % JB removed "year" output.check.special
-  write.url                                                                         % added JB
-  format.note                                                                       % added JB  
+  format.date
+  write.url
+  format.note
   fin.entry
 }
 
 FUNCTION {phdthesis}
 { output.bibitem
   format.authors "author" output.check
-  set.after.author.sep output                                                       % added JB to set "}{" after the name  
+  set.after.author.sep output
   format.btitle "title" output.check
-  format.titleaddon                                                                 % added JB  
+  format.titleaddon
   bbl.phdthesis format.thesis.type output.nonnull
   school "school" output.check
   format.publisher
-  write.url                                                                         % added JB
-  format.note                                                                       % added JB
+  write.url
+  format.note
   fin.entry
 }
 
 FUNCTION {proceedings}
 { output.bibitem
   format.editors output
-  set.after.author.sep output                                                       % added JB to set "}{" after the name  
+  set.after.author.sep output
   format.btitle "title" output.check
-  format.titleaddon                                                                 % added JB
-% JB removed   format.bvolume output
-% JB removed   format.number.series output
-   format.number.series.book output                                                 % added JB to use the <series> <number> format
+  format.titleaddon
+  format.number.series.book output
   organization output
   format.publisher
-  write.url                                                                         % added JB
-  format.note                                                                       % added JB
+  write.url
+  format.note
   fin.entry
 }
 
 FUNCTION {techreport}
 { output.bibitem
   format.authors "author" output.check
-  set.after.author.sep output                                                       % added JB to set "}{" after the name  
+  set.after.author.sep output
   format.title "title" output.check
   format.tr.number output.nonnull
-% JB removed   institution "institution" output.check
-% JB removed   format.publisher
-  format.publisher.techreport                                                       % added JB
-  write.url                                                                         % added JB
-  format.note                                                                       % added JB  
+  format.publisher.techreport
+  write.url
+  format.note
   fin.entry
 }
 
 FUNCTION {unpublished}
 { output.bibitem
   format.authors "author" output.check
-  set.after.author.sep output                                                       % added JB to set "}{" after the name  
+  set.after.author.sep output
   format.title "title" output.check
-  format.titleaddon                                                                 % added JB  
-  format.date % JB removed "year" output.check.special
-  write.url                                                                         % added JB
-  format.note                                                                       % added JB
+  format.titleaddon
+  format.date
+  write.url
+  format.note
   fin.entry
 }
 
-% added JB
 FUNCTION {www}
 { output.bibitem
-  format.authors output.nonnull % "author" output.check % removed JB (to avoid warning about missing author)
+  format.authors output.nonnull
   set.after.author.sep output
-%  before.all 'output.state :=
-  format.title output.nonnull   % "title" output.check  % removed JB (to avoid warning about missing title)
-  write.url                                                                         % added JB  
-  format.note                                                                       % added JB
+  format.title output.nonnull
+  write.url
+  format.note
   fin.entry
 }
 
@@ -2134,8 +2053,6 @@ FUNCTION {chop.word}
   if$
 }
 
-
-% JB added, contributed by Oren Patashnik
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 INTEGERS { nextchar-ptr }                % points just past 1st "text" char
 
@@ -2163,9 +2080,8 @@ FUNCTION {capitalize.von.part}           % capitalize 1st character of string
 }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% JB added
 FUNCTION {format.lab.names}
-{ 's :=                                     % for two: (Jones/de~Bruijn)
+{ 's :=                                    % for two: (Jones/de~Bruijn)
   s #1 "{vv~}{ll}" format.name$ capitalize.von.part % for three: (Jones/de~Bruijn/Smith)
   s num.names$ duplicate$                  % for more: (Jones et~al.)
   #2 <
@@ -2185,11 +2101,10 @@ FUNCTION {format.lab.names}
     if$
   }
   if$
-% NEW 0.1b  
   year missing$
       'skip$
      { "\jbdy {" year * "}" * * }% dummy year to prevent from `1993a' and `2001b' for works by the same author
-  if$      
+  if$
 }
 
 FUNCTION {author.key.label}
@@ -2241,7 +2156,6 @@ FUNCTION {calc.label}
   'label :=
 }
 
-% JB added in 0.1a
 FUNCTION {calc.dummy.label}
 { type$ "book" = type$ "inbook" = or type$ "incollection" = or type$ "commented" = or
   'author.editor.key.label
@@ -2254,7 +2168,6 @@ FUNCTION {calc.dummy.label}
   'dummy.label :=
 }
 
-% JB added
 FUNCTION {sort.format.names}
 { 's :=
   #1 'nameptr :=
@@ -2288,7 +2201,6 @@ FUNCTION {sort.format.title}
   #1 global.max$ substring$
 }
 
-% added JB, pseudo code added
 FUNCTION {author.sort}
 { author empty$
     { pseudonym empty$
@@ -2304,7 +2216,6 @@ FUNCTION {author.sort}
   if$
 }
 
-% added JB, pseudo code added
 FUNCTION {author.editor.sort}
 { author empty$
     { editor empty$
@@ -2324,7 +2235,6 @@ FUNCTION {author.editor.sort}
   if$
 }
 
-% added JB, pseudo code added
 FUNCTION {editor.sort}
 { editor empty$
     { pseudonym empty$
@@ -2340,11 +2250,10 @@ FUNCTION {editor.sort}
   if$
 }
 
-% JB added
 FUNCTION {presort}
 { calc.label
-% JB added in 0.1a
   calc.dummy.label
+  dummy.label sortify " " *
   sortkey empty$
      { type$ "book" =
          type$ "incollection" =    or
@@ -2368,27 +2277,23 @@ FUNCTION {presort}
   title field.or.null
   sort.format.title
   *
-  #1 entry.max$ substring$
-  'sort.key$ :=
+   #1 entry.max$ substring$
+   'sort.label :=
+   sort.label *
+   #1 entry.max$ substring$
+   'sort.key$ :=
 }
 
 ITERATE {presort}
 
-%FUNCTION {before.sort} { "BEFORE SORT:" top$ }
-%EXECUTE {before.sort}
-%FUNCTION {print.sort.keys} {sort.key$ top$}
-%ITERATE {print.sort.keys}
 
 SORT
 
-%FUNCTION {after.sort} {"AFTER SORT:" top$}
-%EXECUTE {after.sort}
-%ITERATE {print.sort.keys}
 
-%%|< JB added 
-% JB added in 0.1a
 STRINGS { last.dummy.label next.extra }
+
 INTEGERS { last.extra.num number.label }
+
 FUNCTION {forward.pass}
 { last.dummy.label dummy.label =
     { last.extra.num #1 + 'last.extra.num :=
@@ -2418,8 +2323,14 @@ FUNCTION {reverse.pass}
 }
 
 ITERATE {forward.pass}
+
 REVERSE {reverse.pass}
 
+FUNCTION {bib.sort.order} { sort.label  'sort.key$ := }
+
+ITERATE {bib.sort.order}
+
+SORT
 
 FUNCTION {set.current.authors}
 { author empty$
@@ -2457,14 +2368,12 @@ ITERATE {mark.repeat.authors}
 EXECUTE {initialize.previous.authors}
 
 REVERSE {mark.repeat.authors}
-%% JB added >|
 
 FUNCTION {begin.bib}
 { preamble$ empty$
     'skip$
     { preamble$ write$ newline$ }
   if$
-%  "\newcommand {\unisep}{$\bullet$}" write$ newline$
   "%" write$ newline$
   "% This bibliography was produced by using jox.bst" write$ version write$ newline$
   "%" write$ newline$
@@ -2483,3 +2392,6 @@ FUNCTION {end.bib}
 }
 
 EXECUTE {end.bib}
+%% 
+%%
+%% End of file `jox.bst'.
