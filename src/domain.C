@@ -6,7 +6,6 @@ static char
 RCSid[] = "$Id$";
 
 #include <Sem.h>
-#include <time.h>
 
 
 Domain::Domain (FEML&       F   ,
@@ -536,68 +535,13 @@ ofstream& operator << (ofstream& strm,
 // processor.
 // ---------------------------------------------------------------------------
 {
-  const char *hdr_fmt[] = { 
-    "%-25s "    "Session\n",
-    "%-25s "    "Created\n",
-    "%-25s "    "Nr, Ns, Nz, Elements\n",
-    "%-25d "    "Step\n",
-    "%-25.6g "  "Time\n",
-    "%-25.6g "  "Time step\n",
-    "%-25.6g "  "Kinvis\n",
-    "%-25.6g "  "Beta\n",
-    "%-25s "    "Fields written\n",
-    "%-25s "    "Format\n"
-  };
+  int               i;
+  const int         N = D.u.getSize();
+  vector<AuxField*> field (N);
 
-  const char routine[] = "ostream << Domain";
-  char       s1[StrMax], s2[StrMax];
-  time_t     tp (::time (0));
-  integer    k;
+  for (i = 0; i < N; i++) field[i] = D.u[i];
 
-  ROOTONLY {
-    sprintf (s1, hdr_fmt[0], D.name);
-    strm << s1;
-
-    strftime (s2, 25, "%a %b %d %H:%M:%S %Y", localtime (&tp));
-    sprintf  (s1, hdr_fmt[1], s2);
-    strm << s1;
-
-    D.u[0] -> describe (s2);
-    sprintf (s1, hdr_fmt[2], s2);
-    strm << s1;
-
-    sprintf (s1, hdr_fmt[3], D.step);
-    strm << s1;
-
-    sprintf (s1, hdr_fmt[4], D.time);
-    strm << s1;
-
-    sprintf (s1, hdr_fmt[5], Femlib::value ("D_T"));
-    strm << s1;
-
-    sprintf (s1, hdr_fmt[6], Femlib::value ("KINVIS"));
-    strm << s1;
-
-    sprintf (s1, hdr_fmt[7], Femlib::value ("BETA"));
-    strm << s1;
-
-    for (k = 0; k < D.nField(); k++) s2[k] = D.u[k] -> name();
-    s2[k] = '\0';
-    sprintf (s1, hdr_fmt[8], s2);
-    strm << s1;
-
-    sprintf (s2, "binary ");
-    Veclib::describeFormat (s2 + strlen (s2));
-    sprintf (s1, hdr_fmt[9], s2);
-    strm << s1;
-  }
-
-  for (k = 0; k < D.nField(); k++) strm << *D.u[k];
-
-  ROOTONLY {
-    if (!strm) message (routine, "failed writing field file", ERROR);
-    strm << flush;
-  }
+  writeField (strm, D.name, D.step, D.time, field);
 
   return strm;
 }
