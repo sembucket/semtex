@@ -1,6 +1,6 @@
 ##############################################################################
 # Makefile for nnewt, spectral element solver for DNS of unsteady
-# Navier--Stokes problems incorporating non-Newtonian fluids
+# Navier--Stokes problems incorporating non-Newtonian fluids.
 #
 # $Id$
 ##############################################################################
@@ -30,6 +30,15 @@ $(PROG): sem $(SEMOBJ) $(NNEWTOBJ)  nnewt.h
 	$(LD) -o $@ $(NNEWTOBJ) $(SEMOBJ) $(LDFLAGS)
 
 $(SEMOBJ): $(SEMHDR)
+
+# ----------------------------------------------------------------------------
+# Build eneq_nn, which computes terms in fluctuating flow energy equations.
+#
+ENOBJ = eneq.o feml.o mesh.o element.o family.o auxfield.o geometry.o misc.o
+$(ENOBJ): $(SEMHDR)
+
+eneq: $(ENOBJ)
+	$(CXX) $(CPPFLAGS) -o $@_nn $(ENOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Standard rules and definitions.
