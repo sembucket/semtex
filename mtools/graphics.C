@@ -1,0 +1,245 @@
+///////////////////////////////////////////////////////////////////////////////
+// graphics.cc
+//
+// All drawing is done using Super Mongo graphics package.
+// Contact: Robert Lupton, rhl@astro.princeton.edu
+//
+// GRAPHICS needs to be defined during compilation otherwise all calls
+// are to empty stubs.  This allows compilation on systems that don't
+// have SM graphics installed.
+///////////////////////////////////////////////////////////////////////////////
+
+static char
+RCSid[] = "$Id$";
+
+
+#include <qmesh.h>
+
+#ifdef GRAPHICS
+  #include <sm_options.h>
+  #include <sm_declare.h>
+#endif
+
+
+int graphics = 1;
+
+
+void initGraphics (const char* device)
+// ---------------------------------------------------------------------------
+// Do whatever is needed to start up.
+// ---------------------------------------------------------------------------
+{
+#ifdef GRAPHICS
+  char routine[] = "initGraphics";
+
+  vector<float> pp (1);
+  pp[0] = 41.0;
+
+  if (sm_device( (char*) device))
+    message (routine, "unable to initialize plotting device", ERROR);
+ 
+  sm_graphics ();
+  sm_location (3000, 31000, 3000, 31000);
+  sm_defvar   ("TeX_strings", "1");
+  sm_expand   (1.0);
+  sm_ptype    (pp(), 1);
+  sm_lweight  (1);
+  sm_erase    ();
+  sm_window   (1, 1, 1, 1);
+#endif
+}
+
+
+void stopGraphics ()
+// ---------------------------------------------------------------------------
+// Shut down graphics.
+// ---------------------------------------------------------------------------
+{
+#ifdef GRAPHICS
+  char a;
+
+  sm_alpha ();
+  cerr << "Press <return> to exit" << endl;
+  sm_redraw (0);
+  cin.get(a);
+#endif
+}
+
+
+void eraseGraphics ()
+// ---------------------------------------------------------------------------
+// Clear window.
+// ---------------------------------------------------------------------------
+{
+#ifdef GRAPHICS
+  sm_erase ();
+#endif
+}
+
+
+void drawBox ()
+// ---------------------------------------------------------------------------
+// Underloaded version of drawBox.  Look for limits in file "limits.sm",
+// otherwise use [-10, -10], [10, 10].
+// ---------------------------------------------------------------------------
+{
+#ifdef GRAPHICS
+  Point Pmax, Pmin, Centre, Range;
+  float xmin, xmax, ymin, ymax;
+
+  ifstream file ("limits.sm");
+
+  if (!file) {
+    xmin = -10.0;
+    xmax =  10.0;
+    ymin = -10.0;
+    ymax =  10.0;
+  } else
+    file >> xmin >> xmax >> ymin >> ymax;
+
+  sm_limits (xmin, xmax, ymin, ymax);
+  sm_box    (1, 2, 0, 0);
+  sm_expand (1.6);
+#endif
+}
+
+
+void drawBox (const Loop* L)
+// ---------------------------------------------------------------------------
+// L is the initial Loop.  Use it to set up window.
+//
+// If the file "limits.sm" can be found, open it and attempt to read
+// xmin xmax ymin ymax from it.  Otherwise, determine them from L.
+// ---------------------------------------------------------------------------
+{
+#ifdef GRAPHICS
+  Point Pmax, Pmin, Centre, Range;
+  float xmin, xmax, ymin, ymax;
+  real  AR;
+
+  ifstream file ("limits.sm");
+
+  if (!file) {
+
+    L -> limits (Pmin, Pmax);
+
+    Centre.x = 0.5 * (Pmin.x + Pmax.x);
+    Centre.y = 0.5 * (Pmin.y + Pmax.y);
+    Range.x  = 0.5 * (Pmax.x - Pmin.x);
+    Range.y  = 0.5 * (Pmax.y - Pmin.y);
+    AR       = Range.y / Range.x;
+
+    const real EXPAND = 1.1;
+
+    if (AR >= 1.0) {
+      xmin = Centre.x - EXPAND * AR * Range.x;
+      xmax = Centre.x + EXPAND * AR * Range.x;
+      ymin = Centre.y - EXPAND      * Range.y;
+      ymax = Centre.y + EXPAND      * Range.y;
+    } else {
+      xmin = Centre.x - EXPAND      * Range.x;
+      xmax = Centre.x + EXPAND      * Range.x;
+      ymin = Centre.y - EXPAND / AR * Range.y;
+      ymax = Centre.y + EXPAND / AR * Range.y;
+    } 
+
+  } else
+    file >> xmin >> xmax >> ymin >> ymax;
+
+  sm_limits (xmin, xmax, ymin, ymax);
+  sm_box    (1, 2, 0, 0);
+  sm_expand (1.6);
+#endif
+}
+
+
+void drawLoop (const Loop* L      ,
+	       const int&  numbers)
+// ---------------------------------------------------------------------------
+// Draw L.
+// ---------------------------------------------------------------------------
+{
+#ifdef GRAPHICS
+  int npts;
+  vector<float> x;
+  vector<float> y;
+  
+  npts = L -> points (x, y);
+
+  sm_conn (x(), y(), npts);
+  sm_draw (x[0], y[0]);
+
+  if (numbers) {
+    register int i;
+    char         label[StrMax];
+
+    sm_expand (0.3);
+    for (i = 0; i < npts; i++) {
+      sm_relocate (x[i], y[i]);
+      L -> nodeLabel (i, label);
+      sm_label (label);
+    }
+    sm_expand (1.6);
+  } else
+    sm_points (x(), y(), npts);
+
+  sm_gflush ();
+#endif
+}
+
+
+void hardCopy (const Loop* L)
+// ---------------------------------------------------------------------------
+// Draw L in PostScript file.
+// ---------------------------------------------------------------------------
+{
+#ifdef GRAPHICS
+  sm_alpha ();
+  initGraphics ("postfile mesh.eps");
+  drawBox (L);
+  L -> drawQuad (1);
+
+  sm_hardcopy ();
+  sm_alpha ();
+#endif
+}
+
+
+void pause ()
+// ---------------------------------------------------------------------------
+// Wait for input.
+// ---------------------------------------------------------------------------
+{
+   char a;
+#ifdef GRAPHICS
+  sm_alpha ();
+#endif
+  cerr << "Press <return> to continue" << endl;
+#ifdef GRAPHICS
+  sm_redraw (0);
+#endif
+  cin.get(a);
+}
+
+
+void message (const char* routine,
+	      const char* text   ,
+	      const lev&  level  )
+// ---------------------------------------------------------------------------
+// Error message handler for all modules that may run graphics commands.
+// ---------------------------------------------------------------------------
+{
+  switch (level) {
+  case WARNING:
+    cerr << "WARNING: " << routine << ": " << text << endl;
+    return;
+  case REMARK:
+    cerr << text << endl;
+    return;
+  case ERROR:
+    cerr << "ERROR: " << routine << ": " << text << endl;
+    if (graphics) stopGraphics ();
+    exit (EXIT_FAILURE);
+    break;
+  }
+}
