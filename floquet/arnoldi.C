@@ -4,9 +4,11 @@
 // 
 // Based on code by Dwight Barkley & Ron Henderson.
 //
+// Copyright (C) 1999-2002 Hugh Blackburn
+//
 // USAGE
 // -----
-// flok [options] session
+// arnoldi [options] session
 //   session: specifies name of semtex session file.
 //   options:
 //   -h       ... print this message
@@ -55,7 +57,7 @@ static Mesh*            mesh;
 static BCmgr*           bman;
 static BoundarySys*     bsys;
 static Domain*          domain;
-static STABAnalyser*    analyst;
+static StabAnalyser*    analyst;
 
 
 int main (int    argc,
@@ -158,7 +160,7 @@ static void EV_init (real* tgt)
 // ---------------------------------------------------------------------------
 {
   int       i;
-  const int DIM = Geometry::nVec();
+  const int DIM = Geometry::nPert();
   const int NP  = Geometry::planeSize();
     
   for (i = 0; i < DIM; i++) domain -> u[i] -> getPlane (0, tgt + i * NP);
@@ -172,7 +174,7 @@ static void EV_update  (const real* src,
 // ---------------------------------------------------------------------------
 {
   integer       j;
-  const integer NDIM = Geometry::nVec();
+  const integer NDIM = Geometry::nPert();
   const integer NP   = Geometry::planeSize();
 
   for (j = 0; j < NDIM; j++) domain -> u[j] -> setPlane (0, src + j*NP);
@@ -275,7 +277,7 @@ static void EV_small (real**    Kseq   ,
 
   // -- Find eigenpairs of H.
 
-  F77name(dgeev) ("N","V",kdim,H,kdim,wr,wi,0,1,zvec,kdim,rwork,lwork,ier);
+  F77NAME(dgeev) ("N","V",kdim,H,kdim,wr,wi,0,1,zvec,kdim,rwork,lwork,ier);
 
   if (ier) message (routine, "error return from dgeev", ERROR);
 
@@ -312,7 +314,7 @@ static int EV_test (const int  itrn   ,
   int          i, idone;
   vector<real> work (kdim);
   real         re_ev, im_ev, abs_ev, *resid = work();
-  real         re_Aev, im_Aev, period;
+
   static real  min_max1, min_max2;
  
   if (min_max1 == 0.0) min_max1 = 1000.0;
@@ -342,29 +344,38 @@ static int EV_test (const int  itrn   ,
 
   // -- Print diagnostic information.
 
+  const integer floquet = Geometry::nSlice() > 1;
+  real          re_Aev, im_Aev;
+  const real    period = Femlib::value ("D_T * N_STEP");
+
+
   cout << "-- Iteration = " << itrn << ", H(k+1, k) = " << resnorm << endl;
 
-  cout.precision(5);
-  cout.setf(ios::fixed, ios::floatfield);
+  cout.precision(4);
+  cout.setf(ios::scientific, ios::floatfield);
 
-  period = Femlib::value ("D_T") * (integer) Femlib::value ("N_STEP");
+  cout << "EV  Re          Im          Magnitude   Residual";
+  if (!floquet) cout << "    Growth      Frequency";
+  cout << endl;
 
-  cout << "Eigval   Re\t    Im\t       ABS()"
-       << "\t  Resid\t     a\t        b" << endl;
   for (i = 0; (i < kdim) & (i < 10); i++) {
     re_ev = wr[i];
     im_ev = wi[i];
     abs_ev = sqrt(re_ev*re_ev + im_ev*im_ev);
-    re_Aev = 1/(2*period) * log(re_ev*re_ev + im_ev*im_ev);
-    im_Aev = 1/period *atan2(im_ev, re_ev);
-    cout <<i << " =\t"
-	 << setw(8) << re_ev << ",  " 
-	 << setw(8) << im_ev << ",  "
-         << setw(8) << abs_ev << ",  "
-	 << setw(8) << resid[i] << ",  "
-	 << setw(8) << re_Aev << ",  " 
-	 << setw(8) << im_Aev << endl;
+    re_Aev = 1.0/(2*period) * log(re_ev*re_ev + im_ev*im_ev);
+    im_Aev = 1.0/period * atan2(im_ev, re_ev);
+    cout << setw(2)  << i
+	 << setw(12) << re_ev
+	 << setw(12) << im_ev
+         << setw(12) << abs_ev
+	 << setw(12) << resid[i];
+    if (!floquet)
+      cout << setw(12) << re_Aev << setw(12) << im_Aev;
+    cout << endl;
   }
+
+  cout.precision(6);
+  cout.setf(ios::fixed);
   
   return idone;
 }
@@ -496,7 +507,7 @@ static void getargs (int    argc   ,
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  char usage[] = "flok [options] session\n"
+  char usage[] = "arnoldi [options] session\n"
     "session: specifies name of session file\n"
     "options:\n"
     "-h       ... print this message\n"
@@ -552,19 +563,15 @@ static int preprocess (const char* session)
 // Return length of an eigenvector.
 // ---------------------------------------------------------------------------
 {
-  Geometry::CoordSys space;
-  const real*        z;
-  integer            i, np, nz, nel, nvec;
+  const real* z;
+  integer     i, np, nel, npert;
 
   file  = new FEML (session);
   mesh  = new Mesh (file);
 
+  np    =  static_cast<integer>(Femlib::value ("N_POLY"));
   nel   = mesh -> nEl();
-  np    =  (integer) Femlib::value ("N_POLY");
-  nz    =  (integer) Femlib::value ("N_Z");
-  space = ((integer) Femlib::value ("CYLINDRICAL")) ? 
-                     Geometry::Cylindrical : Geometry::Cartesian;
-  nvec  = file -> attribute ("FIELDS", "NUMBER") - 1;
+  npert = file -> attribute ("FIELDS", "NUMBER") - 1;
   Geometry::set (nel, npert);
 
   Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
@@ -573,12 +580,13 @@ static int preprocess (const char* session)
   for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
 
   bman    = new BCmgr        (file, elmt);
+  domain  = new Domain (file, elmt, bman);
   domain  = new Domain       (file, elmt, bman);
-  analyst = new STABAnalyser (domain, file);
+  analyst = new StabAnalyser (domain, file);
 
   domain -> restart ();
-  domain -> loadbase();
+  domain -> loadBase();
   domain -> report  ();
 
-  return Geometry::nVec() * Geometry::planeSize();
+  return Geometry::nPert() * Geometry::planeSize();
 }

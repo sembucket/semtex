@@ -16,14 +16,14 @@
 
 <TOKENS>
 	PERIOD    = 4.96192
-	F_TIME	  = PERIOD
 	STEPS_P   = 1024
 	N_STEP	  = STEPS_P
 	D_T       = PERIOD/STEPS_P
-	BASE_DT   = PERIOD/32.0
 
 	N_TIME    = 2
 	N_POLY    = 8
+	N_SLICE   = 32
+	N_BASE    = 2
 
 	CHKPOINT  = 1
 	ITERATIVE = 0
@@ -32,12 +32,7 @@
 
 	BETA      = 1.7
 	Re        = 220
-	KINVIS    = 1/Re
-
-	DUMP      = 0
-	OUTSTEP   = 0 
-	IO_EIG    = 2
-
+	KINVIS    = 1.0/Re
 </TOKENS>
 
 <GROUPS NUMBER=3>

@@ -2,7 +2,7 @@
 // lns.C: control spectral element DNS for incompressible flows.
 // This version drives linear evolution of a single Fourier mode.
 //
-// Copyright (C) 1994, 2001 Hugh Blackburn.
+// Copyright (C) 1994, 2002 Hugh Blackburn.
 //
 // USAGE:
 // -----
@@ -63,11 +63,9 @@ int main (int    argc,
  
   analyst = new StabAnalyser (domain, file);
 
-  domain -> restart();
-
+  domain -> restart ();
   domain -> loadBase();
-
-  domain -> report();
+  domain -> report  ();
   
   integrate (domain, analyst);
 

@@ -30,11 +30,11 @@ it is three-component (and three-dimensional).  If the base flow is
 two-component (i.e. U & V only), and the perturbation is
 three-component, there exists a special decomposition of the
 perturbation field into two decoupled parts, and it suffices to study
-the behaviour of one of the parts only.  Under this composition the u,
-v, velocity fields and the pressure are taken to be represented by the
-real part of a Fourier mode, and the w velocity by the imaginary part.
-In this case ("half-complex"), the number of planes in the mode, _nz
-is 1.  If the base flow is three-component (but still
+the behaviour of one of the parts only.  Under this decomposition the
+u, v, velocity fields and the pressure are taken to be represented by
+the real part of a Fourier mode, and the w velocity by the imaginary
+part.  In this case ("half-complex"), the number of planes in the
+mode, _nz is 1.  If the base flow is three-component (but still
 two-dimensional), then the decoupling does not occur, and the
 perturbation field is fully complex and three-component.
 
@@ -45,5 +45,8 @@ N_BASE  N_PERT  N_Z    COMPLEXITY
  2       3       1     Half-complex:  u.Re v.Re w.Im p.Re
  3       3       2     Full-complex
  3       2       -     -
+
+N_PERT is set according to the number of velocity fields nominated in
+the session file.
 
 $Id$

@@ -88,8 +88,8 @@ Analyser::Analyser (Domain* D   ,
   // -- Dump run information to file.
 
   ofstream runfile (strcat (strcpy (str, src -> name), ".run"), ios::out);
-  int pid = getpid(); gethostname (str, StrMax);
-  runfile << "host = " << str << endl << "pid  = " << pid << endl;
+  gethostname (str, StrMax);
+  runfile << "host: " << str << endl << "pid: " << getpid() << endl;
   runfile.close();
 }
 

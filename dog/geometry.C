@@ -41,17 +41,18 @@ void Geometry::set (const int nel  ,
 {
   static char routine[] = "Geometry::set", err[StrMax];
 
-  _pid    = static_cast<integer>(Femlib::value ("I_PROC"));
-  _nproc  = static_cast<integer>(Femlib::value ("N_PROC"));
-  _kfund  = static_cast<integer>(Femlib::value ("K_FUND"));
-  _np     = static_cast<integer>(Femlib::value ("N_POLY"));
-  _nbase  = static_cast<integer>(Femlib::value ("N_BASE"));
-  _nslice = static_cast<integer>(Femlib::value ("N_SLICE"));
-  _csys  = (static_cast<integer>(Femlib::value ("CYLINDRICAL"))) ? 
+  _pid       = static_cast<integer>(Femlib::value ("I_PROC"));
+  _nproc     = static_cast<integer>(Femlib::value ("N_PROC"));
+  _kfund     = static_cast<integer>(Femlib::value ("K_FUND"));
+  _np        = static_cast<integer>(Femlib::value ("N_POLY"));
+  _nbase     = static_cast<integer>(Femlib::value ("N_BASE"));
+  _nslice    = static_cast<integer>(Femlib::value ("N_SLICE"));
+  _csys      = (static_cast<integer>(Femlib::value ("CYLINDRICAL"))) ? 
                                Geometry::Cylindrical : Geometry::Cartesian;
-  _nz     = (_nbase == 3 && _npert == 3) ? 2 : 1;
-  _nel    = nel;
-  _npert  = npert;
+  _nz = _nzp = (_nbase == 3 && _npert == 3) ? 2 : 1;
+  _nel       = nel;
+  _npert     = npert;
+  _psize     = nPlane() + (nPlane() % 2);
 
   // -- Sanity checks.
 

@@ -1,5 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
-// integrate.C: integrate unsteady Navier--Stokes problem forward in time.
+// integrate.C: integrate unsteady linearised Navier--Stokes problem
+// forward in time.
+//
+// Copyright (C) 2002 Hugh Blackburn
 //
 // This version implements linearised advection terms and evolves a
 // single Fourier mode.  Both the number of velocity components in the
@@ -224,8 +227,10 @@ static void linAdvect (Domain*    D ,
     }
   }
 
-  T -> smooth (N[i]);
-  *N[i] *= -1.0;
+  for (i = 0; i < nPert; i++) {
+    T -> smooth (N[i]);
+    *N[i] *= -1.0;
+  }
 }
 
 
@@ -323,83 +328,83 @@ static MatrixSys** preSolve (const Domain* D)
 // Set up ModalMatrixSystems for system with only 1 Fourier mode.
 // ---------------------------------------------------------------------------
 {
-  const integer mode   = (NPER < 3) ? 0 : 1;
-  const real    beta   = mode * Femlib::value ("BETA");
-  MatrixSys**   system = new MatrixSys* [static_cast<size_t>(NPER + 1)];
-  const integer itLev  = static_cast<integer>(Femlib::value ("ITERATIVE"));
+  const integer mode  = (NPER < 3) ? 0 : 1;
+  const real    beta  = mode * Femlib::value ("BETA");
+  const integer itLev = static_cast<integer>(Femlib::value ("ITERATIVE"));
 
   vector<real> alpha (Integration::OrderMax + 1);
   Integration::StifflyStable (NORD, alpha());
   const real   lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
 
-  ListIterator<MatrixSys*> m (MS);
-  MatrixSys*               M;
-  integer                  found, k = 0;
-  real                     betak2;
-  const NumberSys*         N;
+  MatrixSys**      system = new MatrixSys* [static_cast<size_t>(NPER + 1)];
+  MatrixSys*       M;
+  integer          found;
+  solver_kind      method;
+  real             betak2;
+  const NumberSys* N;
 
-  cout << "-- Installing matrices: ";
+  cout << "-- Installing matrices     : " << flush;
+
+  method = (itLev < 1) ? DIRECT : JACPCG;
 
   // -- Velocities, starting with u.
 
+  N      = D -> b [0] -> Nsys (mode * Geometry::kFund());
   betak2 = sqr (Field::modeConstant (D -> u[0] -> name(), mode, beta));
-  M = new MatrixSys 
-    (lambda2, betak2, 0, D -> elmt, D -> b[0], (itLev < 1)?DIRECT:JACPCG);
+  M = new MatrixSys (lambda2, betak2, 0, D -> elmt, D -> b[0], method);
   MS.add (M);
-  system[k++] = M;
-  cout << "*";
+  system[0] = M;
+  cout << ((method == DIRECT) ? '*' : '&') << flush;
+
+  ListIterator<MatrixSys*> m (MS);
 
   // -- v.
 
-  N      = D -> b [k] -> Nsys (mode * Geometry::kFund());
-  betak2 = sqr (Field::modeConstant (D -> u[k] -> name(), mode, beta));
+  N      = D -> b [1] -> Nsys (mode * Geometry::kFund());
+  betak2 = sqr (Field::modeConstant (D -> u[1] -> name(), mode, beta));
 
   for (found = 0, m.reset(); !found && m.more(); m.next()) {
-    M = m.current();
-    found = M -> match (lambda2, betak2, N, (itLev < 1)?DIRECT:JACPCG);
+    M = m.current(); found = M -> match (lambda2, betak2, N, method);
   }
   if (found) {
-    system[k++] = M;
-    cout << ".";
+    system[1] = M;
+    cout << "." << flush;
   } else {
-    M = new MatrixSys 
-      (lambda2, betak2, 0, D -> elmt, D -> b[k], (itLev < 1)?DIRECT:JACPCG);
+    M = new MatrixSys (lambda2, betak2, 0, D -> elmt, D -> b[1], method);
     MS.add (M);
-    system[k++] = M;
-    cout << "*";
+    system[1] = M;
+    cout << ((method == DIRECT) ? '*' : '&') << flush;
   }
 
   // -- w.
 
   if (NPER == 3) {
-
-    N      = D -> b [k] -> Nsys (mode * Geometry::kFund());
-    betak2 = sqr (Field::modeConstant (D -> u[k] -> name(), mode, beta));
+    N      = D -> b [2] -> Nsys (mode * Geometry::kFund());
+    betak2 = sqr (Field::modeConstant (D -> u[2] -> name(), mode, beta));
 
     for (found = 0, m.reset(); !found && m.more(); m.next()) {
-      M = m.current();
-      found = M -> match (lambda2, betak2, N, (itLev < 1)?DIRECT:JACPCG);
+      M = m.current(); found = M -> match (lambda2, betak2, N, method);
     }
     if (found) {
-      system[k++] = M;
-      cout << ".";
+      system[2] = M;
+      cout << "." << flush;
     } else {
-      M = new MatrixSys 
-	(lambda2, betak2, 0, D -> elmt, D -> b[k], (itLev < 1)?DIRECT:JACPCG);
+      M = new MatrixSys (lambda2, betak2, 0, D -> elmt, D -> b[2], method);
       MS.add (M);
-      system[k++] = M;
-      cout << "*";
+      system[2] = M;
+      cout <<  ((method == DIRECT) ? '*' : '&') << flush;
     }
   }
     
   // -- Pressure.
 
-  betak2 = sqr (Field::modeConstant (D -> u[k] -> name(), mode, beta));
-  M = new MatrixSys
-    (0.0, betak2, 0, D -> elmt, D -> b[NPER], (itLev < 2)?DIRECT:JACPCG);
+  method = (itLev < 2) ? DIRECT : JACPCG;
+
+  betak2 = sqr (Field::modeConstant (D -> u[NPER] -> name(), mode, beta));
+  M = new MatrixSys (0.0, betak2, 0, D -> elmt, D -> b[NPER], method);
   MS.add (M);
-  system[k++] = M;
-  cout << "*" << endl;
+  system[NPER] = M;
+  cout << ((method == DIRECT) ? '*' : '&') << endl;
   
   return system;
 }
@@ -416,7 +421,7 @@ static void Solve (Domain*       D,
 {
   const integer step = D -> step;
   const integer mode = (NPER < 3) ? 0 : 1;
-  const integer beta = mode * Femlib::value ("BETA");
+  const integer beta = mode * static_cast<integer>(Femlib::value ("BETA"));
 
   if (i < NPER && step < NORD) {
 

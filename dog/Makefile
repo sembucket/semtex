@@ -18,20 +18,25 @@ SEMOBJ   = $(addsuffix .o,$(SEMFILES))
 SEMHDR   = Sem.h
 
 # ----------------------------------------------------------------------------
-# Default build for Navier-Stokes solver.
-#
+# Build linearised Navier-Stokes solver.
 
 ST_FILES = lns integrate stabanalysis
 ST_OBJ   = $(addsuffix .o,$(ST_FILES))
 
-FL_FILES = arnoldi integrate stabanalysis
-FL_OBJ   = $(addsuffix .o,$(FL_FILES))
-
 lns: sem $(ST_OBJ) $(SEMOBJ) stab.h
 	$(LD) -o $@ $(ST_OBJ) $(SEMOBJ) $(LDFLAGS)
 
-flok: sem $(FL_OBJ) $(SEMOBJ) stab.h
+# ----------------------------------------------------------------------------
+# Build eigensolver code
+
+FL_FILES = arnoldi integrate stabanalysis
+FL_OBJ   = $(addsuffix .o,$(FL_FILES))
+
+arnoldi: sem $(FL_OBJ) $(SEMOBJ) stab.h
 	$(LD) -o $@ $(FL_OBJ) $(SEMOBJ) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Header dependency.
 
 $(SEMOBJ): $(SEMHDR)
 

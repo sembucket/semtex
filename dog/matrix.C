@@ -33,10 +33,9 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
 //   method  : specify the kind of solver we want (Cholesky, PCG ...).
 // ---------------------------------------------------------------------------
 {
-  const char               name = Bsys -> field();
-  integer                  found, mode;
-  ListIterator<MatrixSys*> m (MS);
-  MatrixSys*               M = 0;
+  const char name = Bsys -> field();
+  integer    found, mode;
+  MatrixSys* M = 0;
 
   _fields = new char [strlen (Bsys -> Nsys (0) -> fields()) + 1];
   strcpy (_fields, Bsys -> Nsys (0) -> fields());
@@ -52,6 +51,7 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
     const NumberSys* N         = Bsys -> Nsys (mode);
     const real       betak2    = sqr (Field::modeConstant (name, mode, beta));
     const integer    localMode = mode - baseMode;
+    ListIterator<MatrixSys*> m (MS);
 
     for (found = 0, m.reset(); !found && m.more(); m.next()) {
       M     = m.current();

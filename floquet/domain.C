@@ -1,4 +1,4 @@
-///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
 // domain.C: implement domain class functions.
 //
 // Copyright (C) 1994, 2001 Hugh Blackburn
@@ -65,7 +65,8 @@ Domain::Domain (FEML*             F,
   if   (nbase == 2) strcpy ((baseField = new char [3]), "UV" );
   else              strcpy ((baseField = new char [4]), "UVW");
 
-  VERBOSE cout << "  Building domain base flow fields: " << baseField <<" ...";
+  VERBOSE cout << "  Building domain base flow fields: "
+	       << baseField <<" ... ";
 
   U   .setSize (nbase);
   Udat.setSize (nbase);
@@ -85,12 +86,13 @@ void Domain::report ()
 // Print a run-time summary of domain & timestep information on cout.
 // ---------------------------------------------------------------------------
 {
-  const real dt  =                          Femlib::value ("D_T");
-  const real lz  =                          Femlib::value ("TWOPI / BETA");
-  const integer  ns  = static_cast<integer>(Femlib::value ("N_STEP"));
-  const integer  nt  = static_cast<integer>(Femlib::value ("N_TIME"));
-  const integer  chk = static_cast<integer>(Femlib::value ("CHKPOINT"));
-  const integer  per = static_cast<integer>(Femlib::value ("IO_FLD"));
+  const real    dt  =                      Femlib::value ("D_T");
+  const real    lz  =                      Femlib::value ("TWOPI / BETA");
+  const real    Re  =                      Femlib::value ("1.0   / KINVIS");
+  const integer ns  = static_cast<integer>(Femlib::value ("N_STEP"));
+  const integer nt  = static_cast<integer>(Femlib::value ("N_TIME"));
+  const integer chk = static_cast<integer>(Femlib::value ("CHKPOINT"));
+  const integer per = static_cast<integer>(Femlib::value ("IO_FLD"));
 
   cout << "-- Coordinate system       : ";
   if (Geometry::system() == Geometry::Cylindrical)
@@ -104,9 +106,10 @@ void Domain::report ()
   cout << "   Number of elements      : " << Geometry::nElmt()  << endl;
   cout << "   Number of planes        : " << Geometry::nZ()     << endl;
   cout << "   Number of processors    : " << Geometry::nProc()  << endl;
-  if (Geometry::nPert() > 1)
+  if (Geometry::nPert() > 2)
     cout<<"   Periodic length         : " << lz                 << endl;
   cout << "   Polynomial order (np-1) : " << Geometry::nP() - 1 << endl;
+  cout << "   Reynolds number         : " << Re                 << endl;
   cout << "   Time integration order  : " << nt                 << endl;
   cout << "   Start time              : " << time               << endl;
   cout << "   Finish time             : " << time + ns * dt     << endl;
@@ -139,7 +142,7 @@ void Domain::restart ()
     file >> *this;
     file.close();
   } else {
-    ROOTONLY cout << "set to random values";
+    ROOTONLY cout << "randomised";
     for (i = 0; i < nF; i++) Veclib::vnormal (ntot, 0.0, 1.0, udat(i), 1);
   }
 
@@ -153,9 +156,6 @@ void Domain::restart ()
 void Domain::dump ()
 // ---------------------------------------------------------------------------
 // Check if a field-file write is required, carry out.
-//
-// Fields are inverse Fourier transformed prior to dumping in order to
-// provide physical space values.
 // ---------------------------------------------------------------------------
 {
   const integer
@@ -354,6 +354,8 @@ void Domain::loadBase()
 
   // -- Read base velocity fields, ignore pressure fields.
 
+  ROOTONLY cout << "-- Base flow               : " << flush; 
+
   i = 0;
   while (file >> H) {
     if (H.nr != nP || H.nz != 1 || H.nel != nEl)
@@ -386,6 +388,8 @@ void Domain::loadBase()
       Femlib::DFTr (baseFlow(i), nSlice, nTot, FORWARD);
       Blas::scal   ((nSlice-2)*nTot, 2.0, baseFlow(i) + 2*nTot, 1);
     }
+  
+  ROOTONLY cout << "read from file " << filename << endl;
 }
 
 

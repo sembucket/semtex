@@ -186,16 +186,22 @@ ifstream& operator >> (ifstream& file,
 // Insert data into Header struct from file.
 // ---------------------------------------------------------------------------
 {
-  file.getline(hdr.sess, 25)             .ignore(StrMax, '\n');
-  file.getline(hdr.sesd, 25)             .ignore(StrMax, '\n');
-  file >> hdr.nr >> hdr.ns >> hdr.nz >> hdr.nel; file.ignore(StrMax, '\n');
-  file >> hdr.step;                  file.ignore(StrMax, '\n');
-  file >> hdr.time;                  file.ignore(StrMax, '\n');
-  file >> hdr.dt;                    file.ignore(StrMax, '\n');
-  file >> hdr.visc;                  file.ignore(StrMax, '\n');
-  file >> hdr.beta;                  file.ignore(StrMax, '\n');
-  file >> hdr.flds;                  file.ignore(StrMax, '\n');
-  file.getline(hdr.frmt, 25)             .ignore(StrMax, '\n');
+  char routine[] = "operator: ifstream >> Header";
+  char s[StrMax];
+
+  if (file.get(hdr.sess, 25).eof()) return file; file.getline(s, StrMax);
+  file.get(hdr.sesd, 25);                        file.getline(s, StrMax);
+  file >> hdr.nr >> hdr.ns >> hdr.nz >> hdr.nel; file.getline(s, StrMax);
+  file >> hdr.step;                              file.getline(s, StrMax);
+  file >> hdr.time;                              file.getline(s, StrMax);
+  file >> hdr.dt;                                file.getline(s, StrMax);
+  file >> hdr.visc;                              file.getline(s, StrMax);
+  file >> hdr.beta;                              file.getline(s, StrMax);
+  file >> hdr.flds;                              file.getline(s, StrMax);
+  file.get(hdr.frmt, 25);                        file.getline(s, StrMax);
+
+  if (!file) message (routine, "failed reading header information", ERROR);
+  return file;
 }
 
 
@@ -205,7 +211,7 @@ ofstream& operator << (ofstream& file,
 // Put data from Header struct onto file. Use current time info.
 // ---------------------------------------------------------------------------
 {
-  const char routine [] = "file << Header";
+  const char routine [] = "operator: ofstream << Header";
   const char *hdr_fmt[] = { 
     "%-25s "                "Session\n",
     "%-25s "                "Created\n",
@@ -237,4 +243,6 @@ ofstream& operator << (ofstream& file,
 
   if (!file) message (routine, "failed writing field file header", ERROR);
   file << flush;
+
+  return file;
 }
