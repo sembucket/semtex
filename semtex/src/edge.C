@@ -37,7 +37,8 @@ Edge::Edge (const char*    grp ,
   _ny   = _nx + _np;
   _area = _ny + _np;
 
-  _doffset = _elmt -> ID() * npnp;
+  _eoffset = _doffset = _elmt -> ID() * npnp;
+
   switch (_side) {
   case 0: _doffset += 0;               _dskip = 1;    break;
   case 1: _doffset += (_np - 1);       _dskip = _np;  break;
@@ -105,8 +106,7 @@ void Edge::curlCurl (const int_t   k  ,
 // ---------------------------------------------------------------------------
 {
   const int_t npnp     = sqr (_np);
-  const int_t elmtOff  = _elmt -> ID() * npnp;
-  const int_t localOff = _doffset - elmtOff;
+  const int_t localOff = _doffset - _eoffset;
 
   real_t* gw = wrk;
   real_t* ew = gw + npnp + npnp;
@@ -117,9 +117,9 @@ void Edge::curlCurl (const int_t   k  ,
   
   // -- Make pointers to current element storage.
 
-  Ur += elmtOff; Ui += elmtOff;
-  Vr += elmtOff; Vi += elmtOff;
-  Wr += elmtOff; Wi += elmtOff;
+  Ur += _eoffset; Ui += _eoffset;
+  Vr += _eoffset; Vi += _eoffset;
+  Wr += _eoffset; Wi += _eoffset;
 
   if (k == 0) {			// -- Zeroth mode / 2D.
 
@@ -277,14 +277,14 @@ Vector Edge::tangTraction (const char*   grp,
     register int_t i;
     real_t         *ux = wrk + 2 * _np, *uy = wrk + 3 * _np;
 
-    _elmt -> sideGrad (_side, u + _doffset, ux, uy, wrk);
+    _elmt -> sideGrad (_side, u + _eoffset, ux, uy, wrk);
 
     for (i = 0; i < _np; i++) {
       Force.x += (2.0*ux[i]*_nx[i] + uy[i]*_ny[i]) * _area[i];
       Force.y +=                     uy[i]*_nx[i]  * _area[i];
     }
 
-    _elmt -> sideGrad (_side, v + _doffset, ux, uy, wrk);
+    _elmt -> sideGrad (_side, v + _eoffset, ux, uy, wrk);
 
     for (i = 0; i < _np; i++) {
       Force.x +=                     ux[i]*_ny[i]  * _area[i];
@@ -339,7 +339,7 @@ real_t Edge::scalarFlux (const char*   grp,
     register int_t  i;
     register real_t *cx = wrk, *cy = wrk + _np, *r = wrk + _np + _np;
 
-    _elmt -> sideGrad (_side, src + _doffset, cx, cy, r);
+    _elmt -> sideGrad (_side, src + _eoffset, cx, cy, r);
     for (i = 0; i < _np; i++)
       dcdn += (cx[i]*_nx[i] + cy[i]*_ny[i]) * _area[i];
   }
@@ -394,25 +394,25 @@ void Edge::traction (const int_t   k   , // Fourier mode index
 
     // -- Viscous.
 
-    _elmt -> sideGrad (_side, Ur+_doffset, ux, uy, wrk);
+    _elmt -> sideGrad (_side, Ur+_eoffset, ux, uy, wrk);
 
     Veclib::svvtt (_np, 2.0, ux, 1, _nx, 1, ttxr, 1);
     Veclib::vvtvp (_np, uy, 1, _ny, 1, ttxr, 1, ttxr, 1);
     Veclib::vmul  (_np, uy, 1, _nx, 1, ttyr, 1);
 
-    _elmt -> sideGrad (_side, Vr+_doffset, ux, uy, wrk);
+    _elmt -> sideGrad (_side, Vr+_eoffset, ux, uy, wrk);
 
     Veclib::vvtvp   (_np, ux, 1, _ny, 1, ttxr, 1, ttxr, 1);
     Veclib::svvttvp (_np, 2.0, uy, 1, _ny, 1, ttyr, 1, ttyr, 1);
     Veclib::vvtvp   (_np, ux, 1, _nx, 1, ttyr, 1, ttyr, 1);
 
     if (Wr) {
-      _elmt -> sideGrad (_side, Wr+_doffset, ux, uy, wrk);
+      _elmt -> sideGrad (_side, Wr+_eoffset, ux, uy, wrk);
 
       Veclib::vmul  (_np, ux, 1, _nx, 1, ttzr, 1);
       Veclib::vvtvp (_np, uy, 1, _ny, 1, ttzr, 1, ttzr, 1);
     } else
-      if (ttzr) Veclib::zero (_np, ttzr, 1);
+      Veclib::zero (_np, ttzr, 1);
 
     // -- Multiply by viscosity and negate to get tractions exerted on surface.
 
@@ -432,31 +432,31 @@ void Edge::traction (const int_t   k   , // Fourier mode index
 
     // -- Viscous.
 
-    _elmt -> sideGrad (_side, Ur+_doffset, ux, uy, wrk);
+    _elmt -> sideGrad (_side, Ur+_eoffset, ux, uy, wrk);
 
     Veclib::svvtt (_np, 2.0, ux, 1, _nx, 1, ttxr, 1);
     Veclib::vvtvp (_np, uy, 1, _ny, 1, ttxr, 1, ttxr, 1);
     Veclib::vmul  (_np, uy, 1, _nx, 1, ttyr, 1);
 
-    _elmt -> sideGrad (_side, Vr+_doffset, ux, uy, wrk);
+    _elmt -> sideGrad (_side, Vr+_eoffset, ux, uy, wrk);
 
     Veclib::vvtvp   (_np, ux, 1, _ny, 1, ttxr, 1, ttxr, 1);
     Veclib::svvttvp (_np, 2.0, uy, 1, _ny, 1, ttyr, 1, ttyr, 1);
     Veclib::vvtvp   (_np, ux, 1, _nx, 1, ttyr, 1, ttyr, 1);
 
-    _elmt -> sideGrad (_side, Ui+_doffset, ux, uy, wrk);
+    _elmt -> sideGrad (_side, Ui+_eoffset, ux, uy, wrk);
 
     Veclib::svvtt (_np, 2.0, ux, 1, _nx, 1, ttxi, 1);
     Veclib::vvtvp (_np, uy, 1, _ny, 1, ttxi, 1, ttxi, 1);
     Veclib::vmul  (_np, uy, 1, _nx, 1, ttyi, 1);
 
-    _elmt -> sideGrad (_side, Vi+_doffset, ux, uy, wrk);
+    _elmt -> sideGrad (_side, Vi+_eoffset, ux, uy, wrk);
 
     Veclib::vvtvp   (_np, ux, 1, _ny, 1, ttxi, 1, ttxi, 1);
     Veclib::svvttvp (_np, 2.0, uy, 1, _ny, 1, ttyi, 1, ttyi, 1);
     Veclib::vvtvp   (_np, ux, 1, _nx, 1, ttyi, 1, ttyi, 1);
 
-    _elmt -> sideGrad (_side, Wr+_doffset, ux, uy, wrk);
+    _elmt -> sideGrad (_side, Wr+_eoffset, ux, uy, wrk);
 
     Veclib::vmul  (_np, ux, 1, _nx, 1, ttzr, 1);
     Veclib::vvtvp (_np, uy, 1, _ny, 1, ttzr, 1, ttzr, 1);
@@ -464,7 +464,7 @@ void Edge::traction (const int_t   k   , // Fourier mode index
     Veclib::svvttvp (_np, -betaK, Ui+_doffset, _dskip, _nx, 1, ttzr,1, ttzr,1);
     Veclib::svvttvp (_np, -betaK, Vi+_doffset, _dskip, _ny, 1, ttzr,1, ttzr,1);
 
-    _elmt -> sideGrad (_side, Wi+_doffset, ux, uy, wrk);
+    _elmt -> sideGrad (_side, Wi+_eoffset, ux, uy, wrk);
 
     Veclib::vmul  (_np, ux, 1, _nx, 1, ttzi, 1);
     Veclib::vvtvp (_np, uy, 1, _ny, 1, ttzi, 1, ttzi, 1);

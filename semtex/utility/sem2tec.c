@@ -56,9 +56,9 @@ int main (int    argc,
  * Driver.
  * ------------------------------------------------------------------------- */
 {
-  char  fname[STR_MAX];
-  char  buf  [STR_MAX];
-  FILE  *fp, *fp_tec;
+  char fname[STR_MAX];
+  char buf  [STR_MAX];
+  FILE *fp, *fp_tec;
   
   fp_msh = stdin;
 

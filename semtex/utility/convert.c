@@ -449,7 +449,7 @@ static void put_data (FILE*        fp     ,
     for (j = 0; j < npts; j++) {
       for (i = 0; i < nfields; i++)
 	if (fprintf (fp, "%#16.10g ", data[i][j]) < 0) {
-	  sprintf (err, "%s: error occured while writing (ASCII)", prog);
+	  sprintf (err, "error occured while writing (ASCII)");
 	  error (err);
 	}
       fputs ("\n", fp);
@@ -471,7 +471,7 @@ static void put_data (FILE*        fp     ,
     if (swap) for (i = 0; i < nfields; i++) dswap (npts, data[i]);
     for (i = 0; i < nfields; i++)
       if (fwrite (data[i], sizeof (double), npts, fp) != npts) {
-	sprintf (err, "%s: an error has occured while writing (binary)", prog);
+	sprintf (err, "an error has occured while writing (binary)");
 	error (err);
       }
     break;

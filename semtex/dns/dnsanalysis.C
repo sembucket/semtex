@@ -40,20 +40,16 @@ DNSAnalyser::DNSAnalyser (Domain* D   ,
     const int_t np  = Geometry::nP();
     const int_t nz  = Geometry::nZProc();
 
-    // -- Allocate storage area: 5 for 2 normal components + 3 tangential.
+    // -- Allocate storage area: 5 = 2 normal components + 3 tangential.
     
     _nwall = B -> nWall();
     _nline = np * _nwall;
     _npad  = 5  * _nline;
 
-    cout << _nwall << "  " << _nline << "  " << _npad << endl;   
-
     // -- Round up length for Fourier transform/exchange.
 
     if   (npr > 1) _npad += 2 * npr - _npad % (2 * npr);
     else           _npad += _npad % 2;
-
-    cout << _npad << endl;   
 
     _work.resize (_npad * nz);
 
@@ -112,122 +108,128 @@ void DNSAnalyser::analyse (AuxField** work)
     _flx_strm << s << endl;
   }
 
-  
-  periodic = (Femlib::ivalue ("IO_WSS")) ? 
-    !(_src->step %  Femlib::ivalue ("IO_WSS")) ||
-    !(_src->step %  Femlib::ivalue ("IO_FLD")) : false;
-  state    = periodic || final;
+  if (_wss) {
+    periodic = !(_src->step % Femlib::ivalue ("IO_WSS")) ||
+               !(_src->step % Femlib::ivalue ("IO_FLD")) ;
+    state    = periodic || final;
 
-  if (_wss && state) {
-    const int_t    nP  = Geometry::nP();
-    const int_t    nZ  = Geometry::nZ();
-    const int_t    nZP = Geometry::nZProc();
-    const int_t    nPR = Geometry::nProc();
-    const int_t    nPP = _npad / nPR;
-    int_t          i, j, k;
-    real_t*        plane;
-    vector<real_t> buffer (_nline);
+    if (state) {
+      const int_t    nP  = Geometry::nP();
+      const int_t    nZ  = Geometry::nZ();
+      const int_t    nZP = Geometry::nZProc();
+      const int_t    nPR = Geometry::nProc();
+      const int_t    nPP = _npad / nPR;
+      int_t          i, j, k;
+      real_t*        plane;
+      vector<real_t> buffer (_nline);
 
-    // -- Load the local storage area.
+      // -- Load the local storage area.
 
-    Veclib::zero (_work.size(), &_work[0], 1);
+      Veclib::zero (_work.size(), &_work[0], 1);
 
-    if (DIM == 3 || _src -> nField() == 4)
-      Field::traction (&_work[0], &_work[_nline], &_work[2*_nline],
-		       &_work[3*_nline], &_work[4*_nline], _nwall, _npad,
-		       _src -> u[3], _src -> u[0], _src -> u[1], _src -> u[2]);
-    else
-      Field::traction (&_work[0], &_work[_nline], &_work[2*_nline],
-		       &_work[3*_nline], &_work[4*_nline], _nwall, _npad,
-		       _src -> u[2], _src -> u[0], _src -> u[1]);
+      if (DIM == 3 || _src -> nField() == 4)
+	Field::traction (&_work[0], &_work[_nline], &_work[2*_nline],
+			 &_work[3*_nline], &_work[4*_nline], _nwall, _npad,
+			 _src->u[3], _src->u[0], _src->u[1], _src->u[2]);
+      else
+	Field::traction (&_work[0], &_work[_nline], &_work[2*_nline],
+			 &_work[3*_nline], &_work[4*_nline], _nwall, _npad,
+			 _src->u[2], _src->u[0], _src->u[1]);
 
-    // -- Inverse Fourier transform (like Field::bTransform).
+      // -- Inverse Fourier transform (like Field::bTransform).
 
-    if (nPR == 1) {
-      if (nZ > 1)
-	if (nZ == 2)
-	  Veclib::copy (_npad, &_work[0], 1, &_work[_npad], 1);
-	else
-	  Femlib::DFTr (&_work[0], nZ, _npad, INVERSE);
-    } else {
-      Femlib::exchange (&_work[0], nZP, nP,  FORWARD);
-      Femlib::DFTr     (&_work[0], nZ,  nPP, INVERSE);
-      Femlib::exchange (&_work[0], nZP, nP,  INVERSE);
-    }
+      if (nPR == 1) {
+	if (nZ > 1)
+	  if (nZ == 2)
+	    Veclib::copy (_npad, &_work[0], 1, &_work[_npad], 1);
+	  else
+	    Femlib::DFTr (&_work[0], nZ, _npad, INVERSE);
+      } else {
+	Femlib::exchange (&_work[0], nZP, nP,  FORWARD);
+	Femlib::DFTr     (&_work[0], nZ,  nPP, INVERSE);
+	Femlib::exchange (&_work[0], nZP, nP,  INVERSE);
+      }
 
-    // -- Write to file.
+      // -- Write to file.
 
-    // -- Header: this will be a lot like a standard header.
+      // -- Header: this will be a lot like a standard header.
+      //    In order, the components output are Nx, Ny, Tx, Ty, Tz,
+      //    where N stands for normal and T for tangential.
+      //    Ultimately we should change the list to CSV. For now
+      //    we will use abcde to denote these components.
 
-    ROOTONLY {
-      const char *hdr_fmt[] = { 
-	"%-25s "                "Session\n",
-	"%-25s "                "Created\n",
-	"%-5d    1 %-5d %-14d"  "Nr, Ns, Nz, Elements\n",
-	"%-25d "                "Step\n",
-	"%-25.6g "              "Time\n",
-	"%-25.6g "              "Time step\n",
-	"%-25.6g "              "Kinvis\n",
-	"%-25.6g "              "Beta\n",
-	"%-25s "                "Fields written\n",
-	"%-25s "                "Format\n"
-      };
+      ROOTONLY {
+	const char *hdr_fmt[] = { 
+	  "%-25s "                "Session\n",
+	  "%-25s "                "Created\n",
+	  "%-5d1    %-5d %-10d"  "Nr, Ns, Nz, Elements\n",
+	  "%-25d "                "Step\n",
+	  "%-25.6g "              "Time\n",
+	  "%-25.6g "              "Time step\n",
+	  "%-25.6g "              "Kinvis\n",
+	  "%-25.6g "              "Beta\n",
+	  "%-25s "                "Fields written\n",
+	  "%-25s "                "Format\n"
+	};
 
-      char   s1[StrMax], s2[StrMax];
-      time_t tp (time (0));
+	char   s1[StrMax], s2[StrMax];
+	time_t tp (time (0));
 
-      strftime (s2, 25, "%a %b %d %H:%M:%S %Y", localtime (&tp));
+	strftime (s2, 25, "%a %b %d %H:%M:%S %Y", localtime (&tp));
+	
+	sprintf (s1, hdr_fmt[0], _src->name);               _wss_strm << s1;
+	sprintf (s1, hdr_fmt[1], s2);                       _wss_strm << s1;
+	sprintf (s1, hdr_fmt[2], nP, nZ, _nwall);           _wss_strm << s1;
+	sprintf (s1, hdr_fmt[3], _src->step);               _wss_strm << s1;
+	sprintf (s1, hdr_fmt[4], _src->time);               _wss_strm << s1;
+	sprintf (s1, hdr_fmt[5], Femlib::value ("D_T"));    _wss_strm << s1;
+	sprintf (s1, hdr_fmt[6], Femlib::value ("KINVIS")); _wss_strm << s1;
+	sprintf (s1, hdr_fmt[7], Femlib::value ("BETA"));   _wss_strm << s1;
+	sprintf (s1, hdr_fmt[8], "abcde");                  _wss_strm << s1;
+	sprintf (s2, "binary "); Veclib::describeFormat  (s2 + strlen (s2));
+	sprintf (s1, hdr_fmt[9], s2);                       _wss_strm << s1;
 
-      sprintf (s1, hdr_fmt[0], _src->name);               _wss_strm << s1;
-      sprintf (s1, hdr_fmt[1], s2);                       _wss_strm << s1;
-      sprintf (s1, hdr_fmt[2], nP, nZ, _nwall);           _wss_strm << s1;
-      sprintf (s1, hdr_fmt[3], _src->step);               _wss_strm << s1;
-      sprintf (s1, hdr_fmt[4], _src->time);               _wss_strm << s1;
-      sprintf (s1, hdr_fmt[5], Femlib::value ("D_T"));    _wss_strm << s1;
-      sprintf (s1, hdr_fmt[6], Femlib::value ("KINVIS")); _wss_strm << s1;
-      sprintf (s1, hdr_fmt[7], Femlib::value ("BETA"));   _wss_strm << s1;
-      sprintf (s1, hdr_fmt[8], "NxNyTxTyTz");             _wss_strm << s1;
-      sprintf (s2, "binary "); Veclib::describeFormat (s2 + strlen (s2));
-      sprintf (s1, hdr_fmt[9], s2);                       _wss_strm << s1;
+	if (!_wss_strm) message (routine, "failed writing WSS header", ERROR);
+	_wss_strm << flush;
+      }
 
-      if (!_wss_strm) message (routine, "failed writing WSS header", ERROR);
-      _wss_strm << flush;
-      
-    }
+      // -- Data.
 
-    // -- Data.
-
-    if (nPR > 1) {		// -- Parallel.
-      for (j = 0; j < 5; j++)	// -- Reminder: there are 5 components.
-	ROOTONLY {
-	  for (i = 0; i < nZP; i++) {
+      if (nPR > 1) {		// -- Parallel.
+	for (j = 0; j < 5; j++)	// -- Reminder: there are 5 components.
+	  ROOTONLY {
+  	    for (i = 0; i < nZP; i++) {
+	      plane = &_work[i*_npad + j*_nline];
+	      _wss_strm.write(reinterpret_cast<char*>(plane),
+			      static_cast<int_t>(_nline * sizeof (real_t))); 
+	      if (_wss_strm.bad())
+		message (routine, "unable to write binary output", ERROR);
+	    }
+	    for (k = 1; k < nPR; k++)
+	      for (i = 0; i < nZP; i++) {
+		Femlib::recv (&buffer[0], _nline, k);
+		_wss_strm.write(reinterpret_cast<char*>(&buffer[0]),
+				static_cast<int_t>(_nline * sizeof (real_t))); 
+		if (_wss_strm.bad()) 
+		  message (routine, "unable to write binary output", ERROR);
+	      }
+	    _wss_strm << flush;
+          } else			// -- Not on root process.
+	    for (i = 0; i < nZP; i++) {
+	      plane = &_work[i*_npad + j*_nline];
+	      Femlib::send (plane, _nline, 0);
+	    }
+      } else {			// -- Serial.
+	for (j = 0; j < 5; j++)
+	  for (i = 0; i < nZ; i++) {
 	    plane = &_work[i*_npad + j*_nline];
-	    _wss_strm.write(reinterpret_cast<char*>(plane),
-			    static_cast<int_t>(_nline * sizeof (real_t))); 
+	    _wss_strm.write (reinterpret_cast<char*>(plane),
+			     static_cast<int_t>(_nline * sizeof (real_t))); 
 	    if (_wss_strm.bad())
 	      message (routine, "unable to write binary output", ERROR);
 	  }
-	  for (k = 1; k < nPR; k++)
-	    for (i = 0; i < nZP; i++) {
-	      Femlib::recv (&buffer[0], _nline, k);
-	      _wss_strm.write(reinterpret_cast<char*>(&buffer[0]),
-			      static_cast<int_t>(_nline * sizeof (real_t))); 
-	      if (_wss_strm.bad()) 
-		message (routine, "unable to write binary output", ERROR);
-	    }
-        } else			// -- Not on root process.
-	  for (i = 0; i < nZP; i++) {
-	    plane = &_work[i*_npad + j*_nline];
-	    Femlib::send (plane, _nline, 0);
-	  }
-    } else			// -- Serial.
-      for (j = 0; j < 5; j++)
-	for (i = 0; i < nZ; i++) {
-	  plane = &_work[i*_npad + j*_nline];
-	  _wss_strm.write (reinterpret_cast<char*>(plane),
-			   static_cast<int_t>(_nline * sizeof (real_t))); 
-	  if (_wss_strm.bad())
-	    message (routine, "unable to write binary output", ERROR);
-	}
+	_wss_strm << flush;
+      }
+    }
   }
 }
