@@ -4,6 +4,9 @@
  * binary format.  By default, output the original file, no repeats.
  * Adust Nz and Beta in header as appropriate.
  *
+ * NB: Nz must be adjusted so it has prime factors of 2,3,5 to ensure
+ * the resulting field can be Fourier transformed in z.
+ *
  * Copyright (c) 2002 Hugh Blackburn.
  *
  * USAGE
@@ -24,6 +27,9 @@
 #include <alplib.h>
 
 static void getargs (int, char**, FILE**, int*);
+static int  roundup (const int);
+static void pack    (const double*, const int, double*,
+		     const int, const int, const int);
 
 static char prog[] = "repeatz";
 static const char *hdr_fmt[] = { 
@@ -47,10 +53,10 @@ int main (int    argc,
  * ------------------------------------------------------------------------- */
 {
   char   buf[STR_MAX], fmt[STR_MAX];
-  int    i, j, n, np, nz, nel, nrep = 1;
-  int    nfields, nplane, npts, swab;
+  int    i, j, n, np, nzin, nzout, nel, nrep = 1;
+  int    nfields, nplane, nptin, nptout, ntot, swab;
   FILE   *fp_in = stdin, *fp_out = stdout;
-  double *data, beta;
+  double *datain, *dataout, beta;
 
   getargs (argc, argv, &fp_in, &nrep);
   format  (fmt);
@@ -60,10 +66,14 @@ int main (int    argc,
     fputs (buf, fp_out); fgets (buf, STR_MAX, fp_in);
     fputs (buf, fp_out); fgets (buf, STR_MAX, fp_in);
     
-    if (sscanf (buf, "%d%*s%d%d", &np, &nz, &nel) != 3)
+    if (sscanf (buf, "%d%*s%d%d", &np, &nzin, &nel) != 3)
       message (prog, "unable to read the file size", ERROR);
 
-    fprintf (fp_out, hdr_fmt[2], np, np, nz*nrep, nel);
+    if ((nzout = roundup (nzin)) != nzin)
+      message (prog, "input nz does not have 2, 3, 5 factors", ERROR);
+    nzout = roundup (nzin * nrep);
+
+    fprintf (fp_out, hdr_fmt[2], np, np, nzout, nel);
 
     n = 4;
     while (n--) { fgets (buf, STR_MAX, fp_in); fputs (buf, fp_out); }
@@ -76,32 +86,47 @@ int main (int    argc,
     fgets (buf, STR_MAX, fp_in); fputs (buf, fp_out);
     for (nfields = 0, i = 0; i < 25; i++) if (isalpha(buf[i])) nfields++;
 
-    fgets (buf, STR_MAX, fp_in); fputs (buf, fp_out);
+    fgets (buf, STR_MAX, fp_in);
     if (!strstr(buf, "binary"))
       message (prog, "input file not binary format", ERROR);
     swab = (strstr (buf, "big") && strstr (fmt, "little")) || 
            (strstr (fmt, "big") && strstr (buf, "little"));
-
+    strcat (strcpy (buf, "binary "), fmt);
+    fprintf (fp_out, hdr_fmt[9], buf);
+    
     /* -- Set sizes, allocate storage. */
 
-    nplane = np * np * nel;
-    npts   = nz * nplane;
-    data   = dvector (0, npts - 1);
+    nplane  = np * np * nel;
+    ntot    = nplane + (nplane & 1);
+    nptin   = nzin  * ntot;
+    nptout  = nzout * ntot;
+    datain  = dvector (0, nptin  - 1);
+    dataout = dvector (0, nptout - 1);
     
     /* -- Read and write all data fields. */
 
     for (i = 0; i < nfields; i++) {
-      if (fread (data, sizeof (double), npts, fp_in) != npts)
-	message (prog, "an error occured while reading", ERROR);
-      if (swab) dbrev (npts, data, 1, data, 1);
-      for (j = 0; j < nrep; j++) {
-	if (fwrite (data, sizeof (double), npts, fp_out) != npts)
-	  message (prog, "an error occured while writing", ERROR);
+      dzero (nptin,  datain,  1);
+      dzero (nptout, dataout, 1);
+
+      for (j = 0; j < nzin; j++) {
+	if (fread (datain+j*ntot, sizeof (double), nplane, fp_in) != nplane)
+	  message (prog, "an error occured while reading", ERROR);
+	if (swab) dbrev (ntot, datain+j*ntot, 1, datain+j*ntot, 1);
       }
+
+      dDFTr (datain,  nzin,  ntot, FORWARD);
+      pack  (datain,  nzin,  dataout, nzout, nrep, ntot);
+      dDFTr (dataout, nzout, ntot, INVERSE);
+
+      for (j = 0; j < nzout; j++)
+	if (fwrite (dataout+j*ntot, sizeof (double), nplane, fp_out) != nplane)
+	  message (prog, "an error occured while writing", ERROR);
     }
-    
-    freeDvector (data, 0);
   } 
+
+  freeDvector (datain,  0);
+  freeDvector (dataout, 0);
   
   return EXIT_SUCCESS;
 }
@@ -142,4 +167,46 @@ static void getargs (int    argc ,
 	exit (EXIT_FAILURE);
       }
     }
+}
+
+
+static int roundup (const int nzdes)
+/* ------------------------------------------------------------------------- *
+ * Roundup number of z planes to suit Fourier transformation.
+ * ------------------------------------------------------------------------- */
+{
+  int n, nz = nzdes, ip, iq, ir, ipqr2;
+
+  if (nz != 1) {
+    do {
+      n = nz;
+      prf235 (&n, &ip, &iq, &ir, &ipqr2);
+      nz += (n) ? 0 : 2;
+    } while (n == 0);
+  }
+
+  return nz;
+}
+
+
+static void pack (const double* datain ,  
+		  const int     nzin   ,  
+		  double*       dataout, 
+		  const int     nzout  , 
+		  const int     nrep   ,
+		  const int     psize  )
+/* ------------------------------------------------------------------------- *
+ * Place planes of datain in the appropriate planes of dataout
+ * (Fourier space).
+ * ------------------------------------------------------------------------- */
+{
+  const int nmode = nzin  >> 1;
+  const int msize = psize << 1;
+  int       i;
+
+  dcopy (psize, datain, 1, dataout, 1);
+  if (nzin > 1) dcopy (psize, datain + psize, 1, dataout + psize, 1);
+
+  for (i = 1; i < nmode; i++)
+    dcopy (msize, datain + i * msize, 1, dataout + i * nrep * msize, 1);
 }
