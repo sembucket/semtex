@@ -86,19 +86,23 @@ class Node
 {
 friend ostream& operator << (ostream&, Node&);
 public:
-  Node (const int& i, const Point& p, const real& s) 
-    : id (i), loc (p), ideal (s) { }
+  Node (const int& i, const Point& p, const real& s, const int& b = 0) 
+    : id (i), loc (p), ideal (s), boundary (b) { }
 
   const int&   ID       () const { return id;    }
   const Point& pos      () const { return loc;   }
   const real&  prefSize () const { return ideal; }
 
-  void  setPos  (const Point& p) { loc.x = p.x; loc.y = p.y; }
+  void  xadd     (Node*);
+  void  setPos   (const Point& p) { if (!boundary){loc.x = p.x; loc.y = p.y;} }
+  Point centroid () const;
 
 private:
-  int   id;
-  Point loc;
-  real  ideal;
+  int         id;
+  Point       loc;
+  real        ideal;
+  int         boundary;
+  List<Node*> contact;
 };
 
 
@@ -115,16 +119,20 @@ public:
 
   const int& ID () const { return id; }
 
-  void  split  ();
+  void  split   ();
+  void  connect ();
+  void  smooth  ();
+  void  draw    () const;
 
   void  limits (Point&, Point&)               const;
   int   points (vector<real>&, vector<real>&) const;
   int   line   (vector<real>&, vector<real>&) const;
   
 private:
-  int         id;
-  static int  node_id_max;
-  static int  loop_id_max;
+  int                id;
+  static int         node_id_max;
+  static int         loop_id_max;
+  static List<Node*> node_list;
 
   vector<Node*> nodes;
   vector<Node*> splitline;
@@ -147,8 +155,9 @@ private:
 
 // -- Routines in graphics.cc:
 
-void initGraphics ();
-void stopGraphics ();
+void initGraphics  ();
+void stopGraphics  ();
+void eraseGraphics ();
 void drawBox  (const Loop*);
 void drawLoop (const Loop*);
 
