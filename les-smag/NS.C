@@ -228,14 +228,14 @@ static void nonLinear (Domain*       D ,
 //           N  = -0.5 ( u  d(u ) / dx  + d(u u ) / dx ),
 //            i           j    i      j      i j      j
 //
-// while for cylindrical coordinates
+// in cylindrical coordinates
 //
-//           Nx = -0.5 {ud(u)/dx + vd(u)/dy +  d(uu)/dx +
-//                 1/y [wd(u)/dz + d(uw)/dz + d(yvu)/dy      ]}
-//           Ny = -0.5 {ud(v)/dx + vd(v)/dy +  d(uv)/dx +
-//                 1/y [wd(v)/dz + d(vw)/dz + d(yvv)/dy - 2ww]}
-//           Nz = -0.5 {ud(w)/dx + vd(w)/dy +  d(uw)/dx +
-//                 1/y [wd(w)/dz + d(ww)/dz + d(yvw)/dy + 2wv]}.
+//           Nx = -0.5 {ud(u)/dx + vd(u)/dy +  d(uu)/dx + d(vu)/dy +
+//                 1/y [wd(u)/dz + d(uw)/dz + vu      ]}
+//           Ny = -0.5 {ud(v)/dx + vd(v)/dy +  d(uv)/dx + d(vv)/dy +
+//                 1/y [wd(v)/dz + d(vw)/dz + vv - 2ww]}
+//           Nz = -0.5 {ud(w)/dx + vd(w)/dy +  d(uw)/dx + d(vw)/dy +
+//                 1/y [wd(w)/dz + d(ww)/dz + 3wv     ]}
 //
 // Data are transformed to physical space for most of the operations, with
 // the Fourier transform extended using zero padding for dealiasing.  For
@@ -411,11 +411,16 @@ static void nonLinear (Domain*       D ,
 
       // -- Terms involving azimuthal derivatives and frame components.
 
+      if (i == 0)
+	Veclib::vvtvp (nTot32, u32[0], 1, u32[1], 1, n32[0], 1, n32[0], 1);
+      if (i == 1)
+	Veclib::vvtvp (nTot32, u32[1], 1, u32[1], 1, n32[1], 1, n32[1], 1);
+
       if (NDIM == 3) {
-	if      (i == 1)	// -- Centripetal.
-	  Veclib::svvttvp (nTot32, -2.0,u32[2],1,u32[2],1,n32[1],1,n32[1],1);
-	else if (i == 2)	// -- Coriolis.
-	  Veclib::svvttvp (nTot32,  2.0,u32[2],1,u32[1],1,n32[2],1,n32[2],1);
+	if (i == 1)
+	  Veclib::svvttvp (nTot32, -2.0, u32[2],1,u32[2],1,n32[1],1,n32[1], 1);
+	if (i == 2)
+	  Veclib::svvtt   (nTot32,  3.0, u32[2], 1, u32[1], 1,      n32[2], 1);
 
 	if (nZ > 2) {
 	  Veclib::copy       (nTot32, u32[i], 1, tmp, 1);
@@ -438,13 +443,7 @@ static void nonLinear (Domain*       D ,
 	}
       }
 
-      // -- Terms made with product of radius.
-      
-      Veclib::vmul       (nTot32, u32[1], 1, u32[i], 1, tmp,  1);
-      master -> mulR     (nZ32, tmp);
-      master -> gradient (nZ32, nP, tmp, 1);
-      Veclib::vadd       (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
-      master -> divR     (nZ32, n32[i]);
+      master -> divR (nZ32, n32[i]);
 
       // -- 2D non-conservative derivatives.
 
@@ -454,11 +453,13 @@ static void nonLinear (Domain*       D ,
 	Veclib::vvtvp      (nTot32, u32[j], 1, tmp, 1, n32[i], 1, n32[i], 1);
       }
 
-      // -- Remaining conservative derivative.
-      
-      Veclib::vmul       (nTot32, u32[0], 1, u32[i], 1, tmp, 1);
-      master -> gradient (nZ32, nP, tmp, 0);
-      Veclib::vadd       (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
+      // -- 2D conservative derivatives.
+     
+      for (j = 0; j < 2; j++) {
+	Veclib::vmul       (nTot32, u32[j], 1, u32[i], 1, tmp, 1);
+	master -> gradient (nZ32, nP, tmp, j);
+	Veclib::vadd       (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
+      }
 
       // -- Transform to Fourier space, smooth, add forcing.
 
@@ -467,7 +468,7 @@ static void nonLinear (Domain*       D ,
       ROOTONLY if (fabs (ff[i]) > EPS) N[i] -> addToPlane (0, -2.0*ff[i]);
       *N[i] *= -0.5;
     }
-  
+ 
   } else {			// -- Cartesian coordinates.
 
     for (i = 0; i < NDIM; i++) {
