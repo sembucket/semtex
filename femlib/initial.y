@@ -171,6 +171,7 @@ expr:     NUMBER
 			     }
         | expr '^' expr      { $$ = pow   ($1, $3); }
         | expr '~' expr      { $$ = atan2 ($1, $3); }
+        | expr '%' expr      { $$ = fmod  ($1, $3); }
         | '(' expr ')'       { $$ = $2; }
         | '-' expr %prec UNARYMINUS { $$ = -$2; }
         ;
@@ -324,7 +325,7 @@ void yy_help (void)
   fprintf 
     (stderr, 
      "Unary    : -\n"
-     "Binary   : -, +, *, /, ^ (exponentiation), ~ (atan2)\n"
+     "Binary   : -, +, *, /, ^ (exponentiation), ~ (atan2), % (fmod)\n"
      "Functions: sin,  cos,  tan,  abs, floor, ceil, int,  heav (Heaviside),\n"
      "           asin, acos, atan, log, log10, exp,  sqrt,\n"
      "           sinh, cosh, tanh, erf, erfc\n");
