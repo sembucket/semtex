@@ -160,7 +160,6 @@ void Statistics::dump ()
 
   if (!(periodic || final)) return;
 
-  integer       i;
   ofstream      output;
   const integer NT = avg.getSize();
   const integer ND = Geometry::nDim();
