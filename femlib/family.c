@@ -8,6 +8,9 @@
  * on storage allocated by new is undefined.  You can check if this is indeed
  * the cause of some problem by defining DEBUG during compilation, which
  * disables use of families.
+ *
+ * NB: if another pointer is pre-aliased to input pointer, remember to reset
+ * it to the pointer returned after adoption routines are called.
  *****************************************************************************/
 
 static char
@@ -18,9 +21,9 @@ RCSid[] = "$Id$";
 #include <alplib.h>
 
 typedef struct ivect {
-  int           size ;
-  int*          data ;
-  int           nrep ;
+  int           size ;		/* Length of stored vector.           */
+  int*          data ;		/* Vector.                            */
+  int           nrep ;		/* Number of unaliased replications.  */
   struct ivect* next ;
 } iVect;
 
@@ -65,9 +68,9 @@ void iadopt (const int size,
   iVect* S = 0;
   int*   member;
   
-  if (!vect || !*vect) return;
+  if (!active || !vect || !*vect) return;
 
-  if (active && (member = iAdopted (size, *vect)) && member != *vect) {
+  if ((member = iAdopted (size, *vect)) && member != *vect) {
     free (*vect);
     *vect = member;
 
@@ -119,6 +122,8 @@ void iabandon (int** vect)
   register iVect* o = 0;
   register int    found = 0;
 
+  if (!active) return;
+
   for (p = iHead; p; o = p, p = p -> next)
     if (found = p -> data == *vect) {
       if (--p -> nrep == 0) {
@@ -142,9 +147,9 @@ void dadopt (const int size,
   dVect*  S = 0;
   double* member;
 
-  if (!vect || !*vect) return;
+  if (!active || !vect || !*vect) return;
 
-  if (active && (member = dAdopted (size, *vect)) && member != *vect) {
+  if ((member = dAdopted (size, *vect)) && member != *vect) {
     free (*vect);
     *vect = member;
 
@@ -193,6 +198,8 @@ void dabandon (double** vect)
   register dVect* o = 0;
   register int    found = 0;
 
+  if (!active) return;
+
   for (p = dHead; p; o = p, p = p -> next)
     if (found = p -> data == *vect) {
       if (--p -> nrep == 0) {
@@ -216,9 +223,9 @@ void sadopt (const int size,
   sVect* S = 0;
   float* member;
 
-  if (!vect || !*vect) return;
+  if (!active || !vect || !*vect) return;
 
-  if (active && (member = sAdopted (size, *vect)) && member != *vect) {
+  if ((member = sAdopted (size, *vect)) && member != *vect) {
     free (*vect);
     *vect = member;
 
@@ -266,6 +273,8 @@ void sabandon (float** vect)
   register sVect* p;
   register sVect* o = 0;
   register int    found = 0;
+
+  if (!active) return;
 
   for (p = sHead; p; o = p, p = p -> next)
     if (found = p -> data == *vect) {
