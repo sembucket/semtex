@@ -1,8 +1,8 @@
-/*****************************************************************************
- * List.h:  template list operations.
- *
- * Reference: Barton & Nackman, "Scientific & Engineering C++".
- *****************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+// List.h:  template list operations.
+//
+// Reference: Barton & Nackman, "Scientific & Engineering C++".
+///////////////////////////////////////////////////////////////////////////////
 
 // $Id$
 
@@ -12,13 +12,8 @@
 template<class T> class ListIterator;
 
 
-
-
-
-template<class T>
-class List {
+template<class T> class List {
 friend class ListIterator<T>;
-
 private:
   class Node {
   public:
@@ -31,9 +26,8 @@ private:
   Node* tail;
   int   nel;
 
-  List(const List<T>&);                // Prohibit, since not implemented 
-  List<T>& operator=(const List<T>&);  // Prohibit, since not implemented 
-
+  List(const List<T>&);                // -- Prohibit, since not implemented. 
+  List<T>& operator=(const List<T>&);  // -- Prohibit, since not implemented. 
 public:
   List() : head(0), tail(0), nel(0) {}
 
@@ -46,14 +40,24 @@ public:
     nel = 0;
   }
 
-  void add(T x) {
+  void add (T x) {		// -- Unconditional insertion.
     if (head == 0) {
-      head = new Node(x);
+      head = new Node (x);
       tail = head;
     } else
-      tail = tail -> link = new Node(x);
+      tail = tail -> link = new Node (x);
     nel++;
   }
+
+  int xadd (T x) {		// -- Conditional insertion.
+    register int   found = 0;
+    register Node* ptr;
+
+    for (ptr = head; !found && ptr; ptr = ptr -> link) found = x == ptr->datum;
+    if   (found)  {          return 0; }
+    else          { add (x); return 1; }
+  }
+
 
   void remove (T x) {
     Node* prev = 0;
