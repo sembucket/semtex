@@ -45,9 +45,9 @@ FFLAGS     = $(DEFINES) -O2
 endif
 
 ifeq ($(ARCH),IRIX64)			# -- SGI IRIX 64-bit
-CXXFLAGS   = $(DEFINES) -mips4 -64 -g 
-CFLAGS     = $(DEFINES) -mips4 -64 -g 
-FFLAGS     = $(DEFINES) -mips4 -64 -g
+CXXFLAGS   = $(DEFINES) -mips4 -n32 -g 
+CFLAGS     = $(DEFINES) -mips4 -n32 -g 
+FFLAGS     = $(DEFINES) -mips4 -n32 -g
 LDFLAGS    = $(CXXFLAGS)
 F77LIBS    = -lcomplib.sgimath -lftn
 endif

@@ -23,7 +23,7 @@ int main ()
   const int      np   = 20000;
   const int      ntot = nz * np;
   int            i, j, nfax, ifax[64];
-  int            ip, iq, ir;
+  int            ip, iq, ir, ipqr2;
   double         trig[512];
   double         *x, *y, *w;
   vector<double> work  (3*nz*np);
@@ -80,7 +80,8 @@ int main ()
   */
   cout << "FFTPACK:   " << ftime - stime << " seconds" << endl;
 
-  Femlib::setpf (trig, nz, ip, iq, ir);
+  Femlib::primes235 (i = nz, ip, iq, ir, ipqr2);
+  Femlib::setpf     (trig, nz, ip, iq, ir);
   stime = dclock();
   Femlib::mpfft (y, w, np, nz, ip, iq, ir, trig, +1);
   ftime = dclock();
