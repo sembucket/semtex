@@ -53,7 +53,7 @@ CLDFLAGS = $(LIBDIR)  $(OPT)
 RANLIB   = 
 F77LIBS  = -xlic_lib=sunperf
 ifdef MPI
-  MPIHOME   = /opt/lam-6.3.3b20-tm
+  MPIHOME   = /opt/lam-6.3.3b20
   CPPFLAGS += -I$(MPIHOME)/include
   LIBDIR   += -L$(MPIHOME)/lib
   LDFLAGS  += -lfem_mp -lalp $(F77LIBS) -lmpi -llam -lsocket
