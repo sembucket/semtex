@@ -418,9 +418,9 @@ static void nonLinear (Domain*       D ,
 
       if (DIM == 3) {
 	if      (i == 1)	// -- Centripetal.
-	  Veclib::svvtt (nTot32, -2.0, u32[2], 1, u32[2], 1, n32[1], 1);
+	  Veclib::svvttvp (nTot32, -2.0,u32[2],1,u32[2],1,n32[1],1,n32[1],1);
 	else if (i == 2)	// -- Coriolis.
-	  Veclib::svvtt (nTot32,  2.0, u32[2], 1, u32[1], 1, n32[2], 1);
+	  Veclib::svvttvp (nTot32,  2.0,u32[2],1,u32[1],1,n32[2],1,n32[2],1);
 
 	if (nZ > 2) {
 	  Veclib::copy       (nTot32, u32[i], 1, tmp, 1);
