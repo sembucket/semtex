@@ -39,25 +39,33 @@ LIBDIR   = -L$(SEM)/lib/$(ARCH)
 # ----------- Compiler options for specific machines -------------------------
 
 ifeq ($(ARCH),Linux-alpha)              # -- Linux alpha.
+DEFINES += -D_Linux_alpha
 CXX      = g++
 LD       = g++
 LIBDIR  += /usr/local/lib
-F77LIBS  = -lcxml -lfor -lots -lg2c
+LDFLAGS  = $(LIBDIR)
+ifdef STATIC
+  F77LIBS  = -lcxml -lfor -lFutil -lUfor -lots -lg2c
+  LDFLAGS + -static
+else
+  F77LIBS  = -lcxml -lfor -lots -lg2c
+endif
+ifdef NOCXML     # -- For testing, avoid Compaq math libs.
+  F77LIBS =  -llapack -lgemm -lblas -lots -lfor -lg2c  
+endif
 ifdef DEBUG
   OPT    = -gstabs+
 else
   OPT    = -O3
 endif
-DEFINES += -D_Linux_alpha
 CXXFLAGS = $(DEFINES) $(OPT)
 ifdef MPI
-  LIBDIR += -L$(MPIHOME)/lib
-  LDFLAGS = $(LIBDIR) \
-            -lfem_mp -lalp $(F77LIBS) -lcpml \
-            -lmpi -ltrillium -ltstdio -lt -largs
+  LIBDIR  += -L$(MPIHOME)/lib
+  LDFLAGS += -lfem_mp -lalp $(F77LIBS) -lcpml \
+             -lmpi -ltrillium -ltstdio -lt -largs
 #           -lmpich
 else
-  LDFLAGS = $(LIBDIR) -lfem -lalp $(F77LIBS) -lcpml
+  LDFLAGS  += -lfem -lalp $(F77LIBS) -lcpml
 endif
 endif
 
@@ -65,7 +73,7 @@ ifeq ($(ARCH),Linux-i586)               # -- Linux Intel.
 CXX      = g++
 LD       = g++
 F77LIBS  = -llapack -lblas -lg2c
-LIBDIR  += /usr/local/lib
+LIBDIR  += -L/usr/local/lib
 ifdef DEBUG
   OPT    = -gstabs+
 else

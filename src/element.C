@@ -506,7 +506,7 @@ void Element::HelmholtzSC (const real lambda2,
       Veclib::gathr (_npnp, rmat, _emap, rwrk);
 
       if ( (eq = _pmap[ij]) < _next ) {
-	Veclib::copy (_next, rwrk,        1, hbb + eq * _next, 1);
+	Veclib::copy (_next, rwrk,         1, hbb + eq * _next, 1);
 	Veclib::copy (_nint, rwrk + _next, 1, hbi + eq * _nint, 1);
       } else
 	Veclib::copy (_nint, rwrk + _next, 1, hii + (eq - _next) * _nint, 1);
@@ -519,16 +519,15 @@ void Element::HelmholtzSC (const real lambda2,
     Lapack::getrf (_nint, _nint, hii, _nint, iwrk, info);
     if (info) message (routine, "matrix hii has singular factor", ERROR);
 
-#if defined(DEBUG)
+#if defined (DEBUG)
   if ((int) Femlib::value("VERBOSE") > 3) this -> printMatSC (hbb, hbi, hii);
 #endif
 
     Lapack::getri (_nint, hii, _nint, iwrk, rwrk, _nint*_next, info);
-    if (info) message (routine, "matrix hii is singular",         ERROR);
+    if (info) message (routine, "matrix hii is singular", ERROR);
 
     Blas::mxm    (hbi, _next, hii, _nint, rwrk, _nint);
-    Blas::gemm   ("T","N",_next,_next,_nint,-1.0,hbi,
-		  _nint,rwrk,_nint, 1.0,hbb,_next);
+    Blas::mxmts  (rwrk, _next, hbi, _nint, hbb, _next);
     Veclib::copy (_nint*_next, rwrk, 1, hbi, 1);
   }
 }
