@@ -33,8 +33,8 @@ FFLAGS     = -O2
 endif
 
 ifeq ($(ARCH),IRIX64)			# -- SGI IRIX 64-bit
-CFLAGS     = -mips4 -64 -Ofast=IP30 -r10000
-FFLAGS     = -mips4 -64 -Ofast=IP30 -r10000
+CFLAGS     = -mips4 -64 -r10000 -Ofast=IP30 -OPT:roundoff=3
+FFLAGS     = -mips4 -64 -r10000 -Ofast=IP30 -OPT:roundoff=3
 endif
 
 
@@ -68,8 +68,9 @@ FFLAGS     = -Wv,-m3,-te
 endif
 
 ifeq ($(ARCH),SUPER-UX)                 # -- NEC SX-4
-CFLAGS     = -pvctl,fullmsg -Onooverlap -hfloat0
-FFLAGS     =  $(DEFINES) -Wf'-pvctl,fullmsg -ptr byte' -float0 -ew
+DEFINES   += -D_BUILTIN_
+CFLAGS     = $(DEFINES) -pvctl,fullmsg -Onooverlap -hfloat0 -hnostkchk
+FFLAGS     = $(DEFINES) -Wf'-pvctl,fullmsg -ptr byte' -float0 -ew
 ifdef MPI
   LIB      = libalp_mp.a
   FFLAGS  += -P multi
@@ -136,7 +137,7 @@ install:
 		cp $(LIB) $(SEMHOME)/lib/$(ARCH)        ;       fi
 
 	if test ! -d   $(SEMHOME)/include       ;               then    \
-		mkdir $(SEMHOME)/include       ;               fi
+		mkdir $(SEMHOME)/include        ;               fi
 
 	rm -f $(SEMHOME)/include/alplib.h;      \
 	rm -f $(SEMHOME)/include/Veclib.h;      \
