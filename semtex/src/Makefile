@@ -44,14 +44,14 @@ LD       = g++
 CC       = gcc
 FC       = g77
 ifdef DEBUG
-  OPT    = -gstabs+ -Wno-deprecated
+  OPT    = -gstabs+
 else
-  OPT    = -O3 -w -Wno-deprecated
+  OPT    = -O3 -w
 endif
 CFLAGS   = $(DEFINES) $(OPT)
 FFLAGS   = $(DEFINES) $(OPT)
-CXXFLAGS = $(DEFINES) $(OPT)
-F77LIBS  = -llapack -lgoto_opt64-r0.96 -lg2c
+CXXFLAGS = $(DEFINES) $(OPT) -Wno-deprecated
+F77LIBS  = -llapack -lfastblas -lg2c
 LIBDIR  += -L/usr/local/lib
 LDFLAGS  = $(OPT) $(LIBDIR)
 RANLIB   = ranlib
@@ -215,8 +215,8 @@ CFLAGS   = $(DEFINES) -fast -tune host
 FFLAGS   = $(DEFINES) -fast -tune host
 # Default cxx mode has -ansi
 #CXXFLAGS = $(DEFINES) -fast -tune host -strict-ansi -D__USE_STD_IOSTREAM
-CXXFLAGS = $(DEFINES) -fast -tune host -D__USE_STD_IOSTREAM
-#CXXFLAGS = $(DEFINES) -fast -tune host
+#CXXFLAGS = $(DEFINES) -fast -tune host -D__USE_STD_IOSTREAM
+CXXFLAGS = $(DEFINES) -fast -tune host
 RANLIB   =
 # -- The EV5 versions of the BLAS, LAPACK are quicker than the EV6's!
 FORTLIBS = /opt/EV5/usr/opt/XMDLIB5500/libcxml_ev5.a -lfor
