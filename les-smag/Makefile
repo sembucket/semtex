@@ -1,6 +1,6 @@
 ##############################################################################
-# Makefile for ns, spectral element solver for unsteady Navier--Stokes
-# problems.
+# Makefile for les, spectral element solver for unsteady
+# Navier--Stokes problems incorporating LES in Cartesian geometries.
 #
 # $Id$
 ##############################################################################
@@ -23,8 +23,8 @@ CPPFLAGS = -I. -I$(SEM)/include
 ifeq ($(ARCH),IRIX)		# -- SGI 32-bit systems.
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = $(DEFINES) -fullwarn -smart -g
-F77LIBS	 = -lcomplib.sgimath -lisam
+CXXFLAGS = $(DEFINES) -fullwarn -g
+F77LIBS	 = -lcomplib.sgimath -lftn
 LDFLAGS  = -lfpe -L$(SEM)/lib/$(ARCH) -lfem -lalp \
 	   $(F77LIBS) -lmalloc -lm
 endif
@@ -32,7 +32,7 @@ endif
 ifeq ($(ARCH),IRIX64)		# -- SGI 64-bit systems.
 CXX	 = CC
 LD	 = CC
-CXXFLAGS =  $(DEFINES) -g
+CXXFLAGS =  $(DEFINES) -O2
 F77LIBS	 = -lcomplib.sgimath -lftn
 LDFLAGS  = -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
 endif
@@ -40,8 +40,8 @@ endif
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha.
 CXX	 = cxx
 LD	 = cxx
-CXXFLAGS =  $(DEFINES) -migrate -tune host -g
-F77LIBS  = -ldxml
+CXXFLAGS =  $(DEFINES) -migrate -tune host -O2
+F77LIBS  = /usr/lib/libdxml.a -lfor
 LDFLAGS  = $(CXXFLAGS) -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
 endif
 
@@ -54,26 +54,55 @@ LDFLAGS  = -gstabs+ -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
 	   -lfem -lalp $(F77LIBS)
 endif
 
+ifeq ($(ARCH),UNIX_System_V)    # -- Fujitsu VPP300.
+LIBDIR   = -L$(SEM)/lib/$(ARCH) 
+LIBDIR  += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
+LIBS     = -lfem -lalp
+LIBS    += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
+CC       = vcc
+CXX      = /usr/uxp/C++/bin/CC
+LD       = /usr/uxp/C++/bin/CC
+#OPTIM    = -Wv,-m3,-Ps 
+OPTIM    = -Wv,-m3,-Om,-te
+CXXFLAGS = $(DEFINES)  $(OPTIM)
+LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS)
+endif
+
+ifeq ($(ARCH),SUPER-UX)         # -- NEC SX-4.
+LIBDIR   = -L$(SEM)/lib/$(ARCH) 
+LIBDIR  += 
+LIBS     = -lfem -lalp -llapack -lblas	\
+           -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm
+CC       = cc
+FC       = f77
+CXX      = CC
+LD       = CC
+OPTIM    = -g -hacct
+CXXFLAGS = $(DEFINES)  $(OPTIM)
+LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS) -hacct
+endif
+
 # ----------------------------------------------------------------------------
 #
 SEMFILES  = auxfield BCmgr boundary condition domain element	\
-	    feml field integration matrix mesh misc pressure
+	    feml field geometry history integration matrix 	\
+	    mesh misc particle pressure
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
 SEMHDR    = Sem.h
 
 # ----------------------------------------------------------------------------
 # Default build for Navier-Stokes solver.
-NS_OBJ = drive.o NS.o analysis.o
-NS_HDR = NS.h
+LESOBJ = drive.o NS.o eddyvis.o analysis.o
+LESHDR = les.h
 
-ns:	$(SEMOBJ) $(NS_OBJ) 
+les:	$(SEMOBJ) $(LESOBJ) 
 	cd ../src; $(MAKE)
-	$(LD) -o $@ $(NS_OBJ) $(SEMOBJ) $(LDFLAGS)
+	$(LD) -o $@ $(LESOBJ) $(SEMOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 #
 $(SEMOBJ): $(SEMHDR)
-$(NS_OBJ): $(NS_HDR)
+$(LESOBJ): $(LESHDR)
 
 # -----------------------------------------------------------------------------
 #

@@ -5,8 +5,8 @@
 # $Id$
 ##############################################################################
 
-FEM      = ..
-VPATH    = $(FEM)/src
+SEM      = ..
+VPATH    = $(SEM)/src
 
 ARCH     = $(shell uname -s)
 
@@ -16,48 +16,81 @@ else
   DEFINES  =
 endif
 
-CPPFLAGS = -I. -I$(FEM)/include
+CPPFLAGS = -I. -I$(SEM)/include
 
 # ----------- Compiler options for specific machines -------------------------
 
 ifeq ($(ARCH),IRIX)		# -- SGI MIPS R4xxx IRIX5x
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = $(DEFINES) -fullwarn -g
-F77LIBS	 = -lcomplib.sgimath -lisam
-LDFLAGS  = -lfpe -L$(FEM)/lib/$(ARCH) -lfem -lalp \
+CC	 = cc
+CXXFLAGS = $(DEFINES) -fullwarn -O2
+F77LIBS	 = -lcomplib.sgimath -lftn
+LDFLAGS  = -lfpe -L$(SEM)/lib/$(ARCH) -lfem -lalp \
 	   $(F77LIBS) -lmalloc -lm
 endif
 
 ifeq ($(ARCH),IRIX64)		# -- SGI MIPS R8xxx IRIX6x
 CXX	 = CC
 LD	 = CC
-CXXFLAGS =  $(DEFINES) -O3
-F77LIBS	 = -lcomplib.sgimath -lisam
-LDFLAGS  = -L$(FEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lmalloc -lm
+CC       = cc
+CXXFLAGS =  $(DEFINES) -O2
+F77LIBS	 = -lcomplib.sgimath -lftn
+LDFLAGS  = -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS)  -lm
 endif
 
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 AlphaServer multiprocessor
 CXX	 = cxx
 LD	 = cxx
+CC       = cc
 CXXFLAGS =  $(DEFINES) -migrate -tune host -O2
 F77LIBS  = -ldxml
-LDFLAGS  = $(CXXFLAGS) -L$(FEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+LDFLAGS  = $(CXXFLAGS) -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
 endif
 
 ifeq ($(ARCH),Linux)		# -- GNU/Linux system.
 CXX	 = g++
 LD	 = g++
+CC       = gcc
 CXXFLAGS = $(DEFINES) -O3
 F77LIBS  = -llapack -lblas -lf2c
 LDFLAGS  = -gstabs+ -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
 	   -lfem -lalp $(F77LIBS)
 endif
 
+ifeq ($(ARCH),UNIX_System_V)    # -- Fujitsu VPP300.
+LIBDIR   = -L$(SEM)/lib/$(ARCH) 
+LIBDIR  += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
+LIBS     = -lfem -lalp
+LIBS    += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
+CC       = vcc
+CXX      = /usr/uxp/C++/bin/CC
+LD       = /usr/uxp/C++/bin/CC
+#OPTIM    = -Wv,-m3,-Ps 
+OPTIM    = -Wv,-m3,-Om,-te
+CXXFLAGS = $(DEFINES)  $(OPTIM)
+LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS)
+endif
+
+ifeq ($(ARCH),SUPER-UX)         # -- NEC SX-4.
+LIBDIR   = -L$(SEM)/lib/$(ARCH) 
+LIBDIR  += 
+LIBS     = -lfem -lalp -llapack -lblas	\
+           -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm
+CC       = cc
+FC       = f77
+CXX      = CC
+LD       = CC
+OPTIM    = -g -hacct
+CXXFLAGS = $(DEFINES)  $(OPTIM)
+LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS) -hacct
+endif
+
 # ----------------------------------------------------------------------------
 #
 SEMFILES  = auxfield BCmgr boundary condition domain element	\
-	    feml field integration matrix mesh misc pressure
+	    feml field geometry history integration matrix	\
+	    mesh misc particle pressure
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
 SEMHDR    = Sem.h
 
@@ -75,6 +108,18 @@ aero:	$(SEMOBJ) $(NS_OBJ)
 #
 $(SEMOBJ): $(SEMHDR)
 $(NS_OBJ): $(NS_HDR)
+
+# ----------------------------------------------------------------------------
+# Refreq is a utility to compute motion phase angles at a given time.
+
+refreq: refreq.C
+	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Dyres is a utility to add frame velocity to velocities in field dumps.
+
+dyres: dyres.c
+	$(CC) -o $@ $@.c
 
 # -----------------------------------------------------------------------------
 #
