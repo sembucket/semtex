@@ -38,11 +38,11 @@ RCSid[] = "$Id$";
 static char    prog[]    = "compare";
 const  integer EXACT_MAX = 32;
 
-static void getargs (integer, char**, integer&, char*&, ifstream&);
+static void getargs (int, char**, integer&, char*&, ifstream&);
 
 
-integer main (integer argc,
-	      char**  argv)
+int main (int    argc,
+	  char** argv)
 // ---------------------------------------------------------------------------
 // Everything is in here, no file-scope subroutines.
 // ---------------------------------------------------------------------------
@@ -283,7 +283,6 @@ integer main (integer argc,
       if (tran) exact -> transform (+1);
       cout << *exact;
     }
-
   }
   
   cout.flush();
@@ -292,7 +291,7 @@ integer main (integer argc,
 }
 
 
-static void getargs (integer   argc,
+static void getargs (int       argc,
 		     char**    argv,
 		     integer&  tran,
 		     char*&    sess,
