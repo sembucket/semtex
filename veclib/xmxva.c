@@ -21,7 +21,7 @@
  *****************************************************************************/
 
 #include <stdio.h>
-#include <femdef.h>
+#include <cfemdef>
 #include <cveclib>
 
 #if defined(__uxp__)

@@ -10,7 +10,7 @@
  *****************************************************************************/
 
 #include <stdio.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 #include <cfemdef>
 #include <cveclib>

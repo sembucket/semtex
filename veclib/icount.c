@@ -4,7 +4,7 @@
  * $Id$
  *****************************************************************************/
 
-#include <femdef.h>
+#include <cfemdef>
 
 
 integer icount (integer n, const integer* x, integer incx)

@@ -6,7 +6,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 #if defined(MPI)
 #include <mpi.h>

@@ -35,6 +35,26 @@ endif
 # Compiler options for specific machines.
 #
 
+ifeq ($(ARCH),Darwin)               # -- Mac OSX.
+CXX      = g++
+LD       = g++
+CC       = gcc
+FC       = g77
+RANLIB   = ranlib
+ifdef DEBUG
+  OPT    = -gstabs+
+else
+  OPT    = -O3
+endif
+CFLAGS   = $(DEFINES) $(OPT)
+FFLAGS   = $(DEFINES) $(OPT)
+CXXFLAGS = $(DEFINES) $(OPT)
+LIBDIR   += -L/sw/lib
+LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
+F77LIBS  = -framework Accelerate -lg2c
+CLDFLAGS = $(LDFLAGS)
+endif
+
 ifeq ($(ARCH),SunOS)              	# -- Sun.
 CXX    = CC
 LD     = CC
@@ -240,9 +260,9 @@ endif
 # Installation of header files.
 #
 default:
-	rm -f   ../include/sem_h			\
-		../include/feml_h			\
-		../include/mesh_h			\
+	rm -f   ../include/sem_h		\
+		../include/feml_h		\
+		../include/mesh_h		\
 		../include/geometry_h 
 	cp sem_h feml_h mesh_h geometry_h ../include
 

@@ -96,11 +96,11 @@ static char RCS[] = "$Id$";
 
 using namespace std;
 
+#include <cnr77>
+
 #include <utility_h>
 #include <femlib_h>
 #include <veclib_h>
-#include <nr77.h>
-
 #include <mesh_h>
 
 
