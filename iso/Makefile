@@ -40,18 +40,23 @@ endif
 ifeq ($(ARCH),IRIX64)		# -- SGI MIPS R8xxx IRIX6x
 CC       = cc
 LD       = cc
-CFLAGS   = -O3 $(DEFINES)
+CFLAGS   = -mips4 -O3 $(DEFINES)
 LDFLAGS  = $(CFLAGS) -lmalloc -lm
 endif
 
-ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha
+ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha, Kuck & Associates kcc.
 CC       = cc
 LD	 = cc
-CFLAGS   = -O4 -migrate -tune host $(DEFINES)
-LDFLAGS  = $(CFLAGS) -lm
+CFLAGS   = -O4 -migrate -tune ev5 $(DEFINES)
+LDFLAGS  = -O4 -migrate -tune ev5 $(CFLAGS) -lm
 endif
 
 HEADER    = iso.h
+
+# ----------------------------------------------------------------------------
+#
+
+all: $(PROG) IC1 IC2 IC3
 
 # ----------------------------------------------------------------------------
 # Make iso application.
@@ -67,7 +72,7 @@ endif
 $(PROG): $(ISOOBJ) $(HEADER)
 	$(LD) $(ISOOBJ) -o $(PROG) $(LDFLAGS)
 
-ifeq ($(ARCH),IRIX64) # special compile to avoid bug!
+ifeq ($(ARCH),IRIX) # special compile to avoid bug!
 nonlinear.o: nonlinear.c
 	cc -O1 -c nonlinear.c
 endif
@@ -100,7 +105,7 @@ IC3: $(IC3OBJ) $(IC3CHK) $(HEADER)
 
 # ----------------------------------------------------------------------------
 # Test the FFT routines.
-TESTOBJ = allocate.o io.o energy.o misc.o FFT.o random.c DFT_chk.o
+TESTOBJ = allocate.o io.o energy.o misc.o FFT.o random.c DFT_chk.o taylor.o
 
 DFT: $(TESTOBJ) $(HEADER)
 	$(CC) -o dft_chk $(TESTOBJ) $(LDFLAGS)
@@ -118,6 +123,13 @@ TECOBJ = allocate.o io.o energy.o derivative.o misc.o FFT.o iso2tec.o
 
 iso2tec: $(TECOBJ) $(HEADER)
 	$(LD) $(CFLAGS) -o iso2tec $(TECOBJ) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Make a source distrbution.
+
+dist:
+	tar cvf iso.tar RCS *.c *.h Makefile
+	gzip iso.tar
 
 # ----------------------------------------------------------------------------
 # Clean up.
