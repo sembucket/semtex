@@ -27,51 +27,37 @@ private:
 
 public:
   Stack () : top (0), stack_depth (0) {}
- ~Stack ();
+  ~Stack() {
+    while (stack_depth--) {
+      StackNode<T>* p = top -> next;
+      delete top;
+      top = p;
+    }
+  }
 
-  void  push    (T x);
-  T     pop     ();
-  int   depth   () const { return stack_depth; }
-
+  void push(T x) {
+    if (stack_depth) {
+      StackNode<T>* p = new StackNode<T> (x);
+      p -> next = top;
+      top       = p;
+    } else {
+      top = new StackNode<T> (x);
+    }
+    stack_depth++;
+  }
+  
+  T pop() {
+    if (stack_depth) {
+      StackNode<T>* p = top;
+      T     value = top -> datum;
+      top         = top -> next;
+      delete p;
+      stack_depth--;
+      return value;
+    } else {
+      return 0;
+    }
+  }
 };
-
-
-template<class T>
-inline void Stack<T>::push(T x) {
-  if (stack_depth) {
-    StackNode<T>* p = new StackNode<T> (x);
-    p -> next = top;
-    top       = p;
-  } else {
-    top = new StackNode<T> (x);
-  }
-  stack_depth++;
-}
-
-
-template<class T>
-inline T Stack<T>::pop() {
-  if (stack_depth) {
-    StackNode<T>* p = top;
-    T     value = top -> datum;
-    top         = top -> next;
-    delete p;
-    stack_depth--;
-    return value;
-  } else {
-    return 0;
-  }
-
-}
-
-
-template<class T>
-inline Stack<T>::~Stack() {
-  while (stack_depth--) {
-    StackNode<T>* p = top -> next;
-    delete top;
-    top = p;
-  }
-}
 
 #endif
