@@ -16,6 +16,7 @@
  * pnleg   : Evaluate Legendre polynomial.
  * pndleg  : Evaluate derivative of Legendre polynomial.
  * pnd2leg : Evaluate second derivative of Legendre polynomial.
+ * legtr2d : Compute 2D Legendre transform based on GLL grid.
  * dgll    : Derivative operator for Gauss-Lobatto-Legendre interpolant.
  * uniknot : Points uniformly distributed on [-1, 1].
  *
@@ -504,7 +505,9 @@ double pnleg (const double  z,
 {
   register integer k;
   register double  dk, p1, p2, p3;
-  
+ 
+  if (n == 0) return 1.0;
+
   p1 = 1.0;
   p3 = p2 = z;
 
@@ -529,6 +532,8 @@ double pndleg (const double  z,
   register integer k;
   register double  dk, p1, p2, p3, p1d, p2d, p3d;
 
+  if (n == 0) return 0.0;
+
   p2  = z;
   p1d = 0.0;
   p1  = p2d = p3d = 1.0;
@@ -552,13 +557,80 @@ double pnd2leg (const double  z,
 /* ------------------------------------------------------------------------- *
  * Compute the value of the second derivative of the nth order Legendre
  * polynomial at z, based on the definition of the singular Sturm-Liouville
- * problem that generates them (Canuto eq (2.3.1):
+ * problem that generates them (Canuto et al. eq 2.3.1):
  *
  *               (1 - z*z)L(z)'' - 2 z L' + n (n+1) L = 0.
  * ------------------------------------------------------------------------- */
 {
   return (2.0 * z * pndleg (z, n) - n * (n+1) * pnleg (z, n) / (1.0 - SQR(z)));
 }
+
+
+#define U(i, j) (u[i*n + j])
+#define A(i, j) (a[i*n + j])
+
+void legtr2d (const integer n,
+	      const double* u,
+	      double*       a)
+/* ------------------------------------------------------------------------- *
+ * Compute 2D discrete Legendre transform of values in array u[n * n],
+ * return in array a[n * n].  The spatial locations of u lie on the GLL grid.
+ *
+ * See Canuto et al. eqs 2.2.21--3, 2.3.13.
+ * ------------------------------------------------------------------------- */
+{
+  const integer N = n - 1;
+  register int  i, j, p, q;
+  double        *z, *w;
+
+  dQuadOps (LL, n, n, &z, 0, &w, 0, 0, 0, 0); 
+
+  for (i = 0; i < n; i++) {
+    const double ci = (i < N) ? 0.5 * (i + i + 1) : 0.5 * N;
+    for (j = 0; j < n; j++) {
+      const double cj = (j < N) ? 0.5 * (j + j + 1) : 0.5 * N;
+      A(i, j) = 0.0;
+      for (p = 0; p < n; p++) {
+	 const double P = pnleg (z[p], i);
+	 for (q = 0; q < n; q++) 
+	   A(i, j) += w[p] * w[q] * U(p, q) * P * pnleg (z[q], j);
+      }
+      A(i, j) *= ci * cj;
+    }
+  }
+}
+
+
+void legtr2i (const integer n,
+	      const double* u,
+	      double*       a)
+/* ------------------------------------------------------------------------- *
+ * Compute 2D inverse discrete Legendre transform of values in array u[n * n],
+ * return in array a[n * n].  The spatial locations of u lie on the GLL grid.
+ *
+ * See Canuto et al. eqs 2.2.21--3, 2.3.13.
+ * ------------------------------------------------------------------------- */
+{
+  const integer N = n - 1;
+  register int  i, j, p, q;
+  double        *z;
+
+  dQuadOps (LL, n, n, &z, 0, 0, 0, 0, 0, 0);
+
+  for (i = 0; i < n; i++) {
+    for (j = 0; j < n; j++) {
+      A(i, j) = 0.0;
+      for (p = 0; p < n; p++) {
+	 const double P = pnleg (z[i], p);
+	 for (q = 0; q < n; q++) 
+	   A(i, j) += U(p, q) * P * pnleg (z[j], q);
+      }
+    }
+  }
+}
+
+#undef U
+#undef A
 
 
 void dgll (const integer  nz,
