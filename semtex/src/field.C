@@ -1112,13 +1112,14 @@ void Field::coupleBCs (Field*        v  ,
 // do nothing for the zeroth Fourier mode.
 // ---------------------------------------------------------------------------
 {
-  if (Geometry::nDim() < 3) return;
+  const integer nZ = Geometry::nZ();
+
+  if (Geometry::nDim() < 3 || nZ < 4) return;
 
   const char       routine[] = "Field::couple";
   register integer Re, Im, k;
-  const integer    nZ    = Geometry::nZ(),
-                   nL    = v -> n_line,
-                   nMode = nZ >> 1;
+  const integer    nL    = v -> n_line;
+  const integer    nMode = nZ >> 1;
   vector<real>     work (nL);
   real             *Vr, *Vi, *Wr, *Wi, *tp = work();
   
