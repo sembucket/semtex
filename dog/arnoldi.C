@@ -210,10 +210,11 @@ int main (int    argc,
 
     for (i = 1; i <= kdim; i++) {
 
+      domain -> step = 0;
       for (j = 0; j < DIM; j++)
 	domain -> u[j] -> setPlane (0, j * Geometry::planeSize() + Kseq[i-1]);
       NavierStokes (domain, adjunct);
-      Total_step = domain->step;
+      Total_step += domain->step;
       for (j = 0; j < DIM; j++)
 	domain -> u[j] -> getPlane (0, j * Geometry::planeSize() + Kseq[i]);
  
@@ -271,10 +272,11 @@ int main (int    argc,
 	Veclib::copy (ntot, Kseq[i], 1, Kseq[i - 1], 1);
       }
       
+      domain -> step = 0;
       for (j = 0; j < DIM; j++)
 	domain -> u[j] -> setPlane (0, j*Geometry::planeSize() + Kseq[kdim-1]);
       NavierStokes (domain, adjunct);
-      Total_step = domain->step;
+      Total_step += domain->step;
       for (j = 0; j < DIM; j++)
 	domain -> u[j] -> getPlane (0, j*Geometry::planeSize() + Kseq[kdim]);
     }

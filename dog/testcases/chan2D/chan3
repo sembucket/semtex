@@ -34,7 +34,6 @@
 	IO_HIS   = 20
 	IO_FLD   = 1000
 	IO_CFL   = 20
-	DUMP     = 1
 
 </TOKENS>
 

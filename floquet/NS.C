@@ -52,13 +52,13 @@ void NavierStokes (Domain*       D,
   static AuxField*** Uf;
   static Field*      Pressure;
 
-  if (D -> step == 0) {			// -- Initialise static data.
+  if (!MS) {			// -- Initialise static data.
     
     // -- Create global matrix systems
 
     MS = preSolve (D);
     
-    // -- Create, initialise multi-level storage for velocities and forcing.
+    // -- Create multi-level storage for velocities and forcing.
 
     const integer ntot = Geometry::nTotProc();
     real* alloc        = new real [(size_t) 2 * NVEC * NORD * ntot];    
@@ -69,10 +69,9 @@ void NavierStokes (Domain*       D,
     for (k = 0, i = 0; i < NORD; i++) {
       Us[i] = new AuxField* [(size_t) NVEC];
       Uf[i] = new AuxField* [(size_t) NVEC];
-
       for (j = 0; j < NVEC; j++) {
-	*(Us[i][j] = new AuxField (alloc + k++ * ntot, 1, D -> elmt)) = 0.0;
-	*(Uf[i][j] = new AuxField (alloc + k++ * ntot, 1, D -> elmt)) = 0.0;
+	Us[i][j] = new AuxField (alloc + k++ * ntot, 1, D -> elmt);
+	Uf[i][j] = new AuxField (alloc + k++ * ntot, 1, D -> elmt);
       }
     }
 
@@ -84,10 +83,19 @@ void NavierStokes (Domain*       D,
 
     if (C3D) Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
   }
+    
+  // -- Because we have to restart from scratch on each call, zero these:
+
+  for (i = 0; i < NORD; i++)
+    for (j = 0; j < NVEC; j++) {
+      *Us[i][j] = 0.0;
+      *Uf[i][j] = 0.0;
+    }
 
   // -- Timestepping loop.
 
-  do {
+  while (D -> step < nStep) {
+
     D -> step += 1; 
     D -> time += dt;
     Femlib::value ("t", D -> time);
@@ -132,7 +140,7 @@ void NavierStokes (Domain*       D,
 
     A -> analyse (Us[0]);
 
-  } while (D -> step % nStep);
+  }
 }
 
 
