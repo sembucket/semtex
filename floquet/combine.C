@@ -128,12 +128,12 @@ int main (int    argc,
 
   allocate (pHead, nz, u);
   readdata (bHead, bFile, pHead, pFile, u, wght);
+  bFile.close(); pFile.close();
 
   if (nz > 1) {
     packdata  (pHead, mode, nz, u);
     transform (pHead, nz, u, INVERSE);
   }
-
   writedata (pHead, cout, nz, beta, u);
   
   Femlib::finalize();
@@ -320,7 +320,8 @@ static int roundup (int&            mode ,
 {
   int n, ip, iq, ir, ipqr2;
 
-  if (bhead.nz == 1 && phead.nz == 1) {
+  if (bhead.nz == 1       &&  phead.nz == 1        &&
+      strlen(phead.fields) == strlen(bhead.fields)) {
     mode = 0;
     nz   = 1;
   } else {
