@@ -2,7 +2,7 @@
 // addfield.C: process sem field files, computing and adding vorticity and
 // divergence, rate of strain tensor, velocity gradient invariants, etc.
 //
-// Copyright (c) 1998,2003 Hugh Blackburn, Murray Rudman
+// Copyright (c) 1998,2004 Hugh Blackburn, Murray Rudman
 //
 // NB: the input field file is assumed to contain only velocity and
 // pressure data.
@@ -77,7 +77,7 @@
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include <sem_h>
+#include <sem.h>
 #include <ctime>
 
 #define FLDS_MAX 64 // -- More than we'll ever want.

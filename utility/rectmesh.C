@@ -11,11 +11,11 @@
 // boundaries, one per line.  A blank line separates x from y
 // locations.  Output consists of a (2D) session file with an element
 // order of 7, and "wall" group boundaries around the domain border.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <sem_h>
+static char RCS[] = "$Id$";
+
+#include <sem.h>
 
 static char prog[] = "rectmesh";
 static void getargs (int, char**, istream*&);

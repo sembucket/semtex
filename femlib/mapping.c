@@ -8,9 +8,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <cfemdef>
-#include <cveclib>
-#include <cfemlib>
+#include <cfemdef.h>
+#include <cveclib.h>
+#include <cfemlib.h>
 
 typedef struct mapping {
   integer         np   ;

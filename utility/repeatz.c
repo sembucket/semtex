@@ -7,14 +7,14 @@
  * NB: Nz must be adjusted so it has prime factors of 2,3,5 to ensure
  * the resulting field can be Fourier transformed in z.
  *
- * Copyright (c) 2002 Hugh Blackburn.
+ * Copyright (c) 2002 <--> $Date$, Hugh Blackburn.
  *
  * USAGE
  * -----
  * repeatz [-h] [-n <rep>] [input[.fld]
- *
- * $Id$
  *****************************************************************************/
+
+static char RCS[] = "$Id$";
 
 #include <math.h>
 #include <stdio.h>
@@ -22,9 +22,9 @@
 #include <ctype.h>
 #include <stdlib.h>
 
-#include <cfemlib>
-#include <cfemdef>
-#include <cveclib>
+#include <cfemlib.h>
+#include <cfemdef.h>
+#include <cveclib.h>
 
 static void getargs (int, char**, FILE**, int*);
 static int  roundup (const int);

@@ -2,7 +2,7 @@
 // drive.C: compute solution to elliptic problem, optionally compare to
 // exact solution (see getoptions(), below).
 //
-// Copyright (c) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994<-->$Date$, Hugh Blackburn
 //
 // USAGE:
 // -----
@@ -19,7 +19,7 @@
 // Author
 // ------
 // Hugh Blackburn
-// CSIRO Building, Construction and Engineering
+// CSIRO
 // P.O. Box 56
 // Highett, Vic 3190
 // Australia
@@ -28,7 +28,7 @@
 
 static char RCS[] = "$Id$";
 
-#include <sem_h>
+#include <sem.h>
 
 static char prog[] = "elliptic";
 static void getargs    (int, char**, char*&);
@@ -109,7 +109,7 @@ static void getargs (int    argc   ,
       break;
     case 'v':
       do
-	Femlib::ivalue ("VERBOSE", Femlib::value("VERBOSE")+1);
+	Femlib::ivalue ("VERBOSE", Femlib::ivalue("VERBOSE")+1);
       while (*++argv[0] == 'v');
       break;
     default:

@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // drive.C: control spectral element DNS for incompressible flows.
 //
-// Copyright (c) 1994,2004 Hugh Blackburn
+// Copyright (c) 1994<-->$Date$, Hugh Blackburn
 //
 // USAGE:
 // -----
@@ -24,7 +24,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "dns_h"
+#include "dns.h"
 
 static char prog[] = "dns";
 static void getargs    (int, char**, char*&);

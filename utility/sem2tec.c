@@ -3,19 +3,19 @@
  *
  * Usage: sem2tec [-h] [-o output] [-m mesh] [-n #] [-d #] [-w] input[.fld]
  *
- * Based on the original code by Ron Henderson.
- *
- * $Id$
+ * Based on code by Ron Henderson.
  *****************************************************************************/
+
+static char RCS[] = "$Id$";
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 
-#include <cfemdef>
-#include <cveclib>
-#include <cfemlib>
+#include <cfemdef.h>
+#include <cveclib.h>
+#include <cfemlib.h>
 
 #define   MAXFIELDS 16
 

@@ -1,6 +1,8 @@
 /*****************************************************************************
  * chop: read an input file and reproduce a specified number of lines on
  * standard output.
+ * 
+ * Copyright (c) 1990,2004 Hugh Blackburn
  *
  * Usage: chop [-h] [-s startline] [-n number of lines] [-S skip] [file]
  *
@@ -11,9 +13,9 @@
  * Can be used as a filter.
  * If number of lines not specified, read through until EOF.
  * Lines are assumed to be BUFSIZ characters long at most.
- *
- * $Id$
  *****************************************************************************/
+
+static char RCS[] = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // project.C:  Project solution files to different interpolation orders.
 //
-// Copyright (c) 1996,2004 Hugh Blackburn
+// Copyright (c) 1996 <--> $Date$, Hugh Blackburn
 //
 // SYNOPSIS
 // --------
@@ -24,11 +24,11 @@
 // 
 // If file is not present, read from standard input.  Write to
 // standard output.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <sem_h>
+static char RCS[] = "$Id$";
+
+#include <sem.h>
 
 static int uniform = 0;
 

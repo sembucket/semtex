@@ -36,8 +36,8 @@
 #include <time.h>
 #include <string.h>
 
-#include <cfemdef>
-#include <cveclib>
+#include <cfemdef.h>
+#include <cveclib.h>
 
 static char  prog[]    = "avgdump";
 static char* hdr_fmt[] = {	 /* -- Header output formatting. */

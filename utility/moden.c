@@ -3,7 +3,7 @@
  * energy in named mode, output 2D data file.  Field must be binary
  * format.  By default, output energy in mode 0.
  *
- * Copyright (c) 1999 Hugh Blackburn
+ * Copyright (c) 1999 <--> $Date$, Hugh Blackburn
  *
  * USAGE
  * -----
@@ -11,9 +11,9 @@
  *
  * -m nominates mode to select [Default: 0]
  * -z forces mode zero to be dealt with as complex.
- *
- * $Id$
  *****************************************************************************/
+
+static char RCS[] = "$Id$";
 
 #include <math.h>
 #include <stdio.h>
@@ -21,9 +21,9 @@
 #include <ctype.h>
 #include <stdlib.h>
 
-#include <cfemlib>
-#include <cfemdef>
-#include <cveclib>
+#include <cfemlib.h>
+#include <cfemdef.h>
+#include <cveclib.h>
 
 static void getargs (int, char**, FILE**, int*, int*);
 static int  _index  (const char*, char);

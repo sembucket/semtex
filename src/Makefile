@@ -264,11 +264,11 @@ endif
 # Installation of header files.
 #
 default:
-	rm -f   ../include/sem_h		\
-		../include/feml_h		\
-		../include/mesh_h		\
-		../include/geometry_h 
-	cp sem_h feml_h mesh_h geometry_h ../include
+	cp -f sem.h analysis.h auxfield.h bcmgr.h boundary.h bsys.h	\
+	condition.h domain.h edge.h element.h family.h feml.h field.h	\
+	flowrate.h geometry.h history.h integration.h matrix.h mesh.h	\
+	misc.h numbersys.h particle.h pressure.h statistics.h 		\
+	../include
 
 #-----------------------------------------------------------------------------
 # Force installation of headers from another make.

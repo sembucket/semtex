@@ -18,7 +18,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <sem_h>
+#include <sem.h>
 
 
 BoundarySys::BoundarySys (BCmgr*                  bcmgr,

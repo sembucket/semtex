@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // auxfield.C: routines for AuxField class, including Fourier expansions.
 //
-// Copyright (c) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994,2004 Hugh Blackburn
 //
 // For 2D problems, the data storage is organized by 2D Elements.
 //
@@ -21,7 +21,7 @@
 
 static char RCS[] = "$Id$";
 
-#include <sem_h>
+#include <sem.h>
 
 
 AuxField::AuxField (real*             alloc,
@@ -1319,12 +1319,12 @@ AuxField& AuxField::sgn ()
 }
 
 
-AuxField& AuxField::clipPos ()
+AuxField& AuxField::clipUp (const real min)
 // ---------------------------------------------------------------------------
-// Clip *this so that it is zero or greater.
+// Clip *this so that it is min or greater.
 // ---------------------------------------------------------------------------
 {
-  Veclib::clipup (_size, 0.0, _data, 1, _data, 1);
+  Veclib::clipup (_size, min, _data, 1, _data, 1);
 
   return *this;
 }

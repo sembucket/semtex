@@ -1,14 +1,14 @@
 ///////////////////////////////////////////////////////////////////////////////
 // nonlinear.C
 //
-// Copyright (c) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994<-->$Date$, Hugh Blackburn
 //
 // Compute nonlinear terms in Navier--Stokes equations.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
 
-#include "dns_h"
+#include "dns.h"
 
 
 void nonLinear (Domain*       D ,

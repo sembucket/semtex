@@ -1,6 +1,8 @@
 /*****************************************************************************
  * fourier.c
  *
+ * Copyright (c) 1999<-->$Date$, Hugh Blackburn
+ *
  * 1D Fourier transform routines for real data fields based on FFTPACK
  * or Temperton FFT routines, or vendor-supplied alternatives.
  * NB: different restrictions may apply to input args depending on
@@ -12,9 +14,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <cfemdef>
-#include <cveclib>
-#include <cfemlib>
+#include <cfemdef.h>
+#include <cveclib.h>
+#include <cfemlib.h>
 
 void dDFTr (double*       data,
 	    const integer tlen,

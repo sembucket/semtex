@@ -8,7 +8,7 @@
 static char RCS[] = "$Id$";
 
 #include <ctime>
-#include <sem_h>
+#include <sem.h>
 
 
 ostream& printVector (ostream&      strm,

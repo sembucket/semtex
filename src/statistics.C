@@ -27,7 +27,7 @@
 static char RCS[] = "$Id$";
 
 #include <ctime>
-#include <sem_h>
+#include <sem.h>
 
 
 Statistics::Statistics (Domain*            D    ,

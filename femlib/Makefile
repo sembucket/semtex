@@ -45,12 +45,6 @@ LMD        = $(foreach routine, $(ALL), $(routine).o)
 $(LIB): $(LMD)
 	$(AR) $(ARFLAGS) $(LIB) $(LMD)
 
-#ifdef $(RANLIB) # -- Don't know why this won't work yet...
-#$(RANLIB) $(LIB)
-#endif
-#ifeq ($(ARCH),Darwin) # -- So use workaround.
-#	ranlib $(LIB)
-#endif
 ifeq ($(ARCH),Linux-alpha)
 	ranlib $(LIB)
 endif
@@ -70,17 +64,17 @@ headers:
 	if test ! -d   $(SEM)/include	;	then    \
 		mkdir $(SEM)/include	;	fi
 
-	rm -f $(SEM)/include/cfemdef	;	\
-	rm -f $(SEM)/include/cfemlib    ;	\
-	rm -f $(SEM)/include/cnr77      ;	\
-	rm -f $(SEM)/include/cpolylib   ;	\
-	rm -f $(SEM)/include/femlib_h	;			
+	rm -f $(SEM)/include/cfemdef.h	;	\
+	rm -f $(SEM)/include/cfemlib.h  ;	\
+	rm -f $(SEM)/include/nr77.h     ;	\
+	rm -f $(SEM)/include/polylib.h  ;	\
+	rm -f $(SEM)/include/femlib.h	;			
 
-	cp cfemdef	$(SEM)/include	;	\
-	cp cfemlib	$(SEM)/include	;	\
-	cp cnr77	$(SEM)/include	;	\
-	cp cpolylib	$(SEM)/include  ;	\
-	cp femlib_h	$(SEM)/include
+	cp cfemdef.h	$(SEM)/include	;	\
+	cp cfemlib.h	$(SEM)/include	;	\
+	cp nr77.h	$(SEM)/include	;	\
+	cp polylib.h	$(SEM)/include  ;	\
+	cp femlib.h	$(SEM)/include
 
 # ----------------------------------------------------------------------------
 # Install library & associated header files.
@@ -102,7 +96,7 @@ install:
 # ----------------------------------------------------------------------------
 # Ensure any new default parser variables are picked up.
 #
-initial.o: cdefaults
+initial.o: defaults.h
 
 # ----------------------------------------------------------------------------
 # Special machine-dependent compilations.

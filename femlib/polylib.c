@@ -4,7 +4,7 @@
 #include <float.h>
 #include <math.h>
 
-#include "cpolylib"
+#include "polylib.h"
 
 #define STOP  30 
 #define EPS   100*DBL_EPSILON

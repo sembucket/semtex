@@ -10,7 +10,7 @@
 #include <time.h>
 
 #include <cfemdef>
-#include <cveclib>
+#include <cveclib.h>
 
 
 integer _vecIreg[NVREG];	/* For FORTRAN linkage. */

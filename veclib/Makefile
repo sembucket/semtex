@@ -56,12 +56,6 @@ LMD        = $(foreach routine, $(ALL), $(routine).o)
 $(LIB): $(LMD)
 	$(AR) $(ARFLAGS) $(LIB) $(LMD)
 
-#ifdef $(RANLIB) # -- Don't know why this won't work yet...
-#$(RANLIB) $(LIB)
-#endif
-#ifeq ($(ARCH),Darwin) # -- So use workaround.
-#	ranlib $(LIB)
-#endif
 ifeq ($(ARCH),Linux-alpha)
 	ranlib $(LIB)
 endif
@@ -81,17 +75,17 @@ headers:
 	if test ! -d $(SEM)/include	;	then    \
 		mkdir $(SEM)/include	;	fi
 
-	rm -f $(SEM)/include/cveclib;	\
-	rm -f $(SEM)/include/veclib_h;	\
-	rm -f $(SEM)/include/utility_h;	\
-	rm -f $(SEM)/include/blas_h;	\
-	rm -f $(SEM)/include/lapack_h
+	rm -f $(SEM)/include/cveclib.h;	\
+	rm -f $(SEM)/include/veclib.h;	\
+	rm -f $(SEM)/include/utility.h;	\
+	rm -f $(SEM)/include/blas.h;	\
+	rm -f $(SEM)/include/lapack.h
 
-	cp cveclib	$(SEM)/include	;	\
-	cp veclib_h    	$(SEM)/include	;	\
-	cp utility_h	$(SEM)/include	;	\
-	cp blas_h	$(SEM)/include	;	\
-	cp lapack_h	$(SEM)/include
+	cp cveclib.h	$(SEM)/include	;	\
+	cp veclib.h    	$(SEM)/include	;	\
+	cp utility.h	$(SEM)/include	;	\
+	cp blas.h	$(SEM)/include	;	\
+	cp lapack.h	$(SEM)/include
 
 # ----------------------------------------------------------------------------
 # Install library & associated header files.

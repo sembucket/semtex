@@ -8,7 +8,7 @@
 
 static char RCS[] = "$Id$";
 
-#include <sem_h>
+#include <sem.h>
 
 Domain*  FluidParticle::_Dom     = 0;
 integer  FluidParticle::_NCOM    = 0;

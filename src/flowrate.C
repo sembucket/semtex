@@ -34,7 +34,7 @@
 
 static char RCS[] = "$Id$";
 
-#include <sem_h>
+#include <sem.h>
 
 
 Flowrate::Flowrate (Domain* D,
