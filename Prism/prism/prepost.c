@@ -119,10 +119,14 @@ void Prism_exit(void) {
  *           processors must generate output as an error message.            *
  * ------------------------------------------------------------------------- */
 
-static FILE *logfp = stdout;
+/* static FILE *logfp = stdout; -- changed by hmb Jan 2002 */
+
+static FILE *_prism_logfp;
 
 void Prism_logfile (const char *log) 
 {
+  _prism_logfp = stdout;	/* -- changed by hmb Jan 2002 */
+
   ROOTONLY {
     FILE *fp = fopen(log,"w");
     assert(fp);
@@ -131,9 +135,8 @@ void Prism_logfile (const char *log)
 }
 
 void Prism_logfp (FILE *fp) {
-  if (logfp != stdout) 
-    fclose (logfp);
-  logfp = fp;
+  if (_prism_logfp != stdout) fclose (_prism_logfp);
+  _prism_logfp = fp;
 }
 
 void Prism_log (int level, const char *fmt, ...) 
@@ -142,7 +145,7 @@ void Prism_log (int level, const char *fmt, ...)
   va_start(ap,fmt);
   ROOTONLY {
     if (level <= option("verbose"))
-      vfprintf (logfp, fmt, ap);
+      vfprintf (_prism_logfp, fmt, ap);
   }
   va_end(ap);
 }
@@ -160,12 +163,12 @@ void Prism_error (const char *fmt, ...)
 }
 
 int Prism_options() {
-  speclib_options(logfp);
+  speclib_options(_prism_logfp);
   return 0;
 }
 
 int Prism_params() {
-  speclib_params(logfp);
+  speclib_params(_prism_logfp);
   return 0;
 }
 

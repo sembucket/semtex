@@ -77,6 +77,10 @@ typedef struct Symbol {  /* Symbol table entry */
 #include "veclib/veclib.h"
 #include "speclib/speclib.h"
 
+/* static FILE *symbol_stream = stdout; Changed by hmb Jan 2002 */
+
+static FILE *symbol_stream;
+
 /* Internal Prototypes */
 
 static Symbol  *install(char*, int, ...);    /* Table management (LOCAL) */
@@ -206,7 +210,7 @@ static struct {             /* Built-ins */
 Tree*    Symbols  = 0;      /* Symbol table     */
 Tree*    Options  = 0;      /* Option table     */
 Tree*    Params   = 0;      /* Parameters table */
-jmp_buf  begin;            
+jmp_buf  begin;
 
 static char     func_string[SIZE];
 static char     *cur_string;
@@ -259,7 +263,7 @@ expr:	  NUMBER  { $$ = $1; }
 	| '-' expr %prec UNARYMINUS { $$ = -$2; }
 	;
 %%
-	/* end of grammer */
+	/* end of grammar */
 
 /* --------------------------------------------------------------------- *
  *                                                                       *
@@ -547,6 +551,8 @@ void manager_init (void)
 
   /* initialize the signal manager */
 
+  symbol_stream = stdout;	/* Changed by hmb Jan 2002 */
+
   setjmp(begin);
   signal(SIGFPE, fpecatch);
 
@@ -593,7 +599,6 @@ int defined (char *symbol)
 
 /* Print parameter, option, and symbol tables */
 
-static FILE *symbol_stream = stdout;
 
 void show_symbols(FILE *fp) 
    { fputs ("\nSymbol table:\n", symbol_stream = fp); tree_walk (Symbols); }

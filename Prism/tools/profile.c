@@ -27,7 +27,8 @@ static char *help  =
 
 static int verbose = 0;
 
-static FILE *output = stdout;
+/* static FILE *output = stdout; Changed hmb 2002 */
+static FILE *output = NULL;
 static FILE *rea    = NULL;
 
 #define PROFILE_MAX  128
@@ -173,6 +174,8 @@ int main (int argc, char *argv[])
   FieldFile *f;
 
   int n, nflds;
+
+  output = stdout;
 
   speclib_init();
   parse_args(argc, argv);

@@ -62,8 +62,11 @@ static struct {
   File   in ;
   File   out;
 } FileList = 
+/* Changed hmb Jan 2002 
   { { "<stdin>" , stdin  }, 
-    { "<stdout>", stdout } };
+  { "<stdout>", stdout } }; */
+  { { "<stdin>" , NULL  }, 
+    { "<stdout>", NULL } };
 
 int Patch_number (File);
 
@@ -72,6 +75,9 @@ int Patch_number (File);
 int main (int argc, char *argv[])
 {
   Domain *omega;
+
+  FileList.in.fp  = stdin;
+  FileList.out.fp = stdout;
 
   omega = parse_args (argc, argv);
 

@@ -36,7 +36,10 @@
 /* Externals */
 
 static FILE *fp_in  = 0;
-static FILE *fp_out = stdout;
+/* static FILE *fp_out = stdout; Changed hmb Jan 2002 */
+
+static FILE *fp_out = 0;
+
 
 static int   nr, ns, nz;
 
@@ -140,6 +143,8 @@ main (int argc, char *argv[])
 {
   Field *u;
   Mesh  *mesh;
+
+  fp_out = stdout;
 
   speclib_init();
 

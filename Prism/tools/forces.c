@@ -22,7 +22,8 @@ char *help   =
 "values are written to the file.  After (fx,fy,fz), each of the primitive  \n"
 "variables in the file is written.\n";
 
-FILE *out = stdout;
+/* FILE *out = stdout; Changed hmb Jan 2002 */
+FILE *out = NULL;
 
 #define SQR(a) ((a)*(a))
 
@@ -60,6 +61,8 @@ main (int argc, char *argv[])
     fputs (usage, stderr);
     exit (-1);
   }
+
+  out = stdout;
 
   /* ---------- Read the input file ---------- */
 

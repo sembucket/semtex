@@ -78,7 +78,8 @@ static char *mesh   = NULL;
 /* This is the mesh and field info shared by all application routines. */
 
 Domain Geometry;
-FILE*  mscope_command_stream = stdin;
+/* FILE*  mscope_command_stream = stdin; Changed hmb Jan 2002 */
+FILE*  mscope_command_stream = NULL;
 
 /* ------------------------------------------------------------------------- */
 
@@ -86,6 +87,9 @@ int main (int argc, char *argv[])
 {
   char buf[BUFSIZ];
   char *op;
+  char *tmp;
+
+  mscope_command_stream = stdin;
 
   /* Initialize the libraries */
 
@@ -148,10 +152,13 @@ int main (int argc, char *argv[])
 
   if (!option("batch")) {
     do {
-      fputs (prompt, stdout);
-      fgets (buf, BUFSIZ, stdin);
-    } 
-    while (DoParse(buf) != EOF);
+      tmp = Readline(prompt);
+      if (!tmp) 
+	break;
+      else
+	strcpy(buf,tmp);
+    } while 
+	(DoParse(buf) != EOF);
   }
   
   /* ----------  Command Loop ---------- */
@@ -178,7 +185,7 @@ void parse_args (int argc, char *argv[])
 	option_set("batch", 1);
 	break;
       case 'd':
-	dev = strdup(argv[++n]);
+	dev = (char*) strdup(argv[++n]);
 	break;
       case 'h':
 	fprintf (stderr, "usage: %s %s\n%s", prog, usage, help);
@@ -199,13 +206,13 @@ void parse_args (int argc, char *argv[])
     } 
 
     else if (strstr(argv[n],".rea"))
-      mesh = strdup(argv[n]);
+      mesh = (char*) strdup(argv[n]);
     else if (strstr(argv[n],".feml"))
-      mesh = strdup(argv[n]);
+      mesh = (char*) strdup(argv[n]);
     else if (strstr(argv[n],".ms"))
-      script = strdup(argv[n]);
+      script = (char*) strdup(argv[n]);
     else
-      mesh = strdup(argv[n]);
+      mesh = (char*) strdup(argv[n]);
   }
 }
 

@@ -26,6 +26,11 @@
 #include "mscope.h"
 #include "grammar.h"
 
+#if defined(READLINE_LIBRARY)
+#include "readline/readline.h"
+#include "readline/history.h"
+#endif
+
 /* Shared mesh and field data */
 
 extern Domain Geometry;
@@ -205,6 +210,30 @@ static char *strip(char *s)
     *(t--)='\0';
 
   return s;
+}
+
+/* ------------------------------------------------------------------------- *
+ * Readline                                                                  *
+ *                                                                           *
+ * This function grabs input from the command line to be processed.  If GNU  *
+ * readline is available it uses that and places the input on the history    *
+ * list, otherwise it just snaps it up from stdin.                           *
+ * ------------------------------------------------------------------------- */
+
+char *Readline (char *prompt)
+{
+  char *line;
+
+#if !defined(READLINE_LIBRARY)
+  static char buf[BUFSIZ];
+  fputs(prompt,stdout);
+  line=fgets(buf,BUFSIZ,stdin);
+#else
+  line=readline(prompt);
+  if (line && *line) add_history(line);
+#endif
+
+  return line;
 }
 
 /* ------------------------------------------------------------------------- *
@@ -448,28 +477,29 @@ void DoDomain()
     fprintf (stderr, "usage: domain name\n");
 }
 
-static void MeshIn_prism_1 (char *session) 
+static void MeshIn_prism_1 (char *fname) 
 {
   Mesh *mesh;
   FILE *fp;
-  char filename [FILENAME_MAX];
   char buf [BUFSIZ];
+  char *p;
 
   Domain_reset();
 
-  strcpy (filename, session);
-  if (!(fp = fopen (filename, "r"))) {
-    strcat(filename, ".rea");
-    if (!(fp = fopen(filename, "r"))) {
-      fprintf (stderr, "Unable to load %s[.rea]\n", session);
-      memset (&Geometry, '\0', sizeof(Domain));
-      return;
-    }
+  if (!(fp = fopen (fname, "r"))) {
+    fprintf (stderr, "Unable to load %s\n", fname);
+    memset  (&Geometry, NULL, sizeof(Domain));
+    return;
   }
+
+  /* Construct the session name */
+
+  if (p = strstr(fname,".rea"))
+    *p = NULL;
+  Geometry.name = strdup(fname);
 
   /* Load the parameters */
 
-  Geometry.name  = strdup(session);
   Geometry.param = param_alloc(32);
   param_import(Geometry.param, fp);
   
@@ -527,21 +557,6 @@ static void MeshIn_prism_1 (char *session)
 }
 
 /* Read a FEML file */
-
-static void foo (Element *elmt)
-{
-  int nr = ELEMENT_NR(elmt);
-  int ns = ELEMENT_NS(elmt);
-  int i, j;
-  
-  printf("[%d]\n", ELEMENT_ID(elmt));
-  for (i = 0; i < ns; i++) {
-    for (j = 0; j < nr; j++) {
-      printf ("%#10.6g ", elmt->xmesh[ns-1-i][j]);
-    }
-    printf ("\n");
-  }
-}
 
 #define MAX_GROUPS          8
 #define MAX_GROUPS_STRLEN  64
@@ -894,6 +909,7 @@ static void MeshIn_semtex (char *session)
 	  BC *bc1 = BC_alloc('P', 2);
 
 	  fscanf(fp, "%d%d", &to.k, &to.side);
+	  to.k--;		/* Added hmb Jan 2002 */
 	  to.side--;
 
 	  if ((to.id = Mesh_lookup(mesh,etab[to.k].family, etab[to.k].key))<0) {
@@ -945,14 +961,14 @@ static void MeshIn_semtex (char *session)
 
 void DoMeshIn() 
 {
-  char *session;
+  char *fname;
 
-  if ((session = strtok(NULL, " ;\n"))) {
-
-    if (strstr(session,".rea"))
-      MeshIn_prism_1(session);
-    else
-      MeshIn_semtex(session);
+  if ((fname = strtok(NULL, " ;\n"))) {
+    
+    if (strstr(fname,".rea"))
+      MeshIn_prism_1(fname);
+    else 
+      MeshIn_semtex(fname);
 
     if (option("autoRedraw")) {
       DoErase();

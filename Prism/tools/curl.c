@@ -26,7 +26,8 @@ static char *help  =
 static int verbose = 0;
 
 static char *session = NULL;
-static FILE *output  = stdout;
+/* static FILE *output  = stdout; Changed hmb Jan 2002 */
+static FILE *output  = NULL;
 static FILE *rea     = NULL;
 static char *progid  = "$Id$";
 
@@ -48,7 +49,7 @@ void parse_args (int argc, char *argv[])
       const char c = argv[n][1];
       switch (c) {
       case 'v': {
-	char vers[16], date[16];
+ 	char vers[16], date[16];
 	sscanf(progid,"%*s %*s %s %s", vers, date);
 	fprintf (stderr, "%s: version %s built %s\n", prog, vers, date);
 	verbose = 1;
@@ -171,6 +172,8 @@ main (int argc, char *argv[])
   Bedge *bc;
   
   int n;
+
+  output = stdout;
 
   speclib_init();
 

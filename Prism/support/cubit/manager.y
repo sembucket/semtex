@@ -77,6 +77,10 @@ typedef struct Symbol {  /* Symbol table entry */
 #include "veclib/veclib.h"
 #include "manager.h"
 
+/* static FILE *symbol_stream = stdout; Changed by hmb Jan 2002 */
+
+static FILE *symbol_stream;
+
 /* Internal Prototypes */
 
 static Symbol *install(const char*, int, ...);       /* Table management */
@@ -585,6 +589,8 @@ void manager_init (void)
   Options = create_tree (show_symbol, free);
   Params  = create_tree (show_symbol, free);
 
+  symbol_stream = stdout;	/* Changed by hmb 2002 */
+
   /* initialize the signal manager */
 
   setjmp(begin);
@@ -633,7 +639,7 @@ int defined (char *symbol)
 
 /* Print parameter, option, and symbol tables */
 
-static FILE *symbol_stream = stdout;
+
 
 void show_symbols(FILE *fp) 
    { fputs ("\nSymbol table:\n", symbol_stream = fp); tree_walk (Symbols); }

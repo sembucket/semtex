@@ -27,7 +27,8 @@ static struct {
   FILE *fp;
 } out = { 
   NULL, 
-  stdout 
+/*   stdout Changed hmb Jan 2002 */
+  NULL
 };
 
 static Field *U[2];
@@ -232,6 +233,8 @@ main (int argc, char *argv[])
   double dz;
   double amp;
   FieldFile *f;
+
+  out.fp = stdout;
 
   speclib_init();
 

@@ -48,7 +48,8 @@ static int   verbose = 0;
 static int   dump    = 0;
 static int   format  = BINARY;
 static float time    = -1.;
-static FILE* output  = stdout;
+/* static FILE* output  = stdout; Changed hmb Jan 2002 */
+static FILE* output  = NULL;
 
 /* ------------------------------------------------------------------------- */
 
@@ -149,6 +150,8 @@ main (int argc, char *argv[])
   FILE *fp  = stdin;
   int ndump = 0;
   FieldFile *f;
+
+  output  = stdout;
 
   speclib_init(); 
 
