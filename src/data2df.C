@@ -289,17 +289,14 @@ Data2DF& Data2DF::filter2D (const real_t roll ,
     Veclib::smul (_np, filter[i], dpt + i*_np, 1, &It[i*_np], 1);
 
   Blas::mxm    (Dt, _np, &It[0], _np, &Iu[0], _np);
-  Veclib::copy (_np2, &Iu[0], 1, &It[0], 1);
+  Veclib::copy (_np2,    &Iu[0], 1,   &It[0], 1);
 
   for (i = 0; i < _np; i++)
     for (j = 0; j < _np; j++)
       Iu[Veclib::row_major (j, i, _np)] = It[Veclib::row_major (i, j, _np)];
 
-  for (i = 0; i < _nz; i++) {
-    dataplane = _data + i*_nplane;
-    Femlib::tpr2d (dataplane, dataplane, &work[0], Du,    Dt,    _np,_np,_nel);
-    Femlib::tpr2d (dataplane, dataplane, &work[0], &Iu[0],&It[0],_np,_np,_nel);
-  }
+  for (i = 0; i < _nz; i++)
+    Femlib::tpr2d (_plane[i],_plane[i],&work[0],&Iu[0],&It[0],_np,_np,_nel);
 
   return *this;
 }

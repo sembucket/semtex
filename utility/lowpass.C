@@ -38,15 +38,15 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  int_t             i, order = 2;
-  real_t            roll = 0.0;
-  char              type = 'B';
-  istream*          input;
+  int_t            i, order = 2;
+  real_t           roll = 0.0;
+  char             type = 'B';
+  istream*         input;
   vector<Data2DF*> u;
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, type, order, roll, input);
-  
+ 
   while (getDump (*input, cout, u))
     for (i = 0; i < u.size(); i++) {
       if (type == 'P' || type == 'B')
@@ -169,8 +169,8 @@ static int_t getDump (istream&          ifile,
     "%-25s "    "Fields written\n",
     "%-25s "    "Format\n"
   };
-  char buf[StrMax], fmt[StrMax], fields[StrMax];
-  int_t  i, j, swab, nf, np, nz, nel;
+  char  buf[StrMax], fmt[StrMax], fields[StrMax];
+  int_t i, j, swab, nf, np, nz, nel;
 
   if (ifile.getline(buf, StrMax).eof()) return 0;
   
