@@ -374,7 +374,7 @@ static void perturb (double*      data  ,
 
   if (mode != UNSET) {	/* -- Perturb only specified Fourier mode. */
 
-    dDFTr (data, nz, nplane, 1, nplane, +1);
+    dDFTr (data, nz, nplane, +1);
     
     kr = (2 * mode)     * nplane;
     ki = (2 * mode + 1) * nplane;
@@ -385,7 +385,7 @@ static void perturb (double*      data  ,
     if (mode)
     for (j = 0; j < nplane; j++) data[ki + j] += eps * gasdev (&seed);
     
-    dDFTr (data, nz, nplane, 1, nplane, -1);
+    dDFTr (data, nz, nplane, -1);
 
   } else {			/* -- Perturb all modes. */
     
