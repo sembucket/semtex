@@ -262,7 +262,7 @@ static double ran2(long *idum)
 
 
 
-double gasdev(long *idum)
+static double gasdev(long *idum)
 /* ========================================================================= *
  * Returns a normally distributed deviate with zero mean and unit variance,  *
  * using ran2(idum) as the source of uniform deviates.                       *
