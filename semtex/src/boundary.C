@@ -331,7 +331,7 @@ real Boundary::flux (const char* grp,
 		     real*       wrk) const
 // ---------------------------------------------------------------------------
 // Compute wall-normal flux of field src on this boundary segment,
-// if it lies in group grp.  Wrk is a work vector, 2 * elmt_np_max long.
+// if it lies in group grp.  Wrk is a work vector, 3 * elmt_np_max long.
 // NB: n is a unit outward normal, with no component in Fourier direction.
 // ---------------------------------------------------------------------------
 {
@@ -340,15 +340,21 @@ real Boundary::flux (const char* grp,
   if (strcmp (grp, bcondn -> group()) == 0) {
     register integer i;
     const integer    np = nKnot(), offset = elmt -> dOff();
-    register real    *cx = wrk, *cy = wrk + np;
+    register real    *cx = wrk, *cy = wrk + np, *r = wrk + np + np;
 
     elmt -> sideGrad (side, src + offset, cx, cy);
 
-    for (i = 0; i < np; i++) dcdn += (cx[i]*nx[i] + cy[i]*ny[i]) * area[i];
-    
     if (Geometry::system() == Geometry::Cylindrical) {
-      elmt -> sideDivR (side, src + offset, cy);
-      for (i = 0; i < np; i++) dcdn -= cy[i]*ny[i] * area[i];
+      elmt -> sideGetR (side, r);
+      for (i = 0; i < np; i++)
+	dcdn += (cx[i]*nx[i] + cy[i]*ny[i]) * area[i] * r[i];
+      elmt -> sideGet  (side, src + offset, cy);
+      for (i = 0; i < np; i++)
+	dcdn -= cy[i]*ny[i] * area[i];
+
+    } else {			// -- Cartesian.
+      for (i = 0; i < np; i++)
+	dcdn += (cx[i]*nx[i] + cy[i]*ny[i]) * area[i];
     }
   }
 
