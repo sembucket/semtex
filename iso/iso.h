@@ -26,8 +26,8 @@
 #define MAX(a,b)     ((a) > (b) ? (a) : (b))
 #define CLAMP(t,a,b) (MAX(MIN((t),(b)),(a)))
 #define rm(i,j,k)    ((k) + K * ((j) + N * (i)))
-#define INSIDE       <= FourKon3
-#define OUTSIDE      >  FourKon3
+#define INSIDE       < FourKon3
+#define OUTSIDE      >= FourKon3
 #define MAG(Z)       (Z).Re*(Z).Re + (Z).Im*(Z).Im
 #define SHIFT(Z, W)  tempRe = (Z).Re; \
                      (Z).Re = tempRe*(W).Re - (Z).Im*(W).Im; \
@@ -106,13 +106,13 @@ void integrate (CVF, const CVF*, const Param*);
 
 /* -- energy.c */
 
-real  energyP    (CVF V, const complex*);
-real  energyF    (const CVF);
-real  rmsEns     (const CVF);
-real  L2norm     (const CF);
-real  amaxf      (const CF);
-void  normalize  (CVF);
-void  energySpec (const CVF, real*);
+real  energyP     (CVF V, const complex*);
+real  energyF     (const CVF);
+real  rmsEns      (const CVF);
+real  L2norm      (const CF);
+real  amaxF       (const CF);
+void  normalizeVF (CVF);
+void  energySpec  (const CVF, real*);
 
 /* -- derivative.c */
 
@@ -147,6 +147,7 @@ void  truncateVF (CVF);
 /* -- random.c */
 
 void  randomise (int, CVF);
+real  ran2PI    (int*);
 
 /* -- filter.c */
 
