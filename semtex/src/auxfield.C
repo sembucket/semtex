@@ -162,6 +162,18 @@ AuxField& AuxField::operator -= (const AuxField& f)
 }
 
 
+AuxField& AuxField::operator *= (const AuxField& f)
+// ---------------------------------------------------------------------------
+// Multiply *this storage vectorwise with f's.  You sort out which
+// space you're in!
+// ---------------------------------------------------------------------------
+{
+  Veclib::vmul (_size, _data, 1, f._data, 1, _data, 1);
+
+  return *this;
+}
+
+
 AuxField& AuxField::operator = (const char* function)
 // ---------------------------------------------------------------------------
 // Set AuxField's value to temporo-spatially varying function.  Physical space.
