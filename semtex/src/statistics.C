@@ -86,7 +86,7 @@ Statistics::Statistics (Domain* D) :
   _neng (0)
 {
   if (_iavg == 0) return;
-  if ((_iavg  < 0) || (_iavg > 2))
+  if ((_iavg  < 0) || (_iavg > 3))
     message ("Statistics::Statistics", "AVERAGE token out of [0,3]", ERROR);
 					 
   int_t       i, j;

@@ -85,10 +85,11 @@ static char RCS[] = "$Id$";
 static char prog[] = "eneq";
 static void getargs (int,char**,const char*&,const char*&);
 static void getMesh (const char*,vector<Element*>&);
-static void makeBuf (vector<AuxField*>&,vector<AuxField*>&,vector<Element*>&);
+static void makeBuf (map<char,AuxField*>&,vector<AuxField*>&,
+		     vector<Element*>&);
 static bool getDump (ifstream&,map<char, AuxField*>&,vector<Element*>&);
 static bool doSwap  (const char*);
-static void covary  (map<char, AuxField*>&,vector<AuxField*>&,
+static void covary  (map<char,AuxField*>&,map<char,AuxField*>&,
 		     vector<AuxField*>&);
 
 static const char* fieldNames(map<char, AuxField*>&);
@@ -102,8 +103,8 @@ int main (int    argc,
   const char           *session, *dump;
   ifstream             avgfile;
   vector<Element*>     elmt;
-  vector<AuxField*>    outbuf, work;
-  map<char, AuxField*> input;
+  map<char, AuxField*> input, output;
+  vector<AuxField*>    work,  outbuf;
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session, dump);
@@ -112,10 +113,17 @@ int main (int    argc,
   if (!avgfile) message (prog, "no field file", ERROR);
   
   getMesh (session, elmt);
-  makeBuf (outbuf, work, elmt);
+  makeBuf (output, work, elmt);
+
+  // -- Need to link outbuf to output so we can use writeField.
+  //    Maybe in the longer term we should overload writeField.
+
+  outbuf.resize (output.size()); int_t i = 0;
+  for (map<char,AuxField*>::iterator k = output.begin();
+       k != output.end(); k++, i++) outbuf[i] = k -> second;
   
   while (getDump (avgfile, input, elmt)) {
-    covary     (input, outbuf, work);
+    covary     (input, output, work);
     writeField (cout, session, 0, 0.0, outbuf);
   }
   
@@ -152,7 +160,7 @@ static void getargs (int          argc   ,
   if (argc != 2) {
     sprintf (buf, usage, prog); cerr << buf; exit (EXIT_FAILURE);
   } else {
-    --argc; session = *++argv;
+    --argc; session = *argv;
     --argc; dump    = *++argv;
   }
 }
@@ -182,9 +190,9 @@ static void getMesh (const char*       session,
 }
 
 
-static void makeBuf (vector<AuxField*>& outbuf,
-		     vector<AuxField*>& work  ,
-		     vector<Element*>&  elmt  )
+static void makeBuf (map<char, AuxField*>& output,
+		     vector<AuxField*>&    work  ,
+		     vector<Element*>&     elmt  )
 // ---------------------------------------------------------------------------
 // Note that we only set up the output and work buffers here. The
 // input buffers get created in getDump.
@@ -193,19 +201,18 @@ static void makeBuf (vector<AuxField*>& outbuf,
   const int_t nz   = Geometry::nZ();
   const int_t ntot = Geometry::nTotal();
 
-  outbuf.resize (7);
-  work.resize   (2);
+  work.resize (2);
 
-  outbuf[0] = new AuxField (new real_t[ntot], nz, elmt, '0');
-  outbuf[0] = new AuxField (new real_t[ntot], nz, elmt, '1');
-  outbuf[0] = new AuxField (new real_t[ntot], nz, elmt, '2');
-  outbuf[0] = new AuxField (new real_t[ntot], nz, elmt, '3');
-  outbuf[0] = new AuxField (new real_t[ntot], nz, elmt, '4');
-  outbuf[0] = new AuxField (new real_t[ntot], nz, elmt, '7');
-  outbuf[0] = new AuxField (new real_t[ntot], nz, elmt, 'S');
+  output['0'] = new AuxField (new real_t[ntot], nz, elmt, '0');
+  output['1'] = new AuxField (new real_t[ntot], nz, elmt, '1');
+  output['2'] = new AuxField (new real_t[ntot], nz, elmt, '2');
+  output['3'] = new AuxField (new real_t[ntot], nz, elmt, '3');
+  output['4'] = new AuxField (new real_t[ntot], nz, elmt, '4');
+  output['7'] = new AuxField (new real_t[ntot], nz, elmt, '7');
+  output['S'] = new AuxField (new real_t[ntot], nz, elmt, 'S');
 
-  work[0]   = new AuxField (new real_t[ntot], nz, elmt, '\0');
-  work[1]   = new AuxField (new real_t[ntot], nz, elmt, '\0');
+  work[0]     = new AuxField (new real_t[ntot], nz, elmt, '\0');
+  work[1]     = new AuxField (new real_t[ntot], nz, elmt, '\0');
 }
 
 
@@ -309,7 +316,7 @@ static bool doSwap (const char* ffmt)
 
 
 static void covary  (map<char, AuxField*>& in  ,
-		     vector<AuxField*>&    out ,
+		     map<char, AuxField*>& out ,
 		     vector<AuxField*>&    work)
 // ---------------------------------------------------------------------------
 // This does the actual work of building energy equation terms.
@@ -495,5 +502,14 @@ static void covary  (map<char, AuxField*>& in  ,
     out['0'] -> timesPlus (*in['E'], *in['K']);
     out['0'] -> timesPlus (*in['F'], *in['L']);
   }
+
+  // -- Finally, compute the sum, 'S':
+
+  *out['S']  = *out['0'];
+  *out['S'] += *out['1'];
+  *out['S'] += *out['2'];
+  *out['S'] += *out['3'];
+  *out['S'] += *out['4'];
+  *out['S'] += *out['7'];
 }
 

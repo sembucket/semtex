@@ -250,7 +250,7 @@ static void read_data (FILE *fp)
   c       = buf;
   nfields = 0;
   while (n++ < 25 && nfields < MAXFIELDS) 
-    if (isalpha(*c++)) type[nfields++] = *(c-1);
+    if (isalnum(*c++)) type[nfields++] = *(c-1);
 
   if (nfields > MAXFIELDS) {
     fprintf(stderr, "sem2tec: a maximum of %d fields may be converted.\n", 
@@ -289,7 +289,7 @@ static void read_data (FILE *fp)
 
     for (n = 0; n < nfields; n++) {
       if (fread (data[n], sizeof(double), nz * nplane, fp) != nz * nplane) {
-	  fputs("sem2tec: field file (binary) read error\n", stderr);
+ fputs("sem2tec: field file (binary) read error\n", stderr);
 	  exit (EXIT_FAILURE);
       }
       if (swab) dbrev (nz * nplane, data[n], 1, data[n], 1);
@@ -412,9 +412,9 @@ static void write_tec (FILE *fp)
   register int i, j, k, m;
   const int    nrns = nr * ns, nplane = nr * ns * nel;
 
-  fprintf (fp, "VARIABLES = X Y ");
-  if (z) fprintf (fp, "Z ");
-  for (i = 0; i < nfields; i++) fprintf (fp, "%c ", toupper(type[i]));
+  fprintf (fp, "VARIABLES = \"X\" \"Y\" ");
+  if (z) fprintf (fp, "\"Z\" ");
+  for (i = 0; i < nfields; i++) fprintf (fp, "\"%c\" ", toupper(type[i]));
   fprintf (fp, "\n");
 
   for (k = 0; k < nel; k++) {
