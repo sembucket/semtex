@@ -18,8 +18,8 @@ C     where x specifies precision: S ==> single, D ==> double.
 C     ******************************************************************
 C
 C     Subroutine SRFFTI initializes the array WSAVE which is used in
-C     both SRFFTF and SRFFTB.  The prime factorization of N together with
-C     a tabulation of the trigonometric functions are computed and
+C     both SRFFTF and SRFFTB.  The prime factorization of N together
+C     with a tabulation of the trigonometric functions are computed and
 C     stored in WSAVE.
 C
 C     Input Parameter
@@ -108,8 +108,8 @@ C     ******************************************************************
 C     ******************************************************************
 C
 C     Subroutine SRFFTB computes the real perodic sequence from its
-C     Fourier coefficients (Fourier synthesis).  The transform is defined
-C     below at output parameter R.
+C     Fourier coefficients (Fourier synthesis).  The transform is
+C     defined below at output parameter R.
 C
 C     Input Parameters
 C
