@@ -77,7 +77,9 @@ C
 C     This operator can be used for any field operation that can be 
 C     described by the tensor-product form
 C
-C     Y  = [DV] X [DT]  (here X and Y may be aliases).
+C     Y  = [DV] X [DT]
+C
+C     X and Y are not required to be distinct.
 C
 C     Typically for tensor-product forms, DT = transpose (DV).
 C     This routine is designed for use with row-major (C-like) matrices.

@@ -1503,3 +1503,46 @@ AuxField& AuxField::buildMask (const char* function)
 
   return *this;
 }
+
+
+AuxField& AuxField::projStab (const real alpha,
+			      AuxField&  work )
+// ---------------------------------------------------------------------------
+// Carry out a "projection stabilisation" operation, as described by
+// Fischer & Mullen.  This replaces the current data area by a
+// weighted sum of itself and a projection onto a one-order lower GLL
+// Lagrange interpolant.  
+//
+// u <-- (1-alpha) u + alpha u_(-1).
+//
+// Typically 0 <= alpha <= 1 (Fischer & Mullen use 0.05--0.3), but
+// this is not enforced.
+//
+// Work is overwritten during processing.
+// ---------------------------------------------------------------------------
+{
+  const integer nel  = Geometry::nElmt();
+  const integer np   = Geometry::nP();
+  const integer nm   = np - 1;
+  const integer npnp = np * np;
+  const integer nP   = Geometry::planeSize();
+  integer       k;
+  real          *A, *B, *scr;
+  const real    **PF, **PT, **IB, **IT;
+  vector<real>  tmp (nP + 2 * npnp);
+  
+  scr = tmp(); A = scr + nP; B = A + npnp;
+
+  Femlib::mesh (GLL, GLL, np, nm, 0, &PF, &PT, 0, 0);
+  Femlib::mesh (GLL, GLL, nm, np, 0, &IB, &IT, 0, 0);
+  Blas::mxm    (*IB, np, *PF, nm, A, np);
+  Blas::mxm    (*PT, np, *IT, nm, B, np);
+
+  for (k = 0; k < _nz; k++)
+    Femlib::tpr2d (_plane[k], work._plane[k], scr, A, B, np, nel);
+  
+  Blas::axpy (_size, alpha/(1.0-alpha), work._data, 1, _data, 1);
+  Blas::scal (_size, (1.0-alpha), _data, 1);
+
+  return *this;
+}
