@@ -52,7 +52,10 @@
 #include "stab.h"
 #include <new.h>
 
-static char prog[] = "arnoldi";
+static char          prog[] = "arnoldi";
+static char*         session;
+static Domain*       domain;
+static StabAnalyser* analyst;
 
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, int&, int&, int&, int&, real&, char*&);
@@ -70,14 +73,6 @@ static void EV_post    (real**, real**, const int, const int,
 			const real*, const int);
 static void EV_big     (real**, real**, const int, const int,
 			const real*, const real*, const real*);
-
-static char*            session;
-static vector<Element*> elmt;
-static FEML*            file;
-static Mesh*            mesh;
-static BCmgr*           bman;
-static Domain*          domain;
-static StabAnalyser*    analyst;
 
 
 int main (int    argc,
@@ -133,20 +128,20 @@ int main (int    argc,
   norm = Blas::nrm2 (ntot, Kseq[0], 1);
   Blas::scal (ntot, 1.0/norm, Kseq[0], 1);
 
-  // -- Fill initial Krylov sequence.
+  // -- Fill initial Krylov sequence -- during which convergence may occur.
 
   for (i = 1; i <= kdim; i++) {
     EV_update (Kseq[i - 1], Kseq[i]);
     Veclib::copy (ntot * (kdim + 1), kvec, 1, tvec, 1);
     EV_small  (Tseq, ntot, i, zvec, wr, wi, resnorm, verbose);
-    EV_test   (i, i, zvec, wr, wi, resnorm, evtol, i);
+    converged = EV_test (i, i, zvec, wr, wi, resnorm, evtol, i);
   }
 
   // -- Carry out iterative solution.
 
   for (itrn = kdim; !converged && itrn <= nits; itrn++) {
 
-    if (itrn != kdim) {
+    if (itrn > kdim) {		// -- Normalise Krylov sequence & update.
       norm = Blas::nrm2 (ntot, Kseq[1], 1);
       for (i = 1; i <= kdim; i++) {
 	Blas::scal   (ntot, 1.0/norm, Kseq[i], 1);
@@ -163,19 +158,9 @@ int main (int    argc,
     converged = EV_test (itrn, kdim, zvec, wr, wi, resnorm, evtol, nvec);
   }
 
-#if 0
-  if (!converged)
-    message (prog, "not converged", ERROR);
-  else if (converged == nvec) {
-    message (prog, ": all estimates converged",  REMARK);
-  } else
-    message (prog, ": minimum residual reached", REMARK);
-#else
-
   EV_post (Tseq, Kseq, ntot, kdim, nvec, zvec, wr, wi, converged);
 
-#endif
-
+  Femlib::finalize();
   return (EXIT_SUCCESS);
 }
 
@@ -244,7 +229,8 @@ static void EV_small (real**    Kseq   ,
 // Kseq.
 //
 // Then we compute Hessenberg matrix H = Q* A Q (using Q* A = R), find
-// its eigenvalues (wr, wi) and eigenvectors, zvec, related to those of A.
+// its eigenvalues (wr, wi) and (right) eigenvectors, zvec, related to
+// those of A.
 //
 // The residual norm for each eigenvector is related to H(kdim+1, kdim),
 // which is passed back for convergence testing.
@@ -311,7 +297,10 @@ static void EV_small (real**    Kseq   ,
     }
   }
 
-  // -- Find eigenpairs of H using LAPACK routine.
+  // -- Find eigenpairs of H using LAPACK routine dgeev (q.v.).
+  //    For complex-conjugate eigenvalues, the corresponding
+  //    complex eigenvector is a real-imaginary pair of rows
+  //    of zvec.
 
   F77NAME(dgeev) ("N","V",kdim,H,kdim,wr,wi,0,1,zvec,kdim,rwork,lwork,ier);
 
@@ -487,50 +476,47 @@ static void EV_post (real**      Tseq,
 
   if (icon == 0) {
 
-    sprintf (msg, ": not converged, writing final Krylov vector");
-    message (prog, msg, REMARK);
+    cout << prog
+	 << ": not converged, writing final Krylov vector."
+	 << endl;
 
-    // -- At present, this case is dealt with automatically in integrate().
+    // -- At present, this output is dealt with automatically in integrate().
     //    But we do it again here; we may want to modify Domain::dump().
 
     src = Kseq[kdim];
-
     for (i = 0; i < ND; i++)
       for (k = 0; k < NZ; k++)
 	domain -> u[i] -> setPlane (k, src + (i*NZ + k)*NP);
-    
     strcat    (strcpy (nom, domain -> name), ".fld");
     file.open (nom, ios::out); file << *domain; file.close();
 
   } else if (icon == -1) {
     
-    sprintf (msg, ": minimum residual reached, writing initial Krylov vector");
-    message (prog, msg, REMARK);
+    cout << prog
+	 << ": minimum residual reached, writing initial Krylov vector."
+	 << endl;
     
     src = Kseq[0];
-
     for (i = 0; i < ND; i++)
       for (k = 0; k < NZ; k++)
 	domain -> u[i] -> setPlane (k, src + (i*NZ + k)*NP);
-    
     strcat    (strcpy (nom, domain -> name), ".fld");
     file.open (nom, ios::out); file << *domain; file.close();
 
   } else if (icon == nvec) {
 
-    sprintf (msg, ": converged, writing %1d eigenvectors", icon);
-    message (prog, msg, REMARK);
+    cout << prog
+	 << ": converged, writing "
+	 << icon
+	 << " eigenvectors."
+	 << endl;
     
     EV_big (Tseq, Kseq, ntot, kdim, zvec, wr, wi);
-
     for (j = 0; j < icon; j++) {
-
       src = Kseq[j];
-
       for (i = 0; i < ND; i++)
 	for (k = 0; k < NZ; k++)
 	  domain -> u[i] -> setPlane (k, src + (i*NZ + k)*NP);
-
       sprintf   (msg, ".eig.%1d", j);
       strcat    (strcpy (nom, domain -> name), msg);
       file.open (nom, ios::out); file << *domain; file.close();
@@ -579,19 +565,18 @@ static void EV_big (real**      bvecs,
   for (j = 0; j < kdim; j++) {
     Veclib::zero (ntot, evecs[j], 1);
     for (i = 0; i < kdim; i++) {
-      wgt = zvecs[i+j*kdim];
+      wgt = zvecs[Veclib::col_major (i, j, kdim)];
       Blas::axpy (ntot, wgt, bvecs[i], 1, evecs[j], 1);
     }
   }
 
   // -- Normalize big e-vectors.
 
-  for (i = 0; i < kdim; i++) {
+  for (i = 0; i < kdim; i++)
     if (wi[i] == 0.0) {
       norm = Blas::nrm2 (ntot, evecs[i], 1);
       Blas::scal (ntot, 1.0/norm, evecs[i], 1);
-    }
-    else if (wi[i] > 0.0) {
+    } else if (wi[i] > 0.0) {
       norm  = sqr (Blas::nrm2 (ntot, evecs[i],   1));
       norm += sqr (Blas::nrm2 (ntot, evecs[i+1], 1));
       norm = sqrt (norm);
@@ -599,8 +584,6 @@ static void EV_big (real**      bvecs,
       Blas::scal (ntot, 1.0/norm, evecs[i+1], 1);
       i++;
     }
-
-  }
 
 #if BIG_RESIDS  // -- This is not yet recoded: HMB 8/2/2002.
 
@@ -702,6 +685,11 @@ static int preprocess (const char* session)
 // a velocity component * number of components.
 // ---------------------------------------------------------------------------
 {
+  vector<Element*> elmt;
+  FEML*            file;
+  Mesh*            mesh;
+  BCmgr*           bman;
+
   const real* z;
   integer     i, np, nel, npert;
 
