@@ -54,11 +54,16 @@ RCSid_initial[] = "$Id$";
 #include <ctype.h>
 #include <math.h>
 #include <stdarg.h>
+#include <stdlib.h>
 #include <errno.h>
 
 #include <alplib.h>
 
+#if 1
 #define HASHSIZE 199
+#else
+#define HASHSIZE 37
+#endif
 #define HASHSEED 31
 #define VEC_MAX  32
 
@@ -86,7 +91,10 @@ static unsigned hash     (const char*);
 static Symbol*  lookup   (const char*);
 static Symbol*  install  (const char*, const int, const double);
 static void*    emalloc  (const size_t);
-       int      yyparse  (void);
+
+       int  yyparse (void);
+static int  yylex   (void);
+static void yyerror (char*);
 
 static double  value;
 static Symbol* hashtab[HASHSIZE];
@@ -108,7 +116,7 @@ static struct {			    /* -- Built-in functions. */
   "floor" ,  floor   ,
   "ceil"  ,  ceil    ,
   "heav"  ,  Heavi   ,
-  "asin"  ,  Asin    ,		    /* Rest do error-checking */
+  "asin"  ,  Asin    ,		    /* -- Rest do error-checking */
   "acos"  ,  Acos    ,
   "log"   ,  Log     ,
   "log10" ,  Log10   ,
@@ -124,9 +132,9 @@ static struct {			    /* -- Built-in functions. */
 
 %}
 /* -- Yacc grammar follows: */
-%union {			/* yacc stack type      */
-  double  val;			/* actual value         */
-  Symbol* sym;			/* symbol table pointer */
+%union {			/* -- yacc stack type      */
+  double  val;			/* -- actual value         */
+  Symbol* sym;			/* -- symbol table pointer */
 }
 %token <val>   NUMBER
 %token <sym>   VAR BLTIN UNDEF
@@ -135,7 +143,7 @@ static struct {			    /* -- Built-in functions. */
 %left  '+' '-'
 %left  '*' '/'
 %left  UNARYMINUS
-%right '^' '~'			/* exponentiation, atan2 */
+%right '^' '~'			/* -- exponentiation, atan2 */
 %%
 list:     /* nothing */
         | list '\n'
@@ -176,6 +184,7 @@ void yy_initialize (void)
  * This routine should be called at start of run-time.
  * ------------------------------------------------------------------------- */
 {
+  static   int     initialized = 0;
   register int     i;
   register Symbol* s;
 
@@ -202,12 +211,16 @@ void yy_initialize (void)
 #endif
 #endif
 
-  for (i = 0; consts[i].name; i++)
-    install (consts[i].name, VAR, consts[i].cval);
+  if (!initialized) {
+    for (i = 0; consts[i].name; i++)
+      install (consts[i].name, VAR, consts[i].cval);
 
-  for (i = 0; builtin[i].name; i++) {
-    s = install (builtin[i].name, BLTIN, 0.0);
-    s -> u.ptr = builtin[i].func;
+    for (i = 0; builtin[i].name; i++) {
+      s = install (builtin[i].name, BLTIN, 0.0);
+      s -> u.ptr = builtin[i].func;
+    }
+
+    initialized = 1;
   }
 }
 
@@ -377,7 +390,7 @@ static int yylex (void)
 
   if (isalpha (c)) {
     register Symbol* s;
-    register char    sbuf[STR_MAX];
+    char             sbuf[STR_MAX];
     register char*   p = sbuf;
     do {
       *p++ = c;
