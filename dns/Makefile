@@ -5,21 +5,28 @@
 # $Id$
 ##############################################################################
 
-ifdef MPI
-  PROG = dns_mp
-else
-  PROG = dns
-endif
+PROG = dns
 
 SEM   = ..
 VPATH = $(SEM)/src
 
-ifdef STOKES
+ifdef MPI		# -- Make a parallel executable.
+  PROG := $(PROG)_mp
+endif
+
+ifdef STOKES		# -- Turn off nonlinear terms; create Stokes solver.
   DEFINES += -DSTOKES
+  PROG := $(PROG)_stokes
 endif
 
 ifdef ALIAS		# -- No dealiasing done.
   DEFINES += -DALIAS
+  PROG := $(PROG)_alias
+endif
+
+ifdef NCONSERVE		# -- Make only non-conservative nonlinear terms.
+  DEFINES += -DNCONSERVE
+  PROG := $(PROG)_ncons
 endif
 
 # ----------------------------------------------------------------------------
