@@ -23,6 +23,7 @@ static struct {			/* Default options (global flags). */
   char *name;
   int   oval;
 } option_init[] = {
+  "BINARY"  ,  0         ,
   "GEOM"    ,  CART2D    ,
   "BASIS"   ,  GLL       ,
   "RULE"    ,  GL        ,
@@ -42,6 +43,7 @@ static struct {			/* Default floating point parameters. */
   char  *name;
   double dval;
 } dparam_init[] = {
+  "BETA"   , 1.0 ,
   "LAMBDA2", 0.0 ,
   "KINVIS" , 1.0 ,
   "RHO"    , 1.0 ,
