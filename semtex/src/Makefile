@@ -40,11 +40,17 @@ CXX    = g++
 LD     = g++
 CC     = ccc
 FC     = fort
-CFLAGS = -arch host -tune host -fast -O4
-FFLAGS = -arch host -tune host -fast -O4
-RANLIB = ranlib
-LIBDIR  += -L/usr/local/lib
+ifdef DEBUG
+  OPT    = -gstabs+
+else
+  OPT    = -O3
+endif
+CFLAGS   = $(DEFINES) -arch host -tune host -fast -O4
+FFLAGS   = $(DEFINES) -arch host -tune host -fast -O4
+CXXFLAGS = $(DEFINES) $(OPT)
 LDFLAGS  = $(LIBDIR)
+RANLIB   = ranlib
+LIBDIR  += -L/usr/local/lib
 ifdef STATIC
   F77LIBS  = -lcxml -lfor -lFutil -lUfor -lots -lg2c
   LDFLAGS += -static
@@ -54,12 +60,6 @@ endif
 ifdef NOCXML     # -- For testing, avoid Compaq math libs.
   F77LIBS =  -llapack -lgemm -lblas -lots -lfor -lg2c  
 endif
-ifdef DEBUG
-  OPT    = -gstabs+
-else
-  OPT    = -O3
-endif
-CXXFLAGS = $(DEFINES) $(OPT)
 ifdef MPI
   MPIHOME   = /usr/local/lam
   CPPFLAGS += -I$(MPIHOME)/include
@@ -76,27 +76,27 @@ CXX      = g++
 LD       = g++
 CC       = gcc
 FC       = g77
-CFLAGS   = -O3
-CFLAGS   = -O3
-RANLIB   = ranlib
-F77LIBS  = -llapack -lblas -lg2c
-LIBDIR  += -L/usr/local/lib
 ifdef DEBUG
   OPT    = -gstabs+
 else
   OPT    = -O3 -w
 endif
+CFLAGS   = $(DEFINES) $(OPT)
+CFLAGS   = $(DEFINES) $(OPT)
 CXXFLAGS = $(DEFINES) $(OPT)
 LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lalp $(F77LIBS)
+RANLIB   = ranlib
+F77LIBS  = -llapack -lblas -lg2c
+LIBDIR  += -L/usr/local/lib
 endif
 
 ifeq ($(ARCH),IRIX)			# -- SGI 32-bit systems.
 CXX	 = CC
-LD	 = CC
-CFLAGS   = -fullwarn -O2
-FFLAGS   = -O2
+LD	 = C
 RANLIB   = 
-CXXFLAGS = $(DEFINES) -fullwarn -g
+CFLAGS   = $(DEFINES) -fullwarn -O2
+FFLAGS   = $(DEFINES) -O2
+CXXFLAGS = $(DEFINES) -fullwarn -O2
 F77LIBS	 = -lcomplib.sgimath -lftn
 LDFLAGS  = $(LIBDIR) -lfem -lalp $(F77LIBS) -lmalloc -lm
 endif
@@ -104,17 +104,19 @@ endif
 ifeq ($(ARCH),IRIX64)			# -- SGI 64-bit systems.
 CXX	 = CC
 LD	 = CC
-CFLAGS   = -mips4 -64 -r10000 -Ofast=IP30 -OPT:roundoff=3
-FFLAGS   = -mips4 -64 -r10000 -Ofast=IP30 -OPT:roundoff=3
+CC       = cc
+FC       = f77
+CFLAGS   = $(DEFINES) -mips4 -64 $(OPT)
+FFLAGS   = $(DEFINES) -mips4 -64 $(OPT)
+CXXFLAGS = $(DEFINES) -mips4 -64 $(OPT)
+LDFLAGS  = -64 -mips4 $(OPT) $(LIBDIR) -lfem -lalp $(F77LIBS) -lm
 RANLIB   =
 ifdef DEBUG
   OPT    = -g
 else
   OPT    =  -r10000 -Ofast=IP30 -OPT:roundoff=3
 endif
-CXXFLAGS = $(DEFINES) -mips4 -64 $(OPT)
 F77LIBS  = -lcomplib.sgimath -lftn
-LDFLAGS  = -64 -mips4 $(OPT) $(LIBDIR) -lfem -lalp $(F77LIBS) -lm
 endif
 
 ifeq ($(ARCH),OSF1)			# -- DEC OSF1 Alpha.
@@ -122,10 +124,11 @@ CXX	 = cxx
 LD	 = cxx
 FC       = f90
 CC       = cc
-CFLAGS   = -fast -inline speed -fp_reorder -speculate all -tune host -O4
-FFLAGS   = -fast -tune host -O5
-RANLIB   =
+CFLAGS   = $(DEFINES) -fast -inline speed -fp_reorder \
+           -speculate all -tune host -O4
+FFLAGS   = $(DEFINES) -fast -tune host -O5
 CXXFLAGS = $(DEFINES) -tune host -O2
+RANLIB   =
 FORTLIBS = -ldxml -lfor
 ifdef MPI
   MPIHOME   = /usr/local/mpi/
@@ -143,10 +146,10 @@ FC       = frt
 CXX      = /usr/uxp/C++/bin/CC
 LD       = $(CXX)
 OPT      = -Wv,-m3,-Om,-te -Kpopt
-CFLAGS   = -Wv,-m3,-Om -Kpopt
-FFLAGS   = -Wv,-m3,-te
-RANLIB   =
+CFLAGS   = $(DEFINES) -Wv,-m3,-Om -Kpopt
+FFLAGS   = $(DEFINES) -Wv,-m3,-te
 CXXFLAGS = $(DEFINES)  $(OPT)
+RANLIB   =
 ifdef MPI
   LIBDIR  += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
   LIBDIR  += -L/usr/lang/mpi/lib
@@ -170,11 +173,11 @@ FC        = f90
 CFLAGS    = $(DEFINES) -pvctl,fullmsg,loopcnt=20000 -Onooverlap \
            -hfloat0 -hnostkchk
 FFLAGS    = $(DEFINES) -Wf'-pvctl,fullmsg -ptr byte -b' -float0 -ew
+CXXFLAGS  = -V $(DEFINES) -pvctl,loopcnt=20000,fullmsg -acct $(OPT)
 RANLIB    =
 CPPFLAGS += -I/usr/include/CC
 OPT       = -O nooverlap -Nstkchk
 NOVEC     = -c -Nstkchk -acct -dir novec
-CXXFLAGS  = -V $(DEFINES) -pvctl,loopcnt=20000,fullmsg -acct $(OPT)
 FORTLIBS  = -llapack_64 -lblas_64 -lfft_64
 ifdef MPI
   LIBS    = -lfem_mp -lalp $(FORTLIBS) -lm -lC -lmpi -lpthread
