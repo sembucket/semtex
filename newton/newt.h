@@ -25,8 +25,9 @@ private:
 };
 
 
-void integrate (Domain*, Analyser*,
-		void(*) (Domain*, AuxField**, AuxField**));
+typedef void (*Advection) (Domain*, AuxField**, AuxField**);
+void integrate (Domain*, Analyser*, Advection);
+//Advection linear, nonlinear;
 void nonlinear (Domain*, AuxField**, AuxField**);
 void linear    (Domain*, AuxField**, AuxField**);
 

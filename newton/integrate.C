@@ -6,9 +6,9 @@
 // routine; after initialisation, integrate may be called repeatedly
 // without reinitialising internal storage.
 //
-// The form of the advection terms is selected by the input routine advect.
+// The form of the advection terms is selected by the input scheme.
 //
-// $I$
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "newt.h"
@@ -26,7 +26,7 @@ static void   Solve     (Domain*, const integer, AuxField*, Msys*);
 
 void integrate (Domain*        D,
 		Analyser*      A,
-                void (*advect) (Domain*, AuxField**, AuxField**))
+		Advection scheme)
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
 // constraint Field 'p'.
@@ -47,19 +47,22 @@ void integrate (Domain*        D,
   const integer nZ     = Geometry::nZProc();
   const integer ntot   = Geometry::nTotProc();
   real*         alloc  = new real [(size_t) 2 * NCOM * NORD * ntot];
+  Msys**        MMS;
 
-  static Msys**      MMS;
+  static Msys**      MMSL;
+  static Msys**      MMSN;
   static AuxField*** Us;
   static AuxField*** Uf;
   static Field*      Pressure = D -> u[NCOM];
 
-  if (!MMS) {			// -- Initialise static storage.
+  // -- Initialise static storage.
 
-    // -- Create global matrix systems.
+  if (!MMSN && scheme == nonlinear) MMSN = preSolve (D);
+  if (!MMSL && scheme ==    linear) MMSL = preSolve (D);
 
-    MMS = preSolve (D);
-
-    // -- Create, multi-level storage for velocities and forcing.
+  if (!Us) {
+    
+    // -- Create multi-level storage for velocities and forcing.
 
     Us = new AuxField** [(size_t) 2 * NORD];
     Uf = Us + NORD;
@@ -90,6 +93,10 @@ void integrate (Domain*        D,
       *Uf[i][j] = 0.0;
     }
 
+  // -- Select modal matrix systems according to advection scheme.
+
+  MMS = (scheme == linear) ? MMSL : MMSN;
+
   // -- Timestepping loop.
 
   while (D -> step < nStep) {
@@ -100,7 +107,7 @@ void integrate (Domain*        D,
 
     // -- Unconstrained forcing substep.
 
-    advect   (D, Us[0], Uf[0]);
+    scheme   (D, Us[0], Uf[0]);
     waveProp (D, (const AuxField***)Us, (const AuxField***)Uf);
 
     // -- Pressure projection substep.
@@ -134,7 +141,6 @@ void integrate (Domain*        D,
 
     A -> analyse (Us[0]);
   }
-
 }
 
 
@@ -231,9 +237,7 @@ static void project (const Domain* D ,
 
 static Msys** preSolve (const Domain* D)
 // ---------------------------------------------------------------------------
-// Set up ModalMatrixSystems for each Field of D.  If iterative solution
-// is selected for any Field, the corresponding ModalMatrixSystem pointer
-// is set to zero.
+// Set up ModalMatrixSystems for each Field of D.
 //
 // ITERATIVE == 1 selects iterative solvers for velocity components,
 // ITERATIVE == 2 adds iterative solver for pressure as well.

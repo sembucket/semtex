@@ -49,7 +49,7 @@ Domain::Domain (FEML*             F,
 
   VERBOSE cout << "done" << endl;
 
-  VERBOSE cout << "  Building domain perturbation fields ... ";
+  VERBOSE cout << "  Building domain fields ... ";
 
   u   .setSize (nfield);
   udat.setSize (nfield);
@@ -63,19 +63,13 @@ Domain::Domain (FEML*             F,
 
   VERBOSE cout << "done" << endl;
 
-  VERBOSE cout << "  Building domain base flow fields: ";
+  // -- Allocate vectors for base flow pointers but leave them null.
 
   U   .setSize (nfield);
   Udat.setSize (nfield);
 
-  alloc = new real [static_cast<size_t> (nfield * ntot)];
-  Veclib::zero (nfield * ntot, alloc, 1);
-  for (i = 0; i < nfield; i++) {
-    Udat[i] = alloc + i * ntot;
-    U[i]    = new AuxField (Udat[i], nz, E, toupper(field[i]));
-  }
-
-  VERBOSE cout << "done" << endl;
+  U    = 0;
+  Udat = 0;
 }
 
 
@@ -135,7 +129,7 @@ void Domain::restart ()
     file.close();
   } else {
     ROOTONLY cout << "set to zero";
-    for (i = 0; i < nF; i++) Veclib::zero (ntot, Udat(i), 1);
+    for (i = 0; i < nF; i++) Veclib::zero (ntot, udat(i), 1);
   }
 
   ROOTONLY cout << endl;
@@ -209,7 +203,7 @@ ofstream& operator << (ofstream& strm,
   const integer     N = D.u.getSize();
   vector<AuxField*> field (N);
 
-  for (i = 0; i < N; i++) field[i] = D.U[i];
+  for (i = 0; i < N; i++) field[i] = D.u[i];
 
   writeField (strm, D.name, D.step, D.time, field);
 
@@ -296,8 +290,8 @@ ifstream& operator >> (ifstream& strm,
   for (j = 0; j < nfields; j++) {
     for (i = 0; i < nfields; i++)
       if (fields[j] == D.field[i]) {
-	strm >>  *D.U[i];
-	if (swap) D.U[i] -> reverse();
+	strm >>  *D.u[i];
+	if (swap) D.u[i] -> reverse();
 	break;
       }
   }

@@ -875,23 +875,25 @@ friend ofstream& operator << (ofstream&, Domain&);
 public:
   Domain (FEML*, vector<Element*>&, BCmgr*);
 
-  char*                 name;	// Session name.
-  integer               step;	// Runtime step number.
-  real                  time;	// Simulation time.
-  vector<Element*>&     elmt;	// Shared for equal-order interpolations.
-  vector<real*>         udat;	// Data storage area for solution fields.
-  vector<Field*>        u   ;	// Solution fields: velocities, pressure.
-  vector<BoundarySys*>  b   ;	// Field boundary systems.
+  char*                name;	// Session name.
+  integer              step;	// Runtime step number.
+  real                 time;	// Simulation time.
+  vector<Element*>&    elmt;	// Shared for equal-order interpolations.
+  vector<real*>        udat;	// Data storage area for solution fields.
+  vector<Field*>       u   ;	// Solution fields: velocities, pressure.
+  vector<BoundarySys*> b   ;	// Field boundary systems.
 
-  vector<AuxField*>     U   ;	// Base velocity fields.
-  vector<real*>         Udat;	// Data storage area for base auxfields.
+  vector<AuxField*>    U   ;	// Base velocity fields.
+  vector<real*>        Udat;	// Data storage area for base auxfields.
 
-  integer nField  () const { return u.getSize(); }
-  void report     ();
-  void restart    ();
-  void dump       ();
-  void transform  (const integer);
-  void setNumber  (const char, const NumberSys**) const;
+  integer nField () const { return u.getSize(); }
+  void report    ();
+  void restart   ();
+  void dump      ();
+  void transform (const integer);
+  void setNumber (const char, const NumberSys**) const;
+
+
 
 private:
   char* field;		// Lower-case single character field names.

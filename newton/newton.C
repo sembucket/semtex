@@ -11,8 +11,8 @@
 //
 // USAGE
 // -----
-// newton [options] session
-//   session: specifies name of semtex session file.
+// newton [options] basesession pertsession
+//   *session: specifies name of semtex session file.
 //   options:
 //   -h       ... print this message
 //   -v       ... set verbose
@@ -23,10 +23,10 @@
 // 
 // FILES
 // -----
-// A number of semtex files are required --
-//   session:     semtex session file
-//   session.num: computed automatically if not supplied
-//   session.rst: restart file (initialised with white noise if not supplied) 
+// A number of semtex files are required for each solution system
+//   *session:     semtex session file
+//   *session.num: computed automatically if not supplied
+//   *session.rst: restart file (only relevant for base flow)
 //
 // REFERENCES
 // ----------
@@ -46,18 +46,27 @@
 #include "newt.h"
 #include <new.h>
 
-static char             prog[] = "newton";
-static char*            session;
-static Domain*          domain;
+static char prog[] = "newton";
+
+// -- Duplicates for base and perturbation systems.
+
+static Domain* BaseDomain;
+static Domain* PertDomain;
+static FEML*   BaseFile;
+static FEML*   PertFile;
+static BCmgr*  BaseBCman;
+static BCmgr*  PertBCman;
+
+// -- These are shared/utilised by both systems.
+
 static Analyser*        analyst;
-static vector<Element*> elmt;
-static FEML*            file;
 static Mesh*            mesh;
-static BCmgr*           bman;
+static vector<Element*> elmt;
 
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
-static void getargs    (int, char**, int&, int&, real&, real&, int&, char*&);
-static int  preprocess (const char*);
+static void getargs    (int, char**, int&, int&, real&, real&, int&,
+			char*&, char*&);
+static int  preprocess (const char*, const char*);
 static void initVec    (real*);
 static void NS_update  (const real*, real*);
 
@@ -79,14 +88,16 @@ int main (int    argc,
   int  maxiLsys = 100,    maxiNewt = 20, i, itn;
   real tolLsys  = 1.0e-6, tolNewt  = 1.0e-6, rnorm, tol;
   int  verbose  = 0, converged = 0, info;
+  char *BaseSession, *PertSession;
 
   Femlib::initialize (&argc, &argv);
 
-  getargs (argc, argv, maxiLsys, maxiNewt, tolLsys, tolNewt, verbose, session);
+  getargs (argc, argv, maxiLsys, maxiNewt, tolLsys, tolNewt, verbose,
+	   BaseSession, PertSession);
 
   // -- Allocate storage.
   
-  const int ntot = preprocess (session);
+  const int ntot = preprocess (BaseSession, PertSession);
   const int wdim = 10 * ntot;
 
   vector<real> work (wdim);
@@ -96,6 +107,8 @@ int main (int    argc,
   real* U    = u  + ntot;
   real* dU   = U  + ntot;
   real* lwrk = dU + ntot; 
+
+  cout.setf (ios::scientific, ios::floatfield); cout.precision (2);
 
   initVec (U);
 
@@ -117,11 +130,14 @@ int main (int    argc,
 
     cout << "Iteration "           << setw(3) << i 
 	 << ", BiCGS iterations: " << setw(3) << itn
-	 << ", resid: "            << setw(6) << tol
-	 << ", Rnorm: "            << setw(6) << rnorm << endl;
+	 << ", resid: "            << tol
+	 << ", Rnorm: "            << rnorm 
+	 << endl;
 
     Veclib::vsub (ntot, U, 1, u, 1, U, 1);
   }
+
+  BaseDomain -> dump();
 
   Femlib::finalize();
   return (EXIT_SUCCESS);
@@ -135,12 +151,13 @@ static void getargs (int    argc    ,
 		     real&  tolLsys ,
 		     real&  tolNewt ,
 		     int&   verbose ,
-		     char*& session )
+		     char*& Bsession,
+		     char*& Psession)
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  char usage[] = "newton [options] session\n"
+  char usage[] = "newton [options] basesession pertsession\n"
     "options:\n"
     "-h       ... print this message\n"
     "-v       ... set verbose\n"
@@ -162,7 +179,7 @@ static void getargs (int    argc    ,
       break;
     case 'c':
       if (*++argv[0]) tolNewt  = atof (  *argv);
-      else { --argc;  tolNewt  = atoi (*++argv); }
+      else { --argc;  tolNewt  = atof (*++argv); }
       break;
     case 'm':
       if (*++argv[0]) maxiNewt = atoi (  *argv);
@@ -182,24 +199,27 @@ static void getargs (int    argc    ,
       break;
     }
 
-  if   (argc != 1) message (prog, "no session file",   ERROR);
-  else             session = *argv;
+  if (argc != 2) message (prog, "no session files", ERROR);
+  else { Bsession = *argv; Psession = *++argv; }
 }
 
 
-static int preprocess (const char* session)
+static int preprocess (const char* Bsession,
+		       const char* Psession)
 // ---------------------------------------------------------------------------
-// Create objects needed for semtex execution, given the session file name.
+// Create objects needed for semtex execution, given the session file names.
 //
 // Return length of an solution vector: the amount of storage required for
 // a velocity component * number of components.
 // ---------------------------------------------------------------------------
 {
   const real* z;
-  integer     i, np, nel, nz, cyl;
+  integer     i, np, nel, nz, nf, cyl;
 
-  file = new FEML (session);
-  mesh = new Mesh (file);
+  BaseFile = new FEML (Bsession);
+  PertFile = new FEML (Psession);
+
+  mesh = new Mesh (BaseFile);
 
   cyl  = static_cast<integer>(Femlib::value ("CYLINDRICAL"));
   np   = static_cast<integer>(Femlib::value ("N_POLY"));
@@ -213,18 +233,29 @@ static int preprocess (const char* session)
   elmt.setSize (nel);
   for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
 
-  bman    = new BCmgr    (file, elmt);
-  domain  = new Domain   (file, elmt, bman);
-  analyst = new Analyser (domain, file);
+  BaseBCman  = new BCmgr  (BaseFile, elmt);
+  PertBCman  = new BCmgr  (PertFile, elmt);
+  BaseDomain = new Domain (BaseFile, elmt, BaseBCman);
+  PertDomain = new Domain (PertFile, elmt, PertBCman);
+
+  nf      = BaseDomain -> nField();
+  analyst = new Analyser (BaseDomain, BaseFile);
+
+  // -- Tie the two systems together.
+
+  for (i = 0; i < nf; i++) {
+    PertDomain -> U[i]    = BaseDomain -> u[i];
+    PertDomain -> Udat[i] = BaseDomain -> udat[i];
+  }
 
   // -- Over-ride any CHKPOINT flag in session file.
 
   Femlib::value ("CHKPOINT", 1);
 
-  domain -> restart ();
-  domain -> report  ();
+  BaseDomain -> restart();
+  BaseDomain -> report ();
 
-  return (domain->nField() - 1) * Geometry::planeSize() * Geometry::nZ();
+  return (nf - 1) * Geometry::planeSize() * Geometry::nZ();
 }
 
 
@@ -234,13 +265,13 @@ static void initVec (real* tgt)
 // ---------------------------------------------------------------------------
 {
   int       i, k;
-  const int NC = domain -> nField() - 1;
+  const int NC = BaseDomain -> nField() - 1;
   const int NP = Geometry::planeSize();
   const int NZ = Geometry::nZ();
 
   for (i = 0; i < NC; i++)
     for (k = 0; k < NZ; k++)
-      domain -> U[i] -> getPlane (k, tgt + (i*NZ + k)*NP);
+      BaseDomain -> u[i] -> getPlane (k, tgt + (i*NZ + k)*NP);
 }
 
 
@@ -248,28 +279,28 @@ static void NS_update (const real* src,
 		       real*       tgt)
 // ---------------------------------------------------------------------------
 // Generate tgt by integrating NS problem for input velocity src.
-// Also set base flow to input velocity.
+// Then reinstate src as the base flow velocity field.
 // ---------------------------------------------------------------------------
 {
   int       i, k;
-  const int NC = domain -> nField() - 1;
+  const int NC = BaseDomain -> nField() - 1;
   const int NP = Geometry::planeSize();
   const int NZ = Geometry::nZ();
 
   for (i = 0; i < NC; i++)
-    for (k = 0; k < NZ; k++) {
-      domain -> u[i] -> setPlane (k, src + (i*NZ + k)*NP);
-      domain -> U[i] -> setPlane (k, src + (i*NZ + k)*NP);
-    }
+    for (k = 0; k < NZ; k++)
+      BaseDomain -> u[i] -> setPlane (k, src + (i*NZ + k)*NP);
 
-  domain -> step = 0;
-  domain -> time = 0.0;
+  BaseDomain -> step = 0;
+  BaseDomain -> time = 0.0;
 
-  integrate (domain, analyst, nonlinear);
+  integrate (BaseDomain, analyst, nonlinear);
 
   for (i = 0; i < NC; i++)
-    for (k = 0; k < NZ; k++)
-      domain -> u[i] -> getPlane (k, tgt + (i*NZ + k)*NP);
+    for (k = 0; k < NZ; k++) {
+      BaseDomain -> u[i] -> getPlane (k, tgt + (i*NZ + k)*NP);
+      BaseDomain -> u[i] -> setPlane (k, src + (i*NZ + k)*NP);
+    }
 }
 
 
@@ -284,7 +315,7 @@ void matvec (const real& alpha,
 // ---------------------------------------------------------------------------
 {
   int       i, k;
-  const int NC   = domain -> nField() - 1;
+  const int NC   = PertDomain -> nField() - 1;
   const int NP   = Geometry::planeSize();
   const int NZ   = Geometry::nZ();
   const int ntot = NC * NP * NZ;
@@ -294,16 +325,16 @@ void matvec (const real& alpha,
 
   for (i = 0; i < NC; i++)
     for (k = 0; k < NZ; k++)
-      domain -> u[i] -> setPlane (k, x + (i*NZ + k)*NP);
+      PertDomain -> u[i] -> setPlane (k, x + (i*NZ + k)*NP);
 
-  domain -> step = 0;
-  domain -> time = 0.0;
+  PertDomain -> step = 0;
+  PertDomain -> time = 0.0;
 
-  integrate (domain, analyst, linear);
+  integrate (PertDomain, analyst, linear);
 
   for (i = 0; i < NC; i++)
     for (k = 0; k < NZ; k++)
-      domain -> u[i] -> getPlane (k, y + (i*NZ + k)*NP);
+      PertDomain -> u[i] -> getPlane (k, y + (i*NZ + k)*NP);
 
   Veclib::vsub (ntot, y, 1, x, 1, y, 1);
   Blas::scal   (ntot, alpha, y, 1);
@@ -318,11 +349,10 @@ void ident (real*       tgt,
 // As we don't have a preconditioner for the problem, this is an identity. 
 // ---------------------------------------------------------------------------
 {
-  const int NC   = domain -> nField() - 1;
+  const int NC   = PertDomain -> nField() - 1;
   const int NP   = Geometry::planeSize();
   const int NZ   = Geometry::nZ();
   const int ntot = NC * NP * NZ;
 
   Veclib::copy (ntot, src, 1, tgt, 1);
 }
-
