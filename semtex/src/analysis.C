@@ -135,7 +135,8 @@ void Analyser::analyse (AuxField*** work)
 {
   const integer verbose = (integer) Femlib::value ("VERBOSE");
   const integer cflstep = (integer) Femlib::value ("IO_CFL");
-  const integer add     = (integer) Femlib::value ("SPAWN");
+  const integer add     = (integer) Femlib::value ("SPAWN") &&
+                         !(src.step % (integer) Femlib::value ("SPAWN"));
 
   ListIterator<FluidParticle*> p (particle);
 
