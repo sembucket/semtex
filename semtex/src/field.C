@@ -14,7 +14,8 @@ RCSid[] = "$Id$";
 #endif
 
 
-Field::Field (Mesh& M, const int& np)
+Field::Field (Mesh&      M ,
+	      const int& np)
 // ---------------------------------------------------------------------------
 // Use M to allocate storage for Field and its Elements.
 //
@@ -53,11 +54,10 @@ Field::Field (Mesh& M, const int& np)
   for (ListIterator<Element*> k (element_list); k.more (); k.next ()) {
     E = k.current ();
 
-    E -> install (offset, m, 0, 0);
-    E -> mesh    (M);
-    E -> map     ();
-
-    if (FamilyMgr::active) E -> economizeGeo ();
+    E -> install      (offset, m, 0, 0);
+    E -> mesh         (M);
+    E -> map          ();
+    E -> economizeGeo ();
 
     offset += E -> nTot ();
     m      += E -> nMsh ();
@@ -216,8 +216,8 @@ Field& Field::operator = (const char* function)
 // Set Field's value to temporo-spatially varying function.
 // ---------------------------------------------------------------------------
 {
-  register Element*  E;
-  register int       offset = 0;
+  register Element* E;
+  register int      offset = 0;
 
   for (ListIterator<Element*> k (element_list); k.more (); k.next ()) {
     E      = k.current ();
@@ -229,7 +229,8 @@ Field& Field::operator = (const char* function)
 }
 
 
-Field& Field::prod (const Field& a, const Field& b)
+Field& Field::prod (const Field& a,
+		    const Field& b)
 // ---------------------------------------------------------------------------
 // Set this Field's value as the product of a & b.
 // ---------------------------------------------------------------------------
@@ -243,7 +244,8 @@ Field& Field::prod (const Field& a, const Field& b)
 }
 
 
-Field& Field::sum (const Field& a, const Field& b)
+Field& Field::sum (const Field& a,
+		   const Field& b)
 // ---------------------------------------------------------------------------
 // Set this Field's value as the sum of a & b.
 // ---------------------------------------------------------------------------
@@ -257,7 +259,8 @@ Field& Field::sum (const Field& a, const Field& b)
 }
 
 
-Field& Field::addprod (const Field& a, const Field& b)
+Field& Field::addprod (const Field& a,
+		       const Field& b)
 // ---------------------------------------------------------------------------
 // Add the product of a & b to this Field.
 // ---------------------------------------------------------------------------
@@ -271,7 +274,8 @@ Field& Field::addprod (const Field& a, const Field& b)
 }
 
 
-Field& Field::axpy (const real& alpha, const Field& x)
+Field& Field::axpy (const real&  alpha,
+		    const Field& x    )
 // ---------------------------------------------------------------------------
 // Add alpha * x to this Field.
 // ---------------------------------------------------------------------------
@@ -296,7 +300,8 @@ Field& Field::reverse ()
 }
 
 
-void Field::swapData (Field* x, Field* y)
+void Field::swapData (Field* x,
+		      Field* y)
 // ---------------------------------------------------------------------------
 // Swap data areas of two fields.
 // ---------------------------------------------------------------------------
@@ -326,15 +331,16 @@ void Field::printMesh (const Field* F)
 }
 
 
-Field& Field::grad (const int& flag1, const int& flag2)
+Field& Field::grad (const int& flag1, 
+		    const int& flag2)
 // ---------------------------------------------------------------------------
 // Operate on Field(s) to produce the nominated index of the gradient.
 // ---------------------------------------------------------------------------
 {
   char routine[] = "Field::grad";
 
-  register Element*  E;
-  register int       offset;
+  register Element*      E;
+  register int           offset;
   ListIterator<Element*> i (element_list);
 
   if (flag1 && flag2) 
@@ -420,7 +426,8 @@ Field& Field::errors (const char* function)
 }
 
 
-ostream& operator << (ostream& strm, Field& F)
+ostream& operator << (ostream& strm,
+		      Field&   F   )
 // ---------------------------------------------------------------------------
 // Binary write of F's data area.
 // ---------------------------------------------------------------------------
@@ -431,7 +438,8 @@ ostream& operator << (ostream& strm, Field& F)
 }
 
 
-istream& operator >> (istream& strm, Field& F)
+istream& operator >> (istream& strm,
+		      Field&   F   )
 // ---------------------------------------------------------------------------
 // Binary read of F's data area.
 // ---------------------------------------------------------------------------
