@@ -21,16 +21,11 @@ void Taylor2D (CVF  IC, const int*  Dim, const int  code)
  * Generate initial conditions for t = 0, components in PHYSICAL space.
  * ------------------------------------------------------------------------- */
 {
-  const int N    = Dim[1];
-  const int Npts = Dim[1] * Dim[2] * Dim[3];
-
-  /* -- Fast pointers to the data. */
-
-  register real *u = & IC[1][0][0][0].Re;
-  register real *v = & IC[2][0][0][0].Re;
-  register real *w = & IC[3][0][0][0].Re;
-
-  register int i, j, k;
+  const    int    N = Dim[1];
+  register real  *u = &IC[1][0][0][0].Re;
+  register real  *v = &IC[2][0][0][0].Re;
+  register real  *w = &IC[3][0][0][0].Re;
+  register int    i, j, k;
 
   /* -- Fill up the cube. */
 
@@ -94,24 +89,20 @@ void Taylor2D (CVF  IC, const int*  Dim, const int  code)
 
 void Taylor2D_error (CVF IC, const int* Dim, const Param* I, const int code)
 /* ------------------------------------------------------------------------- *
- * Replace the velocity field by its error at the time indicated by
- * Param information.  Code indicates which velocity component is zero.
+ * Replace the velocity field by its error at the time indicated in I.
+ * Code indicates which velocity component is zero.
  *
  * Velocity components are supplied in physical space.
  * ------------------------------------------------------------------------- */
 {
-  const double  decay = exp (-2.0 * I -> time / I -> Re);
-  const int     N     = Dim[1];
-  double        x, y, z;
-  real          uvw;
-
-  /* -- Fast pointers to data. */
-
-  register real *u = & IC[1][0][0][0].Re;
-  register real *v = & IC[2][0][0][0].Re;
-  register real *w = & IC[3][0][0][0].Re;
-
-  register int i, j, k;
+  const double    decay = exp (-2.0 * I -> time / I -> Re);
+  const int       N     = Dim[1];
+  double          x, y, z;
+  real            uvw;
+  register real  *u = & IC[1][0][0][0].Re;
+  register real  *v = & IC[2][0][0][0].Re;
+  register real  *w = & IC[3][0][0][0].Re;
+  register int    i, j, k;
 
   /* -- Fill up the cube. */
 
@@ -319,7 +310,7 @@ real  Brachet (const real t)
     omega += t2r * A[r];
     t2r   *= t2;
   }
-  omega *= 2.0;
+  omega *= 0.5;
 
   return  omega;
 }
