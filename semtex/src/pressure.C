@@ -1,6 +1,6 @@
-/*****************************************************************************
- * pressure.C: routines to deal with pressure field and boundary conditions.
- *****************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+// pressure.C: routines to deal with pressure field and boundary conditions.
+///////////////////////////////////////////////////////////////////////////////
 
 static char 
 RCSid[] = "$Id$";
@@ -82,21 +82,26 @@ void  PBCmanager::build (BoundedField& P)
 }
 
 
-void  PBCmanager::maintain (const int&           step  ,
-			    const BoundedField*  master,
-			    const Field***       Us    ,
-			    const Field***       Uf    )
+void  PBCmanager::maintain (const int&           step   ,
+			    const BoundedField&  master ,
+			    const Field***       Us     ,
+			    const Field***       Uf     ,
+			    const int&           timedep)
 // ---------------------------------------------------------------------------
 // Update storage for evaluation of high-order pressure boundary condition.
 //
 // No smoothing is done to high-order spatial derivatives computed here.
 //
-// We add estimates of local rate of change of velocity to the linear terms;
-// since these must be extrapolated from velocity fields, there must be the
-// same amount of storage as for the time order of the scheme, (since, e.g.
-// for a first order scheme we need two levels of velocities to estimate a
-// time derivative: these come from the new one passed in, and the boundary
-// store).  Note also that this term cannot be estimated on the first step.
+// If the velocity field varies in time on HOPB field boundaries (e.g. due
+// to time-varying BCs) the local fluid acceleration will be estimated
+// from input velocity fields by explicit extrapolation if timedep is true.
+// This correction cannot be carried out at the first timestep, since the
+// required extrapolation cannot be done.  If the acceleration is known,
+// (for example, a known reference frame acceleration) it is probably better
+// to leave timedep unset, and to use PBCmanager::accelerate () to add in the
+// accelerative term.  Note also that since grad P is dotted with n, the
+// unit outward normal, at a later stage, timedep only needs to be set if
+// there are wall-normal accelerative terms.
 //
 // Field* master gives a list of pressure boundary conditions with which to
 // traverse storage areas (note this assumes equal-order interpolations).
@@ -111,12 +116,12 @@ void  PBCmanager::maintain (const int&           step  ,
   const Field* Nx = Uf[0][0];
   const Field* Ny = Uf[1][0];
 
-  int   i, np, offset, skip;
+  register int i, np, offset, skip;
 
   // -- Roll grad P storage area up, load new level of nonlinear terms.
 
   register     Boundary*   B;
-  ListIterator<Boundary*>  j (master -> boundary_list);
+  ListIterator<Boundary*>  j (master.boundary_list);
 
   for (i = 0; j.more (); j.next (), i++) {
     B = j.current ();
@@ -155,7 +160,7 @@ void  PBCmanager::maintain (const int&           step  ,
 
     // -- Estimate -du/dt by backwards differentiation, add in on HOPBs.
 
-    if (step > 1 && !B -> isEssential()) {
+    if (timedep && step > 1 && !B -> isEssential ()) {
 
       Je    = min (step - 1, nTime);
       tmp   = wx;
@@ -190,8 +195,8 @@ void  PBCmanager::maintain (const int&           step  ,
 }
 
 
-void  PBCmanager::evaluate (int   id,     int   np,  int   step,
-			    real* value,  real* nx,  real* ny  )
+void  PBCmanager::evaluate (int   id,    const int&  np, const int&  step,
+			    real* value, const real* nx, const real* ny  )
 // ---------------------------------------------------------------------------
 // Load PBC value with values obtained from HOBC multi-level storage.
 //
@@ -230,4 +235,29 @@ void  PBCmanager::evaluate (int   id,     int   np,  int   step,
   freeVector (beta);
   freeVector (tmpX);
   freeVector (tmpY);
+}
+
+
+void PBCmanager::accelerate (const Vector& a, const BoundedField& u)
+// ---------------------------------------------------------------------------
+// Add in frame acceleration term on boundaries that correspond to
+// essential velocity BCs (a = - du/dt).  Note that the acceleration
+// time level should correspond to the time level in the most recently
+// updated pressure gradient storage. 
+//
+// Yes, this is a HACK!
+// ---------------------------------------------------------------------------
+{
+  register     int         i, np;
+  register     Boundary*   B;
+  ListIterator<Boundary*>  j (u.boundary_list);
+
+  for (i = 0; j.more (); j.next (), i++) {
+    B = j.current ();
+    if (B -> isEssential () && !B -> isWall ()) {
+      np = B -> nKnot ();
+      Veclib::sadd (np, a.x, store[i].Px[0], 1, store[i].Px[0], 1);
+      Veclib::sadd (np, a.y, store[i].Py[0], 1, store[i].Py[0], 1);
+    }
+  }
 }
