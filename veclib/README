@@ -1,16 +1,15 @@
 ###############################################################################
 #              L I N E A R    A L G E B R A    P R I M I T I V E S
+#
+# $Id$
 ###############################################################################
-
-$Author$
-$Id$
 
 SYNOPSIS: Linear algebra primitives (alplib).
 ---------
 
 INTRODUCTION:
 ------------- 
-The library descends from the iPSC/2 VECLIB library.
+The library descends from the Intel iPSC/2 VECLIB library.
 Available vector operations complement the BLAS.
 
 Not all the VECLIB routines are implemented: for example those which
