@@ -105,6 +105,8 @@ void Analyser::modalEnergy ()
   register integer i;
   real             re, im, ek[4];
 
+  Veclib::zero (4, ek, 1);
+
   for (i = 0; i < DIM; i++) {
     src -> u[i] -> mode_en (0, re, im);
     ek[0] += re;
