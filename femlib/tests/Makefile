@@ -119,8 +119,8 @@ testpoly: testpoly.c
 	-L$(SEMHOME)/lib -lfem -lalp -lm
 
 testFFT: testFFT.C
-	$(CXX) -o $@ testFFT.C temfft.o -I$(SEMHOME)/include -I. -g \
-	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lftn -lm
+	$(CXX) -o $@ testFFT.C -I$(SEMHOME)/include -I. -g \
+	$(CXXFLAGS) -L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lftn -lm
 
 testDLT: testDLT.C
 	$(CXX) -o $@ testDLT.C $(CXXFLAGS) -I$(SEMHOME)/include -I. -g \
