@@ -181,7 +181,7 @@ void Analyser::analyse ()
 
   // -- Field and statistical dumps.
 
-  src -> dump ();
+  if (src -> step) src -> dump ();
 }
 
 

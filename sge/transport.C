@@ -93,6 +93,11 @@ void transport (Domain*     d1   ,
     *(Us2[i] = new AuxField (d2 -> elmt, nz)) = 0.0;
   }
 
+  // -- Dump startup analysis information.
+
+  SET1; a1 -> analyse();
+  SET2; a2 -> analyse();
+
   // -- Timestepping loop.
 
   while (d1 -> step < nStep) {
