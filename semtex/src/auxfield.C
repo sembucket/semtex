@@ -774,8 +774,8 @@ AuxField& AuxField::transform (const integer sign)
 }
 
 
-AuxField& AuxField::transform32 (real*         phys,
-				 const integer sign)
+AuxField& AuxField::transform32 (const integer sign,
+				 real*         phys)
 // ---------------------------------------------------------------------------
 // Discrete Fourier transform in homogeneous direction, extended for
 // dealiasing.  Input pointer phys points to data in physical space,
@@ -822,6 +822,168 @@ AuxField& AuxField::transform32 (real*         phys,
       Femlib::transpose (phys, nZP, nP, +1);
       Femlib::DFTr      (phys, nZ, nPP, -1);
       Femlib::transpose (phys, nZP, nP, -1);
+    }
+  }
+
+  return *this;
+}
+
+
+AuxField& AuxField::DLT2D (const integer sign,
+			   const real*   filt)
+// ---------------------------------------------------------------------------
+// Carry out 2D discrete Legendre transform on an element-by-element
+// basis, for each plane of data.  Sign = 1 ==> forward transform.
+// Optionally apply a set of (1D) filter weights during forward or inverse
+// transformation.
+// ---------------------------------------------------------------------------
+{
+  const integer    np  = Geometry::nP();
+  const integer    nel = Geometry::nElmt();
+  const integer    nz  = Geometry::nZProc();
+  const integer    np2 = sqr(np);
+
+  register integer p, q, pq, r, s, rs;
+  register real    cr, cs, P, Q;
+  integer          i, k, offset;
+  vector<real>     work (np2);
+  real             *pk, *src, *tmp = work();
+  const real       *w, *legtab;
+
+  Femlib::legCoef (np, &legtab);
+  Femlib::quad    (LL, np, np, 0, 0, &w, 0, 0, 0, 0);
+
+  if (filt) {			// -- Apply filter within transform.
+
+    if (sign == 1) {		// -- Forward transform.
+      for (k = 0; k < nz; k++) {
+	pk = plane[k];
+	for (i = 0; i < nel; i++) {
+	  offset = Elmt[i] -> dOff();
+	  src    = pk + offset;
+	  Veclib::zero (np2, tmp, 1);
+	  for (rs = 0, r = 0; r < np; r++) {
+	    cr = filt[r] * legtab[Veclib::row_major (np, r, np)];
+	    for (s = 0; s < np; s++, rs++) {
+	      cs = filt[s] * legtab[Veclib::row_major (np, s, np)];
+	      for (pq = 0, p = 0; p < np; p++) {
+		P = legtab[Veclib::row_major (r, p, np)];
+		for (q = 0; q < np; q++, pq++) {
+		  Q = legtab[Veclib::row_major (s, q, np)];
+		  tmp[rs] += w[p] * w[q] * P * Q * src[pq];
+		}
+	      }
+	      tmp[rs] *= cr * cs;
+	    }
+	  }
+	  Veclib::copy (np2, tmp, 1, src, 1);
+	}
+      }
+    } else {			// -- Inverse transform.
+      for (k = 0; k < nz; k++) {
+	pk = plane[k];
+	for (i = 0; i < nel; i++) {
+	  offset = Elmt[i] -> dOff();
+	  src    = pk + offset;
+	  Veclib::zero (np2, tmp, 1);
+	  for (rs = 0, r = 0; r < np; r++) {
+	    for (s = 0; s < np; s++, rs++) {
+	      for (pq = 0, p = 0; p < np; p++) {
+		P = filt[p] * legtab[Veclib::row_major (p, r, np)];
+		for (q = 0; q < np; q++, pq++) {
+		  Q = filt[q] * legtab[Veclib::row_major (q, s, np)];
+		  tmp[rs] += P * Q * src[pq];
+		}
+	      }
+	    }
+	  }
+	  Veclib::copy (np2, tmp, 1, src, 1);
+	}
+      }
+    }
+
+  } else {			// -- Plain transform. no filter.
+
+    if (sign == 1) {		// -- Forward transform.
+      for (k = 0; k < nz; k++) {
+	pk = plane[k];
+	for (i = 0; i < nel; i++) {
+	  offset = Elmt[i] -> dOff();
+	  src    = pk + offset;
+	  Veclib::zero (np2, tmp, 1);
+	  for (rs = 0, r = 0; r < np; r++) {
+	    cr = legtab[Veclib::row_major (np, r, np)];
+	    for (s = 0; s < np; s++, rs++) {
+	      cs = legtab[Veclib::row_major (np, s, np)];
+	      for (pq = 0, p = 0; p < np; p++) {
+		P = legtab[Veclib::row_major (r, p, np)];
+		for (q = 0; q < np; q++, pq++) {
+		  Q = legtab[Veclib::row_major (s, q, np)];
+		  tmp[rs] += w[p] * w[q] * P * Q * src[pq];
+		}
+	      }
+	      tmp[rs] *= cr * cs;
+	    }
+	  }
+	  Veclib::copy (np2, tmp, 1, src, 1);
+	}
+      }
+    } else {			// -- Inverse transform.
+      for (k = 0; k < nz; k++) {
+	pk = plane[k];
+	for (i = 0; i < nel; i++) {
+	  offset = Elmt[i] -> dOff();
+	  src    = pk + offset;
+	  Veclib::zero (np2, tmp, 1);
+	  for (rs = 0, r = 0; r < np; r++) {
+	    for (s = 0; s < np; s++, rs++) {
+	      for (pq = 0, p = 0; p < np; p++) {
+		P = legtab[Veclib::row_major (p, r, np)];
+		for (q = 0; q < np; q++, pq++) {
+		  Q = legtab[Veclib::row_major (q, s, np)];
+		  tmp[rs] += P * Q * src[pq];
+		}
+	      }
+	    }
+	  }
+	  Veclib::copy (np2, tmp, 1, src, 1);
+	}
+      }
+    }
+  }
+
+  return *this;
+}
+
+
+AuxField& AuxField::DFfilt (const real* filter)
+// ---------------------------------------------------------------------------
+// Presuming data are already in Fourier-transformed state, apply a set
+// of filter weights to the data on the present processor.  Filter
+// coefficients are real only.
+// ---------------------------------------------------------------------------
+{
+  register integer i, k, Re, Im, offset;
+  const integer    nM  = Geometry::nModeProc();
+  const integer    nP  = Geometry::planeSize();
+  const integer    pID = Geometry::procID();
+
+  ROOTONLY {
+    Blas::scal (nP, filter[0], plane[0], 1);
+    for (k = 1; k < nM; k++) {
+      Re = k  + k;
+      Im = Re + 1;
+      Blas::scal (nP, filter[k], plane[Re], 1);
+      Blas::scal (nP, filter[k], plane[Im], 1);
+    }
+  } else {
+    offset = pID * nM;
+    for (k = 0; k < nM; k++) {
+      i  = k  + offset;
+      Re = k  + k;
+      Im = Re + 1;
+      Blas::scal (nP, filter[i], plane[Re], 1);
+      Blas::scal (nP, filter[i], plane[Im], 1);
     }
   }
 
