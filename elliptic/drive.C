@@ -3,15 +3,30 @@
 //
 // SYNOPSIS:
 // --------
-// Compute solution to elliptic problem, (compare to exact solution).
+// Compute solution to elliptic problem, optionally compare to exact solution.
+// Copyright (C) 1994, 1999  Hugh Blackburn.
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 // USAGE:
 // -----
 // elliptic [options] session
 //   options:
-//   -h        ... print usage prompt
-//   -i        ... use iterative solver
-//   -v[v...]  ... increase verbosity level
+//   -h       ... print this message
+//   -i       ... use iterative solver
+//   -v[v...] ... increase verbosity level
 //
 //
 // Author
@@ -21,7 +36,7 @@
 // P.O. Box 56
 // Highett, Vic 3190
 // Australia
-// hmb@dbce.csiro.au
+// hugh.blackburn@dbce.csiro.au
 //////////////////////////////////////////////////////////////////////////////
 
 static char
@@ -34,12 +49,12 @@ static char prog[] = "elliptic";
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 
 extern void Helmholtz (Domain*, const char*);
-static void getargs   (integer, char**, char*&);
+static void getargs   (int, char**, char*&);
 static void setup     (FEML*, char*&, char*&);
 
 
-integer main (integer argc,
-	      char**  argv)
+int main (int    argc,
+	  char** argv)
 // ---------------------------------------------------------------------------
 // Driver.
 // ---------------------------------------------------------------------------
@@ -91,9 +106,9 @@ integer main (integer argc,
 }
 
 
-static void getargs (integer argc   ,
-		     char**  argv   ,
-		     char*&  session)
+static void getargs (int    argc   ,
+		     char** argv   ,
+		     char*& session)
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
 // arguments.  Last argument is name of a session file, not dealt with here.
@@ -101,8 +116,8 @@ static void getargs (integer argc   ,
 {
   const char routine[] = "getargs";
   const char usage[] =
-    "Usage: %s [options] session-file\n"
-    "  [options]:\n"
+    "Usage: %s [options] session\n"
+    "  options:\n"
     "  -h       ... print this message\n"
     "  -i       ... use iterative solver\n"
     "  -v[v...] ... increase verbosity level\n";
