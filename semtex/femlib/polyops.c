@@ -27,8 +27,9 @@
  * Everything here is double precision.                                      *
  *****************************************************************************/
 
-/* $Id$ */
 
+static char
+RCSid01[] = "$Id$";
 
 
 #include <stdio.h>
