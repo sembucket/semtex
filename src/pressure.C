@@ -35,11 +35,11 @@ void PBCmgr::build (const Field* P)
 // There is some wastage as memory is also allocated for essential BCs.
 // ---------------------------------------------------------------------------
 {
-  const integer np    = Geometry::nP();
-  const integer nTime = static_cast<int>(Femlib::value ("N_TIME"));
-  const integer nEdge = P -> _nbound;
-  const integer nZ    = P -> _nz;
-  integer       i, j, k;
+  const int np    = Geometry::nP();
+  const int nTime = static_cast<int>(Femlib::value ("N_TIME"));
+  const int nEdge = P -> _nbound;
+  const int nZ    = P -> _nz;
+  int       i, j, k;
 
   Pnx = new real*** [static_cast<size_t>(nTime)];
   Pny = new real*** [static_cast<size_t>(nTime)];
@@ -101,28 +101,26 @@ void PBCmgr::maintain (const int        step   ,
 // No smoothing is done to high-order spatial derivatives computed here.
 // ---------------------------------------------------------------------------
 {
-  const real         nu    = Femlib::value ("KINVIS");
-  const real         invDt = 1.0 / Femlib::value ("D_T");
-  const integer      nTime = static_cast<int>(Femlib::value ("N_TIME"));
-  const integer      nEdge = P -> _nbound;
-  const integer      nZ    = P -> _nz;
-  const integer      nP    =  Geometry::nP();
-  const integer      base  =  Geometry::baseMode();
-  const integer      nMode =  Geometry::nModeProc();
-  const integer      mLo   = (Geometry::procID() == 0) ? 1 : 0;
+  const real nu    = Femlib::value ("KINVIS");
+  const real invDt = 1.0 / Femlib::value ("D_T");
+  const int  nTime = static_cast<int>(Femlib::value ("N_TIME"));
+  const int  nEdge = P -> _nbound;
+  const int  nZ    = P -> _nz;
+  const int  nP    =  Geometry::nP();
+  const int  base  =  Geometry::baseMode();
+  const int  nMode =  Geometry::nModeProc();
+  const int  mLo   = (Geometry::procID() == 0) ? 1 : 0;
 
-  const AuxField*    Ux = Us[0];
-  const AuxField*    Uy = Us[1];
-  const AuxField*    Uz = (nZ > 1) ? Us[2] : 0;
-  const AuxField*    Nx = Uf[0];
-  const AuxField*    Ny = Uf[1];
+  const AuxField* Ux = Us[0];
+  const AuxField* Uy = Us[1];
+  const AuxField* Uz = (nZ > 1) ? Us[2] : 0;
+  const AuxField* Nx = Uf[0];
+  const AuxField* Ny = Uf[1];
 
   const vector<Boundary*>& BC = P -> _bsys -> BCs (0);
   register Boundary*       B;
-  register integer         i, k, q;
-  integer                  m, offset, skip, Je;
-
-  vector<real>       work (4 * nP + Integration::OrderMax + 1);
+  register int             i, k, q;
+  int                      m, offset, skip, Je;
 
   // -- Roll grad P storage area up, load new level of nonlinear terms Uf.
 
@@ -143,12 +141,14 @@ void PBCmgr::maintain (const int        step   ,
 
   // -- Add in -nu * curl curl u.
 
-  real  *UxRe, *UxIm, *UyRe, *UyIm, *UzRe, *UzIm, *tmp;
-  real* xr    = &work[0];
-  real* xi    = xr + nP;
-  real* yr    = xi + nP;
-  real* yi    = yr + nP;
-  real* alpha = yi + nP;
+  vector<real> work (5 * sqr(nP) + 7 * nP + Integration::OrderMax + 1);
+  real         *UxRe, *UxIm, *UyRe, *UyIm, *UzRe, *UzIm, *tmp;
+  real*        wrk   = &work[0];
+  real*        xr    = wrk + 5*sqr(nP) + 3*nP;
+  real*        xi    = xr  + nP;
+  real*        yr    = xi  + nP;
+  real*        yi    = yr  + nP;
+  real*        alpha = yi  + nP;
 
   for (i = 0; i < nEdge; i++) {
     B      = BC[i];
@@ -158,7 +158,7 @@ void PBCmgr::maintain (const int        step   ,
     ROOTONLY {			    // -- Deal with 2D/zero Fourier mode terms.
       UxRe = Ux -> _plane[0];
       UyRe = Uy -> _plane[0];
-      B -> curlCurl (0, UxRe, 0, UyRe, 0, 0, 0, xr, 0, yr, 0);
+      B -> curlCurl (0,UxRe,0,UyRe,0,0,0,xr,0,yr,0,wrk);
       Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][0], 1);
       Blas::axpy (nP, -nu, yr, 1, Pny[0][i][0], 1);
     }
@@ -171,7 +171,7 @@ void PBCmgr::maintain (const int        step   ,
       UzRe = Uz -> _plane[2 * m];
       UzIm = Uz -> _plane[2 * m + 1];
 
-      B -> curlCurl (m + base, UxRe,UxIm, UyRe,UyIm, UzRe,UzIm, xr,xi, yr,yi);
+      B -> curlCurl (m+base,UxRe,UxIm,UyRe,UyIm,UzRe,UzIm,xr,xi,yr,yi,wrk);
 
       Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][2 * m],     1);
       Blas::axpy (nP, -nu, xi, 1, Pnx[0][i][2 * m + 1], 1);
@@ -234,13 +234,13 @@ void PBCmgr::maintain (const int        step   ,
 }
 
 
-void PBCmgr::evaluate (const integer id   ,
-		       const integer np   ,
-		       const integer plane,
-		       const integer step ,
-		       const real*   nx   ,
-		       const real*   ny   ,
-		       real*         tgt  )
+void PBCmgr::evaluate (const int   id   ,
+		       const int   np   ,
+		       const int   plane,
+		       const int   step ,
+		       const real* nx   ,
+		       const real* ny   ,
+		       real*       tgt  )
 // ---------------------------------------------------------------------------
 // Load PBC value with values obtained from HOBC multi-level storage.
 //
@@ -258,11 +258,11 @@ void PBCmgr::evaluate (const integer id   ,
 
   ROOTONLY if (plane == 1) { Veclib::zero (np, tgt, 1); return; }
 
-  register integer q, Je = static_cast<int>(Femlib::value ("N_TIME"));
-  vector<real>     work (Integration::OrderMax + 2 * np);
-  real*            beta  = &work[0];
-  real*            tmpX  = beta + Integration::OrderMax;
-  real*            tmpY  = tmpX + np;
+  register int q, Je = static_cast<int>(Femlib::value ("N_TIME"));
+  vector<real> work (Integration::OrderMax + 2 * np);
+  real*        beta  = &work[0];
+  real*        tmpX  = beta + Integration::OrderMax;
+  real*        tmpY  = tmpX + np;
 
   Je = min (step, Je);
   Integration::Extrapolation (Je, beta);
@@ -273,8 +273,7 @@ void PBCmgr::evaluate (const integer id   ,
     Blas::axpy (np, beta[q], Pny[q][id][plane], 1, tmpY, 1);
   }
     
-  Veclib::vmul  (np, nx, 1, tmpX, 1, tgt, 1);
-  Veclib::vvtvp (np, ny, 1, tmpY, 1, tgt, 1, tgt, 1);
+  Veclib::vvtvvtp (np, nx, 1, tmpX, 1, ny, 1, tmpY, 1, tgt, 1);
 }
 
 
@@ -292,9 +291,9 @@ void PBCmgr::accelerate (const Vector& a,
 {
   const vector<Boundary*>& BC = u -> _bsys -> BCs (0);
   register Boundary*       B;
-  register integer         i;
+  register int             i;
 
-  for (i = 0; i < u -> _nbound; i++) {
+  for (i = 0; i < u->_nbound; i++) {
     B = BC[i];
 
     B -> addForGroup ("velocity", a.x, Pnx[0][i][0]);

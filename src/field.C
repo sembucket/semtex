@@ -437,14 +437,13 @@ Vector Field::tangentTraction (const Field* U,
   const real               mu      = Femlib::value ("RHO * KINVIS");
   Vector                   secF, F = {0.0, 0.0, 0.0};
   vector<real>             work(4 * np);
-  real                     *ddx = &work[0], *ddy = ddx + np;
   register int             i;
 
   for (i = 0; i < _nbound; i++) {
-    secF = UBC[i] -> tangentTraction  ("wall", U->_data, V->_data, ddx, ddy);
+    secF = UBC[i] -> tangentTraction  ("wall", U->_data, V->_data, &work[0]);
     F.x        -= mu * secF.x;
     F.y        -= mu * secF.y;
-    if (W) F.z -= mu * WBC[i] -> flux ("wall", W->_data, ddx);
+    if (W) F.z -= mu * WBC[i] -> flux ("wall", W->_data, &work[0]);
   }
 
   return F;
@@ -505,22 +504,19 @@ void Field::tangTractionV (real*        fx,
   const int                _nbound = U -> _nbound;
   const real               mu      = Femlib::value ("RHO * KINVIS");
   Vector                   secF;
-  vector<real>             work(3 * np);
-  real                     *ddx, *ddy, *tmp = &work[0], *u, *v, *w;
+  vector<real>             work(4 * np);
+  real                     *u, *v, *w;
   register int             i, j;
-
-  ddx = &work[0];
-  ddy = ddx + np;
 
   for (j = 0; j < nz; j++) {
     u = U -> _plane[j];
     v = V -> _plane[j];
     w = (W) ? W -> _plane[j] : 0;
     for (i = 0; i < _nbound; i++) {
-      secF = UBC[i] -> tangentTraction ("wall", u, v, ddx, ddy);
+      secF = UBC[i] -> tangentTraction ("wall", u, v, &work[0]);
              fx[j] -= mu * secF.x;
              fy[j] -= mu * secF.y;
-      if (W) fz[j] -= mu * WBC[i] -> flux ("wall", w, tmp);
+      if (W) fz[j] -= mu * WBC[i] -> flux ("wall", w, &work[0]);
     }
   }
 }

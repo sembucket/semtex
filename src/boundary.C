@@ -177,17 +177,18 @@ void Boundary::print () const
 }
 
 
-void Boundary::curlCurl (const integer k ,
-			 const real*   Ur,
-			 const real*   Ui,
-			 const real*   Vr,
-			 const real*   Vi,
-			 const real*   Wr,
-			 const real*   Wi,
-			 real*         xr,
-			 real*         xi,
-			 real*         yr,
-			 real*         yi) const
+void Boundary::curlCurl (const int   k  ,
+			 const real* Ur ,
+			 const real* Ui ,
+			 const real* Vr ,
+			 const real* Vi ,
+			 const real* Wr ,
+			 const real* Wi ,
+			 real*       xr ,
+			 real*       xi ,
+			 real*       yr ,
+			 real*       yi ,
+			 real*       wrk) const
 // ---------------------------------------------------------------------------
 // Generate (the Fourier mode equivalent of) curl curl u along this boundary.
 //
@@ -205,14 +206,15 @@ void Boundary::curlCurl (const integer k ,
 // When k == 0, all the imaginary components, also the third velocity vector
 // component pointers are not used, and may be provided as NULL values.
 // This allows the same routine to be used for 2D solutions.
+//
+// Work vector wrk 5*np*np + 3*np long.
 // ---------------------------------------------------------------------------
 {
   const int npnp     = sqr (_np);
   const int elmtOff  = _elmt -> ID() * npnp;
   const int localOff = _doffset - elmtOff;
 
-  static vector<real> work (5 * npnp + 3 * _np);
-  real* gw = &work[0];
+  real* gw = wrk;
   real* ew = gw + npnp + npnp;
   real* w  = ew + _np  + _np;
   real* vx = w  + npnp;
@@ -371,29 +373,29 @@ Vector Boundary::normalTraction (const char* grp,
 Vector Boundary::tangentTraction (const char* grp,
 				  const real* u  ,
 				  const real* v  ,
-				  real*       ux ,
-				  real*       uy ) const
+				  real*       wrk) const
 // ---------------------------------------------------------------------------
 // Compute viscous stress on this boundary segment, if it lies in group grp.
 // u is data area for first velocity component field, v is for second.
-// Ux and uy are work vectors, each elmt_np_max long.
+//
+// Work is a work vector, 4 * _np long.
 // ---------------------------------------------------------------------------
 {
-  Vector              Force = {0.0, 0.0, 0.0};
-  static vector<real> work (2 * _np);
+  Vector Force = {0.0, 0.0, 0.0};
+  real   *ux = wrk + 2 * _np, *uy = wrk + 3 * _np;
 
   if (strcmp (grp, _bcondn -> group()) == 0) {
-    const integer    offset = _elmt -> ID() * sqr (_np);
-    register integer i;
+    const int    offset = _elmt -> ID() * sqr (_np);
+    register int i;
 
-    _elmt -> sideGrad (_side, u + offset, ux, uy, &work[0]);
+    _elmt -> sideGrad (_side, u + offset, ux, uy, wrk);
 
     for (i = 0; i < _np; i++) {
       Force.x += (2.0*ux[i]*_nx[i] + uy[i]*_ny[i]) * _area[i];
       Force.y +=                     uy[i]*_nx[i]  * _area[i];
     }
 
-    _elmt -> sideGrad (_side, v + offset, ux, uy, &work[0]);
+    _elmt -> sideGrad (_side, v + offset, ux, uy, wrk);
 
     for (i = 0; i < _np; i++) {
       Force.x +=                     ux[i]*_ny[i]  * _area[i];
