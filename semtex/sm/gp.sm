@@ -1,3 +1,5 @@
+# $Id$
+
 gp	1	# just plot 2 variables against one another
 		DATA $1
 		READ {a 1 b 2}

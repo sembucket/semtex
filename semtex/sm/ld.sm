@@ -1,3 +1,5 @@
+# $Id$
+
 clcd	12	# Plot Cd & Cl timeseries from .sta file
 
 		# _mode == 0 ==> no axis labels
