@@ -73,6 +73,7 @@ all:
 # Run a test of the (serial) DNS solver.  This could take a few minutes.
 
 test:  libs
+	cd src; $(MAKE) -s
 	cd utility; $(MAKE) -s clean; $(MAKE) -s enumerate; $(MAKE) -s compare
 	cd dns; $(MAKE) -s clean; $(MAKE) -s ;		\
 	rm -f compare;   ln -s ../utility/compare   . ;	\
