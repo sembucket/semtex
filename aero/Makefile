@@ -97,20 +97,19 @@ SEMHDR    = Sem.h
 # ----------------------------------------------------------------------------
 # Default build for aeroelastic Navier-Stokes solver.
 
-NS_OBJ = drive.o NS.o aeroanalysis.o body.o
+NS_OBJ = aeroanalysis.o body.o drive.o NS.o 
 NS_HDR = aero.h
 
 aero:	sem $(SEMOBJ) $(NS_OBJ) 
 	$(LD) -o $@ $(NS_OBJ) $(SEMOBJ) $(LDFLAGS)
 
-#-----------------------------------------------------------------------------
-sem:
-        cd $(VPATH); gmake install
-
 # ----------------------------------------------------------------------------
 #
 $(SEMOBJ): $(SEMHDR)
-$(NS_OBJ): $(NS_HDR)
+
+#-----------------------------------------------------------------------------
+sem:
+	cd $(VPATH); gmake install
 
 # ----------------------------------------------------------------------------
 # Refreq is a utility to compute motion phase angles at a given time.
