@@ -650,14 +650,14 @@ ofstream& operator << (ofstream& strm,
       for (i = 0; i < F._nz; i++)
 	n = write (fd, F._plane[i], nP * sizeof (real));
 	if (n != nP * sizeof (real))
-	  message (routine, "unable to write binary input", ERROR);
+	  message (routine, "unable to write binary output", ERROR);
 
       for (k = 1; k < nProc; k++)
 	for (i = 0; i < F._nz; i++) {
 	  Femlib::recv (buffer(), NP, k);
 	  n = write (fd, buffer(), nP * sizeof (real));
 	  if (n != nP * sizeof (real))
-	    message (routine, "unable to write binary input", ERROR);
+	    message (routine, "unable to write binary output", ERROR);
 	}
 
       strm.rdbuf() -> sync();      
@@ -672,7 +672,7 @@ ofstream& operator << (ofstream& strm,
     for (i = 0; i < F._nz; i++) {
       n = write (fd, F._plane[i], nP * sizeof (real));
       if (n != nP * sizeof (real))
-	message (routine, "unable to write binary input", ERROR);
+	message (routine, "unable to write binary output", ERROR);
     }
   }
 
