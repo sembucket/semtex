@@ -89,7 +89,7 @@ Field::Field (const Field& f, char tag)
     
     for (ListIterator<Element*> k(f.element_list); k.more(); k.next()) {
       E = new Element (*k.current());
-      E -> install (d, g, s);
+      E -> install (d, 0, g, s);
       element_list.add (E);
       d += E -> nTot();
       g += E -> nExt();
@@ -104,7 +104,7 @@ Field::Field (const Field& f, char tag)
   } else {
     for (ListIterator<Element*> k(f.element_list); k.more(); k.next()) {
       E = new Element (*k.current());
-      E -> install (d);
+      E -> install (d, 0, 0, 0);
       element_list.add (E);
       d += E -> nTot();
     }
@@ -329,7 +329,7 @@ Field&  Field::axpy (real alpha, const Field& x)
 
 
 
-void  Field::readMesh (istream& strm)
+void  Field::readMesh (istream& strm, int np)
 // ---------------------------------------------------------------------------
 // Read mesh description from mesh stream strm.
 //
@@ -435,23 +435,14 @@ void  Field::readMesh (istream& strm)
 
       element_list.add (E = new Element);
       
-      switch (i) {
-      case 0:
-	int     np;
-	sscanf (s1, "%*s %d %*s %d", &id, &np);
-	E -> setPolyOrder (np);
-	break;
-      default:
-	sscanf (s1, "%*s %d",        &id);
-	break;
+      sscanf (s1, "%*s %d", &id);
+      if (id > nel) {
+	sprintf (s2, "element id: %1d exceeds no. of elements: %1d", id, nel);
+	message (routine, s2, ERROR);
       }
 
-      if (id > nel)
-	message (routine, "element id > no. of elements", ERROR);
-      else {
-	--id;
-	E -> read (strm, id, vertexTable[id]);
-      }
+      E -> setState (--id, np, 4);
+      E -> read     (strm, vertexTable[id]);
 
     } else {
       sprintf (s2, "element descriptor for #%1d? : %s", i+1, s1);
@@ -459,19 +450,12 @@ void  Field::readMesh (istream& strm)
     }
   }
 
-  // -- Set remaining element static variables.
-
-  Element::setQuadRule  (option ("RULE"));
-  Element::setQuadOrder ();
-  Element::setNmbrSides (4);
-  Element::buildEdgeMap ();
-
   // -- Check element input and nominated element connectivity.
 
   int* check = ivector (nel);
   Veclib::fill (nel, 1, check, 1);
   for (ListIterator<Element*> k(element_list); k.more(); k.next())
-    check[k.current() -> id ()] = 0;
+    check[k.current() -> ID ()] = 0;
   if (Veclib::any (nel, check, 1)) {
     sprintf (s1, "no input for element %1d", Veclib::first (nel, check, 1)+1);
     message (routine, s1, ERROR);
@@ -482,32 +466,32 @@ void  Field::readMesh (istream& strm)
 
   // -- All the mesh input file has been read; allocate & install storage.
 
-  n_data = n_elmt_bnodes = 0;
+  n_data = n_mesh = n_elmt_bnodes = 0;
+
   for (k.reset(); k.more(); k.next()) {
     E = k.current();
-    n_data        += E -> nTot();
-    n_elmt_bnodes += E -> nExt();
+    n_data        += E -> nTot ();
+    n_mesh        += E -> nMsh ();
+    n_elmt_bnodes += E -> nExt ();
   }
 
   data            = rvector (n_data);
-  mesh_x          = rvector (n_data);
-  mesh_y          = rvector (n_data);
+  mesh            = rvector (n_mesh);
   elmt_bndry_gid  = ivector (n_elmt_bnodes);
   elmt_bndry_mask = ivector (n_elmt_bnodes);
 
   double* d = data;
-  double* x = mesh_x;
-  double* y = mesh_y;
+  double* m = mesh;
   int*    g = elmt_bndry_gid;
   int*    s = elmt_bndry_mask;
+
   for (k.reset(); k.more(); k.next(), i++) {
     E = k.current();
-    E -> install (d, x, y, g, s);
-    d += E -> nTot();
-    x += E -> nTot();
-    y += E -> nTot();
-    g += E -> nExt();
-    s += E -> nExt();
+    E -> install (d, m, g, s);
+    d += E -> nTot ();
+    m += E -> nMsh ();
+    g += E -> nExt ();
+    s += E -> nExt ();
   }
 
   // -- Fill mesh internal node locations.
@@ -526,16 +510,19 @@ void  Field::readMesh (istream& strm)
 
 
 
-void  Field::printMesh (ostream& strm)
+void  Field::printMesh (Field* F)
 // ---------------------------------------------------------------------------
 // Mesh location information is written out element-by-element.
 // ---------------------------------------------------------------------------
 {
-  strm
-    << element_list.first() -> nKnot() << " "
-    << element_list.first() -> nKnot() << " 1 " 
-    << nEl() << " NR NS NZ NEL" << endl;
-  printVector (strm, "rr", nTot(), mesh_x, mesh_y);
+  cout
+    << F -> element_list.first() -> nKnot() << " "
+    << F -> element_list.first() -> nKnot() << " 1 " 
+    << F -> nEl() << " NR NS NZ NEL" << endl;
+
+  for (ListIterator<Element*> k(F -> element_list); k.more(); k.next())
+    k.current() -> printMesh ();
+
 }
 
 
@@ -680,12 +667,12 @@ void  Field::readConnect (const char *session)
     --elmt;
     ++nLines;
  
-    if (Esave && elmt == Esave -> id ())
+    if (Esave && elmt == Esave -> ID ())
       n_gid = max (n_gid, Esave -> gidInsert (s));
     else {
       Esave = 0;
       for (e.reset (); !Esave && e.more (); e.next ())
-	if (elmt  == e.current () -> id ()) {
+	if (elmt  == e.current () -> ID ()) {
 	  Esave    = e.current ();
 	  nExpect += Esave -> nKnot () * Esave -> nSide ();
 	}
@@ -752,7 +739,7 @@ void  Field::printConnect (Field* F)
   cout << "# -- ELEMENT-BOUNDARY CONNECTIVITY & VALUE INFORMATION --" << endl;
 
   for (ListIterator<Element*> k(F->element_list); k.more(); k.next())
-    k.current() -> bndryPrint ();
+    k.current() -> printBndry ();
 } 
 
 
@@ -781,6 +768,7 @@ void  Field::setMask ()
 
   freeVector (gmask);
 }
+
 
 
 
@@ -1103,23 +1091,6 @@ void  Field::buildSys (real lambda2)
 
 
 
-void  Field::setSys (const Field *F)
-// ---------------------------------------------------------------------------
-// Set the direct-solve matrix system for this Field to be the same as F's.
-// ---------------------------------------------------------------------------
-{
-  n_solve   = F -> n_solve;
-  n_pack    = F -> n_pack;
-  n_band    = F -> n_band;
-  n_cons    = F -> n_cons;
-  Hp        = F -> Hp;
-  Hc        = F -> Hc;
-}
-
-
-
-
-
 void  Field::solveSys (Field* F)
 // ---------------------------------------------------------------------------
 // Carry out direct solution of this Field using F as forcing.
@@ -1250,4 +1221,84 @@ int  Field::switchPressureBCs (const BC* hopbc, const BC* zero)
   }
 
   return ntot;
+}
+
+
+
+
+
+void  Field::printErrors (Field* F, const char* function)
+// ---------------------------------------------------------------------------
+// Compare F with function, print the infinity-norm Li, the 2-norm L2
+// and the Sobolev 1-norm H1.
+//
+// The norms are found element-by-element, using projection onto higher-order
+// elements and high-order quadrature.
+// ---------------------------------------------------------------------------
+{
+  const int Nquad = 15;
+
+  Element* E;
+  Element* P;
+  real     area = 0.0;
+  real     Li   = 0.0;
+  real     L2   = 0.0;
+  real     H1   = 0.0;
+  real*    tmp;
+  real*    sol;
+  real*    v;
+  real*    x;
+  int      ntot, nmsh;
+
+  for (ListIterator<Element*> k(F->element_list); k.more(); k.next()) {
+    E = k.current ();
+    
+    P = new Element (*E, Nquad);
+    ntot = P -> nTot ();
+    nmsh = P -> nMsh ();
+
+    v   = rvector (ntot);
+    x   = rvector (nmsh);
+    tmp = rvector (ntot);
+    sol = rvector (ntot);
+
+    P -> install (v, x, 0, 0);
+    P -> project (*E);
+    P -> map     ();
+
+    P -> extract  (tmp);
+    P -> evaluate (function, sol);
+    Veclib::vsub  (ntot, tmp, 1, sol, 1, tmp, 1);
+    P -> insert   (tmp);
+
+    area += P -> area ();
+    Li    = max (Li, P -> norm_inf ());
+    L2   += P -> norm_L2 ();
+    H1   += P -> norm_H1 ();
+
+    freeVector (v);
+    freeVector (x);
+    freeVector (tmp);
+    freeVector (sol);
+  }
+  
+  L2 /= area;
+  H1 /= area;
+
+  cout << "-- Error norms for Field " << F -> field_name << " (inf, L2, H1):";
+  cout << Li << "  " << L2 << "  " << H1 << endl;
+
+}
+
+
+
+
+
+Field&  Field::evaluate (const char* function)
+// ---------------------------------------------------------------------------
+// Evaluate function over each element.
+// ---------------------------------------------------------------------------
+{
+  for (ListIterator<Element*> k(element_list); k.more(); k.next())
+    k.current () -> evaluate (function);
 }
