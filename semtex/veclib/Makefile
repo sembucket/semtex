@@ -1,5 +1,5 @@
 ##############################################################################
-# Remake linear algebra primitive library (liblinalp.a).
+# Remake linear algebra primitive library (libalp.a).
 #
 # Uses GNU make.
 #
@@ -7,14 +7,27 @@
 # $Id$
 ##############################################################################
 
-#OPTIONS  = -O2 -mips2 -sopt
-OPTIONS  = -g
+ARCH    = $(shell uname -s)
 
-LIB      = liblinalp.a
+FEMHOME = ../..
+LIBHOME = $(shell pwd)
+LIB     = libalp.a
 
+OPTIONS  = -O2
+
+CC       = cc
 CFLAGS	 = $(OPTIONS)
 ARFLAGS	 = cr
-CPPFLAGS = -I.
+
+# ----------- Compiler options for specific machines: ------------------------
+
+ifeq ($(ARCH),IRIX)
+CFLAGS     = -mips2 -sopt -fullwarn $(OPTIONS)
+endif
+
+ifeq ($(ARCH),IRIX64)
+CFLAGS     = -sopt -fullwarn $(OPTIONS)
+endif
 
 #-----------------------------------------------------------------------------
 # Create dependency list.
@@ -24,18 +37,18 @@ UTIL       = util
 
 MEMORY     = memory
 
-MATH       = xfill   xneg    xvneg   xsadd   xvadd   xssub   xvsub \
-             xsmul   xvmul   xsdiv   xvrecp  xvdiv   xzero
+MATH       = xcopy   xfill   xneg    xvneg   xsadd   xvadd   xssub \
+             xvsub   xsmul   xvmul   xsdiv   xvrecp  xvdiv   xzero   
 
 OTHER      = xvabs   xvamax  xvpow   xvexp   xvlg10  xvlog   xvatan \
-             xvatn2  xvcos   xvsin   xvsqrt  xrand   xfft
+             xvatn2  xvcos   xvsin   xvsqrt  xrand   xfft    xvhypot
 
 TRIAD      = xsvmvt  xsvpvt  xsvtsp  xsvtvm  xsvtvp  xsvvmt  xsvvpt \
 	     xsvvtm  xsvvtp  xvvmvt  xvvpvt  xvvtvm  xvvtvp  xvvvtm
 
 RELATIONAL = xseq    xsge    xsle    xslt    xsne
 
-REDUCTION  = icount  ifirst  ixmax   ixmin   xsum
+REDUCTION  = icount  ifirst  iany    ixmax   ixmin   xsum
 
 CONVERSION = vdble   xvfloa  vsngl   xbrev
 
@@ -52,12 +65,21 @@ LMD        = $(foreach routine, $(ALL), $(LIB)($(routine).o))
 $(LIB): $(LMD)
 
 install:
-	mv $(LIB) $(HOME)/lib; \
-	cd $(HOME)/include; rm -f alplib.h; \
-	ln -s $(HOME)/lib/linalp/alplib.h alplib.h
+	cd $(FEMHOME)/lib; rm -f $(LIB);			\
+	ln -s $(LIBHOME)/$(LIB) $(LIB)				\
+	cd $(HOME)/lib; rm -f $(LIB);				\
+	ln -s $(LIBHOME)/$(LIB) $(LIB);				\
+	cd $(HOME)/include; rm -f alplib.h Veclib.h Util.h;	\
+	ln -s $(LIBHOME)/alplib.h alplib.h;  			\
+	ln -s $(LIBHOME)/Veclib.h Veclib.h;			\
+	ln -s $(LIBHOME)/Utility.h Utility.h;				
+	cd $(FEMHOME)/include; rm -f alplib.h Veclib.h Util.h;	\
+	ln -s $(LIBHOME)/alplib.h alplib.h;  			\
+	ln -s $(LIBHOME)/Veclib.h Veclib.h;			\
+	ln -s $(LIBHOME)/Utility.h Utility.h;
 
 tar:
-	tar cvf linalp.tar *
+	tar cvf alplib.tar *
 
 clean:
 	rm *.o *.a *~ 
