@@ -277,7 +277,7 @@ int loadData (Data* F   ,
     sprintf (err, "field '%c' not found, no field set", name);
     message (routine, err, WARNING);
     F -> file.clear ();
-    F -> file.seekg (0);
+    ((ifstream&)(F -> file)).seekg (0);
     return 0;
   }
 
