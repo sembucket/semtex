@@ -293,7 +293,6 @@ Vector Boundary::normalTraction (const char* grp,
 Vector Boundary::tangentTraction (const char* grp,
 				  const real* u  ,
 				  const real* v  ,
-				  const real  mu ,
 				  real*       ux ,
 				  real*       uy ) const
 // ---------------------------------------------------------------------------
@@ -321,9 +320,6 @@ Vector Boundary::tangentTraction (const char* grp,
       Force.x +=                    ux[i]*ny[i]  * area[i];
       Force.y += (2.0*uy[i]*ny[i] + ux[i]*nx[i]) * area[i];
     }
-
-    Force.x *= -mu;
-    Force.y *= -mu;
   }
 
   return Force;
@@ -336,7 +332,7 @@ real Boundary::flux (const char* grp,
 // ---------------------------------------------------------------------------
 // Compute wall-normal flux of field src on this boundary segment,
 // if it lies in group grp.  Wrk is a work vector, 2 * elmt_np_max long.
-// NB: n is a unit outward normal.
+// NB: n is a unit outward normal, with no component in Fourier direction.
 // ---------------------------------------------------------------------------
 {
   register real dcdn = 0.0;
@@ -349,6 +345,11 @@ real Boundary::flux (const char* grp,
     elmt -> sideGrad (side, src + offset, cx, cy);
 
     for (i = 0; i < np; i++) dcdn += (cx[i]*nx[i] + cy[i]*ny[i]) * area[i];
+    
+    if (Geometry::system() == Geometry::Cylindrical) {
+      elmt -> sideDivR (side, src + offset, cy);
+      for (i = 0; i < np; i++) dcdn -= cy[i]*ny[i] * area[i];
+    }
   }
 
   return dcdn;
