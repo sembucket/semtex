@@ -5,15 +5,21 @@
 
 if (!(-e elliptic)) then
 	echo "Building application, please wait..."
-	gmake
-	gmake clean
+	if { gmake } then
+	    gmake clean
 	echo "done"
+	else
+	    echo "Unable to compile."
+	    exit 1
+	endif
 	echo ""
 endif
 
 echo "\t*************************************************"
 echo "\t* Spectral element Helmholtz solver test suite. *"
 echo "\t*************************************************"
+
+rm -f *.num
 
 if (!(-e laplace1)) cp ../mesh/laplace1 .
 if (!(-e laplace4)) cp ../mesh/laplace4 .
@@ -59,8 +65,13 @@ elliptic laplace7
 rm laplace7*
 
 echo ""
-echo "-- 3D LAPLACE PROBLEM, DIRICHLET BOUNDARIES"
+echo "-- 3D LAPLACE PROBLEM, DIRICHLET BOUNDARIES, DIRECT SOLVER"
 elliptic laplace3
+compare  laplace3 laplace3.fld > /dev/null
+
+echo ""
+echo "-- 3D LAPLACE PROBLEM, DIRICHLET BOUNDARIES, ITERATIVE SOLVER"
+elliptic -i laplace3
 compare  laplace3 laplace3.fld > /dev/null
 rm laplace3*
 
