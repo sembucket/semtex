@@ -3,7 +3,7 @@
 //
 // Copyright (C) 2002 Hugh Blackburn.
 //
-// The iterative method was derived by Laurette Tuckerman, see Refs
+// The iterative method was devised by Laurette Tuckerman, see Refs
 // [1] & [2], and is based on time-stepping with both linearised and
 // full Navier--Stokes integrators.  The matrix-free linear systems
 // are here solved using the Bi-Conjugate-Gradients-Stabilized,
@@ -33,7 +33,7 @@
 // section) -- typically the boundary conditions for the perturbation
 // should be all zero. The TOKENS get read and the parser is reset,
 // each time (in order), so at least the geometric descriptors in each
-// session file have to match.
+// session file have to match: it's safer to ensure they match.
 //
 // REFERENCES
 // ----------
