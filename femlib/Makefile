@@ -73,7 +73,6 @@ endif
 endif
 
 ifeq ($(ARCH),SUPER-UX)                 # -- NEC SX-4
-DEFINES   += -D_BUILTIN_
 CFLAGS     = $(DEFINES) -pvctl,fullmsg -hfloat0 -hnostkchk
 FFLAGS     = $(DEFINES) -Cvopt -Wf'-pvctl,fullmsg -ptr byte -b' -float0 -ew
 ifdef MPI
