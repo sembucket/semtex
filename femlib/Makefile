@@ -27,7 +27,7 @@ MEMORY     = mapping	family          message
 
 MESH       = RCM
 
-IMPORT     = recipes
+IMPORT     = recipes    xerbla
 
 ALL        = $(INITIAL) $(OPERATORS) $(FFT) $(MEMORY) $(MESH) $(IMPORT)
      
