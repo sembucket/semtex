@@ -8,6 +8,7 @@ RCS_util[] = "$Id$";
 
 #include <sys/types.h>
 #include <malloc.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
 #include "alplib.h"
@@ -29,24 +30,18 @@ void message(const char *routine, const char *text, int level)
  * ========================================================================= */
 {
   switch (level) {
-  case WARNING:
-    fprintf(stderr, "WARNING");
-    break;
-  case ERROR:
-    fprintf(stderr, "ERROR  ");
-    break;
-  case REMARK:
-    fprintf(stderr, "REMARK ");
-    break;
+  case WARNING: fprintf (stderr, "WARNING"); break;
+  case ERROR:   fprintf (stderr, "ERROR  "); break;
+  case REMARK:  fprintf (stderr, "REMARK "); break;
   default:
-    fprintf(stderr, "bad error level in message: %d\n", level);
-    exit(1);
+    fprintf (stderr, "bad error level in message: %d\n", level);
+    exit (EXIT_FAILURE);
     break;
   }
 
-  fprintf(stderr, " in %s: %s\n", routine, text);
+  fprintf (stderr, " in %s: %s\n", routine, text);
 
-  if (level == ERROR) exit(1);
+  if (level == ERROR) exit (EXIT_FAILURE);
 }
 
 
