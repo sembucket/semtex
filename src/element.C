@@ -228,6 +228,15 @@ void Element::map ()
   if (Blas::nrm2 (_npnp, _dsdy, 1) < EPS) { delete [] _dsdy; _dsdy = 0; }
   if (Blas::nrm2 (_npnp, _G3,   1) < EPS) { delete [] _G3;   _G3   = 0; }
 
+#if defined (DAMPING)
+  // -- Van Driest damping.
+  //    An ad-hoc modification to mesh length scale to account for wall
+  //    effects in LES.  This example is for a pipe flow, radius 0.5.
+  Femlib::prepVec
+  ("delta x y","delta*sqrt(1-exp(-(75.27*abs(0.5-sqrt(x*x+y*y)))^3))");
+  Femlib__parseVec (nTot(), delta, xmesh, ymesh, delta);
+#endif
+
   // -- Check for family redundancies.
 
   Femlib::adopt (_npnp, &_drdx );
