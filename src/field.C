@@ -483,6 +483,50 @@ Field& Field::smooth (AuxField* slave)
 }
 
 
+void Field::smooth (const int nZ ,
+		    real*     tgt) const
+// ---------------------------------------------------------------------------
+// Smooth tgt field along element boundaries using *this, with
+// mass-average smoothing.  Tgt is assumed to be arranged by planes, with
+// planeSize() offset between each plane of data.
+// ---------------------------------------------------------------------------
+{
+  register integer  j, k, boff, doff;
+  register Element* E;
+  const integer     nglobal = Nsys[0] -> nGlobal();
+  const real*       imass   = Nsys[0] -> imass();
+  const integer*    btog    = Nsys[0] -> btog();
+  const integer     nE      = Geometry::nElmt();
+  const integer     nP      = Geometry::planeSize();
+  vector<real>      work    (nglobal);
+  real              *src, *dssum = work();
+
+  for (k = 0; k < nZ; k++) {
+
+    Veclib::zero (nglobal, dssum, 1);
+    src = tgt + k * nP;
+
+    for (j = 0; j < nE; j++) {
+      E    = Elmt[j];
+      boff = E -> bOff();
+      doff = E -> dOff();
+
+      E -> bndryDsSum (btog + boff, src + doff, dssum);
+    }
+
+    Veclib::vmul (nglobal, dssum, 1, imass, 1, dssum, 1);
+
+    for (j = 0; j < nE; j++) {
+      E    = Elmt[j];
+      boff = E -> bOff();
+      doff = E -> dOff();
+
+      E -> bndryInsert (btog + boff, dssum, src + doff);
+    }
+  }
+}
+
+
 real Field::flux (const Field* C)
 // ---------------------------------------------------------------------------
 // Static member function.
