@@ -1364,9 +1364,9 @@ integer Element::locate (const real    x    ,
 // Fairly loose tolerances are employed.
 // ---------------------------------------------------------------------------
 {
+  static real   EPS    = 0.0;
   const integer MaxItn = 8;
-  const real    EPS    = EPSm5;
-  const real    DIVERG = 10.0;
+  const real    DIVERG = 20.0;
   real          *J, *F, *ir, *is, *dr, *ds, *tp;
   vector<real>  work (5 * np + 6);
   integer       ipiv[2], info, i, j;
@@ -1378,7 +1378,9 @@ integer Element::locate (const real    x    ,
   ds = dr + np;
   J  = ds + np;
   F  = J  + 4;
-  
+
+  if (EPS == 0.0) EPS = Femlib::value ("TOL_POS");
+
   if (guess) {
     vector<real> tmp (2 * npnp);
     const real*  knot;
