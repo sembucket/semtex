@@ -15,9 +15,8 @@ ifdef DEBUG
 else
   DEFINES  =
 endif
-
 ifdef STOKES
-  DEFINES  += -DSTOKES
+  DEFINES += -DSTOKES
 endif
 
 CPPFLAGS = -I. -I$(SEM)/include
@@ -88,15 +87,15 @@ endif
 
 # ----------------------------------------------------------------------------
 #
-SEMFILES  = auxfield BCmgr boundary condition domain element	\
-	    feml field geometry integration matrix mesh misc pressure
+SEMFILES  = analysis auxfield BCmgr boundary condition domain	\
+	    element feml field geometry history integration	\
+	    matrix mesh misc particle pressure
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
 SEMHDR    = Sem.h
 
 # ----------------------------------------------------------------------------
 # Default build for Navier-Stokes solver.
-NS_OBJ = drive.o NS.o analysis.o
-NS_HDR = NS.h
+NS_OBJ = drive.o NS.o
 
 buoy:	$(SEMOBJ) $(NS_OBJ) 
 	cd ../src; $(MAKE)
@@ -105,7 +104,6 @@ buoy:	$(SEMOBJ) $(NS_OBJ)
 # ----------------------------------------------------------------------------
 #
 $(SEMOBJ): $(SEMHDR)
-$(NS_OBJ): $(NS_HDR)
 
 # -----------------------------------------------------------------------------
 #

@@ -27,12 +27,13 @@
 static char
 RCSid[] = "$Id$";
 
-#include <NS.h>
+#include <Sem.h>
 #include <new.h>
 
 static char prog[] = "buoy";
-static void memExhaust () { message ("new", "free store exhausted", ERROR); }
-static void getargs    (integer, char**, char*&);
+static void memExhaust   () { message ("new", "free store exhausted", ERROR); }
+static void getargs      (integer, char**, char*&);
+       void NavierStokes (Domain*, Analyser*);
 
 
 integer main (integer argc,
@@ -57,20 +58,20 @@ integer main (integer argc,
   Femlib::prep ();
   getargs      (argc, argv, session);
 
-  F = new FEML (session);
-  M = new Mesh     (*F);
-  B = new BCmgr    (*F);
+  F = new FEML  (session);
+  M = new Mesh  (*F);
+  B = new BCmgr (*F);
 
   nel = M -> nEl();  
   np  = (integer) Femlib::value ("N_POLY");
-  nz  = (integer) Femlib::value ("N_Z"   );
+  nz  = (integer) Femlib::value ("N_Z");
   
   Geometry::set (np, nz, nel, Geometry::Cartesian);
   if   (nz > 1) strcpy (fields, "uvwcp");
   else          strcpy (fields, "uvcp");
 
   D = new Domain   (*F, *M, *B, fields, session);
-  A = new Analyser (*D);
+  A = new Analyser (*D, *F);
 
   D -> initialize();
   D -> report();
