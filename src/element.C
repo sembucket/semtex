@@ -260,11 +260,11 @@ void Element::bndryDsSum (const integer* btog,
 // is using in smoothing Fields along element boundaries.
 // ---------------------------------------------------------------------------
 {
-  const integer     loopcnt = _next; // -- Workaround for NEC vectorisation.
-  register integer  i, e;
-  register real     w;
-  static const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
-  static const int  CYL = Geometry::system() == Geometry::Cylindrical;
+  const integer    loopcnt = _next; // -- Workaround for NEC vectorisation.
+  register integer i, e;
+  register real    w;
+  const real       EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  const int        CYL = Geometry::system() == Geometry::Cylindrical;
 
   if (CYL)
 #if defined(__uxp__)
@@ -637,12 +637,12 @@ void Element::HelmholtzDg (const real lambda2,
 // except that m, n = i, j.
 // ---------------------------------------------------------------------------
 {
-  static const real EPS  = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
-  static const int  CYL = Geometry::system() == Geometry::Cylindrical;
-  const real**      DT;
-  register integer  i, j, ij;
-  register real     *dg = work, *tmp = work + _npnp;
-  real              r2, HCon;
+  const real       EPS  = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  const int        CYL = Geometry::system() == Geometry::Cylindrical;
+  const real**     DT;
+  register integer i, j, ij;
+  register real    *dg = work, *tmp = work + _npnp;
+  real             r2, HCon;
 
   Femlib::quad (LL, _np, _np, 0, 0, 0, 0, 0, 0, &DT);
 
@@ -763,12 +763,12 @@ void Element::HelmholtzKern (const real lambda2,
 // Lambda2 is the Helmholtz constant, betak2 is the mode Fourier constant.
 // ---------------------------------------------------------------------------
 {
-  const integer     loopcnt = _npnp; // -- Workaround for NEC vectorisation.
-  register integer  ij;
-  register real     tmp, r2, hCon;
-  register real     *g1 = _G1, *g2 = _G2, *g3 = _G3, *g4 = _G4, *r = _ymesh;
-  static const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
-  static const int  CYL = Geometry::system() == Geometry::Cylindrical;
+  const integer    loopcnt = _npnp; // -- Workaround for NEC vectorisation.
+  register integer ij;
+  register real    tmp, r2, hCon;
+  register real    *g1 = _G1, *g2 = _G2, *g3 = _G3, *g4 = _G4, *r = _ymesh;
+  const real       EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  const int        CYL = Geometry::system() == Geometry::Cylindrical;
 
   if (CYL) {
     if (g3) {
@@ -1257,11 +1257,11 @@ void Element::divR (real* src) const
 // gradient.
 // ---------------------------------------------------------------------------
 {
-  const integer     loopcnt = _npnp; // -- Workaround for NEC vectorisation.
-  register integer  i;
-  register real     rad, rinv;
-  register real*    y   = _ymesh;
-  static const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  const integer    loopcnt = _npnp; // -- Workaround for NEC vectorisation.
+  register integer i;
+  register real    rad, rinv;
+  register real*   y   = _ymesh;
+  const real       EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
   for (i = 0; i < loopcnt; i++) {
     rad     = y[i];
@@ -1302,11 +1302,11 @@ void Element::sideDivR (const integer side,
 // by y (i.e. r), take special action where r = 0.
 // ---------------------------------------------------------------------------
 {
-  integer           i, base,  skip;
-  real              r, rinv,  *y;
-  const real        *s;
-  const integer     loopcnt = _np;
-  static const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  integer       i, base,  skip;
+  real          r, rinv,  *y;
+  const real    *s;
+  const integer loopcnt = _np;
+  const real    EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
   switch (side) {
   case 0: 
@@ -1355,7 +1355,7 @@ void Element::sideDivR2 (const integer side,
   register real       r, rinv2, *y;
   register const real *s;
   const integer       loopcnt = _np;
-  static const real   EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  const real          EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
   switch (side) {
   case 0: 

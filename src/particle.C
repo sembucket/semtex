@@ -89,7 +89,6 @@ void FluidParticle::integrate (const integer step)
 {
   if (!E) return;
 
-  const char       routine[] = "FluidParticle::integrate";  
   register integer i;
   const integer    N     = min (step, TORD);
   const integer    NP    = N + 1;
