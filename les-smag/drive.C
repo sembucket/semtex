@@ -32,23 +32,22 @@ RCSid[] = "$Id$";
 
 static char prog[] = "les";
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
-static void getargs    (int, char**, char*&);
+static void getargs    (integer, char**, char*&);
 
 
-int main (int    argc,
-	  char** argv)
+integer main (integer argc,
+	      char**  argv)
 // ---------------------------------------------------------------------------
 // Driver.
 // ---------------------------------------------------------------------------
 {
   set_new_handler (&memExhaust);
-#ifndef __DECCXX
+#if !defined(__DECCXX)
   ios::sync_with_stdio();
 #endif
 
-  Geometry::CoordSys system;
   char      *session, fields[StrMax];
-  int       np, nz, nel;
+  integer   np, nz, nel;
   FEML*     F;
   Mesh*     M;
   BCmgr*    B;
@@ -58,19 +57,15 @@ int main (int    argc,
   Femlib::prep ();
   getargs      (argc, argv, session);
 
-  cout << prog << ": eddy viscosity based LES" << endl;
-  cout << "      (c) CSIRO 1997." << endl << endl;
-  
   F = new FEML  (session);
   M = new Mesh  (*F);
   B = new BCmgr (*F);
 
-  nel    = M -> nEl();  
-  np     = (int) Femlib::value ("N_POLY");
-  nz     = (int) Femlib::value ("N_Z"   );
-  system = Geometry::Cartesian;
+  nel = M -> nEl();  
+  np  = (integer) Femlib::value ("N_POLY");
+  nz  = (integer) Femlib::value ("N_Z"   );
   
-  Geometry::set (np, nz, nel, system);
+  Geometry::set (np, nz, nel, Geometry::Cartesian);
   if   (nz > 1) strcpy (fields, "uvwp");
   else          strcpy (fields, "uvp" );
 
@@ -78,6 +73,7 @@ int main (int    argc,
   A = new Analyser (*D, *F);
 
   D -> initialize();
+  D -> report();
 
   NavierStokes (D, A);
 
@@ -85,7 +81,7 @@ int main (int    argc,
 }
 
 
-static void getargs (int    argc   ,
+static void getargs (integer    argc   ,
 		     char** argv   ,
 		     char*& session)
 // ---------------------------------------------------------------------------
@@ -112,12 +108,12 @@ static void getargs (int    argc   ,
       break;
     case 'i':
       do
-	Femlib::value ("ITERATIVE", (int) Femlib::value ("ITERATIVE") + 1);
+	Femlib::value ("ITERATIVE", (integer) Femlib::value ("ITERATIVE") + 1);
       while (*++argv[0] == 'i');
       break;
     case 'v':
       do
-	Femlib::value ("VERBOSE",   (int) Femlib::value ("VERBOSE")   + 1);
+	Femlib::value ("VERBOSE",   (integer) Femlib::value ("VERBOSE")   + 1);
       while (*++argv[0] == 'v');
       break;
     case 'c':

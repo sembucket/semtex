@@ -21,12 +21,8 @@ RCSid[] = "$Id$";
 
 #include <aero.h>
 
-#ifdef __DECCXX
-  #pragma define_template roll<AuxField*>
-#endif
-
 typedef ModalMatrixSystem ModeSys;
-static  int               DIM;
+static  integer           DIM;
 
 static void  nonLinear (Domain*, AuxField***, AuxField***, Vector&);
 static void  waveProp  (Domain*, const AuxField***, const AuxField***);
@@ -34,7 +30,8 @@ static void  setPForce (const AuxField***, AuxField***);
 static void  project   (const Domain*, AuxField***, AuxField***);
 
 static ModeSys** preSolve (const Domain*);
-static void      Solve    (Field*, AuxField*, ModeSys*, const int, const int);
+static void      Solve    (Field*, AuxField*, ModeSys*,
+			   const integer, const integer);
 
 
 void NavierStokes (Domain*   D,
@@ -48,21 +45,24 @@ void NavierStokes (Domain*   D,
 // Uf is multi-level auxillary Field storage for nonlinear forcing terms.
 // ---------------------------------------------------------------------------
 {
-  DIM = D -> nField() - 1;
+  DIM = Geometry::nDim();
 
-  int        i, j;
-  const real dt       =       Femlib::value ("D_T");
-  const int  nOrder   = (int) Femlib::value ("N_TIME");
-  const int  nStep    = (int) Femlib::value ("N_STEP");
-  const int  nZ       = (int) Femlib::value ("N_Z");
+  integer       i, j;
+  const real    dt     =           Femlib::value ("D_T");
+  const integer nOrder = (integer) Femlib::value ("N_TIME");
+  const integer nStep  = (integer) Femlib::value ("N_STEP");
+  const integer nZ     = (integer) Femlib::value ("N_Z");
 
-  Field*     Pressure = D -> u[DIM];
-  ModeSys**  MMS      = preSolve (D);
+  // -- Initialize body motion coupling terms.
 
-  Vector  a = {0.0, 0.0, 0.0};   // -- Frame acceleration for N--S.
-  Vector  v = {0.0, 0.0, 0.0};	 // -- Body velocity, to adjust velocity BCs.
+  Vector a = {0.0, 0.0, 0.0};   // -- Body/frame acceleration.
+  Vector v = {0.0, 0.0, 0.0};	// -- Body velocity, to adjust velocity BCs.
 
-  // -- Set up multi-level storage for velocities and forcing.
+  // -- Create global matrix systems.
+
+  ModeSys** MMS = preSolve (D);
+
+  // -- Create & initialize multi-level storage for velocities and forcing.
 
   AuxField*** Us = new AuxField** [DIM];
   AuxField*** Uf = new AuxField** [DIM];
@@ -71,13 +71,14 @@ void NavierStokes (Domain*   D,
     Us[i] = new AuxField* [nOrder];
     Uf[i] = new AuxField* [nOrder];
     for (j = 0; j < nOrder; j++) {
-      Us[i][j] = new AuxField (D -> Esys, nZ);
-      Uf[i][j] = new AuxField (D -> Esys, nZ);
+      *(Us[i][j] = new AuxField (D -> Esys, nZ)) = 0.0;
+      *(Uf[i][j] = new AuxField (D -> Esys, nZ)) = 0.0;
     }
   }
 
-  // -- Set up multi-level storage for pressure BCS.
+  // -- Create multi-level storage for pressure BCS.
 
+  Field* Pressure = D -> u[DIM];
   PBCmgr::build (Pressure);
 
   // -- Timestepping loop.
@@ -168,12 +169,12 @@ static void nonLinear (Domain*     D ,
 //               i           j    i j      j      i j      j
 // ---------------------------------------------------------------------------
 {
-  int               i, j;
-  const int         nZ     = Geometry::nZ();
-  const int         nP     = Geometry::planeSize();
-  const int         nTot   = nZ * nP;
-  const int         nZ32   = (3 * nZ) >> 1;
-  const int         nTot32 = nZ32 * nP;
+  integer           i, j;
+  const integer     nZ     = Geometry::nZ();
+  const integer     nP     = Geometry::planeSize();
+  const integer     nTot   = nZ * nP;
+  const integer     nZ32   = (3 * nZ) >> 1;
+  const integer     nTot32 = nZ32 * nP;
   const real        EPS    = (sizeof(real) == sizeof(double)) ? EPSDP : EPSSP;
   vector<real>      work ((2 * DIM + 1) * nTot32);
   vector<real*>     u32 (DIM);
@@ -247,7 +248,7 @@ static void waveProp (Domain*           D ,
 // computed and left in D's velocity areas. 
 // ---------------------------------------------------------------------------
 {
-  int               i, q, Je;
+  integer           i, q, Je;
   vector<AuxField*> H (DIM);	// -- Mnemonic for u^{Hat}.
 
   for (i = 0; i < DIM; i++) {
@@ -255,7 +256,7 @@ static void waveProp (Domain*           D ,
     *H[i] = 0.0;
   }
 
-  Je = (int) Femlib::value ("N_TIME");
+  Je = (integer) Femlib::value ("N_TIME");
   Je = min (D -> step, Je);
 
   vector<real> alpha (Integration::OrderMax + 1);
@@ -281,7 +282,7 @@ static void setPForce (const AuxField*** Us,
 // of Uf as a forcing field for discrete PPE.
 // ---------------------------------------------------------------------------
 {
-  int        i;
+  integer    i;
   const real dt = Femlib::value ("D_T");
 
   for (i = 0; i < DIM; i++) {
@@ -308,7 +309,7 @@ static void project (const Domain* D ,
 // forcing for viscous step.
 // ---------------------------------------------------------------------------
 {
-  int        i;
+  integer    i;
   const real dt    = Femlib::value ("D_T");
   const real alpha = -1.0 / Femlib::value ("D_T * KINVIS");
 
@@ -336,13 +337,13 @@ static ModeSys** preSolve (const Domain* D)
 // ---------------------------------------------------------------------------
 {
   char                 name;
-  int                  i;
-  const int            nSys   = D -> Nsys.getSize();
-  const int            nZ     = Geometry::nZ();
-  const int            nModes = (nZ + 1) >> 1;
-  const int            base   = 0;
-  const int            itLev  = (int) Femlib::value ("ITERATIVE");
-  const int            nOrder = (int) Femlib::value ("N_TIME");
+  integer              i;
+  const integer        nSys   = D -> Nsys.getSize();
+  const integer        nZ     = Geometry::nZ();
+  const integer        nModes = (nZ + 1) >> 1;
+  const integer        base   = 0;
+  const integer        itLev  = (integer) Femlib::value ("ITERATIVE");
+  const integer        nOrder = (integer) Femlib::value ("N_TIME");
   const real           beta   = Femlib::value ("BETA");
   ModeSys**            M      = new ModeSys* [DIM + 1];
   vector<Element*>&    E      = ((Domain*) D) -> Esys;
@@ -376,23 +377,22 @@ static ModeSys** preSolve (const Domain* D)
 }
 
 
-static void Solve (Field*    U     ,
-		   AuxField* Force ,
-		   ModeSys*  M     ,
-		   const int step  ,
-		   const int nOrder)
+static void Solve (Field*        U     ,
+		   AuxField*     Force ,
+		   ModeSys*      M     ,
+		   const integer step  ,
+		   const integer nOrder)
 // ---------------------------------------------------------------------------
 // Solve Helmholtz problem for U, using F as a forcing Field.  Iterative
 // or direct solver selected on basis of field type, step, time order
 // and command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "Solve";
-
-  const int  iterative = M == 0;
-  const char name      = U -> name();
-  const int  velocity  = name == 'u' || name == 'v' || name == 'w';
-  const int  pressure  = name == 'p';
+  const char    routine[] = "Solve";
+  const char    name      = U -> name();
+  const integer iterative = M == 0;
+  const integer velocity  = name == 'u' || name == 'v' || name == 'w';
+  const integer pressure  = name == 'p';
 
   if (!(velocity || pressure))
     message (routine, "input field type not recognized", ERROR);
@@ -405,10 +405,10 @@ static void Solve (Field*    U     ,
 
   if (velocity) {
     if (iterative || step < nOrder) {
-      const int    Je = min (step, nOrder);
-      vector<real> alpha (Je + 1);
+      const integer Je = min (step, nOrder);
+      vector<real>  alpha (Je + 1);
       Integration::StifflyStable (Je, alpha());
-      const real   lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
+      const real    lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
       
       U -> solve (Force, lambda2);
 

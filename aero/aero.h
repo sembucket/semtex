@@ -23,7 +23,7 @@ public:
 
 private:
   Domain&               src;
-  ofstream              fld_strm, par_strm, his_strm;
+  ofstream              par_strm, his_strm;
   vector<HistoryPoint*> history;
   List<FluidParticle*>  particle;
   List<Point*>          initial;
@@ -48,7 +48,7 @@ public:
   virtual real getV () = 0;
   virtual real getX () = 0;
   
-  virtual void move  (const int)  = 0;
+  virtual void move  (const integer)  = 0;
   virtual void force (const real) = 0;
 
   virtual void describe (char*) = 0;
@@ -67,7 +67,7 @@ public:
   virtual real getV () { return zero; }
   virtual real getX () { return zero; }
   
-  virtual void move  (const int = 0) { }
+  virtual void move  (const integer = 0) { }
   virtual void force (const real)    { }
 
   virtual void describe (char* s) { strcpy (s, "fixed"); }
@@ -91,7 +91,7 @@ public:
   virtual real getV () { return vel; }
   virtual real getX () { return pos; }
 
-  virtual void move  (const int = 0);
+  virtual void move  (const integer = 0);
   virtual void force (const real) { }
 
   virtual void describe (char*);
@@ -122,7 +122,7 @@ public:
   virtual real getV () { return vel; }
   virtual real getX () { return pos; }
 
-  virtual void move  (const int = 0);
+  virtual void move  (const integer = 0);
   virtual void force (const real) { }
 
   virtual void describe (char*);
@@ -152,7 +152,7 @@ public:
   virtual real getV () { return vel; }
   virtual real getX () { return pos; }
 
-  virtual void move  (const int );
+  virtual void move  (const integer );
   virtual void force (const real);
 
   virtual void describe (char*);
@@ -190,7 +190,7 @@ public:
   Vector  position     ();
   Vector  force        (const Domain&);
 
-  void    move  (const int);
+  void    move         (const integer);
 
 private:
   AxisMotion*  axis[2];		// -- Array of motion interface classes.

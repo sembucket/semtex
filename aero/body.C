@@ -7,10 +7,10 @@ RCSid[] = "$Id$";
 
 #include <aero.h>
 
-#ifdef __DECCXX
+#if defined(__DECCXX)
   #pragma define_template roll<real>
-  #pragma define_template min<int>
-  #pragma define_template max<int>
+  #pragma define_template min<integer>
+  #pragma define_template max<integer>
 #endif
 
 static AxisMotion* createAxis (char*);
@@ -48,9 +48,9 @@ Body::Body (const char* session)
 //    Phase angle is given in radians.
 // ---------------------------------------------------------------------------
 {
-  char     routine[] = "Body::Body";
-  char     s[StrMax], err[StrMax];
-  ifstream file (strcat (strcpy (s, session), ".bdy"));
+  const char routine[] = "Body::Body";
+  char       s[StrMax], err[StrMax];
+  ifstream   file (strcat (strcpy (s, session), ".bdy"));
 
   if (file.fail ()) {		// -- Default action for no ".bdy" file.
     axis[0] = createAxis ("fixed");
@@ -96,7 +96,6 @@ Body::Body (const char* session)
 
   axis[1] -> describe (s);
   if (strstr (s, "mass")) ((SMD*) axis[1]) -> setState (file, "y-state");
-
 
   // -- Echo input to cout.
 
@@ -146,7 +145,7 @@ Vector Body::position ()
 }
 
 
-void Body::move (const int step)
+void Body::move (const integer step)
 // ---------------------------------------------------------------------------
 // Update estimates of position, velocity and acceleration at next time level.
 // Note that for SMD class, acceleration is updated by Body::force instead.
@@ -163,7 +162,7 @@ Vector Body::force (const Domain& D)
 // Return total force.
 // ---------------------------------------------------------------------------
 {
-  const int DIM = D.nField() - 1;
+  const integer DIM = Geometry::nDim();
 
   traction[0] = Field::normalTraction  (D.u[DIM]);
   traction[1] = Field::tangentTraction (D.u[0], D.u[1]);
@@ -183,8 +182,8 @@ ostream& operator << (ostream& S, Body& B)
 // Print up motion state variables (x, xdot, xddot, Fvis, Fpre, Ftot).
 // ---------------------------------------------------------------------------
 {
-  char    s[StrMax];
-  Vector  x, xdot, xddot;
+  char   s[StrMax];
+  Vector x, xdot, xddot;
 
   x     = B.position     ();
   xdot  = B.velocity     ();
@@ -212,10 +211,10 @@ Cosine::Cosine (char* s)
 // Phase angle is given in radians.
 // ---------------------------------------------------------------------------
 {
-  char  routine[] = "Cosine::Cosine";
-  char  err[StrMax];
-  char* tok;
-  char  sep[] = " \t";
+  const char routine[] = "Cosine::Cosine";
+  char       err[StrMax];
+  char*      tok;
+  char       sep[] = " \t";
 
   tok = strtok (s, sep); strcpy (amplitude, tok);
   tok = strtok (0, sep); strcpy (frequency, tok);
@@ -233,7 +232,7 @@ Cosine::Cosine (char* s)
 }
 
 
-void Cosine::move (const int dummi)
+void Cosine::move (const integer dummi)
 // ---------------------------------------------------------------------------
 // Update state variables.  Dummy input variable not used.
 // ---------------------------------------------------------------------------
@@ -271,10 +270,10 @@ Function::Function (char* s)
 // Tokenize them and do first parse to set internal state variables.
 // ---------------------------------------------------------------------------
 {
-  char  routine[] = "Function::Function";
-  char  err[StrMax];
-  char* tok;
-  char  sep[] = " \t";
+  const char routine[] = "Function::Function";
+  char       err[StrMax];
+  char*      tok;
+  char       sep[] = " \t";
 
   tok = strtok (s, sep); strcpy (position,     tok);
   tok = strtok (0, sep); strcpy (velocity,     tok);
@@ -294,7 +293,7 @@ Function::Function (char* s)
 }
 
 
-void Function::move (const int dummi)
+void Function::move (const integer dummi)
 // ---------------------------------------------------------------------------
 // Update state variables.  Neither input is used.
 // ---------------------------------------------------------------------------
@@ -329,9 +328,9 @@ SMD::SMD (char* s)
 // Tokenize them.  Initialize state motion variables.
 // ---------------------------------------------------------------------------
 {
-  char  routine[] = "SMD::SMD";
-  char  err[StrMax], sep[] = " \t";;
-  char* tok;
+  const char routine[] = "SMD::SMD";
+  char       err[StrMax], sep[] = " \t";;
+  char*      tok;
 
   tok = strtok (s, sep); strcpy (mass, tok);
   tok = strtok (0, sep); strcpy (natf, tok);
@@ -351,20 +350,20 @@ SMD::SMD (char* s)
 }
 
 
-void SMD::move (const int step)
+void SMD::move (const integer step)
 // ---------------------------------------------------------------------------
 // Update state variables using stiffly-stable time integration scheme.
 // 
 // On exit, position and velocity have been integrated to end of new step.
 // ---------------------------------------------------------------------------
 {
-  const real w    = Femlib::value ("TWOPI") * Femlib::value (natf);
-  const real z    = Femlib::value (zeta);
-  const real dt   = Femlib::value ("D_T");
-  const int  Jmax = (int) Femlib::value ("N_TIME");
+  const real    w    = Femlib::value ("TWOPI") * Femlib::value (natf);
+  const real    z    = Femlib::value (zeta);
+  const real    dt   = Femlib::value ("D_T");
+  const integer Jmax = (integer) Femlib::value ("N_TIME");
 
-  int  q, Je = min (max (1, step), Jmax);
-  real *alpha, *betaDt;
+  integer       q, Je = min (max (1, step), Jmax);
+  real          *alpha, *betaDt;
 
   vector<real> work (2 * Je + 1);
 
@@ -405,11 +404,10 @@ void SMD::force (const real F)
 // F is the tractive force on this axis at end of current time step.
 // ---------------------------------------------------------------------------
 {
-  const real m = Femlib::value (mass);
-  const real w = Femlib::value ("TWOPI") * Femlib::value (natf);
-  const real z = Femlib::value (zeta);
-
-  const int  Jmax = (int) Femlib::value ("N_TIME");
+  const real    m = Femlib::value (mass);
+  const real    w = Femlib::value ("TWOPI") * Femlib::value (natf);
+  const real    z = Femlib::value (zeta);
+  const integer Jmax = (integer) Femlib::value ("N_TIME");
 
   roll (f, Jmax);
   f[0] = F / m;
@@ -445,10 +443,10 @@ void SMD::setState (ifstream& file, const char* tag)
 // state variable values to follow.  Install last corresponding line in file.
 // ---------------------------------------------------------------------------
 {
-  char   routine[] = "SMD::setState";
-  char   s[StrMax], err[StrMax], sep[] = " \t";
-  char*  head;
-  char*  tail;
+  const char routine[] = "SMD::setState";
+  char       s[StrMax], err[StrMax], sep[] = " \t";
+  char*      head;
+  char*      tail;
 
   file.clear ();
   file.seekg (0);
@@ -479,12 +477,12 @@ AxisMotion* createAxis (char* s)
 // base class.  
 // ---------------------------------------------------------------------------
 {
-  AxisMotion*  base = 0;
+  AxisMotion* base = 0;
 
-  char   routine[]  = "createAxis";
-  char   err[StrMax], sep[] = " \t";
-  char*  kind;
-  char*  tail;
+  const char  routine[]  = "createAxis";
+  char        err[StrMax], sep[] = " \t";
+  char*       kind;
+  char*       tail;
   
   kind = strtok (s, sep);
   tail = strtok (0, "\0");

@@ -7,7 +7,7 @@ RCSid[] = "$Id$";
 
 #include <les.h>
 
-static int  DIM, NZ;
+static integer DIM, NZ;
 
 static void strainRate  (const Domain*,AuxField***,AuxField***);
 static void Smagorinsky (AuxField***, AuxField***, AuxField*);
@@ -28,6 +28,9 @@ void eddyViscosity (const Domain* D ,
 //                      / Us[0][0]  Uf[0][0]  Uf[1][0] \
 //                S =   |    .      Us[1][0]  Uf[2][0] |
 //                ~     \    .         .      Us[2][0] /
+//
+// As a final step, subtract off the difference between the kinematic
+// and reference viscosities stored in REFVIS.
 // ---------------------------------------------------------------------------
 {
   DIM = Geometry::nDim();
@@ -35,6 +38,8 @@ void eddyViscosity (const Domain* D ,
 
   strainRate  (D,  Us, Uf);
   Smagorinsky (Us, Uf, EV);
+
+  *EV -= Femlib::value ("REFVIS");
 }
 
 
@@ -52,7 +57,7 @@ static void strainRate (const Domain* D ,
 //       ~     \    .             .                 dw/dz      /
 // ---------------------------------------------------------------------------
 {
-  int i, j;
+  integer i, j;
 
   // -- Off-diagonal terms.
 
@@ -89,18 +94,18 @@ static void Smagorinsky (AuxField*** Us,
 // As noted in the header to NS.C, EV = -KINVIS for debugging (NB: Fourier!).
 // ---------------------------------------------------------------------------
 {
-#ifdef DEBUG
+#if defined(DEBUG)
   (*EV = 0.0) . addToPlane (0, -0.5 * Femlib::value ("KINVIS"));
 
 #else
-  int          i, j;
-  const int    nP     = Geometry::planeSize();
-  const int    nZ32   = (3 * NZ) >> 1;
-  const int    nTot32 = nZ32 * nP;
+  integer       i, j;
+  const integer nP     = Geometry::planeSize();
+  const integer nZ32   = (3 * NZ) >> 1;
+  const integer nTot32 = nZ32 * nP;
 
-  vector<real> work (2 * nTot32);
-  real*        tmp = work();
-  real*        sum = tmp + nTot32;
+  vector<real>  work (2 * nTot32);
+  real*         tmp = work();
+  real*         sum = tmp + nTot32;
 
   Veclib::zero (nTot32, sum, 1);
   
