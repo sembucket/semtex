@@ -1444,7 +1444,7 @@ AuxField& AuxField::projStab (const real alpha,
   Blas::mxm    (*PT, np, *IT, nm, B, np);
 
   for (k = 0; k < _nz; k++)
-    Femlib::tpr2d (_plane[k], work._plane[k], scr, A, B, np, nel);
+    Femlib::tpr2d (_plane[k], work._plane[k], scr, A, B, np, np, nel);
   
   Blas::axpy (_size, alpha/(1.0-alpha), work._data, 1, _data, 1);
   Blas::scal (_size, (1.0-alpha), _data, 1);
