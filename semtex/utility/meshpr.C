@@ -41,8 +41,7 @@ int main (int argc, char** argv)
 
   // -- Set up to read from file, initialize Femlib parsing.
 
-  FEML feml   (session);
-  feml.tokens ();
+  FEML feml (session);
 
   if (verb)        Femlib::value ("VERBOSE", verb);
   if   (np)        Femlib::value ("N_POLY", np);
@@ -52,8 +51,6 @@ int main (int argc, char** argv)
 
   Mesh M (feml);
 
-  feml.close();
-  
   // -- Generate mesh knots and print up.
 
   const    int NEL  = M.nEl();
@@ -67,7 +64,7 @@ int main (int argc, char** argv)
 
   Femlib::mesh (basis, basis, np, np, &z, 0, 0, 0, 0);
 
-  for (ID = 1; ID <= NEL; ID++) {
+  for (ID = 0; ID < NEL; ID++) {
     M.meshElmt (ID, np, z, x(), y());
 
     for (j = 0; j < NTOT; j++)
