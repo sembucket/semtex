@@ -1,7 +1,7 @@
 /*****************************************************************************
  * sem2tec: convert a SEM field file to Tecplot format.
  *
- * Usage: sem2tec [-r] [-o output] [-m mesh] [-n #] input[.fld]
+ * Usage: sem2tec [-h] [-o output] [-m mesh] [-n #] input[.fld]
  *
  * Based on the original code by Ron Henderson.
  *****************************************************************************/
@@ -9,19 +9,21 @@
 static char
 RCSid[] = "$Id$";
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include <veclib.h>
 
-#define   dvector(a,b)  (double*) malloc((b-a+1)*sizeof(double))
-#define   max(a,b)      ( a > b ? a : b )
+#include <femdef.h>
+#include <alplib.h>
+#include <femlib.h>
+
 #define   MAXFIELDS 10
 
-static char *usage  = 
-  "usage: sem2tec [options] session[.fld]\n\n"
-  "where [options] is one or more of the following:\n\n"
-  "-r       ... perform byte-reversal of binary data\n"
+static char usage[] = 
+  "usage: sem2tec [options] session[.fld]\n"
+  "options:\n"
+  "-h       ... print this message\n"
   "-o file  ... write output to the named file instead of running preplot\n" 
   "-m file  ... read the mesh from the named file (instead of stdin)\n"
   "-n #     ... evaluate the solution on an evenly-spaced mesh with N x N\n"
@@ -33,14 +35,24 @@ static FILE *fp_fld = 0,          /* default input files */
 
 static char *tecfile;             /* output file name */
 
-static int   nr, ns, nz, nel, nfields, swap, preplot_it = 1, np = 1;
+static int   nr, ns, nz, nel, nfields, preplot_it = 1, np = 1;
 
 static char    type[MAXFIELDS];
 static double *data[MAXFIELDS], *x, *y;
 
-/* ----------------------------------------------------------------------- */
+static void    write_tec   (FILE*);
+static void    parse_args  (int, char**);
+static void    read_mesh   (FILE*);
+static int     read_data   (FILE*);
+static int     interpolate (void);
+static double* do_interp   (double**, double**, double**, double**, double*);
 
-main(int argc, char *argv[])
+
+int main (int    argc,
+	  char** argv)
+/* ------------------------------------------------------------------------- *
+ * Driver.
+ * ------------------------------------------------------------------------- */
 {
   char  fname[L_tmpnam];
   char  buf  [BUFSIZ];
@@ -48,34 +60,35 @@ main(int argc, char *argv[])
   
   /* open a temporary file for the ascii tecplot format */
 
-  if ((fp=fopen(tmpnam(fname),"w+")) == (FILE*) NULL) {
-    fprintf(stderr, "sem2tec: unable to open a temporary file\n");
-    exit(1);
+  if ((fp = fopen (tmpnam (fname),"w+")) == (FILE*) NULL) {
+    fprintf (stderr, "sem2tec: unable to open a temporary file\n");
+    exit    (EXIT_FAILURE);
   }
 
-  parse_args (argc, argv);
+  parse_args  (argc, argv);
 
-  read_mesh  (fp_msh);
-  read_data  (fp_fld);
-  interpolate();
-  write_tec  (fp);
+  read_mesh   (fp_msh);
+  read_data   (fp_fld);
+  interpolate ();
+  write_tec   (fp);
 
   if (preplot_it) {
-    sprintf(buf, "preplot %s %s", fname, tecfile);
-    system (buf);
-    remove (fname);
+    sprintf (buf, "preplot %s %s", fname, tecfile);
+    system  (buf);
+    remove  (fname);
   } else {
     rewind (fp);
-    fp_tec = fopen(tecfile, "w");
-    while (fgets(buf, BUFSIZ, fp)) fputs(buf, fp_tec);
-    fclose(fp_tec);
-    fclose(fp);
+    fp_tec = fopen (tecfile, "w");
+    while  (fgets(buf, BUFSIZ, fp)) fputs(buf, fp_tec);
+    fclose (fp_tec);
+    fclose (fp);
   }
 
-  return 0;
+  return EXIT_SUCCESS;
 }
 
-void write_tec(FILE *fp)
+
+static void write_tec (FILE *fp)
 {
   int i, j, k, nrns;
 
@@ -102,19 +115,25 @@ void write_tec(FILE *fp)
   return;
 }
 
-void parse_args(int argc, char *argv[])
+
+static void parse_args (int    argc,
+			char** argv)
 {
   char c, fname[FILENAME_MAX];
 
   while (--argc && (*++argv)[0] == '-') 
     while (c = *++argv[0])
       switch (c) {
+      case 'h':
+	fputs (usage, stdout);
+	exit  (EXIT_SUCCESS);
+	break;
       case 'm':
 	sprintf(fname, "%s", *++argv);
 	if ((fp_msh = fopen(fname, "r")) == (FILE*) NULL) {
 	  fprintf(stderr, "sem2tec: unable to open the mesh file -- %s\n", 
 		  fname);
-	  exit(1);
+	  exit(EXIT_FAILURE);
 	}
 	argv[0] += strlen(*argv)-1; argc--;
 	break;
@@ -123,9 +142,6 @@ void parse_args(int argc, char *argv[])
 	strcpy(tecfile, *argv);
 	argv[0] += strlen(*argv)-1; argc--;
 	preplot_it = 0;
-	break;
-      case 'r':
-	swap = 1;
 	break;
       case 'n':
 	if (*++argv[0])
@@ -136,7 +152,6 @@ void parse_args(int argc, char *argv[])
 	}
 	(*argv)[1] = '\0';
 	break;
-
       default:
 	fprintf(stderr, "sem2tec: unknown option -- %c\n", c);
 	break;
@@ -144,7 +159,7 @@ void parse_args(int argc, char *argv[])
 
   if (argc != 1) {
     fputs(usage, stderr);
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
   /* open the input file */
@@ -153,7 +168,7 @@ void parse_args(int argc, char *argv[])
     sprintf(fname, "%s.fld", *argv);
     if ((fp_fld = fopen(fname, "r")) == (FILE*) NULL) {
       fprintf(stderr, "sem2tec: unable to open %s or %s\n", *argv, fname);
-      exit(1);
+      exit(EXIT_FAILURE);
     }
   }
 
@@ -174,7 +189,8 @@ void parse_args(int argc, char *argv[])
   return;
 }
 
-void read_mesh(FILE *fp)
+
+static void read_mesh (FILE *fp)
 {
   int  n, i;
   char buf [BUFSIZ];
@@ -182,7 +198,7 @@ void read_mesh(FILE *fp)
   fgets(buf, BUFSIZ, fp);
   if (sscanf(buf, "%d%d%d%d", &nr, &ns, &nz, &nel) != 4) {
     fputs("error while reading mesh\n", stderr);
-    exit (1);
+    exit (EXIT_FAILURE);
   }
 
   n  = nr * ns * nel;
@@ -193,16 +209,17 @@ void read_mesh(FILE *fp)
     fgets(buf, BUFSIZ, fp);
     if (sscanf(buf, "%lf%lf", x+i, y+i) != 2) {
       fputs("error while reading mesh data\n", stderr);
-      exit (1);
+      exit (EXIT_FAILURE);
     }
   }
 
   return;
 }
 
-int read_data(FILE *fp)
+
+static int read_data (FILE *fp)
 {
-  int  i, n, ntot;
+  int  i, n, ntot, machine, swab;
   char buf[BUFSIZ], *c;
   
   /* read the header down to the field list */
@@ -220,7 +237,7 @@ int read_data(FILE *fp)
   if (nfields == MAXFIELDS) {
     fprintf(stderr, "sem2tec: a maximum of %d fields may be converted.\n", 
 	    MAXFIELDS);
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
   /* allocate memory */
@@ -228,7 +245,6 @@ int read_data(FILE *fp)
   ntot = nr * ns * nel;
   for (n = 0; n < nfields; n++)
     data[n] = (double*) malloc(ntot * sizeof(double));
-  
 
   /* check the format */
 
@@ -241,62 +257,44 @@ int read_data(FILE *fp)
       for (n = 0; n < nfields; n++)
 	if (fscanf(fp, "%lf", data[n] + i) < 0) {
 	  fputs("sem2tec: an error has occured while reading\n", stderr);
-	  exit (1);
+	  exit (EXIT_FAILURE);
 	}
     break;
 
   case 'b':
+    machine  = iformat();
+
+    if (     strstr (buf, "little") && machine == 0) swab = 1;
+    else if (strstr (buf, "big"   ) && machine == 1) swab = 1;
+    else                                             swab = 0;
+
     for (n = 0; n < nfields; n++) {
       if (fread(data[n], sizeof(double), ntot, fp) != ntot) {
 	fputs("sem2tec: an error has occured while reading\n", stderr);
-	exit (1);
+	exit (EXIT_FAILURE);
       }
-      if (swap) dbrev(ntot, data[n], 1, data[n], 1);
+      if (swab) dbrev(ntot, data[n], 1, data[n], 1);
     }
     break;
 
   default:
     fprintf(stderr, "sem2tec: unknown format flag -- %c\n", c);
-    exit(1);
+    exit(EXIT_FAILURE);
     break;
   }
 
   return 1;
 }
 
-/*
- *  byte-reversal routines
- */
 
-void dbrev(int n, double *x, int incx, double *y, int incy)
-{
-  char  *cx, *cy;
-  register int i;
-
-  while (n--) {
-    cx = (char*) x;
-    cy = (char*) y;
-    for (i = 0; i < 4; i++) { 
-      char d  = cx[i];
-      cy[i]   = cx[7-i]; 
-      cy[7-i] = d;
-    }
-    x += incx;
-    y += incy;
-  }
-  return;
-}
-
-/*
- * Interpolate from the GLL mesh to an evenly-spaced mesh
- */
-
-int interpolate ( )
+static int interpolate (void)
+/* ------------------------------------------------------------------------- *
+ * Interpolate from the GLL mesh to an evenly-spaced mesh.
+ * ------------------------------------------------------------------------- */
 {
   int      nrns = nr * ns;
   double   **imr, **itmr, **ims, **itms, *mesh_x, *mesh_y;
   double   *zr, *zs, *zm, *p;
-  double   *do_interp();
   register k;
 
   switch (np) {
@@ -305,7 +303,7 @@ int interpolate ( )
     break;
     
   case 1:              /* no size specified ... use (NR|NS) */
-    np = max(nr,ns);
+    np = MAX (nr,ns);
     break;
 
   default:             /* size specified on the command line */
@@ -320,6 +318,7 @@ int interpolate ( )
 
   /* compute the GLL-mesh and the new mesh */
 
+#if 0
   coef  (nr);
   getops(nr, &zr, 0, 0, 0);
   coef  (ns);
@@ -333,6 +332,10 @@ int interpolate ( )
 
   igllm (imr, itmr, zr, zm, nr, np);
   igllm (ims, itms, zs, zm, ns, np);
+#endif
+
+  dMeshOps (GLL, STD, nr, np, 0, &imr, &itmr, 0, 0);
+  dMeshOps (GLL, STD, ns, np, 0, &ims, &itms, 0, 0);
 
   /* interpolate the mesh */
 
@@ -354,28 +357,28 @@ int interpolate ( )
 }
 
 
-double *do_interp (double **imr, double **itmr, double **ims, double **itms,
-		   double *data)
+static double *do_interp (double** imr ,
+			  double** itmr,
+			  double** ims ,
+			  double** itms,
+			  double*  data)
+/* ------------------------------------------------------------------------- *
+ * Wrapper for tensor-product interpolation.
+ * ------------------------------------------------------------------------- */
 {
-  int     nrns = nr * ns;
-  int     ntot = np * np;
-  double *new  = dvector (0, ntot * nel - 1),
-         *tmp  = dvector (0, np*nr),
-         *p    = new;
-
-  register k;
+  register int k;
+  const int    nrns = nr * ns;
+  const int    ntot = np * np;
+  double       *new  = dvector (0, ntot * nel - 1),
+               *tmp  = dvector (0, np*nr),
+               *p    = new;
 
   for (k = 0; k < nel; k++, data += nrns, p += ntot) {
-    mxm (*ims, np,  data, ns, tmp, nr);
-    mxm ( tmp, np, *itmr, nr, p  , np);
+    dmxm (*ims, np,  data, ns, tmp, nr);
+    dmxm ( tmp, np, *itmr, nr, p  , np);
   }
 
   free (tmp);
 
   return new;
 }
-
-
-
-
-
