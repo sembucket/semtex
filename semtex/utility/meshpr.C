@@ -17,6 +17,7 @@ RCSid[] = "$Id$";
 #include <iomanip.h>
 #include <femdef.h>
 #include <Femlib.h>
+#include <Utility.h>
 #include <Mesh.h>
 
 static char prog[] = "meshpr";
@@ -51,6 +52,8 @@ int main (int argc, char** argv)
 
   Mesh M (feml);
 
+  feml.close();
+  
   // -- Generate mesh knots and print up.
 
   const    int NEL  = M.nEl();
@@ -93,7 +96,6 @@ static void getargs (int    argc   ,
 		 "  -n N ... override number of element knots to be N\n";
   char err[StrMax];
   char c;
-
 
   while (--argc && **++argv == '-')
     switch (c = *++argv[0]) {
