@@ -1,14 +1,15 @@
+<USER>
+u = 0
+v = 0
+w = 0
+p = 0
+</USER>
+
 <HISTORY NUMBER=3>
 	1	1.0	0.0	0.0
 	2	15.0	0.0	0.0
 	3	0.0	2.0	0.0
 </HISTORY>
-
-<BASE NUMBER=3>
-	1	2.0	2.0	0.0
-	2	0.0	2.0	0.0
-	3	10.0	0.0	0.0
-</BASE>
 
 <FIELDS NUMBER=4>
 	u v w p
@@ -28,10 +29,10 @@
 	CHKPOINT  = 1
 	ITERATIVE = 0
 	IO_FLD    = STEPS_P
-	IO_CFL    = 20
+	IO_CFL    = 2
 
 	BETA      = 1.7
-	Re        = 220
+	Re        = 220.0
 	KINVIS    = 1.0/Re
 </TOKENS>
 

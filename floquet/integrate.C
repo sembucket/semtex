@@ -401,7 +401,7 @@ static MatrixSys** preSolve (const Domain* D)
   method = (itLev < 2) ? DIRECT : JACPCG;
 
   betak2 = sqr (Field::modeConstant (D -> u[NPER] -> name(), mode, beta));
-  M = new MatrixSys (0.0, betak2, 0, D -> elmt, D -> b[NPER], method);
+  M      = new MatrixSys (0.0, betak2, 0, D -> elmt, D -> b[NPER], method);
   MS.add (M);
   system[NPER] = M;
   cout << ((method == DIRECT) ? '*' : '&') << endl;
@@ -420,14 +420,14 @@ static void Solve (Domain*       D,
 // ---------------------------------------------------------------------------
 {
   const integer step = D -> step;
-  const integer mode = (NPER < 3) ? 0 : 1;
-  const integer beta = mode * static_cast<integer>(Femlib::value ("BETA"));
 
   if (i < NPER && step < NORD) {
 
     // -- We need a temporary matrix system for a viscous solve.
 
-    const integer Je = min (step, NORD);    
+    const integer mode = (NPER < 3) ? 0 : 1;
+    const integer beta = mode * static_cast<integer>(Femlib::value ("BETA"));
+    const integer Je   = min (step, NORD);    
     vector<real>  alpha (Je + 1);
     Integration::StifflyStable (Je, alpha());
     const real betak2  = sqr (Field::modeConstant (D->u[i]->name(),mode,beta));

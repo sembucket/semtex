@@ -209,9 +209,10 @@ void Boundary::curlCurl (const integer k ,
 {
   const Geometry::CoordSys space = Geometry::system();
 
-  const integer npnp     = sqr (_np);
-  const integer elmtOff  = _elmt -> ID() * npnp;
-  const integer localOff = _doffset - elmtOff;
+  const integer npnp        = sqr (_np);
+  const integer elmtOff     = _elmt -> ID() * npnp;
+  const integer localOff    = _doffset - elmtOff;
+  const integer fullComplex = (Geometry::nPert() == 3)&&(Geometry::nZ() == 2);
 
   static vector<real> work (5 * npnp + 3 * _np);
   real* gw = work();
@@ -277,7 +278,7 @@ void Boundary::curlCurl (const integer k ,
       Veclib::vadd      (_np, xr, 1, t, 1, xr, 1);
     }
 
-    if (Geometry::nPert() == 3) { // -- Full complex.
+    if (fullComplex) {
       Veclib::copy      (npnp, Ui, 1, uy, 1);
       Veclib::copy      (npnp, Vi, 1, vx, 1);
       _elmt -> grad     (vx, uy, DV, DT, gw);
@@ -332,7 +333,7 @@ void Boundary::curlCurl (const integer k ,
       Blas::axpy         (_np, betaK2, t, 1, xr, 1);
       _elmt -> sideDivR2 (_side, Vr,   t);
       Blas::axpy         (_np, betaK2, t, 1, yr, 1);
-      if (Geometry::nPert() == 3) { // -- Full complex.
+      if (fullComplex) {
 	_elmt -> sideDivR2 (_side, Ui,   t);
 	Blas::axpy         (_np, betaK2, t, 1, xi, 1);
 	_elmt -> sideDivR2 (_side, Vi,   t);
@@ -342,7 +343,7 @@ void Boundary::curlCurl (const integer k ,
     } else {
       Blas::axpy (_np, betaK2, Ur + localOff, _dskip, xr, 1);
       Blas::axpy (_np, betaK2, Vr + localOff, _dskip, yr, 1);
-      if (Geometry::nPert() == 3) { // -- Full complex.
+      if (fullComplex) {
 	Blas::axpy (_np, betaK2, Ui + localOff, _dskip, xi, 1);
 	Blas::axpy (_np, betaK2, Vi + localOff, _dskip, yi, 1);
       }
