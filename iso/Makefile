@@ -58,10 +58,10 @@ $(PROG): $(ISOOBJ) $(HEADER)
 
 # ----------------------------------------------------------------------------
 # Make a top-hat spectrum initial conditions file.
-IC1OBJ = allocate.o io.o normalize.o energy.o random.o tophat.o FFT.o makeIC1.o
+IC1OBJ = allocate.o io.o energy.o random.o tophat.o FFT.o misc.o makeIC1.o
 
 IC1: $(IC1OBJ) $(HEADER)
-	$(LD) $(IC1OBJ) -o $@ $(LDFLAGS)
+	$(LD) $(IC1OBJ) -o makeIC1 $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Make ICs for 3D Taylor--Green vortex.

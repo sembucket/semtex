@@ -27,7 +27,6 @@
  * the three velocity components in turn.
  *
  * $Id$
- *
  * ------------------------------------------------------------------------- */
 
 #include "iso.h"
@@ -35,16 +34,15 @@
 
 int main (int argc, char *argv[])
 {
-  FILE                  *fp;
-  string                filename;
-  int                   c, i, argnr, cubesize, Npts;
-  int                   paramerr = FALSE, seed = -1;
-  CVF  IC;
-  real**      head;
-  int*               Dimension;
-  complex*               Wtab;
-  header                IC_info;
-  real                 Max_Vel;
+  FILE*      fp;
+  char       filename[STR_MAX];
+  int        c, i, argnr, cubesize;
+  int        paramerr = FALSE, seed = -1;
+  CVF        IC;
+  int*       Dim;
+  complex*   Wtab;
+  Param*     Info = (Param*) calloc (1, sizeof (Param));
+  real       Max_Vel;
 
 
   /* -- Process command-line arguments. */
@@ -52,91 +50,92 @@ int main (int argc, char *argv[])
   if (argc > 4 && argc < 8) {
     argnr = 1;
     do {
-     if (argv[argnr][0] == '-') {
-       if (argv[argnr][1] == 'n') {
-	 argnr++;
-	 cubesize = atoi(argv[argnr]);
-	 if (!ispow2(cubesize)) {
-	   paramerr = TRUE;
-	   fprintf(stderr, "size must be power of 2\n");
-	 }
-       } else if (argv[argnr][1] == 'o') {
-	 argnr++;
-	 (void) strcpy(filename, argv[argnr]);
-       } else if (argv[argnr][1] == 's') {
-	 argnr++;
-	 seed = atoi(argv[argnr]);
-       } else {
-	 paramerr = TRUE;
-	 fprintf(stderr, "unrecognized flag: %s\n", argv[argnr]);
-       }
-     } else {
-       paramerr = TRUE;
-       fprintf(stderr, "bad flag: %s\n", argv[argnr]);
-     }
-     argnr++;
-   } while (!(paramerr) && argnr < argc);
+      if (argv[argnr][0] == '-') {
+	if (argv[argnr][1] == 'n') {
+	  argnr++;
+	  cubesize = atoi (argv[argnr]);
+	  if (!ispow2 (cubesize)) {
+	    paramerr = TRUE;
+	    fprintf (stderr, "size must be power of 2\n");
+	  }
+	} else if (argv[argnr][1] == 'o') {
+	  argnr++;
+	  strcpy (filename, argv[argnr]);
+	} else if (argv[argnr][1] == 's') {
+	  argnr++;
+	  seed = atoi (argv[argnr]);
+	} else {
+	  paramerr = TRUE;
+	  fprintf (stderr, "unrecognized flag: %s\n", argv[argnr]);
+	}
+      } else {
+	paramerr = TRUE;
+	fprintf (stderr, "bad flag: %s\n", argv[argnr]);
+      }
+      argnr++;
+    } while (!(paramerr) && argnr < argc);
   } else {
     paramerr = TRUE;
-    fprintf(stderr, "arg count\n");
+    fprintf (stderr, "arg count\n");
   }
   
   if (paramerr) {
-    fprintf(stderr,
-	    "Usage: makeIC -n <cubesize> -o <outfilename> [-s <seed>]\n");
-    exit (1);
+    fprintf (stderr,
+	     "Usage: makeIC1 -n <cubesize> -o <outfilename> [-s <seed>]\n");
+    exit (EXIT_FAILURE);
   }
 
   /* -- Allocate storage of IC components, zero all locations. */
 
-  Dimension    = ivect (1, 3);
-  Dimension[1] = (Dimension[2] = cubesize);
-  Dimension[3] = cubesize / 2;
+  Dim    = ivector (1, 3);
+  Dim[1] = (Dim[2] = cubesize);
+  Dim[3] = cubesize / 2;
 
-  Npts = Dimension[1] * Dimension[2] * Dimension[3];
-  
-  head = cfield (Dimension, &IC);
-  Wtab = cvect  (0, Dimension[3]-1);
+  cfield  (Dim, &IC);
+  zeroVF (IC, Dim);
 
-  for (c = 1; c <= 3; c++)
-    for (i = 0; i < 2*Npts; i++)
-      head[c][i] = 0.0;
- 
+  Wtab = cvector (0, Dim[3]-1);
+  preFFT (Wtab, Dim[3]);  
+
   /* -- Generate initial condition Fourier coefficients. */
 
-  tophat (Dimension, IC, seed);
+  tophat (Dim, IC, seed);
 
-  /* -- Normalize the velocities to get q^2 = 1. 
-   *    Find out the largest velocity component in physical space. */
+  /* -- Normalize velocities to get q^2 = 1.  */
 
-  preFFT (Dimension[3], Wtab);
-  Max_Vel = normalize (Dimension, Wtab, head, IC);
+  normalize (IC, Dim);
+
+  /* -- Find maximum velocity component. */
+
+  Max_Vel = 0.0;
+  for (c = 1; c <= 3; c++) {
+    rc3DFT (IC[c], Dim, Wtab, INVERSE);
+    Max_Vel = MAX (Max_Vel, amaxf (IC[c], Dim));
+    rc3DFT  (IC[c], Dim, Wtab, FORWARD);
+    scaleFT (IC[c], Dim);
+  }
 
   /* -- Output to file. */
 
-  IC_info.N_Grid = cubesize;
+  Info -> modes   = Dim[1];
+  Info -> dt      = 0.01;
+  Info -> step    = 0;
+  Info -> Re      = 100.0;
+
+  strcpy (Info -> name, "Top Hat");
+
   fp = efopen (filename, "w");
-  if (fwrite (&IC_info, 1, sizeof (header), fp) != sizeof (header)) {
-    fprintf (stderr, "makeIC1: couldn't output header onto file\n");
-    exit (EXIT_FAILURE);
-  }
+  writeParam  (fp, Info);
+  writeCVF    (fp, IC, Dim);
+  fclose      (fp);
+
+  printParam  (stdout, Info, "$RCSfile$", "$Revision$");
   
-  for (c = 1; c <= 3; c++)
-    if (fwrite (&IC[c][0][0][0], sizeof (complex), Npts, fp) != Npts) {
-      fprintf (stderr, "Unable to write component %d data on IC file", c);
-      exit (EXIT_FAILURE);
-    }
+  sprintf (filename, "        %.3e", 2.0 * M_PI / (cubesize * Max_Vel));
+  message ("CFL timestep estimate", filename, REMARK);
+  sprintf (filename, "            %g", energyF (IC, Dim));
+  message ("Check energy: q^2",     filename, REMARK);
 
-  fclose (fp);
-
-  /* -- Calculate the CFL condition timestep. */
-
-  printf ("%.3e\n", 2.0*M_PI / (cubesize * Max_Vel));
-
-
-/* Check IC energy ... <UiUi>/2:
-   printf("q^2: %f\n", energy (Dimension, IC));
-*/
   return EXIT_SUCCESS;
 }
 
