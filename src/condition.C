@@ -584,7 +584,8 @@ Mixed::Mixed (const char* v,
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "Mixed::Mixed";
-  char buf[StrMax], *tok, *sep = ";,";
+  const char sep[] = ";,";
+  char       buf[StrMax], *tok;
 
   strcpy ((_grp = new char [strlen (g) + 1]), g);
 
