@@ -111,8 +111,15 @@ int main (int    argc,
     fputs (fields, fp_out);
     c = fgets (buf, STR_MAX, fp_in);
     while (*c++ = tolower(*c));
-    
-    if (strstr (buf, "binary")) {
+    c = buf;
+
+    switch (*c) {
+    case 'a':
+      fprintf (fp_out, hdr_fmt[9], "ASCII");
+      a_to_a  (np, nz, nel, n, fp_in, fp_out, fields, pert, mode);
+      break;
+
+    case 'b':
       if (!strstr (buf, "endian"))
 	message (prog, "input field file in unknown binary format", WARNING);
       else {
@@ -123,22 +130,6 @@ int main (int    argc,
       strcat  (buf, fmt);
       fprintf (fp_out, hdr_fmt[9], buf);
       b_to_b  (np, nz, nel, n, fp_in, fp_out, fields, pert, mode, swab);
-
-    } else if (strstr (buf, "ascii")) {
-      fprintf (fp_out, hdr_fmt[9], "ASCII");
-      a_to_a  (np, nz, nel, n, fp_in, fp_out, fields, pert, mode);
-    } else {
-      sprintf (buf, "unknown format flag -- %c", c);
-      message (prog, buf, ERROR);
-    }
-
-    switch (*c) {
-    case 'a': case 'A':
-      a_to_a (np, nz, nel, n, fp_in, fp_out, fields, pert, mode);
-      break;
-
-    case 'b': case 'B':
-      b_to_b (np, nz, nel, n, fp_in, fp_out, fields, pert, mode, swab);
       break;
 
     default:
@@ -146,7 +137,6 @@ int main (int    argc,
       message (prog, buf, ERROR);
       break;
     }
-
   } 
   
   return EXIT_SUCCESS;
