@@ -5,7 +5,7 @@
 ##############################################################################
 
 ARCH     = $(shell uname -s)
-CPPFLAGS = -I. -I$(HOME)/include -I$(HOME)/include/sm
+CPPFLAGS = -I. -I$(HOME)/develop/semtex/include -I$(HOME)/include/sm
 DEFINES  = 
 
 # -- Set DEBUG=1 on command line if you want debugging output.

@@ -48,7 +48,8 @@ int main (int    argc,
 
   endBlock (infile);
 
-  printUp  (cout, vertices, elements, nEl, mirror);
+  printUp  (cout, const_cast<const vector<Node*>&>(vertices),
+	    const_cast<const vector<Node*>*&>(elements), nEl, mirror);
   
   return EXIT_SUCCESS;
 }
