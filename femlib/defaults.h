@@ -58,14 +58,16 @@ static struct {
   
   /* -- Default integer values. */
 
+  "STEP_MAX"    ,   500 ,
   "IO_FLD"      ,   500 ,
   "IO_HIS"      ,   10  ,
   "IO_CFL"      ,   50  ,
-  "STEP_MAX"    ,   500 ,
   "N_POLY"      ,   5   ,
   "N_TIME"      ,   2   ,
   "N_STEP"      ,   1   ,
   "N_Z"         ,   1   ,
+  "N_PROC"      ,   1   ,
+  "I_PROC"      ,   0   ,
 
   0             ,   0.0
 };
