@@ -221,7 +221,7 @@ int main (int    argc,
   
   while (getDump (D, file)) {
     
-    if (nComponent > 2) D -> transform (+1);
+    if (nComponent > 2) D -> transform (FORWARD);
 
     // -- Velocity gradient tensor, calculated in Fourier, transformed back.
 
@@ -229,15 +229,15 @@ int main (int    argc,
       for (j = 0; j < nComponent ; j++) {
 	(*Vij[i][j] = *D -> u[i]) . gradient (j);
 	D -> u[0] -> smooth (Vij[i][j]);
-	Vij[i][j] -> transform(-1);
+	Vij[i][j] -> transform(INVERSE);
       }
 
-    if (nComponent > 2) D -> transform (-1);
+    if (nComponent > 2) D -> transform (INVERSE);
 
     if (system == Geometry::Cylindrical && nComponent == 3) {
       for (i = 0; i < nComponent; i++) Vij[i][2] -> divR();
-      (*work = *D -> u[2]) . divR(); *Vij[1][2] -= *work;
-      (*work = *D -> u[1]) . divR(); *Vij[2][2] += *work;
+      (*work = *D -> u[2]) . divR();  *Vij[1][2] -= *work;
+      (*work = *D -> u[1]) . divR();  *Vij[2][2] += *work;
     }
 	
     if (add[DIVERGENCE] || add[INVARIANTS]) {

@@ -117,7 +117,7 @@ static void parse_args (int    argc,
 	break;
       case 'o':
 	tecfile = (char*) malloc(STR_MAX);
-	strcpy(tecfile, *argv);
+	strcpy(tecfile, *++argv);
 	argv[0] += strlen(*argv)-1; argc--;
 	preplot_it = 0;
 	break;
@@ -224,7 +224,7 @@ static void read_data (FILE *fp)
  * Automatic conversion between little- and big-endian binary formats.
  * ------------------------------------------------------------------------- */
 {
-  int  i, m, n, nplane, ntot;
+  int  i, m, n, nplane;
   char buf[STR_MAX], *c;
   
   /* -- Read the header down to the field list. */
@@ -285,7 +285,7 @@ static void read_data (FILE *fp)
   }
 
   default:
-    fprintf (stderr, "sem2tec: unknown format flag: '%c'\n", c);
+    fprintf (stderr, "sem2tec: unknown format flag: '%c'\n", *c);
     exit    (EXIT_FAILURE);
     break;
   }
@@ -298,7 +298,7 @@ static void interpolate (void)
  * ------------------------------------------------------------------------- */
 {
   register int k, m, nplane_new;
-  const int    nrns = nr * ns, nplane_old = nr * ns * nel;
+  const int    nplane_old = nr * ns * nel;
   const double **imr, **itmr, **ims, **itms;
   double       *mesh_x, *mesh_y;
   double       **newplane = (double**) malloc (nz * sizeof (double*));
@@ -382,7 +382,7 @@ static void wrap (void)
  * ------------------------------------------------------------------------- */
 {
   register int i;
-  const int    nplane_new = np * np * nel;
+  const int    nplane_new = nr * ns * nel;
 
   if (nzp == nz) return;
 
