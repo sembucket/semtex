@@ -25,11 +25,6 @@ ifdef CONV		# -- Make convective nonlinear terms (not skew-symm).
   PROG    := $(PROG)_conv
 endif
 
-ifdef MIX		# -- Make convective nonlinear terms (not skew-symm).
-  DEFINES += -DMIX
-  PROG    := $(PROG)_mix
-endif
-
 ifdef TBCS		# -- Recompute mode 0 velocity BCs every time step.
   DEFINES += -DTBCS
   PROG    := $(PROG)_tbcs
