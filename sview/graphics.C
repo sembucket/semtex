@@ -67,7 +67,7 @@ void keyboard (unsigned char key,
     break;
   case 'd':
 
-    writetiff ("sview.tif", "Isosurface", COMPRESSION_LZW);
+    writetiff ("sview.tif", "Isosurface", COMPRESSION_PACKBITS);
     cout << "Wrote file sview.tif" << endl;
     break;
   case 'k':

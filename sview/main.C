@@ -242,7 +242,7 @@ void quit ()
 // ---------------------------------------------------------------------------
 {
   if (State.dump) {
-    writetiff ("sview.tif", "Isosurface", COMPRESSION_LZW);
+    writetiff ("sview.tif", "Isosurface", COMPRESSION_PACKBITS);
     cout << "Wrote file sview.tif" << endl;
   }
   cerr << "-- sview : normal termination" << endl;
