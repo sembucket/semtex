@@ -17,6 +17,7 @@ void Taylor2D (CVF  IC, const int*  Dim, const int  code)
  * p = -0.25 [cos(2x) + cos(2y)] exp(-4 \nu t).
  * 
  * Input code = 0, 1, 2 generates a cyclic permutation of the velocity.
+
  *
  * Generate initial conditions for t = 0, components in PHYSICAL space.
  * ------------------------------------------------------------------------- */
@@ -168,7 +169,8 @@ void Taylor2D_error (CVF IC, const int* Dim, const Param* I, const int code)
 }
 
 
-void  TaylorGreen (CVF IC, const int* Dim)
+void TaylorGreen (CVF        IC ,
+		  const int* Dim)
 /* ------------------------------------------------------------------------- *
  * Generate initial conditions of the 3D Taylor--Green vortex, in
  * PHYSICAL space.
@@ -178,14 +180,12 @@ void  TaylorGreen (CVF IC, const int* Dim)
  *   w =  0
  * ------------------------------------------------------------------------- */
 {
-  const int N    = Dim[1];
-  const int Npts = Dim[1] * Dim[2] * Dim[3];
-
-  register real *u = & IC[1][0][0][0].Re;
-  register real *v = & IC[2][0][0][0].Re;
-  register real *w = & IC[3][0][0][0].Re;
-
-  register int i, j, k;
+  const int      N    = Dim[1];
+  const int      Npts = Dim[1] * Dim[2] * Dim[3];
+  register real* u    = & IC[1][0][0][0].Re;
+  register real* v    = & IC[2][0][0][0].Re;
+  register real* w    = & IC[3][0][0][0].Re;
+  register int   i, j, k;
 
   for (i = 0; i < N; i++) {
     const double x = 2.0 * M_PI * i / (double) N;
@@ -203,7 +203,8 @@ void  TaylorGreen (CVF IC, const int* Dim)
 }
 
 
-void  TaylorGreenNL_error (CVF IC, const int* Dim)
+void TaylorGreenNL_error (CVF        IC ,
+			  const int* Dim)
 /* ------------------------------------------------------------------------- *
  * Generate the nonlinear terms in the Navier--Stokes equations for 
  * the initial conditions of the 3D Taylor--Green vortex, in
@@ -220,11 +221,11 @@ void  TaylorGreenNL_error (CVF IC, const int* Dim)
  *   d(vv)/dy = 2 cos^2(x) cos(y) sin(y)            cos^2(z)
  * ------------------------------------------------------------------------- */
 {
-  const    int   N    = Dim[1];
-  const    int   Npts = Dim[1] * Dim[2] * Dim[3];
-  register real *u    = &IC[1][0][0][0].Re;
-  register real *v    = &IC[2][0][0][0].Re;
-  register real *w    = &IC[3][0][0][0].Re;
+  const int      N    = Dim[1];
+  const int      Npts = Dim[1] * Dim[2] * Dim[3];
+  register real* u    = &IC[1][0][0][0].Re;
+  register real* v    = &IC[2][0][0][0].Re;
+  register real* w    = &IC[3][0][0][0].Re;
   register int   i, j, k;
   real           UUx, UVy, VUx, VVy, cz2;
 
@@ -248,7 +249,7 @@ void  TaylorGreenNL_error (CVF IC, const int* Dim)
 }
 
 
-real  Brachet (const real t)
+real Brachet (const real t)
 /* ------------------------------------------------------------------------- *
  * Return the Generalized Enstrophy of order 1 for the inviscid Taylor-
  * Green vortex, as estimated in Ref [5] (Table 5).

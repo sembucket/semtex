@@ -15,15 +15,15 @@
 int main (int    argc,
 	  char** argv)
 {
-  CVF           U;
-  CF            Work;
-  Param*        Info = (Param*) calloc (1, sizeof (Param));
-  int*          Dim;
-  complex*      Wtab;
-  int           N, Npts, Npts_P, perm;
-  FILE*         fp;
-  real          err_max;
-  register int  c, i, j, k;
+  CVF          U;
+  CF           Work;
+  Param*       Info = (Param*) calloc (1, sizeof (Param));
+  int*         Dim;
+  complex*     Wtab;
+  int          N, Npts, Npts_P, perm;
+  FILE*        fp;
+  real         err_max;
+  register int c, i, j, k;
 
   if (argc != 4) {
     fprintf (stderr,"usage: taylor2D_chk -p 0||1||2 input.fld > output.fld\n");

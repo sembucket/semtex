@@ -47,7 +47,7 @@ int main (int    argc,
     
   fclose (fp);
 
-  /* -- Do dUi/dXi unsummed in Fourier space. */
+ /* -- Do dUi/dXi unsummed in Fourier space. */
 
   deriv (U, 1, D[1], 1, Dim);
   deriv (U, 2, D[2], 2, Dim);

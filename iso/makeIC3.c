@@ -92,8 +92,8 @@ int main (int    argc,
     fprintf (stderr, "Taylor 2D initial condition, ");
     switch (code) {
     case 0: fprintf (stderr, "x--y, uniform in z\n"); break;
-    case 1: fprintf (stderr, "x--z, uniform in y\n"); break;
-    case 2: fprintf (stderr, "y--z, uniform in x\n"); break;
+    case 1: fprintf (stderr, "y--z, uniform in x\n"); break;
+    case 2: fprintf (stderr, "x--z, uniform in y\n"); break;
     default:
       break;
     }
