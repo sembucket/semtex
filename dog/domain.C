@@ -398,13 +398,13 @@ void Domain::updateBase()
 // Update base velocity fields, using Fourier series reconstruction in time.
 // ---------------------------------------------------------------------------
 {
-  const integer nBase  = Geometry::nBase();
-  const integer nSlice = Geometry::nSlice();
-//  const real    time   = Femlib::value ("t - D_T");
+  const integer nBase   = Geometry::nBase();
+  const integer nSlice  = Geometry::nSlice();
+  const real    oldTime = Femlib::value ("t - D_T");
   integer       i;
   
   if (nSlice < 2) return;
 
   for (i = 0; i < nBase; i++)
-    U[i] -> update (nSlice, baseFlow(i), time, period);
+    U[i] -> update (nSlice, baseFlow(i), oldTime, period);
 }
