@@ -36,8 +36,9 @@ static char  prog[] = "sview";
 Flag  State;
 Iso** Surface;
 Sem*  Mesh;
+Data* Fields;
 
-static void getargs  (int, char**, ifstream&, ifstream&);
+static void getargs  (int, char**, char*&, char*&);
 
 
 void main (int    argc,
@@ -54,27 +55,40 @@ void main (int    argc,
 //
 // ---------------------------------------------------------------------------
 {
-  ifstream mfile, ffile;
+  int  i;
+  char *mfile, *ffile;
+  char start[] = 
+    "-- sview : isosurface viewer for spectral element meshes --\n"
+    "           OpenGL version CSIRO 1999\n";
 
   // -- Initialise.
 
   glutInit (&argc, argv);
   getargs  (argc,  argv, mfile, ffile);
 
+  cout << start;
+
+  Surface = new Iso* [IsoMax];
+  for (i = 0; i < IsoMax; i++) Surface[i] = 0;
+
+  // -- Load external file information.
+
+  Mesh   = loadMesh  (mfile);
+  Fields = setFields (ffile);
+
+  // -- Set graphics state defaults.
+
   State.drawbox = GL_TRUE;
+  State.drawiso = GL_FALSE;
   State.rotate  = GL_TRUE;
+
   State.xrot    = 0.0;
   State.yrot    = 0.0;
   State.zrot    = 0.0;
   State.xtrans  = 0.0;
   State.ytrans  = 0.0;
   State.ztrans  = 0.0;
-
-  // -- Load external file information.
-
-  Mesh = loadMesh (mfile);
-  
-  State.radius = 4.0 * State.length;
+  State.radius  = 1.0 * State.length;
 
   // -- Set up windowing.
 
@@ -87,7 +101,6 @@ void main (int    argc,
   glutDisplayFunc  (display);
   glutKeyboardFunc (keyboard);
   glutSpecialFunc  (speckeys);
-  //  glutMotionFunc   (motion);
   glutIdleFunc     (NULL);
 
   // -- Transfer control to GLUT (no return).
@@ -98,10 +111,10 @@ void main (int    argc,
 }
 
 
-static void getargs (int       argc ,
-		     char**    argv ,
-		     ifstream& mfile,
-		     ifstream& ffile)
+static void getargs (int    argc ,
+		     char** argv ,
+		     char*& mfile,
+		     char*& ffile)
 // ---------------------------------------------------------------------------
 // Process command-line arguments.
 // ---------------------------------------------------------------------------
@@ -127,10 +140,8 @@ static void getargs (int       argc ,
     }
 
   if (argc == 2) {
-    mfile.open (argv[0], ios::in);
-    ffile.open (argv[1], ios::in);
-    if (!mfile) message (prog, "couldn't open mesh file",  ERROR);
-    if (!ffile) message (prog, "couldn't open field file", ERROR);
+    mfile = argv[0];
+    ffile = argv[1];
   } else {
     cerr << usage;
     exit (EXIT_FAILURE);

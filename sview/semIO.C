@@ -5,10 +5,14 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <Sview.h>
-#include <limits.h>
+
+static int  _swab;		// -- File-scope flag for byte-swapped input.
+static int  iformat ();
+static void format  (char*);
+static void dbrev   (const int, const double*, double*);
 
 
-Sem* loadMesh (ifstream& mfile)
+Sem* loadMesh (const char* fname)
 // ---------------------------------------------------------------------------
 // Mesh header is of form:
 //
@@ -19,79 +23,346 @@ Sem* loadMesh (ifstream& mfile)
 // NR=NS=np.  Finally the NZ + 1 z locations of the 3D mesh are
 // supplied.
 //
+// At present, each element is assumed the same order in each
+// direction, and of equal orders also in the r & s directions.  This
+// would be fairly easy to change here, and should carry through OK to
+// the rest of the code.
+//
 // NB: the mean values of extent in the x, y, & z directions are subtracted
 // from the mesh locations.
 // ---------------------------------------------------------------------------
 {
-  char     routine[] = "loadMesh", buf[StrMax], err[StrMax];
-  register int  i, n;
-  register double xavg, yavg, zavg;
-  Sem*     M = new Sem;
+  char routine[] = "loadMesh", buf[StrMax], err[StrMax];
+  register int i, j, k;
+  int          nr, np, np2, nz, nel, ntot;
+  float        x, y, z;
+  float        xavg, yavg, zavg;
+  float        xmin, xmax, ymin, ymax, zmin, zmax;
+  ifstream     mfile (fname);
+  Sem*         M = new Sem;
 
-  mfile >> n >> M -> np >> M -> nz >> M -> nel;
+  if (!mfile) message (routine, "couldn't open mesh file", ERROR);
+  
+  mfile >> nr >> np >> nz >> nel;
   mfile.getline (buf, StrMax);
 
   if (!strstr (buf, "NR NS NZ NEL")) {
     sprintf (err, "mesh header line should include NR NS NZ NEL: %s", buf);
     message (routine, err, ERROR);
   }
-  if (n != M -> np) {
-    sprintf (err, "Element NR, NS orders must be equal: %1d: %1d", n, M -> np);
+  if (nr != np) {
+    sprintf (err, "Element NR, NS orders must be equal: %1d: %1d", nr, np);
     message (routine, err, ERROR);
   }
-  if (M -> nz < 2) {
-    sprintf (err, "Mesh mush be 3D (NZ >= 2): %1d", M -> nz);
+  if (nz < 2) {
+    sprintf (err, "Mesh mush be 3D (NZ >= 2): %1d", nz);
     message (routine, err, ERROR);
   }
-  
-  M -> ntot = M -> np * M -> np * M -> nel;
 
-  M -> xmesh = new float [M -> ntot];
-  M -> ymesh = new float [M -> ntot];
-  M -> zmesh = new float [M -> nz + 1];
+  M -> nel  = nel;
+  M -> idim = new int [nel];
+  M -> jdim = new int [nel];
+  M -> kdim = new int [nel];
 
-  State.xmin = 1.0e6;
-  State.xmax = -State.xmin;
-  State.ymin =  State.xmin;
-  State.ymax =  State.xmax;
-  State.zmin =  State.zmin;
-  State.zmax =  State.zmax;
-
-  n = M -> ntot;
-  for (i = 0; i < n; i++) {
-    mfile >> M -> xmesh[i] >> M -> ymesh[i];
-    State.xmin = min (State.xmin, M -> xmesh[i]);
-    State.ymin = min (State.ymin, M -> ymesh[i]);
-    State.xmax = max (State.xmax, M -> xmesh[i]);
-    State.ymax = max (State.ymax, M -> ymesh[i]);
-  }
-  xavg = 0.5 * (State.xmin + State.xmax);
-  yavg = 0.5 * (State.ymin + State.ymax);
-  for (i = 0; i < n; i++) {
-    M -> xmesh[i] -= xavg;
-    M -> ymesh[i] -= yavg;
+  for (i = 0; i < nel; i++) {
+    M -> idim[i] = np;
+    M -> jdim[i] = np;
+    M -> kdim[i] = nz;
   }
 
-  n = M -> nz + 1;
-  for (i = 0; i < n; i++) {
-    mfile >> M -> zmesh[i];
-    State.zmin = min (State.zmin, M -> zmesh[i]);
-    State.zmax = max (State.zmax, M -> zmesh[i]);
+  M -> xgrid = new float* [nel];
+  M -> ygrid = new float* [nel];
+  M -> zgrid = new float* [nel];
+
+  ntot = np * np * nz * nel;
+
+  M -> xgrid[0] = new float [ntot];
+  M -> ygrid[0] = new float [ntot];
+  M -> zgrid[0] = new float [ntot];
+
+  ntot = np * np * nz;
+
+  for (i = 1; i < nel; i++) {
+    M -> xgrid[i] = M -> xgrid[0] + i * ntot;
+    M -> ygrid[i] = M -> ygrid[0] + i * ntot;
+    M -> zgrid[i] = M -> zgrid[0] + i * ntot;
   }
-  zavg = 0.5 * (State.zmin + State.zmax);
-  for (i = 0; i < n; i++)
-    M -> zmesh[i] -= zavg;
 
-  State.xmin -= xavg;
-  State.xmax -= xavg;
-  State.ymax -= yavg;
-  State.ymax -= yavg;
-  State.zmin -= zavg;
-  State.zmax -= zavg;
+  xmin =  1.0e35;
+  xmax = -xmin;
+  ymin =  xmin;
+  ymax =  xmax;
+  zmin =  xmin;
+  zmax =  xmax;
 
-  State.length = max (hypot (xavg, yavg), hypot (xavg, zavg));
-  State.length = max (State.length,       hypot (yavg, zavg));
+  np2  = np * np;
+  ntot = np2;
+
+  for (i = 0; i < nel; i++)
+    for (j = 0; j < np2; j++) {
+      mfile >> x >> y;
+      M -> xgrid[i][j] = x;
+      M -> ygrid[i][j] = y;
+      xmin = min (xmin, x);
+      xmax = max (xmax, x);
+      ymin = min (ymin, y);
+      ymax = max (ymax, y);
+      for (k = 1; k < nz; k++) {
+	M -> xgrid[i][j + k * ntot] = x;
+	M -> ygrid[i][j + k * ntot] = y;
+      }
+    }
+
+  ntot = np * np;
+
+  for (k = 0; k < nz; k++) {
+    mfile >> z;
+    zmin = min (zmin, z);
+    zmax = max (zmax, z);
+    for (i = 0; i < nel; i++)
+      for (j = 0; j < np2; j++)
+	M -> zgrid[i][j + k * ntot] = z;
+  }
+
+  xavg = 0.5 * (xmin + xmax);
+  yavg = 0.5 * (ymin + ymax);
+  zavg = 0.5 * (zmin + zmax);
+
+  ntot = np * np * nz * nel;
+
+  for (i = 0; i < ntot; i++) {
+    M -> xgrid[0][i] -= xavg;
+    M -> ygrid[0][i] -= yavg;
+    M -> zgrid[0][i] -= zavg;
+  }
+
+  State.xmin = xmin-xavg;
+  State.xmax = xmax-xavg;
+  State.ymax = ymin-yavg;
+  State.ymax = ymax-yavg;
+  State.zmin = zmin-zavg;
+  State.zmax = zmax-zavg;
+
+  State.length = max (hypot (xmax, ymax), hypot (xmax, zmax));
+  State.length = max (State.length,       hypot (ymax, zmax));
   State.length *= 2.0;
 
+  mfile.close();
+
   return M;
+}
+
+
+Data* setFields (const char* fname)
+// ---------------------------------------------------------------------------
+// Data is just a placeholder to keep a record of the number of fields,
+// their names and offsets in a SEM (binary) data file.
+// ---------------------------------------------------------------------------
+{
+  char  routine[] = "setFields";
+  const int NP  = Mesh -> idim[0];
+  const int NZ  = Mesh -> kdim[0];
+  const int NEL = Mesh -> nel;
+  int       i, nr, ns, nz, nel, ntot;
+  char      buf[StrMax], err[StrMax];
+  double*   tmp;
+  Data*     D = new Data;
+
+  D -> file.open (fname, ios::in);
+  if (!D -> file) message (routine, "couldn't open field file", ERROR);
+
+  D -> file.getline(buf, StrMax);
+  
+  if (!strstr (buf, "Session")) {
+    sprintf (err, "not a valid field file; first line is: %s", buf);
+    message (routine, err, ERROR);
+  }
+
+  D -> file.getline(buf, StrMax).getline(buf, StrMax);
+  istrstream (buf, strlen (buf)) >> nr >> ns >> nz >> nel;
+
+  if (nr  != ns ) message (routine, "element NR != NS",      ERROR);
+  if (nr  != NP ) message (routine, "element size mismatch", ERROR);
+  if (nz  != NZ ) message (routine, "no. z planes mismatch", ERROR);
+  if (nel != NEL) message (routine, "no. elements mismatch", ERROR);
+  
+  tmp          = new double [ntot = nr * ns * nz * nel];
+  D -> elmt    = new float* [nel];
+  D -> elmt[0] = new float  [ntot];
+  for (i = 1; i < nel; i++)
+    D -> elmt[i] = D -> elmt[0] + i * nr * ns * nz;
+
+  D -> file.getline(buf, StrMax).getline(buf, StrMax).getline(buf, StrMax);
+  D -> file.getline(buf, StrMax).getline(buf, StrMax).getline(buf, StrMax);
+
+  i = 0;
+  while (isalpha (buf[i])) {
+    D -> name[i] = buf[i];
+    i++;
+  }
+  D -> name[i] = '\0';
+  D -> nfields = strlen (D -> name);
+
+  if (D -> nfields > FldMax) {
+    sprintf (err, "no. of fields (%1d) exceeds maximum (%1d)",
+	     D -> nfields, FldMax);
+    message (routine, err, ERROR);
+  }
+
+  D -> file.getline(buf, StrMax);
+
+  format (err);
+
+  if (!strstr (buf, "binary"))
+    message (routine, "input field file not in binary format", ERROR);
+  
+  if (!strstr (buf, "endian"))
+    message (routine, "input field file in unknown binary format", WARNING);
+  else {
+    _swab = ((strstr (buf, "big") && strstr (err, "little")) ||
+	     (strstr (err, "big") && strstr (buf, "little")) );
+  }
+
+  cout << "-- Mesh  : "
+       << nel << " elements, " 
+       << nr << " X " << ns << " X " << nz << endl;
+  cout << "-- Fields: ";
+
+  for (i = 0; i < D -> nfields; i++) {
+    cout << D -> name[i];
+    D -> fldPosn[i] = D -> file.tellg();
+    D -> file.read (tmp, ntot * sizeof (double));
+  }
+  if (D -> file)
+    cout << ", OK" << endl;
+  else {
+    cout << endl;
+    message (routine, "problem reading binary data", ERROR);
+  }
+
+  // -- Set default field to the first available.
+
+  delete [] tmp;
+
+  loadData (D, D -> name[0]);
+
+  return D;
+}
+
+
+int loadData (Data* F   ,
+	      char  name)
+// ---------------------------------------------------------------------------
+// Load the temporary data array with named field, reading from file.
+// The data structure used for interpolation (element-ordered) differs
+// from that in the file (plane-ordered).  Thus data are first read into
+// a temporary array, then reordered.  Byte swapping may also be required.
+// ---------------------------------------------------------------------------
+{
+  char routine[] = "loadData", err[StrMax];
+  int             found = 0;
+  const int       nz   = Mesh -> kdim[0];
+  const int       nel  = Mesh -> nel;
+  const int       np2  = sqr (Mesh -> idim[0]);
+  const int       ntot = np2 * nz * nel;
+  const int       skip = np2 * nel;
+  register int    i, j, k, Linv1, Linv2;
+  register float  *E, dmin =  1.0e35, dmax = -dmin, datum;
+  register double *tmp;
+
+  for (i = 0; !found && i < F -> nfields; i++)
+    if (name == F -> name[i]) found = 1;
+
+  if (!found) {
+    sprintf (err, "field '%c' not found, no field set", name);
+    message (routine, err, WARNING);
+    F -> file.clear ();
+    F -> file.seekg (0);
+    return 0;
+  }
+
+  tmp = new double [ntot];
+
+  // -- Reposition file and extract chosen field into temporary store.
+
+  F -> file.clear ();
+  F -> file.seekg (F -> fldPosn[i - 1]);
+  F -> file.read  (tmp, ntot * sizeof (double));
+
+  if (_swab) dbrev (ntot, tmp, tmp);
+
+  // -- Re-order data: [nel][nz][ns][nr] <-- [nz][nel][ns][nr].
+
+  for (k = 0; k < nel; k++) {
+    E = F -> elmt[k];
+    for (j = 0; j < nz; j++) {
+      Linv1 = j * np2;
+      Linv2 = j * skip + k * np2;
+      for (i = 0; i < np2; i++) {
+	datum = E[Linv1 + i] = tmp[Linv2 + i];
+	dmin  = min (dmin, datum);
+	dmax  = max (dmax, datum);
+      }
+    }
+  }
+
+  cout << "Field '"   << name
+       << "': min = " << dmin
+       << ", max = "  << dmax << endl;
+
+  delete [] tmp;
+
+  return 1;
+}
+
+
+static int iformat ()
+/* ------------------------------------------------------------------------- *
+ * Return 1 if machine floating-point format is IEEE little-endian,
+ * 0 if IEEE big-endian, -1 for unrecognized format.
+ * ------------------------------------------------------------------------- */
+{
+  union { float  f; int i;    unsigned char c[4]; } v;
+  union { double d; int i[2]; unsigned char c[8]; } u;
+  int reverse = (-1);
+  u.d = 3;
+  v.i = 3;
+  if      (u.c[0] == 64 && u.c[1] == 8 && v.c[3] == 3) reverse = 0;
+  else if (u.c[7] == 64 && u.c[6] == 8 && v.c[0] == 3) reverse = 1;
+
+  return (reverse);
+}
+
+
+static void format (char* s)
+/* ------------------------------------------------------------------------- *
+ * Fill s with a string describing machine's floating-point storage format.
+ * ------------------------------------------------------------------------- */
+{
+  switch (iformat ()) {
+  case -1:          sprintf (s, "unknown");            break;
+  case  1:          sprintf (s, "IEEE little-endian"); break;
+  case  0: default: sprintf (s, "IEEE big-endian");    break;
+  }
+}
+
+
+static void dbrev (const int     n,
+		   const double* x,
+		         double* y)
+// ---------------------------------------------------------------------------
+// Reverse order of bytes in double vector x.
+// ---------------------------------------------------------------------------
+{
+  register char *cx, *cy, d;
+  register int  i;
+
+  for (i = 0; i < n; i++) {
+    cx = (char*) (x + i);
+    cy = (char*) (y + i);
+    d  = cx[0]; cy[0] = cx[7]; cy[7] = d;
+    d  = cx[1]; cy[1] = cx[6]; cy[6] = d;
+    d  = cx[2]; cy[2] = cx[5]; cy[5] = d;
+    d  = cx[3]; cy[3] = cx[4]; cy[4] = d;
+  }
 }
