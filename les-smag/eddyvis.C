@@ -5,7 +5,7 @@
 static char
 RCSid[] = "$Id$";
 
-#include <Sem.h>
+#include <les.h>
 
 static integer DIM, CYL, ITR_MAX;
 static real    EPS2;

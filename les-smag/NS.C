@@ -37,7 +37,7 @@
 static char
 RCSid[] = "$Id$";
 
-#include <Sem.h>
+#include <les.h>
 
 void eddyViscosity (const Domain*, AuxField***, AuxField***, AuxField*);
 
@@ -54,8 +54,8 @@ static void      Solve     (Field*, AuxField*, ModeSys*,
 			    const integer, const integer);
 
 
-void NavierStokes (Domain*   D,
-		   Analyser* A)
+void NavierStokes (Domain*      D,
+		   LESAnalyser* A)
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
 // constraint Field 'p'.

@@ -27,13 +27,13 @@
 static char
 RCSid[] = "$Id$";
 
-#include <Sem.h>
+#include <les.h>
 #include <new.h>
 
 static char prog[] = "les";
 static void memExhaust   () { message ("new", "free store exhausted", ERROR); }
 static void getargs      (int, char**, char*&);
-       void NavierStokes (Domain*, Analyser*);
+       void NavierStokes (Domain*, LESAnalyser*);
 
 
 int main (int    argc,
@@ -48,13 +48,13 @@ int main (int    argc,
 #endif
 
   Geometry::CoordSys system;
-  char      *session, fields[StrMax];
-  integer   np, nz, nel;
-  FEML*     F;
-  Mesh*     M;
-  BCmgr*    B;
-  Domain*   D;
-  Analyser* A;
+  char               *session, fields[StrMax];
+  integer            np, nz, nel;
+  FEML*              F;
+  Mesh*              M;
+  BCmgr*             B;
+  Domain*            D;
+  LESAnalyser*       A;
   
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session);
@@ -73,8 +73,8 @@ int main (int    argc,
   if   (nz > 1) strcpy (fields, "uvwp");
   else          strcpy (fields, "uvp" );
 
-  D = new Domain   (*F, *M, *B, fields, session);
-  A = new Analyser (*D, *F);
+  D = new Domain      (*F, *M, *B, fields, session);
+  A = new LESAnalyser (*D, *F);
 
   D -> initialize();
   ROOTONLY D -> report();
