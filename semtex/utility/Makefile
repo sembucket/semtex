@@ -133,17 +133,18 @@ conjugate: conjugate.C
 # ----------------------------------------------------------------------------
 # Build interp, field dump interpolator.
 #
-INTOBJ = interp.o feml.o mesh.o element.o auxfield.o geometry.o
+INTOBJ = feml.o mesh.o element.o auxfield.o geometry.o
 $(INTOBJ): $(SEMHDR)
 
-interp: $(INTOBJ)
-	$(CXX) $(CPPFLAGS) -o $@ $(INTOBJ) $(LDFLAGS)
+interp: interp.o $(INTOBJ)
+	$(CXX) $(CPPFLAGS) -o $@ $@.o $(INTOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build integral, field dump scalar integral evaluator.
 #
+
 integral: integral.o  $(INTOBJ)
-	$(CXX) $(CPPFLAGS) -o $@ $(INTOBJ) $(LDFLAGS)
+	$(CXX) $(CPPFLAGS) -o $@ $@.o $(INTOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build probe, field dump data extraction.

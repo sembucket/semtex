@@ -96,6 +96,10 @@
 #include <Utility.h>
 #include <Femlib.h>
 
+#ifndef FLT_MAX
+#define FLT_MAX 1.0e38
+#endif
+
 #define VERBOSE if (verbose)
 
 static inline integer rma (integer i, integer j, integer n)
