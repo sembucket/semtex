@@ -7,7 +7,7 @@
    N_BASE      = 3
    N_SLICE     = 32
 
-   N_TIME      = 1
+   N_TIME      = 2
    PERIOD      = 28.282
    STEPS_P     = 2048
    N_STEP      = STEPS_P
@@ -24,7 +24,7 @@
    
    IO_FLD      = STEPS_P/32
    IO_HIS      = 20
-   IO_CFL      = 1
+   IO_CFL      = IO_FLD
 </TOKENS>
 
 <FIELDS NUMBER=4>
