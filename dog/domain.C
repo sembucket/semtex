@@ -83,9 +83,9 @@ Domain::Domain (FEML*             F,
 }
 
 
-void Domain::report ()
+void Domain::report (ostream& file)
 // ---------------------------------------------------------------------------
-// Print a run-time summary of domain & timestep information on cout.
+// Print a run-time summary of domain & timestep information on file.
 // ---------------------------------------------------------------------------
 {
   const real dt  =                  Femlib::value ("D_T");
@@ -96,32 +96,32 @@ void Domain::report ()
   const int  chk = static_cast<int>(Femlib::value ("CHKPOINT"));
   const int  per = static_cast<int>(Femlib::value ("IO_FLD"));
 
-  cout << "-- Coordinate system       : ";
+  file << "-- Coordinate system       : ";
   if (Geometry::system() == Geometry::Cylindrical)
-    cout << "cylindrical" << endl;
+    file << "cylindrical" << endl;
   else
-    cout << "Cartesian" << endl;
+    file << "Cartesian" << endl;
 
-  cout << "   Solution fields         : " << field              << endl;
-  cout << "   Base flow fields        : " << baseField          << endl;
-  cout << "   Number of base slices   : " << Geometry::nSlice() << endl;
-  cout << "   Number of elements      : " << Geometry::nElmt()  << endl;
-  cout << "   Number of planes        : " << Geometry::nZ()     << endl;
-  cout << "   Number of processors    : " << Geometry::nProc()  << endl;
+  file << "   Solution fields         : " << field              << endl;
+  file << "   Base flow fields        : " << baseField          << endl;
+  file << "   Number of base slices   : " << Geometry::nSlice() << endl;
+  file << "   Number of elements      : " << Geometry::nElmt()  << endl;
+  file << "   Number of planes        : " << Geometry::nZ()     << endl;
+  file << "   Number of processors    : " << Geometry::nProc()  << endl;
   if (Geometry::nPert() > 2)
-    cout<<"   Periodic length         : " << lz                 << endl;
-  cout << "   Polynomial order (np-1) : " << Geometry::nP() - 1 << endl;
-  cout << "   Reynolds number         : " << Re                 << endl;
-  cout << "   Time integration order  : " << nt                 << endl;
-  cout << "   Start time              : " << time               << endl;
-  cout << "   Finish time             : " << time + ns * dt     << endl;
-  cout << "   Time step               : " << dt                 << endl;
+    file<<"   Periodic length         : " << lz                 << endl;
+  file << "   Polynomial order (np-1) : " << Geometry::nP() - 1 << endl;
+  file << "   Reynolds number         : " << Re                 << endl;
+  file << "   Time integration order  : " << nt                 << endl;
+  file << "   Start time              : " << time               << endl;
+  file << "   Finish time             : " << time + ns * dt     << endl;
+  file << "   Time step               : " << dt                 << endl;
   if (Geometry::nSlice() > 1) 
-    cout<<"   Base flow period        : " << period             << endl;
-  cout << "   Number of steps         : " << ns                 << endl;
-  cout << "   Dump interval (steps)   : " << per;
-  if (chk) cout << " (checkpoint)";  
-  cout << endl;
+    file<<"   Base flow period        : " << period             << endl;
+  file << "   Number of steps         : " << ns                 << endl;
+  file << "   Dump interval (steps)   : " << per;
+  if (chk) file << " (checkpoint)";  
+  file << endl;
 }
 
 

@@ -9,12 +9,18 @@
 SEM   = ../semtex
 VPATH = $(SEM)/src
 
-ifdef FLIP
+ifdef FLIP		# -- Use the "half-period-flip map".
   KPROG = arnoldi-H
   DEFINES += -DFLIP
 else
   KPROG = arnoldi
 endif
+
+ifdef TBCS		# -- Recompute mode 0 velocity BCs every time step.
+  DEFINES += -DTBCS
+  KPROG := $(KPROG)_tbcs
+endif
+
 
 # ----------------------------------------------------------------------------
 # Semtex standard sources.

@@ -75,7 +75,7 @@
 #include "stab.h"
 
 #ifdef FLIP
-static char             prog[] = "arnoldi-RT";
+static char             prog[] = "arnoldi-H";
 static char             generator;
 static vector<int>      positive, negative;
 static void loadmap     (const char*);

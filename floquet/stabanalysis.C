@@ -22,7 +22,7 @@ StabAnalyser::StabAnalyser (Domain* D   ,
   const char routine[] = "StabAnalyser::StabAnalyser";
   char       str[StrMax];
 
-  if (file -> seek ("BASE")) {
+  if (file -> seek ("BASE_HIST")) {
     int            i, id, num = 0;
     const int      NBH = file -> attribute ("BASE_HIST", "NUMBER");
     const Element* EB;

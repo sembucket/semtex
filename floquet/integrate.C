@@ -146,7 +146,12 @@ void integrate (Domain*       D,
       AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
       AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     }
-    for (i = 0; i < NPERT; i++) Solve (D, i, Uf[0][i], MS[i]);
+    for (i = 0; i < NPERT; i++) {
+#if defined (TBCS) // -- Re-evaluate the (time-varying) 2D BCs. Use with care.
+      ROOTONLY D -> u[i] -> evaluateM0Boundaries (D -> step);
+#endif 
+      Solve (D, i, Uf[0][i], MS[i]);
+    }
     if (CYL && PROB != Geometry::O2_2D)
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 

@@ -77,7 +77,11 @@ Analyser::Analyser (Domain* D   ,
 
   ofstream runfile (strcat (strcpy (str, src -> name), ".run"), ios::out);
   gethostname (str, StrMax);
-  runfile << "host: " << str << endl << "pid:  " << getpid() << endl;
+  runfile << "-- Host                    : " << str << endl;
+  runfile << "   PID                     : " << getpid() << endl << endl;
+
+  D -> report (runfile);
+  
   runfile.close();
 }
 
