@@ -52,7 +52,7 @@ void nonLinear (Domain*       D ,
 // back to Fourier space.
 //
 // Define ALIAS to force Fourier-aliased nonlinear terms (serial only).
-// Define SKEW to get skew-symmetric form (default is now non-conservative).
+// Define CONV  to get convective as opposed to default skew-symmetric form.
 // ---------------------------------------------------------------------------
 {
   const int NDIM = Geometry::nDim();	// -- Number of space dimensions.
@@ -112,7 +112,7 @@ void nonLinear (Domain*       D ,
 
       // -- Terms involving azimuthal derivatives and frame components.
 
-#if defined (SKEW)
+#if !defined (CONV)
       if (i == 0)
 	Veclib::vmul (nTot32, u32[0], 1, u32[1], 1, n32[0], 1);
       if (i == 1)
@@ -121,7 +121,7 @@ void nonLinear (Domain*       D ,
 
       if (NCOM == 3) {
 
-#if defined (SKEW)
+#if !defined (CONV)
 	if (i == 1)
 	  Veclib::svvttvp (nTot32, -2.0, u32[2],1,u32[2],1,n32[1],1,n32[1], 1);
 	if (i == 2)
@@ -143,7 +143,7 @@ void nonLinear (Domain*       D ,
 	  Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
 	  Veclib::vvtvp      (nTot32, u32[2], 1, tmp, 1, n32[i], 1, n32[i], 1);
 
-#if defined (SKEW)
+#if !defined (CONV)
 	  Veclib::vmul       (nTot32, u32[i], 1, u32[2], 1, tmp, 1);
 	  Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
 	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
@@ -174,7 +174,7 @@ void nonLinear (Domain*       D ,
 	Veclib::vvtvp (nTot32, u32[j], 1, tmp, 1, n32[i], 1, n32[i], 1);
       }
 
-#if defined (SKEW)
+#if !defined (CONV)
       // -- 2D conservative derivatives.
      
       for (j = 0; j < 2; j++) {
@@ -193,7 +193,7 @@ void nonLinear (Domain*       D ,
 
       N[i]   -> transform32 (FORWARD, n32[i]);
 
-#if defined (SKEW)
+#if !defined (CONV)
       ROOTONLY if (fabs (ff[i]) > EPSDP) {
 	Veclib::fill (nP, -2.0*ff[i], tmp, 1);
 	if (i < 2) master -> mulY (1, tmp);
@@ -231,7 +231,7 @@ void nonLinear (Domain*       D ,
 	}
 	Veclib::vvtvp (nTot32, u32[j], 1, tmp,  1, n32[i], 1, n32[i], 1);
 
-#if defined (SKEW)
+#if !defined (CONV)
 	// -- Perform n_i += d(u_i u_j) / dx_j.
 
 	Veclib::vmul  (nTot32, u32[i], 1, u32[j], 1, tmp,  1);
@@ -253,7 +253,7 @@ void nonLinear (Domain*       D ,
       
       N[i]   -> transform32 (FORWARD, n32[i]);
 
-#if defined (SKEW)
+#if !defined (CONV)
       ROOTONLY if (fabs (ff[i]) > EPSDP) N[i] -> addToPlane (0, -2.0*ff[i]);
       *N[i] *= -0.5;
 #else
