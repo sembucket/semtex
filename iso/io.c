@@ -1,7 +1,7 @@
 /*****************************************************************************
  * io.c: I/O, miscellaneous routines.
  *
- * $Id$
+ * : io.c,v 2.2 1995/11/23 08:14:45 hmb Exp hmb $
  *****************************************************************************/
 
 #include "iso.h"
@@ -45,6 +45,7 @@ FILE*  efopen (const char* file, const char* mode)
 
   sprintf (s, "can't open file %s mode %s\n", file, mode);
   message ("efopen", s, ERROR);
+  return 0;
 }
 
 
@@ -263,6 +264,7 @@ void  initialize (CVF U, Param *I, const int* Dim)
   FILE*  fp;
   int    modes = I -> modes;
   real   Re    = I -> Re;
+  real   dt    = I -> dt;
   
   strcat (strcpy (s, I -> name), ".rst");
   fp = efopen (s, "rb");
@@ -274,6 +276,7 @@ void  initialize (CVF U, Param *I, const int* Dim)
     message (routine, err, ERROR);
   }
   I -> Re = Re;
+  I -> dt = dt;
 
   readCVF   (fp, U, Dim);
 }
@@ -284,12 +287,14 @@ void  analyze (CVF U, Param* I, const complex* Wtab, const int* Dim)
  * Carry out periodic analysis of data.
  * ------------------------------------------------------------------------- */
 {
-  printf ("Step: %-8d Time: %-8g Energy: %-8g\n",
+  printf ("Step: %-8d Time: %-8g Energy: %-8g",
 	  I -> step, I -> time, energyF (U, Dim));
 
-/* -- Include for diagnostic of inviscid Taylor--Green vortex. 
-  printf (" %-8g %-8g\n", rmsEns (U, Dim), Brachet (I -> time));
-*/
+#ifdef TG                /* -- Diagnostic for inviscid Taylor--Green vortex. */
+  printf (" %-8g %-8g", rmsEns (U, Dim), Brachet (I -> time));
+#endif
+
+  printf ("\n");
 }
 
 
