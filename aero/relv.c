@@ -216,17 +216,27 @@ int main (int    argc,
     /* -- Now do the grid-file work if requested: mesh file is 2-col ASCII. */
 
     if (selected && fpm_in) {
+      int i, nr, ns, nz, nel, ntot;
 
       rewind (fpm_in);
 
-      fgets (buf,  STR_MAX, fpm_in);
-      fputs (buf,  fpm_out);
+      fgets  (buf,  STR_MAX, fpm_in);
+      fputs  (buf,  fpm_out);
+      sscanf (buf, "%d %d %d %d", &nr, &ns, &nz, &nel);
 
-      while (fgets(buf, STR_MAX, fpm_in)) {
+      ntot = nr * ns * nel;
+
+      for (i = 0; i < ntot; i++) {
+	fgets  (buf, STR_MAX, fpm_in);
 	sscanf (buf, "%lf %lf", &X, &Y);
 	X += Xp;
 	Y += Yp;
 	fprintf(fpm_out, "%#14.7g %14.7g\n", X, Y);
+      }
+
+      for (i = 0; i <= nz; i++) {
+	fgets  (buf,  STR_MAX, fpm_in);
+	fputs  (buf,  fpm_out);
       }
     }
 
