@@ -51,15 +51,14 @@ HEADER    = iso.h
 
 # ----------------------------------------------------------------------------
 # Make iso application.
-ISOOBJ = allocate.o io.o nonlinear.o integrate.o energy.o FFT.o 	\
-	 taylor.o misc.o drive.o
+ISOOBJ = allocate.o io.o nonlinear.o integrate.o energy.o FFT.o misc.o drive.o
 
 $(PROG): $(ISOOBJ) $(HEADER)
 	$(LD) $(ISOOBJ) -o $@ $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Make a top-hat spectrum initial conditions file.
-IC1OBJ = allocate.o io.o normalize.o energy.o ran2PI.o tophat.o FFT.o makeIC1.o
+IC1OBJ = allocate.o io.o normalize.o energy.o random.o tophat.o FFT.o makeIC1.o
 
 IC1: $(IC1OBJ) $(HEADER)
 	$(LD) $(IC1OBJ) -o $@ $(LDFLAGS)
@@ -85,7 +84,7 @@ IC3: $(IC3OBJ) $(IC3CHK) $(HEADER)
 
 # ----------------------------------------------------------------------------
 # Test the FFT routines.
-TESTOBJ = allocate.o io.o energy.o misc.o FFT.o taylor.o DFT_chk.o
+TESTOBJ = allocate.o io.o energy.o misc.o FFT.o random.c DFT_chk.o
 
 DFT: $(TESTOBJ) $(HEADER)
 	$(CC) -o DFT_chk $(TESTOBJ) $(LDFLAGS)
@@ -93,15 +92,14 @@ DFT: $(TESTOBJ) $(HEADER)
 # ----------------------------------------------------------------------------
 # Divergence-checking diagnostic.
 CHKOBJ = allocate.o io.o derivative.o energy.o FFT.o truncation.o	\
-	 misc.c taylor.o div_chk.o
+	 misc.c div_chk.o
 
 div_chk: $(CHKOBJ) $(HEADER)
 	$(CC) -o $@ $(CHKOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Convert field file to tecplot format, with vorticity too.
-TECOBJ = allocate.o io.o energy.o derivative.o truncation.o misc.o 	\
-	 taylor.o FFT.o iso2tec.o
+TECOBJ = allocate.o io.o energy.o derivative.o misc.o FFT.o iso2tec.o
 
 iso2tec: $(TECOBJ) $(HEADER)
 	$(LD) $(CFLAGS) -o $@ $(TECOBJ) $(LDFLAGS)
