@@ -1,81 +1,28 @@
 //////////////////////////////////////////////////////////////////////////////
+// drive.C:
 //
-// drive.C: control spectral element flow solver.
+// SYNOPSIS:
+// --------
+// Control spectral element aeroelastic flow solver.
 //
-// Usage:
-// =====
+// USAGE:
+// -----
 // aero [options] session
 //   options:
 //   -h       ... print usage prompt
 //   -i[i]    ... use iterative solver for viscous [and pressure] steps
-//   -O[<n>]  ... define bandwidth optimization level
 //   -v[v...] ... increase verbosity level
 //   -chk     ... checkpoint field dumps
 //
-// Files:
-// =====
-// Set-up and execution of the problem is controlled by a session file,
-// which is block-structured.  Each block has a (pre-defined) name and
-// is delimited by '{' & '}'.  Contents of session files are case-insensitive,
-////except* for function strings and named floating-point parameters.
-// Required blocks are: PROBLEM, PARAMETER, BOUNDARY and MESH.
-// Characters between block names and the opening '{' are ignored, and
-// can serve as comments.
+// FILES:
+// -----
+// Body motion parameters are set up in a file named session.bdy.
+// See comments in body.C for file structure.
 //
-// (Body motion parameters are set up in a file named session.bdy.
-// See comments in body.C for file structure.)
-// 
-// PROBLEM block
-// -------------
-// This determines the type of problem to be solved and the kind of
-// geometry used (Cartesian, cylindrical, ...).
-//
-// (1)  Unsteady (Navier)--Stokes problems.
-// (2)  The default (and only current) geometry is 2D Cartesian.
-//
-// Example for a Navier--Stokes problem:
-//
-// problem {
-// navierstokes
-// [geometry   2D-Cartesian]
-// [forcing    function_1 .. function_DIM]
-// }
-//
-// (1)  Unsteady Navier--Stokes problem.  An unsteady Stokes problem can also
-//      be solved: at present this is done by conditional compilation (define
-//      "STOKES" when compiling NS.C).
-// (2)  The kinematic viscosity "KINVIS" should be set in the floating point
-//      parameter section.  Default value, pre-installed, is unity.
-// (3)  Forcing functions describe spatially-distributed force per unit mass
-//      in the various components of the Navier--Stokes equations (in order).
-//      DIM == 2 for 2D Cartesian.  Use 'x', 'y', and 't' as variables.
-// (4)  Solution algorithm is the 'stiffly-stable' method.  This may be
-//      inappropriate for low element orders.  
-//
-// PARAMETER block:
-// ---------------
-// In order, there should be option, integer and floating-point parameters.
-// The number of each type is given at the start of each sub-block.
-//
-// BOUNDARY block:
-// --------------
-// Boundary conditions for integer-tagged, non-overlapping boundary segments.
-// The number of segments is given at the start of the block.
-//
-// MESH block:
-// ----------
-// Commences with a list of vertices, followed by a list of elements with
-// corner vertices given as tags in vertex list.  The non-overlapping
-// boundary sectors are supplied as lists of vertices, together with an
-// integer tag which ties back to the BOUNDARY block.  Last comes
-// a list of curved edge specifiers, which are defined on a element-edge
-// basis.
-//
-// Program development by:
-// ======================
+// AUTHOR:
+// ------
 // Hugh Blackburn
-// CSIRO
-// Division of Building, Construction and Engineering
+// CSIRO Division of Building, Construction and Engineering
 // P.O. Box 56
 // Highett, Vic 3190
 // Australia
@@ -92,12 +39,13 @@ RCSid[] = "$Id$";
 
 static char prog[]  = "aero";
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
+static void getargs (int, char**, char*&);
 
-static void getArgs (int, char**, char*&);
-static void setUp   (ifstream&);
+void NavierStokes (Domain*, Body*, Analyser*);
 
 
-int main (int argc, char *argv[])
+int main (int    argc,
+	  char** argv)
 // ---------------------------------------------------------------------------
 // Driver.
 // ---------------------------------------------------------------------------
@@ -107,6 +55,46 @@ int main (int argc, char *argv[])
   ios::sync_with_stdio ();
 #endif
 
+  char      *session, fields[StrMax];
+  int       nz;
+  FEML*     F;
+  Mesh*     M;
+  BCmgr*    B;
+  Domain*   D;
+  Analyser* A;
+  Body*     BD;
+
+  Femlib::prep ();
+  getargs      (argc, argv, session);
+
+  cout << prog << ": aeroelastic Navier--Stokes solver"  << endl;
+  cout << "      (c) Hugh Blackburn 1995--97."   << endl << endl;
+  
+  F = new FEML (session);
+
+  nz = (int) Femlib::value ("N_Z");
+  if (nz > 1) {
+    if (nz & 1) {
+      sprintf (fields, "N_Z (%1d) must be even", nz);
+      message (prog, fields, ERROR);
+    }
+    strcpy (fields, "uvwp");
+  } else
+    strcpy (fields, "uvp");
+  
+  M  = new Mesh    (*F);
+  B  = new BCmgr   (*F);
+  D  = new Domain  (*F, *M, *B, fields, session);
+  BD = new Body    (session);
+
+  D  -> initialize();
+  BD -> force (*D);
+
+  A = new Analyser (*D, *BD);
+
+  NavierStokes (D, BD, A);
+
+#if 0
   ifstream*  input = new ifstream;
   char*      session;
   char       s[StrMax];
@@ -168,25 +156,26 @@ int main (int argc, char *argv[])
   // -- Solve.
 
   NavierStokes (D, B, A);
+#endif
 
   return EXIT_SUCCESS;
 }
 
 
-static void getArgs (int argc, char** argv, char*& session)
+static void getargs (int    argc   ,
+		     char** argv   ,
+		     char*& session)
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
 // arguments.  Last argument is name of a session file, not dealt with here.
 // ---------------------------------------------------------------------------
 {
   char buf[StrMax], c;
-  int  level;
   char usage[]   =
     "Usage: %s [options] session-file\n"
     "  [options]:\n"
     "  -h        ... print this message\n"
     "  -i[i]     ... use iterative solver for viscous [& pressure] steps\n"
-    "  -O[<n>]   ... set bandwidth optimizer 0, 1 (default), 2 or 3\n"
     "  -v[v...]  ... increase verbosity level\n"
     "  -chk      ... checkpoint field dumps\n";
  
@@ -199,34 +188,21 @@ static void getArgs (int argc, char** argv, char*& session)
       break;
     case 'i':
       do
-	setOption ("ITERATIVE", Femlib::option ("ITERATIVE") + 1);
+	Femlib::value ("ITERATIVE", (int) Femlib::value ("ITERATIVE") + 1);
       while (*++argv[0] == 'i');
       break;
     case 'v':
       do
-	setOption ("VERBOSE",   Femlib::option ("VERBOSE")   + 1);
+	Femlib::value ("VERBOSE",   (int) Femlib::value ("VERBOSE")   + 1);
       while (*++argv[0] == 'v');
       break;
     case 'c':
       if (strstr ("chk", *argv)) {
-	setOption ("CHKPOINT", 1);
+	Femlib::value ("CHKPOINT", 1);
       } else {
 	fprintf (stdout, usage, prog);
 	exit (EXIT_FAILURE);	  
       }
-      break;
-    case 'O':
-      if (*++argv[0])
-        level = atoi(*argv);
-      else {
-        --argc;
-        level = atoi(*++argv);
-      }
-      if (level < 0 || level > 3) {
-	fprintf (stdout, usage, prog);
-	exit (EXIT_FAILURE);	  
-      } else
-	setOption ("OPTIMIZE", level);
       break;
     default:
       sprintf (buf, usage, prog);
@@ -235,64 +211,6 @@ static void getArgs (int argc, char** argv, char*& session)
       break;
     }
   
-  if (argc != 1) {
-    sprintf (buf, usage, prog);
-    cout << buf;
-    exit (EXIT_FAILURE);
-  } else
-    session = *argv;
-}
-
-
-static void setUp (ifstream& file)
-// ---------------------------------------------------------------------------
-// Return a function to solve, fill in optional function-string arrays.
-// ---------------------------------------------------------------------------
-{
-  if (file.fail ()) message (prog, "couldn't open session file", ERROR);
-
-  char  routine[] = "setProblem";
-  char  s[StrMax], err[StrMax];
-
-  seekBlock (file, "problem");
-
-  file >> s;
-  upperCase (s);
-
-  if (strcmp (s, "NAVIERSTOKES") == 0) {
-
-    setOption ("PROBLEM",  NAVIERSTOKES );
-    setOption ("GEOMETRY", CART2D       );
-    
-    while (file >> s) {
-      if (s[0] == '}') break;
-      upperCase (s);
-
-      if (strcmp (s, "GEOMETRY") == 0) {
-	file >> s;
-	upperCase (s);
-	if (strstr (s, "2D") && strstr (s, "CART")) {
-	  setIparam ("N_VAR",    TWO_COMPONENT);
-	  setOption ("GEOMETRY", CART2D       );
-	} else {
-	  sprintf (err, "can't set geometry to: %s", s);
-	  message (routine, err, ERROR);
-	}
-	
-      } else if (strcmp (s, "FORCING") == 0) { // -- Read, but take no action.
-	int  i, nstrng = Femlib::integer ("N_VAR");
-	for (i = 0; i < nstrng; i++) file >> err;
-	
-      } else {
-	sprintf (err, "Navier--Stokes problem option? : %s", s);
-	message (routine, err, ERROR);
-      }
-    }
-    
-    if (s[0] != '}') endBlock (file);
-    
-  } else {
-    sprintf (err, "couldn't recognize a problem type in string: %s", s);
-    message (routine, err, ERROR);
-  }
+  if   (argc != 1) message (prog, "no session definition file", ERROR);
+  else             session = *argv;  
 }

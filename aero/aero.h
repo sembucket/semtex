@@ -4,7 +4,7 @@
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include <Fem.h>
+#include <Sem.h>
 
 
 class Body;
@@ -27,6 +27,8 @@ private:
 
   Body&     body;
   ofstream  sta_strm;
+
+  void modalEnergy () const;
 };
 
 
@@ -42,8 +44,8 @@ public:
   virtual real getV () = 0;
   virtual real getX () = 0;
   
-  virtual void move  (const int&)  = 0;
-  virtual void force (const real&) = 0;
+  virtual void move  (const int)  = 0;
+  virtual void force (const real) = 0;
 
   virtual void describe (char*) = 0;
 };
@@ -61,8 +63,8 @@ public:
   virtual real getV () { return zero; }
   virtual real getX () { return zero; }
   
-  virtual void move  (const int& = 0) { }
-  virtual void force (const real&)    { }
+  virtual void move  (const int = 0) { }
+  virtual void force (const real)    { }
 
   virtual void describe (char* s) { strcpy (s, "fixed"); }
 
@@ -85,8 +87,8 @@ public:
   virtual real getV () { return vel; }
   virtual real getX () { return pos; }
 
-  virtual void move  (const int& = 0);
-  virtual void force (const real&) { }
+  virtual void move  (const int = 0);
+  virtual void force (const real) { }
 
   virtual void describe (char*);
 
@@ -116,8 +118,8 @@ public:
   virtual real getV () { return vel; }
   virtual real getX () { return pos; }
 
-  virtual void move  (const int& = 0);
-  virtual void force (const real&) { }
+  virtual void move  (const int = 0);
+  virtual void force (const real) { }
 
   virtual void describe (char*);
 
@@ -146,8 +148,8 @@ public:
   virtual real getV () { return vel; }
   virtual real getX () { return pos; }
 
-  virtual void move  (const int& );
-  virtual void force (const real&);
+  virtual void move  (const int );
+  virtual void force (const real);
 
   virtual void describe (char*);
 
@@ -176,7 +178,7 @@ class Body
 {
 friend ostream& operator << (ostream&, Body&);
 public:
-  Body  (ifstream&);
+  Body  (const char*);
   ~Body () { }
 
   Vector  acceleration ();
@@ -184,7 +186,7 @@ public:
   Vector  position     ();
   Vector  force        (const Domain&);
 
-  void    move  (const int&);
+  void    move  (const int);
 
 private:
   AxisMotion*  axis[2];		// -- Array of motion interface classes.
@@ -192,6 +194,3 @@ private:
   Vector       traction[3];	// -- Pressure, viscous, total forces.
 };
 
-
-extern AxisMotion* createAxis   (char*);
-extern void        NavierStokes (Domain*, Body*, Analyser*);

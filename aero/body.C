@@ -13,8 +13,10 @@ RCSid[] = "$Id$";
   #pragma define_template max<int>
 #endif
 
+static AxisMotion* createAxis (char*);
 
-Body::Body (ifstream& file)
+
+Body::Body (const char* session)
 // ---------------------------------------------------------------------------
 // Input file sets up a body.  If no file, there is no motion on either
 // axis, but forces exerted on walls are computed and printed.
@@ -42,16 +44,17 @@ Body::Body (ifstream& file)
 //    and prescribed time step.
 // ---------------------------------------------------------------------------
 {
-  char  routine[] = "Body::Body";
-  char  s[StrMax], err[StrMax];
+  char     routine[] = "Body::Body";
+  char     s[StrMax], err[StrMax];
+  ifstream file (strcat (strcpy (s, session), ".bdy"));
 
   if (file.fail ()) {		// -- Default action for no ".bdy" file.
     axis[0] = createAxis ("fixed");
     axis[1] = createAxis ("fixed");
 
   } else {			// -- File exists.  Create 2 axes.
-    file.getline(s, StrMax);
-    file.getline(s, StrMax);	// -- Strip header.
+    file.getline (s, StrMax);
+    file.getline (s, StrMax);	// -- Strip header.
 
     char* tok;
     char  sep[] = " \t";
@@ -98,6 +101,8 @@ Body::Body (ifstream& file)
   cout << "   x axis: " << s << endl;
   axis[1] -> describe (s);
   cout << "   y axis: " << s << endl;
+
+  file.close();
 }
 
 
@@ -137,10 +142,10 @@ Vector Body::position ()
 }
 
 
-void Body::move (const int& step)
+void Body::move (const int step)
 // ---------------------------------------------------------------------------
 // Update estimates of position, velocity and acceleration at next time level.
-// Note that for SMD class, accelaration is updated by Body::force instead.
+// Note that for SMD class, acceleration is updated by Body::force instead.
 // ---------------------------------------------------------------------------
 {
   axis[0] -> move (step);
@@ -154,8 +159,10 @@ Vector Body::force (const Domain& D)
 // Return total force.
 // ---------------------------------------------------------------------------
 {
-  traction[0] = BoundedField::normalTraction  (*D.u[2], *D.u[0]);
-  traction[1] = BoundedField::tangentTraction (*D.u[0], *D.u[1]);
+  const int DIM = D.nField() - 1;
+
+  traction[0] = Field::normalTraction  (D.u[DIM]);
+  traction[1] = Field::tangentTraction (D.u[0], D.u[1]);
 
   traction[2].x = traction[0].x + traction[1].x;
   traction[2].y = traction[0].y + traction[1].y;
@@ -222,14 +229,14 @@ Cosine::Cosine (char* s)
 }
 
 
-void Cosine::move (const int& dummi)
+void Cosine::move (const int dummi)
 // ---------------------------------------------------------------------------
 // Update state variables.  Dummy input variable not used.
 // ---------------------------------------------------------------------------
 {
-  real mag   = Femlib::ator (amplitude);
-  real omega = Femlib::parameter ("TWOPI") * Femlib::ator (frequency);
-  real angle = omega * Femlib::parameter ("t") + Femlib::ator (phaseangl);
+  real mag   = Femlib::value (amplitude);
+  real omega = Femlib::value ("TWOPI") * Femlib::value (frequency);
+  real angle = omega * Femlib::value ("t") + Femlib::value (phaseangl);
 
   pos =                  mag * cos (angle);
   vel =         -omega * mag * sin (angle);
@@ -277,20 +284,20 @@ Function::Function (char* s)
     message (routine, err, ERROR);
   }
 
-  pos = Femlib::ator (position);
-  vel = Femlib::ator (velocity);
-  acc = Femlib::ator (acceleration);
+  pos = Femlib::value (position);
+  vel = Femlib::value (velocity);
+  acc = Femlib::value (acceleration);
 }
 
 
-void Function::move (const int& dummi)
+void Function::move (const int dummi)
 // ---------------------------------------------------------------------------
 // Update state variables.  Neither input is used.
 // ---------------------------------------------------------------------------
 {
-  pos = Femlib::ator (position);
-  vel = Femlib::ator (velocity);
-  acc = Femlib::ator (acceleration);
+  pos = Femlib::value (position);
+  vel = Femlib::value (velocity);
+  acc = Femlib::value (acceleration);
 }
 
  
@@ -332,30 +339,33 @@ SMD::SMD (char* s)
     message (routine, err, ERROR);
   }
 
-  x    = rvector (Integration::OrderMax);
-  xdot = rvector (Integration::OrderMax);
-  f    = rvector (Integration::OrderMax);
+  x    = new real [Integration::OrderMax];
+  xdot = new real [Integration::OrderMax];
+  f    = new real [Integration::OrderMax];
 
   pos = vel = acc = x[0] = xdot[0] = f[0] = 0.0;
 }
 
 
-void SMD::move (const int& step)
+void SMD::move (const int step)
 // ---------------------------------------------------------------------------
 // Update state variables using stiffly-stable time integration scheme.
 // 
 // On exit, position and velocity have been integrated to end of new step.
 // ---------------------------------------------------------------------------
 {
-  real w = Femlib::parameter ("TWOPI") * Femlib::ator (natf);
-  real z = Femlib::ator (zeta);
+  const real w    = Femlib::value ("TWOPI") * Femlib::value (natf);
+  const real z    = Femlib::value (zeta);
+  const real dt   = Femlib::value ("D_T");
+  const int  Jmax = (int) Femlib::value ("N_TIME");
 
-  int  Jmax  = Femlib::integer ("N_TIME");
   int  q, Je = min (max (1, step), Jmax);
-  real dt    = Femlib::parameter ("DELTAT");
+  real *alpha, *betaDt;
 
-  real* alpha  = rvector (Je + 1);
-  real* betaDt = rvector (Je);
+  vector<real> work (2 * Je + 1);
+
+  alpha  = work();
+  betaDt = alpha + Je + 1;
 
   Integration::StifflyStable (Je, alpha);
   Integration::Extrapolation (Je, betaDt);
@@ -380,13 +390,10 @@ void SMD::move (const int& step)
   
   roll (x,    Jmax);    x[0] = pos;
   roll (xdot, Jmax); xdot[0] = vel;
-
-  freeVector (alpha );
-  freeVector (betaDt);
 }
 
 
-void SMD::force (const real& F)
+void SMD::force (const real F)
 // ---------------------------------------------------------------------------
 // Update force per unit mass extrapolation vector, estimate acceleration
 // at current time level.
@@ -394,11 +401,11 @@ void SMD::force (const real& F)
 // F is the tractive force on this axis at end of current time step.
 // ---------------------------------------------------------------------------
 {
-  real m = Femlib::ator (mass);
-  real w = Femlib::parameter ("TWOPI") * Femlib::ator (natf);
-  real z = Femlib::ator (zeta);
+  const real m = Femlib::value (mass);
+  const real w = Femlib::value ("TWOPI") * Femlib::value (natf);
+  const real z = Femlib::value (zeta);
 
-  int  Jmax = Femlib::integer ("N_TIME");
+  const int  Jmax = (int) Femlib::value ("N_TIME");
 
   roll (f, Jmax);
   f[0] = F / m;
@@ -496,4 +503,3 @@ AxisMotion* createAxis (char* s)
 
   return base;
 }
-
