@@ -10,15 +10,15 @@ RCSid_ops[] = "$Id$";
 
 #include <stdio.h>
 #include <malloc.h>
-#include <alplib.h>
 #include <femdef.h>
+#include <alplib.h>
 #include <femlib.h>
 
 
 typedef struct dquadopr {	/* ---- quadrature operator information  --- */
-  int              rule    ;	/* quadrature rule: GL or LL                 */
-  int              np      ;	/* number of interpolant knot points         */
-  int              nq      ;	/* number of quadrature points               */
+  integer          rule    ;	/* quadrature rule: GL or LL                 */
+  integer          np      ;	/* number of interpolant knot points         */
+  integer          nq      ;	/* number of quadrature points               */
   double*          knot    ;	/* Lagrange knots    on [-1, 1]              */
   double*          quad    ;	/* Quadrature points on [-1, 1]              */
   double*          weight  ;	/* Quadrature weights                        */
@@ -32,9 +32,9 @@ typedef struct dquadopr {	/* ---- quadrature operator information  --- */
 static dQuadOpr* dQhead = 0;
 
 typedef struct squadopr {	/* ---- quadrature operator information  --- */
-  int              rule    ;	/* quadrature rule: GL or LL                 */
-  int              np      ;	/* number of interpolant knot points         */
-  int              nq      ;	/* number of quadrature points               */
+  integer          rule    ;	/* quadrature rule: GL or LL                 */
+  integer          np      ;	/* number of interpolant knot points         */
+  integer          nq      ;	/* number of quadrature points               */
   float*           knot    ;	/* Lagrange knots    on [-1, 1]              */
   float*           quad    ;	/* Quadrature points on [-1, 1]              */
   float*           weight  ;	/* Quadrature weights                        */
@@ -48,10 +48,10 @@ typedef struct squadopr {	/* ---- quadrature operator information  --- */
 static sQuadOpr *sQhead = 0;
 
 typedef struct dmeshopr {	/* ------- mesh operator information ------- */
-  int              oldbasis;	/* STD or GLL                                */
-  int              newbasis;	/* STD or GLL                                */
-  int              np      ;	/* Number of points on original mesh         */
-  int              ni      ;	/* Number of points in interpolated mesh     */
+  integer          oldbasis;	/* STD or GLL                                */
+  integer          newbasis;	/* STD or GLL                                */
+  integer          np      ;	/* Number of points on original mesh         */
+  integer          ni      ;	/* Number of points in interpolated mesh     */
   double*          mesh    ;	/* Location of points on interpolated mesh   */
   double**         interp  ;	/* Interpolant operator: original-->new      */
   double**         interpT ;	/* Transpose of the above                    */
@@ -63,10 +63,10 @@ typedef struct dmeshopr {	/* ------- mesh operator information ------- */
 static dMeshOpr* dMhead = 0;
 
 typedef struct smeshopr {	/* ------- mesh operator information ------- */
-  int              oldbasis;	/* STD or GLL                                */
-  int              newbasis;	/* STD or GLL                                */
-  int              np      ;	/* Number of points on original mesh         */
-  int              ni      ;	/* Number of points in interpolated mesh     */
+  integer          oldbasis;	/* STD or GLL                                */
+  integer          newbasis;	/* STD or GLL                                */
+  integer          np      ;	/* Number of points on original mesh         */
+  integer          ni      ;	/* Number of points in interpolated mesh     */
   float*           mesh    ;	/* Location of points on interpolated mesh   */
   float**          interp  ;	/* Interpolant operator: original-->new      */
   float**          interpT ;	/* Transpose of the above                    */
@@ -79,9 +79,9 @@ static sMeshOpr* sMhead = 0;
 
 
 
-void dQuadOps (const int       rule, /* input: quadrature rule: GL or LL     */
-	       const int       np  , /* input: number of knot points         */
-	       const int       nq  , /* input: number of quadrature points   */
+void dQuadOps (const integer   rule, /* input: quadrature rule: GL or LL     */
+	       const integer   np  , /* input: number of knot points         */
+	       const integer   nq  , /* input: number of quadrature points   */
 	       const double**  kp  , /* pointer to knot point storage        */
 	       const double**  qp  , /* pointer to quadrature point storage  */
 	       const double**  qw  , /* pointer to quadrature weight storage */
@@ -102,7 +102,7 @@ void dQuadOps (const int       rule, /* input: quadrature rule: GL or LL     */
  * ------------------------------------------------------------------------- */
 {
   char               routine[] = "dQuadOps";
-  register int       found = 0;
+  register integer   found = 0;
   register dQuadOpr* p;
 
   for (p = dQhead; p; p=p->next) {
@@ -169,10 +169,10 @@ void dQuadOps (const int       rule, /* input: quadrature rule: GL or LL     */
 }
 
 
-void dMeshOps (const int       old , /* input: element basis: STD or GLL     */
-	       const int       new , /* input: desired basis: STD or GLL     */
-	       const int       np  , /* input: number of knot points         */
-	       const int       ni  , /* input: number of interpolant points  */
+void dMeshOps (const integer   old , /* input: element basis: STD or GLL     */
+	       const integer   new , /* input: desired basis: STD or GLL     */
+	       const integer   np  , /* input: number of knot points         */
+	       const integer   ni  , /* input: number of interpolant points  */
 	       const double**  mesh, /* pointer to interpolated mesh storage */
 	       const double*** in  , /* pointer to interpolation matrix      */
 	       const double*** it  , /* pointer to transposed interp matrix  */
@@ -191,7 +191,7 @@ void dMeshOps (const int       old , /* input: element basis: STD or GLL     */
  * ------------------------------------------------------------------------- */
 {
   char               routine[] = "dMeshOps";
-  register int       found = 0;
+  register integer   found = 0;
   register dMeshOpr* p;
   double*            oldmesh;
 
@@ -282,22 +282,22 @@ void dMeshOps (const int       old , /* input: element basis: STD or GLL     */
 }
 
 
-void sQuadOps(const int       rule ,
-	      const int       np   ,
-	      const int       nq   ,
-	      const float**   kp   ,
-	      const float**   qp   ,
-	      const float**   qw   ,
-	      const float***  in   ,
-	      const float***  it   ,
-	      const float***  dr   ,
-	      const float***  dt   )
+void sQuadOps (const integer   rule ,
+	       const integer   np   ,
+	       const integer   nq   ,
+	       const float**   kp   ,
+	       const float**   qp   ,
+	       const float**   qw   ,
+	       const float***  in   ,
+	       const float***  it   ,
+	       const float***  dr   ,
+	       const float***  dt   )
 /* ------------------------------------------------------------------------- *
  * As for dQuadOps, but here single-precision operators are made.
  * ------------------------------------------------------------------------- */
 {
   char               routine[] = "sQuadOps";
-  register int       found = 0;
+  register integer   found = 0;
   register sQuadOpr* p;
 
   for (p = sQhead; p; p = p->next) {
@@ -404,10 +404,10 @@ void sQuadOps(const int       rule ,
 }
 
 
-void sMeshOps (const int       old ,
-	       const int       new ,
-	       const int       np  ,
-	       const int       ni  ,
+void sMeshOps (const integer   old ,
+	       const integer   new ,
+	       const integer   np  ,
+	       const integer   ni  ,
 	       const float**   mesh,
 	       const float***  in  ,
 	       const float***  it  ,
@@ -418,7 +418,7 @@ void sMeshOps (const int       old ,
  * ------------------------------------------------------------------------- */
 {
   char               routine[] = "sMeshOps";
-  register int       found = 0;
+  register integer   found = 0;
   register sMeshOpr* p;
 
   for (p = sMhead; p; p = p->next) {
@@ -615,14 +615,14 @@ void sMeshOps (const int       old ,
 }
 
 
-void dIntpOps (const int    basis,  /* element basis: STD or GLL             */
-	       const int    np   ,  /* number of knot points                 */
-	       const double r    ,  /* location of r in [-1, 1]              */
-	       const double s    ,  /* location of s in [-1, 1]              */
-	       double*      inr  ,  /* 1D shape function at r                */
-	       double*      ins  ,  /* 1D shape function at s                */
-	       double*      dvr  ,  /* 1D shape function derivative at r     */
-	       double*      dvs  )  /* 1D shape function derivative at s     */
+void dIntpOps (const integer basis,  /* element basis: STD or GLL            */
+	       const integer np   ,  /* number of knot points                */
+	       const double  r    ,  /* location of r in [-1, 1]             */
+	       const double  s    ,  /* location of s in [-1, 1]             */
+	       double*       inr  ,  /* 1D shape function at r               */
+	       double*       ins  ,  /* 1D shape function at s               */
+	       double*       dvr  ,  /* 1D shape function derivative at r    */
+	       double*       dvs  )  /* 1D shape function derivative at s    */
 /* ------------------------------------------------------------------------- *
  * Return the interpolation/derivative vectors for tensor-product shape
  * functions evaluated at canonical coordinates (r, s), each in [-1. 1].
@@ -663,14 +663,14 @@ void dIntpOps (const int    basis,  /* element basis: STD or GLL             */
 }
 
 
-void sIntpOps (const int    basis,
-	       const int    np   ,
-	       const float  r    ,
-	       const float  s    ,
-	       float*       inr  ,
-	       float*       ins  ,
-	       float*       dvr  ,
-	       float*       dvs  )
+void sIntpOps (const integer basis,
+	       const integer np   ,
+	       const float   r    ,
+	       const float   s    ,
+	       float*        inr  ,
+	       float*        ins  ,
+	       float*        dvr  ,
+	       float*        dvs  )
 /* ------------------------------------------------------------------------- *
  * Single-precision version of dIntpOps.
  * ------------------------------------------------------------------------- */

@@ -13,15 +13,15 @@
  *
  * Summary
  * -------
- * void   yy_initialize (void);
- * void   yy_help       (void);
- * void   yy_show       (void);
- * int    yy_dump       (char*, const int);
+ * void    yy_initialize (void);
+ * void    yy_help       (void);
+ * void    yy_show       (void);
+ * integer yy_dump       (char*, const integer);
  *
- * double yy_interpret  (const char*);
+ * double  yy_interpret  (const char*);
  *
- * void   yy_vec_init   (const char*, const char*);
- * void   yy_vec_interp (const int, ...);
+ * void    yy_vec_init   (const char*, const char*);
+ * void    yy_vec_interp (const integer, ...);
  *
  * Notes
  * -----
@@ -57,6 +57,7 @@ RCSid_initial[] = "$Id$";
 #include <stdlib.h>
 #include <errno.h>
 
+#include <femdef.h>
 #include <alplib.h>
 
 #if 1
@@ -82,24 +83,24 @@ typedef struct symbol {
 static double  Log  (double),          Log10   (double),
                Exp  (double),          Sqrt    (double),
                Asin (double),          Acos    (double),
-               Pow  (double, double),  integer (double),
+               Pow  (double, double),  Integer (double),
                Sinh (double),          Cosh    (double),
                Tanh (double),          Heavi   (double),
                errcheck (const double, const char*);
 
 static unsigned hash     (const char*);
 static Symbol*  lookup   (const char*);
-static Symbol*  install  (const char*, const int, const double);
+static Symbol*  install  (const char*, const integer, const double);
 static void*    emalloc  (const size_t);
 
-       int  yyparse (void);
-static int  yylex   (void);
-static void yyerror (char*);
+       integer  yyparse (void);
+static integer  yylex   (void);
+static void     yyerror (char*);
 
 static double  value;
 static Symbol* hashtab[HASHSIZE];
 static char    func_string[STR_MAX], *cur_string;
-static int     nvec = 0;
+static integer nvec = 0;
 static Symbol* vs[VEC_MAX];
 extern int     errno;
 
@@ -111,7 +112,7 @@ static struct {			    /* -- Built-in functions. */
   "cos"   ,  cos     ,
   "tan"   ,  tan     ,
   "atan"  ,  atan    ,
-  "int"   ,  integer ,
+  "int"   ,  Integer ,
   "abs"   ,  fabs    ,
   "floor" ,  floor   ,
   "ceil"  ,  ceil    ,
@@ -184,11 +185,11 @@ void yy_initialize (void)
  * This routine should be called at start of run-time.
  * ------------------------------------------------------------------------- */
 {
-  static   int     initialized = 0;
-  register int     i;
+  static   integer initialized = 0;
+  register integer i;
   register Symbol* s;
 
-#if 0			/* Enable floating-point traps. */
+#if 0			/* Enable SGI floating-point traps. */
 #include <sigfpe.h>
 #include <sgidefs.h>     
 #ifndef _MIPS_SIM_ABI64         /* No 64-bit version of libfpe.a yet. */
@@ -279,7 +280,7 @@ void yy_vec_init (const char* names,
 }
 
 
-void yy_vec_interp (const int ntot, ...)
+void yy_vec_interp (const integer ntot, ...)
 /* ------------------------------------------------------------------------- *
  * Vector parser.  Following ntot there should be passed a number of
  * pointers to double (vectors), of which there should be in number the
@@ -291,11 +292,11 @@ void yy_vec_interp (const int ntot, ...)
  * i.e.  vecInterp(ntot, x, y, z, u); the result fn(x,y,z) is placed in u.
  * ------------------------------------------------------------------------- */
 {
-  char         routine[] = "yy_vec_interp";
-  register int i, n;
-  double*      x[VEC_MAX];
-  double*      fx = NULL;
-  va_list      ap;
+  char             routine[] = "yy_vec_interp";
+  register integer i, n;
+  double*          x[VEC_MAX];
+  double*          fx = NULL;
+  va_list          ap;
   
   va_start (ap, ntot);
   for (i = 0; i < nvec; i++) {
@@ -336,7 +337,7 @@ void yy_show (void)
  * Print details of installed variables to stderr.
  * ------------------------------------------------------------------------- */
 {
-  register int i;
+  register integer i;
   register Symbol* sp;
 
   for (i = 0; i < HASHSIZE; i++)
@@ -346,16 +347,16 @@ void yy_show (void)
 }
 
 
-int yydump (char*     str,
-	    const int max)
+integer yydump (char*         str,
+		const integer max)
 /* ------------------------------------------------------------------------- *
  * Load description of internal variables into string, to length max.
  * If string overflows, return 0, else 1.
  * ------------------------------------------------------------------------- */
 {
-  register int i, n = 0;
+  register integer i, n = 0;
   register Symbol* sp;
-  char     buf[FILENAME_MAX];
+  char             buf[FILENAME_MAX];
 
   for (i = 0; i < HASHSIZE; i++)
     for (sp = hashtab[i]; sp; sp = sp -> next)
@@ -371,13 +372,13 @@ int yydump (char*     str,
 }
 
 
-static int yylex (void)
+static integer yylex (void)
 /* ------------------------------------------------------------------------- *
  * Lexical analysis routine called by yyparse, using string loaded by
  * yy_interpret.
  * ------------------------------------------------------------------------- */
 {
-  register int c;
+  register integer c;
 
   while ((c = *cur_string++) == ' ' || c == '\t');
 
@@ -433,9 +434,9 @@ static Symbol* lookup (const char* s)
 }
 
 
-static Symbol* install (const char*  s,
-			const int    t,
-			const double d)
+static Symbol* install (const char*   s,
+			const integer t,
+			const double  d)
 /* ------------------------------------------------------------------------- *
  * Install s in symbol hashtable.
  * ------------------------------------------------------------------------- */
@@ -530,7 +531,7 @@ static double Asin (double x)
 { return errcheck (asin (x), "asin"); }
 
 
-static double integer (double x)
+static double Integer (double x)
 { return rint (x); }
 
 

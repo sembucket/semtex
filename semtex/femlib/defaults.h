@@ -22,29 +22,38 @@ static struct {
   
   /* -- Default named parameters. */
 
-  "D_T"         ,   0.01   ,	/* -- Time step.                     */
   "t"           ,   0.0    ,	/* -- Time.                          */
-  "z"           ,   0.0    ,	/* -- z-plane location.              */
-  "TOL_REL"     ,   1.0e-8 ,	/* -- Relative tolerance.            */
+  "D_T"         ,   0.01   ,	/* -- Time step.                     */
+
+  "TOL_REL"     ,   1.0e-8 ,	/* -- Relative tolerance (PCG)       */
   "TOL_ABS"     ,   1.0e-8 ,	/* -- Absolute tolerance.            */
+
+  "z"           ,   0.0    ,	/* -- z-plane location.              */
   "BETA"        ,   1.0    ,	/* -- TWOPI / Lz (Fourier constant). */
   "LAMBDA2"     ,   0.0    ,	/* -- Helmholtz constant.            */
 
   "KINVIS"      ,   1.0    ,	/* -- Kinematic viscosity.           */
+  "REFVIS"      ,   1.0    ,	/* -- Reference kinematic viscosity. */
   "RHO"         ,   1.0    ,	/* -- Density.                       */
   "GRAVITY"     ,   9.81   ,	/* -- Gravitational acceleration.    */
   "T_REF"       ,   288.15 ,	/* -- Reference temperature (15C).   */
   "PRANDTL"     ,   0.72   ,	/* -- Prandtl number for air at STP. */
 
+  "C_SMAG"      ,   0.2    ,	/* -- Smagorinsky's constant.        */
+
+  "FFX"         ,   0.0    ,	/* -- Body force per unit mass (x).  */
+  "FFY"         ,   0.0    ,	/* -- y component.                   */
+  "FFZ"         ,   0.0    ,	/* -- z component.                   */
+
   /* -- Option switches. */
 
-  "ITERATIVE"   ,   0   ,
-  "BINARY"      ,   0   ,
-  "CYLINDRICAL" ,   0   ,
   "BASIS"       ,   GLL ,
   "RULE"        ,   LL  ,
+  "ITERATIVE"   ,   0   ,
+  "CYLINDRICAL" ,   0   ,
   "VERBOSE"     ,   0   ,
   "CHKPOINT"    ,   0   ,
+  "AVERAGE"     ,   0   ,
   
   /* -- Default integer values. */
 
