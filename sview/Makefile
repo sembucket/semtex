@@ -35,7 +35,7 @@ ifeq ($(ARCH),IRIX64)		# -- SGI 64-bit systems.
 CXX = CC
 LD  = CC
 
-GLUT_LIBS = -lglut -lGLU -lGL -lX11 -lXext -lXmu -lXt -lXi -lSM -lICE
+GLUT_LIBS = -ltiff -lglut -lGLU -lGL -lX11 -lXext -lXmu -lXt -lXi -lSM -lICE
 
 CPPFLAGS = -I. -I$(GLUT_ROOT)/include
 ifdef PYTHON
@@ -58,7 +58,8 @@ ifeq ($(ARCH),Linux)		# -- GNU/Linux system.
 CXX = g++
 LD  = g++
 
-GLUT_LIBS = -lglut -lGLU -lGL -lX11 -lXext -lXmu -lXt -lXi -lSM -lICE
+GLUT_LIBS = -ltiff -ljpeg -lz -lglut -lGLU -lGL	\
+            -lX11 -lXext -lXmu -lXt -lXi -lSM -lICE
 
 CPPFLAGS = -I. -I$(GLUT_ROOT)/include
 ifdef PYTHON
@@ -79,7 +80,7 @@ endif
 # -- Remainder is machine-independent.
 
 HDRS = ./Sview.h
-SOBJ = main.o graphics.o isowire.o keycom.o semIO.o
+SOBJ = main.o graphics.o image.o isowire.o keycom.o semIO.o
 
 DEPEND = $(SOBJ)
 ifdef PYTHON

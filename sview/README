@@ -2,7 +2,8 @@ SYNOPSIS
 --------
 sview: OpenGL/GLUT version of sview_2.  The code is made with C++ but
 does not employ any class definitions, just structs, to ease backward
-compatibility with C.
+compatibility with C.  Sam Leffler's libtiff library is used for TIFF
+dumps of screen images. 
 
 USAGE
 -----
@@ -11,9 +12,15 @@ meshfile  ... specifies name of NEKTON-format mesh file.
 fieldfile ... specifies name of NEKTON-format (binary) field file.
 options:
 -c        ... set cylindrical coordinates
+-d        ... dump TIFF image to file "sview.tif" when quitting
 -h        ... print this message
 -s <file> ... read commands from file
 -w        ... white background
+
+Standard glutInit command line options such as -display and -geometry
+are also available.  For example, in order to force placement of a
+400x400 window at the top left-hand corner of the screen (without user
+interaction), use: -geometry 400x400+0+0.
 
 FILES
 -----
@@ -63,6 +70,7 @@ Other key commands:
 
 'a': toggle antialiased drawing of lines and polygons (slows rendering). 
 'b': toggle rendering of mesh outlines.
+'d': dump a TIFF image of window to file "sview.tif".
 'i': toggle inversion of background from black to white (default black).
 'k': write viewpoint-setting commands to file "knobs.sv".
 'l': read viewing information from file "knobs.sv".
@@ -124,6 +132,12 @@ A script of isosurface manipulation commands can be read from a file,
 as specified on the command line: these are the standard commands a--z
 above.
 
+If the command line option -d was set, the program quits after the
+first display command, dumping a TIFF image to file sview.tif.  Since
+in interactive use the default first display is of the element
+outlines alone, this option is not very useful unless employed in
+conjunction with a script file (see below).
+
 EXAMPLES
 --------
 See the examples directory.  An example mesh and field (tg.mesh,
@@ -132,8 +146,14 @@ with an example script, tg.sv.
 
 usage: ../sview -s tg.sv tg.mesh tg.fld
 
+To produce a TIFF image called sview.tif, use the -d command line
+option.  Together with a script file and command line setting of
+window placement, this can be used to automate production of images.
+
+usage: ../sview -geometry 400x400+0+0 -d -s tg.sv tg.mesh tg.fld
+
 For use with mscope there are taylor.ms and taylor.sv (the former is
-an example of an mscope script, the latter is an example of an sview
+an example of an mscope script; the latter is an example of an sview
 script).  This is for a 2D Taylor vortex (invariant in the y
 direction).
 
@@ -157,7 +177,7 @@ for python.
 TO DO
 -----
 Arbitary number of repetitions in the z-direction.
-TIFF and PostScript output.
+PostScript output.
 Python bindings for GLUT.
 
 BUGS

@@ -11,6 +11,7 @@
 // fieldfile ... specifies name of NEKTON-format (binary) field file.
 // options:
 //   -c        ... set cylindrcal coordinates
+//   -d        ... dump a TIFF image to file "sview.tif" on quitting.
 //   -h        ... print this message
 //   -s <file> ... read commands from file
 //   -w        ... white background [Default: black]
@@ -72,6 +73,7 @@ void main (int    argc,
   State.blackbk = GL_TRUE;
   State.noalias = GL_FALSE;
   State.cylind  = GL_FALSE;
+  State.dump    = GL_FALSE;
 
   State.xrot    = 0.0;
   State.yrot    = 0.0;
@@ -115,13 +117,13 @@ void main (int    argc,
   glutSpecialFunc  (speckeys);
   glutIdleFunc     (NULL);
 
-  // -- Transfer control to GLUT (no return).
-
-  initGraphics ();
+  initGraphics();
 
   if (script) processScript (script);
 
-  glutMainLoop ();
+  // -- Transfer control to GLUT (no return).
+
+  glutMainLoop();
 }
 
 
@@ -140,6 +142,7 @@ static void getargs (int    argc ,
     "fieldfile ... specifies name of NEKTON-format (binary) field file.\n"
     "options:\n"
     "-c        ... set cylindrical coordinates\n"
+    "-d        ... dump a TIFF image to file \"sview.tif\" on quitting\n"
     "-h        ... print this message\n"
     "-s <file> ... read commands from file\n"
     "-w        ... white background\n";
@@ -149,6 +152,9 @@ static void getargs (int    argc ,
     switch (c = *++argv[0]) {
     case 'c':
       State.cylind = GL_TRUE;
+      break;
+    case 'd':
+      State.dump = GL_TRUE;
       break;
     case 'h':
       cerr << usage;
@@ -222,4 +228,18 @@ void processScript (const char *name)
 
     fp.close();
   }
+}
+
+
+void quit ()
+// ---------------------------------------------------------------------------
+// This gets called on every legal exit path.
+// ---------------------------------------------------------------------------
+{
+  if (State.dump) {
+    writetiff ("sview.tif", "Isosurface", COMPRESSION_LZW);
+    cout << "Wrote file sview.tif" << endl;
+  }
+  cerr << "-- sview : normal termination" << endl;
+  exit (EXIT_SUCCESS);
 }

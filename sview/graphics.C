@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // graphics.C: All drawing is done through OpenGL commands and GLUT callbacks.
 //
+// Copyright (C) 1999 Hugh Blackburn
+//
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -73,8 +75,7 @@ void keyboard (unsigned char key,
     glutIconifyWindow();
     break;
   case 'q':
-    cerr << "-- sview : normal termination" << endl;
-    exit (EXIT_SUCCESS);
+    quit();
     break;
   case '+':
     State.radius *= 0.95;
@@ -99,6 +100,10 @@ void keyboard (unsigned char key,
     break;
   case 'b':
     State.drawbox = !State.drawbox;
+    break;
+  case 'd':
+    writetiff ("sview.tif", "Isosurface", COMPRESSION_LZW);
+    cout << "Wrote file sview.tif" << endl;
     break;
   case 'k':
     {
@@ -216,6 +221,8 @@ void display ()
 
   glPopMatrix     ();
   glutSwapBuffers ();
+
+  if (State.dump) quit();
 }
 
 

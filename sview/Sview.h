@@ -20,6 +20,8 @@
 
 #include <GL/glut.h>
 
+#include <tiffio.h>		/* Sam Leffler's libtiff library. */
+
 enum  lev    {WARNING, ERROR, REMARK};
 const int    StrMax = 256;
 const int    IsoMax = 8;
@@ -37,20 +39,21 @@ typedef struct flag {		/* Global state variables.              */
   GLboolean blackbk;		/* Toggle black/white background.       */
   GLboolean noalias;		/* Toggle antaliasing of polygons.      */
   GLboolean cylind ;		/* True for cylindrical coordinates.    */
-  GLdouble  radius ;
-  GLdouble  xrot   ;
-  GLdouble  yrot   ;
-  GLdouble  zrot   ;
-  GLdouble  xtrans ;
-  GLdouble  ytrans ;
-  GLdouble  ztrans ;
-  GLfloat   xmin   ;
-  GLfloat   xmax   ;
-  GLfloat   ymin   ;
-  GLfloat   ymax   ;
-  GLfloat   zmin   ;
-  GLfloat   zmax   ;
-  GLdouble  length ;
+  GLboolean dump   ;		/* Flag dump of TIFF image.             */
+  GLdouble  radius ;		/* Positioning of viewing point.        */
+  GLdouble  xrot   ;		/*                                      */
+  GLdouble  yrot   ;		/*                                      */
+  GLdouble  zrot   ;		/*                                      */
+  GLdouble  xtrans ;		/*                                      */
+  GLdouble  ytrans ;		/*                                      */
+  GLdouble  ztrans ;		/*                                      */
+  GLfloat   xmin   ;		/* Mesh extents.                        */
+  GLfloat   xmax   ;		/*                                      */
+  GLfloat   ymin   ;		/*                                      */
+  GLfloat   ymax   ;		/*                                      */
+  GLfloat   zmin   ;		/*                                      */
+  GLfloat   zmax   ;		/*                                      */
+  GLdouble  length ;		/* A mesh length scale from extents.    */
 } Flag;
 
 typedef struct sem {		/* Spectral element mesh information.   */
@@ -94,6 +97,7 @@ extern Data* Fields;		/* Scalar field data structure/retrieval.   */
 
 void message       (const char*, const char*, const lev&);
 void processScript (const char*);
+void quit          ();
 
 /* -- Routines in semIO.C: */
 
@@ -121,5 +125,9 @@ Iso* makeSurf  (int, float**, float**, float**, float**,
 		int*, int*, int*, char, float, int);
 Iso* copySurf  (Iso*);
 void flipNorms (Iso*);
+
+/* -- Routines in image.C: */
+
+int writetiff (char*, char*, int);
 
 #endif

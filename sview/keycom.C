@@ -157,7 +157,7 @@ void processCommand (const char  command,
   }
 
   case 'q':
-    exit (EXIT_SUCCESS);
+    quit();
     break;
 
   case 'r':
