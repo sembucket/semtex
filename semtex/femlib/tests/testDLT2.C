@@ -31,6 +31,11 @@ int main ()
   y   = x   + np2;
   z   = y   + np2;
   t   = z   + np2;
+
+  // -- Get GLL grid points & weights, prepare table of Legendre polys.
+
+#if 0
+
   FW  = t   + np2;
   FT  = FW  + np2;
   BW  = FT  + np2;
@@ -38,8 +43,6 @@ int main ()
   CF  = BT  + np2;
   CB  = CF  + np4;
   tab = CB  + np4;
-
-  // -- Get GLL grid points & weights, prepare table of Legendre polys.
 
   Femlib::legCoef (np, &tab);
   Femlib::quad    (LL, np, np, 0, 0, &w, 0, 0, 0, 0);
@@ -76,7 +79,15 @@ int main ()
 	  CB[Veclib::row_major (k, l, np2)]
 	    = BW[Veclib::row_major(i,p,np)] * BT[Veclib::row_major(q,j,np)];
 	}
-
+#else
+  Femlib::legTran (np,
+		   (const double**)&FW,
+		   (const double**)&FT,
+		   (const double**)&BW,
+		   (const double**)&BT,
+		   (const double**)&CF,
+		   (const double**)&CB);
+#endif
   // -- Create original data.
 
   Veclib::vrandom (np2, x, 1);
@@ -101,7 +112,7 @@ int main ()
 
   for (i = 0; i < np2; i++)
     cout << setw(14) << x[i] << setw(14) << y[i] << setw(14) << z[i] << endl;
-
+#if 0
   // -- Timing.
 
   ts = dclock();
@@ -123,6 +134,6 @@ int main ()
   tf = dclock();
 
   cout << "Time for 100000 unrolled transforms: " << tf - ts << endl;
-
+#endif
   return (EXIT_SUCCESS);
 }
