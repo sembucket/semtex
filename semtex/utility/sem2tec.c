@@ -1,7 +1,7 @@
 /*****************************************************************************
  * sem2tec: convert a SEM field file to AMTEC Tecplot format.
  *
- * Usage: sem2tec [-h] [-o output] [-m mesh] [-n #] [-d #] input[.fld]
+ * Usage: sem2tec [-h] [-o output] [-m mesh] [-n #] [-d #] [-w] input[.fld]
  *
  * Based on the original code by Ron Henderson.
  *****************************************************************************/
@@ -29,21 +29,24 @@ static char usage[] =
   "-d <num> ... extract dump <num> from file\n"
   "-n <num> ... evaluate the solution on an evenly-spaced mesh with N X N\n"
   "             points.  If N = 0, then no interpolation is done, i.e., the\n"
-  "             output mesh will be on a standard GLL-spectral element mesh\n";
+  "             output mesh will be on a standard GLL-spectral element mesh\n"
+  "-w       ... extend the data by one additional plane in the z-direction\n";
 
 static FILE    *fp_fld = 0,          /* default input files */
-               *fp_msh = stdin;
+               *fp_msh = 0;
 static char    *tecfile;             /* output file name */
 
-static int     nr, ns, nz, nel, nfields, preplot_it = 1, np = 1, dump = 1;
+static int     nr, ns, nz, nel, nfields;
+static int     nzp = 0, preplot_it = 1, np = 1, dump = 1;
 static char    type[MAXFIELDS];
 static double  *data[MAXFIELDS], *x, *y, *z;
 
 static void    write_tec   (FILE*);
 static void    parse_args  (int, char**);
 static void    read_mesh   (FILE*);
-static int     read_data   (FILE*);
-static int     interpolate (void);
+static void    read_data   (FILE*);
+static void    interpolate (void);
+static void    wrap        (void);
 static double* do_interp   (const double**, const double**, 
 			    const double**, const double**, double*);
 
@@ -58,6 +61,8 @@ int main (int    argc,
   char  buf  [STR_MAX];
   FILE  *fp, *fp_tec;
   
+  fp_msh = stdin;
+
   if ((fp = fopen (tmpnam (fname),"w+")) == (FILE*) NULL) {
     fprintf (stderr, "sem2tec: unable to open a temporary file\n");
     exit    (EXIT_FAILURE);
@@ -68,6 +73,7 @@ int main (int    argc,
   read_mesh   (fp_msh);
   while (dump--) read_data (fp_fld);
   interpolate ();
+  wrap        ();
   write_tec   (fp);
 
   if (preplot_it) {
@@ -134,6 +140,9 @@ static void parse_args (int    argc,
 	}
 	(*argv)[1] = '\0';
 	break;
+      case 'w':
+	nzp = 1;
+	break;
       default:
 	fprintf(stderr, "sem2tec: unknown option -- %c\n", c);
 	break;
@@ -180,10 +189,11 @@ static void read_mesh (FILE *fp)
     exit  (EXIT_FAILURE);
   }
 
-  n  = nr * ns * nel;
-  x  = dvector (0, n);
-  y  = dvector (0, n);
-  z  = (nz > 1) ? dvector (0, nz) : 0;
+  n   = nr * ns * nel;
+  x   = dvector (0, n - 1);
+  y   = dvector (0, n - 1);
+  z   = (nz > 1) ? dvector (0, nz) : 0;
+  nzp = (z && nzp) ? nz + 1 : nz;
 
   for (i = 0; i < n; i++) {
     fgets (buf, STR_MAX, fp);
@@ -194,7 +204,7 @@ static void read_mesh (FILE *fp)
   }
   
   if (z) 
-    for (i = 0; i < nz; i++) {
+    for (i = 0; i <= nz; i++) {
       fgets (buf, STR_MAX, fp);
       if (sscanf (buf, "%lf", z+i) != 1) {
 	fputs ("error while reading z mesh data\n", stderr);
@@ -204,7 +214,7 @@ static void read_mesh (FILE *fp)
 }
 
 
-static int read_data (FILE *fp)
+static void read_data (FILE *fp)
 /* ------------------------------------------------------------------------- *
  * Read in data files.  If NZ > 1, it is assumed that data are in the file
  * in plane-by-plane order.  For each plane, the ordering of data varies
@@ -222,10 +232,10 @@ static int read_data (FILE *fp)
 
   for (n = 0; n < 9; n++) fgets(buf, STR_MAX, fp);
 
-  /* -- Read the list of field. */
+  /* -- Read the list of fields. */
 
-  n = 0;
-  c = buf;
+  n       = 0;
+  c       = buf;
   nfields = 0;
   while (n++ < 25 && nfields < MAXFIELDS) 
     if (isalpha(*c++)) type[nfields++] = *(c-1);
@@ -240,7 +250,7 @@ static int read_data (FILE *fp)
 
   nplane = nr * ns * nel;
   for (n = 0; n < nfields; n++)
-    data[n] = (double*) malloc (nz * nplane * sizeof (double));
+    data[n] = (double*) malloc (nzp * nplane * sizeof (double));
 
   /* -- Check the format. */
 
@@ -280,12 +290,10 @@ static int read_data (FILE *fp)
     exit    (EXIT_FAILURE);
     break;
   }
-
-  return 1;
 }
 
 
-static int interpolate (void)
+static void interpolate (void)
 /* ------------------------------------------------------------------------- *
  * Interpolate from the GLL mesh to an evenly-spaced mesh.
  * ------------------------------------------------------------------------- */
@@ -298,7 +306,7 @@ static int interpolate (void)
 
   switch (np) {
   case 0:              /* interpolation turned off */
-    return 0;
+    return;
     break;
     
   case 1:              /* no size specified ... use (NR|NS) */
@@ -332,17 +340,15 @@ static int interpolate (void)
       newplane[m] = do_interp (imr, itmr, ims, itms, data[k] + m * nplane_old);
 
     free (data[k]);
-    data[k] = (double*) malloc (nplane_new * nz * sizeof (double));
+    data[k] = (double*) malloc (nplane_new * nzp * sizeof (double));
 
     for (m = 0; m < nz; m++) {
       dcopy (nplane_new, newplane[m], 1, data[k] + m * nplane_new, 1);
-      free (newplane[m]);
+      free  (newplane[m]);
     }
   }
 
   nr = ns = np;
-
-  return 1;
 }
 
 
@@ -371,6 +377,21 @@ static double* do_interp (const double** imr ,
 }
 
 
+static void wrap (void)
+/* ------------------------------------------------------------------------- *
+ * Extend data in the (periodic) z-direction so that it wraps around.
+ * ------------------------------------------------------------------------- */
+{
+  register int i;
+  const int    nplane_new = np * np * nel;
+
+  if (nzp == nz) return;
+
+  for (i = 0; i < nfields; i++)
+    dcopy (nplane_new, data[i], 1, data[i] + nz * nplane_new, 1);
+}
+
+
 static void write_tec (FILE *fp)
 /* ------------------------------------------------------------------------- *
  * Write in ASCII to temporary file, tecplot ASCII format.
@@ -381,15 +402,14 @@ static void write_tec (FILE *fp)
 
   fprintf (fp, "VARIABLES = X Y ");
   if (z) fprintf (fp, "Z ");
-  for (i = 0; i < nfields; i++)
-    fprintf (fp, "%c ", toupper(type[i]));
+  for (i = 0; i < nfields; i++) fprintf (fp, "%c ", toupper(type[i]));
   fprintf (fp, "\n");
 
   for (k = 0; k < nel; k++) {
     fprintf (fp, "ZONE T=\"Element %d\", I=%d, J=%d,", k+1, nr, ns);
-    if (z) fprintf (fp, " K=%d,", nz);
+    if (z) fprintf (fp, " K=%d,", nzp);
     fprintf (fp, " F=POINT\n");
-    for (m = 0; m < nz; m++) {
+    for (m = 0; m < nzp; m++) {
       for (i = 0; i < nrns; i++) {
 	fprintf (fp, "%#14.7g %#14.7g ", x[k*nrns + i], y[k*nrns + i]);
 	if (z) fprintf (fp, "%#14.7g ",  z[m]);
