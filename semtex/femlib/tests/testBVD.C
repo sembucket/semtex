@@ -1,10 +1,10 @@
 //////////////////////////////////////////////////////////////////////////////
 // filter.C: Generate/test filtering functions.
 //
-// Usage: filter -a <num> -N <num> -p <num> -s <num>
+// Usage: filter -a <num> -N <num> -p <num> -r <num>
 // where
-// -N <num> ... supplies the number of points in the filter [0, N]
-// -s <num> ... supplies the filter lag
+// -N <num> ... supplies the number of points in the filter
+// -r <num> ... supplies the filter rollof point     [0, 1]
 // -p <num> ... supplies the filter order
 // -a <num> ... supplies attenuation factor at high frequencies
 //
@@ -24,58 +24,23 @@
 #include <Blas.h>
 #include <Utility.h>
 
-
-static void bvdFilter (const int N,
-		       const int p,
-		       const int s,
-		       real      a,
-		       real*     F)
-// ---------------------------------------------------------------------------
-// Load F with the Boyd--Vandeven filter [0, N] of order p, lag s.
-// NB: N should be one less than the number of coefficients to
-// which the filter will be applied.
-// 
-// Input parameter t gives the attenuation at high wavenumbers. 0<=t<=1,
-// with t = 1 giving complete attenuation.
-// ---------------------------------------------------------------------------
-{
-  int        i;
-  real       arg, theta, chi, omega;
-  const real EPS = EPSSP;
-
-  for (i = 0; i < s; i++)
-    F[i] = 1.0;
-  
-  for (i = s; i <= N; i++) {
-    theta = (i - s) / (real) (N - s);
-    omega = fabs(theta) - 0.5;
-    if ((fabs (theta - 0.5)) < EPS) 
-      chi = 1.0;
-    else {
-      arg = 1.0 - 4.0 * sqr (omega);
-      chi = sqrt (-log (arg) / (4.0 * sqr (omega)));
-    }
-    F[i] = (1.0 - a) + a * 0.5 * erfc (2.0*sqrt(p)*chi*omega);
-  }
-}
-
-static void getargs (int     argc,
-		     char**  argv,
-		     real&   a   ,
-		     int&    s   ,
-		     int&    p   ,
-		     int&    N   )
+static void getargs (int     argc ,
+		     char**  argv ,
+		     real&   atten,
+		     real&   roll ,
+		     real&   order,
+		     int&    N    )
 // ---------------------------------------------------------------------------
 // Parse command-line args.
 // ---------------------------------------------------------------------------
 {
   const char *usage = 
-    "Usage: filter -a <num> -N <num> -p <num> -s <num>\n"
+    "Usage: filter -a <num> -p <num> -r <num> -N <num>\n"
     "where\n"
     "-a <num> ... supplies attenuation factor at high frequencies [0, 1]\n"
-    "-N <num> ... supplies the number of points in the filter [0, N]\n"
-    "-s <num> ... supplies the filter lag\n"
-    "-p <num> ... supplies the filter order\n";
+    "-r <num> ... supplies the filter rolloff                     [0, 1]\n"
+    "-p <num> ... supplies the filter order\n"
+    "-N <num> ... supplies the number of points in the filter\n";
 
   if (argc != 9) {
     cerr << usage;
@@ -86,7 +51,7 @@ static void getargs (int     argc,
     switch (*++argv[0]) {
     case 'a':
       --argc;
-      a = atof (*++argv);
+      atten = atof (*++argv);
       break;
     case 'N':
       --argc;
@@ -94,11 +59,11 @@ static void getargs (int     argc,
       break;
     case 'p':
       --argc;
-      p = atoi (*++argv);
+      order = atof (*++argv);
       break;
-    case 's':
+    case 'r':
       --argc;
-      s = atoi (*++argv);
+      roll = atof (*++argv);
       break;
     default:
       cerr << usage;
@@ -114,17 +79,17 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  int  i, s, p, N;
-  real a;
+  int  i, N;
+  real atten, roll, order;
 
-  getargs (argc, argv, a, s, p, N);
+  getargs (argc, argv, atten, roll, order, N);
 
-  vector<real> work (N + 1);
+  vector<real> work (N);
   real         *filter = work();
 
-  bvdFilter (N, p, s, a, filter);
+  Femlib::erfcFilter (N-1, order, roll, atten, filter);
 
-  for (i = 0; i <= N; i++) 
+  for (i = 0; i < N; i++) 
     cout << i << '\t' << filter[i] << endl;
   
   return EXIT_SUCCESS;

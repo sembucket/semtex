@@ -19,7 +19,7 @@ int main ()
 //
 // ---------------------------------------------------------------------------
 {
-  const int      nz   = 128;
+  const int      nz   = 64;
   const int      np   = 20000;
   const int      ntot = nz * np;
   int            i, j, nfax, ifax[64];
@@ -82,6 +82,7 @@ int main ()
 
   Femlib::primes235 (i = nz, ip, iq, ir, ipqr2);
   Femlib::setpf     (trig, nz, ip, iq, ir);
+
   stime = dclock();
   Femlib::mpfft (y, w, np, nz, ip, iq, ir, trig, +1);
   ftime = dclock();
