@@ -544,6 +544,9 @@ Field& Field::solve (AuxField*             f  ,
 // get loaded from essential BC values, "g".
 //
 // Forcing field f's data area is overwritten/destroyed during processing.
+//
+// Input vector conv indicates convergence of various modes.  Do nothing
+// if conv[mode] == 1.
 // ---------------------------------------------------------------------------
 {
   const integer np      = Geometry::nP();
@@ -643,7 +646,7 @@ Field& Field::solve (AuxField*  f      ,
   const integer    npts    = nglobal + Geometry::nInode();
   const real       betaZ   = Femlib::value ("BETA");
   const real       FTINY   = (sizeof (real) == sizeof (double)) ? EPSDP:EPSSP;
-  register integer i, k, mode;
+  register integer i, k, pmode, mode;
   integer          singular, nsolve, nzero;
   real             rho1, rho2, alpha, beta, r2, epsb2, betak2, dotp;
 
@@ -665,7 +668,8 @@ Field& Field::solve (AuxField*  f      ,
 
     // -- Select Fourier mode, set local pointers and variables.
 
-    mode   = bmode + k >> 1;
+    pmode  = k >> 1;
+    mode   = bmode + pmode;
     betak2 = sqr (Field::modeConstant (field_name, mode, betaZ));
 
     const vector<Boundary*>& B       = bsys -> BCs  (mode);

@@ -205,6 +205,18 @@ void Analyser::moments (vector<real>& dist,
     if (fabs (conc) > wmax) { wmax = fabs (conc); zpk  = z[i]; }
   }
 
+  if (sum == 0.0) {
+     mmt_strm
+       << src -> time << "  "
+       << 0.0 << "  "
+       << 0.0 << "  "
+       << 0.0 << "  "
+       << 0.0 << "  "
+       << 0.0 << "  "
+       << 0.0 << endl;
+     return;
+  }
+    
   nfac = 1.0 / sum;
 
   // -- Shift z locations so that peak is roughly centered in domain.

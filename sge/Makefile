@@ -5,12 +5,19 @@
 # $Id$
 ##############################################################################
 
-SEM   = /scratch/a/semtex-5.3.1
+SEM   = /usr/local/semtex-5.3.1
 VPATH = $(SEM)/src
 
 ARCH = $(shell uname -s)
+
 ifeq ($(ARCH),Linux)
-  ARCH += -$(shell uname -m)
+  MACH = $(shell uname -m)
+  ifeq ($(MACH),alpha)
+    ARCH = Linux-alpha
+  endif
+  ifeq ($(MACH),i586)
+    ARCH = Linux-i586
+  endif
 endif
 
 ifdef DEBUG

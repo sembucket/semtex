@@ -804,7 +804,7 @@ public:
   Field& operator = (const char*     z) {AuxField::operator=(z); return *this;}
 
   Field& solve  (AuxField*, const ModalMatrixSys*);
-  Field& solve  (AuxField*, const real);
+  Field& solve  (AuxField*, const real           );
 
   Field& smooth (AuxField* = 0);
   void   smooth (const int, real*) const;

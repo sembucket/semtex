@@ -255,12 +255,12 @@ static void Solve (Field*          c1   ,
   static const real DT      = Femlib::value ("D_T");
   static const int  nmodes  = Geometry::nModeProc();
 
-  const int    DIRECT = !(je < JE || M1 == 0);		     
-  vector<real> alpha (Integration::OrderMax + 1);
-  vector<real> L2new1 (nmodes), L2old1 (nmodes);
-  vector<real> L2new2 (nmodes), L2old2 (nmodes);
-  vector<int>  test1  (nmodes), test2  (nmodes);
-  integer      i, k, converged;
+  const int       DIRECT = !(je < JE || M1 == 0);		     
+  vector<real>    alpha (Integration::OrderMax + 1);
+  vector<real>    L2new1 (nmodes), L2old1 (nmodes);
+  vector<real>    L2new2 (nmodes), L2old2 (nmodes);
+  vector<integer> test1  (nmodes), test2  (nmodes);
+  integer         i, k, converged;
 
   Integration::StifflyStable (je, alpha());
   const real lambda2_1 = alpha[0] / (DT * DCON1);
@@ -268,6 +268,8 @@ static void Solve (Field*          c1   ,
 
   L2old1 = 0.0;
   L2old2 = 0.0;
+  test1  = 0;
+  test2  = 0;
 
   for (converged = 0, i = 0; i < MAXITN && !converged; i++) {
     c1 -> setPatch (patch);
@@ -294,7 +296,10 @@ static void Solve (Field*          c1   ,
     SET1;
     for (k = 0; k < nmodes; k++) {
       L2new1[k] = c1 -> mode_L2 (k);
-      test1 [k] = fabs ((L2new1[k] - L2old1[k])/L2new1[k]) < TOLREL;
+      if (L2new1[k] == 0.0)
+	test1[k] = 1;
+      else
+	test1[k] = fabs ((L2new1[k] - L2old1[k])/L2new1[k]) < TOLREL;
       L2old1[k] = L2new1[k];
       VERBOSE cout << "mode: " << k << ", energy1 = " << L2old1[k];
     }
@@ -302,7 +307,10 @@ static void Solve (Field*          c1   ,
     SET2;
     for (k = 0; k < nmodes; k++) {
       L2new2[k] = c2 -> mode_L2 (k);
-      test2 [k] = fabs ((L2new2[k] - L2old2[k])/L2new2[k]) < TOLREL;
+      if (L2new2[k] == 0.0)
+	test2[k] = 1;
+      else
+	test2[k] = fabs ((L2new2[k] - L2old2[k])/L2new2[k]) < TOLREL;
       L2old2[k] = L2new2[k];
       VERBOSE cout  << "mode: " << k << ", energy2 = " << L2old2[k];
     }
