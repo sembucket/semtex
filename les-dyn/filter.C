@@ -54,7 +54,7 @@ void initFilters ()
   const real*  dpt;
   vector<real> work;
 
-  if (FourierMask) return;	// -- Already initialised!
+  if (FourierMask) return;	// -- Already initialised.
 
   // -- Fourier mask.
 
@@ -117,7 +117,6 @@ void lowpass (real* data)
 // structure.
 // ---------------------------------------------------------------------------
 {
-#if 1
   integer       i;
   const integer pid = Geometry::procID();
   const integer np  = Geometry::nP();
@@ -135,62 +134,4 @@ void lowpass (real* data)
     Femlib::tpr2d (dataplane, dataplane, tmp(), Iu, It, np, nel);
     Veclib::smul  (nP, FourierMask[i+pid*nZP], dataplane, 1, dataplane, 1);
   }
-#else
-  const integer    nP  = Geometry::planeSize();
-  const integer    np  = Geometry::nP();
-  const integer    nel = Geometry::nElmt();
-  const integer    np2 = sqr(np);
-  const integer    nZP = Geometry::nZProc();
-  const integer    pid = Geometry::procID();
-
-  register integer i, j, ij, p, q, pq;
-  register real    P, Q;
-  integer          n, k;
-  vector<real>     work (np2);
-  real             *dataplane, *src, *tmp = work();
-
-  if (!FourierMask) initFilters();
-
-  for (k = 0; k < nZP; k++) {
-    for (src = data + k * nP, n = 0; n < nel; n++, src += np2) {
-      Veclib::zero (np2, tmp, 1);
-      for (ij = 0, i = 0; i < np; i++) {
-	for (j = 0; j < np; j++, ij++) {
-	  for (pq = 0, p = 0; p < np; p++) {
-	    P = Du[Veclib::row_major (i, p, np)];
-	    for (q = 0; q < np; q++, pq++) {
-	      Q = Dt[Veclib::row_major (q, j, np)];
-	      tmp[ij] += P * Q * src[pq];
-	    }
-	  }
-	}
-      }
-      Veclib::copy (np2, tmp, 1, src, 1);
-    }
-  }
-
-  for (k = 0; k < nZP; k++) {
-    dataplane = data + i*nP;
-    Veclib::smul  (nP, FourierMask[i+pid*nZP], dataplane, 1, dataplane, 1);
-  }
-
-  for (k = 0; k < nZP; k++) {
-    for (src = data + k * nP, n = 0; n < nel; n++, src += np2) {
-      Veclib::zero (np2, tmp, 1);
-      for (ij = 0, i = 0; i < np; i++) {
-	for (j = 0; j < np; j++, ij++) {
-	  for (pq = 0, p = 0; p < np; p++) {
-	    P = Iu[Veclib::row_major (i, p, np)];
-	    for (q = 0; q < np; q++, pq++) {
-	      Q = It[Veclib::row_major (q, j, np)];
-	      tmp[ij] += P * Q * src[pq];
-	    }
-	  }
-	}
-      }
-      Veclib::copy (np2, tmp, 1, src, 1);
-    }
-  }
-
-#endif
 }
