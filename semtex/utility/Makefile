@@ -218,6 +218,11 @@ probe: $(PRBOBJ)
 rstress: rstress.c
 	$(CC) $(CPPFLAGS) -o $@ $@.c $(LDFLAGS)
 
+# ----------------------------------------------------------------------------
+# Build avgdump, field average updater.
+
+avgdump: avgdump.c
+	$(CC) $(CPPFLAGS) -o $@ $@.c $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build rectmesh, rectangular mesh generator;
