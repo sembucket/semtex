@@ -294,7 +294,7 @@ static int addSurf ()
   if (N == IsoMax)
     message (routine, "storage area is full", WARNING);
 
-  Surface[N] = copySurf (Surface[0]);
+  if (N) Surface[N] = copySurf (Surface[0]);
 
   return i;
 }
