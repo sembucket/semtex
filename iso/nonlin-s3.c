@@ -12,6 +12,8 @@
 
 #define PEQ(Z1,c,Z2) (Z1)->Re += (c) * (Z2)->Im; (Z1)->Im -= (c) * (Z2)->Re
 
+static void stimulate (CF, const int);
+
 
 void nonlinear (CVF            U   ,
 		CVF            G   ,
@@ -70,20 +72,10 @@ void nonlinear (CVF            U   ,
 {
   register int     c, k1, b1, k2, b2, k3;
   register complex *f, *g;
-  static real      *expand = 0, *shrink = 0;
-
-  if (!expand) {		/* -- Set up DFT filter coefficients.  Once. */
-    k1 = K; k2 = k1 - 1;
-    expand = (real*) malloc (2 * (k1 + 1) * sizeof (real));
-    shrink = expand + k1 + 1;
-    
-    bvdFilter (k2, F_ORDER, (int) (F_ROLL * k2), F_ATTEN, shrink);
-    for (c = 0; c <= k2; c++) expand[c] = 1.0 / shrink[c];
-  }
 
   /* -- "Stimulate" the small scales uf U. */
 
-  for (c = 1; c <= 3; c++) filterF (U[c], expand, NULL);
+  for (c = 1; c <= 3; c++) stimulate (U[c], TRUE);
 
   /* -- Make velocity field in PHYSICAL space on unshifted & shifted grid
    *    for alias control.
@@ -368,7 +360,115 @@ void nonlinear (CVF            U   ,
   /* -- "De-stimulate" the small scales of U, and G. */
 
   for (c = 1; c <= 3; c++) {
-    filterF (U[c], shrink, 0);
-    filterF (G[c], shrink, 0);
+    stimulate (U[c], FALSE);
+    stimulate (G[c], FALSE);
   }
+}
+
+
+static void stimulate (CF        U   ,
+		       const int SIGN)
+/* ------------------------------------------------------------------------- *
+ * The "stimulation" is based on the filtering operation, from which it
+ * may be derived (on a uniform grid) that
+ *
+ *   (1 + \Delta^2 / 24 \nabla^2) u* = u
+ *
+ * where \Delta is the filter width.  For \Delta = 2 * grid size = 2PI/K,
+ * the operator becomes (in Fourier space)
+ *
+ *   (1 - (k/K)^2 (2PI)^2 / 24)   u* = u.
+ *
+ * The above is the operation carried out when SIGN == TRUE, which
+ * defines u as above by a diffusion operator on u*.  When SIGN ==
+ * FALSE, the above relation is inverted to give u* from u.
+ * ------------------------------------------------------------------------- */
+{
+  const real    CK = SQR (M_PI / K) / 24.0;
+  register int  c, k1, k2, k3, b1, b2;
+  register real kk, tp;
+
+  if (SIGN == TRUE)
+    for (k1 = 1; k1 < K; k1++) {
+      b1 = N - k1;
+      kk = k1 * k1;
+      tp = 1.0 / (1.0 - kk * CK);
+      U[k1][ 0][ 0].Re *= tp;
+      U[k1][ 0][ 0].Im *= tp;
+      U[ 0][k1][ 0].Re *= tp;
+      U[ 0][k1][ 0].Im *= tp;
+      U[ 0][ 0][k1].Re *= tp;
+      U[ 0][ 0][k1].Im *= tp;
+      for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
+	b2 = N - k2;
+	kk = k1 * k1 + k2 * k2;
+	tp = 1.0 / (1.0 - kk * CK);
+	U[ 0][k1][k2].Re *= tp;
+	U[ 0][k1][k2].Im *= tp;
+	U[ 0][b1][k2].Re *= tp;
+	U[ 0][b1][k2].Im *= tp;
+	U[k1][ 0][k2].Re *= tp;
+	U[k1][ 0][k2].Im *= tp;
+	U[b1][ 0][k2].Re *= tp;
+	U[b1][ 0][k2].Im *= tp;
+	U[k1][k2][ 0].Re *= tp;
+	U[k1][k2][ 0].Im *= tp;
+	U[b1][k2][ 0].Re *= tp;
+	U[b1][k2][ 0].Im *= tp;
+	for (k3 = 1; k3 < K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
+	  kk = k1 * k1 + k2 * k2 + k3 * k3;
+	  tp = 1.0 / (1.0 - kk * CK);
+	  U[k1][k2][k3].Re *= tp;
+	  U[k1][k2][k3].Im *= tp;
+	  U[b1][k2][k3].Re *= tp;
+	  U[b1][k2][k3].Im *= tp;
+	  U[k1][b2][k3].Re *= tp;
+	  U[k1][b2][k3].Im *= tp;
+	  U[b1][b2][k3].Re *= tp;
+	  U[b1][b2][k3].Im *= tp;
+	}
+      }
+    }
+  else
+    for (k1 = 1; k1 < K; k1++) {
+      b1 = N - k1;
+      kk = k1 * k1;
+      tp = (1.0 - kk * CK);
+      U[k1][ 0][ 0].Re *= tp;
+      U[k1][ 0][ 0].Im *= tp;
+      U[ 0][k1][ 0].Re *= tp;
+      U[ 0][k1][ 0].Im *= tp;
+      U[ 0][ 0][k1].Re *= tp;
+      U[ 0][ 0][k1].Im *= tp;
+      for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
+	b2 = N - k2;
+	kk = k1 * k1 + k2 * k2;
+	tp = (1.0 - kk * CK);
+	U[ 0][k1][k2].Re *= tp;
+	U[ 0][k1][k2].Im *= tp;
+	U[ 0][b1][k2].Re *= tp;
+	U[ 0][b1][k2].Im *= tp;
+	U[k1][ 0][k2].Re *= tp;
+	U[k1][ 0][k2].Im *= tp;
+	U[b1][ 0][k2].Re *= tp;
+	U[b1][ 0][k2].Im *= tp;
+	U[k1][k2][ 0].Re *= tp;
+	U[k1][k2][ 0].Im *= tp;
+	U[b1][k2][ 0].Re *= tp;
+	U[b1][k2][ 0].Im *= tp;
+	for (k3 = 1; k3 < K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
+	  kk = k1 * k1 + k2 * k2 + k3 * k3;
+	  tp = (1.0 - kk * CK);
+	  U[k1][k2][k3].Re *= tp;
+	  U[k1][k2][k3].Im *= tp;
+	  U[b1][k2][k3].Re *= tp;
+	  U[b1][k2][k3].Im *= tp;
+	  U[k1][b2][k3].Re *= tp;
+	  U[k1][b2][k3].Im *= tp;
+	  U[b1][b2][k3].Re *= tp;
+	  U[b1][b2][k3].Im *= tp;
+	}
+      }
+    }
+
 }
