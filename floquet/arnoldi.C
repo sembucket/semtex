@@ -7,7 +7,7 @@
 // 
 // Based on code floK by Dwight Barkley & Ron Henderson.
 //
-// Copyright (C) 1999,2003 Hugh Blackburn.
+// Copyright (C) 1999,2003 Hugh Blackburn & John Elston
 //
 // The eigenpairs computed in the subspace are related to the Ritz
 // estimates of those in the original space in a simple way: the
@@ -822,8 +822,8 @@ static void loadmap (const char* session)
     << generator
     << " reflection" << endl;
   
-  positive.setSize (NMAP);
-  negative.setSize (NMAP);
+  positive.resize (NMAP);
+  negative.resize (NMAP);
 
   for (i = 0; i < NMAP; i++) file >> positive[i] >> negative[i];
 
@@ -844,7 +844,7 @@ static void mirror (real* tgt)
   const int    ND = Geometry::nPert();
   const int    NP = Geometry::planeSize();
   const int    NZ = Geometry::nZ();
-  const int    NM = positive.getSize();
+  const int    NM = positive.size();
   static real* tmp;
 
   if (!tmp) tmp = new real [NP];
@@ -854,7 +854,7 @@ static void mirror (real* tgt)
   for (i = 0; i < ND; i++)
     for (k = 0; k < NZ; k++) {
       Veclib::copy (NP, tgt + (i*NZ+k)*NP, 1, tmp, 1);
-      Veclib::gathr_scatr (NM, tmp, negative(), positive(), tgt + (i*NZ+k)*NP);
+      Veclib::gathr_scatr (NM,tmp,&negative[0],&positive[0],tgt + (i*NZ+k)*NP);
     }
   
   // -- Then the sign change.

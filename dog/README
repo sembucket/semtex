@@ -76,22 +76,24 @@ Summary of number of velocity components
 N_BASE  N_PERT  N_Z    COMPLEXITY
  2       2       1     Real only:     u.Re v.Re      p.Re
  2       3       1     Half-complex:  u.Re v.Re w.Im p.Re
- 2       3       2     Full-complex:
- 3       2       1     N/A
- 3       3       1     Real only
+ 2       3       2     Full-complex
+ 3       2       1     NA
+ 3       3       1     NA
  3       3       2     Full-complex
 
 
 OR, categorizing by symmetries of base flow and dimensionality and
-symmetry of perturbation:
+symmetry of perturbation (and cases that have been checked):
 
 N_BASE  N_PERT  N_Z    CATEGORY         CARTESIAN     CYLINDRICAL
- 2       2       1      O(2)/2D		 OK            ?
- 2       3       1      O(2)/3D/SYM	 OK            X
- 2       3       2      O(2)/3D		 X             X
+ 2       2       1      O(2)/2D		 OK            ??
+ 2       3       1      O(2)/3D/SYM	 OK            OK
+ 2       3       2      O(2)/3D		 OK            OK
  3       2       1      SO(2)/2D	 --     NA     --
  3       3       1      SO(2)/2D	 --     NA     --
- 3       3       2      SO(2)/3D	 OK likely     OK
+ 3       3       2      SO(2)/3D	 ??            OK
+
+(?? cases most likely are OK.)
 
 Summary of additional TOKENS and session file requirements
 ----------------------------------------------------------
@@ -120,5 +122,8 @@ References
 [3]  L.S. Tuckerman & D. Barkley (2000), "Bifurcation analysis for
      timesteppers", in Numerical Methods for Bifurcation Problems,
      ed E. Doedel & L.S. Tuckerman, Springer. 453--466.
+[4]  H.M. Blackburn (2002), "Three-dimensional instability and state
+     selection in an oscillatory axisymmetric swirling flow",
+     Phys. Fluids V14(11), 3983--3996.
 
 $Id$

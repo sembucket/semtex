@@ -1,8 +1,0 @@
-This is the Barkley--Henderson test case for Floquet stability of flow
-past a circular cylinder.  At Re=220, the leading Floquet multiplier
-is 1.2671 when BETA=1.7 (wavelength=3.696D). This result was obtained
-with a Krylov dimension of 12 (residual about 10^-11).
-
-In order to generate a base flow, run dns m32_2D; cp m32_2D.fld
-m32.bse.  Then run the Floquet solver.  The base flow has a period of
-4.96192.

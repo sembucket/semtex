@@ -2,7 +2,7 @@
 // lns.C: control spectral element DNS for incompressible flows.
 // This version drives linear evolution of a single Fourier mode.
 //
-// Copyright (C) 1994,2003 Hugh Blackburn.
+// Copyright (C) 1994,2003 Hugh Blackburn & John Elston
 //
 // USAGE:
 // -----

@@ -1,0 +1,10 @@
+#!/bin/bash
+# $Id$
+###############################################################################
+
+enumerate -O3 vb2_bse > vb2_bse.num
+dns vb2_bse
+mv vb2_bse vb2.rst
+
+enumerate -O3 vb2 > vb2.num
+arnoldi -k 13 -m 40 -n 1 vb2 > /dev/null

@@ -1,0 +1,10 @@
+#!/bin/bash
+# $Id$
+##############################################################################
+
+enumerate -O3 m32_2D > m32_2D.num
+dns m32_2D > /dev/null
+mv  m32_2D.fld m32.bse
+
+enumerate -O3 m32 > m32.num
+arnoldi -k 12 -n 1 -m 20 m32 > /dev/null
