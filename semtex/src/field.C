@@ -427,7 +427,7 @@ Vector Field::tangentTraction (const Field* U,
   const integer            _nbound = U -> _nbound;
   const real               mu      = Femlib::value ("RHO * KINVIS");
   Vector                   secF, F = {0.0, 0.0, 0.0};
-  vector<real>             work(3 * np);
+  vector<real>             work(4 * np);
   real                     *ddx = work(), *ddy = ddx + np;
   register integer         i;
 
