@@ -46,8 +46,9 @@ int main (int    argc,
   ios::sync_with_stdio();
 #endif
 
+  Geometry::CoordSys system;
   char      *session, fields[StrMax];
-  int       nz;
+  int       np, nz, nel;
   FEML*     F;
   Mesh*     M;
   BCmgr*    B;
@@ -60,17 +61,20 @@ int main (int    argc,
   F = new FEML (session);
 
   nz = (int) Femlib::value ("N_Z");
-  if (nz > 1) {
-    if (nz & 1) {
-      sprintf (fields, "N_Z (%1d) must be even", nz);
-      message (prog, fields, ERROR);
-    }
-    strcpy (fields, "uvwp");
-  } else
-    strcpy (fields, "uvp");
   
   M = new Mesh     (*F);
   B = new BCmgr    (*F);
+
+  nel    = M -> nEl();  
+  np     =  (int) Femlib::value ("N_POLY");
+  nz     =  (int) Femlib::value ("N_Z"   );
+  system = ((int) Femlib::value ("CYLINDRICAL") ) ?
+                     Geometry::Cylindrical : Geometry::Cartesian;
+  
+  Geometry::set (np, nz, nel, system);
+  if   (nz > 1) strcpy (fields, "uvwp");
+  else          strcpy (fields, "uvp");
+
   D = new Domain   (*F, *M, *B, fields, session);
   A = new Analyser (*D);
 

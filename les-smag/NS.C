@@ -294,16 +294,18 @@ static ModeSys** preSolve (const Domain* D)
 // ITERATIVE == 2 adds iterative solver for pressure as well.
 // ---------------------------------------------------------------------------
 {
-  int                 i, j, found;
-  const int           nSys   = D -> Nsys.getSize();
-  const int           nZ     = D -> u[0] -> nZ();
-  const int           nModes = (nZ + 1) >> 1;
-  const int           itLev  = (int) Femlib::value ("ITERATIVE");
-  const int           nOrder = (int) Femlib::value ("N_TIME");
-  const real          beta   = Femlib::value ("BETA");
-  ModeSys**           M      = new ModeSys* [DIM + 1];
-  vector<Element*>&   E      = ((Domain*) D) -> Esys;
-  const NumberSystem* N;
+  char                 name;
+  int                  i;
+  const int            nSys   = D -> Nsys.getSize();
+  const int            nZ     = Geometry::nZ();
+  const int            nModes = (nZ + 1) >> 1;
+  const int            base   = 0;
+  const int            itLev  = (int) Femlib::value ("ITERATIVE");
+  const int            nOrder = (int) Femlib::value ("N_TIME");
+  const real           beta   = Femlib::value ("BETA");
+  ModeSys**            M      = new ModeSys* [DIM + 1];
+  vector<Element*>&    E      = ((Domain*) D) -> Esys;
+  const NumberSystem** N      = new const NumberSystem* [3];
 
   // -- Velocity systems.
 
@@ -312,30 +314,20 @@ static ModeSys** preSolve (const Domain* D)
     Integration::StifflyStable (nOrder, alpha());
     const real   lambda2 = alpha[0] / Femlib::value ("KINVIS*D_T");
 
-    N = D -> u[0] -> system();
-    M[0] = new ModalMatrixSystem (lambda2, beta, nModes, E, N);
-
-    for (i = 1; i < DIM; i++) {
-      for (found = 0, j = 0; j < i; j++)
-	if (found = D -> u[j] -> system() == D -> u[i] -> system()) break;
-      
-      if (found)
-	M[i] = M[j];
-      else {
-	N = D -> u[i] -> system();
-	M[i] = new ModalMatrixSystem (lambda2, beta, nModes, E, N);
-      }
+    for (i = 0; i < DIM; i++) {
+      name = D -> u[i] -> name();
+      D -> setNumber (name, N);
+      M[i] = new ModalMatrixSystem (lambda2, beta, name, base, nModes, E, N);
     }
-
   } else
     for (i = 0; i < DIM; i++) M[i] = 0;
 
   // -- Pressure system.
 
   if (itLev < 2) {
-    N      = D -> u[DIM] -> system();
-    M[DIM] = new ModalMatrixSystem (0.0, beta, nModes, E, N);
-
+    name = D -> u[DIM] -> name();
+    D -> setNumber (name, N);
+    M[DIM] = new ModalMatrixSystem (0.0, beta, name, base, nModes, E, N);
   } else
     M[DIM] = 0;
 
