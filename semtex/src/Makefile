@@ -1,15 +1,208 @@
 ##############################################################################
-# Makefile for spectral element foundation routines.
+# Makefile for spectral element foundation routines, and shared definitions.
 #
 # $Id$
 ##############################################################################
 
+ifdef DEBUG
+  DEFINES = -DDEBUG
+else
+  DEFINES =
+endif
+ifdef MPI
+  DEFINES += -DMPI
+endif
+
+CPPFLAGS = -I. -I$(SEM)/include
+LIBDIR   = -L$(SEM)/lib/$(ARCH)
+
+# ----------------------------------------------------------------------------
+# Define architectures.
+#
+ARCH = $(shell uname -s)
+MACH = $(shell uname -m)
+ifeq ($(ARCH),Linux)
+  ifeq ($(MACH),alpha)
+    ARCH = Linux-alpha
+  endif
+  ifeq ($(MACH),i586)
+    ARCH = Linux-i586
+  endif
+endif
+
+# ----------------------------------------------------------------------------
+# Compiler options for specific machines.
+#
+
+ifeq ($(ARCH),Linux-alpha)              # -- Linux alpha w Compaq C & f90.
+DEFINES += -D_Linux_alpha
+CXX    = g++
+LD     = g++
+CC     = ccc
+FC     = fort
+CFLAGS = -arch host -tune host -fast -O4
+FFLAGS = -arch host -tune host -fast -O4
+RANLIB = ranlib
+LIBDIR  += -L/usr/local/lib
+LDFLAGS  = $(LIBDIR)
+ifdef STATIC
+  F77LIBS  = -lcxml -lfor -lFutil -lUfor -lots -lg2c
+  LDFLAGS += -static
+else
+  F77LIBS  = -lcxml -lfor -lots -lg2c
+endif
+ifdef NOCXML     # -- For testing, avoid Compaq math libs.
+  F77LIBS =  -llapack -lgemm -lblas -lots -lfor -lg2c  
+endif
+ifdef DEBUG
+  OPT    = -gstabs+
+else
+  OPT    = -O3
+endif
+CXXFLAGS = $(DEFINES) $(OPT)
+ifdef MPI
+  MPIHOME   = /usr/local/lam
+  CPPFLAGS += -I$(MPIHOME)/include
+  LIBDIR   += -L$(MPIHOME)/lib
+  LDFLAGS  += -lfem_mp -lalp $(F77LIBS) -lcpml \
+              -lmpi -ltrillium -ltstdio -lt -largs
+else
+  LDFLAGS += -lfem -lalp $(F77LIBS) -lcpml
+endif
+endif
+
+ifeq ($(ARCH),Linux-i586)               # -- Linux Intel w GNU compilation.
+CXX      = g++
+LD       = g++
+CC       = gcc
+FC       = g77
+CFLAGS   = -O3
+CFLAGS   = -O3
+RANLIB   = ranlib
+F77LIBS  = -llapack -lblas -lg2c
+LIBDIR  += -L/usr/local/lib
+ifdef DEBUG
+  OPT    = -gstabs+
+else
+  OPT    = -O3 -w
+endif
+CXXFLAGS = $(DEFINES) $(OPT)
+LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lalp $(F77LIBS)
+endif
+
+ifeq ($(ARCH),IRIX)			# -- SGI 32-bit systems.
+CXX	 = CC
+LD	 = CC
+CFLAGS   = -fullwarn -O2
+FFLAGS   = -O2
+RANLIB   = 
+CXXFLAGS = $(DEFINES) -fullwarn -g
+F77LIBS	 = -lcomplib.sgimath -lftn
+LDFLAGS  = $(LIBDIR) -lfem -lalp $(F77LIBS) -lmalloc -lm
+endif
+
+ifeq ($(ARCH),IRIX64)			# -- SGI 64-bit systems.
+CXX	 = CC
+LD	 = CC
+CFLAGS   = -mips4 -64 -r10000 -Ofast=IP30 -OPT:roundoff=3
+FFLAGS   = -mips4 -64 -r10000 -Ofast=IP30 -OPT:roundoff=3
+RANLIB   =
+ifdef DEBUG
+  OPT    = -g
+else
+  OPT    =  -r10000 -Ofast=IP30 -OPT:roundoff=3
+endif
+CXXFLAGS = $(DEFINES) -mips4 -64 $(OPT)
+F77LIBS  = -lcomplib.sgimath -lftn
+LDFLAGS  = -64 -mips4 $(OPT) $(LIBDIR) -lfem -lalp $(F77LIBS) -lm
+endif
+
+ifeq ($(ARCH),OSF1)			# -- DEC OSF1 Alpha.
+CXX	 = cxx
+LD	 = cxx
+FC       = f90
+CC       = cc
+CFLAGS   = -fast -inline speed -fp_reorder -speculate all -tune host -O4
+FFLAGS   = -fast -tune host -O5
+RANLIB   =
+CXXFLAGS = $(DEFINES) -tune host -O2
+FORTLIBS = -ldxml -lfor
+ifdef MPI
+  MPIHOME   = /usr/local/mpi/
+  CPPFLAGS += -I$(MPIHOME)/include  
+  LIBDIR   += -L$(MPIHOME)/lib/alpha/ch_shmem
+  LDFLAGS   = $(CXXFLAGS) $(LIBDIR) -lfem_mp -lalp $(FORTLIBS) -lm -lmpi
+else
+  LDFLAGS   = $(CXXFLAGS) $(LIBDIR) -lfem -lalp $(FORTLIBS) -lm
+endif
+endif
+
+ifeq ($(ARCH),UNIX_System_V)    	# -- Fujitsu VPP300.
+CC       = vcc
+FC       = frt
+CXX      = /usr/uxp/C++/bin/CC
+LD       = $(CXX)
+OPT      = -Wv,-m3,-Om,-te -Kpopt
+CFLAGS   = -Wv,-m3,-Om -Kpopt
+FFLAGS   = -Wv,-m3,-te
+RANLIB   =
+CXXFLAGS = $(DEFINES)  $(OPT)
+ifdef MPI
+  LIBDIR  += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
+  LIBDIR  += -L/usr/lang/mpi/lib
+  LIBS     = -lfem_mp -lalp
+  LIBS    += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
+  LIBS    += -lmpi -lmp
+  OPTIM   += -Wl,-P
+else
+  LIBDIR  += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
+  LIBS     = -lfem -lalp
+  LIBS    += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
+endif
+LDFLAGS  = $(OPT) $(CPPFLAGS) $(LIBDIR) $(LIBS)
+endif
+
+ifeq ($(ARCH),SUPER-UX)         	# -- NEC SX-4.
+DEFINES += -D_BUILTIN_ -D_SX
+CXX       = c++
+LD        = c++
+FC        = f90
+CFLAGS    = $(DEFINES) -pvctl,fullmsg,loopcnt=20000 -Onooverlap \
+           -hfloat0 -hnostkchk
+FFLAGS    = $(DEFINES) -Wf'-pvctl,fullmsg -ptr byte -b' -float0 -ew
+RANLIB    =
+CPPFLAGS += -I/usr/include/CC
+OPT       = -O nooverlap -Nstkchk
+NOVEC     = -c -Nstkchk -acct -dir novec
+CXXFLAGS  = -V $(DEFINES) -pvctl,loopcnt=20000,fullmsg -acct $(OPT)
+FORTLIBS  = -llapack_64 -lblas_64 -lfft_64
+ifdef MPI
+  LIBS    = -lfem_mp -lalp $(FORTLIBS) -lm -lC -lmpi -lpthread
+else
+  LIBS    = -lfem -lalp $(FORTLIBS) -lm -lC
+endif
+LDFLAGS   =  -verbose -V -p -f90libew $(CXXFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
+endif
+
 # ----------------------------------------------------------------------------
 # Installation of header files.
-
-install:
-	rm -f ../include/Sem.h		\
-	      ../include/Feml.h		\
-	      ../include/Mesh.h		\
-	      ../include/Geometry.h 
+#
+default:
+	rm -f   ../include/Sem.h		\
+		../include/Feml.h		\
+		../include/Mesh.h		\
+		../include/Geometry.h 
 	cp Sem.h Feml.h Mesh.h Geometry.h ../include
+
+#-----------------------------------------------------------------------------
+# Force installation of headers from another make.
+#
+sem:
+	cd $(VPATH); gmake default
+
+# -----------------------------------------------------------------------------
+# Clean up.
+#
+clean:
+	rm -f *.o *.O *.a *~ *.ti
+	rm -rf ILDUMPS ii_files ptrepository
