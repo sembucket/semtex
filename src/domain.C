@@ -103,8 +103,8 @@ void Domain::report ()
 
 void Domain::restart ()
 // ---------------------------------------------------------------------------
-// If a restart file "name".rst can be found, use it for input.  If
-// this fails, initialize all Fields to zero ICs.
+// Initialise all Field variables to zero ICs.  Then if a restart file
+// "name".rst can be found, use it for input of the data it contains.
 //
 // Carry out forwards Fourier transformation, zero Nyquist data.
 // ---------------------------------------------------------------------------
@@ -113,6 +113,8 @@ void Domain::restart ()
   const int_t nF = nField();
   char        restartfile[StrMax];
   
+  for (i = 0; i < nF; i++) *u[i] = 0.0;
+
   ROOTONLY cout << "-- Initial condition       : ";
   ifstream file (strcat (strcpy (restartfile, name), ".rst"));
 
@@ -125,10 +127,8 @@ void Domain::restart ()
     file.close();
     transform (FORWARD);
     ROOTONLY for (i = 0; i < nF; i++) u[i] -> zeroNyquist();
-  } else {
+  } else
     ROOTONLY cout << "set to zero";
-    for (i = 0; i < nF; i++) *u[i] = 0.0;
-  }
 
   ROOTONLY cout << endl;
   
@@ -242,9 +242,9 @@ ifstream& operator >> (ifstream& strm,
 {
   const char routine[] = "strm>>Domain";
   int_t      i, j, np, nz, nel, ntot, nfields;
-  int_t      npchk,  nzchk, nelchk;
-  int_t      swap = 0, verb = Femlib::ivalue ("VERBOSE");
+  int_t      npchk,  nzchk, nelchk, verb = Femlib::ivalue ("VERBOSE");
   char       s[StrMax], f[StrMax], err[StrMax], fields[StrMax];
+  bool       swap = false, found = false;
 
   if (strm.getline(s, StrMax).eof()) return strm;
 
@@ -278,15 +278,30 @@ ifstream& operator >> (ifstream& strm,
     nfields++;
   }
   fields[nfields] = '\0';
-  if (nfields != strlen (D.field)) {
-    sprintf (err, "file: %1d fields, Domain: %1d", nfields, strlen(D.field));
-    message (routine, err, ERROR);
-  }
-  for (i = 0; i < nfields; i++) 
-    if (!strchr (D.field, fields[i])) {
-      sprintf (err,"field %c not present in Domain (%s)",fields[i],D.field);
-      message (routine, err, ERROR);
+
+  // -- Check if the restart file and the domain have same fields.
+  //    (It's OK if they don't, but issue warnings.)
+
+  ROOTONLY {
+    if (nfields != strlen (D.field)) {
+      sprintf (err, ": file: %1d fields, Domain: %1d",
+	       nfields, strlen(D.field));
+      cerr << endl;
+      message (routine, err, WARNING);
     }
+    for (i = 0; i < nfields; i++) 
+      if (!strchr (D.field, fields[i])) {
+	sprintf (err, ": field %c not present in Domain (%s)",
+		 fields[i], D.field);
+	message (routine, err, WARNING);
+      }
+    for (i = 0; i < strlen (D.field); i++) 
+      if (!strchr (fields, D.field[i])) {
+	sprintf (err, ": field %c not present in restart file (%s)",
+		 D.field[i], fields);
+	message (routine, err, WARNING);
+      }
+  }
 
   strm.getline (s, StrMax);
   Veclib::describeFormat (f);
@@ -305,6 +320,7 @@ ifstream& operator >> (ifstream& strm,
     }
   }
 
+#if 0
   for (j = 0; j < nfields; j++) {
     for (i = 0; i < nfields; i++)
       if (fields[j] == D.field[i]) {
@@ -312,7 +328,18 @@ ifstream& operator >> (ifstream& strm,
 	if (swap) D.u[i] -> reverse();
 	break;
       }
+#else
+  for (j = 0; j < nfields; j++) {
+    for (found = false, i = 0; i < nfields; i++)
+      if (fields[j] == D.field[i]) { found = true; break; }
+    if (found) {    // -- Read in a matching field variable.
+      strm >>  *D.u[i];
+      if (swap) D.u[i] -> reverse();
+    } else ROOTONLY // -- Skip over a field variable not in the domain.
+      strm.seekg (ntot*sizeof(real_t), ios_base::cur);
+
   }
+#endif
     
   ROOTONLY if (strm.bad())
     message (routine, "failed reading field file", ERROR);
