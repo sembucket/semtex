@@ -137,7 +137,7 @@ void drfftb_ (int*, double*, double*);
 #define drfftf(n,r,wsave) (_alpIreg[0]=n, drfftf_ (_alpIreg, r, wsave))
 #define drfftb(n,r,wsave) (_alpIreg[0]=n, drfftb_ (_alpIreg, r, wsave))
 
-/* -- Routines from canfft.f (Canuto/Temperton FFT routines): */
+/* -- Routines from canfft.f (Canuto FFT routines): */
 
 void factor_ (int*, int*, int*);
 
@@ -160,6 +160,35 @@ void dmrcft_ (double*, int*, int*, double*, int*, int*, double*, int*);
 #define dmrcft(v, np, nz, w, nfac, ifac, trig, sign)  \
 (_alpIreg[0]=np, _alpIreg[1]=nz, _alpIreg[2]=nfac, _alpIreg[3]=sign,  \
 dmrcft_(v, _alpIreg, _alpIreg+1, w, _alpIreg+2, ifac, trig, _alpIreg+3))
+
+/* -- Routines from temfftx.f (Temperton FFT routines): */
+
+void prf235_ (int*, int*, int*, int*, int*);
+#define prf235(n,ip,iq,ir,ipqr2) (prf235_(n,ip,iq,ir,ipqr2))
+
+void dsetpf_ (double*, int*, int*, int*, int*);
+void dmpfft_ (double*,double*,int*,int*,int*,int*,int*,double*,int*);
+
+#define dsetpf(trig,n,ip,iq,ir)                               \
+(_alpIreg[0]=n,_alpIreg[1]=ip,_alpIreg[2]=iq, _alpIreg[3]=ir, \
+dsetpf_(trig,_alpIreg,_alpIreg+1,_alpIreg+2,_alpIreg+3))
+#define dmpfft(v,w,np,nz,ip,iq,ir,trig,isign)                 \
+(_alpIreg[0]=np,_alpIreg[1]=nz,_alpIreg[2]=ip,                \
+_alpIreg[3]=iq, _alpIreg[4]=ir,_alpIreg[5]=isign,             \
+dmpfft_(v,w,_alpIreg,_alpIreg+1,_alpIreg+2,                   \
+_alpIreg+3,_alpIreg+4,trig,_alpIreg+5))
+
+void ssetpf_ (float*, int*, int*, int*, int*);
+void smpfft_ (float*,float*,int*,int*,int*,int*,int*,float*,int*);
+
+#define ssetpf(trig,n,ip,iq,ir)                               \
+(_alpIreg[0]=n,_alpIreg[1]=ip,_alpIreg[2]=iq, _alpIreg[3]=ir, \
+ssetpf_(trig,_alpIreg,_alpIreg+1,_alpIreg+2,_alpIreg+3))
+#define smpfft(v,w,np,nz,ip,iq,ir,trig,isign)                 \
+(_alpIreg[0]=np,_alpIreg[1]=nz,_alpIreg[2]=ip,                \
+_alpIreg[3]=iq, _alpIreg[4]=ir,_alpIreg[5]=isign,             \
+smpfft_(v,w,_alpIreg,_alpIreg+1,_alpIreg+2,                   \
+_alpIreg+3,_alpIreg+4,trig,_alpIreg+5))
 
 /* -- Routines from fourier.c */
 
