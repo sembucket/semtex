@@ -151,14 +151,14 @@ int main (int    argc,
 
   for (itrn = kdim + 1; !converged && itrn <= nits; itrn++) {
 
-    if (itrn > kdim) {		// -- Normalise Krylov sequence & update.
-      norm = Blas::nrm2 (ntot, Kseq[1], 1);
-      for (i = 1; i <= kdim; i++) {
-	Blas::scal   (ntot, 1.0/norm, Kseq[i], 1);
-	Veclib::copy (ntot, Kseq[i], 1, Kseq[i - 1], 1);
-      }
-      EV_update (Kseq[kdim - 1], Kseq[kdim]);
+    // -- Normalise Krylov sequence & update.
+
+    norm = Blas::nrm2 (ntot, Kseq[1], 1);
+    for (i = 1; i <= kdim; i++) {
+      Blas::scal   (ntot, 1.0/norm, Kseq[i], 1);
+      Veclib::copy (ntot, Kseq[i], 1, Kseq[i - 1], 1);
     }
+    EV_update (Kseq[kdim - 1], Kseq[kdim]);
     
     // -- Get subspace eigenvalues, test for convergence.
 
@@ -577,7 +577,7 @@ static void EV_big (real**      bvecs,
   for (j = 0; j < nvec; j++) {
     Veclib::zero (ntot, evecs[j], 1);
     for (i = 0; i < nvec; i++) {
-      wgt = zvecs[Veclib::col_major (i, j, kdim)];
+      wgt = zvecs[Veclib::col_major (i, j, nvec)];
       Blas::axpy (ntot, wgt, bvecs[i], 1, evecs[j], 1);
     }
   }
