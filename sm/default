@@ -1,3 +1,5 @@
+# $Id$
+
 startup2        # Macro executed whenever SM starts
 		ptype 1 0
 		define my_macros { sta ld }
