@@ -43,6 +43,7 @@
 // file is T/2 (just as, for arnoldi, it must be T).
 //
 // Usage is the same as for arnoldi, except the code is called arnoldi-H.
+// (H is for "half-period".)
 //
 #endif
 // 
@@ -78,9 +79,9 @@ static char RCS[] = "$Id$";
 #ifdef FLIP
 static char             prog[] = "arnoldi-H";
 static char             generator;
-static vector<integer>  positive, negative;
+static vector<int_t>    positive, negative;
 static void loadmap     (const char*);
-static void mirror      (real*);
+static void mirror      (real_t*);
 #else
 static char             prog[] = "arnoldi";
 #endif
@@ -92,24 +93,23 @@ static FEML*            file;
 static Mesh*            mesh;
 static BCmgr*           bman;
 
-static void    getargs    (int, char**, integer&, integer&, integer&,
-			   integer&, real&, char*&);
-static integer preprocess (const char*);
+static void  getargs    (int, char**, int_t&, int_t&, int_t&,
+			 int_t&, real_t&, char*&);
+static int_t preprocess (const char*);
 
-static void    EV_init    (real*);
-static void    EV_update  (const real*, real*);
-static void    EV_small   (real**, const integer, const integer, real*,
-			   real*, real*, real&, const integer, ofstream&); 
-static integer EV_test    (const integer, const integer, real*, real*, real*,
-			   const real, const real, const integer, ofstream&);
-static void    EV_sort    (real*, real*, real*, real*, const integer);
-static void    EV_post    (real**, real**, const integer, const integer, 
-			   const integer, const real*, const real*, 
-			   const real*, const integer, ofstream&);
-static void    EV_big     (real**, real**, const integer, const integer,
-			   const integer, const real*, const real*,
-			   const real*);
-
+static void  EV_init    (real_t*);
+static void  EV_update  (const real_t*, real_t*);
+static void  EV_small   (real_t**, const int_t, const int_t, real_t*,
+			 real_t*, real_t*, real_t&, const int_t, ofstream&); 
+static int_t EV_test    (const int_t, const int_t, real_t*, real_t*, real_t*,
+			 const real_t, const real_t, const int_t, ofstream&);
+static void  EV_sort    (real_t*, real_t*, real_t*, real_t*, const int_t);
+static void  EV_post    (real_t**, real_t**, const int_t, const int_t, 
+			 const int_t, const real_t*, const real_t*, 
+			 const real_t*, const int_t, ofstream&);
+static void  EV_big     (real_t**, real_t**, const int_t, const int_t,
+			 const int_t, const real_t*, const real_t*,
+			 const real_t*);
 
 int main (int    argc,
 	  char** argv)
@@ -117,9 +117,9 @@ int main (int    argc,
 // Driver routine for stability analysis code.
 // ---------------------------------------------------------------------------
 {
-  integer  kdim = 2, nvec = 2, nits = 2, verbose = 0, converged = 0;
-  real     norm, resnorm, evtol = 1.0e-6;
-  integer  i, j;
+  int_t    kdim = 2, nvec = 2, nits = 2, verbose = 0, converged = 0;
+  real_t   norm, resnorm, evtol = 1.0e-6;
+  int_t    i, j;
   char     buf[StrMax];
   ofstream info;
 
@@ -144,19 +144,19 @@ int main (int    argc,
   
   // -- Allocate eigenproblem storage.
   
-  const integer ntot = preprocess (session);
-  const integer wdim = kdim + kdim + (kdim * kdim) + 2*ntot*(kdim + 1);
+  const int_t ntot = preprocess (session);
+  const int_t wdim = kdim + kdim + (kdim * kdim) + 2*ntot*(kdim + 1);
 
-  vector<real> work (wdim);
+  vector<real_t> work (wdim);
   Veclib::zero (wdim, &work[0], 1);
 
-  real*  wr   = &work[0];
-  real*  wi   = wr   + kdim;
-  real*  zvec = wi   + kdim;
-  real*  kvec = zvec + kdim * kdim;
-  real*  tvec = kvec + ntot * (kdim + 1);
-  real** Kseq = new real* [kdim + 1];
-  real** Tseq = new real* [kdim + 1];
+  real_t*  wr   = &work[0];
+  real_t*  wi   = wr   + kdim;
+  real_t*  zvec = wi   + kdim;
+  real_t*  kvec = zvec + kdim * kdim;
+  real_t*  tvec = kvec + ntot * (kdim + 1);
+  real_t** Kseq = new real_t* [kdim + 1];
+  real_t** Tseq = new real_t* [kdim + 1];
 
   for (i = 0; i <= kdim; i++) {
     Kseq[i] = kvec + i * ntot;
@@ -215,15 +215,15 @@ int main (int    argc,
 }
 
 
-static void EV_init (real* tgt)
+static void EV_init (real_t* tgt)
 // ---------------------------------------------------------------------------
 // Load initial vector from domain velocity fields.
 // ---------------------------------------------------------------------------
 {
-  integer       i, k;
-  const integer ND = Geometry::nPert();
-  const integer NP = Geometry::planeSize();
-  const integer NZ = Geometry::nZ();
+  int_t       i, k;
+  const int_t ND = Geometry::nPert();
+  const int_t NP = Geometry::planeSize();
+  const int_t NZ = Geometry::nZ();
     
   for (i = 0; i < ND; i++)
     for (k = 0; k < NZ; k++)
@@ -231,8 +231,8 @@ static void EV_init (real* tgt)
 }
 
 
-static void EV_update  (const real* src,
-			real*       tgt)
+static void EV_update  (const real_t* src,
+			real_t*       tgt)
 // ---------------------------------------------------------------------------
 // Generate tgt by applying linear operator (here, a linearised
 // Navier--Stokes integrator) to src.
@@ -240,10 +240,10 @@ static void EV_update  (const real* src,
 // If RT-flipping, apply flip-map.
 // ---------------------------------------------------------------------------
 {
-  integer       i, k;
-  const integer ND = Geometry::nPert();
-  const integer NP = Geometry::planeSize();
-  const integer NZ = Geometry::nZ();
+  int_t       i, k;
+  const int_t ND = Geometry::nPert();
+  const int_t NP = Geometry::planeSize();
+  const int_t NZ = Geometry::nZ();
 
   for (i = 0; i < ND; i++)
     for (k = 0; k < NZ; k++)
@@ -262,15 +262,15 @@ static void EV_update  (const real* src,
 }
 
 
-static void EV_small (real**        Kseq   ,
-		      const integer ntot   ,
-		      const integer kdim   ,
-		      real*         zvec   ,
-		      real*         wr     ,
-		      real*         wi     ,
-		      real&         resnorm,
-		      const integer verbose,
-		      ofstream&     info   )
+static void EV_small (real_t**    Kseq   ,
+		      const int_t ntot   ,
+		      const int_t kdim   ,
+		      real_t*     zvec   ,
+		      real_t*     wr     ,
+		      real_t*     wi     ,
+		      real_t&     resnorm,
+		      const int_t verbose,
+		      ofstream&   info   )
 // ---------------------------------------------------------------------------
 // Here we take as input the Krylov sequence Kseq =
 //          x,
@@ -293,20 +293,20 @@ static void EV_small (real**        Kseq   ,
 // which is passed back for convergence testing.
 // ---------------------------------------------------------------------------
 {
-  char          routine[] = "EV_small";
-  const integer kdimp = kdim + 1;
-  integer       i, j, ier, lwork = 10 * kdim;
-  vector<real>  work (kdimp * kdimp + kdim * kdim + lwork);
-  real          *R     = &work[0],
-                *H     = R + kdimp * kdimp,
-                *rwork = H + kdim * kdim;
+  char           routine[] = "EV_small";
+  const int_t    kdimp = kdim + 1;
+  int_t          i, j, ier, lwork = 10 * kdim;
+  vector<real_t> work (kdimp * kdimp + kdim * kdim + lwork);
+  real_t         *R     = &work[0],
+                 *H     = R + kdimp * kdimp,
+                 *rwork = H + kdim * kdim;
 
   Veclib::zero (kdimp * kdimp, R, 1);
 
   // -- Modified G--S orthonormalisation.
 
   for (i = 0; i < kdimp; i++) {
-    real gsc = Blas::nrm2 (ntot, Kseq[i], 1);
+    real_t gsc = Blas::nrm2 (ntot, Kseq[i], 1);
     if (gsc == 0.0)
       message (routine, "basis vectors linearly dependent", ERROR);
 
@@ -356,7 +356,7 @@ static void EV_small (real**        Kseq   ,
 
   // -- Find eigenpairs of H using LAPACK routine dgeev (q.v.).
   //    For complex-conjugate eigenvalues, the corresponding
-  //    complex eigenvector is a real-imaginary pair of rows
+  //    complex eigenvector is a real_t-imaginary pair of rows
   //    of zvec.
 
   F77NAME(dgeev) ("N","V",kdim,H,kdim,wr,wi,0,1,zvec,kdim,rwork,lwork,ier);
@@ -384,15 +384,15 @@ static void EV_small (real**        Kseq   ,
 }
 
 
-static integer EV_test (const integer itrn   ,
-			const integer kdim   ,
-			real*         zvec   ,
-			real*         wr     ,
-			real*         wi     ,
-			const real    resnorm,
-			const real    evtol  ,
-			const integer nvec   ,
-			ofstream&     info   )
+static int_t EV_test (const int_t  itrn   ,
+		      const int_t  kdim   ,
+		      real_t*      zvec   ,
+		      real_t*      wr     ,
+		      real_t*      wi     ,
+		      const real_t resnorm,
+		      const real_t evtol  ,
+		      const int_t  nvec   ,
+		      ofstream&    info   )
 // ---------------------------------------------------------------------------
 // Test convergence of eigenvalues and print up diagnostic information.
 //
@@ -405,12 +405,12 @@ static integer EV_test (const integer itrn   ,
 // operation.
 // ---------------------------------------------------------------------------
 {
-  integer      i, idone = 0;
-  vector<real> work (kdim);
-  real         re_ev, im_ev, abs_ev, ang_ev, re_Aev, im_Aev;
-  real*        resid = &work[0];
-  const real   period = Femlib::value ("D_T * N_STEP");
-  static real  min_max1, min_max2;
+  int_t          i, idone = 0;
+  vector<real_t> work (kdim);
+  real_t         re_ev, im_ev, abs_ev, ang_ev, re_Aev, im_Aev;
+  real_t*        resid = &work[0];
+  const real_t   period = Femlib::value ("D_T * N_STEP");
+  static real_t  min_max1, min_max2;
  
   if (min_max1 == 0.0) min_max1 = 1000.0;
   if (min_max2 == 0.0) min_max2 = 1000.0;
@@ -466,19 +466,19 @@ static integer EV_test (const integer itrn   ,
 }
 
 
-static void EV_sort (real*         evec,
-		     real*         wr  ,
-		     real*         wi  ,
-		     real*         test,
-		     const integer dim )
+static void EV_sort (real_t*     evec,
+		     real_t*     wr  ,
+		     real_t*     wi  ,
+		     real_t*     test,
+		     const int_t dim )
 // ---------------------------------------------------------------------------
 // Insertion sort to rearrange eigenvalues and eigenvectors to ascending
 // order according to vector test.  See equivalent Numerical Recipes routine.
 // ---------------------------------------------------------------------------
 {
-  integer      i, j;
-  vector<real> work (dim);
-  real         wr_tmp, wi_tmp, te_tmp, *z_tmp = &work[0];
+  int_t          i, j;
+  vector<real_t> work (dim);
+  real_t         wr_tmp, wi_tmp, te_tmp, *z_tmp = &work[0];
 
   for (j = 1; j < dim; j++) {
     wr_tmp = wr  [j];
@@ -501,15 +501,15 @@ static void EV_sort (real*         evec,
 }
 
 
-static void EV_post (real**        Tseq,
-		     real**        Kseq, 
-		     const integer ntot, 
-		     const integer kdim, 
-		     const integer nvec,
-		     const real*   zvec, 
-		     const real*   wr  , 
-		     const real*   wi  , 
-		     const integer icon,
+static void EV_post (real_t**      Tseq,
+		     real_t**      Kseq, 
+		     const int_t   ntot, 
+		     const int_t   kdim, 
+		     const int_t   nvec,
+		     const real_t* zvec, 
+		     const real_t* wr  , 
+		     const real_t* wi  , 
+		     const int_t   icon,
 		     ofstream&     info)
 // ---------------------------------------------------------------------------
 // Carry out postprocessing of estimates, depending on value of icon
@@ -529,11 +529,11 @@ static void EV_post (real**        Tseq,
 {
   const char*   routine = "EV_post";
   char          msg[StrMax], nom[StrMax];
-  integer       i, j, k;
-  const integer ND = Geometry::nPert();
-  const integer NP = Geometry::planeSize();
-  const integer NZ = Geometry::nZ();
-  const real*   src;
+  int_t         i, j, k;
+  const int_t   ND = Geometry::nPert();
+  const int_t   NP = Geometry::planeSize();
+  const int_t   NZ = Geometry::nZ();
+  const real_t* src;
   ofstream      file;
 
   if (icon == 0) {
@@ -591,14 +591,14 @@ static void EV_post (real**        Tseq,
 }
 
 
-static void EV_big (real**        bvecs,
-	            real**        evecs,
-		    const integer ntot ,
-		    const integer kdim ,
-		    const integer nvec ,
-		    const real*   zvecs,
-		    const real*   wr   ,
-		    const real*   wi   )
+static void EV_big (real_t**      bvecs,
+	            real_t**      evecs,
+		    const int_t   ntot ,
+		    const int_t   kdim ,
+		    const int_t   nvec ,
+		    const real_t* zvecs,
+		    const real_t* wr   ,
+		    const real_t* wi   )
 // ---------------------------------------------------------------------------
 // Compute the Ritz eigenvector estimates of the linear operator using
 // the eigenvalues and eigenvectors of H computed in the subspace.
@@ -624,8 +624,8 @@ static void EV_big (real**        bvecs,
 // computations are only done for the first nvec eigenvectors.
 // ---------------------------------------------------------------------------
 {
-  real    norm, wgt;
-  integer i, j;
+  real_t norm, wgt;
+  int_t  i, j;
 
   // -- Generate big e-vectors.
 
@@ -655,7 +655,7 @@ static void EV_big (real**        bvecs,
 #if BIG_RESIDS  // -- This is not yet recoded: HMB 8/2/2002.
 
   // Compute residuals of big vectors directly (i.e. A(u)-mu(u)).
-  real resid;
+  real_t resid;
  
   for (i = 0; i < nwrt; i++) {
     V_copy(ntot, evecs[i], bvecs[0]);
@@ -684,14 +684,14 @@ static void EV_big (real**        bvecs,
 }
 
 
-static void getargs (int      argc   ,
-		     char**   argv   ,
-		     integer& kdim   , 
-		     integer& maxit  ,
-		     integer& neval  ,
-		     integer& verbose,
-		     real&    evtol  ,
-		     char*&   session)
+static void getargs (int     argc   ,
+		     char**  argv   ,
+		     int_t&  kdim   , 
+		     int_t&  maxit  ,
+		     int_t&  neval  ,
+		     int_t&  verbose,
+		     real_t& evtol  ,
+		     char*&  session)
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
@@ -742,7 +742,7 @@ static void getargs (int      argc   ,
 }
 
 
-static integer preprocess (const char* session)
+static int_t preprocess (const char* session)
 // ---------------------------------------------------------------------------
 // Create objects needed for semtex execution, given the session file name.
 //
@@ -750,8 +750,8 @@ static integer preprocess (const char* session)
 // a velocity component * number of components.
 // ---------------------------------------------------------------------------
 {
-  const real* z;
-  integer     i, np, nel, npert;
+  const real_t* z;
+  int_t         i, np, nel, npert;
 
   // -- Set default additional tokens.
 
@@ -800,11 +800,11 @@ static void loadmap (const char* session)
 // Load symmetry mapping information from session.map.
 // ---------------------------------------------------------------------------
 {
-  const integer np  = Femlib::ivalue ("N_POLY");
-  const integer nel = mesh -> nEl();
-  char          buf[StrMax], err[StrMax];
-  ifstream      file;
-  integer       i, NR, NS, NEL, NMAP;
+  const int_t np  = Femlib::ivalue ("N_POLY");
+  const int_t nel = mesh -> nEl();
+  char        buf[StrMax], err[StrMax];
+  ifstream    file;
+  int_t       i, NR, NS, NEL, NMAP;
   
   file.open (strcat (strcpy (buf, session), ".map"));
 
@@ -840,20 +840,20 @@ static void loadmap (const char* session)
 }
 
 
-static void mirror (real* tgt)
+static void mirror (real_t* tgt)
 // ---------------------------------------------------------------------------
 // Apply RT-flip-map. Note that to avoid holes in the mapping, the
 // gather and scatter vectors have to be used in the order shown.
 // ---------------------------------------------------------------------------
 {
-  integer       i, k;
-  const integer ND = Geometry::nPert();
-  const integer NP = Geometry::planeSize();
-  const integer NZ = Geometry::nZ();
-  const integer NM = positive.size();
-  static real*  tmp;
+  int_t          i, k;
+  const int_t    ND = Geometry::nPert();
+  const int_t    NP = Geometry::planeSize();
+  const int_t    NZ = Geometry::nZ();
+  const int_t    NM = positive.size();
+  static real_t* tmp;
 
-  if (!tmp) tmp = new real [NP];
+  if (!tmp) tmp = new real_t [NP];
 
   // -- First, the reflection.
 

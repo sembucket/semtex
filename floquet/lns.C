@@ -102,7 +102,7 @@ static void getargs (int    argc   ,
 	Femlib::ivalue ("VERBOSE", Femlib::ivalue ("VERBOSE") + 1);
       while (*++argv[0] == 'v');
       break;
-    case 'c':
+          case 'c':
       if (strstr ("chk", *argv)) {
 	Femlib::ivalue ("CHKPOINT",  static_cast<int>(1));
       } else {
