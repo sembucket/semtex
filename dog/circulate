@@ -37,4 +37,4 @@ do
   cat $BASE.head $BASE.data | convert  
 done
 
-
+rm $BASE.head $BASE.data
