@@ -6,7 +6,7 @@ static char
 RCSid[] = "$Id$";
 
 
-#include "Fem.h"
+#include <Fem.h>
 
 
 #ifdef __DECCXX
