@@ -77,9 +77,9 @@ ifdef DEBUG
 else
   OPT    = -O3
 endif
-CFLAGS   = $(DEFINES) $(OPT)
+CFLAGS   = $(DEFINES) $(OPT) -ansi
 FFLAGS   = $(DEFINES) $(OPT)
-CXXFLAGS = $(DEFINES) $(OPT)
+CXXFLAGS = $(DEFINES) $(OPT) -ansi
 LIBDIR   += -L/sw/lib
 LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
 F77LIBS  = -framework Accelerate -lg2c
