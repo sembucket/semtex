@@ -82,10 +82,35 @@ real enstrophyF (const CVF U   ,
   for (k = 0.0, c = 1; c <= 3; c++) {
     wi = &vort[c][0][0][0];
     for (i = 0; i < ntot; i++)
-      k += MAG(wi[i]);
+      k += MAG (wi[i]);
   }
 
   return k;
+}
+
+
+real microF (const CVF U   ,
+	     CF        work)
+/* ------------------------------------------------------------------------- *
+ * Return Taylor microscale lambda = sqrt(<UiUi>/<dUidXi>).
+ * ------------------------------------------------------------------------- */
+{
+  const int        ntot = N * N * K;
+  register int     c, i;
+  register real    u2, d2;
+  register complex *ui, *wi;
+
+  for (u2 = 0.0, d2 = 0.0, c = 1; c <= 3; c++) {
+    deriv (U, c, work, c);
+    ui = &U[c][0][0][0];
+    wi = &work[0][0][0];
+    for (i = 0; i < ntot; i++) {
+      u2 += MAG (ui[i]);
+      d2 += MAG (wi[i]);
+    }
+  }
+
+  return sqrt (u2 / d2);
 }
 
 
