@@ -268,59 +268,42 @@ static void getargs (int     argc  ,
     "-s seed    ... set random number seed              [Default: 0]\n";
 
   while (--argc && (*++argv)[0] == '-')
-    while (c = *++argv[0])
-      switch (c) {
-      case 'h':
-	fputs (usage, stderr);
-	exit  (EXIT_SUCCESS);
-	break;
-      case 'f':
-	*filter = 1;
-	break;
-      case 'o':
-	if (*++argv[0])
-	  strcpy(fname, *argv);
-	else {
-	  strcpy(fname, *++argv);
-	  argc--;
-	}
-	if ((*fp_out = fopen(fname,"w")) == (FILE*) NULL) {
-	  fprintf(stderr, "%s: unable to open the output file -- %s\n", 
-		  prog, fname);
-	  exit (EXIT_FAILURE);
-	}
-	*argv += strlen (*argv)-1;
-	break;
-      case 'p':
-	if (*++argv[0])
-	  *pert = atof (*argv);
-	else {
-	  *pert = atof (*++argv);
-	  argc--;
-	}
-	*argv += strlen (*argv)-1;
-	break;
-      case 'm':
-	if (*++argv[0])
-	  *mode = atoi (*argv);
-	else {
-	  *mode = atoi (*++argv);
-	  argc--;
-	}
-	break;
-      case 's':
-	if (*++argv[0])
-	  seed = atoi (*argv);
-	else {
-	  seed = atoi (*++argv);
-	  argc--;
-	}
-	break;
-      default:
-	fprintf (stderr, "%s: unknown option -- %c\n", prog, c);
-	break;
+    switch (c = *++argv[0]) {
+    case 'h':
+      fputs (usage, stderr);
+      exit  (EXIT_SUCCESS);
+      break;
+    case 'f':
+      *filter = 1;
+      break;
+    case 'o':
+      if (*++argv[0]) strcpy(fname, *argv);
+      else {strcpy(fname, *++argv); argc--;}
+      if ((*fp_out = fopen(fname,"w")) == (FILE*) NULL) {
+	fprintf(stderr, "%s: unable to open the output file -- %s\n", 
+		prog, fname);
+	exit (EXIT_FAILURE);
       }
-
+      *argv += strlen (*argv)-1;
+      break;
+    case 'p':
+      if (*++argv[0]) *pert = atof (*argv);
+      else {*pert = atof (*++argv); argc--;}
+      *argv += strlen (*argv)-1;
+      break;
+    case 'm':
+      if (*++argv[0]) *mode = atoi (*argv);
+      else {*mode = atoi (*++argv); argc--;}
+      break;
+    case 's':
+      if (*++argv[0]) seed = atoi (*argv);
+      else {seed = atoi (*++argv); argc--;}
+      break;
+    default:
+      fprintf (stderr, "%s: unknown option -- %c\n", prog, c);
+      break;
+    }
+  
   if (argc == 1)
     if ((*fp_in = fopen(*argv, "r")) == (FILE*) NULL) {
       sprintf(fname, "%s.fld", *argv);
