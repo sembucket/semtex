@@ -32,12 +32,12 @@ RCSid[] = "$Id$";
 
 static char prog[] = "dns";
 static void memExhaust   () { message ("new", "free store exhausted", ERROR); }
-static void getargs      (integer, char**, char*&);
+static void getargs      (int, char**, char*&);
        void NavierStokes (Domain*, Analyser*);
 
 
-integer main (integer argc,
-	      char**  argv)
+int main (int    argc,
+	  char** argv)
 // ---------------------------------------------------------------------------
 // Driver.
 // ---------------------------------------------------------------------------
@@ -87,9 +87,9 @@ integer main (integer argc,
 }
 
 
-static void getargs (integer argc   ,
-		     char**  argv   ,
-		     char*&  session)
+static void getargs (int    argc   ,
+		     char** argv   ,
+		     char*& session)
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
 // arguments.  Last argument is name of a session file, not dealt with here.
