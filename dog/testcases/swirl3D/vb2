@@ -1,3 +1,12 @@
+# At BETA = 6, Re=4000, the Floquet multiplier for this case should be
+# 1.4651. See Phys. Fluids 14(11), 3983--3996, 2002.
+#
+# Here is output (in vb2.evl) for arnoldi -k 13 -m 40 -n 1 vb2
+# -- Iteration = 12, H(k+1, k) = 0.222227
+# EV  Magnitude   Angle       Growth      Frequency   Residual
+#  0  1.4651e+00  2.3637e+00  1.3503e-02  8.3576e-02  2.2363e-07
+
+
 <TOKENS>
    N_Z         = 2
    N_POLY      = 8
@@ -24,7 +33,7 @@
    
    IO_FLD      = STEPS_P/32
    IO_HIS      = 20
-   IO_CFL      = 1
+   IO_CFL      = IO_FLD
 </TOKENS>
 
 <FIELDS NUMBER=4>
