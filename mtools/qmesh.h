@@ -125,6 +125,41 @@ private:
 };
 
 
+class Quad
+// ===========================================================================
+// A Quad is a vector of four Node*s.
+// ===========================================================================
+{
+public:
+  Node* vertex[4];
+};
+
+
+class Global
+// ===========================================================================
+// Global maintains the global list of all allocated Nodes for the problem,
+// and other geometric data.
+// ===========================================================================
+{
+public:
+  static Node*       exist (const Node*);
+  static int         nodeIdMax;
+  static int         loopIdMax;
+  static List<Node*> nodeList;
+  static List<Quad*> quadList;
+  static real        refineCoeff;
+  static real        limits (Point&, Point&);
+  static real        lengthScale () { return gblSize; }
+  static const  real C1 = 0.5;	// -- Angle  weight factor.
+  static const  real C2 = 0.3;	// -- Length weight factor.
+  static const  real C3 = 0.2;	// -- Error  weight factor.
+  static real        refCoeff;	// -- Refinement coefficient per Ref. [1].
+
+private:
+  static real gblSize;
+};
+
+
 class Loop
 // ===========================================================================
 // A Loop has a list of Nodes and possibly a splitting line and two sub-Loops.
@@ -133,7 +168,7 @@ class Loop
 friend istream& operator >> (istream&, Loop&);
 friend ostream& operator << (ostream&, Loop&);
 public:
-  Loop ();
+  Loop (const int&);
   Loop (vector<Node*>&, vector<Node*>&, const int&, const int&, const int&);
 
   const int&  ID   () const { return id; }
@@ -147,6 +182,7 @@ public:
   void  limits   (Point&, Point&)                 const;
   int   points   (vector<float>&, vector<float>&) const;
   int   line     (vector<float>&, vector<float>&) const;
+  void  quads    (List<Quad*>&)                   const;
   void  drawQuad (const int& = 0)                 const;
 
   void  nodeLabel (const int&, char*)             const;
@@ -154,10 +190,6 @@ public:
 
 private:
   int                id;
-  static int         node_id_max;
-  static int         loop_id_max;
-  static List<Node*> node_list;
-  static real        size;
 
   vector<Node*> nodes;
   vector<Node*> splitline;
@@ -192,8 +224,9 @@ void eraseGraphics ();
 void drawBox       ();
 void drawBox       (const Loop*);
 void drawLoop      (const Loop*, const int& = 0);
-void hardCopy      (const Loop*);
-void pause         ();
+void drawMesh      (List<Quad*>&);
+void hardCopy      (List<Quad*>&);
+void qpause        ();
 void message       (const char*, const char*, const lev&);
 
 // -- Routines in misc.cc:
