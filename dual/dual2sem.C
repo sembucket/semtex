@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // dual2sem.C: convert a dual 3D file to a semtex/nekton 3D file.
 //
-// Copyright (c) 2000-2003 Hugh Blackburn
+// Copyright (c) 2000 Hugh Blackburn
 //
 // USAGE
 // -----
@@ -32,24 +32,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <stdarg.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-
-#include <iostream.h>
-#include <fstream.h>
-#include <strstream.h>
-#include <iomanip.h>
-
-#include <femdef.h>
-#include <Array.h>
-#include <Utility.h>
-#include <Blas.h>
-#include <Lapack.h>
-#include <Veclib.h>
-#include <Femlib.h>
+#include "Sem.h"
 
 static char prog[] = "dual2sem";
 

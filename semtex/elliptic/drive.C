@@ -2,7 +2,7 @@
 // drive.C: compute solution to elliptic problem, optionally compare to
 // exact solution (see getoptions(), below).
 //
-// Copyright (C) 1994--2002  Hugh Blackburn.
+// Copyright (C) 1994  Hugh Blackburn.
 //
 // USAGE:
 // -----
@@ -29,10 +29,8 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include <Sem.h>
-#include <new.h>
 
 static char prog[] = "elliptic";
-static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, char*&);
 static void getoptions (FEML*, char*&, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
@@ -48,11 +46,6 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  set_new_handler (&memExhaust);
-#if !defined(__DECCXX)
-  ios::sync_with_stdio();
-#endif
-  
   char             *session, *forcefunc = 0, *exact = 0;
   vector<Element*> elmt;
   FEML*            file;

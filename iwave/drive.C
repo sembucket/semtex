@@ -1,6 +1,8 @@
 //////////////////////////////////////////////////////////////////////////////
 // drive.C
 //
+// Copyright (c) Hugh Blackburn, 1998
+//
 // SYNOPSIS:
 // --------
 // Control spectral element DNS for incompressible flows.
@@ -27,10 +29,8 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include <dns.h>
-#include <new.h>
 
 static char prog[] = "iwave";
-static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, BoundarySys*&, Domain*&);
@@ -45,11 +45,6 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  set_new_handler (&memExhaust);
-#if !defined(__DECCXX)
-  ios::sync_with_stdio();
-#endif
-
   char             *session, *mask = 0;
   vector<Element*> elmt;
   FEML*            file;

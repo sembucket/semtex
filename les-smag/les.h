@@ -1,3 +1,5 @@
+#ifndef LES_SMAG_H
+#define LES_SMAG_H
 //////////////////////////////////////////////////////////////////////////////
 // les.h: header file for LES solver.
 //
@@ -26,3 +28,4 @@ private:
 // -- In eddyvis.C:
 
 void eddyViscosity (const Domain*, AuxField**, AuxField**, AuxField*);
+#endif

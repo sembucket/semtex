@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // drive.C: control spectral element DNS for incompressible flows.
 //
-// Copyright (C) 1994, 2000  Hugh Blackburn.
+// Copyright (C) 1994  Hugh Blackburn.
 //
 // USAGE:
 // -----
@@ -25,10 +25,8 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include <dns.h>
-#include <new.h>
 
 static char prog[] = "dns";
-static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, BoundarySys*&, Domain*&);
@@ -42,11 +40,6 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  set_new_handler (&memExhaust);
-#if !defined(__DECCXX)
-  ios::sync_with_stdio();
-#endif
-
   char*            session;
   vector<Element*> elmt;
   FEML*            file;

@@ -56,7 +56,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "newt.h"
-#include <new.h>
 
 static char prog[] = "newton";
 
@@ -108,11 +107,6 @@ int main (int    argc,
 // Driver routine for stability analysis code.
 // ---------------------------------------------------------------------------
 {
-  set_new_handler (&memExhaust);
-#if !defined (__DECCXX)
-  ios::sync_with_stdio();
-#endif
-
   int  maxiLsys = 100, maxiNewt = 20, i, itn;
   real tol, pretol, tolLsys = 1.0e-6, tolNewt = 1.0e-6, rnorm;
   int  verbose  = 0, converged = 0, ier;

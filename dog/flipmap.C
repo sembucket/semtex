@@ -29,24 +29,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <stdarg.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <string.h>
-
-#include <iostream.h>
-#include <fstream.h>
-#include <strstream.h>
-#include <iomanip.h>
-
-#include <femdef.h>
-#include <Array.h>
-#include <Utility.h>
-#include <Blas.h>
-#include <Lapack.h>
-#include <Veclib.h>
-#include <Femlib.h>
+#include "Sem.h"
 
 static char prog[] = "flipmap";
 

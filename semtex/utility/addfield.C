@@ -78,8 +78,7 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include <Sem.h>
-#include <new.h>
-#include <time.h>
+#include <ctime>
 
 #define FLDS_MAX 64 // -- More than we'll ever want.
 #define FLAG_MAX 10 // -- NB: FLAG_MAX should tally with the following enum:
@@ -96,9 +95,7 @@ enum {
   VORTICITY
 };
 
-static char prog[] = "addfield";
-static void memExhaust () { message ("new", "free store exhausted", ERROR); }
-
+static char    prog[] = "addfield";
 static void    getargs  (int, char**, char*&, char*&, char*&, integer[]);
 static integer getDump  (Domain*, ifstream&);
 static void    putDump  (Domain*, vector<AuxField*>&, integer, ofstream&);
@@ -110,8 +107,6 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  set_new_handler (&memExhaust);
-
   Geometry::CoordSys system;
   char               *session, *dump, *func, fields[StrMax];
   integer            i, j, k, np, nz, nel, allocSize, nComponent, iAdd = 0;

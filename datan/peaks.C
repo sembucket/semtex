@@ -6,10 +6,10 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <iostream.h>
-#include <fstream.h>
-#include <iomanip.h>
-#include <stdlib.h>
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+#include <cstdlib>
 
 
 int main (int    argc,

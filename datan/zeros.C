@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// peaks.C: find and print zero crossings of a function, input as a
+// zeros.C: find and print zero crossings of a function, input as a
 // 2-column file: first column is a time/position value, second is
 // function value.  Linear interpolation.
 //
@@ -8,10 +8,10 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <iostream.h>
-#include <fstream.h>
-#include <iomanip.h>
-#include <stdlib.h>
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+#include <cstdlib>
 
 static char prog[] = "zeros";
 

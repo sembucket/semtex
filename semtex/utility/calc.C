@@ -1,19 +1,19 @@
 ///////////////////////////////////////////////////////////////////////////////
 // calc: a basic calculator using the function parser.
 //
-// Copyright (c) 1994--2003 Hugh Blackburn
+// Copyright (c) 1994 Hugh Blackburn
 //
 // Usage: calc [-h] [file]
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <iostream.h>
-#include <fstream.h>
-#include <iomanip.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 
 #include <femdef.h>
 #include <Utility.h>
@@ -74,12 +74,12 @@ static void getargs (int    argc,
     ifstream* inputfile = new ifstream (*argv);
     if (inputfile -> good()) {
       cin = *inputfile;
-      } else {
-	sprintf (buf, usage, prog);
-	cerr << buf;
-	sprintf (buf, "unable to open file: %s", *argv);
-	message (prog, buf, ERROR);
-      }
+    } else {
+      sprintf (buf, usage, prog);
+      cerr << buf;
+      sprintf (buf, "unable to open file: %s", *argv);
+      message (prog, buf, ERROR);
+    }
   }
 }
 

@@ -3,20 +3,16 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Prototypes, classes and constants for sview.
 //
-// Copyright (C) 1999-2001 Hugh Blackburn
+// Copyright (C) 1999-2003 Hugh Blackburn
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <math.h>
-#include <iostream.h>
-#include <strstream.h>
-#include <fstream.h>
+#include <cctype>
+#include <cmath>
+#include <iostream>
+#include <strstream>
+#include <fstream>
 
 #include <vector>
 #include <stack>

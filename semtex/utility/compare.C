@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // compare.C
 //
-// Copyright (C) Hugh Blackburn 1996-2003.
+// Copyright (c) Hugh Blackburn 1996.
 //
 // SYNOPSIS
 // --------
@@ -36,7 +36,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <Sem.h>
-#include <time.h>
+#include <ctime>
 
 static char    prog[]    = "compare";
 const  integer EXACT_MAX = 32;
@@ -314,7 +314,7 @@ static void getargs (int       argc ,
     switch (c = *++argv[0]) {
     case 'h': cerr << usage; exit (EXIT_SUCCESS); break;
     case 'n': noise = 1; break;
-    case 't': tran = 1; break;
+    case 't': tran  = 1; break;
     default:
       sprintf (err, "illegal option: %c\n", c);
       message (prog, err, ERROR); break;

@@ -22,11 +22,11 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <iostream.h>
-#include <strstream.h>
-#include <fstream.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <iostream>
+#include <strstream>
+#include <fstream>
+#include <cstdio>
+#include <cstdlib>
 
 #include <Utility.h>
 #include <Stack.h>

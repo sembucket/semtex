@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // NS.C: Unsteady Navier--Stokes solver, using "stiffly-stable" integration.
 //
-// Copyright (c) Hugh Blackburn 1998--2000.
+// Copyright (c) Hugh Blackburn 1998
 //
 // This version incorporates LES.  This is handled within the
 // framework of the DNS solver by splitting the SGS stress into two
@@ -38,7 +38,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <les.h>
+#include "les.h"
 
 typedef ModalMatrixSys Msys;
 static  integer        NORD, NDIM, CYL, C3D;

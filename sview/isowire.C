@@ -15,8 +15,8 @@
 
 #include <Sview.h>
 
-const int VERT_MAX = 1000000;
-const int POLY_MAX = 1000000;
+const int VERT_MAX = 2000000;
+const int POLY_MAX = 2000000;
 
 // -- File-scope polygon globals.
 

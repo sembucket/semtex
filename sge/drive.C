@@ -31,10 +31,8 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include "Sem.h"
-#include <new.h>
 
 static char  prog[] = "chroma";
-static void  memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void  getargs    (int, char**, char*&, char*&);
 static void  preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			 BCmgr*&, BoundarySys*&, Domain*&);
@@ -52,11 +50,6 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  set_new_handler (&memExhaust);
-#if !defined(__DECCXX)
-  ios::sync_with_stdio();
-#endif
-
   char               *session1, *session2;
   FEML               *file1,    *file2;
   Mesh               *mesh1,    *mesh2;

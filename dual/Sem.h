@@ -15,20 +15,20 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <stdarg.h>		/* System C headers.  */
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <ctype.h>
-#include <string.h>
-#include <limits.h>
-#include <float.h>
+#include <cstdarg>		/* System C headers.  */
+#include <cstdlib>
+#include <cstdio>
+#include <cmath>
+#include <cctype>
+#include <cstring>
+#include <climits>
+#include <cfloat>
+#include <cassert>
 
-#include <iostream.h>		/* System C++ headers. */
-#include <fstream.h>
-#include <strstream.h>
-#include <iomanip.h>
+#include <iostream>		/* System C++ headers. */
+#include <fstream>
+#include <strstream>
+#include <iomanip>
 
 #include <femdef.h>		/* Semtex headers.     */
 #include <List.h>

@@ -1,21 +1,20 @@
+#ifndef QMESH_H
+#define QMESH_H
 ///////////////////////////////////////////////////////////////////////////////
 // Qmesh.h: header file for quadrilateral mesh generator.
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef QMESH_H
-#define QMESH_H
-
-#include <iostream.h>
-#include <iomanip.h>
-#include <fstream.h>
-#include <stdlib.h>
-#include <string.h>
-#include <limits.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <math.h>
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <cstdlib>
+#include <cstring>
+#include <climits>
+#include <cstdio>
+#include <cctype>
+#include <cmath>
 
 #include <Array.h>
 #include <List.h>

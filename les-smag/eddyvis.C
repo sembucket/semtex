@@ -6,7 +6,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <les.h>
+#include "les.h"
 
 static integer DIM, CYL, ITR_MAX;
 static real    EPS2;

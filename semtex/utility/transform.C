@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // transform.C: carry out Fourier and/or 2D polynomial transform of data.
 //
-// Copyright (c) 1999, 2000 Hugh Blackburn
+// Copyright (c) 1999 Hugh Blackburn
 //
 // USAGE
 // -----
@@ -18,25 +18,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <stdarg.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-
-#include <iostream.h>
-#include <fstream.h>
-#include <strstream.h>
-#include <iomanip.h>
-
-#include <femdef.h>
-#include <Array.h>
-#include <Utility.h>
-#include <Blas.h>
-#include <Lapack.h>
-#include <Veclib.h>
-#include <Femlib.h>
-
+#include <Sem.h>
 
 class Field2DF
 // ============================================================================

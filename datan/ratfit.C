@@ -21,13 +21,13 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <float.h>
-#include <math.h>
+#include <cstdlib>
+#include <cstdio>
+#include <cfloat>
+#include <cmath>
 
-#include <iostream.h>
-#include <fstream.h>
+#include <iostream>
+#include <fstream>
 
 #include <Utility.h>
 #include <Stack.h>

@@ -45,10 +45,8 @@
 // 4.  In the conversion to a new frequency, the original frequency and
 //     phase angles are assumed to be constant with time.
 //
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include "Sem.h"
 
@@ -56,7 +54,8 @@ static char prog[] = "refreq";
 static void getargs (int, char**, char*&, double&, double&, int&);
 
 
-int main (int argc, char** argv)
+int main (int    argc,
+	  char** argv)
 // ---------------------------------------------------------------------------
 // Driver routine.
 // ---------------------------------------------------------------------------

@@ -3,7 +3,7 @@
  */
 
 #include <Python.h>
-#include "Sview.h"
+#include <Sview.h>
 
 /* Provide external C linkage for our initialization routine */
 

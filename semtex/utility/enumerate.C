@@ -22,11 +22,11 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <stdlib.h>
-#include <string.h>
-#include <limits.h>
-#include <iostream.h>
-#include <iomanip.h>
+#include <cstdlib>
+#include <cstring>
+#include <climits>
+#include <iostream>
+#include <iomanip>
 
 #include <femdef.h>
 #include <Femlib.h>

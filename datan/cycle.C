@@ -21,13 +21,13 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <iostream.h>
-#include <iomanip.h>
-#include <strstream.h>
-#include <fstream.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <float.h>
+#include <iostream>
+#include <iomanip>
+#include <strstream>
+#include <fstream>
+#include <cstdio>
+#include <cstdlib>
+#include <cfloat>
 
 #include <Utility.h>
 #include <Veclib.h>

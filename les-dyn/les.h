@@ -1,7 +1,9 @@
+#ifndef LES_H
+#define LES_H
 //////////////////////////////////////////////////////////////////////////////
 // les.h: header file for LES solver.
 //
-// Copyright (c) Hugh Blackburn 1998--2000
+// Copyright (c) Hugh Blackburn 1998
 //
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
@@ -61,3 +63,4 @@ void integrate (Domain*, LESAnalyser*, SumIntegrator*);
 
 void nonLinear (Domain*, SumIntegrator*, vector<real*>&, vector<real>&);
 void dynamic   (Domain*, vector<real*>&, const int = 1);
+#endif

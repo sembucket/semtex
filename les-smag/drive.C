@@ -24,11 +24,9 @@
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include <les.h>
-#include <new.h>
+#include "les.h"
 
 static char prog[] = "les";
-static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, BoundarySys*&, Domain*&);
@@ -43,11 +41,6 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  set_new_handler (&memExhaust);
-#if !defined(__alpha)
-  ios::sync_with_stdio();
-#endif
-
   char             *session, *mask = 0;
   vector<Element*> elmt;
   FEML*            file;

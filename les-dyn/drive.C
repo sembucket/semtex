@@ -4,7 +4,7 @@
 // This version for dynamic eddy-viscosity based SGSS, with Smagorinsky
 // as the underlying model.
 //
-// Copyright (c) 1999--2001 Hugh Blackburn
+// Copyright (c) 1999, 2001 Hugh Blackburn, Stefan Schmidt
 //
 // USAGE:
 // -----
@@ -16,7 +16,7 @@
 // AUTHOR:
 // ------
 // Hugh Blackburn
-// CSIRO Division of Building, Construction and Engineering
+// CSIRO
 // P.O. Box 56
 // Highett, Vic 3190
 // Australia
@@ -26,13 +26,11 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include "les.h"
-#include <new.h>
 
 static char prog[] = "les-dyn";
-static void memExhaust () { message ("new", "free store exhausted", ERROR); }
-static void getargs      (int, char**, char*&);
-static void preprocess   (const char*, FEML*&, Mesh*&, vector<Element*>&,
-			  BCmgr*&, BoundarySys*&, Domain*&);
+static void getargs    (int, char**, char*&);
+static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
+			BCmgr*&, BoundarySys*&, Domain*&);
 
 
 int main (int    argc,
@@ -41,11 +39,6 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  set_new_handler (&memExhaust);
-#if !defined(__alpha)
-  ios::sync_with_stdio();
-#endif
-
   char*            session;
   vector<Element*> elmt;
   FEML*            file;

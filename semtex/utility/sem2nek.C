@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // sem2nek.C: read a semtex input file, print a NEKTON-style input file.
 //
-// Copyright (c) 1997--1999 Hugh Blackburn
+// Copyright (c) 1997 Hugh Blackburn
 //
 // Usage:
 // -----
@@ -18,8 +18,8 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <stdlib.h>
-#include <iomanip.h>
+#include <cstdlib>
+#include <iomanip>
 
 #include <femdef.h>
 #include <Femlib.h>
@@ -28,13 +28,13 @@
 
 static char prog[] = "sem2nek";
 
-static void getArgs   (integer, char**, char*&);
+static void getArgs   (int, char**, char*&);
 static void printHead ();
 static void printTail ();
 
 
-integer main (integer argc,
-	      char**  argv)
+int main (int    argc,
+	  char** argv)
 // ---------------------------------------------------------------------------
 // Driver.
 // ---------------------------------------------------------------------------
@@ -46,7 +46,6 @@ integer main (integer argc,
   getArgs (argc, argv, session);
 
   FEML feml (session);
-
   Mesh M (&feml);
 
   printHead ();
@@ -58,9 +57,9 @@ integer main (integer argc,
 }
 
 
-static void getArgs (integer argc   ,
-		     char**  argv   ,
-		     char*&  session)
+static void getArgs (int    argc   ,
+		     char** argv   ,
+		     char*& session)
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
 // arguments.  Last argument is name of a session file, not dealt with here.
@@ -97,9 +96,9 @@ static void printHead ()
 // Print the beginning of a NEKTON .rea file.  May need editing.
 // ---------------------------------------------------------------------------
 {
-  integer np = (integer) Femlib::value ("N_POLY");
-  integer nz = (integer) Femlib::value ("N_Z");
-  real    dt =       Femlib::value ("D_T");
+  int  np = (int) Femlib::value ("N_POLY");
+  int  nz = (int) Femlib::value ("N_Z");
+  real dt =       Femlib::value ("D_T");
 
   cout << "****** PARAMETERS *****"                                  << endl;
   cout << "6 PRISM VERSION"                                          << endl;

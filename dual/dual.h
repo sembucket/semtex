@@ -1,14 +1,14 @@
-#ifndef DNS_H
-#define DNS_H
+#ifndef DUAL_H
+#define DUAL_H
 //////////////////////////////////////////////////////////////////////////////
 // dual.h: header file for direct numerical simulation solver.
 //
-// Copyright (C) 1994, 1999 Hugh Blackburn
+// Copyright (c) 1999 Hugh Blackburn
 //
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include <Sem.h>
+#include "Sem.h"
 
 
 class DualAnalyser : public Analyser

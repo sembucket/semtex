@@ -26,8 +26,8 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <ctime>
 #include <Sem.h>
-#include <time.h>
 
 
 Statistics::Statistics (Domain*            D    ,

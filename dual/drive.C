@@ -22,20 +22,18 @@
 // AUTHOR:
 // ------
 // Hugh Blackburn
-// CSIRO Division of Building, Construction and Engineering
+// CSIRO Manufacturing and Infrastructure Technology
 // P.O. Box 56
 // Highett, Vic 3190
 // Australia
-// hugh.blackburn@dbce.csiro.au
+// hugh.blackburn@csiro.au
 //
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include <dual.h>
-#include <new.h>
+#include "dual.h"
 
 static char prog[] = "dual";
-static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, BoundarySys*&, Domain*&);
@@ -49,11 +47,6 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  set_new_handler (&memExhaust);
-#if !defined(__DECCXX)
-  ios::sync_with_stdio();
-#endif
-
   char*            session;
   vector<Element*> elmt;
   FEML*            file;

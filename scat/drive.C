@@ -16,7 +16,7 @@
 // AUTHOR:
 // ------
 // Hugh Blackburn
-// CSIRO Division of Building, Construction and Engineering
+// CSIRO
 // P.O. Box 56
 // Highett, Vic 3190
 // Australia
@@ -26,10 +26,8 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include "scat.h"
-#include <new.h>
 
 static char prog[] = "scat";
-static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, BoundarySys*&, Domain*&);
@@ -43,11 +41,6 @@ integer main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  set_new_handler (&memExhaust);
-#if !defined(__DECCXX)
-  ios::sync_with_stdio();
-#endif
-
   char*            session;
   vector<Element*> elmt;
   FEML*            file;

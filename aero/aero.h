@@ -1,3 +1,5 @@
+#ifndef AERO_H
+#define AERO_H
 //////////////////////////////////////////////////////////////////////////////
 // aero.h: header file for non-inertial NS solver.
 //
@@ -5,7 +7,6 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include <Sem.h>
-
 
 class Body;
 
@@ -191,3 +192,4 @@ private:
 
 void NavierStokes  (Domain*, Body*, AeroAnalyser*);
 void eddyViscosity (const Domain*, AuxField**, AuxField**, AuxField*);
+#endif
