@@ -1,30 +1,29 @@
+#ifndef LIST_H
+#define LIST_H
 ///////////////////////////////////////////////////////////////////////////////
 // List.h:  template list operations.
 //
 // Reference: Barton & Nackman, "Scientific & Engineering C++".
+//
+// ListNode was made an unnested class to avoid problems with cfront.
 ///////////////////////////////////////////////////////////////////////////////
 
 // $Id$
 
-#ifndef ListH
-#define ListH
-
 template<class T> class ListIterator;
-
+template<class T> class ListNode {
+  public:
+    ListNode(T x) : link(0), datum(x) {}
+    ListNode<T>* link;
+    T            datum;
+};
 
 template<class T> class List {
 friend class ListIterator<T>;
 private:
-  class Node {
-  public:
-    Node(T x) : link(0), datum(x) {}
-    Node* link;
-    T     datum;
-  };
-
-  Node* head;
-  Node* tail;
-  int   nel;
+  ListNode<T>* head;
+  ListNode<T>* tail;
+  int          nel;
 
   List(const List<T>&);                // -- Prohibit, since not implemented. 
   List<T>& operator=(const List<T>&);  // -- Prohibit, since not implemented. 
@@ -33,7 +32,7 @@ public:
 
   ~List() {
     while (head != 0) {
-      Node* p = head -> link;
+      ListNode<T>* p = head -> link;
       delete head;
       head    = p;
     }
@@ -42,26 +41,25 @@ public:
 
   void add (T x) {		// -- Unconditional insertion.
     if (head == 0) {
-      head = new Node (x);
+      head = new ListNode<T> (x);
       tail = head;
     } else
-      tail = tail -> link = new Node (x);
+      tail = tail -> link = new ListNode<T> (x);
     nel++;
   }
 
-  int xadd (T x) {		// -- Conditional insertion.
+  int xadd (T x) {		// -- Insert if non-replicative.
     register int   found = 0;
-    register Node* ptr;
+    register ListNode<T>* ptr;
 
     for (ptr = head; !found && ptr; ptr = ptr -> link) found = x == ptr->datum;
     if   (found)  {          return 0; }
     else          { add (x); return 1; }
   }
 
-
   void remove (T x) {
-    Node* prev = 0;
-    Node* curr = head;
+    ListNode<T>* prev = 0;
+    ListNode<T>* curr = head;
     while (curr != 0) {
       if (curr -> datum == x) {
 	if (prev == 0) {
@@ -89,13 +87,10 @@ public:
 };
 
 
-
-
-
 template<class T>
 class ListIterator {
 public: 
-  ListIterator (const List<T>& list) : cur(list.head), top(list.head) { }
+  ListIterator (List<T>& list) : cur(list.head), top(list.head) { }
   
   int   more    () const  { return cur != 0;           }
   T     current () const  { return cur -> datum;       }
@@ -103,9 +98,8 @@ public:
   void  reset   ()        {        cur =  top;         }
 
 private:
-  List<T>::Node* cur;
-  List<T>::Node* top;
+  ListNode<T>* cur;
+  ListNode<T>* top;
 };
-
 
 #endif
