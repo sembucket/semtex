@@ -124,6 +124,7 @@ void PBCmgr::maintain (const int        step   ,
 
   // -- Roll grad P storage area up, load new level of nonlinear terms Uf.
 
+
   rollv (_Pnx, nTime);
   rollv (_Pny, nTime);
 
@@ -136,9 +137,13 @@ void PBCmgr::maintain (const int        step   ,
       ROOTONLY if (k == 1) continue;
       Veclib::copy (nP, Nx -> _plane[k] + offset, skip, _Pnx[0][i][k], 1);
       Veclib::copy (nP, Ny -> _plane[k] + offset, skip, _Pny[0][i][k], 1);
-#if defined (OLDCODE)
-      if (Geometry::cylindrical()) B -> mulY (_Pny[0][i][k]);
-#endif
+
+      // -- For cylindrical coordinates, N_ are radius-premultiplied. Cancel.
+
+      if (Geometry::cylindrical()) {
+	B -> divY (_Pnx[0][i][k]);
+	B -> divY (_Pny[0][i][k]);
+      }
     }
   }
 
@@ -161,7 +166,9 @@ void PBCmgr::maintain (const int        step   ,
     ROOTONLY {			    // -- Deal with 2D/zero Fourier mode terms.
       UxRe = Ux -> _plane[0];
       UyRe = Uy -> _plane[0];
+
       B -> curlCurl (0,UxRe,0,UyRe,0,0,0,xr,0,yr,0,wrk);
+
       Blas::axpy (nP, -nu, xr, 1, _Pnx[0][i][0], 1);
       Blas::axpy (nP, -nu, yr, 1, _Pny[0][i][0], 1);
     }
@@ -204,14 +211,12 @@ void PBCmgr::maintain (const int        step   ,
 	  Blas::scal   (nP, alpha[0], tmp, 1);
 	  for (q = 0; q < Je; q++)
 	    Blas::axpy (nP, alpha[q + 1], _Unx[q][i][k], 1, tmp, 1);
-	  if (Geometry::cylindrical()) B -> mulY (tmp);
 	  Blas::axpy (nP, -invDt, tmp, 1, _Pnx[0][i][k], 1);
 	  
 	  Veclib::copy (nP, Uy -> _plane[k] + offset, skip, tmp, 1);
 	  Blas::scal   (nP, alpha[0], tmp, 1);
 	  for (q = 0; q < Je; q++)
 	    Blas::axpy (nP, alpha[q + 1], _Uny[q][i][k], 1, tmp, 1);
-	  if (Geometry::cylindrical()) B -> mulY (tmp);
 	  Blas::axpy (nP, -invDt, tmp, 1, _Pny[0][i][k], 1);
 	}
       }

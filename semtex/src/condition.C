@@ -20,6 +20,7 @@
 // for the pressure Poisson equation: they are derived from the
 // momentum equations and computed using an extrapolative process
 // described in KIO91.
+//
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -27,24 +28,12 @@ static char RCS[] = "$Id$";
 #include <Sem.h>
 
 
-Essential::Essential (const char* v,
-		      const char* g) :
-// ---------------------------------------------------------------------------
-// Essential condition constructor, for a condition with a constant real
-// value, also sets boundary group name in base class.
-// ---------------------------------------------------------------------------
-  _value (strtod (v, 0))
-{
-  strcpy ((_grp = new char [strlen (g) + 1]), g);
-}
-
-
-void Essential::evaluate (const integer  np  ,
-			  const integer  id  ,
-			  const integer  nz  ,
+void Essential::evaluate (const int      np  ,
+			  const int      id  ,
+			  const int      nz  ,
 			  const Element* E   ,
-			  const integer  side,
-			  const integer  step,
+			  const int      side,
+			  const int      step,
 			  const real*    nx  ,
 			  const real*    ny  ,
 			  real*          tgt ) const
@@ -56,7 +45,7 @@ void Essential::evaluate (const integer  np  ,
 }
 
 
-void Essential::set (const integer  side,
+void Essential::set (const int      side,
 		     const integer* bmap,
 		     const real*    src ,
 		     real*          tgt ) const
@@ -64,7 +53,7 @@ void Essential::set (const integer  side,
 // Scatter external value storage area src into globally-numbered tgt. 
 // ---------------------------------------------------------------------------
 {
-  const integer  nm    = Geometry::nP() - 1;
+  const int      nm    = Geometry::nP() - 1;
   const integer* start = bmap;
   
   switch (side) {
@@ -80,63 +69,16 @@ void Essential::set (const integer  side,
 }
 
 
-void Essential::sum (const integer  side  ,
-		     const integer* bmap  ,
-		     const real*    src   ,
-		     const real*    weight,
-		     real*          work  ,
-		     real*          tgt   ) const
-// ---------------------------------------------------------------------------
-// To be used for natural BC integral terms, has no effect on essential BCs.
-// ---------------------------------------------------------------------------
-{ }
-
-
-void Essential::augmentSC (const integer  side  ,
-			   const integer  nband ,
-			   const integer  nsolve,
-			   const integer* bmap  ,
-			   const real*    area  ,
-			   real*          work  ,
-			   real*          tgt   )  const
-// ---------------------------------------------------------------------------
-// Do nothing, this is for mixed BCs only.
-// ---------------------------------------------------------------------------
-{ }
-
-
-void Essential::augmentOp (const integer  side, 
-			   const integer* bmap,
-			   const real*    area,
-			   const real*    src ,
-			   real*          tgt ) const
-// ---------------------------------------------------------------------------
-// Do nothing, this is for Mixed BCs only.
-// ---------------------------------------------------------------------------
-{ }
-
-
-void Essential::augmentDg (const integer  side, 
-			   const integer* bmap,
-			   const real*    area,
-			   real*          tgt ) const
-// ---------------------------------------------------------------------------
-// Do nothing, this is for Mixed BCs only.
-// ---------------------------------------------------------------------------
-{ }
-
-
 void Essential::describe (char* tgt) const
 // ---------------------------------------------------------------------------
 // Load descriptive/diagnostic material into tgt.
 // ---------------------------------------------------------------------------
 {
-  sprintf (tgt, "boundary-group: %s, essential:\t%g", _grp, _value);
+  sprintf (tgt, "essential:\t%g", _value);
 }
 
 
-EssentialFunction::EssentialFunction (const char* f,
-				      const char* g)
+EssentialFunction::EssentialFunction (const char* f)
 // ---------------------------------------------------------------------------
 // Essential condition that sets value by interpreting function string,
 // which can be an explicit function of x, y, z & t as well as any
@@ -144,16 +86,15 @@ EssentialFunction::EssentialFunction (const char* f,
 // ---------------------------------------------------------------------------
 {
   strcpy ((_function = new char [strlen (f) + 1]), f);
-  strcpy ((_grp      = new char [strlen (g) + 1]), g);
 }
 
 
-void EssentialFunction:: evaluate (const integer  np  ,
-				   const integer  id  ,
-				   const integer  nz  ,
+void EssentialFunction:: evaluate (const int      np  ,
+				   const int      id  ,
+				   const int      nz  ,
 				   const Element* E   ,
-				   const integer  side,
-				   const integer  step,
+				   const int      side,
+				   const int      step,
 				   const real*    nx  ,
 				   const real*    ny  ,
 				   real*          tgt ) const
@@ -165,7 +106,7 @@ void EssentialFunction:: evaluate (const integer  np  ,
 }
 
 
-void EssentialFunction::set (const integer  side,
+void EssentialFunction::set (const int      side,
 			     const integer* bmap,
 			     const real*    src ,
 			     real*          tgt ) const
@@ -174,7 +115,7 @@ void EssentialFunction::set (const integer  side,
 // (as for Essential class).
 // ---------------------------------------------------------------------------
 {
-  const integer  nm    = Geometry::nP() - 1;
+  const int      nm    = Geometry::nP() - 1;
   const integer* start = bmap;
   
   switch (side) {
@@ -190,78 +131,21 @@ void EssentialFunction::set (const integer  side,
 }
 
 
-void EssentialFunction::sum (const integer  side  ,
-			     const integer* bmap  ,
-			     const real*    src   ,
-			     const real*    weight,
-			     real*          work  ,
-			     real*          tgt   ) const
-// ---------------------------------------------------------------------------
-// Take no action on essential BC.
-// ---------------------------------------------------------------------------
-{ }
-
-
-void EssentialFunction::augmentSC (const integer  side  ,
-				   const integer  nband ,
-				   const integer  nsolve,
-				   const integer* bmap  ,
-				   const real*    area  ,
-				   real*          work  ,
-				   real*          tgt   )  const
-// ---------------------------------------------------------------------------
-// Do nothing for essential BCs.
-// ---------------------------------------------------------------------------
-{ }
-
-
-void EssentialFunction::augmentOp (const integer  side, 
-				   const integer* bmap,
-				   const real*    area,
-				   const real*    src ,
-				   real*          tgt ) const
-// ---------------------------------------------------------------------------
-// Do nothing, this is for Mixed BCs only.
-// ---------------------------------------------------------------------------
-{ }
-
-
-void EssentialFunction::augmentDg (const integer  side, 
-				   const integer* bmap,
-				   const real*    area,
-				   real*          tgt ) const
-// ---------------------------------------------------------------------------
-// Do nothing, this is for Mixed BCs only.
-// ---------------------------------------------------------------------------
-{ }
-
-
 void EssentialFunction::describe (char* tgt) const
 // ---------------------------------------------------------------------------
 // Load descriptive/diagnostic material into tgt.
 // ---------------------------------------------------------------------------
 {
-  sprintf (tgt, "boundary-group: %s, essential-function:\t%s", _grp,_function);
+  sprintf (tgt, "essential-function:\t%s", _function);
 }
 
 
-Natural::Natural (const char* v,
-		  const char* g) :
-// ---------------------------------------------------------------------------
-// Used to apply natural type BCs using a constant real value.
-// ---------------------------------------------------------------------------
-  _value (strtod (v, 0))
-{
-  strcpy ((_grp = new char [strlen (g) + 1]), g);
-}
-
-
-void Natural::evaluate (const integer  np  ,
-			const integer  id  ,
-			const integer  nz  ,
+void Natural::evaluate (const int      np  ,
+			const int      id  ,
+			const int      nz  ,
 			const Element* E   ,
-			const integer  side,
-			const integer  step,
+			const int      side,
+			const int      step,
 			const real*    nx  ,
 			const real*    ny  ,
 			real*          tgt ) const
@@ -273,17 +157,7 @@ void Natural::evaluate (const integer  np  ,
 }
 
 
-void Natural::set (const integer  side,
-		   const integer* bmap,
-		   const real*    src ,
-		   real*          tgt ) const
-// ---------------------------------------------------------------------------
-// Take no action, since natural BCs are applied in the weak sense.
-// ---------------------------------------------------------------------------
-{ }
-
-
-void Natural::sum (const integer  side  ,
+void Natural::sum (const int      side  ,
 		   const integer* bmap  ,
 		   const real*    src   ,
 		   const real*    weight,
@@ -294,8 +168,8 @@ void Natural::sum (const integer  side  ,
 // Work vector must be np long.
 // ---------------------------------------------------------------------------
 { 
-  const integer  np    = Geometry::nP();
-  const integer  nm    = np - 1;
+  const int      np    = Geometry::nP();
+  const int      nm    = np - 1;
   const integer* start = bmap;
   
   switch (side) {
@@ -313,51 +187,16 @@ void Natural::sum (const integer  side  ,
 }
 
 
-void Natural::augmentSC (const integer  side  ,
-			 const integer  nband ,
-			 const integer  nsolve,
-			 const integer* bmap  ,
-			 const real*    area  ,
-			 real*          work  ,
-			 real*          tgt   )  const
-// ---------------------------------------------------------------------------
-// Do nothing.
-// ---------------------------------------------------------------------------
-{ }
-
-
-void Natural::augmentOp (const integer  side, 
-			 const integer* bmap,
-			 const real*    area,
-			 const real*    src ,
-			 real*          tgt ) const
-// ---------------------------------------------------------------------------
-// Do nothing, this is for Mixed BCs only.
-// ---------------------------------------------------------------------------
-{ }
-
-
-void Natural::augmentDg (const integer  side, 
-			 const integer* bmap,
-			 const real*    area,
-			 real*          tgt ) const
-// ---------------------------------------------------------------------------
-// Do nothing, this is for Mixed BCs only.
-// ---------------------------------------------------------------------------
-{ }
-
-
 void Natural::describe (char* tgt) const
 // ---------------------------------------------------------------------------
 // Load descriptive/diagnostic material into tgt.
 // ---------------------------------------------------------------------------
 {
-  sprintf (tgt, "boundary-group: %s, natural:\t%g", _grp, _value);
+  sprintf (tgt, "natural:\t%g", _value);
 }
 
 
-NaturalFunction::NaturalFunction (const char* f,
-				  const char* g)
+NaturalFunction::NaturalFunction (const char* f)
 // ---------------------------------------------------------------------------
 // Natural condition that sets value by interpreting function string,
 // which can be an explicit function of x, y, z & t as well as any
@@ -365,16 +204,15 @@ NaturalFunction::NaturalFunction (const char* f,
 // ---------------------------------------------------------------------------
 {
   strcpy ((_function = new char [strlen (f) + 1]), f);
-  strcpy ((_grp      = new char [strlen (g) + 1]), g);
 }
 
 
-void NaturalFunction::evaluate (const integer  np  ,
-				const integer  id  ,
-				const integer  nz  ,
+void NaturalFunction::evaluate (const int      np  ,
+				const int      id  ,
+				const int      nz  ,
 				const Element* E   ,
-				const integer  side,
-				const integer  step,
+				const int      side,
+				const int      step,
 				const real*    nx  ,
 				const real*    ny  ,
 				real*          tgt ) const
@@ -386,17 +224,7 @@ void NaturalFunction::evaluate (const integer  np  ,
 }
 
 
-void NaturalFunction::set (const integer  side,
-			   const integer* bmap,
-			   const real*    src ,
-			   real*          tgt ) const
-// ---------------------------------------------------------------------------
-// Take no action, since natural BCs are applied in the weak sense.
-// ---------------------------------------------------------------------------
-{ }
-
-
-void NaturalFunction::sum (const integer  side  ,
+void NaturalFunction::sum (const int      side  ,
 			   const integer* bmap  ,
 			   const real*    src   ,
 			   const real*    weight,
@@ -406,8 +234,8 @@ void NaturalFunction::sum (const integer  side  ,
 // Add boundary-integral terms into globally-numbered tgt.
 // ---------------------------------------------------------------------------
 { 
-  const integer  np    = Geometry::nP();
-  const integer  nm    = np - 1;
+  const int      np    = Geometry::nP();
+  const int      nm    = np - 1;
   const integer* start = bmap;
   
   switch (side) {
@@ -424,65 +252,21 @@ void NaturalFunction::sum (const integer  side  ,
   else             tgt[start[nm]] += work[nm];  
 }
 
-
-void NaturalFunction::augmentSC (const integer  side  ,
-				 const integer  nband ,
-				 const integer  nsolve,
-				 const integer* bmap  ,
-				 const real*    area  ,
-				 real*          work  ,
-				 real*          tgt   )  const
-// ---------------------------------------------------------------------------
-// Do nothing.
-// ---------------------------------------------------------------------------
-{ }
-
-
-void NaturalFunction::augmentOp (const integer  side, 
-				 const integer* bmap,
-				 const real*    area,
-				 const real*    src ,
-				 real*          tgt ) const
-// ---------------------------------------------------------------------------
-// Do nothing, this is for Mixed BCs only.
-// ---------------------------------------------------------------------------
-{ }
-
-
-void NaturalFunction::augmentDg (const integer  side, 
-				 const integer* bmap,
-				 const real*    area,
-				 real*          tgt ) const
-// ---------------------------------------------------------------------------
-// Do nothing, this is for Mixed BCs only.
-// ---------------------------------------------------------------------------
-{ }
-
-
 void NaturalFunction::describe (char* tgt) const
 // ---------------------------------------------------------------------------
 // Load descriptive/diagnostic material into tgt.
 // ---------------------------------------------------------------------------
 {
-  sprintf (tgt, "boundary-group: %s, natural-function:\t%s", _grp, _function);
+  sprintf (tgt, "natural-function:\t%s", _function);
 }
 
 
-NaturalHOPBC::NaturalHOPBC (const char* g)
-// ---------------------------------------------------------------------------
-// Construct by initializing base Condition class.
-// ---------------------------------------------------------------------------
-{ 
-  strcpy ((_grp = new char [strlen (g) + 1]), g);
-}
-
-
-void NaturalHOPBC::evaluate (const integer  np  ,
-			     const integer  id  ,
-			     const integer  nz  ,
+void NaturalHOPBC::evaluate (const int      np  ,
+			     const int      id  ,
+			     const int      nz  ,
 			     const Element* E   ,
-			     const integer  side,
-			     const integer  step,
+			     const int      side,
+			     const int      step,
 			     const real*    nx  ,
 			     const real*    ny  ,
 			     real*          tgt ) const
@@ -494,17 +278,7 @@ void NaturalHOPBC::evaluate (const integer  np  ,
 }
 
 
-void NaturalHOPBC::set (const integer  side,
-			const integer* bmap,
-			const real*    src ,
-			real*          tgt ) const
-// ---------------------------------------------------------------------------
-// Take no action, since natural BCs are applied in the weak sense.
-// ---------------------------------------------------------------------------
-{ }
-
-
-void NaturalHOPBC::sum (const integer  side  ,
+void NaturalHOPBC::sum (const int      side  ,
 			const integer* bmap  ,
 			const real*    src   ,
 			const real*    weight,
@@ -514,8 +288,8 @@ void NaturalHOPBC::sum (const integer  side  ,
 // Add boundary-integral terms into globally-numbered tgt.
 // ---------------------------------------------------------------------------
 { 
-  const integer  np    = Geometry::nP();
-  const integer  nm    = np - 1;
+  const int      np    = Geometry::nP();
+  const int      nm    = np - 1;
   const integer* start = bmap;
   
   switch (side) {
@@ -533,51 +307,16 @@ void NaturalHOPBC::sum (const integer  side  ,
 }
 
 
-void NaturalHOPBC::augmentSC (const integer  side  ,
-			      const integer  nband ,
-			      const integer  nsolve,
-			      const integer* bmap  ,
-			      const real*    area  ,
-			      real*          work  ,
-			      real*          tgt   )  const
-// ---------------------------------------------------------------------------
-// Do nothing.
-// ---------------------------------------------------------------------------
-{ }
-
-
-void NaturalHOPBC::augmentOp (const integer  side, 
-			      const integer* bmap,
-			      const real*    area,
-			      const real*    src ,
-			      real*          tgt ) const
-// ---------------------------------------------------------------------------
-// Do nothing, this is for Mixed BCs only.
-// ---------------------------------------------------------------------------
-{ }
-
-
-void NaturalHOPBC::augmentDg (const integer  side, 
-			      const integer* bmap,
-			      const real*    area,
-			      real*          tgt ) const
-// ---------------------------------------------------------------------------
-// Do nothing, this is for Mixed BCs only.
-// ---------------------------------------------------------------------------
-{ }
-
-
 void NaturalHOPBC::describe (char* tgt) const
 // ---------------------------------------------------------------------------
 // Load descriptive/diagnostic material into tgt.
 // ---------------------------------------------------------------------------
 {
-  sprintf (tgt, "boundary-group: %s, high-order-pressure", _grp);
+  sprintf (tgt, "high-order-pressure");
 }
 
 
-Mixed::Mixed (const char* v,
-	      const char* g)
+Mixed::Mixed (const char* v)
 // ---------------------------------------------------------------------------
 // The format for a Mixed BC is: "field = mulvalue, refvalue".
 // Each of these is expected to evaluate to a real constant.
@@ -586,8 +325,6 @@ Mixed::Mixed (const char* v,
   const char routine[] = "Mixed::Mixed";
   const char sep[] = ";,";
   char       buf[StrMax], *tok;
-
-  strcpy ((_grp = new char [strlen (g) + 1]), g);
 
   strcpy (buf, v);
   tok = strtok (buf, sep);
@@ -603,12 +340,12 @@ Mixed::Mixed (const char* v,
 }
 
 
-void Mixed::evaluate (const integer  np  ,
-		      const integer  id  ,
-		      const integer  nz  ,
+void Mixed::evaluate (const int      np  ,
+		      const int      id  ,
+		      const int      nz  ,
 		      const Element* E   ,
-		      const integer  side,
-		      const integer  step,
+		      const int      side,
+		      const int      step,
 		      const real*    nx  ,
 		      const real*    ny  ,
 		      real*          tgt ) const
@@ -620,17 +357,7 @@ void Mixed::evaluate (const integer  np  ,
 }
 
 
-void Mixed::set (const integer  side,
-		 const integer* bmap,
-		 const real*    src ,
-		 real*          tgt ) const
-// ---------------------------------------------------------------------------
-// Take no action, since mixed BCs are applied in the weak sense.
-// ---------------------------------------------------------------------------
-{ }
-
-
-void Mixed::sum (const integer  side  ,
+void Mixed::sum (const int      side  ,
 		 const integer* bmap  ,
 		 const real*    src   ,
 		 const real*    weight,
@@ -641,8 +368,8 @@ void Mixed::sum (const integer  side  ,
 // used to add K*C (supplied as src) to RHS forcing.
 // ---------------------------------------------------------------------------
 { 
-  const integer  np    = Geometry::nP();
-  const integer  nm    = np - 1;
+  const int      np    = Geometry::nP();
+  const int      nm    = np - 1;
   const integer* start = bmap;
   
   switch (side) {
@@ -660,9 +387,9 @@ void Mixed::sum (const integer  side  ,
 }
 
 
-void Mixed::augmentSC (const integer  side  ,
-		       const integer  nband ,
-		       const integer  nsolve,
+void Mixed::augmentSC (const int      side  ,
+		       const int      nband ,
+		       const int      nsolve,
 		       const integer* bmap  ,
 		       const real*    area  ,
 		       real*          work  ,
@@ -671,10 +398,10 @@ void Mixed::augmentSC (const integer  side  ,
 // Add <K, w> terms to (banded LAPACK) matrix tgt.
 // ---------------------------------------------------------------------------
 {
-  const integer    np    = Geometry::nP();
-  const integer    nm    = np - 1;
-  const integer*   start = bmap;
-  register integer i, k;
+  const int      np    = Geometry::nP();
+  const int      nm    = np - 1;
+  const integer* start = bmap;
+  register int   i, k;
   
   switch (side) {
   case 1: start += nm;           break;
@@ -694,7 +421,7 @@ void Mixed::augmentSC (const integer  side  ,
 }
 
 
-void Mixed::augmentOp (const integer  side, 
+void Mixed::augmentOp (const int      side, 
 		       const integer* bmap,
 		       const real*    area,
 		       const real*    src ,
@@ -705,10 +432,10 @@ void Mixed::augmentOp (const integer  side,
 // <K*src, w> to tgt.  Both src and tgt are globally-numbered vectors.
 // ---------------------------------------------------------------------------
 {
-  const integer    np    = Geometry::nP();
-  const integer    nm    = np - 1;
-  const integer*   start = bmap;
-  register integer i;
+  const int      np    = Geometry::nP();
+  const int      nm    = np - 1;
+  const integer* start = bmap;
+  register int   i;
   
   switch (side) {
   case 1: start += nm;           break;
@@ -725,7 +452,7 @@ void Mixed::augmentOp (const integer  side,
 }
 
 
-void Mixed::augmentDg (const integer  side, 
+void Mixed::augmentDg (const int      side, 
 		       const integer* bmap,
 		       const real*    area,
 		       real*          tgt ) const
@@ -735,10 +462,10 @@ void Mixed::augmentDg (const integer  side,
 // BCs.  Add in diagonal terms <K, w> to globally-numbered tgt.
 // ---------------------------------------------------------------------------
 {
-  const integer    np    = Geometry::nP();
-  const integer    nm    = np - 1;
-  const integer*   start = bmap;
-  register integer i;
+  const int      np    = Geometry::nP();
+  const int      nm    = np - 1;
+  const integer* start = bmap;
+  register int   i;
   
   switch (side) {
   case 1: start += nm;           break;
@@ -760,5 +487,5 @@ void Mixed::describe (char* tgt) const
 // Load descriptive/diagnostic material into tgt.
 // ---------------------------------------------------------------------------
 {
-  sprintf (tgt, "boundary-group: %s, mixed:\t%g\t%g", _grp, _K_, _C_);
+  sprintf (tgt, "mixed:\t%g\t%g", _K_, _C_);
 }
