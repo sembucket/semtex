@@ -218,7 +218,7 @@ static void jacobf (const integer n     ,
  * ------------------------------------------------------------------------- */
 {
   register integer k;
-  register double  apb, a1, a2, a3, a4, b3, dk, kk;
+  register double  apb, a1, a2, a3, a4, b3, dk, kk, aambb;
   register double  polylst, pderlst, polyn, pdern, psave, pdsave;
 
   *poly = 1.0;
@@ -227,10 +227,11 @@ static void jacobf (const integer n     ,
   if (n < 1)  return;
 
   apb     = alpha + beta;
+  aambb   = SQR(alpha) - SQR(beta);
   polylst = *poly;
   pderlst = *pder;
-  *pder   = (1.0 + alpha);
-  *poly   = *pder * x;
+  *poly   = 0.5*(alpha-beta+(apb+2.0)*x);
+  *pder   = 0.5*(apb+2.0);
 
   if (n == 1) return;
 
@@ -238,7 +239,7 @@ static void jacobf (const integer n     ,
     dk      = (double) k;
     kk      = (double) (k << 1);
     a1      = kk * (dk + apb) * (kk + apb - 2.0);
-    a2      = (kk + apb - 1.0) * (SQR(alpha) - SQR(beta));
+    a2      = (kk + apb - 1.0) * aambb;
     b3      = (kk + apb - 2.0);
     a3      = b3 * (b3 + 1.0) * (b3 + 2.0);
     a4      = 2.0 * (dk + alpha - 1.0) * (dk + beta - 1.0) * (kk + apb);
