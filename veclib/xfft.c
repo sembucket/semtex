@@ -4,7 +4,7 @@
 
 #include <stdio.h> 
 #include <math.h>
-#include <alplib.h>
+#include "alplib.h"
 
 
 
@@ -75,8 +75,8 @@ void zpreft(int K, zomplex *Wtab, int Sign)
  * Recipes; use 1 to get their definition).                                  *
  * ========================================================================= */
 {
-  register i;
-  double   theta;
+  register int     i;
+  register double  theta;
 
   Wtab[0].Re = 1.0;
   Wtab[0].Im = 0.0;
