@@ -388,7 +388,7 @@ static ModeSys** preSolve (const Domain* D)
   const integer        itLev  = (integer) Femlib::value ("ITERATIVE");
   const integer        nOrder = (integer) Femlib::value ("N_TIME");
   const real           beta   = Femlib::value ("BETA");
-  ModeSys**            M      = new ModeSys* [(szie_t) (DIM + 2)];
+  ModeSys**            M      = new ModeSys* [(size_t) (DIM + 2)];
   vector<Element*>&    E      = ((Domain*) D) -> Esys;
   const NumberSystem** N      = new const NumberSystem* [(size_t) 3];
 
