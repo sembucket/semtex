@@ -16,7 +16,8 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
 				const integer           baseMode,
 				const integer           numModes,
 				const vector<Element*>& Elmt    ,
-				const BoundarySys*      Bsys    )
+				const BoundarySys*      Bsys    ,
+				const SolverKind        method  )
 // ---------------------------------------------------------------------------
 // Generate or retrieve from internal database MS the vector of
 // MatrixSys's which will be used to solve all the Fourier-mode
@@ -29,6 +30,7 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
 //   nmodes  : number of Fourier modes which will be solved,
 //   Elmt    : vector of Element*'s used to make local Helmholtz matrices,
 //   Bsys    : boundary system for this field.
+//   method  : specify the kind of solver we want (Cholesky, PCG ...).
 // ---------------------------------------------------------------------------
 {
   const char               name = Bsys -> field();
@@ -36,9 +38,9 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
   ListIterator<MatrixSys*> m (MS);
   MatrixSys*               M;
 
-  fields = new char [strlen (Bsys -> Nsys (0) -> fields()) + 1];
-  strcpy (fields, Bsys -> Nsys (0) -> fields());
-  Msys.setSize (numModes);
+  _fields = new char [strlen (Bsys -> Nsys (0) -> fields()) + 1];
+  strcpy (_fields, Bsys -> Nsys (0) -> fields());
+  _Msys.setSize (numModes);
 
   ROOTONLY cout << "-- Installing matrices for field '" << name << "' [";
   cout.flush();
@@ -52,14 +54,15 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
 
     for (found = 0, m.reset(); !found && m.more(); m.next()) {
       M     = m.current();
-      found = M -> match (lambda2, betak2, N);
+      found = M -> match (lambda2, betak2, N, method);
     }
     if (found) {
-      Msys[localMode] = M;
+      _Msys[localMode] = M;
       cout << '.'; cout.flush();
     } else {
-      Msys[localMode] = new MatrixSys (lambda2, betak2, mode, Elmt, Bsys);
-      MS.add (Msys[localMode]);
+      _Msys[localMode] =
+	new MatrixSys (lambda2, betak2, mode, Elmt, Bsys, method);
+      MS.add (_Msys[localMode]);
       cout << '*'; cout.flush();
     }
   }
@@ -71,116 +74,173 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
 }
 
 
-MatrixSys::MatrixSys (const real               lambda2,
-		      const real               betak2 ,
-		      const integer            mode   ,
-		      const vector<Element*>&  elmt   ,
-		      const BoundarySys*       bsys   ) :
+MatrixSys::MatrixSys (const real              lambda2,
+		      const real              betak2 ,
+		      const integer           mode   ,
+		      const vector<Element*>& elmt   ,
+		      const BoundarySys*      bsys   ,
+		      const SolverKind        method ) :
 // ---------------------------------------------------------------------------
 // Initialize and factorise matrices in this system.
 //
-// Matrices are assembled using LAPACK-compatible ordering systems.
-// Global Helmholtz matrix uses symmetric-banded format; elemental
-// Helmholtz matrices (hii & hbi) use column-major formats.
+// For method == DIRECT:
+//   Matrices are assembled using LAPACK-compatible ordering systems.
+//   Global Helmholtz matrix uses symmetric-banded format; elemental
+//   Helmholtz matrices (hii & hbi) use column-major formats.
+// For method == JACPCG:
+//   Build and invert diagonal preconditioner matrix.
 // ---------------------------------------------------------------------------
 // NB: these get evaluated in the order they appear in the class
 // definition!:
-  HelmholtzConstant (lambda2),
-  FourierConstant   (betak2 ),
-  BC                (bsys -> BCs  (mode)),
-  NS                (bsys -> Nsys (mode)),
-  nel               (Geometry::nElmt()),
-  nband             (NS -> nBand()),
-  singular          ((HelmholtzConstant + FourierConstant) < EPSSP &&
-		     !NS -> fmask() && !bsys -> mixBC()),
-  nsolve            ((singular) ? NS -> nSolve() - 1 : NS -> nSolve()),
-  npack             (nband * nsolve)
+  _HelmholtzConstant (lambda2),
+  _FourierConstant   (betak2 ),
+  _BC                (bsys -> BCs  (mode)),
+  _NS                (bsys -> Nsys (mode)),
+  _nel               (Geometry::nElmt()),
+  _nglobal           (_NS -> nGlobal()),
+  _singular          ((_HelmholtzConstant + _FourierConstant) < EPSSP &&
+		     !_NS -> fmask() && !bsys -> mixBC()),
+  _nsolve            ((_singular) ? _NS -> nSolve() - 1 : _NS -> nSolve()),
+  _method            (method),
+  _nband             (_NS -> nBand()),
+  _npack             (_nband * _nsolve),
+  _H                 (0),
+  _hbi               (0),
+  _hii               (0),
+  _bipack            (0),
+  _iipack            (0),
+  _npts              (_nglobal + Geometry::nInode()),
+  _PC                (0)
 {
-  const char        routine[] = "MatrixSys::MatrixSys";
-  const integer     verbose = (integer) Femlib::value ("VERBOSE");
-  const integer     np      = Geometry::nP();
-  const integer     next    = Geometry::nExtElmt();
-  const integer     nint    = Geometry::nIntElmt();
-  const integer     npnp    = Geometry::nTotElmt();
-  const integer*    bmap;
-  vector<real>      work     (sqr (next) + sqr (np) + sqr (npnp));
-  vector<integer>   pivotmap (nint);
-  real*             hbb  = work();
-  real*             rmat = hbb  + sqr (next);
-  real*             rwrk = rmat + sqr (np);
-  integer*          ipiv = pivotmap();
-  register integer  i, j, k, m, n;
-  integer           info;
+  const char       routine[] = "MatrixSys::MatrixSys";
+  const integer    verbose   = (integer) Femlib::value ("VERBOSE");
+  const integer    np        = Geometry::nP();
+  const integer    next      = Geometry::nExtElmt();
+  const integer    nint      = Geometry::nIntElmt();
+  const integer    npnp      = Geometry::nTotElmt();
+  const integer*   bmap;
+  register integer i, j, k, m, n;
 
-  hbi    = new real*   [(size_t) nel];
-  hii    = new real*   [(size_t) nel];
-  bipack = new integer [(size_t) nel];
-  iipack = new integer [(size_t) nel];
+  switch (_method) {
 
-  if (nsolve) {
-    H = new real [(size_t) npack];
-    Veclib::zero (npack, H, 1);
+  case DIRECT: {
+    vector<real>    work     (sqr (next) + sqr (np) + sqr (npnp));
+    vector<integer> pivotmap (nint);
+    real*           hbb  = work();
+    real*           rmat = hbb  + sqr (next);
+    real*           rwrk = rmat + sqr (np);
+    integer*        ipiv = pivotmap();
+    integer         info;
 
-    if (verbose > 1)
-      cout << endl
-	   << "Helmholtz constant (lambda2): " << setw(10) << lambda2
-	   << ", Fourier constant (betak2): "  << setw(10) << betak2;
-    if (verbose)
-      cout << endl << "System matrix: " << nsolve << "x" << nband
-	   << "\t(" << npack << " words)";
-  }
+    _hbi    = new real*   [(size_t) nel];
+    _hii    = new real*   [(size_t) nel];
+    _bipack = new integer [(size_t) nel];
+    _iipack = new integer [(size_t) nel];
 
-  // -- Loop over elements, creating & posting elemental Helmholtz matrices.
+    if (_nsolve) {
+      _H = new real [(size_t) _npack];
+      Veclib::zero (_npack, _H, 1);
 
-  for (bmap = NS -> btog(), j = 0; j < nel; j++, bmap += next) {
-    bipack[j] = next * nint;
-    iipack[j] = nint * nint;
+      if (verbose > 1)
+	cout << endl
+	     << "Helmholtz constant (lambda2): " << setw(10) << lambda2
+	     << ", Fourier constant (betak2): "  << setw(10) << betak2;
+      if (verbose)
+	cout << endl << "System matrix: " << nsolve << "x" << nband
+	     << "\t(" << npack << " words)";
+    }
 
-    hbi[j] = (nint) ? new real [(size_t) bipack[j]] : 0;
-    hii[j] = (nint) ? new real [(size_t) iipack[j]] : 0;
+    // -- Loop over elements, creating & posting elemental Helmholtz matrices.
 
-    elmt[j] -> HelmholtzSC (lambda2,betak2, hbb,hbi[j],hii[j], rmat,rwrk,ipiv);
+    for (bmap = _NS -> btog(), j = 0; j < _nel; j++, bmap += next) {
+      _bipack[j] = next * nint;
+      _iipack[j] = nint * nint;
 
-    for (i = 0; i < next; i++)
-      if ((m = bmap[i]) < nsolve)
-	for (k = 0; k < next; k++)
-	  if ((n = bmap[k]) < nsolve && n >= m)
-	    H[Lapack::band_addr (m, n, nband)] +=
-	      hbb[Veclib::row_major (i, k, next)];
+      _hbi[j] = (nint) ? new real [(size_t) _bipack[j]] : 0;
+      _hii[j] = (nint) ? new real [(size_t) _iipack[j]] : 0;
 
-    Femlib::adopt (bipack[j], hbi + j);  
-    Femlib::adopt (iipack[j], hii + j);
-  }
+      elmt[j]->HelmholtzSC(lambda2,betak2,hbb,_hbi[j],_hii[j],rmat,rwrk,ipiv);
 
-  // -- Loop over BCs and add diagonal contribution from mixed BCs.
+      for (i = 0; i < next; i++)
+	if ((m = bmap[i]) < _nsolve)
+	  for (k = 0; k < next; k++)
+	    if ((n = bmap[k]) < _nsolve && n >= m)
+	      _H[Lapack::band_addr (m, n, _nband)] +=
+		hbb[Veclib::row_major (i, k, next)];
 
-  if (bsys -> mixBC()) {
-    const integer  nbound = bsys -> nSurf();
-    const integer* bmap   = NS   -> btog();
-    for (i = 0; i < nbound; i++)
-      BC[i] -> augmentSC (nband, nsolve, bmap, rwrk, H);
-  }
+      Femlib::adopt (_bipack[j], _hbi + j);  
+      Femlib::adopt (_iipack[j], _hii + j);
+    }
 
-  // -- Cholesky factor global banded-symmetric Helmholtz matrix.
+    // -- Loop over BCs and add diagonal contribution from mixed BCs.
 
-  Lapack::pbtrf ("U", nsolve, nband - 1, H, nband, info);
+    if (bsys -> mixBC()) {
+      const integer  nbound = bsys -> nSurf();
+      const integer* bmap   = _NS   -> btog();
+      for (i = 0; i < nbound; i++)
+	BC[i] -> augmentSC (_nband, _nsolve, bmap, rwrk, _H);
+    }
 
-  if (info) message (routine, "failed to factor Helmholtz matrix", ERROR);
+    // -- Cholesky factor global banded-symmetric Helmholtz matrix.
+    
+    Lapack::pbtrf ("U",_nsolve,_nband-1,_H,_nband,info);
 
-  if (verbose) {
-    real cond;
-    pivotmap.setSize (nsolve);  ipiv = pivotmap();
-    work.setSize (3 * nsolve);  rwrk = work();
+    if (info) message (routine, "failed to factor Helmholtz matrix", ERROR);
 
-    Lapack::pbcon ("U", nsolve, nband-1, H, nband, 1.0,cond, rwrk,ipiv,info);
-    cout << ", condition number: " << cond << endl;
+    if (verbose) {
+      real cond;
+      pivotmap.setSize (_nsolve);  ipiv = pivotmap();
+      work.setSize (3 * _nsolve);  rwrk = work();
+
+      Lapack::pbcon ("U",_nsolve,_nband-1,_H,_nband, 1.0,cond,rwrk,ipiv,info);
+      cout << ", condition number: " << cond << endl;
+    }
+  } break;
+
+  case JACPCG: {
+    real*            PCi;
+    vector<real>     work (2 * npnp + np);
+    real             *ed = work(), *ewrk = work() + npnp;
+
+    _PC = new real [(size_t) _npts];
+    Veclib::zero (_npts, _PC, 1);
+
+    PCi  = _PC + _NS -> nGlobal();
+    bmap = _NS -> btog();
+
+    // -- Mixed BC contributions.
+
+    if (bsys -> mixBC())
+      for (i = 0; i < _nbound; i++)
+	_BC[i] -> augmentDg (bmap, _PC);
+
+    // -- Element contributions.
+
+    for (i = 0; i < _nel; i++, bmap += next, PCi += nint) {
+      elmt[i] -> HelmholtzDg (lambda2, betak2, ed, ewrk);
+      Veclib::scatr_sum (next, ed,  bmap,    _PC);
+      Veclib::copy      (nint, ed + next, 1, PCi, 1);
+    }
+
+#if 1
+    Veclib::vrecp (_npts, _PC, 1, _PC, 1);
+#else  // -- Turn off preconditioner for testing.
+    Veclib::fill  (_npts, 1.0, _PC, 1);
+#endif
+
+  } break;
+
+  default:
+    message (routine, "no solver of type requested -- never happen", ERROR);
+    break;
   }
 }
 
 
 integer MatrixSys::match (const real       lambda2,
 			  const real       betak2 ,
-			  const NumberSys* nScheme) const
+			  const NumberSys* nScheme,
+			  const SolverKind method ) const
 // ---------------------------------------------------------------------------
 // The unique identifiers of a MatrixSys are presumed to be given
 // by the constants and the numbering system used.  Other things that
@@ -190,11 +250,12 @@ integer MatrixSys::match (const real       lambda2,
 {
   const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
-  if (fabs (HelmholtzConstant - lambda2) < EPS &&
-      fabs (FourierConstant   - betak2 ) < EPS &&
-      NS -> nGlobal() == nScheme -> nGlobal()  &&
-      NS -> nSolve()  == nScheme -> nSolve()   &&
-      Veclib::same (NS->nGlobal(), NS->btog(), 1, nScheme->btog(), 1))
+  if (fabs (_HelmholtzConstant - lambda2) < EPS                         &&
+      fabs (_FourierConstant   - betak2 ) < EPS                         &&
+      _NS -> nGlobal() == nScheme -> nGlobal()                          &&
+      _NS -> nSolve()  == nScheme -> nSolve()                           &&
+      Veclib::same (_NS->nGlobal(), _NS->btog(), 1, nScheme->btog(), 1) &&
+      _method == method                                                  )
     return 1;
 
   else
@@ -202,13 +263,13 @@ integer MatrixSys::match (const real       lambda2,
 }
 
 
+#if 0
 ostream& operator << (ostream&      str,
 		      MatrixSys& M  )
 // ---------------------------------------------------------------------------
-// Output a MatrixSys to file.
+// Output a MatrixSys to file...one day we'll actually use this!
 // ---------------------------------------------------------------------------
 {
-#if 0
   char *hdr_fmt[] = {
     "-- Helmholtz MatrixSys Storage File --",
     "%-25d "    "Elements",
@@ -253,7 +314,6 @@ ostream& operator << (ostream&      str,
     str.write ((char*) &n, sizeof (integer));
     str.write ((char*) M.hii[i], n * sizeof (real));
   }
-#endif
   return str;
 }
 
@@ -264,7 +324,6 @@ istream& operator >> (istream&      str,
 // Input a MatrixSys from file, with binary format conversion if required.
 // ---------------------------------------------------------------------------
 {
-#if 0
   char       routine[] = "MatrixSys::operator >>";
   char       bufr[StrMax], fmt[StrMax];
   istrstream s (bufr, strlen (bufr));
@@ -346,7 +405,7 @@ istream& operator >> (istream&      str,
     hii[k] = FamilyMgr::insert (n, hii[k]);
   }
 
-#endif
-
   return str;
 }
+#endif
+
