@@ -1,6 +1,6 @@
 ##############################################################################
 # Makefile for chroma, specialised spectral element solver for unsteady
-# 3D advection--diffusion of scalar in WCOT gas-chromatographs.
+# 3D advection--diffusion of scalar in WCOT chromatographs.
 #
 # $Id$
 ##############################################################################
@@ -8,7 +8,10 @@
 SEM   = /home/hmb/develop/semtex
 VPATH = $(SEM)/src
 
-ARCH  = $(shell uname -s)
+ARCH = $(shell uname -s)
+ifeq ($(ARCH),Linux)
+  ARCH += -$(shell uname -m)
+endif
 
 ifdef DEBUG
   DEFINES = -DDEBUG
@@ -16,7 +19,8 @@ else
   DEFINES  =
 endif
 ifdef MPI
-  PROG = chroma_mp
+  MPIHOME = /usr/local/mpich
+  PROG    = chroma_mp
 else
   PROG = chroma
 endif
@@ -61,18 +65,37 @@ else
 endif
 endif
 
-ifeq ($(ARCH),Linux)		# -- GNU/Linux system.
+ifeq ($(ARCH),Linux-i586)		# -- Linux Intel system.
 CXX	 = g++
 LD	 = g++
 ifdef DEBUG
   OPT    = -gstabs+
 else
   OPT    = -O3
-endif	
+endif
 CXXFLAGS = $(DEFINES) $(OPT)
 F77LIBS  = -llapack -lblas -lg2c
 LDFLAGS  = $(OPT) -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
 	   -lfem -lalp $(F77LIBS)
+endif
+
+ifeq ($(ARCH),Linux-alpha)		# -- Linux Alpha system.
+F77LIBS = -lcxml -lots -lfor -lg2c
+CXX = g++
+ifdef DEBUG
+  OPT = -gstabs+
+else
+  OPT = -O3
+endif
+CXXFLAGS = $(DEFINES) $(OPT)
+LD = g++
+ifdef MPI
+  LDFLAGS = -L$(SEM)/lib/$(ARCH) -L/usr/lib -L$(MPIHOME)/lib \
+            -lfem_mp -lalp $(F77LIBS) -lcpml -lmpich
+else
+  LDFLAGS = -L$(SEM)/lib/$(ARCH) -L/usr/local/lib    \
+             -lfem -lalp $(F77LIBS) -lcpml
+endif
 endif
 
 ifeq ($(ARCH),UNIX_System_V)    # -- Fujitsu VPP300.
