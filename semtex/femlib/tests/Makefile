@@ -17,6 +17,9 @@ ifeq ($(ARCH),Linux)
   ifeq ($(MACH),i586)
     ARCH = Linux-i586
   endif
+  ifeq ($(MACH),i686)
+    ARCH = Linux-i686
+  endif
 endif
 
 DEFINES  =
@@ -64,12 +67,13 @@ ifdef MPI
 endif
 endif
 
-ifeq ($(ARCH),Linux-i586)		# -- Linux Intel system
+ifeq ($(ARCH),Linux-i686)		# -- Linux Intel system
 CC         = gcc
 FC         = g77
 CXX	   = g++
 CFLAGS     = $(DEFINES) -O3
 FFLAGS     = $(DEFINES) -O3
+F77LIBS  = -llapack -lblas -lg2c
 endif
 
 ifeq ($(ARCH),Linux-alpha)		# -- Linux alpha system.
