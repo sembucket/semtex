@@ -20,9 +20,9 @@ ifdef ALIAS		# -- No dealiasing (parallel is never dealiased).
   PROG    := $(PROG)_alias
 endif
 
-ifdef SKEW		# -- Make skew-symmetric nonlinear terms.
-  DEFINES += -DSKEW
-  PROG    := $(PROG)_skew
+ifdef CONV		# -- Make convective nonlinear terms (not skew-symm).
+  DEFINES += -DCONV
+  PROG    := $(PROG)_conv
 endif
 
 ifdef TBCS		# -- Recompute mode 0 velocity BCs every time step.
