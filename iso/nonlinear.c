@@ -421,7 +421,7 @@ void convolve (const CF       U   ,
   shift  (W_, Stab, INVERSE);
 
   A[0].Re = 0.5 * (A[0].Re + B[0].Re);
-  
+
   for (k1 = 1; k1 < K; k1++) {
     b1 = N - k1;
     _i = rm(k1,0,0);
