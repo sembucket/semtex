@@ -16,7 +16,7 @@ class LESAnalyser : public Analyser
 {
 public:
   LESAnalyser  (Domain*, FEML*);
-  void analyse (AuxField***);
+  void analyse (AuxField**);
 
 private:
   ofstream flx_strm;

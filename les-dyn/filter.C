@@ -64,15 +64,21 @@ void initFilters ()
   lag   =           Femlib::value ("F_ROLL" );
   atten =           Femlib::value ("F_ATTEN");
 
-  if (order < 2) message (routine, "Filter properties not defined", ERROR);
-
-  work.setSize (nm + 1);
   FourierMask = new real [n];
 
-  Femlib::erfcFilter (nm, order, (integer) (lag * nm), atten, work());
-  FourierMask[0] = work[ 0];
-  FourierMask[1] = work[nm];
-  for (i = 1; i < nm; i++) FourierMask[2*i] = FourierMask[2*i+1] = work[i];
+  if (order < 1) {
+    message (routine, "Filter properties not defined", WARNING);
+    FourierMask[0] = 1.0;
+    FourierMask[1] = 0.0;
+    for (i = 1; i < nm; i++) FourierMask[2*i] = FourierMask[2*i+1] = 1.0;
+  } else {
+    work.setSize (nm + 1);
+
+    Femlib::erfcFilter (nm, order, (integer) (lag * nm), atten, work());
+    FourierMask[0] = work[ 0];
+    FourierMask[1] = work[nm];
+    for (i = 1; i < nm; i++) FourierMask[2*i] = FourierMask[2*i+1] = work[i];
+  }
 
   // -- Legendre mask.
   
@@ -83,7 +89,12 @@ void initFilters ()
   atten =           Femlib::value ("L_ATTEN");
 
   LegendreMask = new real [n];
-  Femlib::erfcFilter (nm, order, (integer) (lag * nm), atten, LegendreMask);
+
+  if (order < 1) {
+    message (routine, "Filter properties not defined", WARNING);
+    for (i = 0; i < n; i++) LegendreMask[i] = 1.0;
+  } else
+    Femlib::erfcFilter (nm, order, (integer) (lag * nm), atten, LegendreMask);
 
   // -- Legendre transform+filter (Du, Dt) and inversion (Iu, It) matrices.
 

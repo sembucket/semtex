@@ -13,7 +13,7 @@
 // way the velocity BCs are still set correctly in the viscous
 // substep.
 //
-// For testing, define DEBUG during compilation.  This will set the
+// For testing, define NOMODEL during compilation.  This will set the
 // kinematic viscosity equal to twice the input value and formulate
 // the SGS stresses as those supplied by the product of the strain
 // rate tensor with a spatially-constant NEGATIVE viscosity -KINVIS:
@@ -28,11 +28,11 @@
 #include "les.h"
 
 typedef ModalMatrixSys  Msys;
-static  integer         DIM, CYL, C3D;
+static  integer         NORD, NDIM, CYL, C3D;
    
 static void   waveProp  (Domain*, const AuxField***, const AuxField***);
-static void   setPForce (const AuxField***, AuxField***);
-static void   project   (const Domain*, AuxField***, AuxField***);
+static void   setPForce (const AuxField**, AuxField**);
+static void   project   (const Domain*, AuxField**, AuxField**);
 static Msys** preSolve  (const Domain*);
 static void   Solve     (Domain*, const integer, AuxField*, Msys*);
 static void   pushdown  (AuxField***, const integer, const integer);
@@ -47,22 +47,19 @@ void integrate (Domain*      D,
 // Uf is multi-level auxillary Field storage for nonlinear forcing terms.
 // ---------------------------------------------------------------------------
 {
-  DIM = 3;			// -- Guaranteed if we got this far.
-  CYL = Geometry::system() == Geometry::Cylindrical;
+  NDIM = 3;			// -- Guaranteed if we got this far.
+  NORD = (integer) Femlib::value ("N_TIME");
+  CYL  = Geometry::system() == Geometry::Cylindrical;
 
   integer       i, j, k;
-  const real    dt     =           Femlib::value ("D_T"   );
-  const integer nOrder = (integer) Femlib::value ("N_TIME");
-  const integer nStep  = (integer) Femlib::value ("N_STEP");
-  const integer nZ     = Geometry::nZProc();
-  const integer nTot   = Geometry::nTotProc();
+  const real    dt    =           Femlib::value ("D_T"   );
+  const integer nStep = (integer) Femlib::value ("N_STEP");
+  const integer nZ    = Geometry::nZProc();
+  const integer nTot  = Geometry::nTotProc();
 
   // -- Create global matrix systems: rename viscosities beforehand.
 
-#if defined(DEBUG)
-  Femlib::value ("REFVIS", Femlib::value ("2.0 * KINVIS"));
-#endif
-#if 0
+#if !defined (NOMODEL)
   if (Femlib::value ("REFVIS") > 0.0) {
     real kinVis = Femlib::value ("REFVIS");
     real refVis = Femlib::value ("KINVIS");
@@ -70,30 +67,31 @@ void integrate (Domain*      D,
     Femlib::value ("REFVIS", refVis);
   } 
 #endif
+
   Msys** MMS = preSolve (D);
 
   // -- Create extra storage needed for computation of SGSS, nonlinear terms.
-  //    Last DIM*nOrder*2 of these are used for Us & Uf.
+  //    Last NDIM*NORD*2 of these are used for Us & Uf.
   
-  matrix<real> Ut (17 + 2*DIM*nOrder, Geometry::nTotProc());
+  matrix<real> Ut (17 + 2*NDIM*NORD, Geometry::nTotProc());
 
   // -- Create & initialise multi-level storage for velocities and forcing.
 
-  AuxField*** Us = new AuxField** [(size_t) 2 * nOrder];
-  AuxField*** Uf = Us + nOrder;
+  AuxField*** Us = new AuxField** [(size_t) 2 * NORD];
+  AuxField*** Uf = Us + NORD;
 
-  for (i = 0; i < nOrder; i++) {
-    Us[i] = new AuxField* [(size_t) 2 * DIM];
-    Uf[i] = Us[i] + DIM;
-    for (j = 0; j < DIM; j++) {
-      *(Us[i][j] = new AuxField (Ut(17 +       j), nZ, D -> elmt)) = 0.0;
-      *(Uf[i][j] = new AuxField (Ut(17 + DIM + j), nZ, D -> elmt)) = 0.0;
+  for (i = 0; i < NORD; i++) {
+    Us[i] = new AuxField* [(size_t) 2 * NDIM];
+    Uf[i] = Us[i] + NDIM;
+    for (j = 0; j < NDIM; j++) {
+      *(Us[i][j] = new AuxField (Ut(17 +    2*i *NDIM+j), nZ, D->elmt)) = 0.0;
+      *(Uf[i][j] = new AuxField (Ut(17 + (1+2*i)*NDIM+j), nZ, D->elmt)) = 0.0;
     }
   }
 
   // -- Create multi-level storage for pressure BCs.
 
-  Field* Pressure = D -> u[DIM];
+  Field* Pressure = D -> u[NDIM];
   PBCmgr::build (Pressure);
 
   // -- Create spatially-constant forcing terms.
@@ -119,36 +117,29 @@ void integrate (Domain*      D,
     // -- Compute nonlinear terms + divergence(SGSS) + body forces.
 
     nonLinear (D, Ut, ff);
-#if 1
-    for (i = 0; i < DIM; i++) *Uf[0][i] = 0.0;
-#endif
-    // -- Take unconstrained forcing substep.
 
-    waveProp (D, (const AuxField***) Us, (const AuxField***) Uf);
+    // -- Unconstrained forcing substep.
+
+    waveProp (D, Us, Uf);
 
     // -- Pressure projection substep.
 
-    PBCmgr::maintain (D -> step, Pressure,
-		      (const AuxField***) Us, (const AuxField***) Uf);
+    PBCmgr::maintain (D -> step, Pressure, Us[0], Uf[0]);
     Pressure -> evaluateBoundaries (D -> step);
-    for (i = 0; i < DIM; i++) {
-      *Pressure = *D -> u[i];
-      *D -> u[i] = *Us[0][i];
-      *Us[0][i]  = *Pressure;
+    for (i = 0; i < NDIM; i++) {
+      *Pressure  = *(const AuxField*) D -> u[i];
+      *D -> u[i] = *(const AuxField*) Us [0][i];
+      *Us [0][i] = *(const AuxField*) Pressure;
     }
-    pushdown (Uf, nOrder, DIM);
-
-    setPForce ((const AuxField***) Us, Uf);
-    Solve     (D, DIM, Uf[0][0], MMS[DIM]);
-#if 1
-    *D -> u[DIM] = 0.0;
-#endif
-    project   (D, Us, Uf);
+    pushdown  (Uf, NORD, NDIM);
+    setPForce (Us[0], Uf[0]);
+    Solve     (D, NDIM, Uf[0][0], MMS[NDIM]);
+    project   (D, Us[0], Uf[0]);
 
     // -- Update multilevel velocity storage.
 
-    for (i = 0; i < DIM; i++) *Us[0][i] = *D -> u[i];
-    pushdown (Us, nOrder, DIM);
+    for (i = 0; i < NDIM; i++) *Us[0][i] = *D -> u[i];
+    pushdown (Us, NORD, NDIM);
 
     // -- Viscous correction substep.
 
@@ -156,14 +147,13 @@ void integrate (Domain*      D,
       AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
       AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     }
-    for (i = 0; i < DIM; i++)
-      Solve (D, i, Uf[0][i], MMS[i]);
+    for (i = 0; i < NDIM; i++) Solve (D, i, Uf[0][i], MMS[i]);
     if (C3D)
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 
     // -- Process results of this step.
 
-    A -> analyse (Us);
+    A -> analyse (Us[0]);
   }
 }
 
@@ -180,14 +170,14 @@ static void waveProp (Domain*           D ,
 // ---------------------------------------------------------------------------
 {
   integer           i, q;
-  vector<AuxField*> H (DIM);	// -- Mnemonic for u^{Hat}.
+  vector<AuxField*> H (NDIM);	// -- Mnemonic for u^{Hat}.
 
-  for (i = 0; i < DIM; i++) {
+  for (i = 0; i < NDIM; i++) {
      H[i] = D -> u[i];
     *H[i] = 0.0;
   }
 
-  const integer Je = min (D -> step, (integer) Femlib::value ("N_TIME"));
+  const integer Je = min (D -> step, NORD);
   vector<real> alpha (Integration::OrderMax + 1);
   vector<real> beta  (Integration::OrderMax);
   
@@ -195,7 +185,7 @@ static void waveProp (Domain*           D ,
   Integration::Extrapolation (Je, beta ());
   Blas::scal (Je, Femlib::value ("D_T"), beta(),  1);
 
-  for (i = 0; i < DIM; i++)
+  for (i = 0; i < NDIM; i++)
     for (q = 0; q < Je; q++) {
       H[i] -> axpy (-alpha[q + 1], *Us[q][i]);
       H[i] -> axpy ( beta [q]    , *Uf[q][i]);
@@ -203,64 +193,54 @@ static void waveProp (Domain*           D ,
 }
 
 
-static void setPForce (const AuxField*** Us,
-		       AuxField***       Uf)
+static void setPForce (const AuxField** Us,
+		       AuxField**       Uf)
 // ---------------------------------------------------------------------------
-// On input, intermediate velocity storage u^ is in first time-level of Us.
-// Create div u^ / D_T in the first dimension, first level storage
-// of Uf as a forcing field for discrete PPE.
+// On input, intermediate velocity storage u^ is in Us.  Create div u^ / D_T
+// in the first dimension of Uf as a forcing field for discrete PPE.
 // ---------------------------------------------------------------------------
 {
   integer    i;
   const real dt = Femlib::value ("D_T");
 
-  for (i = 0; i < DIM; i++) {
-   *Uf[0][i] = *Us[0][i];
-    Uf[0][i] -> gradient (i);
-  }
+  for (i = 0; i < NDIM; i++) (*Uf[i] = *Us[i]) . gradient (i);
 
-  if (C3D)
-    Uf[0][2] -> divR();
+  if (C3D) Uf[2] -> divR();
 
-  for (i = 1; i < DIM; i++) *Uf[0][0] += *Uf[0][i];
+  for (i = 1; i < NDIM; i++) *Uf[0] += *Uf[i];
 
-  if (CYL) {
-    *Uf[0][1]  = *Us[0][1];
-    Uf[0][1] ->  divR();
-    *Uf[0][0] += *Uf[0][1];
-  }
+  if (CYL) *Uf[0] += (*Uf[1] = *Us[1]) . divR();
 
-  *Uf[0][0] /= dt;
+  *Uf[0] /= dt;
 }
 
 
 static void project (const Domain* D ,
-		     AuxField***   Us,
-		     AuxField***   Uf)
+		     AuxField**    Us,
+		     AuxField**    Uf)
 // ---------------------------------------------------------------------------
 // On input, new pressure field is stored in D and intermediate velocity
-// level u^ is stored in lowest level of Us.  Constrain velocity field:
+// level u^ is stored in Us.  Constrain velocity field:
 //                    u^^ = u^ - D_T * grad P;
-// u^^ is left in lowest level of Uf.
+// u^^ is left in Uf.
 //
-// After creation of u^^, it is scaled by -1.0 / (D_T * KINVIS) to create
-// forcing for viscous step.
+// After creation of u^^, it is scaled by -1.0 / (D_T * KINVIS) to
+// create forcing for viscous step.
 // ---------------------------------------------------------------------------
 {
   integer    i;
   const real dt    = Femlib::value ("D_T");
   const real alpha = -1.0 / Femlib::value ("D_T * KINVIS");
 
-  for (i = 0; i < DIM; i++) {
+  for (i = 0; i < NDIM; i++) {
 
-   *Uf[0][i] = *D -> u[DIM];
-    Uf[0][i] -> gradient (i);
+    (*Uf[i] = *D -> u[NDIM]) . gradient (i);
 
-    if (C3D) Uf[0][2] -> divR();
+    if (C3D) Uf[2] -> divR();
 
-    *Uf[0][i] *= -dt;
-    *Uf[0][i] += *Us[0][i];
-    *Uf[0][i] *= alpha;
+    *Uf[i] *= -dt;
+    *Uf[i] += *Us[i];
+    *Uf[i] *= alpha;
   }
 }
 
@@ -278,25 +258,24 @@ static Msys** preSolve (const Domain* D)
   const integer           nmodes = Geometry::nModeProc();
   const integer           base   = Geometry::baseMode();
   const integer           itLev  = (integer) Femlib::value ("ITERATIVE");
-  const integer           nOrder = (integer) Femlib::value ("N_TIME");
   const real              beta   = Femlib::value ("BETA");
   const vector<Element*>& E      = D -> elmt;
-  Msys**                  M      = new Msys* [(size_t) (DIM + 1)];
+  Msys**                  M      = new Msys* [(size_t) (NDIM + 1)];
   integer                 i;
   vector<real>            alpha (Integration::OrderMax + 1);
-  Integration::StifflyStable (nOrder, alpha());
+  Integration::StifflyStable (NORD, alpha());
   const real              lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
 
   // -- Velocity systems.
 
-  for (i = 0; i < DIM; i++)
-    M[i] = new Msys
-      (lambda2, beta, base, nmodes, E, D -> b[i],   (itLev<1) ? DIRECT:JACPCG);
+  for (i = 0; i < NDIM; i++)
+    M[i] = new Msys (lambda2, beta, base, nmodes, E, D -> b[i],
+		     (itLev < 1) ? DIRECT : JACPCG);
 
   // -- Pressure system.
 
-  M[DIM] = new Msys
-      (0.0,     beta, base, nmodes, E, D -> b[DIM], (itLev<2) ? DIRECT:JACPCG);
+  M[NDIM] = new Msys (0.0,    beta, base, nmodes, E, D -> b[NDIM], 
+		      (itLev < 2) ? DIRECT : JACPCG);
 
   return M;
 }
@@ -312,11 +291,10 @@ static void Solve (Domain*       D,
 // time order and command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  const integer step  = D -> step;
-  const integer order = (integer) Femlib::value ("N_TIME");
+  const integer step = D -> step;
 
-  if (i < DIM && step < order) { // -- We need a temporary matrix system.
-    const integer Je      = min (step, order);    
+  if (i < NDIM && step < NORD) { // -- We need a temporary matrix system.
+    const integer Je      = min (step, NORD);    
     const integer base    = Geometry::baseMode();
     const integer nmodes  = Geometry::nModeProc();
     vector<real>  alpha (Je + 1);
@@ -333,9 +311,9 @@ static void Solve (Domain*       D,
 }
 
 
-static void pushdown (AuxField***   U   ,
-		      const integer NORD,
-		      const integer NDIM)
+static void pushdown (AuxField***   U ,
+		      const integer nr,
+		      const integer nc)
 // ---------------------------------------------------------------------------
 // Pushdown time-level stacks of velocity, forcing storage, without
 // changing pointers (i.e. by copying data).
@@ -343,7 +321,7 @@ static void pushdown (AuxField***   U   ,
 {
   integer i, j;
 
-  for (i = NORD - 1; i; i--)
-    for (j = 0; j < NDIM; j++)
+  for (i = nr - 1; i; i--)
+    for (j = 0; j < nc; j++)
       *U[i][j] = *U[i-1][j];
 }

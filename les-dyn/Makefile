@@ -19,16 +19,18 @@ ifeq ($(ARCH),Linux)
   endif
 endif
 
+DEFINES =
 ifdef DEBUG
-  DEFINES = -DDEBUG
-else
-  DEFINES =
+  DEFINES  = -DDEBUG
+endif
+ifdef NOMODEL
+  DEFINES += -DNOMODEL
 endif
 ifdef MPI
-  MPIHOME = /usr/local/lam
-  PROG    = dynles_mp
+  MPIHOME  = /usr/local/lam
+  PROG     = les-dyn_mp
 else
-  PROG    = dynles
+  PROG     = les-dyn
 endif
 
 CPPFLAGS = -I. -I$(SEM)/include
@@ -67,7 +69,7 @@ LIBDIR  += -L/usr/local/lib
 ifdef DEBUG
   OPT    = -gstabs+
 else
-  OPT    = -O3
+  OPT    = -O3 -w
 endif
 CXXFLAGS = $(DEFINES) $(OPT)
 LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lalp $(F77LIBS)
@@ -136,7 +138,8 @@ CC       = cc
 CXX      = CC
 LD       = CC
 DEFINES += -D_SX
-CFLAGS   = $(DEFINES) -pvctl,fullmsg -hacct -Onooverlap -hfloat0 -hnostkchk
+CFLAGS   = $(DEFINES) -pvctl,fullmsg,loopcnt=20000 \
+           -hacct -Onooverlap -hfloat0 -hnostkchk
 CXXFLAGS = $(CFLAGS) $(OPTIM) +a1 -ispeed
 ifdef MPI
   LIBS   = -lfem_mp -lalp_mp -llapack_64 -lblas_64 -lfft_64	\

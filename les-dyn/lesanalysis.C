@@ -35,7 +35,7 @@ LESAnalyser::LESAnalyser (Domain* D    ,
 }
 
 
-void LESAnalyser::analyse (AuxField*** work)
+void LESAnalyser::analyse (AuxField** work)
 // ---------------------------------------------------------------------------
 // Step-by-step processing.
 // ---------------------------------------------------------------------------

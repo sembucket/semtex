@@ -13,8 +13,8 @@
 
 #include "les.h"
 
-static void transform (const TransformKind, const ExchangeKind, real*);
-static void gradient  (const AuxField*, real*, const int);
+static void transform    (const TransformKind, const ExchangeKind, real*);
+static void realGradient (const AuxField*, real*, const int);
 
 
 void nonLinear (Domain*       D ,
@@ -96,6 +96,7 @@ void nonLinear (Domain*       D ,
   // -- Transform and filter velocities.
 
   for (i = 0; i < 3; i++) {
+    Veclib::zero (nTot, Nl[i], 1);
     Veclib::copy (nTot, Ud[i], 1, Us[i], 1);
     Veclib::copy (nTot, Ud[i], 1, Ua[i], 1);
     lowpass      (Ud[i]);
@@ -108,24 +109,24 @@ void nonLinear (Domain*       D ,
   for (i = 0; i < 3; i++)
     for (j = i + 1; j < 3; j++) {
       ij = i + j - 1;
-      Veclib::copy (nTot, Us[ i], 1, Sr[ij], 1);
-      gradient     (meta, Sr[ij], j);
-      Veclib::copy (nTot, Sr[ij], 1, St[ij], 1);
-      lowpass      (St[ij]);
-      transform    (INVERSE, FULL, Sr[ij]);
-      transform    (INVERSE, FULL, St[ij]);
-      Veclib::vmul (nTot, Ua[j], 1, Sr[ij], 1, Nl[i], 1);
+      Veclib::copy   (nTot, Us[i], 1, Sr[ij], 1);
+      meta->gradient (nZP, nP, Sr[ij], j);
+      Veclib::copy   (nTot, Sr[ij], 1, St[ij], 1);
+      lowpass        (St[ij]);
+      transform      (INVERSE, FULL, Sr[ij]);
+      transform      (INVERSE, FULL, St[ij]);
+      Veclib::vvtvp  (nTot, Ua[j], 1, Sr[ij], 1, Nl[i], 1, Nl[i], 1);
     }
   
   for (i = 0; i < 3; i++)
     for (j = i + 1; j < 3; j++) {
-      Veclib::copy (nTot, Us[j], 1, Sr[i], 1);
-      gradient     (meta, Sr[i], i);
-      Veclib::copy (nTot, Sr[i], 1, St[i], 1);
-      lowpass      (St[i]);
-      transform    (INVERSE, FULL, Sr[i]);
-      transform    (INVERSE, FULL, St[i]);
-      Veclib::vvtvp (nTot, Ua[i], 1, Sr[i], 1, Nl[i], 1, Nl[i], 1);
+      Veclib::copy   (nTot, Us[j], 1, Sr[i], 1);
+      meta->gradient (nZP, nP, Sr[i], i);
+      Veclib::copy   (nTot, Sr[i], 1, St[i], 1);
+      lowpass        (St[i]);
+      transform      (INVERSE, FULL, St[i]);
+      transform      (INVERSE, FULL, Sr[i]);
+      Veclib::vvtvp  (nTot, Ua[i], 1, Sr[i], 1, Nl[j], 1, Nl[j], 1);
     }
   
   for (i = 0; i < 3; i++) {
@@ -136,13 +137,13 @@ void nonLinear (Domain*       D ,
   // -- Form diagonal terms for RoS tensors, nonconservative Nl terms.
 
   for (i = 0; i < 3; i++) {
-    Veclib::copy (nTot, Us[i], 1, Sr[i], 1);
-    gradient     (meta, Sr[i], i);
-    Veclib::copy (nTot, Sr[i], 1, St[i], 1);
-    lowpass      (St[i]);
-    transform    (INVERSE, FULL, St[i]);
-    transform    (INVERSE, FULL, Sr[i]);
-    Veclib::vmul (nTot, Ua[i], 1, Sr[i], 1, Nl[i], 1);
+    Veclib::copy   (nTot, Us[i], 1, Sr[i], 1);
+    meta->gradient (nZP, nP, Sr[i], i);
+    Veclib::copy   (nTot, Sr[i], 1, St[i], 1);
+    lowpass        (St[i]);
+    transform      (INVERSE, FULL, St[i]);
+    transform      (INVERSE, FULL, Sr[i]);
+    Veclib::vvtvp  (nTot, Ua[i], 1, Sr[i], 1, Nl[i], 1, Nl[i], 1);
   }
 
   // -- Form strain rate magnitude estimates |S|, |S~|.
@@ -186,7 +187,7 @@ void nonLinear (Domain*       D ,
   for (i = 0; i < 3; i++) {
     Veclib::vmul  (nTot, Ua[i], 1, Ua[i], 1, tmp, 1);
     Veclib::copy  (nTot, tmp, 1, L, 1);
-    gradient      (meta, tmp, i);
+    realGradient  (meta, tmp, i);
     Veclib::vadd  (nTot, tmp, 1, Nl[i], 1, Nl[i], 1);
     transform     (FORWARD, FULL, L);
     lowpass       (L);
@@ -209,8 +210,8 @@ void nonLinear (Domain*       D ,
       Veclib::vmul    (nTot, Ua[i], 1, Ua[j], 1, tmp, 1);
       Veclib::copy    (nTot, tmp, 1, L, 1);
       Veclib::copy    (nTot, tmp, 1, M, 1);
-      gradient        (meta, M,   i);
-      gradient        (meta, tmp, j);
+      realGradient    (meta, M,   i);
+      realGradient    (meta, tmp, j);
       Veclib::vadd    (nTot, M,   1, Nl[j], 1, Nl[j], 1);
       Veclib::vadd    (nTot, tmp, 1, Nl[i], 1, Nl[i], 1);
       transform       (FORWARD, FULL, L);
@@ -246,6 +247,7 @@ void nonLinear (Domain*       D ,
   for (i = 0; i < 3; i++)
     Blas::scal (nTot, -0.5, Nl[i], 1);
 
+#if !defined (NOMODEL)
   // -- Subtract divergence of SGSS from nonlinear terms.
 
   for (i = 0; i < 3; i++) {	// -- Diagonal terms.
@@ -257,12 +259,13 @@ void nonLinear (Domain*       D ,
     for (j = i + 1; j < 3; j++) {
       ij = i + j - 1;
       Veclib::copy (nTot, Sr[j], 1, tmp, 1);
-      gradient     (meta, Sr[j], j);
-      gradient     (meta, tmp,   i);
+      realGradient (meta, Sr[j], j);
+      realGradient (meta, tmp,   i);
       Veclib::vsub (nTot, Nl[i], 1, Sr[j], 1, Nl[i], 1);
       Veclib::vsub (nTot, Nl[j], 1, tmp,   1, Nl[j], 1);
     }
-    
+#endif
+
   // -- Direct stiffness summation.
 
   for (i = 0; i < 3; i++)
@@ -300,22 +303,22 @@ static void transform (const TransformKind SIGN,
   const integer nPR = Geometry::nProc();
 
   if (SIGN == FORWARD) {
-    Femlib::exchange   (data, nZP, nP,  +1);
-    Femlib::DFTr       (data, nZ,  nPP, +1);
+    Femlib::exchange   (data, nZP, nP,  FORWARD);
+    Femlib::DFTr       (data, nZ,  nPP, FORWARD);
     if (EXCH == FULL) 
-      Femlib::exchange (data, nZP, nP,  -1);
+      Femlib::exchange (data, nZP, nP,  INVERSE);
   } else {
     if (EXCH == FULL) 
-      Femlib::exchange (data, nZP, nP,  +1);
-    Femlib::DFTr       (data, nZ,  nPP, -1);
-    Femlib::exchange   (data, nZP, nP,  -1);
+      Femlib::exchange (data, nZP, nP,  FORWARD);
+    Femlib::DFTr       (data, nZ,  nPP, INVERSE);
+    Femlib::exchange   (data, nZP, nP,  INVERSE);
   }
 }
 
 
-static void gradient (const AuxField* meta, 
-		      real*           ui  ,
-		      const int       xj  )
+static void realGradient (const AuxField* meta, 
+			  real*           ui  ,
+			  const int       xj  )
 // ---------------------------------------------------------------------------
 // Carry out gradient operation on data, special case for homogeneous
 // direction.
