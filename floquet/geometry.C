@@ -54,7 +54,7 @@ void Geometry::set (const int nel  ,
                                Geometry::Cylindrical : Geometry::Cartesian;
   _npert     = npert;
   _nel       = nel;
-  _psize     = nPlane();
+  _psize     = nPlane() + (nPlane() % 2);
 
   _nz = _nzp = static_cast<int>(Femlib::value ("N_Z"));
 
