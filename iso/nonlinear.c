@@ -6,13 +6,14 @@
 
 #include "iso.h"
 
-
 static int N0 = 0, N1 = 0, N2 = 0; /* -- Globals used in 3D indexing. */
 
 #define rm(i,j,k)     ((k) + N2 * ((j) + N1 * (i)))
-#define EQN(Z1,c,Z2)  (Z1)->Re  = (-c) * (Z2)->Im; (Z1)->Im  =  (c) * (Z2)->Re
-#define PEQ(Z1,c,Z2)  (Z1)->Re -=  (c) * (Z2)->Im; (Z1)->Im +=  (c) * (Z2)->Re
-
+#define PEQ(Z1,c,Z2)  (Z1)->Re += (c) * (Z2)->Im; \
+                      (Z1)->Im -= (c) * (Z2)->Re
+#define SHIFT(Z, W)   tempRe = (Z).Re; \
+                      (Z).Re = tempRe*(W).Re - (Z).Im*(W).Im; \
+                      (Z).Im = (Z).Im*(W).Re + tempRe*(W).Im
 
 static void  convolve (const CF, const CF, const CF, const CF, CF, CF,
 		       const complex*, const complex*, const int*);
@@ -30,7 +31,9 @@ void nonlinear (/* input     */  CVF             U   ,
 /* ------------------------------------------------------------------------- *
  * Compute the Fourier transform of the nonlinear product -d(UjUm)/dxm,
  * Gj = -ikmFjm, using the pseudospectral method described by Orszag [1].
- * These terms are projected onto a divergence-free space on the fly.
+ *
+ * In the old version, the terms were projected onto a divergence-free
+ * space on the fly but now this is pulled out to be a separate step.
  *
  * The contributions are calculated only in the octodecahedral (isotropi-
  * cally truncated) space described by Orszag.
@@ -73,18 +76,18 @@ void nonlinear (/* input     */  CVF             U   ,
  *
  * ------------------------------------------------------------------------- */
 {
-  register int      c, k1, b1, k2, b2, k3;
-  register real     C1, C2, C3, kSqrd, kkonk2;
-  register complex  *f, *g;
-  const    int      N        = Dim[1];
-  const    int      K        = Dim[3];
-  const    int      FOURKon3 = (4 * K) / 3;
+  register int     c, k1, b1, k2, b2, k3;
+  register complex *f, *g;
+  const int        N        = Dim[1];
+  const int        K        = Dim[3];
+  const int        FOURKon3 = (4 * K) / 3;
 
   N0 = N1 = N;			/* -- Set global vars used for indexing. */
   N2 = K;
 
   /* -- Make velocity field in PHYSICAL space on unshifted & shifted grid
-   *    for alias control.                                                  */
+   *    for alias control.
+   */
 
   for (c = 1; c <= 3; c++) {
     copyF  (U_[c], U[c], Dim);
@@ -94,410 +97,377 @@ void nonlinear (/* input     */  CVF             U   ,
   }
 
   /* -- Convolve u_hat[1] with itself to make F11 and distribute.
-   *    Note that nothing happens on the axes, or on the k1=0 face for F11. */
+   *    G1 += -i k1 F11.
+   */
 
   convolve (U[1], U[1], U_[1], U_[1], F, F_, Wtab, Stab, Dim);
   
   for (k1 = 1; k1 < K; k1++) {
+
+    /* -- Axes.  Contributions on k1 axis only. */
+
     b1 = N - k1;
-
+#if 1      
+    f = F[k1][ 0]; g = G[1][k1][ 0]; PEQ (g,  k1, f);
+    f = F[b1][ 0]; g = G[1][b1][ 0]; PEQ (g, -k1, f);
+#else      
+    PEQ (G[1][k1][ 0],  k1, F[k1][ 0]);
+    PEQ (G[1][b1][ 0], -k1, F[b1][ 0]);
+#endif
     for (k2 = 1; k2 < K && k1+k2 <= FOURKon3; k2++) {
-      b2     = N - k2;
-      kSqrd  = k1*k1 + k2*k2;
-      kkonk2 = k1*k1 / kSqrd;
-      C1 =     k1 * (kkonk2 - 1.0);
-      C2 =     k2 *  kkonk2;
-      
-      f = &F   [k1][ 0][k2];
-      g = &G[1][k1][ 0][k2]; EQN (g, C1, f);
-      g = &G[3][k1][ 0][k2]; EQN (g, C2, f);
 
-      
-      f = &F   [k1][k2][ 0];
-      g = &G[1][k1][k2][ 0]; EQN (g, C1, f);
-      g = &G[2][k1][k2][ 0]; EQN (g, C2, f);
-      
-      C1 = -C1;
-      
-      f = &F   [b1][ 0][k2];
-      g = &G[1][b1][ 0][k2]; EQN (g, C1, f);
-      g = &G[3][b1][ 0][k2]; EQN (g, C2, f);
-      
-      f = &F   [b1][k2][ 0];
-      g = &G[1][b1][k2][ 0]; EQN (g, C1, f);
-      g = &G[2][b1][k2][ 0]; EQN (g, C2, f);
+      /* -- Faces.  Contributions on k1--k2 & k1--k3 faces. */
 
+      b2 = N - k2;
+#if 1      
+      f = F[k1][k2]; g = G[1][k1][k2]; PEQ (g,  k1, f);
+      f = F[b1][k2]; g = G[1][b1][k2]; PEQ (g, -k1, f);
+      f = F[k1][ 0]+k2; g = G[1][k1][ 0]+k2; PEQ (g,  k1, f);
+      f = F[b1][ 0]+k2; g = G[1][b1][ 0]+k2; PEQ (g, -k1, f);
+#else
+      
+      PEQ (G[1][k1][k2],     k1, F[k1][k2]);
+      PEQ (G[1][b1][k2],    -k1, F[b1][k2]);
+      PEQ (G[1][k1][ 0]+k2,  k1, F[k1][ 0]+k2);
+      PEQ (G[1][b1][ 0]+k2, -k1, F[b1][ 0]+k2);
+#endif
       for (k3 = 1; k3 < K && k2+k3 <= FOURKon3 && k1+k3 <= FOURKon3; k3++) {
-	kSqrd  = k1*k1 + k2*k2 + k3*k3;
-	kkonk2 = k1*k1 / kSqrd;
-	C1     = k1 * (kkonk2 - 1.0);
-	C2     = k2 *  kkonk2;
-	C3     = k3 *  kkonk2;
-	
-	f = &F   [k1][k2][k3];
-	g = &G[1][k1][k2][k3]; EQN (g, C1, f);
-	g = &G[2][k1][k2][k3]; EQN (g, C2, f);
-	g = &G[3][k1][k2][k3]; EQN (g, C3, f);
-	
-	C1 = -C1;
-	
-	f = &F   [b1][k2][k3];
-	g = &G[1][b1][k2][k3]; EQN (g, C1, f);
-	g = &G[2][b1][k2][k3]; EQN (g, C2, f);
-	g = &G[3][b1][k2][k3]; EQN (g, C3, f);
-	
-	C2 = -C2;
-	
-	f = &F   [b1][b2][k3];
-	g = &G[1][b1][b2][k3]; EQN (g, C1, f);
-	g = &G[2][b1][b2][k3]; EQN (g, C2, f);
-	g = &G[3][b1][b2][k3]; EQN (g, C3, f);
-	
-	C1 = -C1;
-	
-	f = &F   [k1][b2][k3];
-	g = &G[1][k1][b2][k3]; EQN (g, C1, f);
-	g = &G[2][k1][b2][k3]; EQN (g, C2, f);
-	g = &G[3][k1][b2][k3]; EQN (g, C3, f);
+
+	/* -- Interior contributions. */
+#if 1
+	f = F[k1][k2]+k3; g = G[1][k1][k2]+k3; PEQ (g,  k1, f);
+	f = F[k1][b2]+k3; g = G[1][k1][b2]+k3; PEQ (g,  k1, f);
+	f = F[b1][k2]+k3; g = G[1][b1][k2]+k3; PEQ (g, -k1, f);
+	f = F[b1][b2]+k3; g = G[1][b1][b2]+k3; PEQ (g, -k1, f);
+#else
+	PEQ (G[1][k1][k2]+k3,  k1, F[k1][k2]+k3);
+	PEQ (G[1][k1][b2]+k3,  k1, F[k1][b2]+k3);
+	PEQ (G[1][b1][k2]+k3, -k1, F[b1][k2]+k3);
+	PEQ (G[1][b1][b2]+k3, -k1, F[b1][b2]+k3);
+#endif
       }
     }
   }
 
   /* -- Convolve u_hat[2] with itself to make F22.
-   *    Nothing happens on the axes or on k2=0 face. */
+   *    G2 += -i k2 F22.
+   */
 
   convolve (U[2], U[2], U_[2], U_[2], F,  F_, Wtab, Stab, Dim);
   
   for (k1 = 1; k1 < K; k1++) {
+
+    /* -- Axes.  Contributions on k2 axis only. */
+
     b1 = N - k1;
-
+#if 1      
+    f = F[ 0][k1]; g = G[2][ 0][k1]; PEQ (g,  k1, f);
+    f = F[ 0][b1]; g = G[2][ 0][b1]; PEQ (g, -k1, f);
+#else
+    PEQ (G[2][ 0][k1],  k1, F[ 0][k1]);
+    PEQ (G[2][ 0][b1], -k1, F[ 0][b1]);
+#endif
     for (k2 = 1; k2 < K && k1+k2 <= FOURKon3; k2++) {
-      b2     = N - k2;
-      kSqrd  = k1*k1 + k2*k2;
-      kkonk2 = k1*k1 / kSqrd;
-      C1     = k1 * (kkonk2 - 1.0);
-      C2     = k2 *  kkonk2;
-      
-      f = &F   [ 0][k1][k2];
-      g = &G[2][ 0][k1][k2]; EQN (g, C1, f);
-      g = &G[3][ 0][k1][k2]; EQN (g, C2, f);
-      
-      C1 = -C1;
-      
-      f = &F   [ 0][b1][k2];
-      g = &G[2][ 0][b1][k2]; EQN (g, C1, f);
-      g = &G[3][ 0][b1][k2]; EQN (g, C2, f);
-      
-      kkonk2 = k2*k2 / kSqrd;
-      C1     = k1 *  kkonk2;
-      C2     = k2 * (kkonk2 - 1.0);
-      
-      f = &F   [k1][k2][ 0];
-      g = &G[1][k1][k2][ 0]; PEQ (g, C1, f);
-      g = &G[2][k1][k2][ 0]; PEQ (g, C2, f);
-      
-      f = &F   [b1][k2][ 0];
-      g = &G[1][b1][k2][ 0]; PEQ (g, -C1, f);
-      g = &G[2][b1][k2][ 0]; PEQ (g,  C2, f);
 
+      /* -- Faces.  Contributions on k1--k2 & k2--k3 faces only. */
+
+      b2 = N - k2;
+#if 1      
+      f = F[k1][k2]; g = G[2][k1][k2]; PEQ (g,  k2, f);
+      f = F[b1][k2]; g = G[2][b1][k2]; PEQ (g,  k2, f);
+      f = F[ 0][k2]+k1; g = G[2][ 0][k2]+k1; PEQ (g,  k2, f);
+      f = F[ 0][b2]+k1; g = G[2][ 0][b2]+k1; PEQ (g, -k2, f);
+#else
+      PEQ (G[2][k1][k2],     k2, F[k1][k2]);
+      PEQ (G[2][b1][k2],     k2, F[b1][k2]);
+      PEQ (G[2][ 0][k2]+k1,  k2, F[ 0][k2]+k1);
+      PEQ (G[2][ 0][b2]+k1, -k2, F[ 0][b2]+k1);
+#endif
       for (k3 = 1; k3 < K && k2+k3 <= FOURKon3 && k1+k3 <= FOURKon3; k3++) {
-	kSqrd  = k1*k1 + k2*k2 + k3*k3;
-	kkonk2 = k2*k2 / kSqrd;
-	C1     = k1 *  kkonk2;
-	C2     = k2 * (kkonk2 - 1.0);
-	C3     = k3 *  kkonk2;
-	
-	f = &F   [k1][k2][k3];
-	g = &G[1][k1][k2][k3]; PEQ (g, C1, f);
-	g = &G[2][k1][k2][k3]; PEQ (g, C2, f);
-	g = &G[3][k1][k2][k3]; PEQ (g, C3, f);
-	
-	f = &F   [b1][k2][k3];
-	g = &G[1][b1][k2][k3]; PEQ (g, -C1, f);
-	g = &G[2][b1][k2][k3]; PEQ (g,  C2, f);
-	g = &G[3][b1][k2][k3]; PEQ (g,  C3, f);
-	
-	f = &F   [k1][b2][k3];
-	g = &G[1][k1][b2][k3]; PEQ (g,  C1, f);
-	g = &G[2][k1][b2][k3]; PEQ (g, -C2, f);
-	g = &G[3][k1][b2][k3]; PEQ (g,  C3, f);
-	
-	f = &F   [b1][b2][k3];
-	g = &G[1][b1][b2][k3]; PEQ (g, -C1, f);
-	g = &G[2][b1][b2][k3]; PEQ (g, -C2, f);
-	g = &G[3][b1][b2][k3]; PEQ (g,  C3, f);
+
+	/* -- Interior contributions. */
+#if 1	
+	f = F[k1][k2]+k3; g = G[2][k1][k2]+k3; PEQ (g,  k2, f);
+	f = F[k1][b2]+k3; g = G[2][k1][b2]+k3; PEQ (g, -k2, f);
+	f = F[b1][k2]+k3; g = G[2][b1][k2]+k3; PEQ (g,  k2, f);
+	f = F[b1][b2]+k3; g = G[2][b1][b2]+k3; PEQ (g, -k2, f);
+#else
+	PEQ (G[2][k1][k2]+k3,  k2, F[k1][k2]+k3);
+	PEQ (G[2][k1][b2]+k3, -k2, F[k1][b2]+k3);
+	PEQ (G[2][b1][k2]+k3,  k2, F[b1][k2]+k3);
+	PEQ (G[2][b1][b2]+k3, -k2, F[b1][b2]+k3);
+#endif
       }
     }
   }
   
   /* -- Convolve u_hat[3] with itself to make F33 and distribute.
-   *    Nothing happens on axes or k3=0 face.                      */
+   *    G3 += -i k3 F33.
+   */
 
   convolve (U[3], U[3], U_[3], U_[3], F,  F_, Wtab, Stab, Dim);
   
   for (k1 = 1; k1 < K; k1++) {
+
+    /* -- Axes.  Contributions on k3 axis only. */
+
     b1 = N - k1;
-
+#if 1
+    f = F[ 0][ 0]+k1; g = G[3][ 0][ 0]+k1; PEQ (g,  k1, f);
+#else
+    PEQ (G[3][ 0][ 0]+k1,  k1, F[ 0][ 0]+k1);
+#endif
     for (k2 = 1; k2 < K && k1+k2 <= FOURKon3; k2++) {
-      b2     = N - k2;
-      kSqrd  = k1*k1 + k2*k2;
-      kkonk2 = k2*k2 / kSqrd;
-      C1     = k1 *  kkonk2;
-      C2     = k2 * (kkonk2 - 1.0);
-      
-      f = &F   [ 0][k1][k2];
-      g = &G[2][ 0][k1][k2]; PEQ (g, C1, f);
-      g = &G[3][ 0][k1][k2]; PEQ (g, C2, f);
-      
-      f = &F   [ 0][b1][k2];
-      g = &G[2][ 0][b1][k2]; PEQ (g, -C1, f);
-      g = &G[3][ 0][b1][k2]; PEQ (g,  C2, f);
-      
-      f = &F   [k1][ 0][k2];
-      g = &G[1][k1][ 0][k2]; PEQ (g, C1, f);
-      g = &G[3][k1][ 0][k2]; PEQ (g, C2, f);
-      
-      f = &F   [b1][ 0][k2];
-      g = &G[1][b1][ 0][k2]; PEQ (g, -C1, f);
-      g = &G[3][b1][ 0][k2]; PEQ (g,  C2, f);
 
+      /* -- Faces.  Contributions on k1--k3 & k2--k3 faces only. */
+
+      b2 = N - k2;
+#if 1
+      f = F[k1][ 0]+k2; g = G[3][k1][ 0]+k2; PEQ (g,  k2, f);
+      f = F[b1][ 0]+k2; g = G[3][b1][ 0]+k2; PEQ (g,  k2, f);
+      f = F[ 0][k1]+k2; g = G[3][ 0][k1]+k2; PEQ (g,  k2, f);
+      f = F[ 0][b1]+k2; g = G[3][ 0][b1]+k2; PEQ (g,  k2, f);
+#else
+      PEQ (G[3][k1][ 0]+k2,  k2, F[k1][ 0]+k2);
+      PEQ (G[3][b1][ 0]+k2,  k2, F[b1][ 0]+k2);
+      PEQ (G[3][ 0][k1]+k2,  k2, F[ 0][k1]+k2);
+      PEQ (G[3][ 0][b1]+k2,  k2, F[ 0][b1]+k2);
+#endif
       for (k3 = 1; k3 < K && k2+k3 <= FOURKon3 && k1+k3 <= FOURKon3; k3++) {
-	kSqrd  = k1*k1 + k2*k2 + k3*k3;
-	kkonk2 = k3*k3 / kSqrd;
-	C1     = k1 *  kkonk2;
-	C2     = k2 *  kkonk2;
-	C3     = k3 * (kkonk2 - 1.0);
-	
-	f = &F   [k1][k2][k3];
-	g = &G[1][k1][k2][k3]; PEQ (g, C1, f);
-	g = &G[2][k1][k2][k3]; PEQ (g, C2, f);
-	g = &G[3][k1][k2][k3]; PEQ (g, C3, f);
-	
-	f = &F   [b1][k2][k3];
-	g = &G[1][b1][k2][k3]; PEQ (g, -C1, f);
-	g = &G[2][b1][k2][k3]; PEQ (g,  C2, f);
-	g = &G[3][b1][k2][k3]; PEQ (g,  C3, f);
-	
-	f = &F   [k1][b2][k3];
-	g = &G[1][k1][b2][k3]; PEQ (g,  C1, f);
-	g = &G[2][k1][b2][k3]; PEQ (g, -C2, f);
-	g = &G[3][k1][b2][k3]; PEQ (g,  C3, f);
-	
-	f = &F   [b1][b2][k3];
-	g = &G[1][b1][b2][k3]; PEQ (g, -C1, f);
-	g = &G[2][b1][b2][k3]; PEQ (g, -C2, f);
-	g = &G[3][b1][b2][k3]; PEQ (g,  C3, f);
+#if 1	
+	f = F[k1][k2]+k3; g = G[3][k1][k2]+k3; PEQ (g,  k3, f);
+	f = F[k1][b2]+k3; g = G[3][k1][b2]+k3; PEQ (g,  k3, f);
+	f = F[b1][k2]+k3; g = G[3][b1][k2]+k3; PEQ (g,  k3, f);
+	f = F[b1][b2]+k3; g = G[3][b1][b2]+k3; PEQ (g,  k3, f);
+#else
+	PEQ (G[3][k1][k2]+k3,  k3, F[k1][k2]+k3);
+	PEQ (G[3][k1][b2]+k3,  k3, F[k1][b2]+k3);
+	PEQ (G[3][b1][k2]+k3,  k3, F[b1][k2]+k3);
+	PEQ (G[3][b1][b2]+k3,  k3, F[b1][b2]+k3);
+#endif
       }
     }
   }
   
-  /* --Convolve u_hat[1] with u_hat[2] to make F12 (and, by symmetry, F21). */
+  /* -- Convolve u_hat[1] with u_hat[2] to make F12 (and, by symmetry, F21).
+   *    G2 += -i k1 F21;
+   *    G1 += -i k2 F12;
+   */
 
   convolve (U[1], U[2], U_[1], U_[2], F,  F_, Wtab, Stab, Dim);
   
   for (k1 = 1; k1 < K; k1++) {
+
+    /* -- Axes. */
+
     b1 = N - k1;
-    C1 = -k1;
-    
-    f = &F   [ 0][k1][ 0];
-    g = &G[1][ 0][k1][ 0]; EQN (g, C1, f);
-    f = &F   [k1][ 0][ 0];
-    g = &G[2][k1][ 0][ 0]; EQN (g, C1, f);
-
+#if 1    
+    f = F[k1][ 0]; g = G[2][k1][ 0]; PEQ (g,  k1, f);
+    f = F[b1][ 0]; g = G[2][b1][ 0]; PEQ (g, -k1, f);
+    f = F[ 0][k1]; g = G[1][ 0][k1]; PEQ (g,  k1, f);
+    f = F[ 0][b1]; g = G[1][ 0][b1]; PEQ (g, -k1, f);
+#else
+    PEQ (G[2][k1][ 0],  k1, F[k1][ 0]);
+    PEQ (G[2][b1][ 0], -k1, F[b1][ 0]);
+    PEQ (G[1][ 0][k1],  k1, F[ 0][k1]);
+    PEQ (G[1][ 0][b1], -k1, F[ 0][b1]);
+#endif
     for (k2 = 1; k2 < K && k1+k2 <= FOURKon3; k2++) {
-      b2    =  N - k2;
-      kSqrd =  k1*k1 + k2*k2;
-      C1    = -k1;
-      C2    =  k2 * (2.0*k1*k1/kSqrd - 1.0);
-      C3    =  k1 * (2.0*k2*k2/kSqrd - 1.0);
-      
-      f = &F   [ 0][k1][k2];
-      g = &G[1][ 0][k1][k2]; EQN (g, C1, f);
-      
-      f = &F   [k1][ 0][k2];
-      g = &G[2][k1][ 0][k2]; EQN (g, C1, f);
-      
-      C1 = k1;
-      
-      f = &F   [ 0][b1][k2];
-      g = &G[1][ 0][b1][k2]; EQN (g, C1, f);
-      
-      f = &F   [b1][ 0][k2];
-      g = &G[2][b1][ 0][k2]; EQN (g, C1, f);
-      
-      f = &F   [k1][k2][ 0];
-      g = &G[1][k1][k2][ 0]; PEQ (g, C2, f);
-      g = &G[2][k1][k2][ 0]; PEQ (g, C3, f);
-      
-      f = &F   [b1][k2][ 0];
-      g = &G[1][b1][k2][ 0]; PEQ (g,  C2, f);
-      g = &G[2][b1][k2][ 0]; PEQ (g, -C3, f);
 
+      /* -- Faces.  G1 on k1--k2 & k1--k3; G2 on k1--k2 && k2--k3 */
+
+      b2 = N - k2;
+#if 1      
+      f = F[k1][k2]; g = G[2][k1][k2]; PEQ (g,  k1, f);
+      f = F[b1][k2]; g = G[2][b1][k2]; PEQ (g, -k1, f);
+      f = F[k1][ 0]+k2; g = G[2][k1][ 0]+k2; PEQ (g,  k1, f);
+      f = F[b1][ 0]+k2; g = G[2][b1][ 0]+k2; PEQ (g, -k1, f);
+      
+      f = F[k1][k2]; g = G[1][k1][k2]; PEQ (g,  k2, f);
+      f = F[b1][k2]; g = G[1][b1][k2]; PEQ (g,  k2, f);
+      f = F[ 0][k2]+k1; g = G[1][ 0][k2]+k1; PEQ (g,  k2, f);
+      f = F[ 0][b2]+k1; g = G[1][ 0][b2]+k1; PEQ (g, -k2, f);
+#else
+      PEQ (G[2][k1][k2],     k1, F[k1][k2]);
+      PEQ (G[2][b1][k2],    -k1, F[b1][k2]);
+      PEQ (G[2][k1][ 0]+k2,  k1, F[k1][ 0]+k2);
+      PEQ (G[2][b1][ 0]+k2, -k1, F[b1][ 0]+k2);
+      
+      PEQ (G[1][k1][k2],     k2, F[k1][k2]);
+      PEQ (G[1][b1][k2],     k2, F[b1][k2]);
+      PEQ (G[1][ 0][k2]+k1,  k2, F[ 0][k2]+k1);
+      PEQ (G[1][ 0][b2]+k1, -k2, F[ 0][b2]+k1);
+#endif
       for (k3 = 1; k3 < K && k2+k3 <= FOURKon3 && k1+k3 <= FOURKon3; k3++) {
-	kSqrd = k1*k1 + k2*k2 + k3*k3;
-	C1    = k2 * (2.0*k1*k1/kSqrd - 1.0);
-	C2    = k1 * (2.0*k2*k2/kSqrd - 1.0);
-	C3    = 2.0*k1*k2*k3/kSqrd;
+
+	/* -- Interior. */
+#if 1
+	f = F[k1][k2]+k3; g = G[2][k1][k2]+k3; PEQ (g,  k1, f);
+	f = F[k1][b2]+k3; g = G[2][k1][b2]+k3; PEQ (g,  k1, f);
+	f = F[b1][k2]+k3; g = G[2][b1][k2]+k3; PEQ (g, -k1, f);
+	f = F[b1][b2]+k3; g = G[2][b1][b2]+k3; PEQ (g, -k1, f);
 	
-	f = &F   [k1][k2][k3];
-	g = &G[1][k1][k2][k3]; PEQ (g, C1, f);
-	g = &G[2][k1][k2][k3]; PEQ (g, C2, f);
-	g = &G[3][k1][k2][k3]; PEQ (g, C3, f);
-	
-	f = &F   [b1][k2][k3];
-	g = &G[1][b1][k2][k3]; PEQ (g,  C1, f);
-	g = &G[2][b1][k2][k3]; PEQ (g, -C2, f);
-	g = &G[3][b1][k2][k3]; PEQ (g, -C3, f);
-	
-	f = &F   [k1][b2][k3];
-	g = &G[1][k1][b2][k3]; PEQ (g, -C1, f);
-	g = &G[2][k1][b2][k3]; PEQ (g,  C2, f);
-	g = &G[3][k1][b2][k3]; PEQ (g, -C3, f);
-	
-	f = &F   [b1][b2][k3];
-	g = &G[1][b1][b2][k3]; PEQ (g, -C1, f);
-	g = &G[2][b1][b2][k3]; PEQ (g, -C2, f);
-	g = &G[3][b1][b2][k3]; PEQ (g,  C3, f);
+	f = F[k1][k2]+k3; g = G[1][k1][k2]+k3; PEQ (g,  k2, f);
+	f = F[b1][k2]+k3; g = G[1][b1][k2]+k3; PEQ (g,  k2, f);
+	f = F[k1][b2]+k3; g = G[1][k1][b2]+k3; PEQ (g, -k2, f);
+	f = F[b1][b2]+k3; g = G[1][b1][b2]+k3; PEQ (g, -k2, f);
+#else
+
+	PEQ (G[2][k1][k2]+k3,  k1, F[k1][k2]+k3);
+	PEQ (G[2][k1][b2]+k3,  k1, F[k1][b2]+k3);
+	PEQ (G[2][b1][k2]+k3, -k1, F[b1][k2]+k3);
+	PEQ (G[2][b1][b2]+k3, -k1, F[b1][b2]+k3);
+	     		    	    
+	PEQ (G[1][k1][k2]+k3,  k2, F[k1][k2]+k3);
+	PEQ (G[1][b1][k2]+k3,  k2, F[b1][k2]+k3);
+	PEQ (G[1][k1][b2]+k3, -k2, F[k1][b2]+k3);
+	PEQ (G[1][b1][b2]+k3, -k2, F[b1][b2]+k3);
+#endif
       }
     }
   }
   
-  /* -- Convolve u_hat[2] with u_hat[3] to make F23 (and, by symmetry, F32). */
+  /* -- Convolve u_hat[2] with u_hat[3] to make F23 (and, by symmetry, F32).
+   *    G3 += -i k2 F32;
+   *    G2 += -i k3 F23;
+   */
 
   convolve (U[2], U[3], U_[2], U_[3], F,  F_, Wtab, Stab, Dim);
   
   for (k1 = 1; k1 < K; k1++) {
+
+    /* -- Axes: contributions on k2 & k3 axes. */
+
     b1 = N - k1;
-    C1 = -k1;
+#if 1      
+    f = F[ 0][k1]; g = G[3][ 0][k1]; PEQ (g,  k1, f);
+    f = F[ 0][b1]; g = G[3][ 0][b1]; PEQ (g, -k1, f);
 
-    f = &F   [ 0][ 0][k1];
-    g = &G[2][ 0][ 0][k1]; EQN (g, C1, f);
-    f = &F   [ 0][k1][ 0];
-    g = &G[3][ 0][k1][ 0]; EQN (g, C1, f);
-
+    f = F[ 0][ 0]+k1; g = G[2][ 0][ 0]+k1; PEQ (g,  k1, f);
+#else
+    PEQ (G[3][ 0][k1],     k1, F[ 0][k1]);
+    PEQ (G[3][ 0][b1],    -k1, F[ 0][b1]);
+	 		 	 
+    PEQ (G[2][ 0][ 0]+k1,  k1, F[ 0][ 0]+k1);
+#endif
     for (k2 = 1; k2 < K && k1+k2 <= FOURKon3; k2++) {
-      b2    =  N - k2;
-      kSqrd =  k1*k1 + k2*k2;
-      C1    =  k2 * (2.0*k1*k1/kSqrd - 1.0);
-      C2    =  k1 * (2.0*k2*k2/kSqrd - 1.0);
-      C3    = -k2;
-      
-      f = &F   [ 0][k1][k2];
-      g = &G[2][ 0][k1][k2]; PEQ (g, C1, f);
-      g = &G[3][ 0][k1][k2]; PEQ (g, C2, f);
-      
-      f = &F   [ 0][b1][k2];
-      g = &G[2][ 0][b1][k2]; PEQ (g,  C1, f);
-      g = &G[3][ 0][b1][k2]; PEQ (g, -C2, f);
-      
-      f = &F   [k1][ 0][k2];
-      g = &G[2][k1][ 0][k2]; PEQ (g, C3, f);
-      
-      f = &F   [b1][ 0][k2];
-      g = &G[2][b1][ 0][k2]; PEQ (g, C3, f);
-      
-      f = &F   [k1][k2][ 0];
-      g = &G[3][k1][k2][ 0]; EQN (g, C3, f);
-      
-      f = &F   [b1][k2][ 0];
-      g = &G[3][b1][k2][ 0]; EQN (g, C3, f);
 
+      /* -- Faces.  G2 on k1--k2 & k2--k3; G3 on k1--k3 && k2--k3. */
+
+      b2 = N - k2;
+#if 1      
+      f = F[k1][k2]; g = G[3][k1][k2]; PEQ (g,  k2, f);
+      f = F[b1][k2]; g = G[3][b1][k2]; PEQ (g,  k2, f);
+      f = F[ 0][k2]+k1; g = G[3][ 0][k2]+k1; PEQ (g,  k2, f);
+      f = F[ 0][b2]+k1; g = G[3][ 0][b2]+k1; PEQ (g, -k2, f);
+
+      f = F[ 0][k1]+k2; g = G[2][ 0][k1]+k2; PEQ (g,  k2, f);
+      f = F[ 0][b1]+k2; g = G[2][ 0][b1]+k2; PEQ (g,  k2, f);
+      f = F[k1][ 0]+k2; g = G[2][k1][ 0]+k2; PEQ (g,  k2, f);
+      f = F[b1][ 0]+k2; g = G[2][b1][ 0]+k2; PEQ (g,  k2, f);
+#else
+      PEQ (G[3][k1][k2],     k2, F[k1][k2]);
+      PEQ (G[3][b1][k2],     k2, F[b1][k2]);
+      PEQ (G[3][ 0][k2]+k1,  k2, F[ 0][k2]+k1);
+      PEQ (G[3][ 0][b2]+k1, -k2, F[ 0][b2]+k1);
+	   		   	   
+      PEQ (G[2][ 0][k1]+k2,  k2, F[ 0][k1]+k2);
+      PEQ (G[2][ 0][b1]+k2,  k2, F[ 0][b1]+k2);
+      PEQ (G[2][k1][ 0]+k2,  k2, F[k1][ 0]+k2);
+      PEQ (G[2][b1][ 0]+k2,  k2, F[b1][ 0]+k2);
+#endif
       for (k3 = 1; k3 < K && k2+k3 <= FOURKon3 && k1+k3 <= FOURKon3; k3++) {
-	kSqrd = k1*k1 + k2*k2 + k3*k3;
-	C1    = 2.0*k1*k2*k3/kSqrd;
-	C2    = k3 * (2.0*k2*k2/kSqrd - 1.0);
-	C3    = k2 * (2.0*k3*k3/kSqrd - 1.0);
+#if 1	
+	f = F[k1][k2]+k3; g = G[3][k1][k2]+k3; PEQ (g,  k2, f);
+	f = F[b1][k2]+k3; g = G[3][b1][k2]+k3; PEQ (g,  k2, f);
+	f = F[k1][b2]+k3; g = G[3][k1][b2]+k3; PEQ (g, -k2, f);
+	f = F[b1][b2]+k3; g = G[3][b1][b2]+k3; PEQ (g, -k2, f);
 	
-	f = &F   [k1][k2][k3];
-	g = &G[1][k1][k2][k3]; PEQ (g, C1, f);
-	g = &G[2][k1][k2][k3]; PEQ (g, C2, f);
-	g = &G[3][k1][k2][k3]; PEQ (g, C3, f);
-	
-	f = &F   [b1][k2][k3];
-	g = &G[1][b1][k2][k3]; PEQ (g, -C1, f);
-	g = &G[2][b1][k2][k3]; PEQ (g,  C2, f);
-	g = &G[3][b1][k2][k3]; PEQ (g,  C3, f);
-	
-	f = &F   [k1][b2][k3];
-	g = &G[1][k1][b2][k3]; PEQ (g, -C1, f);
-	g = &G[2][k1][b2][k3]; PEQ (g,  C2, f);
-	g = &G[3][k1][b2][k3]; PEQ (g, -C3, f);
-	
-	f = &F   [b1][b2][k3];
-	g = &G[1][b1][b2][k3]; PEQ (g,  C1, f);
-	g = &G[2][b1][b2][k3]; PEQ (g,  C2, f);
-	g = &G[3][b1][b2][k3]; PEQ (g, -C3, f);
+	f = F[k1][k2]+k3; g = G[2][k1][k2]+k3; PEQ (g,  k3, f);
+	f = F[b1][k2]+k3; g = G[2][b1][k2]+k3; PEQ (g,  k3, f);
+	f = F[k1][b2]+k3; g = G[2][k1][b2]+k3; PEQ (g,  k3, f);
+	f = F[b1][b2]+k3; g = G[2][b1][b2]+k3; PEQ (g,  k3, f);
+#else
+	PEQ (G[3][k1][k2]+k3,  k2, F[k1][k2]+k3);
+	PEQ (G[3][b1][k2]+k3,  k2, F[b1][k2]+k3);
+	PEQ (G[3][k1][b2]+k3, -k2, F[k1][b2]+k3);
+	PEQ (G[3][b1][b2]+k3, -k2, F[b1][b2]+k3);
+	     		     	    
+	PEQ (G[2][k1][k2]+k3,  k3, F[k1][k2]+k3);
+	PEQ (G[2][b1][k2]+k3,  k3, F[b1][k2]+k3);
+	PEQ (G[2][k1][b2]+k3,  k3, F[k1][b2]+k3);
+	PEQ (G[2][b1][b2]+k3,  k3, F[b1][b2]+k3);
+#endif
       }
     }
   }
   
-  /* -- Convolve u_hat[1] with u_hat[3] to make F13 (and, by symmetry, F31). */
+  /* -- Convolve u_hat[1] with u_hat[3] to make F13 (and, by symmetry, F31).
+   *    G3 += -i k1 F31;
+   *    G1 += -i k3 F13;
+   */
 
   convolve (U[1], U[3], U_[1], U_[3], F,  F_, Wtab, Stab, Dim);
   
   for (k1 = 1; k1 < K; k1++) {
+
     b1 = N - k1;
-    C1 = -k1;
-
-    f = &F   [ 0][ 0][k1];
-    g = &G[1][ 0][ 0][k1]; EQN (g, C1, f);
-    f = &F   [k1][ 0][ 0];
-    g = &G[3][k1][ 0][ 0]; EQN (g, C1, f);
-
+#if 1      
+    f = F[k1][ 0]; g = G[3][k1][ 0]; PEQ (g,  k1, f);
+    f = F[b1][ 0]; g = G[3][b1][ 0]; PEQ (g, -k1, f); 
+    f = F[ 0][ 0]+k1; g = G[1][ 0][ 0]+k1; PEQ (g,  k1, f);
+#else
+    PEQ (G[3][k1][ 0],     k1, F[k1][ 0]);
+    PEQ (G[3][b1][ 0],    -k1, F[b1][ 0]);
+	 		 	
+    PEQ (G[1][ 0][ 0]+k1,  k1, F[ 0][ 0]+k1);
+#endif
     for (k2 = 1; k2 < K && k1+k2 <= FOURKon3; k2++) {
-      b2    = N - k2;
-      kSqrd = k1*k1 + k2*k2;
-      C1    = k2;
-      C2    = k2 * (2.0*k1*k1/kSqrd - 1.0);
-      C3    = k1 * (2.0*k2*k2/kSqrd - 1.0);
-      
-      f = &F   [ 0][k1][k2];
-      g = &G[1][ 0][k1][k2]; PEQ (g, -C1, f);
-      
-      f = &F   [ 0][b1][k2];
-      g = &G[1][ 0][b1][k2]; PEQ (g, -C1, f);
-      
-      f = &F   [k1][ 0][k2];
-      g = &G[1][k1][ 0][k2]; PEQ (g, C2, f);
-      g = &G[3][k1][ 0][k2]; PEQ (g, C3, f);
-      
-      f = &F   [b1][ 0][k2];
-      g = &G[1][b1][ 0][k2]; PEQ (g,  C2, f);
-      g = &G[3][b1][ 0][k2]; PEQ (g, -C3, f);
-      
-      C1 = k1;
-      
-      f = &F   [k1][k2][ 0];
-      g = &G[3][k1][k2][ 0]; PEQ (g, -C1, f);
-      
-      f = &F   [b1][k2][ 0];
-      g = &G[3][b1][k2][ 0]; PEQ (g,  C1, f);
 
+      b2 = N - k2;
+#if 1      
+      f = F[k1][k2]; g = G[3][k1][k2]; PEQ (g,  k1, f);
+      f = F[b1][k2]; g = G[3][b1][k2]; PEQ (g, -k1, f);
+      f = F[k1][ 0]+k2; g = G[3][k1][ 0]+k2; PEQ (g,  k1, f);
+      f = F[b1][ 0]+k2; g = G[3][b1][ 0]+k2; PEQ (g, -k1, f);
+      
+      f = F[ 0][k1]+k2; g = G[1][ 0][k1]+k2; PEQ (g,  k2, f);
+      f = F[ 0][b1]+k2; g = G[1][ 0][b1]+k2; PEQ (g,  k2, f);
+      f = F[k1][ 0]+k2; g = G[1][k1][ 0]+k2; PEQ (g,  k2, f);
+      f = F[b1][ 0]+k2; g = G[1][b1][ 0]+k2; PEQ (g,  k2, f);
+#else
+      PEQ (G[3][k1][k2],     k1, F[k1][k2]);
+      PEQ (G[3][b1][k2],    -k1, F[b1][k2]);
+      PEQ (G[3][k1][ 0]+k2,  k1, F[k1][ 0]+k2);
+      PEQ (G[3][b1][ 0]+k2, -k1, F[b1][ 0]+k2);
+
+      PEQ (G[1][ 0][k1]+k2,  k2, F[ 0][k1]+k2);
+      PEQ (G[1][ 0][b1]+k2,  k2, F[ 0][b1]+k2);
+      PEQ (G[1][k1][ 0]+k2,  k2, F[k1][ 0]+k2);
+      PEQ (G[1][b1][ 0]+k2,  k2, F[b1][ 0]+k2);
+#endif
       for (k3 = 1; k3 < K && k2+k3 <= FOURKon3 && k1+k3 <= FOURKon3; k3++) {
-	kSqrd = k1*k1 + k2*k2 + k3*k3;
-	C1    = k3 * (2.0*k1*k1/kSqrd - 1.0);
-	C2    = 2.0*k1*k2*k3/kSqrd;
-	C3    = k1 * (2.0*k3*k3/kSqrd - 1.0);
+#if 1
+	f = F[k1][k2]+k3; g = G[3][k1][k2]+k3; PEQ (g,  k1, f);
+	f = F[k1][b2]+k3; g = G[3][k1][b2]+k3; PEQ (g,  k1, f);
+	f = F[b1][k2]+k3; g = G[3][b1][k2]+k3; PEQ (g, -k1, f);
+	f = F[b1][b2]+k3; g = G[3][b1][b2]+k3; PEQ (g, -k1, f);
 	
-	f = &F   [k1][k2][k3];
-	g = &G[1][k1][k2][k3]; PEQ (g, C1, f);
-	g = &G[2][k1][k2][k3]; PEQ (g, C2, f);
-	g = &G[3][k1][k2][k3]; PEQ (g, C3, f);
-	
-	f = &F   [b1][k2][k3];
-	g = &G[1][b1][k2][k3]; PEQ (g,  C1, f);
-	g = &G[2][b1][k2][k3]; PEQ (g, -C2, f);
-	g = &G[3][b1][k2][k3]; PEQ (g, -C3, f);
-	
-	f = &F   [k1][b2][k3];
-	g = &G[1][k1][b2][k3]; PEQ (g,  C1, f);
-	g = &G[2][k1][b2][k3]; PEQ (g, -C2, f);
-	g = &G[3][k1][b2][k3]; PEQ (g,  C3, f);
-	
-	f = &F   [b1][b2][k3];
-	g = &G[1][b1][b2][k3]; PEQ (g,  C1, f);
-	g = &G[2][b1][b2][k3]; PEQ (g,  C2, f);
-	g = &G[3][b1][b2][k3]; PEQ (g, -C3, f);
+	f = F[k1][k2]+k3; g = G[1][k1][k2]+k3; PEQ (g,  k3, f);
+	f = F[b1][k2]+k3; g = G[1][b1][k2]+k3; PEQ (g,  k3, f);
+	f = F[k1][b2]+k3; g = G[1][k1][b2]+k3; PEQ (g,  k3, f);
+	f = F[b1][b2]+k3; g = G[1][b1][b2]+k3; PEQ (g,  k3, f);
+#else
+	PEQ (G[3][k1][k2]+k3,  k1, F[k1][k2]+k3);
+	PEQ (G[3][k1][b2]+k3,  k1, F[k1][b2]+k3);
+	PEQ (G[3][b1][k2]+k3, -k1, F[b1][k2]+k3);
+	PEQ (G[3][b1][b2]+k3, -k1, F[b1][b2]+k3);
+	     		     	    
+	PEQ (G[1][k1][k2]+k3,  k3, F[k1][k2]+k3);
+	PEQ (G[1][b1][k2]+k3,  k3, F[b1][k2]+k3);
+	PEQ (G[1][k1][b2]+k3,  k3, F[k1][b2]+k3);
+	PEQ (G[1][b1][b2]+k3,  k3, F[b1][b2]+k3);
+#endif
       }
     }
   }
@@ -512,15 +482,15 @@ void nonlinear (/* input     */  CVF             U   ,
 }
 
 
-static void  convolve (/* input     */ const CF        U   ,
-	 	                       const CF        V   ,
-		                       const CF        U_  ,
-		                       const CF        V_  ,
-		       /* return    */ CF              W   ,
-		       /* workspace */ CF              W_  ,
-		       /* using     */ const complex*  Wtab,
-		                       const complex*  Stab,
-                                       const int*      Dim )
+static void convolve (/* input     */ const CF     U   ,
+	 	                      const CF     V   ,
+		                      const CF     U_  ,
+		                      const CF     V_  ,
+		      /* return    */ CF           W   ,
+		      /* workspace */ CF           W_  ,
+		      /* using     */ const complex*  Wtab,
+		                      const complex*  Stab,
+                                      const int*      Dim )
 /* ------------------------------------------------------------------------- *
  * Compute the isotropically-truncated convolution sum of u & v, return in w.
  *                                                                          
@@ -648,12 +618,7 @@ static void  convolve (/* input     */ const CF        U   ,
 }
 
 
-#define SHIFT(Z, W)  tempRe = (Z).Re; \
-                     (Z).Re = tempRe*(W).Re - (Z).Im*(W).Im; \
-                     (Z).Im = (Z).Im*(W).Re + tempRe*(W).Im
-
-
-static void shift (CF             U,
+static void shift (CF          U,
 		   const int*     Dim,
 		   const complex* Stab,
 		   const int      Drn)

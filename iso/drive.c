@@ -144,7 +144,9 @@ int main (int    argc,
 
   while (runInfo -> step < runInfo -> stepMax) {
 
+    zeroVF    (G, Dim);
     nonlinear (U, G, F, F_, work, Wtab, Stab, Dim);
+    project   (G, F, Dim);
     integrate (U, G, G_old, runInfo, Dim);
     SWAP      (G, G_old);
 
