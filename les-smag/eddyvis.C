@@ -39,24 +39,14 @@ void eddyViscosity (const Domain* D ,
   ITR_MAX = (integer) Femlib::value ("STEP_MAX");
   EPS2    = sqr (EPSSP);
 
-  if ((int) Femlib::value ("RNG")) {
-
+  if ((int) Femlib::value ("RNG"))
     ROOTONLY EV -> addToPlane (0, Femlib::value ("KINVIS"));
 
-    strainRate  (D, Us, Uf);
-    viscoModel  (D, Us, Uf, EV);
-    D -> u[0] -> smooth (EV);
+  strainRate  (D, Us, Uf);
+  viscoModel  (D, Us, Uf, EV);
+  D -> u[0] -> smooth (EV);
 
-    ROOTONLY EV -> addToPlane (0, Femlib::value ("-KINVIS"));
-
-  } else {
-
-    strainRate  (D, Us, Uf);
-    viscoModel  (D, Us, Uf, EV);
-    D -> u[0] -> smooth (EV);
-
-    ROOTONLY EV -> addToPlane (0, Femlib::value ("-KINVIS+REFVIS"));
-  }
+  ROOTONLY EV -> addToPlane (0, Femlib::value ("-KINVIS"));
 
 #if defined(DEBUG)
   *EV = 0.0;
@@ -154,13 +144,13 @@ static void viscoModel (const Domain* D ,
 // On entry the first-level areas of Us & Uf contain the components of
 // the strain-rate tensor S and EV contains the old values of eddy viscosity.
 // On exit, by default EV contains the Smagorinsky eddy viscosity field
+//
 //                 \nu_S = (Cs \Delta)^2 |S|, where
 //
-// |S| = sqrt [(S11)^2 + (S22)^2 + (S33)^2 + 2(S12)^2 + 2(S13)^2 + 2(S23)^2].
+// |S| = sqrt {2[(S11)^2 + (S22)^2 + (S33)^2 + 2(S12)^2 + 2(S13)^2 + 2(S23)^2]}
 //
-// As noted in the header to NS.C, EV = -KINVIS for debugging (NB: Fourier!).
-//
-// NB: the products in |S| are only dealiased for single-processor operation.
+// NB (1): the outer factor of 2, sometimes omitted in derivations.
+// NB (2): the products in |S| are only dealiased for serial operation.
 //
 // For RNG, the "decreed" value of C_SMAG = 0.1114, RNG_C = 75, RNG_BIG = 500.
 // ---------------------------------------------------------------------------
@@ -190,10 +180,14 @@ static void viscoModel (const Domain* D ,
       Uf[i + j - 1] -> transform32 (INVERSE, tmp);
       Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
     }
-    Blas::scal (nTot32, 2.0, sum, 1);
+  }
+  Blas::scal (nTot32, 2.0, sum, 1);
+
+  for (i = 0; i < DIM; i++) {
     Us[i] -> transform32 (INVERSE, tmp);
     Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
   }
+  Blas::scal (nTot32, 2.0, sum, 1);
 
   Veclib::vsqrt (nTot32, sum, 1, sum, 1);
 

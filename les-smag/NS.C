@@ -306,43 +306,26 @@ static void nonLinear (Domain*       D ,
     // -- 2D stress-divergence terms.
 
     Us[0] -> transform32 (INVERSE, n32[0]);
-    Veclib::vmul         (nTot32,  tmp, 1, n32[0], 1, n32[0], 1);
-    master   -> gradient (nZ32, nP, n32[0], 0);
+    Veclib::vmul         (nTot32, tmp, 1, n32[0], 1, n32[0], 1);
+    master -> gradient   (nZ32, nP, n32[0], 0);
 
     Us[1] -> transform32 (INVERSE, n32[1]);
-    Veclib::vmul         (nTot32,  tmp, 1, n32[1], 1, n32[1], 1);
-#if 1
-// -- Testing new formulation.
-    Veclib::copy         (nTot32, n32[1], 1, u32[0], 1);
-    master   -> gradient (nZ32, nP, n32[1], 1);
-    master   -> divR     (nZ32,   u32[0]);
+    Veclib::vmul         (nTot32, tmp, 1, n32[1], 1, n32[1], 1);
+    Veclib::copy         (nTot32,         n32[1], 1, u32[0], 1);
+    master -> gradient   (nZ32, nP, n32[1], 1);
+    master -> divR       (nZ32, u32[0]);
     Veclib::vadd         (nTot32, n32[1], 1, u32[0], 1, n32[1], 1);
-#else
-    master   -> mulR     (nZ32, n32[1]);
-    master   -> gradient (nZ32, nP, n32[1], 1);
-    master   -> divR     (nZ32, n32[1]);
-#endif
 
     Uf[0] -> transform32 (INVERSE, u32[0]);
-    Veclib::vmul         (nTot32,  tmp, 1, u32[0], 1, u32[0], 1);
-    Veclib::copy         (nTot32,          u32[0], 1, u32[1], 1);
-#if 1
-// -- Testing.
-    master   -> gradient (nZ32, nP, u32[1], 0);
+    Veclib::vmul         (nTot32, tmp, 1, u32[0], 1, u32[0], 1);
+    Veclib::copy         (nTot32,         u32[0], 1, u32[1], 1);
+    master -> gradient   (nZ32, nP, u32[1], 0);
     Veclib::vadd         (nTot32,   u32[1], 1, n32[1], 1, n32[1], 1);
     Veclib::copy         (nTot32,              u32[0], 1, u32[1], 1);
-    master   -> gradient (nZ32, nP, u32[0], 1);
+    master -> gradient   (nZ32, nP, u32[0], 1);
     Veclib::vadd         (nTot32,   u32[0], 1, n32[0], 1, n32[0], 1);
-    master   -> divR     (nZ32,     u32[1]);
+    master -> divR       (nZ32,     u32[1]);
     Veclib::vadd         (nTot32,   u32[1], 1, n32[0], 1, n32[0], 1);
-#else
-    master   -> mulR     (nZ32, u32[0]);
-    master   -> gradient (nZ32, nP, u32[0], 1);
-    master   -> divR     (nZ32, u32[0]);
-    master   -> gradient (nZ32, nP, u32[1], 0);
-    Veclib::vadd         (nTot32, u32[0], 1, n32[0], 1, n32[0], 1);
-    Veclib::vadd         (nTot32, u32[1], 1, n32[1], 1, n32[1], 1);
-#endif
 
     // -- 3D stress-divergence terms.
 
