@@ -39,6 +39,10 @@ void message_init (int*    argc,
   sprintf       (s, "N_PROC = %1d", n);
   yy_interpret  (s);
 
+#else
+
+  yy_initialize ();
+
 #endif
 }
 
