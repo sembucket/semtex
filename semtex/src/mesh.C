@@ -2,6 +2,8 @@
 // mesh.C: read information from a FEML stream, provide
 // facilities for generation of mesh knots and initial connectivity.
 //
+// Copyright (C) 1994, 1999 Hugh Blackburn
+//
 // Example/required parts of a FEML file:
 //
 // <NODES NUMBER=9>
@@ -72,10 +74,9 @@
 // 
 // NB: Node, Element and Side IDs are internally held as one less than
 // input value, i.e. commence at 0 instead of 1.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -104,7 +105,6 @@ static inline integer rma (integer i, integer j, integer n)
 
 Mesh::Mesh (FEML&     f    ,
 	    const int check) :
-            feml (f)
 // ---------------------------------------------------------------------------
 // Create a Mesh using information available in feml.
 //
@@ -113,6 +113,7 @@ Mesh::Mesh (FEML&     f    ,
 // then only sufficient information to define the elements is loaded
 // (i.e nodes and element vertices).
 // ---------------------------------------------------------------------------
+  feml (f)
 {
   const char    routine[] = "Mesh::Mesh";
   char          err[StrMax], tag[StrMax];

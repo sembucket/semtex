@@ -20,10 +20,9 @@
 // for the pressure Poisson equation: they are derived from the
 // momentum equations and computed using an extrapolative process
 // described in KIO91.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <Sem.h>
 

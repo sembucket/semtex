@@ -101,10 +101,9 @@
 // w:  Third velocity component.            (Cylindrical: azimuthal velocity.)
 // p:  Pressure divided by density.
 // c:  Scalar for transport or elliptic problems.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char 
-RCSid[] = "$Id$";
 
 #include <Sem.h>
 
@@ -644,11 +643,9 @@ Field& Field::solve (AuxField*  f      ,
   const integer    npts    = nglobal + Geometry::nInode();
   const real       betaZ   = Femlib::value ("BETA");
   const real       FTINY   = (sizeof (real) == sizeof (double)) ? EPSDP:EPSSP;
-  register integer i, j, k, mode;
+  register integer i, k, mode;
   integer          singular, nsolve, nzero;
   real             rho1, rho2, alpha, beta, r2, epsb2, betak2, dotp;
-  real             *forcing, *unknown, *bc;
-
 
   // -- Allocate storage.
   
@@ -970,7 +967,7 @@ void Field::buildRHS (real*                    force ,
   const integer*           gid;
   register const Boundary* B;
   vector<real>             work (np);
-  register integer         i, boff, doff;
+  register integer         i, boff;
 
   if   (RHSint) Veclib::zero (nglobal + Geometry::nInode(), RHS, 1);
   else          Veclib::zero (nglobal,                      RHS, 1);

@@ -1,13 +1,14 @@
 ///////////////////////////////////////////////////////////////////////////////
 // integration.C:  supply coefficients for discrete time integration schemes.
 //
+// Coppyright (C) 1994, 1999 Hugh Blackburn
+//
 // Maximum time order supported is 3 (4 for implicit Adams--Moulton methods).
 // Coefficients for all schemes can be found in Gear's book, "Numerical
 // Initial Value Problems in Ordinary Differential Equations", 1971.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char 
-RCSid[] = "$Id$";
 
 #include <Sem.h>
 

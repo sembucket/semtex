@@ -1,10 +1,11 @@
 ///////////////////////////////////////////////////////////////////////////////
 // misc.C: miscellaneous routines for I/O, memory management, service
 // routines that don't fit class structures.
+//
+// Copyright (C) 1994, 1999 Hugh BLackburn
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <Sem.h>
 #include <time.h>

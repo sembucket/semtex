@@ -2,10 +2,9 @@
 // matrix.C: routines for direct solution of Helmholtz problems.
 //
 // Copyright (C) 1994, 1999 Hugh Blackburn
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <Sem.h>
 
@@ -34,7 +33,6 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
 {
   const char               name = Bsys -> field();
   integer                  found, mode;
-  real                     betak2;
   ListIterator<MatrixSys*> m (MS);
   MatrixSys*               M;
 

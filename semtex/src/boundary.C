@@ -9,10 +9,9 @@
 // applied (as opposed to periodic edges).  The ordering of internal
 // storage for condition values and geometric factors corresponds to
 // CCW traverse of 2D element edges.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <Sem.h>
 
