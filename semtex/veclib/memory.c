@@ -2,11 +2,8 @@
  *                      MEMORY ALLOCATION UTILITIES                          *
  *****************************************************************************/
 
-/*------------------*
- * RCS Information: *
- *------------------*/
 static char
-  RCS_mem[] = "$Id$";
+RCS_mem[] = "$Id$";
 
 
 #include <sys/types.h>
@@ -26,9 +23,10 @@ complex *cvector(long nl, long nh)
 
 
   v = (complex*) malloc((size_t) ((nh-nl+1)*sizeof(complex)));
-  if (!v) message("cvector()", "allocation failure", ERROR);
+  if (v) return v-nl;
 
-  return v-nl;
+  message("cvector()", "allocation failure", WARNING);
+  return NULL;
 }
 
 
@@ -44,9 +42,10 @@ double *dvector(long nl, long nh)
 
 
   v = (double*) malloc((size_t) ((nh-nl+1)*sizeof(double)));
-  if (!v) message("dvector()", "allocation failure", ERROR);
+  if (v) return v-nl;
 
-  return v-nl;
+  message("dvector()", "allocation failure", WARNING);
+  return NULL;
 }
 
 
@@ -62,9 +61,10 @@ float *svector(long nl, long nh)
   
 
   v = (float*) malloc((size_t) ((nh-nl+1)*sizeof(float)));
-  if (!v) message("svector()", "allocation failure", ERROR);
+  if (v) return v-nl;
 
-  return v-nl;
+  message("svector()", "allocation failure", WARNING);
+  return NULL;
 }
 
 
@@ -80,9 +80,10 @@ int *ivector(long nl, long nh)
 
   
   v = (int*) malloc((size_t) ((nh-nl+1)*sizeof(int)));
-  if (!v) message("ivector()", "allocation failure", ERROR);
+  if (v) return v-nl;
 
-  return v-nl;
+  message("ivector()", "allocation failure", WARNING);
+  return NULL;
 }
 
 
@@ -98,9 +99,10 @@ zomplex *zvector(long nl, long nh)
 
 
   v = (zomplex*) malloc((size_t) ((nh-nl+1)*sizeof(zomplex)));
-  if (!v) message("zvector()", "allocation failure", ERROR);
+  if (v) return v-nl;
 
-  return v-nl;
+  message("zvector()", "allocation failure", WARNING);
+  return NULL;
 }
 
 
@@ -117,11 +119,17 @@ complex **cmatrix(long nrl, long nrh, long ncl, long nch)
 
 
   m = (complex**) malloc((size_t) (nrow*sizeof(complex*)));
-  if (!m) message("cmatrix()", "allocation failure 1", ERROR);
+  if (!m) {
+    message("cmatrix()", "allocation failure 1", WARNING);
+    return NULL;
+  }
   m -= nrl;
 
   m[nrl] = (complex*) malloc((size_t) (nrow*ncol*sizeof(complex)));
-  if (!m[nrl]) message("cmatrix()", "allocation failure 2", ERROR);
+  if (!m[nrl]) {
+    message("cmatrix()", "allocation failure 2", WARNING);
+    return NULL;
+  }
   m[nrl] -= ncl;
 
   for (i=nrl+1; i<=nrh; i++) m[i] = m[i-1] + ncol;
@@ -143,11 +151,17 @@ double **dmatrix(long nrl, long nrh, long ncl, long nch)
 
 
   m = (double**) malloc((size_t) (nrow*sizeof(double*)));
-  if (!m) message("dmatrix()", "allocation failure 1", ERROR);
+  if (!m) {
+    message("dmatrix()", "allocation failure 1", WARNING);
+    return NULL;
+  }
   m -= nrl;
 
   m[nrl] = (double*) malloc((size_t) (nrow*ncol*sizeof(double)));
-  if (!m[nrl]) message("dmatrix()", "allocation failure 2", ERROR);
+  if (!m[nrl]) {
+    message("dmatrix()", "allocation failure 2", WARNING);
+    return NULL;
+  }
   m[nrl] -= ncl;
 
   for (i=nrl+1; i<=nrh; i++) m[i] = m[i-1] + ncol;
@@ -169,11 +183,17 @@ float **smatrix(long nrl, long nrh, long ncl, long nch)
 
 
   m = (float**) malloc((size_t) (nrow*sizeof(float*)));
-  if (!m) message("smatrix()", "allocation failure 1", ERROR);
+  if (!m) {
+    message("smatrix()", "allocation failure 1", WARNING);
+    return NULL;
+  }
   m -= nrl;
 
   m[nrl] = (float*) malloc((size_t) (nrow*ncol*sizeof(float)));
-  if (!m[nrl]) message("smatrix()", "allocation failure 2", ERROR);
+  if (!m[nrl]) {
+    message("smatrix()", "allocation failure 2", WARNING);
+    return NULL;
+  }
   m[nrl] -= ncl;
 
   for (i=nrl+1; i<=nrh; i++) m[i] = m[i-1] + ncol;
@@ -195,11 +215,17 @@ int **imatrix(long nrl, long nrh, long ncl, long nch)
 
 
   m = (int**) malloc((size_t) (nrow*sizeof(int*)));
-  if (!m) message("imatrix()", "allocation failure 1", ERROR);
+  if (!m) {
+    message("imatrix()", "allocation failure 1", WARNING);
+    return NULL;
+  }
   m -= nrl;
 
   m[nrl] = (int*) malloc((size_t) (nrow*ncol*sizeof(int)));
-  if (!m[nrl]) message("imatrix()", "allocation failure 2", ERROR);
+  if (!m[nrl]) {
+    message("imatrix()", "allocation failure 2", WARNING);
+    return NULL;
+  }
   m[nrl] -= ncl;
 
   for (i=nrl+1; i<=nrh; i++) m[i] = m[i-1] + ncol;
@@ -221,11 +247,17 @@ zomplex **zmatrix(long nrl, long nrh, long ncl, long nch)
 
 
   m = (zomplex**) malloc((size_t) (nrow*sizeof(zomplex*)));
-  if (!m) message("cmatrix()", "allocation failure 1", ERROR);
+  if (!m) {
+    message("zmatrix()", "allocation failure 1", WARNING);
+    return NULL;
+  }
   m -= nrl;
 
   m[nrl] = (zomplex*) malloc((size_t) (nrow*ncol*sizeof(zomplex)));
-  if (!m[nrl]) message("cmatrix()", "allocation failure 2", ERROR);
+  if (!m[nrl]) {
+    message("zmatrix()", "allocation failure 2", WARNING);
+    return NULL;
+  }
   m[nrl] -= ncl;
 
   for (i=nrl+1; i<=nrh; i++) m[i] = m[i-1] + ncol;
@@ -247,15 +279,24 @@ complex ***c3matrix(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
   t = (complex***) malloc((size_t) (nrow*sizeof(complex**)));
-  if (!t) message("s3matrix()", "allocation failure 1", ERROR);
+  if (!t) {
+    message("c3matrix()", "allocation failure 1", WARNING);
+    return NULL;
+  }
   t -= nrl;
 
   t[nrl] = (complex**) malloc((size_t) (nrow*ncol*sizeof(complex*)));
-  if (!t[nrl]) message("s3matrix()", "allocation failure 2", ERROR);
+  if (!t[nrl]) {
+    message("c3matrix()", "allocation failure 2", WARNING);
+    return NULL;
+  }
   t[nrl] -= ncl;
 
   t[nrl][ncl] = (complex*) malloc((size_t) (nrow*ncol*ndep*sizeof(complex)));
-  if (!t[nrl][ncl]) message("s3matrix()", "allocation failure 3", ERROR);
+  if (!t[nrl][ncl]) {
+    message("c3matrix()", "allocation failure 3", WARNING);
+    return NULL;
+  }
   t[nrl][ncl] -= ndl;
 
   for (j=ncl+1; j<=nch; j++)
@@ -284,15 +325,24 @@ double ***d3matrix(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
   t = (double***) malloc((size_t) (nrow*sizeof(double**)));
-  if (!t) message("s3matrix()", "allocation failure 1", ERROR);
+  if (!t) {
+    message("d3matrix()", "allocation failure 1", WARNING);
+    return NULL;
+  }
   t -= nrl;
 
   t[nrl] = (double**) malloc((size_t) (nrow*ncol*sizeof(double*)));
-  if (!t[nrl]) message("s3matrix()", "allocation failure 2", ERROR);
+  if (!t[nrl]) {
+    message("d3matrix()", "allocation failure 2", WARNING);
+    return NULL;
+  }
   t[nrl] -= ncl;
 
   t[nrl][ncl] = (double*) malloc((size_t) (nrow*ncol*ndep*sizeof(double)));
-  if (!t[nrl][ncl]) message("s3matrix()", "allocation failure 3", ERROR);
+  if (!t[nrl][ncl]) {
+    message("d3matrix()", "allocation failure 3", WARNING);
+    return NULL;
+  }
   t[nrl][ncl] -= ndl;
 
   for (j=ncl+1; j<=nch; j++)
@@ -321,15 +371,24 @@ float ***s3matrix(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
   t = (float***) malloc((size_t) (nrow*sizeof(float**)));
-  if (!t) message("s3matrix()", "allocation failure 1", ERROR);
+  if (!t) {
+    message("s3matrix()", "allocation failure 1", WARNING);
+    return NULL;
+  }
   t -= nrl;
 
   t[nrl] = (float**) malloc((size_t) (nrow*ncol*sizeof(float*)));
-  if (!t[nrl]) message("s3matrix()", "allocation failure 2", ERROR);
+  if (!t[nrl]) {
+    message("s3matrix()", "allocation failure 2", WARNING);
+    return NULL;
+  }
   t[nrl] -= ncl;
 
   t[nrl][ncl] = (float*) malloc((size_t) (nrow*ncol*ndep*sizeof(float)));
-  if (!t[nrl][ncl]) message("s3matrix()", "allocation failure 3", ERROR);
+  if (!t[nrl][ncl]) {
+    message("s3matrix()", "allocation failure 3", WARNING);
+    return NULL;
+  }
   t[nrl][ncl] -= ndl;
 
   for (j=ncl+1; j<=nch; j++)
@@ -358,15 +417,24 @@ int ***i3matrix(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
   t = (int***) malloc((size_t) (nrow*sizeof(int**)));
-  if (!t) message("s3matrix()", "allocation failure 1", ERROR);
+  if (!t) {
+    message("i3matrix()", "allocation failure 1", WARNING);
+    return NULL;
+  }
   t -= nrl;
 
   t[nrl] = (int**) malloc((size_t) (nrow*ncol*sizeof(int*)));
-  if (!t[nrl]) message("s3matrix()", "allocation failure 2", ERROR);
+  if (!t[nrl]) {
+    message("i3matrix()", "allocation failure 2", WARNING);
+    return NULL;
+  }
   t[nrl] -= ncl;
 
   t[nrl][ncl] = (int*) malloc((size_t) (nrow*ncol*ndep*sizeof(int)));
-  if (!t[nrl][ncl]) message("s3matrix()", "allocation failure 3", ERROR);
+  if (!t[nrl][ncl]) {
+    message("i3matrix()", "allocation failure 3", WARNING);
+    return NULL;
+  }
   t[nrl][ncl] -= ndl;
 
   for (j=ncl+1; j<=nch; j++)
@@ -395,15 +463,24 @@ zomplex ***z3matrix(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
   t = (zomplex***) malloc((size_t) (nrow*sizeof(zomplex**)));
-  if (!t) message("s3matrix()", "allocation failure 1", ERROR);
+  if (!t) {
+    message("z3matrix()", "allocation failure 1", WARNING);
+    return NULL;
+  }
   t -= nrl;
 
   t[nrl] = (zomplex**) malloc((size_t) (nrow*ncol*sizeof(zomplex*)));
-  if (!t[nrl]) message("s3matrix()", "allocation failure 2", ERROR);
+  if (!t[nrl]) {
+    message("z3matrix()", "allocation failure 2", WARNING);
+    return NULL;
+  }
   t[nrl] -= ncl;
 
   t[nrl][ncl] = (zomplex*) malloc((size_t) (nrow*ncol*ndep*sizeof(zomplex)));
-  if (!t[nrl][ncl]) message("s3matrix()", "allocation failure 3", ERROR);
+  if (!t[nrl][ncl]) {
+    message("z3matrix()", "allocation failure 3", WARNING);
+    return NULL;
+  }
   t[nrl][ncl] -= ndl;
 
   for (j=ncl+1; j<=nch; j++)
