@@ -676,8 +676,10 @@ void Element::helmRow (const real**  DV     ,
 // its transpose, while DV, DT are the Lagrangian derivative matrix &
 // transpose.
 //
+// (The 1/r^2 factor in the mass matrix is only for cylindrical coordinates.)
+//
 // For Gauss--Lobatto--Legendre integration, the interpolant matrices
-// are indentities, and are not required.
+// are identities, and are not required.
 // ---------------------------------------------------------------------------
 {
   const real       r2   = sqr (ymesh[Veclib::row_major (i, j, np)]);
