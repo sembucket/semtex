@@ -19,6 +19,7 @@ RCSid[] = "$Id$";
 
 #include <stdlib.h>
 #include <iomanip.h>
+
 #include <femdef.h>
 #include <Femlib.h>
 #include <Mesh.h>
@@ -26,12 +27,13 @@ RCSid[] = "$Id$";
 
 static char prog[] = "sem2nek";
 
-static void getArgs   (int, char**, char*&);
+static void getArgs   (integer, char**, char*&);
 static void printHead ();
 static void printTail ();
 
 
-int main (int argc, char *argv[])
+integer main (integer argc,
+	      char**  argv)
 // ---------------------------------------------------------------------------
 // Driver.
 // ---------------------------------------------------------------------------
@@ -53,21 +55,23 @@ int main (int argc, char *argv[])
 }
 
 
-static void getArgs (int argc, char** argv, char*& session)
+static void getArgs (integer argc   ,
+		     char**  argv   ,
+		     char*&  session)
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
 // arguments.  Last argument is name of a session file, not dealt with here.
 // ---------------------------------------------------------------------------
 {
   char routine[] = "getArgs";
-  char buf[StrMax], c;
+  char buf[StrMax];
   char usage[]   =
     "Usage: %s [options] session-file\n"
     "  [options]:\n"
     "  -h        ... print this message\n";
  
   while (--argc  && **++argv == '-')
-    switch (c = *++argv[0]) {
+    switch (*++argv[0]) {
     case 'h':
       sprintf (buf, usage, prog);
       message ("", buf, REMARK);
@@ -90,9 +94,9 @@ static void printHead ()
 // Print the beginning of a NEKTON .rea file.  May need editing.
 // ---------------------------------------------------------------------------
 {
-  int  np = (int) Femlib::value ("N_POLY");
-  int  nz = (int) Femlib::value ("N_Z");
-  real dt =       Femlib::value ("D_T");
+  integer np = (integer) Femlib::value ("N_POLY");
+  integer nz = (integer) Femlib::value ("N_Z");
+  real    dt =       Femlib::value ("D_T");
 
   cout << "****** PARAMETERS *****"                                  << endl;
   cout << "6 PRISM VERSION"                                          << endl;

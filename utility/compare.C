@@ -35,14 +35,14 @@ RCSid[] = "$Id$";
 #include <Sem.h>
 #include <time.h>
 
-static char prog[]    = "compare";
-const  int  EXACT_MAX = 32;
+static char    prog[]    = "compare";
+const  integer EXACT_MAX = 32;
 
-static void getargs (int, char**, int&, char*&, ifstream&);
+static void getargs (integer, char**, integer&, char*&, ifstream&);
 
 
-int main (int    argc,
-	  char** argv)
+integer main (integer argc,
+	      char**  argv)
 // ---------------------------------------------------------------------------
 // Everything is in here, no file-scope subroutines.
 // ---------------------------------------------------------------------------
@@ -51,8 +51,8 @@ int main (int    argc,
   ifstream           fieldfl;
   char               buf[StrMax], err[StrMax], fmt[StrMax], fields[StrMax];
   char               function[EXACT_MAX][StrMax];
-  int                i, j, np, nz, nel, found;
-  int                offset = 0, nexact = 0, nfields = 0, swab = 0, tran = 0;
+  integer            i, j, np, nz, nel, found;
+  integer            offset = 0, nexact = 0, nfields = 0, swab = 0, tran = 0;
   real               t;
   const real*        zeros;
   Geometry::CoordSys system;
@@ -69,8 +69,8 @@ int main (int    argc,
   Mesh* M = new Mesh (*F);
 
   nel    = M -> nEl();  
-  np     = (int) Femlib::value ("N_POLY");
-  nz     = (int) Femlib::value ("N_Z");
+  np     = (integer) Femlib::value ("N_POLY");
+  nz     = (integer) Femlib::value ("N_Z");
   system = (Femlib::value ("CYLINDRICAL"))
     ? Geometry::Cylindrical : Geometry::Cartesian;
 
@@ -289,9 +289,9 @@ int main (int    argc,
 }
 
 
-static void getargs (int       argc,
+static void getargs (integer   argc,
 		     char**    argv,
-		     int&      tran,
+		     integer&  tran,
 		     char*&    sess,
 		     ifstream& fldf)
 // ---------------------------------------------------------------------------
@@ -302,11 +302,10 @@ static void getargs (int       argc,
                  "options:\n"
                  "  -h ... display this message\n"
                  "  -t ... forward Fourier transform output\n";
-  char err[StrMax];
-  char c;
+  char err[StrMax], c;
 
   while (--argc && **++argv == '-')
-    switch (c = *++argv[0]) {
+    switch (*++argv[0]) {
     case 'h':
       cerr << usage;
       exit (EXIT_SUCCESS);
@@ -323,7 +322,7 @@ static void getargs (int       argc,
   switch (argc) {
   case 1:
     sess = argv[0];
-    fldf.close();
+    fldf.clear (ios::badbit | fldf.rdstate());
     break;
   case 2:
     sess = argv[0];

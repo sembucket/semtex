@@ -18,17 +18,18 @@ RCSid[] = "$Id$";
 #include <stdlib.h>
 #include <iostream.h>
 #include <iomanip.h>
+
 #include <femdef.h>
 #include <Femlib.h>
 #include <Utility.h>
 #include <Mesh.h>
 
 static char prog[] = "meshpr";
-static void getargs (int, char**, char*&, int&, int&, int&);
+static void getargs (integer, char**, char*&, integer&, integer&, integer&);
 
 
-int main (int    argc,
-	  char** argv)
+integer main (integer argc,
+	      char**  argv)
 // ---------------------------------------------------------------------------
 // From FEML file named on command line, generate mesh knot
 // information and print up on standard output.
@@ -36,10 +37,10 @@ int main (int    argc,
 {
   // -- Set defaults & parse command line.
 
-  char* session = 0;
-  int   verb    = 0,
-        np      = 0,
-        basis   = GLL;
+  char*   session = 0;
+  integer verb    = 0,
+          np      = 0,
+          basis   = GLL;
 
   getargs (argc, argv, session, verb, np, basis);
 
@@ -47,9 +48,9 @@ int main (int    argc,
 
   FEML feml (session);
 
-  if (verb)        Femlib::value ("VERBOSE", verb);
-  if   (np)        Femlib::value ("N_POLY", np);
-  else  np = (int) Femlib::value ("N_POLY");
+  if (verb)            Femlib::value ("VERBOSE", verb);
+  if   (np)            Femlib::value ("N_POLY", np);
+  else  np = (integer) Femlib::value ("N_POLY");
 
   // -- Build mesh from session file information.
 
@@ -57,12 +58,12 @@ int main (int    argc,
 
   // -- Generate mesh knots and print up.
 
-  const    int NEL  = M.nEl();
-  const    int NTOT = np * np;
-  const    int NZ   = (int) Femlib::value ("N_Z");
-  register int ID, j;
-  vector<real> x (np*np), y (np*np);
-  real*        z;
+  const integer    NEL  = M.nEl();
+  const integer    NTOT = np * np;
+  const integer    NZ   = (integer) Femlib::value ("N_Z");
+  register integer ID, j;
+  vector<real>     x (np*np), y (np*np);
+  const real*      z;
 
   cout << np << " " << np << " " << NZ << " " << NEL << " NR NS NZ NEL"<< endl;
 
@@ -89,12 +90,12 @@ int main (int    argc,
 }
 
 
-static void getargs (int    argc   , 
-		     char** argv   ,
-		     char*& session,
-		     int&   verb   ,
-		     int&   np     ,
-		     int&   basis  )
+static void getargs (integer  argc   , 
+		     char**   argv   ,
+		     char*&   session,
+		     integer& verb   ,
+		     integer& np     ,
+		     integer& basis  )
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
@@ -105,8 +106,7 @@ static void getargs (int    argc   ,
                  "  -v   ... set verbose output\n"
                  "  -u   ... set uniform spacing [Default: GLL]\n"
 		 "  -n N ... override number of element knots to be N\n";
-  char err[StrMax];
-  char c;
+  char err[StrMax], c;
 
   while (--argc && **++argv == '-')
     switch (c = *++argv[0]) {

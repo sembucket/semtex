@@ -14,30 +14,29 @@ RCSid[] = "$Id$";
 #include <fstream.h>
 #include <iomanip.h>
 
+#include <femdef.h>
 #include <Utility.h>
 #include <Femlib.h>
 
 static char prog[] = "calc";
-static void getargs (int, char**, ifstream&);
+static void getargs (integer, char**, ifstream&);
 
 
-int main (int    argc,
-	  char** argv)
+integer main (integer argc,
+	      char**  argv)
 /* ------------------------------------------------------------------------- *
  * Driver.
  * ------------------------------------------------------------------------- */
 {
   char     buf[StrMax];
-  char*    c;
   ifstream file;
-  
 
   Femlib::prep ();
 
   getargs (argc, argv, file);
 
   while (file.getline (buf, FILENAME_MAX))
-    if ( (c = strstr (buf, "=")) )
+    if (strstr (buf, "="))
       Femlib::value (buf);
     else
       cout << setprecision(17) << Femlib::value (buf) << endl;
@@ -46,18 +45,18 @@ int main (int    argc,
 }
 
 
-static void getargs (int       argc,
+static void getargs (integer   argc,
 		     char**    argv,
 		     ifstream& file)
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  char buf[StrMax], c;
+  char buf[StrMax];
   char usage[] = "Usage: %s [-h] [file]\n";
  
   while (--argc  && **++argv == '-')
-    switch (c = *++argv[0]) {
+    switch (*++argv[0]) {
     case 'h':
       cerr << "-- Calculator operators and functions:" << endl;
       yy_help ();

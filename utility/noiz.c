@@ -25,9 +25,11 @@ static char RCSid[] = "$Id$";
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
-#include <alplib.h>
-#include <femdef.h>
+
 #include <femlib.h>
+#include <femdef.h>
+#include <alplib.h>
+
 
 #define IA    16807
 #define IM    2147483647
@@ -39,24 +41,27 @@ static char RCSid[] = "$Id$";
 #define RNMX  (1.0-EPSDP)
 #define UNSET -1
 
-static void   getargs (int, char**, FILE**, FILE**, double*, int*);
-static void   a_to_a  (int,int,int,int, FILE*, FILE*, char*, double, int);
-static void   b_to_b  (int,int,int,int, FILE*, FILE*, char*, double, int, int);
+static void   getargs (integer, char**, FILE**, FILE**, double*, integer*);
+static void   a_to_a  (integer, integer, integer, integer,
+		       FILE*, FILE*, char*, double, integer);
+static void   b_to_b  (integer, integer, integer, integer,
+		       FILE*, FILE*, char*, double, integer, integer);
 static double gasdev  (long*);   
-static void   perturb (double*, const int, const int, const int, const double);
+static void   perturb (double*, const integer, const integer,
+		       const integer, const double);
 
 
-int main (int    argc,
-	  char** argv)
+integer main (integer argc,
+	      char**  argv)
 /* ------------------------------------------------------------------------- *
  * Wrapper.
  * ------------------------------------------------------------------------- */
 {
-  char   buf[STR_MAX], fields[STR_MAX], fmt[STR_MAX], *c;
-  int    i, n, np, nz, nel, mode = UNSET, swab = 0;
-  FILE  *fp_in  = stdin,
-        *fp_out = stdout;
-  double pert   = EPSSP;
+  char    buf[STR_MAX], fields[STR_MAX], fmt[STR_MAX], *c;
+  integer i, n, np, nz, nel, mode = UNSET, swab = 0;
+  FILE    *fp_in  = stdin,
+          *fp_out = stdout;
+  double  pert   = EPSSP;
 
   getargs (argc, argv, &fp_in, &fp_out, &pert, &mode);
 
@@ -128,27 +133,27 @@ int main (int    argc,
 }
 
 
-static void a_to_a (int    np     ,
-		    int    nz     ,
-		    int    nel    ,
-		    int    nfields, 
-		    FILE*  in     , 
-		    FILE*  out    , 
-		    char*  fields , 
-		    double pert   ,
-		    int    mode   )
+static void a_to_a (integer np     ,
+		    integer nz     ,
+		    integer nel    ,
+		    integer nfields, 
+		    FILE*   in     , 
+		    FILE*   out    , 
+		    char*   fields , 
+		    double  pert   ,
+		    integer mode   )
 /* ------------------------------------------------------------------------- *
  * ASCII input.
  * ------------------------------------------------------------------------- */
 {
-  register int i, j, kr, ki;
-  const int    nplane = np * np * nel,
-               npts   = nz * nplane,
-               ntot   = nfields * npts;
-  double**     data;
-  char         buf[STR_MAX];
-  double       datum;
-  long         seed = 0;
+  register integer i, j, kr, ki;
+  const integer    nplane = np * np * nel,
+                   npts   = nz * nplane,
+                   ntot   = nfields * npts;
+  double**         data;
+  char             buf[STR_MAX];
+  double           datum;
+  long             seed = 0;
 
   data = dmatrix (0, nfields - 1, 0, npts - 1);
 
@@ -178,26 +183,26 @@ static void a_to_a (int    np     ,
 }
 
 
-static void b_to_b (int    np     ,
-		    int    nz     ,
-		    int    nel    ,
-		    int    nfields, 
-		    FILE*  in     , 
-		    FILE*  out    , 
-		    char*  fields , 
-		    double pert   ,
-		    int    mode   ,
-		    int    swab   )
+static void b_to_b (integer np     ,
+		    integer nz     ,
+		    integer nel    ,
+		    integer nfields, 
+		    FILE*   in     , 
+		    FILE*   out    , 
+		    char*   fields , 
+		    double  pert   ,
+		    integer mode   ,
+		    integer swab   )
 /* ------------------------------------------------------------------------- *
  * Binary input.
  * ------------------------------------------------------------------------- */
 {
-  register int i, j, kr, ki;
-  const int    nplane = np * np * nel,
-               npts   = nz * nplane,
-               ntot   = nfields * npts;
-  double**     data;
-  long         seed = 0;
+  register integer i, j, kr, ki;
+  const integer    nplane = np * np * nel,
+                   npts   = nz * nplane,
+                   ntot   = nfields * npts;
+  double**         data;
+  long             seed = 0;
 
   data = dmatrix (0, nfields - 1, 0, npts - 1);
 
@@ -221,25 +226,25 @@ static void b_to_b (int    np     ,
 }
 
 
-static void getargs (int     argc  ,
-		     char**  argv  ,
-		     FILE**  fp_in ,
-		     FILE**  fp_out,
-		     double* pert  ,     
-		     int*    mode  )
+static void getargs (integer  argc  ,
+		     char**   argv  ,
+		     FILE**   fp_in ,
+		     FILE**   fp_out,
+		     double*  pert  ,     
+		     integer* mode  )
 /* ------------------------------------------------------------------------- *
  * Parse command line arguments.
  * ------------------------------------------------------------------------- */
 {
-  char c;
-  int  i;
-  char fname[FILENAME_MAX];
-  char *usage = "usage: noiz [options] [input[.fld]]\n"
-    "options:\n"
-    "-h         ... print this help message\n"
-    "-o output  ... write to named file\n"
-    "-p perturb ... standard deviation of perutrbation\n"
-    "-m mode    ... add noise only to this Fourier mode\n";
+  char     c;
+  integer  i;
+  char     fname[FILENAME_MAX];
+  char     usage[] = "usage: noiz [options] [input[.fld]]\n"
+                     "options:\n"
+                     "-h         ... print this help message\n"
+                     "-o output  ... write to named file\n"
+                     "-p perturb ... standard deviation of perutrbation\n"
+                     "-m mode    ... add noise only to this Fourier mode\n";
 
   while (--argc && (*++argv)[0] == '-')
     while (c = *++argv[0])
@@ -303,7 +308,7 @@ static double ran1 (long *idum)
  * Generate IUD random variates on (0, 1).  Numerical Recipes.
  * ------------------------------------------------------------------------- */
 {
-  int         j;
+  integer     j;
   long        k;
   static long iy = 0;
   static long iv[NTAB];
@@ -337,9 +342,9 @@ static double gasdev (long *idum)
  * Numerical Recipes.
  * ------------------------------------------------------------------------- */
 {
-  static int    iset = 0;
-  static double gset;
-  double        fac, r, v1, v2;
+  static integer iset = 0;
+  static double  gset;
+  double         fac, r, v1, v2;
     
   if  (iset == 0) {
     do {
@@ -358,19 +363,19 @@ static double gasdev (long *idum)
 }
 
 
-static void perturb (double*      data  ,
-		     const int    mode  ,
-		     const int    nz    , 
-		     const int    nplane,
-		     const double pert  )
+static void perturb (double*       data  ,
+		     const integer mode  ,
+		     const integer nz    , 
+		     const integer nplane,
+		     const double  pert  )
 /* ------------------------------------------------------------------------- *
  * Add perturbation to data field.
  * ------------------------------------------------------------------------- */
 {
-  register int j, kr, ki;
-  const int    npts = nz * nplane;
-  long         seed = 0;
-  double       eps;
+  register integer j, kr, ki;
+  const integer    npts = nz * nplane;
+  long             seed = 0;
+  double           eps;
 
   if (mode != UNSET) {	/* -- Perturb only specified Fourier mode. */
 
