@@ -29,51 +29,64 @@ if (!(-e taylor3)) cp ../mesh/taylor3 .
 if (!(-e taylor4)) cp ../mesh/taylor4 .
 if (!(-e taylor5)) cp ../mesh/taylor5 .
 
+echo "\n\t*** 2D TESTS ***"
+
 echo ""
-echo "-- 2D TAYLOR FLOW, PERIODIC BOUNDARIES"
+echo "-- 2D TAYLOR FLOW, PERIODIC (i.e. NO) BOUNDARIES"
 compare taylor2 > taylor2.rst
 ns -chk taylor2 > /dev/null
 compare taylor2 taylor2.fld > /dev/null
+rm taylor2.num taylor2.fld taylor2.rst
+
+echo ""
+echo "-- 2D KOVASZNAY FLOW, DIRICHLET BCS"
+ns -chk kovas1 > /dev/null
+compare kovas1 kovas1.fld > /dev/null
+rm kovas1.num kovas1.fld
+
+echo "\n\t*** 3D TESTS ***"
 
 echo ""
 echo "-- 2D TAYLOR FLOW, 3D SOLUTION IN X--Y PLANE"
 compare taylor3 > taylor3.rst
 ns -chk taylor3 > /dev/null
 compare taylor3 taylor3.fld > /dev/null
+rm taylor3.num taylor3.fld taylor3.rst
 
 echo ""
 echo "-- 2D TAYLOR FLOW, 3D SOLUTION IN X--Z PLANE"
 compare taylor4 > taylor4.rst
 ns -chk taylor4 > /dev/null
 compare taylor4 taylor4.fld > /dev/null
+rm taylor4.num taylor4.fld taylor4.rst
 
 echo ""
 echo "-- 2D TAYLOR FLOW, 3D SOLUTION IN Y--Z PLANE"
 compare taylor5 > taylor5.rst
 ns -chk taylor5 > /dev/null
 compare taylor5 taylor5.fld > /dev/null
-
-echo ""
-echo "-- 2D KOVASZNAY FLOW, DIRICHLET BCS"
-ns -chk kovas1 > /dev/null
-compare kovas1 kovas1.fld > /dev/null
+rm taylor5.num taylor5.fld taylor5.rst
 
 echo ""
 echo "-- 3D KOVASZNAY FLOW, X--Y PLANE, DIRICHLET BCS"
 ns -chk kovas2 > /dev/null
 compare kovas2 kovas2.fld > /dev/null
+rm kovas1.num kovas1.fld
 
 echo ""
 echo "-- 3D KOVASZNAY FLOW, X--Y PLANE, SEMI-PERIODIC BOUNDARIES"
 ns -chk kovas3 > /dev/null
 compare kovas3 kovas3.fld > /dev/null
+rm kovas3.num kovas3.fld
 
 echo ""
 echo "-- 3D KOVASZNAY FLOW, X--Z PLANE, SEMI-PERIODIC BOUNDARIES"
 ns -chk kovas4 > /dev/null
 compare kovas4 kovas4.fld > /dev/null
+rm kovas4.num kovas4.fld
 
 echo ""
 echo "-- 3D KOVASZNAY FLOW, Y--Z PLANE, SEMI-PERIODIC BOUNDARIES"
 ns -chk kovas5 > /dev/null
 compare kovas5 kovas5.fld > /dev/null
+rm kovas5.num kovas5.fld
