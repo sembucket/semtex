@@ -7,6 +7,9 @@
 #include "iso.h"
 
 
+static int N0 = 0, N1 = 0, N2 = 0; /* -- Globals used in 3D indexing. */
+
+#define rm(i,j,k)     ((k) + N2 * ((j) + N1 * (i)))
 #define EQN(Z1,c,Z2)  (Z1)->Re  = (-c) * (Z2)->Im; (Z1)->Im  =  (c) * (Z2)->Re
 #define PEQ(Z1,c,Z2)  (Z1)->Re -=  (c) * (Z2)->Im; (Z1)->Im +=  (c) * (Z2)->Re
 
@@ -76,6 +79,9 @@ void nonlinear (/* input     */  CVF             U   ,
   const    int      N        = Dim[1];
   const    int      K        = Dim[3];
   const    int      FOURKon3 = (4 * K) / 3;
+
+  N0 = N1 = N;			/* -- Set global vars used for indexing. */
+  N2 = K;
 
   /* -- Make velocity field in PHYSICAL space on unshifted & shifted grid
    *    for alias control.                                                  */
@@ -531,28 +537,75 @@ static void  convolve (/* input     */ const CF        U   ,
  * possible to the truncated region to save computation.                    
  * ------------------------------------------------------------------------- */
 {
-  register real  *u    = &U [0][0][0].Re,
-                 *u_   = &U_[0][0][0].Re,
-                 *v    = &V [0][0][0].Re,
-                 *v_   = &V_[0][0][0].Re,
-                 *w    = &W [0][0][0].Re,
-                 *w_   = &W_[0][0][0].Re;
-  register int    k1, b1, k2, b2, k3;
-  const    int    N        = Dim[1];
-  const    int    K        = Dim[3];
-  const    int    FOURKon3 = (4 * K) / 3;
-  const    int    Npts = 2 * Dim[1] * Dim[2] * Dim[3];
+  register int     _i, _j, _k, _l, _m, _n;
+  register int     k1, b1, k2, b2, k3;
+  register complex *A = &W[0][0][0], *B = &W_[0][0][0];
+  const int        N        = Dim[1];
+  const int        K        = Dim[3];
+  const int        FOURKon3 = (4 * K) / 3;
+  const int        Npts     = 2 * Dim[1] * Dim[2] * Dim[3];
 
-
-  for (k1 = 0; k1 < Npts; k1++) w [k1] = u [k1] * v [k1];
-  for (k1 = 0; k1 < Npts; k1++) w_[k1] = u_[k1] * v_[k1];
+  {
+    register real
+      *u = &U [0][0][0].Re, *u_ = &U_[0][0][0].Re,
+      *v = &V [0][0][0].Re, *v_ = &V_[0][0][0].Re,
+      *w = &W [0][0][0].Re, *w_ = &W_[0][0][0].Re;
+    for (k1 = 0; k1 < Npts; k1++) w [k1] = u [k1] * v [k1];
+    for (k1 = 0; k1 < Npts; k1++) w_[k1] = u_[k1] * v_[k1];
+  }
 
   rc3DFT (W,  Dim, Wtab, FORWARD);
   rc3DFT (W_, Dim, Wtab, FORWARD);
   shift  (W_, Dim, Stab, INVERSE);
 
   truncate (W, Dim);
+#if 1
 
+  A[0].Re = 0.5 * (A[0].Re + B[0].Re);
+  
+  for (k1 = 1; k1 < K; k1++) {
+    b1 = N - k1;
+    _i = rm(k1,0,0); _j = rm (0,k1,0); _k = rm(0,0,k1);
+    A[_i].Re = 0.5 * (A[_i].Re + B[_i].Re);
+    A[_i].Im = 0.5 * (A[_i].Im + B[_i].Im);
+    A[_j].Re = 0.5 * (A[_j].Re + B[_j].Re);
+    A[_j].Im = 0.5 * (A[_j].Im + B[_j].Im);
+    A[_k].Re = 0.5 * (A[_k].Re + B[_k].Re);
+    A[_k].Im = 0.5 * (A[_k].Im + B[_k].Im);
+
+    for (k2 = 1; k2 < K && k1+k2 <= FOURKon3; k2++) {
+      b2 = N - k2;
+      _i = rm(0,k1,k2); _j = rm(0,b1,k2);
+      _k = rm(k1,0,k2); _l = rm(b1,0,k2);
+      _m = rm(k1,k2,0); _n = rm(b1,k2,0);
+      A[_i].Re = 0.5 * (A[_i].Re + B[_i].Re);
+      A[_i].Im = 0.5 * (A[_i].Im + B[_i].Im);
+      A[_j].Re = 0.5 * (A[_j].Re + B[_j].Re);
+      A[_j].Im = 0.5 * (A[_j].Im + B[_j].Im);
+      A[_k].Re = 0.5 * (A[_k].Re + B[_k].Re);
+      A[_k].Im = 0.5 * (A[_k].Im + B[_k].Im);
+      A[_l].Re = 0.5 * (A[_l].Re + B[_l].Re);
+      A[_l].Im = 0.5 * (A[_l].Im + B[_l].Im);
+      A[_m].Re = 0.5 * (A[_m].Re + B[_m].Re);
+      A[_m].Im = 0.5 * (A[_m].Im + B[_m].Im);
+      A[_n].Re = 0.5 * (A[_n].Re + B[_n].Re);
+      A[_n].Im = 0.5 * (A[_n].Im + B[_n].Im);
+
+      for (k3 = 1; k3 < K && k2+k3 <= FOURKon3 && k1+k3 <= FOURKon3; k3++) {
+	_i = rm(k1,k2,k3); _j = rm(b1,k2,k3);
+	_k = rm(k1,b2,k3); _l = rm(b1,b2,k3);
+	A[_i].Re = 0.5 * (A[_i].Re + B[_i].Re);
+	A[_i].Im = 0.5 * (A[_i].Im + B[_i].Im);
+	A[_j].Re = 0.5 * (A[_j].Re + B[_j].Re);
+	A[_j].Im = 0.5 * (A[_j].Im + B[_j].Im);
+	A[_k].Re = 0.5 * (A[_k].Re + B[_k].Re);
+	A[_k].Im = 0.5 * (A[_k].Im + B[_k].Im);
+	A[_l].Re = 0.5 * (A[_l].Re + B[_l].Re);
+	A[_l].Im = 0.5 * (A[_l].Im + B[_l].Im);
+      }
+    }
+  }
+#else
   W[ 0][ 0][ 0].Re = 0.5 * (W[ 0][ 0][ 0].Re + W_[ 0][ 0][ 0].Re);
   
   for (k1 = 1; k1 < K; k1++) {
@@ -591,6 +644,7 @@ static void  convolve (/* input     */ const CF        U   ,
       }
     }
   }
+#endif
 }
 
 
@@ -599,19 +653,52 @@ static void  convolve (/* input     */ const CF        U   ,
                      (Z).Im = (Z).Im*(W).Re + tempRe*(W).Im
 
 
-static void shift (CF U, const int* Dim, const complex* Stab, const int Drn)
+static void shift (CF             U,
+		   const int*     Dim,
+		   const complex* Stab,
+		   const int      Drn)
 /* ------------------------------------------------------------------------- *
  * Phase shift in FOURIER space <==> interpolate to shifted grid in PHYSICAL.
  * ------------------------------------------------------------------------- */
 {
   register int      k1, b1, k2, b2, k3;
   register real     tempRe;
-  register complex  W;
-  const    int      N        = Dim[1];
-  const    int      K        = Dim[3];
-  const    int      FOURKon3 = (4 * K) / 3;
-  const    int      SGN      = (Drn == FORWARD) ? 1 : -1;
+  register complex  W, *u = &U[0][0][0];
+  const int         N        = Dim[1];
+  const int         K        = Dim[3];
+  const int         FOURKon3 = (4 * K) / 3;
+  const int         SGN      = (Drn == FORWARD) ? 1 : -1;
+#if 1
+  for (k1 = 1; k1 < K; k1++) {
+    b1   = N - k1;
+    
+    W = Stab[SGN*k1];
+    SHIFT (u[rm(k1,0,0)], W);
+    SHIFT (u[rm(0,k1,0)], W);
+    SHIFT (u[rm(0,0,k1)], W);
 
+    for (k2 = 1; k2 < K && k1+k2 <= FOURKon3; k2++) {
+      b2 = N - k2;
+
+      W = Stab[SGN*(k1+k2)];
+      SHIFT (u[rm(0,k1,k2)], W);
+      SHIFT (u[rm(k1,0,k2)], W);
+      SHIFT (u[rm(k1,k2,0)], W);
+
+      W = Stab[SGN*(k2-k1)];
+      SHIFT (u[rm(0,b1,k2)], W);
+      SHIFT (u[rm(b1,0,k2)], W);
+      SHIFT (u[rm(b1,k2,0)], W);
+
+      for (k3 = 1; k3 < K && k2+k3 <= FOURKon3 && k1+k3 <= FOURKon3; k3++) {
+	W = Stab[SGN*(k1+k2+k3)]; SHIFT (u[rm(k1,k2,k3)], W);
+	W = Stab[SGN*(k3+k1-k2)]; SHIFT (u[rm(k1,b2,k3)], W);
+	W = Stab[SGN*(k3+k2-k1)]; SHIFT (u[rm(b1,k2,k3)], W);
+	W = Stab[SGN*(k3-k1-k2)]; SHIFT (u[rm(b1,b2,k3)], W);  
+      }
+    }
+  }
+#else
   for (k1 = 1; k1 < K; k1++) {
     b1   = N - k1;
     
@@ -621,7 +708,7 @@ static void shift (CF U, const int* Dim, const complex* Stab, const int Drn)
     SHIFT (U[ 0][ 0][k1], W);
 
     for (k2 = 1; k2 < K && k1+k2 <= FOURKon3; k2++) {
-      b2   = N - k2;
+      b2 = N - k2;
 
       W = Stab[SGN*(k1+k2)];
       SHIFT (U[ 0][k1][k2], W);
@@ -645,4 +732,5 @@ static void shift (CF U, const int* Dim, const complex* Stab, const int Drn)
       }
     }
   }
+#endif
 }
