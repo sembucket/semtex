@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // interp.C: interpolate results from a field file onto a set of 2D points.
 //
-// Copyright (c) 1997,2004 Hugh Blackburn
+// Copyright (c) 1997 <--> $Date$, Hugh Blackburn
 //
 // Synopsis:
 // --------
@@ -34,24 +34,24 @@
 
 static char RCS[] = "$Id$";
 
-#include <sem.h>
+#include "sem.h"
 #include <ctime>
 
 static char prog[]  = "interp";
-static int  verbose = 0;
-static int  nreport = 100;
-static void getargs    (int, char**, char*&, char*&, char*&);
-static void loadPoints (istream&, int&, int&, int&, vector<Point*>&);
-static void findPoints (vector<Point*>&, vector<Element*>&,
-			vector<Element*>&, vector<real>&, vector<real>&);
-static int  getDump    (ifstream&, vector<AuxField*>&, vector<Element*>&,
-			const int, const int, const int,
-			int&, real&, real&, real&, real&);
-static void putHeader  (const char*, const vector<AuxField*>&,
-			const int, const int, const int, const int,
-			const real, const real, const real, const real);
-static int  doSwap     (const char*);
-static void loadName   (const vector<AuxField*>&, char*);
+static int_t  verbose = 0;
+static int_t  nreport = 100;
+static void  getargs    (int, char**, char*&, char*&, char*&);
+static void  loadPoints (istream&, int_t&, int_t&, int_t&, vector<Point*>&);
+static void  findPoints (vector<Point*>&, vector<Element*>&,
+			 vector<Element*>&, vector<real_t>&, vector<real_t>&);
+static int_t getDump    (ifstream&, vector<AuxField*>&, vector<Element*>&,
+			 const int_t, const int_t, const int_t,
+			 int_t&, real_t&, real_t&, real_t&, real_t&);
+static void  putHeader  (const char*, const vector<AuxField*>&, const int_t,
+			 const int_t, const int_t, const int_t, const real_t,
+			 const real_t, const real_t, const real_t);
+static bool  doSwap     (const char*);
+static void  loadName   (const vector<AuxField*>&, char*);
 
 
 int main (int    argc,
@@ -61,15 +61,15 @@ int main (int    argc,
 // ---------------------------------------------------------------------------
 {
   char              *session, *dump, *points = 0;
-  int               NP, NZ,  NEL;
-  int               np, nel, ntot;
-  int               i, j, k, nf, step;
+  int_t             NP, NZ,  NEL;
+  int_t             np, nel, ntot;
+  int_t             i, j, k, nf, step;
   ifstream          fldfile;
   istream*          pntfile;
   FEML*             F;
   Mesh*             M;
-  real              c, time, timestep, kinvis, beta;
-  vector<real>      r, s;
+  real_t            c, time, timestep, kinvis, beta;
+  vector<real_t>    r, s;
   vector<Point*>    point;
   vector<Element*>  elmt;
   vector<Element*>  Esys;
@@ -89,8 +89,8 @@ int main (int    argc,
   M   = new Mesh (F);
 
   NEL = M -> nEl();  
-  NP  = static_cast<int>(Femlib::value ("N_POLY"));
-  NZ  = static_cast<int>(Femlib::value ("N_Z"   ));
+  NP  = Femlib::ivalue ("N_POLY");
+  NZ  = Femlib::ivalue ("N_Z"   );
   
   Geometry::set (NP, NZ, NEL, Geometry::Cartesian);
   Esys.resize   (NEL);
@@ -141,11 +141,11 @@ int main (int    argc,
 }
 
 
-static void getargs (int     argc   ,
-		     char**  argv   ,
-		     char*&  session,
-		     char*&  dump   ,
-		     char*&  points )
+static void getargs (int    argc   ,
+		     char** argv   ,
+		     char*& session,
+		     char*& dump   ,
+		     char*& points )
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
@@ -194,17 +194,17 @@ static void getargs (int     argc   ,
 
 
 static void loadPoints (istream&        pfile,
-			int&            np   ,
-			int&            nel  ,
-			int&            ntot ,
+			int_t&          np   ,
+			int_t&          nel  ,
+			int_t&          ntot ,
 			vector<Point*>& point)
 // ---------------------------------------------------------------------------
 // Load data which describe location of points.
 // ---------------------------------------------------------------------------
 {
   char          buf[StrMax];
-  int           nz = 0, num = 0;
-  real          x, y;
+  int_t         nz = 0, num = 0;
+  real_t        x, y;
   Point*        datum;
   stack<Point*> data;
 
@@ -215,7 +215,7 @@ static void loadPoints (istream&        pfile,
     nreport = np * np;
 
   } else {
-    if   (sizeof (real) == sizeof (double)) sscanf (buf, "%lf %lf", &x, &y);
+    if   (sizeof (real_t) == sizeof (double)) sscanf (buf, "%lf %lf", &x, &y);
     else                                    sscanf (buf, "%f  %f",  &x, &y);
 
     datum = new Point;
@@ -249,17 +249,19 @@ static void loadPoints (istream&        pfile,
 static void findPoints (vector<Point*>&   point,
 			vector<Element*>& Esys ,
 			vector<Element*>& elmt ,
-			vector<real>&     rloc ,
-			vector<real>&     sloc )
+			vector<real_t>&   rloc ,
+			vector<real_t>&   sloc )
 // ---------------------------------------------------------------------------
 // Locate points within elements, set Element pointer & r--s locations.
 // ---------------------------------------------------------------------------
 {
-  int   i, k, kold;
-  real  x, y, r, s;
-  const int guess = 1;
-  const int NEL   = Esys .size();
-  const int NPT   = point.size();
+  int_t          i, k, kold;
+  real_t         x, y, r, s;
+  const bool     guess = true;
+  const int_t    NEL   = Esys .size();
+  const int_t    NPT   = point.size();
+  vector<real_t> work(static_cast<size_t>
+		      (max (2*Geometry::nTotElmt(), 5*Geometry::nP()+6)));
 
   elmt.resize (NPT);
   rloc.resize (NPT);
@@ -273,14 +275,14 @@ static void findPoints (vector<Point*>&   point,
   for (i = 0; i < NPT; i++) {
     x = point[i] -> x;
     y = point[i] -> y;
-    if (Esys[kold] -> locate (x, y, r, s, guess)) {
+    if (Esys[kold] -> locate (x, y, r, s, &work[0], guess)) {
       elmt[i] = Esys[kold];
       rloc[i] = r;
       sloc[i] = s;
     } else {
       for (k = 0; k < NEL; k++) {
 	if (k == kold) continue;
-	if (Esys[k] -> locate (x, y, r, s, guess)) {
+	if (Esys[k] -> locate (x, y, r, s, &work[0], guess)) {
 	  elmt[i] = Esys[k];
 	  rloc[i] = r;
 	  sloc[i] = s;
@@ -300,25 +302,26 @@ static void findPoints (vector<Point*>&   point,
 }
 
 
-static int getDump (ifstream&          file,
-		    vector<AuxField*>& u   ,
-		    vector<Element*>&  Esys,
-		    const int          np  ,
-		    const int          nz  ,
-		    const int          nel ,
-		    int&               step,
-		    real&              time,
-		    real&              tstp,
-		    real&              kinv,
-		    real&              beta)
+static int_t getDump (ifstream&          file,
+		      vector<AuxField*>& u   ,
+		      vector<Element*>&  Esys,
+		      const int_t        np  ,
+		      const int_t        nz  ,
+		      const int_t        nel ,
+		      int_t&             step,
+		      real_t&            time,
+		      real_t&            tstp,
+		      real_t&            kinv,
+		      real_t&            beta)
 // ---------------------------------------------------------------------------
 // Load data from field dump, with byte-swapping if required.
 // If there is more than one dump in file, it is required that the
 // structure of each dump is the same as the first.
 // ---------------------------------------------------------------------------
 {
-  char    buf[StrMax], fields[StrMax];
-  int i, swab, nf, npnew, nznew, nelnew;
+  char  buf[StrMax], fields[StrMax];
+  int_t i,  nf, npnew, nznew, nelnew;
+  bool  swab;
 
   if (file.getline(buf, StrMax).eof()) return 0;
   
@@ -364,7 +367,7 @@ static int getDump (ifstream&          file,
   if (u.size() == 0) {
     u.resize (nf);
     for (i = 0; i < nf; i++)
-      u[i] = new AuxField (new real[Geometry::nTotal()], nz, Esys, fields[i]);
+      u[i] = new AuxField (new real_t[Geometry::nTotal()], nz, Esys, fields[i]);
   } else if (u.size() != nf) 
     message (prog, "number of fields mismatch with first dump in file", ERROR);
 
@@ -381,14 +384,14 @@ static int getDump (ifstream&          file,
 
 static void putHeader (const char*              session,
 		       const vector<AuxField*>& u      ,
-		       const int                np     ,
-		       const int                nz     ,
-		       const int                nel    ,
-		       const int                step   ,
-		       const real               time   ,
-		       const real               tstp   ,
-		       const real               kinv   ,
-		       const real               beta   )
+		       const int_t              np     ,
+		       const int_t              nz     ,
+		       const int_t              nel    ,
+		       const int_t              step   ,
+		       const real_t             time   ,
+		       const real_t             tstp   ,
+		       const real_t             kinv   ,
+		       const real_t             beta   )
 // ---------------------------------------------------------------------------
 // Write header information for semtex/prism/nekton compatible file on cout.
 // ---------------------------------------------------------------------------
@@ -443,7 +446,7 @@ static void putHeader (const char*              session,
 }
 
 
-static int doSwap (const char* ffmt)
+static bool doSwap (const char* ffmt)
 // ---------------------------------------------------------------------------
 // Figure out if byte-swapping is required to make sense of binary input.
 // ---------------------------------------------------------------------------
@@ -468,7 +471,7 @@ static void loadName (const vector<AuxField*>& u,
 // Load a string containing the names of fields.
 // ---------------------------------------------------------------------------
 {
-  int i, N = u.size();
+  int_t i, N = u.size();
 
   for (i = 0; i < N; i++) s[i] = u[i] -> name();
   s[N] = '\0';
