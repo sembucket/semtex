@@ -1,6 +1,6 @@
-/*****************************************************************************
- * element.C: Element utility routines.
- *****************************************************************************/
+//////////////////////////////////////////////////////////////////////////////
+// element.C: Element utility routines.
+//////////////////////////////////////////////////////////////////////////////
 
 static char
 RCSid[] = "$Id$";
@@ -893,9 +893,9 @@ void Element::Helmholtz (const real&  lambda2,
 }
 
 
-void Element::helmRow (const real**&  IT     ,
-		       const real**&  DV     ,
-		       const real**&  DT     ,
+void Element::helmRow (real**  IT     ,
+		       real**  DV     ,
+		       real**  DT     ,
 		       const real&    lambda2,
 		       const int&     i      ,
 		       const int&     j      ,
