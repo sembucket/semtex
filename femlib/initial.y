@@ -48,7 +48,9 @@ RCSid00[] = "$Id$";
 
 
 #include <stdio.h>
+#include <malloc.h>
 #include <string.h>
+#include <ctype.h>
 #include <math.h>
 #include <stdarg.h>
 #include <errno.h>
@@ -60,6 +62,7 @@ extern int errno;
   #include <sigfpe.h>
 #endif
 
+int yyparse (void);
 
 /* ------------------------------------------------------------------------- *
  * File-scope type definitions.                                              *
@@ -212,7 +215,7 @@ void initialize(void)
   sigfpe_[_INVALID].abort = 1;
 
   handle_sigfpes(_ON, _EN_OVERFL | _EN_DIVZERO | _EN_INVALID,
-		NULL, _ABORT_ON_ERROR, NULL);
+		 NULL, _ABORT_ON_ERROR, NULL);
 #endif
 
   for (i=0; consts[i].name; i++)
