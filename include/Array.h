@@ -64,6 +64,11 @@ public:
       }
   }
 
+  // -- Provided for compatibility/interchangability with STL.
+
+  long size() const          { return getSize(); }
+  void resize (const long n) { setSize(n); }
+
 private:
   long num_elts;
   T*   data;
