@@ -47,8 +47,8 @@ typedef struct {
   FILE* his_dmp;		/* History file for energy spectra     */
   int   io_fld;			/* Number of timesteps between dumps   */
   int   io_his;			/* Number of timesteps between dumps   */
-  int   chkpnt;			/* Flag checkpointing                  */
-  int   ngrid;			/* Power of 2: grid is (2*Modes)^3     */
+  int   chkpnt;			/* Flag checkpointing on/off           */
+  int   ngrid;			/* Power of 2: grid is ngrid^3         */
   int   norder;			/* Timestepping order                  */
   int   nstep;			/* Maximum number of timesteps to take */
   int   step;			/* Number of steps taken so far        */
