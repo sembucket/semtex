@@ -1,7 +1,11 @@
-C123456789012345678901234567890123456789012345678901234567890123456789012
-C     ===================================================================
+C12345678901234567890123456789012345678901234567890123456789012345678901
+C     ==================================================================
 C     Reference: Spectral Methods in Fluid Dynamics, App. B.
 C     Canuto, Hussaini, Quarteroni & Zang, Springer-Verlag.  1988.
+C
+C     The routines derive from Clive Temperton:
+C     Self-Sorting Mixed-Radix Fast Fourier Transforms.
+C     JCP V52, 1--23, 1983.
 C
 C     -- User routines:
 C     FACTOR:  compute prime factors.
@@ -17,16 +21,16 @@ C     of the sines reversed compared to the published versions.
 C     This makes the forward DFT have exp(-TWOPIijk/N).
 C
 C     $Id$
-C     ===================================================================
+C     ==================================================================
 C
 C
       SUBROUTINE SPREFT (N,NFAX,IFAX,TRIG)
-C     -------------------------------------------------------------------
+C     ------------------------------------------------------------------
 C     Set up trigonometric array, prime factor array prior to calling
 C     other routines.
 C
 C     NB: note sign change on the SINes compared to Canuto.
-C     -------------------------------------------------------------------
+C     ------------------------------------------------------------------
       IMPLICIT NONE
 C
       INTEGER          K, N, NFAX, IFAX(*)
@@ -46,10 +50,10 @@ C
 C
 C
       SUBROUTINE FACTOR (N,NFAX,IFAX)
-C     -------------------------------------------------------------------
+C     ------------------------------------------------------------------
 C     Compute the (2, 3) prime factors of N.
 C     If there is an error, NFAX is returned as zero.
-C     -------------------------------------------------------------------
+C     ------------------------------------------------------------------
       IMPLICIT NONE
 C
       INTEGER  N, NFAX, IFAX(*), II, NN
@@ -85,8 +89,8 @@ C
 C
 C
       SUBROUTINE SMRCFT (V,NP,NZ,W,NFAX,IFAX,TRIG,ISIGN)
-C     -------------------------------------------------------------------
-C     Compute multiple 1D real--complex transforms of v, return in place.
+C     ------------------------------------------------------------------
+C     Compute multiple 1D real--complex transforms of v, return in place
 C     
 C     For the real-->complex transform (ISIGN=+1), V is interpreted on 
 C     input as a 2D array with each row as a distinct data set: DFTs are
@@ -100,7 +104,7 @@ C     frequency datum is stored in the imaginary storage location of
 C     the zeroth mode Fourier component.
 C
 C     W is used as workspace, total amount of storage is also NP*NZ.
-C     -------------------------------------------------------------------
+C     ------------------------------------------------------------------
       IMPLICIT NONE
 C
       INTEGER NP, NPH, NZ, NZH, NZHM, ISIGN, NFAX, IFAX(*)
@@ -212,8 +216,8 @@ C
 C
 C
       SUBROUTINE SFFT1 (A,C,N,NFAX,IFAX,ISIGN,TRIG,LEN)
-C     -------------------------------------------------------------------
-C     Performs complex FFT on multiple data in A, return the result in C.
+C     ------------------------------------------------------------------
+C     Performs complex FFT on multiple data in A, return the result in C
 C     No normalization.
 C     
 C     A:     Input array (destroyed during calculation):
@@ -236,7 +240,7 @@ C              TRIG is dimensioned (2, 0:N-1);
 C              TRIG (1, J) =    COS (2 * PI * J / N),
 C              TRIG (2, J) =  - SIN (2 * PI * J / N).
 C     LEN:   Number of distinct transforms to be performed.
-C     -------------------------------------------------------------------
+C     ------------------------------------------------------------------
       IMPLICIT NONE
 C
       INTEGER  ISIGN, N, LEN, NFAX, IFAX(*), IFAC, LA, I, IJ
@@ -273,13 +277,13 @@ C
 C
 C
       SUBROUTINE SPASS1 (A,C,N,ISIGN,IFAC,LA,TRIG,LEN)
-C     -------------------------------------------------------------------
+C     ------------------------------------------------------------------
 C     Performs one pass of FFT.
 C
 C     This routine is never called directly by the user.
 C     The arguments are similar to those of FFT1.
 C     NB: sign of ASN60 changed to agree with SPREFT.
-C     -------------------------------------------------------------------
+C     ------------------------------------------------------------------
       IMPLICIT NONE
 C
       INTEGER   IND(0:20),JND(0:20)
@@ -386,9 +390,9 @@ C
 C
 C
       SUBROUTINE DPREFT (N,NFAX,IFAX,TRIG)
-C     -------------------------------------------------------------------
+C     ------------------------------------------------------------------
 C     See comments for SPREFT.
-C     -------------------------------------------------------------------
+C     ------------------------------------------------------------------
       IMPLICIT NONE
 C
       INTEGER          K, N, NFAX, IFAX(*)
@@ -407,9 +411,9 @@ C
 C
 C
       SUBROUTINE DMRCFT (V,NP,NZ,W,NFAX,IFAX,TRIG,ISIGN)
-C     -------------------------------------------------------------------
+C     ------------------------------------------------------------------
 C     See comments for SMRCFT.
-C     -------------------------------------------------------------------
+C     ------------------------------------------------------------------
       IMPLICIT NONE
 C
       INTEGER          NP, NPH, NZ, NZH, NZHM, ISIGN, NFAX, IFAX(*)
@@ -521,9 +525,9 @@ C
 C
 C
       SUBROUTINE DFFT1 (A,C,N,NFAX,IFAX,ISIGN,TRIG,LEN)
-C     -------------------------------------------------------------------
+C     ------------------------------------------------------------------
 C     See comments for SFFT1.
-C     -------------------------------------------------------------------
+C     ------------------------------------------------------------------
       IMPLICIT NONE
 C
       INTEGER          ISIGN, N, LEN, NFAX, IFAX(*), IFAC, LA, I, IJ
@@ -560,9 +564,9 @@ C
 C
 C
       SUBROUTINE DPASS1 (A,C,N,ISIGN,IFAC,LA,TRIG,LEN)
-C     -------------------------------------------------------------------
+C     ------------------------------------------------------------------
 C     See comments for SPASS1.
-C     -------------------------------------------------------------------
+C     ------------------------------------------------------------------
       IMPLICIT NONE
 C
       INTEGER          IND(0:20), JND(0:20)
