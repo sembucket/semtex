@@ -257,7 +257,8 @@ static void readdata (hdr_info&        header,
   
   for (i = 0; i < nfield; i++) {
     for (j = 0; j < nplane; j++) {
-      file.read (static_cast<char*>(u[i]+j*planesize),ntotelmt*sizeof(real_t));
+      file.read (reinterpret_cast<char*>(u[i]+j*planesize),
+		 ntotelmt*sizeof(real_t));
     }
     if (swab) Veclib::brev (ntot, u[i], 1, u[i], 1);
   }
@@ -352,7 +353,8 @@ static void writedata (hdr_info&        header,
 
   for (i = 0; i < nfield; i++) 
     for (j = 0; j < nz; j++)
-      file.write(static_cast<char*>(u[i]+j*planesize),ntotelmt*sizeof(real_t));
+      file.write(reinterpret_cast<char*>(u[i]+j*planesize),
+		 ntotelmt*sizeof(real_t));
 }
 
 
