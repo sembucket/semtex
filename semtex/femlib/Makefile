@@ -91,7 +91,7 @@ endif
 
 INITIAL    = initial
 
-OPERATORS  = polyops	operators	matops
+OPERATORS  = polyops	operators	matops          filter
 
 FFT	   = temfftd	temffts		fftpack		fourier
 
@@ -140,6 +140,10 @@ testpoly: testpoly.c
 testFFT: testFFT.C
 	$(CXX) -o $@ testFFT.C temfft.o -I$(SEMHOME)/include -I. -g \
 	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lftn -lm
+
+testDLT: testDLT.C
+	$(CXX) -o $@ testDLT.C -I$(SEMHOME)/include -I. -g \
+	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp -lm
 
 tar:
 	tar cvf femlib.tar *
