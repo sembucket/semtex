@@ -1395,24 +1395,26 @@ void Element::sideDivR2 (const int   side,
 }
 
 
-int Element::locate (const real x,
-		     const real y,
-		     real&      r,
-		     real&      s) const
+int Element::locate (const real x    ,
+		     const real y    ,
+		     real&      r    ,
+		     real&      s     ,
+		     const int  guess) const
 // ---------------------------------------------------------------------------
 // If x & y fall in this element, compute the corresponding r & s values, 
 // and return 1.  Otherwise return 0.
 //
-// Input values of r & s are taken as initial values for N--R iteration;
-// r = s = 0.0 are reasonable initial guesses, as they must fall in [-1, 1].
+// If guess = 0 (the default argument), the input value of (r, s) is used
+// as an initial guess for N--R iteration.  Otherwise the  (r, s) value that
+// corresponds to the closest point in the Element mesh to (x, y) is used.
 // ---------------------------------------------------------------------------
 {
-  const int    MaxItn = 32;
-  const real   EPS    = 4.0*((sizeof (double)==sizeof (real)) ? EPSDP : EPSSP);
-  const real   DIVERG = 1.0 + EPS;
+  const int    MaxItn = 16;
+  const real   EPS    = 50*((sizeof (double)==sizeof (real)) ? EPSDP : EPSSP);
+  const real   DIVERG = 1.5;
   real         *J, *F, *ir, *is, *dr, *ds, *tp;
   vector<real> work (5 * np + 6);
-  int          ipiv[2], info, i = 0;
+  int          ipiv[2], info, i, j;
   
   tp = work();
   ir = tp + np;
@@ -1421,7 +1423,27 @@ int Element::locate (const real x,
   ds = dr + np;
   J  = ds + np;
   F  = J  + 4;
+  
+  if (guess) {
+    const int    ntot = nTot();
+    vector<real> tmp (2 * ntot);
+    const real*  knot;
+    real         *tx = tmp(), *ty = tmp() + ntot;
 
+    Femlib::quad     (LL, np, np, &knot, 0, 0, 0, 0, 0, 0);
+    Veclib::ssub     (ntot, x, xmesh, 1, tx, 1);
+    Veclib::ssub     (ntot, y, ymesh, 1, ty, 1);
+    Veclib::vvtvvtp  (ntot, tx, 1, tx, 1, ty, 1, ty, 1, tx, 1);
+    
+    i = Veclib::imin (ntot, tx, 1);
+    j = i % np;
+    i = (i - j) / np;
+
+    r = knot[i];
+    s = knot[j];
+  }
+
+  i = 0;
   do {
     Femlib::interp (LL, np, r, s, ir, is, dr, ds);
 
