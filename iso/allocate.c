@@ -4,7 +4,7 @@
  * $Id$
  *****************************************************************************/
 
-#include "globals.h"
+#include "iso.h"
 
 
 int*  ivector (int lo, int hi)

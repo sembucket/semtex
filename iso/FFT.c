@@ -4,7 +4,7 @@
  * $Id$
  *****************************************************************************/
 
-#include "globals.h"
+#include "iso.h"
 
 
 static void  rcZFFT (CF,  const int, const int, const int,
