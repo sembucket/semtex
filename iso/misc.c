@@ -43,7 +43,23 @@ void  copyF (CF to, const CF from, const int* Dim)
 
   memcpy (&to[0][0][0].Re, &from[0][0][0].Re, Npts * sizeof (real));
 }
- 
+
+
+void  scaleF (CF U, const real alpha, const int* Dim)
+/* ------------------------------------------------------------------------- *
+ * Scale U by alpha.
+ * ------------------------------------------------------------------------- */
+{
+  register int    i;
+  register real*  u = &U[0][0][0].Re;
+  const    int    Npts = 2 * Dim[1] * Dim[2] * Dim[3];
+
+  for (i = 0; i < Npts; i++) {
+    *u *= alpha;
+    u++;
+  }
+}
+
 
 void setF (CF f1, const CF f2, const int* Dim)
 /* ------------------------------------------------------------------------- *
