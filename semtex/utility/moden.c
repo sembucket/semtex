@@ -181,7 +181,7 @@ static void getargs (int    argc ,
       else { *mode = atoi (*++argv); argc--; }
       break;
     case 'z':
-      cmplx = 1;
+      *cmplx = 1;
       break;
     default:
       fprintf (stderr, "%s: unknown option -- %c\n", prog, c);
