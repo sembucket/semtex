@@ -6,11 +6,6 @@
 
 #include <femdef.h>
 
-#if defined(__uxp__)
-#pragma global novrec
-#pragma global noalias
-#endif
-
 
 integer lany (integer n, const integer* x, integer incx)
 { 

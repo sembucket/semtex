@@ -24,11 +24,6 @@
 #include <femdef.h>
 #include <alplib.h>
 
-#if defined(__uxp__)
-#pragma global novrec
-#pragma global noalias
-#endif
-
 
 void dmxva(double* A, integer iac, integer iar, double* B, integer ib,
 	   double* C, integer ic,  integer nra, integer nca)

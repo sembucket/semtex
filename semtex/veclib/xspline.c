@@ -28,11 +28,6 @@
 #include <femdef.h>
 #include <alplib.h>
 
-#if defined(__uxp__)
-#pragma global novrec
-#pragma global noalias
-#endif
-
 
 void dspline (integer n, double yp1, double ypn,
 	      const double* x, const double* y, double* y2)
