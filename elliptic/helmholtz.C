@@ -21,8 +21,9 @@ void Helmholtz (Domain*     D      ,
   const real lambda2   = Femlib::value ("LAMBDA2"  );
   const real beta      = Femlib::value ("BETA"     );
   const int  iterative = Femlib::value ("ITERATIVE");
-  const int  nmodes    = (D -> u[0] -> nZ() + 1) >> 1;
-  AuxField*  Force     = new AuxField (D -> Esys, D -> u[0] ->nZ());
+  const int  nmodes    = Geometry::nMode();
+  const int  nZ        = Geometry::nZ();
+  AuxField*  Force     = new AuxField (D -> Esys, nZ);
 
   if   (forcing) *Force = forcing;
   else           *Force = 0.0;
