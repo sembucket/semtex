@@ -482,7 +482,7 @@ void zwgll(double *z, double *w, int np)
   int     i, n;
   double  poly, pder, polym1, pderm1, polym2, pderm2, con;
 
-  if (np < 2) {			/* Can't deal with a poly less than linear.  */
+  if (np < 2) {
     z[0] = w[0] = 0.0;
     return;
   }
@@ -493,7 +493,7 @@ void zwgll(double *z, double *w, int np)
   }
 
   n  = np - 1;
-  con = 2.0 / (double) (n * (n - 1));
+  con = 2.0 / (double) (n * np);
   
   jacgl(n, 0.0, 0.0, z);
 
