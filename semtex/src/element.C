@@ -1337,6 +1337,15 @@ void Element::mulR (real* src) const
 }
 
 
+void Element::mulX (real* src) const
+// ---------------------------------------------------------------------------
+// Multiply src by x (i.e. axial distance in cylindrical coordinates).
+// ---------------------------------------------------------------------------
+{
+  Veclib::vmul (_npnp, src, 1, _xmesh, 1, src, 1);
+}
+
+
 void Element::sideGetR (const integer side,
 			real*         tgt ) const
 // ---------------------------------------------------------------------------
