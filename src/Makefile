@@ -143,7 +143,7 @@ endif
 ifeq ($(ARCH),UNIX_System_V)    	# -- Fujitsu VPP300.
 CC       = vcc
 FC       = frt
-CXX      = /usr/uxp/C++/bin/CC
+CXX      = /home/home01/565/hmb565/C++/bin/CC
 LD       = $(CXX)
 OPT      = -Wv,-m3,-Om,-te -Kpopt
 CFLAGS   = $(DEFINES) -Wv,-m3,-Om -Kpopt
@@ -151,16 +151,17 @@ FFLAGS   = $(DEFINES) -Wv,-m3,-te
 CXXFLAGS = $(DEFINES)  $(OPT)
 RANLIB   =
 ifdef MPI
-  LIBDIR  += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
-  LIBDIR  += -L/usr/lang/mpi/lib
-  LIBS     = -lfem_mp -lalp
-  LIBS    += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
-  LIBS    += -lmpi -lmp
-  OPTIM   += -Wl,-P
+  CPPFLAGS += -I/usr/lang/mpi/include
+  LIBDIR   += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
+  LIBDIR   += -L/usr/lang/mpi/lib
+  LIBS      = -lfem_mp -lalp
+  LIBS     += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
+  LIBS     += -lmpi -lmp
+  OPT      += -Wl,-P
 else
-  LIBDIR  += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
-  LIBS     = -lfem -lalp
-  LIBS    += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
+  LIBDIR   += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
+  LIBS      = -lfem -lalp
+  LIBS     += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
 endif
 LDFLAGS  = $(OPT) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 endif
