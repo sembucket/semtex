@@ -1,7 +1,12 @@
 ///////////////////////////////////////////////////////////////////////////////
 // geometry.C: define geometrical properties for 2D quad X Fourier spaces.
 //
-// Copyright (C) 1994, 1999 Hugh Blackburn
+// This is a modified version for dual: it is restricted to
+// single-process operation and N_Z = 3.  In addition since no Fourier
+// transformation will be used, there is no need to round up the plane
+// size to be an even number.
+//
+// Copyright (C) 1994, 2000 Hugh Blackburn
 //
 // Most routines are inlined in header file Geometry.h
 //
@@ -33,19 +38,6 @@ void Geometry::set (const integer  NP,
 		    const CoordSys CS)
 // ---------------------------------------------------------------------------
 // Load values of static internal variables.
-//
-// The number of processors is restricted: it must either be 1 or an
-// even number, and it must be less than or equal to the number of
-// planes / 2.  Furthermore, the number of planes on a processor must
-// be even, unless NZ == 1.
-//
-// NB: the value of psize is the value of nPlane, but rounded up if
-// necessary to be an even number and also an integer multiple of the
-// number of processors.  The even number restriction is to simplify
-// the handling of Fourier transforms, which can be based on a
-// real--complex transform on some platforms.  The restriction to be
-// an integer multiple of the number of processors is to simplify the
-// structure of memory exchanges required for Fourier transforms.
 // ---------------------------------------------------------------------------
 {
   static char routine[] = "Geometry::set", err[StrMax];
@@ -54,38 +46,18 @@ void Geometry::set (const integer  NP,
   nproc = (integer) Femlib::value ("N_PROC");
 
   np   = NP; nz = NZ; nel = NE; csys = CS;
-  nzp  = nz / nproc;
-  ndim = (nz > 1) ? 3 : 2;
+  nzp  = nz;
+  ndim = 3;
 
-  if (nz > 1 && nz & 1) {	// -- 3D problems must have NZ even.
-    sprintf (err, "N_Z must be even (%1d)", nz);
+  if (nz != 3) {
+    sprintf (err, "dual needs N_Z == 3 (%1d)", nz);
     message (routine, err, ERROR);
   }
 
-  if (nproc > 1) {		// -- Concurrent execution restrictions.
-    if (nproc & 1) {
-      sprintf (err, "No. of processors must be even (%1d)",
-	       nproc);
-      message (routine, err, ERROR);
-    }
-
-    if (nproc << 1 > nz) {
-      sprintf (err, "No. of processors (%1d) can at most be half N_Z (%1d)",
-	       nproc, nz);
-      message (routine, err, ERROR);
-    }
-
-    if (nz % (2 * nproc)) {
-      sprintf (err, "No. of planes (%1d) per processor (%1d) must be even",
-	       nz, nproc);
-      message (routine, err, ERROR);
-    }
-
-    psize  = nPlane();
-    psize += 2 * nproc - nPlane() % (2 * nproc);
-
-  } else {
-
-    psize = nPlane() + (nPlane() % 2);
+  if (nproc != 1) {
+    sprintf (err, "This is a serial code (1 process, not %1d)" nproc);
+    message (routine, err, ERROR);
   }
+
+  psize = nPlane();
 }
