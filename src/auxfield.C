@@ -863,3 +863,18 @@ void AuxField::mulR (const int nZ ,
     }
   }
 }
+
+
+real AuxField::probe (const Element* E ,
+		      const int      pk,
+		      const real     r ,
+		      const real     s ) const
+// ---------------------------------------------------------------------------
+// Return the value of data on plane pk, in Element E, location r, s.
+// ---------------------------------------------------------------------------
+{
+  const int offset = E -> dOff();
+  
+  return E -> probe (r, s, plane[pk] + offset);
+}
+
