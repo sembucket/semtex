@@ -535,6 +535,32 @@ void Element::grad (real* tgtX,
 }
 
 
+void Element::gradX (const real* xr,
+		     const real* xs,
+		     real*       dx) const
+// ---------------------------------------------------------------------------
+// Partial implementation of x-gradient, for use with Femlib::grad2.
+// ---------------------------------------------------------------------------
+{
+  if (_drdx && _dsdx) Veclib::vvtvvtp (_npnp, xr,1,_drdx,1,xs,1,_dsdx,1,dx,1);
+  else if (_drdx)     Veclib::vmul    (_npnp, xr,1,_drdx,1,dx,1);
+  else                Veclib::vmul    (_npnp, xs,1,_dsdx,1,dx,1);
+}
+
+
+void Element::gradY (const real* yr,
+		     const real* ys,
+		     real*       dy) const
+// ---------------------------------------------------------------------------
+// Partial implementation of y-gradient, for use with Femlib::grad2.
+// ---------------------------------------------------------------------------
+{
+  if (_drdy && _dsdy) Veclib::vvtvvtp (_npnp, yr,1,_drdy,1,ys,1,_dsdy,1,dy,1);
+  else if (_drdy)     Veclib::vmul    (_npnp, yr,1,_drdy,1,dy,1);
+  else                Veclib::vmul    (_npnp, ys,1,_dsdy,1,dy,1);
+}
+
+
 void Element::sideEval (const int   side,
 			real*       tgt ,
 			const char* func) const

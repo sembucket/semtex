@@ -34,7 +34,7 @@ C
       DOUBLE PRECISION UR(NR,NS,NEL), US(NR,NS,NEL)
       DOUBLE PRECISION DV(NS,NS),     DT(NR,NR)
 C
-#if defined (_SX) || defined (__uxp__)
+#if defined (_SX) || defined (__uxp__) || defined (_VECTOR_ARCH)
       IF (NEL.EQ.1) THEN
          CALL DGEMM ('N','N',NR,NS,NR,1.0D0,DT,NR, X,NR,1.0D0,UR,NR)
          CALL DGEMM ('N','N',NR,NS,NS,1.0D0,Y, NR,DV,NS,1.0D0,US,NR)
@@ -105,7 +105,7 @@ C
       DOUBLE PRECISION  X(NS,NS,NEL),  Y(NR,NR,NEL), T(NR,NS,NEL)
       DOUBLE PRECISION DV(NS,NR),     DT(NR,NS)
 C
-#if defined (_SX) || defined (__uxp__)
+#if defined (_SX) || defined (__uxp__) || defined (_VECTOR_ARCH)
       IF (NEL.EQ.1) THEN
          CALL DGEMM ('N','N',NR,NS,NS,1.0D0,DT,NR, X,NS,0.0D0,T,NR)
          CALL DGEMM ('N','N',NR,NR,NS,1.0D0, T,NR,DV,NS,0.0D0,Y,NR)
