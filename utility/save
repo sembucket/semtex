@@ -15,16 +15,15 @@
 #  Files		Description		Compressed
 #  ------------------------------------------------------
 #  $ssn			Session file		
-#  $ssn.sta		State-variable file         x
-#  $ssn.his             History-point  file         x
-#  $ssn.trk             Particle-track file         x
+#  $ssn.sta		State-variable file         *
+#  $ssn.his             History-point  file         *
+#  $ssn.trk             Particle-track file         *
 #  $ssn.fld		Field file
 #  $ssn.avg             Average file
 #  $ssn.chk		Checkpoint file
-#  $ssn.mdl             Modal energies              x
+#  $ssn.mdl             Modal energies              *
+#  $ssn.log             Log file                    *
 #  ------------------------------------------------------
-#
-# $Id$
 
 if ($#argv < 1) then
 	echo "usage: save [options] session"
@@ -34,7 +33,7 @@ endif
 # -- Set default file lists
 
 set FilesToCp	= ( fld avg )
-set FilesToComp = ( sta his trk mdl )
+set FilesToComp = ( sta his trk mdl flx for log )
 set FilesToTar  = ( )
 
 # -- Process command line arguments
