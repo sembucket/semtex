@@ -45,6 +45,7 @@ protected:
   const Element* _elmt   ;	// Corresponding element.
   int_t          _side   ;	// Corresponding side.
 
+  int_t          _eoffset;      // Offset of corresponding element in Field.
   int_t          _doffset;	// Offset in Field data plane (matches BLAS).
   int_t          _dskip  ;	// Skip   in Field data plane (matches BLAS).
 

@@ -575,8 +575,8 @@ void Field::traction (real_t*      nx,
 	tnxr = nx + j*np + k*M;
 	tnyr = ny + j*np + k*M;
 	ttxr = tx + j*np + k*M;
-	ttyr = ty + j*np + k*np*N;
-	ttzr = (w) ? tz + j*np + k*np*N : 0;
+	ttyr = ty + j*np + k*M;
+	ttzr = tz + j*np + k*M;
 
 	tnxi = (nz > 1) ? nx + j*np + (k+1)*M : 0;
 	tnyi = (nz > 1) ? ny + j*np + (k+1)*M : 0;
@@ -586,7 +586,7 @@ void Field::traction (real_t*      nx,
 
 	UBC[i] -> traction (mode, mu, pr, pi, ur, ui, vr, vi, wr, wi,
 			    tnxr,tnxi,tnyr,tnyi,
-			    ttxr,ttxi,ttyr,ttyi,ttxr,ttzi,
+			    ttxr,ttxi,ttyr,ttyi,ttzr,ttzi,
 			    &work[0]);
 	j++;
       }
