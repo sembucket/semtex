@@ -21,6 +21,7 @@
 	N_STEP      = 20
 	D_T         = 0.01
 	KINVIS      = 0.5
+	TOL_REL     = 1e-15
 </TOKENS>
 
 <GROUPS NUMBER=4>
