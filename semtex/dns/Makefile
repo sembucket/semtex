@@ -138,11 +138,11 @@ sem:
 
 ifeq ($(ARCH),SUPER-UX)
 mesh.o: $(VPATH)/mesh.C
-        $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
-        $(VPATH)/mesh.C
+	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+	$(VPATH)/mesh.C
 BCmgr.o: $(VPATH)/BCmgr.C
-        $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
-        $(VPATH)/BCmgr.C
+	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+	$(VPATH)/BCmgr.C
 endif
 
 # -----------------------------------------------------------------------------
