@@ -57,6 +57,8 @@ void   dgll     (int nz, double *z, double **D, double **DT);
 
 void   uniknot  (int nk, double *k);
 
+int    quadComplete (int dim, int np);
+
 /* ------------------------------------------------------------------------- *
  * Routines from operators.c:                                                *
  * ------------------------------------------------------------------------- */
