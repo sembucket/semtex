@@ -983,9 +983,7 @@ void Field::buildRHS (real*                    force ,
     } else
       Elmt[i] -> e2gSumSC (force, gid, RHS, hbi[i]);
   }
-#if 0
-  if (DUMP) for (i = 0; i < nglobal; i++) cout << RHS[i] << endl;
-#endif
+
   // -- Add in <h, w>.
 
   for (gid = N -> btog(), i = 0; i < nbound; i++, bc += np) {
