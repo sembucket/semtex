@@ -1,18 +1,17 @@
 //////////////////////////////////////////////////////////////////////////////
 // drive.C: control spectral element LES for incompressible flows.
+//
 // This version for dynamic eddy-viscosity based SGSS, with Smagorinsky
 // as the underlying model.
 //
-// Copyright (C) 1999 Hugh Blackburn
+// Copyright (c) 1999--2000 Hugh Blackburn
 //
 // USAGE:
 // -----
 // les-dyn [options] session
 //   options:
 //   -h       ... print usage prompt
-//   -i[i]    ... use iterative solver for viscous [and pressure] steps
 //   -v[v...] ... increase verbosity level
-//   -chk     ... checkpoint field dumps
 //
 // AUTHOR:
 // ------
@@ -26,16 +25,14 @@
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include <les.h>
+#include "les.h"
 #include <new.h>
 
 static char prog[] = "les-dyn";
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
-static void getargs    (int, char**, char*&);
-static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
-			BCmgr*&, BoundarySys*&, Domain*&);
-
-void integrate (Domain*, LESAnalyser*);	// -- the momentum equations.
+static void getargs      (int, char**, char*&);
+static void preprocess   (const char*, FEML*&, Mesh*&, vector<Element*>&,
+			  BCmgr*&, BoundarySys*&, Domain*&);
 
 
 int main (int    argc,
@@ -61,15 +58,14 @@ int main (int    argc,
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session);
 
-  preprocess (session, file, mesh, elmt, bmgr, bsys, domain);
-
-  analyst = new LESAnalyser (domain, file);
+  preprocess  (session, file, mesh, elmt, bmgr, bsys, domain);
+  initFilters ();
 
   domain -> restart();
 
   ROOTONLY domain -> report();
   
-  integrate (domain, analyst);
+  integrate (domain, analyst = new LESAnalyser (domain, file));
 
   Femlib::finalize();
 
@@ -90,9 +86,7 @@ static void getargs (int    argc   ,
     "Usage: %s [options] session-file\n"
     "  [options]:\n"
     "  -h       ... print this message\n"
-    "  -i[i]    ... use iterative solver for viscous [& pressure] steps\n"
     "  -v[v...] ... increase verbosity level\n"
-    "  -chk     ... checkpoint field dumps\n";
  
   while (--argc && **++argv == '-')
     switch (*++argv[0]) {

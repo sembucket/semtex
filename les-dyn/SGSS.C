@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // SGSS.C: calculate subgrid-scale stress for LES.
 //
-// Copyright (c) 1999 Hugh Blackburn
+// Copyright (c) 1999, 2000 Hugh Blackburn
 //
 // This is where turbulence modelling takes place: the task is to compute
 // the subgrid-scale stress tensor from the resolved-scale velocity field.
@@ -9,11 +9,20 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <les.h>
+#include "les.h"
 
-static void filters    (const integer, const integer,
-			real*, real*, real*, real*);
 static void strainRate (const Domain*, AuxField***, AuxField***);
+
+
+void turbModel (D, Us, Uf, Ut)
+// ---------------------------------------------------------------------------
+//
+// ---------------------------------------------------------------------------
+{
+
+}
+
+
 
 
 void SGSS (const Domain* D ,
