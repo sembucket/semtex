@@ -23,8 +23,8 @@ void Helmholtz (Domain*     D      ,
   const integer iterative = (integer) Femlib::value ("ITERATIVE");
   const integer nmodes    = Geometry::nModeProc();
   const integer base      = Geometry::baseMode();
-  const integer nZ        = Geometry::nZProc();
-  AuxField*     Force     = new AuxField (D -> Esys, nZ);
+  const integer nz        = Geometry::nZProc();
+  AuxField*     Force     = new AuxField (D -> elmt, nz);
 
   if   (forcing) (*Force = forcing) . transform (+1);
   else            *Force = 0.0;
@@ -34,14 +34,8 @@ void Helmholtz (Domain*     D      ,
     D -> u[0] -> solve (Force, lambda2);
 
   } else {
-    char                 name = D -> u[0] -> name();
-    vector<Element*>&    E    = D -> Esys;
-    const NumberSystem** N;
-    ModalMatrixSystem*   M;
-
-    N = new const NumberSystem* [3];
-    D -> setNumber (name, N);
-    M = new ModalMatrixSystem (lambda2, beta, name, base, nmodes, E, N);
+    ModalMatrixSys* M =
+      new ModalMatrixSys (lambda2, beta, base, nmodes, D -> elmt, D -> b[0]);
 
     D -> u[0] -> solve (Force, M);
   }

@@ -1,5 +1,9 @@
+#ifndef DNS_H
+#define DNS_H
 //////////////////////////////////////////////////////////////////////////////
 // dns.h: header file for direct numerical simulation solver.
+//
+// Copyright (C) 1994, 1999 Hugh Blackburn
 //
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
@@ -13,9 +17,10 @@ class DNSAnalyser : public Analyser
 // ===========================================================================
 {
 public:
-  DNSAnalyser  (Domain&, FEML&);
+  DNSAnalyser  (Domain*, FEML*);
   void analyse (AuxField***);
 
 private:
   ofstream flx_strm;
 };
+#endif
