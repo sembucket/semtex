@@ -1467,7 +1467,7 @@ int Element::locate (const real x    ,
 
   } while (++i < MaxItn && (fabs (F[0]) > EPS || fabs (F[1]) > EPS));
 
-  return (i < MaxItn) ? 1 : 0;
+  return (i < MaxItn && fabs (r) < 1.0 + EPS && fabs(s) < 1.0 + EPS) ? 1 : 0;
 }
 
 
