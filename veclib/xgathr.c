@@ -3,46 +3,28 @@
  *****************************************************************************/
 
 
-void dgathr(int n, double *x, int *y, double *z)
+void dgathr (int n, const double *x, const int *y, double *z)
 {
   register int  i;
-
-  
-  for (i=0; i<n; i++) {
-    *z = *(x + *y);
-    y++;
-    z++;
-  }
+  for (i = 0; i < n; i++) {*z = *(x + *y); y++; z++;}
 }
 
 
 
 
 
-void igathr(int n, int *x, int *y, int *z)
+void igathr (int n, const int *x, const int *y, int *z)
 {
   register int  i;
-
-  
-  for (i=0; i<n; i++) {
-    *z = *(x + *y);
-    y++;
-    z++;
-  }
+  for (i = 0; i < n; i++) {*z = *(x + *y); y++; z++;}
 }
 
 
 
 
 
-void sgathr(int n, float *x, int *y, float *z)
+void sgathr (int n, const float *x, const int *y, float *z)
 {
   register int  i;
-
-  
-  for (i=0; i<n; i++) {
-    *z = *(x + *y);
-    y++;
-    z++;
-  }
+  for (i = 0; i < n; i++) {*z = *(x + *y); y++; z++;}
 }
