@@ -47,8 +47,8 @@ void Geometry::set (const integer  NP,
     message (routine, err, ERROR);
   }
 
-#if (defined(VECFFT))
-  int nfact, factors[32];
+#if defined(VECFFT)
+  integer nfact, factors[32];
   if (nz > 1) {
     Femlib::primes23 (nz, nfact, factors);
     if (!nfact) {
