@@ -35,7 +35,7 @@ void message (const char *routine, const char *text, int level)
     fprintf (stderr, "ERROR: %s: %s\n", routine, text); 
     break;
   case REMARK:
-    fprintf (stdout, "%s%s\n", routine, text);
+    fprintf (stderr, "%s: %s\n", routine, text);
     break;
   default:
     fprintf (stderr, "bad error level in message: %d\n", level);
