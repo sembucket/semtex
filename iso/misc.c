@@ -391,32 +391,32 @@ void filterF (CF    U   ,
     
     TP.Re = F_re[0] * F_re[0] * F_re[0];
     TP.Im = F_im[0] * F_im[0] * F_im[0];
-    SHIFT (u[rm(0,0,0)], TP);
+    SHIFT (u[RM(0,0,0)], TP);
 
     for (k1 = 1; k1 < K; k1++) {
       b1 = N - k1;
       TP.Re = F_re[k1] * F_re[0] * F_re[0];
       TP.Im = F_im[k1] * F_im[0] * F_im[0];
-      SHIFT (u[rm(k1, 0, 0)], TP);
-      SHIFT (u[rm( 0,k1, 0)], TP);
-      SHIFT (u[rm( 0, 0,k1)], TP);
+      SHIFT (u[RM(k1, 0, 0)], TP);
+      SHIFT (u[RM( 0,k1, 0)], TP);
+      SHIFT (u[RM( 0, 0,k1)], TP);
       for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
 	b2 = N - k2;
 	TP.Re = F_re[k1] * F_re[k2] * F_re[0];
 	TP.Im = F_im[k1] * F_im[k2] * F_im[0];
-	SHIFT (u[rm( 0,k1,k2)], TP);
-	SHIFT (u[rm( 0,b1,k2)], TP);
-	SHIFT (u[rm(k1, 0,k2)], TP);
-	SHIFT (u[rm(b1, 0,k2)], TP);
-	SHIFT (u[rm(k1,k2, 0)], TP);
-	SHIFT (u[rm(b1,k2, 0)], TP);
+	SHIFT (u[RM( 0,k1,k2)], TP);
+	SHIFT (u[RM( 0,b1,k2)], TP);
+	SHIFT (u[RM(k1, 0,k2)], TP);
+	SHIFT (u[RM(b1, 0,k2)], TP);
+	SHIFT (u[RM(k1,k2, 0)], TP);
+	SHIFT (u[RM(b1,k2, 0)], TP);
 	for (k3 = 1; k3 < K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
 	  TP.Re = F_re[k1] * F_re[k2] * F_re[k3];
 	  TP.Im = F_im[k1] * F_im[k2] * F_im[k3];
-	  SHIFT (u[rm(k1,k2,k3)], TP);
-	  SHIFT (u[rm(b1,k2,k3)], TP);
-	  SHIFT (u[rm(k1,b2,k3)], TP);
-	  SHIFT (u[rm(b1,b2,k3)], TP);
+	  SHIFT (u[RM(k1,k2,k3)], TP);
+	  SHIFT (u[RM(b1,k2,k3)], TP);
+	  SHIFT (u[RM(k1,b2,k3)], TP);
+	  SHIFT (u[RM(b1,b2,k3)], TP);
 	}
       }
     }

@@ -78,7 +78,7 @@ static void test (void           (*generate) (CVF),
 
   /* -- Compute nonlinear terms NL = d(UiUj)/dxj. */
 
-  nonlinear (U, NL, work2, work3, work1, Wtab, Stab);
+  nonlinear (U, NL, work1, work2, work3, Wtab, Stab);
 
   fprintf (stderr, "Maximum nonlinear components       : %g  %g  %g\n",
 	   amaxF (NL[1]), amaxF (NL[2]), amaxF (NL[3]));

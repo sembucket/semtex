@@ -385,18 +385,18 @@ void convolve (const CF       U   ,
   
   for (k1 = 1; k1 < K; k1++) {
     b1 = N - k1;
-    _i = rm(k1,0,0);
-    _j = rm(0,k1,0);
-    _k = rm(0,0,k1);
+    _i = RM(k1,0,0);
+    _j = RM(0,k1,0);
+    _k = RM(0,0,k1);
     A[_i] = B[_i];
     A[_j] = B[_j];
     A[_k] = B[_k];
 
     for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
       b2 = N - k2;
-      _i = rm(0,k1,k2); _j = rm(0,b1,k2);
-      _k = rm(k1,0,k2); _l = rm(b1,0,k2);
-      _m = rm(k1,k2,0); _n = rm(b1,k2,0);
+      _i = RM(0,k1,k2); _j = RM(0,b1,k2);
+      _k = RM(k1,0,k2); _l = RM(b1,0,k2);
+      _m = RM(k1,k2,0); _n = RM(b1,k2,0);
       A[_i] = B[_i];
       A[_j] = B[_j];
       A[_k] = B[_k];
@@ -405,8 +405,8 @@ void convolve (const CF       U   ,
       A[_n] = B[_n];
 
       for (k3 = 1; k3 < K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
-	_i = rm(k1,k2,k3); _j = rm(b1,k2,k3);
-	_k = rm(k1,b2,k3); _l = rm(b1,b2,k3);
+	_i = RM(k1,k2,k3); _j = RM(b1,k2,k3);
+	_k = RM(k1,b2,k3); _l = RM(b1,b2,k3);
 	A[_i] = B[_i];
 	A[_j] = B[_j];
 	A[_k] = B[_k];
@@ -424,9 +424,9 @@ void convolve (const CF       U   ,
 
   for (k1 = 1; k1 < K; k1++) {
     b1 = N - k1;
-    _i = rm(k1,0,0);
-    _j = rm(0,k1,0);
-    _k = rm(0,0,k1);
+    _i = RM(k1,0,0);
+    _j = RM(0,k1,0);
+    _k = RM(0,0,k1);
     A[_i].Re = 0.5 * (A[_i].Re + B[_i].Re);
     A[_i].Im = 0.5 * (A[_i].Im + B[_i].Im);
     A[_j].Re = 0.5 * (A[_j].Re + B[_j].Re);
@@ -436,9 +436,9 @@ void convolve (const CF       U   ,
 
     for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
       b2 = N - k2;
-      _i = rm(0,k1,k2); _j = rm(0,b1,k2);
-      _k = rm(k1,0,k2); _l = rm(b1,0,k2);
-      _m = rm(k1,k2,0); _n = rm(b1,k2,0);
+      _i = RM(0,k1,k2); _j = RM(0,b1,k2);
+      _k = RM(k1,0,k2); _l = RM(b1,0,k2);
+      _m = RM(k1,k2,0); _n = RM(b1,k2,0);
       A[_i].Re = 0.5 * (A[_i].Re + B[_i].Re);
       A[_i].Im = 0.5 * (A[_i].Im + B[_i].Im);
       A[_j].Re = 0.5 * (A[_j].Re + B[_j].Re);
@@ -453,8 +453,8 @@ void convolve (const CF       U   ,
       A[_n].Im = 0.5 * (A[_n].Im + B[_n].Im);
 
       for (k3 = 1; k3 < K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
-	_i = rm(k1,k2,k3); _j = rm(b1,k2,k3);
-	_k = rm(k1,b2,k3); _l = rm(b1,b2,k3);
+	_i = RM(k1,k2,k3); _j = RM(b1,k2,k3);
+	_k = RM(k1,b2,k3); _l = RM(b1,b2,k3);
 	A[_i].Re = 0.5 * (A[_i].Re + B[_i].Re);
 	A[_i].Im = 0.5 * (A[_i].Im + B[_i].Im);
 	A[_j].Re = 0.5 * (A[_j].Re + B[_j].Re);
@@ -476,37 +476,37 @@ void shift (CF             U,
  * Phase shift in FOURIER space <==> interpolate to shifted grid in PHYSICAL.
  * ------------------------------------------------------------------------- */
 {
+  const int        SGN = (Drn == FORWARD) ? 1 : -1;
   register int     k1, b1, k2, b2, k3;
   register real    tempRe;
   register complex W, *u = &U[0][0][0];
-  const int        SGN = (Drn == FORWARD) ? 1 : -1;
 
   for (k1 = 1; k1 < K; k1++) {
     b1 = N - k1;
     
     W = Stab[SGN*k1];
-    SHIFT (u[rm(k1,0,0)], W);
-    SHIFT (u[rm(0,k1,0)], W);
-    SHIFT (u[rm(0,0,k1)], W);
+    SHIFT (u[RM(k1,0,0)], W);
+    SHIFT (u[RM(0,k1,0)], W);
+    SHIFT (u[RM(0,0,k1)], W);
 
     for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
       b2 = N - k2;
 
       W = Stab[SGN*(k1+k2)];
-      SHIFT (u[rm(0,k1,k2)], W);
-      SHIFT (u[rm(k1,0,k2)], W);
-      SHIFT (u[rm(k1,k2,0)], W);
+      SHIFT (u[RM(0,k1,k2)], W);
+      SHIFT (u[RM(k1,0,k2)], W);
+      SHIFT (u[RM(k1,k2,0)], W);
 
       W = Stab[SGN*(k2-k1)];
-      SHIFT (u[rm(0,b1,k2)], W);
-      SHIFT (u[rm(b1,0,k2)], W);
-      SHIFT (u[rm(b1,k2,0)], W);
+      SHIFT (u[RM(0,b1,k2)], W);
+      SHIFT (u[RM(b1,0,k2)], W);
+      SHIFT (u[RM(b1,k2,0)], W);
 
       for (k3 = 1; k3 < K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
-	W = Stab[SGN*(k1+k2+k3)]; SHIFT (u[rm(k1,k2,k3)], W);
-	W = Stab[SGN*(k3+k1-k2)]; SHIFT (u[rm(k1,b2,k3)], W);
-	W = Stab[SGN*(k3+k2-k1)]; SHIFT (u[rm(b1,k2,k3)], W);
-	W = Stab[SGN*(k3-k1-k2)]; SHIFT (u[rm(b1,b2,k3)], W);  
+	W = Stab[SGN*(k1+k2+k3)]; SHIFT (u[RM(k1,k2,k3)], W);
+	W = Stab[SGN*(k3+k1-k2)]; SHIFT (u[RM(k1,b2,k3)], W);
+	W = Stab[SGN*(k3+k2-k1)]; SHIFT (u[RM(b1,k2,k3)], W);
+	W = Stab[SGN*(k3-k1-k2)]; SHIFT (u[RM(b1,b2,k3)], W);  
       }
     }
   }

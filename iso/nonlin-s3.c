@@ -13,17 +13,16 @@
 
 #define F_ORDER 4
 #define F_ROLL  0.5
-#define F_ATTEN 0.9
+#define F_ATTEN 0.0
 
-#define PEQ(Z1,c,Z2)  (Z1)->Re += (c) * (Z2)->Im; \
-                      (Z1)->Im -= (c) * (Z2)->Re
+#define PEQ(Z1,c,Z2) (Z1)->Re += (c) * (Z2)->Im; (Z1)->Im -= (c) * (Z2)->Re
 
 
 void nonlinear (CVF            U   ,
 		CVF            G   ,
+		CVF            U_  ,
 		CF             F   ,
 		CF             F_  ,
-		CVF            U_  ,
 		const complex* Wtab,
 		const complex* Stab)
 /* ------------------------------------------------------------------------- *
@@ -89,7 +88,7 @@ void nonlinear (CVF            U   ,
 
   /* -- "Stimulate" the small scales uf U. */
 
-  for (c = 1; c <= 3; c++) filter (U[c], expand, NULL);
+  for (c = 1; c <= 3; c++) filterF (U[c], expand, NULL);
 
   /* -- Make velocity field in PHYSICAL space on unshifted & shifted grid
    *    for alias control.
@@ -374,20 +373,20 @@ void nonlinear (CVF            U   ,
   /* -- "De-stimulate" the small scales of U, and G. */
 
   for (c = 1; c <= 3; c++) {
-    filter (U[c], shrink, 0);
-    filter (G[c], shrink, 0);
+    filterF (U[c], shrink, 0);
+    filterF (G[c], shrink, 0);
   }
 }
 
 
-void convolve (const CF        U   ,
-	       const CF        V   ,
-	       const CF        U_  ,
-	       const CF        V_  ,
-	       CF              W   ,
-	       CF              W_  ,
-	       const complex*  Wtab,
-	       const complex*  Stab)
+void convolve (const CF       U   ,
+	       const CF       V   ,
+	       const CF       U_  ,
+	       const CF       V_  ,
+	       CF             W   ,
+	       CF             W_  ,
+	       const complex* Wtab,
+	       const complex* Stab)
 /* ------------------------------------------------------------------------- *
  * Compute the isotropically-truncated convolution sum of u & v, return in w.
  *                                                                          
@@ -405,36 +404,64 @@ void convolve (const CF        U   ,
  * possible to the truncated region to save computation.                    
  * ------------------------------------------------------------------------- */
 {
+  const int        Npts = N * N * N;
   register int     _i, _j, _k, _l, _m, _n;
   register int     k1, b1, k2, b2, k3;
-  register complex *A = &W[0][0][0], *B = &W_[0][0][0];
-  const int        Npts     = N * N * N;
+  register complex *A = &W [0][0][0],    *B  = &W_[0][0][0];
+  register real    *u = &U [0][0][0].Re, *u_ = &U_[0][0][0].Re,
+                   *v = &V [0][0][0].Re, *v_ = &V_[0][0][0].Re,
+                   *w = &W [0][0][0].Re, *w_ = &W_[0][0][0].Re;
+  
+  for (k1 = 0; k1 < Npts; k1++) w_[k1] = u [k1] * v [k1];
 
-  {
-    register real
-      *u = &U [0][0][0].Re, *u_ = &U_[0][0][0].Re,
-      *v = &V [0][0][0].Re, *v_ = &V_[0][0][0].Re,
-      *w = &W [0][0][0].Re, *w_ = &W_[0][0][0].Re;
-    for (k1 = 0; k1 < Npts; k1++) w [k1] = u [k1] * v [k1];
-    for (k1 = 0; k1 < Npts; k1++) w_[k1] = u_[k1] * v_[k1];
-  }
-
-  rc3DFT (W,  Wtab, FORWARD);
   rc3DFT (W_, Wtab, FORWARD);
-  shift  (W_, Stab, INVERSE);
 
-#if 0
-  truncate (W , Dim);
-  truncate (W_, Dim);
-#endif
-
-  A[0].Re = 0.5 * (A[0].Re + B[0].Re);
+  A[0].Re = B[0].Re;
   
   for (k1 = 1; k1 < K; k1++) {
     b1 = N - k1;
-    _i = rm(k1,0,0);
-    _j = rm(0,k1,0);
-    _k = rm(0,0,k1);
+    _i = RM(k1,0,0);
+    _j = RM(0,k1,0);
+    _k = RM(0,0,k1);
+    A[_i] = B[_i];
+    A[_j] = B[_j];
+    A[_k] = B[_k];
+
+    for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
+      b2 = N - k2;
+      _i = RM(0,k1,k2); _j = RM(0,b1,k2);
+      _k = RM(k1,0,k2); _l = RM(b1,0,k2);
+      _m = RM(k1,k2,0); _n = RM(b1,k2,0);
+      A[_i] = B[_i];
+      A[_j] = B[_j];
+      A[_k] = B[_k];
+      A[_l] = B[_l];
+      A[_m] = B[_m];
+      A[_n] = B[_n];
+
+      for (k3 = 1; k3 < K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
+	_i = RM(k1,k2,k3); _j = RM(b1,k2,k3);
+	_k = RM(k1,b2,k3); _l = RM(b1,b2,k3);
+	A[_i] = B[_i];
+	A[_j] = B[_j];
+	A[_k] = B[_k];
+	A[_l] = B[_l];
+      }
+    }
+  }
+
+  for (k1 = 0; k1 < Npts; k1++) w_[k1] = u_[k1] * v_[k1];
+
+  rc3DFT (W_, Wtab, FORWARD);
+  shift  (W_, Stab, INVERSE);
+
+  A[0].Re = 0.5 * (A[0].Re + B[0].Re);
+
+  for (k1 = 1; k1 < K; k1++) {
+    b1 = N - k1;
+    _i = RM(k1,0,0);
+    _j = RM(0,k1,0);
+    _k = RM(0,0,k1);
     A[_i].Re = 0.5 * (A[_i].Re + B[_i].Re);
     A[_i].Im = 0.5 * (A[_i].Im + B[_i].Im);
     A[_j].Re = 0.5 * (A[_j].Re + B[_j].Re);
@@ -444,9 +471,9 @@ void convolve (const CF        U   ,
 
     for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
       b2 = N - k2;
-      _i = rm(0,k1,k2); _j = rm(0,b1,k2);
-      _k = rm(k1,0,k2); _l = rm(b1,0,k2);
-      _m = rm(k1,k2,0); _n = rm(b1,k2,0);
+      _i = RM(0,k1,k2); _j = RM(0,b1,k2);
+      _k = RM(k1,0,k2); _l = RM(b1,0,k2);
+      _m = RM(k1,k2,0); _n = RM(b1,k2,0);
       A[_i].Re = 0.5 * (A[_i].Re + B[_i].Re);
       A[_i].Im = 0.5 * (A[_i].Im + B[_i].Im);
       A[_j].Re = 0.5 * (A[_j].Re + B[_j].Re);
@@ -461,8 +488,8 @@ void convolve (const CF        U   ,
       A[_n].Im = 0.5 * (A[_n].Im + B[_n].Im);
 
       for (k3 = 1; k3 < K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
-	_i = rm(k1,k2,k3); _j = rm(b1,k2,k3);
-	_k = rm(k1,b2,k3); _l = rm(b1,b2,k3);
+	_i = RM(k1,k2,k3); _j = RM(b1,k2,k3);
+	_k = RM(k1,b2,k3); _l = RM(b1,b2,k3);
 	A[_i].Re = 0.5 * (A[_i].Re + B[_i].Re);
 	A[_i].Im = 0.5 * (A[_i].Im + B[_i].Im);
 	A[_j].Re = 0.5 * (A[_j].Re + B[_j].Re);
@@ -477,44 +504,44 @@ void convolve (const CF        U   ,
 }
 
 
-void shift (CF             U   ,
+void shift (CF             U,
 	    const complex* Stab,
-	    const int      Drn )
+	    const int      Drn)
 /* ------------------------------------------------------------------------- *
  * Phase shift in FOURIER space <==> interpolate to shifted grid in PHYSICAL.
  * ------------------------------------------------------------------------- */
 {
-  register int      k1, b1, k2, b2, k3;
-  register real     tempRe;
-  register complex  W, *u = &U[0][0][0];
-  const int         SGN   = (Drn == FORWARD) ? 1 : -1;
+  const int        SGN = (Drn == FORWARD) ? 1 : -1;
+  register int     k1, b1, k2, b2, k3;
+  register real    tempRe;
+  register complex W, *u = &U[0][0][0];
 
   for (k1 = 1; k1 < K; k1++) {
     b1 = N - k1;
     
     W = Stab[SGN*k1];
-    SHIFT (u[rm(k1,0,0)], W);
-    SHIFT (u[rm(0,k1,0)], W);
-    SHIFT (u[rm(0,0,k1)], W);
+    SHIFT (u[RM(k1,0,0)], W);
+    SHIFT (u[RM(0,k1,0)], W);
+    SHIFT (u[RM(0,0,k1)], W);
 
     for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
       b2 = N - k2;
 
       W = Stab[SGN*(k1+k2)];
-      SHIFT (u[rm(0,k1,k2)], W);
-      SHIFT (u[rm(k1,0,k2)], W);
-      SHIFT (u[rm(k1,k2,0)], W);
+      SHIFT (u[RM(0,k1,k2)], W);
+      SHIFT (u[RM(k1,0,k2)], W);
+      SHIFT (u[RM(k1,k2,0)], W);
 
       W = Stab[SGN*(k2-k1)];
-      SHIFT (u[rm(0,b1,k2)], W);
-      SHIFT (u[rm(b1,0,k2)], W);
-      SHIFT (u[rm(b1,k2,0)], W);
+      SHIFT (u[RM(0,b1,k2)], W);
+      SHIFT (u[RM(b1,0,k2)], W);
+      SHIFT (u[RM(b1,k2,0)], W);
 
       for (k3 = 1; k3 < K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
-	W = Stab[SGN*(k1+k2+k3)]; SHIFT (u[rm(k1,k2,k3)], W);
-	W = Stab[SGN*(k3+k1-k2)]; SHIFT (u[rm(k1,b2,k3)], W);
-	W = Stab[SGN*(k3+k2-k1)]; SHIFT (u[rm(b1,k2,k3)], W);
-	W = Stab[SGN*(k3-k1-k2)]; SHIFT (u[rm(b1,b2,k3)], W);  
+	W = Stab[SGN*(k1+k2+k3)]; SHIFT (u[RM(k1,k2,k3)], W);
+	W = Stab[SGN*(k3+k1-k2)]; SHIFT (u[RM(k1,b2,k3)], W);
+	W = Stab[SGN*(k3+k2-k1)]; SHIFT (u[RM(b1,k2,k3)], W);
+	W = Stab[SGN*(k3-k1-k2)]; SHIFT (u[RM(b1,b2,k3)], W);  
       }
     }
   }
