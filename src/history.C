@@ -21,24 +21,24 @@
 
 static char RCS[] = "$Id$";
 
-#include <sem.h>
+#include "sem.h"
 
 
-const Element* HistoryPoint::locate (const real        x   ,
-				     const real        y   ,
+const Element* HistoryPoint::locate (const real_t      x   ,
+				     const real_t      y   ,
 				     vector<Element*>& Esys,
-				     real&             r   ,
-				     real&             s   )
+				     real_t&           r   ,
+				     real_t&           s   )
 // ---------------------------------------------------------------------------
 // Static class member function which tries to locate x, y, point within
 // an element E, and return its location in r, s coordinates within E.
 // ---------------------------------------------------------------------------
 {
-  register integer i;
-  const integer    NEL   = Esys.size();
-  const integer    guess = 1;
-  const Element*   E;
-  vector<real>     work (max (2*Geometry::nTotElmt(), 5*Geometry::nP() + 6));
+  register int_t i;
+  const int_t    NEL   = Esys.size();
+  const int_t    guess = 1;
+  const Element* E;
+  vector<real_t> work (max (2*Geometry::nTotElmt(), 5*Geometry::nP() + 6));
 
   for (E = 0, i = 0; E == 0 && i < NEL; i++)
     if (Esys[i] -> locate (x, y, r=0.0, s=0.0, &work[0], guess)) E = Esys[i];
@@ -48,14 +48,14 @@ const Element* HistoryPoint::locate (const real        x   ,
 
 
 void HistoryPoint::extract (vector<AuxField*>& u  ,
-			    real*              tgt) const
+			    real_t*            tgt) const
 // ---------------------------------------------------------------------------
 // Load tgt with information extracted from each AuxField in u, tgt is
 // assumed to have sufficient storage to suit.
 // ---------------------------------------------------------------------------
 {
-  register integer i;
-  const integer    N = u.size();
+  register int_t i;
+  const int_t    N = u.size();
 
   for (i = 0; i < N; i++) tgt[i] = u[i] -> probe (_E, _r, _s, _z);
 }

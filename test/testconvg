@@ -17,6 +17,7 @@ foreach i (3 4 5 6 7 8 9 10 11 12 13 14)
     sed "s/N_POLY.*/N_POLY=$i/" < $SESSION > _conv
     echo NP=$i
     compare _conv > _conv.rst
+    enumerate -O3 _conv > _conv.num
     dns _conv > /dev/null
     compare _conv _conv.fld > errors.fld
 end

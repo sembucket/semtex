@@ -41,13 +41,16 @@
 #define STOP 16
 static double gammaF(double x);
 
+/* Row-major access in an array with rows of length n. */
+
+#define RMA(i,j,n) (j+i*n) 
 
 void dermat_g (const integer K   ,
 	       const double* zero, 
 	       const integer I   ,
 	       const double* x   ,
-	       double**      D   ,
-	       double**      DT  )
+	       double*       D   ,
+	       double*       DT  )
 /* ------------------------------------------------------------------------- *
  * Given a set of zeros for a Lagrange interpolant order K-1 and a set of I
  * points x, return the derivative operator matrix D and its transpose DT.
@@ -90,7 +93,8 @@ void dermat_g (const integer K   ,
 	   sum += prod;
 	 }
        }
-       D[j][k]  = DT[k][j] = sum / a[k];
+       D[RMA(j,k,K)]  = DT[RMA(k,j,I)] = sum / a[k];
+       /* D[j][k]  = DT[k][j] = sum / a[k]; */
      }
 
   freeDvector (a, 0);
@@ -99,8 +103,8 @@ void dermat_g (const integer K   ,
 
 void dermat_k (const integer K   ,
 	       const double* zero,
-	       double**      D   ,
-	       double**      DT  )
+	       double*       D   ,
+	       double*       DT  )
 /* ------------------------------------------------------------------------- *
  * Given a set of zeros for a Lagrange interpolant order K-1, return the
  * (collocation) derivative operator matrix D and its transpose DT.
@@ -139,12 +143,14 @@ void dermat_k (const integer K   ,
 	 sum = 0.0;
 	 for (l = 0; l < K; l++)
 	   if (l != k) sum += 1.0 / (zero[k] - zero[l]);
-	 D[k][k] = DT[k][k] = sum;
+	 D[RMA(k,k,K)] = DT[RMA(k,k,K)] = sum;
+	 /* D[k][k] = DT[k][k] = sum;*/
        } else {			    /* -- Off-diagonal term: use eq (2.7). */
 	 prod = 1.0;
 	 for (l = 0; l < K; l++) 
 	   if (l != j) prod *= zero[j] - zero[l];
-	 D[j][k] = DT[k][j] = prod / ((zero[j] - zero[k]) * a[k]);
+	 D[RMA(j,k,K)] = DT[RMA(k,j,K)] = prod / ((zero[j] - zero[k]) * a[k]);
+	 /* D[j][k] = DT[k][j] = prod / ((zero[j] - zero[k]) * a[k]); */
        }
 
   freeDvector (a, 0);
@@ -155,8 +161,8 @@ void intmat_g (const integer K   ,
 	       const double* zero,
 	       const integer I   ,
 	       const double* x   ,
-	       double**      IN  ,
-	       double**      IT  )
+	       double*       IN  ,
+	       double*       IT  )
 /* ------------------------------------------------------------------------- *
  * Given a set of zeros for a Lagrange interpolant order K-1 and a set of I
  * points x, return the interpolation matrix IN and its transpose IT.
@@ -187,7 +193,8 @@ void intmat_g (const integer K   ,
       prod = 1.0;
       for (i = 0; i < K; i++)
 	if (i != k) prod *= x[j] - zero[i];
-      IN[j][k] = IT[k][j] = prod / a[k];
+      IN[RMA(j,k,K)] = IT[RMA(k,j,I)] = prod / a[k];
+      /* IN[j][k] = IT[k][j] = prod / a[k]; */
     }
 
   freeDvector (a, 0);

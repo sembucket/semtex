@@ -1,43 +1,51 @@
 //////////////////////////////////////////////////////////////////////////////
 // glzw.C: print out Gauss--Lobatto nodes and weights on [-1, 1].
 //
-// For now, just for the Legendre basis.
+// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 //
-// Usage: glzw -N <num>
+// Usage: glzw -N <num> [-w <a,b>]
 // where
 // -N <num> ... supplies the number of GL nodes.
+// -w <a,b> ... a and b are the exponents in (1+x)^a*(1-x)^b (default: 0,0)
+//
+// The default weights 0,0 generate quadrature points for Legendre polys.
 //
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
 #include <cstdlib>
 #include <cmath>
+#include <cstring>
 
 #include <iostream>
 #include <iomanip>
 
 using namespace std;
 
-#include <femdef.h>
-#include <Array.h>
-#include <veclib>
-#include <femlib>
-#include <blas_h>
-#include <utility_h>
+#include <cfemdef.h>
+#include <femlib.h>
+#include <utility.h>
+
+static char prog[] = "glzw";
+
 
 static void getargs (int     argc,
 		     char**  argv,
-		     int&    N   )
+		     int_t&  N   ,
+		     real_t& a   ,
+		     real_t& b   )
 // ---------------------------------------------------------------------------
 // Parse command-line args.
 // ---------------------------------------------------------------------------
 {
   const char *usage = 
-    "Usage: glzw -N <num>\n"
+    "Usage: glzw -N <num> [-w <a,b>]\n"
     "where\n"
-    "-N <num> ... supplies the number of GL nodes\n";
+    "-N <num> ... supplies the number of GL nodes\n"
+    "-w <a,b> ... a and b are exponents in (1+x)^a*(1-x)^b (default: 0,0)\n";
+  char *tok, *pspec;
 
-  if (argc != 3) {
+  if (argc < 3) {
     cerr << usage;
     exit (EXIT_FAILURE);
   }
@@ -47,6 +55,24 @@ static void getargs (int     argc,
     case 'N':
       if (*++argv[0]) N = atoi (*argv);
       else { --argc;  N = atoi (*++argv); }
+      break;
+    case 'w':
+      if (*++argv[0])
+	pspec = *argv;
+      else {
+	--argc;
+	pspec = *++argv;
+      }
+      if (tok = strtok (pspec, ",")) {
+	a = atof (tok);
+      } else {
+	message (prog, "couldn't parse number a from string", ERROR);
+      }
+      if (tok = strtok (0, ",")) {
+	b = atof (tok);
+      } else {
+	message (prog, "couldn't parse number b from string", ERROR);
+      }
       break;
     default:
       cerr << usage;
@@ -62,15 +88,13 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  int i, N;
+  int_t        i, N;
+  real_t       alpha = 0.0, beta = 0.0;
+  const real_t *z, *w;
 
-  getargs (argc, argv, N);
+  getargs (argc, argv, N, alpha, beta);
 
-  vector<real> work (2*N);
-  real         *z = work();
-  real         *w = z + N;
-
-  Femlib::GLLzw (N, z, w);
+  Femlib::quadrature (&z, &w, 0, 0, N, LL, alpha, beta);
 
   cout.precision (8);
   cout.setf (ios::fixed, ios::floatfield);

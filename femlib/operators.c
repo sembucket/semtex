@@ -619,8 +619,6 @@ void intp (double*       inr   ,  /* 1D shape function at r               */
 }
 
  
-#if 1
-
 typedef struct legcoef {	/* ---- Table for GLL Legendre transform --- */
   integer         np  ;		/* Number of mesh points                     */
   double*         dtab;		/* (np+1)*np table of polynomials & weights  */
@@ -1051,4 +1049,3 @@ void dglmdpt (const integer  np,
   if (fu) *fu = (const double*) p -> UF;
   if (bu) *bu = (const double*) p -> UB;
 }
-#endif
