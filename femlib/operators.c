@@ -742,7 +742,7 @@ void LegCoefGL (const integer  np,
   }
 
   if (!found) {		/* -- Make more storage and operators. */
-    register integer i, j;
+    register integer i, j, k;
     const integer    nm = np - 1;
     const double*    z;
 
@@ -757,11 +757,13 @@ void LegCoefGL (const integer  np,
     dQuadOps (LL, np, np, &z, 0, 0, 0, 0, 0, 0);
 
     for (i = 0; i < np; i++) {
-      p -> dtab[i + np * np] = (i < nm) ?  0.5*(i+i+1) : 0.5*nm;
-      p -> stab[i + np * np] = (float) p -> dtab[i + np * np];
+      k = i + np * np;
+      p -> dtab[k] = (i < nm) ?  0.5*(i+i+1) : 0.5*nm;
+      p -> stab[k] = (float) p -> dtab[k];
       for (j = 0; j < np; j++) {
-	p -> dtab[j + i * np] = pnleg (z[j], i);
-	p -> stab[j + i * np] = (float) p -> dtab[j + i * np];
+	k = j + i * np;
+	p -> dtab[k] = pnleg (z[j], i);
+	p -> stab[k] = (float) p -> dtab[k];
       }
     }
   }
