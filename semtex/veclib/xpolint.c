@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <femdef.h>
-#include <veclib.h>
+#include <cveclib>
 
 #if defined(__uxp__)
 #pragma global novrec

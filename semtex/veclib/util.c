@@ -11,7 +11,7 @@
 #include <time.h>
 
 #include <femdef.h>
-#include <veclib.h>
+#include <cveclib>
 
 
 integer _vecIreg[NVREG];	/* For FORTRAN linkage. */
