@@ -23,28 +23,30 @@ static struct {
   
   /* -- Default named parameters. */
 
-  "t"           ,   0.0    ,	/* -- Time.                          */
-  "D_T"         ,   0.01   ,	/* -- Time step.                     */
+  "t"           ,   0.0    ,	/* -- Time.                               */
+  "D_T"         ,   0.01   ,	/* -- Time step.                          */
 
-  "TOL_REL"     ,   1.0e-8 ,	/* -- Relative tolerance (PCG)       */
-  "TOL_ABS"     ,   1.0e-8 ,	/* -- Absolute tolerance.            */
+  "TOL_REL"     ,   1.0e-8 ,	/* -- Relative tolerance (PCG)            */
+  "TOL_ABS"     ,   1.0e-8 ,	/* -- Absolute tolerance.                 */
 
-  "z"           ,   0.0    ,	/* -- z-plane location.              */
-  "BETA"        ,   1.0    ,	/* -- TWOPI / Lz (Fourier constant). */
-  "LAMBDA2"     ,   0.0    ,	/* -- Helmholtz constant.            */
+  "z"           ,   0.0    ,	/* -- z-plane location.                   */
+  "BETA"        ,   1.0    ,	/* -- TWOPI / Lz (Fourier constant).      */
+  "LAMBDA2"     ,   0.0    ,	/* -- Helmholtz constant.                 */
 
-  "KINVIS"      ,   1.0    ,	/* -- Kinematic viscosity.           */
-  "REFVIS"      ,   1.0    ,	/* -- Reference kinematic viscosity. */
-  "RHO"         ,   1.0    ,	/* -- Density.                       */
-  "GRAVITY"     ,   9.81   ,	/* -- Gravitational acceleration.    */
-  "T_REF"       ,   288.15 ,	/* -- Reference temperature (15C).   */
-  "PRANDTL"     ,   0.72   ,	/* -- Prandtl number for air at STP. */
+  "KINVIS"      ,   1.0    ,	/* -- Kinematic viscosity.                */
+  "REFVIS"      ,   1.0    ,	/* -- Reference kinematic viscosity.      */
+  "RHO"         ,   1.0    ,	/* -- Density.                            */
+  "GRAVITY"     ,   9.81   ,	/* -- Gravitational acceleration.         */
+  "T_REF"       ,   288.15 ,	/* -- Reference temperature (15C).        */
+  "PRANDTL"     ,   0.72   ,	/* -- Prandtl number for air at STP.      */
 
-  "C_SMAG"      ,   0.2    ,	/* -- Smagorinsky's constant.        */
+  "C_SMAG"      ,   0.1114 ,	/* -- Smagorinsky's constant (RNG value). */
+  "RNG_C"       ,   75.0   ,    /* -- a / gamma^4 for 3D RNG.             */
+  "RNG_BIG"     ,   500.0  ,    /* -- Switch to plain Smag in RNG.        */
 
-  "FFX"         ,   0.0    ,	/* -- Body force per unit mass (x).  */
-  "FFY"         ,   0.0    ,	/* -- y component.                   */
-  "FFZ"         ,   0.0    ,	/* -- z component.                   */
+  "FFX"         ,   0.0    ,	/* -- Body force per unit mass (x).       */
+  "FFY"         ,   0.0    ,	/* -- y component.                        */
+  "FFZ"         ,   0.0    ,	/* -- z component.                        */
 
   /* -- Option switches. */
 
@@ -56,6 +58,7 @@ static struct {
   "CHKPOINT"    ,   0   ,
   "AVERAGE"     ,   0   ,
   "SPAWN"       ,   0   ,
+  "RNG"         ,   0   ,
   
   /* -- Default integer values. */
 
