@@ -30,15 +30,15 @@
  * void   vecInterp  (int   , ...   );
  *
  * void   setOption  (const char *, int);
- * int    option     (const char *);
+ * int    getOption     (const char *);
  * void   showOption (void);
  *
  * void   setIparam  (const char *, int);
- * int    iparam     (const char *);
+ * int    getIparam     (const char *);
  * void   showIparam (void);
  *
  * void   setDparam  (const char *, double);
- * double dparam     (const char *);
+ * double getDparam     (const char *);
  * void   showDparam (void);
  *
  * $Id$
@@ -348,7 +348,7 @@ void setOption (const char *s, int v)
 }
 
 
-int option (const char *s)
+int getOption (const char *s)
 /* ========================================================================= *
  * Retrieve value from option list.
  * ========================================================================= */
@@ -359,7 +359,7 @@ int option (const char *s)
     if (strcmp (sp->name, s) == 0)
       return sp->u.ival;
 
-  message ("option(): name not found", s, WARNING);
+  message ("getOption(): name not found", s, WARNING);
   return 0;
 }
     
@@ -393,7 +393,7 @@ void setIparam (const char *s, int v)
 }
 
 
-int iparam (const char *s)
+int getIparam (const char *s)
 /* ========================================================================= *
  * Retrieve value from iparam list.
  * ========================================================================= */
@@ -404,7 +404,7 @@ int iparam (const char *s)
     if (strcmp (sp->name, s) == 0)
       return sp->u.ival;
 
-  message ("iparam(): name not found", s, WARNING);
+  message ("getIparam(): name not found", s, WARNING);
   return 0;
 }
 
@@ -444,7 +444,7 @@ void setDparam (const char *s, double v)
 }
 
 
-double dparam (const char *s)
+double getDparam (const char *s)
 /* ========================================================================= *
  * Retrieve value from dparam list.
  * ========================================================================= */
@@ -455,7 +455,7 @@ double dparam (const char *s)
     if (strcmp (sp->name, s) == 0)
       return sp->u.dval;
 
-  message ("dparam(): name not found", s, WARNING);
+  message ("getDparam(): name not found", s, WARNING);
   return 0;
 }
 
