@@ -15,6 +15,10 @@ ifdef LES		# -- Compile in Smagorinsky-based LES.
   DEFINES += -DLES
 endif
 
+ifdef NOMODEL		# -- LES but override to get  molecular viscosity.
+  DEFINES += -DNOMODEL
+endif
+
 ifdef DAMPING		# -- Compile in van-Driest damping (caveat emptor).
   DEFINES += -DDAMPING
 endif

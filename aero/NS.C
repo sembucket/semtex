@@ -4,9 +4,8 @@
 // Copyright (c) Hugh Blackburn 1997--2001.
 //
 // This version includes body coupling and solves Navier--Stokes in an
-// accelerating reference frame.  In addition, it allows
-// Smagorinsky-based LES to be used: for this, define LES during
-// compilation.
+// accelerating reference frame.  In addition, it allows Smagorinsky
+// based LES to be used: for this, define LES during compilation.
 //
 // It is assumed that any velocity boundary conditions are not functions
 // of "z", i.e. that all the information is in the zeroth Fourier mode.
@@ -63,10 +62,6 @@ void NavierStokes (Domain*       D,
   Vector a = {0.0, 0.0, 0.0};   // -- Body/frame acceleration.
   Vector v = {0.0, 0.0, 0.0};	// -- Body velocity, to adjust velocity BCs.
 
-  // -- Create global matrix systems.
-
-  Msys** MMS = preSolve (D);
-
   // -- Create & initialize multi-level storage for velocities and forcing.
 
   AuxField*** Us = new AuxField** [(size_t) 2 * NORD];
@@ -81,12 +76,11 @@ void NavierStokes (Domain*       D,
     }
   }
 
-  // -- Create multi-level storage for pressure BCS.
-
-  Field* Pressure = D -> u[NDIM];
-  PBCmgr::build (Pressure);
-
 #if defined (LES)
+
+#if defined (NOMODEL)
+  Femlib::value ("REFVIS", Femlib::value ("2.0 * KINVIS"));
+#endif
 
   if (Femlib::value ("REFVIS") > 0.0) {
     real kinVis = Femlib::value ("REFVIS");
@@ -95,9 +89,7 @@ void NavierStokes (Domain*       D,
     Femlib::value ("REFVIS", refVis);
   } 
 
-  alloc = new real [(size_t) ntot];
- 
-  AuxField* EV = new AuxField (alloc, nZ, D -> elmt, 'e');
+  AuxField* EV = new AuxField (new real [(size_t) ntot], nZ, D -> elmt, 'e');
   *EV = 0.0;
   ROOTONLY EV -> addToPlane (0, Femlib::value ("REFVIS - KINVIS"));
 
@@ -105,6 +97,15 @@ void NavierStokes (Domain*       D,
 
   AuxField* EV = 0;
 #endif
+
+  // -- Create global matrix systems.
+
+  Msys** MMS = preSolve (D);
+
+  // -- Create multi-level storage for pressure BCS.
+
+  Field* Pressure = D -> u[NDIM];
+  PBCmgr::build (Pressure);
 
   // -- Timestepping loop.
 
@@ -120,13 +121,13 @@ void NavierStokes (Domain*       D,
 
 #if defined (LES)
     // -- Compute spatially-varying kinematic eddy viscosity.
-
     eddyViscosity (D, Us[0], Uf[0], EV);
 #endif
 
     // -- Unconstrained forcing substep.
 
     nonLinear (D, Us[0], Uf[0], EV, a);
+
     waveProp  (D, (const AuxField***)Us, (const AuxField***)Uf);
 
     // -- Body motion, get velocity at new time level.
