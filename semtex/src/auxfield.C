@@ -345,7 +345,7 @@ AuxField& AuxField::gradient (const int dir)
   register int      i, k, offset;
   const int         nE = Geometry::nElmt();
   const int         nZ = Geometry::nZ();
-  const int         nP = Geometry::nPlane();
+  const int         nP = Geometry::planeSize();
 
   switch (dir) {
 
@@ -376,11 +376,11 @@ AuxField& AuxField::gradient (const int dir)
     vector<real> work (nP);
     real*        tmp = work();
 
-    Veclib::zero (2*Geometry::planeSize(), data, 1);
+    Veclib::zero (2 * nP, data, 1);
     for (k = 1; k < nmodes; k++) {
       Re = k  + k;
       Im = Re + 1;
-      Veclib::copy (nP,  plane[Re], 1, tmp,    1);
+      Veclib::copy (nP,             plane[Re], 1, tmp,       1);
       Veclib::smul (nP, -beta * k,  plane[Im], 1, plane[Re], 1);
       Veclib::smul (nP,  beta * k,  tmp,       1, plane[Im], 1);
     }
@@ -434,12 +434,12 @@ void AuxField::gradient (const int nZ ,
     break;
 
   case 2: {
-    const int    nmodes = (nZ + 1) >> 1;
+    const int    nmodes = Geometry::nMode();
     const real   beta   = Femlib::value ("BETA");
     vector<real> work (nP);
     real         *Re, *Im, *tmp = work();
 
-    Veclib::zero (2*nP, src, 1);
+    Veclib::zero (2 * nP, src, 1);
     for (k = 1; k < nmodes; k++) {
       Re = src + 2 * k * nP;
       Im = Re  + nP;
@@ -930,7 +930,7 @@ real AuxField::probe (const Element* E,
   const int      NZH    = NZ >> 1;
   const int      NHM    = NZH - 1;
   const int      offset = E -> dOff();
-  const real     betaZ  = z * Femlib::value("BETA");
+  const real     betaZ  = z * Femlib::value ("BETA");
   vector<real>   work (NZ);
   register real* fbuf = work();
 
@@ -954,4 +954,37 @@ real AuxField::probe (const Element* E,
   }
    
   return value;
+}
+
+
+AuxField& AuxField::Smagorinsky ()
+// ---------------------------------------------------------------------------
+// Given that *this is the strain-rate magnitude S, compute the Smagorinsky
+// eddy-viscosity
+//                      \nu_T = (Cs delta)^2 S.
+// ---------------------------------------------------------------------------
+{
+  register int      k, offset;
+  register Element* E;
+  const int         nZ = Geometry::nZ();
+  const int         nE = Geometry::nElmt();
+  const int         nP = Geometry::nPlane();
+  const real        Cs = Femlib::value ("C_SMAG");
+  vector<real>      work (nP);
+
+  for (k = 0; k < nE; k++) {
+    E      = Elmt[k];
+    offset = E -> dOff();
+    E -> lengthScale (work() + offset);
+  }
+  
+  Blas::scal   (nP, Cs, work(), 1);
+  Veclib::vmul (nP, work(), 1, work(), 1, work(), 1);
+
+  for (k = 0; k < nZ; k++) {
+    if (k == 1) continue;
+    Veclib::vmul (nP, work(), 1, plane[k], 1, plane[k], 1);
+  }
+
+  return *this;
 }
