@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // boundary.C: implement Boundary class functions.
 //
-// Copyright (C) 1994, 1999 Hugh Blackburn
+// Copyright (C) 1994, 2001 Hugh Blackburn
 //
 // SYNOPSIS
 // --------
@@ -213,12 +213,14 @@ void Boundary::curlCurl (const integer k ,
   const integer elmtOff  = _elmt -> ID() * npnp;
   const integer localOff = _doffset - elmtOff;
 
-  static vector<real> work (5 * npnp + _np);
+  static vector<real> work (5 * npnp + 3 * _np);
   real* gw = work();
-  real* w  = gw + npnp + npnp;
+  real* ew = gw + npnp + npnp;
+  real* w  = ew + _np  + _np;
   real* vx = w  + npnp;
   real* uy = vx + npnp;
   real* t  = uy + npnp;
+  
   const real** DV;
   const real** DT;
 
@@ -243,7 +245,7 @@ void Boundary::curlCurl (const integer k ,
 
     // -- Find dw/dx & dw/dy on appropriate edge.
 
-    _elmt -> sideGrad (_side, w, yr, xr);
+    _elmt -> sideGrad (_side, w, yr, xr, ew);
     
     // -- Add in cylindrical space modification to complete x-component.
 
@@ -267,7 +269,7 @@ void Boundary::curlCurl (const integer k ,
     Veclib::copy      (npnp, Vr, 1, vx, 1);
     _elmt -> grad     (vx, uy, DV, DT, gw);
     Veclib::vsub      (npnp, vx, 1, uy, 1, w, 1);
-    _elmt -> sideGrad (_side, w, yr, xr);
+    _elmt -> sideGrad (_side, w, yr, xr, ew);
     Veclib::neg       (_np, yr, 1);
 
     if (space == Geometry::Cylindrical) {
@@ -275,38 +277,36 @@ void Boundary::curlCurl (const integer k ,
       Veclib::vadd      (_np, xr, 1, t, 1, xr, 1);
     }
 
-#ifndef STABILITY
+    if (Geometry::nPert() == 3) { // -- Full complex.
+      Veclib::copy      (npnp, Ui, 1, uy, 1);
+      Veclib::copy      (npnp, Vi, 1, vx, 1);
+      _elmt -> grad     (vx, uy, DV, DT, gw);
+      Veclib::vsub      (npnp, vx, 1, uy, 1, w, 1);
+      _elmt -> sideGrad (_side, w, yi, xi, ew);
+      Veclib::neg       (_np, yi, 1);
 
-    Veclib::copy      (npnp, Ui, 1, uy, 1);
-    Veclib::copy      (npnp, Vi, 1, vx, 1);
-    _elmt -> grad     (vx, uy, DV, DT, gw);
-    Veclib::vsub      (npnp, vx, 1, uy, 1, w, 1);
-    _elmt -> sideGrad (_side, w, yi, xi);
-    Veclib::neg       (_np, yi, 1);
+      if (space == Geometry::Cylindrical) {
+	_elmt -> sideDivR (_side, w, t);
+	Veclib::vadd     (_np, xi, 1, t, 1, xi, 1);
+      }
 
-    if (space == Geometry::Cylindrical) {
-      _elmt -> sideDivR (_side, w, t);
-      Veclib::vadd     (_np, xi, 1, t, 1, xi, 1);
+      // -- Semi-Fourier terms based on Wr.
+      
+      Veclib::copy  (npnp, Wr, 1, vx, 1);
+      Veclib::copy  (npnp, Wr, 1, uy, 1);
+      _elmt -> grad (vx, uy, DV, DT, gw);
+      if (space == Geometry::Cylindrical) {
+	_elmt -> sideDivR  (_side, vx,  t);
+	Blas::axpy         (_np,  betaK, t, 1, xi, 1);
+	_elmt -> sideDivR  (_side, uy,  t);
+	Blas::axpy         (_np,  betaK, t, 1, yi, 1);
+	_elmt -> sideDivR2 (_side, Wr,  t);
+	Blas::axpy         (_np,  betaK, t, 1, yi, 1);
+      } else {
+	Blas::axpy (_np, betaK, vx + localOff, _dskip, xi, 1);
+	Blas::axpy (_np, betaK, uy + localOff, _dskip, yi, 1);
+      }
     }
-
-    // -- Semi-Fourier terms based on Wr.
-
-    Veclib::copy  (npnp, Wr, 1, vx, 1);
-    Veclib::copy  (npnp, Wr, 1, uy, 1);
-    _elmt -> grad (vx, uy, DV, DT, gw);
-    if (space == Geometry::Cylindrical) {
-      _elmt -> sideDivR  (_side, vx,  t);
-      Blas::axpy         (_np,  betaK, t, 1, xi, 1);
-      _elmt -> sideDivR  (_side, uy,  t);
-      Blas::axpy         (_np,  betaK, t, 1, yi, 1);
-      _elmt -> sideDivR2 (_side, Wr,  t);
-      Blas::axpy         (_np,  betaK, t, 1, yi, 1);
-    } else {
-      Blas::axpy (_np, betaK, vx + localOff, _dskip, xi, 1);
-      Blas::axpy (_np, betaK, uy + localOff, _dskip, yi, 1);
-    }
-
-#endif
 
     // -- Semi-Fourier terms based on Wi.
 
@@ -332,20 +332,20 @@ void Boundary::curlCurl (const integer k ,
       Blas::axpy         (_np, betaK2, t, 1, xr, 1);
       _elmt -> sideDivR2 (_side, Vr,   t);
       Blas::axpy         (_np, betaK2, t, 1, yr, 1);
-#ifndef STABILITY
-      _elmt -> sideDivR2 (_side, Ui,   t);
-      Blas::axpy         (_np, betaK2, t, 1, xi, 1);
-      _elmt -> sideDivR2 (_side, Vi,   t);
-      Blas::axpy         (_np, betaK2, t, 1, yi, 1);
-#endif
-    } else {
+      if (Geometry::nPert() == 3) { // -- Full complex.
+	_elmt -> sideDivR2 (_side, Ui,   t);
+	Blas::axpy         (_np, betaK2, t, 1, xi, 1);
+	_elmt -> sideDivR2 (_side, Vi,   t);
+	Blas::axpy         (_np, betaK2, t, 1, yi, 1);
+      }
 
+    } else {
       Blas::axpy (_np, betaK2, Ur + localOff, _dskip, xr, 1);
       Blas::axpy (_np, betaK2, Vr + localOff, _dskip, yr, 1);
-#ifndef STABILITY
-      Blas::axpy (_np, betaK2, Ui + localOff, _dskip, xi, 1);
-      Blas::axpy (_np, betaK2, Vi + localOff, _dskip, yi, 1);
-#endif
+      if (Geometry::nPert() == 3) { // -- Full complex.
+	Blas::axpy (_np, betaK2, Ui + localOff, _dskip, xi, 1);
+	Blas::axpy (_np, betaK2, Vi + localOff, _dskip, yi, 1);
+      }
     }
   }
 }
@@ -365,6 +365,7 @@ Vector Boundary::normalTraction (const char* grp,
 
   if (strcmp (grp, _bcondn -> group()) == 0) {
     register integer i;
+    const integer    np = Geometry::nP();
 
     Veclib::copy (_np, p + _doffset, _dskip, wrk, 1);
 
@@ -376,77 +377,6 @@ Vector Boundary::normalTraction (const char* grp,
 
   return Force;
 }
-
-Vector Boundary::moment (const char* grp,
-			 const real* p  ,
-			 const real* u  ,
-			 const real* v  ,
-			 real*       ux ,
-			 real*       uy,
- 			 real*       wrk) const
-// ---------------------------------------------------------------------------
-// Compute moment due to pressure on this boundary segment, if it lies
-// in group called grp, using p as a pressure stress field data area.
-//
-// assumes centre of mass is origin of mesh.
-//
-// 2D:  M = (F.x*r.y - F.y*r.x)
-//
-// ux, uy & Wrk are work vectors elmt_np_max long.
-// ---------------------------------------------------------------------------
-{
-  Vector Force     = {0.0, 0.0, 0.0};
-  Vector Moment    = {0.0, 0.0, 0.0};
-  register integer i;
-  const integer    offset = _elmt -> ID() * sqr (_np);
-  const real       mu      = Femlib::value ("RHO * KINVIS");
-
-  // compensate for centre of mass that is not centre of mesh.
-  const real       MassCentX = Femlib::value("X_CENTRE");
-  const real       MassCentY = Femlib::value("Y_CENTRE");
-    
-  if (strcmp (grp, _bcondn -> group()) == 0) {
-
-    // calculate moment due to pressure -> = 0 for symmetrical object!!
-    Veclib::copy (_np, p + _doffset, _dskip, wrk, 1);
-
-    for (i = 0; i < _np; i++) {
-      Force.x = _nx[i] * wrk[i] * _area[i];
-      Force.y = _ny[i] * wrk[i] * _area[i];
-
-      // moment = (F_x * r_y - F_y * r_x ), in z-direction.
-      Moment.x += Force.x*(_y[i]-MassCentY) -Force.y*(_x[i]-MassCentX);
-    }
-
-    // calculate moment due to viscosity -> nonzero !!
-
-    _elmt -> sideGrad (_side, u + offset, ux, uy);
-
-    for (i = 0; i < _np; i++) {
-      Force.x = mu*((2.0*ux[i]*_nx[i] + uy[i]*_ny[i]) * _area[i]);
-      Force.y = mu*(                    uy[i]*_nx[i]  * _area[i]);
-
-      // moment = (F_x * r_y - F_y * r_x ), in z-direction.
-      Moment.y += Force.x*(_y[i]-MassCentY)-Force.y*(_x[i]-MassCentX);
-    }
-
-    _elmt -> sideGrad (_side, v + offset, ux, uy);
-
-    for (i = 0; i < _np; i++) {
-      Force.x = mu*(                    ux[i]*_ny[i]  * _area[i]);
-      Force.y = mu*((2.0*uy[i]*_ny[i] + ux[i]*_nx[i]) * _area[i]);
-      
-      // moment = (F_x * r_y - F_y * r_x ), in z-direction.
-      Moment.y += Force.x*(_y[i]-MassCentY)-Force.y*(_x[i]-MassCentX);
-    }
-  }
-  
-  // total moment = pressure moment(x) + viscous moment(y)
-  Moment.z = Moment.x + Moment.y;
-
-  return Moment;
-}
-
 
 
 Vector Boundary::tangentTraction (const char* grp,
@@ -460,20 +390,21 @@ Vector Boundary::tangentTraction (const char* grp,
 // Ux and uy are work vectors, each elmt_np_max long.
 // ---------------------------------------------------------------------------
 {
-  Vector Force = {0.0, 0.0, 0.0};
+  Vector              Force = {0.0, 0.0, 0.0};
+  static vector<real> work (2 * _np);
 
   if (strcmp (grp, _bcondn -> group()) == 0) {
     const integer    offset = _elmt -> ID() * sqr (_np);
     register integer i;
 
-    _elmt -> sideGrad (_side, u + offset, ux, uy);
+    _elmt -> sideGrad (_side, u + offset, ux, uy, work());
 
     for (i = 0; i < _np; i++) {
       Force.x += (2.0*ux[i]*_nx[i] + uy[i]*_ny[i]) * _area[i];
       Force.y +=                     uy[i]*_nx[i]  * _area[i];
     }
 
-    _elmt -> sideGrad (_side, v + offset, ux, uy);
+    _elmt -> sideGrad (_side, v + offset, ux, uy, work());
 
     for (i = 0; i < _np; i++) {
       Force.x +=                     ux[i]*_ny[i]  * _area[i];
@@ -494,14 +425,15 @@ real Boundary::flux (const char* grp,
 // NB: n is a unit outward normal, with no component in Fourier direction.
 // ---------------------------------------------------------------------------
 {
-  register real dcdn = 0.0;
+  register real       dcdn = 0.0;
+  static vector<real> work (2 * _np);
   
   if (strcmp (grp, _bcondn -> group()) == 0) {
     const real*      data = src + _elmt -> ID() * Geometry::nTotElmt();
     register integer i;
     register real    *cx = wrk, *cy = wrk + _np, *r = wrk + _np + _np;
 
-    _elmt -> sideGrad (_side, data, cx, cy);
+    _elmt -> sideGrad (_side, data, cx, cy, work());
 
     if (Geometry::system() == Geometry::Cylindrical) {
       _elmt -> sideGetR (_side, r);

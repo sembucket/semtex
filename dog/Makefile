@@ -8,8 +8,6 @@
 SEM   = ../semtex
 VPATH = $(SEM)/src
 
-DEFINES += -DSTABILITY
-
 # ----------------------------------------------------------------------------
 # Semtex standard sources.
 #
@@ -29,10 +27,10 @@ ST_OBJ   = $(addsuffix .o,$(ST_FILES))
 FL_FILES = arnoldi integrate stabanalysis
 FL_OBJ   = $(addsuffix .o,$(FL_FILES))
 
-lns: sem $(ST_OBJ) $(SEMOBJ)
+lns: sem $(ST_OBJ) $(SEMOBJ) stab.h
 	$(LD) -o $@ $(ST_OBJ) $(SEMOBJ) $(LDFLAGS)
 
-flok: sem $(FL_OBJ) $(SEMOBJ)
+flok: sem $(FL_OBJ) $(SEMOBJ) stab.h
 	$(LD) -o $@ $(FL_OBJ) $(SEMOBJ) $(LDFLAGS)
 
 $(SEMOBJ): $(SEMHDR)

@@ -65,7 +65,7 @@ int main (int    argc,
 
   domain -> restart();
 
-  domain -> loadbase();
+  domain -> loadBase();
 
   domain -> report();
   
@@ -103,17 +103,19 @@ static void getargs (int    argc   ,
       break;
     case 'i':
       do
-	Femlib::value ("ITERATIVE", (int) Femlib::value ("ITERATIVE") + 1);
+	Femlib::value ("ITERATIVE",
+		       static_cast<integer>(Femlib::value ("ITERATIVE") + 1));
       while (*++argv[0] == 'i');
       break;
     case 'v':
       do
-	Femlib::value ("VERBOSE",   (int) Femlib::value ("VERBOSE")   + 1);
+	Femlib::value ("VERBOSE", 
+		       static_cast<integer>(Femlib::value ("VERBOSE")   + 1));
       while (*++argv[0] == 'v');
       break;
     case 'c':
       if (strstr ("chk", *argv)) {
-	Femlib::value ("CHKPOINT",  (int) 1);
+	Femlib::value ("CHKPOINT",  static_cast<integer>(1));
       } else {
 	fprintf (stdout, usage, prog);
 	exit (EXIT_FAILURE);	  
@@ -143,9 +145,9 @@ static void preprocess (const char*       session,
 // They are listed in order of creation.
 // ---------------------------------------------------------------------------
 {
-  const int   verbose = (int) Femlib::value ("VERBOSE");
-  const real* z;
-  int         i, nel, npert;
+  const integer verbose = static_cast<integer>(Femlib::value ("VERBOSE"));
+  const real*   z;
+  integer       i, np, nel, npert;
 
   // -- Initialise problem and set up mesh geometry.
 
@@ -160,10 +162,11 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "Setting geometry ... ";
 
+  np    = static_cast<integer>(Femlib::value ("N_POLY"));
   nel   = mesh -> nEl();
   npert = file -> attribute ("FIELDS", "NUMBER") - 1;
   
-  Geometry::set (nz, npert);
+  Geometry::set (nel, npert);
 
   VERBOSE cout << "done" << endl;
 

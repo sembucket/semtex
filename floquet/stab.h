@@ -8,13 +8,13 @@
 
 #include "Sem.h"
 
-class STABAnalyser : public Analyser
+class StabAnalyser : public Analyser
 // ===========================================================================
 // Implement step-by-step processing and output control for flow solver.
 // ===========================================================================
 {
 public:
-  STABAnalyser (Domain*, FEML*);
+  StabAnalyser (Domain*, FEML*);
   void analyse (AuxField**);
 
 private:
@@ -22,12 +22,10 @@ private:
   ofstream              bhs_strm;     // -- File for base history points.
 };
 
-void integrate (Domain*, STABAnalyser*);
-
-#define F77name(x) x ## _
+void integrate (Domain*, StabAnalyser*);
 
 extern "C" {
-  void F77name(dgeev)		// -- Lapack eigensystem routine.
+  void F77NAME(dgeev)		// -- Lapack eigensystem routine.
     (const char*    N    ,
      const char*    V    ,
      const integer& dim1 ,

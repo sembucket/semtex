@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // pressure.C: routines to deal with pressure field boundary conditions.
 //
-// Copyright (C) 1994, 1999 Hugh Blackburn
+// Copyright (C) 1994, 2001 Hugh Blackburn
 //
 // Class variables Pn & Un provide storage for the mode equivalents of
 //   Pn:  normal gradient of the pressure field,
@@ -106,8 +106,8 @@ void PBCmgr::maintain (const integer    step   ,
 
   const AuxField* Ux = Us[0];
   const AuxField* Uy = Us[1];
-  const AuxField* Uz = (NVEC == 3) ? Us[2] : 0;
-  real            *UxRe, *UyRe, *UzIm, *tmp;
+  const AuxField* Uz = (Geometry::nPert() == 3) ? Us[2] : 0;
+  real            *UxRe, *UxIm, *UyRe, *UyIm, *UzRe, *UzIm, *tmp;
 
   const AuxField* Nx = Uf[0];
   const AuxField* Ny = Uf[1];
@@ -135,7 +135,8 @@ void PBCmgr::maintain (const integer    step   ,
     }
   }
 
-  // -- Add in -nu * curl curl u.
+  // -- Add in -nu * curl curl u. There are 3 cases to deal with:
+  //    perturbation is real, half-complex or full-complex.
 
   real* xr    = work();
   real* xi    = xr + nP;
@@ -148,17 +149,35 @@ void PBCmgr::maintain (const integer    step   ,
     offset = B -> dOff ();
     skip   = B -> dSkip();
 
-    UxRe = Ux -> _plane[0];
-    UyRe = Uy -> _plane[0];
+    if (Geometry::nZ() == 1) {
 
-    if (NVEC == 2) {
-      B -> curlCurl (0, UxRe, 0, UyRe, 0, 0, 0,    xr, 0, yr, 0);
-    } else {
-      UzIm = Uz -> _plane[0];
-      B -> curlCurl (1, UxRe, 0, UyRe, 0, 0, UzIm, xr, 0, yr, 0);
+      UxRe = Ux -> _plane[0];
+      UyRe = Uy -> _plane[0];
+
+      if (Geometry::nPert() == 2) { // -- Real perturbation.
+	B -> curlCurl (0, UxRe, 0, UyRe, 0, 0, 0,    xr, 0, yr, 0);
+      } else {			    // -- Half-complex perturbation.
+	UzIm = Uz -> _plane[0];
+	B -> curlCurl (1, UxRe, 0, UyRe, 0, 0, UzIm, xr, 0, yr, 0);
+      }
+      Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][0], 1);
+      Blas::axpy (nP, -nu, yr, 1, Pny[0][i][0], 1);
+  
+    } else {			    // -- Full complex peturbation.
+      UxRe = Ux -> _plane[0];
+      UxIm = Ux -> _plane[1];
+      UyRe = Uy -> _plane[0];
+      UyIm = Uy -> _plane[1];
+      UzRe = Uz -> _plane[0];
+      UzIm = Uz -> _plane[1];
+
+      B -> curlCurl (1, UxRe,UxIm, UyRe,UyIm, UzRe,UzIm, xr,xi, yr,yi);
+
+      Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][0], 1);
+      Blas::axpy (nP, -nu, xi, 1, Pnx[0][i][1], 1);
+      Blas::axpy (nP, -nu, yr, 1, Pny[0][i][0], 1);
+      Blas::axpy (nP, -nu, yi, 1, Pny[0][i][1], 1);
     }
-    Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][0], 1);
-    Blas::axpy (nP, -nu, yr, 1, Pny[0][i][0], 1);
   }
 
   if (timedep) {

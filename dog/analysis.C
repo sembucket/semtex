@@ -189,7 +189,7 @@ void Analyser::divergence (AuxField** Us) const
 {
   const Geometry::CoordSys space = Geometry::system();
 
-  const integer    DIM = Geometry::nVec();
+  const integer    DIM = Geometry::nPert();
   const integer    N   = Geometry::nModeProc();
   register integer i, m;
   real             L2 = 0.0;

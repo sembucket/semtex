@@ -10,7 +10,7 @@
 #include <stab.h>
 
 
-STABAnalyser::STABAnalyser (Domain* D   ,
+StabAnalyser::StabAnalyser (Domain* D   ,
 			    FEML*   file) :
 // ---------------------------------------------------------------------------
 // Extensions to Analyser class.
@@ -19,7 +19,7 @@ STABAnalyser::STABAnalyser (Domain* D   ,
 {
   // -- Open base history file.
   
-  const char routine[] = "STABAnalyser::STABAnalyser";
+  const char routine[] = "StabAnalyser::StabAnalyser";
   char       str[StrMax];
 
   if (file -> seek ("BASE")) {
@@ -55,17 +55,20 @@ STABAnalyser::STABAnalyser (Domain* D   ,
 }
 
 
-void STABAnalyser::analyse (AuxField** work)
+void StabAnalyser::analyse (AuxField** work)
 // ---------------------------------------------------------------------------
 // Step-by-step processing.
 // ---------------------------------------------------------------------------
 {
   Analyser::analyse (work);
 
-  const integer periodic = !(src->step %  (integer) Femlib::value("IO_HIS")) ||
-                           !(src->step %  (integer) Femlib::value("IO_FLD"));
-  const integer final    =   src->step == (integer) Femlib::value("N_STEP");
-  const integer state    = periodic || final;
+  const integer periodic =
+    !(src->step %  static_cast<integer>(Femlib::value("IO_HIS"))) ||
+    !(src->step %  static_cast<integer>(Femlib::value("IO_FLD")));
+  const integer final    =
+    src->step == static_cast<integer>(Femlib::value("N_STEP"));
+  const integer state    =
+    periodic || final;
 
   if (!state) return;
 

@@ -7,23 +7,6 @@
 // scalar structure is variable, partly dependent on the number of
 // velocity components used for the 2D base flow (Geometry::nBase).
 //
-// Case 1: nBase = 2, nPert = 2
-// ----------------------------
-// Perturbation velocity field (u, v) and pressure (p) are all real.
-//
-// Case 2: nBase = 2, nPert = 3
-// ----------------------------
-// Perturbation velocity field has a real, real, imag structure:
-// (u.Re, v.Re, w.Im) and pressure is real (p.Re).  The implied
-// spatial structure is u.cos(Beta*z), v.cos(Beta*z), w.sin(Beta*z),
-// p.cos(Beta*z): this structure satisfies the eigensystem assumption
-// but specifies a shape that does not move in physical space.
-//
-// Case 3: nBase = 3, nPert = 3
-// ----------------------------
-// Perturbation velocity field is fully complex, implying that the
-// eigenvector can move like a wave in the z direcion as time evolves.
-//
 // For cylindrical coordinates:
 //   u <==> axial     velocity,  x <==> axial     coordinate direction,
 //   v <==> radial    velocity,  y <==> radial    coordinate direction,
@@ -34,11 +17,10 @@
 
 #include "stab.h"
 
-static integer NORD, CYL, C3D;
+static integer          NORD, NPER, NZ, CYL, C3D;
+static List<MatrixSys*> MS;
 
-integer NVEC = 0;  // -- Number of components in perturbation velocity.
-
-static void        Linearised (Domain*, AuxField**, AuxField**);
+static void        linAdvect  (Domain*, AuxField**, AuxField**);
 static void        waveProp   (Domain*, const AuxField***, const AuxField***);
 static void        setPForce  (const AuxField**, AuxField**);
 static void        project    (const Domain*, AuxField**, AuxField**);
@@ -47,25 +29,28 @@ static void        Solve      (Domain*, const integer, AuxField*, MatrixSys*);
 
 
 void integrate (Domain*       D,
-		STABAnalyser* A)
+		StabAnalyser* A)
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
 // constraint Field 'p'.
 //
-// Now also contains base velocity fields 'U' and 'V' .
+// For stability code, also contains base velocity fields 'U', 'V'
+// (and 'W').  This routine can be called repeatedly, so initialisation
+// only occurs once.
 //
 // Us is multi-level auxillary Field storage for velocities and 
 // Uf is multi-level auxillary Field storage for nonlinear forcing terms.
 // ---------------------------------------------------------------------------
 {
-  NVEC = Geometry::nPert();
-  NORD = (integer) Femlib::value ("N_TIME");
+  NPER = Geometry::nPert();
+  NZ   = Geometry::nZ();
+  NORD = static_cast<integer>(Femlib::value ("N_TIME"));
   CYL  = Geometry::system() == Geometry::Cylindrical;
   C3D  = CYL && Geometry::nDim() == 3;
 
   integer       i, j, k;
-  const real    dt    =           Femlib::value ("D_T");
-  const integer nStep = (integer) Femlib::value ("N_STEP");
+  const real    dt    =                      Femlib::value ("D_T");
+  const integer nStep = static_cast<integer>(Femlib::value ("N_STEP"));
 
   static MatrixSys** MS;
   static AuxField*** Us;
@@ -80,24 +65,24 @@ void integrate (Domain*       D,
     
     // -- Create multi-level storage for velocities and forcing.
 
-    const integer ntot = Geometry::nTotProc();
-    real* alloc        = new real [(size_t) 2 * NVEC * NORD * ntot];    
+    const integer ntot  = Geometry::nTotProc();
+    real*         alloc = new real [static_cast<size_t>(2*NPER*NORD*ntot)];
 
-    Us = new AuxField** [(size_t) NORD];
-    Uf = new AuxField** [(size_t) NORD];
+    Us = new AuxField** [static_cast<size_t>(NORD)];
+    Uf = new AuxField** [static_cast<size_t>(NORD)];
     
     for (k = 0, i = 0; i < NORD; i++) {
-      Us[i] = new AuxField* [(size_t) NVEC];
-      Uf[i] = new AuxField* [(size_t) NVEC];
-      for (j = 0; j < NVEC; j++) {
-	Us[i][j] = new AuxField (alloc + k++ * ntot, 1, D -> elmt);
-	Uf[i][j] = new AuxField (alloc + k++ * ntot, 1, D -> elmt);
+      Us[i] = new AuxField* [static_cast<size_t>(NPER)];
+      Uf[i] = new AuxField* [static_cast<size_t>(NPER)];
+      for (j = 0; j < NPER; j++) {
+	Us[i][j] = new AuxField (alloc + k++ * ntot, NZ, D -> elmt);
+	Uf[i][j] = new AuxField (alloc + k++ * ntot, NZ, D -> elmt);
       }
     }
 
     // -- Create multi-level storage for pressure BCS.
 
-    PBCmgr::build (Pressure = D -> u[NVEC]);
+    PBCmgr::build (Pressure = D -> u[NPER]);
 
     // -- Apply coupling to radial & azimuthal velocity BCs.
 
@@ -107,7 +92,7 @@ void integrate (Domain*       D,
   // -- Because we have to restart from scratch on each call, zero these:
 
   for (i = 0; i < NORD; i++)
-    for (j = 0; j < NVEC; j++) {
+    for (j = 0; j < NPER; j++) {
       *Us[i][j] = 0.0;
       *Uf[i][j] = 0.0;
     }
@@ -120,32 +105,34 @@ void integrate (Domain*       D,
     D -> time += dt;
     Femlib::value ("t", D -> time);
 
-    // -- Update domain velocity fields if periodic base fields exist.
+    // -- Update base velocity fields if appropriate.
 
-    if (D -> n_basefiles > 1) D -> Base_update();
+    D -> updateBase();
     
     // -- Unconstrained forcing substep.
 
-    Linearised (D, Us[0], Uf[0]);
-    waveProp   (D, (const AuxField***)Us, (const AuxField***)Uf);
+    linAdvect (D, Us[0], Uf[0]);
+    waveProp  (D, const_cast<const AuxField***>(Us),
+                  const_cast<const AuxField***>(Uf));
 
     // -- Pressure projection substep.
 
-    PBCmgr::maintain
-      (D -> step, Pressure, (const AuxField**)Us[0], (const AuxField**)Uf[0]);
+    PBCmgr::maintain (D -> step, Pressure,
+		      const_cast<const AuxField**>(Us[0]), 
+		      const_cast<const AuxField**>(Uf[0]));
 
     Pressure -> evaluateBoundaries (D -> step);
 
-    for (i = 0; i < NVEC; i++) AuxField::swapData (D -> u[i], Us[0][i]);
-    rollm     (Uf, NORD, NVEC);
-    setPForce ((const AuxField**)Us[0], Uf[0]);
-    Solve     (D, NVEC, Uf[0][0], MS[NVEC]);
+    for (i = 0; i < NPER; i++) AuxField::swapData (D -> u[i], Us[0][i]);
+    rollm     (Uf, NORD, NPER);
+    setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);
+    Solve     (D, NPER,  Uf[0][0], MS[NPER]);
     project   (D, Us[0], Uf[0]);
 
     // -- Update multilevel velocity storage.
 
-    for (i = 0; i < NVEC; i++) *Us[0][i] = *D -> u[i];
-    rollm (Us, NORD, NVEC);
+    for (i = 0; i < NPER; i++) *Us[0][i] = *D -> u[i];
+    rollm (Us, NORD, NPER);
 
     // -- Viscous correction substep.
 
@@ -153,34 +140,33 @@ void integrate (Domain*       D,
       AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
       AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     }
-    for (i = 0; i < NVEC; i++) Solve (D, i, Uf[0][i], MS[i]);
+    for (i = 0; i < NPER; i++) Solve (D, i, Uf[0][i], MS[i]);
     if (C3D) AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 
     // -- Process results of this step.
 
     A -> analyse (Us[0]);
-
   }
 }
 
 
-static void Linearised (Domain*    D ,
+static void linAdvect (Domain*    D ,
 			AuxField** Us,
 			AuxField** Uf)
 // ---------------------------------------------------------------------------
-// Compute linearised (forcing) terms in Navier--Stokes equations: N(u) + ff.
+// Compute linearised (forcing) terms in Navier--Stokes equations: N(u).
 //
 // Here N(u) represents the linearised advection terms in the N--S equations
-// transposed to the RHS and ff is a vector of body force per unit mass.
+// transposed to the RHS.
 //
-// Velocity field data areas of D and first level of Us are swapped, then
-// the next stage of nonlinear forcing terms N(u) - a are computed from
-// velocity fields and left in the first level of Uf.
+// Velocity field data areas of D and first level of Us are swapped,
+// then the next stage of nonlinear forcing terms N(u) are computed
+// from velocity fields and left in the first level of Uf.
 //
 // Linearised terms N(u) are computed in convective form
 //                 
-//           N  = -1/2 ( U.grad u + u.grad U )
-//           ~           ~      ~   ~      ~
+//           N  = - ( U.grad u + u.grad U )
+//           ~        ~      ~   ~      ~
 // The data are taken as being in Fourier space, but, as there are
 // only two modes involved (the base flow and the perturbation) the
 // convolution sums end up being 2D operations.
@@ -188,23 +174,24 @@ static void Linearised (Domain*    D ,
 // Things are made a little more complicated by the fact that while
 // the base flow U is always purely real, with only one plane of data,
 // the perturbation field u can have either one or two planes of data.
-// To deal with this, Auxfield operations times and timePlus (actually
-// convolutions) are assumed to have a purely real Auxfield as the
-// second operand.
+// To deal with this, Auxfield operations times and timesPlus
+// (actually convolutions) are assumed to have a purely real Auxfield
+// as the second operand.  Assignment and Gradient operators also need
+// to be modified.
 // ---------------------------------------------------------------------------
 {
+  const integer     nBase = Geometry::nBase();
+  const integer     nPert = Geometry::nPert();
   integer           i, j;
-  vector<AuxField*> U (Geometry::nBase()),
-                    u (Geometry::nPert()),
-                    N (Geometry::nPert());
+  vector<AuxField*> U (nBase), u (nPert), N (nPert);
   Field*            T = D -> u[0];
 
   // -- Set up local aliases.
 
-  for (i = 0; i < Geometry::nBase(); i++)
+  for (i = 0; i < nBase; i++)
     U[i] = D -> U[i];
 
-  for (i = 0; i < Geometry::nPert(); i++) {
+  for (i = 0; i < nPert; i++) {
     AuxField::swapData (D -> u[i], Us[i]);
      u[i] = Us[i];
      N[i] = Uf[i];
@@ -213,22 +200,28 @@ static void Linearised (Domain*    D ,
 
   // -- N_i += U_j d(u_i) / dx_j.
 
-  for (i = 0; i < Geometry::nPert(); i++)
-    for (j = 0; j < Geometry::nBase(); j++) {
+  for (i = 0; i < nPert; i++)
+    for (j = 0; j < nBase; j++) {
       (*T = *u[i]) . gradient (j);
       if (CYL && j == 2) T -> divR();
       N[i] -> timesPlus (*T, *U[j]);
     }
 
-  // -- N_i += u_j d(U_i) / dx_j.
+  // -- N_i += u_j d(U_i) / dx_j; dU_i/dz=0.
 
-  for (i = 0; i < Geometry::nBase(); i++)
+  for (i = 0; i < nBase; i++)
     for (j = 0; j < 2; j++)
-      N[i] -> timesPlus (*u[j], (*T = *U[i]) . gradient_Re (j));
+      N[i] -> timesPlus (*u[j], (*T = *U[i]) . gradient (j, HALF));
   
-  if (CYL && Geometry::nBase() == 3) {
-    N[1] -> axpy (-2.0, T -> times (*u[2], *U[2]));
-    N[2] -> axpy (+2.0, T -> times (*u[1], *U[2]));
+  // -- Centrifugal, Coriolis terms for cylindrical coords.
+
+  if (CYL) {
+    if (nPert == 3)
+      *N[2] += T -> times (*u[2], *U[1]) . divR();
+    if (nBase == 3) {
+      N[1] -> axpy (-2.0, T -> times (*u[2], *U[2]) . divR());
+     *N[2] +=             T -> times (*u[1], *U[2]) . divR();
+    }
   }
 
   T -> smooth (N[i]);
@@ -248,9 +241,9 @@ static void waveProp (Domain*           D ,
 // ---------------------------------------------------------------------------
 {
   integer           i, q;
-  vector<AuxField*> H (NVEC);	// -- Mnemonic for u^{Hat}.
+  vector<AuxField*> H (NPER);	// -- Mnemonic for u^{Hat}.
 
-  for (i = 0; i < NVEC; i++) {
+  for (i = 0; i < NPER; i++) {
      H[i] = D -> u[i];
     *H[i] = 0.0;
   }
@@ -263,7 +256,7 @@ static void waveProp (Domain*           D ,
   Integration::Extrapolation (Je, beta ());
   Blas::scal (Je, Femlib::value ("D_T"), beta(),  1);
 
-  for (i = 0; i < NVEC; i++)
+  for (i = 0; i < NPER; i++)
     for (q = 0; q < Je; q++) {
       H[i] -> axpy (-alpha[q + 1], *Us[q][i]);
       H[i] -> axpy ( beta [q]    , *Uf[q][i]);
@@ -274,21 +267,19 @@ static void waveProp (Domain*           D ,
 static void setPForce (const AuxField** Us,
 		       AuxField**       Uf)
 // ---------------------------------------------------------------------------
-// On input, intermediate velocity storage u^ is in first time-level of Us.
-// Create div u^ / D_T in the first NVECension, first level storage
-// of Uf as a forcing field for discrete PPE.
+// On input, intermediate velocity storage u^ is in first time-level
+// of Us.  Create div u^ / D_T in the first component, first level
+// storage of Uf as a forcing field for discrete PPE.
 // ---------------------------------------------------------------------------
 {
   integer    i;
   const real dt = Femlib::value ("D_T");
 
-  for (i = 0; i < NVEC; i++) (*Uf[i] = *Us[i]) . gradient(i);
-
-  if (NVEC == 3) *Uf[2] *= -1.0; // -- Since u[2] is Imaginary.
+  for (i = 0; i < NPER; i++) (*Uf[i] = *Us[i]) . gradient(i);
 
   if (C3D) Uf[2] -> divR();
 
-  for (i = 1; i < NVEC; i++) *Uf[0] += *Uf[i];  
+  for (i = 1; i < NPER; i++) *Uf[0] += *Uf[i];  
 
   if (CYL) *Uf[0] += (*Uf[1] = *Us[1]) . divR();
 
@@ -313,9 +304,9 @@ static void project (const Domain* D ,
   const real dt    = Femlib::value ("D_T");
   const real alpha = -1.0 / Femlib::value ("D_T * KINVIS");
 
-  for (i = 0; i < NVEC; i++) {
+  for (i = 0; i < NPER; i++) {
 
-    (*Uf[i] = *D -> u[NVEC]) . gradient (i);
+    (*Uf[i] = *D -> u[NPER]) . gradient (i);
 
     if (C3D) Uf[2] -> divR();
 
@@ -332,32 +323,85 @@ static MatrixSys** preSolve (const Domain* D)
 // Set up ModalMatrixSystems for system with only 1 Fourier mode.
 // ---------------------------------------------------------------------------
 {
-  const real              betak2 = (NVEC<3) ? 0.0 : Femlib::value("BETA*BETA");
-  const vector<Element*>& E      = D -> elmt;
-  MatrixSys**             M      = new MatrixSys* [(size_t) (NVEC + 1)];
-  const integer           itLev  = (integer) Femlib::value ("ITERATIVE");
+  const integer mode   = (NPER < 3) ? 0 : 1;
+  const real    beta   = mode * Femlib::value ("BETA");
+  MatrixSys**   system = new MatrixSys* [static_cast<size_t>(NPER + 1)];
+  const integer itLev  = static_cast<integer>(Femlib::value ("ITERATIVE"));
 
   vector<real> alpha (Integration::OrderMax + 1);
   Integration::StifflyStable (NORD, alpha());
   const real   lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
 
-  // -- Velocity systems.
+  ListIterator<MatrixSys*> m (MS);
+  MatrixSys*               M;
+  integer                  found, k = 0;
+  real                     betak2;
+  const NumberSys*         N;
+
+  cout << "-- Installing matrices: ";
+
+  // -- Velocities, starting with u.
+
+  betak2 = sqr (Field::modeConstant (D -> u[0] -> name(), mode, beta));
+  M = new MatrixSys 
+    (lambda2, betak2, 0, D -> elmt, D -> b[0], (itLev < 1)?DIRECT:JACPCG);
+  MS.add (M);
+  system[k++] = M;
+  cout << "*";
+
+  // -- v.
+
+  N      = D -> b [k] -> Nsys (mode * Geometry::kFund());
+  betak2 = sqr (Field::modeConstant (D -> u[k] -> name(), mode, beta));
+
+  for (found = 0, m.reset(); !found && m.more(); m.next()) {
+    M = m.current();
+    found = M -> match (lambda2, betak2, N, (itLev < 1)?DIRECT:JACPCG);
+  }
+  if (found) {
+    system[k++] = M;
+    cout << ".";
+  } else {
+    M = new MatrixSys 
+      (lambda2, betak2, 0, D -> elmt, D -> b[k], (itLev < 1)?DIRECT:JACPCG);
+    MS.add (M);
+    system[k++] = M;
+    cout << "*";
+  }
+
+  // -- w.
+
+  if (NPER == 3) {
+
+    N      = D -> b [k] -> Nsys (mode * Geometry::kFund());
+    betak2 = sqr (Field::modeConstant (D -> u[k] -> name(), mode, beta));
+
+    for (found = 0, m.reset(); !found && m.more(); m.next()) {
+      M = m.current();
+      found = M -> match (lambda2, betak2, N, (itLev < 1)?DIRECT:JACPCG);
+    }
+    if (found) {
+      system[k++] = M;
+      cout << ".";
+    } else {
+      M = new MatrixSys 
+	(lambda2, betak2, 0, D -> elmt, D -> b[k], (itLev < 1)?DIRECT:JACPCG);
+      MS.add (M);
+      system[k++] = M;
+      cout << "*";
+    }
+  }
+    
+  // -- Pressure.
+
+  betak2 = sqr (Field::modeConstant (D -> u[k] -> name(), mode, beta));
+  M = new MatrixSys
+    (0.0, betak2, 0, D -> elmt, D -> b[NPER], (itLev < 2)?DIRECT:JACPCG);
+  MS.add (M);
+  system[k++] = M;
+  cout << "*" << endl;
   
-  cout << "-- Installing matrices for fields [u, v,";
-
-  M[0] = new MatrixSys 
-    (lambda2, betak2, 0, E, D -> b[0],     (itLev < 1) ? DIRECT : JACPCG);
-
-  M[1] = M[0]; if (NVEC == 3) { cout << " w,"; M[2] = M[0]; }
-
-  // -- Pressure system.
-
-  cout << " p]" << endl;
-
-  M[NVEC] = new MatrixSys
-    (0.0,     betak2, 0, E, D -> b[NVEC], (itLev < 2) ? DIRECT : JACPCG);
-
-  return M;
+  return system;
 }
 
 
@@ -371,19 +415,21 @@ static void Solve (Domain*       D,
 // ---------------------------------------------------------------------------
 {
   const integer step = D -> step;
+  const integer mode = (NPER < 3) ? 0 : 1;
+  const integer beta = mode * Femlib::value ("BETA");
 
-  if (i < NVEC && step < NORD) {
+  if (i < NPER && step < NORD) {
 
     // -- We need a temporary matrix system for a viscous solve.
 
     const integer Je = min (step, NORD);    
     vector<real>  alpha (Je + 1);
     Integration::StifflyStable (Je, alpha());
-    const real    betak2  = (NVEC < 3) ? 0.0 : Femlib::value ("BETA * BETA");
-    const real    lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
+    const real betak2  = sqr (Field::modeConstant (D->u[i]->name(),mode,beta));
+    const real lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
 
-    MatrixSys* tmp = new MatrixSys
-      (lambda2, betak2, 0, D -> elmt, D -> b[0], JACPCG);
+    MatrixSys* tmp =
+      new MatrixSys (lambda2, betak2, 0, D -> elmt, D -> b[i], JACPCG);
 
     D -> u[i] -> solve (F, tmp);
     delete tmp;

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // domain.C: implement domain class functions.
 //
-// Copyright (C) 1994, 1999 Hugh Blackburn
+// Copyright (C) 1994, 2001 Hugh Blackburn
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
@@ -20,37 +20,24 @@ Domain::Domain (FEML*             F,
 // field.C for significance of the names.
 //
 // No initialization of Field MatrixSystems.
-//
-// New Base Fields will have Uppercase letters to distinquish from
-// perturbed fields (JE - 26/5/99)
 // ---------------------------------------------------------------------------
   elmt (E)
 {
-  const integer verbose = (integer) Femlib::value ("VERBOSE");
+  const integer verbose = static_cast<integer>(Femlib::value ("VERBOSE"));
+  const integer nbase   = Geometry::nBase();
   const integer nz      = Geometry::nZProc();
   const integer ntot    = Geometry::nTotProc();
+  const integer nplane  = Geometry::planeSize();
   integer       i, nfield;
   real*         alloc;
 
-  strcpy ((name = new char [strlen(F->root())+1]), F -> root());
+  strcpy ((name = new char [strlen (F -> root()) + 1]), F -> root());
   Femlib::value ("t", time = 0.0);
   step = 0;
 
   strcpy ((field = new char [strlen (B -> field()) + 1]), B -> field());
   nfield = strlen (field);
-
-  // make same length for Domain::loadfield reasons.
-  strcpy ((basefield = new char [nfield]),"UV");
-
-  // -- Output base field
-
-  VERBOSE cout << "  Domain will contain base fields: " << basefield << endl;
-
-  U   .setSize(2);
-  Udat.setSize(2);
-
-  // memory and auxfields are created as required in loadbase.
-
+  
   VERBOSE cout << "  Domain will contain fields: " << field << endl;
 
   // -- Build boundary system and field for each variable.
@@ -62,15 +49,31 @@ Domain::Domain (FEML*             F,
 
   VERBOSE cout << "done" << endl;
 
-  VERBOSE cout << "  Building domain fields ... ";
+  VERBOSE cout << "  Building domain perturbation fields ... ";
 
   u   .setSize (nfield);
   udat.setSize (nfield);
 
-  alloc = new real [(size_t) nfield * ntot];
+  alloc = new real [static_cast<size_t> (nfield * ntot)];
   for (i = 0; i < nfield; i++) {
     udat[i] = alloc + i * ntot;
     u[i]    = new Field (b[i], udat[i], nz, E, field[i]);
+  }
+
+  VERBOSE cout << "done" << endl;
+
+  if   (nbase == 2) strcpy ((baseField = new char [3]), "UV" );
+  else              strcpy ((baseField = new char [4]), "UVW");
+
+  VERBOSE cout << "  Building domain base flow fields: " << baseField <<" ...";
+
+  U   .setSize (nbase);
+  Udat.setSize (nbase);
+
+  alloc = new real [static_cast<size_t> (nbase * nplane)];
+  for (i = 0; i < nbase; i++) {
+    Udat[i] = alloc + i * nplane;
+    U[i]    = new AuxField (Udat[i], 1, E, baseField[i]);
   }
 
   VERBOSE cout << "done" << endl;
@@ -82,13 +85,12 @@ void Domain::report ()
 // Print a run-time summary of domain & timestep information on cout.
 // ---------------------------------------------------------------------------
 {
-  const real    t   =           time;
-  const real    dt  =           Femlib::value ("D_T");
-  const real    lz  =           Femlib::value ("TWOPI / BETA");
-  const integer ns  = (integer) Femlib::value ("N_STEP");
-  const integer nt  = (integer) Femlib::value ("N_TIME");
-  const integer chk = (integer) Femlib::value ("CHKPOINT");
-  const integer per = (integer) Femlib::value ("IO_FLD");
+  const real dt  =                          Femlib::value ("D_T");
+  const real lz  =                          Femlib::value ("TWOPI / BETA");
+  const integer  ns  = static_cast<integer>(Femlib::value ("N_STEP"));
+  const integer  nt  = static_cast<integer>(Femlib::value ("N_TIME"));
+  const integer  chk = static_cast<integer>(Femlib::value ("CHKPOINT"));
+  const integer  per = static_cast<integer>(Femlib::value ("IO_FLD"));
 
   cout << "-- Coordinate system       : ";
   if (Geometry::system() == Geometry::Cylindrical)
@@ -97,21 +99,20 @@ void Domain::report ()
     cout << "Cartesian" << endl;
 
   cout << "   Solution fields         : " << field              << endl;
-
-  cout << "   Base Solution fields    : " << basefield          << endl;
-  cout << "   Base flow Dimension     : 2" << endl;
-  cout << "   Perturbed Dimension     : " << nField()-1          << endl;
-
+  cout << "   Base flow fields        : " << baseField          << endl;
+  cout << "   Number of base slices   : " << Geometry::nSlice   << endl;
   cout << "   Number of elements      : " << Geometry::nElmt()  << endl;
   cout << "   Number of planes        : " << Geometry::nZ()     << endl;
   cout << "   Number of processors    : " << Geometry::nProc()  << endl;
-  if (Geometry::nZ() > 1) cout << "   Periodic length         : " << lz<< endl;
+  if (Geometry::nPert() > 1)
+    cout<<"   Periodic length         : " << lz                 << endl;
   cout << "   Polynomial order (np-1) : " << Geometry::nP() - 1 << endl;
-
   cout << "   Time integration order  : " << nt                 << endl;
-  cout << "   Start time              : " << t                  << endl;
-  cout << "   Finish time             : " << t + ns * dt        << endl;
+  cout << "   Start time              : " << time               << endl;
+  cout << "   Finish time             : " << time + ns * dt     << endl;
   cout << "   Time step               : " << dt                 << endl;
+  if (Geometry::nSlice() > 1) 
+    cout<<"   Base flow period        : " << period             << endl;
   cout << "   Number of steps         : " << ns                 << endl;
   cout << "   Dump interval (steps)   : " << per;
   if (chk) cout << " (checkpoint)";  
@@ -122,212 +123,30 @@ void Domain::report ()
 void Domain::restart ()
 // ---------------------------------------------------------------------------
 // If a restart file "name".rst can be found, use it for input.  If
-// this fails, initialize all Fields to zero ICs.
-//
-// Carry out forwards Fourier transformation, zero Nyquist data.
+// this fails, initialise all fields to random noise.
 // ---------------------------------------------------------------------------
 {
   integer       i;
-  const integer nF = nField();
+  const integer nF   = nField();
+  const integer ntot = Geometry::nTotProc();
   char          restartfile[StrMax];
   
-  cout << "-- Initial condition       : ";
+  ROOTONLY cout << "-- Initial condition       : ";
   ifstream file (strcat (strcpy (restartfile, name), ".rst"));
 
   if (file) {
-    cout << "read from file " << restartfile;
-    cout.flush();
+    ROOTONLY cout << "read from file " << restartfile << flush;
     file >> *this;
     file.close();
   } else {
-    cout << "generating random noise";
-    for (i = 0; i < nF; i++) u[i] -> randomise();
+    ROOTONLY cout << "set to random values";
+    for (i = 0; i < nF; i++) Veclib::vnormal (ntot, 0.0, 1.0, udat(i), 1);
   }
 
-  cout << endl;
+  ROOTONLY cout << endl;
   
   Femlib::value ("t", time);
   step = 0;
-}
-
-
-void Domain::loadbase ()
-// ---------------------------------------------------------------------------
-// If a base file "base.bse" can be found, use it for input.  If
-// this fails, initialize all Fields to random noise.
-//
-// Loads up base fields (U+V) -> adapts for multiple base fields.
-// Sets -> period, d_t, PBF, U, Udat
-//
-// very clumsy at moment because of difference between passing auxfield and
-// field.. in loadfield
-// ---------------------------------------------------------------------------
-{
-  const char        routine[]  = "Domain::loadbase()";
-  const integer     nT         = Geometry::nTotProc();
-  const integer     planeSize  = Geometry::planeSize();
-  const integer     MAX        = (int) Femlib::value ("MAX_BASE_F");
-  char              basefile[StrMax];
-  integer           dump_step, i, x, y;
-  real              first_time = 0.0, dump_time, last_time = -1.0;
-  vector<AuxField*> PBF ;    // Periodic base file fields
-  vector<real*>     PBFdat;  // data storage area for periodic basefields.
-  vector<Field*>    U_temp;  // tempory storage for dump reads.
-  vector<real*>     U_alloc; // memory for U_temp
-  const integer     ntot = Geometry::nTotProc();
-
-  U_temp .setSize (2);
-  U_alloc.setSize (2);
-
-  for (i = 0; i < 2; i++) {
-    U_alloc[i] = new real [(size_t) ntot];
-    U_temp[i]  = new Field (b[i], U_alloc[i], 1, elmt, 'U');
-  }
-
-  PBF   .setSize (2 * MAX);
-  PBFdat.setSize (2 * MAX);
-  d_t = 0.0;
-
-  cout << "-- Base Field condition    : ";
-  ifstream file (strcat (strcpy (basefile, name), ".bse"));
-
-  // read in data from basefile until EOF
-  // base file format is sequence of 2D dns field dumps
-  // store fields in temp variables PBF,
- 
-  if (basefile) {
-
-    cout << "read from file " << basefile << endl;    
-
-    n_basefiles = 0;
-
-    cout << "\t" << "File" << "\t"   << "Memory" << "\t" << "Time" 
-	 << "\t" << "\t"    << "d_t" << endl;
-
-    while (loadfield (file, &dump_step, &dump_time, 
-		      basefield, U_temp, BASE_LOAD)) {     
-
-      if (n_basefiles == MAX)
-	message(routine, "Limit of base file storage reached", ERROR);
-
-      cout << "\t" << n_basefiles << "\t";
-
-      x = 0 + 2 * n_basefiles;
-      y = 1 + 2 * n_basefiles;
-
-      // PBF memory allocation.
-
-      PBFdat[x] = new real [(size_t) nT];
-      PBFdat[y] = new real [(size_t) nT];
-
-      PBF[x] = new AuxField (PBFdat[x], 1, elmt, 'U');
-      PBF[y] = new AuxField (PBFdat[y], 1, elmt, 'V');
-
-      cout << ".." << "\t";
-
-      // copy auxfields to PBF
-
-      *PBF[x] = *U_temp[0];
-      *PBF[y] = *U_temp[1];
-		    
-      // evaluate d_t
-      if  (!n_basefiles) first_time = dump_time;   
-      cout << dump_time-first_time << "\t";
-
-      if (n_basefiles > 0)
-	d_t = dump_time - last_time;
-      last_time = dump_time;
-
-      cout << "\t" << d_t << endl;
-  
-      // increment number of base files.
-      n_basefiles++;
-    
-    }
-
-    // -- Set dt (time separating base field dumps) from session tokens.
-
-    d_t = Femlib::value ("BASE_DT");
-    cout << endl << "\t" << "BASE_DT: d_t = " << d_t << endl;
-
-    file.close();
-
-    for (i = 0; i < 2; i++) {
-      delete U_temp  [i];
-      delete U_alloc [i];
-    }
-
-    // if only one base file -> no periodic files.
-
-    if (n_basefiles == 1)
-
-      for (i = 0; i < 2; i++) U[i] = PBF[i];
-
-    else {
-
-      if (n_basefiles % 2) 
-	message (routine, "require even number of base fields for DFT", ERROR);
-      
-      // -- Allocate memory for Fourier transformed data.
-
-      BaseUV.setSize(2);
-      BaseUV[0] = new real [n_basefiles*planeSize];
-      BaseUV[1] = new real [n_basefiles*planeSize];
-
-      // -- Zero new arrays -> if data odd, last entry = 0.0.
-
-      Veclib::zero (planeSize*n_basefiles, BaseUV[0],  1);
-      Veclib::zero (planeSize*n_basefiles, BaseUV[1],  1);
-
-      // -- Allocate memory for U[0] and U[1] & copy PBF[0,1] across.
-
-      Udat.setSize(2);
-      Udat[0] = new real [(size_t) nT];
-      Udat[1] = new real [(size_t) nT];
-
-      U[0] = new AuxField(Udat[0], 1, elmt, 'U');
-      U[1] = new AuxField(Udat[1], 1, elmt, 'V');
-      *U[0] = *PBF[0];
-      *U[1] = *PBF[1];
-
-      // -- Copy across PBF auxfields to BaseUV & delete PBF.
-
-      for (i = 0; i < n_basefiles; i++) {
-	PBF[2*i]   -> getPlane (0, BaseUV[0] + i*planeSize);
-	PBF[2*i+1] -> getPlane (0, BaseUV[1] + i*planeSize);
-      }
-
-      // -- Transform data from real to complex.
-
-      Femlib::DFTr (BaseUV[0], n_basefiles, planeSize, FORWARD);
-      Femlib::DFTr (BaseUV[1], n_basefiles, planeSize, FORWARD);      
-
-      // -- Scale fields > 0,1 to avoid duplication in Fourier interpolation.
-      
-      for (i = 2; i < n_basefiles; i++) {
-	Blas::scal (planeSize, 2.0, BaseUV[0] + i*planeSize, 1);
-	Blas::scal (planeSize, 2.0, BaseUV[1] + i*planeSize, 1);	
-      }
-      
-      period = d_t * n_basefiles;
-      cout << "   - " << "Period time = "<< n_basefiles << " x " << d_t
-	   << " = " << period << endl;
-    }
-    
-  } else
-    message (routine, "Error opening base field file", ERROR);
-
-  cout << endl;
-}
-
-
-void Domain::Base_update()
-// ------------------------------------------------------------------
-// Update fields U and V with probe data from BaseUV at time t.
-// -------------------------------------------------------------------
-{
-  U[0] -> update (n_basefiles, BaseUV[0], time, period);
-  U[1] -> update (n_basefiles, BaseUV[1], time, period);
 }
 
 
@@ -339,55 +158,50 @@ void Domain::dump ()
 // provide physical space values.
 // ---------------------------------------------------------------------------
 {
-  const char    routine[] = "Domain::dump";
-
-  const integer periodic = !(step %  (integer) Femlib::value ("IO_FLD"));
-  const integer initial  =   step == (integer) Femlib::value ("IO_FLD");
-  const integer final    =   step == (integer) Femlib::value ("N_STEP");
+  const integer
+    periodic = !(step %  static_cast<integer>(Femlib::value ("IO_FLD")));
+  const integer
+    initial  = step   == static_cast<integer>(Femlib::value ("IO_FLD"));
+  const integer
+    final    = step   == static_cast<integer>(Femlib::value ("N_STEP"));
 
   if (!(periodic || final)) return;
+  ofstream output;
 
-  char          dumpfl[StrMax], backup[StrMax], command[StrMax];
-  const integer verbose   = (integer) Femlib::value ("VERBOSE");
-  const integer chkpoint  = (integer) Femlib::value ("CHKPOINT");
-  ofstream      output;
+  Femlib::synchronize();
 
-  if (chkpoint) {
-    if (final) {
-      strcat (strcpy (dumpfl, name), ".fld");
-      output.open (dumpfl, ios::out);
-    } else {
-      strcat (strcpy (dumpfl, name), ".chk");
-      if (!initial) {
-	strcat  (strcpy (backup, name), ".chk.bak");
-	sprintf (command, "mv ./%s ./%s", dumpfl, backup);
-	system  (command);
+  ROOTONLY {
+    const char    routine[] = "Domain::dump";
+    char          dumpfl[StrMax], backup[StrMax], command[StrMax];
+    const integer verbose   = static_cast<integer>(Femlib::value ("VERBOSE"));
+    const integer chkpoint  = static_cast<integer>(Femlib::value ("CHKPOINT"));
+
+    if (chkpoint) {
+      if (final) {
+	strcat (strcpy (dumpfl, name), ".fld");
+	output.open (dumpfl, ios::out);
+      } else {
+	strcat (strcpy (dumpfl, name), ".chk");
+	if (!initial) {
+	  strcat  (strcpy (backup, name), ".chk.bak");
+	  sprintf (command, "mv ./%s ./%s", dumpfl, backup);
+	  system  (command);
+	}
+	output.open (dumpfl, ios::out);
       }
-      output.open (dumpfl, ios::out);
+    } else {
+      strcat (strcpy (dumpfl, name), ".fld");
+      if   (initial) output.open (dumpfl, ios::out);
+      else           output.open (dumpfl, ios::app);
     }
-  } else {
-    strcat (strcpy (dumpfl, name), ".fld");
-    if   (initial) output.open (dumpfl, ios::out);
-    else           output.open (dumpfl, ios::app);
-  }
     
-  if (!output) message (routine, "can't open dump file", ERROR);
-  if (verbose) message (routine, ": writing field dump", REMARK);
+    if (!output) message (routine, "can't open dump file", ERROR);
+    if (verbose) message (routine, ": writing field dump", REMARK);
+  }
 
   output << *this;
-  output.close();
-}
 
-
-void Domain::transform (const integer sign)
-// ---------------------------------------------------------------------------
-// Fourier transform all Fields according to sign.
-// ---------------------------------------------------------------------------
-{
-  integer       i;
-  const integer N = this -> nField ();
-  
-  for (i = 0; i < N; i++) u[i] -> transform (sign);
+  ROOTONLY output.close();
 }
 
 
@@ -399,8 +213,8 @@ ofstream& operator << (ofstream& strm,
 // processor.
 // ---------------------------------------------------------------------------
 {
-  int               i;
-  const int         N = D.u.getSize();
+  integer           i;
+  const integer     N = D.u.getSize();
   vector<AuxField*> field (N);
 
   for (i = 0; i < N; i++) field[i] = D.u[i];
@@ -408,106 +222,6 @@ ofstream& operator << (ofstream& strm,
   writeField (strm, D.name, D.step, D.time, field);
 
   return strm;
-}
-
-
-integer Domain::loadfield (ifstream&       strm      ,
-			   integer*        strm_step ,
-			   real*           strm_time ,
-			   char*           strm_field,
-			   vector<Field*>& strm_u    ,
-			   const LoadKind  method    )
-// ---------------------------------------------------------------------------
-//
-// ---------------------------------------------------------------------------
-{
-  const char routine[] = "Domain::loadField";
-  char       s[StrMax], f[StrMax], fields[StrMax];
-  integer    npchk,  nzchk, nelchk;
-  integer    i, j, np, nz, nel, ntot, nfields;
-  integer    swap = 0;
-
-  if (strm.getline(s, StrMax).eof()) return 0;
-
-  strm.getline(s,StrMax).getline(s,StrMax);
-  
-  u[0] -> describe (f);
-
-  istrstream (s, strlen (s)) >> np    >> np    >> nz    >> nel;
-  istrstream (f, strlen (f)) >> npchk >> npchk >> nzchk >> nelchk;
-  
-  if (np  != npchk ) message (routine, "element size mismatch",       ERROR);
-  if (nz  != nzchk ) message (routine, "number of z planes mismatch", ERROR);
-  if (nel != nelchk) message (routine, "number of elements mismatch", ERROR);
-  
-  ntot = np * np * nz * nel;
-  if (ntot != Geometry::nTot())
-    message (routine, "declared sizes mismatch", ERROR);
-
-  strm.getline(s,StrMax);
-  istrstream (s, strlen (s)) >> *strm_step;
-
-  strm.getline(s,StrMax);
-  istrstream (s, strlen (s)) >> *strm_time;
-  
-  strm.getline(s,StrMax).getline(s,StrMax);
-  strm.getline(s,StrMax).getline(s,StrMax);
-
-  nfields = 0;
-  while (isalpha (s[nfields])) {
-    fields[nfields] = s[nfields];
-    nfields++;
-  }
-  fields[nfields] = '\0';
-
-  strm.getline (s, StrMax);
-  Veclib::describeFormat (f);
-
-  if (!strstr (s, "binary"))
-    message (routine, "input field file not in binary format", ERROR);
-  
-  if (!strstr (s, "endian"))
-    message (routine, "input field file in unknown binary format", WARNING);
-  else {
-    swap = ((strstr (s, "big") && strstr (f, "little")) ||
-	    (strstr (f, "big") && strstr (s, "little")) );
-    if (swap) cout << " (byte-swapping)";
-    cout.flush();
-  }
-
-  if (method == BASE_LOAD) {
-
-    // check that field is only 2D
-    if (nfields!=3) message (routine, "Base Field number != 3", ERROR);
-    
-    // allocate auxfield for temporary pressure
-    real*      Pmem = new real[(size_t) ntot];
-    AuxField*  P = new AuxField(Pmem, 1, elmt, 'P');
-
-    for (i = 0; i < 2; i++) { // read U and V
-      strm >> *strm_u[i];
-      if (swap) strm_u[i] -> reverse();
-    }
-    strm >> *P;           // P -> discarded
-    
-    delete Pmem;
-    delete P;
-
-  } else {
-
-    for (j = 0; j < nfields; j++) {
-      for (i = 0; i < nfields; i++)
-	if (fields[j] == tolower(strm_field[i])) {
-	  strm >>  *strm_u[i];
-	  if (swap) strm_u[i] -> reverse();
-	  break;
-	}
-    }
-  }
-
-  if (strm.bad()) message (routine, "failed reading field file", ERROR);
-
-  return 1;
 }
 
 
@@ -522,9 +236,171 @@ ifstream& operator >> (ifstream& strm,
 // Ordering of fields in file is allowed to differ from that in D.
 // ---------------------------------------------------------------------------
 {
-  D.loadfield (strm, &D.step, &D.time, D.field, D.u, STD_LOAD);
- 
-  Femlib::value ("t", D.time);
+  const char routine[] = "strm>>Domain";
+  integer    i, j, np, nz, nel, ntot, nfields;
+  integer    npchk,  nzchk, nelchk;
+  integer    swap = 0, verb = static_cast<integer>(Femlib::value ("VERBOSE"));
+  char       s[StrMax], f[StrMax], err[StrMax], fields[StrMax];
 
+  if (strm.getline(s, StrMax).eof()) return strm;
+
+  strm.getline(s,StrMax).getline(s,StrMax);
+  
+  D.u[0] -> describe (f);
+  istrstream (s, strlen (s)) >> np    >> np    >> nz    >> nel;
+  istrstream (f, strlen (f)) >> npchk >> npchk >> nzchk >> nelchk;
+  
+  if (np  != npchk ) message (routine, "element size mismatch",       ERROR);
+  if (nz  != nzchk ) message (routine, "number of z planes mismatch", ERROR);
+  if (nel != nelchk) message (routine, "number of elements mismatch", ERROR);
+  
+  ntot = np * np * nz * nel;
+  if (ntot != Geometry::nTot())
+    message (routine, "declared sizes mismatch", ERROR);
+
+  strm.getline(s,StrMax);
+  istrstream (s, strlen (s)) >> D.step;
+
+  strm.getline(s,StrMax);
+  istrstream (s, strlen (s)) >> D.time;
+  Femlib::value ("t", D.time);
+  
+  strm.getline(s,StrMax).getline(s,StrMax);
+  strm.getline(s,StrMax).getline(s,StrMax);
+
+  nfields = 0;
+  while (isalpha (s[nfields])) {
+    fields[nfields] = s[nfields];
+    nfields++;
+  }
+  fields[nfields] = '\0';
+  if (nfields != strlen (D.field)) {
+    sprintf (err, "file: %1d fields, Domain: %1d", nfields, strlen(D.field));
+    message (routine, err, ERROR);
+  }
+  for (i = 0; i < nfields; i++) 
+    if (!strchr (D.field, fields[i])) {
+      sprintf (err,"field %c not present in Domain (%s)",fields[i],D.field);
+      message (routine, err, ERROR);
+    }
+
+  strm.getline (s, StrMax);
+  Veclib::describeFormat (f);
+
+  if (!strstr (s, "binary"))
+    message (routine, "input field file not in binary format", ERROR);
+  
+  if (!strstr (s, "endian"))
+    message (routine, "input field file in unknown binary format", WARNING);
+  else {
+    swap = ((strstr (s, "big") && strstr (f, "little")) ||
+	    (strstr (f, "big") && strstr (s, "little")) );
+    ROOTONLY {
+      if (swap) cout << " (byte-swapping)";
+      cout.flush();
+    }
+  }
+
+  for (j = 0; j < nfields; j++) {
+    for (i = 0; i < nfields; i++)
+      if (fields[j] == D.field[i]) {
+	strm >>  *D.u[i];
+	if (swap) D.u[i] -> reverse();
+	break;
+      }
+  }
+    
+  ROOTONLY if (strm.bad())
+    message (routine, "failed reading field file", ERROR);
+    
   return strm;
+}
+
+
+void Domain::loadBase()
+// ---------------------------------------------------------------------------
+// Open file name.bse, assumed to contain field dumps for base flow.
+// Attempt to load velocity fields (ignoring pressure), then Fourier
+// transform if appropriate, and prepare for Fourier reconstruction.
+//
+// Base flow dumps should contain only velocity and pressure fields,
+// have nz = 1, same number of elements, np as perturbation.
+// ---------------------------------------------------------------------------
+{
+  const char routine[] = "Domain::loadBase()";
+  const integer nP     = Geometry::nP();
+  const integer nEl    = Geometry::nElmt();
+  const integer nBase  = Geometry::nBase();
+  const integer nPlane = Geometry::nPlane();
+  const integer nTot   = Geometry::planeSize();
+  const integer nSlice = Geometry::nSlice();
+
+  Header   H;
+  integer  i, j;
+  real*    addr;
+  real     t0, dt = 0;
+  integer  len;
+  char     filename[StrMax];
+  ifstream file (strcat (strcpy (filename, name), ".bse"));
+
+  // -- Allocate storage.
+
+  baseFlow.setSize (nBase);
+
+  if (nSlice > 1)
+    for (i = 0; i < nBase; i++) baseFlow(i) = new real [nTot * nSlice];
+  else
+    for (i = 0; i < nBase; i++) baseFlow(i) = Udat(i);
+
+  // -- Read base velocity fields, ignore pressure fields.
+
+  i = 0;
+  while (file >> H) {
+    if (H.nr != nP || H.nz != 1 || H.nel != nEl)
+      message (routine, "base flow and perturbation do not conform", ERROR);
+    if ((nBase == 2 && strcmp (H.flds, "uvp" )) ||
+	(nBase == 3 && strcmp (H.flds, "uvwp")))
+      message (routine, "mismatch: No. of base components/declaration", ERROR);
+    for (j = 0; j < nBase; j++) {
+      addr = baseFlow(j) + i * nTot;
+      len  = nPlane * sizeof(real);
+      file.read (reinterpret_cast<char*>(addr), static_cast<int>(len));
+      if (file.bad()) 
+	message (routine, "unable to read binary input", ERROR);
+      Veclib::zero (nTot - nPlane, addr + nPlane, 1);
+    }
+    file.ignore (static_cast<int>(len * sizeof (real)));
+    if (i == 0) t0 = H.time;
+    if (i == 1) dt = H.time - t0;
+    i++;
+  }
+
+  file.close();
+  period = dt * nSlice;
+
+  if (i != nSlice)
+    message (routine, "mismatch: No. of base slices/declaration", ERROR);
+
+  if (nSlice > 1) // -- Fourier transform in time, scale for reconstruction.
+    for (i = 0; i < nBase; i++) {
+      Femlib::DFTr (baseFlow(i), nSlice, nTot, FORWARD);
+      Blas::scal   ((nSlice-2)*nTot, 2.0, baseFlow(i) + 2*nTot, 1);
+    }
+}
+
+
+void Domain::updateBase()
+// ---------------------------------------------------------------------------
+// Update base velocity fields, using Fourier series reconstruction in time.
+// ---------------------------------------------------------------------------
+{
+  const integer nBase  = Geometry::nBase();
+  const integer nSlice = Geometry::nSlice();
+  const real    time   = Femlib::value ("t - D_T");
+  integer       i;
+  
+  if (nSlice < 2) return;
+
+  for (i = 0; i < nBase; i++)
+    U[i] -> update (nSlice, baseFlow(i), time, period);
 }
