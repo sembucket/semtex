@@ -47,7 +47,7 @@ int main (int    argc,
   ios::sync_with_stdio();
 #endif
 
-  char             *session;
+  char*            session;
   vector<Element*> elmt;
   FEML*            file;
   Mesh*            mesh;
