@@ -3,6 +3,8 @@
 # We test dual by comparing it to results obtained using dns with a
 # single Fourier mode.  As dns is dealiased, the results should be the
 # same.
+# 
+# $Id$
 
 SEM=../../semtex
 
@@ -30,10 +32,10 @@ do
 
   sed "s/N_Z.*=.*/N_Z=3/" < $i > tmp
   mv tmp $i
-  ../dual2sem -i $i.rst > tmp
+  dual2sem -i $i.rst > tmp
   mv tmp $i.rst
   ../dual $i > /dev/null
-  ../dual2sem $i.fld > $i.dual.fld
+  dual2sem $i.fld > $i.dual.fld
 
   sed "s/N_Z.*=.*/N_Z=4/" < $SEM/mesh/$i > tmp
   mv tmp $i
