@@ -230,11 +230,11 @@ void Analyser::analyse (AuxField*** work)
 	his_strm << endl;
       }
     }
-  }
      
-  // -- Statistical analysis.
+    // -- Statistical analysis.
 
-  if (stats) stats -> update (work);
+    if (stats) stats -> update (work);
+  }
 
   // -- Field and statistical dumps.
 
