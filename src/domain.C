@@ -383,17 +383,18 @@ void Domain::setNumber (const char           field ,
 }
 
 
-
 void Domain::initialize (const char* src)
 // ---------------------------------------------------------------------------
 // If a file name is given, attempt to use it to load the Domain Field data
 // areas.  Otherwise, if a restart file "name".rst can be found, use it for
 // input.  If these options fail, initialize all Fields to zero ICs.
 //
-// Carry out forwards Fourier transformation.
+// Carry out forwards Fourier transformation, zero Nyquist data.
 // ---------------------------------------------------------------------------
 {
-  char restartfile[StrMax];
+  int       i;
+  const int nF = nField();
+  char      restartfile[StrMax];
 
   if   (src)         strcpy (restartfile, src);
   else       strcat (strcpy (restartfile, name), ".rst");
@@ -404,10 +405,10 @@ void Domain::initialize (const char* src)
     cout << "-- Restarting from file:  " << restartfile;
     file >> *this;
     transform (+1);
+    for (i = 0; i < nF; i++) u[i] -> zeroNyquist();
   } else {
     cout << "-- Initializing solution with zero IC";
-    for (int i(0); i < nField (); i++)
-      *u[i] = 0.0;
+    for (i = 0; i < nF; i++) *u[i] = 0.0;
   }
 
   cout << endl;
