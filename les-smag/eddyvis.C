@@ -11,14 +11,14 @@
 static integer DIM, CYL, ITR_MAX;
 static real    EPS2;
 
-static void strainRate  (const Domain*, AuxField***,AuxField***);
-static void viscoModel  (const Domain*, AuxField***, AuxField***, AuxField*);
+static void strainRate  (const Domain*, AuxField**,AuxField**);
+static void viscoModel  (const Domain*, AuxField**, AuxField**, AuxField*);
 static real RNG_quartic (const real, const real, const real);
 
 
 void eddyViscosity (const Domain* D ,
-		    AuxField***   Us,
-		    AuxField***   Uf,
+		    AuxField**    Us,
+		    AuxField**    Uf,
 		    AuxField*     EV)
 // ---------------------------------------------------------------------------
 // Compute the resolved strain-rate field and EV, the eddy viscosity field
@@ -29,9 +29,9 @@ void eddyViscosity (const Domain* D ,
 // strain tensor are left in Us, and the off-diagonal entries are left
 // in Uf (here for 3D):
 //
-//                      / Us[0][0]  Uf[0][0]  Uf[1][0] \
-//                S =   |    .      Us[1][0]  Uf[2][0] |
-//                ~     \    .         .      Us[2][0] /
+//                      / Us[0]  Uf[0]  Uf[1] \
+//                S =   |    .   Us[1]  Uf[2] |
+//                ~     \    .       .  Us[2] /
 // ---------------------------------------------------------------------------
 {
   DIM     = Geometry::nDim();
@@ -55,8 +55,8 @@ void eddyViscosity (const Domain* D ,
 
 
 static void strainRate (const Domain* D ,
-			AuxField***   Us,
-			AuxField***   Uf)
+			AuxField**    Us,
+			AuxField**    Uf)
 // ---------------------------------------------------------------------------
 // On entry D contains the velocity fields Ui and the first-level
 // areas of Us and Uf are free.  Construct the symmetric strain-rate
@@ -80,8 +80,8 @@ static void strainRate (const Domain* D ,
 
   if (CYL) {			// -- Cylindrical geometry.
 
-    AuxField* tp1 = Us[0][0];
-    AuxField* tp2 = Us[1][0];
+    AuxField* tp1 = Us[0];
+    AuxField* tp2 = Us[1];
   
     for (i = 0; i < DIM; i++)
       for (j = 0; j < DIM; j++) {
@@ -94,50 +94,50 @@ static void strainRate (const Domain* D ,
 	  (*tp1 = *D -> u[i]) . gradient (j);
 	  if (j == 2) tp1 -> divR();
 	}
-	if   (j > i) *Uf[i + j - 1][0]  = *tp1;
-	else         *Uf[i + j - 1][0] += *tp1;
+	if   (j > i) *Uf[i + j - 1]  = *tp1;
+	else         *Uf[i + j - 1] += *tp1;
       }
   
     for (i = 0; i < DIM; i++)
       for (j = i + 1; j < DIM; j++)
-	*Uf[i + j - 1][0] *= 0.5;
+	*Uf[i + j - 1] *= 0.5;
   
     // -- Diagonal.
 
     for (i = 0; i < DIM; i++) {
-      (*Us[i][0] = *D -> u[i]) . gradient (i);
-      if (i == 2) (*Us[2][0] += *D -> u[1]) . divR();
+      (*Us[i] = *D -> u[i]) . gradient (i);
+      if (i == 2) (*Us[2] += *D -> u[1]) . divR();
     }
 
   } else {			// -- Cartesian geometry.
 
     // -- Off-diagonal terms.
 
-    AuxField* tmp = Us[0][0];
+    AuxField* tmp = Us[0];
 
     for (i = 0; i < DIM; i++)
       for (j = 0; j < DIM; j++) {
 	if (j == i) continue;
 	(*tmp = *D -> u[i]) . gradient (j);
-	if   (j > i) *Uf[i + j - 1][0]  = *tmp;
-	else         *Uf[i + j - 1][0] += *tmp;
+	if   (j > i) *Uf[i + j - 1]  = *tmp;
+	else         *Uf[i + j - 1] += *tmp;
       }
       
     for (i = 0; i < DIM; i++)
       for (j = i + 1; j < DIM; j++)
-	*Uf[i + j - 1][0] *= 0.5;
+	*Uf[i + j - 1] *= 0.5;
 
     // -- Diagonal.
 
     for (i = 0; i < DIM; i++)
-      (*Us[i][0] = *D -> u[i]) . gradient (i);
+      (*Us[i] = *D -> u[i]) . gradient (i);
   }
 }
 
 
 static void viscoModel (const Domain* D ,
-			AuxField***   Us,
-			AuxField***   Uf,
+			AuxField**    Us,
+			AuxField**    Uf,
 			AuxField*     EV)
 // ---------------------------------------------------------------------------
 // On entry the first-level areas of Us & Uf contain the components of
@@ -176,11 +176,11 @@ static void viscoModel (const Domain* D ,
   
   for (i = 0; i < DIM; i++) {
     for (j = i + 1; j < DIM; j++) {
-      Uf[i + j - 1][0] -> transform32 (-1, tmp);
+      Uf[i + j - 1] -> transform32 (INVERSE, tmp);
       Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
     }
     Blas::scal (nTot32, 2.0, sum, 1);
-    Us[i][0] -> transform32 (-1, tmp);
+    Us[i] -> transform32 (INVERSE, tmp);
     Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
   }
 
@@ -198,7 +198,7 @@ static void viscoModel (const Domain* D ,
     const real    Cs2     = Cs  * Cs;
     const real    Cs4     = Cs2 * Cs2;
   
-    EV -> transform32 (-1, tmp);
+    EV -> transform32 (INVERSE, tmp);
 
     for (k = 0; k < nZ32; k++) {
       S = sum + k * NP;
@@ -231,7 +231,7 @@ static void viscoModel (const Domain* D ,
 
   // -- Transform back to Fourier space.
 
-  EV -> transform32 (+1, sum);
+  EV -> transform32 (FORWARD, sum);
 }
 
 

@@ -16,8 +16,13 @@ class LESAnalyser : public Analyser
 {
 public:
   LESAnalyser  (Domain*, FEML*);
-  void analyse (AuxField***);
+  void analyse (AuxField**);
 
 private:
   ofstream flx_strm;
 };
+
+
+// -- In eddyvis.C:
+
+void eddyViscosity (const Domain*, AuxField**, AuxField**, AuxField*);

@@ -7,17 +7,15 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
  
-static char
-RCSid[] = "$Id$";
-
 #include <les.h>
 
 
 LESAnalyser::LESAnalyser (Domain* D    ,
-			  FEML*   feml) : Analyser (D, feml)
+			  FEML*   feml) :
 // ---------------------------------------------------------------------------
 // Extensions to Analyser class.
 // ---------------------------------------------------------------------------
+  Analyser (D, feml)
 {
   ROOTONLY {
     const char routine[] = "LESAnalyser::LESAnalyser";
@@ -35,7 +33,7 @@ LESAnalyser::LESAnalyser (Domain* D    ,
 }
 
 
-void LESAnalyser::analyse (AuxField*** work)
+void LESAnalyser::analyse (AuxField** work)
 // ---------------------------------------------------------------------------
 // Step-by-step processing.
 // ---------------------------------------------------------------------------
