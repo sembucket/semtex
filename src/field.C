@@ -274,6 +274,20 @@ Field&  Field::operator /= (const Field& f)
 
 
 
+Field&  Field:: operator = (const char* function)
+// ---------------------------------------------------------------------------
+// Set Field's value to temporo-spatially varying function.
+// ---------------------------------------------------------------------------
+{
+  for (ListIterator<Element*> k(element_list); k.more(); k.next())
+    k.current () -> evaluate (function);
+
+  return *this;
+}
+
+
+
+
 Field&  Field::prod (const Field& a, const Field& b)
 // ---------------------------------------------------------------------------
 // Set this Field's value as the product of a & b.
@@ -552,8 +566,10 @@ void  Field::buildBoundaries (const Field& f)
 {
   Boundary* N;
 
-  for (ListIterator<Boundary*> b(f.boundary_list); b.more(); b.next())
-    boundary_list.add (N = new Boundary (*b.current (), element_list));
+  for (ListIterator<Boundary*> b(f.boundary_list); b.more(); b.next()) {
+    N = new Boundary (*b.current (), element_list);
+    boundary_list.add (N);
+  }
 }
 
 
@@ -585,7 +601,8 @@ void  Field::buildBoundaries ()
     for (side = 0; side < E -> nSide(); side++)
       if (E -> sideKind (side) == DOMAIN_BOUNDARY) {
 	bc = BCmanager::getBC (E -> sideTag (side));
-	boundary_list.add(B = new Boundary (id++, E, side, bc));
+	B  = new Boundary (id++, E, side, bc);
+	boundary_list.add(B);
       }
   }
 }
@@ -1227,7 +1244,7 @@ int  Field::switchPressureBCs (const BC* hopbc, const BC* zero)
 
 
 
-void  Field::printErrors (Field* F, const char* function)
+void  Field::errors (const char* function)
 // ---------------------------------------------------------------------------
 // Compare F with function, print the infinity-norm Li, the 2-norm L2
 // and the Sobolev 1-norm H1.
@@ -1250,7 +1267,7 @@ void  Field::printErrors (Field* F, const char* function)
   real*    x;
   int      ntot, nmsh;
 
-  for (ListIterator<Element*> k(F->element_list); k.more(); k.next()) {
+  for (ListIterator<Element*> k(element_list); k.more(); k.next()) {
     E = k.current ();
     
     P = new Element (*E, Nquad);
@@ -1285,7 +1302,7 @@ void  Field::printErrors (Field* F, const char* function)
   L2 /= area;
   H1 /= area;
 
-  cout << "-- Error norms for Field " << F -> field_name << " (inf, L2, H1):";
+  cout << "-- Error norms for Field " << field_name << " (inf, L2, H1):";
   cout << Li << "  " << L2 << "  " << H1 << endl;
 
 }
@@ -1301,4 +1318,6 @@ Field&  Field::evaluate (const char* function)
 {
   for (ListIterator<Element*> k(element_list); k.more(); k.next())
     k.current () -> evaluate (function);
+
+  return *this;
 }
