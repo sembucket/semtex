@@ -10,7 +10,7 @@
 #endif
 
 
-void dvvtvvtp (int n, const double  alpha,
+void dsvvtvp (int n, const double  alpha,
         	      const double* w, int incw,
 	              const double* x, int incx,
 	              const double* y, int incy,
@@ -35,7 +35,7 @@ void dvvtvvtp (int n, const double  alpha,
 }
 
 
-void svvtvvtp (int n, const float  alpha,
+void ssvvtvp (int n, const float  alpha,
 	              const float* w, int incw,
 	              const float* x, int incx,
 	              const float* y, int incy,
