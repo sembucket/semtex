@@ -1363,8 +1363,9 @@ real AuxField::probe (const Element* E,
 // ---------------------------------------------------------------------------
 {
   const integer offset = E -> ID() * Geometry::nTotElmt();
+  static vector<real> work (3 * Geometry::nP());
   
-  return E -> probe (r, s, _plane[k] + offset);
+  return E -> probe (r, s, _plane[k] + offset, work());
 }
 
 
@@ -1388,6 +1389,7 @@ real AuxField::probe (const Element* E,
 {
   const integer    nZ     = Geometry::nZ();
   const integer    nP     = Geometry::nProc();
+  const integer    np     = Geometry::nP();
   const integer    NZH    = nZ >> 1;
   const integer    NHM    = NZH - 1;
   const integer    offset = E -> ID() * Geometry::nTotElmt();
@@ -1395,13 +1397,14 @@ real AuxField::probe (const Element* E,
 
   register integer k, Re, Im;
   register real    value, phase;
-  vector<real>     work (nZ + _nz);
+  vector<real>     work (nZ + _nz + 3 * np);
   register real*   fbuf = work();
   register real*   lbuf = fbuf + nZ;
+  real*            ewrk = lbuf + _nz;
 
   if (nP > 1) {
     for (k = 0; k < _nz; k++)
-      lbuf[k] = E -> probe (r, s, _plane[k] + offset);
+      lbuf[k] = E -> probe (r, s, _plane[k] + offset, ewrk);
     
     ROOTONLY {
       Veclib::copy (_nz, lbuf, 1, fbuf, 1);
@@ -1412,11 +1415,11 @@ real AuxField::probe (const Element* E,
 
   } else {
     if (_nz < 3)			// -- Hey!  This is 2D!
-      return value = E -> probe (r, s, _plane[0] + offset);
+      return value = E -> probe (r, s, _plane[0] + offset, ewrk);
   
     else {
       for (k = 0; k < _nz; k++)
-	fbuf[k] = E -> probe (r, s, _plane[k] + offset);
+	fbuf[k] = E -> probe (r, s, _plane[k] + offset, ewrk);
     }
   }
 
@@ -1463,12 +1466,13 @@ real AuxField::CFL (const integer dir) const
 // AuxField is presumed to have been Fourier transformed in 3rd direction.
 // ---------------------------------------------------------------------------
 {
-  const char       routine[] = "AuxField::CFL";
-  const integer    nel  = Geometry::nElmt();
-  const integer    npnp = Geometry::nTotElmt();
-  register integer i;
-  register real*   p;
-  real             dxy, CFL = 0.0;
+  const char          routine[] = "AuxField::CFL";
+  const integer       nel  = Geometry::nElmt();
+  const integer       npnp = Geometry::nTotElmt();
+  register integer    i;
+  register real*      p;
+  real                dxy, CFL = 0.0;
+  static vector<real> work (npnp);
   
   {
     const integer nP = Geometry::nP();
@@ -1480,11 +1484,11 @@ real AuxField::CFL (const integer dir) const
   switch (dir) {
   case 0:
     for (p = _data, i = 0; i < nel; i++, p += npnp)
-      CFL = max (CFL, _elmt[i] -> CFL (dxy, p, 0));
+      CFL = max (CFL, _elmt[i] -> CFL (dxy, p, 0, work()));
     break;
   case 1:
     for (p = _data, i = 0; i < nel; i++, p += npnp)
-      CFL = max (CFL, _elmt[i] -> CFL (dxy, 0, p));
+      CFL = max (CFL, _elmt[i] -> CFL (dxy, 0, p, work()));
     break;
   case 2: {
     const integer nP = Geometry::nPlane();
