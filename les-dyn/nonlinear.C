@@ -410,7 +410,7 @@ void dynamic (Domain*        D ,
     }
   }
 
-#if 0				// -- Average Cs for stability.
+#if 1				// -- Average Cs for stability.
 
   // -- Homogeneous average.
 
