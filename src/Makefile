@@ -1,5 +1,5 @@
 ##############################################################################
-# Makefile for spectral element base routines.
+# Makefile for spectral element foundation routines.
 #
 # $Id$
 ##############################################################################
