@@ -95,7 +95,7 @@ Field2DF& Field2DF::transform (const int sign)
 // Carry out Fourier transformation in z direction.
 // ---------------------------------------------------------------------------
 {
-  if (nz > 2) Femlib::DFTr (data, nz, nplane, 1, nplane, sign);
+  if (nz > 2) Femlib::DFTr (data, nz, nplane, sign);
 
   return *this;
 }
@@ -121,7 +121,7 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
 
     register int  i, k;
     register real *LHS, *RHS;
-    real          **IN, **IT;
+    const real    **IN, **IT;
     const int     nzm = min (rhs.nz, nz);
     vector<real>  work (rhs.np * np);
     real*         tmp = work();
@@ -136,8 +136,8 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
 	Veclib::copy (nplane, RHS, 1, LHS, 1);
       else
 	for (i = 0; i < nel; i++, LHS += np2, RHS += rhs.np2) {
-	  Blas::mxm (*IN, np, RHS, rhs.np, tmp, rhs.np);
-	  Blas::mxm (tmp, np, *IT, rhs.np, LHS,     np);
+	  Blas::mxm ((real*) *IN, np, RHS, rhs.np, tmp, rhs.np);
+	  Blas::mxm (tmp, np, (real*) *IT, rhs.np, LHS,     np);
 	}
     }
 
