@@ -49,12 +49,12 @@ void Geometry::set (const integer nel  ,
   _nbase  = Femlib::ivalue ("N_BASE");
   _nslice = Femlib::ivalue ("N_SLICE");
   _csys   = Femlib::ivalue ("CYLINDRICAL") ? 
-                        Geometry::Cylindrical : Geometry::Cartesian;
+                     Geometry::Cylindrical : Geometry::Cartesian;
   _npert  = npert;
   _nel    = nel;
   _psize  = nPlane() + (nPlane() % 2);
 
-  _nz = _nzp = static_cast<integer>(Femlib::value ("N_Z"));
+  _nz = _nzp = Femlib::ivalue ("N_Z");
 
   if      (_nbase == 2 && _npert == 2 && _nz == 1) _cat = O2_2D;
   else if (_nbase == 2 && _npert == 3 && _nz == 1) _cat = O2_3D_SYMM;

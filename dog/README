@@ -4,9 +4,10 @@ Synopsis
 This version of semtex is specialised for linearised steady and
 Floquet stability analysis, which implies a number of restrictions not
 present in the basic semtex package.  The stability analysis solver
-derives from the Barkley/Henderson floK code.  All serial code.
+derives from the Barkley/Henderson floK code [1], see also [3] and [4]
+for a description of the numerical techniques. 
 
-Copyright (C) 1999, 2002 Hugh Blackburn.
+Copyright (c) 1999 <--> $Date$, Hugh Blackburn.
 
 There are two codes here: lns and arnoldi. Lns is equivalent to
 semtex/dns: it evolves the linearised Navier--Stokes equations.
@@ -16,19 +17,19 @@ evolve the linearised Navier--Stokes equations are identical for the
 two codes.  Typically one might use lns to evolve an initially random
 perturbation to an exponential growth or decay phase, then apply
 arnoldi to estimate the leading Ritz eigenvalues and vectors of the
-flow.
+flow. Both codes are designed for serial execution only.
 
-Arnoldi-RT is a variant of arnoldi that can (but does not have to) be
+Arnoldi-H is a variant of arnoldi that can (but does not have to) be
 applied if the base flow has a reflection in space, translation in
-time (RT) symmetry.  In this case, the code flipmap must be used to
-create a pair of mapping vectors from the session mesh file.  The
+time symmetry, see [5].  In this case, the code flipmap must be used
+to create a pair of mapping vectors from the session mesh file.  The
 integration period declared in the session file must be half that of
 the base flow.
 
-The session file referred to below relates to
-the perturbation velocity field: the session file for the base flow is
-naturally assumed to supply the same 2D geometric information, but is
-not directly referred to.
+The session file referred to below relates to the perturbation
+velocity field: the session file for the base flow is naturally
+assumed to supply the same 2D geometric information, but is not
+directly referred to.
 
 Description
 -----------
@@ -53,14 +54,15 @@ perturbation field to be two-component and two-dimensional, otherwise
 it is three-component (and two- or three-dimensional).  If the base
 flow is two-component (i.e. U & V only), and the perturbation is
 three-component, there exists a special decomposition of the
-perturbation field into two decoupled parts, and it suffices to study
-the behaviour of one of the parts only.  Under this decomposition the
-u, v, velocity fields and the pressure are taken to be represented by
-the real part of a Fourier mode, and the w velocity by the imaginary
-part.  In this case ("half-complex"), the number of planes in the
-mode, _nz is 1.  If the base flow is three-component (but still
-two-dimensional), then the decoupling does not occur, and the
-perturbation field is fully complex and three-component.
+perturbation field into two decoupled parts, and often it suffices to
+study the behaviour of one of the parts only (only if the eigenvalues
+are pure real).  Under this decomposition the u, v, velocity fields
+and the pressure are taken to be represented by the real part of a
+Fourier mode, and the w velocity by the imaginary part.  In this case
+("half-complex"), the number of planes in the mode, _nz is 1.  If the
+base flow is three-component (but still two-dimensional), then the
+decoupling does not occur, and the perturbation field is fully complex
+and three-component. See [4], [6], [7] for more information.
 
 Since the base flow period is estimated from information in
 session.bse, it is sensible to reset the Time in the generating
@@ -86,7 +88,7 @@ OR, categorizing by symmetries of base flow and dimensionality and
 symmetry of perturbation (and cases that have been checked):
 
 N_BASE  N_PERT  N_Z    CATEGORY         CARTESIAN     CYLINDRICAL
- 2       2       1      O(2)/2D		 OK            ??
+ 2       2       1      O(2)/2D		 OK            OK
  2       3       1      O(2)/3D/SYM	 OK            OK
  2       3       2      O(2)/3D		 OK            OK
  3       2       1      SO(2)/2D	 --     NA     --
@@ -114,16 +116,26 @@ containing the machine name and run pid, is also produced.
 
 References
 ----------
-[1]  D. Barkley & R.D. Henderson (1996), "Three-dimensional Floquet
+[1]  D Barkley & RD Henderson (1996), "Three-dimensional Floquet
      stability analysis of the wake of a circular cylinder",
-     J. Fluid Mech V322, 215--241.
-[2]  Y. Saad (1991), "Numerical methods for large eigenvalue problems"
+     J Fluid Mech V322, 215--241.
+[2]  Y Saad (1991), "Numerical methods for large eigenvalue problems"
      Wiley.
-[3]  L.S. Tuckerman & D. Barkley (2000), "Bifurcation analysis for
+[3]  LS Tuckerman & D Barkley (2000), "Bifurcation analysis for
      timesteppers", in Numerical Methods for Bifurcation Problems,
-     ed E. Doedel & L.S. Tuckerman, Springer. 453--466.
-[4]  H.M. Blackburn (2002), "Three-dimensional instability and state
+     eds E Doedel & LS Tuckerman, Springer. 453--466.
+[4]  HM Blackburn (2002), "Three-dimensional instability and state
      selection in an oscillatory axisymmetric swirling flow",
-     Phys. Fluids V14(11), 3983--3996.
+     Phys Fluids V14(11), 3983--3996.
+[5]  F Marques, JM Lopez & HM Blackburn (2004), "Bifurcations in
+     systems with Z2 spatio-temporal and O(2) spatial symmetry",
+     Physica D, V189, 247--276.
+[6]  HM Blackburn & JM Lopez (2003), "On three-dimensional quasiperiodic
+     Floquet instabilities of two-dimensional bluff body wakes",
+     Phys Fluids V15(8), L57-60.
+[7]  HM Blackburn & JM Lopez (2003), "The onset of three-dimensional
+     standing and modulated travelling waves in a periodically driven
+     cavity flow", J Fluid Mech V497, 289--317.
+
 
 $Id$
