@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // integration.C:  supply coefficients for discrete time integration schemes.
 //
-// Copyright (c) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // Maximum time order supported is 3 (4 for implicit Adams--Moulton methods).
 // Coefficients for all schemes can be found in Gear's book, "Numerical

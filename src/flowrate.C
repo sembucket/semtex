@@ -2,7 +2,7 @@
 // flowrate.C: routines to estimate and set flow rate using Stokes
 // Green's functions.
 //
-// Copyright (c) Hugh Blackburn, 2003.
+// Copyright (c) 2003 <--> $Date$, Hugh Blackburn
 //
 // The flow rate per unit width is measured across a cut through the
 // domain, defined in session's "CUT" section, which contains a set of

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // statistics.C: routines for statistical analysis of AuxFields.
 //
-// Copyright (c) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // At present, this is limited to running averages of primitive
 // variables and product terms for Reynolds stresses.

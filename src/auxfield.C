@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // auxfield.C: routines for AuxField class, including Fourier expansions.
 //
-// Copyright (c) 1994,2004 Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // For 2D problems, the data storage is organized by 2D Elements.
 //
