@@ -794,7 +794,7 @@ void BCmgr::buildsurf (FEML*             file,
       if (strstr (groupInfo (BCT -> group), "axis")) {
 	Elmt[BCT -> elmt] -> sideGetY (BCT -> side, &work[0]);
 	for (i = 0; i < np; i++)
-	  if (::fabs (work[i] > EPSDP)) {
+	  if (::fabs (work[i]) > EPSDP) {
 	    sprintf (err,
 		     "elmt: %1d, side: %1d, offset: %1d, "
 		     "y value (%g) too large on axis BC",
