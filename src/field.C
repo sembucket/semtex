@@ -635,10 +635,6 @@ Field& Field::solve (AuxField*  f      ,
 // ---------------------------------------------------------------------------
 {
   const char       routine[] = "Field::solve";
-  register integer i, j, k, mode;
-  integer          singular, nsolve, nzero;
-  real             rho1, rho2, alpha, beta, r2, epsb2, betak2, dotp;
-  real             *forcing, *unknown, *bc;
   const integer    nz      = Geometry::nZProc();
   const integer    bmode   = Geometry::baseMode();
   const integer    nglobal = bsys -> Nsys (0) -> nGlobal();
@@ -646,6 +642,11 @@ Field& Field::solve (AuxField*  f      ,
   const integer    npts    = nglobal + Geometry::nInode();
   const real       betaZ   = Femlib::value ("BETA");
   const real       FTINY   = (sizeof (real) == sizeof (double)) ? EPSDP:EPSSP;
+  register integer i, j, k, mode;
+  integer          singular, nsolve, nzero;
+  real             rho1, rho2, alpha, beta, r2, epsb2, betak2, dotp;
+  real             *forcing, *unknown, *bc;
+
 
   // -- Allocate storage.
   
@@ -675,7 +676,8 @@ Field& Field::solve (AuxField*  f      ,
     real*                    bc      = line      [k];
     
     nsolve   = N -> nSolve();
-    singular = nglobal == nsolve && fabs (lambda2 + betak2) < FTINY;
+    singular = fabs (lambda2 + betak2) < FTINY &&
+               !N -> fmask() && !bsys -> mixBC();
     nsolve   = (singular) ? nsolve - 1 : nsolve;
     nzero    = nglobal - nsolve;
     
@@ -703,7 +705,7 @@ Field& Field::solve (AuxField*  f      ,
     Veclib::zero (nzero, x + nsolve, 1);   
     Veclib::copy (npts,  x, 1, q, 1);
 
-    HelmholtzOperator (q, p, lambda2, betak2, wrk, N);
+    HelmholtzOperator (q, p, lambda2, betak2, wrk, mode);
 
     Veclib::zero (nzero, p + nsolve, 1);
     Veclib::zero (nzero, r + nsolve, 1);
@@ -733,7 +735,7 @@ Field& Field::solve (AuxField*  f      ,
 
       // -- Matrix-vector product.
 
-      HelmholtzOperator (p, q, lambda2, betak2, wrk, N);
+      HelmholtzOperator (p, q, lambda2, betak2, wrk, mode);
       Veclib::zero      (nzero, q + nsolve, 1);
 
       // -- Move in conjugate direction.
@@ -788,6 +790,18 @@ void Field::jacobi (const real       lambda2,
   real             *ed = work(), *ewrk = work() + Geometry::nTotElmt();
   
   Veclib::zero (npts, PC, 1);
+
+  // -- Mixed BC contributions.
+
+  if (bsys -> mixBC()) {
+    const vector<Boundary*>& BC   = bsys -> BCs  (0);
+    const integer*           bmap = bsys -> Nsys (0) -> btog();
+
+    for (i = 0; i < nbound; i++)
+      BC[i] -> augmentDg (bmap, PC);
+  }
+
+  // -- Element contributions.
 
   for (i = 0; i < nel; i++, btog += next, PCi += nint) {
     Elmt[i] -> HelmholtzDg (lambda2, betak2, ed, ewrk);
@@ -856,15 +870,18 @@ void Field::constrain (real*            force  ,
 }
 
 
-void Field::HelmholtzOperator (const real*      x      ,
-			       real*            y      ,
-			       const real       lambda2,
-			       const real       betak2 ,
-			       real*            work   ,
-			       const NumberSys* N      ) const
+void Field::HelmholtzOperator (const real*   x      ,
+			       real*         y      ,
+			       const real    lambda2,
+			       const real    betak2 ,
+			       real*         work   ,
+			       const integer mode) const
 // ---------------------------------------------------------------------------
 // Discrete 2D global Helmholtz operator which takes the vector x into
-// vector y, including direct stiffness summation.
+// vector y, including direct stiffness summation.  Vectors x & y have 
+// global ordering: that is, with nglobal (element edge nodes, with
+// redundancy removed) coming first, followed by nel blocks of element-
+// internal nodes.
 //
 // Vector work must have length 3 * Geometry::nPlane().
 // ---------------------------------------------------------------------------
@@ -873,17 +890,30 @@ void Field::HelmholtzOperator (const real*      x      ,
   const integer    nel     = Geometry::nElmt();
   const integer    npnp    = Geometry::nTotElmt();
   const integer    ntot    = Geometry::nPlane();
-  const integer    nglobal = N -> nGlobal() + Geometry::nInode();
+  const NumberSys* NS      = bsys -> Nsys (mode);
+  const integer    nglobal = NS -> nGlobal() + Geometry::nInode();
   const real       **DV, **DT;
   register integer i;
   real             *P = work, *R = P + ntot, *S = R + ntot;
 
-  Femlib::quad  (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
-  Veclib::zero  (nglobal,     y, 1);
-  Veclib::zero  (ntot + ntot, R, 1);
+  Veclib::zero (nglobal,     y, 1);
+  Veclib::zero (ntot + ntot, R, 1);
 
-  global2local  (x, P, N);
+  // -- Add in contributions from mixed BCs while x & y are global vectors.
+
+  if (bsys -> mixBC()) {
+    const vector<Boundary*>& BC   = bsys -> BCs (0);
+    const integer*           bmap = NS   -> btog();
+
+    for (i = 0; i < nbound; i++)
+      BC[i] -> augmentOp (bmap, x, y);
+  }
+
+  // -- Add in contributions from elemental Helmholtz operations.
+
+  global2local  (x, P, NS);
 
   Femlib::grad2 (P, P, R, S, *DV, *DT, np, nel);
 
@@ -896,7 +926,7 @@ void Field::HelmholtzOperator (const real*      x      ,
   
   Femlib::grad2   (R, S, P, P, *DT, *DV, np, nel);
 
-  local2globalSum (P, y, N);
+  local2globalSum (P, y, NS);
 }
 
 
@@ -929,6 +959,7 @@ void Field::buildRHS (real*                    force ,
 // for this plane of data: only natural BCs are used in formation of <h, w>.
 // ---------------------------------------------------------------------------
 {
+  const integer            np      = Geometry::nP();
   const integer            nel     = Geometry::nElmt();
   const integer            next    = Geometry::nExtElmt();
   const integer            nint    = Geometry::nIntElmt();
@@ -936,6 +967,7 @@ void Field::buildRHS (real*                    force ,
   const integer            nglobal = N -> nGlobal();
   const integer*           gid;
   register const Boundary* B;
+  vector<real>             work (np);
   register integer         i, boff, doff;
 
   if   (RHSint) Veclib::zero (nglobal + Geometry::nInode(), RHS, 1);
@@ -952,12 +984,11 @@ void Field::buildRHS (real*                    force ,
 
   // -- Add in <h, w>.
 
-  for (gid = N -> btog(), i = 0; i < nbound; i++) {
+  for (gid = N -> btog(), i = 0; i < nbound; i++, bc += np) {
     B    = bnd[i];
-    doff = B -> vOff();
     boff = B -> bOff();
 
-    B -> sum (bc + doff, gid + boff, RHS);
+    B -> sum (bc, gid + boff, work(), RHS);
   }
 
   // -- Zero any contribution that <h, w> made to essential BC nodes.
@@ -1046,16 +1077,16 @@ void Field::getEssential (const real*              src,
 // globally-numbered vector.
 // ---------------------------------------------------------------------------
 {
-  register integer         i, boff, voff;
+  const integer            np = Geometry::nP();
   const integer*           btog = N -> btog();
   register const Boundary* B;
+  register integer         i, boff;
   
-  for (i = 0; i < nbound; i++) {
-    B = bnd[i];
+  for (i = 0; i < nbound; i++, src += np) {
+    B    = bnd[i];
     boff = B -> bOff();
-    voff = B -> vOff();
   
-    B -> set (src + voff, btog + boff, tgt);
+    B -> set (src, btog + boff, tgt);
   }
 }
 

@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // condition.C: functions used to evaluate & apply BCs.
 //
+// Copyright (C) 1994, 1999 Hugh Blackburn
+//
 // All classes inherit the (semi-abstract) base class Condition.
 // Owing to the different behaviour of essential and natural BCs, a
 // number of routines take no action; due also to the generality of
@@ -18,7 +20,6 @@
 // for the pressure Poisson equation: they are derived from the
 // momentum equations and computed using an extrapolative process
 // described in KIO91.
-//
 ///////////////////////////////////////////////////////////////////////////////
 
 static char
@@ -28,22 +29,23 @@ RCSid[] = "$Id$";
 
 
 Essential::Essential (const char* v,
-		      const char* g) : value (strtod (v, 0))
+		      const char* g) :
 // ---------------------------------------------------------------------------
 // Essential condition constructor, for a condition with a constant real
 // value, also sets boundary group name in base class.
 // ---------------------------------------------------------------------------
+  value (strtod (v, 0))
 {
-  grp = strdup (g);
+  strcpy ((grp = new char [strlen (g) + 1]), g);
 }
 
 
-void Essential::evaluate (const int      np  ,
-			  const int      id  ,
-			  const int      nz  ,
+void Essential::evaluate (const integer  np  ,
+			  const integer  id  ,
+			  const integer  nz  ,
 			  const Element* E   ,
-			  const int      side,
-			  const int      step,
+			  const integer  side,
+			  const integer  step,
 			  const real*    nx  ,
 			  const real*    ny  ,
 			  real*          tgt ) const
@@ -55,27 +57,72 @@ void Essential::evaluate (const int      np  ,
 }
 
 
-void Essential::set (const Element* E   ,
-		     const int      side,
-		     const int*     bmap,
+void Essential::set (const integer  side,
+		     const integer* bmap,
 		     const real*    src ,
 		     real*          tgt ) const
 // ---------------------------------------------------------------------------
 // Scatter external value storage area src into globally-numbered tgt. 
 // ---------------------------------------------------------------------------
 {
-  E -> sideSet (side, bmap, src, tgt);
+  const integer  nm    = Geometry::nP() - 1;
+  const integer* start = bmap;
+  
+  switch (side) {
+  case 1: start += nm;           break;
+  case 2: start += nm + nm;      break;
+  case 3: start += nm + nm + nm; break;
+  default: break;
+  }
+
+  Veclib::scatr (nm, src, start, tgt);
+  if   (side == 3) tgt[bmap [ 0]] = src[nm];
+  else             tgt[start[nm]] = src[nm];  
 }
 
 
-void Essential::sum (const Element* E     ,
-		     const int      side  ,
-		     const int*     bmap  ,
+void Essential::sum (const integer  side  ,
+		     const integer* bmap  ,
 		     const real*    src   ,
 		     const real*    weight,
+		     real*          work  ,
 		     real*          tgt   ) const
 // ---------------------------------------------------------------------------
 // To be used for natural BC integral terms, has no effect on essential BCs.
+// ---------------------------------------------------------------------------
+{ }
+
+
+void Essential::augmentSC (const integer  side  ,
+			   const integer  nband ,
+			   const integer  nsolve,
+			   const integer* bmap  ,
+			   const real*    area  ,
+			   real*          work  ,
+			   real*          tgt   )  const
+// ---------------------------------------------------------------------------
+// Do nothing, this is for mixed BCs only.
+// ---------------------------------------------------------------------------
+{ }
+
+
+void Essential::augmentOp (const integer  side, 
+			   const integer* bmap,
+			   const real*    area,
+			   const real*    src ,
+			   real*          tgt ) const
+// ---------------------------------------------------------------------------
+// Do nothing, this is for Mixed BCs only.
+// ---------------------------------------------------------------------------
+{ }
+
+
+void Essential::augmentDg (const integer  side, 
+			   const integer* bmap,
+			   const real*    area,
+			   real*          tgt ) const
+// ---------------------------------------------------------------------------
+// Do nothing, this is for Mixed BCs only.
 // ---------------------------------------------------------------------------
 { }
 
@@ -90,23 +137,24 @@ void Essential::describe (char* tgt) const
 
 
 EssentialFunction::EssentialFunction (const char* f,
-				      const char* g) : function (strdup (f))
+				      const char* g)
 // ---------------------------------------------------------------------------
 // Essential condition that sets value by interpreting function string,
 // which can be an explicit function of x, y, z & t as well as any
 // installed token values.  Otherwise the same as Essential class.
 // ---------------------------------------------------------------------------
 {
-  grp = strdup (g);
+  strcpy ((function = new char [strlen (f) + 1]), f);
+  strcpy ((grp      = new char [strlen (g) + 1]), g);
 }
 
 
-void EssentialFunction:: evaluate (const int      np  ,
-				   const int      id  ,
-				   const int      nz  ,
+void EssentialFunction:: evaluate (const integer  np  ,
+				   const integer  id  ,
+				   const integer  nz  ,
 				   const Element* E   ,
-				   const int      side,
-				   const int      step,
+				   const integer  side,
+				   const integer  step,
 				   const real*    nx  ,
 				   const real*    ny  ,
 				   real*          tgt ) const
@@ -118,9 +166,8 @@ void EssentialFunction:: evaluate (const int      np  ,
 }
 
 
-void EssentialFunction::set (const Element* E   ,
-			     const int      side,
-			     const int*     bmap,
+void EssentialFunction::set (const integer  side,
+			     const integer* bmap,
 			     const real*    src ,
 			     real*          tgt ) const
 // ---------------------------------------------------------------------------
@@ -128,22 +175,66 @@ void EssentialFunction::set (const Element* E   ,
 // (as for Essential class).
 // ---------------------------------------------------------------------------
 {
-  E -> sideSet (side, bmap, src, tgt);
+  const integer  nm    = Geometry::nP() - 1;
+  const integer* start = bmap;
+  
+  switch (side) {
+  case 1: start += nm;           break;
+  case 2: start += nm + nm;      break;
+  case 3: start += nm + nm + nm; break;
+  default: break;
+  }
+
+  Veclib::scatr (nm, src, start, tgt);
+  if   (side == 3) tgt[bmap [ 0]] = src[nm];
+  else             tgt[start[nm]] = src[nm];  
 }
 
 
-void EssentialFunction::sum (const Element* E     ,
-			     const int      side  ,
-			     const int*     bmap  ,
+void EssentialFunction::sum (const integer  side  ,
+			     const integer* bmap  ,
 			     const real*    src   ,
 			     const real*    weight,
+			     real*          work  ,
 			     real*          tgt   ) const
 // ---------------------------------------------------------------------------
 // Take no action on essential BC.
 // ---------------------------------------------------------------------------
-{ 
+{ }
 
-}
+
+void EssentialFunction::augmentSC (const integer  side  ,
+				   const integer  nband ,
+				   const integer  nsolve,
+				   const integer* bmap  ,
+				   const real*    area  ,
+				   real*          work  ,
+				   real*          tgt   )  const
+// ---------------------------------------------------------------------------
+// Do nothing for essential BCs.
+// ---------------------------------------------------------------------------
+{ }
+
+
+void EssentialFunction::augmentOp (const integer  side, 
+				   const integer* bmap,
+				   const real*    area,
+				   const real*    src ,
+				   real*          tgt ) const
+// ---------------------------------------------------------------------------
+// Do nothing, this is for Mixed BCs only.
+// ---------------------------------------------------------------------------
+{ }
+
+
+void EssentialFunction::augmentDg (const integer  side, 
+				   const integer* bmap,
+				   const real*    area,
+				   real*          tgt ) const
+// ---------------------------------------------------------------------------
+// Do nothing, this is for Mixed BCs only.
+// ---------------------------------------------------------------------------
+{ }
 
 
 void EssentialFunction::describe (char* tgt) const
@@ -156,21 +247,22 @@ void EssentialFunction::describe (char* tgt) const
 
 
 Natural::Natural (const char* v,
-		  const char* g) : value (strtod (v, 0))
+		  const char* g) :
 // ---------------------------------------------------------------------------
 // Used to apply natural type BCs using a constant real value.
 // ---------------------------------------------------------------------------
+  value (strtod (v, 0))
 {
-  grp = strdup (g);
+  strcpy ((grp = new char [strlen (g) + 1]), g);
 }
 
 
-void Natural::evaluate (const int      np  ,
-			const int      id  ,
-			const int      nz  ,
+void Natural::evaluate (const integer  np  ,
+			const integer  id  ,
+			const integer  nz  ,
 			const Element* E   ,
-			const int      side,
-			const int      step,
+			const integer  side,
+			const integer  step,
 			const real*    nx  ,
 			const real*    ny  ,
 			real*          tgt ) const
@@ -182,9 +274,8 @@ void Natural::evaluate (const int      np  ,
 }
 
 
-void Natural::set (const Element* E   ,
-		   const int      side,
-		   const int*     bmap,
+void Natural::set (const integer  side,
+		   const integer* bmap,
 		   const real*    src ,
 		   real*          tgt ) const
 // ---------------------------------------------------------------------------
@@ -193,18 +284,68 @@ void Natural::set (const Element* E   ,
 { }
 
 
-void Natural::sum (const Element* E     ,
-		   const int      side  ,
-		   const int*     bmap  ,
+void Natural::sum (const integer  side  ,
+		   const integer* bmap  ,
 		   const real*    src   ,
 		   const real*    weight,
+		   real*          work  ,
 		   real*          tgt   ) const
 // ---------------------------------------------------------------------------
 // Add boundary-integral terms into globally-numbered tgt.
+// Work vector must be np long.
 // ---------------------------------------------------------------------------
 { 
-  E -> sideDsSum (side, bmap, src, weight, tgt);
+  const integer  np    = Geometry::nP();
+  const integer  nm    = np - 1;
+  const integer* start = bmap;
+  
+  switch (side) {
+  case 1: start += nm;           break;
+  case 2: start += nm + nm;      break;
+  case 3: start += nm + nm + nm; break;
+  default: break;
+  }
+
+  Veclib::vmul (np, src, 1, weight, 1, work, 1);
+
+  Veclib::scatr_sum (nm, work, start, tgt);
+  if   (side == 3) tgt[bmap [ 0]] += work[nm];
+  else             tgt[start[nm]] += work[nm];  
 }
+
+
+void Natural::augmentSC (const integer  side  ,
+			 const integer  nband ,
+			 const integer  nsolve,
+			 const integer* bmap  ,
+			 const real*    area  ,
+			 real*          work  ,
+			 real*          tgt   )  const
+// ---------------------------------------------------------------------------
+// Do nothing.
+// ---------------------------------------------------------------------------
+{ }
+
+
+void Natural::augmentOp (const integer  side, 
+			 const integer* bmap,
+			 const real*    area,
+			 const real*    src ,
+			 real*          tgt ) const
+// ---------------------------------------------------------------------------
+// Do nothing, this is for Mixed BCs only.
+// ---------------------------------------------------------------------------
+{ }
+
+
+void Natural::augmentDg (const integer  side, 
+			 const integer* bmap,
+			 const real*    area,
+			 real*          tgt ) const
+// ---------------------------------------------------------------------------
+// Do nothing, this is for Mixed BCs only.
+// ---------------------------------------------------------------------------
+{ }
 
 
 void Natural::describe (char* tgt) const
@@ -217,23 +358,24 @@ void Natural::describe (char* tgt) const
 
 
 NaturalFunction::NaturalFunction (const char* f,
-				  const char* g) : function (strdup (f))
+				  const char* g)
 // ---------------------------------------------------------------------------
 // Natural condition that sets value by interpreting function string,
 // which can be an explicit function of x, y, z & t as well as any
 // installed token values.  Otherwise the same as Natural class.
 // ---------------------------------------------------------------------------
 {
-  grp = strdup (g);
+  strcpy ((function = new char [strlen (f) + 1]), f);
+  strcpy ((grp      = new char [strlen (g) + 1]), g);
 }
 
 
-void NaturalFunction::evaluate (const int      np  ,
-				const int      id  ,
-				const int      nz  ,
+void NaturalFunction::evaluate (const integer  np  ,
+				const integer  id  ,
+				const integer  nz  ,
 				const Element* E   ,
-				const int      side,
-				const int      step,
+				const integer  side,
+				const integer  step,
 				const real*    nx  ,
 				const real*    ny  ,
 				real*          tgt ) const
@@ -245,31 +387,77 @@ void NaturalFunction::evaluate (const int      np  ,
 }
 
 
-void NaturalFunction::set (const Element* E   ,
-			   const int      side,
-			   const int*     bmap,
+void NaturalFunction::set (const integer  side,
+			   const integer* bmap,
 			   const real*    src ,
 			   real*          tgt ) const
 // ---------------------------------------------------------------------------
 // Take no action, since natural BCs are applied in the weak sense.
 // ---------------------------------------------------------------------------
-{ 
-
-}
+{ }
 
 
-void NaturalFunction::sum (const Element* E     ,
-			   const int      side  ,
-			   const int*     bmap  ,
+void NaturalFunction::sum (const integer  side  ,
+			   const integer* bmap  ,
 			   const real*    src   ,
 			   const real*    weight,
+			   real*          work  ,
 			   real*          tgt   ) const
 // ---------------------------------------------------------------------------
 // Add boundary-integral terms into globally-numbered tgt.
 // ---------------------------------------------------------------------------
 { 
-  E -> sideDsSum (side, bmap, src, weight, tgt);
+  const integer  np    = Geometry::nP();
+  const integer  nm    = np - 1;
+  const integer* start = bmap;
+  
+  switch (side) {
+  case 1: start += nm;           break;
+  case 2: start += nm + nm;      break;
+  case 3: start += nm + nm + nm; break;
+  default: break;
+  }
+
+  Veclib::vmul (np, src, 1, weight, 1, work, 1);
+
+  Veclib::scatr_sum (nm, work, start, tgt);
+  if   (side == 3) tgt[bmap [ 0]] += work[nm];
+  else             tgt[start[nm]] += work[nm];  
 }
+
+
+void NaturalFunction::augmentSC (const integer  side  ,
+				 const integer  nband ,
+				 const integer  nsolve,
+				 const integer* bmap  ,
+				 const real*    area  ,
+				 real*          work  ,
+				 real*          tgt   )  const
+// ---------------------------------------------------------------------------
+// Do nothing.
+// ---------------------------------------------------------------------------
+{ }
+
+
+void NaturalFunction::augmentOp (const integer  side, 
+				 const integer* bmap,
+				 const real*    area,
+				 const real*    src ,
+				 real*          tgt ) const
+// ---------------------------------------------------------------------------
+// Do nothing, this is for Mixed BCs only.
+// ---------------------------------------------------------------------------
+{ }
+
+
+void NaturalFunction::augmentDg (const integer  side, 
+				 const integer* bmap,
+				 const real*    area,
+				 real*          tgt ) const
+// ---------------------------------------------------------------------------
+// Do nothing, this is for Mixed BCs only.
+// ---------------------------------------------------------------------------
+{ }
 
 
 void NaturalFunction::describe (char* tgt) const
@@ -282,21 +470,20 @@ void NaturalFunction::describe (char* tgt) const
 
 
 NaturalHOPBC::NaturalHOPBC (const char* g)
-
 // ---------------------------------------------------------------------------
 // Construct by initializing base Condition class.
 // ---------------------------------------------------------------------------
 { 
-  grp = strdup (g);
+  strcpy ((grp = new char [strlen (g) + 1]), g);
 }
 
 
-void NaturalHOPBC::evaluate (const int      np  ,
-			     const int      id  ,
-			     const int      nz  ,
+void NaturalHOPBC::evaluate (const integer  np  ,
+			     const integer  id  ,
+			     const integer  nz  ,
 			     const Element* E   ,
-			     const int      side,
-			     const int      step,
+			     const integer  side,
+			     const integer  step,
 			     const real*    nx  ,
 			     const real*    ny  ,
 			     real*          tgt ) const
@@ -308,9 +495,8 @@ void NaturalHOPBC::evaluate (const int      np  ,
 }
 
 
-void NaturalHOPBC::set (const Element* E   ,
-			const int      side,
-			const int*     bmap,
+void NaturalHOPBC::set (const integer  side,
+			const integer* bmap,
 			const real*    src ,
 			real*          tgt ) const
 // ---------------------------------------------------------------------------
@@ -319,18 +505,67 @@ void NaturalHOPBC::set (const Element* E   ,
 { }
 
 
-void NaturalHOPBC::sum (const Element* E     ,
-			const int      side  ,
-			const int*     bmap  ,
+void NaturalHOPBC::sum (const integer  side  ,
+			const integer* bmap  ,
 			const real*    src   ,
 			const real*    weight,
+			real*          work  ,
 			real*          tgt   ) const
 // ---------------------------------------------------------------------------
 // Add boundary-integral terms into globally-numbered tgt.
 // ---------------------------------------------------------------------------
 { 
-  E -> sideDsSum (side, bmap, src, weight, tgt);
+  const integer  np    = Geometry::nP();
+  const integer  nm    = np - 1;
+  const integer* start = bmap;
+  
+  switch (side) {
+  case 1: start += nm;           break;
+  case 2: start += nm + nm;      break;
+  case 3: start += nm + nm + nm; break;
+  default: break;
+  }
+
+  Veclib::vmul (np, src, 1, weight, 1, work, 1);
+
+  Veclib::scatr_sum (nm, work, start, tgt);
+  if   (side == 3) tgt[bmap [ 0]] += work[nm];
+  else             tgt[start[nm]] += work[nm];  
 }
+
+
+void NaturalHOPBC::augmentSC (const integer  side  ,
+			      const integer  nband ,
+			      const integer  nsolve,
+			      const integer* bmap  ,
+			      const real*    area  ,
+			      real*          work  ,
+			      real*          tgt   )  const
+// ---------------------------------------------------------------------------
+// Do nothing.
+// ---------------------------------------------------------------------------
+{ }
+
+
+void NaturalHOPBC::augmentOp (const integer  side, 
+			      const integer* bmap,
+			      const real*    area,
+			      const real*    src ,
+			      real*          tgt ) const
+// ---------------------------------------------------------------------------
+// Do nothing, this is for Mixed BCs only.
+// ---------------------------------------------------------------------------
+{ }
+
+
+void NaturalHOPBC::augmentDg (const integer  side, 
+			      const integer* bmap,
+			      const real*    area,
+			      real*          tgt ) const
+// ---------------------------------------------------------------------------
+// Do nothing, this is for Mixed BCs only.
+// ---------------------------------------------------------------------------
+{ }
 
 
 void NaturalHOPBC::describe (char* tgt) const
@@ -346,25 +581,34 @@ Mixed::Mixed (const char* v,
 	      const char* g)
 // ---------------------------------------------------------------------------
 // The format for a Mixed BC is: "field = mulvalue, refvalue".
+// Each of these is expected to evaluate to a real constant.
 // ---------------------------------------------------------------------------
 {
-  char buf[StrMax], *tok, *sep = "=,";
+  const char routine[] = "Mixed::Mixed";
+  char buf[StrMax], *tok, *sep = ",";
 
-  grp = strdup (g);
+  strcpy ((grp = new char [strlen (g) + 1]), g);
 
   strcpy (buf, v);
   tok = strtok (buf, sep);
-  K = atof (tok = strtok (0, sep));
-  C = atof (tok = strtok (0, sep));
+
+  K = Femlib::value (tok);
+
+  if (K <= EPSSP) {
+    sprintf (buf, "transfer coefficient K must be positive (%s)", tok);
+    message (routine, buf, ERROR);
+  }
+
+  C = Femlib::value (tok = strtok (0, sep));
 }
 
 
-void Mixed::evaluate (const int      np  ,
-		      const int      id  ,
-		      const int      nz  ,
+void Mixed::evaluate (const integer  np  ,
+		      const integer  id  ,
+		      const integer  nz  ,
 		      const Element* E   ,
-		      const int      side,
-		      const int      step,
+		      const integer  side,
+		      const integer  step,
 		      const real*    nx  ,
 		      const real*    ny  ,
 		      real*          tgt ) const
@@ -376,9 +620,8 @@ void Mixed::evaluate (const int      np  ,
 }
 
 
-void Mixed::set (const Element* E   ,
-		 const int      side,
-		 const int*     bmap,
+void Mixed::set (const integer  side,
+		 const integer* bmap,
 		 const real*    src ,
 		 real*          tgt ) const
 // ---------------------------------------------------------------------------
@@ -387,18 +630,128 @@ void Mixed::set (const Element* E   ,
 { }
 
 
-void Mixed::sum (const Element* E     ,
-		 const int      side  ,
-		 const int*     bmap  ,
+void Mixed::sum (const integer  side  ,
+		 const integer* bmap  ,
 		 const real*    src   ,
 		 const real*    weight,
+		 real*          work  ,
 		 real*          tgt   ) const
 // ---------------------------------------------------------------------------
 // Add boundary-integral terms into globally-numbered tgt.  This is
 // used to add K*C (supplied as src) to RHS forcing.
 // ---------------------------------------------------------------------------
 { 
-  E -> sideDsSum (side, bmap, src, weight, tgt);
+  const integer  np    = Geometry::nP();
+  const integer  nm    = np - 1;
+  const integer* start = bmap;
+  
+  switch (side) {
+  case 1: start += nm;           break;
+  case 2: start += nm + nm;      break;
+  case 3: start += nm + nm + nm; break;
+  default: break;
+  }
+
+  Veclib::smul (np, K * C,  weight, 1, work, 1);
+
+  Veclib::scatr_sum (nm, work, start, tgt);
+  if   (side == 3) tgt[bmap [ 0]] += work[nm];
+  else             tgt[start[nm]] += work[nm];
+}
+
+
+void Mixed::augmentSC (const integer  side  ,
+		       const integer  nband ,
+		       const integer  nsolve,
+		       const integer* bmap  ,
+		       const real*    area  ,
+		       real*          work  ,
+		       real*          tgt   )  const
+// ---------------------------------------------------------------------------
+// Add <K, w> terms to (banded LAPACK) matrix tgt.
+// ---------------------------------------------------------------------------
+{
+  const integer    np    = Geometry::nP();
+  const integer    nm    = np - 1;
+  const integer*   start = bmap;
+  register integer i, k;
+  
+  switch (side) {
+  case 1: start += nm;           break;
+  case 2: start += nm + nm;      break;
+  case 3: start += nm + nm + nm; break;
+  default: break;
+  }
+
+  Veclib::smul (np, K, area, 1, work, 1);
+
+  for (i = 0; i < nm; i++)
+    if ((k = start[i]) < nsolve)
+      tgt[Lapack::band_addr (k, k, nband)] += work[i];
+
+  i = (side == 3) ? bmap[0] : start[nm];
+  if (i < nsolve) tgt[Lapack::band_addr (i, i, nband)] += work[nm];
+}
+
+
+void Mixed::augmentOp (const integer  side, 
+		       const integer* bmap,
+		       const real*    area,
+		       const real*    src ,
+		       real*          tgt ) const
+// ---------------------------------------------------------------------------
+// This operation is used to augment the element-wise Helmholtz
+// operations where there are mixed BCs.  Add in diagonal terms
+// <K*src, w> to tgt.  Both src and tgt are globally-numbered vectors.
+// ---------------------------------------------------------------------------
+{
+  const integer    np    = Geometry::nP();
+  const integer    nm    = np - 1;
+  const integer*   start = bmap;
+  register integer i;
+  
+  switch (side) {
+  case 1: start += nm;           break;
+  case 2: start += nm + nm;      break;
+  case 3: start += nm + nm + nm; break;
+  default: break;
+  }
+
+  for (i = 0; i < nm; i++)
+    tgt[start[i]] += K * area[i] * src[start[i]];
+
+  i = (side == 3) ? bmap[0] : start[nm];
+  tgt[i] += K * area[nm] * src[i];
+}
+
+
+void Mixed::augmentDg (const integer  side, 
+		       const integer* bmap,
+		       const real*    area,
+		       real*          tgt ) const
+// ---------------------------------------------------------------------------
+// This operation is used to augment the element-wise construction of
+// the diagonal of the global Helmholtz matrix where there are mixed
+// BCs.  Add in diagonal terms <K, w> to globally-numbered tgt.
+// ---------------------------------------------------------------------------
+{
+  const integer    np    = Geometry::nP();
+  const integer    nm    = np - 1;
+  const integer*   start = bmap;
+  register integer i;
+  
+  switch (side) {
+  case 1: start += nm;           break;
+  case 2: start += nm + nm;      break;
+  case 3: start += nm + nm + nm; break;
+  default: break;
+  }
+
+  for (i = 0; i < nm; i++)
+    tgt[start[i]] += K * area[i];
+
+  i = (side == 3) ? bmap[0] : start[nm];
+  tgt[i] += K * area[nm];
 }
 
 

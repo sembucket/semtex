@@ -973,8 +973,8 @@ void Element::sideEval (const integer side,
   vector<real> work(np + np);
   real         *x, *y;
 
-  register  integer estart, skip, bstart;
-  terminal (side, estart, skip, bstart);
+  register  integer estart, skip;
+  terminal (side, estart, skip);
 
   x = work();
   y = x + np;
@@ -1001,8 +1001,8 @@ void Element::sideGrad (const integer side,
 // dc/dr, dc/ds, then a -1 skip when multiplying by dr/dx, ds/dx, etc.
 // ---------------------------------------------------------------------------
 {
-  register integer d, estart, skip, bstart;
-  terminal (side, estart, skip, bstart);
+  register integer d, estart, skip;
+  terminal (side, estart, skip);
   
   vector<real> work (np + np);
   const real   **DV, **DT;
@@ -1056,26 +1056,6 @@ void Element::sideGrad (const integer side,
 }
 
 
-void Element::sideSet (const integer  side,
-		       const integer* bmap,
-                       const real*    src ,
-                       real*          tgt ) const
-// ---------------------------------------------------------------------------
-// Load edge vector src into globally-numbered tgt, CCW edge traverse
-// order.
-// ---------------------------------------------------------------------------
-{
-  const integer    nm = np - 1;
-  register integer estart, skip, bstart;
-
-  terminal (side, estart, skip, bstart);
-
-  Veclib::scatr (nm, src, bmap + bstart, tgt);
-  if   (side == 3) tgt[bmap[          0]] = src[nm];
-  else             tgt[bmap[bstart + nm]] = src[nm];
-}
-
-
 void Element::sideGet (const integer  side,
 		       const real*    src ,
 		       real*          tgt ) const
@@ -1083,36 +1063,11 @@ void Element::sideGet (const integer  side,
 // Load edge vector tgt with values from internal storage src.
 // ---------------------------------------------------------------------------
 {
-  register integer estart, skip, bstart;
+  register integer start, skip;
 
-  terminal (side, estart, skip, bstart);
+  terminal (side, start, skip);
 
-  Veclib::copy (np, src + estart, skip, tgt, 1);
-}
-
-
-void Element::sideDsSum (const integer  side,
-			 const integer* bmap,
-                         const real*    src ,
-                         const real*    area,
-                         real*          tgt ) const
-// ---------------------------------------------------------------------------
-// Direct-stiffness-sum (area-weighted) vector src into
-// globally-numbered tgt on side.  This is for evaluation of natural
-// BCs using Gauss--Lobatto quadrature.
-// ---------------------------------------------------------------------------
-{
-  const integer nm = np - 1;
-  vector<real>  tmp (np);
-  integer estart, skip, bstart;
-
-  terminal (side, estart, skip, bstart);
-
-  Veclib::vmul (np, src, 1, area, 1, tmp(), 1);
-
-  Veclib::scatr_sum (nm, tmp(), bmap + bstart, tgt);
-  if   (side == 3) tgt[bmap[          0]] += tmp[nm];
-  else             tgt[bmap[bstart + nm]] += tmp[nm];
+  Veclib::copy (np, src + start, skip, tgt, 1);
 }
 
 
@@ -1276,9 +1231,9 @@ void Element::sideGetR (const integer side,
 // Load r (i.e. y) values for side into tgt.
 // ---------------------------------------------------------------------------
 {
-  register integer estart, skip, bstart;
+  register integer estart, skip;
 
-  terminal (side, estart, skip, bstart);
+  terminal (side, estart, skip);
 
   Veclib::copy (np, ymesh + estart, skip, tgt, 1);
 }

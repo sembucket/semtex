@@ -29,13 +29,17 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
 // Construct internal storage for boundary systems for all modes.
 // ---------------------------------------------------------------------------
   field_name (name),
-  nbound     (bcmgr -> nBCedges())
+  nbound     (bcmgr -> nBCedges()),
+  mixed      (0)
 {
   const char              routine[] = "BoundarySys::BoundarySys";
+
   const integer           np = Geometry::nP();
   ListIterator<BCtriple*> edge (bcmgr -> getBCedges());
-  char                    group;
   BCtriple*               BCT;
+  const Condition*        C;
+  const char*             S;
+  char                    buf[StrMax], group;
   integer                 i, j, k, offset;
 
   number = new NumberSys* [3];
@@ -57,10 +61,15 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
     group = BCT -> group;
     j     = BCT -> elmt;
     k     = BCT -> side;
-    boundary[0][i] = boundary[1][i] = boundary[2][i] =
-      new Boundary
-      (i, offset, bcmgr -> groupInfo (group),
-       bcmgr -> getCondition (group, field_name, 0), elmt[j], k);
+    S     = bcmgr -> groupInfo    (group);
+    C     = bcmgr -> getCondition (group, field_name, 0);
+    
+    C -> describe (buf);
+    if (strstr (buf, "mixed")) mixed = 1;
+    
+    boundary[0][i] =
+    boundary[1][i] =
+    boundary[2][i] = new Boundary (i, S, C, elmt[j], k);
   }
 
   if (!(Geometry::system() == Geometry::Cylindrical && Geometry::nDim() == 3))
@@ -74,9 +83,11 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
     group = BCT -> group;
     j     = BCT -> elmt;
     k     = BCT -> side;
-    if (strstr (bcmgr -> groupInfo (group), "axis"))
-      boundary[1][i] = new Boundary
-	(i,offset,"axis",bcmgr->getCondition(group,field_name,1),elmt[j],k);
+    S     = bcmgr -> groupInfo    (group);
+    C     = bcmgr -> getCondition (group, field_name, 1);
+
+    if (strstr (S, "axis"))
+      boundary[1][i] = new Boundary (i, "axis", C, elmt[j], k);
   }
 
   // -- Mode 2 boundaries,adjusted on axis.
@@ -87,9 +98,11 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
     group = BCT -> group;
     j     = BCT -> elmt;
     k     = BCT -> side;
+    S     = bcmgr -> groupInfo    (group);
+    C     = bcmgr -> getCondition (group, field_name, 2);
+
     if (strstr (bcmgr -> groupInfo (group), "axis"))
-      boundary[2][i] = new Boundary
-	(i,offset,"axis",bcmgr->getCondition(group,field_name,2),elmt[j],k);
+      boundary[2][i] = new Boundary (i, "axis", C, elmt[j], k);
   }
 }
 

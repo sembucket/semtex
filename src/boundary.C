@@ -17,27 +17,24 @@ RCSid[] = "$Id$";
 #include <Sem.h>
 
 
-Boundary::Boundary (const integer Ident ,
-		    const integer Voffst,
-		    const char*   Bgroup,
-		    Condition*    Bcondn,
-		    Element*      Elmt  ,
-		    const integer Side  ) :
-
-		    id           (Ident ),
-		    bgroup       (Bgroup),
-		    bcondn       (Bcondn),
-		    elmt         (Elmt  ),
-		    side         (Side  ),
-		    voffset      (Voffst)
+Boundary::Boundary (const integer    Ident ,
+		    const char*      Bgroup,
+		    const Condition* Bcondn,
+		    const Element*   Elmt  ,
+		    const integer    Side  ) :
 // ---------------------------------------------------------------------------
 // Constructor.  Allocate new memory for value & geometric factors.
 // ---------------------------------------------------------------------------
+  id      (Ident ),
+  bgroup  (Bgroup),
+  bcondn  (Bcondn),
+  elmt    (Elmt  ),
+  side    (Side  )
 {
   const char    routine[] = "Boundary::Boundary";
+  const integer np        = Geometry::nP();
+  const integer npnp      = Geometry::nTotElmt();
   char          err[StrMax];
-  const integer np   = Geometry::nP();
-  const integer npnp = Geometry::nTotElmt();
 
   nx   = new real [(size_t) np];
   ny   = new real [(size_t) np];
@@ -76,22 +73,68 @@ void Boundary::set (const real*    src,
 // ---------------------------------------------------------------------------
 // Use (boundary condition) values in src to over-ride (set) values
 // in globally-numbered tgt.  This will only take place on essential BCs.
+//
+// b2g is a pointer to the global node numbers for the appropriate
+// element's edge nodes.
 // ---------------------------------------------------------------------------
 {
-  bcondn -> set (elmt, side, b2g, src, tgt);
+  bcondn -> set (side, b2g, src, tgt);
 }
 
 
 void Boundary::sum (const real*    src,
 		    const integer* b2g,
+		    real*          wrk,
 		    real*          tgt) const
 // ---------------------------------------------------------------------------
 // Use (boundary condition) values in src to add in the boundary-integral
 // terms generated in constructing the weak form of the MWR into globally-
 // numbered tgt.  This will only take place on natural BCs.
+//
+// b2g is a pointer to the global node numbers for the appropriate
+// element's edge nodes.  wrk is a work array, np long.
 // ---------------------------------------------------------------------------
 {
-  bcondn -> sum (elmt, side, b2g, src, area, tgt);
+  bcondn -> sum (side, b2g, src, area, wrk, tgt);
+}
+
+
+void Boundary::augmentSC (const integer  nband ,
+			  const integer  nsolve,
+			  const integer* b2g   ,
+			  real*          work  ,
+			  real*          H     ) const
+// ---------------------------------------------------------------------------
+// Add in diagonal terms <K, w> to (banded LAPACK) H on mixed BCs.
+// Work array must be np long.
+// ---------------------------------------------------------------------------
+{
+  bcondn -> augmentSC (side, nband, nsolve, b2g + bOff(), area, work, H);
+}
+
+
+void Boundary::augmentOp (const integer* b2g ,
+			  const real*    src ,
+			  real*          tgt ) const
+// ---------------------------------------------------------------------------
+// This operation is used to augment the element-wise Helmholtz
+// operations where there are mixed BCs.  Add in diagonal terms
+// <K*src, w> to tgt.  Both src and tgt are globally-numbered vectors.
+// ---------------------------------------------------------------------------
+{
+  bcondn -> augmentOp (side, b2g + bOff(), area, src, tgt);
+}
+
+
+void Boundary::augmentDg (const integer* b2g,
+			  real*          tgt) const
+// ---------------------------------------------------------------------------
+// This operation is used to augment the element-wise construction of
+// the diagonal of the global Helmholtz matrix where there are mixed
+// BCs.  Add in diagonal terms <K, w> to globally-numbered tgt.
+// ---------------------------------------------------------------------------
+{
+  bcondn -> augmentDg (side, b2g + bOff(), area, tgt);
 }
 
 
