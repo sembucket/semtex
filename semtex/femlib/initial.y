@@ -38,11 +38,14 @@
  *
  * Operators
  * ---------
- * Unary:     -
- * Binary:    -, +, *, /, ^ (exponentiation), ~ (atan2), % (fmod)
- * Functions: sin,  cos,  tan,  abs, floor, ceil, int,   heav (Heaviside),
- *            asin, acos, atan, log, log10, exp,  sqrt,  lgamma,
- *            sinh, cosh, tanh, erf, erfc,  j0,   j1,    y0,  y1
+ * Unary:      -
+ * Binary:     -, +, *, /, ^ (exponentiation), ~ (atan2), & (hypot), % (fmod)
+ * Functions:  sin,  cos,  tan,  abs, floor, ceil, int, heav (Heaviside),
+ *             asin, acos, atan, log, log10, exp,  sqrt,
+ *             sinh, cosh, tanh, asinh, acosh, atanh,
+ *             erf, erfc, lgamma,
+ *             j0, j1, y0, y1, jn.
+ * Procedures: jn, yn, rad, ang, rejn, imjn, jacobi, womcos, womsin.
  *
  * $Id$
  *****************************************************************************/
@@ -67,7 +70,7 @@
 #define HASHSEED 31
 #define VEC_MAX  32
 
-typedef double (*PFD) (double);
+typedef double (*PFD)(); /* NB: no arguments -- non-ANSI (on purpose). */
 
 typedef struct symbol {
   char* name;
@@ -79,10 +82,17 @@ typedef struct symbol {
   struct symbol* next;
 } Symbol;
 
-static double  Log  (double),  Log10    (double),
-               Asin (double),  Acos     (double),
-               Sqrt (double),  Pow      (double, double),
-               Heavi(double),  errcheck (const double, const char*);
+static double
+  Heavi  (double), 
+  Jn     (double,double),
+  Yn     (double,double),
+  Rad    (double,double),
+  Ang    (double,double),
+  ReJn   (double,double,double),
+  ImJn   (double,double,double),
+  Jacobi (double,double,double,double),
+  Womcos (double,double,double,double,double),
+  Womsin (double,double,double,double,double);
 
 static unsigned hash     (const char*);
 static Symbol*  lookup   (const char*);
@@ -102,35 +112,52 @@ extern int     errno;
 
 static struct {			    /* -- Built-in functions. */
   char* name;
+  short narg;
   PFD   func;
 } builtin[] = {
-  "sin"   ,  sin     ,
-  "cos"   ,  cos     ,
-  "tan"   ,  tan     ,
-  "atan"  ,  atan    ,
-  "exp"   ,  exp     ,
-  "sinh"  ,  sinh    ,
-  "cosh"  ,  cosh    ,
-  "tanh"  ,  tanh    ,
-  "erf"   ,  erf     ,
-  "erfc"  ,  erfc    ,
-  "int"   ,  rint    ,
-  "abs"   ,  fabs    ,
-  "floor" ,  floor   ,
-  "ceil"  ,  ceil    ,
-  "asin"  ,  asin    ,
-  "acos"  ,  acos    ,
-  "log"   ,  log     ,
-  "log10" ,  log10   ,
-  "sqrt"  ,  sqrt    ,
-  "heav"  ,  Heavi   ,
-  "j0"    ,  j0      ,
-  "j1"    ,  j1      ,
-  "y0"    ,  y0      ,
-  "y1"    ,  y1      ,
-  "lgamma",  lgamma  ,
+  "cos"   ,  1, cos     ,
+  "sin"   ,  1, sin     ,
+  "tan"   ,  1, tan     ,
+  "exp"   ,  1, exp     ,
+  "sinh"  ,  1, sinh    ,
+  "cosh"  ,  1, cosh    ,
+  "tanh"  ,  1, tanh    ,
+  "erf"   ,  1, erf     ,
+  "erfc"  ,  1, erfc    ,
+  "int"   ,  1, rint    ,
+  "abs"   ,  1, fabs    ,
+  "floor" ,  1, floor   ,
+  "ceil"  ,  1, ceil    ,
+  "acos"  ,  1, acos    ,
+  "asin"  ,  1, asin    ,
+  "atan"  ,  1, atan    ,
+  "acosh" ,  1, acosh   ,
+  "asinh" ,  1, asinh   ,
+  "atanh" ,  1, atanh   ,
+  "log"   ,  1, log     ,
+  "log10" ,  1, log10   ,
+  "sqrt"  ,  1, sqrt    ,
+  "heav"  ,  1, Heavi   ,
+  "j0"    ,  1, j0      ,
+  "j1"    ,  1, j1      ,
+  "y0"    ,  1, y0      ,
+  "y1"    ,  1, y1      ,
+  "lgamma",  1, lgamma  ,
 
-  NULL    ,  NULL
+  "jn"    ,  2, Jn      ,
+  "yn"    ,  2, Yn      ,
+  "rad"   ,  2, Rad     ,
+  "ang"   ,  2, Ang     ,
+
+  "rejn"  ,  3, ReJn    ,
+  "imjn"  ,  3, ImJn    ,
+  
+  "jacobi",  4, Jacobi  ,
+
+  "womcos",  5, Womcos  ,
+  "womsin",  5, Womsin  ,
+
+  NULL, NULL, NULL
 };
 
 #include "defaults.h"
@@ -142,13 +169,13 @@ static struct {			    /* -- Built-in functions. */
   Symbol* sym;			/* -- symbol table pointer */
 }
 %token <val>   NUMBER
-%token <sym>   VAR BLTIN UNDEF
+%token <sym>   VAR BLTIN_UNARY BLTIN_BINARY BLTIN_TERNARY BLTIN_QUATERNARY BLTIN_QUINTERNARY UNDEF
 %type  <val>   expr asgn
 %right '='
 %left  '+' '-'
 %left  '*' '/'
 %left  UNARYMINUS
-%right '^' '~'			/* -- exponentiation, atan2 */
+%right '^' '~' '&'		/* -- exponentiation, atan2, hypot */
 %%
 list:     /* nothing */
         | list '\n'
@@ -165,7 +192,16 @@ expr:     NUMBER
 			       $$ = $1->u.val;
 			     }
         | asgn
-        | BLTIN '(' expr ')' { $$ = (*($1->u.ptr))($3); }
+        | BLTIN_UNARY       '(' expr ')'
+          { $$ = (*($1->u.ptr))($3); }
+        | BLTIN_BINARY      '(' expr ',' expr ')'
+          { $$ = (*($1->u.ptr))($3,$5); }
+        | BLTIN_TERNARY     '(' expr ',' expr ',' expr ')'
+          { $$ = (*($1->u.ptr))($3,$5,$7); }
+        | BLTIN_QUATERNARY  '(' expr ',' expr ',' expr ',' expr ')'
+          { $$ = (*($1->u.ptr))($3,$5,$7,$9); }
+        | BLTIN_QUINTERNARY '(' expr ',' expr ',' expr ',' expr ',' expr ')'
+          { $$ = (*($1->u.ptr))($3,$5,$7,$9,$11); }
         | expr '+' expr      { $$ = $1 + $3; }
         | expr '-' expr      { $$ = $1 - $3; }
         | expr '*' expr      { $$ = $1 * $3; }
@@ -175,6 +211,7 @@ expr:     NUMBER
 			       $$ = $1 / $3;
 			     }
         | expr '^' expr      { $$ = pow   ($1, $3); }
+        | expr '&' expr      { $$ = hypot ($1, $3); }
         | expr '~' expr      { $$ = atan2 ($1, $3); }
         | expr '%' expr      { $$ = fmod  ($1, $3); }
         | '(' expr ')'       { $$ = $2; }
@@ -194,37 +231,36 @@ void yy_initialize (void)
   register int i;
   register Symbol* s;
 
-#if 0			/* Enable SGI floating-point traps. */
-#include <sigfpe.h>
-#include <sgidefs.h>     
-#ifndef _MIPS_SIM_ABI64         /* No 64-bit version of libfpe.a yet. */
-  sigfpe_[ _OVERFL].trace = 1;
-  sigfpe_[ _OVERFL].exit  = 1;
-
-  sigfpe_[_DIVZERO].trace = 1;
-  sigfpe_[_DIVZERO].exit  = 1;
-
-  sigfpe_[_INVALID].trace = 1;
-  sigfpe_[_INVALID].exit  = 1;
-
-  sigfpe_[_UNDERFL].repls = _ZERO;
-
-  handle_sigfpes (_ON,
-		  _EN_OVERFL | _EN_DIVZERO | _EN_INVALID | _EN_UNDERFL,
-		  0,
-		  _ABORT_ON_ERROR,
-		  0);
-#endif
-#endif
-
   if (!initialized) {
     for (i = 0; consts[i].name; i++)
       install (consts[i].name, VAR, consts[i].cval);
 
-    for (i = 0; builtin[i].name; i++) {
-      s = install (builtin[i].name, BLTIN, 0.0);
-      s -> u.ptr = builtin[i].func;
-    }
+    for (i = 0; builtin[i].name; i++)
+      switch (builtin[i].narg) {
+      case 1:
+	s = install (builtin[i].name, BLTIN_UNARY, 0.0);
+	s -> u.ptr = builtin[i].func;
+	break;
+      case 2:
+	s = install (builtin[i].name, BLTIN_BINARY, 0.0);
+	s -> u.ptr = builtin[i].func;
+	break;
+      case 3:
+	s = install (builtin[i].name, BLTIN_TERNARY, 0.0);
+	s -> u.ptr = builtin[i].func;
+	break;
+      case 4:
+	s = install (builtin[i].name, BLTIN_QUATERNARY, 0.0);
+	s -> u.ptr = builtin[i].func;
+	break;
+      case 5:
+	s = install (builtin[i].name, BLTIN_QUINTERNARY, 0.0);
+	s -> u.ptr = builtin[i].func;
+	break;
+      default:
+	message ("yy_initialize", "never happen", ERROR);
+	break;
+      }
 
     initialized = 1;
   }
@@ -329,11 +365,15 @@ void yy_help (void)
 {
   fprintf 
     (stderr, 
-     "Unary    : -\n"
-     "Binary   : -, +, *, /, ^ (exponentiation), ~ (atan2), %% (fmod)\n"
-     "Functions: sin,  cos,  tan,  abs, floor, ceil, int,  heav (Heaviside),\n"
-     "           asin, acos, atan, log, log10, exp,  sqrt, lgamma,\n"
-     "           sinh, cosh, tanh, erf, erfc,  j0,   j1,   y0,  y1\n");
+     "Unary:      -\n"
+     "Binary:     -, +, *, /, ^ (exponentiation), "
+     "~ (atan2), & (hypot), % (fmod)\n"
+     "Functions:  sin,  cos,  tan,  abs, floor, ceil, int, heav (Heaviside),\n"
+     "            asin, acos, atan, log, log10, exp,  sqrt,\n"
+     "            sinh, cosh, tanh, asinh, acosh, atanh,\n"
+     "            erf, erfc, lgamma,\n"
+     "            j0, j1, y0, y1, jn\n"
+     "Procedures: jn, yn, rad, ang, rejn, imjn, jacobi, womcos, womsin\n");
 }
 
 
@@ -352,8 +392,8 @@ void yy_show (void)
 }
 
 
-int yydump (char*     str,
-	    const int max)
+int yy_dump (char*     str,
+	     const int max)
 /* ------------------------------------------------------------------------- *
  * Load description of internal variables into string, to length max.
  * If string overflows, return 0, else 1.
@@ -409,6 +449,15 @@ static int yylex (void)
   }
 
   return c;
+}
+
+
+static void yyerror (char *s)
+/* ------------------------------------------------------------------------- *
+ * Handler for yyparse syntax errors.
+ * ------------------------------------------------------------------------- */
+{
+  message ("yyparse", s, WARNING);
 }
 
 
@@ -476,20 +525,172 @@ static void *emalloc (const size_t n)
   return p;
 }
 
+static double Heavi (double x) { return (x >= 0.0) ? 1.0 : 0.0; }
 
-static void yyerror (char *s)
+static double Rad (double x, double y) { return hypot (x, y);  }
+static double Ang (double x, double y) { return atan2 (y, x);  }
+static double Jn  (double i, double x) { return jn((int)i, x); }
+static double Yn  (double i, double x) { return yn((int)i, x); }
+
+static double Jacobi (double z, double n, double alpha, double beta)
 /* ------------------------------------------------------------------------- *
- * Handler for yyparse syntax errors.
+ * Return value of the n_th order Jacobi polynomial
+ *   P^(alpha,beta)_n(z) alpha > -1, beta > -1 at z.
  * ------------------------------------------------------------------------- */
 {
-  message ("yyparse", s, WARNING);
+  const double apb = alpha + beta;
+  register int i,k;
+  double       a1,a2,a3,a4;
+  double       poly, polyn1, polyn2;
+  
+  polyn2 = 1.0;
+  polyn1 = 0.5*(alpha - beta + (alpha + beta + 2.0)*z);
+  
+  for (k = 2; k <= n; ++k){
+    a1 =  2.0*k*(k + apb)*(2.0*k + apb - 2.0);
+    a2 = (2.0*k + apb - 1.0)*(alpha*alpha - beta*beta);
+    a3 = (2.0*k + apb - 2.0)*(2.0*k + apb - 1.0)*(2.0*k + apb);
+    a4 =  2.0*(k + alpha - 1.0)*(k + beta - 1.0)*(2.0*k + apb);
+    
+    a2 /= a1;
+    a3 /= a1;
+    a4 /= a1;
+    
+    poly   = (a2 + a3*z)*polyn1 - a4*polyn2;
+    polyn2 = polyn1;
+    polyn1 = poly  ;
+  }
+
+  return poly;
 }
+
+/* -- Complex Bessel function, ex netlib, and functions that use it. */
+
+static void F77NAME(zbesj) (const double*, const double*, const double*, 
+			    const int*, const int*, double*, double*, 
+			    int*, int*);
+
+void zbesj (const double *x, const double *y, const double ord, 
+	    const int  Kode, const int n, double *ReJ, 
+	    double *ImJ, int*  nz, int*  ierr) {
+  int    N = n;
+  int    K = Kode;
+  double order = ord;
+
+  F77NAME(zbesj) (x, y, &order, &K, &N, ReJ, ImJ, nz, ierr);
+  if (*ierr) message ("initial.y", "zbesj", ERROR);
+}
+
+static double ReJn (double n, double x,  double y)
+{
+  int    nz, ierr;
+  double rej, imj;
+  
+  zbesj (&x,&y,n,1,1,&rej,&imj,&nz,&ierr);
+  return rej;
+}
+
+static double ImJn (double n, double x, double y)
+{
+  int    nz, ierr;
+  double rej, imj;
+  
+  zbesj (&x,&y,n,1,1,&rej,&imj,&nz,&ierr);
+  return imj;
+}
+
+static double Womersley(double A,
+			double B,
+			double r,
+			double R, 
+			double mu, 
+			double wnum,
+			double t)
+/* ------------------------------------------------------------------------- *
+ * Calculate the Womersley solution at r for a pipe of radius R and
+ * wave number wnum.  The solution is assumed to be set so that the
+ * spatial mean of the flow satisfies
+ *   u_avg(r) = A cos (wnum t) + B sin(wnum t) 
+ * ------------------------------------------------------------------------- */
+{
+  double x,y;
+
+  if (r > R) message ("Womersley", "r > R", ERROR);
+
+  if (wnum == 0) // return Poiseuille flow with mean of 1.
+    return 2*(1-r*r/R/R);
+  else {
+    int    ierr,nz;
+    double cr,ci,J0r,J0i,rej,imj,re,im,fac;
+    double isqrt2 = 1.0/sqrt(2.0);
+    static double R_str, wnum_str,mu_str;
+    static double Jr,Ji,alpha,j0r,j0i, isqrt;
+
+    /* For case of repeated calls with same parameters, 
+     * store those independent of r.
+     */
+
+    if ((R != R_str) || (wnum != wnum_str) || (mu != mu_str)) {
+      double retmp[2],imtmp[2];
+      alpha = R*sqrt(wnum/mu);
+
+      re  = -alpha*isqrt2;
+      im  =  alpha*isqrt2;
+      zbesj(&re,&im,0,1,2,retmp,imtmp,&nz,&ierr);
+      j0r = retmp[0]; j0i = imtmp[0];
+      rej = retmp[1]; imj = imtmp[1];
+
+      fac = 1/(j0r*j0r+j0i*j0i);
+      Jr = 1+2*fac/alpha*((rej*j0r+imj*j0i)*isqrt2-(imj*j0r - rej*j0i)*isqrt2);
+      Ji = 2*fac/alpha*((rej*j0r+imj*j0i)*isqrt2 + (imj*j0r - rej*j0i)*isqrt2);
+
+      R_str = R; wnum_str = wnum; mu_str = mu;
+    }
+
+    /* setup cr, ci from pre-stored value of Jr & Ji */
+
+    fac = 1/(Jr*Jr + Ji*Ji);
+    cr  =  (A*Jr - B*Ji)*fac;
+    ci  = -(A*Ji + B*Jr)*fac;
+    
+    /* setup J0r, J0i */
+
+    re  = -alpha*isqrt2*r/R;
+    im  =  alpha*isqrt2*r/R;
+    zbesj(&re,&im,0,1,1,&rej,&imj,&nz,&ierr);
+    fac = 1/(j0r*j0r+j0i*j0i);
+    J0r = 1-fac*(rej*j0r+imj*j0i);
+    J0i = -fac*(imj*j0r-rej*j0i);
+
+    return (cr*J0r - ci*J0i)*cos(wnum*t) - (ci*J0r + cr*J0i)*sin(wnum*t);
+  }
+}
+
+static double Womsin (double r, double R, double mu, double wnum, double t) {
+  if (wnum == 0) return 0.0; /* No sin term for zeroth mode. */
+  
+  return Womersley (0.0, 1.0, r, R, mu, wnum, t);
+}
+
+static double Womcos (double r, double R, double mu, double wnum, double t) {
+  return Womersley (1.0, 0.0, r, R, mu, wnum, t);
+}
+
+/* ------------------------------------------------------------------------- *
+ * Error checking is done for cases where we can have illegal input
+ * values (typically negative), otherwise we accept exception returns.
+ *
+ * 1/6/2001: After much trouble with underflow errors, I've turned these off.
+ * We just accept whatever comes back (typically a nan).
+ *
+ * example: static double Log (double x) { return errcheck (log (x), "log"); }
+ * ------------------------------------------------------------------------- */
 
 
 static double errcheck (const double d,
 			const char*  s)
 /* ------------------------------------------------------------------------- *
- * Check result of math library call.
+ * Check result of math library call. We don't use this anymore!
  * ------------------------------------------------------------------------- */
 {
   if (errno == EDOM) {
@@ -503,38 +704,6 @@ static double errcheck (const double d,
   return d;
 }
 
-
-static double Heavi (double x) { return (x >= 0.0) ? 1.0 : 0.0; }
-
-#if 0
-/* ------------------------------------------------------------------------- *
- * Error checking is done for cases where we can have illegal input
- * values (typically negative), otherwise we accept exception returns.
- *
- * After much trouble with underflow errors, I've turned these off for now.
- * HMB -- 1/6/2001.
- * ------------------------------------------------------------------------- */
-
-static double Log (double x)
-{ return errcheck (log (x), "log"); }
-
-
-static double Log10 (double x)
-{ return errcheck (log10 (x), "log10"); }
-
-
-static double Sqrt (double x)
-{ return errcheck (sqrt (x), "sqrt"); }
-
-
-static double Pow (double x, double y)
-{ return errcheck (pow (x, y), "exponentiation"); }
-
-
-static double Acos (double x)
-{ return errcheck (acos (x), "acos"); }
-
-
-static double Asin (double x)
-{ return errcheck (asin (x), "asin"); }
-#endif
+#undef HASHSIZE
+#undef HASHSEED
+#undef VEC_MAX
