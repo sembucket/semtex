@@ -113,10 +113,9 @@ void Statistics::update (AuxField*** work)
        work[i][0] -> transform (-1);
     }
 
-    for (i = 0; i < NA; i++) {
-      *avg[i] *= (real) navg;
-      *avg[i] += *src[i];
-    }
+    for (i = 0; i < NT; i++) *avg[i] *= (real) navg;
+
+    for (i = 0; i < NA; i++) *avg[i] += *src[i];
 
     avg[NA + 0] -> timesPlus (*work[0][0], *work[0][0]);
     avg[NA + 1] -> timesPlus (*work[0][0], *work[1][0]);
@@ -208,8 +207,8 @@ ofstream& operator << (ofstream&   strm,
 // Output Statistics class to file.  Like similar Domain routine.
 // ---------------------------------------------------------------------------
 {
-  int               i;
-  const int         N = src.avg.getSize();
+  integer           i;
+  const integer     N = src.avg.getSize();
   vector<AuxField*> field (N);
 
   for (i = 0; i < N; i++) field[i] = src.avg[i];
