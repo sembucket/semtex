@@ -35,7 +35,8 @@ CXX	 = CC
 LD	 = CC
 CXXFLAGS =  $(DEFINES) -g  -mips4 -64 -g -r10000
 F77LIBS	 = -lcomplib.sgimath -lftn
-LDFLAGS  =  -mips4 -64 -g -r10000 -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lmalloc -lm
+LDFLAGS  = -mips4 -64 -g -r10000 -L$(SEM)/lib/$(ARCH) -lfem -lalp 	\
+           $(F77LIBS) -lmalloc -lm
 endif
 
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha
@@ -114,7 +115,7 @@ calc: calc.o
 
 # ----------------------------------------------------------------------------
 # Build addvort utility.
-ADDOBJ = addvort.o auxfield.o BCmgr.o boundary.o condition.o domain.o	\
+ADDOBJ = addvort.o auxfield.o BCmgr.o boundary.o domain.o	\
 	 element.o feml.o field.o geometry.o  integration.o mesh.o	\
 	 misc.o	pressure.o
 
@@ -123,7 +124,7 @@ addvort:	$(ADDOBJ)
 
 # ----------------------------------------------------------------------------
 # Build addvortr utility.
-ADROBJ = addvortr.o auxfield.o BCmgr.o boundary.o condition.o domain.o	\
+ADROBJ = addvortr.o auxfield.o BCmgr.o boundary.o domain.o	\
 	 element.o feml.o field.o geometry.o  integration.o mesh.o	\
 	 misc.o	pressure.o \
 
@@ -132,7 +133,7 @@ addvortr:	$(ADROBJ)
 
 # ----------------------------------------------------------------------------
 # Build addfield utility.
-ADFOBJ = addfield.o auxfield.o BCmgr.o boundary.o condition.o domain.o	\
+ADFOBJ = addfield.o auxfield.o BCmgr.o boundary.o domain.o	\
 	 element.o feml.o field.o geometry.o  integration.o mesh.o	\
 	 misc.o	pressure.o
 
@@ -201,6 +202,18 @@ rstress: rstress.c
 # ----------------------------------------------------------------------------
 #
 $(SEMOBJ): $(SEMHDR)
+
+# ----------------------------------------------------------------------------
+# Special machine-dependent compilations.
+
+ifeq ($(ARCH),SUPER-UX)
+mesh.o: $(VPATH)/mesh.C
+        $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+        $(VPATH)/mesh.C
+BCmgr.o: $(VPATH)/BCmgr.C
+        $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+        $(VPATH)/BCmgr.C
+endif
 
 # -----------------------------------------------------------------------------
 #
