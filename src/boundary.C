@@ -16,9 +16,9 @@ static char RCS[] = "$Id$";
 #include "sem.h"
 
 
-void Boundary::evaluate (const integer plane,
-			 const integer step ,
-			 real*         tgt  ) const
+void Boundary::evaluate (const int_t plane,
+			 const int_t step ,
+			 real_t*     tgt  ) const
 // ---------------------------------------------------------------------------
 // Load boundary condition storage area with numeric values.
 // ---------------------------------------------------------------------------
@@ -27,9 +27,9 @@ void Boundary::evaluate (const integer plane,
 }
 
 
-void Boundary::set (const real*    src,
-		    const integer* b2g,
-		    real*          tgt) const
+void Boundary::set (const real_t* src,
+		    const int_t*  b2g,
+		    real_t*       tgt) const
 // ---------------------------------------------------------------------------
 // Use (boundary condition) values in src to over-ride (set) values
 // in globally-numbered tgt.  This will only take place on essential BCs.
@@ -42,10 +42,10 @@ void Boundary::set (const real*    src,
 }
 
 
-void Boundary::sum (const real*    src,
-		    const integer* b2g,
-		    real*          wrk,
-		    real*          tgt) const
+void Boundary::sum (const real_t* src,
+		    const int_t*  b2g,
+		    real_t*       wrk,
+		    real_t*       tgt) const
 // ---------------------------------------------------------------------------
 // Use (boundary condition) values in src to add in the boundary-integral
 // terms generated in constructing the weak form of the MWR into globally-
@@ -59,11 +59,11 @@ void Boundary::sum (const real*    src,
 }
 
 
-void Boundary::augmentSC (const integer  nband ,
-			  const integer  nsolve,
-			  const integer* b2g   ,
-			  real*          work  ,
-			  real*          H     ) const
+void Boundary::augmentSC (const int_t  nband ,
+			  const int_t  nsolve,
+			  const int_t* b2g   ,
+			  real_t*      work  ,
+			  real_t*      H     ) const
 // ---------------------------------------------------------------------------
 // Add in diagonal terms <K, w> to (banded LAPACK) H on mixed BCs.
 // Work array must be np long.
@@ -73,9 +73,9 @@ void Boundary::augmentSC (const integer  nband ,
 }
 
 
-void Boundary::augmentOp (const integer* b2g,
-			  const real*    src,
-			  real*          tgt) const
+void Boundary::augmentOp (const int_t*  b2g,
+			  const real_t* src,
+			  real_t*       tgt) const
 // ---------------------------------------------------------------------------
 // This operation is used to augment the element-wise Helmholtz
 // operations where there are mixed BCs.  Add in diagonal terms
@@ -86,8 +86,8 @@ void Boundary::augmentOp (const integer* b2g,
 }
 
 
-void Boundary::augmentDg (const integer* b2g,
-			  real*          tgt) const
+void Boundary::augmentDg (const int_t* b2g,
+			  real_t*      tgt) const
 // ---------------------------------------------------------------------------
 // This operation is used to augment the element-wise construction of
 // the diagonal of the global Helmholtz matrix where there are mixed

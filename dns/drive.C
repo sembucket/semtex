@@ -137,9 +137,9 @@ static void preprocess (const char*       session,
 // They are listed in order of creation.
 // ---------------------------------------------------------------------------
 {
-  const integer      verbose = Femlib::ivalue ("VERBOSE");
+  const int_t        verbose = Femlib::ivalue ("VERBOSE");
   Geometry::CoordSys space;
-  integer            i, np, nz, nel;
+  int_t              i, np, nz, nel;
 
   // -- Initialise problem and set up mesh geometry.
 
