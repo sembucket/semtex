@@ -1,66 +1,71 @@
-//////////////////////////////////////////////////////////////////////////////
-// NS.C:  Unsteady Navier--Stokes solver, using "stiffly-stable" integration.
+///////////////////////////////////////////////////////////////////////////////
+// NS.C: Unsteady Navier--Stokes solver, using "stiffly-stable" integration.
 //
 // Reference: Karniadakis, Israeli & Orszag 1991.  "High-order splitting
 // methods for the incompressible Navier--Stokes equations", JCP 9(2).
-//////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 static char
 RCSid[] = "$Id$";
 
+
 #include <NS.h>
 
+
 #ifdef __DECCXX
+  #pramga define_template vector<real>
+  #pragma define_template vector<Field*>
+  #pragma define_template matrix<Field*>
   #pragma define_template roll<Field*>
   #pragma define_template min<int>
 #endif
 
-static void  nonLinear (Domain*,  Field***, Field***, Vector);
-static void  waveProp  (Domain*,  Field***, Field***);
-static void  setPForce (Field***, Field***);
-static void  project   (const Domain*,  Field***, Field***);
-static void  setUForce (Domain*,  Field***);
+
+static void  nonLinear (Domain*, matrix<Field*>&, matrix<Field*>&, Vector&);
+static void  waveProp  (Domain*, const matrix<Field*>&, const matrix<Field*>&);
+static void  setPForce (const Domain*, const matrix<Field*>&, matrix<Field*>&);
+static void  project   (const Domain*, matrix<Field*>&, matrix<Field*>&);
+static void  setUForce (const Domain*, matrix<Field*>&);
 
 static void  preSolve  (SystemField*, const real&);
 static void  Solve     (SystemField*, Field*, const int&, const int&);
 
 
-void NavierStokes (Domain* D, Analyser* A)
+void NavierStokes (Domain*   D,
+		   Analyser* A)
 // ---------------------------------------------------------------------------
-// On entry, D contains storage for velocity SystemFields 'u', 'v' and
+// On entry, D contains storage for velocity SystemFields 'u', 'v' ('w') and
 // constraint SystemField 'p'.
 //
 // Us is multi-level auxillary Field storage for velocities and 
 // Uf is multi-level auxillary Field storage for nonlinear forcing terms.
 // ---------------------------------------------------------------------------
 {
-  const real  dt     = Femlib::parameter ("DELTAT");
-  const int   nOrder = Femlib::integer   ("N_TIME");
-  const int   nStep  = Femlib::integer   ("N_STEP");
-  const int   DIM    = Femlib::integer   ("N_VAR" );
+  const real dt     = Femlib::parameter ("DELTAT");
+  const int  nOrder = Femlib::integer   ("N_TIME");
+  const int  nStep  = Femlib::integer   ("N_STEP");
+  const int  DIM    = D -> nField () - 1;
 
   Vector  a  = {0.0, 0.0, 0.0};   // -- Frame acceleration for N--S.
 
   // -- Set up multi-level storage for velocities and forcing.
-  
-  Field***  Us = new Field** [DIM];
-  Field***  Uf = new Field** [DIM];
+
+  matrix<Field*> Us (DIM, nOrder);
+  matrix<Field*> Uf (DIM, nOrder);
 
   for (int i = 0; i < DIM; i++) {
-    Us[i] = new Field* [nOrder];
-    Uf[i] = new Field* [nOrder];
-     for (int j = 0; j < nOrder; j++) {
-      Us[i][j] = new Field (*D -> u[i]);
-      Uf[i][j] = new Field (*D -> u[i]);
+    for (int j = 0; j < nOrder; j++) {
+      Us (i, j) = new Field (*D -> u[i]);
+      Uf (i, j) = new Field (*D -> u[i]);
     }
   }
 
   // -- Set up to solve velocity viscous step.
 
-  real* alpha = rvector (Integration::OrderMax + 1);
-  Integration::StifflyStable (nOrder, alpha);
+  vector<real> alpha (Integration::OrderMax + 1);
+  Integration::StifflyStable (nOrder, alpha ());
   const real lambda2 = alpha[0] / (dt * Femlib::parameter ("KINVIS"));
-  freeVector (alpha);  
+  delete (alpha);  
 
   preSolve (D -> u[0], lambda2);
 
@@ -82,7 +87,7 @@ void NavierStokes (Domain* D, Analyser* A)
 
     // -- Unconstrained forcing substep.
 
-    nonLinear (D, Us, Uf, a );
+    nonLinear (D, Us, Uf, a);
     waveProp  (D, Us, Uf);
 
     // -- Pressure projection substep.
@@ -90,21 +95,21 @@ void NavierStokes (Domain* D, Analyser* A)
     PBCmanager::maintain (D -> step (), *Pressure, Us, Uf);
     Pressure -> evaluateBoundaries (D -> step ());
     for (i = 0; i < DIM; i++) {
-      Field::swapData (D -> u[i], Us[i][0]);
-      roll (Uf[i], nOrder);
+      Field::swapData (D -> u[i], Us (i, 0));
+      roll (Uf (i), nOrder);
     }
-    setPForce (Us, Uf);
-    Solve (Pressure, Uf[0][0], D -> step (), nOrder);
-    project (D, Us, Uf);
+    setPForce (D, Us, Uf);
+    Solve     (Pressure, Uf (0, 0), D -> step (), nOrder);
+    project   (D, Us, Uf);
 
     // -- Viscous correction substep.
 
     setUForce (D, Uf);
     for (i = 0; i < DIM; i++) {
-      *Us[i][0] = *D -> u[i];
-      roll (Us[i], nOrder);
+      *Us (i, 0) = *D -> u[i];
+      roll (Us (i), nOrder);
       D -> u[i] -> evaluateBoundaries (D -> step ());
-      Solve (D -> u[i], Uf[i][0], D -> step (), nOrder);
+      Solve (D -> u[i], Uf (i, 0), D -> step (), nOrder);
     }
 
     // -- Process results of this step.
@@ -114,10 +119,10 @@ void NavierStokes (Domain* D, Analyser* A)
 }
 
 
-static void nonLinear (Domain*   D ,
-		       Field***  Us,
-		       Field***  Uf,
-		       Vector    a )
+static void nonLinear (Domain*         D ,
+		       matrix<Field*>& Us,
+		       matrix<Field*>& Uf,
+		       Vector&         a )
 // ---------------------------------------------------------------------------
 // Compute nonlinear (forcing) terms in Navier--Stokes equations: N(u) - a.
 //
@@ -125,77 +130,70 @@ static void nonLinear (Domain*   D ,
 // the next stage of nonlinear forcing terms N(u) - a are computed from
 // velocity fields and left in the first level of Uf.
 //
-// Nonlinear terms are computed in skew-symmetric form (Zang 1991)
-//                    -0.5 ( u . grad u + div uu ).
-//                           ~        ~       ~~
+// Nonlinear terms N(u) are computed in skew-symmetric form (Zang 1991)
+//                 ~ ~
+//                   N = -0.5 ( u . grad u + div uu )
+//                   ~          ~        ~       ~~
+//
+// i.e., in Cartesian component form
+//
+//              N  = -0.5 ( u  d(u u ) / dx  + d(u u ) / dx ).
+//               i           j    i j      j      i j      j
+//
+// If STOKES is defined for compilation, the nonlinear terms are set to zero.
+//
+// Note that all gradient operations are performed on T = D -> u[0], and that
+// an even number are performed in the Fourier direction, so that the
+// frames return to their original places by the end of the subroutine.
 // ---------------------------------------------------------------------------
 {
-  Field::swapData (D -> u[0], Us[0][0]);
-  Field::swapData (D -> u[1], Us[1][0]);
+  int        i, j;
+  const int  DIM = D -> nField () - 1;
+  const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
-  // -- Build nonlinear terms.
+  vector<Field*> U (DIM);	// -- Shorthand for velocity  fields.
+  vector<Field*> N (DIM);	// -- Shorthand for nonlinear fields.
+  vector<real>   A (DIM);	// -- Vector form of frame acceleration.
 
-  const Field& Ux = *Us[0][0];
-  const Field& Uy = *Us[1][0];
+  A[0] = a.x; A[1] = a.y; if (DIM == 3) A[2] = a.z;
 
-  Field& Tp = *D -> u[0];
-  
-  Field& Nx = *Uf[0][0];
-  Field& Ny = *Uf[1][0];
+  for (i = 0; i < DIM; i++) {
+    Field::swapData (D -> u[i], Us (i, 0));
+    U[i] = Us (i, 0);
+    N[i] = Uf (i, 0);
+  }
 
-#ifdef STOKES  /* -- No nonlinear terms. */
-  
-  Nx = 0.0;
-  Ny = 0.0;
+  for (i = 0; i < DIM; i++) *N[i] = 0.0;
 
-#else          /* -- Build skew-symmetric nonlinear terms. */
+#ifndef STOKES
 
-  // -- Conservative NL terms.
+  // -- Build skew-symmetric nonlinear terms.
 
-  Ny = Nx.prod (Ux, Uy);
-  Nx.grad (0, 1);
-  Ny.grad (1, 0);
+  Field* T = D -> u[0];		// -- Workspace.
 
-  Tp . prod (Ux, Ux) . grad (1, 0);
-  Nx += Tp;
+  for (i = 0; i < DIM; i++) {
+    for (j = 0; j < DIM; j++) {
+      *T = *U[i];
+      T    -> gradient (j);
+      N[i] -> addprod  (*U[j], *T);
 
-  Tp . prod (Uy, Uy) . grad (0, 1);
-  Ny += Tp;
+      T -> product  (*U[i], *U[j]);
+      T -> gradient (j);
+      *N[i] += *T;
+    }
+    T -> smooth (N[i]);
+    *N[i] *= -0.5;
+  }
 
-  // -- Nonconservative NL terms.
-
-  Tp = Ux;
-  Nx . addprod (Ux, Tp . grad (1, 0));
-
-  Tp = Ux;
-  Nx . addprod (Uy, Tp . grad (0, 1));
-
-  Tp = Uy;
-  Ny . addprod (Ux, Tp . grad (1, 0));
-
-  Tp = Uy;
-  Ny . addprod (Uy, Tp . grad (0, 1));
-
-  // -- Smooth result on domain velocity boundary system & scale.
-
-  D -> u[0] -> smooth (&Nx);
-  D -> u[0] -> smooth (&Ny);
-
-  Nx *= -0.5;
-  Ny *= -0.5;
-  
 #endif
 
-  // -- Add in distributed forcing to complete construction of nonlinear terms.
-
-  if (fabs (a.x) > EPSDP) Nx -= a.x;
-  if (fabs (a.y) > EPSDP) Ny -= a.y;
+  for (i = 0; i < DIM; i++) if (fabs (A[i]) > EPS) *N[i] -= A[i];
 }
 
 
-static void  waveProp (Domain*   D ,
-		       Field***  Us,
-		       Field***  Uf)
+static void waveProp (Domain*               D ,
+		      const matrix<Field*>& Us,
+		      const matrix<Field*>& Uf)
 // ---------------------------------------------------------------------------
 // Compute the first substep of stiffly-stable timestepping scheme.
 //
@@ -204,77 +202,92 @@ static void  waveProp (Domain*   D ,
 // computed and left in D's velocity areas. 
 // ---------------------------------------------------------------------------
 {
-  // -- Construct u^ in Hx & Hy.
+  int            i;
+  const int      DIM = D -> nField () - 1;
+  vector<Field*> H (DIM);	// -- Mnemonic for u^{Hat}.
 
-  Field& Hx = *D -> u[0] = 0.0;
-  Field& Hy = *D -> u[1] = 0.0;
+  for (i = 0; i < DIM; i++) {
+     H[i] = D -> u[i];
+    *H[i] = 0.0;
+  }
 
   int  Je = Femlib::integer ("N_TIME");
   Je = min (D -> step (), Je);
-  
-  real* alpha = rvector (Integration::OrderMax + 1);
-  real* beta  = rvector (Integration::OrderMax);
-  
-  Integration::StifflyStable (Je, alpha);
-  Integration::Extrapolation (Je, beta );
-  Blas::scal (Je, Femlib::parameter ("DELTAT"), beta,  1);
 
-  for (int q = 0; q < Je; q++) {
-    Hx . axpy (-alpha[q + 1], *Us[0][q]) . axpy (beta[q], *Uf[0][q]);
-    Hy . axpy (-alpha[q + 1], *Us[1][q]) . axpy (beta[q], *Uf[1][q]);
-  }
+  vector<real> alpha (Integration::OrderMax + 1);
+  vector<real> beta  (Integration::OrderMax);
+  
+  Integration::StifflyStable (Je, alpha ());
+  Integration::Extrapolation (Je, beta  ());
+  Blas::scal (Je, Femlib::parameter ("DELTAT"), beta (),  1);
 
-  freeVector (alpha);
-  freeVector (beta );
+  for (int i = 0; i < DIM; i++)
+    for (int q = 0; q < Je; q++) {
+      H[i] -> axpy (-alpha[q + 1], *Us (i, q));
+      H[i] -> axpy ( beta [q]    , *Uf (i, q));
+    }
 }
 
 
-static void setPForce (Field***  Us, Field***  Uf)
+static void setPForce (const Domain*         D ,
+		       const matrix<Field*>& Us,
+		       matrix<Field*>&       Uf)
 // ---------------------------------------------------------------------------
-// On input, intermediate velocity storage u^ is in first level of Us.
+// On input, intermediate velocity storage u^ is in first time-level of Us.
 // Create div u^ / DELTAT in the first dimension, first level storage
 // of Uf as a forcing field for discrete PPE.
+//
+// A frame-swapping operation takes place in the first time level of the
+// Fourier direction of Uf as a result of gradient operation.
 // ---------------------------------------------------------------------------
 {
-  *Uf[0][0] = *Us[0][0];
-  *Uf[1][0] = *Us[1][0];
+  int       i;
+  const int DIM = D -> nField () - 1;
 
+  for (i = 0; i < DIM; i++) {
+   *Uf (i, 0) = *Us (i, 0);
+    Uf (i, 0) -> gradient (i);
+  }
   
-  Uf[0][0] -> grad (1, 0);
-  Uf[1][0] -> grad (0, 1);
+  for (i = 1; i < DIM; i++) *Uf (0, 0) += *Uf (i, 0);
 
-  *Uf[0][0] += *Uf[1][0];
-  *Uf[0][0] /= Femlib::parameter ("DELTAT");
+  *Uf (0, 0) /= Femlib::parameter ("DELTAT");
 }
 
 
-static void project (const Domain* D, Field*** Us, Field*** Uf)
+static void project (const Domain*   D ,
+		     matrix<Field*>& Us,
+		     matrix<Field*>& Uf)
 // ---------------------------------------------------------------------------
 // On input, new pressure field is stored in D and intermediate velocity
 // level u^ is stored in lowest level of Us.  Constrain velocity field:
 //                    u^^ = u^ - DELTAT * grad P;
 // u^^ is left in lowest level of Uf.
+//
+// A frame-swapping operation takes place in the first time level of the
+// Fourier direction of Uf.  This returns to original place the swapping done
+// by setPForce.
 // ---------------------------------------------------------------------------
 {
-  const int   DIM = D -> nField () - 1;
-  const real  dt  = Femlib::parameter ("DELTAT");
+  int        i;
+  const int  DIM = D -> nField () - 1;
+  const real dt  = Femlib::parameter ("DELTAT");
 
-  for (int i = 0; i < DIM; i++)
-    *Uf[i][0] = *D -> u[DIM];
+  for (int i = 0; i < DIM; i++) {
+
+   *Uf (i, 0) = *D -> u[DIM];
+    Uf (i, 0) -> gradient (i);
   
-  Uf[0][0] -> grad (1, 0);
-  Uf[1][0] -> grad (0, 1);
-
-  for (i = 0; i < DIM; i++) {
-    Us[i][0] -> axpy (-dt, *Uf[i][0]);
-    Field::swapData (Us[i][0], Uf[i][0]);
+    Us (i, 0) -> axpy (-dt, *Uf (i, 0));
+    Field::swapData (Us (i, 0), Uf (i, 0));
   }
 }
 
 
-static void setUForce (Domain* D, Field*** Uf)
+static void setUForce (const Domain*   D ,
+		       matrix<Field*>& Uf)
 // ---------------------------------------------------------------------------
-// On entry, intermediate velocity storage u^^ is in lowest levels of Us.
+// On entry, intermediate velocity storage u^^ is in lowest levels of Uf.
 // Multiply by -1.0 / (DELTAT * KINVIS) to create forcing for viscous step.
 // ---------------------------------------------------------------------------
 {
@@ -282,12 +295,12 @@ static void setUForce (Domain* D, Field*** Uf)
   const real alpha = -1.0 /
     (Femlib::parameter ("DELTAT") * Femlib::parameter ("KINVIS"));
 
-  for (int i = 0; i < DIM; i++)
-    *Uf[i][0] *= alpha;
+  for (int i = 0; i < DIM; i++) *Uf (i, 0) *= alpha;
 }
 
 
-static void preSolve (SystemField* F, const real& lambda2)
+static void preSolve (SystemField* F      ,
+		      const real&  lambda2)
 // ---------------------------------------------------------------------------
 // If F is selected for direct solution, form & factor matrices.
 // ---------------------------------------------------------------------------
@@ -344,14 +357,13 @@ static void Solve (SystemField*  U     ,
 
   if (velocity) {
     if (iterative || step < nOrder) {
-      const int   Je     = min (step, nOrder);
-      real*       alpha  = rvector (Je + 1);
-      const real  dt     = Femlib::parameter ("DELTAT");
-      const real  KinVis = Femlib::parameter ("KINVIS");
+      const int    Je     = min (step, nOrder);
+      vector<real> alpha (Je + 1);
+      const real   dt     = Femlib::parameter ("DELTAT");
+      const real   KinVis = Femlib::parameter ("KINVIS");
 
       Integration::StifflyStable (Je, alpha);
       const real lambda2 = alpha[0] / (dt * KinVis);
-      freeVector (alpha);
       
       U -> solve (F, lambda2);
 
