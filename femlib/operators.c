@@ -1,19 +1,19 @@
 /*****************************************************************************
  * operators.c:  operators for mesh points, derivatives, quadratures.
  *
+ * Copyright (c) Hugh Blackburn 1994--2000.
+ *
  * All 2D matrices have row-major ordering.
- * Routines for single and double precision are supplied.
+ * All routines are double precision.
+ *
+ * $Id$
  *****************************************************************************/
-
-static char
-RCSid_ops[] = "$Id$";
 
 #include <stdio.h>
 #include <malloc.h>
 #include <femdef.h>
 #include <alplib.h>
 #include <femlib.h>
-
 
 typedef struct dquadopr {	/* ---- quadrature operator information  --- */
   integer          rule    ;	/* quadrature rule: GL or LL                 */
@@ -30,61 +30,6 @@ typedef struct dquadopr {	/* ---- quadrature operator information  --- */
 } dQuadOpr;			/* ----------------------------------------- */
 
 static dQuadOpr* dQhead = 0;
-
-typedef struct squadopr {	/* ---- quadrature operator information  --- */
-  integer          rule    ;	/* quadrature rule: GL or LL                 */
-  integer          np      ;	/* number of interpolant knot points         */
-  integer          nq      ;	/* number of quadrature points               */
-  float*           knot    ;	/* Lagrange knots    on [-1, 1]              */
-  float*           quad    ;	/* Quadrature points on [-1, 1]              */
-  float*           weight  ;	/* Quadrature weights                        */
-  float**          interp  ;	/* Interpolant operator: knots-->quadrature  */
-  float**          interpT ;	/* Transpose of the above                    */
-  float**          deriv   ;	/* Derivative operator:  knots-->quadrature  */
-  float**          derivT  ;	/* Transpose of the above                    */
-  struct squadopr* next    ;	/* link to next one                          */
-} sQuadOpr;			/* ----------------------------------------- */
-
-static sQuadOpr *sQhead = 0;
-
-typedef struct dmeshopr {	/* ------- mesh operator information ------- */
-  integer          oldbasis;	/* STD or GLL                                */
-  integer          newbasis;	/* STD or GLL                                */
-  integer          np      ;	/* Number of points on original mesh         */
-  integer          ni      ;	/* Number of points in interpolated mesh     */
-  double*          mesh    ;	/* Location of points on interpolated mesh   */
-  double**         interp  ;	/* Interpolant operator: original-->new      */
-  double**         interpT ;	/* Transpose of the above                    */
-  double**         deriv   ;	/* Derivative operator: original-->new       */
-  double**         derivT  ;	/* Transpose of the above                    */
-  struct dmeshopr* next    ;	/* link to next one                          */
-} dMeshOpr;			/* ----------------------------------------- */
-
-static dMeshOpr* dMhead = 0;
-
-typedef struct smeshopr {	/* ------- mesh operator information ------- */
-  integer          oldbasis;	/* STD or GLL                                */
-  integer          newbasis;	/* STD or GLL                                */
-  integer          np      ;	/* Number of points on original mesh         */
-  integer          ni      ;	/* Number of points in interpolated mesh     */
-  float*           mesh    ;	/* Location of points on interpolated mesh   */
-  float**          interp  ;	/* Interpolant operator: original-->new      */
-  float**          interpT ;	/* Transpose of the above                    */
-  float**          deriv   ;	/* Derivative operator: original-->new       */
-  float**          derivT  ;	/* Transpose of the above                    */
-  struct smeshopr* next    ;	/* link to next one                          */
-} sMeshOpr;			/* ----------------------------------------- */
-
-static sMeshOpr* sMhead = 0;
-
-typedef struct legcoef {	/* ---- Table for GLL Legendre transform --- */
-  integer         np  ;		/* Number of mesh points                     */
-  double*         dtab;		/* (np+1)*np table of polynomials & weights  */
-  float*          stab;		/* Single precision version of same          */
-  struct legcoef* next;		/* link to next one                          */
-} legCoef;			/* ----------------------------------------- */
-
-static legCoef* lChead = 0;
 
 
 void dQuadOps (const integer   rule, /* input: quadrature rule: GL or LL     */
@@ -175,6 +120,22 @@ void dQuadOps (const integer   rule, /* input: quadrature rule: GL or LL     */
   if (dr) *dr = (const double**) p -> deriv;
   if (dt) *dt = (const double**) p -> derivT;
 }
+
+
+typedef struct dmeshopr {	/* ------- mesh operator information ------- */
+  integer          oldbasis;	/* STD or GLL                                */
+  integer          newbasis;	/* STD or GLL                                */
+  integer          np      ;	/* Number of points on original mesh         */
+  integer          ni      ;	/* Number of points in interpolated mesh     */
+  double*          mesh    ;	/* Location of points on interpolated mesh   */
+  double**         interp  ;	/* Interpolant operator: original-->new      */
+  double**         interpT ;	/* Transpose of the above                    */
+  double**         deriv   ;	/* Derivative operator: original-->new       */
+  double**         derivT  ;	/* Transpose of the above                    */
+  struct dmeshopr* next    ;	/* link to next one                          */
+} dMeshOpr;			/* ----------------------------------------- */
+
+static dMeshOpr* dMhead = 0;
 
 
 void dMeshOps (const integer   old , /* input: element basis: STD or GLL     */
@@ -290,339 +251,6 @@ void dMeshOps (const integer   old , /* input: element basis: STD or GLL     */
 }
 
 
-void sQuadOps (const integer   rule ,
-	       const integer   np   ,
-	       const integer   nq   ,
-	       const float**   kp   ,
-	       const float**   qp   ,
-	       const float**   qw   ,
-	       const float***  in   ,
-	       const float***  it   ,
-	       const float***  dr   ,
-	       const float***  dt   )
-/* ------------------------------------------------------------------------- *
- * As for dQuadOps, but here single-precision operators are made.
- * ------------------------------------------------------------------------- */
-{
-  char               routine[] = "sQuadOps";
-  register integer   found = 0;
-  register sQuadOpr* p;
-
-  for (p = sQhead; p; p = p->next) {
-    found = p->rule == rule && p->np == np && p->nq == nq;
-    if (found) break;
-  }
-
-  if (!found) {
-
-    if (rule != LL && rule != GL)
-      message (routine, "unrecognized quadrature rule", ERROR);
-
-    p = (sQuadOpr *) calloc (1, sizeof (sQuadOpr));
-    if (sQhead) p -> next = sQhead;
-    sQhead = p;
-
-    p -> rule = rule;
-    p -> np   = np;
-    p -> nq   = (rule == GL) ? nq : np;
-
-    if (rule == LL && np != nq)
-      message (routine, "np != nq in LL rule...enforcing equality", WARNING);
-
-    if (rule == LL) {
-      
-      p -> knot    = svector (0, np-1);
-      p -> quad    = p -> knot;
-      p -> weight  = svector (0, np-1);
-      p -> interp  = (float**) 0;	/* No interpolation needed. */
-      p -> interpT = (float**) 0;
-      p -> deriv   = smatrix (0, np-1, 0, np-1);
-      p -> derivT  = smatrix (0, np-1, 0, np-1);
-
-      {
-	double*  dk = dvector (0, np-1);
-	double*  dw = dvector (0, np-1);
-	double** dd = dmatrix (0, np-1, 0, np-1);
-	double** dt = dmatrix (0, np-1, 0, np-1);
-
-	zwgll (dk, dw, np);
-	dgll  (np, dk, dd, dt);
-
-	vsngl (np,     dk, 1,  p -> knot,   1);
-	vsngl (np,     dw, 1,  p -> weight, 1);
-	vsngl (np*np, *dd, 1, *p -> deriv,  1);
-	vsngl (np*np, *dt, 1, *p -> derivT, 1);
-	
-	freeDvector (dk, 0);
-	freeDvector (dw, 0);
-	freeDmatrix (dd, 0, 0);
-	freeDmatrix (dt, 0, 0);
-      }
-    } else {
-
-      p -> knot    = svector (0, np-1);
-      p -> quad    = svector (0, nq-1);
-      p -> weight  = svector (0, nq-1);
-      p -> interp  = smatrix (0, nq-1, 0, np-1);
-      p -> interpT = smatrix (0, np-1, 0, nq-1);
-      p -> deriv   = smatrix (0, nq-1, 0, np-1);
-      p -> derivT  = smatrix (0, np-1, 0, nq-1);
-
-      {
-	double*  dk  = dvector (0, np-1);
-	double*  dq  = dvector (0, nq-1);
-	double*  dw  = dvector (0, nq-1);
-	double** din = dmatrix (0, nq-1, 0, np-1);
-	double** dit = dmatrix (0, np-1, 0, nq-1);
-	double** ddv = dmatrix (0, nq-1, 0, np-1);
-	double** ddt = dmatrix (0, np-1, 0, nq-1);
-
-	jacgl    (np-1, 0.0, 0.0, dk);
-	zwgl     (dq, dw, nq);
-	intmat_g (np, dk, nq, dq, din, dit);
-	dermat_g (np, dk, nq, dq, ddv, ddt);
-
-	vsngl (np,     dk,  1,  p -> knot,    1);
-	vsngl (nq,     dq,  1,  p -> quad,    1);
-	vsngl (nq,     dw,  1,  p -> weight,  1);
-	vsngl (nq*np, *din, 1, *p -> interp,  1);
-	vsngl (np*nq, *dit, 1, *p -> interpT, 1);
-	vsngl (nq*np, *ddv, 1, *p -> deriv,   1);
-	vsngl (np*nq, *ddt, 1, *p -> derivT,  1);
-
-	freeDvector (dk,  0);
-	freeDvector (dq,  0);
-	freeDvector (dw,  0);
-	freeDmatrix (din, 0, 0);
-	freeDmatrix (dit, 0, 0);
-	freeDmatrix (ddv, 0, 0);
-	freeDmatrix (ddt, 0, 0);
-      }
-    }
-  }
-
-  if (kp) *kp = (const float* ) p -> knot;
-  if (qp) *qp = (const float* ) p -> quad;
-  if (qw) *qw = (const float* ) p -> weight;
-  if (in) *in = (const float**) p -> interp;
-  if (it) *it = (const float**) p -> interpT;
-  if (dr) *dr = (const float**) p -> deriv;
-  if (dt) *dt = (const float**) p -> derivT;
-
-}
-
-
-void sMeshOps (const integer   old ,
-	       const integer   new ,
-	       const integer   np  ,
-	       const integer   ni  ,
-	       const float**   mesh,
-	       const float***  in  ,
-	       const float***  it  ,
-	       const float***  dr  ,
-	       const float***  dt  )
-/* ------------------------------------------------------------------------- *
- * As for dMeshOps, but make single-precision operators.
- * ------------------------------------------------------------------------- */
-{
-  char               routine[] = "sMeshOps";
-  register integer   found = 0;
-  register sMeshOpr* p;
-
-  for (p = sMhead; p; p = p->next) {
-    found = p->oldbasis == old
-      &&    p->newbasis == new 
-      &&    p->np       == np
-      &&    p->ni       == ni;
-    if (found) break;
-  }
-
-  if (!found) {		/* -- Make more storage and operators. */
-
-    p = (sMeshOpr *) calloc (1, sizeof (sMeshOpr));
-    if (sMhead) p -> next = sMhead;
-    sMhead = p;
-
-    p -> oldbasis = old;
-    p -> newbasis = new;
-    p -> np       = np;
-    p -> ni       = ni;
-
-    p -> mesh     = svector (0, ni-1);
-    p -> deriv    = smatrix (0, ni-1, 0, np-1);
-    p -> derivT   = smatrix (0, np-1, 0, ni-1);
-    
-    if (old == new && np == ni) {	/* Meshes are the same; */
-      p -> interp  = (float**) 0;     /* no interpolation.    */
-      p -> interpT = (float**) 0;
-    } else {
-      p -> interp  = smatrix (0, ni-1, 0, np-1);
-      p -> interpT = smatrix (0, np-1, 0, ni-1);
-    }   
-
-    if (old == GLL && new == GLL) {
-
-      if (np == ni) {  /* Meshes are the same; return derivative matrices. */
-
-	double*  dm  = dvector (0, np-1);
-	double** ddv = dmatrix (0, ni-1, 0, np-1);
-	double** ddt = dmatrix (0, np-1, 0, ni-1);
-
-	jacgl (np-1, 0.0, 0.0, dm);
-	dgll  (np, dm, ddv, ddt);
-
-	vsngl (np,     dm,  1,  p -> mesh,   1);
-	vsngl (ni*np, *ddv, 1, *p -> deriv,  1);
-	vsngl (np*ni, *ddt, 1, *p -> derivT, 1);
-
-	freeDvector (dm,  0);
-	freeDmatrix (ddv, 0, 0);
-	freeDmatrix (ddt, 0, 0);
-
-      } else {
-
-	double*  om  = dvector (0, np-1);
-	double*  dm  = dvector (0, ni-1);
-	double** ddv = dmatrix (0, ni-1, 0, np-1);
-	double** ddt = dmatrix (0, np-1, 0, ni-1);
-	double** din = dmatrix (0, ni-1, 0, np-1);
-	double** dit = dmatrix (0, np-1, 0, ni-1);
-	
-	jacgl    (np-1, 0.0, 0.0, om);
-	jacgl    (ni-1, 0.0, 0.0, dm);
-	intmat_g (np, om, ni, dm, din, dit);
-	dermat_g (np, om, ni, dm, ddv, dit);
-
-	vsngl (np,     dm,  1,  p -> mesh,    1);
-	vsngl (ni*np, *ddv, 1, *p -> deriv,   1);
-	vsngl (np*ni, *ddt, 1, *p -> derivT,  1);
-	vsngl (ni*np, *din, 1, *p -> interp,  1);
-	vsngl (np*ni, *dit, 1, *p -> interpT, 1);
-
-	freeDvector (om,  0);
-	freeDvector (dm,  0);
-	freeDmatrix (ddv, 0, 0);
-	freeDmatrix (ddt, 0, 0);
-	freeDmatrix (din, 0, 0);
-	freeDmatrix (dit, 0, 0);
-      }
-
-    } else if (old == GLL && new == STD) {
-
-      double*  om  = dvector (0, np-1);
-      double*  dm  = dvector (0, ni-1);
-      double** ddv = dmatrix (0, ni-1, 0, np-1);
-      double** ddt = dmatrix (0, np-1, 0, ni-1);
-      double** din = dmatrix (0, ni-1, 0, np-1);
-      double** dit = dmatrix (0, np-1, 0, ni-1);
-      
-      jacgl    (np-1, 0.0, 0.0,  om);
-      uniknot  (ni,              dm);
-      intmat_g (np, om, ni, dm, din, dit);
-      dermat_g (np, om, ni, dm, ddv, ddt);
-
-      vsngl (np,     dm,  1,  p -> mesh,    1);
-      vsngl (ni*np, *ddv, 1, *p -> deriv,   1);
-      vsngl (np*ni, *ddt, 1, *p -> derivT,  1);
-      vsngl (ni*np, *din, 1, *p -> interp,  1);
-      vsngl (np*ni, *dit, 1, *p -> interpT, 1);
-
-      freeDvector (om,  0);
-      freeDvector (dm,  0);
-      freeDmatrix (ddv, 0, 0);
-      freeDmatrix (ddt, 0, 0);
-      freeDmatrix (din, 0, 0);
-      freeDmatrix (dit, 0, 0);
-
-    } else if (old == STD && new == STD) {
-
-      if (np == ni) {  /* Meshes are the same. */
-
-	double*  dm  = dvector (0, np-1);
-	double** ddv = dmatrix (0, ni-1, 0, np-1);
-	double** ddt = dmatrix (0, np-1, 0, ni-1);
-
-	uniknot  (np, dm);
-	dermat_k (np, dm, ddv, ddt);
-
-	vsngl (np,     dm,  1,  p -> mesh,   1);
-	vsngl (ni*np, *ddv, 1, *p -> deriv,  1);
-	vsngl (np*ni, *ddt, 1, *p -> derivT, 1);
-
-	freeDvector (dm,  0);
-	freeDmatrix (ddv, 0, 0);
-	freeDmatrix (ddt, 0, 0);
-
-      } else {
-
-	double*  om  = dvector (0, np-1);
-	double*  dm  = dvector (0, ni-1);
-	double** ddv = dmatrix (0, ni-1, 0, np-1);
-	double** ddt = dmatrix (0, np-1, 0, ni-1);
-	double** din = dmatrix (0, ni-1, 0, np-1);
-	double** dit = dmatrix (0, np-1, 0, ni-1);
-
-	uniknot  (np, om);
-	uniknot  (ni, dm);
-	intmat_g (np, om, ni, dm, din, dit);
-	dermat_g (np, om, ni, dm, ddv, ddt);
-
-	vsngl (np,     dm,  1,  p -> mesh,    1);
-	vsngl (ni*np, *ddv, 1, *p -> deriv,   1);
-	vsngl (np*ni, *ddt, 1, *p -> derivT,  1);
-	vsngl (ni*np, *din, 1, *p -> interp,  1);
-	vsngl (np*ni, *dit, 1, *p -> interpT, 1);
-
-	freeDvector (om,  0);
-	freeDvector (dm,  0);
-	freeDmatrix (ddv, 0, 0);
-	freeDmatrix (ddt, 0, 0);
-	freeDmatrix (din, 0, 0);
-	freeDmatrix (dit, 0, 0);
-      }
-
-    } else if (old == STD && new == GLL) {
-
-      double*  om  = dvector (0, np-1);
-      double*  dm  = dvector (0, ni-1);
-      double** ddv = dmatrix (0, ni-1, 0, np-1);
-      double** ddt = dmatrix (0, np-1, 0, ni-1);
-      double** din = dmatrix (0, ni-1, 0, np-1);
-      double** dit = dmatrix (0, np-1, 0, ni-1);
-
-      uniknot  (np,              om);
-      jacgl    (ni-1, 0.0, 0.0,  dm);
-      intmat_g (np, om, ni, dm, din, dit);
-      dermat_g (np, om, ni, dm, ddv, ddt);
-
-      vsngl (np,     dm,  1,  p -> mesh,    1);
-      vsngl (ni*np, *ddv, 1, *p -> deriv,   1);
-      vsngl (np*ni, *ddt, 1, *p -> derivT,  1);
-      vsngl (ni*np, *din, 1, *p -> interp,  1);
-      vsngl (np*ni, *dit, 1, *p -> interpT, 1);
-
-      freeDvector (om,  0);
-      freeDvector (dm,  0);
-      freeDmatrix (ddv, 0, 0);
-      freeDmatrix (ddt, 0, 0);
-      freeDmatrix (din, 0, 0);
-      freeDmatrix (dit, 0, 0);
-
-    } else
-
-      message (routine, "basis function unrecognized as STD or GLL", ERROR);
-  }
-
-  /* -- p now points to valid storage: return requested operators. */
-
-  if (mesh) *mesh = (const float* ) p -> mesh;
-  if (in)   *in   = (const float**) p -> interp;
-  if (it)   *it   = (const float**) p -> interpT;
-  if (dr)   *dr   = (const float**) p -> deriv;
-  if (dt)   *dt   = (const float**) p -> derivT;
-}
-
-
 void dIntpOps (const integer basis,  /* element basis: STD or GLL            */
 	       const integer np   ,  /* number of knot points                */
 	       const double  r    ,  /* location of r in [-1, 1]             */
@@ -671,57 +299,21 @@ void dIntpOps (const integer basis,  /* element basis: STD or GLL            */
 }
 
 
-void sIntpOps (const integer basis,
-	       const integer np   ,
-	       const float   r    ,
-	       const float   s    ,
-	       float*        inr  ,
-	       float*        ins  ,
-	       float*        dvr  ,
-	       float*        dvs  )
+typedef struct legcoef {	/* ---- Table for GLL Legendre transform --- */
+  integer         np  ;		/* Number of mesh points                     */
+  double*         dtab;		/* (np+1)*np table of polynomials & weights  */
+  struct legcoef* next;		/* link to next one                          */
+} legCoef;			/* ----------------------------------------- */
+
+static legCoef* lChead = 0;
+
+
+void dglldpc (const integer  np,
+	      const double** cd)
 /* ------------------------------------------------------------------------- *
- * Single-precision version of dIntpOps.
- * ------------------------------------------------------------------------- */
-{
-  const double* kp;
-  double        x[1], **dv, **dt;
-
-  dv = dmatrix (0, 0, 0, np - 1);
-  dt = dmatrix (0, np - 1, 0, 0);
-
-  dQuadOps (basis, np, np, &kp, 0, 0, 0, 0, 0, 0);
-
-  x[0] = r;
-  if (inr) {
-    intmat_g (np, kp, 1, x, dv, dt);
-    vsngl    (np, *dv, 1, inr, 1);
-  }
-  if (dvr) {
-    dermat_g (np, kp, 1, x, dv, dt);
-    vsngl    (np, *dv, 1, dvr, 1);
-  }
-
-  x[0] = s;
-  if (ins) {
-    intmat_g (np, kp, 1, x, dv, dt);
-    vsngl    (np, *dv, 1, ins, 1);
-  }
-  if (dvs) {
-    dermat_g (np, kp, 1, x, dv, dt);
-    vsngl    (np, *dv, 1, dvs, 1);
-  }
-
-  freeDmatrix (dv, 0, 0);
-  freeDmatrix (dt, 0, 0);
-}
-
-
-void LegCoefGL (const integer  np,
-		const double** cd,
-		const float**  cs)
-/* ------------------------------------------------------------------------- *
- * Return pointers to look-up tables of Legendre polynomials and weights.
- * The tables can be used in calculating discrete Legendre transforms.
+ * Return pointers to look-up tables of Legendre polynomials and
+ * weights, based on the Gauss--Lobatto nodes.  The tables can be used
+ * in calculating discrete Legendre transforms.
  *
  * Tables contain values of Legendre polynomials evaluated at GLL
  * quadrature points, and weights.  Storage is row-major: the first np
@@ -752,18 +344,15 @@ void LegCoefGL (const integer  np,
 
     p -> np   = np;
     p -> dtab = dvector (0, np * (np + 1) - 1);
-    p -> stab = svector (0, np * (np + 1) - 1);
 
     dQuadOps (LL, np, np, &z, 0, 0, 0, 0, 0, 0);
 
     for (i = 0; i < np; i++) {
       k = i + np * np;
       p -> dtab[k] = (i < nm) ?  0.5*(i+i+1) : 0.5*nm;
-      p -> stab[k] = (float) p -> dtab[k];
       for (j = 0; j < np; j++) {
 	k = j + i * np;
 	p -> dtab[k] = pnleg (z[j], i);
-	p -> stab[k] = (float) p -> dtab[k];
       }
     }
   }
@@ -771,5 +360,131 @@ void LegCoefGL (const integer  np,
   /* p now points to valid storage: return requested operators. */
 
   if (cd) *cd = (const double*) p -> dtab;
-  if (cs) *cs = (const float*)  p -> stab;
+}
+
+
+typedef struct legtran {	/* ---- GLL Legendre transform matrices  --- */
+  integer         np  ;		/* Number of mesh points                     */
+  double*         FW  ;		/* np*np forward Legendre transform matrix.  */
+  double*         FT  ;		/* Transpose of FW.                          */
+  double*         BW  ;		/* np*np inverse Legendre transform matrix.  */
+  double*         BT  ;		/* Transpose of BW.                          */
+  double*         UF  ;		/* np^2*np^2 forward transform matrix.       */
+  double*         UB  ;		/* np^2*np^2 inverse transform matrix.       */
+  struct legtran* next;		/* link to next one                          */
+} legTran;			/* ----------------------------------------- */
+
+static legTran* lThead = 0;
+
+
+void dglldpt (const integer  np,
+	      const double** fw,
+	      const double** ft,
+	      const double** bw,
+	      const double** bt,
+	      const double** fu,
+	      const double** bu)
+/* ------------------------------------------------------------------------- *
+ * Return pointers to matrices for 1D and 2D Legendre polynomial
+ * transforms of np data, based on the Gauss--Lobatto nodes.  See the
+ * definitions of forward and inverse polynomial transforms in Canuto
+ * et al., Sections 2.2.3, 2.2.13.
+ *
+ * The 1D discrete transform is defined as (summation implied)
+ *
+ *   Ak = Ck Wj Uk Lkj,
+ *
+ * with inverse
+ *
+ *   Uj = Ak Lkj,
+ *
+ * where Lij is the ith Legendre polynomial evaluated at the jth
+ * quadrature point, Ck correspond to 1/\gamma_k in Canuto et al., and
+ * Wj are the quadrature weights for the corresponding points.
+ *
+ * The equivalent 2D tensor-product relationships are
+ *                                            t
+ *   Aij = Ci Cj Wp Lip Wq Upq Ljq = Rip Upq Rqj
+ *                                    t
+ *   Uij = Lpi Apq Lqj             = Lip Apq Lqj
+ *
+ * where Rip = Ci Wp Lip.
+ *
+ * Instead of these tensor-product forms, we can also "unroll" the
+ * matrix multiplies above to be a single matrix-vector product in
+ * each case, so that
+ *
+ *   Aij = Fijpq Upq,  Uij = Bijpq Apq.
+ *
+ * This routine supplies the transform matrices.  If any pointer is
+ * passed in as NULL, we don't return the corresponding value.
+ * Matrices are supplied 1D, with row-major ordering.
+ * ------------------------------------------------------------------------- */
+{
+  register integer  found = 0;
+  register legTran* p;
+
+  for (p = lThead; p; p = p->next) {
+    found = p -> np == np;
+    if (found) break;
+  }
+
+  if (!found) {		/* -- Make more storage and operators. */
+    register integer i, j, k, l, r, s;
+    const integer    np2 = np * np;
+    const double     *tab, *w;
+    double           ci, cj;
+
+    p = (legTran*) calloc (1, sizeof (legTran));
+    if (lThead) p -> next = lThead;
+    lThead = p;
+
+    p -> np = np;
+    p -> FW = dvector (0, 4 * np2 + 2 * np2*np2 - 1);
+    p -> FT = p -> FW + np2;
+    p -> BW = p -> FT + np2;
+    p -> BT = p -> BW + np2;
+    p -> UF = p -> BT + np2;
+    p -> UB = p -> UF + np2*np2;
+
+    dglldpc  (np, &tab);
+    dQuadOps (LL, np, np, 0, 0, &w, 0, 0, 0, 0);
+
+    /* -- Create forward & inverse 1D transform matrices. */
+
+    for (i = 0; i < np; i++) {
+      ci = tab[np2 + i];
+      for (j = 0; j < np; j++) {
+	p->FW[i*np + j] = ci * w[j] * tab[i*np +j];
+	p->BW[i*np + j] = tab[j*np+ i];
+      }
+    }
+
+    /* -- And their transposes. */
+
+    for (i = 0; i < np; i++)
+      for (j = 0; j < np; j++) {
+	p->FT[i*np + j] = p->FW[j*np + i];
+	p->BT[i*np + j] = p->BW[j*np + i];
+      }
+
+    /* -- Manufacture 2D forward, inverse DLT matrices. */
+
+    for (k = 0, i = 0; i < np; i++)
+      for (j = 0; j < np; j++, k++)
+	for (l = 0, r = 0; r < np; r++)
+	  for (s = 0; s < np; s++, l++) {
+	    p->UF[k*np2 + l] = p->FW[i*np + r] * p->FT[s*np + j];
+	    p->UB[k*np2 + l] = p->BW[i*np + r] * p->BT[s*np + j];
+	  }
+  }
+
+  /* p now points to valid storage: return requested operators. */
+
+  if (fw) *fw = (const double*) p -> FW;
+  if (ft) *ft = (const double*) p -> FT;
+  if (bw) *bw = (const double*) p -> BW;
+  if (bt) *bt = (const double*) p -> BT;
+  if (fu) *fu = (const double*) p -> UF;
+  if (bu) *bu = (const double*) p -> UB;
 }

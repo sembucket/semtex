@@ -5,10 +5,9 @@
  * or Temperton FFT routines, or vendor-supplied alternatives.
  * NB: different restrictions may apply to input args depending on
  * selected routine. 
+ *
+ * $Id$
  *****************************************************************************/
-
-static char
-RCSid_fourier[] = "$Id$";
 
 #include <stdio.h>
 #include <malloc.h>
@@ -16,8 +15,7 @@ RCSid_fourier[] = "$Id$";
 #include <alplib.h>
 #include <femlib.h>
 
-
-void sDFTr (float*        data,
+void dDFTr (double*       data,
 	    const integer tlen,
 	    const integer ntrn,
 	    const integer sign)
@@ -42,98 +40,6 @@ void sDFTr (float*        data,
  *     depends on tlen (even or odd): if even, the zeroth mode is followed
  *     by the real datum from the maximum frequency mode, after which
  *     the real and imaginary parts for each mode alternate (both cases).
- * ------------------------------------------------------------------------- */
-{
-  const char       routine[] = "sDFTr";
-  const integer    ntot = tlen * ntrn;
-  register integer i;
-  integer          dum, ip, iq, ir, ipqr2;
-  register float  *work, *Wtab, *ptr;
-
-  if (tlen < 2 || !ntrn) return;
-
-#if 1
-  
-  /* -- Temperton FFT routine is default. */
-
-  dum = tlen;
-  prf235 (&dum, &ip, &iq, &ir, &ipqr2);
-  
-  if (!dum    ) message (routine, "tlen needs prime factors 2, 3, 5", ERROR);
-  if (ntrn & 1) message (routine, "ntrn must be even",                ERROR);
-
-  work = svector (0, ntot + ipqr2 - 1);
-  Wtab = work + ntot;
-
-  ssetpf (Wtab, tlen, ip, iq, ir);
-  smpfft (data, work, ntrn, tlen, ip, iq, ir, Wtab, sign);
-
-  if (sign == +1) sscal (ntot, 1.0 / tlen, data, 1);
-
-  freeSvector (work, 0);
-
-#else
-  work = svector (0, 3 * tlen + 14);
-  Wtab = work + tlen;
-  ptr  = data;
-
-  srffti (tlen, Wtab);
-
-  switch (sign) {
-
-  case +1:
-    if (tlen & 1) {
-      for (i = 0; i < ntrn; i++, ptr++) {
-	scopy  (tlen, ptr, ntrn, work, 1);
-	srfftf (tlen, work, Wtab);
-	scopy  (tlen, work, 1, ptr, ntrn);
-      }
-    } else {
-      for (i = 0; i < ntrn; i++, ptr++) {
-	scopy  (tlen, ptr, ntrn, work, 1);
-	srfftf (tlen, work, Wtab);
-	scopy  (tlen - 2, work + 1, 1, ptr + 2 * ntrn, ntrn);
-	ptr[0]    = work[0];
-	ptr[ntrn] = work[tlen - 1];
-      }
-    }
-    sscal (ntot, 1.0 / tlen, data, 1);
-    break;
-
-  case -1:
-    if (tlen & 1) {
-      for (i = 0; i < ntrn; i++, ptr++) {
-	scopy  (tlen, ptr, ntrn, work, 1);
-	srfftb (tlen, work, Wtab);
-	scopy  (tlen, work, 1, ptr, ntrn);
-      }
-    } else {
-      for (i = 0; i < ntrn; i++, ptr++) {
-	work[tlen - 1] = ptr[ntrn];
-	work[0]        = ptr[0];
-	scopy  (tlen - 2, ptr + 2 * ntrn, ntrn, work + 1, 1);
-	srfftb (tlen, work, Wtab);
-	scopy  (tlen, work, 1, ptr, ntrn);
-      }
-    }
-    break;
-
-  default:
-    message (routine, "illegal direction flag", ERROR);
-    break;
-  }
-  
-  freeSvector (work, 0);
-#endif
-}
-
-
-void dDFTr (double*       data,
-	    const integer tlen,
-	    const integer ntrn,
-	    const integer sign)
-/* ------------------------------------------------------------------------- *
- * Double-precision version of sDFTr.
  * ------------------------------------------------------------------------- */
 {
   const char       routine[] = "dDFTr";

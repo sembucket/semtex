@@ -56,7 +56,7 @@ static struct {
   "ITERATIVE"   ,   0   ,
   "CYLINDRICAL" ,   0   ,
   "VERBOSE"     ,   0   ,
-  "CHKPOINT"    ,   0   ,
+  "CHKPOINT"    ,   1   ,
   "AVERAGE"     ,   0   ,
   "SPAWN"       ,   0   ,
   "RNG"         ,   0   ,
