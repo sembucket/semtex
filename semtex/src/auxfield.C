@@ -553,8 +553,8 @@ real AuxField::mode_L2 (const integer mode) const
 }
 
 
-ostream& operator << (ostream&  strm,
-		      AuxField& F   )
+ofstream& operator << (ofstream& strm,
+		       AuxField& F   )
 // ---------------------------------------------------------------------------
 // Binary write of F's data area.
 //
@@ -562,73 +562,101 @@ ostream& operator << (ostream&  strm,
 // receiving data from other processors.  This ensures that the data
 // are written out in the correct order, and that only one processor
 // needs access to the output stream.
+//
+// UNIX interface used for IO in order to avoid buffering done by C++.
 // ---------------------------------------------------------------------------
 {
-  register integer i, k;
+  const char       routine[] = "ofstream<<AuxField";
+  register integer i, k, n;
   const integer    nZ    = Geometry::nZProc();
   const integer    nT    = Geometry::nTotProc();
   const integer    NP    = Geometry::planeSize();
   const integer    nP    = Geometry::nPlane();
   const integer    nProc = Geometry::nProc();
+  const int        fd    = strm.rdbuf() -> fd();
 
   if (nProc > 1) {
 
     ROOTONLY {
       vector<real> buffer (nT);
-     
+
+      strm.rdbuf() -> sync();
+
       for (i = 0; i < nZ; i++)
-	strm.write ((char*) F.plane[i], (int) (nP * sizeof (real)));
+	n = write (fd, F.plane[i], nP * sizeof (real));
+	if (n != nP * sizeof (real))
+	  message (routine, "unable to write binary input", ERROR);
 
       for (k = 1; k < nProc; k++) {
 	Femlib::recv (buffer(), nT, k);
 	for (i = 0; i < nZ; i++)
-	  strm.write ((char*) (buffer() + i * NP), (int) (nP * sizeof (real)));
+	n = write (fd, (buffer() + i*NP), nP * sizeof (real));
+	if (n != nP * sizeof (real))
+	  message (routine, "unable to write binary input", ERROR);
       }
-      
+
+      strm.rdbuf() -> sync();      
       strm.flush();
 
     } else
       Femlib::send (F.data, nT, 0);
 
-  } else 
+  } else {
 
-    for (i = 0; i < nZ; i++)
-      strm.write ((char*) F.plane[i], (int) (nP * sizeof (real)));
+    strm.rdbuf() -> sync();
 
+    for (i = 0; i < nZ; i++) {
+      n = write (fd, F.plane[i], nP * sizeof (real));
+      if (n != nP * sizeof (real))
+	message (routine, "unable to write binary input", ERROR);
+    }
+  }
 
+  strm.rdbuf() -> sync();
   return strm;
 }
 
 
-istream& operator >> (istream&  strm,
-		      AuxField& F   )
+
+ifstream& operator >> (ifstream&  strm,
+		       AuxField&  F   )
 // ---------------------------------------------------------------------------
 // Binary read of F's data area.  Zero any unused storage areas.
 //
 // As for the write operator, only the root processor accesses strm.
 // This precaution is possibly unnecessary for input.
+//
+// UNIX interface used for IO in order to avoid buffering done by C++.
 // ---------------------------------------------------------------------------
 {
-  register integer i, k;
+  const char       routine[] = "ifstream>>AuxField";
+  register integer i, k, n;
   const integer    nZ    = Geometry::nZProc();
   const integer    nT    = Geometry::nTotProc();
   const integer    nP    = Geometry::nPlane();
   const integer    NP    = Geometry::planeSize();
   const integer    nProc = Geometry::nProc();
+  const int        fd    = strm.rdbuf() -> fd();
 
   if (nProc > 1) {
 
     ROOTONLY {
       vector<real> buffer (nT);
-     
+
+      strm.rdbuf() -> sync();     
+
       for (i = 0; i < nZ; i++) {
-	strm.read ((char*) F.plane[i], (int) (nP * sizeof (real)));
+	n = read (fd, F.plane[i], nP * sizeof (real));
+	if (n != nP * sizeof (real))
+	  message (routine, "unable to read binary input", ERROR);
 	Veclib::zero (NP - nP, F.plane[i] + nP, 1);
       }
 
       for (k = 1; k < nProc; k++) {
 	for (i = 0; i < nZ; i++) {
-	  strm.read ((char*) (buffer() + i * NP), (int) (nP * sizeof (real)));
+	  n = read (fd, buffer() + i*NP, nP*sizeof (real));
+	  if (n != nP * sizeof (real))
+	    message (routine, "unable to read binary input", ERROR);
 	  Veclib::zero (NP - nP, buffer() + i * NP + nP, 1);
 	}
 	Femlib::send (buffer(), nT, k);
@@ -637,12 +665,19 @@ istream& operator >> (istream&  strm,
     } else
       Femlib::recv (F.data, nT, 0);
 
-  } else 
+  } else {
+
+    strm.rdbuf() -> sync();
 
     for (i = 0; i < nZ; i++) {
-      strm.read ((char*) F.plane[i], (int) (nP * sizeof (real)));
+      n = read (fd, F.plane[i], nP * sizeof (real));
+      if (n != nP * sizeof (real))
+	message (routine, "unable to read binary input", ERROR);
       Veclib::zero (NP - nP, F.plane[i] + nP, 1);
     }
+  }
+
+  strm.rdbuf() -> sync();    
 
   return strm;
 }
