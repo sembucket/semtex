@@ -389,7 +389,7 @@ void Domain::loadBase()
   }
 
   file.close();
-  period = dt - t0;
+  period = dt * i / (i - 1.0);
 
   if (i != nSlice)
     message (routine, "mismatch: No. of base slices/declaration", ERROR);

@@ -58,7 +58,7 @@ void integrate (Domain*       D,
   static MatrixSys** MS;
   static AuxField*** Us;
   static AuxField*** Uf;
-  static Field*      Pressure;
+  static Field*      Pressure = D -> u[NPER];
 
   if (!MS) {			// -- Initialise static data.
     
@@ -85,7 +85,7 @@ void integrate (Domain*       D,
 
     // -- Create multi-level storage for pressure BCS.
 
-    PBCmgr::build (Pressure = D -> u[NPER]);
+    PBCmgr::build (Pressure);
 
     // -- Apply coupling to radial & azimuthal velocity BCs.
 
@@ -111,10 +111,11 @@ void integrate (Domain*       D,
     // -- Update base velocity fields if appropriate.
 
     D -> updateBase();
-    
+
     // -- Unconstrained forcing substep.
 
     linAdvect (D, Us[0], Uf[0]);
+
     waveProp  (D, const_cast<const AuxField***>(Us),
                   const_cast<const AuxField***>(Uf));
 
