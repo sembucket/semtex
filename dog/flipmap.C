@@ -25,6 +25,9 @@
 // first mapping found for each case (reflect positive->negative,
 // *and* negative->positive). This way a single gather will do the
 // reflection, and leave no holes.
+//
+// NB: -x means the reflection is in the x direction, i.e. the reflection
+// occurs about the y axis!
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -33,17 +36,17 @@ static char RCS[] = "$Id$";
 
 static char prog[] = "flipmap";
 
-const real EPS = EPSSP;	// -- Default positional tolerance.
+const real_t EPS = EPSSP;	// -- Default positional tolerance.
 
-static void    getargs  (int, char**, char&, real&, ifstream&);
-static integer header   (ifstream&);
-static integer loadmesh (ifstream&, const integer, const char,
-			 vector<real>&, vector<real>&);
-static void    findmap  (const char, const integer, const real tol,
-			 const vector<real>&, const vector<real>&,
-			 const integer, vector<integer>&, vector<integer>&);
-static void     printup  (const char, const integer,
-			  const vector<integer>&, const vector<integer>&);
+static void  getargs  (int, char**, char&, real_t&, ifstream&);
+static int_t header   (ifstream&);
+static int_t loadmesh (ifstream&, const int_t, const char,
+		       vector<real_t>&, vector<real_t>&);
+static void  findmap  (const char, const int_t, const real_t tol,
+		       const vector<real_t>&, const vector<real_t>&,
+		       const int_t, vector<int_t>&, vector<int_t>&);
+static void  printup (const char, const int_t,
+		      const vector<int_t>&, const vector<int_t>&);
 
 
 int main (int    argc,
@@ -52,12 +55,12 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  ifstream        file;
-  char            generator;
-  vector<real>    x, y;
-  vector<integer> orig, flip;
-  integer         npts, nmap;
-  real            tol = EPS;
+  ifstream       file;
+  char           generator;
+  vector<real_t> x, y;
+  vector<int_t>  orig, flip;
+  int_t          npts, nmap;
+  real_t         tol = EPS;
 
   getargs (argc, argv, generator, tol, file);
 
@@ -74,7 +77,7 @@ int main (int    argc,
 static void getargs (int       argc,
 		     char**    argv,
 		     char&     gen ,
-		     real&     tol ,
+		     real_t&   tol ,
 		     ifstream& file)
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
@@ -123,14 +126,14 @@ static void getargs (int       argc,
 }
 
 
-static integer header (ifstream& file)
+static int_t header (ifstream& file)
 // ---------------------------------------------------------------------------
 // If file header indicates this is a mesh file, output header and
 // return number of points. Else die.
 // ---------------------------------------------------------------------------
 {
-  integer  nr, ns, nz, nel;
-  char     buf[StrMax];
+  int_t nr, ns, nz, nel;
+  char  buf[StrMax];
   
   file >> nr >> ns >> nz >> nel;
   file.getline (buf, StrMax);
@@ -148,17 +151,17 @@ static integer header (ifstream& file)
 }
 
 
-static integer loadmesh (ifstream&     file,
-			 const integer npts,
-			 const char    gen ,
-			 vector<real>& x   ,
-			 vector<real>& y   )
+static int_t loadmesh (ifstream&       file,
+		       const int_t     npts,
+		       const char      gen ,
+		       vector<real_t>& x   ,
+		       vector<real_t>& y   )
 // ---------------------------------------------------------------------------
 // Load the vectors x and y. Return the number of points to be mapped
 // by symmetry.
 // ---------------------------------------------------------------------------
 {
-  integer i, nmap = 0;
+  int_t i, nmap = 0;
 
   x.resize (npts);
   y.resize (npts);
@@ -193,21 +196,21 @@ static integer loadmesh (ifstream&     file,
 }
 
 
-static void findmap (const char          gen ,
-		     const integer       npts,
-		     const real          tol ,
-		     const vector<real>& x   ,
-		     const vector<real>& y   ,
-		     const integer       nmap,
-		     vector<integer>&    orig,
-		     vector<integer>&    flip)
+static void findmap (const char            gen ,
+		     const int_t           npts,
+		     const real_t          tol ,
+		     const vector<real_t>& x   ,
+		     const vector<real_t>& y   ,
+		     const int_t           nmap,
+		     vector<int_t>&        orig,
+		     vector<int_t>&        flip)
 // ---------------------------------------------------------------------------
 // This is where the mapping gets constructed. Order npts*npts operation.
 // Take the first available mapping index for each point.
 // ---------------------------------------------------------------------------
 {
-  integer i, j, k = 0;
-  bool    found;
+  int_t i, j, k = 0;
+  bool  found;
 
   orig.resize (nmap);
   flip.resize (nmap);
@@ -255,15 +258,15 @@ static void findmap (const char          gen ,
 }
 
 
-static void printup (const char             gen ,
-		     const integer          nmap,
-		     const vector<integer>& orig,
-		     const vector<integer>& flip)
+static void printup (const char           gen ,
+		     const int_t          nmap,
+		     const vector<int_t>& orig,
+		     const vector<int_t>& flip)
 // ---------------------------------------------------------------------------
 // Print the map on standard output.
 // ---------------------------------------------------------------------------
 {
-  integer i;
+  int_t i;
 
   cout << gen  << endl;
   cout << nmap << endl;

@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // auxfield.C: routines for AuxField class, including Fourier expansions.
 //
-// Copyright (c) 1994 <--> Hugh Blackburn.
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn.
 //
 // Modified for stability analysis.
 ///////////////////////////////////////////////////////////////////////////////
@@ -498,8 +498,8 @@ void AuxField::describe (char* s)  const
 }
 
 
-AuxField& AuxField::addToPlane (const integer  k    ,
-				const real alpha)
+AuxField& AuxField::addToPlane (const integer k    ,
+				const real    alpha)
 // ---------------------------------------------------------------------------
 // Add in a constant to the values on nominated plane (if it exists),
 // starting at plane zero.

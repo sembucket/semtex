@@ -14,15 +14,15 @@
 // 
 // Write to standard output.
 //
-// Three cases of combinations of base and perturbation fields may be
+// Four cases of combinations of base and perturbation fields may be
 // identified based on the number of velocity field variables and
 // planes of data in the perturbation (see README file):
 //
 // N_BASE  N_PERT  N_Z    COMPLEXITY
-//  2       2       1     Real only:    u.Re v.Re      p.Re
-//  2       3       1     Half-complex: u.Re v.Re w.Im p.Re
-//  3       3       2     Full-complex
-//  3       2       -     Not used
+//  2       2       1     Real only:    u.Re v.Re      p.Re   (O2_2D)
+//  2       3       1     Half-complex: u.Re v.Re w.Im p.Re   (O2_3D_SYMM)
+//  2       3       2     Full-complex (not implemented yet). (O2_3D)
+//  3       3       2     Full-complex                        (SO2_3D)
 //
 // The structure of the output matches the above: whenever the
 // perturbation is real only, so is the combined field (it has N_Z=1
@@ -30,6 +30,12 @@
 // combined field has N_Z>=4 (i.e. is fully 3D).  For the half- and
 // full-complex cases, the perturbation field is considered to be a
 // Fourier mode.  The output field is transformed to physical space.
+//
+// Note that only the first data plane of the base flow is read in, so
+// N_Z=2 is effectively the same as N_Z=1 for the base flow: if all we
+// have is a N_Z=1 base flow it can safely be projected to N_Z=2 for
+// use by this program. In future this should be fixed, but for now
+// the workaround is OK.
 //
 // When producing a 3D field file, the file is given minimal number of
 // modes required to contain it, subject to the 2, 3, 5 prime factor
@@ -54,6 +60,7 @@ static char RCS[] = "$Id$";
 #include <fstream>
 #include <strstream>
 #include <iomanip>
+#include <vector>
 
 using namespace std;
 
@@ -63,8 +70,6 @@ using namespace std;
 #include <lapack.h>
 #include <veclib.h>
 #include <femlib.h>
-
-#include <Array.h>
 
 static char prog[] = "combine";
 
@@ -82,34 +87,31 @@ static char* hdr_fmt[] = {
 };
 
 typedef struct hdr_data {
-  char    session[StrMax];
-  char    created[StrMax];
-  integer nr, ns, nz, nel;
-  integer step;
-  real    time;
-  real    timestep;
-  real    kinvis;
-  real    beta;
-  char    fields[StrMax];
-  char    format[StrMax];
+  char   session[StrMax];
+  char   created[StrMax];
+  int_t  nr, ns, nz, nel;
+  int_t  step;
+  real_t time;
+  real_t timestep;
+  real_t kinvis;
+  real_t beta;
+  char   fields[StrMax];
+  char   format[StrMax];
 } hdr_info;
 
-static void    getargs   (int, char**, integer&, real&, real&,
-			  ifstream&, ifstream&);
-static void    gethead   (istream&, hdr_info&);
-static bool    conform   (const hdr_info&, const hdr_info&);
-static integer roundup   (integer&, integer&, const hdr_info&,
-			  const hdr_info&);
-static void    allocate  (hdr_info&, const integer, vector<real*>&);
-static void    readdata  (hdr_info&, istream&, hdr_info&, istream&,
-			  vector<real*>&, const real);
-static void    packdata  (hdr_info&, const integer, const integer,
-			  vector<real*>&);
-static void    transform (hdr_info&, const integer, vector<real*>&,
-			  const integer);
-static void    writedata (hdr_info&, ostream&, const integer,
-			  const real, vector<real*>&);
-static bool    doswap    (const char*);
+static void  getargs   (int, char**, int_t&, real_t&, real_t&,
+			ifstream&, ifstream&);
+static void  gethead   (istream&, hdr_info&);
+static bool  conform   (const hdr_info&, const hdr_info&);
+static int_t roundup   (int_t&, int_t&, const hdr_info&, const hdr_info&);
+static void  allocate  (hdr_info&, const int_t, vector<real_t*>&);
+static void  readdata  (hdr_info&, istream&, hdr_info&, istream&,
+			vector<real_t*>&, const real_t);
+static void  packdata  (hdr_info&, const int_t, const int_t, vector<real_t*>&);
+static void  transform (hdr_info&, const int_t, vector<real_t*>&, const int_t);
+static void  writedata (hdr_info&, ostream&, const int_t,
+			const real_t, vector<real_t*>&);
+static bool  doswap    (const char*);
 
 
 int main (int    argc,
@@ -118,12 +120,12 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  ifstream      bFile, pFile;	// -- b ==> base, p ==> perturbation.
-  hdr_info      bHead, pHead;
-  integer       nBase, nPert;
-  integer       mode = 1, nz;
-  real          wght = 1.0, beta = 1.0;
-  vector<real*> u;
+  ifstream        bFile, pFile;	// -- b ==> base, p ==> perturbation.
+  hdr_info        bHead, pHead;
+  int_t           nBase, nPert;
+  int_t           mode = 1, nz;
+  real_t          wght = 1.0, beta = 1.0;
+  vector<real_t*> u;
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, mode, wght, beta, bFile, pFile);
@@ -150,9 +152,9 @@ int main (int    argc,
 
 static void getargs (int       argc ,
 		     char**    argv ,
-		     integer&  mode ,
-		     real&     wght ,
-		     real&     beta ,
+		     int_t&    mode ,
+		     real_t&   wght ,
+		     real_t&   beta ,
 		     ifstream& bfile,
 		     ifstream& pfile)
 // ---------------------------------------------------------------------------
@@ -230,8 +232,8 @@ static void gethead (istream&  file  ,
 // names are packed into a string without spaces.
 // ---------------------------------------------------------------------------
 {
-  char buf[StrMax];
-  integer  i, j; 
+  char  buf[StrMax];
+  int_t i, j; 
 
   file.get (header.session, 25); file.getline (buf, StrMax);
   
@@ -291,7 +293,7 @@ static bool conform (const hdr_info& bhead,
     if (!strcmp (bhead.fields, phead.fields))
       pad = false;
     else if (strlen (bhead.fields) == (strlen (phead.fields) - 1)) {
-      integer i, n = strlen (phead.fields);
+      int_t i, n = strlen (phead.fields);
       char extend[32];
       for (i = 0; i < 32; i++) extend[i] = '\0';
       extend[0] = bhead.fields[0];
@@ -314,10 +316,10 @@ static bool conform (const hdr_info& bhead,
 }
 
 
-static integer roundup (integer&        mode ,
-			integer&        nz   ,
-			const hdr_info& bhead,
-			const hdr_info& phead)
+static int_t roundup (int_t&          mode ,
+		      int_t&          nz   ,
+		      const hdr_info& bhead,
+		      const hdr_info& phead)
 // ---------------------------------------------------------------------------
 // Decide the number of z planes for the output field, based on
 // restrictions outlined at the top of this file.  If the output field
@@ -325,9 +327,9 @@ static integer roundup (integer&        mode ,
 // until it suits FFT.
 // ---------------------------------------------------------------------------
 {
-  integer n, ip, iq, ir, ipqr2;
+  int_t n, ip, iq, ir, ipqr2;
 
-  if (bhead.nz == 1       &&  phead.nz == 1        &&
+  if (bhead.nz == 1        &&  phead.nz == 1        &&
       strlen(phead.fields) == strlen(bhead.fields)) {
     mode = 0;
     nz   = 1;
@@ -344,35 +346,35 @@ static integer roundup (integer&        mode ,
 }
 
 
-static void allocate (hdr_info&       header,
-		      const integer   nz    ,
-		      vector<real*>&  u     )
+static void allocate (hdr_info&        header,
+		      const int_t      nz    ,
+		      vector<real_t*>& u     )
 // ---------------------------------------------------------------------------
 // Allocate enough storage to hold all the data fields (sem format).
 // Return the length of each scalar field (padded also so it's even).
 // ---------------------------------------------------------------------------
 {
-  const integer nfield    = strlen (header.fields);
-  const integer ntotelmt  = header.nr * header.ns * header.nel;
-  const integer planesize = ntotelmt + (ntotelmt % 2);
-  const integer ntot      = planesize * nz;
-  integer       i;
+  const int_t nfield    = strlen (header.fields);
+  const int_t ntotelmt  = header.nr * header.ns * header.nel;
+  const int_t planesize = ntotelmt + (ntotelmt % 2);
+  const int_t ntot      = planesize * nz;
+  int_t       i;
 
-  u.setSize (nfield);
+  u.resize (nfield);
   
   for (i = 0; i < nfield; i++) {
-    u[i] = new real [ntot];
+    u[i] = new real_t [ntot];
     Veclib::zero (ntot, u[i], 1);
   }
 }
 
 
-static void readdata (hdr_info&      bhead,
-		      istream&       bfile,
-		      hdr_info&      phead,
-		      istream&       pfile,
-		      vector<real*>& u    ,
-		      const real     eps  )
+static void readdata (hdr_info&        bhead,
+		      istream&         bfile,
+		      hdr_info&        phead,
+		      istream&         pfile,
+		      vector<real_t*>& u    ,
+		      const real_t     eps  )
 // ---------------------------------------------------------------------------
 // Binary read of data areas, with byte-swapping if required.  The
 // initial storage of base and perturbation in u is the same as for
@@ -387,28 +389,30 @@ static void readdata (hdr_info&      bhead,
 // ---------------------------------------------------------------------------
 {
   bool    swab;
-  integer i, j, len;
-  real*   addr;
-  real    u2 = 0.0, U2 = 0.0;
+  int_t   i, j, len;
+  real_t* addr;
+  real_t  u2 = 0.0, U2 = 0.0;
 
-  const integer nBfield   = strlen (bhead.fields);
-  const integer nPfield   = strlen (phead.fields);
+  const int_t nBfield   = strlen (bhead.fields);
+  const int_t nPfield   = strlen (phead.fields);
 
-  const integer nzB       = bhead.nz;
-  const integer nzP       = phead.nz;
-  const integer ntotelmt  = bhead.nr * bhead.ns * bhead.nel;
-  const integer planesize = ntotelmt + (ntotelmt % 2);
+  const int_t nzB       = bhead.nz;
+  const int_t nzP       = phead.nz;
+  const int_t ntotelmt  = bhead.nr * bhead.ns * bhead.nel;
+  const int_t planesize = ntotelmt + (ntotelmt % 2);
+
+  vector<vector<real_t> > utmp (nPfield);
 
   // -- Read the base flow into the first plane location of u.
 
   swab = doswap (bhead.format);
   
   for (i = 0; i < nBfield; i++) {
-    addr = u(i);
-    len  = ntotelmt * sizeof (real);
+    addr = u[i];
+    len  = ntotelmt * sizeof (real_t);
     bfile.read (reinterpret_cast<char*>(addr), len);
     if (swab) Veclib::brev (planesize, addr, 1, addr, 1);
-    bfile.ignore ((nzB - 1) * ntotelmt * sizeof (real));
+    bfile.ignore ((nzB - 1) * ntotelmt * sizeof (real_t));
   }
 
   // -- If required, move the 3rd and higher fields up by 1 to allow for 'w'.
@@ -422,13 +426,12 @@ static void readdata (hdr_info&      bhead,
   // -- Read perturbation flow into temporary storage.
  
   swab = doswap (phead.format);
- 
-  matrix<real> utmp(nPfield, nzP*planesize);
   
   for (i = 0; i < nPfield; i++) {
+    utmp[i].resize (nzP*planesize);
     for (j = 0; j < nzP; j++) {
-      len  = ntotelmt * sizeof (real);
-      addr = utmp(i) + j * planesize;
+      len  = ntotelmt * sizeof (real_t);
+      addr = &utmp[i][j*planesize];
       pfile.read (reinterpret_cast<char*>(addr), len);
       if (swab) Veclib::brev (planesize, addr, 1, addr, 1);
     }
@@ -439,9 +442,9 @@ static void readdata (hdr_info&      bhead,
   //    perturbation field, have used a zero base field), reset it to be 1.0.
 
   for (i = 0; i < nPfield; i++) {
-    U2 += Blas::nrm2 (ntotelmt, u(i), 1);
+    U2 += Blas::nrm2 (ntotelmt, u[i], 1);
     for (j = 0; j < nzP; j++) {
-      u2 += Blas::nrm2 (ntotelmt, utmp(i)+j*planesize, 1);
+      u2 += Blas::nrm2 (ntotelmt, &utmp[i][j*planesize], 1);
     }
   }
 
@@ -449,32 +452,32 @@ static void readdata (hdr_info&      bhead,
   
   for (i = 0; i < nPfield; i++)
     for (j = 0; j < nzP; j++)
-      Blas::scal (ntotelmt, eps*U2/u2, utmp(i)+j*planesize, 1);
+      Blas::scal (ntotelmt, eps*U2/u2, &utmp[i][j*planesize], 1);
 
   // -- Add the scaled perturbation to the base flow.
 
   if (nPfield == nBfield && nzP == 1) {	// -- Everything has 1 plane of data.
     for (i = 0; i < nPfield; i++)
-      Veclib::vadd (ntotelmt, utmp(i), 1, u(i), 1, u(i), 1);
+      Veclib::vadd (ntotelmt, &utmp[i][0], 1, u[i], 1, u[i], 1);
   } else if (nPfield == nBfield + 1 && nzP == 1) { // -- half-complex pert.
     for (i = 0; i < nPfield; i++)
       if (phead.fields[i] != 'w')
-	Veclib::copy (ntotelmt, utmp(i), 1, u(i)  +planesize, 1);
+	Veclib::copy (ntotelmt, &utmp[i][0], 1, u[i]+planesize, 1);
       else
-	Veclib::copy (ntotelmt, utmp(i), 1, u(i)+2*planesize, 1);
+	Veclib::copy (ntotelmt, &utmp[i][0], 1, u[i]+2*planesize, 1);
   } else if (nPfield == nBfield && nzP == 2) { // -- full-complex pert.
     for (i = 0; i < nPfield; i++) {
-      Veclib::copy (ntotelmt, utmp(i),             1, u(i)  +planesize, 1);
-      Veclib::copy (ntotelmt, utmp(i) + planesize, 1, u(i)+2*planesize, 1);
+      Veclib::copy (ntotelmt, &utmp[i][0],         1, u[i]  +planesize, 1);
+      Veclib::copy (ntotelmt, &utmp[i][planesize], 1, u[i]+2*planesize, 1);
     }
   }
 }
 
 
-static void packdata (hdr_info&      header,
-		      const integer  mode  ,
-		      const integer  nz    ,
-		      vector<real*>& u     )
+static void packdata (hdr_info&        header,
+		      const int_t      mode  ,
+		      const int_t      nz    ,
+		      vector<real_t*>& u     )
 // ---------------------------------------------------------------------------
 // This is only called if nz > 1.  Data in u are considered to be in
 // Fourier-transformed state, and stored, dual-like, in the first 3
@@ -482,12 +485,12 @@ static void packdata (hdr_info&      header,
 // Zero other data.
 // ---------------------------------------------------------------------------
 {
-  const integer nfield    = strlen (header.fields);
-  const integer ntotelmt  = header.nr * header.ns * header.nel;
-  const integer planesize = ntotelmt + (ntotelmt % 2);
-  const integer nblock    = 2 * planesize;
-  vector<real>  tmp (2 * planesize);
-  integer       i;
+  const int_t    nfield    = strlen (header.fields);
+  const int_t    ntotelmt  = header.nr * header.ns * header.nel;
+  const int_t    planesize = ntotelmt + (ntotelmt % 2);
+  const int_t    nblock    = 2 * planesize;
+  vector<real_t> tmp (2 * planesize);
+  int_t          i;
 
   for (i = 0; i < nfield; i++) {
     Veclib::copy (nblock, u[i] + planesize, 1, &tmp[0], 1);
@@ -497,37 +500,37 @@ static void packdata (hdr_info&      header,
 }
 
 
-static void transform (hdr_info&      header,
-		       const integer  nz    , 
-		       vector<real*>& u     , 
-		       const integer  dir   )
+static void transform (hdr_info&        header,
+		       const int_t      nz    , 
+		       vector<real_t*>& u     , 
+		       const int_t      dir   )
 // ---------------------------------------------------------------------------
 // (Inverse, here) Fourier transformation in z.
 // ---------------------------------------------------------------------------
 {
-  const integer nfield    = strlen (header.fields);
-  const integer ntotelmt  = header.nr * header.ns * header.nel;
-  const integer planesize = ntotelmt + (ntotelmt % 2);
-  integer       i;
+  const int_t nfield    = strlen (header.fields);
+  const int_t ntotelmt  = header.nr * header.ns * header.nel;
+  const int_t planesize = ntotelmt + (ntotelmt % 2);
+  int_t       i;
 
   for (i = 0; i < nfield; i++) Femlib::DFTr (u[i], nz, planesize, dir);
 }
 
 
-static void writedata (hdr_info&      header,
-		       ostream&       file  ,
-		       const integer  nz    ,
-		       const real     beta  ,
-		       vector<real*>& u     )
+static void writedata (hdr_info&        header,
+		       ostream&         file  ,
+		       const int_t      nz    ,
+		       const real_t     beta  ,
+		       vector<real_t*>& u     )
 // ---------------------------------------------------------------------------
 //
 // ---------------------------------------------------------------------------
 {
-  const integer nfield    = strlen (header.fields);
-  const integer ntotelmt  = header.nr * header.ns * header.nel;
-  const integer planesize = ntotelmt + (ntotelmt % 2);
-  char          buf[StrMax], tmp[StrMax];
-  integer       i, j;
+  const int_t nfield    = strlen (header.fields);
+  const int_t ntotelmt  = header.nr * header.ns * header.nel;
+  const int_t planesize = ntotelmt + (ntotelmt % 2);
+  char        buf[StrMax], tmp[StrMax];
+  int_t       i, j;
 
   sprintf (buf, hdr_fmt[0], header.session);
   file << buf;
@@ -554,7 +557,7 @@ static void writedata (hdr_info&      header,
 
   for (i = 0; i < nfield; i++) 
     for (j = 0; j < nz; j++)
-      file.write ((char*) (u[i] + j * planesize), ntotelmt * sizeof (real));
+      file.write ((char*) (u[i] + j * planesize), ntotelmt * sizeof (real_t));
 }
 
 

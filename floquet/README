@@ -112,7 +112,9 @@ Files
 In addition to standard semtex files (session, session.num,
 session.rst), a file containing the base flow (session.bse) is also
 required.  An additional information file called session.run,
-containing the machine name and run pid, is also produced.
+containing the machine name and run pid, is also produced. For
+arnoldi-H, the file session.map (produced by the flipmap utility) is
+needed as well.
 
 References
 ----------
@@ -136,6 +138,5 @@ References
 [7]  HM Blackburn & JM Lopez (2003), "The onset of three-dimensional
      standing and modulated travelling waves in a periodically driven
      cavity flow", J Fluid Mech V497, 289--317.
-
 
 $Id$

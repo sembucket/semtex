@@ -33,7 +33,7 @@
 // Floquet analysis for RT-symmetric base flows (which will be
 // Cartesian). The idea here is that the mapping of an instability
 // applied by RT-symmetric flows with period T is like the square of
-// two mappings of period T/2 (see [1]). Here we explicitly deal only
+// two mappings of period T/2 (see [4]). Here we explicitly deal only
 // with the 1/2-period map, but have to apply a symmetry operation to
 // the perturbations at the end of every 1/2-period before Krylov
 // analysis. The mapping vector is precomputed by flipmap.C, which
@@ -78,7 +78,7 @@ static char RCS[] = "$Id$";
 #ifdef FLIP
 static char             prog[] = "arnoldi-H";
 static char             generator;
-static vector<integer>      positive, negative;
+static vector<integer>  positive, negative;
 static void loadmap     (const char*);
 static void mirror      (real*);
 #else
@@ -92,8 +92,8 @@ static FEML*            file;
 static Mesh*            mesh;
 static BCmgr*           bman;
 
-static void    getargs (int, char**, integer&, integer&, integer&,
-		     integer&, real&, char*&);
+static void    getargs    (int, char**, integer&, integer&, integer&,
+			   integer&, real&, char*&);
 static integer preprocess (const char*);
 
 static void    EV_init    (real*);
