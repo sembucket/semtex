@@ -8,11 +8,7 @@
 
 #include "iso.h"
 
-#define PEQ(Z1,c,Z2)  (Z1)->Re += (c) * (Z2)->Im; \
-                      (Z1)->Im -= (c) * (Z2)->Re
-#define SHIFT(Z, W)   tempRe = (Z).Re; \
-                      (Z).Re = tempRe*(W).Re - (Z).Im*(W).Im; \
-                      (Z).Im = (Z).Im*(W).Re + tempRe*(W).Im
+#define PEQ(Z1,c,Z2)  (Z1)->Re += (c) * (Z2)->Im; (Z1)->Im -= (c) * (Z2)->Re
 
 
 void nonlinear (/* input     */  CVF             U   ,
