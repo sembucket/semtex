@@ -55,8 +55,9 @@ int main (int    argc,
   ios::sync_with_stdio ();
 #endif
 
+  Geometry::CoordSys system;
   char      *session, fields[StrMax];
-  int       nz;
+  int       np, nz, nel;
   FEML*     F;
   Mesh*     M;
   BCmgr*    B;
@@ -71,19 +72,20 @@ int main (int    argc,
   cout << "      (c) Hugh Blackburn 1995--97."   << endl << endl;
   
   F = new FEML (session);
-
-  nz = (int) Femlib::value ("N_Z");
-  if (nz > 1) {
-    if (nz & 1) {
-      sprintf (fields, "N_Z (%1d) must be even", nz);
-      message (prog, fields, ERROR);
-    }
-    strcpy (fields, "uvwp");
-  } else
-    strcpy (fields, "uvp");
   
-  M  = new Mesh    (*F);
-  B  = new BCmgr   (*F);
+  M = new Mesh     (*F);
+  B = new BCmgr    (*F);
+
+  nel    = M -> nEl();  
+  np     =  (int) Femlib::value ("N_POLY");
+  nz     =  (int) Femlib::value ("N_Z"   );
+  system = ((int) Femlib::value ("CYLINDRICAL") ) ?
+                     Geometry::Cylindrical : Geometry::Cartesian;
+  
+  Geometry::set (np, nz, nel, system);
+  if   (nz > 1) strcpy (fields, "uvwp");
+  else          strcpy (fields, "uvp");
+
   D  = new Domain  (*F, *M, *B, fields, session);
   BD = new Body    (session);
 
@@ -93,70 +95,6 @@ int main (int    argc,
   A = new Analyser (*D, *BD);
 
   NavierStokes (D, BD, A);
-
-#if 0
-  ifstream*  input = new ifstream;
-  char*      session;
-  char       s[StrMax];
-
-  // -- Initialization section.
-
-//  FamilyMgr::active = 0;
-
-  cout << prog << ": aeroelastic Navier--Stokes solver"  << endl;
-  cout << "      (c) Hugh Blackburn 1995, 1996." << endl << endl;
-
-  Femlib::prep  ();
-  getArgs       (argc, argv, session);
-  input -> open (session);
-  setUp         (*input);
-
-  // -- Get mesh information, save BC and parameter information.
-
-  Mesh*  M = preProcess (*input);
-  input -> close ();
-  
-  // -- Set up domain with single field, 'u'.
-
-  Domain*  D = new Domain (*M, session, Femlib::integer ("N_POLY"));
-  D -> u[0] -> setName ('u');
-
-  // -- Add remaining velocity fields.
-
-  const int DIM = Femlib::integer ("N_VAR");
-  SystemField*  newField;
-  for (int i = 1; i < DIM; i++) {
-    newField = new SystemField (*D -> u[0]);
-    D -> addField (newField);
-    D -> u[i] -> setName ('u' + i);
-  }
-
-  // -- And constraint field 'p'.
-
-  SystemField* Pressure = new SystemField (*D -> u[0], 1);
-  D -> addField (Pressure);
-  Pressure -> setName ('p');  
-  PBCmanager::build (*Pressure);
-  Pressure -> connect (*M, Femlib::integer ("N_POLY"));
-
-  // -- Startup.
-
-  D -> restart ();
-
-  // -- Seek body information, construct body.
-
-  input -> open (strcat (strcpy (s, session), ".bdy"));
-  Body*  B = new Body (*input);
-  input -> close ();
-
-  B -> force   (*D);
-
-  Analyser*  A = new Analyser (*D, *B);
-
-  // -- Solve.
-
-  NavierStokes (D, B, A);
-#endif
 
   return EXIT_SUCCESS;
 }

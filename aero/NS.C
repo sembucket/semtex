@@ -30,9 +30,8 @@ static  int               DIM;
 
 static void  nonLinear (Domain*, AuxField***, AuxField***, Vector&);
 static void  waveProp  (Domain*, const AuxField***, const AuxField***);
-static void  setPForce (const Domain*, const AuxField***, AuxField***);
+static void  setPForce (const AuxField***, AuxField***);
 static void  project   (const Domain*, AuxField***, AuxField***);
-static void  setUForce (const Domain*, AuxField***);
 
 static ModeSys** preSolve (const Domain*);
 static void      Solve    (Field*, AuxField*, ModeSys*, const int, const int);
@@ -116,19 +115,23 @@ void NavierStokes (Domain*   D,
       AuxField::swapData (D -> u[i], Us[i][0]);
       roll (Uf[i], nOrder);
     }
-    setPForce (D, (const AuxField***) Us, Uf);
+    setPForce ((const AuxField***) Us, Uf);
     Solve     (Pressure, Uf[0][0], MMS[DIM], D -> step, nOrder);
     project   (D, Us, Uf);
 
-    // -- Viscous correction substep.
+    // -- Update multilevel velocity storage.
 
-    setUForce (D, Uf);
     for (i = 0; i < DIM; i++) {
       *Us[i][0] = *D -> u[i];
       roll (Us[i], nOrder);
-      D -> u[i] -> evaluateBoundaries (D -> step);
-      if      (i == 0) D -> u[0] -> addToBoundaries (-v.x, "velocity");
-      else if (i == 1) D -> u[1] -> addToBoundaries (-v.y, "velocity");
+    }
+
+    // -- Viscous correction substep, adjust velocity BCs for frame motion.
+
+    for (i = 0; i < DIM; i++) {
+      D -> u[i] -> evaluateM0Boundaries (D -> step);
+      if      (i == 0) D -> u[0] -> addToM0Boundaries (-v.x, "velocity");
+      else if (i == 1) D -> u[1] -> addToM0Boundaries (-v.y, "velocity");
       Solve (D -> u[i], Uf[i][0], MMS[i], D -> step, nOrder);
     }
 
@@ -251,8 +254,7 @@ static void waveProp (Domain*           D ,
 }
 
 
-static void setPForce (const Domain*     D ,
-		       const AuxField*** Us,
+static void setPForce (const AuxField*** Us,
 		       AuxField***       Uf)
 // ---------------------------------------------------------------------------
 // On input, intermediate velocity storage u^ is in first time-level of Us.
@@ -289,10 +291,14 @@ static void project (const Domain* D ,
 // A frame-swapping operation takes place in the first time level of the
 // Fourier direction of Uf.  This returns to original place the swapping done
 // by setPForce.
+//
+// After creation of u^^, it is scaled by -1.0 / (D_T * KINVIS) to create
+// forcing for viscous step.
 // ---------------------------------------------------------------------------
 {
   int        i;
-  const real dt = Femlib::value ("D_T");
+  const real dt    = Femlib::value ("D_T");
+  const real alpha = -1.0 / Femlib::value ("D_T * KINVIS");
 
   for (i = 0; i < DIM; i++) {
 
@@ -301,21 +307,9 @@ static void project (const Domain* D ,
   
     Us[i][0] -> axpy (-dt, *Uf[i][0]);
     Field::swapData (Us[i][0], Uf[i][0]);
+
+    *Uf[i][0] *= alpha;
   }
-}
-
-
-static void setUForce (const Domain* D ,
-		       AuxField***   Uf)
-// ---------------------------------------------------------------------------
-// On entry, intermediate velocity storage u^^ is in lowest levels of Uf.
-// Multiply by -1.0 / (D_T * KINVIS) to create forcing for viscous step.
-// ---------------------------------------------------------------------------
-{
-  int        i;
-  const real alpha = -1.0 / Femlib::value ("D_T*KINVIS");
-
-  for (i = 0; i < DIM; i++) *Uf[i][0] *= alpha;
 }
 
 
@@ -329,16 +323,18 @@ static ModeSys** preSolve (const Domain* D)
 // ITERATIVE == 2 adds iterative solver for pressure as well.
 // ---------------------------------------------------------------------------
 {
-  int                 i, j, found;
-  const int           nSys   = D -> Nsys.getSize();
-  const int           nZ     = D -> u[0] -> nZ();
-  const int           nModes = (nZ + 1) >> 1;
-  const int           itLev  = (int) Femlib::value ("ITERATIVE");
-  const int           nOrder = (int) Femlib::value ("N_TIME");
-  const real          beta   = Femlib::value ("BETA");
-  ModeSys**           M      = new ModeSys* [DIM + 1];
-  vector<Element*>&   E      = ((Domain*) D) -> Esys;
-  const NumberSystem* N;
+  char                 name;
+  int                  i;
+  const int            nSys   = D -> Nsys.getSize();
+  const int            nZ     = Geometry::nZ();
+  const int            nModes = (nZ + 1) >> 1;
+  const int            base   = 0;
+  const int            itLev  = (int) Femlib::value ("ITERATIVE");
+  const int            nOrder = (int) Femlib::value ("N_TIME");
+  const real           beta   = Femlib::value ("BETA");
+  ModeSys**            M      = new ModeSys* [DIM + 1];
+  vector<Element*>&    E      = ((Domain*) D) -> Esys;
+  const NumberSystem** N      = new const NumberSystem* [3];
 
   // -- Velocity systems.
 
@@ -347,30 +343,20 @@ static ModeSys** preSolve (const Domain* D)
     Integration::StifflyStable (nOrder, alpha());
     const real   lambda2 = alpha[0] / Femlib::value ("KINVIS*D_T");
 
-    N = D -> u[0] -> system();
-    M[0] = new ModalMatrixSystem (lambda2, beta, nModes, E, N);
-
-    for (i = 1; i < DIM; i++) {
-      for (found = 0, j = 0; j < i; j++)
-	if (found = D -> u[j] -> system() == D -> u[i] -> system()) break;
-      
-      if (found)
-	M[i] = M[j];
-      else {
-	N = D -> u[i] -> system();
-	M[i] = new ModalMatrixSystem (lambda2, beta, nModes, E, N);
-      }
+    for (i = 0; i < DIM; i++) {
+      name = D -> u[i] -> name();
+      D -> setNumber (name, N);
+      M[i] = new ModalMatrixSystem (lambda2, beta, name, base, nModes, E, N);
     }
-
   } else
     for (i = 0; i < DIM; i++) M[i] = 0;
 
   // -- Pressure system.
 
   if (itLev < 2) {
-    N      = D -> u[DIM] -> system();
-    M[DIM] = new ModalMatrixSystem (0.0, beta, nModes, E, N);
-
+    name = D -> u[DIM] -> name();
+    D -> setNumber (name, N);
+    M[DIM] = new ModalMatrixSystem (0.0, beta, name, base, nModes, E, N);
   } else
     M[DIM] = 0;
 
