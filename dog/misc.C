@@ -7,13 +7,13 @@
 
 static char RCS[] = "$Id$";
 
-#include "Sem.h"
+#include "sem_h"
 #include <time.h>
 
 
 ostream& printVector (ostream&    strm,
 		      const char* fmt , 
-		      const int   ntot,
+		      const integer   ntot,
 		                  ... )
 // ---------------------------------------------------------------------------
 // Print up a variable number of numeric vectors on strm, in columns.
@@ -29,7 +29,7 @@ ostream& printVector (ostream&    strm,
 // ---------------------------------------------------------------------------
 {
   char    routine[] = "printVector";
-  int     nvect;
+  integer nvect;
   va_list ap;
 
   nvect = strlen (fmt);
@@ -40,12 +40,12 @@ ostream& printVector (ostream&    strm,
   switch (fmt[0]) {
 
   case 'i': {
-    int** u = new int* [nvect];
+    integer** u = new integer* [nvect];
     va_start (ap, ntot);
-    for (int k = 0; k < nvect; k++) u[k] = va_arg (ap, int*);
+    for (integer k = 0; k < nvect; k++) u[k] = va_arg (ap, integer*);
     va_end (ap);
-    for (register int l = 0; l < ntot; l++) {
-      for (register int j = 0; j < nvect; j++)
+    for (register integer l = 0; l < ntot; l++) {
+      for (register integer j = 0; j < nvect; j++)
 	strm << setw(15) << u[j][l];
       strm << endl;
     }
@@ -55,10 +55,10 @@ ostream& printVector (ostream&    strm,
   case 'r': {
     real** u = new real* [nvect];
     va_start (ap, ntot);
-    for (int k = 0; k < nvect; k++) u[k] = va_arg (ap, real*);
+    for (integer k = 0; k < nvect; k++) u[k] = va_arg (ap, real*);
     va_end (ap);
-    for (register int l = 0; l < ntot; l++) {
-      for (register int j = 0; j < nvect; j++)
+    for (register integer l = 0; l < ntot; l++) {
+      for (register integer j = 0; j < nvect; j++)
 	strm << setw(15) << u[j][l];
       strm << endl;
     }
@@ -87,7 +87,7 @@ char* upperCase (char *s)
 
 void writeField (ofstream&          file   ,
 		 const char*        session,
-		 const int          runstep,
+		 const integer      runstep,
 		 const real         runtime,
 		 vector<AuxField*>& field  )
 // ---------------------------------------------------------------------------
@@ -111,8 +111,8 @@ void writeField (ofstream&          file   ,
 
   char      s1[StrMax], s2[StrMax];
   time_t    tp (time (0));
-  int       i;
-  const int N = field.size();
+  integer       i;
+  const integer N = field.size();
 
   if (N < 1) return;
 
@@ -154,7 +154,7 @@ void writeField (ofstream&          file   ,
     file << s1;
   }
 
-  for (i = 0; i < N; i++) file << *field[i];
+ for (i = 0; i < N; i++) file << *field[i];
 
   ROOTONLY {
     if (!file) message (routine, "failed writing field file", ERROR);
@@ -247,7 +247,7 @@ ostream& operator << (ostream& file,
   return file;
 }
 
-int Header::swab() const
+bool Header::swab() const
 // ---------------------------------------------------------------------------
 // Return true if coding of binary information in *this conflicts with 
 // that for the machine (indicating byte swapping is required).
@@ -255,7 +255,7 @@ int Header::swab() const
 {
   char routine[] = "Header::swab";
   char machine[StrMax];
-  int  swap = 0;
+  bool swap = false;
 
   Veclib::describeFormat (machine);
 

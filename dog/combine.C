@@ -44,24 +44,27 @@
 
 static char RCS[] = "$Id$";
 
-#include <stdarg.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <string.h>
+#include <cstdarg>
+#include <cstdlib>
+#include <cstdio>
+#include <cctype>
+#include <cstring>
 
-#include <iostream.h>
-#include <fstream.h>
-#include <strstream.h>
-#include <iomanip.h>
+#include <iostream>
+#include <fstream>
+#include <strstream>
+#include <iomanip>
 
-#include <femdef.h>
+using namespace std;
+
+#include <cfemdef>
+#include <utility_h>
+#include <blas_h>
+#include <lapack_h>
+#include <veclib_h>
+#include <femlib_h>
+
 #include <Array.h>
-#include <Utility.h>
-#include <Blas.h>
-#include <Lapack.h>
-#include <Veclib.h>
-#include <Femlib.h>
 
 static char prog[] = "combine";
 
@@ -79,30 +82,34 @@ static char* hdr_fmt[] = {
 };
 
 typedef struct hdr_data {
-  char   session[StrMax];
-  char   created[StrMax];
-  int    nr, ns, nz, nel;
-  int    step;
-  double time;
-  double timestep;
-  double kinvis;
-  double beta;
-  char   fields[StrMax];
-  char   format[StrMax];
+  char    session[StrMax];
+  char    created[StrMax];
+  integer nr, ns, nz, nel;
+  integer step;
+  real    time;
+  real    timestep;
+  real    kinvis;
+  real    beta;
+  char    fields[StrMax];
+  char    format[StrMax];
 } hdr_info;
 
-static void getargs   (int, char**, int&, real&, real&, ifstream&, ifstream&);
-static void gethead   (istream&, hdr_info&);
-static int  conform   (const hdr_info&, const hdr_info&);
-static int  roundup   (int&, int&, const hdr_info&, const hdr_info&);
-static void allocate  (hdr_info&, const int, vector<real*>&);
-static void readdata  (hdr_info&, istream&, hdr_info&, istream&,
-		       vector<real*>&, const real);
-static void packdata  (hdr_info&, const int, const int, vector<real*>&);
-static void transform (hdr_info&, const int, vector<real*>&, const int);
-static void writedata (hdr_info&, ostream&, const int,
-		       const real, vector<real*>&);
-static int  doswap    (const char*);
+static void    getargs   (int, char**, integer&, real&, real&,
+			  ifstream&, ifstream&);
+static void    gethead   (istream&, hdr_info&);
+static bool    conform   (const hdr_info&, const hdr_info&);
+static integer roundup   (integer&, integer&, const hdr_info&,
+			  const hdr_info&);
+static void    allocate  (hdr_info&, const integer, vector<real*>&);
+static void    readdata  (hdr_info&, istream&, hdr_info&, istream&,
+			  vector<real*>&, const real);
+static void    packdata  (hdr_info&, const integer, const integer,
+			  vector<real*>&);
+static void    transform (hdr_info&, const integer, vector<real*>&,
+			  const integer);
+static void    writedata (hdr_info&, ostream&, const integer,
+			  const real, vector<real*>&);
+static bool    doswap    (const char*);
 
 
 int main (int    argc,
@@ -113,8 +120,8 @@ int main (int    argc,
 {
   ifstream      bFile, pFile;	// -- b ==> base, p ==> perturbation.
   hdr_info      bHead, pHead;
-  int           nBase, nPert;
-  int           mode = 1, nz;
+  integer       nBase, nPert;
+  integer       mode = 1, nz;
   real          wght = 1.0, beta = 1.0;
   vector<real*> u;
 
@@ -143,7 +150,7 @@ int main (int    argc,
 
 static void getargs (int       argc ,
 		     char**    argv ,
-		     int&      mode ,
+		     integer&  mode ,
 		     real&     wght ,
 		     real&     beta ,
 		     ifstream& bfile,
@@ -224,7 +231,7 @@ static void gethead (istream&  file  ,
 // ---------------------------------------------------------------------------
 {
   char buf[StrMax];
-  int  i, j; 
+  integer  i, j; 
 
   file.get (header.session, 25); file.getline (buf, StrMax);
   
@@ -256,8 +263,8 @@ static void gethead (istream&  file  ,
 }
 
 
-static int conform (const hdr_info& bhead,
-		    const hdr_info& phead)
+static bool conform (const hdr_info& bhead,
+		     const hdr_info& phead)
 // ---------------------------------------------------------------------------
 // Check that the base and perturbation field conform for combination.
 // This means they have the same element orders and number of
@@ -269,7 +276,7 @@ static int conform (const hdr_info& bhead,
 // padding for 'w'.
 // ---------------------------------------------------------------------------
 {
-  int pad = 0;
+  bool pad = false;
   
   if (bhead.nr != phead.nr || bhead.ns != phead.ns || bhead.nel != phead.nel)
     message (prog, "base and perturbation sizes do not conform", ERROR);
@@ -282,9 +289,9 @@ static int conform (const hdr_info& bhead,
 
   if (bhead.nz == 1 && phead.nz == 1)
     if (!strcmp (bhead.fields, phead.fields))
-      pad = 0;
+      pad = false;
     else if (strlen (bhead.fields) == (strlen (phead.fields) - 1)) {
-      int i, n = strlen (phead.fields);
+      integer i, n = strlen (phead.fields);
       char extend[32];
       for (i = 0; i < 32; i++) extend[i] = '\0';
       extend[0] = bhead.fields[0];
@@ -292,14 +299,14 @@ static int conform (const hdr_info& bhead,
       extend[2] = 'w';
       for (i = 2; i < n; i++) extend[i+1] = bhead.fields[i];
       if (!strcmp (extend, phead.fields))
-	pad = 1;
+	pad = true;
       else
 	message (prog, "can't extend base field list to perturbation", ERROR);
     }
 
   if (bhead.nz == 2 && phead.nz == 2)
     if (!strcmp (bhead.fields, phead.fields))
-      pad = 0;
+      pad = false;
     else
       message (prog, "base field list doesn't match perturbation", ERROR);
 
@@ -307,10 +314,10 @@ static int conform (const hdr_info& bhead,
 }
 
 
-static int roundup (int&            mode ,
-		    int&            nz   ,
-		    const hdr_info& bhead,
-		    const hdr_info& phead)
+static integer roundup (integer&        mode ,
+			integer&        nz   ,
+			const hdr_info& bhead,
+			const hdr_info& phead)
 // ---------------------------------------------------------------------------
 // Decide the number of z planes for the output field, based on
 // restrictions outlined at the top of this file.  If the output field
@@ -318,7 +325,7 @@ static int roundup (int&            mode ,
 // until it suits FFT.
 // ---------------------------------------------------------------------------
 {
-  int n, ip, iq, ir, ipqr2;
+  integer n, ip, iq, ir, ipqr2;
 
   if (bhead.nz == 1       &&  phead.nz == 1        &&
       strlen(phead.fields) == strlen(bhead.fields)) {
@@ -338,18 +345,18 @@ static int roundup (int&            mode ,
 
 
 static void allocate (hdr_info&       header,
-		      const int       nz    ,
+		      const integer   nz    ,
 		      vector<real*>&  u     )
 // ---------------------------------------------------------------------------
 // Allocate enough storage to hold all the data fields (sem format).
 // Return the length of each scalar field (padded also so it's even).
 // ---------------------------------------------------------------------------
 {
-  const int nfield    = strlen (header.fields);
-  const int ntotelmt  = header.nr * header.ns * header.nel;
-  const int planesize = ntotelmt + (ntotelmt % 2);
-  const int ntot      = planesize * nz;
-  int       i;
+  const integer nfield    = strlen (header.fields);
+  const integer ntotelmt  = header.nr * header.ns * header.nel;
+  const integer planesize = ntotelmt + (ntotelmt % 2);
+  const integer ntot      = planesize * nz;
+  integer       i;
 
   u.setSize (nfield);
   
@@ -379,17 +386,18 @@ static void readdata (hdr_info&      bhead,
 // enough space to cope.
 // ---------------------------------------------------------------------------
 {
-  int   i, j, swab, len;
-  real* addr;
-  real  u2 = 0.0, U2 = 0.0;
+  bool    swab;
+  integer i, j, len;
+  real*   addr;
+  real    u2 = 0.0, U2 = 0.0;
 
-  const int nBfield   = strlen (bhead.fields);
-  const int nPfield   = strlen (phead.fields);
+  const integer nBfield   = strlen (bhead.fields);
+  const integer nPfield   = strlen (phead.fields);
 
-  const int nzB       = bhead.nz;
-  const int nzP       = phead.nz;
-  const int ntotelmt  = bhead.nr * bhead.ns * bhead.nel;
-  const int planesize = ntotelmt + (ntotelmt % 2);
+  const integer nzB       = bhead.nz;
+  const integer nzP       = phead.nz;
+  const integer ntotelmt  = bhead.nr * bhead.ns * bhead.nel;
+  const integer planesize = ntotelmt + (ntotelmt % 2);
 
   // -- Read the base flow into the first plane location of u.
 
@@ -464,8 +472,8 @@ static void readdata (hdr_info&      bhead,
 
 
 static void packdata (hdr_info&      header,
-		      const int      mode  ,
-		      const int      nz    ,
+		      const integer  mode  ,
+		      const integer  nz    ,
 		      vector<real*>& u     )
 // ---------------------------------------------------------------------------
 // This is only called if nz > 1.  Data in u are considered to be in
@@ -474,33 +482,33 @@ static void packdata (hdr_info&      header,
 // Zero other data.
 // ---------------------------------------------------------------------------
 {
-  const int    nfield    = strlen (header.fields);
-  const int    ntotelmt  = header.nr * header.ns * header.nel;
-  const int    planesize = ntotelmt + (ntotelmt % 2);
-  const int    nblock    = 2 * planesize;
-  vector<real> tmp (2 * planesize);
-  int          i;
+  const integer nfield    = strlen (header.fields);
+  const integer ntotelmt  = header.nr * header.ns * header.nel;
+  const integer planesize = ntotelmt + (ntotelmt % 2);
+  const integer nblock    = 2 * planesize;
+  vector<real>  tmp (2 * planesize);
+  integer       i;
 
   for (i = 0; i < nfield; i++) {
-    Veclib::copy (nblock, u[i] + planesize, 1, tmp(), 1);
+    Veclib::copy (nblock, u[i] + planesize, 1, &tmp[0], 1);
     Veclib::zero ((nz - 1) * planesize, u[i] + planesize, 1);
-    Veclib::copy (nblock, tmp(), 1, u[i] + mode * nblock, 1);
+    Veclib::copy (nblock, &tmp[0], 1, u[i] + mode * nblock, 1);
   }
 }
 
 
 static void transform (hdr_info&      header,
-		       const int      nz    , 
+		       const integer  nz    , 
 		       vector<real*>& u     , 
-		       const int      dir   )
+		       const integer  dir   )
 // ---------------------------------------------------------------------------
 // (Inverse, here) Fourier transformation in z.
 // ---------------------------------------------------------------------------
 {
-  const int nfield    = strlen (header.fields);
-  const int ntotelmt  = header.nr * header.ns * header.nel;
-  const int planesize = ntotelmt + (ntotelmt % 2);
-  int       i;
+  const integer nfield    = strlen (header.fields);
+  const integer ntotelmt  = header.nr * header.ns * header.nel;
+  const integer planesize = ntotelmt + (ntotelmt % 2);
+  integer       i;
 
   for (i = 0; i < nfield; i++) Femlib::DFTr (u[i], nz, planesize, dir);
 }
@@ -508,18 +516,18 @@ static void transform (hdr_info&      header,
 
 static void writedata (hdr_info&      header,
 		       ostream&       file  ,
-		       const int      nz    ,
+		       const integer  nz    ,
 		       const real     beta  ,
 		       vector<real*>& u     )
 // ---------------------------------------------------------------------------
 //
 // ---------------------------------------------------------------------------
 {
-  const int nfield    = strlen (header.fields);
-  const int ntotelmt  = header.nr * header.ns * header.nel;
-  const int planesize = ntotelmt + (ntotelmt % 2);
-  char      buf[StrMax], tmp[StrMax];
-  int       i, j;
+  const integer nfield    = strlen (header.fields);
+  const integer ntotelmt  = header.nr * header.ns * header.nel;
+  const integer planesize = ntotelmt + (ntotelmt % 2);
+  char          buf[StrMax], tmp[StrMax];
+  integer       i, j;
 
   sprintf (buf, hdr_fmt[0], header.session);
   file << buf;
@@ -550,7 +558,7 @@ static void writedata (hdr_info&      header,
 }
 
 
-static int doswap (const char* ffmt)
+static bool doswap (const char* ffmt)
 // ---------------------------------------------------------------------------
 // Figure out if byte-swapping of input is required to make sense of input.
 // ---------------------------------------------------------------------------

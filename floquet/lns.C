@@ -2,7 +2,7 @@
 // lns.C: control spectral element DNS for incompressible flows.
 // This version drives linear evolution of a single Fourier mode.
 //
-// Copyright (C) 1994,2003 Hugh Blackburn & John Elston
+// Copyright (C) 1994,2004 Hugh Blackburn & John Elston
 //
 // USAGE:
 // -----
@@ -25,7 +25,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "stab.h"
+#include "stab_h"
 
 static char prog[] = "lns";
 static void getargs    (int, char**, char*&);
@@ -78,12 +78,11 @@ static void getargs (int    argc   ,
   const char routine[] = "getargs";
   char       buf[StrMax];
   char       usage[]   = "Usage: %s [options] session-file\n"
-    "  [options]:\n"
-    "  -h        ... print this message\n"
-    "  -i[i]     ... use iterative solver for viscous [& pressure] steps\n"
-    "  -v[v...]  ... increase verbosity level\n"
-    "  -chk      ... checkpoint field dumps\n"
-    "  -O <num> ... set numbering scheme optimisation level, Default=3\n";
+    "[options]:\n"
+    "-h        ... print this message\n"
+    "-i[i]     ... use iterative solver for viscous [& pressure] steps\n"
+    "-v[v...]  ... increase verbosity level\n"
+    "-chk      ... checkpoint field dumps\n";
  
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
@@ -94,32 +93,22 @@ static void getargs (int    argc   ,
       break;
     case 'i':
       do
-	Femlib::value ("ITERATIVE",
-		       static_cast<int>(Femlib::value ("ITERATIVE") + 1));
+	Femlib::ivalue ("ITERATIVE", Femlib::ivalue ("ITERATIVE") + 1);
       while (*++argv[0] == 'i');
       break;
     case 'v':
       do
-	Femlib::value ("VERBOSE", 
-		       static_cast<int>(Femlib::value ("VERBOSE")   + 1));
+	Femlib::ivalue ("VERBOSE", Femlib::ivalue ("VERBOSE") + 1);
       while (*++argv[0] == 'v');
       break;
     case 'c':
       if (strstr ("chk", *argv)) {
-	Femlib::value ("CHKPOINT",  static_cast<int>(1));
+	Femlib::ivalue ("CHKPOINT",  static_cast<int>(1));
       } else {
 	fprintf (stdout, usage, prog);
 	exit (EXIT_FAILURE);	  
       }
       break;
-    case 'O': {
-      int level;
-      if (*++argv[0]) level = atoi (*argv);
-      else {level = atoi (*++argv); argc--;}
-      level = clamp (level, -1, 3);
-      Femlib::value ("NUMOPTLEVEL", static_cast<double>(level));
-      break;
-    }
     default:
       sprintf (buf, usage, prog);
       cout << buf;
@@ -144,9 +133,9 @@ static void preprocess (const char*       session,
 // They are listed in order of creation.
 // ---------------------------------------------------------------------------
 {
-  const int   verbose = static_cast<int>(Femlib::value ("VERBOSE"));
-  const real* z;
-  int         i, np, nel, npert;
+  const integer verbose = Femlib::ivalue ("VERBOSE");
+  const real*   z;
+  integer       i, np, nel, npert;
 
   // -- Set default additional tokens.
 
@@ -165,7 +154,7 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "Setting geometry ... ";
 
-  np    = static_cast<int>(Femlib::value ("N_POLY"));
+  np    = Femlib::ivalue ("N_POLY");
   nel   = mesh -> nEl();
   npert = file -> attribute ("FIELDS", "NUMBER") - 1;
   

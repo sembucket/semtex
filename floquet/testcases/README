@@ -30,7 +30,7 @@ EV  Magnitude   Angle       Growth      Frequency   Residual
  0  1.0022e+00  2.4989e-01  2.2356e-03  2.4989e-01  9.4531e-07
  1  1.0022e+00 -2.4989e-01  2.2356e-03 -2.4989e-01  9.4531e-07
 
-The corresponding case in Canuto et al suggests 2.23497e-3 and
+The corresponding case in Canuto et al. suggests 2.23497e-3 and
 2.4989154e-1 for Growth and Frequency parameters respectively.
 
 backstep3D
@@ -100,7 +100,7 @@ at St=100, Re=1212 has quasi-periodic 3C/3D SW/TW instabilities.
 
 Blackburn H.M. & Lopez, J.M., The onset of three-dimensional standing
 and modulated travelling waves in a periodically driven cavity flow,
-JFM (submitted), 2003.
+JFM 497, 2003.
 
 These are the results of running (for N_Z=1 or 2)
 

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // flipmap.C: generate a list of index pairs for a symmetry-related transform.
 //
-// Copyright (C) 2002,2003 Hugh Blackburn.
+// Copyright (C) 2002,2004 Hugh Blackburn.
 //
 // USAGE
 // flipmap [options] [file]
@@ -29,21 +29,21 @@
 
 static char RCS[] = "$Id$";
 
-#include "Sem.h"
+#include "sem_h"
 
 static char prog[] = "flipmap";
 
 const real EPS = EPSSP;	// -- Default positional tolerance.
 
-static void getargs  (int, char**, char&, real&, ifstream&);
-static int  header   (ifstream&);
-static int  loadmesh (ifstream&, const int, const char,
-		      vector<real>&, vector<real>&);
-static void findmap  (const char, const int, const real tol,
-		      const vector<real>&, const vector<real>&,
-		      const int, vector<int>&, vector<int>&);
-static void printup  (const char, const int,
-		      const vector<int>&, const vector<int>&);
+static void    getargs  (int, char**, char&, real&, ifstream&);
+static integer header   (ifstream&);
+static integer loadmesh (ifstream&, const integer, const char,
+			 vector<real>&, vector<real>&);
+static void    findmap  (const char, const integer, const real tol,
+			 const vector<real>&, const vector<real>&,
+			 const integer, vector<integer>&, vector<integer>&);
+static void     printup  (const char, const integer,
+			  const vector<integer>&, const vector<integer>&);
 
 
 int main (int    argc,
@@ -52,12 +52,12 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  ifstream     file;
-  char         generator;
-  vector<real> x, y;
-  vector<int>  orig, flip;
-  int          npts, nmap;
-  real         tol = EPS;
+  ifstream        file;
+  char            generator;
+  vector<real>    x, y;
+  vector<integer> orig, flip;
+  integer         npts, nmap;
+  real            tol = EPS;
 
   getargs (argc, argv, generator, tol, file);
 
@@ -123,14 +123,14 @@ static void getargs (int       argc,
 }
 
 
-static int header (ifstream& file)
+static integer header (ifstream& file)
 // ---------------------------------------------------------------------------
 // If file header indicates this is a mesh file, output header and
 // return number of points. Else die.
 // ---------------------------------------------------------------------------
 {
-  int  nr, ns, nz, nel;
-  char buf[StrMax];
+  integer  nr, ns, nz, nel;
+  char     buf[StrMax];
   
   file >> nr >> ns >> nz >> nel;
   file.getline (buf, StrMax);
@@ -148,17 +148,17 @@ static int header (ifstream& file)
 }
 
 
-static int loadmesh (ifstream&     file,
-		     const int     npts,
-		     const char    gen ,
-		     vector<real>& x   ,
-		     vector<real>& y   )
+static integer loadmesh (ifstream&     file,
+			 const integer npts,
+			 const char    gen ,
+			 vector<real>& x   ,
+			 vector<real>& y   )
 // ---------------------------------------------------------------------------
 // Load the vectors x and y. Return the number of points to be mapped
 // by symmetry.
 // ---------------------------------------------------------------------------
 {
-  int i, nmap = 0;
+  integer i, nmap = 0;
 
   x.resize (npts);
   y.resize (npts);
@@ -194,19 +194,20 @@ static int loadmesh (ifstream&     file,
 
 
 static void findmap (const char          gen ,
-		     const int           npts,
+		     const integer       npts,
 		     const real          tol ,
 		     const vector<real>& x   ,
 		     const vector<real>& y   ,
-		     const int           nmap,
-		     vector<int>&        orig,
-		     vector<int>&        flip)
+		     const integer       nmap,
+		     vector<integer>&    orig,
+		     vector<integer>&    flip)
 // ---------------------------------------------------------------------------
 // This is where the mapping gets constructed. Order npts*npts operation.
 // Take the first available mapping index for each point.
 // ---------------------------------------------------------------------------
 {
-  int i, j, k = 0, found;
+  integer i, j, k = 0;
+  bool    found;
 
   orig.resize (nmap);
   flip.resize (nmap);
@@ -214,11 +215,11 @@ static void findmap (const char          gen ,
   if (gen == 'x') {
     for (i = 0; i < npts; i++) {
       if (x[i] > tol || x[i] < -tol) {
-	for (found = 0, j = 0; !found && j < npts; j++) {
+	for (found = false, j = 0; !found && j < npts; j++) {
 	  if (fabs(x[i] + x[j]) < tol && fabs(y[i] - y[j]) < tol) {
 	    orig[k]   = i;
 	    flip[k++] = j;
-	    found     = 1;
+	    found     = true;
 	  }
 	}
 	if (!found) {
@@ -230,11 +231,11 @@ static void findmap (const char          gen ,
   } else {
     for (i = 0; i < npts; i++) {
       if (y[i] > tol || y[i] < -tol) {
-	for (found = 0, j = 0; !found && j < npts; j++) {
+	for (found = false, j = 0; !found && j < npts; j++) {
 	  if (fabs(y[i] + y[j]) < tol && fabs(x[i] - x[j]) < tol) {
 	    orig[k]   = i;
 	    flip[k++] = j;
-	    found     = 1;
+	    found     = true;
 	  }
 	}
 	if (!found) {
@@ -254,15 +255,15 @@ static void findmap (const char          gen ,
 }
 
 
-static void printup (const char         gen ,
-		     const int          nmap,
-		     const vector<int>& orig,
-		     const vector<int>& flip)
+static void printup (const char             gen ,
+		     const integer          nmap,
+		     const vector<integer>& orig,
+		     const vector<integer>& flip)
 // ---------------------------------------------------------------------------
 // Print the map on standard output.
 // ---------------------------------------------------------------------------
 {
-  int i;
+  integer i;
 
   cout << gen  << endl;
   cout << nmap << endl;

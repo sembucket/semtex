@@ -28,10 +28,10 @@ static char RCS[] = "$Id$";
 #include <cstring>
 #include <cctype>
 
-#include <femdef.h>
-#include <Utility.h>
-#include <Feml.h>
-#include <Femlib.h>
+#include <cfemdef>
+#include <utility_h>
+#include <feml_h>
+#include <femlib_h>
 
 
 FEML::FEML (const char* session)
@@ -235,7 +235,7 @@ integer FEML::attribute (const char* tag ,
 }
 
 
-integer FEML::tokens ()
+bool FEML::tokens ()
 // ---------------------------------------------------------------------------
 // Install token table.  Return 0 if no TOKEN section is found.
 // NUMBER attribute ignored if present.  Fix any inconsistent values.

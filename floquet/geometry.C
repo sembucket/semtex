@@ -11,28 +11,27 @@ static char RCS[] = "$Id$";
 #include <cstdio>
 #include <iostream>
 
-#include <femdef.h>
-#include <Utility.h>
-#include <Geometry.h>
-#include <Femlib.h>
+#include <cfemdef>
+#include <utility_h>
+#include <femlib_h>
+#include "geometry_h"
 
-int Geometry::_pid    = 0;
-int Geometry::_nproc  = 0;
-int Geometry::_np     = 0;
-int Geometry::_nz     = 0;
-int Geometry::_nzp    = 0;
-int Geometry::_nel    = 0;
-int Geometry::_psize  = 0;
-int Geometry::_kfund  = 0;
-int Geometry::_npert  = 0;
-int Geometry::_nbase  = 0;
-int Geometry::_nslice = 0;
+integer Geometry::_pid    = 0;
+integer Geometry::_nproc  = 0;
+integer Geometry::_np     = 0;
+integer Geometry::_nz     = 0;
+integer Geometry::_nzp    = 0;
+integer Geometry::_nel    = 0;
+integer Geometry::_psize  = 0;
+integer Geometry::_kfund  = 0;
+integer Geometry::_npert  = 0;
+integer Geometry::_nbase  = 0;
+integer Geometry::_nslice = 0;
 Geometry::CoordSys Geometry::_csys = Geometry::Cartesian;
 Geometry::Category Geometry::_cat  = Geometry::O2_3D_SYMM;
 
-
-void Geometry::set (const int nel  ,
-		    const int npert)
+void Geometry::set (const integer nel  ,
+		    const integer npert)
 // ---------------------------------------------------------------------------
 // Load values of static internal variables.  Session file should
 // already have been dealt with.  As well as being specific to stability
@@ -42,20 +41,20 @@ void Geometry::set (const int nel  ,
   static char routine[] = "Geometry::set";
   char        err[StrMax];
 
-  _pid       = static_cast<int>(Femlib::value ("I_PROC"));
-  _nproc     = static_cast<int>(Femlib::value ("N_PROC"));
-  _kfund     = static_cast<int>(Femlib::value ("K_FUND"));
-  _np        = static_cast<int>(Femlib::value ("N_POLY"));
+  _pid    = Femlib::ivalue ("I_PROC");
+  _nproc  = Femlib::ivalue ("N_PROC");
+  _kfund  = Femlib::ivalue ("K_FUND");
+  _np     = Femlib::ivalue ("N_POLY");
 
-  _nbase     = static_cast<int>(Femlib::value ("N_BASE"));
-  _nslice    = static_cast<int>(Femlib::value ("N_SLICE"));
-  _csys      = (static_cast<int>(Femlib::value ("CYLINDRICAL"))) ? 
-                               Geometry::Cylindrical : Geometry::Cartesian;
-  _npert     = npert;
-  _nel       = nel;
-  _psize     = nPlane() + (nPlane() % 2);
+  _nbase  = Femlib::ivalue ("N_BASE");
+  _nslice = Femlib::ivalue ("N_SLICE");
+  _csys   = Femlib::ivalue ("CYLINDRICAL") ? 
+                        Geometry::Cylindrical : Geometry::Cartesian;
+  _npert  = npert;
+  _nel    = nel;
+  _psize  = nPlane() + (nPlane() % 2);
 
-  _nz = _nzp = static_cast<int>(Femlib::value ("N_Z"));
+  _nz = _nzp = static_cast<integer>(Femlib::value ("N_Z"));
 
   if      (_nbase == 2 && _npert == 2 && _nz == 1) _cat = O2_2D;
   else if (_nbase == 2 && _npert == 3 && _nz == 1) _cat = O2_3D_SYMM;

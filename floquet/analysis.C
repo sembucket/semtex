@@ -13,7 +13,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "Sem.h"
+#include "sem_h"
 #include <unistd.h>
 
 
@@ -44,8 +44,8 @@ Analyser::Analyser (Domain* D   ,
   // -- Set up for history points: open files, create points.
 
   if (file -> seek ("HISTORY")) {
-    int            i, id, num = 0;
-    const int      NH = file -> attribute ("HISTORY", "NUMBER");
+    integer        i, id, num = 0;
+    const integer  NH = file -> attribute ("HISTORY", "NUMBER");
     const Element* E;
     HistoryPoint*  H;
     real           r, s, x, y, z;
@@ -93,7 +93,7 @@ void Analyser::analyse (AuxField** work)
 // original absolute positions.
 // ---------------------------------------------------------------------------
 {
-  const int cflstep = static_cast<int>(Femlib::value ("IO_CFL"));
+  const integer cflstep = Femlib::ivalue ("IO_CFL");
 
   // -- Run information update.
 
@@ -109,20 +109,18 @@ void Analyser::analyse (AuxField** work)
 
   // -- Periodic dumps and global information.
   
-  const int periodic =
-    !(src->step %  static_cast<int>(Femlib::value("IO_HIS"))) ||
-    !(src->step %  static_cast<int>(Femlib::value("IO_FLD"))) ;
-  const int final    =
-      src->step == static_cast<int>(Femlib::value("N_STEP"));
-  const int state    = periodic || final;
+  const bool periodic = !(src -> step %  Femlib::ivalue("IO_HIS")) ||
+                        !(src -> step %  Femlib::ivalue("IO_FLD")) ;
+  const bool final    =   src -> step == Femlib::ivalue("N_STEP");
+  const bool state    = periodic || final;
 
   if (state) {
 
     // -- Output history point data.
       
-    register int  i, j;
-    const int     NH = history.size();
-    const int     NF = src -> u.size();
+    register integer  i, j;
+    const integer     NH = history.size();
+    const integer     NF = src -> u.size();
     HistoryPoint*     H;
     vector<real>      tmp (NF);
     vector<AuxField*> u   (NF);
@@ -150,10 +148,10 @@ void Analyser::modalEnergy ()
 // Print out modal energies per unit area, output by root processor.
 // ---------------------------------------------------------------------------
 {
-  const int NC = Geometry::nPert();
-  real      ek = 0.0;
+  const integer NC = Geometry::nPert();
+  real          ek = 0.0;
 
-  for (int i = 0; i < NC; i++) ek += src -> u[i] -> mode_L2 (0);
+  for (integer i = 0; i < NC; i++) ek += src -> u[i] -> mode_L2 (0);
 
   mdl_strm << setw(10) << src -> time 
 	   << setw( 5) << 1
@@ -168,8 +166,8 @@ void Analyser::divergence (AuxField** Us) const
 // is used as work area.
 // ---------------------------------------------------------------------------
 {
-  const int NC = Geometry::nPert();
-  int       i;
+  const integer NC = Geometry::nPert();
+  integer       i;
 
   if (Geometry::system() == Geometry::Cartesian) {
     for (i = 0; i < NC; i++) {
@@ -201,13 +199,13 @@ void Analyser::estimateCFL () const
   const real SAFETY  = 0.9;	// -- Saftey factor.
   const real dt      = Femlib::value ("D_T");
   real       CFL_dt, dt_max;
-  int        percent;
+  integer    percent;
 
   CFL_dt = max (src -> u[0] -> CFL (0), src -> u[1] -> CFL (1));
   if (Geometry::nPert() == 3) CFL_dt = max (CFL_dt, src -> u[2] -> CFL (2));
 
   dt_max  = SAFETY * CFL_max / CFL_dt;
-  percent = static_cast<int>(100.0 * dt / dt_max);
+  percent = static_cast<integer>(100.0 * dt / dt_max);
 
   cout << "-- CFL: "     << CFL_dt * dt;
   cout << ", dt (max): " << dt_max;

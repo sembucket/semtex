@@ -1,39 +1,32 @@
-///////////////////////////////////////////////////////////////////////////////
-// boundary.C: implement Boundary class functions.
+//////////////////////////////////////////////////////////////////////////////
+// egde.C: implement element-edge operators.
 //
-// Copyright (c) 1994,2003 Hugh Blackburn
+// Copyright (c) Hugh Blackburn 2003.
 //
-// SYNOPSIS
-// --------
-// Boundaries correspond to domain edges that have boundary conditions
-// applied (as opposed to periodic edges).  The ordering of internal
-// storage for condition values and geometric factors corresponds to
-// CCW traverse of 2D element edges.
-///////////////////////////////////////////////////////////////////////////////
+// Edges, like boundaries (to which they contribute) always belong to
+// a group.
+//////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
 
-#include "Sem.h"
+#include "sem_h"
 
 
-Boundary::Boundary (const int    Ident ,
-		    const char*      Bgroup,
-		    const Condition* Bcondn,
-		    const Element*   Elmt  ,
-		    const int    Side  ) :
+Edge::Edge (const char*    grp ,
+	    const Element* elmt,
+	    const integer  side) : 
 // ---------------------------------------------------------------------------
-// Constructor.  Allocate new memory for value & geometric factors.
+// Class constructor.
 // ---------------------------------------------------------------------------
-  _id      (Ident ),
-  _np      (Geometry::nP()),
-  _bgroup  (Bgroup),
-  _bcondn  (Bcondn),
-  _elmt    (Elmt  ),
-  _side    (Side  )
+  _np   (Geometry::nP()),
+  _elmt (elmt),
+  _side (side)
 {
-  const char    routine[] = "Boundary::Boundary";
-  const int npnp      = sqr (_np);
+  const char    routine[] = "Edge::Edge";
+  const integer npnp      = sqr (_np);
   char          err[StrMax];
+
+  strcpy ((_group = new char [static_cast<size_t>(strlen (grp) + 1)]), grp);
 
   _x    = new real [static_cast<size_t>(5 * _np)];
   _y    = _x  + _np;
@@ -48,18 +41,21 @@ Boundary::Boundary (const int    Ident ,
   case 2: _doffset += _np * (_np - 1); _dskip = -1;   break;
   case 3: _doffset += 0;               _dskip = -_np; break;
   default:
-    sprintf (err, "cannot construct side %1d", _side + 1);
+    sprintf (err, "cannot construct edge %1d", _side + 1);
     message (routine, err, ERROR);
   }
+
   _elmt -> sideGeom (_side, _x, _y, _nx, _ny, _area);
+
+  if (Geometry::cylindrical()) Veclib::vmul (_np, _area, 1, _y, 1, _area, 1);
 }
 
 
-void Boundary::geometry (real* X   ,
-			 real* Y   ,
-			 real* Nx  ,
-			 real* Ny  ,
-			 real* Area) const
+void Edge::geometry (real* X   ,
+		     real* Y   ,
+		     real* Nx  ,
+		     real* Ny  ,
+		     real* Area) const
 // ---------------------------------------------------------------------------
 // Copy internal geometric info for exterior use.
 // ---------------------------------------------------------------------------
@@ -72,123 +68,18 @@ void Boundary::geometry (real* X   ,
 }
 
 
-void Boundary::evaluate (const int plane,
-			 const int step ,
-			 real*     tgt  ) const
-// ---------------------------------------------------------------------------
-// Load boundary condition storage area with numeric values.
-// ---------------------------------------------------------------------------
-{
-  _bcondn -> evaluate (_np, _id, plane, _elmt, _side, step, _nx, _ny, tgt);
-}
-
-
-void Boundary::set (const real*    src,
-		    const integer* b2g,
-		    real*          tgt) const
-// ---------------------------------------------------------------------------
-// Use (boundary condition) values in src to over-ride (set) values
-// in globally-numbered tgt.  This will only take place on essential BCs.
-//
-// b2g is a pointer to the global node numbers for the appropriate
-// element's edge nodes.
-// ---------------------------------------------------------------------------
-{
-  _bcondn -> set (_side, b2g, src, tgt);
-}
-
-
-void Boundary::sum (const real*    src,
-		    const integer* b2g,
-		    real*          wrk,
-		    real*          tgt) const
-// ---------------------------------------------------------------------------
-// Use (boundary condition) values in src to add in the boundary-integral
-// terms generated in constructing the weak form of the MWR into globally-
-// numbered tgt.  This will only take place on natural BCs.
-//
-// b2g is a pointer to the global node numbers for the appropriate
-// element's edge nodes.  wrk is a work array, np long.
-// ---------------------------------------------------------------------------
-{
-  _bcondn -> sum (_side, b2g, src, _area, wrk, tgt);
-}
-
-
-void Boundary::augmentSC (const int      nband ,
-			  const int      nsolve,
-			  const integer* b2g   ,
-			  real*          work  ,
-			  real*          H     ) const
-// ---------------------------------------------------------------------------
-// Add in diagonal terms <K, w> to (banded LAPACK) H on mixed BCs.
-// Work array must be np long.
-// ---------------------------------------------------------------------------
-{
-  _bcondn -> augmentSC (_side, nband, nsolve, b2g + bOff(), _area, work, H);
-}
-
-
-void Boundary::augmentOp (const integer* b2g ,
-			  const real*    src ,
-			  real*          tgt ) const
-// ---------------------------------------------------------------------------
-// This operation is used to augment the element-wise Helmholtz
-// operations where there are mixed BCs.  Add in diagonal terms
-// <K*src, w> to tgt.  Both src and tgt are globally-numbered vectors.
-// ---------------------------------------------------------------------------
-{
-  _bcondn -> augmentOp (_side, b2g + bOff(), _area, src, tgt);
-}
-
-
-void Boundary::augmentDg (const integer* b2g,
-			  real*          tgt) const
-// ---------------------------------------------------------------------------
-// This operation is used to augment the element-wise construction of
-// the diagonal of the global Helmholtz matrix where there are mixed
-// BCs.  Add in diagonal terms <K, w> to globally-numbered tgt.
-// ---------------------------------------------------------------------------
-{
-  _bcondn -> augmentDg (_side, b2g + bOff(), _area, tgt);
-}
-
-
-void Boundary::print () const
-// ---------------------------------------------------------------------------
-// (Debugging) utility to print internal information.
-// ---------------------------------------------------------------------------
-{
-  char info[StrMax];
-
-  cout << "** Boundary id: " << _id + 1 << " -> ";
-  cout << _elmt ->  ID() + 1 << "." << _side + 1;
-  cout << " (Element id.side)" << endl;
-  
-  _bcondn -> describe (info);
-
-  cout << info << endl;
-
-  cout << "  " << _np << " (number of points along edge)" << endl;
-  cout << "         nx             ny             area";
-  cout << endl;
-  
-  printVector (cout, "rrr", _np, _nx, _ny, _area);
-}
-
-
-void Boundary::curlCurl (const int   k  ,
-			 const real* Ur ,
-			 const real* Ui ,
-			 const real* Vr ,
-			 const real* Vi ,
-			 const real* Wr ,
-			 const real* Wi ,
-			 real*       xr ,
-			 real*       xi ,
-			 real*       yr ,
-			 real*       yi ,
-			 real*       wrk) const
+void Edge::curlCurl (const integer k  ,
+		     const real*   Ur ,
+		     const real*   Ui ,
+		     const real*   Vr ,
+		     const real*   Vi ,
+		     const real*   Wr ,
+		     const real*   Wi ,
+		     real*         xr ,
+		     real*         xi ,
+		     real*         yr ,
+		     real*         yi ,
+		     real*         wrk) const
 // ---------------------------------------------------------------------------
 // Generate (the Fourier mode equivalent of) curl curl u along this boundary.
 //
@@ -210,10 +101,10 @@ void Boundary::curlCurl (const int   k  ,
 // Work vector wrk 5*np*np + 3*np long.
 // ---------------------------------------------------------------------------
 {
-  const int  npnp        = sqr (_np);
-  const int  elmtOff     = _elmt -> ID() * npnp;
-  const int  localOff    = _doffset - elmtOff;
-  const bool fullComplex = (Geometry::nPert() == 3)&&(Geometry::nZ() == 2);
+  const integer npnp        = sqr (_np);
+  const integer elmtOff     = _elmt -> ID() * npnp;
+  const integer localOff    = _doffset - elmtOff;
+  const bool    fullComplex = (Geometry::nPert() == 3)&&(Geometry::nZ() == 2);
 
   real* gw = wrk;
   real* ew = gw + npnp + npnp;
@@ -349,9 +240,9 @@ void Boundary::curlCurl (const int   k  ,
 }
 
 
-Vector Boundary::normalTraction (const char* grp,
-				 const real* p  ,
-				 real*       wrk) const
+Vector Edge::normalTraction (const char* grp,
+			     const real* p  ,
+			     real*       wrk) const
 // ---------------------------------------------------------------------------
 // Compute normal tractive force on this boundary segment, if it lies
 // in group called grp, using p as a pressure stress field data area.
@@ -359,13 +250,12 @@ Vector Boundary::normalTraction (const char* grp,
 // Wrk is a work vector elmt_np_max long.
 // ---------------------------------------------------------------------------
 {
-  Vector Force = {0.0, 0.0, 0.0};
+  integer i;
+  Vector  Force = {0.0, 0.0, 0.0};
 
-  if (strcmp (grp, _bcondn -> group()) == 0) {
-    register int i;
-    const int    np = Geometry::nP();
+  if (strcmp (grp, _group) == 0) {
 
-    Veclib::copy (_np, p + _doffset, _dskip, wrk, 1);
+    _elmt -> sideGet (_side, p, wrk);
 
     for (i = 0; i < _np; i++) {
       Force.x += _nx[i] * wrk[i] * _area[i];
@@ -377,10 +267,10 @@ Vector Boundary::normalTraction (const char* grp,
 }
 
 
-Vector Boundary::tangentTraction (const char* grp,
-				  const real* u  ,
-				  const real* v  ,
-				  real*       wrk) const
+Vector Edge::tangentTraction (const char* grp,
+			      const real* u  ,
+			      const real* v  ,
+			      real*       wrk) const
 // ---------------------------------------------------------------------------
 // Compute viscous stress on this boundary segment, if it lies in group grp.
 // u is data area for first velocity component field, v is for second.
@@ -389,20 +279,19 @@ Vector Boundary::tangentTraction (const char* grp,
 // ---------------------------------------------------------------------------
 {
   Vector Force = {0.0, 0.0, 0.0};
-  real   *ux = wrk + 2 * _np, *uy = wrk + 3 * _np;
 
-  if (strcmp (grp, _bcondn -> group()) == 0) {
-    const int    offset = _elmt -> ID() * sqr (_np);
-    register int i;
+  if (strcmp (grp, _group) == 0) {
+    register integer i;
+    real         *ux = wrk + 2 * _np, *uy = wrk + 3 * _np;
 
-    _elmt -> sideGrad (_side, u + offset, ux, uy, wrk);
+    _elmt -> sideGrad (_side, u + _doffset, ux, uy, wrk);
 
     for (i = 0; i < _np; i++) {
       Force.x += (2.0*ux[i]*_nx[i] + uy[i]*_ny[i]) * _area[i];
       Force.y +=                     uy[i]*_nx[i]  * _area[i];
     }
 
-    _elmt -> sideGrad (_side, v + offset, ux, uy, wrk);
+    _elmt -> sideGrad (_side, v + _doffset, ux, uy, wrk);
 
     for (i = 0; i < _np; i++) {
       Force.x +=                     ux[i]*_ny[i]  * _area[i];
@@ -414,24 +303,51 @@ Vector Boundary::tangentTraction (const char* grp,
 }
 
 
-real Boundary::flux (const char* grp,
-		     const real* src,
-		     real*       wrk) const
+real Edge::normalFlux (const char* grp,
+		       const real* u  ,
+		       const real* v  ,
+		       real*       wrk) const
 // ---------------------------------------------------------------------------
-// Compute wall-normal flux of field src on this boundary segment,
-// if it lies in group grp.  Wrk is a work vector, 4 * elmt_np_max long.
-// NB: n is a unit outward normal, with no component in Fourier direction.
-// NB: For cylindrical coords, it is assumed we are dealing with a scalar!
+// Compute edge-normal flux, with u being x-component velocity and v
+// being y-component, if this edge lies in group grp. Work vector wrk
+// is 2*_np long.
+// ---------------------------------------------------------------------------
+{
+  integer i;
+  real    flux = 0.0;
+  real    *U = wrk, *V = wrk + _np;
+  
+  if (strcmp (grp, _group) == 0) {
+
+    _elmt -> sideGet (_side, u, U);
+    _elmt -> sideGet (_side, v, V);
+
+    for (i = 0; i < _np; i++)
+      flux += (U[i]*_nx[i] + V[i]*_ny[i]) * _area[i];
+  }
+
+  return flux;
+}
+
+
+real Edge::gradientFlux (const char* grp,
+			 const real* src,
+			 real*       wrk) const
+// ---------------------------------------------------------------------------
+// Compute wall-normal gradient flux of field src on this boundary
+// segment, if it lies in group grp.  Wrk is a work vector, 4 *
+// elmt_np_max long.  NB: n is a unit outward normal, with no
+// component in Fourier direction.  NB: For cylindrical coords, it is
+// assumed we are dealing with a scalar!
 // ---------------------------------------------------------------------------
 {
   register real dcdn = 0.0;
   
-  if (strcmp (grp, _bcondn -> group()) == 0) {
-    const real*      data = src + _elmt -> ID() * Geometry::nTotElmt();
-    register int i;
-    register real    *cx = wrk, *cy = wrk + _np, *r = wrk + _np + _np;
+  if (strcmp (grp, _group) == 0) {
+    register integer  i;
+    register real *cx = wrk, *cy = wrk + _np, *r = wrk + _np + _np;
 
-    _elmt -> sideGrad (_side, data, cx, cy, r);
+    _elmt -> sideGrad (_side, src + _doffset, cx, cy, r);
     for (i = 0; i < _np; i++)
       dcdn += (cx[i]*_nx[i] + cy[i]*_ny[i]) * _area[i];
   }
@@ -440,32 +356,30 @@ real Boundary::flux (const char* grp,
 }
 
 
-void Boundary::addForGroup (const char* grp,
-			    const real  val,
-			    real*       tgt) const
+void Edge::addForGroup (const char* grp,
+			const real  val,
+			real*       tgt) const
 // ---------------------------------------------------------------------------
-// Add val to tgt if this Boundary falls in group.
+// Add val to tgt if this Edge falls in group.
 // ---------------------------------------------------------------------------
 {
-  if (strcmp (grp, _bcondn -> group()) == 0)
-    Veclib::sadd (_np, val, tgt, 1, tgt, 1);
+  if (strcmp (grp, _group) == 0) Veclib::sadd (_np, val, tgt, 1, tgt, 1);
 }
 
 
-void Boundary::setForGroup (const char* grp,
-			    const real  val,
-			    real*       tgt) const
+void Edge::setForGroup (const char* grp,
+			const real  val,
+			real*       tgt) const
 // ---------------------------------------------------------------------------
-// Set tgt to val if this Boundary falls in group.
+// Set tgt to val if this Edge falls in group.
 // ---------------------------------------------------------------------------
 {
-  if (strcmp (grp, _bcondn -> group()) == 0)
-    Veclib::fill (_np, val, tgt, 1);
+  if (strcmp (grp, _group) == 0) Veclib::fill (_np, val, tgt, 1);
 }
 
 
-void Boundary::get (const real* src,
-		    real*       tgt) const
+void Edge::get (const real* src,
+		real*       tgt) const
 // ---------------------------------------------------------------------------
 // Load np-long tgt (representing storage along edge of element) from
 // element-wise data storage src.
@@ -475,16 +389,7 @@ void Boundary::get (const real* src,
 }
 
 
-const char* Boundary::group () const
-// ---------------------------------------------------------------------------
-// Return group of underlying boundary Condition.
-// ---------------------------------------------------------------------------
-{
-  return _bcondn -> group();
-}
-
-
-void Boundary::mulY (real* tgt) const
+void Edge::mulY (real* tgt) const
 // ---------------------------------------------------------------------------
 // Multiply tgt by y (i.e. radius) along this edge.
 // ---------------------------------------------------------------------------
@@ -493,17 +398,16 @@ void Boundary::mulY (real* tgt) const
 }
 
 
-void Boundary::divY (real* tgt) const
+void Edge::divY (real* tgt) const
 // ---------------------------------------------------------------------------
-// Divide tgt by y (i.e. radius) along this edge.
+// Divide tgt by y (typically, radius) along this edge.
 // ---------------------------------------------------------------------------
 {
-  register int i;
-  real     invr;
+  register integer i;
+  real             invr;
 
   for (i = 0; i < _np; i++) {
     invr = (_y[i] > EPSDP) ? 1.0/_y[i] : 0.0;
     tgt[i] *= invr;
   }
 }
-

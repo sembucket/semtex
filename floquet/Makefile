@@ -26,15 +26,14 @@ ifdef OLDCODE		# -- Make the old cylindrical code version.
   KPROG   := $(KPROG)_old
 endif
 
-
 # ----------------------------------------------------------------------------
 # Semtex standard sources.
 #
 SEMFILES = analysis auxfield BCmgr boundary bsys condition domain	\
-	   element family feml field geometry history integration	\
+	   edge element family feml field geometry history integration	\
 	   matrix mesh misc particle pressure
 SEMOBJ   = $(addsuffix .o,$(SEMFILES))
-SEMHDR   = Sem.h
+SEMHDR   = sem_h
 
 # ----------------------------------------------------------------------------
 # Build eigensolver code.
@@ -42,7 +41,7 @@ SEMHDR   = Sem.h
 FL_FILES = arnoldi integrate stabanalysis
 FL_OBJ   = $(addsuffix .o,$(FL_FILES))
 
-$(KPROG): sem $(FL_OBJ) $(SEMOBJ) stab.h
+$(KPROG): sem $(FL_OBJ) $(SEMOBJ) stab_h
 	$(LD) -o $@ $(FL_OBJ) $(SEMOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
@@ -51,7 +50,7 @@ $(KPROG): sem $(FL_OBJ) $(SEMOBJ) stab.h
 ST_FILES = lns integrate stabanalysis
 ST_OBJ   = $(addsuffix .o,$(ST_FILES))
 
-lns: sem $(ST_OBJ) $(SEMOBJ) stab.h
+lns: sem $(ST_OBJ) $(SEMOBJ) stab_h
 	$(LD) -o $@ $(ST_OBJ) $(SEMOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------

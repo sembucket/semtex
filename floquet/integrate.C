@@ -18,9 +18,9 @@
 
 static char RCS[] = "$Id$";
 
-#include "stab.h"
+#include "stab_h"
 
-static int                NORD, NPERT, NBASE, NZ, CYL, PROB;
+static integer            NORD, NPERT, NBASE, NZ, CYL, PROB;
 static vector<MatrixSys*> MS;
 
 static void        linAdvect (Domain*, AuxField**, AuxField**);
@@ -28,7 +28,7 @@ static void        waveProp  (Domain*, const AuxField***, const AuxField***);
 static void        setPForce (const AuxField**, AuxField**);
 static void        project   (const Domain*, AuxField**, AuxField**);
 static MatrixSys** preSolve  (const Domain*);
-static void        Solve     (Domain*, const int, AuxField*, MatrixSys*);
+static void        Solve     (Domain*, const integer, AuxField*, MatrixSys*);
 
 
 void integrate (Domain*       D,
@@ -48,12 +48,12 @@ void integrate (Domain*       D,
   NPERT = Geometry::nPert();
   NBASE = Geometry::nBase();
   NZ    = Geometry::nZ();
-  NORD  = static_cast<int>(Femlib::value ("N_TIME"));
   PROB  = Geometry::problem();
+  NORD  = Femlib::ivalue ("N_TIME");
 
-  int        i, j, k;
-  const real dt    = Femlib::value ("D_T");
-  const int  nStep = static_cast<int>(Femlib::value ("N_STEP"));
+  integer       i, j, k;
+  const real    dt    = Femlib::value ("D_T");
+  const integer nStep = Femlib::ivalue ("N_STEP");
 
   static MatrixSys** MS;
   static AuxField*** Us;
@@ -68,8 +68,8 @@ void integrate (Domain*       D,
     
     // -- Create multi-level storage for velocities and forcing.
 
-    const int ntot  = Geometry::nTotProc();
-    real*     alloc = new real [static_cast<size_t>(2*NPERT*NORD*ntot)];
+    const integer ntot  = Geometry::nTotProc();
+    real*         alloc = new real [static_cast<size_t>(2*NPERT*NORD*ntot)];
 
     Us = new AuxField** [static_cast<size_t>(NORD)];
     Uf = new AuxField** [static_cast<size_t>(NORD)];
@@ -193,7 +193,7 @@ static void linAdvect (Domain*    D ,
 // modified.
 // ---------------------------------------------------------------------------
 {
-  int               i, j;
+  integer           i, j;
   vector<AuxField*> U(NBASE + 1), u(NPERT), N(NPERT);
   Field*            T = D -> u[0];
 
@@ -258,7 +258,7 @@ static void waveProp (Domain*           D ,
 // computed and left in D's velocity areas. 
 // ---------------------------------------------------------------------------
 {
-  int               i, q;
+  integer           i, q;
   vector<AuxField*> H (NPERT);	// -- Mnemonic for u^{Hat}.
 
   for (i = 0; i < NPERT; i++) {
@@ -266,7 +266,7 @@ static void waveProp (Domain*           D ,
     *H[i] = 0.0;
   }
 
-  const int Je = min (D -> step, NORD);
+  const integer Je = min (D -> step, NORD);
   vector<real>  alpha (Integration::OrderMax + 1);
   vector<real>  beta  (Integration::OrderMax);
   
@@ -290,7 +290,7 @@ static void setPForce (const AuxField** Us,
 // storage of Uf as a forcing field for discrete PPE.
 // ---------------------------------------------------------------------------
 {
-  int        i;
+  integer    i;
   const real dt = Femlib::value ("D_T");
 
   for (i = 0; i < NPERT; i++) (*Uf[i] = *Us[i]) . gradient (i);
@@ -314,7 +314,7 @@ static void project (const Domain* D ,
 // create forcing for viscous step.
 // ---------------------------------------------------------------------------
 {
-  int        i;
+  integer    i;
   const real alpha = -1.0 / Femlib::value ("D_T * KINVIS");
   const real beta  =  1.0 / Femlib::value ("KINVIS");
 
@@ -337,10 +337,10 @@ static MatrixSys** preSolve (const Domain* D)
 // Set up ModalMatrixSystems for system with only 1 Fourier mode.
 // ---------------------------------------------------------------------------
 {
-  const int  mode  = (PROB == Geometry::O2_2D) ? 0 : 1;
-  const int  bmode = mode * Geometry::kFund();
-  const real beta  = mode * Femlib::value ("BETA");
-  const int  itLev = static_cast<int>(Femlib::value ("ITERATIVE"));
+  const integer mode  = (PROB == Geometry::O2_2D) ? 0 : 1;
+  const integer bmode = mode * Geometry::kFund();
+  const real    beta  = mode * Femlib::value ("BETA");
+  const integer itLev = Femlib::ivalue ("ITERATIVE");
 
   vector<real> alpha (Integration::OrderMax + 1);
   Integration::StifflyStable (NORD, &alpha[0]);
@@ -420,25 +420,25 @@ static MatrixSys** preSolve (const Domain* D)
 }
 
 
-static void Solve (Domain*    D,
-		   const int  i,
-		   AuxField*  F,
-		   MatrixSys* M)
+static void Solve (Domain*       D,
+		   const integer i,
+		   AuxField*     F,
+		   MatrixSys*    M)
 // ---------------------------------------------------------------------------
 // Solve Helmholtz problem for U, using F as a forcing Field.  Iterative
 // or direct solver selected on basis of field type, step, time order.
 // ---------------------------------------------------------------------------
 {
-  const int step = D -> step;
+  const integer step = D -> step;
 
   if (i < NPERT && step < NORD) {
 
     // -- We need a temporary matrix system for a viscous solve.
 
-    const int  mode  = (PROB == Geometry::O2_2D) ? 0 : 1;
-    const int  bmode = mode * Geometry::kFund();
-    const real beta  = mode * Femlib::value ("BETA");
-    const int  Je    = min (step, NORD);    
+    const integer mode  = (PROB == Geometry::O2_2D) ? 0 : 1;
+    const integer bmode = mode * Geometry::kFund();
+    const real    beta  = mode * Femlib::value ("BETA");
+    const integer Je    = min (step, NORD);    
     vector<real>  alpha (Je + 1);
     Integration::StifflyStable (Je, &alpha[0]);
     const real betak2  = sqr (Field::modeConstant (D->u[i]->name(),mode,beta));

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // pressure.C: routines to deal with pressure field boundary conditions.
 //
-// Copyright (c) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994,2004 Hugh Blackburn
 //
 // Class variables _Pn & _Un provide storage for the mode equivalents of
 //   _Pn:  normal gradient of the pressure field,
@@ -18,7 +18,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "Sem.h"
+#include "sem_h"
 
 real**** PBCmgr::_Pnx = 0;
 real**** PBCmgr::_Pny = 0;
@@ -35,11 +35,11 @@ void PBCmgr::build (const Field* P)
 // There is some wastage as memory is also allocated for essential BCs.
 // ---------------------------------------------------------------------------
 {
-  const int np    = Geometry::nP();
-  const int nTime = static_cast<int>(Femlib::value ("N_TIME"));
-  const int nEdge = P -> _nbound;
-  const int nZ    = P -> _nz;
-  int   i, j, k;
+  const integer np    = Geometry::nP();
+  const integer nTime = Femlib::ivalue ("N_TIME");
+  const integer nEdge = P -> _nbound;
+  const integer nZ    = P -> _nz;
+  integer       i, j, k;
 
   _Pnx = new real*** [static_cast<size_t>(nTime)];
   _Pny = new real*** [static_cast<size_t>(nTime)];
@@ -71,7 +71,7 @@ void PBCmgr::build (const Field* P)
 }
 
 
-void PBCmgr::maintain (const int        step   ,
+void PBCmgr::maintain (const integer    step   ,
 		       const Field*     P      ,
 		       const AuxField** Us     ,
 		       const AuxField** Uf     ,
@@ -99,10 +99,10 @@ void PBCmgr::maintain (const int        step   ,
 {
   const real      nu    = Femlib::value ("KINVIS");
   const real      invDt = 1.0 / Femlib::value ("D_T");
-  const int       nTime = static_cast<int>(Femlib::value ("N_TIME"));
-  const int       nEdge = P -> _nbound;
-  const int       nZ    = P -> _nz;
-  const int       nP    =  Geometry::nP();
+  const integer   nTime = Femlib::ivalue ("N_TIME");
+  const integer   nEdge = P -> _nbound;
+  const integer   nZ    = P -> _nz;
+  const integer   nP    =  Geometry::nP();
 
   const AuxField* Ux = Us[0];
   const AuxField* Uy = Us[1];
@@ -113,8 +113,8 @@ void PBCmgr::maintain (const int        step   ,
 
   const vector<Boundary*>& BC = P -> _bsys -> BCs (0);
   register Boundary*       B;
-  register int             i, k, q;
-  int                      offset, skip, Je;
+  register integer         i, k, q;
+  integer                  offset, skip, Je;
 
   // -- Roll grad P storage area up, load new level of nonlinear terms Uf.
 
@@ -233,13 +233,13 @@ void PBCmgr::maintain (const int        step   ,
 }
 
 
-void PBCmgr::evaluate (const int   id   ,
-		       const int   np   ,
-		       const int   plane,
-		       const int   step ,
-		       const real* nx   ,
-		       const real* ny   ,
-		       real*       tgt  )
+void PBCmgr::evaluate (const integer id   ,
+		       const integer np   ,
+		       const integer plane,
+		       const integer step ,
+		       const real*   nx   ,
+		       const real*   ny   ,
+		       real*         tgt  )
 // ---------------------------------------------------------------------------
 // Load PBC value with values obtained from HOBC multi-level storage.
 //
@@ -255,7 +255,7 @@ void PBCmgr::evaluate (const int   id   ,
 {
   if (step < 1) return;
 
-  register int q, Je = static_cast<int>(Femlib::value ("N_TIME"));
+  register integer q, Je = Femlib::ivalue ("N_TIME");
   vector<real>     work (Integration::OrderMax + 2 * np);
   real*            beta  = &work[0];
   real*            tmpX  = beta + Integration::OrderMax;
@@ -288,7 +288,7 @@ void PBCmgr::accelerate (const Vector& a,
 {
   const vector<Boundary*>& BC = u -> _bsys -> BCs (0);
   register Boundary*       B;
-  register int             i;
+  register integer         i;
 
   for (i = 0; i < u -> _nbound; i++) {
     B = BC[i];

@@ -6,7 +6,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "Sem.h"
+#include "sem_h"
 
 Domain::Domain (FEML*             F,
 		vector<Element*>& E,
@@ -25,13 +25,13 @@ Domain::Domain (FEML*             F,
 // ---------------------------------------------------------------------------
   elmt (E)
 {
-  const int verbose = static_cast<int>(Femlib::value ("VERBOSE"));
-  const int nbase   = Geometry::nBase();
-  const int nz      = Geometry::nZProc();
-  const int ntot    = Geometry::nTotProc();
-  const int nplane  = Geometry::planeSize();
-  int       i, nfield;
-  real*     alloc;
+  const integer verbose = Femlib::ivalue ("VERBOSE");
+  const integer nbase   = Geometry::nBase();
+  const integer nz      = Geometry::nZProc();
+  const integer ntot    = Geometry::nTotProc();
+  const integer nplane  = Geometry::planeSize();
+  integer       i, nfield;
+  real*         alloc;
 
   strcpy ((name = new char [strlen (F -> root()) + 1]), F -> root());
   Femlib::value ("t", time = 0.0);
@@ -88,13 +88,13 @@ void Domain::report (ostream& file)
 // Print a run-time summary of domain & timestep information on file.
 // ---------------------------------------------------------------------------
 {
-  const real dt  =                  Femlib::value ("D_T");
-  const real lz  =                  Femlib::value ("TWOPI / BETA");
-  const real Re  =                  Femlib::value ("1.0   / KINVIS");
-  const int  ns  = static_cast<int>(Femlib::value ("N_STEP"));
-  const int  nt  = static_cast<int>(Femlib::value ("N_TIME"));
-  const int  chk = static_cast<int>(Femlib::value ("CHKPOINT"));
-  const int  per = static_cast<int>(Femlib::value ("IO_FLD"));
+  const real    dt  = Femlib::value  ("D_T");
+  const real    lz  = Femlib::value  ("TWOPI / BETA");
+  const real    Re  = Femlib::value  ("1.0   / KINVIS");
+  const integer ns  = Femlib::ivalue ("N_STEP");
+  const integer nt  = Femlib::ivalue ("N_TIME");
+  const integer chk = Femlib::ivalue ("CHKPOINT");
+  const integer per = Femlib::ivalue ("IO_FLD");
 
   file << "-- Coordinate system       : ";
   if (Geometry::system() == Geometry::Cylindrical)
@@ -131,10 +131,10 @@ void Domain::restart ()
 // this fails, initialise all fields to random noise.
 // ---------------------------------------------------------------------------
 {
-  int       i;
-  const int nF   = nField();
-  const int ntot = Geometry::nTotProc();
-  char      restartfile[StrMax];
+  integer       i;
+  const integer nF   = nField();
+  const integer ntot = Geometry::nTotProc();
+  char          restartfile[StrMax];
   
   ROOTONLY cout << "-- Initial condition       : ";
   ifstream file (strcat (strcpy (restartfile, name), ".rst"));
@@ -160,9 +160,9 @@ void Domain::dump ()
 // Check if a field-file write is required, carry out.
 // ---------------------------------------------------------------------------
 {
-  const int periodic = !(step %  static_cast<int>(Femlib::value ("IO_FLD")));
-  const int initial  = step   == static_cast<int>(Femlib::value ("IO_FLD"));
-  const int final    = step   == static_cast<int>(Femlib::value ("N_STEP"));
+  const bool periodic = !(step %  Femlib::ivalue ("IO_FLD"));
+  const bool initial  =   step == Femlib::ivalue ("IO_FLD");
+  const bool final    =   step == Femlib::ivalue ("N_STEP");
 
   if (!(periodic || final)) return;
   ofstream output;
@@ -170,10 +170,10 @@ void Domain::dump ()
   Femlib::synchronize();
 
   ROOTONLY {
-    const char routine[] = "Domain::dump";
-    char       dumpfl[StrMax], backup[StrMax], command[StrMax];
-    const int  verbose   = static_cast<int>(Femlib::value ("VERBOSE"));
-    const int  chkpoint  = static_cast<int>(Femlib::value ("CHKPOINT"));
+    const char    routine[] = "Domain::dump";
+    char          dumpfl[StrMax], backup[StrMax], command[StrMax];
+    const integer verbose   = Femlib::ivalue ("VERBOSE");
+    const integer chkpoint  = Femlib::ivalue ("CHKPOINT");
 
     if (chkpoint) {
       if (final) {
@@ -212,10 +212,10 @@ ofstream& operator << (ofstream& strm,
 // processor.
 // ---------------------------------------------------------------------------
 {
-  const int         N = D.u.size();
+  const integer     N = D.u.size();
   vector<AuxField*> field (N);
 
-  for (int i = 0; i < N; i++) field[i] = D.u[i];
+  for (integer i = 0; i < N; i++) field[i] = D.u[i];
 
   writeField (strm, D.name, D.step, D.time, field);
 
@@ -235,10 +235,11 @@ ifstream& operator >> (ifstream& strm,
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "strm>>Domain";
-  int        i, j, np, nz, nel, ntot, nfields;
-  int        npchk,  nzchk, nelchk;
-  int        swap = 0, verb = static_cast<int>(Femlib::value ("VERBOSE"));
+  integer    i, j, np, nz, nel, ntot, nfields;
+  integer    npchk,  nzchk, nelchk;
+  integer    verb = Femlib::ivalue ("VERBOSE");
   char       s[StrMax], f[StrMax], err[StrMax], fields[StrMax];
+  bool       swap;
 
   if (strm.getline(s, StrMax).eof()) return strm;
 
@@ -327,19 +328,19 @@ void Domain::loadBase()
 // (i.e. the base flow is treated as 2D, no matter what).
 // ---------------------------------------------------------------------------
 {
-  const char routine[] = "Domain::loadBase()";
-  const int  nP     = Geometry::nP();
-  const int  nEl    = Geometry::nElmt();
-  const int  nBase  = Geometry::nBase();
-  const int  nPlane = Geometry::nPlane();
-  const int  nTot   = Geometry::planeSize();
-  const int  nSlice = Geometry::nSlice();
+  const char    routine[] = "Domain::loadBase()";
+  const integer nP     = Geometry::nP();
+  const integer nEl    = Geometry::nElmt();
+  const integer nBase  = Geometry::nBase();
+  const integer nPlane = Geometry::nPlane();
+  const integer nTot   = Geometry::planeSize();
+  const integer nSlice = Geometry::nSlice();
 
   Header   H;
-  int      i, j;
+  integer  i, j;
   real*    addr;
   real     t0, dt = 0;
-  int      len;
+  integer  len;
   char     filename[StrMax];
   ifstream file (strcat (strcpy (filename, name), ".bse"));
 
@@ -413,10 +414,10 @@ void Domain::updateBase()
 // Update base velocity fields, using Fourier series reconstruction in time.
 // ---------------------------------------------------------------------------
 {
-  const int  nBase   = Geometry::nBase();
-  const int  nSlice  = Geometry::nSlice();
-  const real oldTime = Femlib::value ("t - D_T");
-  int        i;
+  const integer nBase   = Geometry::nBase();
+  const integer nSlice  = Geometry::nSlice();
+  const real    oldTime = Femlib::value ("t - D_T");
+  integer       i;
   
   if (nSlice < 2) return;
 

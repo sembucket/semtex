@@ -2,12 +2,12 @@
 // This version of analysis.C is specialized so that it
 // prints out base history point information.
 //
-// Copyright (C) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994,2004 Hugh Blackburn
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
  
-#include "stab.h"
+#include "stab_h"
 
 
 StabAnalyser::StabAnalyser (Domain* D   ,
@@ -23,8 +23,8 @@ StabAnalyser::StabAnalyser (Domain* D   ,
   char       str[StrMax];
 
   if (file -> seek ("BASE_HIST")) {
-    int            i, id, num = 0;
-    const int      NBH = file -> attribute ("BASE_HIST", "NUMBER");
+    integer        i, id, num = 0;
+    const integer  NBH = file -> attribute ("BASE_HIST", "NUMBER");
     const Element* EB;
     HistoryPoint*  HB;
     real           r, s, x, y, z;
@@ -46,8 +46,6 @@ StabAnalyser::StabAnalyser (Domain* D   ,
     bhs_strm.precision (6);
     if (!bhs_strm) message (routine, "can't open history file", ERROR);
   }
-
-
 }
 
 
@@ -58,21 +56,18 @@ void StabAnalyser::analyse (AuxField** work)
 {
   Analyser::analyse (work);
 
-  const int periodic =
-    !(src->step %  static_cast<int>(Femlib::value("IO_HIS"))) ||
-    !(src->step %  static_cast<int>(Femlib::value("IO_FLD")));
-  const int final    =
-    src->step == static_cast<int>(Femlib::value("N_STEP"));
-  const int state    =
-    periodic || final;
+  const bool periodic = !(src -> step %  Femlib::ivalue ("IO_HIS")) ||
+                        !(src -> step %  Femlib::ivalue ("IO_FLD"));
+  const bool final    =   src -> step == Femlib::ivalue ("N_STEP");
+  const bool state    = periodic || final;
 
   if (!state) return;
 
   // -- Output BASE history point data.
 
-  register int      j, k;      
-  const int         NBH = base_history.size();
-  const int         NBF = 2;  // number of base fields = 2 (UV)
+  register integer  j, k;      
+  const integer     NBH = base_history.size();
+  const integer     NBF = 2;  // number of base fields = 2 (UV)
   HistoryPoint*     HB;
   vector<real>      tmp_B (NBF);
   vector<AuxField*> U     (NBF);
