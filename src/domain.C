@@ -200,11 +200,14 @@ ostream& operator << (ostream& strm, Domain& D)
 istream& operator >> (istream& strm, Domain& D)
 // ---------------------------------------------------------------------------
 // Input all Domain field variables from prism-compatible istream.
+//
+// Only binary storage format is allowed.  Check if conversion to native
+// format (IEEE little/big-endian) is required.
 // ---------------------------------------------------------------------------
 {
   char  routine[] = "strm>>Domain";
   int   np, nz, nel, ntot, nfields;
-  int   npchk,  nzchk, nelchk;
+  int   npchk,  nzchk, nelchk, swap = 0;
   char  s[StrMax], f[StrMax];
 
   if (strm.getline(s, StrMax).eof()) return strm;
@@ -239,14 +242,27 @@ istream& operator >> (istream& strm, Domain& D)
     D.u[nfields] -> setName (s[nfields]);
     nfields++;
   }
-  
+
   strm.getline (s, StrMax);
-  if (strstr (s, "binary")) {
-    for (int n = 0; n < nfields; n++) strm >> *D.u[n];
-    if (strm.bad ())
-      message (routine, "failed reading binary field file", ERROR);
-  } else if (strstr (s, "ASCII"))
-    message (routine, "can't read ASCII format field file", ERROR);
+  Veclib::describeFormat (f);
+
+  if (!strstr (s, "binary"))
+    message (routine, "input field file not in binary format", ERROR);
+  
+  if (!strstr (s, "endian"))
+    message (routine, "input field file in unknown binary format", WARNING);
+  else {
+    swap = (   (strstr (s, "big") && strstr (f, "little"))
+	    || (strstr (f, "big") && strstr (s, "little")) );
+    if (swap) message (routine, ": byte-swapping input fields", REMARK);
+  }
+
+  for (int n = 0; n < nfields; n++) {
+    strm >> *D.u[n];
+    if (swap) D.u[n] -> reverse ();
+  }
+
+  if (strm.bad ()) message (routine, "failed reading field file", ERROR);
     
   return strm;
 }
