@@ -10,8 +10,8 @@ RCSid[] = "$Id$";
 static integer DIM, CYL, ITR_MAX;
 static real    EPS2;
 
-static void strainRate  (const Domain*,AuxField***,AuxField***);
-static void viscoModel  (AuxField***, AuxField***, AuxField*);
+static void strainRate  (const Domain*, AuxField***,AuxField***);
+static void viscoModel  (const Domain*, AuxField***, AuxField***, AuxField*);
 static real RNG_quartic (const real, const real, const real);
 
 
@@ -40,8 +40,8 @@ void eddyViscosity (const Domain* D ,
 
   ROOTONLY EV -> addToPlane (0, Femlib::value ("KINVIS"));
 
-  strainRate  (D,  Us, Uf);
-  viscoModel  (Us, Uf, EV);
+  strainRate  (D, Us, Uf);
+  viscoModel  (D, Us, Uf, EV);
   D -> u[0] -> smooth (EV);
 
   ROOTONLY EV -> addToPlane (0, Femlib::value ("-KINVIS"));
@@ -134,9 +134,10 @@ static void strainRate (const Domain* D ,
 }
 
 
-static void viscoModel (AuxField*** Us,
-			AuxField*** Uf,
-			AuxField*   EV)
+static void viscoModel (const Domain* D ,
+			AuxField***   Us,
+			AuxField***   Uf,
+			AuxField*     EV)
 // ---------------------------------------------------------------------------
 // On entry the first-level areas of Us & Uf contain the components of
 // the strain-rate tensor S and EV contains the old values of eddy viscosity.
@@ -167,7 +168,8 @@ static void viscoModel (AuxField*** Us,
   real*            sum    = tmp + nTot32;
   real*            delta  = sum + nTot32;
 
-  EV -> lengthScale (delta);
+  EV -> lengthScale       (delta);
+  D  -> u[0] -> smooth (1, delta);
 
   Veclib::zero (nTot32, sum, 1);
   
@@ -223,6 +225,8 @@ static void viscoModel (AuxField*** Us,
     for (k = 0; k < nZ32; k++)
       Veclib::vmul (nP, delta, 1, sum + k * NP, 1, sum + k * NP, 1);
   }
+
+  D -> u[0] -> smooth (nZ32, sum);
 
   // -- Transform back to Fourier space.
 
