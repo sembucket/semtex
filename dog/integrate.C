@@ -154,8 +154,8 @@ void integrate (Domain*       D,
 
 
 static void linAdvect (Domain*    D ,
-			AuxField** Us,
-			AuxField** Uf)
+		       AuxField** Us,
+		       AuxField** Uf)
 // ---------------------------------------------------------------------------
 // Compute linearised (forcing) terms in Navier--Stokes equations: N(u).
 //
@@ -186,12 +186,12 @@ static void linAdvect (Domain*    D ,
   const integer     nBase = Geometry::nBase();
   const integer     nPert = Geometry::nPert();
   integer           i, j;
-  vector<AuxField*> U (nBase), u (nPert), N (nPert);
+  vector<AuxField*> U (nBase + 1), u (nPert), N (nPert);
   Field*            T = D -> u[0];
 
   // -- Set up local aliases.
 
-  for (i = 0; i < nBase; i++)
+  for (i = 0; i < nBase + 1; i++)
     U[i] = D -> U[i];
 
   for (i = 0; i < nPert; i++) {
@@ -199,6 +199,17 @@ static void linAdvect (Domain*    D ,
      u[i] = Us[i];
      N[i] = Uf[i];
     *N[i] = 0.0;
+  }
+  
+  // -- Centrifugal, Coriolis terms for cylindrical coords.
+
+  if (CYL) {
+    if (nPert == 3)
+     *N[2] += T -> times (*u[2], *U[1]) . divR();
+    if (nBase == 3) {
+      N[1] -> axpy (-2.0, T -> times (*u[2], *U[2]) . divR());
+     *N[2] +=             T -> times (*u[1], *U[2]) . divR();
+    }
   }
 
   // -- N_i += U_j d(u_i) / dx_j.
@@ -214,18 +225,7 @@ static void linAdvect (Domain*    D ,
 
   for (i = 0; i < nBase; i++)
     for (j = 0; j < 2; j++)
-      N[i] -> timesPlus (*u[j], (*T = *U[i]) . gradient (j, HALF));
-  
-  // -- Centrifugal, Coriolis terms for cylindrical coords.
-
-  if (CYL) {
-    if (nPert == 3)
-      *N[2] += T -> times (*u[2], *U[1]) . divR();
-    if (nBase == 3) {
-      N[1] -> axpy (-2.0, T -> times (*u[2], *U[2]) . divR());
-     *N[2] +=             T -> times (*u[1], *U[2]) . divR();
-    }
-  }
+      N[i] -> timesPlus (*u[j], (*U[nBase] = *U[i]) . gradient (j));
 
   for (i = 0; i < nPert; i++) {
     T -> smooth (N[i]);
@@ -282,7 +282,7 @@ static void setPForce (const AuxField** Us,
 
   for (i = 0; i < NPER; i++) (*Uf[i] = *Us[i]) . gradient(i);
 
-  if (Geometry::nPert() == 3  && Geometry::nBase() < 3) *Uf[2] *= -1.0;
+  if (Geometry::nPert() == 3 && Geometry::nBase() < 3) *Uf[2] *= -1.0;
 
   if (C3D) Uf[2] -> divR();
 
@@ -315,7 +315,7 @@ static void project (const Domain* D ,
 
     (*Uf[i] = *D -> u[NPER]) . gradient (i);
 
-    if (C3D) Uf[2] -> divR();
+    if (C3D && i == 2) Uf[2] -> divR();
 
     Us[i] -> axpy (-dt, *Uf[i]);
     Field::swapData (Us[i], Uf[i]);

@@ -29,7 +29,7 @@ p = 0
 	CHKPOINT  = 1
 	ITERATIVE = 0
 	IO_FLD    = STEPS_P
-	IO_CFL    = 2
+	IO_CFL    = 20
 
 	BETA      = 1.7
 	Re        = 220.0

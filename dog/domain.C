@@ -19,7 +19,9 @@ Domain::Domain (FEML*             F,
 // Fields to be created are stored in the string "flds".  See the file
 // field.C for significance of the names.
 //
-// No initialization of Field MatrixSystems.
+// Note that we allocate one more base flow AuxField than the problem
+// requires: this extra is used as temporary storage in constructing
+// gradients (in linAdvect).
 // ---------------------------------------------------------------------------
   elmt (E)
 {
@@ -68,11 +70,11 @@ Domain::Domain (FEML*             F,
   VERBOSE cout << "  Building domain base flow fields: "
 	       << baseField <<" ... ";
 
-  U   .setSize (nbase);
-  Udat.setSize (nbase);
+  U   .setSize (nbase + 1);
+  Udat.setSize (nbase + 1);
 
-  alloc = new real [static_cast<size_t> (nbase * nplane)];
-  for (i = 0; i < nbase; i++) {
+  alloc = new real [static_cast<size_t> ((nbase + 1) * nplane)];
+  for (i = 0; i < nbase + 1; i++) {
     Udat[i] = alloc + i * nplane;
     U[i]    = new AuxField (Udat[i], 1, E, baseField[i]);
   }
@@ -324,7 +326,9 @@ void Domain::loadBase()
 // transform if appropriate, and prepare for Fourier reconstruction.
 //
 // Base flow dumps should contain only velocity and pressure fields,
-// have nz = 1, same number of elements, np as perturbation.
+// have same number of elements, np as perturbation.  Only the first
+// plane of data in each dump is used, higher values are ignored
+// (i.e. the base flow is treated as 2D, no matter what).
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "Domain::loadBase()";
@@ -339,7 +343,7 @@ void Domain::loadBase()
   integer  i, j;
   real*    addr;
   real     t0, dt = 0;
-  integer  len;
+  int      len;
   char     filename[StrMax];
   ifstream file (strcat (strcpy (filename, name), ".bse"));
 
@@ -358,27 +362,34 @@ void Domain::loadBase()
 
   i = 0;
   while (file >> H) {
-    if (H.nr != nP || H.nz != 1 || H.nel != nEl)
+    if (H.nr != nP || H.nel != nEl)
       message (routine, "base flow and perturbation do not conform", ERROR);
     if ((nBase == 2 && strcmp (H.flds, "uvp" )) ||
 	(nBase == 3 && strcmp (H.flds, "uvwp")))
       message (routine, "mismatch: No. of base components/declaration", ERROR);
     for (j = 0; j < nBase; j++) {
       addr = baseFlow(j) + i * nTot;
-      len  = nPlane * sizeof(real);
-      file.read (reinterpret_cast<char*>(addr), static_cast<int>(len));
-      if (file.bad()) 
-	message (routine, "unable to read binary input", ERROR);
+      
+      len = nPlane * sizeof(real);
+      file.read (reinterpret_cast<char*>(addr), len);
+    
+      len = (H.nz - 1) * nPlane * sizeof (real);
+      file.ignore (len); // -- Ignore higher planes.
+
+      if (file.bad()) message (routine, "unable to read binary input", ERROR);
       Veclib::zero (nTot - nPlane, addr + nPlane, 1);
     }
-    file.ignore (len);		// -- Ignore pressure field.
+    
+    len = H.nz * nPlane * sizeof (real);
+    file.ignore (len); // -- Ignore pressure field.
+
     if (i == 0) t0 = H.time;
-    if (i == 1) dt = H.time - t0;
+    dt = H.time - t0;
     i++;
   }
 
   file.close();
-  period = dt * nSlice;
+  period = dt - t0;
 
   if (i != nSlice)
     message (routine, "mismatch: No. of base slices/declaration", ERROR);

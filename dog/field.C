@@ -524,12 +524,11 @@ Field& Field::solve (AuxField*        f,
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "Field::solve";
-
-  const integer nel   = Geometry::nElmt();
-  const integer next  = Geometry::nExtElmt();
-  const integer npnp  = Geometry::nTotElmt();
-  const integer ntot  = Geometry::nPlane();
-  integer       i;
+  const integer nel    = Geometry::nElmt();
+  const integer next   = Geometry::nExtElmt();
+  const integer npnp   = Geometry::nTotElmt();
+  const integer ntot   = Geometry::nPlane();
+  integer       i, k;
 
   const vector<Boundary*>& B       = M -> _BC;
   const NumberSys*         N       = M -> _NS;
@@ -539,149 +538,150 @@ Field& Field::solve (AuxField*        f,
   integer                  nglobal = M -> _nglobal;
   integer                  nzero   = nglobal - nsolve;
 
-  real*                    forcing = f -> _plane[0];
-  real*                    unknown = _plane     [0];
-  real*                    bc      = _line      [0];
+  for (k = 0; k < _nz; k++) {
+    real* forcing = f -> _plane[k];
+    real* unknown = _plane     [k];
+    real* bc      = _line      [k];
 
-  switch (M -> _method) {
+    switch (M -> _method) {
     
-  case DIRECT: {
-    const real*    H       = const_cast<const real*>   (M -> _H);
-    const real**   hii     = const_cast<const real**>  (M -> _hii);
-    const real**   hbi     = const_cast<const real**>  (M -> _hbi);
-    const integer* b2g     = const_cast<const integer*>(N -> btog());
-    integer        nband   = M -> _nband;
+    case DIRECT: {
+      const real*    H       = const_cast<const real*>   (M -> _H);
+      const real**   hii     = const_cast<const real**>  (M -> _hii);
+      const real**   hbi     = const_cast<const real**>  (M -> _hbi);
+      const integer* b2g     = const_cast<const integer*>(N -> btog());
+      integer        nband   = M -> _nband;
 
-    vector<real>   work (nglobal + npnp);
-    real           *RHS = work(), *tmp = RHS + nglobal;
-    integer        info;
+      vector<real>   work (nglobal + npnp);
+      real           *RHS = work(), *tmp = RHS + nglobal;
+      integer        info;
       
-    // -- Build RHS = - M f - H g + <h, w>.
+      // -- Build RHS = - M f - H g + <h, w>.
 
-    Veclib::zero (nglobal, RHS, 1);
+      Veclib::zero (nglobal, RHS, 1);
       
-    this -> getEssential (bc, RHS, B, N);
-    this -> constrain    (forcing, lambda2, betak2, RHS, N);
-    this -> buildRHS     (forcing, bc, RHS, 0, hbi, nsolve, nzero, B, N);
+      this -> getEssential (bc, RHS, B, N);
+      this -> constrain    (forcing, lambda2, betak2, RHS, N);
+      this -> buildRHS     (forcing, bc, RHS, 0, hbi, nsolve, nzero, B, N);
       
-    // -- Solve for unknown global-node values (if any).
+      // -- Solve for unknown global-node values (if any).
     
-    if (nsolve) Lapack::pbtrs ("U",nsolve,nband-1,1,H,nband,RHS,nglobal,info);
+      if (nsolve) Lapack::pbtrs("U",nsolve,nband-1,1,H,nband,RHS,nglobal,info);
       
-    // -- Carry out Schur-complement solution for element-internal nodes.
+      // -- Carry out Schur-complement solution for element-internal nodes.
       
-    for (i = 0; i < nel; i++, b2g += next, forcing += npnp, unknown += npnp)
-      _elmt[i] -> g2eSC (RHS, b2g, forcing, unknown, hbi[i], hii[i], tmp);
+      for (i = 0; i < nel; i++, b2g += next, forcing += npnp, unknown += npnp)
+	_elmt[i] -> g2eSC (RHS, b2g, forcing, unknown, hbi[i], hii[i], tmp);
 
-    unknown -= ntot;
+      unknown -= ntot;
     
-    // -- Scatter-gather essential BC values into plane.
+      // -- Scatter-gather essential BC values into plane.
 
-    Veclib::zero (nglobal, RHS, 1);
+      Veclib::zero (nglobal, RHS, 1);
     
-    this -> getEssential (bc, RHS, B,   N);
-    this -> setEssential (RHS, unknown, N);
+      this -> getEssential (bc, RHS, B,   N);
+      this -> setEssential (RHS, unknown, N);
     }
-  break;
-
-  case JACPCG: {
-    const integer StepMax = static_cast<integer> (Femlib::value ("STEP_MAX"));
-    const integer npts    = M -> _npts;
-    real          alpha, beta, dotp, epsb2, r2, rho1, rho2 =0.0;
-    vector<real>  work (5 * npts + 3 * Geometry::nPlane());
-
-    real* r   = work();
-    real* p   = r + npts;
-    real* q   = p + npts;
-    real* x   = q + npts;
-    real* z   = x + npts;
-    real* wrk = z + npts;
-
-    Veclib::zero (nglobal, x, 1);
-
-    this -> getEssential (bc, x, B, N);  
-    this -> constrain    (forcing, lambda2, betak2, x, N);
-    this -> buildRHS     (forcing, bc, r, r+nglobal, 0, nsolve, nzero, B, N);
-
-    epsb2  = Femlib::value ("TOL_REL") * sqrt (Blas::dot (npts, r, 1, r, 1));
-    epsb2 *= epsb2;
-
-    // -- Build globally-numbered x from element store.
-
-    this -> local2global (unknown, x, N);
-  
-    // -- Compute first residual using initial guess: r = b - Ax.
-    //    And mask to get residual for the zero-BC problem.
-
-    Veclib::zero (nzero, x + nsolve, 1);   
-    Veclib::copy (npts,  x, 1, q, 1);
-    
-    this -> HelmholtzOperator (q, p, lambda2, betak2, wrk, 0);
-
-    Veclib::zero (nzero, p + nsolve, 1);
-    Veclib::zero (nzero, r + nsolve, 1);
-    Veclib::vsub (npts, r, 1, p, 1, r, 1);
-
-    r2 = Blas::dot (npts, r, 1, r, 1);
-
-    // -- PCG iteration.
-
-    i = 0;
-    while (r2 > epsb2 && ++i < StepMax) {
-      
-      // -- Preconditioner.
-
-      Veclib::vmul (npts, M -> _PC, 1, r, 1, z, 1);
-	
-      rho1 = Blas::dot (npts, r, 1, z, 1);
-
-      // -- Update search direction.
-
-      if (i == 1)
-	Veclib::copy  (npts,             z, 1, p, 1); // -- p = z.
-      else {
-	beta = rho1 / rho2;	
-	Veclib::svtvp (npts, beta, p, 1, z, 1, p, 1); // -- p = z + beta p.
-      }
-
-      // -- Matrix-vector product.
-
-      this -> HelmholtzOperator (p, q, lambda2, betak2, wrk, 0);
-      Veclib::zero (nzero, q + nsolve, 1);
-
-      // -- Move in conjugate direction.
-
-      dotp  = Blas::dot (npts, p, 1, q, 1);
-      alpha = rho1 / dotp;
-      Blas::axpy (npts,  alpha, p, 1, x, 1); // -- x += alpha p.
-      Blas::axpy (npts, -alpha, q, 1, r, 1); // -- r -= alpha q.
-      
-      rho2 = rho1;
-      r2   = Blas::dot (npts, r, 1, r, 1);
-    }
-  
-    if (i == StepMax) message (routine, "step limit exceeded", WARNING);
-    
-    // -- Unpack converged vector x, impose current essential BCs.
-
-    this -> global2local (x, unknown, N);
-      
-    this -> getEssential (bc, x, B,   N);
-    this -> setEssential (x, unknown, N);
-  
-    if ((integer) Femlib::value ("VERBOSE") > 1) {
-      char s[StrMax];
-      sprintf (s, ":%3d iterations, field '%c'", i, _name);
-      message (routine, s, REMARK);
-    }
-  }
-  break;
-  
-  default:
-    message (routine, "called with a method that isn't implemented", ERROR);
     break;
-  }
 
+    case JACPCG: {
+      const integer StepMax = static_cast<integer>(Femlib::value ("STEP_MAX"));
+      const integer npts    = M -> _npts;
+      real          alpha, beta, dotp, epsb2, r2, rho1, rho2 =0.0;
+      vector<real>  work (5 * npts + 3 * Geometry::nPlane());
+
+      real* r   = work();
+      real* p   = r + npts;
+      real* q   = p + npts;
+      real* x   = q + npts;
+      real* z   = x + npts;
+      real* wrk = z + npts;
+
+      Veclib::zero (nglobal, x, 1);
+
+      this -> getEssential (bc, x, B, N);  
+      this -> constrain    (forcing, lambda2, betak2, x, N);
+      this -> buildRHS     (forcing, bc, r, r+nglobal, 0, nsolve, nzero, B, N);
+
+      epsb2  = Femlib::value ("TOL_REL") * sqrt (Blas::dot (npts, r, 1, r, 1));
+      epsb2 *= epsb2;
+
+      // -- Build globally-numbered x from element store.
+
+      this -> local2global (unknown, x, N);
+  
+      // -- Compute first residual using initial guess: r = b - Ax.
+      //    And mask to get residual for the zero-BC problem.
+
+      Veclib::zero (nzero, x + nsolve, 1);   
+      Veclib::copy (npts,  x, 1, q, 1);
+    
+      this -> HelmholtzOperator (q, p, lambda2, betak2, wrk, 0);
+
+      Veclib::zero (nzero, p + nsolve, 1);
+      Veclib::zero (nzero, r + nsolve, 1);
+      Veclib::vsub (npts, r, 1, p, 1, r, 1);
+
+      r2 = Blas::dot (npts, r, 1, r, 1);
+
+      // -- PCG iteration.
+
+      i = 0;
+      while (r2 > epsb2 && ++i < StepMax) {
+      
+	// -- Preconditioner.
+
+	Veclib::vmul (npts, M -> _PC, 1, r, 1, z, 1);
+	
+	rho1 = Blas::dot (npts, r, 1, z, 1);
+
+	// -- Update search direction.
+
+	if (i == 1)
+	  Veclib::copy  (npts,             z, 1, p, 1); // -- p = z.
+	else {
+	  beta = rho1 / rho2;	
+	  Veclib::svtvp (npts, beta, p, 1, z, 1, p, 1); // -- p = z + beta p.
+	}
+
+	// -- Matrix-vector product.
+
+	this -> HelmholtzOperator (p, q, lambda2, betak2, wrk, 0);
+	Veclib::zero (nzero, q + nsolve, 1);
+
+	// -- Move in conjugate direction.
+
+	dotp  = Blas::dot (npts, p, 1, q, 1);
+	alpha = rho1 / dotp;
+	Blas::axpy (npts,  alpha, p, 1, x, 1); // -- x += alpha p.
+	Blas::axpy (npts, -alpha, q, 1, r, 1); // -- r -= alpha q.
+      
+	rho2 = rho1;
+	r2   = Blas::dot (npts, r, 1, r, 1);
+      }
+  
+      if (i == StepMax) message (routine, "step limit exceeded", WARNING);
+    
+      // -- Unpack converged vector x, impose current essential BCs.
+
+      this -> global2local (x, unknown, N);
+      
+      this -> getEssential (bc, x, B,   N);
+      this -> setEssential (x, unknown, N);
+  
+      if ((integer) Femlib::value ("VERBOSE") > 1) {
+	char s[StrMax];
+	sprintf (s, ":%3d iterations, field '%c'", i, _name);
+	message (routine, s, REMARK);
+      }
+    }
+    break;
+  
+    default:
+      message (routine, "called with a method that isn't implemented", ERROR);
+      break;
+    }
+  }
   return *this; 
 }
 

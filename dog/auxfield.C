@@ -285,8 +285,7 @@ AuxField& AuxField::reverse ()
 }
 
 
-AuxField& AuxField::gradient (const integer dir ,
-			      const integer kind)
+AuxField& AuxField::gradient (const integer dir)
 // ---------------------------------------------------------------------------
 // Operate on AuxField to produce the nominated index of the gradient.
 // dir == 0 ==> gradient in first direction, 1 ==> 2nd, 2 ==> 3rd.
@@ -306,7 +305,6 @@ AuxField& AuxField::gradient (const integer dir ,
   const integer       npnp = np  * np;
   const integer       ntot = nel * npnp;
   const integer       nP   = Geometry::planeSize();
-  const integer       nLev = (kind == HALF) ? 1 : _nz;
   static vector<real> work (2 * nP);
   register real       *xr, *xs, *tmp;
   register integer    i, k;
@@ -321,7 +319,7 @@ AuxField& AuxField::gradient (const integer dir ,
     xr = work();
     xs = xr + nP;
     
-    for (k = 0; k < nLev; k++) {
+    for (k = 0; k < _nz; k++) {
       tmp = _plane[k];
 
       Veclib::zero  (2 * nP, xr, 1);
@@ -339,7 +337,7 @@ AuxField& AuxField::gradient (const integer dir ,
     xr = work();
     xs = xr + nP;
 
-    for (k = 0; k < nLev; k++) {
+    for (k = 0; k < _nz; k++) {
       tmp = _plane[k];
 
       Veclib::zero  (2 * nP, xr, 1);
@@ -354,7 +352,10 @@ AuxField& AuxField::gradient (const integer dir ,
     break;
 
   case 2: {
-    if (nLev == 1)		// -- Half-complex (may need sign change).
+    xr = work();
+    xs = xr + nP;
+
+    if (_nz == 1)		// -- Half-complex (may need sign change).
       Blas::scal (nP, beta, _plane[0], 1);
     else {			// -- Full-complex.
       Veclib::copy (nP,        _plane[0], 1, xr,        1);

@@ -49,10 +49,10 @@ void Geometry::set (const int nel  ,
   _nslice    = static_cast<integer>(Femlib::value ("N_SLICE"));
   _csys      = (static_cast<integer>(Femlib::value ("CYLINDRICAL"))) ? 
                                Geometry::Cylindrical : Geometry::Cartesian;
-  _nz = _nzp = (_nbase == 3 && _npert == 3) ? 2 : 1;
-  _nel       = nel;
   _npert     = npert;
+  _nel       = nel;
   _psize     = nPlane() + (nPlane() % 2);
+  _nz = _nzp = (_nbase == 3 && _npert == 3) ? 2 : 1;
 
   // -- Sanity checks.
 
