@@ -21,8 +21,9 @@ SEMHDR = Sem.h
 # ----------------------------------------------------------------------------
 # Build compare, exact solution comparison/restart utility.
 #
-COMOBJ = compare.o bsys.o BCmgr.o boundary.o condition.o feml.o mesh.o	\
-	 element.o auxfield.o geometry.o pressure.o integration.o misc.o
+COMOBJ = compare.o bsys.o BCmgr.o boundary.o condition.o famiily.o	\
+	 feml.o mesh.o element.o auxfield.o geometry.o pressure.o	\
+         integration.o misc.o
 $(COMOBJ): $(SEMHDR)
 
 compare: $(COMOBJ)
@@ -67,8 +68,8 @@ calc: calc.o
 # Build addfield, field postprocessing utility.
 #
 ADFOBJ = addfield.o auxfield.o BCmgr.o boundary.o bsys.o condition.o 	\
-	 domain.o element.o feml.o field.o geometry.o integration.o	\
-	 mesh.o misc.o pressure.o
+	 domain.o element.o family.o feml.o field.o geometry.o		\
+	 integration.o mesh.o misc.o pressure.o
 $(ADFOBJ): $(SEMHDR)
 
 addfield: $(ADFOBJ)
@@ -78,8 +79,8 @@ addfield: $(ADFOBJ)
 # Build addvort utility (just compute the vorticity field).
 #
 ADDOBJ = addvort.o auxfield.o BCmgr.o boundary.o bsys.o condition.o 	\
-	 domain.o element.o feml.o field.o geometry.o integration.o	\
-	 mesh.o misc.o pressure.o
+	 domain.o element.o family.o feml.o field.o geometry.o		\
+	 integration.o mesh.o misc.o pressure.o
 $(ADDOBJ): $(SEMHDR)
 
 addvort: $(ADDOBJ)
@@ -89,22 +90,12 @@ addvort: $(ADDOBJ)
 # Build variant of addfield that multiplies enstrophy by sign of another var.
 #
 SIGOBJ = signens.o auxfield.o BCmgr.o boundary.o bsys.o condition.o 	\
-	 domain.o element.o feml.o field.o geometry.o integration.o	\
-	 mesh.o misc.o pressure.o
+	 domain.o element.o family.o feml.o field.o geometry.o		\
+	 integration.o mesh.o misc.o pressure.o
 $(SIGOBJ): $(SEMHDR)
 
 signens: $(SIGOBJ)
 	$(LD) -o $@ $(SIGOBJ) $(LDFLAGS)
-
-# ----------------------------------------------------------------------------
-# Build addvortr utility, line addvort but creates another field x^2+y^2.
-#
-ADROBJ = addvortr.o auxfield.o BCmgr.o boundary.o domain.o	\
-	 element.o feml.o field.o geometry.o  integration.o mesh.o	\
-	 misc.o	pressure.o \
-
-addvortr: $(ADROBJ) $(SEMHDR)
-	$(LD) -o $@ $(ADROBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build semtex --> NEKTON input file converter.
@@ -149,7 +140,7 @@ integral: integral.o  $(INTOBJ)
 # ----------------------------------------------------------------------------
 # Build probe, field dump data extraction.
 #
-PRBOBJ = probe.o feml.o mesh.o element.o auxfield.o geometry.o
+PRBOBJ = probe.o feml.o mesh.o element.o family.o auxfield.o geometry.o
 $(PRBOBJ): $(SEMHDR)
 
 probe: $(PRBOBJ)
