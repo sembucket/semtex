@@ -5,7 +5,7 @@
 ##############################################################################
 
 SEMHOME = ..
-MPIHOME = /usr/local/mpich
+MPIHOME = /usr/local/lam
 LIB     = libfem.a
 
 ARCH = $(shell uname -s)
@@ -78,12 +78,12 @@ FFLAGS = $(DEFINES) -arch host -tune host -fast -O4
 RANLIB = ranlib
 ifdef MPI
   LIB       = libfem_mp.a
-  DEFINES  += -DMPI -DUSE_MPI
+  DEFINES  += -DMPI
   CPPFLAGS += -I$(MPIHOME)/include
 endif
 endif
 
-ifeq ($(ARCH),UNIX_System_V)	# -- Fujitsu VPP300
+ifeq ($(ARCH),UNIX_System_V)		# -- Fujitsu VPP300
 CC         = vcc
 FC         = frt
 CFLAGS     = $(DEFINES) -Wv,-m3,-Om,-te
@@ -95,7 +95,7 @@ ifdef MPI
 endif
 endif
 
-ifeq ($(ARCH),SUPER-UX)		# -- NEC SX-4
+ifeq ($(ARCH),SUPER-UX)			# -- NEC SX-4
 CFLAGS     = $(DEFINES) -pvctl,fullmsg -hfloat0 -hnostkchk
 FFLAGS     = $(DEFINES) -Cvopt -Wf'-pvctl,fullmsg -ptr byte -b' -float0 -ew
 ifdef MPI
