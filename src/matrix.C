@@ -89,12 +89,13 @@ MatrixSystem::MatrixSystem (const real              lambda2,
 {
   const char       routine[] = "MatrixSystem::MatrixSystem";
   const integer    verbose = (integer) Femlib::value ("VERBOSE");
+  const integer    next = Geometry::nExtElmt();
+  const integer    nint = Geometry::nIntElmt();
   const real       EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
   register integer i, j, k, m, n;
   const integer*   bmap;
-  integer          next, nint, info, *ipiv;
+  integer          info, *ipiv;
   real             *hbb, *rmat, *rwrk, cond;
-  Element*         E;
   vector<real>     work (sqr (Geometry::nExtElmt()) +
 			 sqr (Geometry::nP())       +
 			 sqr (Geometry::nTotElmt()) );
@@ -128,20 +129,14 @@ MatrixSystem::MatrixSystem (const real              lambda2,
   bipack = new integer [(size_t) nel];
   iipack = new integer [(size_t) nel];
 
-  for (j = 0; j < nel; j++) {
-    E = Elmt[j];
-
-    next      = E -> nExt();
-    nint      = E -> nInt();
+  for (bmap = N -> btog(), j = 0; j < nel; j++, bmap += next) {
     bipack[j] = next * nint;
     iipack[j] = nint * nint;
 
     hbi[j] = (nint) ? new real [(size_t) bipack[j]] : 0;
     hii[j] = (nint) ? new real [(size_t) iipack[j]] : 0;
 
-    E -> HelmholtzSC (lambda2, betak2, hbb, hbi[j], hii[j], rmat, rwrk, ipiv);
-
-    bmap = N -> btog() + E -> bOff();
+    Elmt[j] -> HelmholtzSC (lambda2,betak2, hbb,hbi[j],hii[j], rmat,rwrk,ipiv);
 
     for (i = 0; i < next; i++)
       if ((m = bmap[i]) < nsolve)

@@ -51,11 +51,8 @@ Domain::Domain (FEML&       F   ,
   Esys.setSize (NE);
   doff = 0;
   boff = 0;
-  for (k = 0; k < NE; k++) {
-    Esys[k] = new Element (k, M, z, np, doff, boff);
-    doff += Esys[k] -> nTot();
-    boff += Esys[k] -> nExt();
-  }
+  for (k = 0; k < NE; k++)
+    Esys[k] = new Element (k, M, z, np);
 
   ROOTONLY if (verb) cout << "done" << endl;
   ROOTONLY if (verb) cout << "Retrieving prebuilt numbering systems ... ";
@@ -97,6 +94,9 @@ void Domain::getNumber ()
 // ---------------------------------------------------------------------------
 {
   const char       routine[] = "Domain::getNumber";
+  const integer    nel  = Geometry::nElmt();
+  const integer    npnp = Geometry::nTotElmt();
+  const integer    next = Geometry::nExtElmt();
   char             buf[StrMax], err[StrMax];
   register integer i, j, nset;
   ifstream         num;
@@ -285,22 +285,21 @@ void Domain::getNumber ()
   //    Need to take care for cases (in cylindrical coords) where
   //    mass weighting will be zero where r = 0.
 
-  Element*      E;
-  NumberSystem* N;
-  vector<real>  work (Geometry::nTotElmt());
-  const real    EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
-  register real m;
-  real*         unity = work();
+  const real        EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  Element*          E;
+  NumberSystem*     N;
+  vector<real>      work (npnp);
+  real*             unity = work();
+  register real     m;
+  register integer* q;
 
   for (j = 0; j < nset; j++) {
     N = Nsys[j];
     N -> ns_inv_mass = new real [N -> ns_nglobal];
     Veclib::zero (N -> ns_nglobal, N -> ns_inv_mass, 1);
-
-    for (i = 0; i < Geometry::nElmt(); i++) {
-      E = Esys[i];
-      Veclib::fill (E -> nTot(), 1.0, unity, 1);
-      E -> bndryDsSum (N -> ns_btog + E -> bOff(), unity, N -> ns_inv_mass);
+    for (q = N -> ns_btog, i = 0; i < nel; i++, q += next) {
+      Veclib::fill (npnp, 1.0, unity, 1);
+      Esys[i] -> bndryDsSum (q, unity, N -> ns_inv_mass);
     }
 
     for (i = 0; i < N -> ns_nglobal; i++) {
@@ -314,13 +313,9 @@ void Domain::getNumber ()
 
   for (j = 0; j < nset; j++) {
     N = Nsys[j];
-    N -> ns_emask = new integer [Geometry::nElmt()];
-
-    for (i = 0; i < Geometry::nElmt(); i++) {
-      E = Esys[i];
-      N -> ns_emask[i] =
-	Veclib::any (E -> nExt(), N -> ns_bmask + E -> bOff(), 1);
-    }
+    N -> ns_emask = new integer [nel];
+    for (q = N -> ns_bmask, i = 0; i < nel; i++, q += next)
+      N -> ns_emask[i] = Veclib::any (next, q, 1);
   }
 }
 

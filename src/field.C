@@ -266,7 +266,7 @@ Field::Field (FEML&                feml ,
 				   bcmgr.descriptor (group),
 				   bcmgr.retrieve   (group, field_name),
 				   E, side);
-    n_line += E -> nKnot();
+    n_line += Geometry::nP();
   }
 
   // -- Higher mode boundaries get constructed only if 3D cylindrical.
@@ -287,7 +287,7 @@ Field::Field (FEML&                feml ,
 	  bcmgr.retrieve   (group, field_name, k),
 	  E, side) :
 	boundary[0][i];		// -- Alias an old one.
-      n_line += E -> nKnot();
+      n_line += Geometry::nP();
     }
   }
 
@@ -445,38 +445,33 @@ Field& Field::smooth (AuxField* slave)
 // If slave == 0, smooth this -> data.
 // ---------------------------------------------------------------------------
 {
-  register integer  j, k, boff, doff;
-  register Element* E;
-  const integer     nglobal = Nsys[0] -> nGlobal();
-  const real*       imass   = Nsys[0] -> imass();
-  const integer*    btog    = Nsys[0] -> btog();
-  const integer     nE      = Geometry::nElmt();
-  const integer     nZ      = Geometry::nZProc();
-  vector<real>      work (nglobal);
-  real              *src, *dssum = work();
+  const integer    nel     = Geometry::nElmt();
+  const integer    nz      = Geometry::nZProc();
+  const integer    npnp    = Geometry::nTotElmt();
+  const integer    next    = Geometry::nExtElmt();
+  const integer    nglobal = Nsys[0] -> nGlobal();
+  const integer*   btog    = Nsys[0] -> btog();
+  const real*      imass   = Nsys[0] -> imass();
+  const integer*   gid;
+  register integer i, k;
+  vector<real>     work (nglobal);
+  real             *src, *dssum = work();
 
-  for (k = 0; k < nZ; k++) {
+  for (k = 0; k < nz; k++) {
 
     Veclib::zero (nglobal, dssum, 1);
     src = (slave) ? slave -> plane[k] : plane[k];
+    gid = btog;
 
-    for (j = 0; j < nE; j++) {
-      E    = Elmt[j];
-      boff = E -> bOff();
-      doff = E -> dOff();
-
-      E -> bndryDsSum (btog + boff, src + doff, dssum);
-    }
+    for (i = 0; i < nel; i++, src += npnp, gid += next)
+      Elmt[i] -> bndryDsSum (gid, src, dssum);
 
     Veclib::vmul (nglobal, dssum, 1, imass, 1, dssum, 1);
+    src = (slave) ? slave -> plane[k] : plane[k];
+    gid = btog;
 
-    for (j = 0; j < nE; j++) {
-      E    = Elmt[j];
-      boff = E -> bOff();
-      doff = E -> dOff();
-
-      E -> bndryInsert (btog + boff, dssum, src + doff);
-    }
+    for (i = 0; i < nel; i++, src += npnp, gid += next)
+      Elmt[i] -> bndryInsert (gid, dssum, src);
   }
 
   return *this;
@@ -491,38 +486,33 @@ void Field::smooth (const int nZ ,
 // planeSize() offset between each plane of data.
 // ---------------------------------------------------------------------------
 {
-  register integer  j, k, boff, doff;
-  register Element* E;
-  const integer     nglobal = Nsys[0] -> nGlobal();
-  const real*       imass   = Nsys[0] -> imass();
-  const integer*    btog    = Nsys[0] -> btog();
-  const integer     nE      = Geometry::nElmt();
-  const integer     nP      = Geometry::planeSize();
-  vector<real>      work    (nglobal);
-  real              *src, *dssum = work();
+  const integer    nel     = Geometry::nElmt();
+  const integer    npnp    = Geometry::nTotElmt();
+  const integer    next    = Geometry::nExtElmt();
+  const integer    nP      = Geometry::planeSize();
+  const integer    nglobal = Nsys[0] -> nGlobal();
+  const integer*   btog    = Nsys[0] -> btog();
+  const real*      imass   = Nsys[0] -> imass();
+  const integer*   gid;
+  register integer i, k;
+  vector<real>     work (nglobal);
+  real             *src, *dssum = work();
 
   for (k = 0; k < nZ; k++) {
 
     Veclib::zero (nglobal, dssum, 1);
     src = tgt + k * nP;
+    gid = btog;
 
-    for (j = 0; j < nE; j++) {
-      E    = Elmt[j];
-      boff = E -> bOff();
-      doff = E -> dOff();
-
-      E -> bndryDsSum (btog + boff, src + doff, dssum);
-    }
+    for (i = 0; i < nel; i++, src += npnp, gid += next)
+      Elmt[i] -> bndryDsSum (gid, src, dssum);
 
     Veclib::vmul (nglobal, dssum, 1, imass, 1, dssum, 1);
+    src = tgt + k * nP;
+    gid = btog;
 
-    for (j = 0; j < nE; j++) {
-      E    = Elmt[j];
-      boff = E -> bOff();
-      doff = E -> dOff();
-
-      E -> bndryInsert (btog + boff, dssum, src + doff);
-    }
+    for (i = 0; i < nel; i++, src += npnp, gid += next)
+      Elmt[i] -> bndryInsert (gid, dssum, src);
   }
 }
 
@@ -953,29 +943,22 @@ void Field::jacobi (const real          lambda2,
 // PC is arranged with global nodes first, followed by element-internal values.
 // ---------------------------------------------------------------------------
 {
-  register integer  i, next, nint;
-  register Element* E;
-  const integer     nE   = Geometry::nElmt();
-  const integer     npts = N -> nGlobal() + Geometry::nInode();
-  const integer*    btog = N -> btog();
-  real*             PCi  = PC + N -> nGlobal();
-  vector<real>      work (2 * Geometry::nTotElmt() + Geometry::nP());
-  real              *ed = work(), *ewrk = work() + Geometry::nTotElmt();
+  const integer    nel  = Geometry::nElmt();
+  const integer    next = Geometry::nExtElmt();
+  const integer    nint = Geometry::nIntElmt();
+  const integer    npts = N -> nGlobal() + Geometry::nInode();
+  const integer*   btog = N -> btog();
+  register integer i;
+  real*            PCi  = PC + N -> nGlobal();
+  vector<real>     work (2 * Geometry::nTotElmt() + Geometry::nP());
+  real             *ed = work(), *ewrk = work() + Geometry::nTotElmt();
   
   Veclib::zero (npts, PC, 1);
 
-  for (i = 0; i < nE; i++) {
-    E    = Elmt[i];
-    next = E -> nExt();
-    nint = E -> nInt();
-
-    E -> HelmholtzDg (lambda2, betak2, ed, ewrk);
-    
+  for (i = 0; i < nel; i++, btog += next, PCi += nint) {
+    Elmt[i] -> HelmholtzDg (lambda2, betak2, ed, ewrk);
     Veclib::scatr_sum (next, ed,  btog,    PC);
     Veclib::copy      (nint, ed + next, 1, PCi, 1);
-
-    btog += next;
-    PCi  += nint;
   }
 
 #if 1
@@ -1052,13 +1035,13 @@ void Field::HelmholtzOperator (const real*         x      ,
 // Vector work must have length 3 * Geometry::nPlane().
 // ---------------------------------------------------------------------------
 {
-  register integer i;
   const integer    np      = Geometry::nP();
   const integer    nel     = Geometry::nElmt();
-  const integer    npnp    = np * np;
-  const integer    ntot    = nel * npnp;
+  const integer    npnp    = Geometry::nTotElmt();
+  const integer    ntot    = Geometry::nPlane();
   const integer    nglobal = N -> nGlobal() + Geometry::nInode();
   const real       **DV, **DT;
+  register integer i;
   real             *P = work, *R = P + ntot, *S = R + ntot;
 
   Femlib::quad  (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
@@ -1112,39 +1095,35 @@ void Field::buildRHS (real*               force ,
 // for this plane of data: only natural BCs are used in formation of <h, w>.
 // ---------------------------------------------------------------------------
 {
-  register Element*        E;
-  register const Boundary* B;
-  register integer         j, boff, doff;
+  const integer            nel     = Geometry::nElmt();
+  const integer            next    = Geometry::nExtElmt();
+  const integer            nint    = Geometry::nIntElmt();
+  const integer            npnp    = Geometry::nTotElmt();
   const integer            nglobal = N -> nGlobal();
-  const integer*           btog    = N -> btog();
-  const integer            nE      = Geometry::nElmt();
+  const integer*           gid;
+  register const Boundary* B;
+  register integer         i, boff, doff;
 
   if   (RHSint) Veclib::zero (nglobal + Geometry::nInode(), RHS, 1);
   else          Veclib::zero (nglobal,                      RHS, 1);
 
   // -- Add in contribution from forcing f = - M f - H g.
 
-  for (j = 0; j < nE; j++) {
-    E    = Elmt[j];
-    boff = E -> bOff();
-    doff = E -> dOff();
-
+  for (gid = N -> btog(), i = 0; i < nel; i++, force += npnp, gid += next) {
     if (RHSint) {
-      E -> e2gSum   (force + doff, btog + boff, RHS, RHSint);
-      RHSint += E -> nInt();
-
+      Elmt[i] -> e2gSum   (force, gid, RHS, RHSint); RHSint += nint;
     } else
-      E -> e2gSumSC (force + doff, btog + boff, RHS, hbi[j]);
+      Elmt[i] -> e2gSumSC (force, gid, RHS, hbi[i]);
   }
 
   // -- Add in <h, w>.
 
-  for (j = 0; j < n_bound; j++) {
-    B    = bnd[j];
+  for (gid = N -> btog(), i = 0; i < n_bound; i++) {
+    B    = bnd[i];
     doff = B -> vOff();
     boff = B -> bOff();
 
-    B -> sum (bc + doff, btog + boff, RHS);
+    B -> sum (bc + doff, gid + boff, RHS);
   }
 
   // -- Zero any contribution that <h, w> made to essential BC nodes.
@@ -1162,20 +1141,16 @@ void Field::local2global (const real*         src,
 // element-internal locations in emap ordering.
 // ---------------------------------------------------------------------------
 {
-  register Element* E;
-  register integer  j, boff, doff;
-  const integer*    btog = N -> btog();
-  const integer     nE   = Geometry::nElmt();
-  register real*    internal = tgt + N -> nGlobal();
+  const integer    nel  = Geometry::nElmt();
+  const integer    next = Geometry::nExtElmt();
+  const integer    nint = Geometry::nIntElmt();
+  const integer    npnp = Geometry::nTotElmt();
+  const integer*   gid  = N -> btog();
+  register integer i;
+  register real*   internal = tgt + N -> nGlobal();
 
-  for (j = 0; j < nE; j++) {
-    E    = Elmt[j];
-    boff = E -> bOff();
-    doff = E -> dOff();
-
-    E -> e2g (src + doff, btog + boff, tgt, internal);
-    internal += E -> nInt();
-  }
+  for (i = 0; i < nel; i++, src += npnp, gid += next, internal += nint)
+    Elmt[i] -> e2g (src, gid, tgt, internal);
 }
 
 
@@ -1188,20 +1163,16 @@ void Field::local2globalSum (const real*         src,
 // places, followed by element-internal locations in emap ordering.
 // ---------------------------------------------------------------------------
 {
-  register Element* E;
-  register integer  j, boff, doff;
-  const integer*    btog = N -> btog();
-  const integer     nE   = Geometry::nElmt();
-  register real*    internal = tgt + N -> nGlobal();
+  const integer    nel  = Geometry::nElmt();
+  const integer    next = Geometry::nExtElmt();
+  const integer    nint = Geometry::nIntElmt();
+  const integer    npnp = Geometry::nTotElmt();
+  const integer*   gid  = N -> btog();
+  register integer i;
+  register real*   internal = tgt + N -> nGlobal();
 
-  for (j = 0; j < nE; j++) {
-    E    = Elmt[j];
-    boff = E -> bOff();
-    doff = E -> dOff();
-
-    E -> e2gSum (src + doff, btog + boff, tgt, internal);
-    internal += E -> nInt();
-  }
+  for (i = 0; i < nel; i++, src += npnp, gid += next, internal += nint)
+    Elmt[i] -> e2gSum (src, gid, tgt, internal);
 }
 
 
@@ -1209,25 +1180,21 @@ void Field::global2local (const real*         src,
 			  real*               tgt,
 			  const NumberSystem* N  ) const
 // ---------------------------------------------------------------------------
-// Load a plane of data (tgt) from src, which has globally-numbered (element-
-// boundary) values in the first nglobal places, followed by element-internal
-// locations in emap ordering.
+// Load a plane of data (tgt) from src, which has globally-numbered
+// (element- boundary) values in the first nglobal places, followed by
+// element-internal locations in emap ordering.
 // ---------------------------------------------------------------------------
 {
-  register Element*    E;
-  register integer     j, boff, doff;
-  const integer*       btog     = N -> btog();
-  const integer        nE       = Geometry::nElmt();
+  const integer        nel  = Geometry::nElmt();
+  const integer        next = Geometry::nExtElmt();
+  const integer        nint = Geometry::nIntElmt();
+  const integer        npnp = Geometry::nTotElmt();
+  const integer*       gid  = N -> btog();
+  register integer     i;
   register const real* internal = src + N -> nGlobal();
 
-  for (j = 0; j < nE; j++) {
-    E    = Elmt[j];
-    boff = E -> bOff();
-    doff = E -> dOff();
-
-    E -> g2e (tgt + doff, btog + boff, src, internal);
-    internal += E -> nInt();
-  }
+  for (i = 0; i < nel; i++, tgt += npnp, gid += next, internal += nint)
+    Elmt[i] -> g2e (tgt, gid, src, internal);
 }
 
 
@@ -1239,9 +1206,10 @@ void Field::getEssential (const real*         src,
 // On input, src contains a line of BC values for the current data plane.
 // Scatter current values of essential BCs into globally-numbered tgt.
 //
-// The construction of the essential BCs has to account for cases where
-// element corners may touch the domain boundary but do not have an edge
-// along a boundary.  This is done by working with a globally-numbered vector.
+// The construction of the essential BCs has to account for cases
+// where element corners may touch the domain boundary but do not have
+// an edge along a boundary.  This is done by working with a
+// globally-numbered vector.
 // ---------------------------------------------------------------------------
 {
   register integer         i, boff, voff;
@@ -1262,25 +1230,20 @@ void Field::setEssential (const real*         src,
 			  real*               tgt,
 			  const NumberSystem* N  )
 // ---------------------------------------------------------------------------
-// Gather globally-numbered src into essential BC nodes of current data plane.
+// Gather globally-numbered src into essential BC nodes of current
+// data plane.
 // ---------------------------------------------------------------------------
 {
-  register Element* E;
-  register integer  k, boff, doff;
-  const integer*    emask = N -> emask();
-  const integer*    bmask = N -> bmask();
-  const integer*    btog  = N -> btog();
-  const integer     nE    = Geometry::nElmt();
+  const integer    nel  = Geometry::nElmt();
+  const integer    next = Geometry::nExtElmt();
+  const integer    npnp = Geometry::nTotElmt();
+  const integer*   emask = N -> emask();
+  const integer*   bmask = N -> bmask();
+  const integer*   btog  = N -> btog();
+  register integer i;
 
-  for (k = 0; k < nE; k++) {
-    if (emask[k]) {
-      E    = Elmt[k];
-      boff = Elmt[k] -> bOff();
-      doff = Elmt[k] -> dOff();
-    
-      E -> bndryMask (bmask + boff, tgt + doff, src, btog + boff);
-    }
-  }
+  for (i = 0; i < nel; i++, bmask += next, btog += next, tgt += npnp)
+    if (emask[i]) Elmt[i] -> bndryMask (bmask, tgt, src, btog);
 }
 
 
@@ -1288,10 +1251,10 @@ void Field::coupleBCs (Field*        v  ,
 		       Field*        w  ,
 		       const integer dir)
 // ---------------------------------------------------------------------------
-// Couples/uncouple boundary condition values for the radial and azimuthal
-// velocity fields in cylindrical coordinates, depending on indicated
-// direction.  This action is required due to the coupling in the viscous
-// terms of the N--S equations in cylindrical coords.
+// Couples/uncouple boundary condition values for the radial and
+// azimuthal velocity fields in cylindrical coordinates, depending on
+// indicated direction.  This action is required due to the coupling
+// in the viscous terms of the N--S equations in cylindrical coords.
 //
 // dir == +1
 // ---------
@@ -1302,8 +1265,8 @@ void Field::coupleBCs (Field*        v  ,
 //           v  <-- 0.5   * (v~ + w~)
 //           w  <-- 0.5 i * (w~ - v~)
 //
-// Since there is no coupling for the viscous terms in the 2D equation,
-// do nothing for the zeroth Fourier mode.
+// Since there is no coupling for the viscous terms in the 2D
+// equation, do nothing for the zeroth Fourier mode.
 // ---------------------------------------------------------------------------
 {
   if (Geometry::nDim() < 3) return;
