@@ -3,6 +3,13 @@
 # Run elliptic solver on test files.
 # $Id$
 
+if (!(-e elliptic)) then
+	echo "Building application, please wait..."
+	make
+	echo "done"
+	echo ""
+endif
+
 echo "\t*************************************************"
 echo "\t* Spectral element Helmholtz solver test suite. *"
 echo "\t*************************************************"
