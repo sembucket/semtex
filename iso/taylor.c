@@ -1,5 +1,5 @@
 /*****************************************************************************
- * taylor.c: routines for Taylor & Taylor-Green vortices.
+ * taylor.c: routines for Taylor & Taylor--Green vortices.
  *
  * $Id$
  *****************************************************************************/
@@ -7,9 +7,7 @@
 #include "iso.h"
 
 
-void Taylor2D (const int*  Dim ,
-	       CVF         IC  ,
-	       const int   code)
+void Taylor2D (CVF  IC, const int*  Dim, const int  code)
 /* ------------------------------------------------------------------------- *
  * Generate initial conditions corresponding to the 2D Taylor Flow
  *
@@ -20,7 +18,7 @@ void Taylor2D (const int*  Dim ,
  * 
  * Input code = 0, 1, 2 generates a cyclic permutation of the velocity.
  *
- * Generate initial conditions for t = 0, components in physical space.
+ * Generate initial conditions for t = 0, components in PHYSICAL space.
  * ------------------------------------------------------------------------- */
 {
   const int N    = Dim[1];
@@ -94,19 +92,15 @@ void Taylor2D (const int*  Dim ,
 }
 
 
-void Taylor2D_error (const int*     Dim ,
-		     CVF            IC  ,
-		     const header*  I   ,
-		     const int      code)
+void Taylor2D_error (CVF IC, const int* Dim, const Param* I, const int code)
 /* ------------------------------------------------------------------------- *
  * Replace the velocity field by its error at the time indicated by
- * header information.  Code indicates which velocity component is zero.
+ * Param information.  Code indicates which velocity component is zero.
  *
  * Velocity components are supplied in physical space.
  * ------------------------------------------------------------------------- */
 {
-  const double  t     = I -> N_Step * I -> Delta_T;
-  const double  decay = exp (-2.0 * I -> K_Visc * t);
+  const double  decay = exp (-2.0 * I -> time / I -> Re);
   const int     N     = Dim[1];
   double        x, y, z;
   real          uvw;
@@ -183,7 +177,7 @@ void Taylor2D_error (const int*     Dim ,
 }
 
 
-void  TaylorGreen (const int* Dim, CVF IC)
+void  TaylorGreen (CVF IC, const int* Dim)
 /* ------------------------------------------------------------------------- *
  * Generate initial conditions of the 3D Taylor--Green vortex, in
  * PHYSICAL space.
@@ -196,15 +190,11 @@ void  TaylorGreen (const int* Dim, CVF IC)
   const int N    = Dim[1];
   const int Npts = Dim[1] * Dim[2] * Dim[3];
 
-  /* -- Fast pointers to the data */
-
   register real *u = & IC[1][0][0][0].Re;
   register real *v = & IC[2][0][0][0].Re;
   register real *w = & IC[3][0][0][0].Re;
 
   register int i, j, k;
-
-  /* -- Fill up the cube */
 
   for (i = 0; i < N; i++) {
     const double x = 2.0 * M_PI * i / (double) N;
@@ -222,13 +212,62 @@ void  TaylorGreen (const int* Dim, CVF IC)
 }
 
 
+void  TaylorGreenNL_error (CVF IC, const int* Dim)
+/* ------------------------------------------------------------------------- *
+ * Generate the nonlinear terms in the Navier--Stokes equations for 
+ * the initial conditions of the 3D Taylor--Green vortex, in
+ * PHYSICAL space.  Add them to input, which should be the negative of the
+ * nonlinear terms.
+ *
+ *   u =  sin x cos y cos z
+ *   v = -cos x sin y cos z
+ *   w =  0
+ *
+ *   d(uu)/dx = 2 cos^2(y) sin(x) cos(x)            cos^2(z)
+ *   d(uv)/dy = (sin^2(y) - cos^2(y)) cos(x) sin(x) cos^2(z)
+ *   d(vu)/dx = (sin^2(x) - cos^2(x)) cos(y) sin(y) cos^2(z)
+ *   d(vv)/dy = 2 cos^2(x) cos(y) sin(y)            cos^2(z)
+ * ------------------------------------------------------------------------- */
+{
+  const    int   N    = Dim[1];
+  const    int   Npts = Dim[1] * Dim[2] * Dim[3];
+  register real *u    = &IC[1][0][0][0].Re;
+  register real *v    = &IC[2][0][0][0].Re;
+  register real *w    = &IC[3][0][0][0].Re;
+  register int   i, j, k;
+  real           UUx, UVy, VUx, VVy, cz2;
+
+  for (i = 0; i < N; i++) {
+    const double x = 2.0 * M_PI * i / (double) N;
+    for (j = 0; j < N; j++) {
+      const double y = 2.0 * M_PI * j / (double) N;
+      for (k = 0; k < N; k++) {
+	const double z = 2.0 * M_PI * k / (double) N;
+	
+	UUx = 2.0 * cos(x) * sin(x) * SQR(cos(y))           * SQR(cos(z));
+	UVy = (SQR(sin(y)) - SQR(cos(y))) * cos(x) * sin(x) * SQR(cos(z));
+	VUx = (SQR(sin(x)) - SQR(cos(x))) * cos(y) * sin(y) * SQR(cos(z));
+	VVy = 2.0 * cos(y) * sin(y) * SQR(cos(x))           * SQR(cos(z));
+
+	u[k + N * (j + i * N)] += (UUx + UVy);
+	v[k + N * (j + i * N)] += (VUx + VVy);
+      }
+    }
+  }
+}
+
+
 real  Brachet (const real t)
 /* ------------------------------------------------------------------------- *
  * Return the Generalized Enstrophy of order 1 for the inviscid Taylor-
  * Green vortex, as estimated in Ref [5] (Table 5).
+ *
+ * There seems to be a normalizing factor adrift here.  The normalizing
+ * factor has been adjusted from 0.5 (as per the paper) to 2.0
+ * so that the series result agrees with the computation at time zero.
  * ------------------------------------------------------------------------- */
 {
-  register int   i;
+  register int   r;
   const    int   Ntab = 41;
   double         t2r, omega, t2 = SQR (t);
   static double  A[]  = {
@@ -276,12 +315,11 @@ real  Brachet (const real t)
 
   omega = A[0];
   t2r   = t2;
-  for (i = 1; i < Ntab; i++) {
-    omega += t2r * A[i];
+  for (r = 1; r < Ntab; r++) {
+    omega += t2r * A[r];
     t2r   *= t2;
   }
-  omega *= 0.5;
+  omega *= 2.0;
 
   return  omega;
 }
-    

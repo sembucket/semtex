@@ -10,7 +10,7 @@
 #define MAG(Z)  (Z).Re*(Z).Re + (Z).Im*(Z).Im
 
 
-real  energyP (const int* Dim, CVF V, const complex* Wtab)
+real  energyP (CVF V, const complex* Wtab, const int* Dim)
 /* ------------------------------------------------------------------------- *
  * Compute & return q^2 = <UiUi>/2: diagnostic.  Do sums in PHYSICAL space.
  * Also: compare with energy() below to see the discrete Parseval relation.
@@ -39,7 +39,7 @@ real  energyP (const int* Dim, CVF V, const complex* Wtab)
 }
 
 
-real  energyF (const int* Dim, const CVF U)
+real  energyF (const CVF U, const int* Dim)
 /* ------------------------------------------------------------------------- *
  * Compute & return q^2 = <UiUi>/2: diagnostic.  Do sums in FOURIER space.
  * ------------------------------------------------------------------------- */
@@ -59,7 +59,7 @@ real  energyF (const int* Dim, const CVF U)
 }
 
 
-real  genEnstrophy (const int* Dim, const CVF U)
+real  rmsEns (const CVF U, const int* Dim)
 /* ------------------------------------------------------------------------- *
  * Compute & return Omega, generalized enstrophy, of order 1.  This is just
  * the mean-squared derivative of the velocity field.  See Ref [5], eq. (3.1).
@@ -98,5 +98,39 @@ real  genEnstrophy (const int* Dim, const CVF U)
       }
     }
   
-  return 0.25*omega;
+  return  omega;
+}
+
+
+real  L2norm (const CF U, const int* Dim)
+/* ------------------------------------------------------------------------- *
+ * Compute & return L2 norm = Sum U^2.  U supplied in FOURIER space.
+ * ------------------------------------------------------------------------- */
+{
+  register int       i;
+  register real      l2;
+  register complex  *u    = &U[0][0][0];
+  const int          Npts = Dim[1] * Dim[2] * Dim[3];
+
+  l2 = 0.0;
+  for (i = 0; i < Npts; i++) l2 += MAG (u[i]);
+  l2 *= 2.0;
+
+  return l2;
+}
+
+
+real  amaxf (const CF U, const int* Dim)
+/* ------------------------------------------------------------------------- *
+ * Find the maximum value of scalar field U, given in PHYSICAL space.
+ * ------------------------------------------------------------------------- */
+{
+  register int   i;
+  register real  mx   = 0.0;
+  register real* u    = &U[0][0][0].Re;
+  const int      Npts = 2 * Dim[1] * Dim[2] * Dim[3];
+
+  for (i = 0; i < Npts; i++) mx = MAX (fabs(u[i]), mx);
+
+  return mx;
 }

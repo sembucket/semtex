@@ -25,14 +25,14 @@
 int main (int argc, char *argv[])
 {
   FILE*       fp;
-  string      filename;
+  char        filename[FILENAME_MAX];
   int         c, i, argnr, cubesize, Npts;
-  int         paramerr = FALSE, seed = -1;
+  int         paramerr = FALSE;
   CVF         IC;
   real**      head;
   int*        Dim;
   complex*    Wtab;
-  header      IC_info;
+  Param*      Info = (Param*) calloc (1, sizeof (Param));
   real        Max_Vel;
 
   /* -- Process command-line arguments. */
@@ -77,7 +77,7 @@ int main (int argc, char *argv[])
 
   Dim    = ivector (1, 3);
   Dim[1] = (Dim[2] = cubesize);
-  Dim[3] = cubesize / 2;
+  Dim[3] = Dim[1] / 2;
   Npts   = Dim[1] * Dim[2] * Dim[3];
   
   head = cfield  (Dim, &IC);
@@ -85,9 +85,9 @@ int main (int argc, char *argv[])
 
   /* -- Generate initial condition. */
 
-  TaylorGreen (Dim, IC);
+  TaylorGreen (IC, Dim);
 
-  preFFT (Dim[3], Wtab);
+  preFFT (Wtab, Dim[3]);
   for (i = 1; i <= 3; i++) {
     rc3DFT  (IC[i], Dim, Wtab, FORWARD);
     scaleFT (IC[i], Dim);
@@ -95,23 +95,21 @@ int main (int argc, char *argv[])
 
   /* -- Output to file. */
 
-  IC_info.Magic    = MAGIC;
-  IC_info.N_Grid   = cubesize;
-  IC_info.Delta_T  = 0.01;
-  IC_info.N_Save   = 0;
-  IC_info.Max_Step = 0;
-  IC_info.N_Step   = 0;
-  IC_info.K_Visc   = 0.01;
+  Info -> modes   = cubesize;
+  Info -> dt      = 0.01;
+  Info -> step    = 0;
+  Info -> Re      = 100.0;
 
-  strcpy (IC_info.Title,"Taylor-Green");
-  strcpy (IC_info.IC_File,"<nil>");
+  strcpy (Info -> name, "Taylor--Green");
 
-  fp = efopen(filename, "w");
+  fp = efopen (filename, "w");
 
-  write_header (fp, &IC_info);
-  write_field  (fp, IC, Npts);
-
+  writeParam (fp, Info);
+  writeCVF   (fp, IC, Dim);
   fclose(fp);
+
+  printParam  (stdout, Info, "$RCSfile$", "$Revision$");
 
   return EXIT_SUCCESS;
 }
+

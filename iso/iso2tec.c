@@ -1,87 +1,72 @@
-/*
+/*****************************************************************************
  * Convert an ISO field file into a TECPLOT file
  *
  * usage: iso2tec input.fld > output.tec
  *
- */
+ * $Id$
+ *****************************************************************************/
 
-#include <stdio.h>
-#include <math.h>
-#include <assert.h>
-#include "globals.h"
+#include "iso.h"
 
 real magnitude (CVF, int, int, int, int);
 
+
 int main (int argc, char *argv[])
 {
-  CVF U;
-  CVF Q;
-  CF          Work;
-  header               U_info;
-  int*              Dimension;
-  complex*              Wtab;
-  int                  N, Npts;
-  FILE                 *fp;
-  real                *u, *v, *w;
-  register int         c, i, j, k;
+  CVF            U;
+  CVF            Q;
+  CF             Work;
+  Param*         Info = (Param*) calloc (1, sizeof (Param));
+  int*           Dim;
+  complex*       Wtab;
+  int            N, Npts;
+  FILE*          fp;
+  real          *u, *v, *w;
+  register int   c, i, j, k;
 
   fp = efopen (argv[1], "r");
-  if (fread(&U_info, 1, sizeof(header), fp) != sizeof(header))
-    fprintf (stderr, "Can't read header from input file\n");
-  
-  /* Check for a '\n' in the title string */
+  readParam   (fp, Info);
+  printParam  (stderr, Info, "$RCSfile$", "$Revision$");
 
-  { char *p = strchr(U_info.Title,'\n'); if (p) *p = '\0'; }
+  /* -- Set up the problem size */
 
-  fprintf (stderr, "Title:  %s\n", U_info.Title);
-  fprintf (stderr, "Re   :  %f\n", 1./U_info.K_Visc);
-  fprintf (stderr, "N    :  %d\n", U_info.N_Grid);
-  fprintf (stderr, "dt   :  %f\n", U_info.Delta_T);
-  fprintf (stderr, "step :  %d\n", U_info.N_Step);
-  fprintf (stderr, "time :  %f\n", U_info.N_Step * U_info.Delta_T);
-  
+  Dim    =  ivector (1, 3);
+  Dim[1] = (N = Info -> modes);
+  Dim[2] =  N;
+  Dim[3] =  N / 2;
+  Npts   =  Dim[1] * Dim[2] * Dim[3];
 
-  /* Set up the problem size */
+  /* -- Allocate storage for the solution */
 
-  Dimension    =  ivect(1, 3);
-  Dimension[1] = (N = U_info.N_Grid);
-  Dimension[2] =  N;
-  Dimension[3] =  N / 2;
-  Npts         =  Dimension[1] * Dimension[2] * Dimension[3];
+  Wtab = cvector (0, Dim[3]-1);
+  cfield (Dim, &U);
+  cfield (Dim, &Q);
+  cbox   (0, Dim[1]-1, 0, Dim[2]-1, 0, Dim[3]-1, &Work);
 
-  /* Allocate storage for the solution */
+  readCVF (fp, U, Dim);
+  fclose  (fp);
 
-  Wtab = cvect (0, Dimension[3]-1);
-  cfield (Dimension, &U);
-  cfield (Dimension, &Q);
-  cbox   (0, Dimension[1]-1, 0, Dimension[2]-1, 0, Dimension[3]-1, &Work);
+  /* -- Compute vorticity. */
 
-  read_components (fp, U, Npts);
-  fclose          (fp);
+  curl (U, Q, Work, Dim);
 
-  /* Compute vorticity */
+  /* -- Transform to PHYSICAL space. */
 
-  curl (U, Q, Work, Dimension);
+  preFFT (Wtab, Dim[3]);
+  for (c = 1; c <= 3; c++) rc3DFT (U[c], Dim, Wtab, INVERSE);
+  for (c = 1; c <= 3; c++) rc3DFT (Q[c], Dim, Wtab, INVERSE);
 
-  /* Get ready to transform to PHYSICAL space */
+  u = &U[1][0][0][0].Re;
+  v = &U[2][0][0][0].Re;
+  w = &U[3][0][0][0].Re;
 
-  preFFT (Dimension[3], Wtab);
-  for (c = 1; c <= 3; c++)
-    rc3DFT (U[c], Dimension, Wtab, INVERSE);
-  for (c = 1; c <= 3; c++)
-    rc3DFT (Q[c], Dimension, Wtab, INVERSE);
+  /* -- TECPLOT header. */
 
-  u = (real*) & U[1][0][0][0].Re;   /* Set up fast pointers */
-  v = (real*) & U[2][0][0][0].Re;
-  w = (real*) & U[3][0][0][0].Re;
-
-  /* TECPLOT header */
-
-  printf ("TITLE = %s\n", U_info.Title);
+  printf ("TITLE = ISO FIELD FILE\n");
   printf ("VARIABLES = x y z u v w q\n");
   printf ("ZONE T = \"BOX\", I=%d, J=%d, K=%d\n", N, N, N);
 
-  /* Output the solution and grid */
+  /* -- Output the solution and grid. */
 
   for (k = 0; k < N; k++) {
     const real z = 2.*M_PI * k / N;
@@ -100,15 +85,15 @@ int main (int argc, char *argv[])
     }
   }
 
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 
 real magnitude (CVF Q, int i, int j, int k, int N)
 {
-  real *u = (real*) &Q[1][0][0][0].Re;
-  real *v = (real*) &Q[2][0][0][0].Re;
-  real *w = (real*) &Q[3][0][0][0].Re;
+  real *u = &Q[1][0][0][0].Re;
+  real *v = &Q[2][0][0][0].Re;
+  real *w = &Q[3][0][0][0].Re;
 
   const int p = k + N * (j + N * i);
 

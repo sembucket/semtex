@@ -16,32 +16,33 @@ int main (int argc, char *argv[])
   real**     headD;
   int*       Dim;
   complex*   Wtab;
-  header     Run_info;
+  Param*     Info = (Param*) calloc (1, sizeof (Param));
   int        i, c, Npts;
   real       div, Max=0.0;
   FILE*      fp;
 
   if (argc != 2) {
-    fprintf(stderr, "div_chk: arg count\n");
-    fprintf(stderr, "Usage: div_chk file\n");
-    exit(1);
+    fprintf (stderr, "div_chk: arg count\n");
+    fprintf (stderr, "Usage: div_chk file\n");
+    exit    (EXIT_FAILURE);
   }
 
   /* -- Open file, allocate storage, read velocity Fourier components. */
 
   fp = efopen (argv[1], "r");
 
-  read_header (fp, &Run_info);
+  readParam  (fp, Info);
+  printParam (stdout, Info, "$RCSfile$", "$Revision$");
 
   Dim    = ivector (1, 3);
-  Dim[1] = (Dim[2] = Run_info.N_Grid);
+  Dim[1] = (Dim[2] = Info -> modes);
   Dim[3] =  Dim[1] / 2;
-  Npts   = Dim[1]*Dim[2]*Dim[3];
+  Npts   =  Dim[1] * Dim[2] * Dim[3];
 
   headU = cfield (Dim, &U);
   headD = cfield (Dim, &D);
 
-  read_field (fp, U, Npts);
+  readCVF (fp, U, Dim);
     
   fclose (fp);
 
@@ -54,7 +55,7 @@ int main (int argc, char *argv[])
   /* -- Transform to physical space. */
 
   Wtab = cvector (0, Dim[3]-1); 
-  preFFT (Dim[3], Wtab);
+  preFFT (Wtab, Dim[3]);
 
   rc3DFT (D[1], Dim, Wtab, INVERSE);
   rc3DFT (D[2], Dim, Wtab, INVERSE);
@@ -64,7 +65,7 @@ int main (int argc, char *argv[])
 
   for (i=0; i < 2*Npts; i++) {
     div = headD[1][i] + headD[2][i] + headD[3][i];
-    Max = MAX (div, Max);
+    Max = MAX (fabs(div), Max);
   }
 
   printf("Maximum divergence: %g\n", Max);

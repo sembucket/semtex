@@ -7,12 +7,11 @@
 #include "iso.h"
 
 
-void  integrate (/* update */ CVF            U    ,
-                 /* using  */ const CVF      G    ,
- 		              const CVF      G_old,
-                              const header*  I    ,
-                              const int*     Dim  ,
-		 /* switch */ const int      Start)
+void  integrate (/* update */ CVF           U    ,
+                 /* using  */ const CVF     G    ,
+ 		              const CVF     G_old,
+                              const Param*  I    ,
+                              const int*    Dim  )
 /* ------------------------------------------------------------------------- *
  * Update the velocity field Fourier coefficients.  Time advancement is
  * explicit, using an Euler step at the first timestep, and Adams-Bashforth
@@ -26,11 +25,11 @@ void  integrate (/* update */ CVF            U    ,
   const    int  N         = Dim[1];
   const    int  K         = Dim[3];
   const    int  FOURKon3  = (4 * K) / 3;
-  const    real Neg_nu_dt =  -I -> K_Visc * I -> Delta_T;
+  const    real Neg_nu_dt =  -I -> dt / I -> Re;
   real          kSqrd;
 
   
-  if (Start) {			/* -- Do an Euler step. */
+  if (! I -> step) {			/* -- Do an Euler step. */
     register real  I_factor, C1;
 
     for (c = 1; c <= 3; c++)
@@ -39,7 +38,7 @@ void  integrate (/* update */ CVF            U    ,
 
 	kSqrd    = k1 * k1;	/* Axes. */
 	I_factor = exp (kSqrd * Neg_nu_dt);
-	C1       = I -> Delta_T * I_factor;
+	C1       = I -> dt * I_factor;
 	
 	U[c][k1][ 0][ 0].Re *= I_factor;
 	U[c][k1][ 0][ 0].Im *= I_factor;
@@ -60,7 +59,7 @@ void  integrate (/* update */ CVF            U    ,
 	  if (k1+k2 <= FOURKon3) {
 	    kSqrd    = k1*k1 + k2*k2; /* Faces. */
 	    I_factor = exp (kSqrd * Neg_nu_dt);
-	    C1       = I -> Delta_T * I_factor;
+	    C1       = I -> dt * I_factor;
 	  
 	    U[c][ 0][k1][k2].Re *= I_factor;   /* i = 0 */
 	    U[c][ 0][k1][k2].Im *= I_factor;
@@ -98,7 +97,7 @@ void  integrate (/* update */ CVF            U    ,
 	    if (k2+k3 <= FOURKon3 && k1+k3 <= FOURKon3) { 
 	      kSqrd    = k1*k1 + k2*k2 + k3*k3; /* Internal. */
 	      I_factor = exp (kSqrd * Neg_nu_dt);
-	      C1       = I -> Delta_T * I_factor;
+	      C1       = I -> dt * I_factor;
 	    
 	      U[c][k1][k2][k3].Re *= I_factor;
 	      U[c][k1][k2][k3].Im *= I_factor;
@@ -133,7 +132,7 @@ void  integrate (/* update */ CVF            U    ,
 
 	kSqrd    = k1 * k1;	/* Axes. */
 	I_factor = exp (kSqrd * Neg_nu_dt);
-	C1       = 0.5 * I -> Delta_T * I_factor;
+	C1       = 0.5 * I -> dt * I_factor;
 	C2       = -I_factor * C1;
 	C1      *= 3.0;
 	
@@ -162,7 +161,7 @@ void  integrate (/* update */ CVF            U    ,
 
 	  kSqrd    = k1*k1 + k2*k2; /* Faces. */
 	  I_factor = exp (kSqrd * Neg_nu_dt);
-	  C1       = 0.5 * I -> Delta_T * I_factor;
+	  C1       = 0.5 * I -> dt * I_factor;
 	  C2       = -I_factor * C1;
 	  C1      *= 3.0;
 	  
@@ -211,7 +210,7 @@ void  integrate (/* update */ CVF            U    ,
 	  for (k3 = 1; k3 < K && k2+k3 <= FOURKon3 && k1+k3 <= FOURKon3; k3++){
 	    kSqrd    = k1*k1 + k2*k2 + k3*k3; /* Internal. */
 	    I_factor = exp (kSqrd * Neg_nu_dt);
-	    C1       = 0.5 * I -> Delta_T * I_factor;
+	    C1       = 0.5 * I -> dt * I_factor;
 	    C2       = -I_factor * C1;
 	    C1      *= 3.0;
 	    

@@ -33,7 +33,7 @@ complex*  cvector (int lo, int hi)
 }
 
 
-real*  cbox (int ilo,int ihi, int jlo,int jhi, int klo,int khi, CF *c)
+real*  cbox (int ilo, int ihi, int jlo, int jhi, int klo, int khi, CF *c)
 /* ------------------------------------------------------------------------- *
  * Allocates a complex 3-D matrix with ranges [ilo..ihi][jlo..jhi][klo..khi].
  * Returns storage guaranteed to be contiguous.
@@ -106,32 +106,15 @@ real**  cfield (int* Dim, CVF* u)
 }
 
 
-void  zero (CVF Z, const int* Dim)
-/* ------------------------------------------------------------------------- *
- * Zero all information in Z.
- * ------------------------------------------------------------------------- */
-{
-  const    int   Npts = 2 * Dim[1] * Dim[2] * Dim[3];
-  register int   i;
-  register real *h1, *h2, *h3;
-
-  h1 = &Z[1][0][0][0].Re;
-  h2 = &Z[2][0][0][0].Re;
-  h3 = &Z[3][0][0][0].Re;
-
-  for (i = 0; i < Npts; i++)
-    *(h1+i) = (*(h2+i) = (*(h3+i) = 0.0));
-}
-
-
-void allocate_storage (CVF*          V    ,
-		       CVF*          G    ,
-		       CVF*          G_old,
-		       CVF*          WK   ,
-		       CF*           F    ,
-		       complex**     Wtab ,
-		       complex**     Stab ,
-		       int*          Dim  )
+void allocate (CVF*          V    ,
+	       CVF*          G    ,
+	       CVF*          G_old,
+	       CVF*          WK   ,
+	       CF*           F    ,
+	       CF*           F_   ,
+	       complex**     Wtab ,
+	       complex**     Stab ,
+	       int*          Dim  )
 /* ------------------------------------------------------------------------- *
  * Use the above routines to get main storage for problem.
  * ------------------------------------------------------------------------- */
@@ -141,10 +124,11 @@ void allocate_storage (CVF*          V    ,
   cfield (Dim, &(*G_old));
   cfield (Dim, &(*WK)   );
 
-  cbox (0, Dim[1]-1, 0, Dim[2]-1, 0, Dim[3]-1, &(*F));
+  cbox (0, Dim[1]-1, 0, Dim[2]-1, 0, Dim[3]-1, F );
+  cbox (0, Dim[1]-1, 0, Dim[2]-1, 0, Dim[3]-1, F_);
   *Wtab = cvector (0, Dim[3]-1);
   *Stab = cvector (-(Dim[1]-1), Dim[1]-1);
   
-  zero (*G, Dim);
-  zero (*G_old, Dim);
+  zeroVF (*G, Dim);
+  zeroVF (*G_old, Dim);
 }
