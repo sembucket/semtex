@@ -119,15 +119,18 @@ int main (int argc, char *argv[])
   Mesh*  M = preProcess (*input);
   input -> close ();
 
+  const int DIM = Femlib::integer ("N_VAR" ); 
+  const int NP  = Femlib::integer ("N_POLY");
+  const int NZ  = Femlib::integer ("N_Z"   );
+
   // -- Set up domain with single field, 'u'.
 
-  Domain*  D = new Domain (*M, session, Femlib::integer ("N_POLY"));
+  Domain*  D = new Domain (*M, session, NP, NZ)
   D -> u[0] -> setName ('u');
 
   // -- Add remaining velocity fields.
 
-  const int DIM = Femlib::integer ("N_VAR");
-  SystemField*  newField;
+  SystemField* newField;
   for (int i = 1; i < DIM; i++) {
     newField = new SystemField (*D -> u[0]);
     D -> addField (newField);
@@ -140,7 +143,7 @@ int main (int argc, char *argv[])
   D -> addField (Pressure);
   Pressure -> setName ('p');  
   PBCmanager::build (*Pressure);
-  Pressure -> connect (*M, Femlib::integer ("N_POLY"));
+  Pressure -> connect (*M, NP);
 
   // -- Initialize fields.
 
@@ -148,7 +151,7 @@ int main (int argc, char *argv[])
 
   // -- Solve.
 
-  Analyser*  A = new Analyser (*D);
+  Analyser* A = new Analyser (*D);
 
   NavierStokes (D, A);
 
