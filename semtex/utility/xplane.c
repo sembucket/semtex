@@ -123,26 +123,22 @@ static void getargs (int    argc ,
  * Parse command line arguments.
  * ------------------------------------------------------------------------- */
 {
-  char fname[FILENAME_MAX];
+  char c, fname[FILENAME_MAX];
   char usage[] = "xplane [-h] [-n plane] [input[.fld]\n";
 
   while (--argc && (*++argv)[0] == '-')
-    switch (*++argv[0]) {
+    switch (c = *++argv[0]) {
     case 'h':
       fputs (usage, stderr);
       exit  (EXIT_SUCCESS);
       break;
     case 'n':
-      if (*++argv[0])
-	*plane = atoi (*argv);
-      else {
-	*plane = atoi (*++argv);
-	argc--;
-      }
+      if (*++argv[0]) *plane = atoi (*argv);
+      else {*plane = atoi (*++argv); argc--;}
       (*plane)--;
       break;
     default:
-      fprintf (stderr, "%s: unknown option -- %c\n", prog, *argv);
+      fprintf (stderr, "%s: unknown option -- %c\n", prog, c);
       break;
     }
   

@@ -163,11 +163,11 @@ static void getargs (int    argc ,
  * Parse command line arguments.
  * ------------------------------------------------------------------------- */
 {
-  char fname[FILENAME_MAX];
+  char c, fname[FILENAME_MAX];
   char usage[] = "moden [-h] [-m mode] [input[.fld]\n";
 
   while (--argc && (*++argv)[0] == '-')
-    switch (*++argv[0]) {
+    switch (c = *++argv[0]) {
     case 'h':
       fputs (usage, stderr);
       exit  (EXIT_SUCCESS);
