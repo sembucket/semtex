@@ -244,7 +244,9 @@ static void nonLinear (Domain*    D ,
   Field*            master = D -> u[0];
   real*             tmp    = work() + 2 * NDIM * nTot32;
 
-  ROOTONLY A[0] = a.x; A[1] = a.y; if (NDIM == 3) A[2] = a.z;
+  ROOTONLY {
+    A[0] = a.x; A[1] = a.y; if (NDIM == 3) A[2] = a.z;
+  }
 
   Veclib::zero ((2 * NDIM + 1) * nTot32, work(), 1); // -- A catch-all cleanup.
 
