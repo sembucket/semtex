@@ -2,10 +2,9 @@
 // analysis.C: implement Analyser class for NS-type solvers.
 //
 // Copyright (C) 1994, 1999 Hugh Blackburn
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include "Sem.h"
 

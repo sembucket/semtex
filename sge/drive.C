@@ -26,10 +26,9 @@
 // Highett, Vic 3190
 // Australia
 // hugh.blackburn@dbce.csiro.au
+//
+// $Id$
 //////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include "Sem.h"
 #include <new.h>

@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // transport.C: Unsteady advection--diffusion solver, Cartesian cords.
 //
+// Copyright (C) 1999 Hugh Blackburn
+//
 // Here there is only a single velocity component, and we solve
 // for the transport of the scalar field 'c'.  The single component
 // of fluid velocity, 'w', is in the Fourier/z direction; this is a 
@@ -13,10 +15,9 @@
 // Time split is discussed in: Karniadakis, Israeli & Orszag,
 // "High-order splitting methods for the incompressible Navier--Stokes
 // equations", JCP 9(2). 1991.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include "Sem.h"
 
