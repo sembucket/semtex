@@ -95,8 +95,7 @@ int  ispow2   (int);
 
 /* -- nonlinear.c */
 
-void  nonlinear (CVF, CVF, CVF, CF, CF,
-		 const complex*, const complex*);
+void nonlinear (CVF, CVF, CVF, CF, CF, const complex*, const complex*);
 
 /* -- integrate.c */
 
@@ -162,5 +161,9 @@ real ran2PI    (int*);
 /* -- filter.c */
 
 void bvdFilter (const int, const int, const int, const real, real*);
-void ispectrum (CVF, const int, const real);
+void ispectrum (CVF, const real, const real,
+		real (*)(const real, const real, const real));
+real unknown01 (const real, const real, const real);
+real vonKarman (const real, const real, const real);
+
 #endif
