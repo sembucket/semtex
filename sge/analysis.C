@@ -109,6 +109,8 @@ void Analyser::analyse ()
 
   if (state) {
 
+    Femlib::synchronize();
+
     // -- Output history point data.
       
     register integer  i, j;
