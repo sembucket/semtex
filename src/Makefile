@@ -63,20 +63,22 @@ else
 endif
 endif
 
-ifeq ($(ARCH),Linux-alpha)              # -- Linux alpha w Compaq C, C++ & f90.
-CXX    = cxx
-LD     = cxx
+ifeq ($(ARCH),Linux-alpha)              # -- Linux alpha w Compaq C & f90.
+CXX    = g++			        # Use g++ as C++ and linker.
+LD     = g++			        # This avoids I/O related problems.
 CC     = ccc
 FC     = fort
 ifdef DEBUG
-  OPT    = -g2
+  GOPT    = -gstabs+
+  COPT    = -g2
 else
-  OPT    = -tune host -fast
+  GOPT    = -O4
+  COPT    = -fast -tune host
 endif
-CFLAGS   = $(DEFINES) $(OPT)
-FFLAGS   = $(DEFINES) $(OPT)
-CXXFLAGS = $(DEFINES) $(OPT)
-LDFLAGS  = $(LIBDIR) $(OPT)
+CFLAGS   = $(DEFINES) $(COPT)
+FFLAGS   = $(DEFINES) $(COPT)
+CXXFLAGS = $(DEFINES) $(GOPT)
+LDFLAGS  = $(LIBDIR)  $(GOPT)
 RANLIB   = ranlib
 LIBDIR  += -L/usr/local/lib
 F77LIBS  = -lcxml -lfor -lots
@@ -84,7 +86,7 @@ ifdef STATIC
   LDFLAGS += -non_shared
 endif
 ifdef NOCXML     # -- For testing, avoid Compaq math libs.
-  F77LIBS =  -llapack -lgemm -lblas -lots -lfor
+  F77LIBS =  -llapack -lgemm -lblas -lots -lfor -lg2c
 endif
 ifdef MPI
   MPIHOME   = /usr/local/mpich
