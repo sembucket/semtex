@@ -320,15 +320,6 @@ ifstream& operator >> (ifstream& strm,
     }
   }
 
-#if 0
-  for (j = 0; j < nfields; j++) {
-    for (i = 0; i < nfields; i++)
-      if (fields[j] == D.field[i]) {
-	strm >>  *D.u[i];
-	if (swap) D.u[i] -> reverse();
-	break;
-      }
-#else
   for (j = 0; j < nfields; j++) {
     for (found = false, i = 0; i < nfields; i++)
       if (fields[j] == D.field[i]) { found = true; break; }
@@ -336,13 +327,12 @@ ifstream& operator >> (ifstream& strm,
       strm >>  *D.u[i];
       if (swap) D.u[i] -> reverse();
     } else ROOTONLY // -- Skip over a field variable not in the domain.
-      strm.seekg (ntot*sizeof(real_t), ios_base::cur);
-
+      strm.seekg (ntot*sizeof(real_t), ios::cur);
   }
-#endif
     
   ROOTONLY if (strm.bad())
     message (routine, "failed reading field file", ERROR);
     
   return strm;
 }
+
