@@ -136,8 +136,7 @@ static void getargs (int    argc   ,
       exit (EXIT_FAILURE);
       break;
     }
-  cout << argc << endl;
-  cout << argv[1] << endl;
+
   if   (argc != 1) message (routine, "no session definition file", ERROR);
   else             session = *argv;
 }
