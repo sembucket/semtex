@@ -39,7 +39,7 @@
 #include <string.h>
 
 #include <femdef.h>
-#include <alplib.h>
+#include <veclib.h>
 
 static char  prog[]    = "rstress";
 static char* hdr_fmt[] = {	 /* -- Header output formatting. */

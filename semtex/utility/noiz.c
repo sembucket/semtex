@@ -30,7 +30,7 @@
 
 #include <femlib.h>
 #include <femdef.h>
-#include <alplib.h>
+#include <veclib.h>
 
 #define IA    16807
 #define IM    2147483647
