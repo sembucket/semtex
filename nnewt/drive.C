@@ -188,8 +188,5 @@ static void preprocess (const char*       session,
 
   domain = new Domain (file, elmt, bman);
 
-  if (!strchr (domain -> name, 'l'))
-    message (prog, "must define extra field 'l' in session file", ERROR);
-
   VERBOSE cout << "done" << endl;
 }
