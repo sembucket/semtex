@@ -2,15 +2,17 @@
  * chop: read an input file and reproduce a specified number of lines on
  * standard output.
  *
- * Usage: chop [-h] [-s startline] [-n number of lines] [-S skip] [file]
+ * Usage: chop [-h] [-s nstart] [-n nlines] [-S nskip] [-B nblock] [file]
  *
- * The first two command line arguments specify the first line of the input
- * file to reproduce, and the number of subsequent lines.  The third argument
- * gives a skip between lines of output that are reproduced.
+ * The first two command line arguments specify the first line of the
+ * input file to reproduce, and the number of subsequent lines.  The
+ * third argument gives a skip between lines of output that are
+ * reproduced.
  *
- * Can be used as a filter.
- * If number of lines not specified, read through until EOF.
- * Lines are assumed to be BUFSIZ characters long at most.
+ * Can be used as a filter.  If nlines not specified, read through
+ * until EOF.  Lines are assumed to be BUFSIZ characters long at most.
+ * If nblock is set, then data are output in blocks of nblock lines,
+ * with nskip lines omitted between each block.
  *
  * $Id$
  *****************************************************************************/
@@ -19,10 +21,11 @@
 #include <stdlib.h>
 
 
-static void chop (FILE* fp, int s, int n, int S);
+static void chop (FILE* fp, int s, int n, int S, int B);
 
 
-int main (int argc, char *argv[])
+int main (int    argc, 
+	  char** argv)
 /* ------------------------------------------------------------------------- *
  * Wrapper for chop(), which does the work.  Here we do administration.
  * ------------------------------------------------------------------------- */
@@ -31,10 +34,11 @@ int main (int argc, char *argv[])
     "usage: chop [options] [input]\n"
     "  options:\n"
     "  -h         ... display this message\n"
-    "  -n <lines> ... reproduce this many lines of file    [Default: to EOF]\n"
-    "  -s <line>  ... start at this line number            [Default: 1]\n"
-    "  -S <num>   ... skip <num> lines between each output [Default: 1]\n";
-  int   i, start = 1, nlines = 0, skip = 1;
+    "  -n <lines> ... reproduce this many lines of file [Default: to EOF]\n"
+    "  -s <line>  ... start at this line number              [Default: 1]\n"
+    "  -S <num>   ... skip <num> lines between each output   [Default: 1]\n"
+    "  -B <num>   ... output blocks size <num>, skip between [Default: 0]\n";
+  int   i, nstart = 1, nlines = 0, nskip = 1, nblock = 0;
   FILE* fp;
   
   while (--argc && **++argv == '-') {
@@ -53,18 +57,26 @@ int main (int argc, char *argv[])
       break;
     case 's':
       if (*++argv[0])
-	start = atoi (*argv);
+	nstart = atoi (*argv);
       else {
 	--argc;
-	start = atoi (*++argv);
+	nstart = atoi (*++argv);
       }
       break;
     case 'S':
       if (*++argv[0])
-	skip = atoi (*argv);
+	nskip = atoi (*argv);
       else {
 	--argc;
-	skip = atoi (*++argv);
+	nskip = atoi (*++argv);
+      }
+      break;
+    case 'B':
+      if (*++argv[0])
+	nblock = atoi (*argv);
+      else {
+	--argc;
+	nblock = atoi (*++argv);
       }
       break;
     default:
@@ -80,12 +92,12 @@ int main (int argc, char *argv[])
 	fprintf (stderr, usage);
 	exit    (EXIT_FAILURE);
       } else {
-	chop    (fp, start, nlines, skip);
+	chop    (fp, nstart, nlines, nskip, nblock);
 	fclose  (fp);
       }
 
   } else {			/* -- Input from stdin. */
-    chop  (stdin, start, nlines, skip);
+    chop  (stdin, nstart, nlines, nskip, nblock);
     while ((i = getchar()) != EOF);
   }
   
@@ -93,10 +105,11 @@ int main (int argc, char *argv[])
 }
 
 
-static void chop (FILE* file , 
-		  int   start,
-		  int   nline,
-		  int   skip )
+static void chop (FILE* file  , 
+		  int   nstart,
+		  int   nline ,
+		  int   nskip ,
+		  int   nblock)
 /* ------------------------------------------------------------------------- *
  * This does the real work.
  * ------------------------------------------------------------------------- */
@@ -104,35 +117,43 @@ static void chop (FILE* file ,
   char buf[BUFSIZ], *OK;
   int  n = 0;
 
-  if (start > 1)
-    while (start > 1 && (OK = fgets (buf, BUFSIZ, file))) {
+  if (nstart > 1)
+    while (nstart > 1 && (OK = fgets (buf, BUFSIZ, file))) {
       if (!OK) {
 	fprintf (stderr, "chop: Reached EOF before start line.\n");
 	exit    (EXIT_FAILURE); 
       }
-      --start;
+      nstart--;
     }
+  
+  if (nblock) {
+    const int quant = nblock + nskip;
 
-  if (nline) {
-    while (nline && (OK = fgets (buf, BUFSIZ, file))) {
-      if (!OK) {
-	fprintf (stderr, "chop: Reached EOF prematurely.\n") ;
-	exit    (EXIT_FAILURE);
-      }
-      if (n % skip == 0) {
-	fputs (buf, stdout);
-	--nline;
-      }
-      ++n;
+    while (fgets (buf, BUFSIZ, file)) {
+      if ((n % quant) < nblock) fputs (buf, stdout);
+      n++;
     }
 
   } else
-    while (fgets (buf, BUFSIZ, file)) {
-      if (n % skip == 0) {
-	fputs (buf, stdout);
+
+    if (nline) {
+      while (nline && (OK = fgets (buf, BUFSIZ, file))) {
+	if (!OK) {
+	  fprintf (stderr, "chop: Reached EOF prematurely.\n") ;
+	  exit    (EXIT_FAILURE);
+	}
+	if (n % nskip == 0) {
+	  fputs (buf, stdout);
+	  nline--;
+	}
+	n++;
       }
-      ++n;
-    }
+
+    } else
+      while (fgets (buf, BUFSIZ, file)) {
+	if (n % nskip == 0) fputs (buf, stdout);
+	n++;
+      }
 }
 
 
