@@ -16,6 +16,7 @@ RCSid[] = "$Id$";
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <iostream.h>
 #include <iomanip.h>
 #include <femdef.h>
 #include <Femlib.h>
@@ -243,7 +244,7 @@ static void getfields (FEML&         feml ,
       field[3] = '\0';
     }
   }
-};
+}
 
 
 void printup (vector<char>&  F   ,
