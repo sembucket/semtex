@@ -8,33 +8,68 @@
 \documentclass[11pt,b5paper,titlepage]{book}
 \usepackage{palatino}		% Roman <-- Palatino, SansSerif <-- Helvetica.
 \usepackage{pifont}		% Just to get the copyright symbol.
-\usepackage{endnotesn}		% Local revison of endnotes.
+\usepackage{endnotes_mod}	% Local revison of endnotes.
 \usepackage{graphicx}		% For maps.
 \usepackage{pstricks}		% Map repositioning.
 \usepackage{setspace}		% To close up Quotes and Contents page.
 \usepackage{makeidx}
 \usepackage{fancyhdr}
 
-%\usepackage{bibtopic}
-%\usepackage{natbib}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% We use the jurabib package (with some fixes, see below) to get
+% the endnotes in humanities syntax.
 
 \usepackage[%
   authorformat=year,%
   titleformat=italic,%
   titleformat=commasep,%
   ibidem=strict,%
-  opcit=chapter,%
+  opcit,%
   citefull=first,
   oxford,%
-%  pages=format,
   commabeforerest,%
-%  citetoend=true,
 ]{jurabib}
 
 \AddTo\bibsenglish{%
-  \renewcommand{\ibidemname}{\textit{Ibid}.}
-  \renewcommand{\ibidemmidname}{\textit{ibid}.}
+  \renewcommand{\ibidemname}{\textit{Ibid}.}%
+  \renewcommand{\ibidemmidname}{\textit{ibid}.}%
+        \def\volumename{vol.\ }%
+        \def\Volumename{Vol.\ }%
 }
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% -- Workarounds for Jurabib problems from Jens Berger.
+
+\makeatletter
+\newif\ifendnotessection
+\renewcommand\subsection{%
+\ifendnotessection% check if we are in \theendnotes, you have
+                   % to set this to true manually, we do not want to have
+                   % this feature in the whole document!
+% reset citefull manually at every section inside \theendnotes
+\@for\jb@list@tempa:=%
+\jb@list\do{\expandafter\gdef\csname\jb@list@tempa\endcsname{}}
+% reset opcit manually at every section inside \theendnotes
+\@for\jb@list@tempa:=%
+\jb@opcit@list\do{\expandafter\gdef\csname\jb@list@tempa\endcsname{}}
+\fi
+% leave the definition of \section untouched ...
+%                       \@startsection {section}{1}{\z@}%
+%                                    {-3.5ex \@plus -1ex \@minus -.2ex}%
+%                                    {2.3ex \@plus.2ex}%
+%                                    {\normalfont\Large\bfseries}}
+% But we're using subsection now:
+  \@startsection{subsection}{2}{\z@}%
+                {-3.25ex\@plus -1ex \@minus -.2ex}%
+                {1.0ex \@plus .2ex}%
+                {\normalfont\sffamily\large\slshape\bfseries}}
+% workaround to reset the counter for cites inside one note, to
+% capitalize Ibid., the
+\g@addto@macro\enoteformat{\setcounter{jb@cites@in@footnote}{0}}%
+\makeatother
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % -- The following for A4 paper.
 
@@ -68,8 +103,6 @@
   \noindent%
 }
 
-%\renewcommand{\bibtfont}{\itshape}
-%\renewcommand{\footnote}{\endnote}
 \let\footnote=\endnote
 \newcommand{\fn}[1]{\footnote{#1}}
 
@@ -88,11 +121,6 @@
   {\end{quote}\end{spacing}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%\title{\bfseries\sffamily\huge Pioneering Irrigation \\ in Australia to 1920}
-%\author{\bfseries\sffamily\LARGE Gerard Blackburn}
-%\date{ }
-%\begin{titlepage}
-%\end{titlepage}
 
 \includeonly{
    ack
@@ -121,7 +149,6 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
-%\bibliographystyle{agsm}
 
 \frontmatter
 
