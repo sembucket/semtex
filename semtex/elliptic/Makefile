@@ -22,6 +22,7 @@ SEMOBJ    = $(addsuffix .o,$(SEMFILES))
 SEMHDR    = Sem.h
 
 # ----------------------------------------------------------------------------
+# Default build.
 #
 ELLOBJ = drive.o helmholtz.o
 
