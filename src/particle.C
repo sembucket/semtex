@@ -45,6 +45,7 @@ FluidParticle::FluidParticle (Domain*   d,
 
   register int k;
 
+  E = 0;
   for (k = 0; k < NEL; k++) {
     r = s = 0.0;
     if (D -> Esys[k] -> locate (P.x, P.y, r, s)) {
