@@ -1510,10 +1510,10 @@ AuxField& AuxField::update (int   nPer_flds  ,
 {
   const integer PSize = Geometry::planeSize();
   const integer Limit = nPer_flds;
-  const real    BetaT = fmod( time, Period_Time )/ Period_Time * TWOPI;
+  const real    BetaT = TWOPI * fmod(time, Period_Time) / Period_Time;
   real          phase;
   
-  // -- For each point in auxfield plane do an inverse Fourier transform.
+  // -- For each point in plane do Fourier interpolation in time.
 
   Veclib::copy (PSize, FFT_data, 1, _data, 1);
   Blas::axpy (PSize, cos(0.5*Limit*BetaT), FFT_data + PSize, 1, _data, 1);
