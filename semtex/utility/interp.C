@@ -68,7 +68,7 @@ integer main (integer argc,
   char              *session, *dump, *points = 0;
   integer           NP, NZ,  NEL;
   integer           np, nel, ntot;
-  integer           i, j, k, nf, step, doff = 0, boff = 0;
+  integer           i, j, k, nf, step;
   ifstream          fldfile, pntfile;
   FEML*             F;
   Mesh*             M;
@@ -102,11 +102,7 @@ integer main (integer argc,
   Femlib::mesh  (GLL, GLL, NP, NP, &z, 0, 0, 0, 0);
   Esys.setSize  (NEL);
 
-  for (k = 0; k < NEL; k++) {
-    Esys[k] = new Element (k, *M, z, NP, doff, boff);
-    doff   += Esys[k] -> nTot();
-    boff   += Esys[k] -> nExt();
-  }
+  for (k = 0; k < NEL; k++) Esys[k] = new Element (k, M, z, NP);
   
   // -- Construct the list of points, then find them in the Mesh.
 

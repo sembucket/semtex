@@ -53,7 +53,7 @@ int main (int    argc,
   char               buf[StrMax], err[StrMax], fmt[StrMax], fields[StrMax];
   char               function[EXACT_MAX][StrMax];
   integer            i, j, np, nz, nel, found;
-  integer            offset = 0, nexact = 0, nfields = 0, swab = 0, tran = 0;
+  integer            nexact = 0, nfields = 0, swab = 0, tran = 0;
   real               t;
   const real*        zeros;
   Geometry::CoordSys system;
@@ -158,10 +158,7 @@ int main (int    argc,
   Femlib::mesh (GLL, GLL, np, np, &zeros, 0, 0, 0, 0);
 
   Esys.setSize (nel);
-  for (i = 0; i < nel; i++) {
-    Esys[i] = new Element (i, *M, zeros, np, offset, 0);
-    offset += Esys[i] -> nTot();
-  }
+  for (i = 0; i < nel; i++) Esys[i] = new Element (i, M, zeros, np);
 
   exact    = new AuxField (Esys);
   computed = new AuxField (Esys);

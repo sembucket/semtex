@@ -33,9 +33,14 @@ ifeq ($(ARCH),IRIX64)		# -- SGI MIPS R8xxx IRIX6x
 CC       = cc
 CXX	 = CC
 LD	 = CC
-CXXFLAGS =  $(DEFINES) -mips4 -64 -Ofast=IP30 -r10000
+ifdef DEBUG
+  OPT    = -mips4 -64 -g
+else
+  OPT    = -mips4 -64 -Ofast=IP30 -r10000
+endif
+CXXFLAGS = $(DEFINES) $(OPT)
 F77LIBS	 = -lcomplib.sgimath -lftn
-LDFLAGS  = -mips4 -64 -Ofast=IP30 -r10000 -L$(SEM)/lib/$(ARCH) -lfem -lalp \
+LDFLAGS  = $(OPT) -L$(SEM)/lib/$(ARCH) -lfem -lalp \
            $(F77LIBS) -lmalloc -lm
 endif
 
@@ -52,9 +57,14 @@ ifeq ($(ARCH),Linux)		# -- GNU/Linux system.
 CC	 = gcc
 CXX	 = g++
 LD	 = g++
-CXXFLAGS = $(DEFINES) -O2
+ifdef DEBUG
+  OPT    = -gstabs+
+else
+  OPT    = -O2
+endif
+CXXFLAGS = $(DEFINES) $(OPT)
 F77LIBS  = -llapack -lblas -lg2c
-LDFLAGS  = -O2 -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
+LDFLAGS  = -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
 	   -lfem -lalp $(F77LIBS) -lm
 endif
 
@@ -111,13 +121,6 @@ enumerate:	headers $(ENUOBJ)
 	$(LD) -o $@ $(ENUOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
-# Build enumerate utility.
-ENUOBJ = feml.o mesh.o newmerate.o
-
-newmerate:	headers $(ENUOBJ)
-	$(LD) -o $@ $(ENUOBJ) $(LDFLAGS) -L. -lmetis
-
-# ----------------------------------------------------------------------------
 # Build calc utility.
 
 calc: calc.o
@@ -125,9 +128,9 @@ calc: calc.o
 
 # ----------------------------------------------------------------------------
 # Build addvort utility.
-ADDOBJ = addvort.o auxfield.o BCmgr.o boundary.o domain.o	\
-	 element.o feml.o field.o geometry.o  integration.o mesh.o	\
-	 misc.o	pressure.o
+ADDOBJ = addvort.o auxfield.o BCmgr.o boundary.o bsys.o condition.o 	\
+	 domain.o element.o feml.o field.o geometry.o integration.o	\
+	 mesh.o misc.o pressure.o
 
 addvort:	$(ADDOBJ)
 	$(LD) -o $@ $(ADDOBJ) $(LDFLAGS)
@@ -143,9 +146,9 @@ addvortr:	$(ADROBJ)
 
 # ----------------------------------------------------------------------------
 # Build addfield utility.
-ADFOBJ = addfield.o auxfield.o BCmgr.o boundary.o domain.o	\
-	 element.o feml.o field.o geometry.o  integration.o mesh.o	\
-	 misc.o	pressure.o
+ADFOBJ = addfield.o auxfield.o BCmgr.o boundary.o bsys.o condition.o 	\
+	 domain.o element.o feml.o field.o geometry.o integration.o	\
+	 mesh.o misc.o pressure.o
 
 addfield:	$(ADFOBJ)
 	$(LD) -o $@ $(ADFOBJ) $(LDFLAGS)
@@ -191,7 +194,6 @@ project: project.C
 
 # ----------------------------------------------------------------------------
 # Build transform, which does forward/inverse Fourier/Legendre transforms.
-TRNOBJ = transform.o auxfield.o element.o geometry.o mesh.o feml.o
 
 transform: transform.C
 	$(CXX) $(CPPFLAGS) -g -o $@ $@.C $(LDFLAGS)
