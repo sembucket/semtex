@@ -11,7 +11,7 @@
 	QonD        = 16.06646e-3
 	KINVIS      = QonD/1000
 	N_TIME      = 1
-	N_POLY      = 5
+	N_P      = 5
 	N_Z         = 96
 	N_STEP      = 32000
 	IO_CFL      = 25

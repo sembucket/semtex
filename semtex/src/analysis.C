@@ -4,8 +4,9 @@
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // This deals with output of runtime information such as step numbers,
-// CFL estimation, modal energies, etc.  If set, also output history
-// point and particle track information.
+// CFL estimation, modal energies, etc. If set, also output history
+// point and particle track information, and adminster update of
+// standard and phase-averaged field statistics.
 //
 // It is assumed that the first 2 or 3 (for 3D) entries in the Domain
 // u vector are velocity fields.
@@ -37,7 +38,7 @@ Analyser::Analyser (Domain* D   ,
 // optional HISTORY section of the session file.  Output is to
 // session.his.
 // ---------------------------------------------------------------------------
-  src (D)
+  _src (D)
 {
   const char routine[] = "Analyser::Analyser";
   char       str[StrMax];
@@ -50,7 +51,7 @@ Analyser::Analyser (Domain* D   ,
     
     // -- Open particle track file, create particles.
 
-    ifstream pfile (strcat (strcpy (str, src -> name), ".par"));  
+    ifstream pfile (strcat (strcpy (str, _src -> name), ".par"));  
 
     if (!pfile.fail()) {
       const int_t    add = Femlib::ivalue ("SPAWN");
@@ -58,21 +59,21 @@ Analyser::Analyser (Domain* D   ,
       Point          P, *I;
       FluidParticle* F;
 
-      par_strm.open (strcat (strcpy (str, src -> name), ".trk"));
-      par_strm.setf (ios::scientific, ios::floatfield);
-      par_strm.precision (6);
+      _par_strm.open (strcat (strcpy (str, _src -> name), ".trk"));
+      _par_strm.setf (ios::scientific, ios::floatfield);
+      _par_strm.precision (6);
 
       while (pfile >> id >> P.x >> P.x >> P.x >> P.y >> P.z) {
-	F = new FluidParticle (src, ++i, P);
+	F = new FluidParticle (_src, ++i, P);
 	if (!(F -> inMesh())) {
 	  sprintf (str, "Particle at (%f, %f, %f) not in mesh", P.x, P.y, P.z);
 	  message (routine, str, WARNING);
 	} else
-	  particle.push_back (F);
+	  _particle.push_back (F);
 	if (add && F -> inMesh()) {
 	  I = new Point;
 	  I -> x = P.x; I -> y = P.y; I -> z = P.z;
-	  initial.insert (initial.end(), I);
+	  _initial.insert (_initial.end(), I);
 	}
       }
     }
@@ -91,7 +92,7 @@ Analyser::Analyser (Domain* D   ,
       file -> stream() >> id >> x >> y >> z;
       if (E = HistoryPoint::locate (x, y, D -> elmt, r, s)) {
 	H = new HistoryPoint (id, E, r, s, x, y, z);
-	history.insert (history.end(), H);
+	_history.insert (_history.end(), H);
       } else {
 	sprintf (str, "History point at (%f, %f, %f) not in mesh", x, y, z);
 	message (routine, str, WARNING);
@@ -99,29 +100,53 @@ Analyser::Analyser (Domain* D   ,
     }
 
     ROOTONLY {
-      his_strm.open (strcat (strcpy (str, src -> name), ".his"));
-      his_strm.setf (ios::scientific, ios::floatfield);
-      his_strm.precision (6);
-      if (!his_strm) message (routine, "can't open history file", ERROR);
+      _his_strm.open (strcat (strcpy (str, _src -> name), ".his"));
+      _his_strm.setf (ios::scientific, ios::floatfield);
+      _his_strm.precision (6);
+      if (!_his_strm) message (routine, "can't open history file", ERROR);
     }
   }
 
-  // -- Initialize averaging.
+  // -- Initialise standard averaging.
 
-  if (Femlib::ivalue ("AVERAGE")) {
-    vector<AuxField*> extra (0);
-    stats = new Statistics (D, extra);
-  } else                              
-    stats = 0;
+  if (Femlib::ivalue ("AVERAGE"))
+    (_stats = new Statistics (D)) -> initialise();
+  else
+    _stats = 0;
+
+  // -- Initialise phase averaging.
+  // -- Must also have defined tokens STEPS_P (steps per period)
+  //    and N_PHASE (number of phase points per period)
+  //    and STEPS_P modulo N_PHASE must be integer
+  //    and N_STEP  modulo STEPS_P must be integer
+
+  if (Femlib::ivalue ("PHASE")) {
+    
+    if (!Femlib::ivalue ("STEPS_P")) 
+      message (routine, "phase averaging is on but STEPS_P not set", ERROR);
+    
+    if (!Femlib::ivalue ("N_PHASE")) 
+      message (routine, "phase averaging is on but N_PHASE not set", ERROR);
+
+    if (fabs(fmod(Femlib::value("STEPS_P"), Femlib::value("N_PHASE"))) > EPSDP)
+      message (routine, "STEPS_P / N_PHASE non-integer", ERROR);
+
+    if (fabs(fmod(Femlib::value("N_STEP"),  Femlib::value("STEPS_P"))) > EPSDP)
+      message (routine, "N_STEP / STEPS_P non-integer", ERROR);
+
+    _ph_stats = new Statistics (D);
+
+  } else
+    _ph_stats = 0;
 
   // -- Set up for output of modal energies every IO_CFL steps if 3D.
 
   if (Geometry::nDim() == 3) {
-    strcat (strcpy (str, src -> name), ".mdl");
+    strcat (strcpy (str, _src -> name), ".mdl");
     ROOTONLY {
-      mdl_strm.open (str, ios::out); 
-      mdl_strm << "#     Time Mode         Energy" << endl
-	       << "# ----------------------------" << endl;
+      _mdl_strm.open (str, ios::out); 
+      _mdl_strm << "#     Time Mode         Energy" << endl
+		<< "# ----------------------------" << endl;
     }
   }
 }
@@ -136,7 +161,7 @@ void Analyser::analyse (AuxField** work)
   const int_t verbose = Femlib::ivalue ("VERBOSE");
   const int_t cflstep = Femlib::ivalue ("IO_CFL" );
   const bool  add     = Femlib::ivalue ("SPAWN"  ) &&
-    ! (src -> step    % Femlib::ivalue ("SPAWN"  ));
+    ! (_src -> step   % Femlib::ivalue ("SPAWN"  ));
 
   list<FluidParticle*>::iterator p;
 
@@ -146,7 +171,7 @@ void Analyser::analyse (AuxField** work)
 
     // -- Run information update.
 
-    cout << "Step: " << src -> step << "  Time: " << src -> time << endl;
+    cout << "Step: " << _src -> step << "  Time: " << _src -> time << endl;
 
     // -- Track particles.
 
@@ -154,30 +179,41 @@ void Analyser::analyse (AuxField** work)
       FluidParticle *F;
       Point          P, *I;
       int_t          i = 0, j;
-      const int_t    N = initial.size();
+      const int_t    N = _initial.size();
 
       for (j = 0; j < N; j++) {
-	I = initial[j];
+	I = _initial[j];
 	P.x = I -> x; P.y = I -> y; P.z = I -> z;
-	particle.push_back (F = new FluidParticle (src, ++i, P));
+	_particle.push_back (F = new FluidParticle (_src, ++i, P));
       }
     }
 
-    for (p = particle.begin(); p != particle.end(); p++) (*p) -> integrate();
+    for (p = _particle.begin(); p != _particle.end(); p++) (*p) -> integrate();
   }
 
   // -- CFL, energy, divergence information.
 
-  if (cflstep && !(src -> step % cflstep)) {
+  if (cflstep && !(_src -> step % cflstep)) {
     if (Geometry::nDim() == 3) modalEnergy();
     ROOTONLY { estimateCFL(); divergence (work); }
   }
 
+  // -- Phase averaging.
+
+  if (_ph_stats) {
+    const int_t nPeriod = Femlib::ivalue ("STEPS_P");
+    const int_t nPhase  = Femlib::ivalue ("STEPS_P / N_PHASE");
+    const bool  update  = !(_src -> step % nPhase);
+    const int_t iPhase  =  (_src -> step % nPeriod) / nPhase;
+
+    if (update) _ph_stats -> phaseUpdate (iPhase, work);
+  }
+
   // -- Periodic dumps and global information.
   
-  const bool periodic = !(src -> step %  Femlib::ivalue ("IO_HIS")) ||
-                        !(src -> step %  Femlib::ivalue ("IO_FLD"));
-  const bool final    =   src -> step == Femlib::ivalue ("N_STEP");
+  const bool periodic = !(_src -> step %  Femlib::ivalue ("IO_HIS")) ||
+                        !(_src -> step %  Femlib::ivalue ("IO_FLD"));
+  const bool final    =   _src -> step == Femlib::ivalue ("N_STEP");
   const bool state    = periodic || final;
 
   if (state) {
@@ -186,13 +222,13 @@ void Analyser::analyse (AuxField** work)
       Point          P;
       FluidParticle* F;
 
-      for (p = particle.begin(); p != particle.end(); p++) {
+      for (p = _particle.begin(); p != _particle.end(); p++) {
 	F = *p;
 	if (F -> inMesh()) {
 	  P = F -> location();
-	  par_strm
+	  _par_strm
 	    << setw (6) << F -> ID()
-	    << setw(14) << src -> time
+	    << setw(14) << _src -> time
 	    << setw(14) << F -> ctime()
 	    << setw(14) << P.x
 	    << setw(14) << P.y
@@ -205,35 +241,35 @@ void Analyser::analyse (AuxField** work)
     // -- Output history point data.
       
     int_t             i, j;
-    const int_t       NH = history.size();
-    const int_t       NF = src-> u.size();
+    const int_t       NH = _history.size();
+    const int_t       NF = _src-> u.size();
     HistoryPoint*     H;
     vector<real_t>    tmp (NF);
     vector<AuxField*> u   (NF);
 
-    for (i = 0; i < NF; i++) u[i] = src -> u[i];
+    for (i = 0; i < NF; i++) u[i] = _src -> u[i];
 
     for (i = 0; i < NH; i++) {
-      H = history[i];
+      H = _history[i];
 
       H -> extract (u, &tmp[0]);
 
       ROOTONLY {
-	his_strm << setw(4) << H->ID() << " " << setw(14) << src->time << " ";
-	for (j = 0; j < NF; j++) his_strm << setw(15) << tmp[j];
-	his_strm << endl;
+	_his_strm << setw(4) << H->ID() << " " << setw(14) << _src->time<< " ";
+	for (j = 0; j < NF; j++) _his_strm << setw(15) << tmp[j];
+	_his_strm << endl;
       }
     }
      
     // -- Statistical analysis.
 
-    if (stats) stats -> update (work);
+    if (_stats) _stats -> update (work);
   }
 
   // -- Field and statistical dumps.
 
-  src -> dump ();
-  if (stats) stats -> dump();
+  _src -> dump ();
+  if (_stats) _stats -> dump();
 }
 
 
@@ -251,35 +287,35 @@ void Analyser::modalEnergy ()
 
   for (m = 0; m < N; m++) {
     ek[m] = 0.0;
-    for (i = 0; i < DIM; i++) ek[m] += src -> u[i] -> mode_L2 (m);
+    for (i = 0; i < DIM; i++) ek[m] += _src -> u[i] -> mode_L2 (m);
   }
 
   if (nProc > 1) {
 
     ROOTONLY {
       for (m = 0; m < N; m++)
-	mdl_strm << setw(10) << src -> time 
-		 << setw( 5) << m 
-		 << setw(15) << ek[m]
-		 << endl;
-
+	_mdl_strm << setw(10) << _src -> time 
+		  << setw( 5) << m 
+		  << setw(15) << ek[m]
+		  << endl;
+      
       for (i = 1; i < nProc; i++) {
 	Femlib::recv (&ek[0], N, i);
 	for (m = 0; m < N; m++)
-	  mdl_strm << setw(10) << src -> time 
-		   << setw( 5) << m + i * N
-		   << setw(15) << ek[m]
-		   << endl;
+	  _mdl_strm << setw(10) << _src -> time 
+		    << setw( 5) << m + i * N
+		    << setw(15) << ek[m]
+		    << endl;
       }
       
-      mdl_strm.flush();
+      _mdl_strm.flush();
 
     } else
       Femlib::send (&ek[0], N, 0);
 
   } else 
     for (m = 0; m < N; m++)
-      mdl_strm << setw(10) << src -> time 
+      _mdl_strm << setw(10) << _src -> time 
 	       << setw( 5) << m 
 	       << setw(15) << ek[m]
 	       << endl;
@@ -301,14 +337,14 @@ void Analyser::divergence (AuxField** Us) const
   real_t       L2 = 0.0;
 
   if (Geometry::cylindrical()) {
-    for (i = 0; i < DIM; i++) *Us[i] = *src -> u[i];
+    for (i = 0; i < DIM; i++) *Us[i] = *_src -> u[i];
     Us[1] -> mulY();
     for (i = 0; i < DIM; i++)  Us[i] -> gradient (i);
     Us[1] -> divY();
     if (DIM == 3) Us[2] -> divY();
   } else {  
     for (i = 0; i < DIM; i++) {
-      *Us[i] = *src -> u[i];
+      *Us[i] = *_src -> u[i];
       Us[i] -> gradient (i);
     }
   }
@@ -334,8 +370,8 @@ void Analyser::estimateCFL () const
   real_t       CFL_dt, dt_max;
   int_t        percent;
 
-  CFL_dt = max (src -> u[0] -> CFL (0), src -> u[1] -> CFL (1));
-  if (src -> nField() > 3) CFL_dt = max (CFL_dt, src -> u[2] -> CFL (2));
+  CFL_dt = max (_src -> u[0] -> CFL (0), _src -> u[1] -> CFL (1));
+  if (_src -> nField() > 3) CFL_dt = max (CFL_dt, _src -> u[2] -> CFL (2));
 
   dt_max  = SAFETY * CFL_max / CFL_dt;
   percent = static_cast<int_t>(100.0 * dt / dt_max);

@@ -17,7 +17,7 @@
 	CYLINDRICAL = 1
 	N_Z         = 8
 	N_TIME      = 2
-	N_POLY      = 9
+	N_P      = 9
 	N_STEP      = 20
 	D_T         = 0.01
 	KINVIS      = 0.5

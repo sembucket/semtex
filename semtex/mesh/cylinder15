@@ -6,7 +6,7 @@
 
 <TOKENS>
 	N_TIME	  = 2
-	N_POLY	  = 9
+	N_P	  = 9
 	N_STEP	  = 20000
 	IO_FLD	  = 500
 	IO_CFL    = 50

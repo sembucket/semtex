@@ -27,7 +27,7 @@
 	Lz=1.0
 	BETA=TWOPI/Lz
 	N_TIME=2
-	N_POLY=8
+	N_P=8
 	N_STEP=200
 	D_T=0.005
 	Re=40.0

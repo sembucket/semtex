@@ -3,7 +3,7 @@
 # Unknown analytical solution.
 
 <TOKENS>
-	N_POLY  = 5
+	N_P  = 5
 	TOL_REL = 1e-12
 </TOKENS>
 

@@ -56,7 +56,6 @@ static struct {
   "CHKPOINT"    ,   1   ,	/* -- Set checkpointing of field dumps.   */
   "AVERAGE"     ,   0   ,	/* -- Select averaging of fields.         */
   "SPAWN"       ,   0   ,	/* -- Set respawning for particle tracks. */
-  "NUMOPTLEVEL" ,   3   , 	/* -- Default for numbering optimization. */
   
   /* -- Default integer values. */
 
@@ -64,7 +63,8 @@ static struct {
   "IO_HIS"      ,   10  ,	/* -- Step interval for history points.  */
   "IO_CFL"      ,   50  ,	/* -- Step interval for CFL and modal.   */
   "K_FUND"      ,   1   ,	/* -- Wavenumber of Fourier mode 1.      */
-  "N_POLY"      ,   5   ,	/* -- No. of points along element edge.  */
+  "N_P"         ,   5   ,	/* -- No. of points along element edge.  */
+  "N_POLY"      ,   5   ,	/* -- Deprecated synonym for N_P.         */
   "N_TIME"      ,   2   ,	/* -- Order of timestepping scheme.      */
   "N_STEP"      ,   1   ,	/* -- Number of timesteps to integrate.  */
   "N_Z"         ,   1   ,	/* -- Number of planes of data.          */

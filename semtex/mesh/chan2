@@ -13,7 +13,7 @@
 
 <TOKENS>
 	N_TIME = 2
-	N_POLY = 9
+	N_P = 9
 	N_STEP = 2000
 	DELTAT = 0.01
 	KINVIS = 0.5

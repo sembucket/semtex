@@ -120,8 +120,8 @@ int main (int    argc,
   file = new FEML (session);
 
   if (verb)  Femlib::ivalue ("VERBOSE", verb);
-  if   (np)  Femlib::ivalue ("N_POLY", np);
-  else  np = Femlib::ivalue ("N_POLY");
+  if   (np)  Femlib::ivalue ("N_P", np);
+  else  np = Femlib::ivalue ("N_P");
 
   cyl3D = static_cast<bool>(Femlib::ivalue ("CYLINDRICAL"));
 

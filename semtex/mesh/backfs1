@@ -2,7 +2,7 @@
 
 <TOKENS>
 	N_TIME	= 2
-	N_POLY	= 9
+	N_P	= 9
 
 	F_TIME	= 10.0
 	D_T	= 0.01

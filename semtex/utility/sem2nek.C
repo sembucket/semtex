@@ -96,7 +96,7 @@ static void printHead ()
 // Print the beginning of a NEKTON .rea file.  May need editing.
 // ---------------------------------------------------------------------------
 {
-  int  np = (int) Femlib::value ("N_POLY");
+  int  np = (int) Femlib::value ("N_P");
   int  nz = (int) Femlib::value ("N_Z");
   real dt =       Femlib::value ("D_T");
 

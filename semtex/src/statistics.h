@@ -9,17 +9,21 @@ class Statistics
 friend ifstream& operator >> (ifstream&, Statistics&);
 friend ofstream& operator << (ofstream&, Statistics&);
 public:
-  Statistics (Domain*, vector<AuxField*>&);
+  Statistics (Domain*);
+  
+  void initialise  ();
 
-  void update (AuxField**);
-  void dump   ();
+  void update      (AuxField**);
+  void dump        ();
+
+  void phaseUpdate (const int_t, AuxField**);
 
 protected:
-  const char*       name;
-  Domain*           base;
-  vector<AuxField*> src ;
-  vector<AuxField*> avg ;
-  int_t             navg;
+  const char*       _name;
+  Domain*           _base;
+  vector<AuxField*> _src ;	// -- Pointers to the base storage areas.
+  vector<AuxField*> _avg ;	// -- Storage area for running averages.
+  int_t             _navg;	// -- Number of averages so far.
 };
 
 #endif

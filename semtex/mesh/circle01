@@ -20,7 +20,7 @@
 	ITERATIVE   = 0
 	TOL_REL   = 1.0e-8
 	N_TIME    = 2
-	N_POLY    = 15
+	N_P    = 15
 	N_Z       = 192
 	BETA      = 1.0
 	N_STEP    = 3000

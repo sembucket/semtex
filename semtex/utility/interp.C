@@ -89,7 +89,7 @@ int main (int    argc,
   M   = new Mesh (F);
 
   NEL = M -> nEl();  
-  NP  = Femlib::ivalue ("N_POLY");
+  NP  = Femlib::ivalue ("N_P");
   NZ  = Femlib::ivalue ("N_Z"   );
   
   Geometry::set (NP, NZ, NEL, Geometry::Cartesian);

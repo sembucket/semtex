@@ -6,7 +6,7 @@
 
 <TOKENS>
         N_TIME    = 2
-        N_POLY    = 8
+        N_P    = 8
 	N_Z       = 32
 	BETA      = TWOPI/1.6
         N_STEP    = 40000

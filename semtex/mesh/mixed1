@@ -12,7 +12,7 @@
 </FIELDS>
 
 <TOKENS>
-	N_POLY  = 11
+	N_P  = 11
 	TOL_REL = 1e-12
 </TOKENS>
 

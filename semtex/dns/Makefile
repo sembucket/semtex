@@ -39,7 +39,7 @@ ifdef MPI		# -- Make a parallel executable.
   PROG := $(PROG)_mp
 endif
 
-ifdef SPAR		# -- Set to integrate particles in static base flow
+ifdef SPAR		# -- Set to integrate particles in static base flow.
   DEFINES += -DSPAR
   PROG    := $(PROG)_spar
 endif

@@ -25,7 +25,7 @@
 	D_T         = PERIOD/STEPS_P
 	N_STEP      = 10000
 	N_TIME      = 2
-	N_POLY      = 11
+	N_P      = 11
 	N_Z         = 128
 
 	IO_HIS      = 10

@@ -13,7 +13,7 @@
 
 <TOKENS>
 	N_TIME = 2
-	N_POLY = 7
+	N_P = 7
 	N_Z    = 24
 	BETA   = 2.0
 	N_STEP = 200
