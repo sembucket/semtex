@@ -39,7 +39,7 @@ LIBDIR   = -L$(SEM)/lib/$(ARCH)
 ifeq ($(ARCH),Linux-alpha)              # -- Linux alpha.
 CXX      = g++
 LD       = g++
-LIBDIR  += /usr/local/lib
+LIBDIR  += -L/usr/local/lib
 F77LIBS  = -lcxml -lfor -lots -lg2c
 ifdef DEBUG
   OPT    = -gstabs+
@@ -63,7 +63,7 @@ ifeq ($(ARCH),Linux-i586)               # -- Linux Intel.
 CXX      = g++
 LD       = g++
 F77LIBS  = -llapack -lblas -lg2c
-LIBDIR  += /usr/local/lib
+LIBDIR  += -L/usr/local/lib
 ifdef DEBUG
   OPT    = -gstabs+
 else
