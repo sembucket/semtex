@@ -41,10 +41,8 @@
  * double dparam     (const char *);
  * void   showDparam (void);
  *
+ * $Id$
  *****************************************************************************/
-
-static char
-RCSid00[] = "$Id$";
 
 
 #include <stdio.h>
@@ -79,8 +77,6 @@ typedef struct symbol {		/* Symbol table entry */
 } Symbol;
 
     
-    
-
 /* ------------------------------------------------------------------------- *
  * File-scope prototypes.
  * ------------------------------------------------------------------------- */
@@ -96,7 +92,6 @@ static double  Log  (double),          Log10   (double),
 static Symbol *lookup  (const char *);
 static Symbol *install (const char *, int, ...);
 static void   *emalloc (size_t);
-
 
 
 /* ------------------------------------------------------------------------- *
@@ -204,7 +199,6 @@ void initialize (void)
  * ========================================================================= */
 {
   int i;
- 
 
 #ifdef __sgi			/* Enable floating-point traps. */
 #include <sigfpe.h>
@@ -246,9 +240,6 @@ void initialize (void)
 }
 
 
-
-
-
 double interpret (const char *s)
 /* ========================================================================= *
  * Given a string, interpret it as a function using yacc-generated yyparse().
@@ -264,9 +255,6 @@ double interpret (const char *s)
   yyparse ();
   return value;
 }
-
-
-
 
 
 void vecInit (const char *names, const char *fn)
@@ -305,9 +293,6 @@ void vecInit (const char *names, const char *fn)
 }
 
 
-
-
-
 void vecInterp (int ntot, ...)
 /* ========================================================================= *
  * Vector parser.  Following ntot there should be passed a number of
@@ -326,7 +311,6 @@ void vecInterp (int ntot, ...)
   double    *x[VEC_MAX];
   double    *fx = NULL;
   va_list    ap;
-
   
   va_start (ap, ntot);
   for (i = 0; i < nvec; i++) {
@@ -347,9 +331,6 @@ void vecInterp (int ntot, ...)
 }
 
 
-
-
-
 void setOption (const char *s, int v)
 /* ========================================================================= *
  * Set option on list true/false, or install it.
@@ -357,7 +338,6 @@ void setOption (const char *s, int v)
 {
   Symbol *sp;
  
-
   for (sp = olist; sp; sp = sp->next)
     if (strcmp (sp->name, s) == 0) {
       sp->u.ival = v;
@@ -368,16 +348,12 @@ void setOption (const char *s, int v)
 }
 
 
-
-
-
 int option (const char *s)
 /* ========================================================================= *
  * Retrieve value from option list.
  * ========================================================================= */
 {
   Symbol *sp;
- 
  
   for (sp = olist; sp; sp = sp->next)
     if (strcmp (sp->name, s) == 0)
@@ -388,9 +364,6 @@ int option (const char *s)
 }
     
 
-
-
-
 void showOption (void)
 /* ========================================================================= *
  * Echo option list to stdout.
@@ -398,13 +371,9 @@ void showOption (void)
 {
   Symbol *sp;
 
-  
   for (sp = olist; sp; sp = sp->next)
     printf ("%-12s%-3d\n", sp->name, sp->u.ival);
 }
-
-
-
 
 
 void setIparam (const char *s, int v)
@@ -414,7 +383,6 @@ void setIparam (const char *s, int v)
 {
   Symbol *sp;
 
- 
   for (sp = ilist; sp; sp = sp->next)
     if (strcmp (sp->name, s) == 0) {
       sp->u.ival = v;
@@ -425,16 +393,12 @@ void setIparam (const char *s, int v)
 }
 
 
-
-
-
 int iparam (const char *s)
 /* ========================================================================= *
  * Retrieve value from iparam list.
  * ========================================================================= */
 {
   Symbol *sp;
- 
  
   for (sp = ilist; sp; sp = sp->next)
     if (strcmp (sp->name, s) == 0)
@@ -443,9 +407,6 @@ int iparam (const char *s)
   message ("iparam(): name not found", s, WARNING);
   return 0;
 }
-    
-
-
 
 
 void showIparam (void)
@@ -454,14 +415,10 @@ void showIparam (void)
  * ========================================================================= */
 {
   Symbol *sp;
-
   
   for (sp = ilist; sp; sp = sp->next)
     printf ("%-12s%-3d\n", sp->name, sp->u.ival);
 }
-
-
-
 
 
 void setDparam (const char *s, double v)
@@ -470,7 +427,6 @@ void setDparam (const char *s, double v)
  * ========================================================================= */
 {
   Symbol *sp;
- 
 
   for (sp = dlist; sp; sp = sp->next)
     if (strcmp (sp->name, s) == 0) {
@@ -488,9 +444,6 @@ void setDparam (const char *s, double v)
 }
 
 
-
-
-
 double dparam (const char *s)
 /* ========================================================================= *
  * Retrieve value from dparam list.
@@ -505,9 +458,6 @@ double dparam (const char *s)
   message ("dparam(): name not found", s, WARNING);
   return 0;
 }
-    
-
-
 
 
 void showDparam (void)
@@ -516,7 +466,6 @@ void showDparam (void)
  * ========================================================================= */
 {
   Symbol *sp;
-
   
   for (sp = dlist; sp; sp = sp->next)
     printf ("%-12s%-.6g\n", sp->name, sp->u.dval);
@@ -534,8 +483,7 @@ static int yylex (void)
 {
   int c;
 
-
-  while ((c = *cur_string++) == ' ' || c == 't');
+  while ((c = *cur_string++) == ' ' || c == '\t');
 
   if (c == EOF)
     return 0;
@@ -560,9 +508,6 @@ static int yylex (void)
 }
 
 
-
-
-
 static Symbol *lookup(const char *s)
 /* ========================================================================= *
  * Find s in symbol table.
@@ -570,16 +515,12 @@ static Symbol *lookup(const char *s)
 {
   Symbol *sp;
   
-  
   for (sp = symlist; sp; sp = sp->next)
     if (strcmp (sp->name, s) == 0)
       return sp;
 
   return NULL;
 }
-
-
-
 
 
 static Symbol *install(const char *s, int t, ...)
@@ -590,7 +531,6 @@ static Symbol *install(const char *s, int t, ...)
 {
   Symbol *sp;
   va_list ap;
-  
   
   va_start (ap, t);
 
@@ -645,9 +585,6 @@ static Symbol *install(const char *s, int t, ...)
 }
 
 
-
-
-
 static void *emalloc (size_t n)
 /* ========================================================================= *
  * Check return from malloc().
@@ -655,15 +592,11 @@ static void *emalloc (size_t n)
 {
   void *p;
 
-
   if (!(p = (void *) malloc (n)))
     message("emalloc()", "out of memory", ERROR);
  
   return p;
 }
-
-
-
 
 
 static void yyerror (char *s)
@@ -673,9 +606,6 @@ static void yyerror (char *s)
 {
   message("yyparse()", s, WARNING);
 }
-
-
-
 
 
 static double errcheck (double d, char *s)
