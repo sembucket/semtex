@@ -36,7 +36,7 @@ void PBCmgr::build (const Field* P)
 {
   const integer np    = Geometry::nP();
   const integer nTime = (integer) Femlib::value ("N_TIME");
-  const integer nEdge = P -> n_bound;
+  const integer nEdge = P -> nbound;
   const integer nZ    = Geometry::nZProc();
   integer       i, j, k;
 
@@ -70,11 +70,11 @@ void PBCmgr::build (const Field* P)
 }
 
 
-void PBCmgr::maintain (const integer         step   ,
+void PBCmgr::maintain (const integer     step   ,
 		       const Field*      P      ,
 		       const AuxField*** Us     ,
 		       const AuxField*** Uf     ,
-		       const integer         timedep)
+		       const integer     timedep)
 // ---------------------------------------------------------------------------
 // Update storage for evaluation of high-order pressure boundary condition.
 // Storage order for each edge represents a CCW traverse of element boundaries.
@@ -99,7 +99,7 @@ void PBCmgr::maintain (const integer         step   ,
   const real         nu    =           Femlib::value ("KINVIS");
   const real         invDt = 1.0     / Femlib::value ("D_T");
   const integer      nTime = (integer) Femlib::value ("N_TIME");
-  const integer      nEdge = P -> n_bound;
+  const integer      nEdge = P -> nbound;
   const integer      nP    =  Geometry::nP();
   const integer      nZ    =  Geometry::nZProc();
   const integer      nMode =  Geometry::nModeProc();
@@ -111,9 +111,10 @@ void PBCmgr::maintain (const integer         step   ,
   const AuxField*    Nx = Uf[0][0];
   const AuxField*    Ny = Uf[1][0];
 
-  register Boundary* B;
-  register integer   i, k, q;
-  integer            m, offset, skip, Je;
+  const vector<Boundary*>& BC = P -> bsys -> BCs (0);
+  register Boundary*       B;
+  register integer         i, k, q;
+  integer                  m, offset, skip, Je;
 
   vector<real>       work (4 * nP + Integration::OrderMax + 1);
 
@@ -123,7 +124,7 @@ void PBCmgr::maintain (const integer         step   ,
   roll (Pny, nTime);
 
   for (i = 0; i < nEdge; i++) {
-    B      = P -> boundary[0][i];
+    B      = BC[i];
     offset = B -> dOff ();
     skip   = B -> dSkip();
     
@@ -144,7 +145,7 @@ void PBCmgr::maintain (const integer         step   ,
   real* alpha = yi + nP;
 
   for (i = 0; i < nEdge; i++) {
-    B      = P -> boundary[0][i];
+    B      = BC[i];
     offset = B -> dOff ();
     skip   = B -> dSkip();
 
@@ -181,7 +182,7 @@ void PBCmgr::maintain (const integer         step   ,
     Integration::StifflyStable (Je, alpha);
       
     for (i = 0; i < nEdge; i++) {
-      B      = P -> boundary[0][i];
+      B      = BC[i];
       offset = B -> dOff ();
       skip   = B -> dSkip();
 
@@ -209,7 +210,7 @@ void PBCmgr::maintain (const integer         step   ,
   roll (Uny, nTime);
       
   for (i = 0; i < nEdge; i++) {
-    B      = P -> boundary[0][i];
+    B      = BC[i];
     offset = B -> dOff ();
     skip   = B -> dSkip();
     
@@ -281,11 +282,12 @@ void PBCmgr::accelerate (const Vector& a,
 // Yes, this is a HACK!
 // ---------------------------------------------------------------------------
 {
-  register integer   i;
-  register Boundary* B;
+  const vector<Boundary*>& BC = u -> bsys -> BCs (0);
+  register Boundary*       B;
+  register integer         i;
 
-  for (i = 0; i < u -> n_bound; i++) {
-    B = u -> boundary[0][i];
+  for (i = 0; i < u -> nbound; i++) {
+    B = BC[i];
 
     B -> addForGroup ("velocity", a.x, Pnx[0][i][0]);
     B -> addForGroup ("velocity", a.y, Pny[0][i][0]);

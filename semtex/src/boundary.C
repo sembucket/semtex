@@ -1,6 +1,10 @@
 ///////////////////////////////////////////////////////////////////////////////
-// boundary.C
+// boundary.C: implement Boundary class functions.
 //
+// Copyright (C) 1994, 1999 Hugh Blackburn
+//
+// SYNOPSIS
+// --------
 // Boundaries correspond to domain edges that have boundary conditions
 // applied (as opposed to periodic edges).  The ordering of internal
 // storage for condition values and geometric factors corresponds to

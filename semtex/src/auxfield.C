@@ -428,7 +428,7 @@ void AuxField::gradient (const integer nZ ,
 }
 
 
-void AuxField::errors (const Mesh& mesh    ,
+void AuxField::errors (const Mesh* mesh    ,
 		       const char* function)
 // ---------------------------------------------------------------------------
 // Compare F with function, print the infinity-norm Li, the 2-norm L2

@@ -7,19 +7,18 @@ RCSid[] = "$Id$";
 
 #include <Sem.h>
 
-static List<MatrixSystem*> MS;
+static List<MatrixSys*> MS;
 
 
-ModalMatrixSystem::ModalMatrixSystem (const real              lambda2 ,
-				      const real              beta    ,
-				      const char              name    ,
-				      const integer           baseMode,
-				      const integer           numModes,
-				      const vector<Element*>& Elmt    ,
-				      const NumberSystem**    Nsys    )
+ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
+				const real              beta    ,
+				const integer           baseMode,
+				const integer           numModes,
+				const vector<Element*>& Elmt    ,
+				const BoundarySys*      Bsys    )
 // ---------------------------------------------------------------------------
 // Generate or retrieve from internal database MS the vector of
-// MatrixSystems which will be used to solve all the Fourier-mode
+// MatrixSyss which will be used to solve all the Fourier-mode
 // discrete Helmholtz problems for the associated scalar Fields
 // (called out by names).
 //
@@ -28,15 +27,17 @@ ModalMatrixSystem::ModalMatrixSystem (const real              lambda2 ,
 //   beta   : Fourier length scale = TWOPI / Lz,
 //   nmodes : number of Fourier modes which will be solved,
 //   Elmt   : vector of Element*'s used to make local Helmholtz matrices,
-//   Nsys   : truncated modal vector of numbering systems.
+//   Bsys   : boundary system for this field.
 // ---------------------------------------------------------------------------
 {
-  integer                     k, trunc, found;
-  real                        betak2;
-  ListIterator<MatrixSystem*> m (MS);
-  MatrixSystem*               M;
+  const char               name = Bsys -> field();
+  integer                  found, mode;
+  real                     betak2;
+  ListIterator<MatrixSys*> m (MS);
+  MatrixSys*               M;
 
-  fields = strdup (Nsys[0] -> fields());
+  fields = new char [strlen (Bsys -> Nsys (0) -> fields()) + 1];
+  strcpy (fields, Bsys -> Nsys (0) -> fields());
   Msys.setSize (numModes);
 
   ROOTONLY cout << "-- Installing matrices for field '" << name << "' [";
@@ -44,20 +45,20 @@ ModalMatrixSystem::ModalMatrixSystem (const real              lambda2 ,
 
   Femlib::synchronize();
 
-  for (k = 0; k < numModes; k++) {
-    trunc   = min (baseMode + k, (integer) 2);
-    betak2  = sqr (Field::modeConstant (name, baseMode + k, beta));
-    found   = 0;
+  for (mode = baseMode; mode < baseMode + numModes; mode++) {
+    const NumberSys* N = Bsys -> Nsys (mode);
+    betak2 = sqr (Field::modeConstant (name, mode, beta));
+    found  = 0;
     for (m.reset(); !found && m.more(); m.next()) {
       M     = m.current();
-      found = M -> match (lambda2, betak2, Nsys[trunc]);
+      found = M -> match (lambda2, betak2, N);
     }
     if (found) {
-      Msys[k] = M;
+      Msys[mode] = M;
       cout << '.';  cout.flush();
     } else {
-      Msys[k] = new MatrixSystem (lambda2, betak2, Elmt, Nsys[trunc]);
-      MS.add (Msys[k]);
+      Msys[mode] = new MatrixSys (lambda2, betak2, Elmt, Bsys->BCs(mode), N);
+      MS.add (Msys[mode]);
       cout << '*'; cout.flush();
     }
   }
@@ -69,16 +70,11 @@ ModalMatrixSystem::ModalMatrixSystem (const real              lambda2 ,
 }
 
 
-MatrixSystem::MatrixSystem (const real              lambda2,
-			    const real              betak2 ,
-			    const vector<Element*>& Elmt   ,
-			    const NumberSystem*     Nsys   ) :
-			    
-			    HelmholtzConstant      (lambda2),
-			    FourierConstant        (betak2 ),
-			    nel                    (Geometry::nElmt()),
-			    nband                  (Nsys -> nBand()),
-			    N                      (Nsys)
+MatrixSys::MatrixSys (const real               lambda2,
+		      const real               betak2 ,
+		      const vector<Element*>&  Elmt   ,
+		      const vector<Boundary*>& BCond  ,
+		      const NumberSys*         Nsystem) :
 // ---------------------------------------------------------------------------
 // Initialize and factorize matrices in this system.
 //
@@ -86,8 +82,14 @@ MatrixSystem::MatrixSystem (const real              lambda2,
 // Global Helmholtz matrix uses symmetric-banded format;
 // elemental Helmholtz matrices (hii & hbi) use column-major formats.
 // ---------------------------------------------------------------------------
+  HelmholtzConstant (lambda2),
+  FourierConstant   (betak2 ),
+  nel               (Geometry::nElmt()),
+  BC                (BCond),
+  Nsys              (Nsystem),
+  nband             (Nsystem -> nBand())
 {
-  const char       routine[] = "MatrixSystem::MatrixSystem";
+  const char       routine[] = "MatrixSys::MatrixSys";
   const integer    verbose = (integer) Femlib::value ("VERBOSE");
   const integer    next = Geometry::nExtElmt();
   const integer    nint = Geometry::nIntElmt();
@@ -105,8 +107,8 @@ MatrixSystem::MatrixSystem (const real              lambda2,
   rmat     = hbb  + sqr (Geometry::nExtElmt());
   rwrk     = rmat + sqr (Geometry::nP());
   ipiv     = pivotmap();
-  singular = fabs (HelmholtzConstant+FourierConstant) < EPS && !N-> fmask();
-  nsolve   = (singular) ? N -> nSolve() - 1 : N -> nSolve();
+  singular = fabs (HelmholtzConstant+FourierConstant) < EPS && !Nsys-> fmask();
+  nsolve   = (singular) ? Nsys -> nSolve() - 1 : Nsys -> nSolve();
 
   if (nsolve) {
     npack = nband * nsolve; // -- Size for LAPACK banded format.
@@ -129,7 +131,7 @@ MatrixSystem::MatrixSystem (const real              lambda2,
   bipack = new integer [(size_t) nel];
   iipack = new integer [(size_t) nel];
 
-  for (bmap = N -> btog(), j = 0; j < nel; j++, bmap += next) {
+  for (bmap = Nsys -> btog(), j = 0; j < nel; j++, bmap += next) {
     bipack[j] = next * nint;
     iipack[j] = nint * nint;
 
@@ -165,11 +167,11 @@ MatrixSystem::MatrixSystem (const real              lambda2,
 }
 
 
-integer MatrixSystem::match (const real          lambda2,
-			     const real          betak2 ,
-			     const NumberSystem* nScheme) const
+integer MatrixSys::match (const real       lambda2,
+			  const real       betak2 ,
+			  const NumberSys* nScheme) const
 // ---------------------------------------------------------------------------
-// The unique identifiers of a MatrixSystem are presumed to be given
+// The unique identifiers of a MatrixSys are presumed to be given
 // by the constants and the numbering system used.  Other things that
 // could be checked but aren't (yet) include geometric systems and
 // quadrature schemes.
@@ -177,11 +179,11 @@ integer MatrixSystem::match (const real          lambda2,
 {
   const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
-  if (fabs (HelmholtzConstant - lambda2) < EPS &&
-      fabs (FourierConstant   - betak2 ) < EPS &&
-      N -> nGlobal() == nScheme -> nGlobal()   &&
-      N -> nSolve()  == nScheme -> nSolve()    &&
-      Veclib::same (N -> nGlobal(), N -> btog(), 1, nScheme -> btog(), 1))
+  if (fabs (HelmholtzConstant - lambda2) < EPS  &&
+      fabs (FourierConstant   - betak2 ) < EPS  &&
+      Nsys -> nGlobal() == nScheme -> nGlobal() &&
+      Nsys -> nSolve()  == nScheme -> nSolve()  &&
+      Veclib::same (Nsys->nGlobal(), Nsys->btog(), 1, nScheme->btog(), 1))
     return 1;
 
   else
@@ -190,14 +192,14 @@ integer MatrixSystem::match (const real          lambda2,
 
 
 ostream& operator << (ostream&      str,
-		      MatrixSystem& M  )
+		      MatrixSys& M  )
 // ---------------------------------------------------------------------------
-// Output a MatrixSystem to file.
+// Output a MatrixSys to file.
 // ---------------------------------------------------------------------------
 {
 #if 0
   char *hdr_fmt[] = {
-    "-- Helmholtz MatrixSystem Storage File --",
+    "-- Helmholtz MatrixSys Storage File --",
     "%-25d "    "Elements",
     "%-25d "    "Global matrix size (words)",
     "%-25d "    "Global matrix bandwidth",
@@ -246,13 +248,13 @@ ostream& operator << (ostream&      str,
 
 
 istream& operator >> (istream&      str,
-		      MatrixSystem& sys)
+		      MatrixSys& sys)
 // ---------------------------------------------------------------------------
-// Input a MatrixSystem from file, with binary format conversion if required.
+// Input a MatrixSys from file, with binary format conversion if required.
 // ---------------------------------------------------------------------------
 {
 #if 0
-  char       routine[] = "MatrixSystem::operator >>";
+  char       routine[] = "MatrixSys::operator >>";
   char       bufr[StrMax], fmt[StrMax];
   istrstream s (bufr, strlen (bufr));
   integer    n, swab;
@@ -262,7 +264,7 @@ istream& operator >> (istream&      str,
   Veclib::describeFormat (fmt);
   
   str.getline (bufr);
-  if (strcmp (bufr, "-- Helmholtz MatrixSystem Storage File --"))
+  if (strcmp (bufr, "-- Helmholtz MatrixSys Storage File --"))
     message (routine, "input file lacks valid header",                  ERROR);
 
   str.getline (bufr);
@@ -337,14 +339,3 @@ istream& operator >> (istream&      str,
 
   return str;
 }
-
-
-
-
-
-
-
-
-
-
-

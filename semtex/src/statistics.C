@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // statistics.C: routines for statistical analysis of AuxFields.
 //
+// Copyright (C) 1994, 1999 Hugh Blackburn
+//
 // At present, this is limited to running averages of primitive
 // variables and product terms for Reynolds stresses.
 //
@@ -27,10 +29,9 @@ RCSid[] = "$Id$";
 #include <Sem.h>
 #include <time.h>
 
-Statistics::Statistics (Domain&            D    ,
+
+Statistics::Statistics (Domain*            D    ,
 			vector<AuxField*>& extra) : 
-                        name (D.name),
-			base (D)
 // ---------------------------------------------------------------------------
 // Store averages for all Domain Fields, and any extra AuxFields
 // supplied.
@@ -41,10 +42,12 @@ Statistics::Statistics (Domain&            D    ,
 //
 // NR = Number of Reynolds stress averaging buffers, set if AVERAGE > 1.
 // ---------------------------------------------------------------------------
+  name (D -> name),
+  base (D)
 {
   integer       i;
   const integer ND = Geometry::nDim();
-  const integer NF = base.u.getSize();
+  const integer NF = base -> u.getSize();
   const integer NE = extra.getSize();
   const integer NR = ((integer) Femlib::value ("AVERAGE") > 1) ? 
                             ((ND + 1) * ND) >> 1 : 0;
@@ -57,13 +60,13 @@ Statistics::Statistics (Domain&            D    ,
   src.setSize (NF + NE);	// -- Straight running average of these.
   avg.setSize (NT);		// -- Additional are computed from src.
   
-  for (i = 0; i < NF; i++) src[     i] = (AuxField*) base.u[i];
+  for (i = 0; i < NF; i++) src[     i] = (AuxField*) base -> u[i];
   for (i = 0; i < NE; i++) src[NF + i] = extra[i];
 
   for (i = 0; i < NF + NE; i++)
-    avg[i] = new AuxField (base.Esys, src[i] -> name());
+    avg[i] = new AuxField (base -> elmt, src[i] -> name());
   for (i = 0; i < NT - NF - NE; i++)
-    avg[i + NF + NE] = new AuxField (base.Esys, 'A' + i);
+    avg[i + NF + NE] = new AuxField (base -> elmt, 'A' + i);
 
   // -- Initialize averages, either from file or zero.
   //    This is much the same as Domain input routine.
@@ -149,7 +152,7 @@ void Statistics::dump ()
 // Similar to Domain::dump.
 // ---------------------------------------------------------------------------
 {
-  const integer step     = base.step;
+  const integer step     = base -> step;
   const integer periodic = !(step %  (integer) Femlib::value ("IO_FLD"));
   const integer initial  =   step == (integer) Femlib::value ("IO_FLD");
   const integer final    =   step == (integer) Femlib::value ("N_STEP");
@@ -213,7 +216,7 @@ ofstream& operator << (ofstream&   strm,
 
   for (i = 0; i < N; i++) field[i] = src.avg[i];
 
-  writeField (strm, src.name, src.navg, src.base.time, field);
+  writeField (strm, src.name, src.navg, src.base -> time, field);
 
   return strm;
 }

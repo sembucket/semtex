@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
-// particle.C
+// particle.C: functions for integrating positions of particles.
 //
-// Functions for integrating positions of particles.
+// Copyright (C) 1994, 1999 Hugh Blackburn
 ///////////////////////////////////////////////////////////////////////////////
 
 static char
@@ -52,8 +52,8 @@ FluidParticle::FluidParticle (Domain*       d,
   E = 0;
   for (k = 0; k < NEL; k++) {
     r = s = 0.0;
-    if (D -> Esys[k] -> locate (P.x, P.y, r, s, guess)) {
-      E = D -> Esys[k];
+    if (D -> elmt[k] -> locate (P.x, P.y, r, s, guess)) {
+      E = D -> elmt[k];
       break;
     }
   }
@@ -122,8 +122,8 @@ void FluidParticle::integrate (const integer step)
       E = 0;
       for (i = 0; i < NEL; i++) {
 	r = s = 0.0;
-	if (D -> Esys[i] -> locate (xp, yp, r, s, guess)) {
-	  E = D -> Esys[i];
+	if (D -> elmt[i] -> locate (xp, yp, r, s, guess)) {
+	  E = D -> elmt[i];
 	  break;
 	}
       }
@@ -154,8 +154,8 @@ void FluidParticle::integrate (const integer step)
       E = 0;
       for (i = 0; i < NEL; i++) {
 	r = s = 0.0;
-	if (D -> Esys[i] -> locate (P.x, P.y, r, s, guess)) {
-	  E = D -> Esys[i];
+	if (D -> elmt[i] -> locate (P.x, P.y, r, s, guess)) {
+	  E = D -> elmt[i];
 	  break;
 	}
       }
@@ -196,8 +196,8 @@ void FluidParticle::integrate (const integer step)
       E = 0;
       for (i = 0; i < NEL; i++) {
 	r = s = 0.0;
-	if (D -> Esys[i] -> locate (xp, yp, r, s, guess)) {
-	  E = D -> Esys[i];
+	if (D -> elmt[i] -> locate (xp, yp, r, s, guess)) {
+	  E = D -> elmt[i];
 	  break;
 	}
       }
@@ -223,8 +223,8 @@ void FluidParticle::integrate (const integer step)
       E = 0;
       for (i = 0; i < NEL; i++) {
 	r = s = 0.0;
-	if (D -> Esys[i] -> locate (P.x, P.y, r, s, guess)) {
-	  E = D -> Esys[i];
+	if (D -> elmt[i] -> locate (P.x, P.y, r, s, guess)) {
+	  E = D -> elmt[i];
 	  break;
 	}
       }
