@@ -19,7 +19,7 @@ friend class PBCmgr;
 public:
   Field  (BoundarySys*, real_t*, const int_t, vector<Element*>&, const char);
  ~Field  () { }
-
+ 
   Field& operator = (const AuxField& z) {AuxField::operator=(z); return *this;}
   Field& operator = (const real_t&   z) {AuxField::operator=(z); return *this;}
   Field& operator = (const char*     z) {AuxField::operator=(z); return *this;}

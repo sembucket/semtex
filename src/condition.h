@@ -20,18 +20,18 @@ class Condition
 public:
   virtual void evaluate  (const int_t, const int_t, const int_t,
 			  const Element*, const int_t, const int_t,
-			  const real_t*, const real_t*, real_t*)           const = 0;
+			  const real_t*, const real_t*, real_t*)       const=0;
   virtual void set       (const int_t, const int_t*,
-			  const real_t*, real_t*)                        const = 0;
+			  const real_t*, real_t*)                      const=0;
   virtual void sum       (const int_t, const int_t*,
-		          const real_t*, const real_t*, real_t*, real_t*)    const = 0;
-  virtual void augmentSC (const int_t, const int_t, const int_t,
-			  const int_t*, const real_t*, real_t*, real_t*) const = 0;
+		          const real_t*,const real_t*,real_t*,real_t*) const=0;
+  virtual void augmentSC (const int_t,  const int_t, const int_t,
+			  const int_t*,const real_t*,real_t*,real_t*)  const=0;
   virtual void augmentOp (const int_t, const int_t*,
-			  const real_t*, const real_t*, real_t*)           const = 0;
+			  const real_t*, const real_t*, real_t*)       const=0;
   virtual void augmentDg (const int_t, const int_t*, 
-			  const real_t*, real_t*)                        const = 0;
-  virtual void describe  (char* tgt)                                 const = 0;
+			  const real_t*, real_t*)                      const=0;
+  virtual void describe  (char* tgt)                                   const=0;
 
   virtual ~Condition()   { }
 };
@@ -47,22 +47,22 @@ public:
   Essential              (const char* v) : _value (strtod (v, 0)) { }
   virtual void evaluate  (const int_t, const int_t, const int_t,
 			  const Element*, const int_t, const int_t,
-			  const real_t*, const real_t*, real_t*)           const;
+			  const real_t*, const real_t*, real_t*)         const;
   virtual void set       (const int_t, const int_t*,
 			  const real_t*, real_t*)                        const;
   virtual void sum       (const int_t, const int_t*,
-			  const real_t*, const real_t*, real_t*, real_t*)    const
+			  const real_t*,const real_t*,real_t*,real_t*)   const
     { };
   virtual void augmentSC (const int_t, const int_t, const int_t,
 			  const int_t*, const real_t*, real_t*, real_t*) const
     { };
   virtual void augmentOp (const int_t, const int_t*,
-			  const real_t*, const real_t*, real_t*)           const
+			  const real_t*, const real_t*, real_t*)         const
     { };
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const
     { };
-  virtual void describe  (char*)                                     const;
+  virtual void describe  (char*)                                         const;
 private:
   real_t _value;
 };
@@ -78,22 +78,22 @@ public:
   EssentialFunction      (const char*);
   virtual void evaluate  (const int_t, const int_t, const int_t,
 			  const Element*, const int_t, const int_t,
-			  const real_t*, const real_t*, real_t*)           const;
+			  const real_t*, const real_t*, real_t*)         const;
   virtual void set       (const int_t, const int_t*,
 			  const real_t*, real_t*)                        const;
   virtual void sum       (const int_t, const int_t*,
-			  const real_t*, const real_t*, real_t*, real_t*)    const
+			  const real_t*,const real_t*,real_t*,real_t*)   const
     { };
   virtual void augmentSC (const int_t, const int_t, const int_t,
 			  const int_t*, const real_t*, real_t*, real_t*) const
     { };
   virtual void augmentOp (const int_t, const int_t*,
-			  const real_t*, const real_t*, real_t*)           const
+			  const real_t*, const real_t*, real_t*)         const
     { };
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const
     { };
-  virtual void describe  (char*)                                     const;
+  virtual void describe  (char*)                                         const;
 private:
   char* _function;
 };
@@ -109,22 +109,22 @@ public:
   Natural                (const char* v) : _value (strtod (v, 0)) { }
   virtual void evaluate  (const int_t, const int_t, const int_t,
 			  const Element*, const int_t, const int_t,
-			  const real_t*, const real_t*, real_t*)           const;
+			  const real_t*, const real_t*, real_t*)         const;
   virtual void set       (const int_t, const int_t*,
 			  const real_t*, real_t*)                        const
     { };
   virtual void sum       (const int_t, const int_t*,
-			  const real_t*, const real_t*, real_t*, real_t*)    const;
+			  const real_t*,const real_t*,real_t*,real_t*)   const;
   virtual void augmentSC (const int_t, const int_t, const int_t,
 			  const int_t*, const real_t*, real_t*, real_t*) const
     { };
   virtual void augmentOp (const int_t, const int_t*,
-			  const real_t*, const real_t*, real_t*)           const
+			  const real_t*, const real_t*, real_t*)         const
     { };
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const
     { };
-  virtual void describe  (char*)                                     const;
+  virtual void describe  (char*)                                         const;
 private:
   real_t _value;
 };
@@ -140,22 +140,22 @@ public:
   NaturalFunction        (const char*);
   virtual void evaluate  (const int_t, const int_t, const int_t,
 			  const Element*, const int_t, const int_t,
-			  const real_t*, const real_t*, real_t*)           const;
+			  const real_t*, const real_t*, real_t*)         const;
   virtual void set       (const int_t, const int_t*,
 			  const real_t*, real_t*)                        const
     { };
   virtual void sum       (const int_t, const int_t*,
-			  const real_t*, const real_t*, real_t*, real_t*)    const;
+			  const real_t*,const real_t*,real_t*,real_t*)   const;
   virtual void augmentSC (const int_t, const int_t, const int_t,
 			  const int_t*, const real_t*, real_t*, real_t*) const
     { };
   virtual void augmentOp (const int_t, const int_t*,
-			  const real_t*, const real_t*, real_t*)           const
+			  const real_t*, const real_t*, real_t*)         const
     { };
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const
     { };
-  virtual void describe  (char*)                                     const;
+  virtual void describe  (char*)                                         const;
 private:
   char* _function;
 };
@@ -172,12 +172,12 @@ public:
   NaturalHOPBC           () { }
   virtual void evaluate  (const int_t, const int_t, const int_t,
 			  const Element*, const int_t, const int_t,
-			  const real_t*, const real_t*, real_t*)           const;
+			  const real_t*, const real_t*, real_t*)         const;
   virtual void set       (const int_t, const int_t*,
 			  const real_t*, real_t*)                        const
     { };
   virtual void sum       (const int_t, const int_t*,
-			  const real_t*, const real_t*, real_t*, real_t*)    const;
+			  const real_t*,const real_t*,real_t*,real_t*)   const;
   virtual void augmentSC (const int_t, const int_t, const int_t,
 			  const int_t*, const real_t*, real_t*, real_t*) const
     { };
@@ -185,9 +185,9 @@ public:
 			  const real_t*, real_t*)                        const
     { };
   virtual void augmentOp (const int_t, const int_t*,
-			  const real_t*, const real_t*, real_t*)           const
+			  const real_t*, const real_t*, real_t*)         const
     { };
-  virtual void describe  (char*)                                     const;
+  virtual void describe  (char*)                                         const;
 };
 
 

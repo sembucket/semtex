@@ -56,12 +56,14 @@ static struct {
   "CHKPOINT"    ,   1   ,	/* -- Set checkpointing of field dumps.   */
   "AVERAGE"     ,   0   ,	/* -- Select averaging of fields.         */
   "SPAWN"       ,   0   ,	/* -- Set respawning for particle tracks. */
+  "PHASE"       ,   0   ,       /* -- Toggle phase averaging.             */
   
   /* -- Default integer values. */
 
   "IO_FLD"      ,   500 ,	/* -- Step interval for field dumps.     */
   "IO_HIS"      ,   10  ,	/* -- Step interval for history points.  */
   "IO_CFL"      ,   50  ,	/* -- Step interval for CFL and modal.   */
+  "IO_WSS"      ,   0   ,       /* -- Step interval + toggle of WSS out. */
   "K_FUND"      ,   1   ,	/* -- Wavenumber of Fourier mode 1.      */
   "N_P"         ,   5   ,	/* -- No. of points along element edge.  */
   "N_TIME"      ,   2   ,	/* -- Order of timestepping scheme.      */
@@ -71,7 +73,7 @@ static struct {
   "N_PROC"      ,   1   ,	/* -- Number of processes for parallel.  */
   "STEP_MAX"    ,   500 ,	/* -- Max number of iterations for PCG.  */
   "NR_MAX"      ,   20  ,       /* -- Max iterations for Newton-Raphson. */
-
+  
   0             ,   0.0
 };
 

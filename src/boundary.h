@@ -18,8 +18,10 @@ public:
 
   // -- Impose essential BCs:
   void  set       (const real_t*,const int_t*,real_t*)                   const;
+
   // -- Apply natural BCs:
   void  sum       (const real_t*,const int_t*,real_t*,real_t*)           const;
+
   // -- Apply mixed BCs:
   void  augmentSC (const int_t,const int_t,const int_t*,real_t*,real_t*) const;
   void  augmentOp (const int_t*,const real_t*,real_t*)                   const;
