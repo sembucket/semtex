@@ -120,7 +120,7 @@ void Element::map ()
 {
   const char   routine[] = "Element::map";
   const real   EPS  = 4 * ((sizeof(real) == sizeof(double)) ? EPSDP : EPSSP);
-  const real   dz   = Femlib::value ("TWOPI / (BETA * N_Z)");
+  const real   dz   = Femlib::value ("TWOPI / (BETA * N_Z)") ;
   const real   invD = 1.0 / Geometry::nDim();
   const real   *x   = _xmesh, *y = _ymesh;
   const real   **DV, **DT, *w;
@@ -204,7 +204,7 @@ void Element::map ()
   // The local length-scale, delta, is a measure of the size of the
   // local mesh length: delta = sqrt{(dx^2 + dy^2 + dz^2)/3}
   //                          ~ sqrt{([dr^2 + ds^2]*jac + dz^2)/3)}
-
+ 
   const real dxy = 2.0 * sqr (2.0 / (_np - 1));
 
   Veclib::smul (_npnp, dxy,  jac, 1, _delta, 1);
@@ -223,7 +223,7 @@ void Element::map ()
   // The local length-scale, delta, is a measure of the size of the
   // local mesh: delta = (dx * dy * dz)^1/DIM
   //                   ~ [[2/(np - 1)]^2*jac * dz]^(1/DIM).
-
+ 
   const real dxyz = sqr (2.0 / (_np - 1)) * ((Geometry::nZ()>1) ? dz : 1.0);
 
   Veclib::smul (_npnp, dxyz, jac, 1, _delta, 1);
