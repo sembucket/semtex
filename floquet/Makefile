@@ -23,13 +23,13 @@ SEMHDR   = Sem.h
 # Default build for Navier-Stokes solver.
 #
 
-ST_FILES = stab NS stabanalysis
+ST_FILES = lns integrate stabanalysis
 ST_OBJ   = $(addsuffix .o,$(ST_FILES))
 
-FL_FILES = arnoldi NS stabanalysis
+FL_FILES = arnoldi integrate stabanalysis
 FL_OBJ   = $(addsuffix .o,$(FL_FILES))
 
-stab: sem $(ST_OBJ) $(SEMOBJ)
+lns: sem $(ST_OBJ) $(SEMOBJ)
 	$(LD) -o $@ $(ST_OBJ) $(SEMOBJ) $(LDFLAGS)
 
 flok: sem $(FL_OBJ) $(SEMOBJ)

@@ -10,7 +10,7 @@
 	3	10.0	0.0	0.0
 </BASE>
 
-<FIELDS>
+<FIELDS NUMBER=3>
 	u v p
 </FIELDS>
 

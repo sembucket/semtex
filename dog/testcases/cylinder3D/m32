@@ -10,15 +10,16 @@
 	3	10.0	0.0	0.0
 </BASE>
 
-<FIELDS>
+<FIELDS NUMBER=4>
 	u v w p
 </FIELDS>
 
 <TOKENS>
 	PERIOD    = 4.96192
 	F_TIME	  = PERIOD
-	N_STEP	  = 1024
-	D_T       = PERIOD/N_STEP
+	STEPS_P   = 1024
+	N_STEP	  = STEPS_P
+	D_T       = PERIOD/STEPS_P
 	BASE_DT   = PERIOD/32.0
 
 	N_TIME    = 2
@@ -26,7 +27,7 @@
 
 	CHKPOINT  = 1
 	ITERATIVE = 0
-	IO_FLD    = 5000
+	IO_FLD    = STEPS_P
 	IO_CFL    = 20
 
 	BETA      = 1.7

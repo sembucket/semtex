@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// NS.C: Unsteady Navier--Stokes solver, using "stiffly-stable" integration.
+// integrate.C: integrate unsteady Navier--Stokes problem forward in time.
 //
 // This version implements linearised advection terms and evolves a
 // single Fourier mode.
@@ -26,8 +26,8 @@ static MatrixSys** preSolve   (const Domain*);
 static void        Solve      (Domain*, const integer, AuxField*, MatrixSys*);
 
 
-void NavierStokes (Domain*       D,
-		   STABAnalyser* A)
+void integrate (Domain*       D,
+		STABAnalyser* A)
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
 // constraint Field 'p'.
@@ -38,7 +38,7 @@ void NavierStokes (Domain*       D,
 // Uf is multi-level auxillary Field storage for nonlinear forcing terms.
 // ---------------------------------------------------------------------------
 {
-  NVEC = D -> nField() - 1;
+  NVEC = Geometry::nVec();
   NORD = (integer) Femlib::value ("N_TIME");
   CYL  = Geometry::system() == Geometry::Cylindrical;
   C3D  = CYL && Geometry::nDim() == 3;
@@ -188,7 +188,28 @@ static void Linearised (Domain*    D ,
     message ("Linearised", "cylindrical coordinates not implemented", ERROR);
 
   } else {			// -- Cartesian coordinates.
+#if 1
+    for (i = 0; i < NVEC; i++) {
+      for (j = 0; j < 2; j++) {
 
+	// -- N_i += U_j d(u_i) / dx_j.
+
+	N[i] -> timesPlus(*U[j],(*T=*u[i]).gradient(j));
+
+	if (i < 2) {		// -- Since U[2] = 0.
+
+	  // -- N_i += u_j d(U_i) / dx_j.
+
+	  N[i]->timesPlus(*u[j],(*T=*U[i]).gradient(j));
+
+	}
+      }
+
+      T -> smooth (N[i]);
+      *N[i] *= -1.0;
+    }
+  }
+#else
     for (i = 0; i < NVEC; i++) {
       for (j = 0; j < 2; j++) {
       
@@ -220,6 +241,7 @@ static void Linearised (Domain*    D ,
       *N[i] *= -0.5;
     }
   }
+#endif
 }
 
 
