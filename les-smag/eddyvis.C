@@ -166,8 +166,9 @@ static void viscoModel (AuxField*** Us,
   real*            sum    = tmp + nTot32;
   real*            delta  = sum + nTot32;
 
-  Veclib::zero (nTot32, sum, 1);
   EV -> lengthScale (delta);
+
+  Veclib::zero (nTot32, sum, 1);
   
   for (i = 0; i < DIM; i++) {
     for (j = i + 1; j < DIM; j++) {
@@ -195,7 +196,7 @@ static void viscoModel (AuxField*** Us,
   
     EV -> transform32 (tmp, -1);
 
-    for (k = 0; k < nZ; k++) {
+    for (k = 0; k < nZ32; k++) {
       S = sum + k * NP;
       E = tmp + k * NP;
       
@@ -218,7 +219,7 @@ static void viscoModel (AuxField*** Us,
     Blas::scal   (nP, Cs, delta, 1);
     Veclib::vmul (nP, delta, 1, delta, 1, delta, 1);
 
-    for (k = 0; k < nZ; k++)
+    for (k = 0; k < nZ32; k++)
       Veclib::vmul (nP, delta, 1, sum + k * NP, 1, sum + k * NP, 1);
   }
 
