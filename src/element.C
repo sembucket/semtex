@@ -104,10 +104,9 @@ void Element::map ()
 // consequence of the fact that Helmholtz equations are symmetrized by
 // premultiplication by this factor for cylindrical coords.
 //
-// The local length-scale, delta, is a measure of the size of the local
-// mesh length: delta = sqrt{(dx^2 + dy^2 + dz^2)/3}
-//                    ~ sqrt{([dr^2 + ds^2]*jac + dz^2)/3)}
-// or modified as appropriate for cylindrical cases and 2D.
+// The local length-scale, delta, is a measure of the size of the
+// local mesh length.  There are two options (selected in compilation
+// stage) below.
 //
 // Null-mapping optimizations mentioned below occur when the element
 // geometry ensures that the entries of a vector are zero to within
@@ -122,7 +121,6 @@ void Element::map ()
   const char   routine[] = "Element::map";
   const real   EPS  = 4 * ((sizeof(real) == sizeof(double)) ? EPSDP : EPSSP);
   const real   dz   = Femlib::value ("TWOPI / (BETA * N_Z)");
-  const real   dxy  = 2.0 * sqr (2.0 / (_np - 1));
   const real   invD = 1.0 / Geometry::nDim();
   const real   *x   = _xmesh, *y = _ymesh;
   const real   **DV, **DT, *w;
@@ -190,17 +188,26 @@ void Element::map ()
   Veclib::vmul  (_npnp, tV,   1, WW,   1, _G3,   1);
   
   Veclib::vmul  (_npnp, jac,  1, WW,   1, _G4, 1);
-  Veclib::smul  (_npnp, dxy,  jac, 1,  _delta, 1);
 
-  Veclib::copy (_npnp, dyds, 1, _drdx, 1);
-  Veclib::vneg (_npnp, dxds, 1, _drdy, 1);
-  Veclib::vneg (_npnp, dydr, 1, _dsdx, 1);
-  Veclib::copy (_npnp, dxdr, 1, _dsdy, 1);
+  Veclib::copy  (_npnp, dyds, 1, _drdx, 1);
+  Veclib::vneg  (_npnp, dxds, 1, _drdy, 1);
+  Veclib::vneg  (_npnp, dydr, 1, _dsdx, 1);
+  Veclib::copy  (_npnp, dxdr, 1, _dsdy, 1);
     
-  Veclib::vdiv (_npnp, _drdx, 1, jac, 1, _drdx, 1);
-  Veclib::vdiv (_npnp, _drdy, 1, jac, 1, _drdy, 1);
-  Veclib::vdiv (_npnp, _dsdx, 1, jac, 1, _dsdx, 1);
-  Veclib::vdiv (_npnp, _dsdy, 1, jac, 1, _dsdy, 1);
+  Veclib::vdiv  (_npnp, _drdx, 1, jac, 1, _drdx, 1);
+  Veclib::vdiv  (_npnp, _drdy, 1, jac, 1, _drdy, 1);
+  Veclib::vdiv  (_npnp, _dsdx, 1, jac, 1, _dsdx, 1);
+  Veclib::vdiv  (_npnp, _dsdy, 1, jac, 1, _dsdy, 1);
+
+#if 0
+  // This is what Eggels uses:
+  // The local length-scale, delta, is a measure of the size of the
+  // local mesh length: delta = sqrt{(dx^2 + dy^2 + dz^2)/3}
+  //                          ~ sqrt{([dr^2 + ds^2]*jac + dz^2)/3)}
+
+  const real dxy = 2.0 * sqr (2.0 / (_np - 1));
+
+  Veclib::smul (_npnp, dxy,  jac, 1, _delta, 1);
 
   if (Geometry::nDim() == 3) {
     if (Geometry::system() == Geometry::Cylindrical)
@@ -212,6 +219,21 @@ void Element::map ()
   }
   Blas::scal    (_npnp, invD,      _delta, 1);
   Veclib::vsqrt (_npnp, _delta, 1, _delta, 1);
+#else
+  // The local length-scale, delta, is a measure of the size of the
+  // local mesh: delta = (dx * dy * dz)^1/DIM
+  //                   ~ [[2/(np - 1)]^2*jac * dz]^(1/DIM).
+
+  const real dxyz = sqr (2.0 / (_np - 1)) * ((Geometry::nZ()>1) ? dz : 1.0);
+
+  Veclib::smul (_npnp, dxyz, jac, 1, _delta, 1);
+
+  if (Geometry::system() == Geometry::Cylindrical)
+    for (register integer i = 0; i < _npnp; i++)
+      _delta[i] *= (fabs(_ymesh[i]) < EPS) ? EPS : fabs(_ymesh[i]);
+
+  Veclib::spow (_npnp, invD, _delta, 1, _delta, 1);
+#endif
 
   if (Geometry::system() == Geometry::Cylindrical) {
     Veclib::vmul (_npnp, _G1, 1, y, 1, _G1, 1);
