@@ -30,25 +30,6 @@ void nonLinear (Domain*       D ,
 // Fourier transforms of the corresponding nonlinear terms plus
 // body force terms, minus divergence of SGSS.
 //
-// Nonlinear terms N(u) are computed in skew-symmetric form (Zang 1991)
-//                 ~ ~
-//           N  = -0.5 ( u . grad u + div uu )
-//           ~           ~        ~       ~~
-//
-// i.e. in Cartesian component form
-//
-//           N  = -0.5 ( u  d(u ) / dx  + d(u u ) / dx ),
-//            i           j    i      j      i j      j
-//
-// while for cylindrical coordinates
-//
-//           Nx = -0.5 {ud(u)/dx + vd(u)/dy +  d(uu)/dx +
-//                 1/y [wd(u)/dz + d(uw)/dz + d(yvu)/dy      ]}
-//           Ny = -0.5 {ud(v)/dx + vd(v)/dy +  d(uv)/dx +
-//                 1/y [wd(v)/dz + d(vw)/dz + d(yvv)/dy - 2ww]}
-//           Nz = -0.5 {ud(w)/dx + vd(w)/dy +  d(uw)/dx +
-//                 1/y [wd(w)/dz + d(ww)/dz + d(yvw)/dy + 2wv]}.
-//
 // Data are transformed to physical space for most of the operations,
 // but for gradients in the Fourier direction the data must be
 // transferred back to Fourier space.
@@ -82,6 +63,154 @@ void nonLinear (Domain*       D ,
   real**        Nl  = Ud + 3;
   real*         tmp = D -> udat[3];
 
+
+  // -- Set pointers into supplied workspace, Ut.
+
+  for (i = 0; i < 6; i++) Sr [i] = Ut (     i);
+  for (i = 0; i < 6; i++) St [i] = Ut ( 6 + i);
+  for (i = 0; i < 3; i++) Ua [i] = Ut (12 + i);
+  for (i = 0; i < 2; i++) Sm [i] = Ut (15 + i);
+  for (i = 0; i < 3; i++) Us [i] = Ut (17 + i);
+  for (i = 0; i < 3; i++) Nl [i] = Ut (20 + i);
+
+  for (i = 0; i < 3; i++) Ud [i] = D->udat(i);
+
+  // -- Compute the dynamic eddy viscosity estimate -2Cs^2 in Ut[15].
+  //    Also compute the nonlinear terms.
+
+  dynamic (D, Ut);
+
+  real* nut     = Sm[0];
+  real* Delta2S = Us[2];
+
+  // -- Subtract off our spatially-constant reference viscosity
+  //    (disguised as KINVIS), note factor of 2, and that we need to
+  //    divide through by Delta^2|S| --- we're making [-2*Cs^2 +
+  //    2*REFVIS/(Delta^2|S|)] since Sij has been premultiplied by
+  //    Delta^2|S|.
+
+  Veclib::sdiv (nTot, 2.0*refV, Delta2S, 1, Delta2S, 1);
+  Veclib::vadd (nTot, nut, 1, Delta2S, 1, nut, 1);
+
+  // -- Create SGSS \tau_ij = -2 (Cs^2 Delta^2 |S| - refVisc) Sij.
+
+  for (i = 0; i < 6; i++) Veclib::vmul (nTot, nut, 1, Sr[i], 1, Sr[i], 1);
+
+  // -- Normalise skewsymmetric nonlinear terms.
+
+  for (i = 0; i < 3; i++) Blas::scal (nTot, -0.5, Nl[i], 1);
+
+#if !defined (NOMODEL)
+  // -- Subtract divergence of SGSS from nonlinear terms.
+
+  for (i = 0; i < 3; i++) {	// -- Diagonal terms.
+    realGradient (meta, Sr[i], i);
+    Veclib::vsub (nTot, Nl[i], 1, Sr[i], 1, Nl[i], 1);
+  }
+
+  for (i = 0; i < 3; i++)	// -- Off-diagonal terms.
+    for (j = i + 1; j < 3; j++) {
+      ij = i + j - 1;
+      Veclib::copy (nTot, Sr[ij], 1, tmp, 1);
+      realGradient (meta, Sr[ij], j);
+      realGradient (meta, tmp,   i);
+      Veclib::vsub (nTot, Nl[i], 1, Sr[ij], 1, Nl[i], 1);
+      Veclib::vsub (nTot, Nl[j], 1, tmp,    1, Nl[j], 1);
+    }
+#endif
+
+  // -- Direct stiffness summation.
+
+  for (i = 0; i < 3; i++) meta -> smooth (nZP, Nl[i]);
+
+  // -- Fourier transform velocities and nonlinear terms.
+
+  for (i = 0; i < 3; i++) {
+    Veclib::copy (nTot, Ua[i], 1, Us[i], 1);
+    transform    (FORWARD, FULL,  Us[i]);
+    transform    (FORWARD, FULL,  Nl[i]);
+  }
+
+  // -- Add on body force terms.
+
+  ROOTONLY
+    for (i = 0; i < 3; i++)
+      if (fabs (ff[i]) > EPS)
+	Veclib::sadd (Geometry::nPlane(), ff[i], Nl[i], 1, Nl[i], 1);
+}
+
+
+void dynamic (Domain*       D ,
+	      matrix<real>& Ut,
+	      const int     NL)
+// ---------------------------------------------------------------------------
+// Compute nonlinear and SGSS terms: N(u) and eddy viscosity.
+//
+// On entry, D contains the Fourier-transforms of the old velocity
+// (and pressure) fields, the lowest levels of Us & Uf are free.
+// On exit, the lowest levels of Us contain the Fourier transforms
+// of the old velocity fields and lowest levels of Uf contain the 
+// Fourier transforms of the corresponding nonlinear terms plus
+// body force terms, minus divergence of SGSS.
+//
+// Nonlinear terms N(u) are computed in skew-symmetric form (Zang 1991)
+//                 ~ ~
+//           N  = -0.5 ( u . grad u + div uu )
+//           ~           ~        ~       ~~
+//
+// i.e. in Cartesian component form
+//
+//           N  = -0.5 ( u  d(u ) / dx  + d(u u ) / dx ),
+//            i           j    i      j      i j      j
+//
+// while for cylindrical coordinates
+//
+//           Nx = -0.5 {ud(u)/dx + vd(u)/dy +  d(uu)/dx +
+//                 1/y [wd(u)/dz + d(uw)/dz + d(yvu)/dy      ]}
+//           Ny = -0.5 {ud(v)/dx + vd(v)/dy +  d(uv)/dx +
+//                 1/y [wd(v)/dz + d(vw)/dz + d(yvv)/dy - 2ww]}
+//           Nz = -0.5 {ud(w)/dx + vd(w)/dy +  d(uw)/dx +
+//                 1/y [wd(w)/dz + d(ww)/dz + d(yvw)/dy + 2wv]}.
+//
+// Data are transformed to physical space for most of the operations,
+// but for gradients in the Fourier direction the data must be
+// transferred back to Fourier space.
+//
+// NB: no dealiasing.
+//
+// If NL is set, then we compute the nonlinear terms and return the
+// scaled (dynamic estimate) eddy viscosity -2Cs^2 = LijMij/MijMji in
+// Ut[6].  If NL isn't set, do not compute the nonlinear terms and
+// return the unscaled (dynamic estimate) eddy viscosity
+// Cs^2*Delta^2*|S|.  This is ugly but means we can use the same bit
+// of code both for normal running and for computing the eddy
+// viscosity estimate as a diagnostic.
+// ---------------------------------------------------------------------------
+{
+  const integer nZ   = Geometry::nZ();
+  const integer nZP  = Geometry::nZProc();
+  const integer nP   = Geometry::planeSize();
+  const integer nPP  = Geometry::nBlock();
+  const integer nPR  = Geometry::nProc();
+  const integer nTot = Geometry::nTotProc();
+  Field*        meta = D -> u[0]; // -- A handle to use for Field operations.
+  integer       i, j, ij;
+
+  if (Geometry::system() == Geometry::Cylindrical)
+    message ("dynamic", "no cylindrical coordinate version yet", ERROR);
+
+  // -- Create names for local computations.
+
+  vector<real*> u (26);
+  real**        Sr  = u();	// -- Strain rate tensor, unfiltered velocity.
+  real**        St  = Sr + 6;	// -- Strain rate tensor, filtered velocity.
+  real**        Sm  = St + 6;	// -- Strain rate magnitude.
+  real**        Ua  = Sm + 2;	// -- Physical space velocities.
+  real**        Us  = Ua + 3;	// -- Top level of velocity storage.
+  real**        Ud  = Us + 3;	// -- Domain velocity field, filtered.
+  real**        Nl  = Ud + 3;	// -- Top level of nonlinear/forcing storage.
+  real*         tmp = D -> udat[3];
+
   // -- Set pointers into supplied workspace, Ut.
 
   for (i = 0; i < 6; i++) Sr [i] = Ut (     i);
@@ -96,7 +225,7 @@ void nonLinear (Domain*       D ,
   // -- Transform and filter velocities.
 
   for (i = 0; i < 3; i++) {
-    Veclib::zero (nTot, Nl[i], 1);
+    if (NL) Veclib::zero (nTot, Nl[i], 1);
     Veclib::copy (nTot, Ud[i], 1, Us[i], 1);
     Veclib::copy (nTot, Ud[i], 1, Ua[i], 1);
     lowpass      (Ud[i]);
@@ -115,7 +244,7 @@ void nonLinear (Domain*       D ,
       lowpass        (St[ij]);
       transform      (INVERSE, FULL, Sr[ij]);
       transform      (INVERSE, FULL, St[ij]);
-      Veclib::vvtvp  (nTot, Ua[j], 1, Sr[ij], 1, Nl[i], 1, Nl[i], 1);
+      if (NL) Veclib::vvtvp (nTot, Ua[j], 1, Sr[ij], 1, Nl[i], 1, Nl[i], 1);
     }
   
   for (i = 0; i < 3; i++)
@@ -126,7 +255,7 @@ void nonLinear (Domain*       D ,
       lowpass        (St[i]);
       transform      (INVERSE, FULL, St[i]);
       transform      (INVERSE, FULL, Sr[i]);
-      Veclib::vvtvp  (nTot, Ua[i], 1, Sr[i], 1, Nl[j], 1, Nl[j], 1);
+      if (NL) Veclib::vvtvp (nTot, Ua[i], 1, Sr[i], 1, Nl[j], 1, Nl[j], 1);
     }
   
   for (i = 0; i < 3; i++) {
@@ -143,7 +272,7 @@ void nonLinear (Domain*       D ,
     lowpass        (St[i]);
     transform      (INVERSE, FULL, St[i]);
     transform      (INVERSE, FULL, Sr[i]);
-    Veclib::vvtvp  (nTot, Ua[i], 1, Sr[i], 1, Nl[i], 1, Nl[i], 1);
+    if (NL) Veclib::vvtvp (nTot, Ua[i], 1, Sr[i], 1, Nl[i], 1, Nl[i], 1);
   }
 
   // -- Form strain rate magnitude estimates |S|, |S~|.
@@ -190,14 +319,13 @@ void nonLinear (Domain*       D ,
   Veclib::zero (nTot, Num, 1);
   Veclib::zero (nTot, Den, 1);
 
-
   // -- Diagonal terms.
 
   for (i = 0; i < 3; i++) {
     Veclib::vmul  (nTot, Ua[i], 1, Ua[i], 1, tmp, 1);
     Veclib::copy  (nTot, tmp, 1, L, 1);
     realGradient  (meta, tmp, i);
-    Veclib::vadd  (nTot, tmp, 1, Nl[i], 1, Nl[i], 1);
+    if (NL) Veclib::vadd (nTot, tmp, 1, Nl[i], 1, Nl[i], 1);
     transform     (FORWARD, FULL, L);
     lowpass       (L);
     transform     (INVERSE, FULL, L);
@@ -221,8 +349,8 @@ void nonLinear (Domain*       D ,
       Veclib::copy    (nTot, tmp, 1, M, 1);
       realGradient    (meta, M,   i);
       realGradient    (meta, tmp, j);
-      Veclib::vadd    (nTot, M,   1, Nl[j], 1, Nl[j], 1);
-      Veclib::vadd    (nTot, tmp, 1, Nl[i], 1, Nl[i], 1);
+      if (NL) Veclib::vadd (nTot, M,   1, Nl[j], 1, Nl[j], 1);
+      if (NL) Veclib::vadd (nTot, tmp, 1, Nl[i], 1, Nl[i], 1);
       transform       (FORWARD, FULL, L);
       lowpass         (L);
       transform       (INVERSE, FULL, L);
@@ -236,64 +364,44 @@ void nonLinear (Domain*       D ,
       Veclib::svvttvp (nTot, 2.0, M, 1, M, 1, Den, 1, Den, 1);
     }
 
-  // -- Here is the dynamic estimate, L = -2 Cs^2 = LijMij/MijMij.
-  //    NB: WE WILL NEED SOME AVERAGING OF Cs HERE.
+  // -- Nudge denominator and strain rate magnitude in case they're very small.
+
+  const real EPS = (sizeof(real)==sizeof(double))? EPSDP : EPSSP;
   
+  Veclib::sadd (nTot, EPS, Den, 1, Den, 1);
+  Veclib::sadd (nTot, EPS, Delta2S, 1, Delta2S, 1);
+
+  // -- Here is the dynamic estimate, L = -2 Cs^2 = LijMij/MijMij.
+
   Veclib::vdiv (nTot, Num, 1, Den, 1, L, 1);
 
-  // -- Subtract off our spatially-constant reference viscosity
-  //    (disguised as KINIVS), note factor of 2, and that we need
-  //    to divide through by Delta^2|S| --- we're making
-  //    [-2*Cs^2 + 2*REFVIS/(Delta^2|S|)].
+  if (!NL) {
 
-  Veclib::sdiv (nTot, 2.0*refV, Delta2S, 1, Delta2S, 1);
-  Veclib::vadd (nTot, L, 1, Delta2S, 1, L, 1);
+    // -- We are calculating eddy viscosity from L, make sure also we
+    //    put transformed velocities back in D.  L is in physical space.
 
-  // -- Create SGSS \tau_ij = -2 (Cs^2 Delta^2 |S| - refVisc) Sij.
+    Veclib::svvtt (nTot, -0.5, Delta2S, 1, L, 1, L, 1);
 
-  for (i = 0; i < 6; i++) Veclib::vmul (nTot, L, 1, Sr[i], 1, Sr[i], 1);
-
-  // -- Normalise skewsymmetric nonlinear terms.
-
-  for (i = 0; i < 3; i++) Blas::scal (nTot, -0.5, Nl[i], 1);
-
-#if !defined (NOMODEL)
-  // -- Subtract divergence of SGSS from nonlinear terms.
-
-  for (i = 0; i < 3; i++) {	// -- Diagonal terms.
-    realGradient (meta, Sr[i], i);
-    Veclib::vsub (nTot, Nl[i], 1, Sr[i], 1, Nl[i], 1);
+    for (i = 0; i < 3; i++) {
+      Veclib::copy (nTot, Ua[i], 1, Us[i], 1);
+      transform    (FORWARD, FULL,  Us[i]);
+    }
   }
 
-  for (i = 0; i < 3; i++)	// -- Off-diagonal terms.
-    for (j = i + 1; j < 3; j++) {
-      ij = i + j - 1;
-      Veclib::copy (nTot, Sr[ij], 1, tmp, 1);
-      realGradient (meta, Sr[ij], j);
-      realGradient (meta, tmp,   i);
-      Veclib::vsub (nTot, Nl[i], 1, Sr[ij], 1, Nl[i], 1);
-      Veclib::vsub (nTot, Nl[j], 1, tmp,    1, Nl[j], 1);
-    }
+  // -- NB: We need some averaging of Cs for stability.
+
+#if 1				// -- Homogeneous average.
+
+    Femlib::exchange (L, nZP, nP, FORWARD);
+    for (i = 1; i < nZ; i++)
+      Veclib::vadd (nPP, L + i * nPP, 1, L, 1, L, 1);
+    Blas::scal (nPP, 1.0/nZ, L, 1);
+    for (i = 1; i < nZ; i++)
+      Veclib::copy (nPP, L, 1, L + i * nPP, 1);
+    Femlib::exchange (L, nZP, nP, INVERSE);
+
 #endif
 
-  // -- Direct stiffness summation.
-
-  for (i = 0; i < 3; i++) meta -> smooth (nZP, Nl[i]);
-
-  // -- Fourier transform velocities and nonlinear terms.
-
-  for (i = 0; i < 3; i++) {
-    Veclib::copy (nTot, Ua[i], 1, Us[i], 1);
-    transform    (FORWARD, FULL,  Us[i]);
-    transform    (FORWARD, FULL,  Nl[i]);
-  }
-
-  // -- Add on body force terms.
-
-  ROOTONLY
-    for (i = 0; i < 3; i++)
-      if (fabs (ff[i]) > EPS)
-	Veclib::sadd (Geometry::nPlane(), ff[i], Nl[i], 1, Nl[i], 1);
 }
 
 
@@ -309,7 +417,6 @@ static void transform (const TransformKind SIGN,
   const integer nZP = Geometry::nZProc();
   const integer nP  = Geometry::planeSize();
   const integer nPP = Geometry::nBlock();
-  const integer nPR = Geometry::nProc();
 
   if (SIGN == FORWARD) {
     Femlib::exchange   (data, nZP, nP,  FORWARD);

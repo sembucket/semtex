@@ -51,7 +51,7 @@ void integrate (Domain*      D,
   NORD = (integer) Femlib::value ("N_TIME");
   CYL  = Geometry::system() == Geometry::Cylindrical;
 
-  integer       i, j, k;
+  integer       i, j;
   const real    dt    =           Femlib::value ("D_T"   );
   const integer nStep = (integer) Femlib::value ("N_STEP");
   const integer nZ    = Geometry::nZProc();
@@ -70,8 +70,9 @@ void integrate (Domain*      D,
 
   Msys** MMS = preSolve (D);
 
-  // -- Create extra storage needed for computation of SGSS, nonlinear terms.
-  //    Last NDIM*NORD*2 of these are used for Us & Uf.
+  // -- Create extra storage needed for computation of SGSS, nonlinear
+  //    terms.  Last 2*NDIM*NORD of these are used for Us & Uf, first 17
+  //    are used for SGSS modelling work.
   
   matrix<real> Ut (17 + 2*NDIM*NORD, Geometry::nTotProc());
 
@@ -114,20 +115,26 @@ void integrate (Domain*      D,
     D -> time += dt;
     Femlib::value ("t", D -> time);
 #if 1
-    for (i = 0; i < NDIM; i++)
-      lowpass (D -> udat(i));
+
+    for (i = 0; i < NDIM; i++) {
+      lowpass (D -> udat[i]);
+    }
+
 #else
+
     // -- Compute nonlinear terms + divergence(SGSS) + body forces.
 
     nonLinear (D, Ut, ff);
 
     // -- Unconstrained forcing substep.
 
-    waveProp (D, Us, Uf);
+    waveProp (D, (const AuxField***)Us, (const AuxField***)Uf);
 
     // -- Pressure projection substep.
 
-    PBCmgr::maintain (D -> step, Pressure, Us[0], Uf[0]);
+    PBCmgr::maintain (D -> step, Pressure, 
+		      (const AuxField**)Us[0],
+		      (const AuxField**)Uf[0]);
     Pressure -> evaluateBoundaries (D -> step);
     for (i = 0; i < NDIM; i++) {
       *Pressure  = *(const AuxField*) D -> u[i];
@@ -135,7 +142,7 @@ void integrate (Domain*      D,
       *Us [0][i] = *(const AuxField*) Pressure;
     }
     pushdown  (Uf, NORD, NDIM);
-    setPForce (Us[0], Uf[0]);
+    setPForce ((const AuxField**)Us[0], Uf[0]);
     Solve     (D, NDIM, Uf[0][0], MMS[NDIM]);
     project   (D, Us[0], Uf[0]);
 
@@ -153,11 +160,30 @@ void integrate (Domain*      D,
     for (i = 0; i < NDIM; i++) Solve (D, i, Uf[0][i], MMS[i]);
     if (C3D)
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
-#endif
-    // -- Process results of this step.
 
+    // -- Process results of this step.
+#endif
     A -> analyse (Us[0]);
+
   }
+#if 0
+  // -- Dump ratio eddy/molecular viscosity to file visco.fld.
+
+  dynamic (D, Ut, 0);
+  AuxField* EV = new AuxField (Ut(15), nZ, D->elmt, 'e');
+
+  ofstream          evfl;
+  vector<AuxField*> visco (1);
+  visco[0] = EV;
+
+  ROOTONLY evfl.open ("visco.fld", ios::out);
+
+  *EV /= Femlib::value ("REFVIS");
+
+  writeField (evfl, D -> name, D -> step, D -> time, visco);
+
+  ROOTONLY evfl.close();
+#endif
 }
 
 
