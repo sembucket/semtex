@@ -288,49 +288,51 @@ static void nonLinear (Domain*       D ,
 #endif      
   
   // -- Add forcing for inertia-wave problem (transient version):
+  //    (NB: T here is actually OMEGA_1*t.)
   //
-  // Fx: +[2*w2/w1*sin(THETA)-THETA_DDOT] *                y*sin(t-z)
-  //     +[w2*THETA_DOT/(w1*w1)*cos(THETA)-THETA_DOT/w1] * y*cos(t-z)
-  //     +2*{w2/w1*sin(THETA)*cos(t)-THETA_DOT/w1*sin(t)}*{v*cos(z)-w*sin(z)}
-  //     +2*{w2/w1*sin(THETA)*sin(t)-THETA_DOT/w1*cos(t)}*{v*sin(z)+w*cos(z)}
+  // Fx: +[2*w2/w1*sin(THETA)+THETA_DDOT] *                y*sin(T-z)
+  //     +[w2*THETA_DOT/(w1*w1)*cos(THETA)-THETA_DOT/w1] * y*cos(T-z)
+  //     +2*{w2/w1*sin(THETA)*cos(T)-THETA_DOT/w1*sin(T)}*{v*cos(z)-w*sin(z)}
+  //     +2*{w2/w1*sin(THETA)*sin(T)-THETA_DOT/w1*cos(T)}*{v*sin(z)+w*cos(z)}
   //
   // Fy: +2*[w2/w1*cos(THETA)+1]*w
-  //     -2*[w2/w1*sin(THETA)*cos(t-z)+THETA_DOT/w1*sin(t-z)]*u
-  //     -{[w2*THETA_DOT/(w1*w1)*cos(THETA)-THETA_DOT/w1]*cos(t-z)
-  //                                       +THETA_DDOT   *sin(t-z)}*x
+  //     -2*[w2/w1*sin(THETA)*cos(T-z)+THETA_DOT/w1*sin(T-z)]*u
+  //     -{[w2*THETA_DOT/(w1*w1)*cos(THETA)-THETA_DOT/w1]*cos(T-z)
+  //                                       +THETA_DDOT   *sin(T-z)}*x
   //
   // Fz: -2*[w2/w1*cos(THETA)+1]*v
-  //     -2*[w2/w1*sin(THETA)*sin(t-z)-THETA_DOT/w1*cos(t-z)]*u
-  //     -{[w2*THETA_DOT/(w1*w1)*cos(THETA)-THETA_DOT/w1]*sin(t-z)
-  //                                       -THETA_DDOT   *cos(t-z)}*x
+  //     -2*[w2/w1*sin(THETA)*sin(T-z)-THETA_DOT/w1*cos(T-z)]*u
+  //     -{[w2*THETA_DOT/(w1*w1)*cos(THETA)-THETA_DOT/w1]*sin(T-z)
+  //                                       -THETA_DDOT   *cos(T-z)}*x
   //
   // The model adopted for angular motion of spin axis is harmonic:
   // if t < T_RISE:
   //
-  // THETA      = 0.5*  ANG_MAX*(1-cos(w3*t)), otherwise THETA      = ANG_MAX
-  // THETA_DOT  = w3*   ANG_MAX*   sin(w3*t),  otherwise THETA_DOT  = 0
-  // THETA_DDOT = w3*w3*ANG_MAX*   cos(w3*t),  otherwise THETA_DDOT = 0
+  // THETA      = 0.5*      ANG_MAX*(1-cos(w3*t)), otherwise THETA = ANG_MAX
+  // THETA_DOT  = 0.5*   w3*ANG_MAX*   sin(w3*t),  otherwise THETA_DOT  = 0
+  // THETA_DDOT = 0.5*w3*w3*ANG_MAX*   cos(w3*t),  otherwise THETA_DDOT = 0
   //
-  // where w3 = TWOPI/T_RISE.
+  // where w3 = PI/T_RISE.
 
   static const real Tr    = Femlib::value ("T_RISE");
   static const real Th    = Femlib::value ("ANG_MAX");
   static const real w1    = Femlib::value ("OMEGA_1");
   static const real w2    = Femlib::value ("OMEGA_2");
-  static const real w3    = Femlib::value ("TWOPI / T_RISE");
+  static const real w3    = Femlib::value ("PI/T_RISE");
   static const real dz    = Femlib::value ("TWOPI/BETA") / (nZ32 * nPR);
   static const real dt    = Femlib::value ("D_T");
   static const real w2ow1 = w2/w1;
 
-  const real t         = Femlib::value ("t") - dt;
-  const int  transient = t < Tr;
+  const real t            = Femlib::value ("t") - dt;
+  const real T            = w1 * t;
+  const int  transient    = t < Tr;
 
   real theta, thetaD, thetaDD;
   
   if (transient) {
     theta   = 0.5*Th*(1.0-cos(w3*t));
-    thetaD  = w3*Th*sin(w3*t);
-    thetaDD = w3*w3*Th*cos(w3*t);
+    thetaD  = 0.5*w3*Th*sin(w3*t);
+    thetaDD = 0.5*w3*w3*Th*cos(w3*t);
   } else {
     theta   = Th;
     thetaD  = thetaDD = 0.0;
@@ -345,9 +347,9 @@ static void nonLinear (Domain*       D ,
 
   // -- Everything else requires z position.
 
-  const real cost = cos (t);
-  const real sint = sin (t);
-  const real x1   =  2.0*w2ow1*sin(theta)-thetaDD;
+  const real cost = cos (T);
+  const real sint = sin (T);
+  const real x1   =  2.0*w2ow1*sin(theta)+thetaDD;
   const real x2   =  w2*thetaD/(w1*w1)*cos(theta)-thetaD/w1;
   const real x3   =  2.0*(w2ow1*sin(theta)*cost-thetaD/w1*sint);
   const real x4   =  2.0*(w2ow1*sin(theta)*sint-thetaD/w1*cost);
@@ -357,8 +359,8 @@ static void nonLinear (Domain*       D ,
   for (i = 0; i < nZ32; i++) {
 
     z      = dz * (i + nZ32 * Geometry::procID());
-    costmz = cos (t - z);
-    sintmz = sin (t - z);
+    costmz = cos (T - z);
+    sintmz = sin (T - z);
 
     Veclib::fill (nP, 1.0, tmp, 1);
     master -> mulR (1, tmp);
@@ -374,14 +376,14 @@ static void nonLinear (Domain*       D ,
 
     // -- Radial momentum.
 
-    Blas::axpy (nP, -2.*w2ow1*sin(theta)*costmz+thetaD/w1*sintmz,
+    Blas::axpy (nP, -2.0*(w2ow1*sin(theta)*costmz+thetaD/w1*sintmz),
 		u32[0]+i*nP, 1, n32[1]+i*nP, 1);
     if (transient)
       Blas::axpy (nP, -x2*costmz-thetaDD*sintmz, tmp, 1, n32[1]+i*nP, 1);
 
     // -- Angular momentum.
 
-    Blas::axpy (nP, -2.*w2ow1*sin(theta)*sintmz+thetaD/w1*costmz,
+    Blas::axpy (nP, -2.0*(w2ow1*sin(theta)*sintmz+thetaD/w1*costmz),
 		u32[0]+i*nP, 1, n32[2]+i*nP, 1);
     if (transient)
       Blas::axpy (nP, -x2*sintmz+thetaDD*costmz, tmp, 1, n32[2]+i*nP, 1);
