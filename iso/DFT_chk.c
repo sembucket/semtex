@@ -48,7 +48,7 @@ int main()
   U[ 0][ 0][ 0].Re = 1.0;
 
   rc3DFT  (U, Wtab, INVERSE);
-  sprintf (s, "maximum physical component: %g", amaxf (U));
+  sprintf (s, "maximum physical component: %g", amaxF (U));
   message (prog, s, REMARK);
 
   for (i = 0; i < N; i++) {
@@ -63,7 +63,7 @@ int main()
     }
   }
 
-  sprintf (s, "maximum physical error:     %g", amaxf (U));
+  sprintf (s, "maximum physical error:     %g", amaxF (U));
   message (prog, s, REMARK);
 
   message (prog, "Checking cos(x) ----------------------------------", REMARK);
@@ -72,7 +72,7 @@ int main()
   U[  1][ 0][ 0].Re = 0.5;
 
   rc3DFT  (U, Wtab, INVERSE);
-  sprintf (s, "maximum physical component: %g", amaxf (U));
+  sprintf (s, "maximum physical component: %g", amaxF (U));
   message (prog, s, REMARK);
 
   for (i = 0; i < N; i++) {
@@ -87,7 +87,7 @@ int main()
     }
   }
 
-  sprintf (s, "maximum physical error:     %g", amaxf (U));
+  sprintf (s, "maximum physical error:     %g", amaxF (U));
   message (prog, s, REMARK);
 
   message (prog, "Checking sin(x) ----------------------------------", REMARK);
@@ -96,7 +96,7 @@ int main()
   U[  1][ 0][ 0].Im = -0.5;
 
   rc3DFT  (U, Wtab, INVERSE);
-  sprintf (s, "maximum physical component: %g", amaxf (U));
+  sprintf (s, "maximum physical component: %g", amaxF (U));
   message (prog, s, REMARK);
 
   for (i = 0; i < N; i++) {
@@ -111,7 +111,7 @@ int main()
     }
   }
 
-  sprintf (s, "maximum physical error:     %g", amaxf (U));
+  sprintf (s, "maximum physical error:     %g", amaxF (U));
   message (prog, s, REMARK);
 
   message (prog, "Checking cos(y) ----------------------------------", REMARK);
@@ -120,7 +120,7 @@ int main()
   U[ 0][  1][ 0].Re = 0.5;
 
   rc3DFT  (U, Wtab, INVERSE);
-  sprintf (s, "maximum physical component: %g", amaxf (U));
+  sprintf (s, "maximum physical component: %g", amaxF (U));
   message (prog, s, REMARK);
 
   for (i = 0; i < N; i++) {
@@ -135,7 +135,7 @@ int main()
     }
   }
 
-  sprintf (s, "maximum physical error:     %g", amaxf (U));
+  sprintf (s, "maximum physical error:     %g", amaxF (U));
   message (prog, s, REMARK);
 
   message (prog, "Checking sin(y) ----------------------------------", REMARK);
@@ -144,7 +144,7 @@ int main()
   U[ 0][ 1][ 0].Im =  -0.5;
 
   rc3DFT  (U, Wtab, INVERSE);
-  sprintf (s, "maximum physical component: %g", amaxf (U));
+  sprintf (s, "maximum physical component: %g", amaxF (U));
   message (prog, s, REMARK);
 
   for (i = 0; i < N; i++) {
@@ -159,7 +159,7 @@ int main()
     }
   }
 
-  sprintf (s, "maximum physical error:     %g", amaxf (U));
+  sprintf (s, "maximum physical error:     %g", amaxF (U));
   message (prog, s, REMARK);
  
   message (prog, "Checking cos(z) ----------------------------------", REMARK);
@@ -168,7 +168,7 @@ int main()
   U[ 0][ 0][ 1].Re = 0.5;
 
   rc3DFT  (U, Wtab, INVERSE);
-  sprintf (s, "maximum physical component: %g", amaxf (U));
+  sprintf (s, "maximum physical component: %g", amaxF (U));
   message (prog, s, REMARK);
 
   for (i = 0; i < N; i++) {
@@ -183,7 +183,7 @@ int main()
     }
   }
 
-  sprintf (s, "maximum physical error:     %g", amaxf (U));
+  sprintf (s, "maximum physical error:     %g", amaxF (U));
   message (prog, s, REMARK);
  
   message (prog, "Checking sin(z) ----------------------------------", REMARK);
@@ -192,7 +192,7 @@ int main()
   U[ 0][ 0][ 1].Im = -0.5;
 
   rc3DFT  (U, Wtab, INVERSE);
-  sprintf (s, "maximum physical component: %g", amaxf (U));
+  sprintf (s, "maximum physical component: %g", amaxF (U));
   message (prog, s, REMARK);
  
   for (i = 0; i < N; i++) {
@@ -207,7 +207,7 @@ int main()
     }
   }
 
-  sprintf (s, "maximum physical error:     %g", amaxf (U));
+  sprintf (s, "maximum physical error:     %g", amaxF (U));
   message (prog, s, REMARK);
 
   message (prog, "Checking cos(x)cos(y) ----------------------------", REMARK);
@@ -217,7 +217,7 @@ int main()
   U[N-1][  1][  0].Re = 0.25;
 
   rc3DFT  (U, Wtab, INVERSE);
-  sprintf (s, "maximum physical component: %g", amaxf (U));
+  sprintf (s, "maximum physical component: %g", amaxF (U));
   message (prog, s, REMARK);
  
   for (i = 0; i < N; i++) {
@@ -232,7 +232,7 @@ int main()
     }
   }
 
-  sprintf (s, "maximum physical error:     %g", amaxf (U));
+  sprintf (s, "maximum physical error:     %g", amaxF (U));
   message (prog, s, REMARK);
 
   message (prog, "Checking cos(x)sin(y) ----------------------------", REMARK);
@@ -242,7 +242,7 @@ int main()
   U[N-1][  1][  0].Im = -0.25;
 
   rc3DFT  (U, Wtab, INVERSE);
-  sprintf (s, "maximum physical component: %g", amaxf (U));
+  sprintf (s, "maximum physical component: %g", amaxF (U));
   message (prog, s, REMARK);
  
   for (i = 0; i < N; i++) {
@@ -257,7 +257,7 @@ int main()
     }
   }
 
-  sprintf (s, "maximum physical error:     %g", amaxf (U));
+  sprintf (s, "maximum physical error:     %g", amaxF (U));
   message (prog, s, REMARK);
 
   message (prog, "Checking cos(x)cos(z) ----------------------------", REMARK);
@@ -267,7 +267,7 @@ int main()
   U[N-1][  0][  1].Re = 0.25;
 
   rc3DFT  (U, Wtab, INVERSE);
-  sprintf (s, "maximum physical component: %g", amaxf (U));
+  sprintf (s, "maximum physical component: %g", amaxF (U));
   message (prog, s, REMARK);
  
   for (i = 0; i < N; i++) {
@@ -282,7 +282,7 @@ int main()
     }
   }
 
-  sprintf (s, "maximum physical error:     %g", amaxf (U));
+  sprintf (s, "maximum physical error:     %g", amaxF (U));
   message (prog, s, REMARK);
 
   message (prog, "Checking cos(y)cos(z) ----------------------------", REMARK);
@@ -292,7 +292,7 @@ int main()
   U[  0][N-1][  1].Re = 0.25;
 
   rc3DFT  (U, Wtab, INVERSE);
-  sprintf (s, "maximum physical component: %g", amaxf (U));
+  sprintf (s, "maximum physical component: %g", amaxF (U));
   message (prog, s, REMARK);
  
   for (i = 0; i < N; i++) {
@@ -307,7 +307,7 @@ int main()
     }
   }
 
-  sprintf (s, "maximum physical error:     %g", amaxf (U));
+  sprintf (s, "maximum physical error:     %g", amaxF (U));
   message (prog, s, REMARK);
 
   message (prog, "Checking cos(x)cos(y)cos(z) ----------------------", REMARK);
@@ -319,7 +319,7 @@ int main()
   U[N-1][N-1][  1].Re = 0.125;
 
   rc3DFT  (U, Wtab, INVERSE);
-  sprintf (s, "maximum physical component: %g", amaxf (U));
+  sprintf (s, "maximum physical component: %g", amaxF (U));
   message (prog, s, REMARK);
           
   for (i = 0; i < N; i++) {
@@ -334,7 +334,7 @@ int main()
     }
   }
 
-  sprintf (s, "maximum physical error:     %g", amaxf (U));
+  sprintf (s, "maximum physical error:     %g", amaxF (U));
   message (prog, s, REMARK);
 
   message (prog, "Checking cos(x)sin(y)cos(z) ----------------------", REMARK);
@@ -346,7 +346,7 @@ int main()
   U[N-1][N-1][  1].Im =  0.125;
 
   rc3DFT  (U, Wtab, INVERSE);
-  sprintf (s, "maximum physical component: %g", amaxf (U));
+  sprintf (s, "maximum physical component: %g", amaxF (U));
   message (prog, s, REMARK);
           
   for (i = 0; i < N; i++) {
@@ -361,7 +361,7 @@ int main()
     }
   }
 
-  sprintf (s, "maximum physical error:     %g", amaxf (U));
+  sprintf (s, "maximum physical error:     %g", amaxF (U));
   message (prog, s, REMARK);
 
   message (prog, "Checking cos(2x)cos(2y)cos(2z) -------------------", REMARK);
@@ -373,7 +373,7 @@ int main()
   U[N-2][N-2][  2].Re = 0.125;
 
   rc3DFT  (U, Wtab, INVERSE);
-  sprintf (s, "maximum physical component: %g", amaxf (U));
+  sprintf (s, "maximum physical component: %g", amaxF (U));
   message (prog, s, REMARK);
           
   for (i = 0; i < N; i++) {
@@ -388,7 +388,7 @@ int main()
     }
   }
 
-  sprintf (s, "maximum physical error:     %g", amaxf (U));
+  sprintf (s, "maximum physical error:     %g", amaxF (U));
   message (prog, s, REMARK);
 
   message (prog, "Checking full DFT with random numbers ------------", REMARK);
@@ -396,7 +396,7 @@ int main()
   for (i = 0; i < 2 * Npts; i++) v[i] = ran2PI (&seed);
   copyF (U, V);
 
-  sprintf (s, "maximum physical component: %g", amaxf (U));
+  sprintf (s, "maximum physical component: %g", amaxF (U));
   message (prog, s, REMARK);  
   
   rc3DFT  (U, Wtab, FORWARD);
@@ -405,7 +405,7 @@ int main()
 
   for (i = 0; i < 2 * Npts; i++) u[i] -= v[i];
 
-  sprintf (s, "maximum physical error:     %g", amaxf (U));
+  sprintf (s, "maximum physical error:     %g", amaxF (U));
   message (prog, s, REMARK);
 
   return (EXIT_SUCCESS);

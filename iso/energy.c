@@ -119,7 +119,7 @@ real L2norm (const CF U)
 }
 
 
-real amaxf (const CF U)
+real amaxF (const CF U)
 /* ------------------------------------------------------------------------- *
  * Find the maximum value of scalar field U, given in PHYSICAL space.
  * ------------------------------------------------------------------------- */
@@ -135,7 +135,7 @@ real amaxf (const CF U)
 }
 
 
-void normalize (CVF IC)
+void normalizeVF (CVF IC)
 /* ------------------------------------------------------------------------- *
  * Normalize velocity components to give k = 1.0.
  * 

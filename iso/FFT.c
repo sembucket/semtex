@@ -24,7 +24,7 @@ static void  cXFFT  (CF,  const int, const int, const int,
 
 
 void preFFT (complex*  Wtab,
-	     const int K   )
+	     const int Len )
 /* ------------------------------------------------------------------------- *
  * Make angular factors for FFT, put in Wtab[0..N-1].
  * N is the HALF length of FFT; i.e., half the number of complex values in
@@ -40,8 +40,8 @@ void preFFT (complex*  Wtab,
 
   Wtab[0].Re = 1.0; Wtab[0].Im = 0.0;
 
-  for (i = 1; i < K; i++) {
-    theta = i * M_PI / (double) K;
+  for (i = 1; i < Len; i++) {
+    theta = i * M_PI / (double) Len;
     Wtab[i].Re =        cos(theta);
     Wtab[i].Im = SIGN * sin(theta);
   }
@@ -51,7 +51,7 @@ void preFFT (complex*  Wtab,
 
 
 void preShift (complex*  Stab,
-	       const int N   )
+	       const int Len )
 /* ------------------------------------------------------------------------- *
  * Make angular factors for shift in convolution.
  * N is the length of storage in any direction (2*K).
@@ -62,8 +62,8 @@ void preShift (complex*  Stab,
 
   Stab[0].Re = 1.0; Stab[0].Im = 0.0;
 
-  for (i = 1; i < N; i++) {
-    theta = i * M_PI / (double) N;
+  for (i = 1; i < Len; i++) {
+    theta = i * M_PI / (double) Len;
     Stab[i].Re = cos(theta);   Stab[-i].Re =  Stab[i].Re;
     Stab[i].Im = sin(theta);   Stab[-i].Im = -Stab[i].Im;
   }

@@ -61,9 +61,9 @@ int main (int    argc,
 
   /* -- Compute maximum velocity component. */
 
-  fprintf (stderr, "Maximum U-velocity:            %g\n", amaxf (U[1]));
-  fprintf (stderr, "Maximum V-velocity:            %g\n", amaxf (U[2]));
-  fprintf (stderr, "Maximum W-velocity:            %g\n", amaxf (U[3]));
+  fprintf (stderr, "Maximum U-velocity:            %g\n", amaxF (U[1]));
+  fprintf (stderr, "Maximum V-velocity:            %g\n", amaxF (U[2]));
+  fprintf (stderr, "Maximum W-velocity:            %g\n", amaxF (U[3]));
 
   /* -- Subtract off exact solution. */
 
@@ -71,9 +71,9 @@ int main (int    argc,
 
   /* -- Compute maximum error velocity component. */
 
-  fprintf (stderr, "Maximum U-velocity error:      %g\n", amaxf (U[1]));
-  fprintf (stderr, "Maximum V-velocity error:      %g\n", amaxf (U[2]));
-  fprintf (stderr, "Maximum W-velocity error:      %g\n", amaxf (U[3]));
+  fprintf (stderr, "Maximum U-velocity error:      %g\n", amaxF (U[1]));
+  fprintf (stderr, "Maximum V-velocity error:      %g\n", amaxF (U[2]));
+  fprintf (stderr, "Maximum W-velocity error:      %g\n", amaxF (U[3]));
 
   /* -- Transform back to FOURIER space. */
 

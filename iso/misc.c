@@ -70,7 +70,7 @@ void setF (CF       f1,
 {
   register int k1, k2, k3, b1, b2;
 
-  f1[ 0][ 0][ 0].Re = f2[ 0][ 0][ 0].Im;
+  f1[ 0][ 0][ 0].Re = f2[ 0][ 0][ 0].Re;
 
   for (k1 = 1; k1 < K; k1++) {
     b1 = N - k1;

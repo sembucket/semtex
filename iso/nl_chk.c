@@ -4,7 +4,7 @@
  * write ISO field file to stdout.
  * Write input file details and error energy on stderr.
  *
- * usage: nl_chk  -n <cubesize> > output.fld
+ * usage: nl_chk -n <cubesize> > output.fld
  *
  * $Id$
  *****************************************************************************/
@@ -14,7 +14,6 @@
 int N, K, FourKon3;
 
 void TaylorGreenNL_error (CVF);
-void nonlinear_alt       (CVF, CVF, CF, CVF, const complex*, const complex*);
 
 
 int main (int    argc,
@@ -69,7 +68,7 @@ int main (int    argc,
   /* -- Compute maximum velocity component, then transform. */
   
   fprintf (stderr, "Maximum velocity components:        %g  %g  %g\n",
-	   amaxf (U[1]), amaxf (U[2]), amaxf (U[3]));
+	   amaxF (U[1]), amaxF (U[2]), amaxF (U[3]));
 
   for (c = 1; c <= 3; c++) {
     rc3DFT  (U[c], Wtab, FORWARD);
@@ -81,10 +80,11 @@ int main (int    argc,
 
   /* -- Compute nonlinear terms d(UiUj)/dxj. */
 
-  nonlinear_alt (U, G[0], F, work, Wtab, Stab);
+  nonlinear (U, G[0], F, F_, work, Wtab, Stab);
+
 
   fprintf (stderr, "Maximum nonlinear components:       %g  %g  %g\n",
-	   amaxf (G[0][1]), amaxf (G[0][2]), amaxf (G[0][3]));
+	   amaxF (G[0][1]), amaxF (G[0][2]), amaxF (G[0][3]));
 
   fprintf (stderr, "Nonlinear terms' energy:            %g\n",
 	   energyF (G[0]));
@@ -98,7 +98,7 @@ int main (int    argc,
   TaylorGreenNL_error (G[0]);
 
   fprintf (stderr, "Maximum nonlinear error components: %g  %g  %g\n",
-	   amaxf (G[0][1]), amaxf (G[0][2]), amaxf (G[0][3]));
+	   amaxF (G[0][1]), amaxF (G[0][2]), amaxF (G[0][3]));
 
   /* -- Transform nonlinear terms back to FOURIER space. */
 
