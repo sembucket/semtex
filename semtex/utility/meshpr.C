@@ -7,12 +7,13 @@
 //
 // Usage: meshpr [options] file
 //   options:
-//   -h   ... display this message
-//   -c   ... disable checking of mesh connectivity
-//   -v   ... set verbose output
-//   -u   ... set uniform spacing [Default: GLL]
-//   -n N ... override element order to be N
-//   -z N ... override number of planes to be N
+//   -h       ... display this message
+//   -c       ... disable checking of mesh connectivity
+//   -v       ... set verbose output
+//   -u       ... set uniform spacing [Default: GLL]
+//   -n N     ... override element order to be N
+//   -z N     ... override number of planes to be N
+//   -b <num> ... override wavenumber beta to be <num> (3D)
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
@@ -27,8 +28,8 @@
 #include <Mesh.h>
 
 static char prog[] = "meshpr";
-static void getargs (int, char**, char*&, integer&,
-		     integer&, integer&, integer&, integer&);
+static void getargs (int, char**, char*&, integer&, integer&,
+		     integer&, integer&, integer&, real&);
 
 
 int main (int     argc,
@@ -46,9 +47,10 @@ int main (int     argc,
           np      = 0,
           nz      = 0,
           basis   = GLL;
+  real    beta    = -1.;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, session, verb, check, np, nz, basis);
+  getargs (argc, argv, session, verb, check, np, nz, basis, beta);
 
   // -- Set up to read from file, initialize Femlib parsing.
 
@@ -59,6 +61,8 @@ int main (int     argc,
   else  np = (integer) Femlib::value ("N_POLY"       );
   if   (nz)            Femlib::value ("N_Z",     nz  );
   else  nz = (integer) Femlib::value ("N_Z"          );
+
+  if (nz > 1 && beta > 0.0) Femlib::value ("BETA", beta);
 
   // -- Build mesh from session file information.
 
@@ -105,19 +109,21 @@ static void getargs (integer  argc   ,
 		     integer& check  ,
 		     integer& np     ,
 		     integer& nz     ,
-		     integer& basis  )
+		     integer& basis  ,
+		     real&    beta   )
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
 {
   char usage[] = "usage: meshpr [options] session\n"
-                 "options:\n"
-                 "  -h   ... display this message\n"
-                 "  -c   ... disable checking of mesh connectivity\n"
-                 "  -v   ... set verbose output\n"
-                 "  -u   ... set uniform spacing [Default: GLL]\n"
-		 "  -n N ... override number of element knots to be N\n"
-                 "  -z N ... override number of planes to be N\n";
+    "options:\n"
+    "  -h   ... display this message\n"
+    "  -c   ... disable checking of mesh connectivity\n"
+    "  -v   ... set verbose output\n"
+    "  -u   ... set uniform spacing [Default: GLL]\n"
+    "  -n N ... override number of element knots to be N\n"
+    "  -z N ... override number of planes to be N\n"
+    "  -b <num> ... override wavenumber beta to be <num> (3D)\n";
   char err[StrMax], c;
 
   while (--argc && **++argv == '-')
@@ -129,6 +135,10 @@ static void getargs (integer  argc   ,
     case 'v':
       for (verb = 1; *++argv[0] == 'v'; verb++);
       break;
+    case 'b':
+      if (*++argv[0]) beta = atof (*argv);
+      else { --argc;  beta = atof (*++argv); }
+      break;
     case 'c':
       check = 0;
       break;
@@ -136,20 +146,12 @@ static void getargs (integer  argc   ,
       basis = STD;
       break;
     case 'n':
-      if (*++argv[0])
-	np = atoi (*argv);
-      else {
-	--argc;
-	np = atoi (*++argv);
-      }
+      if (*++argv[0]) np = atoi (*argv);
+      else { --argc;  np = atoi (*++argv); }
       break;
     case 'z':
-      if (*++argv[0])
-	nz = atoi (*argv);
-      else {
-	--argc;
-	nz = atoi (*++argv);
-      }
+      if (*++argv[0]) nz = atoi (*argv);
+      else { --argc;  nz = atoi (*++argv); }
       break;
     default:
       sprintf (err, "%s: illegal option: %c\n", c);
