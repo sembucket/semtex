@@ -92,7 +92,7 @@ int main (int    argc,
 
   int  kdim = 2, nvec = 2, nits = 2, verbose = 0, converged = 0;
   real norm, resnorm, evtol = 1.0e-6;
-  int  i, itrn;
+  int  i, j;
 
   Femlib::initialize (&argc, &argv);
 
@@ -143,20 +143,20 @@ int main (int    argc,
     EV_update (Kseq[i - 1], Kseq[i]);
     Veclib::copy (ntot * (kdim + 1), kvec, 1, tvec, 1);
     EV_small  (Tseq, ntot, i, zvec, wr, wi, resnorm, verbose);
-    converged = EV_test (i, i, zvec, wr, wi, resnorm, evtol, min (i, nvec));
+    converged = EV_test (i, i, zvec, wr, wi, resnorm, evtol, min(i, nvec));
     converged = max (converged, 0); // -- Only exit on evtol.
   }
 
   // -- Carry out iterative solution.
 
-  for (itrn = kdim + 1; !converged && itrn <= nits; itrn++) {
+  for (i = kdim + 1; !converged && i <= nits; i++) {
 
     // -- Normalise Krylov sequence & update.
 
     norm = Blas::nrm2 (ntot, Kseq[1], 1);
-    for (i = 1; i <= kdim; i++) {
-      Blas::scal   (ntot, 1.0/norm, Kseq[i], 1);
-      Veclib::copy (ntot, Kseq[i], 1, Kseq[i - 1], 1);
+    for (j = 1; j <= kdim; j++) {
+      Blas::scal   (ntot, 1.0/norm, Kseq[j], 1);
+      Veclib::copy (ntot, Kseq[j], 1, Kseq[j - 1], 1);
     }
     EV_update (Kseq[kdim - 1], Kseq[kdim]);
     
@@ -165,10 +165,10 @@ int main (int    argc,
     Veclib::copy (ntot * (kdim + 1), kvec, 1, tvec, 1);
     EV_small (Tseq, ntot, kdim, zvec, wr, wi, resnorm, verbose); 
 
-    converged = EV_test (itrn, kdim, zvec, wr, wi, resnorm, evtol, nvec);
+    converged = EV_test (i, kdim, zvec, wr, wi, resnorm, evtol, nvec);
   }
 
-  EV_post (Tseq, Kseq, ntot, kdim, nvec, zvec, wr, wi, converged);
+  EV_post (Tseq, Kseq, ntot, min(--i, kdim), nvec, zvec, wr, wi, converged);
 
   Femlib::finalize();
   return (EXIT_SUCCESS);
@@ -577,7 +577,7 @@ static void EV_big (real**      bvecs,
   for (j = 0; j < nvec; j++) {
     Veclib::zero (ntot, evecs[j], 1);
     for (i = 0; i < nvec; i++) {
-      wgt = zvecs[Veclib::col_major (i, j, nvec)];
+      wgt = zvecs[Veclib::col_major (i, j, kdim)];
       Blas::axpy (ntot, wgt, bvecs[i], 1, evecs[j], 1);
     }
   }
