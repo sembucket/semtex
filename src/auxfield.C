@@ -554,7 +554,7 @@ real AuxField::mode_L2 (const integer mode) const
 
 
 ofstream& operator << (ofstream& strm,
-		       AuxField& F   )
+		       AuxField& F  )
 // ---------------------------------------------------------------------------
 // Binary write of F's data area.
 //
@@ -564,6 +564,7 @@ ofstream& operator << (ofstream& strm,
 // needs access to the output stream.
 //
 // UNIX interface used for IO in order to avoid buffering done by C++.
+// For this to work strm has to be of ofstream rather than ostream class.
 // ---------------------------------------------------------------------------
 {
   const char       routine[] = "ofstream<<AuxField";
