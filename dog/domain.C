@@ -219,8 +219,8 @@ void Domain::loadbase ()
 
     n_basefiles = 0;
 
-    cout << tab << "File" << tab   << "Memory" << tab << "Time" 
-	 << tab << tab    << "d_t" << endl;
+    cout << "\t" << "File" << "\t"   << "Memory" << "\t" << "Time" 
+	 << "\t" << "\t"    << "d_t" << endl;
 
     while (loadfield (file, &dump_step, &dump_time, 
 		      basefield, U_temp, BASE_LOAD)) {     
@@ -228,7 +228,7 @@ void Domain::loadbase ()
       if (n_basefiles == MAX)
 	message(routine, "Limit of base file storage reached", ERROR);
 
-      cout << tab << n_basefiles << tab;
+      cout << "\t" << n_basefiles << "\t";
 
       x = 0 + 2*n_basefiles;
       y = 1 + 2*n_basefiles;
@@ -240,7 +240,7 @@ void Domain::loadbase ()
       PBF[x] = new AuxField(PBFdat[x], 1, elmt, 'U');
       PBF[y] = new AuxField(PBFdat[y], 1, elmt, 'V');
 
-      cout << ".." << tab;
+      cout << ".." << "\t";
 
       // copy auxfields to PBF
 
@@ -249,14 +249,14 @@ void Domain::loadbase ()
 		    
       // evaluate d_t
       if  (!n_basefiles) first_time = dump_time;   
-      cout << dump_time-first_time << tab;
+      cout << dump_time-first_time << "\t";
 
       if (n_basefiles > 0) {
 	d_t = dump_time - last_time;
       }
       last_time = dump_time;
 
-      cout << tab << d_t << endl;
+      cout << "\t" << d_t << endl;
   
       // increment number of base files.
       n_basefiles++;
@@ -265,7 +265,7 @@ void Domain::loadbase ()
 
     // accuracy of time is too low -> read from session tokens.
     d_t = (real) Femlib::value ("BASE_DT");
-    cout << endl << tab << "BASE_DT: d_t = " << d_t << endl;
+    cout << endl << "\t" << "BASE_DT: d_t = " << d_t << endl;
 
     file.close();
 

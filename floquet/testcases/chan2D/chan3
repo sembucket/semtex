@@ -26,15 +26,15 @@
 
 	N_TIME   = 2
 	N_POLY   = 11
-	N_STEP   = 50
+	N_STEP   = 200
 	D_T      = 0.005
 	Re_D     = 7500
 	KINVIS   = 1/Re_D
-	BETA     = 1.0e-8
 
-	IO_HIS   = 50
+	IO_HIS   = 20
 	IO_FLD   = 1000
-	IO_CFL   = 50
+	IO_CFL   = 20
+	DUMP     = 1
 
 </TOKENS>
 

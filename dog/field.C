@@ -560,30 +560,9 @@ void Field::tangTractionV (real*        fx,
   }
 }
 
-Field& Field::solve (AuxField*             f  ,
-		     const ModalMatrixSys* MMS)
-{
-  const integer bmode = Geometry::baseMode();
-  integer k, pmode, mode;
-  
-  for (k = 0; k < _nz; k++) {	// -- Loop over planes of data.
 
-    ROOTONLY if (k == 1) continue;	// -- Nyquist plane always zero.
-
-    // -- Select Fourier mode, set local pointers and variables.
-    pmode = k >> 1;
-    mode  = bmode + pmode;
-
-    this -> solve_MS(f, (*MMS)[pmode], k, mode);
-    
-  }
-  return *this;
-}
-
-Field& Field::solve_MS (AuxField*         f     ,
-			const MatrixSys*  M     ,
-			const integer     zplane,
-			const integer     mode  )
+Field& Field::solve (AuxField*        f,
+		     const MatrixSys* M)
 // ---------------------------------------------------------------------------
 // Problem for solution is
 //                                          
@@ -619,15 +598,13 @@ Field& Field::solve_MS (AuxField*         f     ,
 //   "Templates for the Solution of Linear Systems", netlib.
 // ---------------------------------------------------------------------------
 {
-  const char    routine[] = "Field::solve";
+  const char routine[] = "Field::solve";
+
   const integer nel   = Geometry::nElmt();
   const integer next  = Geometry::nExtElmt();
   const integer npnp  = Geometry::nTotElmt();
   const integer ntot  = Geometry::nPlane();
   integer       i;
-
-
-
 
   const vector<Boundary*>& B       = M -> _BC;
   const NumberSys*         N       = M -> _NS;
@@ -637,9 +614,9 @@ Field& Field::solve_MS (AuxField*         f     ,
   integer                  nglobal = M -> _nglobal;
   integer                  nzero   = nglobal - nsolve;
 
-  real*                    forcing = f -> _plane[zplane];
-  real*                    unknown = _plane     [zplane];
-  real*                    bc      = _line      [zplane];
+  real*                    forcing = f -> _plane[0];
+  real*                    unknown = _plane     [0];
+  real*                    bc      = _line      [0];
 
   switch (M -> _method) {
     
@@ -664,7 +641,7 @@ Field& Field::solve_MS (AuxField*         f     ,
       
     // -- Solve for unknown global-node values (if any).
     
-    if (nsolve) Lapack::pbtrs("U",nsolve,nband-1,1,H,nband,RHS,nglobal,info);
+    if (nsolve) Lapack::pbtrs ("U",nsolve,nband-1,1,H,nband,RHS,nglobal,info);
       
     // -- Carry out Schur-complement solution for element-internal nodes.
       
@@ -714,7 +691,7 @@ Field& Field::solve_MS (AuxField*         f     ,
     Veclib::zero (nzero, x + nsolve, 1);   
     Veclib::copy (npts,  x, 1, q, 1);
     
-    this -> HelmholtzOperator (q, p, lambda2, betak2, wrk, mode);
+    this -> HelmholtzOperator (q, p, lambda2, betak2, wrk, 0);
 
     Veclib::zero (nzero, p + nsolve, 1);
     Veclib::zero (nzero, r + nsolve, 1);
@@ -744,7 +721,7 @@ Field& Field::solve_MS (AuxField*         f     ,
 
       // -- Matrix-vector product.
 
-      this -> HelmholtzOperator (p, q, lambda2, betak2, wrk, mode);
+      this -> HelmholtzOperator (p, q, lambda2, betak2, wrk, 0);
       Veclib::zero (nzero, q + nsolve, 1);
 
       // -- Move in conjugate direction.
@@ -775,15 +752,9 @@ Field& Field::solve_MS (AuxField*         f     ,
   }
   break;
   
-  case BLJPCG: {
-    cerr << " shouldn't reach BLJPCG in field::solve_MS" << endl;
-  }
-  break;
-
-  default: {
-    cerr << " shouldn't reach default in field::solve_MS" << endl;
-  }
-  break;
+  default:
+    message (routine, "called with a method that isn't implemented", ERROR);
+    break;
   }
 
   return *this; 

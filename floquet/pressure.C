@@ -106,16 +106,9 @@ void PBCmgr::maintain (const integer    step   ,
 
   const AuxField*    Ux = Us[0];
   const AuxField*    Uy = Us[1];
-#ifdef STABILITY
-  const AuxField*    Uz = (NDIM == 3 ? Us[2] : 0);
-  real  *UxRe, *UyRe, *UzIm, *tmp;
-#else
-  const integer      base  =  Geometry::baseMode();
-  const integer      nMode =  Geometry::nModeProc();
-  const integer      mLo   = (Geometry::procID() == 0) ? 1 : 0;
-  const AuxField*    Uz = Geometry::nDim() == 3 ? Us[2] : 0;
-  real  *UxRe, *UxIm, *UyRe, *UyIm, *UzRe, *UzIm, *tmp;
-#endif
+  const AuxField*    Uz = (NVEC == 3) ? Us[2] : 0;
+  real               *UxRe, *UyRe, *UzIm, *tmp;
+
   const AuxField*    Nx = Uf[0];
   const AuxField*    Ny = Uf[1];
 
@@ -156,47 +149,17 @@ void PBCmgr::maintain (const integer    step   ,
     offset = B -> dOff ();
     skip   = B -> dSkip();
 
-#ifndef STABILITY
-
-    ROOTONLY {			    // -- Deal with 2D/zero Fourier mode terms.
-      UxRe = Ux -> _plane[0];
-      UyRe = Uy -> _plane[0];
-      B -> curlCurl (0, UxRe, 0, UyRe, 0, 0, 0, xr, 0, yr, 0);
-      Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][0], 1);
-      Blas::axpy (nP, -nu, yr, 1, Pny[0][i][0], 1);
-    }
-
-    for (integer m = mLo; m < nMode; m++) { // -- Higher modes.
-      UxRe = Ux -> _plane[2 * m] ;
-      UxIm = Ux -> _plane[2 * m + 1];
-      UyRe = Uy -> _plane[2 * m];
-      UyIm = Uy -> _plane[2 * m + 1];
-      UzRe = Uz -> _plane[2 * m];
-      UzIm = Uz -> _plane[2 * m + 1];
-
-      B -> curlCurl (m + base, UxRe,UxIm, UyRe,UyIm, UzRe,UzIm, xr,xi, yr,yi);
-
-      Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][2 * m],     1);
-      Blas::axpy (nP, -nu, xi, 1, Pnx[0][i][2 * m + 1], 1);
-      Blas::axpy (nP, -nu, yr, 1, Pny[0][i][2 * m],     1);
-      Blas::axpy (nP, -nu, yi, 1, Pny[0][i][2 * m + 1], 1);
-    }
-
-#else
-
     UxRe = Ux -> _plane[0];
     UyRe = Uy -> _plane[0];
 
-    if (NDIM == 2) {
-      B -> curlCurl (0, UxRe, 0, UyRe, 0, 0, 0, xr, 0, yr, 0);
+    if (NVEC == 2) {
+      B -> curlCurl (0, UxRe, 0, UyRe, 0, 0, 0,    xr, 0, yr, 0);
     } else {
       UzIm = Uz -> _plane[0];
       B -> curlCurl (1, UxRe, 0, UyRe, 0, 0, UzIm, xr, 0, yr, 0);
     }
     Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][0], 1);
     Blas::axpy (nP, -nu, yr, 1, Pny[0][i][0], 1);
-
-#endif
 
   }
 

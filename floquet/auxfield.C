@@ -360,39 +360,10 @@ AuxField& AuxField::gradient (const integer dir)
     }
     break;
 
-  case 2: {
-
-#ifndef STABILITY
-
-    const integer nmodes = Geometry::nModeProc();
-    const integer base   = Geometry::baseMode();
-    const real    beta   = Femlib::value ("BETA");
-    integer       Re, Im, klo;
-
-    work.setSize (nP);
-    xr = work();
-
-    if (base == 0) { // -- We have real & Nyquist planes, to be set zero.
-      klo = 1; Veclib::zero (2 * nP, _data, 1);
-    } else
-      klo = 0;
-
-    for (k = klo; k < nmodes; k++) {
-      Re = k  + k;
-      Im = Re + 1;
-      Veclib::copy (nP,                     _plane[Re], 1, xr,         1);
-      Veclib::smul (nP, -beta * (k + base), _plane[Im], 1, _plane[Re], 1);
-      Veclib::smul (nP,  beta * (k + base), xr,         1, _plane[Im], 1);
-    }
-
-#else
-
-      const real    beta   = Femlib::value ("BETA");
-      Blas::scal (nP, beta, _plane[0], 1);
-
-#endif
+  case 2:
+    Blas::scal (nP, Femlib::value ("BETA"), _plane[0], 1);
     break;
-  }
+
   default:
     message (routine, "nominated direction out of range [0--2]", ERROR);
     break;
