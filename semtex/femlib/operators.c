@@ -1,5 +1,6 @@
 /*****************************************************************************
  * OPERATORS.C:  maintain operators for mesh points, derivatives.            *
+ *                                                                           *
  *****************************************************************************/
 
 /*------------------*
@@ -9,15 +10,12 @@ static char
   RCSid[] = "$Id$";
 
 #include <stdio.h>
-#include <linalp.h>
+#include <alplib.h>
 #include "femlib.h"
 
 
-
-
-
 typedef struct quadopr {	/* ---- quadrature operator information  --- */
-  int             basis   ;	/* STANDARD or GLL                           */
+  int             basis   ;	/* STD or GLL                                */
   int             np      ;	/* number of interpolant knot points         */
   int             nq      ;	/* number of quadrature points               */
   double         *knot    ;	/* Lagrange knots    on [-1, 1]              */
@@ -30,10 +28,12 @@ typedef struct quadopr {	/* ---- quadrature operator information  --- */
   struct quadopr *next    ;	/* link to next one                          */
 } QuadOpr;			/* ----------------------------------------- */
 
+static QuadOpr *Qhead = NULL;
+
 
 typedef struct meshopr {	/* ------- mesh operator information ------- */
-  int             oldbasis;	/* STANDARD or GLL                           */
-  int             newbasis;	/* STANDARD or GLL                           */
+  int             oldbasis;	/* STD or GLL                                */
+  int             newbasis;	/* STD or GLL                                */
   int             np      ;	/* Number of points on original mesh         */
   int             ni      ;	/* Number of points in interpolated mesh     */
   double         *mesh    ;	/* Location of points on interpolated mesh   */
@@ -44,11 +44,11 @@ typedef struct meshopr {	/* ------- mesh operator information ------- */
   struct meshopr *next    ;	/* link to next one                          */
 } MeshOpr;			/* ----------------------------------------- */
 
+static MeshOpr *Mhead = NULL;
 
 
 
-
-void  quadOps(int basis ,	/* input: element basis: STANDARD or GLL     */
+void  quadOps(int basis ,	/* input: element basis: STD or GLL     */
 	      int np    ,	/* input: number of knot points              */
 	      int nq    ,	/* input: number of quadrature points        */
 	      double  **kp ,	/* pointer to knot point storage             */
@@ -68,13 +68,12 @@ void  quadOps(int basis ,	/* input: element basis: STANDARD or GLL     */
  *                                                                           *
  * ========================================================================= */
 {
-  char            *routine = "quadOps()";
-  int              found   = 0;
-  static QuadOpr  *head    = NULL;
-         QuadOpr  *p;
+  char     *routine = "quadOps";
+  int       found   = 0;
+  QuadOpr  *p;
 
 
-  for (p=head; p; p=p->next) {
+  for (p=Qhead; p; p=p->next) {
     found = p->basis == basis && p->np == np && p->nq == nq;
     if (found) break;
   }
@@ -83,16 +82,14 @@ void  quadOps(int basis ,	/* input: element basis: STANDARD or GLL     */
   if (!found) {		/* Make more storage and operators. */
 
     p = (QuadOpr *) calloc(1, sizeof(QuadOpr));
-    if (head) p -> next = head -> next;
-    head = p;
+    if (Qhead) p -> next = Qhead;
+    Qhead = p;
 
     p -> basis = basis;
     p -> np    = np;
-    p -> nq    = (basis == STANDARD) ? nq : np;
+    p -> nq    = (basis == STD) ? nq : np;
 
-    switch (basis) {
-
-    case GLL:
+    if (basis == GLL) {
 
       p -> knot    = dvector(0, np-1);
       p -> quad    = p -> knot;
@@ -104,9 +101,8 @@ void  quadOps(int basis ,	/* input: element basis: STANDARD or GLL     */
 
       zwgll (p->knot, p->weight, np);
       dgll  (np, p->knot, p->deriv, p->derivT);
-      break;
 
-    case STANDARD: default:
+    } else if (basis == STD ) {
 
       p -> knot    = dvector(0, np-1);
       p -> quad    = dvector(0, nq-1);
@@ -120,8 +116,9 @@ void  quadOps(int basis ,	/* input: element basis: STANDARD or GLL     */
       zwgl     (p->quad, p->weight, nq);
       intmat_g (np, p->knot, nq, p->quad, p->interp, p->interpT);
       dermat_g (np, p->knot, nq, p->quad, p->deriv,  p->derivT );
-      break;
-    }
+
+    } else 
+      message(routine, "basis function unrecognized as STD or GLL", ERROR);
   }
 
 
@@ -141,8 +138,8 @@ void  quadOps(int basis ,	/* input: element basis: STANDARD or GLL     */
 
 
 
-void  meshOps(int oldbasis   ,	/* input: element basis: STANDARD or GLL     */
-	      int newbasis   ,	/* input: desired basis: STANDARD or GLL     */
+void  meshOps(int oldbasis   ,	/* input: element basis: STD or GLL          */
+	      int newbasis   ,	/* input: desired basis: STD or GLL          */
 	      int np         ,	/* input: number of knot points              */
 	      int ni         ,	/* input: number of interpolant points       */
 	      double  **mesh ,	/* pointer to interpolated mesh storage      */
@@ -162,14 +159,13 @@ void  meshOps(int oldbasis   ,	/* input: element basis: STANDARD or GLL     */
  *                                                                           *
  * ========================================================================= */
 {
-  char            *routine = "meshOps()";
-  int              found   = 0;
-  static MeshOpr  *head    = NULL;
-         MeshOpr  *p;
-  double          *oldmesh;
+  char     *routine = "meshOps()";
+  int       found   = 0;
+  MeshOpr  *p;
+  double   *oldmesh;
 
 
-  for (p=head; p; p=p->next) {
+  for (p=Mhead; p; p=p->next) {
     found = p->oldbasis == oldbasis
       &&    p->newbasis == newbasis 
       &&    p->np       == np
@@ -181,8 +177,8 @@ void  meshOps(int oldbasis   ,	/* input: element basis: STANDARD or GLL     */
   if (!found) {		/* Make more storage and operators. */
 
     p = (MeshOpr *) calloc(1, sizeof(MeshOpr));
-    if (head) p -> next = head -> next;
-    head = p;
+    if (Mhead) p -> next = Mhead;
+    Mhead = p;
 
     p -> oldbasis = oldbasis;
     p -> newbasis = newbasis;
@@ -202,50 +198,47 @@ void  meshOps(int oldbasis   ,	/* input: element basis: STANDARD or GLL     */
       p -> interpT = dmatrix(0, ni-1, 0, np-1);
     }   
 
-    switch (oldbasis) {
-    case GLL:
-      switch (newbasis) {
-      case GLL:
-	if (np==ni) {		/* Meshes are the same.          */
-	  jacgl(np-1, 0.0, 0.0, p->mesh);
-	  dgll (np, p->mesh, p->deriv, p->derivT);
-	} else {		/* Same basis, different orders. */
-	  jacgl    (np-1, 0.0, 0.0, oldmesh);
-	  jacgl    (np-1, 0.0, 0.0, p->mesh);
-	  intmat_g (np, oldmesh, ni, p->mesh, p->interp, p->interpT);
-	  dermat_g (np, oldmesh, ni, p->mesh, p->deriv,  p->derivT );
-	}
-	break;
-      case STANDARD: default:
+    if (oldbasis == GLL && newbasis == GLL) {
+
+      if (np==ni) {  /* Meshes are the same. */
+	jacgl(np-1, 0.0, 0.0, p->mesh);
+	dgll (np, p->mesh, p->deriv, p->derivT);
+      } else {
 	jacgl    (np-1, 0.0, 0.0, oldmesh);
-	uniknot  (ni,             p->mesh);
+	jacgl    (np-1, 0.0, 0.0, p->mesh);
 	intmat_g (np, oldmesh, ni, p->mesh, p->interp, p->interpT);
 	dermat_g (np, oldmesh, ni, p->mesh, p->deriv,  p->derivT );
-	break;
       }
-      break;
-    case STANDARD: default:
-      switch (newbasis) {
-      case STANDARD:
-	if (np==ni) {		/* Meshes are the same.          */
-	  uniknot  (np, p->mesh);
-	  dermat_k (np, p->mesh, p->deriv, p->derivT);
- 	} else {		/* Same basis, different orders. */
-	  uniknot  (np, oldmesh);
-	  uniknot  (ni, p->mesh);
-	  intmat_g (np, oldmesh, ni, p->mesh, p->interp, p->interpT);
-	  dermat_g (np, oldmesh, ni, p->mesh, p->deriv,  p->derivT );
-	}
-	break;
-      case GLL: default:
-	uniknot  (np,             oldmesh);
-	jacgl    (ni-1, 0.0, 0.0, p->mesh);
+
+    } else if (oldbasis == GLL && newbasis == STD) {
+
+      jacgl    (np-1, 0.0, 0.0, oldmesh);
+      uniknot  (ni,             p->mesh);
+      intmat_g (np, oldmesh, ni, p->mesh, p->interp, p->interpT);
+      dermat_g (np, oldmesh, ni, p->mesh, p->deriv,  p->derivT );
+
+    } else if (oldbasis == STD && newbasis == STD) {
+
+      if (np==ni) {  /* Meshes are the same. */
+	uniknot  (np, p->mesh);
+	dermat_k (np, p->mesh, p->deriv, p->derivT);
+      } else {
+	uniknot  (np, oldmesh);
+	uniknot  (ni, p->mesh);
 	intmat_g (np, oldmesh, ni, p->mesh, p->interp, p->interpT);
 	dermat_g (np, oldmesh, ni, p->mesh, p->deriv,  p->derivT );
-	break;
-      }	
-      break;
-    }
+      }
+
+    } else if (oldbasis == STD && newbasis == GLL) {
+
+      uniknot  (np,             oldmesh);
+      jacgl    (ni-1, 0.0, 0.0, p->mesh);
+      intmat_g (np, oldmesh, ni, p->mesh, p->interp, p->interpT);
+      dermat_g (np, oldmesh, ni, p->mesh, p->deriv,  p->derivT );
+
+    } else
+
+      message(routine, "basis function unrecognized as STD or GLL", ERROR);
   }
 
   freeDvector(oldmesh, 0);
