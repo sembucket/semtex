@@ -135,7 +135,7 @@ Mesh::Mesh (FEML& f) :
     N = new Mesh::Node;
     feml.stream() >> N -> ID >> N -> loc.x >> N -> loc.y >> N -> loc.z;
     N -> ID--;
-    N -> gID = UNSET;
+    N -> gID      = UNSET;
     N -> periodic = 0;
 
     if (N -> ID >= Nn) {
@@ -248,6 +248,7 @@ void Mesh::assemble ()
 
   // -- Now traverse Elmts and build Side--Side connections based on Node
   //    identities.  This can't pick up periodic Nodes, not yet installed.
+  //    That happens in surfaces().
 
   for (i = 0; i < Ne; i++) {
     E = elmtTable (i);
@@ -355,6 +356,7 @@ void Mesh::surfaces ()
       //    should not be previously set.
 
       Side *S, *MS;
+      Node *PN;
       int  me,  ms;
       feml.stream() >> me >> ms;
 
@@ -374,6 +376,10 @@ void Mesh::surfaces ()
       }
 
       // -- Install mate info.
+      //    Note that it is possible for side-to-side periodicity
+      //    to miss the fact that a node is already periodic
+      //    with something else, so we test for those cases,
+      //    and choose the lowest Node ID out of available alternatives.
 
       me--; ms--;
       
@@ -384,11 +390,38 @@ void Mesh::surfaces ()
       S  -> mateSide = MS;
       MS -> mateElmt = elmtTable (e);
       MS -> mateSide = S;
-
+#if 0
       S  -> startNode -> periodic = MS -> endNode;
+      MS -> endNode   -> periodic = S  -> startNode;
       S  -> endNode   -> periodic = MS -> startNode;
       MS -> startNode -> periodic = S  -> endNode;
-      MS -> endNode   -> periodic = S  -> startNode;
+#endif
+
+      if (!S -> startNode -> periodic) {
+	PN = (S->startNode->ID < MS->endNode->ID) ?
+	  S->startNode : MS->endNode;
+	S -> startNode -> periodic = MS -> endNode -> periodic = PN;
+      } else {
+	PN = (S->startNode->periodic->ID < MS->endNode->ID) ?
+	  S->startNode->periodic : MS->endNode;
+	if (MS -> endNode -> periodic)
+	  PN = (PN->ID < MS->endNode->periodic->ID) ?
+	    PN : MS->endNode->periodic;
+	S -> startNode -> periodic = PN;
+      }
+
+      if (!S -> endNode -> periodic) {
+	PN = (S->endNode->ID < MS->startNode->ID) ?
+	  S->endNode : MS->startNode;
+	S -> endNode -> periodic = MS -> startNode -> periodic = PN;
+      } else {
+	PN = (S->endNode->periodic->ID < MS->startNode->ID) ? 
+	  S->endNode->periodic : MS->startNode;
+	if (MS -> endNode -> periodic)
+	  PN = (PN->ID < MS->startNode->periodic->ID) ?
+	    PN : MS->startNode->periodic;
+	S -> endNode -> periodic = PN;
+      }
 
       // -- Clean up.
       
@@ -850,10 +883,15 @@ void Mesh::Side::connect (const int ni ,
   register int   i, k;
   register Side* otherSide;
 
+  if (startNode -> periodic) {
+    if (startNode -> periodic -> gID == UNSET)
+      startNode -> periodic -> gID = gid++;
+    if (startNode -> gID == UNSET)
+      startNode -> gID = startNode -> periodic -> gID;
+  }
+
   if (startNode -> gID == UNSET)
     startNode -> gID = gid++;
-  if (startNode -> periodic)
-    startNode -> periodic -> gID = startNode -> gID;
 
   if (ni) {			// -- Do side-internal gids.
     if (mateElmt) {
@@ -869,63 +907,16 @@ void Mesh::Side::connect (const int ni ,
 	gID[i] = gid++;
   }
 
+  if (endNode -> periodic) {
+    if (endNode -> periodic -> gID == UNSET)
+      endNode -> periodic -> gID = gid++;
+    if (endNode -> gID == UNSET)
+      endNode -> gID = endNode -> periodic -> gID;
+  }
+
   if (endNode -> gID == UNSET)
     endNode -> gID = gid++;
-  if (endNode -> periodic)
-    endNode -> periodic -> gID = endNode -> gID;
 }
-
-
-#if 0
-void Mesh::showMap (Mesh& m)
-// ---------------------------------------------------------------------------
-// Print knot connectivity information (global node numbers).
-// As things are set up now, this function is of no use since gIDs are
-// always UNSET except during calls to Mesh::globalID.
-// ---------------------------------------------------------------------------
-{
-
-  register int i, j, k;
-  const    int nel = m.nEl();
-  int      ni, ns;
-  Elmt*    E;
-  Side*    S;
-
-  cout << "# " << nel << " NEL" << endl;
-  cout << "# 0 BANDWIDTH" << endl;
-
-  for (i = 0; i < nel; i++) {
-    E  = m.elmtTable (i);
-    ns = E -> nNodes();
-    for (j = 0; j < ns; j++) {
-      S = E -> side (j);
-
-      cout << setw (5) << S -> thisElmt -> ID + 1;
-      cout << setw (5) << S -> ID + 1;
-      cout << setw (5) << 1;
-      cout << setw (5) << S -> startNode -> gID;
-      cout << endl;
-
-      ni = S -> gID.getSize ();
-
-      if (ni)
-	for (k = 0; k < ni; k++) {
-	  cout << setw (5) << S -> thisElmt -> ID + 1;
-	  cout << setw (5) << S -> ID + 1;
-	  cout << setw (5) << k + 2;
-	  cout << setw (5) << S -> gID[k];
-	  cout << endl;
-	}
-
-      cout << setw (5) << S -> thisElmt -> ID + 1;
-      cout << setw (5) << S -> ID + 1;
-      cout << setw (5) << ni + 2;
-      cout << setw (5) << S -> endNode -> gID;
-      cout << endl;
-    }
-  }
-}
-#endif
 
 
 void CircularArc::printNek () const
