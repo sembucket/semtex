@@ -30,8 +30,8 @@ EV  Magnitude   Angle       Growth      Frequency   Residual
  0  1.0022e+00  2.4989e-01  2.2356e-03  2.4989e-01  9.4531e-07
  1  1.0022e+00 -2.4989e-01  2.2356e-03 -2.4989e-01  9.4531e-07
 
-The corresponding case in Canuto et al suggests 2.23497 and 2.4989154
-for Growth and Frequency parameters respectively.
+The corresponding case in Canuto et al suggests 2.23497e-3 and
+2.4989154e-1 for Growth and Frequency parameters respectively.
 
 backstep3D
 ----------
@@ -43,10 +43,17 @@ Barkley, D., Gomes, M.G.M. & Henderson, R.D. Three-dimensional
 instability in flow over a backward-facing step, JFM 473, 2002,
 167--190.
 
-At a Re=750 the dominant eigenvalue is real and approximately 1.0:
+At a Re=750 the neutrally stable eigenvalue is real; here are the
+results of running
 
-Re(u)		Im(u)		|u|		Residual
-1.000418e+00   0.000000e+00   1.000418e+00   6.374901e-06
+arnoldi -k 25 -n 1 -m 500 -t 1e-6 back
+
+-- Iteration = 341, H(k+1, k) = 1.01155
+EV  Magnitude   Angle       Growth      Frequency   Residual
+ 0  1.0009e+00  0.0000e+00  4.2741e-04  0.0000e+00  9.8438e-07
+ 1  9.7473e-01  0.0000e+00 -1.2796e-02  0.0000e+00  6.5157e-04
+ 2  9.7233e-01  6.3984e-02 -1.4031e-02  3.1992e-02  9.7631e-04
+ 3  9.7233e-01 -6.3984e-02 -1.4031e-02 -3.1992e-02  9.7631e-04
 
 stenosis3D
 ----------
@@ -70,11 +77,14 @@ cylinder3D
 ----------
 
 The circular cylinder at Re=220 has a 2C/2D time-periodic wake that is
-unstable to 3C/3D synchronous "mode A" instability.
+unstable to a 3C/3D synchronous "mode A" instability.
+
+Barkley D. & Henderson R. D. Three-dimensional Floquet stability
+analysis of the wake of a circular cylinder, JFM 322, 1996, 215--241.
 
 These are the results (after 16 cycles) of running
 
-arnoldi -k 12 -n 1 -m 40 m32
+arnoldi -k 12 -n 1 -m 40 -t 1e-6 m32
 
 -- Iteration = 16, H(k+1, k) = 0.604068
 EV  Magnitude   Angle       Growth      Frequency   Residual
@@ -88,9 +98,13 @@ cavityTW
 The 2:1 rectangular driven cavity is a 2C/2D time-periodic flow that
 at St=100, Re=1212 has quasi-periodic 3C/3D SW/TW instabilities.
 
+Blackburn H.M. & Lopez, J.M., The onset of three-dimensional standing
+and modulated travelling waves in a periodically driven cavity flow,
+JFM (submitted), 2003.
+
 These are the results of running (for N_Z=1 or 2)
 
-arnoldi -k 13 -m 40 -n 2 cav01
+arnoldi -k 13 -m 40 -n 2 -t 1e-6 cav01
 
 -- Iteration = 14, H(k+1, k) = 0.0653328
 EV  Magnitude   Angle       Growth      Frequency   Residual
@@ -108,9 +122,13 @@ swirl3D
 The 2:1 cylindrical driven cavity at Re=4000 is an axisymmetric 3C/2D
 time-periodic flow that has 3C/3D MRW instabilities.
 
+Blackburn, H.M., Three-dimensional instability and state selection in
+an oscillatory axisymmetric swirling flow, Phys. Fluids V14N11, 2002,
+3983--3996.
+
 These are the results of running
 
-arnoldi -k 13 -m 40 -n 1 vb2
+arnoldi -k 13 -m 40 -n 1 -t 1e-6 vb2
 
 -- Iteration = 12, H(k+1, k) = 0.222227
 EV  Magnitude   Angle       Growth      Frequency   Residual

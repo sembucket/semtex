@@ -1,14 +1,7 @@
 # Backward-facing step. length = 40 x step height (1)
 # expansion ratio = 2
 
-<HISTORY NUMBER=4>
-	1	0.0	0.5	0.0
-	2	0.5	0.0	0.0
-	3	10.0	0.0	0.0
-	4	30.0	0.0	0.0
-</HISTORY>
-
-<FIELDS>
+<FIELDS NUMBER=4>
 	u v w p
 </FIELDS>
 
@@ -22,27 +15,22 @@
 <TOKENS>
 	N_TIME	= 2
 	N_POLY	= 9
+	N_BASE  = 2
+	N_SLICE = 1
 
-	F_TIME	= 500
 	D_T	= 0.002
-	N_STEP	= F_TIME/D_T
+	N_STEP	= 1000
 
 	IO_FLD	= 20
-	IO_HIST	= 10
-	IO_CFL  = 10
+	IO_HIS	= 10
+	IO_CFL  = 20
 
 	h	= 1.0
 	Umax    = 1.0
 	Re      = 750.0
 	KINVIS	= Umax*h/Re
 
-	BETA    = 0.91
-
-        IO_EIG  = 2
-        DUMP    = 1
-        OUTSTEP = 0
-        CHKPOINT= 1
-
+	BETA    = 0.9
 </TOKENS>
 
 <GROUPS NUMBER=3>
