@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
-//flok.C: compute leading eigenvalues and eigenvectors for stability
-//analysis based on linearised Navier--Stokes operators.
+// flok.C: compute leading eigenvalues and eigenvectors for stability
+// analysis based on linearised Navier--Stokes operators.
 // 
 // Based on code by Dwight Barkley & Ron Henderson.
 //

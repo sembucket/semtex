@@ -2,7 +2,27 @@
 // integrate.C: integrate unsteady Navier--Stokes problem forward in time.
 //
 // This version implements linearised advection terms and evolves a
-// single Fourier mode.
+// single Fourier mode.  Both the number of velocity components in the
+// perturbation velocity field (Geometry::nPert) and their complex
+// scalar structure is variable, partly dependent on the number of
+// velocity components used for the 2D base flow (Geometry::nBase).
+//
+// Case 1: nBase = 2, nPert = 2
+// ----------------------------
+// Perturbation velocity field (u, v) and pressure (p) are all real.
+//
+// Case 2: nBase = 2, nPert = 3
+// ----------------------------
+// Perturbation velocity field has a real, real, imag structure:
+// (u.Re, v.Re, w.Im) and pressure is real (p.Re).  The implied
+// spatial structure is u.cos(Beta*z), v.cos(Beta*z), w.sin(Beta*z),
+// p.cos(Beta*z): this structure satisfies the eigensystem assumption
+// but specifies a shape that does not move in physical space.
+//
+// Case 3: nBase = 3, nPert = 3
+// ----------------------------
+// Perturbation velocity field is fully complex, implying that the
+// eigenvector can move like a wave in the z direcion as time evolves.
 //
 // For cylindrical coordinates:
 //   u <==> axial     velocity,  x <==> axial     coordinate direction,
@@ -38,7 +58,7 @@ void integrate (Domain*       D,
 // Uf is multi-level auxillary Field storage for nonlinear forcing terms.
 // ---------------------------------------------------------------------------
 {
-  NVEC = Geometry::nVec();
+  NVEC = Geometry::nPert();
   NORD = (integer) Femlib::value ("N_TIME");
   CYL  = Geometry::system() == Geometry::Cylindrical;
   C3D  = CYL && Geometry::nDim() == 3;
@@ -157,91 +177,62 @@ static void Linearised (Domain*    D ,
 // the next stage of nonlinear forcing terms N(u) - a are computed from
 // velocity fields and left in the first level of Uf.
 //
-// linearised terms N(u) are computed in skew-symmetric form (Zang 1991)
+// Linearised terms N(u) are computed in convective form
 //                 
-//           N  = -1/2 ( U.grad u + div Uu )
-//           ~           ~      ~       ~~
-//                -1/2 ( u.grad U + div uU )
-//                       ~      ~       ~~
+//           N  = -1/2 ( U.grad u + u.grad U )
+//           ~           ~      ~   ~      ~
 // The data are taken as being in Fourier space, but, as there are
 // only two modes involved (the base flow and the perturbation) the
 // convolution sums end up being 2D operations.
+// 
+// Things are made a little more complicated by the fact that while
+// the base flow U is always purely real, with only one plane of data,
+// the perturbation field u can have either one or two planes of data.
+// To deal with this, Auxfield operations times and timePlus (actually
+// convolutions) are assumed to have a purely real Auxfield as the
+// second operand.
 // ---------------------------------------------------------------------------
 {
   integer           i, j;
-  vector<AuxField*> U (2), u (NVEC), N (NVEC);
+  vector<AuxField*> U (Geometry::nBase()),
+                    u (Geometry::nPert()),
+                    N (Geometry::nPert());
   Field*            T = D -> u[0];
 
   // -- Set up local aliases.
 
-  U[0] = D -> U[0]; U[1] = D -> U[1];
+  for (i = 0; i < Geometry::nBase(); i++)
+    U[i] = D -> U[i];
 
-  for (i = 0; i < NVEC; i++) {
+  for (i = 0; i < Geometry::nPert(); i++) {
     AuxField::swapData (D -> u[i], Us[i]);
      u[i] = Us[i];
      N[i] = Uf[i];
     *N[i] = 0.0;
   }
 
-  if (CYL) {			// -- Cylindrical coordinates.
+  // -- N_i += U_j d(u_i) / dx_j.
 
-    message ("Linearised", "cylindrical coordinates not implemented", ERROR);
-
-  } else {			// -- Cartesian coordinates.
-#if 1
-    for (i = 0; i < NVEC; i++) {
-      for (j = 0; j < 2; j++) {
-
-	// -- N_i += U_j d(u_i) / dx_j.
-
-	N[i] -> timesPlus(*U[j],(*T=*u[i]).gradient(j));
-
-	if (i < 2) {		// -- Since U[2] = 0.
-
-	  // -- N_i += u_j d(U_i) / dx_j.
-
-	  N[i]->timesPlus(*u[j],(*T=*U[i]).gradient(j));
-
-	}
-      }
-
-      T -> smooth (N[i]);
-      *N[i] *= -1.0;
+  for (i = 0; i < Geometry::nPert(); i++)
+    for (j = 0; j < Geometry::nBase(); j++) {
+      (*T = *u[i]) . gradient (j);
+      if (CYL && j == 2) T -> divR();
+      N[i] -> timesPlus (*T, *U[j]);
     }
+
+  // -- N_i += u_j d(U_i) / dx_j.
+
+  for (i = 0; i < Geometry::nBase(); i++)
+    for (j = 0; j < 2; j++)
+      N[i] -> timesPlus (*u[j], (*T = *U[i]) . gradient_Re (j));
+  
+  if (CYL && Geometry::nBase() == 3) {
+    N[1] -> axpy (-2.0, T -> times (*u[2], *U[2]));
+    N[2] -> axpy (+2.0, T -> times (*u[1], *U[2]));
   }
-#else
-    for (i = 0; i < NVEC; i++) {
-      for (j = 0; j < 2; j++) {
-      
-	// -- N_i += U_j d(u_i) / dx_j.
 
-	N[i] -> timesPlus(*U[j],(*T=*u[i]).gradient(j));
-
-	// -- N_i += d(U_j u_i) / dx_j.
-
-	*N[i] += T->times(*U[j],*u[i]).gradient(j);
-
-	if (i < 2) {		// -- Since U[2] = 0.
-
-	  // -- N_i += u_j d(U_i) / dx_j.
-
-	  N[i]->timesPlus(*u[j],(*T=*U[i]).gradient(j));
-
-	  // -- N_i += d(u_j U_i) / dx_j.
-
-	  *N[i] += T->times(*u[j],*U[i]).gradient(j);
-	
-	  if (NVEC == 3)	// -- N_i += d(u_2 U_i) / dx_2.
-
-	    *N[i] -= T->times(*u[2],*U[i]).gradient(2); // -- u[2] is Imag.
-	}
-      }
-
-      T -> smooth (N[i]);
-      *N[i] *= -0.5;
-    }
-  }
-#endif
+  T -> smooth (N[i]);
+  *N[i] *= -1.0;
 }
 
 
