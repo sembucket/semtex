@@ -34,7 +34,8 @@ const Element* HistoryPoint::locate (const real        x   ,
 // ---------------------------------------------------------------------------
 {
   register int   i;
-  const int      NEL = Esys.getSize();
+  const int      NEL    = Esys.getSize();
+  const int      guess = 1;
   const Element* E;
 
   E = 0;
