@@ -117,10 +117,13 @@ void svnormal (integer n, float mean, float sdev, float* x, integer incx)
 
 void raninit (integer flag)
 /* ------------------------------------------------------------------------- *
- * Initialize random number generator.
+ * Initialise random number generator.  Non-positive numbers
+ * initialise the generator directly (with supplied value); if flag is
+ * positive, the seed is generated from the wall-clock time (the value
+ * of flag is irrelevant in this case).
  * ------------------------------------------------------------------------- */
 {
-  iseed = (flag < 0) ? time (NULL) : flag;
+  iseed = (flag > 0) ? -time (NULL) : flag;
 
   (void) ran2 (&iseed);
 }
