@@ -1,0 +1,40 @@
+#!/bin/csh
+##############################################################################
+# Run Fourier--Galerkin Navier--Stokes solver on test cases.
+# $Id$
+
+echo "Building application, please wait..."
+  gmake veryclean
+  gmake
+
+echo "******************************************************"
+echo "* Fourier spectral Navier--Stokes solver test suite. *"
+echo "******************************************************"
+
+echo ""
+makeIC3 -n 16 -o testsession.rst -p 0 > /dev/null
+time iso -d 0.025 -n 50 -k 0.01 -o 3 testsession
+taylor2D_chk -p 0 testsession.fld > /dev/null
+
+echo ""
+makeIC3 -n 16 -o testsession.rst -p 1 > /dev/null
+time iso -d 0.025 -n 50 -k 0.01 -o 3 testsession
+taylor2D_chk -p 1 testsession.fld > /dev/null
+
+echo ""
+makeIC3 -n 16 -o testsession.rst -p 2 > /dev/null
+time iso -d 0.025 -n 50 -k 0.01 -o 3 testsession
+taylor2D_chk -p 2 testsession.fld > /dev/null
+
+echo ""
+rm iso
+make clean
+gmake iso TG=1 INVISCID=1
+makeIC2 -n 32 -o testsession.rst > /dev/null
+time iso -d 0.01 -n 50 -o 2 testsession
+
+echo ""
+echo "cleaning up..."
+rm iso
+gmake clean
+gmake
