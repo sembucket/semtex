@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // drive.C: control spectral element DNS for incompressible flows.
 //
-// Copyright (c) 1994<-->$Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // USAGE:
 // -----

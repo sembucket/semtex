@@ -20,7 +20,6 @@ do
   fi
   compare $i > $i.rst
   enumerate -O3 $i > $i.num
-#  $CODE -chk $i >& /dev/null
   $CODE -chk $i >/dev/null 2>&1
   compare -n $i $i.fld > /dev/null 2> $i.new
   cmp -s $i.new ../regress/$i.ok
