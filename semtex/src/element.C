@@ -5,6 +5,7 @@
 static char
 RCSid[] = "$Id$";
 
+
 #include <Fem.h>
 
 
@@ -39,15 +40,11 @@ Element::Element (const Element& parent,
     memcpy (this, &parent, sizeof (Element));
     bmap = esstl = 0;
     drdx = dsdx  = drdy = dsdy = G1 = G2 = G3 = G4 = mass = 0;
-    hbi  = hii   = 0;
-
   } else {
     setState (parent.id, np, parent.ns);
     xmesh = ymesh = 0;
     bmap = esstl = 0;
     drdx = dsdx  = drdy = dsdy = G1 = G2 = G3 = G4 = mass = 0;
-    hbi  = hii   = 0;
-
   }
 }
 
@@ -429,11 +426,6 @@ void Element::map ()
     Veclib::vvvtm (ntot, tV,   1, dxdr, 1, dxds, 1, G3, 1);
     Veclib::vdiv  (ntot, G3,   1, jac,  1, tV,   1);
     Veclib::vmul  (ntot, tV,   1, WW,   1, G3,   1);
-
-    if (Blas::nrm2 (ntot, G3, 1) < EPS) {
-      freeVector (G3);
-      G3 = 0;
-    }
     
     Veclib::vmul  (ntot, jac, 1, WW, 1, G4, 1);
     
@@ -447,18 +439,12 @@ void Element::map ()
     Veclib::vdiv (ntot, dsdx, 1, jac, 1, dsdx, 1);
     Veclib::vdiv (ntot, dsdy, 1, jac, 1, dsdy, 1);
 
-    if (Blas::nrm2 (ntot, drdx, 1) < EPS) {
-      freeVector (drdx); drdx = 0;
-    }
-    if (Blas::nrm2 (ntot, drdy, 1) < EPS) {
-      freeVector (drdy); drdy = 0;
-    }
-    if (Blas::nrm2 (ntot, dsdx, 1) < EPS) {
-      freeVector (dsdx); dsdx = 0;
-    }
-    if (Blas::nrm2 (ntot, dsdy, 1) < EPS) {
-      freeVector (dsdy); dsdy = 0;
-    }
+    if (Blas::nrm2 (ntot, G3,   1) < EPS) { freeVector (G3);   G3   = 0; }
+
+    if (Blas::nrm2 (ntot, drdx, 1) < EPS) { freeVector (drdx); drdx = 0; }
+    if (Blas::nrm2 (ntot, drdy, 1) < EPS) { freeVector (drdy); drdy = 0; }
+    if (Blas::nrm2 (ntot, dsdx, 1) < EPS) { freeVector (dsdx); dsdx = 0; }
+    if (Blas::nrm2 (ntot, dsdy, 1) < EPS) { freeVector (dsdy); dsdy = 0; }
 
     freeVector (dxdr);
     freeVector (dxds);
@@ -523,10 +509,7 @@ void Element::map ()
     Veclib::vdiv  (ntot, G3,   1, jac,  1, tV,   1);
     Veclib::vmul  (ntot, tV,   1, WW,   1, G3,   1);
 
-    if (Blas::nrm2 (ntot, G3, 1) < EPS) {
-      freeVector (G3);
-      G3 = 0;
-    }
+    if (Blas::nrm2 (ntot, G3, 1) < EPS) { freeVector (G3); G3 = 0; }
     
     Veclib::vmul  (ntot, jac, 1, WW, 1, G4, 1);
 
@@ -631,8 +614,9 @@ void Element::bndryDsSum (const real* src,
 }
 
 
-void Element::dsForcingSC (real* F  ,
-			   real* tgt) const
+void Element::dsForcingSC (real*       F  ,
+			   real*       tgt,
+			   const real* hbi) const
 // ---------------------------------------------------------------------------
 // Create statically-condensed boundary Helmholtz forcing for this element
 // and insert it into tgt by direct stiffness summation.
@@ -674,7 +658,9 @@ void Element::dsForcingSC (real* F  ,
 
 void Element::resolveSC (const real* RHS,
 			 real*       F  , 
-			 real*       tgt) const
+			 real*       tgt,
+			 const real* hbi,
+			 const real* hii) const
 // ---------------------------------------------------------------------------
 // Complete static condensation solution for internal values of Element.
 //
@@ -740,11 +726,13 @@ int Element::bandwidthSC () const
 
 void Element::HelmholtzSC (const real&  lambda2,
 			   real*        hbb    ,
+			   real*        hbi    ,
+			   real*        hii    ,
 			   real*        rmat   ,
 			   real*        rwrk   ) 
 // ---------------------------------------------------------------------------
 // Compute the discrete elemental Helmholtz matrix and return the
-// statically condensed form in hbb, retain the interior-exterior coupling
+// statically condensed form in hbb, the interior-exterior coupling
 // matrix in hbi, and the interior resolution matrix factor in hii.
 //
 // Uncondensed System   -->   Statically condensed form returned in hbb.
@@ -778,19 +766,11 @@ void Element::HelmholtzSC (const real&  lambda2,
 {
   char         routine[] = "Element::HelmholtzSC";
   register int i, j, k;
-  int          eq, ij = 0, ipack;
+  int          eq, ij = 0;
   const int    ntot = nTot();
   const int    next = nExt();
   const int    nint = nInt();
   real         **IT, **DV, **DT;
-
-  // -- Allocate element internal/external resolution matrices.
-
-  if (nint) {
-    ipack = ((nint + 1) * nint) >> 1;
-    hii  = rvector (ipack);            // LAPACK packed-symmetric store.
-    hbi  = rvector (next*nint);        // Full store.
-  }
 
   // -- Construct hbb, hbi, hii partitions of elemental Helmholtz matrix.
 
@@ -818,7 +798,7 @@ void Element::HelmholtzSC (const real&  lambda2,
   // -- Carry out static condensation step.
 
   if (nint) {
-    int  info = 0;
+    int info = 0;
 
     // -- Factor hii.
 
@@ -839,17 +819,9 @@ void Element::HelmholtzSC (const real&  lambda2,
 }
 
 
-void Element::HelmholtzSC (const Element& master)
-// ---------------------------------------------------------------------------
-// Set stored Helmholtz matrix partitions from master.
-// ---------------------------------------------------------------------------
-{
-  hii = master.hii;
-  hbi = master.hbi;
-}
-
-
-void Element::printMatSC (const real* hbb) const
+void Element::printMatSC (const real* hbb,
+			  const real* hbi,
+			  const real* hii) const
 // ---------------------------------------------------------------------------
 // (Debugging) utility to print up element matrices.
 // ---------------------------------------------------------------------------
@@ -1094,7 +1066,7 @@ void Element::grad (real* targA,
       Veclib::vmul  (ntot, tmpA, 1, drdx, 1, tgt, 1);
     } else {
       Blas::mxm     (*DV, np, tgt, np, tmpB, np);
-      Veclib::vmul  (ntot, tmpA, 1, dsdx, 1, tgt, 1);
+      Veclib::vmul  (ntot, tmpB, 1, dsdx, 1, tgt, 1);
     }
   }
 
@@ -1337,17 +1309,37 @@ void Element::sideScatr (const int&  side,
 }
 
 
+void Element::setEssential (const real* src,
+			    real*       tgt) const
+// ---------------------------------------------------------------------------
+// On input, src contains a globally-numbered set of current essential BCs.
+// Load them into appropriate boundary nodes of tgt.
+// ---------------------------------------------------------------------------
+{
+  register int i;
+  const int    ne = nExt ();
+  
+  for (i = 0; i < ne; i++)
+    tgt[emap[i]] = (esstl[i]) ? src[bmap[i]] : tgt[emap[i]];
+}
+
+
 void Element::sideSet (const int&  side,
 		       const real* src ,
 		       real*       tgt ) const
 // ---------------------------------------------------------------------------
-// Load edge vector src into element-ordered tgt.
+// Load edge vector src into globally-numbered tgt.
 // ---------------------------------------------------------------------------
 {
-  register  int estart, skip, bstart;
+  register int estart, skip, bstart;
+  const int    nm = np - 1;
+
   terminal (side, estart, skip, bstart);
 
-  Veclib::copy (np, src, 1, tgt + estart, skip);
+  Veclib::scatr (nm, src, bmap + bstart, tgt);
+  if   (side == ns) tgt[bmap[          0]] = src[nm];
+  else              tgt[bmap[bstart + nm]] = src[nm];
+
 }
 
 
@@ -1701,28 +1693,6 @@ void Element::economizeGeo ()
 }
 
 
-void Element::economizeMat ()
-// ---------------------------------------------------------------------------
-// Insert element static condensation matrices in economized storage.
-// ---------------------------------------------------------------------------
-{
-  if (!FamilyMgr::active) return;
-
-  int  nint = nInt (), next = nExt ();
-  int  size;
-
-  if (!nint) return;
-
-  size = ((nint + 1) * nint) >> 1;
-  
-  hii  = FamilyMgr::insert (size, hii);
-
-  size = next * nint;
-
-  hbi  = FamilyMgr::insert (size, hbi);
-}
-
-
 void Element::condense (const real* src     ,
 			real*       external,
 			real*       internal) const
@@ -1734,7 +1704,8 @@ void Element::condense (const real* src     ,
   const int next = nExt ();
 
   Veclib::gathr_scatr (next,    src, emap,  bmap, external);
-  Veclib::gathr       (nInt (), src, emap + next, internal);
+  if (internal)
+    Veclib::gathr     (nInt (), src, emap + next, internal);
 }
 
 
@@ -1749,7 +1720,8 @@ void Element::expand (real*       targ    ,
   const int next = nExt ();
 
   Veclib::gathr_scatr (next,    external, bmap,  emap, targ);
-  Veclib::scatr       (nInt (), internal, emap + next, targ);
+  if (internal)
+    Veclib::scatr     (nInt (), internal, emap + next, targ);
 }
 
 
