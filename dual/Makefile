@@ -31,8 +31,8 @@ $(SEMOBJ): $(SEMHDR)
 # ----------------------------------------------------------------------------
 # Dual2sem converts dual field files to sem format & vice-versa.
 #
-dual2sem: dual2sem.C
-	$(CXX) $(CPPFLAGS) -g -o $@ $@.C $(LDFLAGS)
+dual2sem: dual2sem.o
+	$(CXX) $(CPPFLAGS) -o $@ $@.o $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Standard rules and definitions.

@@ -51,250 +51,44 @@
 #include <Veclib.h>
 #include <Femlib.h>
 
+static char prog[] = "dual2sem";
 
-class Field2DF
-// ============================================================================
-// Canonical field class, each np X np element is defined on [-1,1] X [-1, 1].
-// Data are arranged element-ordered in 2D planes to create a 3D scalar field.
-// ============================================================================
-{
-friend istream& operator >> (istream&, Field2DF&);
-friend ostream& operator << (ostream&, Field2DF&);
-
-public:
-  Field2DF  (const integer nP, const integer nZ, const integer nEl,
-	     const char Name='\0');
-  ~Field2DF () { delete data; delete plane; }
-
-  char getName () { return name; }
-
-  Field2DF& operator = (const Field2DF&);
-  Field2DF& operator = (const real);
-
-  Field2DF& DFT1D (const integer);
-  Field2DF& DLT2D (const integer);
-
-  Field2DF& reverse   ();
-  
-private:
-  const char    name;
-  const integer np, nz, nel, np2;
-  integer       nplane, ntot;
-  real*         data;
-  real**        plane;
+static char* hdr_fmt[] = { 
+  "%-25s "    "Session\n",
+  "%-25s "    "Created\n",
+  "%-25s "    "Nr, Ns, Nz, Elements\n",
+  "%-25d "    "Step\n",
+  "%-25.6g "  "Time\n",
+  "%-25.6g "  "Time step\n",
+  "%-25.6g "  "Kinvis\n",
+  "%-25.6g "  "Beta\n",
+  "%-25s "    "Fields written\n",
+  "%-25s "    "Format\n"
 };
 
+typedef struct hdr_data {
+  char   session[StrMax];
+  char   created[StrMax];
+  int    nr, ns, nz, nel;
+  int    step;
+  double time;
+  double timestep;
+  double kinvis;
+  double beta;
+  char   fields[StrMax];
+  char   format[StrMax];
+} hdr_info;
 
-Field2DF::Field2DF (const integer  nP  ,
-		    const integer  nZ  ,
-		    const integer  nEl ,
-		    const char     Name) :
-
-		    name          (Name),
-                    np            (nP  ),
-		    nz            (nZ  ),
-		    nel           (nEl ),
-		    
-		    np2          (np * np)
-// ---------------------------------------------------------------------------
-// Field2DF constructor. 
-// ---------------------------------------------------------------------------
-{
-  register integer i;
-  
-  nplane = np * np * nel;
-  if (nplane & 1) nplane++;
-  ntot   = nplane * nz;
-
-  data  = new real  [ntot];
-  plane = new real* [nz];
-
-  for (i = 0; i < nz; i++) plane [i] = data + i * nplane;
-  Veclib::zero (ntot, data, 1);
-}
-
-
-Field2DF& Field2DF::DFT1D (const integer sign)
-// ---------------------------------------------------------------------------
-// Carry out discrete Fourier transformation in z direction.
-// ---------------------------------------------------------------------------
-{
-  if (nz > 2) Femlib::DFTr (data, nz, nplane, sign);
-
-  return *this;
-}
-
-
-Field2DF& Field2DF::DLT2D (const integer sign)
-// ---------------------------------------------------------------------------
-// Carry out 2D discrete Legendre transform (element-by-element) on planes.
-// ---------------------------------------------------------------------------
-{
-  register integer p, q, pq, r, s, rs;
-  register real    cr, cs, P, Q;
-  integer          i, k, offset;
-  vector<real>     work (np2);
-  real             *pk, *src, *tmp = work();
-  const real       *w, *legtab;
-
-  Femlib::legCoef (np, &legtab);
-  Femlib::quad    (LL, np, np, 0, 0, &w, 0, 0, 0, 0);
-
-  if (sign == 1) {		// -- Forward transform.
-    for (k = 0; k < nz; k++) {
-      pk = plane[k];
-      for (i = 0, offset = 0; i < nel; i++, offset += np2) {
-	src = pk + offset;
-	Veclib::zero (np2, tmp, 1);
-	for (rs = 0, r = 0; r < np; r++) {
-	  cr = legtab[Veclib::row_major (np, r, np)];
-	  for (s = 0; s < np; s++, rs++) {
-	    cs = legtab[Veclib::row_major (np, s, np)];
-	    for (pq = 0, p = 0; p < np; p++) {
-	      P = legtab[Veclib::row_major (r, p, np)];
-	      for (q = 0; q < np; q++, pq++) {
-		Q = legtab[Veclib::row_major (s, q, np)];
-		tmp[rs] += w[p] * w[q] * P * Q * src[pq];
-	      }
-	    }
-	    tmp[rs] *= cr * cs;
-	  }
-	}
-	Veclib::copy (np2, tmp, 1, src, 1);
-      }
-    }
-  } else {			// -- Inverse transform.
-    for (k = 0; k < nz; k++) {
-      pk = plane[k];
-      for (i = 0, offset = 0; i < nel; i++, offset += np2) {
-	src = pk + offset;
-	Veclib::zero (np2, tmp, 1);
-	for (rs = 0, r = 0; r < np; r++) {
-	  for (s = 0; s < np; s++, rs++) {
-	    for (pq = 0, p = 0; p < np; p++) {
-	      P = legtab[Veclib::row_major (p, r, np)];
-	      for (q = 0; q < np; q++, pq++) {
-		Q = legtab[Veclib::row_major (q, s, np)];
-		tmp[rs] += P * Q * src[pq];
-	      }
-	    }
-	  }
-	}
-	Veclib::copy (np2, tmp, 1, src, 1);
-      }
-    }
-  }
-
-  return *this;
-}
-
-
-Field2DF& Field2DF::operator = (const Field2DF& rhs)
-// ---------------------------------------------------------------------------
-// If the two fields conform, copy rhs's data storage to lhs.
-//
-// Otherwise perform projection/interpolation of rhs's data area to lhs.
-// Interpolation ASSUMES THAT FOURIER TRANSFORMATION HAS ALREADY OCCURRED
-// in z direction if rhs is 3D.  Truncation of Fourier modes occurs if this
-// Field2DF has less modes than rhs (to avoid aliasing).
-// ---------------------------------------------------------------------------
-{
-  if (rhs.nel != nel)
-    message ("Field2DF::operator =", "fields can't conform", ERROR);
-
-  if (rhs.np == np && rhs.nz == nz)
-    Veclib::copy (ntot, rhs.data, 1, data, 1);
-
-  else {			// -- Perform projection.
-
-    register integer i, k;
-    register real    *LHS, *RHS;
-    const real       **IN, **IT;
-    const integer    nzm = min (rhs.nz, nz);
-    vector<real>     work (rhs.np * np);
-    real*            tmp = work();
-
-    Femlib::mesh (GLL, GLL, rhs.np, np, 0, &IN, &IT, 0, 0);
-
-    for (k = 0; k < nzm; k++) {	// -- 2D planar projections.
-      LHS = plane[k];
-      RHS = rhs.plane[k];
-
-      if (rhs.np == np)
-	Veclib::copy (nplane, RHS, 1, LHS, 1);
-      else
-	for (i = 0; i < nel; i++, LHS += np2, RHS += rhs.np2) {
-	  Blas::mxm (*IN, np, RHS, rhs.np, tmp, rhs.np);
-	  Blas::mxm (tmp, np, *IT, rhs.np, LHS,     np);
-	}
-    }
-
-    if ((i = nz - rhs.nz) > 0) // -- Zero pad for Fourier projections.
-      Veclib::zero (i * nplane, data + rhs.ntot, 1);
-  }
-
-  return *this;
-}
-
-
-Field2DF& Field2DF::operator = (const real val)
-// ---------------------------------------------------------------------------
-// Set field storage area to val.
-// ---------------------------------------------------------------------------
-{
-  if   (val == 0.0) Veclib::zero (ntot,      data, 1);
-  else              Veclib::fill (ntot, val, data, 1);
-
-  return *this;
-}
-
-
-Field2DF& Field2DF::reverse ()
-// ---------------------------------------------------------------------------
-// Reverse order of bytes within each word of data.
-// ---------------------------------------------------------------------------
-{
-  Veclib::brev (ntot, data, 1, data, 1);
-
-  return *this;
-}
-
-
-ostream& operator << (ostream&  strm,
-		      Field2DF& F   )
-// ---------------------------------------------------------------------------
-// Binary write of F's data area.
-// ---------------------------------------------------------------------------
-{
-  integer i;
-  
-  for (i = 0; i < F.nz; i++)
-    strm.write ((char*) F.plane[i], F.np * F.np * F.nel * sizeof (real));
-
-  return strm;
-}
-
-
-istream& operator >> (istream&  strm,
-		      Field2DF& F   )
-// ---------------------------------------------------------------------------
-// Binary read of F's data area.
-// ---------------------------------------------------------------------------
-{
-  integer i;
-  
-  for (i = 0; i < F.nz; i++)
-    strm.read ((char*) F.plane[i], F.np * F.np * F.nel * sizeof (real));
-
-  return strm;
-}
-
-
-static char    prog[] = "dual2sem";
-static void    getargs  (int, char**, int&, int&, ifstream&);
-static integer getDump  (ifstream&, ostream&, vector<Field2DF*>&);
-static void    loadName (const vector<Field2DF*>&, char*);
-static integer doSwap   (const char*);
+static void getargs   (int, char**, int&, int&, ifstream&);
+static void roundup   (const int, int&);
+static void getheader (istream&, hdr_info&);
+static void allocate  (hdr_info&, const int, vector<real*>&);
+static void readdata  (hdr_info&, istream&, const int, vector<real*>&);
+static void packdata  (hdr_info&, const int, const int, vector<real*>&,
+		       const int);
+static void transform (hdr_info&, const int, vector<real*>&, const int);
+static void writedata (hdr_info&, ostream&, const int, vector<real*>&);
+static int  doswap    (const char*);
 
 
 int main (int    argc,
@@ -303,22 +97,34 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  ifstream          file;
-  int               i, dir = FORWARD, mode = 1;
-  vector<Field2DF*> u;
+  ifstream      file;
+  hdr_info      header;
+  int           dir = FORWARD, mode = 1, nz;
+  vector<real*> u;
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, dir, mode, file);
-  
-  if (dir == FORWARD) {
-  } else {
+
+  if (dir == FORWARD) {		// -- Project a dual field file.
+
+    roundup   (mode, nz);
+    getheader (file, header);
+    allocate  (header, nz, u);
+    readdata  (header, file, 3, u);
+    packdata  (header, mode, nz, u, INVERSE);
+    transform (header, nz, u, INVERSE);
+    writedata (header, cout, nz, u);
+
+  } else {			// -- Restrict a sem field file.
+
+    getheader (file, header);
+    allocate  (header, header.nz, u);
+    readdata  (header, file, header.nz, u);
+    transform (header, header.nz, u, FORWARD);
+    packdata  (header, mode, header.nz, u, FORWARD);
+    writedata (header, cout, 3, u);
+
   }
-  while (getDump (file, cout, u))
-    for (i = 0; i < u.getSize(); i++) {
-      if (type == 'L' || type == 'B') u[i] -> DLT2D (dir);
-      if (type == 'F' || type == 'B') u[i] -> DFT1D (dir);
-      cout << *u[i];
-    }
   
   Femlib::finalize();
   return EXIT_SUCCESS;
@@ -366,23 +172,211 @@ static void getargs (int       argc,
     cerr << prog << ": unable to open input file" << endl;
     exit (EXIT_FAILURE);
   }
+
+  if (mode < 1) {
+    cerr << prog << ": mode number must be a positive integer" << endl;
+    exit (EXIT_FAILURE);
+  }
 }
 
 
-static void loadName (const vector<Field2DF*>& u,
-		      char*                    s)
-// --------------------------------------------------------------------------
-// Load a string containing the names of fields.
+static void roundup (const int  mode, 
+		     int&       nz  )
+// ---------------------------------------------------------------------------
+// Calculate nz from mode number, then increment until it suits FFT.
 // ---------------------------------------------------------------------------
 {
-  integer i, N = u.getSize();
+  int n, ip, iq, ir, ipqr2;
 
-  for (i = 0; i < N; i++) s[i] = u[i] -> getName();
-  s[N] = '\0';
+  nz = 2 * (mode + 1);
+
+  do {
+    n = nz;
+    Femlib::primes235 (n, ip, iq, ir, ipqr2);
+    nz += 2;
+  } while (n == 0);
+  nz = n;
 }
 
 
-static integer doSwap (const char* ffmt)
+static void getheader (istream&  file  ,
+		       hdr_info& header)
+// ---------------------------------------------------------------------------
+// Load data structure from file header info.
+// ---------------------------------------------------------------------------
+{
+  char    buf[StrMax];
+  integer i, j; 
+
+  file.get (header.session, 25); file.getline (buf, StrMax);
+  
+  if (!strstr (buf, "Session")) message (prog, "not a field file", ERROR);
+
+  file.get (header.created, 25); file.ignore (StrMax, '\n');
+
+  file >> header.nr >> header.ns >> header.nz >> header.nel;
+  file.ignore (StrMax, '\n');
+
+  file >> header.step;     file.ignore (StrMax, '\n');
+  file >> header.time;     file.ignore (StrMax, '\n');
+  file >> header.timestep; file.ignore (StrMax, '\n');
+  file >> header.kinvis;   file.ignore (StrMax, '\n');
+  file >> header.beta;     file.ignore (StrMax, '\n');
+
+  file.get (buf, 25);
+  for (i = 0, j = 0; i < 25; i++)
+    if (isalpha (buf[i])) header.fields[j++] = buf[i];
+  file.ignore (StrMax, '\n');
+  header.fields[j] = '\0';
+
+  file.get (header.format, 25); file.getline (buf, StrMax);
+
+  if (!strstr (header.format, "binary"))
+    message (prog, "input field file not in binary format", ERROR);
+  else if (!strstr (header.format, "endian"))
+    message (prog, "input field file in unknown binary format", WARNING);
+}
+
+
+static void allocate (hdr_info&       header,
+		      const int       nz    ,
+		      vector<real*>&  u     )
+// ---------------------------------------------------------------------------
+// Allocate enough storage to hold all the data fields (sem format).
+// ---------------------------------------------------------------------------
+{
+  const int nfield    = strlen (header.fields);
+  const int ntotelmt  = header.nr * header.ns * header.nel;
+  const int planesize = ntotelmt + (ntotelmt % 2);
+  const int ntot      = planesize * nz;
+  int       i;
+
+  u.setSize (nfield);
+  
+  for (i = 0; i < nfield; i++) {
+    u[i] = new real [ntot];
+    Veclib::zero (ntot, u[i], 1);
+  }
+}
+
+
+static void readdata (hdr_info&      header,
+		      istream&       file  ,
+		      const int      nplane,
+		      vector<real*>& u     )
+// ---------------------------------------------------------------------------
+// Binary read of data area, followed by byte-swapping if required.
+// ---------------------------------------------------------------------------
+{
+  const int nfield    = strlen (header.fields);
+  const int ntotelmt  = header.nr * header.ns * header.nel;
+  const int planesize = ntotelmt + (ntotelmt % 2);
+  const int ntot      = planesize * nplane;
+  const int swab      = doswap (header.format);
+  int       i, j;
+  
+  for (i = 0; i < nfield; i++) {
+    for (j = 0; j < nplane; j++) {
+      file.read ((char*) (u[i] + j * planesize), ntotelmt * sizeof (real));
+    }
+    if (swab) Veclib::brev (ntot, u[i], 1, u[i], 1);
+  }
+}
+
+
+static void packdata (hdr_info&      header,
+		      const int      mode  ,
+		      const int      nz    ,
+		      vector<real*>& u     ,
+		      const int      dir   )
+// ---------------------------------------------------------------------------
+// Data in u are considered to be in Fourier-transformed state.  Move
+// planes around to place them in required spots.  Zero other data.
+// ---------------------------------------------------------------------------
+{
+  const int    nfield    = strlen (header.fields);
+  const int    ntotelmt  = header.nr * header.ns * header.nel;
+  const int    planesize = ntotelmt + (ntotelmt % 2);
+  const int    nblock    = 2 * planesize;
+  vector<real> tmp (2 * planesize);
+  int          i;
+
+  if (dir == FORWARD)		// -- Pack down to 3 data planes.
+    for (i = 0; i < nfield; i++) {
+      Veclib::copy (nblock, u[i] + mode * nblock, 1, tmp(), 1);
+      Veclib::zero ((nz - 1) * planesize, u[i] + planesize, 1);
+      Veclib::copy (nblock, tmp(), 1, u[i] + planesize, 1);
+    }
+  else				// -- Reposition nominated mode.
+    for (i = 0; i < nfield; i++) {
+      Veclib::copy (nblock, u[i] + planesize, 1, tmp(), 1);
+      Veclib::zero ((nz - 1) * planesize, u[i] + planesize, 1);
+      Veclib::copy (nblock, tmp(), 1, u[i] + mode * nblock, 1);
+    }
+}
+
+
+static void transform (hdr_info&      header,
+		       const int      nz    , 
+		       vector<real*>& u     , 
+		       const int      dir   )
+// ---------------------------------------------------------------------------
+//
+// ---------------------------------------------------------------------------
+{
+  const int nfield    = strlen (header.fields);
+  const int ntotelmt  = header.nr * header.ns * header.nel;
+  const int planesize = ntotelmt + (ntotelmt % 2);
+  int       i;
+
+  for (i = 0; i < nfield; i++) Femlib::DFTr (u[i], nz, planesize, dir);
+}
+
+
+static void writedata (hdr_info&      header,
+		       ostream&       file  ,
+		       const int      nz    ,
+		       vector<real*>& u     )
+// ---------------------------------------------------------------------------
+//
+// ---------------------------------------------------------------------------
+{
+  const int nfield    = strlen (header.fields);
+  const int ntotelmt  = header.nr * header.ns * header.nel;
+  const int planesize = ntotelmt + (ntotelmt % 2);
+  char      buf[StrMax], tmp[StrMax];
+  int       i, j;
+
+  sprintf (buf, hdr_fmt[0], header.session);
+  file << buf;
+  sprintf (buf, hdr_fmt[1], header.created);
+  file << buf;
+
+  sprintf (tmp, "%1d %1d %1d %1d", header.nr, header.ns, nz, header.nel);
+  sprintf (buf, hdr_fmt[2], tmp);
+  file << buf;
+
+  sprintf (buf, hdr_fmt[3], header.step);     file << buf;
+  sprintf (buf, hdr_fmt[4], header.time);     file << buf;
+  sprintf (buf, hdr_fmt[5], header.timestep); file << buf;
+  sprintf (buf, hdr_fmt[6], header.kinvis);   file << buf;
+  sprintf (buf, hdr_fmt[7], header.beta);     file << buf;
+
+  sprintf (buf, hdr_fmt[8], header.fields);
+  file << buf;  
+
+  sprintf (tmp, "binary ");
+  Veclib::describeFormat (tmp + strlen (tmp));
+  sprintf (buf, hdr_fmt[9], tmp);
+  file << buf;
+
+  for (i = 0; i < nfield; i++) 
+    for (j = 0; j < nz; j++)
+      file.write ((char*) (u[i] + j * planesize), ntotelmt * sizeof (real));
+}
+
+
+static int doswap (const char* ffmt)
 // ---------------------------------------------------------------------------
 // Figure out if byte-swapping of input is required to make sense of input.
 // ---------------------------------------------------------------------------
@@ -398,82 +392,4 @@ static integer doSwap (const char* ffmt)
 
   return (strstr (ffmt, "big") && strstr (mfmt, "little")) || 
          (strstr (mfmt, "big") && strstr (ffmt, "little"));
-}
-
-
-static integer getDump (ifstream&          ifile,
-			ostream&           ofile,
-			vector<Field2DF*>& u    )
-// ---------------------------------------------------------------------------
-// Read next set of field dumps from ifile, put headers on ofile.
-// ---------------------------------------------------------------------------
-{
-  static char* hdr_fmt[] = { 
-    "%-25s "    "Session\n",
-    "%-25s "    "Created\n",
-    "%-25s "    "Nr, Ns, Nz, Elements\n",
-    "%-25d "    "Step\n",
-    "%-25.6g "  "Time\n",
-    "%-25.6g "  "Time step\n",
-    "%-25.6g "  "Kinvis\n",
-    "%-25.6g "  "Beta\n",
-    "%-25s "    "Fields written\n",
-    "%-25s "    "Format\n"
-  };
-  char    buf[StrMax], fmt[StrMax], fields[StrMax];
-  integer i, j, swab, nf, np, nz, nel;
-
-  if (ifile.getline(buf, StrMax).eof()) return 0;
-  
-  if (!strstr (buf, "Session")) message (prog, "not a field file", ERROR);
-  ofile << buf << endl;
-  ifile.getline (buf, StrMax);
-  ofile << buf << endl;
-
-  // -- I/O Numerical description of field sizes.
-
-  ifile >> np >> nz >> nz >> nel;
-  ifile.getline (buf, StrMax);
-  
-  sprintf (fmt, "%1d %1d %1d %1d", np, np, nz, nel);
-  sprintf (buf, hdr_fmt[2], fmt);
-  cout << buf;
-
-  for (i = 0; i < 5; i++) {
-   ifile.getline (buf, StrMax);
-   ofile << buf << endl;
-  }
-
-  // -- I/O field names.
-
-  ifile >> fields;
-  nf = strlen (fields);
-  for (j = 0, i = 0; i < nf; i++) fmt[j++] = fields[i];
-  fmt[j] = '\0';
-  sprintf (buf, hdr_fmt[8], fmt);
-  cout << buf;
-  ifile.getline (buf, StrMax);
-
-  // -- Arrange for byte-swapping if required.
-
-  ifile.getline (buf, StrMax);
-
-  swab = doSwap (buf);
-
-  sprintf (buf, "binary ");
-  Veclib::describeFormat (buf + strlen (buf));
-  sprintf (fmt, hdr_fmt[9], buf);
-  cout << fmt;
-
-  if (u.getSize() != nf) {
-    u.setSize (nf);
-    for (i = 0; i < nf; i++) u[i] = new Field2DF (np, nz, nel, fields[i]);
-  }
-
-  for (i = 0; i < nf; i++) {
-    ifile >> *u[i];
-    if (swab) u[i] -> reverse();
-  }
-
-  return ifile.good();
 }
