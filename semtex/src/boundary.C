@@ -1,235 +1,83 @@
 /*****************************************************************************
- * BOUNDARY.C:  utilities for dealing with boundary conditions.              *
- *                                                                           *
- * This module maintains a list of tagged velocity boundary conditions.      *
- *                                                                           *
- * Boundary conditions are given numeric tags by which the element-wise      *
- * description can access the B-C information.  Tag-number zero is reserved  *
- * to label inter-element boundaries.  It is implicit in the descriptions    *
- * below that on each tagged boundary the same kind of condition is used     *
- * for each variable.                                                        *
- *                                                                           *
- * The tag line is also used to declare the kind of boundary condition.      *
- * Available kinds are (case-insensitive):                                   *
- *   ESSENTIAL                                                               *
- *   VALUE                                                                   *
- *   NATURAL                                                                 *
- *   FLUX                                                                    *
- *   WALL                                                                    *
- *   OUTFLOW                                                                 *
- *                                                                           *
- * For WALL and OUTFLOW BCs, no further information is needed, since they    *
- * implemented internally: a wall is just a special case of a VALUE BC on    *
- * which all velocity components are zero.  OUTFLOW boundaries set du/dn=0   *
- * for all velocity components (this may be ammended later), and so are a    *
- * special case of a FLUX boundary condition.                                *
- *                                                                           *
- * On VALUE boundaries, DIM velocity components need to be set, all on the   *
- * tag line.  Either numerical or interpretable functions values can be      *
- * used.  The order in which they are given must be the same as used for     *
- * space dimensions.  ESSENTIAL is the same as VALUE.                        *
- *                                                                           *
- * On FLUX boundaries, DIM normal gradients of velocities need to be set, in *
- * the same way as for VALUE boundaries.  NATURAL is the same as FLUX.       *
- *                                                                           *
- * Boundary conditions for secondary variables (e.g. pressure) are set       *
- * automatically.                                                            *
- *                                                                           *
- * The list of tagged BCs should be terminated with a blank line.            *
- *                                                                           *
- * Example for 2D (DIM=2):                                                   *
- * NB: value BCs are evaluated once, and may use variables "x" & "y".        *
- *                                                                           *
- * BOUNDARY CONDITIONS                                                       *
- *                                                                           *
- * 1   VALUE      1.0  sin(PI^2*x*y)                                         *
- * 2   WALL                                                                  *
- * 3   OUTFLOW                                                               *
- *                                                                           *
+ * boundary.C:  Boundary edge routines.
  *****************************************************************************/
 
-static char
-RCSid[] = "$Id$";
+// $Id$
 
 
 #include "Fem.h"
 
 
-#define  readLine(fp)  fgets(buf, STR_MAX, (fp))
-#define  echo          if (verb) fputs(buf, stdout)
-#define  upperCase(s)  { char *z=(s); while (*z=toupper(*z)) z++; }
 
 
-typedef struct b_c         {	/* ------------- B-C data type ------------- */
-  int              id      ;	/* Identification tag                        */
-  char            *name    ;	/* Array of character variable names         */
-  BcRecord        *bCond   ;	/* Array of corresponding BCs                */
-  struct b_c      *next    ;	/* Link to next one.                         */
-} B_C;				/* ----------------------------------------- */
-
-static B_C *BCList = NULL;
-static char buf[STR_MAX];
-
-
-
-
-
-void  readBCs (FILE *fp)
-/* ========================================================================= *
- * Create & maintain a list of boundary condition structures.                *
- * ========================================================================= */
+Boundary::Boundary (int ident, Element* E, int sideNo,  BC* cond)
+// ---------------------------------------------------------------------------
+// Constructor.  Allocate new memory for value & geometric factors.
+// ---------------------------------------------------------------------------
 {
-  char    routine[] = "readBCs";
-  char    sep[]     = " \t,:;";
-  char   *token, *suffix = NULL;
-  B_C    *p;
-  int     i, nvar = iparam ("NVAR"), verb = iparam ("VERBOSE");
-  double  val;
+  id        = ident;
+  elmt      = E;
+  side      = sideNo;
+  condition = cond;
+  value     = rvector (E -> nKnot());
+  nx        = rvector (E -> nKnot());
+  ny        = rvector (E -> nKnot());
+  area      = rvector (E -> nKnot());
 
-
-  readLine (fp);
-
-  while (readLine(fp)) {
-    if (*buf == '\n') return;
-    echo;
-
-    p = (B_C *) calloc (1, sizeof (B_C));
-
-    p -> name = (char *) calloc (STR_MAX, sizeof (char));
-    switch (nvar) {
-    case 1: strcpy (p -> name, "u"  );  break;
-    case 2: strcpy (p -> name, "uvp" ); break;
-    case 3: strcpy (p -> name, "uvwp"); break;
-    default: 
-      sprintf (buf, "number of variables must be in [1..3]: %1d", nvar);
-      message (routine, buf, ERROR);
-      break;
-    }
-
-    if (!(token = strtok (buf, sep)))
-      message (routine, "empty line instead of BC", ERROR);
-
-    if (sscanf (token, "%d", &p->id) != 1)
-      message (routine, strcat(buf, "?: can't parse integer tag"), ERROR);
-    if (p -> id < 1)
-      message (routine, "BC tags must be >= 1", ERROR);
-    p -> id--;
-
-    if (!(token = strtok (NULL, sep)))
-      message (routine, "can't parse kind of BC", ERROR);
-    upperCase (token);
-
-    p -> bCond = (BcRecord *) calloc (nvar, sizeof (BcRecord));
-
-    if (strstr (token, "VALUE") || strstr (token, "ESSENTIAL")) {
-
-      for (i = 0; i < nvar; i++) {
-	if (!(token = strtok (NULL, sep)))
-	  message (routine, "can't parse enough BC values", ERROR);
-	
-	val = strtod (token, &suffix);
-	if (*suffix && *suffix != '\n') {
-	  p -> bCond[i].kind         = ESSENTIAL_FN;
-	  p -> bCond[i].value.interp =
-	    (char *) calloc (strlen (token) + 1, sizeof (char));
-	  strcpy (p -> bCond[i].value.interp, token);
-	} else {
-	  p -> bCond[i].kind        = ESSENTIAL;
-	  p -> bCond[i].value.given = val;
-	}
-      }
-
-    } else if (strstr (token, "FLUX") || strstr (token, "NATURAL")) {
-
-      for (i = 0; i < nvar; i++) {
-	if (!(token = strtok (NULL, sep)))
-	  message (routine, "can't parse enough BC values", ERROR);
-	
-	val = strtod (token, &suffix);
-	if (*suffix) {
-	  p -> bCond[i].kind         = NATURAL_FN;
-	  p -> bCond[i].value.interp =
-	    (char *) calloc (strlen (token) + 1, sizeof (char));
-	  strcpy (p -> bCond[i].value.interp, token);
-	} else {
-	  p -> bCond[i].kind        = NATURAL;
-	  p -> bCond[i].value.given = val;
-	}
-      }
-
-    } else if (strstr (token, "WALL")) {
-
-      for (i = 0; i < nvar; i++) {
-	p -> bCond[i].kind        = WALL;
-	p -> bCond[i].value.given = 0.0;
-      }
-    
-    } else if (strstr (token, "OUTFLOW")) {
-
-      for (i = 0; i < nvar; i++) {
-	p -> bCond[i].kind        = OUTFLOW;
-	p -> bCond[i].value.given = 0.0;
-      }
-
-    } else
-      message (routine, strcat (token, "?: unrecognized BC type"), ERROR);
-
-    if (BCList) p -> next = BCList;
-    BCList = p;
-  }
-
+  E -> sideGeom (side, nx, ny, area);
 }
 
 
 
 
 
-void  printBCs ()
-/* ========================================================================= *
- * Utility to print list of tagged boundary conditions.                      *
- * ========================================================================= */
+Boundary::Boundary (const Boundary& B, const List<Element*>& E)
+// ---------------------------------------------------------------------------
+// Make a copy of an existing Boundary edge, with new data storage area
+// and with element pointer into the list of associated new Elements (input).
+//
+// The boundary condition is set to the input condition.
+// ---------------------------------------------------------------------------
 {
-  char  routine[] = "printBCs";
-  int   i, nvar = iparam ("NVAR");
-  B_C  *p;
+  char routine[] = "Boundary::Boundary(Boundary&, List<Element*>&)";
 
+  memcpy (this, &B, sizeof (Boundary));
 
-  if (! BCList) message (routine, "empty list of BCs", WARNING);
-
-  for (p = BCList; p; p = p -> next) {
-
-    printf ("id %1d, names: %s\n", p -> id, p -> name);
-
-    for (i = 0; i<nvar; i++) {
-
-      switch (p -> bCond[i].kind) {
-
-      case ESSENTIAL:
-      default:
-	printf ("  ESSENTIAL:    %g\n", p -> bCond[i].value.given );
-	break;
-
-      case ESSENTIAL_FN:
-        printf ("  ESSENTIAL_FN: %s\n", p -> bCond[i].value.interp);
-        break;
-
-      case NATURAL:
-	printf ("  NATURAL:      %g\n", p -> bCond[i].value.given );
-	break;
-
-      case NATURAL_FN:
-        printf ("  NATURAL_FN:   %s\n", p -> bCond[i].value.interp);
-        break;
-
-      case WALL:
-	printf ("  WALL\n");
-	break;
-
-      case OUTFLOW:
-	printf ("  OUTFLOW\n");
-	break;
-      }
+  int found = 0;
+  for (ListIterator<Element*> k(E); !found && k.more(); k.next())
+    if (found = k.current() -> id () == elmt -> id ()) {
+      elmt  = k.current();
+      value = rvector (elmt -> nKnot());
+      condition = B.condition;
     }
+
+  if (!found) message (routine, "can't find a match to new element id", ERROR);
+}
+
+
+
+
+
+void  Boundary::evaluate (int step)
+// ---------------------------------------------------------------------------
+// Load boundary condition storage area with numeric values.
+// ---------------------------------------------------------------------------
+{
+  int np = elmt -> nKnot();
+
+  switch (condition -> kind) {
+  case ESSENTIAL: case NATURAL:
+    Veclib::fill (np, condition -> value, value, 1);
+    break;
+  case ESSENTIAL_FN: case NATURAL_FN: 
+    elmt -> sideEval (side, value, condition -> string);
+    break;
+  case OUTFLOW: case WALL: default:
+    Veclib::fill (np, 0.0, value, 1);
+    break;
+  case HOPBC:
+    PBCmanager::evaluate (id, np, step, value, nx, ny);
+    break;
   }
 }
 
@@ -237,129 +85,164 @@ void  printBCs ()
 
 
 
-int  countBCs ()
-/* ========================================================================= *
- * Count number of tagged BCs.                                               *
- * ========================================================================= */
+void  Boundary::print() const
+// ---------------------------------------------------------------------------
+// (Debugging) utility to print internal information.
+// ---------------------------------------------------------------------------
 {
-  B_C *p;
-  int  num = 0;
+  char routine[] = "Boundary::print";
 
-  for (p = BCList; p ; p = p -> next) num++;
-  return num;
-}
-
-
-
-
-
-BcRecord  *BCSearch (int id, char name)
-/* ========================================================================= *
- * Search list for matching tag & return boundary condition record.          *
- * ========================================================================= */
-{
-  char   routine[] = "BCSearch";
-  B_C   *p =  NULL;
-
-
-  for (p = BCList; p; p = p -> next) 
-
-    if (p -> id == id) {
-
-      if (!(strchr (p -> name, name))) {
-	sprintf (buf, "variable \"%c\" not found in \"%s\"", name, p -> name); 
-	message (routine, buf, ERROR);
-      }
-
-      switch (name) {
-      case 'u': return p -> bCond    ;
-      case 'v': return p -> bCond + 1;
-      case 'w': return p -> bCond + 2;
-      case 'p': return 0;
-      default :
-	message (routine, "blank name character ?", ERROR);
-	break;
-      }
-
-    }
+  cout << "** Boundary id: " << id  << " -> ";
+  cout <<     elmt ->  id () << "." << side;
+  cout << " Element id.side" << endl;
   
-  sprintf (buf, "no boundary condition set for tag %1d", id);
-  message (routine, buf, ERROR);
-  return  0;
-}
-
-
-
-
-
-int freeBoundary (const Bedge *B)
-/* ========================================================================= *
- * Return true if all boundary conditions are OUTFLOW or NATURAL type.       *
- * Helmholtz problem: if all boundary conditions are type OUTFLOW, the       *
- * problem is underdetermined, if also lambda2 = 0.0.                        *
- *                                                                           *
- * The response (carried out elsewhere) will be to arbitrarily assign one of *
- * the nodal values, and reduce the order of the problem by one, thus making *
- * the problem determinate.                                                  *
- *                                                                           *
- * ========================================================================= */
-{
-  for (; B; B = B -> next)
-    if (   B->bc->kind == ESSENTIAL
-	|| B->bc->kind == ESSENTIAL_FN
-	|| B->bc->kind == WALL        )
-      return 0;
-
-  return 1;
-}
-
-
-
-
-
-void  evaluateBC (Bedge *B)
-/* ========================================================================= *
- * Load boundary condition storage areas with numeric values.                *
- *                                                                           *
- * This routine is not called for pressure BCs (evaluatePBC instead).        *
- * ========================================================================= */
-{
-  int    np;
-
-
-  for (; B; B = B -> next) {
-    np = B -> np;
-
-    switch (B -> bc -> kind) {
-
-    case ESSENTIAL:
-    case NATURAL:
-      Veclib::fill (np, B -> bc -> value.given, B -> value, 1);
-      break;
-
-    case ESSENTIAL_FN:
-    case NATURAL_FN:
-      {
-	double *x, *y;
-	assert ((x = dvector (0, np-1)) != 0);
-	assert ((y = dvector (0, np-1)) != 0);
-
-	Veclib::copy (np, *B -> elmt -> xmesh + B -> estart, B -> eskip, x, 1);
-	Veclib::copy (np, *B -> elmt -> ymesh + B -> estart, B -> eskip, y, 1);
-
-	vecInit   ("x y", B -> bc -> value.interp);
-	vecInterp (np, x, y, B -> value);
-
-	freeDvector (x, 0);
-	freeDvector (y, 0);
-      }
-      break;
-
-    case OUTFLOW: 
-    case WALL:
-    default:
-      Veclib::fill (np, 0.0, B -> value, 1);
-      break;
-    }
+  switch (condition -> kind) {
+  case ESSENTIAL:
+    cout << "ESSENTIAL:    " << condition -> value  << endl;
+    break;
+  case ESSENTIAL_FN:
+    cout << "ESSENTIAL_FN: " << condition -> string << endl;
+    break;
+  case NATURAL:
+    cout << "NATURAL:      " << condition -> value  << endl;
+    break;
+  case NATURAL_FN:
+    cout << "NATURAL_FN:   " << condition -> string << endl;
+    break;
+  case WALL:
+    cout << "WALL"                                  << endl;
+    break;
+  case OUTFLOW:
+    cout << "OUTFLOW"                               << endl;
+    break;
+  case HOPBC:
+    cout << "HOPBC"                                 << endl;
+    break;
+  default:
+    message (routine, "unknown boundary condition kind", ERROR);
+    break;
   }
+  cout << "  " << elmt -> nKnot() << "number of points along edge" << endl;
+  cout << "         nx             ny             area           value";
+  cout << endl;
+  
+  printVector (cout, "rrrr", elmt -> nKnot(), nx, ny, area, value);
 }
+
+
+
+
+
+void  Boundary::enforce (real* target) const
+// ---------------------------------------------------------------------------
+// This is for ESSENTIAL BCs: load BC data into target.
+// ---------------------------------------------------------------------------
+{
+  elmt -> sideScatr (side, value, target);
+}
+
+
+
+
+
+void  Boundary::dsSum (real* target) const
+// ---------------------------------------------------------------------------
+// This is for NATURAL BCs: direct-stiffness-sum weighted BC data into target.
+// ---------------------------------------------------------------------------
+{
+  elmt -> sideDsSum (side, value, area, target);
+}
+
+
+
+
+
+int  Boundary::isEssential () const
+// ---------------------------------------------------------------------------
+// Return 1 for essential-type BC, 0 for natural.
+// ---------------------------------------------------------------------------
+{
+  if (   condition -> kind == ESSENTIAL
+      || condition -> kind == ESSENTIAL_FN
+      || condition -> kind == VALUE
+      || condition -> kind == WALL        )
+    return 1;
+  else
+    return 0;
+}
+
+
+
+
+
+void  Boundary::mask (int* gmask) const
+// ---------------------------------------------------------------------------
+// Mask global node-number vector for this boundary.
+// ---------------------------------------------------------------------------
+{
+  elmt -> sideMask (side, gmask);
+}
+
+
+
+
+
+void  Boundary::extract (real* target) const
+// ---------------------------------------------------------------------------
+// Load target with element-edge values.
+// ---------------------------------------------------------------------------
+{
+  elmt -> sideExtract (side, target);
+}
+
+
+
+
+
+void Boundary::curlCurl (const Boundary* u ,  const Boundary* v ,
+			 real*          wx,  real*          wy) const
+// ---------------------------------------------------------------------------
+// Evaluate dw/dx & dw/dy (where w is the z-component of vorticity) from
+// element velocity fields, according to the side of the element on which
+// they are required.  U & v are Boundaries on the two velocity Fields.
+//
+// NB: sense of traverse in wx & wy is BLAS-conformant (according to sign
+// of skip on relevant edge).
+// ---------------------------------------------------------------------------
+{
+  int    ntot = elmt -> nTot();
+
+  real*  w    = rvector (ntot);
+  real*  vx   = rvector (ntot);
+  real*  uy   = rvector (ntot);
+
+  u -> elmt -> d_dy (uy);
+  v -> elmt -> d_dx (vx);
+
+  // -- Vorticity, w = dv/dx - du/dy.
+
+  Veclib::vsub (ntot, vx, 1, uy, 1, w, 1);
+
+  // -- find dw/dx & dw/dy on appropriate edge.
+
+  elmt -> sideGrad (side, w, wx, wy);
+
+  freeVector (w);
+  freeVector (vx);
+  freeVector (uy);
+}
+
+
+
+
+
+void  Boundary::resetKind (const BC* new_other, const BC* new_outflow)
+// ---------------------------------------------------------------------------
+// Examine & reset BC kind for this Boundary.
+// This routine is intended for resetting pressure BCs.
+// ---------------------------------------------------------------------------
+{
+  if (condition -> kind == OUTFLOW) condition = (BC*) new_outflow;
+  else                              condition = (BC*) new_other;
+}
+
