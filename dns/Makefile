@@ -72,7 +72,7 @@ ifeq ($(ARCH),UNIX_System_V)    # -- Fujitsu VPP300.
 CC       = vcc
 CXX      = /usr/uxp/C++/bin/CC
 LD       = /usr/uxp/C++/bin/CC
-OPTIM    = -Wv,-m3,-Om,-te
+OPTIM    = -Wv,-m3,-Om,-te -Kpopt
 CXXFLAGS = $(DEFINES)  $(OPTIM)
 LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 ifdef MPI

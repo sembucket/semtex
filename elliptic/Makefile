@@ -31,9 +31,9 @@ endif
 ifeq ($(ARCH),IRIX64)		# -- SGI 64-bit systems.
 CXX	 = CC
 LD	 = CC
-CXXFLAGS =  $(DEFINES) -g
-F77LIBS	 = -lcomplib.sgimath -lisam
-LDFLAGS  = -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lmalloc -lm
+CXXFLAGS =  $(DEFINES) -64 -mips4 -g
+F77LIBS	 = -lcomplib.sgimath -lftn
+LDFLAGS  = -g -64 -mips4 -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lmalloc -lm
 endif
 
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha
@@ -67,30 +67,36 @@ LIBS    += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
 CC       = vcc
 CXX      = /usr/uxp/C++/bin/CC
 LD       = /usr/uxp/C++/bin/CC
-#OPTIM    = -Wv,-m3,-Ps 
-OPTIM    = -Wv,-ad
+OPTIM    = -Wv,-m3,-Ps -Kpopt
+#OPTIM    = -Wv,-ad
 CXXFLAGS = $(DEFINES)  $(OPTIM)
 LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 endif
 
 ifeq ($(ARCH),SUPER-UX)         # -- NEC SX-4.
+DEFINES += -D_BUILTIN_
 LIBDIR   = -L$(SEM)/lib/$(ARCH) 
-LIBDIR  += 
-LIBS     = -lfem -llapack_64 -lalp -lblas_64	\
-           -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm
 CC       = cc
 CXX      = CC
 LD       = CC
-OPTIM    = -g -hacct
-CXXFLAGS = $(DEFINES)  $(OPTIM)
-LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS) -hacct
+CFLAGS   = $(DEFINES) -pvctl,fullmsg -hacct -Onooverlap        \
+           -hfloat0 -hnostkchk
+CXXFLAGS = $(CFLAGS) $(OPTIM) +a1
+LDFLAGS  = $(CFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
+ifdef MPI
+  LIBS   = -lfem_mp -llapack_64 -lalp_mp -lblas_64 -lfft_64	\
+           -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm -lmpi -lpthread
+else
+  LIBS   = -lfem -llapack_64 -lalp -lblas_64 -lfft_64	\
+           -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm
+endif
 endif
 
 # ----------------------------------------------------------------------------
 #
 
-SEMFILES  = auxfield BCmgr boundary condition domain element	\
-	    feml field geometry integration matrix mesh misc pressure
+SEMFILES  = auxfield BCmgr boundary domain element feml	\
+	    field geometry integration matrix mesh misc pressure
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
 SEMHDR    = Sem.h
 
@@ -109,6 +115,21 @@ $(SEMOBJ): $(SEMHDR)
 sem:
 	cd $(VPATH); gmake install
 
+# ----------------------------------------------------------------------------
+# Special machine-dependent compilations.
+
+ifeq ($(ARCH),SUPER-UX)
+mesh.o: $(VPATH)/mesh.C
+        $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+        $(VPATH)/mesh.C
+BCmgr.o: $(VPATH)/BCmgr.C
+        $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+        $(VPATH)/BCmgr.C
+condition.o: $(VPATH)/condition.C
+        $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+        $(VPATH)/condition.C
+endif
+
 # -----------------------------------------------------------------------------
 #
 clean:
@@ -116,3 +137,5 @@ clean:
 	rm -rf ILDUMPS
 	rm -rf ii_files
 	rm -rf ptrepository
+
+
