@@ -8,7 +8,6 @@
  *****************************************************************************/
 
 #ifdef __uxp__
-#pragma global novrec
 #pragma global noalias
 #endif
 
@@ -17,6 +16,10 @@ void dgathr_scatr_sum (int n, const double* w, const int*    x,
 		              const int*    y,       double* z)
 {
   register int i;
+
+#ifdef __uxp__
+#pragma loop novrec z
+#endif
 
   for (i = 0; i < n; i++) z[y[i]] += w[x[i]];
 }
@@ -27,6 +30,10 @@ void igathr_scatr_sum (int n, const int* w, const int* x,
 {
   register int i;
 
+#ifdef __uxp__
+#pragma loop novrec z
+#endif
+
   for (i = 0; i < n; i++) z[y[i]] += w[x[i]];
 }
 
@@ -35,6 +42,10 @@ void sgathr_scatr_sum (int n, const float* w, const int*   x,
 		              const int*   y,       float* z)
 {
   register int i;
+
+#ifdef __uxp__
+#pragma loop novrec z
+#endif
 
   for (i = 0; i < n; i++) z[y[i]] += w[x[i]];
 }
