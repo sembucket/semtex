@@ -14,7 +14,7 @@ u v c p
 <TOKENS>
 	CYLINDRICAL = 1
 
-	N_POLY=8
+	N_P=8
 	N_TIME      = 2
 
 	PERIOD      = 1.0

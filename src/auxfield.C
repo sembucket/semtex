@@ -911,7 +911,7 @@ AuxField& AuxField::transform (const int_t sign)
 // ---------------------------------------------------------------------------
 // Discrete Fourier transform in homogeneous direction.  Number of
 // points in that direction must be even, but is otherwise
-// unrestricted.  Use sign = FROWARD for forward transform, INVERSE
+// unrestricted.  Use sign = FORWARD for forward transform, INVERSE
 // for inverse.
 //
 // Normalization is carried out on forward transform, so that the zeroth

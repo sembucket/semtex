@@ -9,7 +9,7 @@
 	D_T       = PERIOD/STEPS_P
 	N_STEP    = 1*STEPS_P
 	N_TIME    = 2
-	N_POLY    = 16
+	N_P    = 16
 	IO_CFL    = STEPS_P/32
 	IO_FLD    = STEPS_P/32
 	IO_HIS    = STEPS_P/128

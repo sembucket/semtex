@@ -11,7 +11,7 @@
 <TOKENS>
 	N_Z      = 8
 	BETA     = 1.0
-	N_POLY   = 10
+	N_P   = 10
 	TOL_REL  = 1e-10
 	TOL_ABS  = 1e-6
 </TOKENS>

@@ -1,7 +1,6 @@
 #ifndef ANALYSIS_H
 #define ANALYSIS_H
 
-
 class Analyser
 // ===========================================================================
 // Implement step-by-step processing and output control for flow
@@ -16,14 +15,15 @@ public:
   void analyse (AuxField**);
 
 protected:
-  Domain*               src      ; // Source information.
-  ofstream              par_strm ; // File for particle tracking.
-  ofstream              his_strm ; // File for history points.
-  ofstream              mdl_strm ; // File for modal energies.
-  vector<HistoryPoint*> history  ; // Locations, etc. of history points.
-  list<FluidParticle*>  particle ; // List of fluid particles.
-  vector<Point*>        initial  ; // Starting locations of particles.
-  Statistics*           stats    ; // Field average statistics.
+  Domain*               _src      ; // Source information.
+  ofstream              _par_strm ; // File for particle tracking.
+  ofstream              _his_strm ; // File for history points.
+  ofstream              _mdl_strm ; // File for modal energies.
+  vector<HistoryPoint*> _history  ; // Locations, etc. of history points.
+  list<FluidParticle*>  _particle ; // List of fluid particles.
+  vector<Point*>        _initial  ; // Starting locations of particles.
+  Statistics*           _stats    ; // Field average statistics.
+  Statistics*           _ph_stats ; // Phase-average field statistics.
 
   void modalEnergy ();
   void divergence  (AuxField**) const;

@@ -6,7 +6,7 @@
 
 <TOKENS>
 	N_TIME	 = 2
-	N_POLY	 = 7
+	N_P	 = 7
 	N_STEP	 = 20
 	D_T	 = 0.005
 	Re	 = 20.0

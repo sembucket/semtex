@@ -16,7 +16,7 @@
 	KC	 = 4.7
 	STOKES	 = 40.0
 	N_TIME	 = 2
-	N_POLY	 = 9
+	N_P	 = 9
 	IO_CFL	 = 50
 	D	 = 1.0
 	KINVIS	 = D*D/200

@@ -155,7 +155,7 @@ static void preprocess (const char*       session,
   VERBOSE cout << "Setting geometry ... ";
 
   nel   =  mesh -> nEl();
-  np    =  Femlib::ivalue ("N_POLY");
+  np    =  Femlib::ivalue ("N_P");
   nz    =  Femlib::ivalue ("N_Z");
   space = (Femlib::ivalue ("CYLINDRICAL")) ?
     Geometry::Cylindrical : Geometry::Cartesian;

@@ -20,7 +20,7 @@ LL	RULE
 4 integer
 2	N_VAR
 1	N_TIME
-11	N_POLY
+11	N_P
 500	N_STEP
 
 4 floating

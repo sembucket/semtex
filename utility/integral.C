@@ -66,7 +66,7 @@ int main (int    argc,
   M   = new Mesh (F);
 
   NEL = M -> nEl();  
-  NP  = (integer)  Femlib::value ("N_POLY");
+  NP  = (integer)  Femlib::value ("N_P");
   NZ  = (integer)  Femlib::value ("N_Z"   );
   Lz  = (NZ > 1) ? Femlib::value ("TWOPI / BETA") : 1.;
   space = (static_cast<int>(Femlib::value ("CYLINDRICAL")) && cylind) ? 

@@ -21,7 +21,7 @@
 
         CYLINDRICAL = 1
         BETA        = 1
-        N_POLY      = 10
+        N_P      = 10
         N_Z         = 96
 
         LAMBDA_M    = 2.0

@@ -14,7 +14,7 @@
 
 <TOKENS>
 	N_TIME	= 3
-	N_POLY	= 14
+	N_P	= 14
 	N_STEP	= 100000
 	IO_FLD  = 1000
 	D_T	= 0.0005

@@ -148,7 +148,7 @@ int main (int    argc,
   F      = new FEML (session);
   M      = new Mesh (F);
   nel    = M -> nEl ();  
-  np     =  Femlib::ivalue ("N_POLY");
+  np     =  Femlib::ivalue ("N_P");
   nz     =  Femlib::ivalue ("N_Z"   );
   system = (Femlib::ivalue ("CYLINDRICAL") ) ?
                        Geometry::Cylindrical : Geometry::Cartesian;

@@ -60,8 +60,8 @@ int main (int    argc,
   FEML feml (session);
 
   if   (verb)                 Femlib::value ("VERBOSE", verb);
-  if   (np)                   Femlib::value ("N_POLY",  np  );
-  else  np = static_cast<int>(Femlib::value ("N_POLY"       ));
+  if   (np)                   Femlib::value ("N_P",  np  );
+  else  np = static_cast<int>(Femlib::value ("N_P"       ));
   if   (nz)                   Femlib::value ("N_Z",     nz  );
   else  nz = static_cast<int>(Femlib::value ("N_Z"          ));
 

@@ -18,7 +18,7 @@
 	TOL_REL  = 1.0e-8
 	KINVIS   = 1/3000
 	N_TIME   = 2
-	N_POLY   = 16
+	N_P   = 16
 	N_Z      = 32
 	BETA     = 1
 	N_STEP   = 100

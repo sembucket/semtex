@@ -23,7 +23,7 @@
 <TOKENS>
 	N_Z    = 1
 	N_TIME = 1
-	N_POLY = 7
+	N_P = 7
 	N_STEP = 400
 	D_T    = 0.008
 	Re     = 40.0

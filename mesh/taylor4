@@ -22,7 +22,7 @@
 
 <TOKENS>
 	N_TIME  = 2
-	N_POLY  = 11
+	N_P  = 11
 	N_STEP  = 20
 	N_Z	= 8
 	Lz	= 2.0

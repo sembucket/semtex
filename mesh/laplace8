@@ -20,7 +20,7 @@
 <TOKENS>
 	CYLINDRICAL = 1
 	N_Z         = 32
-	N_POLY      = 10
+	N_P      = 10
 	TOL_REL     = 1e-12
 </TOKENS>
 
