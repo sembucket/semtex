@@ -46,8 +46,9 @@ int main (int    argc,
   ios::sync_with_stdio();
 #endif
 
+  Geometry::CoordSys system;
   char      *session, fields[StrMax];
-  int       nz;
+  int       np, nz, nel;
   FEML*     F;
   Mesh*     M;
   BCmgr*    B;
@@ -58,22 +59,23 @@ int main (int    argc,
   getargs      (argc, argv, session);
 
   cout << prog << ": Navier--Stokes--Boussinesq solver"  << endl;
-  cout << "      (c) Hugh Blackburn 1995--97."   << endl << endl;
+  cout << "      (c) Hugh Blackburn 1997."   << endl << endl;
   
   F = new FEML (session);
-
-  nz = (int) Femlib::value ("N_Z");
-  if (nz > 1) {
-    if (nz & 1) {
-      sprintf (fields, "N_Z (%1d) must be even", nz);
-      message (prog, fields, ERROR);
-    }
-    strcpy (fields, "uvwTp");
-  } else
-    strcpy (fields, "uvTp");
   
   M = new Mesh     (*F);
   B = new BCmgr    (*F);
+
+  nel    = M -> nEl();  
+  np     =  (int) Femlib::value ("N_POLY");
+  nz     =  (int) Femlib::value ("N_Z"   );
+  system = ((int) Femlib::value ("CYLINDRICAL") ) ?
+                     Geometry::Cylindrical : Geometry::Cartesian;
+  
+  Geometry::set (np, nz, nel, system);
+  if   (nz > 1) strcpy (fields, "uvwcp");
+  else          strcpy (fields, "uvcp");
+
   D = new Domain   (*F, *M, *B, fields, session);
   A = new Analyser (*D);
 

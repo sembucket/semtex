@@ -24,9 +24,8 @@ static  int               DIM;
 static void  nonLinear (Domain*, AuxField***, AuxField***);
 static void  buoyancy  (Domain*, AuxField***, AuxField***, const Vector&);
 static void  waveProp  (Domain*, const AuxField***, const AuxField***);
-static void  setPForce (const Domain*, const AuxField***, AuxField***);
+static void  setPForce (const AuxField***, AuxField***);
 static void  project   (const Domain*, AuxField***, AuxField***);
-static void  setUForce (const Domain*, AuxField***);
 
 static ModeSys** preSolve (const Domain*);
 static void      Solve    (Field*, AuxField*, ModeSys*, const int, const int);
@@ -36,7 +35,7 @@ void NavierStokes (Domain*   D,
 		   Analyser* A)
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
-// temperature Field 'T', followed by constraint/pressure field 'p'.
+// temperature Field 'c', followed by constraint/pressure field 'p'.
 //
 // Us is multi-level auxillary Field storage for velocities+temperature and 
 // Uf is multi-level auxillary Field storage for nonlinear forcing terms.
@@ -105,13 +104,12 @@ void NavierStokes (Domain*   D,
       AuxField::swapData (D -> u[i], Us[i][0]);
       roll (Uf[i], nOrder);
     }
-    setPForce (D, (const AuxField***) Us, Uf);
+    setPForce ((const AuxField***) Us, Uf);
     Solve     (Pressure, Uf[0][0], MMS[DIM + 1], D -> step, nOrder);
     project   (D, Us, Uf);
 
     // -- Viscous and thermal diffusion substep.
 
-    setUForce (D, Uf);
     for (i = 0; i <= DIM; i++) {
       *Us[i][0] = *D -> u[i];
       roll  (Us[i], nOrder);
@@ -269,8 +267,7 @@ static void waveProp (Domain*           D ,
 }
 
 
-static void setPForce (const Domain*     D ,
-		       const AuxField*** Us,
+static void setPForce (const AuxField*** Us,
 		       AuxField***       Uf)
 // ---------------------------------------------------------------------------
 // On input, intermediate velocity storage u^ is in first time-level of Us.
@@ -311,11 +308,20 @@ static void project (const Domain* D ,
 //
 // In addition, the intermediate temperature Field is transferred from the
 // lowest level of Us to Uf for subsequent operations.
+//
+// After creation of u^^, it is scaled by -1.0 / (D_T * KINVIS) to create
+// forcing for viscous step.
+//
+// A similar operation occurs for the intermediate temperature Field, except
+// that the coefficient of thermal diffusivity is used in place of kinematic
+// viscosity.
 // ---------------------------------------------------------------------------
 {
   int        i;
   const real dt = Femlib::value ("D_T");
+  real       alpha;
 
+  alpha = -1.0 / Femlib::value ("D_T * KINVIS");
   for (i = 0; i < DIM; i++) {
 
    *Uf[i][0] = *D -> u[DIM + 1];
@@ -323,31 +329,12 @@ static void project (const Domain* D ,
   
     Us[i][0] -> axpy (-dt, *Uf[i][0]);
     AuxField::swapData (Us[i][0], Uf[i][0]);
+
+    *Uf[i][0] *= alpha;
   }
 
-  AuxField::swapData (Us[DIM][0], Uf[DIM][0]);
-}
-
-
-static void setUForce (const Domain* D ,
-		       AuxField***   Uf)
-// ---------------------------------------------------------------------------
-// On entry, intermediate velocity storage u^^ is in lowest levels of Uf.
-// Multiply by -1.0 / (D_T * KINVIS) to create forcing for diffusion step.
-//
-// A similar operation occurs for the intermediate temperature Field, except
-// that the coefficient of thermal diffusivity is used in place of kinematic
-// viscosity.
-// ---------------------------------------------------------------------------
-{
-  int  i;
-  real alpha;
-
-  alpha = -1.0 / Femlib::value ("D_T * KINVIS");
-  for (i = 0; i < DIM; i++)
-    *Uf[i][0] *= alpha;
-
   alpha = -1.0 / Femlib::value ("D_T * KINVIS / PRANDTL");
+  AuxField::swapData (Us[DIM][0], Uf[DIM][0]);
   *Uf[DIM][0] *= alpha;
 }
 
@@ -362,16 +349,17 @@ static ModeSys** preSolve (const Domain* D)
 // ITERATIVE == 2 adds iterative solver for pressure as well.
 // ---------------------------------------------------------------------------
 {
-  int                 i, j, found;
-  const int           nSys   = D -> Nsys.getSize();
-  const int           nZ     = D -> u[0] -> nZ();
-  const int           nModes = (nZ + 1) >> 1;
-  const int           itLev  = (int) Femlib::value ("ITERATIVE");
-  const int           nOrder = (int) Femlib::value ("N_TIME");
-  const real          beta   = Femlib::value ("BETA");
-  ModeSys**           M      = new ModeSys* [DIM + 2];
-  vector<Element*>&   E      = ((Domain*) D) -> Esys;
-  const NumberSystem* N;
+  char                 name;
+  int                  i, base = 0;
+  const int            nSys    = D -> Nsys.getSize();
+  const int            nZ      = Geometry::nZ();
+  const int            nModes  = Geometry::nMode();
+  const int            itLev   = (int) Femlib::value ("ITERATIVE");
+  const int            nOrder  = (int) Femlib::value ("N_TIME");
+  const real           beta    = Femlib::value ("BETA");
+  ModeSys**            M       = new ModeSys* [DIM + 2];
+  vector<Element*>&    E       = ((Domain*) D) -> Esys;
+  const NumberSystem** N       = new const NumberSystem* [3];
 
   // -- Velocity and temperature systems.
 
@@ -382,26 +370,20 @@ static ModeSys** preSolve (const Domain* D)
     // -- Velocities.
 
     real lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
-    N            = D -> u[0] -> system();
-    M[0]         = new ModalMatrixSystem (lambda2, beta, nModes, E, N);
 
-    for (i = 1; i < DIM; i++) {
-      for (found = 0, j = 0; j < i; j++)
-	if (found = D -> u[j] -> system() == D -> u[i] -> system()) break;
-      
-      if (found)
-	M[i] = M[j];
-      else {
-	N    = D -> u[i] -> system();
-	M[i] = new ModalMatrixSystem (lambda2, beta, nModes, E, N);
-      }
+    for (i = 0; i < DIM; i++) {
+      name = D -> u[i] -> name();
+      D -> setNumber (name, N);
+      M[i] = new ModalMatrixSystem (lambda2, beta, name, base, nModes, E, N);
     }
 
     // -- Temperature.
 
     lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS / PRANDTL");
-    N       = D -> u[DIM] -> system();
-    M[DIM]  = new ModalMatrixSystem (lambda2, beta, nModes, E, N);
+
+    name    = D -> u[DIM] -> name();
+    D -> setNumber (name, N);
+    M[DIM]  = new ModalMatrixSystem (lambda2, beta, name, base, nModes, E, N);
 
   } else
     for (i = 0; i <= DIM; i++) M[i] = 0;
@@ -409,9 +391,9 @@ static ModeSys** preSolve (const Domain* D)
   // -- Pressure system.
 
   if (itLev < 2) {
-    N          = D -> u[DIM + 1] -> system();
-    M[DIM + 1] = new ModalMatrixSystem (0.0, beta, nModes, E, N);
-
+    name    = D -> u[DIM + 1] -> name();
+    D -> setNumber (name, N);
+    M[DIM + 1] = new ModalMatrixSystem (0.0, beta, name, base, nModes, E, N);
   } else
     M[DIM + 1] = 0;
 
@@ -435,7 +417,7 @@ static void Solve (Field*    U     ,
   const int  iterative   = M == 0;
   const char name        = U -> name();
   const int  velocity    = name == 'u' || name == 'v' || name == 'w';
-  const int  temperature = name == 'T';
+  const int  temperature = name == 'c';
   const int  pressure    = name == 'p';
   real       lambda2;
 
