@@ -32,16 +32,15 @@ FFLAGS     = $(DEFINES) -O2
 endif
 
 ifeq ($(ARCH),IRIX64)			# -- SGI IRIX 64-bit
-CFLAGS     = $(DEFINES) -fullwarn -mips4 -O2
-FFLAGS     = $(DEFINES) -mips4 -O2
+CFLAGS     = $(DEFINES) -mips4 -64 -Ofast=IP30 -r10000
+FFLAGS     = $(DEFINES) -mips4 -64 -Ofast=IP30 -r10000
 endif
 
 ifeq ($(ARCH),OSF1)			# -- DEC Alpha OSF1
 FC	   = f90
 CXX	   = cxx
 CC         = cc
-CFLAGS     = $(DEFINES) -fast -inline speed \
-              -tune host -O4
+CFLAGS     = $(DEFINES) -fast -inline speed -tune host -O4
 FFLAGS     = $(DEFINES) -fast -inline speed -tune host -O5 -unroll 2
 ifdef MPI
   DEFINES  += -DMPI
@@ -139,16 +138,16 @@ clean:
 
 ifeq ($(ARCH),IRIX)
 temfftd.o: temfftd.F
-	f77 -c -g temfftd.F
+	f77 -c -O2 temfftd.F
 temffts.o: temffts.F
 	f77 -c -O2 temffts.F
 endif
 
 ifeq ($(ARCH),IRIX64)
 temfftd.o: temfftd.F
-	f77 -c -O2 temfftd.F
+	f77 -c  -mips4 -64 -Ofast=IP30 -r10000 temfftd.F
 temffts.o: temffts.F
-	f77 -c -O2 temffts.F
+	f77 -c  -mips4 -64 -Ofast=IP30 -r10000 temffts.F
 endif
 
 ifeq ($(ARCH),OSF1)
