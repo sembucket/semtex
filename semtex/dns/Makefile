@@ -78,7 +78,7 @@ else
 endif
 endif
 
-ifeq ($(ARCH),Linux-alpha)
+ifeq ($(ARCH),Linux-alpha)		# -- Linux alpha.
 CXX      = g++
 LD       = g++
 F77LIBS  = -lcxml -lots -lfor -lg2c
@@ -100,7 +100,7 @@ else
 endif
 endif
 
-ifeq ($(ARCH),Linux-i586)
+ifeq ($(ARCH),Linux-i586)		# -- Linux Intel.
 CXX	 = g++
 LD	 = g++
 F77LIBS  = -llapack -lblas -lg2c
