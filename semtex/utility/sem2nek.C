@@ -41,8 +41,7 @@ int main (int argc, char *argv[])
 
   getArgs (argc, argv, session);
 
-  FEML feml   (session);
-  feml.tokens ();
+  FEML feml (session);
 
   Mesh M (feml);
 
