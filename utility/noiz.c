@@ -236,7 +236,6 @@ static void b_to_b (int    np     ,
     }
   }
 
-  if (swab) dbrev (ntot, data[0], 1, data[0], 1);
   if (fwrite (data[0], sizeof (double), ntot, out) != ntot)
     message (prog, "an error has occured while writing", ERROR);
   
