@@ -293,8 +293,8 @@ Field& Field::smooth (AuxField* slave)
   const NumberSys* N       = _bsys -> Nsys  (0);
   const real*      imass   = _bsys -> Imass (0);
   const int        nglobal = N    -> nGlobal();
-  const int*       btog    = N    -> btog();
-  const int*       gid;
+  const integer*   btog    = N    -> btog();
+  const integer*   gid;
   register int     i, k;
   vector<real>     work (nglobal);
   real             *src, *dssum = &work[0];
@@ -335,8 +335,8 @@ void Field::smooth (const int nZ ,
   const NumberSys* N       = _bsys -> Nsys  (0);
   const real*      imass   = _bsys -> Imass (0);
   const int        nglobal = N    -> nGlobal();
-  const int*       btog    = N    -> btog();
-  const int*       gid;
+  const integer*   btog    = N    -> btog();
+  const integer*   gid;
   register int     i, k;
   vector<real>     work (nglobal);
   real             *src, *dssum = &work[0];
@@ -432,14 +432,14 @@ Vector Field::tangentTraction (const Field* U,
 {
   const vector<Boundary*>& UBC =       U->_bsys->BCs(0);
   const vector<Boundary*>& WBC = (W) ? W->_bsys->BCs(0) : (vector<Boundary*>)0;
-  const int                np      = Geometry::nP();
-  const int                _nbound = U -> _nbound;
-  const real               mu      = Femlib::value ("RHO * KINVIS");
-  Vector                   secF, F = {0.0, 0.0, 0.0};
+  const int                np     = Geometry::nP();
+  const int                nbound = U -> _nbound;
+  const real               mu     = Femlib::value ("RHO * KINVIS");
+  Vector                   secF, F= {0.0, 0.0, 0.0};
   vector<real>             work(4 * np);
   register int             i;
 
-  for (i = 0; i < _nbound; i++) {
+  for (i = 0; i < nbound; i++) {
     secF = UBC[i] -> tangentTraction  ("wall", U->_data, V->_data, &work[0]);
     F.x        -= mu * secF.x;
     F.y        -= mu * secF.y;
@@ -499,10 +499,10 @@ void Field::tangTractionV (real*        fx,
 {
   const vector<Boundary*>& UBC =       U->_bsys->BCs(0);
   const vector<Boundary*>& WBC = (W) ? W->_bsys->BCs(0) : (vector<Boundary*>)0;
-  const int                np      = Geometry::nP();
-  const int                nz      = Geometry::nZProc();
-  const int                _nbound = U -> _nbound;
-  const real               mu      = Femlib::value ("RHO * KINVIS");
+  const int                np     = Geometry::nP();
+  const int                nz     = Geometry::nZProc();
+  const int                nbound = U -> _nbound;
+  const real               mu     = Femlib::value ("RHO * KINVIS");
   Vector                   secF;
   vector<real>             work(4 * np);
   real                     *u, *v, *w;
@@ -512,7 +512,7 @@ void Field::tangTractionV (real*        fx,
     u = U -> _plane[j];
     v = V -> _plane[j];
     w = (W) ? W -> _plane[j] : 0;
-    for (i = 0; i < _nbound; i++) {
+    for (i = 0; i < nbound; i++) {
       secF = UBC[i] -> tangentTraction ("wall", u, v, &work[0]);
              fx[j] -= mu * secF.x;
              fy[j] -= mu * secF.y;
@@ -593,10 +593,10 @@ Field& Field::solve (AuxField*             f  ,
     switch (M -> _method) {
 
     case DIRECT: {
-      const real*    H       = (const real*)    M -> _H;
-      const real**   hii     = (const real**)   M -> _hii;
-      const real**   hbi     = (const real**)   M -> _hbi;
-      const integer* b2g     = (const integer*) N -> btog();
+      const real*    H     = const_cast<const real*>   (M -> _H);
+      const real**   hii   = const_cast<const real**>  (M -> _hii);
+      const real**   hbi   = const_cast<const real**>  (M -> _hbi);
+      const integer* b2g   = const_cast<const integer*>(N -> btog());
       int            nband   = M -> _nband;
 
       vector<real>   work (nglobal + 4*npnp);
