@@ -23,7 +23,7 @@
 	IO_FLD    = N_STEP/32
 
 	N_TIME    = 2
-	N_POLY    = 8
+	N_P       = 8
 	Re        = 220
 	KINVIS    = 1/Re
 	ITERATIVE = 0

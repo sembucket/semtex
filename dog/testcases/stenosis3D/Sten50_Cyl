@@ -4,7 +4,7 @@
 	D_T       = 0.001
 	N_STEP    = 500
 	N_TIME    = 2
-	N_POLY    = 7
+	N_P       = 7
 	IO_CFL    = 25
 	IO_FLD    = 1000
 	AVERAGE   = 0

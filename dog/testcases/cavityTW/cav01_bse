@@ -5,7 +5,7 @@
 </USER>
 
 <TOKENS>
-        N_POLY    = 8
+        N_P       = 8
 	N_Z       = 1
 
 	ReA	  = 1212

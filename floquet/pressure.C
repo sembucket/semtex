@@ -129,6 +129,13 @@ void PBCmgr::maintain (const integer    step   ,
     for (k = 0; k < nZ; k++) {
       Veclib::copy (nP, Nx -> _plane[k] + offset, skip, _Pnx[0][i][k], 1);
       Veclib::copy (nP, Ny -> _plane[k] + offset, skip, _Pny[0][i][k], 1);
+
+      // -- For cylindrical coordinates, N_ are radius-premultiplied. Cancel.
+
+      if (Geometry::cylindrical()) {
+	B -> divY (_Pnx[0][i][k]);
+	B -> divY (_Pny[0][i][k]);
+      }
     }
   }
 
@@ -201,14 +208,12 @@ void PBCmgr::maintain (const integer    step   ,
 	  Blas::scal   (nP, alpha[0], tmp, 1);
 	  for (q = 0; q < Je; q++)
 	    Blas::axpy (nP, alpha[q + 1], _Unx[q][i][k], 1, tmp, 1);
-	  if (Geometry::cylindrical()) B -> mulY (tmp);
 	  Blas::axpy (nP, -invDt, tmp, 1, _Pnx[0][i][k], 1);
 	  
 	  Veclib::copy (nP, Uy -> _plane[k] + offset, skip, tmp, 1);
 	  Blas::scal   (nP, alpha[0], tmp, 1);
 	  for (q = 0; q < Je; q++)
 	    Blas::axpy (nP, alpha[q + 1], _Uny[q][i][k], 1, tmp, 1);
-	  if (Geometry::cylindrical()) B -> mulY (tmp);
 	  Blas::axpy (nP, -invDt, tmp, 1, _Pny[0][i][k], 1);
 	}
       }

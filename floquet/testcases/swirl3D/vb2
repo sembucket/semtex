@@ -9,7 +9,7 @@
 
 <TOKENS>
    N_Z         = 2
-   N_POLY      = 8
+   N_P         = 8
    CYLINDRICAL = 1
    K_FUND      = 6
    BETA        = K_FUND

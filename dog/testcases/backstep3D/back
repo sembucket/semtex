@@ -14,7 +14,7 @@
 
 <TOKENS>
 	N_TIME	= 2
-	N_POLY	= 9
+	N_P	= 9
 	N_BASE  = 2
 	N_SLICE = 1
 

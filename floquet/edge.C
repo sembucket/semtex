@@ -102,8 +102,7 @@ void Edge::curlCurl (const integer k  ,
 // ---------------------------------------------------------------------------
 {
   const integer npnp        = sqr (_np);
-  const integer elmtOff     = _elmt -> ID() * npnp;
-  const integer localOff    = _doffset - elmtOff;
+  const integer localOff    = _doffset - _eoffset;
   const bool    fullComplex = (Geometry::nPert() == 3)&&(Geometry::nZ() == 2);
 
   real* gw = wrk;
@@ -115,9 +114,9 @@ void Edge::curlCurl (const integer k  ,
   
   // -- Make pointers to current element storage.
 
-  Ur += elmtOff; Ui += elmtOff;
-  Vr += elmtOff; Vi += elmtOff;
-  Wr += elmtOff; Wi += elmtOff;
+  Ur += _eoffset; Ui += _eoffset;
+  Vr += _eoffset; Vi += _eoffset;
+  Wr += _eoffset; Wi += _eoffset;
 
   if (k == 0) {			// -- Zeroth mode / 2D.
 
@@ -137,11 +136,8 @@ void Edge::curlCurl (const integer k  ,
     // -- Add in cylindrical space modification to complete x-component.
 
     if (Geometry::cylindrical()) {
-      _elmt -> sideGet (_side, w, t);
-
-      Veclib::vmul (_np, xr, 1, _y, 1, xr, 1);
-      Veclib::vmul (_np, yr, 1, _y, 1, yr, 1);
-      Veclib::vadd (_np, xr, 1, t,  1, xr, 1);
+      _elmt -> sideDivY (_side, w, t);
+      Veclib::vadd      (_np, xr, 1, t, 1, xr, 1);
     }
 
     // -- Sign change to complete y-component of curl curl u.
@@ -163,10 +159,8 @@ void Edge::curlCurl (const integer k  ,
     Veclib::neg       (_np, yr, 1);
 
     if (Geometry::cylindrical()) {
-      _elmt -> sideGet (_side, w, t);
-      Veclib::vmul (_np, xr, 1, _y, 1, xr, 1);
-      Veclib::vmul (_np, yr, 1, _y, 1, yr, 1);
-      Veclib::vadd (_np, xr, 1, t,  1, xr, 1);     
+      _elmt -> sideDivY (_side, w, t);
+      Veclib::vadd      (_np, xr, 1, t, 1, xr, 1);
     }
 
     if (fullComplex) {
@@ -178,10 +172,8 @@ void Edge::curlCurl (const integer k  ,
       Veclib::neg       (_np, yi, 1);
 
       if (Geometry::cylindrical()) {
-	_elmt -> sideGet (_side, w, t);
-	Veclib::vmul (_np, xi, 1, _y, 1, xi, 1);
-	Veclib::vmul (_np, yi, 1, _y, 1, yi, 1);
-	Veclib::vadd (_np, xi, 1, t,  1, xi, 1);   
+	_elmt -> sideDivY (_side, w, t);
+	Veclib::vadd      (_np, xi, 1, t, 1, xi, 1);
       }
     
       // -- Semi-Fourier terms based on Wr.
@@ -190,10 +182,12 @@ void Edge::curlCurl (const integer k  ,
       Veclib::copy  (npnp, Wr, 1, uy, 1);
       _elmt -> grad (vx, uy, gw);
       if (Geometry::cylindrical()) {
-	_elmt -> sideDivY (_side, Wr, t);
-	Blas::axpy (_np, betaK, vx + localOff, _dskip, xi, 1);
-	Blas::axpy (_np, betaK, uy + localOff, _dskip, yi, 1);
-	Blas::axpy (_np, betaK, t, 1, yi, 1);
+	_elmt -> sideDivY  (_side, vx,  t);
+	Blas::axpy         (_np,  betaK, t, 1, xi, 1);
+	_elmt -> sideDivY  (_side, uy,  t);
+	Blas::axpy         (_np,  betaK, t, 1, yi, 1);
+	_elmt -> sideDivY2 (_side, Wr,  t);
+	Blas::axpy         (_np,  betaK, t, 1, yi, 1);
       } else {
 	Blas::axpy (_np, betaK, vx + localOff, _dskip, xi, 1);
 	Blas::axpy (_np, betaK, uy + localOff, _dskip, yi, 1);
@@ -206,10 +200,12 @@ void Edge::curlCurl (const integer k  ,
     Veclib::copy  (npnp, Wi, 1, uy, 1);
     _elmt -> grad (vx, uy, gw);
     if (Geometry::cylindrical()) {
-      _elmt -> sideDivY (_side, Wi, t);
-      Blas::axpy (_np, -betaK, vx + localOff, _dskip, xr, 1);
-      Blas::axpy (_np, -betaK, uy + localOff, _dskip, yr, 1);
-      Blas::axpy (_np, -betaK, t, 1, yr, 1);
+      _elmt -> sideDivY  (_side, vx,   t);
+      Blas::axpy         (_np, -betaK, t, 1, xr, 1);
+      _elmt -> sideDivY  (_side, uy,   t);
+      Blas::axpy         (_np, -betaK, t, 1, yr, 1);
+      _elmt -> sideDivY2 (_side, Wi,   t);
+      Blas::axpy         (_np, -betaK, t, 1, yr, 1);
     } else {
       Blas::axpy (_np, -betaK, vx + localOff, _dskip, xr, 1);
       Blas::axpy (_np, -betaK, uy + localOff, _dskip, yr, 1);
@@ -218,15 +214,15 @@ void Edge::curlCurl (const integer k  ,
     // -- Fourier second derivatives in the third direction.
 
     if (Geometry::cylindrical()) {
-      _elmt -> sideDivY (_side, Ur,   t);
-      Blas::axpy        (_np, betaK2, t, 1, xr, 1);
-      _elmt -> sideDivY (_side, Vr,   t);
-      Blas::axpy        (_np, betaK2, t, 1, yr, 1);
+      _elmt -> sideDivY2 (_side, Ur,   t);
+      Blas::axpy         (_np, betaK2, t, 1, xr, 1);
+      _elmt -> sideDivY2 (_side, Vr,   t);
+      Blas::axpy         (_np, betaK2, t, 1, yr, 1);
       if (fullComplex) {
-	_elmt -> sideDivY (_side, Ui,   t);
-	Blas::axpy        (_np, betaK2, t, 1, xi, 1);
-	_elmt -> sideDivY (_side, Vi,   t);
-	Blas::axpy        (_np, betaK2, t, 1, yi, 1);
+	_elmt -> sideDivY2 (_side, Ui,   t);
+	Blas::axpy         (_np, betaK2, t, 1, xi, 1);
+	_elmt -> sideDivY2 (_side, Vi,   t);
+	Blas::axpy         (_np, betaK2, t, 1, yi, 1);
       }
     } else {
       Blas::axpy (_np, betaK2, Ur + localOff, _dskip, xr, 1);

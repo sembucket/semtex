@@ -1,5 +1,5 @@
 <TOKENS>
-	N_POLY    = 8
+	N_P       = 8
 	N_Z       = 2
 	BETA      = 8.5
 	N_BASE    = 2
