@@ -505,7 +505,7 @@ real AuxField::mode_L2 (const integer mode) const
     offset = E -> dOff();
     area  += E -> area();
     Ek    += E -> norm_L2 (plane[kr] + offset);
-    if (kr)
+    if (nZ > 1) 
       Ek  += E -> norm_L2 (plane[ki] + offset);
   }
 
@@ -989,9 +989,10 @@ real AuxField::probe (const Element* E,
     
     ROOTONLY {
       Veclib::copy (nZP, lbuf, 1, fbuf, 1);
-      for (k = 1; k < nP; k++) Femlib::recv (fbuf + k * nZP, nZP, k);
+      for (k = 1; k < nP; k++) 
+	Femlib::recv (fbuf + k * nZP, nZP, k);
     } else
-      for (k = 1; k < nP; k++) Femlib::send (lbuf, nZP, 0);
+      Femlib::send (lbuf, nZP, 0);
 
   } else {
     if (nZ < 3)
