@@ -79,6 +79,7 @@ void iadopt (const int size,
     S -> size = size;
     S -> data = *vect;
     S -> nrep = 1;
+    S -> next = 0;
 
     if (iHead) S -> next = iHead;
     iHead = S;
@@ -158,6 +159,7 @@ void dadopt (const int size,
     S -> size = size;
     S -> data = *vect;
     S -> nrep = 1;
+    S -> next = 0;
 
     if (dHead) S -> next = dHead;
     dHead = S;
@@ -234,6 +236,7 @@ void sadopt (const int size,
     S -> size = size;
     S -> data = *vect;
     S -> nrep = 1;
+    S -> next = 0;
 
     if (sHead) S -> next = sHead;
     sHead = S;
