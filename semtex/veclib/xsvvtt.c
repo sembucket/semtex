@@ -24,7 +24,7 @@ void dsvvtt (int n, double alpha, const double *x, int incx,
 }
 
 
-void ssvvtp (int n, float alpha, const float *x, int incx,
+void ssvvtt (int n, float alpha, const float *x, int incx,
 	                         const float *y, int incy,
                                        float *z, int incz)
 {
