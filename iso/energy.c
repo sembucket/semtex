@@ -92,7 +92,6 @@ real  rmsEns (const CVF U, const int* Dim)
 	  kSqrd  = SQR (k1) + SQR (k2) + SQR (k3);
 	  omega += kSqrd * (MAG (U[c][k1][k2][k3]) + MAG (U[c][b1][k2][k3]) +
 			    MAG (U[c][k1][b2][k3]) + MAG (U[c][b1][b2][k3]) );
-
 	}
       }
     }
@@ -132,4 +131,18 @@ real  amaxf (const CF U, const int* Dim)
   for (i = 0; i < Npts; i++) mx = MAX (fabs(u[i]), mx);
 
   return mx;
+}
+
+
+void  normalize (CVF IC, const int* Dim)
+/* ------------------------------------------------------------------------- *
+ * Normalize velocity components to give q^2 = 1.0.
+ * 
+ * IC components are supplied in FOURIER space.
+ * ------------------------------------------------------------------------- */
+{
+  int         c;
+  const real  q2 = energyF (IC, Dim);
+  
+  for (c = 1; c <= 3; c++) scaleF (IC[c], 1.0 / sqrt (q2), Dim);
 }
