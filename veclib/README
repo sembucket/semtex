@@ -10,9 +10,8 @@ SYNOPSIS: Linear algebra primitives (alplib).
 
 INTRODUCTION:
 ------------- 
-The library descends from the iPSC/2 VECLIB library and a similar
-implementation by Ron Henderson.  The available vector operations
-complement the BLAS.
+The library descends from the iPSC/2 VECLIB library.
+Available vector operations complement the BLAS.
 
 Not all the VECLIB routines are implemented: for example those which
 are already in the BLAS are omitted and there are some additions,
@@ -161,7 +160,7 @@ MISCELLANEOUS FUNCTIONS:
 #               clip
 #               iclip
 		cndst.................................. x   x           x
-		mask................................... x   x
+		mask................................... x   x           x
 #               fft
 #               ifft
 %               rot
