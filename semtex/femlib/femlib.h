@@ -198,9 +198,39 @@ _alpIreg[3]=iq, _alpIreg[4]=ir,_alpIreg[5]=isign,             \
 smpfft_(v,w,_alpIreg,_alpIreg+1,_alpIreg+2,                   \
 _alpIreg+3,_alpIreg+4,trig,_alpIreg+5))
 
+#if defined(SX)
+
+/* -- Routines from NEC FFT library: floating precision depends on library. */
+
+void rftfax_ (integer*,integer*,real*);
+void rfft_   (real*,real*,real*,integer*,integer*,integer*,real*);
+
+#define rftfax(n,ifax,trigs)                        \
+(_alpIreg[0]=n,rftfax_(_alpIreg,ifax,trigs))
+#define rfft(r,w,trigs,ifax,n,l,xnorm)              \
+(_alpIreg[0]=n,_alpIreg[1]=l,_alpDreg[0]=xnorm,     \
+rfft_(r,w,trigs,ifax,_alpIreg,_alpIreg+1,_alpDreg))
+
+#endif
+
 /* -- Routines from fourier.c */
 
 void sDFTr (float*,  const integer, const integer, const integer);
 void dDFTr (double*, const integer, const integer, const integer);
+
+/* -- Routines from message.c: */
+
+void message_init       (int*, char***);
+void message_stop       ();
+void message_sync       ();
+void message_dsend      (double*,  const integer, const integer);
+void message_drecv      (double*,  const integer, const integer);
+void message_ssend      (float*,   const integer, const integer);
+void message_srecv      (float*,   const integer, const integer);
+void message_isend      (integer*, const integer, const integer);
+void message_irecv      (integer*, const integer, const integer);
+void message_dtranspose (double*,  const integer, const integer,const integer);
+void message_stranspose (float*,   const integer, const integer,const integer);
+void message_itranspose (integer*, const integer, const integer,const integer);
 
 #endif
