@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // enumerate.C:  utility to generate mesh numbering from mesh description file.
 //
+// Copyright (c) 1995--1999 Hugh Blackburn
+//
 // Usage: enumerate [options] file
 //   options:
 //   -h       ... display this message

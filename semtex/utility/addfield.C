@@ -2,6 +2,8 @@
 // addfield.C: process sem field files, computing and adding vorticity and
 //             div, rate of strain tensor and invariants.
 //
+// Copyright (c) 1998--1999 Hugh Blackburn, Murray Rudman
+//
 // Usage:
 // -----
 // addvort [options] -s session session.fld
@@ -15,14 +17,13 @@
 //   -i   ... add invariants of Vij (but NOT Vij itself)
 //            (NB: Divergence is ASSUMED equal to zero)
 //   -a   ... add them all
+//
+// $Id$
 //////////////////////////////////////////////////////////////////////////////
 
 #include <Sem.h>
 #include <new.h>
 #include <time.h>
-
-static char
-RCSid[] = "$Id$";
 
 static char  prog[] = "addfield";
 static void  memExhaust () { message ("new", "free store exhausted", ERROR); }

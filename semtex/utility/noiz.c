@@ -2,6 +2,8 @@
  * noiz.c: add a random Gaussian perturbation to a velocity field.
  *         Optionally filter out a named mode.
  *
+ * Copyright (c) 1996--1999 Hugh Blackburn
+ *
  * USAGE
  * -----
  * noiz [-h] [-f] [-o output] [-p perturb] [-m mode] [-s seed] [input[.fld]

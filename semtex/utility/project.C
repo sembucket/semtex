@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // project.C:  Project solution files to different interpolation orders.
 //
+// Copyright (c) 1996--1999 Hugh Blackburn
+//
 // SYNOPSIS
 // --------
 // Process sem field file, project to new interpolation order on the
@@ -22,10 +24,9 @@
 // 
 // If file is not present, read from standard input.  Write to
 // standard output.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <stdarg.h>
 #include <stdlib.h>
