@@ -11,10 +11,9 @@
  *
  * NB: if another pointer is pre-aliased to input pointer, remember to reset
  * it to the pointer returned after adoption routines are called.
+ *
+ * $Id$
  *****************************************************************************/
-
-static char
-RCSid[] = "$Id$";
 
 #include <stdio.h>
 #include <malloc.h>
