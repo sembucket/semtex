@@ -51,13 +51,13 @@ int main (int argc, char *argv[])
   curl (U, Q, Work, Dim);
 
   /* -- Transform to PHYSICAL space. */
-
+#if 1
   preFFT (Wtab, Dim[3]);
   for (c = 1; c <= 3; c++) {
     rc3DFT (U[c], Dim, Wtab, INVERSE);
     rc3DFT (Q[c], Dim, Wtab, INVERSE);
   }
-
+#endif
   u = &U[1][0][0][0].Re;
   v = &U[2][0][0][0].Re;
   w = &U[3][0][0][0].Re;

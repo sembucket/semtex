@@ -23,7 +23,7 @@
 
 enum    err_lev     {WARNING, ERROR, REMARK};
 
-typedef float       real;	/* Global precision control. */
+typedef double       real;	/* Global precision control. */
 typedef struct      {real Re, Im;} complex;
 typedef complex***  CF;		/* 3D array of complex.      */
 typedef CF*         CVF;	/* 3-component vector of CF. */
