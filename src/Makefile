@@ -160,10 +160,9 @@ CXX	 = cxx
 LD	 = cxx
 FC       = f90
 CC       = cc
-CFLAGS   = $(DEFINES) -fast -inline speed -fp_reorder \
-           -speculate all -tune host -O4
-FFLAGS   = $(DEFINES) -fast -tune host -O5
-CXXFLAGS = $(DEFINES) -tune host -O2
+CFLAGS   = $(DEFINES) -fast -tune host
+FFLAGS   = $(DEFINES) -fast -tune host
+CXXFLAGS = $(DEFINES) -fast -tune host
 RANLIB   =
 FORTLIBS = -ldxml -lfor
 # -- This redefinition is required on Compaq machines:
