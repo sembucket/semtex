@@ -128,7 +128,7 @@ integral: integral.o  $(INTOBJ)
 PRBOBJ = probe.o feml.o mesh.o element.o auxfield.o geometry.o
 
 probe: $(PRBOBJ)
-	$(CXX) $(CPPFLAGS) -g -o $@ $(PRBOBJ) $(LDFLAGS)
+	$(CXX) $(CPPFLAGS) -o $@ $(PRBOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build rectmesh, rectangular mesh generator.

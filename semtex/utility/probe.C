@@ -107,11 +107,10 @@ int main (int    argc,
   char              *session, *dump, *format;
   char              *interface = 0, *points = 0;
   integer           NP, NZ,  NEL;
-  integer           i, j, k, nf, ntot = 0, doff = 0, boff = 0, rotswap = 0;
+  integer           i, j, k, nf, ntot = 0, rotswap = 0;
   ifstream          fldfile, pntfile;
   FEML*             F;
   Mesh*             M;
-  Point             lo, hi;
   const real*       knot;
   vector<real>      r, s, work, datum;
   vector<Point*>    point;
@@ -224,6 +223,7 @@ static void getargs (integer argc     ,
   format = new char [16];
   strcpy (format, "free");	// -- Default output format.
   interface = *argv;
+  char err[StrMax];
 
   if (strcmp (interface, "probe") == 0) {
 
@@ -320,6 +320,10 @@ static void getargs (integer argc     ,
 	    message (prog, "too many numbers in point string", ERROR);
 	    break;
 	  }
+	if (set != 6) {
+	  sprintf (err, "wrong number of parameters to line string (%1d)",set);
+	  message (prog, err, ERROR);
+	}
 	break;
       case 's':
 	if (*++argv[0])
@@ -334,9 +338,8 @@ static void getargs (integer argc     ,
 	exit (EXIT_FAILURE);
 	break;
       }
-    if (set != 6) {
-      message (prog, "wrong number of parameters to line string", ERROR);
-    }
+    if (!set)
+      message (prog, "no points set", ERROR);
 
   } else if (strcmp (interface, "probeplane") == 0) {
 
