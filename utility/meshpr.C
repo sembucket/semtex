@@ -92,7 +92,6 @@ int main (int     argc,
   if (threed) {
 
     // -- Print out x, y, z for every mesh location, in planes.
-    //    NB: this prints out periodic plane, too.
 
     nz = (nz > 1) ? nz : 0;
     for (k = 0; k <= nz; k++) {
