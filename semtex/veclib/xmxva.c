@@ -15,6 +15,7 @@
  *      nra ... int     ... number of rows in A                              *
  *      nca ... int     ... number of columns in A                           *
  *                                                                           *
+ * Consider BLAS2 xgemv as alternatives.                                     *
  *****************************************************************************/
 
 #include <stdio.h>
@@ -22,13 +23,15 @@
 
 #if !defined(mxva)
 
-void dmxva(double* A, int iac, int iar, double* B, int ib,
+
+void dmxva(double *A, int iac, int iar, double *B,   int ib,
 	   double *C, int ic,  int nra, int nca)
 {
   register double *a, *b,
                   *c = C;
   register double  sum;
   register int     i, j;
+
 
   for(i = 0; i < nra; ++i) {
     sum = 0.0;
@@ -50,8 +53,8 @@ void dmxva(double* A, int iac, int iar, double* B, int ib,
 
 
 
-void smxva(float* A, int iac, int iar, float* B, int ib,
-	   float *C, int ic,  int nra, int nca)
+void smxva(float *A, int iac, int iar, float *B,   int ib,
+	   float *C, int ic,  int nra, int    nca)
 {
   register float *a, *b,
                  *c = C;
