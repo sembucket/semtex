@@ -22,6 +22,7 @@ static struct {
   
   /* -- Default named parameters. */
 
+  "D_T"      ,   0.01  ,
   "TOL_REL"  ,   1.0e-6,
   "TOL_ABS"  ,   1.0e-6,
   "BETA"     ,   1.0   ,	/* -- TWOPI / Lz. */
@@ -49,6 +50,7 @@ static struct {
   "STEP_MAX" ,   500 ,
   "N_POLY"   ,   5   ,
   "N_TIME"   ,   2   ,
+  "N_STEP"   ,   1   ,
   "N_Z"      ,   1   ,
 
   0          ,   0.0
