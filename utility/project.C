@@ -1,18 +1,30 @@
 ///////////////////////////////////////////////////////////////////////////////
-// project.C: process sem field file, project to new interpolation order
-// on the same mesh.  Each dump in file is expected to be the same size.
-// Also it is assumed that the field file represents a vector field dump,
-// so that if the input file has N space dimensions, the first N fields
-// represent vector components.  Input file must be binary format.
+// project.C:  Project solution files to different interpolation orders.
 //
-// Usage:
+// SYNOPSIS
+// --------
+// Process sem field file, project to new interpolation order on the
+// same mesh.  Each dump in file is expected to be the same size.
+// Also it is assumed that the field file represents a vector field
+// dump, so that if the input file has N space dimensions, the first N
+// fields represent vector components.  Input file must be binary
+// format.
+//
+// USAGE
 // -----
-// project [-h] [-n num] [-z num] [-u] [file]
+// project [options] [file]
+// options:
+// -h       ... print this message.
+// -n <num> ... project elements to num x num.
+// -z <num> ... project to <num> planes in the homogeneous direction.
+// -u       ... project elements to uniform internal grid [Default: GLL].
+// 
+// If file is not present, read from standard input.  Write to
+// standard output.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char
 RCSid[] = "$Id$";
-
 
 #include <stdarg.h>
 #include <stdlib.h>

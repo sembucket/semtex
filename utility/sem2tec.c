@@ -238,7 +238,7 @@ static integer read_data (FILE *fp)
   while (n++ < 25 && nfields < MAXFIELDS) 
     if (isalpha(*c++)) type[nfields++] = *(c-1);
 
-  if (nfields == MAXFIELDS) {
+  if (nfields > MAXFIELDS) {
     fprintf(stderr, "sem2tec: a maximum of %d fields may be converted.\n", 
 	    MAXFIELDS);
     exit(EXIT_FAILURE);
