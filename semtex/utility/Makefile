@@ -9,7 +9,7 @@ VPATH = $(SEM)/src
 
 essential: sem compare enumerate
 
-all: essential nosrc meshpr calc addfield sem2nek \
+all: essential plain nosrc meshpr calc addfield sem2nek \
      convert project interp probe rectmesh transform
 
 # ----------------------------------------------------------------------------
@@ -31,6 +31,14 @@ compare: $(COMOBJ)
 #
 enumerate: feml.o mesh.o enumerate.o
 	$(LD) -o $@ $@.o feml.o mesh.o $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Plain (C) programmes.
+#
+plain: slit chop
+slit chop:\
+	slit.c chop.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.c -lm
 
 # ----------------------------------------------------------------------------
 # Standalone (bar semtex standard libs) C programs.

@@ -72,7 +72,7 @@ else
 endif
 endif
 
-ifeq ($(ARCH),Linux-i586)               # -- Linux Intel w GNU compilation.
+ifeq ($(ARCH),Linux-i686)               # -- Linux Intel w GNU compilation.
 CXX      = g++
 LD       = g++
 CC       = gcc
@@ -83,7 +83,7 @@ else
   OPT    = -O3 -w
 endif
 CFLAGS   = $(DEFINES) $(OPT)
-CFLAGS   = $(DEFINES) $(OPT)
+FFLAGS   = $(DEFINES) $(OPT)
 CXXFLAGS = $(DEFINES) $(OPT)
 LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lalp $(F77LIBS)
 RANLIB   = ranlib
