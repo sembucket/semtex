@@ -60,7 +60,7 @@ C
       IMPLICIT NONE
 C
       INTEGER          NP, NEL, I, J, K, L
-      DOUBLE PRECISION U(NP,NP,NEL), US(NP,NP,NEL), DV(NP,NP)
+      DOUBLE PRECISION U(NP,NP,NEL), US(NP,NP,NEL), DT(NP,NP)
 C
 #if   defined (_SX)
       DO J = 1, NP
@@ -157,7 +157,7 @@ C
       IMPLICIT NONE
 C
       INTEGER NP, NEL, I, J, K, L
-      REAL    U(NP,NP,NEL), US(NP,NP,NEL), DV(NP,NP)
+      REAL    U(NP,NP,NEL), US(NP,NP,NEL), DT(NP,NP)
 C
 #if   defined (_SX)
       DO J = 1, NP
