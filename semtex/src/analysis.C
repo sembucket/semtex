@@ -347,7 +347,7 @@ void Analyser::estimateCFL () const
   int        percent;
 
   CFL_dt = max (src -> u[0] -> CFL (0), src -> u[1] -> CFL (1));
-  if (Geometry::nDim() == 3) CFL_dt = max (CFL_dt, src -> u[2] -> CFL (2));
+  if (src -> nField() > 3) CFL_dt = max (CFL_dt, src -> u[2] -> CFL (2));
 
   dt_max  = SAFETY * CFL_max / CFL_dt;
   percent = (int) (100.0 * dt / dt_max);

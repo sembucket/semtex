@@ -206,7 +206,7 @@ AuxField& AuxField::innerProduct (const vector <AuxField*>& a,
 // ---------------------------------------------------------------------------
 {
   const char    routine[] = "AuxField::innerProduct";
-  const integer ndim = Geometry::nDim();
+  const integer ndim      = a.getSize();
   integer       i;
 
   if (_size != a[0]->_size || _size != b[0]->_size)
@@ -602,7 +602,10 @@ real AuxField::integral () const
 {
   const integer nel  = Geometry::nElmt();
   const integer npnp = Geometry::nTotElmt();
-  const real    Lz   = (Geometry::nDim() > 2) ? Femlib::value("TWOPI/BETA"):1.;
+  const real    Lz   =
+    (Geometry::nDim()   >  2 ||
+     Geometry::system() == Geometry::Cylindrical)
+    ? Femlib::value ("TWOPI/BETA") : 1.0;
   register integer i;
   vector<real>     work (npnp);
   real             total = 0.0, *p, *tmp = work();
