@@ -1,5 +1,5 @@
 /*****************************************************************************
- * globals.h: typedefs, prototypes for isotropic code & associated routines.
+ * iso.h: typedefs, prototypes for isotropic code & associated routines.
  * 
  * $Id$
  *****************************************************************************/
@@ -11,90 +11,87 @@
 #include <string.h>
 #include <math.h>
 
-#define STRMAX      80
+#define STR_MAX     80
 #define TRUE        1
 #define FALSE       0
 #define FORWARD     1
 #define INVERSE     0
-#define MAGIC       0x80e9f3ef
 
 #define SQR(a)      ((a) * (a))
-#define SGN(a)      ((a) < 0.0 ?    -1.0 : 1.0)
 #define MIN(a, b)   ((a) < (b) ?     (a) : (b))
 #define MAX(a, b)   ((a) > (b) ?     (a) : (b))
 
 enum    err_lev     {WARNING, ERROR, REMARK};
 
-typedef float       real;
-typedef char        string[STRMAX];
+typedef float       real;	/* Global precision control. */
 typedef struct      {real Re, Im;} complex;
-typedef complex***  CF;
-typedef CF*         CVF;
+typedef complex***  CF;		/* 3D array of complex.      */
+typedef CF*         CVF;	/* 3-component vector of CF. */
 
 typedef struct {
-  int     Magic;    /* 0x80e9f3ef = 0x" iso" & 0x80808080    */
-  string  Title;    /* Name of simulation                    */
-  string  IC_File;  /* Used as root for restart file names   */
-  int     N_Grid;   /* Power of 2: grid is N_Grid^3          */
-  real    Delta_T;  /* Time step                             */
-  int     N_Save;   /* Number of timesteps between restarts  */
-  int     Max_Step; /* Maximum number of timesteps to take   */
-  int     N_Step;   /* Number of steps taken so far          */
-  real    K_Visc;   /* Kinematic viscosity                   */
-} header;
+  char    name[STR_MAX];  /*  Name of simulation                    */
+  FILE*   output;         /*  Field file for writes                 */
+  int     modes;          /*  Power of 2: grid is (2*Modes)^3       */
+  int     stepSave;       /*  Number of timesteps between restarts  */
+  int     stepMax;        /*  Maximum number of timesteps to take   */
+  int     step;           /*  Number of steps taken so far          */
+  real    Re;             /*  Re = 1 / Kinematic viscosity          */
+  real    dt;             /*  Time step                             */
+  real    time;           /*  Evolution time                        */
+} Param;
 
 
 /* -- io.c */
 
-void  message         (const char*, const char*, int);
-FILE* efopen          (string, string);
-void  read_start_file (FILE*, header*);
-void  read_field      (FILE*, CVF, const int);
-void  write_field     (FILE*, CVF, const int);
-void  make_file_name  (const header*, string);
-void  write_restart   (FILE*, const header*, const CVF, const CVF, const int);
-void  print_header    (FILE*, const header*);
-void  read_header     (FILE*, header*);
-void  write_header    (FILE*, const header*);
+void  message     (const char*, const char*, int);
+FILE* efopen      (const char*, const char*);
+void  readCVF     (FILE*,       CVF, const int*);
+void  writeCVF    (FILE*, const CVF, const int*);
+void  startup     (FILE*,        Param*, const char*, const int);
+void  printParam  (FILE*, const  Param*, const char *, const char *);
+void  readParam   (FILE*,        Param*);
+void  writeParam  (FILE*, const  Param*);
+void  initialize  (       CVF,   Param*, const int*);
+void  analyze     (       CVF,   Param*, const complex*, const int*);
+void  dump        (const  CVF,   Param*, const int, const int*);
+void  cleanup     (Param*, const int);
 
+/* -- allocate.c */
 
-
-real**  cfield    (int*, CVF*);
-void    tophat    (int*, CVF, int);
-real    normalize (int*, complex*, real**, CVF);
-
-int*      ivector (int, int);
-complex*  cvector (int, int);
-real*     cbox    (int, int, int, int, int, int, CF*);
-
-real**  cfield           (int*, CVF*);
-void    zero             (CVF, const int*);
-void    allocate_storage (CVF*, CVF*, CVF*, CVF*,
-			  CF*,  complex**, complex**, int*);
+real**    cfield     (int*, CVF*);
+void      tophat     (int*, CVF, int);
+real      normalize  (int*, complex*, real**, CVF);
+int*      ivector    (int, int);
+complex*  cvector    (int, int);
+real*     cbox       (int, int, int, int, int, int, CF*);
+real**    cfield     (int*, CVF*);
+void      allocate   (CVF*, CVF*, CVF*, CVF*, CF*, CF*,
+		      complex**, complex**, int*);
 
 /* -- FFT.c */
 
-void preFFT   (int, complex*);
-void preShift (int, complex*);
+void preFFT   (complex*, const int);
+void preShift (complex*, const int);
 void rc3DFT   (CF, const int*, const complex*, const int);
 void scaleFT  (CF, const int*);
 int  ispow2   (int);
 
-/* -- nonlin.c */
+/* -- nonlinear.c */
 
-void  nonlin (const CVF, CVF, CF, CVF,
-	      const complex*, const complex*, const int*);
+void nonlinear (CVF, CVF, CF, CF, CVF,
+		const complex*, const complex*, const int*);
 
 /* -- integrate.c */
 
-void  integrate (CVF, const CVF, const CVF,
-		 const header*, const int*, const int);
+void integrate (CVF, const CVF, const CVF, const Param*, const int*);
 
 /* -- energy.c */
 
-real  energyP      (const int*, CVF V, const complex*);
-real  energyF      (const int*, const CVF);
-real  genEnstrophy (const int*, const CVF);
+real  energyP  (CVF   V,   const complex*, const int*);
+real  energyF  (const CVF, const int*);
+real  rmsEns   (const CVF, const int*);
+real  L2norm   (const CF,  const int*);
+real  amaxf    (const CF,  const int*);
 
 /* -- truncation.c */
 
@@ -111,8 +108,16 @@ void  pressure (CVF, CVF, CF, CVF, CF, complex*, complex*, int*);
 
 /* -- taylor.c */
 
-void  Taylor2D       (const int*, CVF, const int);
-void  Taylor2D_error (const int*, CVF, const header*, const int);
-void  TaylorGreen    (const int*, CVF);
+void  Taylor2D       (CVF, const int*, const int);
+void  Taylor2D_error (CVF, const int*, const Param*, const int);
+void  TaylorGreen    (CVF, const int*);
 real  Brachet        (const real);
 
+/* -- misc.c */
+
+void  zeroVF (CVF, const int*);
+void  zeroF  (CF,  const int*);
+void  copyF  (CF,  const CF, const int*);
+void  setF   (CF,  const CF, const int*);
+void  addF   (CF,  const CF, const int*);
+void  subF   (CF,  const CF, const int*);
