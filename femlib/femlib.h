@@ -137,9 +137,33 @@ void drfftb_ (int*, double*, double*);
 #define drfftf(n,r,wsave) (_alpIreg[0]=n, drfftf_ (_alpIreg, r, wsave))
 #define drfftb(n,r,wsave) (_alpIreg[0]=n, drfftb_ (_alpIreg, r, wsave))
 
+/* -- Routines from canfft.f (Canuto/Temperton FFT routines): */
+
+void factor_ (int*, int*, int*);
+
+#define factor(n, nfac, ifac) (_alpIreg[0]=n, factor_ (_alpIreg, nfac, ifac))
+
+void spreft_ (int*, int*, int*, float*);
+void smrcft_ (float*, int*, int*, float*, int*, int*, float*, int*);
+
+#define spreft(n,nfac,ifac,trig)  \
+(_alpIreg[0]=n, spreft_ (_alpIreg, nfac, ifac, trig))
+#define smrcft(v, np, nz, w, nfac, ifac, trig, sign)  \
+(_alpIreg[0]=np, _alpIreg[1]=nz, _alpIreg[2]=nfac, _alpIreg[3]=sign,  \
+smrcft_(v, _alpIreg, _alpIreg+1, w, _alpIreg+2, ifac, trig, _alpIreg+3))
+
+void dpreft_ (int*, int*, int*, double*);
+void dmrcft_ (double*, int*, int*, double*, int*, int*, double*, int*);
+
+#define dpreft(n,nfac,ifac,trig)  \
+(_alpIreg[0]=n, dpreft_ (_alpIreg, nfac, ifac, trig))
+#define dmrcft(v, np, nz, w, nfac, ifac, trig, sign)  \
+(_alpIreg[0]=np, _alpIreg[1]=nz, _alpIreg[2]=nfac, _alpIreg[3]=sign,  \
+dmrcft_(v, _alpIreg, _alpIreg+1, w, _alpIreg+2, ifac, trig, _alpIreg+3))
+
 /* -- Routines from fourier.c */
 
-void sDFTr (float*,  const int, const int, const int, const int, const int);
-void dDFTr (double*, const int, const int, const int, const int, const int);
+void sDFTr (float*,  const int, const int, const int);
+void dDFTr (double*, const int, const int, const int);
 
 #endif
