@@ -87,19 +87,22 @@ int main (int    argc,
   if (kdim < nvec) message (prog, "param error: NVEC must be <= KDIM", ERROR);
   
   const int ntot = preprocess (session);
+  const int wdim = kdim + kdim + (kdim * kdim) + 3*ntot*(kdim + 1);
 
   // -- Allocate eigenproblem storage.
 
-  vector<real> work (kdim + kdim + (kdim * kdim) + 3*ntot*(kdim + 1));
-  real*        wr   = work();
-  real*        wi   = wr   + kdim;
-  real*        zvec = wi   + kdim;
-  real*        kvec = zvec + kdim * kdim;
-  real*        tvec = kvec + ntot * (kdim + 1);
-  real*        evec = tvec + ntot * (kdim + 1);
-  real**       Kseq = new real* [kdim + 1];
-  real**       Tseq = new real* [kdim + 1];
-  real**       Eseq = new real* [kdim + 1];
+  vector<real> work (wdim);
+  Veclib::zero (wdim, work(), 1);
+
+  real*  wr   = work();
+  real*  wi   = wr   + kdim;
+  real*  zvec = wi   + kdim;
+  real*  kvec = zvec + kdim * kdim;
+  real*  tvec = kvec + ntot * (kdim + 1);
+  real*  evec = tvec + ntot * (kdim + 1);
+  real** Kseq = new real* [kdim + 1];
+  real** Tseq = new real* [kdim + 1];
+  real** Eseq = new real* [kdim + 1];
 
   for (i = 0; i <= kdim; i++) {
     Kseq[i] = kvec + i * ntot;
@@ -159,11 +162,14 @@ static void EV_init (real* tgt)
 // Load initial vector from domain velocity fields.
 // ---------------------------------------------------------------------------
 {
-  int       i;
-  const int DIM = Geometry::nPert();
-  const int NP  = Geometry::planeSize();
+  int       i, k;
+  const int ND = Geometry::nPert();
+  const int NP = Geometry::planeSize();
+  const int NZ = Geometry::nZ();
     
-  for (i = 0; i < DIM; i++) domain -> u[i] -> getPlane (0, tgt + i * NP);
+  for (i = 0; i < ND; i++)
+    for (k = 0; k < NZ; k++)
+      domain -> u[i] -> getPlane (k, tgt + (i*NZ + k)*NP);
 }
 
 
@@ -173,16 +179,21 @@ static void EV_update  (const real* src,
 // Generate tgt by applying linear operator to src.
 // ---------------------------------------------------------------------------
 {
-  integer       j;
-  const integer NDIM = Geometry::nPert();
-  const integer NP   = Geometry::planeSize();
+  int       i, k;
+  const int ND = Geometry::nPert();
+  const int NP = Geometry::planeSize();
+  const int NZ = Geometry::nZ();
 
-  for (j = 0; j < NDIM; j++) domain -> u[j] -> setPlane (0, src + j*NP);
+  for (i = 0; i < ND; i++)
+    for (k = 0; k < NZ; k++)
+      domain -> u[i] -> setPlane (k, src + (i*NZ + k)*NP);
 
   domain -> step = 0;
   integrate (domain, analyst);
 
-  for (j = 0; j < NDIM; j++) domain -> u[j] -> getPlane (0, tgt + j*NP);
+  for (i = 0; i < ND; i++)
+    for (k = 0; k < NZ; k++)
+      domain -> u[i] -> getPlane (k, tgt + (i*NZ + k)*NP);
 }
 
 
@@ -432,22 +443,22 @@ static int EV_big (real**  K_Seq,   // Krylov subspace matrix
 
   /* generate big e-vector  */
 
-  for(j=0;j<kdim;j++){
+  for (j = 0; j < kdim; j++) {
     Veclib::zero (ntot, evecs[j], 1);
 
-    for(i=0;i<kdim;i++){
+    for (i = 0; i < kdim; i++) {
       wgt = z_vec[i+j*kdim];
       Blas::axpy (ntot, wgt, K_Seq[i], 1, evecs[j], 1);
     }
   }
 
   /* normalize big e-vectors */
-  for(i=0;i<kdim;i++){
-    if(wi[i]==0.0) {
+  for (i = 0; i < kdim; i++) {
+    if (wi[i] == 0.0) {
       norm = Blas::nrm2 (ntot, evecs[i], 1);
       Blas::scal (ntot, 1.0/norm, evecs[i], 1);
     }
-    else if(wi[i] > 0.0) {
+    else if (wi[i] > 0.0) {
       norm  = pow(Blas::nrm2(ntot, evecs[i], 1),  2.);
       norm += pow(Blas::nrm2(ntot, evecs[i+1], 1),2.);
       norm = sqrt(norm);
@@ -526,7 +537,8 @@ static void getargs (int    argc   ,
       break;
     case 'v':
       verbose = 1;
-      Femlib::value ("VERBOSE",   (integer) Femlib::value ("VERBOSE")   + 1);
+      Femlib::value ("VERBOSE", 
+		     static_cast<integer>(Femlib::value("VERBOSE") + 1));
       break;
     case 'k':
       if (*++argv[0]) kdim  = atoi (  *argv);
@@ -580,7 +592,6 @@ static int preprocess (const char* session)
   for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
 
   bman    = new BCmgr        (file, elmt);
-  domain  = new Domain (file, elmt, bman);
   domain  = new Domain       (file, elmt, bman);
   analyst = new StabAnalyser (domain, file);
 
@@ -588,5 +599,5 @@ static int preprocess (const char* session)
   domain -> loadBase();
   domain -> report  ();
 
-  return Geometry::nPert() * Geometry::planeSize();
+  return Geometry::nPert() * Geometry::planeSize() * Geometry::nZ();
 }
