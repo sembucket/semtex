@@ -52,11 +52,6 @@ FC = f90
 CC = cc
 CFLAGS = -fast -inline speed -fp_reorder -speculate all -tune host -O4
 FFLAGS = -fast -tune host -O5
-ifdef MPI
-  LIB     = libalp_mp.a
-  CFLAGS += -pthread
-  FFLAGS += -D_THREAD_SAFE
-endif
 endif
 
 ifeq ($(ARCH),Linux-i586)			# -- Linux Intel system
