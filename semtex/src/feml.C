@@ -54,6 +54,7 @@ FEML::FEML (const char* name)
     "SURFACES",
     "CURVES",
     "USER",
+    "HISTORY",
     0
   };
   
