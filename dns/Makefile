@@ -148,6 +148,12 @@ mesh.o: $(VPATH)/mesh.C
 BCmgr.o: $(VPATH)/BCmgr.C
 	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
 	$(VPATH)/BCmgr.C
+bsys.o: $(VPATH)/bsys.C
+	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+	$(VPATH)/bsys.C
+condition.o: $(VPATH)/condition.C
+	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+	$(VPATH)/condition.C
 dnsanalysis.o: dnsanalysis.C
 	$(CXX) -I$(SEM)/include -I. -c -hnostkchk +a1 -hacct -hnovector -p \
 	dnsanalysis.C
