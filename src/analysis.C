@@ -48,7 +48,7 @@ Analyser::Analyser (Domain* D   ,
 
     ifstream pfile (strcat (strcpy (str, src -> name), ".par"));  
 
-   if (!pfile.fail()) {
+    if (!pfile.fail()) {
       const integer  add = (integer) Femlib::value ("SPAWN");
       integer        id;
       Point          P, *I;
@@ -160,7 +160,7 @@ void Analyser::analyse (AuxField** work)
 	P.x = I -> x;
 	P.y = I -> y;
 	P.z = I -> z;
-	F   = new FluidParticle (src, FluidParticle::IDMax() + 1, P);
+	F   = new FluidParticle (src, I -> ID(), P);
 	if ((F -> inMesh())) particle.add (F);
       }
     }
