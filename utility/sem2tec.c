@@ -17,7 +17,7 @@ static char RCS[] = "$Id$";
 #include <cveclib.h>
 #include <cfemlib.h>
 
-#define   MAXFIELDS 16
+#define MAXFIELDS 32
 
 static char usage[] = 
   "usage: sem2tec [options] session[.fld]\n"
@@ -225,11 +225,24 @@ static void read_data (FILE *fp)
  * ------------------------------------------------------------------------- */
 {
   int  i, m, n, nplane;
+  int  nr_chk, ns_chk, nz_chk, nel_chk;
   char buf[STR_MAX], *c;
   
-  /* -- Read the header down to the field list. */
+  /* -- Read the header down to the field list, check size of input. */
 
-  for (n = 0; n < 9; n++) fgets(buf, STR_MAX, fp);
+  for (n = 0; n < 3; n++) fgets(buf, STR_MAX, fp);
+
+  if (sscanf (buf, "%d%d%d%d", &nr_chk, &ns_chk, &nz_chk, &nel_chk) != 4) {
+    fputs ("error while reading mesh\n", stderr);
+    exit  (EXIT_FAILURE);
+  }
+
+  if (nr != nr_chk || ns != ns_chk || nel != nel_chk) {
+    fputs ("2D structure of mesh and field file do not agree\n", stderr);
+    exit (EXIT_FAILURE);
+  }
+
+  for (n = 3; n < 9; n++) fgets(buf, STR_MAX, fp);
 
   /* -- Read the list of fields. */
 
