@@ -120,18 +120,18 @@ void lowpass (real* data)
   register integer i;
   const integer    pid = Geometry::procID();
   const integer    np  = Geometry::nP();
-  const integer    nP  = Geometry::nPlane();
+  const integer    nP  = Geometry::planeSize();
   const integer    nZP = Geometry::nZProc();
   const real       nel = Geometry::nElmt();
   vector<real>     tmp (nP);
+  real*            dataplane;
 
   if (!FourierMask) initFilters();
 
   for (i = 0; i < nZP; i++) {
-    Veclib::zero  (nP, tmp(), 1);
-    Femlib::grad2 (data+i*nP, data+i*nP, tmp(), tmp(), Du, Dt, np, nel);
-    Veclib::smul  (nP, FourierMask[i+pid*nZP], tmp(), 1, tmp(), 1);
-    Veclib::zero  (nP, data+i*nP, 1);
-    Femlib::grad2 (tmp(), tmp(), data+i*nP, data+i*nP, Iu, It, np, nel);
+    dataplane = data + i*nP;
+    Femlib::tpr2d (dataplane, dataplane, tmp(), Du, Dt, np, nel);
+    Veclib::smul  (nP, FourierMask[i+pid*nZP], dataplane, 1, dataplane, 1);
+    Femlib::tpr2d (dataplane, dataplane, tmp(), Iu, It, np, nel);
   }
 }
