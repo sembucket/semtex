@@ -7,11 +7,6 @@
 
 #include <femdef.h>
 
-#if defined(__uxp__)
-#pragma global novrec
-#pragma global noalias
-#endif
-
 
 double dsplquad (const double* xa ,
 		 const double* ya ,

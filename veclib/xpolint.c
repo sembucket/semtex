@@ -15,11 +15,6 @@
 #include <femdef.h>
 #include <alplib.h>
 
-#if defined(__uxp__)
-#pragma global novrec
-#pragma global noalias
-#endif
-
 
 double dpoly (integer n, double x, const double* xp, const double* yp)
 {

@@ -10,11 +10,6 @@
 
 #define MAX(x, y) ( ((x)>(y)) ? (x) : (y))
 
-#if defined(__uxp__)
-#pragma global novrec
-#pragma global noalias
-#endif
-
 
 void dvamax (integer n, 
 	     const double* x, integer incx,

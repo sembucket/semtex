@@ -6,11 +6,6 @@
 
 #include <femdef.h>
 
-#if defined(__uxp__)
-#pragma global novrec
-#pragma global noalias
-#endif
-
 
 void dsvvpt (integer n, double alpha,
 	     const double* x, integer incx,

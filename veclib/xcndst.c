@@ -6,11 +6,6 @@
 
 #include <femdef.h>
 
-#if defined(__uxp__)
-#pragma global novrec
-#pragma global noalias
-#endif
-
 
 void dcndst (integer n,
 	     const double*  x, integer incx,
