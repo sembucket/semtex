@@ -104,6 +104,7 @@ void nonLinear (Domain*        D ,
   Veclib::vmul(nTot, Lmix2, 1, RoS, 1, nut, 1);
 
 #if 1				// -- Diagnostic printout.
+  ROOTONLY
   if (!(D->step % (int) Femlib::value ("IO_CFL")))
     cout << "-- Eddy/molecular viscosity"
 	 << ", min: "
@@ -428,7 +429,7 @@ void dynamic (Domain*        D ,
   Femlib::exchange (Den, nZP, nP, INVERSE);
 #endif
 
-#if 1 // -- Elemental average.
+#if 0 // -- Elemental average.
 
   const integer nEl = Geometry::nElmt();
   const integer nP2 = Geometry::nTotElmt();
