@@ -170,6 +170,8 @@ void Statistics::dump ()
                             ((ND + 1) * ND) >> 1 : 0;
   const integer NA = NT - NR;
 
+  Femlib::synchronize();
+
   ROOTONLY {
     const char    routine[] = "Statistics::dump";
     const integer verbose   = (integer) Femlib::value ("VERBOSE");
@@ -199,9 +201,15 @@ void Statistics::dump ()
     if (verbose) message (routine, ": writing field dump", REMARK);
   }
 
+  Femlib::synchronize();
   for (i = 0; i < NA; i++) avg[i] -> transform (-1);
+  Femlib::synchronize();
+
   output << *this;
+
+  Femlib::synchronize();
   for (i = 0; i < NA; i++) avg[i] -> transform (+1);
+  Femlib::synchronize();
 
   ROOTONLY output.close();
 }

@@ -102,6 +102,8 @@ void SumIntegrator::dump ()
 
   ofstream output;
 
+  Femlib::synchronize();
+
   ROOTONLY {
     const char    routine[] = "SumIntegrator::dump";
     const integer verbose   = (integer) Femlib::value ("VERBOSE");
@@ -133,6 +135,7 @@ void SumIntegrator::dump ()
   
   output << *this;
 
+  Femlib::synchronize();
   ROOTONLY output.close();
 }
 
