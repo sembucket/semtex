@@ -45,7 +45,7 @@ Boundary::Boundary (const Boundary& B, const List<Element*>& E)
 
   int found = 0;
   for (ListIterator<Element*> k(E); !found && k.more(); k.next())
-    if (found = k.current() -> id () == elmt -> id ()) {
+    if (found = k.current() -> ID () == elmt -> ID ()) {
       elmt  = k.current();
       value = rvector (elmt -> nKnot());
       condition = B.condition;
@@ -93,7 +93,7 @@ void  Boundary::print() const
   char routine[] = "Boundary::print";
 
   cout << "** Boundary id: " << id  << " -> ";
-  cout <<     elmt ->  id () << "." << side;
+  cout <<     elmt ->  ID () << "." << side;
   cout << " Element id.side" << endl;
   
   switch (condition -> kind) {
