@@ -83,6 +83,7 @@ FFLAGS = -Wv,-m3,-te
 endif
 
 ifeq ($(ARCH),SUPER-UX)                 	# -- NEC SX-4
+FC       = f90
 DEFINES += -D_BUILTIN_
 CFLAGS   = $(DEFINES) -pvctl,fullmsg -Onooverlap -hfloat0 -hnostkchk
 FFLAGS   = $(DEFINES) -Wf'-pvctl,fullmsg -ptr byte -b' -float0 -ew
