@@ -5,7 +5,7 @@
 static char
 RCSid[] = "$Id$";
 
-#include <les.h>
+#include <Sem.h>
 
 static integer DIM, NZ;
 
