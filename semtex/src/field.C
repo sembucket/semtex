@@ -677,7 +677,7 @@ Field& Field::solve (AuxField*  f      ,
 
     m        = k >> 1;
     j        = min (m, n_bmodes - 1);
-    betak2   = sqr (Field::modeConstant (field_name, m) * betaZ);
+    betak2   = sqr (Field::modeConstant (field_name, m, betaZ));
 
     B        = (const Boundary**) boundary[j];
     N        = Nsys[j];
@@ -1164,13 +1164,17 @@ void Field::coupleBCs (Field*    v  ,
 }
 
 
-int Field::modeConstant (const char name,
-			 const int  mode)
+real Field::modeConstant (const char name,
+			  const int  mode,
+			  const real beta)
 // ---------------------------------------------------------------------------
 // For cylindrical coordinates & 3D, the radial and azimuthal fields are
 // coupled before solution of the viscous step.  This means that the Fourier
 // constant used for solution may vary from that which applies to the axial
-// component.  For Field v~, k -> k + 1 while for w~, k -> k - 1.
+// component.  
+//
+// For Field v~, betak -> betak + 1 while for w~, betak -> betak - 1.
+//
 // For the uncoupled Fields v, w solved for the zeroth Fourier mode, the
 // "Fourier" constant in the Helmholtz equations is 1.
 // ---------------------------------------------------------------------------
@@ -1179,11 +1183,11 @@ int Field::modeConstant (const char name,
       Geometry::system() == Geometry::Cartesian || 
       name               ==         'c'         ||
       name               ==         'p'         ||
-      name               ==         'u'          ) return mode;
+      name               ==         'u'          ) return beta * mode;
 
-  if      (name == 'v') return  mode + 1;
-  else if (name == 'w') return (mode == 0) ? 1 : mode - 1;
+  if      (name == 'v') return (mode == 0) ? 1.0 : beta * mode + 1.0;
+  else if (name == 'w') return (mode == 0) ? 1.0 : beta * mode - 1.0;
   else message ("Field::modeConstant", "unrecognized Field name given", ERROR);
 
-  return INT_MAX;
+  return FLT_MAX;
 }
