@@ -100,7 +100,7 @@ sem2nek: sem2nek.o feml.o mesh.o
 # Build project, field dump projection to higher/lower orders.
 #
 project: project.C
-	$(CXX) $(CPPFLAGS) -g -o $@ $@.C $(LDFLAGS)
+	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build transform, which does forward/inverse Fourier/Legendre transforms.
@@ -114,13 +114,13 @@ transform: transform.C
 INTOBJ = interp.o feml.o mesh.o element.o auxfield.o geometry.o
 
 interp: $(INTOBJ)
-	$(CXX) $(CPPFLAGS) -g -o $@ $(INTOBJ) $(LDFLAGS)
+	$(CXX) $(CPPFLAGS) -o $@ $(INTOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build integral, field dump scalar integral evaluator.
 #
 integral: integral.o  $(INTOBJ)
-	$(CXX) $(CPPFLAGS) -g -o $@ $(INTOBJ) $(LDFLAGS)
+	$(CXX) $(CPPFLAGS) -o $@ $(INTOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build probe, field dump data extraction.
