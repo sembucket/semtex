@@ -14,6 +14,19 @@
 //
 // The splitting technique has been discussed by
 //
+//  @Article{lega88,
+//  author = 	 {D. C. Leslie and S. Gao},
+//  title = 	 {The Stability of Spectral Schemes for the 
+//                 Large Eddy Simulation of Channel Flows},
+//  journal = 	 IJNMF,
+//  year = 	 1988,
+//  volume =	 8,
+//  number =	 9,
+//  pages =	 {1107--1116}
+//  }
+//
+// and
+//
 //  @InCollection{koy93,
 //  author = 	 "George E. Karnidakis and Steven A. Orszag and Victor Yakhot",
 //  title = 	 "Renormalization Group Theory Simulation of Transitional
@@ -105,6 +118,10 @@ void NavierStokes (Domain*        D,
   Field* Pressure = D -> u[NCOM];
   PBCmgr::build (Pressure);
 
+  // -- Set pointer to non-Newtonian viscosity storage.
+  
+  AuxField* NNV = D -> u[NCOM + 1];
+
   // -- Create spatially-constant forcing terms.
 
   vector<real_t> ff (3);
@@ -117,16 +134,10 @@ void NavierStokes (Domain*        D,
 
   if (C3D) Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
 
-  // -- Create and initialize non-Newtonian viscosity storage.
-  
-  AuxField* NNV = new AuxField (alloc + k * ntot, nZ, D -> elmt, 'n');
-  *NNV = 0.0;
-  ROOTONLY NNV -> addToPlane (0, Femlib::value ("-KINVIS"));
-
   // -- Timestepping loop.
 
   while (D -> step < nStep) {
- 
+
     D -> step += 1; 
     D -> time += dt;
     Femlib::value ("t", D -> time);
@@ -187,23 +198,6 @@ void NavierStokes (Domain*        D,
 
     A -> analyse (Us[0], Uf[0], NNV);
   }
-
-  // -- Dump non-Newtonian viscosity to file visco.fld.
-
-  ofstream          nnvfl;
-  vector<AuxField*> visco (1);
-
-  visco[0] = NNV;
-
-  ROOTONLY {
-    nnvfl.open ("visco.fld", ios::out);
-    NNV -> addToPlane (0, Femlib::value ("KINVIS"));
-  }
-  NNV -> transform (INVERSE);
-
-  writeField (nnvfl, D -> name, D -> step, D -> time, visco);
-
-  ROOTONLY nnvfl.close();
 }
 
 

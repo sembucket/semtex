@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////
 // drive.C: control spectral element non-Newtonian DNS for incompressible
-// flows.
+// flows, with power-law viscosity.
 //
 // Copyright (c) 1999 <--> $Date$,
 //   Murray Rudman, Hugh Blackburn
@@ -23,8 +23,10 @@
 // Australia
 // mailto:hugh.blackburn@csiro.au
 //
-// $Id$
+// NB: in the <FIELDS> section, define new field 'l' to contain the viscosity.
 //////////////////////////////////////////////////////////////////////////////
+
+const char RCS[] = "$Id$";
 
 #include <nnewt.h>
 
@@ -185,6 +187,9 @@ static void preprocess (const char*       session,
   VERBOSE cout << "Building domain ..." << endl;
 
   domain = new Domain (file, elmt, bman);
+
+  if (!strchr (domain -> name, 'l'))
+    message (prog, "must define extra field 'l' in session file", ERROR);
 
   VERBOSE cout << "done" << endl;
 }

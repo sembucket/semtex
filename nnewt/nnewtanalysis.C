@@ -37,44 +37,39 @@ void nnewtAnalyser::analyse (AuxField** work, AuxField** temp, AuxField* NNV)
 // Step-by-step processing.
 // ---------------------------------------------------------------------------
 {
-  const integer DIM = Geometry::nDim();
-  integer i;
+  const int_t DIM = Geometry::nDim();
+  int_t       i;
+
+  ROOTONLY NNV -> addToPlane (0, Femlib::value ("KINVIS"));  
+  Analyser::analyse (work, temp);
   
-  Analyser::analyse (work);
-  
-  const integer periodic = !(_src->step % (integer)Femlib::value("IO_HIS")) ||
-                           !(_src->step % (integer)Femlib::value("IO_FLD"));
-  const integer final    =   _src->step ==(integer)Femlib::value("N_STEP");
-  const integer state    = periodic || final;
+  const bool periodic = !(_src->step %  Femlib::ivalue("IO_HIS")) ||
+                        !(_src->step %  Femlib::ivalue("IO_FLD"));
+  const bool final    =   _src->step == Femlib::ivalue("N_STEP");
+  const bool state    = periodic || final;
   
   if (!state) return;
 
-  if (Geometry::system() == Geometry::Cylindrical) {
-    flx_strm << "*** Cylindrical Analysis Not Yet Coded"      << endl;
+  if (Geometry::cylindrical()) {
+    flx_strm << "*** Cylindrical Analysis Not Yet Coded" << endl;
     return;
   }
+
+  // -- We are going to work out loads on walls:
 
   Vector pfor, vfor, tfor;
   char   s[StrMax];
   
-  // Need to add KINVIS (and then subtract later) because of the way
-  // in which the viscous terms are handled.  Note that KINVIS has
-  // been replaced by REFVIS (i.e. reference viscosity) in NS.C
-  
-  ROOTONLY { NNV -> addToPlane (0, Femlib::value ("KINVIS")); }
-  
   NNV -> transform (INVERSE);
 
-  //
-  // First do the 2-D components
-  //
+  // -- First do the 2-D components:
 
   *(work[0]) = *(_src -> u[0]);
   *(temp[0]) = *(_src -> u[1]);
   *(work[1]) = *(work[0]);
   *(temp[1]) = *(temp[0]);
 
-  for ( i=0 ; i<2 ; i++ ) {
+  for (i = 0; i < 2; i++) {
     (*(work[i])) . gradient (i);
     (*(temp[i])) . gradient (i);
     work[i] -> transform (INVERSE);
@@ -86,7 +81,6 @@ void nnewtAnalyser::analyse (AuxField** work, AuxField** temp, AuxField* NNV)
   }
 
   ROOTONLY {
-
     tfor.z = pfor.z = vfor.z = 0.0;
     pfor   = Field::normTraction (_src -> u[DIM]);
     vfor   = Field::xytangTractionNN (_src -> u[0], work, temp);
@@ -95,14 +89,13 @@ void nnewtAnalyser::analyse (AuxField** work, AuxField** temp, AuxField* NNV)
     tfor.z = pfor.z;
   }
 
-  // Now do the Z-component if needed
+  // -- Now do the Z-component if needed. 
 
   if (DIM == 3) {
-    
     *(work[0]) = *(_src -> u[2]);
     *(work[1]) = *(work[0]);
-    
-    for ( i=0 ; i<2 ; i++ ) {
+
+    for (i = 0; i < 2; i++) {
       (*(work[i])) . gradient (i);
       work[i] -> transform (INVERSE);
       *(work[i]) *= *NNV;
@@ -110,12 +103,9 @@ void nnewtAnalyser::analyse (AuxField** work, AuxField** temp, AuxField* NNV)
     }
     
     ROOTONLY {
-      
       vfor.z  = (Field::ztangTractionNN (_src -> u[2], work)).z;
       tfor.z += vfor.z;
-
     }
-
   }
   
   ROOTONLY { sprintf (s,
@@ -130,10 +120,4 @@ void nnewtAnalyser::analyse (AuxField** work, AuxField** temp, AuxField* NNV)
 
     flx_strm << s << endl;
   }
-
-  NNV -> transform (FORWARD);
-
-  ROOTONLY { NNV -> addToPlane (0, Femlib::value ("-KINVIS")); }
-
-
 }
