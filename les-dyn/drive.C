@@ -86,7 +86,7 @@ static void getargs (int    argc   ,
     "Usage: %s [options] session-file\n"
     "  [options]:\n"
     "  -h       ... print this message\n"
-    "  -v[v...] ... increase verbosity level\n"
+    "  -v[v...] ... increase verbosity level\n";
  
   while (--argc && **++argv == '-')
     switch (*++argv[0]) {

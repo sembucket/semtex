@@ -27,14 +27,10 @@ private:
 void initFilters ();
 void lowpass     (real*);
 
-// -- SGSS.C:
-
-void eddyViscosity (const Domain*, AuxField***, AuxField***, AuxField*);
-
 // -- integrate.C:
 
 void integrate (Domain*, LESAnalyser*);
 
 // -- nonlinear.C:
 
-void nonLinear (Domain*, AuxField***, AuxField***, matrix<real>&);
+void nonLinear (Domain*, matrix<real>&, vector<real>&);

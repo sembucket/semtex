@@ -48,10 +48,10 @@ void initFilters ()
 // }
 // ---------------------------------------------------------------------------
 {
-  integer      i, n, nm, order;
+  integer      i, j, n, nm, order;
   real         lag, atten;
   const real*  dlt;
-  vector<real> work();
+  vector<real> work;
 
   if (FourierMask) return;	// -- Already initialised!
 
@@ -67,7 +67,7 @@ void initFilters ()
 
   Femlib::erfcFilter (nm, order, (integer) (lag * nm), atten, work());
   FourierMask[0] = work[ 0];
-  Fouriermask[1] = work[nm];
+  FourierMask[1] = work[nm];
   for (i = 1; i < nm; i++) FourierMask[2*i] = FourierMask[2*i+1] = work[i];
 
   // -- Legendre mask.
@@ -103,19 +103,20 @@ void lowpass (real* data)
 // ---------------------------------------------------------------------------
 {
   register integer i;
-  const integer    pid = Geometry::ProcID();
+  const integer    pid = Geometry::procID();
   const integer    np  = Geometry::nP();
   const integer    nP  = Geometry::nPlane();
   const integer    nZP = Geometry::nZProc();
+  const real       nel = Geometry::nElmt();
   vector<real>     tmp (nP);
 
   if (!FourierMask) initFilters();
 
   for (i = 0; i < nZP; i++) {
     Veclib::zero  (nP, tmp(), 1);
-    Femlib::grad2 (np, data+i*nP, data+i*nP, tmp(), tmp(), Du, Dt, np, nel);
+    Femlib::grad2 (data+i*nP, data+i*nP, tmp(), tmp(), Du, Dt, np, nel);
     Veclib::smul  (nP, FourierMask[i+pid*nZP], tmp(), 1, tmp(), 1);
     Veclib::zero  (nP, data+i*nP, 1);
-    Femlib::grad2 (np, tmp(), tmp(), data+i*nP, data+i*nP, Iu, It, np, nel);
+    Femlib::grad2 (tmp(), tmp(), data+i*nP, data+i*nP, Iu, It, np, nel);
   }
 }

@@ -34,8 +34,8 @@ static void   waveProp  (Domain*, const AuxField***, const AuxField***);
 static void   setPForce (const AuxField***, AuxField***);
 static void   project   (const Domain*, AuxField***, AuxField***);
 static Msys** preSolve  (const Domain*);
-static void   Solve     (Field*, AuxField*, Msys*,const integer,const integer);
-
+static void   Solve     (Domain*, const integer, AuxField*, Msys*);
+static void   pushdown  (AuxField***, const integer, const integer);
 
 void integrate (Domain*      D,
 		LESAnalyser* A)
@@ -106,7 +106,7 @@ void integrate (Domain*      D,
 
   // -- Apply coupling to radial & azimuthal velocity BCs.
 
-  if (C3D) Field::coupleBCs (D -> u[1], D -> u[2], +1);
+  if (C3D) Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
 
   // -- Timestepping loop.
 
@@ -116,21 +116,9 @@ void integrate (Domain*      D,
     D -> time += dt;
     Femlib::value ("t", D -> time);
 
-    // -- Compute nonlinear terms and strain-rate tensors.
+    // -- Compute nonlinear terms + divergence(SGSS) + body forces.
 
-    nonLinear (D, Us, Uf, Ut);
-
-    // -- Compute modified eddy viscosity and associated SGGS.
-
-    SGSS (D, Us, Uf, Ut);
-
-    // -- Add divergence of SGSS to nonlinear terms.
-
-    turbModel (D, Us, Uf, Ut);
-
-    // -- Fourier transform velocity fields & nonlinear terms, add forcing.
-
-    transform (D, Uf, Ut, ff);
+    nonLinear (D, Ut, ff);
 
     // -- Take unconstrained forcing substep.
 
@@ -139,16 +127,18 @@ void integrate (Domain*      D,
     // -- Pressure projection substep.
 
     PBCmgr::maintain (D -> step, Pressure,
-		      (const AuxField***) Us, (const AuxField***) Uf, 1);
+		      (const AuxField***) Us, (const AuxField***) Uf);
     Pressure -> evaluateBoundaries (D -> step);
 
-    NB WE HAVE TO REPLACE THIS SWAPDATA OPERATION SO AS NOT TO DISTURB Us.
-
-    for (i = 0; i < DIM; i++) AuxField::swapData (D -> u[i], Us[0][i]);
+    for (i = 0; i < DIM; i++) {
+      *Pressure = *D -> u[i];
+      *D -> u[i] = *Us[0][i];
+      *Us[0][i]  = *Pressure;
+    }
     pushdown (Uf, nOrder, DIM);
 
     setPForce ((const AuxField***) Us, Uf);
-    Solve     (Pressure, Uf[0][0], MMS[DIM], D -> step, nOrder);
+    Solve     (D, DIM, Uf[0][0], MMS[DIM]);
     project   (D, Us, Uf);
 
     // -- Update multilevel velocity storage.
@@ -159,36 +149,18 @@ void integrate (Domain*      D,
     // -- Viscous correction substep.
 
     if (C3D) {
-      AuxField::couple (Uf [1][0], Uf [2][0], +1);
-      AuxField::couple (D -> u[1], D -> u[2], +1);
+      AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
+      AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     }
     for (i = 0; i < DIM; i++)
-      Solve (D -> u[i], Uf[i][0], MMS[i], D -> step, nOrder);
+      Solve (D, i, Uf[0][i], MMS[i]);
     if (C3D)
-      AuxField::couple (D -> u[1], D -> u[2], -1);
+      AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 
     // -- Process results of this step.
 
     A -> analyse (Us);
   }
-
-  // -- Dump ratio eddy/molecular viscosity to file visco.fld.
-
-  ofstream          evfl;
-  vector<AuxField*> visco (1);
-
-  visco[0] = EV;
-
-  ROOTONLY {
-    evfl.open ("visco.fld", ios::out);
-    EV -> addToPlane (0, Femlib::value ("KINVIS"));
-  }
-
-  (*EV /= Femlib::value ("REFVIS")) . transform (-1);
-
-  writeField (evfl, D -> name, D -> step, D -> time, visco);
-
-  ROOTONLY evfl.close();
 }
 
 
@@ -221,8 +193,8 @@ static void waveProp (Domain*           D ,
 
   for (i = 0; i < DIM; i++)
     for (q = 0; q < Je; q++) {
-      H[i] -> axpy (-alpha[q + 1], *Us[i][q]);
-      H[i] -> axpy ( beta [q]    , *Uf[i][q]);
+      H[i] -> axpy (-alpha[q + 1], *Us[q][i]);
+      H[i] -> axpy ( beta [q]    , *Uf[q][i]);
     }
 }
 
@@ -239,19 +211,19 @@ static void setPForce (const AuxField*** Us,
   const real dt = Femlib::value ("D_T");
 
   for (i = 0; i < DIM; i++) {
-   *Uf[i][0] = *Us[i][0];
-    Uf[i][0] -> gradient (i);
+   *Uf[0][i] = *Us[0][i];
+    Uf[0][i] -> gradient (i);
   }
 
   if (C3D)
-    Uf[2][0] -> divR();
+    Uf[0][2] -> divR();
 
-  for (i = 1; i < DIM; i++) *Uf[0][0] += *Uf[i][0];
+  for (i = 1; i < DIM; i++) *Uf[0][0] += *Uf[0][i];
 
   if (CYL) {
-    *Uf[1][0]  = *Us[1][0];
-    Uf[1][0] ->  divR();
-    *Uf[0][0] += *Uf[1][0];
+    *Uf[0][1]  = *Us[0][1];
+    Uf[0][1] ->  divR();
+    *Uf[0][0] += *Uf[0][1];
   }
 
   *Uf[0][0] /= dt;
@@ -277,15 +249,15 @@ static void project (const Domain* D ,
 
   for (i = 0; i < DIM; i++) {
 
-   *Uf[i][0] = *D -> u[DIM];
-    Uf[i][0] -> gradient (i);
+   *Uf[0][i] = *D -> u[DIM];
+    Uf[0][i] -> gradient (i);
 
-    if (C3D) Uf[2][0] -> divR();
+    if (C3D) Uf[0][2] -> divR();
 
-    Us[i][0] -> axpy (-dt, *Uf[i][0]);
-    Field::swapData (Us[i][0], Uf[i][0]);
+    Us[0][i] -> axpy (-dt, *Uf[0][i]);
+    Field::swapData (Us[0][i], Uf[0][i]);
 
-    *Uf[i][0] *= alpha;
+    *Uf[0][i] *= alpha;
   }
 }
 
@@ -308,71 +280,53 @@ static Msys** preSolve (const Domain* D)
   const vector<Element*>& E      = D -> elmt;
   Msys**                  M      = new Msys* [(size_t) (DIM + 1)];
   integer                 i;
+  vector<real>            alpha (Integration::OrderMax + 1);
+  Integration::StifflyStable (nOrder, alpha());
+  const real              lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
 
   // -- Velocity systems.
 
-  if (itLev < 1) {
-    vector<real> alpha (Integration::OrderMax + 1);
-    Integration::StifflyStable (nOrder, alpha());
-    const real   lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
-
-    for (i = 0; i < DIM; i++)
-      M[i] = new Msys (lambda2, beta, base, nmodes, E, D -> b[i]);
-  } else
-    for (i = 0; i < DIM; i++)
-      M[i] = 0;
+  for (i = 0; i < DIM; i++)
+    M[i] = new Msys
+      (lambda2, beta, base, nmodes, E, D -> b[i],   (itLev<1) ? DIRECT:JACPCG);
 
   // -- Pressure system.
 
-  if (itLev < 2)
-    M[DIM] = new Msys (0.0, beta, base, nmodes, E, D -> b[DIM]);
-  else
-    M[DIM] = 0;
+  M[DIM] = new Msys
+      (0.0,     beta, base, nmodes, E, D -> b[DIM], (itLev<2) ? DIRECT:JACPCG);
 
   return M;
 }
 
 
-static void Solve (Field*        U     ,
-		   AuxField*     Force ,
-		   Msys*         M     ,
-		   const integer step  ,
-		   const integer nOrder)
+static void Solve (Domain*       D,
+		   const integer i,
+		   AuxField*     F,
+		   Msys*         M)
 // ---------------------------------------------------------------------------
-// Solve Helmholtz problem for U, using F as a forcing Field.  Iterative
-// or direct solver selected on basis of field type, step, time order
-// and command-line arguments.
+// Solve Helmholtz problem for D->u[i], using F as a forcing Field.
+// Iterative or direct solver selected on basis of field type, step,
+// time order and command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  const char    routine[] = "Solve";
-  const integer iterative = M == 0;
-  const char    name      = U -> name();
-  const integer velocity  = name == 'u' || name == 'v' || name == 'w';
-  const integer pressure  = name == 'p';
+  const integer step  = D -> step;
+  const integer order = (integer) Femlib::value ("N_TIME");
 
-  if (!(velocity || pressure))
-    message (routine, "input field type not recognized", ERROR);
+  if (i < DIM && step < order) { // -- We need a temporary matrix system.
+    const integer Je      = min (step, order);    
+    const integer base    = Geometry::baseMode();
+    const integer nmodes  = Geometry::nModeProc();
+    vector<real>  alpha (Je + 1);
+    Integration::StifflyStable (Je, alpha());
+    const real    lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
+    const real    beta    = Femlib::value ("BETA");
 
-  if (pressure) {
-    if   (iterative) U -> solve (Force, 0.0);
-    else             U -> solve (Force, M);
-    return;
-  }
+    Msys* tmp = new Msys
+      (lambda2, beta, base, nmodes, D -> elmt, D -> b[i], JACPCG);
+    D -> u[i] -> solve (F, tmp);
+    delete tmp;
 
-  if (velocity) {
-    if (iterative || step < nOrder) {
-      const integer    Je = min (step, nOrder);
-      vector<real> alpha (Je + 1);
-      Integration::StifflyStable (Je, alpha());
-      const real   lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
-      
-      U -> solve (Force, lambda2);
-
-    } else
-      U -> solve (Force, M);
-
-    return;
-  }
+  } else D -> u[i] -> solve (F, M);
 }
 
 

@@ -5,10 +5,19 @@
 # $Id$
 ##############################################################################
 
-SEM      = /home/hmb/develop/semtex
-VPATH    = $(SEM)/src
+SEM   = /home/hmb/develop/semtex
+VPATH = $(SEM)/src
 
-ARCH     = $(shell uname -s)
+ARCH  = $(shell uname -s)
+MACH  = $(shell uname -m)
+ifeq ($(ARCH),Linux)
+  ifeq ($(MACH),alpha)
+    ARCH = Linux-alpha
+  endif
+  ifeq ($(MACH),i586)
+    ARCH = Linux-i586
+  endif
+endif
 
 ifdef DEBUG
   DEFINES = -DDEBUG
@@ -16,32 +25,73 @@ else
   DEFINES =
 endif
 ifdef MPI
+  MPIHOME = /usr/local/lam
   PROG    = les_mp
 else
   PROG    = les
 endif
 
 CPPFLAGS = -I. -I$(SEM)/include
+LIBDIR   = -L$(SEM)/lib/$(ARCH)
 
 # ----------- Compiler options for specific machines -------------------------
+
+ifeq ($(ARCH),Linux-alpha)              # -- Linux alpha.
+CXX      = g++
+LD       = g++
+LIBDIR  += /usr/local/lib
+F77LIBS  = -lcxml -lfor -lots -lg2c
+ifdef DEBUG
+  OPT    = -gstabs+
+else
+  OPT    = -O3
+endif
+DEFINES += -D_Linux_alpha
+CXXFLAGS = $(DEFINES) $(OPT)
+ifdef MPI
+  LIBDIR += -L$(MPIHOME)/lib
+  LDFLAGS = $(LIBDIR) \
+            -lfem_mp -lalp $(F77LIBS) -lcpml \
+            -lmpi -ltrillium -ltstdio -lt -largs
+#           -lmpich
+else
+  LDFLAGS = $(LIBDIR) -lfem -lalp $(F77LIBS) -lcpml
+endif
+endif
+
+ifeq ($(ARCH),Linux-i586)               # -- Linux Intel.
+CXX      = g++
+LD       = g++
+F77LIBS  = -llapack -lblas -lg2c
+LIBDIR  += /usr/local/lib
+ifdef DEBUG
+  OPT    = -gstabs+
+else
+  OPT    = -O3
+endif
+CXXFLAGS = $(DEFINES) $(OPT)
+LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lalp $(F77LIBS)
+endif
 
 ifeq ($(ARCH),IRIX)		# -- SGI 32-bit systems.
 CXX	 = CC
 LD	 = CC
 CXXFLAGS = $(DEFINES) -fullwarn -g
 F77LIBS	 = -lcomplib.sgimath -lftn
-LDFLAGS  = -L$(SEM)/lib/$(ARCH) -lfem -lalp \
-	   $(F77LIBS) -lmalloc -lm
+LDFLAGS  = $(LIBDIR) -lfem -lalp $(F77LIBS) -lmalloc -lm
 endif
 
 ifeq ($(ARCH),IRIX64)		# -- SGI 64-bit systems.
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = $(DEFINES) -mips4 -64 -Ofast=IP30 -r10000
-
-F77LIBS	 = -lcomplib.sgimath -lftn
-LDFLAGS  = -64 -mips4 -Ofast=IP30 -r10000 	\
-           -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+ifdef DEBUG
+  OPT    = -g
+else
+  OPT    =  -r10000 -Ofast=IP30 -OPT:roundoff=3
+endif
+CXXFLAGS = $(DEFINES) -mips4 -64 $(OPT)
+F77LIBS  = -lcomplib.sgimath -lftn
+LDFLAGS  = -64 -mips4 $(OPT) $(LIBDIR) -lfem -lalp $(F77LIBS) -lm
 endif
 
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha.
@@ -51,20 +101,12 @@ CXXFLAGS =  $(DEFINES) -tune host -O2
 F77LIBS  = -ldxml -lfor
 ifdef MPI
   CXXFLAGS += -thread_safe
-  LDFLAGS   = $(CXXFLAGS) -threads -L/usr/local/mpi/lib/alpha/ch_shmem	\
-	     -L$(SEM)/lib/$(ARCH) -lfem_mp -lalp_mp $(F77LIBS) -lm -lmpi
+  LIBDIR   += -L/usr/local/mpi/lib/alpha/ch_shmem
+  LDFLAGS   = $(CXXFLAGS) -threads  $(LIBDIR) \
+	      -lfem_mp -lalp_mp $(F77LIBS) -lm -lmpi
 else
-  LDFLAGS  = $(CXXFLAGS) -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+  LDFLAGS  = $(CXXFLAGS) $(LIBDIR) -lfem -lalp $(F77LIBS) -lm
 endif
-endif
-
-ifeq ($(ARCH),Linux)		# -- GNU/Linux system.
-CXX	 = g++
-LD	 = g++
-CXXFLAGS = $(DEFINES) -O3
-F77LIBS  = -llapack -lblas -lf2c
-LDFLAGS  = -gstabs+ -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
-	   -lfem -lalp $(F77LIBS)
 endif
 
 ifeq ($(ARCH),UNIX_System_V)    # -- Fujitsu VPP300.
@@ -73,53 +115,51 @@ CXX      = /usr/uxp/C++/bin/CC
 LD       = /usr/uxp/C++/bin/CC
 OPTIM    = -Wv,-m3,-Om,-te -Kpopt
 CXXFLAGS = $(DEFINES)  $(OPTIM)
-LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 ifdef MPI
-  LIBDIR   = -L$(SEM)/lib/$(ARCH)
   LIBDIR  += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
   LIBDIR  += -L/usr/lang/mpi/lib
   LIBS     = -lfem_mp -lalp
   LIBS    += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
   LIBS    += -lmpi -lmp
-  LDFLAGS += -Wl,-P
+  OPTIM   += -Wl,-P
 else
-  LIBDIR   = -L$(SEM)/lib/$(ARCH) 
   LIBDIR  += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
   LIBS     = -lfem -lalp
   LIBS    += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
 endif
+LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 endif
 
 ifeq ($(ARCH),SUPER-UX)         # -- NEC SX-4.
 DEFINES += -D_BUILTIN_
-LIBDIR   = -L$(SEM)/lib/$(ARCH) 
 CC       = cc
 CXX      = CC
 LD       = CC
-CFLAGS   = $(DEFINES) -pvctl,fullmsg -hacct -Onooverlap        \
-           -hfloat0 -hnostkchk
+DEFINES += -D_SX
+CFLAGS   = $(DEFINES) -pvctl,fullmsg -hacct -Onooverlap -hfloat0 -hnostkchk
 CXXFLAGS = $(CFLAGS) $(OPTIM) +a1 -ispeed
-LDFLAGS  = $(CFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 ifdef MPI
-  LIBS   = -lfem_mp -lalp_mp -llapack_64 dtrsm.o -lblas_64 -lfft_64	\
+  LIBS   = -lfem_mp -lalp_mp -llapack_64 -lblas_64 -lfft_64	\
            -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm -lmpi -lpthread
 else
-  LIBS   = -lfem -lalp -llapack_64 dtrsm.o -lblas_64 -lfft_64	\
+  LIBS   = -lfem -lalp -llapack_64 -lblas_64 -lfft_64	\
            -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm
 endif
+LDFLAGS  = $(CFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 endif
 
 # ----------------------------------------------------------------------------
 #
-SEMFILES  = analysis auxfield BCmgr boundary bsys condition domain \
-	    element feml field geometry history integration  	   \
-	    matrix mesh misc particle pressure statistics
-SEMOBJ    = $(addsuffix .o,$(SEMFILES))
-SEMHDR    = Sem.h
+SEMFILES = analysis auxfield BCmgr boundary bsys condition domain \
+	   element feml field geometry history integration  	  \
+	   matrix mesh misc particle pressure statistics
+SEMOBJ   = $(addsuffix .o,$(SEMFILES))
+SEMHDR   = Sem.h
 
 # ----------------------------------------------------------------------------
 # Default build for Navier-Stokes solver.
-LESOBJ = drive.o NS.o eddyvis.o lesanalysis.o
+LESFILES = drive integrate nonlinear filter lesanalysis
+LESOBJ   = $(addsuffix .o,$(LESFILES))
 
 $(PROG): sem $(SEMOBJ) $(LESOBJ) 
 	$(LD) -o $@ $(LESOBJ) $(SEMOBJ) $(LDFLAGS)
