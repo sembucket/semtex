@@ -347,7 +347,8 @@ void Element::g2eSC (const real*    RHS ,
 		     real*          F   , 
 		     real*          tgt ,
 		     const real*    hbi ,
-		     const real*    hii ) const
+		     const real*    hii ,
+		     real*          work) const
 // ---------------------------------------------------------------------------
 // Complete static condensation solution for internal values of Element.
 //
@@ -359,26 +360,26 @@ void Element::g2eSC (const real*    RHS ,
 //   u  <--  h  F  - h  h   u
 //    i       ii i    ii ib  b
 //
-// REPLACES old routine Element::resolveSC
+// Input vector work has length nTot().  F is overwritten during processing.
 // ----------------------------------------------------------------------------
 {
   const integer next = nExt();
   const integer nint = nInt();
-  vector<real>  work (next);
 
   // -- Load globally-numbered RHS into element-boundary storage.
 
-  Veclib::gathr (next, RHS,    btog, work());
-  Veclib::scatr (next, work(), emap, tgt   );
+  Veclib::gathr (next, RHS,  btog, work);
+  Veclib::scatr (next, work, emap, tgt );
 
   // -- Complete static-condensation solution for element-internal storage.
 
   if (nint) {
-    integer info;
-    real*   Fi = F + next;
+    real* Fi   = F    + next;
+    real* wext = work + next;
 
-    Lapack::pptrs ("U", nint, 1, hii, Fi, nint, info);
-    Blas::gemv    ("N", nint, next, -1.0, hbi, nint, work(), 1, 1.0, Fi, 1);
+    Veclib::copy  (nint, Fi, 1, wext, 1);
+    Blas::gemv    ("T", nint, nint,  1.0, hii, nint, wext, 1, 0.0, Fi, 1);
+    Blas::gemv    ("N", nint, next, -1.0, hbi, nint, work, 1, 1.0, Fi, 1);
     Veclib::scatr (nint, Fi, emap + next, tgt);
   }
 }
@@ -390,7 +391,8 @@ void Element::HelmholtzSC (const real lambda2,
 			   real*      hbi    ,
 			   real*      hii    ,
 			   real*      rmat   ,
-			   real*      rwrk   ) const
+			   real*      rwrk   ,
+			   integer*   iwrk   ) const
 // ---------------------------------------------------------------------------
 // Compute the discrete elemental Helmholtz matrix and return the
 // statically condensed form in hbb, the interior-exterior coupling
@@ -419,7 +421,6 @@ void Element::HelmholtzSC (const real lambda2,
 //  |         |      |
 //  +---------+------+
 //
-//
 // Element matrices are built row-by-row, sorted to place entries for
 // internal nodes first, posted into local partitions.  Then the internal
 // resolution matrix hii is factorized and the static condensation completed.
@@ -431,10 +432,11 @@ void Element::HelmholtzSC (const real lambda2,
 // hii:    nInt  by nInt    matrix;  (packed-symmetric 1D storage).
 // rmat:   nKnot by nKnot   matrix;  (row-major 1D storage).
 // rwrk:   nExt*(nExt+nInt) vector;
+// iwrk:   nInt             vector.
 // ---------------------------------------------------------------------------
 {
   const char       routine[] = "Element::HelmholtzSC";
-  register integer i, j, k, eq, ij = 0;
+  register integer i, j, eq, ij = 0;
   const integer    ntot = nTot();
   const integer    next = nExt();
   const integer    nint = nInt();
@@ -447,17 +449,15 @@ void Element::HelmholtzSC (const real lambda2,
   for (i = 0; i < np; i++)
     for (j = 0; j < np; j++, ij++) {
 
-      helmRow ((const real**) DV, (const real**) DT,
-	       lambda2, betak2, i, j, rmat, rwrk);
+      helmRow (DV, DT, lambda2, betak2, i, j, rmat, rwrk);
 
       Veclib::gathr (ntot, rmat, emap, rwrk);
 
       if ( (eq = pmap[ij]) < next ) {
 	Veclib::copy (next, rwrk, 1, hbb + eq * next, 1);
-	if (nint) Veclib::copy (nint, rwrk+next, 1, hbi + eq*nint, 1);
+	if (nint) Veclib::copy (nint, rwrk + next, 1, hbi + eq * nint, 1);
       } else
-	for (k = eq; k < ntot; k++)
-	  hii[Lapack::pack_addr (eq - next, k - next)] = rwrk[k];
+	Veclib::copy (nint, rwrk + next, 1, hii + (eq - next) * nint, 1);
     }
 
 #if defined(DEBUG)
@@ -469,21 +469,27 @@ void Element::HelmholtzSC (const real lambda2,
   if (nint) {
     integer info = 0;
 
-    // -- Factor hii.
+    // -- LU factor hii.
 
-    Lapack::pptrf ("U", nint, hii, info);
-    if (info) message (routine, "dpptrf failed to factor hii", ERROR);
+    Lapack::getrf (nint, nint, hii, nint, iwrk, info);
+    if (info) message (routine, "matrix hii has singular factor", ERROR);
 
     // -- Statically condense hbb.
 
     Veclib::copy  (nint*next, hbi, 1, rwrk, 1);
-    Lapack::pptrs ("U", nint, next, hii, rwrk, nint, info);
+    Lapack::getrs ("N", nint, next, hii, nint, iwrk, rwrk, nint, info);
     Blas::gemm    ("T", "N", next, next, nint, -1.0, hbi,
 		   nint, rwrk, nint, 1.0, hbb, next); 
 
     // -- Create hib*hii(inverse), leave in hbi.
 
-    Lapack::pptrs ("U", nint, next, hii, hbi, nint, info);
+    Lapack::getrs ("N", nint, next, hii, nint, iwrk, hbi, nint, info);
+
+    // -- Invert hii.
+
+    Lapack::getri (nint, hii, nint, iwrk, rwrk, next*next, info);
+    if (info) message (routine, "matrix hii is singular",         ERROR);
+
   }
 }
 

@@ -83,9 +83,8 @@ MatrixSystem::MatrixSystem (const real              lambda2,
 // Initialize and factorize matrices in this system.
 //
 // Matrices are assembled using LAPACK-compatible ordering systems.
-// Global Helmholtz matrix uses     symmetric-banded format,
-// elemental Helmholtz matrices use symmetric-packed (hii)
-//                              and column-major     (hbi) formats.
+// Global Helmholtz matrix uses symmetric-banded format;
+// elemental Helmholtz matrices (hii & hbi) use column-major formats.
 // ---------------------------------------------------------------------------
 {
   const char       routine[] = "MatrixSystem::MatrixSystem";
@@ -93,12 +92,14 @@ MatrixSystem::MatrixSystem (const real              lambda2,
   const real       EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
   register integer i, j, k, m, n;
   const integer*   bmap;
-  integer          next, nint, info;
+  integer          next, nint, info, *iwrk;
   real             *hbb, *rmat, *rwrk;
   Element*         E;
+  vector<integer>  ipiv (Geometry::nIntElmt());
   vector<real>     work (sqr (Geometry::nExtElmt()) + sqr (Geometry::nP()) +
 		              Geometry::nExtElmt() * Geometry::nTotElmt());
 
+  iwrk     = ipiv();
   hbb      = work();
   rmat     = hbb  + sqr (Geometry::nExtElmt());
   rwrk     = rmat + sqr (Geometry::nP());
@@ -138,12 +139,12 @@ MatrixSystem::MatrixSystem (const real              lambda2,
     next      = E -> nExt();
     nint      = E -> nInt();
     bipack[j] = next * nint;
-    iipack[j] = ((nint + 1) * nint) >> 1; // -- Size for LAPACK packed format.
+    iipack[j] = nint * nint;
 
     hbi[j] = (nint) ? new real [(size_t) bipack[j]] : 0;
     hii[j] = (nint) ? new real [(size_t) iipack[j]] : 0;
 
-    E -> HelmholtzSC (lambda2, betak2, hbb, hbi[j], hii[j], rmat, rwrk);
+    E -> HelmholtzSC (lambda2, betak2, hbb, hbi[j], hii[j], rmat, rwrk, iwrk);
 
     bmap = N -> btog() + E -> bOff();
 

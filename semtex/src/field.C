@@ -596,19 +596,23 @@ Field& Field::solve (AuxField*                f  ,
 // Forcing field f's data area is overwritten/destroyed during processing.
 // ---------------------------------------------------------------------------
 {
-  register integer    j, k, lm, m, doff, boff;
+  register integer    j, k, l, m;
   integer             info, nzero, nsolve, nband;
-  const integer*      b2g;
   const integer       nglobal = Nsys[0] -> nGlobal();
   const integer       nZ      = Geometry::nZProc();
-  const integer       nE      = Geometry::nElmt();
+  const integer       nel     = Geometry::nElmt();
+  const integer       next    = Geometry::nExtElmt();
+  const integer       np      = Geometry::nP();
+  const integer       npnp    = np  * np;
+  const integer       ntot    = nel * npnp;
   const MatrixSystem* M;
   const NumberSystem* N;
   const Boundary**    B;
-  Element*            E;
+  const integer       *b2g;
   const real          *H, **hbi, **hii;
-  vector<real>        work (nglobal);
-  real                *RHS = work(), *forcing, *unknown, *bc;
+  vector<real>        work (nglobal + npnp);
+  real                *RHS = work(), *tmp = RHS + nglobal;
+  real                *forcing, *unknown, *bc;
   real                betak2, lambda2;
 
   for (k = 0; k < nZ; k++) {	// -- Loop over planes of data.
@@ -617,8 +621,8 @@ Field& Field::solve (AuxField*                f  ,
 
     // -- Select Fourier mode, set local pointers and variables.
 
-    lm      = k >> 1;
-    m       = Geometry::baseMode() + lm;
+    l       = k >> 1;
+    m       = Geometry::baseMode() + l;
     j       = min (m, n_bmodes - 1);
 
     B       = (const Boundary**) boundary[j];
@@ -626,7 +630,7 @@ Field& Field::solve (AuxField*                f  ,
     nband   = N -> nBand();
     b2g     = N -> btog ();
     
-    M       = (*MMS) [lm];
+    M       = (*MMS) [l];
     H       = (const real*)  M -> H;
     hii     = (const real**) M -> hii;
     hbi     = (const real**) M -> hbi;
@@ -648,19 +652,15 @@ Field& Field::solve (AuxField*                f  ,
 
     // -- Solve for unknown global-node values (if any).
 
-    if (nsolve)
-      Lapack::pbtrs ("U", nsolve, nband - 1, 1, H, nband, RHS, nglobal, info);
+    if (nsolve) Lapack::pbtrs ("U",nsolve,nband-1,1,H,nband,RHS,nglobal,info);
 
     // -- Carry out Schur-complement solution for element-internal nodes.
 
-    for (j = 0; j < nE; j++) {
-      E    = Elmt[j];
-      doff = E -> dOff();
-      boff = E -> bOff();
+    for (j = 0; j < nel; j++, b2g += next, forcing += npnp, unknown += npnp)
+      Elmt[j] -> g2eSC (RHS, b2g, forcing, unknown, hbi[j], hii[j], tmp);
 
-      E -> g2eSC (RHS, b2g+boff, forcing+doff, unknown+doff, hbi[j], hii[j]);
-    }
-
+    unknown -= ntot;
+    
     // -- Scatter-gather essential BC values into plane.
 
     Veclib::zero (nglobal, RHS, 1);
@@ -676,7 +676,7 @@ Field& Field::solve (AuxField*  f      ,
 		     const real lambda2)
 // ---------------------------------------------------------------------------
 // Carry out ITERATIVE Conjugate Gradient solution of this Field with
-// forcing from f.  Input value of L2 is the zero-mode Helmholtz constant.
+// forcing from f.  Input lambda2 is the zero-mode Helmholtz constant.
 //
 // Problem for solution is the discrete version of the
 // weak form of
