@@ -2,6 +2,8 @@
 // image.C: routines for image processing/dumping.
 //
 // Copyright (C) 1999 Hugh Blackburn
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <Sview.h>
