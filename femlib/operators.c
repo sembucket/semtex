@@ -5,6 +5,7 @@
 static char
 RCSid02[] = "$Id$";
 
+#include <stdio.h>
 #include <malloc.h>
 #include <alplib.h>
 #include <femdef.h>
