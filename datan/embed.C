@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// embed2.C: from a file of ASCII data (optionally stdin), an integer
+// embed.C: from a file of ASCII data (optionally stdin), an integer
 // data window length, and an integer skip/delay, construct the
 // covariance matrix from the total number of lagged vectors that can
 // be constructed, and find its eigenvalues and eigenvectors.
@@ -8,7 +8,7 @@
 //
 // Usage:
 // ------
-// embed2 [-h] -n <num> -s <num> [-p <num>] [file]
+// embed [-h] -n <num> -s <num> [-p <num>] [file]
 //
 // Options:
 // --------
@@ -38,8 +38,8 @@
 #include <Blas.h>
 #include <Lapack.h>
 
-static char prog[]  = "embed2";
-static char usage[] = "embed2 [-h] -n <num> -s <num> [file]";
+static char prog[]  = "embed";
+static char usage[] = "embed [-h] -n <num> -s <num> [-p <num>] [file]";
 
 static void getargs  (int, char**, int&, int&, int&, ifstream&);
 static void getdata  (ifstream&, vector<double>&, const int, const int);
@@ -164,9 +164,9 @@ static void covary  (vector<double>& data,
 // matrix is symmetric: we construct it in Lapack packed format.
 // ---------------------------------------------------------------------------
 {
-  const int       N = data.getSize() - n + 1;
-  const int       P = n+((n*(n-1))>>1);
-  register int    i, j, k;
+  const int    N = data.getSize() - n + 1;
+  const int    P = n+((n*(n-1))>>1);
+  register int i, j, k;
 
   cov.setSize (P);
 

@@ -4,7 +4,7 @@
 //
 // Usage:
 // ------
-// upxf [-h] [-v] [file]
+// upxf [-h] [-v] [-z <num>] [file]
 //
 // Synopsis:
 // ---------
@@ -17,6 +17,7 @@
 // --------
 // -h (help):    print usage string.
 // -v (verbose): peaks, local and running average frequencies.
+// -z <val>:     use <val> to replace zero as the crossing reference value.
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
@@ -64,21 +65,26 @@ int main (int    argc,
   double freq, favg = 0.0;
   double fmax, fmav = 0.0;
   double fmin, fmiv = 0.0;
+  double zref       = 0.0;
 
-  char   line[StrMax], c;
+  char   line[StrMax];
   int    crossed = 0, verbose = 0, ncycles = 0;
-  char   usage[] = "upxf [-h] [-r] [-v] [file]";
+  char   usage[] = "upxf [-h] [-v] [-z <val>] [file]";
 
   // -- Process command line.
 
   while (--argc && **++argv == '-')
-    switch (c = *++argv[0]) {
+    switch (*++argv[0]) {
     case 'h':
       cout << usage << endl;
       return EXIT_SUCCESS;
       break;
     case 'v':
       verbose = 1;
+      break;
+    case 'z':
+      if   (*++argv[0])           zref = atof (*argv);
+      else              { --argc; zref = atof (*++argv); }
       break;
     default:
       cerr << usage << endl;
@@ -97,7 +103,9 @@ int main (int    argc,
   // -- Find first crossing.
 
   file >> t1 >> f1;
+  f1 -= zref;
   while (!crossed && file >> t2 >> f2) {
+    f2 -= zref;
     if (crossed = ((f1 < 0.0) && (f2 >= 0.0))) {
       datum = new doublet (t1, f1);
       data.push (datum);
@@ -126,6 +134,7 @@ int main (int    argc,
   while (file) {
 
     while (!crossed && file >> t2 >> f2) {
+      f2 -= zref;
       crossed = ((f1 < 0.0) && (f2 >= 0.0));
       datum = new doublet (t2, f2);
       data.push (datum);
@@ -151,6 +160,9 @@ int main (int    argc,
 	cerr << "upxf: couldn't fit cycle " << ncycles << endl;
 	return EXIT_FAILURE;
       }
+
+      fmin += zref;
+      fmax += zref;
 
       t1   = t[N - 2];  t2 = t[N - 1];
       f1   = f[N - 2];  f2 = f[N - 1];
@@ -261,7 +273,7 @@ static double wave (const double& x)
 // Return sign * interpolating spline function.
 // ---------------------------------------------------------------------------
 {
-  double  y;
+  double y;
 
   Recipes::splint (xx, yy, cc, num, x, y);
 
