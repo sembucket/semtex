@@ -118,7 +118,7 @@ static void getargs (integer argc   ,
       break;
     case 'c':
       if (strstr ("chk", *argv)) {
-	Femlib::value ("CHKPOINT", 1);
+	Femlib::value ("CHKPOINT",  (integer) 1);
       } else {
 	fprintf (stdout, usage, prog);
 	exit (EXIT_FAILURE);	  
