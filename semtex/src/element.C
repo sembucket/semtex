@@ -55,15 +55,16 @@ Element::~Element ()
   Femlib::abandon (&xmesh);
   Femlib::abandon (&ymesh);
 
-  Femlib::abandon (&drdx);
-  Femlib::abandon (&dsdx);
-  Femlib::abandon (&drdy);
-  Femlib::abandon (&dsdy);
+  Femlib::abandon (&drdx );
+  Femlib::abandon (&dsdx );
+  Femlib::abandon (&drdy );
+  Femlib::abandon (&dsdy );
 
-  Femlib::abandon (&G1  );
-  Femlib::abandon (&G2  );
-  Femlib::abandon (&G3  );
-  Femlib::abandon (&G4  );
+  Femlib::abandon (&G1   );
+  Femlib::abandon (&G2   );
+  Femlib::abandon (&G3   );
+  Femlib::abandon (&G4   );
+  Femlib::abandon (&delta);
 }
 
 
@@ -72,11 +73,11 @@ void Element::map ()
 // Generate geometric factors associated with mapping from 2D Cartesian to
 // isoparametrically-mapped space:
 //
-//   dxdr, dydr,   = dx/dr,  dy/dr,  "Forward Partials"
-//   dxds, dyds,   = dx/ds,  dy/ds.
-//   drdx, drdy,   = dr/dx,  dr/dy,  "Inverse Partials"
-//   dsdx, dsdy,   = ds/dx,  ds/dy.
-//   jac           = dx/dr * dy/ds - dx/ds * dy/dr.
+//   dxdr, dydr, = dx/dr,  dy/dr,  "Forward Partials"
+//   dxds, dyds, = dx/ds,  dy/ds.
+//   drdx, drdy, = dr/dx,  dr/dy,  "Inverse Partials"
+//   dsdx, dsdy, = ds/dx,  ds/dy.
+//   jac         = dx/dr * dy/ds - dx/ds * dy/dr.
 //
 // The following relationships are used, where
 //
@@ -106,6 +107,9 @@ void Element::map ()
 // Helmholtz equations are symmetrized by premultiplication by this
 // factor for cylindrical coords.
 //
+// The local length-scale, delta, is a measure of the size of the local
+// mesh: delta = [[2/(np - 1)]^2*jac * dz]^(1/DIM).
+//
 // Null-mapping optimizations mentioned below occur when the element geometry
 // ensures that the entries of a vector are zero to within roundoff, due
 // either to the edges of elements being aligned with coordinate axes
@@ -118,6 +122,10 @@ void Element::map ()
   char       routine[] = "Element::map", err[StrMax];
   const int  ntot = nTot();
   const real EPS  = 4 * nTot()*((sizeof(real)==sizeof(double)) ? EPSDP:EPSSP);
+  const real dz   = (Geometry::nZ() > 1) ?
+                     Femlib::value ("TWOPI / (BETA * N_Z)") : 1.0;
+  const real dxyz = sqr (2.0 / (np - 1)) * dz;
+  const real invD = 1.0 / Geometry::nDim();
   const real *x   = xmesh, *y = ymesh;
   const real **DV, **DT, *w;
   real       *jac, *dxdr, *dxds, *dydr, *dyds, *tV, *WW;
@@ -126,14 +134,15 @@ void Element::map ()
 
   // -- Permanent/family allocations.
   
-  drdx = new real [ntot];
-  dsdx = new real [ntot];
-  drdy = new real [ntot];
-  dsdy = new real [ntot];
-  G1   = new real [ntot];
-  G2   = new real [ntot];
-  G3   = new real [ntot];
-  G4   = new real [ntot];
+  drdx  = new real [ntot];
+  dsdx  = new real [ntot];
+  drdy  = new real [ntot];
+  dsdy  = new real [ntot];
+  G1    = new real [ntot];
+  G2    = new real [ntot];
+  G3    = new real [ntot];
+  G4    = new real [ntot];
+  delta = new real [ntot];
     
   // -- Temporaries.
 
@@ -182,6 +191,7 @@ void Element::map ()
   Veclib::vmul  (ntot, tV,   1, WW,   1, G3,   1);
   
   Veclib::vmul  (ntot, jac,  1, WW,   1, G4, 1);
+  Veclib::smul  (ntot, dxyz, jac, 1,  delta, 1);
 
   Veclib::copy (ntot, dyds, 1, drdx, 1);
   Veclib::vneg (ntot, dxds, 1, drdy, 1);
@@ -194,11 +204,16 @@ void Element::map ()
   Veclib::vdiv (ntot, dsdy, 1, jac, 1, dsdy, 1);
 
   if (Geometry::system() == Geometry::Cylindrical) {
+    register int i;
+    for (i = 0; i < ntot; i++) delta[i] *= (ymesh[i] < EPS) ? EPS : ymesh[i];
+
     Veclib::vmul (ntot, G1, 1, y, 1, G1, 1);
     Veclib::vmul (ntot, G2, 1, y, 1, G2, 1);
     Veclib::vmul (ntot, G3, 1, y, 1, G3, 1);
     Veclib::vmul (ntot, G4, 1, y, 1, G4, 1);
   } 
+
+  Veclib::spow (ntot, invD, delta, 1, delta, 1);
 
   // -- Calculations are done.  Do null-mapping optimizations.
   
@@ -210,14 +225,15 @@ void Element::map ()
 
   // -- Check for family redundancies.
 
-  Femlib::adopt (ntot, &drdx);
-  Femlib::adopt (ntot, &drdy);
-  Femlib::adopt (ntot, &dsdx);
-  Femlib::adopt (ntot, &dsdy);
-  Femlib::adopt (ntot, &G1  );
-  Femlib::adopt (ntot, &G2  );
-  Femlib::adopt (ntot, &G3  );
-  Femlib::adopt (ntot, &G4  );
+  Femlib::adopt (ntot, &drdx );
+  Femlib::adopt (ntot, &drdy );
+  Femlib::adopt (ntot, &dsdx );
+  Femlib::adopt (ntot, &dsdy );
+  Femlib::adopt (ntot, &G1   );
+  Femlib::adopt (ntot, &G2   );
+  Femlib::adopt (ntot, &G3   );
+  Femlib::adopt (ntot, &G4   );
+  Femlib::adopt (ntot, &delta);
 }
 
 
