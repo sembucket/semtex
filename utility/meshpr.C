@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // meshpr.C:  utility to generate mesh nodes from mesh description file.
 //
+// Prism-compatible output.
+//
 // Usage: meshpr [options] file
 //   options:
 //   -h   ... display this message
@@ -24,7 +26,8 @@ static char prog[] = "meshpr";
 static void getargs (int, char**, char*&, int&, int&, int&);
 
 
-int main (int argc, char** argv)
+int main (int    argc,
+	  char** argv)
 // ---------------------------------------------------------------------------
 // From FEML file named on command line, generate mesh knot
 // information and print up on standard output.
@@ -64,11 +67,21 @@ int main (int argc, char** argv)
 
   Femlib::mesh (basis, basis, np, np, &z, 0, 0, 0, 0);
 
+  // -- Print out x-y mesh.
+
   for (ID = 0; ID < NEL; ID++) {
     M.meshElmt (ID, np, z, x(), y());
 
     for (j = 0; j < NTOT; j++)
       cout << setw (15) << x (j) << setw (15) << y (j) << endl;
+  }
+  
+  // -- Print out z-mesh.
+
+  if (NZ > 1) {
+    const real dz = Femlib::value ("TWOPI/BETA") / NZ;
+    for (j = 0; j <= NZ; j++)
+      cout << setw (15) << j * dz << endl;
   }
 
   return EXIT_SUCCESS;
@@ -88,8 +101,8 @@ static void getargs (int    argc   ,
   char usage[] = "usage: meshpr [options] session\n"
                  "options:\n"
                  "  -h   ... display this message\n"
-                 "  -u   ... set uniform spacing [Default: GLL]"
                  "  -v   ... set verbose output\n"
+                 "  -u   ... set uniform spacing [Default: GLL]\n"
 		 "  -n N ... override number of element knots to be N\n";
   char err[StrMax];
   char c;
