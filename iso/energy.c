@@ -52,13 +52,15 @@ real energyF (const CVF U)
 {
   const int        ntot = N * N * K;
   register int     c, i;
-  register real    k;
+  register real    k, ki;
   register complex *u;
 
   for (k = 0.0, c = 1; c <= 3; c++) {
-    u = &U[c][0][0][0];
+    ki = 0.0;
+    u  = &U[c][0][0][0];
     for (i = 0; i < ntot; i++)
-      k += MAG (u[i]);
+      ki += MAG (u[i]);
+    k += ki;
   }
 
   return k;
@@ -97,17 +99,24 @@ real microF (const CVF U   ,
 {
   const int        ntot = N * N * K;
   register int     c, i;
-  register real    u2, d2;
+  register real    u2i, d2i, u2, d2;
   register complex *ui, *wi;
 
   for (u2 = 0.0, d2 = 0.0, c = 1; c <= 3; c++) {
     deriv (U, c, work, c);
-    ui = &U[c][0][0][0];
-    wi = &work[0][0][0];
+    ui  = &U[c][0][0][0];
+    wi  = &work[0][0][0];
+    u2i = 0.0;
+    d2i = 0.0;
     for (i = 0; i < ntot; i++) {
-      u2 += MAG (ui[i]);
-      d2 += MAG (wi[i]);
+      u2i += MAG (ui[i]);
+      d2i += MAG (wi[i]);
     }
+#ifdef DEBUG
+    printf ("Component %1d contrib to TKE, DKE = %g, %g\n", c, u2i, d2i);
+#endif
+    u2 += u2i;
+    d2 += d2i;
   }
 
   return sqrt (u2 / d2);
@@ -226,13 +235,13 @@ void energySpec (const CVF U   ,
     spec[k1] += de;
     for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
       b2 = N - k2;
-      k  = (int) sqrt (k1*k1 + k2*k2);
+      k  = (int) rint (sqrt (k1*k1 + k2*k2));
       if (k >= K) continue;
       de = norm * (EN (0, k1, k2) + EN (0, b1, k2)); spec[k] += de;
       de = norm * (EN (k1, 0, k2) + EN (b1, 0, k2)); spec[k] += de;
       de = norm * (EN (k1, k2, 0) + EN (b1, k2, 0)); spec[k] += de;
       for (k3 = 1; k3 < K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
-	k = (int) sqrt (k1*k1 + k2*k2 + k3*k3);
+	k = (int) rint (sqrt (k1*k1 + k2*k2 + k3*k3));
 	if (k >= K) continue;
 	de = norm * (EN (k1, k2, k3) + EN (b1, k2, k3)); spec[k] += de;
 	de = norm * (EN (k1, b2, k3) + EN (b1, b2, k3)); spec[k] += de;

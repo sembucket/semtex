@@ -101,9 +101,9 @@ void printParam (FILE*        fp,
   fprintf (fp, "# Time                        : %g\n",  H -> time   );
 
   if (H -> chkpnt == TRUE)
-    fprintf (fp, "# Checkpointing               : on\n\n");
+    fprintf (fp, "# Checkpointing               : on\n#\n");
   else
-    fprintf (fp, "# Checkpointing               : off\n\n");
+    fprintf (fp, "# Checkpointing               : off\n#\n");
 
   fflush (fp);
 }
