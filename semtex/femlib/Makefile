@@ -43,6 +43,7 @@ CC         = cc
 CFLAGS     = $(DEFINES) -fast -inline speed -tune host -O4
 FFLAGS     = $(DEFINES) -fast -inline speed -tune host -O5 -unroll 2
 ifdef MPI
+  LIB       = libfem_mp.a
   DEFINES  += -DMPI
   CPPFLAGS += -I/usr/local/mpi/include
   CFLAGS   += -pthread
@@ -64,11 +65,22 @@ CC         = vcc
 FC         = frt
 CFLAGS     = -Wv,-m3,-Om,-te
 FFLAGS     = -Wv,-m3,-te
+ifdef MPI
+  LIB       = libfem_mp.a
+  DEFINES  += -DMPI
+  CPPFLAGS += -I/usr/lang/mpi/include
+endif
 endif
 
 ifeq ($(ARCH),SUPER-UX)                 # -- NEC SX-4
 CFLAGS     = $(DEFINES) -pvctl,fullmsg -hfloat0
 FFLAGS     = $(DEFINES) -Wf'-pvctl,fullmsg -ptr byte' -float0 -ew
+ifdef MPI
+  LIB       = libfem_mp.a
+  DEFINES  += -DMPI
+  CFLAGS   += 
+  FFLAGS   += -P multi
+endif
 endif
 
 
