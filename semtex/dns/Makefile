@@ -137,21 +137,20 @@ LDFLAGS  = $(OPT) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 endif
 
 ifeq ($(ARCH),SUPER-UX)         	# -- NEC SX-4.
-CXX       = c++ -V
-LD        = c++ -verbose -V -p
+CXX       = c++
+LD        = c++
 DEFINES  += -D_BUILTIN_ -D_SX
 CPPFLAGS += -I/usr/include/CC
 OPT       = -O nooverlap -Nstkchk
 NOVEC     = -c -Nstkchk -acct -dir novec
-CXXFLAGS  = $(DEFINES) -pvctl,loopcnt=20000,fullmsg -acct $(OPT)
-FORTLIBS  = -llapack_64 -lblas_64 -lfft_64 \
-            -lu90sxe -lp90sx -lv90sxe -lf90sxe -li90sx
+CXXFLAGS  = -V $(DEFINES) -pvctl,loopcnt=20000,fullmsg -acct $(OPT)
+FORTLIBS  = -llapack_64 -lblas_64 -lfft_64
 ifdef MPI
   LIBS    = -lfem_mp -lalp $(FORTLIBS) -lm -lC -lmpi -lpthread
 else
   LIBS    = -lfem -lalp $(FORTLIBS) -lm -lC
 endif
-LDFLAGS   = $(CXXFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
+LDFLAGS   =  -verbose -V -p -f90libew $(CXXFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 endif
 
 # ----------------------------------------------------------------------------
@@ -184,16 +183,6 @@ sem:
 ifeq ($(ARCH),SUPER-UX)
 mesh.o: $(VPATH)/mesh.C
 	$(CXX) $(CPPFLAGS) $(NOVEC) $(VPATH)/mesh.C
-BCmgr.o: $(VPATH)/BCmgr.C
-	$(CXX) $(CPPFLAGS) $(NOVEC) $(VPATH)/BCmgr.C
-bsys.o: $(VPATH)/bsys.C
-	$(CXX) $(CPPFLAGS) $(NOVEC) $(VPATH)/bsys.C
-condition.o: $(VPATH)/condition.C
-	$(CXX) $(CPPFLAGS) $(NOVEC) $(VPATH)/condition.C
-domain.o: $(VPATH)/domain.C
-	$(CXX) $(CPPFLAGS) $(NOVEC) $(VPATH)/domain.C
-dnsanalysis.o: dnsanalysis.C
-	$(CXX) $(CPPFLAGS) $(NOVEC) dnsanalysis.C
 endif
 
 # -----------------------------------------------------------------------------

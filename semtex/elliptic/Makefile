@@ -113,20 +113,20 @@ LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 endif
 
 ifeq ($(ARCH),SUPER-UX)         # -- NEC SX-4.
-CXX       = c++ -V
+CXX       = c++
 LD        = c++ -verbose -V -p
 DEFINES  += -D_BUILTIN_ -D_SX
 CPPFLAGS += -I/usr/include/CC
 OPT       = -O nooverlap -Nstkchk
-CXXFLAGS  = $(DEFINES) -pvctl,loopcnt=20000,fullmsg -acct $(OPT)
-LDFLAGS   = $(CXXFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
-FORTLIBS  = -llapack_64 -lblas_64 -lfft_64 \
-            -lu90sxe -lp90sx -lv90sxe -lf90sxe -li90sx 
+NOVEC     = -c -Nstkchk -acct -dir novec
+CXXFLAGS  = -V $(DEFINES) -pvctl,loopcnt=20000,fullmsg -acct $(OPT)
+FORTLIBS  = -llapack_64 -lblas_64 -lfft_64
 ifdef MPI
   LIBS    = -lfem_mp -lalp_mp $(FORTLIBS) -lm -lC -lmpi -lpthread
 else
   LIBS    = -lfem -lalp $(FORTLIBS) -lm -lC
 endif
+LDFLAGS   = -verbose -V -p -f90libew $(CXXFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 endif
 
 # ----------------------------------------------------------------------------
@@ -157,20 +157,7 @@ sem:
 
 ifeq ($(ARCH),SUPER-UX)
 mesh.o: $(VPATH)/mesh.C
-	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
-	$(VPATH)/mesh.C
-BCmgr.o: $(VPATH)/BCmgr.C
-	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
-	$(VPATH)/BCmgr.C
-bsys.o: $(VPATH)/bsys.C
-	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
-	$(VPATH)/bsys.C
-condition.o: $(VPATH)/condition.C
-	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
-	$(VPATH)/condition.C
-domain.o: $(VPATH)/domain.C
-	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
-	$(VPATH)/domain.C
+	$(CXX) $(CPPFLAGS) $(NOVEC) $(VPATH)/mesh.C
 endif
 
 # -----------------------------------------------------------------------------
