@@ -7,7 +7,7 @@
  * $Revision$
  *===========================================================================*/
 
-#include "globals.h"
+#include "iso.h"
 
 void pressure(/* input     */ CVF V,
                               CVF G,

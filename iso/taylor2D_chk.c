@@ -9,18 +9,19 @@
  * $Id$
  *****************************************************************************/
 
-#include "globals.h"
+#include "iso.h"
 
 
 int main (int argc, char *argv[])
 {
   CVF           U;
-  CF   Work;
+  CF            Work;
   header        U_info;
   int*          Dim;
   complex*      Wtab;
-  int           N, Npts, perm;
+  int           N, Npts, Npts_P, perm;
   FILE*         fp;
+  real          err_max;
   register int  c, i, j, k;
 
   if (argc != 4) {
@@ -44,6 +45,7 @@ int main (int argc, char *argv[])
   Dim[2] =  N;
   Dim[3] =  N / 2;
   Npts   =  Dim[1] * Dim[2] * Dim[3];
+  Npts_P =  Npts + Npts;
 
   /* -- Get solution from file. */
 
@@ -51,7 +53,7 @@ int main (int argc, char *argv[])
   read_field (fp, U, Npts);
   fclose     (fp);
 
-  fprintf (stderr, "Solution energy:                  %g\n", energy (Dim, U));
+  fprintf (stderr, "Solution energy:                  %g\n", energyF (Dim, U));
 
   /* -- Transform to PHYSICAL space. */
 
@@ -60,9 +62,29 @@ int main (int argc, char *argv[])
   for (c = 1; c <= 3; c++)
     rc3DFT (U[c], Dim, Wtab, INVERSE);
 
+  /* -- Compute maximum velocity component. */
+  
+  err_max = 0.0;
+  for (c = 1; c <= 3; c++) {
+    register real *u = & U[c][0][0][0].Re;
+    for (i = 0; i < Npts_P; i++)
+      err_max = MAX (u[i], err_max);
+  }
+  fprintf (stderr, "Maximum velocity component:       %g\n", err_max);
+
   /* -- Subtract off exact solution. */
 
   Taylor2D_error (Dim, U, &U_info, perm);
+
+  /* -- Compute maximum error velocity component. */
+
+  err_max = 0.0;
+  for (c = 1; c <= 3; c++) {
+    register real *u = & U[c][0][0][0].Re;
+    for (i = 0; i < Npts_P; i++)
+      err_max = MAX (u[i], err_max);
+  }
+  fprintf (stderr, "Maximum velocity component error: %g\n", err_max);
 
   /* -- Transform back to FOURIER space. */
 
@@ -71,7 +93,7 @@ int main (int argc, char *argv[])
     scaleFT (U[c], Dim);
   }
 
-  fprintf (stderr, "Error energy:                     %g\n", energy (Dim, U));
+  fprintf (stderr, "Error energy:                     %g\n", energyF (Dim, U));
 
   /* -- Output error field. */
 

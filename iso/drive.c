@@ -72,13 +72,15 @@
  * -----------
  * [1]  S.A. Orszag, 1971, 'Numerical simulation of incompressible flows
  *        within simple boundaries. 1. Galerkin (spectral) representations',
- *        Stud. Appl. Math., VLN4, Dec., pp. 293--327.
+ *        Stud. Appl. Math., VLN4, Dec., 293--327.
  * [2]  R.S. Rogallo, 1981, 'Numerical experiments in homogeneous
  *        turbulence', NASA TM 81315, Sept.
  * [3]  M. Lesieur, 1990,  Turbulence in Fluids, 2nd ed, Kluwer Academic.
  * [4]  C. Canuto, M.Y. Hussaini, A. Quarteroni & T.A. Zang, 1988,  Spectral
  *        Methods in Fluid Dynamics, Springer.
- *
+ * [5]  M.E. Brachet, D. I. Meiron, S.A. Orszag, B.G. Nickel, R.H. Morf
+ *        & U. Frisch, 1983.  'Small-scale structure of the Taylor--Green
+ *        vortex', JFM, V130, 411--452.
  *
  * Program development by:
  * -----------------------
@@ -86,12 +88,13 @@
  * Department of Mechanical Engineering
  * Monash University
  * Clayton VIC 3168
+ * Australia
  * hmb@artemis.eng.monash.edu.au
  *
  * $Id$
  *****************************************************************************/
 
-#include "globals.h"
+#include "iso.h"
 
 
 #define  SWAP(a, b)   G_temp = (a); (a) = (b); (b) = G_temp;
@@ -114,7 +117,7 @@ int main (int argc, char *argv[])
   string    Input_file, Restart_file;
   FILE*     fp;
   int       Npts;
-  real      q2;
+  real      q2, t;
 
 
   Start = TRUE;
@@ -146,15 +149,21 @@ int main (int argc, char *argv[])
     preFFT   (Dim[3], Wtab);
     preShift (Dim[1], Stab);
     
-    q2 = energy (Dim, U);
-    fprintf (stdout, "\nStep 0, energy: %.3e\n", q2);
+    t  = Run_info -> N_Step * Run_info -> Delta_T;
+    q2 = energyF (Dim, U);
+    fprintf (stdout, "\nStep 0, t: %g, energy: %g, ",
+	     t, energyF (Dim, U));
+    fprintf (stdout, "enstrophy: %g %g\n", genEnstrophy (Dim, U), Brachet (t));
 
     nonlin    (U, G, F, work, Wtab, Stab, Dim);
     integrate (U, G, G_old, Run_info, Dim, Start);
     Run_info-> N_Step++;
 
-    q2 = energy (Dim, U);    
-    fprintf (stdout, "Step %d, energy: %.3e\n", Run_info -> N_Step, q2);
+    t  = Run_info -> N_Step * Run_info -> Delta_T;
+    q2 = energyF (Dim, U);    
+    fprintf (stdout, "Step %d, t: %g, energy: %g, ",
+	     Run_info->N_Step, t, energyF (Dim, U));
+    fprintf (stdout, "enstrophy: %g %g\n", genEnstrophy (Dim, U), Brachet (t));
 
     SWAP (G, G_old);
 
@@ -189,9 +198,12 @@ int main (int argc, char *argv[])
     integrate (U, G, G_old, Run_info, Dim, Start);
     Run_info -> N_Step++;
 
-    q2 = energy (Dim, U);    
-    fprintf     (stdout, "Step %d, energy: %.3e\n", Run_info -> N_Step, q2);
-    fflush      (stdout);
+    t  = Run_info -> N_Step * Run_info -> Delta_T;
+    q2 = energyF (Dim, U);    
+    fprintf (stdout, "Step %d, t: %g, energy: %g, ",
+	     Run_info->N_Step, t, energyF (Dim, U));
+    fprintf (stdout, "enstrophy: %g %g\n", genEnstrophy (Dim, U), Brachet (t));
+    fflush  (stdout);
 
     SWAP (G, G_old);
     

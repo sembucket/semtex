@@ -5,10 +5,16 @@
  *
  * Creates an initial condition file corresponding to the Taylor flow,
  * given by:
- *   u = -cos(x) sin (y) exp(-2 PI^2 \nu t)
- *   v =  sin(x) cos (y) exp(-2 PI^2 \nu t)
+ *   u = -cos(PI x) sin(PI y) exp(-2 PI^2 \nu t)
+ *   v =  sin(PI x) cos(PI y) exp(-2 PI^2 \nu t)
  *   w =  0
- *   p = -0.25 [cos(2x) + cos(2y)] exp(-4 PI^2 \nu t)
+ *   p = -0.25 [cos(2 PI x) + cos(2 PI y)] exp(-4 PI^2 \nu t)
+ *
+ * In the solution, the nonlinear and pressure terms balance out, so the
+ * decay in the local components comes from the diffusion alone.  In our
+ * Fourier-space method, the correct solution should be produced with or
+ * without including the contribution of the incompressible projection
+ * of the nonlinear terms.
  *
  * Permutation code -p selects cyclic permutation of velocity components
  * (0 <==> combination above).
@@ -22,22 +28,22 @@
  * $Id$
  *****************************************************************************/
 
-#include "globals.h"
+#include "iso.h"
 
 
 int main (int argc, char *argv[])
 {
-  FILE                  *fp;
-  string                filename;
-  int                   c, i, argnr, cubesize, Npts;
-  int                   paramerr = FALSE, seed = -1;
-  int                   code = 0;
-  CVF  IC;
-  real**      head;
-  int*                   Dim;
-  complex*               Wtab;
-  header                IC_info;
-  real                 Max_Vel;
+  FILE*      fp;
+  string     filename;
+  int        c, i, argnr, cubesize, Npts;
+  int        paramerr = FALSE, seed = -1;
+  int        code = 0;
+  CVF        IC;
+  real**     head;
+  int*       Dim;
+  complex*   Wtab;
+  header     IC_info;
+  real       Max_Vel;
 
   /* -- Process command-line arguments. */
 
@@ -118,17 +124,8 @@ int main (int argc, char *argv[])
   strcpy (IC_info.IC_File, "<nil>");
 
   fp = efopen (filename, "w");
-  if (fwrite (&IC_info, 1, sizeof (header), fp) != sizeof (header)) {
-    fprintf (stderr, "makeIC3: couldn't output header onto file\n");
-    exit (EXIT_FAILURE);
-  }
-  
-  for (c = 1; c <= 3; c++)
-    if (fwrite (&IC[c][0][0][0], sizeof (complex), Npts, fp) != Npts) {
-      fprintf (stderr, "makeIC3: Unable to ouput component %d data", c);
-      exit (EXIT_FAILURE);
-    }
-
+  write_header (fp, &IC_info);
+  write_field  (fp, IC, Npts);
   fclose (fp);
 
   print_header (stdout, &IC_info);

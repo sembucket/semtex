@@ -30,7 +30,7 @@
  *
  * ------------------------------------------------------------------------- */
 
-#include "globals.h"
+#include "iso.h"
 
 
 int main (int argc, char *argv[])
