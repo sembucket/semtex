@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // dual2sem.C: convert a dual 3D file to a semtex/nekton 3D file.
 //
-// Copyright (c) 2000 Hugh Blackburn
+// Copyright (c) 2000 <--> $Date$, Hugh Blackburn
 //
 // USAGE
 // -----
@@ -28,11 +28,11 @@
 // needs a command-line argument to set it.  Likewise the mode number
 // is needed in the inverse operation (in order to select the
 // fundamental mode number from the semtex/nekton file).
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "Sem.h"
+static char RCS[] = "$Id$";
+
+#include "sem.h"
 
 static char prog[] = "dual2sem";
 
@@ -52,26 +52,26 @@ static char* hdr_fmt[] = {
 typedef struct hdr_data {
   char   session[StrMax];
   char   created[StrMax];
-  int    nr, ns, nz, nel;
-  int    step;
-  double time;
-  double timestep;
-  double kinvis;
-  double beta;
+  int_t  nr, ns, nz, nel;
+  int_t  step;
+  real_t time;
+  real_t timestep;
+  real_t kinvis;
+  real_t beta;
   char   fields[StrMax];
   char   format[StrMax];
 } hdr_info;
 
-static void getargs   (int, char**, int&, int&, istream*&);
-static void roundup   (const int, int&);
+static void getargs   (int_t, char**, int_t&, int_t&, istream*&);
+static void roundup   (const int_t, int_t&);
 static void getheader (istream&, hdr_info&);
-static void allocate  (hdr_info&, const int, vector<real*>&);
-static void readdata  (hdr_info&, istream&, const int, vector<real*>&);
-static void packdata  (hdr_info&, const int, const int, vector<real*>&,
-		       const int);
-static void transform (hdr_info&, const int, vector<real*>&, const int);
-static void writedata (hdr_info&, ostream&, const int, vector<real*>&);
-static int  doswap    (const char*);
+static void allocate  (hdr_info&, const int_t, vector<real_t*>&);
+static void readdata  (hdr_info&, istream&, const int_t, vector<real_t*>&);
+static void packdata  (hdr_info&, const int_t, const int_t, vector<real_t*>&,
+		       const int_t);
+static void transform (hdr_info&, const int_t, vector<real_t*>&, const int_t);
+static void writedata (hdr_info&, ostream&, const int_t, vector<real_t*>&);
+static bool doswap    (const char*);
 
 
 int main (int    argc,
@@ -80,10 +80,10 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  hdr_info      header;
-  int           dir = FORWARD, mode = 1, nz;
-  istream*      input;
-  vector<real*> u;
+  hdr_info        header;
+  int_t           dir = FORWARD, mode = 1, nz;
+  istream*        input;
+  vector<real_t*> u;
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, dir, mode, input);
@@ -116,8 +116,8 @@ int main (int    argc,
 
 static void getargs (int       argc ,
 		     char**    argv ,
-		     int&      dir  ,
-		     int&      mode ,
+		     int_t&    dir  ,
+		     int_t&    mode ,
 		     istream*& input)
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
@@ -160,13 +160,13 @@ static void getargs (int       argc ,
 }
 
 
-static void roundup (const int  mode, 
-		     int&       nz  )
+static void roundup (const int_t mode, 
+		     int_t&      nz  )
 // ---------------------------------------------------------------------------
 // Calculate nz from mode number, then increment until it suits FFT.
 // ---------------------------------------------------------------------------
 {
-  int n, ip, iq, ir, ipqr2;
+  int_t n, ip, iq, ir, ipqr2;
 
   nz = 2 * (mode + 1);
 
@@ -185,8 +185,8 @@ static void getheader (istream&  file  ,
 // Load data structure from file header info.
 // ---------------------------------------------------------------------------
 {
-  char    buf[StrMax];
-  integer i, j; 
+  char  buf[StrMax];
+  int_t i, j; 
 
   file.get (header.session, 25); file.getline (buf, StrMax);
   
@@ -218,114 +218,114 @@ static void getheader (istream&  file  ,
 }
 
 
-static void allocate (hdr_info&       header,
-		      const int       nz    ,
-		      vector<real*>&  u     )
+static void allocate (hdr_info&        header,
+		      const int_t      nz    ,
+		      vector<real_t*>& u     )
 // ---------------------------------------------------------------------------
 // Allocate enough storage to hold all the data fields (sem format).
 // ---------------------------------------------------------------------------
 {
-  const int nfield    = strlen (header.fields);
-  const int ntotelmt  = header.nr * header.ns * header.nel;
-  const int planesize = ntotelmt + (ntotelmt % 2);
-  const int ntot      = planesize * nz;
-  int       i;
+  const int_t nfield    = strlen (header.fields);
+  const int_t ntotelmt  = header.nr * header.ns * header.nel;
+  const int_t planesize = ntotelmt + (ntotelmt % 2);
+  const int_t ntot      = planesize * nz;
+  int_t       i;
 
-  u.setSize (nfield);
+  u.resize (nfield);
   
   for (i = 0; i < nfield; i++) {
-    u[i] = new real [ntot];
+    u[i] = new real_t [ntot];
     Veclib::zero (ntot, u[i], 1);
   }
 }
 
 
-static void readdata (hdr_info&      header,
-		      istream&       file  ,
-		      const int      nplane,
-		      vector<real*>& u     )
+static void readdata (hdr_info&        header,
+		      istream&         file  ,
+		      const int_t      nplane,
+		      vector<real_t*>& u     )
 // ---------------------------------------------------------------------------
 // Binary read of data area, followed by byte-swapping if required.
 // ---------------------------------------------------------------------------
 {
-  const int nfield    = strlen (header.fields);
-  const int ntotelmt  = header.nr * header.ns * header.nel;
-  const int planesize = ntotelmt + (ntotelmt % 2);
-  const int ntot      = planesize * nplane;
-  const int swab      = doswap (header.format);
-  int       i, j;
+  const int_t nfield    = strlen (header.fields);
+  const int_t ntotelmt  = header.nr * header.ns * header.nel;
+  const int_t planesize = ntotelmt + (ntotelmt % 2);
+  const int_t ntot      = planesize * nplane;
+  const bool  swab      = doswap (header.format);
+  int_t       i, j;
   
   for (i = 0; i < nfield; i++) {
     for (j = 0; j < nplane; j++) {
-      file.read ((char*) (u[i] + j * planesize), ntotelmt * sizeof (real));
+      file.read (static_cast<char*>(u[i]+j*planesize),ntotelmt*sizeof(real_t));
     }
     if (swab) Veclib::brev (ntot, u[i], 1, u[i], 1);
   }
 }
 
 
-static void packdata (hdr_info&      header,
-		      const int      mode  ,
-		      const int      nz    ,
-		      vector<real*>& u     ,
-		      const int      dir   )
+static void packdata (hdr_info&        header,
+		      const int_t      mode  ,
+		      const int_t      nz    ,
+		      vector<real_t*>& u     ,
+		      const int_t      dir   )
 // ---------------------------------------------------------------------------
 // Data in u are considered to be in Fourier-transformed state.  Move
 // planes around to place them in required spots.  Zero other data.
 // ---------------------------------------------------------------------------
 {
-  const int    nfield    = strlen (header.fields);
-  const int    ntotelmt  = header.nr * header.ns * header.nel;
-  const int    planesize = ntotelmt + (ntotelmt % 2);
-  const int    nblock    = 2 * planesize;
-  vector<real> tmp (2 * planesize);
-  int          i;
+  const int_t    nfield    = strlen (header.fields);
+  const int_t    ntotelmt  = header.nr * header.ns * header.nel;
+  const int_t    planesize = ntotelmt + (ntotelmt % 2);
+  const int_t    nblock    = 2 * planesize;
+  vector<real_t> tmp (2 * planesize);
+  int_t          i;
 
   if (dir == FORWARD)		// -- Pack down to 3 data planes.
     for (i = 0; i < nfield; i++) {
-      Veclib::copy (nblock, u[i] + mode * nblock, 1, tmp(), 1);
+      Veclib::copy (nblock, u[i] + mode * nblock, 1, &tmp[0], 1);
       Veclib::zero ((nz - 1) * planesize, u[i] + planesize, 1);
-      Veclib::copy (nblock, tmp(), 1, u[i] + planesize, 1);
+      Veclib::copy (nblock, &tmp[0], 1, u[i] + planesize, 1);
     }
   else				// -- Reposition nominated mode.
     for (i = 0; i < nfield; i++) {
-      Veclib::copy (nblock, u[i] + planesize, 1, tmp(), 1);
+      Veclib::copy (nblock, u[i] + planesize, 1, &tmp[0], 1);
       Veclib::zero ((nz - 1) * planesize, u[i] + planesize, 1);
-      Veclib::copy (nblock, tmp(), 1, u[i] + mode * nblock, 1);
+      Veclib::copy (nblock, &tmp[0], 1, u[i] + mode * nblock, 1);
     }
 }
 
 
 static void transform (hdr_info&      header,
-		       const int      nz    , 
-		       vector<real*>& u     , 
-		       const int      dir   )
+		       const int_t      nz    , 
+		       vector<real_t*>& u     , 
+		       const int_t      dir   )
 // ---------------------------------------------------------------------------
 //
 // ---------------------------------------------------------------------------
 {
-  const int nfield    = strlen (header.fields);
-  const int ntotelmt  = header.nr * header.ns * header.nel;
-  const int planesize = ntotelmt + (ntotelmt % 2);
-  int       i;
+  const int_t nfield    = strlen (header.fields);
+  const int_t ntotelmt  = header.nr * header.ns * header.nel;
+  const int_t planesize = ntotelmt + (ntotelmt % 2);
+  int_t       i;
 
   for (i = 0; i < nfield; i++) Femlib::DFTr (u[i], nz, planesize, dir);
 }
 
 
-static void writedata (hdr_info&      header,
-		       ostream&       file  ,
-		       const int      nz    ,
-		       vector<real*>& u     )
+static void writedata (hdr_info&        header,
+		       ostream&         file  ,
+		       const int_t      nz    ,
+		       vector<real_t*>& u     )
 // ---------------------------------------------------------------------------
 //
 // ---------------------------------------------------------------------------
 {
-  const int nfield    = strlen (header.fields);
-  const int ntotelmt  = header.nr * header.ns * header.nel;
-  const int planesize = ntotelmt + (ntotelmt % 2);
-  char      buf[StrMax], tmp[StrMax];
-  int       i, j;
+  const int_t nfield    = strlen (header.fields);
+  const int_t ntotelmt  = header.nr * header.ns * header.nel;
+  const int_t planesize = ntotelmt + (ntotelmt % 2);
+  char        buf[StrMax], tmp[StrMax];
+  int_t       i, j;
 
   sprintf (buf, hdr_fmt[0], header.session);
   file << buf;
@@ -352,11 +352,11 @@ static void writedata (hdr_info&      header,
 
   for (i = 0; i < nfield; i++) 
     for (j = 0; j < nz; j++)
-      file.write ((char*) (u[i] + j * planesize), ntotelmt * sizeof (real));
+      file.write(static_cast<char*>(u[i]+j*planesize),ntotelmt*sizeof(real_t));
 }
 
 
-static int doswap (const char* ffmt)
+static bool doswap (const char* ffmt)
 // ---------------------------------------------------------------------------
 // Figure out if byte-swapping of input is required to make sense of input.
 // ---------------------------------------------------------------------------

@@ -2,16 +2,16 @@
 // This version of analysis.C is specialized so that it computes and
 // prints out forces exerted on "wall" boundary group.
 //
-// Copyright (C) 1994, 2000 Hugh Blackburn
-//
-// $Id$
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
  
-#include <dual.h>
+#include "dual.h"
 
 
 DualAnalyser::DualAnalyser (Domain* D   ,
-			  FEML*   feml) :
+			    FEML*   feml) :
 // ---------------------------------------------------------------------------
 // Extensions to Analyser class.
 // ---------------------------------------------------------------------------
@@ -38,15 +38,15 @@ void DualAnalyser::analyse (AuxField** work)
 // Step-by-step processing.
 // ---------------------------------------------------------------------------
 {
-  const integer DIM = Geometry::nDim();
+  const int_t DIM = Geometry::nDim();
 
   Analyser::analyse (work);
 
   ROOTONLY {
-    const integer periodic = !(src->step % (integer)Femlib::value("IO_HIS")) ||
-                             !(src->step % (integer)Femlib::value("IO_FLD"));
-    const integer final    =   src->step ==(integer)Femlib::value("N_STEP");
-    const integer state    = periodic || final;
+    const bool periodic = !(src->step  % Femlib::ivalue("IO_HIS")) ||
+                          !(src->step  % Femlib::ivalue("IO_FLD"));
+    const bool final    =   src->step == Femlib::ivalue("N_STEP");
+    const bool state    = periodic || final;
 
     if (!state) return;
 

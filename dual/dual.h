@@ -3,12 +3,12 @@
 //////////////////////////////////////////////////////////////////////////////
 // dual.h: header file for direct numerical simulation solver.
 //
-// Copyright (c) 1999 Hugh Blackburn
+// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 //
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include "Sem.h"
+#include "sem.h"
 
 
 class DualAnalyser : public Analyser

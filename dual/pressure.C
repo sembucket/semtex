@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // pressure.C: routines to deal with pressure field boundary conditions.
 //
-// Copyright (C) 1994, 1999 Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // Class variables Pn & Un provide storage for the mode equivalents of
 //   Pn:  normal gradient of the pressure field,
@@ -16,16 +16,16 @@
 // that order (e.g. Pn[time][boundary][plane][i]).
 //
 // NB: modified for use with dual.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Sem.h>
+static char RCS[] = "$Id$";
 
-real**** PBCmgr::Pnx = 0;
-real**** PBCmgr::Pny = 0;
-real**** PBCmgr::Unx = 0;
-real**** PBCmgr::Uny = 0;
+#include <sem.h>
+
+real_t**** PBCmgr::Pnx = 0;
+real_t**** PBCmgr::Pny = 0;
+real_t**** PBCmgr::Unx = 0;
+real_t**** PBCmgr::Uny = 0;
 
 
 void PBCmgr::build (const Field* P)
@@ -37,31 +37,31 @@ void PBCmgr::build (const Field* P)
 // There is some wastage as memory is also allocated for essential BCs.
 // ---------------------------------------------------------------------------
 {
-  const integer np    = Geometry::nP();
-  const integer nTime = (integer) Femlib::value ("N_TIME");
-  const integer nEdge = P -> _nbound;
-  const integer nZ    = P -> _nz;
-  integer       i, j, k;
+  const int_t np    = Geometry::nP();
+  const int_t nTime = Femlib::ivalue ("N_TIME");
+  const int_t nEdge = P -> _nbound;
+  const int_t nZ    = P -> _nz;
+  int_t       i, j, k;
 
-  Pnx = new real*** [(size_t) nTime];
-  Pny = new real*** [(size_t) nTime];
-  Unx = new real*** [(size_t) nTime];
-  Uny = new real*** [(size_t) nTime];
+  Pnx = new real_t*** [static_cast<size_t>(nTime)];
+  Pny = new real_t*** [static_cast<size_t>(nTime)];
+  Unx = new real_t*** [static_cast<size_t>(nTime)];
+  Uny = new real_t*** [static_cast<size_t>(nTime)];
 
   for (i = 0; i < nTime; i++) {
-    Pnx[i] = new real** [(size_t) (4 * nEdge)];
+    Pnx[i] = new real_t** [static_cast<size_t>(4 * nEdge)];
     Pny[i] = Pnx[i] + nEdge;
     Unx[i] = Pny[i] + nEdge;
     Uny[i] = Unx[i] + nEdge;
 
     for (j = 0; j < nEdge; j++) {
-      Pnx[i][j] = new real* [(size_t) (4 * nZ)];
+      Pnx[i][j] = new real_t* [static_cast<size_t>(4 * nZ)];
       Pny[i][j] = Pnx[i][j] + nZ;
       Unx[i][j] = Pny[i][j] + nZ;
       Uny[i][j] = Unx[i][j] + nZ;
 
       for (k = 0; k < nZ; k++) {
-	Pnx[i][j][k] = new real [(size_t) (4 * np)];
+	Pnx[i][j][k] = new real_t [static_cast<size_t>(4 * np)];
 	Pny[i][j][k] = Pnx[i][j][k] + np;
 	Unx[i][j][k] = Pny[i][j][k] + np;
 	Uny[i][j][k] = Unx[i][j][k] + np;
@@ -73,11 +73,11 @@ void PBCmgr::build (const Field* P)
 }
 
 
-void PBCmgr::maintain (const integer    step   ,
+void PBCmgr::maintain (const int_t      step   ,
 		       const Field*     P      ,
 		       const AuxField** Us     ,
 		       const AuxField** Uf     ,
-		       const integer    timedep)
+		       const bool       timedep)
 // ---------------------------------------------------------------------------
 // Update storage for evaluation of high-order pressure boundary condition.
 // Storage order for each edge represents a CCW traverse of element boundaries.
@@ -99,26 +99,26 @@ void PBCmgr::maintain (const integer    step   ,
 // No smoothing is done to high-order spatial derivatives computed here.
 // ---------------------------------------------------------------------------
 {
-  const real         nu    =           Femlib::value ("KINVIS");
-  const real         invDt = 1.0     / Femlib::value ("D_T");
-  const integer      nTime = (integer) Femlib::value ("N_TIME");
-  const integer      kfund = (integer) Femlib::value ("K_FUND");
-  const integer      nEdge = P -> _nbound;
-  const integer      nZ    = P -> _nz;
-  const integer      nP    =  Geometry::nP();
+  const real_t nu    =       Femlib::value ("KINVIS");
+  const real_t invDt = 1.0 / Femlib::value ("D_T");
+  const int_t  nTime = Femlib::ivalue ("N_TIME");
+  const int_t  kfund = Femlib::ivalue ("K_FUND");
+  const int_t  nEdge = P -> _nbound;
+  const int_t  nZ    = P -> _nz;
+  const int_t  nP    =  Geometry::nP();
 
-  const AuxField*    Ux = Us[0];
-  const AuxField*    Uy = Us[1];
-  const AuxField*    Uz = (nZ > 1) ? Us[2] : 0;
-  const AuxField*    Nx = Uf[0];
-  const AuxField*    Ny = Uf[1];
+  const AuxField* Ux = Us[0];
+  const AuxField* Uy = Us[1];
+  const AuxField* Uz = (nZ > 1) ? Us[2] : 0;
+  const AuxField* Nx = Uf[0];
+  const AuxField* Ny = Uf[1];
 
   const vector<Boundary*>& BC = P -> _bsys -> BCs (0);
   register Boundary*       B;
-  register integer         i, k, q;
-  integer                  offset, skip, Je;
+  register int_t           i, k, q;
+  int_t                    offset, skip, Je;
 
-  vector<real>       work (4 * nP + Integration::OrderMax + 1);
+
 
   // -- Roll grad P storage area up, load new level of nonlinear terms Uf.
 
@@ -133,17 +133,25 @@ void PBCmgr::maintain (const integer    step   ,
     for (k = 0; k < nZ; k++) {
       Veclib::copy (nP, Nx -> _plane[k] + offset, skip, Pnx[0][i][k], 1);
       Veclib::copy (nP, Ny -> _plane[k] + offset, skip, Pny[0][i][k], 1);
+
+      // -- For cylindrical coordinates, N_ are radius-premultiplied. Cancel.
+
+      if (Geometry::cylindrical()) {
+	B -> divY (Pnx[0][i][k]);
+	B -> divY (Pny[0][i][k]);
+      }
     }
   }
 
   // -- Add in -nu * curl curl u.
-
-  real  *UxRe, *UxIm, *UyRe, *UyIm, *UzRe, *UzIm, *tmp;
-  real* xr    = work();
-  real* xi    = xr + nP;
-  real* yr    = xi + nP;
-  real* yi    = yr + nP;
-  real* alpha = yi + nP;
+  vector<real_t> work (5 * sqr(nP) + 7 * nP + Integration::OrderMax + 1);
+  real_t         *UxRe, *UxIm, *UyRe, *UyIm, *UzRe, *UzIm, *tmp;
+  real_t*        wrk   = &work[0];
+  real_t*        xr    = wrk + 5*sqr(nP) + 3*nP;
+  real_t*        xi    = xr + nP;
+  real_t*        yr    = xi + nP;
+  real_t*        yi    = yr + nP;
+  real_t*        alpha = yi + nP;
 
   for (i = 0; i < nEdge; i++) {
     B      = BC[i];
@@ -152,7 +160,7 @@ void PBCmgr::maintain (const integer    step   ,
 
     UxRe = Ux -> _plane[0];
     UyRe = Uy -> _plane[0];
-    B -> curlCurl (0, UxRe, 0, UyRe, 0, 0, 0, xr, 0, yr, 0);
+    B -> curlCurl (0, UxRe, 0, UyRe, 0, 0, 0, xr, 0, yr, 0, wrk);
     Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][0], 1);
     Blas::axpy (nP, -nu, yr, 1, Pny[0][i][0], 1);
 
@@ -163,7 +171,7 @@ void PBCmgr::maintain (const integer    step   ,
     UzRe = Uz -> _plane[1];
     UzIm = Uz -> _plane[2];
 
-    B -> curlCurl (kfund, UxRe,UxIm, UyRe,UyIm, UzRe,UzIm, xr,xi, yr,yi);
+    B -> curlCurl (kfund, UxRe,UxIm, UyRe,UyIm, UzRe,UzIm, xr,xi, yr,yi, wrk);
 
     Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][1], 1);
     Blas::axpy (nP, -nu, xi, 1, Pnx[0][i][2], 1);
@@ -220,13 +228,13 @@ void PBCmgr::maintain (const integer    step   ,
 }
 
 
-void PBCmgr::evaluate (const integer id   ,
-		       const integer np   ,
-		       const integer plane,
-		       const integer step ,
-		       const real*   nx   ,
-		       const real*   ny   ,
-		       real*         tgt  )
+void PBCmgr::evaluate (const int_t   id   ,
+		       const int_t   np   ,
+		       const int_t   plane,
+		       const int_t   step ,
+		       const real_t* nx   ,
+		       const real_t* ny   ,
+		       real_t*       tgt  )
 // ---------------------------------------------------------------------------
 // Load PBC value with values obtained from HOBC multi-level storage.
 //
@@ -244,11 +252,11 @@ void PBCmgr::evaluate (const integer id   ,
 {
   if (step < 1) return;
 
-  register integer q, Je = (integer) Femlib::value ("N_TIME");
-  vector<real>     work (Integration::OrderMax + 2 * np);
-  real*            beta  = work();
-  real*            tmpX  = beta + Integration::OrderMax;
-  real*            tmpY  = tmpX + np;
+  register int_t q, Je = Femlib::ivalue ("N_TIME");
+  vector<real_t> work (Integration::OrderMax + 2 * np);
+  real_t*        beta  = &work[0];
+  real_t*        tmpX  = beta + Integration::OrderMax;
+  real_t*        tmpY  = tmpX + np;
 
   Je = min (step, Je);
   Integration::Extrapolation (Je, beta);
@@ -278,7 +286,7 @@ void PBCmgr::accelerate (const Vector& a,
 {
   const vector<Boundary*>& BC = u -> _bsys -> BCs (0);
   register Boundary*       B;
-  register integer         i;
+  register int_t           i;
 
   for (i = 0; i < u -> _nbound; i++) {
     B = BC[i];

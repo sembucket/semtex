@@ -6,35 +6,37 @@
 // transformation will be used, there is no need to round up the plane
 // size to be an even number.
 //
-// Copyright (C) 1994, 2000 Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // Most routines are inlined in header file Geometry.h
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <stdio.h>
-#include <iostream.h>
+static char CVS[] = "$Id$";
 
-#include <femdef.h>
-#include <Utility.h>
-#include <Geometry.h>
-#include <Femlib.h>
+#include <cstdio>
+#include <iostream>
 
-integer            Geometry::pid   = 0;
-integer            Geometry::nproc = 0;
-integer            Geometry::ndim  = 0;
-integer            Geometry::np    = 0;
-integer            Geometry::nz    = 0;
-integer            Geometry::nzp   = 0;
-integer            Geometry::nel   = 0;
-integer            Geometry::psize = 0;
+using namespace std;
+
+#include <cfemdef.h>
+#include <utility.h>
+#include <geometry.h>
+#include <femlib.h>
+
+int_t              Geometry::pid   = 0;
+int_t              Geometry::nproc = 0;
+int_t              Geometry::ndim  = 0;
+int_t              Geometry::np    = 0;
+int_t              Geometry::nz    = 0;
+int_t              Geometry::nzp   = 0;
+int_t              Geometry::nel   = 0;
+int_t              Geometry::psize = 0;
 Geometry::CoordSys Geometry::csys  = Geometry::Cartesian;
 
 
-void Geometry::set (const integer  NP,
-		    const integer  NZ,
-		    const integer  NE,
+void Geometry::set (const int_t  NP,
+		    const int_t  NZ,
+		    const int_t  NE,
 		    const CoordSys CS)
 // ---------------------------------------------------------------------------
 // Load values of static internal variables.
@@ -42,8 +44,8 @@ void Geometry::set (const integer  NP,
 {
   static char routine[] = "Geometry::set", err[StrMax];
 
-  pid   = (integer) Femlib::value ("I_PROC");
-  nproc = (integer) Femlib::value ("N_PROC");
+  pid   = Femlib::ivalue ("I_PROC");
+  nproc = Femlib::ivalue ("N_PROC");
 
   np   = NP; nz = NZ; nel = NE; csys = CS;
   nzp  = nz;

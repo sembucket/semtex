@@ -2,117 +2,19 @@
 // field.C: derived from AuxField, Field adds boundary conditions,
 // global numbering, and the ability to solve Helmholtz problems.
 //
-// Copyright (C) 1994, 2000 Hugh Blackburn
+// Copyright (C) 1994 <--> $Date$, Hugh Blackburn
 //
 // NB: modified for dual.
-//
-// HELMHOLTZ PROBLEMS
-// ------------------
-// Solve routines provide solution to the discrete form of the Helmholtz eqn
-//                      
-//                       div grad u - \lambda^2 u = f,
-//
-// on domain \Omega, subject to essential BCs u = g on \Gamma_g and
-// natural BCs \partial u / \partial n = h on \Gamma_h, where the
-// boundary \Gamma of \Omega is the union of (non-overlapping)
-// \Gamma_g and \Gamma_h and n is the unit outward normal vector on
-// \Gamma.  \lambda^2 is called the Helmholtz constant below.
-//
-// The Galerkin form, using integration by parts with weighting functions w
-// which are zero on \Gamma_g, is
-//
-//            (grad u, grad w) + \lambda^2 (u, w) = - (f, w) + <h, w>
-//
-// where (a, b) = \int a.b d\Omega is an integration over the domain and
-//       <a, b> = \int a.b d\Gamma is an integration over the domain boundary.
-//
-// The discrete (finite element) equivalent is to solve
-//
-//                   K.u + \lambda^2 M.u = - M.f + <h, w>
-//
-// or
-//
-//                         H.u = - M.f + <h, w>
-//
-// where K, M and H are respectively (assembled) "stiffness", "mass"
-// and Helmholtz matrices.
-//
-// Some complications arise from dealing with essential boundary
-// conditions, since typically the elemental matrices K^e, M^e which
-// are assembled to form K and M do not account for the boundary
-// requirements on w.  There are a number of ways of dealing with this
-// issue: one approach is to partition H as it is formed (here F =
-// -M.f + <h, w>):
-//
-//   +--------+-------------+ /  \     /  \
-//   |        |             | |  |     |  |
-//   |   Hp   |     Hc      | |u |     |F |   u : nodal values for solution.
-//   |        |(constraint) | | s|     | s|    s
-//   |        |             | |  |     |  |       (n_solve values)
-//   +--------+-------------+ +--+     +--+
-//   |        | H_ess: this | |  |  =  |  |
-//   |        | partition   | |  |     |  |
-//   |    T   | relates to  | |u |     |F |   u : are given essential BCs.
-//   |  Hc    | essential   | | g|     | g|    g
-//   |        | BC nodes    | |  |     |  |       (n_global - n_solve values)
-//   |        | and is not  | |  |     |  |
-//   |        | assembled.  | |  |     |  |
-//   +--------+-------------+ \  /     \  /
-//
-// Partition out the sections of the matrix corresponding to the known
-// nodal values (essential BCs), and solve instead the constrained
-// problem
-//
-//   +--------+               /  \     /  \     +-------------+ /  \
-//   |        |               |  |     |  |     |             | |  |
-//   |   Hp   |               |u |     |F |     |     Hc      | |  |
-//   |        |               | s|  =  | s|  -  |             | |u |
-//   |        |               |  |     |  |     |             | | g|
-//   +--------+               \  /     \  /     +-------------+ |  |.
-//                                                              |  |
-//                                                              |  |
-//                                                              \  /
-//
-// Here n_global is the number of nodes that receive global node
-// numbers, typically those on the mesh edges.  N_solve is the number
-// of these nodes that have values that must be solved for,
-// i.e. n_global minus the number of global nodes situated on
-// essential-type boundaries.
-//
-// An alternative approach (USED HERE) to the constrained problem is to let
-//
-//                      u = v + g     (v = 0 on \Gamma_g)
-//
-// and solve instead
-//
-//                      H.v = - M.f - H.g + <h, w>
-//
-// (where only the partition Hp is needed for the matrix H in the
-// LHS), then afterwards compose u = v + g to get the full solution.
-// The advantage to this method is that the constraint partition Hc
-// does not need to be assembled or stored.  The operations M.f and
-// H.g can be performed on an element-by-element basis.
-//
-// FIELD NAMES
-// -----------
-// The (one character) names of field variables are significant, and have
-// the following reserved meanings:
-// 
-// u:  First velocity component.            (Cylindrical: axial     velocity.)
-// v:  Second velocity component.           (Cylindrical: radial    velocity.)
-// w:  Third velocity component.            (Cylindrical: azimuthal velocity.)
-// p:  Pressure divided by density.
-// c:  Scalar for transport or elliptic problems.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Sem.h>
+static char RCS[] = "$Id$";
+
+#include <sem.h>
 
 
 Field::Field (BoundarySys*      B,
-	      real*             M,
-	      const integer     N,
+	      real_t*           M,
+	      const int_t       N,
 	      vector<Element*>& E,
 	      const char        C) :
 // ---------------------------------------------------------------------------
@@ -121,19 +23,19 @@ Field::Field (BoundarySys*      B,
   AuxField (M, N, E, C),
   _bsys    (B)
 {
-  const integer            np  = Geometry::nP();
-  const integer            nzb = Geometry::basePlane();
+  const int_t              np  = Geometry::nP();
+  const int_t              nzb = Geometry::basePlane();
   const vector<Boundary*>& BC  = _bsys -> BCs (0);
-  register real*           p;
-  register integer         i, k;
+  register real_t*         p;
+  register int_t           i, k;
 
   // -- Allocate storage for boundary data.
   
   _nbound = _bsys -> nSurf();
   _nline  = _nbound * np;
 
-  _line  = new real* [(size_t)  _nz];
-  _sheet = new real  [(size_t) (_nz * _nline)];
+  _line  = new real_t* [static_cast<size_t> (_nz)];
+  _sheet = new real_t  [static_cast<size_t> (_nz * _nline)];
 
   for (k = 0; k < _nz; k++) _line[k] = _sheet + k*_nline;
 
@@ -156,7 +58,7 @@ void Field::printBoundaries (const Field* F)
 {
   ROOTONLY {
     const vector<Boundary*>& BC = F -> _bsys -> BCs (0);
-    integer                  i;
+    int_t                    i;
   
     cout << "# -- Field '" << F -> name() << "' Boundary Information:" << endl;
     if (!F -> _nbound) cout << "No BCs for this Field" << endl;
@@ -165,20 +67,22 @@ void Field::printBoundaries (const Field* F)
 }
 
 
-void Field::evaluateBoundaries (const integer step)
+void Field::evaluateBoundaries (const int_t step   ,
+				const bool  notused)
 // ---------------------------------------------------------------------------
 // Traverse Boundaries and evaluate according to kind.
 //
 // This routine is only meant to be used for boundary conditions that must
 // be re-evaluated at every step, such as high-order pressure BCs.
 //
-// NB: modified for dual.
+// NB: modified for dual: argument "unused" retained for compatibility
+// with standard semtex class prototype.
 // ---------------------------------------------------------------------------
 {
-  const integer    np    = Geometry::nP();
-  const integer    kfund = (integer) Femlib::value ("K_FUND");
-  register integer i, k;
-  real*            p;
+  const int_t    np    = Geometry::nP();
+  const int_t    kfund = Femlib::ivalue ("K_FUND");
+  register int_t i, k;
+  real_t*        p;
 
   const vector<Boundary*>& BC0 = _bsys -> BCs (0);
   const vector<Boundary*>& BCk = _bsys -> BCs (kfund);
@@ -193,16 +97,16 @@ void Field::evaluateBoundaries (const integer step)
 }
 
 
-void Field::evaluateM0Boundaries (const integer step)
+void Field::evaluateM0Boundaries (const int_t step)
 // ---------------------------------------------------------------------------
 // Traverse Boundaries and evaluate according to kind, but only for Mode 0.
 // ---------------------------------------------------------------------------
 {
   ROOTONLY {
     const vector<Boundary*>& BC = _bsys -> BCs (0);
-    const integer            np = Geometry::nP();
-    real*                    p;
-    register integer         i;
+    const int_t              np = Geometry::nP();
+    real_t*                  p;
+    register int_t           i;
 
     for (p = _line[0], i = 0; i < _nbound; i++, p += np)
       BC[i] -> evaluate (0, step, p);
@@ -210,7 +114,7 @@ void Field::evaluateM0Boundaries (const integer step)
 }
 
 
-void Field::addToM0Boundaries (const real  val,
+void Field::addToM0Boundaries (const real_t  val,
 			       const char* grp)
 // ---------------------------------------------------------------------------
 // Add val to zeroth Fourier mode's bc storage area on BC group "grp".
@@ -218,9 +122,9 @@ void Field::addToM0Boundaries (const real  val,
 {
   ROOTONLY {
     const vector<Boundary*>& BC = _bsys -> BCs (0);
-    const integer            np = Geometry::nP();
-    real*                    p;
-    register integer         i;
+    const int_t              np = Geometry::nP();
+    real_t*                  p;
+    register int_t           i;
 
     for (p = _line[0], i = 0; i < _nbound; i++, p += np)
       BC[i] -> addForGroup (grp, val, p);
@@ -243,17 +147,17 @@ Field& Field::smooth (AuxField* slave)
 // If slave == 0, smooth this -> data.
 // ---------------------------------------------------------------------------
 {
-  const integer    nel     = Geometry::nElmt();
-  const integer    npnp    = Geometry::nTotElmt();
-  const integer    next    = Geometry::nExtElmt();
+  const int_t      nel     = Geometry::nElmt();
+  const int_t      npnp    = Geometry::nTotElmt();
+  const int_t      next    = Geometry::nExtElmt();
   const NumberSys* N       = _bsys -> Nsys  (0);
-  const real*      imass   = _bsys -> Imass (0);
-  const integer    nglobal = N    -> nGlobal();
-  const integer*   btog    = N    -> btog();
-  const integer*   gid;
-  register integer i, k;
-  vector<real>     work (nglobal);
-  real             *src, *dssum = work();
+  const real_t*    imass   = _bsys -> Imass (0);
+  const int_t      nglobal = N    -> nGlobal();
+  const int_t*     btog    = N    -> btog();
+  const int_t*     gid;
+  register int_t   i, k;
+  vector<real_t>   work (nglobal);
+  real_t           *src, *dssum = &work[0];
 
   for (k = 0; k < _nz; k++) {
 
@@ -276,26 +180,26 @@ Field& Field::smooth (AuxField* slave)
 }
 
 
-void Field::smooth (const int nZ ,
-		    real*     tgt) const
+void Field::smooth (const int_t nZ ,
+		    real_t*     tgt) const
 // ---------------------------------------------------------------------------
 // Smooth tgt field along element boundaries using *this, with
 // mass-average smoothing.  Tgt is assumed to be arranged by planes, with
 // planeSize() offset between each plane of data.
 // ---------------------------------------------------------------------------
 {
-  const integer    nel     = Geometry::nElmt();
-  const integer    npnp    = Geometry::nTotElmt();
-  const integer    next    = Geometry::nExtElmt();
-  const integer    nP      = Geometry::planeSize();
+  const int_t      nel     = Geometry::nElmt();
+  const int_t      npnp    = Geometry::nTotElmt();
+  const int_t      next    = Geometry::nExtElmt();
+  const int_t      nP      = Geometry::planeSize();
   const NumberSys* N       = _bsys -> Nsys  (0);
-  const real*      imass   = _bsys -> Imass (0);
-  const integer    nglobal = N    -> nGlobal();
-  const integer*   btog    = N    -> btog();
-  const integer*   gid;
-  register integer i, k;
-  vector<real>     work (nglobal);
-  real             *src, *dssum = work();
+  const real_t*    imass   = _bsys -> Imass (0);
+  const int_t      nglobal = N    -> nGlobal();
+  const int_t*     btog    = N    -> btog();
+  const int_t*     gid;
+  register int_t   i, k;
+  vector<real_t>   work (nglobal);
+  real_t           *src, *dssum = &work[0];
 
   for (k = 0; k < nZ; k++) {
 
@@ -316,7 +220,7 @@ void Field::smooth (const int nZ ,
 }
 
 
-real Field::flux (const Field* C)
+real_t Field::gradientFlux (const Field* C)
 // ---------------------------------------------------------------------------
 // Static member function.
 //
@@ -326,12 +230,12 @@ real Field::flux (const Field* C)
 // ---------------------------------------------------------------------------
 {
   const vector<Boundary*>& BC = C -> _bsys -> BCs (0);
-  vector<real>             work(4 * Geometry::nP());
-  real                     F = 0.0, *tmp = work();
-  register integer         i;
+  vector<real_t>           work(4 * Geometry::nP());
+  real_t                   F = 0.0;
+  register int_t           i;
   
   for (i = 0; i < C -> _nbound; i++)
-    F += BC[i] -> flux ("wall", C -> _data, tmp);
+    F += BC[i] -> gradientFlux ("wall", C -> _data, &work[0]);
 
   return F;
 }
@@ -348,14 +252,13 @@ Vector Field::normalTraction (const Field* P)
 // ---------------------------------------------------------------------------
 {
   const vector<Boundary*>& BC = P -> _bsys -> BCs (0);
-  const integer            nsurf = P -> _nbound;
+  const int_t              nsurf = P -> _nbound;
   Vector                   secF, F = {0.0, 0.0, 0.0};
-  vector<real>             work(Geometry::nP());
-  real                     *tmp = work();
-  register integer         i;
+  vector<real_t>           work(Geometry::nP());
+  register int_t           i;
   
   for (i = 0; i < nsurf; i++) {
-    secF = BC[i] -> normalTraction ("wall", P -> _data, tmp);
+    secF = BC[i] -> normalTraction ("wall", P -> _data, &work[0]);
     F.x += secF.x;
     F.y += secF.y;
   }
@@ -389,19 +292,18 @@ Vector Field::tangentTraction (const Field* U,
 {
   const vector<Boundary*>& UBC =       U->_bsys->BCs(0);
   const vector<Boundary*>& WBC = (W) ? W->_bsys->BCs(0) : (vector<Boundary*>)0;
-  const integer            np      = Geometry::nP();
-  const integer            _nbound = U -> _nbound;
-  const real               mu      = Femlib::value ("RHO * KINVIS");
+  const int_t              np      = Geometry::nP();
+  const int_t              _nbound = U -> _nbound;
+  const real_t             mu      = Femlib::value ("RHO * KINVIS");
   Vector                   secF, F = {0.0, 0.0, 0.0};
-  vector<real>             work(4 * np);
-  real                     *ddx = work(), *ddy = ddx + np;
-  register integer         i;
+  vector<real_t>           work(4 * np);
+  register int_t           i;
 
   for (i = 0; i < _nbound; i++) {
-    secF = UBC[i] -> tangentTraction  ("wall", U->_data, V->_data, ddx, ddy);
+    secF = UBC[i] -> tangentTraction  ("wall", U->_data, V->_data, &work[0]);
     F.x        -= mu * secF.x;
     F.y        -= mu * secF.y;
-    if (W) F.z -= mu * WBC[i] -> flux ("wall", W->_data, ddx);
+    if (W) F.z -= mu * WBC[i] -> gradientFlux ("wall", W->_data, &work[0]);
   }
 
   return F;
@@ -447,14 +349,14 @@ Field& Field::solve (AuxField*             f  ,
 // NB: modified for dual.
 // ---------------------------------------------------------------------------
 {
-  const char    routine[] = "Field::solve";
-  const integer np    = Geometry::nP();
-  const integer nel   = Geometry::nElmt();
-  const integer next  = Geometry::nExtElmt();
-  const integer npnp  = Geometry::nTotElmt();
-  const integer ntot  = Geometry::nPlane();
-  const integer kfund = (integer) Femlib::value ("K_FUND");
-  integer       i, k, mode;
+  const char  routine[] = "Field::solve";
+  const int_t np    = Geometry::nP();
+  const int_t nel   = Geometry::nElmt();
+  const int_t next  = Geometry::nExtElmt();
+  const int_t npnp  = Geometry::nTotElmt();
+  const int_t ntot  = Geometry::nPlane();
+  const int_t kfund = Femlib::ivalue ("K_FUND");
+  int_t       i, k, mode;
 
   for (k = 0; k < _nz; k++) {	// -- Loop over planes of data.
     
@@ -466,36 +368,35 @@ Field& Field::solve (AuxField*             f  ,
     const MatrixSys*         M       = (*MMS)[(k != 0)];
     const vector<Boundary*>& B       = M -> _BC;
     const NumberSys*         N       = M -> _NS;
-    real                     lambda2 = M -> _HelmholtzConstant;
-    real                     betak2  = M -> _FourierConstant;
-    integer                  nsolve  = M -> _nsolve;
-    integer                  nglobal = M -> _nglobal;
-    integer                  nzero   = nglobal - nsolve;
-
-    real*                    forcing = f -> _plane[k];
-    real*                    unknown = _plane     [k];
-    real*                    bc      = _line      [k];
+    real_t                   lambda2 = M -> _HelmholtzConstant;
+    real_t                   betak2  = M -> _FourierConstant;
+    int_t                    nsolve  = M -> _nsolve;
+    int_t                    nglobal = M -> _nglobal;
+    int_t                    nzero   = nglobal - nsolve;
+    real_t*                  forcing = f -> _plane[k];
+    real_t*                  unknown = _plane     [k];
+    real_t*                  bc      = _line      [k];
 
     switch (M -> _method) {
 
     case DIRECT: {
-      const real*    H       = (const real*)    M -> _H;
-      const real**   hii     = (const real**)   M -> _hii;
-      const real**   hbi     = (const real**)   M -> _hbi;
-      const integer* b2g     = (const integer*) N -> btog();
-      integer        nband   = M -> _nband;
+      const real_t*  H       = const_cast<const real_t*>   (M -> _H);
+      const real_t** hii     = const_cast<const real_t**>  (M -> _hii);
+      const real_t** hbi     = const_cast<const real_t**>  (M -> _hbi);
+      const int_t*   b2g     = const_cast<const int_t*>(N -> btog());
+      int_t          nband   = M -> _nband;
 
-      vector<real>   work (nglobal + npnp);
-      real           *RHS = work(), *tmp = RHS + nglobal;
-      integer        info;
+      vector<real_t> work (nglobal + 4*npnp);
+      real_t         *RHS = &work[0], *tmp = RHS + nglobal;
+      int_t          info;
       
       // -- Build RHS = - M f - H g + <h, w>.
 
       Veclib::zero (nglobal, RHS, 1);
       
       this -> getEssential (bc, RHS, B, N);
-      this -> constrain    (forcing, lambda2, betak2, RHS, N);
-      this -> buildRHS     (forcing, bc, RHS, 0, hbi, nsolve, nzero, B, N);
+      this -> constrain    (forcing, lambda2, betak2, RHS, N, tmp);
+      this -> buildRHS     (forcing, bc, RHS, 0, hbi, nsolve, nzero, B, N,tmp);
       
       // -- Solve for unknown global-node values (if any).
       
@@ -504,7 +405,7 @@ Field& Field::solve (AuxField*             f  ,
       // -- Carry out Schur-complement solution for element-internal nodes.
       
       for (i = 0; i < nel; i++, b2g += next, forcing += npnp, unknown += npnp)
-	_elmt[i] -> g2eSC (RHS, b2g, forcing, unknown, hbi[i], hii[i], tmp);
+	_elmt[i] -> global2localSC (RHS,b2g,forcing,unknown,hbi[i],hii[i],tmp);
 
       unknown -= ntot;
     
@@ -518,23 +419,23 @@ Field& Field::solve (AuxField*             f  ,
     break;
 
     case JACPCG: {
-      const integer StepMax = (integer) Femlib::value ("STEP_MAX");  
-      const integer npts    = M -> _npts;
-      real           alpha, beta, dotp, epsb2, r2, rho1, rho2;
-      vector<real>  work (5 * npts + 3 * Geometry::nPlane());
+      const int_t    StepMax = Femlib::ivalue ("STEP_MAX");  
+      const int_t    npts    = M -> _npts;
+      real_t         alpha, beta, dotp, epsb2, r2, rho1, rho2;
+      vector<real_t> work (5 * npts + 3 * Geometry::nPlane());
 
-      real* r   = work();
-      real* p   = r + npts;
-      real* q   = p + npts;
-      real* x   = q + npts;
-      real* z   = x + npts;
-      real* wrk = z + npts;
+      real_t* r   = &work[0];
+      real_t* p   = r + npts;
+      real_t* q   = p + npts;
+      real_t* x   = q + npts;
+      real_t* z   = x + npts;
+      real_t* wrk = z + npts;
 
       Veclib::zero (nglobal, x, 1);
 
-      this -> getEssential (bc, x, B, N);  
-      this -> constrain    (forcing, lambda2, betak2, x, N);
-      this -> buildRHS     (forcing, bc, r, r+nglobal, 0, nsolve, nzero, B, N);
+      this -> getEssential (bc,x,B,N);  
+      this -> constrain    (forcing,lambda2,betak2,x,N,wrk);
+      this -> buildRHS     (forcing,bc,r,r+nglobal,0,nsolve,nzero,B,N,wrk);
 
       epsb2  = Femlib::value ("TOL_REL") * sqrt (Blas::dot (npts, r, 1, r, 1));
       epsb2 *= epsb2;
@@ -549,7 +450,7 @@ Field& Field::solve (AuxField*             f  ,
       Veclib::zero (nzero, x + nsolve, 1);   
       Veclib::copy (npts,  x, 1, q, 1);
 
-      this -> HelmholtzOperator (q, p, lambda2, betak2, wrk, mode);
+      this -> HelmholtzOperator (q, p, lambda2, betak2, mode, wrk);
 
       Veclib::zero (nzero, p + nsolve, 1);
       Veclib::zero (nzero, r + nsolve, 1);
@@ -579,7 +480,7 @@ Field& Field::solve (AuxField*             f  ,
 
 	// -- Matrix-vector product.
 
-	this -> HelmholtzOperator (p, q, lambda2, betak2, wrk, mode);
+	this -> HelmholtzOperator (p, q, lambda2, betak2, mode, wrk);
 	Veclib::zero (nzero, q + nsolve, 1);
 
 	// -- Move in conjugate direction.
@@ -602,7 +503,7 @@ Field& Field::solve (AuxField*             f  ,
       this -> getEssential (bc, x, B,   N);
       this -> setEssential (x, unknown, N);
   
-      if ((integer) Femlib::value ("VERBOSE") > 1) {
+      if (Femlib::ivalue ("VERBOSE") > 1) {
 	char s[StrMax];
 	sprintf (s, ":%3d iterations, field '%c'", i, _name);
 	message (routine, s, REMARK);
@@ -615,50 +516,39 @@ Field& Field::solve (AuxField*             f  ,
 }
 
 
-void Field::constrain (real*            force  ,
-		       const real       lambda2,
- 		       const real       betak2 ,
-		       const real*      esstlbc,
-		       const NumberSys* N      ) const
+void Field::constrain (real_t*          force  ,
+		       const real_t     lambda2,
+ 		       const real_t     betak2 ,
+		       const real_t*    esstlbc,
+		       const NumberSys* N      ,
+		       real_t*          work   ) const
 // ---------------------------------------------------------------------------
 // Replace f's data with constrained weak form of forcing: - M f - H g.
 // On input, essential BC values (g) have been loaded into globally-numbered
 // esstlbc, other values are zero.
 // ---------------------------------------------------------------------------
 {
-  const integer     np    = Geometry::nP();
-  const integer     nel   = Geometry::nElmt();
-  const integer     next  = Geometry::nExtElmt();
-  const integer     npnp  = Geometry::nTotElmt();
-  const integer     ntot  = Geometry::nPlane();
-  const integer*    emask = N -> emask();
-  const integer*    btog  = N -> btog();
-  const real        **DV, **DT;
+  const int_t       np    = Geometry::nP();
+  const int_t       nel   = Geometry::nElmt();
+  const int_t       next  = Geometry::nExtElmt();
+  const int_t       npnp  = Geometry::nTotElmt();
+  const int_t       ntot  = Geometry::nPlane();
+  const int_t*      emask = N -> emask();
+  const int_t*      btog  = N -> btog();
   register Element* E;
-  register integer  i;
-  vector<real>      work (3 * npnp);
-  real              *u, *r, *s;
-
-  u = work();
-  r = u + npnp;
-  s = r + npnp;
-
-  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+  register int_t    i;
+  real_t           *u = work, *tmp = work + npnp;
 
   // -- Manufacture -(M f + H g).
 
   for (i = 0; i < nel; i++, emask++, btog += next, force += npnp) {
     E = _elmt[i];
-    
     E -> weight (force);	// -- f <-- M f.
-
     if (*emask) {		// -- f <-- M f + H g.
-      Veclib::zero       (3 * npnp, u, 1);
-      E -> g2e           (u, btog, esstlbc, 0);
-      Femlib::grad2      (u, u, r, s, *DV, *DT, np, 1);
-      E -> HelmholtzKern (lambda2, betak2, r, s, u, u);
-      Femlib::grad2      (r, s, u, u, *DT, *DV, np, 1);
-      Veclib::vadd       (npnp, force, 1, u, 1, force, 1);
+      Veclib::zero      (npnp, u, 1);
+      E -> global2local (u, btog, esstlbc, 0);
+      E -> HelmholtzOp  (lambda2, betak2, u, u, tmp);
+      Veclib::vadd      (npnp, force, 1, u, 1, force, 1);
     }
   }
 
@@ -667,12 +557,12 @@ void Field::constrain (real*            force  ,
 }
 
 
-void Field::HelmholtzOperator (const real*   x      ,
-			       real*         y      ,
-			       const real    lambda2,
-			       const real    betak2 ,
-			       real*         work   ,
-			       const integer mode   ) const
+void Field::HelmholtzOperator (const real_t* x      ,
+			       real_t*       y      ,
+			       const real_t  lambda2,
+			       const real_t  betak2 ,
+			       const int_t   mode   ,
+			       real_t*       work   ) const
 // ---------------------------------------------------------------------------
 // Discrete 2D global Helmholtz operator which takes the vector x into
 // vector y, including direct stiffness summation.  Vectors x & y have 
@@ -683,17 +573,15 @@ void Field::HelmholtzOperator (const real*   x      ,
 // Vector work must have length 3 * Geometry::nPlane().
 // ---------------------------------------------------------------------------
 {
-  const integer    np      = Geometry::nP();
-  const integer    nel     = Geometry::nElmt();
-  const integer    npnp    = Geometry::nTotElmt();
-  const integer    ntot    = Geometry::nPlane();
+  const int_t      np      = Geometry::nP();
+  const int_t      nel     = Geometry::nElmt();
+  const int_t      npnp    = Geometry::nTotElmt();
+  const int_t      ntot    = Geometry::nPlane();
   const NumberSys* NS      = _bsys -> Nsys (mode);
-  const integer    nglobal = NS -> nGlobal() + Geometry::nInode();
-  const real       **DV, **DT;
-  register integer i;
-  real             *P = work, *R = P + ntot, *S = R + ntot;
-
-  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+  const int_t      nglobal = NS -> nGlobal() + Geometry::nInode();
+  register int_t   i;
+  const real_t     *DV, *DT;
+  real_t           *P = work, *R = P + ntot, *S = R + ntot;
 
   Veclib::zero (nglobal,     y, 1);
   Veclib::zero (ntot + ntot, R, 1);
@@ -702,17 +590,19 @@ void Field::HelmholtzOperator (const real*   x      ,
 
   if (_bsys -> mixBC()) {
     const vector<Boundary*>& BC   = _bsys -> BCs (0);
-    const integer*           bmap = NS    -> btog();
+    const int_t*             bmap = NS    -> btog();
 
-    for (i = 0; i < _nbound; i++)
-      BC[i] -> augmentOp (bmap, x, y);
+    for (i = 0; i < _nbound; i++) BC[i] -> augmentOp (bmap, x, y);
   }
 
   // -- Add in contributions from elemental Helmholtz operations.
 
+  Femlib::quadrature (0, 0, &DV, 0  , np, LL, 0.0, 0.0);
+  Femlib::quadrature (0, 0, 0  , &DT, np, LL, 0.0, 0.0);
+
   this -> global2local (x, P, NS);
 
-  Femlib::grad2 (P, P, R, S, *DV, *DT, np, nel);
+  Femlib::grad2 (P, P, R, S, DV, DT, np, np, nel);
 
   for (i = 0; i < nel; i++, R += npnp, S += npnp, P += npnp)
     _elmt[i] -> HelmholtzKern (lambda2, betak2, R, S, P, P);
@@ -721,21 +611,22 @@ void Field::HelmholtzOperator (const real*   x      ,
   R -= ntot;
   S -= ntot;
   
-  Femlib::grad2 (R, S, P, P, *DT, *DV, np, nel);
+  Femlib::grad2 (R, S, P, P, DT, DV, np, np, nel);
 
   this -> local2globalSum (P, y, NS);
 }
 
 
-void Field::buildRHS (real*                    force ,
-		      const real*              bc    ,
-		      real*                    RHS   ,
-		      real*                    RHSint,
-		      const real**             hbi   ,
-		      const integer            nsolve,
-		      const integer            nzero ,
+void Field::buildRHS (real_t*                  force ,
+		      const real_t*            bc    ,
+		      real_t*                  RHS   ,
+		      real_t*                  RHSint,
+		      const real_t**           hbi   ,
+		      const int_t              nsolve,
+		      const int_t              nzero ,
 		      const vector<Boundary*>& bnd   ,
-		      const NumberSys*         N     ) const
+		      const NumberSys*         N     ,
+		      real_t*                  work  ) const
 // ---------------------------------------------------------------------------
 // Build RHS for direct or iterative solution.
 //
@@ -756,16 +647,15 @@ void Field::buildRHS (real*                    force ,
 // for this plane of data: only natural BCs are used in formation of <h, w>.
 // ---------------------------------------------------------------------------
 {
-  const integer            np      = Geometry::nP();
-  const integer            nel     = Geometry::nElmt();
-  const integer            next    = Geometry::nExtElmt();
-  const integer            nint    = Geometry::nIntElmt();
-  const integer            npnp    = Geometry::nTotElmt();
-  const integer            nglobal = N -> nGlobal();
-  const integer*           gid;
+  const int_t              np      = Geometry::nP();
+  const int_t              nel     = Geometry::nElmt();
+  const int_t              next    = Geometry::nExtElmt();
+  const int_t              nint    = Geometry::nIntElmt();
+  const int_t              npnp    = Geometry::nTotElmt();
+  const int_t              nglobal = N -> nGlobal();
+  const int_t*             gid;
   register const Boundary* B;
-  vector<real>             work (npnp);
-  register integer         i, boff;
+  register int_t           i, boff;
 
   if   (RHSint) Veclib::zero (nglobal + Geometry::nInode(), RHS, 1);
   else          Veclib::zero (nglobal,                      RHS, 1);
@@ -774,9 +664,9 @@ void Field::buildRHS (real*                    force ,
 
   for (gid = N -> btog(), i = 0; i < nel; i++, force += npnp, gid += next) {
     if (RHSint) {
-      _elmt[i] -> e2gSum   (force, gid, RHS, RHSint); RHSint += nint;
+      _elmt[i] -> local2globalSum   (force, gid, RHS, RHSint); RHSint += nint;
     } else
-      _elmt[i] -> e2gSumSC (force, gid, RHS, hbi[i], work());
+      _elmt[i] -> local2globalSumSC (force, gid, RHS, hbi[i], work);
   }
 
   // -- Add in <h, w>.
@@ -785,7 +675,7 @@ void Field::buildRHS (real*                    force ,
     B    = bnd[i];
     boff = B -> bOff();
 
-    B -> sum (bc, gid + boff, work(), RHS);
+    B -> sum (bc, gid + boff, work, RHS);
   }
 
   // -- Zero any contribution that <h, w> made to essential BC nodes.
@@ -794,8 +684,8 @@ void Field::buildRHS (real*                    force ,
 }
 
 
-void Field::local2global (const real*      src,
-			  real*            tgt,
+void Field::local2global (const real_t*    src,
+			  real_t*          tgt,
 			  const NumberSys* N  ) const
 // ---------------------------------------------------------------------------
 // Load a plane of data (src) into globally-numbered tgt, with element-
@@ -803,43 +693,21 @@ void Field::local2global (const real*      src,
 // element-internal locations in emap ordering.
 // ---------------------------------------------------------------------------
 {
-  const integer    nel  = Geometry::nElmt();
-  const integer    next = Geometry::nExtElmt();
-  const integer    nint = Geometry::nIntElmt();
-  const integer    npnp = Geometry::nTotElmt();
-  const integer*   gid  = N -> btog();
-  register integer i;
-  register real*   internal = tgt + N -> nGlobal();
+  const int_t      nel  = Geometry::nElmt();
+  const int_t      next = Geometry::nExtElmt();
+  const int_t      nint = Geometry::nIntElmt();
+  const int_t      npnp = Geometry::nTotElmt();
+  const int_t*     gid  = N -> btog();
+  register int_t   i;
+  register real_t* internal = tgt + N -> nGlobal();
 
   for (i = 0; i < nel; i++, src += npnp, gid += next, internal += nint)
-    _elmt[i] -> e2g (src, gid, tgt, internal);
+    _elmt[i] -> local2global (src, gid, tgt, internal);
 }
 
 
-void Field::local2globalSum (const real*      src,
-			     real*            tgt,
-			     const NumberSys* N  ) const
-// ---------------------------------------------------------------------------
-// Direct stiffness sum a plane of data (src) into globally-numbered
-// tgt, with element- boundary values in the first N -> nGlobal()
-// places, followed by element-internal locations in emap ordering.
-// ---------------------------------------------------------------------------
-{
-  const integer    nel  = Geometry::nElmt();
-  const integer    next = Geometry::nExtElmt();
-  const integer    nint = Geometry::nIntElmt();
-  const integer    npnp = Geometry::nTotElmt();
-  const integer*   gid  = N -> btog();
-  register integer i;
-  register real*   internal = tgt + N -> nGlobal();
-
-  for (i = 0; i < nel; i++, src += npnp, gid += next, internal += nint)
-    _elmt[i] -> e2gSum (src, gid, tgt, internal);
-}
-
-
-void Field::global2local (const real*      src,
-			  real*            tgt,
+void Field::global2local (const real_t*    src,
+			  real_t*          tgt,
 			  const NumberSys* N  ) const
 // ---------------------------------------------------------------------------
 // Load a plane of data (tgt) from src, which has globally-numbered
@@ -847,21 +715,43 @@ void Field::global2local (const real*      src,
 // element-internal locations in emap ordering.
 // ---------------------------------------------------------------------------
 {
-  const integer        nel  = Geometry::nElmt();
-  const integer        next = Geometry::nExtElmt();
-  const integer        nint = Geometry::nIntElmt();
-  const integer        npnp = Geometry::nTotElmt();
-  const integer*       gid  = N -> btog();
-  register integer     i;
-  register const real* internal = src + N -> nGlobal();
+  const int_t          nel  = Geometry::nElmt();
+  const int_t          next = Geometry::nExtElmt();
+  const int_t          nint = Geometry::nIntElmt();
+  const int_t          npnp = Geometry::nTotElmt();
+  const int_t*         gid  = N -> btog();
+  register int_t       i;
+  register const real_t* internal = src + N -> nGlobal();
 
   for (i = 0; i < nel; i++, tgt += npnp, gid += next, internal += nint)
-    _elmt[i] -> g2e (tgt, gid, src, internal);
+    _elmt[i] -> global2local (tgt, gid, src, internal);
 }
 
 
-void Field::getEssential (const real*              src,
-			  real*                    tgt,
+void Field::local2globalSum (const real_t*    src,
+			     real_t*          tgt,
+			     const NumberSys* N  ) const
+// ---------------------------------------------------------------------------
+// Direct stiffness sum a plane of data (src) into globally-numbered
+// tgt, with element- boundary values in the first N -> nGlobal()
+// places, followed by element-internal locations in emap ordering.
+// ---------------------------------------------------------------------------
+{
+  const int_t      nel  = Geometry::nElmt();
+  const int_t      next = Geometry::nExtElmt();
+  const int_t      nint = Geometry::nIntElmt();
+  const int_t      npnp = Geometry::nTotElmt();
+  const int_t*     gid  = N -> btog();
+  register int_t   i;
+  register real_t* internal = tgt + N -> nGlobal();
+
+  for (i = 0; i < nel; i++, src += npnp, gid += next, internal += nint)
+    _elmt[i] -> local2globalSum (src, gid, tgt, internal);
+}
+
+
+void Field::getEssential (const real_t*            src,
+			  real_t*                  tgt,
 			  const vector<Boundary*>& bnd,
 			  const NumberSys*         N  ) const
 // ---------------------------------------------------------------------------
@@ -874,10 +764,10 @@ void Field::getEssential (const real*              src,
 // globally-numbered vector.
 // ---------------------------------------------------------------------------
 {
-  const integer            np = Geometry::nP();
-  const integer*           btog = N -> btog();
+  const int_t              np = Geometry::nP();
+  const int_t*             btog = N -> btog();
   register const Boundary* B;
-  register integer         i, boff;
+  register int_t           i, boff;
   
   for (i = 0; i < _nbound; i++, src += np) {
     B    = bnd[i];
@@ -888,30 +778,30 @@ void Field::getEssential (const real*              src,
 }
 
 
-void Field::setEssential (const real*      src,
-			  real*            tgt,
+void Field::setEssential (const real_t*    src,
+			  real_t*          tgt,
 			  const NumberSys* N  )
 // ---------------------------------------------------------------------------
 // Gather globally-numbered src into essential BC nodes of current
 // data plane.
 // ---------------------------------------------------------------------------
 {
-  const integer    nel  = Geometry::nElmt();
-  const integer    next = Geometry::nExtElmt();
-  const integer    npnp = Geometry::nTotElmt();
-  const integer*   emask = N -> emask();
-  const integer*   bmask = N -> bmask();
-  const integer*   btog  = N -> btog();
-  register integer i;
+  const int_t    nel  = Geometry::nElmt();
+  const int_t    next = Geometry::nExtElmt();
+  const int_t    npnp = Geometry::nTotElmt();
+  const int_t*   emask = N -> emask();
+  const int_t*   bmask = N -> bmask();
+  const int_t*   btog  = N -> btog();
+  register int_t i;
 
   for (i = 0; i < nel; i++, bmask += next, btog += next, tgt += npnp)
     if (emask[i]) _elmt[i] -> bndryMask (bmask, tgt, src, btog);
 }
 
 
-void Field::coupleBCs (Field*        v  ,
-		       Field*        w  ,
-		       const integer dir)
+void Field::coupleBCs (Field*      v  ,
+		       Field*      w  ,
+		       const int_t dir)
 // ---------------------------------------------------------------------------
 // Couples/uncouple boundary condition values for the radial and
 // azimuthal velocity fields in cylindrical coordinates, depending on
@@ -933,10 +823,10 @@ void Field::coupleBCs (Field*        v  ,
 // NB: modified for dual.
 // ---------------------------------------------------------------------------
 {
-  const char    routine[] = "Field::couple";
-  const integer nL = v -> _nline;
-  vector<real>  work (nL);
-  real          *Vr, *Vi, *Wr, *Wi, *tp = work();
+  const char     routine[] = "Field::couple";
+  const int_t    nL = v -> _nline;
+  vector<real_t> work (nL);
+  real_t         *Vr, *Vi, *Wr, *Wi, *tp = &work[0];
   
   if (dir == FORWARD) {
 
@@ -973,9 +863,9 @@ void Field::coupleBCs (Field*        v  ,
 }
 
 
-real Field::modeConstant (const char    name,
-			  const integer mode,
-			  const real    beta)
+real_t Field::modeConstant (const char   name,
+			    const int_t  mode,
+			    const real_t beta)
 // ---------------------------------------------------------------------------
 // For cylindrical coordinates & 3D, the radial and azimuthal fields
 // are coupled before solution of the viscous step.  This means that

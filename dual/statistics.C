@@ -1,18 +1,18 @@
 ///////////////////////////////////////////////////////////////////////////////
 // statistics.C: routines for statistical analysis of AuxFields.
 //
-// Copyright (C) 1994, 1999 Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // At present, this is limited to running averages of primitive
 // variables, regardless of value of AVERAGE.
 //
 // NB: Modified for use with dual: no computation of Reynolds stresses.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Sem.h>
-#include <time.h>
+static char RCS[] = "$Id$";
+
+#include <ctime>
+#include "sem.h"
 
 
 Statistics::Statistics (Domain*            D    ,
@@ -30,22 +30,22 @@ Statistics::Statistics (Domain*            D    ,
   name (D -> name),
   base (D)
 {
-  integer       i, j;
-  const integer ND    = Geometry::nDim();
-  const integer NF    = base -> u.getSize();
-  const integer NE    = extra.getSize();
-  const integer NR    = 0;
-  const integer NT    = NF + NE + NR;
-  const integer nz    = Geometry::nZProc();
-  const integer ntot  = Geometry::nTotProc();
-  real*         alloc = new real [(size_t) NT * ntot];
+  int_t       i, j;
+  const int_t ND    = Geometry::nDim();
+  const int_t NF    = base -> u.size();
+  const int_t NE    = extra.size();
+  const int_t NR    = 0;
+  const int_t NT    = NF + NE + NR;
+  const int_t nz    = Geometry::nZProc();
+  const int_t ntot  = Geometry::nTotProc();
+  real_t*     alloc = new real_t [static_cast<size_t> (NT * ntot)];
 
   ROOTONLY cout << "-- Initializing averaging  : ";  
 
   // -- Set pointers, allocate storage.
 
-  src.setSize (NF + NE);	// -- Straight running average of these.
-  avg.setSize (NT);		// -- Additional are computed from src.
+  src.resize (NF + NE);	// -- Straight running average of these.
+  avg.resize (NT);		// -- Additional are computed from src.
   
   for (i = 0; i < NF; i++) src[     i] = (AuxField*) base -> u[i];
   for (i = 0; i < NE; i++) src[NF + i] = extra[i];
@@ -85,18 +85,18 @@ void Statistics::update (AuxField** work)
 // dealiasing, and are held in physical space.
 // ---------------------------------------------------------------------------
 {
-  integer       i;
-  const integer NT = avg.getSize();
-  const integer ND = Geometry::nDim();
-  const integer NR = 0;
-  const integer NA = NT - NR;
+  int_t       i;
+  const int_t NT = avg.size();
+  const int_t ND = Geometry::nDim();
+  const int_t NR = 0;
+  const int_t NA = NT - NR;
 
   // -- Running averages only.
 
   for (i = 0; i < NA; i++) {
-    *avg[i] *= (real)  navg;
+    *avg[i] *= static_cast<real_t> (navg);
     *avg[i] += *src[i];
-    *avg[i] /= (real) (navg + 1);
+    *avg[i] /= static_cast<real_t> (navg + 1);
   }
 
   navg++;
@@ -108,22 +108,22 @@ void Statistics::dump ()
 // Similar to Domain::dump.
 // ---------------------------------------------------------------------------
 {
-  const integer step     = base -> step;
-  const integer periodic = !(step %  (integer) Femlib::value ("IO_FLD"));
-  const integer initial  =   step == (integer) Femlib::value ("IO_FLD");
-  const integer final    =   step == (integer) Femlib::value ("N_STEP");
+  const int_t step     = base -> step;
+  const bool  periodic = !(step %  Femlib::ivalue ("IO_FLD"));
+  const bool  initial  =   step == Femlib::ivalue ("IO_FLD");
+  const bool  final    =   step == Femlib::ivalue ("N_STEP");
 
   if (!(periodic || final)) return;
 
-  ofstream      output;
-  const integer NT = avg.getSize();
-  const integer ND = Geometry::nDim();
+  ofstream    output;
+  const int_t NT = avg.size();
+  const int_t ND = Geometry::nDim();
 
   ROOTONLY {
-    const char    routine[] = "Statistics::dump";
-    const integer verbose   = (integer) Femlib::value ("VERBOSE");
-    const integer chkpoint  = (integer) Femlib::value ("CHKPOINT");
-    char          dumpfl[StrMax], backup[StrMax], command[StrMax];
+    const char routine[] = "Statistics::dump";
+    const bool verbose   = Femlib::ivalue ("VERBOSE");
+    const bool chkpoint  = Femlib::ivalue ("CHKPOINT");
+    char       dumpfl[StrMax], backup[StrMax], command[StrMax];
 
     if (chkpoint) {
       if (final) {
@@ -160,8 +160,8 @@ ofstream& operator << (ofstream&   strm,
 // Output Statistics class to file.  Like similar Domain routine.
 // ---------------------------------------------------------------------------
 {
-  integer           i;
-  const integer     N = src.avg.getSize();
+  int_t           i;
+  const int_t     N = src.avg.size();
   vector<AuxField*> field (N);
 
   for (i = 0; i < N; i++) field[i] = src.avg[i];
@@ -179,8 +179,8 @@ ifstream& operator >> (ifstream&   strm,
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "strm>>Statistics";
-  integer    i, j, np, nz, nel, ntot, nfields;
-  integer    npchk,  nzchk, nelchk, swap = 0;
+  int_t      i, j, np, nz, nel, ntot, nfields;
+  int_t      npchk,  nzchk, nelchk, swap = 0;
   char       s[StrMax], f[StrMax], err[StrMax], fields[StrMax];
 
   if (strm.getline(s, StrMax).eof()) return strm;
@@ -211,8 +211,8 @@ ifstream& operator >> (ifstream&   strm,
     nfields++;
   }
   fields[nfields] = '\0';
-  if (nfields != tgt.avg.getSize()) {
-    sprintf (err, "strm: %1d fields, avg: %1d", nfields, tgt.avg.getSize());
+  if (nfields != tgt.avg.size()) {
+    sprintf (err, "strm: %1d fields, avg: %1d", nfields, tgt.avg.size());
     message (routine, err, ERROR);
   }
   for (i = 0; i < nfields; i++) 

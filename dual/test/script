@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # We test dual by comparing it to results obtained using dns with a
-# single Fourier mode.  As dns is dealiased, the results should be the
-# same.
+# single Fourier mode.  As (serial) dns is dealiased, the results
+# should be the same.
 # 
 # $Id$
 
@@ -42,5 +42,5 @@ do
   rstress $i.dns.fld $i.dual.fld > diff.fld
   convert diff.fld | head -23
  
-  rm $i $i.rst $i.num $i.dns.fld $i.dual.fld $i.fld $i.flx $i.mdl
+  rm $i $i.rst $i.num $i.dns.fld $i.dual.fld $i.fld $i.flx $i.mdl diff.fld
 done

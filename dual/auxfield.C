@@ -1,22 +1,22 @@
 //////////////////////////////////////////////////////////////////////////////
 // auxfield.C: routines for AuxField class, including Fourier expansions.
 //
+// Copyright (c) <--> $Date$, Hugh Blackburn
+//
 // NB: this version is modified to suit dual.  For dual, data are NOT
 // transformed to physical space for storage in restart files.  There
 // are 3 planes of data: the first corresponds to mode 0 (which is
 // real only), the second and third to the real an imaginary parts of
 // the selected Fourier mode.
-//
-// Copyright (C) Hugh Blackburn 1994, 2000.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Sem.h>
+static char RCS[] = "$Id$";
+
+#include "sem.h"
 
 
-AuxField::AuxField (real*             alloc,
-		    const integer     nz   ,
+AuxField::AuxField (real_t*           alloc,
+		    const int_t       nz   ,
 		    vector<Element*>& elmt ,
 		    const char        name ) :
 // ---------------------------------------------------------------------------
@@ -28,35 +28,35 @@ AuxField::AuxField (real*             alloc,
   _size (nz * Geometry::planeSize()),
   _data (alloc)
 {
-  const char       routine[] = "AuxField::AuxField";
-  const integer    nP = Geometry::planeSize();
-  register integer k;
+  const char     routine[] = "AuxField::AuxField";
+  const int_t    nP = Geometry::planeSize();
+  register int_t k;
 
-  if (Geometry::nElmt() != _elmt.getSize())
+  if (Geometry::nElmt() != _elmt.size())
     message (routine, "conflicting number of elements in input data", ERROR);
 
-  _plane = new real* [(size_t) _nz];
+  _plane = new real_t* [static_cast<size_t>(_nz)];
 
   for (k = 0; k < _nz; k++) _plane[k] = _data + k * nP;
 }
 
 
-AuxField& AuxField::setInput (real*         alloc,
-			      const integer nz   )
+AuxField& AuxField::setInput (real_t*     alloc,
+			      const int_t nz   )
 // ---------------------------------------------------------------------------
 // Install a new lot of field storage, with nominated number of planes.
 // It is assumed that alloc is at least nZ * geometry::planeSize() long.
 // ---------------------------------------------------------------------------
 {
-  register integer k;
-  const integer    nP = Geometry::planeSize();
+  register int_t k;
+  const int_t    nP = Geometry::planeSize();
 
   _nz   = nz;
   _size = _nz * nP;
   _data = alloc;
 
   delete [] _plane;
-  _plane = new real* [(size_t) _nz];
+  _plane = new real_t* [(size_t) _nz];
 
   for (k = 0; k < _nz; k++) _plane[k] = _data + k * nP;
 
@@ -64,7 +64,7 @@ AuxField& AuxField::setInput (real*         alloc,
 }
 
 
-AuxField& AuxField::operator = (const real val)
+AuxField& AuxField::operator = (const real_t val)
 // ---------------------------------------------------------------------------
 // Set field storage area to val.
 // ---------------------------------------------------------------------------
@@ -76,7 +76,7 @@ AuxField& AuxField::operator = (const real val)
 }
 
 
-AuxField& AuxField::operator += (const real val)
+AuxField& AuxField::operator += (const real_t val)
 // ---------------------------------------------------------------------------
 // Add val to field storage area.
 // ---------------------------------------------------------------------------
@@ -87,7 +87,7 @@ AuxField& AuxField::operator += (const real val)
 }
 
 
-AuxField& AuxField::operator -= (const real val)
+AuxField& AuxField::operator -= (const real_t val)
 // ---------------------------------------------------------------------------
 // Add -val to field storage area.
 // ---------------------------------------------------------------------------
@@ -98,7 +98,7 @@ AuxField& AuxField::operator -= (const real val)
 }
 
 
-AuxField& AuxField::operator *= (const real val)
+AuxField& AuxField::operator *= (const real_t val)
 // ---------------------------------------------------------------------------
 // Multiply field storage area by val.
 // ---------------------------------------------------------------------------
@@ -110,12 +110,12 @@ AuxField& AuxField::operator *= (const real val)
 }
 
 
-AuxField& AuxField::operator /= (const real val)
+AuxField& AuxField::operator /= (const real_t val)
 // ---------------------------------------------------------------------------
 // Divide field storage area by val.
 // ---------------------------------------------------------------------------
 {
-  if   (val == 0.0) message ("AuxField::op /= real", "divide by zero", ERROR);
+  if   (val == 0.0) message ("AuxField::op /= real_t", "divide by zero", ERROR);
   else              Blas::scal (_size, 1.0 / val, _data, 1);
 
   return *this;
@@ -174,10 +174,10 @@ AuxField& AuxField::operator = (const char* function)
 // NB: function should not have z as a variable for dual: enforce z=0.
 // ---------------------------------------------------------------------------
 {
-  const integer    nel = Geometry::nElmt();
-  const integer    np2 = Geometry::nTotElmt();
-  register integer i, k;
-  real*            p;
+  const int_t    nel = Geometry::nElmt();
+  const int_t    np2 = Geometry::nTotElmt();
+  register int_t i, k;
+  real_t*            p;
 
   Femlib::value ("z", 0.0);
 
@@ -258,7 +258,7 @@ AuxField& AuxField::convolve (const AuxField& x, const AuxField& y)
 //                    c    0 c   c 0
 // ---------------------------------------------------------------------------
 {
-  const integer nP = Geometry::planeSize();
+  const int_t nP = Geometry::planeSize();
 
   Veclib::vmul    (nP, x._plane[0], 1, y._plane[0], 1, _plane[0], 1);
   Veclib::svvttvp (nP, 2.0, x._plane[1], 1, y._plane[1], 1,
@@ -275,7 +275,7 @@ AuxField& AuxField::convolve (const AuxField& x, const AuxField& y)
 }
 
 
-AuxField& AuxField::axpy (const real      alpha,
+AuxField& AuxField::axpy (const real_t    alpha,
 			  const AuxField& x    )
 // ---------------------------------------------------------------------------
 // Add alpha * x to this AuxField.
@@ -302,7 +302,7 @@ AuxField& AuxField::reverse ()
 }
 
 
-AuxField& AuxField::gradient (const integer dir)
+AuxField& AuxField::gradient (const int_t dir)
 // ---------------------------------------------------------------------------
 // Operate on AuxField to produce the nominated index of the gradient.
 // dir == 0 ==> gradient in first direction, 1 ==> 2nd, 2 ==> 3rd.
@@ -312,31 +312,32 @@ AuxField& AuxField::gradient (const integer dir)
 // in session.
 // ---------------------------------------------------------------------------
 {
-  const char       routine[] = "AuxField::gradient";
-  const integer    nel  = Geometry::nElmt();
-  const integer    np   = Geometry::nP();
-  const integer    npnp = np  * np;
-  const integer    ntot = nel * npnp;
-  const integer    nP   = Geometry::planeSize();
-  vector<real>     work;
-  register real    *xr, *xs, *tmp;
-  register integer i, k;
-  const real       **DV, **DT;
+  const char      routine[] = "AuxField::gradient";
+  const int_t     nel  = Geometry::nElmt();
+  const int_t     np   = Geometry::nP();
+  const int_t     npnp = np  * np;
+  const int_t     ntot = nel * npnp;
+  const int_t     nP   = Geometry::planeSize();
+  vector<real_t>  work;
+  register real_t *xr, *xs, *tmp;
+  register int_t  i, k;
+  const real_t    *DV, *DT;
 
-  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+  Femlib::quadrature (0, 0, &DV, 0  , np, LL, 0.0, 0.0);
+  Femlib::quadrature (0, 0, 0  , &DT, np, LL, 0.0, 0.0);
 
   switch (dir) {
 
   case 0:
-    work.setSize (2 * nP);
-    xr = work();
+    work.resize (2 * nP);
+    xr = &work[0];
     xs = xr + nP;
 
     for (k = 0; k < _nz; k++) {
       tmp = _plane[k];
 
       Veclib::zero  (2 * nP, xr, 1);
-      Femlib::grad2 (tmp, tmp, xr, xs, *DV, *DT, np, nel);
+      Femlib::grad2 (tmp, tmp, xr, xs, DV, DT, np, np, nel);
 
       for (i = 0; i < nel; i++, xr += npnp, xs += npnp, tmp += npnp)
 	_elmt[i] -> gradX (xr, xs, tmp);
@@ -347,15 +348,15 @@ AuxField& AuxField::gradient (const integer dir)
     break;
 
   case 1:
-    work.setSize (2 * nP);
-    xr = work();
+    work.resize (2 * nP);
+    xr = &work[0];
     xs = xr + nP;
 
     for (k = 0; k < _nz; k++) {
       tmp = _plane[k];
 
       Veclib::zero  (2 * nP, xr, 1);
-      Femlib::grad2 (tmp, tmp, xr, xs, *DV, *DT, np, nel);
+      Femlib::grad2 (tmp, tmp, xr, xs, DV, DT, np, np, nel);
 
       for (i = 0; i < nel; i++, xr += npnp, xs += npnp, tmp += npnp)
 	_elmt[i] -> gradY (xr, xs, tmp);
@@ -366,10 +367,10 @@ AuxField& AuxField::gradient (const integer dir)
     break;
 
   case 2: {
-    const real betak = Femlib::value ("BETA * K_FUND");
+    const real_t betak = Femlib::value ("BETA * K_FUND");
 
-    work.setSize (nP);
-    xr = work();
+    work.resize (nP);
+    xr = &work[0];
 
     Veclib::zero (nP, _data, 1);
     Veclib::copy (nP,                       _plane[1], 1, xr, 1);
@@ -386,9 +387,9 @@ AuxField& AuxField::gradient (const integer dir)
 }
 
 
-void AuxField::gradient (const integer nP ,
-			 real*         src,
-			 const integer dir) const
+void AuxField::gradient (const int_t nP ,
+			 real_t*     src,
+			 const int_t dir) const
 // ---------------------------------------------------------------------------
 // Use Field structure to perform gradient operations on data area
 // src, according to nominated direction.  Input value nZ is the
@@ -402,30 +403,31 @@ void AuxField::gradient (const integer nP ,
 // arbitrary).
 // ---------------------------------------------------------------------------
 {
-  const char       routine[] = "AuxField::gradient";
-  const integer    nel  = Geometry::nElmt();
-  const integer    np   = Geometry::nP();
-  const integer    npnp = np  * np;
-  const integer    ntot = nel * npnp;
-  register integer i, k;
-  vector<real>     work;
-  register real    *plane, *xr, *xs, *Re, *Im;
-  const real       **DV, **DT;
+  const char      routine[] = "AuxField::gradient";
+  const int_t     nel  = Geometry::nElmt();
+  const int_t     np   = Geometry::nP();
+  const int_t     npnp = np  * np;
+  const int_t     ntot = nel * npnp;
+  register int_t  i, k;
+  vector<real_t>  work;
+  register real_t *plane, *xr, *xs, *Re, *Im;
+  const real_t    *DV, *DT;
 
-  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+  Femlib::quadrature (0, 0, &DV, 0  , np, LL, 0.0, 0.0);
+  Femlib::quadrature (0, 0, 0  , &DT, np, LL, 0.0, 0.0);
 
   switch (dir) {
 
   case 0:
-    work.setSize (2 * nP);
-    xr = work();
+    work.resize (2 * nP);
+    xr = &work[0];
     xs = xr + nP;
 
     for (k = 0; k < _nz; k++) {
       plane = src + k * nP;
 
       Veclib::zero  (2 * nP, xr, 1);
-      Femlib::grad2 (plane, plane, xr, xs, *DV, *DT, np, nel);
+      Femlib::grad2 (plane, plane, xr, xs, DV, DT, np, np, nel);
 
       for (i = 0; i < nel; i++, xr += npnp, xs += npnp, plane += npnp)
 	_elmt[i] -> gradX (xr, xs, plane);
@@ -435,15 +437,15 @@ void AuxField::gradient (const integer nP ,
     break;
 
   case 1:
-    work.setSize (2 * nP);
-    xr = work();
+    work.resize (2 * nP);
+    xr = &work[0];
     xs = xr + nP;
 
     for (k = 0; k < _nz; k++) {
       plane = src + k * nP;
 
       Veclib::zero  (2 * nP, xr, 1);
-      Femlib::grad2 (plane, plane, xr, xs, *DV, *DT, np, nel);
+      Femlib::grad2 (plane, plane, xr, xs, DV, DT, np, np, nel);
 
       for (i = 0; i < nel; i++, xr += npnp, xs += npnp, plane += npnp)
 	_elmt[i] -> gradY (xr, xs, plane);
@@ -453,10 +455,10 @@ void AuxField::gradient (const integer nP ,
     break;
 
   case 2: {
-    const real betak = Femlib::value ("BETA * K_FUND");
+    const real_t betak = Femlib::value ("BETA * K_FUND");
 
-    work.setSize (nP);
-    xr = work();
+    work.resize (nP);
+    xr = &work[0];
 
     Veclib::zero (nP, src, 1);
 
@@ -474,7 +476,7 @@ void AuxField::gradient (const integer nP ,
 }
 
 
-real AuxField::norm_inf () const
+real_t AuxField::norm_inf () const
 // ---------------------------------------------------------------------------
 // Return infinity-norm (absolute max value) of AuxField data area.
 // ---------------------------------------------------------------------------
@@ -483,16 +485,16 @@ real AuxField::norm_inf () const
 }
 
 
-real AuxField::mode_L2 (const integer mode) const
+real_t AuxField::mode_L2 (const int_t mode) const
 // ---------------------------------------------------------------------------
 // Return energy norm per unit area for indicated mode = 1/(2*A) \int u.u dA.
 // Mode numbers run 0 -- n_z/2 - 1.
 // ---------------------------------------------------------------------------
 {
-  const integer     nel  = Geometry::nElmt();
-  const integer     npnp = Geometry::nTotElmt();
-  register real     area = 0.0, Ek = 0.0, *Re, *Im;
-  register integer  i;
+  const int_t       nel  = Geometry::nElmt();
+  const int_t       npnp = Geometry::nTotElmt();
+  register real_t   area = 0.0, Ek = 0.0, *Re, *Im;
+  register int_t    i;
   register Element* E;
 
   if (mode == 0) {
@@ -517,20 +519,20 @@ real AuxField::mode_L2 (const integer mode) const
 }
 
 
-void AuxField::mode_en (const integer mode  ,
-			real&         RePart,
-			real&         ImPart) const
+void AuxField::mode_en (const int_t mode  ,
+			real_t&     RePart,
+			real_t&     ImPart) const
 // ---------------------------------------------------------------------------
 // Return energy norm per unit area for indicated mode = 1/(2*A) \int u.u dA.
 //
 // NB: Modified for dual: only 2 modes exist, 0 & 1.  We return
-// mode_L2 split into components produced by real and imaginary parts.
+// mode_L2 split into components produced by real_t and imaginary parts.
 // ---------------------------------------------------------------------------
 {
-  const integer     nel  = Geometry::nElmt();
-  const integer     npnp = Geometry::nTotElmt();
-  register real     area = 0.0, *Re, *Im;
-  register integer  i;
+  const int_t       nel  = Geometry::nElmt();
+  const int_t       npnp = Geometry::nTotElmt();
+  register real_t   area = 0.0, *Re, *Im;
+  register int_t    i;
   register Element* E;
 
   RePart = ImPart = 0.0;
@@ -558,7 +560,7 @@ void AuxField::mode_en (const integer mode  ,
 }
 
 
-real AuxField::integral () const
+real_t AuxField::integral () const
 // ---------------------------------------------------------------------------
 // Return the total amount of scalar, integrated over spatial volume.
 // It is assumed that the AuxField is in the Fourier-transformed state,
@@ -566,12 +568,12 @@ real AuxField::integral () const
 // only, then is scaled for Fourier normalisation.
 // ---------------------------------------------------------------------------
 {
-  const integer nel  = Geometry::nElmt();
-  const integer npnp = Geometry::nTotElmt();
-  const real    Lz   = (Geometry::nDim() > 2) ? Femlib::value("TWOPI/BETA"):1.;
-  register integer i;
-  vector<real>     work (npnp);
-  real             total = 0.0, *p, *tmp = work();
+  const int_t    nel  = Geometry::nElmt();
+  const int_t    npnp = Geometry::nTotElmt();
+  const real_t   Lz   = (Geometry::nDim()>2) ? Femlib::value("TWOPI/BETA"):1.;
+  register int_t i;
+  vector<real_t> work (npnp);
+  real_t         total = 0.0, *p, *tmp = &work[0];
 
   ROOTONLY
     for (p = _plane[0], i = 0; i < nel; i++, p += npnp)
@@ -581,16 +583,16 @@ real AuxField::integral () const
 }
 
 
-real AuxField::integral (const integer k) const
+real_t AuxField::integral (const int_t k) const
 // ---------------------------------------------------------------------------
 // Return the total amount of scalar, integrated over plane k.
 // ---------------------------------------------------------------------------
 {
-  const integer    nel  = Geometry::nElmt();
-  const integer    npnp = Geometry::nTotElmt();
-  register integer i;
-  vector<real>     work (npnp);
-  real             total = 0.0, *p, *tmp = work();
+  const int_t    nel  = Geometry::nElmt();
+  const int_t    npnp = Geometry::nTotElmt();
+  register int_t i;
+  vector<real_t> work (npnp);
+  real_t         total = 0.0, *p, *tmp = &work[0];
 
   for (p = _plane[k], i = 0; i < nel; i++, p += npnp)
     total += _elmt[i] -> integral (p, tmp);
@@ -605,13 +607,13 @@ ofstream& operator << (ofstream& strm,
 // Binary write of F's data area.
 // ---------------------------------------------------------------------------
 {
-  const char       routine[] = "ofstream<<AuxField";
-  const integer    NP    = Geometry::planeSize();
-  const integer    nP    = Geometry::nPlane();
-  register integer i, k, n;
+  const char     routine[] = "ofstream<<AuxField";
+  const int_t    NP    = Geometry::planeSize();
+  const int_t    nP    = Geometry::nPlane();
+  register int_t i, k, n;
 
   for (i = 0; i < F._nz; i++) {
-    strm.write((char*) F._plane[i], (int) (nP * sizeof (real))); 
+    strm.write((char*) F._plane[i], (int) (nP * sizeof (real_t))); 
     if (strm.bad())
       message (routine, "unable to write binary output", ERROR);
   }
@@ -626,14 +628,14 @@ ifstream& operator >> (ifstream&  strm,
 // Binary read of F's data area.  Zero any unused storage areas.
 // ---------------------------------------------------------------------------
 {
-  const char       routine[] = "ifstream>>AuxField";
-  const integer    nP    = Geometry::nPlane();
-  const integer    NP    = Geometry::planeSize();
-  const integer    nProc = Geometry::nProc();
-  register integer i, k, n;
+  const char     routine[] = "ifstream>>AuxField";
+  const int_t    nP    = Geometry::nPlane();
+  const int_t    NP    = Geometry::planeSize();
+  const int_t    nProc = Geometry::nProc();
+  register int_t i, k, n;
 
   for (i = 0; i < F._nz; i++) {
-    strm.read ((char*) F._plane[i], (int) (nP * sizeof (real))); 
+    strm.read ((char*) F._plane[i], (int) (nP * sizeof (real_t))); 
     if (strm.bad()) 
       message (routine, "unable to read binary input", ERROR);
     Veclib::zero (NP - nP, F._plane[i] + nP, 1);
@@ -656,8 +658,8 @@ void AuxField::describe (char* s)  const
 }
 
 
-AuxField& AuxField::addToPlane (const integer k    ,
-				const real    alpha)
+AuxField& AuxField::addToPlane (const int_t  k    ,
+				const real_t alpha)
 // ---------------------------------------------------------------------------
 // Add in a constant to the values on nominated plane (if it exists),
 // starting at plane zero.
@@ -674,8 +676,8 @@ AuxField& AuxField::addToPlane (const integer k    ,
 }
 
 
-AuxField& AuxField::getPlane (const integer k  ,
-			      real*         tgt)
+AuxField& AuxField::getPlane (const int_t k  ,
+			      real_t*     tgt)
 // ---------------------------------------------------------------------------
 // Copy nominated plane to tgt.
 // ---------------------------------------------------------------------------
@@ -691,8 +693,8 @@ AuxField& AuxField::getPlane (const integer k  ,
 }
 
 
-AuxField& AuxField::setPlane (const integer k  ,
-			      const real*   src)
+AuxField& AuxField::setPlane (const int_t   k  ,
+			      const real_t* src)
 // ---------------------------------------------------------------------------
 // Copy copy src to nominated plane.
 // ---------------------------------------------------------------------------
@@ -708,8 +710,8 @@ AuxField& AuxField::setPlane (const integer k  ,
 }
 
 
-AuxField& AuxField::setPlane (const integer k    ,
-			      const real    alpha)
+AuxField& AuxField::setPlane (const int_t  k    ,
+			      const real_t alpha)
 // ---------------------------------------------------------------------------
 // Set nominated plane to scalar alpha.
 // ---------------------------------------------------------------------------
@@ -736,8 +738,8 @@ void AuxField::swapData (AuxField* x,
 // ---------------------------------------------------------------------------
 {
   const char       routine[] = "AuxField::swapData";
-  register integer k;
-  register real*   tmp;
+  register int_t   k;
+  register real_t* tmp;
 
   if (x -> _size != y -> _size)
     message (routine, "non-congruent inputs", ERROR);
@@ -754,9 +756,9 @@ void AuxField::swapData (AuxField* x,
 }
 
 
-void AuxField::couple (AuxField*     v  ,
-		       AuxField*     w  ,
-		       const integer dir)
+void AuxField::couple (AuxField*   v  ,
+		       AuxField*   w  ,
+		       const int_t dir)
 // ---------------------------------------------------------------------------
 // Couples/uncouple field data for the radial and azimuthal velocity
 // fields in cylindrical coordinates, depending on indicated
@@ -778,10 +780,10 @@ void AuxField::couple (AuxField*     v  ,
 // NB: modified for use with dual.
 // ---------------------------------------------------------------------------
 {
-  const char    routine[] = "Field::couple";
-  const integer nP    =  Geometry::planeSize();
-  vector<real>  work (nP);
-  real          *Vr, *Vi, *Wr, *Wi, *tp = work();
+  const char     routine[] = "Field::couple";
+  const int_t    nP    =  Geometry::planeSize();
+  vector<real_t> work (nP);
+  real_t         *Vr, *Vi, *Wr, *Wi, *tp = &work[0];
   
   if (dir == FORWARD) {
 
@@ -818,110 +820,110 @@ void AuxField::couple (AuxField*     v  ,
 }
 
 
-AuxField& AuxField::divR ()
+AuxField& AuxField::divY ()
 // ---------------------------------------------------------------------------
 // Divide data values by radius (i.e. y in cylindrical coords).
 // ---------------------------------------------------------------------------
 {
-  const integer    nel  = Geometry::nElmt();
-  const integer    npnp = Geometry::nTotElmt();
-  register integer i, k;
-  register real*   p;
+  const int_t      nel  = Geometry::nElmt();
+  const int_t      npnp = Geometry::nTotElmt();
+  register int_t   i, k;
+  register real_t* p;
 
   for (k = 0; k < _nz; k++)
     for (p = _plane[k], i = 0; i < nel; i++, p += npnp)
-      _elmt[i] -> divR (p);
+      _elmt[i] -> divY (p);
   
   return *this;
 }
 
 
-void AuxField::divR (const integer nZ ,
-		     real*         src) const
+void AuxField::divY (const int_t nZ ,
+		     real_t*     src) const
 // ---------------------------------------------------------------------------
 // Divide src by radius (i.e. y in cylindrical coords).
 // ---------------------------------------------------------------------------
 {
-  const integer    nel  = Geometry::nElmt();
-  const integer    npnp = Geometry::nTotElmt();
-  const integer    ntot = Geometry::planeSize();
-  register integer i, k;
-  register real*   p;   
+  const int_t      nel  = Geometry::nElmt();
+  const int_t      npnp = Geometry::nTotElmt();
+  const int_t      ntot = Geometry::planeSize();
+  register int_t   i, k;
+  register real_t* p;   
 
   for (k = 0; k < nZ; k++)
     for (p = src + k * ntot, i = 0; i < nel; i++, p += npnp)
-      _elmt[i] -> divR (p);
+      _elmt[i] -> divY (p);
 }
 
 
-AuxField& AuxField::mulR ()
+AuxField& AuxField::mulY ()
 // ---------------------------------------------------------------------------
 // Multiply data values by radius (i.e. y in cylindrical coords).
 // ---------------------------------------------------------------------------
 {
-  const integer    nel  = Geometry::nElmt();
-  const integer    npnp = Geometry::nTotElmt();
-  register integer i, k;
-  register real*   p;
+  const int_t      nel  = Geometry::nElmt();
+  const int_t      npnp = Geometry::nTotElmt();
+  register int_t   i, k;
+  register real_t* p;
 
   for (k = 0; k < _nz; k++)
     for (p = _plane[k], i = 0; i < nel; i++, p += npnp)
-      _elmt[i] -> mulR (p);
+      _elmt[i] -> mulY (p);
   
   return *this;
 }
 
 
-void AuxField::mulR (const integer nZ ,
-		     real*         src) const
+void AuxField::mulY (const int_t nZ ,
+		     real_t*     src) const
 // ---------------------------------------------------------------------------
 // Multiply data values by radius (i.e. y in cylindrical coords).
 // ---------------------------------------------------------------------------
 {
-  const integer    nel  = Geometry::nElmt();
-  const integer    npnp = Geometry::nTotElmt();
-  const integer    ntot = Geometry::planeSize();
-  register integer i, k;
-  register real*   p;   
+  const int_t      nel  = Geometry::nElmt();
+  const int_t      npnp = Geometry::nTotElmt();
+  const int_t      ntot = Geometry::planeSize();
+  register int_t   i, k;
+  register real_t* p;   
 
   for (k = 0; k < nZ; k++)
     for (p = src + k * ntot, i = 0; i < nel; i++, p += npnp)
-      _elmt[i] -> mulR (p);
+      _elmt[i] -> mulY (p);
 }
 
 
-real AuxField::probe (const Element* E,
-		      const real     r,
-		      const real     s,
-		      const integer  k) const
+real_t AuxField::probe (const Element* E,
+			const real_t   r,
+			const real_t   s,
+			const int_t    k) const
 // ---------------------------------------------------------------------------
 // Return the value of data on plane k, in Element E, location r, s.
 // ---------------------------------------------------------------------------
 {
-  const integer offset = E -> ID() * Geometry::nTotElmt();
-  static vector<real> work (3 * Geometry::nP());
+  const int_t           offset = E -> ID() * Geometry::nTotElmt();
+  static vector<real_t> work (3 * Geometry::nP());
   
-  return E -> probe (r, s, _plane[k] + offset, work());
+  return E -> probe (r, s, _plane[k] + offset, &work[0]);
 }
 
 
-void AuxField::lengthScale (real* tgt) const
+void AuxField::lengthScale (real_t* tgt) const
 // ---------------------------------------------------------------------------
 // Load tgt with data that represent the mesh resolution lengthscale
 // at each planar location.
 // ---------------------------------------------------------------------------
 {
-  const integer    nel  = Geometry::nElmt();
-  const integer    npnp = Geometry::nTotElmt();
-  register integer i;
-  register real*   p;
+  const int_t      nel  = Geometry::nElmt();
+  const int_t      npnp = Geometry::nTotElmt();
+  register int_t   i;
+  register real_t* p;
 
   for (p = tgt, i = 0; i < nel; i++, p += npnp)
     _elmt[i] -> lengthScale (p);
 }
 
 
-real AuxField::CFL (const integer dir) const
+real_t AuxField::CFL (const int_t dir) const
 // ---------------------------------------------------------------------------
 // Return the inverse CFL timescale using this AuxField as a velocity 
 // component in the nominated direction.  Computations only occur on the
@@ -930,33 +932,33 @@ real AuxField::CFL (const integer dir) const
 // AuxField is presumed to have been Fourier transformed in 3rd direction.
 // ---------------------------------------------------------------------------
 {
-  const char          routine[] = "AuxField::CFL";
-  const integer       nel  = Geometry::nElmt();
-  const integer       npnp = Geometry::nTotElmt();
-  register integer    i;
-  register real*      p;
-  real                dxy, CFL = 0.0;
-  static vector<real> work (npnp);
+  const char            routine[] = "AuxField::CFL";
+  const int_t           nel  = Geometry::nElmt();
+  const int_t           npnp = Geometry::nTotElmt();
+  register int_t        i;
+  register real_t*      p;
+  real_t                dxy, CFL = 0.0;
+  static vector<real_t> work (npnp);
   
   {
-    const integer nP = Geometry::nP();
-    const real*   z;
-    Femlib::quad (LL, nP, nP, &z, 0, 0, 0, 0, 0, 0);
+    const int_t   nP = Geometry::nP();
+    const real_t* z;
+    Femlib::quadrature (&z, 0, 0, 0, nP, LL, 0.0, 0.0);
     dxy = z[1] - z[0];
   }
 
   switch (dir) {
   case 0:
     for (p = _data, i = 0; i < nel; i++, p += npnp)
-      CFL = max (CFL, _elmt[i] -> CFL (dxy, p, 0, work()));
+      CFL = max (CFL, _elmt[i] -> CFL (dxy, p, 0, &work[0]));
     break;
   case 1:
     for (p = _data, i = 0; i < nel; i++, p += npnp)
-      CFL = max (CFL, _elmt[i] -> CFL (dxy, 0, p, work()));
+      CFL = max (CFL, _elmt[i] -> CFL (dxy, 0, p, &work[0]));
     break;
   case 2: {
-    const integer nP = Geometry::nPlane();
-    const real    dz = Femlib::value ("TWOPI / BETA / N_Z");
+    const int_t  nP = Geometry::nPlane();
+    const real_t dz = Femlib::value ("TWOPI / BETA / N_Z");
     for (i = 0; i < nP; i++)
       CFL = max (CFL, fabs (_data[i]));
     CFL /= dz;
@@ -979,38 +981,4 @@ AuxField& AuxField::sqroot()
   Veclib::vsqrt (_size, _data, 1, _data, 1);
 
   return *this;
-}
-
-
-static real genMaskValue (const real    delta,
-			  const real    lag  ,
-			  const real    order,
-			  const integer mode )
-// ---------------------------------------------------------------------------
-// Generates a mask value used to filter out the higher order Fourier
-// modes close to the axis. The function defining the lag is given in
-// the USER section of the session file and is called "MASK_LAG".
-//
-// Example: 
-// In USER   section, MASK_LAG (2./N_Z)+tanh(4.*y) (generally between 0 & 1).
-// In TOKENS section, MASK_DELTA = 4, MASK_ORDER = 4.
-// ---------------------------------------------------------------------------
-{
-  const real N = lag + delta, EPS = EPSSP;
-  real       arg, theta, chi, omega;
-
-  if      (mode <= lag)
-    return 1.0;
-  else if (mode < N) {
-    theta = (mode - lag) / delta;
-    omega = fabs(theta) - 0.5;
-    if ((fabs (theta - 0.5)) < EPS) 
-      chi = 1.0;
-    else {
-      arg = 1.0 - 4.0 * omega * omega;
-      chi = sqrt (-log (arg) / (4.0 * omega * omega));
-    }
-    return 0.5 * erfc (2.0 * sqrt (order) * chi * omega);
-  } else
-    return 0.0;
 }
