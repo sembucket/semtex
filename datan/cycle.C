@@ -27,13 +27,13 @@
 #include <fstream.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
+#include <float.h>
 
 #include <Utility.h>
 #include <Veclib.h>
 #include <Stack.h>
 #include <Array.h>
-#include <nr77.h>
+#include "nr77.h"
 
 class triplet {
 public:

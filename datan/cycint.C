@@ -30,7 +30,7 @@
 #include <Utility.h>
 #include <Stack.h>
 #include <Array.h>
-#include <nr77.h>
+#include "nr77.h"
 
 class triplet {
 public:
