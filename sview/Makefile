@@ -61,7 +61,7 @@ LD  = g++
 GLUT_LIBS = -ltiff -ljpeg -lz -lglut -lGLU -lGL	\
             -lX11 -lXext -lXmu -lXt -lXi -lSM -lICE
 
-CPPFLAGS = -I. -I$(GLUT_ROOT)/include
+CPPFLAGS = -I.
 ifdef PYTHON
   CPPFLAGS += -I$(PYTHON_HDRS)
 endif

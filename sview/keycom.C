@@ -72,7 +72,7 @@ void processCommand (const char  command,
     if (!strlen (buf))
       Display[0] = Surface[0];	// -- Default.
     else {			// -- Parse list of indices.
-      istrstream strm (buf, strlen(buf));
+      istringstream strm (buf, strlen(buf));
       int        count = 0;
 
       while (strm >> i) {
@@ -95,7 +95,7 @@ void processCommand (const char  command,
     break;
 
   case 'f':
-    istrstream (buf, strlen(buf)) >> name;
+    istringstream (buf, strlen(buf)) >> name;
     loadData   (Fields, name);
     break;
 
@@ -108,7 +108,7 @@ void processCommand (const char  command,
     break;
 
   case 'm':
-    istrstream (buf, strlen (buf)) >> value;
+    istringstream (buf, strlen (buf)) >> value;
 
     if (Surface[0]) {
       delete [] Surface[0] -> info;
@@ -134,14 +134,14 @@ void processCommand (const char  command,
     }
     if (!strlen (buf)) flipNorms (Surface[0]);
     else {
-      istrstream (buf, strlen (buf)) >> i;
+      istringstream (buf, strlen (buf)) >> i;
 
       if (i >= 0 && i < (N = countSurf (Surface))) flipNorms (Surface[i]);
     }
     break;
 
   case 'p': {
-    istrstream strm(buf, strlen(buf));
+    istringstream strm(buf, strlen(buf));
     double val[3];
 
     for (i = 0; i < 3; i++) strm >> val[i];
@@ -165,7 +165,7 @@ void processCommand (const char  command,
     if (!strlen (buf)) {
       message (routine, "no index flagged for deletion", WARNING);
     } else {
-      istrstream (buf, strlen (buf)) >> i;
+      istringstream (buf, strlen (buf)) >> i;
       
       if (i == 0)
 	message (routine, "can't delete default surface [0]", WARNING);
@@ -192,7 +192,7 @@ void processCommand (const char  command,
     break;
 
   case 't': {
-    istrstream strm(buf, strlen(buf));
+    istringstream strm(buf, strlen(buf));
     float val[3];
 
     for (i = 0; i < 3; i++) strm >> val[i];
@@ -209,7 +209,7 @@ void processCommand (const char  command,
   }
 
   case 'v': {
-    istrstream strm(buf, strlen(buf));
+    istringstream strm(buf, strlen(buf));
     float val;
 
     strm >> val;
@@ -224,7 +224,7 @@ void processCommand (const char  command,
   }
 
   case 'z': {
-    istrstream strm(buf, strlen(buf));
+    istringstream strm(buf, strlen(buf));
     float val;
 
     strm >> val;

@@ -49,8 +49,8 @@ vector<Pnt*> Point;
 static void getargs (int, char**, char*&, char*&, char*&, char*&);
 
 
-void main (int    argc,
-	   char** argv)
+int main (int    argc,
+	  char** argv)
 // ---------------------------------------------------------------------------
 // Driver.
 //
@@ -132,6 +132,8 @@ void main (int    argc,
   // -- Transfer control to GLUT (no return).
 
   glutMainLoop();
+
+  return EXIT_SUCCESS;
 }
 
 

@@ -11,7 +11,7 @@
 #include <cctype>
 #include <cmath>
 #include <iostream>
-#include <strstream>
+#include <sstream>
 #include <fstream>
 
 #include <vector>
