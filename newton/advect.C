@@ -239,13 +239,13 @@ void linear (Domain*    D ,
 #endif 
   const integer     nTot32 = nZ32 * nP;
   integer           i, j;
-  vector<real>      work((4 * NCOM + 1) * nTot32);
+  vector<real>      work((3 * NCOM + 1) * nTot32);
   vector<real*>     u32(NCOM), U32(NCOM), L32(NCOM);
   vector<AuxField*> u  (NCOM), U  (NCOM), L  (NCOM);
   Field*            master = D -> u[0];
-  real*             tmp    = work() + 4 * NCOM * nTot32;
+  real*             tmp    = work() + 3 * NCOM * nTot32;
 
-  Veclib::zero ((4 * NCOM + 1) * nTot32, work(), 1); // -- A catch-all cleanup.
+  Veclib::zero ((3 * NCOM + 1) * nTot32, work(), 1); // -- A catch-all cleanup.
 
   for (i = 0; i < NCOM; i++) {
     u32[i] = work() +  i                * nTot32;
@@ -330,7 +330,7 @@ void linear (Domain*    D ,
 	} else {
 	  master -> gradient (nZ32, nP, tmp, j);
 	}
-	Veclib::vvtvm (nTot32, U32[j], 1, tmp,  1, L32[i], 1, L32[i], 1);
+	Veclib::vvvtm (nTot32, L32[i], 1, U32[j], 1, tmp, 1, L32[i], 1);
 
 	// -- Perform L_i -= u_j d(U_i) / dx_j.
 
@@ -345,7 +345,7 @@ void linear (Domain*    D ,
 	} else {
 	  master -> gradient (nZ32, nP, tmp, j);
 	}
-	Veclib::vvtvm (nTot32, u32[j], 1, tmp,  1, L32[i], 1, L32[i], 1);
+	Veclib::vvvtm (nTot32, L32[i], 1, u32[j], 1, tmp, 1, L32[i], 1);
       }
   }
   

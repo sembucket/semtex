@@ -58,6 +58,7 @@ static BCmgr*           bman;
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, int&, int&, real&, real&, int&, char*&);
 static int  preprocess (const char*);
+static void initVec    (real*);
 static void NS_update  (const real*, real*);
 
 void matvec (const real&, const real*, const real&, real*);
@@ -96,6 +97,8 @@ int main (int    argc,
   real* dU   = U  + ntot;
   real* lwrk = dU + ntot; 
 
+  initVec (U);
+
   // -- Newton iteration.
 
   for (i = 1; !converged && i <= maxiNewt; i++) {
@@ -103,17 +106,21 @@ int main (int    argc,
     NS_update (U, dU);
     Veclib::vsub (ntot, dU, 1, U, 1, dU, 1);
 
-    itn = maxiLsys; tol = tolLsys;
+    itn = maxiLsys; tol = tolLsys; Veclib::zero (ntot, u, 1);
+
     F77NAME(bicgstab) (ntot, dU, u, lwrk, ntot, itn, tol, matvec, ident, info);
     
     if (info < 0) message (prog, "error return from bicgstab", ERROR);
-    
-    Veclib::vsub (ntot, U, 1, u, 1, U, 1);
 
     rnorm     = sqrt (Blas::nrm2 (ntot, u, 1) / Blas::nrm2 (ntot, U, 1));
     converged = rnorm < tolNewt;
 
-    cout << "-- Iteration: " << i << ", Rnorm = " << rnorm << endl;
+    cout << "Iteration "           << setw(3) << i 
+	 << ", BiCGS iterations: " << setw(3) << itn
+	 << ", resid: "            << setw(6) << tol
+	 << ", Rnorm: "            << setw(6) << rnorm << endl;
+
+    Veclib::vsub (ntot, U, 1, u, 1, U, 1);
   }
 
   Femlib::finalize();
@@ -221,11 +228,9 @@ static int preprocess (const char* session)
 }
 
 
-static void NS_update (const real* src,
-		       real*       tgt)
+static void initVec (real* tgt)
 // ---------------------------------------------------------------------------
-// Generate tgt by integrating NS problem for input velocity src.
-// Then set base flow velocities to match tgt.
+// Initialise tgt from initial guess stored in base flow.
 // ---------------------------------------------------------------------------
 {
   int       i, k;
@@ -235,16 +240,36 @@ static void NS_update (const real* src,
 
   for (i = 0; i < NC; i++)
     for (k = 0; k < NZ; k++)
-      domain -> u[i] -> setPlane (k, src + (i*NZ + k)*NP);
+      domain -> U[i] -> getPlane (k, tgt + (i*NZ + k)*NP);
+}
 
-  domain -> step = 0;
-  integrate (domain, analyst, nonlinear);
+
+static void NS_update (const real* src,
+		       real*       tgt)
+// ---------------------------------------------------------------------------
+// Generate tgt by integrating NS problem for input velocity src.
+// Also set base flow to input velocity.
+// ---------------------------------------------------------------------------
+{
+  int       i, k;
+  const int NC = domain -> nField() - 1;
+  const int NP = Geometry::planeSize();
+  const int NZ = Geometry::nZ();
 
   for (i = 0; i < NC; i++)
     for (k = 0; k < NZ; k++) {
-      domain -> u[i] -> getPlane (k, tgt + (i*NZ + k)*NP);
-      domain -> U[i] -> setPlane (k, tgt + (i*NZ + k)*NP);
+      domain -> u[i] -> setPlane (k, src + (i*NZ + k)*NP);
+      domain -> U[i] -> setPlane (k, src + (i*NZ + k)*NP);
     }
+
+  domain -> step = 0;
+  domain -> time = 0.0;
+
+  integrate (domain, analyst, nonlinear);
+
+  for (i = 0; i < NC; i++)
+    for (k = 0; k < NZ; k++)
+      domain -> u[i] -> getPlane (k, tgt + (i*NZ + k)*NP);
 }
 
 
@@ -272,6 +297,8 @@ void matvec (const real& alpha,
       domain -> u[i] -> setPlane (k, x + (i*NZ + k)*NP);
 
   domain -> step = 0;
+  domain -> time = 0.0;
+
   integrate (domain, analyst, linear);
 
   for (i = 0; i < NC; i++)
