@@ -40,7 +40,7 @@ Element::Element (const integer i,
   Femlib::adopt (_npnp, &_xmesh);
   Femlib::adopt (_npnp, &_ymesh);
  
-  map();
+  this -> map();
 }
 
 
@@ -501,7 +501,7 @@ void Element::HelmholtzSC (const real lambda2,
   for (i = 0; i < _np; i++)
     for (j = 0; j < _np; j++, ij++) {
 
-      helmRow (DV, DT, lambda2, betak2, i, j, rmat, rwrk);
+      this -> helmRow (DV, DT, lambda2, betak2, i, j, rmat, rwrk);
 
       Veclib::gathr (_npnp, rmat, _emap, rwrk);
 
@@ -520,7 +520,7 @@ void Element::HelmholtzSC (const real lambda2,
     if (info) message (routine, "matrix hii has singular factor", ERROR);
 
 #if defined(DEBUG)
-  if ((integer) Femlib::value ("VERBOSE") > 3) printMatSC (hbb, hbi, hii);
+  if ((int) Femlib::value("VERBOSE") > 3) this -> printMatSC (hbb, hbi, hii);
 #endif
 
     Lapack::getri (_nint, hii, _nint, iwrk, rwrk, _nint*_next, info);
@@ -592,13 +592,13 @@ void Element::Helmholtz (const real lambda2,
 // ---------------------------------------------------------------------------
 {
   const real       **DV, **DT;
-  register integer ij = 0;
+  register integer i, j, ij = 0;
 
   Femlib::quad (LL, _np, _np, 0, 0, 0, 0, 0, &DV, &DT);
 
-  for (register integer i = 0; i < _np; i++)
-    for (register integer j = 0; j < _np; j++, ij++) {
-      helmRow      (DV, DT, lambda2, betak2, i, j, rmat, rwrk);
+  for (i = 0; i < _np; i++)
+    for (j = 0; j < _np; j++, ij++) {
+      this -> helmRow (DV, DT, lambda2, betak2, i, j, rmat, rwrk);
       Veclib::copy (_npnp, rmat, 1, h + ij * _np, 1);
     }
 }
@@ -846,8 +846,8 @@ void Element::gradX (const real* xr,
 // ---------------------------------------------------------------------------
 {
   if (_drdx && _dsdx) Veclib::vvtvvtp (_npnp, xr,1,_drdx,1,xs,1,_dsdx,1,dx,1);
-  else if (_drdx)    Veclib::vmul    (_npnp, xr,1,_drdx,1,dx,1);
-  else              Veclib::vmul    (_npnp, xs,1,_dsdx,1,dx,1);
+  else if (_drdx)     Veclib::vmul    (_npnp, xr,1,_drdx,1,dx,1);
+  else                Veclib::vmul    (_npnp, xs,1,_dsdx,1,dx,1);
 }
 
 
@@ -859,8 +859,8 @@ void Element::gradY (const real* yr,
 // ---------------------------------------------------------------------------
 {
   if (_drdy && _dsdy) Veclib::vvtvvtp (_npnp, yr,1,_drdy,1,ys,1,_dsdy,1,dy,1);
-  else if (_drdy)    Veclib::vmul    (_npnp, yr,1,_drdy,1,dy,1);
-  else              Veclib::vmul    (_npnp, ys,1,_dsdy,1,dy,1);
+  else if (_drdy)     Veclib::vmul    (_npnp, yr,1,_drdy,1,dy,1);
+  else                Veclib::vmul    (_npnp, ys,1,_dsdy,1,dy,1);
 }
 
 
@@ -909,9 +909,9 @@ void Element::sideGeom (const integer side,
     Veclib::vvtvp (_np, yr, 1, yr, 1, area, 1, area, 1);
 
     if   (_dsdx) Veclib::smul (_np, -1.0, _dsdx, skip, nx, 1);
-    else        Veclib::zero (_np,                   nx, 1);
+    else         Veclib::zero (_np,                    nx, 1);
     if   (_dsdy) Veclib::smul (_np, -1.0, _dsdy, skip, ny, 1);
-    else        Veclib::zero (_np,                   ny, 1);
+    else         Veclib::zero (_np,                    ny, 1);
     
     break;
 
@@ -931,9 +931,9 @@ void Element::sideGeom (const integer side,
     Veclib::vvtvp (_np, ys, 1, ys, 1, area, 1, area, 1);
 
     if   (_drdx) Veclib::copy (_np, _drdx+low, skip, nx, 1);
-    else        Veclib::zero (_np,                 nx, 1);
+    else         Veclib::zero (_np,                  nx, 1);
     if   (_drdy) Veclib::copy (_np, _drdy+low, skip, ny, 1);
-    else        Veclib::zero (_np,                 ny, 1);
+    else         Veclib::zero (_np,                  ny, 1);
     
     break;
 
@@ -952,9 +952,9 @@ void Element::sideGeom (const integer side,
     Veclib::vvtvp (_np, yr, 1, yr, 1, area, 1, area, 1);
 
     if   (_dsdx) Veclib::copy (_np, _dsdx+low, skip, nx, 1);
-    else        Veclib::zero (_np,                 nx, 1);
+    else         Veclib::zero (_np,                  nx, 1);
     if   (_dsdy) Veclib::copy (_np, _dsdy+low, skip, ny, 1);
-    else        Veclib::zero (_np,                 ny, 1);
+    else         Veclib::zero (_np,                  ny, 1);
 
     break;
 
@@ -973,9 +973,9 @@ void Element::sideGeom (const integer side,
     Veclib::vvtvp (_np, ys, 1, ys, 1, area, 1, area, 1);
 
     if   (_drdx) Veclib::smul (_np, -1.0, _drdx, skip, nx, 1);
-    else        Veclib::zero (_np,                   nx, 1);
+    else         Veclib::zero (_np,                    nx, 1);
     if   (_drdy) Veclib::smul (_np, -1.0, _drdy, skip, ny, 1);
-    else        Veclib::zero (_np,                   ny, 1);
+    else         Veclib::zero (_np,                    ny, 1);
 
     break;
   }
@@ -1034,12 +1034,12 @@ void Element::sideGrad (const integer side,
 // dc/dr, dc/ds, then a -1 skip when multiplying by dr/dx, ds/dx, etc.
 // ---------------------------------------------------------------------------
 {
-  register integer d, estart, skip;
-  terminal (side, estart, skip);
-  
-  vector<real> work (_np + _np);
-  const real   **DV, **DT;
-  real         *ddr, *dds;
+  register integer    d, estart, skip;
+  static vector<real> work (_np + _np);
+  const real          **DV, **DT;
+  real                *ddr, *dds;
+
+  this -> terminal (side, estart, skip);
 
   ddr = work();
   dds = ddr + _np;
@@ -1075,7 +1075,7 @@ void Element::sideGrad (const integer side,
 
   if (c1) {
     if   (_drdx) Veclib::vmul  (_np, ddr, d, _drdx+estart, skip, c1, 1);
-    else        Veclib::zero  (_np, c1, 1);
+    else         Veclib::zero  (_np, c1, 1);
     if   (_dsdx) Veclib::vvtvp (_np, dds, d, _dsdx+estart, skip, c1, 1, c1, 1);
   }
   
@@ -1083,7 +1083,7 @@ void Element::sideGrad (const integer side,
 
   if (c2) {
     if   (_drdy) Veclib::vmul  (_np, ddr, d, _drdy+estart, skip, c2, 1);
-    else        Veclib::zero  (_np, c2, 1);
+    else         Veclib::zero  (_np, c2, 1);
     if   (_dsdy) Veclib::vvtvp (_np, dds, d, _dsdy+estart, skip, c2, 1, c2, 1);
   }
 }
@@ -1098,7 +1098,7 @@ void Element::sideGet (const integer  side,
 {
   register integer start, skip;
 
-  terminal (side, start, skip);
+  this -> terminal (side, start, skip);
 
   Veclib::copy (_np, src + start, skip, tgt, 1);
 }
@@ -1218,11 +1218,11 @@ real Element::norm_H1 (const real* src) const
   // -- Add in L2 norm of grad u.
 
   Veclib::copy (_npnp, src, 1, u, 1);
-  grad (u, 0, DV, DT, gw);
+  this -> grad (u, 0, DV, DT, gw);
   for (i = 0; i < _npnp; i++) H1 += u[i] * u[i] * dA[i];
 
   Veclib::copy (_npnp, src, 1, u, 1);
-  grad (0, u, DV, DT, gw);
+  this -> grad (0, u, DV, DT, gw);
   for (i = 0; i < _npnp; i++) H1 += u[i] * u[i] * dA[i];
 
   return sqrt (H1);
@@ -1266,7 +1266,7 @@ void Element::sideGetR (const integer side,
 {
   register integer estart, skip;
 
-  terminal (side, estart, skip);
+  this -> terminal (side, estart, skip);
 
   Veclib::copy (_np, _ymesh + estart, skip, tgt, 1);
 }
@@ -1383,12 +1383,12 @@ integer Element::locate (const real    x    ,
 // Fairly loose tolerances are employed.
 // ---------------------------------------------------------------------------
 {
-  static real   EPS    = 0.0;
-  const integer MaxItn = 8;
-  const real    DIVERG = 20.0;
-  real          *J, *F, *ir, *is, *dr, *ds, *tp;
-  vector<real>  work (5 * _np + 6);
-  integer       ipiv[2], info, i, j;
+  static real         EPS    = 0.0;
+  const integer       MaxItn = 8;
+  const real          DIVERG = 20.0;
+  real                *J, *F, *ir, *is, *dr, *ds, *tp;
+  static vector<real> work (5 * _np + 6);
+  integer             ipiv[2], info, i, j;
   
   tp = work();
   ir = tp + _np;

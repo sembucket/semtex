@@ -516,7 +516,6 @@ void Field::tangTractionV (real*        fx,
 }
 
 
-
 Field& Field::solve (AuxField*             f  ,
 		     const ModalMatrixSys* MMS)
 // ---------------------------------------------------------------------------
@@ -830,7 +829,7 @@ void Field::HelmholtzOperator (const real*   x      ,
   R -= ntot;
   S -= ntot;
   
-  Femlib::grad2   (R, S, P, P, *DT, *DV, np, nel);
+  Femlib::grad2 (R, S, P, P, *DT, *DV, np, nel);
 
   this -> local2globalSum (P, y, NS);
 }
