@@ -554,6 +554,7 @@ Field& Field::solve (AuxField*             f  ,
 //   "Templates for the Solution of Linear Systems", netlib.
 // ---------------------------------------------------------------------------
 {
+  const char    routine[] = "Field::solve";
   const integer np    = Geometry::nP();
   const integer nel   = Geometry::nElmt();
   const integer next  = Geometry::nExtElmt();
@@ -627,6 +628,8 @@ Field& Field::solve (AuxField*             f  ,
 
     case JACPCG: {
       const integer StepMax = (integer) Femlib::value ("STEP_MAX");  
+      const integer npts    = M -> _npts;
+      real           alpha, beta, dotp, epsb2, r2, rho1, rho2;
       vector<real>  work (5 * npts + 3 * Geometry::nPlane());
 
       real* r   = work();
