@@ -268,7 +268,7 @@ static void findPoints (vector<Point*>&   point,
   rloc.resize (NPT);
   sloc.resize (NPT);
 
-  elmt.assign (NPT, 0);
+  for (i = 0; i < elmt.size(); i++) elmt[i] = 0;
 
   cerr.precision (8);
 
