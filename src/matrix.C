@@ -20,16 +20,16 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
 				const BoundarySys*      Bsys    )
 // ---------------------------------------------------------------------------
 // Generate or retrieve from internal database MS the vector of
-// MatrixSyss which will be used to solve all the Fourier-mode
+// MatrixSys's which will be used to solve all the Fourier-mode
 // discrete Helmholtz problems for the associated scalar Fields
 // (called out by names).
 //
 // Input variables:
-//   lambda2: Helmholtz constant for the problem,	
-//   beta   : Fourier length scale = TWOPI / Lz,
-//   nmodes : number of Fourier modes which will be solved,
-//   Elmt   : vector of Element*'s used to make local Helmholtz matrices,
-//   Bsys   : boundary system for this field.
+//   lambda2 : Helmholtz constant for the problem,	
+//   beta    : Fourier length scale = TWOPI / Lz,
+//   nmodes  : number of Fourier modes which will be solved,
+//   Elmt    : vector of Element*'s used to make local Helmholtz matrices,
+//   Bsys    : boundary system for this field.
 // ---------------------------------------------------------------------------
 {
   const char               name = Bsys -> field();
@@ -48,19 +48,20 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
   Femlib::synchronize();
 
   for (mode = baseMode; mode < baseMode + numModes; mode++) {
-    const NumberSys* N      = Bsys -> Nsys (mode);
-    const real       betak2 = sqr (Field::modeConstant (name, mode, beta));
-    found  = 0;
-    for (m.reset(); !found && m.more(); m.next()) {
+    const NumberSys* N         = Bsys -> Nsys (mode);
+    const real       betak2    = sqr (Field::modeConstant (name, mode, beta));
+    const integer    localMode = mode - baseMode;
+
+    for (found = 0, m.reset(); !found && m.more(); m.next()) {
       M     = m.current();
       found = M -> match (lambda2, betak2, N);
     }
     if (found) {
-      Msys[mode] = M;
-      cout << '.';  cout.flush();
+      Msys[localMode] = M;
+      cout << '.'; cout.flush();
     } else {
-      Msys[mode] = new MatrixSys (lambda2, betak2, mode, Elmt, Bsys);
-      MS.add (Msys[mode]);
+      Msys[localMode] = new MatrixSys (lambda2,betak2, mode, Elmt, Bsys);
+      MS.add (Msys[localMode]);
       cout << '*'; cout.flush();
     }
   }
@@ -86,6 +87,7 @@ MatrixSys::MatrixSys (const real               lambda2,
 // ---------------------------------------------------------------------------
 // NB: these get evaluated in the order they appear in the class
 // definition!:
+  FourierMode       (mode   ),
   HelmholtzConstant (lambda2),
   FourierConstant   (betak2 ),
   BC                (bsys -> BCs  (mode)),
@@ -154,14 +156,14 @@ MatrixSys::MatrixSys (const real               lambda2,
   }
 
   // -- Loop over BCs and add diagonal contribution from mixed BCs.
-#if 1
+
   if (bsys -> mixBC()) {
-    const integer      nbound = bsys -> nSurf();
-    const integer*     bmap   = NS   -> btog();
+    const integer  nbound = bsys -> nSurf();
+    const integer* bmap   = NS   -> btog();
     for (i = 0; i < nbound; i++)
       BC[i] -> augmentSC (nband, nsolve, bmap, rwrk, H);
   }
-#endif
+
   // -- Cholesky factor global banded-symmetric Helmholtz matrix.
 
   Lapack::pbtrf ("U", nsolve, nband - 1, H, nband, info);
@@ -191,10 +193,10 @@ integer MatrixSys::match (const real       lambda2,
 {
   const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
-  if (fabs (HelmholtzConstant - lambda2) < EPS  &&
-      fabs (FourierConstant   - betak2 ) < EPS  &&
-      NS -> nGlobal() == nScheme -> nGlobal() &&
-      NS -> nSolve()  == nScheme -> nSolve()  &&
+  if (fabs (HelmholtzConstant - lambda2) < EPS &&
+      fabs (FourierConstant   - betak2 ) < EPS &&
+      NS -> nGlobal() == nScheme -> nGlobal()  &&
+      NS -> nSolve()  == nScheme -> nSolve()   &&
       Veclib::same (NS->nGlobal(), NS->btog(), 1, nScheme->btog(), 1))
     return 1;
 

@@ -355,7 +355,7 @@ real Field::flux (const Field* C)
 // ---------------------------------------------------------------------------
 // Static member function.
 //
-// Compute normal flux of field C on all WALL boundaries.
+// Compute normal flux of field C on all "wall" group boundaries.
 //
 // This only has to be done on the zero (mean) Fourier mode.
 // ---------------------------------------------------------------------------
@@ -571,9 +571,9 @@ Field& Field::solve (AuxField*             f  ,
     const vector<Boundary*>& B       = bsys -> BCs  (mode);
     const NumberSys*         N       = bsys -> Nsys (mode);
     const MatrixSys*         M       = (*MMS)[pmode]; 
-    const real*              H       = (const real*)  M -> H;
-    const real**             hii     = (const real**) M -> hii;
-    const real**             hbi     = (const real**) M -> hbi;
+    const real*              H       = (const real*)    M -> H;
+    const real**             hii     = (const real**)   M -> hii;
+    const real**             hbi     = (const real**)   M -> hbi;
     const integer*           b2g     = (const integer*) N -> btog();
     real*                    forcing = f -> plane[k];
     real*                    unknown = plane     [k];
@@ -583,7 +583,7 @@ Field& Field::solve (AuxField*             f  ,
     integer                  nzero   = nglobal - nsolve;
     real                     lambda2 = M -> HelmholtzConstant;
     real                     betak2  = M -> FourierConstant;
-    
+
     // -- Build RHS = - M f - H g + <h, w>.
 
     Veclib::zero (nglobal, RHS, 1);
@@ -668,7 +668,7 @@ Field& Field::solve (AuxField*  f      ,
 
     // -- Select Fourier mode, set local pointers and variables.
 
-    mode   = bmode + k >> 1;
+    mode   = bmode + (k >> 1);
     betak2 = sqr (Field::modeConstant (field_name, mode, betaZ));
 
     const vector<Boundary*>& B       = bsys -> BCs  (mode);
@@ -822,7 +822,7 @@ void Field::jacobi (const real       lambda2,
 
 void Field::constrain (real*            force  ,
 		       const real       lambda2,
-		       const real       betak2 ,
+ 		       const real       betak2 ,
 		       const real*      esstlbc,
 		       const NumberSys* N      ) const
 // ---------------------------------------------------------------------------
@@ -983,7 +983,9 @@ void Field::buildRHS (real*                    force ,
     } else
       Elmt[i] -> e2gSumSC (force, gid, RHS, hbi[i]);
   }
-
+#if 0
+  if (DUMP) for (i = 0; i < nglobal; i++) cout << RHS[i] << endl;
+#endif
   // -- Add in <h, w>.
 
   for (gid = N -> btog(), i = 0; i < nbound; i++, bc += np) {
