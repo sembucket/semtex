@@ -39,10 +39,10 @@ AuxField::AuxField (vector<Element*>& Elts,
   if (Geometry::nElmt() != Elmt.getSize())
     message (routine, "conflicting number of elements in input data", ERROR);
 
-  data  = new real  [(size_t) nT];
-  plane = new real* [(size_t) nZ];
+  this->data  = new real  [(size_t) nT];
+  this->plane = new real* [(size_t) nZ];
 
-  for (k = 0; k < nZ; k++) plane[k] = data + k * nP;
+  for (k = 0; k < nZ; k++) this->plane[k] = this->data + k * nP;
 }
 
 
@@ -1371,4 +1371,15 @@ real AuxField::CFL (const integer dir) const
   }
 
   return CFL;
+}
+
+
+AuxField& AuxField::root()
+// ---------------------------------------------------------------------------
+// Take sqrt of all data points.
+// ---------------------------------------------------------------------------
+{
+  Veclib::vsqrt (Geometry::nTotProc(), this -> data, 1, this -> data, 1);
+
+  return *this;
 }
