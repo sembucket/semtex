@@ -87,10 +87,6 @@ FC       = f90
 DEFINES += -D_BUILTIN_
 CFLAGS   = $(DEFINES) -pvctl,fullmsg -Onooverlap -hfloat0 -hnostkchk
 FFLAGS   = $(DEFINES) -Wf'-pvctl,fullmsg -ptr byte -b' -float0 -ew
-ifdef MPI
-  LIB     = libalp_mp.a
-  FFLAGS += -P multi
-endif
 endif
 
 # ----------------------------------------------------------------------------

@@ -1,181 +1,188 @@
-c12345678901234567890123456789012345678901234567890123456789012345678901
-c     $Id$
-c
-c     Matrix-matrix, matrix-vector multiply routines,
-c     designed to be called from C.
-c     E.g. where C = A * B; the FORTRAN equivalent is C' = B' * A'.
-c
-c
-      subroutine dmxm (A, nra, B, nca, C, ncb)
-c
-c     C = A * B.
-c
-      implicit none
-c
-      integer          nra, nca, ncb, i, j, k
-      double precision A(nca, nra), B(ncb, nca), C(ncb, nra)
-c
-      do j = 1, ncb
-         do i = 1, nra
-            c(j, i) = 0.0D0
-            do k = 1, nca
-               c(j, i) = c(j, i) + b(j, k) * a(k, i)
-            enddo
-         enddo
-      enddo
-      return
-      end
-c
-c
-      subroutine smxm (A, nra, B, nca, C, ncb)
-c
-c     C = A * B.
-c
-      implicit none
-c
-      integer  nra, nca, ncb, i, j, k
-      real     A(nca, nra), B(ncb, nca), C(ncb, nra)
-c
-      do j = 1, ncb
-         do i = 1, nra
-            c(j, i) = 0.0
-            do k = 1, nca
-               c(j, i) = c(j, i) + b(j, k) * a(k, i)
-            enddo
-         enddo
-      enddo
-      return
-      end
-c
-c
-      subroutine dmxma (A, nra, B, nca, C, ncb)
-c
-c     C += A * B.
-c
-      implicit none
-c
-      integer          nra, nca, ncb, i, j, k
-      double precision A(nca, nra), B(ncb, nca), C(ncb, nra)
-c
-      do j = 1, ncb
-         do i = 1, nra
-            do k = 1, nca
-               c(j, i) = c(j, i) + b(j, k) * a(k, i)
-            enddo
-         enddo
-      enddo
-      return
-      end
-c
-c
-      subroutine smxma (A, nra, B, nca, C, ncb)
-c
-c     C += A * B.
-c
-      implicit none
-c
-      integer  nra, nca, ncb, i, j, k
-      real     A(nca, nra), B(ncb, nca), C(ncb, nra)
-c
-      do j = 1, ncb
-         do i = 1, nra
-            do k = 1, nca
-               c(j, i) = c(j, i) + b(j, k) * a(k, i)
-            enddo
-         enddo
-      enddo
-      return
-      end
+C12345678901234567890123456789012345678901234567890123456789012345678901
+C
+C     $Id$
+C
+C     Matrix-matrix, matrix-vector multiply routines,
+C     designed to be called from C.
+C     E.g. where C = A * B; the FORTRAN equivalent is C' = B' * A'.
+C
+C
+C
+C
+      SUBROUTINE DMXM (A, NRA, B, NCA, C, NCB)
+C
+C     C = A * B.
+C
+      IMPLICIT NONE
+C
+      INTEGER          NRA, NCA, NCB, I, J, K
+      DOUBLE PRECISION A(NCA, NRA), B(NCB, NCA), C(NCB, NRA)
+C
+      DO J = 1, NCB
+         DO I = 1, NRA
+            C(J, I) = 0.0D0
+            DO K = 1, NCA
+               C(J, I) = C(J, I) + B(J, K) * A(K, I)
+            ENDDO
+         ENDDO
+      ENDDO
+      RETURN
+      END
+C
+C
+      SUBROUTINE SMXM (A, NRA, B, NCA, C, NCB)
+C
+C     C = A * B.
+C
+      IMPLICIT NONE
+C
+      INTEGER  NRA, NCA, NCB, I, J, K
+      REAL     A(NCA, NRA), B(NCB, NCA), C(NCB, NRA)
+C
+      DO J = 1, NCB
+         DO I = 1, NRA
+            C(J, I) = 0.0
+            DO K = 1, NCA
+               C(J, I) = C(J, I) + B(J, K) * A(K, I)
+            ENDDO
+         ENDDO
+      ENDDO
+      RETURN
+      END
+C
+C
+C
+C
+      SUBROUTINE DMXMA (A, NRA, B, NCA, C, NCB)
+C
+C     C += A * B.
+C
+      IMPLICIT NONE
+C
+      INTEGER          NRA, NCA, NCB, I, J, K
+      DOUBLE PRECISION A(NCA, NRA), B(NCB, NCA), C(NCB, NRA)
+C
+      DO J = 1, NCB
+         DO I = 1, NRA
+            DO K = 1, NCA
+               C(J, I) = C(J, I) + B(J, K) * A(K, I)
+            ENDDO
+         ENDDO
+      ENDDO
+      RETURN
+      END
+C
+C
+      SUBROUTINE SMXMA (A, NRA, B, NCA, C, NCB)
+C
+C     C += A * B.
+C
+      IMPLICIT NONE
+C
+      INTEGER  NRA, NCA, NCB, I, J, K
+      REAL     A(NCA, NRA), B(NCB, NCA), C(NCB, NRA)
+C
+      DO J = 1, NCB
+         DO I = 1, NRA
+            DO K = 1, NCA
+               C(J, I) = C(J, I) + B(J, K) * A(K, I)
+            ENDDO
+         ENDDO
+      ENDDO
+      RETURN
+      END
 
-c
-c
-c
-c
-      subroutine dmxms (A, nra, B, nca, C, ncb)
-c
-c     C -= A * B.
-c
-      implicit none
-c
-      integer          nra, nca, ncb, i, j, k
-      double precision A(nca, nra), B(ncb, nca), C(ncb, nra)
-c
-      do j = 1, ncb
-         do i = 1, nra
-            do k = 1, nca
-               c(j, i) = c(j, i) - b(j, k) * a(k, i)
-            enddo
-         enddo
-      enddo
-      return
-      end
-c
-c
-      subroutine smxms (A, nra, B, nca, C, ncb)
-c
-c     C -= A * B.
-c
-      implicit none
-c
-      integer  nra, nca, ncb, i, j, k
-      real     A(nca, nra), B(ncb, nca), C(ncb, nra)
-c
-      do j = 1, ncb
-         do i = 1, nra
-            do k = 1, nca
-               c(j, i) = c(j, i) - b(j, k) * a(k, i)
-            enddo
-         enddo
-      enddo
-      return
-      end
+C
+C
+C
+C
+      SUBROUTINE DMXMS (A, NRA, B, NCA, C, NCB)
+C
+C     C -= A * B.
+C
+      IMPLICIT NONE
+C
+      INTEGER          NRA, NCA, NCB, I, J, K
+      DOUBLE PRECISION A(NCA, NRA), B(NCB, NCA), C(NCB, NRA)
+C
+      DO J = 1, NCB
+         DO I = 1, NRA
+            DO K = 1, NCA
+               C(J, I) = C(J, I) - B(J, K) * A(K, I)
+            ENDDO
+         ENDDO
+      ENDDO
+      RETURN
+      END
+C
+C
+      SUBROUTINE SMXMS (A, NRA, B, NCA, C, NCB)
+C
+C     C -= A * B.
+C
+      IMPLICIT NONE
+C
+      INTEGER  NRA, NCA, NCB, I, J, K
+      REAL     A(NCA, NRA), B(NCB, NCA), C(NCB, NRA)
+C
+      DO J = 1, NCB
+         DO I = 1, NRA
+            DO K = 1, NCA
+               C(J, I) = C(J, I) - B(J, K) * A(K, I)
+            ENDDO
+         ENDDO
+      ENDDO
+      RETURN
+      END
 
-c
-c
-      subroutine dmxv (A, nra, x, nca, y)
-c
-c     y = A * x.
-c
-      implicit none
-c
-      integer          nra, nca, i, j
-      double precision A(nca, nra), x(nra), y(nca)
-c     
-c     -- Alternative ordering for testing:
-c
-c      do i = 1, nca
-c         y(i) = 0.0D0
-c      enddo
-c      
-c      do j = 1, nra
-c         do i = 1, nca
-c            y(i) = y(i) + a(j, i) * x(j)
-c         enddo
-c      enddo
-      do i = 1, nca
-         y(i) = 0.0D0
-         do j = 1, nra
-            y(i) = y(i) + a(j, i) * x(j)
-         enddo
-      enddo
-      return
-      end
-c
-c
-      subroutine smxv (A, nra, x, nca, y)
-c
-c     y = A * x.
-c
-      implicit none
-c
-      integer nra, nca, i, j
-      real    A(nca, nra), x(nra), y(nca)
-c
-      do i = 1, nca
-         y(i) = 0.0
-         do j = 1, nra
-            y(i) = y(i) + a(j, i) * x(j)
-         enddo
-      enddo
-      return
-      end
+C
+C
+C
+C
+      SUBROUTINE DMXV (A, NRA, X, NCA, Y)
+C
+C     Y = A * X.
+C
+      IMPLICIT NONE
+C
+      INTEGER          NRA, NCA, I, J
+      DOUBLE PRECISION A(NCA, NRA), X(NRA), Y(NCA)
+C     
+C     -- ALTERNATIVE ORDERING FOR TESTING:
+C
+C      DO I = 1, NCA
+C         Y(I) = 0.0D0
+C      ENDDO
+C      
+C      DO J = 1, NRA
+C         DO I = 1, NCA
+C            Y(I) = Y(I) + A(J, I) * X(J)
+C         ENDDO
+C      ENDDO
+      DO I = 1, NCA
+         Y(I) = 0.0D0
+         DO J = 1, NRA
+            Y(I) = Y(I) + A(J, I) * X(J)
+         ENDDO
+      ENDDO
+      RETURN
+      END
+C
+C
+      SUBROUTINE SMXV (A, NRA, X, NCA, Y)
+C
+C     Y = A * X.
+C
+      IMPLICIT NONE
+C
+      INTEGER NRA, NCA, I, J
+      REAL    A(NCA, NRA), X(NRA), Y(NCA)
+C
+      DO I = 1, NCA
+         Y(I) = 0.0
+         DO J = 1, NRA
+            Y(I) = Y(I) + A(J, I) * X(J)
+         ENDDO
+      ENDDO
+      RETURN
+      END
