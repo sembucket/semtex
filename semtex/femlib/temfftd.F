@@ -101,7 +101,7 @@ C
       DOUBLE PRECISION TRIG(*)
       INTEGER          N, IP, IQ, IR
       DOUBLE PRECISION DEL, TWOPI, ANGLE
-      INTEGER          NJ(3), NN, LL, KK
+      INTEGER          NJ(3), LL, KK
       INTEGER          I, K, NI, IROT, KINK
       PARAMETER        ( TWOPI = 6.28318530717958647688D0 )
 C
@@ -375,6 +375,8 @@ C
 C
 #if defined(_CRAY)
       PARAMETER        ( LVR = 64 )
+#elif defined(_SX)
+      PARAMETER        ( LVR = 256 )
 #elif defined(__uxp__)
       PARAMETER        ( LVR = 2048 )
 #else
@@ -452,9 +454,11 @@ C     -----------------
 C     
 C     Loop across transforms
 C     ----------------------
-#if defined(_CRAY)
+#if   defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
-#else if defined(__uxp__)
+#elif defined(_SX)
+*VDIR NODEP, SHORTLOOP
+#elif defined(__uxp__)
 !OCL NOVREC
 #endif
                   DO 110 L = 1 , NVEX
@@ -524,7 +528,9 @@ C     Loop across transforms
 C     ----------------------
 #if defined (_CRAY)
 CDIR$ IVDEP, SHORTLOOP
-#else if defined(__uxp__)
+#elif defined(_SX)
+*VDIR NODEP, SHORTLOOP
+#elif defined(__uxp__)
 !OCL NOVREC
 #endif
                      DO 130 L = 1 , NVEX
@@ -591,7 +597,9 @@ C     Loop across transforms
 C     ----------------------
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
-#else if defined(__uxp__)
+#elif defined(_SX)
+*VDIR NODEP, SHORTLOOP
+#elif defined(__uxp__)
 !OCL NOVREC
 #endif
                DO 210 L = 1 , NVEX
@@ -642,7 +650,9 @@ C     ----------------------
                   IF (KK.EQ.N2/2) THEN
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
-#else if defined(__uxp__)
+#elif defined(_SX)
+*VDIR NODEP, SHORTLOOP
+#elif defined(__uxp__)
 !OCL NOVREC
 #endif
                      DO 230 L = 1 , NVEX
@@ -662,7 +672,9 @@ C
 C
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
-#else if defined(__uxp__)
+#elif defined(_SX)
+*VDIR NODEP, SHORTLOOP
+#elif defined(__uxp__)
 !OCL NOVREC
 #endif
          DO 240 L = 1 , NVEX
@@ -735,7 +747,9 @@ C     -----------------
                J = 0
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
-#else if defined(__uxp__)
+#elif defined(_SX)
+*VDIR NODEP, SHORTLOOP
+#elif defined(__uxp__)
 !OCL NOVREC
 #endif
                DO 310 L = 1 , NVEX
@@ -815,7 +829,9 @@ C     -----------------
             J = 0
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
-#else if defined(__uxp__)
+#elif defined(_SX)
+*VDIR NODEP, SHORTLOOP
+#elif defined(__uxp__)
 !OCL NOVREC
 #endif
             DO 325 L = 1 , NVEX
@@ -920,7 +936,9 @@ C     -----------------
                J = 0
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
-#else if defined(__uxp__)
+#elif defined(_SX)
+*VDIR NODEP, SHORTLOOP
+#elif defined(__uxp__)
 !OCL NOVREC
 #endif
                DO 340 L = 1 , NVEX
@@ -1042,7 +1060,9 @@ C     Loop across transforms
 C     ----------------------
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
-#else if defined(__uxp__)
+#elif defined(_SX)
+*VDIR NODEP, SHORTLOOP
+#elif defined(__uxp__)
 !OCL NOVREC
 #endif
                   DO 410 L = 1 , NVEX
@@ -1229,7 +1249,9 @@ C     Loop across transforms
 C     ----------------------
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
-#else if defined(__uxp__)
+#elif defined(_SX)
+*VDIR NODEP, SHORTLOOP
+#elif defined(__uxp__)
 !OCL NOVREC
 #endif
                      DO 440 L = 1 , NVEX
@@ -1402,6 +1424,8 @@ C
       PARAMETER        ( SIN60 = 0.866025403784439D0 )
 #if defined(_CRAY)
       PARAMETER        ( LVR = 64 )
+#elif defined(_SX)
+      PARAMETER        ( LVR = 256 )
 #elif defined(__uxp__)
       PARAMETER        ( LVR = 2048 )
 #else
@@ -1466,7 +1490,9 @@ C     Loop across transforms
 C     ----------------------
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
-#else if defined(__uxp__)
+#elif defined(_SX)
+*VDIR NODEP, SHORTLOOP
+#elif defined(__uxp__)
 !OCL NOVREC
 #endif
                   DO 110 L = 1 , NVEX
@@ -1526,7 +1552,9 @@ C     Loop across transforms
 C     ----------------------
 #if defined(_CRAY)
 CDIR$ IVDEP,SHORTLOOP
-#else if defined(__uxp__)
+#elif defined(_SX)
+*VDIR NODEP, SHORTLOOP
+#elif defined(__uxp__)
 !OCL NOVREC
 #endif
                      DO 130 L = 1 , NVEX
@@ -1604,7 +1632,9 @@ C     Loop across transforms
 C     ----------------------
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
-#else if defined(__uxp__)
+#elif defined(_SX)
+*VDIR NODEP, SHORTLOOP
+#elif defined(__uxp__)
 !OCL NOVREC
 #endif
                      DO 410 L = 1 , NVEX
@@ -1728,7 +1758,9 @@ C     Loop across transforms
 C     ----------------------
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
-#else if defined(__uxp__)
+#elif defined(_SX)
+*VDIR NODEP, SHORTLOOP
+#elif defined(__uxp__)
 !OCL NOVREC
 #endif
                         DO 440 L = 1 , NVEX
@@ -1866,6 +1898,8 @@ C
       PARAMETER        ( QRT5  = 0.559016994374947D0 )
 #if defined(_CRAY)
       PARAMETER        ( LVR = 64 )
+#elif defined(_SX)
+      PARAMETER        ( LVR = 256 )
 #elif defined(__uxp__)
       PARAMETER        ( LVR = 2048 )
 #else
@@ -1961,7 +1995,9 @@ C     ----------------------
 C
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
-#else if defined(__uxp__)
+#elif defined(_SX)
+*VDIR NODEP, SHORTLOOP
+#elif defined(__uxp__)
 !OCL NOVREC
 #endif
                         DO 110 L = 1 , NVEX
@@ -2014,7 +2050,9 @@ C
 C     
 #if defined(_CRAY)
 CDIR$ IVDEP,SHORTLOOP
-#else if defined(__uxp__)
+#elif defined(_SX)
+*VDIR NODEP, SHORTLOOP
+#elif defined__uxp__)
 !OCL NOVREC
 #endif
                         DO 130 L = 1 , NVEX
@@ -2172,7 +2210,9 @@ C     ----------------------
 C     
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
-#else if defined(__uxp__)
+#elif defined(_SX)
+*VDIR NODEP, SHORTLOOP
+#elif defined(__uxp__)
 !OCL NOVREC
 #endif
                            DO 410 L = 1 , NVEX
@@ -2421,7 +2461,9 @@ C
 C     
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
-#else if defined(__uxp__)
+#elif defined(_SX)
+*VDIR NODEP, SHORTLOOP
+#elif defined(__uxp__)
 !OCL NOVREC
 #endif
                            DO 440 L = 1 , NVEX
