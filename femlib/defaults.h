@@ -41,9 +41,7 @@ static struct {
   "T_REF"       ,   288.15 ,	/* -- Reference temperature (15C).        */
   "PRANDTL"     ,   0.72   ,	/* -- Prandtl number for air at STP.      */
 
-  "C_SMAG"      ,   0.1114 ,	/* -- Smagorinsky's constant (RNG value). */
-  "RNG_C"       ,   75.0   ,    /* -- a / gamma^4 for 3D RNG.             */
-  "RNG_BIG"     ,   500.0  ,    /* -- Switch to plain Smag in RNG.        */
+  "C_SMAG"      ,   0.1    ,	/* -- Smagorinsky's constant (RNG value). */
   "LAMBDA_M"    ,   2.0    ,    /* -- Assumed difference in mesh lengths. */
 
   "FFX"         ,   0.0    ,	/* -- Body force per unit mass (x).       */
@@ -60,7 +58,6 @@ static struct {
   "CHKPOINT"    ,   1   ,	/* -- Set checkpointing of field dumps.   */
   "AVERAGE"     ,   0   ,	/* -- Select averaging of fields.         */
   "SPAWN"       ,   0   ,	/* -- Set respawning for particle tracks. */
-  "RNG"         ,   0   ,	/* -- Set RNG form for Smagorinsky LES.   */
   "NUMOPTLEVEL" ,   3   , 	/* -- Default for numbering optimization. */
   
   /* -- Default integer values. */

@@ -17,8 +17,8 @@ endif
 # Create dependency list.
 #
 
-#INITIAL    = initial
-INITIAL    = manager tree
+INITIAL    = initial
+#INITIAL    = manager tree
 
 OPERATORS  = polyops	operators	matops     polylib     filter
 
