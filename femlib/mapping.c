@@ -51,7 +51,7 @@ void edgemaps (const int nk ,
     message (routine, "input nk < 2", ERROR);
 
 
-  for (p = mHead; !found && p; p = p -> next) found = nk == p -> np;
+  for (p = mHead; p; p = p -> next) if (found = nk == p -> np) break;
 
   if (!found) {
     register int i, j, k, n;
