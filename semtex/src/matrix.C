@@ -174,8 +174,14 @@ MatrixSys::MatrixSys (const real              lambda2,
       _bipack[j] = next * nint;
       _iipack[j] = nint * nint;
 
-      _hbi[j] = (nint) ? new real [(size_t) _bipack[j]] : 0;
-      _hii[j] = (nint) ? new real [(size_t) _iipack[j]] : 0;
+      if (nint) {
+	_hbi[j] = new real [(size_t) _bipack[j]];
+	_hii[j] = new real [(size_t) _iipack[j]];
+	Veclib::zero (_bipack[j], _hbi[j], 1);
+	Veclib::zero (_iipack[j], _hii[j], 1);
+      } else
+	_hbi[j] = _hii[j] = 0;
+      
 
       elmt[j]->HelmholtzSC(lambda2,betak2,hbb,_hbi[j],_hii[j],rmat,rwrk,ipiv);
 

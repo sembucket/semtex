@@ -35,6 +35,34 @@ endif
 # Compiler options for specific machines.
 #
 
+ifeq ($(ARCH),SunOS)              	# -- Sun.
+CXX    = CC
+LD     = CC
+CC     = cc
+FC     = f77
+ifdef DEBUG
+  OPT    = -g -xarch=v9
+else
+  OPT    = -fast -xarch=v9
+endif
+CFLAGS   = $(DEFINES) $(OPT)
+FFLAGS   = $(DEFINES) $(OPT)
+CXXFLAGS = $(DEFINES) $(OPT) -library=iostream
+LDFLAGS  = $(LIBDIR)  $(OPT) -library=iostream
+CLDFLAGS = $(LIBDIR)  $(OPT)
+RANLIB   = 
+F77LIBS  = -xlic_lib=sunperf
+ifdef MPI
+  MPIHOME   = /opt/lam-6.3.3b20-tm
+  CPPFLAGS += -I$(MPIHOME)/include
+  LIBDIR   += -L$(MPIHOME)/lib
+  LDFLAGS  += -lfem_mp -lalp $(F77LIBS) -lmpi -llam -lsocket
+else
+  LDFLAGS  += -lfem -lalp $(F77LIBS)
+  CLDFLAGS += -lfem -lalp $(F77LIBS)
+endif
+endif
+
 ifeq ($(ARCH),Linux-alpha)              # -- Linux alpha w Compaq C & f90.
 DEFINES += -D_Linux_alpha
 CXX    = g++
@@ -70,6 +98,7 @@ ifdef MPI
 else
   LDFLAGS += -lfem -lalp $(F77LIBS) -lcpml
 endif
+CLDFLAGS = $(LDFLAGS)
 endif
 
 ifeq ($(ARCH),Linux-i686)               # -- Linux Intel w GNU compilation.
@@ -89,6 +118,7 @@ LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lalp $(F77LIBS) -lm
 RANLIB   = ranlib
 F77LIBS  = -llapack -lblas -lg2c
 LIBDIR  += -L/usr/local/lib
+CLDFLAGS = $(LDFLAGS)
 endif
 
 ifeq ($(ARCH),IRIX)			# -- SGI 32-bit systems.
@@ -100,6 +130,7 @@ FFLAGS   = $(DEFINES) -O2
 CXXFLAGS = $(DEFINES) -fullwarn -O2
 F77LIBS	 = -lcomplib.sgimath -lftn
 LDFLAGS  = $(LIBDIR) -lfem -lalp $(F77LIBS) -lmalloc -lm
+CLDFLAGS = $(LDFLAGS)
 endif
 
 ifeq ($(ARCH),IRIX64)			# -- SGI 64-bit systems.
@@ -118,6 +149,7 @@ else
   OPT    =  -r10000 -Ofast=$(MACH) -OPT:roundoff=3
 endif
 F77LIBS  = -lcomplib.sgimath -lftn
+CLDFLAGS = $(LDFLAGS)
 endif
 
 ifeq ($(ARCH),OSF1)			# -- DEC OSF1 Alpha.
@@ -139,6 +171,7 @@ ifdef MPI
 else
   LDFLAGS   = $(CXXFLAGS) $(LIBDIR) -lfem -lalp $(FORTLIBS) -lm
 endif
+CLDFLAGS = $(LDFLAGS)
 endif
 
 ifeq ($(ARCH),UNIX_System_V)    	# -- Fujitsu VPP300.
@@ -165,6 +198,7 @@ else
   LIBS     += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
 endif
 LDFLAGS  = $(OPT) $(CPPFLAGS) $(LIBDIR) $(LIBS)
+CLDFLAGS = $(LDFLAGS)
 endif
 
 ifeq ($(ARCH),SUPER-UX)         	# -- NEC SX-4.
@@ -187,6 +221,7 @@ else
   LIBS    = -lfem -lalp $(FORTLIBS) -lm -lC
 endif
 LDFLAGS   =  -verbose -V -p -f90libew $(CXXFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
+CLDFLAGS  = $(LDFLAGS)
 endif
 
 # ----------------------------------------------------------------------------

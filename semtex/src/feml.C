@@ -45,7 +45,7 @@ FEML::FEML (const char* session)
   char*      u;
   integer    i, OK, N, found;
 
-  char* reserved[] = {
+  const char* reserved[] = {
     "TOKENS",
     "FIELDS",
     "GROUPS",
@@ -120,7 +120,7 @@ FEML::FEML (const char* session)
 
 	  OK = 0;
       
-	  while (!OK && feml_file >> c) {
+	  while ((!OK) && (feml_file >> c)) {
 	    if (c == '<') {
 	      feml_file >> c;
 	  

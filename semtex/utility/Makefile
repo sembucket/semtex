@@ -46,7 +46,7 @@ slit chop:\
 nosrc: avgdump moden noiz rstress xplane sem2tec convert
 avgdump moden noiz rstress xplane sem2tec convert: \
 	avgdump.c moden.c xplane.c noiz.c rstress.c sem2tec.c convert.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.c $(LDFLAGS) -lm
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.c $(CLDFLAGS) -lm
 
 # ----------------------------------------------------------------------------
 # Build meshpr, 2D mesh node computation utility.
