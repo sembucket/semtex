@@ -102,7 +102,8 @@ void NavierStokes (Domain* D, Body* B, Analyser* A)
 
     // -- Pressure projection substep.
 
-    PBCmanager::maintain   (D -> step (), *Pressure, Us, Uf);
+    PBCmanager::maintain   (D -> step (), *Pressure,
+			    (const Field***) Us, (const Field***) Uf);
     PBCmanager::accelerate (a, *D -> u[0]);
 
     Pressure -> evaluateBoundaries (D -> step ());
