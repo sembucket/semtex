@@ -68,13 +68,13 @@ static int  preprocess (const char*);
 static void EV_init    (real*);
 static void EV_update  (const real*, real*);
 static void EV_small   (real**, const int, const int, 
-		        real*, real*, real*, real&, const int); 
+		        real*, real*, real*, real&, const int, ostream&); 
 static int  EV_test    (const int, const int, real*, real*, real*,
-		        const real, const real, const int);
+		        const real, const real, const int, ostream&);
 static void EV_sort    (real*, real*, real*, real*, const int);
 static void EV_post    (real**, real**, const int, const int, 
 			const int, const real*, const real*, 
-			const real*, const int);
+			const real*, const int, ostream&);
 static void EV_big     (real**, real**, const int, const int, const int,
 			const real*, const real*, const real*);
 
@@ -90,9 +90,11 @@ int main (int    argc,
   ios::sync_with_stdio();
 #endif
 
-  int  kdim = 2, nvec = 2, nits = 2, verbose = 0, converged = 0;
-  real norm, resnorm, evtol = 1.0e-6;
-  int  i, j;
+  int      kdim = 2, nvec = 2, nits = 2, verbose = 0, converged = 0;
+  real     norm, resnorm, evtol = 1.0e-6;
+  int      i, j;
+  char     buf[StrMax];
+  ofstream diag;
 
   Femlib::initialize (&argc, &argv);
 
@@ -110,6 +112,9 @@ int main (int    argc,
   cout << "   Convergence tolerance   : " << evtol << endl;
   cout << "   Maximum iterations      : " << nits  << endl;
 
+  strcat (strcpy (buf, session), ".evl");
+  diag.open (buf, ios::out);
+  
   // -- Allocate eigenproblem storage.
   
   const int ntot = preprocess (session);
@@ -142,8 +147,8 @@ int main (int    argc,
   for (i = 1; !converged && i <= kdim; i++) {
     EV_update (Kseq[i - 1], Kseq[i]);
     Veclib::copy (ntot * (kdim + 1), kvec, 1, tvec, 1);
-    EV_small  (Tseq, ntot, i, zvec, wr, wi, resnorm, verbose);
-    converged = EV_test (i, i, zvec, wr, wi, resnorm, evtol, min(i, nvec));
+    EV_small  (Tseq, ntot, i, zvec, wr, wi, resnorm, verbose, diag);
+    converged = EV_test (i,i, zvec, wr,wi, resnorm, evtol, min(i, nvec), diag);
     converged = max (converged, 0); // -- Only exit on evtol.
   }
 
@@ -163,13 +168,14 @@ int main (int    argc,
     // -- Get subspace eigenvalues, test for convergence.
 
     Veclib::copy (ntot * (kdim + 1), kvec, 1, tvec, 1);
-    EV_small (Tseq, ntot, kdim, zvec, wr, wi, resnorm, verbose); 
+    EV_small (Tseq, ntot, kdim, zvec, wr, wi, resnorm, verbose, diag); 
 
-    converged = EV_test (i, kdim, zvec, wr, wi, resnorm, evtol, nvec);
+    converged = EV_test (i, kdim, zvec, wr, wi, resnorm, evtol, nvec, diag);
   }
 
-  EV_post (Tseq, Kseq, ntot, min(--i, kdim), nvec, zvec, wr, wi, converged);
+  EV_post (Tseq, Kseq, ntot, min(--i, kdim), nvec,zvec, wr,wi, converged,diag);
 
+  diag.close();
   Femlib::finalize();
   return (EXIT_SUCCESS);
 }
@@ -223,7 +229,8 @@ static void EV_small (real**    Kseq   ,
 		      real*     wr     ,
 		      real*     wi     ,
 		      real&     resnorm,
-		      const int verbose)
+		      const int verbose,
+		      ostream&   diag   )
 // ---------------------------------------------------------------------------
 // Here we take as input the Krylov sequence Kseq =
 //          x,
@@ -276,11 +283,11 @@ static void EV_small (real**    Kseq   ,
   // -- QR decomposition completed.  Print up R as diagnostic.
 
   if (verbose) {
-    cout << "R =" << endl;
+    diag << "R =" << endl;
     for (i = 0; i < kdim; i++) {
       for (j = 0; j < kdim; j++) 
-	cout << setw (14) << R[Veclib::col_major (i, j, kdimp)];
-      cout << endl;
+	diag << setw (14) << R[Veclib::col_major (i, j, kdimp)];
+      diag << endl;
     }
   }
 
@@ -299,11 +306,11 @@ static void EV_small (real**    Kseq   ,
   // -- Print up H as diagnostic.
 
   if (verbose) {
-    cout << "H =" << endl;
+    diag << "H =" << endl;
     for (i = 0; i < kdim; i++) {
       for (j = 0; j < kdim; j++) 
-	cout << setw (14) << H[Veclib::col_major (i, j, kdim)];
-      cout << endl;
+	diag << setw (14) << H[Veclib::col_major (i, j, kdim)];
+      diag << endl;
     }
   }
 
@@ -319,11 +326,11 @@ static void EV_small (real**    Kseq   ,
   // -- Print up eigenvectors as diagnostic.
 
   if (verbose) {
-    cout << "zvec =" << endl;
+    diag << "zvec =" << endl;
     for (i = 0; i < kdim; i++) {
       for (j = 0; j < kdim; j++) 
-	cout << setw (14) << zvec[Veclib::col_major (i, j, kdim)];
-      cout << endl;
+	diag << setw (14) << zvec[Veclib::col_major (i, j, kdim)];
+      diag << endl;
     }
   }
   
@@ -341,7 +348,8 @@ static int EV_test (const int  itrn   ,
 		    real*      wi     ,
 		    const real resnorm,
 		    const real evtol  ,
-		    const int  nvec   )
+		    const int  nvec   ,
+		    ostream&    diag   )
 // ---------------------------------------------------------------------------
 // Test convergence of eigenvalues and print up diagnostic information.
 //
@@ -381,22 +389,22 @@ static int EV_test (const int  itrn   ,
 
   // -- Print diagnostic information.
 
-  cout << "-- Iteration = " << itrn << ", H(k+1, k) = " << resnorm << endl;
+  diag << "-- Iteration = " << itrn << ", H(k+1, k) = " << resnorm << endl;
 
-  cout.precision(4);
-  cout.setf(ios::scientific, ios::floatfield);
+  diag.precision(4);
+  diag.setf(ios::scientific, ios::floatfield);
 
-  cout << "EV  Magnitude   Angle       Growth      Frequency   Residual"
+  diag << "EV  Magnitude   Angle       Growth      Frequency   Residual"
        << endl;
 
-  for (i = 0; (i < kdim) && (i < 10); i++) {
+  for (i = 0; i < kdim; i++) {
     re_ev  = wr[i];
     im_ev  = wi[i];
     abs_ev = hypot (re_ev, im_ev);
     ang_ev = atan2 (im_ev, re_ev);
     re_Aev = log (abs_ev) / period;
     im_Aev = ang_ev       / period;
-    cout << setw(2)  << i
+    diag << setw(2)  << i
          << setw(12) << abs_ev
       	 << setw(12) << ang_ev
 	 << setw(12) << re_Aev
@@ -405,8 +413,8 @@ static int EV_test (const int  itrn   ,
 	 << endl;
   }
 
-  cout.precision(6);
-  cout.setf(ios::fixed);
+  diag.precision(6);
+  diag.setf(ios::fixed);
   
   return idone;
 }
@@ -455,7 +463,8 @@ static void EV_post (real**      Tseq,
 		     const real* zvec, 
 		     const real* wr  , 
 		     const real* wi  , 
-		     const int   icon)
+		     const int   icon,
+		     ostream&     diag)
 // ---------------------------------------------------------------------------
 // Carry out postprocessing of estimates, depending on value of icon
 // (as output by EV_test).
@@ -483,7 +492,7 @@ static void EV_post (real**      Tseq,
 
   if (icon == 0) {
 
-    cout << prog
+    diag << prog
 	 << ": not converged, writing final Krylov vector."
 	 << endl;
 
@@ -499,7 +508,7 @@ static void EV_post (real**      Tseq,
 
   } else if (icon < 0) {
     
-    cout << prog
+    diag << prog
 	 << ": minimum residual reached, writing initial Krylov vector."
 	 << endl;
     
@@ -512,7 +521,7 @@ static void EV_post (real**      Tseq,
 
   } else if (icon == nvec) {
 
-    cout << prog
+    diag << prog
 	 << ": converged, writing "
 	 << icon
 	 << " eigenvectors."
