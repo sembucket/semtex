@@ -5,10 +5,10 @@
 static char
 RCSid02[] = "$Id$";
 
-#include <stdio.h>
 #include <malloc.h>
 #include <alplib.h>
-#include "femlib.h"
+#include <femdef.h>
+#include <femlib.h>
 
 
 typedef struct quadopr {	/* ---- quadrature operator information  --- */

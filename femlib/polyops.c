@@ -32,8 +32,8 @@ static char
 RCSid01[] = "$Id$";
 
 
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
 #include <alplib.h>
 
 
