@@ -55,6 +55,27 @@ modav 123	# Average & plot modal energies
                 } else {
 		  POINTS  ki _lavg
 		}
+moddl 1		# Like moden but for dual's output.
+		DATA $1
+		READ { t 1 m0 2 mC 3 }
+		SET m0e = lg(m0)
+		SET mCe = lg(mC)
+		# set limits using both series ( base + mode )
+		MinMax m0e m0e_min m0e_max
+		MinMax mCe mCe_min mCe_max
+		DEFINE l_min (( $m0e_min < $mCe_min ? $m0e_min : $mCe_min )- 1)
+		DEFINE l_max (( $m0e_max < $mCe_max ? $mCe_max : $m0e_max )+ 1)
+		LIMITS t $l_min $l_max
+		NOTATION -5 5 1 1
+		TICKSIZE 0 0 -1 0
+		LOCATION 5000 31000 5000 31000
+		# WINDOW 1 1 1 1
+		EXPAND 1.1
+		BOX
+		POINTS t m0e
+		POINTS t mCe
+		XLABEL \it t
+		YLABEL \it E_k
 spectrum 4	# Compute the spectrum of second argument
 		# spectrum takes 4 arguments :
 	        # 1: input, 
