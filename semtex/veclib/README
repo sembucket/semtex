@@ -153,9 +153,12 @@ CONVERSION PRIMITIVES:
 *		brev................................... x   x           x
 
 MISCELLANEOUS FUNCTIONS:
-		sctr................................... x   x           x
+		scatr.................................. x   x           x
 		gathr.................................. x   x           x
-#		gathr_scatr............................ x   x           x
+*		gathr_scatr............................ x   x           x
+*               scatr_sum.............................. x   x           x
+*               gathr_sum.............................. x   x           x
+*               gathr_scatr_sum........................ x   x           x
 		ramp................................... x   x           x
 #               clip
 #               iclip
