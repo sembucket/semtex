@@ -41,8 +41,8 @@ AuxField::AuxField (vector<Element*>& Elts,
   if (Geometry::nElmt() != Elmt.getSize())
     message (routine, "conflicting number of elements in input data", ERROR);
 
-  data  = new real  [nT];
-  plane = new real* [nZ];
+  data  = new real  [(size_t) nT];
+  plane = new real* [(size_t) nZ];
 
   for (k = 0; k < nZ; k++) plane[k] = data + k * nP;
 }
@@ -537,12 +537,12 @@ ostream& operator << (ostream&  strm,
       vector<real> buffer (nT);
      
       for (i = 0; i < nZ; i++)
-	strm.write ((char*) F.plane[i], nP * sizeof (real));
+	strm.write ((char*) F.plane[i], (int) (nP * sizeof (real)));
 
       for (k = 1; k < nProc; k++) {
 	Femlib::recv (buffer(), nT, k);
 	for (i = 0; i < nZ; i++)
-	  strm.write ((char*) (buffer() + i * NP), nP * sizeof (real));
+	  strm.write ((char*) (buffer() + i * NP), (int) (nP * sizeof (real)));
       }
       
       strm.flush();
@@ -553,7 +553,7 @@ ostream& operator << (ostream&  strm,
   } else 
 
     for (i = 0; i < nZ; i++)
-      strm.write ((char*) F.plane[i], nP * sizeof (real));
+      strm.write ((char*) F.plane[i], (int) (nP * sizeof (real)));
 
 
   return strm;
@@ -582,13 +582,13 @@ istream& operator >> (istream&  strm,
       vector<real> buffer (nT);
      
       for (i = 0; i < nZ; i++) {
-	strm.read ((char*) F.plane[i], nP * sizeof (real));
+	strm.read ((char*) F.plane[i], (int) (nP * sizeof (real)));
 	Veclib::zero (NP - nP, F.plane[i] + nP, 1);
       }
 
       for (k = 1; k < nProc; k++) {
 	for (i = 0; i < nZ; i++) {
-	  strm.read ((char*) (buffer() + i * NP), nP * sizeof (real));
+	  strm.read ((char*) (buffer() + i * NP), (int) (nP * sizeof (real)));
 	  Veclib::zero (NP - nP, buffer() + i * NP + nP, 1);
 	}
 	Femlib::send (buffer(), nT, k);
@@ -600,7 +600,7 @@ istream& operator >> (istream&  strm,
   } else 
 
     for (i = 0; i < nZ; i++) {
-      strm.read ((char*) F.plane[i], nP * sizeof (real));
+      strm.read ((char*) F.plane[i], (int) (nP * sizeof (real)));
       Veclib::zero (NP - nP, F.plane[i] + nP, 1);
     }
 

@@ -107,7 +107,7 @@ MatrixSystem::MatrixSystem (const real              lambda2,
 
   if (nsolve) {
     npack = nband * nsolve; // -- Size for LAPACK banded format.
-    H     = new real [npack];
+    H     = new real [(size_t) npack];
     Veclib::zero (npack, H, 1);
 
     if (verbose > 1)
@@ -127,10 +127,10 @@ MatrixSystem::MatrixSystem (const real              lambda2,
 
   // -- Loop over elements, creating & posting elemental Helmholtz matrices.
 
-  hbi    = new real*   [nel];
-  hii    = new real*   [nel];
-  bipack = new integer [nel];
-  iipack = new integer [nel];
+  hbi    = new real*   [(size_t) nel];
+  hii    = new real*   [(size_t) nel];
+  bipack = new integer [(size_t) nel];
+  iipack = new integer [(size_t) nel];
 
   for (j = 0; j < nel; j++) {
     E = Elmt[j];
@@ -140,8 +140,8 @@ MatrixSystem::MatrixSystem (const real              lambda2,
     bipack[j] = next * nint;
     iipack[j] = ((nint + 1) * nint) >> 1; // -- Size for LAPACK packed format.
 
-    hbi[j] = (nint) ? new real [bipack[j]] : 0;
-    hii[j] = (nint) ? new real [iipack[j]] : 0;
+    hbi[j] = (nint) ? new real [(size_t) bipack[j]] : 0;
+    hii[j] = (nint) ? new real [(size_t) iipack[j]] : 0;
 
     E -> HelmholtzSC (lambda2, betak2, hbb, hbi[j], hii[j], rmat, rwrk);
 

@@ -205,7 +205,7 @@ Field::Field (FEML&                feml ,
 
   // -- Install NumberSystems.
 
-  Nsys = new const NumberSystem* [n_bmodes];
+  Nsys = new const NumberSystem* [(size_t) n_bmodes];
   for (i = 0; i < n_bmodes; i++) Nsys[i] = Nmbr[i];
 
   // -- Construct temporary lists of Conditions by scanning SURFACE info,
@@ -252,8 +252,8 @@ Field::Field (FEML&                feml ,
   ListIterator<integer> sID (sideID);
   
   n_bound     = grupID.length();
-  boundary    = new Boundary** [n_bmodes];
-  boundary[0] = new Boundary*  [n_bmodes * n_bound];
+  boundary    = new Boundary** [(size_t) n_bmodes];
+  boundary[0] = new Boundary*  [(size_t) (n_bmodes * n_bound)];
 
   // -- Zero-mode boundaries are used by both Cartesian & cylindrical forms.
 
@@ -296,8 +296,8 @@ Field::Field (FEML&                feml ,
   if   (nPR > 1) n_line += 2 * nPR - n_line % (2 * nPR);
   else           n_line += n_line % 2;
 
-  line    = new real* [nZ];
-  sheet   = new real  [nZ * n_line];
+  line    = new real* [(size_t) nZ];
+  sheet   = new real  [(size_t) (nZ * n_line)];
 
   for (k = 0; k < nZ; k++) line[k] = sheet + k * n_line;
 
@@ -480,6 +480,26 @@ Field& Field::smooth (AuxField* slave)
   }
 
   return *this;
+}
+
+
+real Field::flux (const Field* C)
+// ---------------------------------------------------------------------------
+// Static member function.
+//
+// Compute normal flux of field C on all WALL boundaries.
+//
+// This only has to be done on the zero (mean) Fourier mode.
+// ---------------------------------------------------------------------------
+{
+  register integer i;
+  real             F = 0.0;
+  vector<real>     work(2 * Geometry::nP());
+  
+  for (i = 0; i < C -> n_bound; i++)
+    F += C -> boundary[0][i] -> flux ("wall", C -> data, work());
+
+  return F;
 }
 
 

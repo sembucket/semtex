@@ -32,9 +32,9 @@ Boundary::Boundary (const integer Ident ,
 {
   const integer np = elmt -> nKnot();
 
-  nx   = new real [np];
-  ny   = new real [np];
-  area = new real [np];
+  nx   = new real [(size_t) np];
+  ny   = new real [(size_t) np];
+  area = new real [(size_t) np];
 
   elmt -> sideOffset (side, doffset, dskip);
   elmt -> sideGeom   (side, nx, ny, area);
@@ -327,6 +327,31 @@ Vector Boundary::tangentTraction (const char* grp,
   }
 
   return Force;
+}
+
+
+real Boundary::flux (const char* grp,
+		     const real* src,
+		     real*       wrk) const
+// ---------------------------------------------------------------------------
+// Compute wall-normal flux of field src on this boundary segment,
+// if it lies in group grp.  Wrk is a work vector, 2 * elmt_np_max long.
+// NB: n is a unit outward normal.
+// ---------------------------------------------------------------------------
+{
+  register real dcdn = 0.0;
+  
+  if (strcmp (grp, bcondn -> group()) == 0) {
+    register integer i;
+    const integer    np = nKnot(), offset = elmt -> dOff();
+    register real    *cx = wrk, *cy = wrk + np;
+
+    elmt -> sideGrad (side, src + offset, cx, cy);
+
+    for (i = 0; i < np; i++) dcdn += (cx[i]*nx[i] + cy[i]*ny[i]) * area[i];
+  }
+
+  return dcdn;
 }
 
 
