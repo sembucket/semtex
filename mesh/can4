@@ -14,15 +14,16 @@
 	MASK_ORDER  = 4
 
 	OMEGA_1     = 1.0
-	OMEGA       = 2.55
-	THETA       = 3.0/DEG
+	OMEGA_2     = 0.0
+	OMEGA       = 2.0*(1.0+OMEGA_2/OMEGA_1)
+	THETA       = 2.5/DEG
 	LINEAR      = 0
 
-	KINVIS      = 0.00005
+	KINVIS      = 3.0942e-5
 	PERIOD      = TWOPI/OMEGA_1
 	STEPS_P     = 20000
 	D_T         = PERIOD/STEPS_P
-	N_STEP      = 9000
+	N_STEP      = 10000
 	N_TIME      = 2
 	N_POLY      = 11
 	N_Z         = 128
