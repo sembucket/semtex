@@ -71,7 +71,7 @@ void NavierStokes (Domain* D, Body* B, Analyser* A)
   preSolve (D -> u[0], lambda2);
 
   for (i = 1; i < DIM; i++)
-    D -> u[i] -> buildDirect (*D -> u[0]);
+    D -> u[i] -> assemble (*D -> u[0]);
 
   // -- Set up pressure solution matrices.
 
@@ -81,6 +81,8 @@ void NavierStokes (Domain* D, Body* B, Analyser* A)
   cout << endl;
 
   // -- Timestepping loop.
+
+  real time = Veclib::clock ();
 
   while (D -> step () < nStep) {
 
@@ -134,6 +136,8 @@ void NavierStokes (Domain* D, Body* B, Analyser* A)
 
     A -> analyse ();
   }
+
+  cout << "Solver time: " << Veclib::clock () - time << endl;
 }
 
 
@@ -201,8 +205,8 @@ static void nonLinear (Domain*   D ,
 
   // -- Smooth result on domain velocity boundary system & scale.
 
-  D -> u[0] -> smooth (Nx);
-  D -> u[0] -> smooth (Ny);
+  D -> u[0] -> smooth (&Nx);
+  D -> u[0] -> smooth (&Ny);
 
   Nx *= -0.5;
   Ny *= -0.5;
@@ -326,13 +330,13 @@ static void preSolve (SystemField* F, const real& lambda2)
 
   if (velocity && !iterative) {
     cout << "-- Building velocity matrices" << endl;
-    F -> buildDirect (lambda2);
+    F -> assemble (lambda2);
     return;
   }
 
   if (pressure && iterative < 2) {
     cout << "-- Building pressure matrices" << endl;
-    F -> buildDirect (lambda2);
+    F -> assemble (lambda2);
     return;
   }
 }
@@ -359,8 +363,8 @@ static void Solve (SystemField*  U     ,
     message (routine, "input field type not recognized", ERROR);
 
   if (pressure) {
-    if   (iterative > 1) U -> solveIterative (F, 0.0);
-    else                 U -> solveDirect    (F);
+    if   (iterative > 1) U -> solve (F, 0.0);
+    else                 U -> solve (F);
     return;
   }
 
@@ -375,10 +379,10 @@ static void Solve (SystemField*  U     ,
       const real lambda2 = alpha[0] / (dt * KinVis);
       freeVector (alpha);
       
-      U -> solveIterative (F, lambda2);
+      U -> solve (F, lambda2);
 
     } else
-      U -> solveDirect (F);
+      U -> solve (F);
 
     return;
   }
