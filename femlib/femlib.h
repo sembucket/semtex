@@ -1,25 +1,13 @@
 /*****************************************************************************
- *         FUNCTION PROTOTYPES FOR ROUTINES IN LIBRARY LIBFEM.A              *
+ *         FUNCTION PROTOTYPES FOR ROUTINES IN LIBRARY LIBFEM.A
  *****************************************************************************/
 
 /* $Id$ */
 
 
 
-#ifndef FEMLIB_H		    /* BEGIN femlib.h DECLARATIONS           */
-#define FEMLIB_H
-
-#include <stdio.h>
-
-enum basis_kind {
-  STD   = 'U'   ,		     /* Standard, uniformly-spaced mesh.     */
-  GLL   = 'S'		             /* Gauss-Legendre mesh.                 */
-};
-
-enum quadrature_kind {
-  GL    = 'G'        ,		     /* Gauss-Legendre quadrature.           */
-  LL    = 'L'		             /* Lobatto-Legendre quadrature.         */
-};
+#ifndef femlibH
+#define femlibH
 
 /* ------------------------------------------------------------------------- *
  * Routines from initial.c:                                                  *
@@ -28,8 +16,8 @@ enum quadrature_kind {
 void   initialize ();
 double interpret  (const char *);
 
-void   vecInit    (const char *names, const char *fn);
-void   vecInterp  (int   ntot, ...);
+void   vecInit    (const char*, const char *);
+void   vecInterp  (int, ...);
 
 void   setOption  (const char *, int);
 int    option     (const char *);
