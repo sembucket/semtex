@@ -1,17 +1,21 @@
 /*****************************************************************************
  * xsmul:  y[i] = alpha * x[i].
+ *
+ * $Id$
  *****************************************************************************/
 
-#ifdef __uxp__
+#include <femdef.h>
+
+#if defined(__uxp__)
 #pragma global novrec
 #pragma global noalias
 #endif
 
 
-void dsmul (int n, double alpha, const double *x, int incx,
-                                       double *y, int incy)
+void dsmul (integer n, double alpha, const double* x, integer incx,
+                                           double* y, integer incy)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -20,10 +24,10 @@ void dsmul (int n, double alpha, const double *x, int incx,
 }
 
 
-void ismul (int n, float alpha, const float *x, int incx,
-                                      float *y, int incy)
+void ismul (integer n, float alpha, const float* x, integer incx,
+                                          float* y, integer incy)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -32,10 +36,10 @@ void ismul (int n, float alpha, const float *x, int incx,
 }
 
 
-void ssmul (int n, float alpha, const float *x, int incx,
-                                      float *y, int incy)
+void ssmul (integer n, float alpha, const float* x, integer incx,
+                                          float* y, integer incy)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;

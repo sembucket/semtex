@@ -25,17 +25,22 @@
  *****************************************************************************/
 
 #include <stdio.h>
-#include "alplib.h"
+#include <femdef.h>
+#include <alplib.h>
+
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
 
 
-
-void dspline(int n, double yp1, double ypn, const double *x, const double *y,
-	                                                           double *y2)
+void dspline (integer n, double yp1, double ypn,
+	      const double* x, const double* y, double* y2)
 {
-  double   h = x[1] - x[0], 
-          *u = dvector(0, n-2);
-  double   p, qn, sig, un, hh;
-  register i, k;
+  register integer i, k;
+  double           h  = x[1] - x[0], 
+                   *u = dvector (0, n-2);
+  double           p, qn, sig, un, hh;
 
   if (yp1 > 0.99e30)
     y2[0] = u[0] = 0.0;
@@ -65,19 +70,15 @@ void dspline(int n, double yp1, double ypn, const double *x, const double *y,
   for (k = n-2; k; k--) y2[k] = y2[k] * y2[k+1] + u[k];
 
   freeDvector(u, 0);
-  return;
 }
 
 
-
-
-
-double dsplint(int n, double x, const double *xa, const double *ya,
-	                                          const double *y2a)
+double dsplint (integer n, double x, const double* xa, const double* ya,
+	                                               const double* y2a)
 {
-  register k;
-  register double h, b, a;
-  static   klo = -1, khi = -1;
+  register integer k;
+  register double  h, b, a;
+  static   integer klo = -1, khi = -1;
 
   /* check the results of the previous search */
 
@@ -86,7 +87,7 @@ double dsplint(int n, double x, const double *xa, const double *ya,
     khi = n-1;
   }
     
-  while (khi-klo > 1) {    /* search for the bracketing interval */
+  while (khi-klo > 1) {    /* search for the bracketing integererval */
     k = (khi+klo) >> 1;
     if (xa[k] > x) 
       khi = k; 
@@ -103,16 +104,13 @@ double dsplint(int n, double x, const double *xa, const double *ya,
 }			  
 
 
-
-
-
-void sspline(int n, float yp1, float ypn, const float *x, const float *y,
-	                                                        float *y2)
+void sspline (integer n, float yp1, float ypn, const float* x, const float* y,
+                                                                     float* y2)
 {
-  float    h = x[1] - x[0], 
-          *u = svector(0, n-2);
-  float    p, qn, sig, un, hh;
-  register i, k;
+  register integer i, k;
+  float            h  = x[1] - x[0], 
+                   *u = svector(0, n-2);
+  float            p, qn, sig, un, hh;
 
   if (yp1 > 0.99e30)
     y2[0] = u[0] = 0.0F;
@@ -145,15 +143,12 @@ void sspline(int n, float yp1, float ypn, const float *x, const float *y,
 }
 
 
-
-
-
-float ssplint(int n, float x, const float *xa, const float *ya,
-	                                       const float *y2a)
+float ssplint (integer n, float x, const float* xa, const float* ya,
+	                                            const float* y2a)
 {
-  register k;
-  register float h, b, a;
-  static   klo = -1, khi = -1;
+  register integer k;
+  register float   h, b, a;
+  static   integer klo = -1, khi = -1;
 
   /* check the results of the previous search */
 
@@ -177,9 +172,3 @@ float ssplint(int n, float x, const float *xa, const float *ya,
   return a * ya[klo] + b * ya[khi] + 
     ((a*a*a-a) * y2a[klo] + (b*b*b - b) * y2a[khi]) * (h*h)/6.0F;
 }			  
-
-
-
-
-
-

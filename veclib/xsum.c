@@ -1,62 +1,50 @@
 /*****************************************************************************
- * xsum:  sum = 0;  sum += x[i];                                             *
+ * xsum:  sum = 0;  sum += x[i];
+ *
+ * $Id$
  *****************************************************************************/
 
+#include <femdef.h>
 
-double  dsum(int n, const double *x, int incx)
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
+
+
+double dsum (integer n, const double* x, integer incx)
 {
-  register int     i;
-  register double  sum;
-
+  register integer i;
+  register double  sum = 0.0;
 
   x += (incx<0) ? (-n+1)*incx : 0;
-  sum = 0.0;
 
-  for (i=0; i<n; i++) {
-    sum += *x;
-    x += incx;
-  }
+  for (i = 0; i < n; i++) sum += x[i*incx];
   
   return sum;
 }
 
 
-
-
-
-int  isum(int n, const int *x, int incx)
+integer isum (integer n, const integer* x, integer incx)
 {
-  register int  i, sum;
-
+  register integer i, sum = 0;
 
   x += (incx<0) ? (-n+1)*incx : 0;
-  sum = 0;
 
-  for (i=0; i<n; i++) {
-    sum += *x;
-    x += incx;
-  }
+  for (i = 0; i < n; i++) sum += x[i*incx];
   
   return sum;
 }
 
 
-
-
-
-float  ssum(int n, const float *x, int incx)
+float ssum (integer n, const float* x, integer incx)
 {
-  register int    i;
-  register float  sum;
-
+  register integer i;
+  register float   sum = 0.0F;
 
   x += (incx<0) ? (-n+1)*incx : 0;
-  sum = 0.0;
 
-  for (i=0; i<n; i++) {
-    sum += *x;
-    x += incx;
-  }
+  for (i = 0; i < n; i++) sum += x[i*incx];
   
   return sum;
 }

@@ -1,57 +1,53 @@
 /*****************************************************************************
  * xvabs:  y[i] = abs(x[i]).
+ *
+ * $Id$
  *****************************************************************************/
 
 #include <math.h>
+#include <femdef.h>
 
-
-void dvabs (int n, const double *x, int incx,
-                         double *y, int incy)
-{
-  register int  i;
-
-  x += (incx<0) ? (-n+1)*incx : 0;
-  y += (incy<0) ? (-n+1)*incy : 0;
-
-  for (i=0; i<n; i++) {
-    *y = fabs( *x );
-    x += incx;
-    y += incy;
-  }
-}
-
-
-void ivabs(int n, const int *x, int incx,
-                        int *y, int incy)
-{
-  register int  i;
-
-  x += (incx<0) ? (-n+1)*incx : 0;
-  y += (incy<0) ? (-n+1)*incy : 0;
-
-  for (i=0; i<n; i++) {
-    *y = (*x<0) ? -*x : *x;
-    x += incx;
-    y += incy;
-  }
-}
-
-
-void svabs (int n, const float *x, int incx,
-                         float *y, int incy)
-{
-  register int  i;
-
-  x += (incx<0) ? (-n+1)*incx : 0;
-  y += (incy<0) ? (-n+1)*incy : 0;
-
-  for (i=0; i<n; i++) {
-#ifdef __GNUC__
-    *y = (float) fabs (*x);
-#else
-    *y = fabsf (*x);
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
 #endif
-    x += incx;
-    y += incy;
-  }
+
+
+void dvabs (integer n, const double* x, integer incx,
+                             double* y, integer incy)
+{
+  register integer i;
+
+  x += (incx<0) ? (-n+1)*incx : 0;
+  y += (incy<0) ? (-n+1)*incy : 0;
+
+  for (i = 0; i < n; i++) y[i*incy] = fabs (x[i*incx]);
+}
+
+
+void ivabs (integer n, const integer* x, integer incx,
+                             integer* y, integer incy)
+{
+  register integer i;
+
+  x += (incx<0) ? (-n+1)*incx : 0;
+  y += (incy<0) ? (-n+1)*incy : 0;
+
+  for (i = 0; i < n; i++) y[i*incy] = (x[i*incx] < 0) ? -x[i*incx] : x[i*incx];
+}
+
+
+void svabs (integer n, const float* x, integer incx,
+                             float* y, integer incy)
+{
+  register integer i;
+
+  x += (incx<0) ? (-n+1)*incx : 0;
+  y += (incy<0) ? (-n+1)*incy : 0;
+
+#if defined(__GNUC__) || defined(__uxp__) || defined(_SX)
+  for (i = 0; i < n; i++) y[i*incy] = (float) fabs  (x[i*incx]);
+#else
+  for (i = 0; i < n; i++) y[i*incy] =         fabsf (x[i*incx]);
+#endif
 }

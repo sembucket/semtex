@@ -1,41 +1,41 @@
 /*****************************************************************************
  * xvlg10:  y[i] = log10(x[i]).
+ *
+ * $Id$
  *****************************************************************************/
 
 #include <math.h>
+#include <femdef.h>
+
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
 
 
-void dvlg10 (int n, const double *x, int incx,
-                          double *y, int incy)
+void dvlg10 (integer n, const double* x, integer incx,
+                              double* y, integer incy)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
 
-  for (i=0; i<n; i++) {
-    *y = log10 (*x);
-    x += incx;
-    y += incy;
-  }
+  for (i = 0; i < n; i++) y[i*incy] = log10 (x[i*incx]);
 }
 
 
-void svlg10 (int n, const float *x, int incx,
-                          float *y, int incy)
+void svlg10 (integer n, const float* x, integer incx,
+                              float* y, integer incy)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
 
-  for (i=0; i<n; i++) {
-#ifdef __GNUC__
-    *y = (float) log10 (*x);
+#if defined(__GNUC__) || defined(__uxp__) || defined(_SX)
+  for (i = 0; i < n; i++) y[i*incy] = (float) log10  (x[i*incx]);
 #else
-    *y = log10f (*x);
+  for (i = 0; i < n; i++) y[i*incy] =         log10f (x[i*incx]);
 #endif
-    x += incx;
-    y += incy;
-  }
 }

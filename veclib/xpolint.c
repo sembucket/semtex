@@ -12,10 +12,16 @@
 
 #include <stdio.h>
 #include <math.h>
-#include "alplib.h"
+#include <femdef.h>
+#include <alplib.h>
+
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
 
 
-double dpoly (int n, double x, const double *xp, const double *yp)
+double dpoly (integer n, double x, const double* xp, const double* yp)
 {
   double value, err;
 
@@ -24,7 +30,7 @@ double dpoly (int n, double x, const double *xp, const double *yp)
 }
 
 
-float spoly (int n, float  x, const float  *xp, const float  *yp)
+float spoly (integer n, float  x, const float* xp, const float* yp)
 {
   float value, err;
 
@@ -33,18 +39,18 @@ float spoly (int n, float  x, const float  *xp, const float  *yp)
 }
 
 
-void dpolint (const double *xa, const double *ya, int n,
+void dpolint (const double *xa, const double *ya, integer n,
 	            double x,         double *y,  double *dy)
 {
-  register int  ns  = 1;
-  double        dif = fabs (x - xa[1]),
-               *c   = dvector (1, n),
-               *d   = dvector (1, n);
-  register int  i, m;
-  double        den, dift, ho, hp, w;
+  register integer ns  = 1;
+  double           dif = fabs (x - xa[1]),
+                   *c  = dvector (1, n),
+                   *d  = dvector (1, n);
+  register integer i, m;
+  double           den, dift, ho, hp, w;
 
-  for(i = 1;i <= n;i++) {
-    if( (dift = fabs (x-xa[i])) < dif) {
+  for (i = 1; i <= n; i++) {
+    if ((dift = fabs (x-xa[i])) < dif) {
       ns  = i;
       dif = dift;
     }
@@ -53,12 +59,12 @@ void dpolint (const double *xa, const double *ya, int n,
   }
     
   *y = ya[ns--];
-  for(m = 1;m < n;m++) {
-    for(i = 1;i <= n - m;i++) {
+  for (m = 1; m < n; m++) {
+    for (i = 1; i <= n - m; i++) {
       ho = xa[i] - x;
       hp = xa[i+m] -x;
       w  = c[i+1] - d[i];
-      if( (den = ho-hp) == 0.0)
+      if ((den = ho-hp) == 0.0)
  	message("dpolint()", "two x values the same (within roundoff)", ERROR);
       den  = w  / den;
       d[i] = hp * den;
@@ -69,29 +75,28 @@ void dpolint (const double *xa, const double *ya, int n,
 
   freeDvector (c, 1);
   freeDvector (d, 1);
-  return;
 }
 
 
-void spolint (const float *xa, const float *ya, int n,
+void spolint (const float *xa, const float *ya, integer n,
 	            float x,         float *y,  float *dy)
 {
-  register int ns  = 1;
-#ifdef __GNUC__
-  float        dif = (float) fabs (x - xa[1]),
+  register integer ns  = 1;
+#if defined(__GNUC__) || defined(__uxp__) || defined(_SX)
+  float            dif = (float) fabs (x - xa[1]),
 #else
-  float        dif = fabsf(x - xa[1]),
+  float            dif = fabsf(x - xa[1]),
 #endif
-              *c   = svector(1, n),
-              *d   = svector(1, n);
-  register int i, m;
-  float         den, dift, ho, hp, w;
+                   *c  = svector(1, n),
+                   *d  = svector(1, n);
+  register integer i, m;
+  float            den, dift, ho, hp, w;
 
   for (i = 1; i <= n; i++) {
-#ifdef __GNUC__
-    if ((dift = (float) fabs (x - xa[1])) < dif) {
+#if defined(__GNUC__) || defined(__uxp__) || defined(_SX)
+    if ((dift = (float) fabs  (x - xa[1])) < dif) {
 #else
-    if ((dift = fabsf (x - xa[i])) < dif) {
+    if ((dift =         fabsf (x - xa[i])) < dif) {
 #endif
       ns  = i;
       dif = dift;
@@ -101,8 +106,8 @@ void spolint (const float *xa, const float *ya, int n,
   }
     
   *y = ya[ns--];
-  for(m = 1; m < n; m++) {
-    for(i = 1;i <= n - m;i++) {
+  for (m = 1; m < n; m++) {
+    for (i = 1; i <= n - m; i++) {
       ho = xa[i] - x;
       hp = xa[i+m] -x;
       w  = c[i+1] - d[i];
@@ -117,5 +122,4 @@ void spolint (const float *xa, const float *ya, int n,
 
   freeSvector (c, 1);
   freeSvector (d, 1);
-  return;
 }

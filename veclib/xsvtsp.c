@@ -4,16 +4,19 @@
  * $Id$
  *****************************************************************************/
 
-#ifdef __uxp__
+#include <femdef.h>
+
+#if defined(__uxp__)
 #pragma global novrec
 #pragma global noalias
 #endif
 
 
-void dsvtsp (int n, double alpha, double beta, const double *x, int incx,
-                                                     double *y, int incy)
+void dsvtsp (integer n, double alpha, double beta,
+	     const double* x, integer incx,
+	           double* y, integer incy)
 {
-  register int  i;
+  register integer i;
   
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -22,10 +25,11 @@ void dsvtsp (int n, double alpha, double beta, const double *x, int incx,
 }
 
 
-void svtsp (int n, float alpha, float beta, const float *x, int incx,
-                                                  float *y, int incy)
+void svtsp (integer n, float alpha, float beta,
+	    const float* x, integer incx,
+	          float* y, integer incy)
 {
-  register int  i;
+  register integer i;
   
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;

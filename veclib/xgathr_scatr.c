@@ -7,31 +7,42 @@
  * $Id$
  *****************************************************************************/
 
-#ifdef __uxp__
+#include <femdef.h>
+
+#if defined(__uxp__)
 #pragma global novrec
 #pragma global noalias
 #endif
 
   
-void dgathr_scatr(int n, const double *w, const int *x,const int *y, double *z)
+void dgathr_scatr (integer n,
+		   const double* w,
+		   const integer* x, const integer* y,
+		   double* z)
 {
-  register int i;
+  register integer i;
 
   for (i = 0; i < n; i++) z[y[i]] = w[x[i]];
 }
 
 
-void igathr_scatr(int n, const int *w, const int *x, const int *y, int *z)
+void igathr_scatr (integer n,
+		   const integer* w,
+		   const integer* x, const integer* y,
+		   integer* z)
 {
-  register int i;
+  register integer i;
 
   for (i = 0; i < n; i++) z[y[i]] = w[x[i]];
 }
 
 
-void sgathr_scatr(int n, const float *w, const int *x, const int *y, float *z)
+void sgathr_scatr (integer n,
+		   const float* w,
+		   const integer* x, const integer* y,
+		   float* z)
 {
-  register int i;
+  register integer i;
 
   for (i = 0; i < n; i++) z[y[i]] = w[x[i]];
 }

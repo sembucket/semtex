@@ -1,41 +1,41 @@
 /*****************************************************************************
  * xvlog:  y[i] = log(x[i]).
+ *
+ * $Id$
  *****************************************************************************/
 
 #include <math.h>
+#include <femdef.h>
+
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
 
 
-void dvlog (int n, const double *x, int incx,
-                         double *y, int incy)
+void dvlog (integer n, const double* x, integer incx,
+                         double* y, integer incy)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
 
-  for (i=0; i<n; i++) {
-    *y = log (*x);
-    x += incx;
-    y += incy;
-  }
+  for (i = 0; i < n; i++) y[i*incy] = log (x[i*incx]);
 }
 
 
-void svlog (int n, const float *x, int incx,
-                          float *y, int incy)
+void svlog (integer n, const float* x, integer incx,
+                             float* y, integer incy)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
 
-  for (i=0; i<n; i++) {
-#ifdef __GNUC__
-    *y = (float) log (*x);
+#if defined(__GNUC__) || defined(__uxp__) || defined(_SX_)
+  for (i = 0; i < n; i++) y[i*incy] = (float) log  (x[i*incx]);
 #else
-    *y = logf (*x);
+  for (i = 0; i < n; i++) y[i*incy] =         logf (x[i*incx]);
 #endif
-    x += incx;
-    y += incy;
-  }
 }

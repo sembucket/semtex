@@ -4,19 +4,22 @@
  * $Id$
  *****************************************************************************/
 
-#ifdef __uxp__
+#include <femdef.h>
+
+#if defined(__uxp__)
 #pragma global novrec
 #pragma global noalias
 #endif
 
 
-void dvvtvvtp (int n, const double* v, int incv,
-        	      const double* w, int incw,
-	              const double* x, int incx,
-	              const double* y, int incy,
-	                    double* z, int incz)
+void dvvtvvtp (integer n,
+	       const double* v, integer incv,
+	       const double* w, integer incw,
+	       const double* x, integer incx,
+	       const double* y, integer incy,
+	             double* z, integer incz)
 {
-  register int i;
+  register integer i;
 
   if (incv == 1 && incw == 1 && incx == 1 && incy == 1 && incz == 1) 
    for (i = 0; i < n; i++) 
@@ -35,13 +38,14 @@ void dvvtvvtp (int n, const double* v, int incv,
 }
 
 
-void svvtvvtp (int n, const float* v, int incv,
-	              const float* w, int incw,
-	              const float* x, int incx,
-	              const float* y, int incy,
-	                    float* z, int incz)
+void svvtvvtp (integer n,
+	       const float* v, integer incv,
+	       const float* w, integer incw,
+	       const float* x, integer incx,
+	       const float* y, integer incy,
+	             float* z, integer incz)
 {
-  register int i;
+  register integer i;
 
   if (incv == 1 && incw == 1 && incx == 1 && incy == 1 && incz == 1) 
    for (i = 0; i < n; i++) 

@@ -1,60 +1,51 @@
 /*****************************************************************************
- * xslt:  y[i] = alpha < x[i].                                               *
+ * xslt:  y[i] = alpha < x[i].
+ *
+ * $Id$
  *****************************************************************************/
 
+#include <femdef.h>
 
-void dslt(int n, double alpha, const double *x, int incx,
-                                     double *y, int incy)
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
+
+
+void dslt (integer n, double alpha,
+	   const double* x, integer incx,
+	         double* y, integer incy)
 {
-  register int  i;
-
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
 
-  for (i=0; i<n; i++) {
-    *y = (alpha<*x) ? 1 : 0;
-    x += incx;
-    y += incy;
-  }
+  for (i = 0; i < n; i++) y[i*incy] = (alpha < x[i*incx]) ? 1 : 0;
 }
 
 
-
-
-
-void islt(int n, int alpha, const int *x, int incx,
-                                  int *y, int incy)
+void islt (integer n, integer alpha,
+	   const integer* x, integer incx,
+	         integer* y, integer incy)
 {
-  register int  i;
-
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
 
-  for (i=0; i<n; i++) {
-    *y = (alpha<*x) ? 1 : 0;
-    x += incx;
-    y += incy;
-  }
+  for (i = 0; i < n; i++) y[i*incy] = (alpha < x[i*incx]) ? 1 : 0;
 }
 
 
-
-
-
-void sslt(int n, float alpha, const float *x, int incx,
-                                    float *y, int incy)
+void sslt (integer n, float alpha,
+	   const float* x, integer incx,
+	         float* y, integer incy)
 {
-  register int  i;
-
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
 
-  for (i=0; i<n; i++) {
-    *y = (alpha<*x) ? 1 : 0;
-    x += incx;
-    y += incy;
-  }
+  for (i = 0; i < n; i++) y[i*incy] = (alpha < x[i*incx]) ? 1 : 0;
 }

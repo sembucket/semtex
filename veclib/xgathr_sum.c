@@ -4,31 +4,33 @@
  * $Id$
  *****************************************************************************/
 
-#ifdef __uxp__
+#include <femdef.h>
+
+#if defined(__uxp__)
 #pragma global novrec
 #pragma global noalias
 #endif
 
 
-void dgathr_sum (int n, const double* x, const int* y, double* z)
+void dgathr_sum (integer n, const double* x, const integer* y, double* z)
 {
-  register int  i;
+  register integer i;
 
   for (i = 0; i < n; i++) z[i] += x[y[i]];
 }
 
 
-void igathr_sum (int n, const int* x, const int* y, int* z)
+void igathr_sum (integer n, const integer* x, const integer* y, integer* z)
 {
-  register int  i;
+  register integer i;
 
   for (i = 0; i < n; i++) z[i] += x[y[i]];
 }
 
 
-void sgathr_sum (int n, const float* x, const int* y, float* z)
+void sgathr_sum (integer n, const float* x, const integer* y, float* z)
 {
-  register int  i;
+  register integer i;
 
   for (i = 0; i < n; i++) z[i] += x[y[i]];
 }

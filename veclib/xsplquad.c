@@ -5,11 +5,18 @@
  * $Id$
  *****************************************************************************/
 
+#include <femdef.h>
+
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
+
 
 double dsplquad (const double* xa ,
 		 const double* ya ,
 		 const double* ya2,
-		 const int     n  ,
+		 const integer n  ,
 		 const double  xlo,
 		 const double  xhi)
 /* ------------------------------------------------------------------------- *
@@ -22,10 +29,10 @@ double dsplquad (const double* xa ,
  * xa[n - 1].  If xlo > xhi, or if xlo or xhi are out of range, return 0.0.
  * ------------------------------------------------------------------------- */
 {
-  register int    k, kk, kp, nint;
-  register double h, sum = 0.0;
-  int             jlo, jhi, klo, khi;
-  double          a1, a2, a3, a4, c1, c2, c3, c4, aa1, aa2, aa3, aa4;
+  register integer k, kk, kp, ninteger;
+  register double  h, sum = 0.0;
+  integer          jlo, jhi, klo, khi;
+  double           a1, a2, a3, a4, c1, c2, c3, c4, aa1, aa2, aa3, aa4;
 
   if (xlo >= xhi || xlo < xa[0] || xhi > xa[n - 1]) return sum;
 
@@ -46,7 +53,7 @@ double dsplquad (const double* xa ,
     else               klo = k;
   }
 
-  if (nint = klo - jlo) {	/* -- xlo & xhi are in different intervals. */
+  if (ninteger = klo - jlo) {	/* -- xlo & xhi are in different intervals. */
 
     /* -- End intervals. */
 
@@ -84,7 +91,7 @@ double dsplquad (const double* xa ,
 
     /* -- Internal intervals. */
 
-    for (k = 1; k < nint; k++) {
+    for (k = 1; k < ninteger; k++) {
       kk   = jlo + k;
       kp   = kk  + 1;
       h    = xa[kp] - xa[kk];
@@ -121,12 +128,12 @@ double dsplquad (const double* xa ,
 }
 
 
-float ssplquad (const float* xa ,
-		const float* ya ,
-		const float* ya2,
-		const int    n  ,
-		const float  xlo,
-		const float  xhi)
+float ssplquad (const float*  xa ,
+		const float*  ya ,
+		const float*  ya2,
+		const integer n  ,
+		const float   xlo,
+		const float   xhi)
 /* ------------------------------------------------------------------------- *
  * Return the definite integral of a cubic spline interpolant from xlo to xhi.
  *
@@ -137,10 +144,10 @@ float ssplquad (const float* xa ,
  * xa[n - 1].  If xlo > xhi, or if xlo or xhi are out of range, return 0.0.
  * ------------------------------------------------------------------------- */
 {
-  register int   k, kk, kp, nint;
-  register float h, sum = 0.0;
-  int            jlo, jhi, klo, khi;
-  float          a1, a2, a3, a4, c1, c2, c3, c4, aa1, aa2, aa3, aa4;
+  register integer k, kk, kp, ninteger;
+  register float   h, sum = 0.0;
+  integer          jlo, jhi, klo, khi;
+  float            a1, a2, a3, a4, c1, c2, c3, c4, aa1, aa2, aa3, aa4;
 
   if (xlo >= xhi || xlo < xa[0] || xhi > xa[n - 1]) return sum;
 
@@ -161,7 +168,7 @@ float ssplquad (const float* xa ,
     else               klo = k;
   }
 
-  if (nint = klo - jlo) {	/* -- xlo & xhi are in different intervals. */
+  if (ninteger = klo - jlo) {	/* -- xlo & xhi are in different intervals. */
 
     /* -- End intervals. */
 
@@ -197,9 +204,9 @@ float ssplquad (const float* xa ,
     sum += c1 * (aa1 - aa2) - c2 * aa3;
     sum += c3 *  aa3 * aa3 - c4 * (aa1 * aa1 - aa2 * aa2);
 
-    /* -- Internal intervals. */
+    /* -- Internal integerervals. */
 
-    for (k = 1; k < nint; k++) {
+    for (k = 1; k < ninteger; k++) {
       kk   = jlo + k;
       kp   = kk  + 1;
       h    = xa[kp] - xa[kk];

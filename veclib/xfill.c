@@ -4,15 +4,17 @@
  * $Id$
  *****************************************************************************/
 
-#ifdef __uxp__
+#include <femdef.h>
+
+#if defined(__uxp__)
 #pragma global novrec
 #pragma global noalias
 #endif
 
 
-void dfill (int n, double alpha, double *x, int incx)
+void dfill (integer n, double alpha, double* x, integer incx)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 
@@ -20,9 +22,9 @@ void dfill (int n, double alpha, double *x, int incx)
 }
 
 
-void ifill (int n, int alpha, int *x, int incx)
+void ifill (integer n, integer alpha, integer* x, integer incx)
 {
-  register int i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 
@@ -30,9 +32,9 @@ void ifill (int n, int alpha, int *x, int incx)
 }
 
 
-void sfill (int n, float alpha, float *x, int incx)
+void sfill (integer n, float alpha, float* x, integer incx)
 {
-  register int i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 

@@ -9,17 +9,18 @@
  *****************************************************************************/
 
 #include <string.h>
+#include <femdef.h>
 
-#ifdef __uxp__
+#if defined(__uxp__)
 #pragma global novrec
 #pragma global noalias
 #endif
 
 
-void dcopy (int n, const double *x, int incx,
-                         double *y, int incy)
+void dcopy (integer n, const double* x, integer incx,
+                             double* y, integer incy)
 {
-  register int i;
+  register integer i;
 
   if (incx == 1 && incy == 1)
     memcpy (y, x, n * sizeof (double));
@@ -33,13 +34,13 @@ void dcopy (int n, const double *x, int incx,
 }
 
 
-void icopy (int n, const int *x, int incx,
-                         int *y, int incy)
+void icopy (integer n, const integer* x, integer incx,
+                             integer* y, integer incy)
 {
-  register int  i;
+  register integer  i;
 
   if (incx == 1 && incy == 1)
-    memcpy (y, x, n * sizeof (int));
+    memcpy (y, x, n * sizeof (integer));
 
   else {
     x += (incx < 0) ? (-n + 1)*incx : 0;
@@ -50,10 +51,10 @@ void icopy (int n, const int *x, int incx,
 }
 
 
-void scopy (int n, const float *x, int incx,
-                         float *y, int incy)
+void scopy (integer n, const float* x, integer incx,
+                             float* y, integer incy)
 {
-  register int  i;
+  register integer  i;
 
   if (incx == 1 && incy == 1)
     memcpy (y, x, n * sizeof (float));
@@ -66,18 +67,19 @@ void scopy (int n, const float *x, int incx,
   }
 }
 
+/* -- FORTRAN-callable versions to replace BLAS routines. */
 
-void dcopy_ (int *n, const double *x, int *incx,
-                           double *y, int *incy)
+void dcopy_ (integer* n, const double* x, integer* incx,
+                               double* y, integer* incy)
 {
   if ((*incx) == 1 && (*incy) == 1)
     memcpy (y, x, (*n) * sizeof (double));
 
   else {
-    register int i;
-    register int nn = *n;
-    register int ix = *incx;
-    register int iy = *incy;
+    register integer i;
+    register integer nn = *n;
+    register integer ix = *incx;
+    register integer iy = *incy;
     
     x += (ix < 0) ? (-nn + 1)*ix : 0;
     y += (iy < 0) ? (-nn + 1)*iy : 0;
@@ -87,17 +89,17 @@ void dcopy_ (int *n, const double *x, int *incx,
 }
 
 
-void icopy_ (int *n, const int *x, int *incx,
-                           int *y, int *incy)
+void icopy_ (integer* n, const integer* x, integer* incx,
+                               integer* y, integer* incy)
 {
   if ((*incx) == 1 && (*incy) == 1)
-    memcpy (y, x, (*n) * sizeof (int));
+    memcpy (y, x, (*n) * sizeof (integer));
 
   else {
-    register int i;
-    register int nn = *n;
-    register int ix = *incx;
-    register int iy = *incy;
+    register integer i;
+    register integer nn = *n;
+    register integer ix = *incx;
+    register integer iy = *incy;
     
     x += (ix < 0) ? (-nn + 1)*ix : 0;
     y += (iy < 0) ? (-nn + 1)*iy : 0;
@@ -107,17 +109,17 @@ void icopy_ (int *n, const int *x, int *incx,
 }
 
 
-void scopy_ (int *n, const float *x, int *incx,
-                           float *y, int *incy)
+void scopy_ (integer* n, const float* x, integer* incx,
+                               float* y, integer* incy)
 {
   if ((*incx) == 1 && (*incy) == 1)
     memcpy (y, x, (*n) * sizeof (float));
 
   else {
-    register int i;
-    register int nn = *n;
-    register int ix = *incx;
-    register int iy = *incy;
+    register integer i;
+    register integer nn = *n;
+    register integer ix = *incx;
+    register integer iy = *incy;
     
     x += (ix < 0) ? (-nn + 1)*ix : 0;
     y += (iy < 0) ? (-nn + 1)*iy : 0;

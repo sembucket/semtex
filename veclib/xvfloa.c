@@ -4,15 +4,19 @@
  * $Id$
  *****************************************************************************/
 
-#ifdef __uxp__
+#include <femdef.h>
+
+#if defined(__uxp__)
 #pragma global novrec
 #pragma global noalias
 #endif
 
 
-void dvfloa (int n, const int *x, int incx, double *y, int incy)
+void dvfloa (integer n,
+	     const integer* x, integer incx,
+	           double*  y, integer incy)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -21,9 +25,11 @@ void dvfloa (int n, const int *x, int incx, double *y, int incy)
 }
 
 
-void svfloa (int n, const int *x, int incx, float *y, int incy)
+void svfloa (integer n,
+	     const integer* x, integer incx,
+	           float*   y, integer incy)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;

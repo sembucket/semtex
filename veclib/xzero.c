@@ -5,35 +5,44 @@
  *****************************************************************************/
 
 #include <string.h>
+#include <femdef.h>
 
-#ifdef __uxp__
+#if defined(__uxp__)
 #pragma global novrec
 #pragma global noalias
 #endif
 
 
-void dzero (int n, double *x, int incx)
+void dzero (integer n, double* x, integer incx)
 {
+#if defined(DEBUG)
+  register integer i;
+
+  x += (incx < 0) ? (-n+1)*incx : 0;
+
+  for (i = 0; i < n; i++) x[i*incx] = 0.0;
+#else
   if (incx == 1)
     memset (x, '\0', n * sizeof (double));
 
   else {
-    register int i;
+    register integer i;
 
     x += (incx < 0) ? (-n+1)*incx : 0;
 
     for (i = 0; i < n; i++) x[i*incx] = 0.0;
   }
+#endif
 }
 
 
-void izero (int n, int *x, int incx)
+void izero (integer n, integer* x, integer incx)
 {
   if (incx == 1)
-    memset(x, '\0', n * sizeof (int));
+    memset(x, '\0', n * sizeof (integer));
 
   else {
-    register int i;
+    register integer i;
 
     x += (incx < 0) ? (-n+1)*incx : 0;
 
@@ -42,13 +51,13 @@ void izero (int n, int *x, int incx)
 }
 
 
-void szero (int n, float *x, int incx)
+void szero (integer n, float* x, integer incx)
 {
   if (incx == 1)
     memset(x, '\0', n * sizeof (float));
 
   else {
-    register int i;
+    register integer i;
 
     x += (incx < 0) ? (-n+1)*incx : 0;
 

@@ -4,16 +4,18 @@
  * $Id$
  *****************************************************************************/
 
-#ifdef __uxp__
+#include <femdef.h>
+
+#if defined(__uxp__)
 #pragma global novrec
 #pragma global noalias
 #endif
 
 
-void dsadd (int n, double alpha, const double* x, int incx,
-	                               double* y, int incy)
+void dsadd (integer n, double alpha, const double* x, integer incx,
+	                                   double* y, integer incy)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -22,10 +24,10 @@ void dsadd (int n, double alpha, const double* x, int incx,
 }
 
 
-void isadd (int n, int alpha, const int *x, int incx,
-	                            int *y, int incy)
+void isadd (integer n, integer alpha, const integer* x, integer incx,
+	                                    integer* y, integer incy)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -34,10 +36,10 @@ void isadd (int n, int alpha, const int *x, int incx,
 }
 
 
-void ssadd (int n, float alpha, const float *x, int incx,
-	                              float *y, int incy)
+void ssadd (integer n, float alpha, const float* x, integer incx,
+	                                  float* y, integer incy)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;

@@ -4,16 +4,20 @@
  * $Id$
  *****************************************************************************/
 
-#ifdef __uxp__
+#include <femdef.h>
+
+#if defined(__uxp__)
 #pragma global novrec
 #pragma global noalias
 #endif
 
 
-void dvmul (int n, const double *x, int incx, const double *y, int incy,
-	                                            double *z, int incz)
+void dvmul (integer n,
+	    const double* x, integer incx,
+	    const double* y, integer incy,
+	          double* z, integer incz)
 {
-  register int  i;
+  register integer i;
   
   if (incx == 1 && incy == 1 && incz == 1)
     for (i = 0; i < n; i++) z[i] = x[i] * y[i];
@@ -28,10 +32,12 @@ void dvmul (int n, const double *x, int incx, const double *y, int incy,
 }
 
 
-void ivmul (int n, const int *x, int incx, const int *y, int incy,
-	                                         int *z, int incz)
+void ivmul (integer n,
+	    const integer* x, integer incx,
+	    const integer* y, integer incy,
+	          integer* z, integer incz)
 {
-  register int  i;
+  register integer i;
   
   if (incx == 1 && incy == 1 && incz == 1)
     for (i = 0; i < n; i++) z[i] = x[i] * y[i];
@@ -46,10 +52,12 @@ void ivmul (int n, const int *x, int incx, const int *y, int incy,
 }
 
 
-void svmul (int n, const float *x, int incx, const float *y, int incy,
-	                                           float *z, int incz)
+void svmul (integer n,
+	    const float* x, integer incx,
+	    const float* y, integer incy,
+	          float* z, integer incz)
 {
-  register int  i;
+  register integer i;
 
   if (incx == 1 && incy == 1 && incz == 1)
     for (i = 0; i < n; i++) z[i] = x[i] * y[i];

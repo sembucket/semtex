@@ -1,41 +1,41 @@
 /*****************************************************************************
  * xvsin:  y[i] = sin(x[i]).
+ *
+ * $Id$
  *****************************************************************************/
 
 #include <math.h>
+#include <femdef.h>
+
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
 
 
-void dvsin (int n, const double *x, int incx,
-                         double *y, int incy)
+void dvsin (integer n, const double* x, integer incx,
+                             double* y, integer incy)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
 
-  for (i = 0; i < n; i++) {
-    *y = sin (*x);
-    x += incx;
-    y += incy;
-  }
+  for (i = 0; i < n; i++) y[i*incy] = sin (x[i*incx]);
 }
 
 
-void svsin (int n, const float *x, int incx,
-                         float *y, int incy)
+void svsin (integer n, const float* x, integer incx,
+                             float* y, integer incy)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
 
-  for (i = 0; i < n; i++) {
-#ifdef __GNUC__			/* -- No support for single-precision maths. */
-    *y = (float) sin (*x);
+#if defined(__GNUC__) || defined(__uxp__) || defined(_SX)
+  for (i = 0; i < n; i++) y[i*incy] = (float) sin  (x[i*incx]);
 #else
-    *y = sinf (*x);
+  for (i = 0; i < n; i++) y[i*incy] =         sinf (x[i*incx]);
 #endif
-    x += incx;
-    y += incy;
-  }
 }
