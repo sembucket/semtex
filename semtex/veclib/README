@@ -1,5 +1,5 @@
 ###############################################################################
-#              L I N E A R    A L G E B R A    P R I M I T I V E S            #
+#              L I N E A R    A L G E B R A    P R I M I T I V E S
 ###############################################################################
 
 $Author$
@@ -22,8 +22,12 @@ NOTES:
 ------
 
 No checks are made for length of vectors, negative lengths.
-Negative increments are allowed; behaviour is the same as for
-the BLAS.
+	
+Negative increments are allowed; behaviour is the same as for the
+BLAS, i.e. if the vector increment is negative, the supplied vector
+address is the last item to be accessed, with vector traverse
+beginning at the supplied address + (n-1) * abs (inc), (further along
+the vector).
 
 See the iPSC/2 Programmer's Reference Manual and the
 C VECLIB Routine Summary for further information.
@@ -142,7 +146,8 @@ REDUCTION FUNCTIONS:
 		icount................................. -   -   -   -   x
 		ifirst................................. -   -   -   -   x
 #		ilast
-#		lany
+		lany................................... -   -   -   -   x
+*               lxsame................................. x   x           x
 
 CONVERSION PRIMITIVES:
 #		vcmplx
