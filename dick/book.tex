@@ -10,10 +10,11 @@
 \usepackage{endnotesn}
 \usepackage{bibtopic}
 \usepackage{natbib}
+\usepackage{makeidx}
 
 \setlength{\textheight}    {230mm}
 \setlength{\textwidth}     {155mm}
-\setlength{\topmargin}     {15mm}
+\setlength{\topmargin}     {5mm}
 \setlength{\parskip} 	   {5pt}
 \setlength{\parindent}     {2ex}
 \setlength{\oddsidemargin} {0mm}
@@ -53,6 +54,8 @@
  ,notes
  ,selectbib
 }
+
+\makeindex
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
@@ -111,6 +114,12 @@
 \include{notes}
 \clearemptydoublepage
 \include{selectbib}
+\clearemptydoublepage
 
+\markboth{
+\textsc{Index}
+}{
+}
+\printindex
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \end{document}
