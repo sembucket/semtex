@@ -259,37 +259,57 @@ AuxField& AuxField::gradient (const integer dir)
 // ---------------------------------------------------------------------------
 {
   const char        routine[] = "AuxField::gradient";
-  register Element* E;
-  register integer  i, k, offset;
-  const integer     nE = Geometry::nElmt();
-  const integer     nZ = Geometry::nZProc();
-  const integer     nP = Geometry::planeSize();
-  vector<real>      tmp (2*Geometry::nTotElmt());
-  register real*    work = tmp();
+  register integer  i, k;
+  const integer     nel  = Geometry::nElmt();
+  const integer     np   = Geometry::nP();
+  const integer     npnp = np  * np;
+  const integer     ntot = nel * npnp;
+  const integer     nZ   = Geometry::nZProc();
+  const integer     nP   = Geometry::planeSize();
+  vector<real>      work (0);
+  register real     *xr, *xs, *tmp;
   const real        **DV, **DT;
 
-  Femlib::quad (LL, Geometry::nP(), Geometry::nP(), 0, 0, 0, 0, 0, &DV, &DT);
+  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
   switch (dir) {
 
   case 0:
-    for (k = 0; k < nZ; k++) 
-      for (i = 0; i < nE; i++) {
-	E      = Elmt[i];
-	offset = E -> dOff();
+    work.setSize (2 * nP);
+    xr = work();
+    xs = xr + nP;
 
-	E -> grad (plane[k] + offset, 0, DV, DT, work);
-      }
+    for (k = 0; k < nZ; k++) {
+      tmp = plane[k];
+
+      Veclib::zero  (2 * nP, xr, 1);
+      Femlib::grad2 (tmp, tmp, xr, xs, *DV, *DT, np, nel);
+
+      for (i = 0; i < nel; i++, xr += npnp, xs += npnp, tmp += npnp)
+	Elmt[i] -> gradX (xr, xs, tmp);
+      
+      xr -= ntot;
+      xs -= ntot;
+    }
     break;
 
   case 1:
-    for (k = 0; k < nZ; k++) 
-      for (i = 0; i < nE; i++) {
-	E      = Elmt[i];
-	offset = E -> dOff();
+    work.setSize (2 * nP);
+    xr = work();
+    xs = xr + nP;
 
-	E -> grad (0, plane[k] + offset, DV, DT, work);
-      }
+    for (k = 0; k < nZ; k++) {
+      tmp = plane[k];
+
+      Veclib::zero  (2 * nP, xr, 1);
+      Femlib::grad2 (tmp, tmp, xr, xs, *DV, *DT, np, nel);
+
+      for (i = 0; i < nel; i++, xr += npnp, xs += npnp, tmp += npnp)
+	Elmt[i] -> gradY (xr, xs, tmp);
+      
+      xr -= ntot;
+      xs -= ntot;
+    }
     break;
 
   case 2: {
@@ -297,8 +317,9 @@ AuxField& AuxField::gradient (const integer dir)
     const integer nmodes = Geometry::nModeProc();
     const integer base   = Geometry::baseMode();
     const real    beta   = Femlib::value ("BETA");
-    vector<real>  work (nP);
-    real*         tmp = work();
+
+    work.setSize (nP);
+    xr = work();
 
     if (base == 0) { // -- We have real & Nyquist planes, to be set zero.
       klo = 1; Veclib::zero (2 * nP, data, 1);
@@ -308,9 +329,9 @@ AuxField& AuxField::gradient (const integer dir)
     for (k = klo; k < nmodes; k++) {
       Re = k  + k;
       Im = Re + 1;
-      Veclib::copy (nP,                     plane[Re], 1, tmp,       1);
+      Veclib::copy (nP,                     plane[Re], 1, xr,        1);
       Veclib::smul (nP, -beta * (k + base), plane[Im], 1, plane[Re], 1);
-      Veclib::smul (nP,  beta * (k + base), tmp,       1, plane[Im], 1);
+      Veclib::smul (nP,  beta * (k + base), xr,        1, plane[Im], 1);
     }
     break;
   }
@@ -330,7 +351,7 @@ void AuxField::gradient (const integer nZ ,
 // ---------------------------------------------------------------------------
 // Use Field structure to perform gradient operations on data area
 // src, according to nominated direction.  Input value nZ is the
-// number of planes to operate on.  Input value is the size of the src
+// number of planes to operate on.  Input value nP is the size of src
 // in the orthogonal direction: for dir == 0, 1, this should be the
 // size of a data plane, but for dir == 2 it can be arbitrary,
 // e.g. the size of a data plane or the size of a block of data which
@@ -338,51 +359,70 @@ void AuxField::gradient (const integer nZ ,
 // ---------------------------------------------------------------------------
 {
   const char        routine[] = "AuxField::gradient";
-  register Element* E;
-  register integer  i, k, offset;
-  const integer     nE = Geometry::nElmt();
-  vector<real>      tmp (2*Geometry::nTotElmt());
-  register real*    work = tmp();
+  register integer  i, k;
+  const integer     nel  = Geometry::nElmt();
+  const integer     np   = Geometry::nP();
+  const integer     npnp = np  * np;
+  const integer     ntot = nel * npnp;
+  vector<real>      work (0);
+  register real     *plane, *xr, *xs, *Re, *Im;
   const real        **DV, **DT;
+
+  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
   switch (dir) {
 
   case 0:
-    Femlib::quad (LL, Geometry::nP(), Geometry::nP(), 0, 0, 0, 0, 0, &DV, &DT);
-    for (k = 0; k < nZ; k++) 
-      for (i = 0; i < nE; i++) {
-	E      = Elmt[i];
-	offset = E -> dOff();
+    work.setSize (2 * nP);
+    xr = work();
+    xs = xr + nP;
 
-	E -> grad (src + k * nP + offset, 0, DV, DT, work);
-      }
+    for (k = 0; k < nZ; k++) {
+      plane = src + k * nP;
+
+      Veclib::zero  (2 * nP, xr, 1);
+      Femlib::grad2 (plane, plane, xr, xs, *DV, *DT, np, nel);
+
+      for (i = 0; i < nel; i++, xr += npnp, xs += npnp, plane += npnp)
+	Elmt[i] -> gradX (xr, xs, plane);
+      xr -= ntot;
+      xs -= ntot;
+    }
     break;
 
   case 1:
-    Femlib::quad (LL, Geometry::nP(), Geometry::nP(), 0, 0, 0, 0, 0, &DV, &DT);
-    for (k = 0; k < nZ; k++) 
-      for (i = 0; i < nE; i++) {
-	E      = Elmt[i];
-	offset = E -> dOff();
+    work.setSize (2 * nP);
+    xr = work();
+    xs = xr + nP;
 
-	E -> grad (0, src + k * nP + offset, DV, DT, work);
-      }
+    for (k = 0; k < nZ; k++) {
+      plane = src + k * nP;
+
+      Veclib::zero  (2 * nP, xr, 1);
+      Femlib::grad2 (plane, plane, xr, xs, *DV, *DT, np, nel);
+
+      for (i = 0; i < nel; i++, xr += npnp, xs += npnp, plane += npnp)
+	Elmt[i] -> gradY (xr, xs, plane);
+      xr -= ntot;
+      xs -= ntot;
+    }
     break;
 
   case 2: {
     const integer nmodes = Geometry::nMode();
     const real    beta   = Femlib::value ("BETA");
-    vector<real>  work (nP);
-    real          *Re, *Im, *tmp = work();
+
+    work.setSize (nP);
+    xr = work();
 
     Veclib::zero (2 * nP, src, 1);
 
     for (k = 1; k < nmodes; k++) {
       Re = src + 2 * k * nP;
       Im = Re  + nP;
-      Veclib::copy (nP,             Re,  1, tmp, 1);
-      Veclib::smul (nP, -beta * k,  Im,  1, Re,  1);
-      Veclib::smul (nP,  beta * k,  tmp, 1, Im,  1);
+      Veclib::copy (nP,             Re, 1, xr, 1);
+      Veclib::smul (nP, -beta * k,  Im, 1, Re, 1);
+      Veclib::smul (nP,  beta * k,  xr, 1, Im, 1);
     }
     break;
   }

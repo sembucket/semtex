@@ -248,7 +248,7 @@ void Element::bndryDsSum (const integer* btog,
 {
   register integer i, e;
   const integer    next = nExt();
-  register real*   wt = G4;
+  register real*   wt   = G4;
 
   for (i = 0; i < next; i++) {
     e = emap[i];
@@ -573,7 +573,7 @@ void Element::HelmholtzDg (const real lambda2,
 // Construction is very similar to that in helmRow except that m, n = i, j.
 // ---------------------------------------------------------------------------
 {
-  register integer i, j;
+  register integer i, j, ij;
   const integer    ntot = sqr (np);
   const real       EPS  = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
   const real**     DT;
@@ -583,29 +583,29 @@ void Element::HelmholtzDg (const real lambda2,
   Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, 0, &DT);
 
   if (Geometry::system() == Geometry::Cylindrical) {
-    for (i = 0; i < np; i++)
-      for (j = 0; j < np; j++, dg++) {
+    for (ij = 0, i = 0; i < np; i++)
+      for (j = 0; j < np; j++, ij++) {
 	r2   = sqr (ymesh[Veclib::row_major (i, j, np)]);
 	HCon = (r2 > EPS) ? (betak2 / r2 + lambda2) : 0.0;
 	Veclib::vmul (np, DT[j], 1, DT[j], 1, tmp, 1);
-	*dg  = Blas::dot   (np, G1 + i*np, 1, tmp, 1);
+	dg[ij] = Blas::dot   (np, G1 + i*np, 1, tmp, 1);
 	Veclib::vmul (np, DT[i], 1, DT[i], 1, tmp, 1);
-	*dg += Blas::dot   (np, G2 + j,   np, tmp, 1);
+	dg[ij] += Blas::dot   (np, G2 + j,   np, tmp, 1);
 	if (G3)
-	  *dg += 2.0 * G3[Veclib::row_major (i, j, np)] * DT[j][j] * DT[i][i];
-	*dg += HCon  * G4[Veclib::row_major (i, j, np)];
+	  dg[ij] += 2.0 * G3[Veclib::row_major (i, j, np)] * DT[j][j]*DT[i][i];
+	dg[ij] += HCon  * G4[Veclib::row_major (i, j, np)];
       }
   } else {
     HCon = lambda2 + betak2;
-    for (i = 0; i < np; i++)
-      for (j = 0; j < np; j++, dg++) {
+    for (ij = 0, i = 0; i < np; i++)
+      for (j = 0; j < np; j++, ij++) {
 	Veclib::vmul (np, DT[j], 1, DT[j], 1, tmp, 1);
-	*dg  = Blas::dot   (np, G1 + i*np, 1, tmp, 1);
+	dg[ij]  = Blas::dot   (np, G1 + i*np, 1, tmp, 1);
 	Veclib::vmul (np, DT[i], 1, DT[i], 1, tmp, 1);
-	*dg += Blas::dot   (np, G2 + j,   np, tmp, 1);
+	dg[ij] += Blas::dot   (np, G2 + j,   np, tmp, 1);
 	if (G3)
-	  *dg += 2.0 * G3[Veclib::row_major (i, j, np)] * DT[j][j] * DT[i][i];
-	*dg += HCon  * G4[Veclib::row_major (i, j, np)];
+	  dg[ij] += 2.0 * G3[Veclib::row_major (i, j, np)] * DT[j][j]*DT[i][i];
+	dg[ij] += HCon  * G4[Veclib::row_major (i, j, np)];
       }
   }
 
@@ -689,47 +689,29 @@ void Element::helmRow (const real**  DV     ,
 }
 
 
-void Element::HelmholtzOp (const real  lambda2,
-			   const real  betak2 ,
-			   const real* src    ,
-			   real*       tgt    , 
-			   real*       wrk    ) const
+void Element::HelmholtzKern (const real lambda2,
+			     const real betak2 ,
+			     real*      R      ,
+			     real*      S      ,
+			     real*      src    ,
+			     real*      tgt    ) const 
 // ---------------------------------------------------------------------------
-// Apply elemental discrete Helmholtz operator on src to make tgt.
+// Apply kernel of elemental discrete Helmholtz operator on src to make tgt
+// (if required, these can be the same storage locations).
 //
-// Lambda2 is the Helmholtz constant.
-//
-// k2 is the square of the wavenumber for the Fourier decomposition that is
-// used in the azimuthal direction in cylindrical coordinates, and effectively
-// serves as a flag for use of cylindrical coordinates: it should always be
-// zero for Cartesian coordinates.
-//
-// Input workspace vector wrk must hold 2 * nTot() elements.
+// Lambda2 is the Helmholtz constant, betak2 is the mode Fourier constant.
 // ---------------------------------------------------------------------------
 {
   register integer ij;
   const integer    ntot = nTot();
   register real    tmp, r2, hCon;
-  register real    *R, *S, *g1, *g2, *g3, *g4;
-  const real       **DV, **DT;
+  register real    *g1 = G1, *g2 = G2, *g3 = G3, *g4 = G4, *r = ymesh;
   const real       EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
-
-  R  = wrk;
-  S  = R + ntot;
-  g1 = G1;
-  g2 = G2;
-  g3 = G3;
-  g4 = G4;
-
-  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
-
-  Blas::mxm (src, np, *DT, np, R, np);
-  Blas::mxm (*DV, np, src, np, S, np);
 
   if (Geometry::system() == Geometry::Cylindrical) {
     if (g3) {
       for (ij = 0; ij < ntot; ij++) {
-	r2       = sqr (ymesh[ij]);
+	r2       = r[ij] * r[ij];
 	hCon     = (r2 > EPS) ? (betak2 / r2 + lambda2) : 0.0;
 	tmp      = R [ij];
 	R  [ij]  = g1[ij] * R  [ij] + g3[ij] * S  [ij];
@@ -738,7 +720,7 @@ void Element::HelmholtzOp (const real  lambda2,
       }
     } else {
       for (ij = 0; ij < ntot; ij++) {
-	r2       = sqr (ymesh[ij]);
+	r2       = r[ij] * r[ij];
 	hCon     = (r2 > EPS) ? (betak2 / r2 + lambda2) : 0.0;
 	R  [ij] *= g1[ij];
 	S  [ij] *= g2[ij];
@@ -748,18 +730,6 @@ void Element::HelmholtzOp (const real  lambda2,
 
   } else {			// -- Cartesian.
     hCon = betak2 + lambda2;
-#if defined(__uxp__)
-    if (g3) {
-      Veclib::copy    (ntot,       R,  1, tgt, 1);
-      Veclib::vvtvvtp (ntot,       g1, 1, R,   1, g3,  1, S,   1, R, 1);
-      Veclib::vvtvvtp (ntot,       g2, 1, S,   1, g3,  1, tgt, 1, S, 1);
-      Veclib::svvtt   (ntot, hCon, g4, 1, src, 1, tgt, 1);
-    } else {
-      Veclib::vmul    (ntot,       R,  1, g1,  1, R,   1);
-      Veclib::vmul    (ntot,       S,  1, g2,  1, S,   1);
-      Veclib::svvtt   (ntot, hCon, g4, 1, src, 1, tgt, 1);
-    }
-#else
     if (g3) {
       for (ij = 0; ij < ntot; ij++) {
 	tmp      = R [ij];
@@ -774,12 +744,7 @@ void Element::HelmholtzOp (const real  lambda2,
 	tgt[ij]  = g4[ij] * src[ij] * hCon;
       }
     }
-#endif
   }
-
-  Blas::mxma (*DT, np, S, np, tgt, np);
-  Blas::mxma (R, np, *DV, np, tgt, np);
-
 }
 
 
@@ -830,57 +795,6 @@ void Element::grad (real*        tgtA,
       Veclib::vmul  (ntot, tmpB, 1, dsdy, 1, tgt, 1);
     }
   }
-}
-
-
-inline
-void Element::terminal (const integer side  ,
-			integer&      estart,
-			integer&      eskip ,
-			integer&      bstart) const
-// ---------------------------------------------------------------------------
-// Evaluate the element-edge terminal values of estart, skip, bstart.
-// NB: BLAS-conformant terminal start values are delivered for negative skips.
-//
-// Side numbering starts at zero.
-// ---------------------------------------------------------------------------
-{
-  switch (side) {
-  case 0:
-    estart = 0;
-    eskip  = 1;
-    bstart = 0;
-    break;
-  case 1:
-    estart = np - 1;
-    eskip  = np;
-    bstart = np - 1;
-    break;
-  case 2:
-    estart = np * (np - 1);
-    eskip  = -1;
-    bstart = 2  * (np - 1);
-    break;
-  case 3:
-    estart = 0;
-    eskip  = -np;
-    bstart = 3  * (np - 1);
-    break;
-  }
-}
-
-
-void Element::sideOffset (const integer side ,
-			  integer&      start,
-			  integer&      skip ) const
-// ---------------------------------------------------------------------------
-// Return starting offset & skip in Field storage for this side.
-// ---------------------------------------------------------------------------
-{
-  integer estart, bstart;
-
-  terminal (side, estart, skip, bstart);
-  start = dOffset + estart;
 }
 
 
@@ -1186,10 +1100,10 @@ real Element::norm_L2 (const real* src) const
 // Return L2-norm of Element value, using Element quadrature rule.
 // ---------------------------------------------------------------------------
 {
-  register integer   i;
-  register real  L2   = 0.0;
-  const integer      ntot = sqr (np);
-  register real* dA   = G4;
+  register integer i;
+  register real    L2   = 0.0;
+  const integer    ntot = sqr (np);
+  register real*   dA   = G4;
 
   for (i = 0; i < ntot; i++) L2 += src[i] * src[i] * dA[i];
 
@@ -1230,63 +1144,6 @@ real Element::norm_H1 (const real* src) const
 }
 
 
-void Element::e2g (const real*    src     ,
-		   const integer* btog    ,
-		   real*          external,
-		   real*          internal) const
-// ---------------------------------------------------------------------------
-// Src is a row-major vector, representing this Element's data.
-// Load boundary data into globally-numbered vector external, and
-// internal data into un-numbered vector internal.
-// ---------------------------------------------------------------------------
-{
-  const integer next = nExt();
-  const integer nint = nInt();
-
-  Veclib::gathr_scatr (next, src, emap,  btog, external);
-  if (internal)
-    Veclib::gathr     (nint, src, emap + next, internal);
-}
-
-
-void Element::e2gSum (const real*    src     ,
-		      const integer* btog    ,
-		      real*          external,
-		      real*          internal) const
-// ---------------------------------------------------------------------------
-// Src is a row-major vector, representing this element's data.
-// Sum boundary data into globally-numbered vector external, and
-// internal data into un-numbered vector internal.
-// ---------------------------------------------------------------------------
-{
-  const integer next = nExt();
-  const integer nint = nInt();
-
-  Veclib::gathr_scatr_sum (next, src, emap,  btog, external);
-  if (internal)
-    Veclib::gathr_sum     (nint, src, emap + next, internal);
-}
-
-
-void Element::g2e (real*          tgt     ,
-		   const integer* btog    ,
-		   const real*    external,
-		   const real*    internal) const
-// ---------------------------------------------------------------------------
-// Tgt is a row-major vector, representing this Element's data.
-// Load boundary data from globally-numbered vector external, and
-// internal data from un-numbered vector internal.
-// ---------------------------------------------------------------------------
-{
-  const integer next = nExt();
-  const integer nint = nInt();
-
-  Veclib::gathr_scatr (next, external, btog,  emap, tgt);
-  if (internal)
-    Veclib::scatr     (nint, internal, emap + next, tgt);
-}
-
-
 void Element::divR (real* src) const
 // ---------------------------------------------------------------------------
 // Divide src by y (i.e. r in cylindrical coordinates), take special action
@@ -1304,15 +1161,6 @@ void Element::divR (real* src) const
     rinv    = (rad > EPS) ? 1.0 / rad : 0.0;
     src[i] *= rinv;
   }
-}
-
-
-void Element::mulR (real* src) const
-// ---------------------------------------------------------------------------
-// Multiply src by y (i.e. r in cylindrical coordinates).
-// ---------------------------------------------------------------------------
-{
-  Veclib::vmul (nTot(), src, 1, ymesh, 1, src, 1);
 }
 
 
