@@ -79,8 +79,9 @@ endif
 
 ifeq ($(ARCH),SUPER-UX)                 	# -- NEC SX-4
 FC       = f90
-DEFINES += -D_BUILTIN_
-CFLAGS   = $(DEFINES) -pvctl,fullmsg -Onooverlap -hfloat0 -hnostkchk
+DEFINES += -D_BUILTIN_ -D_SX
+CFLAGS   = $(DEFINES) -pvctl,fullmsg,loopcnt=20000 -Onooverlap \
+           -hfloat0 -hnostkchk
 FFLAGS   = $(DEFINES) -Wf'-pvctl,fullmsg -ptr byte -b' -float0 -ew
 endif
 
