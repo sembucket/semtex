@@ -224,15 +224,15 @@ istream& operator >> (istream&  strm,
 
 
 static char prog[] = "project";
-static void    getargs  (integer, char**, integer&, integer&, ifstream&);
+static void    getargs  (int, char**, integer&, integer&, integer&, ifstream&);
 static integer getDump  (ifstream&, ostream&, vector<Field2DF*>&,
 			 integer&, integer&, integer&, integer&);
 static void    loadName (const vector<Field2DF*>&, char*);
 static integer doSwap   (const char*);
 
 
-integer main (integer argc,
-	      char**  argv)
+int main (int    argc,
+	  char** argv)
 // ---------------------------------------------------------------------------
 // Driver.
 // ---------------------------------------------------------------------------
@@ -240,13 +240,15 @@ integer main (integer argc,
   char              fields[StrMax];
   ifstream          file;
   integer           i, j, fInc;
-  integer           nPnew = 0, nZnew = 0, nEl;
+  integer           nPnew = 0, nZnew = 0, keepW = 0, nEl;
   vector<Field2DF*> Uold, Unew;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, nPnew, nZnew, file);
+  getargs (argc, argv, nPnew, nZnew, keepW, file);
   
   while (getDump (file, cout, Uold, nPnew, nZnew, nEl, fInc)) {
+
+    fInc += keepW;		// -- Flag to retain w even if 3D-->2D.
 
     Unew.setSize (Uold.getSize() + fInc);
 
@@ -296,11 +298,12 @@ integer main (integer argc,
 }
 
 
-static void getargs (integer   argc,
-		     char**    argv,
-		     integer&  np  ,
-		     integer&  nz  ,
-		     ifstream& file)
+static void getargs (int       argc ,
+		     char**    argv ,
+		     integer&  np   ,
+		     integer&  nz   ,
+		     integer&  keepW,
+		     ifstream& file )
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
@@ -310,6 +313,7 @@ static void getargs (integer   argc,
     "  -h       ... print this message\n"
     "  -n <num> ... 2D projection onto num X num\n"
     "  -z <num> ... 3D projection onto num planes\n"
+    "  -w       ... Retain w components in 3D-->2D proj'n [Default: delete]\n"
     "  -u       ... project to uniform grid [Default: GLL]\n";
  
   while (--argc  && **++argv == '-')
@@ -337,6 +341,10 @@ static void getargs (integer   argc,
     case 'u':
       --argc;
       uniform = 1;
+      break;
+    case 'w':
+      --argc;
+      keepW = 1;
       break;
     default:
       cerr << usage;
