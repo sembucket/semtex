@@ -2,7 +2,7 @@
  * fourier.c
  *
  * 1D Fourier transform routines for real data fields based on FFTPACK
- * or Canuto/Temperton FFT routines, or vendor-supplied alternatives.
+ * or Temperton FFT routines, or vendor-supplied alternatives.
  * NB: different restrictions may apply to input args depending on
  * selected routine. 
  *****************************************************************************/
@@ -47,26 +47,30 @@ void sDFTr (float*    data,
   char           routine[] = "sDFTr";
   const int      ntot = tlen * ntrn;
   register int   i;
-  int            nfac, *ifac;
+  int            dum, ip, iq, ir, ipqr2;
   register float *work, *Wtab, *ptr;
 
-  if (tlen  < 2) return;
+  if (tlen  < 2 || !ntrn) return;
 
-#if (defined (VECFFT))
-  work = svector (0, ntot + 2 * tlen - 1);
-  Wtab = work + ntot;
-  ifac = ivector (0, 31);
+#if 1
   
-  spreft (tlen, &nfac, ifac, Wtab);
+  /* -- Temperton FFT routine is default. */
 
-  if (!nfac)    message (routine, "tlen needs prime factors 2 or 3", ERROR);
-  if (ntrn & 1) message (routine, "ntrn must be even",               ERROR);
+  dum = tlen;
+  prf235 (&dum, &ip, &iq, &ir, &ipqr2);
+  
+  if (!dum    ) message (routine, "tlen needs prime factors 2, 3, 5", ERROR);
+  if (ntrn & 1) message (routine, "ntrn must be even",                ERROR);
 
-  smrcft (data, ntrn, tlen, work, nfac, ifac, Wtab, sign);
+  work = svector (0, ntot + ipqr2 - 1);
+  Wtab = work + ntot;
+
+  ssetpf (Wtab, tlen, ip, iq, ir);
+  smpfft (data, work, ntrn, tlen, ip, iq, ir, Wtab, sign);
+
   if (sign == +1) sscal (ntot, 1.0 / tlen, data, 1);
 
   freeSvector (work, 0);
-  freeIvector (ifac, 0);
 
 #else
   work = svector (0, 3 * tlen + 14);
@@ -135,26 +139,29 @@ void dDFTr (double*   data,
   char            routine[] = "dDFTr";
   const int       ntot = tlen * ntrn;
   register int    i;
-  int             nfac, *ifac;
+  int             dum, ip, iq, ir, ipqr2;
   register double *work, *Wtab, *ptr;
 
-  if (tlen  < 2) return;
+  if (tlen  < 2 || !ntrn) return;
 
-#if (defined (VECFFT))
-  work = dvector (0, ntot + 2 * tlen - 1);
-  Wtab = work + ntot;
-  ifac = ivector (0, 31);
+#if 1
+
+  /* -- Temperton FFT routine is default. */
+
+  dum = tlen;
+  prf235 (&dum, &ip, &iq, &ir, &ipqr2);
   
-  dpreft (tlen, &nfac, ifac, Wtab);
+  if (!dum    ) message (routine, "tlen needs prime factors 2, 3, 5", ERROR);
+  if (ntrn & 1) message (routine, "ntrn must be even",                ERROR);
 
-  if (!nfac)    message (routine, "tlen needs prime factors 2 or 3", ERROR);
-  if (ntrn & 1) message (routine, "ntrn must be even",               ERROR);
+  work = dvector (0, ntot + ipqr2 - 1);
+  Wtab = work + ntot;
 
-  dmrcft (data, ntrn, tlen, work, nfac, ifac, Wtab, sign);
+  dsetpf (Wtab, tlen, ip, iq, ir);
+  dmpfft (data, work, ntrn, tlen, ip, iq, ir, Wtab, sign);
   if (sign == +1) dscal (ntot, 1.0 / tlen, data, 1);
 
   freeDvector (work, 0);
-  freeIvector (ifac, 0);
 
 #else
   work = dvector (0, 3 * tlen + 14);
