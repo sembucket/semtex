@@ -376,21 +376,54 @@ void convolve (const CF       U   ,
  * possible to the truncated region to save computation.                    
  * ------------------------------------------------------------------------- */
 {
+  const int        Npts = N * N * N;
   register int     _i, _j, _k, _l, _m, _n;
   register int     k1, b1, k2, b2, k3;
-  register complex *A = &W[0][0][0], *B = &W_[0][0][0];
-  const int        Npts = N * N * N;
+  register complex *A = &W [0][0][0],    *B  = &W_[0][0][0];
+  register real    *u = &U [0][0][0].Re, *u_ = &U_[0][0][0].Re,
+                   *v = &V [0][0][0].Re, *v_ = &V_[0][0][0].Re,
+                   *w = &W [0][0][0].Re, *w_ = &W_[0][0][0].Re;
+  
+  for (k1 = 0; k1 < Npts; k1++) w_[k1] = u [k1] * v [k1];
 
-  {
-    register real
-      *u = &U [0][0][0].Re, *u_ = &U_[0][0][0].Re,
-      *v = &V [0][0][0].Re, *v_ = &V_[0][0][0].Re,
-      *w = &W [0][0][0].Re, *w_ = &W_[0][0][0].Re;
-    for (k1 = 0; k1 < Npts; k1++) w [k1] = u [k1] * v [k1];
-    for (k1 = 0; k1 < Npts; k1++) w_[k1] = u_[k1] * v_[k1];
+  rc3DFT (W_, Wtab, FORWARD);
+
+  A[0].Re = B[0].Re;
+  
+  for (k1 = 1; k1 < K; k1++) {
+    b1 = N - k1;
+    _i = rm(k1,0,0);
+    _j = rm(0,k1,0);
+    _k = rm(0,0,k1);
+    A[_i] = B[_i];
+    A[_j] = B[_j];
+    A[_k] = B[_k];
+
+    for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
+      b2 = N - k2;
+      _i = rm(0,k1,k2); _j = rm(0,b1,k2);
+      _k = rm(k1,0,k2); _l = rm(b1,0,k2);
+      _m = rm(k1,k2,0); _n = rm(b1,k2,0);
+      A[_i] = B[_i];
+      A[_j] = B[_j];
+      A[_k] = B[_k];
+      A[_l] = B[_l];
+      A[_m] = B[_m];
+      A[_n] = B[_n];
+
+      for (k3 = 1; k3 < K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
+	_i = rm(k1,k2,k3); _j = rm(b1,k2,k3);
+	_k = rm(k1,b2,k3); _l = rm(b1,b2,k3);
+	A[_i] = B[_i];
+	A[_j] = B[_j];
+	A[_k] = B[_k];
+	A[_l] = B[_l];
+      }
+    }
   }
 
-  rc3DFT (W,  Wtab, FORWARD);
+  for (k1 = 0; k1 < Npts; k1++) w_[k1] = u_[k1] * v_[k1];
+
   rc3DFT (W_, Wtab, FORWARD);
   shift  (W_, Stab, INVERSE);
 
