@@ -1,17 +1,18 @@
 /*****************************************************************************
- * energy.c: compute solution energy.
+ * energy.c: compute solution energy, enstrophy moments, other scalar
+ * properties.
  * 
  * $Id$
  *****************************************************************************/
 
-#include "globals.h"
+#include "iso.h"
 
 #define MAG(Z)  (Z).Re*(Z).Re + (Z).Im*(Z).Im
 
 
-real  energy_Physical (const int* Dim, CVF V, const complex* Wtab)
+real  energyP (const int* Dim, CVF V, const complex* Wtab)
 /* ------------------------------------------------------------------------- *
- * Compute & return q^2 = <UiUi>/2: diagnostic.  Do sums in physical space.
+ * Compute & return q^2 = <UiUi>/2: diagnostic.  Do sums in PHYSICAL space.
  * Also: compare with energy() below to see the discrete Parseval relation.
  * ------------------------------------------------------------------------- */
 {
@@ -38,21 +39,64 @@ real  energy_Physical (const int* Dim, CVF V, const complex* Wtab)
 }
 
 
-real  energy (const int* Dim, const CVF V)
+real  energyF (const int* Dim, const CVF U)
 /* ------------------------------------------------------------------------- *
- * Compute & return q^2 = <UiUi>/2: diagnostic.  Do sums in Fourier space.
+ * Compute & return q^2 = <UiUi>/2: diagnostic.  Do sums in FOURIER space.
  * ------------------------------------------------------------------------- */
 {
-  register int       c, i;
+  register int       i;
   register real      q2;
-  register complex  *u = &V[1][0][0][0],
-                    *v = &V[2][0][0][0],
-                    *w = &V[3][0][0][0];
+  register complex  *u    = &U[1][0][0][0],
+                    *v    = &U[2][0][0][0],
+                    *w    = &U[3][0][0][0];
   const int          Npts = Dim[1] * Dim[2] * Dim[3];
 
   q2 = 0.0;
   for (i = 0; i < Npts; i++) q2 += MAG (u[i]) + MAG (v[i]) + MAG (w[i]);
-  q2 /= 4.0;
+  q2 *= 0.25;
 
   return q2;
+}
+
+
+real  genEnstrophy (const int* Dim, const CVF U)
+/* ------------------------------------------------------------------------- *
+ * Compute & return Omega, generalized enstrophy, of order 1.  This is just
+ * the mean-squared derivative of the velocity field.  See Ref [5], eq. (3.1).
+ * ------------------------------------------------------------------------- */
+{
+  register int       c, k1, b1, k2, b2, k3;
+  register real      omega;
+  register real      kSqrd;
+  const    int       N        = Dim[1];
+  const    int       K        = Dim[3];
+  const    int       FOURKon3 = (4 * K) / 3;
+
+  omega = 0.0;
+
+  for (c = 1; c <= 3; c++)
+    for (k1 = 1; k1 < K; k1++) {
+      b1     = N - k1;
+      kSqrd  = SQR (k1);
+      omega += kSqrd * (MAG (U[c][k1][ 0][ 0]) +
+			MAG (U[c][ 0][k1][ 0]) +
+			MAG (U[c][ 0][ 0][k1]) );
+
+      for (k2 = 1; k2 < K && k1+k2 <= FOURKon3; k2++) {
+	b2     = N - k2;
+	kSqrd  = SQR (k1) + SQR (k2);
+	omega += kSqrd * (MAG (U[c][ 0][k1][k2]) + MAG (U[c][ 0][b1][k2]) +
+			  MAG (U[c][k1][ 0][k2]) + MAG (U[c][b1][ 0][k2]) +
+			  MAG (U[c][k1][k2][ 0]) + MAG (U[c][b1][k2][ 0]) );
+
+	for (k3 = 1; k3 < K && k2+k3 <= FOURKon3 && k1+k3 <= FOURKon3; k3++) {
+	  kSqrd  = SQR (k1) + SQR (k2) + SQR (k3);
+	  omega += kSqrd * (MAG (U[c][k1][k2][k3]) + MAG (U[c][b1][k2][k3]) +
+			    MAG (U[c][k1][b2][k3]) + MAG (U[c][b1][b2][k3]) );
+
+	}
+      }
+    }
+  
+  return 0.25*omega;
 }
