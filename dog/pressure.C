@@ -163,7 +163,7 @@ void PBCmgr::maintain (const integer    step   ,
       Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][0], 1);
       Blas::axpy (nP, -nu, yr, 1, Pny[0][i][0], 1);
   
-    } else {			    // -- Full complex peturbation.
+    } else {			    // -- Full complex perturbation.
       UxRe = Ux -> _plane[0];
       UxIm = Ux -> _plane[1];
       UyRe = Uy -> _plane[0];

@@ -20,7 +20,7 @@
 
 #include "stab.h"
 
-static integer          NORD, NPER, NZ, CYL, C3D;
+static integer          NORD, NPERT, NBASE, NZ, CYL, C3D;
 static List<MatrixSys*> MS;
 
 static void        linAdvect  (Domain*, AuxField**, AuxField**);
@@ -45,11 +45,12 @@ void integrate (Domain*       D,
 // Uf is multi-level auxillary Field storage for nonlinear forcing terms.
 // ---------------------------------------------------------------------------
 {
-  NPER = Geometry::nPert();
-  NZ   = Geometry::nZ();
-  NORD = static_cast<integer>(Femlib::value ("N_TIME"));
-  CYL  = Geometry::system() == Geometry::Cylindrical;
-  C3D  = CYL && Geometry::nDim() == 3;
+  NPERT = Geometry::nPert();
+  NBASE = Geometry::nBase();
+  NZ    = Geometry::nZ();
+  NORD  = static_cast<integer>(Femlib::value ("N_TIME"));
+  CYL   = Geometry::system() == Geometry::Cylindrical;
+  C3D   = CYL && Geometry::nDim() == 3;
 
   integer       i, j, k;
   const real    dt    =                      Femlib::value ("D_T");
@@ -58,7 +59,7 @@ void integrate (Domain*       D,
   static MatrixSys** MS;
   static AuxField*** Us;
   static AuxField*** Uf;
-  static Field*      Pressure = D -> u[NPER];
+  static Field*      Pressure = D -> u[NPERT];
 
   if (!MS) {			// -- Initialise static data.
     
@@ -69,15 +70,15 @@ void integrate (Domain*       D,
     // -- Create multi-level storage for velocities and forcing.
 
     const integer ntot  = Geometry::nTotProc();
-    real*         alloc = new real [static_cast<size_t>(2*NPER*NORD*ntot)];
+    real*         alloc = new real [static_cast<size_t>(2*NPERT*NORD*ntot)];
 
     Us = new AuxField** [static_cast<size_t>(NORD)];
     Uf = new AuxField** [static_cast<size_t>(NORD)];
     
     for (k = 0, i = 0; i < NORD; i++) {
-      Us[i] = new AuxField* [static_cast<size_t>(NPER)];
-      Uf[i] = new AuxField* [static_cast<size_t>(NPER)];
-      for (j = 0; j < NPER; j++) {
+      Us[i] = new AuxField* [static_cast<size_t>(NPERT)];
+      Uf[i] = new AuxField* [static_cast<size_t>(NPERT)];
+      for (j = 0; j < NPERT; j++) {
 	Us[i][j] = new AuxField (alloc + k++ * ntot, NZ, D -> elmt);
 	Uf[i][j] = new AuxField (alloc + k++ * ntot, NZ, D -> elmt);
       }
@@ -95,7 +96,7 @@ void integrate (Domain*       D,
   // -- Because we have to restart from scratch on each call, zero these:
 
   for (i = 0; i < NORD; i++)
-    for (j = 0; j < NPER; j++) {
+    for (j = 0; j < NPERT; j++) {
       *Us[i][j] = 0.0;
       *Uf[i][j] = 0.0;
     }
@@ -127,16 +128,16 @@ void integrate (Domain*       D,
 
     Pressure -> evaluateBoundaries (D -> step);
 
-    for (i = 0; i < NPER; i++) AuxField::swapData (D -> u[i], Us[0][i]);
-    rollm     (Uf, NORD, NPER);
+    for (i = 0; i < NPERT; i++) AuxField::swapData (D -> u[i], Us[0][i]);
+    rollm     (Uf, NORD, NPERT);
     setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);
-    Solve     (D, NPER,  Uf[0][0], MS[NPER]);
+    Solve     (D, NPERT,  Uf[0][0], MS[NPERT]);
     project   (D, Us[0], Uf[0]);
 
     // -- Update multilevel velocity storage.
 
-    for (i = 0; i < NPER; i++) *Us[0][i] = *D -> u[i];
-    rollm (Us, NORD, NPER);
+    for (i = 0; i < NPERT; i++) *Us[0][i] = *D -> u[i];
+    rollm (Us, NORD, NPERT);
 
     // -- Viscous correction substep.
 
@@ -144,11 +145,11 @@ void integrate (Domain*       D,
       AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
       AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     }
-    for (i = 0; i < NPER; i++) Solve (D, i, Uf[0][i], MS[i]);
+    for (i = 0; i < NPERT; i++) Solve (D, i, Uf[0][i], MS[i]);
     if (C3D) AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 
     // -- Process results of this step.
-
+    
     A -> analyse (Us[0]);
   }
 }
@@ -180,22 +181,20 @@ static void linAdvect (Domain*    D ,
 // the perturbation field u can have either one or two planes of data.
 // To deal with this, Auxfield operations times and timesPlus
 // (actually convolutions) are assumed to have a purely real Auxfield
-// as the second operand.  Assignment and Gradient operators also need
-// to be modified.
+// as the second operand.  Assignment and Gradient operators are also
+// modified.
 // ---------------------------------------------------------------------------
 {
-  const integer     nBase = Geometry::nBase();
-  const integer     nPert = Geometry::nPert();
   integer           i, j;
-  vector<AuxField*> U (nBase + 1), u (nPert), N (nPert);
+  vector<AuxField*> U(NBASE + 1), u(NPERT), N(NPERT);
   Field*            T = D -> u[0];
 
   // -- Set up local aliases.
 
-  for (i = 0; i < nBase + 1; i++)
+  for (i = 0; i < NBASE + 1; i++)
     U[i] = D -> U[i];
 
-  for (i = 0; i < nPert; i++) {
+  for (i = 0; i < NPERT; i++) {
     AuxField::swapData (D -> u[i], Us[i]);
      u[i] = Us[i];
      N[i] = Uf[i];
@@ -205,9 +204,9 @@ static void linAdvect (Domain*    D ,
   // -- Centrifugal, Coriolis terms for cylindrical coords.
 
   if (CYL) {
-    if (nPert == 3)
+    if (NPERT == 3)
      *N[2] += T -> times (*u[2], *U[1]) . divR();
-    if (nBase == 3) {
+    if (NBASE == 3) {
       N[1] -> axpy (-2.0, T -> times (*u[2], *U[2]) . divR());
      *N[2] +=             T -> times (*u[1], *U[2]) . divR();
     }
@@ -215,8 +214,8 @@ static void linAdvect (Domain*    D ,
 
   // -- N_i += U_j d(u_i) / dx_j.
 
-  for (i = 0; i < nPert; i++)
-    for (j = 0; j < nBase; j++) {
+  for (i = 0; i < NPERT; i++)
+    for (j = 0; j < NBASE; j++) {
       (*T = *u[i]) . gradient (j);
       if (CYL && j == 2) T -> divR();
       N[i] -> timesPlus (*T, *U[j]);
@@ -224,11 +223,11 @@ static void linAdvect (Domain*    D ,
 
   // -- N_i += u_j d(U_i) / dx_j; dU_i/dz=0.
 
-  for (i = 0; i < nBase; i++)
+  for (i = 0; i < NBASE; i++)
     for (j = 0; j < 2; j++)
-      N[i] -> timesPlus (*u[j], (*U[nBase] = *U[i]) . gradient (j));
+      N[i] -> timesPlus (*u[j], (*U[NBASE] = *U[i]) . gradient (j));
 
-  for (i = 0; i < nPert; i++) {
+  for (i = 0; i < NPERT; i++) {
     T -> smooth (N[i]);
     *N[i] *= -1.0;
   }
@@ -247,9 +246,9 @@ static void waveProp (Domain*           D ,
 // ---------------------------------------------------------------------------
 {
   integer           i, q;
-  vector<AuxField*> H (NPER);	// -- Mnemonic for u^{Hat}.
+  vector<AuxField*> H (NPERT);	// -- Mnemonic for u^{Hat}.
 
-  for (i = 0; i < NPER; i++) {
+  for (i = 0; i < NPERT; i++) {
      H[i] = D -> u[i];
     *H[i] = 0.0;
   }
@@ -262,7 +261,7 @@ static void waveProp (Domain*           D ,
   Integration::Extrapolation (Je, beta ());
   Blas::scal (Je, Femlib::value ("D_T"), beta(),  1);
 
-  for (i = 0; i < NPER; i++)
+  for (i = 0; i < NPERT; i++)
     for (q = 0; q < Je; q++) {
       H[i] -> axpy (-alpha[q + 1], *Us[q][i]);
       H[i] -> axpy ( beta [q]    , *Uf[q][i]);
@@ -281,13 +280,13 @@ static void setPForce (const AuxField** Us,
   integer    i;
   const real dt = Femlib::value ("D_T");
 
-  for (i = 0; i < NPER; i++) (*Uf[i] = *Us[i]) . gradient(i);
+  for (i = 0; i < NPERT; i++) (*Uf[i] = *Us[i]) . gradient(i);
 
-  if (Geometry::nPert() == 3 && Geometry::nBase() < 3) *Uf[2] *= -1.0;
+  if (NPERT == 3 && NBASE < 3) *Uf[2] *= -1.0;
 
   if (C3D) Uf[2] -> divR();
 
-  for (i = 1; i < NPER; i++) *Uf[0] += *Uf[i];  
+  for (i = 1; i < NPERT; i++) *Uf[0] += *Uf[i];  
 
   if (CYL) *Uf[0] += (*Uf[1] = *Us[1]) . divR();
 
@@ -312,9 +311,9 @@ static void project (const Domain* D ,
   const real dt    = Femlib::value ("D_T");
   const real alpha = -1.0 / Femlib::value ("D_T * KINVIS");
 
-  for (i = 0; i < NPER; i++) {
+  for (i = 0; i < NPERT; i++) {
 
-    (*Uf[i] = *D -> u[NPER]) . gradient (i);
+    (*Uf[i] = *D -> u[NPERT]) . gradient (i);
 
     if (C3D && i == 2) Uf[2] -> divR();
 
@@ -331,7 +330,7 @@ static MatrixSys** preSolve (const Domain* D)
 // Set up ModalMatrixSystems for system with only 1 Fourier mode.
 // ---------------------------------------------------------------------------
 {
-  const integer mode  = (NPER < 3) ? 0 : 1;
+  const integer mode  = (NPERT < 3) ? 0 : 1;
   const real    beta  = mode * Femlib::value ("BETA");
   const integer itLev = static_cast<integer>(Femlib::value ("ITERATIVE"));
 
@@ -339,7 +338,7 @@ static MatrixSys** preSolve (const Domain* D)
   Integration::StifflyStable (NORD, alpha());
   const real   lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
 
-  MatrixSys**      system = new MatrixSys* [static_cast<size_t>(NPER + 1)];
+  MatrixSys**      system = new MatrixSys* [static_cast<size_t>(NPERT + 1)];
   MatrixSys*       M;
   integer          found;
   solver_kind      method;
@@ -352,7 +351,7 @@ static MatrixSys** preSolve (const Domain* D)
 
   // -- Velocities, starting with u.
 
-  N      = D -> b [0] -> Nsys (mode * Geometry::kFund());
+  N      = D -> b[0] -> Nsys (mode * Geometry::kFund());
   betak2 = sqr (Field::modeConstant (D -> u[0] -> name(), mode, beta));
   M = new MatrixSys (lambda2, betak2, 0, D -> elmt, D -> b[0], method);
   MS.add (M);
@@ -363,7 +362,7 @@ static MatrixSys** preSolve (const Domain* D)
 
   // -- v.
 
-  N      = D -> b [1] -> Nsys (mode * Geometry::kFund());
+  N      = D -> b[1] -> Nsys (mode * Geometry::kFund());
   betak2 = sqr (Field::modeConstant (D -> u[1] -> name(), mode, beta));
 
   for (found = 0, m.reset(); !found && m.more(); m.next()) {
@@ -381,8 +380,8 @@ static MatrixSys** preSolve (const Domain* D)
 
   // -- w.
 
-  if (NPER == 3) {
-    N      = D -> b [2] -> Nsys (mode * Geometry::kFund());
+  if (NPERT == 3) {
+    N      = D -> b[2] -> Nsys (mode * Geometry::kFund());
     betak2 = sqr (Field::modeConstant (D -> u[2] -> name(), mode, beta));
 
     for (found = 0, m.reset(); !found && m.more(); m.next()) {
@@ -403,10 +402,10 @@ static MatrixSys** preSolve (const Domain* D)
 
   method = (itLev < 2) ? DIRECT : JACPCG;
 
-  betak2 = sqr (Field::modeConstant (D -> u[NPER] -> name(), mode, beta));
-  M      = new MatrixSys (0.0, betak2, 0, D -> elmt, D -> b[NPER], method);
+  betak2 = sqr (Field::modeConstant (D -> u[NPERT] -> name(), mode, beta));
+  M      = new MatrixSys (0.0, betak2, 0, D -> elmt, D -> b[NPERT], method);
   MS.add (M);
-  system[NPER] = M;
+  system[NPERT] = M;
   cout << ((method == DIRECT) ? '*' : '&') << endl;
   
   return system;
@@ -424,11 +423,11 @@ static void Solve (Domain*       D,
 {
   const integer step = D -> step;
 
-  if (i < NPER && step < NORD) {
+  if (i < NPERT && step < NORD) {
 
     // -- We need a temporary matrix system for a viscous solve.
 
-    const integer mode = (NPER < 3) ? 0 : 1;
+    const integer mode = (NPERT < 3) ? 0 : 1;
     const integer beta = mode * static_cast<integer>(Femlib::value ("BETA"));
     const integer Je   = min (step, NORD);    
     vector<real>  alpha (Je + 1);

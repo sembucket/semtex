@@ -19,7 +19,7 @@ Domain::Domain (FEML*             F,
 // Fields to be created are stored in the string "flds".  See the file
 // field.C for significance of the names.
 //
-// Note that we allocate one more base flow AuxField than the problem
+// NB: we allocate one more base flow AuxField than the problem
 // requires: this extra is used as temporary storage in constructing
 // gradients (in linAdvect).
 // ---------------------------------------------------------------------------

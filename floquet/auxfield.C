@@ -1,22 +1,9 @@
 //////////////////////////////////////////////////////////////////////////////
 // auxfield.C: routines for AuxField class, including Fourier expansions.
 //
-// Copyright (C) 1994, 2001 Hugh Blackburn.
+// Copyright (C) 1994, 2002 Hugh Blackburn.
 //
-// For 2D problems, the data storage is organised by 2D Elements.
-//
-// For 3D problems, Fourier expansions are used in the 3rd direction,
-// and each Fourier mode can be thought of as a separate 2D problem
-// (with real and imaginary parts, or planes, of 2D data).  The data
-// are then organized plane-by-plane, with each plane being a 2D
-// AuxField; if in physical space there are nz planes of data, then
-// there are nz/2 Fourier modes.  Data for the Nyquist mode are stored
-// as the imaginary part of the zeroth Fourier mode, but are kept zero
-// and never evolve.  The planes always point to the same storage
-// locations within the data area.
-//
-// The data are transformed to physical space for storage in restart
-// files.
+// Modified for stability analysis.
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
@@ -291,12 +278,9 @@ AuxField& AuxField::gradient (const integer dir)
 // dir == 0 ==> gradient in first direction, 1 ==> 2nd, 2 ==> 3rd.
 // AuxField is presumed to have been Fourier transformed in 3rd direction.
 //
-// This routine is modified for use in stability analysis: if kind ==
-// HALF, then the x, y, gradients are only applied on the first plane
-// of data. In addition we check the how many planes of data exist,
-// when taking the gradients in z direction; if only one, then the
-// AuxField is half-complex (and the sign of z-gradient may need
-// changing).
+// We check the how many planes of data exist, when taking the
+// gradients in z direction; if only one, then the AuxField is
+// half-complex (and the sign of z-gradient may need changing).
 // ---------------------------------------------------------------------------
 {
   const char          routine[] = "AuxField::gradient";
