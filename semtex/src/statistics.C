@@ -1,8 +1,24 @@
 ///////////////////////////////////////////////////////////////////////////////
 // statistics.C: routines for statistical analysis of AuxFields.
 //
-// At present, this is limited to running averages, but could be
-// modified for computing Reynolds stresses, etc.
+// At present, this is limited to running averages of primitive
+// variables and product terms for Reynolds stresses.
+//
+// Naming scheme for "Reynolds stresses":
+//
+//                      / uu uv uw \     /  A  B  D \
+//                      | .  vv vw |  =  |  .  C  E |
+//                      \ .  .  ww /     \  .  .  F /
+//
+// Reynolds stresses are selected for computation if AVERAGE > 1.  In this
+// case it is assumed that there will be at least DIM fields to be multiplied
+// together as indicated.  NB: what is computed are the running average of the 
+// products uu, uv, etc, which are NOT the actual Reynolds stresses: they need
+// to have the products of the mean values UU, UV etc subtracted, assumed
+// to occur in postprocessing.
+//
+// Running averages are kept semi-Fourier, Reynolds stress products in
+// physical space to minimize number of transforms needed.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char
@@ -22,24 +38,32 @@ Statistics::Statistics (Domain&            D    ,
 // Try to initialize from file session.avg, failing that set all
 // buffers to zero.  Number of fields in file should be same as
 // Statistics::avg buffer.
+//
+// NR = Number of Reynolds stress averaging buffers, set if AVERAGE > 1.
 // ---------------------------------------------------------------------------
 {
   integer       i;
+  const integer ND = Geometry::nDim();
   const integer NF = base.u.getSize();
   const integer NE = extra.getSize();
-  const integer NT = NF + NE;
+  const integer NR = ((integer) Femlib::value ("AVERAGE") > 1) ? 
+                            ((ND + 1) * ND) >> 1 : 0;
+  const integer NT = NF + NE + NR;
 
   ROOTONLY cout << "-- Initializing averaging  : ";  
 
   // -- Set pointers, allocate storage.
 
-  src.setSize (NT);
-  avg.setSize (NT);
+  src.setSize (NF + NE);	// -- Straight running average of these.
+  avg.setSize (NT);		// -- Additional are computed from src.
   
   for (i = 0; i < NF; i++) src[     i] = (AuxField*) base.u[i];
   for (i = 0; i < NE; i++) src[NF + i] = extra[i];
 
-  for (i = 0; i < NT; i++) avg[i] = new AuxField (base.Esys, src[i] -> name());
+  for (i = 0; i < NF + NE; i++)
+    avg[i] = new AuxField (base.Esys, src[i] -> name());
+  for (i = 0; i < NT - NF - NE; i++)
+    avg[i + NF + NE] = new AuxField (base.Esys, 'A' + i);
 
   // -- Initialize averages, either from file or zero.
   //    This is much the same as Domain input routine.
@@ -54,7 +78,7 @@ Statistics::Statistics (Domain&            D    ,
     }
     file >> *this;
     file.close();
-    for (i = 0; i < NT; i++) avg[i] -> transform (+1);
+    for (i = 0; i < NT - NR; i++) avg[i] -> transform (+1);
   
   } else {			// -- No file, set to zero.
     ROOTONLY cout << "set to zero";
@@ -69,24 +93,61 @@ Statistics::Statistics (Domain&            D    ,
 void Statistics::update (AuxField*** work)
 // ---------------------------------------------------------------------------
 // Update running averages.  Zeroth time level of work is available as
-// workspace, but not used yet.
+// workspace, but not used yet.  Reynolds stress terms are calculated 
+// without dealiasing, and are held in physical space.
 // ---------------------------------------------------------------------------
 {
-  integer       i;
-  const integer N = avg.getSize();
+  integer       i, j, k;
+  const integer NT = avg.getSize();
+  const integer ND = Geometry::nDim();
+  const integer NR = ((integer) Femlib::value ("AVERAGE") > 1) ? 
+                            ((ND + 1) * ND) >> 1 : 0;
+  const integer NA = NT - NR;
 
-  for (i = 0; i < N; i++) {
-    *avg[i] *= (real)  navg;
-    *avg[i] += *src[i];
-    *avg[i] /= (real) (navg + 1);
+  if (NR) {
+    
+    // -- Running averages and Reynolds stresses.
+
+    for (i = 0; i < ND; i++) {
+      *work[i][0] = *src[i];
+       work[i][0] -> transform (-1);
+    }
+
+    for (i = 0; i < NA; i++) {
+      *avg[i] *= (real) navg;
+      *avg[i] += *src[i];
+    }
+
+    avg[NA + 0] -> timesPlus (*work[0][0], *work[0][0]);
+    avg[NA + 1] -> timesPlus (*work[0][0], *work[1][0]);
+    avg[NA + 2] -> timesPlus (*work[1][0], *work[1][0]);
+    
+    if (ND > 2) {
+      avg[NA + 3] -> timesPlus (*work[0][0], *work[2][0]);
+      avg[NA + 4] -> timesPlus (*work[1][0], *work[2][0]);
+      avg[NA + 5] -> timesPlus (*work[2][0], *work[2][0]);
+    }
+
+    for (i = 0; i < NT; i++) *avg[i] /= (real) (navg + 1);
+
+  } else {
+
+    // -- Running averages only.
+
+    for (i = 0; i < NA; i++) {
+      *avg[i] *= (real)  navg;
+      *avg[i] += *src[i];
+      *avg[i] /= (real) (navg + 1);
+    }
   }
+
   navg++;
 }
 
 
 void Statistics::dump ()
 // ---------------------------------------------------------------------------
-// Similar to Domain::dump
+// Similar to Domain::dump.
 // ---------------------------------------------------------------------------
 {
   const integer step     = base.step;
@@ -96,9 +157,13 @@ void Statistics::dump ()
 
   if (!(periodic || final)) return;
 
-  integer   i;
-  const int N = avg.getSize();
-  ofstream  output;
+  integer       i;
+  ofstream      output;
+  const integer NT = avg.getSize();
+  const integer ND = Geometry::nDim();
+  const integer NR = ((integer) Femlib::value ("AVERAGE") > 1) ? 
+                            ((ND + 1) * ND) >> 1 : 0;
+  const integer NA = NT - NR;
 
   ROOTONLY {
     const char    routine[] = "Statistics::dump";
@@ -129,9 +194,9 @@ void Statistics::dump ()
     if (verbose) message (routine, ": writing field dump", REMARK);
   }
 
-  for (i = 0; i < N; i++) avg[i] -> transform (-1);
+  for (i = 0; i < NA; i++) avg[i] -> transform (-1);
   output << *this;
-  for (i = 0; i < N; i++) avg[i] -> transform (+1);
+  for (i = 0; i < NA; i++) avg[i] -> transform (+1);
 
   ROOTONLY output.close();
 }
