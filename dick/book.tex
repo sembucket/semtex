@@ -5,31 +5,55 @@
 %
 % $Id$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\documentclass[12pt,a4paper]{book}
-\usepackage{times}
+\documentclass[10pt,b5paper]{book}
+%\usepackage{times}
+\usepackage{palatino}
+%\usepackage{garamond}
 \usepackage{endnotesn}
 \usepackage{bibtopic}
 \usepackage{natbib}
 \usepackage{makeidx}
+\usepackage{setspace}
 
-\setlength{\textheight}    {230mm}
-\setlength{\textwidth}     {155mm}
-\setlength{\topmargin}     {5mm}
-\setlength{\parskip} 	   {5pt}
-\setlength{\parindent}     {2ex}
-\setlength{\oddsidemargin} {0mm}
-\setlength{\evensidemargin}{0mm}
-\setlength{\unitlength}    {1mm}
+%\setlength{\textheight}    {230mm}
+%\setlength{\textwidth}     {155mm}
+%\setlength{\topmargin}     {5mm}
+%\setlength{\parskip} 	   {5pt}
+%\setlength{\parindent}     {2ex}
+%\setlength{\oddsidemargin} {0mm}
+%\setlength{\evensidemargin}{0mm}
+%\setlength{\unitlength}    {1mm}
+
+\setlength{\textheight}    {200mm}
+\setlength{\textwidth}     {120mm}
+\setlength{\topmargin}     {-10mm}
+%\setlength{\parskip} 	   {5pt}
+\setlength{\parindent}     {2.5ex}
+%\setlength{\oddsidemargin} {0mm}
+%\setlength{\evensidemargin}{0mm}
+%\setlength{\unitlength}    {1mm}
+\setlength{\bibsep}        {\parskip}
 
 \renewcommand{\baselinestretch}{1.0}
 \newcommand{\clearemptydoublepage}{\newpage{\pagestyle{empty}\cleardoublepage}}
+\newcommand{\closure}{%
+  \medskip%
+  \begin{center}$\diamond\qquad\diamond\qquad\diamond$\end{center}%
+  \noindent%
+}
+
 
 
 \renewcommand{\footnote}{\endnote}
 \newcommand{\fn}[1]{\footnote{#1}}
 
-\title{\textbf{\LARGE Pioneering Irrigation \\ in Australia to 1920}}
-\author{\textbf{\Large Gerard Blackburn}}
+\hyphenation{Ar-thur Arth-ur}
+\hyphenation{Mon-thly Month-ly}
+\hyphenation{nor-thern north-ern}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{\textbf{\huge\textsf{Pioneering Irrigation \\ in Australia to 1920}}}
+\author{\textbf{\LARGE\textsf{Gerard Blackburn}}}
 \date{ }
 
 \includeonly{
@@ -117,9 +141,9 @@
 \clearemptydoublepage
 
 \markboth{
-\textsc{Index}
-}{
-}
+\textsl{Index}}%
+{\textsl{Pioneering Irrigation in Australia}}
+
 \printindex
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \end{document}
