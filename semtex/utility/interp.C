@@ -126,7 +126,7 @@ int main (int    argc,
     for (k = 0; k < NZ; k++)
       for (i = 0; i < ntot; i++) {
 	for (j = 0; j < nf; j++) {
-	  if   (elmt[i]) c = u[j] -> probe (elmt[i], k, r[i], s[i]);
+	  if   (elmt[i]) c = u[j] -> probe (elmt[i], r[i], s[i], k);
 	  else           c = 0.0;
 	  cout << setw(15) <<  c;
 	}
