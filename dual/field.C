@@ -453,17 +453,17 @@ Field& Field::solve (AuxField*             f  ,
   const integer next  = Geometry::nExtElmt();
   const integer npnp  = Geometry::nTotElmt();
   const integer ntot  = Geometry::nPlane();
-  const integer bmode = Geometry::baseMode();
-  integer       i, k, pmode, mode;
+  const integer kfund = (integer) Femlib::value ("K_FUND");
+  integer       i, k, mode;
 
   for (k = 0; k < _nz; k++) {	// -- Loop over planes of data.
     
     // -- Select Fourier mode, set local pointers and variables.
 
-    if (k == 0) mode = 0;
-    else        mode = 1;
+    if   (k == 0) mode = 0;
+    else          mode = kfund;
 
-    const MatrixSys*         M       = (*MMS)[pmode];
+    const MatrixSys*         M       = (*MMS)[(k != 0)];
     const vector<Boundary*>& B       = M -> _BC;
     const NumberSys*         N       = M -> _NS;
     real                     lambda2 = M -> _HelmholtzConstant;

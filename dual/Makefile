@@ -10,6 +10,11 @@ SEM   = ../semtex
 VPATH = $(SEM)/src
 PROG  = dual
 
+ifdef STOKES
+  DEFINES += -DSTOKES
+endif
+
+#
 # ----------------------------------------------------------------------------
 #
 SEMFILES  = analysis auxfield BCmgr boundary bsys condition	\
