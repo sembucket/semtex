@@ -423,7 +423,8 @@ Vector Field::tangentTraction (const Field* U,
 // ---------------------------------------------------------------------------
 {
   const vector<Boundary*>& UBC    = U -> bsys -> BCs (0);
-  const vector<Boundary*>& WBC    = (W) ? W -> bsys -> BCs (0) : 0;
+  const vector<Boundary*>& WBC    = (W) ? W -> bsys -> BCs (0) :
+                                    (vector<Boundary*>) 0;
   const integer            np     = Geometry::nP();
   const integer            nbound = U -> nbound;
   const real               mu     = Femlib::value ("RHO * KINVIS");
@@ -491,7 +492,8 @@ void Field::tangTractionV (real*        fx,
 // ---------------------------------------------------------------------------
 {
   const vector<Boundary*>& UBC    = U -> bsys -> BCs (0);
-  const vector<Boundary*>& WBC    = (W) ? W -> bsys -> BCs (0) : 0;
+  const vector<Boundary*>& WBC    = (W) ? W -> bsys -> BCs (0) : 
+                                    (vector<Boundary*>) 0;
   const integer            np     = Geometry::nP();
   const integer            nz     = Geometry::nZProc();
   const integer            nbound = U -> nbound;
