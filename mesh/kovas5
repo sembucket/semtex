@@ -8,13 +8,13 @@
 #
 # where lambda = Re/2 - sqrt(0.25*Re*Re + 4*PI*PI).
 #
-# Only 4 plane/2 modes are needed for full resoultion.
+# Only 4 plane/2 modes are needed for full resolution.
 
 <USER>
 	u = 0
- 	v = 1 - exp(LAMBDA*y)*cos(2*PI*z)
- 	w = LAMBDA/(2*PI)*exp(LAMBDA*y)*sin(2*PI*z)
- 	p = (1 - exp(LAMBDA*x))/2
+ 	v = 1-exp(LAMBDA*y)*cos(TWOPI*z)
+ 	w = LAMBDA/(TWOPI)*exp(LAMBDA*y)*sin(TWOPI*z)
+ 	p = (1-exp(LAMBDA*x))/2
 </USER>
 
 <FIELDS>
@@ -26,7 +26,7 @@
 	Lz=1.0
 	BETA=TWOPI/Lz
 	N_TIME=2
-	N_POLY=14
+	N_POLY=8
 	N_STEP=500
 	D_T=0.005
 	Re=40.0
@@ -40,10 +40,10 @@
 
 <BCS NUMBER=1>
 	1	v	4
-			<D> u = 0.0					</D>
-			<D> v = 1-exp(LAMBDA*y)*cos(2*PI*z)		</D>
-			<D> w = LAMBDA/(2*PI)*exp(LAMBDA*y)*sin(2*PI*z)	</D>
-			<H> p = 0					</H>
+		<D> u = 0.0						</D>
+		<D> v = 1-exp(LAMBDA*y)*cos(TWOPI*z)			</D>
+		<D> w = LAMBDA/(TWOPI)*exp(LAMBDA*y)*sin(TWOPI*z)	</D>
+		<H> p = 0						</H>
 </BCS>
 
 <NODES NUMBER=9>
