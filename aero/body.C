@@ -6,11 +6,6 @@
 
 #include <aero.h>
 
-#if defined(__DECCXX)
-  #pragma define_template min<integer>
-  #pragma define_template max<integer>
-#endif
-
 static AxisMotion* createAxis (char*);
 
 
