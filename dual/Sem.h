@@ -237,11 +237,16 @@ public:
   AuxField& operator  = (const char*);
   AuxField& axpy        (const real, const AuxField&);
 
+  AuxField& innerProduct (const vector<AuxField*>&, const vector<AuxField*>&);
   AuxField& times        (const AuxField&, const AuxField&);
   AuxField& timesPlus    (const AuxField&, const AuxField&);
   AuxField& timesMinus   (const AuxField&, const AuxField&);
   AuxField& convolve     (const AuxField&, const AuxField&);
 
+  AuxField& transform   (const integer);
+  AuxField& transform32 (const integer, real*);
+  AuxField& DLT2D       (const integer, const real* = 0);
+  AuxField& DFfilt      (const real*);
   AuxField& addToPlane  (const integer, const real);
   AuxField& getPlane    (const integer, real*);
   AuxField& setPlane    (const integer, const real*);
@@ -253,9 +258,11 @@ public:
   AuxField& divR     ();
 
   void gradient (const integer, real*, const integer) const;
+  void gradient (const integer, const integer, real*, const integer) const;
   void mulR     (const integer, real*)                const;
   void divR     (const integer, real*)                const;
 
+  void errors      (const Mesh*, const char*);
   void lengthScale (real*)                       const;
   real norm_inf    ()                            const;
   void mode_en     (const integer, real&, real&) const;
@@ -265,8 +272,12 @@ public:
   real CFL         (const integer)               const;
 
   real probe (const Element*, const real, const real, const integer) const;
+  real probe (const Element*, const real, const real, const real)    const;
 
   AuxField& reverse     ();
+  AuxField& zeroNyquist ();
+  AuxField& buildMask   (const char* function);
+
   static void swapData  (AuxField*, AuxField*);
   static void couple    (AuxField*, AuxField*, const integer);
 };
@@ -812,6 +823,9 @@ public:
   static real   flux            (const Field*);
   static Vector normalTraction  (const Field*);
   static Vector tangentTraction (const Field*, const Field*, const Field* = 0);
+  static void   normTractionV   (real*, real*, const Field*);
+  static void   tangTractionV   (real*, real*, real*, const Field*,
+				 const Field*, const Field* = 0);
 
   static void coupleBCs    (Field*, Field*, const integer);
   static real modeConstant (const char, const integer, const real);
@@ -825,6 +839,8 @@ private:
   real*        _sheet ;		// Wrap-around storage for data boundary.
   real**       _line  ;		// Single plane's worth of sheet.
   BoundarySys* _bsys  ;		// Boundary system information.
+
+  void bTransform        (const integer);
 
   void getEssential      (const real*, real*,
 			  const vector<Boundary*>&, const NumberSys*) const;
@@ -894,6 +910,66 @@ public:
 };
 
 
+class FluidParticle
+// ===========================================================================
+// Class used to locate and integrate positions of massless particles.
+// ===========================================================================
+{
+public:
+  FluidParticle (Domain*, const integer, Point&);
+  void           integrate (const integer); 
+  integer        ID        () const { return id;     }
+  const Element* inMesh    () const { return E;      }
+  const Point&   location  () const { return P;      } 
+  static integer IDMax     ()       { return ID_MAX; }
+
+private:
+  integer        id      ;	// Numeric tag.
+  const Element* E       ;	// Pointer to the element particle is in.
+  real           r       ;	// Corresponding "r" location within element.
+  real           s       ;	// likewise for "s".
+  Point          P       ;	// Physical space location.
+  real*          u       ;	// Multilevel "x" velocity storage.
+  real*          v       ;	// Multilevel "y" velocity storage.
+  real*          w       ;	// Multilevel "z" velocity storage.
+
+  static Domain* D       ;	// Velocity fields and class functions.
+  static integer NDIM    ;	// Number of space dimensions.
+  static integer NEL     ;	// Number of elements in mesh.
+  static integer NZ      ;	// Number of z planes.
+  static integer TORD    ;	// Order of N--S timestepping.
+  static integer ID_MAX  ;	// Highest issued id.
+  static real*   P_coeff ;	// Integration (predictor) coefficients.
+  static real*   C_coeff ;	// Integration (corrector) coefficients.
+  static real    DT      ;	// Time step.
+  static real    Lz      ;	// Periodic length.
+};
+
+
+class HistoryPoint
+// ===========================================================================
+// Class used to provide x,y,z history information.
+// ===========================================================================
+{
+public:
+  HistoryPoint (const integer ID, const Element* e, const real R, 
+		const real S, const real Z):
+    id (ID), E (e), r (R), s (S), z (Z) { }
+
+  integer               ID () const { return id; } 
+  void                  extract (vector<AuxField*>&, real*) const;
+  static const Element* locate (const real, const real,
+				vector<Element*>&, real&, real&);
+
+private:
+  const integer  id ;		// Numeric identifier.
+  const Element* E  ;		// Pointer to element.
+  const real     r  ;		// Canonical-space r-location.
+  const real     s  ;		// Canonical-space s-location.
+  const real     z  ;		// Location in homogeneous direction.
+};
+
+
 class Analyser
 // ===========================================================================
 // Implement step-by-step processing and output control for flow
@@ -908,12 +984,14 @@ public:
   void analyse (AuxField**);
 
 protected:
-  Domain*      src      ; // Source information.
-  ofstream     par_strm ; // File for particle tracking.
-  ofstream     his_strm ; // File for history points.
-  ofstream     mdl_strm ; // File for modal energies.
-  List<Point*> initial  ; // Starting locations of particles.
-  Statistics*  stats    ; // Field average statistics.
+  Domain*               src      ; // Source information.
+  ofstream              par_strm ; // File for particle tracking.
+  ofstream              his_strm ; // File for history points.
+  ofstream              mdl_strm ; // File for modal energies.
+  vector<HistoryPoint*> history  ; // Locations, etc. of history points.
+  List<FluidParticle*>  particle ; // List of fluid particles.
+  List<Point*>          initial  ; // Starting locations of particles.
+  Statistics*           stats    ; // Field average statistics.
 
   void modalEnergy ();
   void divergence  (AuxField**) const;

@@ -26,9 +26,9 @@ SEMHDR    = Sem.h
 # ----------------------------------------------------------------------------
 # Default build for Navier-Stokes solver.
 #
-SOLOBJ = drive.o NS.o dualanalysis.o
+SOLOBJ = drive.o NS.o dualanalysis.o redefine.o
 
-$(PROG): sem $(SEMOBJ) $(SOLOBJ) 
+$(PROG): sem $(SOLOBJ) $(SEMOBJ)
 	$(LD) -o $@ $(SOLOBJ) $(SEMOBJ) $(LDFLAGS)
 
 $(SEMOBJ): $(SEMHDR)
