@@ -308,6 +308,7 @@ void Element::bndryMask (const integer* bmsk,
 // ---------------------------------------------------------------------------
 {
   register integer i, e;
+  const integer    loopcnt = _next;
 
   if (src) {
     for (i = 0; i < _next; i++) {
@@ -320,7 +321,7 @@ void Element::bndryMask (const integer* bmsk,
     register real* tmp = work();
 
     Veclib::gathr (_npnp, tgt, _emap, tmp);
-    for (i = 0; i < _next; i++)
+    for (i = 0; i < loopcnt; i++)
       tmp[i] = (bmsk[i]) ? tmp[i] : 0.0;
     Veclib::zero  (_nint, tmp + _next, 1);
     Veclib::gathr (_npnp, tmp, _pmap, tgt);
@@ -1304,6 +1305,7 @@ void Element::sideDivR (const integer side,
   integer           i, base,  skip;
   real              r, rinv,  *y;
   const real        *s;
+  const integer     loopcnt = _np;
   static const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
   switch (side) {
@@ -1333,7 +1335,7 @@ void Element::sideDivR (const integer side,
     break;
   }
 
-  for (i = 0; i < _np; i++) {
+  for (i = 0; i < loopcnt; i++) {
     r      = y[i*skip];
     rinv   = (r > EPS) ? 1.0 / r : 0.0;
     tgt[i] = rinv * s[i*skip];
@@ -1352,6 +1354,7 @@ void Element::sideDivR2 (const integer side,
   register integer    i, base, skip;
   register real       r, rinv2, *y;
   register const real *s;
+  const integer       loopcnt = _np;
   static const real   EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
   switch (side) {
@@ -1381,7 +1384,7 @@ void Element::sideDivR2 (const integer side,
     break;
   }
 
-  for (i = 0; i < _np; i++) {
+  for (i = 0; i < loopcnt; i++) {
     r      = y[i*skip];
     rinv2  = (r > EPS) ? 1.0 / sqr(r) : 0.0;
     tgt[i] = rinv2 * s[i*skip];

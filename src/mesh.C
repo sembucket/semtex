@@ -619,7 +619,7 @@ void Mesh::curves ()
 	message (routine, err, ERROR);
       }
     } else {
-      sprintf (err, "Curve %1d, unknown curve kind %s", buf);
+      sprintf (err, "Curve %1d, unknown curve kind %s", id, buf);
       message (routine, err, ERROR);
     }
 
