@@ -90,20 +90,20 @@ void printParam (FILE*        fp,
  * Output Param info (ASCII).
  * ------------------------------------------------------------------------- */
 {
-  fprintf (fp, "Session name                : %s\n",  H -> session);
-  fprintf (fp, "Grid size                   : %1d\n", H -> ngrid  );
-  fprintf (fp, "Timestepping order          : %1d\n", H -> norder );
-  fprintf (fp, "Steps between field dumps   : %1d\n", H -> io_fld );
-  fprintf (fp, "Steps between history dumps : %1d\n", H -> io_his );
-  fprintf (fp, "Maximum number of steps     : %1d\n", H -> nstep  );
-  fprintf (fp, "Kinematic viscosity         : %g\n",  H -> kinvis );
-  fprintf (fp, "Time step                   : %g\n",  H -> dt     );
-  fprintf (fp, "Time                        : %g\n",  H -> time   );
+  fprintf (fp, "# Session name                : %s\n",  H -> session);
+  fprintf (fp, "# Grid size                   : %1d\n", H -> ngrid  );
+  fprintf (fp, "# Timestepping order          : %1d\n", H -> norder );
+  fprintf (fp, "# Steps between field dumps   : %1d\n", H -> io_fld );
+  fprintf (fp, "# Steps between history dumps : %1d\n", H -> io_his );
+  fprintf (fp, "# Maximum number of steps     : %1d\n", H -> nstep  );
+  fprintf (fp, "# Kinematic viscosity         : %g\n",  H -> kinvis );
+  fprintf (fp, "# Time step                   : %g\n",  H -> dt     );
+  fprintf (fp, "# Time                        : %g\n",  H -> time   );
 
   if (H -> chkpnt == TRUE)
-    fprintf (fp, "Checkpointing               : on\n\n");
+    fprintf (fp, "# Checkpointing               : on\n\n");
   else
-    fprintf (fp, "Checkpointing               : off\n\n");
+    fprintf (fp, "# Checkpointing               : off\n\n");
 
   fflush (fp);
 }
