@@ -23,4 +23,6 @@ public:
 private:
   ofstream flx_strm;
 };
+
+void  nonLinear (Domain*, AuxField**, AuxField**, vector<real>&);
 #endif
