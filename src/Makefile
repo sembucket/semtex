@@ -26,6 +26,9 @@ ifeq ($(ARCH),Linux)
   ifeq ($(MACH),i586)
     ARCH = Linux-i586
   endif
+  ifeq ($(MACH),i686)
+    ARCH = Linux-i686
+  endif
 endif
 
 # ----------------------------------------------------------------------------
