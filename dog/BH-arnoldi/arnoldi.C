@@ -40,26 +40,30 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <stdarg.h>		// -- System C headers.
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <ctype.h>
-#include <string.h>
-#include <limits.h>
+#include <cstdarg>		/* System C headers.  */
+#include <cstdlib>
+#include <cstdio>
+#include <cmath>
+#include <cctype>
+#include <cstring>
+#include <climits>
+#include <cfloat>
+#include <cassert>
 
-#include <iostream.h>		// -- System C++ headers.
-#include <fstream.h>
-#include <strstream.h>
-#include <iomanip.h>
+#include <iostream>		/* System C++ headers. */
+#include <fstream>
+#include <strstream>
+#include <iomanip>
+#include <vector>
 
-#include <femdef.h>		// -- Semtex headers.
-#include <Array.h>
-#include <Blas.h>
-#include <Lapack.h>
-#include <Utility.h>
-#include <Veclib.h>
+
+using namespace std;
+
+#include <cfemdef.h>		// -- Semtex headers.
+#include <blas.h>
+#include <lapack.h>
+#include <utility.h>
+#include <veclib.h>
 
 #include <iohb.h>		// -- HB IO routines from NIST.
 
@@ -77,21 +81,6 @@ extern "C" {
      const integer& ldx   ,
      double*        y     ,
      const integer& ldy   );
-  void F77name(dgeev)		// -- Lapack eigensystem routine.
-    (const char*    N    ,
-     const char*    V    ,
-     const integer& dim1 ,
-     double*        H    ,
-     const integer& dim2 ,
-     double*        wr   ,
-     double*        wi   ,
-     const integer& f1   ,
-     const integer& f2   ,
-     double*        Hvec ,
-     const integer& dim3 ,
-     real*          rwork,
-     const integer& lwork,
-     integer&       ier  );
 }
 
 static char prog[] = "arnoldi";
@@ -143,7 +132,7 @@ int main (int    argc,
   integer       i, itrn, converged = 0;
   real          norm, resnorm;
   vector<real>  work (kdim + kdim + kdim * kdim + 2 * ntot * (kdim + 1));
-  real*         wr   = work();
+  real*         wr   = &work[0];
   real*         wi   = wr   + kdim;
   real*         zvec = wi   + kdim;
   real*         kvec = zvec + kdim * kdim;
@@ -298,7 +287,7 @@ static void EV_small (real**    Kseq   ,
   const int    kdimp = kdim + 1;
   int          i, j, ier, lwork = 10 * kdim;
   vector<real> work (kdimp * kdimp + kdim * kdim + lwork);
-  real         *R = work(), *H = R + kdimp * kdimp, *rwork = H + kdim * kdim;
+  real         *R = &work[0], *H = R + kdimp * kdimp, *rwork = H + kdim * kdim;
 
   Veclib::zero (kdimp * kdimp, R, 1);
 
@@ -391,7 +380,7 @@ static int EV_test (const int  itrn   ,
 {
   int          i, idone;
   vector<real> work (kdim);
-  real         re_ev, im_ev, max_resid, *resid = work();
+  real         re_ev, im_ev, max_resid, *resid = &work[0];
   static real  min_max1, min_max2;
  
   if (min_max1 == 0.0) min_max1 = 1000.0;
@@ -448,7 +437,7 @@ static void EV_sort (real*     evec,
 {
   int          i, j;
   vector<real> work (dim);
-  real         wr_tmp, wi_tmp, te_tmp, *z_tmp = work();
+  real         wr_tmp, wi_tmp, te_tmp, *z_tmp = &work[0];
 
   for (j = 1; j < dim; j++) {
     wr_tmp = wr  [j];
