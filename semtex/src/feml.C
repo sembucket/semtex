@@ -265,7 +265,7 @@ integer FEML::tokens ()
 
     if ((integer)Femlib::value ("N_TIME") > 3) {
       message (routine, "N_TIME too large, reset to 3", WARNING);
-      Femlib::value ("N_TIME", 3);
+      Femlib::value ("N_TIME", (integer) 3);
     }
     
     return 1;
