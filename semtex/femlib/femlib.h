@@ -20,73 +20,73 @@ int    yy_dump       (char*, const int);
 
 /* -- Routines from polyops.c: */
 
-void   dermat_g (int K, double *zero, int I, double  *x,
-		                      double **DV, double **DT);
-void   intmat_g (int K, double *zero, int I, double  *x, 
-		                      double **IN, double **IT);
-void   dermat_k (int K, double *zero, double **DV, double **DT);
+void   dermat_g (const int, const double*, const int,
+		 const double*, double**, double**);
+void   intmat_g (const int, const double*, const int,
+		 const double*, double**, double**);
+void   dermat_k (const int, const double*, double**, double**);
 
-void   jacg     (int n, double alpha, double beta, double *xjac);
-void   jacgr    (int n, double alpha, double beta, double *xjac);
-void   jacgl    (int n, double alpha, double beta, double *xjac);
+void   jacg     (const int, const double, const double, double*);
+void   jacgr    (const int, const double, const double, double*);
+void   jacgl    (const int, const double, const double, double*);
 
-void   zwgl     (double *z, double *w, int np);
-void   zwgrl    (double *z, double *w, int np);
-void   zwgll    (double *z, double *w, int np);
+void   zwgl     (double*, double*, const int);
+void   zwgrl    (double*, double*, const int);
+void   zwgll    (double*, double*, const int);
 
-double pnleg    (double  z, int n);
-double pndleg   (double  z, int n);
-double pnd2leg  (double  z, int n);
+double pnleg    (const double, const int);
+double pndleg   (const double, const int);
+double pnd2leg  (const double, const int);
 
-void   dgll     (int nz, double *z, double **D, double **DT);
+void   dgll     (const int, const double*, double**, double**);
 
-void   uniknot  (int nk, double *k);
+void   uniknot  (const int, double*);
 
-int    quadComplete (int dim, int np);
+int    quadComplete (const int, const int);
 
 /* -- Routines from operators.c: */
 
-void  dQuadOps(const int rule,	/* input: quadrature rule: GL or LL          */
-	       const int np  ,	/* input: number of knot points              */
-	       const int nq  ,	/* input: number of quadrature points        */
-	       double  **kp  ,	/* pointer to knot point storage             */
-	       double  **qp  ,	/* pointer to quadrature point storage       */
-	       double  **qw  ,	/* pointer to quadrature weight storage      */
-	       double ***in  ,	/* pointer to interpolation matrix           */
-	       double ***it  ,	/* pointer to transposed interpolant matrix  */
-	       double ***dr  ,	/* pointer to derivative matrix              */
-	       double ***dt  );	/* pointer to transposed derivative matrix   */
+void  dQuadOps(const int       rule, /* input: quadrature rule: GL or LL     */
+	       const int       np  , /* input: number of knot points         */
+	       const int       nq  , /* input: number of quadrature points   */
+	       const double**  kp  , /* pointer to knot point storage        */
+	       const double**  qp  , /* pointer to quadrature point storage  */
+	       const double**  qw  , /* pointer to quadrature weight storage */
+	       const double*** in  , /* pointer to interpolation matrix      */
+	       const double*** it  , /* pointer to transposed interp matrix  */
+	       const double*** dr  , /* pointer to derivative matrix         */
+	       const double*** dt  );/* pointer to transposed deriv matrix   */
 
-void  dMeshOps(const int old ,	/* input: element basis: STD or GLL          */
-	       const int new ,	/* input: desired basis: STD or GLL          */
-	       const int np  ,	/* input: number of knot points              */
-	       const int ni  ,	/* input: number of interpolant points       */
-	       double  **mesh,	/* pointer to interpolated mesh storage      */
-	       double ***in  ,	/* pointer to interpolation matrix           */
-	       double ***it  ,	/* pointer to transposed interpolant matrix  */
-	       double ***dr  ,	/* pointer to derivative matrix              */
-	       double ***dt  ); /* pointer to transposed derivative matrix   */
+void  dMeshOps(const int       old , /* input: element basis: STD or GLL     */
+	       const int       new , /* input: desired basis: STD or GLL     */
+	       const int       np  , /* input: number of knot points         */
+	       const int       ni  , /* input: number of interpolant points  */
+	       const double**  mesh, /* pointer to interpolated mesh storage */
+	       const double*** in  , /* pointer to interpolation matrix      */
+	       const double*** it  , /* pointer to transposed interp matrix  */
+	       const double*** dr  , /* pointer to derivative matrix         */
+	       const double*** dt  );/* pointer to transposed deriv matrix   */
 
-void  sQuadOps(const int rule,	/* input: quadrature rule: GL or LL          */
-	       const int np  ,	/* input: number of knot points              */
-	       const int nq  ,	/* input: number of quadrature points        */
-	       float   **kp  ,	/* pointer to knot point storage             */
-	       float   **qp  ,	/* pointer to quadrature point storage       */
-	       float   **qw  ,	/* pointer to quadrature weight storage      */
-	       float  ***in  ,	/* pointer to interpolation matrix           */
-	       float  ***it  ,	/* pointer to transposed interpolant matrix  */
-	       float  ***dr  ,	/* pointer to derivative matrix              */
-	       float  ***dt  );	/* pointer to transposed derivative matrix   */
+void  sQuadOps(const int       rule, /* input: quadrature rule: GL or LL     */
+	       const int       np  , /* input: number of knot points         */
+	       const int       nq  , /* input: number of quadrature points   */
+	       const float**   kp  , /* pointer to knot point storage        */
+	       const float**   qp  , /* pointer to quadrature point storage  */
+	       const float**   qw  , /* pointer to quadrature weight storage */
+	       const float***  in  , /* pointer to interpolation matrix      */
+	       const float***  it  , /* pointer to transposed interp matrix  */
+	       const float***  dr  , /* pointer to derivative matrix         */
+	       const float***  dt  );/* pointer to transposed deriv matrix   */
 
-void  sMeshOps(const int old ,	/* input: element basis: STD or GLL          */
-	       const int new ,	/* input: desired basis: STD or GLL          */
-	       const int np  ,	/* input: number of knot points              */
-	       const int ni  ,	/* input: number of interpolant points       */
-	       float   **mesh,	/* pointer to interpolated mesh storage      */
-	       float  ***in  ,	/* pointer to interpolation matrix           */
-	       float  ***it  ,	/* pointer to transposed interpolant matrix  */
-	       float  ***dr  ,	/* pointer to derivative matrix              */
-	       float  ***dt  ); /* pointer to transposed derivative matrix   */
+void  sMeshOps(const int       old , /* input: element basis: STD or GLL     */
+	       const int       new , /* input: desired basis: STD or GLL     */
+	       const int       np  , /* input: number of knot points         */
+	       const int       ni  , /* input: number of interpolant points  */
+	       const float**   mesh, /* pointer to interpolated mesh storage */
+	       const float***  in  , /* pointer to interpolation matrix      */
+	       const float***  it  , /* pointer to transposed interp matrix  */
+	       const float***  dr  , /* pointer to derivative matrix         */
+	       const float***  dt  );/* pointer to transposed deriv matrix   */
 
 /* -- Routines from mapping.c: */
 
