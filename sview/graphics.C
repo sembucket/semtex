@@ -29,6 +29,8 @@ static void drawPoints ();
 static void skeleton   ();
 static void polarView  (GLdouble, GLdouble, GLdouble, GLdouble);
 
+static void drawSpecial();
+
 
 void keyboard (unsigned char key,
 	       int           x  ,
@@ -448,4 +450,44 @@ static void skeleton ()
   drawMesh        ();
   glPopMatrix     ();
   glutSwapBuffers ();
+}
+
+
+static void drawSpecial ()
+// ---------------------------------------------------------------------------
+// Any special drawing code (to be hand edited).
+// ---------------------------------------------------------------------------
+{
+#if 0
+  int           i;
+  const int     NC = 256;
+  static float* coord = new float [2*NC];
+  float         x, *yc = coord, *zc = yc + NC;
+
+  glDisable (GL_LIGHTING);
+
+  if   (State.blackbk) glColor3f (1.0, 1.0, 1.0);
+  else                 glColor3f (0.0, 0.0, 0.0);
+
+  for (i = 0; i < NC; i++) {
+    yc[i] = cos (2.0*i*M_PI/NC);
+    zc[i] = sin (2.0*i*M_PI/NC);
+  }
+
+  x = 1.25;
+  
+  glBegin (GL_LINE_STRIP);
+  for (i = 0; i < NC; i++)
+   glVertex3f (x, yc[i], zc[i]); 
+  glVertex3f (x, yc[0], zc[0]);
+  glEnd();
+
+  x = -1.25;
+  
+  glBegin (GL_LINE_STRIP);
+  for (i = 0; i < NC; i++)
+   glVertex3f (x, yc[i], zc[i]); 
+  glVertex3f (x, yc[0], zc[0]);
+  glEnd();
+#endif
 }
