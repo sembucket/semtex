@@ -52,10 +52,14 @@
 #include "stab.h"
 #include <new.h>
 
-static char          prog[] = "arnoldi";
-static char*         session;
-static Domain*       domain;
-static StabAnalyser* analyst;
+static char             prog[] = "arnoldi";
+static char*            session;
+static Domain*          domain;
+static StabAnalyser*    analyst;
+static vector<Element*> elmt;
+static FEML*            file;
+static Mesh*            mesh;
+static BCmgr*           bman;
 
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, int&, int&, int&, int&, real&, char*&);
@@ -380,7 +384,8 @@ static int EV_test (const int  itrn   ,
   cout.precision(4);
   cout.setf(ios::scientific, ios::floatfield);
 
-  cout << "EV  Magnitude   Angle     Growth      Frequency   Residual" << endl;
+  cout << "EV  Magnitude   Angle       Growth      Frequency   Residual"
+       << endl;
 
   for (i = 0; (i < kdim) && (i < 10); i++) {
     re_ev  = wr[i];
@@ -684,11 +689,6 @@ static int preprocess (const char* session)
 // a velocity component * number of components.
 // ---------------------------------------------------------------------------
 {
-  vector<Element*> elmt;
-  FEML*            file;
-  Mesh*            mesh;
-  BCmgr*           bman;
-
   const real* z;
   integer     i, np, nel, npert;
 
