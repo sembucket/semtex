@@ -47,18 +47,21 @@ FORTRAN    = xmxm
 
 ALL        = $(UTIL)       $(MEMORY)    $(MATH)       $(OTHER)   $(TRIAD) \
              $(RELATIONAL) $(REDUCTION) $(CONVERSION) $(MISC)    $(FORTRAN)    
-LMD        = $(foreach routine, $(ALL), $(LIB)($(routine).o))
+#LMD        = $(foreach routine, $(ALL), $(LIB)($(routine).o))
+LMD        = $(foreach routine, $(ALL), $(routine).o)
 
 # ----------------------------------------------------------------------------
 # Make library, default action.
 #
 $(LIB): $(LMD)
+	$(AR) $(ARFLAGS) $(LIB) $(LMD)
+
 #ifdef $(RANLIB) # -- Don't know why this won't work yet...
 #$(RANLIB) $(LIB)
 #endif
-ifeq ($(ARCH),Darwin) # -- So use workaround.
-	ranlib $(LIB)
-endif
+#ifeq ($(ARCH),Darwin) # -- So use workaround.
+#	ranlib $(LIB)
+#endif
 ifeq ($(ARCH),Linux-alpha)
 	ranlib $(LIB)
 endif

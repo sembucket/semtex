@@ -41,6 +41,8 @@ CXX      = g++
 LD       = g++
 CC       = gcc
 FC       = g77
+AR	 = libtool
+ARFLAGS  = -static -o
 RANLIB   = ranlib
 ifdef DEBUG
   OPT    = -gstabs+
