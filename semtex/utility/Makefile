@@ -1,11 +1,11 @@
 ##############################################################################
-# Makefile for finite element solver.
+# Makefile for spectral element solver utilities.
 #
 # $Id$
 ##############################################################################
 
-FEM      = ..
-VPATH    = $(FEM)/src
+SEM      = ..
+VPATH    = $(SEM)/src
 
 ARCH     = $(shell uname -s)
 
@@ -15,82 +15,186 @@ else
   DEFINES  =
 endif
 
-CPPFLAGS = -I. -I$(FEM)/include
+CPPFLAGS = -I. -I$(SEM)/include
 
 # ----------- Compiler options for specific machines -------------------------
 
 ifeq ($(ARCH),IRIX)		# -- SGI MIPS R4xxx IRIX5x
+CC       = cc
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = $(DEFINES) -mips2 -fullwarn -smart -g
-F77LIBS	 = -lcomplib.sgimath -lisam
-LDFLAGS  = -lfpe -mips2 -L$(FEM)/lib/$(ARCH) -lfem -lalp \
+CXXFLAGS = $(DEFINES) -fullwarn -O2
+F77LIBS	 = -lcomplib.sgimath -lftn
+LDFLAGS  = -lfpe -mips2 -L$(SEM)/lib/$(ARCH) -lfem -lalp \
 	   $(F77LIBS) -lmalloc -lm
 endif
 
-
 ifeq ($(ARCH),IRIX64)		# -- SGI MIPS R8xxx IRIX6x
+CC       = cc
 CXX	 = CC
 LD	 = CC
-CXXFLAGS =  $(DEFINES) -O3
-F77LIBS	 = -lcomplib.sgimath -lisam
-LDFLAGS  = -L$(FEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lmalloc -lm
+CXXFLAGS =  $(DEFINES) -g
+F77LIBS	 = -lcomplib.sgimath -lftn
+LDFLAGS  = -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lmalloc -lm
 endif
-
 
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha
+CC       = cc
 CXX	 = cxx
 LD	 = cxx
-CXXFLAGS =  $(DEFINES) -migrate -tune host -O2
+CXXFLAGS =  $(DEFINES) -migrate -tune host -g
 F77LIBS  = -ldxml
-LDFLAGS  = $(CXXFLAGS) -L$(FEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+LDFLAGS  = $(CXXFLAGS) -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
 endif
 
+ifeq ($(ARCH),Linux)		# -- GNU/Linux system.
+CC	 = gcc
+CXX	 = g++
+LD	 = g++
+CXXFLAGS = $(DEFINES) -gstabs+
+F77LIBS  = -llapack -lblas -lf2c
+LDFLAGS  = -gstabs+ -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
+	   -lfem -lalp $(F77LIBS) -lm
+endif
+
+ifeq ($(ARCH),UNIX_System_V)    # -- Fujitsu VPP300.
+LIBDIR   = -L$(SEM)/lib/$(ARCH) 
+LIBDIR  += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
+LIBS     = -lfem -lalp
+LIBS    += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
+CC       = cc
+CXX      = /usr/uxp/C++/bin/CC
+LD       = /usr/uxp/C++/bin/CC
+#OPTIM    = -Wv,-m3,-Ps 
+OPTIM    = -g
+CXXFLAGS = $(DEFINES)  $(OPTIM)
+LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS)
+endif
+
+ifeq ($(ARCH),SUPER-UX)         # -- NEC SX-4.
+LIBDIR   = -L$(SEM)/lib/$(ARCH) 
+LIBDIR  += 
+LIBS     = -lfem -lalp -llapack -lblas	\
+           -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm
+CC       = cc
+FC       = f77
+CXX      = CC
+LD       = CC
+OPTIM    = -g -hacct
+CXXFLAGS = $(DEFINES)  $(OPTIM)
+LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS) -hacct
+endif
 
 # ----------------------------------------------------------------------------
-#
-FEMFILES  = BC boundary domain element family field mesh misc pressure
-FEMOBJ    = $(addsuffix .o,$(FEMFILES))
-FEMHDR    = Fem.h
+headers:
+	cd $(VPATH); make install
+
+all: meshpr  enumerate calc   addfield  sem2nek  sem2tec \
+     convert compare   noiz   project   interp   probe
 
 # ----------------------------------------------------------------------------
 # Build meshpr utility.
-MPROBJ = meshpr.o
+MPROBJ = feml.o mesh.o meshpr.o
 
-meshpr:	$(MPROBJ) $(FEMOBJ)
-	$(LD) -o $@ $(MPROBJ) $(FEMOBJ) $(LDFLAGS)
+meshpr:	headers $(MPROBJ)
+	$(LD) -o $@ $(MPROBJ) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build enumerate utility.
+ENUOBJ = feml.o mesh.o enumerate.o
+
+enumerate:	headers $(ENUOBJ)
+	$(LD) -o $@ $(ENUOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build calc utility.
-CALOBJ = calc.o
 
-calc:	$(CALOBJ) $(FEMOBJ)
-	$(LD) -o $@ $(CALOBJ) $(FEMOBJ) $(LDFLAGS)
+calc: calc.o
+	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build addvort utility.
-ADDOBJ = addvort.o
+ADDOBJ = addvort.o auxfield.o BCmgr.o boundary.o condition.o domain.o	\
+	 element.o feml.o field.o geometry.o  integration.o mesh.o	\
+	 misc.o	pressure.o
 
-addvort:	$(ADDOBJ) $(FEMOBJ)
-	$(LD) -o $@ $(ADDOBJ) $(FEMOBJ) $(LDFLAGS)
-
-# ----------------------------------------------------------------------------
-# Build checker for Kovasznay flow.
-KCKOBJ = kovas_chk.o
-
-kovas_chk:	$(KCKOBJ) $(FEMOBJ)
-	$(LD) -o $@ $(ADDOBJ) $(FEMOBJ) $(LDFLAGS)
+addvort:	$(ADDOBJ)
+	$(LD) -o $@ $(ADDOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
-# Build fem --> NEKTON input file converter.
-F2NOBJ = fem2nek.o
+# Build addvortr utility.
+ADROBJ = addvortr.o auxfield.o BCmgr.o boundary.o condition.o domain.o	\
+	 element.o feml.o field.o geometry.o  integration.o mesh.o	\
+	 misc.o	pressure.o \
 
-fem2nek:	$(F2NOBJ) $(FEMOBJ)
-	$(LD) -o $@ $(F2NOBJ) $(FEMOBJ) $(LDFLAGS)
+addvortr:	$(ADROBJ)
+	$(LD) -o $@ $(ADROBJ) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build addfield utility.
+ADFOBJ = addfield.o auxfield.o BCmgr.o boundary.o condition.o domain.o	\
+	 element.o feml.o field.o geometry.o  integration.o mesh.o	\
+	 misc.o	pressure.o
+
+addfield:	$(ADFOBJ)
+	$(LD) -o $@ $(ADFOBJ) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build semtex --> NEKTON input file converter.
+S2NOBJ = feml.o mesh.o sem2nek.o 
+
+sem2nek: $(S2NOBJ)
+	$(LD) -o $@ $(S2NOBJ) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build convert, binary <--> ASCII field dump converter.
+
+convert: convert.c
+	$(CC) -o $@ $@.c
+
+# ----------------------------------------------------------------------------
+# Build sem2tec, field dump --> tecplot input file converter.
+
+sem2tec: sem2tec.o
+	$(CC) $(CPPFLAGS) -o $@ $@.c $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build compare, exact solution comparison/restart utility.
+COMOBJ = compare.o feml.o mesh.o element.o auxfield.o geometry.o
+
+compare: $(COMOBJ)
+	$(LD) -o $@ $(COMOBJ) $(LDFLAGS)
+
+
+# ----------------------------------------------------------------------------
+# Build noiz, velocity field perturber.
+
+noiz: noiz.c
+	$(CC) $(CPPFLAGS) -o $@ $@.c $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build project, field dump projection to higher/lower orders.
+
+project: project.C
+	$(CXX) $(CPPFLAGS) -g -o $@ $@.C $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build interp, field dump interpolator.
+INTOBJ = interp.o feml.o mesh.o element.o auxfield.o geometry.o
+
+interp: $(INTOBJ)
+	$(CXX) $(CPPFLAGS) -g -o $@ $(INTOBJ) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build probe, field dump data extraction.
+PRBOBJ = probe.o feml.o mesh.o element.o auxfield.o geometry.o
+
+probe: $(PRBOBJ)
+	$(CXX) $(CPPFLAGS) -g -o $@ $(PRBOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 #
-$(FEMOBJ): $(FEMHDR)
+$(SEMOBJ): $(SEMHDR)
 
 # -----------------------------------------------------------------------------
 #
@@ -98,10 +202,3 @@ clean:
 	rm -f *.o *~
 	rm -rf ILDUMPS
 	rm -rf ii_files
-
-
-
-
-
-
-
