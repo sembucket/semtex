@@ -79,7 +79,7 @@ N_BASE:  number of velocity components (2 or 3)
 N_SLICE: number of time slices in session.bse (1 for steady base flow)
 
 N_PERT is set according to the number of velocity fields nominated in
-the session file (i.e. <FIELDS NUMBER=npert>).
+the session file (i.e. <FIELDS NUMBER=npert+1>).
 
 Files
 -----
