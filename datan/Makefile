@@ -54,7 +54,7 @@ upxf: upxf.C
 	$(CXX) -o $@ $@.C $(CXXFLAGS) $(SEMHDR) $(RECIPES) $(F77LIBS)
 
 peaks: peaks.C
-	$(CXX) -o $@ $@.C $(CXXFLAGS) $(SEMHDR) $(RECIPES) $(F77LIBS)
+	$(CXX) -o $@ $@.C
 
 cycint: cycint.C
 	$(CXX) -o $@ $@.C $(CXXFLAGS) $(SEMHDR) $(VECLIB) $(RECIPES) $(F77LIBS)
@@ -70,6 +70,9 @@ embed: embed.C
 
 odeint: odeint.C
 	$(CXX) -o $@ $@.C $(CXXFLAGS) $(SEMHDR) $(VECLIB) $(RECIPES) $(F77LIBS)
+
+zeros: zeros.C
+	$(CXX) -o $@ $@.C $(CXXFLAGS)
 
 # ----------------------------------------------------------------------------
 # Standard rules and definitions.
