@@ -72,7 +72,7 @@ integer main (integer argc,
   else          strcpy (fields, "uvcp");
 
   D = new Domain       (*F, *M, *B, fields, session);
-  A = new BouyAnalyser (*D, *F);
+  A = new BuoyAnalyser (*D, *F);
 
   D -> initialize();
   ROOTONLY D -> report();
