@@ -19,6 +19,7 @@
 //   -a   ... add them all
 //
 // Field names used/assumed here:
+// -----------------------------
 //
 // u -- x velocity component (cylindrical: axial)
 // v -- y velocity component (cylindrical: radial)
@@ -30,6 +31,10 @@
 // D -- uw covariance
 // E -- vw covariance
 // F -- ww covariance
+// 
+// Computed variables:
+// ------------------
+//
 // r -- x component vorticiy
 // s -- y component vorticity
 // t -- z component vorticity
@@ -37,9 +42,9 @@
 // Q -- 2nd invariant of velocity gradient tensor
 // R -- 3rd invariant of velocity gradient tensor
 // L -- Discriminant  of velocity gradient tensor 27/4 R^2 + Q^3
-// G -- Strain rate sqrt (2 Sij Sji)
-// e -- enstrophy = r^2 + s^2 + t^2
-// h -- helicity  = ur  + vs  + wt
+// G -- Strain rate magnitude sqrt(2 Sij Sji)
+// e -- enstrophy 0.5*(r^2 + s^2 + t^2)
+// h -- helicity  0.5*(u*r + v*s + w*t)
 // i -- uu strain rate component
 // j -- uv strain rate component
 // k -- vv strain rate component
@@ -54,18 +59,18 @@
 #include <new.h>
 #include <time.h>
 
-static char  prog[] = "addfield";
-static void  memExhaust () { message ("new", "free store exhausted", ERROR); }
+static char prog[] = "addfield";
+static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 
-static void    getargs  (integer, char**, char*&, char*&,
+static void    getargs  (int, char**, char*&, char*&,
 			 integer&, integer&, integer&,
 			 integer&, integer&, integer&);
 static integer getDump  (Domain*, ifstream&);
 static void    putDump  (Domain*, vector<AuxField*>&, integer, ofstream&);
 
 
-integer main (integer argc,
-	      char**  argv)
+int main (int    argc,
+	  char** argv)
 // ---------------------------------------------------------------------------
 // Driver.
 // ---------------------------------------------------------------------------
@@ -91,10 +96,10 @@ integer main (integer argc,
   AuxField*          work;
   integer            nData = 0;
   const real*        z;
-  vector <Element*>  elmt;
-  vector <AuxField*> AuxPoint(3);
+  vector<Element*>   elmt;
+  vector<AuxField*>  AuxPoint(3);
   vector<AuxField*>  vorticity;
-  vector <AuxField*> dataField(12);
+  vector<AuxField*>  dataField(12);
   AuxField***        Sij;
 
   // -- Set command line defaults
@@ -114,7 +119,6 @@ integer main (integer argc,
 
   F = new FEML  (session);
   M = new Mesh  (*F);
-
 
   nel    = M -> nEl();  
   np     =  (integer) Femlib::value ("N_POLY");
@@ -175,7 +179,7 @@ integer main (integer argc,
     }
   }
 
-  if(add_div+add_inv > 0) {
+  if (add_div + add_inv > 0) {
     dataField(nData) = new AuxField (elmt, 'd'); Div = dataField(nData);
     nData += 1;
   }
@@ -227,7 +231,7 @@ integer main (integer argc,
   
   while (getDump (D, file)) {
     
-    if( DIM > 2 ) D -> transform (+1);
+    if (DIM > 2) D -> transform (+1);
 
     // -- Velocity gradient tensor, calculated in Fourier, transformed back.
 
@@ -241,11 +245,9 @@ integer main (integer argc,
     if (DIM > 2) D -> transform (-1);
 
     if (system == Geometry::Cylindrical && DIM == 3) {
-      
       for (i = 0; i < DIM; i++) Vij[i][2] -> divR();
       (*work = *D -> u[2]) . divR(); *Vij[1][2] -= *work;
       (*work = *D -> u[1]) . divR(); *Vij[2][2] += *work;
-
     }
 	
     if (add_div + add_inv) {
@@ -311,7 +313,6 @@ integer main (integer argc,
 	work -> times (*InvR, *InvR);
 	*work *= 6.75;
 	*Disc += *work;
-
       }
     }    
 
@@ -319,18 +320,18 @@ integer main (integer argc,
       *Strain = 0.0;
       for (i = 0; i < DIM; i++)
 	for (j = 0; j < DIM; j++)
-	  Strain -> timesPlus ( *Sij[i][j], *Sij[j][i] );
+	  Strain -> timesPlus (*Sij[i][j], *Sij[j][i]);
       *Strain *= 2.0;
+      Strain -> root();
     }
     
     if (add_enst == 1) {
-      Ens -> innerProduct (vorticity, vorticity);
+      Ens -> innerProduct (vorticity, vorticity) *= 0.5;
       for (i = 0; i < DIM; i++) AuxPoint[i] = D -> u[i];
-      Hel -> innerProduct (vorticity, AuxPoint);
+      Hel -> innerProduct (vorticity, AuxPoint)  *= 0.5;
     }
       
     putDump (D, dataField, nData, outp);
-    
   }
   
   file.close();
@@ -339,31 +340,31 @@ integer main (integer argc,
 }
 
 
-static void getargs (integer  argc    ,
-		     char**   argv    ,
-		     char*&   session ,
-		     char*&   dump    ,
-		     integer& add_vort,
-		     integer& add_enst,
-		     integer& add_div ,
-		     integer& add_sij ,
-		     integer& add_inv ,
-                     integer& add_strain )
+static void getargs (int      argc      ,
+		     char**   argv      ,
+		     char*&   session   ,
+		     char*&   dump      ,
+		     integer& add_vort  ,
+		     integer& add_enst  ,
+		     integer& add_div   ,
+		     integer& add_sij   ,
+		     integer& add_inv   ,
+                     integer& add_strain)
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
 {
   char usage[] = "Usage: %s [options] -s session dump.fld\n"
                  "options:\n"
-                 "  -h   ... print this message \n"
-                 "  -v   ... add vorticity\n"
-		 "  -e   ... add enstrophy and helicity (3D only) \n"
-		 "  -d   ... add divergence\n"
-		 "  -t   ... add rate of strain tensor Sij\n"
-		 "  -g   ... add gamma = total strain rate = sqrt(2 Sij Sji)\n"
-		 "  -i   ... add invariants of Vij (but NOT Vij itself) \n"
-		 "           (NB: Divergence is ASSUMED equal to zero) \n"
-                 "  -a   ... add them all \n";
+                 "  -h ... print this message \n"
+                 "  -v ... add vorticity\n"
+		 "  -e ... add enstrophy and helicity (3D only)\n"
+		 "  -d ... add divergence\n"
+		 "  -t ... add rate of strain tensor Sij\n"
+		 "  -g ... add gamma = total strain rate = sqrt(2 Sij Sji)\n"
+		 "  -i ... add invariants of Vij (but NOT Vij itself)\n"
+		 "           (NB: Divergence is ASSUMED equal to zero)\n"
+                 "  -a ... add them all\n";
 
   char buf[StrMax];
  
@@ -404,9 +405,9 @@ static void getargs (integer  argc    ,
     case 'a':
       add_enst = 1;
       add_vort = 1;
-      add_div = 1;
-      add_sij = 1;
-      add_inv = 1;
+      add_div  = 1;
+      add_sij  = 1;
+      add_inv  = 1;
       break;
 
     default:
