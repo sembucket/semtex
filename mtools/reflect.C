@@ -81,6 +81,7 @@ static void getArgs (int       argc  ,
       break;
     case 'y':
       mirror = Y;
+      break;
     case 'r':
       mirror = R;
       --argc;

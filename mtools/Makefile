@@ -41,7 +41,7 @@ endif
 ifeq ($(ARCH),IRIX64)		# -- IRIX64
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = $(DEFINES) -32 -g
+CXXFLAGS = $(DEFINES) -n32 -g -LANG:std
 LDFLAGS  = $(CXXFLAGS)  -L/usr/local/lib/sm -L/usr/X11/lib -lm
 SMLIBS   = -lplotsub -ldevices -lutils
 X11LIBS  = -lX11
@@ -115,6 +115,14 @@ MOBJ = $(addsuffix .o,$(MSRC))
 
 merge: $(HDR) $(MOBJ)
 	$(LD) -o merge $(MOBJ) $(CPPFLAGS) $(LDFLAGS) $(SMLIBS) $(X11LIBS) -lm
+
+# ----------------------------------------------------------------------------
+# unique --- fix up non-unique nodes produced by digmesh.
+
+UOBJ = unique.o point.o misc.o
+
+unique: $(UOBJ) $(HDR)
+	$(LD) -o unique $(UOBJ) $(CPPFLAGS) $(LDFLAGS) -lm
 
 
 $(OOBJ): $(HDR)

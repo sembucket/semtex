@@ -148,7 +148,7 @@ Point& Point::operator *= (const real& alpha)
 }
 
 
-ostream& operator << (ostream& s, Point& p) { s << p.x <<" "<< p.y; return s; }
+ostream& operator << (ostream& s, const Point& p) { s << p.x <<" "<< p.y; return s; }
 istream& operator >> (istream& s, Point& p) { s >> p.x      >> p.y; return s; }
 
 
@@ -305,7 +305,8 @@ int cull (const Point& Pi, const Point& Pk,
   const real di = Pi.distance (Pk);
 
   if (dj < EPS || dl < EPS || di < EPS) {
-    if (Global::verbose) error (routine, "two points are coincident", WARNING);
+//    if (Global::verbose) error (routine, "two points are coincident", WARNING);
+//    if (verbose) error (routine, "two points are coincident", WARNING);
     return 0;
   }
 
