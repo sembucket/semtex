@@ -58,6 +58,8 @@ public:
       return 0;
     }
   }
+
+  int depth () const { return stack_depth; }
 };
 
 #endif
