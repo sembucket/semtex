@@ -20,10 +20,7 @@ static void  cYFFT  (CF,  const int, const int, const int,
 static void  cXFFT  (CF,  const int, const int, const int,
 		     const complex*, const int, const int);
 
-static int N0 = 0, N1 = 0, N2 = 0; /* -- Globals used in 3D indexing. */
-
 #define SWAP(a, b)  W = (a); (a) = (b); (b) = W
-#define rm(i,j,k)   ((k) + N2 * ((j) + N1 * (i)))
 
 
 void preFFT (complex*  Wtab,
@@ -41,7 +38,7 @@ void preFFT (complex*  Wtab,
   int     i;
   double  theta;
 
-  Wtab[0].Re = 1.0;   Wtab[0].Im = 0.0;
+  Wtab[0].Re = 1.0; Wtab[0].Im = 0.0;
 
   for (i = 1; i < K; i++) {
     theta = i * M_PI / (double) K;
@@ -63,7 +60,7 @@ void preShift (complex*  Stab,
   int    i;
   double theta;
 
-  Stab[0].Re = 1.0;   Stab[0].Im = 0.0;
+  Stab[0].Re = 1.0; Stab[0].Im = 0.0;
 
   for (i = 1; i < N; i++) {
     theta = i * M_PI / (double) N;
@@ -73,10 +70,9 @@ void preShift (complex*  Stab,
 }
 
 
-void rc3DFT(/* update */ CF              Data   ,
-	    /* using  */ const int*      Dim    ,
-	                 const complex*  Wtab   ,
-                         const int       Forward)
+void rc3DFT(CF             Data   ,
+	    const complex* Wtab   ,
+	    const int      Forward)
 /* ------------------------------------------------------------------------- *
  * Perform 3-dimensional FFT of real-stored-as-complex data, or its inverse.
  *                                                                          
@@ -136,24 +132,19 @@ void rc3DFT(/* update */ CF              Data   ,
  * ------------------------------------------------------------------------- */
 {
   register int i, j, k;
-  const int    N      = Dim[1];
-  const int    Non2   = Dim[3];
   const int    Nm     = N - 1;
-  const int    TabLen = Non2;
-
-  N0 = N1 = N;			/* -- Set global vars used for indexing. */
-  N2 = Non2;
+  const int    TabLen = K;
 
   if (Forward) {
 
     for (i = 0; i < N; i++)
       for (j = 0; j < N; j++)
-	rcZFFT (Data, i, j, Non2, Wtab, TabLen, FORWARD);
+	rcZFFT (Data, i, j, K, Wtab, TabLen, FORWARD);
     
     for (i = 0; i < N; i++) {
       cYFFT  (Data, i, 0, N, Wtab, TabLen,      FORWARD);
       pcYFFT (Data, i, N,                       FORWARD);
-      for (k = 1; k < Non2; k++)
+      for (k = 1; k < K; k++)
 	cYFFT (Data, i, k, N, Wtab, TabLen,     FORWARD);
     }
     
@@ -164,13 +155,13 @@ void rc3DFT(/* update */ CF              Data   ,
     for (j = 1; j < Nm; j++)
       cXFFT (Data, j, 0, N, Wtab, TabLen,       FORWARD);
     for (j = 0; j < N; j++)
-      for (k = 1; k < Non2; k++)
+      for (k = 1; k < K; k++)
 	cXFFT (Data, j, k, N, Wtab, TabLen,     FORWARD);
     
   } else {
     
     for (j = 0; j < N; j++)
-      for (k = 1; k < Non2; k++)
+      for (k = 1; k < K; k++)
 	cXFFT (Data, j, k, N, Wtab, TabLen,     INVERSE);
     for (j = 1; j < Nm; j++)
       cXFFT (Data, j, 0, N, Wtab, TabLen,       INVERSE);       
@@ -182,19 +173,18 @@ void rc3DFT(/* update */ CF              Data   ,
     for (i = 0; i < N; i++) {
       pcYFFT (Data, i, N,                       INVERSE);
       cYFFT  (Data, i, 0, N, Wtab, TabLen,      INVERSE);
-      for (k = 1; k < Non2; k++)
+      for (k = 1; k < K; k++)
 	cYFFT (Data, i, k, N, Wtab, TabLen,     INVERSE);
     }
     
     for (i = 0; i < N; i++)
       for (j = 0; j < N; j++)
-	rcZFFT (Data, i, j, Non2, Wtab, TabLen, INVERSE);
+	rcZFFT (Data, i, j, K, Wtab, TabLen, INVERSE);
   }
 }
 
 
-void scaleFT (/* update */ CF         Data,
-	      /* using  */ const int* Dim )
+void scaleFT (CF Data)
 /* ------------------------------------------------------------------------- *
  * Scale data for FFT: the convention adopted is that physical
  * variables are the inverse transform without scaling, but the forward
@@ -202,13 +192,13 @@ void scaleFT (/* update */ CF         Data,
  * of complex data carried into the transform (1/2 the number of real data).
  * ------------------------------------------------------------------------- */
 {
-  const    int   Npts     = Dim[1] * Dim[2] * Dim[3];
-  const    int   NpN      = Npts + Npts;
-  register real  DFT_Fact = 1.0  / Npts;
-  register real *u        = &Data[0][0][0].Re;
+  const    int   npts     = N * N * K;
+  const    int   ntot     = N * N * N;
+  register real  DFT_Fact = 1.0 / npts;
+  register real* u        = &Data[0][0][0].Re;
   register int   i;
 
-  for (i = 0; i < NpN; i++) u[i] *= DFT_Fact;
+  for (i = 0; i < ntot; i++) u[i] *= DFT_Fact;
 }
 
 

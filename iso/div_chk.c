@@ -1,12 +1,16 @@
 /*****************************************************************************
  * div_chk.c: compute maximum divergence of an ISO file.
  *
+ * Copyright (C) 1992-1999 Hugh Blackburn
+ *
  * Usage: div_chk file
  *
  * $Id$
  *****************************************************************************/
 
 #include "iso.h"
+
+int N, K, FourKon3;
 
 
 int main (int    argc,
@@ -15,10 +19,9 @@ int main (int    argc,
   CVF      U, D;
   real**   headU;
   real**   headD;
-  int*     Dim;
   complex* Wtab;
   Param*   Info = (Param*) calloc (1, sizeof (Param));
-  int      i, c, Npts;
+  int      i, c;
   real     div, Max=0.0;
   FILE*    fp;
 
@@ -33,34 +36,33 @@ int main (int    argc,
   fp = efopen (argv[1], "r");
 
   readParam  (fp, Info);
-  printParam (stdout, Info, "$RCSfile$", "$Revision$");
+  printParam (stdout, Info);
 
-  Dim    = ivector (1, 3);
-  Dim[1] = (Dim[2] = Info -> modes);
-  Dim[3] =  Dim[1] / 2;
-  Npts   =  Dim[1] * Dim[2] * Dim[3];
+  N = Info -> ngrid;
+  K = N / 2;
+  FourKon3 = (4 * K) / 3;
 
-  headU = cfield (Dim, &U);
-  headD = cfield (Dim, &D);
+  headU = cfield (&U);
+  headD = cfield (&D);
 
-  readCVF (fp, U, Dim);
+  readCVF (fp, U);
     
   fclose (fp);
 
  /* -- Do dUi/dXi unsummed in Fourier space. */
 
-  deriv (U, 1, D[1], 1, Dim);
-  deriv (U, 2, D[2], 2, Dim);
-  deriv (U, 3, D[3], 3, Dim);
+  deriv (U, 1, D[1], 1);
+  deriv (U, 2, D[2], 2);
+  deriv (U, 3, D[3], 3);
 
   /* -- Transform to physical space. */
 
-  Wtab = cvector (0, Dim[3]-1); 
-  preFFT (Wtab, Dim[3]);
+  Wtab = cvector (0, K-1); 
+  preFFT (Wtab, K);
 
-  rc3DFT (D[1], Dim, Wtab, INVERSE);
-  rc3DFT (D[2], Dim, Wtab, INVERSE);
-  rc3DFT (D[3], Dim, Wtab, INVERSE);
+  rc3DFT (D[1], Wtab, INVERSE);
+  rc3DFT (D[2], Wtab, INVERSE);
+  rc3DFT (D[3], Wtab, INVERSE);
 
   /* -- Find maximum divergence. */
 

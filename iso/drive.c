@@ -3,12 +3,19 @@
  * ----
  * DNS of isotropic turbulence by a Fourier--Galerkin pseudo-spectral method.
  *
+ * Copyright (C) 1992, 1999 Hugh Blackburn
+ *
  * Usage:
  * ------
  * iso [options] session
  * options:
- *  -h   ... print this message
- *  -chk ... checkpoint field dumps
+ * -h       ... print this message
+ * -c       ... turn off checkpointing         [Default: on]
+ * -d <num> ... set time step                  [Default: 0.01]
+ * -f <num> ... set interval for field dumps   [Default: 100]
+ * -H <num> ... set interval for history dumps [Default: 10]
+ * -k <num> ... set kinematic viscosity        [Default: 1]
+ * -n <num> ... set number of timesteps        [Default: 100]
  *
  * Method:
  * -------
@@ -97,11 +104,13 @@
 
 #include "iso.h"
 
+static const char prog[] = "iso";
+static void Default (Param*);
+static void getargs (int, char**, Param*);
 
-#define  SWAP(a, b) {CVF G_temp = (a); (a) = (b); (b) = G_temp;}
+int N, K, FourKon3;		/* -- Global grid size variables. */
 
-static void getargs (int, char**, char**, int*);
-static char prog[] = "iso";
+#define SWAP(a, b) {CVF G_temp = (a); (a) = (b); (b) = G_temp;}
 
 
 int main (int    argc,
@@ -110,70 +119,101 @@ int main (int    argc,
  * Driver routine for simulation code.
  * ------------------------------------------------------------------------- */
 {
-  CVF      U, G, G_old, work;
-  CF       F, F_;
-  int*     Dim  = ivector (1, 3);
-  complex* Wtab;
-  complex* Stab;
-  Param*   runInfo = calloc (1, sizeof (Param));
-  char*    session;
-  FILE*    fp;
-  int      chkpoint = FALSE;
+  CVF     U, G, G_old, work;
+  CF      F, F_;
+  complex *Wtab, *Stab;
+  Param*  runInfo = calloc (1, sizeof (Param));
+  real    setKinvis;
 
   /* -- Set up. */
 
-  getargs (argc, argv, &session, &chkpoint);
+  Default (runInfo);
+  getargs (argc, argv, runInfo);
+  setKinvis = runInfo -> kinvis;
+  startup (runInfo);
 
-  fp = efopen (session, "r");
-  startup     (fp, runInfo, session, chkpoint);
-  fclose      (fp);
-  printParam  (stdout, runInfo, "$RCSfile$", "$Revision$");
+  printf ("%s: Fourier-spectral Navier-Stokes simulation\n", prog);
+  printf ("Copyright (C) 1992-1999 Hugh Blackburn\n\n");
 
-  Dim[1] = (Dim[2] = runInfo -> modes);
-  Dim[3] =  Dim[1] / 2;
+  /* -- Global size variables. */
 
-  allocate   (&U, &G, &G_old, &work, &F, &F_, &Wtab, &Stab, Dim);
-  initialize (U, runInfo, Dim);
+  N        = runInfo -> ngrid;
+  K        = N / 2;
+  FourKon3 = (4 * K) / 3;
 
-  preFFT   (Wtab, Dim[3]);
-  preShift (Stab, Dim[1]);
+  allocate   (&U, &G, &G_old, &work, &F, &F_, &Wtab, &Stab);
 
-  analyze  (U, runInfo, Wtab, Dim);
+  preFFT     (Wtab, K);
+  preShift   (Stab, N);
 
-  /* -- Main time-stepping loop. */
+  restart    (U, runInfo);
+  runInfo -> kinvis = setKinvis;
 
-  while (runInfo -> step < runInfo -> stepMax) {
+  truncateVF (U);
 
-    zeroVF    (G, Dim);
-    nonlinear (U, G, F, F_, work, Wtab, Stab, Dim);
-    project   (G, F, Dim);
-    integrate (U, G, G_old, runInfo, Dim);
+  printParam (stdout, runInfo);
+  analyze    (U, runInfo, Wtab);
+
+  /* -- Time-stepping loop. */
+
+  while (runInfo -> step < runInfo -> nstep) {
+
+    zeroVF    (G);
+    nonlinear (U, G, F, F_, work, Wtab, Stab);
+    project   (G, F);
+    integrate (U, G, G_old, runInfo);
     SWAP      (G, G_old);
 
     runInfo -> step ++;
     runInfo -> time += runInfo -> dt;
 
-    analyze (U, runInfo, Wtab,     Dim);
-    dump    (U, runInfo, chkpoint, Dim);
+    analyze (U, runInfo, Wtab);
+    dump    (U, runInfo);
   }
 
-  cleanup (runInfo, chkpoint);
+  cleanup (runInfo);
 
   return EXIT_SUCCESS;
 }
 
 
-static void getargs (int argc, char **argv, char **session, int *chkpnt)
+static void Default (Param* I)
+/* ------------------------------------------------------------------------- *
+ * Set run-time defaults.
+ * ------------------------------------------------------------------------- */
+{
+  I -> fld_dmp = 0;
+  I -> his_dmp = 0;
+  I -> io_fld  = 100;
+  I -> io_his  = 10;
+  I -> chkpnt  = TRUE;
+  I -> ngrid   = 16;
+  I -> nstep   = I -> io_fld;
+  I -> step    = 0;
+  I -> dt      = 0.01;
+  I -> time    = 0.0;
+  I -> kinvis  = 1.0;
+}
+
+
+static void getargs (int    argc,
+		     char** argv,
+		     Param* I   )
 /* ------------------------------------------------------------------------- *
  * Process command-line arguments.
  * ------------------------------------------------------------------------- */
 {
-  char c, routine[] = "getargs";
-  char usage[]   =
-    "Usage: %s [options] session\n"
-    "  [options]:\n"
-    "  -h   ... print this message\n"
-    "  -chk ... checkpoint field dumps\n";
+  const char usage[] =
+    "usage: %s [options] session\n"
+    "options:\n"
+    "-h       ... print this message\n"
+    "-c       ... turn off checkpointing         [Default: on]\n"
+    "-d <num> ... set time step                  [Default: 0.01]\n"
+    "-f <num> ... set interval for field dumps   [Default: 100]\n"
+    "-H <num> ... set interval for history dumps [Default: 10]\n"
+    "-k <num> ... set kinematic viscosity        [Default: 1]\n"
+    "-n <num> ... set number of timesteps        [Default: 100]\n";
+  char c, err[STR_MAX];
  
   while (--argc && **++argv == '-')
     switch (c = *++argv[0]) {
@@ -182,17 +222,32 @@ static void getargs (int argc, char **argv, char **session, int *chkpnt)
       exit (EXIT_SUCCESS);
       break;
     case 'c':
-      if (strstr ("chk", *argv)) {
-	*chkpnt = TRUE;
-      } else {
-	fprintf (stdout, usage, prog);
-	exit (EXIT_FAILURE);	  
-      }
+      I -> chkpnt = FALSE;
+      break;
+    case 'd':
+      if   (*++argv[0]) I -> dt     = atof (*argv);
+      else { --argc;    I -> dt     = atof (*++argv); }
+      break;
+    case 'f':
+      if   (*++argv[0]) I -> io_fld = atoi (*argv);
+      else { --argc;    I -> io_fld = atoi (*++argv); }
+      break;
+    case 'H':
+      if   (*++argv[0]) I -> io_his = atoi (*argv);
+      else { --argc;    I -> io_his = atoi (*++argv); }
+      break;
+    case 'k':
+      if   (*++argv[0]) I -> kinvis = atof (*argv);
+      else { --argc;    I -> kinvis = atof (*++argv); }
+      break;
+    case 'n':
+      if   (*++argv[0]) I -> nstep  = atoi (*argv);
+      else { --argc;    I -> nstep  = atoi (*++argv); }
       break;
     default:
       break;
     }
 
-  if   (argc != 1)  message (routine, "no session definition file", ERROR);
-  else             *session = *argv;
+  if   (argc != 1)  message (prog, "no session definition file", ERROR);
+  else              I -> session = *argv;
 }
