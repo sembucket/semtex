@@ -27,8 +27,8 @@ RANLIB   =
 # -------------- Compiler options for specific machines. ---------------------
 
 ifeq ($(ARCH),IRIX)			# -- SGI IRIX 32-bit
-CFLAGS     = $(DEFINES) -fullwarn -O2
-FFLAGS     = $(DEFINES) -O2
+CFLAGS     = $(DEFINES) -fullwarn -g
+FFLAGS     = $(DEFINES) -g
 endif
 
 ifeq ($(ARCH),IRIX64)			# -- SGI IRIX 64-bit
@@ -39,8 +39,16 @@ endif
 ifeq ($(ARCH),OSF1)			# -- DEC Alpha OSF1
 FC	   = f90
 CXX	   = cxx
-CFLAGS     = $(DEFINES) -migrate -fast -tune host -O4
-FFLAGS     = $(DEFINES) -migrate -fast -tune host -O5
+CC         = cc
+CFLAGS     = $(DEFINES) -fast -fp_reorder -inline speed	\
+              -speculate all  -tune host -O4
+FFLAGS     = $(DEFINES) -fast -inline speed -tune host -O5
+ifdef MPI
+  DEFINES  += -DMPI
+  CPPFLAGS += -I/usr/local/mpi/include
+  CFLAGS   += -pthread
+  FFLAGS   += -D_THREAD_SAFE
+endif
 endif
 
 ifeq ($(ARCH),Linux)			# -- GNU/Linux system
@@ -75,7 +83,7 @@ OPERATORS  = polyops	operators
 
 FFT	   = temfftd	temffts		fftpack		fourier
 
-MEMORY     = mapping	family
+MEMORY     = mapping	family          message
 
 MESH       = RCM
 
@@ -131,7 +139,7 @@ clean:
 
 ifeq ($(ARCH),IRIX)
 temfftd.o: temfftd.F
-	f77 -c -O2 temfftd.F
+	f77 -c -g temfftd.F
 temffts.o: temffts.F
 	f77 -c -O2 temffts.F
 endif
@@ -145,9 +153,9 @@ endif
 
 ifeq ($(ARCH),OSF1)
 temfftd.o: temfftd.F
-	f90 -c -migrate -fast -tune host temfftd.F -O5
+	f90 -c -fast -inline speed -tune host temfftd.F -O5 -unroll 2
 temffts.o: temffts.F
-	f90 -c -migrate -fast -tune host temffts.F -O5
+	f90 -c -fast -inline speed -tune host temffts.F -O5 -unroll 2
 endif
 
 ifeq ($(ARCH),Linux)
