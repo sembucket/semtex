@@ -62,7 +62,7 @@ int main (int     argc,
 
   // -- Build mesh from session file information.
 
-  Mesh M (feml, check);
+  Mesh M (&feml, check);
 
   // -- Generate mesh knots and print up.
 

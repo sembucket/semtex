@@ -93,7 +93,7 @@ integer main (integer argc,
   // -- Set up 2D mesh information.
   
   F   = new FEML (session);
-  M   = new Mesh   (*F);
+  M   = new Mesh (F);
 
   NEL = M -> nEl();  
   NP  = (integer) Femlib::value ("N_POLY");
@@ -367,7 +367,8 @@ static integer getDump (ifstream&          file,
 
   if (u.getSize() == 0) {
     u.setSize (nf);
-    for (i = 0; i < nf; i++) u[i] = new AuxField (Esys, fields[i]);
+    for (i = 0; i < nf; i++)
+      u[i] = new AuxField (new real[Geometry::nTotal()], nz, Esys, fields[i]);
   } else if (u.getSize() != nf) 
     message (prog, "number of fields mismatch with first dump in file", ERROR);
 

@@ -73,7 +73,7 @@ public:
   integer highAxis        ()                               const;
   integer bandwidthSC     (const integer*, const integer*,
 			   const integer)                  const;
-  void    rebuild         (FEML&, const integer);
+  void    rebuild         (FEML*, const integer);
 
 };
 
@@ -83,10 +83,10 @@ static const integer FldMax = 16;
 
 
 static void getargs   (int, char**, char*&, integer&, integer&, integer&);
-static char axial     (FEML&);
-static void getfields (FEML&, char*, const integer);
-static void checkVBCs (FEML&, const char*);
-static void checkABCs (FEML&, const char);
+static char axial     (FEML*);
+static void getfields (FEML*, char*, const integer);
+static void checkVBCs (FEML*, const char*);
+static void checkABCs (FEML*, const char);
        void printup   (const char*y, vector<Nsys*>&, const int);
 
 
@@ -108,6 +108,7 @@ int main (int    argc,
 // ---------------------------------------------------------------------------
 {
   char    *session = 0, field[StrMax], axistag;
+  FEML    *file;
   integer np       = 0,
           opt      = 1,
           cyl3D    = 0;
@@ -115,7 +116,7 @@ int main (int    argc,
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session, verb, np, opt);
 
-  FEML feml (session);
+  file = new FEML (session);
 
   if (verb)            Femlib::value ("VERBOSE", verb);
   if   (np)            Femlib::value ("N_POLY", np);
@@ -124,11 +125,11 @@ int main (int    argc,
   cyl3D = (integer) Femlib::value("CYLINDRICAL") &&
           (integer) Femlib::value("N_Z")         > 1;
 
-  getfields (feml, field, (axistag = axial (feml)) && cyl3D);
-  if (axistag) checkABCs (feml, axistag);
-  if (cyl3D)   checkVBCs (feml, field);
+  getfields (file, field, (axistag = axial (file)) && cyl3D);
+  if (axistag) checkABCs (file, axistag);
+  if (cyl3D)   checkVBCs (file, field);
   
-  Mesh            M (feml);
+  Mesh            M (file);
   vector<Nsys*>   S (strlen (field));
 
   integer         i, j, k = 0, found;
@@ -168,7 +169,7 @@ int main (int    argc,
       if (strchr (S[i] -> fields(), 'p')) {
 	Nsys* pressure = S[i];
 	if (!Veclib::any (pressure -> nbndry, pressure -> bndmsk(), 1)) {
-	  pressure -> rebuild (feml, clamp ((const integer) opt, 2, 3));
+	  pressure -> rebuild (file, clamp ((const integer) opt, 2, 3));
 	  break;
 	}
       }
@@ -236,21 +237,21 @@ static void getargs (int      argc   ,
 }
 
 
-static char axial (FEML& feml)
+static char axial (FEML* file)
 // ---------------------------------------------------------------------------
 // Return the character tag corresponding to "axis" group, if that  exists.
 // ---------------------------------------------------------------------------
 {
-  if (!feml.seek ("GROUPS")) return '\0';
+  if (!file->seek ("GROUPS")) return '\0';
 
   integer       i;
   char          nextc, buf[StrMax];
-  const integer N (feml.attribute ("GROUPS", "NUMBER"));
+  const integer N (file->attribute ("GROUPS", "NUMBER"));
   
   for (i = 0; i < N; i++) {
-    while ((nextc = feml.stream().peek()) == '#') // -- Skip comments.
-      feml.stream().ignore (StrMax, '\n');
-    feml.stream() >> buf >> nextc >> buf;
+    while ((nextc = file->stream().peek()) == '#') // -- Skip comments.
+      file->stream().ignore (StrMax, '\n');
+    file->stream() >> buf >> nextc >> buf;
     if (strstr (buf, "axis")) return nextc;
   }
 
@@ -258,7 +259,7 @@ static char axial (FEML& feml)
 }
 
 
-static void getfields (FEML&         feml     ,
+static void getfields (FEML*         file     ,
 		       char*         field    ,
 		       const integer axisModes)
 // ---------------------------------------------------------------------------
@@ -282,20 +283,20 @@ static void getfields (FEML&         feml     ,
 
   // -- Set up string for the fields listed.
 
-  if (feml.seek ("FIELDS")) {
+  if (file->seek ("FIELDS")) {
 
-    feml.stream().ignore (StrMax, '\n');
+    file->stream().ignore (StrMax, '\n');
     
-    while (feml.stream().peek() == '#') // -- Skip comments.
-      feml.stream().ignore (StrMax, '\n');
+    while (file->stream().peek() == '#') // -- Skip comments.
+      file->stream().ignore (StrMax, '\n');
 
     do {
-      feml.stream() >> field[i++];
+      file->stream() >> field[i++];
     } while (field[i - 1] != '<' && i < StrMax);
 
     if (field[--i] == '<') {
       field[i] = '\0';
-      feml.stream() >> t;
+      file->stream() >> t;
       if (!(strstr (t,   "/FIELDS")))
 	   message (prog, "FIELDS section not closed", ERROR);
     } else message (prog, "FIELDS section not closed", ERROR);
@@ -324,7 +325,7 @@ static void getfields (FEML&         feml     ,
 }
 
 
-static void checkVBCs (FEML&       feml ,
+static void checkVBCs (FEML*       file ,
 		       const char* field)
 // ---------------------------------------------------------------------------
 // For cylindrical 3D fluids problems, the declared boundary condition types
@@ -335,26 +336,26 @@ static void checkVBCs (FEML&       feml ,
 // tag agreement on v & w BCs.
 // ---------------------------------------------------------------------------
 {
-  if (!feml.seek ("BCS")) return;
+  if (!file->seek ("BCS")) return;
   if (!strchr (field, 'u')) return;
   if (!strchr (field, 'v') || !strchr (field, 'w'))
     message (prog,"radial, azimuthal velocity fields v, w not declared",ERROR);
 
   integer       i, j, id, nbcs;
   char          vtag, wtag, groupc, fieldc, tagc, tag[StrMax], err[StrMax];
-  const integer N (feml.attribute ("BCS", "NUMBER"));
+  const integer N (file->attribute ("BCS", "NUMBER"));
 
   for (i = 0; i < N; i++) {
 
-    while ((groupc = feml.stream().peek()) == '#') // -- Skip comments.
-      feml.stream().ignore (StrMax, '\n');
+    while ((groupc = file->stream().peek()) == '#') // -- Skip comments.
+      file->stream().ignore (StrMax, '\n');
 
-    feml.stream() >> id >> groupc >> nbcs;
+    file->stream() >> id >> groupc >> nbcs;
     vtag = wtag = '\0';
 
     for (j = 0; j < nbcs; j++) {
 
-      feml.stream() >> tag;
+      file->stream() >> tag;
       if (strchr (tag, '<') && strchr (tag, '>') && (strlen (tag) == 3))
 	tagc = tag[1];
       else {
@@ -362,10 +363,10 @@ static void checkVBCs (FEML&       feml ,
 	message (prog, err, ERROR);
       }
 
-      feml.stream() >> fieldc;
+      file->stream() >> fieldc;
       if      (fieldc == 'v') vtag = tagc;
       else if (fieldc == 'w') wtag = tagc;
-      feml.stream().ignore (StrMax, '\n');
+      file->stream().ignore (StrMax, '\n');
     }
     
     if (!(vtag && wtag)) {
@@ -380,28 +381,28 @@ static void checkVBCs (FEML&       feml ,
 }
 
 
-static void checkABCs (FEML&      feml ,
+static void checkABCs (FEML*      file ,
 		       const char atag)
 // ---------------------------------------------------------------------------
 // Run through and ensure that for "axis" group, all BCs are of type <A>.
 // ---------------------------------------------------------------------------
 {
-  if (!feml.seek ("BCS")) return;
+  if (!file->seek ("BCS")) return;
 
   integer       i, j, id, nbcs;
   char          groupc, fieldc, tagc, tag[StrMax], err[StrMax];
-  const integer N (feml.attribute ("BCS", "NUMBER"));
+  const integer N (file->attribute ("BCS", "NUMBER"));
 
   for (i = 0; i < N; i++) {
 
-    while ((groupc = feml.stream().peek()) == '#') // -- Skip comments.
-      feml.stream().ignore (StrMax, '\n');
+    while ((groupc = file->stream().peek()) == '#') // -- Skip comments.
+      file->stream().ignore (StrMax, '\n');
 
-    feml.stream() >> id >> groupc >> nbcs;
+    file->stream() >> id >> groupc >> nbcs;
 
     for (j = 0; j < nbcs; j++) {
 
-      feml.stream() >> tag;
+      file->stream() >> tag;
       if (strchr (tag, '<') && strchr (tag, '>') && (strlen (tag) == 3))
 	tagc = tag[1];
       else {
@@ -409,13 +410,13 @@ static void checkABCs (FEML&      feml ,
 	message (prog, err, ERROR);
       }
 
-      feml.stream() >> fieldc;
+      file->stream() >> fieldc;
 
       if (groupc == atag && tagc != 'A') {
 	sprintf (err, "group '%c': field '%c' needs axis BC", groupc, fieldc);
 	message (prog, err, ERROR);
       }
-      feml.stream().ignore (StrMax, '\n');
+      file->stream().ignore (StrMax, '\n');
     }
   }
 }
@@ -423,7 +424,7 @@ static void checkABCs (FEML&      feml ,
 
 void printup (const char*    F   ,
 	      vector<Nsys*>& S   ,
-	      const integer      nSys)
+	      const integer  nSys)
 // ---------------------------------------------------------------------------
 // Print up summary info followed by map & mask for each system.
 // ---------------------------------------------------------------------------
@@ -944,7 +945,7 @@ integer Nsys::bandwidthSC (const integer* bmap,
 }
 
 
-void Nsys::rebuild (FEML&         file  ,
+void Nsys::rebuild (FEML*         file  ,
 		    const integer optlev)
 // ---------------------------------------------------------------------------
 // The pressure numbering scheme gets rebuilt if the highest-numbered
@@ -956,18 +957,18 @@ void Nsys::rebuild (FEML&         file  ,
   // -- Build a table of elements and sides that touch the axis.
   
   const char    axisBC = axial (file);
-  const integer nsurf (file.attribute ("SURFACES", "NUMBER"));
+  const integer nsurf (file->attribute ("SURFACES", "NUMBER"));
   char          tagc, tag[StrMax], err[StrMax];
   integer       i, j, id, el, si, naxis = 0;
 
   for (i = 0; i < nsurf; i++) {
-    while ((tagc = file.stream().peek()) == '#') // -- Skip comments.
-      file.stream().ignore (StrMax, '\n');
+    while ((tagc = file->stream().peek()) == '#') // -- Skip comments.
+      file->stream().ignore (StrMax, '\n');
     
-    file.stream() >> id >> el >> si >> tag;
+    file->stream() >> id >> el >> si >> tag;
     if (strchr (tag, '<') && strchr (tag, '>') && strlen (tag) == 3) {
       if (tag[1] == 'B') {
-	file.stream() >> tagc;
+	file->stream() >> tagc;
 	if (tagc == axisBC) naxis++;
       }
     } else {
@@ -975,7 +976,7 @@ void Nsys::rebuild (FEML&         file  ,
       message (prog, err, ERROR);
     }
 
-    file.stream().ignore (StrMax, '\n');
+    file->stream().ignore (StrMax, '\n');
   }
 
   if (!naxis) return;
@@ -983,15 +984,15 @@ void Nsys::rebuild (FEML&         file  ,
   axelmt.setSize (naxis);
   axside.setSize (naxis);
 
-  file.attribute ("SURFACES", "NUMBER");
+  file->attribute ("SURFACES", "NUMBER");
 
   for (j = 0, i = 0; i < nsurf; i++) {
-    while ((tagc = file.stream().peek()) == '#') // -- Skip comments.
-      file.stream().ignore (StrMax, '\n');
+    while ((tagc = file->stream().peek()) == '#') // -- Skip comments.
+      file->stream().ignore (StrMax, '\n');
     
-    file.stream() >> id >> el >> si >> tag;
+    file->stream() >> id >> el >> si >> tag;
     if (tag[1] == 'B') {
-      file.stream() >> tagc;
+      file->stream() >> tagc;
       if (tagc == axisBC) {
 	axelmt[j] = --el;
 	axside[j] = --si;
@@ -999,7 +1000,7 @@ void Nsys::rebuild (FEML&         file  ,
       }
     }
 
-    file.stream().ignore (StrMax, '\n');
+    file->stream().ignore (StrMax, '\n');
   }
 
   if (j != naxis) message (prog, "mismatch of axis surfaces", ERROR);

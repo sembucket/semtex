@@ -6,7 +6,7 @@
 // Compute exact solution given in USER section of FEML file, subtract
 // numerical solution (if present), print up infinity norm (largest error)
 // and write field file of error field.  If no numerical solution is given,
-// output is exact solution.
+// output is exact solution.  Only designed for serial execution.
 //
 // USAGE
 // -----
@@ -68,7 +68,7 @@ int main (int    argc,
   // -- Set up from session file.
 
   FEML* F = new FEML (session);
-  Mesh* M = new Mesh (*F);
+  Mesh* M = new Mesh (F);
 
   nel    = M -> nEl();  
   np     = (integer) Femlib::value ("N_POLY");
@@ -160,8 +160,8 @@ int main (int    argc,
   Esys.setSize (nel);
   for (i = 0; i < nel; i++) Esys[i] = new Element (i, M, zeros, np);
 
-  exact    = new AuxField (Esys);
-  computed = new AuxField (Esys);
+  exact    = new AuxField (new real[Geometry::nTotal()], nz, Esys);
+  computed = new AuxField (new real[Geometry::nTotal()], nz, Esys);
 
   // -- Perform comparisons, output.
 

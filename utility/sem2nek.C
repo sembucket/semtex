@@ -47,7 +47,7 @@ integer main (integer argc,
 
   FEML feml (session);
 
-  Mesh M (feml);
+  Mesh M (&feml);
 
   printHead ();
   M.printNek();
