@@ -154,6 +154,7 @@ public:
 
   void divR (real*) const;
   void mulR (real*) const;
+  void mulX (real*) const;
 
   void evaluate (const char*, real*) const;
 
