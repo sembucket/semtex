@@ -1430,3 +1430,69 @@ AuxField& AuxField::sqroot()
 
   return *this;
 }
+
+
+static real genMaskValue (const real    delta,
+			  const real    lag  ,
+			  const real    order,
+			  const integer mode )
+// ---------------------------------------------------------------------------
+// Generates a mask value used to filter out the higher order Fourier
+// modes close to the axis. The function defining the lag is given in
+// the USER section of the session file and is called "MASK_LAG".
+//
+// Example: 
+// In USER   section, MASK_LAG (2./N_Z)+tanh(4.*y) (generally between 0 & 1).
+// In TOKENS section, MASK_DELTA = 4, MASK_ORDER = 4.
+// ---------------------------------------------------------------------------
+{
+  const real N = lag + delta, EPS = EPSSP;
+  real       arg, theta, chi, omega;
+
+  if      (mode <= lag)
+    return 1.0;
+  else if (mode < N) {
+    theta = (mode - lag) / delta;
+    omega = fabs(theta) - 0.5;
+    if ((fabs (theta - 0.5)) < EPS) 
+      chi = 1.0;
+    else {
+      arg = 1.0 - 4.0 * omega * omega;
+      chi = sqrt (-log (arg) / (4.0 * omega * omega));
+    }
+    return 0.5 * erfc (2.0 * sqrt (order) * chi * omega);
+  } else
+    return 0.0;
+}
+
+
+AuxField& AuxField::buildMask (const char* function)
+// ---------------------------------------------------------------------------
+// Set up an AuxField to be used as a mask for the Fourier modes close
+// to the axis.
+// ---------------------------------------------------------------------------
+{
+  const integer    nel    = Geometry::nElmt();
+  const integer    np2    = Geometry::nTotElmt();
+  const integer    nmodes = Geometry::nMode();
+  const integer    base   = Geometry::baseMode();
+  const real       order  = Femlib::value ("MASK_ORDER");
+  const real       delta  = Femlib::value ("MASK_DELTA");
+  register integer i, j, k;
+  integer          mode;
+  real             *p;
+  vector<real>     lag (np2);
+
+  for (k = 0; k < _nz; k++) {
+    mode = base + (k >> 1);
+    for (p = _plane[k], i = 0; i < nel; i++, p += np2) {
+      _elmt[i] -> evaluate (function, lag());
+      for (j = 0; j < np2; j++)
+	p[j] = genMaskValue (delta, lag[j]*nmodes, order, mode);
+    }
+  }
+
+  this -> zeroNyquist();
+
+  return *this;
+}
