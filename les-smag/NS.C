@@ -137,8 +137,20 @@ static void nonLinear (Domain*     D ,
 // back to Fourier space.
 // ---------------------------------------------------------------------------
 {
+  int          i, j;
+  vector<real> A (DIM);
 
-  int               i, j;
+  A[0] = a.x; A[1] = a.y; if (DIM == 3) A[2] = a.z;
+
+#ifdef STOKES
+
+  for (i = 0; i < DIM; i++) {
+    *N[i] = 0.0;
+    if (fabs (A[i]) > EPS) N[i] -> addToPlane (0, -A[i]);
+  }
+
+#else
+
   const int         nZ     = Geometry::nZ();
   const int         nP     = Geometry::planeSize();
   const int         nTot   = nZ * nP;
@@ -150,11 +162,8 @@ static void nonLinear (Domain*     D ,
   vector<real*>     n32 (DIM);
   vector<AuxField*> U (DIM);
   vector<AuxField*> N (DIM);
-  vector<real>      A (DIM);
   Field*            master = D -> u[0];
   real*             tmp    = work() + 2 * DIM * nTot32;
-
-  A[0] = a.x; A[1] = a.y; if (DIM == 3) A[2] = a.z;
 
   for (i = 0; i < DIM; i++) {
     u32[i] = work() +  i        * nTot32;
@@ -203,49 +212,8 @@ static void nonLinear (Domain*     D ,
     if (fabs (A[i]) > EPS) N[i] -> addToPlane (0, 2.0*A[i]);
     *N[i] *= -0.5;
   }
-      
-  /*
-  int               i, j;
-  const real        EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
-  vector<AuxField*> U (DIM);	// -- Shorthand for velocity  fields.
-  vector<AuxField*> N (DIM);	// -- Shorthand for nonlinear fields.
-  vector<real>      A (DIM);	// -- Vector form of frame acceleration.
 
-  A[0] = a.x; A[1] = a.y; if (DIM == 3) A[2] = a.z;
-
-  for (i = 0; i < DIM; i++) {
-    AuxField::swapData (D -> u[i], Us[i][0]);
-    U[i] = Us[i][0];
-    N[i] = Uf[i][0];
-  }
-
-  for (i = 0; i < DIM; i++) *N[i] = 0.0;
-
-#ifndef STOKES
-
-  // -- Build skew-symmetric nonlinear terms.
-
-  AuxField* T      = D -> u[0];		// -- Workspace.
-  Field*    master = D -> u[0];	        // -- Template too.
-
-  for (i = 0; i < DIM; i++) {
-    for (j = 0; j < DIM; j++) {
-      *T = *U[i];
-      T    -> gradient (j);
-      N[i] -> addprod  (*U[j], *T);
-
-      T -> product  (*U[i], *U[j]);
-      T -> gradient (j);
-      *N[i] += *T;
-    }
-    master -> smooth (N[i]);
-    *N[i] *= -0.5;
-  }
-
-#endif
-
-  for (i = 0; i < DIM; i++) if (fabs (A[i]) > EPS) *N[i] -= A[i];
-*/
+#endif      
 }
 
 
