@@ -137,6 +137,7 @@ void dDFTr (double*       data,
  * ------------------------------------------------------------------------- */
 {
   const char       routine[] = "dDFTr";
+  char             err[STR_MAX];
   const integer    ntot = tlen * ntrn;
   register integer i;
   integer          dum, ip, iq, ir, ipqr2, *ifax;
@@ -231,8 +232,14 @@ void dDFTr (double*       data,
   dum = tlen;
   prf235 (&dum, &ip, &iq, &ir, &ipqr2);
   
-  if (!dum    ) message (routine, "tlen needs prime factors 2, 3, 5", ERROR);
-  if (ntrn & 1) message (routine, "ntrn must be even",                ERROR);
+  if (!dum    ) {
+    sprintf (err, "transform length (%1d) needs prime factors 2, 3, 5", tlen);
+    message (routine, err, ERROR);
+  }
+  if (ntrn & 1) {
+    sprintf (err, "number of transforms (%1d) must be even", ntrn);
+    message (routine, err, ERROR);
+  }
 
   work = dvector (0, ntot + ipqr2 - 1);
   Wtab = work + ntot;
