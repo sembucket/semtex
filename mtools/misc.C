@@ -7,8 +7,6 @@ RCSid[] = "$Id$";
 
 #include <qmesh.h>
 
-int verbose = 0;
-
 
 void error (const char* routine,
 	    const char* text   ,

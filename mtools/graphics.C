@@ -114,8 +114,9 @@ void drawBox ()
       ymax = Centre.y + EXPAND / AR * Range.y;
     } 
 
-  } else
+  } else {
     file >> xmin >> xmax >> ymin >> ymax;
+  }
 
   sm_limits (xmin, xmax, ymin, ymax);
   sm_box    (1, 2, 0, 0);
@@ -160,16 +161,18 @@ void drawLoop (const Loop* L      ,
 }
 
 
-void drawMesh (List<Quad*>& mesh)
+void drawMesh (List<Quad*>& mesh,
+	       const int    nums)
 // ---------------------------------------------------------------------------
 // Draw the mesh (with replicated mating edges --- the easy option!).
 // ---------------------------------------------------------------------------
 {
 #ifdef GRAPHICS
-  int                 i;
+  register int        i;
   float               x[4], y[4];
   ListIterator<Quad*> q (mesh);
   Quad*               Q;
+  char                label[StrMax];
 
   for (; q.more(); q.next()) {
     Q = q.current();
@@ -180,6 +183,16 @@ void drawMesh (List<Quad*>& mesh)
 
     sm_conn (x, y, 4);
     sm_draw (x[0], y[0]);
+
+    if (nums) {
+      sm_expand (0.3);
+      for (i = 0; i < 4; i++) {
+	sprintf     (label, "%1d", Q -> vertex[i] -> ID());
+	sm_relocate (x[i], y[i]);
+	sm_label    (label);
+      }
+      sm_expand (1.6);
+    }
   }
 
   sm_gflush ();
@@ -199,7 +212,7 @@ void hardCopy (List<Quad*>& mesh)
 
   initGraphics ("postfile mesh.eps");
   drawBox      ();
-  drawMesh     (mesh);
+  drawMesh     (mesh, Global::verbose);
 
   sm_hardcopy  ();
   sm_alpha     ();

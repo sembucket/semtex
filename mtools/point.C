@@ -307,7 +307,7 @@ int cull (const Point& Pi, const Point& Pk,
   const real di = Pi.distance (Pk);
 
   if (dj < EPS || dl < EPS || di < EPS) {
-    if (verbose) error (routine, "two points are coincident", WARNING);
+    if (Global::verbose) error (routine, "two points are coincident", WARNING);
     return 0;
   }
 

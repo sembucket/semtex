@@ -66,10 +66,11 @@ RCSid[] = "$Id$";
 
 char prog[] = "qmesh";
 
-real        Global::refCoeff    = 0.0;
-real        Global::gblSize     = 1.0;
-int         Global::nodeIdMax   = 0;
-int         Global::loopIdMax   = 0;
+real        Global::refCoeff  = 0.0;
+real        Global::gblSize   = 1.0;
+int         Global::nodeIdMax = 0;
+int         Global::loopIdMax = 0;
+int         Global::verbose   = 0;
 List<Node*> Global::nodeList;
 
 // -- Local routines.
@@ -80,6 +81,7 @@ static istream& operator >>  (istream&, List<Loop*>&);
 static int      loopDeclared (istream& s);
 static void     connect      (List<Quad*>&);
 static void     deleteNodes  (List<Quad*>&);
+static void     deleteQuads  (List<Quad*>&);
 static void     smooth       (List<Node*>&);
 static void     printNodes   (ostream&, List<Node*>&);
 static void     printMesh    (ostream&, List<Quad*>&);
@@ -126,21 +128,25 @@ int main (int    argc,
     L -> quads   (elements);
   }
 
-  // -- Join up all quads into mesh.
+  // -- Join up all quads into an element mesh.
 
   connect (elements);
 
-  // -- Attempt to improve mesh by Node elimination, see Ref. [4].
+  // -- Try to improve mesh by Node and Quad elimination, see Ref. [4].
+  
+  do {
+    i = Global::nodeList.length();
 
-  deleteNodes (elements);
+    deleteNodes (elements);
+    connect     (elements);
+    deleteQuads (elements);
+    connect     (elements);
+
+  } while (i != Global::nodeList.length());
+
+  if (graphics) { eraseGraphics(); drawMesh (elements); }
 
   // -- Laplacian smoothing.
-
-  for (i = 0; i < nsmooth; i++) {
-    smooth (Global::nodeList); if (graphics) drawMesh (elements);
-  }
-
-  // -- Attempt to improve mesh by Node elimination, see Ref. [4], smooth.
 
   for (i = 0; i < nsmooth; i++) {
     smooth (Global::nodeList); if (graphics) drawMesh (elements);
@@ -215,7 +221,7 @@ static void getArgs (int       argc   ,
       }
       break;
     case 'v':
-      do verbose++; while (*++argv[0] == 'v');
+      do Global::verbose++; while (*++argv[0] == 'v');
       break;
     default:
       sprintf (buf, usage, prog);
@@ -257,7 +263,7 @@ static istream& operator >> (istream&     s,
   char  err[StrMax], buf[StrMax];
 
   int            i, id, npts, found;
-  Point          pnt;
+  Point          pnt, P1, P2;
   real           size;
   char           kind;
   register Node* N;
@@ -302,6 +308,8 @@ static istream& operator >> (istream&     s,
       message (routine, err, ERROR);
     }    
   }
+
+  Global::limits (P1, P2);
 
   return s;
 }
@@ -431,6 +439,8 @@ static void connect (List<Quad*>& elements)
 // is connected to.
 // ---------------------------------------------------------------------------
 {
+  char routine[] = "connect";
+
   ListIterator<Quad*> q (elements);
   ListIterator<Node*> n (Global::nodeList);
 
@@ -439,20 +449,30 @@ static void connect (List<Quad*>& elements)
   register Node*      N;
   register Node*      N1;
   register Node*      N2;
+  
+  for (; n.more(); n.next()) n.current() -> sever();
 
-  for (q.reset(); q.more(); q.next()) {
+  for (; q.more(); q.next()) {
     Q = q.current();
     for (i = 0; i < 4; i++) {
       N1 = Q -> vertex[i];
       N2 = Q -> vertex[(i + 1) % 4];
-      for (found1 = 0, found2 = 0, n.reset(); n.more(); n.next()) {
+      for (found1 = 0, found2 = 0, n.reset();
+	   !(found1 && found2) && n.more();
+	   n.next()) {
 	N = n.current();
 	if (!found1) if (found1 = (N == N1)) N -> xadd (N2);
 	if (!found2) if (found2 = (N == N2)) N -> xadd (N1);
-	if (found1 && found2) break;
       }
     }
   }
+
+  if (Global::verbose)
+    for (n.reset(); n.more(); n.next()) {
+      N = n.current();
+      cout << routine << ": node ID: " << N -> ID()
+	   << ", adjacency = " << N -> adjncy() << endl;
+    }
 }
 
 
@@ -521,8 +541,8 @@ static void deleteNodes (List<Quad*>& mesh)
 // Improve mesh by node elimination.  See \S 3.1.1 in Ref [4].
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "deleteNodes";
-  int   i, i1, i2, kill;
+  char  routine[] = "deleteNodes";
+  int   i, i1, i2, found;
   Node  *N;
   Quad  *Q, *Q1, *Q2;
 
@@ -530,10 +550,10 @@ static void deleteNodes (List<Quad*>& mesh)
     ListIterator<Node*> n (Global::nodeList);
     ListIterator<Quad*> q (mesh);
 
-    for (kill = 0; !kill && n.more(); n.next()) {
+    for (found = 0; !found && n.more(); n.next()) {
       N = n.current();
-      if (N -> adjncy() == 2 && N -> interior()) {
-	kill = 1;
+      found = N -> adjncy() == 2 && N -> interior();
+      if (found) {
 	for (Q1 = 0, Q2 = 0; !(Q1 && Q2) && q.more(); q.next()) {
 	  Q = q.current();
 	  for (i = 0; i < 4; i++)
@@ -547,10 +567,54 @@ static void deleteNodes (List<Quad*>& mesh)
 	Q1 -> vertex[i1] = Q2 -> vertex[(i2 + 2) % 4];
       }
     }
-    if (kill) {
+    if (found) {
+      if (Global::verbose) 
+	cout << routine << ": node " << N -> ID() << " deleted" << endl;
       Global::nodeList.remove (N);
       mesh            .remove (Q2);
     }
-  } while (kill);
+  } while (found);
 }
 
+
+static void deleteQuads  (List<Quad*>& mesh)
+// ---------------------------------------------------------------------------
+// Improve mesh by element elimination.  See \S 3.1.2 in Ref [4].
+// ---------------------------------------------------------------------------
+{
+  char  routine[] = "deleteQuads";
+  int   i, i1, i2, found;
+  Node  *N1, *N2;
+  Quad  *Q, *P, *Q1, *Q2;
+
+  do {
+    ListIterator<Quad*> q (mesh);
+    ListIterator<Quad*> p (mesh);
+
+    for (found = 0; !found && q.more(); q.next()) {
+      Q = q.current();
+      for (i = 0; !found && i < 2; i++) {
+	N1 = Q -> vertex [i];
+	N2 = Q -> vertex [(i + 2) % 4];
+
+	found = ((N1 -> adjncy() == 3) && N1 -> interior() &&
+		 (N2 -> adjncy() == 3) && N2 -> interior());
+      }
+      if (found) {
+	for (Q1 = 0, Q2 = 0; !(Q1 && Q2) && p.more(); p.next()) {
+	  P = p.current();
+	  if (P != Q) {
+	    for (i = 0; i < 4; i++)
+	      if (P -> vertex[i] == N2) P -> vertex[i] = N1;
+	  }
+	}
+      }
+    }
+    if (found) {
+      if (Global::verbose) 
+	cout << routine << ": node " << N2 -> ID() << " deleted" << endl;
+      Global::nodeList.remove (N2);
+      mesh            .remove (Q);
+    }
+  } while (found);
+}

@@ -90,10 +90,10 @@ friend ostream& operator << (ostream&, Node&);
 public:
   enum  nodekind { INTERIOR, BOUNDARY, OFFSET };
 
-  Node (const int&            i,
-	const Point&          p,
-	const real&           s,
-	const Node::nodekind& b = INTERIOR)
+  Node (const int&           i,
+	const Point&         p,
+	const real&          s,
+	const Node::nodekind b = INTERIOR)
     : id (i), loc (p), ideal (s), kind (b) { }
 
   const int&   ID       () const { return id;    }
@@ -101,6 +101,7 @@ public:
   const real&  prefSize () const { return ideal; }
 
   void  xadd     (Node*);
+  void  sever    () { contact.clear(); }
   void  setPos   (const Point&);
   void  setKind  (const nodekind& k) { kind  = k; }
   void  setID    (const int&      i) { id    = i; }
@@ -141,13 +142,16 @@ public:
   static int         loopIdMax;
   static List<Node*> nodeList;
   static List<Quad*> quadList;
-  static real        refineCoeff;
+
   static real        limits (Point&, Point&);
   static real        lengthScale () { return gblSize; }
-  static const  real C1 = 0.5;	// -- Angle  weight factor.
-  static const  real C2 = 0.3;	// -- Length weight factor.
-  static const  real C3 = 0.2;	// -- Error  weight factor.
+
   static real        refCoeff;	// -- Refinement coefficient per Ref. [1].
+  static const real  C1 = 0.5;	// -- Angle  weight factor.
+  static const real  C2 = 0.3;	// -- Length weight factor.
+  static const real  C3 = 0.2;	// -- Error  weight factor.
+
+  static int         verbose;
 
 private:
   static real gblSize;
@@ -218,7 +222,7 @@ void eraseGraphics ();
 void drawBox       ();
 void drawBox       (const Loop*);
 void drawLoop      (const Loop*, const int& = 0);
-void drawMesh      (List<Quad*>&);
+void drawMesh      (List<Quad*>&, const int = 0);
 void hardCopy      (List<Quad*>&);
 void qpause        ();
 void message       (const char*, const char*, const lev&);

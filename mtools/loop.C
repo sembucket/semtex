@@ -143,9 +143,9 @@ void Loop::split ()
   }
 
   if (graphics) drawLoop (this);
-  if (verbose)
+  if (Global::verbose)
     cout << routine << ": loop " << id <<" ("<< N << " nodes)" << endl;
-  if (verbose > 1)
+  if (Global::verbose > 1)
     cout << *this;
     
   if (N == 4)			// -- Can't go any smaller.
@@ -306,7 +306,7 @@ void Loop::bestSplit (List<Node*>* visible,
   end    = End[best];
   NNodes = insert[best];
 
-  if (verbose > 1) cout << routine << ": Loop " << id
+  if (Global::verbose > 1) cout << routine << ": Loop " << id
     << ", Node " << nodes[start] -> ID() << " <--> Node " << nodes[end] -> ID()
       << ", " << NNodes << " insertions" << endl;
 }
@@ -720,7 +720,8 @@ void Loop::splitSix (int& begin, int& end)
     if (fabs (dir) < EPS)
       index180[n180++] = i1;
     else if (dir <= -EPS) {	// -- Bingo.  A concave loop.
-      if (verbose) cout << routine << ": Loop " << id << " is concave" << endl;
+      if (Global::verbose)
+	cout << routine << ": Loop " << id << " is concave" << endl;
       splitline.setSize (0);
       begin =  i1;
       end   = (i1 + 3) % 6;
@@ -728,7 +729,7 @@ void Loop::splitSix (int& begin, int& end)
     }
   }
 
-  if (verbose) cout << routine << ": Loop " << id << " has " << n180
+  if (Global::verbose) cout << routine << ": Loop " << id << " has " << n180
       << " 180-degree interior angles" << endl;
 
   // -- All inputs guaranteed convex from now on.
