@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // interp.C: interpolate results from a field file onto a set of 2D points.
 //
-// Copyright (C) 1997,2003 Hugh Blackburn
+// Copyright (c) 1997,2003 Hugh Blackburn
 //
 // Synopsis:
 // --------
@@ -69,7 +69,6 @@ int main (int    argc,
   FEML*             F;
   Mesh*             M;
   real              c, time, timestep, kinvis, beta;
-  const real*       z;
   vector<real>      r, s;
   vector<Point*>    point;
   vector<Element*>  elmt;
@@ -90,14 +89,13 @@ int main (int    argc,
   M   = new Mesh (F);
 
   NEL = M -> nEl();  
-  NP  = (int) Femlib::value ("N_POLY");
-  NZ  = (int) Femlib::value ("N_Z"   );
+  NP  = static_cast<int>(Femlib::value ("N_POLY"));
+  NZ  = static_cast<int>(Femlib::value ("N_Z"   ));
   
   Geometry::set (NP, NZ, NEL, Geometry::Cartesian);
-  Femlib::mesh  (GLL, GLL, NP, NP, &z, 0, 0, 0, 0);
   Esys.resize   (NEL);
 
-  for (k = 0; k < NEL; k++) Esys[k] = new Element (k, M, z, NP);
+  for (k = 0; k < NEL; k++) Esys[k] = new Element (k, NP, M);
   
   // -- Construct the list of points, then find them in the Mesh.
 
@@ -105,9 +103,8 @@ int main (int    argc,
     pntfile = new ifstream (points);
     if (pntfile -> bad())
       message (prog, "unable to open point file", ERROR);
-    else
-      pntfile = &cin;
-  }
+  } else 
+    pntfile = &cin;
 
   np = nel = ntot = 0;
 

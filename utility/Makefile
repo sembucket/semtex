@@ -124,7 +124,7 @@ conjugate: conjugate.C
 # ----------------------------------------------------------------------------
 # Build interp, field dump interpolator.
 #
-INTOBJ = feml.o mesh.o element.o auxfield.o geometry.o
+INTOBJ = feml.o mesh.o element.o family.o auxfield.o geometry.o
 $(INTOBJ): $(SEMHDR)
 
 interp: interp.o $(INTOBJ)
