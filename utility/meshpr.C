@@ -12,13 +12,13 @@
 // $Id$
 
 
-#include "../src/Fem.h"
+#include "Fem.h"
+
+
+static char prog[] = "meshpr";
+
 
 static void getargs (int, char **, char **, int *, int*);
-static void preRoll (istream&);
-
-
-
 
 
 int main (int argc, char **argv)
@@ -31,7 +31,7 @@ int main (int argc, char **argv)
   int        verb    = 0,
              np      = 0;
   ifstream   file;
-  Mesh*      M;
+  Mesh*      M = new Mesh;
   Field*     F;
 
   initialize();
@@ -39,15 +39,18 @@ int main (int argc, char **argv)
   getargs   (argc, argv, &session, &verb, &np);
   setIparam ("VERBOSE", verb);
 
-  if (session) {
-    file.open (session);
-    if (file.bad()) message ("meshpr", "couldn't open file", ERROR);
-    preRoll (file);
-    M = preProcess (file);
-  } else {
-    preRoll (cin);
-    M = preProcess (cin);
-  }
+  file.open (session);
+  if (file.bad()) message (prog, "couldn't open session file", ERROR);
+
+  seekBlock   (file, "parameter");
+  readOptions (file);     
+  readIparams (file);     
+  readFparams (file);     
+  endBlock    (file);
+
+  seekBlock (file, "mesh");
+  file >> *M;
+  endBlock (file);
 
   if (np) setIparam ("N_POLY", np);
   M -> connectSC (iparam ("N_POLY"));
@@ -71,7 +74,7 @@ static void getargs(int     argc    ,
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  char usage[] = "usage: meshpr [options] [session]\n"
+  char usage[] = "usage: meshpr [options] session\n"
                  "options:\n"
                  "  -h   ... display this message\n"
                  "  -v   ... set verbose output\n"
@@ -99,25 +102,10 @@ static void getargs(int     argc    ,
       break;
     default:
       sprintf (err, "%s: illegal option: %c\n", c);
-      message ("meshpr", err, ERROR);
+      message (prog, err, ERROR);
       break;
     }
 
-  if (argc == 1) *session = *argv;
-}
-
-
-
-
-
-static void preRoll (istream& strm)
-// ---------------------------------------------------------------------------
-// Read strm until second blank line is encountered:
-// this signals the start of parameter and mesh parts of input.
-// ---------------------------------------------------------------------------
-{
-  char s[StrMax];
-
-  while (strm.getline (s, StrMax) && s[0]);
-  while (strm.getline (s, StrMax) && s[0]);
+  if   (argc == 1) *session = *argv;
+  else             message (prog, "must provide session file", ERROR);
 }
