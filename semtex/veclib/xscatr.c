@@ -3,7 +3,7 @@
  *****************************************************************************/
 
   
-void dscatr(int n, double *x, int *y, double *z)
+void dscatr(int n, const double *x, const int *y, double *z)
 {
   register int  i;
 
@@ -19,7 +19,7 @@ void dscatr(int n, double *x, int *y, double *z)
 
 
 
-void iscatr(int n, int *x, int *y, int *z)
+void iscatr(int n, const int *x, const int *y, int *z)
 {
   register int  i;
 
@@ -35,7 +35,7 @@ void iscatr(int n, int *x, int *y, int *z)
 
 
 
-void sscatr(int n, float *x, int *y, float *z)
+void sscatr(int n, const float *x, const int *y, float *z)
 {
   register int  i;
 
