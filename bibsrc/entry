@@ -1,5 +1,0 @@
-# $Id$
-
-cvs commit -m "added new entries" .
-make
-
