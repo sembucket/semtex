@@ -34,10 +34,11 @@ void PBCmgr::build (const Field* P)
 // There is some wastage as memory is also allocated for essential BCs.
 // ---------------------------------------------------------------------------
 {
-  integer       i, j, k, np;
+  const integer np    = Geometry::nP();
   const integer nTime = (integer) Femlib::value ("N_TIME");
   const integer nEdge = P -> n_bound;
   const integer nZ    = Geometry::nZProc();
+  integer       i, j, k;
 
   Pnx = new real*** [(size_t) nTime];
   Pny = new real*** [(size_t) nTime];
@@ -57,7 +58,6 @@ void PBCmgr::build (const Field* P)
       Uny[i][j] = Unx[i][j] + nZ;
 
       for (k = 0; k < nZ; k++) {
-	np = P -> boundary[0][j] -> nKnot();
 	Pnx[i][j][k] = new real [(size_t) (4 * np)];
 	Pny[i][j][k] = Pnx[i][j][k] + np;
 	Unx[i][j][k] = Pny[i][j][k] + np;
@@ -113,7 +113,7 @@ void PBCmgr::maintain (const integer         step   ,
 
   register Boundary* B;
   register integer   i, k, q;
-  integer            m, np, offset, skip, Je;
+  integer            m, offset, skip, Je;
 
   vector<real>       work (4 * nP + Integration::OrderMax + 1);
 
@@ -124,14 +124,13 @@ void PBCmgr::maintain (const integer         step   ,
 
   for (i = 0; i < nEdge; i++) {
     B      = P -> boundary[0][i];
-    np     = B -> nKnot();
     offset = B -> dOff ();
     skip   = B -> dSkip();
     
     for (k = 0; k < nZ; k++) {
       ROOTONLY if (k == 1) continue;
-      Veclib::copy (np, Nx -> plane[k] + offset, skip, Pnx[0][i][k], 1);
-      Veclib::copy (np, Ny -> plane[k] + offset, skip, Pny[0][i][k], 1);
+      Veclib::copy (nP, Nx -> plane[k] + offset, skip, Pnx[0][i][k], 1);
+      Veclib::copy (nP, Ny -> plane[k] + offset, skip, Pny[0][i][k], 1);
     }
   }
 
@@ -146,7 +145,6 @@ void PBCmgr::maintain (const integer         step   ,
 
   for (i = 0; i < nEdge; i++) {
     B      = P -> boundary[0][i];
-    np     = B -> nKnot();
     offset = B -> dOff ();
     skip   = B -> dSkip();
 
@@ -154,8 +152,8 @@ void PBCmgr::maintain (const integer         step   ,
       UxRe = Ux -> plane[0];
       UyRe = Uy -> plane[0];
       B -> curlCurl (0, UxRe, 0, UyRe, 0, 0, 0, xr, 0, yr, 0);
-      Blas::axpy (np, -nu, xr, 1, Pnx[0][i][0], 1);
-      Blas::axpy (np, -nu, yr, 1, Pny[0][i][0], 1);
+      Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][0], 1);
+      Blas::axpy (nP, -nu, yr, 1, Pny[0][i][0], 1);
     }
 
     for (m = kLo; m < nMode; m++) { // -- Higher modes.
@@ -168,10 +166,10 @@ void PBCmgr::maintain (const integer         step   ,
 
       B -> curlCurl (m, UxRe, UxIm, UyRe, UyIm, UzRe, UzIm, xr, xi, yr, yi);
 
-      Blas::axpy (np, -nu, xr, 1, Pnx[0][i][2 * m],     1);
-      Blas::axpy (np, -nu, xi, 1, Pnx[0][i][2 * m + 1], 1);
-      Blas::axpy (np, -nu, yr, 1, Pny[0][i][2 * m],     1);
-      Blas::axpy (np, -nu, yi, 1, Pny[0][i][2 * m + 1], 1);
+      Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][2 * m],     1);
+      Blas::axpy (nP, -nu, xi, 1, Pnx[0][i][2 * m + 1], 1);
+      Blas::axpy (nP, -nu, yr, 1, Pny[0][i][2 * m],     1);
+      Blas::axpy (nP, -nu, yi, 1, Pny[0][i][2 * m + 1], 1);
     }
   }
 
@@ -184,24 +182,23 @@ void PBCmgr::maintain (const integer         step   ,
       
     for (i = 0; i < nEdge; i++) {
       B      = P -> boundary[0][i];
-      np     = B -> nKnot();
       offset = B -> dOff ();
       skip   = B -> dSkip();
 
       for (k = 0; k < nZ; k++) {
 	ROOTONLY if (k == 1) continue;
 
-	Veclib::copy (np, Ux -> plane[k] + offset, skip, tmp, 1);
-	Blas::scal   (np, alpha[0], tmp, 1);
+	Veclib::copy (nP, Ux -> plane[k] + offset, skip, tmp, 1);
+	Blas::scal   (nP, alpha[0], tmp, 1);
 	for (q = 0; q < Je; q++)
-	  Blas::axpy (np, alpha[q + 1], Unx[q][i][k], 1, tmp, 1);
-	Blas::axpy (np, -invDt, tmp, 1, Pnx[0][i][k], 1);
+	  Blas::axpy (nP, alpha[q + 1], Unx[q][i][k], 1, tmp, 1);
+	Blas::axpy (nP, -invDt, tmp, 1, Pnx[0][i][k], 1);
 
-	Veclib::copy (np, Uy -> plane[k] + offset, skip, tmp, 1);
-	Blas::scal   (np, alpha[0], tmp, 1);
+	Veclib::copy (nP, Uy -> plane[k] + offset, skip, tmp, 1);
+	Blas::scal   (nP, alpha[0], tmp, 1);
 	for (q = 0; q < Je; q++)
-	  Blas::axpy (np, alpha[q + 1], Uny[q][i][k], 1, tmp, 1);
-	Blas::axpy (np, -invDt, tmp, 1, Pny[0][i][k], 1);
+	  Blas::axpy (nP, alpha[q + 1], Uny[q][i][k], 1, tmp, 1);
+	Blas::axpy (nP, -invDt, tmp, 1, Pny[0][i][k], 1);
       }
     }
   }
@@ -213,14 +210,13 @@ void PBCmgr::maintain (const integer         step   ,
       
   for (i = 0; i < nEdge; i++) {
     B      = P -> boundary[0][i];
-    np     = B -> nKnot();
     offset = B -> dOff ();
     skip   = B -> dSkip();
     
     for (k = 0; k < nZ; k++) {
       ROOTONLY if (k == 1) continue;
-      Veclib::copy (np, Ux -> plane[k] + offset, skip, Unx[0][i][k], 1);
-      Veclib::copy (np, Uy -> plane[k] + offset, skip, Uny[0][i][k], 1);
+      Veclib::copy (nP, Ux -> plane[k] + offset, skip, Unx[0][i][k], 1);
+      Veclib::copy (nP, Uy -> plane[k] + offset, skip, Uny[0][i][k], 1);
     }
   }
 }
