@@ -322,7 +322,7 @@ static void getargs (int       argc,
     "-h ... print this message\n"
     "-L ... Discrete Legendre transform (2D)\n"
     "-F ... Discrete Fourier  transform (1D)\n"
-    "-B ... do both DLT & DFT\n"
+    "-B ... do both DLT & DFT [Default]\n"
     "-i ... carry out inverse transform instead\n";
  
   while (--argc && **++argv == '-')

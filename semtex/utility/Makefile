@@ -4,11 +4,11 @@
 # $Id$
 ##############################################################################
 
-SEM      = ..
-VPATH    = $(SEM)/src
+SEM   = ..
+VPATH = $(SEM)/src
 
 ARCH = $(shell uname -s)
-MACH  = $(shell uname -m)
+MACH = $(shell uname -m)
 
 ifeq ($(ARCH),Linux)
   ifeq ($(MACH),alpha)
