@@ -119,9 +119,8 @@ void Element::map ()
 {
   const char   routine[] = "Element::map";
   const real   EPS  = 4 * ((sizeof(real) == sizeof(double)) ? EPSDP : EPSSP);
-  const real   dz   = (Geometry::nZ() > 1) ?
-                       Femlib::value ("TWOPI / (BETA * N_Z)") : 1.0;
-  const real   dxyz = sqr (2.0 / (np - 1)) * dz;
+  const real   dz   = Femlib::value ("TWOPI / (BETA * N_Z)");
+  const real   dxy  = 2.0 * sqr (2.0 / (np - 1));
   const real   invD = 1.0 / Geometry::nDim();
   const real   *x   = xmesh, *y = ymesh;
   const real   **DV, **DT, *w;
@@ -189,7 +188,7 @@ void Element::map ()
   Veclib::vmul  (npnp, tV,   1, WW,   1, G3,   1);
   
   Veclib::vmul  (npnp, jac,  1, WW,   1, G4, 1);
-  Veclib::smul  (npnp, dxyz, jac, 1,  delta, 1);
+  Veclib::smul  (npnp, dxy,  jac, 1,  delta, 1);
 
   Veclib::copy (npnp, dyds, 1, drdx, 1);
   Veclib::vneg (npnp, dxds, 1, drdy, 1);
@@ -201,18 +200,23 @@ void Element::map ()
   Veclib::vdiv (npnp, dsdx, 1, jac, 1, dsdx, 1);
   Veclib::vdiv (npnp, dsdy, 1, jac, 1, dsdy, 1);
 
-  if (Geometry::system() == Geometry::Cylindrical) {
-    register integer i;
-    for (i = 0; i < npnp; i++)
-      delta[i] *= (fabs(ymesh[i]) < EPS) ? EPS : fabs(ymesh[i]);
+  if (Geometry::nDim() == 3) {
+    if (Geometry::system() == Geometry::Cylindrical)
+      Veclib::smul (npnp, dz, ymesh, 1, tV, 1);
+    else
+      Veclib::fill (npnp, dz, tV, 1);
+    Veclib::vmul (npnp, tV, 1, tV, 1, tV, 1);
+    Veclib::vadd (npnp, tV, 1, delta, 1, delta, 1);
+  }
+  Blas::scal    (npnp, invD,     delta, 1);
+  Veclib::vsqrt (npnp, delta, 1, delta, 1);
 
+  if (Geometry::system() == Geometry::Cylindrical) {
     Veclib::vmul (npnp, G1, 1, y, 1, G1, 1);
     Veclib::vmul (npnp, G2, 1, y, 1, G2, 1);
     Veclib::vmul (npnp, G3, 1, y, 1, G3, 1);
     Veclib::vmul (npnp, G4, 1, y, 1, G4, 1);
   } 
-
-  Veclib::spow (npnp, invD, delta, 1, delta, 1);
 
   // -- Calculations are done.  Do null-mapping optimizations.
   
