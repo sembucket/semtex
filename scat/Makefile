@@ -1,6 +1,6 @@
 ##############################################################################
-# Makefile for ns, spectral element solver for unsteady Navier--Stokes
-# problems.
+# Makefile for buoy, spectral element solver for unsteady Navier--Stokes
+# problems, with Boussinesq approximation for natural convection.
 #
 # $Id$
 ##############################################################################
@@ -16,6 +16,10 @@ else
   DEFINES  =
 endif
 
+ifdef STOKES
+  DEFINES  += -DSTOKES
+endif
+
 CPPFLAGS = -I. -I$(SEM)/include
 
 # ----------- Compiler options for specific machines -------------------------
@@ -23,7 +27,7 @@ CPPFLAGS = -I. -I$(SEM)/include
 ifeq ($(ARCH),IRIX)		# -- SGI 32-bit systems.
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = $(DEFINES) -fullwarn -smart -g
+CXXFLAGS = $(DEFINES) -fullwarn -smart -O2
 F77LIBS	 = -lcomplib.sgimath -lisam
 LDFLAGS  = -lfpe -L$(SEM)/lib/$(ARCH) -lfem -lalp \
 	   $(F77LIBS) -lmalloc -lm
@@ -66,7 +70,7 @@ SEMHDR    = Sem.h
 NS_OBJ = drive.o NS.o analysis.o
 NS_HDR = NS.h
 
-ns:	$(SEMOBJ) $(NS_OBJ) 
+buoy:	$(SEMOBJ) $(NS_OBJ) 
 	cd ../src; $(MAKE)
 	$(LD) -o $@ $(NS_OBJ) $(SEMOBJ) $(LDFLAGS)
 
