@@ -23,12 +23,12 @@
 static int                NORD, NPERT, NBASE, NZ, CYL, PROB;
 static vector<MatrixSys*> MS;
 
-static void        linAdvect  (Domain*, AuxField**, AuxField**);
-static void        waveProp   (Domain*, const AuxField***, const AuxField***);
-static void        setPForce  (const AuxField**, AuxField**);
-static void        project    (const Domain*, AuxField**, AuxField**);
-static MatrixSys** preSolve   (const Domain*);
-static void        Solve      (Domain*, const int, AuxField*, MatrixSys*);
+static void        linAdvect (Domain*, AuxField**, AuxField**);
+static void        waveProp  (Domain*, const AuxField***, const AuxField***);
+static void        setPForce (const AuxField**, AuxField**);
+static void        project   (const Domain*, AuxField**, AuxField**);
+static MatrixSys** preSolve  (const Domain*);
+static void        Solve     (Domain*, const int, AuxField*, MatrixSys*);
 
 
 void integrate (Domain*       D,
@@ -51,7 +51,6 @@ void integrate (Domain*       D,
   NORD  = static_cast<int>(Femlib::value ("N_TIME"));
   CYL   = Geometry::system() == Geometry::Cylindrical;
   PROB  = Geometry::problem();
-//  C3D   = CYL && Geometry::nDim() == 3;
 
   int        i, j, k;
   const real dt    = Femlib::value ("D_T");

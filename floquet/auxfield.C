@@ -655,7 +655,7 @@ void AuxField::couple (AuxField* v  ,
       Vr = v -> _plane[0];
       Wi = w -> _plane[0];
 
-      Veclib::copy (nP, Wi, 1, tp, 1);
+      Veclib::copy (nP, Vr, 1, tp, 1);
       Veclib::vsub (nP, Vr, 1, Wi, 1, Vr, 1);
       Veclib::vadd (nP, Wi, 1, tp, 1, Wi, 1);
     } else {			// -- Full complex.
