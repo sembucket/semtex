@@ -1,30 +1,35 @@
-OPTIONS =
+OPTIONS = -g -64
 CC      = cc
 CFLAGS  = $(OPTIONS)
-CPPFLAGS= $(DEFINES) -I$(HOME)/include
-INCLUDES= $(HOME)/include/nrutil.h $(HOME)/include/FFTutil.h 
-LD      = $(CC)
-LDFLAGS = $(CFLAGS)
-LIBS    = -L$(HOME)/lib -lFFTutil -lnrutil -lm
+CPPFLAGS= $(DEFINES)
+LDFLAGS = -L/home/hmb/lib/IRIX64 -lrecipesDP
+INCLUDE = FFTutil.h
 
-MEM     = memspec
-SRCS    = main.c io.c memcof.c evlmem.c
-OBJS    = main.o io.o memcof.o evlmem.o
+asp: FFTutil.o asp.o $(INCLUDE)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o asp FFTutil.o asp.o -lm
 
-acor: acor.c $(INCLUDES)
-	$(LD) $(LDFLAGS) $(CPPFLAGS) -o acor acor.c $(LIBS)
+acor: FFTutil.o acor.o $(INCLUDE)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o acor FFTutil.o acor.o -lm
+
+correlate: FFTutil.o correlate.o $(INCLUDE)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ FFTutil.o $@.o $(LDFLAGS) -lm
 
 chop: chop.c
-	$(LD) $(LDFLAGS) -o chop chop.c
+	$(CC) $(CFLAGS) -o chop chop.c
 
-pdf: pdf.c $(HOME)/include/nrutil.h
-	$(LD) $(LDFLAGS) $(CPPFLAGS) -o pdf pdf.c $(LIBS)
+slit: FFTutil.o slit.o $(INCLUDE)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o slit FFTutil.o slit.o -lm
 
-slit: slit.c $(INCLUDES)
-	$(LD) $(LDFLAGS) $(CPPFLAGS) -o slit slit.c $(LIBS)
+pdf: FFTutil.o pdf.o $(INCLUDE)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o pdf FFTutil.o pdf.o -lm
 
-testpow: testpow.c $(INCLUDES)
-	$(LD) $(LDFLAGS) $(CPPFLAGS) -o testpow testpow.c $(LIBS)
+memspec: FFTutil.o memspec.o $(INCLUDE)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o memspec FFTutil.o memspec.o -lm
 
+dft_chk: FFTutil.o dft_chk.o $(INCLUDE)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o dft_chk FFTutil.o dft_chk.o -lm
+
+pcor: pcor.c
+	$(CC) $(CFLAGS) -o pcor pcor.c
 clean:
 	rm -rf *.o *~ core
