@@ -279,16 +279,12 @@ static inline float tri_lin_int (float  p[3],
 				 int    k   ,
 				 float* tg  )
 /* ------------------------------------------------------------------------- *
- * Tri-linear interpolation.  Should replace by a #define for C use.
+ * Tri-linear interpolation.  Replace inline by a #define for C use.
  * ------------------------------------------------------------------------- */
 {
-  float x, y, z, value;
+  register float x = p[0], y = p[1], z = p[2];
 
-  x = p[0];
-  y = p[1];
-  z = p[2];
-
-  value =
+  return
     ((float)(i+1)-x)*((float)(j+1)-y)*((float)(k+1)-z) * tg[goff[0][0][0]] +
     (  x-(float)(i))*((float)(j+1)-y)*((float)(k+1)-z) * tg[goff[1][0][0]] +
     ((float)(i+1)-x)*(  y-(float)(j))*((float)(k+1)-z) * tg[goff[0][1][0]] +
@@ -297,8 +293,6 @@ static inline float tri_lin_int (float  p[3],
     (  x-(float)(i))*((float)(j+1)-y)*(  z-(float)(k)) * tg[goff[1][0][1]] +
     ((float)(i+1)-x)*(  y-(float)(j))*(  z-(float)(k)) * tg[goff[0][1][1]] +
     (  x-(float)(i))*(  y-(float)(j))*(  z-(float)(k)) * tg[goff[1][1][1]] ;
-  
-  return value;
 }
 
 
@@ -443,14 +437,9 @@ static float calc_norm (float* poly,
 			int*   vert,
 			float* norm)
 /* ------------------------------------------------------------------------- *
- * For each triangle, calculate a unit surface normal that points away
- * from the origin using any two of the sides - ADD this normal to any
- * unit normals that have been previously calculated for EACH of the 3
- * vertices in the triangle (if the vertex is AT the origin or if its
- * normal is perpendicular to the radius vector, ensure the normal has
- * positive x co-ord (or positive y-co-ord if x-co-ord=0 (or ...))
- *
- * NB: these comments were written by Murray...
+ * For each triangle, calculate a unit surface normal and add this
+ * normal to any unit normals that have been previously calculated for
+ * each of the three vertices in the triangle.
  * ------------------------------------------------------------------------- */
 {
   float r1[3],r2[3],r3[3], mag;

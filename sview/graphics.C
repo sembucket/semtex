@@ -57,7 +57,6 @@ static void drawMesh  ();
 static void drawSurf  ();
 static void skeleton  ();
 static void polarView (GLdouble, GLdouble, GLdouble, GLdouble);
-static void initLight ();
 
 
 void keyboard (unsigned char key,
@@ -67,6 +66,7 @@ void keyboard (unsigned char key,
 // GLUT callback for keyboard events within graphics window.
 // ---------------------------------------------------------------------------
 {
+  char routine[] = "keyboard";
   switch (key) {
   case 27:
     glutIdleFunc     (commandLine);
@@ -85,22 +85,64 @@ void keyboard (unsigned char key,
     State.radius /= 0.95;
     skeleton();
     break;
-#if 0
   case 'a':
-    State.noalias = !State.noalias;
-    if (State.noalias) {
-      glEnable  (GL_BLEND);
-      glEnable  (GL_POLYGON_SMOOTH);
-      glDisable (GL_DEPTH_TEST);
+    if (State.noalias = !State.noalias) {
+      glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      glEnable    (GL_BLEND);
+      glEnable    (GL_POLYGON_SMOOTH);
+      glEnable    (GL_LINE_SMOOTH);
     } else {
-      glDisable (GL_BLEND);
-      glDisable (GL_POLYGON_SMOOTH);
-      glEnable  (GL_DEPTH_TEST);
+      glDisable   (GL_BLEND);
+      glDisable   (GL_POLYGON_SMOOTH);
+      glDisable   (GL_LINE_SMOOTH);
     }
     break;
-#endif
   case 'b':
     State.drawbox = !State.drawbox;
+    break;
+  case 'k':
+    {
+      ofstream knobs ("sview.knobs");
+      char     buf[StrMax];
+      const    char *fmt[] = { 
+	"%-25.6g "  "Radius\n",
+	"%-25.6g "  "X-rotation\n",
+	"%-25.6g "  "Y-rotation\n",
+	"%-25.6g "  "Z-rotation\n",
+	"%-25.6g "  "X-translation\n",
+	"%-25.6g "  "Y-translation\n",
+	"%-25.6g "  "Z-translation\n",
+      };
+      sprintf (buf, fmt[0], State.radius); knobs << buf;
+      sprintf (buf, fmt[1], State.xrot  ); knobs << buf;
+      sprintf (buf, fmt[2], State.yrot  ); knobs << buf;
+      sprintf (buf, fmt[3], State.zrot  ); knobs << buf;
+      sprintf (buf, fmt[4], State.xtrans); knobs << buf;
+      sprintf (buf, fmt[5], State.ytrans); knobs << buf;
+      sprintf (buf, fmt[6], State.ztrans); knobs << buf;
+
+      knobs.close();
+    }
+    break;
+  case 'l':
+    {
+      ifstream knobs ("sview.knobs");
+      if   (!knobs) message (routine, "no knobs to load, ignoring", WARNING);
+      else {
+	knobs >> State.radius; knobs.ignore (StrMax, '\n');
+	knobs >> State.xrot;   knobs.ignore (StrMax, '\n');
+	knobs >> State.yrot;   knobs.ignore (StrMax, '\n');
+	knobs >> State.zrot;   knobs.ignore (StrMax, '\n');
+	knobs >> State.xtrans; knobs.ignore (StrMax, '\n');
+	knobs >> State.ytrans; knobs.ignore (StrMax, '\n');
+	knobs >> State.ztrans;
+	knobs.close();
+      }
+    }
+    break;
+  case 'i':
+    if   (State.blackbk = !State.blackbk) glClearColor (0.0, 0.0, 0.0, 0.0);
+    else                                  glClearColor (1.0, 1.0, 1.0, 0.0);
     break;
   case 'r':
     State.xrot    = 0.0;
@@ -110,11 +152,6 @@ void keyboard (unsigned char key,
     State.ytrans  = 0.0;
     State.ztrans  = 0.0;
     State.radius  = 1.0 * State.length;
-    break;
-  case 'i':
-    State.blackbk = !State.blackbk;
-    if   (State.blackbk) glClearColor (0.0, 0.0, 0.0, 0.0);
-    else                 glClearColor (1.0, 1.0, 1.0, 0.0);
     break;
   }
   State.drawiso = GL_TRUE;
@@ -189,23 +226,22 @@ void display ()
 // GLUT callback for display of graphics window.
 // ---------------------------------------------------------------------------
 {
-  glClear         (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  glPushMatrix    ();
-  polarView       (State.radius, State.zrot, State.xrot, State.yrot);
-  glTranslated    (State.xtrans, State.ytrans, State.ztrans);
+  glPushMatrix ();
+  polarView    (State.radius, State.zrot, State.xrot, State.yrot);
+  glTranslated (State.xtrans, State.ytrans, State.ztrans);
 
   if (State.drawbox) drawMesh ();
   if (State.drawiso) drawSurf ();
 
   glPopMatrix     ();
-
   glutSwapBuffers ();
 }
 
 
-void reshape (int w,
-	      int h)
+void reshape (GLint w,
+	      GLint h)
 // ---------------------------------------------------------------------------
 // GLUT callback for reshaping of graphics window.
 // ---------------------------------------------------------------------------
@@ -215,7 +251,7 @@ void reshape (int w,
 
   glMatrixMode   (GL_PROJECTION);
   glLoadIdentity ();
-  gluPerspective (45.0, AR, 0.1 * State.length, 100.0 * State.length);
+  gluPerspective (45.0, AR, 0.01 * State.length, 100.0 * State.length);
   glMatrixMode   (GL_MODELVIEW);
 }
 
@@ -225,22 +261,44 @@ void initGraphics ()
 // Set up drawing defaults.
 // ---------------------------------------------------------------------------
 {
-  char help[] =
+  GLfloat ambient[]        = {  0.15,   0.15,   0.15,  1.0};
+  GLfloat diffuse[]        = {  0.5,    0.5,    0.5,   1.0};
+  GLfloat position0[]      = {100.0,  100.0,  100.0,   1.0};
+  GLfloat position1[]      = {  0.0, -100.0,   50.0,   1.0};
+  GLfloat lmodel_ambient[] = {  0.1,    0.1,    0.1,   1.0};
+  GLfloat lmodel_twoside[] = {GL_FALSE};
+
+  cout <<
     "   press ESC key in display window to enter surface manipulation mode\n"
-    "   press 'q' key in display window to exit sview\n";
-  
-  cout << help;
+    "   press 'q' key in display window to exit sview" << endl;
 
   if   (State.blackbk) glClearColor (0.0, 0.0, 0.0, 0.0);
   else                 glClearColor (1.0, 1.0, 1.0, 0.0);
 
+  // -- Isosurface shading.
+
   glShadeModel   (GL_SMOOTH);
   glEnable       (GL_DEPTH_TEST);
 
-  initLight();
+  // -- Lighting.
+
+  glLightfv      (GL_LIGHT0, GL_AMBIENT,  ambient);
+  glLightfv      (GL_LIGHT0, GL_DIFFUSE,  diffuse);
+  glLightfv      (GL_LIGHT0, GL_POSITION, position0);
+  glEnable       (GL_LIGHT0);
+
+  glLightfv      (GL_LIGHT1, GL_AMBIENT,  ambient);
+  glLightfv      (GL_LIGHT1, GL_DIFFUSE,  diffuse);
+  glLightfv      (GL_LIGHT1, GL_POSITION, position1);
+  glEnable       (GL_LIGHT1);
+
+  glLightModelfv (GL_LIGHT_MODEL_AMBIENT,  lmodel_ambient);
+  glLightModelfv (GL_LIGHT_MODEL_TWO_SIDE, lmodel_twoside);
+
+  // -- Perspective.
 
   glMatrixMode   (GL_PROJECTION);
-  gluPerspective (45.0, 1.0, 0.0 * State.length, 100 * State.length);
+  gluPerspective (45.0, 1.0, 0.01 * State.length, 100 * State.length);
   glMatrixMode   (GL_MODELVIEW);
 }
 
@@ -260,6 +318,7 @@ static void drawMesh ()
   int          nr, ns, nt, nskip, ntot;
   float        *x, *y, *z;
 
+  glDisable (GL_LIGHTING);
   glColor3f (0.7, 0.7, 0.7);
 
   for (k = 0; k < nel; k++) {
@@ -360,7 +419,9 @@ static void drawSurf ()
   int          j, npoly;
   float        *norm, *vert;
   int          *pind;
-  
+
+  glEnable (GL_LIGHTING);  
+
   for (j = 0; j < N; j++) {
 
     glMaterialf  (GL_FRONT_AND_BACK, GL_SHININESS, shininess[j]);
@@ -399,34 +460,6 @@ static void polarView (GLdouble distance ,
   glRotated    (-twist,     0.0, 0.0, 1.0);
   glRotated    (-elevation, 1.0, 0.0, 0.0);
   glRotated    (azimuth,    0.0, 1.0, 0.0);
-}
-
-
-static void initLight ()
-// ---------------------------------------------------------------------------
-// Initialize lighting and materials.
-// ---------------------------------------------------------------------------
-{
-  GLfloat ambient[]             = {0.15,   0.15,   0.15,  1.0};
-  GLfloat diffuse[]             = {0.5,    0.5,    0.5,   1.0};
-  GLfloat position0[]           = {0.0,  100.0,  100.0,   0.0};
-  GLfloat position1[]           = {0.0, -100.0,   50.0,   0.0};
-  GLfloat lmodel_ambient[]      = {0.1,    0.1,    0.1,   1.0};
-  GLfloat lmodel_twoside[]      = {GL_FALSE};
-
-  glLightfv      (GL_LIGHT0, GL_AMBIENT,  ambient);
-  glLightfv      (GL_LIGHT0, GL_DIFFUSE,  diffuse);
-  glLightfv      (GL_LIGHT0, GL_POSITION, position0);
-  glEnable       (GL_LIGHT0);
-
-  glLightfv      (GL_LIGHT1, GL_AMBIENT,  ambient);
-  glLightfv      (GL_LIGHT1, GL_DIFFUSE,  diffuse);
-  glLightfv      (GL_LIGHT1, GL_POSITION, position1);
-  glEnable       (GL_LIGHT1);
-
-  glLightModelfv (GL_LIGHT_MODEL_AMBIENT,  lmodel_ambient);
-  glLightModelfv (GL_LIGHT_MODEL_TWO_SIDE, lmodel_twoside);
-  glEnable       (GL_LIGHTING);
 }
 
 

@@ -5,8 +5,6 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <iostream.h>
-
 #include <Sview.h>
 
 static void catalogue ();
@@ -126,6 +124,7 @@ void commandLine ()
     break;
 
   case 'q':
+    cerr << "-- sview : normal termination" << endl;
     exit (EXIT_SUCCESS);
     break;
 

@@ -22,9 +22,6 @@ enum  lev    {WARNING, ERROR, REMARK};
 const int    StrMax = 256;
 const int    IsoMax = 8;
 const int    FldMax = 16;
-const double EPSSP  = 6.0e-7;
-const double EPSDP  = 6.0e-14;
-const double TWOPI  = 6.28318530717958647692;
 
 template<class T> inline T sqr(T x)      { return x * x;            }
 template<class T> inline T sgn(T x)      { return (x < 0) ? -1 : 1; }
