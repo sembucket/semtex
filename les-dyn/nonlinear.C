@@ -251,7 +251,7 @@ void nonLinear (Domain*       D ,
   // -- Subtract divergence of SGSS from nonlinear terms.
 
   for (i = 0; i < 3; i++) {	// -- Diagonal terms.
-    gradient     (meta, Sr[i], i);
+    realGradient (meta, Sr[i], i);
     Veclib::vsub (nTot, Nl[i], 1, Sr[i], 1, Nl[i], 1);
   }
 
