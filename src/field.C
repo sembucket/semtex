@@ -2,7 +2,7 @@
 //field.C: derived from AuxField, Field adds boundary conditions,
 //global numbering, and the ability to solve Helmholtz problems.
 //
-// Copyright (C) 1994, 1999 Hugh Blackburn
+// Copyright (C) 1994--2001 Hugh Blackburn
 //
 // HELMHOLTZ PROBLEMS
 // ------------------
@@ -214,12 +214,13 @@ void Field::evaluateBoundaries (const integer step)
   const integer    np    = Geometry::nP();
   const integer    nz    = Geometry::nZProc();
   const integer    bmode = Geometry::baseMode();
+  const integer    kfund = Geometry::kFund();
   real*            p;
   register integer i, k, mode;
 
   for (k = 0; k < nz; k++) {
     mode = bmode + (k >> 1);
-    const vector<Boundary*>& BC = _bsys -> BCs (mode);
+    const vector<Boundary*>& BC = _bsys -> BCs (mode * kfund);
     for (p = _line[k], i = 0; i < _nbound; i++, p += np)
       BC[i] -> evaluate (k, step, p);
   }
