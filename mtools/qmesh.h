@@ -56,16 +56,27 @@ friend ostream& operator << (ostream&, Point&);
 friend istream& operator >> (istream&, Point&);
 public:
   Point () : x (0.0), y (0.0) { }
+  Point (const real& a, const real& b) { x = a; y = b; }
   Point (const Point& p) { x = p.x; y = p.y; }
 
-  real  distance (const Point&) const;
-  real  angle    (const Point&) const;
-  real  angle    (const Point&, const Point&) const;
-  real  turn     (const Point&, const Point&) const;
+  real  magnitude () const { return hypot (x, y); }
+  real  distance  (const Point&) const;
+  real  angle     (const Point&) const;
+  real  angle     (const Point&, const Point&) const;
+  real  turn      (const Point&, const Point&) const;
+
+  Point& operator += (const Point&);
+  Point& operator -= (const Point&);
+  Point& operator  = (const real&);
+  Point& operator *= (const real&);
 
   real x;
   real y;
 };
+Point operator + (const Point&, const Point&);
+Point operator - (const Point&, const Point&);
+Point operator * (const real&,  const Point&);
+Point intersect  (const Point&, const Point&, const Point&, const Point&);
 
 
 class Node
@@ -75,13 +86,14 @@ class Node
 {
 friend ostream& operator << (ostream&, Node&);
 public:
-  Node  (const int&, const Point&);
+  Node (const int& i, const Point& p, const real& s) 
+    : id (i), loc (p), ideal (s) { }
+
   const int&   ID       () const { return id;    }
   const Point& pos      () const { return loc;   }
   const real&  prefSize () const { return ideal; }
 
   void  setPos  (const Point& p) { loc.x = p.x; loc.y = p.y; }
-  void  setSize (const real&  s) { ideal = s; }
 
 private:
   int   id;
@@ -103,11 +115,12 @@ public:
 
   const int& ID () const { return id; }
 
-  void  split ();
+  void  split  ();
 
-  void  limits (real&, real&, real&, real&) const;
+  void  limits (Point&, Point&)               const;
   int   points (vector<real>&, vector<real>&) const;
   int   line   (vector<real>&, vector<real>&) const;
+  
 private:
   int         id;
   static int  node_id_max;
@@ -118,14 +131,17 @@ private:
   Loop*         left;
   Loop*         right;
 
-  real lengthScale  () const;
-  void visibleNodes (List<Node*>&, const int&) const;
-  void bestSplit    (List<Node*>*, int&, int&, int&) const;
-  void bestLine     (List<Node*>&, const real&,
-		     const int&, int&, int&, real&) const;
-  real spaceNodes   (const Node*, const Node*, const real&, const int&) const;
-  void insertNodes  (const Node*, const Node*, const int&, vector<Node*>&);
+  real  lengthScale  () const;
+  Point centroid     () const;
 
+  void  visibleNodes (List<Node*>&, const int&)                          const;
+  void  bestSplit    (List<Node*>*, int&, int&, int&)                    const;
+  void  bestLine     (List<Node*>&, const real&,
+		      const int&, int&, int&, real&)                     const;
+  real  spaceNodes   (const Node*, const Node*, const real&, const int&) const;
+  void  insertNodes  (const Node*, const Node*, const int&);
+
+  void  splitSix     (int&, int&);
 };
 
 
