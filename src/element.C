@@ -1367,6 +1367,61 @@ void  Element::sideGrad (int side, const real* src, real* c1, real* c2 ) const
 
   quadOps (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
+  // -- Make dc/dr, dc/ds along element edge.
+
+  switch (side) {
+  case 1:
+    d = 1;
+    Blas::gemv ("T", np, np, 1.0, *DV, np, src + estart, d*skip, 0.0, ddr, 1);
+    Blas::gemv ("N", np, np, 1.0, src, np, *DV + estart, d*skip, 0.0, dds, 1);
+    break;
+  case 2:
+    d = 1;
+    Blas::gemv ("T", np, np, 1.0, src, np, *DT + estart, d*skip, 0.0, ddr, 1);
+    Blas::gemv ("T", np, np, 1.0, *DV, np, src + estart, d*skip, 0.0, dds, 1);
+    break;
+  case 3:
+    d = -1;
+    Blas::gemv ("T", np, np, 1.0, *DV, np, src + estart, d*skip, 0.0, ddr, 1);
+    Blas::gemv ("N", np, np, 1.0, src, np, *DV + estart, d*skip, 0.0, dds, 1);
+    break;
+  case 4:
+    d = -1;
+    Blas::gemv ("T", np, np, 1.0, src, np, *DT + estart, d*skip, 0.0, ddr, 1);
+    Blas::gemv ("T", np, np, 1.0, *DV, np, src + estart, d*skip, 0.0, dds, 1);
+    break;
+  }
+
+  // -- dc/dx = dc/dr * dr/dx + dc/ds * ds/dx.
+
+  if (c1) {
+    Veclib::vmul  (np, ddr, d, drdx + estart, skip, c1, 1);
+    Veclib::vvtvp (np, dds, d, dsdx + estart, skip, c1, 1, c1, 1);
+  }
+  
+  // -- dc/dy = dc/dr * dr/dy + dc/ds * ds/dy.
+
+  if (c2) {
+    Veclib::vmul  (np, ddr, d, drdy + estart, skip, c2, 1);
+    Veclib::vvtvp (np, dds, d, dsdy + estart, skip, c2, 1, c2, 1);
+  }
+
+  freeVector (ddr);
+  freeVector (dds);
+
+/*
+  int estart, skip, bstart, d;
+  terminal (side, estart, skip, bstart);
+
+  real*  ddr = rvector (np);
+  real*  dds = rvector (np);
+
+  real  **DV, **DT;
+
+  quadOps (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+
+  // -- Make dc/dr, dc/ds along element edge.
+
   switch (side) {
   case 1:
     d = 1;
@@ -1390,10 +1445,14 @@ void  Element::sideGrad (int side, const real* src, real* c1, real* c2 ) const
     break;
   }
 
+  // -- dc/dx = dc/dr * dr/dx + dc/ds * ds/dx.
+
   if (c1) {
     Veclib::vmul  (np, ddr, d, drdx + estart, skip, c1, 1);
     Veclib::vvtvp (np, dds, d, dsdx + estart, skip, c1, 1, c1, 1);
   }
+  
+  // -- dc/dy = dc/dr * dr/dy + dc/ds * ds/dy.
 
   if (c2) {
     Veclib::vmul  (np, ddr, d, drdy + estart, skip, c2, 1);
@@ -1402,6 +1461,7 @@ void  Element::sideGrad (int side, const real* src, real* c1, real* c2 ) const
 
   freeVector (ddr);
   freeVector (dds);
+*/
 }
 
 
