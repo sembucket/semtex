@@ -43,6 +43,7 @@ void processCommand (const char  command,
     "l                     : list available isosurfaces\n"
     "m <val>               : make isosurface level val with current field\n"
     "n <n>                 : invert normal of <n>th isosurface [Default: 0]\n"
+    "o <r>                 : set radius of viewpoint to <r>\n"
     "p <x> <y> <z>         : specify coordinate rotation\n"
     "q                     : quit\n"
     "r <n>                 : remove/delete surface[<n>] from storage\n"
@@ -142,13 +143,16 @@ void processCommand (const char  command,
     istrstream strm(buf, strlen(buf));
     double val[3];
 
-    for (i = 0; i < 3; i++) {
-      strm >> val[i];
+    for (i = 0; i < 3; i++) strm >> val[i];
+
+    if (!strm)
+      message (routine, "insufficient arguments to set angles", WARNING);
+    else {
+      State.xrot = val[0];
+      State.yrot = val[1];
+      State.zrot = val[2];
     }
 
-    State.xrot = val[0];
-    State.yrot = val[1];
-    State.zrot = val[2];
     break;
   }
 
@@ -185,25 +189,31 @@ void processCommand (const char  command,
 
   case 't': {
     istrstream strm(buf, strlen(buf));
-    double val[3];
+    float val[3];
 
-    for (i = 0; i < 3; i++) {
-      strm >> val[i];
+    for (i = 0; i < 3; i++) strm >> val[i];
+
+    if (!strm)
+      message (routine, "insufficient arguments to set positions", WARNING);
+    else {
+      State.xtrans = val[0];
+      State.ytrans = val[1];
+      State.ztrans = val[2];
     }
 
-    State.xrot = val[0];
-    State.yrot = val[1];
-    State.zrot = val[2];
     break;
   }
 
   case 'z': {
     istrstream strm(buf, strlen(buf));
-    double val;
+    float val;
 
     strm >> val;
 
-    State.radius = (1./val) * State.length;
+    if (!strm)
+      message (routine, "insufficient arguments to set radius", WARNING);
+    else
+      State.radius = (1./val) * State.length;
     break;
   }
 

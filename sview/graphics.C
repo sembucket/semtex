@@ -102,43 +102,22 @@ void keyboard (unsigned char key,
     break;
   case 'k':
     {
-      ofstream knobs ("sview.knobs");
-      char     buf[StrMax];
-      const    char *fmt[] = { 
-	"%-25.6g "  "Radius\n",
-	"%-25.6g "  "X-rotation\n",
-	"%-25.6g "  "Y-rotation\n",
-	"%-25.6g "  "Z-rotation\n",
-	"%-25.6g "  "X-translation\n",
-	"%-25.6g "  "Y-translation\n",
-	"%-25.6g "  "Z-translation\n",
-      };
-      sprintf (buf, fmt[0], State.radius); knobs << buf;
-      sprintf (buf, fmt[1], State.xrot  ); knobs << buf;
-      sprintf (buf, fmt[2], State.yrot  ); knobs << buf;
-      sprintf (buf, fmt[3], State.zrot  ); knobs << buf;
-      sprintf (buf, fmt[4], State.xtrans); knobs << buf;
-      sprintf (buf, fmt[5], State.ytrans); knobs << buf;
-      sprintf (buf, fmt[6], State.ztrans); knobs << buf;
-
+      ofstream knobs ("knobs.sv");
+      knobs << "z"
+	    << " " << State.length / State.radius << endl;
+      knobs << "p"
+	    << " " << State.xrot
+	    << " " << State.yrot
+	    << " " << State.zrot   << endl;
+      knobs << "t" 
+	    << " " << State.xtrans
+	    << " " << State.ytrans
+	    << " " << State.ztrans << endl;
       knobs.close();
     }
     break;
   case 'l':
-    {
-      ifstream knobs ("sview.knobs");
-      if   (!knobs) message (routine, "no knobs to load, ignoring", WARNING);
-      else {
-	knobs >> State.radius; knobs.ignore (StrMax, '\n');
-	knobs >> State.xrot;   knobs.ignore (StrMax, '\n');
-	knobs >> State.yrot;   knobs.ignore (StrMax, '\n');
-	knobs >> State.zrot;   knobs.ignore (StrMax, '\n');
-	knobs >> State.xtrans; knobs.ignore (StrMax, '\n');
-	knobs >> State.ytrans; knobs.ignore (StrMax, '\n');
-	knobs >> State.ztrans;
-	knobs.close();
-      }
-    }
+    processScript ("knobs.sv");
     break;
   case 'i':
     if   (State.blackbk = !State.blackbk) glClearColor (0.0, 0.0, 0.0, 0.0);

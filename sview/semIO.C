@@ -1,5 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Input SEM mesh and field data.
+//
+// Copyright (C) 1999 Hugh Blackburn
 // 
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
@@ -32,14 +34,16 @@ Sem* loadMesh (const char* fname)
 // from the mesh locations.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "loadMesh", buf[StrMax], err[StrMax];
-  register int i, j, k;
-  int          nr, np, np2, nz, nel, ntot;
-  float        x, y, z;
-  float        xavg, yavg, zavg;
-  float        xmin, xmax, ymin, ymax, zmin, zmax;
-  ifstream     mfile (fname);
-  Sem*         M = new Sem;
+  const char      routine[] = "loadMesh";
+  char            buf[StrMax], err[StrMax];
+  int             nr, np, np2, nz, nel, ntot;
+  float           x, y, z;
+  float           xavg, yavg, zavg;
+  float           xmin, xmax, ymin, ymax, zmin, zmax;
+  ifstream        mfile (fname);
+  Sem*            M = new Sem;
+  register int    i, j, k;
+  register float  *xg, *yg, *zg, r, cz, sz;
 
   if (!mfile) message (routine, "couldn't open mesh file", ERROR);
   
@@ -59,6 +63,9 @@ Sem* loadMesh (const char* fname)
     message (routine, err, ERROR);
   }
 
+  ++nz;				// -- Mesh will show full length of domain.
+  M -> nrep = 1;		// -- Special default.
+ 
   M -> nel  = nel;
   M -> idim = new int [nel];
   M -> jdim = new int [nel];
@@ -76,9 +83,9 @@ Sem* loadMesh (const char* fname)
 
   ntot = np * np * nz * nel;
 
-  M -> xgrid[0] = new float [ntot];
-  M -> ygrid[0] = new float [ntot];
-  M -> zgrid[0] = new float [ntot];
+  xg = M -> xgrid[0] = new float [ntot];
+  yg = M -> ygrid[0] = new float [ntot];
+  zg = M -> zgrid[0] = new float [ntot];
 
   ntot = np * np * nz;
 
@@ -88,13 +95,6 @@ Sem* loadMesh (const char* fname)
     M -> zgrid[i] = M -> zgrid[0] + i * ntot;
   }
 
-  xmin =  1.0e35;
-  xmax = -xmin;
-  ymin =  xmin;
-  ymax =  xmax;
-  zmin =  xmin;
-  zmax =  xmax;
-
   np2  = np * np;
   ntot = np2;
 
@@ -103,10 +103,6 @@ Sem* loadMesh (const char* fname)
       mfile >> x >> y;
       M -> xgrid[i][j] = x;
       M -> ygrid[i][j] = y;
-      xmin = min (xmin, x);
-      xmax = max (xmax, x);
-      ymin = min (ymin, y);
-      ymax = max (ymax, y);
       for (k = 1; k < nz; k++) {
 	M -> xgrid[i][j + k * ntot] = x;
 	M -> ygrid[i][j + k * ntot] = y;
@@ -117,23 +113,54 @@ Sem* loadMesh (const char* fname)
 
   for (k = 0; k < nz; k++) {
     mfile >> z;
-    zmin = min (zmin, z);
-    zmax = max (zmax, z);
     for (i = 0; i < nel; i++)
       for (j = 0; j < np2; j++)
 	M -> zgrid[i][j + k * ntot] = z;
+  }
+
+  ntot = np * np * nz * nel;
+
+  // -- Convert to cylindrical coords if required.
+
+  if (State.cylind)
+    for (i = 0; i < ntot; i++) {
+      r     = zg[i];
+      cz    = cos (r);
+      sz    = sin (r);
+      r     = yg[i];
+      yg[i] = r * cz;
+      zg[i] = r * sz;
+    }
+
+  // -- Set maxima & minima.
+
+  xmin =  1.0e35;
+  xmax = -xmin;
+  ymin =  xmin;
+  ymax =  xmax;
+  zmin =  xmin;
+  zmax =  xmax;
+
+  for (i = 0; i < ntot; i++) {
+    x = xg[i];
+    y = yg[i];
+    z = zg[i];
+    xmin = min (xmin, x);
+    xmax = max (xmax, x);
+    ymin = min (ymin, y);
+    ymax = max (ymax, y);
+    zmin = min (zmin, z);
+    zmax = max (zmax, z);
   }
 
   xavg = 0.5 * (xmin + xmax);
   yavg = 0.5 * (ymin + ymax);
   zavg = 0.5 * (zmin + zmax);
 
-  ntot = np * np * nz * nel;
-
   for (i = 0; i < ntot; i++) {
-    M -> xgrid[0][i] -= xavg;
-    M -> ygrid[0][i] -= yavg;
-    M -> zgrid[0][i] -= zavg;
+    xg[i] -= xavg;
+    yg[i] -= yavg;
+    zg[i] -= zavg;
   }
 
   State.xmin = xmin-xavg;
@@ -161,7 +188,7 @@ Data* setFields (const char* fname)
 {
   char  routine[] = "setFields";
   const int NP  = Mesh -> idim[0];
-  const int NZ  = Mesh -> kdim[0];
+  const int NZ  = Mesh -> kdim[0] - 1;
   const int NEL = Mesh -> nel;
   int       i, nr, ns, nz, nel, ntot;
   char      buf[StrMax], err[StrMax];
@@ -188,18 +215,15 @@ Data* setFields (const char* fname)
   
   tmp          = new double [ntot = nr * ns * nz * nel];
   D -> elmt    = new float* [nel];
-  D -> elmt[0] = new float  [ntot];
+  D -> elmt[0] = new float  [nr * ns * (nz + 1) * nel];
   for (i = 1; i < nel; i++)
-    D -> elmt[i] = D -> elmt[0] + i * nr * ns * nz;
+    D -> elmt[i] = D -> elmt[0] + i * nr * ns * (nz + 1);
 
   D -> file.getline(buf, StrMax).getline(buf, StrMax).getline(buf, StrMax);
   D -> file.getline(buf, StrMax).getline(buf, StrMax).getline(buf, StrMax);
 
   i = 0;
-  while (isalpha (buf[i])) {
-    D -> name[i] = buf[i];
-    i++;
-  }
+  while (isalpha (buf[i])) { D -> name[i] = buf[i]; i++; }
   D -> name[i] = '\0';
   D -> nfields = strlen (D -> name);
 
@@ -257,14 +281,20 @@ int loadData (Data* F   ,
 // The data structure used for interpolation (element-ordered) differs
 // from that in the file (plane-ordered).  Thus data are first read into
 // a temporary array, then reordered.  Byte swapping may also be required.
+//
+// There is a slight complication in that the domain is padded in the z 
+// direction (allowing for periodicity) so that the last plane of data
+// is a copy of the first plane.
 // ---------------------------------------------------------------------------
 {
   char routine[] = "loadData", err[StrMax];
   int             found = 0;
-  const int       nz   = Mesh -> kdim[0];
+  const int       nzp  = Mesh -> kdim[0];
+  const int       nz   = nzp - 1;
   const int       nel  = Mesh -> nel;
   const int       np2  = sqr (Mesh -> idim[0]);
-  const int       ntot = np2 * nz * nel;
+  const int       ntot = np2 * nz  * nel;
+  const int       ntop = np2 * nzp * nel;
   const int       skip = np2 * nel;
   register int    i, j, k, Linv1, Linv2;
   register float  *E, dmin =  1.0e35, dmax = -dmin, datum;
@@ -281,7 +311,7 @@ int loadData (Data* F   ,
     return 0;
   }
 
-  tmp = new double [ntot];
+  tmp = new double [ntop];
 
   // -- Reposition file and extract chosen field into temporary store.
 
@@ -290,12 +320,16 @@ int loadData (Data* F   ,
   F -> file.read  ((char*) tmp, ntot * sizeof (double));
 
   if (_swab) dbrev (ntot, tmp, tmp);
+  
+  // -- Copy last ((nz + 1)th) plane from first one.
+
+  for (i = 0; i < skip; i++) tmp[ntot + i] = tmp[i];
 
   // -- Re-order data: [nel][nz][ns][nr] <-- [nz][nel][ns][nr].
 
   for (k = 0; k < nel; k++) {
     E = F -> elmt[k];
-    for (j = 0; j < nz; j++) {
+    for (j = 0; j < nzp; j++) {
       Linv1 = j * np2;
       Linv2 = j * skip + k * np2;
       for (i = 0; i < np2; i++) {

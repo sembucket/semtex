@@ -10,6 +10,7 @@ sview [options] meshfile fieldfile
 meshfile  ... specifies name of NEKTON-format mesh file.
 fieldfile ... specifies name of NEKTON-format (binary) field file.
 options:
+-c        ... set cylindrical coordinates
 -h        ... print this message
 -s <file> ... read commands from file
 -w        ... white background
@@ -63,8 +64,8 @@ Other key commands:
 'a': toggle antialiased drawing of lines and polygons (slows rendering). 
 'b': toggle rendering of mesh outlines.
 'i': toggle inversion of background from black to white (default black).
-'k': write viewing information to file "sview.knobs".
-'l': read viewing information from file "sview.knobs".
+'k': write viewpoint-setting commands to file "knobs.sv".
+'l': read viewing information from file "knobs.sv".
 'r': reset view.
 'q': quit sview (also in the terminal interface, see below).
 ESC: iconifies the window and puts sview in isosurface manipulation mode.
@@ -161,7 +162,7 @@ Python bindings for GLUT.
 
 BUGS
 ----
-There are still some problems with isosurface normals , material
+There are still some problems with isosurface normals, material
 colours and lighting.
 
 $Id$

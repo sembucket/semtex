@@ -10,6 +10,7 @@
 // meshfile  ... specifies name of NEKTON-format mesh file.
 // fieldfile ... specifies name of NEKTON-format (binary) field file.
 // options:
+//   -c        ... set cylindrcal coordinates
 //   -h        ... print this message
 //   -s <file> ... read commands from file
 //   -w        ... white background [Default: black]
@@ -63,6 +64,23 @@ void main (int    argc,
     "-- sview : isosurface viewer for spectral element meshes --\n"
     "           OpenGL version CSIRO 1999\n";
 
+  // -- Set graphics state defaults.
+
+  State.drawbox = GL_TRUE;
+  State.drawiso = GL_FALSE;
+  State.rotate  = GL_TRUE;
+  State.blackbk = GL_TRUE;
+  State.noalias = GL_FALSE;
+  State.cylind  = GL_FALSE;
+
+  State.xrot    = 0.0;
+  State.yrot    = 0.0;
+  State.zrot    = 0.0;
+  State.xtrans  = 0.0;
+  State.ytrans  = 0.0;
+  State.ztrans  = 0.0;
+  State.radius  = 1.0;
+
   // -- Initialise.
 
   glutInit (&argc, argv);
@@ -82,21 +100,7 @@ void main (int    argc,
   Mesh   = loadMesh  (mfile);
   Fields = setFields (ffile);
 
-  // -- Set graphics state defaults.
-
-  State.drawbox = GL_TRUE;
-  State.drawiso = GL_FALSE;
-  State.rotate  = GL_TRUE;
-  State.blackbk = GL_TRUE;
-  State.noalias = GL_FALSE;
-
-  State.xrot    = 0.0;
-  State.yrot    = 0.0;
-  State.zrot    = 0.0;
-  State.xtrans  = 0.0;
-  State.ytrans  = 0.0;
-  State.ztrans  = 0.0;
-  State.radius  = 1.0 * State.length;
+  State.radius = 1.0 * State.length;
 
   // -- Set up windowing.
 
@@ -135,6 +139,7 @@ static void getargs (int    argc ,
     "meshfile  ... specifies name of NEKTON-format mesh file.\n"
     "fieldfile ... specifies name of NEKTON-format (binary) field file.\n"
     "options:\n"
+    "-c        ... set cylindrical coordinates\n"
     "-h        ... print this message\n"
     "-s <file> ... read commands from file\n"
     "-w        ... white background\n";
@@ -142,6 +147,9 @@ static void getargs (int    argc ,
 
   while (--argc && **++argv == '-')
     switch (c = *++argv[0]) {
+    case 'c':
+      State.cylind = GL_TRUE;
+      break;
     case 'h':
       cerr << usage;
       exit (EXIT_SUCCESS);
@@ -202,16 +210,16 @@ void processScript (const char *name)
 
   if (!fp) {
     sprintf (buf, "couldn't open script file -- %s", name);
-    message (routine, buf, ERROR);
+    message (routine, buf, WARNING);
   } else {
     sprintf (buf, "Reading commands from %s", name);
     message (routine, buf, REMARK);
-  }
 
-  while (fp >> command) {
-    fp.getline     (buf, StrMax);
-    processCommand (command, buf);
-  }
+    while (fp >> command) {
+      fp.getline     (buf, StrMax);
+      processCommand (command, buf);
+    }
 
-  fp.close();
+    fp.close();
+  }
 }

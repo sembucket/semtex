@@ -36,6 +36,7 @@ typedef struct flag {		/* Global state variables.              */
   GLboolean rotate ;		/* Toggle rotation/translation of view. */
   GLboolean blackbk;		/* Toggle black/white background.       */
   GLboolean noalias;		/* Toggle antaliasing of polygons.      */
+  GLboolean cylind ;		/* True for cylindrical coordinates.    */
   GLdouble  radius ;
   GLdouble  xrot   ;
   GLdouble  yrot   ;
@@ -54,6 +55,7 @@ typedef struct flag {		/* Global state variables.              */
 
 typedef struct sem {		/* Spectral element mesh information.   */
   int     nel  ;		/* Number of elements.                  */
+  int     nrep ;		/* Number of periodic z-repetitions.    */
   int*    idim ;		/* "r" dim for each element (equal!).   */
   int*    jdim ;		/* "s" dim for each element (equal!).   */
   int*    kdim ;		/* "t" dim for each element (equal!).   */
