@@ -29,11 +29,34 @@ ifeq ($(ARCH),Linux)
   ifeq ($(MACH),i686)
     ARCH = Linux-iX86
   endif
+  ifeq ($(MACH),x86_64)
+    ARCH = Linux-x86_64
+  endif
 endif
 
 # ----------------------------------------------------------------------------
 # Compiler options for specific machines.
 #
+
+ifeq ($(ARCH),Linux-x86_64)             # -- Linux Opternon w GNU compilation.
+CXX      = g++
+LD       = g++
+CC       = gcc
+FC       = g77
+ifdef DEBUG
+  OPT    = -gstabs+ -Wno-deprecated
+else
+  OPT    = -O3 -w -Wno-deprecated
+endif
+CFLAGS   = $(DEFINES) $(OPT)
+FFLAGS   = $(DEFINES) $(OPT)
+CXXFLAGS = $(DEFINES) $(OPT)
+LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS) -lm
+RANLIB   = ranlib
+F77LIBS  = -llapack -lblas -lg2c
+LIBDIR  += -L/usr/local/lib
+CLDFLAGS = $(LDFLAGS)
+endif
 
 ifeq ($(ARCH),Darwin)               # -- Mac OSX.
 #DEFINES += -D_VECTOR_ARCH
