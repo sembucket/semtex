@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // drive.C: control spectral element DNS for incompressible flows.
 //
-// Copyright (C) 1994  Hugh Blackburn.
+// Copyright (c) 1994 Hugh Blackburn
 //
 // USAGE:
 // -----
@@ -15,11 +15,11 @@
 // AUTHOR:
 // ------
 // Hugh Blackburn
-// CSIRO Division of Building, Construction and Engineering
+// CSIRO
 // P.O. Box 56
 // Highett, Vic 3190
 // Australia
-// hugh.blackburn@dbce.csiro.au
+// hugh.blackburn@csiro.au
 //
 // $Id$
 //////////////////////////////////////////////////////////////////////////////

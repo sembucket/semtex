@@ -37,21 +37,21 @@
 #include <Sem.h>
 #include <ctime>
 
-static char  prog[]  = "interp";
-static int   verbose = 0;
-static int   nreport = 100;
-static void  getargs    (int, char**, char*&, char*&, char*&);
-static void  loadPoints (istream&, int&, int&, int&, vector<Point*>&);
-static void  findPoints (vector<Point*>&, vector<Element*>&,
-			 vector<Element*>&, vector<real>&, vector<real>&);
-static int   getDump    (ifstream&, vector<AuxField*>&, vector<Element*>&,
-			 const int, const int, const int,
-			 int&, real&, real&, real&, real&);
-static void  putHeader  (const char*, const vector<AuxField*>&,
-			 const int, const int, const int, const int,
-			 const real, const real, const real, const real);
-static int   doSwap     (const char*);
-static void  loadName   (const vector<AuxField*>&, char*);
+static char prog[]  = "interp";
+static int  verbose = 0;
+static int  nreport = 100;
+static void getargs    (int, char**, char*&, char*&, char*&);
+static void loadPoints (istream&, int&, int&, int&, vector<Point*>&);
+static void findPoints (vector<Point*>&, vector<Element*>&,
+			vector<Element*>&, vector<real>&, vector<real>&);
+static int  getDump    (ifstream&, vector<AuxField*>&, vector<Element*>&,
+			const int, const int, const int,
+			int&, real&, real&, real&, real&);
+static void putHeader  (const char*, const vector<AuxField*>&,
+			const int, const int, const int, const int,
+			const real, const real, const real, const real);
+static int  doSwap     (const char*);
+static void loadName   (const vector<AuxField*>&, char*);
 
 
 int main (int    argc,
@@ -65,6 +65,7 @@ int main (int    argc,
   int               np, nel, ntot;
   int               i, j, k, nf, step;
   ifstream          fldfile;
+  istream*          pntfile;
   FEML*             F;
   Mesh*             M;
   real              c, time, timestep, kinvis, beta;
@@ -101,16 +102,16 @@ int main (int    argc,
   // -- Construct the list of points, then find them in the Mesh.
 
   if (points) {
-    ifstream* inputfile = new ifstream (points);
-    if (inputfile -> good())
-      cin = *inputfile;
-    else
+    pntfile = new ifstream (points);
+    if (pntfile -> bad())
       message (prog, "unable to open point file", ERROR);
+    else
+      pntfile = &cin;
   }
 
   np = nel = ntot = 0;
 
-  loadPoints (cin, np, nel, ntot, point);
+  loadPoints (*pntfile, np, nel, ntot, point);
   findPoints (point, Esys, elmt, r, s);
 
   // -- Load field file, interpolate within it.

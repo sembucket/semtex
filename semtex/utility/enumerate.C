@@ -28,6 +28,8 @@
 #include <iostream>
 #include <iomanip>
 
+using namespace std;
+
 #include <femdef.h>
 #include <Femlib.h>
 #include <Utility.h>

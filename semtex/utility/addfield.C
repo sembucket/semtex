@@ -2,7 +2,7 @@
 // addfield.C: process sem field files, computing and adding vorticity and
 // divergence, rate of strain tensor, velocity gradient invariants, etc.
 //
-// Copyright (c) 1998--2002 Hugh Blackburn, Murray Rudman
+// Copyright (c) 1998 Hugh Blackburn, Murray Rudman
 //
 // NB: the input field file is assumed to contain only velocity and
 // pressure data.
@@ -95,10 +95,10 @@ enum {
   VORTICITY
 };
 
-static char    prog[] = "addfield";
-static void    getargs  (int, char**, char*&, char*&, char*&, integer[]);
-static integer getDump  (Domain*, ifstream&);
-static void    putDump  (Domain*, vector<AuxField*>&, integer, ofstream&);
+static char prog[] = "addfield";
+static void getargs  (int, char**, char*&, char*&, char*&, int[]);
+static int  getDump  (Domain*, ifstream&);
+static void putDump  (Domain*, vector<AuxField*>&, int, ostream&);
 
 
 int main (int    argc,
@@ -109,10 +109,9 @@ int main (int    argc,
 {
   Geometry::CoordSys system;
   char               *session, *dump, *func, fields[StrMax];
-  integer            i, j, k, np, nz, nel, allocSize, nComponent, iAdd = 0;
-  integer            add[FLAG_MAX], need[FLAG_MAX];
+  int                i, j, k, np, nz, nel, allocSize, nComponent, iAdd = 0;
+  int                add[FLAG_MAX], need[FLAG_MAX];
   ifstream           file;
-  ofstream           outp (1);
   FEML*              F;
   Mesh*              M;
   BCmgr*             B;
@@ -142,9 +141,9 @@ int main (int    argc,
   F      = new FEML  (session);
   M      = new Mesh  (F);
   nel    = M -> nEl();  
-  np     =  (integer) Femlib::value ("N_POLY");
-  nz     =  (integer) Femlib::value ("N_Z"   );
-  system = ((integer) Femlib::value ("CYLINDRICAL") ) ?
+  np     =  (int) Femlib::value ("N_POLY");
+  nz     =  (int) Femlib::value ("N_Z"   );
+  system = ((int) Femlib::value ("CYLINDRICAL") ) ?
                       Geometry::Cylindrical : Geometry::Cartesian;
   Geometry::set (np, nz, nel, system);
   if   (nz > 1) strcpy (fields, "uvwp");
@@ -411,7 +410,7 @@ int main (int    argc,
       Egr -> times (*Egr, *work);
     }
 
-    putDump (D, addField, iAdd, outp);
+    putDump (D, addField, iAdd, cout);
   }
   
   file.close();
@@ -420,12 +419,12 @@ int main (int    argc,
 }
 
 
-static void getargs (int       argc   ,
-		     char**    argv   ,
-		     char*&    session,
-		     char*&    dump   ,
-		     char*&    func   ,
-		     integer*  flag   )
+static void getargs (int    argc   ,
+		     char** argv   ,
+		     char*& session,
+		     char*& dump   ,
+		     char*& func   ,
+		     int*   flag   )
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
@@ -448,8 +447,8 @@ static void getargs (int       argc   ,
     "  -a        ... add all fields derived from velocity (above)\n"
     "  -f <func> ... add a computed function <func> of x, y, z, t, etc.\n";
               
-  integer i, sum;
-  char    buf[StrMax];
+  int  i, sum;
+  char buf[StrMax];
  
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
@@ -486,8 +485,8 @@ static void getargs (int       argc   ,
 }
 
 
-static integer getDump (Domain*   D   ,
-			ifstream& dump)
+static int getDump (Domain*   D   ,
+		    ifstream& dump)
 // ---------------------------------------------------------------------------
 // Read next set of field dumps from file.
 // ---------------------------------------------------------------------------
@@ -499,8 +498,8 @@ static integer getDump (Domain*   D   ,
 
 static void putDump  (Domain*            D       ,
 		      vector<AuxField*>& addField,
-		      integer            nOut    ,
-		      ofstream&          strm    )
+		      int                nOut    ,
+		      ostream&           strm    )
 // ---------------------------------------------------------------------------
 // This is a version of the normal Domain dump that adds extra AuxFields.
 // ---------------------------------------------------------------------------
@@ -518,10 +517,10 @@ static void putDump  (Domain*            D       ,
     "%-25s "    "Format\n"
   };
 
-  integer i, nComponent;
-  char    routine[] = "putDump";
-  char    s1[StrMax], s2[StrMax];
-  time_t  tp (::time (0));
+  int    i, nComponent;
+  char   routine[] = "putDump";
+  char   s1[StrMax], s2[StrMax];
+  time_t tp (::time (0));
 
   if (D -> nField() == 1)	// -- Scalar original field.
     nComponent = 1;
