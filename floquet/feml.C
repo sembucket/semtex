@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // feml.C:  Finite Element Markup Language (FEML) routines.
 //
-// Copyright (c) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // After initialization, FEML files are prescanned to find locations of
 // keywords.  These locations are stored, and reset by the seek function.
@@ -28,10 +28,10 @@ static char RCS[] = "$Id$";
 #include <cstring>
 #include <cctype>
 
-#include <cfemdef>
-#include <utility_h>
-#include <feml_h>
-#include <femlib_h>
+#include <cfemdef.h>
+#include <utility.h>
+#include <feml.h>
+#include <femlib.h>
 
 
 FEML::FEML (const char* session)

@@ -11,10 +11,10 @@ static char RCS[] = "$Id$";
 #include <cstdio>
 #include <iostream>
 
-#include <cfemdef>
-#include <utility_h>
-#include <femlib_h>
-#include "geometry_h"
+#include <cfemdef.h>
+#include <utility.h>
+#include <femlib.h>
+#include "geometry.h"
 
 integer Geometry::_pid    = 0;
 integer Geometry::_nproc  = 0;

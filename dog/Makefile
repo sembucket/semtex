@@ -33,7 +33,7 @@ SEMFILES = analysis auxfield BCmgr boundary bsys condition domain	\
 	   edge element family feml field geometry history integration	\
 	   matrix mesh misc particle pressure
 SEMOBJ   = $(addsuffix .o,$(SEMFILES))
-SEMHDR   = sem_h
+SEMHDR   = sem.h
 
 # ----------------------------------------------------------------------------
 # Build eigensolver code.
@@ -41,7 +41,7 @@ SEMHDR   = sem_h
 FL_FILES = arnoldi integrate stabanalysis
 FL_OBJ   = $(addsuffix .o,$(FL_FILES))
 
-$(KPROG): sem $(FL_OBJ) $(SEMOBJ) stab_h
+$(KPROG): sem $(FL_OBJ) $(SEMOBJ) stab.h
 	$(LD) -o $@ $(FL_OBJ) $(SEMOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
@@ -50,7 +50,7 @@ $(KPROG): sem $(FL_OBJ) $(SEMOBJ) stab_h
 ST_FILES = lns integrate stabanalysis
 ST_OBJ   = $(addsuffix .o,$(ST_FILES))
 
-lns: sem $(ST_OBJ) $(SEMOBJ) stab_h
+lns: sem $(ST_OBJ) $(SEMOBJ) stab.h
 	$(LD) -o $@ $(ST_OBJ) $(SEMOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // combine.C: add a perturbation mode to a base flow.
 //
-// Copyright (c) 2002,2003 Hugh Blackburn
+// Copyright (c) 2002 <--> $Date$, Hugh Blackburn
 //
 // USAGE
 // -----
@@ -57,12 +57,12 @@ static char RCS[] = "$Id$";
 
 using namespace std;
 
-#include <cfemdef>
-#include <utility_h>
-#include <blas_h>
-#include <lapack_h>
-#include <veclib_h>
-#include <femlib_h>
+#include <cfemdef.h>
+#include <utility.h>
+#include <blas.h>
+#include <lapack.h>
+#include <veclib.h>
+#include <femlib.h>
 
 #include <Array.h>
 

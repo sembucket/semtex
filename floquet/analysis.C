@@ -13,7 +13,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "sem_h"
+#include "sem.h"
 #include <unistd.h>
 
 
@@ -53,7 +53,7 @@ Analyser::Analyser (Domain* D   ,
     for (i = 0; i < NH; i++) {
       file -> stream() >> id >> x >> y >> z;
       if ((E = HistoryPoint::locate (x, y, D -> elmt, r, s))) {
-	H = new HistoryPoint (id, E, r, s, z);
+	H = new HistoryPoint (id, E, r, s, x, y, z);
 	history.insert (history.end(), H);
 	num++;
       } else {

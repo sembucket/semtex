@@ -72,7 +72,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "stab_h"
+#include "stab.h"
 
 #ifdef FLIP
 static char             prog[] = "arnoldi-H";

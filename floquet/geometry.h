@@ -1,14 +1,14 @@
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
 
-#include <cfemdef>
+#include <cfemdef.h>
 
 class Geometry
 // ===========================================================================
 // Details of geometric representation used for scalar fields.  Static
 // functions make information globally accessible.
 //
-// Copyright (C) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // In all cases, 2D quad elements are employed, with a possible
 // extension by Fourier expansions in the third dimension.  While the

@@ -2,12 +2,12 @@
 // This version of analysis.C is specialized so that it
 // prints out base history point information.
 //
-// Copyright (c) 1994,2004 Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
  
-#include "stab_h"
+#include "stab.h"
 
 
 StabAnalyser::StabAnalyser (Domain* D   ,
@@ -32,7 +32,7 @@ StabAnalyser::StabAnalyser (Domain* D   ,
     for (i = 0; i < NBH; i++) {
       file -> stream() >> id >> x >> y >> z;
       if ((EB = HistoryPoint::locate (x, y, D -> elmt, r, s))) {
-	HB = new HistoryPoint (id, EB, r, s, z);
+	HB = new HistoryPoint (id, EB, r, s, x, y, z);
 	base_history.insert (base_history.end(), HB);
 	num++;
       } else {
