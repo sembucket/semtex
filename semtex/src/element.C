@@ -1561,3 +1561,53 @@ void  Element::printMesh () const
 {
   printVector (cout, "rr", nTot(), *xmesh, *ymesh);
 }
+
+
+void  Element::economizeGeo ()
+// ---------------------------------------------------------------------------
+// Insert element geometric factors in economized storage.
+// ---------------------------------------------------------------------------
+{
+  int  size;
+
+  size = nTot ();
+
+  drdx = FamilyMgr::insert (size, drdx);
+  dsdx = FamilyMgr::insert (size, dsdx);
+  drdy = FamilyMgr::insert (size, drdy);
+  dsdy = FamilyMgr::insert (size, dsdy);
+
+  size = sqr (nQuad ());
+  
+  G1   = FamilyMgr::insert (size, G1);
+  G2   = FamilyMgr::insert (size, G2);
+  G3   = FamilyMgr::insert (size, G3);
+
+  if (G4 == mass) {
+    mass = FamilyMgr::insert (size, mass);
+    G4   = mass;
+  } else {
+    mass = FamilyMgr::insert (nTot (), mass);
+    G4   = FamilyMgr::insert (size,    G4  );
+  }
+}
+
+
+void  Element::economizeMat ()
+// ---------------------------------------------------------------------------
+// Insert element static condensation matrices in economized storage.
+// ---------------------------------------------------------------------------
+{
+  int  nint = nInt (), next = nExt ();
+  int  size;
+
+  if (!nint) return;
+
+  size = ((nint + 1) * nint) >> 1;
+  
+  hii  = FamilyMgr::insert (size, hii);
+
+  size = next * nint;
+
+  hbi  = FamilyMgr::insert (size, hbi);
+}
