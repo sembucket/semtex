@@ -4,17 +4,17 @@
 // Copyright (c) 2003 <--> $Date$, Hugh Blackburn
 //
 // Edges, like boundaries (to which they contribute) always belong to
-// a group.
+// a group -- regular element sides generally do not.
 //////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
 
-#include <sem.h>
+#include "sem.h"
 
 
 Edge::Edge (const char*    grp ,
 	    const Element* elmt,
-	    const integer  side) : 
+	    const int_t    side) : 
 // ---------------------------------------------------------------------------
 // Class constructor.
 // ---------------------------------------------------------------------------
@@ -22,13 +22,13 @@ Edge::Edge (const char*    grp ,
   _elmt (elmt),
   _side (side)
 {
-  const char    routine[] = "Edge::Edge";
-  const integer npnp      = sqr (_np);
-  char          err[StrMax];
+  const char  routine[] = "Edge::Edge";
+  const int_t npnp = sqr (_np);
+  char        err[StrMax];
 
-  strcpy ((_group = new char [static_cast<size_t>(strlen (grp) + 1)]), grp);
+  strcpy ((_group = new char [static_cast<size_t> (strlen (grp) + 1)]), grp);
 
-  _x    = new real [static_cast<size_t>(5 * _np)];
+  _x    = new real_t [static_cast<size_t> (5 * _np)];
   _y    = _x  + _np;
   _nx   = _y  + _np;
   _ny   = _nx + _np;
@@ -51,11 +51,11 @@ Edge::Edge (const char*    grp ,
 }
 
 
-void Edge::geometry (real* X   ,
-		     real* Y   ,
-		     real* Nx  ,
-		     real* Ny  ,
-		     real* Area) const
+void Edge::geometry (real_t* X   ,
+		     real_t* Y   ,
+		     real_t* Nx  ,
+		     real_t* Ny  ,
+		     real_t* Area) const
 // ---------------------------------------------------------------------------
 // Copy internal geometric info for exterior use.
 // ---------------------------------------------------------------------------
@@ -68,29 +68,29 @@ void Edge::geometry (real* X   ,
 }
 
 
-void Edge::curlCurl (const integer k  ,
-		     const real*   Ur ,
-		     const real*   Ui ,
-		     const real*   Vr ,
-		     const real*   Vi ,
-		     const real*   Wr ,
-		     const real*   Wi ,
-		     real*         xr ,
-		     real*         xi ,
-		     real*         yr ,
-		     real*         yi ,
-		     real*         wrk) const
+void Edge::curlCurl (const int_t   k  ,
+		     const real_t* Ur ,
+		     const real_t* Ui ,
+		     const real_t* Vr ,
+		     const real_t* Vi ,
+		     const real_t* Wr ,
+		     const real_t* Wi ,
+		     real_t*       xr ,
+		     real_t*       xi ,
+		     real_t*       yr ,
+		     real_t*       yi ,
+		     real_t*       wrk) const
 // ---------------------------------------------------------------------------
 // Generate (the Fourier mode equivalent of) curl curl u along this boundary.
 //
 // Input k is the Fourier-mode index.
 //
-// Input pointers Ur, Ui etc correspond to the real and imaginary planes of
+// Input pointers Ur, Ui etc correspond to the real_t and imaginary planes of
 // data for the three components of vector field u corresponding to the
 // kth Fourier mode.  The third component is treated as the transformed
 // direction.
 //
-// Output pointers are to the (real and imaginary parts of) the first and
+// Output pointers are to the (real_t and imaginary parts of) the first and
 // second components of curl curl u along this boundary edge.  The third
 // component is not computed as it is not required by the application.
 //
@@ -101,16 +101,16 @@ void Edge::curlCurl (const integer k  ,
 // Work vector wrk 5*np*np + 3*np long.
 // ---------------------------------------------------------------------------
 {
-  const integer npnp     = sqr (_np);
-  const integer elmtOff  = _elmt -> ID() * npnp;
-  const integer localOff = _doffset - elmtOff;
+  const int_t npnp     = sqr (_np);
+  const int_t elmtOff  = _elmt -> ID() * npnp;
+  const int_t localOff = _doffset - elmtOff;
 
-  real* gw = wrk;
-  real* ew = gw + npnp + npnp;
-  real* w  = ew + _np  + _np;
-  real* vx = w  + npnp;
-  real* uy = vx + npnp;
-  real* t  = uy + npnp;
+  real_t* gw = wrk;
+  real_t* ew = gw + npnp + npnp;
+  real_t* w  = ew + _np  + _np;
+  real_t* vx = w  + npnp;
+  real_t* uy = vx + npnp;
+  real_t* t  = uy + npnp;
   
   // -- Make pointers to current element storage.
 
@@ -146,8 +146,8 @@ void Edge::curlCurl (const integer k  ,
 
   } else {			// -- 3D.
 
-    const real betaK  = k * Femlib::value ("BETA");
-    const real betaK2 = sqr (betaK);
+    const real_t betaK  = k * Femlib::value ("BETA");
+    const real_t betaK2 = sqr (betaK);
 
     // -- Make the equivalents of the 2D terms above.
 
@@ -230,9 +230,9 @@ void Edge::curlCurl (const integer k  ,
 }
 
 
-Vector Edge::normalTraction (const char* grp,
-			     const real* p  ,
-			     real*       wrk) const
+Vector Edge::normalTraction (const char*   grp,
+			     const real_t* p  ,
+			     real_t*       wrk) const
 // ---------------------------------------------------------------------------
 // Compute normal tractive force on this boundary segment, if it lies
 // in group called grp, using p as a pressure stress field data area.
@@ -240,12 +240,12 @@ Vector Edge::normalTraction (const char* grp,
 // Wrk is a work vector elmt_np_max long.
 // ---------------------------------------------------------------------------
 {
-  integer i;
-  Vector  Force = {0.0, 0.0, 0.0};
+  int_t  i;
+  Vector Force = {0.0, 0.0, 0.0};
 
   if (strcmp (grp, _group) == 0) {
 
-    _elmt -> sideGet (_side, p, wrk);
+    Veclib::copy (Geometry::nP(), p + _doffset, _dskip, wrk, 1);
 
     for (i = 0; i < _np; i++) {
       Force.x += _nx[i] * wrk[i] * _area[i];
@@ -257,10 +257,10 @@ Vector Edge::normalTraction (const char* grp,
 }
 
 
-Vector Edge::tangentTraction (const char* grp,
-			      const real* u  ,
-			      const real* v  ,
-			      real*       wrk) const
+Vector Edge::tangentTraction (const char*   grp,
+			      const real_t* u  ,
+			      const real_t* v  ,
+			      real_t*       wrk) const
 // ---------------------------------------------------------------------------
 // Compute viscous stress on this boundary segment, if it lies in group grp.
 // u is data area for first velocity component field, v is for second.
@@ -271,8 +271,8 @@ Vector Edge::tangentTraction (const char* grp,
   Vector Force = {0.0, 0.0, 0.0};
 
   if (strcmp (grp, _group) == 0) {
-    register integer i;
-    real         *ux = wrk + 2 * _np, *uy = wrk + 3 * _np;
+    register int_t i;
+    real_t         *ux = wrk + 2 * _np, *uy = wrk + 3 * _np;
 
     _elmt -> sideGrad (_side, u + _doffset, ux, uy, wrk);
 
@@ -293,24 +293,24 @@ Vector Edge::tangentTraction (const char* grp,
 }
 
 
-real Edge::normalFlux (const char* grp,
-		       const real* u  ,
-		       const real* v  ,
-		       real*       wrk) const
+real_t Edge::normalFlux (const char*   grp,
+			 const real_t* u  ,
+			 const real_t* v  ,
+			 real_t*       wrk) const
 // ---------------------------------------------------------------------------
 // Compute edge-normal flux, with u being x-component velocity and v
 // being y-component, if this edge lies in group grp. Work vector wrk
 // is 2*_np long.
 // ---------------------------------------------------------------------------
 {
-  integer i;
-  real    flux = 0.0;
-  real    *U = wrk, *V = wrk + _np;
+  int_t  i;
+  real_t flux = 0.0;
+  real_t *U = wrk, *V = wrk + _np;
   
   if (strcmp (grp, _group) == 0) {
 
-    _elmt -> sideGet (_side, u, U);
-    _elmt -> sideGet (_side, v, V);
+    Veclib::copy (Geometry::nP(), u + _doffset, _dskip, U, 1);
+    Veclib::copy (Geometry::nP(), v + _doffset, _dskip, V, 1);
 
     for (i = 0; i < _np; i++)
       flux += (U[i]*_nx[i] + V[i]*_ny[i]) * _area[i];
@@ -320,9 +320,9 @@ real Edge::normalFlux (const char* grp,
 }
 
 
-real Edge::gradientFlux (const char* grp,
-			 const real* src,
-			 real*       wrk) const
+real_t Edge::gradientFlux (const char*   grp,
+			   const real_t* src,
+			   real_t*       wrk) const
 // ---------------------------------------------------------------------------
 // Compute wall-normal gradient flux of field src on this boundary
 // segment, if it lies in group grp.  Wrk is a work vector, 4 *
@@ -331,11 +331,11 @@ real Edge::gradientFlux (const char* grp,
 // assumed we are dealing with a scalar!
 // ---------------------------------------------------------------------------
 {
-  register real dcdn = 0.0;
+  register real_t dcdn = 0.0;
   
   if (strcmp (grp, _group) == 0) {
-    register integer  i;
-    register real *cx = wrk, *cy = wrk + _np, *r = wrk + _np + _np;
+    register int_t  i;
+    register real_t *cx = wrk, *cy = wrk + _np, *r = wrk + _np + _np;
 
     _elmt -> sideGrad (_side, src + _doffset, cx, cy, r);
     for (i = 0; i < _np; i++)
@@ -346,9 +346,9 @@ real Edge::gradientFlux (const char* grp,
 }
 
 
-void Edge::addForGroup (const char* grp,
-			const real  val,
-			real*       tgt) const
+void Edge::addForGroup (const char*  grp,
+			const real_t val,
+			real_t*      tgt) const
 // ---------------------------------------------------------------------------
 // Add val to tgt if this Edge falls in group.
 // ---------------------------------------------------------------------------
@@ -357,9 +357,9 @@ void Edge::addForGroup (const char* grp,
 }
 
 
-void Edge::setForGroup (const char* grp,
-			const real  val,
-			real*       tgt) const
+void Edge::setForGroup (const char*  grp,
+			const real_t val,
+			real_t*      tgt) const
 // ---------------------------------------------------------------------------
 // Set tgt to val if this Edge falls in group.
 // ---------------------------------------------------------------------------
@@ -368,8 +368,8 @@ void Edge::setForGroup (const char* grp,
 }
 
 
-void Edge::get (const real* src,
-		real*       tgt) const
+void Edge::get (const real_t* src,
+		real_t*       tgt) const
 // ---------------------------------------------------------------------------
 // Load np-long tgt (representing storage along edge of element) from
 // element-wise data storage src.
@@ -379,7 +379,7 @@ void Edge::get (const real* src,
 }
 
 
-void Edge::mulY (real* tgt) const
+void Edge::mulY (real_t* tgt) const
 // ---------------------------------------------------------------------------
 // Multiply tgt by y (i.e. radius) along this edge.
 // ---------------------------------------------------------------------------
@@ -388,13 +388,13 @@ void Edge::mulY (real* tgt) const
 }
 
 
-void Edge::divY (real* tgt) const
+void Edge::divY (real_t* tgt) const
 // ---------------------------------------------------------------------------
 // Divide tgt by y (typically, radius) along this edge.
 // ---------------------------------------------------------------------------
 {
-  register integer i;
-  real             invr;
+  register int_t i;
+  real_t         invr;
 
   for (i = 0; i < _np; i++) {
     invr = (_y[i] > EPSDP) ? 1.0/_y[i] : 0.0;
