@@ -6,8 +6,10 @@
 // The iterative method was devised by Laurette Tuckerman, see Refs
 // [1] & [2], and is based on time-stepping with both linearised and
 // full Navier--Stokes integrators.  The matrix-free linear systems
-// are here solved using the Bi-Conjugate-Gradients-Stabilized,
-// algorithm, with code from the Templates package, Ref [3].
+// are here solved using the Bi-Conjugate-Gradients-Stabilized
+// algorithm, with code from the Templates package, Ref [3], or
+// the Bi-Conjugate-Gradients-Squared algorithm, with code from the
+// NSPCG package, Ref [4] (both codes available through netlib).
 //
 // USAGE
 // -----
@@ -42,10 +44,12 @@
 // [2] L.S. Tuckerman & D. Barkley (2000), "Bifurcation analysis for
 //     timesteppers", in Numerical Methods for Bifurcation Problems,
 //     ed E. Doedel & L.S. Tuckerman, Springer. 453--466.
-// [3] Barrett, Berry, Chan, Demmel, Donato, Dongarra, 
-//     Eijkhout, Pozo, Romine, and van der Vorst (1993), "Templates for the 
-//     Solution of Linear Systems: Building Blocks for Iterative 
-//     Methods", SIAM Publications.
+// [3] R. Barrett, M. Berry, T. Chan, J. Demmel, J. Donato, J. Dongarra, 
+//     V. Eijkhout, R. Pozo, C. Romine & H. van der Vorst (1993),
+      "Templates for the Solution of Linear Systems: Building Blocks for
+//     Iterative Methods", SIAM Publications.
+// [4] T. C. Oppe, W. D. Joubert & D. R. Kincaid (1988), "NSPCG User's Guide",
+//     Center for Numerical Analysis, University of Texas at Austin.
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
@@ -69,6 +73,8 @@ static BCmgr*  PertBCman;
 static Mesh*            mesh;
 static vector<Element*> elmt;
 
+// -- File-scope routines.
+
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, int&, int&, real&, real&, int&,
 			char*&, char*&);
@@ -76,8 +82,17 @@ static int  preprocess (const char*, const char*);
 static void initVec    (real*);
 static void NS_update  (const real*, real*);
 
+// -- Routines passed to linear system solvers.
+
+#if defined (NSPCG)
+void matvec (const real*, const integer*, const real*, const integer*,
+	     const integer&, const real*, real*);
+void ident  (const real*, const integer*, const real*, const integer*,
+	     const integer&, const real*, real*);
+#else
 void matvec (const real&, const real*, const real&, real*);
 void ident  (real*, const real*);
+#endif
 
 
 int main (int    argc,
@@ -93,8 +108,13 @@ int main (int    argc,
 
   int  maxiLsys = 100,    maxiNewt = 20, i, itn;
   real tolLsys  = 1.0e-6, tolNewt  = 1.0e-6, rnorm, tol;
-  int  verbose  = 0, converged = 0, info;
+  int  verbose  = 0, converged = 0, ier;
   char *BaseSession, *PertSession;
+
+#if defined (NSPCG)
+  int  iparm[25];
+  real rparm[16], ubar[1];
+#endif
 
   Femlib::initialize (&argc, &argv);
 
@@ -104,7 +124,13 @@ int main (int    argc,
   // -- Allocate storage.
   
   const int ntot = preprocess (BaseSession, PertSession);
+
+#if defined (NSPCG)
+  int       nw   = 9 * ntot;
+  const int wdim = 3 * ntot + nw;
+#else
   const int wdim = 10 * ntot;
+#endif
 
   vector<real> work (wdim);
   Veclib::zero (wdim, work(), 1);
@@ -124,12 +150,23 @@ int main (int    argc,
   
     NS_update (U, dU);
     Veclib::vsub (ntot, dU, 1, U, 1, dU, 1);
-
-    itn = maxiLsys; tol = tolLsys; Veclib::zero (ntot, u, 1);
-
-    F77NAME(bicgstab) (ntot, dU, u, lwrk, ntot, itn, tol, matvec, ident, info);
     
-    if (info < 0) message (prog, "error return from bicgstab", ERROR);
+    itn = maxiLsys; tol = tolLsys;
+    Veclib::zero (ntot, u, 1);
+
+#if defined (NSPCG)
+    F77NAME (dfault) (iparm, rparm);
+    iparm[1] = itn; iparm[2] = 0; rparm[0] = tol;
+
+    F77NAME (bcgsw) (matvec, ident, ident, 0, 0, 0, 0,
+		     ntot, u, ubar, dU, lwrk, nw, iparm, rparm, ier);
+
+    itn = iparm[1]; tol = rparm[6];
+#else
+    F77NAME (bicgstab) (ntot, dU, u, lwrk, ntot, itn, tol, matvec, ident, ier);
+#endif
+
+    if (ier < 0) message (prog, "error return from iterative solver", ERROR);
 
     rnorm     = sqrt (Blas::nrm2 (ntot, u, 1) / Blas::nrm2 (ntot, U, 1));
     converged = rnorm < tolNewt;
@@ -308,6 +345,64 @@ static void NS_update (const real* src,
     }
 }
 
+#if defined (NSPCG)
+
+void matvec (const real*    dum0,
+	     const integer* dum1,
+	     const real*    dum2,
+	     const integer* dum3,
+	     const integer& dum4,
+	     const real*    src ,
+	     real*          tgt )
+// ---------------------------------------------------------------------------
+// Integrate linear NS problem for input velocity x, generating y = LNS(x)-x.
+// This routine is used by NPSCG BCGS solver, as operator SUBA.
+// ---------------------------------------------------------------------------
+{
+  int       i, k;
+  const int NC   = PertDomain -> nField() - 1;
+  const int NP   = Geometry::planeSize();
+  const int NZ   = Geometry::nZ();
+  const int ntot = NC * NP * NZ;
+
+  for (i = 0; i < NC; i++)
+    for (k = 0; k < NZ; k++)
+      PertDomain -> u[i] -> setPlane (k, src + (i*NZ + k)*NP);
+
+  PertDomain -> step = 0;
+  PertDomain -> time = 0.0;
+
+  integrate (PertDomain, linear);
+
+  for (i = 0; i < NC; i++)
+    for (k = 0; k < NZ; k++)
+      PertDomain -> u[i] -> getPlane (k, tgt + (i*NZ + k)*NP);
+
+  Veclib::vsub (ntot, tgt, 1, src, 1, tgt, 1);
+}
+
+
+void ident (const real*    dum0,
+	    const integer* dum1,
+	    const real*    dum2,
+	    const integer* dum3,
+	    const integer& dum4,
+	    const real*    src ,
+	    real*          tgt )
+// ---------------------------------------------------------------------------
+// This is a preconditioner routine supplied to BCGSW, as COPY.
+// As we don't have a preconditioner for the problem, this is an identity. 
+// ---------------------------------------------------------------------------
+{
+  const int NC   = PertDomain -> nField() - 1;
+  const int NP   = Geometry::planeSize();
+  const int NZ   = Geometry::nZ();
+  const int ntot = NC * NP * NZ;
+
+  Veclib::copy (ntot, src, 1, tgt, 1);
+}
+
+#else
 
 void matvec (const real& alpha,
 	     const real* x    ,
@@ -361,3 +456,8 @@ void ident (real*       tgt,
 
   Veclib::copy (ntot, src, 1, tgt, 1);
 }
+
+#endif
+
+
+

@@ -283,7 +283,7 @@ void linear (Domain*    D ,
 	  master -> gradient (nZ, nPP, tmp, 2);
 	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
 	  Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
-	  Veclib::vvvtm      (nTot32, U32[2], 1, tmp, 1, L32[i], 1, L32[i], 1);
+	  Veclib::vvvtm      (nTot32, L32[i], 1, U32[2], 1, tmp, 1, L32[i], 1);
 
 	  Veclib::copy       (nTot32, U32[i], 1, tmp, 1);
 	  Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
@@ -292,7 +292,7 @@ void linear (Domain*    D ,
 	  master -> gradient (nZ, nPP, tmp, 2);
 	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
 	  Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
-	  Veclib::vvvtm      (nTot32, u32[2], 1, tmp, 1, L32[i], 1, L32[i], 1);
+	  Veclib::vvvtm      (nTot32, L32[i], 1, u32[2], 1, tmp, 1, L32[i], 1);
 	}
       }
 
@@ -303,13 +303,11 @@ void linear (Domain*    D ,
       for (j = 0; j < 2; j++) {
 	Veclib::copy       (nTot32, U32[i], 1, tmp, 1);
 	master -> gradient (nZ32, nP, tmp, j);
-	Veclib::vvvtm      (nTot32, u32[j], 1, tmp, 1, L32[i], 1, L32[i], 1);
-      }
+	Veclib::vvvtm      (nTot32, L32[i], 1, u32[j], 1, tmp, 1, L32[i], 1);
 
-      for (j = 0; j < 2; j++) {
 	Veclib::copy       (nTot32, u32[i], 1, tmp, 1);
 	master -> gradient (nZ32, nP, tmp, j);
-	Veclib::vvvtm      (nTot32, U32[j], 1, tmp, 1, L32[i], 1, L32[i], 1);
+	Veclib::vvvtm      (nTot32, L32[i], 1, U32[j], 1, tmp, 1, L32[i], 1);
       }
     }
   } else {			// -- Cartesian coordinates.
