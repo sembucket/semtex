@@ -35,7 +35,7 @@ taylor2D_chk -p 2 testsession.fld > /dev/null
 # should work OK.
 
 echo ""
-rm iso
+rm -f iso
 gmake clean
 gmake iso TG=1 INVISCID=1
 makeIC2 -n 32 -o testsession.rst > /dev/null
@@ -43,6 +43,6 @@ time iso -d 0.01 -n 50 -o 2 testsession
 
 echo ""
 echo "cleaning up..."
-rm iso
+rm -f iso
 gmake clean
 gmake
