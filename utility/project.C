@@ -145,11 +145,11 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
     real*         tmp = &work[0];
 
     if      (uniform == +1)
-      Femlib::projection (&IN, &IT, rhs.np, GLL, 0.0, 0.0, np, STD, 0.0, 0.0);
+      Femlib::projection (&IN, &IT, rhs.np, 'L', 0.0, 0.0, np, 'U', 0.0, 0.0);
     else if (uniform == -1) 
-      Femlib::projection (&IN, &IT, rhs.np, STD, 0.0, 0.0, np, GLL, 0.0, 0.0);
+      Femlib::projection (&IN, &IT, rhs.np, 'U', 0.0, 0.0, np, 'L', 0.0, 0.0);
     else
-      Femlib::projection (&IN, &IT, rhs.np, GLL, 0.0, 0.0, np, GLL, 0.0, 0.0);
+      Femlib::projection (&IN, &IT, rhs.np, 'L', 0.0, 0.0, np, 'L', 0.0, 0.0);
     for (k = 0; k < nzm; k++) {	// -- 2D planar projections.
       LHS = plane[k];
       RHS = rhs.plane[k];
