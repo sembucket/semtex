@@ -101,6 +101,7 @@ void keyboard (unsigned char key,
     State.drawbox = !State.drawbox;
     break;
   case 'd':
+
     writetiff ("sview.tif", "Isosurface", COMPRESSION_LZW);
     cout << "Wrote file sview.tif" << endl;
     break;

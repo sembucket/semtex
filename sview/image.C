@@ -41,7 +41,9 @@ int writetiff (char* filename   ,
   glGetIntegerv (GL_VIEWPORT, vp);
 
   image = (GLubyte *) malloc (vp[2] * vp[3] * sizeof(GLubyte) * 3);
-  glReadPixels  (vp[0], vp[1], vp[2], vp[3], GL_RGB, GL_UNSIGNED_BYTE, image);
+
+  glutSwapBuffers();
+  glReadPixels   (vp[0], vp[1], vp[2], vp[3], GL_RGB, GL_UNSIGNED_BYTE, image);
 
   TIFFSetField (file, TIFFTAG_IMAGEWIDTH,       (uint32) vp[2]     );
   TIFFSetField (file, TIFFTAG_IMAGELENGTH,      (uint32) vp[3]     );

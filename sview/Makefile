@@ -42,11 +42,11 @@ ifdef PYTHON
   CPPFLAGS += -I$(PYTHON_HDRS)
 endif
 
-CXXFLAGS = $(DEFINES) -32
+CXXFLAGS = $(DEFINES)
 ifdef DEBUG
-  CXXFLAGS += -g
+  CXXFLAGS += -g -32
 else
-  CXXFLAGS += -O2
+  CXXFLAGS += -O2 -32
 endif
 
 LDFLAGS = -32 -L$(X11_ROOT)/lib -L$(GLUT_ROOT)/lib $(GLUT_LIBS) -lm
