@@ -33,6 +33,20 @@
 static int uniform = 0;
 
 
+static int _index (const char* s, char c)
+/* ------------------------------------------------------------------------- *
+ * Return index of c in s, -1 if not found.
+ * ------------------------------------------------------------------------- */
+{
+  int       i;
+  const int len = strlen (s);
+
+  for (i = 0; i < len; i++) if (s[i] == c) return i;
+
+  return -1;
+}
+
+
 class Field2DF
 // ============================================================================
 // Canonical field class, each np X np element is defined on [-1,1] X [-1, 1].
@@ -214,8 +228,7 @@ istream& operator >> (istream&  strm,
 static char prog[] = "project";
 static void getargs  (int, char**, int&, int&, int&, istream*&);
 static int  getDump  (istream&, ostream&, vector<Field2DF*>&,
-		      int&, int&, int&, int&, int&);
-static void loadName (const vector<Field2DF*>&, char*);
+		      int&, int&, int&, int&, int&, char*);
 static int  doSwap   (const char*);
 
 
@@ -234,7 +247,7 @@ int main (int    argc,
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, nPnew, nZnew, keepW, input);
   
-  while (getDump (*input, cout, Uold, nPnew, nZnew, nEl, keepW, fInc)) {
+  while (getDump (*input, cout, Uold, nPnew, nZnew, nEl, keepW, fInc, fields)){
 
     Unew.resize (Uold.size() + fInc);
 
@@ -249,17 +262,16 @@ int main (int    argc,
 
     case 1:			// -- Add a new blank field called 'w'.
       for (i = 0; i < Uold.size(); i++) {
-	 Unew[i] = new Field2DF (nPnew, nZnew, nEl, Uold[i] -> getName());
-	*Unew[i] = *Uold[i];
+	j = _index (fields, Uold[i] -> getName());
+	 Unew[j] = new Field2DF (nPnew, nZnew, nEl, Uold[i] -> getName());
+	*Unew[j] = *Uold[i];
       }
-       Unew[i] = new Field2DF (nPnew, nZnew, nEl, 'w');
-      *Unew[i] = 0.0;
+      j = _index (fields, 'w');
+       Unew[j] = new Field2DF (nPnew, nZnew, nEl, 'w');
+      *Unew[j] = 0.0;
       break;
 
     case -1:			// -- Delete field called 'w'.
-      loadName (Uold, fields);
-      if (!strchr (fields, 'w'))
-	message (prog, "conflict: 3D-->2D but no field called 'w'", ERROR);
       for (j = 0, i = 0; i < Uold.size(); i++) {
 	if (Uold[i] -> getName() == 'w') continue;
 	 Unew[j] = new Field2DF (nPnew, nZnew, nEl, Uold[i] -> getName());
@@ -347,19 +359,6 @@ static void getargs (int       argc ,
 }
 
 
-static void loadName (const vector<Field2DF*>& u,
-		      char*                    s)
-// --------------------------------------------------------------------------
-// Load a string containing the names of fields.
-// ---------------------------------------------------------------------------
-{
-  int i, N = u.size();
-
-  for (i = 0; i < N; i++) s[i] = u[i] -> getName();
-  s[N] = '\0';
-}
-
-
 static int doSwap (const char* ffmt)
 // ---------------------------------------------------------------------------
 // Figure out if byte-swapping of input is required to make sense of input.
@@ -379,14 +378,15 @@ static int doSwap (const char* ffmt)
 }
 
 
-static int getDump (istream&           ifile,
-		    ostream&           ofile,
-		    vector<Field2DF*>& u    ,
-		    int&               npnew,
-		    int&               nznew,
-		    int&               nel  ,
-		    int&               keepW,
-		    int&               finc )
+static int getDump (istream&           ifile ,
+		    ostream&           ofile ,
+		    vector<Field2DF*>& u     ,
+		    int&               npnew ,
+		    int&               nznew ,
+		    int&               nel   ,
+		    int&               keepW ,
+		    int&               finc  ,
+		    char*              fields)
 // ---------------------------------------------------------------------------
 // Read next set of field dumps from ifile, put headers on ofile.
 //
@@ -405,7 +405,7 @@ static int getDump (istream&           ifile,
     "%-25s "    "Fields written\n",
     "%-25s "    "Format\n"
   };
-  char buf[StrMax], fmt[StrMax], fields[StrMax];
+  char buf[StrMax], fmt[StrMax], oldfields[StrMax];
   int  i, j, swab, nf, np, nz;
 
   if (ifile.getline(buf, StrMax).eof()) return 0;
@@ -438,16 +438,19 @@ static int getDump (istream&           ifile,
 
   // -- I/O field names.
 
-  ifile >> fields;
-  nf = strlen (fields);
-  if (finc == 1 && strchr (fields, 'w')) finc = 0;
+  ifile >> oldfields;
+  nf = strlen (oldfields);
+  if (finc == 1 && strchr (oldfields, 'w')) finc = 0;
   for (j = 0, i = 0; i < nf; i++) {
-    if (finc == -1 && fields[i] == 'w') continue;
-    fmt[j++] = fields[i];
+    if (finc == -1 && oldfields[i] == 'w') continue;
+    if (finc == +1 && oldfields[i] == 'v') {
+      fields[j++] = 'v';
+      fields[j++] = 'w';
+    } else
+      fields[j++] = oldfields[i];
   }
-  if (finc == 1) fmt[j++] = 'w';
-  fmt[j] = '\0';
-  sprintf (buf, hdr_fmt[8], fmt);
+  fields[j] = '\0';
+  sprintf (buf, hdr_fmt[8], fields);
   cout << buf;
   ifile.getline (buf, StrMax);
 
@@ -464,7 +467,7 @@ static int getDump (istream&           ifile,
 
   if (u.size() != nf) {
     u.resize (nf);
-    for (i = 0; i < nf; i++) u[i] = new Field2DF (np, nz, nel, fields[i]);
+    for (i = 0; i < nf; i++) u[i] = new Field2DF (np, nz, nel, oldfields[i]);
   }
 
   for (i = 0; i < nf; i++) {
