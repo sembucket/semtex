@@ -65,6 +65,9 @@ static void EV_small   (real**, const int, const int,
 static int  EV_test    (const int, const int, real*, real*, real*,
 		        const real, const real, const int);
 static void EV_sort    (real*, real*, real*, real*, const int);
+static void EV_post    (real**, real**, const int, const int, 
+			const int, const real*, const real*, 
+			const real*, const int);
 static void EV_big     (real**, real**, const int, const int,
 			const real*, const real*, const real*);
 
@@ -105,7 +108,7 @@ int main (int    argc,
   if (kdim < nvec) message (prog, "param error: NVEC must be <= KDIM", ERROR);
   
   const int ntot = preprocess (session);
-  const int wdim = kdim + kdim + (kdim * kdim) + 3*ntot*(kdim + 1);
+  const int wdim = kdim + kdim + (kdim * kdim) + 2*ntot*(kdim + 1);
 
   // -- Allocate eigenproblem storage.
 
@@ -117,15 +120,12 @@ int main (int    argc,
   real*  zvec = wi   + kdim;
   real*  kvec = zvec + kdim * kdim;
   real*  tvec = kvec + ntot * (kdim + 1);
-  real*  evec = tvec + ntot * (kdim + 1);
   real** Kseq = new real* [kdim + 1];
   real** Tseq = new real* [kdim + 1];
-  real** Eseq = new real* [kdim + 1];
 
   for (i = 0; i <= kdim; i++) {
     Kseq[i] = kvec + i * ntot;
     Tseq[i] = tvec + i * ntot;
-    Eseq[i] = evec + i * ntot;
   }
 
   // -- Load starting vector.
@@ -163,13 +163,19 @@ int main (int    argc,
 
     converged = EV_test (itrn, kdim, zvec, wr, wi, resnorm, evtol, nvec);
   }
- 
+
+#if 0
   if (!converged)
     message (prog, "not converged", ERROR);
   else if (converged == nvec) {
     message (prog, ": all estimates converged",  REMARK);
   } else
     message (prog, ": minimum residual reached", REMARK);
+#else
+
+  EV_post (Tseq, Kseq, ntot, kdim, nvec, zvec, wr, wi, converged);
+
+#endif
 
   return (EXIT_SUCCESS);
 }
@@ -392,19 +398,20 @@ static int EV_test (const int  itrn   ,
   if (!floquet) cout << "    Growth      Frequency";
   cout << endl;
 
-  for (i = 0; (i < kdim) & (i < 10); i++) {
-    re_ev = wr[i];
-    im_ev = wi[i];
-    abs_ev = sqrt(re_ev*re_ev + im_ev*im_ev);
-    re_Aev = 1.0/(2*period) * log(re_ev*re_ev + im_ev*im_ev);
-    im_Aev = 1.0/period * atan2(im_ev, re_ev);
+  for (i = 0; (i < kdim) && (i < 10); i++) {
+    re_ev  = wr[i];
+    im_ev  = wi[i];
+    abs_ev = hypot (re_ev, im_ev);
+    re_Aev = log   (abs_ev)       / period;
+    im_Aev = atan2 (im_ev, re_ev) / period;
     cout << setw(2)  << i
 	 << setw(12) << re_ev
 	 << setw(12) << im_ev
          << setw(12) << abs_ev
 	 << setw(12) << resid[i];
     if (!floquet)
-      cout << setw(12) << re_Aev << setw(12) << im_Aev;
+      cout << setw(12) << re_Aev
+	   << setw(12) << im_Aev;
     cout << endl;
   }
 
@@ -450,7 +457,99 @@ static void EV_sort (real*     evec,
 }
 
 
-static void EV_big (real**      tvecs,
+static void EV_post (real**      Tseq,
+		     real**      Kseq, 
+		     const int   ntot, 
+		     const int   kdim, 
+		     const int   nvec,
+		     const real* zvec, 
+		     const real* wr  , 
+		     const real* wi  , 
+		     const int   icon)
+// ---------------------------------------------------------------------------
+// Carry out postprocessing of estimates, depending on value of icon
+// (as output by EV_test).
+//
+// icon == 0:
+//   Solution has not converged.  The final value of the Krylov sequence 
+//   is presumed to have already been output within the integration loop.
+// icon == -1:
+//   Solution has not converged, but the residuals are getting no smaller.
+//   In this case we write out the starting vector for the last kdim
+//   iterates.
+// icon == nvec:
+//   All the eigenvalue estimates under test have converged, and they are 
+//   output to separate files.
+// ---------------------------------------------------------------------------
+{
+  const char* routine = "EV_post";
+  char        msg[StrMax], nom[StrMax];
+  int         i, j, k;
+  const int   ND = Geometry::nPert();
+  const int   NP = Geometry::planeSize();
+  const int   NZ = Geometry::nZ();
+  const real* src;
+  ofstream    file;
+
+  if (icon == 0) {
+
+    sprintf (msg, ": not converged, writing final Krylov vector");
+    message (prog, msg, REMARK);
+
+    // -- At present, this case is dealt with automatically in integrate().
+    //    But we do it again here; we may want to modify Domain::dump().
+
+    src = Kseq[kdim];
+
+    for (i = 0; i < ND; i++)
+      for (k = 0; k < NZ; k++)
+	domain -> u[i] -> setPlane (k, src + (i*NZ + k)*NP);
+    
+    strcat    (strcpy (nom, domain -> name), ".fld");
+    file.open (nom, ios::out); file << domain; file.close();
+
+  } else if (icon == -1) {
+    
+    sprintf (msg, ": minimum residual reached, writing initial Krylov vector");
+    message (prog, msg, REMARK);
+    
+    src = Kseq[0];
+
+    for (i = 0; i < ND; i++)
+      for (k = 0; k < NZ; k++)
+	domain -> u[i] -> setPlane (k, src + (i*NZ + k)*NP);
+    
+    strcat    (strcpy (nom, domain -> name), ".fld");
+    file.open (nom, ios::out); file << domain; file.close();
+
+  } else if (icon == nvec) {
+
+    sprintf (msg, ": converged, writing %1d eigenvectors", icon);
+    message (prog, msg, REMARK);
+    
+    EV_big (Tseq, Kseq, ntot, kdim, zvec, wr, wi);
+
+    for (j = 0; j < icon; j++) {
+
+      src = Kseq[j];
+
+      for (i = 0; i < ND; i++)
+	for (k = 0; k < NZ; k++)
+	  domain -> u[i] -> setPlane (k, src + (i*NZ + k)*NP);
+
+      sprintf   (msg, ".eig.%1d", j);
+      strcat    (strcpy (nom, domain -> name), msg);
+      file.open (nom, ios::out); file << domain; file.close();
+    }
+
+  } else {
+    sprintf (msg, "input convergence value %1d: not recognised", icon);
+    message (routine, msg, ERROR);
+  }
+}
+
+
+static void EV_big (real**      bvecs,
 	            real**      evecs,
 		    const int   ntot ,
 		    const int   kdim ,
@@ -463,10 +562,10 @@ static void EV_big (real**      tvecs,
 // 
 // Input
 // -----
-// tvecs: orthonormal basis of the Krylov sequence 
-//        (produced in EV_small), dimensions ntot * kdim
-// zvecs: eigenvectors of H, dimensions kdim * kdim
-// wr,wi: eigenvalues  of H, each kdim long
+// bvecs: orthonormal basis of the Krylov sequence 
+//        (produced in EV_small), dimensions ntot * kdim.
+// zvecs: eigenvectors of H, dimensions kdim * kdim.
+// wr,wi: eigenvalues  of H, each kdim long.
 //
 // Output
 // ------
@@ -474,7 +573,7 @@ static void EV_big (real**      tvecs,
 //
 // The Ritz estimates are computed as (see Saad, p.175):
 //
-//        [evecs]            = [tvecs]            [zvecs]
+//        [evecs]            = [bvecs]            [zvecs]
 //               ntot x kdim          ntot x kdim        kdim x kdim
 // ---------------------------------------------------------------------------
 {
@@ -487,7 +586,7 @@ static void EV_big (real**      tvecs,
     Veclib::zero (ntot, evecs[j], 1);
     for (i = 0; i < kdim; i++) {
       wgt = zvecs[i+j*kdim];
-      Blas::axpy (ntot, wgt, tvecs[i], 1, evecs[j], 1);
+      Blas::axpy (ntot, wgt, bvecs[i], 1, evecs[j], 1);
     }
   }
 
@@ -515,25 +614,25 @@ static void EV_big (real**      tvecs,
   real resid;
  
   for (i = 0; i < nwrt; i++) {
-    V_copy(ntot, evecs[i], tvecs[0]);
-    A_op(tvecs[0]);
+    V_copy(ntot, evecs[i], bvecs[0]);
+    A_op(bvecs[0]);
     tsteps -= nsteps;
     ftime  -= nsteps*dt;
     if(wi[i]==0.) {
-      V_axpy(ntot, -wr[i], evecs[i], tvecs[0]);
-      resid = V_nrm2(ntot, tvecs[0]);
+      V_axpy(ntot, -wr[i], evecs[i], bvecs[0]);
+      resid = V_nrm2(ntot, bvecs[0]);
       printf("big resid(%d) = %g \n", i, resid);
     }
     else if(wi[i] > 0.) {
-      V_axpy(ntot, -wr[i], evecs[i],   tvecs[0]);
-      V_axpy(ntot,  wi[i], evecs[i+1], tvecs[0]);
-      resid = V_nrm2(ntot, tvecs[0])/V_nrm2(ntot, evecs[i]);
+      V_axpy(ntot, -wr[i], evecs[i],   bvecs[0]);
+      V_axpy(ntot,  wi[i], evecs[i+1], bvecs[0]);
+      resid = V_nrm2(ntot, bvecs[0])/V_nrm2(ntot, evecs[i]);
       printf("big resid(%d) = %g \n", i, resid);
     }
     else {
-      V_axpy(ntot, -wr[i], evecs[i],   tvecs[0]);
-      V_axpy(ntot,  wi[i], evecs[i-1], tvecs[0]);
-      resid = V_nrm2(ntot, tvecs[0])/V_nrm2(ntot, evecs[i]);
+      V_axpy(ntot, -wr[i], evecs[i],   bvecs[0]);
+      V_axpy(ntot,  wi[i], evecs[i-1], bvecs[0]);
+      resid = V_nrm2(ntot, bvecs[0])/V_nrm2(ntot, evecs[i]);
       printf("big resid(%d) = %g \n", i, resid);
     }
   }
@@ -561,8 +660,7 @@ static void getargs (int    argc   ,
     "-k <num> ... set dimension of subspace (maximum number of pairs) to num\n"
     "-m <num> ... set maximum number of iterations         (m >= k)\n"
     "-n <num> ... compute num eigenvalue/eigenvector pairs (n <= k)\n"
-    "-t <num> ... set eigenvalue tolerance to num [Default 1e-6]\n"
-    "-chk     ... checkpoint field dumps\n";
+    "-t <num> ... set eigenvalue tolerance to num [Default 1e-6]\n";
 
   while (--argc && **++argv == '-')
     switch (*++argv[0]) {
@@ -629,6 +727,10 @@ static int preprocess (const char* session)
   bman    = new BCmgr        (file, elmt);
   domain  = new Domain       (file, elmt, bman);
   analyst = new StabAnalyser (domain, file);
+
+  // -- Over-ride any CHKPOINT flag in session file.
+
+  Femlib::value ("CHKPOINT", 1);
 
   domain -> restart ();
   domain -> loadBase();
