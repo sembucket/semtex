@@ -114,7 +114,7 @@ static void getargs (integer argc   ,
       exit (EXIT_SUCCESS);
       break;
     case 'i':
-      Femlib::value ("ITERATIVE", 1);
+      Femlib::value ("ITERATIVE", (integer) 1);
       break;
     case 'v':
       do
