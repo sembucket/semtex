@@ -69,7 +69,7 @@ typedef struct {		 /* -- Data information structure. */
 } Dump;
 
 
-static int  index     (const char*, char);
+static int  _index    (const char*, char);
 static void getargs   (int, char**, FILE**, FILE**);
 static void getheader (FILE*, Dump*);
 static void getdata   (FILE*, Dump*);
@@ -190,7 +190,7 @@ static void getheader (FILE* f,
   fgets  (buf, STR_MAX, f);
   fscanf (f, "%lf", &h -> beta);
   fgets  (buf, STR_MAX, f);
-  fscanf (f, "%s", &h -> field);
+  fscanf (f, "%s", h -> field);
   fgets  (buf, STR_MAX, f);
   fgets  (h -> format, STR_MAX, f);
 
@@ -260,7 +260,7 @@ static void chknames (const char* field)
 }
 
 
-static int index (const char* s, char c)
+static int _index (const char* s, char c)
 /* ------------------------------------------------------------------------- *
  * Return index of c in s, -1 if not found.
  * ------------------------------------------------------------------------- */
@@ -288,27 +288,27 @@ static void covary (Dump* h)
   
   /* -- 2D. */
 
-  i = index (h -> field, 'u');
-  j = index (h -> field, 'v');
+  i = _index (h -> field, 'u');
+  j = _index (h -> field, 'v');
 
-  k = index (h -> field, 'A');
+  k = _index (h -> field, 'A');
   dvvvtm (npts, h->data[k], 1, h->data[i], 1, h->data[i], 1, h->data[k], 1);
-  k = index (h -> field, 'B');
+  k = _index (h -> field, 'B');
   dvvvtm (npts, h->data[k], 1, h->data[i], 1, h->data[j], 1, h->data[k], 1);
-  k = index ( h -> field, 'C');
+  k = _index ( h -> field, 'C');
   dvvvtm (npts, h->data[k], 1, h->data[j], 1, h->data[j], 1, h->data[k], 1);
 
   if (!strstr (h -> field, "w")) return;
 
   /* -- 3D. */
   
-  k = index (h -> field, 'w');
+  k = _index (h -> field, 'w');
 
-  m = index (h -> field, 'D');
+  m = _index (h -> field, 'D');
   dvvvtm (npts, h->data[m], 1, h->data[i], 1, h->data[k], 1, h->data[m], 1);
-  m = index (h -> field, 'E');
+  m = _index (h -> field, 'E');
   dvvvtm (npts, h->data[m], 1, h->data[j], 1, h->data[k], 1, h->data[m], 1);
-  m = index (h -> field, 'F');
+  m = _index (h -> field, 'F');
   dvvvtm (npts, h->data[m], 1, h->data[k], 1, h->data[k], 1, h->data[m], 1);
 }
 
@@ -324,7 +324,7 @@ static void demean (Dump* a,
   const int npts = a -> np * a -> np * a -> nz * a -> nel;
 
   for (i = 0; i < nfields; i++) {
-    j = index (a -> field, f -> field[i]);
+    j = _index (a -> field, f -> field[i]);
     dvsub (npts, f -> data[i], 1, a -> data[j], 1, f -> data[i], 1);
   }
 }
