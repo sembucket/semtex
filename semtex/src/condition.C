@@ -464,7 +464,7 @@ void NaturalFunction::describe (char* tgt) const
 // Load descriptive/diagnostic material into tgt.
 // ---------------------------------------------------------------------------
 {
-  sprintf (tgt, "boundary-group: %s, natural-function:\t%g", _grp, _function);
+  sprintf (tgt, "boundary-group: %s, natural-function:\t%s", _grp, _function);
 }
 
 
