@@ -165,12 +165,21 @@ int  Boundary::isEssential () const
 }
 
 
-void  Boundary::mask (int* gmask) const
+void  Boundary::setMask (int* gmask) const
 // ---------------------------------------------------------------------------
-// Mask global node-number vector for this boundary.
+// Mask vector of global node-numbers for this boundary.
 // ---------------------------------------------------------------------------
 {
   elmt -> sideMask (side, gmask);
+}
+
+
+void  Boundary::mask (real* gnode) const
+// ---------------------------------------------------------------------------
+// Mask globally-numbered vector gnode for this boundary.
+// ---------------------------------------------------------------------------
+{
+  elmt -> sideMask (side, gnode);
 }
 
 
