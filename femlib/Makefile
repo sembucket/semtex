@@ -56,12 +56,14 @@ install:
 	cd $(HOME)/lib; rm -f $(LIB);				\
 	ln -s $(LIBHOME)/$(LIB) $(LIB);				\
 	cd $(HOME)/include; 					\
-	rm -f femlib.h Femlib.h;                              	\
+	rm -f femdef.h femlib.h Femlib.h;                     	\
+	ln -s $(LIBHOME)/femdef.h    femdef.h;			\
 	ln -s $(LIBHOME)/femlib.h    femlib.h;			\
 	ln -s $(LIBHOME)/Femlib.h    Femlib.h;
 
 	cd $(FEMHOME)/include; 					\
-	rm -f femlib.h Femlib.h;				\
+	rm -f femdef.h femlib.h Femlib.h;			\
+	ln -s $(LIBHOME)/femdef.h    femdef.h;			\
 	ln -s $(LIBHOME)/femlib.h    femlib.h;			\
 	ln -s $(LIBHOME)/Femlib.h    Femlib.h
 
