@@ -1,11 +1,12 @@
 /*****************************************************************************
  * filter.c
  *
+ * Copyright (c) Hugh Blackburn 1999-2000
+ *
  * Routines for computing spectral filters.
+ *
+ * $Id$
  *****************************************************************************/
-
-static char
-RCSid_fourier[] = "$Id$";
 
 #include <math.h>
 #include <femdef.h>
