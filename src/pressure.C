@@ -3,27 +3,27 @@
 //
 // Copyright (c) 1994,2003 Hugh Blackburn
 //
-// Class variables Pn & Un provide storage for the mode equivalents of
-//   Pn:  normal gradient of the pressure field,
-//   Un: normal component of velocity,
+// Class variables _Pn & _Un provide storage for the mode equivalents of
+//   _Pn:  normal gradient of the pressure field,
+//   _Un: normal component of velocity,
 // and are used to construct explicit extrapolative estimates of the natural
 // BCs for the pressure field at the next time level.
 //
 // Reference: Karniadakis, Israeli & Orszag 1991.  "High-order splitting
 // methods for the incompressible Navier--Stokes equations", JCP 9(2).
 //
-// Pn & Un are indexed by time level, boundary, data plane, and location in
-// that order (e.g. Pn[time][boundary][plane][i]).
+// _Pn & _Un are indexed by time level, boundary, data plane, and location in
+// that order (e.g. _Pn[time][boundary][plane][i]).
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
 
 #include <Sem.h>
 
-real**** PBCmgr::Pnx = 0;
-real**** PBCmgr::Pny = 0;
-real**** PBCmgr::Unx = 0;
-real**** PBCmgr::Uny = 0;
+real**** PBCmgr::_Pnx = 0;
+real**** PBCmgr::_Pny = 0;
+real**** PBCmgr::_Unx = 0;
+real**** PBCmgr::_Uny = 0;
 
 
 void PBCmgr::build (const Field* P)
@@ -41,30 +41,30 @@ void PBCmgr::build (const Field* P)
   const int nZ    = P -> _nz;
   int       i, j, k;
 
-  Pnx = new real*** [static_cast<size_t>(nTime)];
-  Pny = new real*** [static_cast<size_t>(nTime)];
-  Unx = new real*** [static_cast<size_t>(nTime)];
-  Uny = new real*** [static_cast<size_t>(nTime)];
+  _Pnx = new real*** [static_cast<size_t>(nTime)];
+  _Pny = new real*** [static_cast<size_t>(nTime)];
+  _Unx = new real*** [static_cast<size_t>(nTime)];
+  _Uny = new real*** [static_cast<size_t>(nTime)];
 
   for (i = 0; i < nTime; i++) {
-    Pnx[i] = new real** [static_cast<size_t>(4 * nEdge)];
-    Pny[i] = Pnx[i] + nEdge;
-    Unx[i] = Pny[i] + nEdge;
-    Uny[i] = Unx[i] + nEdge;
+    _Pnx[i] = new real** [static_cast<size_t>(4 * nEdge)];
+    _Pny[i] = _Pnx[i] + nEdge;
+    _Unx[i] = _Pny[i] + nEdge;
+    _Uny[i] = _Unx[i] + nEdge;
 
     for (j = 0; j < nEdge; j++) {
-      Pnx[i][j] = new real* [static_cast<size_t>(4 * nZ)];
-      Pny[i][j] = Pnx[i][j] + nZ;
-      Unx[i][j] = Pny[i][j] + nZ;
-      Uny[i][j] = Unx[i][j] + nZ;
+      _Pnx[i][j] = new real* [static_cast<size_t>(4 * nZ)];
+      _Pny[i][j] = _Pnx[i][j] + nZ;
+      _Unx[i][j] = _Pny[i][j] + nZ;
+      _Uny[i][j] = _Unx[i][j] + nZ;
 
       for (k = 0; k < nZ; k++) {
-	Pnx[i][j][k] = new real [static_cast<size_t>(4 * np)];
-	Pny[i][j][k] = Pnx[i][j][k] + np;
-	Unx[i][j][k] = Pny[i][j][k] + np;
-	Uny[i][j][k] = Unx[i][j][k] + np;
+	_Pnx[i][j][k] = new real [static_cast<size_t>(4 * np)];
+	_Pny[i][j][k] = _Pnx[i][j][k] + np;
+	_Unx[i][j][k] = _Pny[i][j][k] + np;
+	_Uny[i][j][k] = _Unx[i][j][k] + np;
 
-	Veclib::zero (4 * np, Pnx[i][j][k], 1);
+	Veclib::zero (4 * np, _Pnx[i][j][k], 1);
       }
     }
   }
@@ -124,8 +124,8 @@ void PBCmgr::maintain (const int        step   ,
 
   // -- Roll grad P storage area up, load new level of nonlinear terms Uf.
 
-  rollv (Pnx, nTime);
-  rollv (Pny, nTime);
+  rollv (_Pnx, nTime);
+  rollv (_Pny, nTime);
 
   for (i = 0; i < nEdge; i++) {
     B      = BC[i];
@@ -134,10 +134,10 @@ void PBCmgr::maintain (const int        step   ,
     
     for (k = 0; k < nZ; k++) {
       ROOTONLY if (k == 1) continue;
-      Veclib::copy (nP, Nx -> _plane[k] + offset, skip, Pnx[0][i][k], 1);
-      Veclib::copy (nP, Ny -> _plane[k] + offset, skip, Pny[0][i][k], 1);
+      Veclib::copy (nP, Nx -> _plane[k] + offset, skip, _Pnx[0][i][k], 1);
+      Veclib::copy (nP, Ny -> _plane[k] + offset, skip, _Pny[0][i][k], 1);
 #if defined (OLDCODE)
-      if (Geometry::cylindrical()) B -> mulY (Pny[0][i][k]);
+      if (Geometry::cylindrical()) B -> mulY (_Pny[0][i][k]);
 #endif
     }
   }
@@ -162,8 +162,8 @@ void PBCmgr::maintain (const int        step   ,
       UxRe = Ux -> _plane[0];
       UyRe = Uy -> _plane[0];
       B -> curlCurl (0,UxRe,0,UyRe,0,0,0,xr,0,yr,0,wrk);
-      Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][0], 1);
-      Blas::axpy (nP, -nu, yr, 1, Pny[0][i][0], 1);
+      Blas::axpy (nP, -nu, xr, 1, _Pnx[0][i][0], 1);
+      Blas::axpy (nP, -nu, yr, 1, _Pny[0][i][0], 1);
     }
 
     for (m = mLo; m < nMode; m++) { // -- Higher modes.
@@ -176,10 +176,10 @@ void PBCmgr::maintain (const int        step   ,
 
       B -> curlCurl (m+base,UxRe,UxIm,UyRe,UyIm,UzRe,UzIm,xr,xi,yr,yi,wrk);
 
-      Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][2 * m],     1);
-      Blas::axpy (nP, -nu, xi, 1, Pnx[0][i][2 * m + 1], 1);
-      Blas::axpy (nP, -nu, yr, 1, Pny[0][i][2 * m],     1);
-      Blas::axpy (nP, -nu, yi, 1, Pny[0][i][2 * m + 1], 1);
+      Blas::axpy (nP, -nu, xr, 1, _Pnx[0][i][2 * m],     1);
+      Blas::axpy (nP, -nu, xi, 1, _Pnx[0][i][2 * m + 1], 1);
+      Blas::axpy (nP, -nu, yr, 1, _Pny[0][i][2 * m],     1);
+      Blas::axpy (nP, -nu, yi, 1, _Pny[0][i][2 * m + 1], 1);
     }
   }
 
@@ -203,24 +203,24 @@ void PBCmgr::maintain (const int        step   ,
 	  Veclib::copy (nP, Ux -> _plane[k] + offset, skip, tmp, 1);
 	  Blas::scal   (nP, alpha[0], tmp, 1);
 	  for (q = 0; q < Je; q++)
-	    Blas::axpy (nP, alpha[q + 1], Unx[q][i][k], 1, tmp, 1);
+	    Blas::axpy (nP, alpha[q + 1], _Unx[q][i][k], 1, tmp, 1);
 	  if (Geometry::cylindrical()) B -> mulY (tmp);
-	  Blas::axpy (nP, -invDt, tmp, 1, Pnx[0][i][k], 1);
+	  Blas::axpy (nP, -invDt, tmp, 1, _Pnx[0][i][k], 1);
 	  
 	  Veclib::copy (nP, Uy -> _plane[k] + offset, skip, tmp, 1);
 	  Blas::scal   (nP, alpha[0], tmp, 1);
 	  for (q = 0; q < Je; q++)
-	    Blas::axpy (nP, alpha[q + 1], Uny[q][i][k], 1, tmp, 1);
+	    Blas::axpy (nP, alpha[q + 1], _Uny[q][i][k], 1, tmp, 1);
 	  if (Geometry::cylindrical()) B -> mulY (tmp);
-	  Blas::axpy (nP, -invDt, tmp, 1, Pny[0][i][k], 1);
+	  Blas::axpy (nP, -invDt, tmp, 1, _Pny[0][i][k], 1);
 	}
       }
     }
 
     // -- Roll velocity storage area up, load new level.
 
-    rollv (Unx, nTime);
-    rollv (Uny, nTime);
+    rollv (_Unx, nTime);
+    rollv (_Uny, nTime);
       
     for (i = 0; i < nEdge; i++) {
       B      = BC[i];
@@ -229,8 +229,8 @@ void PBCmgr::maintain (const int        step   ,
     
       for (k = 0; k < nZ; k++) {
 	ROOTONLY if (k == 1) continue;
-	Veclib::copy (nP, Ux -> _plane[k] + offset, skip, Unx[0][i][k], 1);
-	Veclib::copy (nP, Uy -> _plane[k] + offset, skip, Uny[0][i][k], 1);
+	Veclib::copy (nP, Ux -> _plane[k] + offset, skip, _Unx[0][i][k], 1);
+	Veclib::copy (nP, Uy -> _plane[k] + offset, skip, _Uny[0][i][k], 1);
       }
     }
   }
@@ -272,8 +272,8 @@ void PBCmgr::evaluate (const int   id   ,
   Veclib::zero (2 * np, tmpX, 1);
   
   for (q = 0; q < Je; q++) {
-    Blas::axpy (np, beta[q], Pnx[q][id][plane], 1, tmpX, 1);
-    Blas::axpy (np, beta[q], Pny[q][id][plane], 1, tmpY, 1);
+    Blas::axpy (np, beta[q], _Pnx[q][id][plane], 1, tmpX, 1);
+    Blas::axpy (np, beta[q], _Pny[q][id][plane], 1, tmpY, 1);
   }
     
   Veclib::vvtvvtp (np, nx, 1, tmpX, 1, ny, 1, tmpY, 1, tgt, 1);
@@ -299,7 +299,7 @@ void PBCmgr::accelerate (const Vector& a,
   for (i = 0; i < u->_nbound; i++) {
     B = BC[i];
 
-    B -> addForGroup ("velocity", a.x, Pnx[0][i][0]);
-    B -> addForGroup ("velocity", a.y, Pny[0][i][0]);
+    B -> addForGroup ("velocity", a.x, _Pnx[0][i][0]);
+    B -> addForGroup ("velocity", a.y, _Pny[0][i][0]);
   }
 }

@@ -16,11 +16,11 @@ static char RCS[] = "$Id$";
 #include <Sem.h>
 
 
-Boundary::Boundary (const integer    Ident ,
+Boundary::Boundary (const int        Ident ,
 		    const char*      Bgroup,
 		    const Condition* Bcondn,
 		    const Element*   Elmt  ,
-		    const integer    Side  ) :
+		    const int        Side  ) :
 // ---------------------------------------------------------------------------
 // Constructor.  Allocate new memory for value & geometric factors.
 // ---------------------------------------------------------------------------
@@ -31,11 +31,11 @@ Boundary::Boundary (const integer    Ident ,
   _elmt    (Elmt  ),
   _side    (Side  )
 {
-  const char    routine[] = "Boundary::Boundary";
-  const integer npnp      = sqr (_np);
-  char          err[StrMax];
+  const char routine[] = "Boundary::Boundary";
+  const int  npnp      = sqr (_np);
+  char       err[StrMax];
 
-  _x    = new real [(size_t) 5 * _np];
+  _x    = new real [static_cast<size_t>(5 * _np)];
   _y    = _x  + _np;
   _nx   = _y  + _np;
   _ny   = _nx + _np;
@@ -72,9 +72,9 @@ void Boundary::geometry (real* X   ,
 }
 
 
-void Boundary::evaluate (const integer plane,
-			 const integer step ,
-			 real*         tgt  ) const
+void Boundary::evaluate (const int plane,
+			 const int step ,
+			 real*     tgt  ) const
 // ---------------------------------------------------------------------------
 // Load boundary condition storage area with numeric values.
 // ---------------------------------------------------------------------------
@@ -115,8 +115,8 @@ void Boundary::sum (const real*    src,
 }
 
 
-void Boundary::augmentSC (const integer  nband ,
-			  const integer  nsolve,
+void Boundary::augmentSC (const int      nband ,
+			  const int      nsolve,
 			  const integer* b2g   ,
 			  real*          work  ,
 			  real*          H     ) const
@@ -355,8 +355,8 @@ Vector Boundary::normalTraction (const char* grp,
   Vector Force = {0.0, 0.0, 0.0};
 
   if (strcmp (grp, _bcondn -> group()) == 0) {
-    register integer i;
-    const integer    np = Geometry::nP();
+    register int i;
+    const int    np = Geometry::nP();
 
     Veclib::copy (_np, p + _doffset, _dskip, wrk, 1);
 
@@ -420,9 +420,9 @@ real Boundary::flux (const char* grp,
   register real dcdn = 0.0;
   
   if (strcmp (grp, _bcondn -> group()) == 0) {
-    const real*      data = src + _elmt -> ID() * Geometry::nTotElmt();
-    register integer i;
-    register real    *cx = wrk, *cy = wrk + _np, *r = wrk + _np + _np;
+    const real*   data = src + _elmt -> ID() * Geometry::nTotElmt();
+    register int  i;
+    register real *cx = wrk, *cy = wrk + _np, *r = wrk + _np + _np;
 
     _elmt -> sideGrad (_side, data, cx, cy, r);
     for (i = 0; i < _np; i++)

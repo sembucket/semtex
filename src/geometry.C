@@ -16,21 +16,21 @@ static char RCS[] = "$Id$";
 #include <Geometry.h>
 #include <Femlib.h>
 
-integer            Geometry::_pid   = 0;
-integer            Geometry::_nproc = 0;
-integer            Geometry::_ndim  = 0;
-integer            Geometry::_np    = 0;
-integer            Geometry::_nz    = 0;
-integer            Geometry::_nzp   = 0;
-integer            Geometry::_nel   = 0;
-integer            Geometry::_psize = 0;
-integer            Geometry::_kfund = 0;
+int                Geometry::_pid   = 0;
+int                Geometry::_nproc = 0;
+int                Geometry::_ndim  = 0;
+int                Geometry::_np    = 0;
+int                Geometry::_nz    = 0;
+int                Geometry::_nzp   = 0;
+int                Geometry::_nel   = 0;
+int                Geometry::_psize = 0;
+int                Geometry::_kfund = 0;
 Geometry::CoordSys Geometry::_csys  = Geometry::Cartesian;
 
 
-void Geometry::set (const integer  NP,
-		    const integer  NZ,
-		    const integer  NE,
+void Geometry::set (const int  NP,
+		    const int  NZ,
+		    const int  NE,
 		    const CoordSys CS)
 // ---------------------------------------------------------------------------
 // Load values of static internal variables.
@@ -60,9 +60,9 @@ void Geometry::set (const integer  NP,
 {
   static char routine[] = "Geometry::set", err[StrMax];
 
-  _pid   = (integer) Femlib::value ("I_PROC");
-  _nproc = (integer) Femlib::value ("N_PROC");
-  _kfund = (integer) Femlib::value ("K_FUND");
+  _pid   = static_cast<int>(Femlib::value ("I_PROC"));
+  _nproc = static_cast<int>(Femlib::value ("N_PROC"));
+  _kfund = static_cast<int>(Femlib::value ("K_FUND"));
 
   _np   = NP; _nz = NZ; _nel = NE; _csys = CS;
   _nzp  = _nz / _nproc;

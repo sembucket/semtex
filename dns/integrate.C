@@ -144,6 +144,7 @@ void integrateNS (Domain*      D,
     for (i = 0; i < NCOM; i++) AuxField::swapData (D -> u[i], Us[0][i]);
     rollm     (Uf, NORD, NCOM);
     setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);
+
     Solve     (D, NCOM,  Uf[0][0], MMS[NCOM]);
 #endif
 
@@ -227,7 +228,7 @@ static void setPForce (const AuxField** Us,
 
 #if defined (OLDCODE)
 
-  if (geometry::cylindrical()) {
+  if (Geometry::cylindrical()) {
     (*Uf[0]  = *Us[1]).divY();
     (*Uf[1]  = *Us[1]).gradient(1);
     (*Uf[1] += *Uf[0]).mulY();
@@ -271,13 +272,13 @@ static void project (const Domain* D ,
 
   for (i = 0; i < NCOM; i++) {
     Field::swapData (Us[i], Uf[i]);
-    if (C3D && i == 2) Uf[i] -> mulY();
+    if (Geometry::cylindrical() && i == 2) Uf[i] -> mulY();
     *Uf[i] *= alpha;
   }
 
   for (i = 0; i < NDIM; i++) {
     (*Us[0] = *D -> u[NCOM]) . gradient (i);
-    if (Geometry::cylindrical() && i < 2) Us[0] -> mulY();
+    if (Geometry::cylindrical() && i <  2) Us[0] -> mulY();
     Uf[i] -> axpy (beta, *Us[0]);
   }
 }
