@@ -22,7 +22,7 @@ CPPFLAGS = -I. -I$(SEM)/include
 ifeq ($(ARCH),IRIX)		# -- SGI 32-bit systems.
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = $(DEFINES) -O2
+CXXFLAGS = $(DEFINES) -g
 F77LIBS	 = -lcomplib.sgimath -lftn
 LDFLAGS  = -L$(SEM)/lib/$(ARCH) -lfem -lalp \
 	   $(F77LIBS) -lmalloc -lm
@@ -70,13 +70,11 @@ endif
 ifeq ($(ARCH),SUPER-UX)         # -- NEC SX-4.
 LIBDIR   = -L$(SEM)/lib/$(ARCH) 
 LIBDIR  += 
-LIBS     = -lfem -lalp -llapack -lblas	\
+LIBS     = -lfem -llapack_64 -lalp -lblas_64	\
            -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm
 CC       = cc
-FC       = f77
 CXX      = CC
 LD       = CC
-#OPTIM   = -hacct
 OPTIM    = -g -hacct
 CXXFLAGS = $(DEFINES)  $(OPTIM)
 LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS) -hacct
