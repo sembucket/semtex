@@ -106,7 +106,7 @@ Mesh::Mesh (FEML& f) :
 // Create a Mesh using information available in feml.
 // ---------------------------------------------------------------------------
 {
-  char      routine[] = "Mesh::Mesh", err[StrMax], tag[StrMax], nextc;
+  char      routine[] = "Mesh::Mesh", err[StrMax], tag[StrMax];
   int       i, j, k, K, Nn;
   const int verb = (int) Femlib::value ("VERBOSE");
   Node*     N;
@@ -129,7 +129,7 @@ Mesh::Mesh (FEML& f) :
 
   for (i = 0; i < Nn; i++) {
 
-    while ((nextc = feml.stream().peek()) == '#') // -- Skip comments.
+    while (feml.stream().peek() == '#') // -- Skip comments.
       feml.stream().ignore (StrMax, '\n');
 
     N = new Mesh::Node;
@@ -161,7 +161,7 @@ Mesh::Mesh (FEML& f) :
 
   for (i = 0; i < K; i++) {
 
-    while ((nextc = feml.stream().peek()) == '#') // -- Skip comments.
+    while (feml.stream().peek() == '#') // -- Skip comments.
       feml.stream().ignore (StrMax, '\n');
 
     E = new Mesh::Elmt;
@@ -290,13 +290,13 @@ void Mesh::surfaces ()
 // Periodic boundaries can be set only once (one one side of the matchup).
 // ---------------------------------------------------------------------------
 {
-  char      routine[] = "Mesh::surfaces", err[StrMax], tag[StrMax], nextc;
+  char      routine[] = "Mesh::surfaces", err[StrMax], tag[StrMax];
   int       i, e, s, t;
   const int K = feml.attribute ("SURFACES", "NUMBER");
 
   for (i = 0; i < K; i++) {
 
-    while ((nextc = feml.stream().peek()) == '#') // -- Skip comments.
+    while (feml.stream().peek() == '#') // -- Skip comments.
       feml.stream().ignore (StrMax, '\n');
 
     // -- Get element and side number information.
@@ -1111,12 +1111,12 @@ void Mesh::describeGrp (char  G,
 // ---------------------------------------------------------------------------
 {
   char      routine[] = "Mesh::describeGrp";
-  char      nextc, groupc, err[StrMax], buf[StrMax];
+  char      groupc, err[StrMax], buf[StrMax];
   int       i, id, found = 0;
   const int N = feml.attribute ("GROUPS", "NUMBER");
   
   for (i = 0; !found && i < N; i++) {
-    while ((nextc = feml.stream().peek()) == '#') // -- Skip comments.
+    while (feml.stream().peek() == '#') // -- Skip comments.
       feml.stream().ignore (StrMax, '\n');
     feml.stream() >> id >> groupc >> buf;
     if (found = (groupc == G)) strcpy (S, buf);
@@ -1138,13 +1138,13 @@ void Mesh::describeBC (char  grp,
 // ---------------------------------------------------------------------------
 {
   char      routine[] = "Mesh::describeBC";
-  char      eql, groupc, fieldc, nextc, err[StrMax], buf[StrMax];
+  char      eql, groupc, fieldc, err[StrMax], buf[StrMax];
   int       i, j, id, nbcs, found = 0;
   const int N = feml.attribute ("BCS", "NUMBER");
 
   for (i = 0; !found && i < N; i++) {
 
-    while ((nextc = feml.stream().peek()) == '#') // -- Skip comments.
+    while (feml.stream().peek() == '#') // -- Skip comments.
       feml.stream().ignore (StrMax, '\n');
 
     feml.stream() >> id >> groupc >> nbcs;
@@ -1290,13 +1290,13 @@ int Mesh::matchBC (const char grp,
 //   A <==> "Axis" (selected, natural/essential) BC.       See TOK93.
 // ---------------------------------------------------------------------------
 {
-  char      groupc, fieldc, nextc, buf[StrMax];
+  char      groupc, fieldc, buf[StrMax];
   int       i, j, id, nbcs;
   const int N = feml.attribute ("BCS", "NUMBER");
 
   for (i = 0; i < N; i++) {
 
-    while ((nextc = feml.stream().peek()) == '#') // -- Skip comments.
+    while (feml.stream().peek() == '#') // -- Skip comments.
       feml.stream().ignore (StrMax, '\n');
 
     feml.stream() >> id >> groupc >> nbcs;
