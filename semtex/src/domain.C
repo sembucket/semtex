@@ -1,9 +1,8 @@
 /*****************************************************************************
- * Domain.C:  implement Domain class.
+ * domain.C:  implement Domain class.
+ *
+ * $Id$
  *****************************************************************************/
-
-// $Id$
-
 
 #include "Fem.h"
 
@@ -38,8 +37,7 @@ Domain::Domain (Mesh& M, const char* session, int np)
 
   // -- Generate mesh topology information, do RCM renumbering.
 
-  u[0] -> connect  (M, np);
-  u[0] -> renumber ();
+  u[0] -> connect (M, np);
 
   if (verbose == 2) {
     message (routine, "-- GLOBAL NUMBERING FOR u[0]:", REMARK);
