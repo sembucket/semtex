@@ -1,20 +1,20 @@
 ///////////////////////////////////////////////////////////////////////////////
 // matrix.C: routines for direct solution of Helmholtz problems.
 //
-// Copyright (C) 1994--2001 Hugh Blackburn
+// Copyright (C) 1994, 2003 Hugh Blackburn
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <Sem.h>
 
-static List<MatrixSys*> MS;
+static vector<MatrixSys*> MS;
 
 
 ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
 				const real              beta    ,
-				const integer           baseMode,
-				const integer           numModes,
+				const int               baseMode,
+				const int               numModes,
 				const vector<Element*>& Elmt    ,
 				const BoundarySys*      Bsys    ,
 				const SolverKind        method  )
@@ -33,14 +33,14 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
 //   method  : specify the kind of solver we want (Cholesky, PCG ...).
 // ---------------------------------------------------------------------------
 {
-  const char               name = Bsys -> field();
-  integer                  found, mode;
-  ListIterator<MatrixSys*> m (MS);
-  MatrixSys*               M;
+  const char                   name = Bsys -> field();
+  int                          found, mode;
+  MatrixSys*                   M;
+  vector<MatrixSys*>::iterator m;
 
   _fields = new char [strlen (Bsys -> Nsys (0) -> fields()) + 1];
   strcpy (_fields, Bsys -> Nsys (0) -> fields());
-  _Msys.setSize (numModes);
+  _Msys.resize (numModes);
 
   if (method == DIRECT) {
     ROOTONLY cout << "-- Installing matrices for field '" << name << "' [";
@@ -51,10 +51,10 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
   for (mode = baseMode; mode < baseMode + numModes; mode++) {
     const NumberSys* N         = Bsys -> Nsys (mode * Geometry::kFund());
     const real       betak2    = sqr (Field::modeConstant (name, mode, beta));
-    const integer    localMode = mode - baseMode;
+    const int        localMode = mode - baseMode;
 
-    for (found = 0, m.reset(); !found && m.more(); m.next()) {
-      M     = m.current();
+    for (found = 0, m = MS.begin(); !found && m != MS.end(); m++) {
+      M     = *m;
       found = M -> match (lambda2, betak2, N, method);
     }
     if (found) {
@@ -63,7 +63,7 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
     } else {
       _Msys[localMode] =
 	new MatrixSys (lambda2, betak2, mode, Elmt, Bsys, method);
-      MS.add (_Msys[localMode]);
+      MS.insert (MS.end(), _Msys[localMode]);
       if (method == DIRECT) { cout << '*'; cout.flush(); }
     }
   }
@@ -85,16 +85,23 @@ ModalMatrixSys::~ModalMatrixSys ()
 // attempting reuse.
 // ---------------------------------------------------------------------------
 {
-  integer       i;
-  const integer N = _Msys.getSize();
+#if 0
+  int       i;
+  const int N = _Msys.size();
 
-  for (i = 0; i < N; i++) delete (MS.remove (_Msys[i]));
+  for (i = 0; i < N; i++) {
+    delete    (_Msys[i]);
+    MS.remove (_Msys[i]);
+  }
+#endif  
+  int N = _Msys.size();
+  while (N--) { delete (_Msys[N]); MS.resize (N); }
 }
 
 
 MatrixSys::MatrixSys (const real              lambda2,
 		      const real              betak2 ,
-		      const integer           mode   ,
+		      const int               mode   ,
 		      const vector<Element*>& elmt   ,
 		      const BoundarySys*      bsys   ,
 		      const SolverKind        method ) :
@@ -130,25 +137,25 @@ MatrixSys::MatrixSys (const real              lambda2,
   _npts              (_nglobal + Geometry::nInode()),
   _PC                (0)
 {
-  const char       routine[] = "MatrixSys::MatrixSys";
-  const integer    verbose   = (integer) Femlib::value ("VERBOSE");
-  const integer    np        = Geometry::nP();
-  const integer    next      = Geometry::nExtElmt();
-  const integer    nint      = Geometry::nIntElmt();
-  const integer    npnp      = Geometry::nTotElmt();
-  const integer*   bmap;
-  register integer i, j, k, m, n;
+  const char     routine[] = "MatrixSys::MatrixSys";
+  const int      verbose   = (int) Femlib::value ("VERBOSE");
+  const int      np        = Geometry::nP();
+  const int      next      = Geometry::nExtElmt();
+  const int      nint      = Geometry::nIntElmt();
+  const int      npnp      = Geometry::nTotElmt();
+  const integer* bmap;
+  register int   i, j, k, m, n;
 
   switch (_method) {
 
   case DIRECT: {
     vector<real>    work     (sqr (next) + sqr (np) + sqr (npnp));
     vector<integer> pivotmap (nint);
-    real*           hbb  = work();
+    real*           hbb  = &work[0];
     real*           rmat = hbb  + sqr (next);
     real*           rwrk = rmat + sqr (np);
-    integer*        ipiv = pivotmap();
-    integer         info;
+    integer*        ipiv = &pivotmap[0];
+    int         info;
 
     _hbi    = new real*   [(size_t) _nel];
     _hii    = new real*   [(size_t) _nel];
@@ -199,8 +206,8 @@ MatrixSys::MatrixSys (const real              lambda2,
       // -- Loop over BCs and add diagonal contribution from mixed BCs.
 
       if (bsys -> mixBC()) {
-	const integer  nbound = bsys -> nSurf();
-	const integer* bmap   = _NS   -> btog();
+	const int      nbound = bsys -> nSurf();
+	const integer* bmap   = _NS  -> btog();
 	for (i = 0; i < nbound; i++)
 	  _BC[i] -> augmentSC (_nband, _nsolve, bmap, rwrk, _H);
       }
@@ -214,8 +221,8 @@ MatrixSys::MatrixSys (const real              lambda2,
 
       if (verbose) {
 	real cond;
-	pivotmap.setSize (_nsolve);  ipiv = pivotmap();
-	work.setSize (3 * _nsolve);  rwrk = work();
+	pivotmap.resize (_nsolve);  ipiv = &pivotmap[0];
+	work.resize (3 * _nsolve);  rwrk = &work[0];
 
 	Lapack::pbcon ("U",_nsolve,_nband-1,_H,_nband,1.0,cond,rwrk,ipiv,info);
 	cout << ", condition number: " << cond << endl;
@@ -224,10 +231,10 @@ MatrixSys::MatrixSys (const real              lambda2,
   } break;
 
   case JACPCG: {
-    const integer nbound = _BC.getSize();   
-    real*         PCi;
-    vector<real>  work (2 * npnp + np);
-    real          *ed = work(), *ewrk = work() + npnp;
+    const int    nbound = _BC.size();   
+    real*        PCi;
+    vector<real> work (2 * npnp + np);
+    real         *ed = &work[0], *ewrk = &work[0] + npnp;
 
     _PC = new real [(size_t) _npts];
     Veclib::zero (_npts, _PC, 1);
@@ -255,7 +262,7 @@ MatrixSys::MatrixSys (const real              lambda2,
     Veclib::fill  (_npts, 1.0, _PC, 1);
 #endif
 
-//    Femlib::adopt (_npts, &_PC);
+    //    Femlib::adopt (_npts, &_PC);
 
   } break;
 
@@ -266,10 +273,10 @@ MatrixSys::MatrixSys (const real              lambda2,
 }
 
 
-integer MatrixSys::match (const real       lambda2,
-			  const real       betak2 ,
-			  const NumberSys* nScheme,
-			  const SolverKind method ) const
+int MatrixSys::match (const real       lambda2,
+		      const real       betak2 ,
+		      const NumberSys* nScheme,
+		      const SolverKind method ) const
 // ---------------------------------------------------------------------------
 // The unique identifiers of a MatrixSys are presumed to be given
 // by the constants and the numbering system used.  Other things that
@@ -303,7 +310,7 @@ MatrixSys::~MatrixSys()
     Femlib::abandon (&_PC);
     break;
   case DIRECT: {
-    integer i;
+    int i;
     for (i = 0; i < _nel; i++) {
       Femlib::abandon (_hbi + i);
       Femlib::abandon (_hii + i);
@@ -317,7 +324,7 @@ MatrixSys::~MatrixSys()
 
 
 #if 0
-ostream& operator << (ostream&      str,
+ostream& operator << (ostream&   str,
 		      MatrixSys& M  )
 // ---------------------------------------------------------------------------
 // Output a MatrixSys to file...one day we'll actually use this!
@@ -335,7 +342,7 @@ ostream& operator << (ostream&      str,
     "%-25s "    "Format"  
   };
   char    bufr[StrMax], fmt[StrMax];
-  integer i, n;
+  int i, n;
 
   Veclib::describeFormat (fmt);
   
@@ -371,7 +378,7 @@ ostream& operator << (ostream&      str,
 }
 
 
-istream& operator >> (istream&      str,
+istream& operator >> (istream&   str,
 		      MatrixSys& sys)
 // ---------------------------------------------------------------------------
 // Input a MatrixSys from file, with binary format conversion if required.
@@ -380,7 +387,7 @@ istream& operator >> (istream&      str,
   char       routine[] = "MatrixSys::operator >>";
   char       bufr[StrMax], fmt[StrMax];
   istrstream s (bufr, strlen (bufr));
-  integer    n, swab;
+  int        n, swab;
   real       f;
   const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
@@ -426,17 +433,17 @@ istream& operator >> (istream&      str,
   	swab = (strstr (bufr, "little") && strstr (fmt, "big")  ||
 		strstr (bufr, "big")    && strstr (fmt, "little"));
 
-  str.read ((char*) H (), H.getSize () * sizeof (real));
+  str.read ((char*) &H[0], H.size() * sizeof (real));
 
-  if (swab)   Veclib::brev (H.getSize(), H(), 1, H(), 1);
+  if (swab)   Veclib::brev (H.size(), &H[0], 1, &H[0], 1);
   
-  register integer i;
-  integer          n;
-  const integer    N = hbi.getSize ();
+  register int i;
+  int          n;
+  const int    N = hbi.size();
 
   for (i = 0; i < N; i++) {
     str.read ((char*) &n, sizeof (integer));
-    if (n != hbi[i].getSize ())
+    if (n != hbi[i].size())
       message (routine, "mismatch: size of hbi in file & system", ERROR);
     else  {
       str.read ((char*) hbi[i], n * sizeof (real));

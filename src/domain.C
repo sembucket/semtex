@@ -43,15 +43,15 @@ Domain::Domain (FEML*             F,
   
   VERBOSE cout << "  Building domain boundary systems ... ";
 
-  b.setSize (nfield);
+  b.resize (nfield);
   for (i = 0; i < nfield; i++) b[i] = new BoundarySys (B, E, field[i]);
 
   VERBOSE cout << "done" << endl;
 
   VERBOSE cout << "  Building domain fields ... ";
 
-  u   .setSize (nfield);
-  udat.setSize (nfield);
+  u   .resize (nfield);
+  udat.resize (nfield);
 
   alloc = new real [(size_t) nfield * ntot];
   for (i = 0; i < nfield; i++) {
@@ -218,7 +218,7 @@ ofstream& operator << (ofstream& strm,
 // ---------------------------------------------------------------------------
 {
   int               i;
-  const int         N = D.u.getSize();
+  const int         N = D.u.size();
   vector<AuxField*> field (N);
 
   for (i = 0; i < N; i++) field[i] = D.u[i];

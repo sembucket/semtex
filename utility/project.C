@@ -128,7 +128,7 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
     const        real       **IN, **IT;
     const int    nzm = min (rhs.nz, nz);
     vector<real> work (rhs.np * np);
-    real*        tmp = work();
+    real*        tmp = &work[0];
 
     if      (uniform == +1)
       Femlib::mesh (GLL, STD, rhs.np, np, 0, &IN, &IT, 0, 0);
@@ -236,19 +236,19 @@ int main (int    argc,
   
   while (getDump (*input, cout, Uold, nPnew, nZnew, nEl, keepW, fInc)) {
 
-    Unew.setSize (Uold.getSize() + fInc);
+    Unew.resize (Uold.size() + fInc);
 
     switch (fInc) {
 
     case 0:			// -- Same number of fields out as in.
-      for (i = 0; i < Uold.getSize(); i++) {
+      for (i = 0; i < Uold.size(); i++) {
 	Unew[i] = new Field2DF (nPnew, nZnew, nEl, Uold[i] -> getName());
        *Unew[i] = *Uold[i];
       }
       break;
 
     case 1:			// -- Add a new blank field called 'w'.
-      for (i = 0; i < Uold.getSize(); i++) {
+      for (i = 0; i < Uold.size(); i++) {
 	 Unew[i] = new Field2DF (nPnew, nZnew, nEl, Uold[i] -> getName());
 	*Unew[i] = *Uold[i];
       }
@@ -260,7 +260,7 @@ int main (int    argc,
       loadName (Uold, fields);
       if (!strchr (fields, 'w'))
 	message (prog, "conflict: 3D-->2D but no field called 'w'", ERROR);
-      for (j = 0, i = 0; i < Uold.getSize(); i++) {
+      for (j = 0, i = 0; i < Uold.size(); i++) {
 	if (Uold[i] -> getName() == 'w') continue;
 	 Unew[j] = new Field2DF (nPnew, nZnew, nEl, Uold[i] -> getName());
 	*Unew[j] = *Uold[i];
@@ -273,8 +273,8 @@ int main (int    argc,
       break;
     }
 
-    for (i = 0; i < Unew.getSize(); i++) {
-      Unew[i] -> transform (-1);
+    for (i = 0; i < Unew.size(); i++) {
+      Unew[i] -> transform (INVERSE);
       cout << *Unew[i];
     }
   }
@@ -353,7 +353,7 @@ static void loadName (const vector<Field2DF*>& u,
 // Load a string containing the names of fields.
 // ---------------------------------------------------------------------------
 {
-  int i, N = u.getSize();
+  int i, N = u.size();
 
   for (i = 0; i < N; i++) s[i] = u[i] -> getName();
   s[N] = '\0';
@@ -462,15 +462,15 @@ static int getDump (istream&           ifile,
   sprintf (fmt, hdr_fmt[9], buf);
   cout << fmt;
 
-  if (u.getSize() != nf) {
-    u.setSize (nf);
+  if (u.size() != nf) {
+    u.resize (nf);
     for (i = 0; i < nf; i++) u[i] = new Field2DF (np, nz, nel, fields[i]);
   }
 
   for (i = 0; i < nf; i++) {
     ifile >> *u[i];
     if (swab) u[i] -> reverse();
-    u[i] -> transform (+1);
+    u[i] -> transform (FORWARD);
   }
 
   return ifile.good();

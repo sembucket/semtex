@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // interp.C: interpolate results from a field file onto a set of 2D points.
 //
-// Copyright (c) 1997 Hugh Blackburn
+// Copyright (C) 1997,2003 Hugh Blackburn
 //
 // Synopsis:
 // --------
@@ -95,7 +95,7 @@ int main (int    argc,
   
   Geometry::set (NP, NZ, NEL, Geometry::Cartesian);
   Femlib::mesh  (GLL, GLL, NP, NP, &z, 0, 0, 0, 0);
-  Esys.setSize  (NEL);
+  Esys.resize   (NEL);
 
   for (k = 0; k < NEL; k++) Esys[k] = new Element (k, M, z, NP);
   
@@ -123,7 +123,7 @@ int main (int    argc,
     if (np) putHeader (session, u,  np, NZ, nel,
 		       step, time, timestep, kinvis, beta);
 
-    nf = u.getSize();
+    nf = u.size();
     for (k = 0; k < NZ; k++)
       for (i = 0; i < ntot; i++) {
 	for (j = 0; j < nf; j++) {
@@ -209,7 +209,7 @@ static void loadPoints (istream&        pfile,
   int           nz = 0, num = 0;
   real          x, y;
   Point*        datum;
-  Stack<Point*> data;
+  stack<Point*> data;
 
   pfile.getline (buf, StrMax);
   if (strstr (buf, "NEL")) {	// -- This is a structured set of points.
@@ -243,9 +243,9 @@ static void loadPoints (istream&        pfile,
   }
 
   ntot = num;
-  point.setSize (ntot);
+  point.resize (ntot);
 
-  while (num--) point[num] = data.pop();
+  while (num--) { point[num] = data.top(); data.pop(); }
 }
 
 
@@ -261,14 +261,14 @@ static void findPoints (vector<Point*>&   point,
   int   i, k, kold;
   real  x, y, r, s;
   const int guess = 1;
-  const int NEL   = Esys .getSize();
-  const int NPT   = point.getSize();
+  const int NEL   = Esys .size();
+  const int NPT   = point.size();
 
-  elmt.setSize (NPT);
-  rloc.setSize (NPT);
-  sloc.setSize (NPT);
+  elmt.resize (NPT);
+  rloc.resize (NPT);
+  sloc.resize (NPT);
 
-  elmt = 0;
+  elmt.assign (NPT, 0);
 
   cerr.precision (8);
 
@@ -364,11 +364,11 @@ static int getDump (ifstream&          file,
 
   // -- Create AuxFields on first pass.
 
-  if (u.getSize() == 0) {
-    u.setSize (nf);
+  if (u.size() == 0) {
+    u.resize (nf);
     for (i = 0; i < nf; i++)
       u[i] = new AuxField (new real[Geometry::nTotal()], nz, Esys, fields[i]);
-  } else if (u.getSize() != nf) 
+  } else if (u.size() != nf) 
     message (prog, "number of fields mismatch with first dump in file", ERROR);
 
   // -- Read binary field data.
@@ -471,7 +471,7 @@ static void loadName (const vector<AuxField*>& u,
 // Load a string containing the names of fields.
 // ---------------------------------------------------------------------------
 {
-  int i, N = u.getSize();
+  int i, N = u.size();
 
   for (i = 0; i < N; i++) s[i] = u[i] -> name();
   s[N] = '\0';

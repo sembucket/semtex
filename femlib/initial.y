@@ -13,15 +13,15 @@
  *
  * Summary
  * -------
- * void    yy_initialize (void);
- * void    yy_help       (void);
- * void    yy_show       (void);
- * integer yy_dump       (char*, const integer);
+ * void   yy_initialize (void);
+ * void   yy_help       (void);
+ * void   yy_show       (void);
+ * int    yy_dump       (char*, const int);
  *
- * double  yy_interpret  (const char*);
+ * double yy_interpret  (const char*);
  *
- * void    yy_vec_init   (const char*, const char*);
- * void    yy_vec_interp (const integer, ...);
+ * void   yy_vec_init   (const char*, const char*);
+ * void   yy_vec_interp (const int, ...);
  *
  * Notes
  * -----
@@ -39,10 +39,10 @@
  * Operators
  * ---------
  * Unary:     -
- * Binary:    -, +, *, /, ^ (exponentiation), ~ (atan2)
- * Functions: sin,  cos,  tan,  abs, floor, ceil, int, heav (Heaviside),
- *            asin, acos, atan, log, log10, exp,  sqrt
- *            sinh, cosh, tanh, erf, erfc 
+ * Binary:    -, +, *, /, ^ (exponentiation), ~ (atan2), % (fmod)
+ * Functions: sin,  cos,  tan,  abs, floor, ceil, int,   heav (Heaviside),
+ *            asin, acos, atan, log, log10, exp,  sqrt,  lgamma,
+ *            sinh, cosh, tanh, erf, erfc,  j0,   j1,    y0,  y1
  *
  * $Id$
  *****************************************************************************/
@@ -86,17 +86,17 @@ static double  Log  (double),  Log10    (double),
 
 static unsigned hash     (const char*);
 static Symbol*  lookup   (const char*);
-static Symbol*  install  (const char*, const integer, const double);
+static Symbol*  install  (const char*, const int, const double);
 static void*    emalloc  (const size_t);
 
        int      yyparse (void);
-static integer  yylex   (void);
+static int      yylex   (void);
 static void     yyerror (char*);
 
 static double  value;
 static Symbol* hashtab[HASHSIZE];
 static char    func_string[STR_MAX], *cur_string;
-static integer nvec = 0;
+static int     nvec = 0;
 static Symbol* vs[VEC_MAX];
 extern int     errno;
 
@@ -124,6 +124,11 @@ static struct {			    /* -- Built-in functions. */
   "log10" ,  log10   ,
   "sqrt"  ,  sqrt    ,
   "heav"  ,  Heavi   ,
+  "j0"    ,  j0      ,
+  "j1"    ,  j1      ,
+  "y0"    ,  y0      ,
+  "y1"    ,  y1      ,
+  "lgamma",  lgamma  ,
 
   NULL    ,  NULL
 };
@@ -185,8 +190,8 @@ void yy_initialize (void)
  * This routine should be called at start of run-time.
  * ------------------------------------------------------------------------- */
 {
-  static   integer initialized = 0;
-  register integer i;
+  static   int initialized = 0;
+  register int i;
   register Symbol* s;
 
 #if 0			/* Enable SGI floating-point traps. */
@@ -258,8 +263,8 @@ void yy_vec_init (const char* names,
   char    routine   [] = "vecInit()";
   char    separator [] = " ,:;\t";
   char    tmp       [STR_MAX];
-  char   *p;
-  Symbol *s;
+  char*   p;
+  Symbol* s;
 
   if (strlen (fn) == 0)
     message (routine, "empty function string", ERROR);
@@ -280,7 +285,7 @@ void yy_vec_init (const char* names,
 }
 
 
-void yy_vec_interp (const integer ntot, ...)
+void yy_vec_interp (const int ntot, ...)
 /* ------------------------------------------------------------------------- *
  * Vector parser.  Following ntot there should be passed a number of
  * pointers to double (vectors), of which there should be in number the
@@ -292,11 +297,11 @@ void yy_vec_interp (const integer ntot, ...)
  * i.e.  vecInterp(ntot, x, y, z, u); the result fn(x,y,z) is placed in u.
  * ------------------------------------------------------------------------- */
 {
-  char             routine[] = "yy_vec_interp";
-  register integer i, n;
-  double*          x[VEC_MAX];
-  double*          fx = NULL;
-  va_list          ap;
+  char         routine[] = "yy_vec_interp";
+  register int i, n;
+  double*      x[VEC_MAX];
+  double*      fx = NULL;
+  va_list      ap;
   
   va_start (ap, ntot);
   for (i = 0; i < nvec; i++) {
@@ -327,8 +332,8 @@ void yy_help (void)
      "Unary    : -\n"
      "Binary   : -, +, *, /, ^ (exponentiation), ~ (atan2), %% (fmod)\n"
      "Functions: sin,  cos,  tan,  abs, floor, ceil, int,  heav (Heaviside),\n"
-     "           asin, acos, atan, log, log10, exp,  sqrt,\n"
-     "           sinh, cosh, tanh, erf, erfc\n");
+     "           asin, acos, atan, log, log10, exp,  sqrt, lgamma,\n"
+     "           sinh, cosh, tanh, erf, erfc,  j0,   j1,   y0,  y1\n");
 }
 
 
@@ -337,7 +342,7 @@ void yy_show (void)
  * Print details of installed variables to stderr.
  * ------------------------------------------------------------------------- */
 {
-  register integer i;
+  register int     i;
   register Symbol* sp;
 
   for (i = 0; i < HASHSIZE; i++)
@@ -347,14 +352,14 @@ void yy_show (void)
 }
 
 
-integer yydump (char*         str,
-		const integer max)
+int yydump (char*     str,
+	    const int max)
 /* ------------------------------------------------------------------------- *
  * Load description of internal variables into string, to length max.
  * If string overflows, return 0, else 1.
  * ------------------------------------------------------------------------- */
 {
-  register integer i, n = 0;
+  register int     i, n = 0;
   register Symbol* sp;
   char             buf[FILENAME_MAX];
 
@@ -372,13 +377,13 @@ integer yydump (char*         str,
 }
 
 
-static integer yylex (void)
+static int yylex (void)
 /* ------------------------------------------------------------------------- *
  * Lexical analysis routine called by yyparse, using string loaded by
  * yy_interpret.
  * ------------------------------------------------------------------------- */
 {
-  register integer c;
+  register int c;
 
   while ((c = *cur_string++) == ' ' || c == '\t');
 
@@ -434,9 +439,9 @@ static Symbol* lookup (const char* s)
 }
 
 
-static Symbol* install (const char*   s,
-			const integer t,
-			const double  d)
+static Symbol* install (const char*  s,
+			const int    t,
+			const double d)
 /* ------------------------------------------------------------------------- *
  * Install s in symbol hashtable.
  * ------------------------------------------------------------------------- */

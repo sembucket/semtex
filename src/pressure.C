@@ -144,7 +144,7 @@ void PBCmgr::maintain (const integer    step   ,
   // -- Add in -nu * curl curl u.
 
   real  *UxRe, *UxIm, *UyRe, *UyIm, *UzRe, *UzIm, *tmp;
-  real* xr    = work();
+  real* xr    = &work[0];
   real* xi    = xr + nP;
   real* yr    = xi + nP;
   real* yi    = yr + nP;
@@ -261,7 +261,7 @@ void PBCmgr::evaluate (const integer id   ,
 
   register integer q, Je = (integer) Femlib::value ("N_TIME");
   vector<real>     work (Integration::OrderMax + 2 * np);
-  real*            beta  = work();
+  real*            beta  = &work[0];
   real*            tmpX  = beta + Integration::OrderMax;
   real*            tmpY  = tmpX + np;
 

@@ -145,20 +145,20 @@ int main (int    argc,
   vector<integer> btog (NBNDRY);
   vector<integer> mask (NBNDRY);
 
-  M.buildMask (np, field[0], mask());
-  M.buildMap  (np, btog());
+  M.buildMask (np, field[0], &mask[0]);
+  M.buildMap  (np, &btog[0]);
 
   S[k++] = new Nsys (field[0], btog, mask, opt,
 		     NEL, NTOTAL, NBNDRY, NP_MAX, NEXT_MAX, NINT_MAX);
 
   for (i = 1; i < strlen (field); i++) {
-    M.buildMask (np, field[i], mask());
+    M.buildMask (np, field[i], &mask[0]);
     found = 0;
     for (j = 0; !found && j < k; j++)
       if (found = S[j] -> match (mask)) 
 	S[j] -> addField (field[i]);
     if (!found) {
-      M.buildMap (np, btog());
+      M.buildMap (np, &btog[0]);
       S[k++] = new Nsys (field[i], btog, mask, opt,
 			 NEL, NTOTAL, NBNDRY, NP_MAX, NEXT_MAX, NINT_MAX);
     }
@@ -168,9 +168,9 @@ int main (int    argc,
 
   if (axistag) {
     for (i = 0; i < k; i++)
-      if (strchr (S[i] -> fields(), 'p')) {
+      if (strchr (&S[i] -> fields[0], 'p')) {
 	Nsys* pressure = S[i];
-	if (!Veclib::any (pressure -> nbndry, pressure -> bndmsk(), 1)) {
+	if (!Veclib::any (pressure -> nbndry, &pressure -> bndmsk[0], 1)) {
 	  pressure -> rebuild (file, clamp ((int) opt, 2, 3));
 	  break;
 	}
@@ -443,7 +443,7 @@ void printup (const char*    F   ,
   cout << "# " << nSys << " NUMBER SETS  :";
   for (j = 0; j < nSys; j++) {
     cout << setw (12);
-    cout << S[j] -> fields();
+    cout << &S[j] -> fields[0];
   }
   cout << endl;
 
@@ -531,8 +531,8 @@ void printup (const char*    F   ,
 	cout << setw (6) << k << setw (6) << side << setw (6) << soff;
 	for (j = 0; j < nSys; j++)
 	  cout 
-	    << setw (6) << S[j] -> bndmap (i)
-	      << setw (6) << S[j] -> bndmsk (i);
+	    << setw (6) << S[j] -> bndmap[i]
+	      << setw (6) << S[j] -> bndmsk[i];
 	cout << endl;
       }
 }
@@ -560,14 +560,14 @@ Nsys::Nsys (char             name    ,
 // Constructor also carries out bandwidth optimization task.
 // ---------------------------------------------------------------------------
 {
-  fields.setSize (FldMax);
-  memset (fields(), '\0', FldMax);
+  fields.resize (FldMax);
+  memset (&fields[0], '\0', FldMax);
   fields[0] = name;
   bndmap    = map;
   bndmsk    = mask;
-  nbndry    = bndmap.getSize();
-  nglobal   = bndmap (Veclib::imax (nbndry, bndmap(), 1)) + 1;
-  nsolve    = sortGid (bndmap(), bndmsk());
+  nbndry    = bndmap.size();
+  nglobal   = bndmap [Veclib::imax (nbndry, &bndmap[0], 1)] + 1;
+  nsolve    = sortGid (&bndmap[0], &bndmsk[0]);
 
   renumber (optlev);
   nbandw = globalBandwidth ();
@@ -579,9 +579,9 @@ integer Nsys::match (vector<integer>& test)
 // Return true if test and bndmsk match.
 // ---------------------------------------------------------------------------
 {
-  if (test.getSize() != bndmsk.getSize()) return 0;
+  if (test.size() != bndmsk.size()) return 0;
 
-  return Veclib::same (bndmsk.getSize(), bndmsk(), 1, test(), 1);
+  return Veclib::same (bndmsk.size(), &bndmsk[0], 1, &test[0], 1);
 }
 
 
@@ -592,10 +592,10 @@ void Nsys::addField (char name)
 {
   integer k = 0;
 
-  while (fields (k)) k++;
+  while (fields[k]) k++;
 
   if   (k == FldMax) message (prog, "too many fields", ERROR);
-  else               fields  (k) = name;
+  else               fields  [k] = name;
 }
 
 
@@ -641,7 +641,7 @@ integer Nsys::sortGid (integer* bmap,
   integer         *bsave, *tmp, *reOrder;
   integer         unknowns;
 
-  bsave   = work();
+  bsave   = &work[0];
   tmp     = bsave + nbndry;
   reOrder = tmp  + nglobal;
 
@@ -705,7 +705,7 @@ void Nsys::renumber (const integer optlevel,
 
   if (verb)
     cout << "Bandwidth optimization (" << optlevel
-	 << "), Field '" << fields() << "'";
+	 << "), Field '" << &fields[0] << "'";
 
   register integer i;
   integer          root, nlvl;
@@ -720,7 +720,7 @@ void Nsys::renumber (const integer optlevel,
   vector<integer> work(tabSize + 1 + 4 * nsolve + 1 + nglobal + nbndry);
   integer         *adjncy, *xadj, *perm, *mask, *xls, *invperm, *bsave;
 
-  adjncy  = work();
+  adjncy  = &work[0];
   xadj    = adjncy  + tabSize + 1;
   perm    = xadj    + nsolve  + 1;
   mask    = perm    + nsolve;
@@ -728,7 +728,7 @@ void Nsys::renumber (const integer optlevel,
   invperm = xls     + nsolve;
   bsave   = invperm + nglobal;
   
-  Veclib::copy (nbndry, bndmap(), 1, bsave, 1);
+  Veclib::copy (nbndry, &bndmap[0], 1, bsave, 1);
   for (i = nsolve; i < nglobal; i++) invperm[i] = i;
 
   fillAdjncy (adjncyList, adjncy, xadj, tabSize);
@@ -755,7 +755,7 @@ void Nsys::renumber (const integer optlevel,
 
       Veclib::sadd (nsolve, -1, perm, 1, perm, 1);
       for (i = 0; i < nsolve; i++) invperm[perm[i]] = i;
-      Veclib::gathr (nbndry, invperm, bsave, bndmap());
+      Veclib::gathr (nbndry, invperm, bsave, &bndmap[0]);
 
       BWtest = globalBandwidth();
       if (penalty && highAxis()) BWtest += nglobal;
@@ -782,7 +782,7 @@ void Nsys::renumber (const integer optlevel,
 
       Veclib::sadd (nsolve, -1, perm, 1, perm, 1);
       for (i = 0; i < nsolve; i++) invperm[perm[i]] = i;
-      Veclib::gathr (nbndry, invperm, bsave, bndmap());
+      Veclib::gathr (nbndry, invperm, bsave, &bndmap[0]);
 
       BWtest = globalBandwidth();
       if (penalty && highAxis()) BWtest += nglobal;
@@ -804,7 +804,7 @@ void Nsys::renumber (const integer optlevel,
 
   Veclib::sadd (nsolve, -1, perm, 1, perm, 1);
   for (i = 0; i < nsolve; i++) invperm[perm[i]] = i;
-  Veclib::gathr (nbndry, invperm, bsave, bndmap());
+  Veclib::gathr (nbndry, invperm, bsave, &bndmap[0]);
 
   if (penalty && highAxis())
     message (prog, "Highest numbered pressure node remains on axis", WARNING);
@@ -826,7 +826,7 @@ integer Nsys::buildAdjncy (List<integer>* adjncyList) const
   const integer    next = nbndry / nel;
 
   for (k = 0, ntab = 0; k < nel; k++) {
-    connectivSC (adjncyList, bndmap() + ntab, bndmsk() + ntab, next);
+    connectivSC (adjncyList, &bndmap[0] + ntab, &bndmsk[0] + ntab, next);
     ntab += next;
   }
 
@@ -913,7 +913,7 @@ integer Nsys::globalBandwidth () const
   const integer    next = nbndry / nel;
 
   for (k = 0, noff = 0; k < nel; k++) {
-    nband = max (bandwidthSC (bndmap() + noff, bndmsk() + noff, next), nband);
+    nband = max (bandwidthSC (&bndmap[0]+noff, &bndmsk[0]+noff, next), nband);
     noff += next;
   }
 
@@ -983,8 +983,8 @@ void Nsys::rebuild (FEML*         file  ,
 
   if (!naxis) return;
 
-  axelmt.setSize (naxis);
-  axside.setSize (naxis);
+  axelmt.resize (naxis);
+  axside.resize (naxis);
 
   file->attribute ("SURFACES", "NUMBER");
 
@@ -1026,7 +1026,7 @@ integer Nsys::highAxis() const
 // ---------------------------------------------------------------------------
 {
   const integer pmax  = nglobal - 1;
-  const integer naxis = axelmt.getSize();
+  const integer naxis = axelmt.size();
   integer       i, j, loff, soff, elmtID, sideID;
 
   for (i = 0; i < nbndry; i++)

@@ -108,10 +108,10 @@ Field2DF& Field2DF::DPT2D (const int sign, const char basis)
 
   if (sign == FORWARD)
     for (i = 0; i < nz; i++)
-      Femlib::tpr2d (plane[i], plane[i], work(), Fu, Ft, np, nel);
+      Femlib::tpr2d (plane[i], plane[i], &work[0], Fu, Ft, np, nel);
   else
     for (i = 0; i < nz; i++)
-      Femlib::tpr2d (plane[i], plane[i], work(), Bu, Bt, np, nel);
+      Femlib::tpr2d (plane[i], plane[i], &work[0], Bu, Bt, np, nel);
 
   return *this;
 }
@@ -140,7 +140,7 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
     const real    **IN, **IT;
     const int     nzm = min (rhs.nz, nz);
     vector<real>  work (rhs.np * np);
-    real*         tmp = work();
+    real*         tmp = &work[0];
 
     Femlib::mesh (GLL, GLL, rhs.np, np, 0, &IN, &IT, 0, 0);
 
@@ -240,7 +240,7 @@ int main (int    argc,
   getargs (argc, argv, dir, type, basis, input);
   
   while (getDump (*input, cout, u))
-    for (i = 0; i < u.getSize(); i++) {
+    for (i = 0; i < u.size(); i++) {
       if (type == 'P' || type == 'B') u[i] -> DPT2D (dir, basis);
       if (type == 'F' || type == 'B') u[i] -> DFT1D (dir);
       cout << *u[i];
@@ -310,7 +310,7 @@ static void loadName (const vector<Field2DF*>& u,
 // Load a string containing the names of fields.
 // ---------------------------------------------------------------------------
 {
-  int i, N = u.getSize();
+  int i, N = u.size();
 
   for (i = 0; i < N; i++) s[i] = u[i] -> getName();
   s[N] = '\0';
@@ -400,8 +400,8 @@ static int getDump (istream&           ifile,
   sprintf (fmt, hdr_fmt[9], buf);
   ofile << fmt;
 
-  if (u.getSize() != nf) {
-    u.setSize (nf);
+  if (u.size() != nf) {
+    u.resize (nf);
     for (i = 0; i < nf; i++) u[i] = new Field2DF (np, nz, nel, fields[i]);
   }
 
