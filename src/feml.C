@@ -13,8 +13,8 @@
 // </keyword>
 //
 // 1. Keywords case-insensitive on input, converted to uppercase internally.
-// 2. There are reserved keywords; see Feml.h.
-// 3. There is a maximum number of keywords (KEYWORDS_MAX) hardcoded in Feml.h.
+// 2. There are reserved keywords; see Feml.h (and below).
+// 3. There is a maximum number of keywords (KEYWORDS_MAX) set in Feml.h.
 // 4. No restriction is placed on options, or on the contents of a section.
 // 5. After seeking, input stream is repositioned just following keyword.
 //
