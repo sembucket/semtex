@@ -13,7 +13,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "sem.h"
+#include <sem.h>
 
 
 void Boundary::evaluate (const int_t plane,

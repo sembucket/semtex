@@ -6,8 +6,8 @@
 
 static char RCS[] = "$Id$";
 
-#include "sem.h"
-#include "data2df.h"
+#include <sem.h>
+#include <data2df.h>
 
 
 Data2DF::Data2DF (const int_t nP  ,
