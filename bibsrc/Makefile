@@ -10,7 +10,7 @@ bib:
 	stab.bib natcon.bib acoust.bib actuator.bib les.bib 		\
 	sem.bib machine.bib swirl.bib iwave.bib chroma.bib              \
 	mechanics.bib viv.bib flap.bib rotate.bib aero.bib spray.bib    \
-	compress.bib sphere.bib equip.bib combust.bib                   \
+	compress.bib sphere.bib equip.bib combust.bib expttech          \
 	> hmb.bib;	                                                \
 	cd ..; if test ! -f hmb.bib ; then ln -s bibsrc/hmb.bib . ; fi
 
