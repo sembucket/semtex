@@ -234,7 +234,7 @@ static void header(void)
     "  F     IFMGRID\n",
     "  F     IFMODEL\n",
     "  F     IFKEPS\n",
-    "    20.000        20.000      -10.0000      -10.0000"
+    "    80.000        80.000      -15.0000      -40.0000"
       "     XFAC,YFAC,XZERO,YZERO\n"
   };
   int i;
