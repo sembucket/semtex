@@ -153,8 +153,7 @@ although some aspects have changed with time and \citet{mt89} is more
 up-to-date.  The use of Fourier expansions to extend the method to
 three spatial dimensions is discussed by \citet{ap89}, \citet{kar89}
 and \citet{kar90}.  The use of spectral element techniques in
-cylindrical coordinates is dealt with in \citet{tok93},
-\citet{tomors00} and \citet{bllo02}.  The
+cylindrical coordinates is dealt with in \citet{blsh04}.  The
 time-splitting method used for time integration is described by
 \citet{kio91}.  The book by \citet{fun97} provides useful information
 and further references.  Recent overviews and some applications appear
@@ -353,7 +352,7 @@ following.
 
 <TOKENS>
         N_TIME  = 2
-        N_POLY  = 11
+        N_P     = 11
         N_STEP  = 20
         D_T     = 0.02
         Re      = 100.0
@@ -431,7 +430,7 @@ as a scalar field for certain solvers, e.g. the elliptic solver.
 
 In the \texttt{TOKENS} section, second-order accurate time integration
 is selected (\verb+N_TIME = 2+) and the number of Lagrange knot points
-along the side of each element is set to 11 (\verb+N_POLY = 11+).  The
+along the side of each element is set to 11 (\verb+N_P = 11+).  The
 code will integrate for 20 timesteps (\verb+N_STEP = 20+) with a
 timestep of 0.02 (\verb+D_T = 0.002+).  The kinematic viscosity is
 set as the inverse of the Reynolds number (100): note the use of the
@@ -674,7 +673,7 @@ solvers.
 </USER>
 
 <TOKENS>
-        N_POLY   = 11
+        N_P      = 11
         TOL_REL  = 1e-12
         STEP_MAX = 1000
 </TOKENS>
@@ -893,7 +892,7 @@ flow evolves to a steady state, first order timestepping is employed
 <TOKENS>
         N_Z    = 8
         N_TIME = 1
-        N_POLY = 8
+        N_P    = 8
         N_STEP = 500
         D_T    = 0.008
         Re     = 40.0
@@ -912,7 +911,7 @@ flow evolves to a steady state, first order timestepping is employed
                         <D> u = 1-exp(LAMBDA*x)*cos(2*PI*y)             </D>
                         <D> v = LAMBDA/(2*PI)*exp(LAMBDA*x)*sin(2*PI*y) </D>
                         <D> w = 0.0                                     </D>
-                        <H> p = 0                                       </H>
+                        <H> p                                           </H>
 </BCS>
 
 <NODES NUMBER=9>
@@ -953,10 +952,9 @@ conditions must be set, corresponding to the four fields \verb+u+,
 \verb+v+, \verb+w+ and \verb+p+.  A new feature is a pressure BC of
 type \verb+H+, which is an internally-computed Neumann boundary
 condition, (a \verb+H+igh-order pressure BC) as described in
-\citet{kio91}.  This is the kind of pressure BC that is supplied
-at all places except on outflow boundaries.  Even though the pressure
-BC is computed internally, a dummy value (0) is supplied\footnote{This
-inconsistency will be fixed in a future release of the code.}.
+\citet{kio91}.  This is the kind of pressure BC that is supplied at
+all places except on outflow boundaries.  The pressure BC is computed
+internally, so no value is required (if given, it will be ignored).
 
 %----------------------------------------------------------------------------
 \subsection{Running the codes}
@@ -1022,7 +1020,7 @@ Note for a full circle in the azimuthal direction, \texttt{BETA =
         N_Z         = 2
         BETA        = 1.0
         N_TIME      = 2
-        N_POLY      = 11
+        N_P         = 11
         N_STEP      = 100000
         D_T         = 0.01
         KINVIS      = 0.000472
@@ -1041,17 +1039,17 @@ Note for a full circle in the azimuthal direction, \texttt{BETA =
                         <D>     u = 0           </D>
                         <D>     v = 0           </D>
                         <D>     w = OMEGA*y     </D>
-                        <H>     p = 0           </H>
+                        <H>     p               </H>
         2       w       4
                         <D>     u = 0           </D>
                         <D>     v = 0           </D>
                         <D>     w = 0           </D>
-                        <H>     p = 0           </H>
+                        <H>     p               </H>
         3       a       4
-                        <A>     u = 0           </A>
-                        <A>     v = 0           </A>
-                        <A>     w = 0           </A>
-                        <A>     p = 0           </A>
+                        <A>     u               </A>
+                        <A>     v               </A>
+                        <A>     w               </A>
+                        <A>     p               </A>
 </BCS>
 
 <NODES NUMBER=24>
@@ -1139,8 +1137,8 @@ visualisation on the front cover of this document.
 A new feature here is the use of BCs of type \verb+A+ on the axis of
 the flow.  Internally, the code sets the BC there either as zero
 essential or zero natural, depending on the physical variable and the
-Fourier mode.  Due to the coupling scheme used in the code
-\cite{tok93}, the boundary conditions for the radial and azimuthal
+Fourier mode.  Owing to the coupling scheme used in the code
+\cite{blsh04}, the boundary conditions for the radial and azimuthal
 velocities \verb+v+ and \verb+w+ must be of the same type within each
 group.  A further restriction is that the group to which the axis
 belongs must have name \verb+axis+.
