@@ -1010,7 +1010,7 @@ void Nsys::rebuild (FEML*         file  ,
   //    the highest-numbered node lies on the axis.
 
   if (highAxis()) {
-    message(prog,"highest pressure node lies on axis. Renumbering...",WARNING);
+    message(prog,"highest pressure node lies on axis. Renumbering...",REMARK);
     renumber (optlev, 1); 
   }
 }
