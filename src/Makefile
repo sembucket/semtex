@@ -166,6 +166,7 @@ FFLAGS   = $(DEFINES) -fast -tune host -O5
 CXXFLAGS = $(DEFINES) -tune host -O2
 RANLIB   =
 FORTLIBS = -ldxml -lfor
+YACC     = bison -o y.tab.c
 ifdef MPI
   MPIHOME   = /usr/local/mpi/
   CPPFLAGS += -I$(MPIHOME)/include  
