@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // drive.C: control spectral element DNS for incompressible flows.
 //
-// Copyright (c) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994,2004 Hugh Blackburn
 //
 // USAGE:
 // -----
@@ -11,7 +11,6 @@
 //   -i[i]    ... use iterative solver for viscous [and pressure] steps
 //   -v[v...] ... increase verbosity level
 //   -chk     ... checkpoint field dumps
-//   -O <num> ... set numbering scheme optimisation level, Default=3
 //
 // AUTHOR:
 // ------
@@ -87,8 +86,7 @@ static void getargs (int    argc   ,
     "  -h       ... print this message\n"
     "  -i[i]    ... use iterative solver for viscous [& pressure] steps\n"
     "  -v[v...] ... increase verbosity level\n"
-    "  -chk     ... checkpoint field dumps\n"
-    "  -O <num> ... set numbering scheme optimisation level, Default=3\n";
+    "  -chk     ... checkpoint field dumps\n";
 
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
@@ -99,33 +97,22 @@ static void getargs (int    argc   ,
       break;
     case 'i':
       do
-	Femlib::value ("ITERATIVE",
-		       static_cast<int>(Femlib::value ("ITERATIVE") + 1));
+	Femlib::ivalue ("ITERATIVE", Femlib::ivalue ("ITERATIVE") + 1);
       while (*++argv[0] == 'i');
       break;
     case 'v':
       do
-	Femlib::value ("VERBOSE",
-		       static_cast<int>(Femlib::value ("VERBOSE") + 1));
+	Femlib::ivalue ("VERBOSE", Femlib::ivalue ("VERBOSE") + 1);
       while (*++argv[0] == 'v');
       break;
     case 'c':
       if (strstr ("chk", *argv)) {
-	Femlib::value ("CHKPOINT", 
-		       static_cast<int>(1));
+	Femlib::ivalue ("CHKPOINT", static_cast<int>(1));
       } else {
 	fprintf (stdout, usage, prog);
 	exit (EXIT_FAILURE);	  
       }
       break;
-    case 'O': {
-      int level;
-      if (*++argv[0]) level = atoi (*argv);
-      else {level = atoi (*++argv); argc--;}
-      level = clamp (level, -1, 3);
-      Femlib::value ("NUMOPTLEVEL", level);
-      break;
-    }
     default:
       sprintf (buf, usage, prog);
       cout << buf;

@@ -1,7 +1,7 @@
 /*****************************************************************************
  * avgdump.c:  Compute (running) averages of field files.
  *
- * Copyright (c) 1999 Hugh Blackburn
+ * Copyright (c) 1999,2004 Hugh Blackburn
  *
  * SYNOPSIS
  * --------
@@ -32,7 +32,6 @@
 
 #include <stdarg.h>
 #include <stdlib.h>
-#include <malloc.h>
 #include <stdio.h>
 #include <time.h>
 #include <string.h>

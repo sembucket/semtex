@@ -4,7 +4,6 @@
 # Run only with a known good version of the code!
 # $Id$
 
-
 case $# in
 0) echo "usage: makeregress good_code_version"; exit 0
 esac
@@ -29,6 +28,7 @@ do
     rm -f $i.num
   fi
   compare $i > $i.rst
+  enumerate -O3 $i > $i.num
   $CODE -chk $i > /dev/null
   if test -f ../regress/$i.ok
   then

@@ -20,7 +20,7 @@ utility   Various utility programs.
 
 The code has been tested with (and makefiles support) the following
 operating systems: SGI IRIX6.5 (32 & 64-bit), DEC OSF1/Digital Unix,
-GNU/Linux, Fujitsu VPP300 and NEC SX-4/5.
+GNU/Linux (iX86 & alpha), Fujitsu VPP300, NEC SX-4/5 and Mac OSX 10.3.
 
 Makefiles assume GNUmake: for purposes of automated compilation and
 testing decribed below "gmake", in your path, should find GNUmake.
@@ -41,6 +41,11 @@ mailto:hugh.blackburn@csiro.au
 Starting out
 ------------
 
+Say "make test" at the top level of the directory tree. All tests
+should report as "passed".
+
+The long-hand way to do the above is:
+
 1.  Run uname -s.  Check there is a matching directory under the lib
     directory and that it contains libalp.a and libfem.a.  If not, run
     "make libs".
@@ -51,10 +56,7 @@ Starting out
     them.
 
 3.  Change directory to dns; make; cd ../test; testregress
-    ../dns/dns. If there is an error, contact Hugh.
-
-4.  A quicker way to do 1--3 above is just to say "make test" at the
-    top level of the directory tree.
+    ../dns/dns.
 
 Files
 -----
@@ -125,6 +127,10 @@ Log of major revisions
 13 Apr 2000: Fix pressure BC modal bugs, improve vectorisation.    Semtex-5.4.
 
 1  Jun 2003: Adopt standard C++ libraries wherever possible.       Semtex-5.5.
+
+1  Nov 2004: Cylindrical coordinate/3D code exponentially convergent. Semtex-6.
+
+1  Dec 2004: Mac OSX port -- filenames no longer case-sensitive.
 
 
 Notes for specific systems

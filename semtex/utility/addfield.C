@@ -116,7 +116,6 @@ int main (int    argc,
   Mesh*              M;
   BCmgr*             B;
   Domain*            D;
-  const real*        z;
   vector<Element*>   elmt;
   real*              egrow;
   AuxField           *Ens, *Hel, *Div, *InvQ, *InvR, *Disc, *Strain;
@@ -138,23 +137,21 @@ int main (int    argc,
 
   // -- Set up domain.
 
-  F      = new FEML  (session);
-  M      = new Mesh  (F);
-  nel    = M -> nEl();  
-  np     =  (int) Femlib::value ("N_POLY");
-  nz     =  (int) Femlib::value ("N_Z"   );
-  system = ((int) Femlib::value ("CYLINDRICAL") ) ?
-                      Geometry::Cylindrical : Geometry::Cartesian;
+  F      = new FEML (session);
+  M      = new Mesh (F);
+  nel    = M -> nEl ();  
+  np     =  Femlib::ivalue ("N_POLY");
+  nz     =  Femlib::ivalue ("N_Z"   );
+  system = (Femlib::ivalue ("CYLINDRICAL") ) ?
+                       Geometry::Cylindrical : Geometry::Cartesian;
   Geometry::set (np, nz, nel, system);
   if   (nz > 1) strcpy (fields, "uvwp");
   else          strcpy (fields, "uvp");
   nComponent = Geometry::nDim();
   allocSize  = Geometry::nTotal();
 
-  Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
-
   elmt.resize (nel);
-  for (i = 0; i < nel; i++) elmt[i] = new Element (i, M, z, np);
+  for (i = 0; i < nel; i++) elmt[i] = new Element (i, np, M);
 
   B = new BCmgr  (F, elmt);
   D = new Domain (F, elmt, B);
