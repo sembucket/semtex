@@ -24,11 +24,11 @@
 //
 // The discrete (finite element) equivalent is to solve
 //
-//                   K u + \lambda^2 M u = - M f + <h, w>
+//                   K.u + \lambda^2 M.u = - M.f + <h, w>
 //
 // or
 //
-//                         H u = - M f + <h, w>
+//                         H.u = - M.f + <h, w>
 //
 // where K, M and H are respectively (assembled) "stiffness", "mass"
 // and Helmholtz matrices.
@@ -37,8 +37,8 @@
 // conditions, since typically the elemental matrices K^e, M^e which
 // are assembled to form K and M do not account for the boundary
 // requirements on w.  There are a number of ways of dealing with this
-// issue: one approach is to partition H as it is formed (here F = -M
-// f + <h, w>):
+// issue: one approach is to partition H as it is formed (here F =
+// -M.f + <h, w>):
 //
 //   +--------+-------------+ /  \     /  \
 //   |        |             | |  |     |  |
@@ -81,13 +81,13 @@
 //
 // and solve instead
 //
-//                      H v = - M f - H g + <h, w>
+//                      H.v = - M.f - H.g + <h, w>
 //
 // (where only the partition Hp is needed for the matrix H in the
 // LHS), then afterwards compose u = v + g to get the full solution.
 // The advantage to this method is that the constraint partition Hc
-// does not need to be assembled or stored.  The operations M f and H
-// g can be performed on an element-by-element basis.
+// does not need to be assembled or stored.  The operations M.f and
+// H.g can be performed on an element-by-element basis.
 //
 // FIELD NAMES
 // -----------
@@ -538,7 +538,7 @@ real Field::flux (const Field* C)
 {
   register integer i;
   real             F = 0.0;
-  vector<real>     work(2 * Geometry::nP());
+  vector<real>     work(3 * Geometry::nP());
   
   for (i = 0; i < C -> n_bound; i++)
     F += C -> boundary[0][i] -> flux ("wall", C -> data, work());
@@ -598,7 +598,7 @@ Vector Field::tangentTraction (const Field* U,
   const integer    nP = Geometry::nP();
   const real       mu = Femlib::value ("RHO * KINVIS");
   Vector           secF, F = {0.0, 0.0, 0.0};
-  vector<real>     work(nP + nP);
+  vector<real>     work(3 * nP);
   real             *ddx, *ddy;
 
   ddx = work();
