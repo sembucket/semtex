@@ -48,7 +48,7 @@ Analyser::Analyser (Domain* D   ,
 
     ifstream pfile (strcat (strcpy (str, src -> name), ".par"));  
 
-    if (!pfile.fail()) {
+   if (!pfile.fail()) {
       const integer  add = (integer) Femlib::value ("SPAWN");
       integer        id;
       Point          P, *I;
