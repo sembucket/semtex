@@ -76,10 +76,9 @@ LIBDIR  +=
 LIBS     = -lfem -llapack_64 -lalp -lblas_64	\
            -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm
 CC       = cc
-FC       = f77
 CXX      = CC
 LD       = CC
-OPTIM    = -g -hacct
+OPTIM    = -pvctl,fullmsg -hacct -hvector -p -ptn -Onooverlap
 CXXFLAGS = $(DEFINES)  $(OPTIM)
 LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS) -hacct
 endif
@@ -107,9 +106,22 @@ $(SEMOBJ): $(SEMHDR)
 sem:
 	cd $(VPATH); gmake install
 
+# ----------------------------------------------------------------------------
+# Special machine-dependent compilations.
+
+ifeq ($(ARCH),SUPER-UX)
+mesh.o: $(VPATH)/mesh.C
+        CC -I$(SEM)/include -c -pvctl,fullmsg -hacct -hvector -p -ptn   \
+        $(VPATH)/mesh.C
+BCmgr.o: $(VPATH)/BCmgr.C
+        CC -I$(SEM)/include -c -pvctl,fullmsg -hacct -hvector -p -ptn   \
+        $(VPATH)/BCmgr.C
+endif
+
 # -----------------------------------------------------------------------------
 #
 clean:
 	rm -f *.o *~
 	rm -rf ILDUMPS
 	rm -rf ii_files
+	rm -rf ptrepository
