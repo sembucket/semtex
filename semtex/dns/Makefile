@@ -140,7 +140,7 @@ endif
 
 ifeq ($(ARCH),SUPER-UX)         	# -- NEC SX-4.
 DEFINES += -D_BUILTIN_
-LIBDIR   = -L$(SEM)/lib/$(ARCH) 
+LIBDIR   = -L$(SEM)/lib/$(ARCH)
 CC       = cc
 CXX      = CC
 LD       = CC
@@ -149,10 +149,10 @@ CFLAGS   = $(DEFINES) -pvctl,fullmsg -hacct -Onooverlap        \
 CXXFLAGS = $(CFLAGS) $(OPTIM) +a1 -ispeed
 LDFLAGS  = $(CFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 ifdef MPI
-  LIBS   = -lfem_mp -llapack_64 -lalp_mp -lblas_64 -lfft_64	\
+  LIBS   = -lfem_mp -lalp -llapack_64 -lblas_64 -lfft_64	\
            -lu90sxe -lp90sx -lv90sxe -lf90sxe -li90sx -lm -lmpi -lpthread
 else
-  LIBS   = -lfem -llapack_64 -lalp -lblas_64 -lfft_64	\
+  LIBS   = -lfem -lalp -llapack_64 -lblas_64 -lfft_64	\
            -lu90sxe -lp90sx -lv90sxe -lf90sxe -li90sx -lm
 endif
 endif
@@ -196,6 +196,9 @@ bsys.o: $(VPATH)/bsys.C
 condition.o: $(VPATH)/condition.C
 	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
 	$(VPATH)/condition.C
+domain.o: $(VPATH)/domain.C
+	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+	$(VPATH)/domain.C
 dnsanalysis.o: dnsanalysis.C
 	$(CXX) -I$(SEM)/include -I. -c -hnostkchk +a1 -hacct -hnovector -p \
 	dnsanalysis.C
