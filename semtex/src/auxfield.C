@@ -634,7 +634,7 @@ real AuxField::integral (const integer k) const
 
 
 ofstream& operator << (ofstream& strm,
-		       AuxField& F  )
+		       AuxField& F   )
 // ---------------------------------------------------------------------------
 // Binary write of F's data area.
 //
@@ -678,9 +678,6 @@ ofstream& operator << (ofstream& strm,
 	    message (routine, "unable to write binary output", ERROR);
 	}
 
-      strm.rdbuf() -> sync();      
-      strm.flush();
-
     } else for (i = 0; i < F._nz; i++) Femlib::send (F._plane[i], NP, 0);
 
   } else {
@@ -695,37 +692,34 @@ ofstream& operator << (ofstream& strm,
   }
 
   strm.rdbuf() -> sync();
+
 #else
+
   if (nProc > 1) {
 
     ROOTONLY {
       vector<real> buffer (NP);
 
       for (i = 0; i < F._nz; i++)
-        strm.clear();
         strm.write((char*) F._plane[i], (int) (nP * sizeof (real))); 
-        if (strm.fail())
+        if (strm.bad())
 	  message (routine, "unable to write binary output", ERROR);
 
       for (k = 1; k < nProc; k++)
 	for (i = 0; i < F._nz; i++) {
 	  Femlib::recv (buffer(), NP, k);
-          strm.clear();
 	  strm.write((char*) buffer(), (int) (nP * sizeof (real))); 
-          if (strm.fail()) 
+          if (strm.bad()) 
 	    message (routine, "unable to write binary output", ERROR);
 	}
-
-      strm.flush();
 
     } else for (i = 0; i < F._nz; i++) Femlib::send (F._plane[i], NP, 0);
 
   } else {
 
     for (i = 0; i < F._nz; i++) {
-      strm.clear();
       strm.write((char*) F._plane[i], (int) (nP * sizeof (real))); 
-      if (strm.fail())
+      if (strm.bad())
 	message (routine, "unable to write binary output", ERROR);
     }
   }
@@ -736,8 +730,8 @@ ofstream& operator << (ofstream& strm,
 }
 
 
-ifstream& operator >> (ifstream&  strm,
-		       AuxField&  F   )
+ifstream& operator >> (ifstream& strm,
+		       AuxField& F   )
 // ---------------------------------------------------------------------------
 // Binary read of F's data area.  Zero any unused storage areas.
 //
@@ -805,18 +799,16 @@ ifstream& operator >> (ifstream&  strm,
       vector<real> buffer (NP);
 
       for (i = 0; i < F._nz; i++) {
-        strm.clear();
 	strm.read ((char*) F._plane[i], (int) (nP * sizeof (real))); 
-        if (strm.fail()) 
+        if (strm.bad()) 
 	  message (routine, "unable to read binary input", ERROR);
 	Veclib::zero (NP - nP, F._plane[i] + nP, 1);
       }
 
       for (k = 1; k < nProc; k++) {
 	for (i = 0; i < F._nz; i++) {
-          strm.clear();
-	  strm.read ((char*) F._plane[i], (int) (nP * sizeof (real))); 
-          if (strm.fail()) 
+	  strm.read ((char*) buffer(), (int) (nP * sizeof (real))); 
+          if (strm.bad()) 
 	    message (routine, "unable to read binary input", ERROR);
 	  Veclib::zero (NP - nP, buffer() + nP, 1);
 	  Femlib::send (buffer(), NP, k);
@@ -827,9 +819,8 @@ ifstream& operator >> (ifstream&  strm,
   } else {
 
     for (i = 0; i < F._nz; i++) {
-      strm.clear();
       strm.read ((char*) F._plane[i], (int) (nP * sizeof (real))); 
-      if (strm.fail()) 
+      if (strm.bad()) 
 	message (routine, "unable to read binary input", ERROR);
       Veclib::zero (NP - nP, F._plane[i] + nP, 1);
     }
