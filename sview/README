@@ -11,6 +11,7 @@ sview [options] meshfile fieldfile
 meshfile  ... specifies name of NEKTON-format mesh file.
 fieldfile ... specifies name of NEKTON-format (binary) field file.
 options:
+-b        ... start without mesh box displayed
 -c        ... set cylindrical coordinates
 -d        ... dump TIFF image to file "sview.tif" when quitting
 -h        ... print this message
