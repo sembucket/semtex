@@ -198,6 +198,18 @@ _alpIreg[3]=iq, _alpIreg[4]=ir,_alpIreg[5]=isign,             \
 smpfft_(v,w,_alpIreg,_alpIreg+1,_alpIreg+2,                   \
 _alpIreg+3,_alpIreg+4,trig,_alpIreg+5))
 
+/* -- Routines from matops.F: */
+
+void dgrad2_ (double*,double*,double*,double*,double*,double*,
+	      integer*,integer*);
+void sgrad2_ (float*, float*, float*, float*, float*, float*,
+	      integer*, integer*);
+
+#define dgrad2(u,v,ur,vs,dv,dt,np,nel)                          \
+(_alpIreg[0]=np,_alpIreg[1]=nel,dgrad2_(u,v,ur,vs,dv,dt,_alpIreg,_alpIreg+1))
+#define sgrad2(u,v,ur,vs,dv,dt,np,nel)                          \
+(_alpIreg[0]=np,_alpIreg[1]=nel,sgrad2_(u,v,ur,vs,dv,dt,_alpIreg,_alpIreg+1))
+
 #if defined(SX)
 
 /* -- Routines from NEC FFT library: floating precision depends on library. */
