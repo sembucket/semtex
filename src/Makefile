@@ -53,7 +53,8 @@ FFLAGS   = $(DEFINES) $(OPT)
 CXXFLAGS = $(DEFINES) $(OPT)
 LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS) -lm
 RANLIB   = ranlib
-F77LIBS  = -llapack -lblas -lg2c
+#F77LIBS  = -llapack -lblas -lg2c
+F77LIBS  = -llapack -lgoto_opt64-r0.96 -lg2c
 LIBDIR  += -L/usr/local/lib
 CLDFLAGS = $(LDFLAGS)
 endif
