@@ -106,16 +106,13 @@ int main (int    argc,
 
     fgets(fields, STR_MAX, fp_in);
     
-    c = fields;
-    n = 0;
-    while (i++ < 25) if (isalpha(*c++)) n++;
+    for (n = 0, i = 0; i < 25; i++) if (isalpha(fields[i])) n++;
 
     fputs (fields, fp_out);
-    c = fgets (buf, STR_MAX, fp_in);
-    while (*c++ = tolower(*c));
-    c = buf;
+    fgets (buf, STR_MAX, fp_in);
+    for (i = 0; i < strlen (buf); i++) buf[i] = tolower (buf[i]);
 
-    switch (*c) {
+    switch (buf[0]) {
     case 'a':
       fprintf (fp_out, hdr_fmt[9], "ASCII");
       a_to_a  (np, nz, nel, n, fp_in, fp_out, fields, pert, mode, filt);
@@ -135,7 +132,7 @@ int main (int    argc,
       break;
 
     default:
-      sprintf (buf, "unknown format flag -- %c", c);
+      sprintf (buf, "unknown format flag -- %c", buf[0]);
       message (prog, buf, ERROR);
       break;
     }
