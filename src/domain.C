@@ -8,7 +8,7 @@ RCSid[] = "$Id$";
 #include "Fem.h"
 
 
-Domain::Domain (Mesh& M, const char* session, int np)
+Domain::Domain (Mesh& M, const char* session, const int& np)
 // ---------------------------------------------------------------------------
 // Construct a new Domain with a single Field, using geometry from M.
 //
@@ -22,32 +22,19 @@ Domain::Domain (Mesh& M, const char* session, int np)
   domain_time = 0.0;
   nfield      = 1;
 
-  u    = new Field* [nfield];
-  u[0] = new Field (M, np);
-
-  // -- Complete computation of mesh geometric information.
-
-  u[0] -> mapElements ();
-
-  // -- Compute domain boundary edge information.
-  
-  u[0] -> buildBoundaries (M);
-
-  // -- Generate mesh topology information, do RCM renumbering.
-
-  u[0] -> connect (M, np);
-
+  u    = new SystemField* [nfield];
+  u[0] = new SystemField (M, np);
 }
 
 
-void Domain::addField (Field* F)
+void Domain::addField (SystemField* F)
 // ---------------------------------------------------------------------------
 // Add a new Field pointer to Domain's array.
 // ---------------------------------------------------------------------------
 {
-  Field** X = new Field* [nfield + 1];
+  SystemField** X = new SystemField* [nfield + 1];
 
-  for (int i(0); i < nfield; i++) X[i] = u[i];
+  for (int i (0); i < nfield; i++) X[i] = u[i];
   X[nfield] = F;
 
   delete [] u;
@@ -166,15 +153,17 @@ ostream& operator << (ostream& strm, Domain& D)
   strm << s1;
 
   int k;
-  for (k = 0; k < D.nField(); k++) s2[k] = D.u[k] -> name ();
+  for (k = 0; k < D.nField(); k++) s2[k] = D.u[k] -> getName ();
   s2[k] = '\0';
   sprintf (s1, hdr_fmt[8], s2);
   strm << s1;
 
-  sprintf (s1, hdr_fmt[9], "binary");
+  sprintf (s2, "binary, ");
+  Veclib::describeFormat (s2 + strlen (s2));
+  sprintf (s1, hdr_fmt[9], s2);
   strm << s1;
 
-  for (int n (0); n < D.nField (); n++) strm << D.u[n];
+  for (int n (0); n < D.nField (); n++) strm << *D.u[n];
 
   if (!strm) message (routine, "failed writing field file", ERROR);
   strm << flush;
