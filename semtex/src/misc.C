@@ -8,10 +8,10 @@ RCSid[] = "$Id$";
 #include <Sem.h>
 
 
-ostream& printVector (ostream&     strm,
-		      const char*  fmt , 
-		      const int    ntot,
-		                   ... )
+ostream& printVector (ostream&      strm,
+		      const char*   fmt , 
+		      const integer ntot,
+		                    ... )
 // ---------------------------------------------------------------------------
 // Print up a variable number of numeric vectors on strm, in columns.
 //
@@ -26,7 +26,7 @@ ostream& printVector (ostream&     strm,
 // ---------------------------------------------------------------------------
 {
   char    routine[] = "printVector";
-  int     nvect;
+  integer nvect;
   va_list ap;
 
   nvect = strlen (fmt);
@@ -37,12 +37,12 @@ ostream& printVector (ostream&     strm,
   switch (fmt[0]) {
 
   case 'i': {
-    int** u = new int* [nvect];
+    integer** u = new integer* [nvect];
     va_start (ap, ntot);
-    for (int k = 0; k < nvect; k++) u[k] = va_arg (ap, int*);
+    for (integer k = 0; k < nvect; k++) u[k] = va_arg (ap, integer*);
     va_end (ap);
-    for (register int l = 0; l < ntot; l++) {
-      for (register int j = 0; j < nvect; j++)
+    for (register integer l = 0; l < ntot; l++) {
+      for (register integer j = 0; j < nvect; j++)
 	strm << setw(15) << u[j][l];
       strm << endl;
     }
@@ -52,10 +52,10 @@ ostream& printVector (ostream&     strm,
   case 'r': {
     real** u = new real* [nvect];
     va_start (ap, ntot);
-    for (int k = 0; k < nvect; k++) u[k] = va_arg (ap, real*);
+    for (integer k = 0; k < nvect; k++) u[k] = va_arg (ap, real*);
     va_end (ap);
-    for (register int l = 0; l < ntot; l++) {
-      for (register int j = 0; j < nvect; j++)
+    for (register integer l = 0; l < ntot; l++) {
+      for (register integer j = 0; j < nvect; j++)
 	strm << setw(15) << u[j][l];
       strm << endl;
     }

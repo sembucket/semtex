@@ -9,24 +9,24 @@ RCSid[] = "$Id$";
 
 #include <Sem.h>
 
-Domain* FluidParticle::D       = 0;
-int     FluidParticle::NDIM    = 0;
-int     FluidParticle::NEL     = 0;
-int     FluidParticle::NZ      = 0;
-int     FluidParticle::TORD    = 0;
-int     FluidParticle::ID_MAX  = 0;
-real*   FluidParticle::P_coeff = 0;
-real*   FluidParticle::C_coeff = 0;
-real    FluidParticle::DT      = 0.0;
-real    FluidParticle::Lz      = 0.0;
+Domain*  FluidParticle::D       = 0;
+integer  FluidParticle::NDIM    = 0;
+integer  FluidParticle::NEL     = 0;
+integer  FluidParticle::NZ      = 0;
+integer  FluidParticle::TORD    = 0;
+integer  FluidParticle::ID_MAX  = 0;
+real*    FluidParticle::P_coeff = 0;
+real*    FluidParticle::C_coeff = 0;
+real     FluidParticle::DT      = 0.0;
+real     FluidParticle::Lz      = 0.0;
 
 
-FluidParticle::FluidParticle (Domain*   d,
-			      const int i,
-			      Point&    p) :
+FluidParticle::FluidParticle (Domain*       d,
+			      const integer i,
+			      Point&        p) :
 
-                              id       (i),
-                              P        (p)
+                              id           (i),
+                              P            (p)
 // ---------------------------------------------------------------------------
 // Initially particle is located at p.  Find it in the 2D mesh.  Trim to
 // periodic length in 3D if required.
@@ -37,17 +37,17 @@ FluidParticle::FluidParticle (Domain*   d,
     NDIM    = Geometry::nDim();
     NEL     = Geometry::nElmt();
     NZ      = Geometry::nZ();
-    TORD    = (int) Femlib::value ("N_TIME");
-    DT      =       Femlib::value ("D_T");
+    TORD    = (integer) Femlib::value ("N_TIME");
+    DT      =           Femlib::value ("D_T");
     P_coeff = new real [TORD];
     C_coeff = new real [TORD + 1];
-    Lz     = Femlib::value ("TWOPI / BETA");
+    Lz      = Femlib::value ("TWOPI / BETA");
   }
 
   // -- Try to locate particle, stop if can't.
 
-  register int k;
-  const int    guess = 1;
+  register integer k;
+  const integer    guess = 1;
 
   E = 0;
   for (k = 0; k < NEL; k++) {
@@ -78,7 +78,7 @@ FluidParticle::FluidParticle (Domain*   d,
 }
 
 
-void FluidParticle::integrate (const int step)
+void FluidParticle::integrate (const integer step)
 // ---------------------------------------------------------------------------
 // Integrate massless particle's position using predictor--corrector scheme.
 // If particles leave 2D mesh they marked by setting E = 0.  For 3D, they
@@ -90,11 +90,11 @@ void FluidParticle::integrate (const int step)
 {
   if (!E) return;
 
-  register int i;
-  const int    N     = min (step, TORD);
-  const int    NP    = N + 1;
-  const int    guess = 1;
-  real         xp, yp, zp, up, vp, wp;
+  register integer i;
+  const integer    N     = min (step, TORD);
+  const integer    NP    = N + 1;
+  const integer    guess = 1;
+  real             xp, yp, zp, up, vp, wp;
 
   if (N <= TORD) {
     Integration::AdamsBashforth (N,      P_coeff   );

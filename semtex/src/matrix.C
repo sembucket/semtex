@@ -13,8 +13,8 @@ static List<MatrixSystem*> MS;
 ModalMatrixSystem::ModalMatrixSystem (const real              lambda2 ,
 				      const real              beta    ,
 				      const char              name    ,
-				      const int               baseMode,
-				      const int               numModes,
+				      const integer           baseMode,
+				      const integer           numModes,
 				      const vector<Element*>& Elmt    ,
 				      const NumberSystem**    Nsys    )
 // ---------------------------------------------------------------------------
@@ -30,14 +30,14 @@ ModalMatrixSystem::ModalMatrixSystem (const real              lambda2 ,
 //   Nsys   : truncated modal vector of numbering systems.
 // ---------------------------------------------------------------------------
 {
-  int                         k, trunc, found;
+  integer                     k, trunc, found;
   real                        betak2;
   ListIterator<MatrixSystem*> m (MS);
   MatrixSystem*               M;
 
   fields = strdup (Nsys[0] -> fields());
   Msys.setSize (numModes);
-  cout << "-- Building matrices for Fields \"" << fields << "\"\t[";
+  cout << "-- Installing matrices for field '" << name << "' [";
 
   for (k = baseMode; k < numModes; k++) {
     trunc   = min (k, 2);
@@ -48,12 +48,12 @@ ModalMatrixSystem::ModalMatrixSystem (const real              lambda2 ,
       found = M -> match (lambda2, betak2, Nsys[trunc]);
     }
     if (found) {
-      cout << '.';
       Msys[k] = M;
+      cout << '.';
     } else {
-      cout << '*';
       Msys[k] = new MatrixSystem (lambda2, betak2, Elmt, Nsys[trunc]);
       MS.add (Msys[k]);
+      cout << '*';
     }
   }
 
@@ -80,22 +80,22 @@ MatrixSystem::MatrixSystem (const real              lambda2,
 //                              and column-major     (hbi) formats.
 // ---------------------------------------------------------------------------
 {
-  char         routine[] = "MatrixSystem::MatrixSystem";
-  const int    verbose = (int) Femlib::value ("VERBOSE");
-  const real   EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  const char    routine[] = "MatrixSystem::MatrixSystem";
+  const integer verbose = (integer) Femlib::value ("VERBOSE");
+  const real    EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
   
-  register int i, j, k, m, n;
-  const int*   bmap;
-  int          next, nint, info;
-  real         *hbb, *rmat, *rwrk;
-  Element*     E;
+  register integer i, j, k, m, n;
+  const integer*   bmap;
+  integer          next, nint, info;
+  real             *hbb, *rmat, *rwrk;
+  Element*         E;
 
-  vector<real> work (sqr (Geometry::nExtElmt()) + sqr (Geometry::nP()) +
-		     Geometry::nExtElmt() * Geometry::nTotElmt());
+  vector<real>     work (sqr (Geometry::nExtElmt()) + sqr (Geometry::nP()) +
+		              Geometry::nExtElmt() * Geometry::nTotElmt());
 
-  hbb      = work();
-  rmat     = hbb  + sqr (Geometry::nExtElmt());
-  rwrk     = rmat + sqr (Geometry::nP());
+  hbb  = work();
+  rmat = hbb  + sqr (Geometry::nExtElmt());
+  rwrk = rmat + sqr (Geometry::nP());
 
   singular = fabs (HelmholtzConstant+FourierConstant) < EPS && !N-> fmask();
   nsolve   = (singular) ? N -> nSolve() - 1 : N -> nSolve();
@@ -107,7 +107,7 @@ MatrixSystem::MatrixSystem (const real              lambda2,
 
     if (verbose)
       cout << endl
-	   << "   System matrix: "
+	   << "System matrix: "
 	   << nsolve
 	   << "x"
 	   << nband
@@ -118,10 +118,10 @@ MatrixSystem::MatrixSystem (const real              lambda2,
 
   // -- Loop over elements, creating & posting elemental Helmholtz matrices.
 
-  hbi    = new real* [nel];
-  hii    = new real* [nel];
-  bipack = new int   [nel];
-  iipack = new int   [nel];
+  hbi    = new real*   [nel];
+  hii    = new real*   [nel];
+  bipack = new integer [nel];
+  iipack = new integer [nel];
 
   for (j = 0; j < nel; j++) {
     E = Elmt[j];
@@ -156,8 +156,9 @@ MatrixSystem::MatrixSystem (const real              lambda2,
   if (info) message (routine, "failed to factor Helmholtz matrix", ERROR);
 
   if (verbose) {
-    real        cond;
-    vector<int> iwrk (nsolve);
+    real            cond;
+    vector<integer> iwrk (nsolve);
+
     work.setSize (3 * nsolve);
     rwrk = work();
 
@@ -167,9 +168,9 @@ MatrixSystem::MatrixSystem (const real              lambda2,
 }
 
 
-int MatrixSystem::match (const real          lambda2,
-			 const real          betak2 ,
-			 const NumberSystem* nScheme) const
+integer MatrixSystem::match (const real          lambda2,
+			     const real          betak2 ,
+			     const NumberSystem* nScheme) const
 // ---------------------------------------------------------------------------
 // The unique identifiers of a MatrixSystem are presumed to be given by the
 // constants and the numbering system used.  Other things that could be
@@ -208,8 +209,8 @@ ostream& operator << (ostream&      str,
     "%-25d "    "Word size (bytes)",
     "%-25s "    "Format"  
   };
-  char bufr[StrMax], fmt[StrMax];
-  int  i, n;
+  char    bufr[StrMax], fmt[StrMax];
+  integer i, n;
 
   Veclib::describeFormat (fmt);
   
@@ -230,7 +231,7 @@ ostream& operator << (ostream&      str,
 
   for (i = 0; i < M.nel; i++) {
     n = M.bipack[i];
-    str.write ((char*) &n, sizeof (int));
+    str.write ((char*) &n, sizeof (integer));
     str.write ((char*) M.hbi[i], n * sizeof (real));
   }
   
@@ -238,7 +239,7 @@ ostream& operator << (ostream&      str,
 
   for (i = 0; i < M.nel; i++) {
     n = M.iipack[i];
-    str.write ((char*) &n, sizeof (int));
+    str.write ((char*) &n, sizeof (integer));
     str.write ((char*) M.hii[i], n * sizeof (real));
   }
 #endif
@@ -256,7 +257,7 @@ istream& operator >> (istream&      str,
   char       routine[] = "MatrixSystem::operator >>";
   char       bufr[StrMax], fmt[StrMax];
   istrstream s (bufr, strlen (bufr));
-  int        n, swab;
+  integer    n, swab;
   real       f;
   const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
@@ -306,12 +307,12 @@ istream& operator >> (istream&      str,
 
   if (swab)   Veclib::brev (H.getSize(), H(), 1, H(), 1);
   
-  register int i;
-  int          n;
-  const int    N = hbi.getSize ();
+  register integer i;
+  integer          n;
+  const integer    N = hbi.getSize ();
 
   for (i = 0; i < N; i++) {
-    str.read ((char*) &n, sizeof (int));
+    str.read ((char*) &n, sizeof (integer));
     if (n != hbi[i].getSize ())
       message (routine, "mismatch: size of hbi in file & system", ERROR);
     else  {
@@ -323,7 +324,7 @@ istream& operator >> (istream&      str,
   }
   
   for (i = 0; i < N; i++) {
-    str.read ((char*) &n, sizeof (int));
+    str.read ((char*) &n, sizeof (integer));
     if (n != hii[i].getSize ())
       message (routine, "mismatch: size of hii in file & system", ERROR);
     else  {

@@ -24,7 +24,7 @@ real**** PBCmgr::Pny = 0;
 real**** PBCmgr::Unx = 0;
 real**** PBCmgr::Uny = 0;
 
-#ifdef __DECCXX
+#if defined(__DECCXX)
   #pragma define_template roll<double***>
 #endif
 
@@ -38,10 +38,10 @@ void PBCmgr::build (const Field* P)
 // There is some wastage as memory is also allocated for essential BCs.
 // ---------------------------------------------------------------------------
 {
-  int       i, j, k, np;
-  const int nTime = (int) Femlib::value ("N_TIME");
-  const int nEdge = P -> n_bound;
-  const int nZ    = Geometry::nZ();
+  integer       i, j, k, np;
+  const integer nTime = (integer) Femlib::value ("N_TIME");
+  const integer nEdge = P -> n_bound;
+  const integer nZ    = Geometry::nZ();
 
   Pnx = new real*** [nTime];
   Pny = new real*** [nTime];
@@ -74,11 +74,11 @@ void PBCmgr::build (const Field* P)
 }
 
 
-void PBCmgr::maintain (const int         step   ,
+void PBCmgr::maintain (const integer         step   ,
 		       const Field*      P      ,
 		       const AuxField*** Us     ,
 		       const AuxField*** Uf     ,
-		       const int         timedep)
+		       const integer         timedep)
 // ---------------------------------------------------------------------------
 // Update storage for evaluation of high-order pressure boundary condition.
 // Storage order for each edge represents a CCW traverse of element boundaries.
@@ -100,24 +100,24 @@ void PBCmgr::maintain (const int         step   ,
 // No smoothing is done to high-order spatial derivatives computed here.
 // ---------------------------------------------------------------------------
 {
-  const real nu    =       Femlib::value ("KINVIS");
-  const real invDt = 1.0 / Femlib::value ("D_T");
-  const int  nTime = (int) Femlib::value ("N_TIME");
-  const int  nEdge = P -> n_bound;
-  const int  nZ    = Geometry::nZ();
-  const int  nMode = nZ >> 1;
+  const real         nu    =       Femlib::value ("KINVIS");
+  const real         invDt = 1.0 / Femlib::value ("D_T");
+  const integer      nTime = (integer) Femlib::value ("N_TIME");
+  const integer      nEdge = P -> n_bound;
+  const integer      nZ    = Geometry::nZ();
+  const integer      nMode = nZ >> 1;
 
-  const AuxField* Ux = Us[0][0];
-  const AuxField* Uy = Us[1][0];
-  const AuxField* Uz = (nZ > 1) ? Us[2][0] : 0;
-  const AuxField* Nx = Uf[0][0];
-  const AuxField* Ny = Uf[1][0];
+  const AuxField*    Ux = Us[0][0];
+  const AuxField*    Uy = Us[1][0];
+  const AuxField*    Uz = (nZ > 1) ? Us[2][0] : 0;
+  const AuxField*    Nx = Uf[0][0];
+  const AuxField*    Ny = Uf[1][0];
 
   register Boundary* B;
-  register int       i, k, q;
-  int                m, np, offset, skip, Je;
+  register integer   i, k, q;
+  integer            m, np, offset, skip, Je;
 
-  vector<real> work (4 * Geometry::nP() + Integration::OrderMax + 1);
+  vector<real>       work (4 * Geometry::nP() + Integration::OrderMax + 1);
 
   // -- Roll grad P storage area up, load new level of nonlinear terms Uf.
 
@@ -228,13 +228,13 @@ void PBCmgr::maintain (const int         step   ,
 }
 
 
-void PBCmgr::evaluate (const int   id   ,
-		       const int   np   ,
-		       const int   plane,
-		       const int   step ,
-		       const real* nx   ,
-		       const real* ny   ,
-		       real*       tgt  )
+void PBCmgr::evaluate (const integer id   ,
+		       const integer np   ,
+		       const integer plane,
+		       const integer step ,
+		       const real*   nx   ,
+		       const real*   ny   ,
+		       real*         tgt  )
 // ---------------------------------------------------------------------------
 // Load PBC value with values obtained from HOBC multi-level storage.
 //
@@ -255,11 +255,11 @@ void PBCmgr::evaluate (const int   id   ,
     return;
   }
 
-  register int q, Je = (int) Femlib::value ("N_TIME");
-  vector<real> work (Integration::OrderMax + 2 * np);
-  real*  beta  = work();
-  real*  tmpX  = beta + Integration::OrderMax;
-  real*  tmpY  = tmpX + np;
+  register integer q, Je = (integer) Femlib::value ("N_TIME");
+  vector<real>     work (Integration::OrderMax + 2 * np);
+  real*            beta  = work();
+  real*            tmpX  = beta + Integration::OrderMax;
+  real*            tmpY  = tmpX + np;
 
   Je = min (step, Je);
   Integration::Extrapolation (Je, beta);
@@ -287,7 +287,7 @@ void PBCmgr::accelerate (const Vector& a,
 // Yes, this is a HACK!
 // ---------------------------------------------------------------------------
 {
-  register int       i;
+  register integer   i;
   register Boundary* B;
 
   for (i = 0; i < u -> n_bound; i++) {

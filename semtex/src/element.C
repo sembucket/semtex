@@ -5,22 +5,21 @@
 static char
 RCSid[] = "$Id$";
 
-
 #include <Sem.h>
 
 
-Element::Element (const int   i   ,
-		  const Mesh& M   ,
-		  const real* z   ,
-		  const int   nk  ,
-		  const int   doff,
-		  const int   boff) :
+Element::Element (const integer i   ,
+		  const Mesh&   M   ,
+		  const real*   z   ,
+		  const integer nk  ,
+		  const integer doff,
+		  const integer boff) :
 
-		  id          (i   ),
-		  ns          (4   ),
-		  np          (nk  ),
-		  dOffset     (doff),
-		  bOffset     (boff)
+		  id            (i   ),
+		  ns            (4   ),
+		  np            (nk  ),
+		  dOffset       (doff),
+		  bOffset       (boff)
 // ---------------------------------------------------------------------------
 // Create a new quad element, nk X nk.  Node spacing along any side generated
 // by mapping z (defined on domain [-1, 1], np points) onto side.
@@ -28,8 +27,8 @@ Element::Element (const int   i   ,
 // Compute information for internal storage, and economize.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "Element::Element";
-  const int nk2  = sqr (nk);
+  const char routine[] = "Element::Element";
+  const integer nk2  = sqr (nk);
 
   if (nk < 2) message (routine, "need > 2 knots for element edges", ERROR);
 
@@ -119,16 +118,17 @@ void Element::map ()
 // are set to zero, so they can serve as flags in subsequent computations.
 // ---------------------------------------------------------------------------
 {
-  char       routine[] = "Element::map", err[StrMax];
-  const int  ntot = nTot();
-  const real EPS  = 4 * nTot()*((sizeof(real)==sizeof(double)) ? EPSDP:EPSSP);
-  const real dz   = (Geometry::nZ() > 1) ?
-                     Femlib::value ("TWOPI / (BETA * N_Z)") : 1.0;
-  const real dxyz = sqr (2.0 / (np - 1)) * dz;
-  const real invD = 1.0 / Geometry::nDim();
-  const real *x   = xmesh, *y = ymesh;
-  const real **DV, **DT, *w;
-  real       *jac, *dxdr, *dxds, *dydr, *dyds, *tV, *WW;
+  const char    routine[] = "Element::map";
+  char          err[StrMax];
+  const integer ntot = nTot();
+  const real    EPS  = 4 * nTot()*((sizeof(real)==sizeof(double))?EPSDP:EPSSP);
+  const real    dz   = (Geometry::nZ() > 1) ?
+                        Femlib::value ("TWOPI / (BETA * N_Z)") : 1.0;
+  const real    dxyz = sqr (2.0 / (np - 1)) * dz;
+  const real    invD = 1.0 / Geometry::nDim();
+  const real    *x   = xmesh, *y = ymesh;
+  const real    **DV, **DT, *w;
+  real          *jac, *dxdr, *dxds, *dydr, *dyds, *tV, *WW;
 
   vector<real> work;
 
@@ -204,7 +204,7 @@ void Element::map ()
   Veclib::vdiv (ntot, dsdy, 1, jac, 1, dsdy, 1);
 
   if (Geometry::system() == Geometry::Cylindrical) {
-    register int i;
+    register integer i;
     for (i = 0; i < ntot; i++) delta[i] *= (ymesh[i] < EPS) ? EPS : ymesh[i];
 
     Veclib::vmul (ntot, G1, 1, y, 1, G1, 1);
@@ -237,18 +237,18 @@ void Element::map ()
 }
 
 
-void Element::bndryDsSum (const int*  btog,
-			  const real* src ,
-			  real*       tgt ) const
+void Element::bndryDsSum (const integer* btog,
+			  const real*    src ,
+			  real*          tgt ) const
 // ---------------------------------------------------------------------------
 // Direct-stiffness-sum from element boundary to globally-numbered storage,
 // i.e. tgt[btog[i]] += mass[emap[i]] * src[emap[i]].
 // This is using in smoothing Fields along element boundaries.
 // ---------------------------------------------------------------------------
 {
-  register int   i, e;
-  const int      next = nExt();
-  register real* wt = G4;
+  register integer i, e;
+  const integer    next = nExt();
+  register real*   wt = G4;
 
   for (i = 0; i < next; i++) {
     e = emap[i];
@@ -257,10 +257,10 @@ void Element::bndryDsSum (const int*  btog,
 }
 
 
-void Element::bndryMask (const int*  bmsk,
-			 real*       tgt ,
-			 const real* src ,
-			 const int*  btog) const
+void Element::bndryMask (const integer* bmsk,
+			 real*          tgt ,
+			 const real*    src ,
+			 const integer* btog) const
 // ---------------------------------------------------------------------------
 // Mask the values in (row-major) tgt according to the mask vector bmsk
 // and optionally globally-numbered vector src.
@@ -274,10 +274,10 @@ void Element::bndryMask (const int*  bmsk,
 // not used and may be zero also.
 // ---------------------------------------------------------------------------
 {
-  register int i, e;
-  const int    ntot = nTot();
-  const int    next = nExt();
-  const int    nint = nInt();
+  register integer i, e;
+  const integer    ntot = nTot();
+  const integer    next = nExt();
+  const integer    nint = nInt();
 
   if (src) {
     for (i = 0; i < next; i++) {
@@ -298,10 +298,10 @@ void Element::bndryMask (const int*  bmsk,
 }
 
 
-void Element::e2gSumSC (real*       F   ,
-			const int*  btog,
-			real*       tgt ,
-			const real* hbi ) const
+void Element::e2gSumSC (real*          F   ,
+			const integer* btog,
+			real*          tgt ,
+			const real*    hbi ) const
 // ---------------------------------------------------------------------------
 // Create statically-condensed boundary Helmholtz forcing for this element
 // from row-major F and insert it into globally-numbered tgt by direct
@@ -326,10 +326,10 @@ void Element::e2gSumSC (real*       F   ,
 // the fixed (essential-BC) partition of tgt is overwritten later.
 // ---------------------------------------------------------------------------
 {
-  const int    ntot = nTot();
-  const int    nint = nInt();
-  const int    next = nExt();
-  vector<real> work (ntot);
+  const integer ntot = nTot();
+  const integer nint = nInt();
+  const integer next = nExt();
+  vector<real>  work (ntot);
 
   Veclib::gathr (ntot, F, emap, work());
   Veclib::copy  (ntot, work(), 1, F, 1);
@@ -340,12 +340,12 @@ void Element::e2gSumSC (real*       F   ,
 }
 
 
-void Element::g2eSC (const real* RHS ,
-		     const int*  btog,
-		     real*       F   , 
-		     real*       tgt ,
-		     const real* hbi ,
-		     const real* hii ) const
+void Element::g2eSC (const real*    RHS ,
+		     const integer* btog,
+		     real*          F   , 
+		     real*          tgt ,
+		     const real*    hbi ,
+		     const real*    hii ) const
 // ---------------------------------------------------------------------------
 // Complete static condensation solution for internal values of Element.
 //
@@ -360,9 +360,9 @@ void Element::g2eSC (const real* RHS ,
 // REPLACES old routine Element::resolveSC
 // ----------------------------------------------------------------------------
 {
-  const int    next = nExt();
-  const int    nint = nInt();
-  vector<real> work (next);
+  const integer next = nExt();
+  const integer nint = nInt();
+  vector<real>  work (next);
 
   // -- Load globally-numbered RHS into element-boundary storage.
 
@@ -372,7 +372,7 @@ void Element::g2eSC (const real* RHS ,
   // -- Complete static-condensation solution for element-internal storage.
 
   if (nint) {
-    int   info;
+    integer   info;
     real* Fi = F + next;
 
     Lapack::pptrs ("U", nint, 1, hii, Fi, nint, info);
@@ -431,13 +431,12 @@ void Element::HelmholtzSC (const real lambda2,
 // rwrk:   nExt*(nExt+nInt) vector;
 // ---------------------------------------------------------------------------
 {
-  char         routine[] = "Element::HelmholtzSC";
-  register int i, j, k;
-  int          eq, ij = 0;
-  const int    ntot = nTot();
-  const int    next = nExt();
-  const int    nint = nInt();
-  const real   **DV, **DT;
+  const char       routine[] = "Element::HelmholtzSC";
+  register integer i, j, k, eq, ij = 0;
+  const integer    ntot = nTot();
+  const integer    next = nExt();
+  const integer    nint = nInt();
+  const real       **DV, **DT;
 
   // -- Construct hbb, hbi, hii partitions of elemental Helmholtz matrix.
 
@@ -459,14 +458,14 @@ void Element::HelmholtzSC (const real lambda2,
 	  hii[Lapack::pack_addr (eq - next, k - next)] = rwrk[k];
     }
 
-#ifdef DEBUG
-  if ((int) Femlib::value ("VERBOSE") > 3) printMatSC (hbb, hbi, hii);
+#if defined(DEBUG)
+  if ((integer) Femlib::value ("VERBOSE") > 3) printMatSC (hbb, hbi, hii);
 #endif
 
   // -- Carry out static condensation step.
 
   if (nint) {
-    int info = 0;
+    integer info = 0;
 
     // -- Factor hii.
 
@@ -494,8 +493,8 @@ void Element::printMatSC (const real* hbb,
 // (Debugging) utility to print up element matrices.
 // ---------------------------------------------------------------------------
 {
-  char s[8*StrMax];
-  int  i, j, next = nExt(), nint = nInt(), ntot = nTot();
+  char    s[8*StrMax];
+  integer i, j, next = nExt(), nint = nInt(), ntot = nTot();
 
   sprintf (s, "-- Uncondensed Helmholtz matrices, element %1d", id);
   message ("", s, REMARK);
@@ -545,14 +544,14 @@ void Element::Helmholtz (const real lambda2,
 // rmat: vector, length np*np;
 // ---------------------------------------------------------------------------
 {
-  register int ij   = 0;
-  const int    ntot = nTot ();
-  const real   **DV, **DT;
+  register integer ij   = 0;
+  const integer    ntot = nTot ();
+  const real       **DV, **DT;
 
   Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
-  for (register int i = 0; i < np; i++)
-    for (register int j = 0; j < np; j++, ij++) {
+  for (register integer i = 0; i < np; i++)
+    for (register integer j = 0; j < np; j++, ij++) {
       helmRow ((const real**) DV, (const real**) DT,
 	       lambda2, betak2, i, j, rmat, rwrk);
       Veclib::copy (ntot, rmat, 1, h + ij * np, 1);
@@ -572,12 +571,12 @@ void Element::HelmholtzDg (const real lambda2,
 // Construction is very similar to that in helmRow except that m, n = i, j.
 // ---------------------------------------------------------------------------
 {
-  register int  i, j;
-  const int     ntot = sqr (np);
-  const real    EPS  = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
-  const real**  DT;
-  register real *dg = work, *tmp = work + ntot;
-  real          r2, HCon;
+  register integer i, j;
+  const integer    ntot = sqr (np);
+  const real       EPS  = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  const real**     DT;
+  register real    *dg = work, *tmp = work + ntot;
+  real             r2, HCon;
 
   Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, 0, &DT);
 
@@ -612,14 +611,14 @@ void Element::HelmholtzDg (const real lambda2,
 }
 
 
-void Element::helmRow (const real** DV     ,
-		       const real** DT     ,
-		       const real   lambda2,
-		       const real   betak2 ,
-		       const int    i      ,
-		       const int    j      ,
-		       real*        hij    ,
-		       real*        work   ) const
+void Element::helmRow (const real**  DV     ,
+		       const real**  DT     ,
+		       const real    lambda2,
+		       const real    betak2 ,
+		       const integer i      ,
+		       const integer j      ,
+		       real*         hij    ,
+		       real*         work   ) const
 // ---------------------------------------------------------------------------
 // Build row [i,j] of the elemental Helmholtz matrix in array hij (np x np).
 //
@@ -656,12 +655,12 @@ void Element::helmRow (const real** DV     ,
 // indentities, and are not required.
 // ---------------------------------------------------------------------------
 {
-  register int m, n;
-  const int    ntot = sqr (np);
-  const real   r2   = sqr (ymesh[Veclib::row_major (i, j, np)]);
-  const real   EPS  = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
-  const real   hCon = (Geometry::system() == Geometry::Cylindrical &&
-		       r2 > EPS) ? (betak2 / r2 + lambda2) : betak2 + lambda2;
+  register integer m, n;
+  const integer    ntot = sqr (np);
+  const real       r2   = sqr (ymesh[Veclib::row_major (i, j, np)]);
+  const real       EPS  = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  const real       hCon = (Geometry::system() == Geometry::Cylindrical &&
+			r2 > EPS) ? (betak2 / r2 + lambda2) : betak2 + lambda2;
 
   Veclib::zero (ntot, hij, 1);
 
@@ -706,12 +705,12 @@ void Element::HelmholtzOp (const real  lambda2,
 // Input workspace vector wrk must hold 2 * nTot() elements.
 // ---------------------------------------------------------------------------
 {
-  register int  ij;
-  const int     ntot = nTot();
-  register real tmp, r2, hCon;
-  register real *R, *S, *g1, *g2, *g3, *g4;
-  const real    **DV, **DT;
-  const real    EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  register integer ij;
+  const integer    ntot = nTot();
+  register real    tmp, r2, hCon;
+  register real    *R, *S, *g1, *g2, *g3, *g4;
+  const real       **DV, **DT;
+  const real       EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
   R  = wrk;
   S  = R + ntot;
@@ -747,7 +746,7 @@ void Element::HelmholtzOp (const real  lambda2,
 
   } else {			// -- Cartesian.
     hCon = betak2 + lambda2;
-#ifdef __uxp__
+#if defined(__uxp__)
     if (g3) {
       Veclib::copy    (ntot,       R,  1, tgt, 1);
       Veclib::vvtvvtp (ntot,       g1, 1, R,   1, g3,  1, S,   1, R, 1);
@@ -792,8 +791,8 @@ void Element::grad (real* tgtA,
   const real **DV, **DT;
   Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
-  const int    ntot = nTot();
-  vector<real> work (ntot + ntot);
+  const integer ntot = nTot();
+  vector<real>  work (ntot + ntot);
 
   real* tmpA = work();
   real* tmpB = tmpA + ntot;
@@ -832,10 +831,10 @@ void Element::grad (real* tgtA,
 
 
 inline
-void Element::terminal (const int side  ,
-			int&      estart,
-			int&      eskip ,
-			int&      bstart) const
+void Element::terminal (const integer side  ,
+			integer&      estart,
+			integer&      eskip ,
+			integer&      bstart) const
 // ---------------------------------------------------------------------------
 // Evaluate the element-edge terminal values of estart, skip, bstart.
 // NB: BLAS-conformant terminal start values are delivered for negative skips.
@@ -868,24 +867,24 @@ void Element::terminal (const int side  ,
 }
 
 
-void Element::sideOffset (const int side ,
-			  int&      start,
-			  int&      skip ) const
+void Element::sideOffset (const integer side ,
+			  integer&      start,
+			  integer&      skip ) const
 // ---------------------------------------------------------------------------
 // Return starting offset & skip in Field storage for this side.
 // ---------------------------------------------------------------------------
 {
-  int estart, bstart;
+  integer estart, bstart;
 
   terminal (side, estart, skip, bstart);
   start = dOffset + estart;
 }
 
 
-void Element::sideGeom (const int side,
-			real*     nx  ,
-			real*     ny  ,
-			real*     area) const
+void Element::sideGeom (const integer side,
+			real*         nx  ,
+			real*         ny  ,
+			real*         area) const
 // ---------------------------------------------------------------------------
 // Generate unit outward normal components and change-of-variable
 // Jacobian, area, for use in computation of edge integrals.
@@ -903,10 +902,10 @@ void Element::sideGeom (const int side,
   if (side < 0 || side >= ns)
     message ("Element::sideGeom", "illegal side", ERROR);
 
-  register int low, skip;
-  const real   **D, *w;
-  real         *xr, *xs, *yr, *ys, *len;
-  vector<real> work (np + np);
+  register integer low, skip;
+  const real       **D, *w;
+  real             *xr, *xs, *yr, *ys, *len;
+  vector<real>     work (np + np);
 
   Femlib::quad (LL, np, np, 0, 0, &w, 0, 0, &D, 0);
 
@@ -998,9 +997,9 @@ void Element::sideGeom (const int side,
 }
 
 
-void Element::sideEval (const int   side,
-			real*       tgt ,
-			const char* func) const
+void Element::sideEval (const integer side,
+			real*         tgt ,
+			const char*   func) const
 // ---------------------------------------------------------------------------
 // Evaluate function func along side of element, returning in tgt.
 //
@@ -1008,7 +1007,7 @@ void Element::sideEval (const int   side,
 // parameters previously set).
 // ---------------------------------------------------------------------------
 {
-  register  int estart, skip, bstart;
+  register  integer estart, skip, bstart;
   terminal (side, estart, skip, bstart);
   
   vector<real> work(np + np);
@@ -1025,10 +1024,10 @@ void Element::sideEval (const int   side,
 }
 
 
-void Element::sideGrad (const int   side,
-			const real* src ,
-			real*       c1  ,
-			real*       c2  ) const
+void Element::sideGrad (const integer side,
+			const real*   src ,
+			real*         c1  ,
+			real*         c2  ) const
 // ---------------------------------------------------------------------------
 // Using geometric factors for this Element, return the first and second
 // component, c1 and/or c2, of grad src (length nTot()) along side.
@@ -1038,7 +1037,7 @@ void Element::sideGrad (const int   side,
 // then a -1 skip when multiplying by dr/dx, ds/dx, etc.
 // ---------------------------------------------------------------------------
 {
-  register int d, estart, skip, bstart;
+  register integer d, estart, skip, bstart;
   terminal (side, estart, skip, bstart);
   
   vector<real> work (np + np);
@@ -1093,16 +1092,16 @@ void Element::sideGrad (const int   side,
 }
 
 
-void Element::sideSet (const int   side,
-		       const int*  bmap,
-                       const real* src ,
-                       real*       tgt ) const
+void Element::sideSet (const integer  side,
+		       const integer* bmap,
+                       const real*    src ,
+                       real*          tgt ) const
 // ---------------------------------------------------------------------------
 // Load edge vector src into globally-numbered tgt.
 // ---------------------------------------------------------------------------
 {
-  register int estart, skip, bstart;
-  const int    nm = np - 1;
+  register integer estart, skip, bstart;
+  const integer    nm = np - 1;
 
   terminal (side, estart, skip, bstart);
 
@@ -1113,21 +1112,21 @@ void Element::sideSet (const int   side,
 }
 
 
-void Element::sideDsSum (const int   side,
-			 const int*  bmap,
-                         const real* src ,
-                         const real* area,
-                         real*       tgt ) const
+void Element::sideDsSum (const integer  side,
+			 const integer* bmap,
+                         const real*    src ,
+                         const real*    area,
+                         real*          tgt ) const
 // ---------------------------------------------------------------------------
 // Direct-stiffness-sum (area-weighted) vector src into globally-numbered
 // tgt on side.  This is for evaluation of natural BCs using Gauss--
 // Lobatto quadrature.
 // ---------------------------------------------------------------------------
 {
-  const int nm  = np - 1;
-  vector<real> tmp (np);
+  const integer nm  = np - 1;
+  vector<real>  tmp (np);
   
-  int estart, skip, bstart;
+  integer estart, skip, bstart;
   terminal (side, estart, skip, bstart);
 
   Veclib::vmul (np, src, 1, area, 1, tmp(), 1);
@@ -1155,9 +1154,9 @@ real Element::integral (const char* func) const
 // Return integral of func over element, using element quadrature rule.
 // ---------------------------------------------------------------------------
 {
-  real         intgrl;
-  const int    ntot = np * np;
-  vector<real> tmp (ntot);
+  real          intgrl;
+  const integer ntot = np * np;
+  vector<real>  tmp (ntot);
 
   Femlib::prepVec  ("x y", func);
   Femlib__parseVec (ntot, xmesh, ymesh, tmp());
@@ -1184,9 +1183,9 @@ real Element::norm_L2 (const real* src) const
 // Return L2-norm of Element value, using Element quadrature rule.
 // ---------------------------------------------------------------------------
 {
-  register int   i;
+  register integer   i;
   register real  L2   = 0.0;
-  const int      ntot = sqr (np);
+  const integer      ntot = sqr (np);
   register real* dA   = G4;
 
   for (i = 0; i < ntot; i++) L2 += src[i] * src[i] * dA[i];
@@ -1200,47 +1199,43 @@ real Element::norm_H1 (const real* src) const
 // Return Sobolev-1 norm of Element value, using Element quadrature rule.
 // ---------------------------------------------------------------------------
 {
-  register real H1 = 0;
-  register int  i;
-  const int     ntot = sqr (np);
+  register real    H1 = 0;
+  register integer i;
+  const integer    ntot = sqr (np);
   
-  vector<real>  work (ntot);
-  register real *u, *dA;
+  vector<real>     work (ntot);
+  register real    *dA = G4, *u = work();
   
-  u = work();
+  // -- Add in L2 norm of u.
 
-    dA = G4;
+  for (i = 0; i < ntot; i++) H1 += src[i] * src[i] * dA[i];
 
-    // -- Add in L2 norm of u.
+  // -- Add in L2 norm of grad u.
 
-    for (i = 0; i < ntot; i++) H1 += src[i] * src[i] * dA[i];
+  Veclib::copy (ntot, src, 1, u, 1);
+  grad (u, 0);
+  for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * dA[i];
 
-    // -- Add in L2 norm of grad u.
-
-    Veclib::copy (ntot, src, 1, u, 1);
-    grad (u, 0);
-    for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * dA[i];
-
-    Veclib::copy (ntot, src, 1, u, 1);
-    grad (0, u);
-    for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * dA[i];
+  Veclib::copy (ntot, src, 1, u, 1);
+  grad (0, u);
+  for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * dA[i];
 
   return sqrt (H1);
 }
 
 
-void Element::e2g (const real* src     ,
-		   const int*  btog    ,
-		   real*       external,
-		   real*       internal) const
+void Element::e2g (const real*    src     ,
+		   const integer* btog    ,
+		   real*          external,
+		   real*          internal) const
 // ---------------------------------------------------------------------------
 // Src is a row-major vector, representing this Element's data.
 // Load boundary data into globally-numbered vector external, and
 // internal data into un-numbered vector internal.
 // ---------------------------------------------------------------------------
 {
-  const int next = nExt();
-  const int nint = nInt();
+  const integer next = nExt();
+  const integer nint = nInt();
 
   Veclib::gathr_scatr (next, src, emap,  btog, external);
   if (internal)
@@ -1248,18 +1243,18 @@ void Element::e2g (const real* src     ,
 }
 
 
-void Element::e2gSum (const real* src     ,
-		      const int*  btog    ,
-		      real*       external,
-		      real*       internal) const
+void Element::e2gSum (const real*    src     ,
+		      const integer* btog    ,
+		      real*          external,
+		      real*          internal) const
 // ---------------------------------------------------------------------------
 // Src is a row-major vector, representing this element's data.
 // Sum boundary data into globally-numbered vector external, and
 // internal data into un-numbered vector internal.
 // ---------------------------------------------------------------------------
 {
-  const int next = nExt();
-  const int nint = nInt();
+  const integer next = nExt();
+  const integer nint = nInt();
 
   Veclib::gathr_scatr_sum (next, src, emap,  btog, external);
   if (internal)
@@ -1267,18 +1262,18 @@ void Element::e2gSum (const real* src     ,
 }
 
 
-void Element::g2e (real*       tgt     ,
-		   const int*  btog    ,
-		   const real* external,
-		   const real* internal) const
+void Element::g2e (real*          tgt     ,
+		   const integer* btog    ,
+		   const real*    external,
+		   const real*    internal) const
 // ---------------------------------------------------------------------------
 // Tgt is a row-major vector, representing this Element's data.
 // Load boundary data from globally-numbered vector external, and
 // internal data from un-numbered vector internal.
 // ---------------------------------------------------------------------------
 {
-  const int next = nExt();
-  const int nint = nInt();
+  const integer next = nExt();
+  const integer nint = nInt();
 
   Veclib::gathr_scatr (next, external, btog,  emap, tgt);
   if (internal)
@@ -1292,11 +1287,11 @@ void Element::divR (real* src) const
 // where r = 0.  This is used in taking theta component of gradient.
 // ---------------------------------------------------------------------------
 {
-  register int   i;
-  register real  rad, rinv;
-  register real* y   = ymesh;
-  const int      N   = nTot();
-  const real     EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  register integer i;
+  register real    rad, rinv;
+  register real*   y   = ymesh;
+  const integer    N   = nTot();
+  const real       EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
   for (i = 0; i < N; i++) {
     rad     = y[i];
@@ -1315,18 +1310,18 @@ void Element::mulR (real* src) const
 }
 
 
-void Element::sideDivR (const int   side,
-			const real* src ,
-			real*       tgt ) const
+void Element::sideDivR (const integer side,
+			const real*   src ,
+			real*         tgt ) const
 // ---------------------------------------------------------------------------
 // Deliver in tgt the side traverse of src (elemental storage) divided by
 // y (i.e. r), take special action where r = 0.
 // ---------------------------------------------------------------------------
 {
-         int  i, base, skip;
-         real r, rinv, *y;
-   const real *s;
-  const          real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  integer i, base, skip;
+  real    r, rinv, *y;
+  const   real *s;
+  const   real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
   switch (side) {
   case 0: 
@@ -1363,18 +1358,18 @@ void Element::sideDivR (const int   side,
 }
 
 
-void Element::sideDivR2 (const int   side,
-			 const real* src ,
-			 real*       tgt ) const
+void Element::sideDivR2 (const integer side,
+			 const real*   src ,
+			 real*         tgt ) const
 // ---------------------------------------------------------------------------
 // Deliver in tgt the side traverse of src (elemental storage) divided by
 // y^2 (i.e. r^2), take special action where r = 0.
 // ---------------------------------------------------------------------------
 {
-  register       int  i, base, skip;
-  register       real r, rinv2, *y;
+  register integer    i, base, skip;
+  register real       r, rinv2, *y;
   register const real *s;
-  const          real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  const real          EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
   switch (side) {
   case 0: 
@@ -1411,11 +1406,11 @@ void Element::sideDivR2 (const int   side,
 }
 
 
-int Element::locate (const real x    ,
-		     const real y    ,
-		     real&      r    ,
-		     real&      s     ,
-		     const int  guess) const
+integer Element::locate (const real    x    ,
+			 const real    y    ,
+			 real&         r    ,
+			 real&         s     ,
+			 const integer guess) const
 // ---------------------------------------------------------------------------
 // If x & y fall in this element, compute the corresponding r & s values, 
 // and return 1.  Otherwise return 0.
@@ -1426,12 +1421,12 @@ int Element::locate (const real x    ,
 // Fairly loose tolerances are used.
 // ---------------------------------------------------------------------------
 {
-  const int    MaxItn = 8;
-  const real   EPS    = EPSm5;
-  const real   DIVERG = 10.0;
-  real         *J, *F, *ir, *is, *dr, *ds, *tp;
-  vector<real> work (5 * np + 6);
-  int          ipiv[2], info, i, j;
+  const integer MaxItn = 8;
+  const real    EPS    = EPSm5;
+  const real    DIVERG = 10.0;
+  real          *J, *F, *ir, *is, *dr, *ds, *tp;
+  vector<real>  work (5 * np + 6);
+  integer       ipiv[2], info, i, j;
   
   tp = work();
   ir = tp + np;
@@ -1442,7 +1437,7 @@ int Element::locate (const real x    ,
   F  = J  + 4;
   
   if (guess) {
-    const int    ntot = nTot();
+    const integer    ntot = nTot();
     vector<real> tmp (2 * ntot);
     const real*  knot;
     real         *tx = tmp(), *ty = tmp() + ntot;
@@ -1493,7 +1488,7 @@ int Element::locate (const real x    ,
     s += F[1];
 
     if (fabs (r) > DIVERG || fabs (s) > DIVERG) {
-#ifdef DEBUG
+#if defined(DEBUG)
       cerr << "D" << endl;
 #endif
       return 0;
@@ -1501,7 +1496,7 @@ int Element::locate (const real x    ,
 
   } while (++i < MaxItn && (fabs (F[0]) > EPS || fabs (F[1]) > EPS));
 
-#ifdef DEBUG
+#if defined(DEBUG)
   if (i == MaxItn) cerr << "M" << endl;
   else if (fabs (r) > 1.0 + EPS && fabs(s) > 1.0 + EPS) cerr << "O" << endl;
 #endif

@@ -28,6 +28,7 @@ RCSid[] = "$Id$";
 #include <string.h>
 #include <ctype.h>
 
+#include <femdef.h>
 #include <Utility.h>
 #include <Feml.h>
 #include <Femlib.h>
@@ -39,10 +40,10 @@ FEML::FEML (const char* name)
 // Look for name and name.pdf.  Set pdf_root.  Load tokens.
 // ---------------------------------------------------------------------------
 {
-  char  c, routine[] = "FEML::open";
-  char  err[StrMax], key[StrMax], yek[StrMax];
-  char* u;
-  int   i, OK, N, found;
+  const char routine[] = "FEML::open";
+  char       c, err[STR_MAX], key[STR_MAX], yek[STR_MAX];
+  char*      u;
+  integer    i, OK, N, found;
 
   char* reserved[] = {
     "TOKENS",
@@ -172,14 +173,14 @@ FEML::FEML (const char* name)
 }
 
 
-int FEML::seek (const char* keyword)
+integer FEML::seek (const char* keyword)
 // ---------------------------------------------------------------------------
 // Look for keyword in stored table.
 // If present, stream is positioned after keyword and 1 is returned.
 // If not, stream is rewound and 0 is returned.
 // ---------------------------------------------------------------------------
 {
-  register int i, found = 0;
+  register integer i, found = 0;
 
   for (i = 0; !found && keyWord[i]; i++)
     found = (strstr (keyword, keyWord[i]) != 0 &&
@@ -198,17 +199,18 @@ int FEML::seek (const char* keyword)
 }
 
 
-int FEML::attribute (const char* tag ,
-		     const char* attr)
+integer FEML::attribute (const char* tag ,
+			 const char* attr)
 // ---------------------------------------------------------------------------
 // Tag attributes are given as options in form <tag attr=int [attr=int ...]>
 // Return integer value following '='.  No whitespace allowed in attributes.
 // On return, FEML's stream is set to start of next line.
 // ---------------------------------------------------------------------------
 {
-  char  routine[] = "FEML::attribute", buf[StrMax], err[StrMax];
-  char* v;
-  int   n = 0;
+  const char routine[] = "FEML::attribute";
+  char       buf[STR_MAX], err[STR_MAX];
+  char*      v;
+  integer    n = 0;
 
   if (!seek (tag)) {
     sprintf (err, "couldn't locate tag %s in feml file", tag);
@@ -232,28 +234,28 @@ int FEML::attribute (const char* tag ,
       message (routine, err, ERROR);
     }
 
-  feml_file.ignore (StrMax, '\n');
+  feml_file.ignore (STR_MAX, '\n');
 
   return n;
 }
 
 
-int FEML::tokens ()
+integer FEML::tokens ()
 // ---------------------------------------------------------------------------
 // Initialize femlib parser and install token table.
 // Return 0 if no TOKEN section is found.
 // NUMBER attribute ignored if present.
 // ---------------------------------------------------------------------------
 {
-  char           buf[StrMax];
+  char           buf[STR_MAX];
   register char* u;
 
   Femlib::prep();
  
   if (seek ("TOKENS")) {
-    feml_file.ignore (StrMax, '\n');
+    feml_file.ignore (STR_MAX, '\n');
 
-    while (feml_file.getline (buf, StrMax)) {
+    while (feml_file.getline (buf, STR_MAX)) {
       if (strstr (buf, "=")) Femlib::value (buf);
       u = buf; while (*u = toupper (*u)) u++;
       if (strstr (buf, "TOKENS")) break;

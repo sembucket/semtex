@@ -5,7 +5,6 @@
 static char
 RCSid[] = "$Id$";
 
-
 #include <Sem.h>
 #include <time.h>
 
@@ -24,16 +23,16 @@ Domain::Domain (FEML&       F   ,
 // No initialization of Field MatrixSystems.
 // ---------------------------------------------------------------------------
 {
-  int         k, doff, boff;
-  const int   np   = Geometry::nP();
-  const int   nz   = Geometry::nZ();
-  const int   verb = (int) Femlib::value ("VERBOSE");
-  const int   NE   = M.nEl();
-  const int   NF   = strlen (flds);
-  const real* z;
+  integer       k, doff, boff;
+  const integer np   = Geometry::nP();
+  const integer nz   = Geometry::nZ();
+  const integer verb = (integer) Femlib::value ("VERBOSE");
+  const integer NE   = M.nEl();
+  const integer NF   = strlen (flds);
+  const real*   z;
 
   if (verb) {
-    cout << "-- " << NE << " elements, ";
+    cout << NE << " elements, ";
     cout << np << "x" << np << "x" << nz << endl;
   }
 
@@ -44,7 +43,7 @@ Domain::Domain (FEML&       F   ,
 
   Femlib::value ("t", time);
 
-  if (verb) cout << "   Building Elements ... ";
+  if (verb) cout << "Building Elements ... ";
 
   Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
 
@@ -59,7 +58,7 @@ Domain::Domain (FEML&       F   ,
 
   if (verb) cout << "done" << endl;
   
-  if (verb) cout << "   Retrieving prebuilt numbering systems ... ";
+  if (verb) cout << "Retrieving prebuilt numbering systems ... ";
 
   // -- Load all the available numbering systems created by enumerate.
 
@@ -67,10 +66,10 @@ Domain::Domain (FEML&       F   ,
 
   // -- Form each Field with a Fourier-mode ordered vector of systems.
 
-  const int            NS      = Nsys.getSize();
+  const integer        NS      = Nsys.getSize();
   const NumberSystem** systems = new const NumberSystem* [3];
 
-  if (verb) cout << "done" << endl << "   Building Fields ... ";
+  if (verb) cout << "done" << endl << "Building Fields ... ";
 
   u.setSize (NF);
   for (k = 0; k < NF; k++) {
@@ -96,10 +95,10 @@ void Domain::getNumber ()
 // significance for upper-cased names of numbering schemes.
 // ---------------------------------------------------------------------------
 {
-  char         routine[] = "Domain::getNumber";
-  char         buf[StrMax], err[StrMax];
-  register int i, j, nset;
-  ifstream     num;
+  const char       routine[] = "Domain::getNumber";
+  char             buf[StrMax], err[StrMax];
+  register integer i, j, nset;
+  ifstream         num;
 
   strcat   (strcpy (buf, name), ".num");
   num.open (buf);
@@ -231,8 +230,8 @@ void Domain::getNumber ()
 	       j, Geometry::nBnode());
       message (routine, err, ERROR);
     }
-    Nsys[i] -> ns_btog  = new int [Geometry::nBnode()];
-    Nsys[i] -> ns_bmask = new int [Geometry::nBnode()];
+    Nsys[i] -> ns_btog  = new integer [Geometry::nBnode()];
+    Nsys[i] -> ns_bmask = new integer [Geometry::nBnode()];
   }
 
   num >> buf >> buf;
@@ -282,7 +281,6 @@ void Domain::getNumber ()
   vector<real>  work (Geometry::nTotElmt());
   const real    EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
   register real m;
- 
   real*         unity = work();
 
   for (j = 0; j < nset; j++) {
@@ -295,22 +293,19 @@ void Domain::getNumber ()
       Veclib::fill (E -> nTot(), 1.0, unity, 1);
       E -> bndryDsSum (N -> ns_btog + E -> bOff(), unity, N -> ns_inv_mass);
     }
-#if 1
+
     for (i = 0; i < N -> ns_nglobal; i++) {
       m = N -> ns_inv_mass[i];
       m = (m > EPS) ? 1.0 / m : 0.0;
       N -> ns_inv_mass[i] = m;
     }
-#else
-    Veclib::vrecp (N -> ns_nglobal, N -> ns_inv_mass, 1, N -> ns_inv_mass, 1);
-#endif
   }
 
   // -- And emask vectors.
 
   for (j = 0; j < nset; j++) {
     N = Nsys[j];
-    N -> ns_emask = new int [Geometry::nElmt()];
+    N -> ns_emask = new integer [Geometry::nElmt()];
 
     for (i = 0; i < Geometry::nElmt(); i++) {
       E = Esys[i];
@@ -341,11 +336,12 @@ void Domain::setNumber (const char           field ,
 // input variable "field".  See remarks at head of file field.C.
 // ---------------------------------------------------------------------------
 {
-  char      routine[] = "Domain::setNumber", err[StrMax];
-  int       i;
-  const int N = Nsys.getSize();
-  const int cyl3D =
-    Geometry::system() == Geometry::Cylindrical && Geometry::nDim() == 3;
+  const char    routine[] = "Domain::setNumber";
+  char          err[StrMax];
+  integer       i;
+  const integer N     = Nsys.getSize();
+  const integer cyl3D = Geometry::system() == Geometry::Cylindrical &&
+                        Geometry::nDim()   == 3;
 
   system[0] = system[1] = system[2] = 0;
 
@@ -383,106 +379,135 @@ void Domain::setNumber (const char           field ,
 }
 
 
-void Domain::initialize (const char* src)
+void Domain::report ()
 // ---------------------------------------------------------------------------
-// If a file name is given, attempt to use it to load the Domain Field data
-// areas.  Otherwise, if a restart file "name".rst can be found, use it for
-// input.  If these options fail, initialize all Fields to zero ICs.
+// Print a run-time summary of domain & timestep information on cout.
+// ---------------------------------------------------------------------------
+{
+  const real    t   =           time;
+  const real    dt  =           Femlib::value ("D_T");
+  const real    lz  =           Femlib::value ("TWOPI / BETA");
+  const integer ns  = (integer) Femlib::value ("N_STEP");
+  const integer nt  = (integer) Femlib::value ("N_TIME");
+  const integer chk = (integer) Femlib::value ("CHKPOINT");
+  const integer per = (integer) Femlib::value ("IO_FLD");
+
+  cout << "-- Coordinate system       : ";
+  if (Geometry::system() == Geometry::Cylindrical)
+    cout << "cylindrical" << endl;
+  else
+    cout << "Cartesian" << endl;
+
+  cout << "   Solution fields         : " << fields             << endl;
+
+  cout << "   Number of elements      : " << Geometry::nElmt()  << endl;
+  cout << "   Number of planes        : " << Geometry::nZ()     << endl;
+  if (Geometry::nZ() > 1) cout << "   Periodic length         : " << lz<< endl;
+  cout << "   Polynomial order (np-1) : " << Geometry::nP() - 1 << endl;
+
+  cout << "   Time integration order  : " << nt                 << endl;
+  cout << "   Start time              : " << t                  << endl;
+  cout << "   Finish time             : " << t + ns * dt        << endl;
+  cout << "   Time step               : " << dt                 << endl;
+  cout << "   Number of steps         : " << ns                 << endl;
+  cout << "   Dump interval (steps)   : " << per;
+  if (chk) cout << " (checkpoint)";  
+  cout << endl;
+}
+
+
+void Domain::initialize ()
+// ---------------------------------------------------------------------------
+// If a restart file "name".rst can be found, use it for input.  If this
+// fails, initialize all Fields to zero ICs.
 //
 // Carry out forwards Fourier transformation, zero Nyquist data.
 // ---------------------------------------------------------------------------
 {
-  int       i;
-  const int nF = nField();
-  char      restartfile[StrMax];
+  integer       i;
+  const integer nF = nField();
+  char          restartfile[StrMax];
 
-  if   (src)         strcpy (restartfile, src);
-  else       strcat (strcpy (restartfile, name), ".rst");
+  cout << "-- Initial condition       : ";
 
-  ifstream file (restartfile);
+  strcat (strcpy (restartfile, name), ".rst");
+  ifstream file  (restartfile);
 
   if (file) {
-    cout << "-- Restarting from file:  " << restartfile;
+    cout << "read from file " << restartfile;
     file >> *this;
+    file.close();
     transform (+1);
     for (i = 0; i < nF; i++) u[i] -> zeroNyquist();
   } else {
-    cout << "-- Initializing solution with zero IC";
+    cout << "set to zero";
     for (i = 0; i < nF; i++) *u[i] = 0.0;
   }
 
   cout << endl;
   
+  Femlib::value ("t", time);
   step = 0;
-
-  real dt =       Femlib::value ("D_T"   );
-  int  ns = (int) Femlib::value ("N_STEP");
-  int  nt = (int) Femlib::value ("N_TIME");
-
-  real t  = time;
-  Femlib::value ("t", t);
-
-  cout << "   Start time       : " << t           << endl;
-  cout << "   Time step        : " << dt          << endl;
-  cout << "   Number of steps  : " << ns          << endl;
-  cout << "   End time         : " << t + ns * dt << endl;
-  cout << "   Integration order: " << nt          << endl;
 }
 
 
-void  Domain::dump (ofstream& output)
+void Domain::dump ()
 // ---------------------------------------------------------------------------
 // Check if a field-file write is required, carry out.
 //
-// Fields are inverse Fouier transformed prior to dumping in order to
+// Fields are inverse Fourier transformed prior to dumping in order to
 // provide physical space values.
 // ---------------------------------------------------------------------------
 {
-  int periodic = !(step %  (int) Femlib::value ("IO_FLD"));
-  int final    =   step == (int) Femlib::value ("N_STEP");
+  const integer periodic = !(step %  (integer) Femlib::value ("IO_FLD"));
+  const integer initial  =   step == (integer) Femlib::value ("IO_FLD");
+  const integer final    =   step == (integer) Femlib::value ("N_STEP");
 
-  if ( ! (periodic || final) ) return;
+  if (!(periodic || final)) return;
 
-  char  routine[] = "Domain::dump";
-  int   verbose   = (int) Femlib::value ("VERBOSE");
-  int   chkpoint  = (int) Femlib::value ("CHKPOINT");
-
-  transform (-1);
+  const char    routine[] = "Domain::dump";
+  const integer verbose   = (integer) Femlib::value ("VERBOSE");
+  const integer chkpoint  = (integer) Femlib::value ("CHKPOINT");
+  ofstream      output;
+  char          dumpfl[StrMax], backup[StrMax], command[StrMax];
 
   if (chkpoint) {
-    char s[StrMax], b[StrMax], c[StrMax];
-
-    output.close ();
-
-    if (final)
-      strcat (strcpy (s, name), ".fld");
-    else {
-      strcat (strcpy (s, name), ".chk");
-      strcat (strcpy (b, name), ".chk.bak");
-    
-      sprintf (c, "mv ./%s ./%s", s, b);
-      system  (c);
+    if (final) {
+      strcat (strcpy (dumpfl, name), ".fld");
+      output.open (dumpfl, ios::out);
+    } else {
+      strcat (strcpy (dumpfl, name), ".chk");
+      if (!initial) {
+	strcat  (strcpy (backup, name), ".chk.bak");
+	sprintf (command, "mv ./%s ./%s", dumpfl, backup);
+	system  (command);
+      }
+      output.open (dumpfl, ios::out);
     }
-
-    output.open (s);
-    if (!output) message (routine, "can't open checkpoint file", ERROR);
+  } else {
+    strcat (strcpy (dumpfl, name), ".fld");
+    if   (initial) output.open (dumpfl, ios::out);
+    else           output.open (dumpfl, ios::app);
   }
 
+  if (!output) message (routine, "can't open dump file", ERROR);
   if (verbose) message (routine, ": writing field dump", REMARK);
 
+  transform (-1);
   output << *this;
-
   transform (+1);
+
+  output.close();
 }
 
 
-void Domain::transform (const int sign)
+void Domain::transform (const integer sign)
 // ---------------------------------------------------------------------------
 // Fourier transform all Fields according to sign.
 // ---------------------------------------------------------------------------
 {
-  int       i;
-  const int N = nField ();
+  integer       i;
+  const integer N = nField ();
   
   for (i = 0; i < N; i++) u[i] -> transform (sign);
 }
@@ -494,7 +519,7 @@ ostream& operator << (ostream& strm, Domain& D)
 // Binary output only.
 // ---------------------------------------------------------------------------
 {
-  char *hdr_fmt[] = { 
+  const char *hdr_fmt[] = { 
     "%-25s "    "Session\n",
     "%-25s "    "Created\n",
     "%-25s "    "Nr, Ns, Nz, Elements\n",
@@ -507,9 +532,9 @@ ostream& operator << (ostream& strm, Domain& D)
     "%-25s "    "Format\n"
   };
 
-  char   routine[] = "ostream << Domain";
-  char   s1[StrMax], s2[StrMax];
-  time_t tp   (::time (0));
+  const char routine[] = "ostream << Domain";
+  char       s1[StrMax], s2[StrMax];
+  time_t     tp (::time (0));
 
   sprintf (s1, hdr_fmt[0], D.name);
   strm << s1;
@@ -537,7 +562,7 @@ ostream& operator << (ostream& strm, Domain& D)
   sprintf (s1, hdr_fmt[7], Femlib::value ("BETA"));
   strm << s1;
 
-  int k;
+  integer k;
   for (k = 0; k < D.nField(); k++) s2[k] = D.u[k] -> name();
   s2[k] = '\0';
   sprintf (s1, hdr_fmt[8], s2);
@@ -548,7 +573,7 @@ ostream& operator << (ostream& strm, Domain& D)
   sprintf (s1, hdr_fmt[9], s2);
   strm << s1;
 
-  for (int n (0); n < D.nField (); n++) strm << *D.u[n];
+  for (k = 0; k < D.nField (); k++) strm << *D.u[k];
 
   if (!strm) message (routine, "failed writing field file", ERROR);
   strm << flush;
@@ -568,10 +593,11 @@ istream& operator >> (istream& strm,
 // Ordering of fields in file is allowed to differ from that in D.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "strm>>Domain";
-  int  i, j, np, nz, nel, ntot, nfields;
-  int  npchk,  nzchk, nelchk, swap = 0, verb = (int) Femlib::value ("VERBOSE");
-  char s[StrMax], f[StrMax], err[StrMax], fields[StrMax];
+  const char routine[] = "strm>>Domain";
+  integer    i, j, np, nz, nel, ntot, nfields;
+  integer    npchk,  nzchk, nelchk;
+  integer    swap = 0, verb = (integer) Femlib::value ("VERBOSE");
+  char       s[StrMax], f[StrMax], err[StrMax], fields[StrMax];
 
   if (strm.getline(s, StrMax).eof()) return strm;
 
@@ -625,7 +651,7 @@ istream& operator >> (istream& strm,
   else {
     swap = (   (strstr (s, "big") && strstr (f, "little"))
 	    || (strstr (f, "big") && strstr (s, "little")) );
-    if (swap && verb) cout << " (byte-swapping input fields)";
+    if (swap) cout << " (byte-swapping)";
   }
 
   for (j = 0; j < nfields; j++) {
@@ -639,3 +665,7 @@ istream& operator >> (istream& strm,
     
   return strm;
 }
+
+
+
+

@@ -90,12 +90,13 @@ RCSid[] = "$Id$";
 #include <strstream.h>
 #include <iomanip.h>
 
+#include <femdef.h>
 #include <Mesh.h>
 #include <Utility.h>
 #include <Femlib.h>
 
 
-static inline int rma (int i, int j, int n)
+static inline integer rma (integer i, integer j, integer n)
 // -- Row-major offsetting for 2D arrays with 0-based indexing.
 { return j + i * n; }
 
@@ -106,11 +107,12 @@ Mesh::Mesh (FEML& f) :
 // Create a Mesh using information available in feml.
 // ---------------------------------------------------------------------------
 {
-  char      routine[] = "Mesh::Mesh", err[StrMax], tag[StrMax];
-  int       i, j, k, K, Nn;
-  const int verb = (int) Femlib::value ("VERBOSE");
-  Node*     N;
-  Elmt*     E;
+  const char    routine[] = "Mesh::Mesh";
+  char          err[StrMax], tag[StrMax];
+  integer       i, j, k, K, Nn;
+  const integer verb = (integer) Femlib::value ("VERBOSE");
+  Node*         N;
+  Elmt*         E;
 
   nodeTable .setSize (0);
   elmtTable .setSize (0);
@@ -228,16 +230,16 @@ void Mesh::assemble ()
 // On exit, Sides that don't have mateElmt set should correspond to Surfaces.
 // ---------------------------------------------------------------------------
 {
-  register int  i, j, r, s, found;
-  const    int  Ne = nEl();
-  register Elmt *E, *ME;	               // -- M <==> "mate".
-  register Side *S, *MS;
+  register integer i, j, r, s, found;
+  const    integer Ne = nEl();
+  register Elmt    *E, *ME;	               // -- M <==> "mate".
+  register Side    *S, *MS;
 
   // -- First, build Elmt Sides.
 
   for (i = 0; i < Ne; i++) {
     E = elmtTable (i);
-    const int Nn = E -> nNodes();
+    const integer Nn = E -> nNodes();
     
     for (j = 0; j < Nn; j++) {
       S = new Side (j, E -> node (j), E -> ccwNode (j));
@@ -252,7 +254,7 @@ void Mesh::assemble ()
 
   for (i = 0; i < Ne; i++) {
     E = elmtTable (i);
-    const int Nn = E -> nNodes();
+    const integer Nn = E -> nNodes();
 
     for (j = 0; j < Nn; j++) {
       S = E -> side (j);
@@ -260,7 +262,7 @@ void Mesh::assemble ()
 
       for (r = 0; !found && r < Ne; r++) {
 	ME = elmtTable (r);
-	const int Nm = ME -> nNodes();
+	const integer Nm = ME -> nNodes();
 	
 	for (s = 0; !found && s < Nm; s++) {
 	  MS = ME -> side (s);
@@ -290,9 +292,10 @@ void Mesh::surfaces ()
 // Periodic boundaries can be set only once (one one side of the matchup).
 // ---------------------------------------------------------------------------
 {
-  char      routine[] = "Mesh::surfaces", err[StrMax], tag[StrMax];
-  int       i, e, s, t;
-  const int K = feml.attribute ("SURFACES", "NUMBER");
+  const char    routine[] = "Mesh::surfaces";
+  char          err[StrMax], tag[StrMax];
+  integer       i, e, s, t;
+  const integer K = feml.attribute ("SURFACES", "NUMBER");
 
   for (i = 0; i < K; i++) {
 
@@ -356,7 +359,7 @@ void Mesh::surfaces ()
       //    should not be previously set.
 
       Side *S, *MS;
-      int  me,  ms;
+      integer  me,  ms;
       feml.stream() >> me >> ms;
 
       if (me < 1 || me > nEl()) {
@@ -470,9 +473,9 @@ void Mesh::fixPeriodic ()
 // terminate self-referentially (not recursively as this is not needed).
 // ---------------------------------------------------------------------------
 {
-  register int i;
-  const int    N = nodeTable.getSize();
-  Node         *np, *npp;
+  register integer i;
+  const integer    N = nodeTable.getSize();
+  Node             *np, *npp;
 
   for (i = 0; i < N; i++) {
     np  = nodeTable [i];
@@ -490,9 +493,9 @@ void Mesh::showAssembly (Mesh& m)
 // Static debugging function: Print edge--edge connectivity information.
 // ---------------------------------------------------------------------------
 {
-  int   i, j, Ne, Nn;
-  Elmt* E;
-  Side* S;
+  integer i, j, Ne, Nn;
+  Elmt*   E;
+  Side*   S;
 
   Ne = m.nEl();
   cout << "# " << Ne << " Elmts" << endl;
@@ -528,12 +531,12 @@ void Mesh::checkAssembly ()
   char     routine[] = "Mesh::checkAssembly", err[StrMax];
   Elmt*    E;
   Side*    S;
-  register int i, j;
-  const    int Ne = nEl();
+  register integer i, j;
+  const    integer Ne = nEl();
 
   for (i = 0; i < Ne; i++) {
     E = elmtTable (i);
-    const int Ns = E -> nNodes();
+    const integer Ns = E -> nNodes();
 
     for (j = 0; j < Ns; j++) {
       S = E -> side (j);
@@ -545,7 +548,7 @@ void Mesh::checkAssembly ()
     }
   }
   
-  if ((int) Femlib::value ("VERBOSE") > 1) {
+  if ((integer) Femlib::value ("VERBOSE") > 1) {
     cout << endl << "# Summary:" << endl;
     showAssembly (*this);
   }
@@ -566,11 +569,11 @@ void Mesh::curves ()
 {
   if (!feml.seek ("CURVES")) return;
   
-  char   routine[] = "Mesh::curves";
-  char   err[StrMax], buf[StrMax];
-  int    i, K, id, elmt, side, ns;
-  Curve* C;
-  Side*  S;
+  const char routine[] = "Mesh::curves";
+  char       err[StrMax], buf[StrMax];
+  integer    i, K, id, elmt, side, ns;
+  Curve*     C;
+  Side*      S;
 
   curveTable.setSize (K = feml.attribute ("CURVES", "NUMBER"));
 
@@ -613,9 +616,9 @@ void Mesh::curves ()
 }
 
 
-CircularArc::CircularArc (const int   id,
-			  Mesh::Side* S ,
-			  const real  R )
+CircularArc::CircularArc (const integer id,
+			  Mesh::Side*   S ,
+			  const real    R )
 // ---------------------------------------------------------------------------
 // Constructor for CircularArc.  R is the radius of arc, and its sign
 // specifies the convexity of the element edge.
@@ -624,12 +627,13 @@ CircularArc::CircularArc (const int   id,
 // R -ve ==> arc decreases area enclosed by element.
 // ---------------------------------------------------------------------------
 {
-  char err[StrMax], routine[] = "CircularArc::CircularArc";
+  const char routine[] = "CircularArc::CircularArc";
+  char       err[StrMax];
 
   curveSide = S;
-
   convexity = (R < 0.0) ? -1 : 1;
   radius    = fabs (R);
+
   Point P1  = curveSide -> startNode -> loc;
   Point P2  = curveSide -> endNode   -> loc;
   Point unitNormal, link, midpoint, centroid = {0.0, 0.0, 0.0};
@@ -666,17 +670,17 @@ CircularArc::CircularArc (const int   id,
 }
 
 
-void CircularArc::compute (const int   np     ,
-			   const real* spacing,
-			   Point*      knot   ) const
+void CircularArc::compute (const integer np     ,
+			   const real*   spacing,
+			   Point*        knot   ) const
 // ---------------------------------------------------------------------------
 // Distribute np knots along arc according to spacing on -1, 1.
 // ---------------------------------------------------------------------------
 {
-  Point     P1 = curveSide -> startNode -> loc;
-  Point     P2 = curveSide -> endNode   -> loc;
-  real      theta1, theta2, dtheta, phi;
-  const int nm = np - 1;
+  Point         P1 = curveSide -> startNode -> loc;
+  Point         P2 = curveSide -> endNode   -> loc;
+  real          theta1, theta2, dtheta, phi;
+  const integer nm = np - 1;
 
   theta1 = atan2 (P1.y - centre.y, P1.x - centre.x);
   theta2 = atan2 (P2.y - centre.y, P2.x - centre.x);
@@ -688,7 +692,7 @@ void CircularArc::compute (const int   np     ,
   knot[ 0].x = P1.x;  knot[ 0].y  = P1.y;
   knot[nm].x = P2.x;  knot[nm].y = P2.y;
 
-  for (int i(1); i < nm; i++) {
+  for (integer i(1); i < nm; i++) {
     phi = theta1 + dtheta * 0.5 * (spacing[i] + 1.0);
     knot[i].x = centre.x + radius * cos (phi);
     knot[i].y = centre.y + radius * sin (phi);
@@ -701,9 +705,9 @@ Point Mesh::Elmt::centroid () const
 // Return point that is centroid of element Node points.
 // ---------------------------------------------------------------------------
 {
-  register int i;
-  const    int K = nNodes();
-  Point        C = {0.0, 0.0, 0.0};
+  register integer i;
+  const    integer K = nNodes();
+  Point            C = {0.0, 0.0, 0.0};
 
   for (i = 0; i < K; i++) {
     Point P = node (i) -> loc;
@@ -718,11 +722,11 @@ Point Mesh::Elmt::centroid () const
 }
 
 
-void Mesh::meshSide (const int   np     ,
-		     const int   elmt   ,
-		     const int   side   ,
-		     const real* spacing,
-		     Point*      knot   ) const
+void Mesh::meshSide (const integer np     ,
+		     const integer elmt   ,
+		     const integer side   ,
+		     const real*   spacing,
+		     Point*        knot   ) const
 // ---------------------------------------------------------------------------
 // If a curved side can be identified for the nominated element and side,
 // compute the points using appropriate routine.  Otherwise compute points
@@ -731,10 +735,10 @@ void Mesh::meshSide (const int   np     ,
 // Spacing gives location of knots in master coordinates [-1, 1].
 // ---------------------------------------------------------------------------
 {
-  char         routine[] = "Mesh::meshSide";
-  register int i;
-  const int    Nc = curveTable.getSize();
-  const int    Ne = elmtTable .getSize();
+  const char       routine[] = "Mesh::meshSide";
+  register integer i;
+  const integer    Nc = curveTable.getSize();
+  const integer    Ne = elmtTable .getSize();
 
   if (np < 2) message (routine, "must have at least two points", ERROR);
 
@@ -762,11 +766,11 @@ void Mesh::meshSide (const int   np     ,
 }
 
 
-void Mesh::meshElmt (const int   ID,
-		     const int   np,
-		     const real* z ,
-		     real*       x ,
-		     real*       y ) const
+void Mesh::meshElmt (const integer ID,
+		     const integer np,
+		     const real*   z ,
+		     real*         x ,
+		     real*         y ) const
 // ---------------------------------------------------------------------------
 // Generate mesh points for Elmt No ID (IDs begin at 0).
 // Generate element-edge points, then internal points using a Coons patch.
@@ -775,11 +779,11 @@ void Mesh::meshElmt (const int   ID,
 // For a quad mesh, equal-order on each side, x & y have row-major ordering.
 // ---------------------------------------------------------------------------
 {
-  char     routine[] = "Mesh::meshElmt";
-  register int  i, j;
-  const    int  nm = np - 1;
-  const    int  ns = elmtTable (ID) -> nNodes();
-  vector<Point> P (np);
+  const char       routine[] = "Mesh::meshElmt";
+  register integer i, j;
+  const    integer nm = np - 1;
+  const    integer ns = elmtTable (ID) -> nNodes();
+  vector<Point>    P (np);
 
   // -- Compute and load peripheral points.
 
@@ -838,8 +842,8 @@ void Mesh::meshElmt (const int   ID,
 }
 
 
-int Mesh::buildMap (const int np ,
-		    int*      map)
+integer Mesh::buildMap (const integer np ,
+			integer*      map)
 // ---------------------------------------------------------------------------
 // Generate connectivity (i.e. global knot numbers) for a mesh with np
 // knot points (i.e. Lagrange knots) along each element side, ignoring
@@ -853,17 +857,17 @@ int Mesh::buildMap (const int np ,
 // NB: this connectivity information is generated without reference to BCs.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "Mesh::buildMap";
+  const char routine[] = "Mesh::buildMap";
 
   if (np < 2) message (routine, "need at least 2 knots", ERROR);
 
   // -- Create element-side based gID storage, if required, & initialize gIDs.
   
-  register int i, j, k, ns;
-  const    int nel = nEl(), ni = np - 2;
-  int          nGid = 0, nb = 0;
-  Elmt*        E;
-  Side*        S;
+  register integer i, j, k, ns;
+  const    integer nel = nEl(), ni = np - 2;
+  integer          nGid = 0, nb = 0;
+  Elmt*            E;
+  Side*            S;
 
   // -- Allocate space, unset all knot numbers.
 
@@ -920,14 +924,14 @@ int Mesh::buildMap (const int np ,
 }
 
 
-void Mesh::Side::connect (const int ni ,
-			  int&      gid)
+void Mesh::Side::connect (const integer ni ,
+			  integer&      gid)
 // ---------------------------------------------------------------------------
 // Fill in connectivity for this element side, updating global number gid.
 // ---------------------------------------------------------------------------
 {
-  register int   i, k;
-  register Side* otherSide;
+  register integer i, k;
+  register Side*   otherSide;
 
   if (startNode -> periodic) {
     if (startNode -> periodic -> gID == UNSET)
@@ -987,11 +991,11 @@ void Mesh::printNek () const
 // Print out mesh information in NEKTON format.
 // ---------------------------------------------------------------------------
 {
-  char       routine[] = "Mesh::printNek";
+  const char routine[] = "Mesh::printNek";
   char       err [StrMax], buf[StrMax];
   ostrstream os  (err, StrMax);
 
-  int        i, j, ns, nel = nEl();
+  integer    i, j, ns, nel = nEl();
   float      vbc;
   Elmt       *E, *ME;
   Side       *S;
@@ -1077,7 +1081,7 @@ void Mesh::printNek () const
 	  describeBC (S -> group, 'v', buf);
 	  sscanf     (buf, "%*s %*s %f", &vbc);
 	  cout << setw (14) << vbc;
-	  if ((int) Femlib::value ("N_Z") > 1) {
+	  if ((integer) Femlib::value ("N_Z") > 1) {
 	    describeBC (S -> group, 'w', buf);
 	    sscanf     (buf, "%*s %*s %f", &vbc);
 	  } else
@@ -1118,10 +1122,10 @@ void Mesh::describeGrp (char  G,
 // Search feml file info for string descriptor matching G, load into S.
 // ---------------------------------------------------------------------------
 {
-  char      routine[] = "Mesh::describeGrp";
-  char      groupc, err[StrMax], buf[StrMax];
-  int       i, id, found = 0;
-  const int N = feml.attribute ("GROUPS", "NUMBER");
+  const char    routine[] = "Mesh::describeGrp";
+  char          groupc, err[StrMax], buf[StrMax];
+  integer       i, id, found = 0;
+  const integer N = feml.attribute ("GROUPS", "NUMBER");
   
   for (i = 0; !found && i < N; i++) {
     while (feml.stream().peek() == '#') // -- Skip comments.
@@ -1145,10 +1149,10 @@ void Mesh::describeBC (char  grp,
 // load into tgt.
 // ---------------------------------------------------------------------------
 {
-  char      routine[] = "Mesh::describeBC";
-  char      eql, groupc, fieldc, err[StrMax], buf[StrMax];
-  int       i, j, id, nbcs, found = 0;
-  const int N = feml.attribute ("BCS", "NUMBER");
+  const char    routine[] = "Mesh::describeBC";
+  char          eql, groupc, fieldc, err[StrMax], buf[StrMax];
+  integer       i, j, id, nbcs, found = 0;
+  const integer N = feml.attribute ("BCS", "NUMBER");
 
   for (i = 0; !found && i < N; i++) {
 
@@ -1194,9 +1198,9 @@ void Mesh::describeBC (char  grp,
 }
 
 
-void Mesh::buildMask (const int  np  ,
-		      const char fld ,
-		      int*       mask)
+void Mesh::buildMask (const integer np  ,
+		      const char    fld ,
+		      integer*      mask)
 // ---------------------------------------------------------------------------
 // This routine generates an integer mask (0/1) vector for element-boundary
 // nodes.  For any location that corresponds to a domain boundary with an
@@ -1211,15 +1215,15 @@ void Mesh::buildMask (const int  np  ,
 // symmetry axis.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "Mesh::buildMask";
+  const char routine[] = "Mesh::buildMask";
 
   if (np < 2) message (routine, "need at least 2 knots", ERROR);
 
-  register int i, j, k, ns, nb = 0;
-  const    int nel   = nEl(), ni = np - 2;
-  const    int axisE = strchr ("UvwPC", fld) != 0;
-  Elmt*        E;
-  Side*        S;
+  register integer i, j, k, ns, nb = 0;
+  const integer    nel   = nEl(), ni = np - 2;
+  const integer    axisE = strchr ("UvwPC", fld) != 0;
+  Elmt*            E;
+  Side*            S;
 
   // -- Allocate space, unmask all gIDs.
 
@@ -1284,9 +1288,9 @@ void Mesh::buildMask (const int  np  ,
 }
 
 
-int Mesh::matchBC (const char grp,
-		   const char fld,
-		   const char bcd)
+integer Mesh::matchBC (const char grp,
+		       const char fld,
+		       const char bcd)
 // ---------------------------------------------------------------------------
 // From FEML BC information, return 1 if the boundary condition kind shown
 // for group 'grp' and field 'fld' is of type 'bcd'.
@@ -1298,9 +1302,9 @@ int Mesh::matchBC (const char grp,
 //   A <==> "Axis" (selected, natural/essential) BC.       See TOK93.
 // ---------------------------------------------------------------------------
 {
-  char      groupc, fieldc, buf[StrMax];
-  int       i, j, id, nbcs;
-  const int N = feml.attribute ("BCS", "NUMBER");
+  char          groupc, fieldc, buf[StrMax];
+  integer       i, j, id, nbcs;
+  const integer N = feml.attribute ("BCS", "NUMBER");
 
   for (i = 0; i < N; i++) {
 

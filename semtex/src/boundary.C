@@ -13,24 +13,24 @@ RCSid[] = "$Id$";
 #include <Sem.h>
 
 
-Boundary::Boundary (const int   Ident ,
-		    const int   Voffst,
-		    const char* Bgroup,
-		    Condition*  Bcondn,
-		    Element*    Elmt  ,
-		    const int   Side  ) :
+Boundary::Boundary (const integer Ident ,
+		    const integer Voffst,
+		    const char*   Bgroup,
+		    Condition*    Bcondn,
+		    Element*      Elmt  ,
+		    const integer Side  ) :
 
-		    id         (Ident ),
-		    bgroup     (Bgroup),
-		    bcondn     (Bcondn),
-		    elmt       (Elmt  ),
-		    side       (Side  ),
-		    voffset    (Voffst)
+		    id           (Ident ),
+		    bgroup       (Bgroup),
+		    bcondn       (Bcondn),
+		    elmt         (Elmt  ),
+		    side         (Side  ),
+		    voffset      (Voffst)
 // ---------------------------------------------------------------------------
 // Constructor.  Allocate new memory for value & geometric factors.
 // ---------------------------------------------------------------------------
 {
-  const int np = elmt -> nKnot();
+  const integer np = elmt -> nKnot();
 
   nx   = new real [np];
   ny   = new real [np];
@@ -41,22 +41,22 @@ Boundary::Boundary (const int   Ident ,
 }
 
 
-void Boundary::evaluate (const int plane,
-			 const int step ,
-			 real*     tgt  ) const
+void Boundary::evaluate (const integer plane,
+			 const integer step ,
+			 real*         tgt  ) const
 // ---------------------------------------------------------------------------
 // Load boundary condition storage area with numeric values.
 // ---------------------------------------------------------------------------
 {
-  const int np = elmt -> nKnot();
+  const integer np = elmt -> nKnot();
 
   bcondn -> evaluate (np, id, plane, elmt, side, step, nx, ny, tgt);
 }
 
 
-void Boundary::set (const real* src,
-		    const int*  b2g,
-		    real*       tgt) const
+void Boundary::set (const real*    src,
+		    const integer* b2g,
+		    real*          tgt) const
 // ---------------------------------------------------------------------------
 // Use (boundary condition) values in src to over-ride (set) values
 // in globally-numbered tgt.  This will only take place on essential BCs.
@@ -66,9 +66,9 @@ void Boundary::set (const real* src,
 }
 
 
-void Boundary::sum (const real* src,
-		    const int*  b2g,
-		    real*       tgt) const
+void Boundary::sum (const real*    src,
+		    const integer* b2g,
+		    real*          tgt) const
 // ---------------------------------------------------------------------------
 // Use (boundary condition) values in src to add in the boundary-integral
 // terms generated in constructing the weak form of the MWR into globally-
@@ -102,17 +102,17 @@ void Boundary::print () const
 }
 
 
-void Boundary::curlCurl (const int    k ,
-			 const real*  Ur,
-			 const real*  Ui,
-			 const real*  Vr,
-			 const real*  Vi,
-			 const real*  Wr,
-			 const real*  Wi,
-			 real*        xr,
-			 real*        xi,
-			 real*        yr,
-			 real*        yi) const
+void Boundary::curlCurl (const integer k ,
+			 const real*   Ur,
+			 const real*   Ui,
+			 const real*   Vr,
+			 const real*   Vi,
+			 const real*   Wr,
+			 const real*   Wi,
+			 real*         xr,
+			 real*         xi,
+			 real*         yr,
+			 real*         yi) const
 // ---------------------------------------------------------------------------
 // Generate (the Fourier mode equivalent of) curl curl u along this boundary.
 //
@@ -134,9 +134,9 @@ void Boundary::curlCurl (const int    k ,
 {
   const Geometry::CoordSys space = Geometry::system();
 
-  const int np   = elmt -> nKnot();
-  const int ntot = elmt -> nTot();
-  const int doff = elmt -> dOff();
+  const integer np   = elmt -> nKnot();
+  const integer ntot = elmt -> nTot();
+  const integer doff = elmt -> dOff();
 
   vector<real> work (3 * ntot + np);
   real* w  = work();
@@ -174,7 +174,7 @@ void Boundary::curlCurl (const int    k ,
 
     const real betaK  = k * Femlib::value ("BETA");
     const real betaK2 = sqr (betaK);
-    const int  loff   = doffset - doff; // -- Side offset in workspace.
+    const integer  loff   = doffset - doff; // -- Side offset in workspace.
 
     // -- Make the equivalents of the 2D terms above.
 
@@ -270,8 +270,8 @@ Vector Boundary::normalTraction (const char* grp,
   Vector Force = {0.0, 0.0, 0.0};
 
   if (strcmp (grp, bcondn -> group()) == 0) {
-    register int i;
-    const int    np = nKnot();
+    register integer i;
+    const integer    np = nKnot();
 
     Veclib::copy (np, p + doffset, dskip, wrk, 1);
 
@@ -300,8 +300,8 @@ Vector Boundary::tangentTraction (const char* grp,
   Vector Force = {0.0, 0.0, 0.0};
 
   if (strcmp (grp, bcondn -> group()) == 0) {
-    register int i;
-    const int    np = nKnot(), offset = elmt -> dOff();
+    register integer i;
+    const integer    np = nKnot(), offset = elmt -> dOff();
 
     elmt -> sideGrad (side, u + offset, ux, uy);
 
