@@ -45,8 +45,8 @@ public:
 	const integer, const integer, const integer,
 	const integer, const integer, const integer);
 
-  integer match    (vector<integer>&);
-  void    addField (char);
+  bool match    (vector<integer>&);
+  void addField (char);
 
   integer         nel;
   integer         np_max;
@@ -89,7 +89,7 @@ static char axial     (FEML*);
 static void getfields (FEML*, char*, const bool);
 static void checkVBCs (FEML*, const char*);
 static void checkABCs (FEML*, const char);
-       void printup   (const char*y, vector<Nsys*>&, const int);
+       void printup   (const char*, vector<Nsys*>&, const integer);
 
 
 int main (int    argc,
@@ -111,7 +111,7 @@ int main (int    argc,
 {
   char *session = 0, field[StrMax], axistag;
   FEML *file;
-  int  np = 0, opt = 1;
+  integer  np = 0, opt = 1;
   bool cyl3D = false;
 
   Femlib::initialize (&argc, &argv);
@@ -119,11 +119,11 @@ int main (int    argc,
 
   file = new FEML (session);
 
-  if (verb)                   Femlib::value ("VERBOSE", verb);
-  if   (np)                   Femlib::value ("N_POLY", np);
-  else  np = static_cast<int>(Femlib::value ("N_POLY"));
+  if (verb)  Femlib::ivalue ("VERBOSE", verb);
+  if   (np)  Femlib::ivalue ("N_POLY", np);
+  else  np = Femlib::ivalue ("N_POLY");
 
-  cyl3D = static_cast<int>(Femlib::value("CYLINDRICAL"));
+  cyl3D = static_cast<bool>(Femlib::ivalue ("CYLINDRICAL"));
 
   getfields (file, field, (axistag = axial (file)) && cyl3D);
   if (axistag) checkABCs (file, axistag);
@@ -132,7 +132,8 @@ int main (int    argc,
   Mesh            M (file);
   vector<Nsys*>   S (strlen (field));
 
-  integer         i, j, k = 0, found;
+  integer         i, j, k = 0;
+  bool            found;
   const  integer  NEL      = M.nEl();
   const  integer  NP_MAX   = np;
   const  integer  NEXT_MAX = 4 * (NP_MAX - 1);
@@ -151,7 +152,7 @@ int main (int    argc,
 
   for (i = 1; i < strlen (field); i++) {
     M.buildMask (np, field[i], &mask[0]);
-    found = 0;
+    found = false;
     for (j = 0; !found && j < k; j++)
       if (found = S[j] -> match (mask)) 
 	S[j] -> addField (field[i]);
@@ -169,7 +170,7 @@ int main (int    argc,
       if (strchr (&S[i] -> fields[0], 'p')) {
 	Nsys* pressure = S[i];
 	if (!Veclib::any (pressure -> nbndry, &pressure -> bndmsk[0], 1)) {
-	  pressure -> rebuild (file, clamp (static_cast<int>(opt), 2, 3));
+	  pressure -> rebuild (file, clamp (static_cast<integer>(opt), 2, 3));
 	  break;
 	}
       }
@@ -339,7 +340,7 @@ static void checkVBCs (FEML*       file ,
   if (!file->seek ("BCS")) return;
   if (!strchr (field, 'u')) return;
   if (!strchr (field, 'v') || !strchr (field, 'w')) return;
-//   message (prog,"radial, azimuthal velocity fields v, w not declared",ERROR);
+//message (prog,"radial, azimuthal velocity fields v, w not declared",ERROR);
 
   integer       i, j, id, nbcs;
   char          vtag, wtag, groupc, fieldc, tagc, tag[StrMax], err[StrMax];
@@ -572,14 +573,15 @@ Nsys::Nsys (char             name    ,
 }
 
 
-integer Nsys::match (vector<integer>& test)
+bool Nsys::match (vector<integer>& test)
 // ---------------------------------------------------------------------------
 // Return true if test and bndmsk match.
 // ---------------------------------------------------------------------------
 {
-  if (test.size() != bndmsk.size()) return 0;
+  if (test.size() != bndmsk.size()) return false;
 
-  return Veclib::same (bndmsk.size(), &bndmsk[0], 1, &test[0], 1);
+  return
+    static_cast<bool>(Veclib::same (bndmsk.size(), &bndmsk[0],1, &test[0],1));
 }
 
 

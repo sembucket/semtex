@@ -16,12 +16,12 @@
 static char RCS[] = "$Id$";
 
 #include<sem_h>
-class rvect { public: int size; real* data; int nrep; };
+class rvect { public: integer size; real* data; integer nrep; };
 
 static vector<rvect*> rv;
 
 namespace Family {
-static real* adopted (const int size, const real* src)
+static real* adopted (const integer size, const real* src)
 {
   vector<rvect*>::iterator p;
   bool found;
@@ -44,7 +44,7 @@ void abandon (real** vect)
     }
 }
 
-void adopt (const int size, real** vect)
+void adopt (const integer size, real** vect)
 {
   if (!vect || !*vect) return;
 

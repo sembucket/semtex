@@ -105,18 +105,15 @@ static void getargs (int    argc   ,
       exit (EXIT_SUCCESS);
       break;
     case 'i':
-      Femlib::value ("ITERATIVE",static_cast<int>(1));
+      Femlib::ivalue ("ITERATIVE", static_cast<integer>(1));
       break;
     case 'v':
       do
-	Femlib::value ("VERBOSE",static_cast<int>(Femlib::value("VERBOSE"))+1);
+	Femlib::ivalue ("VERBOSE", Femlib::value("VERBOSE")+1);
       while (*++argv[0] == 'v');
       break;
     default:
-      ROOTONLY {
-	sprintf (buf, usage, prog);
-	cout << buf;
-      }
+      ROOTONLY { sprintf (buf, usage, prog); cout << buf; }
       exit (EXIT_FAILURE);
       break;
     }
@@ -140,7 +137,7 @@ static void preprocess (const char*       session,
 // They are listed in order of creation.
 // ---------------------------------------------------------------------------
 {
-  const integer      verbose = (integer) Femlib::value ("VERBOSE");
+  const integer      verbose = Femlib::ivalue ("VERBOSE");
   Geometry::CoordSys space;
   integer            i, np, nz, nel;
 
@@ -157,10 +154,10 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "Setting geometry ... ";
 
-  nel   = mesh -> nEl();
-  np    =  (integer) Femlib::value ("N_POLY");
-  nz    =  (integer) Femlib::value ("N_Z");
-  space = ((integer) Femlib::value ("CYLINDRICAL")) ? 
+  nel   =  mesh -> nEl();
+  np    =  Femlib::ivalue ("N_POLY");
+  nz    =  Femlib::ivalue ("N_Z");
+  space = (Femlib::ivalue ("CYLINDRICAL")) ? 
     Geometry::Cylindrical : Geometry::Cartesian;
   
   Geometry::set (np, nz, nel, space);
@@ -251,7 +248,7 @@ static void getforcing (const char* session  ,
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "getforcing";
-  char restartfile[StrMax];
+  char       restartfile[StrMax];
   
   ROOTONLY cout << "-- Forcing          : ";
   ifstream file (strcat (strcpy (restartfile, session), ".frc"));

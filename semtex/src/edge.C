@@ -14,7 +14,7 @@ static char RCS[] = "$Id$";
 
 Edge::Edge (const char*    grp ,
 	    const Element* elmt,
-	    const int      side) : 
+	    const integer  side) : 
 // ---------------------------------------------------------------------------
 // Class constructor.
 // ---------------------------------------------------------------------------
@@ -22,9 +22,9 @@ Edge::Edge (const char*    grp ,
   _elmt (elmt),
   _side (side)
 {
-  const char routine[] = "Edge::Edge";
-  const int  npnp      = sqr (_np);
-  char       err[StrMax];
+  const char    routine[] = "Edge::Edge";
+  const integer npnp      = sqr (_np);
+  char          err[StrMax];
 
   strcpy ((_group = new char [static_cast<size_t>(strlen (grp) + 1)]), grp);
 
@@ -68,18 +68,18 @@ void Edge::geometry (real* X   ,
 }
 
 
-void Edge::curlCurl (const int   k  ,
-		     const real* Ur ,
-		     const real* Ui ,
-		     const real* Vr ,
-		     const real* Vi ,
-		     const real* Wr ,
-		     const real* Wi ,
-		     real*       xr ,
-		     real*       xi ,
-		     real*       yr ,
-		     real*       yi ,
-		     real*       wrk) const
+void Edge::curlCurl (const integer k  ,
+		     const real*   Ur ,
+		     const real*   Ui ,
+		     const real*   Vr ,
+		     const real*   Vi ,
+		     const real*   Wr ,
+		     const real*   Wi ,
+		     real*         xr ,
+		     real*         xi ,
+		     real*         yr ,
+		     real*         yi ,
+		     real*         wrk) const
 // ---------------------------------------------------------------------------
 // Generate (the Fourier mode equivalent of) curl curl u along this boundary.
 //
@@ -101,9 +101,9 @@ void Edge::curlCurl (const int   k  ,
 // Work vector wrk 5*np*np + 3*np long.
 // ---------------------------------------------------------------------------
 {
-  const int npnp     = sqr (_np);
-  const int elmtOff  = _elmt -> ID() * npnp;
-  const int localOff = _doffset - elmtOff;
+  const integer npnp     = sqr (_np);
+  const integer elmtOff  = _elmt -> ID() * npnp;
+  const integer localOff = _doffset - elmtOff;
 
   real* gw = wrk;
   real* ew = gw + npnp + npnp;
@@ -240,8 +240,8 @@ Vector Edge::normalTraction (const char* grp,
 // Wrk is a work vector elmt_np_max long.
 // ---------------------------------------------------------------------------
 {
-  int    i;
-  Vector Force = {0.0, 0.0, 0.0};
+  integer i;
+  Vector  Force = {0.0, 0.0, 0.0};
 
   if (strcmp (grp, _group) == 0) {
 
@@ -271,7 +271,7 @@ Vector Edge::tangentTraction (const char* grp,
   Vector Force = {0.0, 0.0, 0.0};
 
   if (strcmp (grp, _group) == 0) {
-    register int i;
+    register integer i;
     real         *ux = wrk + 2 * _np, *uy = wrk + 3 * _np;
 
     _elmt -> sideGrad (_side, u + _doffset, ux, uy, wrk);
@@ -303,9 +303,9 @@ real Edge::normalFlux (const char* grp,
 // is 2*_np long.
 // ---------------------------------------------------------------------------
 {
-  int  i;
-  real flux = 0.0;
-  real *U = wrk, *V = wrk + _np;
+  integer i;
+  real    flux = 0.0;
+  real    *U = wrk, *V = wrk + _np;
   
   if (strcmp (grp, _group) == 0) {
 
@@ -334,7 +334,7 @@ real Edge::gradientFlux (const char* grp,
   register real dcdn = 0.0;
   
   if (strcmp (grp, _group) == 0) {
-    register int  i;
+    register integer  i;
     register real *cx = wrk, *cy = wrk + _np, *r = wrk + _np + _np;
 
     _elmt -> sideGrad (_side, src + _doffset, cx, cy, r);
@@ -393,8 +393,8 @@ void Edge::divY (real* tgt) const
 // Divide tgt by y (typically, radius) along this edge.
 // ---------------------------------------------------------------------------
 {
-  register int i;
-  real     invr;
+  register integer i;
+  real             invr;
 
   for (i = 0; i < _np; i++) {
     invr = (_y[i] > EPSDP) ? 1.0/_y[i] : 0.0;

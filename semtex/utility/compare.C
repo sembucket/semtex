@@ -41,7 +41,7 @@ static char RCS[] = "$Id$";
 static char    prog[]    = "compare";
 const  integer EXACT_MAX = 32;
 
-static void getargs (int, char**, integer&, integer&, char*&, ifstream&);
+static void getargs (int, char**, bool&, bool&, char*&, ifstream&);
 
 
 int main (int    argc,
@@ -55,7 +55,8 @@ int main (int    argc,
   char               buf[StrMax], err[StrMax], fmt[StrMax], fields[StrMax];
   char               function[EXACT_MAX][StrMax];
   integer            i, j, np, nz, nel, found;
-  integer            nexact = 0, nfields = 0, swab = 0, tran = 0, noise = 0;
+  integer            nexact = 0, nfields = 0;
+  bool               swab = false, tran = false, noise = false;
   real               t;
   Geometry::CoordSys system;
   vector<Element*>   Esys;
@@ -72,10 +73,10 @@ int main (int    argc,
   FEML* F = new FEML (session);
   Mesh* M = new Mesh (F);
 
-  nel    = M -> nEl();  
-  np     = (integer) Femlib::value ("N_POLY");
-  nz     = (integer) Femlib::value ("N_Z");
-  system = (Femlib::value ("CYLINDRICAL"))
+  nel    =  M -> nEl();  
+  np     =  Femlib::ivalue ("N_POLY");
+  nz     =  Femlib::ivalue ("N_Z");
+  system = (Femlib::ivalue ("CYLINDRICAL"))
     ? Geometry::Cylindrical : Geometry::Cartesian;
 
   Geometry::set (np, nz, nel, system);
@@ -208,7 +209,7 @@ int main (int    argc,
       if   (t < NOISE && noise ) cerr << "noise-level" << endl;
       else                       cerr << t             << endl;
 
-      if (tran) exact -> transform (+1);
+      if (tran) exact -> transform (FORWARD);
       if (swab) exact -> reverse();
       cout << *exact;
     }
@@ -278,7 +279,7 @@ int main (int    argc,
       tok    = strtok (function[j], "=");
       tok    = strtok (0, "\0");
       *exact = (const char*) tok;
-      if (tran) exact -> transform (+1);
+      if (tran) exact -> transform (FORWARD);
       cout << *exact;
     }
   }
@@ -291,8 +292,8 @@ int main (int    argc,
 
 static void getargs (int       argc ,
 		     char**    argv ,
-		     integer&  tran ,
-		     integer&  noise,
+		     bool&     tran ,
+		     bool&     noise,
 		     char*&    sess ,
 		     ifstream& fldf )
 // ---------------------------------------------------------------------------
@@ -309,8 +310,8 @@ static void getargs (int       argc ,
   while (--argc && **++argv == '-')
     switch (c = *++argv[0]) {
     case 'h': cerr << usage; exit (EXIT_SUCCESS); break;
-    case 'n': noise = 1; break;
-    case 't': tran  = 1; break;
+    case 'n': noise = true; break;
+    case 't': tran  = true; break;
     default:
       sprintf (err, "illegal option: %c\n", c);
       message (prog, err, ERROR); break;

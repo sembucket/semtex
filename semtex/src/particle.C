@@ -34,16 +34,16 @@ FluidParticle::FluidParticle (Domain*       d,
   _p    (p)
 {
   register integer k;
-  const integer    guess = 1;
+  const bool       guess = true;
 
   if (!_Dom) {			// -- Set up first time through.
     _Dom     = d;
     _NCOM    = (d -> nField() > 3) ? 3 : 2;
     _NEL     = Geometry::nElmt();
     _NZ      = Geometry::nZ();
-    _DT      = Femlib::value ("D_T");
-    _Lz      = Femlib::value ("TWOPI / BETA");
-    _TORD    = static_cast<int>(Femlib::value ("N_TIME"));
+    _DT      = Femlib::value  ("D_T");
+    _Lz      = Femlib::value  ("TWOPI / BETA");
+    _TORD    = Femlib::ivalue ("N_TIME");
     _P_coeff = new real [static_cast<size_t>(_TORD + _TORD)];
     _C_coeff = new real [static_cast<size_t>(_TORD*(_TORD + 1))];
 
@@ -108,7 +108,7 @@ void FluidParticle::integrate ()
   const integer    N     = min (++_step, _TORD);
   const integer    NP    = N + 1;
   const integer    NM    = N - 1;
-  const integer    guess = 1;
+  const bool       guess = true;
   real             xp, yp, zp, up, vp, wp;
   real             *predictor, *corrector;
 
@@ -140,7 +140,7 @@ void FluidParticle::integrate ()
       }
       if (!_E) {
 #if defined (DEBUG)
-	if (static_cast<int>(Femlib::value("VERBOSE")) > 3) {
+	if (Femlib::ivalue ("VERBOSE") > 3) {
 	  char     str[StrMax];
 	  sprintf (str, "Particle %1d at (%f, %f, %f) left mesh",
 		   _id, _p.x, _p.y, _p.z);
@@ -174,7 +174,7 @@ void FluidParticle::integrate ()
       }
       if (!_E) {
 #if defined (DEBUG)
-	if (static_cast<int>(Femlib::value("VERBOSE")) > 3) {
+	if (Femlib::ivalue ("VERBOSE") > 3) {
 	  char     str[StrMax];
 	  sprintf (str, "Particle %1d at (%f, %f, %f) left mesh",
 		   _id, _p.x, _p.y, _p.z);

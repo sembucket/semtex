@@ -43,10 +43,10 @@ void DNSAnalyser::analyse (AuxField** work)
   Analyser::analyse (work);
 #if 0
   ROOTONLY {
-    const integer periodic = !(src->step % (integer)Femlib::value("IO_HIS")) ||
-                             !(src->step % (integer)Femlib::value("IO_FLD"));
-    const integer final    =   src->step ==(integer)Femlib::value("N_STEP");
-    const integer state    = periodic || final;
+    const bool periodic = !(src->step %  Femlib::ivalue ("IO_HIS")) ||
+                          !(src->step %  Femlib::ivalue ("IO_FLD"));
+    const bool final    =   src->step == Femlib::ivalue ("N_STEP");
+    const bool state    = periodic || final;
 
     if (!state) return;
 

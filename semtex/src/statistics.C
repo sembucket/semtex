@@ -45,16 +45,15 @@ Statistics::Statistics (Domain*            D    ,
   name (D -> name),
   base (D)
 {
-  int       i, j;
-  const int ND    = Geometry::nDim();
-  const int NF    = base -> u.size();
-  const int NE    = extra.size();
-  const int NR    = (static_cast<int>(Femlib::value ("AVERAGE")) > 1) ? 
-                    ((ND + 1) * ND) >> 1 : 0;
-  const int NT    = NF + NE + NR;
-  const int nz    = Geometry::nZProc();
-  const int ntot  = Geometry::nTotProc();
-  real*     alloc = new real [static_cast<size_t>(NT * ntot)];
+  integer       i, j;
+  const integer ND    = Geometry::nDim();
+  const integer NF    = base -> u.size();
+  const integer NE    = extra.size();
+  const integer NR    = (Femlib::ivalue ("AVERAGE") > 1) ? ((ND+1)*ND)>>1 : 0;
+  const integer NT    = NF + NE + NR;
+  const integer nz    = Geometry::nZProc();
+  const integer ntot  = Geometry::nTotProc();
+  real*         alloc = new real [static_cast<size_t>(NT * ntot)];
 
   ROOTONLY cout << "-- Initialising averaging  : ";  
 
@@ -103,12 +102,11 @@ void Statistics::update (AuxField** work)
 // dealiasing, and are held in physical space.
 // ---------------------------------------------------------------------------
 {
-  int       i;
-  const int NT = avg.size();
-  const int ND = Geometry::nDim();
-  const int NR = (static_cast<int>(Femlib::value ("AVERAGE")) > 1) ? 
-                 ((ND + 1) * ND) >> 1 : 0;
-  const int NA = NT - NR;
+  integer       i;
+  const integer NT = avg.size();
+  const integer ND = Geometry::nDim();
+  const integer NR = (Femlib::ivalue ("AVERAGE") > 1) ? ((ND+1)*ND)>>1 : 0;
+  const integer NA = NT - NR;
 
   if (NR) {
     
@@ -155,28 +153,27 @@ void Statistics::dump ()
 // Similar to Domain::dump.
 // ---------------------------------------------------------------------------
 {
-  const int step     = base -> step;
-  const int periodic = !(step %  static_cast<int>(Femlib::value ("IO_FLD")));
-  const int initial  =   step == static_cast<int>(Femlib::value ("IO_FLD"));
-  const int final    =   step == static_cast<int>(Femlib::value ("N_STEP"));
+  const integer step     = base -> step;
+  const integer periodic = !(step %  Femlib::ivalue ("IO_FLD"));
+  const integer initial  =   step == Femlib::ivalue ("IO_FLD");
+  const integer final    =   step == Femlib::ivalue ("N_STEP");
 
   if (!(periodic || final)) return;
 
-  int       i;
+  integer       i;
   ofstream  output;
-  const int NT = avg.size();
-  const int ND = Geometry::nDim();
-  const int NR = (static_cast<int>(Femlib::value ("AVERAGE")) > 1) ? 
-                 ((ND + 1) * ND) >> 1 : 0;
-  const int NA = NT - NR;
+  const integer NT = avg.size();
+  const integer ND = Geometry::nDim();
+  const integer NR = (Femlib::ivalue ("AVERAGE") > 1) ? ((ND+1)*ND)>> 1 : 0;
+  const integer NA = NT - NR;
 
   Femlib::synchronize();
 
   ROOTONLY {
-    const char routine[] = "Statistics::dump";
-    const int  verbose   = static_cast<int>(Femlib::value ("VERBOSE"));
-    const int  chkpoint  = static_cast<int>(Femlib::value ("CHKPOINT"));
-    char       dumpfl[StrMax], backup[StrMax], command[StrMax];
+    const char    routine[] = "Statistics::dump";
+    const integer verbose   = Femlib::ivalue ("VERBOSE");
+    const integer chkpoint  = Femlib::ivalue ("CHKPOINT");
+    char          dumpfl[StrMax], backup[StrMax], command[StrMax];
 
     if (chkpoint) {
       if (final) {
@@ -221,8 +218,8 @@ ofstream& operator << (ofstream&   strm,
 // Output Statistics class to file.  Like similar Domain routine.
 // ---------------------------------------------------------------------------
 {
-  int               i;
-  const int         N = src.avg.size();
+  integer           i;
+  const integer     N = src.avg.size();
   vector<AuxField*> field (N);
 
   for (i = 0; i < N; i++) field[i] = src.avg[i];
@@ -240,9 +237,10 @@ ifstream& operator >> (ifstream&   strm,
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "strm>>Statistics";
-  int        i, j, np, nz, nel, ntot, nfields;
-  int        npchk,  nzchk, nelchk, swap = 0;
+  integer    i, j, np, nz, nel, ntot, nfields;
+  integer    npchk,  nzchk, nelchk;
   char       s[StrMax], f[StrMax], err[StrMax], fields[StrMax];
+  bool       swap = false;
 
   if (strm.getline(s, StrMax).eof()) return strm;
   
@@ -311,6 +309,3 @@ ifstream& operator >> (ifstream&   strm,
 
   return strm;
 }
-
-
-
