@@ -185,7 +185,7 @@ void  Boundary::mask (real* gnode) const
 
 
 void Boundary::curlCurl (const real*  U ,  const real*  V ,
-			 real*        wx,  real*        wy) const
+			       real*  wx,        real*  wy) const
 // ---------------------------------------------------------------------------
 // Evaluate dw/dx & dw/dy (where w is the z-component of vorticity) from
 // element velocity fields, according to the side of the element on which
@@ -241,65 +241,53 @@ void  Boundary::switchBC (const BC::type& original, const BC* replacement)
 }
 
 
-Vector  Boundary::normalTraction (const real* src, const int skp) const
+Vector  Boundary::normalTraction (const real* p, real* wrk) const
 // ---------------------------------------------------------------------------
-// Compute normal tractive force on this boundary segment, using src as
-// a pressure stress.
+// Compute normal tractive force on this boundary segment, using p as
+// a pressure stress field data area.  Wrk is a work vector elmt_np_max long.
 // ---------------------------------------------------------------------------
 {
-  register int  i, np    = nKnot ();
-  Vector        Force    = {0.0, 0.0, 0.0};
-  real*         pressure = rvector (np);
+  register int  i, np = nKnot ();
+  Vector        Force = {0.0, 0.0, 0.0};
 
-  Veclib::copy (np, src, skp, pressure, 1);
+  Veclib::copy (np, p + nOff (), nSkip (), wrk, 1);
 
   for (i = 0; i < np; i++) {
-    Force.x += nx[i] * pressure[i] * area[i];
-    Force.y += ny[i] * pressure[i] * area[i];
+    Force.x += nx[i] * wrk[i] * area[i];
+    Force.y += ny[i] * wrk[i] * area[i];
   }
-
-  freeVector (pressure);
 
   return Force;
 }
 
 
-Vector  Boundary::tangentTraction (const real*  dx       ,
-				   const real*  dy       ,
-				   const int    skp      ,
-				   const real   mu       ,
-				   const int    component) const
+Vector Boundary::tangentTraction (const real*  u ,
+				  const real*  v ,
+				  const real&  mu,
+				        real*  ux,
+                                        real*  uy) const
 // ---------------------------------------------------------------------------
-// Compute 1st or 2nd component of viscous stress on this boundary segment.
+// Compute viscous stress on this boundary segment.
+// u is data area for first velocity component field, v is for second.
+// Ux and uy are work vectors, each elmt_np_max long.
 // ---------------------------------------------------------------------------
 {
-  register int   i, np = nKnot ();
+  register int   i, np = nKnot (), offset = elmt -> nOff ();
   Vector         Force = {0.0, 0.0, 0.0};
-  real*          ux    = rvector (np);
-  real*          uy    = rvector (np);
 
-  Veclib::copy (np, dx, skp, ux, 1);
-  Veclib::copy (np, dy, skp, uy, 1);
-  
-  switch (component) {
-  case 1:
-    for (i = 0; i < np; i++) {
-      Force.x += (2.0*ux[i]*nx[i] + uy[i]*ny[i]) * area[i];
-      Force.y +=                    uy[i]*nx[i]  * area[i];
-    }
-    break;
-  case 2:
-    for (i = 0; i < np; i++) {
-      Force.x +=                    ux[i]*ny[i]  * area[i];
-      Force.y += (2.0*uy[i]*ny[i] + ux[i]*nx[i]) * area[i];
-    }
-    break;
-  default:
-    break;
+  elmt -> sideGrad (side, u + offset, ux, uy);
+
+  for (i = 0; i < np; i++) {
+    Force.x += (2.0*ux[i]*nx[i] + uy[i]*ny[i]) * area[i];
+    Force.y +=                    uy[i]*nx[i]  * area[i];
   }
-  
-  freeVector (ux);
-  freeVector (uy);
+
+  elmt -> sideGrad (side, v + offset, ux, uy);
+
+  for (i = 0; i < np; i++) {
+    Force.x +=                    ux[i]*ny[i]  * area[i];
+    Force.y += (2.0*uy[i]*ny[i] + ux[i]*nx[i]) * area[i];
+  }
 
   Force.x *= -mu;
   Force.y *= -mu;
