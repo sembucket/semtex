@@ -111,8 +111,8 @@ static Symbol *olist   = NULL;      /* Storage for option lookup             */
 static char   func_string[STR_MAX], *cur_string;
 static double value;
 
-#define VEC_MAX 8
-static int     nvar = 0;
+#define VEC_MAX 16
+static int     nvec = 0;
 static Symbol *vs[VEC_MAX];	    /* Storage for vector parser variables   */
 
 static struct {			    /* Built-in functions                    */
@@ -243,8 +243,7 @@ double interpret(const char *s)
   if (strlen(s) > STR_MAX)
     message("in interpret(): too many characters passed\n", s, ERROR);
   
-  strcpy(func_string, s);
-  strcat(func_string, "\n");
+  strcat(strcpy(func_string, s), "\n");
   
   cur_string = func_string;
   
@@ -260,31 +259,33 @@ void vecInit(const char *names, const char *fn)
 /* ========================================================================= *
  * Set up the vector parser.                                                 *
  *                                                                           *
- * names contains a blank-separated list of variable names e.g. "x y z",     *
+ * names contains a list of variable names  e.g. "x y z",                    *
  * fn    contains a function for evaluation e.g. "sin(x)*cos(y)*exp(z)".     *
+ *                                                                           *
+ * Valid separator characters in name are space, tab, comma, (semi-)colon.   *
+ * Function string can contain previously-defined symbols (e.g. PI).         *
  * ========================================================================= */
 {
-  char   routine   [] = "vecInit()";
-  char   separator [] = " ";
-  char   tmp       [STR_MAX];
+  char    routine   [] = "vecInit()";
+  char    separator [] = " ,:;\t";
+  char    tmp       [STR_MAX];
   char   *p;
   Symbol *s;
 
 
+  nvec = 0;
   strcpy(tmp, names);
-  nvar = 0;
+
   p    = strtok(tmp, separator);
   do {
-    if (nvar++ > VEC_MAX)
-      message(routine, "too many variables passed", ERROR); 
-    vs[nvar-1] = (s=lookup(p)) ? s : install(p, VAR, 0.0);
-  } while (p = strtok(NULL, separator));
+    if (nvec++ > VEC_MAX) message (routine, "too many variables", ERROR); 
+    vs[nvec-1] = (s=lookup(p)) ? s : install (p, VAR, 0.0);
+  } while (p = strtok (NULL, separator));
 
   if (strlen(fn) > STR_MAX)
     message(routine, "too many characters in function string", ERROR);
   
-  strcpy(func_string, fn);
-  strcat(func_string, "\n");
+  strcat(strcpy(func_string, fn), "\n");
 }
 
 
@@ -312,7 +313,7 @@ void vecInterp(int ntot, ...)
 
   
   va_start(ap, ntot);
-  for (i=0; i<nvar; i++) {
+  for (i=0; i<nvec; i++) {
     x[i] = NULL;
     if (!(x[i] = va_arg(ap, double*)))
 	message(routine, "not enough vectors passed..1", ERROR);
@@ -323,7 +324,7 @@ void vecInterp(int ntot, ...)
 
   for (n=0; n<ntot; n++) {
     cur_string = func_string;
-    for (i=0; i<nvar; i++) vs[i]->u.dval = x[i][n];
+    for (i=0; i<nvec; i++) vs[i]->u.dval = x[i][n];
     yyparse();
     fx[n] = value;
   }
@@ -456,6 +457,12 @@ void setDparam(const char *s, double v)
  
 
   for (sp = dlist; sp; sp = sp->next)
+    if (strcmp(sp->name, s) == 0) {
+      sp->u.dval = v;
+      break;
+    }
+  
+  for (sp = symlist; sp; sp = sp->next)
     if (strcmp(sp->name, s) == 0) {
       sp->u.dval = v;
       break;
@@ -594,6 +601,7 @@ static Symbol *install(const char *s, int t, ...)
     memcpy(sp, dlist, sizeof(Symbol));
     sp->name = emalloc(strlen(s)+1);
     strcpy(sp->name, s);
+    sp->next   = symlist;
     symlist    = sp;
     break;
   case VAR:
