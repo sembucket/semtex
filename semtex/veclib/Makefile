@@ -70,7 +70,7 @@ endif
 ifeq ($(ARCH),SUPER-UX)                 # -- NEC SX-4
 DEFINES   += -D_BUILTIN_
 CFLAGS     = $(DEFINES) -pvctl,fullmsg -Onooverlap -hfloat0 -hnostkchk
-FFLAGS     = $(DEFINES) -Wf'-pvctl,fullmsg -ptr byte' -float0 -ew
+FFLAGS     = $(DEFINES) -Wf'-pvctl,fullmsg -ptr byte -b' -float0 -ew
 ifdef MPI
   LIB      = libalp_mp.a
   FFLAGS  += -P multi
