@@ -21,15 +21,16 @@ echo "\t*************************************************"
 
 rm -f *.num
 
-if (!(-e laplace1)) cp ../mesh/laplace1 .
-if (!(-e laplace4)) cp ../mesh/laplace4 .
-if (!(-e laplace5)) cp ../mesh/laplace5 .
-if (!(-e laplace6)) cp ../mesh/laplace6 .
-if (!(-e laplace7)) cp ../mesh/laplace7 .
-if (!(-e laplace3)) cp ../mesh/laplace3 .
-if (!(-e laplace8)) cp ../mesh/laplace8 .
-if (!(-e poisson1)) cp ../mesh/poisson1 .
+if (!(-e laplace1))   cp ../mesh/laplace1   .
+if (!(-e laplace4))   cp ../mesh/laplace4   .
+if (!(-e laplace5))   cp ../mesh/laplace5   .
+if (!(-e laplace6))   cp ../mesh/laplace6   .
+if (!(-e laplace7))   cp ../mesh/laplace7   .
+if (!(-e laplace3))   cp ../mesh/laplace3   .
+if (!(-e laplace8))   cp ../mesh/laplace8   .
+if (!(-e poisson1))   cp ../mesh/poisson1   .
 if (!(-e helmholtz1)) cp ../mesh/helmholtz1 .
+if (!(-e mixed1))     cp ../mesh/mixed1     .
 
 echo ""
 echo "-- 2D LAPLACE PROBLEM, DIRICHLET BCS"
@@ -93,5 +94,10 @@ rm poisson1*
 
 echo ""
 echo "-- 2D HELMHOLTZ PROBLEM, DIRICHLET BCS"
+elliptic helmholtz1
+rm helmholtz1*
+
+echo ""
+echo "-- 2D POISSON PROBLEM, 1 MIXED BC"
 elliptic helmholtz1
 rm helmholtz1*
