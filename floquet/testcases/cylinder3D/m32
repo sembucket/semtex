@@ -19,19 +19,20 @@
 	F_TIME	  = PERIOD
 	N_STEP	  = 1024
 	D_T       = PERIOD/N_STEP
+	BASE_DT   = PERIOD/32.0
 
 	N_TIME    = 2
 	N_POLY    = 8
-	Re        = 220
-	KINVIS    = 1/Re
+
 	CHKPOINT  = 1
 	ITERATIVE = 0
 	IO_FLD    = 5000
 	IO_CFL    = 20
 
-	BASE_DT   = PERIOD/32
-
 	BETA      = 1.7
+	Re        = 220
+	KINVIS    = 1/Re
+
 	DUMP      = 0
 	OUTSTEP   = 0 
 	IO_EIG    = 2
