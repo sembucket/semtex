@@ -16,11 +16,11 @@
 #include <Sem.h>
 
 
-Boundary::Boundary (const int    Ident ,
+Boundary::Boundary (const int        Ident ,
 		    const char*      Bgroup,
 		    const Condition* Bcondn,
 		    const Element*   Elmt  ,
-		    const int    Side  ) :
+		    const int        Side  ) :
 // ---------------------------------------------------------------------------
 // Constructor.  Allocate new memory for value & geometric factors.
 // ---------------------------------------------------------------------------
@@ -288,7 +288,7 @@ void Boundary::curlCurl (const int   k ,
 
       if (space == Geometry::Cylindrical) {
 	_elmt -> sideDivR (_side, w, t);
-	Veclib::vadd     (_np, xi, 1, t, 1, xi, 1);
+	Veclib::vadd      (_np, xi, 1, t, 1, xi, 1);
       }
 
       // -- Semi-Fourier terms based on Wr.

@@ -158,7 +158,7 @@ void PBCmgr::maintain (const int        step   ,
 	B->curlCurl(0,UxRe,0,UyRe,0,0,0,xr,0,yr,0);
       } else {			    // -- Half-complex perturbation.
 	UzIm = Uz -> _plane[0];
-	B->curlCurl(Geometry::kFund(),UxRe,0,UyRe,0,0,UzIm,xr,0,yr,0);
+	B->curlCurl(1,UxRe,0,UyRe,0,0,UzIm,xr,0,yr,0);
       }
       Blas::axpy (nP, -nu, xr, 1, _Pnx[0][i][0], 1);
       Blas::axpy (nP, -nu, yr, 1, _Pny[0][i][0], 1);
@@ -171,7 +171,7 @@ void PBCmgr::maintain (const int        step   ,
       UzRe = Uz -> _plane[0];
       UzIm = Uz -> _plane[1];
 
-      B->curlCurl(Geometry::kFund(),UxRe,UxIm,UyRe,UyIm,UzRe,UzIm,xr,xi,yr,yi);
+      B->curlCurl(1,UxRe,UxIm,UyRe,UyIm,UzRe,UzIm,xr,xi,yr,yi);
 
       Blas::axpy (nP, -nu, xr, 1, _Pnx[0][i][0], 1);
       Blas::axpy (nP, -nu, xi, 1, _Pnx[0][i][1], 1);

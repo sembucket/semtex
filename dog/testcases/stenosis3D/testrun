@@ -3,4 +3,4 @@
 ##############################################################################
 
 enumerate -O3 Sten50_Cyl > Sten50_Cyl.num
-arnoldi -k 8 -n 1 -m 50 -t 1e-4 Sten50_Cyl > /dev/null
+../../arnoldi -k 8 -n 1 -m 100 -t 1e-8 Sten50_Cyl > /dev/null

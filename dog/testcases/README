@@ -63,12 +63,12 @@ unstable 3D mode, k = 1.
 
 These are the results of running
 
-arnoldi -k 8 -n 1 -m 200 -t 1e-4 Sten50_Cyl
+arnoldi -k 8 -n 1 -m 100 -t 1e-8 Sten50_Cyl
 
--- Iteration = 47, H(k+1, k) = 0.51469
+-- Iteration = 71, H(k+1, k) = 0.33239
 EV  Magnitude   Angle       Growth      Frequency   Residual
- 0  9.7341e-01  0.0000e+00 -5.3903e-02  0.0000e+00  7.9477e-05
- 1  8.0467e-01  1.5385e-01 -4.3465e-01  3.0769e-01  6.7783e-02
+ 0  9.7380e-01  0.0000e+00 -5.3100e-02  0.0000e+00  6.1002e-09
+ 1  7.6417e-01  1.6542e-01 -5.3793e-01  3.3085e-01  7.9937e-04
 
 PERIODIC FLOWS
 ==============

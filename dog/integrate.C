@@ -337,8 +337,9 @@ static MatrixSys** preSolve (const Domain* D)
 // Set up ModalMatrixSystems for system with only 1 Fourier mode.
 // ---------------------------------------------------------------------------
 {
-  const int  mode  = ((PROB == Geometry::O2_2D) ? 0 : 1) * Geometry::kFund();
-  const real beta  = Femlib::value ("BETA");
+  const int  mode  = (PROB == Geometry::O2_2D) ? 0 : 1;
+  const int  bmode = mode * Geometry::kFund();
+  const real beta  = mode * Femlib::value ("BETA");
   const int  itLev = static_cast<int>(Femlib::value ("ITERATIVE"));
 
   vector<real> alpha (Integration::OrderMax + 1);
@@ -358,9 +359,9 @@ static MatrixSys** preSolve (const Domain* D)
 
   // -- Velocities, starting with u.
 
-  N      = D -> b[0] -> Nsys (mode);
+  N      = D -> b[0] -> Nsys (bmode);
   betak2 = sqr (Field::modeConstant (D -> u[0] -> name(), mode, beta));
-  M = new MatrixSys (lambda2, betak2, mode, D -> elmt, D -> b[0], method);
+  M = new MatrixSys (lambda2, betak2, bmode, D -> elmt, D -> b[0], method);
   MS.insert (MS.end(), M);
   system[0] = M;
   cout << ((method == DIRECT) ? '*' : '&') << flush;
@@ -369,7 +370,7 @@ static MatrixSys** preSolve (const Domain* D)
 
   // -- v.
 
-  N      = D -> b[1] -> Nsys (mode);
+  N      = D -> b[1] -> Nsys (bmode);
   betak2 = sqr (Field::modeConstant (D -> u[1] -> name(), mode, beta));
 
   for (found = 0, m = MS.begin(); !found && m != MS.end(); m++) {
@@ -379,7 +380,7 @@ static MatrixSys** preSolve (const Domain* D)
     system[1] = M;
     cout << "." << flush;
   } else {
-    M = new MatrixSys (lambda2, betak2, mode, D -> elmt, D -> b[1], method);
+    M = new MatrixSys (lambda2, betak2, bmode, D -> elmt, D -> b[1], method);
     MS.insert (MS.end(), M);
     system[1] = M;
     cout << ((method == DIRECT) ? '*' : '&') << flush;
@@ -388,7 +389,7 @@ static MatrixSys** preSolve (const Domain* D)
   // -- w.
 
   if (NPERT == 3) {
-    N      = D -> b[2] -> Nsys (mode);
+    N      = D -> b[2] -> Nsys (bmode);
     betak2 = sqr (Field::modeConstant (D -> u[2] -> name(), mode, beta));
 
     for (found = 0, m = MS.begin(); !found && m != MS.end(); m++) {
@@ -398,7 +399,7 @@ static MatrixSys** preSolve (const Domain* D)
       system[2] = M;
       cout << "." << flush;
     } else {
-      M = new MatrixSys (lambda2, betak2, mode, D -> elmt, D -> b[2], method);
+      M = new MatrixSys (lambda2, betak2, bmode, D -> elmt, D -> b[2], method);
       MS.insert (MS.end(), M);
       system[2] = M;
       cout <<  ((method == DIRECT) ? '*' : '&') << flush;
@@ -410,7 +411,7 @@ static MatrixSys** preSolve (const Domain* D)
   method = (itLev < 2) ? DIRECT : JACPCG;
 
   betak2 = sqr (Field::modeConstant (D -> u[NPERT] -> name(), mode, beta));
-  M      = new MatrixSys (0.0, betak2, mode, D -> elmt, D -> b[NPERT], method);
+  M      = new MatrixSys (0.0, betak2,bmode, D -> elmt, D -> b[NPERT], method);
   MS.insert (MS.end(), M);
   system[NPERT] = M;
   cout << ((method == DIRECT) ? '*' : '&') << endl;
@@ -434,16 +435,17 @@ static void Solve (Domain*    D,
 
     // -- We need a temporary matrix system for a viscous solve.
 
-    const int  mode = ((PROB == Geometry::O2_2D) ? 0 : 1) * Geometry::kFund();
-    const real beta = (Femlib::value ("BETA");
-    const int  Je   = min (step, NORD);    
+    const int  mode  = (PROB == Geometry::O2_2D) ? 0 : 1;
+    const int  bmode = mode * Geometry::kFund();
+    const real beta  = mode * Femlib::value ("BETA");
+    const int  Je    = min (step, NORD);    
     vector<real>  alpha (Je + 1);
     Integration::StifflyStable (Je, &alpha[0]);
     const real betak2  = sqr (Field::modeConstant (D->u[i]->name(),mode,beta));
     const real lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
 
     MatrixSys* tmp =
-      new MatrixSys (lambda2, betak2, mode, D -> elmt, D -> b[i], JACPCG);
+      new MatrixSys (lambda2, betak2, bmode, D -> elmt, D -> b[i], JACPCG);
 
     D -> u[i] -> solve (F, tmp);
     delete tmp;

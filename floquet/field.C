@@ -123,7 +123,6 @@ Field::Field (BoundarySys*      B,
   const int                npr = Geometry::nProc();
   const int                nzb = Geometry::basePlane();
   const vector<Boundary*>& BC  = _bsys -> BCs (0);
-  const real               dz  = Femlib::value ("TWOPI / BETA / N_Z");
   register real*           p;
   register int             i, k;
 
@@ -395,7 +394,7 @@ Vector Field::tangentTraction (const Field* U,
   const int                nbound  = U -> _nbound;
   const real               mu      = Femlib::value ("RHO * KINVIS");
   Vector                   secF, F = {0.0, 0.0, 0.0};
-  vector<real>             work(3 * np);
+  vector<real>             work(4 * np);
   real                     *ddx = &work[0], *ddy = ddx + np;
   register int             i;
 
@@ -527,6 +526,7 @@ Field& Field::solve (AuxField*        f,
   const int  next   = Geometry::nExtElmt();
   const int  npnp   = Geometry::nTotElmt();
   const int  ntot   = Geometry::nPlane();
+
   int        i, k;
 
   const vector<Boundary*>& B       = M -> _BC;
@@ -589,6 +589,9 @@ Field& Field::solve (AuxField*        f,
       real          alpha, beta, dotp, epsb2, r2, rho1, rho2 =0.0;
       vector<real>  work (5 * npts + 3 * Geometry::nPlane());
 
+      const int mode =
+	(((Geometry::problem()) == Geometry::O2_2D)?0:1) * Geometry::kFund();
+
       real* r   = &work[0];
       real* p   = r + npts;
       real* q   = p + npts;
@@ -615,7 +618,7 @@ Field& Field::solve (AuxField*        f,
       Veclib::zero (nzero, x + nsolve, 1);   
       Veclib::copy (npts,  x, 1, q, 1);
     
-      this -> HelmholtzOperator (q, p, lambda2, betak2, wrk, 0);
+      this -> HelmholtzOperator (q, p, lambda2, betak2, wrk, mode);
 
       Veclib::zero (nzero, p + nsolve, 1);
       Veclib::zero (nzero, r + nsolve, 1);
@@ -645,7 +648,7 @@ Field& Field::solve (AuxField*        f,
 
 	// -- Matrix-vector product.
 
-	this -> HelmholtzOperator (p, q, lambda2, betak2, wrk, 0);
+	this -> HelmholtzOperator (p, q, lambda2, betak2, wrk, mode);
 	Veclib::zero (nzero, q + nsolve, 1);
 
 	// -- Move in conjugate direction.

@@ -1,3 +1,29 @@
+<TOKENS>
+	CYLINDRICAL=1
+	KINVIS    = 1/500
+	D_T       = 0.001
+	N_STEP    = 500
+	N_TIME    = 2
+	N_POLY    = 7
+	IO_CFL    = 25
+	IO_FLD    = 1000
+	AVERAGE   = 0
+	ITERATIVE = 0
+        N_SLICE   = 1
+        N_BASE    = 2
+        N_Z       = 1
+        CHKPOINT  = 1
+	K_FUND    = 1
+	BETA      = K_FUND
+</TOKENS>
+
+<USER>
+u = 0
+v = 0
+w = 0
+p = 0
+</USER>
+
 <FIELDS NUMBER=4>
 	u	v	w       p
 </FIELDS>
@@ -30,27 +56,7 @@
                         <A>     v = 0   </A> 
                         <A>     w = 0   </A> 
                         <A>     p = 0   </A>
-
 </BCS>
-
-<TOKENS>
-	CYLINDRICAL=1
-	KINVIS    = 1/500
-	D_T       = 0.001
-	N_STEP    = 500
-	N_TIME    = 2
-	N_POLY    = 7
-	IO_CFL    = 25
-	IO_FLD    = 1000
-	AVERAGE   = 0
-	ITERATIVE = 0
-        N_SLICE   = 1
-        N_BASE    = 3
-        N_Z       = 1
-        CHKPOINT  = 1
-	K_FUND    = 1
-	BETA      = K_FUND
-</TOKENS>
 
 <NODES NUMBER=184>
  1 0.000000 0.000000 0.000000 
