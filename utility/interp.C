@@ -208,14 +208,14 @@ static void loadPoints (ifstream&       pfile,
 // ---------------------------------------------------------------------------
 {
   char          buf[StrMax];
-  int           num = 0;
+  int           nz = 0, num = 0;
   real          x, y;
   Point*        datum;
   Stack<Point*> data;
 
   pfile.getline (buf, StrMax);
   if (strstr (buf, "NEL")) {	// -- This is a structured set of points.
-    sscanf (buf, "%d %d %*s %d", &np, &np, &nel);
+    sscanf (buf, "%d %d %d %d", &np, &np, &nz, &nel);
     ntot    = np * np * nel;
     nreport = np * np;
 
@@ -236,6 +236,7 @@ static void loadPoints (ifstream&       pfile,
     datum -> y = y;
     data.push (datum);
     num++;
+    if (nz && num == ntot) break;
   }
 
   if (np && num != ntot) {
