@@ -39,26 +39,26 @@ void PBCmgr::build (const Field* P)
   const integer nEdge = P -> n_bound;
   const integer nZ    = Geometry::nZProc();
 
-  Pnx = new real*** [nTime];
-  Pny = new real*** [nTime];
-  Unx = new real*** [nTime];
-  Uny = new real*** [nTime];
+  Pnx = new real*** [(size_t) nTime];
+  Pny = new real*** [(size_t) nTime];
+  Unx = new real*** [(size_t) nTime];
+  Uny = new real*** [(size_t) nTime];
 
   for (i = 0; i < nTime; i++) {
-    Pnx[i] = new real** [4 * nEdge];
+    Pnx[i] = new real** [(size_t) (4 * nEdge)];
     Pny[i] = Pnx[i] + nEdge;
     Unx[i] = Pny[i] + nEdge;
     Uny[i] = Unx[i] + nEdge;
 
     for (j = 0; j < nEdge; j++) {
-      Pnx[i][j] = new real* [4 * nZ];
+      Pnx[i][j] = new real* [(size_t) (4 * nZ)];
       Pny[i][j] = Pnx[i][j] + nZ;
       Unx[i][j] = Pny[i][j] + nZ;
       Uny[i][j] = Unx[i][j] + nZ;
 
       for (k = 0; k < nZ; k++) {
 	np = P -> boundary[0][j] -> nKnot();
-	Pnx[i][j][k] = new real [4 * np];
+	Pnx[i][j][k] = new real [(size_t) (4 * np)];
 	Pny[i][j][k] = Pnx[i][j][k] + np;
 	Unx[i][j][k] = Pny[i][j][k] + np;
 	Uny[i][j][k] = Unx[i][j][k] + np;

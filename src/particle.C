@@ -39,8 +39,8 @@ FluidParticle::FluidParticle (Domain*       d,
     NZ      = Geometry::nZ();
     TORD    = (integer) Femlib::value ("N_TIME");
     DT      =           Femlib::value ("D_T");
-    P_coeff = new real [TORD];
-    C_coeff = new real [TORD + 1];
+    P_coeff = new real [(size_t) TORD];
+    C_coeff = new real [(size_t) (TORD + 1)];
     Lz      = Femlib::value ("TWOPI / BETA");
   }
 
@@ -64,14 +64,14 @@ FluidParticle::FluidParticle (Domain*       d,
   if (NDIM == 2) {
     P.z = 0.0;
 
-    u = new real [TORD + TORD];
+    u = new real [(size_t) (TORD + TORD)];
     v = u + TORD;
 
   } else {
     if   (P.z < 0.0) P.z = Lz - fmod (fabs (P.z), Lz);
     else             P.z = fmod (P.z, Lz);
     
-    u = new real [TORD + TORD + TORD];
+    u = new real [(size_t) (TORD + TORD + TORD)];
     v = u + TORD;
     w = v + TORD;
   }

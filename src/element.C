@@ -34,8 +34,8 @@ Element::Element (const integer i   ,
 
   Femlib::buildMaps (np, &emap, &pmap);
   
-  xmesh = new real [nk2];
-  ymesh = new real [nk2];
+  xmesh = new real [(size_t) nk2];
+  ymesh = new real [(size_t) nk2];
   
   M.meshElmt (id, np, z, xmesh, ymesh);
   
@@ -134,15 +134,15 @@ void Element::map ()
 
   // -- Permanent/family allocations.
   
-  drdx  = new real [ntot];
-  dsdx  = new real [ntot];
-  drdy  = new real [ntot];
-  dsdy  = new real [ntot];
-  G1    = new real [ntot];
-  G2    = new real [ntot];
-  G3    = new real [ntot];
-  G4    = new real [ntot];
-  delta = new real [ntot];
+  drdx  = new real [(size_t) ntot];
+  dsdx  = new real [(size_t) ntot];
+  drdy  = new real [(size_t) ntot];
+  dsdy  = new real [(size_t) ntot];
+  G1    = new real [(size_t) ntot];
+  G2    = new real [(size_t) ntot];
+  G3    = new real [(size_t) ntot];
+  G4    = new real [(size_t) ntot];
+  delta = new real [(size_t) ntot];
     
   // -- Temporaries.
 
