@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // dual2sem.C: convert a dual 3D file to a semtex/nekton 3D file.
 //
-// Copyright (c) 2000 Hugh Blackburn
+// Copyright (c) 2000-2003 Hugh Blackburn
 //
 // USAGE
 // -----
@@ -79,7 +79,7 @@ typedef struct hdr_data {
   char   format[StrMax];
 } hdr_info;
 
-static void getargs   (int, char**, int&, int&, ifstream&);
+static void getargs   (int, char**, int&, int&);
 static void roundup   (const int, int&);
 static void getheader (istream&, hdr_info&);
 static void allocate  (hdr_info&, const int, vector<real*>&);
@@ -97,29 +97,28 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  ifstream      file;
   hdr_info      header;
   int           dir = FORWARD, mode = 1, nz;
   vector<real*> u;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, dir, mode, file);
+  getargs (argc, argv, dir, mode);
 
   if (dir == FORWARD) {		// -- Project a dual field file.
 
     roundup   (mode, nz);
-    getheader (file, header);
+    getheader (cin, header);
     allocate  (header, nz, u);
-    readdata  (header, file, 3, u);
+    readdata  (header, cin, 3, u);
     packdata  (header, mode, nz, u, INVERSE);
     transform (header, nz, u, INVERSE);
     writedata (header, cout, nz, u);
 
   } else {			// -- Restrict a sem field file.
 
-    getheader (file, header);
+    getheader (cin, header);
     allocate  (header, header.nz, u);
-    readdata  (header, file, header.nz, u);
+    readdata  (header, cin, header.nz, u);
     transform (header, header.nz, u, FORWARD);
     packdata  (header, mode, header.nz, u, FORWARD);
     writedata (header, cout, 3, u);
@@ -131,11 +130,10 @@ int main (int    argc,
 }
 
 
-static void getargs (int       argc,
-		     char**    argv,
-		     int&      dir ,
-		     int&      mode,
-		     ifstream& file)
+static void getargs (int    argc,
+		     char** argv,
+		     int&   dir ,
+		     int&   mode)
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
@@ -165,12 +163,14 @@ static void getargs (int       argc,
       break;
     }
 
-  if   (argc == 1) file.open   (*argv, ios::in);
-  else             file.attach (0);
-
-  if (!file) {
-    cerr << prog << ": unable to open input file" << endl;
-    exit (EXIT_FAILURE);
+  if (argc == 1) {
+    ifstream* inputfile = new ifstream (*argv);
+    if (inputfile -> good()) {
+      cin = *inputfile;
+      } else {
+	cerr << prog << "unable to open file" << endl;
+	exit (EXIT_FAILURE);
+      }
   }
 
   if (mode < 1) {
