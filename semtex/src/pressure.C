@@ -103,8 +103,9 @@ void PBCmgr::maintain (const integer     step   ,
   const integer      nEdge = P -> nbound;
   const integer      nP    =  Geometry::nP();
   const integer      nZ    =  Geometry::nZProc();
+  const integer      base  =  Geometry::baseMode();
   const integer      nMode =  Geometry::nModeProc();
-  const integer      kLo   = (Geometry::procID() == 0) ? 1 : 0;
+  const integer      mLo   = (Geometry::procID() == 0) ? 1 : 0;
 
   const AuxField*    Ux = Us[0][0];
   const AuxField*    Uy = Us[1][0];
@@ -158,7 +159,7 @@ void PBCmgr::maintain (const integer     step   ,
       Blas::axpy (nP, -nu, yr, 1, Pny[0][i][0], 1);
     }
 
-    for (m = kLo; m < nMode; m++) { // -- Higher modes.
+    for (m = mLo; m < nMode; m++) { // -- Higher modes.
       UxRe = Ux -> plane[2 * m] ;
       UxIm = Ux -> plane[2 * m + 1];
       UyRe = Uy -> plane[2 * m];
@@ -166,7 +167,7 @@ void PBCmgr::maintain (const integer     step   ,
       UzRe = Uz -> plane[2 * m];
       UzIm = Uz -> plane[2 * m + 1];
 
-      B -> curlCurl (m, UxRe, UxIm, UyRe, UyIm, UzRe, UzIm, xr, xi, yr, yi);
+      B -> curlCurl (m + base, UxRe,UxIm, UyRe,UyIm, UzRe,UzIm, xr,xi, yr,yi);
 
       Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][2 * m],     1);
       Blas::axpy (nP, -nu, xi, 1, Pnx[0][i][2 * m + 1], 1);
