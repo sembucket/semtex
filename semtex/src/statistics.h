@@ -19,7 +19,7 @@ protected:
   Domain*           base;
   vector<AuxField*> src ;
   vector<AuxField*> avg ;
-  integer               navg;
+  int_t             navg;
 };
 
 #endif

@@ -11,10 +11,10 @@ static char RCS[] = "$Id$";
 static vector<MatrixSys*> MS;
 
 
-ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
-				const real              beta    ,
-				const integer           baseMode,
-				const integer           numModes,
+ModalMatrixSys::ModalMatrixSys (const real_t            lambda2 ,
+				const real_t            beta    ,
+				const int_t             baseMode,
+				const int_t             numModes,
 				const vector<Element*>& Elmt    ,
 				const BoundarySys*      Bsys    ,
 				const SolverKind        method  )
@@ -34,7 +34,7 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
 // ---------------------------------------------------------------------------
 {
   const char name = Bsys -> field();
-  integer    mode;
+  int_t      mode;
   bool       found;
 
   MatrixSys* M;
@@ -51,10 +51,10 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
   }
 
   for (mode = baseMode; mode < baseMode + numModes; mode++) {
-    const integer    modeIndex = mode * Geometry::kFund();
+    const int_t    modeIndex = mode * Geometry::kFund();
     const NumberSys* N  = Bsys -> Nsys (modeIndex);
-    const real    betak2   = sqr (Field::modeConstant (name, modeIndex, beta));
-    const integer localMode = mode - baseMode;
+    const real_t    betak2   = sqr (Field::modeConstant (name, modeIndex, beta));
+    const int_t localMode = mode - baseMode;
 
     for (found = false, m = MS.begin(); !found && m != MS.end(); m++) {
       M     = *m;
@@ -84,19 +84,19 @@ ModalMatrixSys::~ModalMatrixSys ()
 // Destructor hands off calls to MatrixSys::~MatrixSys.  Note there
 // can be side effects here, owing to the multiple use of MatrixSys*'s
 // in different ModalMatrixSys's.  If multiple related ModalMatrixSys's
-// exist, it is advisable to delete and recreate all of them before
+// exist, it is advisable to delete and recreal_tte all of them before
 // attempting reuse.
 // ---------------------------------------------------------------------------
 {
-  integer N = _Msys.size();
+  int_t N = _Msys.size();
   while (N--) delete (_Msys[N]);
   MS.resize (0);
 }
 
 
-MatrixSys::MatrixSys (const real              lambda2,
-		      const real              betak2 ,
-		      const integer           mode   ,
+MatrixSys::MatrixSys (const real_t            lambda2,
+		      const real_t            betak2 ,
+		      const int_t             mode   ,
 		      const vector<Element*>& elmt   ,
 		      const BoundarySys*      bsys   ,
 		      const SolverKind        method ) :
@@ -132,33 +132,33 @@ MatrixSys::MatrixSys (const real              lambda2,
   _npts              (_nglobal + Geometry::nInode()),
   _PC                (0)
 {
-  const char       routine[] = "MatrixSys::MatrixSys";
-  const integer    verbose   = Femlib::ivalue ("VERBOSE");
-  const integer    np        = Geometry::nP();
-  const integer    next      = Geometry::nExtElmt();
-  const integer    nint      = Geometry::nIntElmt();
-  const integer    npnp      = Geometry::nTotElmt();
-  const integer*   bmap;
-  register integer i, j, k, m, n;
+  const char     routine[] = "MatrixSys::MatrixSys";
+  const int_t    verbose   = Femlib::ivalue ("VERBOSE");
+  const int_t    np        = Geometry::nP();
+  const int_t    next      = Geometry::nExtElmt();
+  const int_t    nint      = Geometry::nIntElmt();
+  const int_t    npnp      = Geometry::nTotElmt();
+  const int_t*   bmap;
+  register int_t i, j, k, m, n;
 
   switch (_method) {
 
   case DIRECT: {
-    vector<real>    work     (sqr (next) + sqr (np) + sqr (npnp));
-    vector<integer> pivotmap (nint);
-    real*           hbb  = &work[0];
-    real*           rmat = hbb  + sqr (next);
-    real*           rwrk = rmat + sqr (np);
-    integer*        ipiv = &pivotmap[0];
-    integer         info;
+    vector<real_t> work     (sqr (next) + sqr (np) + sqr (npnp));
+    vector<int_t>  pivotmap (nint);
+    real_t*        hbb  = &work[0];
+    real_t*        rmat = hbb  + sqr (next);
+    real_t*        rwrk = rmat + sqr (np);
+    int_t*         ipiv = &pivotmap[0];
+    int_t          info;
 
-    _hbi    = new real*   [static_cast<size_t>(_nel)];
-    _hii    = new real*   [static_cast<size_t>(_nel)];
-    _bipack = new integer [static_cast<size_t>(_nel)];
-    _iipack = new integer [static_cast<size_t>(_nel)];
+    _hbi    = new real_t*[static_cast<size_t>(_nel)];
+    _hii    = new real_t*[static_cast<size_t>(_nel)];
+    _bipack = new int_t  [static_cast<size_t>(_nel)];
+    _iipack = new int_t  [static_cast<size_t>(_nel)];
 
     if (_nsolve) {
-      _H = new real [static_cast<size_t>(_npack)];
+      _H = new real_t [static_cast<size_t>(_npack)];
       Veclib::zero (_npack, _H, 1);
 
       if (verbose > 1)
@@ -170,15 +170,15 @@ MatrixSys::MatrixSys (const real              lambda2,
 	     << "\t(" << _npack << " words)";
     }
 
-    // -- Loop over elements, creating & posting elemental Helmholtz matrices.
+    // -- Loop over elements, creal_tting & posting elemental Helmholtz matrices.
 
     for (bmap = _NS -> btog(), j = 0; j < _nel; j++, bmap += next) {
       _bipack[j] = next * nint;
       _iipack[j] = nint * nint;
 
       if (nint) {
-	_hbi[j] = new real [static_cast<size_t>(_bipack[j])];
-	_hii[j] = new real [static_cast<size_t>(_iipack[j])];
+	_hbi[j] = new real_t [static_cast<size_t>(_bipack[j])];
+	_hii[j] = new real_t [static_cast<size_t>(_iipack[j])];
 	Veclib::zero (_bipack[j], _hbi[j], 1);
 	Veclib::zero (_iipack[j], _hii[j], 1);
       } else
@@ -202,8 +202,8 @@ MatrixSys::MatrixSys (const real              lambda2,
       // -- Loop over BCs and add diagonal contribution from mixed BCs.
 
       if (bsys -> mixBC()) {
-	const integer  nbound = bsys -> nSurf();
-	const integer* bmap   = _NS  -> btog();
+	const int_t  nbound = bsys -> nSurf();
+	const int_t* bmap   = _NS  -> btog();
 	for (i = 0; i < nbound; i++)
 	  _BC[i] -> augmentSC (_nband, _nsolve, bmap, rwrk, _H);
       }
@@ -217,7 +217,7 @@ MatrixSys::MatrixSys (const real              lambda2,
       if (info) message (routine, "failed to factor Helmholtz matrix", ERROR);
 
       if (verbose) {
-	real cond;
+	real_t cond;
 	pivotmap.resize (_nsolve);  ipiv = &pivotmap[0];
 	work.resize (3 * _nsolve);  rwrk = &work[0];
 
@@ -228,12 +228,12 @@ MatrixSys::MatrixSys (const real              lambda2,
   } break;
 
   case JACPCG: {
-    const integer nbound = _BC.size();   
-    real*         PCi;
-    vector<real>  work (2 * npnp + np);
-    real          *ed = &work[0], *ewrk = &work[0] + npnp;
+    const int_t    nbound = _BC.size();   
+    real_t*        PCi;
+    vector<real_t> work (2 * npnp + np);
+    real_t         *ed = &work[0], *ewrk = &work[0] + npnp;
 
-    _PC = new real [static_cast<size_t>(_npts)];
+    _PC = new real_t [static_cast<size_t>(_npts)];
 
     Veclib::zero (_npts, _PC, 1);
 
@@ -271,8 +271,8 @@ MatrixSys::MatrixSys (const real              lambda2,
 }
 
 
-bool MatrixSys::match (const real       lambda2,
-		       const real       betak2 ,
+bool MatrixSys::match (const real_t     lambda2,
+		       const real_t     betak2 ,
 		       const NumberSys* nScheme,
 		       const SolverKind method ) const
 // ---------------------------------------------------------------------------
@@ -306,7 +306,7 @@ MatrixSys::~MatrixSys()
     Family::abandon (&_PC);
     break;
   case DIRECT: {
-    integer i;
+    int_t i;
     for (i = 0; i < _nel; i++) {
       Family::abandon (_hbi + i);
       Family::abandon (_hii + i);

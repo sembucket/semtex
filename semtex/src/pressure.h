@@ -10,17 +10,17 @@ class PBCmgr
 {
 public:
   static void build      (const Field*);
-  static void maintain   (const integer, const Field*, const AuxField**,
+  static void maintain   (const int_t, const Field*, const AuxField**,
 			  const AuxField**, const bool = true);
-  static void evaluate   (const integer, const integer, const integer,
-			  const integer, const real*, const real*, real*);
+  static void evaluate   (const int_t, const int_t, const int_t,
+			  const int_t, const real_t*, const real_t*, real_t*);
   static void accelerate (const Vector&, const Field*);
 
 private:
-  static real**** _Pnx;		// x component of dP / dn at domain  boundary.
-  static real**** _Pny;		// y component of dP / dn at domain  boundary.
-  static real**** _Unx;		// x component of normal velocity at boundary.
-  static real**** _Uny;		// y component of normal velocity at boundary.
+  static real_t**** _Pnx;	// x component of dP / dn at domain  boundary.
+  static real_t**** _Pny;	// y component of dP / dn at domain  boundary.
+  static real_t**** _Unx;	// x component of normal velocity at boundary.
+  static real_t**** _Uny;	// y component of normal velocity at boundary.
 };
 
 #endif

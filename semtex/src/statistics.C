@@ -45,15 +45,15 @@ Statistics::Statistics (Domain*            D    ,
   name (D -> name),
   base (D)
 {
-  integer       i, j;
-  const integer ND    = Geometry::nDim();
-  const integer NF    = base -> u.size();
-  const integer NE    = extra.size();
-  const integer NR    = (Femlib::ivalue ("AVERAGE") > 1) ? ((ND+1)*ND)>>1 : 0;
-  const integer NT    = NF + NE + NR;
-  const integer nz    = Geometry::nZProc();
-  const integer ntot  = Geometry::nTotProc();
-  real*         alloc = new real [static_cast<size_t>(NT * ntot)];
+  int_t       i, j;
+  const int_t ND    = Geometry::nDim();
+  const int_t NF    = base -> u.size();
+  const int_t NE    = extra.size();
+  const int_t NR    = (Femlib::ivalue ("AVERAGE") > 1) ? ((ND+1)*ND)>>1 : 0;
+  const int_t NT    = NF + NE + NR;
+  const int_t nz    = Geometry::nZProc();
+  const int_t ntot  = Geometry::nTotProc();
+  real_t*     alloc = new real_t [static_cast<size_t>(NT * ntot)];
 
   ROOTONLY cout << "-- Initialising averaging  : ";  
 
@@ -102,11 +102,11 @@ void Statistics::update (AuxField** work)
 // dealiasing, and are held in physical space.
 // ---------------------------------------------------------------------------
 {
-  integer       i;
-  const integer NT = avg.size();
-  const integer ND = Geometry::nDim();
-  const integer NR = (Femlib::ivalue ("AVERAGE") > 1) ? ((ND+1)*ND)>>1 : 0;
-  const integer NA = NT - NR;
+  int_t       i;
+  const int_t NT = avg.size();
+  const int_t ND = Geometry::nDim();
+  const int_t NR = (Femlib::ivalue ("AVERAGE") > 1) ? ((ND+1)*ND)>>1 : 0;
+  const int_t NA = NT - NR;
 
   if (NR) {
     
@@ -117,7 +117,7 @@ void Statistics::update (AuxField** work)
        work[i] -> transform (INVERSE);
     }
 
-    for (i = 0; i < NT; i++) *avg[i] *= static_cast<real>(navg);
+    for (i = 0; i < NT; i++) *avg[i] *= static_cast<real_t>(navg);
 
     for (i = 0; i < NA; i++) *avg[i] += *src[i];
 
@@ -131,16 +131,16 @@ void Statistics::update (AuxField** work)
       avg[NA + 5] -> timesPlus (*work[2], *work[2]);
     }
 
-    for (i = 0; i < NT; i++) *avg[i] /= static_cast<real>(navg + 1);
+    for (i = 0; i < NT; i++) *avg[i] /= static_cast<real_t>(navg + 1);
 
   } else {
 
     // -- Running averages only.
 
     for (i = 0; i < NA; i++) {
-      *avg[i] *= static_cast<real>(navg);
+      *avg[i] *= static_cast<real_t>(navg);
       *avg[i] += *src[i];
-      *avg[i] /= static_cast<real>(navg + 1);
+      *avg[i] /= static_cast<real_t>(navg + 1);
     }
   }
 
@@ -153,27 +153,27 @@ void Statistics::dump ()
 // Similar to Domain::dump.
 // ---------------------------------------------------------------------------
 {
-  const integer step     = base -> step;
-  const integer periodic = !(step %  Femlib::ivalue ("IO_FLD"));
-  const integer initial  =   step == Femlib::ivalue ("IO_FLD");
-  const integer final    =   step == Femlib::ivalue ("N_STEP");
+  const int_t step     = base -> step;
+  const bool  periodic = !(step %  Femlib::ivalue ("IO_FLD"));
+  const bool  initial  =   step == Femlib::ivalue ("IO_FLD");
+  const bool  final    =   step == Femlib::ivalue ("N_STEP");
 
   if (!(periodic || final)) return;
 
-  integer       i;
-  ofstream  output;
-  const integer NT = avg.size();
-  const integer ND = Geometry::nDim();
-  const integer NR = (Femlib::ivalue ("AVERAGE") > 1) ? ((ND+1)*ND)>> 1 : 0;
-  const integer NA = NT - NR;
+  int_t       i;
+  ofstream    output;
+  const int_t NT = avg.size();
+  const int_t ND = Geometry::nDim();
+  const int_t NR = (Femlib::ivalue ("AVERAGE") > 1) ? ((ND+1)*ND)>> 1 : 0;
+  const int_t NA = NT - NR;
 
   Femlib::synchronize();
 
   ROOTONLY {
-    const char    routine[] = "Statistics::dump";
-    const integer verbose   = Femlib::ivalue ("VERBOSE");
-    const integer chkpoint  = Femlib::ivalue ("CHKPOINT");
-    char          dumpfl[StrMax], backup[StrMax], command[StrMax];
+    const char  routine[] = "Statistics::dump";
+    const int_t verbose   = Femlib::ivalue ("VERBOSE");
+    const int_t chkpoint  = Femlib::ivalue ("CHKPOINT");
+    char        dumpfl[StrMax], backup[StrMax], command[StrMax];
 
     if (chkpoint) {
       if (final) {
@@ -218,8 +218,8 @@ ofstream& operator << (ofstream&   strm,
 // Output Statistics class to file.  Like similar Domain routine.
 // ---------------------------------------------------------------------------
 {
-  integer           i;
-  const integer     N = src.avg.size();
+  int_t             i;
+  const int_t       N = src.avg.size();
   vector<AuxField*> field (N);
 
   for (i = 0; i < N; i++) field[i] = src.avg[i];
@@ -237,10 +237,10 @@ ifstream& operator >> (ifstream&   strm,
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "strm>>Statistics";
-  integer    i, j, np, nz, nel, ntot, nfields;
-  integer    npchk,  nzchk, nelchk;
-  char       s[StrMax], f[StrMax], err[StrMax], fields[StrMax];
-  bool       swap = false;
+  int_t i, j, np, nz, nel, ntot, nfields;
+  int_t npchk,  nzchk, nelchk;
+  char  s[StrMax], f[StrMax], err[StrMax], fields[StrMax];
+  bool  swap = false;
 
   if (strm.getline(s, StrMax).eof()) return strm;
   
