@@ -4,6 +4,10 @@
 # $Id$
 ##############################################################################
 
+# -- MAKE supplies the path to GNU make.
+
+MAKE = gmake
+
 tar:
 	tar cvf semtex.tar *
 	gzip semtex.tar
@@ -27,29 +31,60 @@ srcdist:
 
 libs:
 	cd alplib;		\
-	gmake install;		\
+	$(MAKE) -s install;	\
 
 	cd femlib;		\
-	gmake install;		\
+	$(MAKE) -s install;	\
 
 	cd alplib;		\
-	gmake clean;		\
-	gmake;			\
-	gmake install
+	$(MAKE) -s clean;	\
+	$(MAKE) -s;		\
+	$(MAKE) -s install
 
 	cd femlib;		\
-	gmake clean;		\
-	gmake;			\
-	gmake install
+	$(MAKE) -s clean;	\
+	$(MAKE) -s;		\
+	$(MAKE) -s install
+
+# ----------------------------------------------------------------------------
+# Make version of femlib with MPI.
+
+parlib:
+
+	cd femlib;		\
+	$(MAKE) -s install;	\
+
+	cd femlib;		\
+	$(MAKE) -s clean;	\
+	$(MAKE) -s MPI=1;	\
+	$(MAKE) -s install MPI=1
+
 
 # ----------------------------------------------------------------------------
 # Run this to compile all executables.
 
 all:
-	cd src;      gmake install
-	cd utility;  gmake clean; gmake all
-	cd elliptic; gmake clean; gmake
-	cd dns;      gmake clean; gmake
+	cd src;      $(MAKE) install
+	cd utility;  $(MAKE) clean; $(MAKE) all
+	cd elliptic; $(MAKE) clean; $(MAKE)
+	cd dns;      $(MAKE) clean; $(MAKE)
+
+# ----------------------------------------------------------------------------
+# Run a test of the (serial) DNS solver.  Could take a few minutes or more.
+
+test: libs
+	cd utility; $(MAKE) -s enumerate; $(MAKE) -s compare
+	cd dns; $(MAKE) -s ;				\
+	rm -f compare;   ln -s ../utility/compare   . ;	\
+	rm -f enumerate; ln -s ../utility/enumerate .
+	@echo -- No output from testregress indicates success. --
+	cd dns; testregress dns
+
+# ----------------------------------------------------------------------------
+# Run test of parallel version of DNS solver: do "make test" first!
+
+partest: parlib
+	cd dns; $(MAKE) -s ALIAS=1 MPI=1; testsuite_mp
 
 # ----------------------------------------------------------------------------
 # Clean up.
