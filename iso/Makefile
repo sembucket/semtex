@@ -4,11 +4,12 @@
 # in file drive.c
 #
 # Hugh Blackburn
-# Department of Mechanical Engineering
-# Monash University
-# Clayton 3168
+# CSIRO
+# Building, Construction & Engineering
+# PO Box 56
+# Highett 3190
 # Australia
-# hmb@artemis.eng.monash.edu.au
+# hugh.blackburn@dbce.csiro.au
 #
 # $Id$
 ##############################################################################
@@ -82,10 +83,10 @@ all: $(PROG) IC1 IC2 IC3
 
 ifdef TG
   ISOOBJ = allocate.o io.o nonlinear.o integrate.o energy.o FFT.o	\
-	   misc.o taylor.o drive.o
+	   misc.o operator.o taylor.o drive.o
 else
   ISOOBJ = allocate.o io.o nonlinear.o integrate.o energy.o FFT.o	\
-	   misc.o drive.o
+	   misc.o operator.o drive.o
 endif
 
 $(PROG): $(ISOOBJ) $(HEADER)
@@ -96,37 +97,40 @@ $(ISOOBJ):	$(HEADER)
 
 # ----------------------------------------------------------------------------
 # Make a shaped spectrum initial conditions file.
-IC1OBJ = allocate.o io.o energy.o random.o filter.o FFT.o misc.o makeIC1.o
+IC1OBJ = allocate.o io.o energy.o random.o filter.o FFT.o misc.o	\
+	 operator.o makeIC1.o
 
 IC1: $(IC1OBJ) $(HEADER)
 	$(LD) $(IC1OBJ) -o makeIC1 $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Make ICs for 3D Taylor--Green vortex.
-IC2OBJ = allocate.o io.o energy.o FFT.o taylor.o misc.o makeIC2.o
+IC2OBJ = allocate.o io.o energy.o FFT.o taylor.o misc.o operator.o makeIC2.o
 
 IC2: $(IC2OBJ) $(IC2NNL) $(HEADER)
 	$(LD) $(IC2OBJ) -o makeIC2 $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Make ICs for 2D Taylor vortex.
-IC3OBJ = allocate.o io.o energy.o FFT.o taylor.o misc.o makeIC3.o
-IC3CHK = allocate.o io.o energy.o FFT.o taylor.o misc.o taylor2D_chk.o
+IC3OBJ = allocate.o io.o energy.o FFT.o taylor.o misc.o	\
+	 operator.o makeIC3.o
+IC3CHK = allocate.o io.o energy.o FFT.o taylor.o misc.o \
+         operator.o taylor2D_chk.o
 
 IC3: $(IC3OBJ) $(IC3CHK) $(HEADER)
 	$(LD) $(IC3OBJ) -o makeIC3 $(LDFLAGS)
 	$(LD) $(IC3CHK) -o taylor2D_chk $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
-# Convert field file to tecplot format, with vorticity too.
-TECOBJ = allocate.o io.o energy.o derivative.o misc.o FFT.o iso2tec.o
+# Convert field file to tecplot (or semtex) format, with vorticity too.
+TECOBJ = allocate.o io.o energy.o operator.o misc.o FFT.o iso2tec.o
 
 iso2tec: $(TECOBJ) $(HEADER)
 	$(LD) $(CFLAGS) -o iso2tec $(TECOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Make various test codes.
-TESTOBJ = allocate.o energy.o derivative.o FFT.o io.o	\
+TESTOBJ = allocate.o energy.o operator.o FFT.o io.o	\
 	  misc.o nonlinear.o random.o
 TESTS   = con_chk.o div_chk.o DFT_chk.o nl_chk.o prj_chk.o
 
@@ -136,6 +140,14 @@ tests: $(HEADER) $(TESTOBJ) $(TESTS)
 	$(LD) $(CFLAGS) -o dft_chk DFT_chk.o  $(TESTOBJ) $(LDFLAGS)
 	$(LD) $(CFLAGS) -o nl_chk  nl_chk.o   $(TESTOBJ) $(LDFLAGS)
 	$(LD) $(CFLAGS) -o prj_chk prj_chk.o  $(TESTOBJ) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Calculate the 1-D spectrum and statistics of a field dump.
+
+SPECOBJ = allocate.o io.o energy.o FFT.o misc.o operator.o spectrum.o
+
+spectrum: $(HEADER) $(SPECOBJ)
+	$(LD) $(SPECOBJ) -o spectrum $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Make a source distrbution.
@@ -158,12 +170,7 @@ veryclean:
 # S3 LES
 
 LESOBJ = allocate.o io.o nonlin-s3.o filter.o integrate.o energy.o FFT.o \
-	 misc.o drive.o
+	 misc.o operator.o drive.o
 
 les-s3: $(LESOBJ) $(HEADER)
 	$(LD) $(LESOBJ) -o les-s3 $(LDFLAGS)
-
-SPECOBJ = allocate.o io.o energy.o FFT.o misc.o spectrum.o
-
-spectrum: $(HEADER) $(SPECOBJ)
-	$(LD) $(SPECOBJ) -o spectrum $(LDFLAGS)
