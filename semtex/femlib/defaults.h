@@ -75,6 +75,7 @@ static struct {
   "I_PROC"      ,   0   ,	/* -- Process index for parallel soln.   */
   "N_PROC"      ,   1   ,	/* -- Number of processes for parallel.  */
   "STEP_MAX"    ,   500 ,	/* -- Max number of iterations for PCG.  */
+  "NR_MAX"      ,   20  ,       /* -- Max iterations for Newton-Raphson. */
 
   0             ,   0.0
 };

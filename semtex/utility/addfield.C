@@ -4,7 +4,7 @@
 //
 // Copyright (c) 1998--1999 Hugh Blackburn, Murray Rudman
 //
-// This is only designed for serial execution.
+// NB: the original field file is assumed to contain velocity vector data.
 //
 // Usage:
 // -----
@@ -433,11 +433,15 @@ static void putDump  (Domain*            D       ,
     "%-25s "    "Format\n"
   };
 
-  integer       i;
-  const integer nComponent = (D -> nField() == 3) ? 2 : 3;
-  char      routine[] = "putDump";
-  char      s1[StrMax], s2[StrMax];
-  time_t    tp (::time (0));
+  integer i, nComponent;
+  char    routine[] = "putDump";
+  char    s1[StrMax], s2[StrMax];
+  time_t  tp (::time (0));
+
+  if (D -> nField() == 1)	// -- Scalar original field.
+    nComponent = 1;
+  else				// -- Original field was vector.
+    nComponent = (D -> nField() == 3) ? 2 : 3;
 
   sprintf (s1, hdr_fmt[0], D -> name);
   strm << s1;
