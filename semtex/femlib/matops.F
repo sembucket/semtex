@@ -38,7 +38,7 @@ C
            ENDDO
         ENDDO
       ENDDO
-#elif defined (__sgi)
+#elif defined (__sgi) || defined (__alpha)
       CALL DGEMM ('N','N',NP,NP*NEL,NP,1.0D0,DT,NP,X,NP,1.0D0,UR,NP)
       DO I = 1, NEL
          CALL DGEMM ('N','N',NP,NP,NP,1.0D0,Y(1,1,I),
@@ -79,9 +79,9 @@ C
       REAL     UR(NP,NP,NEL), US(NP,NP,NEL)
       REAL     DV(NP,NP),     DT(NP,NP)
 C
-#if   defined (_SX)
-      DO J = 1, NP
-         DO K = 1, NP
+#if defined (_SX) || defined (__uxp__)
+      DO K = 1, NP
+         DO J = 1, NP
             DO L = 1, NP
                DO I = 1, NEL
                   UR(K,J,I) = UR(K,J,I) + X(L,J,I) * DV(L,K)
@@ -92,40 +92,13 @@ C
       DO J = 1, NP
          DO L = 1, NP
             DO K = 1, NP
-*VDIR NODEP, UNROLL=2
                DO I = 1, NEL
                   US(K,J,I) = US(K,J,I) + Y(K,L,I) * DT(J,L)
               ENDDO
            ENDDO
         ENDDO
       ENDDO
-#elif defined (__uxp__)
-C     -- NB restricted to 512 elements.
-      DO J = 1, NP
-         DO L = 1, NP
-!OCL UNROLL(4)
-            DO K = 1, NP
-!OCL NOVREC
-!OCL REPEAT(512)
-               DO I = 1, NEL
-                  UR(K,J,I) = UR(K,J,I) + X(L,J,I) * DV(L,K)
-              ENDDO
-           ENDDO
-        ENDDO
-      ENDDO
-      DO J = 1, NP
-         DO L = 1, NP
-!OCL UNROLL(4)
-            DO K = 1, NP
-!OCL NOVREC
-!OCL REPEAT(512)
-               DO I = 1, NEL
-                  US(K,J,I) = US(K,J,I) + Y(K,L,I) * DT(J,L)
-              ENDDO
-           ENDDO
-        ENDDO
-      ENDDO
-#elif defined (__sgi)
+#elif defined (__sgi) || defined (__alpha)
       CALL SGEMM ('N','N',NP,NP*NEL,NP,1.0D0,DT,NP,X,NP,1.0D0,UR,NP)
       DO I = 1, NEL
          CALL SGEMM ('N','N',NP,NP,NP,1.0D0,Y(1,1,I),
