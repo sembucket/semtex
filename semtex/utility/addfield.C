@@ -10,15 +10,16 @@
 // -----
 // addvort [options] -s session session.fld
 //   options:
-//   -h   ... print this message
-//   -v   ... add vorticity
-//   -e   ... add enstrophy and helicity (3D only)
-//   -d   ... add divergence
-//   -t   ... add rate of strain tensor Sij
-//   -g   ... add gamma = total strain rate = sqrt(2 Sij Sji)
-//   -i   ... add invariants of Vij (but NOT Vij itself)
-//            (NB: Divergence is ASSUMED equal to zero)
-//   -a   ... add them all
+//   -h        ... print this message
+//   -v        ... add vorticity
+//   -e        ... add enstrophy and helicity (3D only)
+//   -d        ... add divergence
+//   -t        ... add rate of strain tensor Sij
+//   -g        ... add gamma = total strain rate = sqrt(2 Sij Sji)
+//   -i        ... add invariants of Vij (but NOT Vij itself)
+//                (NB: Divergence is ASSUMED equal to zero)
+//   -a        ... add all fields derived from velocity
+//   -f <func> ... add a computed function (of x, y, z, etc)
 //
 // Field names used/assumed here:
 // -----------------------------
@@ -41,6 +42,7 @@
 // s -- y component vorticity
 // t -- z component vorticity
 // d -- divergence
+// f -- a computed function of spatial variables
 // Q -- 2nd invariant of velocity gradient tensor
 // R -- 3rd invariant of velocity gradient tensor
 // L -- Discriminant  of velocity gradient tensor 27/4 R^2 + Q^3
@@ -62,12 +64,21 @@
 #include <time.h>
 
 #define FLAG_MAX 8
-enum {VORTICITY, ENSTROPHY, DIVERGENCE, STRAINTENSOR, STRAINRATE, INVARIANTS};
+#define FLDS_MAX 16
+enum {
+  VORTICITY,
+  ENSTROPHY,
+  DIVERGENCE,
+  STRAINTENSOR,
+  STRAINRATE,
+  INVARIANTS,
+  FUNCTION
+};
 
 static char prog[] = "addfield";
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 
-static void    getargs  (int, char**, char*&, char*&, integer[]);
+static void    getargs  (int, char**, char*&, char*&, char*&, integer[]);
 static integer getDump  (Domain*, ifstream&);
 static void    putDump  (Domain*, vector<AuxField*>&, integer, ofstream&);
 
@@ -81,8 +92,8 @@ int main (int    argc,
   set_new_handler (&memExhaust);
 
   Geometry::CoordSys system;
-  char               *session, *dump, fields[StrMax];
-  integer            i, j, np, nz, nel, allocSize, nComponent, nData= 0;
+  char               *session, *dump, *func, fields[StrMax];
+  integer            i, j, np, nz, nel, allocSize, nComponent, nData = 0;
   integer            add[FLAG_MAX];
   ifstream           file;
   ofstream           outp (1);
@@ -90,10 +101,11 @@ int main (int    argc,
   Mesh*              M;
   BCmgr*             B;
   Domain*            D;
-  AuxField           *Ens, *Hel, *Div, *InvQ, *InvR, *Disc, *Strain, *work;
+  AuxField           *Ens, *Hel, *Div, *InvQ, *InvR, *Disc, *Strain;
+  AuxField           *Func, *work;
   const real*        z;
   vector<Element*>   elmt;
-  vector<AuxField*>  AuxPoint(3), dataField(12), vorticity(3);
+  vector<AuxField*>  AuxPoint(3), dataField(FLDS_MAX), vorticity(3);
   AuxField***        Sij;
 
   Femlib::initialize (&argc, &argv);
@@ -101,7 +113,7 @@ int main (int    argc,
   // -- Set command line defaults.
 
   Veclib::zero (FLAG_MAX, add, 1);
-  getargs (argc, argv, session, dump, add);
+  getargs (argc, argv, session, dump, func, add);
 
   // -- Set up domain.
 
@@ -168,11 +180,11 @@ int main (int    argc,
     }
   }
 
-  if (add[DIVERGENCE] || add[INVARIANTS]) {
-    dataField (nData) = new AuxField (new real[allocSize], nz, elmt, 'd');
-    Div = dataField (nData);
-    nData += 1;
-  }
+  if (add[DIVERGENCE] || add[INVARIANTS])
+    Div =  dataField (nData++) = new AuxField(new real[allocSize],nz,elmt,'d');
+
+  if (add[FUNCTION])
+    Func = dataField (nData++) = new AuxField(new real[allocSize],nz,elmt,'f');
   
   integer iadd = 0;
 
@@ -189,11 +201,9 @@ int main (int    argc,
       }
     }
     if (add[STRAINTENSOR])
-      for ( i = 0 ; i < nComponent ; i++)
-	for ( j = i ; j < nComponent ; j++ ) {
+      for (i = 0 ; i < nComponent ; i++)
+	for (j = i ; j < nComponent ; j++, nData++)
 	  dataField (nData) = Sij[i][j];
-	  nData++;
-	}
     if (add[INVARIANTS]) {
       dataField (nData)   = new AuxField (new real[allocSize], nz, elmt, 'Q');
       dataField (nData+1) = new AuxField (new real[allocSize], nz, elmt, 'R');
@@ -320,6 +330,8 @@ int main (int    argc,
       for (i = 0; i < nComponent; i++) AuxPoint[i] = D -> u[i];
       Hel -> innerProduct (vorticity, AuxPoint)  *= 0.5;
     }
+    
+    if (add[FUNCTION]) *Func = func;
       
     putDump (D, dataField, nData, outp);
   }
@@ -334,22 +346,26 @@ static void getargs (int       argc   ,
 		     char**    argv   ,
 		     char*&    session,
 		     char*&    dump   ,
+		     char*&    func   ,
 		     integer*  flag   )
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  char usage[] = "Usage: %s [options] -s session dump.fld\n"
-                 "options:\n"
-                 "  -h ... print this message \n"
-                 "  -v ... add vorticity\n"
-		 "  -e ... add enstrophy and helicity (3D only)\n"
-		 "  -d ... add divergence\n"
-		 "  -t ... add rate of strain tensor Sij\n"
-		 "  -g ... add gamma = total strain rate = sqrt(2 Sij Sji)\n"
-		 "  -i ... add invariants of Vij (but NOT Vij itself)\n"
-		 "           (NB: Divergence is ASSUMED equal to zero)\n"
-                 "  -a ... add them all\n";
+  char usage[] =
+    "Usage: %s [options] -s session dump.fld\n"
+    "options:\n"
+    "  -h        ... print this message \n"
+    "  -v        ... add vorticity\n"
+    "  -e        ... add enstrophy and helicity (3D only)\n"
+    "  -d        ... add divergence\n"
+    "  -t        ... add rate of strain tensor Sij\n"
+    "  -g        ... add gamma = total strain rate = sqrt(2 Sij Sji)\n"
+    "  -i        ... add invariants of Vij (but NOT Vij itself)\n"
+    "                (NB: Divergence is ASSUMED equal to zero)\n"
+    "  -a        ... add all fields derived from velocity (above)\n"
+    "  -f <func> ... add a computed function <func> of x, y, z, etc\n";
+              
   integer i, sum;
   char    buf[StrMax];
  
@@ -361,12 +377,7 @@ static void getargs (int       argc   ,
       exit (EXIT_SUCCESS);
       break;
     case 's':
-      if (*++argv[0])
-	session = *argv;
-      else {
-	--argc;
-	session = *++argv;
-      }
+      if (*++argv[0]) session = *argv; else { --argc; session = *++argv; }
       break;
     case 'v': flag[VORTICITY]    = 1; break;
     case 'e': flag[ENSTROPHY]    = 1; break;
@@ -374,7 +385,10 @@ static void getargs (int       argc   ,
     case 'g': flag[STRAINRATE]   = 1; break;
     case 't': flag[STRAINTENSOR] = 1; break;
     case 'i': flag[INVARIANTS]   = 1; flag[DIVERGENCE] = 1; break;
-    case 'a': for (i = 0; i < FLAG_MAX; i++)   flag[i] = 1; break;
+    case 'a': for (i = 0; i < 6; i++) flag[i] = 1;          break;
+    case 'f':
+      if (*++argv[0]) func = *argv; else { --argc; func = *++argv; }
+      flag[FUNCTION] = 1; break;
     default: sprintf (buf, usage, prog); cout<<buf; exit(EXIT_FAILURE); break;
     }
 
