@@ -28,13 +28,13 @@ RANLIB   =
 # ----------- Compiler options for specific machines: ------------------------
 
 ifeq ($(ARCH),IRIX)			# -- SGI IRIX 32-bit.
-CFLAGS     = -fullwarn -g
-FFLAGS     = -g
+CFLAGS     = -fullwarn -O2
+FFLAGS     = -O2
 endif
 
 ifeq ($(ARCH),IRIX64)			# -- SGI IRIX 64-bit
-CFLAGS     = -fullwarn -mips4 -O3
-FFLAGS     = -mips4 -O2
+CFLAGS     = -mips4 -64 -Ofast=IP30 -r10000
+FFLAGS     = -mips4 -64 -Ofast=IP30 -r10000
 endif
 
 
@@ -44,6 +44,7 @@ CC         = cc
 CFLAGS     = -fast -inline speed -fp_reorder -speculate all -tune host -O4
 FFLAGS     = -fast -tune host -O5
 ifdef MPI
+  LIB      = libalp_mp.a
   CFLAGS  += -pthread
   FFLAGS  += -D_THREAD_SAFE
 endif
@@ -69,6 +70,10 @@ endif
 ifeq ($(ARCH),SUPER-UX)                 # -- NEC SX-4
 CFLAGS     = -pvctl,fullmsg -Onooverlap -hfloat0
 FFLAGS     =  $(DEFINES) -Wf'-pvctl,fullmsg -ptr byte' -float0 -ew
+ifdef MPI
+  LIB      = libalp_mp.a
+  FFLAGS  += -P multi
+endif
 endif
 
 # ----------------------------------------------------------------------------
