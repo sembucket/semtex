@@ -7,10 +7,10 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
  
-#include <dns.h>
+#include <dual.h>
 
 
-DNSAnalyser::DNSAnalyser (Domain* D   ,
+DualAnalyser::DualAnalyser (Domain* D   ,
 			  FEML*   feml) :
 // ---------------------------------------------------------------------------
 // Extensions to Analyser class.
@@ -18,7 +18,7 @@ DNSAnalyser::DNSAnalyser (Domain* D   ,
   Analyser (D, feml)
 {
   ROOTONLY {
-    const char routine[] = "DNSAnalyser::DNSAnalyser";
+    const char routine[] = "DualAnalyser::DualAnalyser";
     char       str[StrMax];
 
     // -- Open state-variable file.
@@ -26,14 +26,14 @@ DNSAnalyser::DNSAnalyser (Domain* D   ,
     flx_strm.open (strcat (strcpy (str, src -> name), ".flx"));
     if (!flx_strm) message (routine, "can't open flux file",  ERROR);
 
-    flx_strm << "# DNS state information file"      << endl;
+    flx_strm << "# Dual state information file"      << endl;
     flx_strm << "# Step Time [Fpre Fvis Ftot]-axis" << endl;
     flx_strm << "# -------------------------------" << endl;
   }
 }
 
 
-void DNSAnalyser::analyse (AuxField** work)
+void DualAnalyser::analyse (AuxField** work)
 // ---------------------------------------------------------------------------
 // Step-by-step processing.
 // ---------------------------------------------------------------------------

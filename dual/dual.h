@@ -1,7 +1,7 @@
 #ifndef DNS_H
 #define DNS_H
 //////////////////////////////////////////////////////////////////////////////
-// dns.h: header file for direct numerical simulation solver.
+// dual.h: header file for direct numerical simulation solver.
 //
 // Copyright (C) 1994, 1999 Hugh Blackburn
 //
@@ -11,13 +11,13 @@
 #include <Sem.h>
 
 
-class DNSAnalyser : public Analyser
+class DualAnalyser : public Analyser
 // ===========================================================================
 // Implement step-by-step processing and output control for flow solver.
 // ===========================================================================
 {
 public:
-  DNSAnalyser  (Domain*, FEML*);
+  DualAnalyser  (Domain*, FEML*);
   void analyse (AuxField**);
 
 private:

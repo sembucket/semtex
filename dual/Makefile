@@ -12,16 +12,16 @@ PROG  = dual
 
 # ----------------------------------------------------------------------------
 #
-SEMFILES  = analysis auxfield BCmgr boundary bsys condition domain \
-	    element feml field geometry history integration  	   \
-	    matrix mesh misc particle pressure statistics
+SEMFILES  = analysis auxfield BCmgr boundary bsys condition	\
+	    domain element feml field geometry integration	\
+	    matrix mesh misc pressure statistics
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
 SEMHDR    = Sem.h
 
 # ----------------------------------------------------------------------------
 # Default build for Navier-Stokes solver.
 #
-SOLOBJ = drive.o NS.o
+SOLOBJ = drive.o NS.o dualanalysis.o
 
 $(PROG): sem $(SEMOBJ) $(SOLOBJ) 
 	$(LD) -o $@ $(SOLOBJ) $(SEMOBJ) $(LDFLAGS)

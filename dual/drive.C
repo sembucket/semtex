@@ -40,7 +40,7 @@ static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, BoundarySys*&, Domain*&);
 
-void NavierStokes (Domain*, DNSAnalyser*);
+void NavierStokes (Domain*, DualAnalyser*);
 
 
 int main (int    argc,
@@ -61,7 +61,7 @@ int main (int    argc,
   BCmgr*           bman;
   BoundarySys*     bsys;
   Domain*          domain;
-  DaulAnalyser*    analyst;
+  DualAnalyser*    analyst;
   
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session);
@@ -151,7 +151,7 @@ static void preprocess (const char*       session,
 {
   const integer      verbose = (integer) Femlib::value ("VERBOSE");
   Geometry::CoordSys space;
-  const real*        z;
+  const real*        gllnode;
   integer            i, np, nz, nel;
 
   // -- Initialise problem and set up mesh geometry.
@@ -181,10 +181,10 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "Building elements ... ";
 
-  Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
+  Femlib::mesh (GLL, GLL, np, np, &gllnode, 0, 0, 0, 0);
 
   elmt.setSize (nel);
-  for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
+  for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, gllnode, np);
 
   VERBOSE cout << "done" << endl;
 

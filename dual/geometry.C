@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // geometry.C: define geometrical properties for 2D quad X Fourier spaces.
 //
-// This is a modified version for dual: it is restricted to
+// NB: This is a modified version for dual: it is restricted to
 // single-process operation and N_Z = 3.  In addition since no Fourier
 // transformation will be used, there is no need to round up the plane
 // size to be an even number.
@@ -55,7 +55,7 @@ void Geometry::set (const integer  NP,
   }
 
   if (nproc != 1) {
-    sprintf (err, "This is a serial code (1 process, not %1d)" nproc);
+    sprintf (err, "This is a serial code (1 process, not %1d)", nproc);
     message (routine, err, ERROR);
   }
 

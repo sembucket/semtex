@@ -3,6 +3,9 @@
 // Geometries may be 2- or 3-dimensional, Cartesian or cylindrical.
 // Fourier expansions are used in the homogeneous direction.
 //
+// NB: Modified for use with dual.  Nonlinear terms are computed using
+// convolution sums.
+//
 // References:
 // 1.  Karniadakis, Israeli & Orszag 1991.  "High-order splitting methods
 //     for the incompressible Navier--Stokes equations", JCP 9(2).
@@ -17,7 +20,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <dns.h>
+#include <dual.h>
 
 typedef ModalMatrixSys Msys;
 
@@ -31,8 +34,8 @@ static Msys** preSolve  (const Domain*);
 static void   Solve     (Domain*, const integer, AuxField*, Msys*);
 
 
-void NavierStokes (Domain*      D,
-		   DNSAnalyser* A)
+void NavierStokes (Domain*       D,
+		   DualAnalyser* A)
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
 // constraint Field 'p'.
@@ -41,10 +44,10 @@ void NavierStokes (Domain*      D,
 // Uf is multi-level auxillary Field storage for nonlinear forcing terms.
 // ---------------------------------------------------------------------------
 {
-  NDIM = Geometry::nDim();
-  NORD = (integer) Femlib::value ("N_TIME");
-  CYL  = Geometry::system() == Geometry::Cylindrical;
-  C3D  = CYL && NDIM == 3;
+  NDIM  = Geometry::nDim();
+  NORD  = (integer) Femlib::value ("N_TIME");
+  CYL   = Geometry::system() == Geometry::Cylindrical;
+  C3D   = CYL && NDIM == 3;
 
   integer       i, j, k;
   const real    dt     =           Femlib::value ("D_T");
@@ -168,12 +171,11 @@ static void nonLinear (Domain*       D ,
 //
 // If STOKES is defined for compilation, the nonlinear terms are set to zero.
 //
-// Data are transformed to physical space for most of the operations, with
-// the Fourier transform extended using zero padding for dealiasing.  For
-// gradients in the Fourier direction however, the data must be transferred
-// back to Fourier space.
-//
-// NB: no dealiasing for concurrent execution.
+// For use with dual, velocity components are always held in the
+// Fourier-transformed state, and non-linear terms are computed using
+// convoultion sums.  There are only two modes (0 and the
+// "Fundamental").  The nonlinear terms are dealiased.  We can assume
+// that we are always operating in 3 space dimensions.
 // ---------------------------------------------------------------------------
 {
   integer    i, j;
@@ -184,101 +186,65 @@ static void nonLinear (Domain*       D ,
   for (i = 0; i < NDIM; i++) {
     *Uf[i] = 0.0;
     AuxField::swapData (D -> u[i], Us[i]);
-    ROOTONLY if (fabs (ff[i]) > EPS) Uf[i] -> addToPlane (0, -ff[i]);
+    if (fabs (ff[i]) > EPS) Uf[i] -> addToPlane (0, -ff[i]);
   }
 
 #else
 
-  const integer     nZ     = Geometry::nZ();
-  const integer     nZP    = Geometry::nZProc();
-  const integer     nP     = Geometry::planeSize();
-  const integer     nPP    = Geometry::nBlock();
-  const integer     nPR    = Geometry::nProc();
-  const integer     nTot   = Geometry::nTotProc();
-  const integer     nZ32   = Geometry::nZ32();
-  const integer     nTot32 = nZ32 * nP;
-  vector<real>      work ((2 * NDIM + 1) * nTot32);
-  vector<real*>     u32 (NDIM);
-  vector<real*>     n32 (NDIM);
-  vector<AuxField*> U   (NDIM);
-  vector<AuxField*> N   (NDIM);
+  const integer     nZ  = Geometry::nZ();
+  const integer     nP  = Geometry::planeSize();
+  vector<AuxField*> U (NDIM), N(NDIM), T(NDIM);
   Field*            master = D -> u[0];
-  real*             tmp    = work() + 2 * NDIM * nTot32;
-
-  Veclib::zero ((2 * NDIM + 1) * nTot32, work(), 1); // -- A catch-all cleanup.
 
   for (i = 0; i < NDIM; i++) {
-    u32[i] = work() +  i         * nTot32;
-    n32[i] = work() + (i + NDIM) * nTot32;
-
     AuxField::swapData (D -> u[i], Us[i]);
-
     U[i] = Us[i];
-    U[i] -> transform32 (INVERSE, u32[i]);
     N[i] = Uf[i];
+    T[i] = D -> u[i];
   }
 
   if (CYL) {			// -- Cylindrical coordinates.
 
+     N[0] -> convolve (*U[0], *U[1]);
+     N[1] -> convolve (*U[1], *U[1]);
+     N[2] -> convolve (*U[1], *U[2]);
+     T[0] -> convolve (*U[2], *U[2]);
+    *N[2] *=  3.0;
+    *T[0] *= -2.0;
+    *N[1] += *T[0];
+
     for (i = 0; i < NDIM; i++) {
 
-      // -- Terms involving azimuthal derivatives and frame components.
+      *T[0]  = *U[i];
+       T[0] -> gradient (2);
+       T[0] -> convolve (*U[2], *T[0]);
+       T[1] -> convolve (*U[2], *U[i]);
+       T[1] -> gradient (2);
+      *N[i] += *T[0];
+      *N[i] += *T[1];
+       N[i] -> divR();
 
-      if (i == 0)
-	Veclib::vmul (nTot32, u32[0], 1, u32[1], 1, n32[0], 1);
-      if (i == 1)
-	Veclib::vmul (nTot32, u32[1], 1, u32[1], 1, n32[1], 1);
+      for (j = 0; j < 2; j++) {
+      
+	// -- Perform n_i += u_j d(u_i) / dx_j.
 
-      if (NDIM == 3) {
-	if (i == 1)
-	  Veclib::svvttvp (nTot32, -2.0, u32[2],1,u32[2],1,n32[1],1,n32[1], 1);
-	if (i == 2)
-	  Veclib::svvtt   (nTot32,  3.0, u32[2], 1, u32[1], 1,      n32[2], 1);
+	*T[0]  = *U[i];
+	 T[0] -> gradient (j);
+	 T[1] -> convolve (*U[j], *T[0]);
+	*N[i] = *T[1];
 
-	if (nZ > 2) {
-	  Veclib::copy       (nTot32, u32[i], 1, tmp, 1);
-	  Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
-	  Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
-	  master -> gradient (nZ, nPP, tmp, 2);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
-	  Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
-	  Veclib::vvtvp      (nTot32, u32[2], 1, tmp, 1, n32[i], 1, n32[i], 1);
+	// -- Perform n_i += d(u_i u_j) / dx_j.
 	
-	  Veclib::vmul       (nTot32, u32[i], 1, u32[2], 1, tmp, 1);
-	  Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
-	  Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
-	  master -> gradient (nZ, nPP, tmp, 2);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
-	  Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
-	  Veclib::vadd       (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
-	}
+	 T[0] -> convolve (*U[i], *U[j]);
+	 T[0] -> gradient (j);
+	*N[i] += *T[0];
+
       }
 
-      master -> divR (nZ32, n32[i]);
-
-      // -- 2D non-conservative derivatives.
-
-      for (j = 0; j < 2; j++) {
-	Veclib::copy       (nTot32, u32[i], 1, tmp, 1);
-	master -> gradient (nZ32, nP, tmp, j);
-	Veclib::vvtvp      (nTot32, u32[j], 1, tmp, 1, n32[i], 1, n32[i], 1);
-      }
-
-      // -- 2D conservative derivatives.
-     
-      for (j = 0; j < 2; j++) {
-	Veclib::vmul       (nTot32, u32[j], 1, u32[i], 1, tmp, 1);
-	master -> gradient (nZ32, nP, tmp, j);
-	Veclib::vadd       (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
-      }
-
-      // -- Transform to Fourier space, smooth, add forcing.
-
-      N[i]   -> transform32 (FORWARD, n32[i]);
+      // -- Smooth, add forcing.
+      
       master -> smooth (N[i]);
-      ROOTONLY if (fabs (ff[i]) > EPS) N[i] -> addToPlane (0, -2.0*ff[i]);
+      if (fabs (ff[i]) > EPS) N[i] -> addToPlane (0, -2.0*ff[i]);
       *N[i] *= -0.5;
     }
   
@@ -289,41 +255,23 @@ static void nonLinear (Domain*       D ,
       
 	// -- Perform n_i += u_j d(u_i) / dx_j.
 
-	Veclib::copy (nTot32, u32[i], 1, tmp,  1);
-	if (j == 2) {
-	  Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
-	  Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
-	  master -> gradient (nZ,  nPP, tmp, j);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
-	  Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
-	} else {
-	  master -> gradient (nZ32, nP, tmp, j);
-	}
-	Veclib::vvtvp (nTot32, u32[j], 1, tmp,  1, n32[i], 1, n32[i], 1);
+	*T[0] = *U[i];
+	 T[0] -> gradient (j);
+	 T[1] -> convolve (*U[j], *T[0]);
+	*N[i] = *T[1];
 
 	// -- Perform n_i += d(u_i u_j) / dx_j.
 
-	Veclib::vmul  (nTot32, u32[i], 1, u32[j], 1, tmp,  1);
-	if (j == 2) {
-	  Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
-	  Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
-	  master -> gradient (nZ,  nPP, tmp, j);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
-	  Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
-	} else {
-	  master -> gradient (nZ32, nP, tmp, j);
-	}
-	Veclib::vadd (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
-	
+	 T[0] -> convolve (*U[i], *U[j]);
+	 T[0] -> gradient (j);
+	*N[i] += *T[0];
+
       }
 
-      // -- Transform to Fourier space, smooth, add forcing.
+      // -- Smooth, add forcing.
       
-      N[i]   -> transform32 (FORWARD, n32[i]);
       master -> smooth (N[i]);
-      ROOTONLY if (fabs (ff[i]) > EPS) N[i] -> addToPlane (0, -2.0*ff[i]);
+      if (fabs (ff[i]) > EPS) N[i] -> addToPlane (0, -2.0*ff[i]);
       *N[i] *= -0.5;
     }
   }
@@ -433,8 +381,6 @@ static Msys** preSolve (const Domain* D)
 // ITERATIVE == 2 adds iterative solver for pressure as well.
 // ---------------------------------------------------------------------------
 {
-  const integer           nmodes = Geometry::nModeProc();
-  const integer           base   = Geometry::baseMode();
   const integer           itLev  = (integer) Femlib::value ("ITERATIVE");
   const real              beta   = Femlib::value ("BETA");
   const vector<Element*>& E      = D -> elmt;
@@ -448,12 +394,12 @@ static Msys** preSolve (const Domain* D)
 
   for (i = 0; i < NDIM; i++)
     M[i] = new Msys
-      (lambda2, beta, base, nmodes, E, D -> b[i],    (itLev<1)?DIRECT:JACPCG);
+      (lambda2, beta, 0, 2, E, D -> b[i],    (itLev<1)?DIRECT:JACPCG);
 
   // -- Pressure system.
 
   M[NDIM] = new Msys
-      (0.0,     beta, base, nmodes, E, D -> b[NDIM], (itLev<2)?DIRECT:JACPCG);
+      (0.0,     beta, 0, 2, E, D -> b[NDIM], (itLev<2)?DIRECT:JACPCG);
 
   return M;
 }
@@ -473,15 +419,13 @@ static void Solve (Domain*       D,
 
   if (i < NDIM && step < NORD) { // -- We need a temporary matrix system.
     const integer Je      = min (step, NORD);    
-    const integer base    = Geometry::baseMode();
-    const integer nmodes  = Geometry::nModeProc();
     vector<real>  alpha (Je + 1);
     Integration::StifflyStable (Je, alpha());
     const real    lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
     const real    beta    = Femlib::value ("BETA");
 
     Msys* tmp = new Msys
-      (lambda2, beta, base, nmodes, D -> elmt, D -> b[i], JACPCG);
+      (lambda2, beta, 0, 2, D -> elmt, D -> b[i], JACPCG);
     D -> u[i] -> solve (F, tmp);
     delete tmp;
 
