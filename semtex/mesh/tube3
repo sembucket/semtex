@@ -19,10 +19,9 @@
 	N_Z         = 8
 	N_TIME      = 1
 	N_POLY      = 5
-	N_STEP      = 1
+	N_STEP      = 20
 	D_T         = 0.01
 	KINVIS      = 0.5
-	FFX         = 2.0
 </TOKENS>
 
 <GROUPS NUMBER=2>
