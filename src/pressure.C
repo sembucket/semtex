@@ -8,6 +8,11 @@
 #include "Fem.h"
 
 
+#ifdef __DECCXX
+  #pragma define_template roll<double*>
+#endif
+
+
 // -- Static PBCmanager class variables: 
 
 HOBC*  PBCmanager::store     = 0;
@@ -55,6 +60,11 @@ void  PBCmanager::build (Field& f)
   store[0].Py = rmatrix (nOrder, ntot);
   store[0].Ux = rmatrix (nOrder, ntot);
   store[0].Uy = rmatrix (nOrder, ntot);
+
+  Veclib::zero (nOrder*ntot, *store[0].Px, 1);
+  Veclib::zero (nOrder*ntot, *store[0].Py, 1);
+  Veclib::zero (nOrder*ntot, *store[0].Ux, 1);
+  Veclib::zero (nOrder*ntot, *store[0].Uy, 1);
 
   i = 0;
   ntot = 0;
