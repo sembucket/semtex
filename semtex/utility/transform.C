@@ -143,7 +143,7 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
     real*         tmp = &work[0];
 
     //    Femlib::mesh (GLL, GLL, rhs.np, np, 0, &IN, &IT, 0, 0);
-    Femlib::projection (&IN, &IT, rhs.np, GLL, 0.0, 0.0, np, GLL, 0.0, 0.0);
+    Femlib::projection (&IN, &IT, rhs.np, 'L', 0.0, 0.0, np, 'L', 0.0, 0.0);
 
     for (k = 0; k < nzm; k++) {	// -- 2D planar projections.
       LHS = plane[k];
