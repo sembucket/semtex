@@ -84,7 +84,7 @@ Domain::Domain (const char* session)
   
   if (strstr (s, "**") && strstr (s, "MESH") && strstr (s, "INFORMATION")) {
     ifstream* meshfile = altFile (file);
-    u[0] -> readMesh (*meshfile);
+    u[0] -> readMesh (*meshfile, iparam ("N_POLY"));
 
     if (!u[0] -> nEl()) message (routine, "no element information set", ERROR);
     if (*meshfile != file) { meshfile -> close (); delete meshfile; }
@@ -110,13 +110,13 @@ Domain::Domain (const char* session)
 
   // -- Clean up.
 
-  state_file.open   (strcat(strcpy(s, domain_name), ".sta"));
-  history_file.open (strcat(strcpy(s, domain_name), ".his"));
-  field_file.open   (strcat(strcpy(s, domain_name), ".fld"));
+  state_file.open   (strcat (strcpy (s, domain_name), ".sta"));
+  history_file.open (strcat (strcpy (s, domain_name), ".his"));
+  field_file.open   (strcat (strcpy (s, domain_name), ".fld"));
 
-  if (!state_file)   message(routine, "can't open state file",   ERROR);
-  if (!history_file) message(routine, "can't open history file", ERROR);
-  if (!field_file)   message(routine, "can't open field file",   ERROR);
+  if (!state_file)   message (routine, "can't open state file",   ERROR);
+  if (!history_file) message (routine, "can't open history file", ERROR);
+  if (!field_file)   message (routine, "can't open field file",   ERROR);
 }
 
 
