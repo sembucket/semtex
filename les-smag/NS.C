@@ -304,9 +304,9 @@ static void nonLinear (Domain*       D ,
     Veclib::vadd         (nTot32,   u32[1], 1, n32[1], 1, n32[1], 1);
     Veclib::copy         (nTot32,              u32[0], 1, u32[1], 1);
     master   -> gradient (nZ32, nP, u32[0], 1);
-    Veclib::vadd         (nTot32,   u32[0], 1, n32[0], 1);
+    Veclib::vadd         (nTot32,   u32[0], 1, n32[0], 1, n32[0], 1);
     master   -> divR     (nZ32,     u32[1]);
-    Veclib::vadd         (nTot32,   u32[1], 1, n32[0], 1);
+    Veclib::vadd         (nTot32,   u32[1], 1, n32[0], 1, n32[0], 1);
 #else
     master   -> mulR     (nZ32, u32[0]);
     master   -> gradient (nZ32, nP, u32[0], 1);
