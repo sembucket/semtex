@@ -16,10 +16,6 @@ static char
 
 #define  FREE_ARG   void*
 
-
-
-
-
   
 complex *cvector(long nl, long nh)
 /* ========================================================================= *
@@ -241,9 +237,9 @@ zomplex **zmatrix(long nrl, long nrh, long ncl, long nch)
 
 
 
-complex ***c3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
+complex ***c3matrix(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 /* ========================================================================= *
- * Allocate a complex 3-tensor with ranges [nrl..nrh][ncl..nch][ndl..ndh].   *
+ * Allocate a complex 3-matrix with ranges [nrl..nrh][ncl..nch][ndl..ndh].   *
  * ========================================================================= */
 {
   long       i, j, nrow = nrh-nrl+1, ncol = nch-ncl+1, ndep = ndh-ndl+1;
@@ -251,15 +247,15 @@ complex ***c3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
   t = (complex***) malloc((size_t) (nrow*sizeof(complex**)));
-  if (!t) message("s3tensor()", "allocation failure 1", ERROR);
+  if (!t) message("s3matrix()", "allocation failure 1", ERROR);
   t -= nrl;
 
   t[nrl] = (complex**) malloc((size_t) (nrow*ncol*sizeof(complex*)));
-  if (!t[nrl]) message("s3tensor()", "allocation failure 2", ERROR);
+  if (!t[nrl]) message("s3matrix()", "allocation failure 2", ERROR);
   t[nrl] -= ncl;
 
   t[nrl][ncl] = (complex*) malloc((size_t) (nrow*ncol*ndep*sizeof(complex)));
-  if (!t[nrl][ncl]) message("s3tensor()", "allocation failure 3", ERROR);
+  if (!t[nrl][ncl]) message("s3matrix()", "allocation failure 3", ERROR);
   t[nrl][ncl] -= ndl;
 
   for (j=ncl+1; j<=nch; j++)
@@ -278,9 +274,9 @@ complex ***c3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
 
-double ***d3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
+double ***d3matrix(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 /* ========================================================================= *
- * Allocate a double 3-tensor with ranges [nrl..nrh][ncl..nch][ndl..ndh].    *
+ * Allocate a double 3-matrix with ranges [nrl..nrh][ncl..nch][ndl..ndh].    *
  * ========================================================================= */
 {
   long      i, j, nrow = nrh-nrl+1, ncol = nch-ncl+1, ndep = ndh-ndl+1;
@@ -288,15 +284,15 @@ double ***d3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
   t = (double***) malloc((size_t) (nrow*sizeof(double**)));
-  if (!t) message("s3tensor()", "allocation failure 1", ERROR);
+  if (!t) message("s3matrix()", "allocation failure 1", ERROR);
   t -= nrl;
 
   t[nrl] = (double**) malloc((size_t) (nrow*ncol*sizeof(double*)));
-  if (!t[nrl]) message("s3tensor()", "allocation failure 2", ERROR);
+  if (!t[nrl]) message("s3matrix()", "allocation failure 2", ERROR);
   t[nrl] -= ncl;
 
   t[nrl][ncl] = (double*) malloc((size_t) (nrow*ncol*ndep*sizeof(double)));
-  if (!t[nrl][ncl]) message("s3tensor()", "allocation failure 3", ERROR);
+  if (!t[nrl][ncl]) message("s3matrix()", "allocation failure 3", ERROR);
   t[nrl][ncl] -= ndl;
 
   for (j=ncl+1; j<=nch; j++)
@@ -315,9 +311,9 @@ double ***d3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
 
-float ***s3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
+float ***s3matrix(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 /* ========================================================================= *
- * Allocate a float 3-tensor with ranges [nrl..nrh][ncl..nch][ndl..ndh].     *
+ * Allocate a float 3-matrix with ranges [nrl..nrh][ncl..nch][ndl..ndh].     *
  * ========================================================================= */
 {
   long     i, j, nrow = nrh-nrl+1, ncol = nch-ncl+1, ndep = ndh-ndl+1;
@@ -325,15 +321,15 @@ float ***s3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
   t = (float***) malloc((size_t) (nrow*sizeof(float**)));
-  if (!t) message("s3tensor()", "allocation failure 1", ERROR);
+  if (!t) message("s3matrix()", "allocation failure 1", ERROR);
   t -= nrl;
 
   t[nrl] = (float**) malloc((size_t) (nrow*ncol*sizeof(float*)));
-  if (!t[nrl]) message("s3tensor()", "allocation failure 2", ERROR);
+  if (!t[nrl]) message("s3matrix()", "allocation failure 2", ERROR);
   t[nrl] -= ncl;
 
   t[nrl][ncl] = (float*) malloc((size_t) (nrow*ncol*ndep*sizeof(float)));
-  if (!t[nrl][ncl]) message("s3tensor()", "allocation failure 3", ERROR);
+  if (!t[nrl][ncl]) message("s3matrix()", "allocation failure 3", ERROR);
   t[nrl][ncl] -= ndl;
 
   for (j=ncl+1; j<=nch; j++)
@@ -352,9 +348,9 @@ float ***s3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
 
-int ***i3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
+int ***i3matrix(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 /* ========================================================================= *
- * Allocate an int 3-tensor with ranges [nrl..nrh][ncl..nch][ndl..ndh].      *
+ * Allocate an int 3-matrix with ranges [nrl..nrh][ncl..nch][ndl..ndh].      *
  * ========================================================================= */
 {
   int     i, j, nrow = nrh-nrl+1, ncol = nch-ncl+1, ndep = ndh-ndl+1;
@@ -362,15 +358,15 @@ int ***i3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
   t = (int***) malloc((size_t) (nrow*sizeof(int**)));
-  if (!t) message("s3tensor()", "allocation failure 1", ERROR);
+  if (!t) message("s3matrix()", "allocation failure 1", ERROR);
   t -= nrl;
 
   t[nrl] = (int**) malloc((size_t) (nrow*ncol*sizeof(int*)));
-  if (!t[nrl]) message("s3tensor()", "allocation failure 2", ERROR);
+  if (!t[nrl]) message("s3matrix()", "allocation failure 2", ERROR);
   t[nrl] -= ncl;
 
   t[nrl][ncl] = (int*) malloc((size_t) (nrow*ncol*ndep*sizeof(int)));
-  if (!t[nrl][ncl]) message("s3tensor()", "allocation failure 3", ERROR);
+  if (!t[nrl][ncl]) message("s3matrix()", "allocation failure 3", ERROR);
   t[nrl][ncl] -= ndl;
 
   for (j=ncl+1; j<=nch; j++)
@@ -389,9 +385,9 @@ int ***i3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
 
-zomplex ***z3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
+zomplex ***z3matrix(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 /* ========================================================================= *
- * Allocate a zomplex 3-tensor with ranges [nrl..nrh][ncl..nch][ndl..ndh].   *
+ * Allocate a zomplex 3-matrix with ranges [nrl..nrh][ncl..nch][ndl..ndh].   *
  * ========================================================================= */
 {
   long       i, j, nrow = nrh-nrl+1, ncol = nch-ncl+1, ndep = ndh-ndl+1;
@@ -399,15 +395,15 @@ zomplex ***z3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
   t = (zomplex***) malloc((size_t) (nrow*sizeof(zomplex**)));
-  if (!t) message("s3tensor()", "allocation failure 1", ERROR);
+  if (!t) message("s3matrix()", "allocation failure 1", ERROR);
   t -= nrl;
 
   t[nrl] = (zomplex**) malloc((size_t) (nrow*ncol*sizeof(zomplex*)));
-  if (!t[nrl]) message("s3tensor()", "allocation failure 2", ERROR);
+  if (!t[nrl]) message("s3matrix()", "allocation failure 2", ERROR);
   t[nrl] -= ncl;
 
   t[nrl][ncl] = (zomplex*) malloc((size_t) (nrow*ncol*ndep*sizeof(zomplex)));
-  if (!t[nrl][ncl]) message("s3tensor()", "allocation failure 3", ERROR);
+  if (!t[nrl][ncl]) message("s3matrix()", "allocation failure 3", ERROR);
   t[nrl][ncl] -= ndl;
 
   for (j=ncl+1; j<=nch; j++)
@@ -426,7 +422,7 @@ zomplex ***z3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
 
-void free_cvector(complex *v, long nl)
+void freeCvector(complex *v, long nl)
 /* ========================================================================= *
  * Frees a complex vector allocated by cvector().                            *
  * ========================================================================= */
@@ -438,7 +434,7 @@ void free_cvector(complex *v, long nl)
 
 
 
-void free_dvector(double *v, long nl)
+void freeDvector(double *v, long nl)
 /* ========================================================================= *
  * Frees a double vector allocated by dvector().                             *
  * ========================================================================= */
@@ -449,7 +445,7 @@ void free_dvector(double *v, long nl)
 
 
 
-void free_svector(float *v, long nl)
+void freeSvector(float *v, long nl)
 /* ========================================================================= *
  * Frees a float vector allocated by svector().                              *
  * ========================================================================= */
@@ -461,7 +457,7 @@ void free_svector(float *v, long nl)
 
 
 
-void free_ivector(int *v, long nl)
+void freeIvector(int *v, long nl)
 /* ========================================================================= *
  * Frees an int vector allocated by ivector().                               *
  * ========================================================================= */
@@ -473,7 +469,7 @@ void free_ivector(int *v, long nl)
 
 
 
-void free_zvector(zomplex *v, long nl)
+void freeZvector(zomplex *v, long nl)
 /* ========================================================================= *
  * Frees a complex vector allocated by zvector().                            *
  * ========================================================================= */
@@ -485,7 +481,7 @@ void free_zvector(zomplex *v, long nl)
 
 
 
-void free_cmatrix(complex **m, long nrl, long ncl)
+void freeCmatrix(complex **m, long nrl, long ncl)
 /* ========================================================================= *
  * Frees a complex matrix allocated with cmatrix().                          *
  * ========================================================================= */
@@ -498,7 +494,7 @@ void free_cmatrix(complex **m, long nrl, long ncl)
 
 
 
-void free_dmatrix(double **m, long nrl, long ncl)
+void freeDmatrix(double **m, long nrl, long ncl)
 /* ========================================================================= *
  * Frees a double matrix allocated with dmatrix().                           *
  * ========================================================================= */
@@ -511,7 +507,7 @@ void free_dmatrix(double **m, long nrl, long ncl)
 
 
 
-void free_smatrix(float **m, long nrl, long ncl)
+void freeSmatrix(float **m, long nrl, long ncl)
 /* ========================================================================= *
  * Frees a float matrix allocated with smatrix().                            *
  * ========================================================================= */
@@ -524,7 +520,7 @@ void free_smatrix(float **m, long nrl, long ncl)
 
 
 
-void free_imatrix(int **m, long nrl, long ncl)
+void freeImatrix(int **m, long nrl, long ncl)
 /* ========================================================================= *
  * Frees an int matrix allocated with imatrix().                             *
  * ========================================================================= */
@@ -537,7 +533,7 @@ void free_imatrix(int **m, long nrl, long ncl)
 
 
 
-void free_zmatrix(zomplex **m, long nrl, long ncl)
+void freeZmatrix(zomplex **m, long nrl, long ncl)
 /* ========================================================================= *
  * Frees a zomplex matrix allocated with zmatrix().                          *
  * ========================================================================= */
@@ -550,9 +546,9 @@ void free_zmatrix(zomplex **m, long nrl, long ncl)
 
 
 
-void free_c3tensor(complex ***t, long nrl, long ncl, long ndl)
+void freeC3matrix(complex ***t, long nrl, long ncl, long ndl)
 /* ========================================================================= *
- * Frees a complex 3-tensor allocated with c3tensor().                       *
+ * Frees a complex 3-matrix allocated with c3matrix().                       *
  * ========================================================================= */
 {
   free ((FREE_ARG) (t[nrl][ncl]+ndl));
@@ -564,9 +560,9 @@ void free_c3tensor(complex ***t, long nrl, long ncl, long ndl)
 
 
 
-void free_d3tensor(double ***t, long nrl, long ncl, long ndl)
+void freeD3matrix(double ***t, long nrl, long ncl, long ndl)
 /* ========================================================================= *
- * Frees a double 3-tensor allocated with d3tensor().                        *
+ * Frees a double 3-matrix allocated with d3matrix().                        *
  * ========================================================================= */
 {
   free ((FREE_ARG) (t[nrl][ncl]+ndl));
@@ -578,9 +574,9 @@ void free_d3tensor(double ***t, long nrl, long ncl, long ndl)
 
 
 
-void free_s3tensor(float ***t, long nrl, long ncl, long ndl)
+void freeS3matrix(float ***t, long nrl, long ncl, long ndl)
 /* ========================================================================= *
- * Frees a float 3-tensor allocated with s3tensor().                         *
+ * Frees a float 3-matrix allocated with s3matrix().                         *
  * ========================================================================= */
 {
   free ((FREE_ARG) (t[nrl][ncl]+ndl));
@@ -592,9 +588,9 @@ void free_s3tensor(float ***t, long nrl, long ncl, long ndl)
 
 
 
-void free_i3tensor(int ***t, long nrl, long ncl, long ndl)
+void freeI3matrix(int ***t, long nrl, long ncl, long ndl)
 /* ========================================================================= *
- * Frees an int 3-tensor allocated with i3tensor().                          *
+ * Frees an int 3-matrix allocated with i3matrix().                          *
  * ========================================================================= */
 {
   free ((FREE_ARG) (t[nrl][ncl]+ndl));
@@ -606,9 +602,9 @@ void free_i3tensor(int ***t, long nrl, long ncl, long ndl)
 
 
 
-void free_z3tensor(zomplex ***t, long nrl, long ncl, long ndl)
+void freeZ3matrix(zomplex ***t, long nrl, long ncl, long ndl)
 /* ========================================================================= *
- * Frees a zomplex 3-tensor allocated with z3tensor().                       *
+ * Frees a zomplex 3-matrix allocated with z3matrix().                       *
  * ========================================================================= */
 {
   free ((FREE_ARG) (t[nrl][ncl]+ndl));
