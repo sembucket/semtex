@@ -203,7 +203,8 @@ void Element::map ()
 
   if (Geometry::system() == Geometry::Cylindrical) {
     register integer i;
-    for (i = 0; i < npnp; i++) delta[i] *= (ymesh[i] < EPS) ? EPS : ymesh[i];
+    for (i = 0; i < npnp; i++)
+      delta[i] *= (fabs(ymesh[i]) < EPS) ? EPS : fabs(ymesh[i]);
 
     Veclib::vmul (npnp, G1, 1, y, 1, G1, 1);
     Veclib::vmul (npnp, G2, 1, y, 1, G2, 1);
