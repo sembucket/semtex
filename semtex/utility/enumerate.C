@@ -247,7 +247,7 @@ static void getfields (FEML&     feml     ,
 // ---------------------------------------------------------------------------
 {
   int  i = 0;
-  char c, t[StrMax];
+  char t[StrMax];
 
   // -- Set up string for the fields listed.
 
@@ -255,7 +255,7 @@ static void getfields (FEML&     feml     ,
 
     feml.stream().ignore (StrMax, '\n');
     
-    while ((c = feml.stream().peek()) == '#') // -- Skip comments.
+    while (feml.stream().peek() == '#') // -- Skip comments.
       feml.stream().ignore (StrMax, '\n');
 
     do {
@@ -660,7 +660,7 @@ void Nsys::renumber (const int optl)
 //    Prentice-Hall (1981)
 // ---------------------------------------------------------------------------
 {
-  if (!optl) return;
+  if (!optl || !nsolve) return;
 
   const int verb = (int) Femlib::value ("VERBOSE");
 
