@@ -1,12 +1,12 @@
 ///////////////////////////////////////////////////////////////////////////////
 // calc: a basic calculator using the function parser.
 //
-// Copyright (c) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // Usage: calc [-h] [file]
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$"; 
 
 #include <cstdio>
 #include <cstdlib>

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // probe.C: extract results from a field file at a set of 3D points.
 //
-// Copyright (c) 1997 <--> $Date$, 2003 Hugh Blackburn
+// Copyright (c) 1997 <--> $Date$, Hugh Blackburn
 //
 // Synopsis
 // --------
@@ -64,8 +64,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "sem.h"
-#include <ctime>
+#include <sem.h>
 
 static const int_t NPTS = 64;	// -- Default number of points for line/plane.
 

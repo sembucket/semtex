@@ -33,7 +33,7 @@ ostream& operator << (ostream&, Header&);
 
 ostream& printVector (ostream&, const char*, const int_t, ... );
 char*    upperCase   (char *);
-void     writeField  (ofstream&, const char*, const int_t, const real_t,
+void     writeField  (ostream&, const char*, const int_t, const real_t,
 		      vector<AuxField*>&);
 
 #endif

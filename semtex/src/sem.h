@@ -22,6 +22,7 @@
 #include <climits>
 #include <cfloat>
 #include <cassert>
+#include <ctime>
 
 #include <iostream>		/* System C++ headers. */
 #include <fstream>
@@ -31,6 +32,7 @@
 #include <vector>
 #include <list>
 #include <stack>
+#include <map>
 
 using namespace std;
 

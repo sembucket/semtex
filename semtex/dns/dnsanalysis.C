@@ -63,7 +63,8 @@ DNSAnalyser::DNSAnalyser (Domain* D   ,
 }
 
 
-void DNSAnalyser::analyse (AuxField** work)
+void DNSAnalyser::analyse (AuxField** work0,
+			   AuxField** work1)
 // ---------------------------------------------------------------------------
 // Step-by-step processing.
 // ---------------------------------------------------------------------------
@@ -75,7 +76,7 @@ void DNSAnalyser::analyse (AuxField** work)
   bool        final    =   _src->step == Femlib::ivalue ("N_STEP");
   bool        state    = periodic || final;
 
-  Analyser::analyse (work);
+  Analyser::analyse (work0, work1);
 
   if (state) ROOTONLY {
     Vector pfor, vfor, tfor;

@@ -20,6 +20,7 @@
 #  $ssn.trk             Particle-track file         *
 #  $ssn.fld		Field file
 #  $ssn.avg             Average file
+#  $ssn.mix             Mixing length file
 #  $ssn.chk		Checkpoint file
 #  $ssn.mdl             Modal energies              *
 #  $ssn.log             Log file                    *
@@ -29,12 +30,6 @@ if ($#argv < 1) then
 	echo "usage: save [options] session"
 	exit 0
 endif
-
-# -- Set default file lists
-
-set FilesToCp	= ( fld avg )
-set FilesToComp = ( sta his trk mdl flx for log )
-set FilesToTar  = ( )
 
 # -- Process command line arguments
 
@@ -51,6 +46,16 @@ while ($#argv > 1)
 end
 
 set ssn = $argv[1]
+
+# -- Set default file lists
+
+set FilesToCp	= ( fld avg mix )
+set FilesToComp = ( sta his trk mdl flx for log geom )
+set FilesToTar  = ( )
+
+if (-e $ssn.0.phs) then 
+  set PhaseAvgs   = ( `l $ssn.*.phs` )
+endif
 
 if (-e .sequence) then	
 	set seq = `cat .sequence`
@@ -85,6 +90,16 @@ endif
 
 if (-e $ssn.avg) then
 	cp $ssn.avg Runs/$ssn.avg.$seq
+endif
+
+if (-e $ssn.mix) then
+	cp $ssn.mix Runs/$ssn.mix.$seq
+endif
+
+if (-e $ssn.0.phs) then
+  foreach f ( ${PhaseAvgs} )
+    cp $f Runs/$f.$seq
+  end
 endif
 
 # -- Compression list 

@@ -15,7 +15,7 @@
 //    incompressible flows", SIAM J Numer Anal 41(1).
 // 3. Blackburn & Sherwin (2004) "Formulation of a Galerkin spectral
 //    element--Fourier method for three-dimensional incompressible flows
-//    in cylindrical geometries", JCP.
+//    in cylindrical geometries", JCP 179(2).
 //
 // For cylindrical coordinates:
 //   u <==> axial     velocity,  x <==> axial     coordinate direction,
@@ -25,7 +25,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "dns.h"
+#include <dns.h>
 
 typedef ModalMatrixSys Msys;
 
@@ -64,7 +64,6 @@ void integrateNS (Domain*      D,
   static AuxField*** Us;
   static AuxField*** Uf;
   static Field*      Pressure = D -> u[NCOM];
-
 
   if (!MMS) {			// -- Initialise static storage.
 
@@ -177,7 +176,7 @@ void integrateNS (Domain*      D,
 
 #endif
 
-    A -> analyse (Us[0]);
+    A -> analyse (Us[0], Uf[0]);
   }
 
 }

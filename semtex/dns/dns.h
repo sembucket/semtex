@@ -8,7 +8,7 @@
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include "sem.h"
+#include <sem.h>
 
 
 class DNSAnalyser : public Analyser
@@ -18,7 +18,7 @@ class DNSAnalyser : public Analyser
 {
 public:
   DNSAnalyser  (Domain*, BCmgr*, FEML*);
-  void analyse (AuxField**);
+  void analyse (AuxField**, AuxField**);
 
 private:
   ofstream       _flx_strm;

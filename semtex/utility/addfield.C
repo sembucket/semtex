@@ -75,13 +75,12 @@
 // greater number of planes (3/2 rule) before these terms are
 // calculated, otherwise the products can be quite different from what
 // would be expected (especially if N_Z is small, say 4).
-//
-// $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include <ctime>
-#include "sem.h"
-#include "tensorcalcs.h"
+static char RCS[] = "$Id$";
+
+#include <sem.h>
+#include <tensorcalcs.h>
 
 #define FLDS_MAX 64 // -- More than we'll ever want.
 #define FLAG_MAX 11 // -- NB: FLAG_MAX should tally with the following enum:

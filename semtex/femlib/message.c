@@ -85,9 +85,9 @@ static int first (int n, const int* x)
 
 
 void message_dexchange (double*       data,
-			 const integer nZ  ,
-			 const integer nP  ,
-			 const integer sign)
+			const integer nZ  ,
+			const integer nP  ,
+			const integer sign)
 /* ------------------------------------------------------------------------- *
  * Transpose blocks of data across processors.  Data is a double-precision 
  * vector, total length nP*nZ on each processor.
