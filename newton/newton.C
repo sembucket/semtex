@@ -35,7 +35,8 @@
 // section) -- typically the boundary conditions for the perturbation
 // should be all zero. The TOKENS get read and the parser is reset,
 // each time (in order), so at least the geometric descriptors in each
-// session file have to match: it's safer to ensure they match.
+// session file have to match: it's safe to ensure the TOKENS match,
+// but those in pertsession override those in basesession.
 //
 // REFERENCES
 // ----------
@@ -183,7 +184,7 @@ int main (int    argc,
 #endif
 
     if (ier < 0) {
-      cout << " WARNING: error return from iterative solver" << endl;
+      cout << "WARNING: error return from iterative solver" << endl;
       break;
     }
 
