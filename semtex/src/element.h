@@ -4,20 +4,20 @@
 class Element
 // ===========================================================================
 // Virtual 2D quadrilateral element class, equal order in each direction.
-//                                                
+//
 //         s                                y ^     +4
 //         ^                                  |    / \
 //     4   |                                  |  1+   +3
-//     +------+                               |    \  |     
+//     +------+                               |    \  |
 //     |   |  |      <== Logical  space       |     \ |
 //     |   +--|-> r      Physical space ==>   |      \|
-//     |      |                               |       +2  
+//     |      |                               |       +2
 //     +------+                               +-----------> x
 //     1      2
 //
 // Master element coordinates: -1 < r,s < 1; edge traverses CCW.
 //
-// Elements in this classe will use Gauss--Lobatto--Legendre
+// Elements in this class will use Gauss--Lobatto--Legendre
 // meshes, integration, and nodal basis functions.
 //
 // All 2D storage is row-major.

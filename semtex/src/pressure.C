@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // pressure.C: routines to deal with pressure field boundary conditions.
 //
-// Copyright (c) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // Class variables _Pn & _Un provide storage for the mode equivalents of
 //   _Pn:  normal gradient of the pressure field,

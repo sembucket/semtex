@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // egde.C: implement element-edge operators.
 //
-// Copyright (c) 2003<-->$Date$, Hugh Blackburn
+// Copyright (c) 2003 <--> $Date$, Hugh Blackburn
 //
 // Edges, like boundaries (to which they contribute) always belong to
 // a group.

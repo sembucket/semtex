@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // analysis.C: implement Analyser class for NS-type solvers.
 //
-// Copyright (c) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // This deals with output of runtime information such as step numbers,
 // CFL estimation, modal energies, etc.  If set, also output history

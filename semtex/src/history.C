@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // history.C
 //
-// Copyright (c) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // Routines to provide history point information at x, y, z locations.
 //

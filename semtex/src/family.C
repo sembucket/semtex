@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // family.C
 //
-// Copyright (c) Hugh Blackburn 2003
+// Copyright (c) 2003 <--> $Date$, Hugh Blackburn
 //
 // This file maintains a family structure for vectors of real. Doing
 // it in C++ ensures that we can delete copies of arrays allocated

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // condition.C: functions used to evaluate & apply BCs.
 //
-// Copyright (c) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // All classes inherit the (semi-abstract) base class Condition.
 // Owing to the different behaviour of essential and natural BCs, a

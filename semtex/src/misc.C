@@ -2,7 +2,7 @@
 // misc.C: miscellaneous routines for I/O, memory management, service
 // routines that don't fit class structures.
 //
-// Copyright (c) 1994,2003 Hugh BLackburn
+// Copyright (c) 1994 <--> $Date$ Hugh BLackburn
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -87,7 +87,7 @@ char* upperCase (char *s)
 
 void writeField (ofstream&          file   ,
 		 const char*        session,
-		 const integer          runstep,
+		 const integer      runstep,
 		 const real         runtime,
 		 vector<AuxField*>& field  )
 // ---------------------------------------------------------------------------
@@ -119,11 +119,7 @@ void writeField (ofstream&          file   ,
   ROOTONLY {
     sprintf (s1, hdr_fmt[0], session);
     file << s1;
-#if 1
     strftime (s2, 25, "%a %b %d %H:%M:%S %Y", localtime (&tp));
-#else
-    sprintf (s2, "Dummy date");
-#endif
     sprintf  (s1, hdr_fmt[1], s2);
     file << s1;
 

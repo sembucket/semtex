@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // feml.C:  Finite Element Markup Language (FEML) routines.
 //
-// Copyright (c) 1994<-->$Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // After initialization, FEML files are prescanned to find locations of
 // keywords.  These locations are stored, and reset by the seek function.
