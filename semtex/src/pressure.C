@@ -2,7 +2,8 @@
  * pressure.C: routines to deal with pressure field and boundary conditions.
  *****************************************************************************/
 
-static char RCSid[]="$Id$";
+static char 
+RCSid[]="$Id$";
 
 #include "Fem.h"
 
@@ -114,15 +115,15 @@ void  PBCmanager::maintain (int            step  ,
 
   // -- Roll grad P storage area up, load new level of nonlinear terms.
 
-  Boundary*                B1;
-  ListIterator<Boundary*>  j(master -> boundary_list);
+  regsiter     Boundary*   B;
+  ListIterator<Boundary*>  j (master -> boundary_list);
 
-  for (i = 0; j.more(); j.next(), i++) {
-    B1 = j.current ();
+  for (i = 0; j.more (); j.next (), i++) {
+    B = j.current ();
 
-    np     = B1 -> nKnot ();
-    offset = B1 -> nOff  ();
-    skip   = B1 -> nSkip ();
+    np     = B -> nKnot ();
+    offset = B -> nOff  ();
+    skip   = B -> nSkip ();
 
     roll (store[i].Px, nTime);
     Veclib::copy (np, Nx -> data + offset, skip, store[i].Px[0], 1);
@@ -133,44 +134,43 @@ void  PBCmanager::maintain (int            step  ,
 
   // -- Add in -nu * curl curl u and -du/dt.
 
-  real *tmp, *wx, *wy;
-  int   Je, q;
-  real  alpha[TIME_ORDER_MAX], gamma;
+  int    Je, q;
+  real  *tmp, *wx, *wy;
+  real*  alpha = rvector (Integration::OrderMax + 1);
 
   for (i = 0, j.reset(); j.more(); j.next(), i++) {
-    B1 = j.current ();
+    B = j.current ();
 
-    np     = B1 -> nKnot ();
-    offset = B1 -> nOff  ();
-    skip   = B1 -> nSkip ();
+    np     = B -> nKnot ();
+    offset = B -> nOff  ();
+    skip   = B -> nSkip ();
 
     wx = rvector (np);
     wy = rvector (np);
 
-    B1 -> curlCurl (Ux -> data, Uy -> data, wx, wy);
+    B -> curlCurl (Ux -> data, Uy -> data, wx, wy);
 
     Blas::axpy (np, -nu, wy, 1, store[i].Px[0], 1);
     Blas::axpy (np,  nu, wx, 1, store[i].Py[0], 1);
 
     // -- Estimate -du/dt by backwards differentiation, add in on HOPBs.
 
-    if (step > 1 && !B1 -> isEssential()) {
+    if (step > 1 && !B -> isEssential()) {
 
       Je    = min (step - 1, nTime);
       tmp   = wx;
-      gamma = Icoef[Je - 1].gamma;
-      Veclib::copy (Je, Icoef[Je - 1].alpha, 1, alpha, 1);
+      Integration::StifflyStable (Je, alpha);
       
       Veclib::copy (np, Ux -> data + offset, skip, tmp, 1);
-      Blas::scal   (np, gamma, tmp, 1);
+      Blas::scal   (np, alpha[0], tmp, 1);
       for (q = 0; q < Je; q++)
-	Blas::axpy (np, -alpha[q], store[i].Ux[q], 1, tmp, 1);
+	Blas::axpy (np, alpha[q + 1], store[i].Ux[q], 1, tmp, 1);
       Blas::axpy (np, -invDt, tmp, 1, store[i].Px[0], 1);
 
       Veclib::copy (np, Uy -> data + offset, skip, tmp, 1);
-      Blas::scal   (np, gamma, tmp, 1);
+      Blas::scal   (np, alpha[0], tmp, 1);
       for (q = 0; q < Je; q++)
-	Blas::axpy (np, -alpha[q], store[i].Uy[q], 1, tmp, 1);
+	Blas::axpy (np, alpha[q + 1], store[i].Uy[q], 1, tmp, 1);
       Blas::axpy (np, -invDt, tmp, 1, store[i].Py[0], 1);
     }
 
@@ -185,6 +185,8 @@ void  PBCmanager::maintain (int            step  ,
     freeVector (wx);
     freeVector (wy);
   }
+
+  freeVector (alpha);
 }
 
 
@@ -204,13 +206,12 @@ void  PBCmanager::evaluate (int   id,     int   np,  int   step,
 // ---------------------------------------------------------------------------
 {
   int    q, Je = iparam ("N_TIME");
-  real   beta[TIME_ORDER_MAX];
-  
-  real  *tmpX = rvector (np);
-  real  *tmpY = rvector (np);
+  real*  beta  = rvector (Integration::OrderMax);
+  real*  tmpX  = rvector (np);
+  real*  tmpY  = rvector (np);
 
   Je = min (step, Je);
-  Veclib::copy (Je, Icoef[Je - 1].beta, 1, beta, 1);
+  Integration::Extrapolation (Je, beta);
 
   Veclib::zero (np, tmpX, 1);
   Veclib::zero (np, tmpY, 1);
@@ -225,6 +226,7 @@ void  PBCmanager::evaluate (int   id,     int   np,  int   step,
   Veclib::vmul  (np, nx, 1, tmpX, 1, value, 1);
   Veclib::vvtvp (np, ny, 1, tmpY, 1, value, 1, value, 1);
 
+  freeVector (beta);
   freeVector (tmpX);
   freeVector (tmpY);
 }
