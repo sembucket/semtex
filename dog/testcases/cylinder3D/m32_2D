@@ -16,26 +16,20 @@
 
 <TOKENS>
 	PERIOD    = 4.96192
-	F_TIME	  = PERIOD
 	N_STEP	  = 1024
 	D_T       = PERIOD/N_STEP
+
+	CHKPOINT  = 0
+	IO_FLD    = N_STEP/32
 
 	N_TIME    = 2
 	N_POLY    = 8
 	Re        = 220
 	KINVIS    = 1/Re
-	CHKPOINT  = 1
 	ITERATIVE = 0
-	IO_FLD    = 5000
-	IO_CFL    = 20
 
-	BASE_DT   = PERIOD/32
-
-	BETA      = TWOPI/3.28
-	DUMP      = 0
-	OUTSTEP   = 0 
-	IO_EIG    = 2
-
+	IO_CFL    = 32
+	IO_HIS    = 8
 </TOKENS>
 
 <GROUPS NUMBER=3>
@@ -45,20 +39,17 @@
 </GROUPS>
 
 <BCS NUMBER=3>
-	1	v	4
+	1	v	3
 			<D>	u = 0.0		</D>
 			<D>	v = 0.0		</D>
-			<D>	w = 0.0		</D>
-			<H>	p = 0.0		</H>
-	2	w	4
+			<H>	p 		</H>
+	2	w	3
 			<D>	u = 0.0		</D>
 			<D>	v = 0.0		</D>
-			<D>	w = 0.0		</D>
-			<H>	p = 0.0		</H>
-	3	o	4
+			<H>	p 		</H>
+	3	o	3
 			<N>	u = 0.0		</N>
 			<N>	v = 0.0		</N>
-			<N>	w = 0.0		</N>
 			<D>	p = 0.0		</D>
 </BCS>
 

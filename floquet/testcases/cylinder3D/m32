@@ -15,9 +15,10 @@
 </FIELDS>
 
 <TOKENS>
-	F_TIME	  = 4.96192
-	D_T       = 0.005
-	N_STEP	  = F_TIME/D_T
+	PERIOD    = 4.96192
+	F_TIME	  = PERIOD
+	N_STEP	  = 1024
+	D_T       = PERIOD/N_STEP
 
 	N_TIME    = 2
 	N_POLY    = 8
@@ -28,9 +29,9 @@
 	IO_FLD    = 5000
 	IO_CFL    = 20
 
-	BASE_DT   = 0.15506
+	BASE_DT   = PERIOD/32
 
-	BETA_Z    = 0.0001 
+	BETA      = TWOPI/3.28
 	DUMP      = 0
 	OUTSTEP   = 0 
 	IO_EIG    = 2
