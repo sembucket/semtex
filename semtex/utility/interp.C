@@ -5,7 +5,7 @@
 //
 // Synopsis:
 // --------
-// interp [-h] [-v] [-m file] -s session dump [file]
+// interp [-h] [-v] [-m file] -s session dump
 //
 // Description:
 // -----------
@@ -34,8 +34,8 @@
 
 static char RCS[] = "$Id$";
 
-#include "sem.h"
 #include <ctime>
+#include "sem.h"
 
 static char prog[]  = "interp";
 static int_t  verbose = 0;

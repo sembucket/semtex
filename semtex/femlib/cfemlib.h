@@ -22,10 +22,10 @@ void    yy_show       (void);
 /* -- Routines from polyops.c: */
 
 void   dermat_g (const integer, const double*, const integer,
-		 const double*, double**, double**);
+		 const double*, double*, double*);
 void   intmat_g (const integer, const double*, const integer,
-		 const double*, double**, double**);
-void   dermat_k (const integer, const double*, double**, double**);
+		 const double*, double*, double*);
+void   dermat_k (const integer, const double*, double*, double*);
 
 
 void   JACG     (const integer, const double, const double, double*);
@@ -77,7 +77,7 @@ void dIntpOps (const integer basis,  /* element basis: STD or GLL            */
 	       double*       ins  ,  /* 1D shape function at s               */
 	       double*       dvr  ,  /* 1D shape function derivative at r    */
 	       double*       dvs  ); /* 1D shape function derivative at s    */
-#if 0
+
 void dglldpc (const integer  np,    /* input: number of points for Leg polys */
 	      const double** cd);   /* output: pointer to table of coeffs.   */
 
@@ -88,7 +88,6 @@ void dglldpt (const integer  np,    /* input:  number of points for DLT      */
 	      const double** bt,    /* output: transpose of bw               */
 	      const double** fu,    /* output: 2D forward transform matrix   */
 	      const double** bu);   /* output: 2D inverse transform matrix   */
-#endif
 
 /* -- Routines from mapping.c: */
 

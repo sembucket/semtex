@@ -2,6 +2,8 @@
 // shapes.C: print out shape functions evaluated at points equispaced
 // on [-1, 1].
 //
+// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
+//
 // Usage: shapes -n <num> -i <num> -t <type>
 // where
 // -n <num>  ... number of shape functions (columns)
@@ -25,12 +27,12 @@
 
 using namespace std;
 
-#include <cfemdef>
+#include <cfemdef.h>
 #include <Array.h>
-#include <veclib_h>
-#include <femlib_h>
-#include <blas_h>
-#include <utility_h>
+#include <veclib.h>
+#include <femlib.h>
+#include <blas.h>
+#include <utility.h>
 
 
 static void getargs (int     argc ,
