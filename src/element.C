@@ -375,10 +375,10 @@ void Element::g2eSC (const real*    RHS ,
 
   if (nint) {
     real* Fi   = F    + next;
-    real* wext = work + next;
+    real* wint = work + next;
 
-    Veclib::copy  (nint, Fi, 1, wext, 1);
-    Blas::gemv    ("T", nint, nint,  1.0, hii, nint, wext, 1, 0.0, Fi, 1);
+    Veclib::copy  (nint, Fi, 1, wint, 1);
+    Blas::gemv    ("T", nint, nint,  1.0, hii, nint, wint, 1, 0.0, Fi, 1);
     Blas::gemv    ("N", nint, next, -1.0, hbi, nint, work, 1, 1.0, Fi, 1);
     Veclib::scatr (nint, Fi, emap + next, tgt);
   }
@@ -398,13 +398,7 @@ void Element::HelmholtzSC (const real lambda2,
 // statically condensed form in hbb, the interior-exterior coupling
 // matrix in hbi, and the interior resolution matrix factor in hii.
 //
-// lambda2 is the Helmholtz constant.
-//
-// k2 is the square of the wavenumber for the Fourier decomposition that is
-// used in the azimuthal direction in cylindrical coordinates, and effectively
-// serves as a flag for use of cylindrical coordinates: it should always be
-// zero for Cartesian coordinates.
-
+// lambda2 is the Helmholtz constant, betak2 is the Fourier constant.
 //
 // Uncondensed System   -->   Statically condensed form returned in hbb.
 //
@@ -429,14 +423,14 @@ void Element::HelmholtzSC (const real lambda2,
 //
 // hbb:    nExt  by nExt    matrix;  (row-major 1D storage).
 // hbi:    nExt  by nInt    matrix;  (row-major 1D storage).
-// hii:    nInt  by nInt    matrix;  (packed-symmetric 1D storage).
+// hii:    nInt  by nInt    matrix;  (row-major 1D storage).
 // rmat:   nKnot by nKnot   matrix;  (row-major 1D storage).
-// rwrk:   nExt*(nExt+nInt) vector;
+// rwrk:   nExt*(nExt+nInt) vector.
 // iwrk:   nInt             vector.
 // ---------------------------------------------------------------------------
 {
   const char       routine[] = "Element::HelmholtzSC";
-  register integer i, j, eq, ij = 0;
+  register integer i, j, eq, info, ij = 0;
   const integer    ntot = nTot();
   const integer    next = nExt();
   const integer    nint = nInt();
@@ -454,42 +448,29 @@ void Element::HelmholtzSC (const real lambda2,
       Veclib::gathr (ntot, rmat, emap, rwrk);
 
       if ( (eq = pmap[ij]) < next ) {
-	Veclib::copy (next, rwrk, 1, hbb + eq * next, 1);
-	if (nint) Veclib::copy (nint, rwrk + next, 1, hbi + eq * nint, 1);
+	Veclib::copy (next, rwrk,        1, hbb + eq * next, 1);
+	Veclib::copy (nint, rwrk + next, 1, hbi + eq * nint, 1);
       } else
 	Veclib::copy (nint, rwrk + next, 1, hii + (eq - next) * nint, 1);
     }
+
+  // -- Static condensation.
+
+  if (nint) {
+
+    Lapack::getrf (nint, nint, hii, nint, iwrk, info);
+    if (info) message (routine, "matrix hii has singular factor", ERROR);
 
 #if defined(DEBUG)
   if ((integer) Femlib::value ("VERBOSE") > 3) printMatSC (hbb, hbi, hii);
 #endif
 
-  // -- Carry out static condensation step.
-
-  if (nint) {
-    integer info = 0;
-
-    // -- LU factor hii.
-
-    Lapack::getrf (nint, nint, hii, nint, iwrk, info);
-    if (info) message (routine, "matrix hii has singular factor", ERROR);
-
-    // -- Statically condense hbb.
-
-    Veclib::copy  (nint*next, hbi, 1, rwrk, 1);
-    Lapack::getrs ("N", nint, next, hii, nint, iwrk, rwrk, nint, info);
-    Blas::gemm    ("T", "N", next, next, nint, -1.0, hbi,
-		   nint, rwrk, nint, 1.0, hbb, next); 
-
-    // -- Create hib*hii(inverse), leave in hbi.
-
-    Lapack::getrs ("N", nint, next, hii, nint, iwrk, hbi, nint, info);
-
-    // -- Invert hii.
-
-    Lapack::getri (nint, hii, nint, iwrk, rwrk, next*next, info);
+    Lapack::getri (nint, hii, nint, iwrk, rwrk, nint*next, info);
     if (info) message (routine, "matrix hii is singular",         ERROR);
 
+    Blas::gemm   ("N","N",nint,next,nint, 1.0,hii,nint,hbi,nint,0.0,rwrk,nint);
+    Blas::gemm   ("T","N",next,next,nint,-1.0,hbi,nint,rwrk,nint,1.0,hbb,next);
+    Veclib::copy (nint*next, rwrk, 1, hbi, 1);
   }
 }
 
@@ -501,14 +482,13 @@ void Element::printMatSC (const real* hbb,
 // (Debugging) utility to print up element matrices.
 // ---------------------------------------------------------------------------
 {
-  char    s[8*StrMax];
   integer i, j, next = nExt(), nint = nInt(), ntot = nTot();
 
-  sprintf (s, "-- Uncondensed Helmholtz matrices, element %1d", id);
-  message ("", s, REMARK);
+  cout << "-- Helmholtz matrices, element " << id << endl;
 
-  sprintf (s, "-- hbb:");
-  message ("", s, REMARK);
+  cout << "-- hbb:" << endl;
+
+  cout.precision(3);
 
   for (i = 0; i < next; i++) {
     for (j = 0; j < next; j++)
@@ -516,23 +496,23 @@ void Element::printMatSC (const real* hbb,
     cout << endl;
   }
 
-  sprintf (s, "-- hii:");
-  message ("", s, REMARK);
+  cout << "-- hii:" << endl;
 
   for (i = 0; i < nint; i++) {
     for (j = 0; j < nint; j++)
-      cout << setw (10) << hii[Lapack::pack_addr (i, j)];
+      cout << setw (10) << hii[Veclib::row_major (i, j, nint)];
     cout << endl;
   }
 
-  sprintf (s, "-- hbi:");
-  message ("", s, REMARK);
+  cout << "-- hbi:" << endl;
 
   for (i = 0; i < next; i++) {
     for (j = 0; j < nint; j++)
       cout << setw (10) << hbi[Veclib::row_major (i, j, nint)];
     cout << endl;
   }
+
+  cout.precision(6);
 }
 
 
@@ -560,8 +540,7 @@ void Element::Helmholtz (const real lambda2,
 
   for (register integer i = 0; i < np; i++)
     for (register integer j = 0; j < np; j++, ij++) {
-      helmRow ((const real**) DV, (const real**) DT,
-	       lambda2, betak2, i, j, rmat, rwrk);
+      helmRow      (DV, DT, lambda2, betak2, i, j, rmat, rwrk);
       Veclib::copy (ntot, rmat, 1, h + ij * np, 1);
     }
 }
@@ -630,12 +609,7 @@ void Element::helmRow (const real**  DV     ,
 // ---------------------------------------------------------------------------
 // Build row [i,j] of the elemental Helmholtz matrix in array hij (np x np).
 //
-// Lambda2 is the Helmholtz constant.
-//
-// k2 is the square of the wavenumber for the Fourier decomposition that is
-// used in the azimuthal direction in cylindrical coordinates, and effectively
-// serves as a flag for use of cylindrical coordinates: it should always be
-// zero for Cartesian coordinates.
+// Lambda2 is the Helmholtz constant, betak2 is the Fourier constant.
 //
 // Input array work should be at least np long.
 //

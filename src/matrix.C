@@ -92,17 +92,18 @@ MatrixSystem::MatrixSystem (const real              lambda2,
   const real       EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
   register integer i, j, k, m, n;
   const integer*   bmap;
-  integer          next, nint, info, *iwrk;
-  real             *hbb, *rmat, *rwrk;
+  integer          next, nint, info, *ipiv;
+  real             *hbb, *rmat, *rwrk, cond;
   Element*         E;
-  vector<integer>  ipiv (Geometry::nIntElmt());
-  vector<real>     work (sqr (Geometry::nExtElmt()) + sqr (Geometry::nP()) +
-		              Geometry::nExtElmt() * Geometry::nTotElmt());
+  vector<real>     work (sqr (Geometry::nExtElmt()) +
+			 sqr (Geometry::nP())       +
+			 sqr (Geometry::nTotElmt()) );
+  vector<integer>  pivotmap (Geometry::nIntElmt());
 
-  iwrk     = ipiv();
   hbb      = work();
   rmat     = hbb  + sqr (Geometry::nExtElmt());
   rwrk     = rmat + sqr (Geometry::nP());
+  ipiv     = pivotmap();
   singular = fabs (HelmholtzConstant+FourierConstant) < EPS && !N-> fmask();
   nsolve   = (singular) ? N -> nSolve() - 1 : N -> nSolve();
 
@@ -116,14 +117,8 @@ MatrixSystem::MatrixSystem (const real              lambda2,
 	   << "Helmholtz constant (lambda2): " << setw(10) << lambda2
 	   << ", Fourier constant (betak2): "  << setw(10) << betak2;
     if (verbose)
-      cout << endl
-	   << "System matrix: "
-	   << nsolve
-	   << "x"
-	   << nband
-	   << "\t("
-	   << npack
-	   << " words)";
+      cout << endl << "System matrix: " << nsolve << "x" << nband
+	   << "\t(" << npack << " words)";
   }
 
   // -- Loop over elements, creating & posting elemental Helmholtz matrices.
@@ -144,7 +139,7 @@ MatrixSystem::MatrixSystem (const real              lambda2,
     hbi[j] = (nint) ? new real [(size_t) bipack[j]] : 0;
     hii[j] = (nint) ? new real [(size_t) iipack[j]] : 0;
 
-    E -> HelmholtzSC (lambda2, betak2, hbb, hbi[j], hii[j], rmat, rwrk, iwrk);
+    E -> HelmholtzSC (lambda2, betak2, hbb, hbi[j], hii[j], rmat, rwrk, ipiv);
 
     bmap = N -> btog() + E -> bOff();
 
@@ -166,13 +161,10 @@ MatrixSystem::MatrixSystem (const real              lambda2,
   if (info) message (routine, "failed to factor Helmholtz matrix", ERROR);
 
   if (verbose) {
-    real            cond;
-    vector<integer> iwrk (nsolve);
+    pivotmap.setSize (nsolve);  ipiv = pivotmap();
+    work.setSize (3 * nsolve);  rwrk = work();
 
-    work.setSize (3 * nsolve);
-    rwrk = work();
-
-    Lapack::pbcon ("U", nsolve, nband-1, H, nband, 1.0,cond, rwrk,iwrk(),info);
+    Lapack::pbcon ("U", nsolve, nband-1, H, nband, 1.0,cond, rwrk,ipiv,info);
     cout << ", condition number: " << cond << endl;
   }
 }
