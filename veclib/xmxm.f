@@ -68,40 +68,8 @@ C
       RETURN
       END
 C
-C     ------------------------------------------------------------------C     C -= A * B.
-C
-      SUBROUTINE DMXMS (A, NRA, B, NCA, C, NCB)
-      IMPLICIT NONE
-      INTEGER          NRA, NCA, NCB, I, J, K
-      DOUBLE PRECISION A(NCA, NRA), B(NCB, NCA), C(NCB, NRA)
-      DO J = 1, NCB
-         DO I = 1, NRA
-            DO K = 1, NCA
-               C(J, I) = C(J, I) - B(J, K) * A(K, I)
-            ENDDO
-         ENDDO
-      ENDDO
-      RETURN
-      END
-      SUBROUTINE SMXMS (A, NRA, B, NCA, C, NCB)
-      IMPLICIT NONE
-      INTEGER  NRA, NCA, NCB, I, J, K
-      REAL     A(NCA, NRA), B(NCB, NCA), C(NCB, NRA)
-      DO J = 1, NCB
-         DO I = 1, NRA
-            DO K = 1, NCA
-               C(J, I) = C(J, I) - B(J, K) * A(K, I)
-            ENDDO
-         ENDDO
-      ENDDO
-      RETURN
-      END
-C
 C     ------------------------------------------------------------------
-      SUBROUTINE DMXMTS (A, NRA, B, NCA, C, NCBT)
-C               t
 C     C -= A * B.
-CC     C -= A * B.
 C
       SUBROUTINE DMXMS (A, NRA, B, NCA, C, NCB)
       IMPLICIT NONE
