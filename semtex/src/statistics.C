@@ -208,70 +208,13 @@ ofstream& operator << (ofstream&   strm,
 // Output Statistics class to file.  Like similar Domain routine.
 // ---------------------------------------------------------------------------
 {
-  const char *hdr_fmt[] = { 
-    "%-25s "    "Session\n",
-    "%-25s "    "Created\n",
-    "%-25s "    "Nr, Ns, Nz, Elements\n",
-    "%-25d "    "Step\n",
-    "%-25.6g "  "Time\n",
-    "%-25.6g "  "Time step\n",
-    "%-25.6g "  "Kinvis\n",
-    "%-25.6g "  "Beta\n",
-    "%-25s "    "Fields written\n",
-    "%-25s "    "Format\n"
-  }; 
+  int               i;
+  const int         N = src.avg.getSize();
+  vector<AuxField*> field (N);
 
-  const char    routine[] = "ostream<<Statistics";
-  const integer N    = src.avg.getSize();
-  const real    time = src.base.time;
-  integer       k;
-  char          s1[StrMax], s2[StrMax];
-  time_t        tp (::time (0));
+  for (i = 0; i < N; i++) field[i] = src.avg[i];
 
-  ROOTONLY {
-    sprintf (s1, hdr_fmt[0], src.name);
-    strm << s1;
-
-    strftime (s2, 25, "%a %b %d %H:%M:%S %Y", localtime (&tp));
-    sprintf  (s1, hdr_fmt[1], s2);
-    strm << s1;
-
-    src.avg[0] -> describe (s2);
-    sprintf (s1, hdr_fmt[2], s2);
-    strm << s1;
-
-    sprintf (s1, hdr_fmt[3], src.navg);
-    strm << s1;
-
-    sprintf (s1, hdr_fmt[4], time);
-    strm << s1;
-
-    sprintf (s1, hdr_fmt[5], Femlib::value ("D_T"));
-    strm << s1;
-
-    sprintf (s1, hdr_fmt[6], Femlib::value ("KINVIS"));
-    strm << s1;
-  
-    sprintf (s1, hdr_fmt[7], Femlib::value ("BETA"));
-    strm << s1;
-
-    for (k = 0; k < N; k++) s2[k] = src.avg[k] -> name();
-    s2[k] = '\0';
-    sprintf (s1, hdr_fmt[8], s2);
-    strm << s1;
-
-    sprintf (s2, "binary ");
-    Veclib::describeFormat (s2 + strlen (s2));
-    sprintf (s1, hdr_fmt[9], s2);
-    strm << s1;
-  }
-
-  for (k = 0; k < N; k++) strm << *src.avg[k];
-
-  ROOTONLY {
-    if (!strm) message (routine, "failed writing average file", ERROR);
-    strm << flush;
-  }
+  writeField (strm, src.name, src.navg, src.base.time, field);
 
   return strm;
 }

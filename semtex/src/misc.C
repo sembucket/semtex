@@ -1,11 +1,13 @@
 ///////////////////////////////////////////////////////////////////////////////
-//misc.C: miscellaneous routines for I/O, memory management.
+// misc.C: miscellaneous routines for I/O, memory management, service
+// routines that don't fit class structures.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char
 RCSid[] = "$Id$";
 
 #include <Sem.h>
+#include <time.h>
 
 
 ostream& printVector (ostream&      strm,
@@ -80,3 +82,82 @@ char* upperCase (char *s)
 {
   char *z(s); while (*z = toupper (*z)) z++; return s;
 }
+
+
+void writeField (ofstream&          file   ,
+		 const char*        session,
+		 const int          runstep,
+		 const real         runtime,
+		 vector<AuxField*>& field  )
+// ---------------------------------------------------------------------------
+// Write fields out to an opened file, binary prism format.  Output is
+// only done by the root processor.
+// ---------------------------------------------------------------------------
+{
+  const char routine [] = "writeField";
+  const char *hdr_fmt[] = { 
+    "%-25s "    "Session\n",
+    "%-25s "    "Created\n",
+    "%-25s "    "Nr, Ns, Nz, Elements\n",
+    "%-25d "    "Step\n",
+    "%-25.6g "  "Time\n",
+    "%-25.6g "  "Time step\n",
+    "%-25.6g "  "Kinvis\n",
+    "%-25.6g "  "Beta\n",
+    "%-25s "    "Fields written\n",
+    "%-25s "    "Format\n"
+  };
+
+  char      s1[StrMax], s2[StrMax];
+  time_t    tp (time (0));
+  int       i;
+  const int N = field.getSize();
+
+  if (N < 1) return;
+
+  ROOTONLY {
+    sprintf (s1, hdr_fmt[0], session);
+    file << s1;
+
+    strftime (s2, 25, "%a %b %d %H:%M:%S %Y", localtime (&tp));
+    sprintf  (s1, hdr_fmt[1], s2);
+    file << s1;
+
+    field[0] -> describe (s2);
+    sprintf (s1, hdr_fmt[2], s2);
+    file << s1;
+
+    sprintf (s1, hdr_fmt[3], runstep);
+    file << s1;
+
+    sprintf (s1, hdr_fmt[4], runtime);
+    file << s1;
+
+    sprintf (s1, hdr_fmt[5], Femlib::value ("D_T"));
+    file << s1;
+
+    sprintf (s1, hdr_fmt[6], Femlib::value ("KINVIS"));
+    file << s1;
+
+    sprintf (s1, hdr_fmt[7], Femlib::value ("BETA"));
+    file << s1;
+
+    for (i = 0; i < N; i++) s2[i] = field[i] -> name();
+    s2[i] = '\0';
+    sprintf (s1, hdr_fmt[8], s2);
+    file << s1;
+
+    sprintf (s2, "binary ");
+    Veclib::describeFormat (s2 + strlen (s2));
+    sprintf (s1, hdr_fmt[9], s2);
+    file << s1;
+  }
+
+  for (i = 0; i < N; i++) file << *field[i];
+
+  ROOTONLY {
+    if (!file) message (routine, "failed writing field file", ERROR);
+    file << flush;
+  }
+}
+
