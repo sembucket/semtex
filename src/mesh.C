@@ -41,7 +41,11 @@
 
 #include "Fem.h"
 
-
+#ifdef __DECCXX
+  #pragma define_template Array1d<int>
+  #pragma define_template Array1d<Mesh::Node*>
+  #pragma define_template Array1d<Mesh::Side*>
+#endif
 
 static const int UNSET = -1;
 static const int NIL   =  0;
@@ -386,10 +390,10 @@ void   Mesh::installTag (istream& strm, int tag, int nvert)
 	    (S.startNode -> ID == i2 && S.endNode -> ID == i1)  ) {
 	  if (S.mateElmt) {
 	    S.mateSide -> mateElmt = 0;
-	    S.mateSide -> BCtag    = tag;
+	    S.mateSide -> BConTag    = tag;
 	  }
 	  S.mateElmt = 0;
-	  S.BCtag    = tag;
+	  S.BConTag    = tag;
 	}
       }
     }
@@ -443,7 +447,7 @@ void  operator << (ostream& strm, Mesh::Elmt& e)
     Mesh::Side& S = s.current ();
     strm << " " << S.ID << "->";
       if (S.mateElmt == NIL)
-	strm << "bt" << S.BCtag;
+	strm << "bt" << S.BConTag;
       else
 	strm << S.mateElmt -> ID << "." << S.mateSide -> ID;
   }
