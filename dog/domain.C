@@ -102,7 +102,7 @@ void Domain::report ()
 
   cout << "   Solution fields         : " << field              << endl;
   cout << "   Base flow fields        : " << baseField          << endl;
-  cout << "   Number of base slices   : " << Geometry::nSlice   << endl;
+  cout << "   Number of base slices   : " << Geometry::nSlice() << endl;
   cout << "   Number of elements      : " << Geometry::nElmt()  << endl;
   cout << "   Number of planes        : " << Geometry::nZ()     << endl;
   cout << "   Number of processors    : " << Geometry::nProc()  << endl;
@@ -371,7 +371,7 @@ void Domain::loadBase()
 	message (routine, "unable to read binary input", ERROR);
       Veclib::zero (nTot - nPlane, addr + nPlane, 1);
     }
-    file.ignore (static_cast<int>(len * sizeof (real)));
+    file.ignore (len);		// -- Ignore pressure field.
     if (i == 0) t0 = H.time;
     if (i == 1) dt = H.time - t0;
     i++;
