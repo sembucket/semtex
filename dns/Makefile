@@ -92,13 +92,15 @@ endif
 endif
 
 ifeq ($(ARCH),SUPER-UX)         # -- NEC SX-4.
+DEFINES += -D_BUILTIN_
 LIBDIR   = -L$(SEM)/lib/$(ARCH) 
 CC       = cc
 CXX      = CC
 LD       = CC
-OPTIM    = -pvctl,fullmsg -hacct -hvector -p -ptn -Onooverlap
-CXXFLAGS = $(DEFINES)  $(OPTIM)
-LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS) -hacct
+CFLAGS   = $(DEFINES) -pvctl,fullmsg -hacct -Onooverlap        \
+           -hfloat0 -hnostkchk
+CXXFLAGS = $(CFLAGS) $(OPTIM) +a1
+LDFLAGS  = $(CFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 ifdef MPI
   LIBS   = -lfem_mp -llapack_64 -lalp_mp -lblas_64 -lfft_64	\
            -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm -lmpi -lpthread
@@ -136,11 +138,14 @@ sem:
 
 ifeq ($(ARCH),SUPER-UX)
 mesh.o: $(VPATH)/mesh.C
-	CC -I$(SEM)/include -c -pvctl,fullmsg -hacct -hvector -p -ptn   \
-	$(VPATH)/mesh.C
+        $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+        $(VPATH)/mesh.C
 BCmgr.o: $(VPATH)/BCmgr.C
-	CC -I$(SEM)/include -c -pvctl,fullmsg -hacct -hvector -p -ptn   \
-	$(VPATH)/BCmgr.C
+        $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+        $(VPATH)/BCmgr.C
+condition.o: $(VPATH)/condition.C
+        $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+        $(VPATH)/condition.C
 endif
 
 # -----------------------------------------------------------------------------
