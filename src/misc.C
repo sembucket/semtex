@@ -78,11 +78,64 @@ ostream& printVector (ostream&     strm,
 
 
 
-char* upperCase (char *s)
+istream&  nextBlock (istream& strm, char* s)
+// ---------------------------------------------------------------------------
+// Advance to start of the next block of information in file, skipping
+// empty lines and comment lines (lines starting with '#').
+// Then uppercase the new start line.
+// ---------------------------------------------------------------------------
 {
-  char *z(s); 
-  while (*z = toupper (*z)) z++; 
-  return s;
+  while (strm.getline (s, StrMax)) if (s[0] != '#' && s[0] != '\n') break;
+  upperCase (s);
+
+  return strm;
+}
+
+
+
+
+
+char*  upperCase (char *s)
+// ---------------------------------------------------------------------------
+// Uppercase characters in string.
+// ---------------------------------------------------------------------------
+{
+  char *z(s); while (*z = toupper (*z)) z++; return s;
+}
+
+
+
+
+
+ifstream*  altFile (ifstream& ist)
+// ---------------------------------------------------------------------------
+// Look in file for a new filename.  Open & return a pointer if it exists.
+// ---------------------------------------------------------------------------
+{
+  char routine[] = "altFile";
+  char s1[StrMax];
+
+  ist.getline(s1, StrMax);
+
+  if (   strstr (s1, "FILE") 
+      || strstr (s1, "File") 
+      || strstr (s1, "file") ) {
+
+    ifstream  *newfile;
+    char       s2[StrMax];
+
+    if (!(sscanf (s1, "%*s, %s", s2))) {
+      sprintf (s2, "couldn't get element file name from string: %s", s1);
+      message (routine, s2, ERROR);
+    } else if (!(newfile = new ifstream (s2))) {
+      sprintf (s1, "couldn't find alternate file %s", s2);
+      message (routine, s1, ERROR);
+    }
+
+    return newfile;
+
+  } else
+    return &ist;
 }
 
 
@@ -224,7 +277,7 @@ istream& operator >> (istream& strm, Domain& D)
   for (i = 3; i < 10; i++) strm.getline (s, StrMax);
   
   if (strstr (s, "binary")) {
-    for (i = 0; i < DIM; i++) {
+    for (i = 0; i < D.nField () - 1; i++) {
       strm.read ((char *) D.u[i] -> data, ntot * sizeof (real));
       if (!strm)
 	message (routine, "unable to read field from strm", ERROR);
@@ -235,7 +288,7 @@ istream& operator >> (istream& strm, Domain& D)
       strm.getline (s, StrMax);
       if (!strm)
 	message (routine, "premature EOF", ERROR);
-      for (register int n = 0; n < DIM; n++)
+      for (register int n = 0; n < D.nField () - 1; n++)
 	if (sscanf (s, "%lf", D.u[n] -> data + j) < 1)
 	  message (routine, "unable to read field from strm", ERROR);      
     }
@@ -353,6 +406,3 @@ void freeMatrix (real** m)
   delete [] m[0];
   delete [] m;
 }
-
-
-
