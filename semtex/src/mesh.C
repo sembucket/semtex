@@ -992,6 +992,7 @@ void Mesh::printNek () const
   ostrstream os  (err, StrMax);
 
   int        i, j, ns, nel = nEl();
+  float      vbc;
   Elmt       *E, *ME;
   Side       *S;
 
@@ -1067,15 +1068,22 @@ void Mesh::printNek () const
       } else {
 	describeGrp (S -> group, buf);
 	if (strstr (buf, "value")) {
-	  describeBC (S -> group, 'u', buf);
-	  describeBC (S -> group, 'v', err);
 	  cout << "V  "
 	       << setw (5) << E -> ID + 1
-	       << setw (3) << S -> ID + 1
-	       << " " << buf
-	       << " " << err
-	       << setw (14) << 0.0
-	       << endl;
+	       << setw (3) << S -> ID + 1;
+	  describeBC (S -> group, 'u', buf);
+	  sscanf     (buf, "%*s %*s %f", &vbc);
+	  cout << setw (14) << vbc;
+	  describeBC (S -> group, 'v', buf);
+	  sscanf     (buf, "%*s %*s %f", &vbc);
+	  cout << setw (14) << vbc;
+	  if ((int) Femlib::value ("N_Z") > 1) {
+	    describeBC (S -> group, 'w', buf);
+	    sscanf     (buf, "%*s %*s %f", &vbc);
+	  } else
+	    vbc = 0.0;
+	  cout << setw (14) << vbc;
+	  cout << endl;
 	} else if  (strstr (buf, "wall")) {
 	  cout << "W  "
 	       << setw (5)  << E -> ID + 1
