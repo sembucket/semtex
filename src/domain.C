@@ -18,12 +18,15 @@ Domain::Domain (FEML&       F   ,
 // ---------------------------------------------------------------------------
 // Construct a new Domain with all user Fields, and NumberSystems.
 //
+// By convention, all Fields stored in the Domain have single-character
+// lower-case names.  See the file field.C for significance of the names.
+//
 // No initialization of Field MatrixSystems.
 // ---------------------------------------------------------------------------
 {
-  int       j, k, doff, boff, found;
-  const int np   = (int) Femlib::value ("N_POLY");
-  const int nz   = (int) Femlib::value ("N_Z");
+  int       k, doff, boff;
+  const int np   = Geometry::nP();
+  const int nz   = Geometry::nZ();
   const int verb = (int) Femlib::value ("VERBOSE");
   const int NE   = M.nEl();
   const int NF   = strlen (flds);
@@ -56,33 +59,37 @@ Domain::Domain (FEML&       F   ,
   
   if (verb) cout << "   Retrieving prebuilt numbering systems ... ";
   
-  number();
-  const int NS = Nsys.getSize();
+  getNumber();
+
+  const int      NS      = Nsys.getSize();
+  NumberSystem** systems = new NumberSystem* [3];
   
-  if (verb) cout << "done" << endl;
-  
-  if (verb) cout << "   Building Fields ... ";
+  if (verb) cout << "done" << endl << "   Building Fields ... ";
 
   u.setSize (NF);
-
   for (k = 0; k < NF; k++) {
-    found = 0;
-    for (j = 0; !found && j < NS; j++)
-      if (strchr (Nsys[j] -> fields(), flds[k])) {
-	found = 1;
-	u[k]  = new Field (F, B, Esys, Nsys[j], nz, flds[k]);
-      }
+    setNumber (fields[k], systems);
+    u[k] = new Field (F, B, Esys, fields[k], systems);
   }
 
   if (verb) cout << " done" << endl;
 }
 
 
-void Domain::number ()
+void Domain::getNumber ()
 // ---------------------------------------------------------------------------
-// Attempt to retreive numbering schemes (btog and bmsk values) from
+// Attempt to retrieve numbering schemes (btog and bmsk values) from
 // file "name.num".  If this doesn't exist, first try to create it by
 // running "enumerate" utility.
+//
+// The names of fields and their numbering schemes can be significant.
+// The convention employed is that the fields have lower-case
+// single-character names.  Numbering schemes have the same names,
+// *except* in the case of cylindrical coordinate systems where the
+// domain includes the symmetry axis.  In this case, uppercase letters
+// are used to distinguish the names of additional numbering schemes for
+// the first Fourier mode for scalar variables p and c (i.e. pressure
+// and generic scalar): these schemes can differ from the other modes.
 // ---------------------------------------------------------------------------
 {
   char         routine[] = "Domain::number";
@@ -96,7 +103,7 @@ void Domain::number ()
   if (!num) {
     sprintf (buf, "enumerate -O1 %s > %s.num", name, name);
     if (system (buf)) {
-      sprintf (err, "couldn't open session file %s or %s.num", name, name);
+      sprintf (err, "couldn't open session file %s, or %s.num", name, name);
       message (routine, err, ERROR);
     }
     
@@ -117,11 +124,13 @@ void Domain::number ()
   }
 
   num >> buf >> buf;
-  if (strcmp (buf, fields)) {
-    sprintf (err, "Fields nominated in %s.num (\"%s\") don't match \"%s\"",
-	     name, buf, fields);
-    message (routine, err, ERROR);
-  }
+  j = strlen (buf);
+  for (i = 0; i < j; i++)
+    if (!strchr (fields, tolower (buf[j]))) {
+      sprintf (err, "Fields nominated in %s.num (\"%s\") don't match \"%s\"",
+	       name, buf, fields);
+      message (routine, err, ERROR);
+    }
 
   num . getline (buf, StrMax) . getline (buf, StrMax);
 
@@ -150,8 +159,14 @@ void Domain::number ()
     message (routine, err, ERROR);
   }
   num >> buf;
-  for (i = 0; i < nset; i++)
-    num >> Nsys[i] -> ns_nel;
+  for (i = 0; i < nset; i++) {
+    num >> j;
+    if (j != Geometry::nElmt()) {
+      sprintf (err, "mismatch in number of elements: %1d vs. %1d",
+	       j, Geometry::nElmt());
+      message (routine, err, ERROR);
+    }
+  }
 
   num >> buf >> buf;
   if (strcmp (buf, "NP_MAX")) {
@@ -159,8 +174,14 @@ void Domain::number ()
     message (routine, err, ERROR);
   }
   num >> buf;
-  for (i = 0; i < nset; i++)
-    num >> Nsys[i] -> ns_np_max;
+  for (i = 0; i < nset; i++) {
+    num >> j;
+    if (j != Geometry::nP()) {
+      sprintf (err, "mismatch in element order: %1d vs. %1d",
+	       j, Geometry::nP());
+      message (routine, err, ERROR);
+    }
+  }
 
   num >> buf >> buf;
   if (strcmp (buf, "NEXT_MAX")) {
@@ -168,8 +189,7 @@ void Domain::number ()
     message (routine, err, ERROR);
   }
   num >> buf;
-  for (i = 0; i < nset; i++)
-    num >> Nsys[i] -> ns_ex_max;
+  for (i = 0; i < nset; i++) num >> j;
 
   num >> buf >> buf;
   if (strcmp (buf, "NINT_MAX")) {
@@ -177,8 +197,7 @@ void Domain::number ()
     message (routine, err, ERROR);
   }
   num >> buf;
-  for (i = 0; i < nset; i++)
-    num >> Nsys[i] -> ns_in_max;
+  for (i = 0; i < nset; i++) num >> j;
 
   num >> buf >> buf;
   if (strcmp (buf, "NTOTAL")) {
@@ -186,8 +205,14 @@ void Domain::number ()
     message (routine, err, ERROR);
   }
   num >> buf;
-  for (i = 0; i < nset; i++)
-    num >> Nsys[i] -> ns_ntotal;
+  for (i = 0; i < nset; i++) {
+    num >> j;
+    if (j != Geometry::nPlane()) {
+      sprintf (err, "mismatch in Field storage requirements: %1d vs %1d",
+	       j, Geometry::nPlane());
+      message (routine, err, ERROR);
+    }
+  }
 
   num >> buf >> buf;
   if (strcmp (buf, "NBOUNDARY")) {
@@ -196,16 +221,15 @@ void Domain::number ()
   }
   num >> buf;
   for (i = 0; i < nset; i++) {
-    num >> Nsys[i] -> ns_nbndry;
-    Nsys[i] -> ns_btog  = new int [Nsys[i] -> ns_nbndry];
-    Nsys[i] -> ns_bmask = new int [Nsys[i] -> ns_nbndry];
-  }
-
-  for (i = 1; i < nset; i++)
-    if (Nsys[i] -> ns_nbndry != Nsys[0] -> ns_nbndry) {
-      sprintf (err, "NBOUNDARY values for systems 1 & %1d don't match", i + 1);
+    num >> j;
+    if (j != Geometry::nBnode()) {
+      sprintf (err, "mismatch in number of boundary nodes: %1d vs. %1d",
+	       j, Geometry::nBnode());
       message (routine, err, ERROR);
     }
+    Nsys[i] -> ns_btog  = new int [Geometry::nBnode()];
+    Nsys[i] -> ns_bmask = new int [Geometry::nBnode()];
+  }
 
   num >> buf >> buf;
   if (strcmp (buf, "NGLOBAL")) {
@@ -238,7 +262,7 @@ void Domain::number ()
 
   num . getline (buf, StrMax) . getline (buf, StrMax). getline (buf, StrMax);
 
-  for (i = 0; i < Nsys[0] -> ns_nbndry; i++) {
+  for (i = 0; i < Geometry::nBnode(); i++) {
     num >> buf >> buf >> buf;
     for (j = 0; j < nset; j++) 
       num >> Nsys[j] -> ns_btog[i] >> Nsys[j] -> ns_bmask [i];
@@ -249,7 +273,7 @@ void Domain::number ()
 
   Element*      E;
   NumberSystem* N;
-  vector<real>  work (Nsys[0] -> ns_ex_max + Nsys[0] -> ns_in_max);
+  vector<real>  work (Geometry::nTotElmt());
   real*         unity = work();
 
   for (j = 0; j < nset; j++) {
@@ -257,7 +281,7 @@ void Domain::number ()
     N -> ns_inv_mass = new real [N -> ns_nglobal];
     Veclib::zero (N -> ns_nglobal, N -> ns_inv_mass, 1);
 
-    for (i = 0; i < N -> ns_nel; i++) {
+    for (i = 0; i < Geometry::nElmt(); i++) {
       E = Esys[i];
       Veclib::fill (E -> nTot(), 1.0, unity, 1);
       E -> bndryDsSum (N -> ns_btog + E -> bOff(), unity, N -> ns_inv_mass);
@@ -270,15 +294,107 @@ void Domain::number ()
 
   for (j = 0; j < nset; j++) {
     N = Nsys[j];
-    N -> ns_emask = new int [N -> ns_nel];
+    N -> ns_emask = new int [Geometry::nElmt()];
 
-    for (i = 0; i < N -> ns_nel; i++) {
+    for (i = 0; i < Geometry::nElmt(); i++) {
       E = Esys[i];
       N -> ns_emask[i] =
 	Veclib::any (E -> nExt(), N -> ns_bmask + E -> bOff(), 1);
     }
   }
 }
+
+
+void Domain::setNumber (const char           field ,
+			const NumberSystem** system) const
+// ---------------------------------------------------------------------------
+// Set up the vector of NumberSystems that will be required to construct
+// the named field.  This is rather messy since it encodes the rules for
+// usage of NumberSystems both for Cartesian and cylindrical Fields, as
+// discussed in field.C.
+//
+// For Cartesian (and for 2D cylindrical) geometries, only the first
+// element of the systems vector is used, so the selection of systems is
+// quite straightforward, based only on a match of input variable "field"
+// and the names encoded in the Domain's internal vector of
+// NumberSystems.
+//
+// For 3D Cylindrical geometries, there will be three entries in systems,
+// corresponding to the numbering schemes for the 0th, 1st 2nd (and higher)
+// Fourier modes.  The selection of appropriate NumberSystems depends on the
+// input variable "field".  Note that the NumberSystem for field 'w' is
+// never explicitly requested as by assumption it is the same as for 'v'.
+// ---------------------------------------------------------------------------
+{
+  char      routine[] = "Domain::setNumber", err[StrMax];
+  int       i;
+  const int NS = Nsys.getSize();
+
+  for (i = 0; i < 3; i++) system[i] = 0;
+
+  if (strlen (fields)    == 1                 || 
+      Geometry::nDim()   == 2                 ||
+      Geometry::system() == Geometry::Cartesian) {
+    for (i = 0; i < NS; i++)
+      if (strchr (Nsys[i] -> fields(), field)) {
+	system[0] = system[1] = system[2] = Nsys[i];
+	return;
+      }
+  } else {			// -- Assume 3D Cylindrical, 3 component.
+    switch (field) {
+    case 'u':			// -- Axial velocity.
+      for (i = 0; i < NS; i++)
+	if (strchr (Nsys[i] -> fields(), 'u'))
+	  system[0] = Nsys[i];
+      for (i = 0; i < NS; i++)
+	if (strchr (Nsys[i] -> fields(), 'v'))
+	  system[1] = system[2] = Nsys[i];
+      if (system[0] && system[1] && system[2]) return;
+      break;
+    case 'v':			// -- Radial velocity (coupled).
+      for (i = 0; i < NS; i++)
+	if (strchr (Nsys[i] -> fields(), 'v'))
+	  system[0]  = system[1]  = system[2] = Nsys[i];
+      if (system[0] && system[1] && system[2]) return;
+      break;
+    case 'w':			// -- Azimuthal veolcity (coupled).
+      for (i = 0; i < NS; i++)
+	if (strchr (Nsys[i] -> fields(), 'u'))
+	  system[1] = Nsys[i];
+      for (i = 0; i < NS; i++)
+	if (strchr (Nsys[i] -> fields(), 'v'))
+	  system[0] = system[2] = Nsys[i];
+      if (system[0] && system[1] && system[2]) return;
+      break;
+    case 'c':			// -- Scalar (optional).
+      for (i = 0; i < NS; i++)
+	if (strchr (Nsys[i] -> fields(), 'c'))
+	  system[0] = system[1] = system[2] = Nsys[i];
+      for (i = 0; i < NS; i++)
+	if (strchr (Nsys[i] -> fields(), 'C'))
+	  system[1] = Nsys[i];
+      if (system[0] && system[1] && system[2]) return;      
+      break;
+    case 'p':			// -- Pressure.
+      for (i = 0; i < NS; i++)
+	if (strchr (Nsys[i] -> fields(), 'p'))
+	  system[0] = system[1] = system[2] = Nsys[i];
+      for (i = 0; i < NS; i++)
+	if (strchr (Nsys[i] -> fields(), 'P'))
+	  system[1] = Nsys[i];
+      if (system[0] && system[1] && system[2]) return; 
+      break;
+    default:
+      sprintf (err, "unrecognized Field name: %c", field);
+      message (routine, err, ERROR);
+      break;
+    }
+  }
+  
+  sprintf (err, "unsuccessful with field %c", field);
+  message (routine, err, ERROR);
+}
+
 
 
 void Domain::initialize (const char* src)
@@ -378,8 +494,7 @@ void Domain::transform (const int sign)
   int       i;
   const int N = nField ();
   
-  for (i = 0; i < N; i++)
-    u[i] -> transform (sign);
+  for (i = 0; i < N; i++) u[i] -> transform (sign);
 }
 
 
@@ -481,7 +596,7 @@ istream& operator >> (istream& strm,
   if (nel != nelchk) message (routine, "number of elements mismatch", ERROR);
   
   ntot = np * np * nz * nel;
-  if (ntot != D.u[0] -> nTot())
+  if (ntot != Geometry::nTot())
     message (routine, "declared sizes mismatch", ERROR);
 
   strm.getline(s,StrMax).getline(s,StrMax);

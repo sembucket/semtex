@@ -1,6 +1,6 @@
-//////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 // element.C
-//////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 static char
 RCSid[] = "$Id$";
@@ -22,7 +22,7 @@ Element::Element (const int   i   ,
 		  dOffset     (doff),
 		  bOffset     (boff)
 // ---------------------------------------------------------------------------
-// Create a new quad element, nk X nk.  Spacing along any size generated
+// Create a new quad element, nk X nk.  Node spacing along any side generated
 // by mapping z (defined on domain [-1, 1], np points) onto side.
 //
 // Compute information for internal storage, and economize.
@@ -32,9 +32,6 @@ Element::Element (const int   i   ,
   const int nk2  = sqr (nk);
 
   if (nk < 2) message (routine, "need > 2 knots for element edges", ERROR);
-
-  rule = (int) Femlib::value ("RULE");
-  nq = (rule == LL) ? np : Femlib::nquad (2, np);
 
   Femlib::buildMaps (np, &emap, &pmap);
   
@@ -67,8 +64,6 @@ Element::~Element ()
   Femlib::abandon (&G2  );
   Femlib::abandon (&G3  );
   Femlib::abandon (&G4  );
-
-  Femlib::abandon (&mass);
 }
 
 
@@ -99,13 +94,17 @@ void Element::map ()
 // locations at the quadrature points.  In general, the amount of storage
 // allocated for forward and inverse partials differ.
 //
-// For Lobatto--Legendre rule, everything is at the nodes.
-//
+// For Lobatto--Legendre rule, everything is at the nodes, hence the
+// interpolant matrices are identities.
+// 
 // The inverse partials are retained in Element storage, to be used in
-// element gradient operations (e.g. dP/dx = dP/dr * dr/dx + dP/ds * ds/dx)
-// while the forward partials are retained in scrambled form (in combination
-// with quadrature weights) as "geometric factors" G1--G4, to be used in
-// element quadrature operations.
+// element gradient operations (e.g. dP/dx = dP/dr * dr/dx + dP/ds *
+// ds/dx) while the forward partials are retained in scrambled form (in
+// combination with quadrature weights) as "geometric factors" G1--G4, to
+// be used in element quadrature operations.  For cylindrical geometries,
+// G1--G4 are multiplied by y (i.e. r) as a consequence of the fact that
+// Helmholtz equations are symmetrized by premultiplication by this
+// factor for cylindrical coords.
 //
 // Null-mapping optimizations mentioned below occur when the element geometry
 // ensures that the entries of a vector are zero to within roundoff, due
@@ -116,238 +115,109 @@ void Element::map ()
 // are set to zero, so they can serve as flags in subsequent computations.
 // ---------------------------------------------------------------------------
 {
-  char  routine[] = "Element::map";
-  char  err[StrMax];
-  int   ntot;
-  real  *x = xmesh, *y = ymesh;
-  real  **DV, **DT,  **IN,  **IT;
-  real  *jac, *dxdr, *dxds, *dydr, *dyds, *tM, *tV, *w, *WW;
+  char       routine[] = "Element::map", err[StrMax];
+  const int  ntot = nTot();
+  const real EPS  = 4 * nTot()*((sizeof(real)==sizeof(double)) ? EPSDP:EPSSP);
+  const real *x   = xmesh, *y = ymesh;
+  real       **DV, **DT;
+  real       *jac, *dxdr, *dxds, *dydr, *dyds, *tV, *w, *WW;
 
   vector<real> work;
-  const real   EPS = 4 * nTot()*((sizeof(real)==sizeof(double)) ? EPSDP:EPSSP);
 
-  if (rule == LL) {		// -- Lobatto--Legendre quadrature.
-    ntot = nTot();
-
-    // -- Permanent/family allocations.
-
-    drdx = new real [ntot];
-    dsdx = new real [ntot];
-    drdy = new real [ntot];
-    dsdy = new real [ntot];
-    G1   = new real [ntot];
-    G2   = new real [ntot];
-    G3   = new real [ntot];
-    G4   = new real [ntot];
+  // -- Permanent/family allocations.
+  
+  drdx = new real [ntot];
+  dsdx = new real [ntot];
+  drdy = new real [ntot];
+  dsdy = new real [ntot];
+  G1   = new real [ntot];
+  G2   = new real [ntot];
+  G3   = new real [ntot];
+  G4   = new real [ntot];
     
-    // -- Temporaries.
+  // -- Temporaries.
 
-    work.setSize (7 * ntot);
+  work.setSize (7 * ntot);
 
-    dxdr = work();
-    dxds = dxdr + ntot;
-    dydr = dxds + ntot;
-    dyds = dydr + ntot;
+  dxdr = work();
+  dxds = dxdr + ntot;
+  dydr = dxds + ntot;
+  dyds = dydr + ntot;
 
-    jac  = dyds + ntot;
-    WW   = jac  + ntot;
-    tV   = WW   + ntot;
+  jac  = dyds + ntot;
+  WW   = jac  + ntot;
+  tV   = WW   + ntot;
     
-    Femlib::quad (LL, np, np, 0, 0, &w, 0, 0, &DV, &DT);
-    Veclib::zero (ntot, WW, 1);
-    Blas::ger    (np, np, 1.0, w, 1, w, 1, WW, np);
+  Femlib::quad (LL, np, np, 0, 0, &w, 0, 0, &DV, &DT);
+  Veclib::zero (ntot, WW, 1);
+  Blas::ger    (np, np, 1.0, w, 1, w, 1, WW, np);
     
-    Blas::mxm (  x, np, *DT, np, dxdr, np);
-    Blas::mxm (*DV, np,   x, np, dxds, np);
-    Blas::mxm (  y, np, *DT, np, dydr, np);
-    Blas::mxm (*DV, np,   y, np, dyds, np);
+  Blas::mxm (  x, np, *DT, np, dxdr, np);
+  Blas::mxm (*DV, np,   x, np, dxds, np);
+  Blas::mxm (  y, np, *DT, np, dydr, np);
+  Blas::mxm (*DV, np,   y, np, dyds, np);
     
-    Veclib::vmul  (ntot,        dxdr, 1, dyds, 1, tV,  1);
-    Veclib::vvvtm (ntot, tV, 1, dxds, 1, dydr, 1, jac, 1);
+  Veclib::vmul  (ntot,        dxdr, 1, dyds, 1, tV,  1);
+  Veclib::vvvtm (ntot, tV, 1, dxds, 1, dydr, 1, jac, 1);
     
-    if (jac[Veclib::imin (ntot, jac, 1)] < EPSSP) {
-      sprintf (err, "jacobian of element %1d nonpositive", id);
-      message (routine, err, ERROR);
-    }
-    
-    Veclib::vmul  (ntot, dyds, 1, dyds, 1, tV, 1);
-    Veclib::vvtvp (ntot, dxds, 1, dxds, 1, tV, 1, G1, 1);
-    Veclib::vdiv  (ntot, G1,   1, jac,  1, tV, 1);
-    Veclib::vmul  (ntot, tV,   1, WW,   1, G1, 1);
-    
-    Veclib::vmul  (ntot, dydr, 1, dydr, 1, tV, 1);
-    Veclib::vvtvp (ntot, dxdr, 1, dxdr, 1, tV, 1, G2, 1);
-    Veclib::vdiv  (ntot, G2,   1, jac,  1, tV, 1);
-    Veclib::vmul  (ntot, tV,   1, WW,   1, G2, 1);
-    
-    Veclib::vmul  (ntot, dydr, 1, dyds, 1, tV,   1);
-    Veclib::neg   (ntot, tV,   1);
-    Veclib::vvvtm (ntot, tV,   1, dxdr, 1, dxds, 1, G3, 1);
-    Veclib::vdiv  (ntot, G3,   1, jac,  1, tV,   1);
-    Veclib::vmul  (ntot, tV,   1, WW,   1, G3,   1);
-    
-    Veclib::vmul  (ntot, jac, 1, WW, 1, G4, 1);
-    
-    Veclib::copy (ntot, dyds, 1, drdx, 1);
-    Veclib::vneg (ntot, dxds, 1, drdy, 1);
-    Veclib::vneg (ntot, dydr, 1, dsdx, 1);
-    Veclib::copy (ntot, dxdr, 1, dsdy, 1);
-    
-    Veclib::vdiv (ntot, drdx, 1, jac, 1, drdx, 1);
-    Veclib::vdiv (ntot, drdy, 1, jac, 1, drdy, 1);
-    Veclib::vdiv (ntot, dsdx, 1, jac, 1, dsdx, 1);
-    Veclib::vdiv (ntot, dsdy, 1, jac, 1, dsdy, 1);
-
-    // -- Calculations are done.  Do null-mapping optimizations.
-
-    if (Blas::nrm2 (ntot, drdx, 1) < EPS) { delete [] drdx; drdx = 0; }
-    if (Blas::nrm2 (ntot, drdy, 1) < EPS) { delete [] drdy; drdy = 0; }
-    if (Blas::nrm2 (ntot, dsdx, 1) < EPS) { delete [] dsdx; dsdx = 0; }
-    if (Blas::nrm2 (ntot, dsdy, 1) < EPS) { delete [] dsdy; dsdy = 0; }
-    if (Blas::nrm2 (ntot, G3,   1) < EPS) { delete [] G3;   G3   = 0; }
-
-    // -- Check for family redundancies.
-
-    Femlib::adopt (ntot, &drdx);
-    Femlib::adopt (ntot, &drdy);
-    Femlib::adopt (ntot, &dsdx);
-    Femlib::adopt (ntot, &dsdy);
-    Femlib::adopt (ntot, &G1  );
-    Femlib::adopt (ntot, &G2  );
-    Femlib::adopt (ntot, &G3  );
-    Femlib::adopt (ntot, &G4  );
-
-    // -- Install alias for mass matrix.
-
-    mass = G4;
-
-  } else {  // -- rule == GL: Gauss--Legendre quadrature.
-    
-    // -- Quadrature point computations.
-
-    ntot = sqr (nq);
-
-    G1 = new real [ntot];
-    G2 = new real [ntot];
-    G3 = new real [ntot];
-    G4 = new real [ntot];
-    
-    work.setSize (7 * ntot + np * nq);
-
-    dxdr = work();
-    dxds = dxdr + ntot;
-    dydr = dxds + ntot;
-    dyds = dydr + ntot;
-   
-    jac  = dyds + ntot;
-    WW   = jac  + ntot;
-    tM   = WW   + ntot;
-    tV   = tM + np * nq;
-
-    Femlib::quad (GL, np, nq, 0, 0, &w, &IN, &IT, &DV, &DT);
-    Veclib::zero (ntot, WW, 1);
-    Blas::ger    (nq, nq, 1.0, w, 1, w, 1, WW, nq);
-    
-    Blas::mxm (  x, np, *DT, np, tM,   nq);
-    Blas::mxm (*IN, nq,  tM, np, dxdr, nq);
-    Blas::mxm (  y, np, *DT, np, tM,   nq);
-    Blas::mxm (*IN, nq,  tM, np, dydr, nq);
-    Blas::mxm (  x, np, *IT, np, tM,   nq);
-    Blas::mxm (*DV, nq,  tM, np, dxds, nq);
-    Blas::mxm (  y, np, *IT, np, tM,   nq);
-    Blas::mxm (*DV, nq,  tM, np, dyds, nq);
-    
-    Veclib::vmul  (ntot,        dxdr, 1, dyds, 1, tV,  1);
-    Veclib::vvvtm (ntot, tV, 1, dxds, 1, dydr, 1, jac, 1);
-    
-    Veclib::vmul  (ntot, dyds, 1, dyds, 1, tV, 1);
-    Veclib::vvtvp (ntot, dxds, 1, dxds, 1, tV, 1, G1, 1);
-    Veclib::vdiv  (ntot, G1,   1, jac,  1, tV, 1);
-    Veclib::vmul  (ntot, tV,   1, WW,   1, G1, 1);
-    
-    Veclib::vmul  (ntot, dydr, 1, dydr, 1, tV, 1);
-    Veclib::vvtvp (ntot, dxdr, 1, dxdr, 1, tV, 1, G2, 1);
-    Veclib::vdiv  (ntot, G2,   1, jac,  1, tV, 1);
-    Veclib::vmul  (ntot, tV,   1, WW,   1, G2, 1);
-    
-    Veclib::vmul  (ntot, dydr, 1, dyds, 1, tV,   1);
-    Veclib::neg   (ntot, tV,   1);
-    Veclib::vvvtm (ntot, tV,   1, dxdr, 1, dxds, 1, G3, 1);
-    Veclib::vdiv  (ntot, G3,   1, jac,  1, tV,   1);
-    Veclib::vmul  (ntot, tV,   1, WW,   1, G3,   1);
-
-    Veclib::vmul (ntot, jac, 1, WW, 1, G4, 1);
-
-    // -- Do null-mapping optimization.
-
-    if (Blas::nrm2 (ntot, G3, 1) < EPS) { delete [] G3; G3 = 0; }
-    
-    // -- Check family membership.
-
-    Femlib::adopt (ntot, &G1);
-    Femlib::adopt (ntot, &G2);
-    Femlib::adopt (ntot, &G3);
-    Femlib::adopt (ntot, &G4);
-
-    // -- Node point computations.
-    
-    ntot = nTot();
-
-    drdx = new real [ntot];
-    drdy = new real [ntot];
-    dsdx = new real [ntot];
-    dsdy = new real [ntot];
-    mass = new real [ntot];
-
-    work.setSize (7 * ntot);
-
-    dxdr = work();
-    dxds = dxdr + ntot;
-    dydr = dxds + ntot;
-    dyds = dydr + ntot;
-    jac  = dyds + ntot;
-    WW   = jac  + ntot;
-    tV   = WW   + ntot;
-    
-    Femlib::quad (LL, np, np, 0, 0, &w, 0, 0, &DV, &DT);
-    Veclib::zero (ntot, WW, 1);
-    Blas::ger    (np, np, 1.0, w, 1, w, 1, WW, np);
-    
-    Blas::mxm (  x, np, *DT, np, dxdr, np);
-    Blas::mxm (*DV, np,   x, np, dxds, np);
-    Blas::mxm (  y, np, *DT, np, dydr, np);
-    Blas::mxm (*DV, np,   y, np, dyds, np);
-    
-    Veclib::vmul  (ntot,        dxdr, 1, dyds, 1, tV,  1);
-    Veclib::vvvtm (ntot, tV, 1, dxds, 1, dydr, 1, jac, 1);
-    
-    Veclib::vmul (ntot, jac, 1, WW, 1, mass, 1);
-    
-    Veclib::copy (ntot, dyds, 1, drdx, 1);
-    Veclib::vneg (ntot, dxds, 1, drdy, 1);
-    Veclib::vneg (ntot, dydr, 1, dsdx, 1);
-    Veclib::copy (ntot, dxdr, 1, dsdy, 1);
-    
-    Veclib::vdiv (ntot, drdx, 1, jac, 1, drdx, 1);
-    Veclib::vdiv (ntot, drdy, 1, jac, 1, drdy, 1);
-    Veclib::vdiv (ntot, dsdx, 1, jac, 1, dsdx, 1);
-    Veclib::vdiv (ntot, dsdy, 1, jac, 1, dsdy, 1);
-
-    // -- Do null-mapping optimizations.
-
-    if (Blas::nrm2 (ntot, drdx, 1) < EPS) { delete [] drdx; drdx = 0; }
-    if (Blas::nrm2 (ntot, drdy, 1) < EPS) { delete [] drdy; drdy = 0; }
-    if (Blas::nrm2 (ntot, dsdx, 1) < EPS) { delete [] dsdx; dsdx = 0; }
-    if (Blas::nrm2 (ntot, dsdy, 1) < EPS) { delete [] dsdy; dsdy = 0; }
-
-    // -- Family membership.
-
-    Femlib::adopt (ntot, &drdx);
-    Femlib::adopt (ntot, &drdy);
-    Femlib::adopt (ntot, &dsdx);
-    Femlib::adopt (ntot, &dsdy);
-    Femlib::adopt (ntot, &mass);
+  if (jac[Veclib::imin (ntot, jac, 1)] < EPS) {
+    sprintf (err, "jacobian of element %1d nonpositive", id + 1);
+    message (routine, err, ERROR);
   }
+    
+  Veclib::vmul  (ntot, dyds, 1, dyds, 1, tV, 1);
+  Veclib::vvtvp (ntot, dxds, 1, dxds, 1, tV, 1, G1, 1);
+  Veclib::vdiv  (ntot, G1,   1, jac,  1, tV, 1);
+  Veclib::vmul  (ntot, tV,   1, WW,   1, G1, 1);
+    
+  Veclib::vmul  (ntot, dydr, 1, dydr, 1, tV, 1);
+  Veclib::vvtvp (ntot, dxdr, 1, dxdr, 1, tV, 1, G2, 1);
+  Veclib::vdiv  (ntot, G2,   1, jac,  1, tV, 1);
+  Veclib::vmul  (ntot, tV,   1, WW,   1, G2, 1);
+    
+  Veclib::vmul  (ntot, dydr, 1, dyds, 1, tV,   1);
+  Veclib::neg   (ntot, tV,   1);
+  Veclib::vvvtm (ntot, tV,   1, dxdr, 1, dxds, 1, G3, 1);
+  Veclib::vdiv  (ntot, G3,   1, jac,  1, tV,   1);
+  Veclib::vmul  (ntot, tV,   1, WW,   1, G3,   1);
+  
+  Veclib::vmul  (ntot, jac,  1, WW,   1, G4, 1);
+
+  Veclib::copy (ntot, dyds, 1, drdx, 1);
+  Veclib::vneg (ntot, dxds, 1, drdy, 1);
+  Veclib::vneg (ntot, dydr, 1, dsdx, 1);
+  Veclib::copy (ntot, dxdr, 1, dsdy, 1);
+    
+  Veclib::vdiv (ntot, drdx, 1, jac, 1, drdx, 1);
+  Veclib::vdiv (ntot, drdy, 1, jac, 1, drdy, 1);
+  Veclib::vdiv (ntot, dsdx, 1, jac, 1, dsdx, 1);
+  Veclib::vdiv (ntot, dsdy, 1, jac, 1, dsdy, 1);
+
+  if (Geometry::system() == Geometry::Cylindrical) {
+    Veclib::vmul (ntot, G1, 1, y, 1, G1, 1);
+    Veclib::vmul (ntot, G2, 1, y, 1, G2, 1);
+    Veclib::vmul (ntot, G3, 1, y, 1, G3, 1);
+    Veclib::vmul (ntot, G4, 1, y, 1, G4, 1);
+  } 
+
+  // -- Calculations are done.  Do null-mapping optimizations.
+  
+  if (Blas::nrm2 (ntot, drdx, 1) < EPS) { delete [] drdx; drdx = 0; }
+  if (Blas::nrm2 (ntot, drdy, 1) < EPS) { delete [] drdy; drdy = 0; }
+  if (Blas::nrm2 (ntot, dsdx, 1) < EPS) { delete [] dsdx; dsdx = 0; }
+  if (Blas::nrm2 (ntot, dsdy, 1) < EPS) { delete [] dsdy; dsdy = 0; }
+  if (Blas::nrm2 (ntot, G3,   1) < EPS) { delete [] G3;   G3   = 0; }
+
+  // -- Check for family redundancies.
+
+  Femlib::adopt (ntot, &drdx);
+  Femlib::adopt (ntot, &drdy);
+  Femlib::adopt (ntot, &dsdx);
+  Femlib::adopt (ntot, &dsdy);
+  Femlib::adopt (ntot, &G1  );
+  Femlib::adopt (ntot, &G2  );
+  Femlib::adopt (ntot, &G3  );
+  Femlib::adopt (ntot, &G4  );
 }
 
 
@@ -362,7 +232,7 @@ void Element::bndryDsSum (const int*  btog,
 {
   register int   i, e;
   const int      next = nExt();
-  register real* wt = mass;
+  register real* wt = G4;
 
   for (i = 0; i < next; i++) {
     e = emap[i];
@@ -386,8 +256,6 @@ void Element::bndryMask (const int*  bmsk,
 // If src is zero, then the values within tgt where bmsk is zero are
 // set to zero (i.e. tgt itself is taken as the source).  Btog is then
 // not used and may be zero also.
-//
-// INCORPORATES/REPLACES old routines Element::mask and Element::setEssential.
 // ---------------------------------------------------------------------------
 {
   register int i, e;
@@ -440,8 +308,6 @@ void Element::e2gSumSC (real*       F   ,
 // and summed into the tgt vector.  In the summation, there is no need
 // to check if the global node is to be solved for or is fixed, since
 // the fixed (essential-BC) partition of tgt is overwritten later.
-//
-// REPLACES old routine Element::dsForcingSC
 // ---------------------------------------------------------------------------
 {
   const int    ntot = nTot();
@@ -501,6 +367,7 @@ void Element::g2eSC (const real* RHS ,
 
 
 void Element::HelmholtzSC (const real lambda2,
+			   const real betak2 ,
 			   real*      hbb    ,
 			   real*      hbi    ,
 			   real*      hii    ,
@@ -510,6 +377,14 @@ void Element::HelmholtzSC (const real lambda2,
 // Compute the discrete elemental Helmholtz matrix and return the
 // statically condensed form in hbb, the interior-exterior coupling
 // matrix in hbi, and the interior resolution matrix factor in hii.
+//
+// lambda2 is the Helmholtz constant.
+//
+// k2 is the square of the wavenumber for the Fourier decomposition that is
+// used in the azimuthal direction in cylindrical coordinates, and effectively
+// serves as a flag for use of cylindrical coordinates: it should always be
+// zero for Cartesian coordinates.
+
 //
 // Uncondensed System   -->   Statically condensed form returned in hbb.
 //
@@ -546,17 +421,17 @@ void Element::HelmholtzSC (const real lambda2,
   const int    ntot = nTot();
   const int    next = nExt();
   const int    nint = nInt();
-  real         **IT, **DV, **DT;
+  real         **DV, **DT;
 
   // -- Construct hbb, hbi, hii partitions of elemental Helmholtz matrix.
 
-  Femlib::quad (rule, np, nq, 0, 0, 0, 0, &IT, &DV, &DT);
+  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
   for (i = 0; i < np; i++)
     for (j = 0; j < np; j++, ij++) {
 
-      helmRow ((const real**) IT, (const real**) DV, (const real**) DT,
-	       lambda2, i, j, rmat, rwrk, rwrk+nq, rwrk+nq+nq);
+      helmRow ((const real**) DV, (const real**) DT,
+	       lambda2, betak2, i, j, rmat, rwrk);
 
       Veclib::gathr (ntot, rmat, emap, rwrk);
 
@@ -639,6 +514,7 @@ void Element::printMatSC (const real* hbb,
 
 
 void Element::Helmholtz (const real lambda2,
+			 const real betak2 ,
 			 real*      h      ,
 			 real*      rmat   ,
 			 real*      rwrk   ) const
@@ -651,134 +527,171 @@ void Element::Helmholtz (const real lambda2,
 //
 // h:    vector, length np*np*np*np;
 // rmat: vector, length np*np;
-// rwrk: vector, length nq*nq + 2*nq.
 // ---------------------------------------------------------------------------
 {
   register int ij   = 0;
   const int    ntot = nTot ();
-  real         **IT, **DV, **DT;
-  real         *wk1 = rwrk, *wk2 = wk1 + nq, *wk3 = wk2 + nq;
+  real         **DV, **DT;
 
-  Femlib::quad (rule, np, nq, 0, 0, 0, 0, &IT, &DV, &DT);
+  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
   for (register int i = 0; i < np; i++)
     for (register int j = 0; j < np; j++, ij++) {
-      helmRow ((const real**) IT, (const real**) DV, (const real**)DT,
-	       lambda2, i, j, rmat, wk1, wk2, wk3);
+      helmRow ((const real**) DV, (const real**) DT,
+	       lambda2, betak2, i, j, rmat, rwrk);
       Veclib::copy (ntot, rmat, 1, h + ij * np, 1);
     }
 }
 
 
-void Element::helmRow (const real** IT     ,
-		       const real** DV     ,
+void Element::helmRow (const real** DV     ,
 		       const real** DT     ,
 		       const real   lambda2,
+		       const real   betak2 ,
 		       const int    i      ,
 		       const int    j      ,
 		       real*        hij    ,
-		       real*        W1     ,
-		       real*        W2     ,
-		       real*        W0     ) const
+		       real*        work   ) const
 // ---------------------------------------------------------------------------
 // Build row [i,j] of the elemental Helmholtz matrix in array hij (np x np).
 //
-// Three work arrays W1, W2 and W0 are nominated.  Only W1 is used if the
-// element quadrature rule is LL (Lobatto), but all three are used for GL
-// (Gauss) quadrature.  W1 and W2 should be at least nq long; W0 should be
-// nq x nq long.
+// Lambda2 is the Helmholtz constant.
+//
+// k2 is the square of the wavenumber for the Fourier decomposition that is
+// used in the azimuthal direction in cylindrical coordinates, and effectively
+// serves as a flag for use of cylindrical coordinates: it should always be
+// zero for Cartesian coordinates.
+//
+// Input array work should be at least np long.
 //
 // For a 2D tensor product form, the elemental Helmholtz matrix is produced
-/// as (sums on p & q indices assumed):
+// as (sums on p & q indices assumed):
 //
-// h      =         G1  IN  DT  IN  DT     \
-//  ij mn             pq  pi  jq  pm  nq   |
-//        +         G2  DV  IT  DV  IT     |
-//                    pq  pi  jq  pm  nq   |
-//        +         G3  DV  IT  IN  DT      >  "STIFFNESS"
-//                    pq  pi  jq  pm  nq   |
-//        +         G3  IN  DT  DV  IT     |
-//                    pq  pi  jq  pm  nq   /
-//                2
-//        + lambda  G4  IN  IT  IN  IT        "MASS"
-//                    pq  pi  jq  pm  nq
+// h      = G1  IN  DT  IN  DT     \
+//  ij mn     pq  pi  jq  pm  nq   |
+//        + G2  DV  IT  DV  IT     |
+//            pq  pi  jq  pm  nq   |
+//        + G3  DV  IT  IN  DT      >                              "STIFFNESS"
+//            pq  pi  jq  pm  nq   |
+//        + G3  IN  DT  DV  IT     |
+//            pq  pi  jq  pm  nq   /
+//                
+//        + G4  IN  IT  IN  IT        (k2 / sqr (r  ) + lambda2)        "MASS"
+//            pq  pi  jq  pm  nq                  pq
 //
 // where the terms G1, G2, G3, G4 contain geometric mapping factors and
 // quadrature weights, and the matrices IN, IT are the Lagrangian
 // interpolation matrix (from the nodes to the quadrature points) and its
 // transpose, while DV, DT are the Lagrangian derivative matrix & transpose.
-// If the Lobatto quadrature rule is used, the interpolant matrices are
-// identities (and may be input as NULL pointers).
+//
+// For Gauss--Lobatto--Legendre integration, the interpolant matrices are
+// indentities, and are not required.
 // ---------------------------------------------------------------------------
 {
   register int m, n;
-  const int    ntot = sqr (nq);
+  const int    ntot = sqr (np);
+  const real   r2   = sqr (ymesh[Veclib::row_major (i, j, np)]);
+  const real   EPS  = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  const real   hCon = (Geometry::system() == Geometry::Cylindrical &&
+		       r2 > EPS) ? (betak2 / r2 + lambda2) : betak2 + lambda2;
 
-  if (rule == LL) {		// -- Lobatto quadrature:
+  Veclib::zero (ntot, hij, 1);
 
-    Veclib::zero (ntot, hij, 1);
+  for (n = 0; n < np; n++) {
+    Veclib::vmul (np, DT[j], 1, DT[n], 1, work, 1);
+    hij[Veclib::row_major (i, n, np)]  = Blas::dot (np, G1 + i*np, 1, work, 1);
+  }
 
-    for (n = 0; n < nq; n++) {
-      Veclib::vmul (nq, DT[j], 1, DT[n], 1, W1, 1);
-      hij[Veclib::row_major (i, n, nq)]  = Blas::dot (nq, G1 + i*nq, 1, W1, 1);
-    }
+  for (m = 0; m < np; m++) {
+    Veclib::vmul (np, DT[i], 1, DT[m], 1, work, 1);
+    hij[Veclib::row_major (m, j, np)] += Blas::dot (np, G2 + j,   np, work, 1);
+  }
 
-    for (m = 0; m < nq; m++) {
-      Veclib::vmul (nq, DT[i], 1, DT[m], 1, W1, 1);
-      hij[Veclib::row_major (m, j, nq)] += Blas::dot (nq, G2 + j,   nq, W1, 1);
-    }
-
-    if (G3)
-      for (m = 0; m < nq; m++)
-	for (n = 0; n < nq; n++) {
-	  hij [Veclib::row_major (m, n, nq)] +=
-	    G3[Veclib::row_major (i, n, nq)] * DV[n][j] * DV[i][m];
-	  hij [Veclib::row_major (m, n, nq)] +=
-	    G3[Veclib::row_major (m, j, nq)] * DV[j][n] * DV[m][i];
-      }
-
-    hij[Veclib::row_major (i, j, nq)] +=
-      lambda2 * G4[Veclib::row_major (i, j, nq)];
- 
-  } else {			// -- Gauss quadrature:
-
+  if (G3)
     for (m = 0; m < np; m++)
       for (n = 0; n < np; n++) {
-
-	Veclib::zero (ntot, W0, 1);
-	Veclib::vmul (nq, IT[i], 1, IT[m], 1, W1, 1);
-	Veclib::vmul (nq, DT[j], 1, DT[n], 1, W2, 1);
-	Blas::ger    (nq, nq, 1.0, W2, 1, W1, 1, W0, nq);
-	hij[Veclib::row_major (m, n, np)] = Blas::dot (ntot, G1, 1, W0, 1);
-
-	Veclib::zero (ntot, W0, 1);
-	Veclib::vmul (nq, DT[i], 1, DT[m], 1, W1, 1);
-	Veclib::vmul (nq, IT[j], 1, IT[n], 1, W2, 1);
-	Blas::ger    (nq, nq, 1.0, W2, 1, W1, 1, W0, nq);
-	hij[Veclib::row_major (m, n, np)] += Blas::dot (ntot, G2, 1, W0, 1);
-
-	if (G3) {
-	  Veclib::zero (ntot, W0, 1);
-	  Veclib::vmul (nq, DT[i], 1, IT[m], 1, W1, 1);
-	  Veclib::vmul (nq, IT[j], 1, DT[n], 1, W2, 1);
-	  Blas::ger    (nq, nq, 1.0, W2, 1, W1, 1, W0, nq);
-	  hij[Veclib::row_major (m, n, np)] += Blas::dot (ntot, G3, 1, W0, 1);
-
-	  Veclib::zero (ntot, W0, 1);
-	  Veclib::vmul (nq, IT[i], 1, DT[m], 1, W1, 1);
-	  Veclib::vmul (nq, DT[j], 1, IT[n], 1, W2, 1);
-	  Blas::ger    (nq, nq, 1.0, W2, 1, W1, 1, W0, nq);
-	  hij[Veclib::row_major (m, n, np)] += Blas::dot (ntot, G3, 1, W0, 1);
-	}
-
-	Veclib::zero (ntot, W0, 1);
-	Veclib::vmul (nq, IT[i], 1, IT[m], 1, W1, 1);
-	Veclib::vmul (nq, IT[j], 1, IT[n], 1, W2, 1);
-	Blas::ger    (nq, nq, 1.0, W2, 1, W1, 1, W0, nq);
-	hij[Veclib::row_major (m, n, np)] +=
-	  lambda2 * Blas::dot (ntot, G4, 1, W0, 1);
+	hij [Veclib::row_major (m, n, np)] +=
+	  G3[Veclib::row_major (i, n, np)] * DV[n][j] * DV[i][m];
+	hij [Veclib::row_major (m, n, np)] +=
+	  G3[Veclib::row_major (m, j, np)] * DV[j][n] * DV[m][i];
       }
+
+  hij[Veclib::row_major (i, j, np)] += G4[Veclib::row_major (i, j, np)] * hCon;
+}
+
+
+void Element::HelmholtzOp (const real  lambda2,
+			   const real  betak2 ,
+			   const real* src    ,
+			   real*       tgt    , 
+			   real*       wrk    ) const
+// ---------------------------------------------------------------------------
+// Apply elemental discrete Helmholtz operator on src to make tgt.
+//
+// Lambda2 is the Helmholtz constant.
+//
+// k2 is the square of the wavenumber for the Fourier decomposition that is
+// used in the azimuthal direction in cylindrical coordinates, and effectively
+// serves as a flag for use of cylindrical coordinates: it should always be
+// zero for Cartesian coordinates.
+//
+// Input workspace vector wrk must hold 2 * nTot() elements.
+// ---------------------------------------------------------------------------
+{
+  register int  ij;
+  const int     ntot = nTot();
+  register real tmp, *R, *S, r2, hCon;
+  real          **DV, **DT;
+  const real    EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+
+  R = wrk;
+  S = R + ntot;
+
+  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+
+  Blas::gemm ("N", "N", np, np, np, 1.0, *DT, np, src, np, 0.0, R, np);
+  Blas::gemm ("N", "N", np, np, np, 1.0, src, np, *DV, np, 0.0, S, np);
+
+  if (Geometry::system() == Geometry::Cylindrical) {
+    if (G3) {
+      for (ij = 0; ij < ntot; ij++) {
+	r2       = sqr (ymesh[ij]);
+	hCon     = (r2 > EPS) ? (betak2 / r2 + lambda2) : 0.0;
+	tmp      = R [ij];
+	R  [ij]  = G1[ij] * R  [ij] + G3[ij] * S  [ij];
+	S  [ij]  = G2[ij] * S  [ij] + G3[ij] * tmp;
+	tgt[ij]  = G4[ij] * src[ij] * hCon;
+      }
+    } else {
+      for (ij = 0; ij < ntot; ij++) {
+	r2       = sqr (ymesh[ij]);
+	hCon     = (r2 > EPS) ? (betak2 / r2 + lambda2) : 0.0;
+	R  [ij] *= G1[ij];
+	S  [ij] *= G2[ij];
+	tgt[ij]  = G4[ij] * src[ij] * hCon;
+      }
+    }
+
+  } else {			// -- Cartesian.
+    hCon = betak2 + lambda2;
+    if (G3) {
+      for (ij = 0; ij < ntot; ij++) {
+	tmp      = R [ij];
+	R  [ij]  = G1[ij] * R  [ij] + G3[ij] * S  [ij];
+	S  [ij]  = G2[ij] * S  [ij] + G3[ij] * tmp;
+	tgt[ij]  = G4[ij] * src[ij] * hCon;
+      }
+    } else {
+      for (ij = 0; ij < ntot; ij++) {
+	R  [ij] *= G1[ij];
+	S  [ij] *= G2[ij];
+	tgt[ij]  = G4[ij] * src[ij] * hCon;
+      }
+    }
   }
+
+  Blas::gemm ("N", "N", np, np, np, 1.0,  S,  np, *DT, np, 1.0, tgt, np);
+  Blas::gemm ("N", "N", np, np, np, 1.0, *DV, np,  R,  np, 1.0, tgt, np);
 }
 
 
@@ -897,6 +810,8 @@ void Element::sideGeom (const int side,
 //
 // Computed vectors have CCW edge-traverse ordering, i.e. are made to operate
 // on vectors obtained from base storage using BLAS-conformant copy.
+//
+// For cylindrical coordinates the area variable is weighted by y (i.e. r).
 // ---------------------------------------------------------------------------
 {
   if (side < 0 || side >= ns)
@@ -910,14 +825,16 @@ void Element::sideGeom (const int side,
 
   switch (side) {
   case 0: 
+    low  = 0;
     skip = 1;
     xr   = work();
     yr   = xr + np;
     
-    Blas::gemv    ("T", np, np, 1.0, *D, np, xmesh, 1, 0.0, xr, 1);
-    Blas::gemv    ("T", np, np, 1.0, *D, np, ymesh, 1, 0.0, yr, 1);
+    Blas::gemv    ("T", np, np, 1.0, *D, np, xmesh+low, 1, 0.0, xr, 1);
+    Blas::gemv    ("T", np, np, 1.0, *D, np, ymesh+low, 1, 0.0, yr, 1);
     Veclib::vmul  (np, xr, 1, xr, 1, area, 1);
     Veclib::vvtvp (np, yr, 1, yr, 1, area, 1, area, 1);
+
     if   (dsdx) Veclib::smul (np, -1.0, dsdx, skip, nx, 1);
     else        Veclib::zero (np,                   nx, 1);
     if   (dsdy) Veclib::smul (np, -1.0, dsdy, skip, ny, 1);
@@ -934,7 +851,9 @@ void Element::sideGeom (const int side,
     Blas::gemv    ("T", np, np, 1.0, *D, np, xmesh+low, np, 0.0, xs, 1);
     Blas::gemv    ("T", np, np, 1.0, *D, np, ymesh+low, np, 0.0, ys, 1);
     Veclib::vmul  (np, xs, 1, xs, 1, area, 1);
+
     Veclib::vvtvp (np, ys, 1, ys, 1, area, 1, area, 1);
+
     if   (drdx) Veclib::copy (np, drdx+low, skip, nx, 1);
     else        Veclib::zero (np,                 nx, 1);
     if   (drdy) Veclib::copy (np, drdy+low, skip, ny, 1);
@@ -952,32 +871,37 @@ void Element::sideGeom (const int side,
     Blas::gemv    ("T", np, np, 1.0, *D, np, ymesh+low, 1, 0.0, yr, 1);
     Veclib::vmul  (np, xr, 1, xr, 1, area, 1);
     Veclib::vvtvp (np, yr, 1, yr, 1, area, 1, area, 1);
+
     if   (dsdx) Veclib::copy (np, dsdx+low, skip, nx, 1);
     else        Veclib::zero (np,                 nx, 1);
     if   (dsdy) Veclib::copy (np, dsdy+low, skip, ny, 1);
     else        Veclib::zero (np,                 ny, 1);
-    
+
     break;
 
   case 3:
+    low  = 0;
     skip = -np;
     xs   = work();
     ys   = xs + np;
       
-    Blas::gemv    ("T", np, np, 1.0, *D, np, xmesh, np, 0.0, xs, 1);
-    Blas::gemv    ("T", np, np, 1.0, *D, np, ymesh, np, 0.0, ys, 1);
+    Blas::gemv    ("T", np, np, 1.0, *D, np, xmesh+low, np, 0.0, xs, 1);
+    Blas::gemv    ("T", np, np, 1.0, *D, np, ymesh+low, np, 0.0, ys, 1);
     Veclib::vmul  (np, xs, 1, xs, 1, area, 1);
     Veclib::vvtvp (np, ys, 1, ys, 1, area, 1, area, 1);
+
     if   (drdx) Veclib::smul (np, -1.0, drdx, skip, nx, 1);
     else        Veclib::zero (np,                   nx, 1);
     if   (drdy) Veclib::smul (np, -1.0, drdy, skip, ny, 1);
     else        Veclib::zero (np,                   ny, 1);
-    
+
     break;
   }
   
-  Veclib::vsqrt (np, area, 1, area, 1);
-  Veclib::vmul  (np, area, 1, w,    1, area, 1);
+  Veclib::vsqrt  (np, area, 1, area, 1);
+  Veclib::vmul   (np, area, 1, w,    1, area, 1);
+  if (Geometry::system() == Geometry::Cylindrical)
+    Veclib::vmul (np, area, 1, ymesh+low, skip, area, 1);
 
   len = work();
 
@@ -1144,37 +1068,11 @@ real Element::integral (const char* func) const
 // ---------------------------------------------------------------------------
 {
   real         intgrl;
-  const int    ntot = nq * nq;
+  const int    ntot = np * np;
   vector<real> tmp (ntot);
 
-  Femlib::prepVec ("x y", func);
-
-  switch (rule) {
-
-  case LL:
-    Femlib__parseVec (ntot, xmesh, ymesh, tmp());
-    break;
-
-  case GL:
-    vector<real> work (ntot + ntot + nq * np);
-    real         *x, *y, *wrk, **IN, **IT;
-
-    x   = work();
-    y   = x + ntot;
-    wrk = y + ntot;
-
-    Femlib::quad (GL, np, nq, 0, 0, 0, &IN, &IT, 0, 0);
-
-    Blas::mxm (*IN, nq, xmesh, np, wrk, np);
-    Blas::mxm (wrk, nq, *IT,   np, x,   nq);
-
-    Blas::mxm (*IN, nq, ymesh, np, wrk, np);
-    Blas::mxm (wrk, nq, *IT,   np, y,   nq);
-
-    Femlib__parseVec (ntot, x, y, tmp());
-
-    break;
-  }
+  Femlib::prepVec  ("x y", func);
+  Femlib__parseVec (ntot, xmesh, ymesh, tmp());
 
   Veclib::vmul (ntot, tmp(), 1, G4, 1, tmp(), 1);
 
@@ -1200,31 +1098,10 @@ real Element::norm_L2 (const real* src) const
 {
   register int   i;
   register real  L2   = 0.0;
-  const int      ntot = nq * nq;
+  const int      ntot = sqr (np);
   register real* dA   = G4;
 
-  switch (rule) {
-
-  case LL:
-    for (i = 0; i < ntot; i++) L2 += src[i] * src[i] * dA[i];
-    break;
-
-  case GL:
-    vector<real> work (ntot + nq * np);
-    real         *wrk, *u, **IN, **IT;
-    
-    u   = work();
-    wrk = u + ntot;
-
-    Femlib::quad (GL, np, nq, 0, 0, 0, &IN, &IT, 0, 0);
-
-    Blas::mxm (*IN, nq,  src, np, wrk, np);
-    Blas::mxm (wrk, nq, *IT,  np, u,   nq);
-
-    for (i = 0; i < ntot; i++) L2 += u[i] * u[i] * dA[i];
-    
-    break;
-  }
+  for (i = 0; i < ntot; i++) L2 += src[i] * src[i] * dA[i];
 
   return sqrt (L2);
 }
@@ -1237,16 +1114,13 @@ real Element::norm_H1 (const real* src) const
 {
   register real H1 = 0;
   register int  i;
-  const int     ntot = nq * nq;
+  const int     ntot = sqr (np);
   
   vector<real>  work (ntot);
   register real *u, *dA;
   
   u = work();
 
-  switch (rule) {
-
-  case LL:
     dA = G4;
 
     // -- Add in L2 norm of u.
@@ -1263,46 +1137,6 @@ real Element::norm_H1 (const real* src) const
     grad (0, u);
     for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * dA[i];
 
-    break;
-
-  case GL:
-    vector<real> work2 (nq * np);
-    real         *w, **IN, **IT, **DV, **DT;
-
-    w = work2();
-
-    Femlib::quad (GL, np, nq, 0, 0, 0, &IN, &IT, &DV, &DT);
-
-    Blas::mxm (*IN, nq,  src, np, w, np);
-    Blas::mxm (w,   nq, *IT,  np, u, nq);
-
-    // -- Add in L2 norm of u.
-
-    dA = G4;
-    for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * dA[i];
-
-    // -- Add in L2 norm of grad u.
-
-    dA = G1;
-    Blas::mxm (*IN, nq,  src, np, w, np);
-    Blas::mxm (w,   nq, *DV,  np, u, nq);
-    for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * dA[i];
-
-    dA = G2;
-    Blas::mxm (*DV, nq,  src, np, w, np);
-    Blas::mxm (w,   nq, *IT,  np, u, nq);
-    for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * dA[i];
-
-    if (G3) {
-      dA = G3;
-      Blas::mxm (*DV, nq,  src, np, w, np);
-      Blas::mxm (w,   nq, *DT,  np, u, nq);
-      for (i = 0; i < ntot; i++) H1 += 2.0 * u[i] * u[i] * dA[i];
-    }
-
-    break;
-  }
-
   return sqrt (H1);
 }
 
@@ -1315,8 +1149,6 @@ void Element::e2g (const real* src     ,
 // Src is a row-major vector, representing this Element's data.
 // Load boundary data into globally-numbered vector external, and
 // internal data into un-numbered vector internal.
-//
-// REPLACES old routine Element::condense
 // ---------------------------------------------------------------------------
 {
   const int next = nExt();
@@ -1336,8 +1168,6 @@ void Element::e2gSum (const real* src     ,
 // Src is a row-major vector, representing this element's data.
 // Sum boundary data into globally-numbered vector external, and
 // internal data into un-numbered vector internal.
-//
-// REPLACES old routine Element::dsForcing
 // ---------------------------------------------------------------------------
 {
   const int next = nExt();
@@ -1357,8 +1187,6 @@ void Element::g2e (real*       tgt     ,
 // Tgt is a row-major vector, representing this Element's data.
 // Load boundary data from globally-numbered vector external, and
 // internal data from un-numbered vector internal.
-//
-// REPLACES old routine Element::expand
 // ---------------------------------------------------------------------------
 {
   const int next = nExt();
@@ -1370,45 +1198,21 @@ void Element::g2e (real*       tgt     ,
 }
 
 
-void Element::HelmholtzOp (const real* src,
-			   real*       tgt, 
-			   const real  L2 ,
-			   real*       wrk) const
+void Element::divy (real* src) const
 // ---------------------------------------------------------------------------
-// Apply elemental discrete Helmholtz operator on src to make tgt.
-// This routine is specific to 2D Cartesian space with GLL integration.
-//
-// Input workspace vector wrk must hold 2 * nTot() elements.
+// Divide src by y (i.e. r in cylindrical coordinates), take special action
+// where r = 0.  This is used in taking theta component of gradient.
 // ---------------------------------------------------------------------------
 {
-  register int  ij;
-  const int     ntot = nTot();
-  register real tmp, *R, *S;
-  real          **DV, **DT;
+  register int   i;
+  register real  rinv;
+  register real* y   = ymesh;
+  const int      N   = nTot();
+  const real     EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
-  R = wrk;
-  S = R + ntot;
-
-  Femlib::quad (rule, np, nq, 0, 0, 0, 0, 0, &DV, &DT);
-
-  Blas::gemm ("N", "N", np, np, np, 1.0, *DT, np, src, np, 0.0, R, np);
-  Blas::gemm ("N", "N", np, np, np, 1.0, src, np, *DV, np, 0.0, S, np);
-
-  if (G3) {
-    for (ij = 0; ij < ntot; ij++) {
-      tmp      = R [ij];
-      R  [ij]  = G1[ij] * R  [ij] + G3[ij] * S  [ij];
-      S  [ij]  = G2[ij] * S  [ij] + G3[ij] * tmp;
-      tgt[ij]  = G4[ij] * src[ij];
-    }
-  } else {
-    for (ij = 0; ij < ntot; ij++) {
-      R  [ij] *= G1[ij];
-      S  [ij] *= G2[ij];
-      tgt[ij]  = G4[ij] * src[ij];
-    }
+  for (i = 0; i < N; i++, y++, src++) {
+    rinv = (*y > EPS) ? 1.0 / *y : 0.0;
+    *src *= rinv;
   }
-
-  Blas::gemm ("N", "N", np, np, np, 1.0,  S,  np, *DT, np, L2,  tgt, np);
-  Blas::gemm ("N", "N", np, np, np, 1.0, *DV, np,  R,  np, 1.0, tgt, np);
 }
+

@@ -41,7 +41,7 @@ void PBCmgr::build (const Field* P)
   int       i, j, k, np;
   const int nTime = (int) Femlib::value ("N_TIME");
   const int nEdge = P -> n_bound;
-  const int nZ    = P -> n_z;
+  const int nZ    = Geometry::nZ();
 
   Pnx = new real*** [nTime];
   Pny = new real*** [nTime];
@@ -61,7 +61,7 @@ void PBCmgr::build (const Field* P)
       Uny[i][j] = Unx[i][j] + nZ;
 
       for (k = 0; k < nZ; k++) {
-	np = P -> boundary[j] -> nKnot();
+	np = P -> boundary[0][j] -> nKnot();
 	Pnx[i][j][k] = new real [4 * np];
 	Pny[i][j][k] = Pnx[i][j][k] + np;
 	Unx[i][j][k] = Pny[i][j][k] + np;
@@ -103,7 +103,7 @@ void PBCmgr::maintain (const int         step   ,
   const real invDt = 1.0 / Femlib::value ("D_T");
   const int  nTime = (int) Femlib::value ("N_TIME");
   const int  nEdge = P -> n_bound;
-  const int  nZ    = P -> n_z;
+  const int  nZ    = Geometry::nZ();
   const int  nMode = nZ >> 1;
 
   const AuxField* Ux = Us[0][0];
@@ -116,7 +116,7 @@ void PBCmgr::maintain (const int         step   ,
   register int       i, k, q;
   int                m, np, offset, skip, Je;
 
-  vector<real> work (4 * P -> elmt_np_max + Integration::OrderMax + 1);
+  vector<real> work (4 * Geometry::nP() + Integration::OrderMax + 1);
 
   // -- Roll grad P storage area up, load new level of nonlinear terms Uf.
 
@@ -124,7 +124,7 @@ void PBCmgr::maintain (const int         step   ,
   roll (Pny, nTime);
 
   for (i = 0; i < nEdge; i++) {
-    B      = P -> boundary[i];
+    B      = P -> boundary[0][i];
     np     = B -> nKnot();
     offset = B -> dOff ();
     skip   = B -> dSkip();
@@ -140,13 +140,13 @@ void PBCmgr::maintain (const int         step   ,
 
   real  *UxRe, *UxIm, *UyRe, *UyIm, *UzRe, *UzIm, *tmp;
   real* xr    = work();
-  real* xi    = xr    + P -> elmt_np_max;
-  real* yr    = xi    + P -> elmt_np_max;
-  real* yi    = yr    + P -> elmt_np_max;
-  real* alpha = yi    + P -> elmt_np_max;
+  real* xi    = xr    + Geometry::nP();
+  real* yr    = xi    + Geometry::nP();
+  real* yi    = yr    + Geometry::nP();
+  real* alpha = yi    + Geometry::nP();
 
   for (i = 0; i < nEdge; i++) {
-    B      = P -> boundary[i];
+    B      = P -> boundary[0][i];
     np     = B -> nKnot();
     offset = B -> dOff ();
     skip   = B -> dSkip();
@@ -185,7 +185,7 @@ void PBCmgr::maintain (const int         step   ,
     Integration::StifflyStable (Je, alpha);
       
     for (i = 0; i < nEdge; i++) {
-      B      = P -> boundary[i];
+      B      = P -> boundary[0][i];
       np     = B -> nKnot();
       offset = B -> dOff ();
       skip   = B -> dSkip();
@@ -214,7 +214,7 @@ void PBCmgr::maintain (const int         step   ,
   roll (Uny, nTime);
       
   for (i = 0; i < nEdge; i++) {
-    B      = P -> boundary[i];
+    B      = P -> boundary[0][i];
     np     = B -> nKnot();
     offset = B -> dOff ();
     skip   = B -> dSkip();
@@ -291,7 +291,7 @@ void PBCmgr::accelerate (const Vector& a,
   register Boundary* B;
 
   for (i = 0; i < u -> n_bound; i++) {
-    B = u -> boundary[i];
+    B = u -> boundary[0][i];
     
     B -> addForGroup ("velocity", a.x, Pnx[0][i][0]);
     B -> addForGroup ("velocity", a.y, Pny[0][i][0]);
