@@ -120,7 +120,11 @@ testpoly: testpoly.c
 
 testFFT: testFFT.C
 	$(CXX) -o $@ testFFT.C -I$(SEMHOME)/include -I. -g \
-	$(CXXFLAGS) -L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lftn -lm
+	$(CXXFLAGS) -L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -ldxml -lfor  -lm
+
+TestFFT: TestFFT.C
+	$(CXX) -o $@ TestFFT.C -I$(SEMHOME)/include -I. -g \
+	$(CXXFLAGS) -L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -ldxml -lfor  -lm
 
 testDLT: testDLT.C
 	$(CXX) -o $@ testDLT.C $(CXXFLAGS) -I$(SEMHOME)/include -I. -g \

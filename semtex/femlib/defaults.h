@@ -51,28 +51,30 @@ static struct {
 
   /* -- Option switches. */
 
-  "BASIS"       ,   GLL ,
-  "RULE"        ,   LL  ,
-  "ITERATIVE"   ,   0   ,
-  "CYLINDRICAL" ,   0   ,
-  "VERBOSE"     ,   0   ,
-  "CHKPOINT"    ,   1   ,
-  "AVERAGE"     ,   0   ,
-  "SPAWN"       ,   0   ,
-  "RNG"         ,   0   ,
+  "BASIS"       ,   GLL ,	/* -- Basis for Lagrange polynomials.     */
+  "RULE"        ,   LL  ,	/* -- Quadrature rule.                    */
+  "ITERATIVE"   ,   0   ,	/* -- Select PCG solver for velocities.   */
+  "CYLINDRICAL" ,   0   ,	/* -- Select cylindrical coordinates.     */
+  "VERBOSE"     ,   0   ,	/* -- Set verbose output.                 */
+  "CHKPOINT"    ,   1   ,	/* -- Set checkpointing of field dumps.   */
+  "AVERAGE"     ,   0   ,	/* -- Select averaging of fields.         */
+  "SPAWN"       ,   0   ,	/* -- Set respawning for particle tracks. */
+  "RNG"         ,   0   ,	/* -- Set RNG form for Smagorinsky LES.   */
   
   /* -- Default integer values. */
 
-  "STEP_MAX"    ,   500 ,
-  "IO_FLD"      ,   500 ,
-  "IO_HIS"      ,   10  ,
-  "IO_CFL"      ,   50  ,
-  "N_POLY"      ,   5   ,
-  "N_TIME"      ,   2   ,
-  "N_STEP"      ,   1   ,
-  "N_Z"         ,   1   ,
-  "N_PROC"      ,   1   ,
-  "I_PROC"      ,   0   ,
+
+  "IO_FLD"      ,   500 ,	/* -- Step interval for field dumps.     */
+  "IO_HIS"      ,   10  ,	/* -- Step interval for history points.  */
+  "IO_CFL"      ,   50  ,	/* -- Step interval for CFL and modal.   */
+  "K_FUND"      ,   1   ,	/* -- Wavenumber of Fourier mode 1.      */
+  "N_POLY"      ,   5   ,	/* -- No. of points along element edge.  */
+  "N_TIME"      ,   2   ,	/* -- Order of timestepping scheme.      */
+  "N_STEP"      ,   1   ,	/* -- Number of timesteps to integrate.  */
+  "N_Z"         ,   1   ,	/* -- Number of planes of data.          */
+  "I_PROC"      ,   0   ,	/* -- Process index for parallel soln.   */
+  "N_PROC"      ,   1   ,	/* -- Number of processes for parallel.  */
+  "STEP_MAX"    ,   500 ,	/* -- Max number of iterations for PCG.  */
 
   0             ,   0.0
 };

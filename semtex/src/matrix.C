@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // matrix.C: routines for direct solution of Helmholtz problems.
 //
-// Copyright (C) 1994, 1999 Hugh Blackburn
+// Copyright (C) 1994--2001 Hugh Blackburn
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
@@ -49,7 +49,7 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
   }
 
   for (mode = baseMode; mode < baseMode + numModes; mode++) {
-    const NumberSys* N         = Bsys -> Nsys (mode);
+    const NumberSys* N         = Bsys -> Nsys (mode * Geometry::kFund());
     const real       betak2    = sqr (Field::modeConstant (name, mode, beta));
     const integer    localMode = mode - baseMode;
 
