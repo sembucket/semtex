@@ -243,51 +243,59 @@ void  rcZFFT (CF              Data,
  * Press et al. in Numerical Recipes.
  *
  * No normalization is carried out; divide by Nz as appropriate.
+ * The unsymmetrical scaling values on forward & inverse transforms
+ * are needed to achieve the expected magnitudes in the PHYSICAL and
+ * FOURIER domains.
  * ------------------------------------------------------------------------- */
 {
   register int	 k, revk;
-  register real  c1=0.5, c2, h1r, h1i, h2r, h2i;
+  register real  h1r, h1i, h2r, h2i;
+  const    int   Non2 = Nz >> 1;
   
   if (Forward) {
     cZFFT (Data, i, j, Nz, Wtab, TabLen, FORWARD);
-    c2 = -c1;
-  }
-  else
-    c2 = c1;
-
-  for (k = 1; k < (Nz>>1); k++) {
-    revk = Nz-k;
+    for (k = 1; k < Non2; k++) {
+      revk = Nz - k;
     
-    h1r =  c1*(Data[i][j][k].Re + Data[i][j][revk].Re);
-    h1i =  c1*(Data[i][j][k].Im - Data[i][j][revk].Im);
-    h2r = -c2*(Data[i][j][k].Im + Data[i][j][revk].Im);
-    h2i =  c2*(Data[i][j][k].Re - Data[i][j][revk].Re);
+      h1r =  0.25 * (Data[i][j][k].Re + Data[i][j][revk].Re);
+      h1i =  0.25 * (Data[i][j][k].Im - Data[i][j][revk].Im);
+      h2r =  0.25 * (Data[i][j][k].Im + Data[i][j][revk].Im);
+      h2i = -0.25 * (Data[i][j][k].Re - Data[i][j][revk].Re);
     
-    Data[i][j][k].Re    =  h1r + Wtab[k].Re * h2r;
-    Data[i][j][k].Im    =  h1i + Wtab[k].Re * h2i;
-    Data[i][j][revk].Re =  h1r - Wtab[k].Re * h2r;
-    Data[i][j][revk].Im = -h1i + Wtab[k].Re * h2i;
-    if (Forward) {
-      Data[i][j][k].Re    -= Wtab[k].Im * h2i;
-      Data[i][j][k].Im    += Wtab[k].Im * h2r;
-      Data[i][j][revk].Re += Wtab[k].Im * h2i;
-      Data[i][j][revk].Im += Wtab[k].Im * h2r;
-    } else {
-      Data[i][j][k].Re    += Wtab[k].Im * h2i;
-      Data[i][j][k].Im    -= Wtab[k].Im * h2r;
-      Data[i][j][revk].Re -= Wtab[k].Im * h2i;
-      Data[i][j][revk].Im -= Wtab[k].Im * h2r;
+      Data[i][j][k].Re    =  h1r + Wtab[k].Re * h2r - Wtab[k].Im * h2i;
+      Data[i][j][k].Im    =  h1i + Wtab[k].Re * h2i + Wtab[k].Im * h2r;
+      Data[i][j][revk].Re =  h1r - Wtab[k].Re * h2r + Wtab[k].Im * h2i;
+      Data[i][j][revk].Im = -h1i + Wtab[k].Re * h2i + Wtab[k].Im * h2r;
     }
-  }
-  Data[i][j][Nz>>1].Im = -Data[i][j][Nz>>1].Im;
-  
-  if (Forward) {
-    Data[i][j][0].Re = (h1r=Data[i][j][0].Re) + Data[i][j][0].Im;
-    Data[i][j][0].Im = h1r - Data[i][j][0].Im;
-  }
-  else {
-    Data[i][j][0].Re = c1*((h1r = Data[i][j][0].Re) + Data[i][j][0].Im);
-    Data[i][j][0].Im = c1*( h1r - Data[i][j][0].Im);
+ 
+    Data[i][j][Non2].Re =  0.5 * Data[i][j][Non2].Re;
+    Data[i][j][Non2].Im = -0.5 * Data[i][j][Non2].Im;
+
+    h1r = Data[i][j][0].Re;
+    Data[i][j][   0].Re =  0.5 * (h1r + Data[i][j][0].Im);
+    Data[i][j][   0].Im =  0.5 * (h1r - Data[i][j][0].Im);
+
+  } else {
+    for (k = 1; k < Non2; k++) {
+      revk = Nz - k;
+    
+      h1r =  (Data[i][j][k].Re + Data[i][j][revk].Re);
+      h1i =  (Data[i][j][k].Im - Data[i][j][revk].Im);
+      h2r = -(Data[i][j][k].Im + Data[i][j][revk].Im);
+      h2i =  (Data[i][j][k].Re - Data[i][j][revk].Re);
+    
+      Data[i][j][   k].Re =  h1r + Wtab[k].Re * h2r + Wtab[k].Im * h2i;
+      Data[i][j][   k].Im =  h1i + Wtab[k].Re * h2i - Wtab[k].Im * h2r;
+      Data[i][j][revk].Re =  h1r - Wtab[k].Re * h2r - Wtab[k].Im * h2i;
+      Data[i][j][revk].Im = -h1i + Wtab[k].Re * h2i - Wtab[k].Im * h2r;
+    }
+ 
+    Data[i][j][Non2].Re =  2.0 * Data[i][j][Non2].Re;
+    Data[i][j][Non2].Im = -2.0 * Data[i][j][Non2].Im;
+
+    h1r = Data[i][j][0].Re;
+    Data[i][j][   0].Re = h1r + Data[i][j][0].Im;
+    Data[i][j][   0].Im = h1r - Data[i][j][0].Im;
     cZFFT (Data, i, j, Nz, Wtab, TabLen, INVERSE);
   }
 }
@@ -309,7 +317,7 @@ void  cZFFT (CF              Data   ,
  * the first and second directions in Data.  Nz specfies the number of
  * complex values in the third direction.
  *
- * The code is a straightforward adaption of procedure four1() given by
+ * The code is an adaption of procedure four1() given by
  * Press et al. in Numerical Recipes.  Some slight modifications change the
  * sign of the angles used in forward or reverse transform (to recover their
  * definition, define SIGN as 1), and start the indexing of data at 0,
@@ -323,6 +331,8 @@ void  cZFFT (CF              Data   ,
   register complex  W;
   const    int      Non2 = Nz >> 1;
   const    int      Nm   = Nz  - 1;
+  const    real     s1 = (Forward) ? -1.0 :  1.0;
+  const    real     s2 = (Forward) ?  1.0 : -1.0;
   
 
   /* -- Bit reversal. */
@@ -330,7 +340,7 @@ void  cZFFT (CF              Data   ,
   s = 0;
   for (t = 0; t < Nm; t++) {
     if (s > t) {
-      SWAP(Data[i][j][s],   Data[i][j][t]);
+      SWAP (Data[i][j][s],   Data[i][j][t]);
     }
     m = Non2;
     while (m <= s) {
@@ -350,15 +360,8 @@ void  cZFFT (CF              Data   ,
     for (m = 0; m < mmax; m++) {
       for (t = m; t < Nz; t += tstep) {
 	s = t + mmax;
-	tempr = Wtab[p].Re * Data[i][j][s].Re;
-	tempi = Wtab[p].Re * Data[i][j][s].Im;
-	if (Forward) {
-	  tempr -= Wtab[p].Im * Data[i][j][s].Im;
-	  tempi += Wtab[p].Im * Data[i][j][s].Re;
-	} else {
-	  tempr += Wtab[p].Im * Data[i][j][s].Im;
-	  tempi -= Wtab[p].Im * Data[i][j][s].Re;
-	}  
+	tempr = Wtab[p].Re*Data[i][j][s].Re + s1 * Wtab[p].Im*Data[i][j][s].Im;
+	tempi = Wtab[p].Re*Data[i][j][s].Im + s2 * Wtab[p].Im*Data[i][j][s].Re;
 	Data[i][j][s].Re = Data[i][j][t].Re - tempr;
 	Data[i][j][s].Im = Data[i][j][t].Im - tempi;
 	Data[i][j][t].Re += tempr;
@@ -422,40 +425,40 @@ void  pcYFFT (CF           Zbuf   ,
   if (Forward) {	/* -- Take mixed-up DFTs & unscramble. */
     s1 = Zbuf[i][Nyo2][0].Re;
     s2 = Zbuf[i][Nyo2][0].Im;
-    s3 = Zbuf[i][0][0].Im;
+    s3 = Zbuf[i][   0][0].Im;
 
     for (j = Nyo2 - 1; j > 0; j--) {
       revj = Ny - j;
 
-      A = Zbuf[i][j][0];
+      A = Zbuf[i][   j][0];
       B = Zbuf[i][revj][0];
-      Zbuf[i][j][0].Re      = 0.5*(A.Re + B.Re);
-      Zbuf[i][j][0].Im      = 0.5*(A.Im - B.Im);
+      Zbuf[i][     j][0].Re = 0.5*(A.Re + B.Re);
+      Zbuf[i][     j][0].Im = 0.5*(A.Im - B.Im);
       Zbuf[i][revj-1][0].Re = 0.5*(A.Im + B.Im);
       Zbuf[i][revj-1][0].Im = 0.5*(B.Re - A.Re);
     }
 
-    Zbuf[i][0][0].Im    = s1;
+    Zbuf[i][   0][0].Im = s1;
     Zbuf[i][Ny-1][0].Re = s3;
     Zbuf[i][Ny-1][0].Im = s2;
 
   } else {			/* -- Take DFTs of real data & scramble up. */
     s1 = Zbuf[i][Ny-1][0].Re;
     s2 = Zbuf[i][Ny-1][0].Im;
-    s3 = Zbuf[i][0][0].Im;
+    s3 = Zbuf[i][   0][0].Im;
 
     for (j = 1; j < Nyo2; j++) {
       revj = Ny - j;
 
-      A = Zbuf[i][j][0];
+      A = Zbuf[i][     j][0];
       B = Zbuf[i][revj-1][0];
-      Zbuf[i][j][0].Re    = A.Re - B.Im;
-      Zbuf[i][j][0].Im    = A.Im + B.Re;
+      Zbuf[i][   j][0].Re = A.Re - B.Im;
+      Zbuf[i][   j][0].Im = A.Im + B.Re;
       Zbuf[i][revj][0].Re = A.Re + B.Im;
       Zbuf[i][revj][0].Im = B.Re - A.Im;
     }
     
-    Zbuf[i][0][0].Im    = s1;
+    Zbuf[i][   0][0].Im    = s1;
     Zbuf[i][Nyo2][0].Re = s3;
     Zbuf[i][Nyo2][0].Im = s2;
   }
@@ -486,14 +489,15 @@ void  cYFFT (CF              Data   ,
   register complex  W;
   const    int      Non2 = Ny >> 1;
   const    int      Nym  = Ny  - 1;
+  const    real     s1 = (Forward) ? -1.0 :  1.0;
+  const    real     s2 = (Forward) ?  1.0 : -1.0;
 
-  
   /* -- Bit reversal. */
 
   s = 0;
   for (t = 0; t < Nym; t++) {
     if (s > t) {
-      SWAP(Data[i][s][k], Data[i][t][k]);
+      SWAP (Data[i][s][k], Data[i][t][k]);
     }
     m = Non2;
     while (m <= s) {
@@ -510,18 +514,11 @@ void  cYFFT (CF              Data   ,
   while (Ny > mmax) {		
     p     = 0;
     tstep = mmax << 1;
-    for (m=0; m<mmax; m++) {
+    for (m = 0; m < mmax; m++) {
       for (t = m; t < Ny; t+=tstep) {
 	s = t + mmax;
-	tempr = Wtab[p].Re * Data[i][s][k].Re;
-	tempi = Wtab[p].Re * Data[i][s][k].Im;
-	if (Forward) { 
-	  tempr -= Wtab[p].Im * Data[i][s][k].Im;
-	  tempi += Wtab[p].Im * Data[i][s][k].Re;
-	} else {
-	  tempr += Wtab[p].Im * Data[i][s][k].Im;
-	  tempi -= Wtab[p].Im * Data[i][s][k].Re;
-	}
+	tempr = Wtab[p].Re*Data[i][s][k].Re + s1 * Wtab[p].Im*Data[i][s][k].Im;
+	tempi = Wtab[p].Re*Data[i][s][k].Im + s2 * Wtab[p].Im*Data[i][s][k].Re;
 	Data[i][s][k].Re = Data[i][t][k].Re - tempr;
 	Data[i][s][k].Im = Data[i][t][k].Im - tempi;
 	Data[i][t][k].Re += tempr;
@@ -587,40 +584,40 @@ void  pcXFFT (CF           Zbuf   ,
   if (Forward) {	/* -- Take mixed-up DFTs & unscramble. */
     s1 = Zbuf[Nxo2][j][0].Re;
     s2 = Zbuf[Nxo2][j][0].Im;
-    s3 = Zbuf[0][j][0].Im;
+    s3 = Zbuf[   0][j][0].Im;
 
     for (i = Nxo2-1; i > 0; i--) {
       revi = Nx - i;
 
-      A = Zbuf[i][j][0];
+      A = Zbuf[   i][j][0];
       B = Zbuf[revi][j][0];
-      Zbuf[i][j][0].Re      = 0.5*(A.Re + B.Re);
-      Zbuf[i][j][0].Im      = 0.5*(A.Im - B.Im);
+      Zbuf[     i][j][0].Re = 0.5*(A.Re + B.Re);
+      Zbuf[     i][j][0].Im = 0.5*(A.Im - B.Im);
       Zbuf[revi-1][j][0].Re = 0.5*(A.Im + B.Im);
       Zbuf[revi-1][j][0].Im = 0.5*(B.Re - A.Re);
     }
 
-    Zbuf[0][j][0].Im    = s1;
+    Zbuf[   0][j][0].Im = s1;
     Zbuf[Nx-1][j][0].Re = s3;
     Zbuf[Nx-1][j][0].Im = s2;
 
   } else {			/* -- Take DFTs of real data & scramble up. */
     s1 = Zbuf[Nx-1][j][0].Re;
     s2 = Zbuf[Nx-1][j][0].Im;
-    s3 = Zbuf[0][j][0].Im;
+    s3 = Zbuf[   0][j][0].Im;
 
     for (i = 1; i < Nxo2; i++) {
       revi = Nx - i;
 
-      A = Zbuf[i][j][0];
+      A = Zbuf[     i][j][0];
       B = Zbuf[revi-1][j][0];
-      Zbuf[i][j][0].Re    = A.Re - B.Im;
-      Zbuf[i][j][0].Im    = A.Im + B.Re;
+      Zbuf[   i][j][0].Re = A.Re - B.Im;
+      Zbuf[   i][j][0].Im = A.Im + B.Re;
       Zbuf[revi][j][0].Re = A.Re + B.Im;
       Zbuf[revi][j][0].Im = B.Re - A.Im;
     }
     
-    Zbuf[0][j][0].Im    = s1;
+    Zbuf[   0][j][0].Im = s1;
     Zbuf[Nxo2][j][0].Re = s3;
     Zbuf[Nxo2][j][0].Im = s2;
   }
@@ -645,8 +642,8 @@ void  cXFFT (CF              Data   ,
  * complex values has the real and imaginary parts alternating as the third 
  * direction in Data is traversed.                                          
  *                                                                          
- * The code is a straightforward adaption of procedure four1() given by     
- * Press et al. in Numerical Recipes.  A table of precomputed complex       
+ * The code is an adaption of procedure four1() given by Press et al.
+ * in Numerical Recipes.  A table of precomputed complex       
  * angular factors is used, and array indices start from 0, not 1.          
  *                                                                          
  * No normalization is carried out; divide by Nx as appropriate.            
@@ -657,14 +654,15 @@ void  cXFFT (CF              Data   ,
   register complex  W;
   const int         Non2 = Nx >> 1;
   const int         Nm   = Nx  - 1;
-
+  const    real     s1 = (Forward) ? -1.0 :  1.0;
+  const    real     s2 = (Forward) ?  1.0 : -1.0;
 
   /* -- Bit reversal. */
 
   s = 0;
   for (t = 0; t < Nm; t++) {
     if (s > t) {
-      SWAP(Data[s][j][k], Data[t][j][k]);
+      SWAP (Data[s][j][k], Data[t][j][k]);
     }
     m = Non2;
     while (m <= s) {
@@ -684,15 +682,8 @@ void  cXFFT (CF              Data   ,
     for (m = 0; m < mmax; m++) {
       for (t = m; t < Nx; t += tstep) {
 	s = t + mmax;
-	tempr = Wtab[p].Re * Data[s][j][k].Re;
-	tempi = Wtab[p].Re * Data[s][j][k].Im;
-	if (Forward) {
-	  tempr -= Wtab[p].Im * Data[s][j][k].Im;
-	  tempi += Wtab[p].Im * Data[s][j][k].Re;
-	} else {
-	  tempr += Wtab[p].Im * Data[s][j][k].Im;
-	  tempi -= Wtab[p].Im * Data[s][j][k].Re;
-	}
+	tempr = Wtab[p].Re*Data[s][j][k].Re + s1 * Wtab[p].Im*Data[s][j][k].Im;
+	tempi = Wtab[p].Re*Data[s][j][k].Im + s2 * Wtab[p].Im*Data[s][j][k].Re;
 	Data[s][j][k].Re = Data[t][j][k].Re - tempr;
 	Data[s][j][k].Im = Data[t][j][k].Im - tempi;
 	Data[t][j][k].Re += tempr;
