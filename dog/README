@@ -1,0 +1,49 @@
+This version of semtex is specialised for linear stability and Floquet
+analysis, which implies a number of restrictions not present in the
+basic code.
+
+Copyright (C) 1999, 2001 Hugh Blackburn.
+
+Initially at least, this will be a serial code.  The session file
+referred to below relates to the perturbation velocity field: the
+session file for the base flow is naturally assumed to supply the same
+2D geometric information, but is not directly referred to.
+
+The "base flow", or velocity field, for which the stability analysis
+is performed, is always taken to be two-dimensional, but can have two
+or three active velocity components, and can be either steady or
+periodic in time (for Floquet analysis).  The number of velocity
+components of the base flow is declared in the session file by the
+token N_BASE.  Legal values are 2 and 3.  Temporal variation of the
+base flow is declared by the token N_SLICE.  Legal values are either
+1, or a number that has prime factors of 2, 3, and/or 5.  Values
+greater than 1 signal that the base flow is periodic in time, and the
+base flow field file should have the same number of dumps in it (this
+is checked at run-time); these are read into memory and used as the
+basis of Fourier reconstruction of the velocity field at any point in
+time.
+
+The "perturbation field" can be regarded as a Fourier mode, and dealt
+with always in Fourier-transformed space. It is possible for the
+perturbation field to be two-component and two-dimensional, otherwise
+it is three-component (and three-dimensional).  If the base flow is
+two-component (i.e. U & V only), and the perturbation is
+three-component, there exists a special decomposition of the
+perturbation field into two decoupled parts, and it suffices to study
+the behaviour of one of the parts only.  Under this composition the u,
+v, velocity fields and the pressure are taken to be represented by the
+real part of a Fourier mode, and the w velocity by the imaginary part.
+In this case ("half-complex"), the number of planes in the mode, _nz
+is 1.  If the base flow is three-component (but still
+two-dimensional), then the decoupling does not occur, and the
+perturbation field is fully complex and three-component.
+
+Summary of number of velocity components:
+
+N_BASE  N_PERT  N_Z    COMPLEXITY
+ 2       2       1     Real only:     u.Re v.Re      p.Re
+ 2       3       1     Half-complex:  u.Re v.Re w.Im p.Re
+ 3       3       2     Full-complex
+ 3       2       -     -
+
+$Id$

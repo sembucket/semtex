@@ -2,7 +2,7 @@
 // lns.C: control spectral element DNS for incompressible flows.
 // This version drives linear evolution of a single Fourier mode.
 //
-// Copyright (C) 1994, 1999  Hugh Blackburn.
+// Copyright (C) 1994, 2001 Hugh Blackburn.
 //
 // USAGE:
 // -----
@@ -16,11 +16,11 @@
 // AUTHOR:
 // ------
 // Hugh Blackburn
-// CSIRO Division of Building, Construction and Engineering
+// CSIRO Building, Construction and Engineering
 // P.O. Box 56
 // Highett, Vic 3190
 // Australia
-// hugh.blackburn@dbce.csiro.au
+// hugh.blackburn@csiro.au
 //
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
@@ -46,14 +46,14 @@ int main (int    argc,
   ios::sync_with_stdio();
 #endif
 
-  char             *session;
+  char*            session;
   vector<Element*> elmt;
   FEML*            file;
   Mesh*            mesh;
   BCmgr*           bman;
   BoundarySys*     bsys;
   Domain*          domain;
-  STABAnalyser*    adjunct;
+  StabAnalyser*    analyst;
 
   Femlib::initialize (&argc, &argv);
 
@@ -61,7 +61,7 @@ int main (int    argc,
 
   preprocess (session, file, mesh, elmt, bman, bsys, domain);
  
-  adjunct = new STABAnalyser (domain, file);
+  analyst = new StabAnalyser (domain, file);
 
   domain -> restart();
 
@@ -69,7 +69,7 @@ int main (int    argc,
 
   domain -> report();
   
-  integrate (domain, adjunct);
+  integrate (domain, analyst);
 
   Femlib::finalize();
 
@@ -92,8 +92,7 @@ static void getargs (int    argc   ,
     "  -h        ... print this message\n"
     "  -i[i]     ... use iterative solver for viscous [& pressure] steps\n"
     "  -v[v...]  ... increase verbosity level\n"
-    "  -chk      ... checkpoint field dumps\n"
-    "  -d        ... diagnostic test\n";
+    "  -chk      ... checkpoint field dumps\n";
  
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
@@ -104,24 +103,21 @@ static void getargs (int    argc   ,
       break;
     case 'i':
       do
-	Femlib::value ("ITERATIVE", (integer) Femlib::value ("ITERATIVE") + 1);
+	Femlib::value ("ITERATIVE", (int) Femlib::value ("ITERATIVE") + 1);
       while (*++argv[0] == 'i');
       break;
     case 'v':
       do
-	Femlib::value ("VERBOSE",   (integer) Femlib::value ("VERBOSE")   + 1);
+	Femlib::value ("VERBOSE",   (int) Femlib::value ("VERBOSE")   + 1);
       while (*++argv[0] == 'v');
       break;
     case 'c':
       if (strstr ("chk", *argv)) {
-	Femlib::value ("CHKPOINT",  (integer) 1);
+	Femlib::value ("CHKPOINT",  (int) 1);
       } else {
 	fprintf (stdout, usage, prog);
 	exit (EXIT_FAILURE);	  
       }
-      break;
-    case 'd':
-      cout << "Enabling Diagnostic Test" << endl;
       break;
     default:
       sprintf (buf, usage, prog);
@@ -132,7 +128,6 @@ static void getargs (int    argc   ,
   
   if   (argc != 1) message (routine, "no session definition file", ERROR);
   else             session = *argv;
-
 }
 
 
@@ -148,10 +143,9 @@ static void preprocess (const char*       session,
 // They are listed in order of creation.
 // ---------------------------------------------------------------------------
 {
-  const integer      verbose = (integer) Femlib::value ("VERBOSE");
-  Geometry::CoordSys space;
-  const real*        z;
-  integer            i, np, nz, nel, nvec;
+  const int   verbose = (int) Femlib::value ("VERBOSE");
+  const real* z;
+  int         i, nel, npert;
 
   // -- Initialise problem and set up mesh geometry.
 
@@ -167,13 +161,9 @@ static void preprocess (const char*       session,
   VERBOSE cout << "Setting geometry ... ";
 
   nel   = mesh -> nEl();
-  np    =  (integer) Femlib::value ("N_POLY");
-  nz    =  (integer) Femlib::value ("N_Z");
-  space = ((integer) Femlib::value ("CYLINDRICAL")) ? 
-                     Geometry::Cylindrical : Geometry::Cartesian;
-  nvec  = file -> attribute ("FIELDS", "NUMBER") - 1;
+  npert = file -> attribute ("FIELDS", "NUMBER") - 1;
   
-  Geometry::set (np, nz, nel, space, nvec);
+  Geometry::set (nz, npert);
 
   VERBOSE cout << "done" << endl;
 

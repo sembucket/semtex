@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// flok.C: compute leading eigenvalues and eigenvectors for stability
+// arnoldi.C: compute leading eigenvalues and eigenvectors for stability
 // analysis based on linearised Navier--Stokes operators.
 // 
 // Based on code by Dwight Barkley & Ron Henderson.
@@ -33,7 +33,7 @@
 #include "stab.h"
 #include <new.h>
 
-static char prog[] = "flok";
+static char prog[] = "arnoldi";
 
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, int&, int&, int&, int&, real&, char*&);
@@ -565,7 +565,7 @@ static int preprocess (const char* session)
   space = ((integer) Femlib::value ("CYLINDRICAL")) ? 
                      Geometry::Cylindrical : Geometry::Cartesian;
   nvec  = file -> attribute ("FIELDS", "NUMBER") - 1;
-  Geometry::set (np, nz, nel, space, nvec);
+  Geometry::set (nel, npert);
 
   Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
 
