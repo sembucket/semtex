@@ -102,13 +102,13 @@ REDUCTION  = icount  ifirst  ixmax   ixmin   xsum    lany    lxsame
 
 CONVERSION = vdble   xvfloa  vsngl   xbrev
 
-MISC       = xscatr      xgathr      xgathr_scatr	\
-	     xscatr_sum  xgathr_sum  xgathr_scatr_sum	\
-	     xramp       xcndst      xmask       	\
-	     xvpoly      xpolint    			\
-	     xspline     xsplquad			\
-	     xmxv        xmxva	  	\
-	     xvvtvvtp    xsvvttvp
+MISC       = xscatr      xgathr      	xgathr_scatr		\
+	     xscatr_sum  xgathr_sum  	xgathr_scatr_sum	\
+	     xramp       xcndst      	xmask       		\
+	     xvpoly      xpolint    				\
+	     xspline     xsplquad				\
+	     xmxv        xmxva	  				\
+	     xvvtvvtp    xsvvttvp	 xvvtvvtm
 
 FORTRAN    = xmxm							
 
