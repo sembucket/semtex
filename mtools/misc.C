@@ -90,3 +90,27 @@ char* upperCase (char *s)
 
 
 
+
+void message (const char* routine,
+	      const char* text   ,
+	      const lev&  level  )
+// ---------------------------------------------------------------------------
+// Error message handler for all modules that may run graphics commands.
+// ---------------------------------------------------------------------------
+{
+  switch (level) {
+  case WARNING:
+    cerr << "WARNING: " << routine << ": " << text << endl;
+    return;
+  case REMARK:
+    cerr << text << endl;
+    return;
+  case ERROR:
+    cerr << "ERROR: " << routine << ": " << text << endl;
+#if defined(GRAPHICS)
+    if (graphics) stopGraphics ();
+#endif
+    exit (EXIT_FAILURE);
+    break;
+  }
+}

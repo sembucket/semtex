@@ -236,25 +236,3 @@ void qpause ()
   cin.get(a);
 }
 
-
-void message (const char* routine,
-	      const char* text   ,
-	      const lev&  level  )
-// ---------------------------------------------------------------------------
-// Error message handler for all modules that may run graphics commands.
-// ---------------------------------------------------------------------------
-{
-  switch (level) {
-  case WARNING:
-    cerr << "WARNING: " << routine << ": " << text << endl;
-    return;
-  case REMARK:
-    cerr << text << endl;
-    return;
-  case ERROR:
-    cerr << "ERROR: " << routine << ": " << text << endl;
-    if (graphics) stopGraphics ();
-    exit (EXIT_FAILURE);
-    break;
-  }
-}

@@ -16,9 +16,12 @@ ostream& operator << (ostream& s,
 // ---------------------------------------------------------------------------
 {
   s << setw (5) << n.id << " " << setw (10) << n.ideal;
-
-  if   (n.interior()) s << "  I ";
-  else                s << "  B ";
+  
+  switch (n.kind) {
+  case Node::BOUNDARY: s << "  B "; break;
+  case Node::OFFSET:   s << "  O "; break;
+  default:             s << "  I "; break;
+  }
 
   s << setw (10) << n.loc.x << "  " << setw (10) << n.loc.y;
 

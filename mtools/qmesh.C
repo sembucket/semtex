@@ -17,8 +17,11 @@
 // input file, first recursively subdivide each loop.  The loop
 // subdivision algorithm used closely follows that given in Ref. [1].
 // When this process is finished, each loop is subdivided into a
-// binary tree of four-noded loops.  Then this information is
-// transferred to a list of quads, which are smoothed and printed up.
+// binary tree of four-noded loops. 
+//
+// This information is transferred to a list of quads, which is
+// "improved" by culling nodes and quads, after which the remainder is
+// smoothed and printed up.
 //
 // -- Pseudocode description of loop subdivision:
 // read in nodes which define a closed loop in the plane;
@@ -133,7 +136,7 @@ int main (int    argc,
   connect (elements);
 
   // -- Try to improve mesh by Node and Quad elimination, see Ref. [4].
-  
+#if 1
   do {
     i = Global::nodeList.length();
 
@@ -143,7 +146,7 @@ int main (int    argc,
     connect     (elements);
 
   } while (i != Global::nodeList.length());
-
+#endif
   if (graphics) { eraseGraphics(); drawMesh (elements); }
 
   // -- Laplacian smoothing.
@@ -414,7 +417,7 @@ Node* Global::exist (const Node* N)
   register Node* oldNode;
   const Point    P    = N -> pos();
   const real     size = lengthScale();
-  const real     TOL  = 0.001;
+  const real     TOL  = 0.00001;
   
   ListIterator<Node*> n (nodeList);
 
@@ -541,7 +544,7 @@ static void deleteNodes (List<Quad*>& mesh)
 // Improve mesh by node elimination.  See \S 3.1.1 in Ref [4].
 // ---------------------------------------------------------------------------
 {
-  char  routine[] = "deleteNodes";
+  char  routine[] = "deleteNodes", err[StrMax];
   int   i, i1, i2, found;
   Node  *N;
   Quad  *Q, *Q1, *Q2;
@@ -562,8 +565,10 @@ static void deleteNodes (List<Quad*>& mesh)
 	      else       { Q2 = Q; i2 = i; }
 	    }
 	}
-	if (!(Q1 && Q2))
-	  message (routine, "node marked but can't find two elements", ERROR);
+	if (!(Q1 && Q2)) {
+	  sprintf (err, "node %1d marked, can't find two elements", N -> ID());
+	  message (routine, err, ERROR);
+	}
 	Q1 -> vertex[i1] = Q2 -> vertex[(i2 + 2) % 4];
       }
     }

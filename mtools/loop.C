@@ -153,12 +153,12 @@ void Loop::split ()
 
   if (!left && !right) {	// -- This may already have been split.
   
-    if (N == 6)	        // -- Split 6-Noded loop based on type.
-
+    if (N == 6)        // -- Split 6-Noded loop based on type.
+      
       splitSix (begin, end);
 
     else {		        // -- Regular splitting on straight line.
-  
+
       // -- Create list of visible nodes for each node in nodes.
 
       List<Node*>* visible = new List<Node*> [nodes.getSize ()];
@@ -286,7 +286,7 @@ void Loop::bestSplit (List<Node*>* visible,
   const int N = nodes.getSize();
   int       i, best = 0;
   real      param = FLT_MAX;
-  real      reflength = Global::lengthScale();
+  real      reflength = lengthScale();
 
   vector<real> SL     (N);	// -- Performance index for each split.
   vector<int>  End    (N);	// -- Matching end node index for start node.
@@ -1583,3 +1583,44 @@ void Loop::nodeLabel (const int& num  ,
   sprintf (label, "%1d", nodes[num] -> ID());
 }
 
+
+real Loop::lengthScale () const
+// ---------------------------------------------------------------------------
+// Return a descriptive length scale for loop.
+// As a first hack, return hypotenuse of smallest spanning x-y rectangle.
+// ---------------------------------------------------------------------------
+{
+  Point Pmin, Pmax;
+
+  limits (Pmin, Pmax);
+
+  return hypot (Pmax.x - Pmin.x, Pmax.y - Pmin.y);
+}
+
+
+void Loop::limits (Point& Pmin,
+		   Point& Pmax) const
+// ---------------------------------------------------------------------------
+// Get x & y limits for this loop.
+// ---------------------------------------------------------------------------
+{
+  register int i;
+  const int    N = nodes.getSize (); 
+
+  real X, Y, xmin, ymin, xmax, ymax;
+
+  xmin = ymin =  FLT_MAX;
+  xmax = ymax = -FLT_MAX;
+
+  for (i = 0; i < N; i++) {
+    X = nodes[i] -> pos () . x;
+    Y = nodes[i] -> pos () . y;
+    if      (X < xmin) xmin = X;
+    else if (X > xmax) xmax = X;
+    if      (Y < ymin) ymin = Y;
+    else if (Y > ymax) ymax = Y;
+  }
+
+  Pmin.x = xmin;  Pmin.y = ymin;
+  Pmax.x = xmax;  Pmax.y = ymax;
+}
