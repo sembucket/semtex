@@ -63,8 +63,8 @@ endif
 ifeq ($(ARCH),UNIX_System_V)            # -- Fujitsu VPP300
 CC         = vcc
 FC         = frt
-CFLAGS     = -Wv,-m3,-Om,-te
-FFLAGS     = -Wv,-m3,-te
+CFLAGS     = $(DEFINES) -Wv,-m3,-Om,-te
+FFLAGS     = $(DEFINES) -Wv,-m3,-te
 ifdef MPI
   LIB       = libfem_mp.a
   DEFINES  += -DMPI

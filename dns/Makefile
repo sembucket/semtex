@@ -17,6 +17,11 @@ endif
 ifdef STOKES
   DEFINES += -DSTOKES
 endif
+ifdef MPI
+  PROG = dns_mp
+else
+  PROG = dns
+endif
 
 CPPFLAGS = -I. -I$(SEM)/include
 
@@ -72,6 +77,7 @@ CXXFLAGS = $(DEFINES)  $(OPTIM)
 LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 ifdef MPI
   LIBDIR   = -L$(SEM)/lib/$(ARCH)
+  LIBDIR  += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
   LIBDIR  += -L/usr/lang/mpi/lib
   LIBS     = -lfem_mp -lalp
   LIBS    += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
@@ -114,7 +120,7 @@ SEMHDR    = Sem.h
 # Default build for Navier-Stokes solver.
 NS_OBJ = drive.o NS.o
 
-dns:	sem $(SEMOBJ) $(NS_OBJ) 
+$(PROG): sem $(SEMOBJ) $(NS_OBJ) 
 	$(LD) -o $@ $(NS_OBJ) $(SEMOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
