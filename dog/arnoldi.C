@@ -31,9 +31,11 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include "stab.h"
+#include <new.h>
 
 static char prog[] = "flok";
 
+static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, int&, int&, int&, int&, real&, char*&);
 static int  preprocess (const char*);
 
@@ -62,6 +64,11 @@ int main (int    argc,
 // Driver routine for stability analysis code.
 // ---------------------------------------------------------------------------
 {
+  set_new_handler (&memExhaust);
+#if !defined(__DECCXX)
+  ios::sync_with_stdio();
+#endif
+
   int  kdim = 2, nvec = 2, nits = 2, verbose = 0, converged = 0;
   real norm, resnorm, evtol = 1.0e-6;
   int  i, itrn;

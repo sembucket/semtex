@@ -26,8 +26,10 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include "stab.h"
+#include <new.h>
 
 static char prog[] = "lns";
+
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
