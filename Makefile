@@ -72,8 +72,8 @@ all:
 # ----------------------------------------------------------------------------
 # Run a test of the (serial) DNS solver.  This could take a few minutes.
 
-test: # libs
-#	cd utility; $(MAKE) -s clean; $(MAKE) -s enumerate; $(MAKE) -s compare
+test:  libs
+	cd utility; $(MAKE) -s clean; $(MAKE) -s enumerate; $(MAKE) -s compare
 	cd dns; $(MAKE) -s clean; $(MAKE) -s ;		\
 	rm -f compare;   ln -s ../utility/compare   . ;	\
 	rm -f enumerate; ln -s ../utility/enumerate .
@@ -84,7 +84,7 @@ test: # libs
 # Run test of parallel version of DNS solver: do "make test" first.
 # Also, you may need to edit the file dns/testregress_mp to get MPI to run.
 
-partest: #parlib
+partest: parlib
 	cd dns; $(MAKE) -s clean; $(MAKE) -s ALIAS=1 MPI=1;
 	@echo -- No output from testregress_mp indicates success. --
 	cd dns; testregress_mp dns_mp

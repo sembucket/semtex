@@ -24,10 +24,10 @@ ifeq ($(ARCH),Linux)
     ARCH = Linux-alpha
   endif
   ifeq ($(MACH),i586)
-    ARCH = Linux-i586
+    ARCH = Linux-iX86
   endif
   ifeq ($(MACH),i686)
-    ARCH = Linux-i686
+    ARCH = Linux-iX86
   endif
 endif
 
@@ -101,7 +101,7 @@ endif
 CLDFLAGS = $(LDFLAGS)
 endif
 
-ifeq ($(ARCH),Linux-i686)               # -- Linux Intel w GNU compilation.
+ifeq ($(ARCH),Linux-iX86)               # -- Linux Intel w GNU compilation.
 CXX      = g++
 LD       = g++
 CC       = gcc
