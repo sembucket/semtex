@@ -118,8 +118,8 @@ FFLAGS   = $(DEFINES) $(OPT)
 CXXFLAGS = $(DEFINES) $(OPT)
 LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lalp $(F77LIBS) -lm
 RANLIB   = ranlib
-#F77LIBS  = -llapack -lblas -lg2c
-F77LIBS  = -llapack -lfastblas -lg2c
+F77LIBS  = -llapack -lblas -lg2c
+#F77LIBS  = -llapack -lfastblas -lg2c
 LIBDIR  += -L/usr/local/lib
 CLDFLAGS = $(LDFLAGS)
 endif
