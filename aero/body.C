@@ -450,7 +450,9 @@ void SMD::setState (ifstream& file, const char* tag)
   char*  head;
   char*  tail;
 
-  file.seekg (0, ios::beg);
+  file.clear ();
+  file.seekg (0);
+
   while (file.getline (s, StrMax)) {
     head = strtok (s, sep);
     tail = strtok (0, "\0");
