@@ -175,11 +175,11 @@ void processCommand (const char  command,
 	  Surface[j - 1] = Surface[j];
 	Surface[N - 1] = 0;
 
-	delete [] kill -> info;
-	delete [] kill -> pxyz;
-	delete [] kill -> nxyz;
-	delete [] kill -> plist;
-	delete    kill;
+	free (kill -> info);
+	free (kill -> pxyz);
+	free (kill -> nxyz);
+	free (kill -> plist);
+	free (kill);
 
       } else
       	message (routine, "index flagged for deletion unavailable", WARNING);

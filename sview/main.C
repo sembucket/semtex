@@ -148,10 +148,10 @@ static void getargs (int    argc ,
     "-h        ... print this message\n"
     "-s <file> ... read commands from file\n"
     "-w        ... white background\n";
-  char c, err[StrMax];
+  char err[StrMax];
 
   while (--argc && **++argv == '-')
-    switch (c = *++argv[0]) {
+    switch (*++argv[0]) {
     case 'b':
       State.drawbox = GL_FALSE;
       break;
