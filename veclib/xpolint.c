@@ -72,8 +72,8 @@ void dpolint(const double *xa, const double *ya, int n,
     *y += (*dy=((ns<<1) < (n-m) ? c[ns+1] : d[ns--]));
   }
 
-  free_dvector(c, 1);
-  free_dvector(d, 1);
+  freeDvector(c, 1);
+  freeDvector(d, 1);
   return;
 }
 
@@ -115,7 +115,7 @@ void spolint(const float *xa, const float *ya, int n,
     *y += (*dy=((ns<<1) < (n-m) ? c[ns+1] : d[ns--]));
   }
 
-  free_svector(c, 1);
-  free_svector(d, 1);
+  freeSvector(c, 1);
+  freeSvector(d, 1);
   return;
 }
