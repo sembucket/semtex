@@ -272,7 +272,7 @@ default:
 # Force installation of headers from another make.
 #
 sem:
-	cd $(VPATH); gmake default
+	cd $(VPATH); $(MAKE) headers
 
 # -----------------------------------------------------------------------------
 # Clean up.
