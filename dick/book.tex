@@ -6,32 +6,17 @@
 % $Id$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \documentclass[11pt,b5paper,titlepage]{book}
-%\usepackage{times}
-%\usepackage{garamond}
-\usepackage{palatino}
-\usepackage{pifont}
-\usepackage{endnotesn}
-%\usepackage{endnotes}
-\usepackage{graphicx}
-%\usepackage{bibtopic}
-%\usepackage{natbib}
+\usepackage{palatino}		% Roman <-- Palatino, SansSerif <-- Helvetica.
+\usepackage{pifont}		% Just to get the copyright symbol.
+\usepackage{endnotesn}		% Local revison of endnotes.
+\usepackage{graphicx}		% For maps.
+\usepackage{pstricks}		% Map repositioning.
+\usepackage{setspace}		% To close up Quotes and Contents page.
 \usepackage{makeidx}
-\usepackage{setspace}
 \usepackage{fancyhdr}
 
-%\usepackage[%
-%     titleformat=italic,%
-%%     titleformat=all,%
-%%     titleformat=noreplace,%
-%     titleformat=commasep,%
-%     commabeforerest,%
-%     ibidem=strict,%
-%     opcit=chapter,%
-%     citefull=chapter,%
-%%     lookat,%
-%     oxford,%
-%%     pages=format,%
-%]{jurabib}
+%\usepackage{bibtopic}
+%\usepackage{natbib}
 
 \usepackage[%
   authorformat=year,%
@@ -58,25 +43,24 @@
 %\setlength{\topmargin}     {5mm}
 %\setlength{\parskip} 	   {5pt}
 %\setlength{\parindent}     {2ex}
-%\setlength{\oddsidemargin} {0mm}
-%\setlength{\evensidemargin}{0mm}
+
 %\setlength{\unitlength}    {1mm}
 
 % -- The following for B5 paper.
 
 \setlength{\textheight}    {200mm}
 \setlength{\textwidth}     {120mm}
-\setlength{\topmargin}     {-8mm}
+\setlength{\topmargin}     {-6mm}
 \setlength{\parindent}     {2.5ex}
 \setlength{\parsep}        {0ex}
 \setlength{\topsep}        {0ex}
-%\setlength{\bibsep}        {\parskip}
+\setlength{\headsep}       {4mm}
+\setlength{\oddsidemargin} {0mm}
+\setlength{\evensidemargin}{5.5mm}
 
 \renewcommand{\baselinestretch}{1.0}
 
 \newcommand{\clearemptydoublepage}{\newpage{\pagestyle{empty}\cleardoublepage}}
-
-\newcommand{\cb}{$^\dag$}
 
 \newcommand{\closure}{%
   \smallskip%
@@ -88,7 +72,6 @@
 %\renewcommand{\footnote}{\endnote}
 \let\footnote=\endnote
 \newcommand{\fn}[1]{\footnote{#1}}
-%\newcommand{\fn}[1]{\footcite{#1}}
 
 \hyphenation{Ar-thur Arth-ur}
 \hyphenation{Mon-thly Month-ly}
@@ -132,7 +115,6 @@
  ,ch16
  ,notes
  ,selectbib2
-%% ,bibliography
 }
 
 \makeindex
