@@ -18,7 +18,7 @@ void dvvtvvtp (int n, const double  alpha,
 {
   register int i;
 
-  if (incv == 1 && incw == 1 && incx == 1 && incy == 1 && incz == 1) 
+  if (incw == 1 && incx == 1 && incy == 1 && incz == 1) 
    for (i = 0; i < n; i++) 
      z[i] = alpha * (w[i] * x[i]) + y[i]; 
 
@@ -43,7 +43,7 @@ void svvtvvtp (int n, const float  alpha,
 {
   register int i;
 
-  if (incv == 1 && incw == 1 && incx == 1 && incy == 1 && incz == 1) 
+  if (incw == 1 && incx == 1 && incy == 1 && incz == 1) 
    for (i = 0; i < n; i++) 
      z[i] = alpha * (w[i] * x[i]) + y[i]; 
 
