@@ -60,8 +60,8 @@ FFLAGS     = -Wv,-m3,-te
 endif
 
 ifeq ($(ARCH),SUPER-UX)                 # -- NEC SX-4
-CFLAGS     = -pvctl,fullmsg -O nooverlap -float0
-FFLAGS     = -Wf'-pvctl,fullmsg -ptr byte' -float0 -ew
+CFLAGS     = $(DEFINES) -pvctl,fullmsg -hfloat0
+FFLAGS     = $(DEFINES) -Wf'-pvctl,fullmsg -ptr byte' -float0 -ew
 endif
 
 
@@ -166,7 +166,7 @@ endif
 
 ifeq ($(ARCH),SUPER-UX)
 temfftd.o: temfftd.F
-	f77 -c -Wf'-pvctl,fullmsg' -float0 -ew temfftd.F
+	f77 -c -Wf'-pvctl,fullmsg -ptr byte' -float0 -ew temfftd.F
 temffts.o: temffts.F
-	f77 -c -Wf'-pvctl,fullmsg' -float0 -ew temffts.F
+	f77 -c -Wf'-pvctl,fullmsg -ptr byte' -float0 -ew temffts.F
 endif
