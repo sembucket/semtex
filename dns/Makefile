@@ -1,5 +1,5 @@
 ##############################################################################
-# Makefile for ns, spectral element solver for unsteady Navier--Stokes
+# Makefile for dns, spectral element solver for unsteady Navier--Stokes
 # problems.
 #
 # $Id$
@@ -30,7 +30,7 @@ CPPFLAGS = -I. -I$(SEM)/include
 ifeq ($(ARCH),IRIX)		# -- SGI 32-bit systems.
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = $(DEFINES) -g
+CXXFLAGS = $(DEFINES) -O2
 F77LIBS	 = -lcomplib.sgimath -lftn
 LDFLAGS  = -L$(SEM)/lib/$(ARCH) -lfem -lalp \
 	   $(F77LIBS) -lmalloc -lm
