@@ -48,16 +48,14 @@ Element::Element (const Element& parent, int NP)
   } else if (NP == parent.np) {
     memcpy (this, &parent, sizeof (Element));
     bmap  = solve = 0;
-    dxdr = dxds = dydr = dyds = mass = 0;
-    drdx = dsdx = drdy = dsdy = G1 = G2 = G3 = G4 = 0;
+    drdx = dsdx = drdy = dsdy = G1 = G2 = G3 = G4 = mass = 0;
     hbi  = hii  = 0;
 
   } else {
     setState (parent.id, NP, parent.ns);
     xmesh = ymesh = value = 0;
     bmap  = solve = 0;
-    dxdr = dxds = dydr = dyds = mass = 0;
-    drdx = dsdx = drdy = dsdy = G1 = G2 = G3 = G4 = 0;
+    drdx = dsdx = drdy = dsdy = G1 = G2 = G3 = G4 = mass = 0;
     hbi  = hii  = 0;
 
   }
@@ -376,82 +374,86 @@ void  Element::map ()
 {
   char    routine[] = "Element::map";
   char    buf[StrMax];
-  real  **x,    **y;
-  real  **jac,  **DV, **DT, **IN, **IT;
-  real  **tM,    *tV;		            // Temporaries.
-  real   *w,   **WW;		            // Weights & w.w' outer product.
   int     ntot;
+  real  **x,    **y,    **DV,   **DT,   **IN,   **IT;
+  real   *jac,   *dxdr,  *dxds,  *dydr,  *dyds,  *tM,   *tV,   *w,  *WW;
+
 
   if (rule == LL) {
     ntot = nTot();
     x    = xmesh;
     y    = ymesh;
-    
-    dxdr = rmatrix (np, np);
+
     drdx = rmatrix (np, np);
-    dxds = rmatrix (np, np);
     dsdx = rmatrix (np, np);
-    dydr = rmatrix (np, np);
     drdy = rmatrix (np, np);
-    dyds = rmatrix (np, np);
     dsdy = rmatrix (np, np);
     G1   = rmatrix (np, np);
     G2   = rmatrix (np, np);
     G3   = rmatrix (np, np);
     G4   = rmatrix (np, np);
     mass = G4;
+    
+    dxdr = rvector (ntot);
+    dxds = rvector (ntot);
+    dydr = rvector (ntot);
+    dyds = rvector (ntot);
 
-    jac = rmatrix (np, np);
-    WW  = rmatrix (np, np);
-    tV  = rvector (ntot);
+    jac  = rvector (ntot);
+    WW   = rvector (ntot);
+    tV   = rvector (ntot);
     
     quadOps (LL, np, np, 0, 0, &w, 0, 0, &DV, &DT);
-    Veclib::zero (ntot, *WW, 1);
-    Blas::ger    (np, np, 1.0, w, 1, w, 1, *WW, np);
+    Veclib::zero (ntot, WW, 1);
+    Blas::ger    (np, np, 1.0, w, 1, w, 1, WW, np);
     
-    Blas::mxm ( *x, np, *DT, np, *dxdr, np);
-    Blas::mxm (*DV, np,  *x, np, *dxds, np);
-    Blas::mxm ( *y, np, *DT, np, *dydr, np);
-    Blas::mxm (*DV, np,  *y, np, *dyds, np);
+    Blas::mxm ( *x, np, *DT, np, dxdr, np);
+    Blas::mxm (*DV, np,  *x, np, dxds, np);
+    Blas::mxm ( *y, np, *DT, np, dydr, np);
+    Blas::mxm (*DV, np,  *y, np, dyds, np);
     
-    Veclib::vmul  (ntot,        *dxdr, 1, *dyds, 1,  tV,  1);
-    Veclib::vvvtm (ntot, tV, 1, *dxds, 1, *dydr, 1, *jac, 1);
+    Veclib::vmul  (ntot,        dxdr, 1, dyds, 1, tV,  1);
+    Veclib::vvvtm (ntot, tV, 1, dxds, 1, dydr, 1, jac, 1);
     
-    if ((*jac)[Veclib::imin (ntot, *jac, 1)] <= EPSSP) {
-      sprintf (buf, "jacobian of element %1d nonpositive", id + 1);
+    if (jac[Veclib::imin (ntot, jac, 1)] <= EPSSP) {
+      sprintf (buf, "jacobian of element %1d nonpositive", id);
       message (routine, buf, ERROR);
     }
     
-    Veclib::vmul  (ntot, *dyds, 1, *dyds, 1,  tV, 1);
-    Veclib::vvtvp (ntot, *dxds, 1, *dxds, 1,  tV, 1, *G1, 1);
-    Veclib::vdiv  (ntot, *G1,   1, *jac,  1,  tV, 1);
-    Veclib::vmul  (ntot,  tV,   1, *WW,   1, *G1, 1);
+    Veclib::vmul  (ntot,  dyds, 1, dyds, 1,  tV, 1);
+    Veclib::vvtvp (ntot,  dxds, 1, dxds, 1,  tV, 1, *G1, 1);
+    Veclib::vdiv  (ntot, *G1,   1, jac,  1,  tV, 1);
+    Veclib::vmul  (ntot,  tV,   1, WW,   1, *G1, 1);
     
-    Veclib::vmul  (ntot, *dydr, 1, *dydr, 1,  tV, 1);
-    Veclib::vvtvp (ntot, *dxdr, 1, *dxdr, 1,  tV, 1, *G2, 1);
-    Veclib::vdiv  (ntot, *G2,   1, *jac,  1,  tV, 1);
-    Veclib::vmul  (ntot,  tV,   1, *WW,   1, *G2, 1);
+    Veclib::vmul  (ntot,  dydr, 1, dydr, 1,  tV, 1);
+    Veclib::vvtvp (ntot,  dxdr, 1, dxdr, 1,  tV, 1, *G2, 1);
+    Veclib::vdiv  (ntot, *G2,   1, jac,  1,  tV, 1);
+    Veclib::vmul  (ntot,  tV,   1, WW,   1, *G2, 1);
     
-    Veclib::vmul  (ntot, *dydr, 1, *dyds, 1,  tV, 1);
-    Veclib::neg   (ntot, tV,    1);
-    Veclib::vvvtm (ntot, tV,    1, *dxdr, 1, *dxds, 1, *G3, 1);
-    Veclib::vdiv  (ntot, *G3,   1, *jac,  1,  tV, 1);
-    Veclib::vmul  (ntot,  tV,   1, *WW,   1, *G3, 1);
+    Veclib::vmul  (ntot,  dydr, 1, dyds, 1,  tV,   1);
+    Veclib::neg   (ntot,  tV,   1);
+    Veclib::vvvtm (ntot,  tV,   1, dxdr, 1,  dxds, 1, *G3, 1);
+    Veclib::vdiv  (ntot, *G3,   1, jac,  1,  tV,   1);
+    Veclib::vmul  (ntot,  tV,   1, WW,   1, *G3,   1);
     
-    Veclib::vmul  (ntot, *jac,  1, *WW,   1, *G4, 1);
+    Veclib::vmul  (ntot, jac, 1, WW, 1, *G4, 1);
     
-    Veclib::copy (ntot, *dyds, 1, *drdx, 1);
-    Veclib::vneg (ntot, *dxds, 1, *drdy, 1);
-    Veclib::vneg (ntot, *dydr, 1, *dsdx, 1);
-    Veclib::copy (ntot, *dxdr, 1, *dsdy, 1);
+    Veclib::copy (ntot, dyds, 1, *drdx, 1);
+    Veclib::vneg (ntot, dxds, 1, *drdy, 1);
+    Veclib::vneg (ntot, dydr, 1, *dsdx, 1);
+    Veclib::copy (ntot, dxdr, 1, *dsdy, 1);
     
-    Veclib::vdiv (ntot, *drdx, 1, *jac, 1, *drdx, 1);
-    Veclib::vdiv (ntot, *drdy, 1, *jac, 1, *drdy, 1);
-    Veclib::vdiv (ntot, *dsdx, 1, *jac, 1, *dsdx, 1);
-    Veclib::vdiv (ntot, *dsdy, 1, *jac, 1, *dsdy, 1);
-    
-    freeMatrix (jac);
-    freeMatrix (WW);
+    Veclib::vdiv (ntot, *drdx, 1, jac, 1, *drdx, 1);
+    Veclib::vdiv (ntot, *drdy, 1, jac, 1, *drdy, 1);
+    Veclib::vdiv (ntot, *dsdx, 1, jac, 1, *dsdx, 1);
+    Veclib::vdiv (ntot, *dsdy, 1, jac, 1, *dsdy, 1);
+
+    freeVector (dxdr);
+    freeVector (dxds);
+    freeVector (dydr);
+    freeVector (dyds);
+    freeVector (jac);
+    freeVector (WW);
     freeVector (tV);
       
   } else {  // rule == GL
@@ -461,58 +463,63 @@ void  Element::map ()
     // -- Quadrature point computations.
 
     ntot = sqr (nq);
-    
-    dxdr = rmatrix (nq, nq);
-    dxds = rmatrix (nq, nq);
-    dydr = rmatrix (nq, nq);
-    dyds = rmatrix (nq, nq);
+
     G1   = rmatrix (nq, nq);
     G2   = rmatrix (nq, nq);
     G3   = rmatrix (nq, nq);
     G4   = rmatrix (nq, nq);
-    
-    jac = rmatrix (nq, nq);
-    WW  = rmatrix (nq, nq);
-    tM  = rmatrix (np, nq);
-    tV  = rvector (ntot);
+     
+    dxdr = rvector (ntot);
+    dxds = rvector (ntot);
+    dydr = rvector (ntot);
+    dyds = rvector (ntot);
+   
+    jac  = rvector (ntot);
+    WW   = rvector (ntot);
+    tM   = rvector (np * nq);
+    tV   = rvector (ntot);
 
     quadOps (GL, np, nq, 0, 0, &w, &IN, &IT, &DV, &DT);
-    Veclib::zero (ntot, *WW, 1);
-    Blas::ger    (nq, nq, 1.0, w, 1, w, 1, *WW, nq);
+    Veclib::zero (ntot, WW, 1);
+    Blas::ger    (nq, nq, 1.0, w, 1, w, 1, WW, nq);
     
-    Blas::mxm ( *x, np, *DT, np, *tM,   nq);
-    Blas::mxm (*IN, nq, *tM, np, *dxdr, nq);
-    Blas::mxm ( *y, np, *DT, np, *tM,   nq);
-    Blas::mxm (*IN, nq, *tM, np, *dydr, nq);
-    Blas::mxm ( *x, np, *IT, np, *tM,   nq);
-    Blas::mxm (*DV, nq, *tM, np, *dxds, nq);
-    Blas::mxm ( *y, np, *IT, np, *tM,   nq);
-    Blas::mxm (*DV, nq, *tM, np, *dyds, nq);
+    Blas::mxm ( *x, np, *DT, np, tM,   nq);
+    Blas::mxm (*IN, nq, tM,  np, dxdr, nq);
+    Blas::mxm ( *y, np, *DT, np, tM,   nq);
+    Blas::mxm (*IN, nq, tM,  np, dydr, nq);
+    Blas::mxm ( *x, np, *IT, np, tM,   nq);
+    Blas::mxm (*DV, nq, tM,  np, dxds, nq);
+    Blas::mxm ( *y, np, *IT, np, tM,   nq);
+    Blas::mxm (*DV, nq, tM,  np, dyds, nq);
     
-    Veclib::vmul  (ntot,        *dxdr, 1, *dyds, 1,  tV,  1);
-    Veclib::vvvtm (ntot, tV, 1, *dxds, 1, *dydr, 1, *jac, 1);
+    Veclib::vmul  (ntot,        dxdr, 1, dyds, 1, tV,  1);
+    Veclib::vvvtm (ntot, tV, 1, dxds, 1, dydr, 1, jac, 1);
     
-    Veclib::vmul  (ntot, *dyds, 1, *dyds, 1,  tV, 1);
-    Veclib::vvtvp (ntot, *dxds, 1, *dxds, 1,  tV, 1, *G1, 1);
-    Veclib::vdiv  (ntot, *G1,   1, *jac,  1,  tV, 1);
-    Veclib::vmul  (ntot,  tV,   1, *WW,   1, *G1, 1);
+    Veclib::vmul  (ntot,  dyds, 1, dyds, 1,  tV, 1);
+    Veclib::vvtvp (ntot,  dxds, 1, dxds, 1,  tV, 1, *G1, 1);
+    Veclib::vdiv  (ntot, *G1,   1, jac,  1,  tV, 1);
+    Veclib::vmul  (ntot,  tV,   1, WW,   1, *G1, 1);
     
-    Veclib::vmul  (ntot, *dydr, 1, *dydr, 1,  tV, 1);
-    Veclib::vvtvp (ntot, *dxdr, 1, *dxdr, 1,  tV, 1, *G2, 1);
-    Veclib::vdiv  (ntot, *G2,   1, *jac,  1,  tV, 1);
-    Veclib::vmul  (ntot,  tV,   1, *WW,   1, *G2, 1);
+    Veclib::vmul  (ntot,  dydr, 1, dydr, 1,  tV, 1);
+    Veclib::vvtvp (ntot,  dxdr, 1, dxdr, 1,  tV, 1, *G2, 1);
+    Veclib::vdiv  (ntot, *G2,   1, jac,  1,  tV, 1);
+    Veclib::vmul  (ntot,  tV,   1, WW,   1, *G2, 1);
     
-    Veclib::vmul  (ntot, *dydr, 1, *dyds, 1,  tV, 1);
-    Veclib::neg   (ntot, tV,    1);
-    Veclib::vvvtm (ntot, tV,    1, *dxdr, 1, *dxds, 1, *G3, 1);
-    Veclib::vdiv  (ntot, *G3,   1, *jac,  1,  tV, 1);
-    Veclib::vmul  (ntot,  tV,   1, *WW,   1, *G3, 1);
+    Veclib::vmul  (ntot,  dydr, 1, dyds, 1,  tV,   1);
+    Veclib::neg   (ntot,  tV,   1);
+    Veclib::vvvtm (ntot,  tV,   1, dxdr, 1,  dxds, 1, *G3, 1);
+    Veclib::vdiv  (ntot, *G3,   1, jac,  1,  tV,   1);
+    Veclib::vmul  (ntot,  tV,   1, WW,   1, *G3,   1);
     
-    Veclib::vmul  (ntot, *jac,  1, *WW,   1, *G4, 1);
-    
-    freeMatrix (jac);
-    freeMatrix (WW);
-    freeMatrix (tM);
+    Veclib::vmul  (ntot, jac, 1, WW, 1, *G4, 1);
+
+    freeVector (dxdr);
+    freeVector (dxds);
+    freeVector (dydr);
+    freeVector (dyds);
+    freeVector (jac);
+    freeVector (WW);
+    freeVector (tM);
     freeVector (tV);
     
     // -- Node point computations.
@@ -525,44 +532,44 @@ void  Element::map ()
     dsdy = rmatrix (np, np);
     mass = rmatrix (np, np);
     
-    real** Dxdr = rmatrix (np, np);
-    real** Dxds = rmatrix (np, np);
-    real** Dydr = rmatrix (np, np);
-    real** Dyds = rmatrix (np, np);
-    jac         = rmatrix (np, np);
-    WW          = rmatrix (np, np);
-    tV          = rvector (ntot);
+    dxdr = rvector (ntot);
+    dxds = rvector (ntot);
+    dydr = rvector (ntot);
+    dyds = rvector (ntot);
+    jac  = rvector (ntot);
+    WW   = rvector (ntot);
+    tV   = rvector (ntot);
     
     quadOps (LL, np, np, 0, 0, &w, 0, 0, &DV, &DT);
-    Veclib::zero   (ntot, *WW, 1);
-    Blas::ger      (np, np, 1.0, w, 1, w, 1, *WW, np);
+    Veclib::zero   (ntot, WW, 1);
+    Blas::ger      (np, np, 1.0, w, 1, w, 1, WW, np);
     
-    Blas::mxm ( *x, np, *DT, np, *Dxdr, np);
-    Blas::mxm (*DV, np,  *x, np, *Dxds, np);
-    Blas::mxm ( *y, np, *DT, np, *Dydr, np);
-    Blas::mxm (*DV, np,  *y, np, *Dyds, np);
+    Blas::mxm ( *x, np, *DT, np, dxdr, np);
+    Blas::mxm (*DV, np,  *x, np, dxds, np);
+    Blas::mxm ( *y, np, *DT, np, dydr, np);
+    Blas::mxm (*DV, np,  *y, np, dyds, np);
     
-    Veclib::vmul  (ntot,        *Dxdr, 1, *Dyds, 1,  tV,  1);
-    Veclib::vvvtm (ntot, tV, 1, *Dxds, 1, *Dydr, 1, *jac, 1);
+    Veclib::vmul  (ntot,        dxdr, 1, dyds, 1, tV,  1);
+    Veclib::vvvtm (ntot, tV, 1, dxds, 1, dydr, 1, jac, 1);
     
-    Veclib::vmul (ntot, *jac, 1, *WW, 1, *mass, 1);
+    Veclib::vmul (ntot, jac, 1, WW, 1, *mass, 1);
     
-    Veclib::copy (ntot, *Dyds, 1, *drdx, 1);
-    Veclib::vneg (ntot, *Dxds, 1, *drdy, 1);
-    Veclib::vneg (ntot, *Dydr, 1, *dsdx, 1);
-    Veclib::copy (ntot, *Dxdr, 1, *dsdy, 1);
+    Veclib::copy (ntot, dyds, 1, *drdx, 1);
+    Veclib::vneg (ntot, dxds, 1, *drdy, 1);
+    Veclib::vneg (ntot, dydr, 1, *dsdx, 1);
+    Veclib::copy (ntot, dxdr, 1, *dsdy, 1);
     
-    Veclib::vdiv (ntot, *drdx, 1, *jac, 1, *drdx, 1);
-    Veclib::vdiv (ntot, *drdy, 1, *jac, 1, *drdy, 1);
-    Veclib::vdiv (ntot, *dsdx, 1, *jac, 1, *dsdx, 1);
-    Veclib::vdiv (ntot, *dsdy, 1, *jac, 1, *dsdy, 1);
+    Veclib::vdiv (ntot, *drdx, 1, jac, 1, *drdx, 1);
+    Veclib::vdiv (ntot, *drdy, 1, jac, 1, *drdy, 1);
+    Veclib::vdiv (ntot, *dsdx, 1, jac, 1, *dsdx, 1);
+    Veclib::vdiv (ntot, *dsdy, 1, jac, 1, *dsdy, 1);
     
-    freeMatrix (Dxdr);
-    freeMatrix (Dxds);
-    freeMatrix (Dydr);
-    freeMatrix (Dyds);
-    freeMatrix (jac);
-    freeMatrix (WW);
+    freeVector (dxdr);
+    freeVector (dxds);
+    freeVector (dydr);
+    freeVector (dyds);
+    freeVector (jac);
+    freeVector (WW);
     freeVector (tV);
   }
 }
@@ -1198,142 +1205,90 @@ void  Element::sideGeom (int side, real* nx, real* ny, real* area) const
 // intermediate derivative, area, for use in computation of edge integrals.
 //
 // We will always use Lobatto-Legendre quadrature for these integrals; 
-// however, we may need to do some recomputation of local partial
-// derivatives along edges in the case of Gauss-Legendre element quadrature,
-// where the forward partials were computed at internal quadrature points.
+// however, we need to do some recomputation of local forward partial
+// derivatives along edges.
 // ---------------------------------------------------------------------------
 {
   if (side < 1 || side > ns)
     message ("Element::sideGeom", "illegal side", ERROR);
 
   int    low, skip;
-  real   **D, *w;
+  real   **D, *w, *xr, *xs, *yr, *ys, *len;
 
   quadOps (LL, np, np, 0, 0, &w, 0, 0, &D, 0);
 
-  if (rule == LL) {  // -- Lobatto: we have all partials.
+  switch (side) {
+  case 1: 
+    skip = 1;
+    xr   = rvector (np);
+    yr   = rvector (np);
+    
+    Blas::gemv    ("T", np, np, 1.0, *D, np, *xmesh, 1, 0.0, xr, 1);
+    Blas::gemv    ("T", np, np, 1.0, *D, np, *ymesh, 1, 0.0, yr, 1);
+    Veclib::vmul  (np, xr, 1, xr, 1, area, 1);
+    Veclib::vvtvp (np, yr, 1, yr, 1, area, 1, area, 1);
+    Veclib::smul  (np, -1.0, *dsdx, skip, nx, 1);
+    Veclib::smul  (np, -1.0, *dsdy, skip, ny, 1);
+    
+    freeVector (xr);
+    freeVector (yr);
+    break;
 
-    switch (side) {
-    case 1:
-      skip = 1;
-      Veclib::smul  (np, -1.0, *dsdx, skip, nx, 1);
-      Veclib::smul  (np, -1.0, *dsdy, skip, ny, 1);
-      Veclib::vmul  (np, *dxdr, skip, *dxdr, skip, area, 1);
-      Veclib::vvtvp (np, *dydr, skip, *dydr, skip, area, 1, area, 1);
-      break;
-    case 2:
-      low  = np - 1;
-      skip = np;
-      Veclib::copy  (np, *drdx+low, skip, nx, 1);
-      Veclib::copy  (np, *drdy+low, skip, ny, 1);
-      Veclib::vmul  (np, *dxds+low, skip, *dxds+low, skip, area, 1);
-      Veclib::vvtvp (np, *dyds+low, skip, *dyds+low, skip, area, 1, area, 1);
-      break;
-    case 3:
-      low  = np * (np - 1);
-      skip = -1;
-      Veclib::copy  (np, *dsdx+low, skip, nx, 1);
-      Veclib::copy  (np, *dsdy+low, skip, ny, 1);
-      Veclib::vmul  (np, *dxdr+low, skip, *dxdr+low, skip, area, 1);
-      Veclib::vvtvp (np, *dydr+low, skip, *dydr+low, skip, area, 1, area, 1);
-      break;
-    case 4:
-      skip  = -np;
-      Veclib::smul  (np, -1.0, *drdx, skip, nx, 1);
-      Veclib::smul  (np, -1.0, *drdy, skip, ny, 1);
-      Veclib::vmul  (np, *dxds, skip, *dxds, skip, area, 1);
-      Veclib::vvtvp (np, *dyds, skip, *dyds, skip, area, 1, area, 1);
-      break;
-    }
+  case 2: 
+    low  = np - 1;
+    skip = np;
+    xs   = rvector (np);
+    ys   = rvector (np);
+      
+    Blas::gemv    ("T", np, np, 1.0, *D, np, *xmesh+low, np, 0.0, xs, 1);
+    Blas::gemv    ("T", np, np, 1.0, *D, np, *ymesh+low, np, 0.0, ys, 1);
+    Veclib::vmul  (np, xs, 1, xs, 1, area, 1);
+    Veclib::vvtvp (np, ys, 1, ys, 1, area, 1, area, 1);
+    Veclib::copy  (np, *drdx+low, skip, nx, 1);
+    Veclib::copy  (np, *drdy+low, skip, ny, 1);
+    
+    freeVector (xs);
+    freeVector (ys);
+    break;
 
-  } else {	     // -- Gauss element rule: recompute edge partials.
-
-    switch (side) {
-    case 1: {
-      real *xr = rvector (np);
-      real *yr = rvector (np);
-      
-      Blas::gemv ("T", np, np, 1.0, *D, np, *xmesh, 1, 0.0, xr, 1);
-      Blas::gemv ("T", np, np, 1.0, *D, np, *ymesh, 1, 0.0, yr, 1);
-      
-      Veclib::vmul  (np, xr, 1, xr, 1, area, 1);
-      Veclib::vvtvp (np, yr, 1, yr, 1, area, 1, area, 1);
-      
-      freeVector (xr);
-      freeVector (yr);
-      
-      skip = 1;
-      Veclib::smul (np, -1.0, *dsdx, skip, nx, 1);
-      Veclib::smul (np, -1.0, *dsdy, skip, ny, 1);
-
-      break;
-      }
-    case 2: {
-      real *xs = rvector (np);
-      real *ys = rvector (np);
-
-      Blas::gemv ("T", np, np, 1.0, *D, np, *xmesh+np-1, np, 0.0, xs, 1);
-      Blas::gemv ("T", np, np, 1.0, *D, np, *ymesh+np-1, np, 0.0, ys, 1);
-      
-      Veclib::vmul  (np, xs, 1, xs, 1, area, 1);
-      Veclib::vvtvp (np, ys, 1, ys, 1, area, 1, area, 1);
-      
-      freeVector (xs);
-      freeVector (ys);
-
-      low  = np - 1;
-      skip = np;
-      Veclib::copy (np, *drdx+low, skip, nx, 1);
-      Veclib::copy (np, *drdy+low, skip, ny, 1);
-      
-      break;
-      }
-    case 3: {
-      real *xr = rvector (np);
-      real *yr = rvector (np);
+  case 3:
+    low  = np * (np - 1);
+    skip = -1;
+    xr   = rvector (np);
+    yr   = rvector (np);
 	
-      Blas::gemv ("T", np, np, 1.0, *D, np, *xmesh+np*(np-1), 1, 0.0, xr, 1);
-      Blas::gemv ("T", np, np, 1.0, *D, np, *ymesh+np*(np-1), 1, 0.0, yr, 1);
+    Blas::gemv    ("T", np, np, 1.0, *D, np, *xmesh+low, 1, 0.0, xr, 1);
+    Blas::gemv    ("T", np, np, 1.0, *D, np, *ymesh+low, 1, 0.0, yr, 1);
+    Veclib::vmul  (np, xr, 1, xr, 1, area, 1);
+    Veclib::vvtvp (np, yr, 1, yr, 1, area, 1, area, 1);
+    Veclib::copy  (np, *dsdx+low, skip, nx, 1);
+    Veclib::copy  (np, *dsdy+low, skip, ny, 1);
+    
+    freeVector (xr);
+    freeVector (yr);
+    break;
+
+  case 4:
+    skip = -np;
+    xs   = rvector (np);
+    ys   = rvector (np);
       
-      Veclib::vmul  (np, xr, 1, xr, 1, area, 1);
-      Veclib::vvtvp (np, yr, 1, yr, 1, area, 1, area, 1);
-      
-      freeVector (xr);
-      freeVector (yr);
-      
-      low  = np * (np - 1);
-      skip = -1;
-      Veclib::copy (np, *dsdx+low, skip, nx, 1);
-      Veclib::copy (np, *dsdy+low, skip, ny, 1);
-      
-      break;
-    }
-    case 4: {
-      real *xs = rvector (np);
-      real *ys = rvector (np);
-      
-      Blas::gemv ("T", np, np, 1.0, *D, np, *xmesh, np, 0.0, xs, 1);
-      Blas::gemv ("T", np, np, 1.0, *D, np, *ymesh, np, 0.0, ys, 1);
-      
-      Veclib::vmul  (np, xs, 1, xs, 1, area, 1);
-      Veclib::vvtvp (np, ys, 1, ys, 1, area, 1, area, 1);
-      
-      freeVector (xs);
-      freeVector (ys);
-	
-      skip  = -np;
-      Veclib::smul (np, -1.0, *drdx, skip, nx, 1);
-      Veclib::smul (np, -1.0, *drdy, skip, ny, 1);
-      
-      break;
-    }
-    }
+    Blas::gemv    ("T", np, np, 1.0, *D, np, *xmesh, np, 0.0, xs, 1);
+    Blas::gemv    ("T", np, np, 1.0, *D, np, *ymesh, np, 0.0, ys, 1);
+    Veclib::vmul  (np, xs, 1, xs, 1, area, 1);
+    Veclib::vvtvp (np, ys, 1, ys, 1, area, 1, area, 1);
+    Veclib::smul  (np, -1.0, *drdx, skip, nx, 1);
+    Veclib::smul  (np, -1.0, *drdy, skip, ny, 1);
+    
+    freeVector (xs);
+    freeVector (ys);
+    break;
   }
-
+  
   Veclib::vsqrt (np, area, 1, area, 1);
   Veclib::vmul  (np, area, 1, w,    1, area, 1);
 
-  real* len = rvector (np);
+  len = rvector (np);
 
   Veclib::vhypot (np, nx, 1, ny,  1, len, 1);
   Veclib::vdiv   (np, nx, 1, len, 1, nx,  1);
