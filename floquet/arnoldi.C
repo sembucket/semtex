@@ -75,7 +75,7 @@ static void EV_sort    (real*, real*, real*, real*, const int);
 static void EV_post    (real**, real**, const int, const int, 
 			const int, const real*, const real*, 
 			const real*, const int);
-static void EV_big     (real**, real**, const int, const int,
+static void EV_big     (real**, real**, const int, const int, const int,
 			const real*, const real*, const real*);
 
 
@@ -98,17 +98,22 @@ int main (int    argc,
 
   getargs (argc, argv, kdim, nits, nvec, verbose, evtol, session);
 
-  // -- Check parameter values.
+  // -- Check, echo parameter values.
 
   if (kdim < 1)    message (prog, "param error: KDIM must be > 1",     ERROR);
   if (nvec < 1)    message (prog, "param error: NVEC must be > 1",     ERROR);
   if (nits < kdim) message (prog, "param error: NITS must be >= KDIM", ERROR);
   if (kdim < nvec) message (prog, "param error: NVEC must be <= KDIM", ERROR);
+
+  cout << "-- Krylov dimension        : " << kdim  << endl;
+  cout << "   Convergence dimension   : " << nvec  << endl;
+  cout << "   Convergence tolerance   : " << evtol << endl;
+  cout << "   Maximum iterations      : " << nits  << endl;
+
+  // -- Allocate eigenproblem storage.
   
   const int ntot = preprocess (session);
   const int wdim = kdim + kdim + (kdim * kdim) + 2*ntot*(kdim + 1);
-
-  // -- Allocate eigenproblem storage.
 
   vector<real> work (wdim);
   Veclib::zero (wdim, work(), 1);
@@ -134,16 +139,16 @@ int main (int    argc,
 
   // -- Fill initial Krylov sequence -- during which convergence may occur.
 
-  for (i = 1; i <= kdim; i++) {
+  for (i = 1; !converged && i <= kdim; i++) {
     EV_update (Kseq[i - 1], Kseq[i]);
     Veclib::copy (ntot * (kdim + 1), kvec, 1, tvec, 1);
     EV_small  (Tseq, ntot, i, zvec, wr, wi, resnorm, verbose);
-    converged = EV_test (i, i, zvec, wr, wi, resnorm, evtol, i);
+    converged = EV_test (i, i, zvec, wr, wi, resnorm, evtol, min (i, nvec));
   }
 
   // -- Carry out iterative solution.
 
-  for (itrn = kdim; !converged && itrn <= nits; itrn++) {
+  for (itrn = kdim + 1; !converged && itrn <= nits; itrn++) {
 
     if (itrn > kdim) {		// -- Normalise Krylov sequence & update.
       norm = Blas::nrm2 (ntot, Kseq[1], 1);
@@ -345,7 +350,7 @@ static int EV_test (const int  itrn   ,
 //   0:     neither of the above is true: not converged.
 // ---------------------------------------------------------------------------
 {
-  int          i, idone;
+  int          i, idone = 0;
   vector<real> work (kdim);
   real         re_ev, im_ev, abs_ev, ang_ev, re_Aev, im_Aev;
   real*        resid = work();
@@ -360,7 +365,7 @@ static int EV_test (const int  itrn   ,
   for (i = 0; i < kdim; i++) {
     resid[i] = resnorm * fabs (zvec[kdim - 1 + i * kdim])
       / sqrt (Blas::dot (kdim, zvec + i * kdim, 1, zvec + i * kdim, 1));
-    if (wi[i] < 0.0) resid [i - 1] = resid[i] = hypot (resid[i - 1], resid[i]);
+    if (wi[i] < 0.0) resid[i - 1] = resid[i] = hypot (resid[i - 1], resid[i]);
   }
   EV_sort (zvec, wr, wi, resid, kdim);
 
@@ -371,8 +376,6 @@ static int EV_test (const int  itrn   ,
   else if (min_max1 < 0.01 && resid[nvec - 1] > 10.0 * min_max1 ||
 	   min_max2 < 0.01 && resnorm         > 10.0 * min_max2 )
     idone = -1;
-  else
-    idone = 0;
 
   min_max1 = min (min_max1, resid[nvec - 1]);
   min_max2 = min (min_max2, resnorm);
@@ -516,7 +519,7 @@ static void EV_post (real**      Tseq,
 	 << " eigenvectors."
 	 << endl;
     
-    EV_big (Tseq, Kseq, ntot, kdim, zvec, wr, wi);
+    EV_big (Tseq, Kseq, ntot, kdim, icon, zvec, wr, wi);
     for (j = 0; j < icon; j++) {
       src = Kseq[j];
       for (i = 0; i < ND; i++)
@@ -538,6 +541,7 @@ static void EV_big (real**      bvecs,
 	            real**      evecs,
 		    const int   ntot ,
 		    const int   kdim ,
+		    const int   nvec ,
 		    const real* zvecs,
 		    const real* wr   ,
 		    const real* wi   )
@@ -560,6 +564,10 @@ static void EV_big (real**      bvecs,
 //
 //        [evecs]            = [bvecs]            [zvecs]
 //               ntot x kdim          ntot x kdim        kdim x kdim
+//
+// Potentially, convergence has been achieved on nvec eigenpairs
+// before the nominated Krylov dimension has been filled, so the
+// computations are only done for the first nvec eigenvectors.
 // ---------------------------------------------------------------------------
 {
   real norm, wgt;
@@ -567,9 +575,9 @@ static void EV_big (real**      bvecs,
 
   // -- Generate big e-vectors.
 
-  for (j = 0; j < kdim; j++) {
+  for (j = 0; j < nvec; j++) {
     Veclib::zero (ntot, evecs[j], 1);
-    for (i = 0; i < kdim; i++) {
+    for (i = 0; i < nvec; i++) {
       wgt = zvecs[Veclib::col_major (i, j, kdim)];
       Blas::axpy (ntot, wgt, bvecs[i], 1, evecs[j], 1);
     }
@@ -577,7 +585,7 @@ static void EV_big (real**      bvecs,
 
   // -- Normalize big e-vectors.
 
-  for (i = 0; i < kdim; i++)
+  for (i = 0; i < nvec; i++)
     if (wi[i] == 0.0) {
       norm = Blas::nrm2 (ntot, evecs[i], 1);
       Blas::scal (ntot, 1.0/norm, evecs[i], 1);
@@ -592,7 +600,7 @@ static void EV_big (real**      bvecs,
 
 #if BIG_RESIDS  // -- This is not yet recoded: HMB 8/2/2002.
 
-  // Compute residuals of big vectors directly.
+  // Compute residuals of big vectors directly (i.e. A(u)-mu(u)).
   real resid;
  
   for (i = 0; i < nwrt; i++) {
