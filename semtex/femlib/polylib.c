@@ -156,21 +156,19 @@ LIBRARY ROUTINES FOR ORTHOGONAL POLYNOMIAL CALCULUS AND INTERPOLATION
 namespace polylib {
 #endif
 
-
 #if 0
-  /// zero determination using Newton iteration with polynomial deflation
+  /* zero determination using Newton iteration with polynomial deflation */
 #define jacobz(n,z,alpha,beta) Jacobz(n,z,alpha,beta)
 #else
-  /// zero determination using eigenvalues of tridiagaonl matrix 
+  /* zero determination using eigenvalues of tridiagonal matrix */
 #define jacobz(n,z,alpha,beta) JacZeros(n,z,alpha,beta)
 #endif
 
-
-
 /* local functions */
-static void   Jacobz   (int n, double *z, double alpha, double beta);
-static void   JacZeros (int n, double *a, double alpha, double beta);
-static void   TriQL    (int n, double *d, double *e);
+
+static void   Jacobz   (integer n, double *z, double alpha, double beta);
+static void   JacZeros (integer n, double *a, double alpha, double beta);
+static void   TriQL    (integer n, double *d, double *e);
 
 static double gammaF (double);
 
@@ -184,9 +182,15 @@ static double gammaF (double);
    \li Exact for polynomials of order \a 2np-1 or less  
 */
 
-void zwgj (double *z, double *w, int np, double alpha, double beta){
-  register int i;
-  double fac, one = 1.0, two = 2.0, apb = alpha + beta;
+void zwgj (double* z    ,
+	   double* w    ,
+	   integer np   ,
+	   double  alpha,
+	   double  beta )
+{
+  register integer i;
+  double           fac;
+  const double     one = 1.0, two = 2.0, apb = alpha + beta;
 
   jacobz (np,z,alpha,beta);
   jacobd (np,z,w,np,alpha,beta);
@@ -210,15 +214,19 @@ void zwgj (double *z, double *w, int np, double alpha, double beta){
   \li  Exact for polynomials of order \a 2np-2 or less    
 */
 
-void zwgrjm(double *z, double *w, int np, double alpha, double beta){
-
-  if(np == 1){
+void zwgrjm (double* z    ,
+	     double* w    ,
+	     integer np   ,
+	     double  alpha,
+	     double  beta )
+{
+  if (np == 1) {
     z[0] = 0.0;
     w[0] = 2.0;
-  }
-  else{
-    register int i;
-    double fac, one = 1.0, two = 2.0, apb = alpha + beta;
+  } else {
+    register integer i;
+    double           fac;
+    const double     one = 1.0, two = 2.0, apb = alpha + beta;
     
     z[0] = -one;
     jacobz  (np-1,z+1,alpha,beta+1);
@@ -246,14 +254,17 @@ void zwgrjm(double *z, double *w, int np, double alpha, double beta){
   \li Exact for polynomials of order \a 2np-2 or less    
 */
 
-void zwgrjp(double *z, double *w, int np, double alpha, double beta){
-
-  if(np == 1){
+void zwgrjp (double* z    ,
+	     double* w    ,
+	     integer np   ,
+	     double  alpha,
+	     double  beta )
+{
+  if (np == 1) {
     z[0] = 0.0;
     w[0] = 2.0;
-  }
-  else{
-    register int i;
+  } else {
+    register integer i;
     double fac, one = 1.0, two = 2.0, apb = alpha + beta;
     
     jacobz  (np-1,z,alpha+1,beta);
@@ -270,7 +281,6 @@ void zwgrjp(double *z, double *w, int np, double alpha, double beta){
   return;
 }
 
-
 /** 
   \brief  Gauss-Lobatto-Jacobi zeros and weights with end point at \a z=-1,\a 1
 
@@ -280,15 +290,19 @@ void zwgrjp(double *z, double *w, int np, double alpha, double beta){
   \li Exact for polynomials of order \a 2np-3 or less
 */
 
-void zwglj(double *z, double *w, int np, double alpha, double beta){
-
-  if( np == 1 ){
+void zwglj (double* z    ,
+	    double* w    ,
+	    integer np   ,
+	    double  alpha,
+	    double  beta )
+{
+  if( np == 1 ) {
     z[0] = 0.0;
     w[0] = 2.0;
-  }
-  else{
-    register int i;
-    double   fac, one = 1.0, apb = alpha + beta, two = 2.0;
+  } else {
+    register integer i;
+    double           fac;
+    const double     one = 1.0, apb = alpha + beta, two = 2.0;
   
     z[0]    = -one;
     z[np-1] =  one;
@@ -319,16 +333,20 @@ void zwglj(double *z, double *w, int np, double alpha, double beta){
     \li d and dt are both square matrices.
 */
 
-void Dgj(double *D, double *Dt, double *z, int np,double alpha, double beta){
+void Dgj (double* D    ,
+	  double* Dt   ,
+	  double* z    ,
+	  integer np   ,
+	  double  alpha,
+	  double  beta )
+{
+  const double one = 1.0, two = 2.0;
 
-  double one = 1.0, two = 2.0;
-
-  if (np <= 0){
+  if (np <= 0) {
     D[0] = Dt[0] = 0.0;
-  }
-  else{
-    register int i,j; 
-    double *pd;
+  } else {
+    register integer i,j; 
+    double*          pd;
     
     pd = (double *)malloc(np*sizeof(double));
     jacobd(np,z,pd,np,alpha,beta);
@@ -363,16 +381,19 @@ void Dgj(double *D, double *Dt, double *z, int np,double alpha, double beta){
     \li d and dt are both square matrices.
 */
 
-void Dgrjm(double *D, double *Dt, double *z, int np,
-	   double alpha, double beta){
-
-  if (np <= 0){
+void Dgrjm(double* D    ,
+	   double* Dt   ,
+	   double* z    ,
+	   integer np   ,
+	   double  alpha,
+	   double  beta )
+{
+  if (np <= 0) {
     D[0] = Dt[0] = 0.0;
-  }
-  else{
-    register int i, j; 
-    double   one = 1.0, two = 2.0;
-    double   *pd;
+  } else {
+    register integer i, j; 
+    const double     one = 1.0, two = 2.0;
+    double*          pd;
 
     pd  = (double *)malloc(np*sizeof(double));
 
@@ -415,16 +436,19 @@ void Dgrjm(double *D, double *Dt, double *z, int np,
     \li d and dt are both square matrices.
 */
 
-void Dgrjp(double *D, double *Dt, double *z, int np,
-	   double alpha, double beta){
-
-  if (np <= 0){
+void Dgrjp (double* D    ,
+	    double* Dt   ,
+	    double* z    ,
+	    integer np   ,
+	    double  alpha,
+	    double  beta )
+{
+  if (np <= 0) {
     D[0] = Dt[0] = 0.0;
-  }
-  else{
-    register int i, j; 
-    double   one = 1.0, two = 2.0;
-    double   *pd;
+  } else {
+    register integer i, j; 
+    const double     one = 1.0, two = 2.0;
+    double*          pd;
 
     pd  = (double *)malloc(np*sizeof(double));
 
@@ -467,16 +491,19 @@ void Dgrjp(double *D, double *Dt, double *z, int np,
     \li d and dt are both square matrices.
 */
 
-void Dglj(double *D, double *Dt, double *z, int np,
-	  double alpha, double beta){
-     
-  if (np <= 0){
+void Dglj (double* D    ,
+	   double* Dt   ,
+	   double* z    ,
+	   integer np   ,
+	   double  alpha,
+	   double  beta )
+{
+  if (np <= 0) {
     D[0] = Dt[0] = 0.0;
-  }
-  else{
-    register int i, j; 
-    double   one = 1.0, two = 2.0;
-    double   *pd;
+  } else {
+    register integer i, j; 
+    const double     one = 1.0, two = 2.0;
+    double*          pd;
 
     pd  = (double *)malloc(np*sizeof(double));
 
@@ -530,9 +557,13 @@ void Dglj(double *D, double *Dt, double *z, int np,
     \end{array}   \f$ 
 */
 
-double hgj (int i, double z, double *zgj, int np, double alpha, double beta)
+double hgj (integer i    ,
+	    double  z    ,
+	    double* zgj  ,
+	    integer np   ,
+	    double  alpha,
+	    double  beta )
 {
-
   double zi, dz, p, pd, h;
 
   zi  = *(zgj+i);
@@ -567,9 +598,13 @@ double hgj (int i, double z, double *zgj, int np, double alpha, double beta)
     \end{array}   \f$ 
 */
 
-double hgrjm (int i, double z, double *zgrj, int np, double alpha, double beta)
+double hgrjm (integer i    ,
+	      double  z    , 
+	      double* zgrj ,
+	      integer np   ,
+	      double  alpha,
+	      double  beta )
 {
-
   double zi, dz, p, pd, h;
 
   zi  = *(zgrj+i);
@@ -577,7 +612,7 @@ double hgrjm (int i, double z, double *zgrj, int np, double alpha, double beta)
   if (fabs(dz) < EPS) return 1.0;
 
   jacobfd (1, &zi, &p , NULL, np-1, alpha, beta + 1);
-  // need to use this routine in caes zi = -1 or 1
+  /* need to use this routine in caes zi = -1 or 1 */
   jacobd  (1, &zi, &pd, np-1, alpha, beta + 1);
   h = (1.0 + zi)*pd + p;
   jacobfd (1, &z, &p, NULL,  np-1, alpha, beta + 1);
@@ -608,9 +643,13 @@ double hgrjm (int i, double z, double *zgrj, int np, double alpha, double beta)
     \end{array}   \f$ 
 */
 
-double hgrjp (int i, double z, double *zgrj, int np, double alpha, double beta)
+double hgrjp (integer i    ,
+	      double  z    ,
+	      double* zgrj ,
+	      integer np   ,
+	      double  alpha,
+	      double  beta )
 {
-
   double zi, dz, p, pd, h;
 
   zi  = *(zgrj+i);
@@ -618,7 +657,7 @@ double hgrjp (int i, double z, double *zgrj, int np, double alpha, double beta)
   if (fabs(dz) < EPS) return 1.0;
 
   jacobfd (1, &zi, &p , NULL, np-1, alpha+1, beta );
-  // need to use this routine in caes z = -1 or 1
+  /* need to use this routine in caes z = -1 or 1 */
   jacobd  (1, &zi, &pd, np-1, alpha+1, beta );
   h = (1.0 - zi)*pd - p;
   jacobfd (1, &z, &p, NULL,  np-1, alpha+1, beta);
@@ -649,9 +688,14 @@ double hgrjp (int i, double z, double *zgrj, int np, double alpha, double beta)
     \end{array}   \f$ 
 */
 
-double hglj (int i, double z, double *zglj, int np, double alpha, double beta)
+double hglj (integer i    , 
+	     double  z    ,
+	     double* zglj ,
+	     integer np   ,
+	     double  alpha,
+	     double  beta )
 {
-  double one = 1., two = 2.;
+  const double one = 1.0, two = 2.0;
   double zi, dz, p, pd, h;
 
   zi  = *(zglj+i);
@@ -659,7 +703,7 @@ double hglj (int i, double z, double *zglj, int np, double alpha, double beta)
   if (fabs(dz) < EPS) return 1.0;
 
   jacobfd(1, &zi, &p , NULL, np-2, alpha + one, beta + one);
-  // need to use this routine in caes z = -1 or 1
+  /* need to use this routine in caes z = -1 or 1 */
   jacobd (1, &zi, &pd, np-2, alpha + one, beta + one);
   h = (one - zi*zi)*pd - two*zi*p;
   jacobfd(1, &z, &p, NULL, np-2, alpha + one, beta + one);
@@ -682,10 +726,16 @@ double hglj (int i, double z, double *zglj, int np, double alpha, double beta)
 
 */
 
-void Imgj(double *im,double *zgj, double *zm, int nz, int mz,
-	  double alpha, double beta){
-  double zp;
-  register int i, j;
+void Imgj (double* im   ,
+	   double* zgj  ,
+	   double* zm   ,
+	   integer nz   ,
+	   integer mz   ,
+	   double  alpha,
+	   double  beta )
+{
+  double           zp;
+  register integer i, j;
 
   for (i = 0; i < mz; ++i) {
     zp = zm[i];
@@ -709,10 +759,16 @@ void Imgj(double *im,double *zgj, double *zm, int nz, int mz,
 
 */
 
-void Imgrjm(double *im,double *zgrj, double *zm, int nz, int mz,
-	   double alpha, double beta){
-  double zp;
-  register int i, j;
+void Imgrjm (double* im   ,
+	     double* zgrj ,
+	     double* zm   ,
+	     integer nz   ,
+	     integer mz   ,
+	     double  alpha,
+	     double  beta )
+{
+  double           zp;
+  register integer i, j;
 
   for (i = 0; i < mz; i++) {
     zp = zm[i];
@@ -736,10 +792,16 @@ void Imgrjm(double *im,double *zgrj, double *zm, int nz, int mz,
 
 */
 
-void Imgrjp(double *im,double *zgrj, double *zm, int nz, int mz,
-	   double alpha, double beta){
-  double zp;
-  register int i, j;
+void Imgrjp (double* im   ,
+	     double* zgrj ,
+	     double* zm   ,
+	     integer nz   ,
+	     integer mz   ,
+	     double  alpha,
+	     double  beta )
+{
+  double           zp;
+  register integer i, j;
 
   for (i = 0; i < mz; i++) {
     zp = zm[i];
@@ -764,11 +826,16 @@ void Imgrjp(double *im,double *zgrj, double *zm, int nz, int mz,
 
 */
 
-void Imglj(double *im, double *zglj, double *zm, int nz, int mz,
-	   double alpha, double beta)
+void Imglj (double* im  ,
+	    double* zglj,
+	    double* zm  ,
+	    integer nz  ,
+	    integer mz  ,
+	    double  alpha,
+	    double  beta )
 {
-  double zp;
-  register int i, j;
+  double           zp;
+  register integer i, j;
   
   for (i = 0; i < mz; i++) {
     zp = zm[i];
@@ -819,10 +886,17 @@ void Imglj(double *im, double *zglj, double *zm, int nz, int mz,
 
     - Note the derivative from this routine is only valid for -1 < \a z < 1.
 */
-void jacobfd(int np, double *z, double *poly_in, double *polyd, int n, 
-	     double alpha, double beta){
-  register int i;
-  double  zero = 0.0, one = 1.0, two = 2.0;
+
+void jacobfd (integer np     ,
+	      double* z      ,
+	      double* poly_in,
+	      double* polyd  ,
+	      integer n      , 
+	      double alpha   ,
+	      double beta    )
+{
+  register integer i;
+  const double     zero = 0.0, one = 1.0, two = 2.0;
 
   if(!np)
     return;
@@ -844,12 +918,12 @@ void jacobfd(int np, double *z, double *poly_in, double *polyd, int n,
 	polyd[i] = 0.5*(alpha + beta + two);
   }
   else{
-    register int k;
-    double   a1,a2,a3,a4;
-    double   two = 2.0, apb = alpha + beta;
-    double   *poly, *polyn1,*polyn2;
+    register integer k;
+    double           a1,a2,a3,a4;
+    const double     two = 2.0, apb = alpha + beta;
+    double           *poly, *polyn1,*polyn2;
     
-    if(poly_in){ // switch for case of no poynomial function return
+    if(poly_in){ /* switch for case of no poynomial function return */
       polyn1 = (double *)malloc(2*np*sizeof(double));
       polyn2 = polyn1+np; 
       poly   = poly_in;
@@ -889,7 +963,7 @@ void jacobfd(int np, double *z, double *poly_in, double *polyd, int n,
       a4 = (two*n + alpha + beta);
       a1 /= a4;  a2 /= a4;   a3 /= a4;
 
-      // note polyn2 points to polyn1 at end of poly iterations
+      /* note polyn2 points to polyn1 at end of poly iterations */
       for(i = 0; i < np; ++i){
 	polyd[i]  = (a1- a2*z[i])*poly[i] + a3*polyn2[i];
 	polyd[i] /= (one - z[i]*z[i]);
@@ -919,16 +993,21 @@ void jacobfd(int np, double *z, double *poly_in, double *polyd, int n,
 
 */
 
-void jacobd(int np, double *z, double *polyd, int n, double alpha, double beta)
+void jacobd (integer np   ,
+	     double* z    ,
+	     double* polyd,
+	     integer n    ,
+	     double  alpha,
+	     double  beta )
 {
-  register int i;
-  double one = 1.0;
+  register integer i;
+
   if(n == 0)
     for(i = 0; i < np; ++i) polyd[i] = 0.0;
   else{
-    //jacobf(np,z,polyd,n-1,alpha+one,beta+one);
-    jacobfd(np,z,polyd,NULL,n-1,alpha+one,beta+one);
-    for(i = 0; i < np; ++i) polyd[i] *= 0.5*(alpha + beta + (double)n + one);
+    /* jacobf(np,z,polyd,n-1,alpha+one,beta+one); */
+    jacobfd(np,z,polyd,NULL,n-1,alpha+1.0,beta+1.0);
+    for (i = 0; i < np; ++i) polyd[i] *= 0.5*(alpha + beta + (double)n + 1.0);
   }
   return;
 }
@@ -945,13 +1024,14 @@ void jacobd(int np, double *z, double *polyd, int n, double alpha, double beta)
  where \f$ \Gamma(1/2) = \sqrt(\pi)\f$
  */
 
-static double gammaF(double x){
+static double gammaF (double x)
+{
   double gamma = 1.0;
   
   if     (x == -0.5) gamma = -2.0*sqrt(M_PI);
   else if (!x) return gamma;
-  else if ((x-(int)x) == 0.5){ 
-    int n = (int) x;
+  else if ((x-(integer)x) == 0.5){ 
+    integer n = (integer) x;
     double tmp = x;
 
     gamma = sqrt(M_PI);
@@ -960,8 +1040,8 @@ static double gammaF(double x){
       gamma *= tmp;
     }
   }
-  else if ((x-(int)x) == 0.0){
-    int n = (int) x;
+  else if ((x-(integer)x) == 0.0){
+    integer n = (integer) x;
     double tmp = x;
 
     while(--n){
@@ -982,8 +1062,12 @@ static double gammaF(double x){
     and uses polynomial deflation in a Newton iteration 
 */
 
-static void Jacobz(int n, double *z, double alpha, double beta){
-  register int i,j,k;
+static void Jacobz (integer n,
+		    double* z,
+		    double  alpha,
+		    double  beta )
+{
+  register integer i,j,k;
   double   dth = M_PI/(2.0*(double)n);
   double   poly,pder,rlast=0.0;
   double   sum,delr,r;
@@ -1036,14 +1120,18 @@ static void Jacobz(int n, double *z, double alpha, double beta){
    matrix are the zeros of the Jacobi polynomial.
 */
 
-static void JacZeros(int n, double *a, double alpha, double beta){
-  int i;
-  double apb, apbi,a2b2;
-  double *b;
+static void JacZeros (integer n,
+		      double* a,
+		      double  alpha,
+		      double beta  )
+{
+  integer i;
+  double  apb, apbi,a2b2;
+  double* b;
 
   b = (double *) malloc(n*sizeof(double));
   
-  // generate normalised terms 
+  /* generate normalised terms */
   apb  = alpha + beta;
   apbi = 2.0 + apb;
 
@@ -1062,7 +1150,8 @@ static void JacZeros(int n, double *a, double alpha, double beta){
   apbi   = 2.0*n + apb;
   a[n-1] = a2b2/((apbi-2.0)*apbi);
   
-  // find eigenvalues 
+  /* find eigenvalues */
+
   TriQL(n, a, b);
 
   free(b);
@@ -1094,9 +1183,12 @@ static void JacZeros(int n, double *a, double alpha, double beta){
     - e has been destroyed;
 */
 
-static void TriQL(int n, double *d,double *e){
-  int m,l,iter,i,k;
-  double s,r,p,g,f,dd,c,b;
+static void TriQL (integer n,
+		   double *d,
+		   double *e)
+{
+  integer m,l,iter,i,k;
+  double  s,r,p,g,f,dd,c,b;
   
   for (l=0;l<n;l++) {
     iter=0;
@@ -1142,7 +1234,8 @@ static void TriQL(int n, double *d,double *e){
     } while (m != l);
   }
 
-  // order eigenvalues
+  /* order eigenvalues */
+
   for(i = 0; i < n-1; ++i){ 
     k = i;
     p = d[i];
@@ -1159,5 +1252,5 @@ static void TriQL(int n, double *d,double *e){
 
 
 #ifdef __cplusplus
-} // end of namespace
+} /* end of namespace */
 #endif
