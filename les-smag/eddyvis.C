@@ -39,13 +39,24 @@ void eddyViscosity (const Domain* D ,
   ITR_MAX = (integer) Femlib::value ("STEP_MAX");
   EPS2    = sqr (EPSSP);
 
-  ROOTONLY EV -> addToPlane (0, Femlib::value ("KINVIS"));
+  if ((int) Femlib::value ("RNG")) {
 
-  strainRate  (D, Us, Uf);
-  viscoModel  (D, Us, Uf, EV);
-  D -> u[0] -> smooth (EV);
+    ROOTONLY EV -> addToPlane (0, Femlib::value ("KINVIS"));
 
-  ROOTONLY EV -> addToPlane (0, Femlib::value ("-KINVIS"));
+    strainRate  (D, Us, Uf);
+    viscoModel  (D, Us, Uf, EV);
+    D -> u[0] -> smooth (EV);
+
+    ROOTONLY EV -> addToPlane (0, Femlib::value ("-KINVIS"));
+
+  } else {
+
+    strainRate  (D, Us, Uf);
+    viscoModel  (D, Us, Uf, EV);
+    D -> u[0] -> smooth (EV);
+
+    ROOTONLY EV -> addToPlane (0, Femlib::value ("-KINVIS+REFVIS"));
+  }
 
 #if defined(DEBUG)
   *EV = 0.0;
