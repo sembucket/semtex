@@ -2,11 +2,9 @@
  * pressure.C: routines to deal with pressure field and boundary conditions.
  *****************************************************************************/
 
-// $Id$
-
+static char RCSid[]="$Id$";
 
 #include "Fem.h"
-
 
 #ifdef __DECCXX
   #pragma define_template roll<double*>

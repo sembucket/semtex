@@ -38,7 +38,7 @@
  * }
  *****************************************************************************/
 
-// $Id$
+static char RCSid[] = "$Id$";
 
 #include "Fem.h"
 
@@ -265,7 +265,6 @@ int  NodeReader::getElmtID ()
 
   return id;
 }
-
 
 
 int  NodeReader::getSize ()
@@ -603,27 +602,27 @@ void operator << (ostream& strm, Mesh::Side& s)
 // Print Elmt connectivity information in SEM-compatible form.
 // ---------------------------------------------------------------------------
 {
-  strm << setw(5) << s.thisElmt -> ID;
-  strm << setw(5) << s.ID;
-  strm << setw(5) << 1;
-  strm << setw(5) << s.startNode -> gID;
+  strm << setw (5) << s.thisElmt -> ID;
+  strm << setw (5) << s.ID;
+  strm << setw (5) << 1;
+  strm << setw (5) << s.startNode -> gID;
   strm << endl;
 
-  int ni = s.gID.numElts();
+  int ni = s.gID.numElts ();
 
   if (ni)
-    for (int i(0); i < ni; i++) {
-      strm << setw(5) << s.thisElmt -> ID;
-      strm << setw(5) << s.ID;
-      strm << setw(5) << i + 2;
-      strm << setw(5) << s.gID[i];
+    for (int i (0); i < ni; i++) {
+      strm << setw (5) << s.thisElmt -> ID;
+      strm << setw (5) << s.ID;
+      strm << setw (5) << i + 2;
+      strm << setw (5) << s.gID[i];
       strm << endl;
     }
 
-  strm << setw(5) << s.thisElmt -> ID;
-  strm << setw(5) << s.ID;
-  strm << setw(5) << ni + 2;
-  strm << setw(5) << s.endNode -> gID;
+  strm << setw (5) << s.thisElmt -> ID;
+  strm << setw (5) << s.ID;
+  strm << setw (5) << ni + 2;
+  strm << setw (5) << s.endNode -> gID;
   strm << endl;
 }
 

@@ -1,8 +1,8 @@
 /*****************************************************************************
- * ELEMENT.C: Element utility routines.
- *
- * $Id$
+ * element.C: Element utility routines.
  *****************************************************************************/
+
+static char RCSid[] = "$Id$";
 
 #include "Fem.h"
 
@@ -205,12 +205,12 @@ void  Element::terminal (int side, int& estart, int& eskip, int& bstart) const
   case 3:
     estart = np * (np - 1);
     eskip  = -1;
-    bstart = 2 * (np - 1);
+    bstart = 2  * (np - 1);
     break;
   case 4:
     estart = 0;
     eskip  = -np;
-    bstart = 3 * (np - 1);
+    bstart = 3  * (np - 1);
     break;
   }
 }
@@ -551,7 +551,7 @@ void  Element::printBndry (const real* value) const
 // (Debugging) Utility to print edge connectivity & value information.
 // ---------------------------------------------------------------------------
 {
-  int ne = nExt();
+  int  ne = nExt ();
 
   cout << "#   id  emap  bmap solve value" << endl;
   for (int i = 0; i < ne; i++) {
@@ -651,8 +651,6 @@ void  Element::resolveSC (const real* RHS, real* F, real* target) const
 //    i       ii i    ii ib  b
 // ----------------------------------------------------------------------------
 {
-  // -- Load element-edge values from solution vector into elements.
-
   int    next = nExt();
   real*  tmp  = rvector (next);
 
@@ -730,7 +728,6 @@ void  Element::HelmholtzSC (const real  lambda2, // Using,
 // resolution matrix hii is factorized and the static condensation completed.
 // In addition, the interior-exterior partition hbi is postmultiplied
 // by hii(inverse) for convenience in the resolution stage.
-
 //
 // hbb:    nExt  by nExt    matrix;
 // hbi:    nExt  by nInt    matrix;  (but kept as packed storage).
@@ -750,8 +747,8 @@ void  Element::HelmholtzSC (const real  lambda2, // Using,
 
   if (nint) {
     ipack = ((nint + 1) * nint) >> 1;
-    hii = rvector (ipack);            // LAPACK packed-symmetric store.
-    hbi = rvector (next*nint);        // Full store.
+    hii   = rvector (ipack);            // LAPACK packed-symmetric store.
+    hbi   = rvector (next*nint);        // Full store.
   }
 
   // -- Construct hbb, hbi, hii partitions of elemental Helmholtz matrix.
@@ -793,6 +790,46 @@ void  Element::HelmholtzSC (const real  lambda2, // Using,
     // -- Create hib*hii(inverse), leave in hbi.
 
     Lapack::pptrs ("U", nint, next, hii, hbi, nint, info);
+  }
+
+#ifdef DEBUG
+  if (option ("VERBOSE") > 3) printMatSC (hbb);
+#endif
+}
+
+
+void  Element::printMatSC (const real** hbb) const
+// ---------------------------------------------------------------------------
+// (Debugging) utility to print up element matrices.
+// ---------------------------------------------------------------------------
+{
+  int  i, j, next = nExt(), nint = nInt(), ntot = nTot();
+
+  cout << "-- Statically condensed Helmholtz matrices for element "
+       << id << endl;
+  
+  cout << "-- hbb:" << endl;
+
+  for (i = 0; i < next; i++) {
+    for (j = 0; j < next; j++)
+      cout << setw (10) << hbb[i][j];
+    cout << endl;
+  }
+
+  cout << "-- hii:" << endl;
+
+  for (i = 0; i < nint; i++) {
+    for (j = 0; j < nint; j++)
+      cout << setw (10) << hii[Lapack::pack_addr (i, j)];
+    cout << endl;
+  }
+
+  cout << "-- hbi/hii:" << endl;
+
+  for (i = 0; i < nint; i++) {
+    for (j = 0; j < next; j++)
+      cout << setw (10) << hbi[j + i * nint];
+    cout << endl;
   }
 }
 
@@ -970,7 +1007,7 @@ void  Element::post (real**  hbb    , // Post,
 	    Hp[Lapack::pack_addr (m, n)] += hbb[i][j];
   }
 
-  if (ncons > 1)       		 // -- A constraint partition must exist...
+  if (ncons)       		 // -- A constraint partition must exist...
     for (i = 0; i < next; i++)
       if ((m = bmap[i]) < nsolve)
 	for (j = 0; j < next; j++)
@@ -1225,20 +1262,19 @@ void  Element::sideDsSum (int         side  ,
 // Complication at side ends, since NATURAL BCs defer to ESSENTIAL BCs.
 // ---------------------------------------------------------------------------
 {
-  register int i;
-  int          nm  = np - 1;
-  real*        tmp = rvector (np);
+  register int  i, nm = np - 1;
+  real*         tmp   = rvector (np);
   
   int estart, skip, bstart;
   terminal (side, estart, skip, bstart);
 
   Veclib::vmul (np, src, 1, area, 1, tmp, 1);
 
-  if (solve[bstart])          target[bmap[bstart]  ] += tmp[0];
+  if (solve[bstart])          target[bmap[bstart  ]] += tmp[0];
 
   for (i = 1; i < nm; i++)    target[bmap[bstart+i]] += tmp[i];
 
-  if (side == ns && solve[0]) target[bmap[0]       ] += tmp[i];
+  if (side == ns && solve[0]) target[bmap[0       ]] += tmp[i];
   else if (solve[bstart+i])   target[bmap[bstart+i]] += tmp[i];
 
   freeVector (tmp);

@@ -1,8 +1,8 @@
 /*****************************************************************************
  * field.C:  routines to deal with Fields.
- *
- * $Id$
  *****************************************************************************/
+
+static char RCSid[] = "$Id$";
 
 #include "Fem.h"
 
@@ -71,9 +71,9 @@ Field::Field (const Mesh& M, int np)
   int*   s      = elmt_bndry_mask;
 
   for (ListIterator<Element*> k(element_list); k.more(); k.next()) {
-    E = k.current  ();
-    E -> install   (offset, m, g, s);
-    E -> mesh      (M);
+    E = k.current ();
+    E -> install  (offset, m, g, s);
+    E -> mesh     (M);
     offset += E -> nTot ();
     m      += E -> nMsh ();
     g      += E -> nExt ();
@@ -283,8 +283,15 @@ Field&  Field:: operator = (const char* function)
 // Set Field's value to temporo-spatially varying function.
 // ---------------------------------------------------------------------------
 {
-  vecInit   ("x y", function);
-  vecInterp (n_data, mesh, mesh + n_data, data);
+  Element*  E;
+  int       offset = 0;
+
+  for (ListIterator<Element*> k(element_list); k.more(); k.next()) {
+    E      = k.current ();
+    offset = E -> nOff ();
+    E -> evaluate (function, data + offset);
+
+  }
 
   return *this;
 }
@@ -412,13 +419,14 @@ void  Field::printBoundaries (Field* F)
 // ---------------------------------------------------------------------------
 {
   char  routine[] = "Field::printBoundaries";
+  char  s[StrMax];
 
   if (!F->boundary_list.length()) {
     message (routine, "empty Boundary list", WARNING); return;
   }
 
-  cout << "# -- Field '" << F->field_name <<
-    "' BOUNDARY LIST INFORMATION:" << endl;
+  sprintf (s, "# -- Field '%c' BOUNDARY LIST INFORMATION:", F -> field_name);
+  message (routine, s, REMARK);
 
   for (ListIterator<Boundary*> k(F->boundary_list); k.more(); k.next())
     k.current () -> print ();
@@ -448,6 +456,7 @@ void  Field::connect (Mesh& M, int np)
 // weights.
 // ---------------------------------------------------------------------------
 {
+  char      routine[] = "Field::connect";
   Element*  E;
   int*      b;
 
@@ -473,7 +482,15 @@ void  Field::connect (Mesh& M, int np)
   M.connectSC (2);		// -- Minimize M's internal storage.
 
   renumber ();
+
   buildSmoother ();
+
+  if (option ("VERBOSE") > 1) {
+    char  s[StrMax];
+    sprintf (s, "-- GLOBAL NUMBERING FOR FIELD %c:", field_name);
+    message (routine, s, REMARK);
+    Field::printConnect (this);
+  }
 }
 
 
@@ -482,7 +499,7 @@ void  Field::sortGid ()
 // Global node numbers get sorted to place essential-BC nodes last; this
 // simplifies the later partition of global matrices---see the header for
 // Field::buildSys.  The non-essential type node numbers can be sorted to
-// optimize global matric bandwidths, but this is not done here.
+// optimize global matrix bandwidths, but this is not done here.
 // ---------------------------------------------------------------------------
 {
   int** gOrder = imatrix (n_gid, 2);        // For sorting global numbers.
@@ -527,8 +544,6 @@ void  Field::printConnect (Field* F)
 // (Debugging) Utility to print up mesh connectivity information.
 // ---------------------------------------------------------------------------
 {
-  cout << "# -- ELEMENT-BOUNDARY CONNECTIVITY & VALUE INFORMATION --" << endl;
-
   Element  *E;
   int       offset;
 
@@ -853,18 +868,24 @@ void  Field::buildSys (real lambda2)
 //          is used to obtain solution for internal nodes (if any).
 // ---------------------------------------------------------------------------
 {
-  char  routine[] = "Field::buildSys";
-  int   info;
+  char    routine[] = "Field::buildSys";
+  char    s[StrMax];
+  int     info, verbose = option ("VERBOSE");
+  real**  hbb;
+  real**  rmat;
+  real*   rwrk;
+  int*    iwrk;
+  real    condition;
 
   // -- Set up. n_band additionally flags use of packed or band storage.
 
   n_band = n_pack = n_cons = 0;
 
   if (n_solve) {
-    if (n_gid == n_solve && lambda2 == 0.0) n_solve--; // Pin solution.
+    if (n_gid == n_solve && lambda2 == 0.0) n_solve--;     // -- Pin solution.
     n_band = globalBandwidth ();
-    n_band = (n_band < (n_solve+1)>>1) ? n_band : 0;
-    n_pack = (n_band) ? n_solve * n_band : ((n_solve + 1) * n_solve)>>1;
+    n_band = (n_band < (n_solve + 1) >> 1) ? n_band : 0;
+    n_pack = (n_band) ? n_solve * n_band : ((n_solve + 1) * n_solve) >> 1;
     n_cons = n_gid - n_solve;
   
     Hp = rvector (n_pack);
@@ -874,11 +895,24 @@ void  Field::buildSys (real lambda2)
       Hc = rmatrix (n_solve, n_cons);
       Veclib::zero (n_solve*n_cons, *Hc, 1);
     }
+
+    if (verbose > 0) {
+      if (n_band)
+	sprintf (s, ": Banded matrix system:      %1dx%1d", n_solve, n_band);
+      else
+	sprintf (s, ": Triangular matrix system:  %1dx%1d", n_solve, n_solve);
+      message (routine, s, REMARK);
+      sprintf (s, ": Constraint matrix:         %1dx%1d",   n_solve, n_cons);
+      message (routine, s, REMARK);
+      sprintf (s, ": Words required for System: %1d; Constraint: %1d",
+	       n_pack, n_solve * n_cons);
+      message (routine, s, REMARK);
+    }
   }
 
   // -- Loop over elements, creating & posting elemental Helmholtz matrices.
 
-  Element* E;
+  Element*  E;
 
   for (ListIterator<Element*> k(element_list); k.more(); k.next()) {
     E = k.current();
@@ -888,28 +922,39 @@ void  Field::buildSys (real lambda2)
     int nTot  = E -> nTot();
     int nKnot = E -> nKnot();
 		  
-    real** hbb  = rmatrix (nExt, nExt);
-    real** dmat = rmatrix (nKnot, nKnot);
-    real*  dwrk = rvector (nExt*nTot);
+    hbb  = rmatrix (nExt, nExt);
+    rmat = rmatrix (nKnot, nKnot);
+    rwrk = rvector (nExt*nTot);
  
-    E -> HelmholtzSC (lambda2, hbb, dmat, dwrk);
+    E -> HelmholtzSC (lambda2, hbb, rmat, rwrk);
     E -> post        (hbb, Hp, Hc, n_solve, n_cons, n_band);
 
     freeMatrix (hbb );
-    freeMatrix (dmat);
-    freeVector (dwrk);
+    freeMatrix (rmat);
+    freeVector (rwrk);
   }
 
   // -- Factor global Helmholtz matrix.
 
-  if (n_solve)
-    if (n_band) {
-      Lapack::pbtrf ("U", n_solve, n_band - 1, Hp, n_band, info);
-      if (info) message (routine, "pbtrf failed to factor matrix", ERROR);
-    } else {
-      Lapack::pptrf ("U", n_solve, Hp, info);
-      if (info) message (routine, "pptrf failed to factor matrix", ERROR);
+  if (n_solve) {
+    if   (n_band) Lapack::pbtrf ("U", n_solve, n_band - 1, Hp, n_band, info);
+    else          Lapack::pptrf ("U", n_solve,             Hp,         info);
+
+    if (info) message (routine, "failed to factor matrix", ERROR);
+
+    if (verbose > 0) {
+      rwrk = rvector (3 * n_solve);
+      iwrk = ivector (n_solve);
+      if   (n_band) Lapack::pbcon ("U", n_solve, n_band - 1, Hp, n_band, 1.0,
+				   condition, rwrk, iwrk, info);
+      else          Lapack::ppcon ("U", n_solve,             Hp,         1.0,
+				   condition, rwrk, iwrk, info);
+      sprintf (s, ": Global matrix condition number: %g", condition);
+      message (routine, s, REMARK);
+      freeVector (rwrk);
+      freeVector (iwrk);
     }
+  }
 }
 
 
@@ -943,6 +988,21 @@ void  Field::solveSys (Field* F)
   Veclib::zero (n_gid, RHS, 1);
   buildRHS     (F, RHS);
 
+#ifdef DEBUG
+  char  routine[] = "Field::solveSys";
+  char  s[StrMax];
+  if (option ("VERBOSE") > 2) {
+    sprintf (s, ": -- Solution for Field: %'%c', n_gid: %1d, n_solve: %1d",
+	     field_name, n_gid, n_solve);
+    message (routine, s, REMARK);
+    message ("", "-- (unconstrained) RHS:", REMARK);
+    for (int i = 0; i < n_gid; i++) {
+      sprintf (s, "  RHS %5d: %g", i, RHS[i]);
+      message ("", s, REMARK);
+    }
+  }
+#endif
+
   // -- Solve for unknown global-node values (if any), applying Hc, then Hp.
 
   if (n_solve) {
@@ -950,17 +1010,37 @@ void  Field::solveSys (Field* F)
       Blas::gemv ("T", n_cons, n_solve, -1.0, *Hc, n_cons,
 		  RHS + n_solve, 1, 1.0, RHS, 1);
 
+#ifdef DEBUG
+    if (option ("VERBOSE") > 2) {
+      message ("", "-- (constrained) RHS:", REMARK);
+      for (int i = 0; i < n_gid; i++) {
+	sprintf (s, "  RHS %5d: %g", i, RHS[i]);
+	message ("", s, REMARK);
+      }
+    }
+#endif
+
     // -- Solve unknown global-node values using factored matrix Hp.
     if (n_band) 
-      Lapack::pbtrs ("U", n_solve, n_band-1,1, Hp, n_band, RHS, n_solve, info);
+      Lapack::pbtrs ("U", n_solve, n_band-1, 1, Hp, n_band, RHS, n_gid, info);
     else     
-      Lapack::pptrs ("U", n_solve,          1, Hp,         RHS, n_solve, info);
+      Lapack::pptrs ("U", n_solve,           1, Hp,         RHS, n_gid, info);
   }
+
+#ifdef DEBUG
+  if (option ("VERBOSE") > 2) {
+    message ("", "-- Solution vector:", REMARK);
+    for (int i = 0; i < n_gid; i++) {
+      sprintf (s, "  RHS %5d: %g", i, RHS[i]);
+      message ("", s, REMARK);
+    }
+  }
+#endif
 
   // -- Resolve element external (and internal, if S-C) nodes.
 
-  Element*                U;
-  int                     offset;
+  Element*  U;
+  int       offset;
 
   for (ListIterator<Element*> u(element_list); u.more(); u.next()) {
     U      = u.current ();
@@ -996,14 +1076,14 @@ void Field::buildRHS (Field* F, real* RHS) const
     E -> dsForcingSC (F -> data + offset, RHS);
   }
 
-  if (n_solve == n_gid - 1) RHS [n_gid - 1] = 0.0;  // Pin last value to earth.
-
   Boundary *B;
   for (ListIterator<Boundary*> b(boundary_list); b.more(); b.next()) {
     B = b.current();
     if   (B -> isEssential()) B -> enforce (RHS);
     else                      B -> dsSum   (RHS);
   }
+
+  if (n_solve == n_gid - 1) RHS [n_gid - 1] = 0.0;  // Pin last value to earth.
 }
 
 

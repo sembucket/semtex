@@ -2,8 +2,7 @@
  * boundary.C:  Boundary edge routines.
  *****************************************************************************/
 
-// $Id$
-
+static char RCSid[]= "$Id$";
 
 #include "Fem.h"
 
@@ -75,7 +74,7 @@ void  Boundary::evaluate (int step)
 }
 
 
-void  Boundary::print() const
+void  Boundary::print () const
 // ---------------------------------------------------------------------------
 // (Debugging) utility to print internal information.
 // ---------------------------------------------------------------------------

@@ -1,8 +1,8 @@
 /*****************************************************************************
  * domain.C:  implement Domain class.
- *
- * $Id$
  *****************************************************************************/
+
+static char RCSid[] = "$Id$";
 
 #include "Fem.h"
 
@@ -14,9 +14,6 @@ Domain::Domain (Mesh& M, const char* session, int np)
 // On return, all information in Element and Boundary lists is set for u[0].
 // ---------------------------------------------------------------------------
 {
-  char  routine[] = "Domain::Domain";
-  int   verbose   = option ("VERBOSE");
-
   domain_name = new char[StrMax];
   strcpy (domain_name, session);
 
@@ -39,10 +36,6 @@ Domain::Domain (Mesh& M, const char* session, int np)
 
   u[0] -> connect (M, np);
 
-  if (verbose == 2) {
-    message (routine, "-- GLOBAL NUMBERING FOR u[0]:", REMARK);
-    Field::printConnect (u[0]);
-  }
 }
 
 
@@ -125,7 +118,7 @@ void  Domain::dump ()
       message (routine, "failed to open checkpoint file", ERROR);
   }
 
-  if (verbose) message (routine, "writing field dump", REMARK);
+  if (verbose) message (routine, ": writing field dump", REMARK);
   field_file << *this;
 }
 
@@ -139,7 +132,7 @@ void Domain::cleanup ()
   int   verbose   = option ("VERBOSE");
 
   if (iparam ("N_STEP") % iparam ("IO_FLD")) {
-    if (verbose) message (routine, "writing field dump", REMARK);
+    if (verbose) message (routine, ": writing field dump", REMARK);
     field_file << *this;
   }
   field_file.close ();
