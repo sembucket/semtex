@@ -131,7 +131,7 @@ headers:
 
 all: meshpr  enumerate calc   addfield  sem2nek  sem2tec \
      convert compare   noiz   project   interp   probe   \
-     rstress rectmesh  transform
+     rstress rectmesh  transform xplane
 
 # ----------------------------------------------------------------------------
 # Build meshpr utility.
@@ -208,15 +208,9 @@ compare: $(COMOBJ)
 	$(LD) -o $@ $(COMOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
-# Build noiz, velocity field perturber.
+# Standalone (bar semtex standard libs) C programs.
 
-noiz: noiz.c
-	$(CC) $(CPPFLAGS) -o $@ $@.c $(LDFLAGS)
-
-# ----------------------------------------------------------------------------
-# Build moden, to compute TKE distribution for a given mode.
-
-moden: moden.c
+avgdump moden noiz rstress xplane: avgdump.c moden.c xplane.c noiz.c rstress.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.c $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
@@ -251,18 +245,6 @@ PRBOBJ = probe.o feml.o mesh.o element.o auxfield.o geometry.o
 
 probe: $(PRBOBJ)
 	$(CXX) $(CPPFLAGS) -g -o $@ $(PRBOBJ) $(LDFLAGS)
-
-# ----------------------------------------------------------------------------
-# Build rstress, Reynolds stress calculator.
-
-rstress: rstress.c
-	$(CC) $(CPPFLAGS) -o $@ $@.c $(LDFLAGS)
-
-# ----------------------------------------------------------------------------
-# Build avgdump, field average updater.
-
-avgdump: avgdump.c
-	$(CC) $(CPPFLAGS) -o $@ $@.c $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build rectmesh, rectangular mesh generator;
