@@ -90,11 +90,14 @@ ifdef NOCXML     # -- For testing, avoid Compaq math libs.
   F77LIBS =  -llapack -lgemm -lblas -lots -lfor -lg2c  
 endif
 ifdef MPI
-  MPIHOME   = /usr/local/lam
+  MPIHOME   = /usr/local/mpich
+  LDFLAGS  += -lfem_mp -lalp $(F77LIBS) -lcpml \
+              -lmpich -lsnet_vipl -lvipl -ldl
+# MPIHOME   = /usr/local/lam
+# LDFLAGS  += -lfem_mp -lalp $(F77LIBS) -lcpml \
+#             -lmpi -ltrillium -ltstdio -lt -largs
   CPPFLAGS += -I$(MPIHOME)/include
   LIBDIR   += -L$(MPIHOME)/lib
-  LDFLAGS  += -lfem_mp -lalp $(F77LIBS) -lcpml \
-              -lmpi -ltrillium -ltstdio -lt -largs
 else
   LDFLAGS += -lfem -lalp $(F77LIBS) -lcpml
 endif
@@ -189,13 +192,13 @@ ifdef MPI
   LIBDIR   += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
   LIBDIR   += -L/usr/lang/mpi/lib
   LIBS      = -lfem_mp -lalp
-  LIBS     += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
+  LIBS     += -llapack -lblasvpp -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
   LIBS     += -lmpi -lmp
   OPT      += -Wl,-P
 else
   LIBDIR   += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
   LIBS      = -lfem -lalp
-  LIBS     += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
+  LIBS     += -llapack -lblasvpp -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
 endif
 LDFLAGS  = $(OPT) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 CLDFLAGS = $(LDFLAGS)
