@@ -1,7 +1,7 @@
 /*****************************************************************************
  * filter.c
  *
- * Copyright (c) Hugh Blackburn 1999-2000
+ * Copyright (c) Hugh Blackburn 1999-2001
  *
  * Routines for computing spectral filters.
  *
@@ -45,16 +45,25 @@ void bvdFilter (const integer N     ,
   for (i = 0; i <= N; i++) {
     if (i < shift) 
       filter[i] = 1.0;
+
     else {
       theta = (i - shift) / (N - shift);
-      omega = fabs (theta) - 0.5;
-      if ((fabs (theta - 0.5)) < EPS) 
-	chi = 1.0;
+
+      if      (fabs (theta - 0.0) < EPS)
+	filter[i] = 1.0;
+
+      else if (fabs (theta - 1.0) < EPS)
+	filter[i] = 1.0 - attn;
+
+      else if (fabs (theta - 0.5) < EPS)
+	filter[i] = 1.0 - attn * 0.5;
+
       else {
-	arg = 1.0 - 4.0 * SQR (omega);
-	chi = sqrt (-log (arg) / (4.0 * SQR (omega)));
+	omega     = fabs (theta) - 0.5;
+	arg       = 1.0 - 4.0 * SQR (omega);
+	chi       = sqrt (-log (arg) / (4.0 * SQR (omega)));
+	filter[i] = (1.0 - attn) + attn* 0.5*erfc (2.0*sqrt(order)*chi*omega);
       }
-      filter[i] = (1.0 - attn) + attn * 0.5 * erfc (2.0*sqrt(order)*chi*omega);
     }
   }
 }

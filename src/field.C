@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
-//field.C: derived from AuxField, Field adds boundary conditions,
-//global numbering, and the ability to solve Helmholtz problems.
+// field.C: derived from AuxField, Field adds boundary conditions,
+// global numbering, and the ability to solve Helmholtz problems.
 //
 // Copyright (C) 1994--2001 Hugh Blackburn
 //
@@ -629,7 +629,7 @@ Field& Field::solve (AuxField*             f  ,
     case JACPCG: {
       const integer StepMax = (integer) Femlib::value ("STEP_MAX");  
       const integer npts    = M -> _npts;
-      real           alpha, beta, dotp, epsb2, r2, rho1, rho2;
+      real          alpha, beta, dotp, epsb2, r2, rho1, rho2;
       vector<real>  work (5 * npts + 3 * Geometry::nPlane());
 
       real* r   = work();

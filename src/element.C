@@ -199,11 +199,43 @@ void Element::map ()
   Veclib::vdiv  (_npnp, _dsdx, 1, jac, 1, _dsdx, 1);
   Veclib::vdiv  (_npnp, _dsdy, 1, jac, 1, _dsdy, 1);
 
+  // -- The local length-scale, delta, is a measure of the size of the
+  //    local mesh length.  This can be computed in various ways.
+
+#if 1
+  // The "hypotenuse" form: delta = sqrt{(dx^2 + dy^2 + dz^2)/3}
+  //                              ~ sqrt{(2*dA        + dz^2)/3)}
+ 
+  Veclib::smul (_npnp, 2.0, _G4, 1, _delta, 1);
+
+  if (Geometry::nDim() == 3) {
+    if (Geometry::system() == Geometry::Cylindrical)
+      Veclib::smul (_npnp, dz, _ymesh, 1, tV, 1);
+    else
+      Veclib::fill (_npnp, dz, tV, 1);
+    Veclib::vmul (_npnp, tV, 1, tV, 1, tV, 1);
+    Veclib::vadd (_npnp, tV, 1, _delta, 1, _delta, 1);
+  }
+  Blas::scal    (_npnp, invD,      _delta, 1);
+  Veclib::vsqrt (_npnp, _delta, 1, _delta, 1);
+#endif  
 #if 0
-  // This is what Eggels uses:
-  // The local length-scale, delta, is a measure of the size of the
-  // local mesh length: delta = sqrt{(dx^2 + dy^2 + dz^2)/3}
-  //                          ~ sqrt{([dr^2 + ds^2]*jac + dz^2)/3)}
+  // The "volume" form: delta = (dx * dy * dz)^1/DIM
+  //                          ~ (dA      * dz)^(1/DIM).
+ 
+  Veclib::smul (_npnp, dz, _G4, 1, _delta, 1);
+
+  if (Geometry::system() == Geometry::Cylindrical)
+    for (register integer i = 0; i < _npnp; i++)
+      _delta[i] *= (fabs(_ymesh[i]) < EPS) ? EPS : fabs(_ymesh[i]);
+
+  Veclib::spow (_npnp, invD, _delta, 1, _delta, 1);
+
+#endif
+#if 0
+  // Hypotenuse form.
+  // delta = sqrt{(dx^2 + dy^2 + dz^2)/3}
+  //       ~ sqrt{([dr^2 + ds^2]*jac + dz^2)/3)}
  
   const real dxy = 2.0 * sqr (2.0 / (_np - 1));
 
@@ -219,10 +251,11 @@ void Element::map ()
   }
   Blas::scal    (_npnp, invD,      _delta, 1);
   Veclib::vsqrt (_npnp, _delta, 1, _delta, 1);
-#else
-  // The local length-scale, delta, is a measure of the size of the
-  // local mesh: delta = (dx * dy * dz)^1/DIM
-  //                   ~ [[2/(np - 1)]^2*jac * dz]^(1/DIM).
+#endif
+#if 0
+  // Volume form.
+  // delta = (dx * dy * dz)^1/DIM
+  //       ~ [[2/(np - 1)]^2*jac * dz]^(1/DIM).
  
   const real dxyz = sqr (2.0 / (_np - 1)) * ((Geometry::nZ()>1) ? dz : 1.0);
 

@@ -166,9 +166,10 @@ FFLAGS   = $(DEFINES) -fast -tune host -O5
 CXXFLAGS = $(DEFINES) -tune host -O2
 RANLIB   =
 FORTLIBS = -ldxml -lfor
-YACC     = bison -o y.tab.c
+# -- This redefinition is required on Compaq machines:
+#YACC     = bison -o y.tab.c
 ifdef MPI
-  MPIHOME   = /usr/local/mpi/
+  MPIHOME   = /usr/local/mpi
   CPPFLAGS += -I$(MPIHOME)/include  
   LIBDIR   += -L$(MPIHOME)/lib/alpha/ch_shmem
   LDFLAGS   = $(CXXFLAGS) $(LIBDIR) -lfem_mp -lalp $(FORTLIBS) -lm -lmpi
@@ -217,7 +218,8 @@ CFLAGS    = $(DEFINES) -pvctl,fullmsg,loopcnt=20000 -Onooverlap \
 FFLAGS    = $(DEFINES) -Wf'-pvctl,fullmsg -ptr byte -b' -float0 -ew
 CXXFLAGS  = -V $(DEFINES) -pvctl,loopcnt=20000,fullmsg -acct $(OPT)
 RANLIB    =
-CPPFLAGS += -I/usr/include/CC
+CPPFLAGS += -I/usr/include/CC -I/usr/local/include/CC
+LIBDIR   += -L/usr/local/lib
 OPT       = -O nooverlap -Nstkchk
 NOVEC     = -c -Nstkchk -acct -dir novec
 FORTLIBS  = -llapack_64 -lblas_64 -lfft_64

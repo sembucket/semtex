@@ -45,7 +45,7 @@ modav 123	# Average & plot modal energies
 		LIMITS ki _lavg
 		BOX
 		XLABEL \i k
-		YLABEL \i E(k)
+		YLABEL <{\i E(k)}>
 		IF( $?3 ) { SET _mode = $3 } ELSE { SET _mode = 0 }
 		IF( _mode == 1 ) {
 		  CONNECT ki _lavg

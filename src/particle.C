@@ -79,10 +79,10 @@ FluidParticle::FluidParticle (Domain*       d,
 
 void FluidParticle::integrate (const integer step)
 // ---------------------------------------------------------------------------
-// Integrate massless particle's position using predictor--corrector scheme.
-// If particles leave 2D mesh they marked by setting E = 0.  For 3D, they
-// get put back into the fundamental period of the solution if they leave
-// in the z-direction.
+// Integrate massless particle's position using predictor--corrector
+// scheme.  If particles leave 2D mesh they are marked by setting E =
+// 0.  For 3D, they get put back into the fundamental period of the
+// solution if they leave in the z-direction.
 //
 // NB: The domain velocity fields must be in Fourier space prior to call (3D).
 // ---------------------------------------------------------------------------
