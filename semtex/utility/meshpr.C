@@ -11,8 +11,9 @@
 //   -c       ... disable checking of mesh connectivity
 //   -v       ... set verbose output
 //   -u       ... set uniform spacing [Default: GLL]
-//   -n N     ... override element order to be N
-//   -z N     ... override number of planes to be N
+//   -3       ... produce 3D mesh output: Np*Np*Nz*Nel*(x y z)
+//   -n <num> ... override element order to be num
+//   -z <num> ... override number of planes to be num
 //   -b <num> ... override wavenumber beta to be <num> (3D)
 //
 // $Id$
@@ -29,7 +30,7 @@
 
 static char prog[] = "meshpr";
 static void getargs (int, char**, char*&, integer&, integer&,
-		     integer&, integer&, integer&, real&);
+		     integer&, integer&, integer&, integer&, real&);
 
 
 int main (int     argc,
@@ -44,13 +45,14 @@ int main (int     argc,
   char*   session = 0;
   integer verb    = 0,
           check   = 1,
+          threed  = 0,
           np      = 0,
           nz      = 0,
           basis   = GLL;
   real    beta    = -1.;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, session, verb, check, np, nz, basis, beta);
+  getargs (argc, argv, session, verb, check, np, nz, threed, basis, beta);
 
   // -- Set up to read from file, initialize Femlib parsing.
 
@@ -72,29 +74,49 @@ int main (int     argc,
 
   const integer    NEL  = M.nEl();
   const integer    NTOT = np * np;
-  register integer ID, j;
+  const real       dz   = Femlib::value ("TWOPI/BETA") / nz;
+  register integer ID, j, k;
   vector<real>     x (np*np), y (np*np);
-  const real*      z;
+  const real*      zero;
+  real             z;
 
-  cout << np << " " << np << " " << nz << " " << NEL << " NR NS NZ NEL"<< endl;
+  if (!threed)
+    cout
+      << np  << " "
+      << np  << " "
+      << nz  << " "
+      << NEL << " NR NS NZ NEL"<< endl;
 
-  Femlib::mesh (basis, basis, np, np, &z, 0, 0, 0, 0);
+  Femlib::mesh (basis, basis, np, np, &zero, 0, 0, 0, 0);
 
-  // -- Print out x-y mesh.
+  if (threed) {
 
-  for (ID = 0; ID < NEL; ID++) {
-    M.meshElmt (ID, np, z, x(), y());
+    // -- Print out x, y, z for every mesh location, in planes.
+    //    NB: this prints out periodic plane, too.
 
-    for (j = 0; j < NTOT; j++)
-      cout << setw (15) << x (j) << setw (15) << y (j) << endl;
-  }
+    nz = (nz > 1) ? nz : 0;
+    for (k = 0; k <= nz; k++) {
+      z = k * dz;
+      for (ID = 0; ID < NEL; ID++) {
+	M.meshElmt (ID, np, zero, x(), y());
+	for (j = 0; j < NTOT; j++)
+	  cout << x(j) << '\t' << y(j) << '\t' << z << endl;
+      }
+    }
+
+  } else {
+   
+    // -- Print out x-y mesh.
+
+    for (ID = 0; ID < NEL; ID++) {
+      M.meshElmt (ID, np, zero, x(), y());
+      for (j = 0; j < NTOT; j++)
+	cout << setw(15) << x(j) << setw(15) << y(j) << endl;
+    }
   
-  // -- Print out z-mesh.
-
-  if (nz > 1) {
-    const real dz = Femlib::value ("TWOPI/BETA") / nz;
-    for (j = 0; j <= nz; j++)
-      cout << setw (15) << j * dz << endl;
+    // -- Print out z-mesh.
+    
+    if (nz > 1) for (j = 0; j <= nz; j++) cout << setw(15) << j * dz << endl;
   }
 
   Femlib::finalize();
@@ -109,6 +131,7 @@ static void getargs (integer  argc   ,
 		     integer& check  ,
 		     integer& np     ,
 		     integer& nz     ,
+		     integer& threed ,
 		     integer& basis  ,
 		     real&    beta   )
 // ---------------------------------------------------------------------------
@@ -117,12 +140,13 @@ static void getargs (integer  argc   ,
 {
   char usage[] = "usage: meshpr [options] session\n"
     "options:\n"
-    "  -h   ... display this message\n"
-    "  -c   ... disable checking of mesh connectivity\n"
-    "  -v   ... set verbose output\n"
-    "  -u   ... set uniform spacing [Default: GLL]\n"
-    "  -n N ... override number of element knots to be N\n"
-    "  -z N ... override number of planes to be N\n"
+    "  -h       ... display this message\n"
+    "  -c       ... disable checking of mesh connectivity\n"
+    "  -v       ... set verbose output\n"
+    "  -u       ... set uniform spacing [Default: GLL]\n"
+    "  -3       ... produce 3D mesh output: Np*Np*Nz*Nel*(x y z)\n"
+    "  -n <num> ... override number of element knots to be num\n"
+    "  -z <num> ... override number of planes to be num\n"
     "  -b <num> ... override wavenumber beta to be <num> (3D)\n";
   char err[StrMax], c;
 
@@ -144,6 +168,9 @@ static void getargs (integer  argc   ,
       break;
     case 'u':
       basis = STD;
+      break;
+    case '3':
+      threed = 1;
       break;
     case 'n':
       if (*++argv[0]) np = atoi (*argv);
