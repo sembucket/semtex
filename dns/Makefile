@@ -120,7 +120,7 @@ SEMHDR    = Sem.h
 
 # ----------------------------------------------------------------------------
 # Default build for Navier-Stokes solver.
-NS_OBJ = drive.o NS.o
+NS_OBJ = drive.o NS.o dnsanalysis.o
 
 $(PROG): sem $(SEMOBJ) $(NS_OBJ) 
 	$(LD) -o $@ $(NS_OBJ) $(SEMOBJ) $(LDFLAGS)
