@@ -9,7 +9,8 @@
 // plane-by-plane, with each plane being a 2D AuxField; if in physical space
 // there are nz planes of data, then there are nz/2 Fourier modes.
 // Data for the Nyquist mode are stored as the imaginary part of the zeroth
-// Fourier mode, but are kept zero and never evolve.
+// Fourier mode, but are kept zero and never evolve.  The planes always
+// point to the same storage locations within the data area.
 //
 // The data are transformed to physical space for storage in restart files.
 ///////////////////////////////////////////////////////////////////////////////
@@ -31,9 +32,9 @@ AuxField::AuxField (vector<Element*>& Elts,
 {
   char         routine[] = "AuxField::AuxField";
   register int k;
-  const int    nT = Geometry::nTot  ();
-  const int    nZ = Geometry::nZ    ();
-  const int    nP = Geometry::nPlane();
+  const int    nZ = Geometry::nZ();
+  const int    nP = Geometry::planeSize();
+  const int    nT = Geometry::nTotal();
 
   if (Geometry::nElmt() != Elmt.getSize())
     message (routine, "conflicting number of elements in input data", ERROR);
@@ -50,8 +51,8 @@ AuxField& AuxField::operator = (const real val)
 // Set field storage area to val.
 // ---------------------------------------------------------------------------
 {
-  if   (val == 0.0) Veclib::zero (Geometry::nTot(),      data, 1);
-  else              Veclib::fill (Geometry::nTot(), val, data, 1);
+  if   (val == 0.0) Veclib::zero (Geometry::nTotal(),      data, 1);
+  else              Veclib::fill (Geometry::nTotal(), val, data, 1);
 
   return *this;
 }
@@ -62,7 +63,7 @@ AuxField& AuxField::operator += (const real val)
 // Add val to field storage area.
 // ---------------------------------------------------------------------------
 {
-  if (val != 0.0) Veclib::sadd (Geometry::nTot(), val, data, 1, data, 1);
+  if (val != 0.0) Veclib::sadd (Geometry::nTotal(), val, data, 1, data, 1);
 
   return *this;
 }
@@ -73,7 +74,7 @@ AuxField& AuxField::operator -= (const real val)
 // Add -val to field storage area.
 // ---------------------------------------------------------------------------
 {
-  if (val != 0.0) Veclib::sadd (Geometry::nTot(), -val, data, 1, data, 1);
+  if (val != 0.0) Veclib::sadd (Geometry::nTotal(), -val, data, 1, data, 1);
 
   return *this;
 }
@@ -84,8 +85,8 @@ AuxField& AuxField::operator *= (const real val)
 // Multiply field storage area by val.
 // ---------------------------------------------------------------------------
 {
-  if   (val == 0.0) Veclib::zero (Geometry::nTot(),      data, 1);
-  else              Blas::scal   (Geometry::nTot(), val, data, 1);
+  if   (val == 0.0) Veclib::zero (Geometry::nTotal(),      data, 1);
+  else              Blas  ::scal (Geometry::nTotal(), val, data, 1);
 
   return *this;
 }
@@ -97,7 +98,7 @@ AuxField& AuxField::operator /= (const real val)
 // ---------------------------------------------------------------------------
 {
   if   (val == 0.0) message ("AuxField::op /= real", "divide by zero", ERROR);
-  else              Blas::scal (Geometry::nTot(), 1.0 / val, data, 1);
+  else              Blas::scal (Geometry::nTotal(), 1.0 / val, data, 1);
 
   return *this;
 }
@@ -108,12 +109,7 @@ AuxField& AuxField::operator = (const AuxField& f)
 // This presumes the two fields conform, and copies f's value storage to LHS.
 // ---------------------------------------------------------------------------
 {
-  register int k;
-  const int    nZ = Geometry::nZ();
-  const int    nP = Geometry::nPlane();
-  
-  for (k = 0; k < nZ; k++)
-    Veclib::copy (nP, f.plane[k], 1, plane[k], 1);
+  Veclib::copy (Geometry::nTotal(), f.data, 1, data, 1);
   
   return *this;
 }
@@ -124,12 +120,7 @@ AuxField& AuxField::operator += (const AuxField& f)
 // Add f's value to this AuxField's.
 // ---------------------------------------------------------------------------
 {
-  register int k;
-  const int    nZ = Geometry::nZ();
-  const int    nP = Geometry::nPlane();
-  
-  for (k = 0; k < nZ; k++)
-    Veclib::vadd (nP, plane[k], 1, f.plane[k], 1, plane[k], 1);
+  Veclib::vadd (Geometry::nTotal(), data, 1, f.data, 1, data, 1);
 
   return *this;
 }
@@ -140,12 +131,7 @@ AuxField& AuxField::operator -= (const AuxField& f)
 // Subtract f's value from this AuxField's.
 // ---------------------------------------------------------------------------
 {
-  register int k;
-  const int    nZ = Geometry::nZ();
-  const int    nP = Geometry::nPlane();
-  
-  for (k = 0; k < nZ; k++)  
-    Veclib::vsub (nP, plane[k], 1, f.plane[k], 1, plane[k], 1);
+  Veclib::vsub (Geometry::nTotal(), data, 1, f.data, 1, data, 1);
 
   return *this;
 }
@@ -186,7 +172,7 @@ AuxField& AuxField::product (const AuxField& a,
 // ---------------------------------------------------------------------------
 {
   if (Geometry::nDim() == 2)
-    Veclib::vmul (Geometry::nTot(), a.plane[0], 1, b.plane[0], 1, plane[0], 1);
+    Veclib::vmul (Geometry::nTotal(), a.data, 1, b.data, 1, data, 1);
 
   else {
     register int i, k;
@@ -234,7 +220,7 @@ AuxField& AuxField::product (const AuxField& a,
 
     // -- Normalize.
     
-    Blas::scal (Geometry::nTot(), 1.0 / nz32, data, 1);
+    Blas::scal (Geometry::nTotal(), 1.0 / nz32, data, 1);
   }
 
   return *this;
@@ -249,7 +235,7 @@ AuxField& AuxField::addprod (const AuxField& a,
 // ---------------------------------------------------------------------------
 {
   if (Geometry::nDim() == 2)
-    Veclib::vvtvp (Geometry::nTot(), a.data, 1, b.data, 1, data, 1, data, 1);
+    Veclib::vvtvp (Geometry::nTotal(), a.data, 1, b.data, 1, data, 1, data, 1);
 
   else {
     register int i, k;
@@ -309,12 +295,7 @@ AuxField& AuxField::axpy (const real      alpha,
 // Add alpha * x to this AuxField, plane-by-plane.
 // ---------------------------------------------------------------------------
 {
-  register int k;
-  const int    nZ = Geometry::nZ();
-  const int    nP = Geometry::nPlane();
-  
-  for (k = 0; k < nZ; k++)
-    Blas::axpy (nP, alpha, x.plane[k], 1, plane[k], 1);
+  Blas::axpy (Geometry::nTotal(), alpha, x.data, 1, data, 1);
 
   return *this;
 }
@@ -325,7 +306,7 @@ AuxField& AuxField::reverse ()
 // Reverse order of bytes within each word of data.
 // ---------------------------------------------------------------------------
 {
-  Veclib::brev (Geometry::nTot(), data, 1, data, 1);
+  Veclib::brev (Geometry::nTotal(), data, 1, data, 1);
 
   return *this;
 }
@@ -369,16 +350,19 @@ AuxField& AuxField::gradient (const int dir)
     break;
 
   case 2: {
-    const int nmodes = Geometry::nMode();
-    real      beta   = Femlib::value ("BETA");
-    real*     tmp;
+    int          Re, Im;
+    const int    nmodes = Geometry::nMode();
+    const real   beta   = Femlib::value ("BETA");
+    vector<real> work (nP);
+    real*        tmp = work();
 
-    for (k = 0; k < nmodes; k++) {
-      tmp              = plane[2 * k];
-      plane[2 * k]     = plane[2 * k + 1];
-      plane[2 * k + 1] = tmp;
-      Blas::scal (nP, -beta * k, plane[2 * k],     1);
-      Blas::scal (nP,  beta * k, plane[2 * k + 1], 1);
+    Veclib::zero (2*Geometry::planeSize(), data, 1);
+    for (k = 1; k < nmodes; k++) {
+      Re = k  + k;
+      Im = Re + 1;
+      Veclib::copy (nP,  plane[Re], 1, tmp,    1);
+      Veclib::smul (nP, -beta * k,  plane[Im], 1, plane[Re], 1);
+      Veclib::smul (nP,  beta * k,  tmp,       1, plane[Im], 1);
     }
     break;
   }
@@ -477,7 +461,7 @@ real AuxField::norm_inf () const
 // Return infinity-norm (absolute max value) of AuxField data area.
 // ---------------------------------------------------------------------------
 {
-  return fabs (data[Blas::iamax (Geometry::nTot(), data, 1)]);
+  return fabs (data[Blas::iamax (Geometry::nTotal(), data, 1)]);
 }
 
 
@@ -518,7 +502,11 @@ ostream& operator << (ostream&  strm,
 // Binary write of F's data area.
 // ---------------------------------------------------------------------------
 {
-  strm.write ((char*) F.data, Geometry::nTot() * sizeof (real));
+  register int i;
+  const int    nZ = Geometry::nZ();
+  const int    nP = Geometry::nPlane();
+  
+  for (i = 0; i < nZ; i++) strm.write ((char*) F.plane[i], nP * sizeof (real));
 
   return strm;
 }
@@ -527,10 +515,17 @@ ostream& operator << (ostream&  strm,
 istream& operator >> (istream&  strm,
 		      AuxField& F   )
 // ---------------------------------------------------------------------------
-// Binary read of F's data area.
+// Binary read of F's data area.  Zero any blank storage areas, Nyquist data.
 // ---------------------------------------------------------------------------
 {
-  strm.read ((char*) F.data, Geometry::nTot() * sizeof (real));
+  register int i;
+  const int    nZ = Geometry::nZ();
+  const int    nP = Geometry::nPlane();
+  const int    NP = Geometry::planeSize();
+  
+  for (i = 0; i < nZ; i++) strm.read ((char*) F.plane[i], nP * sizeof (real));
+
+  if (NP > nP) Veclib::zero (nZ, F.data + nP, NP);
 
   return strm;
 }
@@ -560,13 +555,8 @@ AuxField& AuxField::transform (const int sign)
 // physical space values.
 // ---------------------------------------------------------------------------
 {
-  Femlib::DFTr (data              ,
-		Geometry::nZ()    ,
-		Geometry::nPlane(),
-		1                 ,
-		Geometry::nPlane(),
-		sign              );
-  
+  Femlib::DFTr (data, Geometry::nZ(), Geometry::planeSize(), sign);
+
   return *this;
 }
 
@@ -635,23 +625,23 @@ void AuxField::couple (AuxField* v  ,
   if (Geometry::nDim() < 3) return;
 
   char         routine[] = "Field::couple";
-  register int k;
+  register int k, Re, Im;
   const int    nZ    = Geometry::nZ(),
-               nP    = Geometry::nPlane(),
+               nP    = Geometry::planeSize(),
                nMode = nZ >> 1;
   vector<real> work (nP);
-  real         *Vr, *Vi, *Wr, *Wi, *tp;
+  real         *Vr, *Vi, *Wr, *Wi, *tp = work();
   
   if (dir == 1) {
 
     for (k = 1; k < nMode; k++) {
-      
-      tp = work();
+      Re = k  + k;
+      Im = Re + 1;
 
-      Vr = v -> plane[2 * k];
-      Vi = v -> plane[2 * k + 1];
-      Wr = w -> plane[2 * k];
-      Wi = w -> plane[2 * k + 1];
+      Vr = v -> plane[Re];
+      Vi = v -> plane[Im];
+      Wr = w -> plane[Re];
+      Wi = w -> plane[Im];
 
       Veclib::copy (nP, Vr, 1, tp, 1);
       Veclib::vsub (nP, Vr, 1, Wi, 1, Vr, 1);
@@ -659,23 +649,21 @@ void AuxField::couple (AuxField* v  ,
       Veclib::copy (nP, Vi, 1, tp, 1);
       Veclib::vadd (nP, Vi, 1, Wr, 1, Vi, 1);
       Veclib::neg  (nP, Wr, 1);
-      Veclib::vadd (nP, Wr, 1, tp, 1, Wr, 1);
-
-      tp                    = w -> plane[2 * k];
-      w -> plane[2 * k]     = w -> plane[2 * k + 1];
-      w -> plane[2 * k + 1] = tp;
+      Veclib::vadd (nP, Wr, 1, tp, 1, tp, 1);
+      Veclib::copy (nP, Wi, 1, Wr, 1);
+      Veclib::copy (nP, tp, 1, Wi, 1);
     }
 
   } else if (dir == -1) {
 
     for (k = 1; k < nMode; k++) {
+      Re = k  + k;
+      Im = Re + 1;
 
-      tp = work();
-
-      Vr = v -> plane[2 * k];
-      Vi = v -> plane[2 * k + 1];
-      Wr = w -> plane[2 * k];
-      Wi = w -> plane[2 * k + 1];
+      Vr = v -> plane[Re];
+      Vi = v -> plane[Im];
+      Wr = w -> plane[Re];
+      Wi = w -> plane[Im];
 
       Veclib::copy (nP, Vr, 1, tp, 1);
       Veclib::vadd (nP, Vr, 1, Wr, 1, Vr, 1);
@@ -683,11 +671,9 @@ void AuxField::couple (AuxField* v  ,
       Veclib::copy (nP, Vi, 1, tp, 1);
       Veclib::vadd (nP, Vi, 1, Wi, 1, Vi, 1);
       Veclib::neg  (nP, Wi, 1);
-      Veclib::vadd (nP, Wi, 1, tp, 1, Wi, 1);
-
-      tp                    = w -> plane[2 * k];
-      w -> plane[2 * k]     = w -> plane[2 * k + 1];
-      w -> plane[2 * k + 1] = tp;
+      Veclib::vadd (nP, Wi, 1, tp, 1, tp, 1);
+      Veclib::copy (nP, Wr, 1, Wi, 1);
+      Veclib::copy (nP, tp, 1, Wi, 1);
     }
 
     Blas::scal (nP * (nZ - 2), 0.5, v -> data + 2 * nP, 1);
