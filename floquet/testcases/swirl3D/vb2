@@ -7,7 +7,7 @@
    N_BASE      = 3
    N_SLICE     = 32
 
-   N_TIME      = 1
+   N_TIME      = 2
    PERIOD      = 28.282
    STEPS_P     = 2048
    N_STEP      = STEPS_P
@@ -18,7 +18,7 @@
    OMEGA       = 1.0
    TOL_REL     = 1e-8
 
-   CHKPOINT    = 0
+   CHKPOINT    = 1
    ITERATIVE   = 0
    AVERAGE     = 0
    
