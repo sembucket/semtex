@@ -33,6 +33,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <femdef.h>
+#include <femlib.h>
 #include <alplib.h>
 
 #define STOP 16
@@ -581,7 +582,7 @@ void legtr2d (const integer n,
 {
   const integer N = n - 1;
   register int  i, j, p, q;
-  double        *z, *w;
+  const double  *z, *w;
 
   dQuadOps (LL, n, n, &z, 0, &w, 0, 0, 0, 0); 
 
@@ -613,7 +614,7 @@ void legtr2i (const integer n,
 {
   const integer N = n - 1;
   register int  i, j, p, q;
-  double        *z;
+  const double  *z;
 
   dQuadOps (LL, n, n, &z, 0, 0, 0, 0, 0, 0);
 
