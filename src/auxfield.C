@@ -544,9 +544,9 @@ real AuxField::mode_L2 (const integer mode) const
     E      = Elmt[j];
     offset = E -> dOff();
     area  += E -> area();
-    Ek    += E -> norm_L2 (plane[kr] + offset);
+    Ek    += sqr(E -> norm_L2 (plane[kr] + offset));
     if (nZ > 1) 
-      Ek  += E -> norm_L2 (plane[ki] + offset);
+      Ek  += sqr(E -> norm_L2 (plane[ki] + offset));
   }
 
   return Ek / (2.0 * area);
