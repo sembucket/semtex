@@ -53,7 +53,7 @@ void main(int argc, char *argv[])
  * Driver.                                                                   *
  *===========================================================================*/
 {
-  complex  *Zbuf, *Wtab;
+  Complex  *Zbuf, *Wtab;
   FILE     *fp_Store,
            *fp_in  = stdin,
            *fp_out = stdout;
@@ -75,13 +75,13 @@ void main(int argc, char *argv[])
    * Set up storage, precompute FFT angular factors.                         *
    *-------------------------------------------------------------------------*/  
   TranLen = roundpow2(NData + NLag) >> 1;
-  TabLen  = TranLen >> 1;
+  TabLen  = TranLen;
   NPad = (TranLen << 1) - NData;
   
   Zbuf = cvector(0, TranLen-1);
   Wtab = cvector(0, TabLen-1);
   
-  preFFT(Wtab, TranLen >> 1, -1);
+  preFFT(Wtab, TabLen, -1);
     
   /*-------------------------------------------------------------------------*
    * Do padding to make up power of 2 if needed & to avoid overlap.          *
