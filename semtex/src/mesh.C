@@ -120,7 +120,7 @@ Mesh::Mesh (FEML& f) :
 
   nodeTable.setSize (Nn = feml.attribute ("NODES", "NUMBER"));
 
-  if (Nn < 5) {
+  if (Nn < 4) {
     sprintf (err, "At least 4 Nodes are needed, found %1d declared", Nn);
     message (routine, err, ERROR);
   }
@@ -1287,6 +1287,7 @@ int Mesh::matchBC (const char grp,
 //   D <==> Dirichlet, Essential
 //   N <==> Neumann, Natural
 //   H <==> "High-order" (computed, natural) Pressure BC.  See KIO91.
+//   A <==> "Axis" (selected, natural/essential) BC.       See TOK93.
 // ---------------------------------------------------------------------------
 {
   char      groupc, fieldc, nextc, buf[StrMax];
