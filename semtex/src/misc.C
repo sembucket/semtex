@@ -8,9 +8,6 @@
 #include <time.h>
 
 
-
-
-
 ostream& printVector (ostream&     strm,
 		      const char*  fmt , 
 		      int          ntot,
@@ -75,9 +72,6 @@ ostream& printVector (ostream&     strm,
 }
 
 
-
-
-
 istream&  nextBlock (istream& strm, char* s)
 // ---------------------------------------------------------------------------
 // Advance to start of the next block of information in file, skipping
@@ -93,9 +87,6 @@ istream&  nextBlock (istream& strm, char* s)
 }
 
 
-
-
-
 char*  upperCase (char *s)
 // ---------------------------------------------------------------------------
 // Uppercase characters in string.
@@ -103,9 +94,6 @@ char*  upperCase (char *s)
 {
   char *z(s); while (*z = toupper (*z)) z++; return s;
 }
-
-
-
 
 
 ifstream*  altFile (ifstream& ist)
@@ -140,9 +128,6 @@ ifstream*  altFile (ifstream& ist)
 }
 
 
-
-
-
 int  quadComplete (int dim, int np)
 // ---------------------------------------------------------------------------
 // Return the number of Gauss-Legendre quadrature points sufficient to
@@ -163,9 +148,6 @@ int  quadComplete (int dim, int np)
 
   return max (n, 2);
 }
-
-
-
 
 
 ostream& operator << (ostream& strm, Domain& D)
@@ -247,9 +229,6 @@ ostream& operator << (ostream& strm, Domain& D)
 }
 
 
-
-
-
 istream& operator >> (istream& strm, Domain& D)
 // ---------------------------------------------------------------------------
 // Input all Domain field variables from prism-compatible istream.
@@ -299,9 +278,6 @@ istream& operator >> (istream& strm, Domain& D)
 }
 
 
-
-
-
 int*  ivector (long len)
 // ----------------------------------------------------------------------------
 // Return zero-offset vector of int.
@@ -311,9 +287,6 @@ int*  ivector (long len)
   
   return v;
 }
-
-
-
 
 
 real*  rvector (long len)
@@ -327,9 +300,6 @@ real*  rvector (long len)
 }
 
 
-
-
-
 void freeVector (int* v)
 // ----------------------------------------------------------------------------
 // Free a zero-offset vector.
@@ -339,9 +309,6 @@ void freeVector (int* v)
 }
 
 
-
-
-
 void freeVector (real* v)
 // ----------------------------------------------------------------------------
 // Free a zero-offset vector.
@@ -349,9 +316,6 @@ void freeVector (real* v)
 {
   delete [] v;
 }
-
-
-
 
 
 int** imatrix (long nrow, long ncol)
@@ -367,9 +331,6 @@ int** imatrix (long nrow, long ncol)
 }
 
 
-
-
-
 real** rmatrix (long nrow, long ncol)
 // ---------------------------------------------------------------------------
 // Allocate a 2D row-major, zero-offset, contiguous matrix of real.
@@ -383,9 +344,6 @@ real** rmatrix (long nrow, long ncol)
 }
 
 
-
-
-
 void freeMatrix (int** m)
 // ---------------------------------------------------------------------------
 // Release storage for int matrix.
@@ -396,9 +354,6 @@ void freeMatrix (int** m)
 }
 
 
-
-
-
 void freeMatrix (real** m)
 // ---------------------------------------------------------------------------
 // Release storage for real matrix.
@@ -407,9 +362,6 @@ void freeMatrix (real** m)
   delete [] m[0];
   delete [] m;
 }
-
-
-
 
 
 istream& readOptions (istream& istr)
@@ -451,9 +403,6 @@ istream& readOptions (istream& istr)
 }
 
 
-
-
-
 istream& readIparams (istream& istr)
 // ---------------------------------------------------------------------------
 // Read integer parameters from istr, set into external list.
@@ -479,9 +428,6 @@ istream& readIparams (istream& istr)
 }
 
 
-
-
-
 istream& readFparams (istream& istr)
 // ---------------------------------------------------------------------------
 // Read floating-point parameters from istr, set into external list.
@@ -497,22 +443,19 @@ istream& readFparams (istream& istr)
   char   routine[] = "readFparams";
   char   s1[StrMax], s2[StrMax], s3[StrMax];
 
-  istr.getline(s1, StrMax).getline(s1, StrMax);
+  istr.getline (s1, StrMax).getline (s1, StrMax);
 
   do {
     if (sscanf (s1, "%s %s", s2, s3) != 2)
       message (routine, strcat(s1, "?"), ERROR);
 
-    setDparam(s3, interpret (s2));
+    setDparam (s3, interpret (s2));
     
-    istr.getline(s1, StrMax);
+    istr.getline (s1, StrMax);
   } while (s1[0]);
 
   return istr;
 }
-
-
-
 
 
 Mesh*  preProcess (istream& strm)
