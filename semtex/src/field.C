@@ -2,7 +2,9 @@
  * field.C:  routines to deal with Fields.
  *****************************************************************************/
 
-static char RCSid[] = "$Id$";
+static char 
+RCSid[] = "$Id$";
+
 
 #include "Fem.h"
 
@@ -36,6 +38,7 @@ n_elmt_bnodes       (0),
 n_elmt_inodes       (0),
 n_gid               (0),
 n_solve             (0),
+singular            (0),
 elmt_np_max         (0),
 elmt_nt_max         (0),
 elmt_ne_max         (0),
@@ -111,7 +114,7 @@ Field::Field (const Mesh& M, int np)
 }
 
  
-Field::Field (const Field& f, const Mesh& M, char tag)
+Field::Field (const Field& f, const Mesh& M, char nametag)
 // ---------------------------------------------------------------------------
 // Copy constructor.
 //
@@ -139,11 +142,11 @@ Field::Field (const Field& f, const Mesh& M, char tag)
   element_list.clear  ();
   boundary_list.clear ();
  
-  field_name = tag;
+  field_name = nametag;
   d = data   = rvector (n_data);
   memcpy (data, f.data, n_data * sizeof (real));
 
-  if (tag) {
+  if (nametag) {
     elmt_bndry_gid  = ivector (n_elmt_bnodes);
     elmt_bndry_mask = ivector (n_elmt_bnodes);
     memcpy (elmt_bndry_gid,  f.elmt_bndry_gid,  n_elmt_bnodes * sizeof (int)); 
@@ -159,13 +162,13 @@ Field::Field (const Field& f, const Mesh& M, char tag)
       E -> install (offset, 0, g, s);
       element_list.add (E);
 
-      offset += E -> nTot();
-      g      += E -> nExt();
-      s      += E -> nExt();
+      offset += E -> nTot ();
+      g      += E -> nExt ();
+      s      += E -> nExt ();
     }
     
-    if   (tag == PRESSURE) buildBoundaries (f);
-    else                   buildBoundaries (M);
+    if   (nametag == PRESSURE) buildBoundaries (f);
+    else                       buildBoundaries (M);
 
   } else {
     int offset = 0;
@@ -331,6 +334,9 @@ Field&  Field::prod (const Field& a, const Field& b)
 // Set this Field's value as the product of a & b.
 // ---------------------------------------------------------------------------
 {
+  if (a.n_data != n_data || b.n_data != n_data)
+    message ("Field::prod", "size mismatch", ERROR);
+
   Veclib::vmul (n_data, a.data, 1, b.data, 1, data, 1);
 
   return *this;
@@ -342,6 +348,9 @@ Field&  Field::sum (const Field& a, const Field& b)
 // Set this Field's value as the sum of a & b.
 // ---------------------------------------------------------------------------
 {
+  if (a.n_data != n_data || b.n_data != n_data)
+    message ("Field::sum", "size mismatch", ERROR);
+
   Veclib::vadd (n_data, a.data, 1, b.data, 1, data, 1);
 
   return *this;
@@ -353,6 +362,9 @@ Field&  Field::addprod (const Field& a, const Field& b)
 // Add the product of a & b to this Field.
 // ---------------------------------------------------------------------------
 {
+  if (a.n_data != n_data || b.n_data != n_data)
+    message ("Field::addprod", "size mismatch", ERROR);
+
   Veclib::vvtvp (n_data, a.data, 1, b.data, 1, data, 1, data, 1);
 
   return *this;
@@ -364,9 +376,26 @@ Field&  Field::axpy (real alpha, const Field& x)
 // Add alpha * x to this Field.
 // ---------------------------------------------------------------------------
 {
+  if (x.n_data != n_data)
+    message ("Field::axpy", "size mismatch", ERROR);
+
   Blas::axpy (n_data, alpha, x.data, 1, data, 1);
 
   return *this;
+}
+
+
+void Field::swapData (Field* x, Field* y)
+// ---------------------------------------------------------------------------
+// Swap data areas of two fields.
+// ---------------------------------------------------------------------------
+{
+  if (x -> n_data != y -> n_data)
+    message ("Field::swapData", "size mismatch", ERROR);
+
+  real* tmp = x -> data;
+  x -> data = y -> data;
+  y -> data = tmp;
 }
 
 
@@ -784,7 +813,7 @@ Field&  Field::smooth ()
 }
 
 
-Field&  Field::grad (int flag1, int flag2)
+Field& Field::grad (int flag1, int flag2)
 // ---------------------------------------------------------------------------
 // Operate on Field(s) to produce the nominated index of the gradient.
 // ---------------------------------------------------------------------------
@@ -813,8 +842,8 @@ Field&  Field::grad (int flag1, int flag2)
 }
 
 
-void  Field::buildSys (const real&      lambda2    ,
-		       MatrixGenerator  Constructor)
+Field& Field::buildSys (const real&      lambda2    ,
+			MatrixGenerator  Constructor)
 // ---------------------------------------------------------------------------
 // Build a direct-solve discrete Helmholtz matrix system for this Field.
 //
@@ -915,9 +944,10 @@ void  Field::buildSys (const real&      lambda2    ,
   real*   rwrk;
   int*    iwrk;
   real    condition;
-  int     singular = n_gid == n_solve && lambda2 == 0.0;
 
   // -- Set up. n_band additionally flags use of packed or band storage.
+
+  singular = n_gid == n_solve && lambda2 == 0.0;
 
   n_band = n_pack = n_cons = 0;
 
@@ -994,10 +1024,49 @@ void  Field::buildSys (const real&      lambda2    ,
       freeVector (iwrk);
     }
   }
+
+  return *this;
 }
 
 
-void  Field::solveSys (Field* F)
+Field& Field::buildSys (const Field* master)
+// ---------------------------------------------------------------------------
+// Set direct solution variables (if any) from master Field.
+// ---------------------------------------------------------------------------
+{
+  char routine[] = "Field::buildSys(const Field*)";
+
+  // -- First do some elementary checks that fields conform.
+
+  int mismatch = 0;
+
+  mismatch |= n_data        != master -> n_data;
+  mismatch |= n_elmt_bnodes != master -> n_elmt_bnodes;
+  mismatch |= n_elmt_inodes != master -> n_elmt_inodes;
+  mismatch |= n_gid         != master -> n_gid;
+  mismatch |= elmt_np_max   != master -> elmt_np_max;
+  mismatch |= elmt_nt_max   != master -> elmt_nt_max;
+  mismatch |= elmt_ne_max   != master -> elmt_ne_max;
+  mismatch |= elmt_ni_max   != master -> elmt_ni_max;
+
+  if (mismatch) message (routine, "master & slave fields do not match", ERROR);
+
+  // -- OK.
+     
+  n_solve             = master -> n_solve;
+  singular            = master -> singular;
+  n_cons              = master -> n_cons;
+  n_pack              = master -> n_pack;
+  n_band              = master -> n_band;
+  Hp                  = master -> Hp;
+  Hc                  = master -> Hc;
+  matrices_economized = master -> matrices_economized;  
+
+  return *this;
+}
+
+
+Field& Field::solveSys (Field* F)
 // ---------------------------------------------------------------------------
 // Carry out direct solution of this Field using F as forcing.
 //
@@ -1087,6 +1156,8 @@ void  Field::solveSys (Field* F)
   }
 
   freeVector (RHS);
+
+  return *this;
 }
 
 
@@ -1143,19 +1214,19 @@ int Field::globalBandwidth () const
 }
 
 
-int  Field::switchPressureBCs (const BC* hopbc, const BC* zero)
+int  Field::resetPBCs (const BC* hopbc, const BC* zero)
 // ---------------------------------------------------------------------------
 // This is called by PBCmanager.  Traverse the Field boundaries, and switch
 // OUTFLOW boundaries to be ESSENTIAL (value 0.0), all other types to be
 // HOPBC.  Return the total amount of edge-based storage on traverse.
 // ---------------------------------------------------------------------------
 {
-  Boundary* B;
-  int       ntot(0);
+  register  Boundary*  B;
+  register  int        ntot = 0;
 
   for (ListIterator<Boundary*> j(boundary_list); j.more(); j.next()) {
-    B = j.current ();
-    B -> resetKind (hopbc, zero);
+    B = j.current  ();
+    B -> resetPBCs (hopbc, zero);
     ntot += B -> nKnot ();
   }
 
@@ -1362,7 +1433,7 @@ Field& Field::solveSys (Field*            F       ,
   char      routine[] = "Field::solveSys";
   real      rho1, rho2, alpha, beta;
 
-  const int StepMax = 500;
+  const int StepMax = iparam ("STEP_MAX");
 
   // -- Allocate storage.
 
@@ -1377,7 +1448,7 @@ Field& Field::solveSys (Field*            F       ,
 
   // -- Build globally-numbered x from element store.  Apply current BCs.
 
-  condense (x);
+  compact (x);
   for (ListIterator<Boundary*> b(boundary_list); b.more(); b.next()) {
     Boundary* B = b.current ();
     if (B -> isEssential ()) B -> enforce (x);
@@ -1389,12 +1460,12 @@ Field& Field::solveSys (Field*            F       ,
   Veclib::copy (npts, x, 1, p, 1);
   mask (0, p) . buildRHS (F, p, r, lambda2, Operator, wrk) . mask (r, 0);
 
-  const real epsb = dparam ("CG_TOL") * sqrt (Blas::dot (npts, r, 1, r, 1));
+  const real epsb = dparam ("TOL_REL") * sqrt (Blas::dot (npts, r, 1, r, 1));
 
   // -- Compute first residual using initial guess: r = b - Ax.
 
   Veclib::copy (npts, x, 1, w, 1);
-  mask (w, 0) . HelmholtzOperator (Operator, w, p, lambda2, wrk) . mask (r, 0);
+  mask (w, 0) . HelmholtzOperator (Operator, w, p, lambda2, wrk) . mask (p, 0);
   Veclib::vsub (npts, r, 1, p, 1, r, 1);
 
   rho1 = Blas::dot (npts, r, 1, r, 1);
@@ -1418,7 +1489,7 @@ Field& Field::solveSys (Field*            F       ,
   }
   
   if (k == StepMax) message (routine, "step limit exceeded", WARNING);
-
+  
   expand (x);
 
   freeVector (r);
@@ -1428,11 +1499,17 @@ Field& Field::solveSys (Field*            F       ,
 
   freeVector (wrk);
   
+  if (option ("VERBOSE")) {
+    char  s[StrMax];
+    sprintf (s, ":%3d CG iterations, field '%c'", k, field_name);
+    message (routine, s, REMARK);
+  }
+
   return *this;
 }
 
 
-Field& Field::condense (real* target)
+Field& Field::compact (real* target)
 // ---------------------------------------------------------------------------
 // Load data storage area into target, with globally-numbered (element-
 // boundary) values in the first n_gid places, followed by element-internal
@@ -1516,7 +1593,8 @@ Field& Field::HelmholtzOperator (DiscreteOperator  Operator,
 
 Field& Field::mask (real* essent, real* other)
 // ---------------------------------------------------------------------------
-// Apply mask operation to zero either ESSENTIAL BC or other nodes.
+// Apply mask operation to zero either ESSENTIAL BC or remaining globally-
+// numbered nodes.
 //
 // Input vectors are assumed to have globally-numbered nodes foremost,
 // followed by element internal (un-numbered) nodes.
@@ -1569,6 +1647,9 @@ Field& Field::buildRHS (Field*            F       ,
 			DiscreteOperator  Operator,
 			real*             wrk     )
 // ---------------------------------------------------------------------------
+// Build RHS for iterative solution.  With some modification, this could
+// also be used build RHS for direct solver, removing need to hold Hc matrix.
+// 
 // On input, xe contains a copy of unknown field, with current BCs applied.
 // ---------------------------------------------------------------------------
 {
@@ -1609,3 +1690,46 @@ Field& Field::buildRHS (Field*            F       ,
 }
 
 
+void Field::addToBoundaries (const real& val, const BC::type& on)
+// ---------------------------------------------------------------------------
+// Add val to Boundaries of type "on".
+// ---------------------------------------------------------------------------
+{
+  for (ListIterator<Boundary*> b (boundary_list); b.more (); b.next ())
+    b.current () -> addIn (val, on);
+}
+
+
+ostream& operator << (ostream& strm, Field& F)
+// ---------------------------------------------------------------------------
+// Binary write of F's data area.
+// ---------------------------------------------------------------------------
+{
+  strm.write ((char*) F.data, F.n_data * sizeof (real));
+
+  return strm;
+}
+
+
+istream& operator >> (istream& strm, Field& F)
+// ---------------------------------------------------------------------------
+// Binary read of F's data area.
+// ---------------------------------------------------------------------------
+{
+  strm.read ((char*) F.data, F.n_data * sizeof (real));
+
+  return strm;
+}
+
+
+void  Field::describe (char* s)  const
+// ---------------------------------------------------------------------------
+// Load s with a (prism-compatible) description of field geometry:
+// NR NS NZ NEL.
+// ---------------------------------------------------------------------------
+{
+  ostrstream (s, StrMax) << elmt_np_max << " "
+                         << elmt_np_max << " "
+                         << 1           << " "
+                         << nEl ()      << ends;
+}
