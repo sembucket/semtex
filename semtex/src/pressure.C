@@ -43,7 +43,7 @@ void  PBCmanager::build (Field& f)
   hopbc -> kind      = HOPBC;
   hopbc -> value     = 0.0;
 
-  int  nOrder = iparam   ("TORDER");
+  int  nOrder = iparam   ("N_TIME");
   int  nEdge  = f.nBound ();
   int  ntot, i, q;
 
@@ -95,7 +95,7 @@ void  PBCmanager::maintain (int step, Field **Us[DIM], Field **Uf[DIM])
 // ---------------------------------------------------------------------------
 {
   real   nu = dparam ("KINVIS");
-  int    q, nOrder, Je = iparam ("TORDER");
+  int    q, nOrder, Je = iparam ("N_TIME");
   real   alpha[TIME_ORDER_MAX], gamma;
   real   invDt = 1.0 / dparam ("DELTAT");
 
@@ -198,7 +198,7 @@ void  PBCmanager::evaluate (int   id,     int   np,  int   step,
 // extrapolation.
 // ---------------------------------------------------------------------------
 {
-  int    q, Je = iparam ("TORDER");
+  int    q, Je = iparam ("N_TIME");
   real   beta[TIME_ORDER_MAX];
   
   real  *tmpX = rvector (np);
