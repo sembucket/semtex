@@ -544,6 +544,58 @@ void Element::Helmholtz (const real lambda2,
 }
 
 
+void Element::HelmholtzDg (const real lambda2,
+			   const real betak2 ,
+			   real*      diag   ,
+			   real*      work   ) const
+// ---------------------------------------------------------------------------
+// Create the diagonal of the elemental Helmholtz matrix in diag.  The
+// diagonal is sorted in emap order: i.e., boundary nodes are first.
+//
+// Input vector diag must be nTot() long, work must be Ntot() + nKnot() long.
+// Construction is very similar to that in helmRow except that m, n = i, j.
+// ---------------------------------------------------------------------------
+{
+  register int  i, j;
+  const int     ntot = sqr (np);
+  const real    EPS  = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  const real**  DT;
+  register real *dg = work, *tmp = work + ntot;
+  real          r2, HCon;
+
+  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, 0, &DT);
+
+  if (Geometry::system() == Geometry::Cylindrical) {
+    for (i = 0; i < np; i++)
+      for (j = 0; j < np; j++, dg++) {
+	r2   = sqr (ymesh[Veclib::row_major (i, j, np)]);
+	HCon = (r2 > EPS) ? (betak2 / r2 + lambda2) : 0.0;
+	Veclib::vmul (np, DT[j], 1, DT[j], 1, tmp, 1);
+	*dg  = Blas::dot   (np, G1 + i*np, 1, tmp, 1);
+	Veclib::vmul (np, DT[i], 1, DT[i], 1, tmp, 1);
+	*dg += Blas::dot   (np, G2 + j,   np, tmp, 1);
+	if (G3)
+	  *dg += 2.0 * G3[Veclib::row_major (i, j, np)] * DT[j][j] * DT[i][i];
+	*dg += HCon  * G4[Veclib::row_major (i, j, np)];
+      }
+  } else {
+    HCon = lambda2 + betak2;
+    for (i = 0; i < np; i++)
+      for (j = 0; j < np; j++, dg++) {
+	Veclib::vmul (np, DT[j], 1, DT[j], 1, tmp, 1);
+	*dg  = Blas::dot   (np, G1 + i*np, 1, tmp, 1);
+	Veclib::vmul (np, DT[i], 1, DT[i], 1, tmp, 1);
+	*dg += Blas::dot   (np, G2 + j,   np, tmp, 1);
+	if (G3)
+	  *dg += 2.0 * G3[Veclib::row_major (i, j, np)] * DT[j][j] * DT[i][i];
+	*dg += HCon  * G4[Veclib::row_major (i, j, np)];
+      }
+  }
+
+  Veclib::gathr (ntot, work, emap, diag);
+}
+
+
 void Element::helmRow (const real** DV     ,
 		       const real** DT     ,
 		       const real   lambda2,
