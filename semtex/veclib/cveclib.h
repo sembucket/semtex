@@ -8,7 +8,7 @@
 
 #include <stdarg.h>
 
-#include <cfemdef>
+#include <cfemdef.h>
 
 #ifndef BLAS			/* Assume vendor-supplied FORTRAN BLAS       */
 #define BLAS 3			/* library will be available.  If not,       */

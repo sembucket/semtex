@@ -17,7 +17,7 @@
  * mxva().  Consider also the BLAS2 routines xgemv.                          *
  *****************************************************************************/
 
-#include <cfemdef>
+#include <cfemdef.h>
 
 #if defined(__uxp__)
 #pragma global novrec

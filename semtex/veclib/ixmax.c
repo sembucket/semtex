@@ -4,7 +4,7 @@
  * $Id$
  *****************************************************************************/
 
-#include <cfemdef>
+#include <cfemdef.h>
 
 
 integer idmax (integer n, const double* x, integer incx)

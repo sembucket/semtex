@@ -4,7 +4,7 @@
  * $Id$
  *****************************************************************************/
 
-#include <cfemdef>
+#include <cfemdef.h>
 
 
 integer idmin (integer n, const double* x, integer incx)

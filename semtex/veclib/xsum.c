@@ -4,7 +4,7 @@
  * $Id$
  *****************************************************************************/
 
-#include <cfemdef>
+#include <cfemdef.h>
 
 
 double dsum (integer n, const double* x, integer incx)

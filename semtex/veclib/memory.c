@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include <cfemdef>
+#include <cfemdef.h>
 #include <cveclib.h>
 
 #define FREE_ARG  void*

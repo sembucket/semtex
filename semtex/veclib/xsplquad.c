@@ -5,7 +5,7 @@
  * $Id$
  *****************************************************************************/
 
-#include <cfemdef>
+#include <cfemdef.h>
 
 #if defined(__uxp__)
 #pragma global novrec
