@@ -584,7 +584,7 @@ Mixed::Mixed (const char* v,
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "Mixed::Mixed";
-  char buf[StrMax], *tok, *sep = ",";
+  char buf[StrMax], *tok, *sep = ";,";
 
   strcpy ((grp = new char [strlen (g) + 1]), g);
 
@@ -652,8 +652,6 @@ void Mixed::sum (const integer  side  ,
   }
 
   Veclib::svvtt (np, K*C, weight, 1, src, 1, work, 1);
-
-//  Veclib::smul (np, K * C, weight, 1, work, 1);
 
   Veclib::scatr_sum (nm, work, start, tgt);
   if   (side == 3) tgt[bmap [ 0]] += work[nm];

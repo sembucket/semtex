@@ -20,6 +20,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <limits.h>
+#include <float.h>
 
 #include <iostream.h>		/* System C++ headers. */
 #include <fstream.h>
@@ -96,11 +97,11 @@ class Element
 // ===========================================================================
 {
 private:
-  const integer id  ;		// Element identifier.
-  const integer np  ;		// Number of points on an edge.
-  const integer npnp;		// Total number = np * np.
-  const integer next;		// Number of points on periphery.
-  const integer nint;		// Number of internal points.
+  const integer  id  ;		// Element identifier.
+  const integer  np  ;		// Number of points on an edge.
+  const integer  npnp;		// Total number = np * np.
+  const integer  next;		// Number of points on periphery.
+  const integer  nint;		// Number of internal points.
 
   integer* emap;		// Indices of edges in nodal matrices.
   integer* pmap;		// Inversion of emap (pmap[emap[i]] = i).
@@ -165,7 +166,7 @@ public:
   void sideGetR  (const integer, real*)                             const;
   void sideDivR  (const integer, const real*, real*)                const;
   void sideDivR2 (const integer, const real*, real*)                const;
-
+  
   // -- Element-operator functions.
 
   void grad  (real*, real*, const real**, const real**, real*) const;
@@ -255,8 +256,10 @@ public:
   AuxField& addToPlane  (const integer, const real);
   AuxField& getPlane    (const integer, real*);
   AuxField& setPlane    (const integer, const real*);
+  AuxField& setPlane    (const integer, const real);
 
   AuxField& gradient (const integer);
+  AuxField& root     ();
   AuxField& mulR     ();
   AuxField& divR     ();
 
@@ -509,39 +512,39 @@ public:
   Boundary (const integer, const char*, const Condition*,
 	    const Element*, const integer); 
 
+  const char* group () const;
+
   integer bOff  () const { return elmt -> ID() * Geometry::nExtElmt(); }
   integer dOff  () const { return doffset; }
   integer dSkip () const { return dskip; }
 
-  integer ID       () const { return id; }
-  void    print    () const;
-  const char* group () const;
-  void    geometry (real*, real*, real* = 0, real* = 0, real* = 0) const;
+  integer ID    () const { return id; }
+  void    print () const;
 
+  void   geometry  (real*, real*, real* = 0, real* = 0, real* = 0) const;
+  void   evaluate  (const integer, const integer,  real*)          const;
+  void   get       (const real*, real*)                            const;
+  void   set       (const real*,   const integer*, real*)          const;
+  void   sum       (const real*,   const integer*, real*, real*)   const;
+  void   augmentSC (const integer, const integer,
+		    const integer*, real*, real*)                  const;
+  void   augmentOp (const integer*, const real*, real*)            const;
+  void   augmentDg (const integer*, real*)                         const;
+  void   curlCurl  (const integer,
+		    const real*, const real*, const real*,
+		    const real*, const real*, const real*,
+		    real*, real*, real*, real*)                    const;
 
-  void    evaluate  (const integer, const integer,  real*)        const;
-  void    get       (const real*, real*)                          const;
-  void    set       (const real*,   const integer*, real*)        const;
-  void    sum       (const real*,   const integer*, real*, real*) const;
-  void    augmentSC (const integer, const integer,
-		     const integer*, real*, real*)                const;
-  void    augmentOp (const integer*, const real*, real*)          const;
-  void    augmentDg (const integer*, real*)                       const;
-  void    curlCurl  (const integer,
-		     const real*, const real*, const real*,
-		     const real*, const real*, const real*,
-		     real*, real*, real*, real*)                  const;
-
-  void    addForGroup     (const char*, const real,  real*) const;
-  void    setForGroup     (const char*, const real,  real*) const;
-  real    flux            (const char*, const real*, real*) const;
-  Vector  normalTraction  (const char*, const real*, real*) const;
-  Vector  tangentTraction (const char*, const real*,
-			   const real*, real*, real*)       const;
+  void   addForGroup     (const char*, const real,  real*) const;
+  void   setForGroup     (const char*, const real,  real*) const;
+  real   flux            (const char*, const real*, real*) const;
+  Vector normalTraction  (const char*, const real*, real*) const;
+  Vector tangentTraction (const char*, const real*,
+			  const real*, real*, real*)       const;
 
 private:
   integer          id     ;	// Ident number.
-  integer          np     ;	// Length of sides.
+  integer          np     ;     // Matches Geometry::nP().
   const char*      bgroup ;	// Group string.
   const Condition* bcondn ;	// Boundary condition.
 
@@ -551,8 +554,8 @@ private:
   integer          doffset;	// Offset in Field data plane (matches BLAS).
   integer          dskip  ;	// Skip   in Field data plane (matches BLAS).
 
-  real*            x      ;	// Spatial location at nodes.
-  real*            y      ;	// 
+  real*            x      ;     // Node locations.
+  real*            y      ;     //
   real*            nx     ;	// Unit outward normal components at nodes.
   real*            ny     ;	// 
   real*            area   ;	// Weighted multiplier for parametric mapping.
@@ -706,9 +709,9 @@ public:
   char                     field () const { return field_name; }
   integer                  nSurf () const { return nbound; }
   integer                  mixBC () const { return mixed; }
-  const vector<Boundary*>& BCs   (const integer = 0) const;
-  const NumberSys*         Nsys  (const integer = 0) const;
-  const real*              Imass (const integer = 0) const;
+  const vector<Boundary*>& BCs   (const integer=0) const;
+  const NumberSys*         Nsys  (const integer=0) const;
+  const real*              Imass (const integer=0) const;
 
 private:
   char               field_name;

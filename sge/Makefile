@@ -5,7 +5,7 @@
 # $Id$
 ##############################################################################
 
-SEM   = /home/hmb/develop/semtex
+SEM   = /scratch/a/semtex-5.3.1
 VPATH = $(SEM)/src
 
 ARCH = $(shell uname -s)
