@@ -54,7 +54,7 @@ HEADER    = iso.h
 ISOOBJ = allocate.o io.o nonlinear.o integrate.o energy.o FFT.o misc.o drive.o
 
 $(PROG): $(ISOOBJ) $(HEADER)
-	$(LD) $(ISOOBJ) -o $@ $(LDFLAGS)
+	$(LD) $(ISOOBJ) -o $(PROG) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Make a top-hat spectrum initial conditions file.
