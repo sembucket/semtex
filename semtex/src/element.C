@@ -409,7 +409,8 @@ void Element::g2e (real*          tgt,
 void Element::e2gSumSC (real*          F   ,
 			const integer* btog,
 			real*          tgt ,
-			const real*    hbi ) const
+			const real*    hbi ,
+			real*          work) const
 // ---------------------------------------------------------------------------
 // Create statically-condensed boundary Helmholtz forcing for this
 // element from row-major F and insert it into globally-numbered tgt
@@ -434,12 +435,12 @@ void Element::e2gSumSC (real*          F   ,
 // the fixed (essential-BC) partition of tgt is overwritten later.
 //
 // NB: scatr_sum is broken for self-periodic elements on vector machines!
+//
+// Work vector should be _npnp long.
 // ---------------------------------------------------------------------------
 {
-  vector<real> work (_npnp);
-
-  Veclib::gathr (_npnp, F, _emap, work());
-  Veclib::copy  (_npnp, work(), 1, F, 1);
+  Veclib::gathr (_npnp, F, _emap, work);
+  Veclib::copy  (_npnp, work, 1, F, 1);
 
   if (_nint) Blas::gemv ("T",_nint,_next, -1. ,hbi,_nint,F+_next,1, 1., F,1);
 
@@ -1067,7 +1068,8 @@ void Element::sideEval (const integer side,
 void Element::sideGrad (const integer side,
 			const real*   src ,
 			real*         c1  ,
-			real*         c2  ) const
+			real*         c2  ,
+			real*         work) const
 // ---------------------------------------------------------------------------
 // Using geometric factors for this Element, return the first and
 // second component, c1 and/or c2, of grad src (length nTot()) along
@@ -1079,13 +1081,12 @@ void Element::sideGrad (const integer side,
 // ---------------------------------------------------------------------------
 {
   register integer    d, estart, skip;
-  static vector<real> work (_np + _np);
   const real          **DV, **DT;
   real                *ddr, *dds;
 
   this -> terminal (side, estart, skip);
 
-  ddr = work();
+  ddr = work;
   dds = ddr + _np;
 
   Femlib::quad (LL, _np, _np, 0, 0, 0, 0, 0, &DV, &DT);
@@ -1519,19 +1520,19 @@ integer Element::locate (const real    x    ,
 }
 
 
-real Element::probe (const real  r  ,
-		     const real  s  ,
-		     const real* src) const
+real Element::probe (const real  r   ,
+		     const real  s   ,
+		     const real* src ,
+		     real*       work) const
 // ---------------------------------------------------------------------------
 // Return the value of field storage located at r, s, in this element.
+//
+// Input vector work should be 3*_np long.
 // ---------------------------------------------------------------------------
 {
-  real               *ir, *is, *tp;
-  static vector<real> work (3 * _np);
-
-  ir = work();
-  is = ir + _np;
-  tp = is + _np;
+  real* ir = work;
+  real* is = ir + _np;
+  real* tp = is + _np;
 
   Femlib::interp   (LL, _np, r, s, ir, is, 0, 0);
   Blas::mxv        (src, _np, ir, _np, tp);
@@ -1539,9 +1540,10 @@ real Element::probe (const real  r  ,
 }
 
 
-real Element::CFL (const real  d,
-		   const real* u,
-		   const real* v) const
+real Element::CFL (const real  d   ,
+		   const real* u   ,
+		   const real* v   ,
+		   real*       work) const
 // ---------------------------------------------------------------------------
 // Return estimate of local inverse timescale for CFL stability
 // condition, for either the x or y velocity component, selected by
@@ -1559,28 +1561,26 @@ real Element::CFL (const real  d,
 // and d is a mesh spacing in canonical coordinates, estimated as the
 // minimum to be conservative (and supplied as input).
 //
-// The local CFL number is then D_T * CFL
+// The local CFL number is then D_T * CFL.
+// 
+// Input vector work to be _npnp long.
 // ---------------------------------------------------------------------------
 {
   const integer    loopcnt = _npnp;
   register integer i;
-  vector<real>     work (_npnp);
-  register real*   tmp = work();
 
-  Veclib::zero (loopcnt, tmp, 1);
+  Veclib::zero (loopcnt, work, 1);
 
   if        (u) {
-    if (_drdx) for (i = 0; i < loopcnt; i++) tmp[i] += d * fabs (_drdx[i]);
-    if (_dsdx) for (i = 0; i < loopcnt; i++) tmp[i] += d * fabs (_dsdx[i]);
-    Veclib::vdiv (loopcnt, u, 1, tmp, 1, tmp, 1);
+    if (_drdx) for (i = 0; i < loopcnt; i++) work[i] += d * fabs (_drdx[i]);
+    if (_dsdx) for (i = 0; i < loopcnt; i++) work[i] += d * fabs (_dsdx[i]);
+    Veclib::vdiv (loopcnt, u, 1, work, 1, work, 1);
   } else if (v) {
-    if (_drdy) for (i = 0; i < loopcnt; i++) tmp[i] += d * fabs (_drdy[i]);
-    if (_dsdy) for (i = 0; i < loopcnt; i++) tmp[i] += d * fabs (_dsdy[i]);
-    Veclib::vdiv (loopcnt, v, 1, tmp, 1, tmp, 1);
+    if (_drdy) for (i = 0; i < loopcnt; i++) work[i] += d * fabs (_drdy[i]);
+    if (_dsdy) for (i = 0; i < loopcnt; i++) work[i] += d * fabs (_dsdy[i]);
+    Veclib::vdiv (loopcnt, v, 1, work, 1, work, 1);
   }
 
-  i = Blas::iamax (loopcnt, tmp, 1);
-  return fabs (tmp[i]);
+  i = Blas::iamax (loopcnt, work, 1);
+  return fabs (work[i]);
 }
-
-

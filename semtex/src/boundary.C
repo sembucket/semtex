@@ -213,12 +213,14 @@ void Boundary::curlCurl (const integer k ,
   const integer elmtOff  = _elmt -> ID() * npnp;
   const integer localOff = _doffset - elmtOff;
 
-  static vector<real> work (5 * npnp + _np);
+  static vector<real> work (5 * npnp + 3 * _np);
   real* gw = work();
-  real* w  = gw + npnp + npnp;
+  real* ew = gw + npnp + npnp;
+  real* w  = ew + _np  + _np;
   real* vx = w  + npnp;
   real* uy = vx + npnp;
   real* t  = uy + npnp;
+  
   const real** DV;
   const real** DT;
 
@@ -243,7 +245,7 @@ void Boundary::curlCurl (const integer k ,
 
     // -- Find dw/dx & dw/dy on appropriate edge.
 
-    _elmt -> sideGrad (_side, w, yr, xr);
+    _elmt -> sideGrad (_side, w, yr, xr, ew);
     
     // -- Add in cylindrical space modification to complete x-component.
 
@@ -267,7 +269,7 @@ void Boundary::curlCurl (const integer k ,
     Veclib::copy      (npnp, Vr, 1, vx, 1);
     _elmt -> grad     (vx, uy, DV, DT, gw);
     Veclib::vsub      (npnp, vx, 1, uy, 1, w, 1);
-    _elmt -> sideGrad (_side, w, yr, xr);
+    _elmt -> sideGrad (_side, w, yr, xr, ew);
     Veclib::neg       (_np, yr, 1);
 
     if (space == Geometry::Cylindrical) {
@@ -279,7 +281,7 @@ void Boundary::curlCurl (const integer k ,
     Veclib::copy      (npnp, Vi, 1, vx, 1);
     _elmt -> grad     (vx, uy, DV, DT, gw);
     Veclib::vsub      (npnp, vx, 1, uy, 1, w, 1);
-    _elmt -> sideGrad (_side, w, yi, xi);
+    _elmt -> sideGrad (_side, w, yi, xi, ew);
     Veclib::neg       (_np, yi, 1);
 
     if (space == Geometry::Cylindrical) {
@@ -381,20 +383,21 @@ Vector Boundary::tangentTraction (const char* grp,
 // Ux and uy are work vectors, each elmt_np_max long.
 // ---------------------------------------------------------------------------
 {
-  Vector Force = {0.0, 0.0, 0.0};
+  Vector              Force = {0.0, 0.0, 0.0};
+  static vector<real> work (2 * _np);
 
   if (strcmp (grp, _bcondn -> group()) == 0) {
     const integer    offset = _elmt -> ID() * sqr (_np);
     register integer i;
 
-    _elmt -> sideGrad (_side, u + offset, ux, uy);
+    _elmt -> sideGrad (_side, u + offset, ux, uy, work());
 
     for (i = 0; i < _np; i++) {
       Force.x += (2.0*ux[i]*_nx[i] + uy[i]*_ny[i]) * _area[i];
       Force.y +=                     uy[i]*_nx[i]  * _area[i];
     }
 
-    _elmt -> sideGrad (_side, v + offset, ux, uy);
+    _elmt -> sideGrad (_side, v + offset, ux, uy, work());
 
     for (i = 0; i < _np; i++) {
       Force.x +=                     ux[i]*_ny[i]  * _area[i];
@@ -415,14 +418,15 @@ real Boundary::flux (const char* grp,
 // NB: n is a unit outward normal, with no component in Fourier direction.
 // ---------------------------------------------------------------------------
 {
-  register real dcdn = 0.0;
+  register real       dcdn = 0.0;
+  static vector<real> work (2 * _np);
   
   if (strcmp (grp, _bcondn -> group()) == 0) {
     const real*      data = src + _elmt -> ID() * Geometry::nTotElmt();
     register integer i;
     register real    *cx = wrk, *cy = wrk + _np, *r = wrk + _np + _np;
 
-    _elmt -> sideGrad (_side, data, cx, cy);
+    _elmt -> sideGrad (_side, data, cx, cy, work());
 
     if (Geometry::system() == Geometry::Cylindrical) {
       _elmt -> sideGetR (_side, r);
