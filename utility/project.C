@@ -115,7 +115,9 @@ Field2DF& Field2DF::transform (const integer sign)
 // Carry out Fourier transformation in z direction.
 // ---------------------------------------------------------------------------
 {
-  if (nz > 2) Femlib::DFTr (data, nz, nplane, sign);
+  if (nz  > 2) Femlib::DFTr (data, nz, nplane, sign);
+  if (sign == INVERSE && nz == 2)
+    Veclib::copy (nplane, plane[0], 1, plane[1], 1);
 
   return *this;
 }
