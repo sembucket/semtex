@@ -35,7 +35,7 @@ ifeq ($(ARCH),IRIX64)		# -- SGI 64-bit systems.
 CXX = CC
 LD  = CC
 
-GLUT_LIBS = -ltiff -lglut -lGLU -lGL -lX11 -lXext -lXmu -lXt -lXi -lSM -lICE
+GLUT_LIBS = -ltiff -lglut -lGLU -lGL -lX11 -lXext -lXmu -lXt -lSM -lICE
 
 CPPFLAGS = -I. -I$(GLUT_ROOT)/include
 ifdef PYTHON
@@ -46,7 +46,7 @@ CXXFLAGS = $(DEFINES) -32
 ifdef DEBUG
   CXXFLAGS += -g
 else
-  CXXFLAGS += -O3
+  CXXFLAGS += -O2
 endif
 
 LDFLAGS = -32 -L$(X11_ROOT)/lib -L$(GLUT_ROOT)/lib $(GLUT_LIBS) -lm

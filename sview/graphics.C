@@ -68,7 +68,6 @@ void keyboard (unsigned char key,
 // GLUT callback for keyboard events within graphics window.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "keyboard";
   switch (key) {
   case 27:
     glutIdleFunc     (commandLine);

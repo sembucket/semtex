@@ -657,7 +657,6 @@ static void get_cell_polys (int    index           ,
   register int num_o_polys;
   register int poly;
   float        *p[3];
-  float        n1[3],n2[3],n3[3];
   
   num_o_polys = cell_table[index].npolys;
   
