@@ -138,8 +138,9 @@ void Boundary::curlCurl (const int    k ,
   const int ntot = elmt -> nTot();
   const int doff = elmt -> dOff();
 
-  vector<real> work (3 * ntot);
+  vector<real> work (np + 3 * ntot);
   real* w  = work();
+  real* t  = w  + np;
   real* vx = w  + ntot;
   real* uy = vx + ntot;
   
@@ -157,6 +158,13 @@ void Boundary::curlCurl (const int    k ,
     // -- Find dw/dx & dw/dy on appropriate edge.
 
     elmt -> sideGrad (side, w, yr, xr);
+    
+    // -- Add in cylindrical space modification to complete x-component.
+
+    if (space == Geometry::Cylindrical) {
+      elmt -> sideDivr (side, w, t);
+      Veclib::vadd     (np, t, 1, xr, 1, xr, 1);
+    }
 
     // -- Sign change to complete y-component of curl curl u.
     
@@ -177,6 +185,11 @@ void Boundary::curlCurl (const int    k ,
     elmt -> sideGrad (side, w, yr, xr);
     Veclib::neg      (np, yr, 1);
 
+    if (space == Geometry::Cylindrical) {
+      elmt -> sideDivr (side, w, t);
+      Veclib::vadd     (np, t, 1, xr, 1, xr, 1);
+    }
+
     Veclib::copy     (ntot, Ui + doff, 1, uy, 1);
     Veclib::copy     (ntot, Vi + doff, 1, vx, 1);
     elmt -> grad     (vx, uy);
@@ -184,28 +197,62 @@ void Boundary::curlCurl (const int    k ,
     elmt -> sideGrad (side, w, yi, xi);
     Veclib::neg      (np, yi, 1);
 
+    if (space == Geometry::Cylindrical) {
+      elmt -> sideDivr (side, w, t);
+      Veclib::vadd     (np, t, 1, xi, 1, xi, 1);
+    }
+
     // -- Semi-Fourier terms based on Wr.
 
-    Veclib::copy     (ntot, Wr + doff, 1, vx, 1);
-    Veclib::copy     (ntot, Wr + doff, 1, uy, 1);
-    elmt -> grad     (vx, uy);
-    Blas::axpy       (np, betaK, vx + loff, dskip, xi, 1);
-    Blas::axpy       (np, betaK, uy + loff, dskip, yi, 1);
+    Veclib::copy      (ntot, Wr + doff, 1, vx, 1);
+    Veclib::copy      (ntot, Wr + doff, 1, uy, 1);
+    elmt -> grad      (vx, uy);
+    if (space == Geometry::Cylindrical) {
+      elmt -> sideDivr  (side, vx,  t);
+      Blas::axpy        (np, betaK, t,         1,     xi, 1);
+      elmt -> sideDivr  (side, uy,  t);
+      Blas::axpy        (np, betaK, t,         1,     yi, 1);
+      elmt -> sideDivr2 (side, Wr,  t);
+      Blas::axpy        (np, betaK, t,         1,     yi, 1);
+    } else {
+      Blas::axpy        (np, betaK, vx + loff, dskip, xi, 1);
+      Blas::axpy        (np, betaK, uy + loff, dskip, yi, 1);
+    }
 
     // -- Semi-Fourier terms based on Wi.
 
-    Veclib::copy     (ntot, Wi + doff, 1, vx, 1);
-    Veclib::copy     (ntot, Wi + doff, 1, uy, 1);
-    elmt -> grad     (vx, uy);
-    Blas::axpy       (np, -betaK, vx + loff, dskip, xr, 1);
-    Blas::axpy       (np, -betaK, uy + loff, dskip, yr, 1);
+    Veclib::copy      (ntot, Wi + doff, 1, vx, 1);
+    Veclib::copy      (ntot, Wi + doff, 1, uy, 1);
+    elmt -> grad      (vx, uy);
+    if (space == Geometry::Cylindrical) {
+      elmt -> sideDivr  (side, vx,   t);
+      Blas::axpy        (np, -betaK, t,         1,     xr, 1);
+      elmt -> sideDivr  (side, uy,   t);
+      Blas::axpy        (np, -betaK, t,         1,     yr, 1);
+      elmt -> sideDivr2 (side, Wi,   t);
+      Blas::axpy        (np, -betaK, t,         1,     xr, 1);
+    } else {
+      Blas::axpy        (np, -betaK, vx + loff, dskip, xr, 1);
+      Blas::axpy        (np, -betaK, uy + loff, dskip, yr, 1);
+    }
 
     // -- Fourier second derivatives in the third direction.
 
-    Blas::axpy       (np, betaK2, Ur + loff, dskip, xr, 1);
-    Blas::axpy       (np, betaK2, Ui + loff, dskip, xi, 1);
-    Blas::axpy       (np, betaK2, Vr + loff, dskip, yr, 1);
-    Blas::axpy       (np, betaK2, Vi + loff, dskip, yi, 1);
+    if (space == Geometry::Cylindrical) {
+      elmt -> sideDivr  (side, Ur,   t);
+      Blas::axpy        (np, betaK2, t,         1,     xr, 1);
+      elmt -> sideDivr  (side, Ui,   t);
+      Blas::axpy        (np, betaK2, t,         1,     xi, 1);
+      elmt -> sideDivr2 (side, Vr,   t);
+      Blas::axpy        (np, betaK2, t,         1,     yr, 1);
+      elmt -> sideDivr2 (side, Vi,   t);
+      Blas::axpy        (np, betaK2, t,         1,     yi, 1);
+    } else {
+      Blas::axpy        (np, betaK2, Ur + loff, dskip, xr, 1);
+      Blas::axpy        (np, betaK2, Ui + loff, dskip, xi, 1);
+      Blas::axpy        (np, betaK2, Vr + loff, dskip, yr, 1);
+      Blas::axpy        (np, betaK2, Vi + loff, dskip, yi, 1);
+    }
   }
 }
 
