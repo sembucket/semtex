@@ -24,7 +24,8 @@ void Helmholtz (Domain*     D      ,
   const integer nmodes    = Geometry::nModeProc();
   const integer base      = Geometry::baseMode();
   const integer nz        = Geometry::nZProc();
-  AuxField*     Force     = new AuxField (D -> elmt, nz);
+  real*         alloc     = new real [(size_t) Geometry::nTotProc() * nz];
+  AuxField*     Force     = new AuxField (alloc, nz, D -> elmt);
 
   if   (forcing) (*Force = forcing) . transform (+1);
   else            *Force = 0.0;

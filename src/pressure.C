@@ -37,8 +37,8 @@ void PBCmgr::build (const Field* P)
 {
   const integer np    = Geometry::nP();
   const integer nTime = (integer) Femlib::value ("N_TIME");
-  const integer nEdge = P -> nbound;
-  const integer nZ    = Geometry::nZProc();
+  const integer nEdge = P -> _nbound;
+  const integer nZ    = P -> _nz;
   integer       i, j, k;
 
   Pnx = new real*** [(size_t) nTime];
@@ -100,9 +100,9 @@ void PBCmgr::maintain (const integer     step   ,
   const real         nu    =           Femlib::value ("KINVIS");
   const real         invDt = 1.0     / Femlib::value ("D_T");
   const integer      nTime = (integer) Femlib::value ("N_TIME");
-  const integer      nEdge = P -> nbound;
+  const integer      nEdge = P -> _nbound;
+  const integer      nZ    = P -> _nz;
   const integer      nP    =  Geometry::nP();
-  const integer      nZ    =  Geometry::nZProc();
   const integer      base  =  Geometry::baseMode();
   const integer      nMode =  Geometry::nModeProc();
   const integer      mLo   = (Geometry::procID() == 0) ? 1 : 0;
@@ -113,7 +113,7 @@ void PBCmgr::maintain (const integer     step   ,
   const AuxField*    Nx = Uf[0][0];
   const AuxField*    Ny = Uf[1][0];
 
-  const vector<Boundary*>& BC = P -> bsys -> BCs (0);
+  const vector<Boundary*>& BC = P -> _bsys -> BCs (0);
   register Boundary*       B;
   register integer         i, k, q;
   integer                  m, offset, skip, Je;
@@ -132,8 +132,8 @@ void PBCmgr::maintain (const integer     step   ,
     
     for (k = 0; k < nZ; k++) {
       ROOTONLY if (k == 1) continue;
-      Veclib::copy (nP, Nx -> plane[k] + offset, skip, Pnx[0][i][k], 1);
-      Veclib::copy (nP, Ny -> plane[k] + offset, skip, Pny[0][i][k], 1);
+      Veclib::copy (nP, Nx -> _plane[k] + offset, skip, Pnx[0][i][k], 1);
+      Veclib::copy (nP, Ny -> _plane[k] + offset, skip, Pny[0][i][k], 1);
     }
   }
 
@@ -152,20 +152,20 @@ void PBCmgr::maintain (const integer     step   ,
     skip   = B -> dSkip();
 
     ROOTONLY {			    // -- Deal with 2D/zero Fourier mode terms.
-      UxRe = Ux -> plane[0];
-      UyRe = Uy -> plane[0];
+      UxRe = Ux -> _plane[0];
+      UyRe = Uy -> _plane[0];
       B -> curlCurl (0, UxRe, 0, UyRe, 0, 0, 0, xr, 0, yr, 0);
       Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][0], 1);
       Blas::axpy (nP, -nu, yr, 1, Pny[0][i][0], 1);
     }
 
     for (m = mLo; m < nMode; m++) { // -- Higher modes.
-      UxRe = Ux -> plane[2 * m] ;
-      UxIm = Ux -> plane[2 * m + 1];
-      UyRe = Uy -> plane[2 * m];
-      UyIm = Uy -> plane[2 * m + 1];
-      UzRe = Uz -> plane[2 * m];
-      UzIm = Uz -> plane[2 * m + 1];
+      UxRe = Ux -> _plane[2 * m] ;
+      UxIm = Ux -> _plane[2 * m + 1];
+      UyRe = Uy -> _plane[2 * m];
+      UyIm = Uy -> _plane[2 * m + 1];
+      UzRe = Uz -> _plane[2 * m];
+      UzIm = Uz -> _plane[2 * m + 1];
 
       B -> curlCurl (m + base, UxRe,UxIm, UyRe,UyIm, UzRe,UzIm, xr,xi, yr,yi);
 
@@ -191,13 +191,13 @@ void PBCmgr::maintain (const integer     step   ,
       for (k = 0; k < nZ; k++) {
 	ROOTONLY if (k == 1) continue;
 
-	Veclib::copy (nP, Ux -> plane[k] + offset, skip, tmp, 1);
+	Veclib::copy (nP, Ux -> _plane[k] + offset, skip, tmp, 1);
 	Blas::scal   (nP, alpha[0], tmp, 1);
 	for (q = 0; q < Je; q++)
 	  Blas::axpy (nP, alpha[q + 1], Unx[q][i][k], 1, tmp, 1);
 	Blas::axpy (nP, -invDt, tmp, 1, Pnx[0][i][k], 1);
 
-	Veclib::copy (nP, Uy -> plane[k] + offset, skip, tmp, 1);
+	Veclib::copy (nP, Uy -> _plane[k] + offset, skip, tmp, 1);
 	Blas::scal   (nP, alpha[0], tmp, 1);
 	for (q = 0; q < Je; q++)
 	  Blas::axpy (nP, alpha[q + 1], Uny[q][i][k], 1, tmp, 1);
@@ -218,8 +218,8 @@ void PBCmgr::maintain (const integer     step   ,
     
     for (k = 0; k < nZ; k++) {
       ROOTONLY if (k == 1) continue;
-      Veclib::copy (nP, Ux -> plane[k] + offset, skip, Unx[0][i][k], 1);
-      Veclib::copy (nP, Uy -> plane[k] + offset, skip, Uny[0][i][k], 1);
+      Veclib::copy (nP, Ux -> _plane[k] + offset, skip, Unx[0][i][k], 1);
+      Veclib::copy (nP, Uy -> _plane[k] + offset, skip, Uny[0][i][k], 1);
     }
   }
 }
@@ -284,11 +284,11 @@ void PBCmgr::accelerate (const Vector& a,
 // Yes, this is a HACK!
 // ---------------------------------------------------------------------------
 {
-  const vector<Boundary*>& BC = u -> bsys -> BCs (0);
+  const vector<Boundary*>& BC = u -> _bsys -> BCs (0);
   register Boundary*       B;
   register integer         i;
 
-  for (i = 0; i < u -> nbound; i++) {
+  for (i = 0; i < u -> _nbound; i++) {
     B = BC[i];
 
     B -> addForGroup ("velocity", a.x, Pnx[0][i][0]);

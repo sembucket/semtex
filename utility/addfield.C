@@ -59,12 +59,13 @@
 #include <new.h>
 #include <time.h>
 
+#define FLAG_MAX 8
+enum {VORTICITY, ENSTROPHY, DIVERGENGE, STRAINTENSOR, STRAINRATE, INVARIANTS};
+
 static char prog[] = "addfield";
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 
-static void    getargs  (int, char**, char*&, char*&,
-			 integer&, integer&, integer&,
-			 integer&, integer&, integer&);
+static void    getargs  (int, char**, char*&, char*&, integer[]);
 static integer getDump  (Domain*, ifstream&);
 static void    putDump  (Domain*, vector<AuxField*>&, integer, ofstream&);
 
@@ -79,46 +80,31 @@ int main (int    argc,
 
   Geometry::CoordSys system;
   char               *session, *dump, fields[StrMax];
-  integer            i, j, np, nz, nel, DIM;
+  integer            i, j, np, nz, nel, DIM, nData= 0;
+  integer            add[FLAG_MAX];
   ifstream           file;
   ofstream           outp (1);
   FEML*              F;
   Mesh*              M;
   BCmgr*             B;
   Domain*            D;
-  AuxField*          Ens;
-  AuxField*          Hel;
-  AuxField*          Div;
-  AuxField*          InvQ;
-  AuxField*          InvR;
-  AuxField*          Disc;
-  AuxField*          Strain;
-  AuxField*          work;
-  integer            nData = 0;
+  AuxField           *Ens, *Hel, *Div, *InvQ, *InvR, *Disc, *Strain, *work;
   const real*        z;
   vector<Element*>   elmt;
-  vector<AuxField*>  AuxPoint(3);
-  vector<AuxField*>  vorticity;
-  vector<AuxField*>  dataField(12);
+  vector<AuxField*>  AuxPoint(3), dataField(12), vorticity(3);
   AuxField***        Sij;
 
-  // -- Set command line defaults
+  // -- Set command line defaults.
 
-  integer add_vort   = 0,
-          add_enst   = 0,
-          add_div    = 0,
-          add_sij    = 0,
-          add_strain = 0,
-          add_inv    = 0;
-  
+  for (i = 0; i < FLAG_MAX; i++) add[i] = 0;
+
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, session, dump,
-	   add_vort, add_enst, add_div, add_sij, add_inv, add_strain);
+  getargs (argc, argv, session, dump, add);
 
   // -- Set up domain.
 
   F = new FEML  (session);
-  M = new Mesh  (*F);
+  M = new Mesh  (F);
 
   nel    = M -> nEl();  
   np     =  (integer) Femlib::value ("N_POLY");
@@ -132,14 +118,14 @@ int main (int    argc,
   DIM = Geometry::nDim();
 
   vorticity.setSize ((DIM == 2) ? 1 : 3);
-  if (DIM < 3) add_enst = 0;
+  if (DIM < 3) add[ENSTROPHY] = 0;
 
   Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
 
   elmt.setSize (nel);
   for (i = 0; i < nel; i++) elmt[i] = new Element (i, M, z, np);
 
-  B = new BCmgr (F, elmt);
+  B = new BCmgr  (F, elmt);
   D = new Domain (F, elmt, B);
 
   file.open (dump);
@@ -160,17 +146,17 @@ int main (int    argc,
 
   work = new AuxField (elmt);
 
-  if (add_vort + add_enst) {
+  if (add[VORTICITY] && add[ENSTROPHY]) {
     if (DIM == 2)
       vorticity[0] = new AuxField (elmt, 't');
     else
       for (i = 0; i < DIM; i++)
 	vorticity [i] = new AuxField (elmt, 'r' + i);
-    if (add_vort == 1) {
+    if (add[VORTICITY]) {
       for (i = 0 ; i < 2*DIM - 3 ; i++ ) dataField(i) = vorticity[i];
       nData += 2*DIM - 3;
     }
-    if (add_enst == 1) {
+    if (add[ENSTROPHY]) {
       dataField(nData)   = new AuxField (elmt, 'e');
       dataField(nData+1) = new AuxField (elmt, 'h');
       Ens = dataField(nData);
@@ -179,18 +165,18 @@ int main (int    argc,
     }
   }
 
-  if (add_div + add_inv > 0) {
+  if (add[DIVERGENCE] && add[INVARIANTS]) {
     dataField(nData) = new AuxField (elmt, 'd'); Div = dataField(nData);
     nData += 1;
   }
   
   integer iadd = 0;
 
-  if (add_sij + add_inv + add_strain) {
+  if (add[STRAINTENSOR] && add[INVARIANTS] && add[STRAINRATE]) {
     Sij = new AuxField** [DIM];
     for (i = 0; i < DIM; i++) {
       Sij[i] = new AuxField* [DIM];
-      for ( j = 0 ; j < DIM ; j++ ) {
+      for (j = 0 ; j < DIM ; j++) {
 	if (i <= j) {
 	  Sij[i][j] = new AuxField (elmt, 'i' + iadd);
 	  iadd++;
@@ -198,13 +184,13 @@ int main (int    argc,
 	  Sij[i][j] = Sij[j][i];
       }
     }
-    if (add_sij == 1)
+    if (add[STRAINTENSOR])
       for ( i = 0 ; i < DIM ; i++)
 	for ( j = i ; j < DIM ; j++ ) {
 	  dataField(nData) = Sij[i][j];
 	  nData++;
 	}
-    if (add_inv == 1) {
+    if (add[INVARIANTS]) {
       dataField(nData)   = new AuxField (elmt, 'Q');
       dataField(nData+1) = new AuxField (elmt, 'R');
       dataField(nData+2) = new AuxField (elmt, 'L');
@@ -214,7 +200,7 @@ int main (int    argc,
       *(Disc = dataField(nData+2)) = 0.0;
       nData += 3;
     }
-    if (add_strain == 1) {
+    if (add[STRAINRATE]) {
       dataField(nData) = new AuxField (elmt, 'G');
       *(Strain = dataField(nData)) = 0.0;
       nData++;
@@ -250,12 +236,12 @@ int main (int    argc,
       (*work = *D -> u[1]) . divR(); *Vij[2][2] += *work;
     }
 	
-    if (add_div + add_inv) {
+    if (add[DIVERGENCE] && add[INVARIANTS]) {
       *Div = 0.0;
       for (i = 0; i < DIM; i++) *Div += *Vij[i][i];
     }
     
-    if (add_vort + add_enst) {
+    if (add[VORTICITY] && add[ENSTROPHY]) {
       
       if (DIM == 2) {
 	*vorticity[0]  = *Vij[1][0];
@@ -270,7 +256,7 @@ int main (int    argc,
       }
     }
 
-    if (add_sij + add_inv + add_strain) {
+    if (add[STRAINTENSOR] && add[STRAINRATE] && add[INVARIANTS]) {
       
       for (i = 0; i < DIM; i++)
 	for (j = i; j < DIM; j++) {
@@ -279,7 +265,7 @@ int main (int    argc,
 	  *Sij[i][j] *= 0.5;
 	}
 
-      if (add_inv == 1) {
+      if (add[INVARIANTS]) {
 
 	// -- 2nd invariant (Q from Chong et al.).
 
@@ -316,16 +302,16 @@ int main (int    argc,
       }
     }    
 
-    if (add_strain == 1) {
+    if (add[STRINRATE]) {
       *Strain = 0.0;
       for (i = 0; i < DIM; i++)
 	for (j = 0; j < DIM; j++)
 	  Strain -> timesPlus (*Sij[i][j], *Sij[j][i]);
       *Strain *= 2.0;
-      Strain -> root();
+      Strain -> sqroot();
     }
     
-    if (add_enst == 1) {
+    if (add[ENSTROPHY]) {
       Ens -> innerProduct (vorticity, vorticity) *= 0.5;
       for (i = 0; i < DIM; i++) AuxPoint[i] = D -> u[i];
       Hel -> innerProduct (vorticity, AuxPoint)  *= 0.5;
@@ -340,16 +326,11 @@ int main (int    argc,
 }
 
 
-static void getargs (int      argc      ,
-		     char**   argv      ,
-		     char*&   session   ,
-		     char*&   dump      ,
-		     integer& add_vort  ,
-		     integer& add_enst  ,
-		     integer& add_div   ,
-		     integer& add_sij   ,
-		     integer& add_inv   ,
-                     integer& add_strain)
+static void getargs (int       argc   ,
+		     char**    argv   ,
+		     char*&    session,
+		     char*&    dump   ,
+		     integer[] flag   )
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
@@ -365,8 +346,8 @@ static void getargs (int      argc      ,
 		 "  -i ... add invariants of Vij (but NOT Vij itself)\n"
 		 "           (NB: Divergence is ASSUMED equal to zero)\n"
                  "  -a ... add them all\n";
-
-  char buf[StrMax];
+  integer i, sum;
+  char    buf[StrMax];
  
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
@@ -383,42 +364,18 @@ static void getargs (int      argc      ,
 	session = *++argv;
       }
       break;
-    case 'v':
-      add_vort = 1;
-      break;
-    case 'e':
-      add_enst = 1;
-      break;
-    case 'd':
-      add_div = 1;
-      break;
-    case 'g':
-      add_strain = 1;
-      break;
-    case 't':
-      add_sij = 1;
-      break;
-    case 'i':
-      add_inv = 1;
-      add_div = 1;
-      break;
-    case 'a':
-      add_enst = 1;
-      add_vort = 1;
-      add_div  = 1;
-      add_sij  = 1;
-      add_inv  = 1;
-      break;
-
-    default:
-      sprintf (buf, usage, prog);
-      cout << buf;
-      exit (EXIT_FAILURE);
-      break;
+    case 'v': flag[VORTICITY]    = 1; break;
+    case 'e': flag[ENSTROPHY]    = 1; break;
+    case 'd': flag[DIVERGENCE]   = 1; break;
+    case 'g': flag[STRAINRATE]   = 1; break;
+    case 't': flag[STRAINTENSOR] = 1; break;
+    case 'i': flag[INVARIANTS]   = 1; flag[DIVERGENCE] = 1; break;
+    case 'a': for (i = 0; i < FLAG_MAX; i++)   flag[i] = 1; break;
+    default: sprintf (buf, usage, prog); cout<<buf; exit(EXIT_FAILURE); break;
     }
 
-  if (add_vort+add_enst+add_div+add_inv+add_sij+add_strain == 0) add_vort=1;
-  // message (prog, "No fields to add", ERROR);
+  for (sum = 0, i = 0; i++) sum += flag[i];
+  if (!sum) flag[VORTICITY] = 1;
 
   if   (!session)  message (prog, "no session file", ERROR);
   if   (argc != 1) message (prog, "no field file",   ERROR);

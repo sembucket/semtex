@@ -4,10 +4,20 @@
 # $Id$
 ##############################################################################
 
-ARCH = $(shell uname -s)
+SEMHOME = ..
+MPIHOME = /usr/local/mpich
+LIB     = libfem.a
 
-SEMHOME  = ..
-LIB      = libfem.a
+ARCH = $(shell uname -s)
+MACH = $(shell uname -m)
+ifeq ($(ARCH),Linux)
+  ifeq ($(MACH),alpha)
+    ARCH = Linux-alpha
+  endif
+  ifeq ($(MACH),i586)
+    ARCH = Linux-i586
+  endif
+endif
 
 DEFINES  =
 ifdef DEBUG
@@ -51,7 +61,7 @@ ifdef MPI
 endif
 endif
 
-ifeq ($(ARCH),Linux)			# -- GNU/Linux system
+ifeq ($(ARCH),Linux-i586)		# -- Linux Intel system
 CC         = gcc
 FC         = g77
 CXX	   = g++
@@ -60,7 +70,20 @@ FFLAGS     = $(DEFINES) -O3
 RANLIB     = ranlib
 endif
 
-ifeq ($(ARCH),UNIX_System_V)            # -- Fujitsu VPP300
+ifeq ($(ARCH),Linux-alpha)		# -- Linux Alpha system
+CC     = ccc
+FC     = fort
+CFLAGS = $(DEFINES) -arch host -tune host -fast -O4
+FFLAGS = $(DEFINES) -arch host -tune host -fast -O4
+RANLIB = ranlib
+ifdef MPI
+  LIB       = libfem_mp.a
+  DEFINES  += -DMPI -DUSE_MPI
+  CPPFLAGS += -I$(MPIHOME)/include
+endif
+endif
+
+ifeq ($(ARCH),UNIX_System_V)	# -- Fujitsu VPP300
 CC         = vcc
 FC         = frt
 CFLAGS     = $(DEFINES) -Wv,-m3,-Om,-te
@@ -72,7 +95,7 @@ ifdef MPI
 endif
 endif
 
-ifeq ($(ARCH),SUPER-UX)                 # -- NEC SX-4
+ifeq ($(ARCH),SUPER-UX)		# -- NEC SX-4
 CFLAGS     = $(DEFINES) -pvctl,fullmsg -hfloat0 -hnostkchk
 FFLAGS     = $(DEFINES) -Cvopt -Wf'-pvctl,fullmsg -ptr byte -b' -float0 -ew
 ifdef MPI

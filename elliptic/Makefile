@@ -4,18 +4,28 @@
 # $Id$
 ##############################################################################
 
-SEM      = ..
-VPATH    = $(SEM)/src
+SEM   = ..
+VPATH = $(SEM)/src
 
-ARCH     = $(shell uname -s)
+ARCH = $(shell uname -s)
+MACH = $(shell uname -m)
+ifeq ($(ARCH),Linux)
+  ifeq ($(MACH),alpha)
+    ARCH = Linux-alpha
+  endif
+  ifeq ($(MACH),i586)
+    ARCH = Linux-i586
+  endif
+endif
 
 ifdef DEBUG
-  DEFINES  = -DDEBUG
+  DEFINES = -DDEBUG
 else
-  DEFINES  =
+  DEFINES =
 endif
 ifdef MPI
-  PROG = elliptic_mp
+  MPIHOME = /usr/local/mpich
+  PROG    = elliptic_mp
 else
   PROG = elliptic
 endif
@@ -36,9 +46,9 @@ endif
 ifeq ($(ARCH),IRIX64)		# -- SGI 64-bit systems.
 CXX	 = CC
 LD	 = CC
-CXXFLAGS =  $(DEFINES) -64 -mips4 -g
+CXXFLAGS =  $(DEFINES) -64 -g
 F77LIBS	 = -lcomplib.sgimath -lftn
-LDFLAGS  = -g -64 -mips4 -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lmalloc -lm
+LDFLAGS  = -g -64 -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lmalloc -lm
 endif
 
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha
@@ -55,18 +65,36 @@ else
 endif
 endif
 
-ifeq ($(ARCH),Linux)		# -- GNU/Linux system.
-CXX	 = g++
-LD	 = g++
+ifeq ($(ARCH),Linux i586)		# -- Linux Intel system.
+F77LIBS = -llapack -lblas -lg2c
+CXX = g++
 ifdef DEBUG
-  OPT    = -gstabs+
+  OPT = -gstabs+
 else
-  OPT    = -O3
+  OPT = -O3
 endif	
 CXXFLAGS = $(DEFINES) $(OPT)
-F77LIBS  = -llapack -lblas -lg2c
-LDFLAGS  = $(OPT) -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
-	   -lfem -lalp $(F77LIBS)
+LD  = g++
+LDFLAGS = $(OPT) -L$(SEM)/lib/$(ARCH) -L/usr/local/lib -lfem -lalp $(F77LIBS)
+endif
+
+ifeq ($(ARCH),Linux alpha)		# -- Linux Alpha system.
+F77LIBS = -lcxml -lots -lfor -lg2c
+CXX = g++
+ifdef DEBUG
+  OPT = -gstabs+
+else
+  OPT = -O3
+endif
+CXXFLAGS = $(DEFINES) $(OPT)
+LD = g++
+ifdef MPI
+  LDFLAGS = -L$(SEM)/lib/$(ARCH) -L/usr/lib -L$(MPIHOME)/lib \
+            -lfem_mp -lalp $(F77LIBS) -lcpml -lmpich
+else
+  LDFLAGS = -L$(SEM)/lib/$(ARCH) -L/usr/local/lib    \
+             -lfem -lalp $(F77LIBS) -lcpml
+endif
 endif
 
 ifeq ($(ARCH),UNIX_System_V)    # -- Fujitsu VPP300.

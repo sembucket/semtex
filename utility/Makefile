@@ -7,7 +7,10 @@
 SEM      = ..
 VPATH    = $(SEM)/src
 
-ARCH     = $(shell uname -s)
+ARCH = $(shell uname -s)
+ifeq ($(ARCH),Linux)
+  ARCH += -$(shell uname -m)
+endif
 
 ifdef DEBUG
   DEFINES  = -DDEBUG
@@ -53,7 +56,7 @@ F77LIBS  = -ldxml
 LDFLAGS  = $(CXXFLAGS) -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
 endif
 
-ifeq ($(ARCH),Linux)		# -- GNU/Linux system.
+ifeq ($(ARCH),Linux-i586)	# -- Linux Intel system.
 CC	 = gcc
 CXX	 = g++
 LD	 = g++
@@ -64,6 +67,21 @@ else
 endif
 CXXFLAGS = $(DEFINES) $(OPT)
 F77LIBS  = -llapack -lblas -lg2c
+LDFLAGS  = -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
+	   -lfem -lalp $(F77LIBS) -lm
+endif
+
+ifeq ($(ARCH),Linux-alpha)	# -- Linux alpha system.
+CC	 = ccc
+CXX	 = g++
+LD	 = g++
+ifdef DEBUG
+  OPT    = -g
+else
+  OPT    = -O2
+endif
+CXXFLAGS = $(DEFINES) $(OPT)
+F77LIBS  = -lcxml -lots -lfor -lg2c
 LDFLAGS  = -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
 	   -lfem -lalp $(F77LIBS) -lm
 endif
@@ -203,6 +221,13 @@ transform: transform.C
 INTOBJ = interp.o feml.o mesh.o element.o auxfield.o geometry.o
 
 interp: $(INTOBJ)
+	$(CXX) $(CPPFLAGS) -g -o $@ $(INTOBJ) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build integral, field dump scalar integral evaluator.
+INTOBJ = integral.o feml.o mesh.o element.o auxfield.o geometry.o
+
+integral: $(INTOBJ)
 	$(CXX) $(CPPFLAGS) -g -o $@ $(INTOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------

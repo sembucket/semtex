@@ -58,6 +58,8 @@ FILE *efopen (const char *file, const char *mode)
 
   sprintf (buf, "can't open %s mode %s", file, mode);
   message ("efopen", buf, ERROR);
+  
+  return (FILE*) 0;
 }
 
 
