@@ -87,9 +87,8 @@ ModalMatrixSys::~ModalMatrixSys ()
 {
   integer       i;
   const integer N = _Msys.getSize();
-  MatrixSys*    M;
 
-  for (i = 0; i < N; i++) delete (M = MS.remove (_Msys[i]));
+  for (i = 0; i < N; i++) delete (MS.remove (_Msys[i]));
 }
 
 

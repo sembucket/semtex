@@ -88,12 +88,15 @@ void FluidParticle::integrate (const integer step)
 // ---------------------------------------------------------------------------
 {
   if (!E) return;
-
+#if defined (DEBUG)
+  const char routine[] = "FluidParticle::integrate";
+#endif
   register integer i;
   const integer    N     = min (step, TORD);
   const integer    NP    = N + 1;
   const integer    guess = 1;
   real             xp, yp, zp, up, vp, wp;
+
 
   if (N <= TORD) {
     Integration::AdamsBashforth (N,      P_coeff   );
@@ -126,11 +129,13 @@ void FluidParticle::integrate (const integer step)
 	}
       }
       if (!E) {
-#if defined(DEBUG)
-	char     str[StrMax];
-	sprintf (str, "Particle %1d at (%f, %f, %f) left mesh",
-		 id, P.x, P.y, P.z);
-	message (routine, str, WARNING);
+#if defined (DEBUG)
+	if ((int) Femlib::value("VERBOSE") > 3) {
+	  char     str[StrMax];
+	  sprintf (str, "Particle %1d at (%f, %f, %f) left mesh",
+		   id, P.x, P.y, P.z);
+	  message (routine, str, WARNING);
+	}
 #endif
 	return;
       }
@@ -158,11 +163,13 @@ void FluidParticle::integrate (const integer step)
 	}
       }
       if (!E) {
-#if defined(DEBUG)
-	char     str[StrMax];
-	sprintf (str, "Particle %1d at (%f, %f, %f) left mesh",
-		 id, P.x, P.y, P.z);
-	message (routine, str, WARNING);
+#if defined (DEBUG)
+	if ((int) Femlib::value("VERBOSE") > 3) {
+	  char     str[StrMax];
+	  sprintf (str, "Particle %1d at (%f, %f, %f) left mesh",
+		   id, P.x, P.y, P.z);
+	  message (routine, str, WARNING);
+	}
 #endif
 	return;
       }
