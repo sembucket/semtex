@@ -7,6 +7,9 @@
 static char
 RCSid[] = "$Id$";
 
+#include <stdio.h>
+
+#include <Utility.h>
 #include <Geometry.h>
 
 int                Geometry::np   = 0;
@@ -23,5 +26,12 @@ void Geometry::set (const int      NP,
 // Load values of static internal variables.
 // ---------------------------------------------------------------------------
 {
+  char routine[] = "Geometry::set", err[StrMax];
+
   np = NP; nz = NZ; nel = NE; csys = CS;
+
+  if (nz > 1 && nz & 1) {
+    sprintf (err, "nz must be even (%1d)", nz);
+    message (routine, err, ERROR);
+  }
 }
