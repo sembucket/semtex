@@ -28,7 +28,7 @@
 static char
 RCSid[] = "$Id$";
 
-#include <Sem.h>
+#include <buoy.h>
 #include <new.h>
 
 static char prog[] = "buoy";

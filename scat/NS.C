@@ -12,7 +12,7 @@
 static char
 RCSid[] = "$Id$";
 
-#include <Sem.h>
+#include <buoy.h>
 
 typedef ModalMatrixSystem ModeSys;
 static  integer           DIM;
