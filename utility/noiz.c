@@ -1,45 +1,33 @@
-/* ************************************************************************* *
- * NOIZ:  add a random Gaussian perturbation to a velocity field.            *
- *                                                                           *
- * USAGE: noiz [-h] [-o output] [-p perturb] [input[.fld]                    *
- *                                                                           *
- * SYNOPSIS:                                                                 *
- * Noiz reads a field file and adds a gaussian-distributed random variable   *
- * of specified standard deviation to each velocity datum.  Fields may be in * 
- * ASCII or binary format, output is in same format.                         *
- *                                                                           *
- * NOTES:                                                                    *
- * This is a simple adaption of Ron's CONVERT program.                       *
- * Default value of perturbation is 1.2x10^-7.                               *
- *                                                                           *
- * The following is a typical header:                                        *
- *                                                                           *
- * sample                      Session                                       *
- * Mon Apr 22 18:23:13 91      Created                                       *
- * 9 9 1 8                     Nr, Ns, Nz, Nelt                              *
- * 50                          Step                                          *
- * 0.05                        Time                                          *
- * 0.001                       Time step                                     *
- * 0.025                       Kinvis                                        *
- * 1                           Beta-z                                        *
- * U V P                       Fields written                                *
- * ascii                       Format                                        *
- *                                                                           *
- * ************************************************************************* */
+/*****************************************************************************
+ * noiz.c: add a random Gaussian perturbation to a velocity field.
+ *
+ * USAGE
+ * -----
+ * noiz [-h] [-o output] [-p perturb] [-m mode] [input[.fld]
+ *
+ * SYNOPSIS
+ * --------
+ * Noiz reads a field file and adds a gaussian-distributed random variable
+ * of specified standard deviation to each velocity datum.  Fields may be in
+ * ASCII or binary format, output is in same format.  Optionally, noise
+ * is added just to a prescribed Fourier mode (mode numbers begin at zero).
+ *
+ * NOTES
+ * -----
+ * Default value of perturbation is 1.2x10^-7.
+ *****************************************************************************/
 
-/*------------------*
- * RCS Information: *
- *------------------*/
-static char
-  RCSid[] = "$Id$";
+static char prog[]  = "noiz";
+static char RCSid[] = "$Id$";
 
-
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
-#include <nrutil.h>
-
+#include <alplib.h>
+#include <femdef.h>
+#include <femlib.h>
 
 #define IA    16807
 #define IM    2147483647
@@ -48,206 +36,217 @@ static char
 #define IR    2836
 #define NTAB  32
 #define NDIV  (1+(IM-1)/NTAB)
-#define EPS1  1.2e-7		/* single precision */
-#define EPS2  1.2e-13		/* double precision */
-#define RNMX  (1.0-EPS2)
+#define RNMX  (1.0-EPSDP)
+#define UNSET -1
+
+static void   getargs (int, char**, FILE**, FILE**, double*, int*);
+static void   a_to_a  (int,int,int,int, FILE*, FILE*, char*, double, int);
+static void   b_to_b  (int,int,int,int, FILE*, FILE*, char*, double, int, int);
+static double gasdev  (long*);   
+static void   perturb (double*, const int, const int, const int, const double);
 
 
-void   parse_args   (int, char **, FILE **, FILE **, double *);
-void   a_to_a       (int, int, FILE *, FILE *,  char *, double);
-void   b_to_b       (int, int, FILE *, FILE *,  char *, double);
-void   dswap        (int, double *);
-double gasdev       (long *);   
-int    count_fields (char *);
-
-
-
-
-main(int argc, char *argv[])
-/* ========================================================================= *
- * Wrapper.                                                                  *
- * ========================================================================= */
+int main (int    argc,
+	  char** argv)
+/* ------------------------------------------------------------------------- *
+ * Wrapper.
+ * ------------------------------------------------------------------------- */
 {
-  char   buf[BUFSIZ], fields[BUFSIZ], *c;
-  int    n, nr, ns, nz, nel;
-  FILE  *fp_in   = stdin,
-        *fp_out  = stdout;
-  double pert = EPS1;
-  
+  char   buf[STR_MAX], fields[STR_MAX], fmt[STR_MAX], *c;
+  int    i, n, np, nz, nel, mode = UNSET, swab = 0;
+  FILE  *fp_in  = stdin,
+        *fp_out = stdout;
+  double pert   = EPSSP;
 
-  parse_args(argc, argv, &fp_in, &fp_out, &pert);
+  getargs (argc, argv, &fp_in, &fp_out, &pert, &mode);
 
-  pert *= pert;	       /* we will need a perturbation variance later */
+  format (fmt);
 
-  while (fgets(buf, BUFSIZ, fp_in)) { 
+  while (fgets (buf, STR_MAX, fp_in)) { 
 
     n = 3;
     while (--n) {
-      fputs(buf, fp_out);
-      fgets(buf, BUFSIZ, fp_in);
+      fputs (buf, fp_out);
+      fgets (buf, STR_MAX, fp_in);
     }
 
-    if (sscanf(buf, "%d%d%d%d", &nr, &ns, &nz, &nel) != 4)
-      message("noiz", "unable to read the file size", ERROR);               
+    if (sscanf (buf, "%d%*s%d%d", &np, &nz, &nel) != 3)
+      message (prog, "unable to read the file size", ERROR);
+
+    if (mode != UNSET && 2 * mode >= nz) {
+      sprintf (fields, "too many modes (%1d) for input (nz = %1d)", mode, nz);
+      message (prog, fields, ERROR);
+    }
 
     n = 6;
     while (--n) {
-      fputs(buf, fp_out);
-      fgets(buf, BUFSIZ, fp_in);
+      fputs (buf, fp_out);
+      fgets (buf, STR_MAX, fp_in);
     }
     fputs(buf, fp_out);   
 
-    fgets(fields, BUFSIZ, fp_in);
+    fgets(fields, STR_MAX, fp_in);
     
-    n = count_fields(fields);
+    c = fields;
+    n = 0;
+    while (i++ < 25) if (isalpha(*c++)) n++;
+
     fputs (fields, fp_out);
-    fgets (buf, BUFSIZ, fp_in);
+    fgets (buf, STR_MAX, fp_in);
     fputs (buf, fp_out);
+    
+    if (strstr (buf, "binary")) {
+      if (!strstr (buf, "endian"))
+	message (prog, "input field file in unknown binary format", WARNING);
+      else {
+	swab = (   (strstr (buf, "big") && strstr (fmt, "little"))
+		|| (strstr (fmt, "big") && strstr (buf, "little")) );
+      }
+    }
 
     c = buf;
     while (isspace(*c)) c++;
 
     switch (*c) {
     case 'a': case 'A':
-      a_to_a (nr * ns * nz * nel, n, fp_in, fp_out, fields, pert);
+      a_to_a (np, nz, nel, n, fp_in, fp_out, fields, pert, mode);
       break;
 
     case 'b': case 'B':
-      b_to_b (nr * ns * nz * nel, n, fp_in, fp_out, fields, pert);
+      b_to_b (np, nz, nel, n, fp_in, fp_out, fields, pert, mode, swab);
       break;
 
     default:
       sprintf (buf, "unknown format flag -- %c", c);
-      message ("noiz", buf, ERROR);
+      message (prog, buf, ERROR);
       break;
     }
 
   } 
-
-  return;
+  
+  return EXIT_SUCCESS;
 }
 
 
-
-
-
-void a_to_a(int    npts,
-	    int    nfields, 
-	    FILE  *in, 
-	    FILE  *out, 
-	    char  *fields, 
-	    double pert)
-/* ========================================================================= *
- * ASCII input.                                                              *
- * ========================================================================= */
+static void a_to_a (int    np     ,
+		    int    nz     ,
+		    int    nel    ,
+		    int    nfields, 
+		    FILE*  in     , 
+		    FILE*  out    , 
+		    char*  fields , 
+		    double pert   ,
+		    int    mode   )
+/* ------------------------------------------------------------------------- *
+ * ASCII input.
+ * ------------------------------------------------------------------------- */
 {
-  int    i, j;
-  char   buf[128];
-  double datum;
-  long   seed = 0;
+  register int i, j, kr, ki;
+  const int    nplane = np * np * nel,
+               npts   = nz * nplane,
+               ntot   = nfields * npts;
+  double**     data;
+  char         buf[STR_MAX];
+  double       datum;
+  long         seed = 0;
 
+  data = dmatrix (0, nfields - 1, 0, npts - 1);
 
-  for (j = 0; j < npts; j++) {
+  for (j = 0; j < npts; j++)
     for (i = 0; i < nfields; i++)
-      if (fscanf(in, "%lf", &datum) == 1) {
-	switch (fields[i]) {
-	case 'u': case 'v': case 'w' :
-	  datum += pert*gasdev(&seed);
-	default:
-	  if (fprintf(out, "%#16.10g ", datum) < 1)
-	    message("noiz", "an error has occured while writing", ERROR);
-	  break;
-	} 
-      } else {
-	sprintf(buf, "unable to read a number -- line %d, field %d\n",
+      if (fscanf (in, "%lf", &datum) != 1) {
+	sprintf (buf, "unable to read a number -- line %d, field %d\n",
 		j+1, i+1);
-	message("noiz", buf, ERROR);
+	message (prog, buf, ERROR);
       }
-    fgets(buf, BUFSIZ, in);
-    fprintf(out, "\n");
-  }
-}
-
-
-
-
-
-void b_to_b(int    npts,
-	    int    nfields, 
-	    FILE  *in, 
-	    FILE  *out, 
-	    char  *fields, 
-	    double pert)
-/*===========================================================================*
- * Convert binary to ASCII.                                                  *
- *===========================================================================*/
-{
-  int      i, j;
-  double **data;
-  long     seed = 0;
-
-
-  data = dmatrix(0, nfields-1, 0, npts-1);
 
   for (i = 0; i < nfields; i++) {
-    if (fread(data[i], sizeof(double), npts, in) != npts)
-      message("noiz", "an error has occured while reading", ERROR);
     switch (fields[i]) {
-    case 'u': case 'v': case 'w':
-      for (j = 0; j < npts; j++)
-	data[i][j] += pert * gasdev(&seed);
-    default: break;
+    case 'u': case 'v': case 'w': perturb (data[i], mode, nz, nplane, pert);
+    default:                      break;
     }
   }
 
-  if (fwrite(data[0], sizeof(double), nfields*npts, out) != nfields*npts)
-    message("noiz",  "an error has occured while writing", ERROR);
-  
-  free_dmatrix(data, 0, 0);
+  for (j = 0; j < npts; j++) {
+    for (i = 0; i < nfields; i++)
+      if (fprintf (out, "%#16.10g ", datum) < 1)
+	message (prog, "an error has occured while writing", ERROR);
+    fprintf (out, "\n");
   }
 
-
-
-
-
-int count_fields(char *s)
-/* ========================================================================= *
- * Count the number of field names in a string.                              *
- * ========================================================================= */
-{
-  int n = 0, i = 0;
-
-  while (i++ < 25) if (isalpha(*s++)) n++;
-  
-  return n;
+  freeDmatrix (data, 0, 0);
 }
 
 
-
-
-
-void parse_args(int argc, char *argv[], FILE **fp_in, FILE **fp_out, double *p)
-/* ========================================================================= *
- * Parse command line arguments.                                             *
- * ========================================================================= */
+static void b_to_b (int    np     ,
+		    int    nz     ,
+		    int    nel    ,
+		    int    nfields, 
+		    FILE*  in     , 
+		    FILE*  out    , 
+		    char*  fields , 
+		    double pert   ,
+		    int    mode   ,
+		    int    swab   )
+/* ------------------------------------------------------------------------- *
+ * Binary input.
+ * ------------------------------------------------------------------------- */
 {
-  char  c;
-  int   i;
-  char  fname[FILENAME_MAX];
-  char *usage   = "usage: convert [-h] [-o output] [-p perturb] "
-                       "[input[.fld]]\n"
-                       "options:\n"
-                       "-h         ... print this help message\n"
-                       "-o output  ... write to named file\n"
-                       "-p perturb ... standard deviation of perutrbation\n";
+  register int i, j, kr, ki;
+  const int    nplane = np * np * nel,
+               npts   = nz * nplane,
+               ntot   = nfields * npts;
+  double**     data;
+  long         seed = 0;
 
+  data = dmatrix (0, nfields - 1, 0, npts - 1);
+
+  for (i = 0; i < nfields; i++) {
+
+    if (fread (data[i], sizeof (double), npts, in) != npts)
+      message (prog, "an error has occured while reading", ERROR);
+    if (swab) dbrev (npts, data[i], 1, data[i], 1);
+
+    switch (fields[i]) {
+    case 'u': case 'v': case 'w': perturb (data[i], mode, nz, nplane, pert);
+    default:                      break;
+    }
+  }
+
+  if (swab) dbrev (ntot, data[0], 1, data[0], 1);
+  if (fwrite (data[0], sizeof (double), ntot, out) != ntot)
+    message (prog, "an error has occured while writing", ERROR);
+  
+  freeDmatrix (data, 0, 0);
+}
+
+
+static void getargs (int     argc  ,
+		     char**  argv  ,
+		     FILE**  fp_in ,
+		     FILE**  fp_out,
+		     double* pert  ,     
+		     int*    mode  )
+/* ------------------------------------------------------------------------- *
+ * Parse command line arguments.
+ * ------------------------------------------------------------------------- */
+{
+  char c;
+  int  i;
+  char fname[FILENAME_MAX];
+  char *usage = "usage: noiz [options] [input[.fld]]\n"
+    "options:\n"
+    "-h         ... print this help message\n"
+    "-o output  ... write to named file\n"
+    "-p perturb ... standard deviation of perutrbation\n"
+    "-m mode    ... add noise only to this Fourier mode\n";
 
   while (--argc && (*++argv)[0] == '-')
     while (c = *++argv[0])
       switch (c) {
       case 'h':
-	fputs(usage, stderr);
-	exit (0);
+	fputs (usage, stderr);
+	exit  (EXIT_SUCCESS);
 	break;
       case 'o':
 	if (*++argv[0])
@@ -257,23 +256,31 @@ void parse_args(int argc, char *argv[], FILE **fp_in, FILE **fp_out, double *p)
 	  argc--;
 	}
 	if ((*fp_out = fopen(fname,"w")) == (FILE*) NULL) {
-	  fprintf(stderr, "convert: unable to open the output file -- %s\n", 
-		  fname);
-	  exit(1);
+	  fprintf(stderr, "%s: unable to open the output file -- %s\n", 
+		  prog, fname);
+	  exit (EXIT_FAILURE);
 	}
-	*argv += strlen(*argv)-1;
+	*argv += strlen (*argv)-1;
 	break;
       case 'p':
 	if (*++argv[0])
-	  *p = atof(*argv);
+	  *pert = atof (*argv);
 	else {
-	  *p = atof(*++argv);
+	  *pert = atof (*++argv);
 	  argc--;
 	}
-	*argv += strlen(*argv)-1;
+	*argv += strlen (*argv)-1;
+	break;
+      case 'm':
+	if (*++argv[0])
+	  *mode = atoi (*argv);
+	else {
+	  *mode = atoi (*++argv);
+	  argc--;
+	}
 	break;
       default:
-	fprintf(stderr, "convert: unknown option -- %c\n", c);
+	fprintf (stderr, "%s: unknown option -- %c\n", prog, c);
 	break;
       }
 
@@ -281,9 +288,9 @@ void parse_args(int argc, char *argv[], FILE **fp_in, FILE **fp_out, double *p)
     if ((*fp_in = fopen(*argv, "r")) == (FILE*) NULL) {
       sprintf(fname, "%s.fld", *argv);
       if ((*fp_in = fopen(fname, "r")) == (FILE*) NULL) {
-	fprintf(stderr, "convert: unable to open input file -- %s or %s\n",
-		*argv, fname);
-	exit(1);
+	fprintf(stderr, "%s: unable to open input file -- %s or %s\n",
+		prog, *argv, fname);
+	exit (EXIT_FAILURE);
       }
     }
 
@@ -291,12 +298,10 @@ void parse_args(int argc, char *argv[], FILE **fp_in, FILE **fp_out, double *p)
 }
 
 
-
-
-double ran1(long *idum)
-/* ========================================================================= *
- * Generate IUD random variates on (0, 1).  Numerical Recipes.               *
- * ========================================================================= */
+static double ran1 (long *idum)
+/* ------------------------------------------------------------------------- *
+ * Generate IUD random variates on (0, 1).  Numerical Recipes.
+ * ------------------------------------------------------------------------- */
 {
   int         j;
   long        k;
@@ -321,17 +326,16 @@ double ran1(long *idum)
   j = iy / NDIV;
   iy = iv[j];
   iv[j] = *idum;
-  if ((temp = AM * iy) > RNMX) return RNMX;
-  else return temp;
+  if   ((temp = AM * iy) > RNMX) return RNMX;
+  else                           return temp;
 }
  
 
-
-double gasdev(long *idum)
-/* ========================================================================= *
- * Generate normally distributed deviate with zero mean & unit variance.     *
- * Numerical Recipes.                                                        *
- * ========================================================================= */
+static double gasdev (long *idum)
+/* ------------------------------------------------------------------------- *
+ * Generate normally distributed deviate with zero mean & unit variance.
+ * Numerical Recipes.
+ * ------------------------------------------------------------------------- */
 {
   static int    iset = 0;
   static double gset;
@@ -339,16 +343,54 @@ double gasdev(long *idum)
     
   if  (iset == 0) {
     do {
-      v1= 2.0 * ran1(idum) - 1.0;
-      v2= 2.0 * ran1(idum) - 1.0;
-      r = v1 * v1 + v2 * v2;
+      v1 = 2.0 * ran1 (idum) - 1.0;
+      v2 = 2.0 * ran1 (idum) - 1.0;
+      r  = v1 * v1 + v2 * v2;
     } while (r >= 1.0);
-    fac = sqrt(-2.0 * log(r) / r);
+    fac = sqrt (-2.0 * log (r) / r);
     gset = v1 * fac;
     iset = 1;
     return v2 * fac;
   } else {
     iset = 0;
     return gset;
+  }
+}
+
+
+static void perturb (double*      data  ,
+		     const int    mode  ,
+		     const int    nz    , 
+		     const int    nplane,
+		     const double pert  )
+/* ------------------------------------------------------------------------- *
+ * Add perturbation to data field.
+ * ------------------------------------------------------------------------- */
+{
+  register int j, kr, ki;
+  const int    npts = nz * nplane;
+  long         seed = 0;
+  double       eps;
+
+  if (mode != UNSET) {	/* -- Perturb only specified Fourier mode. */
+
+    dDFTr (data, nz, nplane, 1, nplane, +1);
+    
+    kr = (2 * mode)     * nplane;
+    ki = (2 * mode + 1) * nplane;
+
+    eps = pert * nz;		/* -- Account for scaling of modes. */
+    
+    for (j = 0; j < nplane; j++) data[kr + j] += eps * gasdev (&seed);
+    if (mode)
+    for (j = 0; j < nplane; j++) data[ki + j] += eps * gasdev (&seed);
+    
+    dDFTr (data, nz, nplane, 1, nplane, -1);
+
+  } else {			/* -- Perturb all modes. */
+    
+    eps = pert;
+    for (j = 0; j < npts; j++)   data[j]      += eps * gasdev (&seed);
+    
   }
 }
