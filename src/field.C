@@ -33,6 +33,7 @@ Field::Field () :
 field_name          (0),
 n_data              (0),
 n_elmt_bnodes       (0),
+n_elmt_inodes       (0),
 n_gid               (0),
 n_solve             (0),
 elmt_np_max         (0),
@@ -79,6 +80,8 @@ Field::Field (const Mesh& M, int np)
     elmt_ne_max = max (elmt_ne_max, E -> nExt  ());
     elmt_ni_max = max (elmt_ne_max, E -> nInt  ());
   }
+
+  n_elmt_inodes = n_data - n_elmt_bnodes;
 
   // -- Allocate and install Field-level storage associated with elements.
   //    Compute mesh locations within each element.
@@ -610,7 +613,7 @@ void  Field::setMask ()
 
   for (ListIterator<Boundary*> b(boundary_list); b.more(); b.next()) {
     B = b.current();
-    if (B -> isEssential()) B -> mask (gmask);
+    if (B -> isEssential()) B -> setMask (gmask);
   }
 
   Veclib::gathr (ntot, gmask, elmt_bndry_gid, elmt_bndry_mask);
@@ -810,7 +813,8 @@ Field&  Field::grad (int flag1, int flag2)
 }
 
 
-void  Field::buildSys (real lambda2)
+void  Field::buildSys (const real&      lambda2    ,
+		       MatrixGenerator  Constructor)
 // ---------------------------------------------------------------------------
 // Build a direct-solve discrete Helmholtz matrix system for this Field.
 //
@@ -906,18 +910,19 @@ void  Field::buildSys (real lambda2)
   char    routine[] = "Field::buildSys";
   char    s[StrMax];
   int     info, verbose = option ("VERBOSE");
-  real**  hbb;
-  real**  rmat;
+  real*   hbb;
+  real*   rmat;
   real*   rwrk;
   int*    iwrk;
   real    condition;
+  int     singular = n_gid == n_solve && lambda2 == 0.0;
 
   // -- Set up. n_band additionally flags use of packed or band storage.
 
   n_band = n_pack = n_cons = 0;
 
   if (n_solve) {
-    if (n_gid == n_solve && lambda2 == 0.0) n_solve--;     // -- Pin solution.
+    if (singular) n_solve--;     // -- Pin solution.
     n_band = globalBandwidth ();
     n_band = (n_band < (n_solve + 1) >> 1) ? n_band : 0;
     n_pack = (n_band) ? n_solve * n_band : ((n_solve + 1) * n_solve) >> 1;
@@ -927,8 +932,8 @@ void  Field::buildSys (real lambda2)
     Veclib::zero (n_pack, Hp, 1);
 
     if (n_cons > 1) {
-      Hc = rmatrix (n_solve, n_cons);
-      Veclib::zero (n_solve*n_cons, *Hc, 1);
+      Hc = rvector (n_solve * n_cons);
+      Veclib::zero (n_solve * n_cons, Hc, 1);
     }
 
     if (verbose > 0) {
@@ -947,32 +952,26 @@ void  Field::buildSys (real lambda2)
 
   // -- Loop over elements, creating & posting elemental Helmholtz matrices.
 
-  Element*  E;
-  rwrk = rvector (elmt_ne_max * elmt_nt_max); 
+  register Element*  E;
 
-  for (ListIterator<Element*> k(element_list); k.more(); k.next()) {
-    E = k.current();
+  hbb  = rvector (elmt_ne_max * elmt_ne_max);
+  rmat = rvector (elmt_np_max * elmt_np_max);
+  rwrk = rvector (elmt_ne_max * elmt_nt_max);
 
-    int nExt  = E -> nExt  ();
-    int nInt  = E -> nInt  ();
-    int nTot  = E -> nTot  ();
-    int nKnot = E -> nKnot ();
-		  
-    hbb  = rmatrix (nExt, nExt);
-    rmat = rmatrix (nKnot, nKnot);
-    rwrk = rvector (nExt*nTot);
- 
-    E -> HelmholtzSC (lambda2, hbb, rmat, rwrk);
-    E -> post        (hbb, Hp, Hc, n_solve, n_cons, n_band);
+  for (ListIterator<Element*> k (element_list); k.more (); k.next ()) {
+    E = k.current ();
 
-    freeMatrix (hbb );
-    freeMatrix (rmat);
+    (E ->* Constructor) (lambda2, hbb, rmat, rwrk);
+     E -> assemble      (hbb, Hp, Hc, n_solve, n_cons, n_band);
  
     if (FamilyMgr::active) E -> economizeMat ();
   }
 
-  freeVector (rwrk);
   matrices_economized = FamilyMgr::active;
+
+  freeVector (hbb);
+  freeVector (rmat);
+  freeVector (rwrk);
 
   // -- Factor global Helmholtz matrix.
 
@@ -1017,16 +1016,15 @@ void  Field::solveSys (Field* F)
 // the forcing field and the NATURAL BCs, while the remaining n_cons values
 // get loaded from ESSENTIAL BC values.
 //
-// Forcing field F is overwritten/destroyed during processing.
+// Forcing field F's data area is overwritten/destroyed during processing.
 // ---------------------------------------------------------------------------
 {
   int  info;
 
   // -- Allocate, fill values of RHS vector.
 
-  real* RHS  = rvector (n_gid);
-  Veclib::zero (n_gid, RHS, 1);
-  buildRHS     (F, RHS);
+  real* RHS = rvector (n_gid);
+  buildRHS (F, RHS);
 
 #ifdef DEBUG
   char  routine[] = "Field::solveSys";
@@ -1047,7 +1045,7 @@ void  Field::solveSys (Field* F)
 
   if (n_solve) {
     if (n_cons > 1)   // -- Apply ESSENTIAL BC constraint matrix to RHS.
-      Blas::gemv ("T", n_cons, n_solve, -1.0, *Hc, n_cons,
+      Blas::gemv ("T", n_cons, n_solve, -1.0, Hc, n_cons,
 		  RHS + n_solve, 1, 1.0, RHS, 1);
 
 #ifdef DEBUG
@@ -1107,8 +1105,11 @@ void Field::buildRHS (Field* F, real* RHS) const
 // for the current Field.
 // ---------------------------------------------------------------------------
 {
-  Element*  E;
-  int       offset;
+  register Element*   E;
+  register Boundary*  B;
+  register int        offset;
+
+  Veclib::zero (n_gid, RHS, 1);
 
   for (ListIterator<Element*> u (element_list); u.more (); u.next ()) {
     E      = u.current ();
@@ -1116,9 +1117,8 @@ void Field::buildRHS (Field* F, real* RHS) const
     E -> dsForcingSC (F -> data + offset, RHS);
   }
 
-  Boundary *B;
   for (ListIterator<Boundary*> b(boundary_list); b.more(); b.next()) {
-    B = b.current();
+    B = b.current ();
     if   (B -> isEssential ()) B -> enforce (RHS);
     else                       B -> dsSum   (RHS);
   }
@@ -1336,3 +1336,276 @@ Vector  Field::tangentTraction (const Field& U , const Field& V ,
 
   return F;
 }
+
+
+Field& Field::solveSys (Field*            F       ,
+			const real&       lambda2 ,
+			DiscreteOperator  Operator)
+// ---------------------------------------------------------------------------
+// Carry out Conjugate Gradient solution of this Field using F as forcing.
+//
+// Problem for solution is the discrete version of the
+// weak form of
+//                                          2
+//                       div grad u - lambda  u = F.
+//
+// Forcing field F's data area is overwritten/destroyed during processing.
+//
+// In this version, all vectors are ordered with globally-numbered (element-
+// boundary) nodes first, followed by all element-internal nodes.
+//
+// Operator points to an Element routine that applies the discrete Helmholtz
+// to element-level storage to assemble contributions to storage ordered
+// as above.  Default operator is for 2D Cartesian geometry.
+// ---------------------------------------------------------------------------
+{
+  char      routine[] = "Field::solveSys";
+  real      rho1, rho2, alpha, beta;
+
+  const int StepMax = 500;
+
+  // -- Allocate storage.
+
+  int npts  = n_gid + n_elmt_inodes;
+
+  real* r   = rvector (npts);
+  real* p   = rvector (npts);
+  real* w   = rvector (npts);
+  real* x   = rvector (npts);
+
+  real* wrk = rvector (4 * elmt_nt_max);
+
+  // -- Build globally-numbered x from element store.  Apply current BCs.
+
+  condense (x);
+  for (ListIterator<Boundary*> b(boundary_list); b.more(); b.next()) {
+    Boundary* B = b.current ();
+    if (B -> isEssential ()) B -> enforce (x);
+  }
+  
+  // -- Create RHS vector b, constrained by ESSENTIAL BCs.
+  //    Then mask RHS at ESSENTIAL BC nodes, to give zero residual there.
+
+  Veclib::copy (npts, x, 1, p, 1);
+  mask (0, p) . buildRHS (F, p, r, lambda2, Operator, wrk) . mask (r, 0);
+
+  const real epsb = dparam ("CG_TOL") * sqrt (Blas::dot (npts, r, 1, r, 1));
+
+  // -- Compute first residual using initial guess: r = b - Ax.
+
+  Veclib::copy (npts, x, 1, w, 1);
+  mask (w, 0) . HelmholtzOperator (Operator, w, p, lambda2, wrk) . mask (r, 0);
+  Veclib::vsub (npts, r, 1, p, 1, r, 1);
+
+  rho1 = Blas::dot (npts, r, 1, r, 1);
+
+  // -- CG iteration.
+
+  for (int k = 0; sqrt (rho1) > epsb && k < StepMax; k++) {
+
+    if   (k) Veclib::svtvp (npts, beta, p, 1, r, 1, p, 1); // -- p = r + beta p
+    else     Veclib::copy  (npts,             r, 1, p, 1); // -- p = r
+
+    HelmholtzOperator (Operator, p, w, lambda2, wrk) . mask (w, 0);
+
+    alpha = rho1 / Blas::dot (npts, p, 1, w, 1);
+    Blas::axpy (npts,  alpha, p, 1, x, 1); // -- x += alpha p
+    Blas::axpy (npts, -alpha, w, 1, r, 1); // -- r -= alpha w
+
+    rho2 = rho1;
+    rho1 = Blas::dot (npts, r, 1, r, 1);
+    beta = rho1 / rho2;
+  }
+  
+  if (k == StepMax) message (routine, "step limit exceeded", WARNING);
+
+  expand (x);
+
+  freeVector (r);
+  freeVector (p);
+  freeVector (w);
+  freeVector (x);
+
+  freeVector (wrk);
+  
+  return *this;
+}
+
+
+Field& Field::condense (real* target)
+// ---------------------------------------------------------------------------
+// Load data storage area into target, with globally-numbered (element-
+// boundary) values in the first n_gid places, followed by element-internal
+// locations in emap ordering.
+// ---------------------------------------------------------------------------
+{
+  register Element*  E;
+  register real*     src;
+  register real*     internal = target + n_gid;
+
+  for (ListIterator<Element*> k (element_list); k.more (); k.next ()) {
+    E         = k.current ();
+    src       = data + E -> nOff ();
+    E -> condense (src, target, internal);
+    internal += E -> nInt ();
+  }
+
+  return *this;
+}
+
+
+Field& Field::expand (const real* src)
+// ---------------------------------------------------------------------------
+// Load data storage area from src, which has globally-numbered (element-
+// boundary) values in the first n_gid places, followed by element-internal
+// locations in emap ordering.
+// ---------------------------------------------------------------------------
+{
+  register Element*     E;
+  register real*        target;
+  register const real*  internal = src + n_gid;
+
+  for (ListIterator<Element*> k (element_list); k.more (); k.next ()) {
+    E         = k.current ();
+    target    = data + E -> nOff ();
+    E -> expand (target, src, internal);
+    internal += E -> nInt ();
+  }
+  
+  return *this;
+}
+
+
+Field& Field::HelmholtzOperator (DiscreteOperator  Operator,
+				 const real*       x       ,
+				 real*             y       ,
+				 const real&       lambda2 ,
+				 real*             wrk     )
+// ---------------------------------------------------------------------------
+// Discrete Helmholtz operator which takes the vector x into vector y,
+// including direct stiffness summation.
+//
+// Vector wrk must have length 4 * elmt_nt_max.
+// ---------------------------------------------------------------------------
+{
+  register Element*  E;
+  register int       nint;
+  register const real*     x_int = x + n_gid;
+  register       real*     y_int = y + n_gid;
+  real*              in    = wrk;
+  real*              out   = in  + elmt_nt_max;
+  real*              ewk   = out + elmt_nt_max;
+
+  Veclib::zero (n_gid + n_elmt_inodes, y, 1);
+
+  for (ListIterator<Element*> k (element_list); k.more (); k.next ()) {
+    E    = k.current ();
+    nint = E -> nInt ();
+
+     E -> expand     (in,  x,   x_int);
+    (E ->* Operator) (in,  out, lambda2, ewk);
+     E -> dsSum      (out, y,   y_int);
+
+    x_int += nint;
+    y_int += nint;
+  }
+
+  return *this;
+}
+
+
+Field& Field::mask (real* essent, real* other)
+// ---------------------------------------------------------------------------
+// Apply mask operation to zero either ESSENTIAL BC or other nodes.
+//
+// Input vectors are assumed to have globally-numbered nodes foremost,
+// followed by element internal (un-numbered) nodes.
+//
+// It is cheaper to mask ESSENTIAL BC nodes as operation can be obtained
+// by a traverse of Field Boundaries.  Note that ESSENTIAL BC nodes have
+// global numbers, so nothing has to be done to element-internal nodes.
+//
+// For ESSENTIAL mask, if discrete operator is singular (no ESSENTIAL BCs,
+// lambda2 = 0.0), last global node is set to zero.
+// ---------------------------------------------------------------------------
+{
+  char  routine[] = "Field::mask";
+
+  if (other && essent) message (routine, "all nodes requested", WARNING);
+
+  // -- Zero nodes at ESSENTIAL BCs.
+
+  if (essent) {
+    register Boundary*  B;
+    int      singular = n_gid == n_solve && dparam("LAMBDA2") == 0.0;
+    
+    for (ListIterator<Boundary*> b (boundary_list); b.more (); b.next ()) {
+      B = b.current ();
+      if (B -> isEssential ()) B -> mask (essent);
+    }
+    if (singular) essent[n_gid - 1] = 0.0;
+  }
+
+  // -- Zero all other nodes, leaving ESSENTIAL BCs.
+
+  if (other) {			
+    register Element*  E;
+    
+    for (ListIterator<Element*> e (element_list); e.more(); e.next ()) {
+      E = e.current ();
+      E -> bndryMask (0, other);
+    }
+    Veclib::zero (n_elmt_inodes, other + n_gid, 1);
+  }
+
+  return *this;
+}
+
+
+Field& Field::buildRHS (Field*            F       ,
+			real*             xe      ,
+			real*             RHS     , 
+			const real&       lambda2 , 
+			DiscreteOperator  Operator,
+			real*             wrk     )
+// ---------------------------------------------------------------------------
+// On input, xe contains a copy of unknown field, with current BCs applied.
+// ---------------------------------------------------------------------------
+{
+  register Element*   E;
+  register Boundary*  B;
+
+  int    singular = n_gid == n_solve && lambda2 == 0.0;
+  real*  RHS_internal = RHS + n_gid;
+  real*  F_elemental;
+
+  // -- Build & apply ESSENTIAL BC constraint.
+
+  if ((n_cons = n_gid - n_solve) > 1) {
+    Veclib::neg (n_gid, xe, 1);
+    HelmholtzOperator (Operator, xe, RHS, lambda2, wrk);
+  } 
+
+  // -- Add in contribution from forcing field F.
+
+  for (ListIterator<Element*> u (element_list); u.more (); u.next ()) {
+    E = u.current ();
+    F_elemental = F -> data + E -> nOff ();
+    E -> dsForcing (F_elemental);
+    E -> dsSum     (F_elemental, RHS, RHS_internal);
+    RHS_internal += E -> nInt ();
+  }
+  
+  // -- Add in contribution from NATURAL BCs.
+
+  for (ListIterator<Boundary*> b(boundary_list); b.more(); b.next()) {
+    B = b.current();
+    if (!B -> isEssential ()) B -> dsSum (RHS);
+  }
+
+  if (singular) RHS[n_gid - 1] = 0.0; 
+
+  return *this;
+}
+
+
