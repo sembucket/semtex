@@ -41,5 +41,12 @@ void AeroAnalyser::analyse (AuxField*** work)
 {
   Analyser::analyse (work);
 
+  const integer periodic = !(src.step %  (integer) Femlib::value ("IO_HIS")) ||
+                           !(src.step %  (integer) Femlib::value ("IO_FLD"));
+  const integer final    =   src.step == (integer) Femlib::value ("N_STEP");
+  const integer state    = periodic || final;
+
+  if (!state) return;
+
   sta_strm << src.step << " " << src.time << body << endl;
 }
