@@ -77,7 +77,7 @@ void sDFTr (float*    data,
 
   switch (sign) {
 
-  case 1:
+  case +1:
     if (tlen & 1) {
       for (i = 0; i < ntrn; i++, ptr++) {
 	scopy  (tlen, ptr, ntrn, work, 1);
@@ -90,7 +90,7 @@ void sDFTr (float*    data,
 	srfftf (tlen, work, Wtab);
 	scopy  (tlen - 2, work + 1, 1, ptr + 2 * ntrn, ntrn);
 	ptr[0]    = work[0];
-	ptr[tlen] = work[tlen - 1];
+	ptr[ntrn] = work[tlen - 1];
       }
     }
     sscal (ntot, 1.0 / tlen, data, 1);
@@ -165,7 +165,7 @@ void dDFTr (double*   data,
 
   switch (sign) {
 
-  case 1:
+  case +1:
     if (tlen & 1) {
       for (i = 0; i < ntrn; i++, ptr++) {
 	dcopy  (tlen, ptr, ntrn, work, 1);
@@ -178,7 +178,7 @@ void dDFTr (double*   data,
 	drfftf (tlen, work, Wtab);
 	dcopy  (tlen - 2, work + 1, 1, ptr + 2 * ntrn, ntrn);
 	ptr[0]    = work[0];
-	ptr[tlen] = work[tlen - 1];
+	ptr[ntrn] = work[tlen - 1];
       }
     }
     dscal (ntot, 1.0 / tlen, data, 1);
