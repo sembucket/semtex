@@ -8,26 +8,26 @@ RCSid_operators[] = "$Id$";
 
 #include <stdio.h>
 #include <malloc.h>
-#include <alplib.h>
 #include <femdef.h>
+#include <alplib.h>
 #include <femlib.h>
 
 typedef struct mapping {
-  int             np   ;
-  int*            emap ;
-  int*            pmap ;
+  integer         np   ;
+  integer*        emap ;
+  integer*        pmap ;
   struct mapping* next ;
 } Mapping;
 
 static Mapping* mHead = 0;
 
 
-void edgemaps (const int nk ,
-	       int**     map,
-	       int**     inv)
+void edgemaps (const integer nk ,
+	       integer**     map,
+	       integer**     inv)
 /* ------------------------------------------------------------------------- *
- * An (e)map is an edge-major list of indices, going CCW around the element
- * edges and then traversing the interior in row-major form. 
+ * An (e)map is an edge-major permutation of indices, going CCW around the
+ * element edges and then traversing the interior in row-major form. 
  * This allows access element storage by traversing edges, tying in with
  * edge-based global numbering.
  *
@@ -43,8 +43,8 @@ void edgemaps (const int nk ,
  * ------------------------------------------------------------------------- */
 {
   char              routine[] = "edgemaps";
-  const int         nk2 = nk * nk;
-  register int      found = 0;
+  const integer     nk2 = nk * nk;
+  register integer  found = 0;
   register Mapping* p;
 
   if (nk < 2)
@@ -54,9 +54,9 @@ void edgemaps (const int nk ,
   for (p = mHead; p; p = p -> next) if (found = nk == p -> np) break;
 
   if (!found) {
-    register int i, j, k, n;
-    const    int nm = nk - 1;
-    register int *em, *pm;
+    register integer i, j, k, n;
+    const    integer nm = nk - 1;
+    register integer *em, *pm;
 
     p = (Mapping *) calloc (1, sizeof (Mapping));
     if (mHead) p -> next = mHead;

@@ -18,26 +18,27 @@ RCSid[] = "$Id$";
 
 #include <stdio.h>
 #include <malloc.h>
+#include <femdef.h>
 #include <alplib.h>
 
 typedef struct ivect {
-  int           size ;		/* Length of stored vector.           */
-  int*          data ;		/* Vector.                            */
-  int           nrep ;		/* Number of unaliased replications.  */
+  integer       size ;		/* Length of stored vector.           */
+  integer*      data ;		/* Vector.                            */
+  integer       nrep ;		/* Number of unaliased replications.  */
   struct ivect* next ;
 } iVect;
 
 typedef struct dvect {
-  int           size ;
+  integer       size ;
   double*       data ;
-  int           nrep ;
+  integer       nrep ;
   struct dvect* next ;
 } dVect;
 
 typedef struct svect {
-  int           size ;
+  integer       size ;
   float*        data ;
-  int           nrep ;
+  integer       nrep ;
   struct svect* next ;
 } sVect;
 
@@ -45,19 +46,19 @@ static iVect* iHead = 0;
 static dVect* dHead = 0;
 static sVect* sHead = 0;
 
-static int*    iAdopted (const int, const int*);
-static double* dAdopted (const int, const double*);
-static float*  sAdopted (const int, const float*);
+static integer* iAdopted (const integer, const integer*);
+static double*  dAdopted (const integer, const double*);
+static float*   sAdopted (const integer, const float*);
 
 #ifdef DEBUG
-  static const int active = 0;	/* -- Disable families. */
+  static const integer active = 0;	/* -- Disable families. */
 #else
-  static const int active = 1;
+  static const integer active = 1;
 #endif
 
 
-void iadopt (const int size,
-	     int**     vect)
+void iadopt (const integer size,
+	     integer**     vect)
 /* ------------------------------------------------------------------------- *
  * If members of *vect have not already been stored then allocate new family
  * storage, load it from *vect, release vect and return pointer to new data
@@ -65,8 +66,8 @@ void iadopt (const int size,
  * the input pointer is not already in family storage.
  * ------------------------------------------------------------------------- */
 {
-  iVect* S = 0;
-  int*   member;
+  iVect*  S = 0;
+  integer* member;
   
   if (!active || !vect || !*vect) return;
 
@@ -87,16 +88,16 @@ void iadopt (const int size,
 }
 
 
-static int* iAdopted (const int  size,
-		      const int* src )
+static integer* iAdopted (const integer  size,
+			  const integer* src )
 /* ------------------------------------------------------------------------- *
  * Traverse list and see if the entries of vector src (length size) is in
  * storage.  If so, return address of the storage area.  If this is a new
  * occurrence of the entries of src also update nrep, number of replications.
  * ------------------------------------------------------------------------- */
 {
-  register iVect* p;
-  register int    found = 0;
+  register iVect*  p;
+  register integer found = 0;
 
   for (p = iHead; p; p = p -> next) {
     if (p -> size != size)
@@ -113,15 +114,15 @@ static int* iAdopted (const int  size,
 }
 
 
-void iabandon (int** vect)
+void iabandon (integer** vect)
 /* ------------------------------------------------------------------------- *
  * Family deletion operator.  Traverse list looking for a match, decrement
  * nrep and release last copy of internal storage (and list item) if nrep == 0.
  * ------------------------------------------------------------------------- */
 {
-  register iVect* p;
-  register iVect* o = 0;
-  register int    found = 0;
+  register iVect*  p;
+  register iVect*  o = 0;
+  register integer found = 0;
 
   if (!active) return;
 
@@ -139,8 +140,8 @@ void iabandon (int** vect)
 }
 
 
-void dadopt (const int size,
-	     double**  vect)
+void dadopt (const integer size,
+	     double**      vect)
 /* ------------------------------------------------------------------------- *
  * See comments for iadopt.
  * ------------------------------------------------------------------------- */
@@ -167,14 +168,14 @@ void dadopt (const int size,
 }
 
 
-static double* dAdopted (const int     size,
+static double* dAdopted (const integer size,
 			 const double* src )
 /* ------------------------------------------------------------------------- *
  * See comments for iAdopted.
  * ------------------------------------------------------------------------- */
 {
-  register dVect* p;
-  register int    found = 0;
+  register dVect*  p;
+  register integer found = 0;
 
   for (p = dHead; p; p = p -> next) {
     if (p -> size != size)
@@ -196,9 +197,9 @@ void dabandon (double** vect)
  * See comments for iabandon.
  * ------------------------------------------------------------------------- */
 {
-  register dVect* p;
-  register dVect* o = 0;
-  register int    found = 0;
+  register dVect*  p;
+  register dVect*  o = 0;
+  register integer found = 0;
 
   if (!active) return;
 
@@ -216,8 +217,8 @@ void dabandon (double** vect)
 }
 
 
-void sadopt (const int size,
-	     float**   vect)
+void sadopt (const integer size,
+	     float**       vect)
 /* ------------------------------------------------------------------------- *
  * See comments for iadopt.
  * ------------------------------------------------------------------------- */
@@ -244,14 +245,14 @@ void sadopt (const int size,
 }
 
 
-static float* sAdopted (const int    size,
-			const float* src )
+static float* sAdopted (const integer size,
+			const float*  src )
 /* ------------------------------------------------------------------------- *
  * See comments for iAdopted;
  * ------------------------------------------------------------------------- */
 {
-  register sVect* p;
-  register int    found = 0;
+  register sVect*  p;
+  register integer found = 0;
 
   for (p = sHead; p; p = p -> next) {
     if (p -> size != size)
@@ -273,9 +274,9 @@ void sabandon (float** vect)
  * See comments for iabandon.
  * ------------------------------------------------------------------------- */
 {
-  register sVect* p;
-  register sVect* o = 0;
-  register int    found = 0;
+  register sVect*  p;
+  register sVect*  o = 0;
+  register integer found = 0;
 
   if (!active) return;
 
@@ -293,18 +294,18 @@ void sabandon (float** vect)
 }
 
 
-int FamilySize (int* nint,
-		int* ndp ,
-		int* nsp )
+integer FamilySize (integer* nint,
+		    integer* ndp ,
+		    integer* nsp )
 /* ------------------------------------------------------------------------- *
  * Return total words of family storage, and individual numbers.
  * ------------------------------------------------------------------------- */
 {
-  int    ni, nd, ns;
+  integer ni, nd, ns;
 
-  iVect* ip;
-  dVect* dp;
-  sVect* sp;
+  iVect*  ip;
+  dVect*  dp;
+  sVect*  sp;
 
   ni = nd = ns = 0;
 
@@ -316,8 +317,8 @@ int FamilySize (int* nint,
   if (ndp ) *ndp  = nd;
   if (nsp ) *nsp  = ns;
 
-  return ni * sizeof (int)    +
-         nd * sizeof (double) +
+  return ni * sizeof (integer) +
+         nd * sizeof (double)  +
 	 ns * sizeof (float);
 }
 

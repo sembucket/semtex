@@ -12,15 +12,15 @@ RCSid_fourier[] = "$Id$";
 
 #include <stdio.h>
 #include <malloc.h>
-#include <alplib.h>
 #include <femdef.h>
+#include <alplib.h>
 #include <femlib.h>
 
 
-void sDFTr (float*    data,
-	    const int tlen,
-	    const int ntrn,
-	    const int sign)
+void sDFTr (float*        data,
+	    const integer tlen,
+	    const integer ntrn,
+	    const integer sign)
 /* ------------------------------------------------------------------------- *
  * Carry out multiple 1D single--complex Fourier transforms of data.
  * Data is to be Fourier transformed in the direction normal to the most
@@ -44,13 +44,13 @@ void sDFTr (float*    data,
  *     the real and imaginary parts for each mode alternate (both cases).
  * ------------------------------------------------------------------------- */
 {
-  char           routine[] = "sDFTr";
-  const int      ntot = tlen * ntrn;
-  register int   i;
-  int            dum, ip, iq, ir, ipqr2;
-  register float *work, *Wtab, *ptr;
+  char             routine[] = "sDFTr";
+  const integer    ntot = tlen * ntrn;
+  register integer i;
+  integer          dum, ip, iq, ir, ipqr2;
+  register float  *work, *Wtab, *ptr;
 
-  if (tlen  < 2 || !ntrn) return;
+  if (tlen < 2 || !ntrn) return;
 
 #if 1
   
@@ -128,21 +128,21 @@ void sDFTr (float*    data,
 }
 
 
-void dDFTr (double*   data,
-	    const int tlen,
-	    const int ntrn,
-	    const int sign)
+void dDFTr (double*       data,
+	    const integer tlen,
+	    const integer ntrn,
+	    const integer sign)
 /* ------------------------------------------------------------------------- *
  * Double-precision version of sDFTr.
  * ------------------------------------------------------------------------- */
 {
-  char            routine[] = "dDFTr";
-  const int       ntot = tlen * ntrn;
-  register int    i;
-  int             dum, ip, iq, ir, ipqr2;
-  register double *work, *Wtab, *ptr;
+  char             routine[] = "dDFTr";
+  const integer    ntot = tlen * ntrn;
+  register integer i;
+  integer          dum, ip, iq, ir, ipqr2;
+  register double  *work, *Wtab, *ptr;
 
-  if (tlen  < 2 || !ntrn) return;
+  if (tlen < 2 || !ntrn) return;
 
 #if 1
 

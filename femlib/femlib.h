@@ -1,54 +1,56 @@
-#ifndef femlibH
-#define femlibH
+#ifndef FEMLIB_H
+#define FEMLIB_H
 /*****************************************************************************
  *         FUNCTION PROTOTYPES FOR ROUTINES IN LIBRARY LIBFEM.A
+ *
+ * $Id$
  *****************************************************************************/
 
-/* $Id$ */
+#include <femdef.h>
 
 /* -- Routines from initial.c: */
 
-void   yy_initialize (void);
-double yy_interpret  (const char*);
+void    yy_initialize (void);
+double  yy_interpret  (const char*);
 
-void   yy_vec_init   (const char*, const char*);
-void   yy_vec_interp (const int, ...);
+void    yy_vec_init   (const char*, const char*);
+void    yy_vec_interp (const integer, ...);
 
-void   yy_help       (void);
-void   yy_show       (void);
-int    yy_dump       (char*, const int);
+void    yy_help       (void);
+void    yy_show       (void);
+integer yy_dump       (char*, const integer);
 
 /* -- Routines from polyops.c: */
 
-void   dermat_g (const int, const double*, const int,
+void   dermat_g (const integer, const double*, const integer,
 		 const double*, double**, double**);
-void   intmat_g (const int, const double*, const int,
+void   intmat_g (const integer, const double*, const integer,
 		 const double*, double**, double**);
-void   dermat_k (const int, const double*, double**, double**);
+void   dermat_k (const integer, const double*, double**, double**);
 
-void   jacg     (const int, const double, const double, double*);
-void   jacgr    (const int, const double, const double, double*);
-void   jacgl    (const int, const double, const double, double*);
+void   jacg     (const integer, const double, const double, double*);
+void   jacgr    (const integer, const double, const double, double*);
+void   jacgl    (const integer, const double, const double, double*);
 
-void   zwgl     (double*, double*, const int);
-void   zwgrl    (double*, double*, const int);
-void   zwgll    (double*, double*, const int);
+void   zwgl     (double*, double*, const integer);
+void   zwgrl    (double*, double*, const integer);
+void   zwgll    (double*, double*, const integer);
 
-double pnleg    (const double, const int);
-double pndleg   (const double, const int);
-double pnd2leg  (const double, const int);
+double pnleg    (const double, const integer);
+double pndleg   (const double, const integer);
+double pnd2leg  (const double, const integer);
 
-void   dgll     (const int, const double*, double**, double**);
+void   dgll     (const integer, const double*, double**, double**);
 
-void   uniknot  (const int, double*);
+void   uniknot  (const integer, double*);
 
-int    quadComplete (const int, const int);
+integer    quadComplete (const integer, const integer);
 
 /* -- Routines from operators.c: */
 
-void  dQuadOps(const int       rule, /* input: quadrature rule: GL or LL     */
-	       const int       np  , /* input: number of knot points         */
-	       const int       nq  , /* input: number of quadrature points   */
+void  dQuadOps(const integer   rule, /* input: quadrature rule: GL or LL     */
+	       const integer   np  , /* input: number of knot points         */
+	       const integer   nq  , /* input: number of quadrature points   */
 	       const double**  kp  , /* pointer to knot point storage        */
 	       const double**  qp  , /* pointer to quadrature point storage  */
 	       const double**  qw  , /* pointer to quadrature weight storage */
@@ -57,19 +59,19 @@ void  dQuadOps(const int       rule, /* input: quadrature rule: GL or LL     */
 	       const double*** dr  , /* pointer to derivative matrix         */
 	       const double*** dt  );/* pointer to transposed deriv matrix   */
 
-void  dMeshOps(const int       old , /* input: element basis: STD or GLL     */
-	       const int       new , /* input: desired basis: STD or GLL     */
-	       const int       np  , /* input: number of knot points         */
-	       const int       ni  , /* input: number of interpolant points  */
+void  dMeshOps(const integer   old , /* input: element basis: STD or GLL     */
+	       const integer   new , /* input: desired basis: STD or GLL     */
+	       const integer   np  , /* input: number of knot points         */
+	       const integer   ni  , /* input: number of interpolant points  */
 	       const double**  mesh, /* pointer to interpolated mesh storage */
 	       const double*** in  , /* pointer to interpolation matrix      */
 	       const double*** it  , /* pointer to transposed interp matrix  */
 	       const double*** dr  , /* pointer to derivative matrix         */
 	       const double*** dt  );/* pointer to transposed deriv matrix   */
 
-void  sQuadOps(const int       rule, /* input: quadrature rule: GL or LL     */
-	       const int       np  , /* input: number of knot points         */
-	       const int       nq  , /* input: number of quadrature points   */
+void  sQuadOps(const integer   rule, /* input: quadrature rule: GL or LL     */
+	       const integer   np  , /* input: number of knot points         */
+	       const integer   nq  , /* input: number of quadrature points   */
 	       const float**   kp  , /* pointer to knot point storage        */
 	       const float**   qp  , /* pointer to quadrature point storage  */
 	       const float**   qw  , /* pointer to quadrature weight storage */
@@ -78,10 +80,10 @@ void  sQuadOps(const int       rule, /* input: quadrature rule: GL or LL     */
 	       const float***  dr  , /* pointer to derivative matrix         */
 	       const float***  dt  );/* pointer to transposed deriv matrix   */
 
-void  sMeshOps(const int       old , /* input: element basis: STD or GLL     */
-	       const int       new , /* input: desired basis: STD or GLL     */
-	       const int       np  , /* input: number of knot points         */
-	       const int       ni  , /* input: number of interpolant points  */
+void  sMeshOps(const integer   old , /* input: element basis: STD or GLL     */
+	       const integer   new , /* input: desired basis: STD or GLL     */
+	       const integer   np  , /* input: number of knot points         */
+	       const integer   ni  , /* input: number of interpolant points  */
 	       const float**   mesh, /* pointer to interpolated mesh storage */
 	       const float***  in  , /* pointer to interpolation matrix      */
 	       const float***  it  , /* pointer to transposed interp matrix  */
@@ -90,48 +92,50 @@ void  sMeshOps(const int       old , /* input: element basis: STD or GLL     */
 
 /* -- Routines from mapping.c: */
 
-void edgemaps (const int np, int** emap, int** pmap);
+void edgemaps (const integer np, integer** emap, integer** pmap);
 
 /* -- Routines from family.c: */
 
-void iadopt   (const int, int**   );
-void dadopt   (const int, double**);
-void sadopt   (const int, float** );
+void iadopt   (const integer, integer**);
+void dadopt   (const integer, double** );
+void sadopt   (const integer, float**  );
 
-void iabandon (int**   );
-void dabandon (double**);
-void sabandon (float** );
+void iabandon (integer**);
+void dabandon (double** );
+void sabandon (float**  );
 
-int  FamilySize (int*, int*, int*);
+integer  FamilySize (integer*, integer*, integer*);
 
 /* -- Routines from RCM.f: */
 
-void genrcm_ (int*, int*, int*, int*, int*, int*);
+void genrcm_ (integer*, integer*, integer*, integer*, integer*, integer*);
 #define genrcm(neqns, xadj, adjncy, perm, mask, xls) \
 (_alpIreg[0] = neqns, genrcm_(_alpIreg, xadj, adjncy, perm, mask, xls))
 
-void fnroot_ (int*, int*, int*, int*, int*, int*, int*);
+void fnroot_ (integer*, integer*, integer*, integer*,
+	      integer*, integer*, integer*);
 #define fnroot(root, xadj, adncy, mask, nlvl, xls, ls) \
 (_alpIreg[0] = root, _alpIreg[1] = nlvl,                   \
  fnroot_(_alpIreg, xadj, adjncy, mask, _alpIreg + 1, xls, ls))
 
-void rcm_ (int*, int*, int*, int*, int*, int*, int*);
+void rcm_    (integer*, integer*, integer*, integer*,
+	      integer*, integer*, integer*);
 #define rcm(root, xadj, adjncy, mask, perm, ccsize, deg)  \
 (_alpIreg[0] = root, rcm_(_alpIreg, xadj, adjncy, mask, perm, ccsize, deg))
 
 /* -- Routines from fftpack.f (NETLIB/FFTPACK): */
 
-void srffti_ (int*, float*);
-void srfftf_ (int*, float*, float*);
-void srfftb_ (int*, float*, float*);
+void srffti_ (integer*, float*);
+void srfftf_ (integer*, float*, float*);
+void srfftb_ (integer*, float*, float*);
 
 #define srffti(n,wsave)   (_alpIreg[0]=n, srffti_ (_alpIreg, wsave))
 #define srfftf(n,r,wsave) (_alpIreg[0]=n, srfftf_ (_alpIreg, r, wsave))
 #define srfftb(n,r,wsave) (_alpIreg[0]=n, srfftb_ (_alpIreg, r, wsave))
 
-void drffti_ (int*, double*);
-void drfftf_ (int*, double*, double*);
-void drfftb_ (int*, double*, double*);
+void drffti_ (integer*, double*);
+void drfftf_ (integer*, double*, double*);
+void drfftb_ (integer*, double*, double*);
 
 #define drffti(n,wsave)   (_alpIreg[0]=n, drffti_ (_alpIreg, wsave))
 #define drfftf(n,r,wsave) (_alpIreg[0]=n, drfftf_ (_alpIreg, r, wsave))
@@ -139,12 +143,13 @@ void drfftb_ (int*, double*, double*);
 
 /* -- Routines from canfft.f (Canuto FFT routines): */
 
-void factor_ (int*, int*, int*);
+void factor_ (integer*, integer*, integer*);
 
 #define factor(n, nfac, ifac) (_alpIreg[0]=n, factor_ (_alpIreg, nfac, ifac))
 
-void spreft_ (int*, int*, int*, float*);
-void smrcft_ (float*, int*, int*, float*, int*, int*, float*, int*);
+void spreft_ (integer*, integer*, integer*, float*);
+void smrcft_ (float*, integer*, integer*, float*,
+	      integer*, integer*, float*, integer*);
 
 #define spreft(n,nfac,ifac,trig)  \
 (_alpIreg[0]=n, spreft_ (_alpIreg, nfac, ifac, trig))
@@ -152,8 +157,9 @@ void smrcft_ (float*, int*, int*, float*, int*, int*, float*, int*);
 (_alpIreg[0]=np, _alpIreg[1]=nz, _alpIreg[2]=nfac, _alpIreg[3]=sign,  \
 smrcft_(v, _alpIreg, _alpIreg+1, w, _alpIreg+2, ifac, trig, _alpIreg+3))
 
-void dpreft_ (int*, int*, int*, double*);
-void dmrcft_ (double*, int*, int*, double*, int*, int*, double*, int*);
+void dpreft_ (integer*, integer*, integer*, double*);
+void dmrcft_ (double*, integer*, integer*, double*,
+	      integer*, integer*, double*, integer*);
 
 #define dpreft(n,nfac,ifac,trig)  \
 (_alpIreg[0]=n, dpreft_ (_alpIreg, nfac, ifac, trig))
@@ -163,11 +169,12 @@ dmrcft_(v, _alpIreg, _alpIreg+1, w, _alpIreg+2, ifac, trig, _alpIreg+3))
 
 /* -- Routines from temfftx.f (Temperton FFT routines): */
 
-void prf235_ (int*, int*, int*, int*, int*);
+void prf235_ (integer*, integer*, integer*, integer*, integer*);
 #define prf235(n,ip,iq,ir,ipqr2) (prf235_(n,ip,iq,ir,ipqr2))
 
-void dsetpf_ (double*, int*, int*, int*, int*);
-void dmpfft_ (double*,double*,int*,int*,int*,int*,int*,double*,int*);
+void dsetpf_ (double*, integer*, integer*, integer*, integer*);
+void dmpfft_ (double*, double*,  integer*, integer*, integer*,
+	      integer*, integer*, double*, integer*);
 
 #define dsetpf(trig,n,ip,iq,ir)                               \
 (_alpIreg[0]=n,_alpIreg[1]=ip,_alpIreg[2]=iq, _alpIreg[3]=ir, \
@@ -178,8 +185,9 @@ _alpIreg[3]=iq, _alpIreg[4]=ir,_alpIreg[5]=isign,             \
 dmpfft_(v,w,_alpIreg,_alpIreg+1,_alpIreg+2,                   \
 _alpIreg+3,_alpIreg+4,trig,_alpIreg+5))
 
-void ssetpf_ (float*, int*, int*, int*, int*);
-void smpfft_ (float*,float*,int*,int*,int*,int*,int*,float*,int*);
+void ssetpf_ (float*, integer*, integer*, integer*, integer*);
+void smpfft_ (float*, float*, integer*, integer*, integer*,
+	      integer*, integer*, float*, integer*);
 
 #define ssetpf(trig,n,ip,iq,ir)                               \
 (_alpIreg[0]=n,_alpIreg[1]=ip,_alpIreg[2]=iq, _alpIreg[3]=ir, \
@@ -192,7 +200,7 @@ _alpIreg+3,_alpIreg+4,trig,_alpIreg+5))
 
 /* -- Routines from fourier.c */
 
-void sDFTr (float*,  const int, const int, const int);
-void dDFTr (double*, const int, const int, const int);
+void sDFTr (float*,  const integer, const integer, const integer);
+void dDFTr (double*, const integer, const integer, const integer);
 
 #endif

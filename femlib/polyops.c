@@ -31,14 +31,15 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <femdef.h>
 #include <alplib.h>
 
 #define STOP 16
 
 
-void dermat_g (const int     K   ,
+void dermat_g (const integer K   ,
 	       const double* zero, 
-	       const int     I   ,
+	       const integer I   ,
 	       const double* x   ,
 	       double**      D   ,
 	       double**      DT  )
@@ -62,7 +63,7 @@ void dermat_g (const int     K   ,
  * Reference: Abramowitz & Stegun 25.3.2.
  * ------------------------------------------------------------------------- */
 {
-  register int     i, j, k, l;
+  register integer i, j, k, l;
   register double* a;
   register double  sum, prod;
 
@@ -91,7 +92,7 @@ void dermat_g (const int     K   ,
 }
 
 
-void dermat_k (const int     K   ,
+void dermat_k (const integer K   ,
 	       const double* zero,
 	       double**      D   ,
 	       double**      DT  )
@@ -116,7 +117,7 @@ void dermat_k (const int     K   ,
  *   pseudospectral methods".  JCP 81, 239--276
  * ------------------------------------------------------------------------- */
 {
-  register int     j, k, l;
+  register integer j, k, l;
   register double* a;
   register double  sum, prod;
 
@@ -145,9 +146,9 @@ void dermat_k (const int     K   ,
 }
 
 
-void intmat_g (const int     K   ,
+void intmat_g (const integer K   ,
 	       const double* zero,
-	       const int     I   ,
+	       const integer I   ,
 	       const double* x   ,
 	       double**      IN  ,
 	       double**      IT  )
@@ -165,7 +166,7 @@ void intmat_g (const int     K   ,
  * Reference: Abramowitz & Stegun 25.2.2.
  * ------------------------------------------------------------------------- */
 {
-  register int     i, j, k, l;
+  register integer i, j, k, l;
   register double* a;
   register double  prod;
 
@@ -188,16 +189,16 @@ void intmat_g (const int     K   ,
 }  
 
 
-static void jacobf (const int    n     ,
-		    const double x     ,
-		    const double alpha ,
-		    const double beta  ,
-		    double*      poly  ,
-		    double*      pder  ,
-		    double*      polym1,
-		    double*      pderm1,
-		    double*      polym2,
-		    double*      pderm2)
+static void jacobf (const integer n     ,
+		    const double  x     ,
+		    const double  alpha ,
+		    const double  beta  ,
+		    double*       poly  ,
+		    double*       pder  ,
+		    double*       polym1,
+		    double*       pderm1,
+		    double*       polym2,
+		    double*       pderm2)
 /* ------------------------------------------------------------------------- *
  * Computes the Jacobi polynomial (poly) of degree n, and its derivative
  * (pder), at location x.  Values for lower degree are also returned.
@@ -214,9 +215,9 @@ static void jacobf (const int    n     ,
  *   Canuto et al.,  "Spectral Methods in Fluid Dynamics".  1988. App C.
  * ------------------------------------------------------------------------- */
 {
-  register int    k;
-  register double apb, a1, a2, a3, a4, b3, dk, kk;
-  register double polylst, pderlst, polyn, pdern, psave, pdsave;
+  register integer k;
+  register double  apb, a1, a2, a3, a4, b3, dk, kk;
+  register double  polylst, pderlst, polyn, pdern, psave, pdsave;
 
   *poly = 1.0;
   *pder = 0.0;
@@ -256,10 +257,10 @@ static void jacobf (const int    n     ,
 }
 
 
-void jacg (const int    n    ,
-	   const double alpha,
-	   const double beta ,
-	   double*      xjac )
+void jacg (const integer n    ,
+	   const double  alpha,
+	   const double  beta ,
+	   double*       xjac )
 /* ------------------------------------------------------------------------- *
  * Compute Gauss points xjac for a polynomial of degree n on range [-1, 1].
  * Points are returned in ascending order.  N + 1 points are found.
@@ -267,9 +268,9 @@ void jacg (const int    n    ,
  * Alpha, beta = 0.0 => Gauss-Legendre; = -0.5 => Chebyshev.
  * ------------------------------------------------------------------------- */
 {
-  register int    i, j, k, np, nh;
-  register double dth, recsum, x, delx;
-  double          poly, pder, polym1, pderm1, polym2, pderm2;
+  register integer i, j, k, np, nh;
+  register double  dth, recsum, x, delx;
+  double           poly, pder, polym1, pderm1, polym2, pderm2;
 
   np  = n + 1;
   nh  = np >> 1;
@@ -297,10 +298,10 @@ void jacg (const int    n    ,
 }
 
 
-void jacgr (const int    n    ,
-	    const double alpha,
-	    const double beta ,
-	    double*      xjac )
+void jacgr (const integer n    ,
+	    const double  alpha,
+	    const double  beta ,
+	    double*       xjac )
 /* ------------------------------------------------------------------------- *
  * Computes the Gauss-Radau points xjac for polynomial of degree n on
  * [-1, 1].  Points are returned in ascending order.
@@ -308,9 +309,9 @@ void jacgr (const int    n    ,
  * Alpha, beta = 0.0 => Gauss-Legendre; = -0.5 => Chebyshev.
  * ------------------------------------------------------------------------- */
 {
-  register int    np, i, j, k;
-  register double x, delx, con, recsum;
-  double          pn, pdn, pnp1, pdnp1, pnm1, pdnm1, func, funcd;
+  register integer np, i, j, k;
+  register double  x, delx, con, recsum;
+  double           pn, pdn, pnp1, pdnp1, pnm1, pdnm1, func, funcd;
 
   np  = n + 1;
   con = 2.0 * M_PI / (n<<1 + 1);
@@ -336,10 +337,10 @@ void jacgr (const int    n    ,
 }
 
 
-void jacgl (const int    n    ,
-	    const double alpha,
-	    const double beta ,
-	    double*      xjac )
+void jacgl (const integer n    ,
+	    const double  alpha,
+	    const double  beta ,
+	    double*       xjac )
 /* ------------------------------------------------------------------------- *
  * Computes the Gauss-Lobatto points xjac for polynomial of degree n on
  * [-1, 1].  Points are returned in ascending order
@@ -347,10 +348,10 @@ void jacgl (const int    n    ,
  * Alpha, beta = 0.0 => Gauss-Legendre, = -0.5 => Chebyshev.
  * ------------------------------------------------------------------------- */
 {
-  register int    i, j, k, np, jm, nh;
-  register double a, b, det, con, rp, rm, x, delx, recsum;
-  double          poly, pder, pnp1p, pdnp1p, pnp, pdnp, pnm1p, pdnm1;
-  double          pnp1m, pdnp1m, pnm, pdnm, pnm1m;
+  register integer i, j, k, np, jm, nh;
+  register double  a, b, det, con, rp, rm, x, delx, recsum;
+  double           poly, pder, pnp1p, pdnp1p, pnp, pdnp, pnm1p, pdnm1;
+  double           pnp1m, pdnp1m, pnm, pdnm, pnm1m;
 
   np      = n + 1;
   nh      = np >> 1;
@@ -393,9 +394,9 @@ void jacgl (const int    n    ,
 }
 
 
-void zwgl (double*   z ,
-	   double*   w ,
-	   const int np)
+void zwgl (double*       z ,
+	   double*       w ,
+	   const integer np)
 /* ------------------------------------------------------------------------- *
  * Gauss-Legendre points and weights.
  *
@@ -405,8 +406,8 @@ void zwgl (double*   z ,
  * Reference: Canuto et al., eq (2.3.10).
  * ------------------------------------------------------------------------- */
 {
-  register int i, n;
-  double       poly, pder, polym1, pderm1, polym2, pderm2;
+  register integer i, n;
+  double           poly, pder, polym1, pderm1, polym2, pderm2;
 
   if (np < 2) {
     z[0] = 0.0;  w[0] = 2.0;
@@ -423,9 +424,9 @@ void zwgl (double*   z ,
 }
   
 
-void zwgrl (double*   z ,
-	    double*   w ,
-	    const int np)
+void zwgrl (double*       z ,
+	    double*       w ,
+	    const integer np)
 /* ------------------------------------------------------------------------- *
  * Gauss-Radau-Legendre points and weights.
  *
@@ -435,8 +436,8 @@ void zwgrl (double*   z ,
  * Reference: Canuto et al., eq (2.3.11).
  * ------------------------------------------------------------------------- */
 {
-  register int i, n;
-  double       poly, pder, polym1, pderm1, polym2, pderm2, con;
+  register integer i, n;
+  double           poly, pder, polym1, pderm1, polym2, pderm2, con;
 
   if (np < 2) {
     z[0] = 0.0; w[0] = 2.0;
@@ -457,9 +458,9 @@ void zwgrl (double*   z ,
 }
    
 
-void zwgll (double*   z ,
-	    double*   w ,
-	    const int np)
+void zwgll (double*       z ,
+	    double*       w ,
+	    const integer np)
 /* ------------------------------------------------------------------------- *
  * Gauss-Lobatto-Legendre points and weights.
  *
@@ -469,8 +470,8 @@ void zwgll (double*   z ,
  * Reference: Canuto et al., eq (2.3.12).
  * ------------------------------------------------------------------------- */
 {
-  register int i, n;
-  double       poly, pder, polym1, pderm1, polym2, pderm2, con;
+  register integer i, n;
+  double           poly, pder, polym1, pderm1, polym2, pderm2, con;
 
   if (np < 2) {
     z[0] = w[0] = 0.0;
@@ -494,15 +495,15 @@ void zwgll (double*   z ,
 }
 
 
-double pnleg (const double z,
-	      const int    n)
+double pnleg (const double  z,
+	      const integer n)
 /* ------------------------------------------------------------------------- *
  * Compute the value of the nth order Legendre polynomial at z, based on the
  * recursion formula for Legendre polynomials.
  * ------------------------------------------------------------------------- */
 {
-  register int    k;
-  register double dk, p1, p2, p3;
+  register integer k;
+  register double  dk, p1, p2, p3;
   
   p1 = 1.0;
   p3 = p2 = z;
@@ -518,15 +519,15 @@ double pnleg (const double z,
 }
 
 
-double pndleg (const double z,
-	       const int    n)
+double pndleg (const double  z,
+	       const integer n)
 /* ------------------------------------------------------------------------- *
  * Compute the value of the derivative of the nth order Legendre polynomial
  * at z, based on the recursion formula for Legendre polynomials.
  * ------------------------------------------------------------------------- */
 {
-  register int    k;
-  register double dk, p1, p2, p3, p1d, p2d, p3d;
+  register integer k;
+  register double  dk, p1, p2, p3, p1d, p2d, p3d;
 
   p2  = z;
   p1d = 0.0;
@@ -546,8 +547,8 @@ double pndleg (const double z,
 }
 
 
-double pnd2leg (const double z,
-		const int    n)
+double pnd2leg (const double  z,
+		const integer n)
 /* ------------------------------------------------------------------------- *
  * Compute the value of the second derivative of the nth order Legendre
  * polynomial at z, based on the definition of the singular Sturm-Liouville
@@ -560,10 +561,10 @@ double pnd2leg (const double z,
 }
 
 
-void dgll (const int     nz,
-	   const double* z ,
-	   double**      D ,
-	   double**      DT)
+void dgll (const integer  nz,
+	   const double*  z ,
+	   double**       D ,
+	   double**       DT)
 /* ------------------------------------------------------------------------- *
  * Compute the derivative operator matrix D and its transpose DT associated
  * with the nth order Lagrangian interpolants through the nz Gauss-Lobatto-
@@ -575,8 +576,8 @@ void dgll (const int     nz,
  * NB: D & DT are both nz x nz.  Canuto et al. eq (2.3.25).
  * ------------------------------------------------------------------------- */
 {
-  register int    i, j, n;
-  register double d0;
+  register integer i, j, n;
+  register double  d0;
 
   if (nz < 2) {
     D[0][0] = DT[0][0] = 0.0;
@@ -598,14 +599,14 @@ void dgll (const int     nz,
 }
 
 					     
-void uniknot (const int nk,
-	      double*   k )
+void uniknot (const integer nk,
+	      double*       k )
 /* ------------------------------------------------------------------------- *
  * Return nk knot points with uniform spacing on [-1, 1].
  * ------------------------------------------------------------------------- */
 {
-  register int    i, nh;
-  register double dx;
+  register integer i, nh;
+  register double  dx;
 
   if (nk < 2) {
     *k = 0.0;
@@ -625,8 +626,8 @@ void uniknot (const int nk,
 }
 
 
-int quadComplete (const int dim,
-		  const int np )
+integer quadComplete (const integer dim,
+		      const integer np )
 /* ------------------------------------------------------------------------- *
  * Return the number of Gauss-Legendre quadrature points sufficient to
  * achieve the full rate of convergence for tensor-product element bases.
@@ -637,7 +638,7 @@ int quadComplete (const int dim,
  * References: Hughes \S 4.1, Strang & Fix \S 4.3.
  * ------------------------------------------------------------------------- */
 {
-  register int  n, ktot;
+  register integer  n, ktot;
 
   ktot = (dim + 1)*(np - 1) - 2;
   n = (ktot & 0) ? ktot + 2 : ktot + 1;
