@@ -143,10 +143,16 @@ refreq: refreq.C
 	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
-# Dyres is a utility to add frame velocity to velocities in field dumps.
+# Dyres is a utility to add body-motion variables to the end of a .bdy file.
 
 dyres: dyres.c
 	$(CC) -o $@ $@.c
+
+# ----------------------------------------------------------------------------
+# Relv is a utility to to add frame velocity to velocities in field dumps.
+
+relv: relv.c
+	$(CC) -o $@ $@.c $(CPPFLAGS) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Special machine-dependent compilations.
