@@ -4,10 +4,20 @@
 # $Id$
 ##############################################################################
 
-ARCH = $(shell uname -s)
-
 SEMHOME  = ../..
 LIB      = libfem.a
+
+ARCH = $(shell uname -s)
+MACH = $(shell uname -m)
+
+ifeq ($(ARCH),Linux)
+  ifeq ($(MACH),alpha)
+    ARCH = Linux-alpha
+  endif
+  ifeq ($(MACH),i586)
+    ARCH = Linux-i586
+  endif
+endif
 
 DEFINES  =
 ifdef DEBUG
@@ -32,8 +42,11 @@ FFLAGS     = $(DEFINES) -O2
 endif
 
 ifeq ($(ARCH),IRIX64)			# -- SGI IRIX 64-bit
-CFLAGS     = $(DEFINES) -mips4 -64 -r10000 -Ofast=IP30
-FFLAGS     = $(DEFINES) -mips4 -64 -r10000 -Ofast=IP30 -OPT:roundoff=3
+CXXFLAGS   = $(DEFINES) -mips4 -64 -g 
+CFLAGS     = $(DEFINES) -mips4 -64 -g 
+FFLAGS     = $(DEFINES) -mips4 -64 -g
+LDFLAGS    = $(CXXFLAGS)
+F77LIBS    = -lcomplib.sgimath -lftn
 endif
 
 ifeq ($(ARCH),OSF1)			# -- DEC Alpha OSF1
@@ -51,13 +64,27 @@ ifdef MPI
 endif
 endif
 
-ifeq ($(ARCH),Linux)			# -- GNU/Linux system
+ifeq ($(ARCH),Linux-i586)		# -- Linux Intel system
 CC         = gcc
 FC         = g77
 CXX	   = g++
 CFLAGS     = $(DEFINES) -O3
 FFLAGS     = $(DEFINES) -O3
-RANLIB     = ranlib
+endif
+
+ifeq ($(ARCH),Linux-alpha)		# -- Linux alpha system.
+CC	 = ccc
+CXX	 = g++
+LD	 = g++
+ifdef DEBUG
+  OPT    = -g
+else
+  OPT    = -O2
+endif
+CXXFLAGS = $(DEFINES) $(OPT)
+F77LIBS  = -lcxml -lots -lfor -lg2c
+LDFLAGS  = -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
+	   -lfem -lalp $(F77LIBS) -lm
 endif
 
 ifeq ($(ARCH),UNIX_System_V)            # -- Fujitsu VPP300
@@ -92,5 +119,9 @@ testFFT: testFFT.C
 	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lftn -lm
 
 testDLT: testDLT.C
-	$(CXX) -o $@ testDLT.C -I$(SEMHOME)/include -I. -g \
+	$(CXX) -o $@ testDLT.C $(CXXFLAGS) -I$(SEMHOME)/include -I. -g \
 	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp -lm
+
+testDLT2: testDLT2.C
+	$(CXX) -o $@ $@.C $(CXXFLAGS) -I$(SEMHOME)/include -I. -g \
+	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
