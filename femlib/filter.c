@@ -18,21 +18,21 @@ void bvdFilter (const integer N     ,
 		const integer lag   ,
 		const real    attn  ,
 		real*         filter)
-// ---------------------------------------------------------------------------
-// Load filter with the Boyd--Vandeven (i.e. erfc) filter [0, N] of given
-// order (p) and lag (s).
-//
-// NB: N should be one less than the number of coefficients to
-// which the filter will be applied.
-// 
-// Input parameter attn gives the attenuation at high
-// wavenumbers. 0<=attn<=1, with attn = 1 giving complete attenuation.
-//
-// Reference:
-// J.G. Levin & M. Iskandarani & D.B. Haidvogel (1997), A spectral
-// filtering procedure for eddy-resolving simulations with a spectral
-// element ocean model, JCP V137, 130--154.
-// ---------------------------------------------------------------------------
+/* ------------------------------------------------------------------------- *
+ * Load filter with the Boyd--Vandeven (i.e. erfc) filter [0, N] of given
+ * order (p) and lag (s).
+ *
+ * NB: N should be one less than the number of coefficients to
+ * which the filter will be applied.
+ * 
+ * Input parameter attn gives the attenuation at high
+ * wavenumbers. 0<=attn<=1, with attn = 1 giving complete attenuation.
+ *
+ * Reference:
+ * J.G. Levin & M. Iskandarani & D.B. Haidvogel (1997), A spectral
+ * filtering procedure for eddy-resolving simulations with a spectral
+ * element ocean model, JCP V137, 130--154.
+ * ------------------------------------------------------------------------- */
 {
   integer    i;
   real       arg, theta, chi, omega;
