@@ -1,0 +1,83 @@
+SUMMARY
+-------
+
+This directory contains code for a Arnoldi-style iterative solution of
+large sparse eigenvalue problems.  The algorithm is a modification of
+the conventional Arnoldi iteration [2], which has the aim of finding one
+eigenvalue/eigenvector pair at a time: the modified method [1] solves for
+a small number of leading eigenvalue/vector pairs.  Sparse matrices 
+are read and stored in Harwell-Boeing format: matrix LOP163 [3] is 
+supplied (see also http://math.nist.gov/MatrixMarket/).
+
+Based on the Barkley--Henderson Floquet driver, supplied as floK.c.
+
+USAGE
+-----
+
+arnoldi [options] matfile
+matfile: specifies name of HB format matrix input file
+options:
+-h       ... print this message
+-v       ... set verbose
+-k <num> ... set dimension of subspace (maximum number of pairs) to num
+-m <num> ... set maximum number of iterations         (m >= k)
+-n <num> ... compute num eigenvalue/eigenvector pairs (n <= k)
+-t <num> ... set eigenvalue tolerance to num [Default 1e-6]
+
+
+TEST CASE
+---------
+
+From [3], the 15 dominant eigenvalues of matrix LOP163 are:
+
+1	1.000 000
+2	0.986 713
+3       0.982 442
+4	0.980 265
+5	0.978 338
+6	0.962 477
+7	0.961 141
+8	0.960 235
+9	0.944 086
+10	0.944 086
+11	0.933 061
+12	0.933 042
+13	0.924 203 + 0.037 421 i
+14	0.924 203 - 0.037 421 i
+15	0.916 746
+
+The current method is able to compute about the first 3 or 4
+eigenvalues of LOP163, using double precision arithmetic.
+
+Example:
+arnoldi -k 10 -m 800 -n 5 LOP163
+
+produces:
+...
+...
+
+-- Iteration = 799, H(k+1, k) = 0.553856
+Eigval(0) = (             1,              0)       resid = 4.11056e-12
+Eigval(1) = (      0.986714,              0)       resid = 1.67137e-06
+Eigval(2) = (      0.982445,              0)       resid = 0.000217792
+Eigval(3) = (      0.978265,              0)       resid = 0.00306944
+Eigval(4) = (     -0.860028,       0.330971)       resid = 0.131788
+Eigval(5) = (     -0.860028,      -0.330971)       resid = 0.131788
+Eigval(6) = (     -0.484419,       0.700485)       resid = 0.240353
+Eigval(7) = (     -0.484419,      -0.700485)       resid = 0.240353
+Eigval(8) = (     0.0952528,       0.819444)       resid = 0.287639
+Eigval(9) = (     0.0952528,      -0.819444)       resid = 0.287639
+ERROR: arnoldi: not converged
+
+
+REFERENCES
+----------
+[1]  D. Barkley & R.D. Henderson (1996), "Three-dimensional Floquet
+     stability analysis of the wake of a circular cylinder",
+     J. Fluid Mech V322, 215--241.
+[2]  Y. Saad (1991), "Numerical methods for large eigenvalue problems"
+     Wiley.
+[3]  W.J. Stewart & A. Jennings, (1981), "A simultaneous iteration
+     algorithm for real matrices", ACM Trans Math Soft V7N2, 184--198.
+
+$Id$
