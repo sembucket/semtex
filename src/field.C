@@ -758,36 +758,31 @@ Field&  Field::smooth ()
 }
 
 
-Field&  Field::grad (int index)
+Field&  Field::grad (int flag1, int flag2)
 // ---------------------------------------------------------------------------
-// Operate on Field to produce the nominated index of the gradient.
-// 1 ==> 1st index, 2 ==> 2nd index, etc.
+// Operate on Field(s) to produce the nominated index of the gradient.
 // ---------------------------------------------------------------------------
 {
-  ListIterator<Element*>  i(element_list);
-  register     Element*   E;
-  register     int        offset;
+  char      routine[] = "Field::grad";
+  Element*  E;
+  int       offset;
+  ListIterator<Element*> i(element_list);
 
-  switch (index) {
-  case 1:
+  if (flag1 && flag2) 
+    message (routine, "can't make both components simultaneously", ERROR);
+  else if (flag1)
     for (; i.more(); i.next()) {
       E      = i.current ();
       offset = E -> nOff ();
-      E -> d_dx (data + offset);
+      E -> grad (data + offset, 0);
     }
-    break;
-  case 2: 
+  else if (flag2)
     for (; i.more(); i.next()) {
       E      = i.current ();
       offset = E -> nOff ();
-      E -> d_dy (data + offset);
+      E -> grad (0, data + offset);
     }
-    break;
-  default:
-    message ("Field::grad(int)", "illegal index", ERROR);
-    break;
-  }
-  
+
   return *this;
 }
 
@@ -1197,8 +1192,10 @@ void  Field::errors (const char* function)
   L2 /= area;
   H1 /= area;
 
-  cout << "-- Error norms for Field " << field_name << " (inf, L2, H1):";
-  cout << Li << "  " << L2 << "  " << H1 << endl;
+  char  s[StrMax];
+  sprintf (s, "Field '%c' error norms (inf, L2, H1): %.3e %.3e %.3e",
+	   field_name, Li, L2, H1);
+  message ("", s, REMARK);
 }
 
 
@@ -1279,8 +1276,8 @@ Vector  Field::tangentTraction (const Field& U , const Field& V ,
 
   Dx = Dy = U;
   
-  Dx.grad(1).smooth();
-  Dy.grad(2).smooth();
+  Dx.grad(1, 0).smooth();
+  Dy.grad(0, 1).smooth();
  
   for (; u.more(); u.next(), v.next ()) {
     Bu = u.current ();
@@ -1289,6 +1286,7 @@ Vector  Field::tangentTraction (const Field& U , const Field& V ,
       secF = Bu -> tangentTraction (Dx.data + Bu -> nOff (),
 				    Dy.data + Bv -> nOff (),
 				    Bv -> nSkip (),  mu, 1);
+//      printf ("sec: %1d, Fx: %f\n", Bu -> ID(), secF.x);
       F.x += secF.x;
       F.y += secF.y;
     }
@@ -1298,8 +1296,8 @@ Vector  Field::tangentTraction (const Field& U , const Field& V ,
 
   Dx = Dy = V;
   
-  Dx.grad(1).smooth();
-  Dy.grad(2).smooth();
+  Dx.grad(1, 0).smooth();
+  Dy.grad(0, 1).smooth();
 
   for (u.reset(), v.reset(); u.more(); u.next(), v.next ()) {
     Bu = u.current ();
@@ -1308,6 +1306,7 @@ Vector  Field::tangentTraction (const Field& U , const Field& V ,
       secF = Bu -> tangentTraction (Dx.data + Bu -> nOff (),
 				    Dy.data + Bv -> nOff (), 
 				    Bv -> nSkip (),  mu, 2);
+//      printf ("sec: %1d, Fx: %f\n", Bu -> ID(), secF.x);
       F.x += secF.x;
       F.y += secF.y;
     }
