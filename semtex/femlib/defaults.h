@@ -59,7 +59,7 @@ static struct {
 
   "IO_FLD"      ,   500 ,
   "IO_HIS"      ,   10  ,
-  "IO_CFL"      ,   0   ,
+  "IO_CFL"      ,   50  ,
   "STEP_MAX"    ,   500 ,
   "N_POLY"      ,   5   ,
   "N_TIME"      ,   2   ,
