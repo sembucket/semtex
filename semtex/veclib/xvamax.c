@@ -2,6 +2,7 @@
  * xvamax:  z[i] = MAX(ABS(x[i]), ABS(y[i])).                                *
  *****************************************************************************/
 
+#include <stdlib.h>
 #include <math.h>
 
 #define MAX(x, y) ( ((x)>(y)) ? (x) : (y))
