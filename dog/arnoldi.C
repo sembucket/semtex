@@ -506,7 +506,7 @@ static void EV_post (real**      Tseq,
 	domain -> u[i] -> setPlane (k, src + (i*NZ + k)*NP);
     
     strcat    (strcpy (nom, domain -> name), ".fld");
-    file.open (nom, ios::out); file << domain; file.close();
+    file.open (nom, ios::out); file << *domain; file.close();
 
   } else if (icon == -1) {
     
@@ -520,7 +520,7 @@ static void EV_post (real**      Tseq,
 	domain -> u[i] -> setPlane (k, src + (i*NZ + k)*NP);
     
     strcat    (strcpy (nom, domain -> name), ".fld");
-    file.open (nom, ios::out); file << domain; file.close();
+    file.open (nom, ios::out); file << *domain; file.close();
 
   } else if (icon == nvec) {
 
@@ -539,7 +539,7 @@ static void EV_post (real**      Tseq,
 
       sprintf   (msg, ".eig.%1d", j);
       strcat    (strcpy (nom, domain -> name), msg);
-      file.open (nom, ios::out); file << domain; file.close();
+      file.open (nom, ios::out); file << *domain; file.close();
     }
 
   } else {
