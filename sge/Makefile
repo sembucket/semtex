@@ -5,7 +5,7 @@
 # $Id$
 ##############################################################################
 
-SEM   = ../semtex-5.2
+SEM   = /home/hmb/develop/semtex
 VPATH = $(SEM)/src
 
 ARCH  = $(shell uname -s)
@@ -37,10 +37,14 @@ endif
 ifeq ($(ARCH),IRIX64)		# -- SGI 64-bit systems.
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = $(DEFINES) -mips4 -64 -Ofast=IP30 -r10000
+ifdef DEBUG
+  OPT = -mips4 -64 -g
+else
+  OPT =  -mips4 -64 -Ofast=IP30 -r10000
+endif
+CXXFLAGS = $(DEFINES) $(OPT)
 F77LIBS	 = -lcomplib.sgimath -lftn
-LDFLAGS  = -64 -mips4 -Ofast=IP30 -r10000 	\
-           -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+LDFLAGS  = $(OPT) -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
 endif
 
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha.
@@ -51,7 +55,7 @@ F77LIBS  = -ldxml
 ifdef MPI
   CXXFLAGS += -thread_safe
   LDFLAGS   = $(CXXFLAGS) -threads -L/usr/local/mpi/lib/alpha/ch_shmem	\
-	     -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm -lmpi
+	     -L$(SEM)/lib/$(ARCH) -lfem_mp -lalp_mp $(F77LIBS) -lm -lmpi
 else
   LDFLAGS  = $(CXXFLAGS) -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
 endif
@@ -60,9 +64,14 @@ endif
 ifeq ($(ARCH),Linux)		# -- GNU/Linux system.
 CXX	 = g++
 LD	 = g++
-CXXFLAGS = $(DEFINES) -O3
-F77LIBS  = -llapack -lblas -lf2c
-LDFLAGS  = -O3 -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
+ifdef DEBUG
+  OPT    = -gstabs+
+else
+  OPT    = -O3
+endif	
+CXXFLAGS = $(DEFINES) $(OPT)
+F77LIBS  = -llapack -lblas -lg2c
+LDFLAGS  = $(OPT) -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
 	   -lfem -lalp $(F77LIBS)
 endif
 
@@ -110,15 +119,15 @@ endif
 
 # ----------------------------------------------------------------------------
 #
-SEMFILES  = analysis auxfield_mods BCmgr boundary domain	 \
-	    element_mods feml field geometry history integration \
+SEMFILES  = analysis auxfield BCmgr boundary bsys condition domain   \
+	    element feml field geometry history integration \
 	    matrix mesh misc pressure
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
 SEMHDR    = Sem.h
 
 # ----------------------------------------------------------------------------
 # Default build for Navier-Stokes solver.
-NS_OBJ = drive.o transport.o
+NS_OBJ = drive.o patch.o transport.o
 
 $(PROG): sem $(SEMOBJ) $(NS_OBJ) 
 	$(LD) -o $@ $(NS_OBJ) $(SEMOBJ) $(LDFLAGS)
