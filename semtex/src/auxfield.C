@@ -1346,7 +1346,7 @@ real AuxField::probe (const Element* E,
     
     value  = fbuf[0];
     value += fbuf[1] * cos (NZH * betaZ);
-    for (k = 1; k < NHM; k++) {
+    for (k = 1; k <= NHM; k++) {
       Re     = k  + k;
       Im     = Re + 1;
       phase  = k * betaZ;
