@@ -8,8 +8,14 @@
 SEM   = ..
 VPATH = $(SEM)/src
 ARCH  = $(shell uname -s)
+MACH  = $(shell uname -m)
 ifeq ($(ARCH),Linux)
-  ARCH += -$(shell uname -m)
+  ifeq ($(MACH),alpha)
+    ARCH = Linux-alpha
+  endif
+  ifeq ($(MACH),i586)
+    ARCH = Linux-i586
+  endif
 endif
 
 ifdef DEBUG
@@ -21,7 +27,7 @@ ifdef STOKES
   DEFINES += -DSTOKES
 endif
 ifdef MPI
-  MPIHOME = /usr/local/mpich
+  MPIHOME = /usr/local/lam
   PROG    = dns_mp
 else
   PROG = dns
@@ -72,38 +78,42 @@ else
 endif
 endif
 
-ifeq ($(ARCH),Linux i586)		# -- Linux Intel system.
-CXX	 = g++
-LD	 = g++
+ifeq ($(ARCH),Linux-alpha)
+CXX      = g++
+LD       = g++
+F77LIBS  = -lcxml -lots -lfor -lg2c
+#F77LIBS = -llapack -lgemm -lblas -lots -lfor -lg2c
 ifdef DEBUG
   OPT    = -gstabs+
 else
   OPT    = -O3
 endif
 CXXFLAGS = $(DEFINES) $(OPT)
-F77LIBS  = -llapack -lblas -lg2c
-LDFLAGS  = $(OPT) -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
-	   -lfem -lalp $(F77LIBS)
-endif
-
-ifeq ($(ARCH),Linux alpha)		# -- Linux Alpha system.
-F77LIBS = -lcxml -lots -lfor -lg2c
-CXX = g++
-ifdef DEBUG
-  OPT = -gstabs+
-else
-  OPT = -O3
-endif
-CXXFLAGS = $(DEFINES) $(OPT)
-LD = g++
 ifdef MPI
-  LDFLAGS = -L$(SEM)/lib/$(ARCH) -L/usr/lib -L$(MPIHOME)/lib \
-            -lfem_mp -lalp $(F77LIBS) -lcpml -lmpich
+  LDFLAGS = -L$(SEM)/lib/$(ARCH) -L/usr/lib -L$(MPIHOME)/lib  \
+	    -lfem_mp -lalp $(F77LIBS) -lcpml 		      \
+            -lmpi -ltrillium -ltstdio -lt -largs
+#           -lmpich
 else
   LDFLAGS = -L$(SEM)/lib/$(ARCH) -L/usr/local/lib    \
-             -lfem -lalp $(F77LIBS) -lcpml
+            -lfem -lalp $(F77LIBS) -lcpml
 endif
 endif
+
+ifeq ($(ARCH),Linux-i586)
+CXX	 = g++
+LD	 = g++
+F77LIBS  = -llapack -lblas -lg2c
+ifdef DEBUG
+  OPT    = -gstabs+
+else
+  OPT    = -O3
+endif
+CXXFLAGS = $(DEFINES) $(OPT)
+LDFLAGS  = $(OPT) -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
+            -lfem -lalp $(F77LIBS)
+endif
+
 
 ifeq ($(ARCH),UNIX_System_V)    	# -- Fujitsu VPP300.
 CC       = vcc

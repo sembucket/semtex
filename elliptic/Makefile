@@ -24,7 +24,7 @@ else
   DEFINES =
 endif
 ifdef MPI
-  MPIHOME = /usr/local/mpich
+  MPIHOME = /usr/local/lam
   PROG    = elliptic_mp
 else
   PROG = elliptic
@@ -65,32 +65,34 @@ else
 endif
 endif
 
-ifeq ($(ARCH),Linux i586)		# -- Linux Intel system.
-F77LIBS = -llapack -lblas -lg2c
+ifeq ($(ARCH),Linux-i586)		# -- Linux Intel system.
 CXX = g++
+LD  = g++
+F77LIBS = -llapack -lblas -lg2c
 ifdef DEBUG
   OPT = -gstabs+
 else
   OPT = -O3
 endif	
 CXXFLAGS = $(DEFINES) $(OPT)
-LD  = g++
-LDFLAGS = $(OPT) -L$(SEM)/lib/$(ARCH) -L/usr/local/lib -lfem -lalp $(F77LIBS)
+LDFLAGS  = $(OPT) -L$(SEM)/lib/$(ARCH) -L/usr/local/lib -lfem -lalp $(F77LIBS)
 endif
 
-ifeq ($(ARCH),Linux alpha)		# -- Linux Alpha system.
+ifeq ($(ARCH),Linux-alpha)		# -- Linux Alpha system.
+CXX     = g++
+LD      = g++
 F77LIBS = -lcxml -lots -lfor -lg2c
-CXX = g++
 ifdef DEBUG
   OPT = -gstabs+
 else
   OPT = -O3
 endif
 CXXFLAGS = $(DEFINES) $(OPT)
-LD = g++
 ifdef MPI
   LDFLAGS = -L$(SEM)/lib/$(ARCH) -L/usr/lib -L$(MPIHOME)/lib \
-            -lfem_mp -lalp $(F77LIBS) -lcpml -lmpich
+            -lfem_mp -lalp $(F77LIBS) -lcpml                 \
+	    -lmpi -ltrillium -ltstdio -lt -largs 
+#           -lmpich
 else
   LDFLAGS = -L$(SEM)/lib/$(ARCH) -L/usr/local/lib    \
              -lfem -lalp $(F77LIBS) -lcpml
