@@ -821,6 +821,40 @@ AuxField& AuxField::addToPlane (const integer k    ,
 }
 
 
+AuxField& AuxField::getPlane (const integer k  ,
+			      real*         tgt)
+// ---------------------------------------------------------------------------
+// Copy nominated plane to tgt.
+// ---------------------------------------------------------------------------
+{
+  const char routine[] = "AuxField::getPlane";
+
+  if (k < 0 || k >= Geometry::nZProc())
+    message (routine, "nominated plane doesn't exist", ERROR);
+  else
+    Veclib::copy (Geometry::nPlane(), plane[k], 1, tgt, 1);
+
+  return *this;
+}
+
+
+AuxField& AuxField::setPlane (const integer k  ,
+			      const real*   src)
+// ---------------------------------------------------------------------------
+// Copy copy src to nominated plane.
+// ---------------------------------------------------------------------------
+{
+  const char routine[] = "AuxField::setPlane";
+
+  if (k < 0 || k >= Geometry::nZProc())
+    message (routine, "nominated plane doesn't exist", ERROR);
+  else
+    Veclib::copy (Geometry::nPlane(), src, 1, plane[k], 1);
+
+  return *this;
+}
+
+
 void AuxField::swapData (AuxField* x,
 			 AuxField* y)
 // ---------------------------------------------------------------------------
