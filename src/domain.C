@@ -123,7 +123,7 @@ void Domain::restart ()
     }
     file >> *this;
     file.close();
-    transform (+1);
+    transform (FORWARD);
     ROOTONLY for (i = 0; i < nF; i++) u[i] -> zeroNyquist();
   } else {
     ROOTONLY cout << "set to zero";
@@ -181,9 +181,9 @@ void Domain::dump ()
     if (verbose) message (routine, ": writing field dump", REMARK);
   }
 
-  transform (-1);
+  this -> transform (INVERSE);
   output << *this;
-  transform (+1);
+  this -> transform (FORWARD);
 
   ROOTONLY output.close();
 }
@@ -195,7 +195,7 @@ void Domain::transform (const integer sign)
 // ---------------------------------------------------------------------------
 {
   integer       i;
-  const integer N = nField ();
+  const integer N = this -> nField ();
   
   for (i = 0; i < N; i++) u[i] -> transform (sign);
 }
