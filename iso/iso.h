@@ -133,16 +133,23 @@ real  Brachet        (const real);
 /* -- misc.c */
 
 void  zeroF      (CF);
-void  copyF      (CF, const CF);
-void  scaleF     (CF, const real);
-void  setF       (CF, const CF);
-void  addF       (CF, const CF);
-void  subF       (CF, const CF);
-void  filterF    (CF, real*, real*);
-void  truncateF  (CF);
 void  zeroVF     (CVF);
-void  projectVF  (CVF, CF);
+void  copyF      (CF,  const CF);
+void  copyVF     (CVF, const CVF);
+void  scaleF     (CF,  const real);
+void  scaleVF    (CVF, const real);
+void  setF       (CF,  const CF);
+void  setVF      (CVF, const CVF);
+void  addF       (CF,  const CF);
+void  addVF      (CVF, const CVF);
+void  subF       (CF,  const CF);
+void  subVF      (CVF, const CVF);
+void  truncateF  (CF);
 void  truncateVF (CVF);
+
+void  filterF    (CF, real*, real*);
+void  projectVF  (CVF, CF);
+
 
 /* -- random.c */
 
