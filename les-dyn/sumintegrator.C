@@ -135,8 +135,8 @@ void SumIntegrator::dump ()
   
   output << *this;
 
-  Femlib::synchronize();
   ROOTONLY output.close();
+  Femlib::synchronize();
 }
 
 
