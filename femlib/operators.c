@@ -136,7 +136,7 @@ void dQuadOps (const integer   rule, /* input: quadrature rule: GL or LL     */
 
 typedef struct quadop  { /* ------- quadrature operator information  ------- */
   char           rule  ; /* Quadrature rule: 'G', 'R', or 'L'                */
-  int            np    ; /* Number of quadrature points                      */
+  integer        np    ; /* Number of quadrature points                      */
   double         alpha ; /* Constants in definition of singular Sturm--      */
   double         beta  ; /*   Liouville problem, (Jacobi wt functions) >=-1  */
   double*        point ; /* Quadrature points on [-1, 1]                     */
@@ -152,7 +152,7 @@ void zquad (const double** point , /* Quadrature points.                     */
 	    const double** weight, /* Quadrature weights.                    */
 	    const double** dv    , /* Derivative operator at points.         */
 	    const double** dt    , /* (Transpose) derivative operator.       */
-	    const int      np    , /* Input: Number of quadrature points.    */
+	    const integer  np    , /* Input: Number of quadrature points.    */
 	    const char     rule  , /* Input: 'G'auss, 'R'adau, or 'L'obatto. */
 	    const double   alpha , /* Input: Jacobi polynomial constant.     */
 	    const double   beta  ) /* Input: Jacobi polynomial constant.     */
@@ -390,11 +390,11 @@ void dMeshOps (const integer   old , /* input: element basis: STD or GLL     */
 
 
 typedef struct projop { /* ------- projection operator information  -------- */
-  int            nfrom; /* Number of points projection is "from"             */
+  integer        nfrom; /* Number of points projection is "from"             */
   char           rfrom; /* Mesh point definition: 'G', 'R', 'L', or 'U'      */
   double         afrom; /* Jacobi weight function powers of "from" mesh      */
   double         bfrom; /*   ignored for 'U' (uniform) mesh spacing          */
-  int            nto  ; /* Number of points projection is "to".              */
+  integer        nto  ; /* Number of points projection is "to".              */
   char           rto  ; /* Quadrature rule: 'G', 'R', or 'L'                 */
   double         ato  ; /* As for "from" mesh definitions.                   */
   double         bto  ; /*                                                   */
@@ -407,11 +407,11 @@ static ProjOp* Proot = 0;
 
 void proj (const double** IN    , /* Interpolant operator matrix             */
 	   const double** IT    , /* Transposed interpolant operator matrix  */
-	   const int      nfrom , /* Input: Number of "from" points          */
+	   const integer  nfrom , /* Input: Number of "from" points          */
 	   const char     rulefr, /* Input: 'G', 'R', 'L', or 'U', "from"    */
 	   const double   alphfr, /* Input: Jacobi constant, "from"          */
 	   const double   betafr, /* Input: Jacobi constant, "from"          */
-	   const int      nto   , /* Input: Number of "to" points            */
+	   const integer  nto   , /* Input: Number of "to" points            */
 	   const char     ruleto, /* Input: 'G', 'R', 'L', or 'U', "to"      */
 	   const double   alphto, /* Input: Jacobi constant, "to"            */
 	   const double   betato) /* Input: Jacobi constant, "to"            */
@@ -434,8 +434,8 @@ void proj (const double** IN    , /* Interpolant operator matrix             */
  * ------------------------------------------------------------------------- */
 {
   char    routine[] = "proj";
-  int     rules, constsfr, conststo;
-  int     found;
+  integer     rules, constsfr, conststo;
+  integer     found;
   ProjOp* p;
 
   for (found = 0, p = Proot; p; p=p->next) {
@@ -560,20 +560,20 @@ void dIntpOps (const integer basis,  /* element basis: STD or GLL            */
 }
 
 
-void intp (double*      inr   ,  /* 1D shape function at r               */
-	   double*      ins   ,  /* 1D shape function at s               */
-	   double*      dvr   ,  /* 1D shape function derivative at r    */
-	   double*      dvs   ,  /* 1D shape function derivative at s    */
-	   const int    nr    ,
-	   const char   ruler ,
-	   const double alphar,
-	   const double betar ,
-	   const int    ns    ,
-	   const char   rules ,
-	   const double alphas,
-	   const double betas ,
-	   const double r     ,  /* location of r in [-1, 1]             */
-	   const double s     )  /* location of s in [-1, 1]             */
+void intp (double*       inr   ,  /* 1D shape function at r               */
+	   double*       ins   ,  /* 1D shape function at s               */
+	   double*       dvr   ,  /* 1D shape function derivative at r    */
+	   double*       dvs   ,  /* 1D shape function derivative at s    */
+	   const integer nr    ,
+	   const char    ruler ,
+	   const double  alphar,
+	   const double  betar ,
+	   const integer ns    ,
+	   const char    rules ,
+	   const double  alphas,
+	   const double  betas ,
+	   const double  r     ,  /* location of r in [-1, 1]             */
+	   const double  s     )  /* location of s in [-1, 1]             */
 /* ------------------------------------------------------------------------- *
  * Return the interpolation/derivative vectors for tensor-product shape
  * functions evaluated at canonical coordinates (r, s), each in [-1. 1].

@@ -13,15 +13,15 @@
  *
  * Summary
  * -------
- * void   yy_initialize (void);
- * void   yy_help       (void);
- * void   yy_show       (void);
- * int    yy_dump       (char*, const int);
+ * void    yy_initialize (void);
+ * void    yy_help       (void);
+ * void    yy_show       (void);
+ * integer yy_dump       (char*, const integer);
  *
- * double yy_interpret  (const char*);
+ * double  yy_interpret  (const char*);
  *
- * void   yy_vec_init   (const char*, const char*);
- * void   yy_vec_interp (const int, ...);
+ * void    yy_vec_init   (const char*, const char*);
+ * void    yy_vec_interp (const integer, ...);
  *
  * Notes
  * -----
@@ -57,9 +57,6 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <errno.h>
-#ifndef __APPLE__
-  #include <malloc.h>
-#endif
 
 #include <cfemdef>
 #include <cveclib>
@@ -98,7 +95,7 @@ static double
 
 static unsigned hash     (const char*);
 static Symbol*  lookup   (const char*);
-static Symbol*  install  (const char*, const int, const double);
+static Symbol*  install  (const char*, const integer, const double);
 static void*    emalloc  (const size_t);
 
        int      yyparse (void);
@@ -108,7 +105,7 @@ static void     yyerror (char*);
 static double  value;
 static Symbol* hashtab[HASHSIZE];
 static char    func_string[STR_MAX], *cur_string;
-static int     nvec = 0;
+static integer nvec = 0;
 static Symbol* vs[VEC_MAX];
 extern int     errno;
 
@@ -229,8 +226,8 @@ void yy_initialize (void)
  * This routine should be called at start of run-time.
  * ------------------------------------------------------------------------- */
 {
-  static   int initialized = 0;
-  register int i;
+  static   integer initialized = 0;
+  register integer i;
   register Symbol* s;
 
   if (!initialized) {
@@ -323,7 +320,7 @@ void yy_vec_init (const char* names,
 }
 
 
-void yy_vec_interp (const int ntot, ...)
+void yy_vec_interp (const integer ntot, ...)
 /* ------------------------------------------------------------------------- *
  * Vector parser.  Following ntot there should be passed a number of
  * pointers to double (vectors), of which there should be in number the
@@ -335,11 +332,11 @@ void yy_vec_interp (const int ntot, ...)
  * i.e.  vecInterp(ntot, x, y, z, u); the result fn(x,y,z) is placed in u.
  * ------------------------------------------------------------------------- */
 {
-  char         routine[] = "yy_vec_interp";
-  register int i, n;
-  double*      x[VEC_MAX];
-  double*      fx = NULL;
-  va_list      ap;
+  char             routine[] = "yy_vec_interp";
+  register integer i, n;
+  double*          x[VEC_MAX];
+  double*          fx = NULL;
+  va_list          ap;
   
   va_start (ap, ntot);
   for (i = 0; i < nvec; i++) {
@@ -384,7 +381,7 @@ void yy_show (void)
  * Print details of installed variables to stderr.
  * ------------------------------------------------------------------------- */
 {
-  register int     i;
+  register integer i;
   register Symbol* sp;
 
   for (i = 0; i < HASHSIZE; i++)
@@ -394,14 +391,14 @@ void yy_show (void)
 }
 
 
-int yy_dump (char*     str,
-	     const int max)
+integer yy_dump (char*         str,
+		 const integer max)
 /* ------------------------------------------------------------------------- *
  * Load description of internal variables into string, to length max.
  * If string overflows, return 0, else 1.
  * ------------------------------------------------------------------------- */
 {
-  register int     i, n = 0;
+  register integer i, n = 0;
   register Symbol* sp;
   char             buf[FILENAME_MAX];
 
@@ -425,7 +422,7 @@ static int yylex (void)
  * yy_interpret.
  * ------------------------------------------------------------------------- */
 {
-  register int c;
+  register integer c;
 
   while ((c = *cur_string++) == ' ' || c == '\t');
 
@@ -490,9 +487,9 @@ static Symbol* lookup (const char* s)
 }
 
 
-static Symbol* install (const char*  s,
-			const int    t,
-			const double d)
+static Symbol* install (const char*   s,
+			const integer t,
+			const double  d)
 /* ------------------------------------------------------------------------- *
  * Install s in symbol hashtable.
  * ------------------------------------------------------------------------- */
@@ -531,8 +528,8 @@ static double Heavi (double x) { return (x >= 0.0) ? 1.0 : 0.0; }
 
 static double Rad (double x, double y) { return hypot (x, y);  }
 static double Ang (double x, double y) { return atan2 (y, x);  }
-static double Jn  (double i, double x) { return jn((int)i, x); }
-static double Yn  (double i, double x) { return yn((int)i, x); }
+static double Jn  (double i, double x) { return jn((integer)i, x); }
+static double Yn  (double i, double x) { return yn((integer)i, x); }
 
 static double Jacobi (double z, double n, double alpha, double beta)
 /* ------------------------------------------------------------------------- *
@@ -540,10 +537,10 @@ static double Jacobi (double z, double n, double alpha, double beta)
  *   P^(alpha,beta)_n(z) alpha > -1, beta > -1 at z.
  * ------------------------------------------------------------------------- */
 {
-  const double apb = alpha + beta;
-  register int i,k;
-  double       a1,a2,a3,a4;
-  double       poly, polyn1, polyn2;
+  const double     apb = alpha + beta;
+  register integer i,k;
+  double           a1,a2,a3,a4;
+  double           poly, polyn1, polyn2;
   
   polyn2 = 1.0;
   polyn1 = 0.5*(alpha - beta + (alpha + beta + 2.0)*z);
@@ -569,15 +566,15 @@ static double Jacobi (double z, double n, double alpha, double beta)
 /* -- Complex Bessel function, ex netlib, and functions that use it. */
 
 void F77NAME(zbesj) (const double*, const double*, const double*, 
-		     const int*, const int*, double*, double*, 
-		     int*, int*);
+		     const integer*, const integer*, double*, double*, 
+		     integer*, integer*);
 
 void zbesj (const double *x, const double *y, const double ord, 
-	    const int  Kode, const int n, double *ReJ, 
-	    double *ImJ, int*  nz, int*  ierr) {
-  int    N = n;
-  int    K = Kode;
-  double order = ord;
+	    const integer Kode, const integer n, double *ReJ, 
+	    double *ImJ, integer* nz, integer* ierr) {
+  integer N = n;
+  integer K = Kode;
+  double  order = ord;
 
   F77NAME(zbesj) (x, y, &order, &K, &N, ReJ, ImJ, nz, ierr);
   if (*ierr) message ("initial.y", "zbesj", ERROR);
@@ -585,8 +582,8 @@ void zbesj (const double *x, const double *y, const double ord,
 
 static double ReJn (double n, double x,  double y)
 {
-  int    nz, ierr;
-  double rej, imj;
+  integer nz, ierr;
+  double  rej, imj;
   
   zbesj (&x,&y,n,1,1,&rej,&imj,&nz,&ierr);
   return rej;
@@ -594,20 +591,20 @@ static double ReJn (double n, double x,  double y)
 
 static double ImJn (double n, double x, double y)
 {
-  int    nz, ierr;
-  double rej, imj;
+  integer nz, ierr;
+  double  rej, imj;
   
   zbesj (&x,&y,n,1,1,&rej,&imj,&nz,&ierr);
   return imj;
 }
 
-static double Womersley(double A,
-			double B,
-			double r,
-			double R, 
-			double mu, 
-			double wnum,
-			double t)
+static double Womersley (double A,
+			 double B,
+			 double r,
+			 double R, 
+			 double mu, 
+			 double wnum,
+			 double t)
 /* ------------------------------------------------------------------------- *
  * Calculate the Womersley solution at r for a pipe of radius R and
  * wave number wnum.  The solution is assumed to be set so that the
@@ -619,14 +616,14 @@ static double Womersley(double A,
 
   if (r > R) message ("Womersley", "r > R", ERROR);
 
-  if (wnum == 0) // return Poiseuille flow with mean of 1.
+  if (wnum == 0) /* Return Poiseuille flow with mean of 1. */
     return 2*(1-r*r/R/R);
   else {
-    int    ierr,nz;
-    double cr,ci,J0r,J0i,rej,imj,re,im,fac;
-    double isqrt2 = 1.0/sqrt(2.0);
-    static double R_str, wnum_str,mu_str;
-    static double Jr,Ji,alpha,j0r,j0i, isqrt;
+    integer ierr,nz;
+    double  cr,ci,J0r,J0i,rej,imj,re,im,fac;
+    double  isqrt2 = 1.0/sqrt(2.0);
+    static  double R_str, wnum_str,mu_str;
+    static  double Jr,Ji,alpha,j0r,j0i, isqrt;
 
     /* For case of repeated calls with same parameters, 
      * store those independent of r.
