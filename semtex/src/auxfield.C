@@ -139,7 +139,7 @@ AuxField& AuxField::operator -= (const AuxField& f)
 
 AuxField& AuxField::operator = (const char* function)
 // ---------------------------------------------------------------------------
-// Set AuxField's value to temporo-spatially varying function.
+// Set AuxField's value to temporo-spatially varying function.  Physical space.
 // ---------------------------------------------------------------------------
 {
   register Element* E;
@@ -293,7 +293,7 @@ AuxField& AuxField::innerProduct (const vector <AuxField*>& a,
                                   const vector <AuxField*>& b)
 // ---------------------------------------------------------------------------
 // Set this AuxField's value as the inner product of a & b
-// in PHYSICAL space --- don't worry about dealiasing.
+// in physical space --- don't worry about dealiasing.
 // ---------------------------------------------------------------------------
 {
   integer       i;
@@ -313,6 +313,7 @@ AuxField& AuxField::times (const AuxField& a,
 			   const AuxField& b)
 // ---------------------------------------------------------------------------
 // Set this AuxField equal to the product of a & b (in physical space).
+// No dealiasing.
 // ---------------------------------------------------------------------------
 {
   const int ntot = Geometry::nTotal();
@@ -322,10 +323,12 @@ AuxField& AuxField::times (const AuxField& a,
   return *this;
 }
 
+
 AuxField& AuxField::timesPlus (const AuxField& a,
 			       const AuxField& b)
 // ---------------------------------------------------------------------------
 // Add the product of a & b to this AuxField (in physical space).
+// No dealiasing.
 // ---------------------------------------------------------------------------
 {
   Veclib::vvtvp (Geometry::nTotal(), a.data, 1, b.data, 1, data, 1, data, 1);
@@ -333,10 +336,12 @@ AuxField& AuxField::timesPlus (const AuxField& a,
   return *this;
 }
 
+
 AuxField& AuxField::timesMinus (const AuxField& a,
 			        const AuxField& b)
 // ---------------------------------------------------------------------------
 // Subtract the product of a & b from this AuxField (in physical space).
+// No dealiasing.
 // ---------------------------------------------------------------------------
 {
   Veclib::vvvtm (Geometry::nTotal(), data, 1, a.data, 1, b.data, 1, data, 1);
@@ -345,11 +350,10 @@ AuxField& AuxField::timesMinus (const AuxField& a,
 }
 
 
-
 AuxField& AuxField::axpy (const real      alpha,
 			  const AuxField& x    )
 // ---------------------------------------------------------------------------
-// Add alpha * x to this AuxField, plane-by-plane.
+// Add alpha * x to this AuxField.
 // ---------------------------------------------------------------------------
 {
   Blas::axpy (Geometry::nTotal(), alpha, x.data, 1, data, 1);
@@ -412,7 +416,7 @@ AuxField& AuxField::gradient (const integer dir)
     vector<real>  work (nP);
     real*         tmp = work();
 
-    Veclib::zero (2 * nP, data, 1);
+    Veclib::zero (2 * nP, data, 1); // -- Zero real & Nyquist planes.
     for (k = 1; k < nmodes; k++) {
       Re = k  + k;
       Im = Re + 1;
@@ -474,7 +478,7 @@ void AuxField::gradient (const integer nZ ,
     vector<real>  work (nP);
     real          *Re, *Im, *tmp = work();
 
-    Veclib::zero (2 * nP, src, 1);
+    Veclib::zero (2 * nP, src, 1); // -- Zero real & Nyquist planes.
     for (k = 1; k < nmodes; k++) {
       Re = src + 2 * k * nP;
       Im = Re  + nP;
@@ -651,7 +655,7 @@ istream& operator >> (istream&  strm,
 AuxField& AuxField::zeroNyquist ()
 // ---------------------------------------------------------------------------
 // Set storage for highest frequency mode to zero.  This mode is carried
-// but never evolves.
+// but never evolves.  This mode is stored as the second data plane.
 // ---------------------------------------------------------------------------
 {
   const integer nZ = Geometry::nZ();
@@ -687,8 +691,16 @@ AuxField& AuxField::transform (const integer sign)
 // physical space values.
 // ---------------------------------------------------------------------------
 {
-  Femlib::DFTr (data, Geometry::nZ(), Geometry::planeSize(), sign);
+  const integer nZ = Geometry::nZ();
+  const integer nP = Geometry::planeSize();
 
+  if (nZ > 1)
+    if (nZ == 2)
+      if   (sign == +1) Veclib::zero (nP, plane[1], 1);
+      else              Veclib::copy (nP, plane[0], 1, plane[1], 1);
+    else
+      Femlib::DFTr (data, nZ, nP, sign);
+  
   return *this;
 }
 
@@ -756,8 +768,9 @@ void AuxField::swapData (AuxField* x,
 {
   register integer k;
   const integer    nZ = Geometry::nZ();
-  register real*   tmp = x -> data;
+  register real*   tmp;
 
+  tmp       = x -> data;
   x -> data = y -> data;
   y -> data = tmp;
 
