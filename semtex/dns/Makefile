@@ -94,10 +94,10 @@ OPTIM    = -pvctl,fullmsg -hacct -hvector -p -ptn -Onooverlap
 CXXFLAGS = $(DEFINES)  $(OPTIM)
 LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS) -hacct
 ifdef MPI
-  LIBS   = -lfem_mp -llapack_64 -lalp_mp -lblas_64	\
+  LIBS   = -lfem_mp -llapack_64 -lalp_mp -lblas_64 -lfft_64	\
            -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm -lmpi -lpthread
 else
-  LIBS   = -lfem -llapack_64 -lalp -lblas_64	\
+  LIBS   = -lfem -llapack_64 -lalp -lblas_64 -lfft_64	\
            -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm
 endif
 endif
