@@ -1,14 +1,8 @@
 /******************************************************************************
  * slit.c: reproduce specified columns of input on output.
  *
- * Synopsis:
- * ---------
- * Read command line for optional arguments which may specify number of bins
- * to use and select a column of input file to process, read all available
- * stdin, storing the selected column into a temporary file of real, and
- * record maximum & minimum values, read back the stored temporary file,
- * accumulating sums for pdf, print the pdf, with header information, on
- * standard output.
+ * Usage: slit [-c <colstr>] [file], where <colstr> is a
+ * comma-separated list of column numbers.
  *****************************************************************************/
 
 static char RCS[] = "$Id$";
