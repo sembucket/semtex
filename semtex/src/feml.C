@@ -46,6 +46,7 @@ FEML::FEML (const char* name)
 
   char* reserved[] = {
     "TOKENS",
+    "FIELDS",
     "GROUPS",
     "BCS",
     "NODES",

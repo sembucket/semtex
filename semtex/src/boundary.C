@@ -95,10 +95,10 @@ void Boundary::print () const
   cout << info << endl;
 
   cout << "  " << elmt -> nKnot() << " (number of points along edge)" << endl;
-  cout << "         nx             ny             area           value";
+  cout << "         nx             ny             area";
   cout << endl;
   
-  printVector (cout, "rrrr", elmt -> nKnot(), nx, ny, area);
+  printVector (cout, "rrr", elmt -> nKnot(), nx, ny, area);
 }
 
 
@@ -138,11 +138,11 @@ void Boundary::curlCurl (const int    k ,
   const int ntot = elmt -> nTot();
   const int doff = elmt -> dOff();
 
-  vector<real> work (np + 3 * ntot);
+  vector<real> work (3 * ntot + np);
   real* w  = work();
-  real* t  = w  + np;
   real* vx = w  + ntot;
   real* uy = vx + ntot;
+  real* t  = uy + ntot;
   
   if (k == 0) {			// -- Zeroth mode / 2D.
 
@@ -162,8 +162,8 @@ void Boundary::curlCurl (const int    k ,
     // -- Add in cylindrical space modification to complete x-component.
 
     if (space == Geometry::Cylindrical) {
-      elmt -> sideDivr (side, w, t);
-      Veclib::vadd     (np, t, 1, xr, 1, xr, 1);
+      elmt -> sideDivR (side, w, t);
+      Veclib::vadd     (np, xr, 1, t, 1, xr, 1);
     }
 
     // -- Sign change to complete y-component of curl curl u.
@@ -186,8 +186,8 @@ void Boundary::curlCurl (const int    k ,
     Veclib::neg      (np, yr, 1);
 
     if (space == Geometry::Cylindrical) {
-      elmt -> sideDivr (side, w, t);
-      Veclib::vadd     (np, t, 1, xr, 1, xr, 1);
+      elmt -> sideDivR (side, w, t);
+      Veclib::vadd     (np, xr, 1, t, 1, xr, 1);
     }
 
     Veclib::copy     (ntot, Ui + doff, 1, uy, 1);
@@ -198,8 +198,8 @@ void Boundary::curlCurl (const int    k ,
     Veclib::neg      (np, yi, 1);
 
     if (space == Geometry::Cylindrical) {
-      elmt -> sideDivr (side, w, t);
-      Veclib::vadd     (np, t, 1, xi, 1, xi, 1);
+      elmt -> sideDivR (side, w, t);
+      Veclib::vadd     (np, xi, 1, t, 1, xi, 1);
     }
 
     // -- Semi-Fourier terms based on Wr.
@@ -208,11 +208,11 @@ void Boundary::curlCurl (const int    k ,
     Veclib::copy      (ntot, Wr + doff, 1, uy, 1);
     elmt -> grad      (vx, uy);
     if (space == Geometry::Cylindrical) {
-      elmt -> sideDivr  (side, vx,  t);
+      elmt -> sideDivR  (side, vx,  t);
       Blas::axpy        (np, betaK, t,         1,     xi, 1);
-      elmt -> sideDivr  (side, uy,  t);
+      elmt -> sideDivR  (side, uy,  t);
       Blas::axpy        (np, betaK, t,         1,     yi, 1);
-      elmt -> sideDivr2 (side, Wr,  t);
+      elmt -> sideDivR2 (side, Wr,  t);
       Blas::axpy        (np, betaK, t,         1,     yi, 1);
     } else {
       Blas::axpy        (np, betaK, vx + loff, dskip, xi, 1);
@@ -225,12 +225,12 @@ void Boundary::curlCurl (const int    k ,
     Veclib::copy      (ntot, Wi + doff, 1, uy, 1);
     elmt -> grad      (vx, uy);
     if (space == Geometry::Cylindrical) {
-      elmt -> sideDivr  (side, vx,   t);
+      elmt -> sideDivR  (side, vx,   t);
       Blas::axpy        (np, -betaK, t,         1,     xr, 1);
-      elmt -> sideDivr  (side, uy,   t);
+      elmt -> sideDivR  (side, uy,   t);
       Blas::axpy        (np, -betaK, t,         1,     yr, 1);
-      elmt -> sideDivr2 (side, Wi,   t);
-      Blas::axpy        (np, -betaK, t,         1,     xr, 1);
+      elmt -> sideDivR2 (side, Wi,   t);
+      Blas::axpy        (np, -betaK, t,         1,     yr, 1);
     } else {
       Blas::axpy        (np, -betaK, vx + loff, dskip, xr, 1);
       Blas::axpy        (np, -betaK, uy + loff, dskip, yr, 1);
@@ -239,13 +239,13 @@ void Boundary::curlCurl (const int    k ,
     // -- Fourier second derivatives in the third direction.
 
     if (space == Geometry::Cylindrical) {
-      elmt -> sideDivr  (side, Ur,   t);
+      elmt -> sideDivR  (side, Ur,   t);
       Blas::axpy        (np, betaK2, t,         1,     xr, 1);
-      elmt -> sideDivr  (side, Ui,   t);
+      elmt -> sideDivR  (side, Ui,   t);
       Blas::axpy        (np, betaK2, t,         1,     xi, 1);
-      elmt -> sideDivr2 (side, Vr,   t);
+      elmt -> sideDivR2 (side, Vr,   t);
       Blas::axpy        (np, betaK2, t,         1,     yr, 1);
-      elmt -> sideDivr2 (side, Vi,   t);
+      elmt -> sideDivR2 (side, Vi,   t);
       Blas::axpy        (np, betaK2, t,         1,     yi, 1);
     } else {
       Blas::axpy        (np, betaK2, Ur + loff, dskip, xr, 1);

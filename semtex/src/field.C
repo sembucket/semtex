@@ -54,8 +54,8 @@
 //   |        | assembled.  | |  |     |  |
 //   +--------+-------------+ \  /     \  /
 //
-// Partition out the parts of the matrix corresponding to the known nodal
-// values (essential BCs), and solve instead the constrained problem
+// Partition out the sections of the matrix corresponding to the known
+// nodal values (essential BCs), and solve instead the constrained problem
 //
 //   +--------+               /  \     /  \     +-------------+ /  \
 //   |        |               |  |     |  |     |             | |  |
@@ -88,13 +88,14 @@
 //
 // FIELD NAMES
 // -----------
-// Conventions used for field names are as follows:
+// The (one character) names of field variables are significant, and have
+// the following reserved meanings:
 // 
-// u:  First velocity component/1D scalar.  (Cylindrical: axial     velocity.)
+// u:  First velocity component.            (Cylindrical: axial     velocity.)
 // v:  Second velocity component.           (Cylindrical: radial    velocity.)
-// w:  Third velocity component.  Optional. (Cylindrical: azimuthal velocity.)
-// p:  Pressure / density.
-// c:  Temperature, or other scalar for transport problems.  Optional.
+// w:  Third velocity component.            (Cylindrical: azimuthal velocity.)
+// p:  Pressure divided by density.
+// c:  Scalar for transport or elliptic problems.
 //
 // BOUNDARY CONDITIONS
 // -------------------
@@ -106,14 +107,14 @@
 // -----------------------
 // Special conditions apply in cylindrical geometries in the case where
 // the axis is included in the domain.  In cylindical geometries it is
-// assumed that the kind of boundary condition on each component of velocity
-// will be identical on boundaries which don't lie on the axis: this is
-// required to achieve economy on the present use of numbering schemes
-// and could be relaxed with some work.
+// necessary that the kind of boundary condition on the v & w components
+// of velocity are identical on boundaries which don't lie on the axis.
+// This is required so that those two fields, when coupled, have BCs of
+// the same type away from the axis (value/function sub-types are equivalent).
 //
 // Summary of axial BCs for cylindrical coordinates:
 //         +------------+------------------------------------------+
-//         | (Coupled~) |       Axis BC for Fourier Mode Index     |
+//         | (Coupled~) |       Axis BC for Fourier mode index     |
 //         |  Variable  |         0             1           2...   |
 //         +------------+------------------------------------------+
 //         |   u, p, c  |   du/dr = 0       u   = 0      u  = 0    |
@@ -126,18 +127,17 @@
 // to Fourier modes 0, 1, 2 (and higher), even if there are no axial BCs
 // to be applied.
 //
-// If the velocity BCs on the other faces of the domain are identical
-// for each velocity component, then only 2 numbering schemes will be
-// needed for the velocity components, and an additional 1 or 2 for
-// each scalar variable (2 in the case of 3D solution).  E.g.:
+// The names of the numbering schemes that will be used for cylindrical
+// 3D problems with axial BCs are (note case sensitivity):
 //         +------------+------------------------------------------+
-//         | (Coupled~) |       Axis BC for Fourier Mode Index     |
+//         | (Coupled~) | Numbering scheme for Fourier mode index  |
 //         |  Variable  |         0             1           2...   |
 //         +------------+------------------------------------------+
-//         |      u     |         A             B           B      |
-//         |      v~    |         B             B           B      |
-//         |      w~    |         B             A           B      |
-//         |      p     |         C             D           D      |
+//         |      u     |         u             U           U      |
+//         |      v~    |         v             v           v      |
+//         |      w~    |         w             W           w      |
+//         |      p     |         p             P           P      |
+//         |      c     |         c             C           C      |
 //         +------------+------------------------------------------+
 //
 ///////////////////////////////////////////////////////////////////////////////
@@ -186,18 +186,18 @@ Field::Field (FEML&                feml ,
 // the required numbering systems, but the boundary conditions are set up here.
 // ---------------------------------------------------------------------------
 {
-  n_bmodes = (Geometry::system() == Geometry::Cylindrical &&
-	      Geometry::nDim()   ==          3)            ? 3 : 1;
-
   char      routine[] = "Field::Field", err[StrMax], tag[StrMax];
   char      group, nextc;
   int       i, k, t, elmt, side;
   const int Nsurf = feml.attribute ("SURFACES", "NUMBER");
-  const int nZ    = Geometry::nZ();
+  const int nZ    =  Geometry::nZ();
+
+  n_bmodes = (Geometry::system() == Geometry::Cylindrical &&
+	      Geometry::nDim()   == 3)  ?  3 : 1;
 
   // -- Install NumberSystems.
 
-  Nsys = new NumberSystem* [n_bmodes];
+  Nsys = new const NumberSystem* [n_bmodes];
   for (i = 0; i < n_bmodes; i++) Nsys[i] = Nmbr[i];
 
   // -- Construct temporary lists of Conditions by scanning SURFACE info,
@@ -276,7 +276,7 @@ Field::Field (FEML&                feml ,
       boundary[k][i] = (strstr (bcmgr.descriptor (group), "axis")) ? 
 	new Boundary (i, n_line, // -- Create a new Boundary structure.
 	  bcmgr.descriptor (group),
-	  bcmgr.retrieve   (group, field_name),
+	  bcmgr.retrieve   (group, field_name, k),
 	  E, side) :
 	boundary[0][i];		// -- Alias an old one.
       n_line += E -> nKnot();
@@ -387,6 +387,9 @@ void Field::evaluateBoundaries (const int step)
 // ---------------------------------------------------------------------------
 // Traverse Boundaries and evaluate according to kind.
 // Note that for 3D this evaluation is done in Fourier-transformed space.
+//
+// This routine is only meant to be used for boundary conditions that must
+// be re-evaluated at every step, such as high-order pressure BCs.
 // ---------------------------------------------------------------------------
 {
   register int       i, j, k, m, voff;
@@ -605,7 +608,7 @@ Field& Field::solve (AuxField*                f  ,
     m       = k >> 1;
     j       = min (m, n_bmodes - 1);
 
-    B       = boundary[j];
+    B       = (const Boundary**) boundary[j];
     N       = Nsys[j];
     nband   = N -> nBand();
     b2g     = N -> btog ();
@@ -628,7 +631,7 @@ Field& Field::solve (AuxField*                f  ,
     Veclib::zero (nglobal, RHS, 1);
     getEssential (bc, RHS, B, N);
     constrain    (forcing, lambda2, betak2, RHS, N);
-    buildRHS     (forcing, bc, RHS, 0, hbi, nsolve, nzero, B, N);
+    buildRHS     (forcing, bc, RHS, 0, hbi, nsolve, nzero,B, N);
 
     // -- Solve for unknown global-node values (if any).
 
@@ -709,9 +712,9 @@ Field& Field::solve (AuxField*  f      ,
 
     m        = k >> 1;
     j        = min (m, n_bmodes - 1);
-    betak2   = sqr (m * betaZ);
+    betak2   = sqr (Field::modeConstant (field_name, m) * betaZ);
 
-    B        = boundary[j];
+    B        = (const Boundary**) boundary[j];
     N        = Nsys[j];
     nsolve   = N -> nSolve();
     singular = nglobal == nsolve && fabs (lambda2 + betak2) < EPS;
@@ -1047,4 +1050,117 @@ void Field::setEssential (const real*         src,
       E -> bndryMask (bmask + boff, tgt + doff, src, btog + boff);
     }
   }
+}
+
+
+void Field::coupleBCs (Field*    v  ,
+		       Field*    w  ,
+		       const int dir)
+// ---------------------------------------------------------------------------
+// Couples/uncouple boundary condition values for the radial and azimuthal
+// velocity fields in cylindrical coordinates, depending on indicated
+// direction.  This action is required due to the coupling in the viscous
+// terms of the N--S equations in cylindrical coords.
+//
+// dir == +1
+// ---------
+//           v~ <-- v + i w
+//           w~ <-- v - i w
+// dir == -1
+// ---------
+//           v  <-- 0.5   * (v~ + w~)
+//           w  <-- 0.5 i * (w~ - v~)
+//
+// Since there is no coupling for the viscous terms in the 2D equation,
+// do nothing for the zeroth Fourier mode.
+// ---------------------------------------------------------------------------
+{
+  if (Geometry::nDim() < 3) return;
+
+  char         routine[] = "Field::couple";
+  register int k;
+  const int    nZ    = Geometry::nZ(),
+               nL    = v -> n_line,
+               nMode = nZ >> 1;
+  vector<real> work (nL);
+  real         *Vr, *Vi, *Wr, *Wi, *tp;
+  
+  if (dir == 1) {
+
+    for (k = 1; k < nMode; k++) {
+
+      tp = work();
+
+      Vr = v -> line[2 * k];
+      Vi = v -> line[2 * k + 1];
+      Wr = w -> line[2 * k];
+      Wi = w -> line[2 * k + 1];
+
+      Veclib::copy (nL, Vr, 1, tp, 1);
+      Veclib::vsub (nL, Vr, 1, Wi, 1, Vr, 1);
+      Veclib::vadd (nL, Wi, 1, tp, 1, Wi, 1);
+      Veclib::copy (nL, Vi, 1, tp, 1);
+      Veclib::vadd (nL, Vi, 1, Wr, 1, Vi, 1);
+      Veclib::neg  (nL, Wr, 1);
+      Veclib::vadd (nL, Wr, 1, tp, 1, Wr, 1);
+
+      tp                   = w -> line[2 * k];
+      w -> line[2 * k]     = w -> line[2 * k + 1];
+      w -> line[2 * k + 1] = tp;
+    }
+
+  } else if (dir == -1) {
+
+    for (k = 1; k < nMode; k++) {
+
+      tp = work();
+
+      Vr = v -> line[2 * k];
+      Vi = v -> line[2 * k + 1];
+      Wr = w -> line[2 * k];
+      Wi = w -> line[2 * k + 1];
+
+      Veclib::copy (nL, Vr, 1, tp, 1);
+      Veclib::vadd (nL, Vr, 1, Wr, 1, Vr, 1);
+      Veclib::vsub (nL, Wr, 1, tp, 1, Wr, 1);
+      Veclib::copy (nL, Vi, 1, tp, 1);
+      Veclib::vadd (nL, Vi, 1, Wi, 1, Vi, 1);
+      Veclib::neg  (nL, Wi, 1);
+      Veclib::vadd (nL, Wi, 1, tp, 1, Wi, 1);
+
+      tp                   = w -> line[2 * k];
+      w -> line[2 * k]     = w -> line[2 * k + 1];
+      w -> line[2 * k + 1] = tp;
+    }
+
+    Blas::scal (nL * (nZ - 2), 0.5, v -> sheet + 2 * nL, 1);
+    Blas::scal (nL * (nZ - 2), 0.5, w -> sheet + 2 * nL, 1);
+
+  } else
+    message (routine, "unknown direction given", ERROR);
+}
+
+
+int Field::modeConstant (const char name,
+			 const int  mode)
+// ---------------------------------------------------------------------------
+// For cylindrical coordinates & 3D, the radial and azimuthal fields are
+// coupled before solution of the viscous step.  This means that the Fourier
+// constant used for solution may vary from that which applies to the axial
+// component.  For Field v~, k -> k + 1 while for w~, k -> k - 1.
+// For the uncoupled Fields v, w solved for the zeroth Fourier mode, the
+// "Fourier" constant in the Helmholtz equations is 1.
+// ---------------------------------------------------------------------------
+{
+  if (Geometry::nDim()    <          3          ||
+      Geometry::system() == Geometry::Cartesian || 
+      name               ==         'c'         ||
+      name               ==         'p'         ||
+      name               ==         'u'          ) return mode;
+
+  if      (name == 'v') return  mode + 1;
+  else if (name == 'w') return (mode == 0) ? 1 : mode - 1;
+  else message ("Field::modeConstant", "unrecognized Field name given", ERROR);
+
+  return INT_MAX;
 }

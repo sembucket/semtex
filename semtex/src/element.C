@@ -119,8 +119,8 @@ void Element::map ()
   const int  ntot = nTot();
   const real EPS  = 4 * nTot()*((sizeof(real)==sizeof(double)) ? EPSDP:EPSSP);
   const real *x   = xmesh, *y = ymesh;
-  real       **DV, **DT;
-  real       *jac, *dxdr, *dxds, *dydr, *dyds, *tV, *w, *WW;
+  const real **DV, **DT, *w;
+  real       *jac, *dxdr, *dxds, *dydr, *dyds, *tV, *WW;
 
   vector<real> work;
 
@@ -421,7 +421,7 @@ void Element::HelmholtzSC (const real lambda2,
   const int    ntot = nTot();
   const int    next = nExt();
   const int    nint = nInt();
-  real         **DV, **DT;
+  const real   **DV, **DT;
 
   // -- Construct hbb, hbi, hii partitions of elemental Helmholtz matrix.
 
@@ -531,7 +531,7 @@ void Element::Helmholtz (const real lambda2,
 {
   register int ij   = 0;
   const int    ntot = nTot ();
-  real         **DV, **DT;
+  const real   **DV, **DT;
 
   Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
@@ -641,7 +641,7 @@ void Element::HelmholtzOp (const real  lambda2,
   register int  ij;
   const int     ntot = nTot();
   register real tmp, *R, *S, r2, hCon;
-  real          **DV, **DT;
+  const real    **DV, **DT;
   const real    EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
   R = wrk;
@@ -703,7 +703,7 @@ void Element::grad (real* tgtA,
 // Values are computed at node points.
 // ---------------------------------------------------------------------------
 {
-  real  **DV, **DT;
+  const real **DV, **DT;
   Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
   const int    ntot = nTot();
@@ -818,7 +818,8 @@ void Element::sideGeom (const int side,
     message ("Element::sideGeom", "illegal side", ERROR);
 
   register int low, skip;
-  real         **D, *w, *xr, *xs, *yr, *ys, *len;
+  const real   **D, *w;
+  real         *xr, *xs, *yr, *ys, *len;
   vector<real> work (np + np);
 
   Femlib::quad (LL, np, np, 0, 0, &w, 0, 0, &D, 0);
@@ -955,7 +956,8 @@ void Element::sideGrad (const int   side,
   terminal (side, estart, skip, bstart);
   
   vector<real> work (np + np);
-  real         *ddr, *dds, **DV, **DT;
+  const real   **DV, **DT;
+  real         *ddr, *dds;
 
   ddr = work();
   dds = ddr + np;
@@ -1198,27 +1200,36 @@ void Element::g2e (real*       tgt     ,
 }
 
 
-void Element::divr (real* src) const
+void Element::divR (real* src) const
 // ---------------------------------------------------------------------------
 // Divide src by y (i.e. r in cylindrical coordinates), take special action
 // where r = 0.  This is used in taking theta component of gradient.
 // ---------------------------------------------------------------------------
 {
   register int   i;
-  register real  r, rinv;
+  register real  rad, rinv;
   register real* y   = ymesh;
   const int      N   = nTot();
   const real     EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
   for (i = 0; i < N; i++) {
-    r       = y[i];
-    rinv    = (r > EPS) ? 1.0 / r : 0.0;
+    rad     = y[i];
+    rinv    = (rad > EPS) ? 1.0 / rad : 0.0;
     src[i] *= rinv;
   }
 }
 
 
-void Element::sideDivr (const int   side,
+void Element::mulR (real* src) const
+// ---------------------------------------------------------------------------
+// Multiply src by y (i.e. r in cylindrical coordinates).
+// ---------------------------------------------------------------------------
+{
+  Veclib::vmul (nTot(), src, 1, ymesh, 1, src, 1);
+}
+
+
+void Element::sideDivR (const int   side,
 			const real* src ,
 			real*       tgt ) const
 // ---------------------------------------------------------------------------
@@ -1226,11 +1237,10 @@ void Element::sideDivr (const int   side,
 // y (i.e. r), take special action where r = 0.
 // ---------------------------------------------------------------------------
 {
-  register int  i, base, skip;
-  register real r, rinv;
-  register real *y, *s;
-  const int     N   = nTot();
-  const real    EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+         int  i, base, skip;
+         real r, rinv, *y;
+   const real *s;
+  const          real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
   switch (side) {
   case 0: 
@@ -1259,7 +1269,7 @@ void Element::sideDivr (const int   side,
     break;
   }
 
-  for (i = 0; i < N; i++) {
+  for (i = 0; i < np; i++) {
     r      = y[i*skip];
     rinv   = (r > EPS) ? 1.0 / r : 0.0;
     tgt[i] = rinv * s[i*skip];
@@ -1267,7 +1277,7 @@ void Element::sideDivr (const int   side,
 }
 
 
-void Element::sideDivr2 (const int   side,
+void Element::sideDivR2 (const int   side,
 			 const real* src ,
 			 real*       tgt ) const
 // ---------------------------------------------------------------------------
@@ -1275,11 +1285,10 @@ void Element::sideDivr2 (const int   side,
 // y^2 (i.e. r^2), take special action where r = 0.
 // ---------------------------------------------------------------------------
 {
-  register int  i, base, skip;
-  register real r, rinv2;
-  register real *y, *s;
-  const int     N   = nTot();
-  const real    EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  register       int  i, base, skip;
+  register       real r, rinv2, *y;
+  register const real *s;
+  const          real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
   switch (side) {
   case 0: 
@@ -1308,7 +1317,7 @@ void Element::sideDivr2 (const int   side,
     break;
   }
 
-  for (i = 0; i < N; i++) {
+  for (i = 0; i < np; i++) {
     r      = y[i*skip];
     rinv2  = (r > EPS) ? 1.0 / sqr(r) : 0.0;
     tgt[i] = rinv2 * s[i*skip];
@@ -1329,9 +1338,9 @@ int Element::locate (const real x,
 // ---------------------------------------------------------------------------
 {
   const int    MaxItn = 32;
-  const real   EPS    = 4.0*((sizeof (double)==sizeof (real)) ? EPSDP : ESPSP);
+  const real   EPS    = 4.0*((sizeof (double)==sizeof (real)) ? EPSDP : EPSSP);
   const real   DIVERG = 1.0 + EPS;
-  real         *J, *F, *ir, *is, *dr, *ds, tp;
+  real         *J, *F, *ir, *is, *dr, *ds, *tp;
   vector<real> work (5 * np + 6);
   int          ipiv[2], info, i = 0;
   
@@ -1346,18 +1355,18 @@ int Element::locate (const real x,
   do {
     Femlib::interp (GLL, np, r, s, ir, is, dr, ds);
 
-               Blas::gemv ("T", np, np, 1.0, xmesh, np, ir, 1, tmp, 1);
-    F[0] = x - Blas::dot  (np, is, 1, tmp, 1);
-    J[2] =     Blas::dot  (np, ds, 1, tmp, 1);
-               Blas::gemv ("T", np, np, 1.0, ymesh, np, ir, 1, tmp, 1);
-    F[1] = y - Blas::dot  (np, is, 1, tmp, 1);
-    J[3] =     Blas::dot  (np, ds, 1, tmp, 1);
-               Blas::gemv ("T", np, np, 1.0, xmesh, np, dr, 1, tmp, 1);
-    J[0] =     Blas::dot  (np, is, 1, tmp, 1);
-               Blas::gemv ("T", np, np, 1.0, ymesh, np, dr, 1, tmp, 1);
-    J[2] =     Blas::dot  (np, is, 1, tmp, 1);
+               Blas::gemv ("T", np, np, 1.0, xmesh, np, ir, 1, 0.0, tp, 1);
+    F[0] = x - Blas::dot  (np, is, 1, tp, 1);
+    J[2] =     Blas::dot  (np, ds, 1, tp, 1);
+               Blas::gemv ("T", np, np, 1.0, ymesh, np, ir, 1, 0.0, tp, 1);
+    F[1] = y - Blas::dot  (np, is, 1, tp, 1);
+    J[3] =     Blas::dot  (np, ds, 1, tp, 1);
+               Blas::gemv ("T", np, np, 1.0, xmesh, np, dr, 1, 0.0, tp, 1);
+    J[0] =     Blas::dot  (np, is, 1, tp, 1);
+               Blas::gemv ("T", np, np, 1.0, ymesh, np, dr, 1, 0.0, tp, 1);
+    J[2] =     Blas::dot  (np, is, 1, tp, 1);
     
-    Lapack::gesv (np, 1, J, np, piv, F, np, info);
+    Lapack::gesv (np, 1, J, np, ipiv, F, np, info);
     
     r += F[0];
     s += F[1];
@@ -1377,16 +1386,15 @@ real Element::probe (const real  r  ,
 // Return the value of field storage located at r, s, in this element.
 // ---------------------------------------------------------------------------
 {
-  real         *ir, *is, tp;
+  real         *ir, *is, *tp;
   vector<real> work (3 * np);
 
-  ir = work;
+  ir = work();
   is = ir + np;
   tp = is + np;
 
   Femlib::interp   (GLL, np, r, s, ir, is, 0, 0);
-  Blas::gemv       ("T", np, np, 1.0, src, np, ir, 1, tmp, 1);
+  Blas::gemv       ("T", np, np, 1.0, src, np, ir, 1, 0.0, tp, 1);
 
   return Blas::dot (np, is, 1, tp, 1);
 }
-
