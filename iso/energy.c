@@ -53,7 +53,6 @@ real  energyF (const CVF U, const int* Dim)
 
   q2 = 0.0;
   for (i = 0; i < Npts; i++) q2 += MAG (u[i]) + MAG (v[i]) + MAG (w[i]);
-  q2 *= 0.25;
 
   return q2;
 }

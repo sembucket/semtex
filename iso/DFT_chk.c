@@ -1,12 +1,6 @@
 /*****************************************************************************
  * DFT_chk.c: exercise 3D real--complex FFT routines.
  * 
- * Note that the DFT routines give magnitudes which are "low" by a factor
- * of 2, e.g., the transform of a constant value, say 1, in physical
- * space, delivers a value of 0.5 at the real part of the zero-wavenumber
- * datum in Fourier space.  The routines below are adjusted to account for
- * this.
- *
  * $Id$
  *****************************************************************************/
 
@@ -24,11 +18,13 @@ int main()
  * ------------------------------------------------------------------------- */
 {
   int       c, i, j, k, Npts, N, K;
-  CF        U;
+  CF        U, V;
   real*     u;
+  real*     v;
   int*      Dim;
   complex*  Wtab;
   char      s[STR_MAX];
+  int       seed = 1;
 
   /* -- Allocation. */
 
@@ -37,6 +33,7 @@ int main()
   K    = Dim[3] = SIZE / 2;
   Npts = Dim[1] * Dim[2] * Dim[3];
   u    = cbox (0, N-1, 0, N-1, 0, K-1, &U);
+  v    = cbox (0, N-1, 0, N-1, 0, K-1, &V);
 
   Wtab = cvector (0, K-1);
   preFFT  (Wtab, K);
@@ -46,7 +43,7 @@ int main()
   message (prog, "Checking constant (1) ----------------------------", REMARK);
 
   zeroF (U, Dim);
-  U[ 0][ 0][ 0].Re = 2.0;
+  U[ 0][ 0][ 0].Re = 1.0;
 
   rc3DFT  (U, Dim, Wtab, INVERSE);
   sprintf (s, "maximum physical component: %g", amaxf (U, Dim));
@@ -70,7 +67,7 @@ int main()
   message (prog, "Checking cos(x) ----------------------------------", REMARK);
 
   zeroF (U, Dim);
-  U[  1][ 0][ 0].Re = 1.0;
+  U[  1][ 0][ 0].Re = 0.5;
 
   rc3DFT  (U, Dim, Wtab, INVERSE);
   sprintf (s, "maximum physical component: %g", amaxf (U, Dim));
@@ -94,7 +91,7 @@ int main()
   message (prog, "Checking sin(x) ----------------------------------", REMARK);
 
   zeroF (U, Dim);
-  U[  1][ 0][ 0].Im =  -1.0;
+  U[  1][ 0][ 0].Im =  -0.5;
 
   rc3DFT  (U, Dim, Wtab, INVERSE);
   sprintf (s, "maximum physical component: %g", amaxf (U, Dim));
@@ -118,7 +115,7 @@ int main()
   message (prog, "Checking cos(y) ----------------------------------", REMARK);
 
   zeroF (U, Dim);
-  U[ 0][  1][ 0].Re = 1.0;
+  U[ 0][  1][ 0].Re = 0.5;
 
   rc3DFT  (U, Dim, Wtab, INVERSE);
   sprintf (s, "maximum physical component: %g", amaxf (U, Dim));
@@ -142,7 +139,7 @@ int main()
   message (prog, "Checking sin(y) ----------------------------------", REMARK);
 
   zeroF (U, Dim);
-  U[ 0][ 1][ 0].Im =  -1.0;
+  U[ 0][ 1][ 0].Im =  -0.5;
 
   rc3DFT  (U, Dim, Wtab, INVERSE);
   sprintf (s, "maximum physical component: %g", amaxf (U, Dim));
@@ -166,7 +163,7 @@ int main()
   message (prog, "Checking cos(z) ----------------------------------", REMARK);
 
   zeroF (U, Dim);
-  U[ 0][ 0][ 1].Re = 1.0;
+  U[ 0][ 0][ 1].Re = 0.5;
 
   rc3DFT  (U, Dim, Wtab, INVERSE);
   sprintf (s, "maximum physical component: %g", amaxf (U, Dim));
@@ -190,7 +187,7 @@ int main()
   message (prog, "Checking sin(z) ----------------------------------", REMARK);
 
   zeroF (U, Dim);
-  U[ 0][ 0][ 1].Im = -1.0;
+  U[ 0][ 0][ 1].Im = -0.5;
 
   rc3DFT  (U, Dim, Wtab, INVERSE);
   sprintf (s, "maximum physical component: %g", amaxf (U, Dim));
@@ -214,8 +211,8 @@ int main()
   message (prog, "Checking cos(x)cos(y) ----------------------------", REMARK);
 
   zeroF (U, Dim);
-  U[  1][  1][  0].Re = 0.5;
-  U[N-1][  1][  0].Re = 0.5;
+  U[  1][  1][  0].Re = 0.25;
+  U[N-1][  1][  0].Re = 0.25;
 
   rc3DFT  (U, Dim, Wtab, INVERSE);
   sprintf (s, "maximum physical component: %g", amaxf (U, Dim));
@@ -239,8 +236,8 @@ int main()
   message (prog, "Checking cos(x)sin(y) ----------------------------", REMARK);
 
   zeroF (U, Dim);
-  U[  1][  1][  0].Im = -0.5;
-  U[N-1][  1][  0].Im = -0.5;
+  U[  1][  1][  0].Im = -0.25;
+  U[N-1][  1][  0].Im = -0.25;
 
   rc3DFT  (U, Dim, Wtab, INVERSE);
   sprintf (s, "maximum physical component: %g", amaxf (U, Dim));
@@ -264,8 +261,8 @@ int main()
   message (prog, "Checking cos(x)cos(z) ----------------------------", REMARK);
 
   zeroF (U, Dim);
-  U[  1][  0][  1].Re = 0.5;
-  U[N-1][  0][  1].Re = 0.5;
+  U[  1][  0][  1].Re = 0.25;
+  U[N-1][  0][  1].Re = 0.25;
 
   rc3DFT  (U, Dim, Wtab, INVERSE);
   sprintf (s, "maximum physical component: %g", amaxf (U, Dim));
@@ -289,8 +286,8 @@ int main()
   message (prog, "Checking cos(y)cos(z) ----------------------------", REMARK);
 
   zeroF (U, Dim);
-  U[  0][  1][  1].Re = 0.5;
-  U[  0][N-1][  1].Re = 0.5;
+  U[  0][  1][  1].Re = 0.25;
+  U[  0][N-1][  1].Re = 0.25;
 
   rc3DFT  (U, Dim, Wtab, INVERSE);
   sprintf (s, "maximum physical component: %g", amaxf (U, Dim));
@@ -314,10 +311,10 @@ int main()
   message (prog, "Checking cos(x)cos(y)cos(z) ----------------------", REMARK);
 
   zeroF (U, Dim);
-  U[  1][  1][  1].Re = 0.25;
-  U[N-1][  1][  1].Re = 0.25;
-  U[  1][N-1][  1].Re = 0.25;
-  U[N-1][N-1][  1].Re = 0.25;
+  U[  1][  1][  1].Re = 0.125;
+  U[N-1][  1][  1].Re = 0.125;
+  U[  1][N-1][  1].Re = 0.125;
+  U[N-1][N-1][  1].Re = 0.125;
 
   rc3DFT  (U, Dim, Wtab, INVERSE);
   sprintf (s, "maximum physical component: %g", amaxf (U, Dim));
@@ -341,10 +338,10 @@ int main()
   message (prog, "Checking cos(x)sin(y)cos(z) ----------------------", REMARK);
 
   zeroF (U, Dim);
-  U[  1][  1][  1].Im = -0.25;
-  U[N-1][  1][  1].Im = -0.25;
-  U[  1][N-1][  1].Im = 0.25;
-  U[N-1][N-1][  1].Im = 0.25;
+  U[  1][  1][  1].Im = -0.125;
+  U[N-1][  1][  1].Im = -0.125;
+  U[  1][N-1][  1].Im =  0.125;
+  U[N-1][N-1][  1].Im =  0.125;
 
   rc3DFT  (U, Dim, Wtab, INVERSE);
   sprintf (s, "maximum physical component: %g", amaxf (U, Dim));
@@ -368,10 +365,10 @@ int main()
   message (prog, "Checking cos(2x)cos(2y)cos(2z) -------------------", REMARK);
 
   zeroF (U, Dim);
-  U[  2][  2][  2].Re = 0.25;
-  U[N-2][  2][  2].Re = 0.25;
-  U[  2][N-2][  2].Re = 0.25;
-  U[N-2][N-2][  2].Re = 0.25;
+  U[  2][  2][  2].Re = 0.125;
+  U[N-2][  2][  2].Re = 0.125;
+  U[  2][N-2][  2].Re = 0.125;
+  U[N-2][N-2][  2].Re = 0.125;
 
   rc3DFT  (U, Dim, Wtab, INVERSE);
   sprintf (s, "maximum physical component: %g", amaxf (U, Dim));
@@ -388,6 +385,23 @@ int main()
       }
     }
   }
+
+  sprintf (s, "maximum physical error:     %g", amaxf (U, Dim));
+  message (prog, s, REMARK);
+
+  message (prog, "Checking full DFT with random numbers ------------", REMARK);
+
+  for (i = 0; i < 2 * Npts; i++) v[i] = ran2PI (&seed);
+  copyF (U, V, Dim);
+
+  sprintf (s, "maximum physical component: %g", amaxf (U, Dim));
+  message (prog, s, REMARK);  
+  
+  rc3DFT  (U, Dim, Wtab, FORWARD);
+  scaleFT (U, Dim);
+  rc3DFT  (U, Dim, Wtab, INVERSE);
+
+  for (i = 0; i < 2 * Npts; i++) u[i] -= v[i];
 
   sprintf (s, "maximum physical error:     %g", amaxf (U, Dim));
   message (prog, s, REMARK);
