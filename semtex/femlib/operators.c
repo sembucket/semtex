@@ -25,7 +25,7 @@ typedef struct quadopr {	/* ---- quadrature operator information  --- */
   struct quadopr *next    ;	/* link to next one                          */
 } QuadOpr;			/* ----------------------------------------- */
 
-static QuadOpr *Qhead = NULL;
+static QuadOpr *Qhead = 0;
 
 
 typedef struct meshopr {	/* ------- mesh operator information ------- */
@@ -41,7 +41,7 @@ typedef struct meshopr {	/* ------- mesh operator information ------- */
   struct meshopr *next    ;	/* link to next one                          */
 } MeshOpr;			/* ----------------------------------------- */
 
-static MeshOpr *Mhead = NULL;
+static MeshOpr *Mhead = 0;
 
 
 
@@ -99,8 +99,8 @@ void  quadOps(int rule     ,	/* input: quadrature rule: GL or LL          */
       p -> knot    = dvector(0, np-1);
       p -> quad    = p -> knot;
       p -> weight  = dvector(0, np-1);
-      p -> interp  = (double **) NULL;	/* No interpolation needed. */
-      p -> interpT = (double **) NULL;
+      p -> interp  = (double **) 0;	/* No interpolation needed. */
+      p -> interpT = (double **) 0;
       p -> deriv   = dmatrix(0, np-1, 0, np-1);
       p -> derivT  = dmatrix(0, np-1, 0, np-1);
 
@@ -192,25 +192,25 @@ void  meshOps(int oldbasis   ,	/* input: element basis: STD or GLL          */
 
     oldmesh       = dvector(0, np-1);
     p -> mesh     = dvector(0, ni-1);
-    p -> deriv    = dmatrix(0, np-1, 0, ni-1);
-    p -> derivT   = dmatrix(0, ni-1, 0, np-1);
+    p -> deriv    = dmatrix(0, ni-1, 0, np-1);
+    p -> derivT   = dmatrix(0, np-1, 0, ni-1);
     
     if (oldbasis == newbasis && np == ni) {	/* Meshes are the same; */
-      p -> interp  = (double **) NULL;          /* no interpolation.    */
-      p -> interpT = (double **) NULL;
+      p -> interp  = (double **) 0;             /* no interpolation.    */
+      p -> interpT = (double **) 0;
     } else {
-      p -> interp  = dmatrix(0, np-1, 0, ni-1);
-      p -> interpT = dmatrix(0, ni-1, 0, np-1);
+      p -> interp  = dmatrix(0, ni-1, 0, np-1);
+      p -> interpT = dmatrix(0, np-1, 0, ni-1);
     }   
 
     if (oldbasis == GLL && newbasis == GLL) {
 
       if (np==ni) {  /* Meshes are the same. */
-	jacgl(np-1, 0.0, 0.0, p->mesh);
-	dgll (np, p->mesh, p->deriv, p->derivT);
+	jacgl (np-1, 0.0, 0.0, p->mesh);
+	dgll  (np, p->mesh, p->deriv, p->derivT);
       } else {
 	jacgl    (np-1, 0.0, 0.0, oldmesh);
-	jacgl    (np-1, 0.0, 0.0, p->mesh);
+	jacgl    (ni-1, 0.0, 0.0, p->mesh);
 	intmat_g (np, oldmesh, ni, p->mesh, p->interp, p->interpT);
 	dermat_g (np, oldmesh, ni, p->mesh, p->deriv,  p->derivT );
       }
@@ -244,9 +244,9 @@ void  meshOps(int oldbasis   ,	/* input: element basis: STD or GLL          */
     } else
 
       message(routine, "basis function unrecognized as STD or GLL", ERROR);
-  }
 
-  freeDvector(oldmesh, 0);
+    freeDvector(oldmesh, 0);
+  }
 
   /* p now points to valid storage: return requested operators. */
 
