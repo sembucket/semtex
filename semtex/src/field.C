@@ -771,7 +771,7 @@ Field& Field::solve (AuxField*  f      ,
     getEssential (bc, x, B,   N);
     setEssential (x, unknown, N);
   
-    if ((integer) Femlib::value ("VERBOSE")) {
+    if ((integer) Femlib::value ("VERBOSE") > 1) {
       char s[StrMax];
       sprintf (s, ":%3d iterations, field '%c'", i, field_name);
       message (routine, s, REMARK);
