@@ -33,10 +33,10 @@ void Helmholtz (Domain*     D      ,
     D -> u[0] -> solve (Force, lambda2);
 
   } else {
-    char               name = D -> u[0] -> name();
-    vector<Element*>&  E = D -> Esys;
-    NumberSystem**     N;
-    ModalMatrixSystem* M;
+    char                 name = D -> u[0] -> name();
+    vector<Element*>&    E = D -> Esys;
+    const NumberSystem** N;
+    ModalMatrixSystem*   M;
 
     N = new NumberSystem* [3];
     D -> setNumber (name, N);
