@@ -5,10 +5,9 @@
 // Print on cout in same format.
 //
 // smooth [-h] [-s N] [file]
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <qmesh.h>
 
@@ -20,9 +19,9 @@ RCSid[] = "$Id$";
 
 static char  prog[] = "smooth";
 
-static void getArgs     (int, char**, int&, ifstream&);
-static int  getVertices (ifstream&, vector<Node*>&);
-static int  getElements (ifstream&, vector<Node*>&, vector<Node*>*&);
+static void getArgs     (int, char**, int&);
+static int  getVertices (istream&, vector<Node*>&);
+static int  getElements (istream&, vector<Node*>&, vector<Node*>*&);
 static void connect     (vector<Node*>&, vector<Node*>*&, const int);
 static void smooth      (vector<Node*>&, const int);
 static void printUp     (ostream&, const vector<Node*>&,
@@ -40,20 +39,19 @@ int main (int    argc,
 // Driver for other routines.
 // ---------------------------------------------------------------------------
 {
-  ifstream       infile;
   int            nPass = 1;	// -- Number of smoothing passes.
   int            nVert, nEl;	// -- Numbers read from input.
   vector<Node*>  vertices;
   vector<Node*>* elements;
 
-  getArgs (argc, argv, nPass, infile);
+  getArgs (argc, argv, nPass);
 
-  seekBlock (infile, "Mesh");
+  seekBlock (cin, "Mesh");
 
-  nVert = getVertices (infile, vertices);
-  nEl   = getElements (infile, vertices, elements);
+  nVert = getVertices (cin, vertices);
+  nEl   = getElements (cin, vertices, elements);
 
-  endBlock (infile);
+  endBlock (cin);
 
   smStart ("x11");
   smBox   ();
@@ -70,10 +68,9 @@ int main (int    argc,
 }
 
 
-static void getArgs (int       argc  ,
-		     char**    argv  ,
-		     int&      npass ,
-		     ifstream& infile)
+static void getArgs (int       argc ,
+		     char**    argv ,
+		     int&      npass)
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
 // arguments.  Last (optional) argument is the name of an input file.
@@ -107,17 +104,19 @@ static void getArgs (int       argc  ,
       break;
     }
 
-  if   (argc == 1) infile.open   (*argv, ios::in);
-  else             infile.attach (0);
-
-  if (!infile) {
-    sprintf (buf, "unable to open file: %s", *argv);
-    error   (prog, buf, ERROR);
+  if (argc == 1) {
+    ifstream* inputfile = new ifstream (*argv);
+    if (inputfile -> good()) {
+      cin = *inputfile;
+      } else {
+	sprintf (buf, "unable to open file: %s", *argv);
+	error (prog, buf, ERROR);
+      }
   }
 }
 
 
-static int getVertices (ifstream&      S,
+static int getVertices (istream&       S,
 			vector<Node*>& V)
 // ---------------------------------------------------------------------------
 // Read in declared vertices and create corresponding Nodes.
@@ -165,7 +164,7 @@ static int getVertices (ifstream&      S,
 }
 
 
-static int getElements (ifstream&       S,
+static int getElements (istream&        S,
 			vector<Node*>&  V,
 			vector<Node*>*& E)
 // ---------------------------------------------------------------------------

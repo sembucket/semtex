@@ -54,10 +54,9 @@
 // 
 // Output consists of a list of the unique points generated, and a list
 // of integer tags into this list of points that defines the generated loop.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <qmesh.h>
 #include <Stack.h>
@@ -68,7 +67,7 @@ static const int INS_MAX = 4096;
 
 enum key { UNDEFINED, STRAIGHT, ARC, PUSH, POP };
 
-static void getArgs       (int, char**, ifstream&);
+static void getArgs       (int, char**);
 static key  parse         (istream&);
 static int  generateNodes (istream&, const key&, const Node*&, Node*&,
 			   const int&, List<Node*>&, List<int>&,
@@ -83,7 +82,6 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  ifstream    infile;
   char        err[StrMax];
 
   List<Node*> nodes;
@@ -95,28 +93,28 @@ int main (int    argc,
   Node        *startN, *homeN, *precN;
   key         Keyword;
 
-  getArgs (argc, argv, infile);
+  getArgs (argc, argv);
 
-  infile >> P;
+  cin >> P;
   startN = new Node (++id_max, P, 1.0, Node::BOUNDARY);
   homeN  = startN;
   nodes.add (homeN);
   loop.add  (homeN -> ID());
 
   do {
-    switch (Keyword = parse (infile)) {
+    switch (Keyword = parse (cin)) {
     case PUSH:
       if (pushing) error (prog, "pushes cannot be nested (yet)", ERROR);
       pushing = 1;
       precN   = startN;
       break;
     case STRAIGHT: case ARC:
-      infile >> nP;
+      cin >> nP;
       if (nP < 1 || nP > INS_MAX) {
 	sprintf (err, "Number of points (%1d) out of range", nP);
 	error (prog, err, ERROR);
       }
-      moreInput = generateNodes (infile, Keyword, homeN, startN, nP,
+      moreInput = generateNodes (cin, Keyword, homeN, startN, nP,
 				 nodes, loop, id_max, pushing, save);
       break;
     case POP:
@@ -144,9 +142,8 @@ int main (int    argc,
 }
 
 
-static void getArgs (int       argc  ,
-		     char**    argv  ,
-		     ifstream& infile)
+static void getArgs (int       argc,
+		     char**    argv)
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
@@ -170,12 +167,14 @@ static void getArgs (int       argc  ,
       break;
     }
 
-  if   (argc == 1) infile.open   (*argv, ios::in);
-  else             infile.attach (0);
-
-  if (!infile) {
-    sprintf (buf, "unable to open file: %s", *argv);
-    error   (prog, buf, ERROR);
+  if (argc == 1) {
+    ifstream* inputfile = new ifstream (*argv);
+    if (inputfile -> good()) {
+      cin = *inputfile;
+      } else {
+	sprintf (buf, "unable to open file: %s", *argv);
+	message (prog, buf, ERROR);
+      }
   }
 }
 

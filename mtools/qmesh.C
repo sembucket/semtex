@@ -69,7 +69,7 @@ char prog[] = "qmesh";
 
 // -- Local routines.
 
-static void     getArgs      (int, char**, int&, int&, ifstream&);
+static void     getArgs      (int, char**, int&, int&);
 static istream& operator >>  (istream&, List<Node*>&);
 static istream& operator >>  (istream&, List<Loop*>&);
 static int      loopDeclared (istream& s);
@@ -89,17 +89,15 @@ int main (int    argc,
 // ---------------------------------------------------------------------------
 {
   int         i, nsmooth = 0, merger = 0;
-  ifstream    infile;
   List<Loop*> initial;
   List<Quad*> elements;
 
-  getArgs (argc, argv, nsmooth, merger, infile);
+  getArgs (argc, argv, nsmooth, merger);
 
   // -- Load all predeclared nodes and loops.
 
-  infile >> Global::nodeList;
-  infile >> initial;
-  infile.close ();
+  cin >> Global::nodeList;
+  cin >> initial;
 
   // -- Start drawing of subdivision process.
 
@@ -169,8 +167,7 @@ int main (int    argc,
 static void getArgs (int       argc   ,
 		     char**    argv   ,
 		     int&      nsmooth,
-		     int&      merger ,
-		     ifstream& infile )
+		     int&      merger )
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
 // arguments.  Last argument is name of a session file, not dealt with here.
@@ -232,12 +229,14 @@ static void getArgs (int       argc   ,
       break;
     }
   
-  if   (argc == 1) infile.open   (*argv, ios::in);
-  else             infile.attach (0);
-
-  if (!infile) {
-    sprintf (buf, "unable to open file: %s", *argv);
-    error   (prog, buf, ERROR);
+  if (argc == 1) {
+    ifstream* inputfile = new ifstream (*argv);
+    if (inputfile -> good()) {
+      cin = *inputfile;
+      } else {
+	sprintf (buf, "unable to open file: %s", *argv);
+	error (prog, buf, ERROR);
+      }
   }
 }
 

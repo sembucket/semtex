@@ -194,8 +194,8 @@ Point intersect (const Point& start1, const Point& end1,
 // Return point of intersection for two lines defined by start & end points.
 // ---------------------------------------------------------------------------
 {
-  real a1, b1 = FLT_MAX, c1;
-  real a2, b2 = FLT_MAX, c2;
+  real a1, b1 = 1.0e30, c1;
+  real a2, b2 = 1.0e30, c2;
   real det, sinsq;
 
   if (start1.x == end1.x) {
@@ -221,7 +221,7 @@ Point intersect (const Point& start1, const Point& end1,
   sinsq = sqr (det) / ((sqr(a1) + sqr(b1)) * (sqr(a2) + sqr(b2)));
   
   if (sinsq < EPSSP * EPSSP)	// -- Point at infinity.
-    return Point (FLT_MAX, FLT_MAX);
+    return Point (1.0e30, 1.0e30);
   else
     return Point ((b1 * c2 - b2 * c1) / det, (c1 * a2 - c2 * a1) / det);
 }
@@ -362,7 +362,7 @@ Point unitNormal (const Point& P1,
   len = P2.distance (P1);
 
   if (len < EPSSP)
-    p = FLT_MAX;
+    p = 1.0e30;
   else {
     dx  = P2.x - P1.x;
     dy  = P2.y - P1.y;

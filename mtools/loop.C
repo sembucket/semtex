@@ -281,15 +281,15 @@ void Loop::bestSplit (List<Node*>* visible,
   char routine[] = "Loop::bestSplit";
 
   const int N = nodes.getSize();
-  int       i, best = 0;
-  real      param = FLT_MAX;
+  int       i, best   = 0;
+  real      param     = 1.0e30;
   real      reflength = lengthScale();
 
   vector<real> SL     (N);	// -- Performance index for each split.
   vector<int>  End    (N);	// -- Matching end node index for start node.
   vector<int>  insert (N);	// -- Number of nodes to insert.
 
-  SL = FLT_MAX;
+  SL = 1.0e30;
 
   for (i = 0; i < N; i++) {
     bestLine (visible[i], reflength, i, End[i], insert[i], SL[i]);
@@ -343,7 +343,7 @@ void Loop::bestLine (List<Node*>& visible ,
   const int N = nodes.getSize  ();
 
   real  theta, L, epsilon;
-  real  da, dc, dx, dy, actualLength, epsOld, epsNew, SL, best = FLT_MAX;
+  real  da, dc, dx, dy, actualLength, epsOld, epsNew, SL, best = 1.0e30;
   real  theta1, theta2, theta3, theta4;
   Point pi, pj, pk, pa, pc, na, nc;
 
@@ -741,7 +741,7 @@ void Loop::splitSix (int& begin, int& end)
   case 0:
     // -- Split into 2 x 4 on shortest line.
     //
-    d2 = FLT_MAX;
+    d2 = 1.0e30;
 
     for (i1 = 0; i1 < 3; i1++) {
       D   = nodes[(i1 + 3) % 6] -> pos() - nodes[i1] -> pos();
@@ -1606,8 +1606,8 @@ void Loop::limits (Point& Pmin,
 
   real X, Y, xmin, ymin, xmax, ymax;
 
-  xmin = ymin =  FLT_MAX;
-  xmax = ymax = -FLT_MAX;
+  xmin = ymin =  1.0e30;
+  xmax = ymax = -1.0e30;
 
   for (i = 0; i < N; i++) {
     X = nodes[i] -> pos () . x;

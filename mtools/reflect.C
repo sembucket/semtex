@@ -17,10 +17,10 @@ enum   Action { UNDEFINED, X, Y, R };
 static char       prog[] = "reflect";
 static const real D2R    = 1.0 / 57.29577951308232087721;
 
-static void getArgs     (int, char**, Action&, Point&, real&, ifstream&);
-static int  getVertices (ifstream&, vector<Node*>&, const Action,
+static void getArgs     (int, char**, Action&, Point&, real&);
+static int  getVertices (istream&, vector<Node*>&, const Action,
 			 const Point&, const real);
-static int  getElements (ifstream&, vector<Node*>&, vector<Node*>*&);
+static int  getElements (istream&, vector<Node*>&, vector<Node*>*&);
 static void printUp     (ostream&, const vector<Node*>&,
 			 const vector<Node*>*&, const int, const Action);
 
@@ -31,7 +31,6 @@ int main (int    argc,
 // Driver for other routines.
 // ---------------------------------------------------------------------------
 {
-  ifstream       infile;
   Action         mirror = UNDEFINED;
   Point          axis;
   real           angle;
@@ -39,14 +38,14 @@ int main (int    argc,
   vector<Node*>  vertices;
   vector<Node*>* elements;
 
-  getArgs (argc, argv, mirror, axis, angle, infile);
+  getArgs (argc, argv, mirror, axis, angle);
 
-  seekBlock (infile, "Mesh");
+  seekBlock (cin, "Mesh");
 
-  nVert = getVertices (infile, vertices, mirror, axis, angle);
-  nEl   = getElements (infile, vertices, elements);
+  nVert = getVertices (cin, vertices, mirror, axis, angle);
+  nEl   = getElements (cin, vertices, elements);
 
-  endBlock (infile);
+  endBlock (cin);
 
   printUp  (cout, const_cast<const vector<Node*>&>(vertices),
 	    const_cast<const vector<Node*>*&>(elements), nEl, mirror);
@@ -59,8 +58,7 @@ static void getArgs (int       argc  ,
 		     char**    argv  ,
 		     Action&   mirror,
 		     Point&    axis  ,
-		     real&     angle ,
-		     ifstream& infile)
+		     real&     angle )
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
 // arguments.  Last (optional) argument is the name of an input file.
@@ -104,17 +102,19 @@ static void getArgs (int       argc  ,
     exit (EXIT_FAILURE);
   }
   
-  if   (argc == 1) infile.open   (*argv, ios::in);
-  else             infile.attach (0);
-
-  if (!infile) {
-    sprintf (buf, "unable to open file: %s", *argv);
-    error   (prog, buf, ERROR);
+  if (argc == 1) {
+    ifstream* inputfile = new ifstream (*argv);
+    if (inputfile -> good()) {
+      cin = *inputfile;
+      } else {
+	sprintf (buf, "unable to open file: %s", *argv);
+	error (prog, buf, ERROR);
+      }
   }
 }
 
 
-static int getVertices (ifstream&      S,
+static int getVertices (istream&       S,
 			vector<Node*>& V,
 			const Action   A,
 			const Point&   O,
@@ -194,7 +194,7 @@ static int getVertices (ifstream&      S,
 }
 
 
-static int getElements (ifstream&       S,
+static int getElements (istream&        S,
 			vector<Node*>&  V,
 			vector<Node*>*& E)
 // ---------------------------------------------------------------------------

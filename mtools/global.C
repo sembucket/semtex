@@ -28,8 +28,8 @@ real Global::limits (Point& Pmin,
   Node*               N;
   real                X, Y, xmin, ymin, xmax, ymax;
 
-  xmin = ymin =  FLT_MAX;
-  xmax = ymax = -FLT_MAX;
+  xmin = ymin =  1.0e30;
+  xmax = ymax = -1.0e30;
 
   for (n.reset(); n.more(); n.next()) {
     N = n.current();
