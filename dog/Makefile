@@ -35,15 +35,6 @@ $(KPROG): sem $(FL_OBJ) $(SEMOBJ) stab.h
 	$(LD) -o $@ $(FL_OBJ) $(SEMOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
-# Build eigensolver code.
-#
-#XL_FILES = flipper integrate stabanalysis
-#XL_OBJ   = $(addsuffix .o,$(XL_FILES))
-#
-#flipper: sem $(XL_OBJ) $(SEMOBJ) stab.h
-#	$(LD) -o $@ $(XL_OBJ) $(SEMOBJ) $(LDFLAGS)
-
-# ----------------------------------------------------------------------------
 # Build linearised Navier-Stokes solver.
 
 ST_FILES = lns integrate stabanalysis

@@ -30,6 +30,8 @@
 #include <strstream>
 #include <iomanip>
 
+using namespace std;
+
 #include <femdef.h>		/* Semtex headers.     */
 #include <List.h>
 #include <Stack.h>
