@@ -42,7 +42,6 @@ static char RCS[] = "$Id$";
 #include <string.h>
 #include <ctype.h>
 
-
 typedef enum { UNKNOWN, ASCII, IEEE_BIG, IEEE_LITTLE } FORMAT;
 
 static char  prog[]  = "convert";
@@ -90,7 +89,6 @@ int main (int    argc,
            outputF  = UNKNOWN,
            machineF = architecture();
 
-
   getargs (argc, argv, &fp_in, &fp_out, &outputF, &ndump);
 
   while (fgets (buf, BUFSIZ, fp_in)) {
@@ -137,7 +135,7 @@ int main (int    argc,
       fprintf (stderr, "%s: converting %1d fields, %1d points ",
 	       prog, nfields, npts);
     
-    get_data (fp_in,  inputF, machineF, npts, nfields, data);
+    get_data (fp_in, inputF, machineF, npts, nfields, data);
     if (selected) put_data (fp_out, inputF, outputF,  npts, nfields, data);
 
     /* -- Deallocate storage. */

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // compare.C
 //
-// Copyright (c) 1996,2004 Hugh Blackburn
+// Copyright (c) 1996 <--> $Date$, Hugh Blackburn
 //
 // SYNOPSIS
 // --------
@@ -35,11 +35,11 @@
 
 static char RCS[] = "$Id$";
 
-#include <sem.h>
 #include <ctime>
+#include "sem.h"
 
-static char    prog[]    = "compare";
-const  integer EXACT_MAX = 32;
+static char  prog[]    = "compare";
+const  int_t EXACT_MAX = 32;
 
 static void getargs (int, char**, bool&, bool&, char*&, ifstream&);
 
@@ -54,14 +54,14 @@ int main (int    argc,
   ifstream           fieldfl;
   char               buf[StrMax], err[StrMax], fmt[StrMax], fields[StrMax];
   char               function[EXACT_MAX][StrMax];
-  integer            i, j, np, nz, nel, found;
-  integer            nexact = 0, nfields = 0;
+  int_t              i, j, np, nz, nel, found;
+  int_t              nexact = 0, nfields = 0;
   bool               swab = false, tran = false, noise = false;
-  real               t;
+  real_t             t;
   Geometry::CoordSys system;
   vector<Element*>   Esys;
   AuxField           *exact, *computed;
-  const real         NOISE = 1e-12;
+  const real_t       NOISE = 1e-12;
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, tran, noise, session, fieldfl);
@@ -161,8 +161,8 @@ int main (int    argc,
   Esys.resize (nel);
   for (i = 0; i < nel; i++) Esys[i] = new Element (i, np, M);
 
-  exact    = new AuxField (new real[Geometry::nTotal()], nz, Esys);
-  computed = new AuxField (new real[Geometry::nTotal()], nz, Esys);
+  exact    = new AuxField (new real_t[Geometry::nTotal()], nz, Esys);
+  computed = new AuxField (new real_t[Geometry::nTotal()], nz, Esys);
 
   // -- Perform comparisons, output.
 
