@@ -130,9 +130,10 @@ void Boundary::curlCurl (const int    k ,
 // When k == 0, all the imaginary components, also the third velocity vector
 // component pointers are not used, and may be provided as NULL values.
 // This allows the same routine to be used for 2D solutions.
-//
 // ---------------------------------------------------------------------------
 {
+  const Geometry::CoordSys space = Geometry::system();
+
   const int np   = elmt -> nKnot();
   const int ntot = elmt -> nTot();
   const int doff = elmt -> dOff();
