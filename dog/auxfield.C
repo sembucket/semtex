@@ -296,7 +296,8 @@ AuxField& AuxField::gradient (const integer dir ,
 // HALF, then the x, y, gradients are only applied on the first plane
 // of data. In addition we check the how many planes of data exist,
 // when taking the gradients in z direction; if only one, then the
-// AuxField is half-complex.
+// AuxField is half-complex (and the sign of z-gradient may need
+// changing).
 // ---------------------------------------------------------------------------
 {
   const char          routine[] = "AuxField::gradient";

@@ -282,6 +282,8 @@ static void setPForce (const AuxField** Us,
 
   for (i = 0; i < NPER; i++) (*Uf[i] = *Us[i]) . gradient(i);
 
+  if (Geometry::nPert() == 3  && Geometry::nBase() < 3) *Uf[2] *= -1.0;
+
   if (C3D) Uf[2] -> divR();
 
   for (i = 1; i < NPER; i++) *Uf[0] += *Uf[i];  

@@ -400,7 +400,7 @@ void Domain::updateBase()
 {
   const integer nBase  = Geometry::nBase();
   const integer nSlice = Geometry::nSlice();
-  const real    time   = Femlib::value ("t - D_T");
+//  const real    time   = Femlib::value ("t - D_T");
   integer       i;
   
   if (nSlice < 2) return;
