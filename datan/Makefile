@@ -9,7 +9,7 @@ ifeq ($(ARCH),Linux)
   endif
 endif
 
-RECIPES = -L/usr/local/lib -lrecipesDP
+RECIPES = -L$(HOME)/lib/$(ARCH) -L/usr/local/lib -lrecipesDP
 SEMHOME = ../semtex
 SEMHDR  = -I$(SEMHOME)/include
 VECLIB  = -L$(SEMHOME)/lib/$(ARCH)/ -lalp
@@ -79,12 +79,13 @@ ifeq ($(ARCH),IRIX64)			# -- SGI 64-bit systems.
 CXX	 = CC
 LD	 = CC
 CC       = cc
-CFLAGS   = $(DEFINES) -64 $(OPT)
-CXXFLAGS = $(DEFINES) -64 $(OPT)
+CFLAGS   = $(DEFINES) -n32 -mips4  $(OPT)
+CXXFLAGS = $(DEFINES) -n32 -mips4  $(OPT)
+F77LIBS  = -lftn
 ifdef DEBUG
   OPT    = -g
 else
-  OPT    =  -r10000 -Ofast=$(MACH) -OPT:roundoff=3
+  OPT    =  -O2
 endif
 CLDFLAGS = $(LDFLAGS)
 endif
