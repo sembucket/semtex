@@ -18,6 +18,7 @@ LIB     = libalp.a
 OPTIONS  = -g
 
 CC       = cc
+FC	 = f77
 OPTIONS  = -g
 CFLAGS	 = $(OPTIONS)
 CPPFLAGS = -I$(SEMHOME)/include
@@ -27,34 +28,47 @@ RANLIB   =
 # ----------- Compiler options for specific machines: ------------------------
 
 ifeq ($(ARCH),IRIX)			# -- SGI IRIX 32-bit.
-CFLAGS     = -fullwarn -O2 -sopt
+CFLAGS     = -fullwarn -g
+FFLAGS     = -g
 endif
 
 ifeq ($(ARCH),IRIX64)			# -- SGI IRIX 64-bit
-CPPFLAGS   = -I../include
 CFLAGS     = -fullwarn -mips4 -O3
+FFLAGS     = -mips4 -O2
 endif
 
+
 ifeq ($(ARCH),OSF1)			# -- DEC Alpha OSF1
-CFLAGS     = -migrate -fast -O4 -tune host
+FC         = f90
+CC         = cc
+CFLAGS     = -fast -inline speed -fp_reorder -speculate all -tune host -O4
+FFLAGS     = -fast -tune host -O5
+ifdef MPI
+  CFLAGS  += -pthread
+  FFLAGS  += -D_THREAD_SAFE
+endif
 #CC	   = kcc
 #CFLAGS    = -ckapargs='-optimize=5 -roundoff=3 -scaleropt=3'
 endif
 
 ifeq ($(ARCH),Linux)			# -- GNU/Linux system
 CC         = gcc
+FC	   = g77
+CFLAGS     = -O3
 CFLAGS     = -O3
 RANLIB     = ranlib
 endif
 
 ifeq ($(ARCH),UNIX_System_V)            # -- Fujitsu VPP300
 CC         = vcc
-#CFLAGS     = -Wv,-ad
+FC	   = frt
 CFLAGS     = -Wv,-m3,-Om
+FFLAGS     = -Wv,-m3,-te
 endif
 
 ifeq ($(ARCH),SUPER-UX)                 # -- NEC SX-4
-CFLAGS     = -pvctl,fullmsg -O nooverlap -hfloat0
+CFLAGS     = -pvctl,fullmsg -Onooverlap -hfloat0
+FFLAGS     =  $(DEFINES) -Wf'-pvctl,fullmsg -ptr byte' -float0 -ew
 endif
 
 # ----------------------------------------------------------------------------
@@ -87,12 +101,13 @@ MISC       = xscatr      xgathr      xgathr_scatr	\
 	     xramp       xcndst      xmask       	\
 	     xvpoly      xpolint    			\
 	     xspline     xsplquad			\
-	     xmxm        xmxv        xmxva	  	\
+	     xmxv        xmxva	  	\
 	     xvvtvvtp    xsvvttvp
 
+FORTRAN    = xmxm							
+
 ALL        = $(UTIL)       $(MEMORY)    $(MATH)       $(OTHER)   $(TRIAD) \
-             $(RELATIONAL) $(REDUCTION) $(CONVERSION) $(MISC)
-     
+             $(RELATIONAL) $(REDUCTION) $(CONVERSION) $(MISC)    $(FORTRAN)    
 LMD        = $(foreach routine, $(ALL), $(LIB)($(routine).o))
 
 # ----------------------------------------------------------------------------
@@ -134,4 +149,4 @@ tar:
 	tar cvf alplib.tar *
 
 clean:
-	rm *.o *.a *~ 
+	rm *.o *.a *.O *~ 
