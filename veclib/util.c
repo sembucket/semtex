@@ -1,9 +1,8 @@
 /*****************************************************************************
- *                            FILE & I-O UTILITIES                           *
+ *                            FILE & I-O UTILITIES
+ *
+ * $Id$
  *****************************************************************************/
-
-static char
-RCS_util[] = "$Id$";
 
 
 #include <sys/types.h>
@@ -24,17 +23,17 @@ char     buf[STR_MAX];		/* A string for general use. */
 
 
 
-void message(const char *routine, const char *text, int level)
+void message (const char *routine, const char *text, int level)
 /* ========================================================================= *
- * A general error handler.                                                  *
+ * A simple error handler.
  * ========================================================================= */
 {
   switch (level) {
   case WARNING:
-    fprintf (stderr, "%s: WARNING: %s\n", routine, text); 
+    fprintf (stderr, "WARNING: %s: %s\n", routine, text); 
     break;
   case ERROR:
-    fprintf (stderr, "%s: ERROR: %s\n", routine, text); 
+    fprintf (stderr, "ERROR: %s: %s\n", routine, text); 
     break;
   case REMARK:
     fprintf (stdout, "%s: %s\n", routine, text);
@@ -54,7 +53,7 @@ void message(const char *routine, const char *text, int level)
 
 FILE *efopen(const char *file, const char *mode)
 /* ========================================================================= *
- * fopen file, die if can't.                                                 *
+ * fopen file, die if can't.
  * ========================================================================= */
 {
   FILE *fp;
@@ -72,9 +71,9 @@ FILE *efopen(const char *file, const char *mode)
 
 #if !defined(i860) && !defined(dclock)
 
-double dclock(void)
+double dclock (void)
 /* ========================================================================= *
- * Double-precision timing routine.                                          *
+ * Double-precision timing routine.
  * ========================================================================= */
 {
   static double tps = 1.0 / CLOCKS_PER_SEC;
@@ -85,9 +84,9 @@ double dclock(void)
 
 
 
-float sclock(void)
+float sclock (void)
 /* ========================================================================= *
- * Single-precision timing routine.                                          *
+ * Single-precision timing routine.
  * ========================================================================= */
 {
   static float tps = 1.0F / CLOCKS_PER_SEC;
@@ -107,7 +106,7 @@ void printDvector(FILE  *fp     ,
 		  int    inc    ,
 		  int    nfield , ...)
 /* ========================================================================= *
- * Print up a variable number of dvectors on fp, in columns.                 *
+ * Print up a variable number of dvectors on fp, in columns.
  * ========================================================================= */
 {
   char      routine[] = "printDvector()";
@@ -144,7 +143,7 @@ void printIvector(FILE  *fp     ,
 		  int    inc    ,
 		  int    nfield , ...)
 /* ========================================================================= *
- * Print up a variable number of ivectors on fp, in columns.                 *
+ * Print up a variable number of ivectors on fp, in columns.
  * ========================================================================= */
 {
   char       routine[] = "printIvector()";
@@ -182,7 +181,7 @@ void printSvector(FILE  *fp     ,
 		  int    inc    ,
 		  int    nfield , ...)
 /* ========================================================================= *
- * Write (ASCII) a variable number of svectors on fp, in columns.            *
+ * Write (ASCII) a variable number of svectors on fp, in columns.
  * ========================================================================= */
 {
   char      routine[] = "printSvector()";
