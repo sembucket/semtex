@@ -650,7 +650,7 @@ void AuxField::errors (const Mesh* mesh    ,
   if (!function) { message (routine,"empty function string",WARNING); return; }
   
   const integer np   = Geometry::nP();
-  const integer nq   = min (15, np + np);
+  const integer nq   = min (15, static_cast<int>(np + np));
   const integer nqnq = nq * nq;
   const integer npnq = np * nq;
   const integer npnp = Geometry::nTotElmt();

@@ -119,8 +119,8 @@ void FluidParticle::integrate ()
     
     // -- Predictor.
 
-    _u[0] = _Dom -> u[0] -> probe (_E, _r, _s, 0);
-    _v[0] = _Dom -> u[1] -> probe (_E, _r, _s, 0);
+    _u[0] = _Dom -> u[0] -> probe (_E, _r, _s, static_cast<integer>(0));
+    _v[0] = _Dom -> u[1] -> probe (_E, _r, _s, static_cast<integer>(0));
 
     xp = _p.x;
     yp = _p.y;
@@ -153,8 +153,8 @@ void FluidParticle::integrate ()
 
     // -- Corrector.
 
-    up = _Dom -> u[0] -> probe (_E, _r, _s, 0);
-    vp = _Dom -> u[1] -> probe (_E, _r, _s, 0);
+    up = _Dom -> u[0] -> probe (_E, _r, _s, static_cast<integer>(0));
+    vp = _Dom -> u[1] -> probe (_E, _r, _s, static_cast<integer>(0));
 
     _p.x += corrector[0] * up;
     _p.y += corrector[0] * vp;
