@@ -165,7 +165,7 @@ void Analyser::analyse (AuxField** work)
       }
     }
 
-    for (p.reset(); p.more(); p.next()) p.current() -> integrate (src -> step);
+    for (p.reset(); p.more(); p.next()) p.current() -> integrate ();
   }
 
   // -- CFL, energy, divergence information.

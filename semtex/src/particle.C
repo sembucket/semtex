@@ -23,13 +23,13 @@ real     FluidParticle::Lz      = 0.0;
 FluidParticle::FluidParticle (Domain*       d,
 			      const integer i,
 			      Point&        p) :
-
-                              id           (i),
-                              P            (p)
 // ---------------------------------------------------------------------------
 // Initially particle is located at p.  Find it in the 2D mesh.  Trim to
 // periodic length in 3D if required.
 // ---------------------------------------------------------------------------
+  _id   (i),
+  _step (0),
+  _p    (p)
 {
   if (!D) {
     D       = d;
@@ -48,36 +48,36 @@ FluidParticle::FluidParticle (Domain*       d,
   register integer k;
   const integer    guess = 1;
 
-  E = 0;
+  _E = 0;
   for (k = 0; k < NEL; k++) {
-    r = s = 0.0;
-    if (D -> elmt[k] -> locate (P.x, P.y, r, s, guess)) {
-      E = D -> elmt[k];
+    _r = _s = 0.0;
+    if (D -> elmt[k] -> locate (_p.x, _p.y, _r, _s, guess)) {
+      _E = D -> elmt[k];
       break;
     }
   }
 
-  if (!E) return;
-  if (id > ID_MAX) ID_MAX = id;
+  if (!_E) return;
+  if (_id > ID_MAX) ID_MAX = _id;
 
   if (NDIM == 2) {
-    P.z = 0.0;
+    _p.z = 0.0;
 
-    u = new real [(size_t) (TORD + TORD)];
-    v = u + TORD;
+    _u = new real [(size_t) (TORD + TORD)];
+    _v = _u + TORD;
 
   } else {
-    if   (P.z < 0.0) P.z = Lz - fmod (fabs (P.z), Lz);
-    else             P.z = fmod (P.z, Lz);
+    if   (_p.z < 0.0) _p.z = Lz - fmod (fabs (_p.z), Lz);
+    else              _p.z = fmod (_p.z, Lz);
     
-    u = new real [(size_t) (TORD + TORD + TORD)];
-    v = u + TORD;
-    w = v + TORD;
+    _u = new real [(size_t) (TORD + TORD + TORD)];
+    _v = _u + TORD;
+    _w = _v + TORD;
   }
 }
 
 
-void FluidParticle::integrate (const integer step)
+void FluidParticle::integrate ()
 // ---------------------------------------------------------------------------
 // Integrate massless particle's position using predictor--corrector
 // scheme.  If particles leave 2D mesh they are marked by setting E =
@@ -87,12 +87,12 @@ void FluidParticle::integrate (const integer step)
 // NB: The domain velocity fields must be in Fourier space prior to call (3D).
 // ---------------------------------------------------------------------------
 {
-  if (!E) return;
+  if (!_E) return;
 #if defined (DEBUG)
   const char routine[] = "FluidParticle::integrate";
 #endif
   register integer i;
-  const integer    N     = min (step, TORD);
+  const integer    N     = min (++_step, TORD);
   const integer    NP    = N + 1;
   const integer    guess = 1;
   real             xp, yp, zp, up, vp, wp;
@@ -109,31 +109,31 @@ void FluidParticle::integrate (const integer step)
     
     // -- Predictor.
 
-    u[0] = D -> u[0] -> probe (E, r, s, (integer) 0);
-    v[0] = D -> u[1] -> probe (E, r, s, (integer) 0);
+    _u[0] = D -> u[0] -> probe (_E, _r, _s, (integer) 0);
+    _v[0] = D -> u[1] -> probe (_E, _r, _s, (integer) 0);
 
-    xp = P.x;
-    yp = P.y;
+    xp = _p.x;
+    yp = _p.y;
     for (i = 0; i < N; i++) {
-      xp += P_coeff[i] * u[i];
-      yp += P_coeff[i] * v[i];
+      xp += P_coeff[i] * _u[i];
+      yp += P_coeff[i] * _v[i];
     }
 
-    if (!E -> locate (xp, yp, r, s)) {
-      E = 0;
+    if (!_E -> locate (xp, yp, _r, _s)) {
+      _E = 0;
       for (i = 0; i < NEL; i++) {
-	r = s = 0.0;
-	if (D -> elmt[i] -> locate (xp, yp, r, s, guess)) {
-	  E = D -> elmt[i];
+	_r = _s = 0.0;
+	if (D -> elmt[i] -> locate (xp, yp, _r, _s, guess)) {
+	  _E = D -> elmt[i];
 	  break;
 	}
       }
-      if (!E) {
+      if (!_E) {
 #if defined (DEBUG)
 	if ((int) Femlib::value("VERBOSE") > 3) {
 	  char     str[StrMax];
 	  sprintf (str, "Particle %1d at (%f, %f, %f) left mesh",
-		   id, P.x, P.y, P.z);
+		   _id, _p.x, _p.y, _p.z);
 	  message (routine, str, WARNING);
 	}
 #endif
@@ -143,31 +143,31 @@ void FluidParticle::integrate (const integer step)
 
     // -- Corrector.
 
-    up = D -> u[0] -> probe (E, r, s, (integer) 0);
-    vp = D -> u[1] -> probe (E, r, s, (integer) 0);
+    up = D -> u[0] -> probe (_E, _r, _s, (integer) 0);
+    vp = D -> u[1] -> probe (_E, _r, _s, (integer) 0);
 
-    P.x += C_coeff[0] * up;
-    P.y += C_coeff[0] * vp;
+    _p.x += C_coeff[0] * up;
+    _p.y += C_coeff[0] * vp;
     for (i = 1; i < NP; i++) {
-      P.x += C_coeff[i] * u[i - 1];
-      P.y += C_coeff[i] * v[i - 1];
+      _p.x += C_coeff[i] * _u[i - 1];
+      _p.y += C_coeff[i] * _v[i - 1];
     }
 
-    if (!E -> locate (P.x, P.y, r, s)) {
-      E = 0;
+    if (!_E -> locate (_p.x, _p.y, _r, _s)) {
+      _E = 0;
       for (i = 0; i < NEL; i++) {
-	r = s = 0.0;
-	if (D -> elmt[i] -> locate (P.x, P.y, r, s, guess)) {
-	  E = D -> elmt[i];
+	_r = _s = 0.0;
+	if (D -> elmt[i] -> locate (_p.x, _p.y, _r, _s, guess)) {
+	  _E = D -> elmt[i];
 	  break;
 	}
       }
-      if (!E) {
+      if (!_E) {
 #if defined (DEBUG)
 	if ((int) Femlib::value("VERBOSE") > 3) {
 	  char     str[StrMax];
 	  sprintf (str, "Particle %1d at (%f, %f, %f) left mesh",
-		   id, P.x, P.y, P.z);
+		   _id, _p.x, _p.y, _p.z);
 	  message (routine, str, WARNING);
 	}
 #endif
@@ -177,71 +177,71 @@ void FluidParticle::integrate (const integer step)
 
     // -- Maintain multilevel storage.
 
-    rollv (u, TORD);
-    rollv (v, TORD);
+    rollv (_u, TORD);
+    rollv (_v, TORD);
 
   } else {			// -- 3D integration.
     
     // -- Predictor.
 
-    u[0] = D -> u[0] -> probe (E, r, s, P.z);
-    v[0] = D -> u[1] -> probe (E, r, s, P.z);
-    w[0] = D -> u[2] -> probe (E, r, s, P.z);
+    _u[0] = D -> u[0] -> probe (_E, _r, _s, _p.z);
+    _v[0] = D -> u[1] -> probe (_E, _r, _s, _p.z);
+    _w[0] = D -> u[2] -> probe (_E, _r, _s, _p.z);
 
-    xp = P.x;
-    yp = P.y;
-    zp = P.z;
+    xp = _p.x;
+    yp = _p.y;
+    zp = _p.z;
     for (i = 0; i < N; i++) {
-      xp += P_coeff[i] * u[i];
-      yp += P_coeff[i] * v[i];
-      zp += P_coeff[i] * w[i];
+      xp += P_coeff[i] * _u[i];
+      yp += P_coeff[i] * _v[i];
+      zp += P_coeff[i] * _w[i];
     }
 
-    if (!E -> locate (xp, yp, r, s)) {
-      E = 0;
+    if (!_E -> locate (xp, yp, _r, _s)) {
+      _E = 0;
       for (i = 0; i < NEL; i++) {
-	r = s = 0.0;
-	if (D -> elmt[i] -> locate (xp, yp, r, s, guess)) {
-	  E = D -> elmt[i];
+	_r = _s = 0.0;
+	if (D -> elmt[i] -> locate (xp, yp, _r, _s, guess)) {
+	  _E = D -> elmt[i];
 	  break;
 	}
       }
-      if (!E) return;
+      if (!_E) return;
     }
 
     // -- Corrector.
 
-    up = D -> u[0] -> probe (E, r, s, zp);
-    vp = D -> u[1] -> probe (E, r, s, zp);
-    wp = D -> u[2] -> probe (E, r, s, zp);
+    up = D -> u[0] -> probe (_E, _r, _s, zp);
+    vp = D -> u[1] -> probe (_E, _r, _s, zp);
+    wp = D -> u[2] -> probe (_E, _r, _s, zp);
 
-    P.x += C_coeff[0] * up;
-    P.y += C_coeff[0] * vp;
-    P.z += C_coeff[0] * wp;
+    _p.x += C_coeff[0] * up;
+    _p.y += C_coeff[0] * vp;
+    _p.z += C_coeff[0] * wp;
     for (i = 1; i < NP; i++) {
-      P.x += C_coeff[i] * u[i - 1];
-      P.y += C_coeff[i] * v[i - 1];
-      P.z += C_coeff[i] * w[i - 1];
+      _p.x += C_coeff[i] * _u[i - 1];
+      _p.y += C_coeff[i] * _v[i - 1];
+      _p.z += C_coeff[i] * _w[i - 1];
     }
 
-    if (!E -> locate (P.x, P.y, r, s)) {
-      E = 0;
+    if (!_E -> locate (_p.x, _p.y, _r, _s)) {
+      _E = 0;
       for (i = 0; i < NEL; i++) {
-	r = s = 0.0;
-	if (D -> elmt[i] -> locate (P.x, P.y, r, s, guess)) {
-	  E = D -> elmt[i];
+	_r = _s = 0.0;
+	if (D -> elmt[i] -> locate (_p.x, _p.y, _r, _s, guess)) {
+	  _E = D -> elmt[i];
 	  break;
 	}
       }
-      if (!E) return;
+      if (!_E) return;
     }
-    if   (P.z < 0.0) P.z = Lz - fmod (fabs (P.z), Lz);
-    else             P.z = fmod (P.z, Lz);
+    if   (_p.z < 0.0) _p.z = Lz - fmod (fabs (_p.z), Lz);
+    else              _p.z = fmod (_p.z, Lz);
 
     // -- Maintain multilevel storage.
 
-    rollv (u, TORD);
-    rollv (v, TORD);
-    rollv (w, TORD);
+    rollv (_u, TORD);
+    rollv (_v, TORD);
+    rollv (_w, TORD);
   }
 }
