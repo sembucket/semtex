@@ -34,23 +34,23 @@ static char prog[] = "elliptic";
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 
 extern void Helmholtz (Domain*, const char*);
-static void getargs   (int, char**, char*&);
+static void getargs   (integer, char**, char*&);
 static void setup     (FEML*, char*&, char*&);
 
 
-int main (int    argc,
-	  char** argv)
+integer main (integer argc,
+	      char**  argv)
 // ---------------------------------------------------------------------------
 // Driver.
 // ---------------------------------------------------------------------------
 {
   set_new_handler (&memExhaust);
-#ifndef __DECCXX
+#if !defined(__DECCXX)
   ios::sync_with_stdio();
 #endif
   
   char               *session, *forcing = 0, *exact = 0, fields[StrMax];
-  int                np, nz, nel;
+  integer            np, nz, nel;
   Geometry::CoordSys space;
   FEML*              F;
   Mesh*              M;
@@ -66,9 +66,9 @@ int main (int    argc,
   B = new BCmgr (*F);
 
   nel   = M -> nEl();  
-  np    =  (int) Femlib::value ("N_POLY");
-  nz    =  (int) Femlib::value ("N_Z");
-  space = ((int) Femlib::value ("CYLINDRICAL")) ? 
+  np    =  (integer) Femlib::value ("N_POLY");
+  nz    =  (integer) Femlib::value ("N_Z");
+  space = ((integer) Femlib::value ("CYLINDRICAL")) ? 
     Geometry::Cylindrical : Geometry::Cartesian;
   
   Geometry::set (np, nz, nel, space);
@@ -83,33 +83,31 @@ int main (int    argc,
 
   if (exact) D -> u[0] -> errors (*M, exact);
 
-  char     outname[StrMax];
-  ofstream output (strcat (strcpy (outname, F -> root()), ".fld"));
-  D -> dump  (output);
+  D -> dump ();
 
   return EXIT_SUCCESS;
 }
 
 
-static void getargs (int    argc   ,
-		     char** argv   ,
-		     char*& session)
+static void getargs (integer argc   ,
+		     char**  argv   ,
+		     char*&  session)
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
 // arguments.  Last argument is name of a session file, not dealt with here.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "getargs";
-  char buf[StrMax], c;
-  char usage[] =
+  const char routine[] = "getargs";
+  const char usage[] =
     "Usage: %s [options] session-file\n"
     "  [options]:\n"
     "  -h       ... print this message\n"
     "  -i       ... use iterative solver\n"
     "  -v[v...] ... increase verbosity level\n";
+  char buf[StrMax];
  
   while (--argc  && **++argv == '-')
-    switch (c = *++argv[0]) {
+    switch (*++argv[0]) {
     case 'h':
       sprintf (buf, usage, prog);
       cout << buf;
@@ -120,7 +118,7 @@ static void getargs (int    argc   ,
       break;
     case 'v':
       do
-	Femlib::value ("VERBOSE", (int) Femlib::value ("VERBOSE") + 1);
+	Femlib::value ("VERBOSE", (integer) Femlib::value ("VERBOSE") + 1);
       while (*++argv[0] == 'v');
       break;
     default:

@@ -18,12 +18,12 @@ void Helmholtz (Domain*     D      ,
 // subject to BCs.
 // ---------------------------------------------------------------------------
 {
-  const real lambda2   =       Femlib::value ("LAMBDA2"  );
-  const real beta      =       Femlib::value ("BETA"     );
-  const int  iterative = (int) Femlib::value ("ITERATIVE");
-  const int  nmodes    = Geometry::nMode();
-  const int  nZ        = Geometry::nZ();
-  AuxField*  Force     = new AuxField (D -> Esys, nZ);
+  const real    lambda2   =           Femlib::value ("LAMBDA2"  );
+  const real    beta      =           Femlib::value ("BETA"     );
+  const integer iterative = (integer) Femlib::value ("ITERATIVE");
+  const integer nmodes    = Geometry::nMode();
+  const integer nZ        = Geometry::nZ();
+  AuxField*     Force     = new AuxField (D -> Esys, nZ);
 
   if   (forcing) *Force = forcing;
   else           *Force = 0.0;
@@ -38,7 +38,7 @@ void Helmholtz (Domain*     D      ,
     const NumberSystem** N;
     ModalMatrixSystem*   M;
 
-    N = new NumberSystem* [3];
+    N = new const NumberSystem* [3];
     D -> setNumber (name, N);
     M = new ModalMatrixSystem (lambda2, beta, name, 0, nmodes, E, N);
 
