@@ -217,8 +217,9 @@ static void findPoints (vector<Point*>&   point,
 {
   int       i, k;
   real      x, y, z, r, s;
-  const int NEL = Esys .getSize();
-  const int NPT = point.getSize();
+  const int NEL   = Esys .getSize();
+  const int NPT   = point.getSize();
+  const int guess = 1;
 
   elmt.setSize (NPT);
   rloc.setSize (NPT);
