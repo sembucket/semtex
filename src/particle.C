@@ -90,6 +90,7 @@ void FluidParticle::integrate (const integer step)
 {
   if (!E) return;
 
+  const char       routine[] = "FluidParticle::integrate";  
   register integer i;
   const integer    N     = min (step, TORD);
   const integer    NP    = N + 1;
@@ -126,7 +127,15 @@ void FluidParticle::integrate (const integer step)
 	  break;
 	}
       }
-      if (!E) return;
+      if (!E) {
+#if defined(DEBUG)
+	char     str[StrMax];
+	sprintf (str, "Particle %1d at (%f, %f, %f) left mesh",
+		 id, P.x, P.y, P.z);
+	message (routine, str, WARNING);
+#endif
+	return;
+      }
     }
 
     // -- Corrector.
@@ -150,7 +159,15 @@ void FluidParticle::integrate (const integer step)
 	  break;
 	}
       }
-      if (!E) return;
+      if (!E) {
+#if defined(DEBUG)
+	char     str[StrMax];
+	sprintf (str, "Particle %1d at (%f, %f, %f) left mesh",
+		 id, P.x, P.y, P.z);
+	message (routine, str, WARNING);
+#endif
+	return;
+      }
     }
 
     // -- Maintain multilevel storage.
