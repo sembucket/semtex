@@ -526,7 +526,7 @@ void Element::HelmholtzSC (const real lambda2,
     Lapack::getri (_nint, hii, _nint, iwrk, rwrk, _nint*_next, info);
     if (info) message (routine, "matrix hii is singular",         ERROR);
 
-    Blas::mxm    (hbi, next, hii, nint, rwrk, nint);
+    Blas::mxm    (hbi, _next, hii, _nint, rwrk, _nint);
     Blas::gemm   ("T","N",_next,_next,_nint,-1.0,hbi,
 		  _nint,rwrk,_nint, 1.0,hbb,_next);
     Veclib::copy (_nint*_next, rwrk, 1, hbi, 1);
