@@ -23,8 +23,8 @@ static char prog[] = "calc";
 static void getargs (integer, char**, ifstream&);
 
 
-integer main (integer argc,
-	      char**  argv)
+int main (int    argc,
+	  char** argv)
 /* ------------------------------------------------------------------------- *
  * Driver.
  * ------------------------------------------------------------------------- */
