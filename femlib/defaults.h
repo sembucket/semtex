@@ -54,6 +54,7 @@ static struct {
   "VERBOSE"     ,   0   ,
   "CHKPOINT"    ,   0   ,
   "AVERAGE"     ,   0   ,
+  "SPAWN"       ,   0   ,
   
   /* -- Default integer values. */
 
