@@ -1,9 +1,8 @@
 /*****************************************************************************
  * ELEMENT.C: Element utility routines.
+ *
+ * $Id$
  *****************************************************************************/
-
-// $Id$
-
 
 #include "Fem.h"
 
@@ -580,7 +579,8 @@ void  Element::bndryInsert (const real* src, real* target) const
 void  Element::bndryDsSum (const real* src,  real* target) const
 // ---------------------------------------------------------------------------
 // Direct-stiffness-sum from element boundary to globally-numbered storage,
-// i.e. target[bmap[i]] += src[emap[i]].
+// i.e. target[bmap[i]] += src[emap[i]].  This is using in smoothing
+// Fields along element boundaries.
 // ---------------------------------------------------------------------------
 {
   register int i;
@@ -1213,7 +1213,9 @@ void  Element::sideDsSum (int         side  ,
 			  const real* area  ,
 			  real*       target) const
 // ---------------------------------------------------------------------------
-// Direct-stiffness-sum vector src into globally-numbered target on side.
+// Direct-stiffness-sum (area-weighted) vector src into globally-numbered
+// target on side.  This is for evaluation of ESSENTIAL BCs with
+// Lobatto quadrature.
 //
 // Complication at side ends, since NATURAL BCs defer to ESSENTIAL BCs.
 // ---------------------------------------------------------------------------
