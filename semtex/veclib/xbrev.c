@@ -11,35 +11,37 @@
 int iformat (void)
 /* ------------------------------------------------------------------------- *
  * Return 1 if machine floating-point format is IEEE little-endian,
- * 0 if IEEE big-endian, exit to system if neither.
+ * 0 if IEEE big-endian, -1 for unrecognized format.
  * ------------------------------------------------------------------------- */
 {
-  union {
-    float f;
-    int i;
-    unsigned char c[4];
-  } v;
-  union {
-    double d;
-    int i[2];
-    unsigned char c[8];
-  } u;
-  int doubleOK = 0,
-      intOK    = 0,
-      reverse  = (-1);
+  union { float f;  int i;    unsigned char c[4]; } v;
+  union { double d; int i[2]; unsigned char c[8]; } u;
+  int   reverse = (-1);
   u.d = 3;
   v.i = 3;
   if      (u.c[0] == 64 && u.c[1] == 8 && v.c[3] == 3) reverse = 0;
   else if (u.c[7] == 64 && u.c[6] == 8 && v.c[0] == 3) reverse = 1;
-#ifdef DEBUG
-  printf ("%s\n", reverse ? "Byte Reversal will occur" : "No Byte Reversal");
-#endif
-  if (reverse == -1) {
-    printf ("NO IEEE-format\n Exit\n");
-    exit   (1);
-  }
 
   return (reverse);
+}
+
+
+void format (char* s)
+/* ------------------------------------------------------------------------- *
+ * Fill s with a string describing machine's floating-point storage format.
+ * ------------------------------------------------------------------------- */
+{
+  switch (iformat ()) {
+  case -1:
+    sprintf (s, "unknown");
+    break;
+  case 1:
+    sprintf (s, "IEEE little-endian");
+    break;
+  case 0: default:
+    sprintf (s, "IEEE big-endian");
+    break;
+  }
 }
 
 
