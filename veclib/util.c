@@ -106,28 +106,28 @@ void printDvector(FILE  *fp     ,
  * Print up a variable number of dvectors on fp, in columns.                 *
  * ========================================================================= */
 {
+  char      routine[] = "printDvector()";
   int       i, j, k;
   double  **u;
   va_list   ap;
 
 
-  u = (double **) calloc (nfield, sizeof(double*));
-  va_start(ap, nfield);
-  for (i=0; i<nfield; i++) u[i] = va_arg(ap, double*); 
-  va_end(ap);
+  u = (double **) calloc (nfield, sizeof (double*));
+  va_start (ap, nfield);
+  for (i = 0; i < nfield; i++) u[i] = va_arg (ap, double*); 
+  va_end (ap);
 
-  k = (inc<0) ? (-ntot+1)*inc : 0;
+  k = (inc < 0) ? (-ntot + 1)*inc : 0;
 
-  for (i=0; i<ntot; i++) {
-    for (j=0; j<nfield; j++) {
-      fprintf(fp, "%*.*f", width, prec, u[j][k]);
-    }
+  for (i = 0; i < ntot; i++) {
+    for (j = 0; j < nfield; j++)
+      if (fprintf(fp, "%*.*f", width, prec, u[j][k]) < 0)
+	message (routine, "unable to write to file", ERROR);
     k += inc;
     fprintf(fp, "\n");
   }
 
   free(u);
-
 }
 
 
@@ -143,28 +143,28 @@ void printIvector(FILE  *fp     ,
  * Print up a variable number of ivectors on fp, in columns.                 *
  * ========================================================================= */
 {
+  char       routine[] = "printIvector()";
   int        i, j, k;
   int      **u;
   va_list    ap;
 
 
-  u = (int **) calloc (nfield, sizeof(int*));
-  va_start(ap, nfield);
-  for (i=0; i<nfield; i++) u[i] = va_arg(ap, int*); 
-  va_end(ap);
+  u = (int **) calloc (nfield, sizeof (int*));
+  va_start (ap, nfield);
+  for (i = 0; i < nfield; i++) u[i] = va_arg (ap, int*); 
+  va_end (ap);
 
-  k = (inc<0) ? (-ntot+1)*inc : 0;
+  k = (inc < 0) ? (-ntot + 1)*inc : 0;
 
-  for (i=0; i<ntot; i++) {
-    for (j=0; j<nfield; j++) {
-      fprintf(fp, "%*d", width, u[j][k]);
-    }
+  for (i = 0; i < ntot; i++) {
+    for (j = 0; j < nfield; j++)
+      if (fprintf (fp, "%*d", width, u[j][k]) < 0)
+	message (routine, "couldn't write to file", ERROR);
     k += inc;
-    fprintf(fp, "\n");
+    fprintf (fp, "\n");
   }
 
-  free(u);
-
+  free (u);
 }
 
 
@@ -181,28 +181,28 @@ void printSvector(FILE  *fp     ,
  * Write (ASCII) a variable number of svectors on fp, in columns.            *
  * ========================================================================= */
 {
+  char      routine[] = "printSvector()";
   int       i, j, k;
   float   **u;
   va_list   ap;
 
 
-  u = (float **) calloc (nfield, sizeof(float*));
-  va_start(ap, nfield);
-  for (i=0; i<nfield; i++) u[i] = va_arg(ap, float*); 
-  va_end(ap);
+  u = (float **) calloc (nfield, sizeof (float*));
+  va_start (ap, nfield);
+  for (i = 0; i < nfield; i++) u[i] = va_arg (ap, float*); 
+  va_end (ap);
 
-  k = (inc<0) ? (-ntot+1)*inc : 0;
+  k = (inc < 0) ? (-ntot + 1)*inc : 0;
 
-  for (i=0; i<ntot; i++) {
-    for (j=0; j<nfield; j++) {
-      fprintf(fp, "%*.*f", width, prec, u[j][k]);
-    }
+  for (i = 0; i < ntot; i++) {
+    for (j = 0; j < nfield; j++)
+      if (fprintf (fp, "%*.*f", width, prec, u[j][k]) < 0)
+	message (routine, "unable to write to file", ERROR);
     k += inc;
-    fprintf(fp, "\n");
+    fprintf (fp, "\n");
   }
 
-  free(u);
-
+  free (u);
 }
 
 
