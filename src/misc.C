@@ -119,7 +119,7 @@ void writeField (ofstream&          file   ,
   ROOTONLY {
     sprintf (s1, hdr_fmt[0], session);
     file << s1;
-#if 0
+#if 1
     strftime (s2, 25, "%a %b %d %H:%M:%S %Y", localtime (&tp));
 #else
     sprintf (s2, "Dummy date");
