@@ -21,8 +21,8 @@ RCSid[] = "$Id$";
 typedef ModalMatrixSystem ModeSys;
 static  int               DIM;
 
-static void  buoyancy  (Domain*, AuxField***, const Vector&);
 static void  nonLinear (Domain*, AuxField***, AuxField***);
+static void  buoyancy  (Domain*, AuxField***, AuxField***, const Vector&);
 static void  waveProp  (Domain*, const AuxField***, const AuxField***);
 static void  setPForce (const Domain*, const AuxField***, AuxField***);
 static void  project   (const Domain*, AuxField***, AuxField***);
@@ -91,8 +91,8 @@ void NavierStokes (Domain*   D,
 
     // -- Unconstrained forcing substep.
 
-    buoyancy  (D, Uf, g);
     nonLinear (D, Us, Uf);
+    buoyancy  (D, Us, Uf, g);
     waveProp  (D, (const AuxField***) Us, (const AuxField***) Uf);
 
     // -- Pressure projection substep.
@@ -120,47 +120,9 @@ void NavierStokes (Domain*   D,
 
     // -- Process results of this step.
 
-    A -> analyse();
+    A -> analyse (Us);
   }
 }
-
-
-static void buoyancy (Domain*       D ,
-		      AuxField***   Uf,
-		      const Vector& g )
-// ---------------------------------------------------------------------------
-// Fluid is treated as a perfect gas, so the coefficient of thermal
-// expansion is 1/T_REF, and the buoyancy term in the momentum equation is
-//
-//                           + (1 - T/T_REF) g.
-//                                           ~
-// The leading sign left here is actually negative, since in nonLinear the
-// forcing gets negated (associated with transferring nonlinear terms
-// to RHS of momentum equations).
-// ---------------------------------------------------------------------------
-{
-  int               i;
-  const real        EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
-  AuxField*         T   = D -> u[DIM];
-  vector<AuxField*> N (DIM);	// -- Shorthand for nonlinear velocity fields.
-  vector<real>      G (3);
-  
-  G[0] = g.x; G[1] = g.y; G[2] = g.z;
-
-  for (i = 0; i < DIM; i++) {
-    N[i] = Uf[i][0];    
-    if (fabs (G[i]) > EPS) {
-      *N[i] = *T;
-      *N[i] /= Femlib::value ("T_REF");
-      *N[i] -= 1.0;
-      *N[i] *= G[i];
-    } else
-      *N[i] = 0.0;
-  }
-
-  *Uf[DIM][0] = 0.0;
-}
-
 
 
 static void nonLinear (Domain*     D ,
@@ -184,6 +146,11 @@ static void nonLinear (Domain*     D ,
 //               i           j    i      j      i j      j
 //
 // If STOKES is defined for compilation, the nonlinear terms are set to zero.
+// This means that the Navier--Stokes equations become the Stokes equations.
+// Also, the convective terms in the temperature equation are zero,
+// so that the transient heat diffucion equation is solved in place
+// of the convection/diffusion equation (i.e. temperature is uncoupled
+// from the velocity field).
 //
 // Note that all gradient operations are performed on T = D -> u[0], and that
 // an even number are performed in the Fourier direction, so that the
@@ -193,14 +160,16 @@ static void nonLinear (Domain*     D ,
 // ---------------------------------------------------------------------------
 {
   int               i, j;
-  vector<AuxField*> U (DIM);	// -- Shorthand for velocity  fields.
-  vector<AuxField*> N (DIM);	// -- Shorthand for nonlinear fields.
+  vector<AuxField*> U (DIM + 1);	// -- Shorthand for velocity  fields.
+  vector<AuxField*> N (DIM + 1);	// -- Shorthand for nonlinear fields.
 
   for (i = 0; i <= DIM; i++) {
     AuxField::swapData (D -> u[i], Us[i][0]);
     U[i] = Us[i][0];
     N[i] = Uf[i][0];
   }
+
+  for (i = 0; i <= DIM; i++) *N[i] = 0.0;
 
 #ifndef STOKES
 
@@ -227,6 +196,40 @@ static void nonLinear (Domain*     D ,
 }
 
 
+static void buoyancy (Domain*       D ,
+		      AuxField***   Us,
+		      AuxField***   Uf,
+		      const Vector& g )
+// ---------------------------------------------------------------------------
+// 
+// The buoyancy term in the momentum equation is
+//
+//                      - BETA_T * (T - T_REF) g.
+//                                             ~
+// We add an explicit estimate of this to the nonlinear terms in Uf.
+// The first level of Us has the last values of the data Fields, D is free.
+// ---------------------------------------------------------------------------
+{
+  int          i;
+  const real   EPS  = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  AuxField*    T    = Us [DIM][0];
+  AuxField*    work = D -> u[DIM];
+  vector<real> G (3);
+  
+  G[0] = g.x; G[1] = g.y; G[2] = g.z;
+
+  for (i = 0; i < DIM; i++) {
+    if (fabs (G[i]) > EPS) {
+      *work      = *T;
+      *work     -=  Femlib::value ("T_REF" );
+      *work     *=  Femlib::value ("BETA_T");
+      *work     *=  G[i];
+      *Uf[i][0] -= *work;
+    }
+  }
+}
+
+
 static void waveProp (Domain*           D ,
 		      const AuxField*** Us,
 		      const AuxField*** Uf)
@@ -248,7 +251,7 @@ static void waveProp (Domain*           D ,
     *H[i] = 0.0;
   }
 
-  int  Je = (int) Femlib::value ("N_TIME");
+  int Je = (int) Femlib::value ("N_TIME");
   Je = min (D -> step, Je);
 
   vector<real> alpha (Integration::OrderMax + 1);
@@ -286,7 +289,8 @@ static void setPForce (const Domain*     D ,
     Uf[i][0] -> gradient (i);
   }
   
-  for (i = 1; i < DIM; i++) *Uf[0][0] += *Uf[i][0];
+  for (i = 1; i < DIM; i++)
+    *Uf[0][0] += *Uf[i][0];
 
   *Uf[0][0] /= dt;
 }
