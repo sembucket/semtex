@@ -375,6 +375,67 @@ AuxField& AuxField::gradient (const int dir)
 }
 
 
+void AuxField::gradient (const int nZ ,
+			 real*     src,
+			 const int dir) const
+// ---------------------------------------------------------------------------
+// Use Field structure to perform gradient operations on data area src,
+// according to nominated direction.  Input value nZ is the number of planes
+// to operate on.
+// ---------------------------------------------------------------------------
+{
+  char routine[] = "AuxField::gradient";
+
+  register Element* E;
+  register int      i, k, offset;
+  const int         nE = Geometry::nElmt();
+  const int         nP = Geometry::planeSize();
+
+  switch (dir) {
+
+  case 0:
+    for (k = 0; k < nZ; k++) 
+      for (i = 0; i < nE; i++) {
+	E      = Elmt[i];
+	offset = E -> dOff();
+
+	E -> grad (src + k * nP + offset, 0);
+      }
+    break;
+
+  case 1:
+    for (k = 0; k < nZ; k++) 
+      for (i = 0; i < nE; i++) {
+	E      = Elmt[i];
+	offset = E -> dOff();
+
+	E -> grad (0, src + k * nP + offset);
+      }
+    break;
+
+  case 2: {
+    const int    nmodes = (nZ + 1) >> 1;
+    const real   beta   = Femlib::value ("BETA");
+    vector<real> work (nP);
+    real         *Re, *Im, *tmp = work();
+
+    Veclib::zero (2*nP, src, 1);
+    for (k = 1; k < nmodes; k++) {
+      Re = src + 2 * k * nP;
+      Im = Re  + nP;
+      Veclib::copy (nP,             Re,  1, tmp, 1);
+      Veclib::smul (nP, -beta * k,  Im,  1, Re,  1);
+      Veclib::smul (nP,  beta * k,  tmp, 1, Im,  1);
+    }
+    break;
+  }
+  default:
+    message (routine, "nominated direction out of range [0--2]", ERROR);
+    break;
+  }
+}
+
+
 AuxField& AuxField::errors (const Mesh& mesh    ,
 			    const char* function)
 // ---------------------------------------------------------------------------
@@ -561,11 +622,48 @@ AuxField& AuxField::transform (const int sign)
 }
 
 
+AuxField& AuxField::transform32 (real*     phys,
+				 const int sign)
+// ---------------------------------------------------------------------------
+// Discrete Fourier transform in homogeneous direction, extended for
+// dealiasing.  Input pointer phys points to data in physical space, 
+// which acts as input area if sign == +1, output area if sign == -1.
+// So transform is from phys to internal storage if sign == +1 and
+// vice versa.
+// ---------------------------------------------------------------------------
+{
+  const int nZ     = Geometry::nZ();
+  const int nP     = Geometry::planeSize();
+  const int nTot   = nZ * nP;
+  const int nZ32   = (3 * nZ) >> 1;
+  const int nTot32 = nZ32 * nP;
+
+  if (nZ <= 2) {
+    if (sign == +1)
+      Veclib::copy (nTot, phys, 1, data, 1);
+    else
+      Veclib::copy (nTot, data, 1, phys, 1);
+
+  } else {
+    if (sign == +1) {
+      Femlib::DFTr (phys, nZ32, nP, +1);
+      Veclib::copy (nTot, phys, 1, data, 1);
+    } else {
+      Veclib::copy (nTot, data, 1, phys, 1);
+      Veclib::zero (nTot32 - nTot, phys + nTot, 1);
+      Femlib::DFTr (phys, nZ32, nP, -1);
+    }
+  }
+
+  return *this;
+}
+
+
 AuxField& AuxField::addToPlane (const int  k    ,
 				const real alpha)
 // ---------------------------------------------------------------------------
 // Add in a constant to the values on nominated plane (if it exists),
-// starting at plane zero.  You could call this a HACK.
+// starting at plane zero.
 // ---------------------------------------------------------------------------
 {
   char routine[] = "AuxField::addToPlane";
@@ -646,12 +744,10 @@ void AuxField::couple (AuxField* v  ,
       Veclib::copy (nP, Vr, 1, tp, 1);
       Veclib::vsub (nP, Vr, 1, Wi, 1, Vr, 1);
       Veclib::vadd (nP, Wi, 1, tp, 1, Wi, 1);
-      Veclib::copy (nP, Vi, 1, tp, 1);
-      Veclib::vadd (nP, Vi, 1, Wr, 1, Vi, 1);
-      Veclib::neg  (nP, Wr, 1);
-      Veclib::vadd (nP, Wr, 1, tp, 1, tp, 1);
+      Veclib::copy (nP, Wr, 1, tp, 1);
       Veclib::copy (nP, Wi, 1, Wr, 1);
-      Veclib::copy (nP, tp, 1, Wi, 1);
+      Veclib::vsub (nP, Vi, 1, tp, 1, Wi, 1);
+      Veclib::vadd (nP, Vi, 1, tp, 1, Vi, 1);
     }
 
   } else if (dir == -1) {
@@ -665,19 +761,14 @@ void AuxField::couple (AuxField* v  ,
       Wr = w -> plane[Re];
       Wi = w -> plane[Im];
 
-      Veclib::copy (nP, Vr, 1, tp, 1);
-      Veclib::vadd (nP, Vr, 1, Wr, 1, Vr, 1);
-      Veclib::vsub (nP, Wr, 1, tp, 1, Wr, 1);
-      Veclib::copy (nP, Vi, 1, tp, 1);
-      Veclib::vadd (nP, Vi, 1, Wi, 1, Vi, 1);
-      Veclib::neg  (nP, Wi, 1);
-      Veclib::vadd (nP, Wi, 1, tp, 1, tp, 1);
-      Veclib::copy (nP, Wr, 1, Wi, 1);
-      Veclib::copy (nP, tp, 1, Wi, 1);
+      Veclib::copy  (nP,      Vr, 1, tp, 1);
+      Veclib::svvpt (nP, 0.5, Vr, 1, Wr, 1, Vr, 1);
+      Veclib::svvmt (nP, 0.5, Wr, 1, tp, 1, Wr, 1);
+      Veclib::copy  (nP,      Wi, 1, tp, 1);
+      Veclib::copy  (nP,      Wr, 1, Wi, 1);
+      Veclib::svvmt (nP, 0.5, Vi, 1, tp, 1, Wr, 1);
+      Veclib::svvpt (nP, 0.5, Vi, 1, tp, 1, Vi, 1);
     }
-
-    Blas::scal (nP * (nZ - 2), 0.5, v -> data + 2 * nP, 1);
-    Blas::scal (nP * (nZ - 2), 0.5, w -> data + 2 * nP, 1);
 
   } else
     message (routine, "unknown direction given", ERROR);
@@ -708,6 +799,27 @@ AuxField& AuxField::divR ()
 }
 
 
+void AuxField::divR (const int nZ ,
+		     real*     src) const
+// ---------------------------------------------------------------------------
+// Divide src by radius (i.e. y in cylindrical coords).
+// ---------------------------------------------------------------------------
+{
+  register Element* E;
+  register int      i, k, offset = 0;
+  const int         nE = Geometry::nElmt();
+  const int         nP = Geometry::planeSize();
+
+  for (k = 0; k < nZ; k++) {
+    for (i = 0; i < nE; i++) {
+      E      = Elmt[i];
+      offset = E -> dOff();
+      E -> divR (src + k * nP + offset);
+    }
+  }
+}
+
+
 AuxField& AuxField::mulR ()
 // ---------------------------------------------------------------------------
 // Multiply data values by radius (i.e. y in cylindrical coords).
@@ -729,4 +841,25 @@ AuxField& AuxField::mulR ()
   }
   
   return *this;
+}
+
+
+void AuxField::mulR (const int nZ ,
+		     real*     src) const
+// ---------------------------------------------------------------------------
+// Multiply data values by radius (i.e. y in cylindrical coords).
+// ---------------------------------------------------------------------------
+{
+  register Element* E;
+  register int      i, k, offset = 0;
+  const int         nE = Geometry::nElmt();
+  const int         nP = Geometry::planeSize();
+
+  for (k = 0; k < nZ; k++) {
+    for (i = 0; i < nE; i++) {
+      E      = Elmt[i];
+      offset = E -> dOff();
+      E -> mulR (src + k * nP + offset);
+    }
+  }
 }

@@ -1133,12 +1133,10 @@ void Field::coupleBCs (Field*    v  ,
       Veclib::copy (nL, Vr, 1, tp, 1);
       Veclib::vsub (nL, Vr, 1, Wi, 1, Vr, 1);
       Veclib::vadd (nL, Wi, 1, tp, 1, Wi, 1);
-      Veclib::copy (nL, Vi, 1, tp, 1);
-      Veclib::vadd (nL, Vi, 1, Wr, 1, Vi, 1);
-      Veclib::neg  (nL, Wr, 1);
-      Veclib::vadd (nL, Wr, 1, tp, 1, tp, 1);
+      Veclib::copy (nL, Wr, 1, tp, 1);
       Veclib::copy (nL, Wi, 1, Wr, 1);
-      Veclib::copy (nL, tp, 1, Wi, 1);
+      Veclib::vsub (nL, Vi, 1, tp, 1, Wi, 1);
+      Veclib::vadd (nL, Vi, 1, tp, 1, Vi, 1);
     }
 
   } else if (dir == -1) {
@@ -1152,19 +1150,14 @@ void Field::coupleBCs (Field*    v  ,
       Wr = w -> line[Re];
       Wi = w -> line[Im];
 
-      Veclib::copy (nL, Vr, 1, tp, 1);
-      Veclib::vadd (nL, Vr, 1, Wr, 1, Vr, 1);
-      Veclib::vsub (nL, Wr, 1, tp, 1, Wr, 1);
-      Veclib::copy (nL, Vi, 1, tp, 1);
-      Veclib::vadd (nL, Vi, 1, Wi, 1, Vi, 1);
-      Veclib::neg  (nL, Wi, 1);
-      Veclib::vadd (nL, Wi, 1, tp, 1, tp, 1);
-      Veclib::copy (nL, Wr, 1, Wi, 1);
-      Veclib::copy (nL, tp, 1, Wi, 1);
+      Veclib::copy  (nL,      Vr, 1, tp, 1);
+      Veclib::svvpt (nL, 0.5, Vr, 1, Wr, 1, Vr, 1);
+      Veclib::svvmt (nL, 0.5, Wr, 1, tp, 1, Wr, 1);
+      Veclib::copy  (nL,      Wi, 1, tp, 1);
+      Veclib::copy  (nL,      Wr, 1, Wi, 1);
+      Veclib::svvpt (nL, 0.5, Vi, 1, tp, 1, Wr, 1);
+      Veclib::svvmt (nL, 0.5, Vi, 1, tp, 1, Vi, 1);
     }
-
-    Blas::scal (nL * (nZ - 2), 0.5, v -> sheet + 2 * nL, 1);
-    Blas::scal (nL * (nZ - 2), 0.5, w -> sheet + 2 * nL, 1);
 
   } else
     message (routine, "unknown direction given", ERROR);
