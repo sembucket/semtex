@@ -578,7 +578,7 @@ void uniknot (int nk, double *k)
   dx      =  2.0 / (double) (nk - 1);
   k[0]    = -1.0;
   k[nk-1] =  1.0;
-  for (i=1; i<nh; i++) {
+  for (i = 1; i < nh; i++) {
     k[i]      =  k[i-1] + dx;
     k[nk-1-i] = -k[i];
   }
