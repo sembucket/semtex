@@ -66,7 +66,7 @@ IC1: $(IC1OBJ) $(HEADER)
 # ----------------------------------------------------------------------------
 # Make ICs for 3D Taylor--Green vortex.
 IC2OBJ = allocate.o io.o energy.o FFT.o taylor.o misc.o makeIC2.o
-IC2NNL = allocate.o io.o energy.o FFT.o taylor.o nonlinear_alt.o	\
+IC2NNL = allocate.o io.o energy.o FFT.o taylor.o nonlin2.o	\
 	 misc.o nl_chk.o
 
 IC2: $(IC2OBJ) $(IC2NNL) $(HEADER)
@@ -91,8 +91,7 @@ DFT: $(TESTOBJ) $(HEADER)
 
 # ----------------------------------------------------------------------------
 # Divergence-checking diagnostic.
-CHKOBJ = allocate.o io.o derivative.o energy.o FFT.o truncation.o	\
-	 misc.c div_chk.o
+CHKOBJ = allocate.o io.o derivative.o energy.o FFT.o misc.c div_chk.o
 
 div_chk: $(CHKOBJ) $(HEADER)
 	$(CC) -o $@ $(CHKOBJ) $(LDFLAGS)
