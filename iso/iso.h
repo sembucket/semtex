@@ -121,7 +121,7 @@ void  energySpec  (const CVF, real*);
 void  deriv    (const CVF, const int, CF, const int);
 void  curl     (const CVF, CVF, CF);
 
-/* -- pressure.c *./
+/* -- pressure.c */
 
 void  pressure (CVF, CVF, CF, CVF, CF, const complex*, const complex*);
 
