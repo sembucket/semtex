@@ -11,25 +11,22 @@
 
 #include "iso.h"
 
-void  TaylorGreenNL_error (CVF, const int*);
-void nonlinear_alt (/* input     */  CVF             U   ,
-		/* output    */  CVF             G   ,
-		/* workspace */  CF              F   ,
-                                 CVF             WK  ,
-		/* using     */  const complex*  Wtab,
-                                 const complex*  Stab,
-                                 const int*      Dim );
+int N, K, FourKon3;
 
-int main (int argc, char *argv[])
+void TaylorGreenNL_error (CVF);
+void nonlinear_alt       (CVF, CVF, CF, CVF, const complex*, const complex*);
+
+
+int main (int    argc,
+	  char** argv)
 {
   CVF           U, G, G_old, G_temp, work;
   CF            F, F_;
-  int*          Dim;
   complex*      Wtab;
   complex*      Stab;
   int           TabLen;
-  Param*        U_info = (Param*) calloc (1, sizeof (Param));
-  int           N, Npts, Npts_P, perm;
+  Param*        Info = (Param*) calloc (1, sizeof (Param));
+  int           Npts, Npts_P, perm;
   FILE*         fp;
   int           cubesize;
   real          err1, err2, err3;
@@ -41,74 +38,82 @@ int main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
   
-  cubesize = atoi (argv[2]);
-  if (!ispow2 (cubesize)) {
+  Info -> ngrid = atoi (argv[2]);
+  if (!ispow2 (Info -> ngrid)) {
     fprintf (stderr, "size must be power of 2\n");
     exit (EXIT_FAILURE);
   }
 
-  Dim    = ivector (1, 3);
-  Dim[1] = (Dim[2] = cubesize);
-  Dim[3] = cubesize / 2;
-  Npts   = Dim[1] * Dim[2] * Dim[3];
-  Npts_P = Npts + Npts;
+  Info -> dt     = 0.01;
+  Info -> step   = 0;
+  Info -> kinvis = 0.01;
 
-  allocate (&U, &G, &G_old, &work, &F, &F_, &Wtab, &Stab, Dim);
-  preFFT   (Wtab, Dim[3]);
-  preShift (Stab, Dim[1]);
+  strcpy ((Info -> session =
+	   malloc (sizeof (int) * strlen ("T--G") + 1)),
+	  "T--G");
+
+  /* -- Allocate storage of IC components, zero all locations. */
+
+  N        = Info -> ngrid;
+  K        = N / 2;
+  FourKon3 = (4 * K) / 3;
+
+  allocate (&U, &G, &G_old, &work, &F, &F_, &Wtab, &Stab);
+  preFFT   (Wtab, K);
+  preShift (Stab, N);
 
   /* -- Compute Taylor--Green velocity field. */
 
-  TaylorGreen (U, Dim);
+  TaylorGreen (U);
 
   /* -- Compute maximum velocity component, then transform. */
   
   fprintf (stderr, "Maximum velocity components:        %g  %g  %g\n",
-	   amaxf (U[1], Dim), amaxf (U[2], Dim), amaxf (U[3], Dim));
+	   amaxf (U[1]), amaxf (U[2]), amaxf (U[3]));
 
   for (c = 1; c <= 3; c++) {
-    rc3DFT  (U[c], Dim, Wtab, FORWARD);
-    scaleFT (U[c], Dim);
+    rc3DFT  (U[c], Wtab, FORWARD);
+    scaleFT (U[c]);
   }
 
   fprintf (stderr, "Solution energy:                    %g\n",
-	   energyF (U, Dim));
+	   energyF (U));
 
   /* -- Compute nonlinear terms d(UiUj)/dxj. */
 
-  nonlinear_alt (U, G, F, work, Wtab, Stab, Dim);
+  nonlinear_alt (U, G, F, work, Wtab, Stab);
 
   fprintf (stderr, "Maximum nonlinear components:       %g  %g  %g\n",
-	   amaxf (G[1], Dim), amaxf (G[2], Dim), amaxf (G[3], Dim));
+	   amaxf (G[1]), amaxf (G[2]), amaxf (G[3]));
 
   fprintf (stderr, "Nonlinear terms' energy:            %g\n",
-	   energyF (G, Dim));
+	   energyF (G));
 
   /* -- Transform nonlinear terms to PHYSICAL space. */
 
-  for (c = 1; c <= 3; c++) rc3DFT (G[c], Dim, Wtab, INVERSE);
+  for (c = 1; c <= 3; c++) rc3DFT (G[c], Wtab, INVERSE);
 
   /* -- Subtract analytical solution. */
 
-  TaylorGreenNL_error (G, Dim);
+  TaylorGreenNL_error (G);
 
   fprintf (stderr, "Maximum nonlinear error components: %g  %g  %g\n",
-	   amaxf (G[1], Dim), amaxf (G[2], Dim), amaxf (G[3], Dim));
+	   amaxf (G[1]), amaxf (G[2]), amaxf (G[3]));
 
   /* -- Transform nonlinear terms back to FOURIER space. */
 
   for (c = 1; c <= 3; c++) {
-    rc3DFT  (G[c], Dim, Wtab, FORWARD);
-    scaleFT (G[c], Dim);
+    rc3DFT  (G[c], Wtab, FORWARD);
+    scaleFT (G[c]);
   }
 
   fprintf (stderr, "Error energy:                       %g\n",
-	   energyF (G, Dim));
+	   energyF (G));
 
   /* -- Output error field. */
 
-  writeParam (stdout, U_info);
-  writeCVF   (stdout, G, Dim);
+  writeParam (stdout, Info);
+  writeCVF   (stdout, G);
 
   return EXIT_SUCCESS;
 }

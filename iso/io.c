@@ -1,7 +1,9 @@
 /*****************************************************************************
  * io.c: I/O, miscellaneous routines.
  *
- * : io.c,v 2.2 1995/11/23 08:14:45 hmb Exp hmb $
+ * Copyright (C) 1992, 1999 Hugh Blackburn
+ *
+ * $Id$
  *****************************************************************************/
 
 #include "iso.h"
@@ -46,15 +48,14 @@ FILE* efopen (const char* file,
 }
 
 
-void  readCVF (FILE*      fp ,
-	       CVF        Z  ,
-	       const int* Dim)
+void readCVF (FILE*      fp,
+	      CVF        Z )
 /* ------------------------------------------------------------------------- *
  * Read the 3 components of Z.
  * ------------------------------------------------------------------------- */
 {
   const char routine[] = "readCVF";
-  const int  Npts = Dim[1] * Dim[2] * Dim[3];
+  const int  Npts = N * N * K;
 
   if (fread (&Z[1][0][0][0], sizeof (complex), Npts, fp) != Npts)
     message (routine, "Unable to read first component data",  ERROR);
@@ -65,15 +66,14 @@ void  readCVF (FILE*      fp ,
 }
   
 
-void  writeCVF (FILE*      fp ,
-		const CVF  Z  ,
-		const int* Dim)
+void writeCVF (FILE*      fp,
+	       const CVF  Z )
 /* ------------------------------------------------------------------------- *
  * Write the 3 components of Z.
  * ------------------------------------------------------------------------- */
 {
   const char routine[] = "writeCVF";
-  const int  Npts = Dim[1] * Dim[2] * Dim[3];
+  const int  Npts = N * N * K;
 
   if (fwrite (&Z[1][0][0][0], sizeof (complex), Npts, fp) != Npts)
     message (routine, "Unable to write first component data",  ERROR);
@@ -84,272 +84,206 @@ void  writeCVF (FILE*      fp ,
 }
 
 
-void printParam (FILE*        fp  ,
-		 const Param* H   ,
-		 const char*  prog,
-		 const char*  rev )
+void printParam (FILE*        fp,
+		 const Param* H )
 /* ------------------------------------------------------------------------- *
  * Output Param info (ASCII).
  * ------------------------------------------------------------------------- */
 {
-  if (prog) fprintf (fp, "%s; %s\n",  prog, rev);
+  fprintf (fp, "Session name                : %s\n",  H -> session);
+  fprintf (fp, "Grid size                   : %1d\n", H -> ngrid  );
+  fprintf (fp, "Steps between field dumps   : %1d\n", H -> io_fld );
+  fprintf (fp, "Steps between history dumps : %1d\n", H -> io_his );
+  fprintf (fp, "Maximum number of steps     : %1d\n", H -> nstep  );
+  fprintf (fp, "Kinematic viscosity         : %g\n",  H -> kinvis );
+  fprintf (fp, "Time step                   : %g\n",  H -> dt     );
+  fprintf (fp, "Time                        : %g\n",  H -> time   );
 
-  fprintf (fp, "Session name:                  %s\n",  H -> name    );
-  fprintf (fp, "Grid size:                     %1d\n", H -> modes   );
-  fprintf (fp, "Number of steps between dumps: %1d\n", H -> stepSave);
-  fprintf (fp, "Maximum number of steps:       %1d\n", H -> stepMax );
-  fprintf (fp, "Reynolds number:               %g\n",  H -> Re      );
-  fprintf (fp, "Time step:                     %g\n",  H -> dt      );
-  fprintf (fp, "Time:                          %g\n",  H -> time    );
+  if (H -> chkpnt == TRUE)
+    fprintf (fp, "Checkpointing               : on\n\n");
+  else
+    fprintf (fp, "Checkpointing               : off\n\n");
+
+  fflush (fp);
 }
 
 
 void readParam (FILE*  fp,
 		Param* I )
 /* ------------------------------------------------------------------------- *
- * Read Param info (binary).  Must be matched to writeParam.
+ * Read Param info from top of field file.  Must be matched to writeParam.
  * ------------------------------------------------------------------------- */
 {
-  char   routine[] = "readParam";
+  const char routine[] = "readParam";
   char   s[STR_MAX], err[STR_MAX];
-  int    modes;
-  double time, Re;
+  int    ngrid;
+  double time, kinvis;
 
-  fread  (s, 1, sizeof (s), fp);
-  fread  (s, 1, sizeof (s), fp);
-  sscanf (s, "%d", &modes);
-  if (!ispow2 (modes)) {
-    sprintf (err, "value read for modes (%1d) not a power of 2", modes);
+  fgets  (s, STR_MAX, fp);
+  fgets  (s, STR_MAX, fp);
+  sscanf (s, "%d", &ngrid);
+  if (!ispow2 (ngrid)) {
+    sprintf (err, "value read for modes (%1d) not a power of 2", ngrid);
     message (routine, err, ERROR);
   }
-  fread  (s, 1, sizeof (s), fp);
-  fread  (s, 1, sizeof (s), fp);
-  sscanf (s, "%lf", &Re);
-  fread  (s, 1, sizeof (s), fp);
-  fread  (s, 1, sizeof (s), fp);
-  sscanf (s, "%lf", &time);
+  fgets  (s, STR_MAX, fp);
+  fgets  (s, STR_MAX, fp);
+  sscanf (s, "%lf",   &kinvis);
+  fgets  (s, STR_MAX, fp);
+  fgets  (s, STR_MAX, fp);
+  sscanf (s, "%lf",   &time);
 
-  I -> Re    = Re;
-  I -> modes = modes;
-  I -> time  = time;
+  I -> ngrid  = ngrid;
+  I -> kinvis = kinvis;
+  I -> time   = time;
 }
 
 
 void writeParam (FILE*        fp,
 		 const Param* I )
 /* ------------------------------------------------------------------------- *
- * Output Param info (binary).
+ * Output Param field file header info .
  * ------------------------------------------------------------------------- */
 {
   char routine[] = "writeParam";
   char s[STR_MAX], err[STR_MAX];
   char *hdr_fmt[]  = {
     "%-25s  Session\n",
-    "%-25d  Fourier modes\n",
+    "%-25d  Grid size\n",
     "%-25d  Step\n",
-    "%-25g  Reynolds number\n",
+    "%-25g  Kinematic viscosity\n",
     "%-25g  Time step\n",
     "%-25g  Time\n" };
 
-  memset  (s, '\0', STR_MAX);
-  sprintf (s, hdr_fmt[0], I -> name);
-  fwrite  (s, 1,  sizeof (s), fp);
-
-  memset  (s, '\0', sizeof (s));
-  sprintf (s, hdr_fmt[1], I -> modes);
-  fwrite  (s, 1, sizeof (s), fp);
-  
-  memset  (s, '\0', sizeof (s));
-  sprintf (s, hdr_fmt[2], I -> step); 
-  fwrite  (s, 1, sizeof (s), fp);
-
-  memset  (s, '\0', sizeof (s));
-  sprintf (s, hdr_fmt[3], I -> Re); 
-  fwrite  (s, 1, sizeof (s), fp);
-
-  memset  (s, '\0', sizeof (s));
-  sprintf (s, hdr_fmt[4], I -> dt); 
-  fwrite  (s, 1, sizeof (s), fp);
-
-  memset  (s, '\0', sizeof (s));
-  sprintf (s, hdr_fmt[5], I -> time); 
-  fwrite  (s, 1, sizeof (s), fp);
+  fprintf (fp, hdr_fmt[0], I -> session);
+  fprintf (fp, hdr_fmt[1], I -> ngrid);
+  fprintf (fp, hdr_fmt[2], I -> step);
+  fprintf (fp, hdr_fmt[3], I -> kinvis);
+  fprintf (fp, hdr_fmt[4], I -> dt);
+  fprintf (fp, hdr_fmt[5], I -> time);
 }
 
 
-void startup (FILE*       fp      ,
-	      Param*      I       ,
-	      const char* session ,
-	      const int   chkpoint)
+void startup (Param* I)
 /* ------------------------------------------------------------------------- *
- * Read runtime directives from fp.
+ * Open restart file and extract mesh size, open run-time files.
  * ------------------------------------------------------------------------- */
 {
-  char routine[] = "startup";
-  char s[STR_MAX], err[STR_MAX];
+  char  s[STR_MAX];
+  FILE* fp;
 
-  /* -- Save session name, create output file. */
-
-  strncpy (I -> name, session, STR_MAX - 5);
-
-  if   (chkpoint) strcat (strcpy (s, I -> name), ".chk");
-  else            strcat (strcpy (s, I -> name), ".fld");
-  I -> output = efopen (s, "w");
-
-  /* -- Strip title. */
-
-  fgets (s, STR_MAX, fp);
-
-  /* -- Spatial resolution. */
-
-  fgets (s, STR_MAX, fp);
-  if (strstr (s, "NGRID")) {
-    sscanf (s, "%d", &I -> modes);
-    if (!ispow2 (I -> modes) && I -> modes < 4) {
-      sprintf (err, "need NGRID to be a power of 2 and >= 4, read: %s", s);
-      message (routine, err, ERROR);
-    }
-  } else {
-    sprintf (err, "expected NGRID, read: %s", s);
-    message (routine, err, ERROR);
-  }
-
-  /* -- Time step. */
-
-  fgets (s, STR_MAX, fp);
-  if (strstr (s, "DT")) {
-    double d_t;
-    sscanf (s, "%lf", &d_t);
-    I -> dt = d_t;
-  } else {
-    sprintf (err, "expected DT, read: %s", s);
-    message (routine, err, ERROR);
-  }
-
-  /* -- Field dump interval. */
-
-  fgets (s, STR_MAX, fp);
-  if (strstr (s, "IO_FLD")) {
-    sscanf (s, "%d", &I -> stepSave);
-  } else {
-    sprintf (err, "expected IO_FLD, read: %s", s);
-    message (routine, err, ERROR);
-  }
+  strcat (strcpy (s, I -> session), ".rst");
+  fp = efopen (s, "rb"); readParam (fp, I); fclose (fp);
   
-  /* -- Number of steps. */
+  if   (I -> chkpnt) strcat (strcpy (s, I -> session), ".chk");
+  else               strcat (strcpy (s, I -> session), ".fld");
+  I -> fld_dmp = efopen (s, "w");
 
-  fgets (s, STR_MAX, fp);
-  if (strstr (s, "STEPS")) {
-    sscanf (s, "%d", &I -> stepMax);
-  } else {
-    sprintf (err, "expected STEPS, read: %s", s);
-    message (routine, err, ERROR);
-  }
-
-  /* -- Reynolds number. */
-
-  fgets (s, STR_MAX, fp);
-  if (strstr (s, "RE")) {
-    double  re;
-    sscanf (s, "%lf", &re);
-    I -> Re = re;
-  } else {
-    sprintf (err, "expected RE, read: %s", s);
-    message (routine, err, ERROR);
-  }
-
-  I -> time = 0.0;
+  strcat (strcpy (s, I -> session), ".his");
+  I -> his_dmp = efopen (s, "w");
+  fprintf (I -> his_dmp, "#     Time Mode         Energy\n");
+  fprintf (I -> his_dmp, "# ----------------------------\n");
 }
 
 
-void initialize (CVF        U  ,
-		 Param*     I  ,
-		 const int* Dim)
+void restart (CVF    U,
+	      Param* I)
 /* ------------------------------------------------------------------------- *
  * Get initial conditions from restart file, check match with declared size.
  * ------------------------------------------------------------------------- */
 {
-  char  routine[STR_MAX] = "initialize";
+  const char routine[] = "restart";
   char  s[STR_MAX], err[STR_MAX];
+  int   ngrid  = I -> ngrid;	/* -- Save to over-ride restart file values. */
+  real  kinvis = I -> kinvis;
+  real  dt     = I -> dt;
   FILE* fp;
-  int   modes = I -> modes;
-  real  Re    = I -> Re;
-  real   dt    = I -> dt;
   
-  strcat (strcpy (s, I -> name), ".rst");
+  strcat (strcpy (s, I -> session), ".rst");
   fp = efopen (s, "rb");
 
   readParam (fp, I);
-  if (modes != I -> modes) {
-    sprintf (err, "restart modes (%1d) clashes with session declaration (%1d)",
-	     modes, I -> modes);
+  if (ngrid != I -> ngrid) {
+    sprintf (err, "restart ngrid (%1d) clash (%1d) (NEVER HAPPEN)",
+	     ngrid, I -> ngrid);
     message (routine, err, ERROR);
   }
-  I -> Re = Re;
-  I -> dt = dt;
+  I -> kinvis = kinvis;
+  I -> dt     = dt;
 
-  readCVF   (fp, U, Dim);
+  readCVF (fp, U);
 }
 
 
 void analyze (CVF            U   ,
 	      Param*         I   ,
-	      const complex* Wtab,
-	      const int*     Dim )
+	      const complex* Wtab)
 /* ------------------------------------------------------------------------- *
  * Carry out periodic analysis of data.
  * ------------------------------------------------------------------------- */
 {
   printf ("Step: %-8d Time: %-8g Energy: %-8g",
-	  I -> step, I -> time, energyF (U, Dim));
+	  I -> step, I -> time, energyF (U));
 
 #ifdef TG                /* -- Diagnostic for inviscid Taylor--Green vortex. */
-  printf (" %-8g %-8g", rmsEns (U, Dim), Brachet (I -> time));
+  printf (" %-8g %-8g", rmsEns (U), Brachet (I -> time));
 #endif
 
   printf ("\n");
 }
 
 
-void dump (const CVF  U     ,
-	   Param*     I     ,
-	   const int  chkpnt,
-	   const int* Dim   )
+void dump (const CVF  U,
+	   Param*     I)
 /* ------------------------------------------------------------------------- *
- * Write/append a field dump to output file.
+ * Write/append a field dump to output file, do history output.
  * ------------------------------------------------------------------------- */
 {
-  if (I -> step % I -> stepSave) return;
+  if (!(I -> step % I -> io_his)) {
+    real* spec  = (real*) malloc (K * sizeof (real));
+    int   i;
 
-  if (chkpnt) {
-    char s[STR_MAX], b[STR_MAX], c[STR_MAX];
+    energySpec (U, spec);
 
-    fclose (I -> output);
-    strcat (strcpy (s, I -> name), ".chk");
-    strcat (strcpy (b, I -> name), ".chk.bak");
+    for (i = 1; i < K; i++)	/* -- Ignore mode zero. */
+      fprintf (I -> his_dmp, "%g %3d %g\n", I -> time, i, spec[i]);
 
-    sprintf (c, "mv ./%s ./%s", s, b);
-    system  (c);
-    I -> output = efopen (s, "w");
+    fflush (I -> his_dmp);
+    fflush (stdout);
+
+    free (spec);
   }
-  writeParam (I -> output, I);
-  writeCVF   (I -> output, U, Dim);
-  fflush     (I -> output);
+
+  if (!(I -> step % I -> io_fld) || (I -> step == I -> nstep)) {
+    if (I -> chkpnt) {
+      char s[STR_MAX], b[STR_MAX], c[STR_MAX];
+      
+      fclose (I -> fld_dmp);
+      strcat (strcpy (s, I -> session), ".chk");
+      strcat (strcpy (b, I -> session), ".chk.bak");
+
+      sprintf (c, "mv ./%s ./%s", s, b);
+      system  (c);
+      I -> fld_dmp = efopen (s, "w");
+    }
+    writeParam (I -> fld_dmp, I);
+    writeCVF   (I -> fld_dmp, U);
+    fflush     (I -> fld_dmp);
+  }
 }
 
 
-void cleanup (Param*    I     ,
-	      const int chkpnt)
+void cleanup (Param* I)
 /* ------------------------------------------------------------------------- *
  * Final operations on field files.
  * ------------------------------------------------------------------------- */
 {
-  if (chkpnt) {
+  if (I -> chkpnt) {
     char s[STR_MAX], b[STR_MAX], c[STR_MAX];
 
-    fclose (I -> output);
-    strcat (strcpy (s, I -> name), ".chk");
-    strcat (strcpy (b, I -> name), ".fld");
+    fclose (I -> fld_dmp);
+    strcat (strcpy (s, I -> session), ".chk");
+    strcat (strcpy (b, I -> session), ".fld");
 
     sprintf (c, "mv ./%s ./%s", s, b);
     system  (c);
@@ -357,6 +291,35 @@ void cleanup (Param*    I     ,
     sprintf (c, "rm -f ./%s", s);
     system  (c);
   } else {
-    fclose (I -> output);
+    fclose (I -> fld_dmp);
+  }
+  
+  fclose (I -> his_dmp);
+}
+
+
+void format (char* fmt)
+/* ------------------------------------------------------------------------- *
+ * Describe binary format of this machine.
+ * ------------------------------------------------------------------------- */
+{
+  union { float  f; int i;    unsigned char c[4]; } v;
+  union { double d; int i[2]; unsigned char c[8]; } u;
+  int reverse = (-1);
+  u.d = 3;
+  v.i = 3;
+  if      (u.c[0]==64 && u.c[1]==8 && v.c[3]==3) reverse = 0;
+  else if (u.c[7]==64 && u.c[6]==8 && v.c[0]==3) reverse = 1;
+
+  switch (reverse) {
+  case 1:
+    strcpy (fmt, "IEEE little-endian");
+    break;
+  case -1:
+    strcpy (fmt, "unknown");
+    break;
+  case 0: default:
+    strcpy (fmt, "IEEE big-endian");
+    break;
   }
 }

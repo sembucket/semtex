@@ -30,18 +30,19 @@
 
 #include "iso.h"
 
+int N, K, FourKon3;
+
 
 int main (int    argc,
 	  char** argv)
 {
   FILE*    fp;
   char     filename[STR_MAX];
-  int      c, i, argnr, cubesize;
+  int      c, i, argnr;
   int      paramerr = FALSE, seed = -1;
   int      code = 0;
   CVF      IC;
   real**   head;
-  int*     Dim;
   complex* Wtab;
   Param*   Info = (Param*) calloc (1, sizeof (Param));
   real     Max_Vel;
@@ -54,8 +55,8 @@ int main (int    argc,
      if (argv[argnr][0] == '-') {
        if (argv[argnr][1] == 'n') {
 	 argnr++;
-	 cubesize = atoi (argv[argnr]);
-	 if (!ispow2 (cubesize)) {
+	 Info -> ngrid = atoi (argv[argnr]);
+	 if (!ispow2 (Info -> ngrid)) {
 	   paramerr = TRUE;
 	   fprintf(stderr, "size must be power of 2\n");
 	 }
@@ -101,38 +102,39 @@ int main (int    argc,
 
   /* -- Allocate storage of IC components, zero all locations. */
 
-  Dim    = ivector (1, 3);
-  Dim[1] = (Dim[2] = cubesize);
-  Dim[3] = Dim[1] / 2;
-  
-  head = cfield  (Dim, &IC);
-  Wtab = cvector (0, Dim[3]-1);
+  Info -> dt     = 0.01;
+  Info -> step   = 0;
+  Info -> kinvis = 0.01;
+
+  strcpy ((Info -> session =
+	   malloc (sizeof (int) * strlen ("Taylor 2D") + 1)),
+	  "Taylor 2D");
+
+  /* -- Allocate storage of IC components, zero all locations. */
+
+  N        = Info -> ngrid;
+  K        = N / 2;
+  FourKon3 = (4 * K) / 3;
+
+  head = cfield  (&IC);
+  Wtab = cvector (0, K-1);
 
   /* -- Generate initial condition. */
 
-  Taylor2D (IC, Dim, code);
+  Taylor2D (IC, code);
 
-  preFFT (Wtab, Dim[3]);
+  preFFT (Wtab, K);
   for (i = 1; i <= 3; i++) {
-    rc3DFT  (IC[i], Dim, Wtab, FORWARD);
-    scaleFT (IC[i], Dim);
+    rc3DFT  (IC[i], Wtab, FORWARD);
+    scaleFT (IC[i]);
   }
-
-  /* -- Output to file. */
-
-  Info -> modes   = Dim[1];
-  Info -> dt      = 0.01;
-  Info -> step    = 0;
-  Info -> Re      = 100.0;
-
-  strcpy (Info -> name, "Taylor-2D");
 
   fp = efopen (filename, "w");
   writeParam  (fp, Info);
-  writeCVF    (fp, IC, Dim);
+  writeCVF    (fp, IC);
   fclose      (fp);
 
-  printParam  (stdout, Info, "$RCSfile$", "$Revision$");
+  printParam  (stdout, Info);
 
   return EXIT_SUCCESS;
 }

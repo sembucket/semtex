@@ -7,7 +7,8 @@
 #include "iso.h"
 
 
-void Taylor2D (CVF  IC, const int*  Dim, const int  code)
+void Taylor2D (CVF       IC  ,
+	       const int code)
 /* ------------------------------------------------------------------------- *
  * Generate initial conditions corresponding to the 2D Taylor Flow
  *
@@ -22,11 +23,10 @@ void Taylor2D (CVF  IC, const int*  Dim, const int  code)
  * Generate initial conditions for t = 0, components in PHYSICAL space.
  * ------------------------------------------------------------------------- */
 {
-  const    int    N = Dim[1];
-  register real  *u = &IC[1][0][0][0].Re;
-  register real  *v = &IC[2][0][0][0].Re;
-  register real  *w = &IC[3][0][0][0].Re;
-  register int    i, j, k;
+  register real* u = &IC[1][0][0][0].Re;
+  register real* v = &IC[2][0][0][0].Re;
+  register real* w = &IC[3][0][0][0].Re;
+  register int   i, j, k;
 
   /* -- Fill up the cube. */
 
@@ -88,7 +88,9 @@ void Taylor2D (CVF  IC, const int*  Dim, const int  code)
 }
 
 
-void Taylor2D_error (CVF IC, const int* Dim, const Param* I, const int code)
+void Taylor2D_error (CVF          IC  ,
+		     const Param* I   ,
+		     const int    code)
 /* ------------------------------------------------------------------------- *
  * Replace the velocity field by its error at the time indicated in I.
  * Code indicates which velocity component is zero.
@@ -96,14 +98,13 @@ void Taylor2D_error (CVF IC, const int* Dim, const Param* I, const int code)
  * Velocity components are supplied in physical space.
  * ------------------------------------------------------------------------- */
 {
-  const double    decay = exp (-2.0 * I -> time / I -> Re);
-  const int       N     = Dim[1];
-  double          x, y, z;
-  real            uvw;
-  register real  *u = & IC[1][0][0][0].Re;
-  register real  *v = & IC[2][0][0][0].Re;
-  register real  *w = & IC[3][0][0][0].Re;
-  register int    i, j, k;
+  const double   decay = exp (-2.0 * I -> time * I -> kinvis);
+  double         x, y, z;
+  real           uvw;
+  register real* u = & IC[1][0][0][0].Re;
+  register real* v = & IC[2][0][0][0].Re;
+  register real* w = & IC[3][0][0][0].Re;
+  register int   i, j, k;
 
   /* -- Fill up the cube. */
 
@@ -169,8 +170,7 @@ void Taylor2D_error (CVF IC, const int* Dim, const Param* I, const int code)
 }
 
 
-void TaylorGreen (CVF        IC ,
-		  const int* Dim)
+void TaylorGreen (CVF IC)
 /* ------------------------------------------------------------------------- *
  * Generate initial conditions of the 3D Taylor--Green vortex, in
  * PHYSICAL space.
@@ -180,11 +180,9 @@ void TaylorGreen (CVF        IC ,
  *   w =  0
  * ------------------------------------------------------------------------- */
 {
-  const int      N    = Dim[1];
-  const int      Npts = Dim[1] * Dim[2] * Dim[3];
-  register real* u    = & IC[1][0][0][0].Re;
-  register real* v    = & IC[2][0][0][0].Re;
-  register real* w    = & IC[3][0][0][0].Re;
+  register real* u = &IC[1][0][0][0].Re;
+  register real* v = &IC[2][0][0][0].Re;
+  register real* w = &IC[3][0][0][0].Re;
   register int   i, j, k;
 
   for (i = 0; i < N; i++) {
@@ -203,8 +201,7 @@ void TaylorGreen (CVF        IC ,
 }
 
 
-void TaylorGreenNL_error (CVF        IC ,
-			  const int* Dim)
+void TaylorGreenNL_error (CVF IC)
 /* ------------------------------------------------------------------------- *
  * Generate the nonlinear terms in the Navier--Stokes equations for 
  * the initial conditions of the 3D Taylor--Green vortex, in
@@ -221,11 +218,9 @@ void TaylorGreenNL_error (CVF        IC ,
  *   d(vv)/dy = 2 cos^2(x) cos(y) sin(y)            cos^2(z)
  * ------------------------------------------------------------------------- */
 {
-  const int      N    = Dim[1];
-  const int      Npts = Dim[1] * Dim[2] * Dim[3];
-  register real* u    = &IC[1][0][0][0].Re;
-  register real* v    = &IC[2][0][0][0].Re;
-  register real* w    = &IC[3][0][0][0].Re;
+  register real* u = &IC[1][0][0][0].Re;
+  register real* v = &IC[2][0][0][0].Re;
+  register real* w = &IC[3][0][0][0].Re;
   register int   i, j, k;
   real           UUx, UVy, VUx, VVy, cz2;
 
@@ -259,10 +254,10 @@ real Brachet (const real t)
  * so that the series result agrees with the computation at time zero.
  * ------------------------------------------------------------------------- */
 {
-  register int   r;
-  const    int   Ntab = 41;
-  double         t2r, omega, t2 = SQR (t);
-  static double  A[]  = {
+  register int  r;
+  const    int  Ntab = 41;
+  double        t2r, omega, t2 = SQR (t);
+  static double A[]  = {
      0.75000000000000000000000000000000E+00,
      0.78124999999999999999999999999999E-01,
      0.59185606060606060606060606060601E-02,

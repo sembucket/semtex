@@ -31,18 +31,20 @@
 
 #include "iso.h"
 
+int N, K, FourKon3;		/* -- Global grid size variables. */
 
-int main (int argc, char *argv[])
+
+int main (int    argc,
+	  char** argv)
 {
-  FILE*      fp;
-  char       filename[STR_MAX];
-  int        c, i, argnr, cubesize;
-  int        paramerr = FALSE, seed = -1;
-  CVF        IC;
-  int*       Dim;
-  complex*   Wtab;
-  Param*     Info = (Param*) calloc (1, sizeof (Param));
-  real       Max_Vel;
+  FILE*    fp;
+  char     filename[STR_MAX];
+  int      c, i, argnr;
+  int      paramerr = FALSE, seed = -1;
+  CVF      IC;
+  complex* Wtab;
+  Param*   Info = (Param*) calloc (1, sizeof (Param));
+  real     Max_Vel;
 
 
   /* -- Process command-line arguments. */
@@ -53,8 +55,8 @@ int main (int argc, char *argv[])
       if (argv[argnr][0] == '-') {
 	if (argv[argnr][1] == 'n') {
 	  argnr++;
-	  cubesize = atoi (argv[argnr]);
-	  if (!ispow2 (cubesize)) {
+	  Info -> ngrid = atoi (argv[argnr]);
+	  if (!ispow2 (Info -> ngrid)) {
 	    paramerr = TRUE;
 	    fprintf (stderr, "size must be power of 2\n");
 	  }
@@ -85,55 +87,41 @@ int main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
+  Info -> dt     = 0.01;
+  Info -> step   = 0;
+  Info -> kinvis = 0.01;
+
+  strcpy ((Info -> session =
+	   malloc (sizeof (int) * strlen ("Decaying spectrum") + 1)),
+	  "Decaying spectrum");
+
   /* -- Allocate storage of IC components, zero all locations. */
 
-  Dim    = ivector (1, 3);
-  Dim[1] = (Dim[2] = cubesize);
-  Dim[3] = cubesize / 2;
+  N        = Info -> ngrid;
+  K        = N / 2;
+  FourKon3 = (4 * K) / 3;
 
-  cfield  (Dim, &IC);
-  zeroVF (IC, Dim);
+  cfield (&IC);
+  zeroVF (IC);
 
-  Wtab = cvector (0, Dim[3]-1);
-  preFFT (Wtab, Dim[3]);  
+  Wtab = cvector (0, K - 1);
+  preFFT (Wtab, K);  
 
   /* -- Generate initial condition Fourier coefficients. */
 
-  tophat (Dim, IC, seed);
-
-  /* -- Normalize velocities to get q^2 = 1.  */
-
-  normalize (IC, Dim);
-
-  /* -- Find maximum velocity component. */
-
-  Max_Vel = 0.0;
-  for (c = 1; c <= 3; c++) {
-    rc3DFT (IC[c], Dim, Wtab, INVERSE);
-    Max_Vel = MAX (Max_Vel, amaxf (IC[c], Dim));
-    rc3DFT  (IC[c], Dim, Wtab, FORWARD);
-    scaleFT (IC[c], Dim);
-  }
+  randomise (seed, IC);
+  ispectrum (IC, 4.0, 1.0);
 
   /* -- Output to file. */
 
-  Info -> modes   = Dim[1];
-  Info -> dt      = 0.01;
-  Info -> step    = 0;
-  Info -> Re      = 100.0;
-
-  strcpy (Info -> name, "Top Hat");
-
   fp = efopen (filename, "w");
   writeParam  (fp, Info);
-  writeCVF    (fp, IC, Dim);
+  writeCVF    (fp, IC);
   fclose      (fp);
 
-  printParam  (stdout, Info, "$RCSfile$", "$Revision$");
-  
-  sprintf (filename, "        %.3e", 2.0 * M_PI / (cubesize * Max_Vel));
+  sprintf (filename, "        %.3e", 2.0 * M_PI / (N * Max_Vel));
   message ("CFL timestep estimate", filename, REMARK);
-  sprintf (filename, "            %g", energyF (IC, Dim));
+  sprintf (filename, "            %g", energyF (IC));
   message ("Check energy: q^2",     filename, REMARK);
 
   return EXIT_SUCCESS;

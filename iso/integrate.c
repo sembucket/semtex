@@ -1,5 +1,7 @@
 /*****************************************************************************
  * integrate.c: time advancement of Fourier coefficients.
+ *
+ * Copyright (C) 1992, 1999 Hugh Blackburn
  * 
  * $Id$
  *****************************************************************************/
@@ -7,11 +9,10 @@
 #include "iso.h"
 
 
-void  integrate (/* update */ CVF           U    ,
-                 /* using  */ const CVF     G    ,
- 		              const CVF     G_old,
-                              const Param*  I    ,
-                              const int*    Dim  )
+void integrate (CVF          U    ,
+                const CVF    G    ,
+		const CVF    G_old,
+		const Param* I    )
 /* ------------------------------------------------------------------------- *
  * Update the velocity field Fourier coefficients.  Time advancement is
  * explicit, using an Euler step at the first timestep, and Adams-Bashforth
@@ -21,21 +22,16 @@ void  integrate (/* update */ CVF           U    ,
  * See Canuto et al. ([4]) \S\,4.4.2.
  * ------------------------------------------------------------------------- */
 {
-  register int  c, k1, b1, k2, b2, k3;
-  const    int  N         = Dim[1];
-  const    int  K         = Dim[3];
-  const    int  FOURKon3  = (4 * K) / 3;
-  const    real Neg_nu_dt =  -I -> dt / I -> Re;
+  const real    Neg_nu_dt = -I -> dt * I -> kinvis;
   real          kSqrd;
-
+  register int  c, k1, b1, k2, b2, k3;
+  register real I_factor, C1, C2;
   
-  if (! I -> step) {			/* -- Do an Euler step. */
-    register real  I_factor, C1;
+  if (! I -> step) {			/* -- Take an Euler step to begin. */
 
     for (c = 1; c <= 3; c++)
       for (k1 = 1; k1 < K; k1++) {
-	b1 = N - k1;
-
+	b1       = N - k1;
 	kSqrd    = k1 * k1;	/* Axes. */
 	I_factor = exp (kSqrd * Neg_nu_dt);
 	C1       = I -> dt * I_factor;
@@ -54,8 +50,8 @@ void  integrate (/* update */ CVF           U    ,
 	U[c][ 0][ 0][k1].Re += C1 * G[c][ 0][ 0][k1].Re;
 	U[c][ 0][ 0][k1].Im += C1 * G[c][ 0][ 0][k1].Im;
 
-	for (k2 = 1; k2 < K && k1+k2 <= FOURKon3; k2++) {
-	  b2 = N - k2;
+	for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
+	  b2       = N - k2;
 	  kSqrd    = k1*k1 + k2*k2; /* Faces. */
 	  I_factor = exp (kSqrd * Neg_nu_dt);
 	  C1       = I -> dt * I_factor;
@@ -90,7 +86,7 @@ void  integrate (/* update */ CVF           U    ,
 	  U[c][b1][k2][ 0].Re += C1 * G[c][b1][k2][ 0].Re; 
 	  U[c][b1][k2][ 0].Im += C1 * G[c][b1][k2][ 0].Im; 
 
-	  for (k3 = 1; k3 < K && k2+k3 <= FOURKon3 && k1+k3 <= FOURKon3; k3++){
+	  for (k3 = 1; k3 < K && k2+k3 INSIDE && k1+k3 INSIDE; k3++){
 	    kSqrd    = k1*k1 + k2*k2 + k3*k3; /* Internal. */
 	    I_factor = exp (kSqrd * Neg_nu_dt);
 	    C1       = I -> dt * I_factor;
@@ -116,14 +112,11 @@ void  integrate (/* update */ CVF           U    ,
 	}
       }
     
-  } else {			/* -- Adams-Bashforth 2 timestep. */
-
-    register real  I_factor, C1, C2;
+  } else {			/* -- Adams--Bashforth 2 timestep. */
 
     for (c = 1; c <= 3; c++)
       for (k1 = 1; k1 < K; k1++) {
-	b1 = N - k1;
-
+	b1       = N - k1;
 	kSqrd    = k1 * k1;	/* Axes. */
 	I_factor = exp (kSqrd * Neg_nu_dt);
 	C1       = 0.5 * I -> dt * I_factor;
@@ -150,9 +143,8 @@ void  integrate (/* update */ CVF           U    ,
 	U[c][ 0][ 0][k1].Im +=   C1 *     G[c][ 0][ 0][k1].Im
 	                       + C2 * G_old[c][ 0][ 0][k1].Im;
 
-	for (k2 = 1; k2 < K && k1+k2 <= FOURKon3; k2++) {
-	  b2 = N-k2;
-
+	for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
+	  b2       = N-k2;
 	  kSqrd    = k1*k1 + k2*k2; /* Faces. */
 	  I_factor = exp (kSqrd * Neg_nu_dt);
 	  C1       = 0.5 * I -> dt * I_factor;
@@ -201,7 +193,7 @@ void  integrate (/* update */ CVF           U    ,
 	  U[c][b1][k2][ 0].Im +=   C1 *     G[c][b1][k2][ 0].Im
 	                         + C2 * G_old[c][b1][k2][ 0].Re;
 
-	  for (k3 = 1; k3 < K && k2+k3 <= FOURKon3 && k1+k3 <= FOURKon3; k3++){
+	  for (k3 = 1; k3 < K && k2+k3 INSIDE && k1+k3 INSIDE; k3++){
 	    kSqrd    = k1*k1 + k2*k2 + k3*k3; /* Internal. */
 	    I_factor = exp (kSqrd * Neg_nu_dt);
 	    C1       = 0.5 * I -> dt * I_factor;
