@@ -74,7 +74,7 @@ void Element::project (const Element& parent,
   } else {
     real **IN, **IT, *tmp = rvector (np*nold);
 
-    meshOps (GLL, GLL, nold, np, 0, &IN, &IT, 0, 0);
+    Femlib::mesh (GLL, GLL, nold, np, 0, &IN, &IT, 0, 0);
 
     Blas::mxm (*IN, np, *parent.xmesh, nold, tmp,    nold);
     Blas::mxm (tmp, np, *IT,           nold, *xmesh, np  );
@@ -104,7 +104,7 @@ void Element::setState (const int& ident,
   id    = ident;
   np    = nknot;
   ns    = nside;
-  rule  = option ("RULE");
+  rule  = Femlib::option ("RULE");
   esstl = 0;
 
   switch (rule) {
@@ -112,7 +112,7 @@ void Element::setState (const int& ident,
     nq = np;
     break;
   case GL:
-    nq = quadComplete (2, np);
+    nq = Femlib::nquad (2, np);
     break;
   default:
     message (routine, "quadrature rule set incorrectly", ERROR);
@@ -285,7 +285,7 @@ void Element::mesh (const Mesh& M)
 
   // -- Build Element-boundary knots using Mesh functions.
 
-  quadOps (LL, np, np, &z, 0, 0, 0, 0, 0, 0);
+  Femlib::quad (LL, np, np, &z, 0, 0, 0, 0, 0, 0);
 
   for (j = 1; j <= ns; j++) {
     M.meshSide (np, id, j, z, P);
@@ -397,7 +397,7 @@ void Element::map ()
     WW   = rvector (ntot);
     tV   = rvector (ntot);
     
-    quadOps (LL, np, np, 0, 0, &w, 0, 0, &DV, &DT);
+    Femlib::quad (LL, np, np, 0, 0, &w, 0, 0, &DV, &DT);
     Veclib::zero (ntot, WW, 1);
     Blas::ger    (np, np, 1.0, w, 1, w, 1, WW, np);
     
@@ -491,7 +491,7 @@ void Element::map ()
     tM   = rvector (np * nq);
     tV   = rvector (ntot);
 
-    quadOps (GL, np, nq, 0, 0, &w, &IN, &IT, &DV, &DT);
+    Femlib::quad (GL, np, nq, 0, 0, &w, &IN, &IT, &DV, &DT);
     Veclib::zero (ntot, WW, 1);
     Blas::ger    (nq, nq, 1.0, w, 1, w, 1, WW, nq);
     
@@ -557,7 +557,7 @@ void Element::map ()
     WW   = rvector (ntot);
     tV   = rvector (ntot);
     
-    quadOps      (LL, np, np, 0, 0, &w, 0, 0, &DV, &DT);
+    Femlib::quad (LL, np, np, 0, 0, &w, 0, 0, &DV, &DT);
     Veclib::zero (ntot, WW, 1);
     Blas::ger    (np, np, 1.0, w, 1, w, 1, WW, np);
     
@@ -619,9 +619,9 @@ void Element::bndryDsSum (const real* src,
 // This is using in smoothing Fields along element boundaries.
 // ---------------------------------------------------------------------------
 {
-  register int    i, b, e;
-  register int    nxt = nExt();
-  register real*  wt = mass;
+  register int   i, b, e;
+  register int   nxt = nExt();
+  register real* wt = mass;
 
   for (i = 0; i < nxt; i++) {
     b = bmap[i];
@@ -794,7 +794,7 @@ void Element::HelmholtzSC (const real&  lambda2,
 
   // -- Construct hbb, hbi, hii partitions of elemental Helmholtz matrix.
 
-  quadOps (rule, np, nq, 0, 0, 0, 0, &IT, &DV, &DT);
+  Femlib::quad (rule, np, nq, 0, 0, 0, 0, &IT, &DV, &DT);
 
   for (i = 0; i < np; i++)
     for (j = 0; j < np; j++, ij++) {
@@ -812,7 +812,7 @@ void Element::HelmholtzSC (const real&  lambda2,
     }
 
 #ifdef DEBUG
-  if (option ("VERBOSE") > 3) printMatSC (hbb);
+  if (Femlib::option ("VERBOSE") > 3) printMatSC (hbb);
 #endif
 
   // -- Carry out static condensation step.
@@ -910,7 +910,7 @@ void Element::Helmholtz (const real&  lambda2,
   real         **IT, **DV, **DT;
   real         *wk1 = rwrk, *wk2 = wk1 + nq, *wk3 = wk2 + nq;
 
-  quadOps (rule, np, nq, 0, 0, 0, 0, &IT, &DV, &DT);
+  Femlib::quad (rule, np, nq, 0, 0, 0, 0, &IT, &DV, &DT);
 
   for (register int i = 0; i < np; i++)
     for (register int j = 0; j < np; j++, ij++) {
@@ -1076,7 +1076,7 @@ void Element::grad (real* targA,
 // ---------------------------------------------------------------------------
 {
   real  **DV, **DT;
-  quadOps (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
   int   ntot = nTot();
   real* tmpA = rvector (2 * ntot);
@@ -1205,7 +1205,7 @@ void Element::sideGeom (const int& side,
   register int    low, skip;
   real          **D, *w, *xr, *xs, *yr, *ys, *len;
 
-  quadOps (LL, np, np, 0, 0, &w, 0, 0, &D, 0);
+  Femlib::quad (LL, np, np, 0, 0, &w, 0, 0, &D, 0);
 
   switch (side) {
   case 1: 
@@ -1311,8 +1311,8 @@ void Element::sideEval (const int&   side,
   Veclib::copy (np, *xmesh + estart, skip, x, 1);
   Veclib::copy (np, *ymesh + estart, skip, y, 1);
 
-  vecInit   ("x y", func);
-  vecInterp (np, x, y, tgt);
+  Femlib::vecPrep  ("x y", func);
+  Femlib::vecParse (np, x, y, tgt);
 
   freeVector (x);
 }
@@ -1418,7 +1418,7 @@ void Element::sideGrad (const int&  side,
 
   real  **DV, **DT;
 
-  quadOps (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
   // -- Make dc/dr, dc/ds along element edge.
 
@@ -1472,8 +1472,8 @@ void Element::evaluate (const char* func,
 // Function can explicitly use "x" and "y", for which mesh values are used.
 // ---------------------------------------------------------------------------
 {
-  vecInit   ("x y", func);
-  vecInterp (nTot (), *xmesh, *ymesh, tgt);
+  Femlib::vecPrep  ("x y", func);
+  Femlib::vecParse (nTot (), *xmesh, *ymesh, tgt);
 }
 
 
@@ -1486,12 +1486,12 @@ real Element::integral (const char* func) const
   const int ntot = nq*nq;
   real*     tmp  = rvector (ntot);
 
-  vecInit ("x y", func);
+  Femlib::vecPrep ("x y", func);
 
   switch (rule) {
 
   case LL:
-    vecInterp (ntot, *xmesh, *ymesh, tmp);
+    Femlib::vecParse (ntot, *xmesh, *ymesh, tmp);
     break;
 
   case GL:
@@ -1500,7 +1500,7 @@ real Element::integral (const char* func) const
            *wrk = rvector (nq*np);
     real  **IN, **IT;
 
-    quadOps (GL, np, nq, 0, 0, 0, &IN, &IT, 0, 0);
+    Femlib::quad (GL, np, nq, 0, 0, 0, &IN, &IT, 0, 0);
 
     Blas::mxm (*IN, nq, *xmesh, np, wrk, np);
     Blas::mxm (wrk, nq, *IT,    np, x,   nq);
@@ -1508,7 +1508,7 @@ real Element::integral (const char* func) const
     Blas::mxm (*IN, nq, *ymesh, np, wrk, np);
     Blas::mxm (wrk, nq, *IT,    np, y,   nq);
 
-    vecInterp (ntot, x, y, tmp);
+    Femlib::vecParse (ntot, x, y, tmp);
 
     freeVector (x);
     freeVector (y);
@@ -1562,7 +1562,7 @@ real Element::norm_L2 (const real* src) const
     
     dA = G4;
 
-    quadOps (GL, np, nq, 0, 0, 0, &IN, &IT, 0, 0);
+    Femlib::quad (GL, np, nq, 0, 0, 0, &IN, &IT, 0, 0);
 
     Blas::mxm (*IN, nq,  src, np, wrk, np);
     Blas::mxm (wrk, nq, *IT,  np, u,   nq);
@@ -1621,7 +1621,7 @@ real Element::norm_H1 (const real* src) const
     real**  DV;
     real**  DT;
 
-    quadOps (GL, np, nq, 0, 0, 0, &IN, &IT, &DV, &DT);
+    Femlib::quad (GL, np, nq, 0, 0, 0, &IN, &IT, &DV, &DT);
 
     Blas::mxm (*IN, nq,  src, np, wrk, np);
     Blas::mxm (wrk, nq, *IT,  np, u,   nq);
@@ -1787,7 +1787,7 @@ void Element::HelmholtzOp (const real* src,
   real**        DV;
   real**        DT;
 
-  quadOps (rule, np, nq, 0, 0, 0, 0, 0, &DV, &DT);
+  Femlib::quad (rule, np, nq, 0, 0, 0, 0, 0, &DV, &DT);
 
   Blas::gemm ("N", "N", np, np, np, 1.0, *DT, np, src, np, 0.0, R, np);
   Blas::gemm ("N", "N", np, np, np, 1.0, src, np, *DV, np, 0.0, S, np);

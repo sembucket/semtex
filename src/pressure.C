@@ -44,7 +44,7 @@ void  PBCmanager::build (BoundedField& P)
   hopbc -> kind      = BC::hopbc;
   hopbc -> value     = 0.0;
 
-  int  nTime = iparam ("N_TIME");
+  int  nTime = Femlib::integer ("N_TIME");
   int  nEdge = P.nBound ();
   int  ntot  = P.resetConstraintBCs (hopbc, essential);
   int  i, q;
@@ -107,9 +107,9 @@ void  PBCmanager::maintain (const int&           step   ,
 // traverse storage areas (note this assumes equal-order interpolations).
 // ---------------------------------------------------------------------------
 {
-  const int   nTime = iparam ("N_TIME");
-  const real  nu    = dparam ("KINVIS");
-  const real  invDt = 1.0 / dparam ("DELTAT");
+  const int   nTime = Femlib::integer   ("N_TIME");
+  const real  nu    = Femlib::parameter ("KINVIS");
+  const real  invDt = 1.0 / Femlib::parameter ("DELTAT");
 
   const Field* Ux = Us[0][0];
   const Field* Uy = Us[1][0];
@@ -210,7 +210,7 @@ void  PBCmanager::evaluate (int   id,    const int&  np, const int&  step,
 // extrapolation, then dotted into n.
 // ---------------------------------------------------------------------------
 {
-  register int  q, Je = iparam ("N_TIME");
+  register int  q, Je = Femlib::integer ("N_TIME");
 
   real*  beta  = rvector (Integration::OrderMax);
   real*  tmpX  = rvector (np);

@@ -26,9 +26,9 @@ ostream& printVector (ostream&     strm,
 // Vectors are printed in a fixed field width of 15, regardless of type.
 // ---------------------------------------------------------------------------
 {
-  char     routine[] = "printVector";
-  int      nvect;
-  va_list  ap;
+  char    routine[] = "printVector";
+  int     nvect;
+  va_list ap;
 
   nvect = strlen (fmt);
   if (! nvect   ) message (routine, "empty format string",   ERROR  );
@@ -80,9 +80,9 @@ ifstream&  seekBlock (ifstream& strm, const char* name)
 // Then read on until first "{" is encountered.
 // ---------------------------------------------------------------------------
 {
-  char  routine[] = "seekBlock";
-  char  s[StrMax], uname[StrMax];
-  int   c;
+  char routine[] = "seekBlock";
+  char s[StrMax], uname[StrMax];
+  int  c;
 
   strcpy     (uname, name);
   upperCase  (uname);
@@ -107,13 +107,13 @@ ifstream&  seekBlock (ifstream& strm, const char* name)
 }
 
 
-istream&  endBlock (istream& strm)
+istream& endBlock (istream& strm)
 // ---------------------------------------------------------------------------
 // Advance to next "}" in file.
 // ---------------------------------------------------------------------------
 {
-  char  routine[] = "endBlock";
-  int   c;
+  char routine[] = "endBlock";
+  int  c;
 
   while ((c = strm.get ()) != '}' && c != EOF);
   if (c == EOF) message (routine, "reached EOF while looking for '}'", ERROR);
@@ -122,7 +122,7 @@ istream&  endBlock (istream& strm)
 }
 
 
-char*  upperCase (char *s)
+char* upperCase (char *s)
 // ---------------------------------------------------------------------------
 // Uppercase characters in string.
 // ---------------------------------------------------------------------------
@@ -163,7 +163,7 @@ ifstream*  altFile (ifstream& ist)
 }
 
 
-int*  ivector (long len)
+int* ivector (long len)
 // ----------------------------------------------------------------------------
 // Return zero-offset vector of int.
 // ----------------------------------------------------------------------------
@@ -174,7 +174,7 @@ int*  ivector (long len)
 }
 
 
-real*  rvector (long len)
+real* rvector (long len)
 // ----------------------------------------------------------------------------
 // Return zero-offset vector of real.
 // ----------------------------------------------------------------------------
@@ -259,9 +259,9 @@ istream& readOptions (istream& istr)
 // character is unique (case sensitive).
 // ---------------------------------------------------------------------------
 {
-  char   routine[] = "readOptions";
-  char   p[StrMax], s[StrMax], err[StrMax];
-  int    n, i;
+  char routine[] = "readOptions";
+  char p[StrMax], s[StrMax], err[StrMax];
+  int  n, i;
   
   istr >> s;
   istrstream (s, strlen (s)) >> n;
@@ -285,7 +285,7 @@ istream& readOptions (istream& istr)
     istr >> s;
     if   (isalpha (p[0])) i = (int) p[0];
     else                  i = atoi (p);
-    setOption (s, i);
+    Femlib::option (s, i);
   }
 
   return istr;
@@ -321,7 +321,7 @@ istream& readIparams (istream& istr)
   while (n--) {
     istr >> i;
     istr >> s;
-    setIparam (s, i);
+    Femlib::integer (s, i);
   }
 
   return istr;
@@ -337,7 +337,7 @@ istream& readFparams (istream& istr)
 //
 // Example:
 // 500      Re
-// 1/Re     KINVIS  (sets dparam "KINVIS" = 0.002).
+// 1/Re     KINVIS  (sets parameter "KINVIS" = 0.002).
 // ---------------------------------------------------------------------------
 {
   char   routine[] = "readFparams";
@@ -364,23 +364,23 @@ istream& readFparams (istream& istr)
   while (n--) {
     istr >> p;
     istr >> s;
-    setDparam (s, interpret (p));
+    Femlib::parameter (s, Femlib::ator (p));
   }
 
   return istr;
 }
 
 
-Mesh*  preProcess (ifstream& strm)
+Mesh* preProcess (ifstream& strm)
 // ---------------------------------------------------------------------------
 // Get run-time parameters, BCs & Mesh from strm.
 //
 // Set default options, parameters, according to problem.
 // ---------------------------------------------------------------------------
 {
-  char   routine[] = "preProcess";
-  int    verbose   = option ("VERBOSE");
-  Mesh*  M         = new Mesh;
+  char  routine[] = "preProcess";
+  int   verbose   = Femlib::option ("VERBOSE");
+  Mesh* M         = new Mesh;
 
   seekBlock   (strm, "parameter");
   readOptions (strm);     
@@ -388,43 +388,42 @@ Mesh*  preProcess (ifstream& strm)
   readFparams (strm);     
   endBlock    (strm);
   
-  if (!iparam ("N_POLY")) {
-    setIparam ("N_POLY", 5);
+  if (!Femlib::integer ("N_POLY")) {
+    Femlib::integer ("N_POLY", 5);
     message (routine, "setting default N_POLY = 5", WARNING);
   }
 
-  if (option ("PROBLEM") == NAVIERSTOKES) {
-    if (!iparam ("N_STEP")) {
-      setIparam ("N_STEP", 10);
+  if (Femlib::option ("PROBLEM") == NAVIERSTOKES) {
+    if (!Femlib::integer ("N_STEP")) {
+      Femlib::integer ("N_STEP", 10);
       message (routine, "setting default N_STEP = 10", WARNING);
     }   
-    if (!iparam ("IO_FLD")) {
-      setIparam ("IO_FLD", iparam ("N_STEP"));
+    if (!Femlib::integer ("IO_FLD")) {
+      Femlib::integer ("IO_FLD", Femlib::integer ("N_STEP"));
       message (routine, "setting default IO_FLD = N_STEP", WARNING);
     }
-    if (!iparam ("N_TIME")) {
-      setIparam ("N_TIME", 1);
+    if (!Femlib::integer ("N_TIME")) {
+      Femlib::integer ("N_TIME", 1);
       message (routine, "setting default N_TIME = 1", WARNING);
     }
-    if (dparam ("DELTAT") == 0.0) {
-      setDparam ("DELTAT", 0.01);
+    if (Femlib::parameter ("DELTAT") == 0.0) {
+      Femlib::parameter ("DELTAT", 0.01);
       message (routine, "setting default DELTAT = 0.01", WARNING);
     }
-    if (dparam ("KINVIS") == 0.0) {
-      setDparam ("KINVIS", 1.0);
-      setDparam ("DELTAT", 0.01);
+    if (Femlib::parameter ("KINVIS") == 0.0) {
+      Femlib::parameter ("KINVIS", 1.0);
+      Femlib::parameter ("DELTAT", 0.01);
       message (routine, "setting default KINVIS = 1.0", WARNING);
     }
-  } else if (option ("PROBLEM") == HELMHOLTZ) {
-    setIparam ("N_STEP", 1);
-    setIparam ("IO_FLD", 1);
-    setDparam ("DELTAT", 0.0);
+  } else if (Femlib::option ("PROBLEM") == HELMHOLTZ) {
+    Femlib::integer   ("N_STEP", 1);
+    Femlib::integer   ("IO_FLD", 1);
+    Femlib::parameter ("DELTAT", 0.0);
   }
 
   if (verbose) {
-    message (routine, " -- OPTION PARAMETERS:",         REMARK); showOption ();
-    message (routine, " -- INTEGER PARAMETERS:",        REMARK); showIparam ();
-    message (routine, " -- FLOATING POINT PARAMETERS:", REMARK); showDparam ();
+    cout << "-- INTERNAL VARIABLES:" << endl;
+    Femlib::show ();
   }
 
   seekBlock (strm, "boundary");
@@ -447,5 +446,3 @@ Mesh*  preProcess (ifstream& strm)
 
   return M;
 }
-
-
