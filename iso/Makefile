@@ -21,9 +21,13 @@ ARCH     = $(shell uname -s)
 PROG     = iso
 
 ifdef TG
-  DEFINES  = -DTG
+  DEFINES = -DTG
 else
-  DEFINES  =
+  DEFINES =
+endif
+
+ifdef INVISCID
+  DEFINES += -DINVISCID
 endif
 
 CPPFLAGS = -I.
@@ -44,17 +48,32 @@ CFLAGS   = -mips4 -O3 $(DEFINES)
 LDFLAGS  = $(CFLAGS) -lmalloc -lm
 endif
 
-ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha, Kuck & Associates kcc.
+ifeq ($(ARCH),OSF1)		# -- DEC OSF1.
 CC       = cc
 LD	 = cc
 CFLAGS   = -O4 -migrate -tune ev5 $(DEFINES)
 LDFLAGS  = -O4 -migrate -tune ev5 $(CFLAGS) -lm
 endif
 
-HEADER    = iso.h
+ifeq ($(ARCH),Linux)		# -- GNU/Linux system.
+CC	 = gcc
+LD	 = gcc
+ifdef DEBUG
+  OPT    = -gstabs+
+else
+  OPT    = -O3
+endif
+CFLAGS   = $(DEFINES) $(OPT)
+LDFLAGS  = $(CFLAGS) -lm
+ifdef PROF
+ CFLAGS += -p
+endif
+endif
 
 # ----------------------------------------------------------------------------
 #
+
+HEADER = iso.h
 
 all: $(PROG) IC1 IC2 IC3
 
@@ -63,23 +82,21 @@ all: $(PROG) IC1 IC2 IC3
 
 ifdef TG
   ISOOBJ = allocate.o io.o nonlinear.o integrate.o energy.o FFT.o	\
-	   misc.o taylor.o truncation.o drive.o
+	   misc.o taylor.o drive.o
 else
   ISOOBJ = allocate.o io.o nonlinear.o integrate.o energy.o FFT.o	\
-	   misc.o truncation.o drive.o
+	   misc.o drive.o
 endif
 
 $(PROG): $(ISOOBJ) $(HEADER)
 	$(LD) $(ISOOBJ) -o $(PROG) $(LDFLAGS)
 
-ifeq ($(ARCH),IRIX) # special compile to avoid bug!
-nonlinear.o: nonlinear.c
-	cc -O1 -c nonlinear.c
-endif
+$(ISOOBJ):	$(HEADER)
+
 
 # ----------------------------------------------------------------------------
-# Make a top-hat spectrum initial conditions file.
-IC1OBJ = allocate.o io.o energy.o random.o tophat.o FFT.o misc.o makeIC1.o
+# Make a shaped spectrum initial conditions file.
+IC1OBJ = allocate.o io.o energy.o random.o filter.o FFT.o misc.o makeIC1.o
 
 IC1: $(IC1OBJ) $(HEADER)
 	$(LD) $(IC1OBJ) -o makeIC1 $(LDFLAGS)
@@ -87,12 +104,9 @@ IC1: $(IC1OBJ) $(HEADER)
 # ----------------------------------------------------------------------------
 # Make ICs for 3D Taylor--Green vortex.
 IC2OBJ = allocate.o io.o energy.o FFT.o taylor.o misc.o makeIC2.o
-IC2NNL = allocate.o io.o energy.o FFT.o taylor.o nonlin2.o	\
-	 misc.o nl_chk.o
 
 IC2: $(IC2OBJ) $(IC2NNL) $(HEADER)
 	$(LD) $(IC2OBJ) -o makeIC2 $(LDFLAGS)
-	$(LD) $(IC2NNL) -o nl_chk  $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Make ICs for 2D Taylor vortex.
@@ -104,25 +118,24 @@ IC3: $(IC3OBJ) $(IC3CHK) $(HEADER)
 	$(LD) $(IC3CHK) -o taylor2D_chk $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
-# Test the FFT routines.
-TESTOBJ = allocate.o io.o energy.o misc.o FFT.o random.c DFT_chk.o taylor.o
-
-DFT: $(TESTOBJ) $(HEADER)
-	$(CC) -o dft_chk $(TESTOBJ) $(LDFLAGS)
-
-# ----------------------------------------------------------------------------
-# Divergence-checking diagnostic.
-CHKOBJ = allocate.o io.o derivative.o energy.o FFT.o misc.o div_chk.o
-
-div_chk: $(CHKOBJ) $(HEADER)
-	$(CC) -o div_chk $(CHKOBJ) $(LDFLAGS)
-
-# ----------------------------------------------------------------------------
 # Convert field file to tecplot format, with vorticity too.
 TECOBJ = allocate.o io.o energy.o derivative.o misc.o FFT.o iso2tec.o
 
 iso2tec: $(TECOBJ) $(HEADER)
 	$(LD) $(CFLAGS) -o iso2tec $(TECOBJ) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Make various test codes.
+TESTOBJ = allocate.o energy.o derivative.o FFT.o io.o	\
+	  misc.o nonlinear.o random.o
+TESTS   = con_chk.o div_chk.o DFT_chk.o nl_chk.o prj_chk.o
+
+tests: $(HEADER) $(TESTOBJ) $(TESTS)
+	$(LD) $(CFLAGS) -o con_chk con_chk.o  $(TESTOBJ) $(LDFLAGS)
+	$(LD) $(CFLAGS) -o div_chk div_chk.o  $(TESTOBJ) $(LDFLAGS)
+	$(LD) $(CFLAGS) -o dft_chk DFT_chk.o  $(TESTOBJ) $(LDFLAGS)
+	$(LD) $(CFLAGS) -o nl_chk  nl_chk.o   $(TESTOBJ) $(LDFLAGS)
+	$(LD) $(CFLAGS) -o prj_chk prj_chk.o  $(TESTOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Make a source distrbution.
@@ -135,3 +148,22 @@ dist:
 # Clean up.
 clean:
 	rm -f *.o *.u *~
+
+# ----------------------------------------------------------------------------
+# Clean up.
+veryclean:
+	rm -f *.o *.u *~ iso makeIC1 makeIC2 makeIC3 taylor2D_chk
+
+# ----------------------------------------------------------------------------
+# S3 LES
+
+LESOBJ = allocate.o io.o nonlin-s3.o filter.o integrate.o energy.o FFT.o \
+	 misc.o drive.o
+
+les-s3: $(LESOBJ) $(HEADER)
+	$(LD) $(LESOBJ) -o les-s3 $(LDFLAGS)
+
+SPECOBJ = allocate.o io.o energy.o FFT.o misc.o spectrum.o
+
+spectrum: $(HEADER) $(SPECOBJ)
+	$(LD) $(SPECOBJ) -o spectrum $(LDFLAGS)
