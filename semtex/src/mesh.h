@@ -51,11 +51,6 @@ public:
   void printNek       () const;
   void extent         (Point&, Point&) const;
 
-  bool isAxial (const integer id) const {
-    return _elmtTable[id] -> side [0] -> axial && 
-      (static_cast<integer>(Femlib::value("CYLINDRICAL")) == 1); 
-  };
-
   static void showGlobalID (Mesh&);
   static void showAssembly (Mesh&);
 
@@ -111,7 +106,6 @@ private:
   void curves        ();
   void assemble      ();
   void checkAssembly ();
-  void checkAxial    ();
   void chooseNode    (Node*, Node*);
   void fixPeriodic   ();
 

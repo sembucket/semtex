@@ -94,15 +94,16 @@ public:
 
   // -- Probe functions.
 
-  bool locate (const real, const real, real&, real&, const bool = false) const;
-  real probe  (const real, const real, const real*, real*)               const;
+  bool locate (const real, const real, real&, real&,
+	       real*, const bool = false)                        const;
+  real probe  (const real, const real, const real*, real*)       const;
 
   // -- Debugging/informational routines.
 
   void printMesh  ()            const;
   void printBndry (const real*) const;
-  void printMatSC (const real*, const real*, const real*)       const;
-  void Helmholtz  (const real, const real, real*, real*, real*) const;
+  void printMatSC (const real*, const real*, const real*)        const;
+  void Helmholtz  (const real, const real, real*, real*, real*)  const;
 
 protected:
 

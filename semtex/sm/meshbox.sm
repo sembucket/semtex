@@ -37,8 +37,8 @@ meshbox	02	# Draw axes for an SEM mesh plot
 		DEFINE _y_GL	( $gy2 - $gy1 )
 		DEFINE _y_FL	( $fy2 - $fy1 )
 		#
-		DEFINE _AX	( 3500 + ($_x_min - $fx1) * $_x_GL / $_x_FL )
-		DEFINE _AY	( 3500 + ($_y_min - $fy1) * $_y_GL / $_y_FL )
+		DEFINE _AX	( $gx1 + ($_x_min - $fx1) * $_x_GL / $_x_FL )
+		DEFINE _AY	( $gy1 + ($_y_min - $fy1) * $_y_GL / $_y_FL )
 		DEFINE _x_ALEN	( ($_x_max - $_x_min) * $_x_GL / $_x_FL )
 		DEFINE _y_ALEN	( ($_y_max - $_y_min) * $_y_GL / $_y_FL )
 		#

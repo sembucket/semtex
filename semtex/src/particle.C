@@ -18,6 +18,7 @@ integer  FluidParticle::_TORD    = 0;
 integer  FluidParticle::_ID_MAX  = 0;
 real*    FluidParticle::_P_coeff = 0;
 real*    FluidParticle::_C_coeff = 0;
+real*    FluidParticle::_Work    = 0;
 real     FluidParticle::_DT      = 0.0;
 real     FluidParticle::_Lz      = 0.0;
 
@@ -46,6 +47,8 @@ FluidParticle::FluidParticle (Domain*       d,
     _TORD    = Femlib::ivalue ("N_TIME");
     _P_coeff = new real [static_cast<size_t>(_TORD + _TORD)];
     _C_coeff = new real [static_cast<size_t>(_TORD*(_TORD + 1))];
+    _Work    = new real [static_cast<size_t>(max 
+			(2*Geometry::nTotElmt(), 5 * Geometry::nP() + 6))];
 
     Veclib::zero (_TORD*_TORD,     _P_coeff, 1);
     Veclib::zero (_TORD*(_TORD+1), _C_coeff, 1);
@@ -64,7 +67,7 @@ FluidParticle::FluidParticle (Domain*       d,
   _E = 0;
   for (k = 0; k < _NEL; k++) {
     _r = _s = 0.0;
-    if (_Dom -> elmt[k] -> locate (_p.x, _p.y, _r, _s, guess)) {
+    if (_Dom -> elmt[k] -> locate (_p.x, _p.y, _r, _s, _Work, guess)) {
       _E = _Dom -> elmt[k];
       break;
     }
@@ -129,11 +132,11 @@ void FluidParticle::integrate ()
       yp += predictor[i] * _v[i];
     }
 
-    if (!_E -> locate (xp, yp, _r, _s)) {
+    if (!_E -> locate (xp, yp, _r, _s, _Work)) {
       _E = 0;
       for (i = 0; i < _NEL; i++) {
 	_r = _s = 0.0;
-	if (_Dom -> elmt[i] -> locate (xp, yp, _r, _s, guess)) {
+	if (_Dom -> elmt[i] -> locate (xp, yp, _r, _s, _Work, guess)) {
 	  _E = _Dom -> elmt[i];
 	  break;
 	}
@@ -163,11 +166,11 @@ void FluidParticle::integrate ()
       _p.y += corrector[i] * _v[i - 1];
     }
 
-    if (!_E -> locate (_p.x, _p.y, _r, _s)) {
+    if (!_E -> locate (_p.x, _p.y, _r, _s, _Work)) {
       _E = 0;
       for (i = 0; i < _NEL; i++) {
 	_r = _s = 0.0;
-	if (_Dom -> elmt[i] -> locate (_p.x, _p.y, _r, _s, guess)) {
+	if (_Dom -> elmt[i] -> locate (_p.x, _p.y, _r, _s, _Work, guess)) {
 	  _E = _Dom -> elmt[i];
 	  break;
 	}
@@ -207,11 +210,11 @@ void FluidParticle::integrate ()
       zp += predictor[i] * _w[i];
     }
 
-    if (!_E -> locate (xp, yp, _r, _s)) {
+    if (!_E -> locate (xp, yp, _r, _s, _Work)) {
       _E = 0;
       for (i = 0; i < _NEL; i++) {
 	_r = _s = 0.0;
-	if (_Dom -> elmt[i] -> locate (xp, yp, _r, _s, guess)) {
+	if (_Dom -> elmt[i] -> locate (xp, yp, _r, _s, _Work, guess)) {
 	  _E = _Dom -> elmt[i];
 	  break;
 	}
@@ -234,11 +237,11 @@ void FluidParticle::integrate ()
       _p.z += corrector[i] * _w[i - 1];
     }
 
-    if (!_E -> locate (_p.x, _p.y, _r, _s)) {
+    if (!_E -> locate (_p.x, _p.y, _r, _s, _Work)) {
       _E = 0;
       for (i = 0; i < _NEL; i++) {
 	_r = _s = 0.0;
-	if (_Dom -> elmt[i] -> locate (_p.x, _p.y, _r, _s, guess)) {
+	if (_Dom -> elmt[i] -> locate (_p.x, _p.y, _r, _s, _Work, guess)) {
 	  _E = _Dom -> elmt[i];
 	  break;
 	}

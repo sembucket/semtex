@@ -38,9 +38,10 @@ const Element* HistoryPoint::locate (const real        x   ,
   const integer    NEL   = Esys.size();
   const integer    guess = 1;
   const Element*   E;
+  vector<real>     work (max (2*Geometry::nTotElmt(), 5*Geometry::nP() + 6));
 
   for (E = 0, i = 0; E == 0 && i < NEL; i++)
-    if (Esys[i] -> locate (x, y, r = 0.0, s = 0.0, guess)) E = Esys[i];
+    if (Esys[i] -> locate (x, y, r=0.0, s=0.0, &work[0], guess)) E = Esys[i];
 
   return E;
 }
