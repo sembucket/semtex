@@ -1,22 +1,22 @@
-/*****************************************************************************
- * NS.C:  Unsteady Navier--Stokes solver, using "stiffly-stable" integration.
- *
- * Reference: Karniadakis, Israeli & Orszag 1991.  "High-order splitting
- * methods for the incompressible Navier--Stokes equations", JCP 9(2).
- *****************************************************************************/
+//////////////////////////////////////////////////////////////////////////////
+// NS.C:  Unsteady Navier--Stokes solver, using "stiffly-stable" integration.
+//
+// Reference: Karniadakis, Israeli & Orszag 1991.  "High-order splitting
+// methods for the incompressible Navier--Stokes equations", JCP 9(2).
+//////////////////////////////////////////////////////////////////////////////
 
 static char
 RCSid[] = "$Id$";
 
-
-#include <Fem.h>
+#include <NS.h>
 
 #ifdef __DECCXX
   #pragma define_template roll<Field*>
   #pragma define_template min<int>
 #endif
 
-static void  waveProp  (Domain*,  Field***, Field***, Vector, Vector);
+static void  nonLinear (Domain*,  Field***, Field***, Vector);
+static void  waveProp  (Domain*,  Field***, Field***);
 static void  setPForce (Field***, Field***);
 static void  project   (const Domain*,  Field***, Field***);
 static void  setUForce (Domain*,  Field***);
@@ -24,10 +24,8 @@ static void  setUForce (Domain*,  Field***);
 static void  preSolve  (SystemField*, const real&);
 static void  Solve     (SystemField*, Field*, const int&, const int&);
 
-static void  analyze   (Domain*, Field***, Field***);
 
-
-void  NavierStokes (Domain* D, ofstream& output)
+void NavierStokes (Domain* D, Analyser* A)
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity SystemFields 'u', 'v' and
 // constraint SystemField 'p'.
@@ -44,7 +42,6 @@ void  NavierStokes (Domain* D, ofstream& output)
   const int   DIM    = iparam ("N_VAR" );
 
   Vector  a  = {0.0, 0.0, 0.0};   // -- Frame acceleration for N--S.
-  Vector  f  = {0.0, 0.0, 0.0};   // -- Spatially-constant forcing for N--S.
 
   // -- Set up multi-level storage for velocities and forcing.
   
@@ -77,15 +74,6 @@ void  NavierStokes (Domain* D, ofstream& output)
   SystemField* Pressure = D -> u[DIM];
   preSolve (Pressure, 0.0);
 
-  // -- Initialize velocity fields and associated boundary conditions.
-
-  setDparam ("t", D -> time ());
-
-  D -> restart ();
-
-  for (i = 0; i < DIM; i++)
-    D -> u[i] -> evaluateBoundaries (0);
-
   // -- Timestepping loop.
 
   while (D -> step () < nStep) {
@@ -95,12 +83,13 @@ void  NavierStokes (Domain* D, ofstream& output)
     setDparam ("t", D -> time ());
 
     // -- Unconstrained forcing substep.
-    
-    waveProp (D, Us, Uf, a, f);
+
+    nonLinear (D, Us, Uf, a );
+    waveProp  (D, Us, Uf);
 
     // -- Pressure projection substep.
 
-    PBCmanager::maintain (D -> step (), Pressure, Us, Uf);
+    PBCmanager::maintain (D -> step (), *Pressure, Us, Uf);
     Pressure -> evaluateBoundaries (D -> step ());
     for (i = 0; i < DIM; i++) {
       Field::swapData (D -> u[i], Us[i][0]);
@@ -122,26 +111,20 @@ void  NavierStokes (Domain* D, ofstream& output)
 
     // -- Process results of this step.
 
-    analyze   (D, Us, Uf);
-    D -> dump (output);
-  }
+    A -> analyse ();
 }
 
 
-static void  waveProp (Domain*   D ,
+static void nonLinear (Domain*   D ,
 		       Field***  Us,
 		       Field***  Uf,
-		       Vector    a ,
-		       Vector    f )
+		       Vector    a )
 // ---------------------------------------------------------------------------
-// Compute the first substep of stiffly-stable timestepping scheme.
+// Compute nonlinear (forcing) terms in Navier--Stokes equations: N(u) - a.
 //
 // Velocity field data areas of D and first level of Us are swapped, then
-// the next stage of nonlinear forcing terms N(u) - a + f are computed from
+// the next stage of nonlinear forcing terms N(u) - a are computed from
 // velocity fields and left in the first level of Uf.
-//
-// Then the intermediate velocity field u^ is computed and left in D's
-// velocity areas Us. 
 //
 // Nonlinear terms are computed in skew-symmetric form (Zang 1991)
 //                    -0.5 ( u . grad u + div uu ).
@@ -206,9 +189,22 @@ static void  waveProp (Domain*   D ,
 
   // -- Add in distributed forcing to complete construction of nonlinear terms.
 
-  if (fabs (f.x -= a.x) > EPSDP) Nx += f.x;
-  if (fabs (f.y -= a.y) > EPSDP) Ny += f.y;
+  if (fabs (a.x) > EPSDP) Nx -= a.x;
+  if (fabs (a.y) > EPSDP) Ny -= a.y;
+}
 
+
+static void  waveProp (Domain*   D ,
+		       Field***  Us,
+		       Field***  Uf)
+// ---------------------------------------------------------------------------
+// Compute the first substep of stiffly-stable timestepping scheme.
+//
+// On entry, the most recent velocity fields are in Us, and the most
+// recent nonlinear terms in Uf.  The intermediate velocity field u^ is
+// computed and left in D's velocity areas. 
+// ---------------------------------------------------------------------------
+{
   // -- Construct u^ in Hx & Hy.
 
   Field& Hx = *D -> u[0] = 0.0;
@@ -364,27 +360,4 @@ static void Solve (SystemField*  U     ,
 
     return;
   }
-}
-
-
-static void  analyze (Domain* D, Field*** Us, Field*** Uf)
-// ---------------------------------------------------------------------------
-// Process Domain statistics, etc.  Us & Uf first levels can be used
-// as scratch area.
-// ---------------------------------------------------------------------------
-{
-  char routine[] = "analyse";
-
-  Vector  fp, fv;
-  char    s[StrMax];
-
-  fp = BoundedField::normalTraction  (*D -> u[2], *D -> u[0]);
-  fv = BoundedField::tangentTraction (*D -> u[0], *D -> u[1], 
-				       *Us[0][0],  *Us[1][0]);
-
-  sprintf (s, ": Step: %d  Time: %f"
-	   "  Fvx: %f  Fpx: %f  Fx: %f  Fvy: %f  Fpy: %f  Fy: %f",
-	   D -> step (), D -> time (),
-	   fv.x, fp.x, fv.x + fp.x, fv.y, fp.y, fv.y + fp.y);
-  message (routine, s, REMARK);
 }
