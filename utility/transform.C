@@ -1,15 +1,16 @@
 ///////////////////////////////////////////////////////////////////////////////
-// transform.C: carry out Fourier and/or 2D Legendre transform of data.
+// transform.C: carry out Fourier and/or 2D polynomial transform of data.
 //
-// Copyright (c) 1999 Hugh Blackburn
+// Copyright (c) 1999, 2000 Hugh Blackburn
 //
 // USAGE
 // -----
 // transform [options] [file]
 // options:
-// -h           ... print this message.
-// -d <num>     ... transform forwards (<num> = 1) or inverse (<num> = -1)
-// -t <L||F||B> ... Carry out DLT (L), DFT (F) or both (B).
+// -h       ... print this message.
+// -i       ... invert transform.
+// -l       ... polynomial transform is Legendre       [Default: modal]
+// -P||F||B ... Carry out DPT (P), DFT (F) or both (B) [Default: both]
 // 
 // If file is not present, read from standard input.  Write to
 // standard output.
@@ -57,7 +58,7 @@ public:
   Field2DF& operator = (const real);
 
   Field2DF& DFT1D (const integer);
-  Field2DF& DLT2D (const integer);
+  Field2DF& DPT2D (const integer, const char);
 
   Field2DF& reverse   ();
   
@@ -110,65 +111,26 @@ Field2DF& Field2DF::DFT1D (const integer sign)
 }
 
 
-Field2DF& Field2DF::DLT2D (const integer sign)
+Field2DF& Field2DF::DPT2D (const integer sign, const char basis)
 // ---------------------------------------------------------------------------
-// Carry out 2D discrete Legendre transform (element-by-element) on planes.
+// Carry out 2D discrete polynomial transform (element-by-element) on planes.
 // ---------------------------------------------------------------------------
 {
-  register integer p, q, pq, r, s, rs;
-  register real    cr, cs, P, Q;
-  integer          i, k, offset;
-  vector<real>     work (np2);
-  real             *pk, *src, *tmp = work();
-  const real       *w, *legtab;
+  integer      i;
+  vector<real> work (nplane);
+  const real   *Fu, *Ft, *Bu, *Bt;
 
-  Femlib::legCoef (np, &legtab);
-  Femlib::quad    (LL, np, np, 0, 0, &w, 0, 0, 0, 0);
+  if (basis == 'l')
+    Femlib::legTran (np, &Fu, &Ft, &Bu, &Bt, 0, 0);
+  else
+    Femlib::modTran (np, &Fu, &Ft, &Bu, &Bt, 0, 0);
 
-  if (sign == 1) {		// -- Forward transform.
-    for (k = 0; k < nz; k++) {
-      pk = plane[k];
-      for (i = 0, offset = 0; i < nel; i++, offset += np2) {
-	src = pk + offset;
-	Veclib::zero (np2, tmp, 1);
-	for (rs = 0, r = 0; r < np; r++) {
-	  cr = legtab[Veclib::row_major (np, r, np)];
-	  for (s = 0; s < np; s++, rs++) {
-	    cs = legtab[Veclib::row_major (np, s, np)];
-	    for (pq = 0, p = 0; p < np; p++) {
-	      P = legtab[Veclib::row_major (r, p, np)];
-	      for (q = 0; q < np; q++, pq++) {
-		Q = legtab[Veclib::row_major (s, q, np)];
-		tmp[rs] += w[p] * w[q] * P * Q * src[pq];
-	      }
-	    }
-	    tmp[rs] *= cr * cs;
-	  }
-	}
-	Veclib::copy (np2, tmp, 1, src, 1);
-      }
-    }
-  } else {			// -- Inverse transform.
-    for (k = 0; k < nz; k++) {
-      pk = plane[k];
-      for (i = 0, offset = 0; i < nel; i++, offset += np2) {
-	src = pk + offset;
-	Veclib::zero (np2, tmp, 1);
-	for (rs = 0, r = 0; r < np; r++) {
-	  for (s = 0; s < np; s++, rs++) {
-	    for (pq = 0, p = 0; p < np; p++) {
-	      P = legtab[Veclib::row_major (p, r, np)];
-	      for (q = 0; q < np; q++, pq++) {
-		Q = legtab[Veclib::row_major (q, s, np)];
-		tmp[rs] += P * Q * src[pq];
-	      }
-	    }
-	  }
-	}
-	Veclib::copy (np2, tmp, 1, src, 1);
-      }
-    }
-  }
+  if (sign == FORWARD)
+    for (i = 0; i < nz; i++)
+      Femlib::tpr2d (plane[i], plane[i], work(), Fu, Ft, np, nel);
+  else
+    for (i = 0; i < nz; i++)
+      Femlib::tpr2d (plane[i], plane[i], work(), Bu, Bt, np, nel);
 
   return *this;
 }
@@ -276,7 +238,7 @@ istream& operator >> (istream&  strm,
 
 
 static char    prog[] = "transform";
-static void    getargs  (int, char**, integer&, char&, ifstream&);
+static void    getargs  (int, char**, integer&, char&, char&, ifstream&);
 static integer getDump  (ifstream&, ostream&, vector<Field2DF*>&);
 static void    loadName (const vector<Field2DF*>&, char*);
 static integer doSwap   (const char*);
@@ -289,16 +251,16 @@ int main (int    argc,
 // ---------------------------------------------------------------------------
 {
   ifstream          file;
-  integer           i, dir = 1;
-  char              type   = 'B';
+  integer           i, dir = FORWARD;
+  char              type   = 'B', basis = 'm';
   vector<Field2DF*> u;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, dir, type, file);
+  getargs (argc, argv, dir, type, basis, file);
   
   while (getDump (file, cout, u))
     for (i = 0; i < u.getSize(); i++) {
-      if (type == 'L' || type == 'B') u[i] -> DLT2D (dir);
+      if (type == 'P' || type == 'B') u[i] -> DPT2D (dir, basis);
       if (type == 'F' || type == 'B') u[i] -> DFT1D (dir);
       cout << *u[i];
     }
@@ -308,11 +270,12 @@ int main (int    argc,
 }
 
 
-static void getargs (int       argc,
-		     char**    argv,
-		     integer&  dir ,
-		     char&     type,
-		     ifstream& file)
+static void getargs (int       argc ,
+		     char**    argv ,
+		     integer&  dir  ,
+		     char&     type ,
+		     char&     basis,
+		     ifstream& file )
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
@@ -320,11 +283,12 @@ static void getargs (int       argc,
   char usage[] = "Usage: transform [options] [file]\n"
     "options:\n"
     "-h ... print this message\n"
-    "-L ... Discrete Legendre transform (2D)\n"
-    "-F ... Discrete Fourier  transform (1D)\n"
-    "-B ... do both DLT & DFT [Default]\n"
-    "-i ... carry out inverse transform instead\n";
- 
+    "-P ... Discrete Polynomial Transform (2D)\n"
+    "-F ... Discrete Fourier    Transform (1D)\n"
+    "-B ... do both DPT & DFT [Default]\n"
+    "-i ... carry out inverse transform instead\n"
+    "-l ... use Legendre basis functions instead of modal expansions\n";
+    
   while (--argc && **++argv == '-')
     switch (*++argv[0]) {
     case 'h':
@@ -332,10 +296,13 @@ static void getargs (int       argc,
       exit (EXIT_SUCCESS);
       break;
     case 'i':
-      dir = -1;
+      dir = INVERSE;
       break;
-    case 'L':
-      type = 'L';
+    case 'l':
+      basis = 'l';
+      break;
+    case 'P':
+      type = 'P';
       break;
     case 'F':
       type = 'F';

@@ -106,7 +106,7 @@ project: project.C
 # Build transform, which does forward/inverse Fourier/Legendre transforms.
 #
 transform: transform.C
-	$(CXX) $(CPPFLAGS) -g -o $@ $@.C $(LDFLAGS)
+	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build interp, field dump interpolator.
@@ -134,7 +134,7 @@ probe: $(PRBOBJ)
 # Build rectmesh, rectangular mesh generator.
 #
 rectmesh: rectmesh.C
-	$(CXX) $(CPPFLAGS) -o $@ $@.C -g
+	$(CXX) $(CPPFLAGS) -o $@ $@.C
 
 # ----------------------------------------------------------------------------
 # Special machine-dependent compilations.
