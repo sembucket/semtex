@@ -1,10 +1,9 @@
 /*****************************************************************************
  * mapping.c: build/return integer mapping vectors used to gather/scatter
  * element storage formats from one to another.
+ *
+ * $Id$
  *****************************************************************************/
-
-static char
-RCSid_operators[] = "$Id$";
 
 #include <stdio.h>
 #include <malloc.h>
