@@ -155,9 +155,9 @@ static int count_fields (const char *s)
  * Count the number of field names in a string.
  * ------------------------------------------------------------------------- */
 {
-  int n = 0, i = 0;
+  int n = 0;
 
-  while (i++ < 25) if (isalnum (*s++)) n++;
+  while (isalnum (s[n])) n++;
   
   return n;
 }

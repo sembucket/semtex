@@ -414,7 +414,8 @@ static void write_tec (FILE *fp)
 
   fprintf (fp, "VARIABLES = \"X\" \"Y\" ");
   if (z) fprintf (fp, "\"Z\" ");
-  for (i = 0; i < nfields; i++) fprintf (fp, "\"%c\" ", toupper(type[i]));
+  //  for (i = 0; i < nfields; i++) fprintf (fp, "\"%c\" ", toupper(type[i]));
+  for (i = 0; i < nfields; i++) fprintf (fp, "\"%c\" ", type[i]);
   fprintf (fp, "\n");
 
   for (k = 0; k < nel; k++) {

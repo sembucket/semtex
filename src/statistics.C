@@ -208,10 +208,12 @@ void Statistics::update (AuxField** wrka,
     *_avg[k -> second-> name()] += *(k -> second);
 
   // -- Reynolds stress correlations.
+  //    After this, wrka contains current velocity data in physical space.
 
   if (_iavg > 1) {
-    for (i = 0, k = _raw.begin(); i < _nvel; i++, k++)
-      (*wrka[i] = *(k -> second)) . transform (INVERSE);
+    (*wrka[0] = *_raw['u']) . transform (INVERSE);
+    (*wrka[1] = *_raw['v']) . transform (INVERSE);
+    if (_nvel == 3) (*wrka[2] = *_raw['w']) . transform (INVERSE);
 
     _avg['A'] -> timesPlus (*wrka[0], *wrka[0]);
     _avg['B'] -> timesPlus (*wrka[0], *wrka[1]);
@@ -238,8 +240,8 @@ void Statistics::update (AuxField** wrka,
 
     // -- q, TKE.
 
-    *wrkb[0] = 0.0;
-    for (i = 0; i < _nvel; i++)
+    wrkb[0] -> times (*wrka[0], *wrka[0]);
+    for (i = 1; i < _nvel; i++)
       wrkb[0] -> timesPlus (*wrka[i], *wrka[i]);
     *wrkb[0] *= 0.5;
     *_avg['q'] += *wrkb[0];
@@ -260,7 +262,7 @@ void Statistics::update (AuxField** wrka,
       AuxField* tp1 = wrka[0];
       AuxField* tp2 = wrka[1];
   
-      for (i = 0, k = _raw.begin(); i < _nvel; i++, k++)
+      for (i = 0; i < _nvel; i++)
 	for (j = 0; j < _nvel; j++) {
 	  if (j == i) continue;
 	  if (i == 2 && j == 1) {
@@ -268,7 +270,7 @@ void Statistics::update (AuxField** wrka,
 	    (*tp2 = *_raw['w']) . divY();
 	    *tp1 -= *tp2;
 	  } else {
-	    (*tp1 = *(k -> second)) . gradient (j);
+	    (*tp1 = *_raw['u' + i]) . gradient (j);
 	    if (j == 2) tp1 -> divY();
 	  }
 	  if   (j > i) *wrkb[i + j - 1]  = *tp1;
@@ -279,8 +281,8 @@ void Statistics::update (AuxField** wrka,
       
       // -- Diagonal.
       
-      for (i = 0, k = _raw.begin(); i < _nvel; i++, k++) {
-	(*wrka[i] = *(k -> second)) . gradient (i);
+      for (i = 0; i < _nvel; i++) {
+	(*wrka[i] = *_raw['u' + i]) . gradient (i);
 	if (i == 2) (*wrka[2] += *_raw['v']) . divY();
       }
 
@@ -290,10 +292,10 @@ void Statistics::update (AuxField** wrka,
 
       AuxField* tmp = wrka[0];
 
-      for (i = 0, k = _raw.begin(); i < _nvel; i++, k++)
+      for (i = 0; i < _nvel; i++)
 	for (j = 0; j < _nvel; j++) {
 	  if (j == i) continue;
-	  (*tmp = *(k -> second)) . gradient (j);
+	  (*tmp = *_raw['u' + i]) . gradient (j);
 	  if   (j > i) *wrkb[i + j - 1]  = *tmp;
 	  else         *wrkb[i + j - 1] += *tmp;
 	}
@@ -302,8 +304,8 @@ void Statistics::update (AuxField** wrka,
 
       // -- Diagonal.
 
-      for (i = 0, k = _raw.begin(); i < _nvel; i++, k++)
-	(*wrka[i] = *(k -> second)) . gradient (i);
+      for (i = 0; i < _nvel; i++)
+	(*wrka[i] = *_raw['u' + i]) . gradient (i);
     }
 
     // -- Bring strain rate tensor components into physical space.
@@ -388,12 +390,15 @@ void Statistics::dump (const char* filename)
 //
 // As of 24/11/2004, we deleted the checkpointing that used to happen:
 // all dumping now happens to file named on input.
+//
+// We also smooth all the outputs with the mass matrix.
 // ---------------------------------------------------------------------------
 {
-  const int_t step     = _base -> step;
-  const bool  periodic = !(step %  Femlib::ivalue ("IO_FLD"));
-  const bool  initial  =   step == Femlib::ivalue ("IO_FLD");
-  const bool  final    =   step == Femlib::ivalue ("N_STEP");
+  const int_t  step     = _base -> step;
+  const bool   periodic = !(step %  Femlib::ivalue ("IO_FLD"));
+  const bool   initial  =   step == Femlib::ivalue ("IO_FLD");
+  const bool   final    =   step == Femlib::ivalue ("N_STEP");
+  Field*       master   = _base -> u[0];
 
   if (!(periodic || final)) return;
 
@@ -413,8 +418,10 @@ void Statistics::dump (const char* filename)
   // -- All terms are written out in physical space but some are
   //    held internally in Fourier space.
 
-  for (k = _raw.begin(); k != _raw.end(); k++)
+  for (k = _raw.begin(); k != _raw.end(); k++) {
+    master -> smooth (k -> second);
     _avg[k -> second -> name()] -> transform (INVERSE);
+  }
 
   if (_neng) {
     _avg['G'] -> transform (INVERSE);
@@ -477,12 +484,14 @@ ifstream& operator >> (ifstream&   strm,
   int_t npchk,  nzchk, nelchk;
   char  s[StrMax], f[StrMax], err[StrMax], fields[StrMax];
   bool  swap = false;
+  map<char, AuxField*>::iterator k;
 
   if (strm.getline(s, StrMax).eof()) return strm;
   
   strm.getline (s, StrMax) . getline (s, StrMax);
 
-  tgt._avg[0] -> describe (f);
+  tgt._avg.begin()->second->describe (f);
+
   istrstream (s, strlen (s)) >> np    >> np    >> nz    >> nel;
   istrstream (f, strlen (f)) >> npchk >> npchk >> nzchk >> nelchk;
   
@@ -510,8 +519,9 @@ ifstream& operator >> (ifstream&   strm,
     sprintf (err, "strm: %1d fields, avg: %1d", nfields, tgt._avg.size());
     message (routine, err, ERROR);
   }
-  for (i = 0; i < nfields; i++) 
-    if (!strchr (fields, tgt._avg[i] -> name())) {
+
+  for (i = 0, k = tgt._avg.begin(); k != tgt._avg.end(); k++, i++)
+    if (!strchr (fields, k -> second -> name())) {
       sprintf (err, "field %c not present in avg", fields[i]);
       message (routine, err, ERROR);
     }
@@ -532,7 +542,7 @@ ifstream& operator >> (ifstream&   strm,
       cout.flush();
     }
   }
-    
+
   for (j = 0; j < nfields; j++) {
     strm >> *tgt._avg[fields[j]];
     if (swap) tgt._avg[fields[j]] -> reverse();

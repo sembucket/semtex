@@ -339,28 +339,47 @@ static void covary  (map<char, AuxField*>& in  ,
 
   // -- Deal with all the correlations first, before any differentiation.
 
-  // -- Turn ABC... into Reynolds stresses and q into a covariance.
+  // -- Turn ABC... into Reynolds stresses.
 
   work[0] -> times (*in['u'], *in['u']); *in['A'] -= *work[0];
-  *work[0] *= 0.5; *in['q'] -= *work[0]; *work[1]  = *work[0];
   work[0] -> times (*in['u'], *in['v']); *in['B'] -= *work[0];
   work[0] -> times (*in['v'], *in['v']); *in['C'] -= *work[0];
-  *work[0] *= 0.5; *in['q'] -= *work[0]; *work[1] += *work[0];
   if (nvel == 3) {
     work[0] -> times (*in['u'], *in['w']); *in['D'] -= *work[0];
     work[0] -> times (*in['v'], *in['w']); *in['E'] -= *work[0];
     work[0] -> times (*in['w'], *in['w']); *in['F'] -= *work[0];
-    *work[0] *= 0.5; *in['q'] -= *work[0]; *work[1] += *work[0];
   }
 
-  // -- At this stage, work[1] holds the KE of the time-average flow.
-  //    Use it to deal with q.ui: r, s (t).
+  // -- At this stage, in['q'] still holds the total kinetic energy.
 
+#if 1
+  work[0] -> times (*in['A'], *in['u']); *in['r'] -= *work[0];
+  work[0] -> times (*in['B'], *in['v']); *in['r'] -= *work[0];
+  work[0] -> times (*in['q'], *in['u']); *in['r'] -= *work[0];
+  work[0] -> times (*in['B'], *in['u']); *in['s'] -= *work[0];
+  work[0] -> times (*in['C'], *in['v']); *in['s'] -= *work[0];
+  work[0] -> times (*in['q'], *in['v']); *in['s'] -= *work[0];
+  if (nvel == 3) {
+    work[0] -> times (*in['D'], *in['w']); *in['r'] -= *work[0];
+    work[0] -> times (*in['E'], *in['w']); *in['s'] -= *work[0];
+    work[0] -> times (*in['D'], *in['u']); *in['t'] -= *work[0];
+    work[0] -> times (*in['E'], *in['v']); *in['t'] -= *work[0];
+    work[0] -> times (*in['F'], *in['w']); *in['t'] -= *work[0];
+    work[0] -> times (*in['q'], *in['w']); *in['t'] -= *work[0];
+  }
+#else
   work[0] -> times (*work[1], *in['u']); *in['r'] -= *work[0];
   work[0] -> times (*work[1], *in['v']); *in['s'] -= *work[0];
   if (nvel == 3) {
     work[0] -> times (*work[1], *in['w']); *in['t'] -= *work[0];
   }
+#endif
+
+  // -- Rework in['q'] so it holds the fluctuating KE.
+
+  *in['q'] = *in['A']; *in['q'] += *in['C'];
+  if (nvel == 3) *in['q'] += *in['F'];
+  *in['q'] *= 0.5;
 
   // -- The pressure-velocity covariances: m, n (o).
 
@@ -372,7 +391,7 @@ static void covary  (map<char, AuxField*>& in  ,
 
   // -- Everything from now on involves derivatives in one way or another.
 
-  // -- So let's get started by making term '1':
+  // -- So let's get started by making term '1' (advection):
 
   *work[0]  = *in['q']; work[0]   -> gradient (0);
   *work[0] *= *in['u']; *out['1']  = *work[0];
@@ -383,7 +402,7 @@ static void covary  (map<char, AuxField*>& in  ,
     *work[0] *= *in['w']; *out['1'] += *work[0];
   }
 
-  // -- Term '2'. We can destroy 'r', 's', 't' along the way:
+  // -- Term '2' (turbulent transport). Destroy 'r', 's', 't' along the way:
   
   in['r'] -> gradient (0); *out['2']  = *in['r'];
   in['s'] -> gradient (1); *out['2'] += *in['s'];
@@ -392,7 +411,7 @@ static void covary  (map<char, AuxField*>& in  ,
     *out['2'] += *in['t'];
   }
 
-  // -- Term '3', destroying 'm', 'n', 'o' as we go:
+  // -- Term '3' (pressure work), destroying 'm', 'n', 'o' as we go:
 
   in['m'] -> gradient (0); *out['3']  = *in['m'];
   in['n'] -> gradient (1); *out['3'] += *in['n'];
@@ -433,7 +452,7 @@ static void covary  (map<char, AuxField*>& in  ,
     *in['L'] -= *in['t'];
   }
 
-  // -- Compute term '4':
+  // -- Compute term '4' (viscous transport):
 
   work[0] -> times (*in['m'], *in['u']);
   work[1] -> times (*in['n'], *in['v']);
@@ -467,41 +486,45 @@ static void covary  (map<char, AuxField*>& in  ,
   
   *out['4'] *= -2.0 * kinvis;
   
-  // -- Compute term '7':
+  // -- Compute term '7' (dissipation):
 
-  *in['H'] *= sqrt (2.0);
+  *in['n'] *= sqrt (2.0);
   if (nvel == 3) {
-    *in['J'] *= sqrt (2.0);
-    *in['K'] *= sqrt (2.0);
+    *in['r'] *= sqrt (2.0);
+    *in['s'] *= sqrt (2.0);
   }
 
   *out['7'] = *in['d'];
-  out['7'] -> timesMinus (*in['G'], *in['G']);
-  out['7'] -> timesMinus (*in['H'], *in['H']);
-  out['7'] -> timesMinus (*in['I'], *in['I']);
+  out['7'] -> timesMinus (*in['m'], *in['m']);
+  out['7'] -> timesMinus (*in['n'], *in['n']);
+  out['7'] -> timesMinus (*in['o'], *in['o']);
   if (nvel == 3) {
-    out['7'] -> timesMinus (*in['J'], *in['J']);
-    out['7'] -> timesMinus (*in['K'], *in['K']);
-    out['7'] -> timesMinus (*in['L'], *in['L']);
+    out['7'] -> timesMinus (*in['r'], *in['r']);
+    out['7'] -> timesMinus (*in['s'], *in['s']);
+    out['7'] -> timesMinus (*in['t'], *in['t']);
   }
   *out['7'] *= 2.0 * kinvis;
 
-  // -- Compute term '0':
+  *out['7'] *= -1.0;
 
-  *in['B'] *= sqrt (2.0);
+  // -- Compute term '0' (production):
+
+  *in['n'] *= sqrt (2.0);
   if (nvel == 3) {
-    *in['D'] *= sqrt (2.0);
-    *in['E'] *= sqrt (2.0);
+    *in['r'] *= sqrt (2.0);
+    *in['s'] *= sqrt (2.0);
   }
  
-  out['0'] -> times     (*in['A'], *in['G']);
-  out['0'] -> timesPlus (*in['B'], *in['H']);
-  out['0'] -> timesPlus (*in['C'], *in['I']);
+  out['0'] -> times     (*in['A'], *in['m']);
+  out['0'] -> timesPlus (*in['B'], *in['n']);
+  out['0'] -> timesPlus (*in['C'], *in['o']);
   if (nvel == 3) {
-    out['0'] -> timesPlus (*in['D'], *in['J']);
-    out['0'] -> timesPlus (*in['E'], *in['K']);
-    out['0'] -> timesPlus (*in['F'], *in['L']);
+    out['0'] -> timesPlus (*in['D'], *in['r']);
+    out['0'] -> timesPlus (*in['E'], *in['s']);
+    out['0'] -> timesPlus (*in['F'], *in['t']);
   }
+
+  *out['0'] *= -1.0;
 
   // -- Finally, compute the sum, 'S':
 
