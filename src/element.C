@@ -83,7 +83,7 @@ void Element::project (const Element& parent,
     Blas::mxm (tmp, np, *IT,           nold, *ymesh, np  );
 
     if (src) {
-      Blas::mxm (*IN, np, src, nold, tmp,    nold);
+      Blas::mxm (*IN, np, src, nold, tmp, nold);
       Blas::mxm (tmp, np, *IT, nold, tgt, np  );
     }
     
@@ -395,7 +395,7 @@ void Element::map ()
     Veclib::vmul  (ntot,        dxdr, 1, dyds, 1, tV,  1);
     Veclib::vvvtm (ntot, tV, 1, dxds, 1, dydr, 1, jac, 1);
     
-    if (jac[Veclib::imin (ntot, jac, 1)] <= EPSSP) {
+    if (jac[Veclib::imin (ntot, jac, 1)] < EPSSP) {
       sprintf (buf, "jacobian of element %1d nonpositive", id);
       message (routine, buf, ERROR);
     }
@@ -432,6 +432,19 @@ void Element::map ()
     Veclib::vdiv (ntot, drdy, 1, jac, 1, drdy, 1);
     Veclib::vdiv (ntot, dsdx, 1, jac, 1, dsdx, 1);
     Veclib::vdiv (ntot, dsdy, 1, jac, 1, dsdy, 1);
+
+    if (Blas::nrm2 (ntot, drdx, 1) < EPS) {
+      freeVector (drdx); drdx = 0;
+    }
+    if (Blas::nrm2 (ntot, drdy, 1) < EPS) {
+      freeVector (drdy); drdy = 0;
+    }
+    if (Blas::nrm2 (ntot, dsdx, 1) < EPS) {
+      freeVector (dsdx); dsdx = 0;
+    }
+    if (Blas::nrm2 (ntot, dsdy, 1) < EPS) {
+      freeVector (dsdy); dsdy = 0;
+    }
 
     freeVector (dxdr);
     freeVector (dxds);
@@ -1060,17 +1073,33 @@ void Element::grad (real* targA,
   real* tgt;
 
   if ((tgt = targA)) {
-    Blas::mxm     (tgt,  np, *DT, np, tmpA, np);
-    Blas::mxm     (*DV,  np, tgt, np, tmpB, np);
-    Veclib::vmul  (ntot, tmpA, 1, drdx, 1, tmpA, 1);
-    Veclib::vvtvp (ntot, tmpB, 1, dsdx, 1, tmpA, 1, tgt, 1);
+    if (drdx && dsdx) {
+      Blas::mxm     (tgt, np, *DT, np, tmpA, np);
+      Blas::mxm     (*DV, np, tgt, np, tmpB, np);
+      Veclib::vmul  (ntot, tmpA, 1, drdx, 1, tmpA, 1);
+      Veclib::vvtvp (ntot, tmpB, 1, dsdx, 1, tmpA, 1, tgt, 1);
+    } else if (drdx) {
+      Blas::mxm     (tgt, np, *DT, np, tmpA, np);
+      Veclib::vmul  (ntot, tmpA, 1, drdx, 1, tgt, 1);
+    } else {
+      Blas::mxm     (*DV, np, tgt, np, tmpB, np);
+      Veclib::vmul  (ntot, tmpA, 1, dsdx, 1, tgt, 1);
+    }
   }
 
   if ((tgt = targB)) {
-    Blas::mxm     (tgt,  np, *DT, np, tmpA, np);
-    Blas::mxm     (*DV,  np, tgt, np, tmpB, np);
-    Veclib::vmul  (ntot, tmpA, 1, drdy, 1, tmpA, 1);
-    Veclib::vvtvp (ntot, tmpB, 1, dsdy, 1, tmpA, 1, tgt, 1);
+    if (drdy && dsdy) {
+      Blas::mxm     (tgt, np, *DT, np, tmpA, np);
+      Blas::mxm     (*DV, np, tgt, np, tmpB, np);
+      Veclib::vmul  (ntot, tmpA, 1, drdy, 1, tmpA, 1);
+      Veclib::vvtvp (ntot, tmpB, 1, dsdy, 1, tmpA, 1, tgt, 1);
+    } else if (drdy) {
+      Blas::mxm     (tgt, np, *DT, np, tmpA, np);
+      Veclib::vmul  (ntot, tmpA, 1, drdy, 1, tgt, 1);
+    } else {
+      Blas::mxm     (*DV, np, tgt, np, tmpB, np);
+      Veclib::vmul  (ntot, tmpB, 1, dsdy, 1, tgt, 1);
+    }
   }
   
   freeVector (tmpA);
@@ -1087,7 +1116,7 @@ void Element::connectivSC (List<int>* adjList) const
 //
 // For general finite elements, all nodes of an element are interconnected,
 // while for statically-condensed elements, only the boundary nodes are
-// considered (since internal nodes are not global).
+// considered (sinceinternal nodes are not global).
 //
 // Essential-BC nodes are ignored, since we're only interested in mimimizing
 // bandwidths of global matrices.
@@ -1161,8 +1190,10 @@ void Element::sideGeom (const int& side,
     Blas::gemv    ("T", np, np, 1.0, *D, np, *ymesh, 1, 0.0, yr, 1);
     Veclib::vmul  (np, xr, 1, xr, 1, area, 1);
     Veclib::vvtvp (np, yr, 1, yr, 1, area, 1, area, 1);
-    Veclib::smul  (np, -1.0, dsdx, skip, nx, 1);
-    Veclib::smul  (np, -1.0, dsdy, skip, ny, 1);
+    if   (dsdx) Veclib::smul (np, -1.0, dsdx, skip, nx, 1);
+    else        Veclib::zero (np,                   nx, 1);
+    if   (dsdy) Veclib::smul (np, -1.0, dsdy, skip, ny, 1);
+    else        Veclib::zero (np,                   ny, 1);
     
     freeVector (xr);
     freeVector (yr);
@@ -1178,8 +1209,10 @@ void Element::sideGeom (const int& side,
     Blas::gemv    ("T", np, np, 1.0, *D, np, *ymesh+low, np, 0.0, ys, 1);
     Veclib::vmul  (np, xs, 1, xs, 1, area, 1);
     Veclib::vvtvp (np, ys, 1, ys, 1, area, 1, area, 1);
-    Veclib::copy  (np, drdx+low, skip, nx, 1);
-    Veclib::copy  (np, drdy+low, skip, ny, 1);
+    if   (drdx) Veclib::copy (np, drdx+low, skip, nx, 1);
+    else        Veclib::zero (np,                 nx, 1);
+    if   (drdy) Veclib::copy (np, drdy+low, skip, ny, 1);
+    else        Veclib::zero (np,                 ny, 1);
     
     freeVector (xs);
     freeVector (ys);
@@ -1195,8 +1228,10 @@ void Element::sideGeom (const int& side,
     Blas::gemv    ("T", np, np, 1.0, *D, np, *ymesh+low, 1, 0.0, yr, 1);
     Veclib::vmul  (np, xr, 1, xr, 1, area, 1);
     Veclib::vvtvp (np, yr, 1, yr, 1, area, 1, area, 1);
-    Veclib::copy  (np, dsdx+low, skip, nx, 1);
-    Veclib::copy  (np, dsdy+low, skip, ny, 1);
+    if   (dsdx) Veclib::copy (np, dsdx+low, skip, nx, 1);
+    else        Veclib::zero (np,                 nx, 1);
+    if   (dsdy) Veclib::copy (np, dsdy+low, skip, ny, 1);
+    else        Veclib::zero (np,                 ny, 1);
     
     freeVector (xr);
     freeVector (yr);
@@ -1211,8 +1246,10 @@ void Element::sideGeom (const int& side,
     Blas::gemv    ("T", np, np, 1.0, *D, np, *ymesh, np, 0.0, ys, 1);
     Veclib::vmul  (np, xs, 1, xs, 1, area, 1);
     Veclib::vvtvp (np, ys, 1, ys, 1, area, 1, area, 1);
-    Veclib::smul  (np, -1.0, drdx, skip, nx, 1);
-    Veclib::smul  (np, -1.0, drdy, skip, ny, 1);
+    if   (drdx) Veclib::smul (np, -1.0, drdx, skip, nx, 1);
+    else        Veclib::zero (np,                   nx, 1);
+    if   (drdy) Veclib::smul (np, -1.0, drdy, skip, ny, 1);
+    else        Veclib::zero (np,                   ny, 1);
     
     freeVector (xs);
     freeVector (ys);
@@ -1415,15 +1452,17 @@ void Element::sideGrad (const int&  side,
   // -- dc/dx = dc/dr * dr/dx + dc/ds * ds/dx.
 
   if (c1) {
-    Veclib::vmul  (np, ddr, d, drdx + estart, skip, c1, 1);
-    Veclib::vvtvp (np, dds, d, dsdx + estart, skip, c1, 1, c1, 1);
+    if   (drdx) Veclib::vmul  (np, ddr, d, drdx + estart, skip, c1, 1);
+    else        Veclib::zero  (np, c1, 1);
+    if   (dsdx) Veclib::vvtvp (np, dds, d, dsdx + estart, skip, c1, 1, c1, 1);
   }
   
   // -- dc/dy = dc/dr * dr/dy + dc/ds * ds/dy.
 
   if (c2) {
-    Veclib::vmul  (np, ddr, d, drdy + estart, skip, c2, 1);
-    Veclib::vvtvp (np, dds, d, dsdy + estart, skip, c2, 1, c2, 1);
+    if   (drdy) Veclib::vmul  (np, ddr, d, drdy + estart, skip, c2, 1);
+    else        Veclib::zero  (np, c2, 1);
+    if   (dsdy) Veclib::vvtvp (np, dds, d, dsdy + estart, skip, c2, 1, c2, 1);
   }
 
   freeVector (ddr);
