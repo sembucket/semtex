@@ -994,7 +994,7 @@ void Element::sideSet (const integer  side,
                        const real*    src ,
                        real*          tgt ) const
 // ---------------------------------------------------------------------------
-// Load edge vector src into globally-numbered tgt.
+// Load edge vector src into globally-numbered tgt, CCW edge traverse order.
 // ---------------------------------------------------------------------------
 {
   register integer estart, skip, bstart;
@@ -1006,6 +1006,20 @@ void Element::sideSet (const integer  side,
   if   (side == ns - 1) tgt[bmap[          0]] = src[nm];
   else                  tgt[bmap[bstart + nm]] = src[nm];
 
+}
+
+
+void Element::sideGet (const integer  side,
+		       const real*    src ,
+		       real*          tgt ) const
+// ---------------------------------------------------------------------------
+// Load edge vector tgt with values from internal storage src.
+// ---------------------------------------------------------------------------
+{
+  register integer estart, skip, bstart;
+  terminal (side, estart, skip, bstart);
+
+  Veclib::copy (np, src + estart, skip, tgt, 1);
 }
 
 
@@ -1141,6 +1155,19 @@ void Element::divR (real* src) const
     rinv    = (rad > EPS) ? 1.0 / rad : 0.0;
     src[i] *= rinv;
   }
+}
+
+
+void Element::sideGetR (const integer side,
+			real*         tgt ) const
+// ---------------------------------------------------------------------------
+// Load r (i.e. y) values for side into tgt.
+// ---------------------------------------------------------------------------
+{
+  register integer estart, skip, bstart;
+  terminal (side, estart, skip, bstart);
+
+  Veclib::copy (np, ymesh + estart, skip, tgt, 1);
 }
 
 
