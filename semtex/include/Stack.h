@@ -1,14 +1,14 @@
-/*****************************************************************************
- * Stack.h: operations for LIFO stack.                                       *
- *                                                                           *
- * Summary:                                                                  *
- *   creator, destructor, push, pop, isEmpty.                                *
- *****************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+// Stack.h: templated operations for LIFO stack.
+//
+// Summary:
+//   creator, destructor, push, pop, isEmpty.
+//
+// $Id$
+///////////////////////////////////////////////////////////////////////////////
 
-/* $Id$ */
-
-#ifndef StackH
-#define StackH
+#ifndef STACK_H
+#define STACK_H
 
 #include <iostream.h>
 
@@ -21,7 +21,7 @@ public:
 
   void  push    (T x);
   T     pop     ();
-  int   isEmpty ();
+  int   isEmpty () { return top == 0; }
 
 private:
   class Node {
@@ -36,9 +36,6 @@ private:
   Stack(const Stack<T>&);                // Prohibit, since not implemented.
   Stack<T>& operator=(const Stack<T>&);  // Prohibit, since not implemented.
 };
-
-
-
 
 
 template<class T>
@@ -56,7 +53,6 @@ inline void Stack<T>::push(T x) {
 template<class T>
 inline T Stack<T>::pop() {
   if (isEmpty()) {
-    cout << "WARNING: stack empty" << endl;
     return 0;
   } else {
     Node *p = top;
@@ -65,12 +61,6 @@ inline T Stack<T>::pop() {
     delete p;
     return value;
   }
-}
-
-
-template<class T>
-inline int Stack<T>::isEmpty() {
-  return top == 0;
 }
 
 
