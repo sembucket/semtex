@@ -265,13 +265,13 @@ Function::Function (char* s)
   char* tok;
   char  sep[] = " \t";
 
-  tok = strtok (s, sep); strcpy (acceleration, tok);
-  tok = strtok (0, sep); strcpy (velocity, tok);
-  tok = strtok (0, sep); strcpy (position, tok);
+  tok = strtok (s, sep); strcpy (position,     tok);
+  tok = strtok (0, sep); strcpy (velocity,     tok);
+  tok = strtok (0, sep); strcpy (acceleration, tok);
 
-  if (   (strlen (acceleration) == 0)
+  if (   (strlen (position)     == 0)
       || (strlen (velocity)     == 0)
-      || (strlen (position)     == 0)) {
+      || (strlen (acceleration) == 0)) {
     ostrstream (err, StrMax)
       << "couldn't parse 3 real values from string: " << s << ends;
     message (routine, err, ERROR);
