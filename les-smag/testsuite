@@ -6,7 +6,7 @@
 echo "******************************************************"
 echo "* Spectral element Navier--Stokes solver test suite. *"
 echo "*   This is for DNS version of LES solver, must be   *"
-echo "*              compiled with DEBUG=1.                *"
+echo "*              compiled with NOMODEL=1.              *"
 echo "*                                                    *"
 echo "* (NB: pressure error norms are usually irrelevant.) *"
 echo "******************************************************"
@@ -16,7 +16,7 @@ set MESHDIR=../semtex/mesh
 
 if (!(-e $CODE)) then
 	echo "Building application, please wait..."
-	if { gmake DEBUG=1 } then
+	if { gmake NOMODEL=1 } then
 	    gmake clean
 	    echo "Done."
 	else

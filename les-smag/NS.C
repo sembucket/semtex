@@ -28,7 +28,7 @@
 //  pages =	 "159--177"
 //  }
 //
-// For testing, define DEBUG during compilation.  This will set the
+// For testing, define NOMODEL during compilation.  This will set the
 // kinematic viscosity equal to twice the input value and formulate
 // the SGS stresses as those supplied by the product of the strain
 // rate tensor with a spatially-constant NEGATIVE viscosity -KINVIS:
@@ -78,7 +78,7 @@ void NavierStokes (Domain*      D,
 
   // -- Create global matrix systems: rename viscosities beforehand.
 
-#if defined(DEBUG)
+#if defined(NOMODEL)
   Femlib::value ("REFVIS", Femlib::value ("2.0 * KINVIS"));
 #endif
 
@@ -213,7 +213,7 @@ void NavierStokes (Domain*      D,
 
   ROOTONLY {
     evfl.open ("visco.fld", ios::out);
-    EV -> addToPlane (0, Femlib::value ("KINVIS"));
+    EV -> addToPlane (0, Femlib::value ("KINVIS - REFVIS"));
   }
 
   (*EV /= Femlib::value ("REFVIS")) . transform (INVERSE);

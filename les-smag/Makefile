@@ -14,6 +14,10 @@ else
   PROG = les-smag
 endif
 
+ifdef NOMODEL		# -- This will produce dns-like execution.
+  DEFINES += -DNOMODEL
+endif
+
 ifdef DAMPING		# -- Compile in van-Driest damping (caveat emptor).
   DEFINES += -DDAMPING
 endif

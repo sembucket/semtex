@@ -44,11 +44,10 @@ void eddyViscosity (const Domain* D ,
 
   strainRate  (D, Us, Uf);
   viscoModel  (D, Us, Uf, EV);
-  D -> u[0] -> smooth (EV);
 
   ROOTONLY EV -> addToPlane (0, Femlib::value ("-KINVIS"));
 
-#if defined(DEBUG)
+#if defined(NOMODEL)
   *EV = 0.0;
   ROOTONLY EV -> addToPlane (0, Femlib::value ("-REFVIS"));
 #endif
@@ -171,7 +170,7 @@ static void viscoModel (const Domain* D ,
   real*            delta  = sum + nTot32;
 
   EV -> lengthScale       (delta);
-  D  -> u[0] -> smooth (1, delta);
+//  D  -> u[0] -> smooth (1, delta);
 
   Veclib::zero (nTot32, sum, 1);
   
@@ -189,7 +188,7 @@ static void viscoModel (const Domain* D ,
 
   Veclib::vsqrt (nTot32, sum, 1, sum, 1);
 
-  // -- At this point we have S in physical space.
+  // -- At this point we have |S| in physical space.
 
   if ((int) Femlib::value ("RNG")) {
 
@@ -223,8 +222,7 @@ static void viscoModel (const Domain* D ,
 
   } else {			// -- Smagorinsky.
 
-    Blas::scal   (nP, Cs, delta, 1);
-    Veclib::vmul (nP, delta, 1, delta, 1, delta, 1);
+    Veclib::svvtt (nP, Cs*Cs, delta, 1, delta, 1, delta, 1);
 
     for (k = 0; k < nZ32; k++)
       Veclib::svvtp (nP, molvis, delta, 1, sum + k * NP, 1, sum + k * NP, 1);
@@ -261,7 +259,7 @@ static real RNG_quartic (const real x0,
   }
 
   if (i == ITR_MAX) message (routine, "failed to converge", ERROR);
-#if defined(DEBUG)
+#if defined (DEBUG)
   if (x < 1.0) message (routine, "invalid solution",   WARNING);
 #endif
 
