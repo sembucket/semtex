@@ -73,8 +73,8 @@ int main (int    argc,
   
   Geometry::set (np, nz, nel, Geometry::Cartesian);
 
-  I = new RunInfo (*D, *F);
   D = new Domain  (*F, *M, *B, "c", session);
+  I = new RunInfo (*D, *F);
   G = gasdata     (session, np, nel);
 
   D -> initialize(); ROOTONLY D -> report();
@@ -158,7 +158,7 @@ static real* gasdata (const char* session,
   int       i, NP, NZ, NEL, swab;
   const int nProc = Geometry::nProc();
   const int nelG  = (int) Femlib::value ("NEL_GAS");
-  real*     w     = new real [np * np * nel];
+  real*     w     = new real [Geometry::planeSize()];
 
   ROOTONLY {
     strcat (strcpy (buf, session), ".gas");
@@ -206,13 +206,13 @@ static real* gasdata (const char* session,
 
     file.read ((char*) w, np * np * nelG * sizeof (real));
     if (swab) Veclib::brev (np * np * nelG, w, 1, w, 1);
-    Veclib::zero (np * np * (nel - NEL), w + np * np * NEL, 1);
+    Veclib::zero (Geometry::planeSize() - np*np*nelG, w + np*np*nelG, 1);
   
     if (nProc > 1)
       for (i = 1; i < nProc; i++)
-	Femlib::send (w, np * np * nel, i);
+	Femlib::send (w, Geometry::planeSize(), i);
   } else			// -- This must be a parallel run.
-    Femlib::recv (w, np * np * nel, 0);
+    Femlib::recv (w, Geometry::planeSize(), 0);
+
+  return w;
 }
-
-
