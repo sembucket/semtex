@@ -225,7 +225,7 @@ void Analyser::analyse (AuxField*** work)
       H -> extract (u, tmp());
 
       ROOTONLY {
-	his_strm << setw(4) << H -> ID()  << setw(14) << src.time;
+	his_strm << setw(4) << H -> ID() << " " << setw(14) << src.time;
 	for (j = 0; j < NF; j++) his_strm << setw(15) << tmp[j];
 	his_strm << endl;
       }
