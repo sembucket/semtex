@@ -119,25 +119,34 @@ void integrateNS (Domain*      D,
     // -- Unconstrained forcing substep.
 
     nonLinear (D, Us[0], Uf[0], ff);
+
+#if defined (OLDCODE)
+    PBCmgr::maintain (D -> step, Pressure, 
+		      (const AuxField**)Us[0],
+		      (const AuxField**)Uf[0],false);
+    Pressure -> evaluateBoundaries (D -> step);
+    if (Geometry::cylindrical()) { Us[0][0] -> mulY(); }
+    waveProp  (D, (const AuxField***)Us, (const AuxField***)Uf);
+    for (i = 0; i < NCOM; i++) AuxField::swapData (D -> u[i], Us[0][i]);
+    rollm     (Uf, NORD, NCOM);
+    setPForce ((const AuxField**)Us[0], Uf[0]);
+    Solve     (D, NCOM,  Uf[0][0], MMS[NCOM]); 
+    if (Geometry::cylindrical()) { Us[0][1] -> mulY(); }
+#else
     PBCmgr::maintain (D -> step, Pressure, 
 		      const_cast<const AuxField**>(Us[0]),
 		      const_cast<const AuxField**>(Uf[0]));
     Pressure -> evaluateBoundaries (D -> step);
-    if (Geometry::cylindrical()) {
-      Us[0][0] -> mulY();
-      Us[0][1] -> mulY();
-    }
+    if (Geometry::cylindrical()) { Us[0][0] -> mulY(); Us[0][1] -> mulY(); }
     waveProp (D,
 	      const_cast<const AuxField***>(Us),
 	      const_cast<const AuxField***>(Uf));
-
-    // -- Pressure projection substep.
-
     for (i = 0; i < NCOM; i++) AuxField::swapData (D -> u[i], Us[0][i]);
-
     rollm     (Uf, NORD, NCOM);
     setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);
     Solve     (D, NCOM,  Uf[0][0], MMS[NCOM]);
+#endif
+
     project   (D, Us[0], Uf[0]);
 
     // -- Update multilevel velocity storage.
@@ -216,11 +225,29 @@ static void setPForce (const AuxField** Us,
   int        i;
   const real dt = Femlib::value ("D_T");
 
+#if defined (OLDCODE)
+
+  if (geometry::cylindrical()) {
+    (*Uf[0]  = *Us[1]).divY();
+    (*Uf[1]  = *Us[1]).gradient(1);
+    (*Uf[1] += *Uf[0]).mulY();
+    (*Uf[0]  = *Us[0]).gradient(0);
+    if (NDIM == 3) (*Uf[2]  = *Us[2]).gradient(2);
+    (*Uf[0] += *Uf[1]);
+    if (NDIM == 3) (*Uf[0] += *Uf[2]);
+  } else {
+    for (i = 0; i < NDIM; i++) (*Uf[i] = *Us[i]) . gradient (i);
+    for (i = 1; i < NDIM; i++) *Uf[0] += *Uf[i];
+  }
+
+  *Uf[0] /= dt;
+#else
   for (i = 0; i < NDIM; i++) (*Uf[i] = *Us[i]) . gradient (i);
 
   for (i = 1; i < NDIM; i++) *Uf[0] += *Uf[i];
 
   *Uf[0] /= dt;
+#endif
 }
 
 

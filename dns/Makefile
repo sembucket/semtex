@@ -12,22 +12,27 @@ VPATH = $(SEM)/src
 
 ifdef STOKES		# -- Turn off nonlinear terms; create Stokes solver.
   DEFINES += -DSTOKES
-  PROG := $(PROG)_stokes
+  PROG    := $(PROG)_stokes
 endif
 
 ifdef ALIAS		# -- No dealiasing (parallel is never dealiased).
   DEFINES += -DALIAS
-  PROG := $(PROG)_alias
+  PROG    := $(PROG)_alias
 endif
 
 ifdef SKEW		# -- Make skew-symmetric nonlinear terms.
   DEFINES += -DSKEW
-  PROG := $(PROG)_skew
+  PROG    := $(PROG)_skew
 endif
 
 ifdef TBCS		# -- Recompute mode 0 velocity BCs every time step.
   DEFINES += -DTBCS
-  PROG := $(PROG)_tbcs
+  PROG    := $(PROG)_tbcs
+endif
+
+ifdef OLDCODE		# -- Make the old cylindrical code version.
+  DEFINES += -DOLDCODE
+  PROG    := $(PROG)_old
 endif
 
 ifdef MPI		# -- Make a parallel executable.

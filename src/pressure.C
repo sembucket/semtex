@@ -136,6 +136,9 @@ void PBCmgr::maintain (const int        step   ,
       ROOTONLY if (k == 1) continue;
       Veclib::copy (nP, Nx -> _plane[k] + offset, skip, Pnx[0][i][k], 1);
       Veclib::copy (nP, Ny -> _plane[k] + offset, skip, Pny[0][i][k], 1);
+#if defined (OLDCODE)
+      if (Geometry::cylindrical()) B -> mulY (Pny[0][i][k]);
+#endif
     }
   }
 
