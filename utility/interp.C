@@ -216,7 +216,7 @@ static void loadPoints (istream&        pfile,
 
   } else {
     if   (sizeof (real_t) == sizeof (double)) sscanf (buf, "%lf %lf", &x, &y);
-    else                                    sscanf (buf, "%f  %f",  &x, &y);
+    else                                      sscanf (buf, "%f  %f",  &x, &y);
 
     datum = new Point;
     datum -> x = x;

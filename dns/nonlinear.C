@@ -191,7 +191,8 @@ void nonLinear (Domain*       D ,
 
       // -- Transform to Fourier space, smooth, add forcing.
 
-      N[i]   -> transform32 (FORWARD, n32[i]);
+      N[i] -> transform32 (FORWARD, n32[i]);
+      N[i] -> smooth      (nZ32,    n32[i]);
 
 #if !defined (CONV)
       ROOTONLY if (fabs (ff[i]) > EPSDP) {
@@ -251,7 +252,8 @@ void nonLinear (Domain*       D ,
 
       // -- Transform to Fourier space, smooth, add forcing.
       
-      N[i]   -> transform32 (FORWARD, n32[i]);
+      N[i] -> transform32 (FORWARD, n32[i]);
+      N[i] -> smooth      (nZ32,    n32[i]);
 
 #if !defined (CONV)
       ROOTONLY if (fabs (ff[i]) > EPSDP) N[i] -> addToPlane (0, -2.0*ff[i]);
