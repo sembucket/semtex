@@ -11,6 +11,7 @@ static char
 
 #include <sys/types.h>
 #include <malloc.h>
+#include <stdio.h>
 #include <alplib.h>
 
 #define  FREE_ARG   void*
