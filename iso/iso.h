@@ -97,9 +97,6 @@ int  ispow2   (int);
 
 void  nonlinear (CVF, CVF, CVF, CF, CF,
 		 const complex*, const complex*);
-void  convolve  (const CF, const CF, const CF, const CF, CF, CF,
-		 const complex*, const complex*);
-void  shift     (CF, const complex*, const int);
 
 /* -- integrate.c */
 
@@ -107,56 +104,60 @@ void integrate (CVF, const CVF*, const Param*);
 
 /* -- energy.c */
 
-real  energyP     (CVF V, const complex*);
-real  energyF     (const CVF);
-real  enstrophyF  (const CVF, CVF, CF);
-real  rmsEns      (const CVF);
-real  L2norm      (const CF);
-real  amaxF       (const CF);
-void  normaliseVF (CVF);
-void  energySpec  (const CVF, real*);
+real energyP     (CVF V, const complex*);
+real energyF     (const CVF);
+real enstrophyF  (const CVF, CVF, CF);
+real microF       (const CVF, CF);
+real rmsEns      (const CVF);
+real L2norm      (const CF);
+real amaxF       (const CF);
+void normaliseVF (CVF);
+void energySpec  (const CVF, real*);
 
 /* -- operator.c */
 
-void  deriv    (const CVF, const int, CF, const int);
-void  curl     (const CVF, CVF, CF);
+void deriv    (const CVF, const int, CF, const int);
+void curl     (const CVF, CVF, CF);
+void shift    (CF, const complex*, const int);
+void convolve (const CF, const CF, const CF, const CF, CF, CF,
+	       const complex*, const complex*);
 
 /* -- pressure.c */
 
-void  pressure (CVF, CVF, CF, CVF, CF, const complex*, const complex*);
+void pressure (CVF, CVF, CF, CVF, CF, const complex*, const complex*);
 
 /* -- taylor.c */
 
-void  Taylor2D       (CVF, const int);
-void  Taylor2D_error (CVF, const Param*, const int);
-void  TaylorGreen    (CVF);
-real  Brachet        (const real);
+void Taylor2D       (CVF, const int);
+void Taylor2D_error (CVF, const Param*, const int);
+void TaylorGreen    (CVF);
+real Brachet        (const real);
 
 /* -- misc.c */
 
-void  zeroF      (CF);
-void  zeroVF     (CVF);
-void  copyF      (CF,  const CF);
-void  copyVF     (CVF, const CVF);
-void  scaleF     (CF,  const real);
-void  scaleVF    (CVF, const real);
-void  setF       (CF,  const CF);
-void  setVF      (CVF, const CVF);
-void  addF       (CF,  const CF);
-void  addVF      (CVF, const CVF);
-void  subF       (CF,  const CF);
-void  subVF      (CVF, const CVF);
-void  truncateF  (CF);
-void  truncateVF (CVF);
+void zeroF      (CF);
+void zeroVF     (CVF);
+void copyF      (CF,  const CF);
+void copyVF     (CVF, const CVF);
+void scaleF     (CF,  const real);
+void scaleVF    (CVF, const real);
+void setF       (CF,  const CF);
+void setVF      (CVF, const CVF);
+void addF       (CF,  const CF);
+void addVF      (CVF, const CVF);
+void subF       (CF,  const CF);
+void subVF      (CVF, const CVF);
+void truncateF  (CF);
+void truncateVF (CVF);
 
-void  filterF    (CF, real*, real*);
-void  projectVF  (CVF, CF);
+void filterF    (CF, real*, real*);
+void projectVF  (CVF, CF);
 
 
 /* -- random.c */
 
-void  randomise (CVF, int*, CF);
-real  ran2PI    (int*);
+void randomise (CVF, int*, CF);
+real ran2PI    (int*);
 
 /* -- filter.c */
 
