@@ -1,35 +1,30 @@
 /*****************************************************************************
- * Generate initial conditions corresponding to the 2D Taylor Flow
+ * taylor.c: routines for Taylor & Taylor-Green vortices.
  *
- * u = -cos(x) sin (y) exp(-2 PI^2 \nu t)
- * v =  sin(x) cos (y) exp(-2 PI^2 \nu t)
- * w =  0
- * p = -0.25 [cos(2x) + cos(2y)] exp(-4 PI^2 \nu t)
- * 
- * Input code = 0, 1, 2 generates a cyclic permutation of the velocity.
- *
- * Also: calculate the error in a field at any time.
- * 
  * $Id$
  *****************************************************************************/
 
-#include "globals.h"
+#include "iso.h"
 
 
-void Taylor2D (const int*         Dim ,
-	       CVF  IC  ,
-	       const int             code)
-/* -------------------------------------------------------------------------
+void Taylor2D (const int*  Dim ,
+	       CVF         IC  ,
+	       const int   code)
+/* ------------------------------------------------------------------------- *
+ * Generate initial conditions corresponding to the 2D Taylor Flow
+ *
+ * u = -cos(x) sin (y) exp(-2 \nu t)
+ * v =  sin(x) cos (y) exp(-2 \nu t)
+ * w =  0
+ * p = -0.25 [cos(2x) + cos(2y)] exp(-4 \nu t).
+ * 
+ * Input code = 0, 1, 2 generates a cyclic permutation of the velocity.
+ *
  * Generate initial conditions for t = 0, components in physical space.
- * Return prescaled for FFT.
  * ------------------------------------------------------------------------- */
 {
   const int N    = Dim[1];
   const int Npts = Dim[1] * Dim[2] * Dim[3];
-
-  /* -- Scaling factor for the FFT. */
-  
-  const real DFT_Fact = 1.0 / Npts;
 
   /* -- Fast pointers to the data. */
 
@@ -56,12 +51,6 @@ void Taylor2D (const int*         Dim ,
 	}
       }
     }
-
-    for (i = 0; i < Npts*2; i++) {
-      u[i] *= DFT_Fact;
-      v[i] *= DFT_Fact;
-    }
-
     break;
 
   case 1:
@@ -78,13 +67,8 @@ void Taylor2D (const int*         Dim ,
 	}
       }
     }
-
-    for (i = 0; i < Npts*2; i++) {
-      v[i] *= DFT_Fact;
-      w[i] *= DFT_Fact;
-    }
-
     break;
+
   case 2:
     for (i = 0; i < N; i++) {
       const double x = 2.0 * M_PI * i / (double) N;
@@ -99,13 +83,8 @@ void Taylor2D (const int*         Dim ,
 	}
       }
     }
-
-    for (i = 0; i < Npts*2; i++) {
-      u[i] *= DFT_Fact;
-      w[i] *= DFT_Fact;
-    }
-
     break;
+
   default :
     message ("Taylor2D", "permutation key must be 0, 1 or 2", ERROR);
     break;
@@ -115,19 +94,19 @@ void Taylor2D (const int*         Dim ,
 }
 
 
-void Taylor2D_error (const int*         Dim ,
-		     CVF  IC  ,
-		     const header*         I   ,
-		     const int             code)
-/* ------------------------------------------------------------------------
+void Taylor2D_error (const int*     Dim ,
+		     CVF            IC  ,
+		     const header*  I   ,
+		     const int      code)
+/* ------------------------------------------------------------------------- *
  * Replace the velocity field by its error at the time indicated by
  * header information.  Code indicates which velocity component is zero.
  *
  * Velocity components are supplied in physical space.
- * ------------------------------------------------------------------------ */
+ * ------------------------------------------------------------------------- */
 {
   const double  t     = I -> N_Step * I -> Delta_T;
-  const double  decay = exp (-2.0 * M_PI * M_PI * I -> K_Visc * t);
+  const double  decay = exp (-2.0 * I -> K_Visc * t);
   const int     N     = Dim[1];
   double        x, y, z;
   real          uvw;
@@ -202,3 +181,107 @@ void Taylor2D_error (const int*         Dim ,
     break;
   }
 }
+
+
+void  TaylorGreen (const int* Dim, CVF IC)
+/* ------------------------------------------------------------------------- *
+ * Generate initial conditions of the 3D Taylor--Green vortex, in
+ * PHYSICAL space.
+ *
+ *   u =  sin x cos y cos z
+ *   v = -cos x sin y cos z
+ *   w =  0
+ * ------------------------------------------------------------------------- */
+{
+  const int N    = Dim[1];
+  const int Npts = Dim[1] * Dim[2] * Dim[3];
+
+  /* -- Fast pointers to the data */
+
+  register real *u = & IC[1][0][0][0].Re;
+  register real *v = & IC[2][0][0][0].Re;
+  register real *w = & IC[3][0][0][0].Re;
+
+  register int i, j, k;
+
+  /* -- Fill up the cube */
+
+  for (i = 0; i < N; i++) {
+    const double x = 2.0 * M_PI * i / (double) N;
+    for (j = 0; j < N; j++) {
+      const double y = 2.0 * M_PI * j / (double) N;
+      for (k = 0; k < N; k++) {
+	const double z = 2.0 * M_PI * k / (double) N;
+	
+	u[k + N * (j + i * N)] =  sin(x) * cos(y) * cos(z);
+	v[k + N * (j + i * N)] = -cos(x) * sin(y) * cos(z);
+	w[k + N * (j + i * N)] =  0.0;
+      }
+    }
+  }
+}
+
+
+real  Brachet (const real t)
+/* ------------------------------------------------------------------------- *
+ * Return the Generalized Enstrophy of order 1 for the inviscid Taylor-
+ * Green vortex, as estimated in Ref [5] (Table 5).
+ * ------------------------------------------------------------------------- */
+{
+  register int   i;
+  const    int   Ntab = 41;
+  double         t2r, omega, t2 = SQR (t);
+  static double  A[]  = {
+     0.75000000000000000000000000000000E+00,
+     0.78124999999999999999999999999999E-01,
+     0.59185606060606060606060606060601E-02,
+    -0.27843606425347977381470204436711E-03,
+     0.61048213608414040976589547497500E-04,
+    -0.96361343406379096996080171679830E-05,
+     0.12376451432939409337723444617600E-05,
+    -0.13001673399485842050532230751800E-06,
+     0.11507664940214605511186628852000E-07,
+    -0.40689927930502918781244653498000E-09,
+    -0.15722647048717447228204712700000E-09,
+     0.56457081462142300009592373250000E-10,
+    -0.13696928782856063280154415300000E-10,
+     0.29920198954228640442791535000000E-11,
+    -0.61991963183363252307722688000000E-12,
+     0.12450945726913139691007882000000E-12,
+    -0.24774479828999593771452870000000E-13,
+     0.49252841340330882023774810000000E-14,
+    -0.97719041829306565745462900000000E-15,
+     0.19375444767106104429043700000000E-15,
+    -0.38505990845347852748213000000000E-16,
+     0.76701287226861612998270000000000E-17,
+    -0.15301069631879348281350000000000E-17,
+     0.30585009158637265652730000000000E-18,
+    -0.61279386047170433163800000000000E-19,
+     0.12302069798992531554700000000000E-19,
+    -0.24743842723469146812000000000000E-20,
+     0.49871740662854581144000000000000E-21,
+    -0.10071233331935838450000000000000E-21,
+     0.20373933972348344470000000000000E-22,
+    -0.41289304714858419800000000000000E-23,
+     0.83820874296160258400000000000000E-24,
+    -0.17043406330511116000000000000000E-24,
+     0.34707362620876885000000000000000E-25,
+    -0.70784176151137040000000000000000E-26,
+     0.14456490670569290000000000000000E-26,
+    -0.29564188944707500000000000000000E-27,
+     0.60538014508785700000000000000000E-28,
+    -0.12411584017048000000000000000000E-28,
+     0.25476148544746000000000000000000E-29,
+    -0.52351228744960000000000000000000E-30 };
+
+  omega = A[0];
+  t2r   = t2;
+  for (i = 1; i < Ntab; i++) {
+    omega += t2r * A[i];
+    t2r   *= t2;
+  }
+  omega *= 0.5;
+
+  return  omega;
+}
+    
