@@ -1,6 +1,8 @@
 //////////////////////////////////////////////////////////////////////////////
 // les.h: header file for LES solver.
 //
+// Copyright (c) Hugh Blackburn 1998--1999
+//
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
@@ -13,7 +15,7 @@ class LESAnalyser : public Analyser
 // ===========================================================================
 {
 public:
-  LESAnalyser  (Domain&, FEML&);
+  LESAnalyser  (Domain*, FEML*);
   void analyse (AuxField***);
 
 private:
