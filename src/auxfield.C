@@ -148,10 +148,10 @@ AuxField& AuxField::operator = (const char* function)
   const integer     kb  = Geometry::basePlane();
   const real        dz  = Femlib::value ("TWOPI / BETA / N_Z");
   register integer  i, k;
-  real              *p, z;
+  real              *p;
 
   for (k = 0; k < nz; k++) {
-    Femlib::value ("z", z = (kb + k) * dz);
+    Femlib::value ("z", (kb + k) * dz);
     for (p = plane[k], i = 0; i < nel; i++, p += np2)
       Elmt[i] -> evaluate (function, p);
   }
@@ -844,9 +844,9 @@ AuxField& AuxField::DLT2D (const integer sign,
 
   register integer p, q, pq, r, s, rs;
   register real    cr, cs, P, Q;
-  integer          i, k, offset;
+  integer          i, k;
   vector<real>     work (np2);
-  real             *pk, *src, *tmp = work();
+  real             *src, *tmp = work();
   const real       *w, *legtab;
 
   Femlib::legCoef (np, &legtab);

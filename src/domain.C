@@ -2,10 +2,9 @@
 // domain.C: implement domain class functions.
 //
 // Copyright (C) 1994, 1999 Hugh Blackburn
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <Sem.h>
 
@@ -25,7 +24,6 @@ Domain::Domain (FEML*             F,
 // ---------------------------------------------------------------------------
   elmt (E)
 {
-  const char    routine[] = "Domain::Domain";
   const integer verbose = (integer) Femlib::value ("VERBOSE");
   integer       i, nfield;
 

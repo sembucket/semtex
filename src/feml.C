@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // feml.C:  Finite Element Markup Language (FEML) routines.
 //
+// Copyright (C) 1994, 1999 Hugh Blackburn
+//
 // After initialization, FEML files are prescanned to find locations of
 // keywords.  These locations are stored, and reset by the seek function.
 //
@@ -18,10 +20,8 @@
 // 4. No restriction is placed on options, or on the contents of a section.
 // 5. After seeking, input stream is repositioned just following keyword.
 //
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <stdlib.h>
 #include <stdio.h>

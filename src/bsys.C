@@ -14,10 +14,9 @@
 // 3, the number of boundary frames and numbering systems is set to 3,
 // for the 0th, 1st and 2nd (and higher) modes, irrespective of the
 // number of Fourier modes actually used.  See BCmgr.C.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <Sem.h>
 
@@ -32,8 +31,6 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
   nbound     (bcmgr -> nBCedges()),
   mixed      (0)
 {
-  const char              routine[] = "BoundarySys::BoundarySys";
-
   const integer           np = Geometry::nP();
   ListIterator<BCtriple*> edge (bcmgr -> getBCedges());
   BCtriple*               BCT;

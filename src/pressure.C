@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // pressure.C: routines to deal with pressure field boundary conditions.
 //
+// Copyright (C) 1994, 1999 Hugh Blackburn
+//
 // Class variables Pn & Un provide storage for the mode equivalents of
 //   Pn:  normal gradient of the pressure field,
 //   Un: normal component of velocity,
@@ -12,10 +14,9 @@
 //
 // Pn & Un are indexed by time level, boundary, data plane, and location in
 // that order (e.g. Pn[time][boundary][plane][i]).
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char 
-RCSid[] = "$Id$";
 
 #include <Sem.h>
 
