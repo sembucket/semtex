@@ -148,7 +148,7 @@ tar:
 	tar cvf femlib.tar *
 
 clean:
-	rm -rf *.O *.o *.a *~ ii_files *.F
+	rm -rf *.O *.o *.a *~ ii_files
 
 # -- Special machine-dependent optimizations.
 
