@@ -88,16 +88,16 @@ endif
 
 # ----------------------------------------------------------------------------
 #
-SEMFILES  = auxfield BCmgr boundary condition domain element	\
-	    feml field geometry history integration matrix	\
-	    mesh misc particle pressure
+SEMFILES  = analysis auxfield BCmgr boundary condition domain	\
+	    element feml field geometry history integration 	\
+	    matrix mesh misc particle pressure
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
 SEMHDR    = Sem.h
 
 # ----------------------------------------------------------------------------
 # Default build for aeroelastic Navier-Stokes solver.
 
-NS_OBJ = drive.o NS.o analysis.o body.o
+NS_OBJ = drive.o NS.o aeroanalysis.o body.o
 NS_HDR = aero.h
 
 aero:	$(SEMOBJ) $(NS_OBJ) 

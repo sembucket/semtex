@@ -22,7 +22,7 @@ RCSid[] = "$Id$";
 #include <aero.h>
 
 typedef ModalMatrixSystem ModeSys;
-static  integer           DIM;
+static  integer           DIM, NZ;
 
 static void  nonLinear (Domain*, AuxField***, AuxField***, Vector&);
 static void  waveProp  (Domain*, const AuxField***, const AuxField***);
@@ -34,9 +34,9 @@ static void      Solve    (Field*, AuxField*, ModeSys*,
 			   const integer, const integer);
 
 
-void NavierStokes (Domain*   D,
-		   Body*     B,
-		   Analyser* A)
+void NavierStokes (Domain*       D,
+		   Body*         B,
+		   AeroAnalyser* A)
 // ---------------------------------------------------------------------------
 // On entry, D contains initialized storage for velocity Fields
 // 'u', 'v' ('w' for 3D) and constraint Field 'p'.
@@ -46,12 +46,12 @@ void NavierStokes (Domain*   D,
 // ---------------------------------------------------------------------------
 {
   DIM = Geometry::nDim();
+  NZ  = Geometry::nZ();
 
   integer       i, j;
   const real    dt     =           Femlib::value ("D_T");
   const integer nOrder = (integer) Femlib::value ("N_TIME");
   const integer nStep  = (integer) Femlib::value ("N_STEP");
-  const integer nZ     = (integer) Femlib::value ("N_Z");
 
   // -- Initialize body motion coupling terms.
 
@@ -71,8 +71,8 @@ void NavierStokes (Domain*   D,
     Us[i] = new AuxField* [nOrder];
     Uf[i] = new AuxField* [nOrder];
     for (j = 0; j < nOrder; j++) {
-      *(Us[i][j] = new AuxField (D -> Esys, nZ)) = 0.0;
-      *(Uf[i][j] = new AuxField (D -> Esys, nZ)) = 0.0;
+      *(Us[i][j] = new AuxField (D -> Esys, NZ)) = 0.0;
+      *(Uf[i][j] = new AuxField (D -> Esys, NZ)) = 0.0;
     }
   }
 
@@ -170,10 +170,9 @@ static void nonLinear (Domain*     D ,
 // ---------------------------------------------------------------------------
 {
   integer           i, j;
-  const integer     nZ     = Geometry::nZ();
   const integer     nP     = Geometry::planeSize();
-  const integer     nTot   = nZ * nP;
-  const integer     nZ32   = (3 * nZ) >> 1;
+  const integer     nTot   = NZ * nP;
+  const integer     nZ32   = (3 * NZ) >> 1;
   const integer     nTot32 = nZ32 * nP;
   const real        EPS    = (sizeof(real) == sizeof(double)) ? EPSDP : EPSSP;
   vector<real>      work ((2 * DIM + 1) * nTot32);
@@ -208,7 +207,7 @@ static void nonLinear (Domain*     D ,
       if (j == 2) {
 	Femlib::DFTr (tmp, nZ32, nP, +1);
 	Veclib::zero (nTot32 - nTot, tmp + nTot, 1);
-	master -> gradient (nZ, tmp, j);
+	master -> gradient (NZ, tmp, j);
 	Femlib::DFTr (tmp, nZ32, nP, -1);
       } else {
 	master -> gradient (nZ32, tmp, j);
@@ -221,7 +220,7 @@ static void nonLinear (Domain*     D ,
       if (j == 2) {
 	Femlib::DFTr (tmp, nZ32, nP, +1);
 	Veclib::zero (nTot32 - nTot, tmp + nTot, 1);
-	master -> gradient (nZ, tmp, j);
+	master -> gradient (NZ, tmp, j);
 	Femlib::DFTr (tmp, nZ32, nP, -1);
       } else {
 	master -> gradient (nZ32, tmp, j);
@@ -339,8 +338,7 @@ static ModeSys** preSolve (const Domain* D)
   char                 name;
   integer              i;
   const integer        nSys   = D -> Nsys.getSize();
-  const integer        nZ     = Geometry::nZ();
-  const integer        nModes = (nZ + 1) >> 1;
+  const integer        nModes = Geometry::nMode();
   const integer        base   = 0;
   const integer        itLev  = (integer) Femlib::value ("ITERATIVE");
   const integer        nOrder = (integer) Femlib::value ("N_TIME");

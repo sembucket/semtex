@@ -38,7 +38,6 @@ RCSid[] = "$Id$";
 static char prog[]  = "aero";
 static void memExhaust   () { message ("new", "free store exhausted", ERROR); }
 static void getargs      (integer, char**, char*&);
-       void NavierStokes (Domain*, Body*, Analyser*);
 
 
 integer main (integer argc,
@@ -52,17 +51,16 @@ integer main (integer argc,
   ios::sync_with_stdio ();
 #endif
 
-  char      *session, fields[StrMax];
-  integer   np, nz, nel;
-  FEML*     F;
-  Mesh*     M;
-  BCmgr*    B;
-  Domain*   D;
-  Analyser* A;
-  Body*     BD;
+  char          *session, fields[StrMax];
+  integer       np, nz, nel;
+  FEML*         F;
+  Mesh*         M;
+  BCmgr*        B;
+  Domain*       D;
+  AeroAnalyser* A;
+  Body*         BD;
 
   Femlib::prep  ();
-  Femlib::value ("SPAWN", 0);
   getargs       (argc, argv, session);
 
   F = new FEML  (session);
@@ -85,7 +83,7 @@ integer main (integer argc,
 
   BD -> force (*D);
 
-  A = new Analyser (*D, *F, *BD);
+  A = new AeroAnalyser (*D, *F, *BD);
 
   NavierStokes (D, BD, A);
 
