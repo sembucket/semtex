@@ -3,25 +3,62 @@
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
-// At present, this is limited to running averages of primitive
-// variables and product terms for Reynolds stresses.
+// What statistics are collected is controlled by the setting of the
+// AVERAGE token. Legal values are 0 (default), 1, 2, 3. The routines
+// here do not control how often statistics are updated: that happens
+// in Analyser class methods.
 //
-// Naming scheme for "Reynolds stresses":
+// All collected statistics are given 1-character names. Potentially
+// these may clash with quantities derived/used by addfield utility
+// for example. Caveat emptor. In the longer term we should move to
+// CSV for field names.
+//
+// AVERAGE = 0.  No statistics.
+//
+// AVERAGE = 1.  Running averages of variables held by the Domain used
+// for initialisation. The data are held in semi-Fourier state.
+//
+// AVERAGE = 2.  Additionally, product terms for computation of
+// Reynolds stresses. (All product terms are computed and held in
+// physical space.)
+// 
+// Naming scheme for components of the symmetric "Reynolds stresses" tensor:
 //
 //                      / uu uv uw \     /  A  B  D \
 //                      | .  vv vw |  =  |  .  C  E |
 //                      \ .  .  ww /     \  .  .  F /
 //
-// Reynolds stresses are selected for computation if AVERAGE > 1.  In
-// this case it is assumed that there will be at least DIM fields to
-// be multiplied together as indicated.  NB: what is computed are the
-// running average of the products uu, uv, etc, which are NOT the
-// actual Reynolds stresses: they need to have the products of the
-// mean values UU, UV etc subtracted, assumed to occur in
-// postprocessing.
+// What is computed are the running average of the products uu, uv,
+// etc, which are NOT the actual Reynolds stresses: they need to have
+// the products of the mean values UU, UV etc subtracted, assumed to
+// occur in postprocessing. If there are only two velocity components
+// present in the initialising Domain, only averages for A, B & C are
+// made.
 //
-// Running averages are kept semi-Fourier, Reynolds stress products in
-// physical space to minimize number of transforms needed.
+// AVERAGE = 3. Additional products are kept for computation of energy
+// equation terms. Again, the correct terms need to be made in
+// post-processing.
+//
+// a) Scalar: 
+//    i) q = 0.5 [u^2 + v^2 (+ w^2)]
+//   ii) d = SijSij
+//
+// b) Vector: Naming:
+//    i) p u_i
+//                      / pu \   / m \
+//                      | pv | = | n |
+//                      \ pw /   \ o /
+//   ii) q u_i
+//                      / qu \   / r \
+//                      | qv | = | s |
+//                      \ qw /   \ t /
+// 
+// c) Tensor: symmetric rate-of-strain tensor S_ij. Naming:
+//
+//                      / xx xy xz \     /  G  H  J \
+//                      | .  yy yz |  =  |  .  I  K |
+//                      \ .  .  zz /     \  .  .  L /
+//
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -41,13 +78,19 @@ Statistics::Statistics (Domain* D) :
 // NR = Number of Reynolds stress averaging buffers, set if AVERAGE > 1.
 // ---------------------------------------------------------------------------
   _name (D -> name),
-  _base (D)
+  _base (D),
+  _iavg (Femlib::ivalue ("AVERAGE"))
 {
+  if (_iavg == 0) return;
+  if ((_iavg  < 0) || (_iavg > 2))
+    message ("Statistics::Statistics", "AVERAGE token out of [0,3]", ERROR);
+					 
   int_t       i, j;
   const int_t NF    = _base -> nField();
   const int_t NC    = NF - 1;	// -- Number of velocity components.
-  const int_t NR    = (Femlib::ivalue ("AVERAGE") > 1) ? ((NC+1)*NC)>>1 : 0;
-  const int_t NT    = NF + NR;
+  const int_t NR    = (_iavg > 1) ? ((NC+1)*NC)/2   : 0;
+  const int_t NE    = (_iavg > 2) ? ((NC+5)*NC+4)/2 : 0;
+  const int_t NT    = NF + NR + NE;
   const int_t nz    = Geometry::nZProc();
   const int_t ntot  = Geometry::nTotProc();
   real_t*     alloc = new real_t [static_cast<size_t> (NT * ntot)];
@@ -59,10 +102,16 @@ Statistics::Statistics (Domain* D) :
   
   for (i = 0; i < NF; i++) _src[i] = (AuxField*) _base -> u[i];
 
-  for (j = 0, i = 0; i < NF; i++, j++)
-    _avg[i] = new AuxField (alloc+j*ntot, nz, _base->elmt, _src[i]->name());
-  for (i = 0; i < NT - NF; i++, j++)
-    _avg[i + NF] = new AuxField (alloc+j*ntot, nz, _base->elmt, 'A' + i);
+  if (_iavg > 0)
+    for (j = 0, i = 0; i < NF; i++, j++)
+      _avg[i] = new AuxField (alloc+j*ntot, nz, _base->elmt, _src[i]->name());
+  if (_iavg > 1)
+    for (i = 0; i < NT - NF; i++, j++)
+      _avg[i + NF] = new AuxField (alloc+j*ntot, nz, _base->elmt, 'A' + i);
+  if (_iavg > 2) {
+    _avg[NF + NR]     = new AuxField (alloc+(j++)*ntot, nz, _base->elmt, 'q');
+    _avg[NF + NR + 1] = new AuxField (alloc+(j++)*ntot, nz, _base->elmt, 'd');
+  }
 }
 
 
@@ -78,7 +127,7 @@ void Statistics::initialise ()
   int_t       i;
   const int_t NF = _base -> nField();
   const int_t NC = NF - 1;	// -- Number of velocity components.
-  const int_t NR = (Femlib::ivalue ("AVERAGE") > 1) ? ((NC+1)*NC)>>1 : 0;
+  const int_t NR = (_iavg > 1) ? ((NC+1)*NC)>>1 : 0;
   const int_t NT = NF + NR;
 
   ROOTONLY cout << "-- Initialising averaging  : ";  
@@ -118,7 +167,7 @@ void Statistics::update (AuxField** work)
   int_t       i;
   const int_t NT = _avg.size();
   const int_t NC = _base -> nField() - 1;
-  const int_t NR = (Femlib::ivalue ("AVERAGE") > 1) ? ((NC+1)*NC)>>1 : 0;
+  const int_t NR = (_iavg > 1) ? ((NC+1)*NC)>>1 : 0;
   const int_t NA = NT - NR;
 
   if (NR) {
@@ -177,7 +226,7 @@ void Statistics::dump ()
   ofstream    output;
   const int_t NT = _avg.size();
   const int_t NC = Geometry::nDim();
-  const int_t NR = (Femlib::ivalue ("AVERAGE") > 1) ? ((NC+1)*NC)>> 1 : 0;
+  const int_t NR = (_iavg > 1) ? ((NC+1)*NC)>> 1 : 0;
   const int_t NA = NT - NR;
 
   Femlib::synchronize();
@@ -344,7 +393,7 @@ void Statistics::phaseUpdate (const int_t j   ,
   int_t       i;
   const int_t NF = _base -> nField();
   const int_t NC = NF - 1;	// -- Number of velocity components.
-  const int_t NR = (Femlib::ivalue ("AVERAGE") > 1) ? ((NC+1)*NC)>>1 : 0;
+  const int_t NR = (_iavg > 1) ? ((NC+1)*NC)>>1 : 0;
   const int_t NT = NF + NR;
   const bool  verbose = static_cast<bool> (Femlib::ivalue ("VERBOSE"));
 

@@ -136,23 +136,3 @@ const real_t* BoundarySys::Imass (const int_t mode) const
   return 
     _number [clamp(mode,static_cast<int_t>(0),static_cast<int_t>(2))]->imass();
 }
-
-
-int_t BoundarySys::nWall () const
-// ---------------------------------------------------------------------------
-// Return the number of edges that have descriptor of "wall".
-// ---------------------------------------------------------------------------
-{
-  vector<Boundary*>                 b = _boundary [0];
-#if 0
-  vector<Boundary*>::const_iterator bc ;
-  int_t                             count;
-
-  for (bc = _boundary[0].begin(); bc != _boundary[0].end(); bc++)
-    if (bc -> inGroup ("wall")) count++;
-
-  return count;
-#else
-  return 0;
-#endif
-}

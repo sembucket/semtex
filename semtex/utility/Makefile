@@ -113,14 +113,14 @@ project: project.C
 # ----------------------------------------------------------------------------
 # Build transform, which does forward/inverse Fourier/Legendre transforms.
 #
-transform: transform.C
-	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
+transform: transform.o data2df.o data2df.h $(SEMHDR)
+	$(CXX) $(CPPFLAGS) -o $@ $@.o data2df.o $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
-# Build conjugate, which takes complex conjugate of Fourier data.
+# Build phase, which performs operations on 3D data in phase/Fourier space.
 #
-conjugate: conjugate.C
-	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
+phase: phase.o data2df.o data2df.h $(SEMHDR)
+	$(CXX) $(CPPFLAGS) -o $@ $@.o data2df.o $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build lowpass, which filters data.

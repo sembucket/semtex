@@ -192,7 +192,7 @@ static void header ()
   cout << "\tD_T       = 0.005"     << endl;
   cout << "\tN_STEP    = 100"       << endl;
   cout << "\tN_TIME    = 2"         << endl;
-  cout << "\tN_P    = 7"         << endl;
+  cout << "\tN_P       = 7"         << endl;
   cout << "\tN_Z       = 1"         << endl;
   cout << "\tBETA      = 1.0"       << endl;
   cout << "\tIO_CFL    = 50"        << endl;

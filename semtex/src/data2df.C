@@ -83,7 +83,8 @@ Data2DF& Data2DF::conjugate (const bool zero)
 // complex instead of two real_t modes packed together.
 // ---------------------------------------------------------------------------
 {
-  int_t i, first = (zero) ? 1 : 3;
+  int_t       i;
+  const int_t first = (zero) ? 1 : 3;
 
   if (_nz > 1)
     for (i = first; i < _nz; i += 2)
@@ -121,6 +122,36 @@ Data2DF& Data2DF::symmetrize (const bool zero)
 
   return *this;
 } 
+
+
+Data2DF& Data2DF::shift (const real alpha,
+			 const bool zero )
+// ---------------------------------------------------------------------------
+// Use the shift-rotation duality of the Fourier transform to shift
+// the data a proportion alpha of the fundamental length in the
+// Fourier direction.  Data are assumed to be in Fourier-transformed
+// state on input.
+// ---------------------------------------------------------------------------
+{
+  const int_t    N = _nz >> 1;
+  const int_t    first = (zero) ? 0 : 1;
+  register int_t i;
+  int_t          k;
+  real_t         cosA, sinA, tmp;
+  real_t         *Re, *Im;
+
+  for (k = first; k < N; k++) {
+    Re   = _plane[2*k];
+    Im   = _plane[2*k + 1];
+    cosA = cos(TWOPI * (k-first+1) * alpha);
+    sinA = sin(TWOPI * (k-first+1) * alpha);
+    for (i = 0; i < _nplane; i++) {
+      tmp = Re[i];
+      Re[i] = Re[i] * cosA - Im[i] * sinA;
+      Im[i] = tmp   * sinA + Im[i] * cosA;
+    }
+  }
+}
 
 
 Data2DF& Data2DF::operator = (const Data2DF& rhs)
