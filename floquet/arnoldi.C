@@ -1,10 +1,19 @@
 ///////////////////////////////////////////////////////////////////////////////
-// arnoldi.C: compute leading eigenvalues and eigenvectors for stability
-// analysis based on linearised Navier--Stokes operators.
+// arnoldi.C: compute leading eigenvalues and eigenvectors for
+// stability analysis based on linearised (Navier--Stokes) operators.
+// The base flow can be either steady or periodic in time, two or
+// three component, cylindrical or Cartesian, but must be
+// two-dimensional.
 // 
-// Based on code by Dwight Barkley & Ron Henderson.
+// Based on code floK by Dwight Barkley & Ron Henderson.
 //
-// Copyright (C) 1999-2002 Hugh Blackburn
+// Copyright (C) 1999-2002 Hugh Blackburn.
+//
+// The eigenpairs computed in the subspace are related to the Ritz
+// estimates of those in the original space in a simple way: the
+// eigenvalues are the same, and the Ritz eigenvectors are related to
+// the subspace eigenvectors through a linear transformation (see
+// Saad, p.175).
 //
 // USAGE
 // -----
@@ -20,6 +29,11 @@
 // 
 // FILES
 // -----
+// A number of semtex files are required --
+//   session:     semtex session file
+//   session.num: computed automatically if not supplied
+//   session.bse: base flow, containing N_SLICE field dumps
+//   session.rst: restart file (initialised with white noise if not supplied) 
 //
 // REFERENCES
 // ----------
@@ -28,6 +42,9 @@
 //      J. Fluid Mech V322, 215--241.
 // [2]  Y. Saad (1991), "Numerical methods for large eigenvalue problems"
 //      Wiley.
+// [3]  L.S. Tuckerman & D. Barkley (2000), "Bifurcation analysis for
+//      timesteppers", in Numerical Methods for Bifurcation Problems,
+//      ed E. Doedel & L.S. Tuckerman, Springer. 453--466.
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
@@ -48,7 +65,8 @@ static void EV_small   (real**, const int, const int,
 static int  EV_test    (const int, const int, real*, real*, real*,
 		        const real, const real, const int);
 static void EV_sort    (real*, real*, real*, real*, const int);
-static int  EV_big     (real**, real**, int, int, real*, real*, real*);
+static void EV_big     (real**, real**, const int, const int,
+			const real*, const real*, const real*);
 
 static char*            session;
 static vector<Element*> elmt;
@@ -176,7 +194,8 @@ static void EV_init (real* tgt)
 static void EV_update  (const real* src,
 			real*       tgt)
 // ---------------------------------------------------------------------------
-// Generate tgt by applying linear operator to src.
+// Generate tgt by applying linear operator (here, a linearised
+// Navier--Stokes integrator) to src.
 // ---------------------------------------------------------------------------
 {
   int       i, k;
@@ -216,7 +235,8 @@ static void EV_small (real**    Kseq   ,
 //
 // and from it find Q (an orthonormal basis), by a Gram--Schmidt
 // algorithm that produces the decomposition Kseq = Q R.  Kseq is
-// destroyed in the process.
+// destroyed in the process, and replaced by an othonormal basis for
+// Kseq.
 //
 // Then we compute Hessenberg matrix H = Q* A Q (using Q* A = R), find
 // its eigenvalues (wr, wi) and eigenvectors, zvec, related to those of A.
@@ -286,7 +306,7 @@ static void EV_small (real**    Kseq   ,
     }
   }
 
-  // -- Find eigenpairs of H.
+  // -- Find eigenpairs of H using LAPACK routine.
 
   F77NAME(dgeev) ("N","V",kdim,H,kdim,wr,wi,0,1,zvec,kdim,rwork,lwork,ier);
 
@@ -319,13 +339,17 @@ static int EV_test (const int  itrn   ,
 		    const real evtol  ,
 		    const int  nvec   )
 // ---------------------------------------------------------------------------
-// Return true if converged.
+// Test convergence of eigenvalues and print up diagnostic information.
+//
+// Return value:
+//   nvec:  all of the first nvec eigenvalue estimates have converged;
+//  -1:     the residuals aren't shrinking;
+//   0:     neither of the above is true: not converged.
 // ---------------------------------------------------------------------------
 {
   int          i, idone;
   vector<real> work (kdim);
   real         re_ev, im_ev, abs_ev, *resid = work();
-
   static real  min_max1, min_max2;
  
   if (min_max1 == 0.0) min_max1 = 1000.0;
@@ -344,8 +368,8 @@ static int EV_test (const int  itrn   ,
 
   if      (resid[nvec - 1] < evtol)
     idone = nvec;
-  else if (min_max1 < 0.001 && resid[nvec - 1] > 100.0 * min_max1 ||
-	   min_max2 < 0.001 && resnorm         > 100.0 * min_max2 )
+  else if (min_max1 < 0.01 && resid[nvec - 1] > 10.0 * min_max1 ||
+	   min_max2 < 0.01 && resnorm         > 10.0 * min_max2 )
     idone = -1;
   else
     idone = 0;
@@ -358,7 +382,6 @@ static int EV_test (const int  itrn   ,
   const integer floquet = Geometry::nSlice() > 1;
   real          re_Aev, im_Aev;
   const real    period = Femlib::value ("D_T * N_STEP");
-
 
   cout << "-- Iteration = " << itrn << ", H(k+1, k) = " << resnorm << endl;
 
@@ -427,56 +450,71 @@ static void EV_sort (real*     evec,
 }
 
 
-static int EV_big (real**  K_Seq,   // Krylov subspace matrix
-	           real**  evecs,   // eigenvectors
-		   int     ntot,
-		   int     kdim,
-		   real*   z_vec,
-		   real*   wr,
-		   real*   wi)
+static void EV_big (real**      tvecs,
+	            real**      evecs,
+		    const int   ntot ,
+		    const int   kdim ,
+		    const real* zvecs,
+		    const real* wr   ,
+		    const real* wi   )
 // ---------------------------------------------------------------------------
+// Compute the Ritz eigenvector estimates of the linear operator using
+// the eigenvalues and eigenvectors of H computed in the subspace.
+// 
+// Input
+// -----
+// tvecs: orthonormal basis of the Krylov sequence 
+//        (produced in EV_small), dimensions ntot * kdim
+// zvecs: eigenvectors of H, dimensions kdim * kdim
+// wr,wi: eigenvalues  of H, each kdim long
 //
+// Output
+// ------
+// evecs: eigenvector estimates on the original space, ntot * kdim.
+//
+// The Ritz estimates are computed as (see Saad, p.175):
+//
+//        [evecs]            = [tvecs]            [zvecs]
+//               ntot x kdim          ntot x kdim        kdim x kdim
 // ---------------------------------------------------------------------------
 {
   real norm, wgt;
-  int i, j;
+  int  i, j;
 
-  /* generate big e-vector  */
+  // -- Generate big e-vectors.
 
   for (j = 0; j < kdim; j++) {
     Veclib::zero (ntot, evecs[j], 1);
-
     for (i = 0; i < kdim; i++) {
-      wgt = z_vec[i+j*kdim];
-      Blas::axpy (ntot, wgt, K_Seq[i], 1, evecs[j], 1);
+      wgt = zvecs[i+j*kdim];
+      Blas::axpy (ntot, wgt, tvecs[i], 1, evecs[j], 1);
     }
   }
 
-  /* normalize big e-vectors */
+  // -- Normalize big e-vectors.
+
   for (i = 0; i < kdim; i++) {
     if (wi[i] == 0.0) {
       norm = Blas::nrm2 (ntot, evecs[i], 1);
       Blas::scal (ntot, 1.0/norm, evecs[i], 1);
     }
     else if (wi[i] > 0.0) {
-      norm  = pow(Blas::nrm2(ntot, evecs[i], 1),  2.);
-      norm += pow(Blas::nrm2(ntot, evecs[i+1], 1),2.);
-      norm = sqrt(norm);
-      Blas::scal (ntot, 1./norm, evecs[i], 1 );
-      Blas::scal (ntot, 1./norm, evecs[i+1], 1);
+      norm  = sqr (Blas::nrm2 (ntot, evecs[i],   1));
+      norm += sqr (Blas::nrm2 (ntot, evecs[i+1], 1));
+      norm = sqrt (norm);
+      Blas::scal (ntot, 1.0/norm, evecs[i],   1);
+      Blas::scal (ntot, 1.0/norm, evecs[i+1], 1);
       i++;
     }
 
   }
 
-  // this next bit requires use of A_op which hasn't yet been done
-  // J.E 3/3/2000
-  
-#if BIG_RESIDS
-  // Compute residuals of big vectors directly
+#if BIG_RESIDS  // -- This is not yet recoded: HMB 8/2/2002.
+
+  // Compute residuals of big vectors directly.
   real resid;
  
-  for(i=0;i<nwrt;i++){
+  for (i = 0; i < nwrt; i++) {
     V_copy(ntot, evecs[i], tvecs[0]);
     A_op(tvecs[0]);
     tsteps -= nsteps;
@@ -500,9 +538,6 @@ static int EV_big (real**  K_Seq,   // Krylov subspace matrix
     }
   }
 #endif
-
-  return 0;
-
 }
 
 
@@ -569,10 +604,10 @@ static void getargs (int    argc   ,
 
 static int preprocess (const char* session)
 // ---------------------------------------------------------------------------
-// Create objects needed for semtex execution, given the session file
-// name.
+// Create objects needed for semtex execution, given the session file name.
 //
-// Return length of an eigenvector.
+// Return length of an eigenvector: the amount of storage required for
+// a velocity component * number of components.
 // ---------------------------------------------------------------------------
 {
   const real* z;
