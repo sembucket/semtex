@@ -69,8 +69,8 @@ calc: calc.o
 #
 ADFOBJ = addfield.o auxfield.o bcmgr.o boundary.o bsys.o condition.o 	\
 	 domain.o edge.o element.o family.o feml.o field.o geometry.o	\
-	 integration.o mesh.o misc.o pressure.o
-$(ADFOBJ): $(SEMHDR)
+	 integration.o mesh.o misc.o pressure.o tensorcalcs.o
+$(ADFOBJ): $(SEMHDR) tensorcalcs.h
 
 addfield: $(ADFOBJ)
 	$(LD) -o $@ $(ADFOBJ) $(LDFLAGS)
