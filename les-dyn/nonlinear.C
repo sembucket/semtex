@@ -19,6 +19,7 @@ static void complexGradient (const AuxField*, real*, const int);
 
 
 void nonLinear (Domain*        D ,
+		SumIntegrator* S ,
 		vector<real*>& Ut,
 		vector<real>&  ff)
 // ---------------------------------------------------------------------------
@@ -86,15 +87,15 @@ void nonLinear (Domain*        D ,
   dynamic (D, Ut);
 
   // -- Subtract off our spatially-constant reference viscosity
-  //    (disguised as KINVIS), note factor of 2, --- we make
-  //    -2*Cs^2 + 2*REFVIS, then multiply through by Delta^2 |S|.
+  //    (disguised as KINVIS), note factor of 2.
 
   real* nut     = Sm[0];
   real* Delta2S = Us[2];
 
-  Veclib::svvtp (nTot, 2.0*refV, nut, 1, Delta2S, 1, nut, 1);
-
   meta -> smooth (nZP, nut);
+  S    -> update (nut);
+
+  Veclib::svvtp (nTot, 2.0*refV, nut, 1, Delta2S, 1, nut, 1);
 
   // -- Create SGSS \tau_ij = -2 (Cs^2 Delta^2 |S| - refVisc) Sij.
 
@@ -410,7 +411,7 @@ void dynamic (Domain*        D ,
     }
   }
 
-#if 1				// -- Average Cs for stability.
+#if 0				// -- Average Cs for stability.
 
   // -- Homogeneous average.
 

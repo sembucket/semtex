@@ -64,7 +64,7 @@ int main (int    argc,
 
   ROOTONLY domain -> report();
   
-  integrate (domain, new LESAnalyser (domain, file));
+  integrate (domain, new LESAnalyser(domain, file), new SumIntegrator(domain));
 
   Femlib::finalize();
 

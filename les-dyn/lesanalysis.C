@@ -9,8 +9,8 @@
 #include <les.h>
 
 
-LESAnalyser::LESAnalyser (Domain* D   ,
-			  FEML*   feml) :
+LESAnalyser::LESAnalyser (Domain*        D   ,
+			  FEML*          feml) :
 // ---------------------------------------------------------------------------
 // Extensions to Analyser class.
 // ---------------------------------------------------------------------------
@@ -22,12 +22,12 @@ LESAnalyser::LESAnalyser (Domain* D   ,
 
     // -- Open state-variable file.
 
-    flx_strm.open (strcat (strcpy (str, src -> name), ".flx"));
-    if (!flx_strm) message (routine, "can't open flux file",  ERROR);
+    _flx_strm.open (strcat (strcpy (str, src -> name), ".flx"));
+    if (!_flx_strm) message (routine, "can't open flux file",  ERROR);
 
-    flx_strm << "# LES state information file"      << endl;
-    flx_strm << "# Step Time [Fpre Fvis Ftot]-axis" << endl;
-    flx_strm << "# -------------------------------" << endl;
+    _flx_strm << "# LES state information file"      << endl;
+    _flx_strm << "# Step Time [Fpre Fvis Ftot]-axis" << endl;
+    _flx_strm << "# -------------------------------" << endl;
   }
 }
 
@@ -76,6 +76,6 @@ void LESAnalyser::analyse (AuxField** work)
 	     pfor.y,   vfor.y,   tfor.y,
 	     pfor.z,   vfor.z,   tfor.z);
 
-    flx_strm << s << endl;
+    _flx_strm << s << endl;
   }
 }

@@ -38,8 +38,9 @@ static void   Solve     (Domain*, const integer, AuxField*, Msys*);
 static void   pushdown  (AuxField***, const integer, const integer);
 
 
-void integrate (Domain*      D,
-		LESAnalyser* A)
+void integrate (Domain*        D,
+		LESAnalyser*   A,
+		SumIntegrator* S)
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' 'w' and
 // constraint Field 'p'.
@@ -129,7 +130,7 @@ void integrate (Domain*      D,
 
     // -- Compute nonlinear terms + divergence(SGSS) + body forces.
 
-    nonLinear (D, Ut, ff);
+    nonLinear (D, S, Ut, ff);
 
     // -- Unconstrained forcing substep.
 
@@ -170,13 +171,15 @@ void integrate (Domain*      D,
     // -- Process results of this step.
 #endif
     A -> analyse (Us[0]);
-
+    S -> dump    ();
   }
 
-#if 1
+#if 0
   // -- Dump ratio eddy/molecular viscosity to file visco.fld.
 
-  dynamic (D, Ut, 0);
+  dynamic (D, S, Ut, 0);
+  D -> u[0] -> smooth (Geometry::nZP(), Ut[15]);
+
   AuxField* EV = new AuxField (Ut(15), nZ, D->elmt, 'e');
 
   ofstream          evfl;

@@ -33,7 +33,7 @@ SEMHDR   = Sem.h
 
 # ----------------------------------------------------------------------------
 # Default build for Navier-Stokes solver.
-LESFILES = drive integrate nonlinear filter lesanalysis
+LESFILES = drive integrate nonlinear filter lesanalysis sumintegrator
 LESOBJ   = $(addsuffix .o,$(LESFILES))
 
 $(PROG): sem $(SEMOBJ) $(LESOBJ) 
