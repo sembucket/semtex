@@ -98,8 +98,7 @@ int main ()
   Blas::mxm (FW, np, x,  np, t, np);
   Blas::mxm (t,  np, FT, np, y, np);
 #else
-  Veclib::zero  (np2, y, 1);
-  Femlib::grad2 (x, x, y, y, FW, FT, np, 1);
+  Femlib::tpr2d (x, y, t, FW, FT, np, 1);
 #endif
 /*
   Blas::mxv (CF, np2, x, np2, y);
@@ -109,8 +108,7 @@ int main ()
   Blas::mxm (BW, np, y,  np, t, np);
   Blas::mxm (t,  np, BT, np, z, np);
 #else
-  Veclib::zero  (np2, z, 1);
-  Femlib::grad2 (y, y, z, z, BW, BT, np, 1);
+  Femlib::tpr2d (y, z, t, BW, BT, np, 1);
 #endif
 /*
   Blas::mxv (CB, np2, y, np2, z);
