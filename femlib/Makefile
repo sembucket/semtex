@@ -71,7 +71,7 @@ install:
 	if test -r $(LIB) 				;	then	\
 		rm -f $(SEM)/lib/$(ARCH)/$(LIB)		;		\
 		cp $(LIB) $(SEM)/lib/$(ARCH)		;	fi
-	if test ! -z $(RANLIB)				;	then	\
+	if test $(RANLIB)				;	then	\
 		$(RANLIB) $(SEM)/lib/$(ARCH)/$(LIB)	;	fi
 
 	if test ! -d   $(SEM)/include	;	then    \
