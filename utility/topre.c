@@ -101,8 +101,10 @@ int main()
     vertex[i] = Z;
     n++;
   }
-  if (n != nvert)
-    message(prog, "number of vertices read didn't match declaration", ERROR);
+  if (n != nvert) {
+    sprintf (buf, "declared %1d vertices, read %1d", nvert, n);
+    message(prog, buf, ERROR);
+  }
 
 
   /* INPUT ELEMENT INFORMATION */
