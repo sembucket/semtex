@@ -97,7 +97,7 @@ void NavierStokes (Domain*       D,
     // -- Unconstrained forcing substep.
 
     nonLinear (D, Us[0], Uf[0], a);
-    waveProp  (D, Us, Uf);
+    waveProp  (D, (const AuxField***)Us, (const AuxField***)Uf);
 
     // -- Body motion, get velocity at new time level.
 
@@ -108,13 +108,15 @@ void NavierStokes (Domain*       D,
 
     // -- Pressure projection substep.
 
-    PBCmgr::maintain (D -> step, Pressure, Us[0], Uf[0]);
+    PBCmgr::maintain (D -> step, Pressure,
+		      (const AuxField**)Us[0],
+		      (const AuxField**)Uf[0]);
     ROOTONLY PBCmgr::accelerate (a, D -> u[0]);
 
     Pressure -> evaluateBoundaries (D -> step);
     for (i = 0; i < NDIM; i++) AuxField::swapData (D -> u[i], Us[0][i]);
     rollm     (Uf, NORD, NDIM);
-    setPForce (Us[0], Uf[0]);
+    setPForce ((const AuxField**)Us[0], Uf[0]);
     Solve     (D, NDIM,  Uf[0][0], MMS[NDIM]);
     project   (D, Us[0], Uf[0]);
 
