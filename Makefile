@@ -31,10 +31,10 @@ srcdist:
 
 libs:
 	cd veclib;		\
-	$(MAKE) -s install;	\
+	$(MAKE) -s headers;	\
 
 	cd femlib;		\
-	$(MAKE) -s install;	\
+	$(MAKE) -s headers;	\
 
 	cd veclib;		\
 	$(MAKE) -s clean;	\
