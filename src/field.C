@@ -7,6 +7,11 @@ static char RCSid[] = "$Id$";
 #include "Fem.h"
 
 
+#ifdef __DECCXX
+  #pragma define_template max<int>
+#endif
+
+
 static int  nOrder (const void *a, const void *b)
 // ---------------------------------------------------------------------------
 // Used by qsort.  Compare first element (global node number) of two arrays.
@@ -25,19 +30,23 @@ Field::Field () :
 // ---------------------------------------------------------------------------
 // Default constructor.
 // ---------------------------------------------------------------------------
-field_name      (0),
-n_data          (0),
-n_elmt_bnodes   (0),
-n_gid           (0),
-n_solve         (0),
-data            (0),
-elmt_bndry_gid  (0),
-elmt_bndry_mask (0),
-n_cons          (0),
-n_pack          (0),
-n_band          (0),
-Hp              (0),
-Hc              (0),
+field_name          (0),
+n_data              (0),
+n_elmt_bnodes       (0),
+n_gid               (0),
+n_solve             (0),
+elmt_np_max         (0),
+elmt_nt_max         (0),
+elmt_ne_max         (0),
+elmt_ni_max         (0),
+data                (0),
+elmt_bndry_gid      (0),
+elmt_bndry_mask     (0),
+n_cons              (0),
+n_pack              (0),
+n_band              (0),
+Hp                  (0),
+Hc                  (0),
 geometry_economized (0),
 matrices_economized (0)     
 { }
@@ -54,33 +63,46 @@ Field::Field (const Mesh& M, int np)
 
   n_data = n_mesh = n_elmt_bnodes = 0;
 
+  // -- Create all the Elements using their Mesh description.
+
   for (ElmtsOfMesh e(M); e.more(); e.next()) {
+
     E = new Element  (e.ID(), np, e.nSides());
     element_list.add (E);
+
     n_data        += E -> nTot ();
     n_mesh        += E -> nMsh ();
     n_elmt_bnodes += E -> nExt ();
+
+    elmt_np_max = max (elmt_np_max, E -> nKnot ());
+    elmt_nt_max = max (elmt_nt_max, E -> nTot  ());
+    elmt_ne_max = max (elmt_ne_max, E -> nExt  ());
+    elmt_ni_max = max (elmt_ne_max, E -> nInt  ());
   }
 
-  data            = rvector (n_data);
-  mesh            = rvector (n_mesh);
-  elmt_bndry_gid  = ivector (n_elmt_bnodes);
-  elmt_bndry_mask = ivector (n_elmt_bnodes);
+  // -- Allocate and install Field-level storage associated with elements.
+  //    Compute mesh locations within each element.
+
+  real*  m = mesh            = rvector (n_mesh);
+  int*   g = elmt_bndry_gid  = ivector (n_elmt_bnodes);
+  int*   s = elmt_bndry_mask = ivector (n_elmt_bnodes);
 
   int    offset = 0;
-  real*  m      = mesh;
-  int*   g      = elmt_bndry_gid;
-  int*   s      = elmt_bndry_mask;
+  data          = rvector (n_data);
 
   for (ListIterator<Element*> k(element_list); k.more(); k.next()) {
     E = k.current ();
-    E -> install  (offset, m, g, s);
-    E -> mesh     (M);
+
+    E -> install (offset, m, g, s);
+    E -> mesh    (M);
+
     offset += E -> nTot ();
     m      += E -> nMsh ();
     g      += E -> nExt ();
     s      += E -> nExt ();
   }
+
+  // -- Set default name 'u'.
 
   field_name = 'u';
 }
@@ -111,9 +133,9 @@ Field::Field (const Field& f, const Mesh& M, char tag)
 
   memcpy (this, &f, sizeof (Field));
 
-  element_list.clear();
-  boundary_list.clear();
-
+  element_list.clear  ();
+  boundary_list.clear ();
+ 
   field_name = tag;
   d = data   = rvector (n_data);
   memcpy (data, f.data, n_data * sizeof (real));
@@ -130,8 +152,10 @@ Field::Field (const Field& f, const Mesh& M, char tag)
     int offset = 0;
     for (ListIterator<Element*> k(f.element_list); k.more(); k.next()) {
       E = new Element (*k.current ());
+
       E -> install (offset, 0, g, s);
       element_list.add (E);
+
       offset += E -> nTot();
       g      += E -> nExt();
       s      += E -> nExt();
@@ -191,8 +215,8 @@ Field&  Field::operator *= (real val)
 // Multiply field storage area by val.
 // ---------------------------------------------------------------------------
 {
-  if (val == 0.0) Veclib::zero (n_data, data, 1);
-  else            Blas  ::scal (n_data, val, data, 1);
+  if   (val == 0.0) Veclib::zero (n_data, data, 1);
+  else              Blas::scal   (n_data, val, data, 1);
 
   return *this;
 }
@@ -203,8 +227,8 @@ Field&  Field::operator /= (real val)
 // Divide field storage area by val.
 // ---------------------------------------------------------------------------
 {
-  if (val == 0.0) message ("Field::op /= (real)", "divide by zero", ERROR);
-  else            Blas::scal (n_data, 1.0/val, data, 1);
+  if   (val == 0.0) message ("Field::op /= (real)", "divide by zero", ERROR);
+  else              Blas::scal (n_data, 1.0/val, data, 1);
 
   return *this;
 }
@@ -706,7 +730,7 @@ void  Field::buildSmoother ()
 // ---------------------------------------------------------------------------
 {
   int       ntot;
-  real*     unity;
+  real*     unity = rvector (elmt_nt_max);
   Element*  E;
 
   inv_mass = rvector (n_gid);
@@ -715,13 +739,12 @@ void  Field::buildSmoother ()
   for (ListIterator<Element*> k(element_list); k.more(); k.next()) {
     E     = k.current ();
     ntot  = E -> nTot ();
-    unity = rvector (ntot);
     Veclib::fill (ntot, 1.0, unity, 1);
     E -> bndryDsSum (unity, inv_mass);
-    freeVector (unity);
   }
 
   Veclib::vrecp (n_gid, inv_mass, 1, inv_mass, 1);
+  freeVector (unity);
 }
 
 
@@ -925,14 +948,15 @@ void  Field::buildSys (real lambda2)
   // -- Loop over elements, creating & posting elemental Helmholtz matrices.
 
   Element*  E;
+  rwrk = rvector (elmt_ne_max * elmt_nt_max); 
 
   for (ListIterator<Element*> k(element_list); k.more(); k.next()) {
     E = k.current();
 
-    int nExt  = E -> nExt();
-    int nInt  = E -> nInt();
-    int nTot  = E -> nTot();
-    int nKnot = E -> nKnot();
+    int nExt  = E -> nExt  ();
+    int nInt  = E -> nInt  ();
+    int nTot  = E -> nTot  ();
+    int nKnot = E -> nKnot ();
 		  
     hbb  = rmatrix (nExt, nExt);
     rmat = rmatrix (nKnot, nKnot);
@@ -943,11 +967,11 @@ void  Field::buildSys (real lambda2)
 
     freeMatrix (hbb );
     freeMatrix (rmat);
-    freeVector (rwrk);
  
     if (FamilyMgr::active) E -> economizeMat ();
   }
 
+  freeVector (rwrk);
   matrices_economized = FamilyMgr::active;
 
   // -- Factor global Helmholtz matrix.
@@ -1286,7 +1310,6 @@ Vector  Field::tangentTraction (const Field& U , const Field& V ,
       secF = Bu -> tangentTraction (Dx.data + Bu -> nOff (),
 				    Dy.data + Bv -> nOff (),
 				    Bv -> nSkip (),  mu, 1);
-//      printf ("sec: %1d, Fx: %f\n", Bu -> ID(), secF.x);
       F.x += secF.x;
       F.y += secF.y;
     }
@@ -1306,7 +1329,6 @@ Vector  Field::tangentTraction (const Field& U , const Field& V ,
       secF = Bu -> tangentTraction (Dx.data + Bu -> nOff (),
 				    Dy.data + Bv -> nOff (), 
 				    Bv -> nSkip (),  mu, 2);
-//      printf ("sec: %1d, Fx: %f\n", Bu -> ID(), secF.x);
       F.x += secF.x;
       F.y += secF.y;
     }
