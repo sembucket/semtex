@@ -1,6 +1,6 @@
 SYNOPSIS
 --------
-siew_3: OpenGL/GLUT version of sview_2.  The code is made with C++ but
+sview: OpenGL/GLUT version of sview_2.  The code is made with C++ but
 does not employ any class definitions, just structs, to ease backward
 compatibility with C.
 
@@ -15,7 +15,7 @@ options:
 
 FILES
 -----
-Nearly standard SEM/NEKTON/PRISM/SEMTEX input file formats are used
+Nearly standard NEKTON/PRISM/SEMTEX input file formats are used
 for the mesh and field files.  I assume you know the format.  One
 slight wrinkle that has been added is that the binary format of the
 file is now specified.  The code detects and inverts IEEE big/little
@@ -54,17 +54,19 @@ up/down rotate the viewpoint around the origin, and +/- are used to
 zoom in or out.  The insert key toggles the arrow keys from rotational
 to linear motion (linear motion moves the mesh origin along the three
 axes).  The motion model used is that the observer rotates/zooms
-around a mesh that does not rotate but can be moved alonge the
+around a mesh that does not rotate but can be moved along the
 Cartesian axes.
 
-The 'b' key toggles drawing mesh outlines, 'i' toggles inversion of
-the background from black to white (default is black, but this can be
-toggled to white as a command line option at present).
+Other key commands:
 
-The 'q' key quits sview (also in the terminal interface, see below).
-
-The ESC key iconifies the window and puts sview_3 in isosurface
-manipulation mode.
+'a': toggle antialiased drawing of lines and polygons (slows rendering). 
+'b': toggle rendering of mesh outlines.
+'i': toggle inversion of background from black to white (default black).
+'k': write viewing information to file "sview.knobs".
+'l': read viewing information from file "sview.knobs".
+'r': reset view.
+'q': quit sview (also in the terminal interface, see below).
+ESC: iconifies the window and puts sview in isosurface manipulation mode.
 
 2.  Isosurface manipulation mode/operations: commands in keycom.C.
 
@@ -105,11 +107,20 @@ any) drop down to fill the free location.  A maximum of IsoMax
 The 'd' command de-iconfies the display window and displays the
 nominated isosurfaces in order (defaults to the 0th isosurface if no
 surfaces are nominated): the order selects the material properties for
-each isosurface (they are chosen in display order).
+each isosurface (i.e. they are chosen in display order).
 
 If an isosurface's colours look "inside-out" it is because the surface
 normals are aligned the wrong way (there is an binary arbitrariness in
 orientation).  Use the 'n' command to toggle the orientation for
 subsequent display operations.
+
+BUGS
+----
+
+Ron reported that this link line was needed on a Red Hat Linux system:
+
+
+SGI_GLUT  = -lglut -lGLU -lGL -lX11 -lXext -lXmu -lXt -lXi -lSM -lICE
+
 
 $Id$
