@@ -3,7 +3,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Prototypes, classes and constants for sview.
 //
-// Copyright (C) 1999 Hugh Blackburn
+// Copyright (C) 1999-2001 Hugh Blackburn
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
@@ -17,6 +17,9 @@
 #include <iostream.h>
 #include <strstream.h>
 #include <fstream.h>
+
+#include <vector>
+#include <stack>
 
 #include <GL/glut.h>
 
@@ -53,6 +56,9 @@ typedef struct flag {		/* Global state variables.              */
   GLfloat   ymax   ;		/*                                      */
   GLfloat   zmin   ;		/*                                      */
   GLfloat   zmax   ;		/*                                      */
+  GLfloat   xavg   ;		/* Mesh midpoints.                      */
+  GLfloat   yavg   ;		/*                                      */
+  GLfloat   zavg   ;		/*                                      */
   GLdouble  length ;		/* A mesh length scale from extents.    */
 } Flag;
 
@@ -85,13 +91,21 @@ typedef struct iso {		/* Isosurface wireframe information.    */
   int*   plist;			/* Vertex indices for each triangle.    */
 } Iso;
 
+typedef struct pnt {		/* Data structure for a point.           */
+  int   id;
+  float time;
+  float value;			/* Can carry a scalar.                   */
+  float x, y, z;
+} Pnt;
+
 /* -- Global variables needed for graphics routines. */
 
-extern Flag  State;		/* Local (non-OpenGL/GLUT) state variables. */
-extern Iso** Surface;		/* Array of stored isosurfaces.             */
-extern Iso** Display;		/* Array of isosurfaces chosen for display. */
-extern Sem*  Mesh;		/* Element nodal location data.             */
-extern Data* Fields;		/* Scalar field data structure/retrieval.   */
+extern Flag         State;	/* Local (non-OpenGL/GLUT) state variables. */
+extern Iso**        Surface;	/* Array of stored isosurfaces.             */
+extern Iso**        Display;	/* Array of isosurfaces chosen for display. */
+extern Sem*         Mesh;	/* Element nodal location data.             */
+extern Data*        Fields;	/* Scalar field data structure/retrieval.   */
+extern vector<Pnt*> Point;	/* Punctual data.                           */
 
 /* -- External routines in main.C: */
 
@@ -103,6 +117,7 @@ void quit          ();
 
 Sem*  loadMesh  (const char*);
 Data* setFields (const char*);
+void  loadPnts  (const char*);
 int   loadData  (Data*, char);
 
 /* -- Routines in keycom.C: */

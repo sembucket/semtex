@@ -169,6 +169,9 @@ Sem* loadMesh (const char* fname)
   State.ymax = ymax-yavg;
   State.zmin = zmin-zavg;
   State.zmax = zmax-zavg;
+  State.xavg = xavg;
+  State.yavg = yavg;
+  State.zavg = zavg;
 
   State.length = max (hypot (xmax, ymax), hypot (xmax, zmax));
   State.length = max (State.length,       hypot (ymax, zmax));
@@ -402,3 +405,59 @@ static void dbrev (const int     n,
     d  = cx[3]; cy[3] = cx[4]; cy[4] = d;
   }
 }
+
+
+void loadPnts (const char* pfile)
+// ---------------------------------------------------------------------------
+// If a file of point data can be found, open it and get point data from it.
+// Intially put the data in a stack, then a global vector (Point).
+//
+// Points format:
+// id time x y z
+// 
+// Initialise value entry to zero for each point.
+// Convert locations from cylindrical to Cartesian if required.
+// ---------------------------------------------------------------------------
+{
+  if (!pfile) return;
+
+  using namespace std;
+
+  stack< Pnt*, vector<Pnt*> > pstack;
+
+  Pnt*     datum;
+  int      i, N, id;
+  double   r, cz, sz;
+  float    time, x, y, z, val=0;
+  ifstream file (pfile);
+
+  if (!file) message ("loadPnts", "cannot open file", ERROR);
+
+  while (file >> id >> time >> x >> y >> z) {
+
+    if (State.cylind) 
+      { r = y; cz = cos (z); sz = sin (z); y = r * cz; z  = r * sz; }
+
+    x -= State.xavg;
+    y -= State.yavg;
+    z -= State.zavg;
+
+    datum          = new Pnt;
+    datum -> id    = id;
+    datum -> time  = time;
+    datum -> value = val;
+    datum -> x     = x;
+    datum -> y     = y;
+    datum -> z     = z;
+
+    pstack.push (datum);
+  }
+
+  Point.resize (N = pstack.size());
+  
+  for (i = N; i; i--) {
+    Point[i-1] = pstack.top();
+    pstack.pop();
+  }
+}
+

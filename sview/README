@@ -2,8 +2,9 @@ SYNOPSIS
 --------
 sview: OpenGL/GLUT version of sview_2.  The code is made with C++ but
 does not employ any class definitions, just structs, to ease backward
-compatibility with C.  Sam Leffler's libtiff library is used for TIFF
-dumps of screen images. 
+compatibility with C (NB: a recent exception is the use of STL classes
+for point data).  Sam Leffler's libtiff library is used for TIFF dumps
+of screen images.
 
 USAGE
 -----
@@ -15,6 +16,7 @@ options:
 -c        ... set cylindrical coordinates
 -d        ... dump TIFF image to file "sview.tif" when quitting
 -h        ... print this message
+-p <file> ... specifies name of SEMTEX particle file
 -s <file> ... read commands from file
 -w        ... white background
 
@@ -44,6 +46,10 @@ Wed Jun 03 15:26:16 1998  Created
 1.0472                    Beta
 uvwp                      Fields written
 binary IEEE big-endian    Format
+
+Each line of point/particle files have form:
+
+id time x y z
 
 OPERATION
 ---------

@@ -2,7 +2,7 @@
 // sview: Interactive display of isosurfaces.  This version works with
 // NEKTON/PRISM/SEMTEX multi-element 3D data, and uses OpenGL and GLUT.
 //
-// Copyright (C) 1999 Hugh Blackburn
+// Copyright (C) 1999-2001 Hugh Blackburn
 //
 // USAGE
 // -----
@@ -12,8 +12,9 @@
 // options:
 //   -b        ... start without mesh box
 //   -c        ... set cylindrcal coordinates
-//   -d        ... dump a TIFF image to file "sview.tif" on quitting.
+//   -d        ... dump a TIFF image to file "sview.tif" on quitting
 //   -h        ... print this message
+//   -p <file> ... read particle locations from file
 //   -s <file> ... read commands from file
 //   -w        ... white background [Default: black]
 // 
@@ -37,13 +38,14 @@ static char prog[] = "sview";
 
 // -- Global variables needed for graphics routines.
 
-Flag  State;
-Iso** Surface;
-Iso** Display;
-Sem*  Mesh;
-Data* Fields;
+Flag         State;
+Iso**        Surface;
+Iso**        Display;
+Sem*         Mesh;
+Data*        Fields;
+vector<Pnt*> Point;
 
-static void getargs (int, char**, char*&, char*&, char*&);
+static void getargs (int, char**, char*&, char*&, char*&, char*&);
 
 
 void main (int    argc,
@@ -61,7 +63,7 @@ void main (int    argc,
 // ---------------------------------------------------------------------------
 {
   int  i;
-  char *mfile, *ffile, *script = 0;
+  char *mfile, *ffile, *script = 0, *pfile = 0;
   char start[] = 
     "-- sview : isosurface viewer for spectral element meshes --\n"
     "           OpenGL version CSIRO 1999\n";
@@ -87,7 +89,7 @@ void main (int    argc,
   // -- Initialise.
 
   glutInit (&argc, argv);
-  getargs  (argc,  argv, mfile, ffile, script);
+  getargs  (argc,  argv, mfile, ffile, pfile, script);
 
   cout << start;
 
@@ -102,6 +104,7 @@ void main (int    argc,
 
   Mesh   = loadMesh  (mfile);
   Fields = setFields (ffile);
+  loadPnts (pfile);
 
   State.radius = 1.0 * State.length;
 
@@ -132,6 +135,7 @@ static void getargs (int    argc ,
 		     char** argv ,
 		     char*& mfile,
 		     char*& ffile,
+		     char*& pfile,
 		     char*& sfile)
 // ---------------------------------------------------------------------------
 // Process command-line arguments.
@@ -146,6 +150,7 @@ static void getargs (int    argc ,
     "-c        ... set cylindrical coordinates\n"
     "-d        ... dump a TIFF image to file \"sview.tif\" on quitting\n"
     "-h        ... print this message\n"
+    "-p <file> ... specifies name of SEMTEX format point data file.\n"
     "-s <file> ... read commands from file\n"
     "-w        ... white background\n";
   char err[StrMax];
@@ -168,6 +173,10 @@ static void getargs (int    argc ,
     case 's':
       --argc;
       sfile = *++argv;
+      break;
+    case 'p':
+      --argc;
+      pfile = *++argv;
       break;
     case 'w':
       State.blackbk = !State.blackbk;

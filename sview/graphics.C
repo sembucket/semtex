@@ -22,10 +22,11 @@ static const GLfloat diffuse[IsoMax][4] = {
   {0.5,  0.7,  1.0,  1.0}
 };
 
-static void drawMesh  ();
-static void drawSurf  ();
-static void skeleton  ();
-static void polarView (GLdouble, GLdouble, GLdouble, GLdouble);
+static void drawMesh   ();
+static void drawSurf   ();
+static void drawPoints ();
+static void skeleton   ();
+static void polarView  (GLdouble, GLdouble, GLdouble, GLdouble);
 
 
 void keyboard (unsigned char key,
@@ -183,6 +184,7 @@ void display ()
 
   if (State.drawbox) drawMesh ();
   if (State.drawiso) drawSurf ();
+  drawPoints();
 
   glPopMatrix     ();
   glutSwapBuffers ();
@@ -389,6 +391,29 @@ static void drawSurf ()
       glEnd ();
     }
   }
+}
+
+
+static void drawPoints ()
+// ---------------------------------------------------------------------------
+// Draw the isosurfaces selected for display.
+// ---------------------------------------------------------------------------
+{
+  const int    N = Point.size();
+  register int i;
+  Pnt*         datum;
+
+  glDisable (GL_LIGHTING);  
+
+  if   (State.blackbk) glColor3f (1.0, 1.0, 1.0);
+  else                 glColor3f (0.0, 0.0, 0.0);
+  
+  glBegin (GL_POINTS);
+  for (i = 0; i < N; i++) {
+    datum = Point[i];
+    glVertex3f (datum -> x, datum -> y, datum -> z);
+  }
+  glEnd();
 }
 
 
