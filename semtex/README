@@ -19,8 +19,8 @@ dns       Navier--Stokes DNS in Cartesian or cylindrical geometries.
 utility   Various utility programs.
 
 The code has been tested with (and makefiles support) the following
-operating systems: SGI IRIX62 (32 & 64-bit), DEC OSF1/Digital Unix,
-GNU/Linux, Fujitsu VPP300 and NEC SX-4.
+operating systems: SGI IRIX6.5 (32 & 64-bit), DEC OSF1/Digital Unix,
+GNU/Linux, Fujitsu VPP300 and NEC SX-4/5.
 
 Makefiles assume GNUmake: for purposes of automated compilation and
 testing decribed below "gmake", in your path, should find GNUmake.
@@ -51,11 +51,11 @@ Starting out
     enumerate and compare in your path as other codes will try to run
     them.
 
-3.  Change directory to elliptic.  Run testsuite.  All indicated errors
-    should be small (1.0e-5 at most).
+3.  Change directory to dns; make; cd ../test; testregress
+    ../dns/dns. If there is an error, contact Hugh.
 
-4.  Change directory to dns.  Run testregress.  No output means everything
-    is OK.  If there is an error, contact Hugh.
+4.  A quicker way to do 1--3 above is just to say "make test" at the
+    top level of the directory tree.
 
 Files
 -----
