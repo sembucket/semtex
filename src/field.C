@@ -616,6 +616,72 @@ Vector Field::tangentTraction (const Field* U,
 }
 
 
+void Field::normTractionV (real*        fx,
+			   real*        fy,
+			   const Field* P )
+// ---------------------------------------------------------------------------
+// Compute normal tractive forces at each z location on wall
+// boundaries.  Fx & Fy are assumed to contain sufficient (nZProc)
+// storage and to be zero on entry.  P could be in physical space or
+// Fourier transformed.
+// ---------------------------------------------------------------------------
+{
+  register integer i, j;
+  const integer    nP = Geometry::nP();
+  const integer    nZ = Geometry::nZProc();
+  const integer    nB = P -> n_bound;
+  Vector           secF;
+  vector<real>     work(nP);
+  
+  for (j = 0; j < nZ; j++) {
+    for (i = 0; i < nB; i++) {
+      secF = P->boundary[0][i]->normalTraction ("wall", P -> plane[j], work());
+      fx[j] += secF.x;
+      fy[j] += secF.y;
+    }
+  }
+}
+
+
+void Field::tangTractionV (real*        fx,
+			   real*        fy,
+			   real*        fz,
+			   const Field* U ,
+			   const Field* V ,
+			   const Field* W )
+// ---------------------------------------------------------------------------
+// Compute tangential tractive forces at each z location on wall
+// boundaries.  Fx, fy, fz assumed to contain sufficient storage and
+// be zero on entry.  U, V, W could be in physical space or Fourier
+// transformed.
+// ---------------------------------------------------------------------------
+{
+  register integer i, j;
+  const integer    nP = Geometry::nP();
+  const integer    nZ = Geometry::nZProc();
+  const integer    nB = U -> n_bound;
+  const real       mu = Femlib::value ("RHO * KINVIS");
+  Vector           secF;
+  vector<real>     work(3 * nP);
+  real             *ddx, *ddy, *tmp = work();
+
+  ddx = work();
+  ddy = ddx + nP;
+
+  for (j = 0; j < nZ; j++) {
+    for (i = 0; i < nB; i++) {
+      secF = U -> boundary[0][i] ->
+	tangentTraction ("wall", U->plane[j], V->plane[j], ddx, ddy);
+      fx[j]   -= mu * secF.x;
+      fy[j]   -= mu * secF.y;
+      if (W) 
+	fz[j] -= mu * W -> boundary[0][i] -> flux ("wall", W->plane[j], tmp);
+    }
+  }
+}
+
+
+
 Field& Field::solve (AuxField*                f  ,
 		     const ModalMatrixSystem* MMS)
 // ---------------------------------------------------------------------------
