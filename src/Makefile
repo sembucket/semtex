@@ -109,9 +109,9 @@ LD       = g++
 CC       = gcc
 FC       = g77
 ifdef DEBUG
-  OPT    = -gstabs+
+  OPT    = -gstabs+ -Wno-deprecated
 else
-  OPT    = -O3 -w
+  OPT    = -O3 -w -Wno-deprecated
 endif
 CFLAGS   = $(DEFINES) $(OPT)
 FFLAGS   = $(DEFINES) $(OPT)

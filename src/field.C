@@ -375,7 +375,7 @@ real Field::flux (const Field* C)
   register int             i;
   
   for (i = 0; i < C -> _nbound; i++)
-    F += BC[i] -> flux ("wall", C -> _data, &work[0]);
+    F += BC[i] -> gradientFlux ("wall", C -> _data, &work[0]);
 
   return F;
 }
@@ -443,7 +443,7 @@ Vector Field::tangentTraction (const Field* U,
     secF = UBC[i] -> tangentTraction  ("wall", U->_data, V->_data, &work[0]);
     F.x        -= mu * secF.x;
     F.y        -= mu * secF.y;
-    if (W) F.z -= mu * WBC[i] -> flux ("wall", W->_data, &work[0]);
+    if (W) F.z -= mu * WBC[i] -> gradientFlux ("wall", W->_data, &work[0]);
   }
 
   return F;
@@ -516,7 +516,7 @@ void Field::tangTractionV (real*        fx,
       secF = UBC[i] -> tangentTraction ("wall", u, v, &work[0]);
              fx[j] -= mu * secF.x;
              fy[j] -= mu * secF.y;
-      if (W) fz[j] -= mu * WBC[i] -> flux ("wall", w, &work[0]);
+      if (W) fz[j] -= mu * WBC[i] -> gradientFlux ("wall", w, &work[0]);
     }
   }
 }
@@ -750,7 +750,6 @@ void Field::constrain (real*            force  ,
   const int         ntot  = Geometry::nPlane();
   const integer*    emask = N -> emask();
   const integer*    btog  = N -> btog();
-  const real        **DV, **DT;
   register Element* E;
   register int      i;
   real              *u = work, *tmp = work + npnp;

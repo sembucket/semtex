@@ -142,6 +142,17 @@ AuxField& AuxField::operator = (const AuxField& f)
 }
 
 
+AuxField& AuxField::operator - (const AuxField& f)
+// ---------------------------------------------------------------------------
+// Unary minus.
+// ---------------------------------------------------------------------------
+{
+  Veclib::vneg (_size, f._data, 1, _data, 1);
+  
+  return *this;
+}
+
+
 AuxField& AuxField::operator += (const AuxField& f)
 // ---------------------------------------------------------------------------
 // Add f's value to this AuxField's.
