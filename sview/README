@@ -1,0 +1,115 @@
+SYNOPSIS
+--------
+siew_3: OpenGL/GLUT version of sview_2.  The code is made with C++ but
+does not employ any class definitions, just structs, to ease backward
+compatibility with C.
+
+USAGE
+-----
+sview [options] meshfile fieldfile
+meshfile  ... specifies name of NEKTON-format mesh file.
+fieldfile ... specifies name of NEKTON-format (binary) field file.
+options:
+-h        ... print this message
+-w        ... white background
+
+FILES
+-----
+Nearly standard SEM/NEKTON/PRISM/SEMTEX input file formats are used
+for the mesh and field files.  I assume you know the format.  One
+slight wrinkle that has been added is that the binary format of the
+file is now specified.  The code detects and inverts IEEE big/little
+endian, but if this is not specified it assumes the binary format of
+the machine.
+
+Example field file header:
+
+swim                      Session
+Wed Jun 03 15:26:16 1998  Created
+9 9 32 206                Nr, Ns, Nz, Elements
+6000                      Step
+814.2                     Time
+0.0025                    Time step
+0.005                     Kinvis
+1.0472                    Beta
+uvwp                      Fields written
+binary IEEE big-endian    Format
+
+OPERATION
+---------
+On startup, the mesh and field files are read, and a window should open
+with a view of the mesh block outlines.  The first field in the fieldfile
+is read into storage, and its minimum and maximum values are displayed
+in the terminal window.
+
+There are two command interfaces, both of which are keyboard driven
+(the mouse/cursor isn't used).  Usually you will switch back and forth
+between the isosurface display and manipulation modes.
+
+1. Isosurface display mode/operations: commands in graphics.C.
+
+When the display window is not iconified, (single-character) commands
+typed in it will manipulate the view.  By default, arrow keys and page
+up/down rotate the viewpoint around the origin, and +/- are used to
+zoom in or out.  The insert key toggles the arrow keys from rotational
+to linear motion (linear motion moves the mesh origin along the three
+axes).  The motion model used is that the observer rotates/zooms
+around a mesh that does not rotate but can be moved alonge the
+Cartesian axes.
+
+The 'b' key toggles drawing mesh outlines, 'i' toggles inversion of
+the background from black to white (default is black, but this can be
+toggled to white as a command line option at present).
+
+The 'q' key quits sview (also in the terminal interface, see below).
+
+The ESC key iconifies the window and puts sview_3 in isosurface
+manipulation mode.
+
+2.  Isosurface manipulation mode/operations: commands in keycom.C.
+
+With the display window iconfied, the programme goes into isosurface
+manipulation mode, which is used for creating/deleting/displaying
+wireframe isosurfaces.  The wireframes are created in isowire.C, which
+is now almost "stand-alone": the only external structure used is the
+"Iso" type: see Sview.h.  Commands are typed into the terminal window
+from which the programme was run.
+
+There is a help menu in this mode (type 'h' <return> to get it back):
+
+-- sview help menu --
+a                     : add default isosurface to end of storage
+d <n1> [<n2> .. <nx>] : display numbered isosurfaces [Default: 0]
+f <c>                 : set field to <c> [Default: first field]
+h                     : show this menu
+l                     : list available isosurfaces
+m <val>               : make isosurface level val with current field
+n <n>                 : invert normal of <n>th isosurface [Default: 0]
+q                     : quit
+r <n>                 : remove/delete surface[<n>] from storage
+
+At startup, the first field has been read into storage as the default,
+and any isosurface creation commands use it as input.  To switch
+fields, use the 'f' command.
+
+There is an array of Iso*'s (called Surface) in which surfaces are
+held in store, and another array (called Display) to which these
+pointers are copied for subsequent display.  New isosurfaces (created
+with the 'm' command) are placed in Surface[0].  The 'a' command
+appends a copy of Surface[0] to the next free location in Surface.
+The 'l' command lists the isosurfaces that are stored at any time.
+When isosurfaces are deleted ('r') the higher-numbered surfaces (if
+any) drop down to fill the free location.  A maximum of IsoMax
+(defined in Sview.h) surfaces can be stored and displayed.
+
+The 'd' command de-iconfies the display window and displays the
+nominated isosurfaces in order (defaults to the 0th isosurface if no
+surfaces are nominated): the order selects the material properties for
+each isosurface (they are chosen in display order).
+
+If an isosurface's colours look "inside-out" it is because the surface
+normals are aligned the wrong way (there is an binary arbitrariness in
+orientation).  Use the 'n' command to toggle the orientation for
+subsequent display operations.
+
+$Id$
