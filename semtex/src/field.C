@@ -520,9 +520,6 @@ void Field::tangTractionV (real*        fx,
 Field& Field::solve (AuxField*             f  ,
 		     const ModalMatrixSys* MMS)
 // ---------------------------------------------------------------------------
-// Carry out DIRECT solution of this Field using f as forcing; f must
-// have the same structure as the Field to be solved.
-//
 // Problem for solution is
 //                                          
 //                      div grad u - lambda^2 u = f,
@@ -533,26 +530,37 @@ Field& Field::solve (AuxField*             f  ,
 //
 // This routine creates the RHS vector from the input forcing field f
 // and the Field's boundary conditions g (essential) & h (natural).
+// Forcing field f's data area is overwritten/destroyed during
+// processing.
 //
-// The RHS vector is constructed with length of the number of element-edge
-// nodes in the problem (n_gid).  The first n_solve values contain forcing
-// terms for the free (non essential-BC) nodes in the problem, derived from
-// the forcing field and the natural BCs "h", while the remaining values
-// get loaded from essential BC values, "g".
+// For DIRECT (Cholesky) solution:
 //
-// Forcing field f's data area is overwritten/destroyed during processing.
+//   The RHS vector is constructed with length of the number of
+//   element-edge nodes in the problem (n_gid).  The first n_solve
+//   values contain forcing terms for the free (non essential-BC)
+//   nodes in the problem, derived from the forcing field and the
+//   natural BCs "h", while the remaining values get loaded from
+//   essential BC values, "g".
+//
+// For JACPCG (iterative) solution:
+//
+//   All vectors are ordered with globally-numbered (element-
+//   boundary) nodes first, followed by all element-internal nodes.
+//   The zeroing operation which occurs after each application of the
+//   Helmholtz operator serves to apply the essential BCs, which are
+//   zero during the iteration (see file header).
+//
+//   The notation follows that used in Fig 2.5 of Barrett et al.,
+//   "Templates for the Solution of Linear Systems", netlib.
 // ---------------------------------------------------------------------------
 {
-  const integer np      = Geometry::nP();
-  const integer nel     = Geometry::nElmt();
-  const integer next    = Geometry::nExtElmt();
-  const integer npnp    = Geometry::nTotElmt();
-  const integer ntot    = Geometry::nPlane();
-  const integer bmode   = Geometry::baseMode();
-  const integer nglobal = _bsys -> Nsys (0) -> nGlobal();
-  vector<real>  work (nglobal + npnp);
-  integer       i, k, pmode, mode, info;
-  real          *RHS = work(), *tmp = RHS + nglobal;
+  const integer np    = Geometry::nP();
+  const integer nel   = Geometry::nElmt();
+  const integer next  = Geometry::nExtElmt();
+  const integer npnp  = Geometry::nTotElmt();
+  const integer ntot  = Geometry::nPlane();
+  const integer bmode = Geometry::baseMode();
+  integer       i, k, pmode, mode;
 
   for (k = 0; k < _nz; k++) {	// -- Loop over planes of data.
     
@@ -563,255 +571,153 @@ Field& Field::solve (AuxField*             f  ,
     pmode = k >> 1;
     mode  = bmode + pmode;
 
-    const vector<Boundary*>& B       = _bsys -> BCs  (mode);
-    const NumberSys*         N       = _bsys -> Nsys (mode);
-    const MatrixSys*         M       = (*MMS)[pmode]; 
-    const real*              H       = (const real*)    M -> H;
-    const real**             hii     = (const real**)   M -> hii;
-    const real**             hbi     = (const real**)   M -> hbi;
-    const integer*           b2g     = (const integer*) N -> btog();
-    real*                    forcing = f -> _plane[k];
-    real*                    unknown = _plane     [k];
-    real*                    bc      = _line      [k];
-    integer                  nband   = N -> nBand();
-    integer                  nsolve  = M -> nsolve;
+    const MatrixSys*         M       = (*MMS)[pmode];
+    const vector<Boundary*>& B       = M -> _BC;
+    const NumberSys*         N       = M -> _NS;
+    real                     lambda2 = M -> _HelmholtzConstant;
+    real                     betak2  = M -> _FourierConstant;
+    integer                  nsolve  = M -> _nsolve;
+    integer                  nglobal = M -> _nglobal;
     integer                  nzero   = nglobal - nsolve;
-    real                     lambda2 = M -> HelmholtzConstant;
-    real                     betak2  = M -> FourierConstant;
 
-    // -- Build RHS = - M f - H g + <h, w>.
-
-    Veclib::zero (nglobal, RHS, 1);
-
-    this -> getEssential (bc, RHS, B, N);
-    this -> constrain    (forcing, lambda2, betak2, RHS, N);
-    this -> buildRHS     (forcing, bc, RHS, 0, hbi, nsolve, nzero, B, N);
-
-    // -- Solve for unknown global-node values (if any).
-
-    if (nsolve) Lapack::pbtrs ("U",nsolve,nband-1,1,H,nband,RHS,nglobal,info);
-
-    // -- Carry out Schur-complement solution for element-internal nodes.
-
-    for (i = 0; i < nel; i++, b2g += next, forcing += npnp, unknown += npnp)
-      _elmt[i] -> g2eSC (RHS, b2g, forcing, unknown, hbi[i], hii[i], tmp);
-
-    unknown -= ntot;
-    
-    // -- Scatter-gather essential BC values into plane.
-
-    Veclib::zero (nglobal, RHS, 1);
-    
-    this -> getEssential (bc, RHS, B,   N);
-    this -> setEssential (RHS, unknown, N);
-  }
-
-  return *this;
-}
-
-
-Field& Field::solve (AuxField*  f      ,
-		     const real lambda2)
-// ---------------------------------------------------------------------------
-// Carry out ITERATIVE Conjugate Gradient solution of this Field with
-// forcing from f.  Input lambda2 is the zero-mode Helmholtz constant.
-//
-// Problem for solution is the discrete version of the
-// weak form of
-//                                          2
-//                       div grad u - lambda  u = f.
-//
-// Forcing field F's data area is overwritten/destroyed during processing.
-//
-// In this version, all vectors are ordered with globally-numbered (element-
-// boundary) nodes first, followed by all element-internal nodes.  The zeroing
-// operation which occurs after each application of the Helmholtz operator
-// serves to apply the essential BCs, which are zero during the iteration
-// (see file header).
-//
-// The notation follows that used in Fig 2.5 of
-//   Barrett et al., "Templates for the Solution of Linear Systems", netlib.
-// ---------------------------------------------------------------------------
-{
-  const char       routine[] = "Field::solve";
-  const integer    bmode   = Geometry::baseMode();
-  const integer    nglobal = _bsys -> Nsys (0) -> nGlobal();
-  const integer    StepMax = (integer) Femlib::value ("STEP_MAX");
-  const integer    npts    = nglobal + Geometry::nInode();
-  const real       betaZ   = Femlib::value ("BETA");
-  const real       FTINY   = (sizeof (real) == sizeof (double)) ? EPSDP:EPSSP;
-  register integer i, k, mode;
-  integer          singular, nsolve, nzero;
-  real             rho1, rho2, alpha, beta, r2, epsb2, betak2, dotp;
-
-  // -- Allocate storage.
-  
-  vector<real> workspace (6 * npts + 3 * Geometry::nPlane());
-
-  real* r   = workspace();
-  real* p   = r  + npts;
-  real* q   = p  + npts;
-  real* x   = q  + npts;
-  real* z   = x  + npts;
-  real* PC  = z  + npts;
-  real* wrk = PC + npts;
-
-  for (k = 0; k < _nz; k++) {	// -- Loop over planes of data.
-
-    ROOTONLY if (k == 1) continue;   // -- Nyquist planes remain zero always.
-
-    // -- Select Fourier mode, set local pointers and variables.
-
-    mode   = bmode + (k >> 1);
-    betak2 = sqr (Field::modeConstant (_name, mode, betaZ));
-
-    const vector<Boundary*>& B       = _bsys -> BCs  (mode);
-    const NumberSys*         N       = _bsys -> Nsys (mode);
     real*                    forcing = f -> _plane[k];
     real*                    unknown = _plane     [k];
     real*                    bc      = _line      [k];
+
+    switch (M -> _method) {
+
+    case DIRECT: {
+      const real*    H       = (const real*)    M -> _H;
+      const real**   hii     = (const real**)   M -> _hii;
+      const real**   hbi     = (const real**)   M -> _hbi;
+      const integer* b2g     = (const integer*) N -> btog();
+      integer        nband   = M -> _nband;
+
+      vector<real>   work (nglobal + npnp);
+      real           *RHS = work(), *tmp = RHS + nglobal;
+      integer        info;
+      
+      // -- Build RHS = - M f - H g + <h, w>.
+
+      Veclib::zero (nglobal, RHS, 1);
+      
+      this -> getEssential (bc, RHS, B, N);
+      this -> constrain    (forcing, lambda2, betak2, RHS, N);
+      this -> buildRHS     (forcing, bc, RHS, 0, hbi, nsolve, nzero, B, N);
+      
+      // -- Solve for unknown global-node values (if any).
+      
+      if (nsolve) Lapack::pbtrs("U",nsolve,nband-1,1,H,nband,RHS,nglobal,info);
+      
+      // -- Carry out Schur-complement solution for element-internal nodes.
+      
+      for (i = 0; i < nel; i++, b2g += next, forcing += npnp, unknown += npnp)
+	_elmt[i] -> g2eSC (RHS, b2g, forcing, unknown, hbi[i], hii[i], tmp);
+
+      unknown -= ntot;
     
-    nsolve   = N -> nSolve();
-    singular = fabs (lambda2 + betak2) < FTINY &&
-               !N -> fmask() && !_bsys -> mixBC();
-    nsolve   = (singular) ? nsolve - 1 : nsolve;
-    nzero    = nglobal - nsolve;
+      // -- Scatter-gather essential BC values into plane.
+
+      Veclib::zero (nglobal, RHS, 1);
     
-    // -- Build diagonal preconditioner.
+      this -> getEssential (bc, RHS, B,   N);
+      this -> setEssential (RHS, unknown, N);
+    }
+    break;
 
-    this -> jacobi (lambda2, betak2, PC, N);
+    case JACPCG: {
+      const integer StepMax = (integer) Femlib::value ("STEP_MAX");  
+      vector<real>  work (5 * npts + 3 * Geometry::nPlane());
 
-    // -- f <-- - M f - H g, then (r = ) b = - M f - H g + <h, w>.
+      real* r   = work();
+      real* p   = r + npts;
+      real* q   = p + npts;
+      real* x   = q + npts;
+      real* z   = x + npts;
+      real* wrk = z + npts;
 
-    Veclib::zero (nglobal, x, 1);
+      Veclib::zero (nglobal, x, 1);
 
-    this -> getEssential (bc, x, B, N);  
-    this -> constrain    (forcing, lambda2, betak2, x, N);
-    this -> buildRHS     (forcing, bc, r, r + nglobal, 0, nsolve, nzero, B, N);
+      this -> getEssential (bc, x, B, N);  
+      this -> constrain    (forcing, lambda2, betak2, x, N);
+      this -> buildRHS     (forcing, bc, r, r+nglobal, 0, nsolve, nzero, B, N);
 
-    epsb2  = Femlib::value ("TOL_REL") * sqrt (Blas::dot (npts, r, 1, r, 1));
-    epsb2 *= epsb2;
+      epsb2  = Femlib::value ("TOL_REL") * sqrt (Blas::dot (npts, r, 1, r, 1));
+      epsb2 *= epsb2;
 
-    // -- Build globally-numbered x from element store.
+      // -- Build globally-numbered x from element store.
 
-    this -> local2global (unknown, x, N);
+      this -> local2global (unknown, x, N);
   
-    // -- Compute first residual using initial guess: r = b - Ax.
-    //    And mask to get residual for the zero-BC problem.
+      // -- Compute first residual using initial guess: r = b - Ax.
+      //    And mask to get residual for the zero-BC problem.
 
-    Veclib::zero (nzero, x + nsolve, 1);   
-    Veclib::copy (npts,  x, 1, q, 1);
+      Veclib::zero (nzero, x + nsolve, 1);   
+      Veclib::copy (npts,  x, 1, q, 1);
 
-    this -> HelmholtzOperator (q, p, lambda2, betak2, wrk, mode);
+      this -> HelmholtzOperator (q, p, lambda2, betak2, wrk, mode);
 
-    Veclib::zero (nzero, p + nsolve, 1);
-    Veclib::zero (nzero, r + nsolve, 1);
-    Veclib::vsub (npts, r, 1, p, 1, r, 1);
+      Veclib::zero (nzero, p + nsolve, 1);
+      Veclib::zero (nzero, r + nsolve, 1);
+      Veclib::vsub (npts, r, 1, p, 1, r, 1);
 
-    r2 = Blas::dot (npts, r, 1, r, 1);
+      r2 = Blas::dot (npts, r, 1, r, 1);
 
-    // -- PCG iteration.
+      // -- PCG iteration.
 
-    i = 0;
-    while (r2 > epsb2 && ++i < StepMax) {
+      i = 0;
+      while (r2 > epsb2 && ++i < StepMax) {
 
-      // -- Preconditioner.
+	// -- Preconditioner.
 
-      Veclib::vmul (npts, PC, 1, r, 1, z, 1);
+	Veclib::vmul (npts, M -> _PC, 1, r, 1, z, 1);
 
-      rho1 = Blas::dot (npts, r, 1, z, 1);
+	rho1 = Blas::dot (npts, r, 1, z, 1);
 
-      // -- Update search direction.
+	// -- Update search direction.
 
-      if (i == 1)
-	Veclib::copy  (npts,             z, 1, p, 1); // -- p = z.
-      else {
-	beta = rho1 / rho2;	
-	Veclib::svtvp (npts, beta, p, 1, z, 1, p, 1); // -- p = z + beta p.
+	if (i == 1)
+	  Veclib::copy  (npts,             z, 1, p, 1); // -- p = z.
+	else {
+	  beta = rho1 / rho2;	
+	  Veclib::svtvp (npts, beta, p, 1, z, 1, p, 1); // -- p = z + beta p.
+	}
+
+	// -- Matrix-vector product.
+
+	this -> HelmholtzOperator (p, q, lambda2, betak2, wrk, mode);
+	Veclib::zero (nzero, q + nsolve, 1);
+
+	// -- Move in conjugate direction.
+
+	dotp  = Blas::dot (npts, p, 1, q, 1);
+	alpha = rho1 / dotp;
+	Blas::axpy (npts,  alpha, p, 1, x, 1); // -- x += alpha p.
+	Blas::axpy (npts, -alpha, q, 1, r, 1); // -- r -= alpha q.
+
+	rho2 = rho1;
+	r2   = Blas::dot (npts, r, 1, r, 1);
       }
+  
+      if (i == StepMax) message (routine, "step limit exceeded", WARNING);
+  
+      // -- Unpack converged vector x, impose current essential BCs.
 
-      // -- Matrix-vector product.
-
-      this -> HelmholtzOperator (p, q, lambda2, betak2, wrk, mode);
-      Veclib::zero (nzero, q + nsolve, 1);
-
-      // -- Move in conjugate direction.
-
-      dotp  = Blas::dot (npts, p, 1, q, 1);
-      alpha = rho1 / dotp;
-      Blas::axpy (npts,  alpha, p, 1, x, 1); // -- x += alpha p.
-      Blas::axpy (npts, -alpha, q, 1, r, 1); // -- r -= alpha q.
-
-      rho2 = rho1;
-      r2   = Blas::dot (npts, r, 1, r, 1);
+      this -> global2local (x, unknown, N);
+      
+      this -> getEssential (bc, x, B,   N);
+      this -> setEssential (x, unknown, N);
+  
+      if ((integer) Femlib::value ("VERBOSE") > 1) {
+	char s[StrMax];
+	sprintf (s, ":%3d iterations, field '%c'", i, _name);
+	message (routine, s, REMARK);
+      }
     }
-  
-    if (i == StepMax) message (routine, "step limit exceeded", WARNING);
-  
-    // -- Unpack converged vector x, impose current essential BCs.
-
-    this -> global2local (x, unknown, N);
-
-    this -> getEssential (bc, x, B,   N);
-    this -> setEssential (x, unknown, N);
-  
-    if ((integer) Femlib::value ("VERBOSE") > 1) {
-      char s[StrMax];
-      sprintf (s, ":%3d iterations, field '%c'", i, _name);
-      message (routine, s, REMARK);
+    break;
     }
   }
-
   return *this;
-}
-
-
-void Field::jacobi (const real       lambda2,
-		    const real       betak2 ,
-		    real*            PC     ,
-		    const NumberSys* N      ) const
-// ---------------------------------------------------------------------------
-// Build diagonal (point Jacobi) preconditioner, PC, length npts.
-//
-// PC is arranged with global nodes first, followed by element-internal values.
-// ---------------------------------------------------------------------------
-{
-  const integer    nel  = Geometry::nElmt();
-  const integer    next = Geometry::nExtElmt();
-  const integer    nint = Geometry::nIntElmt();
-  const integer    npts = N -> nGlobal() + Geometry::nInode();
-  const integer*   btog = N -> btog();
-  register integer i;
-  real*            PCi  = PC + N -> nGlobal();
-  vector<real>     work (2 * Geometry::nTotElmt() + Geometry::nP());
-  real             *ed = work(), *ewrk = work() + Geometry::nTotElmt();
-  
-  Veclib::zero (npts, PC, 1);
-
-  // -- Mixed BC contributions.
-
-  if (_bsys -> mixBC()) {
-    const vector<Boundary*>& BC   = _bsys -> BCs  (0);
-    const integer*           bmap = _bsys -> Nsys (0) -> btog();
-
-    for (i = 0; i < _nbound; i++)
-      BC[i] -> augmentDg (bmap, PC);
-  }
-
-  // -- Element contributions.
-
-  for (i = 0; i < nel; i++, btog += next, PCi += nint) {
-    _elmt[i] -> HelmholtzDg (lambda2, betak2, ed, ewrk);
-    Veclib::scatr_sum (next, ed,  btog,    PC);
-    Veclib::copy      (nint, ed + next, 1, PCi, 1);
-  }
-
-#if 1
-  Veclib::vrecp (npts, PC, 1, PC, 1);
-#else  // -- Turn off preconditioner for testing.
-  Veclib::fill (npts, 1.0, PC, 1);
-#endif
-
 }
 
 
