@@ -351,7 +351,7 @@ void dglldpc (const integer  np,
       k = i + np * np;
       p -> dtab[k] = (i < nm) ?  0.5*(i+i+1) : 0.5*nm;
       for (j = 0; j < np; j++) {
-	k = i + j * np;
+	k = j + i * np;
 	p -> dtab[k] = pnleg (z[j], i);
       }
     }
@@ -549,7 +549,7 @@ void dglmdpc (const integer  np,
 
     for (i = 0; i < np; i++)
       for (j = 0; j < np; j++) {
-	k = i + j * np;
+	k = j + i * np;
 	p -> dtab[k] = pnmod (z[j], i);
       }
   }
