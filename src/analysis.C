@@ -63,12 +63,9 @@ Analyser::Analyser (Domain* D   ,
 	if (!(F -> inMesh())) {
 	  sprintf (str, "Particle at (%f, %f, %f) not in mesh", P.x, P.y, P.z);
 	  message (routine, str, WARNING);
-	} else
+	} else {
 	  particle.add (F);
-	if (add) {
-	  I = new Point;
-	  I -> x = P.x; I -> y = P.y; I -> z = P.z;
-	  initial.add (I);
+	  if (add) initial.add (F);
 	}
       }
     }
@@ -152,15 +149,13 @@ void Analyser::analyse (AuxField** work)
     // -- Track particles.
 
     if (add) {
-      Point          P, *I;
-      FluidParticle* F;
+      FluidParticle *I, *F;
 
-      for (ListIterator<Point*> t (initial); t.more(); t.next()) {
-	I   = t.current();
-	P.x = I -> x;
-	P.y = I -> y;
-	P.z = I -> z;
-	F   = new FluidParticle (src, I -> ID(), P);
+      for (ListIterator<FluidParticle*> t (initial); t.more(); t.next()) {
+	I  = t.current();
+	F  = new FluidParticle (src,
+				I -> ID(),
+				const_cast<Point&>(I -> location()));
 	if ((F -> inMesh())) particle.add (F);
       }
     }
