@@ -18,6 +18,10 @@ ifdef STOKES
   DEFINES += -DSTOKES
 endif
 
+ifdef ALIAS		# -- No dealiasing done.
+  DEFINES += -DALIAS
+endif
+
 # ----------------------------------------------------------------------------
 # Semtex standard sources.
 #
