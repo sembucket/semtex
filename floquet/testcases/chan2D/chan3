@@ -1,7 +1,17 @@
-# 24 element channel flow, for Re_{\tau} = 7500.
+# 24 element channel flow, for Re_{\tau} = 7500 Refer Canuto et al.
 # U_cent = velocity in centre of channel
 # A = lower wall coordinate
 # B = upper wall coordinate 
+#
+# These are the results of running
+# arnoldi -k 16 -n 1 -m 500 -t 1e-6 chan3 > /dev/null
+#
+# -- Iteration = 260, H(k+1, k) = 0.893587
+# EV  Magnitude   Angle       Growth      Frequency   Residual
+#  0  1.0022e+00  2.4989e-01  2.2356e-03  2.4989e-01  9.4531e-07
+#  1  1.0022e+00 -2.4989e-01  2.2356e-03 -2.4989e-01  9.4531e-07
+#
+# $Id$
 
 <TOKENS>
 	U_cent   = 1.0
