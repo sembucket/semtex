@@ -1,0 +1,58 @@
+#!/bin/csh
+##############################################################################
+# Run elliptic solver on test files.
+# $Id$
+
+echo "\t*************************************************"
+echo "\t* Spectral element Helmholtz solver test suite. *"
+echo "\t*************************************************"
+
+if (!(-e laplace1)) cp ../mesh/laplace1 .
+if (!(-e laplace4)) cp ../mesh/laplace4 .
+if (!(-e laplace5)) cp ../mesh/laplace5 .
+if (!(-e laplace6)) cp ../mesh/laplace6 .
+if (!(-e laplace7)) cp ../mesh/laplace7 .
+if (!(-e laplace3)) cp ../mesh/laplace3 .
+if (!(-e poisson1)) cp ../mesh/poisson1 .
+if (!(-e helmholtz1)) cp ../mesh/helmholtz1 .
+
+echo ""
+echo "-- 2D LAPLACE PROBLEM, DIRICHLET BCS"
+elliptic laplace1
+
+echo ""
+echo "-- 2D LAPLACE PROBLEM, DIRICHLET BCS, ITERATIVE SOLVER"
+elliptic -i laplace1
+
+echo ""
+echo "-- 2D LAPLACE PROBLEM, ONE NEUMAN BOUNDARY"
+elliptic laplace4
+
+echo ""
+echo "-- 2D LAPLACE PROBLEM, ONE NEUMAN BOUNDARY, ITERATIVE SOLVER"
+elliptic -i laplace4
+
+echo ""
+echo "-- 2D LAPLACE PROBLEM, NONHOMOGENOUS DIRICHLET BC"
+elliptic laplace5
+
+echo ""
+echo "-- 2D LAPLACE PROBLEM, DIRICHLET BC, CURVED BOUNDARY"
+elliptic laplace6
+
+echo ""
+echo "-- 2D LAPLACE PROBLEM, DIRICHLET AND NEUMANN BCS"
+elliptic laplace7
+
+echo ""
+echo "-- 3D LAPLACE PROBLEM, DIRICHLET BOUNDARIES"
+echo "   WARNING: ERROR ESTIMATES ARE PRESENTLY INCORRECT"
+elliptic laplace3
+
+echo ""
+echo "-- 2D POISSON PROBLEM, DIRICHLET BCS"
+elliptic poisson1
+
+echo ""
+echo "-- 2D HELMHOLTZ PROBLEM, DIRICHLET BCS"
+elliptic helmholtz1
