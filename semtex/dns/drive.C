@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // drive.C: control spectral element DNS for incompressible flows.
 //
-// Copyright (C) 1994, 1999  Hugh Blackburn.
+// Copyright (C) 1994, 2000  Hugh Blackburn.
 //
 // USAGE:
 // -----
@@ -20,10 +20,9 @@
 // Highett, Vic 3190
 // Australia
 // hugh.blackburn@dbce.csiro.au
+//
+// $Id$
 //////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <dns.h>
 #include <new.h>
