@@ -39,11 +39,11 @@ RCSid[] = "$Id$";
 
 static char prog[] = "aero";
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
-static void getargs    (integer, char**, char*&);
+static void getargs    (int, char**, char*&);
 
 
-integer main (integer argc,
-	      char**  argv)
+int main (int    argc,
+	  char** argv)
 // ---------------------------------------------------------------------------
 // Driver.
 // ---------------------------------------------------------------------------
@@ -70,8 +70,8 @@ integer main (integer argc,
   B = new BCmgr (*F);
 
   nel = M -> nEl();  
-  np  =  (integer) Femlib::value ("N_POLY");
-  nz  =  (integer) Femlib::value ("N_Z"   );
+  np  = (integer) Femlib::value ("N_POLY");
+  nz  = (integer) Femlib::value ("N_Z"   );
   
   Geometry::set (np, nz, nel, Geometry::Cartesian);
   if   (nz > 1) strcpy (fields, "uvwp");
@@ -94,9 +94,9 @@ integer main (integer argc,
 }
 
 
-static void getargs (integer argc   ,
-		     char**  argv   ,
-		     char*&  session)
+static void getargs (int    argc   ,
+		     char** argv   ,
+		     char*& session)
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
 // arguments.  Last argument is name of a session file, not dealt with here.
