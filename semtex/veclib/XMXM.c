@@ -16,12 +16,8 @@
  *                                                                           *
  *****************************************************************************/
 
-#include <stdio.h>
-#include <alplib.h>
 
-#if !defined(mxm) 
-
-void dmxm (double* A, int nra, double* B, int nca, double *C, int ncb)
+void dmxm (double *A, int nra, double *B, int nca, double *C, int ncb)
 {
   register double *a = A,
                   *b = B,
@@ -33,7 +29,7 @@ void dmxm (double* A, int nra, double* B, int nca, double *C, int ncb)
     for (j = 0; j < ncb; j++) {
 
       b   = B + j;                  /* Next column of B    */
-      sum = 0.;                     /* Clear sum           */
+      sum = 0.0;                    /* Clear sum           */
 
       for(k = 0; k < nca; k++) {    /* ------------------- */
 	sum += a[k] * (*b);         /* Inner product loop  */
@@ -49,7 +45,7 @@ void dmxm (double* A, int nra, double* B, int nca, double *C, int ncb)
 
 
 
-void smxm (float* A, int nra, float* B, int nca, float *C, int ncb)
+void smxm (float *A, int nra, float *B, int nca, float *C, int ncb)
 {
   register float *a = A,
                  *b = B,
@@ -72,4 +68,3 @@ void smxm (float* A, int nra, float* B, int nca, float *C, int ncb)
     a += nca;
   }
 }
-#endif
