@@ -58,7 +58,7 @@ void dspline(int n, double yp1, double ypn, const double *x, const double *y,
   y2[n-1] = (un - qn * u[n-2]) / (qn * y2[n-2] + 1.0);
   for (k = n-2; k; k--) y2[k] = y2[k] * y2[k+1] + u[k];
 
-  free_dvector(u, 0);
+  freeDvector(u, 0);
   return;
 }
 
@@ -135,7 +135,7 @@ void sspline(int n, float yp1, float ypn, const float *x, const float *y,
   y2[n-1] = (un - qn * u[n-2]) / (qn * y2[n-2] + 1.);
   for (k = n-2; k; k--) y2[k] = y2[k] * y2[k+1] + u[k];
 
-  free_svector(u, 0);
+  freeSvector(u, 0);
 }
 
 
