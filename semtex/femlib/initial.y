@@ -4,7 +4,8 @@
  * lookup, along with a simple function interpreter.  Initialize() routine   *
  * must be called before the other parts of the code will work.              *
  *                                                                           *
- * Modelled on hoc3 in Chapter 8 of "The UNIX Programming Environment".      *
+ * Modelled on hoc3 in Chapter 8 of "The UNIX Programming Environment" by    *
+ * Kernighan & Pike.                                                         *
  *                                                                           *
  * We maintain 3 externally-accessible lists:                                *
  *   iparam:  named integer parameters;                                      *
@@ -43,7 +44,7 @@
  *****************************************************************************/
 
 static char
-rcsid00[] = "$Id$";
+RCSid00[] = "$Id$";
 
 
 #include <stdio.h>
@@ -87,7 +88,10 @@ typedef struct symbol {		/* Symbol table entry */
 static double  Log  (double),          Log10   (double),
                Exp  (double),          Sqrt    (double),
                Asin (double),          Acos    (double),
-               Pow  (double, double),  integer (double);
+               Pow  (double, double),  integer (double),
+               Sinh (double),          Cosh    (double),
+               Tanh (double);
+						     
 
 static Symbol *lookup  (const char *);
 static Symbol *install (const char *, int, ...);
@@ -123,12 +127,15 @@ static struct {			    /* Built-in functions                    */
   "abs"   ,  fabs    ,
   "floor" ,  floor   ,
   "ceil"  ,  ceil    ,
-  "asin"  ,  Asin    ,		/* Rest do error-checking */
+  "asin"  ,  Asin    ,		    /* Rest do error-checking */
   "acos"  ,  Acos    ,
   "log"   ,  Log     ,
   "log10" ,  Log10   ,
   "exp"   ,  Exp     ,
   "sqrt"  ,  Sqrt    ,
+  "sinh"  ,  Sinh    ,
+  "cosh"  ,  Cosh    ,
+  "tanh"  ,  Tanh    ,
   NULL    ,  NULL
 };
 
@@ -715,4 +722,22 @@ static double Asin(double x)
 static double integer(double x)
 {
   return (double)(long)x;
+}
+
+
+static double Sinh(double x)
+{
+  return errcheck(sinh(x), "sinh");
+}
+
+
+static double Cosh(double x)
+{
+  return errcheck(cosh(x), "cosh");
+}
+
+
+static double Tanh(double x)
+{
+  return errcheck(tanh(x), "tanh");
 }
