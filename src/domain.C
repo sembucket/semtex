@@ -151,7 +151,9 @@ void Domain::dump ()
 
   if (!(periodic || final)) return;
   ofstream output;
-  
+
+  Femlib::synchronize();
+
   ROOTONLY {
     const char    routine[] = "Domain::dump";
     char          dumpfl[StrMax], backup[StrMax], command[StrMax];
@@ -181,9 +183,15 @@ void Domain::dump ()
     if (verbose) message (routine, ": writing field dump", REMARK);
   }
 
+  Femlib::synchronize();
   this -> transform (INVERSE);
+  Femlib::synchronize();
+
   output << *this;
+
+  Femlib::synchronize();
   this -> transform (FORWARD);
+  Femlib::synchronize();
 
   ROOTONLY output.close();
 }
