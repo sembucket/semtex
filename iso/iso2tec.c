@@ -3,7 +3,7 @@
  *
  * usage: iso2tec input.fld > output.tec
  *
- * $Id$
+ * : iso2tec.c,v 2.1 1995/11/08 00:42:04 hmb Exp hmb $
  *****************************************************************************/
 
 #include "iso.h"
@@ -26,7 +26,7 @@ int main (int argc, char *argv[])
 
   fp = efopen (argv[1], "r");
   readParam   (fp, Info);
-  printParam  (stderr, Info, "$RCSfile$", "$Revision$");
+  printParam  (stderr, Info, ": iso2tec.c,v $", ": 2.1 $");
 
   /* -- Set up the problem size */
 
@@ -53,8 +53,10 @@ int main (int argc, char *argv[])
   /* -- Transform to PHYSICAL space. */
 
   preFFT (Wtab, Dim[3]);
-  for (c = 1; c <= 3; c++) rc3DFT (U[c], Dim, Wtab, INVERSE);
-  for (c = 1; c <= 3; c++) rc3DFT (Q[c], Dim, Wtab, INVERSE);
+  for (c = 1; c <= 3; c++) {
+    rc3DFT (U[c], Dim, Wtab, INVERSE);
+    rc3DFT (Q[c], Dim, Wtab, INVERSE);
+  }
 
   u = &U[1][0][0][0].Re;
   v = &U[2][0][0][0].Re;
@@ -97,7 +99,7 @@ real magnitude (CVF Q, int i, int j, int k, int N)
 
   const int p = k + N * (j + N * i);
 
-  return u[p]*u[p] + v[p]*v[p] * w[p]*w[p];
+  return u[p]*u[p] + v[p]*v[p] + w[p]*w[p];
 }
 
 
