@@ -5,7 +5,6 @@
 static char
 RCSid[] = "$Id$";
 
-
 #include <Sem.h>
 
 
@@ -13,38 +12,44 @@ ModalMatrixSystem::ModalMatrixSystem (const real              lambda2,
 				      const real              beta   ,
 				      const int               nmodes ,
 				      const vector<Element*>& Elmt   ,
-				      const NumberSystem*     Nsys   ,
-				      const MatrixGenerator   Mgen   )
+				      const NumberSystem*     Nsys   )
 // ---------------------------------------------------------------------------
 // Generate the vector of MatrixSystems which will be used to solve all
 // the Fourier-mode discrete Helmholtz problems for the associated scalar
 // Fields (called out by names).
+//
+// Input variables:
+//   lambda2 is the Helmholtz constant for the problem,	
+//   beta is the Fourier length scale = TWOPI / Lz,
+//   nmodes is the number of Fourier modes which will be solved.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "ModalMatrixSystem::ModalMatrixSystem";
-  int  k;
-  real HelmholtzConstant;
+  char      routine[] = "ModalMatrixSystem::ModalMatrixSystem";
+  int       k;
+  real      betak2;
+  const int cylindrical = Geometry::system() == Geometry::Cylindrical;
 
   fields = strdup (Nsys -> fields());
   Msys.setSize (nmodes);
 
   cout << routine << ": building matrices for Fields \"" << fields << "\" [";
   for (k = 0; k < nmodes; k++) {
-    HelmholtzConstant = lambda2 + sqr (k * beta);
-    Msys[k] = new MatrixSystem (HelmholtzConstant, Elmt, Nsys, Mgen);
+    betak2 = sqr (k * beta);
+    Msys[k] = new MatrixSystem (lambda2, betak2, Elmt, Nsys);
   }
 
   cout << "]" << endl;
 }
 
 
-MatrixSystem::MatrixSystem (const real              HCon,
-			    const vector<Element*>& Elmt,
-			    const NumberSystem*     Nsys,
-			    const MatrixGenerator   MGen) :
+MatrixSystem::MatrixSystem (const real              lambda2,
+			    const real              betak2 ,
+			    const vector<Element*>& Elmt   ,
+			    const NumberSystem*     Nsys   ) :
 			    
-			    HelmholtzConstant      (HCon),
-			    nel                    (Nsys -> nEl()),
+			    HelmholtzConstant      (lambda2),
+			    FourierConstant        (betak2 ),
+			    nel                    (Geometry::nElmt()),
 			    nband                  (Nsys -> nBand())
 // ---------------------------------------------------------------------------
 // Initialize and factorize matrices in this system.
@@ -58,17 +63,21 @@ MatrixSystem::MatrixSystem (const real              HCon,
   char         routine[] = "MatrixSystem::MatrixSystem";
   const int    verbose = (int) Femlib::value ("VERBOSE");
   const real   EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  
   register int i, j, k, m, n;
   const int*   bmap;
   int          next, nint, info;
   real         *hbb, *rmat, *rwrk;
   Element*     E;
 
-  vector<real> work (Nsys -> neMax() * Nsys -> neMax() +
-		     Nsys -> npMax() * Nsys -> npMax() +
-		     Nsys -> neMax() * Nsys -> ntMax() );
+  vector<real> work (sqr (Geometry::nExtElmt()) + sqr (Geometry::nP()) +
+		     Geometry::nExtElmt() * Geometry::nTotElmt());
 
-  singular = fabs (HelmholtzConstant) < EPS && !Nsys -> fmask();
+  hbb      = work();
+  rmat     = hbb  + sqr (Geometry::nExtElmt());
+  rwrk     = rmat + sqr (Geometry::nP());
+
+  singular = fabs (HelmholtzConstant+FourierConstant) < EPS && !Nsys-> fmask();
   nsolve   = (singular) ? Nsys -> nSolve() - 1 : Nsys -> nSolve();
 
   if (nsolve) {
@@ -77,8 +86,7 @@ MatrixSystem::MatrixSystem (const real              HCon,
     Veclib::zero (npack, H, 1);
 
     if (verbose)
-      cout << routine
-	   << " : Banded system matrix: "
+      cout << "-- Building system matrix: "
 	   << nsolve
 	   << "x"
 	   << nband
@@ -95,10 +103,6 @@ MatrixSystem::MatrixSystem (const real              HCon,
   bipack = new int   [nel];
   iipack = new int   [nel];
 
-  hbb  = work();
-  rmat = hbb  + Nsys -> neMax() * Nsys -> neMax();
-  rwrk = rmat + Nsys -> npMax() * Nsys -> npMax();
-
   for (j = 0; j < nel; j++) {
     E = Elmt[j];
 
@@ -110,7 +114,7 @@ MatrixSystem::MatrixSystem (const real              HCon,
     hbi[j] = (nint) ? new real [bipack[j]] : 0;
     hii[j] = (nint) ? new real [iipack[j]] : 0;
 
-    (E ->* MGen) (HelmholtzConstant, hbb, hbi[j], hii[j], rmat, rwrk);
+    E -> HelmholtzSC (lambda2, betak2, hbb, hbi[j], hii[j], rmat, rwrk);
 
     bmap = Nsys -> btog() + E -> bOff();
 
@@ -151,6 +155,7 @@ ostream& operator << (ostream&      str,
 // Output a MatrixSystem to file.
 // ---------------------------------------------------------------------------
 {
+#if 0
   char *hdr_fmt[] = {
     "-- Helmholtz MatrixSystem Storage File --",
     "%-25d "    "Elements",
@@ -158,6 +163,7 @@ ostream& operator << (ostream&      str,
     "%-25d "    "Global matrix bandwidth",
     "%-25d "    "Global matrix singularity flag",
     "%-25.17e " "Helmholtz constant",
+    "%-25d "    "Azimuthal constant",
     "%-25d "    "Word size (bytes)",
     "%-25s "    "Format"  
   };
@@ -171,8 +177,8 @@ ostream& operator << (ostream&      str,
   sprintf (bufr, hdr_fmt[2], M.npack);             str << bufr << endl;
   sprintf (bufr, hdr_fmt[3], M.nband);             str << bufr << endl;
   sprintf (bufr, hdr_fmt[4], M.singular);          str << bufr << endl;
-  sprintf (bufr, hdr_fmt[6], M.HelmholtzConstant); str << bufr << endl;
-  sprintf (bufr, hdr_fmt[5], sizeof (real));       str << bufr << endl;
+  sprintf (bufr, hdr_fmt[5], M.HelmholtzConstant); str << bufr << endl;
+  sprintf (bufr, hdr_fmt[6], sizeof (real));       str << bufr << endl;
   sprintf (bufr, hdr_fmt[7], fmt);                 str << bufr << endl;
   
   // -- Global Helmholtz matrix.
@@ -194,7 +200,7 @@ ostream& operator << (ostream&      str,
     str.write ((char*) &n, sizeof (int));
     str.write ((char*) M.hii[i], n * sizeof (real));
   }
-
+#endif
   return str;
 }
 
@@ -207,49 +213,58 @@ istream& operator >> (istream&      str,
 {
 #if 0
   char       routine[] = "MatrixSystem::operator >>";
-  char       bufr[StrMax];
+  char       bufr[StrMax], fmt[StrMax];
   istrstream s (bufr, strlen (bufr));
-  int        n;
+  int        n, swab;
   real       f;
   const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
-  strm.getline (bufr);
+  Veclib::describeFormat (fmt);
+  
+  str.getline (bufr);
   if (strcmp (bufr, "-- Helmholtz MatrixSystem Storage File --"))
     message (routine, "input file lacks valid header",                  ERROR);
 
-  strm.getline (bufr);
+  str.getline (bufr);
   s >> n;
   if (n != hbi.getSize ())
     message (routine, "mismatch: number of elements in file & system",  ERROR);
 
-  strm.getline (bufr);
+  str.getline (bufr);
   s >> n;
   if (n != H.getSize ())
     message (routine, "mismatch: size of H in file & system",           ERROR);
   
-  strm.getline (bufr);
+  str.getline (bufr);
   s >> n;
   if (n != n_band)
     message (routine, "mismatch: bandwidth of H in file & system",      ERROR);
   
-  strm.getline (bufr);
+  str.getline (bufr);
   s >> n;
   if (n != singular)
     message (routine, "mismatch: singularity of H in file & system",    ERROR);
 
-  strm.getline (bufr);
-  s >> n;
-  if (n != sizeof (real))
-    message (routine, "mismatch: word size/precision in file & system", ERROR);
-
-  strm.getline (bufr);
+  str.getline (bufr);
   s >> f;
   if (fabs (f - HelmholtzConstant) > EPS)
     message (routine, "mismatch: Helmholtz constant in file & system",  ERROR);
 
+  str.getline (bufr);
+  s >> n;
+  if (n != sizeof (real))
+    message (routine, "mismatch: word size/precision in file & system", ERROR);
+
+  str.getline (bufr);
+  if (!strstr (bufr, "IEEE"))
+  	message (routine, "unrecognized binary format", ERROR);
+  	swab = (strstr (bufr, "little") && strstr (fmt, "big")  ||
+		strstr (bufr, "big")    && strstr (fmt, "little"));
 
   str.read ((char*) H (), H.getSize () * sizeof (real));
 
+  if (swab)   Veclib::brev (H.getSize(), H(), 1, H(), 1);
+  
   register int i;
   int          n;
   const int    N = hbi.getSize ();
@@ -258,8 +273,11 @@ istream& operator >> (istream&      str,
     str.read ((char*) &n, sizeof (int));
     if (n != hbi[i].getSize ())
       message (routine, "mismatch: size of hbi in file & system", ERROR);
-    else
+    else  {
       str.read ((char*) hbi[i], n * sizeof (real));
+      if (swab)   Veclib::brev (n, hbi[i], 1, hbi[i], 1);
+    }
+    
     hbi[k] = FamilyMgr::insert (n, hbi[k]);  
   }
   
@@ -267,12 +285,26 @@ istream& operator >> (istream&      str,
     str.read ((char*) &n, sizeof (int));
     if (n != hii[i].getSize ())
       message (routine, "mismatch: size of hii in file & system", ERROR);
-    else    
+    else  {
       str.read ((char*) hii[i], n * sizeof (real));
+      if (swab)   Veclib::brev (n, hii[i], 1, hii[i], 1);
+    }
+
     hii[k] = FamilyMgr::insert (n, hii[k]);
   }
+
 #endif
-  
+
   return str;
 }
+
+
+
+
+
+
+
+
+
+
 

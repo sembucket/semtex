@@ -390,12 +390,6 @@ void Mesh::surfaces ()
       S  -> mateSide = MS;
       MS -> mateElmt = elmtTable (e);
       MS -> mateSide = S;
-#if 0
-      S  -> startNode -> periodic = MS -> endNode;
-      MS -> endNode   -> periodic = S  -> startNode;
-      S  -> endNode   -> periodic = MS -> startNode;
-      MS -> startNode -> periodic = S  -> endNode;
-#endif
 
       if (!S -> startNode -> periodic) {
 	PN = (S->startNode->ID < MS->endNode->ID) ?
@@ -1142,7 +1136,8 @@ void Mesh::describeBC (char  grp,
 
 void Mesh::buildMask (const int  np  ,
 		      const char fld ,
-		      int*       mask)
+		      int*       mask,
+		      const int  axis)
 // ---------------------------------------------------------------------------
 // This routine generates an integer mask (0/1) vector for element-boundary
 // nodes.  For any location that corresponds to a domain boundary with an
@@ -1152,6 +1147,9 @@ void Mesh::buildMask (const int  np  ,
 // For quads, mask is 4 * nel * (np - 1) long, same as input for buildMap.
 // Use is made of the fact that on BCs, there are no mating sides, hence
 // no need to set mask on mating sides.
+//
+// In case axis is non-zero and fld is 'v, 'w' or 'p', generate mask for
+// special cases on the symmetry axis.
 // ---------------------------------------------------------------------------
 {
   char routine[] = "Mesh::buildMask";
@@ -1159,7 +1157,8 @@ void Mesh::buildMask (const int  np  ,
   if (np < 2) message (routine, "need at least 2 knots", ERROR);
 
   register int i, j, k, ns, nb = 0;
-  const    int nel = nEl(), ni = np - 2;
+  const    int nel  = nEl(), ni = np - 2;
+  const    int AXIS = axis && (fld == 'v' || fld == 'w' || fld == 'p');
   Elmt*        E;
   Side*        S;
 
@@ -1177,14 +1176,15 @@ void Mesh::buildMask (const int  np  ,
     }
   }
 
-  // -- Switch on gID in appropriate locations, for D <==> Dirichelet BCs.
+  // -- Switch on gID in appropriate locations, for D, A <==> Dirichlet BCs.
 
   for (i = 0; i < nel; i++) {
     E  = elmtTable (i);
     ns = E -> nNodes();
     for (j = 0; j < ns; j++) {
       S = E -> side (j);
-      if (!(S -> mateElmt) && matchBC (S -> group, fld, 'D')) {
+      if (!(S -> mateElmt) && (matchBC (S -> group, fld, 'D')
+          || (AXIS         &&  matchBC (S -> group, fld, 'A')))) {
 	S -> startNode -> gID = 1;
 	S -> endNode   -> gID = 1;
 	if (ni)      S -> gID = 1;

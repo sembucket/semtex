@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// auxfield.C:  routines for AuxField class, including Fourier expansions.
+// auxfield.C: routines for AuxField class, including Fourier expansions.
 //
 // For 2D problems, the data storage is organized by 2D Elements.
 //
@@ -21,45 +21,27 @@ RCSid[] = "$Id$";
 
 
 AuxField::AuxField (vector<Element*>& Elts,
-		    const int         nz  ,
 		    const char        name) :
 		    
-		    field_name       (name), 
-		    Elmt             (Elts),
-		    n_z              (nz  ),
-		    n_plane          (0   ),
-		    n_elmt_bnodes    (0   ),
-		    n_elmt_inodes    (0   ),
-		    elmt_np_max      (0   ),
-		    elmt_nt_max      (0   ),
-		    elmt_ne_max      (0   ),
-		    elmt_ni_max      (0   )
+		    field_name       (name),
+		    Elmt             (Elts)
 // ---------------------------------------------------------------------------
 // Allocate field storage area and integer size records.
 // ---------------------------------------------------------------------------
 {
-  register Element* E;
-  register int      k;
-  const int         N = Elmt.getSize();
+  char         routine[] = "AuxField::AuxField";
+  register int k;
+  const int    nT = Geometry::nTot  ();
+  const int    nZ = Geometry::nZ    ();
+  const int    nP = Geometry::nPlane();
 
-  k = 0;
-  for (k = 0; k < N; k++) {
-    E = Elmt[k];
+  if (Geometry::nElmt() != Elmt.getSize())
+    message (routine, "conflicting number of elements in input data", ERROR);
 
-    n_plane       += E -> nTot();
-    n_elmt_bnodes += E -> nExt();
+  data  = new real  [nT];
+  plane = new real* [nZ];
 
-    elmt_np_max = max (elmt_np_max, E -> nKnot());
-    elmt_nt_max = max (elmt_nt_max, E -> nTot ());
-    elmt_ne_max = max (elmt_ne_max, E -> nExt ());
-    elmt_ni_max = max (elmt_ne_max, E -> nInt ());
-  }
-  n_elmt_inodes = n_plane - n_elmt_bnodes;
-
-  data  = new real  [n_z * n_plane];
-  plane = new real* [n_z];
-
-  for (k = 0; k < n_z; k++) plane[k] = data + k * n_plane;
+  for (k = 0; k < nZ; k++) plane[k] = data + k * nP;
 }
 
 
@@ -68,8 +50,8 @@ AuxField& AuxField::operator = (const real val)
 // Set field storage area to val.
 // ---------------------------------------------------------------------------
 {
-  if   (val == 0.0) Veclib::zero (nTot(),      data, 1);
-  else              Veclib::fill (nTot(), val, data, 1);
+  if   (val == 0.0) Veclib::zero (Geometry::nTot(),      data, 1);
+  else              Veclib::fill (Geometry::nTot(), val, data, 1);
 
   return *this;
 }
@@ -80,7 +62,7 @@ AuxField& AuxField::operator += (const real val)
 // Add val to field storage area.
 // ---------------------------------------------------------------------------
 {
-  if (val != 0.0) Veclib::sadd (nTot(), val, data, 1, data, 1);
+  if (val != 0.0) Veclib::sadd (Geometry::nTot(), val, data, 1, data, 1);
 
   return *this;
 }
@@ -91,7 +73,7 @@ AuxField& AuxField::operator -= (const real val)
 // Add -val to field storage area.
 // ---------------------------------------------------------------------------
 {
-  if (val != 0.0) Veclib::sadd (nTot(), -val, data, 1, data, 1);
+  if (val != 0.0) Veclib::sadd (Geometry::nTot(), -val, data, 1, data, 1);
 
   return *this;
 }
@@ -102,8 +84,8 @@ AuxField& AuxField::operator *= (const real val)
 // Multiply field storage area by val.
 // ---------------------------------------------------------------------------
 {
-  if   (val == 0.0) Veclib::zero (nTot(),      data, 1);
-  else              Blas::scal   (nTot(), val, data, 1);
+  if   (val == 0.0) Veclib::zero (Geometry::nTot(),      data, 1);
+  else              Blas::scal   (Geometry::nTot(), val, data, 1);
 
   return *this;
 }
@@ -115,7 +97,7 @@ AuxField& AuxField::operator /= (const real val)
 // ---------------------------------------------------------------------------
 {
   if   (val == 0.0) message ("AuxField::op /= real", "divide by zero", ERROR);
-  else              Blas::scal (nTot(), 1.0 / val, data, 1);
+  else              Blas::scal (Geometry::nTot(), 1.0 / val, data, 1);
 
   return *this;
 }
@@ -126,13 +108,12 @@ AuxField& AuxField::operator = (const AuxField& f)
 // This presumes the two fields conform, and copies f's value storage to LHS.
 // ---------------------------------------------------------------------------
 {
-  if (f.nTot() != nTot())
-    message ("AuxField::operator = const AuxField&", "size mismatch", ERROR);
-
   register int k;
+  const int    nZ = Geometry::nZ();
+  const int    nP = Geometry::nPlane();
   
-  for (k = 0; k < n_z; k++)
-    Veclib::copy (nPlane(), f.plane[k], 1, plane[k], 1);
+  for (k = 0; k < nZ; k++)
+    Veclib::copy (nP, f.plane[k], 1, plane[k], 1);
   
   return *this;
 }
@@ -143,13 +124,12 @@ AuxField& AuxField::operator += (const AuxField& f)
 // Add f's value to this AuxField's.
 // ---------------------------------------------------------------------------
 {
-  if (f.nTot() != nTot())
-    message ("AuxField::operator += const AuxField&", "size mismatch", ERROR);
-
   register int k;
+  const int    nZ = Geometry::nZ();
+  const int    nP = Geometry::nPlane();
   
-  for (k = 0; k < n_z; k++)
-    Veclib::vadd (nPlane(), plane[k], 1, f.plane[k], 1, plane[k], 1);
+  for (k = 0; k < nZ; k++)
+    Veclib::vadd (nP, plane[k], 1, f.plane[k], 1, plane[k], 1);
 
   return *this;
 }
@@ -160,13 +140,12 @@ AuxField& AuxField::operator -= (const AuxField& f)
 // Subtract f's value from this AuxField's.
 // ---------------------------------------------------------------------------
 {
-  if (f.nTot() != nTot())
-    message ("AuxField::operator -= const AuxField&", "size mismatch", ERROR);
-
   register int k;
+  const int    nZ = Geometry::nZ();
+  const int    nP = Geometry::nPlane();
   
-  for (k = 0; k < n_z; k++)  
-    Veclib::vsub (nPlane(), plane[k], 1, f.plane[k], 1, plane[k], 1);
+  for (k = 0; k < nZ; k++)  
+    Veclib::vsub (nP, plane[k], 1, f.plane[k], 1, plane[k], 1);
 
   return *this;
 }
@@ -179,14 +158,15 @@ AuxField& AuxField::operator = (const char* function)
 {
   register Element* E;
   register int      i, k, offset = 0;
-  const int         ne = nEl();
-  const real        dz = Femlib::value ("TWOPI/BETA") / n_z;
+  const int         nE = Geometry::nElmt();
+  const int         nZ = Geometry::nZ();
+  const real        dz = Femlib::value ("TWOPI / BETA") / nZ;
   real              z;
 
-  for (k = 0; k < n_z; k++) {
+  for (k = 0; k < nZ; k++) {
     z = k * dz;
     Femlib::value ("z", z);
-    for (i = 0; i < ne; i++) {
+    for (i = 0; i < nE; i++) {
       E      = Elmt[i];
       offset = E -> dOff();
 
@@ -205,16 +185,15 @@ AuxField& AuxField::product (const AuxField& a,
 // Pseudospectrally in z, dealiased using 3/2 rule.
 // ---------------------------------------------------------------------------
 {
-  if (a.nTot() != nTot() || b.nTot() != nTot())
-    message ("AuxField::product", "size mismatch", ERROR);
-
-  if (n_z == 1)
-    Veclib::vmul (nTot(), a.plane[0], 1, b.plane[0], 1, plane[0], 1);
+  if (Geometry::nDim() == 2)
+    Veclib::vmul (Geometry::nTot(), a.plane[0], 1, b.plane[0], 1, plane[0], 1);
 
   else {
     register int i, k;
-    const int    nm    = n_z - 1;
-    const int    nz32  = 3 * (n_z >> 1);
+    const int    nZ    = Geometry::nZ();
+    const int    nP    = Geometry::nPlane();
+    const int    nm    = nZ - 1;
+    const int    nz32  = 3 * (nZ >> 1);
     const int    nzero = nz32 - nm;
 
     vector<real> work (4 * nz32 + 15);
@@ -226,7 +205,7 @@ AuxField& AuxField::product (const AuxField& a,
     
     Femlib::rffti (nz32, Wtab);
     
-    for (i = 0; i < n_plane; i++) {
+    for (i = 0; i < nP; i++) {
 
       // -- Load dealiasing buffers at & bt, with zero padding at ends.
       
@@ -255,7 +234,7 @@ AuxField& AuxField::product (const AuxField& a,
 
     // -- Normalize.
     
-    Blas::scal (nTot(), 1.0 / nz32, data, 1);
+    Blas::scal (Geometry::nTot(), 1.0 / nz32, data, 1);
   }
 
   return *this;
@@ -269,16 +248,15 @@ AuxField& AuxField::addprod (const AuxField& a,
 // Pseudospectrally in z, dealiased using 3/2 rule.
 // ---------------------------------------------------------------------------
 {
-  if (a.nTot() != nTot() || b.nTot() != nTot())
-    message ("AuxField::addprod", "size mismatch", ERROR);
-
-  if (n_z == 1)
-    Veclib::vvtvp (nTot(), a.data, 1, b.data, 1, data, 1, data, 1);
+  if (Geometry::nDim() == 2)
+    Veclib::vvtvp (Geometry::nTot(), a.data, 1, b.data, 1, data, 1, data, 1);
 
   else {
     register int i, k;
-    const int    nm    = n_z - 1;
-    const int    nz32  = 3 * (n_z >> 1);
+    const int    nZ    = Geometry::nZ();
+    const int    nP    = Geometry::nPlane();
+    const int    nm    = nZ - 1;
+    const int    nz32  = 3 * (nZ >> 1);
     const int    nzero = nz32 - nm;
 
     vector<real> work (4 * nz32 + 15);
@@ -290,7 +268,7 @@ AuxField& AuxField::addprod (const AuxField& a,
 
     Femlib::rffti (nz32, Wtab);
 
-    for (i = 0; i < n_plane; i++) {
+    for (i = 0; i < nP; i++) {
 
       // -- Load dealiasing buffers at & bt, with zero padding at ends.
 
@@ -312,7 +290,7 @@ AuxField& AuxField::addprod (const AuxField& a,
       
       // -- Normalize.
     
-      Blas::scal (n_z, 1.0 / nz32, at, 1);
+      Blas::scal (nZ, 1.0 / nz32, at, 1);
 
       // -- Add transformed product to current data area.
 
@@ -331,13 +309,12 @@ AuxField& AuxField::axpy (const real      alpha,
 // Add alpha * x to this AuxField, plane-by-plane.
 // ---------------------------------------------------------------------------
 {
-  if (x.nTot() != nTot())
-    message ("AuxField::axpy", "size mismatch", ERROR);
-  
   register int k;
+  const int    nZ = Geometry::nZ();
+  const int    nP = Geometry::nPlane();
   
-  for (k = 0; k < n_z; k++)
-    Blas::axpy (n_plane, alpha, x.plane[k], 1, plane[k], 1);
+  for (k = 0; k < nZ; k++)
+    Blas::axpy (nP, alpha, x.plane[k], 1, plane[k], 1);
 
   return *this;
 }
@@ -348,7 +325,7 @@ AuxField& AuxField::reverse ()
 // Reverse order of bytes within each word of data.
 // ---------------------------------------------------------------------------
 {
-  Veclib::brev (nTot(), data, 1, data, 1);
+  Veclib::brev (Geometry::nTot(), data, 1, data, 1);
 
   return *this;
 }
@@ -360,16 +337,14 @@ void AuxField::swapData (AuxField* x,
 // Swap data areas of two fields.
 // ---------------------------------------------------------------------------
 {
-  if (x -> nTot() != y -> nTot())
-    message ("AuxField::swapData", "size mismatch", ERROR);
-
   register int   k;
+  const int      nZ = Geometry::nZ();
   register real* tmp = x -> data;
 
   x -> data = y -> data;
   y -> data = tmp;
 
-  for (k = 0; k < x -> n_z; k++) {
+  for (k = 0; k < nZ; k++) {
     tmp           = x -> plane[k];
     x -> plane[k] = y -> plane[k];
     y -> plane[k] = tmp;
@@ -388,13 +363,15 @@ AuxField& AuxField::gradient (const int dir)
 
   register Element* E;
   register int      i, k, offset;
-  const int         N  = nEl();
+  const int         nE = Geometry::nElmt();
+  const int         nZ = Geometry::nZ();
+  const int         nP = Geometry::nPlane();
 
   switch (dir) {
 
   case 0:
-    for (k = 0; k < n_z; k++) 
-      for (i = 0; i < N; i++) {
+    for (k = 0; k < nZ; k++) 
+      for (i = 0; i < nE; i++) {
 	E      = Elmt[i];
 	offset = E -> dOff();
 
@@ -403,8 +380,8 @@ AuxField& AuxField::gradient (const int dir)
     break;
 
   case 1:
-    for (k = 0; k < n_z; k++) 
-      for (i = 0; i < N; i++) {
+    for (k = 0; k < nZ; k++) 
+      for (i = 0; i < nE; i++) {
 	E      = Elmt[i];
 	offset = E -> dOff();
 
@@ -413,7 +390,7 @@ AuxField& AuxField::gradient (const int dir)
     break;
 
   case 2: {
-    const int nmodes = n_z >> 1;
+    const int nmodes = Geometry::nMode();
     real      beta   = Femlib::value ("BETA");
     real*     tmp;
 
@@ -421,8 +398,8 @@ AuxField& AuxField::gradient (const int dir)
       tmp              = plane[2 * k];
       plane[2 * k]     = plane[2 * k + 1];
       plane[2 * k + 1] = tmp;
-      Blas::scal (n_plane, -beta * k, plane[2 * k],     1);
-      Blas::scal (n_plane,  beta * k, plane[2 * k + 1], 1);
+      Blas::scal (nP, -beta * k, plane[2 * k],     1);
+      Blas::scal (nP,  beta * k, plane[2 * k + 1], 1);
     }
     break;
   }
@@ -443,6 +420,8 @@ AuxField& AuxField::errors (const Mesh& mesh    ,
 //
 // The norms are found element-by-element, using projection onto higher-order
 // elements and high-order quadrature.
+//
+// Warning: these routines only work in 2D at the moment.
 // ---------------------------------------------------------------------------
 {
   char routine[] = "AuxField::errors";
@@ -465,11 +444,11 @@ AuxField& AuxField::errors (const Mesh& mesh    ,
   vector<real> tmp;
   real         *u, *z, **IN, **IT;
   int          k, np, npp, ntot;
-  const int    N = nEl();
+  const int    nE = Geometry::nElmt();
 
   Femlib::mesh (GLL, GLL, NQUAD, NQUAD, &z, 0, 0, 0, 0);
 
-  for (k = 0; k < N; k++) {
+  for (k = 0; k < nE; k++) {
     E = Elmt[k];
     P = new Element (E -> ID(), mesh, z, NQUAD);
 
@@ -518,7 +497,7 @@ real AuxField::norm_inf () const
 // Return infinity-norm (absolute max value) of AuxField data area.
 // ---------------------------------------------------------------------------
 {
-  return fabs (data[Blas::iamax (nTot(), data, 1)]);
+  return fabs (data[Blas::iamax (Geometry::nTot(), data, 1)]);
 }
 
 
@@ -531,15 +510,16 @@ real AuxField::mode_L2 (const int mode) const
   char         routine[] = "AuxField::mode_L2";
   real         area = 0.0, Ek = 0.0;
   register int j, offset;
-  const int    N = nEl();
+  const int    nE = Geometry::nElmt();
+  const int    nZ = Geometry::nZ();
   const int    kr = 2 * mode;
   const int    ki = 2 * mode + 1;
   Element*     E;
   
-  if (mode < 0  ) message (routine, "negative mode number",        ERROR);
-  if (ki   > n_z) message (routine, "mode number exceeds maximum", ERROR);
+  if (mode < 0 ) message (routine, "negative mode number",        ERROR);
+  if (ki   > nZ) message (routine, "mode number exceeds maximum", ERROR);
 
-  for (j = 0; j < N; j++) {
+  for (j = 0; j < nE; j++) {
     E      = Elmt[j];
     offset = E -> dOff();
     area  += E -> area();
@@ -560,7 +540,7 @@ ostream& operator << (ostream&  strm,
 // Binary write of F's data area.
 // ---------------------------------------------------------------------------
 {
-  strm.write ((char*) F.data, F.nTot() * sizeof (real));
+  strm.write ((char*) F.data, Geometry::nTot() * sizeof (real));
 
   return strm;
 }
@@ -572,7 +552,7 @@ istream& operator >> (istream&  strm,
 // Binary read of F's data area.
 // ---------------------------------------------------------------------------
 {
-  strm.read ((char*) F.data, F.nTot() * sizeof (real));
+  strm.read ((char*) F.data, Geometry::nTot() * sizeof (real));
 
   return strm;
 }
@@ -584,10 +564,10 @@ void AuxField::describe (char* s)  const
 // NR NS NZ NEL.
 // ---------------------------------------------------------------------------
 {
-  ostrstream (s, StrMax) << elmt_np_max << " "
-                         << elmt_np_max << " "
-                         << n_z         << " "
-                         << nEl()       << ends;
+  ostrstream (s, StrMax) << Geometry::nP()    << " "
+                         << Geometry::nP()    << " "
+                         << Geometry::nZ()    << " "
+                         << Geometry::nElmt() << ends;
 }
 
 
@@ -597,58 +577,17 @@ AuxField& AuxField::transform (const int sign)
 // in that direction must be even, but is otherwise unrestricted. 
 // Use sign = 1 for forward transform, -1 for inverse.
 //
-// Much of the complication is caused by the "non-standard" data
-// format produced by FFTPACK's rfftf.  Here the (Nyquist, real) datum gets
-// stored as the imaginary part of the zeroth mode, while for rfftf it
-// gets stored as the last point.  The Nyquist datum is always set to
-// zero below.
-//
 // Normalization is carried out on forward transform, so that the zeroth
 // mode's real data are the average over the homogeneous direction of the
 // physical space values.
 // ---------------------------------------------------------------------------
 {
-  Femlib::DFTr (data, n_z, n_plane, 1, n_plane, sign);
-
-#if 0
-  if (n_z < 2) return *this;
-
-  register int i;
-  vector<real> work (3 * n_z + 15);
-  real*        tmp  = work();
-  real*        Wtab = tmp + n_z;
-  real*        ptr  = data;
-
-  Femlib::rffti (n_z, Wtab);
-
-  switch (sign) {
-
-  case 1:
-    for (i = 0; i < n_plane; i++, ptr++) {
-      Veclib::copy  (n_z, ptr, n_plane, tmp, 1);
-      Femlib::rfftf (n_z, tmp, Wtab);
-      Veclib::copy  (n_z - 2, tmp + 1, 1, ptr + 2 * n_plane, n_plane);
-      ptr[0]       = tmp[0];
-      ptr[n_plane] = 0.0;
-    }
-    Blas::scal (nTot(), 1.0 / n_z, data, 1);
-    break;
-
-  case -1:
-    for (i = 0; i < n_plane; i++, ptr++) {
-      tmp[n_z - 1] = 0.0;
-      tmp[0]       = ptr[0];
-      Veclib::copy  (n_z - 2, ptr + 2 * n_plane, n_plane, tmp + 1, 1);
-      Femlib::rfftb (n_z, tmp, Wtab);
-      Veclib::copy  (n_z, tmp, 1, ptr, n_plane);
-    }
-    break;
-
-  default:
-    message ("AuxField::transform", "illegal direction flag", ERROR);
-    break;
-  }
-#endif
+  Femlib::DFTr (data              ,
+		Geometry::nZ()    ,
+		Geometry::nPlane(),
+		1                 ,
+		Geometry::nPlane(),
+		sign              );
   
   return *this;
 }
@@ -658,16 +597,15 @@ AuxField& AuxField::addToPlane (const int  k    ,
 				const real alpha)
 // ---------------------------------------------------------------------------
 // Add in a constant to the values on nominated plane (if it exists),
-// starting at plane zero.
+// starting at plane zero.  You could call this a HACK.
 // ---------------------------------------------------------------------------
 {
   char routine[] = "AuxField::addToPlane";
 
-  if (k < 0 || k >= n_z)
+  if (k < 0 || k >= Geometry::nZ())
     message (routine, "nominated plane doesn't exist", ERROR);
   else
-    Veclib::sadd (n_plane, alpha, plane[k], 1, plane[k], 1);
+    Veclib::sadd (Geometry::nPlane(), alpha, plane[k], 1, plane[k], 1);
 
   return *this;
 }
-
