@@ -1,8 +1,8 @@
 /*****************************************************************************
  * misc.C: miscellaneous routines for I/O, memory management.
- *
- * $Id$
  *****************************************************************************/
+
+static char RCSid[] = "$Id$";
 
 #include "Fem.h"
 #include <time.h>
@@ -13,10 +13,11 @@ ostream& printVector (ostream&     strm,
 		      int          ntot,
 		                   ... )
 // ---------------------------------------------------------------------------
-// Print up a variable number of vectors on strm, in columns.
+// Print up a variable number of numeric vectors on strm, in columns.
 //
 // The format specifier is gives the number and type of the vectors, with
-// type specified by the first character.
+// type specified by the first character.  The vectors must all be of the
+// same type & length.
 //
 // Allowed types are: int ("i"), real ("r").
 // Examples: four integer vectors ==> fmt is "iiii".  Two reals ==> "rr".
@@ -24,9 +25,9 @@ ostream& printVector (ostream&     strm,
 // Vectors are printed in a fixed field width of 15, regardless of type.
 // ---------------------------------------------------------------------------
 {
-  char      routine[] = "printVector";
-  int       nvect;
-  va_list   ap;
+  char     routine[] = "printVector";
+  int      nvect;
+  va_list  ap;
 
   nvect = strlen (fmt);
   if (! nvect   ) message (routine, "empty format string",   ERROR  );
@@ -96,7 +97,7 @@ ifstream&  seekBlock (ifstream& strm, const char* name)
 	message (routine,   "found '}' while looking for '{'", ERROR);
       return strm;
     } else
-      endBlock (strm);
+      strm.getline (s, StrMax);
   }
 
   sprintf (s, "failed to locate block \"%s\"", name);
@@ -180,7 +181,7 @@ ostream& operator << (ostream& strm, Domain& D)
     "%-25s "    "Format\n"
   };
 
-  char      routine[] = "Domain << operator";
+  char      routine[] = "Domain<<operator";
   char      s1[StrMax], s2[StrMax];
   int       np   (D.u[0] -> element_list.first() -> nKnot());
   int       ntot (D.u[0] -> nTot());
@@ -518,22 +519,57 @@ istream& readFparams (istream& istr)
 Mesh*  preProcess (ifstream& strm)
 // ---------------------------------------------------------------------------
 // Get run-time parameters, BCs & Mesh from strm.
+//
+// Set default options, parameters, according to problem.
 // ---------------------------------------------------------------------------
 {
   char   routine[] = "preProcess";
   int    verbose   = option ("VERBOSE");
-  Mesh*  M = new Mesh;
+  Mesh*  M         = new Mesh;
 
   seekBlock   (strm, "parameter");
   readOptions (strm);     
   readIparams (strm);     
   readFparams (strm);     
-  endBlock    (strm); 
+  endBlock    (strm);
+  
+  if (!iparam ("N_POLY")) {
+    setIparam ("N_POLY", 5);
+    message (routine, "setting default N_POLY = 5", WARNING);
+  }
+
+  if (option ("PROBLEM") == NAVIERSTOKES) {
+    if (!iparam ("N_STEP")) {
+      setIparam ("N_STEP", 10);
+      message (routine, "setting default N_STEP = 10", WARNING);
+    }   
+    if (!iparam ("IO_FLD")) {
+      setIparam ("IO_FLD", iparam ("N_STEP"));
+      message (routine, "setting default IO_FLD = N_STEP", WARNING);
+    }
+    if (!iparam ("N_TIME")) {
+      setIparam ("N_TIME", 1);
+      message (routine, "setting default N_TIME = 1", WARNING);
+    }
+    if (dparam ("DELTAT") == 0.0) {
+      setDparam ("DELTAT", 0.01);
+      message (routine, "setting default DELTAT = 0.01", WARNING);
+    }
+    if (dparam ("KINVIS") == 0.0) {
+      setDparam ("KINVIS", 1.0);
+      setDparam ("DELTAT", 0.01);
+      message (routine, "setting default KINVIS = 1.0", WARNING);
+    }
+  } else if (option ("PROBLEM") == HELMHOLTZ) {
+    setIparam ("N_STEP", 1);
+    setIparam ("IO_FLD", 1);
+    setDparam ("DELTAT", 0.0);
+  }
 
   if (verbose) {
-    message (routine, "-- OPTION PARAMETERS:",         REMARK); showOption ();
-    message (routine, "-- INTEGER PARAMETERS:",        REMARK); showIparam ();
-    message (routine, "-- FLOATING POINT PARAMETERS:", REMARK); showDparam ();
+    message (routine, " -- OPTION PARAMETERS:",         REMARK); showOption ();
+    message (routine, " -- INTEGER PARAMETERS:",        REMARK); showIparam ();
+    message (routine, " -- FLOATING POINT PARAMETERS:", REMARK); showDparam ();
   }
 
   seekBlock (strm, "boundary");
@@ -541,15 +577,16 @@ Mesh*  preProcess (ifstream& strm)
   endBlock  (strm); 
 
   if (verbose) {
-    message (routine, "-- BOUNDARY CONDITIONS:", REMARK); BCmanager::print ();
+    message (routine, " -- BOUNDARY CONDITIONS:", REMARK);
+    BCmanager::print ();
   }
 
   seekBlock (strm, "mesh");
   strm >> *M;
   endBlock  (strm);
 
-  if (verbose == 2) {
-    message (routine, "-- MESH ASSEMBLY INFORMATION:", REMARK);
+  if (verbose > 1) {
+    message (routine, " -- MESH ASSEMBLY INFORMATION:", REMARK);
     Mesh::printAssembly (*M);
   }
 
