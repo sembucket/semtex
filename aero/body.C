@@ -362,7 +362,7 @@ void SMD::move (const integer step)
   const real    dt   = Femlib::value ("D_T");
   const integer Jmax = (integer) Femlib::value ("N_TIME");
 
-  integer       q, Je = min (max (1, step), Jmax);
+  integer       q, Je = min (max ((integer) 1, step), Jmax);
   real          *alpha, *betaDt;
 
   vector<real> work (2 * Je + 1);

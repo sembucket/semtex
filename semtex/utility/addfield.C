@@ -19,8 +19,8 @@ static void  memExhaust () { message ("new", "free store exhausted", ERROR); }
 
 static void    getargs  (integer, char**, char*&, char*&,
 			 integer&, integer&, integer&, integer&, integer&);
-static integer getDump  (Domain*, istream&);
-static void    putDump  (Domain*, vector<AuxField*>&, integer, ostream&);
+static integer getDump  (Domain*, ifstream&);
+static void    putDump  (Domain*, vector<AuxField*>&, integer, ofstream&);
 
 
 integer main (integer argc,
@@ -35,6 +35,7 @@ integer main (integer argc,
   char               *session, *dump, fields[StrMax];
   integer            i, j, np, nz, nel, DIM;
   ifstream           file;
+  ofstream           outp (1);
   FEML*              F;
   Mesh*              M;
   BCmgr*             B;
@@ -53,11 +54,11 @@ integer main (integer argc,
 
     // -- Set command line defaults
 
-  integer add_vort=0,
-      add_enst=0,
-      add_div =0,
-      add_sij =0,
-      add_inv =0;
+  integer add_vort = 0,
+          add_enst = 0,
+          add_div  = 0,
+          add_sij  = 0,
+          add_inv  = 0;
   
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session,dump,add_vort,add_enst,add_div,add_sij,add_inv);
@@ -72,14 +73,14 @@ integer main (integer argc,
   np     =  (integer) Femlib::value ("N_POLY");
   nz     =  (integer) Femlib::value ("N_Z"   );
   system = ((integer) Femlib::value ("CYLINDRICAL") ) ?
-                                Geometry::Cylindrical : Geometry::Cartesian;
+                      Geometry::Cylindrical : Geometry::Cartesian;
   
   Geometry::set (np, nz, nel, system);
   if   (nz > 1) strcpy (fields, "uvwp");
   else          strcpy (fields, "uvp");
   DIM = Geometry::nDim();
 
-  if ( DIM < 3 ) add_enst = 0;
+  if (DIM < 3) add_enst = 0;
 
   vector<AuxField*> vorticity ((DIM == 2) ? 1 : 3);
 
@@ -268,7 +269,7 @@ integer main (integer argc,
       Hel -> innerProduct(vorticity,AuxPoint);
     }
       
-    putDump (D, dataField, nData, cout);
+    putDump (D, dataField, nData, outp);
     
   }
   
@@ -294,11 +295,11 @@ static void getargs (integer  argc    ,
   char usage[] = "Usage: %s [options] -s session dump.fld\n"
                  "options:\n"
                  "  -h   ... print this message \n"
-                 "  -v   ... add vorticity (default) \n"
+                 "  -v   ... add vorticity\n"
 		 "  -e   ... add enstrophy and helicity (3D only) \n"
 		 "  -d   ... add divergence\n"
 		 "  -t   ... add rate of strain tensor Sij\n"
-		 "  -i   ... add invariants of Sij (but NOT Sij itself) \n"
+		 "  -i   ... add invariants of Vij (but NOT Vij itself) \n"
 		 "           (NB: Divergence is ASSUMED equal to zero) \n"
 		 "  -a   ... add them all \n";
 
@@ -359,8 +360,8 @@ static void getargs (integer  argc    ,
 }
 
 
-static integer getDump (Domain*  D   ,
-		    istream& dump)
+static integer getDump (Domain*   D   ,
+			ifstream& dump)
 // ---------------------------------------------------------------------------
 // Read next set of field dumps from file.
 // ---------------------------------------------------------------------------
@@ -370,10 +371,10 @@ static integer getDump (Domain*  D   ,
 }
 
 
-static void putDump  (Domain*            D    ,
+static void putDump  (Domain*            D       ,
 		      vector<AuxField*>& outField,
-		      integer                nOut,
-		      ostream&           strm)
+		      integer            nOut    ,
+		      ofstream&          strm    )
 // ---------------------------------------------------------------------------
 // This is a version of the normal Domain dump that adds extra AuxFields.
 // ---------------------------------------------------------------------------
