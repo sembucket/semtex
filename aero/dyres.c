@@ -124,8 +124,8 @@ int main (int argc, char *argv[])
 
   /* -- Now append state-variable information to coupling file. *
 
-  fprintf(cou_fp, "X-STATE: %14g %14g %14g %14g\n", xpos, xvel, xacc, xtf);
-  fprintf(cou_fp, "Y-STATE: %14g %14g %14g %14g\n", ypos, yvel, yacc, ytf);
+  fprintf(cou_fp, "x-state %14g %14g\n", xpos, xvel);
+  fprintf(cou_fp, "y-state %14g %14g\n", ypos, yvel);
 
   fclose(cou_fp);
 
