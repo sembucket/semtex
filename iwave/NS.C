@@ -114,15 +114,17 @@ void NavierStokes (Domain*      D      ,
 
     if (mask) for (i = 0; i < NDIM; i++) *Uf[0][i] *= *mask;
 #endif
-    waveProp  (D, Us, Uf);
+    waveProp  (D, (const AuxField***)Us, (const AuxField***)Uf);
 
     // -- Pressure projection substep.
 
-    PBCmgr::maintain (D -> step, Pressure, Us[0], Uf[0]);
+    PBCmgr::maintain (D -> step, Pressure, 
+		      (const AuxField**)Us[0],
+		      (const AuxField**)Uf[0]);
     Pressure -> evaluateBoundaries (D -> step);
     for (i = 0; i < NDIM; i++) AuxField::swapData (D -> u[i], Us[0][i]);
     rollm     (Uf, NORD, NDIM);
-    setPForce (Us[0], Uf[0]);
+    setPForce ((const AuxField**)Us[0], Uf[0]);
     Solve     (D, NDIM, Uf[0][0], MMS[NDIM]);
     project   (D, Us[0], Uf[0]);
 
@@ -184,13 +186,7 @@ static void nonLinear (Domain*       D ,
 // gradients in the Fourier direction however, the data must be transferred
 // back to Fourier space.
 //
-// Forcing for inertia-wave problem:
-//
-// Fx: -2*w2/w1*sin(THETA)*{ y*cos(t+z)                      + 
-//                           [sin(z)*cos(t)+cos(z)*sin(t)]*v +
-//                           [cos(z)*cos(t)-sin(z)*sin(t)]*w }
-// Fy: +2*[1+w2/w1*cos(THETA)]*w + 2*w2/w1*sin(THETA)*sin(t+z)*u
-// Fz: -2*[1+w2/w1*cos(THETA)]*v + 2*w2/w1*sin(THETA)*cos(t+z)*u
+// Forcing for inertia-wave problem: see below.
 //
 // NB: no dealiasing for concurrent execution.
 // ---------------------------------------------------------------------------
@@ -291,59 +287,104 @@ static void nonLinear (Domain*       D ,
 
 #endif      
   
-  // -- Add forcing for inertia-wave problem:
+  // -- Add forcing for inertia-wave problem (transient version):
   //
-  // Fx: -2*w2/w1*sin(THETA)*{ y*cos(t+z)                      + 
-  //                           [sin(z)*cos(t)+cos(z)*sin(t)]*v +
-  //                           [cos(z)*cos(t)-sin(z)*sin(t)]*w }
-  // Fy: +2*[1+w2/w1*cos(THETA)]*w + 2*w2/w1*sin(THETA)*sin(t+z)*u
-  // Fz: -2*[1+w2/w1*cos(THETA)]*v + 2*w2/w1*sin(THETA)*cos(t+z)*u
+  // Fx: +[2*w2/w1*sin(THETA)-THETA_DDOT] *                y*sin(t-z)
+  //     +[w2*THETA_DOT/(w1*w1)*cos(THETA)-THETA_DOT/w1] * y*cos(t-z)
+  //     +2*{w2/w1*sin(THETA)*cos(t)-THETA_DOT/w1*sin(t)}*{v*cos(z)-w*sin(z)}
+  //     +2*{w2/w1*sin(THETA)*sin(t)-THETA_DOT/w1*cos(t)}*{v*sin(z)+w*cos(z)}
+  //
+  // Fy: +2*[w2/w1*cos(THETA)+1]*w
+  //     -2*[w2/w1*sin(THETA)*cos(t-z)+THETA_DOT/w1*sin(t-z)]*u
+  //     -{[w2*THETA_DOT/(w1*w1)*cos(THETA)-THETA_DOT/w1]*cos(t-z)
+  //                                       +THETA_DDOT   *sin(t-z)}*x
+  //
+  // Fz: -2*[w2/w1*cos(THETA)+1]*v
+  //     -2*[w2/w1*sin(THETA)*sin(t-z)-THETA_DOT/w1*cos(t-z)]*u
+  //     -{[w2*THETA_DOT/(w1*w1)*cos(THETA)-THETA_DOT/w1]*sin(t-z)
+  //                                       -THETA_DDOT   *cos(t-z)}*x
+  //
+  // The model adopted for angular motion of spin axis is harmonic:
+  // if t < T_RISE:
+  //
+  // THETA      = 0.5*  ANG_MAX*(1-cos(w3*t)), otherwise THETA      = ANG_MAX
+  // THETA_DOT  = w3*   ANG_MAX*   sin(w3*t),  otherwise THETA_DOT  = 0
+  // THETA_DDOT = w3*w3*ANG_MAX*   cos(w3*t),  otherwise THETA_DDOT = 0
+  //
+  // where w3 = TWOPI/T_RISE.
 
-  real cos0, sin0, z, A1ctcz, A1stcz, A1ctsz, A1stsz, A1ctpz, A1stpz;
+  static const real Tr    = Femlib::value ("T_RISE");
+  static const real Th    = Femlib::value ("ANG_MAX");
+  static const real w1    = Femlib::value ("OMEGA_1");
+  static const real w2    = Femlib::value ("OMEGA_2");
+  static const real w3    = Femlib::value ("TWOPI / T_RISE");
+  static const real dz    = Femlib::value ("TWOPI/BETA") / (nZ32 * nPR);
+  static const real dt    = Femlib::value ("D_T");
+  static const real w2ow1 = w2/w1;
 
-  if ((integer) Femlib::value ("LINEAR")) {
-    cos0 = 1.0;
-    sin0 = Femlib::value ("THETA");
+  const real t         = Femlib::value ("t") - dt;
+  const int  transient = t < Tr;
+
+  real theta, thetaD, thetaDD;
+  
+  if (transient) {
+    theta   = 0.5*Th*(1.0-cos(w3*t));
+    thetaD  = w3*Th*sin(w3*t);
+    thetaDD = w3*w3*Th*cos(w3*t);
   } else {
-    cos0 = Femlib::value ("cos(THETA)");
-    sin0 = Femlib::value ("sin(THETA)");
+    theta   = Th;
+    thetaD  = thetaDD = 0.0;
   }
 
-  const real t     = Femlib::value ("t");
-  const real cost  = cos (t);
-  const real sint  = sin (t);
-  const real omega = Femlib::value ("OMEGA"); // -- w = 2(1+w2/w1).
-  const real w2ow1 = 0.5 * omega - 1.0;
-  const real A1    = 2.0 * w2ow1 * sin0;
-  const real A2    = 2.0 * (1.0 + w2ow1 * cos0);
-  const real dz    = Femlib::value ("TWOPI/BETA") / (nZ32 * nPR);
-
   // -- V & w cross terms.
- 
-  Blas::axpy (nTot32,  A2, u32[2], 1, n32[1], 1);
-  Blas::axpy (nTot32, -A2, u32[1], 1, n32[2], 1);
 
-  // -- Now the things that require us to know z position.
+  const real cross = 2.0*w2ow1*cos(theta)+1.0;
+ 
+  Blas::axpy (nTot32,  cross, u32[2], 1, n32[1], 1);
+  Blas::axpy (nTot32, -cross, u32[1], 1, n32[2], 1);
+
+  // -- Everything else requires z position.
+
+  const real cost = cos (t);
+  const real sint = sin (t);
+  const real x1   =  2.0*w2ow1*sin(theta)-thetaDD;
+  const real x2   =  w2*thetaD/(w1*w1)*cos(theta)-thetaD/w1;
+  const real x3   =  2.0*(w2ow1*sin(theta)*cost-thetaD/w1*sint);
+  const real x4   =  2.0*(w2ow1*sin(theta)*sint-thetaD/w1*cost);
+
+  real z, costmz, sintmz;
 
   for (i = 0; i < nZ32; i++) {
 
     z      = dz * (i + nZ32 * Geometry::procID());
-    A1ctcz = A1 * cost * cos (z);
-    A1stcz = A1 * sint * cos (z);
-    A1ctsz = A1 * cost * sin (z);
-    A1stsz = A1 * sint * sin (z);
-    A1ctpz = A1 * cos (t + z);
-    A1stpz = A1 * sin (t + z);
+    costmz = cos (t - z);
+    sintmz = sin (t - z);
 
     Veclib::fill (nP, 1.0, tmp, 1);
     master -> mulR (1, tmp);
-    Blas::axpy (nP, -A1ctpz,        tmp,    1, n32[0] + i * nP, 1);
-    Blas::axpy (nP, -A1stcz-A1ctsz, u32[1], 1, n32[0] + i * nP, 1);
-    Blas::axpy (nP, -A1ctcz+A1stsz, u32[2], 1, n32[0] + i * nP, 1);
-							
-    Blas::axpy (nP,  A1stpz,        u32[0], 1, n32[1] + i * nP, 1);
-					
-    Blas::axpy (nP,  A1ctpz,        u32[0], 1, n32[2] + i * nP, 1);
+  
+    // -- Axial momentum.
+
+    Blas::axpy (nP, x1*sintmz+x2*costmz, tmp,         1, n32[0]+i*nP, 1);
+    Blas::axpy (nP, x3*cos(z)+x4*sin(z), u32[1]+i*nP, 1, n32[0]+i*nP, 1);
+    Blas::axpy (nP, x4*cos(z)-x3*sin(z), u32[2]+i*nP, 1, n32[0]+i*nP, 1);
+
+    Veclib::fill (nP, 1.0, tmp, 1);
+    master -> mulX (1, tmp);
+
+    // -- Radial momentum.
+
+    Blas::axpy (nP, -2.*w2ow1*sin(theta)*costmz+thetaD/w1*sintmz,
+		u32[0]+i*nP, 1, n32[1]+i*nP, 1);
+    if (transient)
+      Blas::axpy (nP, -x2*costmz-thetaDD*sintmz, tmp, 1, n32[1]+i*nP, 1);
+
+    // -- Angular momentum.
+
+    Blas::axpy (nP, -2.*w2ow1*sin(theta)*sintmz+thetaD/w1*costmz,
+		u32[0]+i*nP, 1, n32[2]+i*nP, 1);
+    if (transient)
+      Blas::axpy (nP, -x2*sintmz+thetaDD*costmz, tmp, 1, n32[2]+i*nP, 1);
   }
 
   for (i = 0; i < NDIM; i++) {
