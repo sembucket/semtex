@@ -111,7 +111,7 @@ Field&  Field::operator -= (const real& val)
 // Add -val to field storage area.
 // ---------------------------------------------------------------------------
 {
-  if (val != 0.0) Veclib::ssub (n_data, val, data, 1, data, 1);
+  if (val != 0.0) Veclib::sadd (n_data, -val, data, 1, data, 1);
 
   return *this;
 }
