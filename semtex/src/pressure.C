@@ -80,7 +80,7 @@ void  PBCmanager::build (Field& f)
 
 
 
-void  PBCmanager::maintain (int step, Field **Us[DIM], Field **Uf[DIM])
+void  PBCmanager::maintain (int step, Field***  Us, Field***  Uf)
 // ---------------------------------------------------------------------------
 // Update storage for evaluation of high-order pressure boundary condition.
 //
