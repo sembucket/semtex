@@ -8,17 +8,15 @@
 #include "Fem.h"
 
 
-static ifstream*  altFile     (ifstream&);
 static istream&   readOptions (istream&);
 static istream&   readIparams (istream&);
 static istream&   readFparams (istream&);
-static istream&   nextBlock   (istream&, char*);
 
 
 
 
 
-Domain::Domain (const char* session)
+Domain::Domain (ifstream& file, const char* session)
 // ---------------------------------------------------------------------------
 // Construct a new Domain with a single Field from a named file.
 //
@@ -30,20 +28,14 @@ Domain::Domain (const char* session)
 //   ** CURVED   EDGEs
 //   ** MESH     INFORMATION
 //
-// On return, all information in Element and Boundary lists is set.
+// On return, all information in Element and Boundary lists is set for u[0].
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "Domain::Domain(const char*)";
+  char routine[] = "Domain::Domain";
   char s[StrMax];
 
   domain_name = new char[StrMax];
   strcpy (domain_name, session);
-
-  ifstream file (domain_name);
-  if (!file) {
-    sprintf (s, "couldn't open session file %s", session);
-    message (routine, s, ERROR);
-  }
 
   domain_step = 0;
   domain_time = 0.0;
@@ -90,8 +82,6 @@ Domain::Domain (const char* session)
     if (*meshfile != file) { meshfile -> close (); delete meshfile; }
   } else
     message (routine, "can't find mesh information", ERROR);
-
-  // -- Session input stage is over.
 
   file.close();
 
@@ -155,59 +145,7 @@ void Domain::restart ()
   ifstream file (restartfile);
 
   if   (file) file >> *this;
-  else        for (int i(0); i < DIM; i++) *u[i] = 0.0;
-}
-
-
-
-
-
-static istream& nextBlock (istream& istr, char* s)
-// ---------------------------------------------------------------------------
-// Advance to start of the next block of information in file, skipping
-// empty lines and comment lines (lines starting with '#').
-// Then uppercase the new start line.
-// ---------------------------------------------------------------------------
-{
-  while (istr.getline (s, StrMax)) if (s[0] != '#' && s[0] != '\n') break;
-  upperCase (s);
-
-  return istr;
-}
-
-
-
-
-
-static ifstream* altFile (ifstream& ist)
-// ---------------------------------------------------------------------------
-// Look in file for a new filename.  Open & return a pointer if it exists.
-// ---------------------------------------------------------------------------
-{
-  char routine[] = "altFile";
-  char s1[StrMax];
-
-  ist.getline(s1, StrMax);
-
-  if (   strstr (s1, "FILE") 
-      || strstr (s1, "File") 
-      || strstr (s1, "file") ) {
-
-    ifstream  *newfile;
-    char       s2[StrMax];
-
-    if (!(sscanf (s1, "%*s, %s", s2))) {
-      sprintf (s2, "couldn't get element file name from string: %s", s1);
-      message (routine, s2, ERROR);
-    } else if (!(newfile = new ifstream (s2))) {
-      sprintf (s1, "couldn't find alternate file %s", s2);
-      message (routine, s1, ERROR);
-    }
-
-    return newfile;
-
-  } else
-    return &ist;
+  else        for (int i(0); i < iparam ("N_VAR"); i++) *u[i] = 0.0;
 }
 
 
