@@ -40,7 +40,7 @@ ModalMatrixSystem::ModalMatrixSystem (const real              lambda2 ,
   cout << "-- Installing matrices for field '" << name << "' [";
 
   for (k = baseMode; k < numModes; k++) {
-    trunc   = min (k, 2);
+    trunc   = min (k, (integer) 2);
     betak2  = sqr (Field::modeConstant (name, k, beta));
     found   = 0;
     for (m.reset(); !found && m.more(); m.next()) {
