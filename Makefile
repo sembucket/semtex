@@ -17,8 +17,8 @@ dist:
 
 # ----------------------------------------------------------------------------
 srcdist:
-	tar cvf srcdist.tar				\
-	README Makefile include src alplib femlib mesh	\
+	tar cvf srcdist.tar				  \
+	README Makefile include src alplib femlib mesh sm \
 	dns elliptic utility
 	gzip srcdist.tar
 
