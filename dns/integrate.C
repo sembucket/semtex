@@ -26,14 +26,14 @@ static char RCS[] = "$Id$";
 
 typedef ModalMatrixSys Msys;
 
-static int  NDIM, NCOM, NORD;
-static bool CYL,  C3D;
+static integer NDIM, NCOM, NORD;
+static bool    CYL,  C3D;
 
 static void   waveProp  (Domain*, const AuxField***, const AuxField***);
 static void   setPForce (const AuxField**, AuxField**);
 static void   project   (const Domain*, AuxField**, AuxField**);
 static Msys** preSolve  (const Domain*);
-static void   Solve     (Domain*, const int, AuxField*, Msys*);
+static void   Solve     (Domain*, const integer, AuxField*, Msys*);
 
 
 void integrateNS (Domain*      D,
@@ -49,13 +49,13 @@ void integrateNS (Domain*      D,
 {
   NDIM = Geometry::nDim();	// -- Number of space dimensions.
   NCOM = D -> nField() - 1;	// -- Number of velocity components.
-  NORD = static_cast<int>(Femlib::value ("N_TIME"));
+  NORD = Femlib::ivalue ("N_TIME");
   C3D  = Geometry::cylindrical() && NCOM == 3;
 
-  int        i, j, k;
-  const real dt    = Femlib::value ("D_T");
-  const int  nStep = static_cast<int>(Femlib::value ("N_STEP"));
-  const int  nZ    = Geometry::nZProc();
+  integer            i, j, k;
+  const real         dt    = Femlib::value ("D_T");
+  const integer      nStep = Femlib::ivalue ("N_STEP");
+  const integer      nZ    = Geometry::nZProc();
 
   static Msys**      MMS;
   static AuxField*** Us;
@@ -70,10 +70,10 @@ void integrateNS (Domain*      D,
 
     // -- Create multi-level storage for velocities and forcing.
     
-    const int ntot  = Geometry::nTotProc();
-    real*     alloc = new real [static_cast<size_t>(2 * NCOM * NORD * ntot)];
-    Us              = new AuxField** [static_cast<size_t>(2 * NORD)];
-    Uf              = Us + NORD;
+    const integer ntot  = Geometry::nTotProc();
+    real*         alloc = new real [static_cast<size_t>(2*NCOM*NORD*ntot)];
+    Us                  = new AuxField** [static_cast<size_t>(2 * NORD)];
+    Uf                  = Us + NORD;
 
     for (k = 0, i = 0; i < NORD; i++) {
       Us[i] = new AuxField* [static_cast<size_t>(2 * NCOM)];
@@ -195,7 +195,7 @@ static void waveProp (Domain*           D ,
 // level structure of Us & Uf.
 // ---------------------------------------------------------------------------
 {
-  int               i, q;
+  integer           i, q;
   vector<AuxField*> H (NCOM);	// -- Mnemonic for u^{Hat}.
 
   for (i = 0; i < NCOM; i++) {
@@ -203,9 +203,9 @@ static void waveProp (Domain*           D ,
     *H[i] = 0.0;
   }
 
-  const int    Je = min (D -> step, NORD);
-  vector<real> alpha (Integration::OrderMax + 1);
-  vector<real> beta  (Integration::OrderMax);
+  const integer Je = min (D -> step, NORD);
+  vector<real>  alpha (Integration::OrderMax + 1);
+  vector<real>  beta  (Integration::OrderMax);
   
   Integration::StifflyStable (Je, &alpha[0]);
   Integration::Extrapolation (Je, &beta [0]);
@@ -226,7 +226,7 @@ static void setPForce (const AuxField** Us,
 // in the first dimension of Uf as a forcing field for discrete PPE.
 // ---------------------------------------------------------------------------
 {
-  int        i;
+  integer    i;
   const real dt = Femlib::value ("D_T");
 
 #if defined (OLDCODE)
@@ -269,7 +269,7 @@ static void project (const Domain* D ,
 // u^^ is left in Uf.
 // ---------------------------------------------------------------------------
 {
-  int        i;
+  integer    i;
   const real alpha = -1.0 / Femlib::value ("D_T * KINVIS");
   const real beta  =  1.0 / Femlib::value ("KINVIS");
 
@@ -297,13 +297,13 @@ static Msys** preSolve (const Domain* D)
 // ITERATIVE == 2 adds iterative solver for pressure as well.
 // ---------------------------------------------------------------------------
 {
-  const int  nmodes = Geometry::nModeProc();
-  const int  base   = Geometry::baseMode();
-  const int  itLev  = static_cast<int>(Femlib::value ("ITERATIVE"));
-  const real beta   = Femlib::value ("BETA");
+  const integer           nmodes = Geometry::nModeProc();
+  const integer           base   = Geometry::baseMode();
+  const integer           itLev  = Femlib::ivalue ("ITERATIVE");
+  const real              beta   = Femlib::value ("BETA");
   const vector<Element*>& E = D -> elmt;
   Msys**                  M = new Msys* [static_cast<size_t>(NCOM + 1)];
-  int                     i;
+  integer                 i;
 
   vector<real> alpha (Integration::OrderMax + 1);
   Integration::StifflyStable (NORD, &alpha[0]);
@@ -324,22 +324,23 @@ static Msys** preSolve (const Domain* D)
 }
 
 
-static void Solve (Domain*   D,
-		   const int i,
-		   AuxField* F,
-		   Msys*     M)
+static void Solve (Domain*       D,
+		   const integer i,
+		   AuxField*     F,
+		   Msys*         M)
 // ---------------------------------------------------------------------------
 // Solve Helmholtz problem for D->u[i], using F as a forcing Field.
 // Iterative or direct solver selected on basis of field type, step,
 // time order and command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  const int step = D -> step;
+  const integer step = D -> step;
 
   if (i < NCOM && step < NORD) { // -- We need a temporary matrix system.
-    const int     Je      = min (step, NORD);    
-    const int     base    = Geometry::baseMode();
-    const int     nmodes  = Geometry::nModeProc();
+    const integer Je      = min (step, NORD);    
+    const integer base    = Geometry::baseMode();
+    const integer nmodes  = Geometry::nModeProc();
+
     vector<real>  alpha (Je + 1);
     Integration::StifflyStable (Je, &alpha[0]);
     const real    lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");

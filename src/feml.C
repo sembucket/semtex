@@ -43,7 +43,7 @@ FEML::FEML (const char* session)
   const char routine[] = "FEML::FEML";
   char       c, err[STR_MAX], key[STR_MAX], yek[STR_MAX];
   char*      u;
-  int        i, N;
+  integer    i, N;
   bool       OK, found;
 
   const char* reserved[] = {
@@ -170,19 +170,19 @@ FEML::FEML (const char* session)
 }
 
 
-int FEML::seek (const char* keyword)
+integer FEML::seek (const char* keyword)
 // ---------------------------------------------------------------------------
 // Look for keyword in stored table.
 // If present, stream is positioned after keyword and 1 is returned.
 // If not, stream is rewound and 0 is returned.
 // ---------------------------------------------------------------------------
 {
-  register int i;
-  bool         found = false;
+  register integer i;
+  bool     found = false;
 
   for (i = 0; !found && keyWord[i]; i++)
     found = (strstr (keyword, keyWord[i]) != 0 &&
-	     static_cast<int>(keyPosn[i]) != 0);
+	     static_cast<integer>(keyPosn[i]) != 0);
 
   if (!found) {
     feml_file.clear ();  
@@ -197,8 +197,8 @@ int FEML::seek (const char* keyword)
 }
 
 
-int FEML::attribute (const char* tag ,
-		     const char* attr)
+integer FEML::attribute (const char* tag ,
+			 const char* attr)
 // ---------------------------------------------------------------------------
 // Tag attributes are given as options in form <tag attr=int [attr=int ...]>
 // Return integer value following '='.  No whitespace allowed in attributes.
@@ -238,9 +238,9 @@ int FEML::attribute (const char* tag ,
 }
 
 
-int FEML::tokens ()
+bool FEML::tokens ()
 // ---------------------------------------------------------------------------
-// Install token table.  Return 0 if no TOKEN section is found.
+// Install token table.  Return false if no TOKEN section is found.
 // NUMBER attribute ignored if present.  Fix any inconsistent values.
 // Parser must have been initialized before entry.
 // ---------------------------------------------------------------------------
@@ -258,17 +258,16 @@ int FEML::tokens ()
       if (strstr (buf, "TOKENS")) break;
     }
     
-    if (static_cast<int>(Femlib::value ("IO_FLD")) >
-	static_cast<int>(Femlib::value ("N_STEP")))
-      Femlib::value ("IO_FLD", static_cast<int>(Femlib::value ("N_STEP")));
+    if (Femlib::value ("IO_FLD") > Femlib::ivalue ("N_STEP"))
+      Femlib::ivalue ("IO_FLD", Femlib::ivalue ("N_STEP"));
 
-    if (static_cast<int>(Femlib::value ("N_TIME")) > 3) {
+    if (Femlib::ivalue ("N_TIME") > 3) {
       message (routine, "N_TIME too large, reset to 3", WARNING);
-      Femlib::value ("N_TIME", 3);
+      Femlib::ivalue ("N_TIME", 3);
     }
     
-    return 1;
+    return true;
   }
   
-  return 0;
+  return false;
 }

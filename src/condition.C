@@ -28,12 +28,12 @@ static char RCS[] = "$Id$";
 #include <sem_h>
 
 
-void Essential::evaluate (const int      np  ,
-			  const int      id  ,
-			  const int      nz  ,
+void Essential::evaluate (const integer  np  ,
+			  const integer  id  ,
+			  const integer  nz  ,
 			  const Element* E   ,
-			  const int      side,
-			  const int      step,
+			  const integer  side,
+			  const integer  step,
 			  const real*    nx  ,
 			  const real*    ny  ,
 			  real*          tgt ) const
@@ -45,7 +45,7 @@ void Essential::evaluate (const int      np  ,
 }
 
 
-void Essential::set (const int      side,
+void Essential::set (const integer  side,
 		     const integer* bmap,
 		     const real*    src ,
 		     real*          tgt ) const
@@ -53,7 +53,7 @@ void Essential::set (const int      side,
 // Scatter external value storage area src into globally-numbered tgt. 
 // ---------------------------------------------------------------------------
 {
-  const int      nm    = Geometry::nP() - 1;
+  const integer  nm    = Geometry::nP() - 1;
   const integer* start = bmap;
   
   switch (side) {
@@ -89,12 +89,12 @@ EssentialFunction::EssentialFunction (const char* f)
 }
 
 
-void EssentialFunction:: evaluate (const int      np  ,
-				   const int      id  ,
-				   const int      nz  ,
+void EssentialFunction:: evaluate (const integer  np  ,
+				   const integer  id  ,
+				   const integer  nz  ,
 				   const Element* E   ,
-				   const int      side,
-				   const int      step,
+				   const integer  side,
+				   const integer  step,
 				   const real*    nx  ,
 				   const real*    ny  ,
 				   real*          tgt ) const
@@ -106,7 +106,7 @@ void EssentialFunction:: evaluate (const int      np  ,
 }
 
 
-void EssentialFunction::set (const int      side,
+void EssentialFunction::set (const integer  side,
 			     const integer* bmap,
 			     const real*    src ,
 			     real*          tgt ) const
@@ -115,7 +115,7 @@ void EssentialFunction::set (const int      side,
 // (as for Essential class).
 // ---------------------------------------------------------------------------
 {
-  const int      nm    = Geometry::nP() - 1;
+  const integer  nm    = Geometry::nP() - 1;
   const integer* start = bmap;
   
   switch (side) {
@@ -140,12 +140,12 @@ void EssentialFunction::describe (char* tgt) const
 }
 
 
-void Natural::evaluate (const int      np  ,
-			const int      id  ,
-			const int      nz  ,
+void Natural::evaluate (const integer  np  ,
+			const integer  id  ,
+			const integer  nz  ,
 			const Element* E   ,
-			const int      side,
-			const int      step,
+			const integer  side,
+			const integer  step,
 			const real*    nx  ,
 			const real*    ny  ,
 			real*          tgt ) const
@@ -157,7 +157,7 @@ void Natural::evaluate (const int      np  ,
 }
 
 
-void Natural::sum (const int      side  ,
+void Natural::sum (const integer  side  ,
 		   const integer* bmap  ,
 		   const real*    src   ,
 		   const real*    weight,
@@ -168,8 +168,8 @@ void Natural::sum (const int      side  ,
 // Work vector must be np long.
 // ---------------------------------------------------------------------------
 { 
-  const int      np    = Geometry::nP();
-  const int      nm    = np - 1;
+  const integer  np    = Geometry::nP();
+  const integer  nm    = np - 1;
   const integer* start = bmap;
   
   switch (side) {
@@ -207,12 +207,12 @@ NaturalFunction::NaturalFunction (const char* f)
 }
 
 
-void NaturalFunction::evaluate (const int      np  ,
-				const int      id  ,
-				const int      nz  ,
+void NaturalFunction::evaluate (const integer  np  ,
+				const integer  id  ,
+				const integer  nz  ,
 				const Element* E   ,
-				const int      side,
-				const int      step,
+				const integer  side,
+				const integer  step,
 				const real*    nx  ,
 				const real*    ny  ,
 				real*          tgt ) const
@@ -224,7 +224,7 @@ void NaturalFunction::evaluate (const int      np  ,
 }
 
 
-void NaturalFunction::sum (const int      side  ,
+void NaturalFunction::sum (const integer  side  ,
 			   const integer* bmap  ,
 			   const real*    src   ,
 			   const real*    weight,
@@ -234,8 +234,8 @@ void NaturalFunction::sum (const int      side  ,
 // Add boundary-integral terms into globally-numbered tgt.
 // ---------------------------------------------------------------------------
 { 
-  const int      np    = Geometry::nP();
-  const int      nm    = np - 1;
+  const integer  np    = Geometry::nP();
+  const integer  nm    = np - 1;
   const integer* start = bmap;
   
   switch (side) {
@@ -261,12 +261,12 @@ void NaturalFunction::describe (char* tgt) const
 }
 
 
-void NaturalHOPBC::evaluate (const int      np  ,
-			     const int      id  ,
-			     const int      nz  ,
+void NaturalHOPBC::evaluate (const integer  np  ,
+			     const integer  id  ,
+			     const integer  nz  ,
 			     const Element* E   ,
-			     const int      side,
-			     const int      step,
+			     const integer  side,
+			     const integer  step,
 			     const real*    nx  ,
 			     const real*    ny  ,
 			     real*          tgt ) const
@@ -278,7 +278,7 @@ void NaturalHOPBC::evaluate (const int      np  ,
 }
 
 
-void NaturalHOPBC::sum (const int      side  ,
+void NaturalHOPBC::sum (const integer  side  ,
 			const integer* bmap  ,
 			const real*    src   ,
 			const real*    weight,
@@ -288,8 +288,8 @@ void NaturalHOPBC::sum (const int      side  ,
 // Add boundary-integral terms into globally-numbered tgt.
 // ---------------------------------------------------------------------------
 { 
-  const int      np    = Geometry::nP();
-  const int      nm    = np - 1;
+  const integer  np    = Geometry::nP();
+  const integer  nm    = np - 1;
   const integer* start = bmap;
   
   switch (side) {
@@ -340,12 +340,12 @@ Mixed::Mixed (const char* v)
 }
 
 
-void Mixed::evaluate (const int      np  ,
-		      const int      id  ,
-		      const int      nz  ,
+void Mixed::evaluate (const integer  np  ,
+		      const integer  id  ,
+		      const integer  nz  ,
 		      const Element* E   ,
-		      const int      side,
-		      const int      step,
+		      const integer  side,
+		      const integer  step,
 		      const real*    nx  ,
 		      const real*    ny  ,
 		      real*          tgt ) const
@@ -357,7 +357,7 @@ void Mixed::evaluate (const int      np  ,
 }
 
 
-void Mixed::sum (const int      side  ,
+void Mixed::sum (const integer  side  ,
 		 const integer* bmap  ,
 		 const real*    src   ,
 		 const real*    weight,
@@ -368,8 +368,8 @@ void Mixed::sum (const int      side  ,
 // used to add K*C (supplied as src) to RHS forcing.
 // ---------------------------------------------------------------------------
 { 
-  const int      np    = Geometry::nP();
-  const int      nm    = np - 1;
+  const integer  np    = Geometry::nP();
+  const integer  nm    = np - 1;
   const integer* start = bmap;
   
   switch (side) {
@@ -387,9 +387,9 @@ void Mixed::sum (const int      side  ,
 }
 
 
-void Mixed::augmentSC (const int      side  ,
-		       const int      nband ,
-		       const int      nsolve,
+void Mixed::augmentSC (const integer  side  ,
+		       const integer  nband ,
+		       const integer  nsolve,
 		       const integer* bmap  ,
 		       const real*    area  ,
 		       real*          work  ,
@@ -398,10 +398,10 @@ void Mixed::augmentSC (const int      side  ,
 // Add <K, w> terms to (banded LAPACK) matrix tgt.
 // ---------------------------------------------------------------------------
 {
-  const int      np    = Geometry::nP();
-  const int      nm    = np - 1;
-  const integer* start = bmap;
-  register int   i, k;
+  const integer    np    = Geometry::nP();
+  const integer    nm    = np - 1;
+  const integer*   start = bmap;
+  register integer i, k;
   
   switch (side) {
   case 1: start += nm;           break;
@@ -421,7 +421,7 @@ void Mixed::augmentSC (const int      side  ,
 }
 
 
-void Mixed::augmentOp (const int      side, 
+void Mixed::augmentOp (const integer  side, 
 		       const integer* bmap,
 		       const real*    area,
 		       const real*    src ,
@@ -432,10 +432,10 @@ void Mixed::augmentOp (const int      side,
 // <K*src, w> to tgt.  Both src and tgt are globally-numbered vectors.
 // ---------------------------------------------------------------------------
 {
-  const int      np    = Geometry::nP();
-  const int      nm    = np - 1;
-  const integer* start = bmap;
-  register int   i;
+  const integer    np    = Geometry::nP();
+  const integer    nm    = np - 1;
+  const integer*   start = bmap;
+  register integer i;
   
   switch (side) {
   case 1: start += nm;           break;
@@ -452,7 +452,7 @@ void Mixed::augmentOp (const int      side,
 }
 
 
-void Mixed::augmentDg (const int      side, 
+void Mixed::augmentDg (const integer  side, 
 		       const integer* bmap,
 		       const real*    area,
 		       real*          tgt ) const
@@ -462,10 +462,10 @@ void Mixed::augmentDg (const int      side,
 // BCs.  Add in diagonal terms <K, w> to globally-numbered tgt.
 // ---------------------------------------------------------------------------
 {
-  const int      np    = Geometry::nP();
-  const int      nm    = np - 1;
-  const integer* start = bmap;
-  register int   i;
+  const integer    np    = Geometry::nP();
+  const integer    nm    = np - 1;
+  const integer*   start = bmap;
+  register integer i;
   
   switch (side) {
   case 1: start += nm;           break;

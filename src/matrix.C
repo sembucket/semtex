@@ -13,8 +13,8 @@ static vector<MatrixSys*> MS;
 
 ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
 				const real              beta    ,
-				const int               baseMode,
-				const int               numModes,
+				const integer           baseMode,
+				const integer           numModes,
 				const vector<Element*>& Elmt    ,
 				const BoundarySys*      Bsys    ,
 				const SolverKind        method  )
@@ -34,7 +34,7 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
 // ---------------------------------------------------------------------------
 {
   const char name = Bsys -> field();
-  int        mode;
+  integer    mode;
   bool       found;
 
   MatrixSys* M;
@@ -51,10 +51,10 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
   }
 
   for (mode = baseMode; mode < baseMode + numModes; mode++) {
-    const int modeIndex = mode * Geometry::kFund();
+    const integer    modeIndex = mode * Geometry::kFund();
     const NumberSys* N  = Bsys -> Nsys (modeIndex);
-    const real betak2   = sqr (Field::modeConstant (name, modeIndex, beta));
-    const int localMode = mode - baseMode;
+    const real    betak2   = sqr (Field::modeConstant (name, modeIndex, beta));
+    const integer localMode = mode - baseMode;
 
     for (found = false, m = MS.begin(); !found && m != MS.end(); m++) {
       M     = *m;
@@ -88,7 +88,7 @@ ModalMatrixSys::~ModalMatrixSys ()
 // attempting reuse.
 // ---------------------------------------------------------------------------
 {
-  int N = _Msys.size();
+  integer N = _Msys.size();
   while (N--) delete (_Msys[N]);
   MS.resize (0);
 }
@@ -96,7 +96,7 @@ ModalMatrixSys::~ModalMatrixSys ()
 
 MatrixSys::MatrixSys (const real              lambda2,
 		      const real              betak2 ,
-		      const int               mode   ,
+		      const integer           mode   ,
 		      const vector<Element*>& elmt   ,
 		      const BoundarySys*      bsys   ,
 		      const SolverKind        method ) :
@@ -132,14 +132,14 @@ MatrixSys::MatrixSys (const real              lambda2,
   _npts              (_nglobal + Geometry::nInode()),
   _PC                (0)
 {
-  const char     routine[] = "MatrixSys::MatrixSys";
-  const int      verbose   = static_cast<int>(Femlib::value ("VERBOSE"));
-  const int      np        = Geometry::nP();
-  const int      next      = Geometry::nExtElmt();
-  const int      nint      = Geometry::nIntElmt();
-  const int      npnp      = Geometry::nTotElmt();
-  const integer* bmap;
-  register int   i, j, k, m, n;
+  const char       routine[] = "MatrixSys::MatrixSys";
+  const integer    verbose   = Femlib::ivalue ("VERBOSE");
+  const integer    np        = Geometry::nP();
+  const integer    next      = Geometry::nExtElmt();
+  const integer    nint      = Geometry::nIntElmt();
+  const integer    npnp      = Geometry::nTotElmt();
+  const integer*   bmap;
+  register integer i, j, k, m, n;
 
   switch (_method) {
 
@@ -150,7 +150,7 @@ MatrixSys::MatrixSys (const real              lambda2,
     real*           rmat = hbb  + sqr (next);
     real*           rwrk = rmat + sqr (np);
     integer*        ipiv = &pivotmap[0];
-    int             info;
+    integer         info;
 
     _hbi    = new real*   [static_cast<size_t>(_nel)];
     _hii    = new real*   [static_cast<size_t>(_nel)];
@@ -202,7 +202,7 @@ MatrixSys::MatrixSys (const real              lambda2,
       // -- Loop over BCs and add diagonal contribution from mixed BCs.
 
       if (bsys -> mixBC()) {
-	const int      nbound = bsys -> nSurf();
+	const integer  nbound = bsys -> nSurf();
 	const integer* bmap   = _NS  -> btog();
 	for (i = 0; i < nbound; i++)
 	  _BC[i] -> augmentSC (_nband, _nsolve, bmap, rwrk, _H);
@@ -228,10 +228,10 @@ MatrixSys::MatrixSys (const real              lambda2,
   } break;
 
   case JACPCG: {
-    const int    nbound = _BC.size();   
-    real*        PCi;
-    vector<real> work (2 * npnp + np);
-    real         *ed = &work[0], *ewrk = &work[0] + npnp;
+    const integer nbound = _BC.size();   
+    real*         PCi;
+    vector<real>  work (2 * npnp + np);
+    real          *ed = &work[0], *ewrk = &work[0] + npnp;
 
     _PC = new real [static_cast<size_t>(_npts)];
 
@@ -306,7 +306,7 @@ MatrixSys::~MatrixSys()
     Family::abandon (&_PC);
     break;
   case DIRECT: {
-    int i;
+    integer i;
     for (i = 0; i < _nel; i++) {
       Family::abandon (_hbi + i);
       Family::abandon (_hii + i);

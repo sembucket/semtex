@@ -150,9 +150,9 @@ static void preprocess (const char*       session,
 // They are listed in order of creation.
 // ---------------------------------------------------------------------------
 {
-  const int          verbose = static_cast<int>(Femlib::value ("VERBOSE"));
+  const integer      verbose = Femlib::ivalue ("VERBOSE");
   Geometry::CoordSys space;
-  int                i, np, nz, nel;
+  integer            i, np, nz, nel;
 
   // -- Initialise problem and set up mesh geometry.
 
@@ -168,9 +168,9 @@ static void preprocess (const char*       session,
   VERBOSE cout << "Setting geometry ... ";
 
   nel   =  mesh -> nEl();
-  np    =  static_cast<int>(Femlib::value ("N_POLY"));
-  nz    =  static_cast<int>(Femlib::value ("N_Z"));
-  space = (static_cast<int>(Femlib::value ("CYLINDRICAL"))) ? 
+  np    =  Femlib::ivalue ("N_POLY");
+  nz    =  Femlib::ivalue ("N_Z");
+  space = (Femlib::ivalue ("CYLINDRICAL")) ?
     Geometry::Cylindrical : Geometry::Cartesian;
   
   Geometry::set (np, nz, nel, space);

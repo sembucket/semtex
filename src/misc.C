@@ -87,7 +87,7 @@ char* upperCase (char *s)
 
 void writeField (ofstream&          file   ,
 		 const char*        session,
-		 const int          runstep,
+		 const integer          runstep,
 		 const real         runtime,
 		 vector<AuxField*>& field  )
 // ---------------------------------------------------------------------------
@@ -109,10 +109,10 @@ void writeField (ofstream&          file   ,
     "%-25s "    "Format\n"
   };
 
-  char      s1[StrMax], s2[StrMax];
-  time_t    tp (time (0));
-  int       i;
-  const int N = field.size();
+  char          s1[StrMax], s2[StrMax];
+  time_t        tp (time (0));
+  integer       i;
+  const integer N = field.size();
 
   if (N < 1) return;
 
@@ -260,7 +260,7 @@ bool Header::swab() const
 {
   char routine[] = "Header::swab";
   char machine[StrMax];
-  bool  swap = false;
+  bool swap = false;
 
   Veclib::describeFormat (machine);
 

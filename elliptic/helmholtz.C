@@ -22,7 +22,7 @@ void Helmholtz (Domain*   D,
   const integer nmodes  = Geometry::nModeProc();
   const integer base    = Geometry::baseMode();
   const integer nz      = Geometry::nZProc();
-  SolverKind    method  = ((int) Femlib::value("ITERATIVE")) ? JACPCG : DIRECT;
+  SolverKind    method  = (Femlib::ivalue("ITERATIVE")) ? JACPCG : DIRECT;
 
   ModalMatrixSys* M = new ModalMatrixSys
     (lambda2, beta, base, nmodes, D -> elmt, D -> b[0], method);

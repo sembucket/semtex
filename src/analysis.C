@@ -49,8 +49,8 @@ Analyser::Analyser (Domain* D   ,
     ifstream pfile (strcat (strcpy (str, src -> name), ".par"));  
 
     if (!pfile.fail()) {
-      const int      add = static_cast<int>(Femlib::value ("SPAWN"));
-      int            id, i = 0;
+      const integer  add = Femlib::ivalue ("SPAWN");
+      integer        id, i = 0;
       Point          P, *I;
       FluidParticle* F;
 
@@ -77,8 +77,8 @@ Analyser::Analyser (Domain* D   ,
   // -- Set up for history points: open files, create points.
 
   if (file -> seek ("HISTORY")) {
-    int            i, id, num = 0;
-    const int      NH = file -> attribute ("HISTORY", "NUMBER");
+    integer        i, id, num = 0;
+    const integer  NH = file -> attribute ("HISTORY", "NUMBER");
     const Element* E;
     HistoryPoint*  H;
     real           r, s, x, y, z;
@@ -104,7 +104,7 @@ Analyser::Analyser (Domain* D   ,
 
   // -- Initialize averaging.
 
-  if (static_cast<int> (Femlib::value ("AVERAGE"))) {
+  if (Femlib::ivalue ("AVERAGE")) {
     vector<AuxField*> extra (0);
     stats = new Statistics (D, extra);
   } else                              
@@ -129,10 +129,10 @@ void Analyser::analyse (AuxField** work)
 // original absolute positions.
 // ---------------------------------------------------------------------------
 {
-  const int verbose = static_cast<int>(Femlib::value ("VERBOSE"));
-  const int cflstep = static_cast<int>(Femlib::value ("IO_CFL" ));
-  const int add     = static_cast<int>(Femlib::value ("SPAWN"  )) &&
-    ! (src -> step  % static_cast<int>(Femlib::value ("SPAWN"  )));
+  const integer verbose = Femlib::ivalue ("VERBOSE");
+  const integer cflstep = Femlib::ivalue ("IO_CFL" );
+  const bool    add     = Femlib::ivalue ("SPAWN"  ) &&
+    ! (src -> step      % Femlib::ivalue ("SPAWN"  ));
 
   list<FluidParticle*>::iterator p;
 
@@ -149,8 +149,8 @@ void Analyser::analyse (AuxField** work)
     if (add) {
       FluidParticle *F;
       Point         P, *I;
-      int           i = 0, j;
-      const int     N = initial.size();
+      integer       i = 0, j;
+      const integer N = initial.size();
 
       for (j = 0; j < N; j++) {
 	I = initial[j];
@@ -171,13 +171,10 @@ void Analyser::analyse (AuxField** work)
 
   // -- Periodic dumps and global information.
   
-  const int
-    periodic = !(src -> step %  static_cast<int>(Femlib::value("IO_HIS" ))) ||
-               !(src -> step %  static_cast<int>(Femlib::value("IO_FLD" )));
-  const int
-    final    =   src -> step == static_cast<int>(Femlib::value("N_STEP"));
-  const int
-    state    = periodic || final;
+  const bool periodic = !(src -> step %  Femlib::ivalue ("IO_HIS")) ||
+                        !(src -> step %  Femlib::ivalue ("IO_FLD"));
+  const bool final    =   src -> step == Femlib::ivalue ("N_STEP");
+  const bool state    = periodic || final;
 
   if (state) {
 
@@ -202,9 +199,9 @@ void Analyser::analyse (AuxField** work)
 
     // -- Output history point data.
       
-    register int      i, j;
-    const int         NH = history.size();
-    const int         NF = src-> u.size();
+    register integer  i, j;
+    const integer     NH = history.size();
+    const integer     NF = src-> u.size();
     HistoryPoint*     H;
     vector<real>      tmp (NF);
     vector<AuxField*> u   (NF);
@@ -241,12 +238,12 @@ void Analyser::modalEnergy ()
 // Print out modal energies per unit area, output by root processor.
 // ---------------------------------------------------------------------------
 {
-  const int    DIM   = Geometry::nDim();
-  const int    N     = Geometry::nModeProc();
-  const int    base  = Geometry::baseMode();
-  const int    nProc = Geometry::nProc();
-  register int i, m;
-  vector<real> ek (N);
+  const integer    DIM   = Geometry::nDim();
+  const integer    N     = Geometry::nModeProc();
+  const integer    base  = Geometry::baseMode();
+  const integer    nProc = Geometry::nProc();
+  register integer i, m;
+  vector<real>     ek (N);
 
   for (m = 0; m < N; m++) {
     ek[m] = 0.0;
@@ -293,23 +290,23 @@ void Analyser::divergence (AuxField** Us) const
 {
   const Geometry::CoordSys space = Geometry::system();
 
-  const int  DIM = Geometry::nDim();
-  const int  N   = Geometry::nModeProc();
-  const real Lz  = Femlib::value ("TWOPI / BETA");
-  int        i, m;
-  real       L2 = 0.0;
+  const integer DIM = Geometry::nDim();
+  const integer N   = Geometry::nModeProc();
+  const real    Lz  = Femlib::value ("TWOPI / BETA");
+  integer       i, m;
+  real          L2 = 0.0;
 
-  if (space == Geometry::Cartesian) {
-    for (i = 0; i < DIM; i++) {
-      *Us[i] = *src -> u[i];
-      Us[i] -> gradient (i);
-    }
-  } else {
+  if (Geometry::cylindrical()) {
     for (i = 0; i < DIM; i++) *Us[i] = *src -> u[i];
     Us[1] -> mulY();
     for (i = 0; i < DIM; i++)  Us[i] -> gradient (i);
     Us[1] -> divY();
     if (DIM == 3) Us[2] -> divY();
+  } else {  
+    for (i = 0; i < DIM; i++) {
+      *Us[i] = *src -> u[i];
+      Us[i] -> gradient (i);
+    }
   }
 
   for (i = 1; i < DIM; i++) *Us[0] += *Us[i];
@@ -331,13 +328,13 @@ void Analyser::estimateCFL () const
   const real SAFETY  = 0.9;	// -- Saftey factor.
   const real dt      = Femlib::value ("D_T");
   real       CFL_dt, dt_max;
-  int        percent;
+  integer    percent;
 
   CFL_dt = max (src -> u[0] -> CFL (0), src -> u[1] -> CFL (1));
   if (src -> nField() > 3) CFL_dt = max (CFL_dt, src -> u[2] -> CFL (2));
 
   dt_max  = SAFETY * CFL_max / CFL_dt;
-  percent = static_cast<int>(100.0 * dt / dt_max);
+  percent = static_cast<integer>(100.0 * dt / dt_max);
 
   cout << "-- CFL: "     << CFL_dt * dt;
   cout << ", dt (max): " << dt_max;

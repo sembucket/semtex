@@ -16,9 +16,9 @@ static char RCS[] = "$Id$";
 #include <sem_h>
 
 
-void Boundary::evaluate (const int plane,
-			 const int step ,
-			 real*     tgt  ) const
+void Boundary::evaluate (const integer plane,
+			 const integer step ,
+			 real*         tgt  ) const
 // ---------------------------------------------------------------------------
 // Load boundary condition storage area with numeric values.
 // ---------------------------------------------------------------------------
@@ -59,8 +59,8 @@ void Boundary::sum (const real*    src,
 }
 
 
-void Boundary::augmentSC (const int      nband ,
-			  const int      nsolve,
+void Boundary::augmentSC (const integer  nband ,
+			  const integer  nsolve,
 			  const integer* b2g   ,
 			  real*          work  ,
 			  real*          H     ) const
@@ -73,9 +73,9 @@ void Boundary::augmentSC (const int      nband ,
 }
 
 
-void Boundary::augmentOp (const integer* b2g ,
-			  const real*    src ,
-			  real*          tgt ) const
+void Boundary::augmentOp (const integer* b2g,
+			  const real*    src,
+			  real*          tgt) const
 // ---------------------------------------------------------------------------
 // This operation is used to augment the element-wise Helmholtz
 // operations where there are mixed BCs.  Add in diagonal terms

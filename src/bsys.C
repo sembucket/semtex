@@ -111,7 +111,8 @@ const vector<Boundary*>& BoundarySys::BCs (const integer mode) const
 // zero, not modulo number of modes on this process.
 // ---------------------------------------------------------------------------
 {
-  return boundary [clamp (mode, (integer) 0, (integer) 2)];
+  return
+    boundary [clamp (mode, static_cast<integer>(0), static_cast<integer>(2))];
 }
 
 
@@ -121,7 +122,8 @@ const NumberSys* BoundarySys::Nsys (const integer mode) const
 // Fourier mode.
 // ---------------------------------------------------------------------------
 {
-  return number [clamp (mode, (integer) 0, (integer) 2)];
+  return
+    number [clamp (mode, static_cast<integer>(0), static_cast<integer>(2))];
 }
 
 
@@ -131,5 +133,7 @@ const real* BoundarySys::Imass (const integer mode) const
 // Fourier mode.
 // ---------------------------------------------------------------------------
 {
-  return number [clamp (mode, (integer) 0, (integer) 2)] -> imass();
+  return 
+    number [clamp (mode, static_cast<integer>(0), static_cast<integer>(2))]
+    -> imass();
 }
