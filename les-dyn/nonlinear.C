@@ -246,7 +246,6 @@ void dynamic (Domain*       D ,
     for (j = i + 1; j < 3; j++) { // -- Superdiagonal terms.
       ij = 3 + i + j - 1;
       Veclib::copy    (nTot, Us[i], 1, Sr[ij], 1);
-//    meta->gradient  (nZP, nP, Sr[ij], j);
       complexGradient (meta, Sr[ij], j);
       Veclib::copy    (nTot, Sr[ij], 1, St[ij], 1);
       lowpass         (St[ij]);
@@ -257,14 +256,14 @@ void dynamic (Domain*       D ,
   
   for (i = 0; i < 3; i++)
     for (j = i + 1; j < 3; j++) { // -- Subdiagonal terms.
-      Veclib::copy    (nTot, Us[j], 1, Sr[i], 1);
-//    meta->gradient  (nZP, nP, Sr[i], i);
-      complexGradient (meta, Sr[i], i);
-      Veclib::copy    (nTot, Sr[i], 1, St[i], 1);
-      lowpass         (St[i]);
-      transform       (INVERSE, FULL, St[i]);
-      transform       (INVERSE, FULL, Sr[i]);
-      if (NL) Veclib::vvtvp (nTot, Ua[i], 1, Sr[i], 1, Nl[j], 1, Nl[j], 1);
+      ij = i + j - 1;
+      Veclib::copy    (nTot, Us[j],  1, Sr[ij], 1);
+      complexGradient (meta, Sr[ij], i);
+      Veclib::copy    (nTot, Sr[ij], 1, St[ij], 1);
+      lowpass         (St[ij]);
+      transform       (INVERSE, FULL, St[ij]);
+      transform       (INVERSE, FULL, Sr[ij]);
+      if (NL) Veclib::vvtvp (nTot, Ua[i], 1, Sr[ij], 1, Nl[j], 1, Nl[j], 1);
     }
   
   for (i = 0; i < 3; i++) {
@@ -276,7 +275,6 @@ void dynamic (Domain*       D ,
 
   for (i = 0; i < 3; i++) {
     Veclib::copy    (nTot, Us[i], 1, Sr[i], 1);
-//  meta->gradient  (nZP, nP, Sr[i], i);
     complexGradient (meta, Sr[i], i);
     Veclib::copy    (nTot, Sr[i], 1, St[i], 1);
     lowpass         (St[i]);
@@ -287,14 +285,20 @@ void dynamic (Domain*       D ,
 
   // -- Form strain rate magnitude estimates |S|, |S~|: sqrt (2 Sij Sji).
 
-  Veclib::zero (nTot, Sm[0], 1);
-  Veclib::zero (nTot, Sm[1], 1);
-
-  for (i = 0; i < 6; i++) {
-    Veclib::svvttvp (nTot, 2.0, Sr[i], 1, Sr[i], 1, Sm[0], 1, Sm[0], 1);
-    Veclib::svvttvp (nTot, 2.0, St[i], 1, St[i], 1, Sm[1], 1, Sm[1], 1);
+  Veclib::zero  (nTot,           Sm[0], 1);
+  Veclib::zero  (nTot,           Sm[1], 1);
+  for (i = 3; i < 6; i++) {	// -- Off-diagonal.
+    Veclib::vvtvp (nTot, Sr[i], 1, Sr[i], 1, Sm[0], 1, Sm[0], 1);
+    Veclib::vvtvp (nTot, St[i], 1, St[i], 1, Sm[1], 1, Sm[1], 1);
   }
-
+  Blas::scal    (nTot, 2.0,      Sm[0], 1);
+  Blas::scal    (nTot, 2.0,      Sm[1], 1);
+  for (i = 0; i < 3; i++) {	// -- Diagonal.
+    Veclib::vvtvp (nTot, Sr[i], 1, Sr[i], 1, Sm[0], 1, Sm[0], 1);
+    Veclib::vvtvp (nTot, St[i], 1, St[i], 1, Sm[1], 1, Sm[1], 1);
+  }
+  Blas::scal    (nTot, 2.0,      Sm[0], 1);
+  Blas::scal    (nTot, 2.0,      Sm[1], 1);
   Veclib::vsqrt (nTot, Sm[0], 1, Sm[0], 1);
   Veclib::vsqrt (nTot, Sm[1], 1, Sm[1], 1);
 
@@ -401,7 +405,7 @@ void dynamic (Domain*       D ,
 
   // -- NB: We need (?) some averaging of Cs for stability.
 
-#if 1
+#if 1				// -- Homogeneous average.
 
   // -- Homogeneous average.
 
@@ -425,7 +429,7 @@ void dynamic (Domain*       D ,
   }
   for (i = 1; i < nZP; i++)
     Veclib::copy (nP, L, 1, L + i * nP, 1);
-    
+
 #endif
 
 }
