@@ -58,11 +58,8 @@ extern int errno;
 
 #include <alplib.h>
 
-#ifdef __sgi
-  #include <sigfpe.h>
-#endif
-
 int yyparse (void);
+
 
 /* ------------------------------------------------------------------------- *
  * File-scope type definitions.                                              *
@@ -209,7 +206,9 @@ void initialize (void)
  
 
 #ifdef __sgi			/* Enable floating-point traps. */
-
+#include <sigfpe.h>
+#include <sgidefs.h>     
+#ifndef _MIPS_SIM_ABI64         /* No 64-bit version of libfpe.a yet. */
   sigfpe_[ _OVERFL].trace = 1;
   sigfpe_[ _OVERFL].exit  = 1;
 
@@ -226,6 +225,7 @@ void initialize (void)
 		  0,
 		  _ABORT_ON_ERROR,
 		  0);
+#endif
 #endif
 
   for (i=0; consts[i].name; i++)
