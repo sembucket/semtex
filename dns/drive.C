@@ -33,7 +33,7 @@ static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, BoundarySys*&, Domain*&);
 
-void NavierStokes (Domain*, DNSAnalyser*);
+void integrateNS (Domain*, DNSAnalyser*);
 
 
 int main (int    argc,
@@ -67,7 +67,7 @@ int main (int    argc,
 
   ROOTONLY domain -> report();
   
-  NavierStokes (domain, analyst);
+  integrateNS (domain, analyst);
 
   Femlib::finalize();
 
