@@ -4,7 +4,17 @@
 //
 // Usage:
 // -----
-// addvort -s session session.fld
+// addvort [options] -s session session.fld
+//   options:
+//   -h   ... print this message
+//   -v   ... add vorticity
+//   -e   ... add enstrophy and helicity (3D only)
+//   -d   ... add divergence
+//   -t   ... add rate of strain tensor Sij
+//   -g   ... add gamma = total strain rate = sqrt(2 Sij Sji)
+//   -i   ... add invariants of Vij (but NOT Vij itself)
+//            (NB: Divergence is ASSUMED equal to zero)
+//   -a   ... add them all
 //////////////////////////////////////////////////////////////////////////////
 
 #include <Sem.h>
@@ -18,7 +28,7 @@ static char  prog[] = "addfield";
 static void  memExhaust () { message ("new", "free store exhausted", ERROR); }
 
 static void    getargs  (integer, char**, char*&, char*&,
-			 integer&, integer&, integer&, integer&, integer&);
+			 integer&, integer&, integer&, integer&, integer&, integer&);
 static integer getDump  (Domain*, ifstream&);
 static void    putDump  (Domain*, vector<AuxField*>&, integer, ofstream&);
 
@@ -46,22 +56,25 @@ integer main (integer argc,
   AuxField*          InvQ;
   AuxField*          InvR;
   AuxField*          Disc;
+  AuxField*          Strain;
   AuxField*          work;
   integer            nData = 0;
   vector <AuxField*> AuxPoint(3);
   vector <AuxField*> dataField(12);
   AuxField***        Sij;
 
-    // -- Set command line defaults
+  // -- Set command line defaults
 
-  integer add_vort = 0,
-          add_enst = 0,
-          add_div  = 0,
-          add_sij  = 0,
-          add_inv  = 0;
+  integer add_vort   = 0,
+          add_enst   = 0,
+          add_div    = 0,
+          add_sij    = 0,
+          add_strain = 0,
+          add_inv    = 0;
   
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, session,dump,add_vort,add_enst,add_div,add_sij,add_inv);
+  getargs (argc, argv, session, dump,
+	   add_vort, add_enst, add_div, add_sij, add_inv, add_strain);
 
   // -- Set up domain.
 
@@ -92,9 +105,9 @@ integer main (integer argc,
   //    what fields we want to output.
 
   AuxField*** Vij = new AuxField** [DIM];
-  for (i = 0 ; i < DIM ; i++) {
+  for (i = 0; i < DIM; i++) {
     Vij[i] = new AuxField* [DIM];
-    for (j = 0 ; j < DIM ; j++ ) {
+    for (j = 0; j < DIM; j++) {
        Vij[i][j] = new AuxField (D -> Esys);
       *Vij[i][j] = 0.0;
     }
@@ -104,7 +117,7 @@ integer main (integer argc,
 
   work = new AuxField (D -> Esys);
 
-  if (add_vort + add_enst > 0) {
+  if (add_vort + add_enst) {
     if (DIM == 2)
       vorticity[0] = new AuxField (D -> Esys, 't');
     else
@@ -130,28 +143,25 @@ integer main (integer argc,
   
   integer iadd = 0;
 
-  if( add_sij+add_inv > 0 ) {
+  if (add_sij + add_inv + add_strain) {
     Sij = new AuxField** [DIM];
-    for ( i = 0 ; i < DIM ; i++) {
+    for (i = 0; i < DIM; i++) {
       Sij[i] = new AuxField* [DIM];
       for ( j = 0 ; j < DIM ; j++ ) {
-	if( i <= j ) {
+	if (i <= j) {
 	  Sij[i][j] = new AuxField (D -> Esys, 'i' + iadd);
-	  iadd ++;
-	}
-	else
+	  iadd++;
+	} else
 	  Sij[i][j] = Sij[j][i];
       }
     }
-    if( add_sij == 1 ){
-      for ( i = 0 ; i < DIM ; i++) {
+    if (add_sij == 1)
+      for ( i = 0 ; i < DIM ; i++)
 	for ( j = i ; j < DIM ; j++ ) {
 	  dataField(nData) = Sij[i][j];
-	  nData += 1;
+	  nData++;
 	}
-      }
-    }
-    if( add_inv == 1 ) {
+    if (add_inv == 1) {
       dataField(nData)   = new AuxField (D -> Esys, 'Q');
       dataField(nData+1) = new AuxField (D -> Esys, 'R');
       dataField(nData+2) = new AuxField (D -> Esys, 'L');
@@ -161,14 +171,19 @@ integer main (integer argc,
       *(Disc = dataField(nData+2)) = 0.0;
       nData += 3;
     }
+    if (add_strain == 1) {
+      dataField(nData) = new AuxField (D -> Esys, 'G');
+      *(Strain = dataField(nData)) = 0.0;
+      nData++;
+    }
   }
   
   // -- Cycle through field dump, first computing the velocity gradient 
-  // -- tensor and then the other quantities - vorticity etc. Then write
-  // -- output defined in the dataField AuxFields. musn't change the order
-  // -- below because we are relying on the inverse transform being done
-  // -- BEFORE dumping enstrophy/helicity because inner products are done
-  // -- in physical space.
+  //    tensor and then the other quantities - vorticity etc. Then write
+  //    output defined in the dataField AuxFields. musn't change the order
+  //    below because we are relying on the inverse transform being done
+  //    BEFORE dumping enstrophy/helicity because inner products are done
+  //    in physical space.
   
   
   while (getDump (D, file)) {
@@ -177,13 +192,12 @@ integer main (integer argc,
 
     // -- Velocity gradient tensor, calculated in Fourier, transformed back.
 
-    for (i = 0; i < DIM ; i++) {
+    for (i = 0; i < DIM ; i++)
       for (j = 0; j < DIM ; j++) {
 	(*Vij[i][j] = *D -> u[i]) . gradient (j);
 	D -> u[0] -> smooth (Vij[i][j]);
 	Vij[i][j] -> transform(-1);
       }
-    }
 
     if (DIM > 2) D -> transform (-1);
 
@@ -195,12 +209,12 @@ integer main (integer argc,
 
     }
 	
-    if (add_div + add_inv > 0)  {
+    if (add_div + add_inv) {
       *Div = 0.0;
       for (i = 0; i < DIM; i++) *Div += *Vij[i][i];
     }
     
-    if (add_vort+add_enst > 0) {
+    if (add_vort + add_enst) {
       
       if (DIM == 2) {
 	*vorticity[0]  = *Vij[1][0];
@@ -215,15 +229,14 @@ integer main (integer argc,
       }
     }
 
-    if (add_sij+add_inv > 0) {
+    if (add_sij + add_inv + add_strain) {
       
-      for (i = 0; i < DIM; i++) {
-	for (j = 1; j < DIM; j++) {
+      for (i = 0; i < DIM; i++)
+	for (j = i; j < DIM; j++) {
 	  *Sij[i][j]  = *Vij[i][j];
 	  *Sij[i][j] += *Vij[j][i];
 	  *Sij[i][j] *= 0.5;
 	}
-      }
 
       if (add_inv == 1) {
 
@@ -262,11 +275,19 @@ integer main (integer argc,
 
       }
     }    
+
+    if (add_strain == 1) {
+      *Strain = 0.0;
+      for (i = 0; i < DIM; i++)
+	for (j = 0; j < DIM; j++)
+	  Strain -> timesPlus ( *Sij[i][j], *Sij[j][i] );
+      *Strain *= 2.0;
+    }
     
-    if(add_enst == 1) {
-      Ens -> innerProduct(vorticity,vorticity);
-      for ( i = 0 ; i < DIM ; i++ ) AuxPoint[i] = D -> u[i];
-      Hel -> innerProduct(vorticity,AuxPoint);
+    if (add_enst == 1) {
+      Ens -> innerProduct (vorticity, vorticity);
+      for (i = 0; i < DIM; i++) AuxPoint[i] = D -> u[i];
+      Hel -> innerProduct (vorticity, AuxPoint);
     }
       
     putDump (D, dataField, nData, outp);
@@ -287,7 +308,8 @@ static void getargs (integer  argc    ,
 		     integer& add_enst,
 		     integer& add_div ,
 		     integer& add_sij ,
-                     integer& add_inv )
+		     integer& add_inv ,
+                     integer& add_strain )
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
@@ -299,9 +321,10 @@ static void getargs (integer  argc    ,
 		 "  -e   ... add enstrophy and helicity (3D only) \n"
 		 "  -d   ... add divergence\n"
 		 "  -t   ... add rate of strain tensor Sij\n"
+		 "  -g   ... add gamma = total strain rate = sqrt(2 Sij Sji)\n"
 		 "  -i   ... add invariants of Vij (but NOT Vij itself) \n"
 		 "           (NB: Divergence is ASSUMED equal to zero) \n"
-		 "  -a   ... add them all \n";
+                 "  -a   ... add them all \n";
 
   char buf[StrMax];
  
@@ -329,6 +352,9 @@ static void getargs (integer  argc    ,
     case 'd':
       add_div = 1;
       break;
+    case 'g':
+      add_strain = 1;
+      break;
     case 't':
       add_sij = 1;
       break;
@@ -351,8 +377,8 @@ static void getargs (integer  argc    ,
       break;
     }
 
-  if (add_vort+add_enst+add_div+add_inv+add_sij == 0)
-    message (prog, "No fields to add", ERROR);
+  if (add_vort+add_enst+add_div+add_inv+add_sij+add_strain == 0) add_vort=1;
+  // message (prog, "No fields to add", ERROR);
 
   if   (!session)  message (prog, "no session file", ERROR);
   if   (argc != 1) message (prog, "no field file",   ERROR);
@@ -443,6 +469,3 @@ static void putDump  (Domain*            D       ,
   if (!strm) message (routine, "failed writing field file", ERROR);
   strm << flush;
 }
-
-
-
