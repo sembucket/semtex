@@ -169,7 +169,7 @@ int main (int    argc,
       if (strchr (S[i] -> fields(), 'p')) {
 	Nsys* pressure = S[i];
 	if (!Veclib::any (pressure -> nbndry, pressure -> bndmsk(), 1)) {
-	  pressure -> rebuild (file, clamp ((const integer) opt, 2, 3));
+	  pressure -> rebuild (file, clamp ((int) opt, 2, 3));
 	  break;
 	}
       }
