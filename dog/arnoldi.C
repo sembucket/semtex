@@ -86,7 +86,7 @@ int main (int    argc,
 // ---------------------------------------------------------------------------
 {
   set_new_handler (&memExhaust);
-#if !defined(__DECCXX)
+#if !defined (__DECCXX)
   ios::sync_with_stdio();
 #endif
 

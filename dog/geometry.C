@@ -51,7 +51,7 @@ void Geometry::set (const int nel  ,
                                Geometry::Cylindrical : Geometry::Cartesian;
   _npert     = npert;
   _nel       = nel;
-  _psize     = nPlane() + (nPlane() % 2);
+  _psize     = nPlane();
   _nz = _nzp = (_nbase == 3 && _npert == 3) ? 2 : 1;
 
   // -- Sanity checks.

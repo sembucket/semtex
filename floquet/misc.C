@@ -198,7 +198,7 @@ ifstream& operator >> (ifstream& file,
   file >> hdr.visc;                              file.getline(s, StrMax);
   file >> hdr.beta;                              file.getline(s, StrMax);
   file >> hdr.flds;                              file.getline(s, StrMax);
-  file.get(hdr.frmt, 25);                        file.getline(s, StrMax);
+  file.get(hdr.frmt, 26);                        file.getline(s, StrMax);
 
   if (!file) message (routine, "failed reading header information", ERROR);
   return file;
