@@ -73,7 +73,7 @@ void integrate (Domain*      D,
   // -- Create extra storage needed for computation of SGSS, nonlinear
   //    terms.  Last 2*NDIM*NORD of these are used for Us & Uf, first 17
   //    are used for SGSS modelling work.
-  
+
   matrix<real> Ut (17 + 2*NDIM*NORD, Geometry::nTotProc());
 
   // -- Create & initialise multi-level storage for velocities and forcing.

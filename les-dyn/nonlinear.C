@@ -13,8 +13,9 @@
 
 #include "les.h"
 
-static void transform    (const TransformKind, const ExchangeKind, real*);
-static void realGradient (const AuxField*, real*, const int);
+static void transform       (const TransformKind, const ExchangeKind, real*);
+static void realGradient    (const AuxField*, real*, const int);
+static void complexGradient (const AuxField*, real*, const int);
 
 
 void nonLinear (Domain*       D ,
@@ -74,19 +75,24 @@ void nonLinear (Domain*       D ,
 
   for (i = 0; i < 3; i++) Ud [i] = D->udat(i);
 
+  // -- Zero workspace areas.
+
+  Veclib::zero (6*nTot, Sr[0], 1);
+  Veclib::zero (6*nTot, St[0], 1);
+
   // -- Compute the dynamic eddy viscosity estimate -2Cs^2 in Ut[15].
   //    Also compute the nonlinear terms.
 
   dynamic (D, Ut);
-
-  real* nut     = Sm[0];
-  real* Delta2S = Us[2];
 
   // -- Subtract off our spatially-constant reference viscosity
   //    (disguised as KINVIS), note factor of 2, and that we need to
   //    divide through by Delta^2|S| --- we're making [-2*Cs^2 +
   //    2*REFVIS/(Delta^2|S|)] since Sij has been premultiplied by
   //    Delta^2|S|.
+
+  real* nut     = Sm[0];
+  real* Delta2S = Us[2];
 
   Veclib::sdiv (nTot, 2.0*refV, Delta2S, 1, Delta2S, 1);
   Veclib::vadd (nTot, nut, 1, Delta2S, 1, nut, 1);
@@ -186,14 +192,16 @@ void dynamic (Domain*       D ,
 // estimate as a stand-alone diagnostic.
 // ---------------------------------------------------------------------------
 {
-  const integer nZ   = Geometry::nZ();
-  const integer nZP  = Geometry::nZProc();
-  const integer nP   = Geometry::planeSize();
-  const integer nPP  = Geometry::nBlock();
-  const integer nPR  = Geometry::nProc();
-  const integer nTot = Geometry::nTotProc();
-  Field*        meta = D -> u[0]; // -- A handle to use for Field operations.
-  integer       i, j, ij;
+  const integer    nZ   = Geometry::nZ();
+  const integer    nZP  = Geometry::nZProc();
+  const integer    nP   = Geometry::planeSize();
+  const integer    nPP  = Geometry::nBlock();
+  const integer    nPR  = Geometry::nProc();
+  const integer    nTot = Geometry::nTotProc();
+  const integer    nEl  = Geometry::nElmt();
+  const integer    nP2  = Geometry::nTotElmt();
+  Field*           meta = D -> u[0]; // -- A handle for Field operations.
+  register integer i, j, ij;
 
   if (Geometry::system() == Geometry::Cylindrical)
     message ("dynamic", "no cylindrical coordinate version yet", ERROR);
@@ -237,23 +245,25 @@ void dynamic (Domain*       D ,
   for (i = 0; i < 3; i++)
     for (j = i + 1; j < 3; j++) { // -- Superdiagonal terms.
       ij = 3 + i + j - 1;
-      Veclib::copy   (nTot, Us[i], 1, Sr[ij], 1);
-      meta->gradient (nZP, nP, Sr[ij], j);
-      Veclib::copy   (nTot, Sr[ij], 1, St[ij], 1);
-      lowpass        (St[ij]);
-      transform      (INVERSE, FULL, Sr[ij]);
-      transform      (INVERSE, FULL, St[ij]);
+      Veclib::copy    (nTot, Us[i], 1, Sr[ij], 1);
+//    meta->gradient  (nZP, nP, Sr[ij], j);
+      complexGradient (meta, Sr[ij], j);
+      Veclib::copy    (nTot, Sr[ij], 1, St[ij], 1);
+      lowpass         (St[ij]);
+      transform       (INVERSE, FULL, Sr[ij]);
+      transform       (INVERSE, FULL, St[ij]);
       if (NL) Veclib::vvtvp (nTot, Ua[j], 1, Sr[ij], 1, Nl[i], 1, Nl[i], 1);
     }
   
   for (i = 0; i < 3; i++)
     for (j = i + 1; j < 3; j++) { // -- Subdiagonal terms.
-      Veclib::copy   (nTot, Us[j], 1, Sr[i], 1);
-      meta->gradient (nZP, nP, Sr[i], i);
-      Veclib::copy   (nTot, Sr[i], 1, St[i], 1);
-      lowpass        (St[i]);
-      transform      (INVERSE, FULL, St[i]);
-      transform      (INVERSE, FULL, Sr[i]);
+      Veclib::copy    (nTot, Us[j], 1, Sr[i], 1);
+//    meta->gradient  (nZP, nP, Sr[i], i);
+      complexGradient (meta, Sr[i], i);
+      Veclib::copy    (nTot, Sr[i], 1, St[i], 1);
+      lowpass         (St[i]);
+      transform       (INVERSE, FULL, St[i]);
+      transform       (INVERSE, FULL, Sr[i]);
       if (NL) Veclib::vvtvp (nTot, Ua[i], 1, Sr[i], 1, Nl[j], 1, Nl[j], 1);
     }
   
@@ -265,12 +275,13 @@ void dynamic (Domain*       D ,
   // -- Form diagonal terms for RoS tensors, nonconservative Nl terms.
 
   for (i = 0; i < 3; i++) {
-    Veclib::copy   (nTot, Us[i], 1, Sr[i], 1);
-    meta->gradient (nZP, nP, Sr[i], i);
-    Veclib::copy   (nTot, Sr[i], 1, St[i], 1);
-    lowpass        (St[i]);
-    transform      (INVERSE, FULL, St[i]);
-    transform      (INVERSE, FULL, Sr[i]);
+    Veclib::copy    (nTot, Us[i], 1, Sr[i], 1);
+//  meta->gradient  (nZP, nP, Sr[i], i);
+    complexGradient (meta, Sr[i], i);
+    Veclib::copy    (nTot, Sr[i], 1, St[i], 1);
+    lowpass         (St[i]);
+    transform       (INVERSE, FULL, St[i]);
+    transform       (INVERSE, FULL, Sr[i]);
     if (NL) Veclib::vvtvp (nTot, Ua[i], 1, Sr[i], 1, Nl[i], 1, Nl[i], 1);
   }
 
@@ -390,16 +401,31 @@ void dynamic (Domain*       D ,
 
   // -- NB: We need (?) some averaging of Cs for stability.
 
-#if 1				// -- Homogeneous average.
+#if 1
 
-    Femlib::exchange (L, nZP, nP, FORWARD);
-    for (i = 1; i < nZ; i++)
-      Veclib::vadd (nPP, L + i * nPP, 1, L, 1, L, 1);
-    Blas::scal (nPP, 1.0/nZ, L, 1);
-    for (i = 1; i < nZ; i++)
-      Veclib::copy (nPP, L, 1, L + i * nPP, 1);
-    Femlib::exchange (L, nZP, nP, INVERSE);
+  // -- Homogeneous average.
 
+  Femlib::exchange (L, nZP, nP, FORWARD);
+  for (i = 1; i < nZ; i++)
+    Veclib::vadd (nPP, L + i * nPP, 1, L, 1, L, 1);
+  Blas::scal (nPP, 1.0/nZ, L, 1);
+  for (i = 1; i < nZ; i++)
+    Veclib::copy (nPP, L, 1, L + i * nPP, 1);
+  Femlib::exchange (L, nZP, nP, INVERSE);
+  
+  // -- Elemental average.
+
+  for (i = 0; i < nEl; i++) {
+    ij = i * nP2;
+    for (j = 1; j < nP2; j++) {
+      L[ij] += L[j + ij];
+    }
+    L[ij] /= nP2;
+    Veclib::fill (nP2, L[ij], L + ij, 1);
+  }
+  for (i = 1; i < nZP; i++)
+    Veclib::copy (nP, L, 1, L + i * nP, 1);
+    
 #endif
 
 }
@@ -449,6 +475,28 @@ static void realGradient (const AuxField* meta,
     transform        (FORWARD, HALF, ui);
     meta -> gradient (nZ, nPP, ui, xj);
     transform        (INVERSE, HALF, ui);
+  } else
+    meta -> gradient (nZP, nP, ui, xj);
+}
+
+
+static void complexGradient (const AuxField* meta, 
+			     real*           ui  ,
+			     const int       xj  )
+// ---------------------------------------------------------------------------
+// Carry out gradient operation on data, special case for homogeneous
+// direction.
+// ---------------------------------------------------------------------------
+{
+  const integer nZ  = Geometry::nZ();
+  const integer nZP = Geometry::nZProc();
+  const integer nP  = Geometry::planeSize();
+  const integer nPP = Geometry::nBlock();
+      
+  if (xj == 2) {
+    Femlib::exchange (ui, nZP, nP, FORWARD);
+    meta -> gradient (nZ, nPP, ui, xj);
+    Femlib::exchange (ui, nZP, nP, INVERSE);
   } else
     meta -> gradient (nZP, nP, ui, xj);
 }
