@@ -25,8 +25,8 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <iostream>
-#include <fstream>
+#include <iostream.h>
+#include <fstream.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,8 +37,6 @@
 #include <Array.h>
 #include <Blas.h>
 #include <Lapack.h>
-
-using namespace std;
 
 static char prog[]  = "embed2";
 static char usage[] = "embed2 [-h] -n <num> -s <num> [file]";
@@ -60,7 +58,7 @@ int main (int    argc,
 {
   ifstream       file;
   vector<double> data, cov, esys;
-  int            i, s = 0, n = 0, p = 0, N, Nt;
+  int            s = 0, n = 0, p = 0;
 
   getargs  (argc, argv, s, n, p, file);
   getdata  (file, data, s, n);
@@ -169,7 +167,6 @@ static void covary  (vector<double>& data,
   const int       N = data.getSize() - n + 1;
   const int       P = n+((n*(n-1))>>1);
   register int    i, j, k;
-  register double sum;
 
   cov.setSize (P);
 
