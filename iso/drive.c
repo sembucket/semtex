@@ -133,12 +133,12 @@ int main (int    argc,
   startup (I);
 
   printf ("# %s: Fourier-spectral Navier-Stokes simulation\n", prog);
-  printf ("# Copyright (C) 1992-1999 Hugh Blackburn\n\n");
+  printf ("# Copyright (C) 1992-1999 Hugh Blackburn\n#\n");
 
   N = I -> ngrid; K = N / 2; FourKon3 = (4 * K) / 3;
 
 #if defined (INVISCID)
-  printf     ("# Inviscid solution\n\n");
+  printf     ("# Inviscid solution\n#\n");
   allocate   (G, U, I -> norder, &work1, &work2, &work3, &Wtab, &Stab);
 #else
   allocate   (U, G, I -> norder, &work1, &work2, &work3, &Wtab, &Stab);
