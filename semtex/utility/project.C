@@ -144,10 +144,8 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
     vector<real>     work (rhs.np * np);
     real*            tmp = work();
 
-    if (uniform)
-      Femlib::mesh (GLL, STD, rhs.np, np, 0, &IN, &IT, 0, 0);
-    else
-      Femlib::mesh (GLL, GLL, rhs.np, np, 0, &IN, &IT, 0, 0);
+    if   (uniform) Femlib::mesh (GLL, STD, rhs.np, np, 0, &IN, &IT, 0, 0);
+    else           Femlib::mesh (GLL, GLL, rhs.np, np, 0, &IN, &IT, 0, 0);
 
     for (k = 0; k < nzm; k++) {	// -- 2D planar projections.
       LHS = plane[k];
@@ -223,10 +221,10 @@ istream& operator >> (istream&  strm,
 }
 
 
-static char prog[] = "project";
+static char    prog[] = "project";
 static void    getargs  (int, char**, integer&, integer&, integer&, ifstream&);
 static integer getDump  (ifstream&, ostream&, vector<Field2DF*>&,
-			 integer&, integer&, integer&, integer&);
+			 integer&, integer&, integer&, integer&, integer&);
 static void    loadName (const vector<Field2DF*>&, char*);
 static integer doSwap   (const char*);
 
@@ -239,16 +237,14 @@ int main (int    argc,
 {
   char              fields[StrMax];
   ifstream          file;
-  integer           i, j, fInc;
-  integer           nPnew = 0, nZnew = 0, keepW = 0, nEl;
+  integer           i, j, nEl, fInc;
+  integer           nPnew = 0, nZnew = 0, keepW = 0;
   vector<Field2DF*> Uold, Unew;
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, nPnew, nZnew, keepW, file);
   
-  while (getDump (file, cout, Uold, nPnew, nZnew, nEl, fInc)) {
-
-    fInc += keepW;		// -- Flag to retain w even if 3D-->2D.
+  while (getDump (file, cout, Uold, nPnew, nZnew, nEl, keepW, fInc)) {
 
     Unew.setSize (Uold.getSize() + fInc);
 
@@ -339,12 +335,10 @@ static void getargs (int       argc ,
       }
       break;
     case 'u':
-      --argc;
       uniform = 1;
       break;
     case 'w':
-      --argc;
-      keepW = 1;
+      keepW   = 1;
       break;
     default:
       cerr << usage;
@@ -400,6 +394,7 @@ static integer getDump (ifstream&          ifile,
 			integer&           npnew,
 			integer&           nznew,
 			integer&           nel  ,
+			integer&           keepW,
 			integer&           finc )
 // ---------------------------------------------------------------------------
 // Read next set of field dumps from ifile, put headers on ofile.
@@ -441,9 +436,9 @@ static integer getDump (ifstream&          ifile,
   sprintf (buf, hdr_fmt[2], fmt);
   cout << buf;
 
-  if      (nz >  1 && nznew == 1) finc = -1;
-  else if (nz == 1 && nznew >  1) finc = +1;
-  else                            finc =  0;
+  if      (nz >  1 && nznew == 1 && !keepW) finc = -1;
+  else if (nz == 1 && nznew >  1)           finc = +1;
+  else                                      finc =  0;
 
   for (i = 0; i < 5; i++) {
    ifile.getline (buf, StrMax);
