@@ -6,6 +6,7 @@
 // Usage: meshpr [options] file
 //   options:
 //   -h   ... display this message
+//   -c   ... disable checking of mesh connectivity
 //   -v   ... set verbose output
 //   -u   ... set uniform spacing [Default: GLL]
 //   -n N ... override element order to be N
@@ -26,7 +27,7 @@ RCSid[] = "$Id$";
 #include <Mesh.h>
 
 static char prog[] = "meshpr";
-static void getargs (int, char**, char*&,
+static void getargs (int, char**, char*&, integer&,
 		     integer&, integer&, integer&, integer&);
 
 
@@ -41,12 +42,13 @@ int main (int     argc,
 
   char*   session = 0;
   integer verb    = 0,
+          check   = 1,
           np      = 0,
           nz      = 0,
           basis   = GLL;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, session, verb, np, nz, basis);
+  getargs (argc, argv, session, verb, check, np, nz, basis);
 
   // -- Set up to read from file, initialize Femlib parsing.
 
@@ -60,7 +62,7 @@ int main (int     argc,
 
   // -- Build mesh from session file information.
 
-  Mesh M (feml);
+  Mesh M (feml, check);
 
   // -- Generate mesh knots and print up.
 
@@ -100,6 +102,7 @@ static void getargs (integer  argc   ,
 		     char**   argv   ,
 		     char*&   session,
 		     integer& verb   ,
+		     integer& check  ,
 		     integer& np     ,
 		     integer& nz     ,
 		     integer& basis  )
@@ -110,6 +113,7 @@ static void getargs (integer  argc   ,
   char usage[] = "usage: meshpr [options] session\n"
                  "options:\n"
                  "  -h   ... display this message\n"
+                 "  -c   ... disable checking of mesh connectivity\n"
                  "  -v   ... set verbose output\n"
                  "  -u   ... set uniform spacing [Default: GLL]\n"
 		 "  -n N ... override number of element knots to be N\n"
@@ -124,6 +128,9 @@ static void getargs (integer  argc   ,
       break;
     case 'v':
       for (verb = 1; *++argv[0] == 'v'; verb++);
+      break;
+    case 'c':
+      check = 0;
       break;
     case 'u':
       basis = STD;

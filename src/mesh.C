@@ -101,10 +101,16 @@ static inline integer rma (integer i, integer j, integer n)
 { return j + i * n; }
 
 
-Mesh::Mesh (FEML& f) :
+Mesh::Mesh (FEML&     f    ,
+	    const int check) :
             feml (f)
 // ---------------------------------------------------------------------------
 // Create a Mesh using information available in feml.
+//
+// If check is true (default value) then attempt to install all mesh
+// information, including surfaces and curved sides.  If it is not,
+// then only sufficient information to define the elements is loaded
+// (i.e nodes and element vertices).
 // ---------------------------------------------------------------------------
 {
   const char    routine[] = "Mesh::Mesh";
@@ -205,21 +211,24 @@ Mesh::Mesh (FEML& f) :
 
   if (verb) cout << "done" << endl;
 
+
   if (verb) cout << "Setting up mesh internal connectivity ... ";
   assemble ();
   if (verb) cout << "done" << endl;
-  
-  if (verb) cout << "Installing mesh external surface data ... ";
-  surfaces ();
-  if (verb) cout << "done" << endl;
 
-  if (verb) cout << "Checking mesh connectivity ... ";
-  checkAssembly ();
-  if (verb) cout << "done" << endl;
+  if (check) {  
+    if (verb) cout << "Installing mesh external surface data ... ";
+    surfaces ();
+    if (verb) cout << "done" << endl;
 
-  if (verb) cout << "Installing mesh curved sides ... ";
-  curves ();
-  if (verb) cout << "done" << endl;
+    if (verb) cout << "Checking mesh connectivity ... ";
+    checkAssembly ();
+    if (verb) cout << "done" << endl;
+
+    if (verb) cout << "Installing mesh curved sides ... ";
+    curves ();
+    if (verb) cout << "done" << endl;
+  }
 }
 
 
