@@ -39,10 +39,14 @@ endif
 ifeq ($(ARCH),IRIX64)		# -- SGI 64-bit systems.
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = $(DEFINES) -mips4 -64 -r10000 -Ofast=IP30 -OPT:roundoff=3
+ifdef DEBUG
+  OPT    = -g
+else
+  OPT    =  -r10000 -Ofast=IP30 -OPT:roundoff=3
+endif
+CXXFLAGS = $(DEFINES) -mips4 -64 $(OPT)
 F77LIBS	 = -lcomplib.sgimath -lftn
-LDFLAGS  = -64 -mips4 -r10000 -Ofast=IP30 -OPT:roundoff=3 	\
-           -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+LDFLAGS  = -64 -mips4 $(OPT) -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
 endif
 
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha.

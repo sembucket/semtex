@@ -1030,6 +1030,27 @@ AuxField& AuxField::setPlane (const integer k  ,
 }
 
 
+AuxField& AuxField::setPlane (const integer k    ,
+			      const real    alpha)
+// ---------------------------------------------------------------------------
+// Set nominated plane to scalar alpha.
+// ---------------------------------------------------------------------------
+{
+  const char routine[] = "AuxField::setPlane";
+
+  if (k < 0 || k >= Geometry::nZProc())
+    message (routine, "nominated plane doesn't exist", ERROR);
+  else {
+    if (alpha == 0.0)
+      Veclib::zero (Geometry::nPlane(), plane[k], 1);
+    else
+      Veclib::fill (Geometry::nPlane(), alpha, plane[k], 1);
+  }
+
+  return *this;
+}
+
+
 void AuxField::swapData (AuxField* x,
 			 AuxField* y)
 // ---------------------------------------------------------------------------
