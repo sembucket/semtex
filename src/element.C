@@ -1022,9 +1022,10 @@ void  Element::post (real**  hbb    , // Post,
 }
 
 
-void  Element::d_dx (real* target) const
+void  Element::grad (real* targA, real* targB) const
 // ---------------------------------------------------------------------------
-// Operate partial derivative d(target)/dx = d_dr*drdx + d_ds*dsdx.
+// Operate partial derivative d(target)/dxi = d_dr*drdxi + d_ds*dsdxi,
+// where the appropriate component of gradient is selected by input pointers.
 // Values are computed at node points.
 // ---------------------------------------------------------------------------
 {
@@ -1034,34 +1035,21 @@ void  Element::d_dx (real* target) const
   int   ntot = nTot();
   real* tmpA = rvector (ntot);
   real* tmpB = rvector (ntot);
+  real* target;
 
-  Blas::mxm     (target, np, *DT,    np, tmpA, np);
-  Blas::mxm     (*DV,    np, target, np, tmpB, np);
-  Veclib::vmul  (ntot, tmpA, 1, drdx, 1, tmpA, 1);
-  Veclib::vvtvp (ntot, tmpB, 1, dsdx, 1, tmpA, 1, target, 1);
-  
-  freeVector (tmpA);
-  freeVector (tmpB);
-}
+  if ((target = targA)) {
+    Blas::mxm     (target, np, *DT,    np, tmpA, np);
+    Blas::mxm     (*DV,    np, target, np, tmpB, np);
+    Veclib::vmul  (ntot, tmpA, 1, drdx, 1, tmpA, 1);
+    Veclib::vvtvp (ntot, tmpB, 1, dsdx, 1, tmpA, 1, target, 1);
+  }
 
-
-void  Element::d_dy (real* target) const
-// ---------------------------------------------------------------------------
-// Operate partial derivative d(target)/dy = d_dr*drdy + d_ds*dsdy.
-// Values are computed at node points.
-// ---------------------------------------------------------------------------
-{
-  real **DV, **DT;
-  quadOps (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
-
-  int   ntot = nTot();
-  real* tmpA = rvector (ntot);
-  real* tmpB = rvector (ntot);
-
-  Blas::mxm     (target, np, *DT,    np, tmpA, np);
-  Blas::mxm     (*DV,    np, target, np, tmpB, np);
-  Veclib::vmul  (ntot, tmpA, 1, drdy, 1, tmpA, 1);
-  Veclib::vvtvp (ntot, tmpB, 1, dsdy, 1, tmpA, 1, target, 1);
+  if ((target = targB)) {
+    Blas::mxm     (target, np, *DT,    np, tmpA, np);
+    Blas::mxm     (*DV,    np, target, np, tmpB, np);
+    Veclib::vmul  (ntot, tmpA, 1, drdy, 1, tmpA, 1);
+    Veclib::vvtvp (ntot, tmpB, 1, dsdy, 1, tmpA, 1, target, 1);
+  }
   
   freeVector (tmpA);
   freeVector (tmpB);
@@ -1308,16 +1296,18 @@ void  Element::sideMask (int side, int* gmask) const
 void  Element::sideGrad (int side, const real* src, real* c1, real* c2 ) const
 // ---------------------------------------------------------------------------
 // Using geometric factors for this Element, return the first and second
-// components, c1 & c2, of grad src (length nTot()) along side.
+// component, c1 and/or c2, of grad src (length nTot()) along side.
+//
+// We have to take some special care on  sides 3 & 4, where the usual skips
+// are negative: we instead use positive skips for formation of dc/dr, dc/ds,
+// then a -1 skip when multiplying by dr/dx, ds/dx, etc.
 // ---------------------------------------------------------------------------
 {
-  int estart, skip, bstart;
+  int estart, skip, bstart, d;
   terminal (side, estart, skip, bstart);
 
-  int ntot = nTot();
-
-  real*  tmpA = rvector (ntot);
-  real*  tmpB = rvector (ntot);
+  real*  ddr = rvector (np);
+  real*  dds = rvector (np);
 
   real  **DV, **DT;
 
@@ -1325,31 +1315,39 @@ void  Element::sideGrad (int side, const real* src, real* c1, real* c2 ) const
 
   switch (side) {
   case 1:
-    Blas::gemv ("T", np, np,  1.0, *DV, np, src + estart, skip, 0.0, tmpA, 1);
-    Blas::gemv ("N", np, np,  1.0, src, np, *DV + estart, skip, 0.0, tmpB, 1);
-    break;
-  case 3:
-    Blas::gemv ("T", np, np, -1.0, *DV, np, src + estart, skip, 0.0, tmpA, 1);
-    Blas::gemv ("N", np, np, -1.0, src, np, *DV + estart, skip, 0.0, tmpB, 1);
+    d = 1;
+    Blas::gemv ("T", np, np, 1.0, *DV, np, src + estart, d*skip, 0.0, ddr, 1);
+    Blas::gemv ("N", np, np, 1.0, src, np, *DV + estart, d*skip, 0.0, dds, 1);
     break;
   case 2:
-    Blas::gemv ("T", np, np,  1.0, src, np, *DT + estart, skip, 0.0, tmpA, 1);
-    Blas::gemv ("T", np, np,  1.0, *DV, np, src + estart, skip, 0.0, tmpB, 1);
+    d = 1;
+    Blas::gemv ("T", np, np, 1.0, src, np, *DV + estart, d*skip, 0.0, ddr, 1);
+    Blas::gemv ("T", np, np, 1.0, *DV, np, src + estart, d*skip, 0.0, dds, 1);
+    break;
+  case 3:
+    d = -1;
+    Blas::gemv ("T", np, np, 1.0, *DV, np, src + estart, d*skip, 0.0, ddr, 1);
+    Blas::gemv ("N", np, np, 1.0, src, np, *DV + estart, d*skip, 0.0, dds, 1);
     break;
   case 4:
-    Blas::gemv ("T", np, np, -1.0, src, np, *DT + estart, skip, 0.0, tmpA, 1);
-    Blas::gemv ("T", np, np, -1.0, *DV, np, src + estart, skip, 0.0, tmpB, 1);
+    d = -1;
+    Blas::gemv ("T", np, np, 1.0, src, np, *DV + estart, d*skip, 0.0, ddr, 1);
+    Blas::gemv ("T", np, np, 1.0, *DV, np, src + estart, d*skip, 0.0, dds, 1);
     break;
   }
-   
-  Veclib::vmul  (np, tmpA, 1, drdx + estart, skip, c1, 1);
-  Veclib::vvtvp (np, tmpB, 1, dsdx + estart, skip, c1, 1, c1, 1);
 
-  Veclib::vmul  (np, tmpA, 1, drdy + estart, skip, c2, 1);
-  Veclib::vvtvp (np, tmpB, 1, dsdy + estart, skip, c2, 1, c2, 1);
+  if (c1) {
+    Veclib::vmul  (np, ddr, d, drdx + estart, skip, c1, 1);
+    Veclib::vvtvp (np, dds, d, dsdx + estart, skip, c1, 1, c1, 1);
+  }
 
-  freeVector (tmpA);
-  freeVector (tmpB);
+  if (c2) {
+    Veclib::vmul  (np, ddr, d, drdy + estart, skip, c2, 1);
+    Veclib::vvtvp (np, dds, d, dsdy + estart, skip, c2, 1, c2, 1);
+  }
+
+  freeVector (ddr);
+  freeVector (dds);
 }
 
 
@@ -1498,11 +1496,11 @@ real  Element::norm_H1 (const real* src) const
     u = rvector (ntot);
     
     Veclib::copy (ntot, src, 1, u, 1);
-    d_dx (u);
+    grad (u, 0);
     for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * gw[i];
 
     Veclib::copy (ntot, src, 1, u, 1);
-    d_dy (u);
+    grad (0, u);
     for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * gw[i];
 
     freeVector (u);
