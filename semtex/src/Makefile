@@ -213,8 +213,10 @@ FC       = f90
 CC       = cc
 CFLAGS   = $(DEFINES) -fast -tune host
 FFLAGS   = $(DEFINES) -fast -tune host
+# Default cxx mode has -ansi
 #CXXFLAGS = $(DEFINES) -fast -tune host -strict-ansi -D__USE_STD_IOSTREAM
-CXXFLAGS = $(DEFINES) -fast -tune host
+CXXFLAGS = $(DEFINES) -fast -tune host -D__USE_STD_IOSTREAM
+#CXXFLAGS = $(DEFINES) -fast -tune host
 RANLIB   =
 # -- The EV5 versions of the BLAS, LAPACK are quicker than the EV6's!
 FORTLIBS = /opt/EV5/usr/opt/XMDLIB5500/libcxml_ev5.a -lfor
