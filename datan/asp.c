@@ -283,9 +283,8 @@ static double setmask(double *mask, char *window, int block)
   } else if (strstr(window, "cost")) {
     tenpercent = block / 10;
     for (j=0; j<tenpercent; j++) {
-      mask[j]         = 0.5 * (1.0 - cos(j*M_PI/tenpercent));
-      mask[block - j] = mask[j];
-      Wss += 2.0 * SQR(mask[j]);
+      mask[j]  = 0.5 * (1.0 - cos(j*M_PI/tenpercent));
+      Wss     += 2.0 * SQR(mask[j]);
     }
     Wss = block * (Wss + block - 2 * tenpercent);
   } else if (strstr(window, "gauss")) {
@@ -334,12 +333,16 @@ static void datawindow(Complex *work,
 
 
   if (strstr(window, "cost")) {
-    tenpercent = nyquist / 10;
-    for (i=0; i<tenpercent; i++) {
-      work[i].Re               *= mask[i];
-      work[i].Im               *= mask[i + 1];
-      work[nyquist - i - 1].Re *= mask[i + 1];
-      work[nyquist - i - 1].Im *= mask[i];
+    tenpercent = 2 * nyquist / 10;
+    work[0].Re *= mask[0];
+    for (i=1; i<tenpercent; i++) {
+      if (i % 2) {
+	work[          (i-1)/2].Im *= mask[i];
+	work[nyquist - (i+1)/2].Im *= mask[i];
+      } else {
+	work[              i/2].Re *= mask[i];
+	work[nyquist     - i/2].Re *= mask[i];
+      }
     }
   } else {
     for (i=0; i<nyquist; i++) {
