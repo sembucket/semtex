@@ -278,6 +278,9 @@ void Domain::getNumber ()
       num >> Nsys[j] -> ns_btog[i] >> Nsys[j] -> ns_bmask [i];
   }
 
+  if (num.bad())
+    message (routine, "failed reading to end of node-number file", ERROR);
+
   // -- At this point, all external data have been read in.
   //    Now create element-boundary mass smoothing vectors.
   //    Need to take care for cases (in cylindrical coords) where
@@ -525,7 +528,8 @@ void Domain::transform (const integer sign)
 }
 
 
-ostream& operator << (ostream& strm, Domain& D)
+ofstream& operator << (ofstream& strm,
+		       Domain&   D   )
 // ---------------------------------------------------------------------------
 // Output all Domain field variables on ostream in prism-compatible
 // form.  Binary output only.  Note that output is only done on root
@@ -599,8 +603,8 @@ ostream& operator << (ostream& strm, Domain& D)
 }
 
 
-istream& operator >> (istream& strm,
-		      Domain&  D   )
+ifstream& operator >> (ifstream& strm,
+		       Domain&   D   )
 // ---------------------------------------------------------------------------
 // Input all Domain field variables from prism-compatible istream.
 //

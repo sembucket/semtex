@@ -202,8 +202,8 @@ void Statistics::dump ()
 }
 
 
-ostream& operator << (ostream&    strm,
-		      Statistics& src )
+ofstream& operator << (ofstream&   strm,
+		       Statistics& src )
 // ---------------------------------------------------------------------------
 // Output Statistics class to file.  Like similar Domain routine.
 // ---------------------------------------------------------------------------
@@ -277,8 +277,8 @@ ostream& operator << (ostream&    strm,
 }
 
 
-istream& operator >> (istream&    strm,
-		      Statistics& tgt )
+ifstream& operator >> (ifstream&   strm,
+		       Statistics& tgt )
 // ---------------------------------------------------------------------------
 // Input Statistics class from file.  Like similar Domain routine.
 // ---------------------------------------------------------------------------
