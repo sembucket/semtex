@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // analysis.C: implement Analyser class for NS-type solvers.
 //
-// Copyright (C) 1994, 1999 Hugh Blackburn
+// Copyright (C) 1994, 2002 Hugh Blackburn
 //
 // This deals with output of runtime information such as step numbers,
 // CFL estimation, modal energies, etc.  If set, also output history
@@ -89,7 +89,7 @@ Analyser::Analyser (Domain* D   ,
 
   ofstream runfile (strcat (strcpy (str, src -> name), ".run"), ios::out);
   gethostname (str, StrMax);
-  runfile << "host: " << str << endl << "pid: " << getpid() << endl;
+  runfile << "host: " << str << endl << "pid:  " << getpid() << endl;
   runfile.close();
 }
 
