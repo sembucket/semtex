@@ -63,7 +63,7 @@
 #include <ctype.h>
 
 #include <femdef.h>
-#include <alplib.h>
+#include <veclib.h>
 
 static void getargs      (int, char**, char**, char**, char**, char**,
 			  char**, double*, double*, int*, int*, int*);
