@@ -49,7 +49,8 @@ endif
 
 # ----------------------------------------------------------------------------
 #
-FEMFILES  = BC boundary domain element family field mesh misc pressure
+FEMFILES  = BC boundary bounded domain element family field integration	\
+	    mesh misc pressure system
 FEMOBJ    = $(addsuffix .o,$(FEMFILES))
 FEMHDR    = Fem.h
 
@@ -58,6 +59,7 @@ FEMHDR    = Fem.h
 NS_OBJ = drive.o NS.o
 
 ns:	$(FEMOBJ) $(NS_OBJ)
+	cd ../src; $(MAKE)
 	$(LD) -o $@ $(NS_OBJ) $(FEMOBJ) $(LDFLAGS)
 # ----------------------------------------------------------------------------
 #
