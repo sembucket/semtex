@@ -10,6 +10,9 @@
  * -b: force binary output in current machine IEEE format;
  * -s: force binary output in byte-swapped    IEEE format.
  *
+ * If both -s & -b are specified then whichever is last on the comand line
+ * takes precedence.
+ *
  * Each input is read into an internal buffer in machine's double binary
  * format prior to output.
  *
@@ -43,7 +46,6 @@ RCSid[] = "$Id$";
 
 typedef enum { UNKNOWN, ASCII, IEEE_BIG, IEEE_LITTLE } FORMAT;
 
-
 static char  prog[]  = "convert";
 
 static int   verbose = 0;
@@ -63,14 +65,13 @@ static void   getargs      (int, char**, FILE**, FILE**, FORMAT*);
 static void   error        (const char*);
 static void   get_data     (FILE*, const FORMAT, const FORMAT,
 			    const int, const int, double**);
-static void   put_data     (FILE*, const FORMAT,       FORMAT,
+static void   put_data     (FILE*, const FORMAT, const FORMAT,
 			    const int, const int, double**);
 static void   dswap        (const int, double*);
 static int    count_fields (const char*);
 static FORMAT architecture (void);
 static FORMAT classify     (const char*);
 static int    iformat      (void);
-
 
 
 int main (int    argc,
@@ -82,8 +83,8 @@ int main (int    argc,
   char     buf[BUFSIZ];
   double** data;
   int      nfields, npts, n, nr, ns, nz, nel;
-  FILE*    fp_in  = stdin;
-  FILE*    fp_out = stdout;
+  FILE*    fp_in    = stdin;
+  FILE*    fp_out   = stdout;
   FORMAT   inputF   = UNKNOWN,
            outputF  = UNKNOWN,
            machineF = architecture();
@@ -114,10 +115,12 @@ int main (int    argc,
     nfields = count_fields (buf);
     fputs (buf, fp_out);
 
-    /* -- Set input format. */
+    /* -- Set input and ouput formats. */
 
     fgets (buf, BUFSIZ, fp_in);
     inputF = classify (buf);
+
+    if (outputF == UNKNOWN) outputF = (inputF == ASCII) ? machineF : ASCII;
 
     /* -- Allocate storage. */
 
@@ -274,7 +277,7 @@ static void dswap (const int n,
   register int    i,j;
 
   for (i = 0; i < n; i++, cx++, c = (char*) cx)
-    for (j = 0; j < 4; j++){
+     for (j = 0; j < 4; j++){
       char d = c[j];
       c[j]   = c[7-j];
       c[7-j] = d;
@@ -361,12 +364,12 @@ static FORMAT classify (const char* s)
 }
 
 
-static void get_data (FILE*     fp     ,
+static void get_data (FILE*        fp     ,
 		      const FORMAT format ,
 		      const FORMAT machine,
-		      const int npts   ,
-		      const int nfields,
-		      double**  data   )
+		      const int    npts   ,
+		      const int    nfields,
+		      double**     data   )
 /* ------------------------------------------------------------------------- *
  * Read into data according to signalled format of input stream.
  * ------------------------------------------------------------------------- */
@@ -416,12 +419,12 @@ static void get_data (FILE*     fp     ,
 }
 
 
-static void put_data (FILE*     fp     ,
+static void put_data (FILE*        fp     ,
 		      const FORMAT inputF ,
-		            FORMAT outputF,
-		      const int npts   ,
-		      const int nfields,
-		      double**  data   )
+		      const FORMAT outputF,
+		      const int    npts   ,
+		      const int    nfields,
+		      double**     data   )
 /* ------------------------------------------------------------------------- *
  * Write from data to fp, according to input and desired output formats.
  * ------------------------------------------------------------------------- */
@@ -429,8 +432,6 @@ static void put_data (FILE*     fp     ,
   char         err[FILENAME_MAX];
   register int i, j;
   const int    swap = outputF != architecture ();
-
-  if (outputF == UNKNOWN) outputF = (inputF == ASCII) ? architecture() : ASCII;
 
   switch (outputF) {
 
