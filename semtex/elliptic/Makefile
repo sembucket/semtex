@@ -125,10 +125,10 @@ CXXFLAGS = $(CFLAGS) $(OPTIM) +a1
 LDFLAGS  = $(CFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 ifdef MPI
   LIBS   = -lfem_mp -llapack_64 -lalp_mp -lblas_64 -lfft_64	\
-           -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm -lmpi -lpthread
+           -lu90sxe -lp90sx -lv90sxe -lf90sxe -li90sx -lm -lmpi -lpthread
 else
   LIBS   = -lfem -llapack_64 -lalp -lblas_64 -lfft_64	\
-           -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm
+           -lu90sxe -lp90sx -lv90sxe -lf90sxe -li90sx -lm
 endif
 endif
 
