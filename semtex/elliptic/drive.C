@@ -49,32 +49,41 @@ int main (int    argc,
   ios::sync_with_stdio();
 #endif
   
-  char* session;
-  char* forcing = 0;
-  char* exact   = 0;
-  char  fields[StrMax];
+  char               *session, *forcing = 0, *exact = 0, fields[StrMax];
+  int                np, nz, nel;
+  Geometry::CoordSys system;
+  FEML*              F;
+  Mesh*              M;
+  BCmgr*             B;
 
   Femlib::prep();
 
   getargs (argc, argv, session);
   strcpy  (fields, "u");
 
-  FEML  F (session);
+  F = new FEML  (session);
+  M = new Mesh  (*F);
+  B = new BCmgr (*F);
 
-  setup (F, forcing, exact);
+  nel    = M -> nEl();  
+  np     = (int) Femlib::value ("N_POLY");
+  nz     = (int) Femlib::value ("N_Z");
+  system = (Femlib::value ("AXIS"))?Geometry::Cylindrical:Geometry::Cartesian;
+  
+  Geometry::set (np, nz, nel, system);
 
-  Mesh   M (F);
-  BCmgr  B (F);
-  Domain* D = new Domain (F, M, B, fields, session);
+  Domain* D = new Domain (*F, *M, *B, fields, session);
 
   D -> initialize();
 
+  setup (*F, forcing, exact);
+
   Helmholtz (D, forcing);
 
-  if (exact) D -> u[0] -> errors (M, exact);
+  if (exact) D -> u[0] -> errors (*M, exact);
 
   char     outname[StrMax];
-  ofstream output (strcat (strcpy (outname, F.root()), ".fld"));
+  ofstream output (strcat (strcpy (outname, F -> root()), ".fld"));
   D -> dump  (output);
 
   return EXIT_SUCCESS;
@@ -91,7 +100,6 @@ static void getargs (int    argc   ,
 {
   char routine[] = "getargs";
   char buf[StrMax], c;
-  int  level;
   char usage[] =
     "Usage: %s [options] session-file\n"
     "  [options]:\n"
@@ -160,18 +168,6 @@ static void setup (FEML&  feml ,
 	exact = new char [StrMax];
 	feml.stream() >> exact;
 	
-      } else if (strcmp (s, "GEOMETRY") == 0) {
-	feml.stream() >> g;
-	upperCase (g);
-	if (strcmp (g, "2D-CARTESIAN")) {
-	  sprintf (err, "bad geometry in USER section: %s", g);
-	  message (routine, err, ERROR);
-	} else
-	  Femlib::value ("GEOMETRY", CART2D);
-
-      } else {
-	sprintf (err, "undefined in USER section: %s", s);
-	message (routine, err, ERROR);
       }
     }
 
