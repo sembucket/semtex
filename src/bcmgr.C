@@ -189,8 +189,8 @@ BCmgr::BCmgr (FEML*             file,
   char        groupc, fieldc, testc, tagc;
   char*       trailer;
   const char* grpdesc;
-  integer     verbose = Femlib::ivalue ("VERBOSE");
-  integer     i, j, N, id, nbcs;
+  int_t       verbose = Femlib::ivalue ("VERBOSE");
+  int_t       i, j, N, id, nbcs;
   Condition*  C;
   CondRecd*   R;
 
@@ -391,9 +391,9 @@ const char* BCmgr::groupInfo (const char name)
 // ---------------------------------------------------------------------------
 {
   const char    routine[] = "BCmgr::groupInfo";
-  const integer N = _group.size();
+  const int_t N = _group.size();
   char          err[StrMax];
-  register      integer i;
+  register      int_t i;
 
   for (i = 0; i < N; i++) if (name == _group[i]) return _descript[i];
 
@@ -403,9 +403,9 @@ const char* BCmgr::groupInfo (const char name)
 }
 
 
-Condition* BCmgr::getCondition (const char    group,
-				const char    field,
-				const integer mode )
+Condition* BCmgr::getCondition (const char  group,
+				const char  field,
+				const int_t mode )
 // ---------------------------------------------------------------------------
 // Search internal list of Conditions for appropriate one, such that
 // the stored internal variables match input group & field names.
@@ -461,20 +461,20 @@ Condition* BCmgr::getCondition (const char    group,
 }
 
 
-NumberSys* BCmgr::getNumberSys (const char    name,
-				const integer mode)
+NumberSys* BCmgr::getNumberSys (const char  name,
+				const int_t mode)
 // ---------------------------------------------------------------------------
 // Return the NumberSys corresponding to the input field name and
 // Fourier mode.  Mode numbers begin at zero, and are not expressed
 // modulo number of modes per process.
 // ---------------------------------------------------------------------------
 {
-  const char    routine[] = "BCmgr::getNumberSys";
-  const integer nsys  = _numsys.size();
-  const integer cmode = clamp (mode, static_cast<integer>(0),
-			             static_cast<integer>(2));
-  char          err[StrMax], selectname = name;
-  NumberSys*    N = 0;
+  const char  routine[] = "BCmgr::getNumberSys";
+  const int_t nsys  = _numsys.size();
+  const int_t cmode = clamp (mode, static_cast<int_t>(0),
+			             static_cast<int_t>(2));
+  char        err[StrMax], selectname = name;
+  NumberSys*  N = 0;
 
   // -- Switch the name for selected cylindrical coordinate modes.
 
@@ -486,7 +486,7 @@ NumberSys* BCmgr::getNumberSys (const char    name,
 
   // -- Now search.
   
-  for (integer i = 0; i < nsys; i++)
+  for (int_t i = 0; i < nsys; i++)
     if (strchr (_numsys[i] -> fields(), selectname)) { N = _numsys[i]; break; }
 
   if (!N) {
@@ -519,19 +519,19 @@ void BCmgr::buildnum (const char*       session,
 // corresponding inverse mass matrices.
 // ---------------------------------------------------------------------------
 {
-  const char       routine[] = "BCmgr::buildnum";
-  const integer    np   = Geometry::nP();
-  const integer    NP   = Geometry::nPlane();
-  const integer    nel  = Geometry::nElmt();
-  const integer    npnp = Geometry::nTotElmt();
-  const integer    next = Geometry::nExtElmt();
-  const integer    ntot = Geometry::nBnode();
-  char             buf[StrMax], err[StrMax], file[StrMax];
-  ifstream         num;
-  vector<real>     work (npnp);
-  real             *mass, *unity = &work[0];
-  register integer i, j, nset, nglobal;
-  register integer *gid, *q;
+  const char     routine[] = "BCmgr::buildnum";
+  const int_t    np   = Geometry::nP();
+  const int_t    NP   = Geometry::nPlane();
+  const int_t    nel  = Geometry::nElmt();
+  const int_t    npnp = Geometry::nTotElmt();
+  const int_t    next = Geometry::nExtElmt();
+  const int_t    ntot = Geometry::nBnode();
+  char           buf[StrMax], err[StrMax], file[StrMax];
+  ifstream       num;
+  vector<real_t> work (npnp);
+  real_t         *mass, *unity = &work[0];
+  register int_t i, j, nset, nglobal;
+  register int_t *gid, *q;
 
   // -- Read in NumberSystems.
 
@@ -658,8 +658,8 @@ void BCmgr::buildnum (const char*       session,
       sprintf (err,"mismatch in number of boundary nodes: %1d vs. %1d",j,ntot);
       message (routine, err, ERROR);
     }
-    _numsys[i] -> _btog  = new integer [ntot];
-    _numsys[i] -> _bmask = new integer [ntot];
+    _numsys[i] -> _btog  = new int_t [ntot];
+    _numsys[i] -> _bmask = new int_t [ntot];
   }
 
   num >> buf >> buf;
@@ -713,7 +713,7 @@ void BCmgr::buildnum (const char*       session,
 
   for (j = 0; j < nset; j++) {
     NumberSys* N = _numsys[j];
-    N -> _emask = new integer [nel];
+    N -> _emask = new int_t [nel];
     for (q = N -> _bmask, i = 0; i < nel; i++, q += next)
       N -> _emask[i] = Veclib::any (next, q, 1);
   }
@@ -725,7 +725,7 @@ void BCmgr::buildnum (const char*       session,
     // -- Create diagonal global mass matrix.
 
     nglobal = _numsys[j] -> _nglobal;
-    mass    = _numsys[j] -> _imass = new real [nglobal];
+    mass    = _numsys[j] -> _imass = new real_t [nglobal];
     Veclib::zero (nglobal, mass, 1);
     for (gid = _numsys[j] -> _btog, i = 0; i < nel; i++, gid += next) {
       Veclib::fill (npnp, 1.0, unity, 1);
@@ -752,11 +752,11 @@ void BCmgr::buildsurf (FEML*             file,
 // all "axis" group BCs has y=0.
 // ---------------------------------------------------------------------------
 {
-  const char    routine[] = "BCmgr::buildsurf";
-  const integer nsurf = file -> attribute ("SURFACES", "NUMBER");
-  char          err[StrMax], tag[StrMax], group;
-  integer       i, t, elmt, side;
-  BCtriple*     BCT;
+  const char  routine[] = "BCmgr::buildsurf";
+  const int_t nsurf = file -> attribute ("SURFACES", "NUMBER");
+  char        err[StrMax], tag[StrMax], group;
+  int_t       i, t, elmt, side;
+  BCtriple*   BCT;
  
   for (i = 0; i < nsurf; i++) {
     while ((file->stream().peek()) == '#') file->stream().ignore(StrMax, '\n');
@@ -785,8 +785,8 @@ void BCmgr::buildsurf (FEML*             file,
   }
 
   if (Geometry::cylindrical()) {
-    const integer np = Geometry::nP();
-    vector<real>  work (np);
+    const int_t    np = Geometry::nP();
+    vector<real_t> work (np);
     vector<BCtriple*>::iterator b;
 
     for (b = _elmtbc.begin(); b != _elmtbc.end(); b++) {

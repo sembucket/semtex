@@ -2,7 +2,7 @@
 #define BCMGR_H
 
 
-typedef struct bctriple { char group; integer elmt; integer side; } BCtriple;
+typedef struct bctriple { char group; int_t elmt; int_t side; } BCtriple;
 
 
 class BCmgr
@@ -17,10 +17,10 @@ public:
 
   const char*        field        () const { return _fields; }
   const char*        groupInfo    (const char);
-  Condition*         getCondition (const char, const char, const integer = 0);
-  NumberSys*         getNumberSys (const char, const integer = 0);
+  Condition*         getCondition (const char, const char, const int_t = 0);
+  NumberSys*         getNumberSys (const char, const int_t = 0);
   vector<BCtriple*>& getBCedges   () { return _elmtbc; }
-  integer            nBCedges     () const { return _elmtbc.size(); }
+  int_t              nBCedges     () const { return _elmtbc.size(); }
 
   class CondRecd {
   public: 

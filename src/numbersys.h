@@ -48,28 +48,28 @@ friend class BCmgr;
 public:
  ~NumberSys () { }; 
 
-  integer        nGlobal () const { return _nglobal; }
-  integer        nSolve  () const { return _nsolve;  }
-  integer        nBand   () const { return _nbandw;  }
+  int_t         nGlobal () const { return _nglobal; }
+  int_t         nSolve  () const { return _nsolve;  }
+  int_t         nBand   () const { return _nbandw;  }
 
-  const char*    fields  () const { return _fields;            }
-  const integer* bmask   () const { return _bmask;             }
-  const integer* emask   () const { return _emask;             }
-  integer        fmask   () const { return _nglobal - _nsolve; }
-  const integer* btog    () const { return _btog;              }
-  const real*    imass   () const { return _imass;             }
+  const char*   fields  () const { return _fields;            }
+  const int_t*  bmask   () const { return _bmask;             }
+  const int_t*  emask   () const { return _emask;             }
+  int_t         fmask   () const { return _nglobal - _nsolve; }
+  const int_t*  btog    () const { return _btog;              }
+  const real_t* imass   () const { return _imass;             }
 
 private:
-  integer  _optlev ;		// Optimization level used for btog.
-  integer  _nglobal;		// Length of inv_mass.
-  integer  _nsolve ;		// Number of non-masked global nodes.
-  integer  _nbandw ;		// Bandwidth of btog (includes diagonal).
+  int_t   _optlev ;		// Optimization level used for btog.
+  int_t   _nglobal;		// Length of inv_mass.
+  int_t   _nsolve ;		// Number of non-masked global nodes.
+  int_t   _nbandw ;		// Bandwidth of btog (includes diagonal).
 
-  char*    _fields;		// String with character labels for Fields.
-  integer* _bmask ;		// 1 for essential-BC nodes, 0 otherwise.
-  integer* _emask ;		// 1 if associated Element has any esstl set.
-  integer* _btog  ;		// Gives numbers to all element-boundary knots.
-  real*    _imass ;		// Inverse of global mass matrix;
+  char*   _fields;		// String with character labels for Fields.
+  int_t*  _bmask ;		// 1 for essential-BC nodes, 0 otherwise.
+  int_t*  _emask ;		// 1 if associated Element has any esstl set.
+  int_t*  _btog  ;		// Gives numbers to all element-boundary knots.
+  real_t* _imass ;		// Inverse of global mass matrix;
 };
 
 #endif
