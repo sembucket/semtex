@@ -28,11 +28,11 @@ endif
 
 # ----------------------------------------------------------------------------
 #
-SEMFILES  = analysis auxfield BCmgr boundary bsys condition domain \
-	    element feml field geometry history integration  	   \
+SEMFILES  = analysis auxfield bcmgr boundary bsys condition domain	\
+	    edge element family feml field geometry history integration	\
 	    matrix mesh misc particle pressure statistics
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
-SEMHDR    = Sem.h
+SEMHDR    = sem.h
 
 # ----------------------------------------------------------------------------
 # Default build for Navier-Stokes solver.

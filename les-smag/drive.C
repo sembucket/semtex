@@ -1,7 +1,8 @@
 //////////////////////////////////////////////////////////////////////////////
-// drive.C: control spectral element LES for incompressible flows.
+// drive.C: control spectral element mixing-length LES
+// for incompressible flows.
 //
-// Copyright (C) 1999 Hugh Blackburn
+// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 //
 // USAGE:
 // -----
@@ -15,14 +16,14 @@
 // AUTHOR:
 // ------
 // Hugh Blackburn
-// CSIRO Division of Building, Construction and Engineering
+// CSIRO Manufacturing and Infrastructure Technology
 // P.O. Box 56
 // Highett, Vic 3190
 // Australia
-// hugh.blackburn@dbce.csiro.au
-//
-// $Id$
+// hugh.blackburn@csiro.au
 //////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include "les.h"
 
@@ -96,17 +97,17 @@ static void getargs (int    argc   ,
       break;
     case 'i':
       do
-	Femlib::value ("ITERATIVE", (integer) Femlib::value ("ITERATIVE") + 1);
+	Femlib::ivalue ("ITERATIVE", Femlib::ivalue ("ITERATIVE") + 1);
       while (*++argv[0] == 'i');
       break;
     case 'v':
       do
-	Femlib::value ("VERBOSE",   (integer) Femlib::value ("VERBOSE")   + 1);
+	Femlib::ivalue ("VERBOSE",   Femlib::ivalue ("VERBOSE")   + 1);
       while (*++argv[0] == 'v');
       break;
     case 'c':
       if (strstr ("chk", *argv)) {
-	Femlib::value ("CHKPOINT",  (integer) 1);
+	Femlib::ivalue ("CHKPOINT",  static_cast<int_t>(1));
       } else {
 	fprintf (stdout, usage, prog);
 	exit (EXIT_FAILURE);	  
@@ -136,10 +137,9 @@ static void preprocess (const char*       session,
 // They are listed in order of creation.
 // ---------------------------------------------------------------------------
 {
-  const integer      verbose = (integer) Femlib::value ("VERBOSE");
+  const int_t        verbose = Femlib::ivalue ("VERBOSE");
   Geometry::CoordSys space;
-  const real*        z;
-  integer            i, np, nz, nel;
+  int_t              i, np, nz, nel;
 
   // -- Initialise problem and set up mesh geometry.
 
@@ -155,10 +155,10 @@ static void preprocess (const char*       session,
   VERBOSE cout << "Setting geometry ... ";
 
   nel   = mesh -> nEl();
-  np    =  (integer) Femlib::value ("N_POLY");
-  nz    =  (integer) Femlib::value ("N_Z");
-  space = ((integer) Femlib::value ("CYLINDRICAL")) ? 
-    Geometry::Cylindrical : Geometry::Cartesian;
+  np    = Femlib::ivalue ("N_POLY");
+  nz    = Femlib::ivalue ("N_Z");
+  space = (Femlib::ivalue ("CYLINDRICAL")) ? 
+                     Geometry::Cylindrical : Geometry::Cartesian;
   
   Geometry::set (np, nz, nel, space);
 
@@ -168,10 +168,8 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "Building elements ... ";
 
-  Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
-
-  elmt.setSize (nel);
-  for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
+  elmt.resize (nel);
+  for (i = 0; i < nel; i++) elmt[i] = new Element (i, np, mesh);
 
   VERBOSE cout << "done" << endl;
 

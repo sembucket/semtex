@@ -2,15 +2,15 @@
 // This version of analysis.C is specialized so that it computes and
 // prints out forces exerted on "wall" boundary group.
 //
-// Copyright (C) 1999 Hugh Blackburn
-//
-// $Id$
+// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
  
 #include "les.h"
 
 
-LESAnalyser::LESAnalyser (Domain* D    ,
+LESAnalyser::LESAnalyser (Domain* D   ,
 			  FEML*   feml) :
 // ---------------------------------------------------------------------------
 // Extensions to Analyser class.
@@ -38,15 +38,15 @@ void LESAnalyser::analyse (AuxField** work)
 // Step-by-step processing.
 // ---------------------------------------------------------------------------
 {
-  const integer DIM = Geometry::nDim();
+  const int_t DIM = Geometry::nDim();
 
   Analyser::analyse (work);
 
   ROOTONLY {
-    const integer periodic = !(src->step % (integer)Femlib::value("IO_HIS")) ||
-                             !(src->step % (integer)Femlib::value("IO_FLD"));
-    const integer final    =   src->step ==(integer)Femlib::value("N_STEP");
-    const integer state    = periodic || final;
+    const bool periodic = !(src->step  % Femlib::ivalue ("IO_HIS")) ||
+                          !(src->step  % Femlib::ivalue ("IO_FLD"));
+    const bool final    =   src->step == Femlib::ivalue ("N_STEP");
+    const bool state    = periodic || final;
 
     if (!state) return;
 

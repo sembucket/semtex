@@ -1,19 +1,19 @@
 ///////////////////////////////////////////////////////////////////////////////
 // eddyvis.C: calculate eddy viscosity for LES.
 //
-// Copyright (c) Hugh Blackburn 1998--1999.
-//
-// $Id$
+// Copyright (c) 1998 <--> $Date$, Hugh Blackburn
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include "les.h"
 
-static integer DIM, CYL, ITR_MAX;
-static real    EPS2;
+static int_t  DIM, ITR_MAX;
+static real_t EPS2;
 
-static void strainRate  (const Domain*, AuxField**,AuxField**);
-static void viscoModel  (const Domain*, AuxField**, AuxField**, AuxField*);
-static real RNG_quartic (const real, const real, const real);
+static void   strainRate  (const Domain*, AuxField**,AuxField**);
+static void   viscoModel  (const Domain*, AuxField**, AuxField**, AuxField*);
+static real_t RNG_quartic (const real_t, const real_t, const real_t);
 
 
 void eddyViscosity (const Domain* D ,
@@ -35,11 +35,10 @@ void eddyViscosity (const Domain* D ,
 // ---------------------------------------------------------------------------
 {
   DIM     = Geometry::nDim();
-  CYL     = Geometry::system() == Geometry::Cylindrical;
-  ITR_MAX = (integer) Femlib::value ("STEP_MAX");
+  ITR_MAX = Femlib::ivalue ("STEP_MAX");
   EPS2    = sqr (EPSSP);
 
-  if ((int) Femlib::value ("RNG"))
+  if (Femlib::ivalue ("RNG"))
     ROOTONLY EV -> addToPlane (0, Femlib::value ("KINVIS"));
 
   strainRate  (D, Us, Uf);
@@ -76,9 +75,9 @@ static void strainRate (const Domain* D ,
 //   ~     \    .             .             1/y*dw/dz         + v/y  /
 // ---------------------------------------------------------------------------
 {
-  register integer i, j;
+  int_t i, j;
 
-  if (CYL) {			// -- Cylindrical geometry.
+  if (Geometry::cylindrical()) {
 
     AuxField* tp1 = Us[0];
     AuxField* tp2 = Us[1];
@@ -88,11 +87,11 @@ static void strainRate (const Domain* D ,
 	if (j == i) continue;
 	if (i == 2 && j == 1) {
 	  (*tp1 = *D -> u[2]) . gradient (1);
-	  (*tp2 = *D -> u[2]) . divR();
+	  (*tp2 = *D -> u[2]) . divY();
 	  *tp1 -= *tp2;
 	} else {
 	  (*tp1 = *D -> u[i]) . gradient (j);
-	  if (j == 2) tp1 -> divR();
+	  if (j == 2) tp1 -> divY();
 	}
 	if   (j > i) *Uf[i + j - 1]  = *tp1;
 	else         *Uf[i + j - 1] += *tp1;
@@ -104,7 +103,7 @@ static void strainRate (const Domain* D ,
 
     for (i = 0; i < DIM; i++) {
       (*Us[i] = *D -> u[i]) . gradient (i);
-      if (i == 2) (*Us[2] += *D -> u[1]) . divR();
+      if (i == 2) (*Us[2] += *D -> u[1]) . divY();
     }
 
   } else {			// -- Cartesian geometry.
@@ -142,7 +141,7 @@ static void viscoModel (const Domain* D ,
 //
 //                 \nu_S = (Cs \Delta)^2 |S|, where
 //
-// |S| = sqrt {2[(S11)^2 + (S22)^2 + (S33)^2 + 2(S12)^2 + 2(S13)^2 + 2(S23)^2]}
+// |S| = sqrt {2[(S11)^2 + (S22)^2 + (S33)^2 + 2[(S12)^2 + (S13)^2 + (S23)^2]]}
 //
 // NB (1): the outer factor of 2, sometimes omitted in derivations.
 // NB (2): the products in |S| are only dealiased for serial operation.
@@ -150,24 +149,24 @@ static void viscoModel (const Domain* D ,
 // For RNG, the "decreed" value of C_SMAG = 0.1114, RNG_C = 75, RNG_BIG = 500.
 // ---------------------------------------------------------------------------
 {
-  register integer i, k;
-  const integer    nP     = Geometry::nPlane();
-  const integer    NP     = Geometry::planeSize();
-  const integer    nPR    = Geometry::nProc();
-  const integer    nZ     = Geometry::nZProc();
+  const int_t    nP     = Geometry::nPlane();
+  const int_t    NP     = Geometry::planeSize();
+  const int_t    nPR    = Geometry::nProc();
+  const int_t    nZ     = Geometry::nZProc();
 #if defined (ALIAS)
-  const integer    nZ32   = nZ; assert (Geometry::nProc() == 1);
+  const int_t    nZ32   = nZ; assert (Geometry::nProc() == 1);
 #else
-  const integer    nZ32   = (nPR > 1) ? nZ : (3 * nZ) >> 1;
+  const int_t    nZ32   = (nPR > 1) ? nZ : (3 * nZ) >> 1;
 #endif
-  const integer    nTot32 = nZ32 * NP;
-  const real       Cs     = Femlib::value ("C_SMAG");
-  const real       molvis = Femlib::value ("REFVIS");
+  const int_t    nTot32 = nZ32 * NP;
+  const real_t   Cs     = Femlib::value ("C_SMAG");
+  const real_t   molvis = Femlib::value ("REFVIS");
 
-  vector<real>     work (2 * nTot32 + nP);
-  real*            tmp    = work();
-  real*            sum    = tmp + nTot32;
-  real*            delta  = sum + nTot32;
+  vector<real_t> work (2 * nTot32 + nP);
+  real_t*        tmp    = &work[0];
+  real_t*        sum    = tmp + nTot32;
+  real_t*        delta  = sum + nTot32;
+  int_t          i, k;
 
   EV -> lengthScale (delta);
 
@@ -189,15 +188,15 @@ static void viscoModel (const Domain* D ,
 
   // -- At this point we have |S| in physical space.
 
-  if ((int) Femlib::value ("RNG")) {
+  if (Femlib::ivalue ("RNG")) {	// -- RNG eddy viscosity.
 
-    register real *S, *E, D2;
-    register real cutoff;
-    const real    C       = Femlib::value ("RNG_C");
-    const real    BIG     = Femlib::value ("RNG_BIG");
-    const real    molvis3 = molvis * molvis * molvis;
-    const real    Cs2     = Cs  * Cs;
-    const real    Cs4     = Cs2 * Cs2;
+    const real_t C       = Femlib::value ("RNG_C");
+    const real_t BIG     = Femlib::value ("RNG_BIG");
+    const real_t molvis3 = molvis * molvis * molvis;
+    const real_t Cs2     = Cs  * Cs;
+    const real_t Cs4     = Cs2 * Cs2;
+    real_t       *S, *E, D2;
+    real_t       cutoff;
   
     EV -> transform32 (INVERSE, tmp);
 
@@ -206,7 +205,7 @@ static void viscoModel (const Domain* D ,
       E = tmp + k * NP;
       
       for (i = 0; i < nP; i++) {
-	D2 = delta[i] * delta[i];
+	D2      = delta[i] * delta[i];
 	cutoff  = Cs4  * D2 * D2 / molvis3;
 	cutoff *= S[i] * S[i] * E[i];
 
@@ -235,18 +234,18 @@ static void viscoModel (const Domain* D ,
 }
 
 
-static real RNG_quartic (const real x0,
-			 const real a1,
-			 const real a0)
+static real_t RNG_quartic (const real_t x0,
+			   const real_t a1,
+			   const real_t a0)
 // ---------------------------------------------------------------------------
 // Solve quartic equation x^4 + a1 x + a0 = 0 by Newton-Raphson.
 // Input value x0 is an initial guess for the ratio of the turbulent and
 // molecular viscosities.  Minimum returned value for x is 1.0.
 // ---------------------------------------------------------------------------
 {
-  const char routine[] = "RNG_quartic";
-  register real x = x0, dx, f, df, x3;
-  register int  i = 0;
+  const    char routine[] = "RNG_quartic";
+  register real_t x = x0, dx, f, df, x3;
+  register int    i = 0;
 
   for (i = 0; i < ITR_MAX; i++) {
     x3  = x * x * x;
@@ -259,7 +258,7 @@ static real RNG_quartic (const real x0,
 
   if (i == ITR_MAX) message (routine, "failed to converge", ERROR);
 #if defined (DEBUG)
-  if (x < 1.0) message (routine, "invalid solution",   WARNING);
+  if (x < 1.0)      message (routine, "invalid solution",   WARNING);
 #endif
 
   return max (1.0, x);
