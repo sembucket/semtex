@@ -42,6 +42,14 @@
  * hard work, an additional N*N*N of workspace could probably be saved.
  * For large simulations, out-of-core storage will be needed.
  *
+ * Workload:
+ * ---------
+ * The bulk of CPU time is spent in 3D real--complex FFTs.  For the fully-
+ * dealiased computations, there are 21 FFTs per timestep.  For a solution
+ * with aliasing, this could be reduced to 12 (storage requirements would
+ * also be reduced to 10*N*N*N words --- 9 for velocity fields and nonlinear
+ * terms, 1 for workspace).
+ *
  * Files:
  * ------
  * Two files are needed; an ASCII session file, which gives run
@@ -106,7 +114,7 @@ int main (int argc, char **argv)
   int*      Dim  = ivector (1, 3);
   complex*  Wtab;
   complex*  Stab;
-  Param*    Info = calloc (1, sizeof (Param));
+  Param*    runInfo = calloc (1, sizeof (Param));
   char*     session;
   FILE*     fp;
   int       chkpoint = FALSE;
@@ -116,37 +124,37 @@ int main (int argc, char **argv)
   getargs (argc, argv, &session, &chkpoint);
 
   fp = efopen (session, "r");
-  startup     (fp, Info, session, chkpoint);
+  startup     (fp, runInfo, session, chkpoint);
   fclose      (fp);
-  printParam  (stdout, Info, "$RCSfile$", "$Revision$");
+  printParam  (stdout, runInfo, "$RCSfile$", "$Revision$");
 
-  Dim[1] = (Dim[2] = Info -> modes);
+  Dim[1] = (Dim[2] = runInfo -> modes);
   Dim[3] =  Dim[1] / 2;
 
   allocate   (&U, &G, &G_old, &work, &F, &F_, &Wtab, &Stab, Dim);
-  initialize (U, Info, Dim);
+  initialize (U, runInfo, Dim);
 
   preFFT   (Wtab, Dim[3]);
   preShift (Stab, Dim[1]);
 
-  analyze  (U, Info, Wtab, Dim);
+  analyze  (U, runInfo, Wtab, Dim);
 
   /* -- Main time-stepping loop. */
 
-  while (Info -> step < Info -> stepMax) {
+  while (runInfo -> step < runInfo -> stepMax) {
 
     nonlinear (U, G, F, F_, work, Wtab, Stab, Dim);
-    integrate (U, G, G_old, Info, Dim);
+    integrate (U, G, G_old, runInfo, Dim);
     SWAP      (G, G_old);
 
-    Info -> step ++;
-    Info -> time += Info -> dt;
+    runInfo -> step ++;
+    runInfo -> time += runInfo -> dt;
 
-    analyze (U, Info, Wtab,     Dim);
-    dump    (U, Info, chkpoint, Dim);
+    analyze (U, runInfo, Wtab,     Dim);
+    dump    (U, runInfo, chkpoint, Dim);
   }
 
-  cleanup (Info, chkpoint);
+  cleanup (runInfo, chkpoint);
 
   return EXIT_SUCCESS;
 }
