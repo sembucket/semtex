@@ -218,7 +218,7 @@ void Field::evaluateBoundaries (const integer step)
   register integer i, k, mode;
 
   for (k = 0; k < nz; k++) {
-    mode = bmode + k >> 1;
+    mode = bmode + (k >> 1);
     const vector<Boundary*>& BC = bsys -> BCs (mode);
     for (p = line[k], i = 0; i < nbound; i++, p += np)
       BC[i] -> evaluate (k, step, p);
