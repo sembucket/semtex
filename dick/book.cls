@@ -333,17 +333,20 @@
      \interlinepenalty \@M
      \normalfont
      \ifnum \c@secnumdepth >-2\relax
-       \huge\bfseries \partname\nobreakspace\thepart
+%       \huge\bfseries \partname\nobreakspace\thepart
+       \huge \partname\nobreakspace\thepart
        \par
        \vskip 20\p@
      \fi
-     \Huge \bfseries #2\par}%
+%     \Huge \bfseries #2\par}%
+     \Huge #2\par}%
     \@endpart}
 \def\@spart#1{%
     {\centering
      \interlinepenalty \@M
      \normalfont
-     \Huge \bfseries #1\par}%
+%     \Huge \bfseries #1\par}%
+     \Huge #1\par}%
     \@endpart}
 \def\@endpart{\vfil\newpage
               \if@twoside
@@ -387,7 +390,8 @@
   {\parindent \z@ \raggedright \normalfont
     \ifnum \c@secnumdepth >\m@ne
       \if@mainmatter
-        \LARGE \sffamily \bfseries%
+%        \LARGE \sffamily \bfseries%
+        \LARGE \sffamily%
 	\@chapapp\space
 	\thechapter
         \par\nobreak
@@ -395,7 +399,8 @@
       \fi
     \fi
     \interlinepenalty\@M
-    \huge \sffamily \bfseries #1\par\nobreak
+%    \huge \sffamily \bfseries #1\par\nobreak
+    \huge \sffamily #1\par\nobreak
     \vskip 20\p@
   }}
 \def\@schapter#1{\if@twocolumn
@@ -409,17 +414,20 @@
   {\parindent \z@ \raggedright
     \normalfont
     \interlinepenalty\@M
-    \Huge \sffamily \bfseries  #1\par\nobreak
+%    \Huge \sffamily \bfseries  #1\par\nobreak
+    \Huge \sffamily  #1\par\nobreak
     \vskip 20\p@
   }}
 \newcommand\section{\@startsection {section}{1}{\z@}%
                                    {-3.5ex \@plus -1ex \@minus -.2ex}%
                                    {1.3ex \@plus.2ex}%
-                                   {\normalfont\sffamily\LARGE\bfseries}}
+%                                   {\normalfont\sffamily\LARGE\bfseries}}
+                                   {\normalfont\sffamily\LARGE}}
 \newcommand\subsection{\@startsection{subsection}{2}{\z@}%
                                      {-3.25ex\@plus -1ex \@minus -.2ex}%
                                      {1.0ex \@plus .2ex}%
-                                     {\normalfont\sffamily\large\slshape\bfseries}}
+%                                     {\normalfont\sffamily\large\slshape\bfseries}}
+                                     {\normalfont\sffamily\large\slshape}}
 \newcommand\subsubsection{\@startsection{subsubsection}{3}{\z@}%
                                      {-3.25ex\@plus -1ex \@minus -.2ex}%
                                      {1.5ex \@plus .2ex}%
@@ -427,11 +435,13 @@
 \newcommand\paragraph{\@startsection{paragraph}{4}{\z@}%
                                     {3.25ex \@plus1ex \@minus.2ex}%
                                     {-1em}%
-                                    {\normalfont\normalsize\bfseries}}
+%                                    {\normalfont\normalsize\bfseries}}
+                                    {\normalfont\normalsize}}
 \newcommand\subparagraph{\@startsection{subparagraph}{5}{\parindent}%
                                        {3.25ex \@plus1ex \@minus .2ex}%
                                        {-1em}%
-                                      {\normalfont\normalsize\bfseries}}
+%                                      {\normalfont\normalsize\bfseries}}
+                                      {\normalfont\normalsize}}
 \if@twocolumn
   \setlength\leftmargini  {2em}
 \else
@@ -620,7 +630,8 @@
       \parindent \z@ \rightskip \@pnumwidth
       \parfillskip -\@pnumwidth
       {\leavevmode
-       \large \bfseries #1\hfil \hb@xt@\@pnumwidth{\hss #2}}\par
+%       \large \bfseries #1\hfil \hb@xt@\@pnumwidth{\hss #2}}\par
+       \large #1\hfil \hb@xt@\@pnumwidth{\hss #2}}\par
        \nobreak
          \global\@nobreaktrue
          \everypar{\global\@nobreakfalse\everypar{}}%
@@ -634,7 +645,8 @@
     \begingroup
       \parindent \z@ \rightskip \@pnumwidth
       \parfillskip -\@pnumwidth
-      \leavevmode \bfseries
+%      \leavevmode \bfseries
+      \leavevmode
       \advance\leftskip\@tempdima
       \hskip -\leftskip
       #1\nobreak\hfil \nobreak\hb@xt@\@pnumwidth{\hss #2}\par
