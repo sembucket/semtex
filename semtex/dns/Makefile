@@ -1,5 +1,6 @@
 ##############################################################################
-# Makefile for finite element solver.
+# Makefile for ns, spectral element solver for unsteady Navier--Stokes
+# problems.
 #
 # $Id$
 ##############################################################################
@@ -56,14 +57,17 @@ FEMHDR    = Fem.h
 
 # ----------------------------------------------------------------------------
 # Default build for Navier-Stokes solver.
-NS_OBJ = drive.o NS.o
+NS_OBJ = drive.o NS.o analysis.o
+NS_HDR = NS.h
 
-ns:	$(FEMOBJ) $(NS_OBJ)
+ns:	$(FEMOBJ) $(NS_OBJ) 
 	cd ../src; $(MAKE)
 	$(LD) -o $@ $(NS_OBJ) $(FEMOBJ) $(LDFLAGS)
+
 # ----------------------------------------------------------------------------
 #
 $(FEMOBJ): $(FEMHDR)
+$(NS_OBJ): $(NS_HDR)
 
 # -----------------------------------------------------------------------------
 #
