@@ -9,14 +9,16 @@ RCSid[] = "$Id$";
 
 #include <Sem.h>
 
-Domain* FluidParticle::D     = 0;
-int     FluidParticle::NDIM  = 0;
-int     FluidParticle::NEL   = 0;
-int     FluidParticle::NZ    = 0;
-int     FluidParticle::TORD  = 0;
-real*   FluidParticle::coeff = 0;
-real    FluidParticle::DT    = 0.0;
-real    FluidParticle::Lz    = 0.0;
+Domain* FluidParticle::D       = 0;
+int     FluidParticle::NDIM    = 0;
+int     FluidParticle::NEL     = 0;
+int     FluidParticle::NZ      = 0;
+int     FluidParticle::TORD    = 0;
+int     FluidParticle::ID_MAX  = 0;
+real*   FluidParticle::P_coeff = 0;
+real*   FluidParticle::C_coeff = 0;
+real    FluidParticle::DT      = 0.0;
+real    FluidParticle::Lz      = 0.0;
 
 
 FluidParticle::FluidParticle (Domain*   d,
@@ -31,14 +33,15 @@ FluidParticle::FluidParticle (Domain*   d,
 // ---------------------------------------------------------------------------
 {
   if (!D) {
-    D     = d;
-    NDIM  = Geometry::nDim();
-    NEL   = Geometry::nElmt();
-    NZ    = Geometry::nZ();
-    TORD  = (int) Femlib::value ("N_TIME");
-    DT    =       Femlib::value ("D_T");
-    coeff = new real [TORD + 1];
-    Lz    = Femlib::value ("TWOPI / BETA");
+    D       = d;
+    NDIM    = Geometry::nDim();
+    NEL     = Geometry::nElmt();
+    NZ      = Geometry::nZ();
+    TORD    = (int) Femlib::value ("N_TIME");
+    DT      =       Femlib::value ("D_T");
+    P_coeff = new real [TORD];
+    C_coeff = new real [TORD + 1];
+    Lz     = Femlib::value ("TWOPI / BETA");
   }
 
   // -- Try to locate particle, stop if can't.
@@ -56,6 +59,7 @@ FluidParticle::FluidParticle (Domain*   d,
   }
 
   if (!E) return;
+  if (id > ID_MAX) ID_MAX = id;
 
   if (NDIM == 2) {
     P.z = 0.0;
@@ -76,7 +80,7 @@ FluidParticle::FluidParticle (Domain*   d,
 
 void FluidParticle::integrate (const int step)
 // ---------------------------------------------------------------------------
-// Integrate massless particle's position using predictor--corrector method.
+// Integrate massless particle's position using predictor--corrector scheme.
 // If particles leave 2D mesh they marked by setting E = 0.  For 3D, they
 // get put back into the fundamental period of the solution if they leave
 // in the z-direction.
@@ -92,12 +96,16 @@ void FluidParticle::integrate (const int step)
   const int    guess = 1;
   real         xp, yp, zp, up, vp, wp;
 
+  if (N <= TORD) {
+    Integration::AdamsBashforth (N,      P_coeff   );
+    Integration::AdamsMoulton   (NP,     C_coeff   );
+    Blas::scal                  (N,  DT, P_coeff, 1);
+    Blas::scal                  (NP, DT, C_coeff, 1);
+  }
+
   if (NDIM == 2) {		// -- 2D integration.
     
     // -- Predictor.
-    
-    Integration::AdamsBashforth (N, coeff);
-    Blas::scal (N, DT, coeff, 1);
 
     u[0] = D -> u[0] -> probe (E, r, s, 0);
     v[0] = D -> u[1] -> probe (E, r, s, 0);
@@ -105,8 +113,8 @@ void FluidParticle::integrate (const int step)
     xp = P.x;
     yp = P.y;
     for (i = 0; i < N; i++) {
-      xp += coeff[i] * u[i];
-      yp += coeff[i] * v[i];
+      xp += P_coeff[i] * u[i];
+      yp += P_coeff[i] * v[i];
     }
 
     if (!E -> locate (xp, yp, r, s)) {
@@ -123,20 +131,15 @@ void FluidParticle::integrate (const int step)
 
     // -- Corrector.
 
-    Integration::AdamsMoulton (NP, coeff);
-    Blas::scal (NP, DT, coeff, 1);
-
     up = D -> u[0] -> probe (E, r, s, 0);
     vp = D -> u[1] -> probe (E, r, s, 0);
 
-    P.x += coeff[0] * up;
-    P.y += coeff[0] * vp;
+    P.x += C_coeff[0] * up;
+    P.y += C_coeff[0] * vp;
     for (i = 1; i < NP; i++) {
-      P.x += coeff[i] * u[i - 1];
-      P.y += coeff[i] * v[i - 1];
+      P.x += C_coeff[i] * u[i - 1];
+      P.y += C_coeff[i] * v[i - 1];
     }
-
-    // -- Maintain multilevel storage.
 
     if (!E -> locate (P.x, P.y, r, s)) {
       E = 0;
@@ -150,16 +153,15 @@ void FluidParticle::integrate (const int step)
       if (!E) return;
     }
 
+    // -- Maintain multilevel storage.
+
     roll (u, TORD);
     roll (v, TORD);
 
   } else {			// -- 3D integration.
     
     // -- Predictor.
-    
-    Integration::AdamsBashforth (N, coeff);
-    Blas::scal (N, DT, coeff, 1);
-    
+
     u[0] = D -> u[0] -> probe (E, r, s, P.z);
     v[0] = D -> u[1] -> probe (E, r, s, P.z);
     w[0] = D -> u[2] -> probe (E, r, s, P.z);
@@ -168,9 +170,9 @@ void FluidParticle::integrate (const int step)
     yp = P.y;
     zp = P.z;
     for (i = 0; i < N; i++) {
-      xp += coeff[i] * u[i];
-      yp += coeff[i] * v[i];
-      zp += coeff[i] * w[i];
+      xp += P_coeff[i] * u[i];
+      yp += P_coeff[i] * v[i];
+      zp += P_coeff[i] * w[i];
     }
 
     if (!E -> locate (xp, yp, r, s)) {
@@ -187,23 +189,18 @@ void FluidParticle::integrate (const int step)
 
     // -- Corrector.
 
-    Integration::AdamsMoulton (NP, coeff);
-    Blas::scal (NP, DT, coeff, 1);
-
     up = D -> u[0] -> probe (E, r, s, zp);
     vp = D -> u[1] -> probe (E, r, s, zp);
     wp = D -> u[2] -> probe (E, r, s, zp);
 
-    P.x += coeff[0] * up;
-    P.y += coeff[0] * vp;
-    P.z += coeff[0] * wp;
+    P.x += C_coeff[0] * up;
+    P.y += C_coeff[0] * vp;
+    P.z += C_coeff[0] * wp;
     for (i = 1; i < NP; i++) {
-      P.x += coeff[i] * u[i - 1];
-      P.y += coeff[i] * v[i - 1];
-      P.z += coeff[i] * w[i - 1];
+      P.x += C_coeff[i] * u[i - 1];
+      P.y += C_coeff[i] * v[i - 1];
+      P.z += C_coeff[i] * w[i - 1];
     }
-
-    // -- Maintain multilevel storage.
 
     if (!E -> locate (P.x, P.y, r, s)) {
       E = 0;
@@ -218,6 +215,8 @@ void FluidParticle::integrate (const int step)
     }
     if   (P.z < 0.0) P.z = Lz - fmod (fabs (P.z), Lz);
     else             P.z = fmod (P.z, Lz);
+
+    // -- Maintain multilevel storage.
 
     roll (u, TORD);
     roll (v, TORD);
