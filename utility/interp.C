@@ -116,6 +116,7 @@ int main (int    argc,
 
   // -- Load field file, interpolate within it.
 
+  cout.precision (10);
   while (getDump (fldfile, u, Esys, NP, NZ, NEL,
 		  step, time, timestep, kinvis, beta)) {
 
@@ -248,8 +249,9 @@ static void findPoints (vector<Point*>&   point,
 {
   int       i, k;
   real      x, y, r, s;
-  const int NEL = Esys .getSize();
-  const int NPT = point.getSize();
+  const int guess = 1;
+  const int NEL   = Esys .getSize();
+  const int NPT   = point.getSize();
 
   elmt.setSize (NPT);
   rloc.setSize (NPT);
@@ -257,12 +259,14 @@ static void findPoints (vector<Point*>&   point,
 
   elmt = 0;
 
+  cerr.precision (10);
+
   for (i = 0; i < NPT; i++) {
     x = point[i] -> x;
     y = point[i] -> y;
     for (k = 0; k < NEL; k++) {
       r = s = 0.0;
-      if (Esys[k] -> locate (x, y, r, s)) {
+      if (Esys[k] -> locate (x, y, r, s, guess)) {
 	elmt[i] = Esys[k];
 	rloc[i] = r;
 	sloc[i] = s;
