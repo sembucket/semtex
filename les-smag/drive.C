@@ -31,9 +31,9 @@ RCSid[] = "$Id$";
 #include <new.h>
 
 static char prog[] = "les";
-static void memExhaust () { message ("new", "free store exhausted", ERROR); }
-static void getargs    (int, char**, char*&);
-       void NavierStokes  (Domain*, Analyser*);
+static void memExhaust   () { message ("new", "free store exhausted", ERROR); }
+static void getargs      (int, char**, char*&);
+       void NavierStokes (Domain*, Analyser*);
 
 
 int main (int    argc,
@@ -43,7 +43,7 @@ int main (int    argc,
 // ---------------------------------------------------------------------------
 {
   set_new_handler (&memExhaust);
-#if !defined(__DECCXX)
+#if !defined(__alpha)
   ios::sync_with_stdio();
 #endif
 
@@ -97,7 +97,7 @@ static void getargs (int    argc   ,
 {
   const char routine[] = "getargs";
   char       buf[StrMax];
-  const char usage[]   =
+  char usage[]   =
     "Usage: %s [options] session-file\n"
     "  [options]:\n"
     "  -h        ... print this message\n"
@@ -105,7 +105,7 @@ static void getargs (int    argc   ,
     "  -v[v...]  ... increase verbosity level\n"
     "  -chk      ... checkpoint field dumps\n";
  
-  while (--argc  && **++argv == '-')
+  while (--argc && **++argv == '-')
     switch (*++argv[0]) {
     case 'h':
       sprintf (buf, usage, prog);
@@ -124,7 +124,7 @@ static void getargs (int    argc   ,
       break;
     case 'c':
       if (strstr ("chk", *argv)) {
-	Femlib::value ("CHKPOINT", 1);
+	Femlib::value ("CHKPOINT",  (integer) 1);
       } else {
 	fprintf (stdout, usage, prog);
 	exit (EXIT_FAILURE);	  
@@ -136,7 +136,8 @@ static void getargs (int    argc   ,
       exit (EXIT_FAILURE);
       break;
     }
-  
+  cout << argc << endl;
+  cout << argv[1] << endl;
   if   (argc != 1) message (routine, "no session definition file", ERROR);
   else             session = *argv;
 }
