@@ -75,20 +75,20 @@ all:
 test:  libs
 	cd src; $(MAKE) -s
 	cd utility; $(MAKE) -s clean; $(MAKE) -s enumerate; $(MAKE) -s compare
-	cd dns; $(MAKE) -s clean; $(MAKE) -s ;		\
+	cd dns ; $(MAKE) -s clean; $(MAKE) -s ;
+	cd test ; \
 	rm -f compare;   ln -s ../utility/compare   . ;	\
-	rm -f enumerate; ln -s ../utility/enumerate .
-	@echo -- No output from testregress indicates success. --
-	cd dns; testregress dns
+	rm -f enumerate; ln -s ../utility/enumerate . ; \
+	rm -f dns;       ln -s ../dns/dns . ; \
+	testregress dns
 
 # ----------------------------------------------------------------------------
 # Run test of parallel version of DNS solver: do "make test" first.
 # Also, you may need to edit the file dns/testregress_mp to get MPI to run.
 
 partest: parlib
-	cd dns; $(MAKE) -s clean; $(MAKE) -s ALIAS=1 MPI=1;
-	@echo -- No output from testregress_mp indicates success. --
-	cd dns; testregress_mp dns_mp
+	cd dns ; $(MAKE) -s clean ; $(MAKE) -s ALIAS=1 MPI=1
+	cd test ; rm -f dns_mp; ln -s ../dns/dns_mp . ; testregress_mp dns_mp
 
 # ----------------------------------------------------------------------------
 # Clean up.
