@@ -8,6 +8,7 @@
 // phase [options] [file]
 // options:
 // -h       ... print this message.
+// -c       ... perform complex conjugation.
 // -f       ... data are already Fourier transformed (do not transform).
 // -z       ... take mode zero as complex (e.g. it is an eigenmode).
 // -r       ... enforce reflection symmetry of velocity & pressure data.
@@ -24,7 +25,7 @@ static char RCS[] = "$Id$";
 
 
 static char  prog[] = "phase";
-static void  getargs  (int,char**,bool&,bool&,bool&,real_t&,istream*&);
+static void  getargs  (int,char**,bool&,bool&,bool&,bool&,real_t&,istream*&);
 static int_t getDump  (istream&,ostream&,vector<Data2DF*>&);
 static void  loadName (const vector<Data2DF*>&,char*);
 static int_t doSwap   (const char*);
@@ -37,22 +38,23 @@ int main (int    argc,
 // ---------------------------------------------------------------------------
 {
   int_t            i;
-  bool             cmplx = false, zero = false, symm = false;
+  bool             conj = false, cmplx = false, zero = false, symm = false;
   real_t           alpha;
   istream*         input;
   vector<Data2DF*> u;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, cmplx, zero, symm, alpha, input);
+  getargs (argc, argv, conj, cmplx, zero, symm, alpha, input);
   
   while (getDump (*input, cout, u))
     for (i = 0; i < u.size(); i++) {
       if (!cmplx|zero) u[i] -> DFT1D (FORWARD);
 
-      if (fabs (alpha) > EPSDP) u[i] -> shift (alpha, zero);
+      // -- Here are the various possible actions:
 
-      if (!symm) u[i] -> conjugate   (zero);
-      else       u[i] -> symmetrize  (zero);
+      if (fabs (alpha) > EPSDP) u[i] -> shift (alpha, zero);
+      if (conj)                 u[i] -> conjugate    (zero);
+      if (symm)                 u[i] -> symmetrize   (zero);
 
       if (!cmplx|zero) u[i] -> DFT1D (INVERSE);
       cout << *u[i];
@@ -65,6 +67,7 @@ int main (int    argc,
 
 static void getargs (int       argc ,
 		     char**    argv ,
+		     bool&     conj ,
 		     bool&     cmplx,
 		     bool&     zero ,
 		     bool&     symm ,
@@ -77,6 +80,7 @@ static void getargs (int       argc ,
   char usage[] = "Usage: phase [options] [file]\n"
   "options:\n"
   "-h       ... print this message\n"
+  "-c       ... perform complex conjugation (reflection).\n"
   "-f       ... data are already complex (do not Fourier transform).\n"
   "-z       ... take mode zero as complex (e.g. file is an eigenmode).\n"
   "-r       ... enforce reflection symmetry of velocity & pressure data.\n"
@@ -87,6 +91,9 @@ static void getargs (int       argc ,
     case 'h':
       cout << usage;
       exit (EXIT_SUCCESS);
+      break;
+    case 'c':
+      conj = true;
       break;
     case 'f':
       cmplx = true;
@@ -106,6 +113,9 @@ static void getargs (int       argc ,
       exit (EXIT_FAILURE);
       break;
     }
+
+  if (fabs(shift) < EPSDP && !(conj | cmplx | symm))
+    message (prog, "no action signalled", ERROR);
 
   if (argc == 1) {
     input = new ifstream (*argv);
