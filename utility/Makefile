@@ -68,7 +68,7 @@ calc: calc.o
 # Build addfield, field postprocessing utility.
 #
 ADFOBJ = addfield.o auxfield.o BCmgr.o boundary.o bsys.o condition.o 	\
-	 domain.o element.o family.o feml.o field.o geometry.o		\
+	 domain.o edge.o element.o family.o feml.o field.o geometry.o	\
 	 integration.o mesh.o misc.o pressure.o
 $(ADFOBJ): $(SEMHDR)
 
@@ -79,7 +79,7 @@ addfield: $(ADFOBJ)
 # Build variant of addfield that multiplies enstrophy by sign of another var.
 #
 SIGOBJ = signens.o auxfield.o BCmgr.o boundary.o bsys.o condition.o 	\
-	 domain.o element.o family.o feml.o field.o geometry.o		\
+	 domain.o edge.o element.o family.o feml.o field.o geometry.o	\
 	 integration.o mesh.o misc.o pressure.o
 $(SIGOBJ): $(SEMHDR)
 
