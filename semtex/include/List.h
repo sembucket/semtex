@@ -1,8 +1,10 @@
 /*****************************************************************************
- * List.h:  template list operations.                                        *
+ * List.h:  template list operations.
+ *
+ * Reference: Barton & Nackman, "Scientific & Engineering C++".
  *****************************************************************************/
 
-/* $Id$ */
+// $Id$
 
 #ifndef ListH
 #define ListH
@@ -11,89 +13,93 @@ template<class T>
 class ListIterator;
 
 
+
+
+
 template<class T>
 class List {
+friend class ListIterator<T>;
+
 public:
-  List() : head(0), tail(0) {}
-  ~List();
+  List() : head(0), tail(0), nel(0) {}
+  ~List() {
+    while (head != 0) {
+      Node* p = head -> link;
+      delete head;
+      head    = p;
+    }
+    nel = 0;
+  }
 
+  void add (T x) {
+    if (head == 0)
+      head = tail = new Node(x);
+    else
+      tail = tail -> link = new Node(x);
+    nel++;
+  }
 
-  void add    (T x);
-  void remove (T x);
+  void remove (T x) {
+    Node* prev = 0;
+    Node* cur  = head;
+    while (cur != 0) {
+      if (cur -> datum == x) {
+	if (prev == 0) {
+	  head = cur -> next;
+	  delete cur;
+	  cur = head;
+	} else {
+	  prev -> next = cur -> link;
+	  delete cur;
+	  cur = prev -> link;
+	}
+	nel--;
+      } else {
+	prev = cur;
+	cur  = cur -> link;
+      }
+    }
+  }
 
-  friend class ListIterator<T>;
+  void clear  () { head = tail = 0; nel = 0; }
+
+  int  length () const { return nel;                       }
+  T    first  () const { return (nel) ? head -> datum : 0; }
 
 private:
   class Node {
   public:
-    Node(T x) : next(0), datum(x) {}
-    Node* next;
+    Node(T x) : link(0), datum(x) {}
+    Node* link;
     T     datum;
   };
 
   Node* head;
   Node* tail;
-  List(const List<T>&);                     // Prohibit, since not implemented.
-  List<T>& operator=(const List<T>&);       // Prohibit, since not implemented.
+  int   nel;
+
+  List(const List<T>&);                // Prohibit, since not implemented 
+  List<T>& operator=(const List<T>&);  // Prohibit, since not implemented 
+
 };
+
+
 
 
 
 template<class T>
 class ListIterator {
-public:
-  ListIterator(const List<T>& list) : cur(list.head) {}
+public: 
+  ListIterator (const List<T>& list) : cur(list.head), top(list.head) { }
   
-  int     more    () const { return cur != 0;   }
-  T       current () const { return cur->datum; }
-  void    advance ()       { cur = cur->next;   }
+  int   more    () const  { return cur != 0;           }
+  T     current () const  { return cur -> datum;       }
+  void  next    ()        {        cur =  cur -> link; }
+  void  reset   ()        {        cur =  top;         }
 
 private:
   List<T>::Node* cur;
-};
-
-
-
-
-template<class T>
-inline List<T>::~List() {
-  while (head != 0) {
-    Node* p = head->next;
-    delete head;
-    head = p;
-  }
-};
-
-
-template<class T>
-inline void List<T>::add(T x) {
-  if (head == 0)
-    head = tail = new Node(x);
-  else
-    tail = tail->next = new Node(x);
-};
-
-
-template<class T>
-inline void List<T>::remove(T x) {
-  Node* prev = 0;
-  Node* cur = head;
-  while (cur != 0) {
-    if (cur->datum == x) {
-      if (prev == 0) {
-        head = cur->next;
-        delete cur;
-        cur = head;
-      } else {
-        prev->next = cur->next;
-        delete cur;
-        cur = prev->next;
-      }
-    } else {
-      prev = cur;
-      cur = cur->next;
-    }
-  }
+  List<T>::Node* top;
 };
 
 
