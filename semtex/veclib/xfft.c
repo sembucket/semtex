@@ -1,10 +1,10 @@
 /*****************************************************************************
- *            UTILITIES AND PROCEDURES FOR 1-DIMENSIONAL FFTS                *
+ *        UTILITIES AND PROCEDURES FOR 1-DIMENSIONAL RADIX-2 FFTS            *
  *****************************************************************************/
 
 #include <stdio.h> 
 #include <math.h>
-#include "alplib.h"
+#include "veclib.h"
 
 
 

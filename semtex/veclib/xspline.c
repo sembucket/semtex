@@ -28,7 +28,7 @@
 
 #include <stdio.h>
 #include <femdef.h>
-#include <alplib.h>
+#include <veclib.h>
 
 #if defined(__uxp__)
 #pragma global novrec
