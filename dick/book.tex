@@ -5,10 +5,11 @@
 %
 % $Id$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\documentclass[11pt,b5paper]{book}
+\documentclass[11pt,b5paper,titlepage]{book}
 %\usepackage{times}
 \usepackage{palatino}
 %\usepackage{garamond}
+\usepackage{pifont}
 \usepackage{endnotesn}
 \usepackage{bibtopic}
 \usepackage{natbib}
@@ -32,15 +33,15 @@
 \setlength{\textheight}    {200mm}
 \setlength{\textwidth}     {120mm}
 \setlength{\topmargin}     {-8mm}
-%\setlength{\parskip} 	   {5pt}
 \setlength{\parindent}     {2.5ex}
-%\setlength{\oddsidemargin} {0mm}
-%\setlength{\evensidemargin}{0mm}
-%\setlength{\unitlength}    {1mm}
+\setlength{\parsep}        {0ex}
+\setlength{\topsep}        {0ex}
 \setlength{\bibsep}        {\parskip}
 
 \renewcommand{\baselinestretch}{1.0}
+
 \newcommand{\clearemptydoublepage}{\newpage{\pagestyle{empty}\cleardoublepage}}
+
 \newcommand{\closure}{%
   \medskip%
   \begin{center}$\diamond\qquad\diamond\qquad\diamond$\end{center}%
@@ -54,17 +55,22 @@
 \hyphenation{Mon-thly Month-ly}
 \hyphenation{nor-thern north-ern}
 
-
 \fancypagestyle{plain}{%
   \fancyhf{}%
-  \fancyfoot[C]{\sffamily \thepage}%
+  \fancyfoot[C]{\sffamily \small \thepage}%
   \renewcommand{\headrulewidth}{0pt}%
   \renewcommand{\footrulewidth}{0pt}}
 
+\newenvironment{Quote}
+  {\begin{spacing}{0.95}\begin{quote}}
+  {\end{quote}\end{spacing}}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\title{\textbf{\huge\textsf{Pioneering Irrigation \\ in Australia to 1920}}}
-\author{\textbf{\LARGE\textsf{Gerard Blackburn}}}
-\date{ }
+%\title{\bfseries\sffamily\huge Pioneering Irrigation \\ in Australia to 1920}
+%\author{\bfseries\sffamily\LARGE Gerard Blackburn}
+%\date{ }
+%\begin{titlepage}
+%\end{titlepage}
 
 \includeonly{
    ack
@@ -97,8 +103,87 @@
 
 \frontmatter
 
-\maketitle
+\begin{titlepage}
+\pagestyle{empty}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{center}
+
+\vspace*{60mm}
+
+%{\sffamily\bfseries\fontsize{12mm}{25mm}\selectfont
+%Pioneering Irrigation in Australia to 1920}
+
+{\bfseries\sffamily\Huge Pioneering Irrigation \\[0.5ex]
+in Australia to 1920}
+
+\end{center}
 \clearemptydoublepage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{center}
+\vspace*{30mm}
+
+{\bfseries\sffamily\Huge Pioneering Irrigation \\[0.5ex]
+in Australia to 1920}
+
+\vspace{30mm}
+{\bfseries\sffamily\huge Gerard Blackburn}
+
+\vspace*{\fill}
+{\bfseries\sffamily\slshape\Large Australian Scholarly Publishing}
+\end{center}
+\newpage
+
+%=============================================================================
+
+\begin{raggedright}
+
+\vspace*{15ex}
+
+\Pisymbol{psy}{211} Gerard Blackburn 1999
+
+\medskip
+First published 2003 by Australian Scholarly Publishing Pty Ltd\\
+PO Box 299, Kew, Victoria 3101\\
+Suite 102, 282 Collins Street, Melbourne, Victoria 3000\\
+Tel: (03) 9817 5208 \quad Fax: (03) 9817 6431\\
+Email: aspic@ozemail.com.au
+
+
+\bigskip
+National Library of Australia cataloguing-in-publication data:\\
+
+\medskip
+Blackburn, G. (Gerard, `Dick'), 1918--1999.\\
+Pioneering Irrigation in Australia to 1920.\\
+\begin{list}{}{\setlength{\topsep}{0ex}\setlength{\itemsep}{0ex}\setlength{\leftmargin}{2.5ex}}
+\item
+Bibliography.\\
+Includes index.\\
+ISBN 1 740970 46 2.
+
+\item
+1. Irrigation --- Australia. 2. Government --- Australia. 3. Australia
+   --- 19th century --- 20th century.
+
+\item
+I. Title. II. Blackburn, Gerard.
+
+\end{list}
+111.1111
+
+\medskip
+Reproduced from camera-ready copy typeset in \LaTeX.
+
+\end{raggedright}
+\clearemptydoublepage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{titlepage}
+
+%\maketitle
+%\clearemptydoublepage
 
 \pagestyle{plain}
 \tableofcontents
@@ -112,8 +197,8 @@
 %\pagestyle{myheadings}
 \pagestyle{fancy}
 \renewcommand{\headrulewidth}{0.4pt}
-\fancyhead[LE,RO]{\sffamily \thepage}
-\fancyhead[LO]{\sffamily Pioneering Irrigation in Australia}
+\fancyhead[LE,RO]{\sffamily \small \thepage}
+\fancyhead[LO]{\sffamily \small Pioneering Irrigation in Australia}
 \fancyfoot{}
 
 \include{ch02}
@@ -155,9 +240,7 @@
 \include{selectbib}
 \clearemptydoublepage
 
-\fancyhead[RE]{\sffamily Index}
-%\markboth{Index}%
-%{Pioneering Irrigation in Australia}
+\fancyhead[RE]{\sffamily \small Index}
 {\small
 \printindex
 }
