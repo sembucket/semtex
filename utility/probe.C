@@ -64,10 +64,10 @@
 
 static char RCS[] = "$Id$";
 
-#include <sem.h>
+#include "sem.h"
 #include <ctime>
 
-static const int NPTS = 64;	// -- Default number of points for line/plane.
+static const int_t NPTS = 64;	// -- Default number of points for line/plane.
 
 typedef enum {			// -- Flags for coordinate axes.
   None = 0,
@@ -77,21 +77,21 @@ typedef enum {			// -- Flags for coordinate axes.
 } AXIS;
 
 static char  *prog;
-static void  getargs     (int, char**, char*&, char*&, int&,
+static void  getargs     (int, char**, char*&, char*&, int_t&,
 			  char*&, char*&, char*&);
-static int   loadPoints  (istream&, vector<Point*>&);
-static int   linePoints  (vector<Point*>&);
-static int   planePoints (vector<Point*>&, Mesh*);
+static int_t loadPoints  (istream&, vector<Point*>&);
+static int_t linePoints  (vector<Point*>&);
+static int_t planePoints (vector<Point*>&, Mesh*);
 static void  findPoints  (vector<Point*>&, vector<Element*>&,
-			  vector<Element*>&, vector<real>&, vector<real>&);
-static int   getDump     (ifstream&, vector<AuxField*>&, vector<Element*>&,
-			  const int, const int, const int);
-static void  putData     (const char*, const char*, const char*, int,
-			  int, vector<AuxField*>&, vector<Element*>&,
-			  vector<Point*>&, vector<vector<real> >&);
+			  vector<Element*>&, vector<real_t>&, vector<real_t>&);
+static int_t getDump     (ifstream&, vector<AuxField*>&, vector<Element*>&,
+			  const int_t, const int_t, const int_t);
+static void  putData     (const char*, const char*, const char*, int_t,
+			  int_t, vector<AuxField*>&, vector<Element*>&,
+			  vector<Point*>&, vector<vector<real_t> >&);
 static void  Finterp     (vector<AuxField*>&, const Point*, const Element*,
-			  const real, const real, const int,
-			  real*, integer*, real*);
+			  const real_t, const real_t, const int_t,
+			  real_t*, int_t*, real_t*);
 static bool  doSwap      (const char*);
 static char* root        (char*);
 
@@ -102,22 +102,22 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  char                  *session, *dump, *format;
-  char                  *interface = 0, *points = 0;
-  int                   NP, NZ,  NEL;
-  int                   i, j, k, nf, ntot = 0, rotswap = 0;
-  ifstream              fldfile;
-  istream*              pntfile;
-  FEML*                 F;
-  Mesh*                 M;
-  const real*           knot;
-  vector<integer>       iwork(15);
-  vector<real>          rwork, r, s, datum;
-  vector<Point*>        point;
-  vector<Element*>      elmt;
-  vector<Element*>      Esys;
-  vector<AuxField*>     u;
-  vector<vector<real> > data;
+  char                    *session, *dump, *format;
+  char                    *interface = 0, *points = 0;
+  int_t                   NP, NZ,  NEL;
+  int_t                   i, j, k, nf, ntot = 0, rotswap = 0;
+  ifstream                fldfile;
+  istream*                pntfile;
+  FEML*                   F;
+  Mesh*                   M;
+  const real_t*           knot;
+  vector<int_t>           iwork(15);
+  vector<real_t>          rwork, r, s, datum;
+  vector<Point*>          point;
+  vector<Element*>        elmt;
+  vector<Element*>        Esys;
+  vector<AuxField*>       u;
+  vector<vector<real_t> > data;
 
   // -- Initialize.
 
@@ -214,7 +214,7 @@ static void getargs (int    argc     ,
 		     char** argv     ,
 		     char*& interface,
 		     char*& format   ,
-		     int&   swap     ,
+		     int_t& swap     ,
 		     char*& session  ,
 		     char*& dump     ,
 		     char*& points   )
@@ -358,7 +358,7 @@ static void getargs (int    argc     ,
       "-swap             ... swap output x <--> y (rotate)\n"
       "-tec              ... write TECPLOT-formatted ASCII output\n"
       "-sm               ... write SM-formatted binary output\n";
-    int nset = 0;
+    int_t nset = 0;
 
     while (--argc && **++argv == '-')
       switch (*++argv[0]) {
@@ -505,14 +505,14 @@ static void getargs (int    argc     ,
 }
 
 
-static int loadPoints (istream&        pfile,
-                       vector<Point*>& point)
+static int_t loadPoints (istream&        pfile,
+			 vector<Point*>& point)
 // ---------------------------------------------------------------------------
 // Probe point input for the "probe" interface, from file.
 // ---------------------------------------------------------------------------
 {
-  int           ntot, num = 0;
-  real          x, y, z;
+  int_t         ntot, num = 0;
+  real_t        x, y, z;
   Point*        datum;
   stack<Point*> data;
 
@@ -534,18 +534,18 @@ static int loadPoints (istream&        pfile,
 }
 
 
-static int linePoints (vector<Point*>& point)
+static int_t linePoints (vector<Point*>& point)
 // ---------------------------------------------------------------------------
 // Probe point generation for the "probeline" interface.
 // ---------------------------------------------------------------------------
 {
-  int  i, ntot = Femlib::ivalue ("NPTS");
-  real xmin = Femlib::value ("X_MIN");
-  real ymin = Femlib::value ("Y_MIN");
-  real zmin = Femlib::value ("Z_MIN");
-  real dx   = (ntot == 1) ? 0.0 : Femlib::value ("X_DELTA") / (ntot - 1.0);
-  real dy   = (ntot == 1) ? 0.0 : Femlib::value ("Y_DELTA") / (ntot - 1.0);
-  real dz   = (ntot == 1) ? 0.0 : Femlib::value ("Z_DELTA") / (ntot - 1.0);
+  int_t  i, ntot = Femlib::ivalue ("NPTS");
+  real_t xmin = Femlib::value ("X_MIN");
+  real_t ymin = Femlib::value ("Y_MIN");
+  real_t zmin = Femlib::value ("Z_MIN");
+  real_t dx   = (ntot == 1) ? 0.0 : Femlib::value ("X_DELTA") / (ntot - 1.0);
+  real_t dy   = (ntot == 1) ? 0.0 : Femlib::value ("Y_DELTA") / (ntot - 1.0);
+  real_t dz   = (ntot == 1) ? 0.0 : Femlib::value ("Z_DELTA") / (ntot - 1.0);
 
   point.resize (ntot);
 
@@ -560,20 +560,20 @@ static int linePoints (vector<Point*>& point)
 }
 
 
-static int planePoints (vector<Point*>& point,
-			Mesh*           mesh )
+static int_t planePoints (vector<Point*>& point,
+			  Mesh*           mesh )
 // ---------------------------------------------------------------------------
 // Probe point generation for the "probeplane" interface.
 // ---------------------------------------------------------------------------
 {
-  int        i, j, k;
-  const int  nx     = Femlib::ivalue ("NX");
-  const int  ny     = Femlib::ivalue ("NY");
-  const int  ortho  = Femlib::ivalue ("ORTHO");
-  const real offset = Femlib:: value ("OFFSET");
-  const int  ntot   = nx * ny;
-  real       x0, y0, z0, dx, dy, dz;
-  Point*     p;
+  int_t        i, j, k;
+  const int_t  nx     = Femlib::ivalue ("NX");
+  const int_t  ny     = Femlib::ivalue ("NY");
+  const int_t  ortho  = Femlib::ivalue ("ORTHO");
+  const real_t offset = Femlib:: value ("OFFSET");
+  const int_t  ntot   = nx * ny;
+  real_t       x0, y0, z0, dx, dy, dz;
+  Point*       p;
 
   point.resize (ntot);
 
@@ -639,17 +639,19 @@ static int planePoints (vector<Point*>& point,
 static void findPoints (vector<Point*>&   point,
 			vector<Element*>& Esys ,
 			vector<Element*>& elmt ,
-			vector<real>&     rloc ,
-			vector<real>&     sloc )
+			vector<real_t>&   rloc ,
+			vector<real_t>&   sloc )
 // ---------------------------------------------------------------------------
 // Locate points within elements, set Element pointer & r--s locations.
 // ---------------------------------------------------------------------------
 {
-  int       i, k;
-  real      x, y, z, r, s;
-  const int NEL   = Esys .size();
-  const int NPT   = point.size();
-  const int guess = 1;
+  int_t          i, k;
+  real_t         x, y, z, r, s;
+  const int_t    NEL   = Esys .size();
+  const int_t    NPT   = point.size();
+  const bool     guess = true;
+  vector<real_t> work(static_cast<size_t>
+		      (max (2*Geometry::nTotElmt(), 5*Geometry::nP()+6)));
 
   elmt.resize (NPT);
   rloc.resize (NPT);
@@ -665,7 +667,7 @@ static void findPoints (vector<Point*>&   point,
     z = point[i] -> z;
     for (k = 0; k < NEL; k++) {
       r = s = 0.0;
-      if (Esys[k] -> locate (x, y, r, s, guess)) {
+      if (Esys[k] -> locate (x, y, r, s, &work[0], guess)) {
 	elmt[i] = Esys[k];
 	rloc[i] = r;
 	sloc[i] = s;
@@ -682,21 +684,21 @@ static void findPoints (vector<Point*>&   point,
 }
 
 
-static int getDump (ifstream&          file,
-		    vector<AuxField*>& u   ,
-		    vector<Element*>&  Esys,
-		    const int          np  ,
-		    const int          nz  ,
-		    const int          nel )
+static int_t getDump (ifstream&          file,
+		      vector<AuxField*>& u   ,
+		      vector<Element*>&  Esys,
+		      const int_t        np  ,
+		      const int_t        nz  ,
+		      const int_t        nel )
 // ---------------------------------------------------------------------------
 // Load data from field dump, with byte-swapping if required.
 // If there is more than one dump in file, it is required that the
 // structure of each dump is the same as the first.
 // ---------------------------------------------------------------------------
 {
-  char    buf[StrMax], fields[StrMax];
-  integer i, nf, npnew, nznew, nelnew;
-  bool    swab;
+  char  buf[StrMax], fields[StrMax];
+  int_t i, nf, npnew, nznew, nelnew;
+  bool  swab;
 
   if (file.getline(buf, StrMax).eof()) return 0;
   
@@ -733,7 +735,7 @@ static int getDump (ifstream&          file,
   if (u.size() == 0) {
     u.resize (nf);
     for (i = 0; i < nf; i++)
-      u[i] = new AuxField (new real[Geometry::nTotal()], nz, Esys, fields[i]);
+      u[i] = new AuxField (new real_t[Geometry::nTotal()], nz, Esys, fields[i]);
   } else if (u.size() != nf) 
     message (prog, "number of fields mismatch with first dump in file", ERROR);
 
@@ -770,25 +772,25 @@ static bool doSwap (const char* ffmt)
 static void Finterp (vector<AuxField*>& u    ,
 		     const Point*       P    ,
 		     const Element*     E    ,
-		     const real         r    , 
-		     const real         s    ,
-		     const int          NZ   ,
-		     real*              rwork,
-		     integer*           iwork, 
-		     real*              data )
+		     const real_t       r    , 
+		     const real_t       s    ,
+		     const int_t        NZ   ,
+		     real_t*            rwork,
+		     int_t*             iwork, 
+		     real_t*            data )
 // ---------------------------------------------------------------------------
 // Carry out 2DxFourier interpolation.
 // ---------------------------------------------------------------------------
 {
-  register int  i, k, Re, Im;
-  register real phase;
-  const int     NF    = u.size();
-  const int     NZH   = NZ >> 1;
-  const int     NHM   = NZH - 1;
-  const real    betaZ = P -> z * Femlib::value("BETA");
-  const real*   Wtab  = rwork;
-  real*         work  = rwork + NZ;
-  real*         temp  = rwork + NZ + NZ;
+  register int_t  i, k, Re, Im;
+  register real_t phase;
+  const int_t     NF    = u.size();
+  const int_t     NZH   = NZ >> 1;
+  const int_t     NHM   = NZH - 1;
+  const real_t    betaZ = P -> z * Femlib::value("BETA");
+  const real_t*   Wtab  = rwork;
+  real_t*         work  = rwork + NZ;
+  real_t*         temp  = rwork + NZ + NZ;
 
   for (i = 0; i < NF; i++)	// -- For each field.
 
@@ -843,20 +845,20 @@ static char *root (char *s) {
 }
 
 
-static void putData (const char*            dump     ,
-		     const char*            interface,
-		     const char*            format   ,
-		     int                    ntot     ,
-		     int                    swap     ,
-		     vector<AuxField*>&     u        ,
-		     vector<Element*>&      elmt     ,
-		     vector<Point*>&        point    ,
-		     vector<vector<real> >& data     )
+static void putData (const char*              dump     ,
+		     const char*              interface,
+		     const char*              format   ,
+		     int_t                    ntot     ,
+		     int_t                    swap     ,
+		     vector<AuxField*>&       u        ,
+		     vector<Element*>&        elmt     ,
+		     vector<Point*>&          point    ,
+		     vector<vector<real_t> >& data     )
 // ---------------------------------------------------------------------------
 // Handle all the different output formats, according to the chosen interface.
 // ---------------------------------------------------------------------------
 {
-  int i, j, k, n, nf = u.size();
+  int_t i, j, k, n, nf = u.size();
 
   if (strstr (format, "free")) {
     cout.precision (6);
@@ -876,8 +878,8 @@ static void putData (const char*            dump     ,
   } else if (strstr (format, "sm") && strstr (interface, "probeplane")) {
 
     char      fname[StrMax], *base = root (strdup (dump));
-    const int nx = Femlib::ivalue ("NX");
-    const int ny = Femlib::ivalue ("NY");
+    const int_t nx = Femlib::ivalue ("NX");
+    const int_t ny = Femlib::ivalue ("NY");
     ofstream  out;
 
     for (n = 0; n < nf; n++) {
@@ -885,8 +887,8 @@ static void putData (const char*            dump     ,
       out.open  (fname);
       
       if (swap) {
-	out.write (reinterpret_cast<const char*>(&ny), sizeof (int));
-	out.write (reinterpret_cast<const char*>(&nx), sizeof (int));
+	out.write (reinterpret_cast<const char*>(&ny), sizeof (int_t));
+	out.write (reinterpret_cast<const char*>(&nx), sizeof (int_t));
 	
 	for (i = 0; i < nx; i++) {
 	  for (j = 0; j < ny; j++) {
@@ -895,8 +897,8 @@ static void putData (const char*            dump     ,
 	  }
 	}
       } else {
-	out.write (reinterpret_cast<const char*>(&nx), sizeof (int));
-	out.write (reinterpret_cast<const char*>(&ny), sizeof (int));
+	out.write (reinterpret_cast<const char*>(&nx), sizeof (int_t));
+	out.write (reinterpret_cast<const char*>(&ny), sizeof (int_t));
       
 	for (k = 0, j = 0; j < ny; j++) {
 	  for (i = 0; i < nx; i++, k++) {
