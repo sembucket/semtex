@@ -166,7 +166,6 @@ void Statistics::dump ()
   const integer ND = Geometry::nDim();
   const integer NR = ((integer) Femlib::value ("AVERAGE") > 1) ? 
                             ((ND + 1) * ND) >> 1 : 0;
-  const integer NA = NT - NR;
 
   Femlib::synchronize();
 

@@ -76,7 +76,6 @@ static vector<Element*> elmt;
 static FEML*            file;
 static Mesh*            mesh;
 static BCmgr*           bman;
-static BoundarySys*     bsys;
 static Domain*          domain;
 static StabAnalyser*    analyst;
 
