@@ -11,6 +11,7 @@
 //   -i[i]    ... use iterative solver for viscous [and pressure] steps
 //   -v[v...] ... increase verbosity level
 //   -chk     ... checkpoint field dumps
+//   -O <num> ... set numbering scheme optimisation level, Default=3
 //
 // AUTHOR:
 // ------
@@ -80,12 +81,12 @@ static void getargs (int    argc   ,
   const char routine[] = "getargs";
   const char usage[]   = "Usage: %s [options] session-file\n"
     "  [options]:\n"
-    "  -h        ... print this message\n"
-    "  -i[i]     ... use iterative solver for viscous [& pressure] steps\n"
-    "  -v[v...]  ... increase verbosity level\n"
-    "  -chk      ... checkpoint field dumps\n";
+    "  -h       ... print this message\n"
+    "  -i[i]    ... use iterative solver for viscous [& pressure] steps\n"
+    "  -v[v...] ... increase verbosity level\n"
+    "  -chk     ... checkpoint field dumps\n"
+    "  -O <num> ... set numbering scheme optimisation level, Default=3\n";
 
- 
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
     case 'h':
@@ -95,22 +96,34 @@ static void getargs (int    argc   ,
       break;
     case 'i':
       do
-	Femlib::value ("ITERATIVE", (integer) Femlib::value ("ITERATIVE") + 1);
+	Femlib::value ("ITERATIVE",
+		       static_cast<int>(Femlib::value ("ITERATIVE") + 1));
       while (*++argv[0] == 'i');
       break;
     case 'v':
       do
-	Femlib::value ("VERBOSE",   (integer) Femlib::value ("VERBOSE")   + 1);
+	Femlib::value ("VERBOSE",
+		       static_cast<int>(Femlib::value ("VERBOSE") + 1));
       while (*++argv[0] == 'v');
       break;
     case 'c':
       if (strstr ("chk", *argv)) {
-	Femlib::value ("CHKPOINT",  (integer) 1);
+	Femlib::value ("CHKPOINT", 
+		       static_cast<int>(1));
       } else {
 	fprintf (stdout, usage, prog);
 	exit (EXIT_FAILURE);	  
       }
       break;
+    case 'O': {
+      int level;
+      if (*++argv[0]) level = atoi (*argv);
+      else {level = atoi (*++argv); argc--;}
+      level = clamp (level, 0, 3);
+      Femlib::value ("NUMOPTLEVEL", 
+		     static_cast<int>(level));
+      break;
+    }
     default:
       sprintf (buf, usage, prog);
       cout << buf;
@@ -137,7 +150,6 @@ static void preprocess (const char*       session,
 {
   const int          verbose = static_cast<int>(Femlib::value ("VERBOSE"));
   Geometry::CoordSys space;
-  const real*        z;
   int                i, np, nz, nel;
 
   // -- Initialise problem and set up mesh geometry.
@@ -167,10 +179,8 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "Building elements ... ";
 
-  Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
-
   elmt.resize (nel);
-  for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
+  for (i = 0; i < nel; i++) elmt[i] = new Element (i, np, mesh);
 
   VERBOSE cout << "done" << endl;
 

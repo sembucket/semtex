@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // condition.C: functions used to evaluate & apply BCs.
 //
-// Copyright (C) 1994, 1999 Hugh Blackburn
+// Copyright (c) 1994,2003 Hugh Blackburn
 //
 // All classes inherit the (semi-abstract) base class Condition.
 // Owing to the different behaviour of essential and natural BCs, a
@@ -20,9 +20,9 @@
 // for the pressure Poisson equation: they are derived from the
 // momentum equations and computed using an extrapolative process
 // described in KIO91.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <Sem.h>
 

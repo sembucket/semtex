@@ -1,7 +1,7 @@
 /*****************************************************************************
  * operators.c:  operators for mesh points, derivatives, quadratures.
  *
- * Copyright (c) Hugh Blackburn 1994--2000.
+ * Copyright (c) Hugh Blackburn 1994,2003
  *
  * All 2D matrices have row-major ordering.
  * All routines are double precision.
@@ -12,8 +12,10 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <femdef.h>
-#include <alplib.h>
+#include <veclib.h>
 #include <femlib.h>
+#include <polylib.h>
+
 
 typedef struct dquadopr {	/* ---- quadrature operator information  --- */
   integer          rule    ;	/* quadrature rule: GL or LL                 */
@@ -74,6 +76,7 @@ void dQuadOps (const integer   rule, /* input: quadrature rule: GL or LL     */
 
     p -> rule = rule;
     p -> np   = np;
+
     p -> nq   = (rule == GL) ? nq : np;
 
     if (rule == LL && np != nq)
@@ -88,9 +91,13 @@ void dQuadOps (const integer   rule, /* input: quadrature rule: GL or LL     */
       p -> interpT = (double**) 0;
       p -> deriv   = dmatrix (0, np-1, 0, np-1);
       p -> derivT  = dmatrix (0, np-1, 0, np-1);
-
+#if 1
       zwgll (p->knot, p->weight, np);
-      dgll  (np, p->knot, p->deriv, p->derivT);
+      dgll  (p->deriv, p->derivT, p->knot, np);
+#else
+      ZWGLL (p->knot, p->weight, np);
+      DGLL  (np, p->knot, p->deriv, p->derivT);
+#endif
 
     } else {
 
@@ -101,9 +108,13 @@ void dQuadOps (const integer   rule, /* input: quadrature rule: GL or LL     */
       p -> interpT = dmatrix (0, np-1, 0, nq-1);
       p -> deriv   = dmatrix (0, nq-1, 0, np-1);
       p -> derivT  = dmatrix (0, np-1, 0, nq-1);
-
-      jacgl    (np-1, 0.0, 0.0, p->knot);     /* Knots at Lobatto points.    */
-      zwgl     (p->quad, p->weight, nq);      /* Quadrature at Gauss points. */
+#if 1
+      zwgll    (p->knot, *p->interpT, np);
+      zwgl     (p->quad, p->weight, nq);
+#else
+      JACGL    (np-1, 0.0, 0.0, p->knot);     /* Knots at Lobatto points.    */
+      ZWGL     (p->quad, p->weight, nq);      /* Quadrature at Gauss points. */
+#endif
       intmat_g (np, p->knot, nq, p->quad, p->interp, p->interpT);
       dermat_g (np, p->knot, nq, p->quad, p->deriv,  p->derivT );
 
@@ -119,6 +130,107 @@ void dQuadOps (const integer   rule, /* input: quadrature rule: GL or LL     */
   if (it) *it = (const double**) p -> interpT;
   if (dr) *dr = (const double**) p -> deriv;
   if (dt) *dt = (const double**) p -> derivT;
+}
+
+
+typedef struct quadop  { /* ------- quadrature operator information  ------- */
+  char           rule  ; /* Quadrature rule: 'G', 'R', or 'L'                */
+  int            np    ; /* Number of quadrature points                      */
+  double         alpha ; /* Constants in definition of singular Sturm--      */
+  double         beta  ; /*   Liouville problem, (Jacobi wt functions) >=-1  */
+  double*        point ; /* Quadrature points on [-1, 1]                     */
+  double*        weight; /* Quadrature weights                               */
+  double*        deriv ; /* Derivative operator for Lagrangian interpolant   */
+  double*        derivT; /* Transpose of the above (both in row-major order) */
+  struct quadop* next  ; /* link to next                                     */
+} QuadOp;		 /* ------------------------------------------------ */
+
+static QuadOp* Qroot = 0;
+
+void quad (const double** point , /* Quadrature points.                      */
+	   const double** weight, /* Quadrature weights.                     */
+	   const double** dv    , /* Derivative operator at points.          */
+	   const double** dt    , /* (Transpose) derivative operator.        */
+	   const int      np    , /* Input: Number of quadrature points.     */
+	   const char     rule  , /* Input: 'G'auss, 'R'adau, or 'L'obatto.  */
+	   const double   alpha , /* Input: Jacobi polynomial constant.      */
+	   const double   beta  ) /* Input: Jacobi polynomial constant.      */
+/* ------------------------------------------------------------------------- *
+ * Maintain/return QUADRATURE operators for finite elements with
+ * spectral basis functions, defined on the master interval [-1, +1].
+ *
+ * If the required operators are "in stock", they are returned from a list,
+ * otherwise they are created and added to the list as a first step.
+ * NULL input pointers are not assigned a value.
+ *
+ * NB: Gauss-Radau integration rules are asymmetric (they use a point
+ * at one end of the interval, -1 or +1, as well as interior
+ * points). Here the +1 endpoint is assumed.
+ * ------------------------------------------------------------------------- */
+{
+  char    routine[] = "quad";
+  int     found;
+  QuadOp* p;
+
+  for (found = 0, p = Qroot; p; p=p->next) {
+    found = 
+      p->rule  == rule  &&
+      p->np    == np    &&
+      p->alpha == alpha && 
+      p->beta  == beta;
+    if (found) break;
+  }
+
+  if (!found) {			/* -- Make new storage area, fill it. */
+
+    p = (QuadOp *) calloc (1, sizeof (QuadOp));
+    if (Qroot) p -> next = Qroot; Qroot = p;
+
+    p->rule     = rule;
+    p->np       = np;
+    p->alpha    = alpha;
+    p->beta     = beta;
+    p -> point  = (double*) malloc (sizeof(double) * np);
+    p -> weight = (double*) malloc (sizeof(double) * np);
+    p -> deriv  = (double*) malloc (sizeof(double) * np*np);
+    p -> derivT = (double*) malloc (sizeof(double) * np*np);
+
+    if        (rule == 'G') {	/* Gauss-Jacobi         */
+      zwgj    (p->point, p->weight, np, alpha, beta);
+      Dgj     (p->deriv, p->derivT, p->point, np, alpha, beta);
+    } else if (rule == 'R') {	/* Gauss-Radau-Jacobi   */
+      zwgrjp  (p->point, p->weight, np, alpha, beta);
+      Dgrjp   (p->deriv, p->derivT, p->point, np, alpha, beta);
+    } else if (rule == 'L') {	/* Gauss-Lobatto-Jacobi */
+
+#if 0
+      ZWGLJ   (p->point, p->weight, alpha, beta, np);
+      {
+	double** dv = dmatrix (0, np-1, 0, np-1);
+	double** dt = dmatrix (0, np-1, 0, np-1);
+	dermat_k (np, p->point, dv, dt);
+	dcopy (np*np, dv[0], 1, p->deriv,  1);
+	dcopy (np*np, dt[0], 1, p->derivT, 1);
+	freeDmatrix (dv, 0, 0);
+	freeDmatrix (dt, 0, 0);
+      }
+#else 
+      zwglj   (p->point, p->weight, np, alpha, beta);
+      Dglj    (p->deriv, p->derivT, p->point, np, alpha, beta);
+#endif
+    } else {
+      char err[STR_MAX];
+      sprintf (err, "unrecognized quadrature rule: %c", rule);
+      message (routine, err, ERROR);
+    }
+  }
+
+  /* -- p now points to valid storage: return requested operators. */
+
+  if (point)  *point  = (const double*) p -> point;
+  if (weight) *weight = (const double*) p -> weight;
+  if (dv)     *dv     = (const double*) p -> deriv;
+  if (dt)     *dt     = (const double*) p -> derivT;
 }
 
 
@@ -199,18 +311,36 @@ void dMeshOps (const integer   old , /* input: element basis: STD or GLL     */
     if (old == GLL && new == GLL) {
 
       if (np == ni) {  /* Meshes are the same. */
-	jacgl (np-1, 0.0, 0.0, p->mesh);
-	dgll  (np, p->mesh, p->deriv, p->derivT);
+#if 1
+	zwgll (p->mesh, oldmesh, np);
+	dgll  (p->deriv, p->derivT, p->mesh, np);
+#else
+	JACGL (np-1, 0.0, 0.0, p->mesh);
+	DGLL  (np, p->mesh, p->deriv, p->derivT);
+#endif
       } else {
-	jacgl    (np-1, 0.0, 0.0, oldmesh);
-	jacgl    (ni-1, 0.0, 0.0, p->mesh);
+#if 1
+	double* tmp = (double*) malloc(sizeof(double)*MAX(np,ni));
+	zwgll (oldmesh, tmp, np);
+	zwgll (p->mesh, tmp, ni);
+	free (tmp);
+#else
+	JACGL    (np-1, 0.0, 0.0, oldmesh);
+	JACGL    (ni-1, 0.0, 0.0, p->mesh);
+#endif
 	intmat_g (np, oldmesh, ni, p->mesh, p->interp, p->interpT);
 	dermat_g (np, oldmesh, ni, p->mesh, p->deriv,  p->derivT );
       }
 
     } else if (old == GLL && new == STD) {
 
-      jacgl    (np-1, 0.0, 0.0,  oldmesh);
+#if 1
+      double* tmp = (double*)malloc(sizeof(double)*np);
+      zwgll (oldmesh, tmp, np);
+      free (tmp);
+#else
+      JACGL    (np-1, 0.0, 0.0,  oldmesh);
+#endif
       uniknot  (ni,              p->mesh);
       intmat_g (np, oldmesh, ni, p->mesh, p->interp, p->interpT);
       dermat_g (np, oldmesh, ni, p->mesh, p->deriv,  p->derivT );
@@ -229,8 +359,15 @@ void dMeshOps (const integer   old , /* input: element basis: STD or GLL     */
 
     } else if (old == STD && new == GLL) {
 
+
+#if 0
+      double* tmp = (double*)malloc(sizeof(double)*ni);
+      zwgll (p->mesh, tmp, ni);
+      free (tmp);
+#else
+      JACGL    (ni-1, 0.0, 0.0,  p->mesh);
+#endif
       uniknot  (np,              oldmesh);
-      jacgl    (ni-1, 0.0, 0.0,  p->mesh);
       intmat_g (np, oldmesh, ni, p->mesh, p->interp, p->interpT);
       dermat_g (np, oldmesh, ni, p->mesh, p->deriv,  p->derivT );
 
@@ -248,6 +385,129 @@ void dMeshOps (const integer   old , /* input: element basis: STD or GLL     */
   if (it)   *it   = (const double**) p -> interpT;
   if (dr)   *dr   = (const double**) p -> deriv;
   if (dt)   *dt   = (const double**) p -> derivT;
+}
+
+
+typedef struct projop { /* ------- projection operator information  -------- */
+  int            nfrom; /* Number of points projection is "from"             */
+  char           rfrom; /* Mesh point definition: 'G', 'R', 'L', or 'U'      */
+  double         afrom; /* Jacobi weight function powers of "from" mesh      */
+  double         bfrom; /*   ignored for 'U' (uniform) mesh spacing          */
+  int            nto  ; /* Number of points projection is "to".              */
+  char           rto  ; /* Quadrature rule: 'G', 'R', or 'L'                 */
+  double         ato  ; /* As for "from" mesh definitions.                   */
+  double         bto  ; /*                                                   */
+  double*        IN   ; /* Interpolant/projection matrix, row-major order    */
+  double*        IT   ; /* Transpose of IN                                   */
+  struct projop* next ; /* link to next                                      */
+} ProjOp;		/* ------------------------------------------------- */
+
+static ProjOp* Proot = 0;
+
+void proj (const double** IN    , /* Interpolant operator matrix             */
+	   const double** IT    , /* Transposed interpolant operator matrix  */
+	   const int      nfrom , /* Input: Number of "from" points          */
+	   const char     rulefr, /* Input: 'G', 'R', 'L', or 'U', "from"    */
+	   const double   alphfr, /* Input: Jacobi constant, "from"          */
+	   const double   betafr, /* Input: Jacobi constant, "from"          */
+	   const int      nto   , /* Input: Number of "to" points            */
+	   const char     ruleto, /* Input: 'G', 'R', 'L', or 'U', "to"      */
+	   const double   alphto, /* Input: Jacobi constant, "to"            */
+	   const double   betato) /* Input: Jacobi constant, "to"            */
+/* ------------------------------------------------------------------------- *
+ * Maintain/return operator matrices for projection *from* one mesh
+ * *to* another.  spectral basis functions, defined on the master
+ * interval [-1, +1]. If the "from" or "to" meshes are "spectral"
+ * (i.e. 'G', 'R', or 'L'), they are assumed to be defined by the
+ * generating Gauss-Jacobi-type rule, and the alpha, beta
+ * Jacobi-constant pair. Uniformly-spaced meshes are denoted by 'U',
+ * in which case the constants alpha, beta, are ignored.
+ *
+ * If the required operators are "in stock", they are returned from a list,
+ * otherwise they are created and added to the list as a first step.
+ * NULL input pointers are not assigned a value.
+ *
+ * NB: Gauss-Radau integration rules are asymmetric (they use a point
+ * at one end of the interval, -1 or +1, as well as interior
+ * points). Here the +1 endpoint is assumed.
+ * ------------------------------------------------------------------------- */
+{
+  char    routine[] = "proj";
+  int     rules, constsfr, conststo;
+  int     found;
+  ProjOp* p;
+
+  for (found = 0, p = Proot; p; p=p->next) {
+    rules    = p->nfrom == nfrom && p->rfrom == rulefr &&
+               p->nto   == nto   && p->rto   == ruleto ;
+    constsfr = (rulefr == 'U') ? 1 : (p->afrom== alphfr && p->bfrom == betafr);
+    conststo = (ruleto == 'U') ? 1 : (p->ato  == alphto && p->bto   == betato);
+    found    = rules && constsfr && conststo;
+    if (found) break;
+  }
+
+  if (!found) {			/* -- Make new storage area, fill it. */
+
+    double  *zfrom, *zto, *wfrom, *wto, **IN, **IT;
+
+    p = (ProjOp *) calloc (1, sizeof (ProjOp));
+    if (Proot) p -> next = Proot; Proot = p;
+
+    p->nfrom = nfrom;
+    p->nto   = nto;
+    p->rfrom = rulefr;
+    p->rto   = ruleto;
+    p->afrom = (p->rfrom == 'U') ? 0.0 : alphfr;
+    p->bfrom = (p->rfrom == 'U') ? 0.0 : betafr;
+    p->ato   = (p->rto   == 'U') ? 0.0 : alphto;
+    p->bto   = (p->rto   == 'U') ? 0.0 : betato;
+    p -> IN  = dvector (0, nto*nfrom-1);
+    p -> IT  = dvector (0, nfrom*nto-1);
+
+    zfrom = dvector (0, nfrom-1);
+    wfrom = dvector (0, nfrom-1);
+    zto   = dvector (0, nto-1);
+    wto   = dvector (0, nto-1);
+    IN    = dmatrix (0, nto-1,   0, nfrom-1);
+    IT    = dmatrix (0, nfrom-1, 0, nto-1);
+
+    if      (rulefr == 'G') zwgj    (zfrom, wfrom, nfrom, alphfr, betafr);
+    else if (rulefr == 'R') zwgrjp  (zfrom, wfrom, nfrom, alphfr, betafr);
+    else if (rulefr == 'L') zwglj   (zfrom, wfrom, nfrom, alphfr, betafr);
+    else if (rulefr == 'U') uniknot (nfrom, zfrom);
+    else {
+      char err[STR_MAX];
+      sprintf (err, "unrecognized input mesh rule: %c", rulefr);
+      message (routine, err, ERROR);
+    }
+
+    if      (ruleto == 'G') zwgj    (zto, wto, nto, alphto, betato);
+    else if (ruleto == 'R') zwgrjp  (zto, wto, nto, alphto, betato);
+    else if (ruleto == 'L') zwglj   (zto, wto, nto, alphto, betato);
+    else if (ruleto == 'U') uniknot (nto, zto);
+    else {
+      char err[STR_MAX];
+      sprintf (err, "unrecognized output mesh rule: %c", ruleto);
+      message (routine, err, ERROR);
+    }
+
+    intmat_g (nfrom, zfrom, nto, zto, IN, IT);
+  
+    dcopy (nto*nfrom, *IN, 1, p ->IN, 1);
+    dcopy (nfrom*nto, *IT, 1, p ->IT, 1);
+
+    freeDvector (zfrom, 0);
+    freeDvector (wfrom, 0);
+    freeDvector (zto,   0);
+    freeDvector (wto,   0);
+    freeDmatrix (IN, 0, 0);
+    freeDmatrix (IT, 0, 0);
+  }
+
+  /* -- p now points to valid storage: return requested operators. */
+
+  if (IN) *IN = (const double*) p->IN;
+  if (IT) *IT = (const double*) p->IT;
 }
 
 
@@ -298,6 +558,67 @@ void dIntpOps (const integer basis,  /* element basis: STD or GLL            */
   freeDmatrix (dt, 0, 0);
 }
 
+
+void intp (double*      inr   ,  /* 1D shape function at r               */
+	   double*      ins   ,  /* 1D shape function at s               */
+	   double*      dvr   ,  /* 1D shape function derivative at r    */
+	   double*      dvs   ,  /* 1D shape function derivative at s    */
+	   const int    nr    ,
+	   const char   ruler ,
+	   const double alphar,
+	   const double betar ,
+	   const int    ns    ,
+	   const char   rules ,
+	   const double alphas,
+	   const double betas ,
+	   const double r     ,  /* location of r in [-1, 1]             */
+	   const double s     )  /* location of s in [-1, 1]             */
+/* ------------------------------------------------------------------------- *
+ * Return the interpolation/derivative vectors for tensor-product shape
+ * functions evaluated at canonical coordinates (r, s), each in [-1. 1].
+ *
+ * Take no action for empty vectors.
+ * ------------------------------------------------------------------------- */
+{
+  const double *kr, *ks;
+  double       x[1], **DVr, **DTr, **DVs, **DTs;
+
+  DVr = dmatrix (0, 0, 0, nr - 1);
+  DTr = dmatrix (0, nr - 1, 0, 0);
+  DVs = dmatrix (0, 0, 0, ns - 1);
+  DTs = dmatrix (0, ns - 1, 0, 0);
+
+  quad (&kr, NULL, NULL, NULL, nr, ruler, alphar, betar);
+  quad (&ks, NULL, NULL, NULL, ns, rules, alphas, betas);
+
+  x[0] = r;
+  if (inr) {
+    intmat_g (nr, kr, 1, x, DVr, DTr);
+    dcopy    (nr, *DVr, 1, inr, 1);
+  }
+  if (dvr) {
+    dermat_g (nr, kr, 1, x, DVr, DTr);
+    dcopy    (nr, *DVr, 1, dvr, 1);
+  }
+
+  x[0] = s;
+  if (ins) {
+    intmat_g (ns, ks, 1, x, DVs, DTs);
+    dcopy    (ns, *DVs, 1, ins, 1);
+  }
+  if (dvs) {
+    dermat_g (ns, ks, 1, x, DVs, DTs);
+    dcopy    (ns, *DVs, 1, dvs, 1);
+  }
+
+  freeDmatrix (DVr, 0, 0);
+  freeDmatrix (DTr, 0, 0);
+  freeDmatrix (DVs, 0, 0);
+  freeDmatrix (DTs, 0, 0);
+}
+
+ 
+#if 0
 
 typedef struct legcoef {	/* ---- Table for GLL Legendre transform --- */
   integer         np  ;		/* Number of mesh points                     */
@@ -730,3 +1051,4 @@ void dglmdpt (const integer  np,
   if (fu) *fu = (const double*) p -> UF;
   if (bu) *bu = (const double*) p -> UB;
 }
+#endif

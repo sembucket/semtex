@@ -1,11 +1,11 @@
 ///////////////////////////////////////////////////////////////////////////////
 // integral.C: return the domain integral of all fields in dump file.
 //
-// Copyright (c) 1999 Hugh Blackburn
+// Copyright (c) 1999,2003 Hugh Blackburn
 //
 // Synopsis:
 // --------
-// integral [-h] [-v] session [file]
+// integral [-h] [-v] [-c] session [file]
 //
 // Description:
 // -----------
@@ -14,6 +14,9 @@
 // return integral for each scalar field.  For 3D, values are
 // multiplied by domain length, to produce volume integrals.
 //
+// If the coordinate system is cylindrical, then the integrals are
+// weighted by the radius. Use -c switch to turn this off.
+//
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -21,8 +24,8 @@
 
 static char    prog[]  = "integral";
 static integer verbose = 0;
-static void    getargs  (int, char**, char*&, char*&);
-static integer getDump  (ifstream&, vector<AuxField*>&, vector<Element*>&,
+static void    getargs  (int, char**, char*&, char*&, bool&);
+static integer getDump  (istream&, vector<AuxField*>&, vector<Element*>&,
 			 const integer, const integer, const integer);
 static integer doSwap   (const char*);
 
@@ -33,25 +36,29 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  char              *session, *dump;
-  ifstream          fldfile;
-  integer           NP, NZ,  NEL;
-  integer           np, nel, ntot, i;
-  real              Lz, Area = 0.;
-  const real        *z;
-  FEML*             F;
-  Mesh*             M;
-  vector<Element*>  Esys;
-  vector<AuxField*> u;
+  char               *session = 0, *dump = 0;
+  istream            *fldfile;
+  integer            NP, NZ,  NEL;
+  integer            np, nel, ntot, i;
+  real               Lz, Area = 0.;
+  const real         *z;
+  FEML*              F;
+  Mesh*              M;
+  Geometry::CoordSys space;
+  bool               cylind = true;
+  vector<Element*>   Esys;
+  vector<AuxField*>  u;
 
   // -- Initialize.
 
   Femlib::initialize (&argc, &argv);
-  getargs            (argc, argv, session, dump);
+  getargs            (argc, argv, session, dump, cylind);
   cout.precision     (8);
 
-  fldfile.open (dump, ios::in);
-  if (!fldfile) message (prog, "no field file", ERROR);
+  if (dump) {
+    fldfile = new ifstream (dump);
+    if (fldfile -> bad()) message (prog, "no field file", ERROR);
+  } else fldfile = &cin;
 
   // -- Set up 2D mesh information.
   
@@ -62,8 +69,10 @@ int main (int    argc,
   NP  = (integer)  Femlib::value ("N_POLY");
   NZ  = (integer)  Femlib::value ("N_Z"   );
   Lz  = (NZ > 1) ? Femlib::value ("TWOPI / BETA") : 1.;
-  
-  Geometry::set (NP, NZ, NEL, Geometry::Cartesian);
+  space = (static_cast<int>(Femlib::value ("CYLINDRICAL")) && cylind) ? 
+    Geometry::Cylindrical : Geometry::Cartesian;
+
+  Geometry::set (NP, NZ, NEL, space);
   Femlib::mesh  (GLL, GLL, NP, NP, &z, 0, 0, 0, 0);
   Esys.resize   (NEL);
 
@@ -75,7 +84,7 @@ int main (int    argc,
   
   // -- Load field file, interpolate within it.
 
-  while (getDump (fldfile, u, Esys, NP, NZ, NEL)) {
+  while (getDump (*fldfile, u, Esys, NP, NZ, NEL)) {
     for (i = 0; i < u.size(); i++) {
       u[i] -> transform (+1);
       cout << u[i] -> name() << ": " << Lz * u[i] -> integral (0) << endl;
@@ -90,7 +99,8 @@ int main (int    argc,
 static void getargs (int    argc   ,
 		     char** argv   ,
 		     char*& session,
-		     char*& dump   )
+		     char*& dump   ,
+		     bool&  cylind )
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
@@ -98,7 +108,8 @@ static void getargs (int    argc   ,
   char usage[] = "Usage: integral [options] session [dump]\n"
     "options:\n"
     "-h ... print this message\n"
-    "-v ... verbose output\n";
+    "-v ... verbose output\n"
+    "-c ... switch cylindrical coordinates off, if defined in session\n";
  
   while (--argc && **++argv == '-')
     switch (*++argv[0]) {
@@ -109,23 +120,22 @@ static void getargs (int    argc   ,
     case 'v':
       verbose = 1;
       break;
+    case 'c':
+      cylind = false;
+      break;
     default:
       cerr << usage;
       exit (EXIT_FAILURE);
       break;
     }
 
-  if (argc != 2) message (prog, usage, ERROR);
-  else { session = argv[0]; dump = argv[1]; }
-
-  if (argc == 1) {
-  } else {
-    message (prog, usage, ERROR);
-  }
+  if      (argc == 1)   session = argv[0];
+  else if (argc == 2) { session = argv[0]; dump = argv[1]; }
+  else                  message (prog, usage, ERROR);
 }
 
 
-static integer getDump (ifstream&          file,
+static integer getDump (istream&           file,
 			vector<AuxField*>& u   ,
 			vector<Element*>&  Esys,
 			const integer      np  ,

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // boundary.C: implement Boundary class functions.
 //
-// Copyright (C) 1994, 1999 Hugh Blackburn
+// Copyright (c) 1994,2003 Hugh Blackburn
 //
 // SYNOPSIS
 // --------
@@ -9,9 +9,9 @@
 // applied (as opposed to periodic edges).  The ordering of internal
 // storage for condition values and geometric factors corresponds to
 // CCW traverse of 2D element edges.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <Sem.h>
 
@@ -207,11 +207,9 @@ void Boundary::curlCurl (const integer k ,
 // This allows the same routine to be used for 2D solutions.
 // ---------------------------------------------------------------------------
 {
-  const Geometry::CoordSys space = Geometry::system();
-
-  const integer npnp     = sqr (_np);
-  const integer elmtOff  = _elmt -> ID() * npnp;
-  const integer localOff = _doffset - elmtOff;
+  const int npnp     = sqr (_np);
+  const int elmtOff  = _elmt -> ID() * npnp;
+  const int localOff = _doffset - elmtOff;
 
   static vector<real> work (5 * npnp + 3 * _np);
   real* gw = &work[0];
@@ -220,11 +218,6 @@ void Boundary::curlCurl (const integer k ,
   real* vx = w  + npnp;
   real* uy = vx + npnp;
   real* t  = uy + npnp;
-  
-  const real** DV;
-  const real** DT;
-
-  Femlib::quad (LL, _np, _np, 0, 0, 0, 0, 0, &DV, &DT);
   
   // -- Make pointers to current element storage.
 
@@ -237,7 +230,7 @@ void Boundary::curlCurl (const integer k ,
     Veclib::copy (npnp, Ur, 1, uy, 1);
     Veclib::copy (npnp, Vr, 1, vx, 1);
 
-    _elmt -> grad (vx, uy, DV, DT, gw);
+    _elmt -> grad (vx, uy, gw);
 
     // -- (Z-component of) vorticity, w = dv/dx - du/dy.
 
@@ -246,12 +239,15 @@ void Boundary::curlCurl (const integer k ,
     // -- Find dw/dx & dw/dy on appropriate edge.
 
     _elmt -> sideGrad (_side, w, yr, xr, ew);
-    
+
     // -- Add in cylindrical space modification to complete x-component.
 
-    if (space == Geometry::Cylindrical) {
-      _elmt -> sideDivR (_side, w, t);
-      Veclib::vadd      (_np, xr, 1, t, 1, xr, 1);
+    if (Geometry::cylindrical()) {
+      _elmt -> sideGet (_side, w, t);
+
+      Veclib::vmul (_np, xr, 1, _y, 1, xr, 1);
+      Veclib::vmul (_np, yr, 1, _y, 1, yr, 1);
+      Veclib::vadd (_np, xr, 1, t,  1, xr, 1);
     }
 
     // -- Sign change to complete y-component of curl curl u.
@@ -267,40 +263,42 @@ void Boundary::curlCurl (const integer k ,
 
     Veclib::copy      (npnp, Ur, 1, uy, 1);
     Veclib::copy      (npnp, Vr, 1, vx, 1);
-    _elmt -> grad     (vx, uy, DV, DT, gw);
+    _elmt -> grad     (vx, uy, gw);
     Veclib::vsub      (npnp, vx, 1, uy, 1, w, 1);
     _elmt -> sideGrad (_side, w, yr, xr, ew);
     Veclib::neg       (_np, yr, 1);
 
-    if (space == Geometry::Cylindrical) {
-      _elmt -> sideDivR (_side, w, t);
-      Veclib::vadd      (_np, xr, 1, t, 1, xr, 1);
+    if (Geometry::cylindrical()) {
+      _elmt -> sideGet (_side, w, t);
+      Veclib::vmul (_np, xr, 1, _y, 1, xr, 1);
+      Veclib::vmul (_np, yr, 1, _y, 1, yr, 1);
+      Veclib::vadd (_np, xr, 1, t,  1, xr, 1);     
     }
 
     Veclib::copy      (npnp, Ui, 1, uy, 1);
     Veclib::copy      (npnp, Vi, 1, vx, 1);
-    _elmt -> grad     (vx, uy, DV, DT, gw);
+    _elmt -> grad     (vx, uy, gw);
     Veclib::vsub      (npnp, vx, 1, uy, 1, w, 1);
     _elmt -> sideGrad (_side, w, yi, xi, ew);
     Veclib::neg       (_np, yi, 1);
 
-    if (space == Geometry::Cylindrical) {
-      _elmt -> sideDivR (_side, w, t);
-      Veclib::vadd     (_np, xi, 1, t, 1, xi, 1);
+    if (Geometry::cylindrical()) {
+      _elmt -> sideGet (_side, w, t);
+      Veclib::vmul (_np, xi, 1, _y, 1, xi, 1);
+      Veclib::vmul (_np, yi, 1, _y, 1, yi, 1);
+      Veclib::vadd (_np, xi, 1, t,  1, xi, 1);   
     }
 
     // -- Semi-Fourier terms based on Wr.
 
     Veclib::copy  (npnp, Wr, 1, vx, 1);
     Veclib::copy  (npnp, Wr, 1, uy, 1);
-    _elmt -> grad (vx, uy, DV, DT, gw);
-    if (space == Geometry::Cylindrical) {
-      _elmt -> sideDivR  (_side, vx,  t);
-      Blas::axpy         (_np,  betaK, t, 1, xi, 1);
-      _elmt -> sideDivR  (_side, uy,  t);
-      Blas::axpy         (_np,  betaK, t, 1, yi, 1);
-      _elmt -> sideDivR2 (_side, Wr,  t);
-      Blas::axpy         (_np,  betaK, t, 1, yi, 1);
+    _elmt -> grad (vx, uy, gw);
+    if (Geometry::cylindrical()) {
+      _elmt -> sideDivY (_side, Wr, t);
+      Blas::axpy (_np, betaK, vx + localOff, _dskip, xi, 1);
+      Blas::axpy (_np, betaK, uy + localOff, _dskip, yi, 1);
+      Blas::axpy (_np, betaK, t, 1, yi, 1);
     } else {
       Blas::axpy (_np, betaK, vx + localOff, _dskip, xi, 1);
       Blas::axpy (_np, betaK, uy + localOff, _dskip, yi, 1);
@@ -310,14 +308,12 @@ void Boundary::curlCurl (const integer k ,
 
     Veclib::copy  (npnp, Wi, 1, vx, 1);
     Veclib::copy  (npnp, Wi, 1, uy, 1);
-    _elmt -> grad (vx, uy, DV, DT, gw);
-    if (space == Geometry::Cylindrical) {
-      _elmt -> sideDivR  (_side, vx,   t);
-      Blas::axpy         (_np, -betaK, t, 1, xr, 1);
-      _elmt -> sideDivR  (_side, uy,   t);
-      Blas::axpy         (_np, -betaK, t, 1, yr, 1);
-      _elmt -> sideDivR2 (_side, Wi,   t);
-      Blas::axpy         (_np, -betaK, t, 1, yr, 1);
+    _elmt -> grad (vx, uy, gw);
+    if (Geometry::cylindrical()) {
+      _elmt -> sideDivY (_side, Wi, t);
+      Blas::axpy (_np, -betaK, vx + localOff, _dskip, xr, 1);
+      Blas::axpy (_np, -betaK, uy + localOff, _dskip, yr, 1);
+      Blas::axpy (_np, -betaK, t, 1, yr, 1);
     } else {
       Blas::axpy (_np, -betaK, vx + localOff, _dskip, xr, 1);
       Blas::axpy (_np, -betaK, uy + localOff, _dskip, yr, 1);
@@ -325,15 +321,15 @@ void Boundary::curlCurl (const integer k ,
 
     // -- Fourier second derivatives in the third direction.
 
-    if (space == Geometry::Cylindrical) {
-      _elmt -> sideDivR2 (_side, Ur,   t);
-      Blas::axpy         (_np, betaK2, t, 1, xr, 1);
-      _elmt -> sideDivR2 (_side, Ui,   t);
-      Blas::axpy         (_np, betaK2, t, 1, xi, 1);
-      _elmt -> sideDivR2 (_side, Vr,   t);
-      Blas::axpy         (_np, betaK2, t, 1, yr, 1);
-      _elmt -> sideDivR2 (_side, Vi,   t);
-      Blas::axpy         (_np, betaK2, t, 1, yi, 1);
+    if (Geometry::cylindrical()) {
+      _elmt -> sideDivY (_side, Ur,   t);
+      Blas::axpy        (_np, betaK2, t, 1, xr, 1);
+      _elmt -> sideDivY (_side, Ui,   t);
+      Blas::axpy        (_np, betaK2, t, 1, xi, 1);
+      _elmt -> sideDivY (_side, Vr,   t);
+      Blas::axpy        (_np, betaK2, t, 1, yr, 1);
+      _elmt -> sideDivY (_side, Vi,   t);
+      Blas::axpy        (_np, betaK2, t, 1, yi, 1);
     } else {
       Blas::axpy (_np, betaK2, Ur + localOff, _dskip, xr, 1);
       Blas::axpy (_np, betaK2, Ui + localOff, _dskip, xi, 1);
@@ -477,3 +473,13 @@ const char* Boundary::group () const
 {
   return _bcondn -> group();
 }
+
+
+void Boundary::mulY (real* tgt) const
+// ---------------------------------------------------------------------------
+// Multiply tgt by y (i.e. radius) along this edge.
+// ---------------------------------------------------------------------------
+{
+  Veclib::vmul (_np, tgt, 1, _y, 1, tgt, 1);
+}
+

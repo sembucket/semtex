@@ -57,7 +57,7 @@
 #include <errno.h>
 
 #include <femdef.h>
-#include <alplib.h>
+#include <veclib.h>
 
 #if 1
 #define HASHSIZE 199

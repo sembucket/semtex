@@ -2,7 +2,7 @@
 // field.C: derived from AuxField, Field adds boundary conditions,
 // global numbering, and the ability to solve Helmholtz problems.
 //
-// Copyright (C) 1994, 2003 Hugh Blackburn
+// Copyright (c) 1994,2003 Hugh Blackburn
 //
 // HELMHOLTZ PROBLEMS
 // ------------------
@@ -101,9 +101,9 @@
 // w:  Third velocity component.            (Cylindrical: azimuthal velocity.)
 // p:  Pressure divided by density.
 // c:  Scalar for transport or elliptic problems.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <Sem.h>
 
@@ -603,7 +603,7 @@ Field& Field::solve (AuxField*             f  ,
       const integer* b2g     = (const integer*) N -> btog();
       int            nband   = M -> _nband;
 
-      vector<real>   work (nglobal + npnp);
+      vector<real>   work (nglobal + 4*npnp);
       real           *RHS = &work[0], *tmp = RHS + nglobal;
       int            info;
       
@@ -612,8 +612,8 @@ Field& Field::solve (AuxField*             f  ,
       Veclib::zero (nglobal, RHS, 1);
       
       this -> getEssential (bc, RHS, B, N);
-      this -> constrain    (forcing, lambda2, betak2, RHS, N);
-      this -> buildRHS     (forcing, bc, RHS, 0, hbi, nsolve, nzero, B, N);
+      this -> constrain    (forcing, lambda2, betak2, RHS, N, tmp);
+      this -> buildRHS     (forcing, bc, RHS, 0, hbi, nsolve, nzero,B,N,tmp);
       
       // -- Solve for unknown global-node values (if any).
       
@@ -622,7 +622,7 @@ Field& Field::solve (AuxField*             f  ,
       // -- Carry out Schur-complement solution for element-internal nodes.
       
       for (i = 0; i < nel; i++, b2g += next, forcing += npnp, unknown += npnp)
-	_elmt[i] -> g2eSC (RHS, b2g, forcing, unknown, hbi[i], hii[i], tmp);
+	_elmt[i] -> global2localSC (RHS,b2g,forcing,unknown,hbi[i],hii[i],tmp);
 
       unknown -= ntot;
     
@@ -636,10 +636,10 @@ Field& Field::solve (AuxField*             f  ,
     break;
 
     case JACPCG: {
-      const int StepMax = static_cast<int>(Femlib::value ("STEP_MAX"));
-      const int npts    = M -> _npts;
-      real          alpha, beta, dotp, epsb2, r2, rho1, rho2;
-      vector<real>  work (5 * npts + 3 * Geometry::nPlane());
+      const int    StepMax = static_cast<int>(Femlib::value ("STEP_MAX"));
+      const int    npts    = M -> _npts;
+      real         alpha, beta, dotp, epsb2, r2, rho1, rho2;
+      vector<real> work (5*npts+4*Geometry::nTotElmt());
 
       real* r   = &work[0];
       real* p   = r + npts;
@@ -650,9 +650,9 @@ Field& Field::solve (AuxField*             f  ,
 
       Veclib::zero (nglobal, x, 1);
 
-      this -> getEssential (bc, x, B, N);  
-      this -> constrain    (forcing, lambda2, betak2, x, N);
-      this -> buildRHS     (forcing, bc, r, r+nglobal, 0, nsolve, nzero, B, N);
+      this -> getEssential (bc,x,B,N);  
+      this -> constrain    (forcing,lambda2,betak2,x,N,wrk);
+      this -> buildRHS     (forcing,bc,r,r+nglobal,0,nsolve,nzero,B,N,wrk);
 
       epsb2  = Femlib::value ("TOL_REL") * sqrt (Blas::dot (npts, r, 1, r, 1));
       epsb2 *= epsb2;
@@ -667,7 +667,7 @@ Field& Field::solve (AuxField*             f  ,
       Veclib::zero (nzero, x + nsolve, 1);   
       Veclib::copy (npts,  x, 1, q, 1);
 
-      this -> HelmholtzOperator (q, p, lambda2, betak2, wrk, mode);
+      this -> HelmholtzOperator (q, p, lambda2, betak2, mode, wrk);
 
       Veclib::zero (nzero, p + nsolve, 1);
       Veclib::zero (nzero, r + nsolve, 1);
@@ -697,7 +697,7 @@ Field& Field::solve (AuxField*             f  ,
 
 	// -- Matrix-vector product.
 
-	this -> HelmholtzOperator (p, q, lambda2, betak2, wrk, mode);
+	this -> HelmholtzOperator (p, q, lambda2, betak2, mode, wrk);
 	Veclib::zero (nzero, q + nsolve, 1);
 
 	// -- Move in conjugate direction.
@@ -737,11 +737,14 @@ void Field::constrain (real*            force  ,
 		       const real       lambda2,
  		       const real       betak2 ,
 		       const real*      esstlbc,
-		       const NumberSys* N      ) const
+		       const NumberSys* N      ,
+		       real*            work   ) const
 // ---------------------------------------------------------------------------
 // Replace f's data with constrained weak form of forcing: - M f - H g.
 // On input, essential BC values (g) have been loaded into globally-numbered
 // esstlbc, other values are zero.
+//
+// Input vector work should be 4*Geometry::nTotElmt() long.
 // ---------------------------------------------------------------------------
 {
   const int         np    = Geometry::nP();
@@ -754,29 +757,18 @@ void Field::constrain (real*            force  ,
   const real        **DV, **DT;
   register Element* E;
   register int      i;
-  vector<real>      work (3 * npnp);
-  real              *u, *r, *s;
-
-  u = &work[0];
-  r = u + npnp;
-  s = r + npnp;
-
-  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+  real              *u = work, *tmp = work + npnp;
 
   // -- Manufacture -(M f + H g).
 
   for (i = 0; i < nel; i++, emask++, btog += next, force += npnp) {
     E = _elmt[i];
-    
     E -> weight (force);	// -- f <-- M f.
-
     if (*emask) {		// -- f <-- M f + H g.
-      Veclib::zero       (3 * npnp, u, 1);
-      E -> g2e           (u, btog, esstlbc, 0);
-      Femlib::grad2      (u, u, r, s, *DV, *DT, np, 1);
-      E -> HelmholtzKern (lambda2, betak2, r, s, u, u);
-      Femlib::grad2      (r, s, u, u, *DT, *DV, np, 1);
-      Veclib::vadd       (npnp, force, 1, u, 1, force, 1);
+      Veclib::zero      (npnp, u, 1);
+      E -> global2local (u, btog, esstlbc, 0);
+      E -> HelmholtzOp  (lambda2, betak2, u, u, tmp);
+      Veclib::vadd      (npnp, force, 1, u, 1, force, 1);
     }
   }
 
@@ -789,8 +781,8 @@ void Field::HelmholtzOperator (const real*x      ,
 			       real*      y      ,
 			       const real lambda2,
 			       const real betak2 ,
-			       real*      work   ,
-			       const int  mode   ) const
+			       const int  mode   ,
+			       real*      work   ) const
 // ---------------------------------------------------------------------------
 // Discrete 2D global Helmholtz operator which takes the vector x into
 // vector y, including direct stiffness summation.  Vectors x & y have 
@@ -798,23 +790,25 @@ void Field::HelmholtzOperator (const real*x      ,
 // redundancy removed) coming first, followed by nel blocks of element-
 // internal nodes.
 //
-// Vector work must have length 3 * Geometry::nPlane().
+// Vector work must have length 4*Geometry::nTotElmt().
 // ---------------------------------------------------------------------------
 {
   const int        np      = Geometry::nP();
   const int        nel     = Geometry::nElmt();
   const int        npnp    = Geometry::nTotElmt();
+  const int        next    = Geometry::nExtElmt();
+  const int        nint    = Geometry::nIntElmt();
   const int        ntot    = Geometry::nPlane();
   const NumberSys* NS      = _bsys -> Nsys (mode);
+  const integer*   gid     = NS -> btog();
   const int        nglobal = NS -> nGlobal() + Geometry::nInode();
-  const real       **DV, **DT;
+  const real*      xint    = x + NS -> nGlobal();
+  real*            yint    = y + NS -> nGlobal();
+  real             *P = work, *tmp = work + npnp;
   register int     i;
-  real             *P = work, *R = P + ntot, *S = R + ntot;
+  Element*         E;
 
-  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
-
-  Veclib::zero (nglobal,     y, 1);
-  Veclib::zero (ntot + ntot, R, 1);
+  Veclib::zero (nglobal, y, 1);
 
   // -- Add in contributions from mixed BCs while x & y are global vectors.
 
@@ -828,20 +822,12 @@ void Field::HelmholtzOperator (const real*x      ,
 
   // -- Add in contributions from elemental Helmholtz operations.
 
-  this -> global2local (x, P, NS);
-
-  Femlib::grad2 (P, P, R, S, *DV, *DT, np, nel);
-
-  for (i = 0; i < nel; i++, R += npnp, S += npnp, P += npnp)
-    _elmt[i] -> HelmholtzKern (lambda2, betak2, R, S, P, P);
- 
-  P -= ntot;
-  R -= ntot;
-  S -= ntot;
-  
-  Femlib::grad2 (R, S, P, P, *DT, *DV, np, nel);
-
-  this -> local2globalSum (P, y, NS);
+  for (i = 0; i < nel; i++, gid += next, xint += nint, yint += nint) {
+    E = _elmt[i];
+    E -> global2local    (P, gid, x, xint);
+    E -> HelmholtzOp     (lambda2, betak2, P, P, tmp);
+    E -> local2globalSum (P, gid, y, yint);
+  }
 }
 
 
@@ -853,7 +839,8 @@ void Field::buildRHS (real*                    force ,
 		      const int                nsolve,
 		      const int                nzero ,
 		      const vector<Boundary*>& bnd   ,
-		      const NumberSys*         N     ) const
+		      const NumberSys*         N     ,
+		      real*                    work  ) const
 // ---------------------------------------------------------------------------
 // Build RHS for direct or iterative solution.
 //
@@ -872,6 +859,8 @@ void Field::buildRHS (real*                    force ,
 //
 // in element (row-major) form, and bc contains the line of BC data values
 // for this plane of data: only natural BCs are used in formation of <h, w>.
+//
+// Input vector work should be Geometry::nTotElmt() long.
 // ---------------------------------------------------------------------------
 {
   const int                np      = Geometry::nP();
@@ -882,7 +871,6 @@ void Field::buildRHS (real*                    force ,
   const int                nglobal = N -> nGlobal();
   const integer*           gid;
   register const Boundary* B;
-  vector<real>             work (npnp);
   register int             i, boff;
 
   if   (RHSint) Veclib::zero (nglobal + Geometry::nInode(), RHS, 1);
@@ -892,9 +880,9 @@ void Field::buildRHS (real*                    force ,
 
   for (gid = N -> btog(), i = 0; i < nel; i++, force += npnp, gid += next) {
     if (RHSint) {
-      _elmt[i] -> e2gSum   (force, gid, RHS, RHSint); RHSint += nint;
+      _elmt[i] -> local2globalSum   (force, gid, RHS, RHSint); RHSint += nint;
     } else
-      _elmt[i] -> e2gSumSC (force, gid, RHS, hbi[i], &work[0]);
+      _elmt[i] -> local2globalSumSC (force, gid, RHS, hbi[i], work);
   }
 
   // -- Add in <h, w>.
@@ -903,7 +891,7 @@ void Field::buildRHS (real*                    force ,
     B    = bnd[i];
     boff = B -> bOff();
 
-    B -> sum (bc, gid + boff, &work[0], RHS);
+    B -> sum (bc, gid + boff, work, RHS);
   }
 
   // -- Zero any contribution that <h, w> made to essential BC nodes.
@@ -921,28 +909,6 @@ void Field::local2global (const real*      src,
 // element-internal locations in emap ordering.
 // ---------------------------------------------------------------------------
 {
-  const int    nel  = Geometry::nElmt();
-  const int    next = Geometry::nExtElmt();
-  const int    nint = Geometry::nIntElmt();
-  const int    npnp = Geometry::nTotElmt();
-  const integer*   gid  = N -> btog();
-  register int i;
-  register real*   internal = tgt + N -> nGlobal();
-
-  for (i = 0; i < nel; i++, src += npnp, gid += next, internal += nint)
-    _elmt[i] -> e2g (src, gid, tgt, internal);
-}
-
-
-void Field::local2globalSum (const real*      src,
-			     real*            tgt,
-			     const NumberSys* N  ) const
-// ---------------------------------------------------------------------------
-// Direct stiffness sum a plane of data (src) into globally-numbered
-// tgt, with element- boundary values in the first N -> nGlobal()
-// places, followed by element-internal locations in emap ordering.
-// ---------------------------------------------------------------------------
-{
   const int      nel  = Geometry::nElmt();
   const int      next = Geometry::nExtElmt();
   const int      nint = Geometry::nIntElmt();
@@ -952,7 +918,7 @@ void Field::local2globalSum (const real*      src,
   register real* internal = tgt + N -> nGlobal();
 
   for (i = 0; i < nel; i++, src += npnp, gid += next, internal += nint)
-    _elmt[i] -> e2gSum (src, gid, tgt, internal);
+    _elmt[i] -> local2global (src, gid, tgt, internal);
 }
 
 
@@ -974,7 +940,7 @@ void Field::global2local (const real*      src,
   register const real* internal = src + N -> nGlobal();
 
   for (i = 0; i < nel; i++, tgt += npnp, gid += next, internal += nint)
-    _elmt[i] -> g2e (tgt, gid, src, internal);
+    _elmt[i] -> global2local (tgt, gid, src, internal);
 }
 
 

@@ -1,10 +1,10 @@
 ///////////////////////////////////////////////////////////////////////////////
 // matrix.C: routines for direct solution of Helmholtz problems.
 //
-// Copyright (C) 1994, 2003 Hugh Blackburn
-//
-// $Id$
+// Copyright (c) 1994,2003 Hugh Blackburn
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <Sem.h>
 
@@ -33,8 +33,9 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
 //   method  : specify the kind of solver we want (Cholesky, PCG ...).
 // ---------------------------------------------------------------------------
 {
-  const char                   name = Bsys -> field();
-  int                          found, mode;
+  const char name = Bsys -> field();
+  int        found, mode;
+
   MatrixSys*                   M;
   vector<MatrixSys*>::iterator m;
 
@@ -49,9 +50,10 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
   }
 
   for (mode = baseMode; mode < baseMode + numModes; mode++) {
-    const NumberSys* N         = Bsys -> Nsys (mode * Geometry::kFund());
-    const real       betak2    = sqr (Field::modeConstant (name, mode, beta));
-    const int        localMode = mode - baseMode;
+    const int modeIndex = mode * Geometry::kFund();
+    const NumberSys* N  = Bsys -> Nsys (modeIndex);
+    const real betak2   = sqr (Field::modeConstant (name, modeIndex, beta));
+    const int localMode = mode - baseMode;
 
     for (found = 0, m = MS.begin(); !found && m != MS.end(); m++) {
       M     = *m;
@@ -62,7 +64,7 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
       if (method == DIRECT) { cout << '.'; cout.flush(); }
     } else {
       _Msys[localMode] =
-	new MatrixSys (lambda2, betak2, mode, Elmt, Bsys, method);
+	new MatrixSys (lambda2, betak2, modeIndex, Elmt, Bsys, method);
       MS.insert (MS.end(), _Msys[localMode]);
       if (method == DIRECT) { cout << '*'; cout.flush(); }
     }
@@ -251,7 +253,7 @@ MatrixSys::MatrixSys (const real              lambda2,
     // -- Element contributions.
 
     for (i = 0; i < _nel; i++, bmap += next, PCi += nint) {
-      elmt[i] -> HelmholtzDg (lambda2, betak2, ed, ewrk);
+      elmt[i] -> HelmholtzDiag (lambda2, betak2, ed, ewrk);
       Veclib::scatr_sum (next, ed,  bmap,    _PC);
       Veclib::copy      (nint, ed + next, 1, PCi, 1);
     }

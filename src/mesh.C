@@ -2,7 +2,7 @@
 // mesh.C: read information from a FEML stream, provide
 // facilities for generation of mesh knots and initial connectivity.
 //
-// Copyright (C) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994,2003 Hugh Blackburn
 //
 // Example/required parts of a FEML file:
 //
@@ -75,9 +75,9 @@
 // 
 // NB: Node, Element and Side IDs are internally held as one less than
 // input value, i.e. commence at 0 instead of 1.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <cstdarg>
 #include <cstdlib>
@@ -92,6 +92,7 @@
 #include <iomanip>
 #include <fstream>
 #include <strstream>
+#include <algorithm>
 
 using namespace std;
 
@@ -238,6 +239,12 @@ Mesh::Mesh (FEML*     f    ,
     VERBOSE cout << "  Installing mesh curved sides ... ";
     this -> curves ();
     VERBOSE cout << "done" << endl;
+
+    if (static_cast<bool>(Femlib::value("CYLINDRICAL"))) {
+      VERBOSE cout << "  Checking axial sides ... ";
+      this -> checkAxial ();
+      VERBOSE cout << "done" << endl;
+    }
   }
 }
 
@@ -572,6 +579,37 @@ void Mesh::checkAssembly()
 }
 
 
+void Mesh::checkAxial()
+// ---------------------------------------------------------------------------
+// In an mesh for cylindrical coordinates, we want any edge that
+// touches the x axis to be the first side of the element. And it has
+// to touch all along the boundary.  Check it out.  But
+// surfaces() must have been called first.
+// ---------------------------------------------------------------------------
+{
+  if (static_cast<int>(Femlib::value ("CYLINDRICAL"))) {
+    char         routine[] = "Mesh::checkAxial", err[StrMax];
+    const int    Ne = nEl();
+    Elmt*        E;
+    Side*        S;
+    register int i, j;
+
+    for (i = 0; i < Ne; i++) {
+      E = _elmtTable[i];
+      const int Ns = E -> nNodes();
+      for (j = 0; j < Ns; j++) {
+	S = E -> side[j];
+	if (S -> axial && j) {
+	  sprintf (err, "Elmt %1d Side %1d (not 1) on axis",
+		   S -> thisElmt -> ID + 1, S -> ID + 1);
+	  message (routine, err, ERROR);
+	}
+      }
+    }
+  }
+}
+
+
 void Mesh::curves ()
 // ---------------------------------------------------------------------------
 // Read in curved edge information and store in Mesh _curveTable.
@@ -712,15 +750,21 @@ void Mesh::meshSide (const int   np     ,
 
 void Mesh::meshElmt (const int   ID,
 		     const int   np,
-		     const real* z ,
+		     const real* zr,
+		     const real* zs,
 		     real*       x ,
 		     real*       y ) const
 // ---------------------------------------------------------------------------
-// Generate mesh points for Elmt No ID (IDs begin at 0).
-// Generate element-edge points, then internal points using a Coons patch.
-// Input z contains the spacing of edge knot points along interval [-1, 1].
+// Generate mesh points for Elmt No ID (IDs begin at 0).  Generate
+// element-edge points, then internal points using a Coons patch.
+// Inputs zr, zs contain the spacing of edge knot points along
+// interval [-1, 1], in the "r" and "s" directions.
 //
 // For a quad mesh, equal-order on each side, x & y have row-major ordering.
+//
+// Because the element edges will be mapped in CCW order, we have to
+// reverse the direction of the input spacings zr and zs on sides 2
+// and 3.
 // ---------------------------------------------------------------------------
 {
   const char    routine[] = "Mesh::meshElmt";
@@ -728,33 +772,49 @@ void Mesh::meshElmt (const int   ID,
   const int     ns = _elmtTable[ID] -> nNodes();
   register int  i, j;
   vector<Point> P (np);
+  vector<real>  work (np);
 
   // -- Compute and load peripheral points.
 
   for (j = 0; j < ns; j++) {
-    this -> meshSide (np, ID, j, z, &P[0]);
-    for (i = 0; i < nm; i++) {
-      switch (j) {
-      case 0:
+    switch (j) {
+    case 0:
+      this -> meshSide (np, ID, j, zr, &P[0]);
+      for (i = 0; i < nm; i++) {
 	x[rma (     0,      i, np)] = P[i].x;
 	y[rma (     0,      i, np)] = P[i].y;
-	break;
-      case 1:
+      }
+      break;
+    case 1:
+      this -> meshSide (np, ID, j, zs, &P[0]);
+      for (i = 0; i < nm; i++) {
 	x[rma (     i,     nm, np)] = P[i].x;
 	y[rma (     i,     nm, np)] = P[i].y;
-	break;
-      case 2:
+      }
+      break;
+    case 2:
+      copy (zr, zr+np, work.begin());
+      reverse (work.begin(), work.end());
+      Veclib::neg (np, &work[0], 1);
+      this -> meshSide (np, ID, j, &work[0], &P[0]);
+      for (i = 0; i < nm; i++) {
 	x[rma (    nm, nm - i, np)] = P[i].x;
 	y[rma (    nm, nm - i, np)] = P[i].y;
-	break;
-      case 3:
+      }
+      break;
+    case 3:
+      copy (zs, zs+np, work.begin());
+      reverse (work.begin(), work.end());
+      Veclib::neg (np, &work[0], 1);
+      this -> meshSide (np, ID, j, &work[0], &P[0]);
+      for (i = 0; i < nm; i++) {
 	x[rma (nm - i,      0, np)] = P[i].x;
 	y[rma (nm - i,      0, np)] = P[i].y;
-	break;
-      default:
-	message (routine, "never happen", ERROR);
-	break;
       }
+      break;
+    default:
+      message (routine, "never happen", ERROR);
+      break;
     }
   }
 
@@ -763,25 +823,25 @@ void Mesh::meshElmt (const int   ID,
   for (i = 1; i < nm; i++)
     for (j = 1; j < nm; j++) {
 
-      x[rma (i, j, np)] = 0.50 * ( (1.0 - z[j]) * x[rma ( i,  0, np)] +
-				   (1.0 + z[j]) * x[rma ( i, nm, np)] +
-				   (1.0 - z[i]) * x[rma ( 0,  j, np)] +
-				   (1.0 + z[i]) * x[rma (nm,  j, np)] )
+      x[rma (i, j, np)] = 0.50 * ( (1.0 - zr[j]) * x[rma ( i,  0, np)] +
+				   (1.0 + zr[j]) * x[rma ( i, nm, np)] +
+				   (1.0 - zs[i]) * x[rma ( 0,  j, np)] +
+				   (1.0 + zs[i]) * x[rma (nm,  j, np)] )
 	     
-	 - 0.25 * ( (1.0 - z[j]) * (1.0 - z[i]) * x[rma ( 0,  0, np)] +
-	            (1.0 - z[j]) * (1.0 + z[i]) * x[rma (nm,  0, np)] +
-		    (1.0 - z[i]) * (1.0 + z[j]) * x[rma ( 0, nm, np)] +
-		    (1.0 + z[i]) * (1.0 + z[j]) * x[rma (nm, nm, np)] );
+	 - 0.25 * ( (1.0 - zr[j]) * (1.0 - zs[i]) * x[rma ( 0,  0, np)] +
+	            (1.0 - zr[j]) * (1.0 + zs[i]) * x[rma (nm,  0, np)] +
+		    (1.0 - zs[i]) * (1.0 + zr[j]) * x[rma ( 0, nm, np)] +
+		    (1.0 + zs[i]) * (1.0 + zr[j]) * x[rma (nm, nm, np)] );
 
-      y[rma (i, j, np)] = 0.50 * ( (1.0 - z[j]) * y[rma ( i,  0, np)] +
-				   (1.0 + z[j]) * y[rma ( i, nm, np)] +
-				   (1.0 - z[i]) * y[rma ( 0,  j, np)] +
-				   (1.0 + z[i]) * y[rma (nm,  j, np)] )
+      y[rma (i, j, np)] = 0.50 * ( (1.0 - zr[j]) * y[rma ( i,  0, np)] +
+				   (1.0 + zr[j]) * y[rma ( i, nm, np)] +
+				   (1.0 - zs[i]) * y[rma ( 0,  j, np)] +
+				   (1.0 + zs[i]) * y[rma (nm,  j, np)] )
 	     
-	 - 0.25 * ( (1.0 - z[j]) * (1.0 - z[i]) * y[rma ( 0,  0, np)] +
-                    (1.0 - z[j]) * (1.0 + z[i]) * y[rma (nm,  0, np)] +
-		    (1.0 - z[i]) * (1.0 + z[j]) * y[rma ( 0, nm, np)] +
-		    (1.0 + z[i]) * (1.0 + z[j]) * y[rma (nm, nm, np)] );
+	 - 0.25 * ( (1.0 - zr[j]) * (1.0 - zs[i]) * y[rma ( 0,  0, np)] +
+                    (1.0 - zr[j]) * (1.0 + zs[i]) * y[rma (nm,  0, np)] +
+		    (1.0 - zs[i]) * (1.0 + zr[j]) * y[rma ( 0, nm, np)] +
+		    (1.0 + zs[i]) * (1.0 + zr[j]) * y[rma (nm, nm, np)] );
     }
 }
 
@@ -1007,7 +1067,7 @@ void Mesh::printNek () const
 	  describeBC (S -> group, 'v', buf);
 	  sscanf     (buf, "%*s %*s %f", &vbc);
 	  cout << setw (14) << vbc;
-	  if ((int) Femlib::value ("N_Z") > 1) {
+	  if (static_cast<int>(Femlib::value ("N_Z")) > 1) {
 	    describeBC (S -> group, 'w', buf);
 	    sscanf     (buf, "%*s %*s %f", &vbc);
 	  } else

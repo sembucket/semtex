@@ -60,11 +60,11 @@ int main (int    argc,
 
   FEML feml (session);
 
-  if   (verb)      Femlib::value ("VERBOSE", verb);
-  if   (np)        Femlib::value ("N_POLY",  np  );
-  else  np = (int) Femlib::value ("N_POLY"       );
-  if   (nz)        Femlib::value ("N_Z",     nz  );
-  else  nz = (int) Femlib::value ("N_Z"          );
+  if   (verb)                 Femlib::value ("VERBOSE", verb);
+  if   (np)                   Femlib::value ("N_POLY",  np  );
+  else  np = static_cast<int>(Femlib::value ("N_POLY"       ));
+  if   (nz)                   Femlib::value ("N_Z",     nz  );
+  else  nz = static_cast<int>(Femlib::value ("N_Z"          ));
 
   if (nz > 1 && beta > 0.0) Femlib::value ("BETA", beta);
 
@@ -78,18 +78,24 @@ int main (int    argc,
   const int    NTOT = np * np;
   const real   dz   = Femlib::value ("TWOPI/BETA") / nz;
   register int ID, j, k;
-  vector<real> x (np*np), y (np*np);
-  const real*  zero;
+  vector<real> x (np*np), y (np*np), unimesh (np);
+  real         *mesh_r, *mesh_s;
+  const real   *zero_r, *zero_s;
   real         z;
 
-  if (!threed)
-    cout
+  if (!threed) cout
       << np  << " "
       << np  << " "
       << nz  << " "
       << NEL << " NR NS NZ NEL"<< endl;
 
-  Femlib::mesh (basis, basis, np, np, &zero, 0, 0, 0, 0);
+  if (basis == STD) {
+    Femlib::equispacedMesh (np, &unimesh[0]);
+    zero_r = zero_s = &unimesh[0];
+  } else {
+    Femlib::quadrature (&zero_r, 0, 0, 0, np, 'L', 0.0, 0.0);
+    Femlib::quadrature (&zero_s, 0, 0, 0, np, 'L', 0.0, 1.0);
+  }
 
   if (threed) {
 
@@ -99,7 +105,8 @@ int main (int    argc,
     for (k = 0; k <= nz; k++) {
       z = k * dz;
       for (ID = 0; ID < NEL; ID++) {
-	M.meshElmt (ID, np, zero, &x[0], &y[0]);
+	if (M.isAxial (ID)) M.meshElmt (ID, np, zero_r, zero_s, &x[0], &y[0]);
+	else                M.meshElmt (ID, np, zero_r, zero_r, &x[0], &y[0]);
 	for (j = 0; j < NTOT; j++)
 	  cout << x[j] << '\t' << y[j] << '\t' << z << endl;
       }
@@ -110,7 +117,8 @@ int main (int    argc,
     // -- Print out x-y mesh.
 
     for (ID = 0; ID < NEL; ID++) {
-      M.meshElmt (ID, np, zero, &x[0], &y[0]);
+      if (M.isAxial (ID)) M.meshElmt (ID, np, zero_r, zero_s, &x[0], &y[0]);
+      else                M.meshElmt (ID, np, zero_r, zero_r, &x[0], &y[0]);
       for (j = 0; j < NTOT; j++)
 	cout << setw(15) << x[j] << setw(15) << y[j] << endl;
     }

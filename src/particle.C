@@ -1,12 +1,12 @@
 ///////////////////////////////////////////////////////////////////////////////
 // particle.C: functions for integrating positions of particles.
 //
-// Copyright (C) 1994, 1999 Hugh Blackburn
+// Copyright (c) 1994,2003 Hugh Blackburn
 //
 // See also analysis.C
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <Sem.h>
 

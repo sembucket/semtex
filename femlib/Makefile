@@ -17,7 +17,8 @@ endif
 # Create dependency list.
 #
 
-INITIAL    = initial
+#INITIAL    = initial
+INITIAL    = manager tree
 
 OPERATORS  = polyops	operators	matops          filter
 
@@ -27,7 +28,7 @@ MEMORY     = mapping	family          message
 
 MESH       = RCM
 
-IMPORT     = recipes    xerbla
+IMPORT     = recipes zbesj mach
 
 ALL        = $(INITIAL) $(OPERATORS) $(FFT) $(MEMORY) $(MESH) $(IMPORT)
      

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // compare.C
 //
-// Copyright (c) Hugh Blackburn 1996
+// Copyright (c) 1996,2003 Hugh Blackburn
 //
 // SYNOPSIS
 // --------
@@ -31,9 +31,9 @@
 //   w = 0.0
 //   p = (1.0-exp(lambda*x))/2.0
 // </USER>
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <Sem.h>
 #include <ctime>
@@ -57,7 +57,6 @@ int main (int    argc,
   integer            i, j, np, nz, nel, found;
   integer            nexact = 0, nfields = 0, swab = 0, tran = 0, noise = 0;
   real               t;
-  const real*        zeros;
   Geometry::CoordSys system;
   vector<Element*>   Esys;
   AuxField           *exact, *computed;
@@ -158,10 +157,8 @@ int main (int    argc,
 
   // -- Build Element information, then comparison AuxFields.
 
-  Femlib::mesh (GLL, GLL, np, np, &zeros, 0, 0, 0, 0);
-
   Esys.resize (nel);
-  for (i = 0; i < nel; i++) Esys[i] = new Element (i, M, zeros, np);
+  for (i = 0; i < nel; i++) Esys[i] = new Element (i, np, M);
 
   exact    = new AuxField (new real[Geometry::nTotal()], nz, Esys);
   computed = new AuxField (new real[Geometry::nTotal()], nz, Esys);

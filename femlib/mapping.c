@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <femdef.h>
-#include <alplib.h>
+#include <veclib.h>
 #include <femlib.h>
 
 typedef struct mapping {

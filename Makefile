@@ -14,7 +14,7 @@ tar:
 
 # ----------------------------------------------------------------------------
 dist:
-	tar cvf semtex.tar			\
+	tar cvf semtex.tar			        \
 	README Makefile include src lib mesh sm doc	\
 	dns elliptic utility
 	gzip semtex.tar
@@ -22,7 +22,7 @@ dist:
 # ----------------------------------------------------------------------------
 srcdist:
 	tar cvf srcdist.tar				  \
-	README Makefile include src alplib femlib mesh sm \
+	README Makefile include src veclib femlib mesh sm \
 	dns elliptic utility
 	gzip srcdist.tar
 
@@ -30,13 +30,13 @@ srcdist:
 # Run this to compile libraries required by program.
 
 libs:
-	cd alplib;		\
+	cd veclib;		\
 	$(MAKE) -s install;	\
 
 	cd femlib;		\
 	$(MAKE) -s install;	\
 
-	cd alplib;		\
+	cd veclib;		\
 	$(MAKE) -s clean;	\
 	$(MAKE) -s;		\
 	$(MAKE) -s install

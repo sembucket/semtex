@@ -16,8 +16,8 @@ include $(SEMHOME)/src/Makefile
 #
 % : %.c
 	$(CC) $(CFLAGS) -o $@ $@.c -I$(SEMHOME)/include -I. \
-	-L$(SEMHOME)/lib -lfem -lalp -lm
+	-L$(SEMHOME)/lib -lfem -lvec -lm
 
 % : %.C
 	$(CXX) -o $@ $@.C $(CXXFLAGS) -I$(SEMHOME)/include -I. \
-	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+	-L$(SEMHOME)/lib/$(ARCH) -lfem -lvec $(F77LIBS) -lm

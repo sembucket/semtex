@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // analysis.C: implement Analyser class for NS-type solvers.
 //
-// Copyright (C) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994,2003 Hugh Blackburn
 //
 // This deals with output of runtime information such as step numbers,
 // CFL estimation, modal energies, etc.  If set, also output history
@@ -9,9 +9,9 @@
 //
 // It is assumed that the first 2 or 3 (for 3D) entries in the Domain
 // u vector are velocity fields.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <Sem.h>
 
@@ -306,10 +306,10 @@ void Analyser::divergence (AuxField** Us) const
     }
   } else {
     for (i = 0; i < DIM; i++) *Us[i] = *src -> u[i];
-    Us[1] -> mulR();
+    Us[1] -> mulY();
     for (i = 0; i < DIM; i++)  Us[i] -> gradient (i);
-    Us[1] -> divR();
-    if (DIM == 3) Us[2] -> divR();
+    Us[1] -> divY();
+    if (DIM == 3) Us[2] -> divY();
   }
 
   for (i = 1; i < DIM; i++) *Us[0] += *Us[i];

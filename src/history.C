@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // history.C
 //
-// Copyright (C) 1994, 2003 Hugh Blackburn
+// Copyright (c) 1994,2003 Hugh Blackburn
 //
 // Routines to provide history point information at x, y, z locations.
 //
@@ -17,9 +17,9 @@
 // fall within the first spatial period.
 //
 // Output to a file called session.his.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <Sem.h>
 
