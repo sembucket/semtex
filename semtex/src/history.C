@@ -62,6 +62,6 @@ void HistoryPoint::extract (vector<AuxField*>& u  ,
   register integer i;
   const integer    N = u.getSize();
 
-  for (i = 0; i < N; i++) tgt[i] = u[i] -> probe (E, r, s, z);
+  for (i = 0; i < N; i++) tgt[i] = u[i] -> probe (_E, _r, _s, _z);
 }
 
