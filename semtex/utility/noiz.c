@@ -17,7 +17,6 @@
  * Default value of perturbation is 1.2x10^-7.
  *****************************************************************************/
 
-static char prog[]  = "noiz";
 static char RCSid[] = "$Id$";
 
 #include <math.h>
@@ -30,7 +29,6 @@ static char RCSid[] = "$Id$";
 #include <femdef.h>
 #include <alplib.h>
 
-
 #define IA    16807
 #define IM    2147483647
 #define AM    (1.0/IM)
@@ -41,7 +39,7 @@ static char RCSid[] = "$Id$";
 #define RNMX  (1.0-EPSDP)
 #define UNSET -1
 
-static void   getargs (integer, char**, FILE**, FILE**, double*, integer*);
+static void   getargs (int, char**, FILE**, FILE**, double*, integer*);
 static void   a_to_a  (integer, integer, integer, integer,
 		       FILE*, FILE*, char*, double, integer);
 static void   b_to_b  (integer, integer, integer, integer,
@@ -50,9 +48,23 @@ static double gasdev  (long*);
 static void   perturb (double*, const integer, const integer,
 		       const integer, const double);
 
+static char prog[] = "noiz";
+static const char *hdr_fmt[] = { 
+  "%-25s "    "Session\n",
+  "%-25s "    "Created\n",
+  "%-25s "    "Nr, Ns, Nz, Elements\n",
+  "%-25d "    "Step\n",
+  "%-25.6g "  "Time\n",
+  "%-25.6g "  "Time step\n",
+  "%-25.6g "  "Kinvis\n",
+  "%-25.6g "  "Beta\n",
+  "%-25s "    "Fields written\n",
+  "%-25s "    "Format\n"
+};
 
-integer main (integer argc,
-	      char**  argv)
+
+int main (int    argc,
+	  char** argv)
 /* ------------------------------------------------------------------------- *
  * Wrapper.
  * ------------------------------------------------------------------------- */
@@ -97,8 +109,8 @@ integer main (integer argc,
     while (i++ < 25) if (isalpha(*c++)) n++;
 
     fputs (fields, fp_out);
-    fgets (buf, STR_MAX, fp_in);
-    fputs (buf, fp_out);
+    c = fgets (buf, STR_MAX, fp_in);
+    while (*c++ = tolower(*c));
     
     if (strstr (buf, "binary")) {
       if (!strstr (buf, "endian"))
@@ -107,10 +119,18 @@ integer main (integer argc,
 	swab = (   (strstr (buf, "big") && strstr (fmt, "little"))
 		|| (strstr (fmt, "big") && strstr (buf, "little")) );
       }
-    }
+      sprintf (buf, "binary ");
+      strcat  (buf, fmt);
+      fprintf (fp_out, hdr_fmt[9], buf);
+      b_to_b  (np, nz, nel, n, fp_in, fp_out, fields, pert, mode, swab);
 
-    c = buf;
-    while (isspace(*c)) c++;
+    } else if (strstr (buf, "ascii")) {
+      fprintf (fp_out, hdr_fmt[9], "ASCII");
+      a_to_a  (np, nz, nel, n, fp_in, fp_out, fields, pert, mode);
+    } else {
+      sprintf (buf, "unknown format flag -- %c", c);
+      message (prog, buf, ERROR);
+    }
 
     switch (*c) {
     case 'a': case 'A':
@@ -226,7 +246,7 @@ static void b_to_b (integer np     ,
 }
 
 
-static void getargs (integer  argc  ,
+static void getargs (int       argc  ,
 		     char**   argv  ,
 		     FILE**   fp_in ,
 		     FILE**   fp_out,
@@ -236,15 +256,15 @@ static void getargs (integer  argc  ,
  * Parse command line arguments.
  * ------------------------------------------------------------------------- */
 {
-  char     c;
-  integer  i;
-  char     fname[FILENAME_MAX];
-  char     usage[] = "usage: noiz [options] [input[.fld]]\n"
-                     "options:\n"
-                     "-h         ... print this help message\n"
-                     "-o output  ... write to named file\n"
-                     "-p perturb ... standard deviation of perutrbation\n"
-                     "-m mode    ... add noise only to this Fourier mode\n";
+  char c;
+  int  i;
+  char fname[FILENAME_MAX];
+  char usage[] = "usage: noiz [options] [input[.fld]]\n"
+    "options:\n"
+    "-h         ... print this help message\n"
+    "-o output  ... write to named file\n"
+    "-p perturb ... standard deviation of perutrbation\n"
+    "-m mode    ... add noise only to this Fourier mode\n";
 
   while (--argc && (*++argv)[0] == '-')
     while (c = *++argv[0])
