@@ -16,7 +16,7 @@ ScatAnalyser::ScatAnalyser (Domain* D   ,
   Analyser (D, feml)
 {
   ROOTONLY {
-    const char routine[] = "BuoyAnalyser::BuoyAnalyser";
+    const char routine[] = "ScatAnalyser::ScatAnalyser";
     char       str[StrMax];
 
     // -- Open state-variable file.
