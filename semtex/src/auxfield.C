@@ -239,6 +239,24 @@ AuxField& AuxField::times (const AuxField& a,
 }
 
 
+AuxField& AuxField::divide (const AuxField& a,
+			    const AuxField& b)
+// ---------------------------------------------------------------------------
+// Set this AuxField equal a divided by b (in physical space).
+// No dealiasing. Take care: nothing is done here to ensure b != 0.
+// ---------------------------------------------------------------------------
+{
+  const char routine[] = "AuxField::divide";
+
+  if (_size != a._size || _size != b._size)
+    message (routine, "non-congruent inputs", ERROR);
+  
+  Veclib::vdiv (_size, a._data, 1, b._data, 1, _data, 1);
+
+  return *this;
+}
+
+
 AuxField& AuxField::timesPlus (const AuxField& a,
 			       const AuxField& b)
 // ---------------------------------------------------------------------------

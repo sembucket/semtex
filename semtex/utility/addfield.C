@@ -1,33 +1,41 @@
 //////////////////////////////////////////////////////////////////////////////
 // addfield.C: process sem field files, computing and adding vorticity and
-//             div, rate of strain tensor and invariants.
+// divergence, rate of strain tensor, velocity gradient invariants, etc.
 //
-// Copyright (c) 1998--1999 Hugh Blackburn, Murray Rudman
+// Copyright (c) 1998--2002 Hugh Blackburn, Murray Rudman
 //
-// NB: the original field file is assumed to contain velocity vector data.
+// NB: the input field file is assumed to contain only velocity and
+// pressure data.
 //
 // Usage:
 // -----
-// addvort [options] -s session session.fld
+// addfield [options] -s session session.fld
 //   options:
 //   -h        ... print this message
-//   -v        ... add vorticity
-//   -e        ... add enstrophy and helicity (3D only)
+//   -v        ... add vorticity (default)
+//   -e        ... add enstrophy
+//   -B        ... add elliptic instability growth rate
+//   -b        ... add ellipticity
+//   -h        ... add helicity (3D only)
 //   -d        ... add divergence
-//   -t        ... add rate of strain tensor Sij
-//   -g        ... add gamma = total strain rate = sqrt(2 Sij Sji)
-//   -i        ... add invariants of Vij (but NOT Vij itself)
-//                (NB: Divergence is ASSUMED equal to zero)
+//   -t        ... add components of rate of strain tensor Sij
+//   -g        ... add strain rate magnitude sqrt(2SijSij)
+//   -i        ... add invariants and discriminant of Vij (NOT Vij itself)
+//                 (NB: Divergence is ASSUMED equal to zero.) 3D only
 //   -a        ... add all fields derived from velocity
-//   -f <func> ... add a computed function (of x, y, z, etc)
+//   -f <func> ... add a computed function (of x, y, z, t, etc.)
 //
-// Field names used/assumed here:
-// -----------------------------
+// Reserved field names used/assumed:
+// ---------------------------------
 //
 // u -- x velocity component (cylindrical: axial)
 // v -- y velocity component (cylindrical: radial)
 // w -- z velocity component (cylindrical: azimuthal)
-// p -- pressure / density
+// p -- pressure/density
+// 
+// The following are reserved names, not used:
+// ------------------------------------------
+//
 // A -- uu covariance
 // B -- uv covariance
 // C -- vv covariance
@@ -38,29 +46,31 @@
 // Computed variables:
 // ------------------
 //
-// r -- x component vorticiy
-// s -- y component vorticity
-// t -- z component vorticity
+// a -- elliptic instability growth rate
+// b -- ellipticity parameter \gamma/\omega = 0.5*G/sqrt(e)
 // d -- divergence
-// f -- a computed function of spatial variables
-// Q -- 2nd invariant of velocity gradient tensor
-// R -- 3rd invariant of velocity gradient tensor
-// L -- Discriminant  of velocity gradient tensor 27/4 R^2 + Q^3
-// G -- Strain rate magnitude sqrt(2 Sij Sji)
 // e -- enstrophy 0.5*(r^2 + s^2 + t^2)
+// f -- a computed function of spatial variables
+// G -- Strain rate magnitude sqrt(2SijSij)
 // h -- helicity  0.5*(u*r + v*s + w*t)
 // i -- uu strain rate component
 // j -- uv strain rate component
 // k -- vv strain rate component
+// L -- Discriminant  of velocity gradient tensor 27/4 R^2 + Q^3
 // l -- uw strain rate component
 // m -- vw strain rate component
 // n -- ww strain rate component
+// Q -- 2nd invariant of velocity gradient tensor
+// R -- 3rd invariant of velocity gradient tensor
+// r -- x component vorticity
+// s -- y component vorticity
+// t -- z component vorticity
 //
 // NB: product terms -- such as are used to calculate enstrophy,
-// helicity, the invariants and the discriminant of the velocity
-// gradient tensor, and the strain rate magnitude -- are not
-// dealiased.  Therefore it is advisable to project the original field
-// to a greater number of planes (3/2 rule) before these terms are
+// helicity, the invariants and discriminant of the velocity gradient
+// tensor, and the strain rate magnitude -- are not dealiased.
+// Therefore it is advisable to project the original field to a
+// greater number of planes (3/2 rule) before these terms are
 // calculated, otherwise the products can be quite different from what
 // would be expected (especially if N_Z is small, say 4).
 //
@@ -71,16 +81,19 @@
 #include <new.h>
 #include <time.h>
 
-#define FLAG_MAX 8
-#define FLDS_MAX 16
+#define FLDS_MAX 64 // -- More than we'll ever want.
+#define FLAG_MAX 10 // -- NB: FLAG_MAX should tally with the following enum:
 enum {
-  VORTICITY,
-  ENSTROPHY,
-  DIVERGENCE,
+  EGROWTH     ,
+  ELLIPTICITY ,
+  ENSTROPHY   ,
+  DIVERGENCE  ,
+  FUNCTION    ,
+  HELICITY    ,
+  INVARIANTS  ,
+  STRAINRATE  ,
   STRAINTENSOR,
-  STRAINRATE,
-  INVARIANTS,
-  FUNCTION
+  VORTICITY
 };
 
 static char prog[] = "addfield";
@@ -101,47 +114,48 @@ int main (int    argc,
 
   Geometry::CoordSys system;
   char               *session, *dump, *func, fields[StrMax];
-  integer            i, j, np, nz, nel, allocSize, nComponent, nData = 0;
-  integer            add[FLAG_MAX];
+  integer            i, j, k, np, nz, nel, allocSize, nComponent, iAdd = 0;
+  integer            add[FLAG_MAX], need[FLAG_MAX];
   ifstream           file;
   ofstream           outp (1);
   FEML*              F;
   Mesh*              M;
   BCmgr*             B;
   Domain*            D;
-  AuxField           *Ens, *Hel, *Div, *InvQ, *InvR, *Disc, *Strain;
-  AuxField           *Func, *work;
   const real*        z;
   vector<Element*>   elmt;
-  vector<AuxField*>  AuxPoint(3), dataField(FLDS_MAX), vorticity(3);
+  real*              egrow;
+  AuxField           *Ens, *Hel, *Div, *InvQ, *InvR, *Disc, *Strain;
+  AuxField           *Func, *Ell, *Egr, *work;
+  vector<AuxField*>  velocity, vorticity, addField(FLDS_MAX);
   AuxField***        Sij;
+  AuxField***        Vij; // -- Always computed, for internal use.
 
   Femlib::initialize (&argc, &argv);
+  Veclib::zero (FLAG_MAX, add,  1);  // -- Requested fields.
+  Veclib::zero (FLAG_MAX, need, 1);  // -- Requests + dependencies.
 
-  // -- Set command line defaults.
+  // -- Read command line.
 
-  Veclib::zero (FLAG_MAX, add, 1);
   getargs (argc, argv, session, dump, func, add);
+
+  file.open (dump);
+  if (!file) message (prog, "can't open input field file", ERROR);
 
   // -- Set up domain.
 
-  F = new FEML  (session);
-  M = new Mesh  (F);
-
+  F      = new FEML  (session);
+  M      = new Mesh  (F);
   nel    = M -> nEl();  
   np     =  (integer) Femlib::value ("N_POLY");
   nz     =  (integer) Femlib::value ("N_Z"   );
   system = ((integer) Femlib::value ("CYLINDRICAL") ) ?
                       Geometry::Cylindrical : Geometry::Cartesian;
-  
   Geometry::set (np, nz, nel, system);
   if   (nz > 1) strcpy (fields, "uvwp");
   else          strcpy (fields, "uvp");
   nComponent = Geometry::nDim();
   allocSize  = Geometry::nTotal();
-
-  vorticity.setSize ((nComponent == 2) ? 1 : 3);
-  if (nComponent < 3) add[ENSTROPHY] = 0;
 
   Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
 
@@ -151,12 +165,45 @@ int main (int    argc,
   B = new BCmgr  (F, elmt);
   D = new Domain (F, elmt, B);
 
-  file.open (dump);
+  velocity.setSize   (nComponent);
+  vorticity.setSize ((nComponent == 2) ? 1 : 3);
+  for (i = 0; i < nComponent; i++) velocity[i] = D -> u[i];
 
-  // -- Compute the velocity gradient tensor irrespective of
-  //    what fields we want to output.
+  // -- From the requested fields, flag dependencies.
 
-  AuxField*** Vij = new AuxField** [nComponent];
+  if  (nComponent < 3)
+    add[HELICITY] = add[INVARIANTS] = 0;
+  if (Veclib::sum (FLAG_MAX, add, 1) == 0)
+    message (prog, "nothing to be done", ERROR);
+  for (i = 0; i < FLAG_MAX; i++) need[i] = add[i];
+
+  if (add[ENSTROPHY]) {
+    need[VORTICITY]    = 1;
+    need[ENSTROPHY]    = 1;
+  }
+  if (add[HELICITY]) {
+    need[VORTICITY]    = 1;
+  }
+  if (add[ELLIPTICITY]) {
+    need[VORTICITY]    = 1;
+    need[ENSTROPHY]    = 1;
+    need[STRAINRATE]   = 1;
+    need[STRAINTENSOR] = 1;
+  }
+  if (add[STRAINRATE]) {
+    need[STRAINTENSOR] = 1;
+  }
+  if (add[EGROWTH]) {
+    need[VORTICITY]    = 1;
+    need[ENSTROPHY]    = 1;
+    need[STRAINRATE]   = 1;
+    need[STRAINTENSOR] = 1;
+    need[ELLIPTICITY]  = 1;
+  }
+
+  // -- Always compute the velocity gradient tensor for internal use.
+
+  Vij = new AuxField** [nComponent];
   for (i = 0; i < nComponent; i++) {
     Vij[i] = new AuxField* [nComponent];
     for (j = 0; j < nComponent; j++) {
@@ -165,89 +212,108 @@ int main (int    argc,
     }
   }
   
-  // -- Create workspace and dataField storage areas.
+  // -- Fields without dependants.
 
   work = new AuxField (new real[allocSize], nz, elmt);
 
-  if (add[VORTICITY] || add[ENSTROPHY]) {
-    if (nComponent == 2)
-      vorticity[0] = new AuxField (new real[allocSize], nz, elmt, 't');
-    else
-      for (i = 0; i < nComponent; i++)
-	vorticity [i] = new AuxField (new real[allocSize], nz, elmt, 'r' + i);
-    if (add[VORTICITY]) {
-      for (i = 0 ; i < 2*nComponent - 3 ; i++ ) dataField(i) = vorticity[i];
-      nData += 2*nComponent - 3;
-    }
-    if (add[ENSTROPHY]) {
-      dataField(nData)   = new AuxField (new real[allocSize], nz, elmt, 'e');
-      dataField(nData+1) = new AuxField (new real[allocSize], nz, elmt, 'h');
-      Ens = dataField (nData);
-      Hel = dataField (nData+1);
-      nData += 2;
-    }
+  if (need[FUNCTION]) {
+    Func = new AuxField (new real[allocSize], nz, elmt, 'f');
+    addField[iAdd++] = Func;
   }
 
-  if (add[DIVERGENCE] || add[INVARIANTS])
-    Div =  dataField (nData++) = new AuxField(new real[allocSize],nz,elmt,'d');
+  if (need[DIVERGENCE]) {
+    Div  =  new AuxField (new real[allocSize], nz, elmt, 'd');
+    *Div = 0.0;
+    addField[iAdd++] = Div;
+  }
 
-  if (add[FUNCTION])
-    Func = dataField (nData++) = new AuxField(new real[allocSize],nz,elmt,'f');
+  if (need[INVARIANTS]) {
+    *(InvQ = new AuxField (new real[allocSize], nz, elmt, 'Q')) = 0.0;
+    *(InvR = new AuxField (new real[allocSize], nz, elmt, 'R')) = 0.0;
+    *(Disc = new AuxField (new real[allocSize], nz, elmt, 'L')) = 0.0;
+    addField[iAdd++] = InvQ;
+    addField[iAdd++] = InvR;
+    addField[iAdd++] = Disc;
+  }
+
+  // -- Vorticity and its dependants.
+
+  if (need[VORTICITY])
+    if (nComponent == 2) {
+      vorticity[0] = new AuxField (new real[allocSize], nz, elmt, 't');
+      if (add[VORTICITY])
+	addField[iAdd++] = vorticity[0];
+    } else {
+      for (i = 0; i < nComponent; i++)
+	vorticity[i] = new AuxField (new real[allocSize], nz, elmt, 'r' + i);
+      if (add[VORTICITY])
+	for (i = 0; i < 3; i++) addField[iAdd++] = vorticity[i];
+    }
+
+  if (need[ENSTROPHY]) {
+    Ens = new AuxField (new real[allocSize], nz, elmt, 'e');
+    if (add[ENSTROPHY]) addField[iAdd++] = Ens;
+  }
   
-  integer iadd = 0;
+  if (need[HELICITY]) {
+    Hel = new AuxField (new real[allocSize], nz, elmt, 'h');
+    if (add[HELICITY]) addField[iAdd++] = Hel;
+  }
 
-  if (add[STRAINTENSOR] || add[INVARIANTS] || add[STRAINRATE]) {
+  if (need[ELLIPTICITY]) {
+    Ell = new AuxField (new real[allocSize], nz, elmt, 'b');
+    if (add[ELLIPTICITY]) addField[iAdd++] = Ell;
+  }
+
+  // -- Rate of strain tensor and its dependants.
+
+  if (need[STRAINTENSOR]) {
     Sij = new AuxField** [nComponent];
-    for (i = 0; i < nComponent; i++) {
+    for (k = 0, i = 0; i < nComponent; i++) {
       Sij[i] = new AuxField* [nComponent];
-      for (j = 0 ; j < nComponent ; j++) {
-	if (i <= j) {
-	  Sij[i][j] = new AuxField (new real[allocSize], nz, elmt, 'i' + iadd);
-	  iadd++;
+      for (j = 0; j < nComponent; j++) {
+	if (j >= i) {
+	  Sij[i][j] = new AuxField (new real[allocSize], nz, elmt, 'i' + k++);
 	} else
 	  Sij[i][j] = Sij[j][i];
       }
     }
     if (add[STRAINTENSOR])
-      for (i = 0 ; i < nComponent ; i++)
-	for (j = i ; j < nComponent ; j++, nData++)
-	  dataField (nData) = Sij[i][j];
-    if (add[INVARIANTS]) {
-      dataField (nData)   = new AuxField (new real[allocSize], nz, elmt, 'Q');
-      dataField (nData+1) = new AuxField (new real[allocSize], nz, elmt, 'R');
-      dataField (nData+2) = new AuxField (new real[allocSize], nz, elmt, 'L');
-
-      *(InvQ = dataField(nData))   = 0.0;
-      *(InvR = dataField(nData+1)) = 0.0;
-      *(Disc = dataField(nData+2)) = 0.0;
-      nData += 3;
-    }
-    if (add[STRAINRATE]) {
-      dataField (nData) = new AuxField (new real[allocSize], nz, elmt, 'G');
-      *(Strain = dataField (nData)) = 0.0;
-      nData++;
-    }
+      for (i = 0; i < nComponent; i++)
+	for (j = i; j < nComponent; j++)
+	  addField[iAdd++] = Sij[i][j];
   }
+
+  if (need[STRAINRATE]) {
+    *(Strain = new AuxField (new real[allocSize], nz, elmt, 'G')) = 0.0;
+    if (add[STRAINRATE]) addField[iAdd++] = Strain;
+  }
+
+  if (need[EGROWTH]) {
+    egrow = new real[allocSize]; // -- A handle for direct access to data.
+    Egr = new AuxField (egrow, nz, elmt, 'a');
+    if (add[EGROWTH]) addField[iAdd++] = Egr;
+  }
+    
   
-  // -- Cycle through field dump, first computing the velocity gradient 
-  //    tensor and then the other quantities - vorticity etc. Then write
-  //    output defined in the dataField AuxFields. musn't change the order
-  //    below because we are relying on the inverse transform being done
-  //    BEFORE dumping enstrophy/helicity because inner products are done
-  //    in physical space.
-  
+  // -- Cycle through field dump, first computing the velocity
+  //    gradient tensor and then the needed quantities -- vorticity
+  //    etc.  The order of computation is determined by dependencies.
+  //    Then write requested output, listed in addField.
   
   while (getDump (D, file)) {
-    
-    if (nComponent > 2) D -> transform (FORWARD);
+        
+    if (need[FUNCTION]) *Func = func;
 
-    // -- Velocity gradient tensor, calculated in Fourier, transformed back.
+    // -- Velocity gradient tensor; transform required for z (2) gradient.  
+
+    if (nComponent > 2) D -> transform (FORWARD);
 
     for (i = 0; i < nComponent ; i++)
       for (j = 0; j < nComponent ; j++) {
-	(*Vij[i][j] = *D -> u[i]) . gradient (j);
+	(*Vij[i][j] = *velocity[i]) . gradient (j);
 	D -> u[0] -> smooth (Vij[i][j]);
-	Vij[i][j] -> transform(INVERSE);
+	Vij[i][j] -> transform (INVERSE);
       }
 
     if (nComponent > 2) D -> transform (INVERSE);
@@ -257,14 +323,46 @@ int main (int    argc,
       (*work = *D -> u[2]) . divR();  *Vij[1][2] -= *work;
       (*work = *D -> u[1]) . divR();  *Vij[2][2] += *work;
     }
-	
-    if (add[DIVERGENCE] || add[INVARIANTS]) {
-      *Div = 0.0;
-      for (i = 0; i < nComponent; i++) *Div += *Vij[i][i];
-    }
     
-    if (add[VORTICITY] || add[ENSTROPHY]) {
-      
+    if (need[INVARIANTS]) {
+
+      // -- 2nd invariant (Q from Chong et al.).
+
+      InvQ -> times      (*Vij[0][0], *Vij[1][1]);
+      InvQ -> timesMinus (*Vij[0][1], *Vij[1][0]);
+      InvQ -> timesPlus  (*Vij[0][0], *Vij[2][2]);
+      InvQ -> timesMinus (*Vij[0][2], *Vij[2][0]);
+      InvQ -> timesPlus  (*Vij[1][1], *Vij[2][2]);
+      InvQ -> timesMinus (*Vij[1][2], *Vij[2][1]);
+
+      // -- 3rd invariant: determinant of Vij (R from Chong et al.).
+
+      work -> times      (*Vij[1][1], *Vij[2][2]);
+      work -> timesMinus (*Vij[2][1], *Vij[1][2]);
+      InvR -> times      (*work,      *Vij[0][0]);
+
+      work -> times      (*Vij[1][2], *Vij[2][0]);
+      work -> timesMinus (*Vij[2][2], *Vij[1][0]);
+      InvR -> timesPlus  (*work,      *Vij[0][1]);
+
+      work -> times      (*Vij[2][1], *Vij[1][0]);
+      work -> timesMinus (*Vij[1][1], *Vij[2][0]);
+      InvR -> timesPlus  (*work,      *Vij[0][2]);
+
+      // -- Discriminant L of Vij.
+      //    NB: DIVERGENCE (P from Chong et al.) ASSUMED = 0.
+
+      work -> times (*InvQ, *InvQ);
+      Disc -> times (*work, *InvQ);
+      work -> times (*InvR, *InvR);
+      *work *= 6.75;
+      *Disc += *work;
+    }
+	
+    if (need[DIVERGENCE])
+      for (i = 0; i < nComponent; i++) *Div += *Vij[i][i];
+    
+    if (need[VORTICITY]) {
       if (nComponent == 2) {
 	*vorticity[0]  = *Vij[1][0];
 	*vorticity[0] -= *Vij[0][1];
@@ -277,71 +375,48 @@ int main (int    argc,
 	*vorticity[2] -= *Vij[0][1];
       }
     }
+    
+    if (need[ENSTROPHY])
+      Ens -> innerProduct (vorticity, vorticity) *= 0.5;
 
-    if (add[STRAINTENSOR] || add[STRAINRATE] || add[INVARIANTS]) {
-      
+    if (need[HELICITY])
+      Hel -> innerProduct (vorticity, velocity)  *= 0.5;
+
+    if (need[STRAINTENSOR]) {
       for (i = 0; i < nComponent; i++)
 	for (j = i; j < nComponent; j++) {
 	  *Sij[i][j]  = *Vij[i][j];
 	  *Sij[i][j] += *Vij[j][i];
 	  *Sij[i][j] *= 0.5;
 	}
+    }
 
-      if (add[INVARIANTS]) {
-
-	// -- 2nd invariant (Q from Chong et al.).
-
-	InvQ -> times      (*Vij[0][0], *Vij[1][1]);
-	InvQ -> timesMinus (*Vij[0][1], *Vij[1][0]);
-	InvQ -> timesPlus  (*Vij[0][0], *Vij[2][2]);
-	InvQ -> timesMinus (*Vij[0][2], *Vij[2][0]);
-	InvQ -> timesPlus  (*Vij[1][1], *Vij[2][2]);
-	InvQ -> timesMinus (*Vij[1][2], *Vij[2][1]);
-
-	// -- 3rd invariant - determinant of Vij (R from Chong et al.).
-
-	work -> times      (*Vij[1][1], *Vij[2][2]);
-	work -> timesMinus (*Vij[2][1], *Vij[1][2]);
-	InvR -> times      (*work,      *Vij[0][0]);
-
-	work -> times      (*Vij[1][2], *Vij[2][0]);
-	work -> timesMinus (*Vij[2][2], *Vij[1][0]);
-	InvR -> timesPlus  (*work,      *Vij[0][1]);
-
-	work -> times      (*Vij[2][1], *Vij[1][0]);
-	work -> timesMinus (*Vij[1][1], *Vij[2][0]);
-	InvR -> timesPlus  (*work,      *Vij[0][2]);
-
-
-	// -- Discriminant of Vij
-	//    NB: DIVERGENCE (P from Chong et al.) ASSUMED = 0.
-
-	work -> times (*InvQ, *InvQ);
-	Disc -> times (*work, *InvQ);
-	work -> times (*InvR, *InvR);
-	*work *= 6.75;
-	*Disc += *work;
-      }
-    }    
-
-    if (add[STRAINRATE]) {
+    if (need[STRAINRATE]) {
       *Strain = 0.0;
       for (i = 0; i < nComponent; i++)
 	for (j = 0; j < nComponent; j++)
 	  Strain -> timesPlus (*Sij[i][j], *Sij[j][i]);
-      *Strain *= 2.0;
-      Strain -> sqroot();
+      (*Strain *= 2.0) . sqroot();
     }
-    
-    if (add[ENSTROPHY]) {
-      Ens -> innerProduct (vorticity, vorticity) *= 0.5;
-      for (i = 0; i < nComponent; i++) AuxPoint[i] = D -> u[i];
-      Hel -> innerProduct (vorticity, AuxPoint)  *= 0.5;
+
+    if (need[ELLIPTICITY]) {
+      ((*work = *Ens) . sqroot() *= 2.0) += 1.0e-1;
+      Ell -> divide (*Strain, *work);
     }
-    
-    if (add[FUNCTION]) *Func = func;
-      
-    putDump (D, dataField, nData, outp);
+
+    if (need[EGROWTH]) {
+      *Egr = *Ell;
+      Veclib::clip (allocSize, 0.0, 1.0, egrow, 1, egrow, 1);
+      Veclib::spow (allocSize, 2.811,    egrow, 1, egrow, 1);
+      Veclib::vneg (allocSize,           egrow, 1, egrow, 1);
+      Veclib::sadd (allocSize, 1.0,      egrow, 1, egrow, 1);
+      Veclib::spow (allocSize, 0.3914,   egrow, 1, egrow, 1);
+      Veclib::smul (allocSize, 9.0/16.0, egrow, 1, egrow, 1);
+      (*work = *Strain) *= sqrt (1.0/8.0);
+      Egr -> times (*Egr, *work);
+    }
+
+    putDump (D, addField, iAdd, outp);
   }
   
   file.close();
@@ -364,15 +439,19 @@ static void getargs (int       argc   ,
     "Usage: %s [options] -s session dump.fld\n"
     "options:\n"
     "  -h        ... print this message \n"
-    "  -v        ... add vorticity\n"
-    "  -e        ... add enstrophy and helicity (3D only)\n"
+    "  -v        ... add vorticity (default)\n"
+    "  -e        ... add enstrophy\n"
+    "  -H        ... add helicity (3D only)\n"
+    "  -b        ... add ellipticity\n"
+    "  -B        ... add elliptic instability growth rate\n"
     "  -d        ... add divergence\n"
-    "  -t        ... add rate of strain tensor Sij\n"
-    "  -g        ... add gamma = total strain rate = sqrt(2 Sij Sji)\n"
-    "  -i        ... add invariants of Vij (but NOT Vij itself)\n"
-    "                (NB: Divergence is ASSUMED equal to zero)\n"
+    "  -t        ... add components of rate of strain tensor Sij\n"
+    "  -g        ... add strain rate magnitude sqrt(2SijSij)\n"
+    "  -i        ... add invariants and discriminant of"
+                     " velocity gradient tensor\n"
+    "                NB: divergence is assumed to be zero. (3D only)\n"
     "  -a        ... add all fields derived from velocity (above)\n"
-    "  -f <func> ... add a computed function <func> of x, y, z, etc\n";
+    "  -f <func> ... add a computed function <func> of x, y, z, t, etc.\n";
               
   integer i, sum;
   char    buf[StrMax];
@@ -389,18 +468,21 @@ static void getargs (int       argc   ,
       break;
     case 'v': flag[VORTICITY]    = 1; break;
     case 'e': flag[ENSTROPHY]    = 1; break;
+    case 'H': flag[HELICITY]     = 1; break;
+    case 'B': flag[EGROWTH]      = 1; break;
+    case 'b': flag[ELLIPTICITY]  = 1; break;
     case 'd': flag[DIVERGENCE]   = 1; break;
     case 'g': flag[STRAINRATE]   = 1; break;
     case 't': flag[STRAINTENSOR] = 1; break;
-    case 'i': flag[INVARIANTS]   = 1; flag[DIVERGENCE] = 1; break;
-    case 'a': for (i = 0; i < 6; i++) flag[i] = 1;          break;
+    case 'i': flag[INVARIANTS]   = 1; break;
+    case 'a': Veclib::fill(FLAG_MAX, 1, flag, 1); break;
     case 'f':
       if (*++argv[0]) func = *argv; else { --argc; func = *++argv; }
       flag[FUNCTION] = 1; break;
     default: sprintf (buf, usage, prog); cout<<buf; exit(EXIT_FAILURE); break;
     }
 
-  for (sum = 0, i = 0; i < FLAG_MAX; i++) sum += flag[i];
+  sum = Veclib::sum (FLAG_MAX, flag, 1);
   if (!sum) flag[VORTICITY] = 1;
 
   if   (!session)  message (prog, "no session file", ERROR);
@@ -421,7 +503,7 @@ static integer getDump (Domain*   D   ,
 
 
 static void putDump  (Domain*            D       ,
-		      vector<AuxField*>& outField,
+		      vector<AuxField*>& addField,
 		      integer            nOut    ,
 		      ofstream&          strm    )
 // ---------------------------------------------------------------------------
@@ -479,7 +561,7 @@ static void putDump  (Domain*            D       ,
 
   for (i = 0; i <= nComponent; i++) s2[i] = D -> u[i] -> name();
   for (i = 0; i <  nOut; i++)
-    s2[nComponent + i + 1] = outField(i) -> name();
+    s2[nComponent + i + 1] = addField(i) -> name();
   s2[nComponent + nOut + 1] = '\0';
 
   sprintf (s1, hdr_fmt[8], s2);
@@ -491,7 +573,7 @@ static void putDump  (Domain*            D       ,
   strm << s1;
 
   for (i = 0; i <= nComponent; i++) strm << *D -> u[i];
-  for (i = 0; i < nOut; i++) strm << *outField(i);
+  for (i = 0; i < nOut; i++) strm << *addField(i);
 
   if (!strm) message (routine, "failed writing field file", ERROR);
   strm << flush;
