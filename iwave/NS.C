@@ -51,6 +51,7 @@ void NavierStokes (Domain*      D      ,
   const real    dt     =           Femlib::value ("D_T");
   const integer nStep  = (integer) Femlib::value ("N_STEP");
   const integer nZ     = Geometry::nZProc();
+  const integer nP     = Geometry::planeSize();
   const integer ntot   = Geometry::nTotProc();
   real*         alloc  = new real [(size_t) 2 * NDIM * NORD * ntot];
 
@@ -85,13 +86,17 @@ void NavierStokes (Domain*      D      ,
   AuxField* mask = 0;
   if (masklag) {
     ROOTONLY cout << "-- Setting up filter mask." << endl;
-    mask = new AuxField (new real [(size_t) ntot], nZ, D -> elmt, 'm');
+    mask = new AuxField ((alloc = new real [(size_t) ntot]), nZ, D->elmt, 'm');
     mask -> buildMask (masklag);
+    ROOTONLY {
+      Veclib::fill (4*nP, 1.0, alloc,      1);
+      Veclib::zero (  nP,      alloc + nP, 1);
+    }
   }
 
   // -- Apply coupling to radial & azimuthal velocity BCs.
 
-  if (C3D) Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
+  Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
 
   // -- Timestepping loop.
 
@@ -128,13 +133,10 @@ void NavierStokes (Domain*      D      ,
 
     // -- Viscous correction substep.
 
-    if (C3D) {
-      AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
-      AuxField::couple (D -> u[1], D -> u[2], FORWARD);
-    }
+    AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
+    AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     for (i = 0; i < NDIM; i++) Solve (D, i, Uf[0][i], MMS[i]);
-    if (C3D)
-      AuxField::couple (D -> u[1], D -> u[2], INVERSE);
+    AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 
     // -- Process results of this step.
 
@@ -168,12 +170,12 @@ static void nonLinear (Domain*       D ,
 //
 // in cylindrical coordinates
 //
-//           Nx = -0.5 {ud(u)/dx + vd(u)/dy +  d(uu)/dx +
-//                 1/y [wd(u)/dz + d(uw)/dz + d(yvu)/dy      ]}
-//           Ny = -0.5 {ud(v)/dx + vd(v)/dy +  d(uv)/dx +
-//                 1/y [wd(v)/dz + d(vw)/dz + d(yvv)/dy - 2ww]}
-//           Nz = -0.5 {ud(w)/dx + vd(w)/dy +  d(uw)/dx +
-//                 1/y [wd(w)/dz + d(ww)/dz + d(yvw)/dy + 2wv]}
+//           Nx = -0.5 {ud(u)/dx + vd(u)/dy +  d(uu)/dx + d(vu)/dy +
+//                 1/y [wd(u)/dz + d(uw)/dz + vu      ]}
+//           Ny = -0.5 {ud(v)/dx + vd(v)/dy +  d(uv)/dx + d(vv)/dy +
+//                 1/y [wd(v)/dz + d(vw)/dz + vv - 2ww]}
+//           Nz = -0.5 {ud(w)/dx + vd(w)/dy +  d(uw)/dx + d(vw)/dy +
+//                 1/y [wd(w)/dz + d(ww)/dz + 3wv     ]}
 //
 // If STOKES is defined for compilation, the nonlinear terms are set to zero.
 //
@@ -193,8 +195,7 @@ static void nonLinear (Domain*       D ,
 // NB: no dealiasing for concurrent execution.
 // ---------------------------------------------------------------------------
 {
-  integer    i, j;
-  const real EPS = (sizeof(real) == sizeof(double)) ? EPSDP : EPSSP;
+  integer i, j;
 
 #if defined(STOKES)
 
@@ -238,41 +239,35 @@ static void nonLinear (Domain*       D ,
 
     // -- Terms involving azimuthal derivatives and frame components.
 
-    if (NDIM == 3) {
-      if      (i == 1)	// -- Centripetal.
-	Veclib::svvtt (nTot32, -2.0, u32[2], 1, u32[2], 1, n32[1], 1);
-      else if (i == 2)	// -- Coriolis.
-	Veclib::svvtt (nTot32,  2.0, u32[2], 1, u32[1], 1, n32[2], 1);
-
-      if (nZ > 2) {
-	Veclib::copy       (nTot32, u32[i], 1, tmp, 1);
-	Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
-	Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
-	Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
-	master -> gradient (nZ, nPP, tmp, 2);
-	Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
-	Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
-	Veclib::vvtvp      (nTot32, u32[2], 1, tmp, 1, n32[i], 1, n32[i], 1);
-	
-	Veclib::vmul       (nTot32, u32[i], 1, u32[2], 1, tmp, 1);
-	Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
-	Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
-	Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
-	master -> gradient (nZ, nPP, tmp, 2);
-	Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
-	Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
-	Veclib::vadd       (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
-      }
+    if (i == 0)
+      Veclib::vmul    (nTot32,       u32[0],1, u32[1],1,            n32[0], 1);
+    if (i == 1) {
+      Veclib::vmul    (nTot32,       u32[1],1, u32[1],1,            n32[1], 1);
+      Veclib::svvttvp (nTot32, -2.0, u32[2],1, u32[2],1, n32[1], 1, n32[1], 1);
     }
+    if (i == 2)
+      Veclib::svvtt   (nTot32,  3.0, u32[2],1, u32[1],1,            n32[2], 1);
 
-    // -- Terms made with product of radius.
-      
-    Veclib::vmul       (nTot32, u32[1], 1, u32[i], 1, tmp,  1);
-    master -> mulR     (nZ32, tmp);
-    master -> gradient (nZ32, nP, tmp, 1);
+    Veclib::copy       (nTot32, u32[i], 1, tmp, 1);
+    Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
+    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
+    Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
+    master -> gradient (nZ, nPP, tmp, 2);
+    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
+    Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
+    Veclib::vvtvp      (nTot32, u32[2], 1, tmp, 1, n32[i], 1, n32[i], 1);
+	
+    Veclib::vmul       (nTot32, u32[i], 1, u32[2], 1, tmp, 1);
+    Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
+    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
+    Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
+    master -> gradient (nZ, nPP, tmp, 2);
+    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
+    Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
     Veclib::vadd       (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
-    master -> divR     (nZ32, n32[i]);
 
+    master -> divR (nZ32, n32[i]);
+    
     // -- 2D non-conservative derivatives.
 
     for (j = 0; j < 2; j++) {
@@ -281,11 +276,13 @@ static void nonLinear (Domain*       D ,
       Veclib::vvtvp      (nTot32, u32[j], 1, tmp, 1, n32[i], 1, n32[i], 1);
     }
 
-    // -- Remaining conservative derivative.
-      
-    Veclib::vmul       (nTot32, u32[0], 1, u32[i], 1, tmp, 1);
-    master -> gradient (nZ32, nP, tmp, 0);
-    Veclib::vadd       (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
+    // -- 2D conservative derivatives.
+    
+    for (j = 0; j < 2; j++) {
+      Veclib::vmul       (nTot32, u32[j], 1, u32[i], 1, tmp, 1);
+      master -> gradient (nZ32, nP, tmp, j);
+      Veclib::vadd       (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
+    }
 
     // -- Average NL terms.
 

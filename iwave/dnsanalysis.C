@@ -3,11 +3,10 @@
 // prints out forces exerted on "wall" boundary group.
 //
 // Copyright (C) 1994, 1999 Hugh Blackburn
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
  
-static char
-RCSid[] = "$Id$";
-
 #include <dns.h>
 
 
