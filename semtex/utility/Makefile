@@ -38,7 +38,7 @@ enumerate: feml.o mesh.o enumerate.o
 nosrc: avgdump moden noiz rstress xplane sem2tec convert
 avgdump moden noiz rstress xplane sem2tec convert: \
 	avgdump.c moden.c xplane.c noiz.c rstress.c sem2tec.c convert.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.c $(LDFLAGS)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.c $(LDFLAGS) -lm
 
 # ----------------------------------------------------------------------------
 # Build meshpr, 2D mesh node computation utility.
