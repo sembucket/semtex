@@ -14,8 +14,8 @@ void pressure(/* input     */ CVF      V  ,
               /* output    */ CF       P  ,
               /* workspace */ CVF      WK ,
                               CF       VV ,
-              /* using     */ complex* Wtab,
-	                      complex* Stab)
+                              const complex* Wtab,
+	                      const complex* Stab)
 /* ------------------------------------------------------------------------- *
  * From the Fourier coefficients of the velocity field (V) and the nonlinear
  * terms in the evolution equations (G), compute the Fourier coefficients of
@@ -38,16 +38,20 @@ void pressure(/* input     */ CVF      V  ,
  *
  * The pressure derivative Fourier coefficients should come out parallel to
  * the wavenumber vector at each point in wavespace (no check made).
+ *
+ * ROUTINE IS CURRENTLY BROKEN: CONVOLUION NEEDS TO BE GIVEN INVERSE
+ * TRANSFORMED AND SHIFTED INPUT.
  * ------------------------------------------------------------------------- */
 {
+  CF  U_ = WK[1], V_ = WK[2], VV_ = WK[3];
   int k1, k2, k3, b1, b2;
 
-  truncate (P);			/* Set all high-wavenumber stuff zero. */
+  truncateF (P);		/* Set all high-wavenumber stuff zero. */
   P[0][0][0].Re = 0.0;		/* Zero the mean pressure.             */
 
   for (k1=1; k1<K; k1++) {
     b1 = N-k1;
-    for (k2=1; k2<K && k1+k2INSIDE; k2++) {
+    for (k2=1; k2<K && k1+k2 INSIDE; k2++) {
       b2 = N-k2;
       P[0][k1][k2].Re = -G[2][0][k1][k2].Im;
       P[0][k1][k2].Im =  G[2][0][k1][k2].Re;
@@ -64,7 +68,7 @@ void pressure(/* input     */ CVF      V  ,
       P[b1][k2][0].Re = -G[1][b1][k2][0].Im;
       P[b1][k2][0].Im =  G[1][b1][k2][0].Re;
 
-      for (k3=1; k3<K && k2+k3INSIDE && k1+k3INSIDE; k3++) {
+      for (k3=1; k3<K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
 	P[k1][k2][k3].Re = -G[1][k1][k2][k2].Im;
 	P[k1][k2][k3].Im =  G[1][k1][k2][k3].Re;
 	P[b1][k2][k3].Re = -G[1][b1][k2][k3].Im;
@@ -77,12 +81,12 @@ void pressure(/* input     */ CVF      V  ,
     }
   }
 
-  convolve(V[1], V[1], VV, WK, Wtab, Stab);
+  convolve(V[1], V[1], U_, V_, VV, VV_, Wtab, Stab);
   for (k1=1; k1<K; k1++) {
     b1 = N-k1;
     P[k1][0][0].Re = -VV[k1][0][0].Re;
     P[k1][0][0].Im = -VV[k1][0][0].Im;
-    for (k2=1; k2<K && k1+k2INSIDE; k2++) {
+    for (k2=1; k2<K && k1+k2 INSIDE; k2++) {
       b2 = N-k2;
       P[k1][0][k2].Re -= k1 * VV[k1][0][k2].Re;
       P[k1][0][k2].Im -= k1 * VV[k1][0][k2].Im;
@@ -92,7 +96,7 @@ void pressure(/* input     */ CVF      V  ,
       P[k1][k2][0].Im -= k1 * VV[k1][k2][0].Im;
       P[b1][k2][0].Re += k1 * VV[b1][k2][0].Re;
       P[b1][k2][0].Im += k1 * VV[b1][k2][0].Im;     
-      for (k3=1; k3<K && k2+k3INSIDE && k1+k3INSIDE; k3++) {
+      for (k3=1; k3<K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
 	P[k1][k2][k3].Re -= k1 * VV[k1][k2][k2].Im;
 	P[k1][k2][k3].Im -= k1 * VV[k1][k2][k3].Re;
 	P[b1][k2][k3].Re += k1 * VV[b1][k2][k3].Im;
@@ -104,17 +108,17 @@ void pressure(/* input     */ CVF      V  ,
       }
     }
   }
-  
-  convolve(V[1], V[2], VV, WK, Wtab, Stab);
+
+  convolve(V[1], V[2], U_, V_, VV, VV_, Wtab, Stab);
   for (k1=1; k1<K; k1++) {
     b1 = N-k1;
-    for (k2=1; k2<K && k1+k2INSIDE; k2++) {
+    for (k2=1; k2<K && k1+k2 INSIDE; k2++) {
       b2 = N-k2;
       P[k1][k2][0].Re -= k2 * VV[k1][k2][0].Re;
       P[k1][k2][0].Im -= k2 * VV[k1][k2][0].Im;
       P[b1][k2][0].Re -= k2 * VV[b1][k2][0].Re;
       P[b1][k2][0].Im -= k2 * VV[b1][k2][0].Im;
-      for (k3=1; k3<K && k2+k3INSIDE && k1+k3INSIDE; k3++) {
+      for (k3=1; k3<K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
 	P[k1][k2][k3].Re -= k2 * VV[k1][k2][k2].Im;
 	P[k1][k2][k3].Im -= k2 * VV[k1][k2][k3].Re;
 	P[b1][k2][k3].Re -= k2 * VV[b1][k2][k3].Im;
@@ -126,17 +130,17 @@ void pressure(/* input     */ CVF      V  ,
       }
     }
   }
-  
-  convolve(V[1], V[3], VV, WK, Wtab, Stab);
+
+  convolve(V[1], V[3], U_, V_, VV, VV_, Wtab, Stab);
   for (k1=1; k1<K; k1++) {
     b1 = N-k1;
-    for (k2=1; k2<K && k1+k2INSIDE; k2++) {
+    for (k2=1; k2<K && k1+k2 INSIDE; k2++) {
       b2 = N-k2;
       P[k1][0][k2].Re -= k2 * VV[k1][0][k2].Re;
       P[k1][0][k2].Im -= k2 * VV[k1][0][k2].Im;
       P[b1][0][k2].Re -= k2 * VV[b1][0][k2].Re;
       P[b1][0][k2].Im -= k2 * VV[b1][0][k2].Im;
-      for (k3=1; k3<K && k2+k3INSIDE && k1+k3INSIDE; k3++) {
+      for (k3=1; k3<K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
 	P[k1][k2][k3].Re -= k3 * VV[k1][k2][k2].Im;
 	P[k1][k2][k3].Im -= k3 * VV[k1][k2][k3].Re;
 	P[b1][k2][k3].Re -= k3 * VV[b1][k2][k3].Im;
@@ -149,31 +153,31 @@ void pressure(/* input     */ CVF      V  ,
     }
   }
   
-  convolve(V[2], V[2], VV, WK, Wtab, Stab);
+  convolve(V[2], V[2], U_, V_, VV, VV_, Wtab, Stab);
   for (k1=1; k1<K; k1++) {
     b1 = N-k1;
     P[0][k1][0].Re = -VV[0][k1][0].Re;
     P[0][k1][0].Im = -VV[0][k1][0].Im;
-    for (k2=1; k2<K && k1+k2INSIDE; k2++) {
+    for (k2=1; k2<K && k1+k2 INSIDE; k2++) {
       P[0][k1][k2].Re -= k1 * VV[0][k1][k2].Re;
       P[0][k1][k2].Im -= k1 * VV[0][k1][k2].Im;
       P[0][b1][k2].Re += k1 * VV[0][b1][k2].Re;
       P[0][b1][k2].Im += k1 * VV[0][b1][k2].Im;
     }
   }
-  
-  convolve(V[2], V[3], VV, WK, Wtab, Stab);
+
+  convolve(V[2], V[3], U_, V_, VV, VV_, Wtab, Stab);
   for (k1=1; k1<K; k1++) {
     b1 = N-k1;
-    for (k2=1; k2<K && k1+k2INSIDE; k2++) {
+    for (k2=1; k2<K && k1+k2 INSIDE; k2++) {
       P[0][k1][k2].Re -= k2 * VV[0][k1][k2].Re;
       P[0][k1][k2].Im -= k2 * VV[0][k1][k2].Im;
       P[0][b1][k2].Re -= k2 * VV[0][b1][k2].Re;
       P[0][b1][k2].Im -= k2 * VV[0][b1][k2].Im;
     }
   }  
-  
-  convolve(V[3], V[3], VV, WK, Wtab, Stab);
+
+  convolve(V[3], V[3], U_, V_, VV, VV_, Wtab, Stab);
   for (k1=1; k1<K; k1++) {
     P[0][0][k1].Re = -VV[0][0][k1].Re;
     P[0][0][k1].Im = -VV[0][0][k1].Im;
@@ -181,7 +185,7 @@ void pressure(/* input     */ CVF      V  ,
 
   for (k1=1; k1<K; k1++) {
     b1 = N-k1;
-    for (k2=1; k2<K && k1+k2INSIDE; k2++) {
+    for (k2=1; k2<K && k1+k2 INSIDE; k2++) {
       b2 = N-k2;
       P[0][k1][k2].Re /=  k1;
       P[0][k1][k2].Im /=  k1;
@@ -195,7 +199,7 @@ void pressure(/* input     */ CVF      V  ,
       P[k1][k2][0].Im /=  k1;
       P[b1][k2][0].Re /= -k1;
       P[b1][k2][0].Im /= -k1;
-      for (k3=1; k3<K && k2+k3INSIDE && k1+k3INSIDE; k3++) {
+      for (k3=1; k3<K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
 	P[k1][k2][k3].Re /=  k1; 
 	P[k1][k2][k3].Im /=  k1; 
 	P[b1][k2][k3].Re /= -k1; 
@@ -208,4 +212,3 @@ void pressure(/* input     */ CVF      V  ,
     }
   }
 }
-  
