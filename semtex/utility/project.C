@@ -459,6 +459,7 @@ static integer getDump (ifstream&          ifile,
 
   ifile >> fields;
   nf = strlen (fields);
+  if (finc == 1 && strchr (fields, 'w')) finc = 0;
   for (j = 0, i = 0; i < nf; i++) {
     if (finc == -1 && fields[i] == 'w') continue;
     fmt[j++] = fields[i];
