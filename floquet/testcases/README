@@ -1,0 +1,119 @@
+$Id$
+
+ARNOLDI TESTCASES
+=================
+
+The testcases in various subdirectories here exercise various
+different parts the stability analysis code arnoldi. For cases with
+steady base flows, the full base flow file is provided, while for
+cases with time-periodic base flows, a restart file is provided with
+which to regenerate the base flow. Shell scripts are/will be provided
+for re-running the test cases.
+
+STEADY FLOWS
+============
+
+chan2D 
+------
+
+Steady 2D Poiseuille channel flow at Re=7500 is 2D unstable to (2D)
+TS waves.  This case is documented in Canuto et al., 1988,
+p19--25. The base flow is steady and 2C/2D; the perturbation is
+unsteady and 2C/2D also.
+
+These are the results of running
+
+arnoldi -k 16 -n 1 -m 500 -t 1e-6 chan3
+
+-- Iteration = 260, H(k+1, k) = 0.893587
+EV  Magnitude   Angle       Growth      Frequency   Residual
+ 0  1.0022e+00  2.4989e-01  2.2356e-03  2.4989e-01  9.4531e-07
+ 1  1.0022e+00 -2.4989e-01  2.2356e-03 -2.4989e-01  9.4531e-07
+
+The corresponding case in Canuto et al suggests 2.23497 and 2.4989154
+for Growth and Frequency parameters respectively.
+
+backstep3D
+----------
+
+Steady 2D backward-facing step flow (2C/2D) is first unstable with
+increasing Re to a steady 3C/3D instability. 
+
+Barkley, D., Gomes, M.G.M. & Henderson, R.D. Three-dimensional
+instability in flow over a backward-facing step, JFM 473, 2002,
+167--190.
+
+At a Re=750 the dominant eigenvalue is real and approximately 1.0:
+
+Re(u)		Im(u)		|u|		Residual
+1.000418e+00   0.000000e+00   1.000418e+00   6.374901e-06
+
+stenosis3D
+----------
+
+Steady axisymmetric flow in a cylindrical stenosis has a (nearly)
+unstable 3D mode, k = 1.
+
+These are the results of running
+
+arnoldi -k 8 -n 1 -m 200 -t 1e-4 Sten50_Cyl
+
+-- Iteration = 47, H(k+1, k) = 0.51469
+EV  Magnitude   Angle       Growth      Frequency   Residual
+ 0  9.7341e-01  0.0000e+00 -5.3903e-02  0.0000e+00  7.9477e-05
+ 1  8.0467e-01  1.5385e-01 -4.3465e-01  3.0769e-01  6.7783e-02
+
+PERIODIC FLOWS
+==============
+
+cylinder3D
+----------
+
+The circular cylinder at Re=220 has a 2C/2D time-periodic wake that is
+unstable to 3C/3D synchronous "mode A" instability.
+
+These are the results (after 16 cycles) of running
+
+arnoldi -k 12 -n 1 -m 40 m32
+
+-- Iteration = 16, H(k+1, k) = 0.604068
+EV  Magnitude   Angle       Growth      Frequency   Residual
+ 0  1.2671e+00  0.0000e+00  4.7706e-02  0.0000e+00  2.1695e-03
+ 1  2.4151e-01  0.0000e+00 -2.8635e-01  0.0000e+00  9.5977e-02
+
+
+cavityTW
+--------
+
+The 2:1 rectangular driven cavity is a 2C/2D time-periodic flow that
+at St=100, Re=1212 has quasi-periodic 3C/3D SW/TW instabilities.
+
+These are the results of running (for N_Z=1 or 2)
+
+arnoldi -k 13 -m 40 -n 1 cav01
+
+-- Iteration = 14, H(k+1, k) = 0.0653334
+EV  Magnitude   Angle       Growth      Frequency   Residual
+ 0  9.9857e-01  1.5277e+00 -1.1808e-04  1.2605e-01  1.9950e-07
+ 1  9.9857e-01 -1.5277e+00 -1.1808e-04 -1.2605e-01  1.9950e-07
+ 2  9.3307e-01  1.3784e+00 -5.7159e-03  1.1373e-01  2.1672e-07
+ 3  9.3307e-01 -1.3784e+00 -5.7159e-03 -1.1373e-01  2.1672e-07
+
+(In this case, the second mode has the lower residual for quite a
+number of iterations.)
+
+swirl3D
+-------
+
+The 2:1 cylindrical driven cavity at Re=4000 is an axisymmetric 3C/2D
+time-periodic flow that has 3C/3D MRW instabilities.
+
+These are the results of running
+
+arnoldi -k 13 -m 40 -n 1 vb2:
+
+-- Iteration = 12, H(k+1, k) = 0.222227
+EV  Magnitude   Angle       Growth      Frequency   Residual
+ 0  1.4651e+00  2.3637e+00  1.3503e-02  8.3576e-02  2.2363e-07
+ 1  1.4651e+00 -2.3637e+00  1.3503e-02 -8.3576e-02  2.2363e-07
+
