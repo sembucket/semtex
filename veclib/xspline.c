@@ -1,21 +1,27 @@
 /*****************************************************************************
- * xspline: Cubic spline interpolation.                                      *
- *                                                                           *
- * Two routines to perform cubic spline interpolation.  The function         *
- * "spline" must be called once to compute the spline coefficients, and then *
- * "splint" can be called any number of times to evaluate the spline.        *
- *                                                                           *
- * Input:                                                                    *
- *    x      list of nodes, dim(x) .ge. n                                    *
- *    y      function values at the nodes, y = f(x), dim(y) .ge. n           *
- *    n      number of control points                                        *
- *    yp1    function derivative f'(x) at the first node                     *
- *    yp2    function derivative f'(x) at the last node                      *
- *                                                                           *
- * Output:                                                                   *
- *    y2     the spline coefficients                                         *
- *                                                                           *
- *  If yp1 or ypn is > 1.e30, "spline" computes a natural spline.            *
+ * xspline: Cubic spline interpolation.
+ *
+ * Two routines to perform cubic spline interpolation.  The function
+ * "spline" must be called once to compute the spline coefficients, and then
+ * "splint" can be called any number of times to evaluate the spline.
+ *
+ * Input:
+ *    n           number of control points
+ *    x[0..n-1]   list of nodes
+ *    y[0..n-1]   function values at the nodes, y = f(x)
+ *    yp1         function derivative f'(x) at the first node
+ *    yp2         function derivative f'(x) at the last node
+ *
+ * If yp1 or ypn is > 1.e30, "spline" uses "natural" spline end conditions
+ * (d2y/dx2 = 0) at the respective end.
+ *
+ * Output:
+ *    y2[0..n-1]  the spline coefficients
+ *
+ * These are routines from Numerical Recipes, modified to use base-0
+ * indexed arrays.
+ *
+ * $Id$
  *****************************************************************************/
 
 #include <stdio.h>
@@ -27,7 +33,7 @@ void dspline(int n, double yp1, double ypn, const double *x, const double *y,
 	                                                           double *y2)
 {
   double   h = x[1] - x[0], 
-          *u = dvector(0, n-1);
+          *u = dvector(0, n-2);
   double   p, qn, sig, un, hh;
   register i, k;
 
@@ -39,20 +45,20 @@ void dspline(int n, double yp1, double ypn, const double *x, const double *y,
   }
 
   for (i = 1; i < n-1; i++) {
-    hh     = 1. / (x[i+1] - x[i-1]);
+    hh     = 1.0 / (x[i+1] - x[i-1]);
     sig    = h * hh;
-    p      = sig * y2[i-1] + 2.;
-    y2[i]  = (sig - 1.) / p;
+    p      = sig * y2[i-1] + 2.0;
+    y2[i]  = (sig - 1.0) / p;
     u [i]  = (y[i] - y[i-1]) / h;
-    u [i]  = (y[i+1] - y[i]) / (h = x[i+1]-x[i]) - u[i];
-    u [i]  = (6. * u[i] * hh - sig * u[i-1])/p;
+    u [i]  = (y[i+1] - y[i]) / (h = x[i+1] - x[i]) - u[i];
+    u [i]  = (6.0 * u[i] * hh - sig * u[i-1]) / p;
   }
 
   if (ypn > 0.99e30)
     qn = un = 0.0;
   else {
     qn = 0.5;
-    un = (3.0 / h)*(ypn - (y[n-1]-y[n-2])/h);
+    un = (3.0 / h) * (ypn - (y[n-1]-y[n-2])/h);
   }
 
   y2[n-1] = (un - qn * u[n-2]) / (qn * y2[n-2] + 1.0);
@@ -104,7 +110,7 @@ void sspline(int n, float yp1, float ypn, const float *x, const float *y,
 	                                                        float *y2)
 {
   float    h = x[1] - x[0], 
-          *u = svector(0, n-1);
+          *u = svector(0, n-2);
   float    p, qn, sig, un, hh;
   register i, k;
 
