@@ -160,11 +160,7 @@ int main (int    argc,
   Femlib::mesh  (GLL, GLL, NP, NP, &knot, 0, 0, 0, 0);
   Esys.setSize  (NEL);
 
-  for (k = 0; k < NEL; k++) {
-    Esys[k] = new Element (k, *M, knot, NP, doff, boff);
-    doff   += Esys[k] -> nTot();
-    boff   += Esys[k] -> nExt();
-  }
+  for (k = 0; k < NEL; k++) Esys[k] = new Element (k, M, knot, NP);
   
   // -- Set up FFT work areas.
 
