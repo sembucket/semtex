@@ -32,7 +32,7 @@ Element::Element (const integer i   ,
 
   if (nk < 2) message (routine, "need > 2 knots for element edges", ERROR);
 
-  Femlib::buildMaps (np, &emap, &pmap);
+  Femlib::buildMaps (np, 2, &emap, &pmap);
   
   xmesh = new real [(size_t) nk2];
   ymesh = new real [(size_t) nk2];

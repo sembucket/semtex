@@ -349,7 +349,7 @@ void Analyser::estimateCFL () const
   if (Geometry::nDim() == 3) CFL_dt = max (CFL_dt, src.u[2] -> CFL (2));
 
   dt_max  = SAFETY * CFL_max / CFL_dt;
-  percent = 100.0 * dt / dt_max;
+  percent = (int) (100.0 * dt / dt_max);
 
   cout << "-- CFL: "     << CFL_dt * dt;
   cout << ", dt (max): " << dt_max;
