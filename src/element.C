@@ -2,19 +2,13 @@
  * element.C: Element utility routines.
  *****************************************************************************/
 
-static char RCSid[]="$Id$";
+static char
+RCSid[] = "$Id$";
 
 #include "Fem.h"
 
 
-Element::Element ()
-// ---------------------------------------------------------------------------
-// Default constructor.
-// ---------------------------------------------------------------------------
-{ }
-
-
-Element::Element (int ident, int nknot, int nside)
+Element::Element (const int& ident, const int& nknot, const int& nside)
 // ---------------------------------------------------------------------------
 // Create a new element.
 // ---------------------------------------------------------------------------
@@ -30,22 +24,22 @@ Element::Element (int ident, int nknot, int nside)
 }
 
 
-Element::Element (const Element& parent, int NP)
+Element::Element (const Element& parent, const int& np)
 // ---------------------------------------------------------------------------
 // Use parent as a model for a new element, possibly of different order.
 // ---------------------------------------------------------------------------
 {
-  if (!NP) {
+  if (!np) {
     memcpy (this, &parent, sizeof (Element));
 
-  } else if (NP == parent.np) {
+  } else if (np == parent.np) {
     memcpy (this, &parent, sizeof (Element));
     bmap  = solve = 0;
     drdx = dsdx = drdy = dsdy = G1 = G2 = G3 = G4 = mass = 0;
     hbi  = hii  = 0;
 
   } else {
-    setState (parent.id, NP, parent.ns);
+    setState (parent.id, np, parent.ns);
     xmesh = ymesh = 0;
     bmap  = solve = 0;
     drdx = dsdx = drdy = dsdy = G1 = G2 = G3 = G4 = mass = 0;
@@ -216,13 +210,13 @@ void  Element::terminal (int side, int& estart, int& eskip, int& bstart) const
 }
 
 
-void  Element::install (int Offset, real* mesh, int* map, int* mask)
+void  Element::install (int jump, real* mesh, int* map, int* mask)
 // ---------------------------------------------------------------------------
 // Make Element xmesh, ymesh, bmap & solve point to new memory, set offset
 // in Field data area.  Mesh only installed if pointer is non-zero.
 // ---------------------------------------------------------------------------
 {
-  offset = Offset;
+  if (jump) offset = jump;
 
   if (mesh) {
     xmesh = new real* [np];
@@ -350,6 +344,7 @@ void  Element::map ()
   real  **DV,   **DT,   **IN,   **IT;
   real   *jac,   *dxdr,  *dxds,  *dydr,  *dyds,  *tM,   *tV,   *w,  *WW;
 
+  const real EPS = (sizeof(real) == sizeof (double)) ? EPSDP : EPSSP;
 
   if (rule == LL) {
     ntot = nTot();
@@ -407,6 +402,11 @@ void  Element::map ()
     Veclib::vvvtm (ntot, tV,   1, dxdr, 1, dxds, 1, G3, 1);
     Veclib::vdiv  (ntot, G3,   1, jac,  1, tV,   1);
     Veclib::vmul  (ntot, tV,   1, WW,   1, G3,   1);
+
+    if (Blas::nrm2 (ntot, G3, 1) < EPS) {
+      freeVector (G3);
+      G3 = 0;
+    }
     
     Veclib::vmul  (ntot, jac, 1, WW, 1, G4, 1);
     
@@ -428,7 +428,7 @@ void  Element::map ()
     freeVector (WW);
     freeVector (tV);
       
-  } else {  // rule == GL
+  } else {  // -- rule == GL
     x = *xmesh;
     y = *ymesh;
     
@@ -482,6 +482,11 @@ void  Element::map ()
     Veclib::vvvtm (ntot, tV,   1, dxdr, 1, dxds, 1, G3, 1);
     Veclib::vdiv  (ntot, G3,   1, jac,  1, tV,   1);
     Veclib::vmul  (ntot, tV,   1, WW,   1, G3,   1);
+
+    if (Blas::nrm2 (ntot, G3, 1) < EPS) {
+      freeVector (G3);
+      G3 = 0;
+    }
     
     Veclib::vmul  (ntot, jac, 1, WW, 1, G4, 1);
 
@@ -572,7 +577,7 @@ void  Element::bndryInsert (const real* src, real* target) const
 // To invert: target[bmap[i]] = src[emap[i]].
 // ---------------------------------------------------------------------------
 {
-  Veclib::gathr_scatr (nExt(), src, bmap, emap, target);
+  Veclib::gathr_scatr (nExt (), src, bmap, emap, target);
 }
 
 
@@ -665,7 +670,7 @@ void  Element::resolveSC (const real* RHS, real* F, real* target) const
 //    i       ii i    ii ib  b
 // ----------------------------------------------------------------------------
 {
-  int    next = nExt();
+  int    next = nExt ();
   real*  tmp  = rvector (next);
 
   // -- Load globally-numbered RHS into element-boundary storage.
@@ -687,8 +692,6 @@ void  Element::resolveSC (const real* RHS, real* F, real* target) const
   freeVector (tmp);
 }
 
-
-#include <limits.h>
 
 int Element::bandwidthSC () const
 // ---------------------------------------------------------------------------
@@ -759,8 +762,8 @@ void  Element::HelmholtzSC (const real&  lambda2,
 
   if (nint) {
     ipack = ((nint + 1) * nint) >> 1;
-    hii   = rvector (ipack);            // LAPACK packed-symmetric store.
-    hbi   = rvector (next*nint);        // Full store.
+    hii  = rvector (ipack);            // LAPACK packed-symmetric store.
+    hbi  = rvector (next*nint);        // Full store.
   }
 
   // -- Construct hbb, hbi, hii partitions of elemental Helmholtz matrix.
@@ -770,8 +773,7 @@ void  Element::HelmholtzSC (const real&  lambda2,
   for (i = 0; i < np; i++)
     for (j = 0; j < np; j++, ij++) {
 
-      helmRow ((const real**) IT, (const real**) DV, (const real**) DT,
-	       lambda2, i, j, rmat, rwrk, rwrk+nq, rwrk+nq+nq);
+      helmRow (IT, DV, DT, lambda2, i, j, rmat, rwrk, rwrk+nq, rwrk+nq+nq);
 
       Veclib::gathr (ntot, rmat, emap, rwrk);
 
@@ -808,6 +810,16 @@ void  Element::HelmholtzSC (const real&  lambda2,
 
     Lapack::pptrs ("U", nint, next, hii, hbi, nint, info);
   }
+}
+
+
+void Element::HelmholtzSC (const Element& master)
+// ---------------------------------------------------------------------------
+// Set stored Helmholtz matrix partitions from master.
+// ---------------------------------------------------------------------------
+{
+  hii = master.hii;
+  hbi = master.hbi;
 }
 
 
@@ -851,17 +863,18 @@ void  Element::printMatSC (const real* hbb) const
 }
 
 
-void  Element::Helmholtz (const real&  lambda2,
-			  real*        h      ,
-			  real*        rmat   ,
-			  real*        rwrk   ) const
+void Element::Helmholtz (const real&  lambda2,
+			 real*        h      ,
+			 real*        rmat   ,
+			 real*        rwrk   ) const
 // ---------------------------------------------------------------------------
 // Compute the discrete elemental Helmholtz matrix, return in h.
 //
 // This routine can be used when static condensation is not employed, and is
 // included mainly to ease checking of entire element matrices.
-// Node ordering produced is column-major.
+// Node ordering produced is row-major.
 //
+// h:    vector, length np*np*np*np;
 // rmat: vector, length np*np;
 // rwrk: vector, length nq*nq + 2*nq.
 // ---------------------------------------------------------------------------
@@ -873,24 +886,23 @@ void  Element::Helmholtz (const real&  lambda2,
   quadOps (rule, np, nq, 0, 0, 0, 0, &IT, &DV, &DT);
 
   for (register int i = 0; i < np; i++)
-    for (register int j =0; j < np; j++, ij++) {
-      helmRow ((const real**) IT, (const real**) DV, (const real**) DT,
-	       lambda2, i, j, rmat, rwrk, rwrk+nq, rwrk+nq+nq);
-      Veclib::copy (ntot, rmat, 1, h + ij * nq, 1);
+    for (register int j = 0; j < np; j++, ij++) {
+      helmRow (IT, DV, DT, lambda2, i, j, rmat, rwrk, rwrk+nq, rwrk+nq+nq);
+      Veclib::copy (ntot, rmat, 1, h + ij * np, 1);
     }
 }
 
 
-void Element::helmRow (const real**  IT     ,
-		       const real**  DV     ,
-		       const real**  DT     ,
-		       const real    lambda2,
-		       const int     i      ,
-		       const int     j      ,
-		       real*         hij    ,
-		       real*         W1     ,
-		       real*         W2     ,
-		       real*         W0     ) const
+void Element::helmRow (const real**&  IT     ,
+		       const real**&  DV     ,
+		       const real**&  DT     ,
+		       const real&    lambda2,
+		       const int&     i      ,
+		       const int&     j      ,
+		       real*          hij    ,
+		       real*          W1     ,
+		       real*          W2     ,
+		       real*          W0     ) const
 // ---------------------------------------------------------------------------
 // Build row [i,j] of the elemental Helmholtz matrix in array hij (np x np).
 //
@@ -939,12 +951,13 @@ void Element::helmRow (const real**  IT     ,
       hij[Veclib::row_major (m, j, nq)] += Blas::dot (nq, G2 + j,   nq, W1, 1);
     }
 
-    for (m = 0; m < nq; m++)
-      for (n = 0; n < nq; n++) {
-	hij [Veclib::row_major (m, n, nq)] +=
-	  G3[Veclib::row_major (i, n, nq)] * DV[n][j] * DV[i][m];
-	hij [Veclib::row_major (m, n, nq)] +=
-	  G3[Veclib::row_major (m, j, nq)] * DV[j][n] * DV[m][i];
+    if (G3)
+      for (m = 0; m < nq; m++)
+	for (n = 0; n < nq; n++) {
+	  hij [Veclib::row_major (m, n, nq)] +=
+	    G3[Veclib::row_major (i, n, nq)] * DV[n][j] * DV[i][m];
+	  hij [Veclib::row_major (m, n, nq)] +=
+	    G3[Veclib::row_major (m, j, nq)] * DV[j][n] * DV[m][i];
       }
 
     hij[Veclib::row_major (i, j, nq)] +=
@@ -967,17 +980,19 @@ void Element::helmRow (const real**  IT     ,
 	Blas::ger    (nq, nq, 1.0, W2, 1, W1, 1, W0, nq);
 	hij[Veclib::row_major (m, n, np)] += Blas::dot (ntot, G2, 1, W0, 1);
 
-	Veclib::zero (ntot, W0, 1);
-	Veclib::vmul (nq, DT[i], 1, IT[m], 1, W1, 1);
-	Veclib::vmul (nq, IT[j], 1, DT[n], 1, W2, 1);
-	Blas::ger    (nq, nq, 1.0, W2, 1, W1, 1, W0, nq);
-	hij[Veclib::row_major (m, n, np)] += Blas::dot (ntot, G3, 1, W0, 1);
+	if (G3) {
+	  Veclib::zero (ntot, W0, 1);
+	  Veclib::vmul (nq, DT[i], 1, IT[m], 1, W1, 1);
+	  Veclib::vmul (nq, IT[j], 1, DT[n], 1, W2, 1);
+	  Blas::ger    (nq, nq, 1.0, W2, 1, W1, 1, W0, nq);
+	  hij[Veclib::row_major (m, n, np)] += Blas::dot (ntot, G3, 1, W0, 1);
 
-	Veclib::zero (ntot, W0, 1);
-	Veclib::vmul (nq, IT[i], 1, DT[m], 1, W1, 1);
-	Veclib::vmul (nq, DT[j], 1, IT[n], 1, W2, 1);
-	Blas::ger    (nq, nq, 1.0, W2, 1, W1, 1, W0, nq);
-	hij[Veclib::row_major (m, n, np)] += Blas::dot (ntot, G3, 1, W0, 1);
+	  Veclib::zero (ntot, W0, 1);
+	  Veclib::vmul (nq, IT[i], 1, DT[m], 1, W1, 1);
+	  Veclib::vmul (nq, DT[j], 1, IT[n], 1, W2, 1);
+	  Blas::ger    (nq, nq, 1.0, W2, 1, W1, 1, W0, nq);
+	  hij[Veclib::row_major (m, n, np)] += Blas::dot (ntot, G3, 1, W0, 1);
+	}
 
 	Veclib::zero (ntot, W0, 1);
 	Veclib::vmul (nq, IT[i], 1, IT[m], 1, W1, 1);
