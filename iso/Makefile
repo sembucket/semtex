@@ -20,7 +20,11 @@ VPATH    = $(ISO)/src
 ARCH     = $(shell uname -s)
 PROG     = iso
 
-DEFINES  =
+ifdef TG
+  DEFINES  = -DTG
+else
+  DEFINES  =
+endif
 
 CPPFLAGS = -I.
 
@@ -29,21 +33,21 @@ CPPFLAGS = -I.
 ifeq ($(ARCH),IRIX)		# -- SGI MIPS R4xxx IRIX5x
 CC	 = cc
 LD	 = cc
-CFLAGS   = -mips2 -fullwarn -O2
+CFLAGS   = -mips2 -fullwarn $(DEFINES) -O2
 LDFLAGS  = $(CFLAGS) -lmalloc -lm
 endif
 
 ifeq ($(ARCH),IRIX64)		# -- SGI MIPS R8xxx IRIX6x
 CC       = cc
 LD       = cc
-CFLAGS   = -O3
+CFLAGS   = -O3 $(DEFINES)
 LDFLAGS  = $(CFLAGS) -lmalloc -lm
 endif
 
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha
 CC       = cc
 LD	 = cc
-CFLAGS   = -O2 -migrate -tune host
+CFLAGS   = -O4 -migrate -tune host $(DEFINES)
 LDFLAGS  = $(CFLAGS) -lm
 endif
 
@@ -51,10 +55,22 @@ HEADER    = iso.h
 
 # ----------------------------------------------------------------------------
 # Make iso application.
-ISOOBJ = allocate.o io.o nonlinear.o integrate.o energy.o FFT.o misc.o drive.o
+
+ifdef TG
+  ISOOBJ = allocate.o io.o nonlinear.o integrate.o energy.o FFT.o	\
+	   misc.o taylor.o drive.o
+else
+  ISOOBJ = allocate.o io.o nonlinear.o integrate.o energy.o FFT.o	\
+	   misc.o drive.o
+endif
 
 $(PROG): $(ISOOBJ) $(HEADER)
 	$(LD) $(ISOOBJ) -o $(PROG) $(LDFLAGS)
+
+ifeq ($(ARCH),IRIX64) # special compile to avoid bug!
+nonlinear.o: nonlinear.c
+	cc -O1 -c nonlinear.c
+endif
 
 # ----------------------------------------------------------------------------
 # Make a top-hat spectrum initial conditions file.
