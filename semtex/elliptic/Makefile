@@ -109,3 +109,4 @@ clean:
 	rm -f *.o *~
 	rm -rf ILDUMPS
 	rm -rf ii_files
+	rm -rf ptrepository
