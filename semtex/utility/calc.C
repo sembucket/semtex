@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // calc: a basic calculator using the function parser.
 //
-// Copyright (c) 1994 Hugh Blackburn
+// Copyright (c) 1994,2003 Hugh Blackburn
 //
 // Usage: calc [-h] [file]
 //
@@ -61,7 +61,7 @@ static void getargs (int       argc ,
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
     case 'h':
-      cerr << "-- Calculator operators and functions:" << endl;
+      cerr << "-- Calculator operators, functions and procedures:" << endl;
       yy_help ();
       cerr << endl << "-- Preset internal variables:"  << endl;
       yy_show ();

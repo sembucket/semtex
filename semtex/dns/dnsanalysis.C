@@ -41,7 +41,7 @@ void DNSAnalyser::analyse (AuxField** work)
   const integer DIM = Geometry::nDim();
 
   Analyser::analyse (work);
-
+#if 0
   ROOTONLY {
     const integer periodic = !(src->step % (integer)Femlib::value("IO_HIS")) ||
                              !(src->step % (integer)Femlib::value("IO_FLD"));
@@ -79,4 +79,5 @@ void DNSAnalyser::analyse (AuxField** work)
 
     flx_strm << s << endl;
   }
+#endif
 }
