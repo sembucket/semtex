@@ -2,7 +2,7 @@
 // This version of analysis.C is specialized so that it computes and
 // prints out forces exerted on "wall" boundary group.
 //
-// Copyright (c) 1994<-->$Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -41,7 +41,7 @@ void DNSAnalyser::analyse (AuxField** work)
   const integer DIM = Geometry::nDim();
 
   Analyser::analyse (work);
-#if 0
+
   ROOTONLY {
     const bool periodic = !(src->step %  Femlib::ivalue ("IO_HIS")) ||
                           !(src->step %  Femlib::ivalue ("IO_FLD"));
@@ -79,5 +79,4 @@ void DNSAnalyser::analyse (AuxField** work)
 
     flx_strm << s << endl;
   }
-#endif
 }
