@@ -20,7 +20,7 @@ endif
 #INITIAL    = initial
 INITIAL    = manager tree
 
-OPERATORS  = polyops	operators	matops          filter
+OPERATORS  = polyops	operators	matops     polylib     filter
 
 FFT	   = temfftd	fftpack		fourier
 
@@ -28,7 +28,7 @@ MEMORY     = mapping	family          message
 
 MESH       = RCM
 
-IMPORT     = recipes zbesj mach
+IMPORT     = recipes zbesj mach xerbla
 
 ALL        = $(INITIAL) $(OPERATORS) $(FFT) $(MEMORY) $(MESH) $(IMPORT)
      
