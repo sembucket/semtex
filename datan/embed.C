@@ -32,12 +32,12 @@
 
 using namespace std;
 
-#include <Utility.h>
-#include <Veclib.h>
+#include <utility.h>
+#include <veclib.h>
 #include <Stack.h>
 #include <Array.h>
-#include <Blas.h>
-#include <Lapack.h>
+#include <blas.h>
+#include <lapack.h>
 
 static char prog[]  = "embed";
 static char usage[] = "embed [-h] -n <num> -s <num> [-p <num>] [file]";

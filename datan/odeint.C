@@ -13,8 +13,8 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include <utility_h>
-#include <lapack_h>
+#include <utility.h>
+#include <lapack.h>
 
 #include <Stack.h>
 #include <Array.h>
