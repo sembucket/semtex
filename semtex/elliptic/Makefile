@@ -44,7 +44,7 @@ endif
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha
 CXX	 = cxx
 LD	 = cxx
-CXXFLAGS =  $(DEFINES) -migrate -tune host -g -w0
+CXXFLAGS =  $(DEFINES) -migrate -tune host -Olimit 1000 -g -w0
 F77LIBS  = -ldxml
 ifdef MPI
   CXXFLAGS += -thread_safe

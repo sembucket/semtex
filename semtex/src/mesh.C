@@ -1352,8 +1352,8 @@ void Mesh::extent (Point& lo,
 {
   integer i, j;
   Elmt*   E;
-  real    x, xmax = FLT_MIN, xmin = FLT_MAX;
-  real    y, ymax = FLT_MIN, ymin = FLT_MAX;
+  real    x, xmax = -FLT_MAX, xmin = FLT_MAX;
+  real    y, ymax = -FLT_MAX, ymin = FLT_MAX;
 
   const integer Ne = nEl();  
   for (i = 0; i < Ne; i++) {
