@@ -113,15 +113,16 @@ void integrate (CVF          U,
 	
 	V[k1][ 0][ 0].Re *= I_factor;
 	V[k1][ 0][ 0].Im *= I_factor;
-	V[ 0][k1][ 0].Re *= I_factor;
-	V[ 0][k1][ 0].Im *= I_factor;
-	V[ 0][ 0][k1].Re *= I_factor;
-	V[ 0][ 0][k1].Im *= I_factor;
-
 	V[k1][ 0][ 0].Re += C0 * G0[k1][ 0][ 0].Re;
 	V[k1][ 0][ 0].Im += C0 * G0[k1][ 0][ 0].Im;
+
+	V[ 0][k1][ 0].Re *= I_factor;
+	V[ 0][k1][ 0].Im *= I_factor;
 	V[ 0][k1][ 0].Re += C0 * G0[ 0][k1][ 0].Re;
 	V[ 0][k1][ 0].Im += C0 * G0[ 0][k1][ 0].Im;
+
+	V[ 0][ 0][k1].Re *= I_factor;
+	V[ 0][ 0][k1].Im *= I_factor;
 	V[ 0][ 0][k1].Re += C0 * G0[ 0][ 0][k1].Re;
 	V[ 0][ 0][k1].Im += C0 * G0[ 0][ 0][k1].Im;
 
@@ -133,31 +134,31 @@ void integrate (CVF          U,
 	  
 	  V[ 0][k1][k2].Re *= I_factor;   /* i = 0 */
 	  V[ 0][k1][k2].Im *= I_factor;
-	  V[ 0][b1][k2].Re *= I_factor;
-	  V[ 0][b1][k2].Im *= I_factor;
-
 	  V[ 0][k1][k2].Re += C0 * G0[ 0][k1][k2].Re;
 	  V[ 0][k1][k2].Im += C0 * G0[ 0][k1][k2].Im;
+
+	  V[ 0][b1][k2].Re *= I_factor;
+	  V[ 0][b1][k2].Im *= I_factor;
 	  V[ 0][b1][k2].Re += C0 * G0[ 0][b1][k2].Re; 
 	  V[ 0][b1][k2].Im += C0 * G0[ 0][b1][k2].Im; 
 
 	  V[k1][ 0][k2].Re *= I_factor;  /* j = 0 */
 	  V[k1][ 0][k2].Im *= I_factor;
-	  V[b1][ 0][k2].Re *= I_factor;
-	  V[b1][ 0][k2].Im *= I_factor;
-
 	  V[k1][ 0][k2].Re += C0 * G0[k1][ 0][k2].Re;
 	  V[k1][ 0][k2].Im += C0 * G0[k1][ 0][k2].Im;
+
+	  V[b1][ 0][k2].Re *= I_factor;
+	  V[b1][ 0][k2].Im *= I_factor;
 	  V[b1][ 0][k2].Re += C0 * G0[b1][ 0][k2].Re; 
 	  V[b1][ 0][k2].Im += C0 * G0[b1][ 0][k2].Im; 
 
 	  V[k1][k2][ 0].Re *= I_factor;  /* k = 0 */
 	  V[k1][k2][ 0].Im *= I_factor;
-	  V[b1][k2][ 0].Re *= I_factor;
-	  V[b1][k2][ 0].Im *= I_factor;
-
 	  V[k1][k2][ 0].Re += C0 * G0[k1][k2][ 0].Re;
 	  V[k1][k2][ 0].Im += C0 * G0[k1][k2][ 0].Im;
+
+	  V[b1][k2][ 0].Re *= I_factor;
+	  V[b1][k2][ 0].Im *= I_factor;
 	  V[b1][k2][ 0].Re += C0 * G0[b1][k2][ 0].Re; 
 	  V[b1][k2][ 0].Im += C0 * G0[b1][k2][ 0].Im; 
 
@@ -168,19 +169,21 @@ void integrate (CVF          U,
 	    
 	    V[k1][k2][k3].Re *= I_factor;
 	    V[k1][k2][k3].Im *= I_factor;
-	    V[b1][k2][k3].Re *= I_factor;
-	    V[b1][k2][k3].Im *= I_factor;
-	    V[k1][b2][k3].Re *= I_factor;
-	    V[k1][b2][k3].Im *= I_factor;
-	    V[b1][b2][k3].Re *= I_factor;
-	    V[b1][b2][k3].Im *= I_factor;
-	    
 	    V[k1][k2][k3].Re += C0 * G0[k1][k2][k3].Re; 
 	    V[k1][k2][k3].Im += C0 * G0[k1][k2][k3].Im;
+
+	    V[b1][k2][k3].Re *= I_factor;
+	    V[b1][k2][k3].Im *= I_factor;
 	    V[b1][k2][k3].Re += C0 * G0[b1][k2][k3].Re; 
 	    V[b1][k2][k3].Im += C0 * G0[b1][k2][k3].Im;
+
+	    V[k1][b2][k3].Re *= I_factor;
+	    V[k1][b2][k3].Im *= I_factor;
 	    V[k1][b2][k3].Re += C0 * G0[k1][b2][k3].Re; 
 	    V[k1][b2][k3].Im += C0 * G0[k1][b2][k3].Im;
+
+	    V[b1][b2][k3].Re *= I_factor;
+	    V[b1][b2][k3].Im *= I_factor;
 	    V[b1][b2][k3].Re += C0 * G0[b1][b2][k3].Re; 
 	    V[b1][b2][k3].Im += C0 * G0[b1][b2][k3].Im;
 	  }
@@ -197,7 +200,7 @@ void integrate (CVF          U,
 
       for (k1 = 1; k1 < K; k1++) {
 	b1       = N - k1;
-	kSqrd    = k1 * k1;	/* Axes. */
+	kSqrd    = k1 * k1;
 	I_factor = exp (kSqrd * Neg_nu_dt);
 	C0       = 0.5 * I -> dt * I_factor;
 	C1       = -I_factor * C0;
@@ -205,19 +208,20 @@ void integrate (CVF          U,
 	
 	V[k1][ 0][ 0].Re *= I_factor;
 	V[k1][ 0][ 0].Im *= I_factor;
-	V[ 0][k1][ 0].Re *= I_factor;
-	V[ 0][k1][ 0].Im *= I_factor;
-	V[ 0][ 0][k1].Re *= I_factor;
-	V[ 0][ 0][k1].Im *= I_factor;
-	
 	V[k1][ 0][ 0].Re += C0 * G0[k1][ 0][ 0].Re +
 	                    C1 * G1[k1][ 0][ 0].Re ;
 	V[k1][ 0][ 0].Im += C0 * G0[k1][ 0][ 0].Im +
 	                    C1 * G1[k1][ 0][ 0].Im ;
+
+	V[ 0][k1][ 0].Re *= I_factor;
+	V[ 0][k1][ 0].Im *= I_factor;
 	V[ 0][k1][ 0].Re += C0 * G0[ 0][k1][ 0].Re +
 	                    C1 * G1[ 0][k1][ 0].Re ;
 	V[ 0][k1][ 0].Im += C0 * G0[ 0][k1][ 0].Im +
 	                    C1 * G1[ 0][k1][ 0].Im ;
+
+	V[ 0][ 0][k1].Re *= I_factor;
+	V[ 0][ 0][k1].Im *= I_factor;
 	V[ 0][ 0][k1].Re += C0 * G0[ 0][ 0][k1].Re +
 	                    C1 * G1[ 0][ 0][k1].Re ;
 	V[ 0][ 0][k1].Im += C0 * G0[ 0][ 0][k1].Im +
@@ -225,7 +229,7 @@ void integrate (CVF          U,
 
 	for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
 	  b2       = N - k2;
-	  kSqrd    = k1*k1 + k2*k2; /* Faces. */
+	  kSqrd    = k1*k1 + k2*k2;
 	  I_factor = exp (kSqrd * Neg_nu_dt);
 	  C0       = 0.5 * I -> dt * I_factor;
 	  C1       = -I_factor * C0;
@@ -233,13 +237,13 @@ void integrate (CVF          U,
 	  
 	  V[ 0][k1][k2].Re *= I_factor;   /* i = 0 */
 	  V[ 0][k1][k2].Im *= I_factor;
-	  V[ 0][b1][k2].Re *= I_factor;
-	  V[ 0][b1][k2].Im *= I_factor;
-	  
 	  V[ 0][k1][k2].Re += C0 * G0[ 0][k1][k2].Re +
 	                      C1 * G1[ 0][k1][k2].Re ;
 	  V[ 0][k1][k2].Im += C0 * G0[ 0][k1][k2].Im +
 	                      C1 * G1[ 0][k1][k2].Im ;
+
+	  V[ 0][b1][k2].Re *= I_factor;
+	  V[ 0][b1][k2].Im *= I_factor;
 	  V[ 0][b1][k2].Re += C0 * G0[ 0][b1][k2].Re +
 	                      C1 * G1[ 0][b1][k2].Re ;
 	  V[ 0][b1][k2].Im += C0 * G0[ 0][b1][k2].Im +
@@ -247,13 +251,13 @@ void integrate (CVF          U,
 	  
 	  V[k1][ 0][k2].Re *= I_factor;  /* j = 0 */
 	  V[k1][ 0][k2].Im *= I_factor;
-	  V[b1][ 0][k2].Re *= I_factor;
-	  V[b1][ 0][k2].Im *= I_factor;
-	  
 	  V[k1][ 0][k2].Re += C0 * G0[k1][ 0][k2].Re +
 	                      C1 * G1[k1][ 0][k2].Re ;
 	  V[k1][ 0][k2].Im += C0 * G0[k1][ 0][k2].Im +
 	                      C1 * G1[k1][ 0][k2].Im ;
+
+	  V[b1][ 0][k2].Re *= I_factor;
+	  V[b1][ 0][k2].Im *= I_factor;
 	  V[b1][ 0][k2].Re += C0 * G0[b1][ 0][k2].Re +
 	                      C1 * G1[b1][ 0][k2].Re ;
 	  V[b1][ 0][k2].Im += C0 * G0[b1][ 0][k2].Im +
@@ -261,17 +265,17 @@ void integrate (CVF          U,
 	  
 	  V[k1][k2][ 0].Re *= I_factor;  /* k = 0 */
 	  V[k1][k2][ 0].Im *= I_factor;
-	  V[b1][k2][ 0].Re *= I_factor;
-	  V[b1][k2][ 0].Im *= I_factor;
-	  
 	  V[k1][k2][ 0].Re += C0 * G0[k1][k2][ 0].Re +
 	                      C1 * G1[k1][k2][ 0].Re ;
 	  V[k1][k2][ 0].Im += C0 * G0[k1][k2][ 0].Im +
 	                      C1 * G1[k1][k2][ 0].Im ;
+
+	  V[b1][k2][ 0].Re *= I_factor;
+	  V[b1][k2][ 0].Im *= I_factor;
 	  V[b1][k2][ 0].Re += C0 * G0[b1][k2][ 0].Re +
 	                      C1 * G1[b1][k2][ 0].Re ;
 	  V[b1][k2][ 0].Im += C0 * G0[b1][k2][ 0].Im +
-	                      C1 * G1[b1][k2][ 0].Re ;
+	                      C1 * G1[b1][k2][ 0].Im ;
 
 	  for (k3 = 1; k3 < K && k2+k3 INSIDE && k1+k3 INSIDE; k3++){
 	    kSqrd    = k1*k1 + k2*k2 + k3*k3; /* Internal. */
@@ -282,25 +286,27 @@ void integrate (CVF          U,
 	    
 	    V[k1][k2][k3].Re *= I_factor;
 	    V[k1][k2][k3].Im *= I_factor;
-	    V[b1][k2][k3].Re *= I_factor;
-	    V[b1][k2][k3].Im *= I_factor;
-	    V[k1][b2][k3].Re *= I_factor;
-	    V[k1][b2][k3].Im *= I_factor;
-	    V[b1][b2][k3].Re *= I_factor;
-	    V[b1][b2][k3].Im *= I_factor;
-	    
 	    V[k1][k2][k3].Re += C0 * G0[k1][k2][k3].Re +
 	                        C1 * G1[k1][k2][k3].Re ;
 	    V[k1][k2][k3].Im += C0 * G0[k1][k2][k3].Im +
 	                        C1 * G1[k1][k2][k3].Im ;
+
+	    V[b1][k2][k3].Re *= I_factor;
+	    V[b1][k2][k3].Im *= I_factor;
 	    V[b1][k2][k3].Re += C0 * G0[b1][k2][k3].Re +
 	                        C1 * G1[b1][k2][k3].Re ;
 	    V[b1][k2][k3].Im += C0 * G0[b1][k2][k3].Im +
 	                        C1 * G1[b1][k2][k3].Im ;
+
+	    V[k1][b2][k3].Re *= I_factor;
+	    V[k1][b2][k3].Im *= I_factor;
 	    V[k1][b2][k3].Re += C0 * G0[k1][b2][k3].Re +
 	                        C1 * G1[k1][b2][k3].Re ;
 	    V[k1][b2][k3].Im += C0 * G0[k1][b2][k3].Im +
 	                        C1 * G1[k1][b2][k3].Im ;
+
+	    V[b1][b2][k3].Re *= I_factor;
+	    V[b1][b2][k3].Im *= I_factor;
 	    V[b1][b2][k3].Re += C0 * G0[b1][b2][k3].Re +
 	                        C1 * G1[b1][b2][k3].Re ;
 	    V[b1][b2][k3].Im += C0 * G0[b1][b2][k3].Im +
@@ -331,26 +337,27 @@ void integrate (CVF          U,
 	
 	V[k1][ 0][ 0].Re *= I_factor;
 	V[k1][ 0][ 0].Im *= I_factor;
-	V[ 0][k1][ 0].Re *= I_factor;
-	V[ 0][k1][ 0].Im *= I_factor;
-	V[ 0][ 0][k1].Re *= I_factor;
-	V[ 0][ 0][k1].Im *= I_factor;
-	
 	V[k1][ 0][ 0].Re += C0 * G0[k1][ 0][ 0].Re +
 	                    C1 * G1[k1][ 0][ 0].Re +
 	                    C2 * G2[k1][ 0][ 0].Re ;
 	V[k1][ 0][ 0].Im += C0 * G0[k1][ 0][ 0].Im +
 	                    C1 * G1[k1][ 0][ 0].Im +
 	                    C2 * G2[k1][ 0][ 0].Im ;
+
+	V[ 0][k1][ 0].Re *= I_factor;
+	V[ 0][k1][ 0].Im *= I_factor;
 	V[ 0][k1][ 0].Re += C0 * G0[ 0][k1][ 0].Re +
 	                    C1 * G1[ 0][k1][ 0].Re +
 	                    C2 * G2[ 0][k1][ 0].Re ;
 	V[ 0][k1][ 0].Im += C0 * G0[ 0][k1][ 0].Im +
 	                    C1 * G1[ 0][k1][ 0].Im +
 	                    C2 * G2[ 0][k1][ 0].Im ;
+
+	V[ 0][ 0][k1].Re *= I_factor;
+	V[ 0][ 0][k1].Im *= I_factor;
 	V[ 0][ 0][k1].Re += C0 * G0[ 0][ 0][k1].Re +
 	                    C1 * G1[ 0][ 0][k1].Re +
-	                    C1 * G2[ 0][ 0][k1].Re ;
+	                    C2 * G2[ 0][ 0][k1].Re ;
 	V[ 0][ 0][k1].Im += C0 * G0[ 0][ 0][k1].Im +
 	                    C1 * G1[ 0][ 0][k1].Im +
 	                    C2 * G2[ 0][ 0][k1].Im ;
@@ -368,15 +375,15 @@ void integrate (CVF          U,
 	  
 	  V[ 0][k1][k2].Re *= I_factor;   /* i = 0 */
 	  V[ 0][k1][k2].Im *= I_factor;
-	  V[ 0][b1][k2].Re *= I_factor;
-	  V[ 0][b1][k2].Im *= I_factor;
-	  
 	  V[ 0][k1][k2].Re += C0 * G0[ 0][k1][k2].Re +
 	                      C1 * G1[ 0][k1][k2].Re +
 	                      C2 * G2[ 0][k1][k2].Re ;
 	  V[ 0][k1][k2].Im += C0 * G0[ 0][k1][k2].Im +
 	                      C1 * G1[ 0][k1][k2].Im +
 	                      C2 * G2[ 0][k1][k2].Im ;
+
+	  V[ 0][b1][k2].Re *= I_factor;
+	  V[ 0][b1][k2].Im *= I_factor;
 	  V[ 0][b1][k2].Re += C0 * G0[ 0][b1][k2].Re +
 	                      C1 * G1[ 0][b1][k2].Re +
 	                      C2 * G2[ 0][b1][k2].Re ;
@@ -386,15 +393,15 @@ void integrate (CVF          U,
 	  
 	  V[k1][ 0][k2].Re *= I_factor;  /* j = 0 */
 	  V[k1][ 0][k2].Im *= I_factor;
-	  V[b1][ 0][k2].Re *= I_factor;
-	  V[b1][ 0][k2].Im *= I_factor;
-	  
 	  V[k1][ 0][k2].Re += C0 * G0[k1][ 0][k2].Re +
 	                      C1 * G1[k1][ 0][k2].Re +
 	                      C2 * G2[k1][ 0][k2].Re ;
 	  V[k1][ 0][k2].Im += C0 * G0[k1][ 0][k2].Im +
 	                      C1 * G1[k1][ 0][k2].Im +
 	                      C2 * G2[k1][ 0][k2].Im ;
+
+	  V[b1][ 0][k2].Re *= I_factor;
+	  V[b1][ 0][k2].Im *= I_factor;
 	  V[b1][ 0][k2].Re += C0 * G0[b1][ 0][k2].Re +
 	                      C1 * G1[b1][ 0][k2].Re +
 	                      C2 * G2[b1][ 0][k2].Re ;
@@ -404,21 +411,21 @@ void integrate (CVF          U,
 	  
 	  V[k1][k2][ 0].Re *= I_factor;  /* k = 0 */
 	  V[k1][k2][ 0].Im *= I_factor;
-	  V[b1][k2][ 0].Re *= I_factor;
-	  V[b1][k2][ 0].Im *= I_factor;
-	  
 	  V[k1][k2][ 0].Re += C0 * G0[k1][k2][ 0].Re +
 	                      C1 * G1[k1][k2][ 0].Re +
 	                      C2 * G2[k1][k2][ 0].Re ;
 	  V[k1][k2][ 0].Im += C0 * G0[k1][k2][ 0].Im +
 	                      C1 * G1[k1][k2][ 0].Im +
 	                      C2 * G2[k1][k2][ 0].Im ;
+
+	  V[b1][k2][ 0].Re *= I_factor;
+	  V[b1][k2][ 0].Im *= I_factor;
 	  V[b1][k2][ 0].Re += C0 * G0[b1][k2][ 0].Re +
 	                      C1 * G1[b1][k2][ 0].Re +
 	                      C2 * G2[b1][k2][ 0].Re ;
 	  V[b1][k2][ 0].Im += C0 * G0[b1][k2][ 0].Im +
-	                      C1 * G1[b1][k2][ 0].Re +
-	                      C2 * G2[b1][k2][ 0].Re ;
+	                      C1 * G1[b1][k2][ 0].Im +
+	                      C2 * G2[b1][k2][ 0].Im ;
 
 	  for (k3 = 1; k3 < K && k2+k3 INSIDE && k1+k3 INSIDE; k3++){
 	    kSqrd    = k1*k1 + k2*k2 + k3*k3; /* Internal. */
@@ -432,31 +439,33 @@ void integrate (CVF          U,
 	    
 	    V[k1][k2][k3].Re *= I_factor;
 	    V[k1][k2][k3].Im *= I_factor;
-	    V[b1][k2][k3].Re *= I_factor;
-	    V[b1][k2][k3].Im *= I_factor;
-	    V[k1][b2][k3].Re *= I_factor;
-	    V[k1][b2][k3].Im *= I_factor;
-	    V[b1][b2][k3].Re *= I_factor;
-	    V[b1][b2][k3].Im *= I_factor;
-	    
 	    V[k1][k2][k3].Re += C0 * G0[k1][k2][k3].Re +
 	                        C1 * G1[k1][k2][k3].Re +
 	                        C2 * G2[k1][k2][k3].Re ;
 	    V[k1][k2][k3].Im += C0 * G0[k1][k2][k3].Im +
 	                        C1 * G1[k1][k2][k3].Im +
 	                        C2 * G2[k1][k2][k3].Im ;
+
+	    V[b1][k2][k3].Re *= I_factor;
+	    V[b1][k2][k3].Im *= I_factor;
 	    V[b1][k2][k3].Re += C0 * G0[b1][k2][k3].Re +
 	                        C1 * G1[b1][k2][k3].Re +
 	                        C2 * G2[b1][k2][k3].Re ;
 	    V[b1][k2][k3].Im += C0 * G0[b1][k2][k3].Im +
 	                        C1 * G1[b1][k2][k3].Im +
 	                        C2 * G2[b1][k2][k3].Im ;
+
+	    V[k1][b2][k3].Re *= I_factor;
+	    V[k1][b2][k3].Im *= I_factor;
 	    V[k1][b2][k3].Re += C0 * G0[k1][b2][k3].Re +
 	                        C1 * G1[k1][b2][k3].Re +
 	                        C2 * G2[k1][b2][k3].Re ;
 	    V[k1][b2][k3].Im += C0 * G0[k1][b2][k3].Im +
 	                        C1 * G1[k1][b2][k3].Im +
 	                        C2 * G2[k1][b2][k3].Im ;
+
+	    V[b1][b2][k3].Re *= I_factor;
+	    V[b1][b2][k3].Im *= I_factor;
 	    V[b1][b2][k3].Re += C0 * G0[b1][b2][k3].Re +
 	                        C1 * G1[b1][b2][k3].Re +
 	                        C2 * G2[b1][b2][k3].Re ;
