@@ -594,7 +594,7 @@ Field& Field::solve (AuxField*                f  ,
     Veclib::zero (nglobal, RHS, 1);
     getEssential (bc, RHS, B, N);
     constrain    (forcing, lambda2, betak2, RHS, N);
-    buildRHS     (forcing, bc, RHS, 0, hbi, nsolve, nzero,B, N);
+    buildRHS     (forcing, bc, RHS, 0, hbi, nsolve, nzero, B, N);
 
     // -- Solve for unknown global-node values (if any).
 
@@ -636,7 +636,10 @@ Field& Field::solve (AuxField*  f      ,
 // Forcing field F's data area is overwritten/destroyed during processing.
 //
 // In this version, all vectors are ordered with globally-numbered (element-
-// boundary) nodes first, followed by all element-internal nodes.
+// boundary) nodes first, followed by all element-internal nodes.  The zeroing
+// operation which occurs after each application of the Helmholtz operator
+// serves to apply the essential BCs, which are zero during the iteration
+// (see file header).
 //
 // The notation follows that used in Fig 2.5 of
 //   Barrett et al., "Templates for the Solution of Linear Sytems", netlib.
@@ -701,8 +704,8 @@ Field& Field::solve (AuxField*  f      ,
     constrain    (forcing, lambda2, betak2, x, N);
     buildRHS     (forcing, bc, r, r + nglobal, 0, nsolve, nzero, B, N);
 
-    epsb2  = Femlib::value ("TOL_REL") * sqrt (Blas::dot (npts, r, 1, r, 1))
-           + Femlib::value ("TOL_ABS");
+    epsb2  = Femlib::value ("TOL_REL") * sqrt (Blas::dot (npts, r, 1, r, 1));
+      //           + Femlib::value ("TOL_ABS");
     epsb2 *= epsb2;
 
     // -- Build globally-numbered x from element store.
@@ -710,6 +713,7 @@ Field& Field::solve (AuxField*  f      ,
     local2global (unknown, x, N);
   
     // -- Compute first residual using initial guess: r = b - Ax.
+    //    And mask to get residual for the zero-BC problem.
 
     Veclib::zero (nzero, x + nsolve, 1);   
     Veclib::copy (npts,  x, 1, q, 1);
@@ -717,6 +721,7 @@ Field& Field::solve (AuxField*  f      ,
     HelmholtzOperator (q, p, lambda2, betak2, wrk, N);
 
     Veclib::zero (nzero, p + nsolve, 1);
+    Veclib::zero (nzero, r + nsolve, 1);
     Veclib::vsub (npts, r, 1, p, 1, r, 1);
 
     r2 = Blas::dot (npts, r, 1, r, 1);
@@ -744,13 +749,11 @@ Field& Field::solve (AuxField*  f      ,
       // -- Matrix-vector product.
 
       HelmholtzOperator (p, q, lambda2, betak2, wrk, N);
-      Veclib::zero (nzero, q + nsolve, 1);
+      Veclib::zero      (nzero, q + nsolve, 1);
 
       // -- Move in conjugate direction.
 
-      dotp = Blas::dot (npts, p, 1, q, 1);
-      dotp = (dotp > FTINY) ? dotp : FTINY;
-			
+      dotp  = Blas::dot (npts, p, 1, q, 1);
       alpha = rho1 / dotp;
       Blas::axpy (npts,  alpha, p, 1, x, 1); // -- x += alpha p.
       Blas::axpy (npts, -alpha, q, 1, r, 1); // -- r -= alpha q.
