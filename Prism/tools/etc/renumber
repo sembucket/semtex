@@ -1,0 +1,36 @@
+#!/bin/csh
+#
+# Renumber single-digit data files
+#
+
+if ($#argv != 1) then
+  echo "usage: renumber base"
+  echo "Renames files base.# to base.0# for # = [1-9]"
+  exit -1
+endif
+
+set n    = 1
+set base = $argv[1]
+
+echo $base
+
+while ($n < 10) 
+   if (-e $base.$n) then
+      echo "$base.$n -> $base.0$n"
+      mv $base.$n $base.0$n
+   endif
+
+   if (-e $base.$n.Z) then
+      echo "$base.$n.Z -> $base.0$n.Z"
+      mv $base.$n.Z $base.0$n.Z
+   endif
+
+   if (-e $base.$n.gz) then
+      echo "$base.$n.gz -> $base.0$n.gz"
+      mv $base.$n.gz $base.0$n.gz
+   endif
+   @ n += 1
+end
+
+exit 0
+

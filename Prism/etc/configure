@@ -1,0 +1,454 @@
+#!/bin/csh -f
+#
+# Guess system-dependent parameters and set Makefile variables for Prism
+#
+# $Id$
+
+if (! $?PRISM ) then
+    echo "Please update your .cshrc:"
+    echo "  setenv PRISM prism-root-directory"
+    echo '  set path = ($path $PRISM/bin)'
+    exit 0
+endif
+
+# These variables control the different configuration options
+
+set debug    = 0
+set cross    = 0
+set parallel = 0
+set conform  = 0
+
+# These variables store values for Make.  The following set is for the
+# generic UNIX platform.
+
+set cc       = "cc"
+set cflags   = ""
+set optcc    = ""
+set fc       = "f77"
+set fflags   = ""
+set optfc    = ""
+set opt      = ""
+set cppflags = ""
+set ranlib   = "ranlib"
+set ar       = "ar"
+set aflags   = "rlc"
+set ld       = '$(CC)'
+set lflags   = '$(CFLAGS)'
+set options  = ""
+set speclib  = "-lspec"
+set veclib   = "-lvec"
+set mortar   = "-lmortar"
+set pl       = "-lpl"
+set cubit    = "-lcubit"
+set vdb      = "-lvdb"
+set comm     = "-lcomm"
+set system   = "-lm"
+
+# Path for include files and libraries 
+
+set incpath   = ( $PRISM/include )
+set incsearch = ( $HOME/include /usr/local/include /usr/include \
+    /asci/local/tools/include )
+set libpath   = ( $PRISM/lib )
+set libsearch = ( $HOME/lib /usr/local/lib /usr/lib \
+    /asci/local/tools/lib )
+
+set py_include = ""
+set pl_include = ""
+
+# Parse command-line arguments
+
+while ($#argv > 0) 
+    set arg = $argv[1]
+    switch ($arg)
+	case -h*:
+	    goto print_usage
+	    breaksw
+	case -debug:
+	    echo "Turning the debug option on"
+	    set debug = 1
+	    breaksw
+	case -mp:
+	    echo "Turning the multiprocessor option on"
+	    set parallel = 1
+	    breaksw
+	case -arch:
+	    shift argv
+	    set arch = $argv[1]
+	    breaksw
+	case -pl:
+	    shift argv
+	    set pl_driver = $argv[1]
+	    breaksw
+	case -I:
+	    shift argv
+	    set incsearch = ($argv[1] $incpath)
+	    breaksw
+	case -L:
+	    shift argv
+	    set libsearch = ($argv[1] $libpath)
+	    breaksw
+	default:
+	    echo "Uknown option --" $arg
+	    breaksw
+    endsw
+    shift argv
+end
+
+# Current version of Prism
+if (-x $PRISM/etc/version) then
+    set PRISM_VERSION = `$PRISM/etc/version`
+else if (-x $PRISM/etc/release) then
+    set PRISM_VERSION = `$PRISM/etc/release -version; $PRISM/etc/version`
+else
+    set PRISM_VERSION = "Prism-R??"
+endif    
+echo "Configuring: $PRISM_VERSION"
+
+# Select one of the supported platforms
+if (! $?arch ) then
+    set arch = `$PRISM/etc/platform`
+endif
+echo "Platform   :" $arch
+
+# Add the architecture to the compiler flags
+set cflags = ("-D$arch" $cflags)
+set fflags = ("-D$arch" $fflags)
+
+# Current installation root directory
+echo "Root       :" $PRISM
+ 
+# Check for installation sub-directories.
+echo "Checking required installation sub-directories:"
+foreach d ( prism support )
+    set dir = $PRISM/$d
+    if (! -d $dir) then
+	echo "A required installation sub-directory is missing:"
+	echo "$dir"
+	exit 1
+    else
+        echo "     $dir is OK"
+    endif
+end
+
+# Create additional installation sub-directories (if necessary)
+foreach d ( include lib bin ) 
+    set dir = $PRISM/$d
+    if (! -d $dir) then
+	echo "Creating sub-directory $dir"
+	mkdir $dir
+    else
+	echo "     $dir is OK"
+    endif
+end
+
+# Check for local versions of BLAS
+if (! $?blas) then
+    foreach dir ($libsearch)
+	foreach f (blas sci)
+	    set lib = $dir/lib$f.a
+	    if (-e $lib) then
+                echo "Using local version of BLAS --" $lib
+		set blas = -l$f
+                break
+	    endif
+	end
+    end
+endif
+
+if (! $?blas) set blas = ""
+
+# Check for local versions of LAPACK
+if (! $?lapack) then
+    foreach dir ($libsearch)
+	foreach f (lapack complib.sgimath sci)
+	    set lib = $dir/lib$f.a
+	    if (-e $lib) then
+        	echo "Using local version of LAPACK --" $lib
+		set lapack = -l$f
+	        break	
+	    endif
+        end
+    end
+endif
+
+if ( ! $?lapack ) set lapack = ""
+
+# Check for a graphics driver
+
+# -- SM
+
+if (! $?pl_driver) then
+    foreach dir ($libsearch)
+	set lib = $dir/libplotsub.a
+	if (-e $lib ) then
+	    set pl_driver = "sm"
+	    set pl_libs   = $dir
+	    break
+	endif
+    end
+endif
+
+# -- GNU plot
+
+if (! $?pl_driver) then
+    foreach dir ($libsearch)
+	set lib = $dir/libplot.a 
+
+        # This library is broken on IRIX
+        if ($arch == "IRIX"   && $dir == "/usr/lib") continue
+        if ($arch == "IRIX64" && $dir == "/usr/lib") continue
+
+	if (-e $lib) then
+	    set pl_driver = "plot"
+	    break
+	endif
+    end
+endif
+
+if (! $?pl_driver) then
+    set pl_driver="nil"
+endif    
+
+echo "Graphics driver: $pl_driver"
+switch ($pl_driver)
+    case plot:
+	foreach dir ($incsearch)
+	    if (-e $dir/plot.h) then
+		set pl_include = "-I$dir"
+		break
+	    endif
+	end
+	foreach dir ($libsearch)
+            # This library is broken on IRIX
+            if ($arch == "IRIX"   && $dir == "/usr/lib") continue
+            if ($arch == "IRIX64" && $dir == "/usr/lib") continue
+	    if (-e $dir/libplot.a) then
+		set pl = ($pl $dir/libplot.a)
+		break
+	    endif
+	end
+	breaksw
+    case sm:
+	foreach dir ($libsearch)
+	    if (-e $dir/libplotsub.a) then
+		set sm_libs = $dir
+		break
+	    endif
+	end
+	foreach f (plotsub devices utils)
+	    set pl = ($pl $sm_libs/lib$f.a)
+	end
+	breaksw
+    default:
+	breaksw
+endsw
+
+
+# Check for Python include files
+foreach dir ($incsearch)
+    foreach subdir (python1.5 Python1.5)
+	set target = $dir/$subdir/Python.h
+	if (-e $target) then
+	    set py_include = "-I$dir/$subdir"
+	    goto python_done
+	endif
+    end
+end
+python_done:
+
+# Fold in platform-specific variables
+if ($arch != "generic") then
+    set config = $PRISM/system/$arch/setflags.local
+    if (-e $config) then
+	source $config
+    else
+	echo "***** ERROR *****"
+	echo "Configuration script for $arch is missing!"
+	echo "Try using '-arch generic'"
+	exit 1
+    endif
+endif
+
+
+# Create the defaults file
+
+set defaults = $PRISM/system/defaults
+echo "Creating defaults file:"
+echo "     $defaults"
+
+# Add all directores in the include path to cppflags
+foreach dir ($incpath)
+    set cppflags = ($cppflags "-I$dir")
+end
+
+if (-e $defaults) /bin/rm -f $defaults
+
+echo "#" > $defaults
+echo "# default settings for $arch" >> $defaults
+echo "#" >> $defaults
+echo "ARCH     =" $arch >> $defaults
+echo "#" >> $defaults
+echo "# compilers and switches" >> $defaults
+echo "#" >> $defaults
+echo "CC       = $cc" >> $defaults
+echo "CFLAGS   = $cflags $optcc $opt" >> $defaults
+echo "CPPFLAGS = $cppflags" >> $defaults
+echo "FC       = $fc" >> $defaults
+echo "FFLAGS   = $fflags $optfc $opt" >> $defaults
+echo "AR       = $ar" >> $defaults
+echo "AFLAGS   = $aflags" >> $defaults
+echo "RANLIB   = $ranlib" >> $defaults
+echo "LD       = $ld" >> $defaults
+echo "LDFLAGS  = $lflags" >> $defaults
+echo "#" >> $defaults
+echo "# misc flags" >> $defaults
+echo "#" >> $defaults
+echo "OPTIONS  = $options"  >> $defaults
+if ($parallel > 0) echo "PARALLEL = $parallel" >> $defaults
+if ($debug > 0) echo "DEBUG    = $debug" >> $defaults
+echo "#" >> $defaults
+echo "# internal modules" >> $defaults
+echo "#" >> $defaults
+echo "SPECLIB  = $speclib" >> $defaults
+echo "MORTAR   = $mortar" >> $defaults
+echo "COMM     = $comm" >> $defaults
+echo "CUBIT    = $cubit" >> $defaults
+echo "PL       = $pl" >> $defaults
+echo "VDB      = $vdb" >> $defaults
+echo "VECLIB   = $veclib" >> $defaults
+echo "#" >> $defaults
+echo "# external modules" >> $defaults
+echo "#" >> $defaults
+echo "PL_INC   = $pl_include" >> $defaults
+echo "PY_INC   = $py_include" >> $defaults
+echo "LAPACK   = $lapack" >> $defaults
+echo "BLAS     = $blas" >> $defaults
+echo "SYSTEM   = $system" >> $defaults
+
+
+# Create config.h files
+
+echo "Creating config.h files:"
+
+# Prism's config.h
+set config = $PRISM/prism/config.h
+echo "     $config"
+if (-e $config) /bin/rm -f $config
+touch $config
+echo \#ifndef PRISM_CONFIG_H >> $config
+echo \#define PRISM_CONFIG_H >> $config 
+echo " " >> $config
+echo "/* This file is generated automatically */" >> $config
+echo " " >> $config
+echo \#define VERSION \"`$PRISM/etc/version`\" >> $config
+echo \#define ARCH \"$arch\"                   >> $config
+# write options to config.h options
+if ($debug != 0)    echo \#define DEBUG    $debug >> $config
+if ($parallel != 0) echo \#define PARALLEL 1      >> $config
+if ($conform == 0)  echo \#define MORTAR   1      >> $config
+#
+echo " "     >> $config
+echo \#endif >> $config
+chmod 444 $config
+
+# speclib's config.h
+set config = $PRISM/support/speclib/config.h
+echo "     $config"
+if (-e $config) /bin/rm -f $config
+touch $config
+echo \#ifndef SPECLIB_CONFIG_H >> $config
+echo \#define SPECLIB_CONFIG_H >> $config 
+echo " " >> $config
+echo "/* This file is generated automatically */" >> $config
+echo " " >> $config
+echo \#define ARCH \"$arch\"                   >> $config
+# write options to config.h options
+if ($debug != 0)  echo \#define DEBUG    $debug >> $config
+if ($parallel != 0) echo \#define PARALLEL 1      >> $config
+#
+echo " "     >> $config
+echo \#endif >> $config
+chmod 444 $config
+
+# comm's config.h
+set config = $PRISM/support/comm/config.h
+echo "     $config"
+if (-e $config) /bin/rm -f $config
+touch $config
+echo \#ifndef COMM_CONFIG_H >> $config
+echo \#define COMM_CONFIG_H >> $config
+echo " " >> $config
+echo "/* This file is generated automatically */" >> $config
+echo " " >> $config
+echo \#define ARCH \"$arch\"                    >> $config
+if ($debug != 0)  echo \#define DEBUG    $debug >> $config
+if ($parallel != 0) then
+        echo \#define PARALLEL 1      >> $config
+        echo \#define MPI 1           >> $config
+endif
+echo " "     >> $config
+echo \#endif >> $config
+chmod 444 $config
+
+# pl's config.h
+set config = $PRISM/support/pl/config.h
+echo "     $config"
+if (-e $config) /bin/rm -f $config
+touch $config
+echo \#ifndef PL_CONFIG_H >> $config
+echo \#define PL_CONFIG_H >> $config
+echo " " >> $config
+echo "/* This file is generated automatically */" >> $config
+echo " " >> $config
+echo \#define ARCH \"$arch\"                       >> $config
+echo \#define DRIVER_$pl_driver 1                  >> $config
+if ($debug != 0)     echo \#define DEBUG    $debug >> $config
+if ($parallel != 0)  echo \#define PARALLEL 1      >> $config
+echo " "     >> $config
+echo \#endif >> $config
+chmod 444 $config
+
+echo "Done"
+exit 0
+#
+#
+print_usage:
+cat <<EOF
+Usage: configure [-arch <arch>] [-mp] [-debug] [-pl <driver>]
+	[-blas <blas>] [-lapack <lapack>]
+where
+  arch         = the platform that Prism is to be configured for
+  blas         = library of BLAS routines
+  lapack       = library of LAPACK routines
+
+If '-debug' is given, configure sets up versions of the installation libraries 
+compiled for debugging.
+
+If '-mp' is given, configure sets up the multiprocessor version of Prism. This
+requires that MPI is installed on your system.
+
+Option '-pl <driver>' allows you to specify a driver for the 2D graphics 
+library.  Currently supported drivers are plot (GNU libplot), sm (SuperMongo), 
+and nil (no graphics).
+
+Option '-blas <blas>' allows you to specify a local (optimized) version of the 
+BLAS library to link with instead of compiling the source code version into 
+libvec.a.  The same is true for '-lapack <lapack>'.
+
+Examples:
+
+To build Prism for a Cray C90 with debugging turned on:
+  ./etc/configure -arch CRAY -debug
+
+Known architectures include:
+  IRIX           (Silicon Graphics IRIX 4.x, 5.x, or 6.x)
+  IRIX64         (Silicon Graphics IRIX 5.x or 6.x on R4400's and above)
+  sun4           (Sun OS 4.x)
+  solaris        (Solaris)
+  CRAY           (CRAY XMP, YMP, C90, J90, T90)
+  linux          (Linux)
+EOF
+exit 0
+
+

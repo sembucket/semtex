@@ -1,0 +1,45 @@
+/*
+ * PL: driver for the nil graphics device
+ *
+ * $Id$
+ * ------------------------------------------------------------------------- */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <float.h>
+#include <math.h>
+
+#include "pl.h"
+
+/* ------------------------------------------------------------------------- */
+
+void pl_driver_init () {}
+void pl_driver_exit () {}
+
+void pl_device (char *dev) {}
+
+void pl_erase()    {}
+void pl_box()      {}
+void pl_gflush()   {}
+void pl_alpha()    {}
+void pl_graphics() {}
+
+void pl_label   (const char *str) {}
+void pl_xlabel  (const char *str) {}
+void pl_ylabel  (const char *str) {}
+
+void pl_expand  (double val) {}
+void pl_angle   (double val) {}
+
+void pl_limits  (double xmin, double xmax, double ymin, double ymax) {}
+void pl_connect (int n, double *x, double *y) {}
+void pl_points  (int n, double *x, double *y) {}
+void pl_dot     () {}
+void pl_line    (double x0, double y0, double x1, double y1) {}
+void pl_relocate(double x, double y) {}
+void pl_draw    (double x, double y) {}
+void pl_ltype   (int type) {}
+void pl_ptype   (int type) {}
+void pl_curs    (double *x, double *y, int *key) {}
+void pl_zoom    () {}
+

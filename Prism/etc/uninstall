@@ -1,0 +1,29 @@
+#!/bin/csh -f
+#
+# Un-install Prism
+#
+# $Id$
+
+set version = `$PRISM/etc/version`
+
+foreach dir ($path)
+	if (-x $dir/gmake) then
+		set make = $dir/gmake
+		break
+	endif
+end
+
+if (! $?make) then
+	echo "Cannot locate GNU make in your path!"
+	exit 0
+endif
+
+echo "Uninstalling Prism"
+
+foreach dir ( support tools prism )
+   ( cd $PRISM/$dir; $make uninstall )
+end
+
+/bin/rm -f system/defaults
+
+exit 0

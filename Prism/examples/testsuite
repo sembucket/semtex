@@ -1,0 +1,177 @@
+#!/bin/csh
+# Run suite of validation tests
+# $Id$
+
+set testsuite = ( mscope prism )
+
+if ($#argv > 0) then
+    foreach test ($testsuite)
+	set $test = 0
+    end
+else
+    foreach test ($testsuite)
+	set $test = 1
+    end
+endif
+    
+
+while ($#argv) 
+    set arg = $argv[1]
+    switch ($arg)
+    case -h*:
+	echo "usage: testsuite [-<test>] [-all] [-h]"
+	echo "where <test> is one of the following:" 
+	echo $testsuite
+	exit 0
+	breaksw
+    case -m*:
+	set mscope = 1
+	breaksw
+    case -p*:
+	set prism  = 1
+	breaksw
+    case -a*:
+	set prism  = 1
+	set mscope = 1
+	breaksw
+    default:
+	echo "testsuite: unknown option --" $arg
+	breaksw
+    endsw
+    shift argv
+end
+
+$PRISM/etc/version
+uname -a
+
+if ($mscope == 0) goto prism
+
+echo ""
+echo "******************************************************"
+echo "*          AMR Elliptic Solver (MSCOPE) Tests        *"
+echo "******************************************************"
+
+echo ""
+echo "-- 2D LAPLACE PROBLEM, DIRICHLET BCS"
+mscope -b laplace1.ms | tail -1
+
+echo ""
+echo "-- 2D LAPLACE PROBLEM, DIRICHLET BCS, NONCONFORMING"
+mscope -b laplace2.ms | tail -1
+
+echo ""
+echo "-- 2D LAPLACE PROBLEM, ONE NEUMAN BOUNDARY"
+mscope -b laplace3.ms | tail -1
+
+echo ""
+echo "-- 2D LAPLACE PROBLEM, ONE NEUMAN BOUNDARY, NONCONFORMING"
+mscope -b laplace4.ms | tail -1
+
+echo ""
+echo "-- 2D LAPLACE PROBLEM, NONHOMOGENOUS DIRICHLET BC"
+mscope -b laplace5.ms | tail -1
+
+echo ""
+echo "-- 2D LAPLACE PROBLEM, DIRICHLET BC, CURVED BOUNDARY"
+mscope -b laplace6.ms | tail -1
+
+echo ""
+echo "-- 2D LAPLACE PROBLEM, DIRICHLET AND NEUMANN BCS"
+mscope -b laplace7.ms | tail -1
+
+echo ""
+echo "-- 2D POISSON PROBLEM, DIRICHLET BCS"
+mscope -b poisson1.ms | tail -1
+
+prism:
+
+if ($prism == 0) goto final
+
+echo ""
+echo ""
+echo "******************************************************"
+echo "*        2D and 3D Navier-Stokes (PRISM) Tests       *"
+echo "******************************************************"
+
+echo ""
+echo ""
+echo "\n     *** 2D TESTS ***"
+
+echo ""
+echo "-- 2D CHANNEL FLOW, SPECIFIED PRESSURE GRADIENT"
+mscope -b channel1.ms | tail -2
+
+echo ""
+echo "-- 2D CHANNEL FLOW, SPECIFIED FLOWRATE"
+mscope -b channel2.ms | tail -2
+
+echo ""
+echo "-- 2D CHANNEL FLOW, SPECIFIED FLOWRATE, NONCONFORMING"
+mscope -b channel3.ms | tail -2
+
+echo ""
+echo "-- 2D TAYLOR FLOW, PERIODIC (i.e. NO) BOUNDARIES"
+mscope -b taylor1.ms | tail -2
+
+echo ""
+echo "-- 2D KOVASZNAY FLOW, DIRICHLET BCS"
+mscope -b kovas1.ms | tail -2
+
+
+
+echo ""
+echo ""
+echo "\n     *** 3D TESTS ***"
+
+echo ""
+echo "-- 2D TAYLOR FLOW, 3D SOLUTION IN X--Y PLANE"
+mscope -b taylor2.ms | tail -3
+
+echo ""
+echo "-- 2D TAYLOR FLOW, 3D SOLUTION IN X--Z PLANE"
+mscope -b taylor3.ms | tail -3
+
+echo ""
+echo "-- 2D TAYLOR FLOW, 3D SOLUTION IN Y--Z PLANE"
+mscope -b taylor4.ms | tail -3
+
+echo ""
+echo "-- 3D KOVASZNAY FLOW, X--Y PLANE, DIRICHLET BCS"
+mscope -b kovas2.ms | tail -3
+
+echo ""
+echo "-- 3D KOVASZNAY FLOW, X--Y PLANE, SEMI-PERIODIC BOUNDARIES"
+mscope -b kovas3.ms | tail -3
+
+echo ""
+echo "-- 3D KOVASZNAY FLOW, X--Z PLANE, SEMI-PERIODIC BOUNDARIES"
+mscope -b kovas4.ms | tail -3
+
+echo ""
+echo "-- 3D KOVASZNAY FLOW, Y--Z PLANE, SEMI-PERIODIC BOUNDARIES"
+mscope -b kovas5.ms | tail -3
+
+echo ""
+echo "-- 3D PIPE POISEUILLE FLOW, Y--Z PLANE, SEMI-PERIODIC BOUNDARIES"
+mscope -b pipe1.ms | tail -3
+
+if ( ! -x $PRISM/bin/prism3d_mp) goto final
+
+echo ""
+echo ""
+echo "\n     *** 3D MULTIPROCESSOR TESTS ***"
+
+echo ""
+echo "-- 3D KOVASZNAY FLOW, X--Z PLANE, SEMI-PERIODIC BOUNDARIES"
+mscope -b kovas6.ms | tail -3
+
+echo ""
+echo "-- 3D KOVASZNAY FLOW, Y--Z PLANE, SEMI-PERIODIC BOUNDARIES"
+mscope -b kovas7.ms | tail -3
+
+echo ""
+echo "-- 2D TAYLOR FLOW, 3D SOLUTION IN Y--Z PLANE"
+mscope -b taylor5.ms | tail -3
+
+final:
+exit 0

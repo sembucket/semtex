@@ -1,0 +1,10 @@
+CRAY XMP, YMP, C90, J90, T90
+
+Porting Notes
+-------------
+12.17.97 Default action for "cf77" is to allow double-precision (128 bit)
+variables.  Since most of the fortran bits include double-precision declara-
+tions, the compiler should always be called with "-dp" to distable the use
+of 128 bit reals.  The C compiler only uses 64 bit reals whether they're
+declared as float or double.
+

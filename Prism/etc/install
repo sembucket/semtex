@@ -1,0 +1,33 @@
+#!/bin/csh -f
+#
+# Install Prism
+#
+# $Id$
+
+set version = `$PRISM/etc/version`
+
+foreach dir ($path)
+	if (-x $dir/gmake) then
+		set make = $dir/gmake
+		break
+	endif
+end
+
+if (! $?make) then
+        echo "Cannot locate GNU make in your path!"
+        exit 0
+endif
+
+echo "Installing Prism Version" $version "using" $make
+
+foreach dir ( support tools prism )
+   ( cd $PRISM/$dir; $make install)
+end
+
+echo "Cleaning up installation directories"
+
+foreach dir ( support tools prism )
+   ( cd $PRISM/$dir; $make empty)
+end
+
+exit 0

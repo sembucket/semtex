@@ -1,0 +1,6 @@
+HP-UX
+
+Porting Notes
+-------------
+02.04.98 Some minor problems with the fact that Fortran is not compiled
+         with any language-specific tags on function names. 

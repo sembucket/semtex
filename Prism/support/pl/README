@@ -1,0 +1,15 @@
+Plotting Library
+
+This is a simple plotting library for 2D graphics.  The library is implemented
+using GNU libplot.  It provides device-independent graphics on a variety of
+"plotters", including X11, postscript, xfig, or anything else directly supported
+by libplot.  It also provides output in a variety of bitmap formats by using
+the ppm tools for format conversion.
+
+In addition to the low-level graphics provided by libbplot, PL defines routines
+for high-level drawing functions, including vector plots, contour plots, axes,
+etc.
+
+To link your application you will need additional libraries provided as required by 
+libplot.
+

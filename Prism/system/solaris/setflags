@@ -1,0 +1,69 @@
+#!/bin/csh
+#
+set cc     = "cc"
+set cflags = "-Dsolaris"
+set optcc  = ""
+set fc     = "f77"
+set fflags = "-Dsolaris"
+set optfc  = ""
+set opt    = "-O"
+set ranlib = "ranlib"
+set ar     = "ar"
+set aflags = "rlc"
+set ld     = '$(FC)'
+set lflags = '$(CFLAGS)'
+set flags  = ""
+set blas   = ""
+set lapack = ""
+set comm   = ""
+set system = "-lm"
+#
+foreach arg ($argv) 
+    switch ($arg) 
+	case -debug:
+	    set opt = "-g"
+	    breaksw
+	case -blas=*:
+	    set blas = `echo $arg | awk '{FS="="; print $2}'`
+	    breaksw
+	case -lapack=*:
+	    set lapack = `echo $arg | awk '{FS="="; print $2}'`
+	    breaksw
+	default:
+	    breaksw
+    endsw
+end
+#
+cat <<EOF
+#
+# default settings for Solaris
+#
+ARCH     = solaris
+#
+# compilers and switches
+#
+CC	 = $cc
+CFLAGS   = $opt $optcc $cflags
+FC	 = $fc
+FFLAGS   = $opt $optfc $fflags
+AR       = $ar
+ARFLAGS  = $aflags
+RANLIB   = $ranlib
+LD       = $ld
+LDFLAGS  = $lflags
+#
+# misc flags
+#
+FLAGS    = $flags
+#
+# libraries
+#
+SPECLIB  = -lspec
+MORTAR   = -lmortar
+VECLIB   = -lvec
+LAPACK   = $lapack
+BLAS     = $blas
+COMM     = $comm
+SYSTEM   = $system
+EOF
+exit 0

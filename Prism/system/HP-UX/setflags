@@ -1,0 +1,111 @@
+#!/bin/csh -f
+#
+set cc      = "cc"
+set cflags  = "-DHPUX"
+set optcc   = ""
+set fc      = "f77"
+set fflags  = "-DHPUX"
+set optfc   = ""
+set opt     = ""
+set ranlib  = ":"
+set ar      = "ar"
+set aflags  = "rlc"
+set ld      = "cc"
+set lflags  = ""
+set options = ""
+set speclib = "-lspec"
+set veclib  = "-lvec"
+set mortar  = "-lmortar"
+set pl      = "-lpl"
+set cubit   = "-lcubit"
+set vdb     = "-lvdb"
+set lapack  = ""
+set blas    = ""
+set comm    = ""
+set system  = "-lm -lf -lcps"
+#
+foreach arg ($argv) 
+    switch ($arg) 
+	case -debug:
+	    set opt = "-g"
+	    breaksw
+	case -blas=*:
+	    set blas = `echo $arg | awk '{FS="="; print $2}'`
+	    breaksw
+	case -lapack=*:
+	    set lapack = `echo $arg | awk '{FS="="; print $2}'`
+	    breaksw
+	case -mp:
+	    set cc   = "mpicc"
+	    set fc   = "mpif77"
+	    set ld   = "mpicc"
+	    set comm = "-lcomm"
+	    breaksw
+	case -pl=*:
+	    set pl = `echo $arg | awk '{FS="="; print $2}'`
+	    breaksw
+	default:
+	    breaksw
+    endsw
+end
+# 
+# Setup for the plotting library
+#
+switch ($pl) 
+    case "sm":
+	set pl_inc = ""
+	set sm_lib = "-L/usr/local/lib -lplotsub -lutils -ldevices -lX11"
+	set pl     = "-lpl $sm_lib"
+	breaksw
+    case "plot":
+	set pl_inc = "-I/usr/local/include"
+	set xlibs  = "-lXaw -lXmu -lXt -lSM -lICE -lXext -lX11"
+	set pl     = "-lpl /usr/local/lib/libplot.a $xlibs"
+	breaksw
+    default:
+	set pl_inc = ""
+	set pl     = "-lpl"
+	breaksw
+endsw
+#
+cat <<EOF
+#
+# default settings for 64-bit machines running IRIX 6.x
+#
+ARCH     = HP-UX
+#
+# compilers and switches
+#
+CC	 = $cc
+CFLAGS   = $opt $optcc $cflags
+FC	 = $fc
+FFLAGS   = $opt $optfc $fflags
+AR       = $ar
+ARFLAGS  = $aflags
+RANLIB   = $ranlib
+LD       = $ld
+LDFLAGS  = $lflags
+#
+# misc flags
+#
+OPTIONS  = $options
+#
+# module include files
+#
+PY_INC   = -I/usr/local/include/python1.5
+PL_INC   = $pl_inc
+#
+# module libraries
+#
+SPECLIB  = $speclib
+MORTAR   = $mortar
+VECLIB   = $veclib
+LAPACK   = $lapack
+BLAS     = $blas
+COMM     = $comm
+CUBIT    = $cubit
+VDB      = $vdb
+PL       = $pl
+SYSTEM   = $system
+EOF
+exit 0

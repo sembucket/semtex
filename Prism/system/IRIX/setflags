@@ -1,0 +1,84 @@
+#!/bin/csh -f
+#
+set cc      = "cc"
+set cflags  = "-DIRIX"
+set optcc   = "-32"
+set fc      = "f77"
+set fflags  = "-DIRIX"
+set optfc   = "-32"
+set opt     = "-O"
+set ranlib  = ":"
+set ar      = "ar"
+set aflags  = "rlc"
+set ld      = '$(CC)'
+set lflags  = ""
+set options = ""
+set speclib = "-lspec"
+set veclib  = "-lvec"
+set mortar  = "-lmortar"
+set lapack  = ""
+set blas    = ""
+set comm    = ""
+set pl      = ""
+set system  = "-lm -lftn"
+#
+foreach arg ($argv) 
+    switch ($arg) 
+	case -debug:
+	    set opt = "-g"
+	    breaksw
+	case -blas=*:
+	    set blas = `echo $arg | awk '{FS="="; print $2}'`
+	    breaksw
+	case -lapack=*:
+	    set lapack = `echo $arg | awk '{FS="="; print $2}'`
+	    breaksw
+	default:
+	    breaksw
+    endsw
+end
+#
+# Setup for the plotting library
+#
+set pl_inc = "-I/usr/local/include"
+set xlibs  = "-L/usrX11R6/lib -lXau -lXmu -lXt -lSM -lICE -lXext -lX11"
+set pl     = "-lpl /usr/local/lib/libplot.a $xlibs"
+#
+cat <<EOF
+#
+# default settings for IRIX 4.x, 5.x, or 6.x
+#
+ARCH     = IRIX
+#
+# compilers and switches
+#
+CC	 = $cc
+CFLAGS   = $opt $optcc $cflags
+FC	 = $fc
+FFLAGS   = $opt $optfc $fflags
+AR       = $ar
+ARFLAGS  = $aflags
+RANLIB   = $ranlib
+LD       = $ld
+LDFLAGS  = $lflags
+#
+# misc flags
+#
+OPTIONS  = $options
+#
+# module include files 
+#
+PL_INC   = $pl_inc
+#
+# module libraries
+#
+SPECLIB  = $speclib
+MORTAR   = $mortar
+VECLIB   = $veclib
+LAPACK   = $lapack
+BLAS     = $blas
+COMM     = $comm
+PL       = $pl
+SYSTEM   = $system
+EOF
+exit 0

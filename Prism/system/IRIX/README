@@ -1,0 +1,9 @@
+IRIX
+
+Porting Notes
+-------------
+10.24.98  On most new SGI systems, they seem to be shipping a computational
+          library (libcomplib.sgimath.a) that includes LAPACK.  Prism's 
+          configure script checks for this library and uses it as the default
+          if it exists.
+

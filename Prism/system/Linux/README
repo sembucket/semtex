@@ -1,0 +1,8 @@
+Linux 2.0
+
+Porting Notes
+-------------
+1.31.98 I did the original port using the GNU C compiler and fort77 to compile
+in the BLAS and LAPACK routines.  There is a minor problem with f2c that 
+requires a function called MAIN__() to be defined somewhere.  I stuck this in
+veclib.c since that's the only library with direct calls to fortran.

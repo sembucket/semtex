@@ -1,0 +1,19 @@
+#
+# Make flags for HP-UX
+#
+# $Id$
+
+set opt     = ("-O")
+set cflags  = -DHPUX
+set fflags  = -DHPUX
+set system  = ("-lf -lcps" $system)
+
+if ($debug) then
+    set opt = "-g"
+endif
+
+if ($parallel) then
+	set cc = "mpicc"
+	set fc = "mpif77"
+endif
+

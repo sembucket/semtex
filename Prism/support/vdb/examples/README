@@ -1,0 +1,14 @@
+VDB examples
+
+hello:  This is actually a test of the communications library.  It's
+the traditional "hello, world" for a parallel computer.
+
+test:  A command-line program to test the library.
+
+sum: Reads in a mesh of points, performs a direct-stiffness summation
+across all processors, and then checks the solution vector on each
+processor for errors.
+
+dot: Computes a distributed dot-product of two analytic vectors.  Run
+this test on different numbers of processors and make sure you get the 
+same result!

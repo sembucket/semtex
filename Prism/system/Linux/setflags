@@ -1,0 +1,131 @@
+#!/bin/csh
+#
+set cc      = "cc"
+set cflags  = "-Dlinux"
+set optcc   = ""
+set fc      = ""
+set fflags  = "-Dlinux"
+set optfc   = ""
+set opt     = ""
+set ranlib  = "ranlib"
+set ar      = "ar"
+set aflags  = "rlc"
+set ld      = '$(CC)'
+set lflags  = ""
+set options = ""
+set speclib = "-lspec"
+set veclib  = "-lvec"
+set mortar  = "-lmortar"
+set pl      = "-lpl"
+set cubit   = "-lcubit"
+set vdb     = "-lvdb"
+set lapack  = ""
+set blas    = ""
+set comm    = "-lcomm"
+set system  = "-lm"
+#
+# Check Fortran compiler
+#
+foreach f ( fort77 f77 ) 
+   if (-x /usr/bin/$f) then
+      set fc = $f
+      break
+   endif
+end
+switch ($fc)
+   case fort77:
+      set system = "-lm -lf2c"
+      breaksw
+   case f77:
+      set system = "-lm -lg2c"
+      breaksw
+   default:
+      echo "unable to configure a fortran compiler!"
+      breaksw
+endsw
+#
+foreach arg ($argv) 
+    switch ($arg) 
+	case -debug:
+	    set opt = "-g"
+	    breaksw
+	case -blas=*:
+	    set blas = `echo $arg | awk -F "=" '{print $2}'`
+	    breaksw
+	case -lapack=*:
+	    set lapack = `echo $arg | awk -F "=" '{print $2}'`
+	    breaksw
+	case -pl=*:
+	    set pl = `echo $arg | awk '{FS="="; print $2}'`
+	    breaksw
+        case -mp:
+            set cc = "mpicc"
+            set fc = "mpif77"
+            breaksw
+	default:
+	    breaksw
+    endsw
+end
+#
+# Setup for the plotting library
+#
+switch ($pl) 
+    case "sm":
+	set pl_inc = ""
+	set xg_lib = "-L/usr/X11R6/lib -lX11"
+	set sm_lib = "-L/usr/local/lib -lplotsub -lutils -ldevices $xg_lib"
+	set pl     = "-lpl $sm_lib"
+	breaksw
+    case "plot":
+	set pl_inc = "-I/usr/local/include"
+	set xt_lib = "-L/usr/X11R6/lib -lXaw -lXmu -lXt"
+ 	set xg_lib = "-lX11"
+	set pl     = "-lpl /usr/local/lib/libplot.a $xt_lib $xg_lib"
+	breaksw
+    default:
+	set pl_inc = ""
+	set pl     = "-lpl"
+	breaksw
+endsw
+#
+cat <<EOF
+#
+# default settings for Linux ix86
+#
+ARCH     = Linux
+#
+# compilers and switches
+#
+CC	 = $cc
+CFLAGS   = $opt $optcc $cflags
+FC	 = $fc
+FFLAGS   = $opt $optfc $fflags
+AR       = $ar
+ARFLAGS  = $aflags
+RANLIB   = $ranlib
+LD       = $ld
+LDFLAGS  = $lflags
+#
+# misc flags
+#
+OPTIONS  = $options
+#
+# module include files
+#
+PY_INC   = -I/usr/local/include/python1.5
+PL_INC   = $pl_inc
+#
+# libraries
+#
+SPECLIB  = $speclib
+MORTAR   = $mortar
+VECLIB   = $veclib
+LAPACK   = $lapack
+BLAS     = $blas
+COMM     = $comm
+CUBIT    = $cubit
+VDB      = $vdb
+PL       = $pl
+SYSTEM   = $system
+EOF
+exit 0
