@@ -17,7 +17,7 @@ DNSAnalyser::DNSAnalyser (Domain* D   ,
 // Extensions to Analyser class.
 // ---------------------------------------------------------------------------
   Analyser (D, feml),
-  _wss (Femlib::ivalue ("IO_WSS") && B -> nWalls())
+  _wss (Femlib::ivalue ("IO_WSS") && B -> nWall())
 {
   const char routine[] = "DNSAnalyser::DNSAnalyser";
   char       str[StrMax];
@@ -42,14 +42,18 @@ DNSAnalyser::DNSAnalyser (Domain* D   ,
 
     // -- Allocate storage area: 5 for 2 normal components + 3 tangential.
     
-    _nwall = B -> nWalls();
+    _nwall = B -> nWall();
     _nline = np * _nwall;
     _npad  = 5  * _nline;
-    
+
+    cout << _nwall << "  " << _nline << "  " << _npad << endl;   
+
     // -- Round up length for Fourier transform/exchange.
 
     if   (npr > 1) _npad += 2 * npr - _npad % (2 * npr);
     else           _npad += _npad % 2;
+
+    cout << _npad << endl;   
 
     _work.resize (_npad);
 
@@ -157,7 +161,7 @@ void DNSAnalyser::analyse (AuxField** work)
       const char *hdr_fmt[] = { 
 	"%-25s "                "Session\n",
 	"%-25s "                "Created\n",
-	"%-5d %-5d %-5d      "  "Np, Nz, Elements\n",
+	"%-5d %-5d %-14d"  "Np, Nz, Elements\n",
 	"%-25d "                "Step\n",
 	"%-25.6g "              "Time\n",
 	"%-25.6g "              "Time step\n",

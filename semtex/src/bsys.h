@@ -15,6 +15,7 @@ public:
 
   char                     field () const { return _field_name; }
   int_t                    nSurf () const { return _nbound; }
+  int_t                    nWall () const;
   int_t                    mixBC () const { return _mixed; }
   const vector<Boundary*>& BCs   (const int_t) const;
   const NumberSys*         Nsys  (const int_t) const;
@@ -24,8 +25,8 @@ private:
   char               _field_name;
   int_t              _nbound    ;  // Number of element edges with BCs.
   bool               _mixed     ;  // Flags presence of mixed BC type.
-  vector<Boundary*>* _boundary  ;  // Boundary*'s           for modes 0, 1, 2.
-  NumberSys**        _number    ;  // NumberSys*'s          for modes 0, 1, 2.
+  vector<Boundary*>* _boundary  ;  // Boundary*'s  for modes 0, 1, 2.
+  NumberSys**        _number    ;  // NumberSys*'s for modes 0, 1, 2.
 
   void buildbcs (const BCmgr*, const vector<Element*>&);
 };

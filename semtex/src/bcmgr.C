@@ -385,15 +385,15 @@ BCmgr::BCmgr (FEML*             file,
 }
 
 
-const char* BCmgr::groupInfo (const char name)
+const char* BCmgr::groupInfo (const char name) const
 // ---------------------------------------------------------------------------
 // Given a group name, return pointer to string descriptor.
 // ---------------------------------------------------------------------------
 {
-  const char    routine[] = "BCmgr::groupInfo";
+  const char  routine[] = "BCmgr::groupInfo";
   const int_t N = _group.size();
-  char          err[StrMax];
-  register      int_t i;
+  char        err[StrMax];
+  register    int_t i;
 
   for (i = 0; i < N; i++) if (name == _group[i]) return _descript[i];
 
@@ -808,18 +808,19 @@ void BCmgr::buildsurf (FEML*             file,
 }
 
 
-int_t BCmgr::nWalls () const
+int_t BCmgr::nWall ()
 // ---------------------------------------------------------------------------
-// Return the number of edges that have descriptor of "wall".
+// Count up the number of surfaces/element edges that have "wall" descriptor.
 // ---------------------------------------------------------------------------
 {
-  vector<char*>::const_iterator bc ;
-  int_t                         count = 0;
+  vector<BCtriple*>::const_iterator b;
+  int_t                             count = 0;
+  BCtriple*   BCT;
 
-  for (bc = _descript.begin(); bc != _descript.end(); bc++)
-    if (!strcmp (*bc, "wall")) count++;
+  for (b = _elmtbc.begin(); b != _elmtbc.end(); b++) {
+    BCT = *b;
+    if (strstr (groupInfo (BCT -> group), "wall")) count++;
+  }
 
   return count;
 }
-
-

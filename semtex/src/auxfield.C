@@ -784,11 +784,11 @@ ostream& operator << (ostream&  strm,
 // needs access to the output stream.
 // ---------------------------------------------------------------------------
 {
-  const char     routine[] = "ostream<<AuxField";
-  const int_t    NP    = Geometry::planeSize();
-  const int_t    nP    = Geometry::nPlane();
-  const int_t    nProc = Geometry::nProc();
-  register int_t i, k;
+  const char  routine[] = "ostream<<AuxField";
+  const int_t NP    = Geometry::planeSize();
+  const int_t nP    = Geometry::nPlane();
+  const int_t nProc = Geometry::nProc();
+  int_t       i, k;
 
   if (nProc > 1) {
 
