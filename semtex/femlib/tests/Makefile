@@ -69,3 +69,11 @@ testDLT3: testDLT3.C
 testBVD: testBVD.C
 	$(CXX) -o $@ $@.C $(CXXFLAGS) -I$(SEMHOME)/include -I. -g \
 	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+
+glzw: glzw.C
+	$(CXX) -o $@ $@.C $(CXXFLAGS) -I$(SEMHOME)/include -I. -g \
+	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+
+shapes: shapes.C
+	$(CXX) -o $@ $@.C $(CXXFLAGS) -I$(SEMHOME)/include -I. -g \
+	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
