@@ -2,7 +2,8 @@
  * boundary.C:  Boundary edge routines.
  *****************************************************************************/
 
-static char RCSid[]= "$Id$";
+static char
+RCSid[]= "$Id$";
 
 #include "Fem.h"
 
@@ -59,16 +60,16 @@ void  Boundary::evaluate (int step)
   int  np        = elmt -> nKnot ();
 
   switch (condition -> kind) {
-  case ESSENTIAL: case NATURAL: case VALUE: case FLUX:
+  case BC::essential: case BC::natural:
     Veclib::fill (np, condition -> value, value, 1);
     break;
-  case ESSENTIAL_FN: case NATURAL_FN: 
+  case BC::essential_fn: case BC::natural_fn: 
     elmt -> sideEval (side, value, condition -> string);
     break;
-  case OUTFLOW: case WALL:
+  case BC::outflow: case BC::wall:
     Veclib::fill (np, 0.0, value, 1);
     break;
-  case HOPBC:
+  case BC::hopbc:
     PBCmanager::evaluate (id, np, step, value, nx, ny);
     break;
   default:
@@ -90,25 +91,25 @@ void  Boundary::print () const
   cout << " (Element id.side)" << endl;
   
   switch (condition -> kind) {
-  case ESSENTIAL:
+  case BC::essential:
     cout << "ESSENTIAL:    " << condition -> value  << endl;
     break;
-  case ESSENTIAL_FN:
+  case BC::essential_fn:
     cout << "ESSENTIAL_FN: " << condition -> string << endl;
     break;
-  case NATURAL:
+  case BC::natural:
     cout << "NATURAL:      " << condition -> value  << endl;
     break;
-  case NATURAL_FN:
+  case BC::natural_fn:
     cout << "NATURAL_FN:   " << condition -> string << endl;
     break;
-  case WALL:
+  case BC::wall:
     cout << "WALL"                                  << endl;
     break;
-  case OUTFLOW:
+  case BC::outflow:
     cout << "OUTFLOW"                               << endl;
     break;
-  case HOPBC:
+  case BC::hopbc:
     cout << "HOPBC"                                 << endl;
     break;
   default:
@@ -146,7 +147,7 @@ int  Boundary::isWall () const
 // Return 1 for wall-type BC, 0 otherwise.
 // ---------------------------------------------------------------------------
 {
-  return condition -> kind == WALL;
+  return condition -> kind == BC::wall;
 }
 
 
@@ -155,10 +156,9 @@ int  Boundary::isEssential () const
 // Return 1 for essential-type BC, 0 for natural.
 // ---------------------------------------------------------------------------
 {
-  if (   condition -> kind == ESSENTIAL
-      || condition -> kind == ESSENTIAL_FN
-      || condition -> kind == VALUE
-      || condition -> kind == WALL        )
+  if (   condition -> kind == BC::essential
+      || condition -> kind == BC::essential_fn
+      || condition -> kind == BC::wall        )
     return 1;
   else
     return 0;
@@ -220,14 +220,23 @@ void Boundary::curlCurl (const real*  U ,  const real*  V ,
 }
 
 
-void  Boundary::resetKind (const BC* new_other, const BC* new_outflow)
+void  Boundary::resetPBCs (const BC* new_other, const BC* new_outflow)
 // ---------------------------------------------------------------------------
 // Examine & reset BC kind for this Boundary.
 // This routine is intended for resetting pressure BCs.
 // ---------------------------------------------------------------------------
 {
-  if   (condition -> kind == OUTFLOW) condition = (BC*) new_outflow;
-  else                                condition = (BC*) new_other;
+  if   (condition -> kind == BC::outflow) condition = (BC*) new_outflow;
+  else                                    condition = (BC*) new_other;
+}
+
+
+void  Boundary::switchBC (const BC::type& original, const BC* replacement)
+// ---------------------------------------------------------------------------
+// Examine & reset BC for this Boundary.
+// ---------------------------------------------------------------------------
+{
+  if (condition -> kind == original) condition = (BC*) replacement;
 }
 
 
@@ -295,4 +304,22 @@ Vector  Boundary::tangentTraction (const real*  dx       ,
   Force.y *= -mu;
 
   return Force;
+}
+
+
+void  Boundary::addIn (const real& val, const BC::type& select)
+// ---------------------------------------------------------------------------
+// Add val to value storage if onlyFor matches kind of current boundary
+// _fn kinds match non_fn kinds, i.e. BC::essential_fn matches BC::essential,
+// but note that for _fn kinds the real value should be added after the
+// regular function has been evaluated.
+// ---------------------------------------------------------------------------
+{
+  if (   (select                     == condition -> kind                    )
+      || (select == BC::essential    && condition -> kind == BC::essential_fn)
+      || (select == BC::essential_fn && condition -> kind == BC::essential   )
+      || (select == BC::natural      && condition -> kind == BC::natural_fn  )
+      || (select == BC::natural_fn   && condition -> kind == BC::natural     )
+     )
+    Veclib::sadd (nKnot (), val, value, 1, value, 1);
 }
