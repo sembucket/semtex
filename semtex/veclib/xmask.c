@@ -4,62 +4,60 @@
  * $Id$
  *****************************************************************************/
 
+#include <femdef.h>
 
-void dmask (int n, const double* w, int incw, const double* x, int incx,
-	           const int*    y, int incy,       double* z, int incz)
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
+
+
+void dmask (integer n,
+	    const double*  w, integer incw,
+	    const double*  x, integer incx,
+	    const integer* y, integer incy,
+	          double*  z, integer incz)
 {
-  register int  i;
+  register integer i;
 
   w += (incw < 0) ? (-n + 1) * incw : 0;
   x += (incx < 0) ? (-n + 1) * incx : 0;
   y += (incy < 0) ? (-n + 1) * incy : 0;
   z += (incz < 0) ? (-n + 1) * incz : 0;
 
-  for (i = 0; i < n; i++) {
-    *z = (*y) ? *w : *x;
-    w += incw;
-    x += incx;
-    y += incy;
-    z += incz;
-  }
+  for (i = 0; i < n; i++) z[i*incz] = (y[i*incy]) ? w[i*incw] : x[i*incx];
 }
 
 
-void imask (int n, const int* w, int incw, const int* x, int incx,
-	           const int* y, int incy,       int* z, int incz)
+void imask (integer n,
+	    const integer* w, integer incw,
+	    const integer* x, integer incx,
+	    const integer* y, integer incy,
+	          integer* z, integer incz)
 {
-  register int  i;
+  register integer i;
 
   w += (incw < 0) ? (-n + 1) * incw : 0;
   x += (incx < 0) ? (-n + 1) * incx : 0;
   y += (incy < 0) ? (-n + 1) * incy : 0;
   z += (incz < 0) ? (-n + 1) * incz : 0;
 
-  for (i = 0; i < n; i++) {
-    *z = (*y) ? *w : *x;
-    w += incw;
-    x += incx;
-    y += incy;
-    z += incz;
-  }
+  for (i = 0; i < n; i++) z[i*incz] = (y[i*incy]) ? w[i*incw] : x[i*incx];
 }
 
 
-void smask (int n, const float* w, int incw, const float* x, int incx,
-	           const int*   y, int incy,       float* z, int incz)
+void smask (integer n,
+	    const float*   w, integer incw,
+	    const float*   x, integer incx,
+	    const integer* y, integer incy,
+	          float*   z, integer incz)
 {
-  register int  i;
+  register integer i;
 
   w += (incw < 0) ? (-n + 1) * incw : 0;
   x += (incx < 0) ? (-n + 1) * incx : 0;
   y += (incy < 0) ? (-n + 1) * incy : 0;
   z += (incz < 0) ? (-n + 1) * incz : 0;
 
-  for (i = 0; i < n; i++) {
-    *z = (*y) ? *w : *x;
-    w += incw;
-    x += incx;
-    y += incy;
-    z += incz;
-  }
+  for (i = 0; i < n; i++) z[i*incz] = (y[i*incy]) ? w[i*incw] : x[i*incx];
 }

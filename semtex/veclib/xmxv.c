@@ -17,13 +17,20 @@
  * mxva().  Consider also the BLAS2 routines xgemv.                          *
  *****************************************************************************/
 
+#include <femdef.h>
 
-void dmxv(double *A, int nra, double *B, int nca, double *C)
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
+
+
+void dmxv (double* A, integer nra, double* B, integer nca, double* C)
 {
-  register double *a = A,
-                  *c = C;
+  register double  *a = A,
+                   *c = C;
   register double  sum;
-  register int     i, j;
+  register integer i, j;
 
   for (i = 0; i < nra; i++) {
     sum  = 0.0;
@@ -33,15 +40,12 @@ void dmxv(double *A, int nra, double *B, int nca, double *C)
 }
 
 
-
-
-
-void smxv(float *A, int nra, float *B, int nca, float *C)
+void smxv (float* A, integer nra, float* B, integer nca, float* C)
 {
-  register float  *a = A,
-                  *c = C;
-  register float  sum;
-  register int     i, j;
+  register float   *a = A,
+                   *c = C;
+  register float   sum;
+  register integer i, j;
 
   for (i = 0; i < nra; i++) {
     sum  = 0.0F;

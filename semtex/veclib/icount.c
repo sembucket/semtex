@@ -1,18 +1,24 @@
 /*****************************************************************************
- * icount:  number of non-zero values in x.                                  *
+ * icount:  number of non-zero values in x.
+ *
+ * $Id$
  *****************************************************************************/
 
-int icount(int n, const int *x, int incx)
-{
-  register int  i, sum=0;
+#include <femdef.h>
 
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
+
+
+integer icount (integer n, const integer* x, integer incx)
+{
+  register integer i, sum = 0;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 
-  for (i=0; i<n; i++ ) {
-    sum += (*x) ? 1 : 0;
-    x += incx;
-  }
+  for (i = 0; i < n; i++ ) sum += (x[i*incx]) ? 1 : 0;
 
   return sum;
 }

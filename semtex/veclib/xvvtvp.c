@@ -4,19 +4,22 @@
  * $Id$
  *****************************************************************************/
 
-#ifdef __uxp__
+#include <femdef.h>
+
+#if defined(__uxp__)
 #pragma global novrec
 #pragma global noalias
 #endif
 
 
-void dvvtvp (int n, const double *w, int incw,
-	            const double *x, int incx,
-	            const double *y, int incy,
-	                  double *z, int incz)
+void dvvtvp (integer n,
+	     const double* w, integer incw,
+	     const double* x, integer incx,
+	     const double* y, integer incy,
+	           double* z, integer incz)
 {
-#ifdef __DECC
-  /* -- Loop unrolling from KAPC. */
+#if defined(__DECC)
+  /* -- DEC OSF 1, with Loop unrolling from KAPC. */
 
     register int i;
     register unsigned int _Kii1;
@@ -103,7 +106,7 @@ void dvvtvp (int n, const double *w, int incw,
     } 
 
 #else
-  register int i;
+  register integer i;
 
   if (incw == 1 && incx == 1 && incy == 1 && incz == 1) 
    for (i = 0; i < n; i++) z[i] = w[i] * x[i] + y[i]; 
@@ -122,12 +125,13 @@ void dvvtvp (int n, const double *w, int incw,
 }
 
 
-void svvtvp (int n, const float *w, int incw,
-	            const float *x, int incx,
-	            const float *y, int incy,
-	                  float *z, int incz)
+void svvtvp (integer n,
+	     const float* w, integer incw,
+	     const float* x, integer incx,
+	     const float* y, integer incy,
+	           float* z, integer incz)
 {
-#ifdef __DECC
+#if defined(__DECC)
     register int i;
     register unsigned int _Kii1;
     register unsigned int _Kii2;
@@ -213,7 +217,7 @@ void svvtvp (int n, const float *w, int incw,
     }
  
 #else
-  register int i;
+  register integer i;
 
   if (incw == 1 && incx == 1 && incy == 1 && incz == 1) 
    for (i = 0; i < n; i++) z[i] = w[i] * x[i] + y[i]; 

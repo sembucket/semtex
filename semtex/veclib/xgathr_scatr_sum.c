@@ -7,17 +7,21 @@
  * $Id$
  *****************************************************************************/
 
-#ifdef __uxp__
+#include <femdef.h>
+
+#if defined(__uxp__)
 #pragma global noalias
 #endif
 
-  
-void dgathr_scatr_sum (int n, const double* w, const int*    x, 
-		              const int*    y,       double* z)
-{
-  register int i;
 
-#ifdef __uxp__
+void dgathr_scatr_sum (integer n,
+		       const double*  w,
+		       const integer* x, const integer* y,
+		             double*  z)
+{
+  register integer i;
+
+#if defined(__uxp__)
 #pragma loop novrec z
 #endif
 
@@ -25,12 +29,14 @@ void dgathr_scatr_sum (int n, const double* w, const int*    x,
 }
 
 
-void igathr_scatr_sum (int n, const int* w, const int* x,
-		              const int* y,       int* z)
+void igathr_scatr_sum (integer n,
+		       const integer* w,
+		       const integer* x, const integer* y,
+		             integer* z)
 {
-  register int i;
+  register integer i;
 
-#ifdef __uxp__
+#if defined(__uxp__)
 #pragma loop novrec z
 #endif
 
@@ -38,12 +44,14 @@ void igathr_scatr_sum (int n, const int* w, const int* x,
 }
 
 
-void sgathr_scatr_sum (int n, const float* w, const int*   x,
-		              const int*   y,       float* z)
+void sgathr_scatr_sum (integer n,
+		       const float*   w,
+		       const integer* x, const integer* y,
+		             float*   z)
 {
-  register int i;
+  register integer i;
 
-#ifdef __uxp__
+#if defined(__uxp__)
 #pragma loop novrec z
 #endif
 

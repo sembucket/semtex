@@ -5,17 +5,19 @@
  *****************************************************************************/
 
 #include <math.h>
+#include <femdef.h>
 
-#ifdef __uxp__
+#if defined(__uxp__)
 #pragma global novrec
 #pragma global noalias
 #endif
 
 
-void dspow (const int n, const double alpha,
-	    const double* x, int incx, double* y, int incy)
+void dspow (const integer n, const double alpha,
+	    const double* x, integer incx,
+	          double* y, integer incy)
 {
-  register int i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -24,16 +26,17 @@ void dspow (const int n, const double alpha,
 }
 
 
-void sspow (const int n, const float alpha,
-	    const float* x, int incx, float* y, int incy)
+void sspow (const integer n, const float alpha,
+	    const float* x, integer incx, 
+	          float* y, integer incy)
 {
-  register int i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
   
   for (i = 0; i < n; i++)
-#if (defined(__GNUC__) || defined (__uxp__)) /* -- No single-precision maths */
+#if defined(__GNUC__) || defined(__uxp__) || defined(_SX)
     y[i*incy] = (float) pow  (x[i*incx], alpha);
 #else
     y[i*incy] =         powf (x[i*incx], alpha);

@@ -4,17 +4,20 @@
  * $Id$
  *****************************************************************************/
 
-#ifdef __uxp__
+#include <femdef.h>
+
+#if defined(__uxp__)
 #pragma global novrec
 #pragma global noalias
 #endif
 
 
-void dsvpvt (int n, double alpha, const double *x, int incx,
-                                  const double *y, int incy,
-                                        double *z, int incz)
+void dsvpvt (integer n, double alpha,
+	     const double* x, integer incx,
+	     const double* y, integer incy,
+	           double* z, integer incz)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -24,11 +27,12 @@ void dsvpvt (int n, double alpha, const double *x, int incx,
 }
 
 
-void ssvpvt (int n, float alpha, const float *x, int incx,
-                                 const float *y, int incy,
-                                       float *z, int incz)
+void ssvpvt (integer n, float alpha,
+	     const float* x, integer incx,
+	     const float* y, integer incy,
+	           float* z, integer incz)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;

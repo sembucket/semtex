@@ -1,16 +1,20 @@
 /*****************************************************************************
  * xneg:  x[i] = -x[i].
+ *
+ * $Id$
  *****************************************************************************/
 
-#ifdef __uxp__
+#include <femdef.h>
+
+#if defined(__uxp__)
 #pragma global novrec
 #pragma global noalias
 #endif
 
 
-void dneg (int n, double *x, int incx)
+void dneg (integer n, double* x, integer incx)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 
@@ -18,9 +22,9 @@ void dneg (int n, double *x, int incx)
 }
 
 
-void ineg (int n, int *x, int incx)
+void ineg (integer n, integer* x, integer incx)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 
@@ -28,9 +32,9 @@ void ineg (int n, int *x, int incx)
 }
 
 
-void sneg (int n, float *x, int incx)
+void sneg (integer n, float* x, integer incx)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 

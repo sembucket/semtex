@@ -2,36 +2,38 @@
  * xscatr:  vector scatter:  z[y[i]] = x[i].
  *
  * NB:  It is assumed that this operation is vectorizable, i.e. that there
- * are no repeated indices in the indirection vector y.
+ * are no repeated indices in the indirection vector y --- y is a permutator.
  *
  * $Id$
  *****************************************************************************/
 
-#ifdef __uxp__
+#include <femdef.h>
+
+#if defined(__uxp__)
 #pragma global novrec
 #pragma global noalias
 #endif
 
   
-void dscatr (int n, const double *x, const int *y, double *z)
+void dscatr (integer n, const double* x, const integer* y, double* z)
 {
-  register int i;
+  register integer i;
 
   for (i = 0; i < n; i++) z[y[i]] = x[i];
 }
 
 
-void iscatr (int n, const int *x, const int *y, int *z)
+void iscatr (integer n, const integer* x, const integer* y, integer* z)
 {
-  register int i;
+  register integer i;
 
   for (i = 0; i < n; i++) z[y[i]] = x[i];
 }
 
 
-void sscatr (int n, const float *x, const int *y, float *z)
+void sscatr (integer n, const float* x, const integer* y, float* z)
 {
-  register int i;
+  register integer i;
 
   for (i = 0; i < n; i++) z[y[i]] = x[i];
 }

@@ -4,19 +4,21 @@
  * $Id$
  *****************************************************************************/
 
-#ifdef __uxp__
+#include <femdef.h>
+
+#if defined(__uxp__)
 #pragma global novrec
 #pragma global noalias
 #endif
 
 
-void dsvvttvp (int n, const double  alpha,
-        	      const double* w, int incw,
-	              const double* x, int incx,
-	              const double* y, int incy,
-	                    double* z, int incz)
+void dsvvttvp (integer n, const double  alpha,
+	       const double* w, integer incw,
+	       const double* x, integer incx,
+	       const double* y, integer incy,
+	             double* z, integer incz)
 {
-  register int i;
+  register integer i;
 
   if (incw == 1 && incx == 1 && incy == 1 && incz == 1) 
    for (i = 0; i < n; i++) 
@@ -35,13 +37,13 @@ void dsvvttvp (int n, const double  alpha,
 }
 
 
-void ssvvttvp (int n, const float  alpha,
-	              const float* w, int incw,
-	              const float* x, int incx,
-	              const float* y, int incy,
-	                    float* z, int incz)
+void ssvvttvp (integer n, const float  alpha,
+	       const float* w, integer incw,
+	       const float* x, integer incx,
+	       const float* y, integer incy,
+	             float* z, integer incz)
 {
-  register int i;
+  register integer i;
 
   if (incw == 1 && incx == 1 && incy == 1 && incz == 1) 
    for (i = 0; i < n; i++) 

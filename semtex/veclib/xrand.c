@@ -1,17 +1,19 @@
 /*****************************************************************************
- *                       RANDOM NUMBER GENERATION                            *
- *                                                                           *
- * The following set of routines provides several types of random number     * 
- * generation.  The only routines provided as part of VECLIB generate a      *
- * set of numbers distributed uniformly on (0,1), but an extension to        *
- * normally-distributed RVs has been implemented.                            *
- *                                                                           *
- * Routines come from Numerical Recipes.                                     *
+ *                         RANDOM NUMBER GENERATION
+ *
+ * The following set of routines provides several types of random number
+ * generation.  The only routines provided as part of VECLIB generate a
+ * set of numbers distributed uniformly on (0,1), but an extension to
+ * normally-distributed RVs has been implemented.
+ *
+ * Source: Numerical Recipes.
+ *
+ * $Id$
  *****************************************************************************/
 
 #include <math.h>
 #include <time.h>
-
+#include <femdef.h>
 
 static double  UD     (double, double);
 static double  GD     (double, double);
@@ -19,180 +21,128 @@ static double  ran2   (long *);
 static double  gasdev (long *);
 static long    iseed  = 0;
 
-
-
-
  
-double  dranu(void)
-/* ========================================================================= *
- * Provide a single random number UD on (0, 1).                              * 
- * ========================================================================= */
+double dranu (void)
+/* ------------------------------------------------------------------------- *
+ * Provide a single random number UD on (0, 1). 
+ * ------------------------------------------------------------------------- */
 {
-  return UD(0.0, 1.0);
+  return UD (0.0, 1.0);
 }
 
 
-
-
-
-float  sranu(void)
-/* ========================================================================= *
- * Provide a single random number UD on (0, 1).                              * 
- * ========================================================================= */
+float sranu (void)
+/* ------------------------------------------------------------------------- *
+ * Provide a single random number UD on (0, 1). 
+ * ------------------------------------------------------------------------- */
 {
-  return (float) UD(0.0, 1.0);
+  return (float) UD (0.0, 1.0);
 }
 
 
-
-
-
-double  dnormal(double mean, double sdev)
-/* ========================================================================= *
- * Provide a single random number, Normal(mean, sdev).                       * 
- * ========================================================================= */
+double dnormal (double mean, double sdev)
+/* ------------------------------------------------------------------------- *
+ * Provide a single random number, Normal(mean, sdev). 
+ * ------------------------------------------------------------------------- */
 {
   return GD(mean, sdev);
 }
 
 
-
-
-
-float  snormal(float mean, float sdev)
-/* ========================================================================= *
- * Provide a single random number, Normal(mean, sdev).                       * 
- * ========================================================================= */
+float snormal (float mean, float sdev)
+/* ------------------------------------------------------------------------- *
+ * Provide a single random number, Normal(mean, sdev). 
+ * ------------------------------------------------------------------------- */
 {
   return (float) GD((double) mean, (double) sdev);
 }
 
 
-
-
-
-void  dvrandom(int n, double *x, int incx)
-/* ========================================================================= *
- * Randomize vector x, UD on (0, 1).                                         *
- * ========================================================================= */
+void dvrandom (integer n, double* x, integer incx)
+/* ------------------------------------------------------------------------- *
+ * Randomize vector x, UD on (0, 1).
+ * ------------------------------------------------------------------------- */
 {
-  register int i;
-
+  register integer i;
   
   x += (incx<0) ? (-n+1)*incx : 0;
 
-  for (i=0; i<n; i++) {
-    *x = UD(0.0, 1.0);
-    x += incx;
-  }
+  for (i = 0; i < n; i++) x[i*incx] = UD (0.0, 1.0);
 }
 
 
-
-
-
-void  svrandom(int n, float *x, int incx)
-/* ========================================================================= *
- * Randomize vector x, UD on (0, 1).                                         *
- * ========================================================================= */
+void svrandom (integer n, float* x, integer incx)
+/* ------------------------------------------------------------------------- *
+ * Randomize vector x, UD on (0, 1).
+ * ------------------------------------------------------------------------- */
 {
-  register int i;
-
+  register integer i;
   
   x += (incx<0) ? (-n+1)*incx : 0;
 
-  for (i=0; i<n; i++) {
-    *x = (float) UD(0.0, 1.0);
-    x += incx;
-  }
+  for (i = 0; i < n; i++) x[i*incx] = (float) UD (0.0, 1.0);
 }
 
 
-
-
-
-void  dvnormal(int n, double mean, double sdev, double *x, int incx)
-/* ========================================================================= *
- * Randomize vector x, Normal(mean, sdev).                                   *
- * ========================================================================= */
+void dvnormal (integer n, double mean, double sdev, double* x, integer incx)
+/* ------------------------------------------------------------------------- *
+ * Randomize vector x, Normal(mean, sdev).
+ * ------------------------------------------------------------------------- */
 {
-  register int i;
-
+  register integer i;
   
   x += (incx<0) ? (-n+1)*incx : 0;
 
-  for (i=0; i<n; i++) {
-    *x = GD(mean, sdev);
-    x += incx;
-  }
+  for (i=0; i<n; i++) x[i*incx] = GD (mean, sdev);
 }
 
 
-
-
-
-void  svnormal(int n, float mean, float sdev, float *x, int incx)
-/* ========================================================================= *
- * Randomize vector x, Normal(mean, sdev).                                   *
- * ========================================================================= */
+void svnormal (integer n, float mean, float sdev, float* x, integer incx)
+/* ------------------------------------------------------------------------- *
+ * Randomize vector x, Normal(mean, sdev).
+ * ------------------------------------------------------------------------- */
 {
-  register int i;
-
+  register integer i;
   
   x += (incx<0) ? (-n+1)*incx : 0;
 
-  for (i=0; i<n; i++) {
-    *x = (float) GD((double) mean, (double) sdev);
-    x += incx;
-  }
+  for (i=0; i<n; i++) x[i*incx] = (float) GD ((double) mean, (double) sdev);
 }
 
 
-
-
-
-void  raninit(int flag)
-/* ========================================================================= *
- * Initialize random number generator.                                       *
- * ========================================================================= */
+void raninit (integer flag)
+/* ------------------------------------------------------------------------- *
+ * Initialize random number generator.
+ * ------------------------------------------------------------------------- */
 {
-  iseed = (flag < 0) ? time(NULL) : flag;
+  iseed = (flag < 0) ? time (NULL) : flag;
 
-  (void) ran2(&iseed);
+  (void) ran2 (&iseed);
 }
-
-
-
 
 
 /*****************************************************************************
- * Remaining routines are only accessible internally.                        *
+ * Remaining routines are only accessible internally.
  *****************************************************************************/
 
 
-static double UD(double low, double high)
-/* ========================================================================= *
- * Return a random number UD on (low, high).                                 *
- * ========================================================================= */
+static double UD (double low, double high)
+/* ------------------------------------------------------------------------- *
+ * Return a random number UD on (low, high).
+ * ------------------------------------------------------------------------- */
 {
-  return ran2(&iseed) * (high-low) + low;
+  return ran2 (&iseed) * (high - low) + low;
 }
 
 
-
-
-
-static double GD(double mean, double sdev)
-/* ========================================================================= *
- * Return normally distributed random deviate with specified mean and        *
- * standard deviation.                                                       *
- * ========================================================================= */
+static double GD (double mean, double sdev)
+/* ------------------------------------------------------------------------- *
+ * Return normally distributed random deviate with specified mean and
+ * standard deviation.
+ * ------------------------------------------------------------------------- */
 {
-  return gasdev(&iseed) * sdev + mean;
+  return gasdev (&iseed) * sdev + mean;
 }
-
-
-
 
 
 #define IM1   2147483563
@@ -210,23 +160,23 @@ static double GD(double mean, double sdev)
 #define EPS   1.2e-13
 #define RNMX  (1.0-EPS)
 
-static double ran2(long *idum)
-/* ========================================================================= *
- * Long period (>2x10^18) random number generator of L'Ecuyer with Bays-     *
- * Durham shuffle and added safeguards.  Returns a uniform random deviate    *
- * between 0.0 & 1.0 (exclusive of endpoints).  Call with idum a negative    *
- * integer to initialize; thereafter, do not alter idum between successive   *
- * deviates in a sequence.  RNMX should approximate the largest floating     *
- * value that is less than 1.                                                *
- * ========================================================================= */
+
+static double ran2 (long* idum)
+/* ------------------------------------------------------------------------- *
+ * Long period (>2x10^18) random number generator of L'Ecuyer with Bays-
+ * Durham shuffle and added safeguards.  Returns a uniform random deviate
+ * between 0.0 & 1.0 (exclusive of endpoints).  Call with idum a negative
+ * integer to initialize; thereafter, do not alter idum between successive
+ * deviates in a sequence.  RNMX should approximate the largest floating
+ * value that is less than 1.
+ * ------------------------------------------------------------------------- */
 {
-  int          j;
+  integer      j;
   long         k;
   static long  idum2=123456789;
   static long  iy=0;
   static long  iv[NTAB];
   double       temp;
-
 
   if (*idum <= 0) {
     if (-(*idum) < 1) *idum = 1;
@@ -259,30 +209,26 @@ static double ran2(long *idum)
 }
 
 
-
-
-
-static double gasdev(long *idum)
-/* ========================================================================= *
- * Returns a normally distributed deviate with zero mean and unit variance,  *
- * using ran2(idum) as the source of uniform deviates.                       *
- * ========================================================================= */
+static double gasdev (long* idum)
+/* ------------------------------------------------------------------------- *
+ * Returns a normally distributed deviate with zero mean and unit variance,
+ * using ran2(idum) as the source of uniform deviates.
+ * ------------------------------------------------------------------------- */
 {
-  static int     iset = 0;
+  static integer iset = 0;
   static double  gset;
   double         fac, rsq, v1, v2;
 
-
   if (iset == 0) {
     do {
-      v1 = 2.0*ran2(idum) - 1.0;
-      v2 = 2.0*ran2(idum) - 1.0;
+      v1 = 2.0 * ran2 (idum) - 1.0;
+      v2 = 2.0 * ran2 (idum) - 1.0;
       rsq = v1*v1 + v2*v2;
     } while (rsq >= 1.0 || rsq == 0.0);
-    fac = sqrt(-2.0*log(rsq) / rsq);
+    fac = sqrt(-2.0 * log (rsq) / rsq);
     gset = v1 * fac;
     iset = 1;
-    return v2*fac;
+    return v2 * fac;
   } else {
     iset = 0;
     return gset;

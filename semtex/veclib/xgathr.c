@@ -4,31 +4,33 @@
  * $Id$
  *****************************************************************************/
 
-#ifdef __uxp__
+#include <femdef.h>
+
+#if defined(__uxp__)
 #pragma global novrec
 #pragma global noalias
 #endif
 
 
-void dgathr (int n, const double *x, const int *y, double *z)
+void dgathr (integer n, const double* x, const integer* y, double* z)
 {
-  register int i;
+  register integer i;
   
   for (i = 0; i < n; i++) z[i] = x[y[i]];
 }
 
 
-void igathr (int n, const int *x, const int *y, int *z)
+void igathr (integer n, const integer* x, const integer* y, integer* z)
 {
-  register int i;
+  register integer i;
   
   for (i = 0; i < n; i++) z[i] = x[y[i]];
 }
 
 
-void sgathr (int n, const float *x, const int *y, float *z)
+void sgathr (integer n, const float* x, const integer* y, float* z)
 {
-  register int i;
+  register integer i;
   
   for (i = 0; i < n; i++) z[i] = x[y[i]];
 }

@@ -4,16 +4,17 @@
  * $Id$
  *****************************************************************************/
 
-
 #include <sys/types.h>
 #include <malloc.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
-#include "alplib.h"
+
+#include <femdef.h>
+#include <alplib.h>
 
 
-int     _alpIreg[NVREG];	/* For FORTRAN linkage. */
+integer _alpIreg[NVREG];	/* For FORTRAN linkage. */
 char    _alpCreg[NVREG];
 float   _alpSreg[NVREG];
 double  _alpDreg[NVREG];
@@ -21,10 +22,10 @@ double  _alpDreg[NVREG];
 char     buf[STR_MAX];		/* A string for general use. */
 
 
-void message (const char *routine, const char *text, int level)
-/* ========================================================================= *
+void message (const char *routine, const char *text, integer level)
+/* ------------------------------------------------------------------------- *
  * A simple error handler.
- * ========================================================================= */
+ * ------------------------------------------------------------------------- */
 {
   switch (level) {
   case WARNING:
@@ -47,9 +48,9 @@ void message (const char *routine, const char *text, int level)
 
 
 FILE *efopen (const char *file, const char *mode)
-/* ========================================================================= *
+/* ------------------------------------------------------------------------- *
  * fopen file, die if can't.
- * ========================================================================= */
+ * ------------------------------------------------------------------------- */
 {
   FILE *fp;
 
@@ -64,9 +65,9 @@ FILE *efopen (const char *file, const char *mode)
 
 
 double dclock (void)
-/* ========================================================================= *
+/* ------------------------------------------------------------------------- *
  * Double-precision timing routine.
- * ========================================================================= */
+ * ------------------------------------------------------------------------- */
 {
   static double tps = 1.0 / CLOCKS_PER_SEC;
   return (double) clock() * tps;
@@ -74,9 +75,9 @@ double dclock (void)
 
 
 float sclock (void)
-/* ========================================================================= *
+/* ------------------------------------------------------------------------- *
  * Single-precision timing routine.
- * ========================================================================= */
+ * ------------------------------------------------------------------------- */
 {
   static float tps = 1.0F / CLOCKS_PER_SEC;
   return (float) clock() * tps;
@@ -85,20 +86,20 @@ float sclock (void)
 #endif
 
 
-void printDvector(FILE  *fp     ,
-		  int    width  ,
-		  int    prec   ,
-		  int    ntot   ,
-		  int    inc    ,
-		  int    nfield , ...)
-/* ========================================================================= *
+void printDvector (FILE  *fp     ,
+		   integer    width  ,
+		   integer    prec   ,
+		   integer    ntot   ,
+		   integer    inc    ,
+		   integer    nfield , ...)
+/* ------------------------------------------------------------------------- *
  * Print up a variable number of dvectors on fp, in columns.
- * ========================================================================= */
+ * ------------------------------------------------------------------------- */
 {
-  char      routine[] = "printDvector";
-  int       i, j, k;
+  char    routine[] = "printDvector";
+  integer i, j, k;
   double  **u;
-  va_list   ap;
+  va_list ap;
 
   u = (double **) calloc (nfield, sizeof (double*));
   va_start (ap, nfield);
@@ -119,23 +120,23 @@ void printDvector(FILE  *fp     ,
 }
 
 
-void printIvector(FILE  *fp     ,
-		  int    width  ,
-		  int    ntot   ,
-		  int    inc    ,
-		  int    nfield , ...)
-/* ========================================================================= *
+void printIvector (FILE  *fp     ,
+		   integer    width  ,
+		   integer    ntot   ,
+		   integer    inc    ,
+		   integer    nfield , ...)
+/* ------------------------------------------------------------------------- *
  * Print up a variable number of ivectors on fp, in columns.
- * ========================================================================= */
+ * ------------------------------------------------------------------------- */
 {
-  char       routine[] = "printIvector";
-  int        i, j, k;
-  int      **u;
-  va_list    ap;
+  char    routine[] = "printIvector";
+  integer i, j, k;
+  integer **u;
+  va_list ap;
 
-  u = (int **) calloc (nfield, sizeof (int*));
+  u = (integer **) calloc (nfield, sizeof (integer*));
   va_start (ap, nfield);
-  for (i = 0; i < nfield; i++) u[i] = va_arg (ap, int*); 
+  for (i = 0; i < nfield; i++) u[i] = va_arg (ap, integer*); 
   va_end (ap);
 
   k = (inc < 0) ? (-ntot + 1)*inc : 0;
@@ -152,20 +153,20 @@ void printIvector(FILE  *fp     ,
 }
 
 
-void printSvector(FILE  *fp     ,
-		  int    width  ,
-		  int    prec   ,
-		  int    ntot   ,
-		  int    inc    ,
-		  int    nfield , ...)
-/* ========================================================================= *
+void printSvector (FILE  *fp     ,
+		   integer    width  ,
+		   integer    prec   ,
+		   integer    ntot   ,
+		   integer    inc    ,
+		   integer    nfield , ...)
+/* ------------------------------------------------------------------------- *
  * Write (ASCII) a variable number of svectors on fp, in columns.
- * ========================================================================= */
+ * ------------------------------------------------------------------------- */
 {
-  char      routine[] = "printSvector";
-  int       i, j, k;
+  char    routine[] = "printSvector";
+  integer i, j, k;
   float   **u;
-  va_list   ap;
+  va_list ap;
 
   u = (float **) calloc (nfield, sizeof (float*));
   va_start (ap, nfield);

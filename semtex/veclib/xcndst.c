@@ -1,66 +1,57 @@
 /*****************************************************************************
- * xcndst:  conditional assignment:  if (y[i]) z[i] = x[i].                  *
+ * xcndst:  conditional assignment:  if (y[i]) z[i] = x[i].
+ *
+ * $Id$
  *****************************************************************************/
 
+#include <femdef.h>
 
-void dcndst(int n, const double *x, int incx, const int    *y, int incy,
-                                                    double *z, int incz)
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
+
+
+void dcndst (integer n,
+	     const double*  x, integer incx,
+	     const integer* y, integer incy,
+	           double*  z, integer incz)
 {
-  register int  i;
-
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
   z += (incz<0) ? (-n+1)*incz : 0;
 
-  for (i=0; i<n; i++) {
-    if (*y) *z = *x;
-    x += incx;
-    y += incy;
-    z += incz;
-  }
+  for (i = 0; i < n; i++) if (y[i*incy]) z[i*incz] = x[i*incx];
 }
 
 
-
-
-
-void icndst(int n, const int *x, int incx, const int  *y, int incy,
-                                                 int  *z, int incz)
+void icndst (integer n,
+	     const integer* x, integer incx,
+	     const integer* y, integer incy,
+	           integer* z, integer incz)
 {
-  register int  i;
-
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
   z += (incz<0) ? (-n+1)*incz : 0;
 
-  for (i=0; i<n; i++) {
-    if (*y) *z = *x;
-    x += incx;
-    y += incy;
-    z += incz;
-  }
+  for (i = 0; i < n; i++) if (y[i*incy]) z[i*incz] = x[i*incx];
 }
 
 
-
-
-
-void scndst(int n, const float *x, int incx, const int   *y, int incy,
-                                                   float *z, int incz)
+void scndst (integer n,
+	     const float*   x, integer incx,
+	     const integer* y, integer incy,
+	           float*   z, integer incz)
 {
-  register int  i;
-
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
   z += (incz<0) ? (-n+1)*incz : 0;
 
-  for (i=0; i<n; i++) {
-    if (*y) *z = *x;
-    x += incx;
-    y += incy;
-    z += incz;
-  }
+  for (i = 0; i < n; i++) if (y[i*incy]) z[i*incz] = x[i*incx];
 }

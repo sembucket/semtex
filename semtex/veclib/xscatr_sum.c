@@ -7,16 +7,18 @@
  * $Id$
  *****************************************************************************/
 
-#ifdef __uxp__
+#include <femdef.h>
+
+#if defined(__uxp__)
 #pragma global noalias
 #endif
 
   
-void dscatr_sum (int n, const double* x, const int* y, double* z)
+void dscatr_sum (integer n, const double* x, const integer* y, double* z)
 {
-  register int i;
+  register integer i;
 
-#ifdef __uxp__
+#if defined(__uxp__)
 #pragma loop novrec z
 #endif
 
@@ -24,11 +26,11 @@ void dscatr_sum (int n, const double* x, const int* y, double* z)
 }
 
 
-void iscatr_sum (int n, const int* x, const int* y, int* z)
+void iscatr_sum (integer n, const integer* x, const integer* y, integer* z)
 {
-  register int i;
+  register integer i;
 
-#ifdef __uxp__
+#if defined(__uxp__)
 #pragma loop novrec z
 #endif
 
@@ -36,11 +38,11 @@ void iscatr_sum (int n, const int* x, const int* y, int* z)
 }
 
 
-void sscatr_sum (int n, const float* x, const int* y, float* z)
+void sscatr_sum (integer n, const float* x, const integer* y, float* z)
 {
-  register int i;
+  register integer i;
 
-#ifdef __uxp__
+#if defined(__uxp__)
 #pragma loop novrec z
 #endif
 

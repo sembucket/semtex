@@ -1,74 +1,68 @@
 /*****************************************************************************
- * ixmin:  index of minimum value in x.                                      *
+ * ixmin: index of minimum value in x.
+ *
+ * $Id$
  *****************************************************************************/
 
+#include <femdef.h>
 
-int idmin(int n, const double *x, int incx)
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
+
+
+integer idmin (integer n, const double* x, integer incx)
 {
-  register int     i, imin;
+  register integer i, imin;
   register double  xmin;
 
-
   x += (incx<0) ? (-n+1)*incx : 0;
-  xmin = *x;
+  xmin = x[0];
   imin = 0;
 
-  for (i=1; i<n; i++) {
-    x += incx;
-    if (*x<xmin) {
-      xmin = *x;
+  for (i = 1; i < n; i++)
+   if (x[i*incx] < xmin) {
+      xmin = x[i*incx];
       imin = i;
     }
-  }
 
   return imin;
 }
 
 
-
-
-
-int iimin(int n, const int *x, int incx)
+integer iimin (integer n, const integer* x, integer incx)
 {
-  register int  i, xmin, imin;
-
+  register integer i, xmin, imin;
 
   x += (incx<0) ? (-n+1)*incx : 0;
-  xmin = *x;
+  xmin = x[0];
   imin = 0;
 
-  for (i=1; i<n; i++) {
-    x += incx;
-    if (*x<xmin) {
-      xmin = *x;
+  for (i = 1; i < n; i++)
+    if (x[i*incx] < xmin) {
+      xmin = x[i*incx];
       imin = i;
     }
-  }
 
   return imin;
 }
 
 
-
-
-
-int ismin(int n, const float *x, int incx)
+integer ismin (integer n, const float* x, integer incx)
 {
-  register int    i, imin;
-  register float  xmin;
-
+  register integer i, imin;
+  register float   xmin;
 
   x += (incx<0) ? (-n+1)*incx : 0;
-  xmin = *x;
+  xmin = x[0];
   imin = 0;
 
-  for (i=1; i<n; i++) {
-    x += incx;
-    if (*x<xmin) {
-      xmin = *x;
+  for (i = 1; i < n; i++)
+    if (x[i*incx] < xmin) {
+      xmin = x[i*incx];
       imin = i;
     }
-  }
 
   return imin;
 }

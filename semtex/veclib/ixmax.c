@@ -1,74 +1,68 @@
 /*****************************************************************************
- * ixmax: index of maximum value in x.                                       *
+ * ixmax: index of maximum value in x.
+ *
+ * $Id$
  *****************************************************************************/
 
+#include <femdef.h>
 
-int idmax(int n, const double *x, int incx)
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
+
+
+integer idmax (integer n, const double* x, integer incx)
 {
-  register int     i, imax;
+  register integer i, imax;
   register double  xmax;
 
-
   x += (incx<0) ? (-n+1)*incx : 0;
-  xmax = *x;
+  xmax = x[0];
   imax = 0;
 
-  for (i=1; i<n; i++) {
-   x += incx;
-   if (*x>xmax) {
-      xmax = *x;
+  for (i = 1; i < n; i++)
+   if (x[i*incx] > xmax) {
+      xmax = x[i*incx];
       imax = i;
     }
-  }
 
   return imax;
 }
 
 
-
-
-
-int iimax(int n, const int *x, int incx)
+integer iimax (integer n, const integer* x, integer incx)
 {
-  register int  i, xmax, imax;
-
+  register integer i, xmax, imax;
 
   x += (incx<0) ? (-n+1)*incx : 0;
-  xmax = *x;
+  xmax = x[0];
   imax = 0;
 
-  for (i=1; i<n; i++) {
-   x += incx;
-    if (*x>xmax) {
-      xmax = *x;
+  for (i = 1; i < n; i++)
+    if (x[i*incx] > xmax) {
+      xmax = x[i*incx];
       imax = i;
     }
-  }
 
   return imax;
 }
 
 
-
-
-
-int ismax(int n, const float *x, int incx)
+integer ismax (integer n, const float* x, integer incx)
 {
-  register int    i, imax;
-  register float  xmax;
-
+  register integer i, imax;
+  register float   xmax;
 
   x += (incx<0) ? (-n+1)*incx : 0;
-  xmax = *x;
+  xmax = x[0];
   imax = 0;
 
-  for (i=1; i<n; i++) {
-    x += incx;
-    if (*x>xmax) {
-      xmax = *x;
+  for (i = 1; i < n; i++)
+    if (x[i*incx] > xmax) {
+      xmax = x[i*incx];
       imax = i;
     }
-  }
 
   return imax;
 }

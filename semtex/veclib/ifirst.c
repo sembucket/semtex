@@ -1,19 +1,24 @@
 /*****************************************************************************
- * ifirst:  index of first non-zero value in x.                              *
+ * ifirst:  index of first non-zero value in x.
+ *
+ * $Id$
  *****************************************************************************/
 
+#include <femdef.h>
 
-int ifirst(int n, const int *x, int incx)
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
+
+
+integer ifirst (integer n, const integer* x, integer incx)
 { 
-  register int  i;
-
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 
-  for (i=0; i<n; i++) {
-    if (*x) return i;
-    x += incx;
-  }
+  for (i = 0; i < n; i++) if (x[i*incx]) return i;
   
   return -1;
 }

@@ -1,43 +1,43 @@
 /*****************************************************************************
  * xvexp:  y[i] = exp (x[i]).
+ *
+ * $Id$
  *****************************************************************************/
 
 #include <math.h>
+#include <femdef.h>
+
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
 
 
-void dvexp (int n, const double *x, int incx,
-                         double *y, int incy)
+void dvexp (integer n, const double* x, integer incx,
+                             double* y, integer incy)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
 
-  for (i=0; i<n; i++) {
-    *y = exp(*x);
-    x += incx;
-    y += incy;
-  }
+  for (i = 0; i < n; i++) y[i*incy] = exp (x[i*incx]);
 }
 
 
-void svexp (int n, const float *x, int incx,
-                         float *y, int incy)
+void svexp (integer n, const float* x, integer incx,
+                             float* y, integer incy)
 {
-  register int  i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
 
-  for (i=0; i<n; i++) {
-#ifdef __GNUC__
-    *y = (float) exp (*x);
+#if defined(__GNUC__) || defined(__uxp__) || defined(_SX)
+  for (i = 0; i < n; i++) y[i*incy] = (float) exp  (x[i*incx]);
 #else
-    *y = expf (*x);
+  for (i = 0; i < n; i++) y[i*incy] =         expf (x[i*incx]);
 #endif
-    x += incx;
-    y += incy;
-  }
 }
 
 

@@ -4,16 +4,20 @@
  * $Id$
  *****************************************************************************/
 
-#ifdef __uxp__
+#include <femdef.h>
+
+#if defined(__uxp__)
 #pragma global novrec
 #pragma global noalias
 #endif
 
 
-void dvadd (int n, const double *x, int incx, const double *y, int incy,
-	                                            double *z, int incz)
+void dvadd (integer n,
+	    const double* x, integer incx,
+	    const double* y, integer incy,
+	          double* z, integer incz)
 {
-  register int i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -23,10 +27,12 @@ void dvadd (int n, const double *x, int incx, const double *y, int incy,
 }
 
 
-void ivadd (int n, const int *x, int incx, const int *y, int incy,
-                                                 int *z, int incz)
+void ivadd (integer n,
+	    const integer* x, integer incx,
+	    const integer* y, integer incy,
+	          integer* z, integer incz)
 {
-  register int i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -36,10 +42,12 @@ void ivadd (int n, const int *x, int incx, const int *y, int incy,
 }
 
 
-void svadd (int n, const float *x, int incx, const float *y, int incy,
-                                                   float *z, int incz)
+void svadd (integer n,
+	    const float* x, integer incx,
+	    const float* y, integer incy,
+	          float* z, integer incz)
 {
-  register int i;
+  register integer i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
