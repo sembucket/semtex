@@ -72,25 +72,29 @@ C
       END
 C
 C
-      SUBROUTINE DTPR2D (X, Y, T, DV, DT, NP, NEL)
+       SUBROUTINE DTPR2D (X, Y, T, DV, DT, NR, NS, NEL)
 C
 C     This operator can be used for any field operation that can be 
 C     described by the tensor-product form
 C
 C     Y  = [DV] X [DT]
 C
-C     X and Y are not required to be distinct.
+C     X and Y are not required to be distinct if NR = NS.
 C
 C     Typically for tensor-product forms, DT = transpose (DV).
 C     This routine is designed for use with row-major (C-like) matrices.
-C
-C     Input T is workspace, the same size as X & Y.
+C     
+C     Matrix X:  NS x NS (x NEL)
+C     Matrix Y:  NR x NR (x NEL)
+C     Matrix T:  NS x NR (in C, row-major, x NEL, workspace)
+C     Matrix DV: NR x NS (in C, row-major)
+C     Matrix DT: NS x NR (in C, row-major)
 C
       IMPLICIT NONE
 C
-      INTEGER          NTOT, NP, NEL, I, J, K, L
-      DOUBLE PRECISION  X(NP,NP,NEL),  Y(NP,NP,NEL), T(NP,NP,NEL)
-      DOUBLE PRECISION DV(NP,NP),     DT(NP,NP)
+      INTEGER          NTOT, NR, NS, NEL, I, J, K, L
+      DOUBLE PRECISION  X(NS,NS,NEL),  Y(NR,NR,NEL), T(NR,NS,NEL)
+      DOUBLE PRECISION DV(NS,NR),     DT(NR,NS)
 C
 #if defined (_SX) || defined (__uxp__)
       IF (NEL.EQ.1) THEN
@@ -133,10 +137,10 @@ C
          ENDDO
       ENDIF
 #else
-      CALL DGEMM ('N','N',NP,NP*NEL,NP,1.0D0,DT,NP,X,NP,0.0D0,T,NP)
+      CALL DGEMM ('N','N',NR,NS*NEL,NS,1.0D0,DT,NR,X,NS,0.0D0,T,NR)
       DO I = 1, NEL
-         CALL DGEMM ('N','N',NP,NP,NP,1.0D0,T(1,1,I),
-     +        NP,DV ,NP,0.0D0,Y(1,1,I),NP)
+         CALL DGEMM ('N','N',NR,NR,NS,1.0D0,T(1,1,I),
+     +        NR,DV,NS,0.0D0,Y(1,1,I),NR)
       ENDDO
 #endif
       RETURN
