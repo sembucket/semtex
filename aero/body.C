@@ -42,6 +42,10 @@ Body::Body (const char* session)
 //    Only the last line of state information is used for each axis.
 // 5. Timebase for prescribed and sinusoidal motions comes from restart file
 //    and prescribed time step.
+// 6. For cosinusoidal motions:
+//    Amplitude is zero-to-peak amplitude.
+//    Frequency freq is given in dimensionless frequency units.
+//    Phase angle is given in radians.
 // ---------------------------------------------------------------------------
 {
   char     routine[] = "Body::Body";
