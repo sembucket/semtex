@@ -5,7 +5,7 @@
 static char
 RCSid[] = "$Id$";
 
-#include "Fem.h"
+#include <Fem.h>
 
 
 Element::Element (const int& ident,
@@ -34,19 +34,19 @@ Element::Element (const Element& parent,
 {
   if (!np) {
     memcpy (this, &parent, sizeof (Element));
-
+    esstl = 0;
   } else if (np == parent.np) {
     memcpy (this, &parent, sizeof (Element));
-    bmap  = solve = 0;
-    drdx = dsdx = drdy = dsdy = G1 = G2 = G3 = G4 = mass = 0;
-    hbi  = hii  = 0;
+    bmap = esstl = 0;
+    drdx = dsdx  = drdy = dsdy = G1 = G2 = G3 = G4 = mass = 0;
+    hbi  = hii   = 0;
 
   } else {
     setState (parent.id, np, parent.ns);
     xmesh = ymesh = 0;
-    bmap  = solve = 0;
-    drdx = dsdx = drdy = dsdy = G1 = G2 = G3 = G4 = mass = 0;
-    hbi  = hii  = 0;
+    bmap = esstl = 0;
+    drdx = dsdx  = drdy = dsdy = G1 = G2 = G3 = G4 = mass = 0;
+    hbi  = hii   = 0;
 
   }
 }
@@ -72,7 +72,7 @@ void Element::project (const Element& parent,
     if (src) Veclib::copy (nTot(), src, 1, tgt, 1);
 
   } else {
-    real  **IN, **IT, *tmp = rvector (np*nold);
+    real **IN, **IT, *tmp = rvector (np*nold);
 
     meshOps (GLL, GLL, nold, np, 0, &IN, &IT, 0, 0);
 
@@ -101,10 +101,11 @@ void Element::setState (const int& ident,
 {
   char routine[] = "Element::setState";
 
-  id   = ident;
-  np   = nknot;
-  ns   = nside;
-  rule = option ("RULE");
+  id    = ident;
+  np    = nknot;
+  ns    = nside;
+  rule  = option ("RULE");
+  esstl = 0;
 
   switch (rule) {
   case LL:
@@ -223,13 +224,18 @@ void Element::terminal (const int& side  ,
 void Element::install (const int& jump,
 		       real*      mesh,
 		       int*       map ,
-		       int*       mask)
+		       const int* mask)
 // ---------------------------------------------------------------------------
-// Make Element xmesh, ymesh, bmap & solve point to new memory, set offset
+// Make Element xmesh, ymesh, bmap point to new memory, set offset
 // in Field data area.  Mesh only installed if pointer is non-zero.
+// Mask is a pointer to an array giving boundary essential BC mask info.
 // ---------------------------------------------------------------------------
 {
+  char routine[] = "Element::install";
+  char s[StrMax];
+
   if (jump) offset = jump;
+  if (map ) bmap   = map;
 
   if (mesh) {
     xmesh = new real* [np];
@@ -243,9 +249,16 @@ void Element::install (const int& jump,
       ymesh[j] = ym + j * np;
     }
   }
-  
-  if (mask) solve = mask;
-  if (map)  bmap  = map;
+
+  if (mask) {
+    if (esstl) {
+      sprintf (s, "Element %d already has an installed mask", id);
+      message (routine, s, ERROR);
+    }
+
+    esstl = ivector (nExt ());
+    Veclib::copy (nExt (), mask, 1, esstl, 1);
+  }
 }
 
 
@@ -266,7 +279,8 @@ void Element::mesh (const Mesh& M)
   real*        z;
   real**       x  = xmesh;
   real**       y  = ymesh;
-  register int i, j, nm = np - 1;
+  register int i, j;
+  const int    nm = np - 1;
   Point*       P = new Point [np];
 
   // -- Build Element-boundary knots using Mesh functions.
@@ -586,25 +600,14 @@ void Element::printBndry (const real* src) const
   int  ne = nExt ();
   char s[StrMax];
 
-  message ("", "#   id  emap  bmap solve value", REMARK);
+  message ("", "#   id  emap  bmap  mask value", REMARK);
 
   for (int i = 0; i < ne; i++) {
     sprintf
-      (s, "%6d%6d%6d%6d%6d", id, emap[i], bmap[i], solve[i], src[emap[i]]);
+      (s, "%6d%6d%6d%6d%6d", id, emap[i], bmap[i], 
+       (esstl) ? esstl[i] : 0, src[emap[i]]);
     message ("", s, REMARK);
     }
-}
-
-
-void Element::bndryInsert (const real* src,
-			   real*       tgt) const
-// ---------------------------------------------------------------------------
-// Project from globally-numbered storage to boundary nodes of element
-// in Field storage, i.e. tgt[emap[i]] = src[bmap[i]].
-// To invert: tgt[bmap[i]] = src[emap[i]].
-// ---------------------------------------------------------------------------
-{
-  Veclib::gathr_scatr (nExt (), src, bmap, emap, tgt);
 }
 
 
@@ -717,9 +720,16 @@ int Element::bandwidthSC () const
   register int Min  = INT_MAX;
   register int Max  = INT_MIN;
   const int    next = nExt ();
-  
-  for (i = 0; i < next; i++)
-    if (solve[i]) {
+
+  if (esstl)
+    for (i = 0; i < next; i++) {
+      if (!esstl[i]) {
+	Min = min (bmap[i], Min);
+	Max = max (bmap[i], Max);
+      }
+    }
+  else
+    for (i = 0; i < next; i++) {
       Min = min (bmap[i], Min);
       Max = max (bmap[i], Max);
     }
@@ -895,15 +905,16 @@ void Element::Helmholtz (const real&  lambda2,
 // rwrk: vector, length nq*nq + 2*nq.
 // ---------------------------------------------------------------------------
 {
-  register  int ij = 0;
-  int       ntot   = nTot ();
-  real    **IT, **DV, **DT;
+  register int ij = 0;
+  const int    ntot   = nTot ();
+  real         **IT, **DV, **DT;
+  real         *wk1 = rwrk, *wk2 = wk1 + nq, *wk3 = wk2 + nq;
 
   quadOps (rule, np, nq, 0, 0, 0, 0, &IT, &DV, &DT);
 
   for (register int i = 0; i < np; i++)
     for (register int j = 0; j < np; j++, ij++) {
-      helmRow (IT, DV, DT, lambda2, i, j, rmat, rwrk, rwrk+nq, rwrk+nq+nq);
+      helmRow (IT, DV, DT, lambda2, i, j, rmat, wk1, wk2, wk3);
       Veclib::copy (ntot, rmat, 1, h + ij * np, 1);
     }
 }
@@ -1068,8 +1079,8 @@ void Element::grad (real* targA,
   quadOps (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
   int   ntot = nTot();
-  real* tmpA = rvector (ntot);
-  real* tmpB = rvector (ntot);
+  real* tmpA = rvector (2 * ntot);
+  real* tmpB = tmpA + ntot;
   real* tgt;
 
   if ((tgt = targA)) {
@@ -1103,7 +1114,6 @@ void Element::grad (real* targA,
   }
   
   freeVector (tmpA);
-  freeVector (tmpB);
 }
 
 
@@ -1116,7 +1126,7 @@ void Element::connectivSC (List<int>* adjList) const
 //
 // For general finite elements, all nodes of an element are interconnected,
 // while for statically-condensed elements, only the boundary nodes are
-// considered (sinceinternal nodes are not global).
+// considered (since internal nodes are not global).
 //
 // Essential-BC nodes are ignored, since we're only interested in mimimizing
 // bandwidths of global matrices.
@@ -1124,13 +1134,29 @@ void Element::connectivSC (List<int>* adjList) const
 {
   const int    next = nExt();
   register int i, j, found, gidCurr, gidMate;
-    
-  for (i = 0; i < next; i++)
-    if (solve[i]) {
-      gidCurr = bmap[i];
 
+  if (esstl) {
+    for (i = 0; i < next; i++) {
+      if (! esstl[i]) {
+	gidCurr = bmap[i];
+
+	for (j = 0; j < next; j++)
+	  if (i != j && ! esstl[j]) {
+	    gidMate = bmap[j];
+
+	    found = 0;
+	    for (ListIterator<int>
+		 a (adjList[gidCurr]); !found && a.more (); a.next ())
+	      found = a.current () == gidMate;
+	    if (!found) adjList[gidCurr].add (gidMate);
+	  }
+      }
+    }
+  } else {
+    for (i = 0; i < next; i++) {
+      gidCurr = bmap[i];
       for (j = 0; j < next; j++)
-	if (i != j && solve[j]) {
+	if (i != j) {
 	  gidMate = bmap[j];
 
 	  found = 0;
@@ -1140,6 +1166,7 @@ void Element::connectivSC (List<int>* adjList) const
 	  if (!found) adjList[gidCurr].add (gidMate);
 	}
     }
+  }
 }
 
 
@@ -1183,8 +1210,8 @@ void Element::sideGeom (const int& side,
   switch (side) {
   case 1: 
     skip = 1;
-    xr   = rvector (np);
-    yr   = rvector (np);
+    xr   = rvector (2 * np);
+    yr   = xr + np;
     
     Blas::gemv    ("T", np, np, 1.0, *D, np, *xmesh, 1, 0.0, xr, 1);
     Blas::gemv    ("T", np, np, 1.0, *D, np, *ymesh, 1, 0.0, yr, 1);
@@ -1196,14 +1223,13 @@ void Element::sideGeom (const int& side,
     else        Veclib::zero (np,                   ny, 1);
     
     freeVector (xr);
-    freeVector (yr);
     break;
 
   case 2: 
     low  = np - 1;
     skip = np;
-    xs   = rvector (np);
-    ys   = rvector (np);
+    xs   = rvector (2 * np);
+    ys   = xs + np;
       
     Blas::gemv    ("T", np, np, 1.0, *D, np, *xmesh+low, np, 0.0, xs, 1);
     Blas::gemv    ("T", np, np, 1.0, *D, np, *ymesh+low, np, 0.0, ys, 1);
@@ -1215,14 +1241,13 @@ void Element::sideGeom (const int& side,
     else        Veclib::zero (np,                 ny, 1);
     
     freeVector (xs);
-    freeVector (ys);
     break;
 
   case 3:
     low  = np * (np - 1);
     skip = -1;
-    xr   = rvector (np);
-    yr   = rvector (np);
+    xr   = rvector (2 * np);
+    yr   = xr + np;
 	
     Blas::gemv    ("T", np, np, 1.0, *D, np, *xmesh+low, 1, 0.0, xr, 1);
     Blas::gemv    ("T", np, np, 1.0, *D, np, *ymesh+low, 1, 0.0, yr, 1);
@@ -1234,13 +1259,12 @@ void Element::sideGeom (const int& side,
     else        Veclib::zero (np,                 ny, 1);
     
     freeVector (xr);
-    freeVector (yr);
     break;
 
   case 4:
     skip = -np;
-    xs   = rvector (np);
-    ys   = rvector (np);
+    xs   = rvector (2 * np);
+    ys   = xs + np;
       
     Blas::gemv    ("T", np, np, 1.0, *D, np, *xmesh, np, 0.0, xs, 1);
     Blas::gemv    ("T", np, np, 1.0, *D, np, *ymesh, np, 0.0, ys, 1);
@@ -1252,7 +1276,6 @@ void Element::sideGeom (const int& side,
     else        Veclib::zero (np,                   ny, 1);
     
     freeVector (xs);
-    freeVector (ys);
     break;
   }
   
@@ -1282,8 +1305,8 @@ void Element::sideEval (const int&   side,
   register  int estart, skip, bstart;
   terminal (side, estart, skip, bstart);
 
-  real *x = rvector (np);
-  real *y = rvector (np);
+  real *x = rvector (2 * np);
+  real *y = x + np;
 
   Veclib::copy (np, *xmesh + estart, skip, x, 1);
   Veclib::copy (np, *ymesh + estart, skip, y, 1);
@@ -1292,7 +1315,6 @@ void Element::sideEval (const int&   side,
   vecInterp (np, x, y, tgt);
 
   freeVector (x);
-  freeVector (y);
 }
 
 
@@ -1335,69 +1357,43 @@ void Element::sideDsSum (const int&  side,
 			 real*       tgt ) const
 // ---------------------------------------------------------------------------
 // Direct-stiffness-sum (area-weighted) vector src into globally-numbered
-// tgt on side.  This is for evaluation of ESSENTIAL BCs with
+// tgt on side.  This is for evaluation of natural BCs using Gauss--
 // Lobatto quadrature.
-//
-// Complication at side ends, since NATURAL BCs defer to ESSENTIAL BCs.
 // ---------------------------------------------------------------------------
 {
-  register int  i, nm = np - 1;
-  real*         tmp   = rvector (np);
+  const int    nm  = np - 1;
+  real*        tmp = rvector (np);
   
   int estart, skip, bstart;
   terminal (side, estart, skip, bstart);
 
   Veclib::vmul (np, src, 1, area, 1, tmp, 1);
 
-  if (solve[bstart])          tgt[bmap[bstart  ]] += tmp[0];
-
-  for (i = 1; i < nm; i++)    tgt[bmap[bstart+i]] += tmp[i];
-
-  if (side == ns && solve[0]) tgt[bmap[0       ]] += tmp[i];
-  else if (solve[bstart+i])   tgt[bmap[bstart+i]] += tmp[i];
+  Veclib::scatr_sum (nm, tmp, bmap + bstart, tgt);
+  if   (side == ns) tgt[bmap[          0]] += tmp[nm];
+  else              tgt[bmap[bstart + nm]] += tmp[nm];
 
   freeVector (tmp);
 }
 
 
-void Element::sideMask (const int& side ,
-			int*       gmask) const
+void Element::sideMask (const int& side, int* tgt) const
 // ---------------------------------------------------------------------------
-// Switch off globally-numbered solve mask (for ESSENTIAL-BC side).
-// ---------------------------------------------------------------------------
-{
-  register int i, nm = np - 1, sm = side - 1;
-
-  for (i = 0; i < nm; i++) gmask[bmap[sm*nm + i]] &= 0;
-  gmask[bmap[(nm*side) % nExt ()]]                &= 0;
-}
-
-
-void Element::sideMask (const int& side ,
-			real*      gnode) const
-// ---------------------------------------------------------------------------
-// Switch off globally-numbered gnode at ESSENTIAL BC locations.
+// Tgt is a globally-numbered vector: set it to 1 for gids on this edge.
 // ---------------------------------------------------------------------------
 {
-  register int i;
-  const int    nm = np - 1, sm = side - 1;
+  const int    nm  = np - 1;
+  int*         tmp = ivector (np);
+  
+  int estart, skip, bstart;
+  terminal (side, estart, skip, bstart);
 
-  for (i = 0; i < nm; i++) gnode[bmap[sm*nm + i]] = 0.0;
-  gnode[bmap[(nm*side) % nExt ()]]                = 0.0;
-}
+  Veclib::fill  (np, 1, tmp, 1);
+  Veclib::scatr (nm, tmp, bmap + bstart, tgt);
+  if   (side == ns) tgt[bmap[          0]] = tmp[nm];
+  else              tgt[bmap[bstart + nm]] = tmp[nm];
 
-
-void Element::bndryMask (real* essl,
-			 real* othr) const
-// ---------------------------------------------------------------------------
-// Switch off globally-numbered gnode at ESSENTIAL BC locations, or at other.
-// ---------------------------------------------------------------------------
-{
-  register int i;
-  const int    next = nExt ();
-
-  if (essl) for (i = 0; i < next; i++) essl[bmap[i]] *= solve[i] ? 1.0 : 0.0;
-  if (othr) for (i = 0; i < next; i++) othr[bmap[i]] *= solve[i] ? 0.0 : 1.0;
+  freeVector (tmp);
 }
 
 
@@ -1417,8 +1413,8 @@ void Element::sideGrad (const int&  side,
   register  int estart, skip, bstart, d;
   terminal (side, estart, skip, bstart);
 
-  real*  ddr = rvector (np);
-  real*  dds = rvector (np);
+  real*  ddr = rvector (2 * np);
+  real*  dds = ddr + np;
 
   real  **DV, **DT;
 
@@ -1466,7 +1462,6 @@ void Element::sideGrad (const int&  side,
   }
 
   freeVector (ddr);
-  freeVector (dds);
 }
 
 
@@ -1479,15 +1474,6 @@ void Element::evaluate (const char* func,
 {
   vecInit   ("x y", func);
   vecInterp (nTot (), *xmesh, *ymesh, tgt);
-}
-
-
-real Element::area () const
-// ---------------------------------------------------------------------------
-// Return area of element, using element quadrature rule.
-// ---------------------------------------------------------------------------
-{
-  return Veclib::sum (nq*nq, G4, 1);
 }
 
 
@@ -1832,22 +1818,17 @@ void Element::mask (real* tgt) const
 // to essential BC nodes.  Target is assumed to have element-type ordering.
 // ---------------------------------------------------------------------------
 {
+  if (!esstl) return;
+
   register int i;
   const int    ntot = nTot ();
   const int    next = nExt ();
   real*        tmp  = rvector (ntot);
 
   Veclib::gathr (ntot, tgt, emap, tmp);
-  for (i = 0; i < next; i++) tmp[i] = solve[i] ? 0.0 : tmp[i];
-  Veclib::zero (nInt (), tmp + i, 1);
+  for (i = 0; i < next; i++) tmp[i] *= (real) esstl[i];
+  Veclib::zero  (nInt (), tmp + next, 1);
   Veclib::gathr (ntot, tmp, pmap, tgt);
-}
-
-
-void Element::weight (real* tgt) const
-// ---------------------------------------------------------------------------
-// Multiply tgt by elemental mass matrix.
-// ---------------------------------------------------------------------------
-{
-  Veclib::vmul (nTot (), tgt, 1, mass, 1, tgt, 1);
+  
+  freeVector (tmp);
 }
