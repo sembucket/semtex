@@ -8,8 +8,8 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <stdio.h>
-#include <iostream.h>
+#include <cstdio>
+#include <iostream>
 
 #include <femdef.h>
 #include <Utility.h>

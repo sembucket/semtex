@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // probe.C: extract results from a field file at a set of 3D points.
 //
-// Copyright (c) 1997--1999 Hugh Blackburn
+// Copyright (c) 1997 Hugh Blackburn
 //
 // Synopsis
 // --------
@@ -64,9 +64,8 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <new.h>
-#include <time.h>
 #include <Sem.h>
+#include <ctime>
 
 static const int NPTS = 64;	// -- Default number of points for line/plane.
 
@@ -77,9 +76,7 @@ typedef enum {			// -- Flags for coordinate axes.
   Z    = 'z'
 } AXIS;
 
-static char *prog;
-static void  memExhaust () { message ("new", "free store exhausted", ERROR); }
-
+static char  *prog;
 static void  getargs     (int, char**, char*&, char*&, int&,
 			  char*&, char*&, char*&);
 static int   loadPoints  (istream&, vector<Point*>&);
@@ -106,8 +103,8 @@ int main (int    argc,
 {
   char              *session, *dump, *format;
   char              *interface = 0, *points = 0;
-  int           NP, NZ,  NEL;
-  int           i, j, k, nf, ntot = 0, rotswap = 0;
+  int               NP, NZ,  NEL;
+  int               i, j, k, nf, ntot = 0, rotswap = 0;
   ifstream          fldfile, pntfile;
   FEML*             F;
   Mesh*             M;
@@ -122,7 +119,6 @@ int main (int    argc,
   // -- Initialize.
 
   prog = *argv;
-  set_new_handler    (&memExhaust);
   Femlib::initialize (&argc, &argv);
 
   // -- Set defaults for probeplane interface.

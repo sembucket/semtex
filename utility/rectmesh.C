@@ -15,18 +15,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <iostream.h>
-#include <fstream.h>
-#include <strstream.h>
-#include <iomanip.h>
-
-#include <femdef.h>
-#include <Array.h>
-#include <Stack.h>
-
+#include <Sem.h>
 
 static char prog[] = "rectmesh";
 static void getargs (int, char**);

@@ -23,10 +23,10 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <cctype>
 
 #include <femdef.h>
 #include <Utility.h>

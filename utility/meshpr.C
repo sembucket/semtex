@@ -19,9 +19,9 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <stdlib.h>
-#include <iostream.h>
-#include <iomanip.h>
+#include <cstdlib>
+#include <iostream>
+#include <iomanip>
 
 #include <femdef.h>
 #include <Femlib.h>
@@ -29,12 +29,12 @@
 #include <Mesh.h>
 
 static char prog[] = "meshpr";
-static void getargs (int, char**, char*&, integer&, integer&,
-		     integer&, integer&, integer&, integer&, real&);
+static void getargs (int, char**, char*&, int&, int&,
+		     int&, int&, int&, int&, real&);
 
 
-int main (int     argc,
-	  char**  argv)
+int main (int    argc,
+	  char** argv)
 // ---------------------------------------------------------------------------
 // From FEML file named on command line, generate mesh knot
 // information and print up on standard output.
@@ -42,14 +42,14 @@ int main (int     argc,
 {
   // -- Set defaults & parse command line.
 
-  char*   session = 0;
-  integer verb    = 0,
-          check   = 1,
-          threed  = 0,
-          np      = 0,
-          nz      = 0,
-          basis   = GLL;
-  real    beta    = -1.;
+  char* session = 0;
+  int   verb    = 0,
+        check   = 1,
+        threed  = 0,
+        np      = 0,
+        nz      = 0,
+        basis   = GLL;
+  real  beta    = -1.;
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session, verb, check, np, nz, threed, basis, beta);
@@ -58,11 +58,11 @@ int main (int     argc,
 
   FEML feml (session);
 
-  if (verb)            Femlib::value ("VERBOSE", verb);
-  if   (np)            Femlib::value ("N_POLY",  np  );
-  else  np = (integer) Femlib::value ("N_POLY"       );
-  if   (nz)            Femlib::value ("N_Z",     nz  );
-  else  nz = (integer) Femlib::value ("N_Z"          );
+  if   (verb)      Femlib::value ("VERBOSE", verb);
+  if   (np)        Femlib::value ("N_POLY",  np  );
+  else  np = (int) Femlib::value ("N_POLY"       );
+  if   (nz)        Femlib::value ("N_Z",     nz  );
+  else  nz = (int) Femlib::value ("N_Z"          );
 
   if (nz > 1 && beta > 0.0) Femlib::value ("BETA", beta);
 
@@ -72,13 +72,13 @@ int main (int     argc,
 
   // -- Generate mesh knots and print up.
 
-  const integer    NEL  = M.nEl();
-  const integer    NTOT = np * np;
-  const real       dz   = Femlib::value ("TWOPI/BETA") / nz;
-  register integer ID, j, k;
-  vector<real>     x (np*np), y (np*np);
-  const real*      zero;
-  real             z;
+  const int    NEL  = M.nEl();
+  const int    NTOT = np * np;
+  const real   dz   = Femlib::value ("TWOPI/BETA") / nz;
+  register int ID, j, k;
+  vector<real> x (np*np), y (np*np);
+  const real*  zero;
+  real         z;
 
   if (!threed)
     cout
@@ -123,16 +123,16 @@ int main (int     argc,
 }
 
 
-static void getargs (integer  argc   , 
-		     char**   argv   ,
-		     char*&   session,
-		     integer& verb   ,
-		     integer& check  ,
-		     integer& np     ,
-		     integer& nz     ,
-		     integer& threed ,
-		     integer& basis  ,
-		     real&    beta   )
+static void getargs (int    argc   , 
+		     char** argv   ,
+		     char*& session,
+		     int&   verb   ,
+		     int&   check  ,
+		     int&   np     ,
+		     int&   nz     ,
+		     int&   threed ,
+		     int&   basis  ,
+		     real&  beta   )
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------

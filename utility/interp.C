@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // interp.C: interpolate results from a field file onto a set of 2D points.
 //
-// Copyright (c) 1997-2003 Hugh Blackburn
+// Copyright (c) 1997 Hugh Blackburn
 //
 // Synopsis:
 // --------
@@ -34,16 +34,12 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <new.h>
-#include <time.h>
 #include <Sem.h>
+#include <ctime>
 
-static char prog[]  = "interp";
-static int  verbose = 0;
-static int  nreport = 100;
-
-static void  memExhaust () { message ("new", "free store exhausted", ERROR); }
-
+static char  prog[]  = "interp";
+static int   verbose = 0;
+static int   nreport = 100;
 static void  getargs    (int, char**, char*&, char*&, char*&);
 static void  loadPoints (istream&, int&, int&, int&, vector<Point*>&);
 static void  findPoints (vector<Point*>&, vector<Element*>&,
@@ -59,7 +55,7 @@ static void  loadName   (const vector<AuxField*>&, char*);
 
 
 int main (int    argc,
-	      char** argv)
+	  char** argv)
 // ---------------------------------------------------------------------------
 // Driver.
 // ---------------------------------------------------------------------------
@@ -81,7 +77,6 @@ int main (int    argc,
 
   // -- Initialize.
 
-  set_new_handler    (&memExhaust);
   Femlib::initialize (&argc, &argv);
   getargs            (argc, argv, session, dump, points);
 

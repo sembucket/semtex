@@ -78,18 +78,19 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <stdarg.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <ctype.h>
-#include <string.h>
-#include <limits.h>
+#include <cstdarg>
+#include <cstdlib>
+#include <cstdio>
+#include <cmath>
+#include <cctype>
+#include <cstring>
+#include <climits>
+#include <cfloat>
 
-#include <iostream.h>
-#include <fstream.h>
-#include <strstream.h>
-#include <iomanip.h>
+#include <iostream>
+#include <fstream>
+#include <strstream>
+#include <iomanip>
 
 #include <femdef.h>
 #include <Mesh.h>

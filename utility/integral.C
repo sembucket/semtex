@@ -5,7 +5,7 @@
 //
 // Synopsis:
 // --------
-// integral [-h] [-v] session dump[.fld]
+// integral [-h] [-v] session [file]
 //
 // Description:
 // -----------
@@ -17,14 +17,10 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <new.h>
 #include <Sem.h>
 
-static char prog[]  = "integral";
+static char    prog[]  = "integral";
 static integer verbose = 0;
-
-static void  memExhaust () { message ("new", "free store exhausted", ERROR); }
-
 static void    getargs  (int, char**, char*&, char*&);
 static integer getDump  (ifstream&, vector<AuxField*>&, vector<Element*>&,
 			 const integer, const integer, const integer);
@@ -38,11 +34,11 @@ int main (int    argc,
 // ---------------------------------------------------------------------------
 {
   char              *session, *dump;
+  ifstream          fldfile;
   integer           NP, NZ,  NEL;
   integer           np, nel, ntot, i;
   real              Lz, Area = 0.;
   const real        *z;
-  ifstream          fldfile;
   FEML*             F;
   Mesh*             M;
   vector<Element*>  Esys;
@@ -50,7 +46,6 @@ int main (int    argc,
 
   // -- Initialize.
 
-  set_new_handler    (&memExhaust);
   Femlib::initialize (&argc, &argv);
   getargs            (argc, argv, session, dump);
   cout.precision     (8);
@@ -100,10 +95,10 @@ static void getargs (int    argc   ,
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  char usage[] = "Usage: integral [options] session dump\n"
-    "  options:\n"
-    "  -h      ... print this message\n"
-    "  -v      ... verbose output\n";
+  char usage[] = "Usage: integral [options] session [dump]\n"
+    "options:\n"
+    "-h ... print this message\n"
+    "-v ... verbose output\n";
  
   while (--argc && **++argv == '-')
     switch (*++argv[0]) {
@@ -122,6 +117,11 @@ static void getargs (int    argc   ,
 
   if (argc != 2) message (prog, usage, ERROR);
   else { session = argv[0]; dump = argv[1]; }
+
+  if (argc == 1) {
+  } else {
+    message (prog, usage, ERROR);
+  }
 }
 
 
