@@ -20,15 +20,17 @@
 static char
 RCSid[] = "$Id$";
 
-static char  prog[] = "addfield";
+static char prog[] = "addfield";
 static void  memExhaust () { message ("new", "free store exhausted", ERROR); }
 
-static void  getargs  (int, char**, char*&, char*&, int&, int&, int&);
-static int   getDump  (Domain*, istream&);
-static void  putDump  (Domain*, vector<AuxField*>&, int, ostream&);
+static void    getargs  (integer, char**, char*&, char*&,
+			 integer&, integer&, integer&);
+static integer getDump  (Domain*, istream&);
+static void    putDump  (Domain*, vector<AuxField*>&, integer, ostream&);
 
 
-int main (int argc, char *argv[])
+integer main (integer argc,
+	      char**  argv)
 // ---------------------------------------------------------------------------
 // Driver.
 // ---------------------------------------------------------------------------
@@ -36,26 +38,26 @@ int main (int argc, char *argv[])
   set_new_handler (&memExhaust);
 
   Geometry::CoordSys system;
-  char      *session, *dump, fields[StrMax];
-  int       i, np, nz, nel, DIM;
-  ifstream  file;
-  FEML*     F;
-  Mesh*     M;
-  BCmgr*    B;
-  Domain*   D;
-  AuxField* Ens;
-  AuxField* Hel;
-  AuxField* Div;
-  AuxField* work;
-  int       nData = 0;
+  char               *session, *dump, fields[StrMax];
+  integer            i, np, nz, nel, DIM;
+  ifstream           file;
+  FEML*              F;
+  Mesh*              M;
+  BCmgr*             B;
+  Domain*            D;
+  AuxField*          Ens;
+  AuxField*          Hel;
+  AuxField*          Div;
+  AuxField*          work;
+  integer            nData = 0;
   vector <AuxField*> AuxPoint(3);
   vector <AuxField*> dataField(10);
 
-  // -- Set command line defaults
+  // -- Set command line defaults.
 
-  int add_vort=0,
-      add_enst=0,
-      add_div =0;
+  integer add_vort=0,
+          add_enst=0,
+          add_div =0;
   
   Femlib::prep ();
   getargs      (argc, argv, session, dump, add_vort, add_enst, add_div);
@@ -67,9 +69,9 @@ int main (int argc, char *argv[])
   B = new BCmgr  (*F);
 
   nel    = M -> nEl();  
-  np     =  (int) Femlib::value ("N_POLY");
-  nz     =  (int) Femlib::value ("N_Z"   );
-  system = ((int) Femlib::value ("CYLINDRICAL") ) ?
+  np     =  (integer) Femlib::value ("N_POLY");
+  nz     =  (integer) Femlib::value ("N_Z"   );
+  system = ((integer) Femlib::value ("CYLINDRICAL") ) ?
                      Geometry::Cylindrical : Geometry::Cartesian;
   
   Geometry::set (np, nz, nel, system);
@@ -119,13 +121,13 @@ int main (int argc, char *argv[])
   
   // -- Cycle through field dump, computing vorticity, writing output.
   // -- Musn't change the order below because we are relying on the
-  // -- inverse transform being done BEFORE dumping enstrophy/helicity
+  // -- inverse transform being done BEFORE dumping enstrophy/helicity.
   
   while (getDump (D, file)) {
     
-    if( DIM > 2 ) D -> transform (+1);
+    if (DIM > 2 ) D -> transform (+1);
     
-    if(add_div == 1)  {
+    if (add_div == 1)  {
       
       *Div = 0.0;
       
@@ -144,7 +146,7 @@ int main (int argc, char *argv[])
       if ( DIM > 2) Div -> transform (-1);
     }
     
-    if(add_vort+add_enst > 0) {
+    if (add_vort+add_enst > 0) {
       
       if (DIM == 2) {
 	(*work = *D -> u[1]) . gradient (0); *vorticity[0]  = *work;
@@ -193,14 +195,13 @@ int main (int argc, char *argv[])
 }
 
 
-static void getargs (int argc       ,
-		     char** argv    ,
-		     char*& session ,
-		     char*& dump    ,
-		     int&   add_vort,
-		     int&   add_enst,
-		     int&   add_div)
-
+static void getargs (integer  argc    ,
+		     char**   argv    ,
+		     char*&   session ,
+		     char*&   dump    ,
+		     integer& add_vort,
+		     integer& add_enst,
+		     integer& add_div )
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
@@ -260,8 +261,8 @@ static void getargs (int argc       ,
 }
 
 
-static int getDump (Domain*  D   ,
-		    istream& dump)
+static integer getDump (Domain*  D   ,
+			istream& dump)
 // ---------------------------------------------------------------------------
 // Read next set of field dumps from file.
 // ---------------------------------------------------------------------------
@@ -271,10 +272,10 @@ static int getDump (Domain*  D   ,
 }
 
 
-static void putDump  (Domain*            D    ,
+static void putDump  (Domain*            D       ,
 		      vector<AuxField*>& outField,
-		      int                nOut,
-		      ostream&           strm)
+		      integer            nOut    ,
+		      ostream&           strm    )
 // ---------------------------------------------------------------------------
 // This is a version of the normal Domain dump that adds extra AuxFields.
 // ---------------------------------------------------------------------------
@@ -292,8 +293,8 @@ static void putDump  (Domain*            D    ,
     "%-25s "    "Format\n"
   };
 
-  int       i;
-  const int DIM = (D -> nField() == 3) ? 2 : 3;
+  integer       i;
+  const integer DIM = (D -> nField() == 3) ? 2 : 3;
   char      routine[] = "putDump";
   char      s1[StrMax], s2[StrMax];
   time_t    tp (::time (0));
