@@ -144,8 +144,6 @@ static void getargs (int    argc   ,
 }
 
 
-
-
 static void preprocess (const char*       session,
 			FEML*&            file   ,
 			Mesh*&            mesh   ,
