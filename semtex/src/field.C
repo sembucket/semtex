@@ -151,7 +151,7 @@ Field::Field (BoundarySys*      B,
 
   // -- Fourier transform boundary data.
 
-  this -> bTransform (+1);
+  this -> bTransform (FORWARD);
 }
 
 
@@ -172,14 +172,14 @@ void Field::bTransform (const integer sign)
   if (nPR == 1) {
     if (nZ > 1)
       if (nZ == 2)
-	if   (sign == +1) Veclib::zero (_nline, _line[1], 1);
-	else              Veclib::copy (_nline, _line[0], 1, _line[1], 1);
+	if   (sign == FORWARD) Veclib::zero (_nline, _line[1], 1);
+	else                   Veclib::copy (_nline, _line[0], 1, _line[1], 1);
       else
 	Femlib::DFTr (_sheet, nZ, _nline, sign);
   } else {
-    Femlib::exchange (_sheet, _nz, nP,   +1);
-    Femlib::DFTr     (_sheet, nZ, nPP, sign);
-    Femlib::exchange (_sheet, _nz, nP,   -1);
+    Femlib::exchange (_sheet, _nz, nP, FORWARD);
+    Femlib::DFTr     (_sheet, nZ, nPP, sign   );
+    Femlib::exchange (_sheet, _nz, nP, INVERSE);
   }
 }
 
@@ -1049,7 +1049,7 @@ void Field::coupleBCs (Field*        v  ,
   vector<real>     work (nL);
   real             *Vr, *Vi, *Wr, *Wi, *tp = work();
   
-  if (dir == 1) {
+  if (dir == FORWARD) {
 
     for (k = kLo; k < nMode; k++) {
       Re = k  + k;
@@ -1069,7 +1069,7 @@ void Field::coupleBCs (Field*        v  ,
       Veclib::vadd (nL, Vi, 1, tp, 1, Vi, 1);
     }
 
-  } else if (dir == -1) {
+  } else if (dir == INVERSE) {
 
     for (k = kLo; k < nMode; k++) {
       Re = k  + k;

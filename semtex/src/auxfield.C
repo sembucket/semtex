@@ -803,7 +803,7 @@ AuxField& AuxField::transform (const integer sign)
     if (nzt > 1)
       if (nzt == 2)
 	if   (sign == FORWARD) Veclib::zero (nP, _plane[1], 1);
-	else              Veclib::copy (nP, _plane[0], 1, _plane[1], 1);
+	else                   Veclib::copy (nP, _plane[0], 1, _plane[1], 1);
       else
 	Femlib::DFTr  (_data, nzt, nP, sign);
 
@@ -847,7 +847,7 @@ AuxField& AuxField::transform32 (const integer sign,
 
     if (nZ <= 2) {
       if   (sign == FORWARD) Veclib::copy (_size,  phys, 1, _data, 1);
-      else              Veclib::copy (_size, _data, 1,  phys, 1);
+      else                   Veclib::copy (_size, _data, 1,  phys, 1);
     } else {
       if (sign == FORWARD) {
 	Femlib::DFTr (phys, nZ32, nP, FORWARD);
