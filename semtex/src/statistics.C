@@ -45,13 +45,16 @@ Statistics::Statistics (Domain*            D    ,
   name (D -> name),
   base (D)
 {
-  integer       i;
-  const integer ND = Geometry::nDim();
-  const integer NF = base -> u.getSize();
-  const integer NE = extra.getSize();
-  const integer NR = ((integer) Femlib::value ("AVERAGE") > 1) ? 
+  integer       i, j;
+  const integer ND    = Geometry::nDim();
+  const integer NF    = base -> u.getSize();
+  const integer NE    = extra.getSize();
+  const integer NR    = ((integer) Femlib::value ("AVERAGE") > 1) ? 
                             ((ND + 1) * ND) >> 1 : 0;
-  const integer NT = NF + NE + NR;
+  const integer NT    = NF + NE + NR;
+  const integer nz    = Geometry::nZProc();
+  const integer ntot  = Geometry::nTotProc();
+  real*         alloc = new real [(size_t) NT * ntot];
 
   ROOTONLY cout << "-- Initializing averaging  : ";  
 
@@ -63,12 +66,12 @@ Statistics::Statistics (Domain*            D    ,
   for (i = 0; i < NF; i++) src[     i] = (AuxField*) base -> u[i];
   for (i = 0; i < NE; i++) src[NF + i] = extra[i];
 
-  for (i = 0; i < NF + NE; i++)
-    avg[i] = new AuxField (base -> elmt, src[i] -> name());
-  for (i = 0; i < NT - NF - NE; i++)
-    avg[i + NF + NE] = new AuxField (base -> elmt, 'A' + i);
+  for (j = 0, i = 0; i < NF + NE; i++, j++)
+    avg[i] = new AuxField (alloc+j*ntot, nz, base -> elmt, src[i] -> name());
+  for (i = 0; i < NT - NF - NE; i++, j++)
+    avg[i + NF + NE] = new AuxField (alloc+j*ntot, nz, base -> elmt, 'A' + i);
 
-  // -- Initialize averages, either from file or zero.
+  // -- Initialise averages, either from file or zero.
   //    This is much the same as Domain input routine.
 
   char     s[StrMax];

@@ -103,7 +103,7 @@ static inline integer rma (integer i, integer j, integer n)
 { return j + i * n; }
 
 
-Mesh::Mesh (FEML&     f    ,
+Mesh::Mesh (FEML*     f    ,
 	    const int check) :
 // ---------------------------------------------------------------------------
 // Create a Mesh using information available in feml.
@@ -113,7 +113,7 @@ Mesh::Mesh (FEML&     f    ,
 // then only sufficient information to define the elements is loaded
 // (i.e nodes and element vertices).
 // ---------------------------------------------------------------------------
-  feml (f)
+  _feml (*f)
 {
   const char    routine[] = "Mesh::Mesh";
   char          err[StrMax], tag[StrMax];
@@ -122,13 +122,13 @@ Mesh::Mesh (FEML&     f    ,
   Node*         N;
   Elmt*         E;
 
-  nodeTable .setSize (0);
-  elmtTable .setSize (0);
-  curveTable.setSize (0);
+  _nodeTable .setSize (0);
+  _elmtTable .setSize (0);
+  _curveTable.setSize (0);
 
   // -- Input Nodes.
 
-  nodeTable.setSize (Nn = feml.attribute ("NODES", "NUMBER"));
+  _nodeTable.setSize (Nn = _feml.attribute ("NODES", "NUMBER"));
 
   if (Nn < 4) {
     sprintf (err, "At least 4 Nodes are needed, found %1d declared", Nn);
@@ -139,11 +139,11 @@ Mesh::Mesh (FEML&     f    ,
 
   for (i = 0; i < Nn; i++) {
 
-    while (feml.stream().peek() == '#') // -- Skip comments.
-      feml.stream().ignore (StrMax, '\n');
+    while (_feml.stream().peek() == '#') // -- Skip comments.
+      _feml.stream().ignore (StrMax, '\n');
 
     N = new Mesh::Node;
-    feml.stream() >> N -> ID >> N -> loc.x >> N -> loc.y >> N -> loc.z;
+    _feml.stream() >> N -> ID >> N -> loc.x >> N -> loc.y >> N -> loc.z;
     N -> ID--;
     N -> gID      = UNSET;
     N -> periodic = 0;
@@ -152,7 +152,7 @@ Mesh::Mesh (FEML&     f    ,
       sprintf (err, "Node ID %1d exceeds attribution (%1d)", N -> ID + 1, Nn);
       message (routine, err, ERROR);
     } else 
-      nodeTable[N -> ID] = N;
+      _nodeTable[N -> ID] = N;
   }
 
   VERBOSE cout << "done" << endl;
@@ -160,7 +160,7 @@ Mesh::Mesh (FEML&     f    ,
   // -- Input Elmt corner vertex nodes.
   //    Presently, only quad (<Q>) elements are allowed.
   
-  elmtTable.setSize (K = feml.attribute ("ELEMENTS", "NUMBER"));
+  _elmtTable.setSize (K = _feml.attribute ("ELEMENTS", "NUMBER"));
 
   if (K < 1) {
     sprintf (err, "at least 1 element needed, %1d attributed", K);
@@ -171,12 +171,12 @@ Mesh::Mesh (FEML&     f    ,
 
   for (i = 0; i < K; i++) {
 
-    while (feml.stream().peek() == '#') // -- Skip comments.
-      feml.stream().ignore (StrMax, '\n');
+    while (_feml.stream().peek() == '#') // -- Skip comments.
+      _feml.stream().ignore (StrMax, '\n');
 
     E = new Mesh::Elmt;
 
-    feml.stream() >> E -> ID >> tag;
+    _feml.stream() >> E -> ID >> tag;
     E -> ID--;
 
     if (strcmp (tag, "<Q>") == 0) {
@@ -184,21 +184,21 @@ Mesh::Mesh (FEML&     f    ,
       E -> side.setSize (4);
 
       for (j = 0; j < 4; j++) {
-	feml.stream() >> k;
+	_feml.stream() >> k;
 	k--;
 	if (k >= Nn) {
 	  sprintf (err, "in element %1d, node tag %1d exceeds maximum (%1d)",
 		   E -> ID + 1, k + 1, Nn);
 	  message (routine, err, ERROR);
 	} else 
-	  E -> node[j] = nodeTable[k];
+	  E -> node[j] = _nodeTable[k];
       }
     } else {
       sprintf (err, "unrecognized element tag: %s", tag);
       message (routine, err, ERROR);
     }
 
-    feml.stream() >> tag;
+    _feml.stream() >> tag;
     if (strcmp (tag, "</Q>") != 0) {
       sprintf (err, "closing tag </Q> missing for element %1d", E -> ID + 1);
       message (routine, err, ERROR);
@@ -208,28 +208,28 @@ Mesh::Mesh (FEML&     f    ,
       sprintf (err, "element ID (%1d) exceeds attribution (%1d)", E -> ID+1,K);
       message (routine, err, ERROR);
     } else
-      elmtTable[E -> ID] = E;
+      _elmtTable[E -> ID] = E;
   }
 
   VERBOSE cout << "done" << endl;
 
   VERBOSE cout << "  Setting up mesh internal connectivity ... ";
 
-  assemble ();
+  this -> assemble ();
 
   VERBOSE cout << "done" << endl;
 
   if (check) {  
     VERBOSE cout << "  Installing mesh external surface data ... ";
-    surfaces ();
+    this -> surfaces ();
     VERBOSE cout << "done" << endl;
 
     VERBOSE cout << "  Checking mesh connectivity ... ";
-    checkAssembly ();
+    this -> checkAssembly ();
     VERBOSE cout << "done" << endl;
 
     VERBOSE cout << "  Installing mesh curved sides ... ";
-    curves ();
+    this -> curves ();
     VERBOSE cout << "done" << endl;
   }
 }
@@ -250,7 +250,7 @@ void Mesh::assemble ()
   // -- First, build Elmt Sides.
 
   for (i = 0; i < Ne; i++) {
-    E = elmtTable (i);
+    E = _elmtTable (i);
     const integer Nn = E -> nNodes();
     
     for (j = 0; j < Nn; j++) {
@@ -265,7 +265,7 @@ void Mesh::assemble ()
   //    That happens in surfaces().
 
   for (i = 0; i < Ne; i++) {
-    E = elmtTable (i);
+    E = _elmtTable (i);
     const integer Nn = E -> nNodes();
 
     for (j = 0; j < Nn; j++) {
@@ -273,7 +273,7 @@ void Mesh::assemble ()
       found = 0;
 
       for (r = 0; !found && r < Ne; r++) {
-	ME = elmtTable (r);
+	ME = _elmtTable (r);
 	const integer Nm = ME -> nNodes();
 	
 	for (s = 0; !found && s < Nm; s++) {
@@ -307,16 +307,16 @@ void Mesh::surfaces ()
   const char    routine[] = "Mesh::surfaces";
   char          err[StrMax], tag[StrMax];
   integer       i, e, s, t;
-  const integer K = feml.attribute ("SURFACES", "NUMBER");
+  const integer K = _feml.attribute ("SURFACES", "NUMBER");
 
   for (i = 0; i < K; i++) {
 
-    while (feml.stream().peek() == '#') // -- Skip comments.
-      feml.stream().ignore (StrMax, '\n');
+    while (_feml.stream().peek() == '#') // -- Skip comments.
+      _feml.stream().ignore (StrMax, '\n');
 
     // -- Get element and side number information.
 
-    feml.stream() >> t >> e >> s;
+    _feml.stream() >> t >> e >> s;
     if (t > K) {
       sprintf (err, "Surface tag no. %1d exceeds attribution (%1d)",
 	       t, K);
@@ -325,13 +325,13 @@ void Mesh::surfaces ()
       sprintf (err, "Surface %1d element no. %1d too large (%1d)",
 	       t, e, nEl());
       message (routine, err, ERROR);
-    } else if (s > elmtTable (e - 1) -> nNodes()) {
+    } else if (s > _elmtTable (e - 1) -> nNodes()) {
       sprintf (err, "Surface %1d elmt %1d side no. %1d too large (%1d)",
-	       t, e, s, elmtTable (e - 1) -> nNodes());
+	       t, e, s, _elmtTable (e - 1) -> nNodes());
       message (routine, err, ERROR);
-    } else if (elmtTable (e - 1) -> side (s - 1) -> mateElmt) {
-      Mesh::Elmt* ME = elmtTable (e - 1) -> side (s - 1) -> mateElmt;
-      Mesh::Side* MS = elmtTable (e - 1) -> side (s - 1) -> mateSide;
+    } else if (_elmtTable (e - 1) -> side (s - 1) -> mateElmt) {
+      Mesh::Elmt* ME = _elmtTable (e - 1) -> side (s - 1) -> mateElmt;
+      Mesh::Side* MS = _elmtTable (e - 1) -> side (s - 1) -> mateSide;
       sprintf (err, "Surface %1d elmt %1d side %1d already set to mate "
 	       "elmt %1d side %1d", t, e, s, ME -> ID + 1, MS -> ID + 1);
       message (routine, err, ERROR);
@@ -339,7 +339,7 @@ void Mesh::surfaces ()
     
     // -- Set up either a boundary group or a periodic boundary.
 
-    feml.stream() >> tag;
+    _feml.stream() >> tag;
     e--; s--;
 
     if (strcmp (tag, "<B>") == 0) {
@@ -347,17 +347,17 @@ void Mesh::surfaces ()
       // -- Boundary group.
       //    Group information for this side should not be set already.
 
-      if (elmtTable (e) -> side (s) -> group) {
+      if (_elmtTable (e) -> side (s) -> group) {
 	sprintf (err, "Surface %1d: group already set (%c)",
-		 t, elmtTable (e) -> side (s) -> group);
+		 t, _elmtTable (e) -> side (s) -> group);
 	message (routine, err, ERROR);
       }
       
-      feml.stream() >> elmtTable (e) -> side (s) -> group;
+      _feml.stream() >> _elmtTable (e) -> side (s) -> group;
 
       // -- Clean up.
 
-      feml.stream() >> tag;
+      _feml.stream() >> tag;
       if (strcmp (tag, "</B>") != 0) {
 	sprintf (err, "Surface %1d: couldn't close tag <B> with %s", t, tag);
 	message (routine, err, ERROR);
@@ -372,18 +372,18 @@ void Mesh::surfaces ()
 
       Side *S, *MS;
       integer  me,  ms;
-      feml.stream() >> me >> ms;
+      _feml.stream() >> me >> ms;
 
       if (me < 1 || me > nEl()) {
 	sprintf (err, "Surface %1d, mating elmt no. %1d out of range (1--%1d)",
 		 t, me, nEl());
 	message (routine, err, ERROR);
-      } else if (ms < 1 || ms > elmtTable (e) -> nNodes()) {
+      } else if (ms < 1 || ms > _elmtTable (e) -> nNodes()) {
 	sprintf (err, "Surface %1d, mating side no. %1d out of range (1--%1d)",
-		 t, ms, elmtTable (e) -> nNodes());
+		 t, ms, _elmtTable (e) -> nNodes());
 	message (routine, err, ERROR);
-      } else if (elmtTable (me - 1) -> side (ms - 1) -> mateElmt ||
-		 elmtTable (me - 1) -> side (ms - 1) -> group    ) {
+      } else if (_elmtTable (me - 1) -> side (ms - 1) -> mateElmt ||
+		 _elmtTable (me - 1) -> side (ms - 1) -> group    ) {
 	sprintf (err, "Surface %1d, mating elmt %1d, side %1d already set",
 		 t, me, ms);
 	message (routine, err, ERROR);
@@ -391,20 +391,20 @@ void Mesh::surfaces ()
 
       me--; ms--;
       
-      S  = elmtTable (e)  -> side (s);
-      MS = elmtTable (me) -> side (ms);
+      S  = _elmtTable (e)  -> side (s);
+      MS = _elmtTable (me) -> side (ms);
 
-      S  -> mateElmt = elmtTable (me);
+      S  -> mateElmt = _elmtTable (me);
       S  -> mateSide = MS;
-      MS -> mateElmt = elmtTable (e);
+      MS -> mateElmt = _elmtTable (e);
       MS -> mateSide = S;
 
-      chooseNode (S -> startNode, MS ->   endNode);
-      chooseNode (S ->   endNode, MS -> startNode);
+      this -> chooseNode (S -> startNode, MS ->   endNode);
+      this -> chooseNode (S ->   endNode, MS -> startNode);
 
       // -- Clean up.
       
-      feml.stream() >> tag;
+      _feml.stream() >> tag;
       if (strcmp (tag, "</P>") != 0) {
 	sprintf (err, "Surface %1d: couldn't close tag <P> with %s", t, tag);
 	message (routine, err, ERROR);
@@ -444,7 +444,7 @@ void Mesh::chooseNode (Node* N1,
     } else {
       PN = (N1->ID < N2->ID) ? N1 : N2;
       N1->periodic = N2->periodic = PN;
-      fixPeriodic();
+      this -> fixPeriodic();
     }
   else if (N1->periodic != N1)
     if (!N2->periodic) {
@@ -457,7 +457,7 @@ void Mesh::chooseNode (Node* N1,
     } else {
       PN = (N1->periodic->ID < N2->ID) ? N1->periodic : N2;
       N2->periodic = N1->periodic = N1->periodic->periodic = PN;
-      fixPeriodic();
+      this -> fixPeriodic();
     }
   else {
     if (!N2 -> periodic) {
@@ -471,7 +471,7 @@ void Mesh::chooseNode (Node* N1,
     } else {
       PN = (N1->ID < N2->ID) ? N1 : N2;
       N1->periodic = N2->periodic = PN;
-      fixPeriodic();
+      this -> fixPeriodic();
     }
   }
   
@@ -486,11 +486,11 @@ void Mesh::fixPeriodic ()
 // ---------------------------------------------------------------------------
 {
   register integer i;
-  const integer    N = nodeTable.getSize();
+  const integer    N = _nodeTable.getSize();
   Node             *np, *npp;
 
   for (i = 0; i < N; i++) {
-    np  = nodeTable [i];
+    np  = _nodeTable [i];
     npp = np -> periodic;
     if (npp && npp -> periodic != npp) {
       npp = npp -> periodic;
@@ -513,7 +513,7 @@ void Mesh::showAssembly (Mesh& m)
   cout << "# " << Ne << " Elmts" << endl;
 
   for (i = 0; i < Ne; i++) {
-    E  = m.elmtTable (i);
+    E  = m._elmtTable (i);
     Nn = E -> nNodes ();
 
     cout << "# Elmt: " << E -> ID + 1 << ", Vertices:";
@@ -547,7 +547,7 @@ void Mesh::checkAssembly ()
   const    integer Ne = nEl();
 
   for (i = 0; i < Ne; i++) {
-    E = elmtTable (i);
+    E = _elmtTable (i);
     const integer Ns = E -> nNodes();
 
     for (j = 0; j < Ns; j++) {
@@ -569,7 +569,7 @@ void Mesh::checkAssembly ()
 
 void Mesh::curves ()
 // ---------------------------------------------------------------------------
-// Read in curved edge information and store in Mesh curveTable.
+// Read in curved edge information and store in Mesh _curveTable.
 //
 // Curved edges are specified by lines like:
 //   curveID  elementID  sideID <C> ... </C>
@@ -579,7 +579,7 @@ void Mesh::curves ()
 // of parameters is user-defined.
 // ---------------------------------------------------------------------------
 {
-  if (!feml.seek ("CURVES")) return;
+  if (!_feml.seek ("CURVES")) return;
   
   const char routine[] = "Mesh::curves";
   char       err[StrMax], buf[StrMax];
@@ -587,10 +587,10 @@ void Mesh::curves ()
   Curve*     C;
   Side*      S;
 
-  curveTable.setSize (K = feml.attribute ("CURVES", "NUMBER"));
+  _curveTable.setSize (K = _feml.attribute ("CURVES", "NUMBER"));
 
   for (i = 0; i < K; i++) {
-    feml.stream() >> id >> elmt >> side;
+    _feml.stream() >> id >> elmt >> side;
 
     if (id > K) {
       sprintf (err, "Curve ID %1d exceeds attribution (%1d)", id, K);
@@ -598,22 +598,22 @@ void Mesh::curves ()
     } else if (elmt > nEl()) {
       sprintf (err, "Curve ID %1d, Elmt no. %1d too large (%1d)", id, elmt, K);
       message (routine, err, ERROR);
-    } else if (side > (ns = elmtTable (elmt - 1) -> nNodes())) {
+    } else if (side > (ns = _elmtTable (elmt - 1) -> nNodes())) {
       sprintf (err, "Curve ID %1d, Side no. %1d too large (%1d)", id,side, ns);
       message (routine, err, ERROR);
     }
     
-    S = elmtTable (elmt - 1) -> side (side - 1);
+    S = _elmtTable (elmt - 1) -> side (side - 1);
 
-    feml.stream() >> buf;
+    _feml.stream() >> buf;
 
     if (strcmp (buf, "<ARC>") == 0) {
       real radius;
-      feml.stream() >> radius;
+      _feml.stream() >> radius;
 
       C = new CircularArc (id, S, radius);
 
-      feml.stream() >> buf;
+      _feml.stream() >> buf;
       if (strcmp (buf, "</ARC>") != 0) {
 	sprintf (err, "Curve ID %1d, couldn't close <ARC> with </ARC>", id);
 	message (routine, err, ERROR);
@@ -623,7 +623,7 @@ void Mesh::curves ()
       message (routine, err, ERROR);
     }
 
-    curveTable (i) = C;
+    _curveTable (i) = C;
   }
 }
 
@@ -749,13 +749,13 @@ void Mesh::meshSide (const integer np     ,
 {
   const char       routine[] = "Mesh::meshSide";
   register integer i;
-  const integer    Nc = curveTable.getSize();
-  const integer    Ne = elmtTable .getSize();
+  const integer    Nc = _curveTable.getSize();
+  const integer    Ne = _elmtTable .getSize();
 
   if (np < 2) message (routine, "must have at least two points", ERROR);
 
   for (i = 0; i < Nc; i++) {
-    Curve* C = curveTable (i);
+    Curve* C = _curveTable (i);
     if (C -> ismatch (elmt, side)) {
       C -> compute (np, spacing, knot);
       return;
@@ -764,7 +764,7 @@ void Mesh::meshSide (const integer np     ,
 
   // -- Fall though default: straight line.
 
-  const Side* S  = elmtTable (elmt) -> side (side);
+  const Side* S  = _elmtTable (elmt) -> side (side);
   const Point P1 = S -> startNode -> loc;
   const Point P2 = S -> endNode   -> loc;
   const real  dx = P2.x - P1.x;
@@ -794,13 +794,13 @@ void Mesh::meshElmt (const integer ID,
   const char       routine[] = "Mesh::meshElmt";
   register integer i, j;
   const    integer nm = np - 1;
-  const    integer ns = elmtTable (ID) -> nNodes();
+  const    integer ns = _elmtTable (ID) -> nNodes();
   vector<Point>    P (np);
 
   // -- Compute and load peripheral points.
 
   for (j = 0; j < ns; j++) {
-    meshSide (np, ID, j, z, P());
+    this -> meshSide (np, ID, j, z, P());
     for (i = 0; i < nm; i++) {
       switch (j) {
       case 0:
@@ -884,7 +884,7 @@ integer Mesh::buildMap (const integer np ,
   // -- Allocate space, unset all knot numbers.
 
   for (i = 0; i < nel; i++) {
-    E  = elmtTable (i);
+    E  = _elmtTable (i);
     ns = E -> nNodes();
     for (j = 0; j < ns; j++) {
       S = E -> side (j);
@@ -898,7 +898,7 @@ integer Mesh::buildMap (const integer np ,
   // -- Generate connectivity information.
 
   for (i = 0; i < nel; i++) {
-    E  = elmtTable (i);
+    E  = _elmtTable (i);
     ns = E -> nNodes();
     for (j = 0; j < ns; j++) {
       S = E -> side (j);
@@ -909,7 +909,7 @@ integer Mesh::buildMap (const integer np ,
   // -- Fill map.
 
   for (i = 0; i < nel; i++) {
-    E  = elmtTable (i);
+    E  = _elmtTable (i);
     ns = E -> nNodes();
     for (j = 0; j < ns; j++) {
       S = E -> side (j);
@@ -922,7 +922,7 @@ integer Mesh::buildMap (const integer np ,
   // -- Deallocate internal knot number storage.
 
   for (i = 0; i < nel; i++) {
-    E  = elmtTable (i);
+    E  = _elmtTable (i);
     ns = E -> nNodes();
     for (j = 0; j < ns; j++) {
       S = E -> side (j);
@@ -1034,7 +1034,7 @@ void Mesh::printNek () const
        << endl;
 
   for (i = 0; i < nel; i++) {
-    E = elmtTable (i);
+    E = _elmtTable (i);
 
     cout << "ELEMENT   "
          << setw(10) << E -> ID + 1
@@ -1054,13 +1054,13 @@ void Mesh::printNek () const
 
   // -- Curved sides.
 
-  ns = curveTable.getSize();
+  ns = _curveTable.getSize();
   cout << "***** CURVED SIDE DATA *****" << endl;
   cout << setw(5) << ns
        << " Curved sides follow IEDGE,IEL,CURVE(I),I=1,5, CCURVE"
        << endl;
   for (i = 0; i < ns; i++)
-    curveTable (i) -> printNek ();
+    _curveTable (i) -> printNek ();
 
   // -- Boundary conditions.
 
@@ -1068,7 +1068,7 @@ void Mesh::printNek () const
   cout << "***** FLUID BOUNDARY CONDITIONS *****" << endl;
 
   for (i = 0; i < nel; i++) {
-    E  = elmtTable (i);
+    E  = _elmtTable (i);
     ns = E -> nNodes();
     for (j = 0; j < ns; j++) {
       S  = E -> side (j);
@@ -1137,12 +1137,12 @@ void Mesh::describeGrp (char  G,
   const char    routine[] = "Mesh::describeGrp";
   char          groupc, err[StrMax], buf[StrMax];
   integer       i, id, found = 0;
-  const integer N = feml.attribute ("GROUPS", "NUMBER");
+  const integer N = _feml.attribute ("GROUPS", "NUMBER");
   
   for (i = 0; !found && i < N; i++) {
-    while (feml.stream().peek() == '#') // -- Skip comments.
-      feml.stream().ignore (StrMax, '\n');
-    feml.stream() >> id >> groupc >> buf;
+    while (_feml.stream().peek() == '#') // -- Skip comments.
+      _feml.stream().ignore (StrMax, '\n');
+    _feml.stream() >> id >> groupc >> buf;
     if (found = (groupc == G)) strcpy (S, buf);
   }
 
@@ -1164,32 +1164,32 @@ void Mesh::describeBC (char  grp,
   const char    routine[] = "Mesh::describeBC";
   char          eql, groupc, fieldc, err[StrMax], buf[StrMax];
   integer       i, j, id, nbcs, found = 0;
-  const integer N = feml.attribute ("BCS", "NUMBER");
+  const integer N = _feml.attribute ("BCS", "NUMBER");
 
   for (i = 0; !found && i < N; i++) {
 
-    while (feml.stream().peek() == '#') // -- Skip comments.
-      feml.stream().ignore (StrMax, '\n');
+    while (_feml.stream().peek() == '#') // -- Skip comments.
+      _feml.stream().ignore (StrMax, '\n');
 
-    feml.stream() >> id >> groupc >> nbcs;
+    _feml.stream() >> id >> groupc >> nbcs;
 
     for (j = 0; !found && j < nbcs; j++) {
 
       // -- Trash tag. (i.e. ignore type of BC. This is an error!).
 
-      feml.stream() >> buf;
+      _feml.stream() >> buf;
 
       // -- Check for match and take appropriate action if true.
 
-      feml.stream() >> fieldc;
+      _feml.stream() >> fieldc;
 
       if (found = (groupc == grp) && (fieldc == fld)) {
-	feml.stream() >> eql;
+	_feml.stream() >> eql;
 	if (eql == '=') {
 	  tgt[0] = fld;
 	  tgt[1] = '\0';
 	  strcat (tgt, " = ");
-	  feml.stream() >> buf;
+	  _feml.stream() >> buf;
 	  strcat (tgt, buf);
 	} else {
 	  sprintf (err, "Group '%c', Field '%c', expected '=', got '%c",
@@ -1197,7 +1197,7 @@ void Mesh::describeBC (char  grp,
 	  message (routine, err, ERROR);
 	}
       } else {
-	feml.stream().ignore (StrMax, '\n');
+	_feml.stream().ignore (StrMax, '\n');
       }
     }
   }
@@ -1240,7 +1240,7 @@ void Mesh::buildMask (const integer np  ,
   // -- Allocate space, unmask all gIDs.
 
   for (i = 0; i < nel; i++) {
-    E  = elmtTable (i);
+    E  = _elmtTable (i);
     ns = E -> nNodes();
     for (j = 0; j < ns; j++) {
       S = E -> side (j);
@@ -1254,7 +1254,7 @@ void Mesh::buildMask (const integer np  ,
   // -- Switch on gID in appropriate locations, for D, A <==> Dirichlet BCs.
 
   for (i = 0; i < nel; i++) {
-    E  = elmtTable (i);
+    E  = _elmtTable (i);
     ns = E -> nNodes();
     for (j = 0; j < ns; j++) {
       S = E -> side (j);
@@ -1275,7 +1275,7 @@ void Mesh::buildMask (const integer np  ,
   // -- Traverse mesh and load mask values.
 
   for (i = 0; i < nel; i++) {
-    E  = elmtTable (i);
+    E  = _elmtTable (i);
     ns = E -> nNodes();
     for (j = 0; j < ns; j++) {
       S = E -> side (j);
@@ -1288,7 +1288,7 @@ void Mesh::buildMask (const integer np  ,
   // -- Deallocate internal knot number storage.
 
   for (i = 0; i < nel; i++) {
-    E  = elmtTable (i);
+    E  = _elmtTable (i);
     ns = E -> nNodes();
     for (j = 0; j < ns; j++) {
       S = E -> side (j);
@@ -1316,26 +1316,26 @@ integer Mesh::matchBC (const char grp,
 {
   char          groupc, fieldc, buf[StrMax];
   integer       i, j, id, nbcs;
-  const integer N = feml.attribute ("BCS", "NUMBER");
+  const integer N = _feml.attribute ("BCS", "NUMBER");
 
   for (i = 0; i < N; i++) {
 
-    while (feml.stream().peek() == '#') // -- Skip comments.
-      feml.stream().ignore (StrMax, '\n');
+    while (_feml.stream().peek() == '#') // -- Skip comments.
+      _feml.stream().ignore (StrMax, '\n');
 
-    feml.stream() >> id >> groupc >> nbcs;
+    _feml.stream() >> id >> groupc >> nbcs;
 
     if (groupc != grp) {
-      feml.stream().ignore (StrMax, '\n');
+      _feml.stream().ignore (StrMax, '\n');
       for (j = 0; j < nbcs; j++)
-	feml.stream().getline (buf, StrMax);
+	_feml.stream().getline (buf, StrMax);
     } else {
       for (j = 0; j < nbcs; j++) {
-	feml.stream() >> buf >> fieldc;
+	_feml.stream() >> buf >> fieldc;
 	if (buf[1] == bcd && fieldc == fld)
 	  return 1;
 	else
-	  feml.stream().ignore (StrMax, '\n');
+	  _feml.stream().ignore (StrMax, '\n');
       }
     }
   }
@@ -1358,7 +1358,7 @@ void Mesh::extent (Point& lo,
 
   const integer Ne = nEl();  
   for (i = 0; i < Ne; i++) {
-    E = elmtTable (i);
+    E = _elmtTable (i);
     const integer Nn = E -> nNodes();
     for (j = 0; j < Nn; j++) {
       x = E -> node (j) -> loc.x;

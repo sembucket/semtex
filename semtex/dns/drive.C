@@ -55,20 +55,20 @@ int main (int    argc,
   BCmgr*           bman;
   BoundarySys*     bsys;
   Domain*          domain;
-  DNSAnalyser*     adjunct;
+  DNSAnalyser*     analyst;
   
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session);
 
   preprocess (session, file, mesh, elmt, bman, bsys, domain);
 
-  adjunct = new DNSAnalyser (domain, file);
+  analyst = new DNSAnalyser (domain, file);
 
   domain -> restart();
 
   ROOTONLY domain -> report();
   
-  NavierStokes (domain, adjunct);
+  NavierStokes (domain, analyst);
 
   Femlib::finalize();
 
@@ -84,14 +84,15 @@ static void getargs (int    argc   ,
 // arguments.  Last argument is name of a session file, not dealt with here.
 // ---------------------------------------------------------------------------
 {
-  const char routine[] = "getargs";
   char       buf[StrMax];
-  char       usage[]   = "Usage: %s [options] session-file\n"
+  const char routine[] = "getargs";
+  const char usage[]   = "Usage: %s [options] session-file\n"
     "  [options]:\n"
     "  -h        ... print this message\n"
     "  -i[i]     ... use iterative solver for viscous [& pressure] steps\n"
     "  -v[v...]  ... increase verbosity level\n"
     "  -chk      ... checkpoint field dumps\n";
+
  
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
@@ -152,7 +153,7 @@ static void preprocess (const char*       session,
   VERBOSE cout << "Building mesh ..." << endl;
 
   file = new FEML (session);
-  mesh = new Mesh (*file);
+  mesh = new Mesh (file);
 
   VERBOSE cout << "done" << endl;
 

@@ -151,7 +151,7 @@ static void preprocess (const char*       session,
   VERBOSE cout << "Building mesh ..." << endl;
 
   file = new FEML (session);
-  mesh = new Mesh (*file);
+  mesh = new Mesh (file);
 
   VERBOSE cout << "done" << endl;
 

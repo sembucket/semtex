@@ -8,15 +8,24 @@
 # $Id$
 ##############################################################################
 
-ARCH    = $(shell uname -s)
-
 SEMHOME = ..
 LIB     = libalp.a
 
+ARCH = $(shell uname -s)
+MACH = $(shell uname -m)
+ifeq ($(ARCH),Linux)
+  ifeq ($(MACH),alpha)
+    ARCH = Linux-alpha
+  endif
+  ifeq ($(MACH),i586)
+    ARCH = Linux-i586
+  endif
+endif
+
 # ----------------------------------------------------------------------------
 # Generic settings; see specific settings for specific machines below.
-OPTIONS  = -g
 
+OPTIONS  = -g
 CC       = cc
 FC	 = f77
 OPTIONS  = -g
@@ -27,53 +36,59 @@ RANLIB   =
 
 # ----------- Compiler options for specific machines: ------------------------
 
-ifeq ($(ARCH),IRIX)			# -- SGI IRIX 32-bit.
-CFLAGS     = -fullwarn -O2
-FFLAGS     = -O2
+ifeq ($(ARCH),IRIX)				# -- SGI IRIX 32-bit.
+CFLAGS = -fullwarn -O2
+FFLAGS = -O2
 endif
 
-ifeq ($(ARCH),IRIX64)			# -- SGI IRIX 64-bit
-CFLAGS     = -mips4 -64 -r10000 -Ofast=IP30 -OPT:roundoff=3
-FFLAGS     = -mips4 -64 -r10000 -Ofast=IP30 -OPT:roundoff=3
+ifeq ($(ARCH),IRIX64)				# -- SGI IRIX 64-bit
+CFLAGS = -mips4 -64 -r10000 -Ofast=IP30 -OPT:roundoff=3
+FFLAGS = -mips4 -64 -r10000 -Ofast=IP30 -OPT:roundoff=3
 endif
 
 
-ifeq ($(ARCH),OSF1)			# -- DEC Alpha OSF1
-FC         = f90
-CC         = cc
-CFLAGS     = -fast -inline speed -fp_reorder -speculate all -tune host -O4
-FFLAGS     = -fast -tune host -O5
+ifeq ($(ARCH),OSF1)				# -- DEC Alpha OSF1
+FC = f90
+CC = cc
+CFLAGS = -fast -inline speed -fp_reorder -speculate all -tune host -O4
+FFLAGS = -fast -tune host -O5
 ifdef MPI
-  LIB      = libalp_mp.a
-  CFLAGS  += -pthread
-  FFLAGS  += -D_THREAD_SAFE
+  LIB     = libalp_mp.a
+  CFLAGS += -pthread
+  FFLAGS += -D_THREAD_SAFE
 endif
-#CC	   = kcc
-#CFLAGS    = -ckapargs='-optimize=5 -roundoff=3 -scaleropt=3'
 endif
 
-ifeq ($(ARCH),Linux)			# -- GNU/Linux system
-CC         = gcc
-FC	   = g77
-CFLAGS     = -O3
-CFLAGS     = -O3
-RANLIB     = ranlib
+ifeq ($(ARCH),Linux-i586)			# -- Linux Intel system
+CC = gcc
+FC = g77
+CFLAGS = -O3
+CFLAGS = -O3
+RANLIB = ranlib
 endif
 
-ifeq ($(ARCH),UNIX_System_V)            # -- Fujitsu VPP300
-CC         = vcc
-FC	   = frt
-CFLAGS     = -Wv,-m3,-Om -Kpopt
-FFLAGS     = -Wv,-m3,-te
+ifeq ($(ARCH),Linux-alpha)			# -- Linux Alpha system
+CC = ccc
+FC = fort
+CFLAGS = -arch host -tune host -fast -O4
+FFLAGS = -arch host -tune host -fast -O4
+RANLIB = ranlib
 endif
 
-ifeq ($(ARCH),SUPER-UX)                 # -- NEC SX-4
-DEFINES   += -D_BUILTIN_
-CFLAGS     = $(DEFINES) -pvctl,fullmsg -Onooverlap -hfloat0 -hnostkchk
-FFLAGS     = $(DEFINES) -Wf'-pvctl,fullmsg -ptr byte -b' -float0 -ew
+ifeq ($(ARCH),UNIX_System_V)			# -- Fujitsu VPP300
+CC = vcc
+FC = frt
+CFLAGS = -Wv,-m3,-Om -Kpopt
+FFLAGS = -Wv,-m3,-te
+endif
+
+ifeq ($(ARCH),SUPER-UX)                 	# -- NEC SX-4
+DEFINES += -D_BUILTIN_
+CFLAGS   = $(DEFINES) -pvctl,fullmsg -Onooverlap -hfloat0 -hnostkchk
+FFLAGS   = $(DEFINES) -Wf'-pvctl,fullmsg -ptr byte -b' -float0 -ew
 ifdef MPI
-  LIB      = libalp_mp.a
-  FFLAGS  += -P multi
+  LIB     = libalp_mp.a
+  FFLAGS += -P multi
 endif
 endif
 

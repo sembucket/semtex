@@ -109,48 +109,49 @@
 
 
 Field::Field (BoundarySys*      B,
+	      real*             M,
+	      const integer     N,
 	      vector<Element*>& E,
 	      const char        C) :
 // ---------------------------------------------------------------------------
 // Create storage for a new Field from scratch.
 // ---------------------------------------------------------------------------
-  AuxField (E, C),
-  bsys     (B)
+  AuxField (M, N, E, C),
+  _bsys    (B)
 {
   const integer            np  = Geometry::nP();
   const integer            npr = Geometry::nProc();
-  const integer            nz  = Geometry::nZProc();
   const integer            nzb = Geometry::basePlane();
-  const vector<Boundary*>& BC  = bsys -> BCs (0);
+  const vector<Boundary*>& BC  = _bsys -> BCs (0);
   const real               dz  = Femlib::value ("TWOPI / BETA / N_Z");
-  real*                    p;
+  register real*           p;
   register integer         i, k;
 
   // -- Allocate storage for boundary data, round up for Fourier transform.
   
-  nbound = bsys -> nSurf();
-  n_line = nbound * np;
-  if   (npr > 1) n_line += 2 * npr - n_line % (2 * npr);
-  else           n_line += n_line % 2;
+  _nbound = _bsys -> nSurf();
+  _nline  = _nbound * np;
+  if   (npr > 1) _nline += 2 * npr - _nline % (2 * npr);
+  else           _nline += _nline % 2;
 
-  line  = new real* [(size_t)  nz];
-  sheet = new real  [(size_t) (nz * n_line)];
+  _line  = new real* [(size_t)  _nz];
+  _sheet = new real  [(size_t) (_nz * _nline)];
 
-  for (k = 0; k < nz; k++) line[k] = sheet + k * n_line;
+  for (k = 0; k < _nz; k++) _line[k] = _sheet + k*_nline;
 
-  Veclib::zero (nz * n_line, sheet, 1);
+  Veclib::zero (_nz * _nline, _sheet, 1);
 
   // -- Set values for boundary data (in physical space).
 
-  for (k = 0; k < nz; k++) {
+  for (k = 0; k < _nz; k++) {
     Femlib::value ("z", (nzb + k) * dz);
-    for (p = line[k], i = 0; i < nbound; i++, p += np)
+    for (p = _line[k], i = 0; i < _nbound; i++, p += np)
       BC[i] -> evaluate (k, 0, p);
   }
 
   // -- Fourier transform boundary data.
 
-  bTransform (+1);
+  this -> bTransform (+1);
 }
 
 
@@ -165,21 +166,20 @@ void Field::bTransform (const integer sign)
 {
   const integer nZ  = Geometry::nZ();
   const integer nPR = Geometry::nProc();
-  const integer nZP = Geometry::nZProc();
-  const integer nP  = n_line;
-  const integer nPP = n_line / nPR;
+  const integer nP  = _nline;
+  const integer nPP = _nline / nPR;
 
   if (nPR == 1) {
     if (nZ > 1)
       if (nZ == 2)
-	if   (sign == +1) Veclib::zero (n_line, line[1], 1);
-	else              Veclib::copy (n_line, line[0], 1, line[1], 1);
+	if   (sign == +1) Veclib::zero (_nline, _line[1], 1);
+	else              Veclib::copy (_nline, _line[0], 1, _line[1], 1);
       else
-	Femlib::DFTr (sheet, nZ, n_line, sign);
+	Femlib::DFTr (_sheet, nZ, _nline, sign);
   } else {
-    Femlib::exchange (sheet, nZP, nP,   +1);
-    Femlib::DFTr     (sheet, nZ, nPP, sign);
-    Femlib::exchange (sheet, nZP, nP,   -1);
+    Femlib::exchange (_sheet, _nz, nP,   +1);
+    Femlib::DFTr     (_sheet, nZ, nPP, sign);
+    Femlib::exchange (_sheet, _nz, nP,   -1);
   }
 }
 
@@ -192,12 +192,12 @@ void Field::printBoundaries (const Field* F)
 // ---------------------------------------------------------------------------
 {
   ROOTONLY {
-    const vector<Boundary*>& BC = F -> bsys -> BCs (0);
+    const vector<Boundary*>& BC = F -> _bsys -> BCs (0);
     integer                  i;
   
     cout << "# -- Field '" << F -> name() << "' Boundary Information:" << endl;
-    if (!F -> nbound) cout << "No BCs for this Field" << endl;
-    for (i = 0; i < F -> nbound; i++) BC[i] -> print ();
+    if (!F -> _nbound) cout << "No BCs for this Field" << endl;
+    for (i = 0; i < F -> _nbound; i++) BC[i] -> print();
   }
 }
 
@@ -219,8 +219,8 @@ void Field::evaluateBoundaries (const integer step)
 
   for (k = 0; k < nz; k++) {
     mode = bmode + (k >> 1);
-    const vector<Boundary*>& BC = bsys -> BCs (mode);
-    for (p = line[k], i = 0; i < nbound; i++, p += np)
+    const vector<Boundary*>& BC = _bsys -> BCs (mode);
+    for (p = _line[k], i = 0; i < _nbound; i++, p += np)
       BC[i] -> evaluate (k, step, p);
   }
 }
@@ -232,12 +232,12 @@ void Field::evaluateM0Boundaries (const integer step)
 // ---------------------------------------------------------------------------
 {
   ROOTONLY {
-    const vector<Boundary*>& BC = bsys -> BCs (0);
+    const vector<Boundary*>& BC = _bsys -> BCs (0);
     const integer            np = Geometry::nP();
     real*                    p;
     register integer         i;
 
-    for (p = line[0], i = 0; i < nbound; i++, p += np)
+    for (p = _line[0], i = 0; i < _nbound; i++, p += np)
       BC[i] -> evaluate (0, step, p);
   }
 }
@@ -250,12 +250,12 @@ void Field::addToM0Boundaries (const real  val,
 // ---------------------------------------------------------------------------
 {
   ROOTONLY {
-    const vector<Boundary*>& BC = bsys -> BCs (0);
+    const vector<Boundary*>& BC = _bsys -> BCs (0);
     const integer            np = Geometry::nP();
     real*                    p;
     register integer         i;
 
-    for (p = line[0], i = 0; i < nbound; i++, p += np)
+    for (p = _line[0], i = 0; i < _nbound; i++, p += np)
       BC[i] -> addForGroup (grp, val, p);
   }
 }
@@ -276,34 +276,33 @@ Field& Field::smooth (AuxField* slave)
 // If slave == 0, smooth this -> data.
 // ---------------------------------------------------------------------------
 {
-  const integer       nel     = Geometry::nElmt();
-  const integer       nz      = Geometry::nZProc();
-  const integer       npnp    = Geometry::nTotElmt();
-  const integer       next    = Geometry::nExtElmt();
-  const NumberSys*    N       = bsys -> Nsys  (0);
-  const real*         imass   = bsys -> Imass (0);
-  const integer       nglobal = N    -> nGlobal();
-  const integer*      btog    = N    -> btog();
-  const integer*      gid;
-  register integer    i, k;
-  vector<real>        work (nglobal);
-  real                *src, *dssum = work();
+  const integer    nel     = Geometry::nElmt();
+  const integer    npnp    = Geometry::nTotElmt();
+  const integer    next    = Geometry::nExtElmt();
+  const NumberSys* N       = _bsys -> Nsys  (0);
+  const real*      imass   = _bsys -> Imass (0);
+  const integer    nglobal = N    -> nGlobal();
+  const integer*   btog    = N    -> btog();
+  const integer*   gid;
+  register integer i, k;
+  vector<real>     work (nglobal);
+  real             *src, *dssum = work();
 
-  for (k = 0; k < nz; k++) {
+  for (k = 0; k < _nz; k++) {
 
     Veclib::zero (nglobal, dssum, 1);
-    src = (slave) ? slave -> plane[k] : plane[k];
+    src = (slave) ? slave -> _plane[k] : _plane[k];
     gid = btog;
 
     for (i = 0; i < nel; i++, src += npnp, gid += next)
-      Elmt[i] -> bndryDsSum (gid, src, dssum);
+      _elmt[i] -> bndryDsSum (gid, src, dssum);
 
     Veclib::vmul (nglobal, dssum, 1, imass, 1, dssum, 1);
-    src = (slave) ? slave -> plane[k] : plane[k];
+    src = (slave) ? slave -> _plane[k] : _plane[k];
     gid = btog;
 
     for (i = 0; i < nel; i++, src += npnp, gid += next)
-      Elmt[i] -> bndryInsert (gid, dssum, src);
+      _elmt[i] -> bndryInsert (gid, dssum, src);
   }
 
   return *this;
@@ -318,18 +317,18 @@ void Field::smooth (const int nZ ,
 // planeSize() offset between each plane of data.
 // ---------------------------------------------------------------------------
 {
-  const integer       nel     = Geometry::nElmt();
-  const integer       npnp    = Geometry::nTotElmt();
-  const integer       next    = Geometry::nExtElmt();
-  const integer       nP      = Geometry::planeSize();
-  const NumberSys* N       = bsys -> Nsys  (0);
-  const real*         imass   = bsys -> Imass (0);
-  const integer       nglobal = N    -> nGlobal();
-  const integer*      btog    = N    -> btog();
-  const integer*      gid;
-  register integer    i, k;
-  vector<real>        work (nglobal);
-  real                *src, *dssum = work();
+  const integer    nel     = Geometry::nElmt();
+  const integer    npnp    = Geometry::nTotElmt();
+  const integer    next    = Geometry::nExtElmt();
+  const integer    nP      = Geometry::planeSize();
+  const NumberSys* N       = _bsys -> Nsys  (0);
+  const real*      imass   = _bsys -> Imass (0);
+  const integer    nglobal = N    -> nGlobal();
+  const integer*   btog    = N    -> btog();
+  const integer*   gid;
+  register integer i, k;
+  vector<real>     work (nglobal);
+  real             *src, *dssum = work();
 
   for (k = 0; k < nZ; k++) {
 
@@ -338,14 +337,14 @@ void Field::smooth (const int nZ ,
     gid = btog;
 
     for (i = 0; i < nel; i++, src += npnp, gid += next)
-      Elmt[i] -> bndryDsSum (gid, src, dssum);
+      _elmt[i] -> bndryDsSum (gid, src, dssum);
 
     Veclib::vmul (nglobal, dssum, 1, imass, 1, dssum, 1);
     src = tgt + k * nP;
     gid = btog;
 
     for (i = 0; i < nel; i++, src += npnp, gid += next)
-      Elmt[i] -> bndryInsert (gid, dssum, src);
+      _elmt[i] -> bndryInsert (gid, dssum, src);
   }
 }
 
@@ -359,13 +358,13 @@ real Field::flux (const Field* C)
 // This only has to be done on the zero (mean) Fourier mode.
 // ---------------------------------------------------------------------------
 {
-  const vector<Boundary*>& BC = C -> bsys -> BCs (0);
+  const vector<Boundary*>& BC = C -> _bsys -> BCs (0);
   vector<real>             work(3 * Geometry::nP());
   real                     F = 0.0, *tmp = work();
   register integer         i;
   
-  for (i = 0; i < C -> nbound; i++)
-    F += BC[i] -> flux ("wall", C -> data, tmp);
+  for (i = 0; i < C -> _nbound; i++)
+    F += BC[i] -> flux ("wall", C -> _data, tmp);
 
   return F;
 }
@@ -381,15 +380,15 @@ Vector Field::normalTraction (const Field* P)
 // This only has to be done on the zero (mean) Fourier mode.
 // ---------------------------------------------------------------------------
 {
-  const vector<Boundary*>& BC = P -> bsys -> BCs (0);
-  const integer            nsurf = P -> nbound;
+  const vector<Boundary*>& BC = P -> _bsys -> BCs (0);
+  const integer            nsurf = P -> _nbound;
   Vector                   secF, F = {0.0, 0.0, 0.0};
   vector<real>             work(Geometry::nP());
   real                     *tmp = work();
   register integer         i;
   
   for (i = 0; i < nsurf; i++) {
-    secF = BC[i] -> normalTraction ("wall", P -> data, tmp);
+    secF = BC[i] -> normalTraction ("wall", P -> _data, tmp);
     F.x += secF.x;
     F.y += secF.y;
   }
@@ -421,22 +420,21 @@ Vector Field::tangentTraction (const Field* U,
 // This only has to be done on the zero (mean) Fourier mode.
 // ---------------------------------------------------------------------------
 {
-  const vector<Boundary*>& UBC    = U -> bsys -> BCs (0);
-  const vector<Boundary*>& WBC    = (W) ? W -> bsys -> BCs (0) :
-                                    (vector<Boundary*>) 0;
-  const integer            np     = Geometry::nP();
-  const integer            nbound = U -> nbound;
-  const real               mu     = Femlib::value ("RHO * KINVIS");
+  const vector<Boundary*>& UBC =       U->_bsys->BCs(0);
+  const vector<Boundary*>& WBC = (W) ? W->_bsys->BCs(0) : (vector<Boundary*>)0;
+  const integer            np      = Geometry::nP();
+  const integer            _nbound = U -> _nbound;
+  const real               mu      = Femlib::value ("RHO * KINVIS");
   Vector                   secF, F = {0.0, 0.0, 0.0};
   vector<real>             work(3 * np);
   real                     *ddx = work(), *ddy = ddx + np;
   register integer         i;
 
-  for (i = 0; i < nbound; i++) {
-    secF = UBC[i] -> tangentTraction  ("wall", U -> data, V -> data, ddx, ddy);
+  for (i = 0; i < _nbound; i++) {
+    secF = UBC[i] -> tangentTraction  ("wall", U->_data, V->_data, ddx, ddy);
     F.x        -= mu * secF.x;
     F.y        -= mu * secF.y;
-    if (W) F.z -= mu * WBC[i] -> flux ("wall", W -> data, ddx);
+    if (W) F.z -= mu * WBC[i] -> flux ("wall", W->_data, ddx);
   }
 
   return F;
@@ -455,17 +453,17 @@ void Field::normTractionV (real*        fx,
 // Fourier transformed.
 // ---------------------------------------------------------------------------
 {
-  const vector<Boundary*>& BC    = P -> bsys -> BCs (0);
+  const vector<Boundary*>& BC    = P -> _bsys -> BCs (0);
   const integer            np    = Geometry::nP();
   const integer            nz    = Geometry::nZProc();
-  const integer            nsurf = P -> nbound;
+  const integer            nsurf = P -> _nbound;
   Vector                   secF;
   vector<real>             work(np);
   real                     *p, *tmp = work();
   register integer         i, j;
   
   for (j = 0; j < nz; j++) {
-    p = P -> plane[j];
+    p = P -> _plane[j];
     for (i = 0; i < nsurf; i++) {
       secF = BC[i] -> normalTraction ("wall", p, tmp);
       fx[j] += secF.x;
@@ -490,13 +488,12 @@ void Field::tangTractionV (real*        fx,
 // transformed.
 // ---------------------------------------------------------------------------
 {
-  const vector<Boundary*>& UBC    = U -> bsys -> BCs (0);
-  const vector<Boundary*>& WBC    = (W) ? W -> bsys -> BCs (0) : 
-                                    (vector<Boundary*>) 0;
-  const integer            np     = Geometry::nP();
-  const integer            nz     = Geometry::nZProc();
-  const integer            nbound = U -> nbound;
-  const real               mu     = Femlib::value ("RHO * KINVIS");
+  const vector<Boundary*>& UBC =       U->_bsys->BCs(0);
+  const vector<Boundary*>& WBC = (W) ? W->_bsys->BCs(0) : (vector<Boundary*>)0;
+  const integer            np      = Geometry::nP();
+  const integer            nz      = Geometry::nZProc();
+  const integer            _nbound = U -> _nbound;
+  const real               mu      = Femlib::value ("RHO * KINVIS");
   Vector                   secF;
   vector<real>             work(3 * np);
   real                     *ddx, *ddy, *tmp = work(), *u, *v, *w;
@@ -506,10 +503,10 @@ void Field::tangTractionV (real*        fx,
   ddy = ddx + np;
 
   for (j = 0; j < nz; j++) {
-    u = U -> plane[j];
-    v = V -> plane[j];
-    w = (W) ? W -> plane[j] : 0;
-    for (i = 0; i < nbound; i++) {
+    u = U -> _plane[j];
+    v = V -> _plane[j];
+    w = (W) ? W -> _plane[j] : 0;
+    for (i = 0; i < _nbound; i++) {
       secF = UBC[i] -> tangentTraction ("wall", u, v, ddx, ddy);
              fx[j] -= mu * secF.x;
              fy[j] -= mu * secF.y;
@@ -547,18 +544,17 @@ Field& Field::solve (AuxField*             f  ,
 // ---------------------------------------------------------------------------
 {
   const integer np      = Geometry::nP();
-  const integer nz      = Geometry::nZProc();
   const integer nel     = Geometry::nElmt();
   const integer next    = Geometry::nExtElmt();
   const integer npnp    = Geometry::nTotElmt();
   const integer ntot    = Geometry::nPlane();
   const integer bmode   = Geometry::baseMode();
-  const integer nglobal = bsys -> Nsys (0) -> nGlobal();
+  const integer nglobal = _bsys -> Nsys (0) -> nGlobal();
   vector<real>  work (nglobal + npnp);
   integer       i, k, pmode, mode, info;
   real          *RHS = work(), *tmp = RHS + nglobal;
 
-  for (k = 0; k < nz; k++) {	// -- Loop over planes of data.
+  for (k = 0; k < _nz; k++) {	// -- Loop over planes of data.
     
     ROOTONLY if (k == 1) continue;	// -- Nyquist plane always zero.
 
@@ -567,16 +563,16 @@ Field& Field::solve (AuxField*             f  ,
     pmode = k >> 1;
     mode  = bmode + pmode;
 
-    const vector<Boundary*>& B       = bsys -> BCs  (mode);
-    const NumberSys*         N       = bsys -> Nsys (mode);
+    const vector<Boundary*>& B       = _bsys -> BCs  (mode);
+    const NumberSys*         N       = _bsys -> Nsys (mode);
     const MatrixSys*         M       = (*MMS)[pmode]; 
     const real*              H       = (const real*)    M -> H;
     const real**             hii     = (const real**)   M -> hii;
     const real**             hbi     = (const real**)   M -> hbi;
     const integer*           b2g     = (const integer*) N -> btog();
-    real*                    forcing = f -> plane[k];
-    real*                    unknown = plane     [k];
-    real*                    bc      = line      [k];
+    real*                    forcing = f -> _plane[k];
+    real*                    unknown = _plane     [k];
+    real*                    bc      = _line      [k];
     integer                  nband   = N -> nBand();
     integer                  nsolve  = M -> nsolve;
     integer                  nzero   = nglobal - nsolve;
@@ -586,9 +582,10 @@ Field& Field::solve (AuxField*             f  ,
     // -- Build RHS = - M f - H g + <h, w>.
 
     Veclib::zero (nglobal, RHS, 1);
-    getEssential (bc, RHS, B, N);
-    constrain    (forcing, lambda2, betak2, RHS, N);
-    buildRHS     (forcing, bc, RHS, 0, hbi, nsolve, nzero, B, N);
+
+    this -> getEssential (bc, RHS, B, N);
+    this -> constrain    (forcing, lambda2, betak2, RHS, N);
+    this -> buildRHS     (forcing, bc, RHS, 0, hbi, nsolve, nzero, B, N);
 
     // -- Solve for unknown global-node values (if any).
 
@@ -597,15 +594,16 @@ Field& Field::solve (AuxField*             f  ,
     // -- Carry out Schur-complement solution for element-internal nodes.
 
     for (i = 0; i < nel; i++, b2g += next, forcing += npnp, unknown += npnp)
-      Elmt[i] -> g2eSC (RHS, b2g, forcing, unknown, hbi[i], hii[i], tmp);
+      _elmt[i] -> g2eSC (RHS, b2g, forcing, unknown, hbi[i], hii[i], tmp);
 
     unknown -= ntot;
     
     // -- Scatter-gather essential BC values into plane.
 
     Veclib::zero (nglobal, RHS, 1);
-    getEssential (bc, RHS, B,   N);
-    setEssential (RHS, unknown, N);
+    
+    this -> getEssential (bc, RHS, B,   N);
+    this -> setEssential (RHS, unknown, N);
   }
 
   return *this;
@@ -636,9 +634,8 @@ Field& Field::solve (AuxField*  f      ,
 // ---------------------------------------------------------------------------
 {
   const char       routine[] = "Field::solve";
-  const integer    nz      = Geometry::nZProc();
   const integer    bmode   = Geometry::baseMode();
-  const integer    nglobal = bsys -> Nsys (0) -> nGlobal();
+  const integer    nglobal = _bsys -> Nsys (0) -> nGlobal();
   const integer    StepMax = (integer) Femlib::value ("STEP_MAX");
   const integer    npts    = nglobal + Geometry::nInode();
   const real       betaZ   = Femlib::value ("BETA");
@@ -659,44 +656,45 @@ Field& Field::solve (AuxField*  f      ,
   real* PC  = z  + npts;
   real* wrk = PC + npts;
 
-  for (k = 0; k < nz; k++) {	// -- Loop over planes of data.
+  for (k = 0; k < _nz; k++) {	// -- Loop over planes of data.
 
     ROOTONLY if (k == 1) continue;   // -- Nyquist planes remain zero always.
 
     // -- Select Fourier mode, set local pointers and variables.
 
     mode   = bmode + (k >> 1);
-    betak2 = sqr (Field::modeConstant (field_name, mode, betaZ));
+    betak2 = sqr (Field::modeConstant (_name, mode, betaZ));
 
-    const vector<Boundary*>& B       = bsys -> BCs  (mode);
-    const NumberSys*         N       = bsys -> Nsys (mode);
-    real*                    forcing = f -> plane[k];
-    real*                    unknown = plane     [k];
-    real*                    bc      = line      [k];
+    const vector<Boundary*>& B       = _bsys -> BCs  (mode);
+    const NumberSys*         N       = _bsys -> Nsys (mode);
+    real*                    forcing = f -> _plane[k];
+    real*                    unknown = _plane     [k];
+    real*                    bc      = _line      [k];
     
     nsolve   = N -> nSolve();
     singular = fabs (lambda2 + betak2) < FTINY &&
-               !N -> fmask() && !bsys -> mixBC();
+               !N -> fmask() && !_bsys -> mixBC();
     nsolve   = (singular) ? nsolve - 1 : nsolve;
     nzero    = nglobal - nsolve;
     
     // -- Build diagonal preconditioner.
 
-    jacobi (lambda2, betak2, PC, N);
+    this -> jacobi (lambda2, betak2, PC, N);
 
     // -- f <-- - M f - H g, then (r = ) b = - M f - H g + <h, w>.
 
     Veclib::zero (nglobal, x, 1);
-    getEssential (bc, x, B, N);  
-    constrain    (forcing, lambda2, betak2, x, N);
-    buildRHS     (forcing, bc, r, r + nglobal, 0, nsolve, nzero, B, N);
+
+    this -> getEssential (bc, x, B, N);  
+    this -> constrain    (forcing, lambda2, betak2, x, N);
+    this -> buildRHS     (forcing, bc, r, r + nglobal, 0, nsolve, nzero, B, N);
 
     epsb2  = Femlib::value ("TOL_REL") * sqrt (Blas::dot (npts, r, 1, r, 1));
     epsb2 *= epsb2;
 
     // -- Build globally-numbered x from element store.
 
-    local2global (unknown, x, N);
+    this -> local2global (unknown, x, N);
   
     // -- Compute first residual using initial guess: r = b - Ax.
     //    And mask to get residual for the zero-BC problem.
@@ -704,7 +702,7 @@ Field& Field::solve (AuxField*  f      ,
     Veclib::zero (nzero, x + nsolve, 1);   
     Veclib::copy (npts,  x, 1, q, 1);
 
-    HelmholtzOperator (q, p, lambda2, betak2, wrk, mode);
+    this -> HelmholtzOperator (q, p, lambda2, betak2, wrk, mode);
 
     Veclib::zero (nzero, p + nsolve, 1);
     Veclib::zero (nzero, r + nsolve, 1);
@@ -734,8 +732,8 @@ Field& Field::solve (AuxField*  f      ,
 
       // -- Matrix-vector product.
 
-      HelmholtzOperator (p, q, lambda2, betak2, wrk, mode);
-      Veclib::zero      (nzero, q + nsolve, 1);
+      this -> HelmholtzOperator (p, q, lambda2, betak2, wrk, mode);
+      Veclib::zero (nzero, q + nsolve, 1);
 
       // -- Move in conjugate direction.
 
@@ -752,14 +750,14 @@ Field& Field::solve (AuxField*  f      ,
   
     // -- Unpack converged vector x, impose current essential BCs.
 
-    global2local (x, unknown, N);
+    this -> global2local (x, unknown, N);
 
-    getEssential (bc, x, B,   N);
-    setEssential (x, unknown, N);
+    this -> getEssential (bc, x, B,   N);
+    this -> setEssential (x, unknown, N);
   
     if ((integer) Femlib::value ("VERBOSE") > 1) {
       char s[StrMax];
-      sprintf (s, ":%3d iterations, field '%c'", i, field_name);
+      sprintf (s, ":%3d iterations, field '%c'", i, _name);
       message (routine, s, REMARK);
     }
   }
@@ -792,18 +790,18 @@ void Field::jacobi (const real       lambda2,
 
   // -- Mixed BC contributions.
 
-  if (bsys -> mixBC()) {
-    const vector<Boundary*>& BC   = bsys -> BCs  (0);
-    const integer*           bmap = bsys -> Nsys (0) -> btog();
+  if (_bsys -> mixBC()) {
+    const vector<Boundary*>& BC   = _bsys -> BCs  (0);
+    const integer*           bmap = _bsys -> Nsys (0) -> btog();
 
-    for (i = 0; i < nbound; i++)
+    for (i = 0; i < _nbound; i++)
       BC[i] -> augmentDg (bmap, PC);
   }
 
   // -- Element contributions.
 
   for (i = 0; i < nel; i++, btog += next, PCi += nint) {
-    Elmt[i] -> HelmholtzDg (lambda2, betak2, ed, ewrk);
+    _elmt[i] -> HelmholtzDg (lambda2, betak2, ed, ewrk);
     Veclib::scatr_sum (next, ed,  btog,    PC);
     Veclib::copy      (nint, ed + next, 1, PCi, 1);
   }
@@ -850,7 +848,7 @@ void Field::constrain (real*            force  ,
   // -- Manufacture -(M f + H g).
 
   for (i = 0; i < nel; i++, emask++, btog += next, force += npnp) {
-    E = Elmt[i];
+    E = _elmt[i];
     
     E -> weight (force);	// -- f <-- M f.
 
@@ -874,7 +872,7 @@ void Field::HelmholtzOperator (const real*   x      ,
 			       const real    lambda2,
 			       const real    betak2 ,
 			       real*         work   ,
-			       const integer mode) const
+			       const integer mode   ) const
 // ---------------------------------------------------------------------------
 // Discrete 2D global Helmholtz operator which takes the vector x into
 // vector y, including direct stiffness summation.  Vectors x & y have 
@@ -889,7 +887,7 @@ void Field::HelmholtzOperator (const real*   x      ,
   const integer    nel     = Geometry::nElmt();
   const integer    npnp    = Geometry::nTotElmt();
   const integer    ntot    = Geometry::nPlane();
-  const NumberSys* NS      = bsys -> Nsys (mode);
+  const NumberSys* NS      = _bsys -> Nsys (mode);
   const integer    nglobal = NS -> nGlobal() + Geometry::nInode();
   const real       **DV, **DT;
   register integer i;
@@ -902,22 +900,22 @@ void Field::HelmholtzOperator (const real*   x      ,
 
   // -- Add in contributions from mixed BCs while x & y are global vectors.
 
-  if (bsys -> mixBC()) {
-    const vector<Boundary*>& BC   = bsys -> BCs (0);
-    const integer*           bmap = NS   -> btog();
+  if (_bsys -> mixBC()) {
+    const vector<Boundary*>& BC   = _bsys -> BCs (0);
+    const integer*           bmap = NS    -> btog();
 
-    for (i = 0; i < nbound; i++)
+    for (i = 0; i < _nbound; i++)
       BC[i] -> augmentOp (bmap, x, y);
   }
 
   // -- Add in contributions from elemental Helmholtz operations.
 
-  global2local  (x, P, NS);
+  this -> global2local (x, P, NS);
 
   Femlib::grad2 (P, P, R, S, *DV, *DT, np, nel);
 
   for (i = 0; i < nel; i++, R += npnp, S += npnp, P += npnp)
-    Elmt[i] -> HelmholtzKern (lambda2, betak2, R, S, P, P);
+    _elmt[i] -> HelmholtzKern (lambda2, betak2, R, S, P, P);
  
   P -= ntot;
   R -= ntot;
@@ -925,7 +923,7 @@ void Field::HelmholtzOperator (const real*   x      ,
   
   Femlib::grad2   (R, S, P, P, *DT, *DV, np, nel);
 
-  local2globalSum (P, y, NS);
+  this -> local2globalSum (P, y, NS);
 }
 
 
@@ -976,14 +974,14 @@ void Field::buildRHS (real*                    force ,
 
   for (gid = N -> btog(), i = 0; i < nel; i++, force += npnp, gid += next) {
     if (RHSint) {
-      Elmt[i] -> e2gSum   (force, gid, RHS, RHSint); RHSint += nint;
+      _elmt[i] -> e2gSum   (force, gid, RHS, RHSint); RHSint += nint;
     } else
-      Elmt[i] -> e2gSumSC (force, gid, RHS, hbi[i]);
+      _elmt[i] -> e2gSumSC (force, gid, RHS, hbi[i]);
   }
 
   // -- Add in <h, w>.
 
-  for (gid = N -> btog(), i = 0; i < nbound; i++, bc += np) {
+  for (gid = N -> btog(), i = 0; i < _nbound; i++, bc += np) {
     B    = bnd[i];
     boff = B -> bOff();
 
@@ -1014,7 +1012,7 @@ void Field::local2global (const real*      src,
   register real*   internal = tgt + N -> nGlobal();
 
   for (i = 0; i < nel; i++, src += npnp, gid += next, internal += nint)
-    Elmt[i] -> e2g (src, gid, tgt, internal);
+    _elmt[i] -> e2g (src, gid, tgt, internal);
 }
 
 
@@ -1036,7 +1034,7 @@ void Field::local2globalSum (const real*      src,
   register real*   internal = tgt + N -> nGlobal();
 
   for (i = 0; i < nel; i++, src += npnp, gid += next, internal += nint)
-    Elmt[i] -> e2gSum (src, gid, tgt, internal);
+    _elmt[i] -> e2gSum (src, gid, tgt, internal);
 }
 
 
@@ -1058,7 +1056,7 @@ void Field::global2local (const real*      src,
   register const real* internal = src + N -> nGlobal();
 
   for (i = 0; i < nel; i++, tgt += npnp, gid += next, internal += nint)
-    Elmt[i] -> g2e (tgt, gid, src, internal);
+    _elmt[i] -> g2e (tgt, gid, src, internal);
 }
 
 
@@ -1081,7 +1079,7 @@ void Field::getEssential (const real*              src,
   register const Boundary* B;
   register integer         i, boff;
   
-  for (i = 0; i < nbound; i++, src += np) {
+  for (i = 0; i < _nbound; i++, src += np) {
     B    = bnd[i];
     boff = B -> bOff();
   
@@ -1107,7 +1105,7 @@ void Field::setEssential (const real*      src,
   register integer i;
 
   for (i = 0; i < nel; i++, bmask += next, btog += next, tgt += npnp)
-    if (emask[i]) Elmt[i] -> bndryMask (bmask, tgt, src, btog);
+    if (emask[i]) _elmt[i] -> bndryMask (bmask, tgt, src, btog);
 }
 
 
@@ -1137,8 +1135,7 @@ void Field::coupleBCs (Field*        v  ,
 
   const char       routine[] = "Field::couple";
   register integer k, Re, Im;
-  const integer    nL    =  v -> n_line;
-  const integer    nZ    =  Geometry::nZProc();
+  const integer    nL    =  v -> _nline;
   const integer    nMode =  Geometry::nModeProc();
   const integer    kLo   = (Geometry::procID() == 0) ? 1 : 0;
   vector<real>     work (nL);
@@ -1150,10 +1147,10 @@ void Field::coupleBCs (Field*        v  ,
       Re = k  + k;
       Im = Re + 1;
 
-      Vr = v -> line[Re];
-      Vi = v -> line[Im];
-      Wr = w -> line[Re];
-      Wi = w -> line[Im];
+      Vr = v -> _line[Re];
+      Vi = v -> _line[Im];
+      Wr = w -> _line[Re];
+      Wi = w -> _line[Im];
 
       Veclib::copy (nL, Vr, 1, tp, 1);
       Veclib::vsub (nL, Vr, 1, Wi, 1, Vr, 1);
@@ -1170,10 +1167,10 @@ void Field::coupleBCs (Field*        v  ,
       Re = k  + k;
       Im = Re + 1;
 
-      Vr = v -> line[Re];
-      Vi = v -> line[Im];
-      Wr = w -> line[Re];
-      Wi = w -> line[Im];
+      Vr = v -> _line[Re];
+      Vi = v -> _line[Im];
+      Wr = w -> _line[Re];
+      Wi = w -> _line[Im];
 
       Veclib::copy  (nL,      Vr, 1, tp, 1);
       Veclib::svvpt (nL, 0.5, Vr, 1, Wr, 1, Vr, 1);

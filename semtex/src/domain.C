@@ -26,6 +26,9 @@ Domain::Domain (FEML*             F,
 {
   const integer verbose = (integer) Femlib::value ("VERBOSE");
   integer       i, nfield;
+  const integer nz   = Geometry::nZProc();
+  const integer ntot = Geometry::nTotProc();
+  real*         alloc;
 
   strcpy ((name = new char [strlen (F -> root()) + 1]), F -> root());
   Femlib::value ("t", time = 0.0);
@@ -47,8 +50,14 @@ Domain::Domain (FEML*             F,
 
   VERBOSE cout << "  Building domain fields ... ";
 
-  u.setSize (nfield);
-  for (i = 0; i < nfield; i++) u[i] = new Field (b[i], E, field[i]);
+  u   .setSize (nfield);
+  udat.setSize (nfield);
+
+  alloc = new real [(size_t) nfield * ntot];
+  for (i = 0; i < nfield; i++) {
+    udat[i] = alloc + i * ntot;
+    u[i]    = new Field (b[i], udat[i], nz, E, field[i]);
+  }
 
   VERBOSE cout << "done" << endl;
 }

@@ -8,6 +8,9 @@
 SEM   = ..
 VPATH = $(SEM)/src
 ARCH  = $(shell uname -s)
+ifeq ($(ARCH),Linux)
+  ARCH += -$(shell uname -m)
+endif
 
 ifdef DEBUG
   DEFINES  = -DDEBUG
@@ -18,7 +21,8 @@ ifdef STOKES
   DEFINES += -DSTOKES
 endif
 ifdef MPI
-  PROG = dns_mp
+  MPIHOME = /usr/local/mpich
+  PROG    = dns_mp
 else
   PROG = dns
 endif
@@ -27,7 +31,7 @@ CPPFLAGS = -I. -I$(SEM)/include
 
 # ----------- Compiler options for specific machines -------------------------
 
-ifeq ($(ARCH),IRIX)		# -- SGI 32-bit systems.
+ifeq ($(ARCH),IRIX)			# -- SGI 32-bit systems.
 CXX	 = CC
 LD	 = CC
 CXXFLAGS = $(DEFINES) -g
@@ -36,7 +40,7 @@ LDFLAGS  = -L$(SEM)/lib/$(ARCH) -lfem -lalp \
 	   $(F77LIBS) -lmalloc -lm
 endif
 
-ifeq ($(ARCH),IRIX64)		# -- SGI 64-bit systems.
+ifeq ($(ARCH),IRIX64)			# -- SGI 64-bit systems.
 CXX	 = CC
 LD	 = CC
 ifdef DEBUG
@@ -49,10 +53,15 @@ F77LIBS	 = -lcomplib.sgimath -lftn
 LDFLAGS  = -64 -mips4 $(OPT) -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
 endif
 
-ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha.
+ifeq ($(ARCH),OSF1)			# -- DEC OSF1 Alpha.
 CXX	 = cxx
 LD	 = cxx
-CXXFLAGS = $(DEFINES) -tune host -O2
+ifdef DEBUG
+  OPT    = -g
+else
+  OPT    = -tune host -O2 -Olimit=1000
+endif
+CXXFLAGS = $(DEFINES) $(OPT)
 F77LIBS  = -ldxml -lfor
 ifdef MPI
   CXXFLAGS += -thread_safe
@@ -63,7 +72,7 @@ else
 endif
 endif
 
-ifeq ($(ARCH),Linux)		# -- GNU/Linux system.
+ifeq ($(ARCH),Linux i586)		# -- Linux Intel system.
 CXX	 = g++
 LD	 = g++
 ifdef DEBUG
@@ -77,7 +86,26 @@ LDFLAGS  = $(OPT) -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
 	   -lfem -lalp $(F77LIBS)
 endif
 
-ifeq ($(ARCH),UNIX_System_V)    # -- Fujitsu VPP300.
+ifeq ($(ARCH),Linux alpha)		# -- Linux Alpha system.
+F77LIBS = -lcxml -lots -lfor -lg2c
+CXX = g++
+ifdef DEBUG
+  OPT = -gstabs+
+else
+  OPT = -O3
+endif
+CXXFLAGS = $(DEFINES) $(OPT)
+LD = g++
+ifdef MPI
+  LDFLAGS = -L$(SEM)/lib/$(ARCH) -L/usr/lib -L$(MPIHOME)/lib \
+            -lfem_mp -lalp $(F77LIBS) -lcpml -lmpich
+else
+  LDFLAGS = -L$(SEM)/lib/$(ARCH) -L/usr/local/lib    \
+             -lfem -lalp $(F77LIBS) -lcpml
+endif
+endif
+
+ifeq ($(ARCH),UNIX_System_V)    	# -- Fujitsu VPP300.
 CC       = vcc
 CXX      = /home/home01/565/hmb565/C++/bin/CC
 LD       = /home/home01/565/hmb565/C++/bin/CC
@@ -100,7 +128,7 @@ else
 endif
 endif
 
-ifeq ($(ARCH),SUPER-UX)         # -- NEC SX-4.
+ifeq ($(ARCH),SUPER-UX)         	# -- NEC SX-4.
 DEFINES += -D_BUILTIN_
 LIBDIR   = -L$(SEM)/lib/$(ARCH) 
 CC       = cc
