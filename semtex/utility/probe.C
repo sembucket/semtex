@@ -79,20 +79,21 @@ typedef enum {			// -- Flags for coordinate axes.
 static char *prog;
 static void  memExhaust () { message ("new", "free store exhausted", ERROR); }
 
-static void getargs     (int, char**, char*&, char*&, char*&, char*&, char*&);
-static int  loadPoints  (ifstream&, vector<Point*>&);
-static int  linePoints  (vector<Point*>&);
-static int  planePoints (vector<Point*>&, Mesh*);
-static void findPoints  (vector<Point*>&, vector<Element*>&,
-			 vector<Element*>&, vector<real>&, vector<real>&);
-static int  getDump     (ifstream&, vector<AuxField*>&, vector<Element*>&,
-			 const integer, const integer, const integer);
-static void putData     (const char*, const char*, const char*,
-			 int, vector<AuxField*>&,
-			 vector<Element*>&, vector<Point*>&, matrix<real>&);
-static void Finterp     (vector<AuxField*>&, const Point*, const Element*,
-			 const real, const real, const integer, real*, real*);
-static int  doSwap      (const char*);
+static void  getargs     (int, char**, char*&, char*&, char*&, char*&, char*&);
+static int   loadPoints  (ifstream&, vector<Point*>&);
+static int   linePoints  (vector<Point*>&);
+static int   planePoints (vector<Point*>&, Mesh*);
+static void  findPoints  (vector<Point*>&, vector<Element*>&,
+			  vector<Element*>&, vector<real>&, vector<real>&);
+static int   getDump     (ifstream&, vector<AuxField*>&, vector<Element*>&,
+			  const integer, const integer, const integer);
+static void  putData     (const char*, const char*, const char*,
+			  int, vector<AuxField*>&,
+			  vector<Element*>&, vector<Point*>&, matrix<real>&);
+static void  Finterp     (vector<AuxField*>&, const Point*, const Element*,
+			  const real, const real, const integer, real*, real*);
+static int   doSwap      (const char*);
+static char* root        (char*);
 
 
 int main (int    argc,
@@ -203,7 +204,7 @@ int main (int    argc,
 
   // -- Output collected data.
 
-  putData (session, interface, format, ntot, u, elmt, point, data);
+  putData (dump, interface, format, ntot, u, elmt, point, data);
   
   Femlib::finalize();
   return EXIT_SUCCESS;
@@ -363,28 +364,21 @@ static void getargs (integer argc     ,
       case 'n':
 	switch (argv[0][1]) {
 	case 'x':
-	  --argc;
-	  Femlib::value ("NX", atof (*++argv));
+	  --argc; ++argv;
+	  Femlib::value ("NX", atof (*argv));
 	  break;
 	case 'y':
-	  --argc;
-	  Femlib::value ("NY", atof (*++argv));
+	  --argc; ++argv;
+	  Femlib::value ("NY", atof (*argv));
 	  break;
 	default:
 	  message (prog, "can only specify nx or ny", ERROR);
 	  break;
 	}
+	break;
       case 'o':
 	--argc;
 	Femlib::value ("OFFSET", atof (*++argv));
-	break;
-      case 'p':
-	if (*++argv[0])
-	  points = *argv;
-	else {
-	  --argc;
-	  points = *++argv;
-	}
 	break;
       case 's':
 	if (argv[0][1] == 'm') strcpy (format, "sm");
@@ -830,7 +824,15 @@ static void Finterp (vector<AuxField*>& u   ,
 }
 
 
-static void putData (const char*        session  ,
+static char *root (char *s) {
+  char *p = s + strlen(s)-1;
+  while (p > s && *p != '.') p--;
+  if (p != s) *p = '\0';
+  return s;
+}
+
+
+static void putData (const char*        dump     ,
 		     const char*        interface,
 		     const char*        format   ,
 		     int                ntot     ,
@@ -861,13 +863,13 @@ static void putData (const char*        session  ,
 
   } else if (strstr (format, "sm") && strstr (interface, "probeplane")) {
 
-    char      fname[StrMax];
+    char      fname[StrMax], *base = root (strdup (dump));
     const int nx = (int) Femlib::value ("NX");
     const int ny = (int) Femlib::value ("NY");
     ofstream  out;
 
     for (n = 0; n < nf; n++) {
-      sprintf (fname, "%s.%c", session, u[n] -> name());
+      sprintf (fname, "%s.%c", base, u[n] -> name());
       out.open  (fname);
       out.write ((char*) &nx, sizeof (int));
       out.write ((char*) &ny, sizeof (int));
