@@ -373,7 +373,9 @@ C
       INTEGER          M, MH, MU, M2, M8
       INTEGER          N2, NINC, NBLOX, NB, NVEX, NU
 C
-#ifdef __uxp__
+#if defined(_CRAY)
+      PARAMETER        ( LVR = 64 )
+#elif defined(__uxp__)
       PARAMETER        ( LVR = 2048 )
 #else
       PARAMETER        ( LVR = 1024 )
@@ -450,8 +452,10 @@ C     -----------------
 C     
 C     Loop across transforms
 C     ----------------------
-#if defined (_CRAY)
+#if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
+#else if defined(__uxp__)
+!OCL NOVREC
 #endif
                   DO 110 L = 1 , NVEX
                      AJA = A(JA+J)
@@ -520,6 +524,8 @@ C     Loop across transforms
 C     ----------------------
 #if defined (_CRAY)
 CDIR$ IVDEP, SHORTLOOP
+#else if defined(__uxp__)
+!OCL NOVREC
 #endif
                      DO 130 L = 1 , NVEX
                         AJA = A(JA+J)
@@ -585,6 +591,8 @@ C     Loop across transforms
 C     ----------------------
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
+#else if defined(__uxp__)
+!OCL NOVREC
 #endif
                DO 210 L = 1 , NVEX
                   AJA     = A(JA+J)
@@ -634,6 +642,8 @@ C     ----------------------
                   IF (KK.EQ.N2/2) THEN
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
+#else if defined(__uxp__)
+!OCL NOVREC
 #endif
                      DO 230 L = 1 , NVEX
                         AJA     = A(JA+J)
@@ -652,6 +662,8 @@ C
 C
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
+#else if defined(__uxp__)
+!OCL NOVREC
 #endif
          DO 240 L = 1 , NVEX
             AJA     = A(JA+J)
@@ -723,6 +735,8 @@ C     -----------------
                J = 0
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
+#else if defined(__uxp__)
+!OCL NOVREC
 #endif
                DO 310 L = 1 , NVEX
                   AJA     = A(JA+J)
@@ -801,6 +815,8 @@ C     -----------------
             J = 0
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
+#else if defined(__uxp__)
+!OCL NOVREC
 #endif
             DO 325 L = 1 , NVEX
                AJA     = A(JA+J)
@@ -904,6 +920,8 @@ C     -----------------
                J = 0
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
+#else if defined(__uxp__)
+!OCL NOVREC
 #endif
                DO 340 L = 1 , NVEX
                   AJA     = A(JA+J)
@@ -1024,6 +1042,8 @@ C     Loop across transforms
 C     ----------------------
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
+#else if defined(__uxp__)
+!OCL NOVREC
 #endif
                   DO 410 L = 1 , NVEX
                      AJA     = A(JA+J)
@@ -1209,6 +1229,8 @@ C     Loop across transforms
 C     ----------------------
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
+#else if defined(__uxp__)
+!OCL NOVREC
 #endif
                      DO 440 L = 1 , NVEX
                         AJA     = A(JA+J)
@@ -1378,7 +1400,9 @@ C
       INTEGER          N3, NB, NU, NBLOX, NVEX, NINC
 C
       PARAMETER        ( SIN60 = 0.866025403784439D0 )
-#ifdef __uxp__
+#if defined(_CRAY)
+      PARAMETER        ( LVR = 64 )
+#elif defined(__uxp__)
       PARAMETER        ( LVR = 2048 )
 #else
       PARAMETER        ( LVR = 1024 )
@@ -1442,6 +1466,8 @@ C     Loop across transforms
 C     ----------------------
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
+#else if defined(__uxp__)
+!OCL NOVREC
 #endif
                   DO 110 L = 1 , NVEX
                      AJB     = A(JB+J)
@@ -1500,6 +1526,8 @@ C     Loop across transforms
 C     ----------------------
 #if defined(_CRAY)
 CDIR$ IVDEP,SHORTLOOP
+#else if defined(__uxp__)
+!OCL NOVREC
 #endif
                      DO 130 L = 1 , NVEX
                         AJB     = A(JB+J)
@@ -1576,6 +1604,8 @@ C     Loop across transforms
 C     ----------------------
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
+#else if defined(__uxp__)
+!OCL NOVREC
 #endif
                      DO 410 L = 1 , NVEX
                         AJB     = A(JB+J)
@@ -1698,6 +1728,8 @@ C     Loop across transforms
 C     ----------------------
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
+#else if defined(__uxp__)
+!OCL NOVREC
 #endif
                         DO 440 L = 1 , NVEX
                            AJB     = A(JB+J)
@@ -1823,7 +1855,7 @@ C
       INTEGER          JA, JB, JC, JD, JE, JF, JG, JH, JI, JJ, JK, JL
       INTEGER          JM, JN, JO, JP, JQ, JR, JS, JT, JU, JV, JW, JX
       INTEGER          JY
-      INTEGER          J, JJJ, JSTART, JSTEP, JSTEPL, JSTEPX
+      INTEGER          J, JJJ, JSTEP, JSTEPL, JSTEPX
       INTEGER          K, KK
       INTEGER          L, LA, LL, LEFT, LAINCL, LVR
       INTEGER          M, MH, MU
@@ -1832,10 +1864,12 @@ C
       PARAMETER        ( SIN36 = 0.587785252292473D0 )
       PARAMETER        ( SIN72 = 0.951056516295154D0 )
       PARAMETER        ( QRT5  = 0.559016994374947D0 )
-#ifdef __uxp__
-      PARAMETER        ( LVR   = 2048 )
+#if defined(_CRAY)
+      PARAMETER        ( LVR = 64 )
+#elif defined(__uxp__)
+      PARAMETER        ( LVR = 2048 )
 #else
-      PARAMETER        ( LVR   = 1024 )
+      PARAMETER        ( LVR = 1024 )
 #endif
 C
       N5     = 5 ** MM
@@ -1927,6 +1961,8 @@ C     ----------------------
 C
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
+#else if defined(__uxp__)
+!OCL NOVREC
 #endif
                         DO 110 L = 1 , NVEX
                            AJB     = A(JB+J)
@@ -1978,6 +2014,8 @@ C
 C     
 #if defined(_CRAY)
 CDIR$ IVDEP,SHORTLOOP
+#else if defined(__uxp__)
+!OCL NOVREC
 #endif
                         DO 130 L = 1 , NVEX
                            AJB     = A(JB+J)
@@ -2134,6 +2172,8 @@ C     ----------------------
 C     
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
+#else if defined(__uxp__)
+!OCL NOVREC
 #endif
                            DO 410 L = 1 , NVEX
                               AJB     = A(JB+J)
@@ -2381,6 +2421,8 @@ C
 C     
 #if defined(_CRAY)
 CDIR$ IVDEP, SHORTLOOP
+#else if defined(__uxp__)
+!OCL NOVREC
 #endif
                            DO 440 L = 1 , NVEX
                               AJB     = A(JB+J)
