@@ -801,7 +801,7 @@ void   Mesh::meshSide (int          np     ,
   Point  P1, P2;
 
   for (ElmtsOfMesh e(*this); e.more(); e.next()) {
-    for (Mesh::SidesOfElmt s(e.current()); s.more(); s.next()) {
+    for (SidesOfElmt s(e.current()); s.more(); s.next()) {
       Side& S = s.current();
       if (S.thisElmt -> ID == elmt && S.ID == side) {
 	P1 = S.startNode -> location ();
@@ -826,6 +826,7 @@ void Mesh::printNek () const
 // Print out mesh information in NEKTON format.
 // ---------------------------------------------------------------------------
 {
+  char        routine[] = "Mesh::printNek";
   char        err [StrMax];
   ostrstream  os  (err, StrMax);
 
@@ -882,9 +883,9 @@ void Mesh::printNek () const
   cout << "***** FLUID BOUNDARY CONDITIONS *****" << endl;
 
   for (ElmtsOfMesh e(*this); e.more(); e.next()) {
-    for (SidesOfElmt s(e.current()); s.more(); s.next()) {
-      Side& S = s.current();
-      Elmt* E = S.mateElmt;
+    for (Mesh::SidesOfElmt s(e.current()); s.more(); s.next()) {
+      Mesh::Side& S = s.current();
+      Mesh::Elmt* E = S.mateElmt;
       if (E) {
 	cout << "E  "
 	     << setw (5)  << e.current().ID
@@ -925,12 +926,12 @@ void Mesh::printNek () const
 	case NATURAL: case FLUX: case NATURAL_FN:
 	  os << "Element " << e.current().ID << " side " << S.ID
 	     << " --- FLUX B.C. not implemented" << ends;
-	  message (prog, err, ERROR);
+	  message (routine, err, ERROR);
 	  break;
 	case HOPBC:
 	  os << "Element " << e.current().ID << " side " << S.ID
 	     << " --- HOPBC B.C. can't happen" << ends;
-	  message (prog, err, ERROR);
+	  message (routine, err, ERROR);
 	  break;
 	default:
 	  break;
