@@ -34,8 +34,6 @@ void NavierStokes (Domain* D, Analyser* A)
 // Uf is multi-level auxillary Field storage for nonlinear forcing terms.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "NS";
-
   const real  dt     = dparam ("DELTAT");
   const int   nOrder = iparam ("N_TIME");
   const int   nStep  = iparam ("N_STEP");
@@ -67,7 +65,7 @@ void NavierStokes (Domain* D, Analyser* A)
   preSolve (D -> u[0], lambda2);
 
   for (i = 1; i < DIM; i++)
-    D -> u[i] -> buildDirect (*D -> u[0]);
+    D -> u[i] -> assemble (*D -> u[0]);
 
   // -- Set up pressure solution matrices.
 
@@ -112,6 +110,7 @@ void NavierStokes (Domain* D, Analyser* A)
     // -- Process results of this step.
 
     A -> analyse ();
+  }
 }
 
 
@@ -179,8 +178,8 @@ static void nonLinear (Domain*   D ,
 
   // -- Smooth result on domain velocity boundary system & scale.
 
-  D -> u[0] -> smooth (Nx);
-  D -> u[0] -> smooth (Ny);
+  D -> u[0] -> smooth (&Nx);
+  D -> u[0] -> smooth (&Ny);
 
   Nx *= -0.5;
   Ny *= -0.5;
@@ -304,13 +303,13 @@ static void preSolve (SystemField* F, const real& lambda2)
 
   if (velocity && !iterative) {
     message (routine, ": -- Building velocity matrices", REMARK);
-    F -> buildDirect (lambda2);
+    F -> assemble (lambda2);
     return;
   }
 
   if (pressure && iterative < 2) {
     message (routine, ": -- Building pressure matrices", REMARK);
-    F -> buildDirect (lambda2);
+    F -> assemble (lambda2);
     return;
   }
 }
@@ -337,8 +336,8 @@ static void Solve (SystemField*  U     ,
     message (routine, "input field type not recognized", ERROR);
 
   if (pressure) {
-    if   (iterative > 1) U -> solveIterative (F, 0.0);
-    else                 U -> solveDirect    (F);
+    if   (iterative > 1) U -> solve (F, 0.0);
+    else                 U -> solve (F);
     return;
   }
 
@@ -353,10 +352,10 @@ static void Solve (SystemField*  U     ,
       const real lambda2 = alpha[0] / (dt * KinVis);
       freeVector (alpha);
       
-      U -> solveIterative (F, lambda2);
+      U -> solve (F, lambda2);
 
     } else
-      U -> solveDirect (F);
+      U -> solve (F);
 
     return;
   }
