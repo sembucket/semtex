@@ -25,7 +25,7 @@ CPPFLAGS = -I. -I$(SEM)/include
 ifeq ($(ARCH),IRIX)		# -- SGI 32-bit systems.
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = $(DEFINES) -O2
+CXXFLAGS = $(DEFINES) -g
 F77LIBS	 = -lcomplib.sgimath -lftn
 LDFLAGS  = -L$(SEM)/lib/$(ARCH) -lfem -lalp \
 	   $(F77LIBS) -lmalloc -lm
@@ -88,7 +88,7 @@ endif
 #
 SEMFILES  = analysis auxfield BCmgr boundary condition domain 	\
 	    element feml field geometry history integration  	\
-	    matrix mesh misc particle pressure
+	    matrix mesh misc particle pressure statistics
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
 SEMHDR    = Sem.h
 

@@ -89,7 +89,7 @@ endif
 #
 SEMFILES  = analysis auxfield BCmgr boundary condition domain	\
 	    element feml field geometry history integration	\
-	    matrix mesh misc particle pressure
+	    matrix mesh misc particle pressure statistics
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
 SEMHDR    = Sem.h
 
