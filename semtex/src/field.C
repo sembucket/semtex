@@ -134,8 +134,8 @@ Field::Field (BoundarySys*      B,
   if   (npr > 1) _nline += 2 * npr - _nline % (2 * npr);
   else           _nline += _nline % 2;
 
-  _line  = new real* [(size_t)  _nz];
-  _sheet = new real  [(size_t) (_nz * _nline)];
+  _line  = new real* [static_cast<size_t>(_nz)];
+  _sheet = new real  [static_cast<size_t>(_nz * _nline)];
 
   for (k = 0; k < _nz; k++) _line[k] = _sheet + k*_nline;
 
@@ -143,11 +143,7 @@ Field::Field (BoundarySys*      B,
 
   // -- Set values for boundary data (in physical space).
 
-  for (k = 0; k < _nz; k++) {
-    Femlib::value ("z", (nzb + k) * dz);
-    for (p = _line[k], i = 0; i < _nbound; i++, p += np)
-      BC[i] -> evaluate (k, 0, p);
-  }
+  this -> evaluateBoundaries (0, false);
 
   // -- Fourier transform boundary data.
 
@@ -202,27 +198,41 @@ void Field::printBoundaries (const Field* F)
 }
 
 
-void Field::evaluateBoundaries (const int step)
+void Field::evaluateBoundaries (const int  step   ,
+				const bool Fourier)
 // ---------------------------------------------------------------------------
-// Traverse Boundaries and evaluate according to kind.
-// Note that for 3D this evaluation is done in Fourier-transformed space.
+// Traverse Boundaries and evaluate according to kind.  Note that for
+// 3D this evaluation is done in Fourier-transformed space if Fourier
+// = true (the default).
 //
-// This routine is only meant to be used for boundary conditions that must
-// be re-evaluated at every step, such as high-order pressure BCs.
+// This routine is mainly intended to be used for boundary conditions
+// that must be re-evaluated at every step, such as high-order
+// pressure BCs.
 // ---------------------------------------------------------------------------
 {
-  const int    np    = Geometry::nP();
-  const int    nz    = Geometry::nZProc();
-  const int    bmode = Geometry::baseMode();
-  const int    kfund = Geometry::kFund();
-  real*        p;
-  register int i, k, mode;
+  const int  np    = Geometry::nP();
+  const int  nz    = Geometry::nZProc();
+  const int  bmode = Geometry::baseMode();
+  const int  nzb   = Geometry::basePlane();
+  const int  kfund = Geometry::kFund();
+  const real dz    = Femlib::value ("TWOPI / BETA / N_Z");
+  real*      p;
+  int        i, k, mode;
 
-  for (k = 0; k < nz; k++) {
-    mode = bmode + (k >> 1);
-    const vector<Boundary*>& BC = _bsys -> BCs (mode * kfund);
-    for (p = _line[k], i = 0; i < _nbound; i++, p += np)
-      BC[i] -> evaluate (k, step, p);
+  if (Fourier) {
+    for (k = 0; k < nz; k++) {
+      mode = bmode + (k >> 1);
+      const vector<Boundary*>& BC = _bsys -> BCs (mode * kfund);
+      for (p = _line[k], i = 0; i < _nbound; i++, p += np)
+	BC[i] -> evaluate (k, step, p);
+    }
+  } else {
+    for (k = 0; k < _nz; k++) {
+      Femlib::value ("z", (nzb + k) * dz);
+      const vector<Boundary*>& BC = _bsys -> BCs (0);
+      for (p = _line[k], i = 0; i < _nbound; i++, p += np)
+	BC[i] -> evaluate (k, step, p);
+    }
   }
 }
 
@@ -626,7 +636,7 @@ Field& Field::solve (AuxField*             f  ,
     break;
 
     case JACPCG: {
-      const int StepMax = (int) Femlib::value ("STEP_MAX");  
+      const int StepMax = static_cast<int>(Femlib::value ("STEP_MAX"));
       const int npts    = M -> _npts;
       real          alpha, beta, dotp, epsb2, r2, rho1, rho2;
       vector<real>  work (5 * npts + 3 * Geometry::nPlane());
@@ -710,7 +720,7 @@ Field& Field::solve (AuxField*             f  ,
       this -> getEssential (bc, x, B,   N);
       this -> setEssential (x, unknown, N);
   
-      if ((int) Femlib::value ("VERBOSE") > 1) {
+      if (static_cast<int>(Femlib::value ("VERBOSE")) > 1) {
 	char s[StrMax];
 	sprintf (s, ":%3d iterations, field '%c'", i, _name);
 	message (routine, s, REMARK);

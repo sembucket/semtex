@@ -10,16 +10,12 @@ PROG = dns
 SEM   = ..
 VPATH = $(SEM)/src
 
-ifdef MPI		# -- Make a parallel executable.
-  PROG := $(PROG)_mp
-endif
-
 ifdef STOKES		# -- Turn off nonlinear terms; create Stokes solver.
   DEFINES += -DSTOKES
   PROG := $(PROG)_stokes
 endif
 
-ifdef ALIAS		# -- No dealiasing done.
+ifdef ALIAS		# -- No dealiasing (parallel is never dealiased).
   DEFINES += -DALIAS
   PROG := $(PROG)_alias
 endif
@@ -27,6 +23,15 @@ endif
 ifdef NCONSERVE		# -- Make only non-conservative nonlinear terms.
   DEFINES += -DNCONSERVE
   PROG := $(PROG)_ncons
+endif
+
+ifdef TBCS		# -- Recompute mode 0 velocity BCs every time step.
+  DEFINES += -DTBCS
+  PROG := $(PROG)_tbcs
+endif
+
+ifdef MPI		# -- Make a parallel executable.
+  PROG := $(PROG)_mp
 endif
 
 # ----------------------------------------------------------------------------
