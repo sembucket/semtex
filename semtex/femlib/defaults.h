@@ -22,14 +22,19 @@ static struct {
   
   /* -- Default named parameters. */
 
-  "D_T"      ,   0.01  ,	/* -- Time step.                     */
-  "t"        ,   0.0   ,	/* -- Time.                          */
-  "TOL_REL"  ,   1.0e-6,	/* -- Relative tolerance.            */
-  "TOL_ABS"  ,   1.0e-6,	/* -- Absolute tolerance.            */
-  "BETA"     ,   1.0   ,	/* -- TWOPI / Lz (Fourier constant). */
-  "LAMBDA2"  ,   0.0   ,	/* -- Helmholtz constant.            */
-  "KINVIS"   ,   1.0   ,	/* -- Kinematic viscosity.           */
-  "RHO"      ,   1.0   ,	/* -- Density.                       */
+  "D_T"      ,   0.01   ,	/* -- Time step.                     */
+  "t"        ,   0.0    ,	/* -- Time.                          */
+  "z"        ,   0.0    ,       /* -- z-plane location.              */
+  "TOL_REL"  ,   1.0e-6 ,	/* -- Relative tolerance.            */
+  "TOL_ABS"  ,   1.0e-6 ,	/* -- Absolute tolerance.            */
+  "BETA"     ,   1.0    ,	/* -- TWOPI / Lz (Fourier constant). */
+  "LAMBDA2"  ,   0.0    ,	/* -- Helmholtz constant.            */
+
+  "KINVIS"   ,   1.0    ,	/* -- Kinematic viscosity.           */
+  "RHO"      ,   1.0    ,	/* -- Density.                       */
+  "GRAVITY"  ,   9.81   ,	/* -- Gravitational acceleration.    */
+  "T_REF"    ,   288.15 ,       /* -- Reference temperature (15C).   */
+  "PRANDTL"  ,   0.72   ,	/* -- Prandtl number for air at STP. */
 
   /* -- Option switches. */
 
