@@ -3,11 +3,11 @@
 // prints out forces exerted on "wall" boundary group.
 //
 // Copyright (C) 1994, 2000 Hugh Blackburn
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
  
-#include <dns.h>
+#include "dns.h"
 
 
 DNSAnalyser::DNSAnalyser (Domain* D   ,
