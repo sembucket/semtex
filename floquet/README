@@ -76,9 +76,22 @@ Summary of number of velocity components
 N_BASE  N_PERT  N_Z    COMPLEXITY
  2       2       1     Real only:     u.Re v.Re      p.Re
  2       3       1     Half-complex:  u.Re v.Re w.Im p.Re
- 3       3       1     Real only:     u.Re v.Re w.Re p.Re (under construction)
+ 2       3       2     Full-complex:
+ 3       2       1     N/A
+ 3       3       1     Real only
  3       3       2     Full-complex
- 3       2       -     N/A
+
+
+OR, categorizing by symmetries of base flow and dimensionality and
+symmetry of perturbation:
+
+N_BASE  N_PERT  N_Z    CATEGORY
+ 2       2       1     O(2)/2D		Working
+ 2       3       1     O(2)/3D/SYM	Working / being fixed (call!)
+ 2       3       2     O(2)/3D		Under construction
+ 3       2       1     SO(2)/2D		Impossible (?)
+ 3       3       1     SO(2)/2D		Maybe one day
+ 3       3       2     SO(2)/3D		Working
 
 Summary of additional TOKENS and session file requirements
 ----------------------------------------------------------

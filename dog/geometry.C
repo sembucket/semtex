@@ -29,6 +29,7 @@ int Geometry::_npert  = 0;
 int Geometry::_nbase  = 0;
 int Geometry::_nslice = 0;
 Geometry::CoordSys Geometry::_csys = Geometry::Cartesian;
+Geometry::Category Geometry::_cat  = Geometry::O2_3D_SYMM;
 
 
 void Geometry::set (const int nel  ,
@@ -40,6 +41,7 @@ void Geometry::set (const int nel  ,
 // ---------------------------------------------------------------------------
 {
   static char routine[] = "Geometry::set";
+  char        err[StrMax];
 
   _pid       = static_cast<int>(Femlib::value ("I_PROC"));
   _nproc     = static_cast<int>(Femlib::value ("N_PROC"));
@@ -54,24 +56,21 @@ void Geometry::set (const int nel  ,
   _nel       = nel;
   _psize     = nPlane();
 
-#if 1
   _nz = _nzp = static_cast<int>(Femlib::value ("N_Z"));
-#else
-  _nz = _nzp = (_nbase == 3 && _npert == 3) ? 2 : 1;
-#endif
 
   _ndim = (_nbase == _npert && _nz == 1) ? 2 : 3;
-  
-  // -- Sanity checks.
 
-  if (_nproc > 1)
-    message (routine, "serial execution only",                          ERROR);
-  if (_nbase < 2 || _nbase > 3)
-    message (routine, "N_BASE must be set in session file",             ERROR);
-  if (_nslice < 1)
-    message (routine, "N_SLICE must be set in session file",            ERROR);
-  if (_npert < 2 || _npert > 3)
-    message (routine, "restart file has too many or few fields",        ERROR);
-  if (static_cast<int>(Femlib::value ("N_Z")) != _nz)
-    message (routine, "declared value of N_Z clashes with requirement", ERROR);
+  if      (_nbase == 2 && _npert == 2 && _nz == 1) _cat = O2_2D;
+  else if (_nbase == 2 && _npert == 3 && _nz == 1) _cat = O2_3D_SYMM;
+  else if (_nbase == 2 && _npert == 3 && _nz == 2) _cat = O2_3D;
+  else if (_nbase == 3 && _npert == 3 && _nz == 2) _cat = SO2_3D;
+  else {
+    sprintf (err, "illegal: N_BASE = %1d, N_PERT = %1d, N_Z = %1d",
+	     _nbase, _npert, _nz); message (routine, err, ERROR);
+  }
+
+  // -- Other sanity checks.
+
+  if (_nproc  > 1) message (routine, "serial execution only",          ERROR);
+  if (_nslice < 1) message (routine, "N_SLICE must be set in session", ERROR);
 }

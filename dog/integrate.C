@@ -283,9 +283,9 @@ static void setPForce (const AuxField** Us,
 
   for (i = 0; i < NPERT; i++) (*Uf[i] = *Us[i]) . gradient(i);
 
-  if (NPERT == 3 && NBASE < 3) *Uf[2] *= -1.0;
+  if (NPERT == 3 && NBASE < 3) *Uf[2] *= -1.0; // -- 3D/3C/Symmetry.
 
-  if (C3D) Uf[2] -> divR();
+  if (C3D) Uf[2] -> divR();	// -- In error.
 
   for (i = 1; i < NPERT; i++) *Uf[0] += *Uf[i];  
 
@@ -315,7 +315,7 @@ static void project (const Domain* D ,
   for (i = 0; i < NPERT; i++) {
     (*Uf[i] = *D -> u[NPERT]) . gradient (i);
 
-    if (C3D && i == 2) Uf[2] -> divR();
+    if (C3D && i == 2) Uf[2] -> divR();	// -- Cylindrical && i==2 is enough.
 
     Us[i] -> axpy (-dt, *Uf[i]);
     Field::swapData (Us[i], Uf[i]);
