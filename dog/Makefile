@@ -9,6 +9,13 @@
 SEM   = ../semtex
 VPATH = $(SEM)/src
 
+ifdef FLIP
+  KPROG = flipper
+  DEFINES += -DFLIP
+else
+  KPROG = arnoldi
+endif
+
 # ----------------------------------------------------------------------------
 # Semtex standard sources.
 #
@@ -17,6 +24,24 @@ SEMFILES = analysis auxfield BCmgr boundary bsys condition domain	\
 	   matrix mesh misc particle pressure statistics
 SEMOBJ   = $(addsuffix .o,$(SEMFILES))
 SEMHDR   = Sem.h
+
+# ----------------------------------------------------------------------------
+# Build eigensolver code.
+
+FL_FILES = arnoldi integrate stabanalysis
+FL_OBJ   = $(addsuffix .o,$(FL_FILES))
+
+$(KPROG): sem $(FL_OBJ) $(SEMOBJ) stab.h
+	$(LD) -o $@ $(FL_OBJ) $(SEMOBJ) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build eigensolver code.
+#
+#XL_FILES = flipper integrate stabanalysis
+#XL_OBJ   = $(addsuffix .o,$(XL_FILES))
+#
+#flipper: sem $(XL_OBJ) $(SEMOBJ) stab.h
+#	$(LD) -o $@ $(XL_OBJ) $(SEMOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build linearised Navier-Stokes solver.
@@ -28,15 +53,6 @@ lns: sem $(ST_OBJ) $(SEMOBJ) stab.h
 	$(LD) -o $@ $(ST_OBJ) $(SEMOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
-# Build eigensolver code.
-
-FL_FILES = arnoldi integrate stabanalysis
-FL_OBJ   = $(addsuffix .o,$(FL_FILES))
-
-arnoldi: sem $(FL_OBJ) $(SEMOBJ) stab.h
-	$(LD) -o $@ $(FL_OBJ) $(SEMOBJ) $(LDFLAGS)
-
-# ----------------------------------------------------------------------------
 # Build combine, a utility to combine a base and a perturbation field.
 #
 combine: combine.o
@@ -46,6 +62,13 @@ combine: combine.o
 # Build normalise, a utility to normalise eigenvectors (2-norm based).
 #
 normalise: normalise.o
+	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
+
+
+# ----------------------------------------------------------------------------
+# Build flipmap, a utility to find a symmetry-related mapping of the mesh.
+#
+flipmap: flipmap.C
 	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
 
 # ----------------------------------------------------------------------------

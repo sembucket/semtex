@@ -26,6 +26,24 @@
 //   -m <num> ... set maximum number of iterations         (m >= k)
 //   -n <num> ... compute num eigenvalue/eigenvector pairs (n <= k)
 //   -t <num> ... set eigenvalue tolerance to num [Default = 1e-6].
+//
+#ifdef FLIP
+//
+// Floquet analysis for RT-symmetric base flows (which will be
+// Cartesian). The idea here is that the mapping of an instability
+// applied by RT-symmetric flows with period T is like the square of
+// two mappings of period T/2 (see [1]). Here we explicitly deal only
+// with the 1/2-period map, but have to apply a symmetry operation to
+// the perturbations at the end of every 1/2-period before Krylov
+// analysis. The mapping vector is precomputed by flipmap.C, which
+// contains the rule for transforming the perturbation velocity field.
+//
+// The user has to ensure that the integration time in the session
+// file is T/2 (just as, for arnoldi, it must be T).
+//
+// Usage is the same as for arnoldi, except the code is called arnoldi-RT.
+//
+#endif
 // 
 // FILES
 // -----
@@ -33,7 +51,10 @@
 //   session:     semtex session file
 //   session.num: computed automatically if not supplied
 //   session.bse: base flow, containing N_SLICE field dumps
-//   session.rst: restart file (initialised with white noise if not supplied) 
+//   session.rst: restart file (initialised with white noise if not supplied)
+#ifdef FLIP
+//   session.map: contains the transformation to be applied (see above)
+#endif
 //
 // REFERENCES
 // ----------
@@ -45,6 +66,8 @@
 // [3]  L.S. Tuckerman & D. Barkley (2000), "Bifurcation analysis for
 //      timesteppers", in Numerical Methods for Bifurcation Problems,
 //      ed E. Doedel & L.S. Tuckerman, Springer. 453--466.
+// [4]  J. W. Swift & K. Wiesenfeld (1984), "Suppression of period doubling
+//      in symmetric systems", Phys. Rev. Lett. 52(9), 705--708.
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
@@ -52,7 +75,15 @@
 #include "stab.h"
 #include <new.h>
 
+#ifdef FLIP
+static char             prog[] = "arnoldi-RT";
+static char             generator;
+static vector<int>      positive, negative;
+static void loadmap     (const char*);
+static void mirror      (real*);
+#else
 static char             prog[] = "arnoldi";
+#endif
 static char*            session;
 static Domain*          domain;
 static StabAnalyser*    analyst;
@@ -209,6 +240,8 @@ static void EV_update  (const real* src,
 // ---------------------------------------------------------------------------
 // Generate tgt by applying linear operator (here, a linearised
 // Navier--Stokes integrator) to src.
+//
+// If RT-flipping, apply flip-map.
 // ---------------------------------------------------------------------------
 {
   int       i, k;
@@ -226,6 +259,10 @@ static void EV_update  (const real* src,
   for (i = 0; i < ND; i++)
     for (k = 0; k < NZ; k++)
       domain -> u[i] -> getPlane (k, tgt + (i*NZ + k)*NP);
+
+#ifdef FLIP
+  mirror (tgt);
+#endif
 }
 
 
@@ -663,7 +700,7 @@ static void getargs (int    argc   ,
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  char usage[] = "arnoldi [options] session\n"
+  char usage[] = "arnoldi(-RT) [options] session\n"
     "options:\n"
     "-h       ... print this message\n"
     "-v       ... set verbose\n"
@@ -742,9 +779,102 @@ static int preprocess (const char* session)
 
   Femlib::value ("CHKPOINT", 1);
 
+#ifdef FLIP
+  // -- Load RT-symmetry map.
+
+  loadmap (session);
+#endif
+
+  // -- Load restart and base flow data.
+
   domain -> restart ();
   domain -> loadBase();
   domain -> report  ();
 
   return Geometry::nPert() * Geometry::planeSize() * Geometry::nZ();
 }
+
+
+#ifdef FLIP
+static void loadmap (const char* session)
+// ---------------------------------------------------------------------------
+// Load symmetry mapping information from session.map.
+// ---------------------------------------------------------------------------
+{
+  const int np  =  static_cast<integer>(Femlib::value ("N_POLY"));
+  const int nel = mesh -> nEl();
+  char      buf[StrMax], err[StrMax];
+  ifstream  file;
+  int       i, NR, NS, NEL, NMAP;
+  
+  file.open (strcat (strcpy (buf, session), ".map"));
+
+  if (!file) {
+    sprintf (err, "cannot find map file %s", buf);
+    message (prog, err, ERROR);
+  }
+
+  file >> NR >> NS >> NEL >> NEL;
+  file.ignore (StrMax, '\n');
+
+  if (NR != np || NS != np || NEL != nel)
+    message (prog, "map file doesn't conform with session file", ERROR);
+  file >> generator;
+  file >> NMAP;
+
+  cout
+    << "   RT-flip mapping         : "
+    << NMAP
+    << " points by "
+    << generator
+    << " reflection" << endl;
+  
+  positive.setSize (NMAP);
+  negative.setSize (NMAP);
+
+  for (i = 0; i < NMAP; i++) file >> positive[i] >> negative[i];
+
+  if (!file)
+    message (prog, "bad (premature end of?) map file", ERROR);
+
+  file.close();
+}
+
+
+static void mirror (real* tgt)
+// ---------------------------------------------------------------------------
+// Apply RT-flip-map. Note that to avoid holes in the mapping, the
+// gather and scatter vectors have to be used in the order shown.
+// ---------------------------------------------------------------------------
+{
+  int          i, k;
+  const int    ND = Geometry::nPert();
+  const int    NP = Geometry::planeSize();
+  const int    NZ = Geometry::nZ();
+  const int    NM = positive.getSize();
+  static real* tmp;
+
+  if (!tmp) tmp = new real [NP];
+
+  // -- First, the reflection.
+
+  for (i = 0; i < ND; i++)
+    for (k = 0; k < NZ; k++) {
+      Veclib::copy (NP, tgt + (i*NZ+k)*NP, 1, tmp, 1);
+      Veclib::gathr_scatr (NM, tmp, negative(), positive(), tgt + (i*NZ+k)*NP);
+    }
+  
+  // -- Then the sign change.
+
+  if (generator == 'x')		// -- Change sign of 'u'.
+    for (k = 0; k < NZ; k++)
+      Veclib::neg (NP, tgt + (0*NZ+k)*NP, 1);
+  else				// -- Change sign of 'v'.
+    for (k = 0; k < NZ; k++)
+      Veclib::neg (NP, tgt + (1*NZ+k)*NP, 1);
+
+  // -- Update simulation time by T/2.
+
+  domain -> time += 0.5 * domain -> period;
+}
+#endif

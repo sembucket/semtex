@@ -3,8 +3,8 @@ Synopsis
 
 This version of semtex is specialised for linearised steady and
 Floquet stability analysis, which implies a number of restrictions not
-present in the basic semtex package.  The stability analysis code
-derives from the Barkley/Henderson floK code.
+present in the basic semtex package.  The stability analysis solver
+derives from the Barkley/Henderson floK code.  All serial code.
 
 Copyright (C) 1999, 2002 Hugh Blackburn.
 
@@ -18,10 +18,17 @@ perturbation to an exponential growth or decay phase, then apply
 arnoldi to estimate the leading Ritz eigenvalues and vectors of the
 flow.
 
-Initially at least, this will be a serial code.  The session file
-referred to below relates to the perturbation velocity field: the
-session file for the base flow is naturally assumed to supply the same
-2D geometric information, but is not directly referred to.
+Arnoldi-RT is a variant of arnoldi that can (but does not have to) be
+applied if the base flow has a reflection in space, translation in
+time (RT) symmetry.  In this case, the code flipmap must be used to
+create a pair of mapping vectors from the session mesh file.  The
+integration period declared in the session file must be half that of
+the base flow.
+
+The session file referred to below relates to
+the perturbation velocity field: the session file for the base flow is
+naturally assumed to supply the same 2D geometric information, but is
+not directly referred to.
 
 Description
 -----------
