@@ -570,20 +570,20 @@ void Nsys::addField (char name)
 }
 
 
-static integer cmp1 (const void *a,
-		     const void *b)
+static int cmp1 (const void *a,
+		 const void *b)
 // ---------------------------------------------------------------------------
 // Used by qsort.  Compare first element (global node number) of two arrays.
 // ---------------------------------------------------------------------------
-{ return ((integer *)a)[0] - ((integer *)b)[0]; }
+{ return (int) ((integer *)a)[0] - ((integer *)b)[0]; }
 
 
-static integer cmp2 (const void *a,
-		     const void *b)
+static int cmp2 (const void *a,
+		 const void *b)
 // ---------------------------------------------------------------------------
 // Used by qsort.  Compare second element (solve mask) of two arrays.
 // ---------------------------------------------------------------------------
-{ return ((integer *)a)[1] - ((integer *)b)[1]; }
+{ return (int) ((integer *)a)[1] - ((integer *)b)[1]; }
 
 
 
