@@ -126,7 +126,12 @@ void initFilters ()
   Iu = new real [(size_t) (2 * n*n)];
   It = Iu + n*n;
 
+#if 1
   Femlib::modTran (n, &Du, &Dt, 0, &dpt, 0, 0);
+#else
+  Femlib::legTran (n, &Du, &Dt, 0, &dpt, 0, 0);
+#endif
+
   for (i = 0; i < n; i++)
     Veclib::smul (n, PolyMask[i], dpt + i*n, 1, It + i*n, 1);
   for (i = 0; i < n; i++)
