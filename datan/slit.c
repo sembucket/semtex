@@ -1,44 +1,38 @@
 /*****************************************************************************
- * SLIT: reproduce specified columns of text file on stdout.                 *
- *                                                                           *
- * A limited form of awk?                                                    *
- *                                                                           *
- * Usage: slit [-c (ch1[,ch2,ch3, .....] [filename]                          *
- * Can be used as a filter.                                                  *
- *                                                                           *
- * Maximum number of columns which input file can contain:	MAXCOL       *
- * Maximum number of columns which can be output:		MAXCOL       *
- * Maximum number of digits in each column specifier:	        NUMDIG       *
- * Maximum length of string in each column:		        MAXSTR       *
- *                                                                           *
-******************************************************************************/
-
-/*------------------*
- * RCS Information: *
- *------------------*/
-static char
-  rcsid[] = "$Id$";
+ * SLIT: reproduce specified columns of text file on stdout.
+ *
+ * A limited form of awk?
+ *
+ * Usage: slit [-c (ch1[,ch2,ch3, .....] [filename]
+ * Can be used as a filter.
+ *
+ * Maximum number of columns which input file can contain:	MAXCOL
+ * Maximum number of columns which can be output:		MAXCOL
+ * Maximum number of digits in each column specifier:	        NUMDIG
+ * Maximum length of string in each column:		        MAXSTR
+ *
+ * $Id$
+ *****************************************************************************/
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
-#include <nrutil.h>
+#include <math.h>
+#include "FFTutil.h"
 
 #define MAXCOL	32
 #define	MAXSTR	32
 #define NUMDIG	8
 
-int  parse   (char *strin, char *strout, int *pos, char sep);
-void slit    (FILE *fp, int n, int *col);
-int  getline (FILE *fp, char coltext[][MAXSTR], int *nwords);
+static int  parse   (char *strin, char *strout, int *pos, char sep);
+static void slit    (FILE *fp, int n, int *col);
+static int  getline (FILE *fp, char coltext[][MAXSTR], int *nwords);
 
 
-
-
-
-main(int argc, char *argv[])
-/*===========================================================================*
- * This does adminstration for the routines which do all the work.           *
- *===========================================================================*/
+int main (int argc, char *argv[])
+/* ------------------------------------------------------------------------- *
+ * This does adminstration for the routines which do all the work.
+ * ------------------------------------------------------------------------- */
 {
   static char usage[] =
     "usage: slit [options] [input]\n"
@@ -93,30 +87,27 @@ main(int argc, char *argv[])
     if ((fp = fopen(*argv, "r")) == (FILE*) NULL)
       message("pdf", "couldn't open input file", ERROR);
     else { 
-      slit(fp, ncol, colnum);
-      fclose(fp);
+      slit (fp, ncol, colnum);
+      fclose (fp);
     }
   }
   else 
-    slit(stdin, ncol, colnum);
+    slit (stdin, ncol, colnum);
 
-  exit(0);
+  return EXIT_SUCCESS;
 }
 
 
-
-
-
-int parse(char *strin, char *strout, int *pos, char sep)
-/*===========================================================================*
- * Parse strin into strout until a non-solid character or separator          *
- * character occurs in strin or end of strin is reached.                     *
- *                                                                           *
- * Pos is the index of the first character in strin to be examined.          *
- * Update pos to point at the next non-separator character in strin.         *
- *                                                                           *
- * Parse returns the number of characters parsed from strin.                 *
- *===========================================================================*/
+static int parse (char *strin, char *strout, int *pos, char sep)
+/* ------------------------------------------------------------------------- *
+ * Parse strin into strout until a non-solid character or separator
+ * character occurs in strin or end of strin is reached.
+ *
+ * Pos is the index of the first character in strin to be examined.
+ * Update pos to point at the next non-separator character in strin.
+ *
+ * Parse returns the number of characters parsed from strin.
+ * ------------------------------------------------------------------------- */
 {
   int	i = 0;
   
@@ -135,35 +126,29 @@ int parse(char *strin, char *strout, int *pos, char sep)
 }
 
 
-
-
-
-void slit(FILE *fp, int n, int *col)
-/*===========================================================================*
- * Slit into columns, print up.                                              *
- *===========================================================================*/
+static void slit (FILE *fp, int n, int *col)
+/* ------------------------------------------------------------------------- *
+ * Slit into columns, print up.
+ * ------------------------------------------------------------------------- */
 {
   int	i, nwords;
   char	coltext[MAXCOL][MAXSTR];
   
-  while (getline(fp, coltext, &nwords) != EOF) {
+  while (getline (fp, coltext, &nwords) != EOF) {
     if (nwords > 0) {
-      (void)printf("%s", coltext[col[0]]);
-      for (i=1; i<n; i++) 
-	(void)printf(" %s", coltext[col[i]]);
+      printf ("%s", coltext[col[0]]);
+      for (i = 1; i < n; i++) 
+	printf (" %s", coltext[col[i]]);
     }
-    (void)printf("\n");
+    printf ("\n");
   }
 }
 
 
-
-
-
-int getline(FILE *fp, char coltext[][MAXSTR], int *nwords)
-/*===========================================================================*
- * The parsing of each input line is done here.                              *
- *===========================================================================*/
+static int getline (FILE *fp, char coltext[][MAXSTR], int *nwords)
+/* ------------------------------------------------------------------------- *
+ * The parsing of each input line is done here.
+ * ------------------------------------------------------------------------- */
 {
   int	c, i, rec, inword;
   
@@ -172,7 +157,7 @@ int getline(FILE *fp, char coltext[][MAXSTR], int *nwords)
   *nwords = 0;
 
   while ((c=getc(fp)) != EOF && c != '\n') {
-    if (!isspace(c)) {
+    if (!isspace (c)) {
       if (!inword) {
 	inword = 1;
 	(*nwords)++;

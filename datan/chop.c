@@ -1,33 +1,26 @@
 /*****************************************************************************
- * chop: read an input file and reproduce a specified number of lines on     *
- * standard output.                                                          *
- *                                                                           *
- * Usage: chop [-h] [-s startline] [-n number of lines] [file]               *
- *                                                                           *
- * The two command line arguments specify the first line of the input file   *
- * to reproduce, and the number of subsequent lines.  Can be used as a       *
- * filter.  If number of lines not specified, read through until EOF.        *
- *                                                                           *
+ * chop: read an input file and reproduce a specified number of lines on
+ * standard output.
+ *
+ * Usage: chop [-h] [-s startline] [-n number of lines] [file]
+ *
+ * The two command line arguments specify the first line of the input file
+ * to reproduce, and the number of subsequent lines.  Can be used as a
+ * filter.  If number of lines not specified, read through until EOF.
+ *
+ * $Id$
  *****************************************************************************/
 
-/*------------------*
- * RCS Information: *
- *------------------*/
-static char
-  rcsid[] = "$Id$";
-
 #include <stdio.h>
+#include <stdlib.h>
 
-void chop(FILE *fp, int s, int n);
-
-
-
+static void chop (FILE* fp, int s, int n);
 
 
-main(int argc, char *argv[])
-/*===========================================================================*
- * Wrapper for chop(), which does the work.  Here we do administration.      *
- *===========================================================================*/
+int main (int argc, char *argv[])
+/* ------------------------------------------------------------------------- *
+ * Wrapper for chop(), which does the work.  Here we do administration.
+ * ------------------------------------------------------------------------- */
 {
   static char usage[] = 
     "usage: chop [options] [input]\n"
@@ -73,14 +66,15 @@ main(int argc, char *argv[])
 	chop(fp, start, nlines);
 	fclose(fp);
       }
-  exit(0);
+  
+  return EXIT_SUCCESS;
 }
 
 
-void chop(FILE *fp, int s, int n)
-/*===========================================================================*
- * This does the real work.                                                  *
- *===========================================================================*/
+static void chop (FILE *fp, int s, int n)
+/* ------------------------------------------------------------------------- *
+ * This does the real work.
+ * ------------------------------------------------------------------------- */
 {
   int c;
   

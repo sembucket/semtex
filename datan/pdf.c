@@ -1,57 +1,49 @@
 /*****************************************************************************
- * PDF: produce probability density function from columnar format input.     *
- *                                                                           *
- * Synopsis:                                                                 *
- * ---------                                                                 *
- * Read ASCII data from stdin or named file, place in temporary scratch file *
- * and record minumum & maximum values, number of data.  Create an estimate  *
- * of the pdf by accumulating sums of relative frequencies.  Optional        *
- * command-line argument supplies number of bins in which sums are accumul-  *
- * ated.  Print pdf estimates to stdout or optional named file, together     *
- * with an optional header (specified using the command-line argument -v)    *
- * which contains information including moments (mean, variance...) of the   *
- * data, up to fourth order (kurtosis).                                      *
- *                                                                           *
- * Usage:                                                                    *
- * ------                                                                    *
- * pdf [-h] [-n <#bins>] [-o <output>] [-v] [input]                          *
- *                                                                           *
+ * PDF: produce probability density function from columnar format input.
+ *
+ * Synopsis:
+ * ---------
+ * Read ASCII data from stdin or named file, place in temporary scratch file
+ * and record minumum & maximum values, number of data.  Create an estimate
+ * of the pdf by accumulating sums of relative frequencies.  Optional
+ * command-line argument supplies number of bins in which sums are accumul-
+ * ated.  Print pdf estimates to stdout or optional named file, together
+ * with an optional header (specified using the command-line argument -v)
+ * which contains information including moments (mean, variance...) of the
+ * data, up to fourth order (kurtosis).
+ *
+ * Usage:
+ * ------
+ * pdf [-h] [-n <#bins>] [-o <output>] [-v] [input]
+ *
+ * $Id$
  *****************************************************************************/
-
-/*------------------*
- * RCS Information: *
- *------------------*/
-static char
-  rcsid[] = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <time.h>
-#include <nrutil.h>
+#include "FFTutil.h"
 
 static void getargs   (int, char*[], int*, int*, FILE**, FILE**);
-static void refile    (FILE*, FILE*, int*, float*, float*, float*);
-static void accum     (FILE*, float*, float, float, int, int, float,
-		       float*, float*, float*, float*, float*);
-static void printhead (FILE*, float,   float,  float,  float, int, int,
-                       float,  float, float, float,  float, float);
-static void printup   (FILE*, float*, float, float, int);
+static void refile    (FILE*, FILE*, int*, real*, real*, real*);
+static void accum     (FILE*, real*, real, real, int, int, real,
+		       real*, real*, real*, real*, real*);
+static void printhead (FILE*, real,   real,  real,  real, int, int,
+                       real,  real, real, real,  real, real);
+static void printup   (FILE*, real*, real, real, int);
 
 #define    DEFBIN     21
 #define    TINY       1.0E-30
 
 
-
-
-
-void main(int argc, char *argv[])
-/*===========================================================================*
- * Driver.                                                                   *
- *===========================================================================*/
+int main(int argc, char *argv[])
+/* ------------------------------------------------------------------------- *
+ * Driver.
+ * ------------------------------------------------------------------------- */
 {
-  float *pdf;
+  real *pdf;
   FILE  *fp_Store,
         *fp_in  = stdin,
         *fp_out = stdout;
@@ -61,7 +53,7 @@ void main(int argc, char *argv[])
          Npts  = 0,
          NBins = DEFBIN;
 
-  float  BinWidth,
+  real  BinWidth,
          Min      = 0.0,
          Max      = 0.0,
          PeakVal  = 0.0,
@@ -73,44 +65,40 @@ void main(int argc, char *argv[])
          Kurtosis = 0.0;
 
 
-  getargs(argc, argv, &NBins, &Verbose, &fp_in, &fp_out);
+  getargs (argc, argv, &NBins, &Verbose, &fp_in, &fp_out);
 
-  pdf = fvector(0, NBins-1);
+  pdf = rvector (0, NBins-1);
 
-  fp_Store = tmpfile();
-  refile(fp_in, fp_Store, &Npts, &Min, &Max, &Mean);
+  fp_Store = tmpfile ();
+  refile (fp_in, fp_Store, &Npts, &Min, &Max, &Mean);
   BinWidth = (Max - Min) / NBins;
-  if (BinWidth < TINY)
-    message("pdf", "bin width too small", ERROR);
+  if (BinWidth < TINY) message ("pdf", "bin width too small", ERROR);
 
-  rewind(fp_Store);
-  accum(fp_Store, pdf, Min, BinWidth, Npts, NBins,
-        Mean, &AbsDev, &SDev, &Variance, &Skewness, &Kurtosis);
+  rewind (fp_Store);
+  accum  (fp_Store, pdf, Min, BinWidth, Npts, NBins,
+	  Mean, &AbsDev, &SDev, &Variance, &Skewness, &Kurtosis);
 
-  for (i=0; i<NBins; i++) {
+  for (i = 0; i < NBins; i++) {
     pdf[i] /= BinWidth * Npts;
     PeakVal = MAX(pdf[i], PeakVal);
   }
 
   if (Verbose)
-    printhead(fp_out,  Min, Max, PeakVal, BinWidth, NBins, Npts,
-	      Mean, AbsDev, SDev, Variance, Skewness, Kurtosis);
+    printhead (fp_out,  Min, Max, PeakVal, BinWidth, NBins, Npts,
+	       Mean, AbsDev, SDev, Variance, Skewness, Kurtosis);
 
-  printup(fp_out, pdf, BinWidth, Min, NBins);
+  printup (fp_out, pdf, BinWidth, Min, NBins);
 
-  exit(0);
+  return EXIT_SUCCESS;
 }
 
 
-
-
-
-static void getargs(int    argc,    char  *argv[],
-		    int   *NBins,   int   *Verbose,
-		    FILE **fp_in,   FILE **fp_out)
-/*===========================================================================*
- * Parse command line.                                                       *
- *===========================================================================*/
+static void getargs (int    argc,    char  *argv[],
+		     int   *NBins,   int   *Verbose,
+		     FILE **fp_in,   FILE **fp_out)
+/* ------------------------------------------------------------------------- *
+ * Parse command line.
+ * ------------------------------------------------------------------------- */
 {
   char c;
   char line[FILENAME_MAX];
@@ -150,44 +138,40 @@ static void getargs(int    argc,    char  *argv[],
       break;
 
     default:
-      message("pdf", "unknown option", WARNING);
-      fprintf(stderr, usage);
-      exit(1);
+      message ("pdf", "unknown option", WARNING);
+      fprintf (stderr, usage);
+      exit (EXIT_FAILURE);
       break;
     }
   }
 
   if (argc == 1)
-    if ((*fp_in = fopen(*argv, "r")) == (FILE*) NULL)
-      message("pdf", "couldn't open input file", ERROR);
+    if ((*fp_in = fopen (*argv, "r")) == (FILE*) NULL)
+      message ("pdf", "couldn't open input file", ERROR);
 
 }
-  
 
 
-
-
-static void refile(FILE *fp_in, FILE *fp_tmp,
-		   int *npts, float *Min, float *Max, float *Mean)
-/*===========================================================================*
- * Fill temp file with data, getting parameters needed for creation of PDF.  *
- *===========================================================================*/
+static void refile (FILE *fp_in, FILE *fp_tmp,
+		    int *npts, real *Min, real *Max, real *Mean)
+/* ------------------------------------------------------------------------- *
+ * Fill temp file with data, getting parameters needed for creation of PDF.
+ * ------------------------------------------------------------------------- */
 {
-  float datum;
+  real datum;
   char  line[FILENAME_MAX];
 
-
-  while (fgets(line, FILENAME_MAX, fp_in)) {
-    sscanf(line, "%f", &datum);
+  while (fgets (line, FILENAME_MAX, fp_in)) {
+    sscanf (line, "%f", &datum);
     if (!*npts)
       *Min = (*Max = datum);
     else {
-      *Min = MIN(datum, *Min);
-      *Max = MAX(datum, *Max);
+      *Min = MIN (datum, *Min);
+      *Max = MAX (datum, *Max);
     }
     *Mean += datum;
     ++*npts;
-    fwrite(&datum, sizeof(float), 1, fp_tmp);
+    fwrite (&datum, sizeof(real), 1, fp_tmp);
   }
 
   *Mean /= *npts;
@@ -198,25 +182,25 @@ static void refile(FILE *fp_in, FILE *fp_tmp,
 
 
 static void accum(FILE  *fp,
-		  float *pdf,
-		  float  min,  float binwidth,
+		  real *pdf,
+		  real  min,  real binwidth,
 		  int    npts, int nbins, 
-		  float  mean,
-		  float *AbsDev,
-		  float *Sdev,
-		  float *Vari,
-		  float *Skew,
-		  float *Kurt)
+		  real  mean,
+		  real *AbsDev,
+		  real *Sdev,
+		  real *Vari,
+		  real *Skew,
+		  real *Kurt)
 /*===========================================================================*
  * Make all the moments.                                                     *
  *===========================================================================*/
 {
-  float datum, dev, prod;
+  real datum, dev, prod;
   int   bin;
 
 
   while (!feof(fp)) {
-    fread(&datum, sizeof(float), 1, fp);
+    fread(&datum, sizeof(real), 1, fp);
     dev     = datum - mean;
     *AbsDev = *AbsDev + fabs(dev);
     prod    =  dev * dev;
@@ -245,10 +229,10 @@ static void accum(FILE  *fp,
 
 
 static void printhead(FILE  *fp,
-		      float  min,   float max,  float pk,  float bnwd, 
+		      real  min,   real max,  real pk,  real bnwd, 
 		      int    nbins, int   npts,
-		      float  mean,  float adev, float sdev,
-		      float  vari,  float skew, float kurt )
+		      real  mean,  real adev, real sdev,
+		      real  vari,  real skew, real kurt )
 /*===========================================================================*
  * Write header info.                                                        *
  *===========================================================================*/
@@ -298,9 +282,9 @@ static void printhead(FILE  *fp,
 
 
 static void printup(FILE  *fp,
-		    float *pdf,
-		    float  bnwd,
-		    float  min,
+		    real *pdf,
+		    real  bnwd,
+		    real  min,
 		    int    nbins )
 /*===========================================================================*
  * Write out pdf data.                                                       *
