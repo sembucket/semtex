@@ -128,7 +128,7 @@ TestFFT: TestFFT.C
 
 testDLT: testDLT.C
 	$(CXX) -o $@ testDLT.C $(CXXFLAGS) -I$(SEMHOME)/include -I. -g \
-	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp -lm
+	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
 
 testDLT2: testDLT2.C
 	$(CXX) -o $@ $@.C $(CXXFLAGS) -I$(SEMHOME)/include -I. -g \
