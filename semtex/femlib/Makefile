@@ -61,19 +61,9 @@ endif
 include $(SEMSRC)/Makefile
 
 # ----------------------------------------------------------------------------
-# Install library & associated header files.
+# Install header files.
 #
-install:
-	if test ! -d $(SEM)/lib 			;	then	\
-		mkdir $(SEM)/lib 			; 	fi;	\
-	if test ! -d $(SEM)/lib/$(ARCH) 		;	then	\
-		mkdir $(SEM)/lib/$(ARCH)		;	fi;	\
-	if test -r $(LIB) 				;	then	\
-		rm -f $(SEM)/lib/$(ARCH)/$(LIB)		;		\
-		cp $(LIB) $(SEM)/lib/$(ARCH)		;	fi
-	if test $(RANLIB)				;	then	\
-		$(RANLIB) $(SEM)/lib/$(ARCH)/$(LIB)	;	fi
-
+headers:
 	if test ! -d   $(SEM)/include	;	then    \
 		mkdir $(SEM)/include	;	fi
 
@@ -88,6 +78,23 @@ install:
 	cp cnr77	$(SEM)/include	;	\
 	cp cpolylib	$(SEM)/include  ;	\
 	cp femlib_h	$(SEM)/include
+
+# ----------------------------------------------------------------------------
+# Install library & associated header files.
+#
+install:
+	gmake headers
+
+	if test ! -d $(SEM)/lib 			;	then	\
+		mkdir $(SEM)/lib 			; 	fi;	\
+	if test ! -d $(SEM)/lib/$(ARCH) 		;	then	\
+		mkdir $(SEM)/lib/$(ARCH)		;	fi;	\
+	if test -r $(LIB) 				;	then	\
+		rm -f $(SEM)/lib/$(ARCH)/$(LIB)		;		\
+		cp $(LIB) $(SEM)/lib/$(ARCH)		;	fi
+	if test $(RANLIB)				;	then	\
+		$(RANLIB) $(SEM)/lib/$(ARCH)/$(LIB)	;	fi
+
 
 # ----------------------------------------------------------------------------
 # Ensure any new default parser variables are picked up.
