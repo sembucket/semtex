@@ -29,7 +29,6 @@ endif
 # ----------- Compiler options for specific machines -------------------------
 
 ifeq ($(ARCH),IRIX)		# -- SGI MIPS R4xxx IRIX5x
-
 SMLIBS    = -lplotsub -ldevices -lutils
 X11LIBS   = -lX11_s -lgl_s
 
@@ -39,14 +38,12 @@ CXXFLAGS = $(DEFINES) -mips2 -fullwarn -smart -g
 LDFLAGS  = -L$(HOME)/lib -L/usr/local/lib/sm -mips2 -lm
 endif
 
-
 ifeq ($(ARCH),IRIX64)		# -- SGI MIPS R8xxx IRIX6x
 CXX	 = CC
 LD	 = CC
 CXXFLAGS = $(DEFINES) -O3
 LDFLAGS  = $(CXXFLAGS) -lm
 endif
-
 
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha
 CXX	 = cxx
@@ -55,6 +52,14 @@ CXXFLAGS = $(DEFINES) -migrate -tune host -O2
 LDFLAGS  = $(CXXFLAGS) -lm
 endif
 
+ifeq ($(ARCH),Linux)		# -- GNU/Linux system.
+CXX	 = g++
+LD	 = g++
+CXXFLAGS = $(DEFINES) -g
+LDFLAGS  = -L$(HOME)/lib -L/usr/local/lib -L/usr/X11/lib
+SMLIBS   = -lsm_plotsubSP -lsm_devicesSP -lsm_utilsSP
+X11LIBS  = -lX11
+endif
 
 # ----------------------------------------------------------------------------
 #
@@ -78,7 +83,7 @@ RSRC = reflect node point misc
 ROBJ = $(addsuffix .o,$(RSRC))
 
 reflect: $(HDR) $(ROBJ)
-	$(CXX) -o reflect $(ROBJ) $(CPPFLAGS) $(LDFLAGS)
+	$(LD) -o reflect $(ROBJ) $(CPPFLAGS) $(LDFLAGS)
 
 $(ROBJ): $(HDR)
 
@@ -89,9 +94,26 @@ OSRC = outline node point misc
 OOBJ = $(addsuffix .o,$(OSRC))
 
 outline: $(HDR) $(OOBJ)
-	$(CXX) -o outline $(OOBJ) $(CPPFLAGS) $(LDFLAGS)
+	$(LD) -o outline $(OOBJ) $(CPPFLAGS) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Make smooth, utility for Laplacian smoothing hand-built meshes.
+
+SSRC = smooth node point misc
+SOBJ = $(addsuffix .o,$(SSRC))
+
+smooth: $(HDR) $(SOBJ)
+	$(LD) -o smooth $(SOBJ) $(CPPFLAGS) $(LDFLAGS) $(SMLIBS) $(X11LIBS)
+
 
 $(OOBJ): $(HDR)
+
+# ----------------------------------------------------------------------------
+# Make tarfile of source.
+
+tar:
+	tar cvf qmesh.tar *	;	\
+	gzip qmesh.tar
 
 # -----------------------------------------------------------------------------
 #
