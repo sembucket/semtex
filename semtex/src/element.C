@@ -251,15 +251,22 @@ void Element::bndryDsSum (const integer* btog,
 // is using in smoothing Fields along element boundaries.
 // ---------------------------------------------------------------------------
 {
-  register integer i, e;
-  register real    w;
-  const real       EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  register integer  i, e;
+  register real     w;
+  static const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  static const int  CYL = Geometry::system() == Geometry::Cylindrical;
 
-  for (i = 0; i < next; i++) {
-    e = emap[i];
-    w = G4[e];
-    tgt[btog[i]] += (w > EPS) ? w * src[e] : src[e];
-  }
+  if (CYL)
+    for (i = 0; i < next; i++) {
+      e = emap[i];
+      w = G4  [e];
+      tgt[btog[i]] += (w > EPS) ? w * src[e] : src[e];
+    }
+  else
+    for (i = 0; i < next; i++) {
+      e = emap[i];
+      tgt[btog[i]] += G4[e] * src[e];
+    }
 }
 
 
@@ -609,15 +616,16 @@ void Element::HelmholtzDg (const real lambda2,
 // except that m, n = i, j.
 // ---------------------------------------------------------------------------
 {
-  const real       EPS  = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
-  const real**     DT;
-  register integer i, j, ij;
-  register real    *dg = work, *tmp = work + npnp;
-  real             r2, HCon;
+  static const real EPS  = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  static const int  CYL = Geometry::system() == Geometry::Cylindrical;
+  const real**      DT;
+  register integer  i, j, ij;
+  register real     *dg = work, *tmp = work + npnp;
+  real              r2, HCon;
 
   Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, 0, &DT);
 
-  if (Geometry::system() == Geometry::Cylindrical) {
+  if (CYL) {
     for (ij = 0, i = 0; i < np; i++)
       for (j = 0; j < np; j++, ij++) {
 	r2   = sqr (ymesh[Veclib::row_major (i, j, np)]);
@@ -734,12 +742,13 @@ void Element::HelmholtzKern (const real lambda2,
 // Lambda2 is the Helmholtz constant, betak2 is the mode Fourier constant.
 // ---------------------------------------------------------------------------
 {
-  register integer ij;
-  register real    tmp, r2, hCon;
-  register real    *g1 = G1, *g2 = G2, *g3 = G3, *g4 = G4, *r = ymesh;
-  const real       EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  register integer  ij;
+  register real     tmp, r2, hCon;
+  register real     *g1 = G1, *g2 = G2, *g3 = G3, *g4 = G4, *r = ymesh;
+  static const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  static const int  CYL = Geometry::system() == Geometry::Cylindrical;
 
-  if (Geometry::system() == Geometry::Cylindrical) {
+  if (CYL) {
     if (g3) {
       for (ij = 0; ij < npnp; ij++) {
 	r2       = r[ij] * r[ij];
@@ -1227,10 +1236,10 @@ void Element::divR (real* src) const
 // gradient.
 // ---------------------------------------------------------------------------
 {
-  register integer i;
-  register real    rad, rinv;
-  register real*   y   = ymesh;
-  const real       EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  register integer  i;
+  register real     rad, rinv;
+  register real*    y   = ymesh;
+  static const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
   for (i = 0; i < npnp; i++) {
     rad     = y[i];
@@ -1271,10 +1280,10 @@ void Element::sideDivR (const integer side,
 // by y (i.e. r), take special action where r = 0.
 // ---------------------------------------------------------------------------
 {
-  integer i, base, skip;
-  real    r, rinv, *y;
-  const   real *s;
-  const   real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  integer           i, base,  skip;
+  real              r, rinv,  *y;
+  const real        *s;
+  static const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
   switch (side) {
   case 0: 
@@ -1322,7 +1331,7 @@ void Element::sideDivR2 (const integer side,
   register integer    i, base, skip;
   register real       r, rinv2, *y;
   register const real *s;
-  const real          EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  static const real   EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
   switch (side) {
   case 0: 
