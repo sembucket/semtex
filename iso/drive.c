@@ -112,59 +112,59 @@ int main (int    argc,
  * Driver routine for simulation code.
  * ------------------------------------------------------------------------- */
 {
-  CVF     U, work;
+  CVF     U, work1;
   CVF*    G = malloc (sizeof (CVF*));
-  CF      F, F_;
+  CF      work2, work3;
   complex *Wtab, *Stab;
-  Param*  runInfo = calloc (1, sizeof (Param));
+  Param*  I = calloc (1, sizeof (Param));
   real    setKinvis;
 
   /* -- Set up. */
 
-  Default (runInfo);
-  getargs (argc, argv, runInfo);
-  setKinvis = runInfo -> kinvis;
-  startup (runInfo);
+  Default (I);
+  getargs (argc, argv, I);
+  setKinvis = I -> kinvis;
+  startup (I);
 
   printf ("%s: Fourier-spectral Navier-Stokes simulation\n", prog);
   printf ("Copyright (C) 1992-1999 Hugh Blackburn\n\n");
 
-  N = runInfo -> ngrid; K = N / 2; FourKon3 = (4 * K) / 3;
+  N = I -> ngrid; K = N / 2; FourKon3 = (4 * K) / 3;
 
-  allocate   (&U, G, runInfo -> norder, &work, &F, &F_, &Wtab, &Stab);
+  allocate   (&U, G, I -> norder, &work1, &work2, &work3, &Wtab, &Stab);
 
   preFFT     (Wtab, K);
   preShift   (Stab, N);
 
-  restart    (U, runInfo);
-  runInfo -> kinvis = setKinvis;
+  restart    (U, I);
+  I -> kinvis = setKinvis;
 
   truncateVF (U);
-  projectVF  (U, F);
+  projectVF  (U, work2);
 
-  printParam (stdout, runInfo);
-  analyze    (U, runInfo, Wtab);
+  printParam (stdout, I);
+  analyze    (U, I, Wtab);
 
   /* -- Time-stepping loop. */
 
-  while (runInfo -> step < runInfo -> nstep) {
+  while (I -> step < I -> nstep) {
 
     zeroVF    (G[0]);
-    nonlinear (U, G[0], F, F_, work, Wtab, Stab);
-    projectVF (G[0], F);
-    integrate (U, G, runInfo);
-    ROLL      (G, runInfo -> norder);
+    nonlinear (U, G[0], work1, work2, work3, Wtab, Stab);
+    projectVF (G[0], work2);
+    integrate (U, G, I);
+    ROLL      (G, I -> norder);
 
-    runInfo -> step ++;
-    runInfo -> time += runInfo -> dt;
+    I -> step ++;
+    I -> time += I -> dt;
     
-    if (!(runInfo -> step % 100)) projectVF (U, F);
+    if (!(I -> step % 100)) projectVF (U, work2);
 
-    analyze (U, runInfo, Wtab);
-    dump    (U, runInfo);
+    analyze (U, I, Wtab);
+    dump    (U, I);
   }
 
-  cleanup (runInfo);
+  cleanup (I);
 
   return EXIT_SUCCESS;
 }

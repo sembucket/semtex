@@ -203,10 +203,10 @@ void TaylorGreen (CVF IC)
 
 void TaylorGreenNL_error (CVF IC)
 /* ------------------------------------------------------------------------- *
- * Generate the nonlinear terms in the Navier--Stokes equations for 
- * the initial conditions of the 3D Taylor--Green vortex, in
- * PHYSICAL space.  Add them to input, which should be the negative of the
- * nonlinear terms.
+ * Generate the nonlinear terms in the Navier--Stokes equations for
+ * the initial conditions of the 3D Taylor--Green vortex, in PHYSICAL
+ * space.  Add them to input, which should be the negative of the
+ * nonlinear terms (being generated for the RHS of the N-S equations).
  *
  *   u =  sin x cos y cos z
  *   v = -cos x sin y cos z

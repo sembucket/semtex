@@ -1,7 +1,7 @@
 /*****************************************************************************
  * nonlinear.c: all computations to produce nonlinear terms in Navier--Stokes.
  *
- * Copyright (C) 1992, 1999 Hugh Blackburn
+ * Copyright (C) 1992-1999 Hugh Blackburn
  *
  * $Id$
  *****************************************************************************/
@@ -11,12 +11,12 @@
 #define PEQ(Z1,c,Z2)  (Z1)->Re += (c) * (Z2)->Im; (Z1)->Im -= (c) * (Z2)->Re
 
 
-void nonlinear (/* input     */  CVF             U   ,
-		/* output    */  CVF             G   ,
-		/* workspace */  CF              F   ,
+void nonlinear (/* input      */ CVF             U   ,
+		/* output     */ CVF             G   ,
+		/* workspaces */ CVF             U_  ,
+		                 CF              F   ,
 		                 CF              F_  ,
-		                 CVF             U_  ,
-		/* using     */  const complex*  Wtab,
+		/* using      */ const complex*  Wtab,
 		                 const complex*  Stab)
 /* ------------------------------------------------------------------------- *
  * Compute the Fourier transform of the nonlinear product -d(UjUm)/dxm,
