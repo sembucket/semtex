@@ -712,7 +712,7 @@ Field& Field::solve (AuxField*  f      ,
 
   // -- Allocate storage.
   
-  vector<real> workspace (6 * npts + 4 * Geometry::nTotElmt());
+  vector<real> workspace (6 * npts + 3 * Geometry::nPlane());
 
   real* r   = workspace();
   real* p   = r  + npts;
@@ -887,39 +887,43 @@ void Field::constrain (real*               force  ,
 // ---------------------------------------------------------------------------
 {
   register Element* E;
-  register integer  j, ntot, doff, boff;
+  register integer  i;
   const integer*    emask = N -> emask();
-  const integer*    bmask = N -> bmask();
   const integer*    btog  = N -> btog();
-  const integer     nE    = Geometry::nElmt();
-  real              *fdp, *in, *out, *ewrk;
-  vector<real>      work (4 * Geometry::nTotElmt());
+  const integer     np    = Geometry::nP();
+  const integer     nel   = Geometry::nElmt();
+  const integer     next  = Geometry::nExtElmt();
+  const integer     npnp  = np * np;
+  const integer     ntot  = nel * npnp;
+  const real        **DV, **DT;
+  vector<real>      work (3 * npnp);
+  real              *u, *r, *s;
 
-  in   = work();
-  out  = in  + Geometry::nTotElmt();
-  ewrk = out + Geometry::nTotElmt();
+  u = work();
+  r = u + npnp;
+  s = r + npnp;
+
+  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
   // -- Manufacture -(M f + H g).
 
-  for (j = 0; j < nE; j++) {
-    E    = Elmt[j];
-    ntot = E -> nTot();
-    doff = E -> dOff();
-    boff = E -> bOff();
-    fdp  = force + doff;
+  for (i = 0; i < nel; i++, emask++, btog += next, force += npnp) {
+    E = Elmt[i];
+    
+    E -> weight (force);	// -- f <-- M f.
 
-    E -> weight (fdp);		// -- f <-- M f.
-
-    if (emask[j]) {		// -- f <-- M f + H g.
-
-      Veclib::zero     (ntot, in, 1);
-      E -> g2e         (in, btog + boff, esstlbc, 0);
-      E -> HelmholtzOp (lambda2, betak2, in, out, ewrk);
-      Veclib::vadd     (ntot, fdp, 1, out, 1, fdp, 1);
+    if (*emask) {		// -- f <-- M f + H g.
+      Veclib::zero       (3 * npnp, u, 1);
+      E -> g2e           (u, btog, esstlbc, 0);
+      Femlib::grad2      (u, u, r, s, *DV, *DT, np, 1);
+      E -> HelmholtzKern (lambda2, betak2, r, s, u, u);
+      Femlib::grad2      (r, s, u, u, *DT, *DV, np, 1);
+      Veclib::vadd       (npnp, force, 1, u, 1, force, 1);
     }
-
-    Veclib::neg (ntot, fdp, 1);	// -- f <-- -(M f + H g).
   }
+
+  force -= ntot;
+  Veclib::neg (ntot, force, 1);
 }
 
 
@@ -933,34 +937,37 @@ void Field::HelmholtzOperator (const real*         x      ,
 // Discrete 2D global Helmholtz operator which takes the vector x into
 // vector y, including direct stiffness summation.
 //
-// Vector work must have length 4 * elmt_nt_max.
+// Vector work must have length 3 * Geometry::nPlane().
 // ---------------------------------------------------------------------------
 {
-  register Element*    E;
-  register integer     j, nint, boff;
-  const integer        nglobal = N -> nGlobal();
-  const integer*       btog    = N -> btog();
-  const integer        nE      = Geometry::nElmt();
-  real*                in      = work;
-  real*                out     = in  + Geometry::nTotElmt();
-  real*                ewk     = out + Geometry::nTotElmt();
-  register const real* x_int   = x + nglobal;
-  register       real* y_int   = y + nglobal;
+  register integer i;
+  const integer    np      = Geometry::nP();
+  const integer    nel     = Geometry::nElmt();
+  const integer    npnp    = np * np;
+  const integer    ntot    = nel * npnp;
+  const integer    nglobal = N -> nGlobal() + Geometry::nInode();
+  const real       **DV, **DT;
+  real             *P = work, *R = P + ntot, *S = R + ntot;
 
-  Veclib::zero (nglobal + Geometry::nInode(), y, 1);
+  Femlib::quad  (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
-  for (j = 0; j < nE; j++) {
-    E    = Elmt[j];
-    nint = E -> nInt();
-    boff = E -> bOff();
+  Veclib::zero  (nglobal,     y, 1);
+  Veclib::zero  (ntot + ntot, R, 1);
 
-    E -> g2e         (in,  btog + boff, x, x_int);
-    E -> HelmholtzOp (lambda2, betak2, in, out, ewk);
-    E -> e2gSum      (out, btog + boff, y, y_int);
+  global2local  (x, P, N);
 
-    x_int += nint;
-    y_int += nint;
-  }
+  Femlib::grad2 (P, P, R, S, *DV, *DT, np, nel);
+
+  for (i = 0; i < nel; i++, R += npnp, S += npnp, P += npnp)
+    Elmt[i] -> HelmholtzKern (lambda2, betak2, R, S, P, P);
+ 
+  P -= ntot;
+  R -= ntot;
+  S -= ntot;
+  
+  Femlib::grad2   (R, S, P, P, *DT, *DV, np, nel);
+
+  local2globalSum (P, y, N);
 }
 
 
@@ -1060,9 +1067,35 @@ void Field::local2global (const real*         src,
 }
 
 
+void Field::local2globalSum (const real*         src,
+			     real*               tgt,
+			     const NumberSystem* N  ) const
+// ---------------------------------------------------------------------------
+// Direct stiffness sum a plane of data (src) into globally-numbered
+// tgt, with element- boundary values in the first N -> nGlobal()
+// places, followed by element-internal locations in emap ordering.
+// ---------------------------------------------------------------------------
+{
+  register Element* E;
+  register integer  j, boff, doff;
+  const integer*    btog = N -> btog();
+  const integer     nE   = Geometry::nElmt();
+  register real*    internal = tgt + N -> nGlobal();
+
+  for (j = 0; j < nE; j++) {
+    E    = Elmt[j];
+    boff = E -> bOff();
+    doff = E -> dOff();
+
+    E -> e2gSum (src + doff, btog + boff, tgt, internal);
+    internal += E -> nInt();
+  }
+}
+
+
 void Field::global2local (const real*         src,
 			  real*               tgt,
-			  const NumberSystem* N  )
+			  const NumberSystem* N  ) const
 // ---------------------------------------------------------------------------
 // Load a plane of data (tgt) from src, which has globally-numbered (element-
 // boundary) values in the first nglobal places, followed by element-internal
