@@ -67,8 +67,8 @@ int main (int argc, char** argv)
   double   factor  = 0.0, freq = 0.0, time;
   int      i, zero = 0;
 
+  Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session, factor, freq, zero);
-  Femlib::prep();
 
   // -- Open restart file and extract the simulation time.
 
@@ -136,8 +136,8 @@ int main (int argc, char** argv)
       cout << buf << endl;
   }
 
-  file.close ();
-
+  file.close();
+  Femlib::finalize();
   return EXIT_SUCCESS;
 }
 
