@@ -34,7 +34,7 @@ int main ()
 
   // -- Get GLL grid points & weights, prepare table of Legendre polys.
 
-#if 0
+#if 1
 
   FW  = t   + np2;
   FT  = FW  + np2;
@@ -93,19 +93,19 @@ int main ()
   Veclib::vrandom (np2, x, 1);
 
   // -- Forward DLT.
-/*
+
   Blas::mxm (FW, np, x,  np, t, np);
   Blas::mxm (t,  np, FT, np, y, np);
-*/
-  Blas::mxv (CF, np2, x, np2, y);
-
-  // -- Inverse DLT.
 /*
+  Blas::mxv (CF, np2, x, np2, y);
+*/
+  // -- Inverse DLT.
+
   Blas::mxm (BW, np, y,  np, t, np);
   Blas::mxm (t,  np, BT, np, z, np);
-*/
+/*
   Blas::mxv (CB, np2, y, np2, z);
-
+*/
   // -- Print everything up.
 
   cout << "Problem size: " << np << " x " << np << endl;
