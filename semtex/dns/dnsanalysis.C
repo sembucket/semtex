@@ -112,8 +112,10 @@ void DNSAnalyser::analyse (AuxField** work)
     _flx_strm << s << endl;
   }
 
-  periodic = !(_src->step %  Femlib::ivalue ("IO_WSS")) ||
-             !(_src->step %  Femlib::ivalue ("IO_FLD"));
+  
+  periodic = (Femlib::ivalue ("IO_WSS")) ? 
+    !(_src->step %  Femlib::ivalue ("IO_WSS")) ||
+    !(_src->step %  Femlib::ivalue ("IO_FLD")) : false;
   state    = periodic || final;
 
   if (_wss && state) {
@@ -140,7 +142,7 @@ void DNSAnalyser::analyse (AuxField** work)
 		       _src -> u[2], _src -> u[0], _src -> u[1]);
 
     // -- Inverse Fourier transform (like Field::bTransform).
-#if 1
+
     if (nPR == 1) {
       if (nZ > 1)
 	if (nZ == 2)
@@ -152,23 +154,23 @@ void DNSAnalyser::analyse (AuxField** work)
       Femlib::DFTr     (&_work[0], nZ,  nPP, INVERSE);
       Femlib::exchange (&_work[0], nZP, nP,  INVERSE);
     }
-#endif
+
     // -- Write to file.
 
     // -- Header: this will be a lot like a standard header.
 
     ROOTONLY {
       const char *hdr_fmt[] = { 
-	"%-25s "           "Session\n",
-	"%-25s "           "Created\n",
-	"%-5d %-5d %-14d"  "Np, Nz, Elements\n",
-	"%-25d "           "Step\n",
-	"%-25.6g "         "Time\n",
-	"%-25.6g "         "Time step\n",
-	"%-25.6g "         "Kinvis\n",
-	"%-25.6g "         "Beta\n",
-	"%-25s "           "Fields written\n",
-	"%-25s "           "Format\n"
+	"%-25s "                "Session\n",
+	"%-25s "                "Created\n",
+	"%-5d    1 %-5d %-14d"  "Nr, Ns, Nz, Elements\n",
+	"%-25d "                "Step\n",
+	"%-25.6g "              "Time\n",
+	"%-25.6g "              "Time step\n",
+	"%-25.6g "              "Kinvis\n",
+	"%-25.6g "              "Beta\n",
+	"%-25s "                "Fields written\n",
+	"%-25s "                "Format\n"
       };
 
       char   s1[StrMax], s2[StrMax];
