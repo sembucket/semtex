@@ -390,17 +390,19 @@ void Domain::loadBase()
   }
 
   file.close();
-  period = dt * i / (i - 1.0);
 
   if (i != nSlice)
     message (routine, "mismatch: No. of base slices/declaration", ERROR);
 
-  if (nSlice > 1) // -- Fourier transform in time, scale for reconstruction.
+  if (nSlice > 1) { 
+    period = dt * i / (i - 1.0);
+    // -- Fourier transform in time, scale for reconstruction.
     for (i = 0; i < nBase; i++) {
       Femlib::DFTr (baseFlow(i), nSlice, nTot, FORWARD);
       Blas::scal   ((nSlice-2)*nTot, 2.0, baseFlow(i) + 2*nTot, 1);
     }
-  
+  } else period = 0.0;
+
   ROOTONLY {
     cout << "read from file " << filename;
     if (H.swab()) cout << " (byte swapping)";

@@ -62,7 +62,7 @@ typedef struct hdr_data {
   char   format[StrMax];
 } hdr_info;
 
-static void getargs   (int, char**, int&, int&);
+static void getargs   (int, char**, int&, int&, istream*&);
 static void roundup   (const int, int&);
 static void getheader (istream&, hdr_info&);
 static void allocate  (hdr_info&, const int, vector<real*>&);
@@ -82,26 +82,27 @@ int main (int    argc,
 {
   hdr_info      header;
   int           dir = FORWARD, mode = 1, nz;
+  istream*      input;
   vector<real*> u;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, dir, mode);
+  getargs (argc, argv, dir, mode, input);
 
   if (dir == FORWARD) {		// -- Project a dual field file.
 
     roundup   (mode, nz);
-    getheader (cin, header);
+    getheader (*input, header);
     allocate  (header, nz, u);
-    readdata  (header, cin, 3, u);
+    readdata  (header, *input, 3, u);
     packdata  (header, mode, nz, u, INVERSE);
     transform (header, nz, u, INVERSE);
     writedata (header, cout, nz, u);
 
   } else {			// -- Restrict a sem field file.
 
-    getheader (cin, header);
+    getheader (*input, header);
     allocate  (header, header.nz, u);
-    readdata  (header, cin, header.nz, u);
+    readdata  (header, *input, header.nz, u);
     transform (header, header.nz, u, FORWARD);
     packdata  (header, mode, header.nz, u, FORWARD);
     writedata (header, cout, 3, u);
@@ -113,10 +114,11 @@ int main (int    argc,
 }
 
 
-static void getargs (int    argc,
-		     char** argv,
-		     int&   dir ,
-		     int&   mode)
+static void getargs (int       argc ,
+		     char**    argv ,
+		     int&      dir  ,
+		     int&      mode ,
+		     istream*& input)
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
@@ -147,14 +149,9 @@ static void getargs (int    argc,
     }
 
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-      } else {
-	cerr << prog << "unable to open file" << endl;
-	exit (EXIT_FAILURE);
-      }
-  }
+    input = new ifstream (*argv);
+    if (input -> bad()) message (prog, "unable to open input file", ERROR);
+  } else input = &cin;
 
   if (mode < 1) {
     cerr << prog << ": mode number must be a positive integer" << endl;

@@ -169,13 +169,11 @@ int main (int    argc,
 
   if (strcmp (interface, "probe") == 0) {
     if (points) {
-      ifstream* inputfile = new ifstream (points);
-      if (inputfile -> good())
-	cin = *inputfile;
-      else
-	message (prog, "unable to open point file", ERROR);
-    }
-    ntot = loadPoints (cin, point);
+      pntfile = new ifstream (points);
+      if (pntfile -> bad()) message (prog, "unable to open point file", ERROR);
+    } else pntfile = &cin;
+
+    ntot = loadPoints (*pntfile, point);
   } 
   else if (strcmp (interface, "probeline")  == 0) ntot = linePoints  (point);
   else if (strcmp (interface, "probeplane") == 0) ntot = planePoints (point,M);
