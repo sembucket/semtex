@@ -1,9 +1,10 @@
 /*****************************************************************************
  * noiz.c: add a random Gaussian perturbation to a velocity field.
+ *         Optionally filter out a named mode.
  *
  * USAGE
  * -----
- * noiz [-h] [-o output] [-p perturb] [-m mode] [input[.fld]
+ * noiz [-h] [-f] [-o output] [-p perturb] [-m mode] [input[.fld]
  *
  * SYNOPSIS
  * --------
@@ -14,7 +15,7 @@
  *
  * NOTES
  * -----
- * Default value of perturbation is 1.2x10^-7.
+ * Default value of perturbation is 0.0.
  *****************************************************************************/
 
 static char RCSid[] = "$Id$";
@@ -39,14 +40,15 @@ static char RCSid[] = "$Id$";
 #define RNMX  (1.0-EPSDP)
 #define UNSET -1
 
-static void   getargs (int, char**, FILE**, FILE**, double*, integer*);
-static void   a_to_a  (integer, integer, integer, integer,
-		       FILE*, FILE*, char*, double, integer);
-static void   b_to_b  (integer, integer, integer, integer,
-		       FILE*, FILE*, char*, double, integer, integer);
+static void   getargs (int, char**, FILE**, FILE**, double*, int*, int*);
+static void   a_to_a  (int, int, int, int,
+		       FILE*, FILE*, char*, double, int, int);
+static void   b_to_b  (int, int, int, int,
+		       FILE*, FILE*, char*, double, int, int, int);
 static double gasdev  (long*);   
-static void   perturb (double*, const integer, const integer,
-		       const integer, const double);
+static void   perturb (double*, const int, const int, const int, const double);
+static void   filter  (double*, const int, const int, const int);
+
 
 static char prog[] = "noiz";
 static const char *hdr_fmt[] = { 
@@ -69,13 +71,13 @@ int main (int    argc,
  * Wrapper.
  * ------------------------------------------------------------------------- */
 {
-  char    buf[STR_MAX], fields[STR_MAX], fmt[STR_MAX], *c;
-  integer i, n, np, nz, nel, mode = UNSET, swab = 0;
-  FILE    *fp_in  = stdin,
-          *fp_out = stdout;
-  double  pert   = EPSSP;
+  char   buf[STR_MAX], fields[STR_MAX], fmt[STR_MAX], *c;
+  int    i, n, np, nz, nel, mode = UNSET, swab = 0, filt = 0;
+  FILE   *fp_in  = stdin,
+         *fp_out = stdout;
+  double pert    = 0.0;
 
-  getargs (argc, argv, &fp_in, &fp_out, &pert, &mode);
+  getargs (argc, argv, &fp_in, &fp_out, &pert, &mode, &filt);
 
   format (fmt);
 
@@ -90,7 +92,7 @@ int main (int    argc,
     if (sscanf (buf, "%d%*s%d%d", &np, &nz, &nel) != 3)
       message (prog, "unable to read the file size", ERROR);
 
-    if (mode != UNSET && 2 * mode >= nz) {
+    if (mode != UNSET && 2 * mode > nz) {
       sprintf (fields, "too many modes (%1d) for input (nz = %1d)", mode, nz);
       message (prog, fields, ERROR);
     }
@@ -116,7 +118,7 @@ int main (int    argc,
     switch (*c) {
     case 'a':
       fprintf (fp_out, hdr_fmt[9], "ASCII");
-      a_to_a  (np, nz, nel, n, fp_in, fp_out, fields, pert, mode);
+      a_to_a  (np, nz, nel, n, fp_in, fp_out, fields, pert, mode, filt);
       break;
 
     case 'b':
@@ -129,7 +131,7 @@ int main (int    argc,
       sprintf (buf, "binary ");
       strcat  (buf, fmt);
       fprintf (fp_out, hdr_fmt[9], buf);
-      b_to_b  (np, nz, nel, n, fp_in, fp_out, fields, pert, mode, swab);
+      b_to_b  (np, nz, nel, n, fp_in, fp_out, fields, pert, mode, swab, filt);
       break;
 
     default:
@@ -143,27 +145,28 @@ int main (int    argc,
 }
 
 
-static void a_to_a (integer np     ,
-		    integer nz     ,
-		    integer nel    ,
-		    integer nfields, 
-		    FILE*   in     , 
-		    FILE*   out    , 
-		    char*   fields , 
-		    double  pert   ,
-		    integer mode   )
+static void a_to_a (int    np     ,
+		    int    nz     ,
+		    int    nel    ,
+		    int    nfields, 
+		    FILE*  in     , 
+		    FILE*  out    , 
+		    char*  fields , 
+		    double pert   ,
+		    int    mode   ,
+		    int    filt   )
 /* ------------------------------------------------------------------------- *
  * ASCII input.
  * ------------------------------------------------------------------------- */
 {
-  register integer i, j, kr, ki;
-  const integer    nplane = np * np * nel,
-                   npts   = nz * nplane,
-                   ntot   = nfields * npts;
-  double**         data;
-  char             buf[STR_MAX];
-  double           datum;
-  long             seed = 0;
+  register int i, j, kr, ki;
+  const int    nplane = np * np * nel,
+               npts   = nz * nplane,
+               ntot   = nfields * npts;
+  double**     data;
+  char         buf[STR_MAX];
+  double       datum;
+  long         seed = 0;
 
   data = dmatrix (0, nfields - 1, 0, npts - 1);
 
@@ -177,8 +180,11 @@ static void a_to_a (integer np     ,
 
   for (i = 0; i < nfields; i++) {
     switch (fields[i]) {
-    case 'u': case 'v': case 'w': perturb (data[i], mode, nz, nplane, pert);
-    default:                      break;
+    case 'u': case 'v': case 'w': 
+      if (pert > 0.0) perturb (data[i], mode, nz, nplane, pert);
+    default:
+      if (filt)       filter  (data[i], mode, nz, nplane);
+      break;
     }
   }
 
@@ -193,26 +199,27 @@ static void a_to_a (integer np     ,
 }
 
 
-static void b_to_b (integer np     ,
-		    integer nz     ,
-		    integer nel    ,
-		    integer nfields, 
-		    FILE*   in     , 
-		    FILE*   out    , 
-		    char*   fields , 
-		    double  pert   ,
-		    integer mode   ,
-		    integer swab   )
+static void b_to_b (int    np     ,
+		    int    nz     ,
+		    int    nel    ,
+		    int    nfields, 
+		    FILE*  in     , 
+		    FILE*  out    , 
+		    char*  fields , 
+		    double pert   ,
+		    int    mode   ,
+		    int    swab   ,
+		    int    filt   )
 /* ------------------------------------------------------------------------- *
  * Binary input.
  * ------------------------------------------------------------------------- */
 {
-  register integer i, j, kr, ki;
-  const integer    nplane = np * np * nel,
-                   npts   = nz * nplane,
-                   ntot   = nfields * npts;
-  double**         data;
-  long             seed = 0;
+  register int i, j, kr, ki;
+  const int    nplane = np * np * nel,
+               npts   = nz * nplane,
+               ntot   = nfields * npts;
+  double**     data;
+  long         seed = 0;
 
   data = dmatrix (0, nfields - 1, 0, npts - 1);
 
@@ -223,8 +230,11 @@ static void b_to_b (integer np     ,
     if (swab) dbrev (npts, data[i], 1, data[i], 1);
 
     switch (fields[i]) {
-    case 'u': case 'v': case 'w': perturb (data[i], mode, nz, nplane, pert);
-    default:                      break;
+    case 'u': case 'v': case 'w': 
+      if (pert > 0.0) perturb (data[i], mode, nz, nplane, pert);
+    default:
+      if (filt)       filter  (data[i], mode, nz, nplane);
+      break;
     }
   }
 
@@ -236,12 +246,13 @@ static void b_to_b (integer np     ,
 }
 
 
-static void getargs (int       argc  ,
-		     char**   argv  ,
-		     FILE**   fp_in ,
-		     FILE**   fp_out,
-		     double*  pert  ,     
-		     integer* mode  )
+static void getargs (int     argc  ,
+		     char**  argv  ,
+		     FILE**  fp_in ,
+		     FILE**  fp_out,
+		     double* pert  ,     
+		     int*    mode  ,
+		     int*    filter)
 /* ------------------------------------------------------------------------- *
  * Parse command line arguments.
  * ------------------------------------------------------------------------- */
@@ -252,8 +263,9 @@ static void getargs (int       argc  ,
   char usage[] = "usage: noiz [options] [input[.fld]]\n"
     "options:\n"
     "-h         ... print this help message\n"
+    "-f         ... filter instead of perturb\n"
     "-o output  ... write to named file\n"
-    "-p perturb ... standard deviation of perutrbation\n"
+    "-p perturb ... standard deviation of perturbation\n"
     "-m mode    ... add noise only to this Fourier mode\n";
 
   while (--argc && (*++argv)[0] == '-')
@@ -262,6 +274,9 @@ static void getargs (int       argc  ,
       case 'h':
 	fputs (usage, stderr);
 	exit  (EXIT_SUCCESS);
+	break;
+      case 'f':
+	*filter = 1;
 	break;
       case 'o':
 	if (*++argv[0])
@@ -318,7 +333,7 @@ static double ran1 (long *idum)
  * Generate IUD random variates on (0, 1).  Numerical Recipes.
  * ------------------------------------------------------------------------- */
 {
-  integer     j;
+  int     j;
   long        k;
   static long iy = 0;
   static long iv[NTAB];
@@ -352,7 +367,7 @@ static double gasdev (long *idum)
  * Numerical Recipes.
  * ------------------------------------------------------------------------- */
 {
-  static integer iset = 0;
+  static int iset = 0;
   static double  gset;
   double         fac, r, v1, v2;
     
@@ -373,32 +388,38 @@ static double gasdev (long *idum)
 }
 
 
-static void perturb (double*       data  ,
-		     const integer mode  ,
-		     const integer nz    , 
-		     const integer nplane,
-		     const double  pert  )
+static void perturb (double*      data  ,
+		     const int    mode  ,
+		     const int    nz    , 
+		     const int    nplane,
+		     const double pert  )
 /* ------------------------------------------------------------------------- *
  * Add perturbation to data field.
  * ------------------------------------------------------------------------- */
 {
-  register integer j, kr, ki;
-  const integer    npts = nz * nplane;
-  long             seed = 0;
-  double           eps;
+  register int j;
+  const int    npts = nz * nplane;
+  const int    kr   = (2 * mode)     * nplane;
+  const int    ki   = (2 * mode + 1) * nplane;
+  long         seed = 0;
+  double       eps;
 
   if (mode != UNSET) {	/* -- Perturb only specified Fourier mode. */
 
     dDFTr (data, nz, nplane, +1);
     
-    kr = (2 * mode)     * nplane;
-    ki = (2 * mode + 1) * nplane;
-
     eps = pert * nz;		/* -- Account for scaling of modes. */
-    
-    for (j = 0; j < nplane; j++) data[kr + j] += eps * gasdev (&seed);
-    if (mode)
-    for (j = 0; j < nplane; j++) data[ki + j] += eps * gasdev (&seed);
+
+    if      (mode == 0)
+      for (j = 0; j < nplane; j++) data[j] += eps * gasdev (&seed);
+
+    else if (mode == (nz >> 1))
+      for (j = 0; j < nplane; j++) data[nplane + j] += eps * gasdev (&seed);
+
+    else {
+      for (j = 0; j < nplane; j++) data[kr + j] += eps * gasdev (&seed);
+      for (j = 0; j < nplane; j++) data[ki + j] += eps * gasdev (&seed);
+    }
     
     dDFTr (data, nz, nplane, -1);
 
@@ -407,5 +428,26 @@ static void perturb (double*       data  ,
     eps = pert;
     for (j = 0; j < npts; j++)   data[j]      += eps * gasdev (&seed);
     
+  }
+}
+
+
+static void filter (double*   data  ,
+		    const int mode  ,
+		    const int nz    , 
+		    const int nplane)
+/* ------------------------------------------------------------------------- *
+ * Zero data in named mode.
+ * ------------------------------------------------------------------------- */
+{
+  if (mode != UNSET) {
+
+    dDFTr (data, nz, nplane, +1);
+
+    if      (mode == 0)         dzero (nplane, data, 1);
+    else if (mode == (nz >> 1)) dzero (nplane, data + nplane, 1);
+    else                        dzero (2 * nplane, data + 2*mode*nplane, 1);
+    
+    dDFTr (data, nz, nplane, -1);
   }
 }
