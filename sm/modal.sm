@@ -1,0 +1,17 @@
+moden 1	# Plot Modal energies
+	DATA $1
+	READ { t 1 m 2 e 3 }
+	SET le = lg(e)
+	LIMITS t le
+	NOTATION -5 5 1 1
+	TICKSIZE 0 0 -1 0
+	LOCATION 5000 31000 5000 31000
+	EXPAND 1.1
+	BOX
+	POINTS t le
+	XLABEL \it t
+	YLABEL \it E_k
+	EXPAND 1.0
+
+
+	
