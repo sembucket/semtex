@@ -76,7 +76,7 @@ int main (int    argc,
   else          strcpy (fields, "uvp");
 
   D = new Domain   (*F, *M, *B, fields, session);
-  A = new Analyser (*D);
+  A = new Analyser (*D, *F);
 
   D -> initialize();
 
