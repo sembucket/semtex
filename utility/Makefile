@@ -159,7 +159,7 @@ probe: $(PRBOBJ)
 # Build rectmesh, rectangular mesh generator.
 #
 rectmesh: rectmesh.C
-	$(CXX) $(CPPFLAGS) -o $@ $@.C
+	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Special machine-dependent compilations.

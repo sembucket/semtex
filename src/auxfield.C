@@ -665,7 +665,7 @@ ostream& operator << (ostream&  strm,
 // needs access to the output stream.
 // ---------------------------------------------------------------------------
 {
-  const char       routine[] = "ofstream<<AuxField";
+  const char       routine[] = "ostream<<AuxField";
   const integer    NP    = Geometry::planeSize();
   const integer    nP    = Geometry::nPlane();
   const integer    nProc = Geometry::nProc();
@@ -713,7 +713,7 @@ istream& operator >> (istream&  strm,
 // This precaution is possibly unnecessary for input.
 // ---------------------------------------------------------------------------
 {
-  const char       routine[] = "ifstream>>AuxField";
+  const char       routine[] = "istream>>AuxField";
   const integer    nP    = Geometry::nPlane();
   const integer    NP    = Geometry::planeSize();
   const integer    nProc = Geometry::nProc();

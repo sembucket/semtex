@@ -212,7 +212,7 @@ istream& operator >> (istream&  strm,
 
 
 static char prog[] = "project";
-static void getargs  (int, char**, int&, int&, int&);
+static void getargs  (int, char**, int&, int&, int&, istream*&);
 static int  getDump  (istream&, ostream&, vector<Field2DF*>&,
 		      int&, int&, int&, int&, int&);
 static void loadName (const vector<Field2DF*>&, char*);
@@ -228,12 +228,13 @@ int main (int    argc,
   char              fields[StrMax];
   int               i, j, nEl, fInc;
   int               nPnew = 0, nZnew = 0, keepW = 0;
+  istream*          input;
   vector<Field2DF*> Uold, Unew;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, nPnew, nZnew, keepW);
+  getargs (argc, argv, nPnew, nZnew, keepW, input);
   
-  while (getDump (cin, cout, Uold, nPnew, nZnew, nEl, keepW, fInc)) {
+  while (getDump (*input, cout, Uold, nPnew, nZnew, nEl, keepW, fInc)) {
 
     Unew.setSize (Uold.getSize() + fInc);
 
@@ -283,11 +284,12 @@ int main (int    argc,
 }
 
 
-static void getargs (int    argc ,
-		     char** argv ,
-		     int&   np   ,
-		     int&   nz   ,
-		     int&   keepW)
+static void getargs (int       argc ,
+		     char**    argv ,
+		     int&      np   ,
+		     int&      nz   ,
+		     int&      keepW,
+		     istream*& input)
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
@@ -339,12 +341,9 @@ static void getargs (int    argc ,
     }
 
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good())
-      cin = *inputfile;
-    else
-      message (prog, "unable to open input file", ERROR);
-  }
+    input = new ifstream (*argv);
+    if (input -> bad()) message (prog, "unable to open input file", ERROR);
+  } else input = &cin;
 }
 
 

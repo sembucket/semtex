@@ -219,7 +219,7 @@ istream& operator >> (istream&  strm,
 
 
 static char prog[] = "transform";
-static void getargs  (int, char**, int&, char&, char&);
+static void getargs  (int, char**, int&, char&, char&, istream*&);
 static int  getDump  (istream&, ostream&, vector<Field2DF*>&);
 static void loadName (const vector<Field2DF*>&, char*);
 static int  doSwap   (const char*);
@@ -233,12 +233,13 @@ int main (int    argc,
 {
   int               i, dir = FORWARD;
   char              type   = 'B', basis = 'm';
+  istream*          input;
   vector<Field2DF*> u;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, dir, type, basis);
+  getargs (argc, argv, dir, type, basis, input);
   
-  while (getDump (cin, cout, u))
+  while (getDump (*input, cout, u))
     for (i = 0; i < u.getSize(); i++) {
       if (type == 'P' || type == 'B') u[i] -> DPT2D (dir, basis);
       if (type == 'F' || type == 'B') u[i] -> DFT1D (dir);
@@ -250,11 +251,12 @@ int main (int    argc,
 }
 
 
-static void getargs (int    argc ,
-		     char** argv ,
-		     int&   dir  ,
-		     char&  type ,
-		     char&  basis)
+static void getargs (int       argc ,
+		     char**    argv ,
+		     int&      dir  ,
+		     char&     type ,
+		     char&     basis,
+		     istream*& input)
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
@@ -296,14 +298,9 @@ static void getargs (int    argc ,
     }
 
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-      } else {
-	cerr << prog << ": unable to open input file" << endl;
-	exit (EXIT_FAILURE);
-    }
-  }
+    input = new ifstream (*argv);
+    if (input -> bad()) message (prog, "unable to open input file", ERROR);
+  } else input = &cin;
 }
 
 

@@ -18,7 +18,7 @@
 #include <Sem.h>
 
 static char prog[] = "rectmesh";
-static void getargs (int, char**);
+static void getargs (int, char**, istream*&);
 static void header  ();
 
 
@@ -28,34 +28,25 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  char           line[STR_MAX], *points = 0;
+  char           line[STR_MAX];
+  istream*       input;
   real           x, y;
   Stack <real>   X, Y;
   matrix<Point*> vertex;
   int            Nx = 0, Ny = 0;
   int            i, j, k;
 
-  getargs (argc, argv);
-
-  if (points) {
-    ifstream* inputfile = new ifstream (points);
-    if (inputfile -> good())
-      cin = *inputfile;
-    else {
-      cerr << prog << ": unable to open geometry file" << endl;
-      return EXIT_FAILURE;
-    }
-  }
+  getargs (argc, argv, input);
 
   // -- Read x, then y locations onto two stacks.
 
-  while (cin.getline(line, STR_MAX).gcount() > 1) {
+  while (input -> getline(line, STR_MAX).gcount() > 1) {
     istrstream (line, strlen(line)) >> x;
     X.push (x);
     Nx++;
   }
 
-  while (cin.getline(line, STR_MAX)) {
+  while (input -> getline(line, STR_MAX)) {
     istrstream (line, strlen(line)) >> y;
     Y.push (y);
     Ny++;
@@ -81,7 +72,7 @@ int main (int    argc,
       vertex (i, j) -> y = vertex (i, 0) -> y;
     }
 
-  header ();
+  header();
 
   // -- Print up vertex list.
 
@@ -146,8 +137,9 @@ int main (int    argc,
 }
 
 
-static void getargs (int    argc,
-		     char** argv)
+static void getargs (int       argc ,
+		     char**    argv ,
+		     istream*& input)
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
@@ -167,6 +159,11 @@ static void getargs (int    argc,
       exit (EXIT_FAILURE);
       break;
     }
+
+  if (argc == 1) {
+    input = new ifstream (*argv);
+    if (input -> bad()) message (prog, "unable to open geometry file", ERROR);
+  } else input = &cin;
 }
 
 
@@ -204,4 +201,3 @@ static void header ()
   cout << "\tITERATIVE = 1"         << endl;
   cout << "</TOKENS>" << endl << endl;
 }
-
