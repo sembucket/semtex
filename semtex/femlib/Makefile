@@ -83,7 +83,6 @@ ifdef MPI
 endif
 endif
 
-
 # ----------------------------------------------------------------------------
 # Create dependency list.
 # ----------------------------------------------------------------------------
@@ -131,18 +130,6 @@ install:
 	cp Femlib.h    $(SEMHOME)/include	;			\
 
 initial.o: defaults.h
-
-testpoly: testpoly.c
-	cc $(CFLAGS) -o testpoly testpoly.c -I$(SEMHOME)/include -I. \
-	-L$(SEMHOME)/lib -lfem -lalp -lm -lmalloc
-
-testFFT: testFFT.C
-	$(CXX) -o $@ testFFT.C temfft.o -I$(SEMHOME)/include -I. -g \
-	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lftn -lm
-
-testDLT: testDLT.C
-	$(CXX) -o $@ testDLT.C -I$(SEMHOME)/include -I. -g \
-	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp -lm
 
 tar:
 	tar cvf femlib.tar *
