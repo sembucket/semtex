@@ -75,7 +75,7 @@ int main (int    argc,
   State.drawpar = GL_FALSE;
   State.rotate  = GL_TRUE;
   State.blackbk = GL_TRUE;
-  State.alpha   = GL_TRUE;
+  State.alpha   = GL_FALSE;
   State.alias   = GL_FALSE;
   State.fog     = GL_FALSE;
   State.cylind  = GL_FALSE;

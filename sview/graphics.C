@@ -325,11 +325,11 @@ void initGraphics ()
   glEnable       (GL_BLEND);
   glBlendFunc    (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  // -- Anti-aliasing (enabled by default);
+  // -- Anti-aliasing (disabled by default);
 
-  glEnable       (GL_LINE_SMOOTH);
-  glEnable       (GL_POINT_SMOOTH);
-  glEnable       (GL_POLYGON_SMOOTH);
+  glDisable       (GL_LINE_SMOOTH);
+  glDisable       (GL_POINT_SMOOTH);
+  glDisable       (GL_POLYGON_SMOOTH);
 
   // -- Shared material properties:
   //    both surfaces have white highlights,
