@@ -920,4 +920,3 @@ real AuxField::probe (const Element* E,
    
   return value;
 }
-
