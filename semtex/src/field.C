@@ -106,7 +106,7 @@
 // -----------------------
 // Special conditions apply in cylindrical geometries in the case where
 // the axis is included in the domain.  In cylindical geometries it is
-// assumed that the boundary conditions on each component of velocity
+// assumed that the kind of boundary condition on each component of velocity
 // will be identical on boundaries which don't lie on the axis: this is
 // required to achieve economy on the present use of numbering schemes
 // and could be relaxed with some work.
@@ -406,8 +406,26 @@ void Field::evaluateBoundaries (const int step)
 }
 
 
-void Field::addToBoundaries (const real  val,
-			     const char* grp)
+void Field::evaluateM0Boundaries (const int step)
+// ---------------------------------------------------------------------------
+// Traverse Boundaries and evaluate according to kind, but only for Mode 0.
+// ---------------------------------------------------------------------------
+{
+  register int       i, voff;
+  const int          nZ = Geometry::nZ();
+  register Boundary* B;
+
+  for (i = 0; i < n_bound; i++) {
+    B    = boundary[0][i];
+    voff = B -> vOff();
+
+    B -> evaluate (0, step, line[0] + voff);
+  }
+}
+
+
+void Field::addToM0Boundaries (const real  val,
+			       const char* grp)
 // ---------------------------------------------------------------------------
 // Add val to zeroth Fourier mode's bc storage area on BC group "grp".
 // ---------------------------------------------------------------------------
