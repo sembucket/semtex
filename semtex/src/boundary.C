@@ -1,6 +1,6 @@
-/*****************************************************************************
- * boundary.C:  Boundary edge routines.
- *****************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+// boundary.C
+///////////////////////////////////////////////////////////////////////////////
 
 static char
 RCSid[] = "$Id$";
@@ -8,7 +8,10 @@ RCSid[] = "$Id$";
 #include "Fem.h"
 
 
-Boundary::Boundary (int ident, Element* E, int sideNo,  BC* cond)
+Boundary::Boundary (int       ident ,
+		    Element*  E     ,
+		    int       sideNo,
+		    BC*       cond  )
 // ---------------------------------------------------------------------------
 // Constructor.  Allocate new memory for value & geometric factors.
 // ---------------------------------------------------------------------------
@@ -27,7 +30,8 @@ Boundary::Boundary (int ident, Element* E, int sideNo,  BC* cond)
 }
 
 
-Boundary::Boundary (const Boundary& B, const List<Element*>& E)
+Boundary::Boundary (const Boundary&        B,
+		    const List<Element*>&  E)
 // ---------------------------------------------------------------------------
 // Make a copy of an existing Boundary edge, with new data storage area
 // and with element pointer into the list of associated new Elements (input).
@@ -125,18 +129,19 @@ void  Boundary::print () const
 }
 
 
-void  Boundary::enforce (real* target) const
+void Boundary::set (real* target) const
 // ---------------------------------------------------------------------------
-// This is for ESSENTIAL BCs: load BC data into globally-numbered target.
+// Load BC data into element-wise numbered target.
 // ---------------------------------------------------------------------------
 {
-  elmt -> sideScatr (side, value, target);
+  elmt -> sideSet (side, value, target + elmt -> nOff ());
 }
 
 
-void  Boundary::dsSum (real* target) const
+void Boundary::dsSum (real* target) const
 // ---------------------------------------------------------------------------
-// This is for NATURAL BCs: direct-stiffness-sum weighted BC data into target.
+// This is for natural BCs: direct-stiffness-sum weighted BC data into 
+// globally-numbered target.
 // ---------------------------------------------------------------------------
 {
   elmt -> sideDsSum (side, value, area, target);
@@ -157,12 +162,9 @@ int  Boundary::isEssential () const
 // Return 1 for essential-type BC, 0 for natural.
 // ---------------------------------------------------------------------------
 {
-  if (   condition -> kind == BC::essential
-      || condition -> kind == BC::essential_fn
-      || condition -> kind == BC::wall        )
-    return 1;
-  else
-    return 0;
+  return (   condition -> kind == BC::essential
+	  || condition -> kind == BC::essential_fn
+	  || condition -> kind == BC::wall        );
 }
 
 
@@ -184,8 +186,10 @@ void  Boundary::mask (real* gnode) const
 }
 
 
-void Boundary::curlCurl (const real*  U ,  const real*  V ,
-			       real*  wx,        real*  wy) const
+void Boundary::curlCurl (const real*  U ,
+			 const real*  V ,
+			 real*        wx,
+			 real*        wy) const
 // ---------------------------------------------------------------------------
 // Evaluate dw/dx & dw/dy (where w is the z-component of vorticity) from
 // element velocity fields, according to the side of the element on which
@@ -221,7 +225,8 @@ void Boundary::curlCurl (const real*  U ,  const real*  V ,
 }
 
 
-void  Boundary::resetPBCs (const BC* new_other, const BC* new_outflow)
+void  Boundary::resetPBCs (const BC*  new_other  ,
+			   const BC*  new_outflow)
 // ---------------------------------------------------------------------------
 // Examine & reset BC kind for this Boundary.
 // This routine is intended for resetting pressure BCs.
@@ -232,7 +237,8 @@ void  Boundary::resetPBCs (const BC* new_other, const BC* new_outflow)
 }
 
 
-void  Boundary::switchBC (const BC::type& original, const BC* replacement)
+void  Boundary::switchBC (const BC::type&  original   ,
+			  const BC*        replacement)
 // ---------------------------------------------------------------------------
 // Examine & reset BC for this Boundary.
 // ---------------------------------------------------------------------------
@@ -241,7 +247,8 @@ void  Boundary::switchBC (const BC::type& original, const BC* replacement)
 }
 
 
-Vector  Boundary::normalTraction (const real* p, real* wrk) const
+Vector  Boundary::normalTraction (const real*  p  ,
+				  real*        wrk) const
 // ---------------------------------------------------------------------------
 // Compute normal tractive force on this boundary segment, using p as
 // a pressure stress field data area.  Wrk is a work vector elmt_np_max long.
@@ -250,7 +257,7 @@ Vector  Boundary::normalTraction (const real* p, real* wrk) const
   register int  i, np = nKnot ();
   Vector        Force = {0.0, 0.0, 0.0};
 
-  Veclib::copy (np, p + nOff (), nSkip (), wrk, 1);
+  Veclib::copy (np, p + nOff (), skip, wrk, 1);
 
   for (i = 0; i < np; i++) {
     Force.x += nx[i] * wrk[i] * area[i];
@@ -264,8 +271,8 @@ Vector  Boundary::normalTraction (const real* p, real* wrk) const
 Vector Boundary::tangentTraction (const real*  u ,
 				  const real*  v ,
 				  const real&  mu,
-				        real*  ux,
-                                        real*  uy) const
+				  real*        ux,
+				  real*        uy) const
 // ---------------------------------------------------------------------------
 // Compute viscous stress on this boundary segment.
 // u is data area for first velocity component field, v is for second.
@@ -296,7 +303,8 @@ Vector Boundary::tangentTraction (const real*  u ,
 }
 
 
-void  Boundary::addIn (const real& val, const BC::type& select)
+void  Boundary::addIn (const real&      val   ,
+		       const BC::type&  select)
 // ---------------------------------------------------------------------------
 // Add val to value storage if onlyFor matches kind of current boundary
 // _fn kinds match non_fn kinds, i.e. BC::essential_fn matches BC::essential,
