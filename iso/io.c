@@ -92,6 +92,7 @@ void printParam (FILE*        fp,
 {
   fprintf (fp, "Session name                : %s\n",  H -> session);
   fprintf (fp, "Grid size                   : %1d\n", H -> ngrid  );
+  fprintf (fp, "Timestepping order          : %1d\n", H -> norder );
   fprintf (fp, "Steps between field dumps   : %1d\n", H -> io_fld );
   fprintf (fp, "Steps between history dumps : %1d\n", H -> io_his );
   fprintf (fp, "Maximum number of steps     : %1d\n", H -> nstep  );

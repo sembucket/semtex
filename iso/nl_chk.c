@@ -20,7 +20,8 @@ void nonlinear_alt       (CVF, CVF, CF, CVF, const complex*, const complex*);
 int main (int    argc,
 	  char** argv)
 {
-  CVF           U, G, G_old, G_temp, work;
+  CVF           U, G_temp, work;
+  CVF*          G = calloc (1, sizeof (CVF*));
   CF            F, F_;
   complex*      Wtab;
   complex*      Stab;
@@ -28,7 +29,6 @@ int main (int    argc,
   Param*        Info = (Param*) calloc (1, sizeof (Param));
   int           Npts, Npts_P, perm;
   FILE*         fp;
-  int           cubesize;
   real          err1, err2, err3;
   register int  c, i, j, k;
   real          *u, *v, *w;
@@ -58,7 +58,7 @@ int main (int    argc,
   K        = N / 2;
   FourKon3 = (4 * K) / 3;
 
-  allocate (&U, &G, &G_old, &work, &F, &F_, &Wtab, &Stab);
+  allocate (&U, G, 1, &work, &F, &F_, &Wtab, &Stab);
   preFFT   (Wtab, K);
   preShift (Stab, N);
 
@@ -81,39 +81,39 @@ int main (int    argc,
 
   /* -- Compute nonlinear terms d(UiUj)/dxj. */
 
-  nonlinear_alt (U, G, F, work, Wtab, Stab);
+  nonlinear_alt (U, G[0], F, work, Wtab, Stab);
 
   fprintf (stderr, "Maximum nonlinear components:       %g  %g  %g\n",
-	   amaxf (G[1]), amaxf (G[2]), amaxf (G[3]));
+	   amaxf (G[0][1]), amaxf (G[0][2]), amaxf (G[0][3]));
 
   fprintf (stderr, "Nonlinear terms' energy:            %g\n",
-	   energyF (G));
+	   energyF (G[0]));
 
   /* -- Transform nonlinear terms to PHYSICAL space. */
 
-  for (c = 1; c <= 3; c++) rc3DFT (G[c], Wtab, INVERSE);
+  for (c = 1; c <= 3; c++) rc3DFT (G[0][c], Wtab, INVERSE);
 
   /* -- Subtract analytical solution. */
 
-  TaylorGreenNL_error (G);
+  TaylorGreenNL_error (G[0]);
 
   fprintf (stderr, "Maximum nonlinear error components: %g  %g  %g\n",
-	   amaxf (G[1]), amaxf (G[2]), amaxf (G[3]));
+	   amaxf (G[0][1]), amaxf (G[0][2]), amaxf (G[0][3]));
 
   /* -- Transform nonlinear terms back to FOURIER space. */
 
   for (c = 1; c <= 3; c++) {
-    rc3DFT  (G[c], Wtab, FORWARD);
-    scaleFT (G[c]);
+    rc3DFT  (G[0][c], Wtab, FORWARD);
+    scaleFT (G[0][c]);
   }
 
   fprintf (stderr, "Error energy:                       %g\n",
-	   energyF (G));
+	   energyF (G[0]));
 
   /* -- Output error field. */
 
   writeParam (stdout, Info);
-  writeCVF   (stdout, G);
+  writeCVF   (stdout, G[0]);
 
   return EXIT_SUCCESS;
 }

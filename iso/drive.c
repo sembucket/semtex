@@ -3,7 +3,7 @@
  * ----
  * DNS of isotropic turbulence by a Fourier--Galerkin pseudo-spectral method.
  *
- * Copyright (C) 1992, 1999 Hugh Blackburn
+ * Copyright (C) 1992-1999 Hugh Blackburn
  *
  * Usage:
  * ------
@@ -16,6 +16,7 @@
  * -H <num> ... set interval for history dumps [Default: 10]
  * -k <num> ... set kinematic viscosity        [Default: 1]
  * -n <num> ... set number of timesteps        [Default: 100]
+ * -o <num> ... set timestepping order         [Default: 2]
  *
  * Method:
  * -------
@@ -59,22 +60,13 @@
  *
  * Files:
  * ------
- * Two files are needed; an ASCII session file, which gives run
- * parameters, and a binary field file which gives initial conditions.
+ * A binary field file that gives initial conditions is required.
  * All field-type files are written as Fourier coefficients.
  *
  * Naming conventions for files (suffixes are appended to session file root):
  *   .rst   Restart/IC file
  *   .fld   Field      file     
  *   .chk   Checkpoint file 
- *
- * Example session file:            (order is significant)
- *   Test run                TITLE  (tag string, otherwise unused)
- *   64                      NGRID  (spatial resolution)
- *   0.0001                  DT     (time step)
- *   1000                    IO_FLD (steps between fields or checkpoints)
- *   20000                   STEPS  (total number of steps to run)
- *   500.0                   RE     (Reynolds number: 1/(kinematic viscosity))
  *
  * References:
  * -----------
@@ -110,7 +102,8 @@ static void getargs (int, char**, Param*);
 
 int N, K, FourKon3;		/* -- Global grid size variables. */
 
-#define SWAP(a, b) {CVF G_temp = (a); (a) = (b); (b) = G_temp;}
+#define ROLL(u, n) { if ((n) > 1) { CVF _tmp = (u)[(n)-1]; int _i; \
+  for (_i = (n)-1; _i; _i--) (u)[_i]=(u)[_i-1]; (u)[0] = _tmp; }}
 
 
 int main (int    argc,
@@ -119,7 +112,8 @@ int main (int    argc,
  * Driver routine for simulation code.
  * ------------------------------------------------------------------------- */
 {
-  CVF     U, G, G_old, work;
+  CVF     U, work;
+  CVF*    G = malloc (sizeof (CVF*));
   CF      F, F_;
   complex *Wtab, *Stab;
   Param*  runInfo = calloc (1, sizeof (Param));
@@ -135,13 +129,9 @@ int main (int    argc,
   printf ("%s: Fourier-spectral Navier-Stokes simulation\n", prog);
   printf ("Copyright (C) 1992-1999 Hugh Blackburn\n\n");
 
-  /* -- Global size variables. */
+  N = runInfo -> ngrid; K = N / 2; FourKon3 = (4 * K) / 3;
 
-  N        = runInfo -> ngrid;
-  K        = N / 2;
-  FourKon3 = (4 * K) / 3;
-
-  allocate   (&U, &G, &G_old, &work, &F, &F_, &Wtab, &Stab);
+  allocate   (&U, G, runInfo -> norder, &work, &F, &F_, &Wtab, &Stab);
 
   preFFT     (Wtab, K);
   preShift   (Stab, N);
@@ -158,11 +148,11 @@ int main (int    argc,
 
   while (runInfo -> step < runInfo -> nstep) {
 
-    zeroVF    (G);
-    nonlinear (U, G, F, F_, work, Wtab, Stab);
-    project   (G, F);
-    integrate (U, G, G_old, runInfo);
-    SWAP      (G, G_old);
+    zeroVF    (G[0]);
+    nonlinear (U, G[0], F, F_, work, Wtab, Stab);
+    project   (G[0], F);
+    integrate (U, G, runInfo);
+    ROLL      (G, runInfo -> norder);
 
     runInfo -> step ++;
     runInfo -> time += runInfo -> dt;
@@ -189,6 +179,7 @@ static void Default (Param* I)
   I -> chkpnt  = TRUE;
   I -> ngrid   = 16;
   I -> nstep   = I -> io_fld;
+  I -> norder  = 2;
   I -> step    = 0;
   I -> dt      = 0.01;
   I -> time    = 0.0;
@@ -212,7 +203,8 @@ static void getargs (int    argc,
     "-f <num> ... set interval for field dumps   [Default: 100]\n"
     "-H <num> ... set interval for history dumps [Default: 10]\n"
     "-k <num> ... set kinematic viscosity        [Default: 1]\n"
-    "-n <num> ... set number of timesteps        [Default: 100]\n";
+    "-n <num> ... set number of timesteps        [Default: 100]\n"
+    "-o <num> ... set timestepping order         [Default: 2]\n";
   char c, err[STR_MAX];
  
   while (--argc && **++argv == '-')
@@ -244,9 +236,15 @@ static void getargs (int    argc,
       if   (*++argv[0]) I -> nstep  = atoi (*argv);
       else { --argc;    I -> nstep  = atoi (*++argv); }
       break;
+    case 'o':
+      if   (*++argv[0]) I -> norder = atoi (*argv);
+      else { --argc;    I -> norder = atoi (*++argv); }
+      break;
     default:
       break;
     }
+
+  if (I->norder > 3) message (prog, "maximum timestepping order is 3", ERROR);
 
   if   (argc != 1)  message (prog, "no session definition file", ERROR);
   else              I -> session = *argv;

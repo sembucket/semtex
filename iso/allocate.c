@@ -128,22 +128,23 @@ real** cfield (CVF* u)
 }
 
 
-void allocate (CVF*       V    ,
-	       CVF*       G    ,
-	       CVF*       G_old,
-	       CVF*       WK   ,
-	       CF*        F    ,
-	       CF*        F_   ,
-	       complex**  Wtab ,
-	       complex**  Stab )
+void allocate (CVF*      V    ,
+	       CVF*      G    ,
+	       const int order,
+	       CVF*      WK   ,
+	       CF*       F    ,
+	       CF*       F_   ,
+	       complex** Wtab ,
+	       complex** Stab )
 /* ------------------------------------------------------------------------- *
- * Use the above routines to get main storage for problem.
+ * Use the above routines to get main storage for N-S simulation.
  * ------------------------------------------------------------------------- */
 {
-  cfield (&(*V)    );
-  cfield (&(*G)    );
-  cfield (&(*G_old));
-  cfield (&(*WK)   );
+  int i;
+
+  cfield (&(*V));
+  for (i = 0; i < order; i++) cfield (&G[i]);
+  cfield (&(*WK));
 
   cbox (0, N-1, 0, N-1, 0, K-1, F );
   cbox (0, N-1, 0, N-1, 0, K-1, F_);
