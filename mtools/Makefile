@@ -8,12 +8,22 @@ ARCH     = $(shell uname -s)
 CPPFLAGS = -I. -I$(HOME)/include -I$(HOME)/include/sm
 DEFINES  = 
 
+# -- Set DEBUG=1 on command line if you want debugging output.
+
 ifdef DEBUG
   DEFINES += -DDEBUG
 endif
 
+# -- Set GRAPHICS=1 on command line if you want to compile in SM calls.
+
 ifdef GRAPHICS
   DEFINES += -DGRAPHICS
+endif
+
+# -- Set PROMPT=1 on command line if you want loop-by-loop prompting
+
+ifdef PROMPT
+  DEFINES += -DPROMPT
 endif
 
 # ----------- Compiler options for specific machines -------------------------

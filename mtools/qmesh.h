@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// qmesh.h: header file for quadrilateral mesh generator.
+// Qmesh.h: header file for quadrilateral mesh generator.
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
@@ -13,25 +13,25 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <math.h>
-
-#include <sm_options.h>
-#include <sm_declare.h>
 
 #include <Array.h>
 #include <List.h>
 
-typedef float real;
+typedef  double real;
 enum lev {WARNING, ERROR, REMARK};
 void message (const char*, const char*, const lev&);
+
 
 const  int    StrMax = 256;
 const  double EPSSP  = 6.0e-7;
 const  double EPSDP  = 6.0e-14;
 const  double TWOPI  = 6.28318530717958647692;
 
-extern int verbose;
-extern int graphics;
+extern int  verbose;
+extern int  graphics;
+extern real refcoeff;
 
 template<class T> inline T sqr(T x)      { return x * x;            }
 template<class T> inline T sgn(T x)      { return (x < 0) ? -1 : 1; }
@@ -43,8 +43,6 @@ template<class T> inline T max(T a, T b) { return (a > b) ?  a : b; }
 const real C1     = 0.5;	// -- Angle  weight factor.
 const real C2     = 0.3;	// -- Length weight factor.
 const real C3     = 0.2;	// -- Error  weight factor.
-
-const real refine = 0.15;	// -- Refinement coefficient.
 
 const int  InsMax = 64;	        // -- Max Nodes to insert on splitting line.
 
@@ -63,9 +61,12 @@ public:
 
   real  magnitude () const { return hypot (x, y); }
   real  distance  (const Point&) const;
+  real  dot       (const Point&) const;
   real  angle     (const Point&) const;
   real  angle     (const Point&, const Point&) const;
   real  turn      (const Point&, const Point&) const;
+  int   ccw       (const Point&, const Point&) const;
+  Point relative  (const Point&, const real&, const real&) const;
 
   Point& operator += (const Point&);
   Point& operator -= (const Point&);
@@ -79,31 +80,48 @@ Point operator + (const Point&, const Point&);
 Point operator - (const Point&, const Point&);
 Point operator * (const real&,  const Point&);
 Point intersect  (const Point&, const Point&, const Point&, const Point&);
+int   cross      (const Point&, const Point&, const Point&, const Point&);
+int   cull       (const Point&, const Point&, const Point&, const Point&);
+Point unitNormal (const Point&, const Point&);
 
 
 class Node
 // ===========================================================================
-// A Node has a Point, an index number and an ideal element length scale.
+// A Node has a Point, an ID number and an ideal element length scale.
+//
+// In addition it knows if it lies on a domain boundary (hence, can't be
+// shifted during mesh smoothing), is a boundary node flagged for offset,
+// or is an interior node.
+//
+// A List of contacting Nodes is computed after all Nodes are created,
+// which is used during Laplacian smoothing.
 // ===========================================================================
 {
 friend ostream& operator << (ostream&, Node&);
 public:
-  Node (const int& i, const Point& p, const real& s, const int& b = 0) 
-    : id (i), loc (p), ideal (s), boundary (b) { }
+  enum  nodekind { INTERIOR, BOUNDARY, OFFSET };
+
+  Node (const int&            i,
+	const Point&          p,
+	const real&           s,
+	const Node::nodekind& b = INTERIOR)
+    : id (i), loc (p), ideal (s), kind (b) { }
 
   const int&   ID       () const { return id;    }
   const Point& pos      () const { return loc;   }
   const real&  prefSize () const { return ideal; }
 
   void  xadd     (Node*);
-  void  setPos   (const Point& p) { if (!boundary){loc.x = p.x; loc.y = p.y;} }
+  void  setPos   (const Point&);
   Point centroid () const;
+  int   offset   () const { return kind == OFFSET;   }
+  int   interior () const { return kind == INTERIOR; }
 
 private:
   int         id;
   Point       loc;
   real        ideal;
-  int         boundary;
+  nodekind    kind;
   List<Node*> contact;
 };
 
@@ -117,30 +135,34 @@ friend istream& operator >> (istream&, Loop&);
 friend ostream& operator << (ostream&, Loop&);
 public:
   Loop ();
-  Loop (vector<Node*>&, vector<Node*>&, Node*, Node*, const int&);
+  Loop (vector<Node*>&, vector<Node*>&, const int&, const int&, const int&);
 
-  const int& ID () const { return id; }
+  const int&  ID   () const { return id; }
+  real        area () const;
 
+  void  offset  ();
   void  split   ();
   void  connect ();
   void  smooth  ();
   void  draw    () const;
 
-  void  limits (Point&, Point&)               const;
-  int   points (vector<real>&, vector<real>&) const;
-  int   line   (vector<real>&, vector<real>&) const;
+  void  limits (Point&, Point&)                 const;
+  int   points (vector<float>&, vector<float>&) const;
+  int   line   (vector<float>&, vector<float>&) const;
   
 private:
   int                id;
   static int         node_id_max;
   static int         loop_id_max;
   static List<Node*> node_list;
+  static real        size;
 
   vector<Node*> nodes;
   vector<Node*> splitline;
   Loop*         left;
   Loop*         right;
 
+  Node* exist        (const Node*, List<Node*>&) const;
   real  lengthScale  () const;
   Point centroid     () const;
 
@@ -152,15 +174,18 @@ private:
   void  insertNodes  (const Node*, const Node*, const int&);
 
   void  splitSix     (int&, int&);
+  
 };
 
 
 // -- Routines in graphics.cc:
 
-void initGraphics  ();
+void initGraphics  (const char*);
 void stopGraphics  ();
 void eraseGraphics ();
 void drawBox  (const Loop*);
 void drawLoop (const Loop*);
+void hardCopy (const Loop*);
+void pause ();
 
 #endif
