@@ -1,0 +1,53 @@
+void dvvtvm(int n, const double *w, int incw,
+	           const double *x, int incx,
+	           const double *y, int incy,
+	                 double *z, int incz)
+/* ========================================================================= *
+ * Return (vector times vector) minus vector:  z = (w * x) - y.              *
+ * ========================================================================= */
+{
+  register int  i;
+  
+
+  w += (incw<0) ? (-n+1)*incw : 0;
+  x += (incx<0) ? (-n+1)*incx : 0;
+  y += (incy<0) ? (-n+1)*incy : 0;
+  z += (incz<0) ? (-n+1)*incz : 0;
+
+  for (i=0; i<n; i++) {
+    *z = *w * *x - *y;
+    w += incw;
+    x += incx;
+    y += incy;
+    z += incz;
+  }
+}
+
+
+
+
+
+void svvtvm(int n, const float *w, int incw,
+	           const float *x, int incx,
+	           const float *y, int incy,
+	                 float *z, int incz)
+/* ========================================================================= *
+ * Return (vector times vector) minus vector:  z = (w * x) - y.              *
+ * ========================================================================= */
+{
+  register int  i;
+  
+
+  w += (incw<0) ? (-n+1)*incw : 0;
+  x += (incx<0) ? (-n+1)*incx : 0;
+  y += (incy<0) ? (-n+1)*incy : 0;
+  z += (incz<0) ? (-n+1)*incz : 0;
+
+  for (i=0; i<n; i++) {
+    *z = *w * *x - *y;
+    w += incw;
+    x += incx;
+    y += incy;
+    z += incz;
+  }
+}
