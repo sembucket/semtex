@@ -17,11 +17,11 @@ RCSid[] = "$Id$";
 typedef ModalMatrixSystem ModeSys;
 static  int               DIM;
 
-static void  nonLinear (Domain*, AuxField***, AuxField***, Vector&);
-static void  waveProp  (Domain*, const AuxField***, const AuxField***);
-static void  setPForce (const Domain*, const AuxField***, AuxField***);
-static void  project   (const Domain*, AuxField***, AuxField***);
-static void  setUForce (const Domain*, AuxField***);
+static void nonLinear (Domain*, AuxField***, AuxField***, Vector&);
+static void waveProp  (Domain*, const AuxField***, const AuxField***);
+static void setPForce (const Domain*, const AuxField***, AuxField***);
+static void project   (const Domain*, AuxField***, AuxField***);
+static void setUForce (const Domain*, AuxField***);
 
 static ModeSys** preSolve (const Domain*);
 static void      Solve    (Field*, AuxField*, ModeSys*, const int, const int);
@@ -131,11 +131,80 @@ static void nonLinear (Domain*     D ,
 //
 // If STOKES is defined for compilation, the nonlinear terms are set to zero.
 //
-// Note that all gradient operations are performed on T = D -> u[0], and that
-// an even number are performed in the Fourier direction, so that the
-// frames return to their original places by the end of the subroutine.
+// Data are transformed to physical space for most of the operations, with
+// the Fourier transform extended using zero padding for dealiasing.  For
+// gradients in the Fourier direction however, the data must be transferred
+// back to Fourier space.
 // ---------------------------------------------------------------------------
 {
+
+  int               i, j;
+  const int         nZ     = Geometry::nZ();
+  const int         nP     = Geometry::planeSize();
+  const int         nTot   = nZ * nP;
+  const int         nZ32   = (3 * nZ) >> 1;
+  const int         nTot32 = nZ32 * nP;
+  const real        EPS    = (sizeof(real) == sizeof(double)) ? EPSDP : EPSSP;
+  vector<real>      work ((2 * DIM + 1) * nTot32);
+  vector<real*>     u32 (DIM);
+  vector<real*>     n32 (DIM);
+  vector<AuxField*> U (DIM);
+  vector<AuxField*> N (DIM);
+  vector<real>      A (DIM);
+  Field*            master = D -> u[0];
+  real*             tmp    = work() + 2 * DIM * nTot32;
+
+  A[0] = a.x; A[1] = a.y; if (DIM == 3) A[2] = a.z;
+
+  for (i = 0; i < DIM; i++) {
+    u32[i] = work() +  i        * nTot32;
+    n32[i] = work() + (i + DIM) * nTot32;
+
+    AuxField::swapData (D -> u[i], Us[i][0]);
+    U[i] = Us[i][0];
+    U[i] -> transform32  (u32[i], -1);
+
+    N[i] = Uf[i][0];
+    Veclib::zero (nTot32, n32[i],  1);
+  }
+  
+  for (i = 0; i < DIM; i++) {
+    for (j = 0; j < DIM; j++) {
+      
+      // -- Perform n_i = u_j d(u_i) / dx_j.
+
+      Veclib::copy (nTot32, u32[i], 1, tmp,  1);
+      if (j == 2) {
+	Femlib::DFTr (tmp, nZ32, nP, +1);
+	Veclib::zero (nTot32 - nTot, tmp + nTot, 1);
+	master -> gradient (nZ, tmp, j);
+	Femlib::DFTr (tmp, nZ32, nP, -1);
+      } else {
+	master -> gradient (nZ32, tmp, j);
+      }
+      Veclib::vvtvp (nTot32, u32[j], 1, tmp,  1, n32[i], 1, n32[i], 1);
+
+      // -- Perform n_i += d(u_i u_j) / dx_j.
+
+      Veclib::vmul  (nTot32, u32[i], 1, u32[j], 1, tmp,  1);
+      if (j == 2) {
+	Femlib::DFTr (tmp, nZ32, nP, +1);
+	Veclib::zero (nTot32 - nTot, tmp + nTot, 1);
+	master -> gradient (nZ, tmp, j);
+	Femlib::DFTr (tmp, nZ32, nP, -1);
+      } else {
+	master -> gradient (nZ32, tmp, j);
+      }
+      Veclib::vadd (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
+
+    }
+    N[i]   -> transform32 (n32[i], +1);
+    master -> smooth (N[i]);
+    if (fabs (A[i]) > EPS) N[i] -> addToPlane (0, 2.0*A[i]);
+    *N[i] *= -0.5;
+  }
+      
+  /*
   int               i, j;
   const real        EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
   vector<AuxField*> U (DIM);	// -- Shorthand for velocity  fields.
@@ -176,6 +245,7 @@ static void nonLinear (Domain*     D ,
 #endif
 
   for (i = 0; i < DIM; i++) if (fabs (A[i]) > EPS) *N[i] -= A[i];
+*/
 }
 
 
