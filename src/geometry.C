@@ -44,7 +44,7 @@ void Geometry::set (const integer  NP,
 // the handling of Fourier transforms, which can be based on a
 // real--complex transform on some platforms.  The restriction to be
 // an integer multiple of the number of processors is to simplify the
-// structure of memory transposes required for Fourier transforms.
+// structure of memory exchanges required for Fourier transforms.
 // ---------------------------------------------------------------------------
 {
   static char routine[] = "Geometry::set", err[StrMax];

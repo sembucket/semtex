@@ -176,11 +176,11 @@ void Field::bTransform (const integer sign)
 	if   (sign == +1) Veclib::zero (n_line, line[1], 1);
 	else              Veclib::copy (n_line, line[0], 1, line[1], 1);
       else
-	Femlib::DFTr  (sheet, nZ, n_line, sign);
+	Femlib::DFTr (sheet, nZ, n_line, sign);
   } else {
-    Femlib::transpose (sheet, nZP, nP,   +1);
-    Femlib::DFTr      (sheet, nZ, nPP, sign);
-    Femlib::transpose (sheet, nZP, nP,   -1);
+    Femlib::exchange (sheet, nZP, nP,   +1);
+    Femlib::DFTr     (sheet, nZ, nPP, sign);
+    Femlib::exchange (sheet, nZP, nP,   -1);
   }
 }
 

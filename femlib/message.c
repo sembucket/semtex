@@ -84,7 +84,7 @@ static int first (int n, const int* x)
 }
 
 
-void message_dtranspose (double*       data,
+void message_dexchange (double*       data,
 			 const integer nZ  ,
 			 const integer nP  ,
 			 const integer sign)
@@ -99,18 +99,18 @@ void message_dtranspose (double*       data,
  * fastest moving over the planes, and the block indices vary more rapidly
  * than the z-indices.
  *
- * The aim of the the transpose is to re-order the data so that each
+ * The aim of the the exchange is to re-order the data so that each
  * processor holds all the nZ data for one of the blocks, i.e. a gather of
  * all the z-information for a block onto each a single processor, which e.g.
  * can be followed by multiple 1D Fourier transformations over each block.
  *
- * First the data are transposed within a single processor so that (in terms
+ * First the data are exchanged within a single processor so that (in terms
  * of blocks) the block (rather than the z) indices vary slowest as memory 
  * is traversed.  Then a block-transpose of data across processors is
  * carried out using message passing.
  *
- * NB: order of inter- and intra-processor transposes must be reversed 
- * in order to invert the transpose with a second transpose: this is the use
+ * NB: order of inter- and intra-processor exchanges must be reversed 
+ * in order to invert the exchange with a second exchange: this is the use
  * of input variable sign.
  * ------------------------------------------------------------------------- */
 {
@@ -131,11 +131,11 @@ void message_dtranspose (double*       data,
 
   tmp = (double*) malloc (MAX(nB,NM) * dsize);
 
-  if (sign == 1) {		/* -- "Forwards" transpose. */
+  if (sign == 1) {		/* -- "Forwards" exchange. */
 
-    /* -- Intra-processor transpose. */
+    /* -- Intra-processor exchange. */
 
-    if (NB == nZ) {		/* -- Symmetric transpose. */
+    if (NB == nZ) {		/* -- Symmetric exchange. */
       for (i = 0; i < nZ; i++)
 	for (j = i; j < nZ; j++) {
 	  if (i != j) {
@@ -145,7 +145,7 @@ void message_dtranspose (double*       data,
 	  }
 	}
 
-    } else {			/* -- Asymmetric transpose. */
+    } else {			/* -- Asymmetric exchange. */
 
       int       k, knext, kconf, *kmove, *kpost;
       const int NBnZm = NB * nZ - 1;
@@ -194,7 +194,7 @@ void message_dtranspose (double*       data,
 	memcpy      (data+i*NM, tmp, NM * dsize);
       }
 
-  } else {			/* -- "Backwards" transpose. */
+  } else {			/* -- "Backwards" exchange. */
 
     for (i = 0; i < np; i++)
       if (i != ip) {
@@ -256,12 +256,14 @@ void message_dtranspose (double*       data,
 }
 
 
-void message_stranspose (float*        data,
-			 const integer nZ  ,
-			 const integer nP  ,
-			 const integer sign)
+void message_sexchange (float*        data,
+			const integer nZ  ,
+			const integer nP  ,
+			const integer sign)
 /* ------------------------------------------------------------------------- *
- * Single-precision version of message_dtranspose.
+ * Single-precision version of message_dexchange.
+ *
+ * And NO, I didn't rig things so the name would come out this way!
  * ------------------------------------------------------------------------- */
 {
 #if defined(MPI)
@@ -281,11 +283,11 @@ void message_stranspose (float*        data,
 
   tmp = (float*) malloc (MAX(nB,NM) * dsize);
 
-  if (sign == 1) {		/* -- "Forward" transpose. */
+  if (sign == 1) {		/* -- "Forward" exchange. */
 
-    /* -- Intra-processor transpose. */
+    /* -- Intra-processor exchange. */
     
-    if (NB == nZ) {		/* -- Symmetric transpose. */
+    if (NB == nZ) {		/* -- Symmetric exchange. */
       for (i = 0; i < nZ; i++)
 	for (j = i; j < nZ; j++) {
 	  if (i != j) {
@@ -295,7 +297,7 @@ void message_stranspose (float*        data,
 	  }
 	}
 
-    } else {			/* -- Asymmetric transpose. */
+    } else {			/* -- Asymmetric exchange. */
       int       k, knext, kconf, *kmove, *kpost;
       const int NBnZm = NB * nZ - 1;
 
@@ -341,7 +343,7 @@ void message_stranspose (float*        data,
 	memcpy      (data+i*NM, tmp, NM * dsize);
       }
 
-  } else {			/* -- "Backwards" transpose. */
+  } else {			/* -- "Backwards" exchange. */
 
     for (i = 0; i < np; i++)
       if (i != ip) {
@@ -401,12 +403,12 @@ void message_stranspose (float*        data,
 }
 
 
-void message_itranspose (integer*      data,
-			 const integer nZ  ,
-			 const integer nP  ,
-			 const integer sign)
+void message_iexchange (integer*      data,
+			const integer nZ  ,
+			const integer nP  ,
+			const integer sign)
 /* ------------------------------------------------------------------------- *
- * Integer transpose.
+ * Integer exchange.
  * ------------------------------------------------------------------------- */
 {
 #if defined(MPI)
