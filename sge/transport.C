@@ -93,9 +93,9 @@ void transport (Domain*     D,
     // -- Conserve scalar quantity, with partitioning.
 
     ROOTONLY {
-      amount = (conScalar - D -> u[0] -> integral()) / Lz;
+      amount = conScalar - scalar -> integral();
       cout << "Mean correction: " << amount << " ";
-      D -> u[0] -> addToPlane (0, amount);
+      scalar -> addToPlane (0, amount/Lz);
     }
 
     // -- Process results of this step.

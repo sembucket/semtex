@@ -62,7 +62,7 @@ CXX	 = g++
 LD	 = g++
 CXXFLAGS = $(DEFINES) -O3
 F77LIBS  = -llapack -lblas -lf2c
-LDFLAGS  = -gstabs+ -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
+LDFLAGS  = -O3 -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
 	   -lfem -lalp $(F77LIBS)
 endif
 
@@ -110,7 +110,7 @@ endif
 
 # ----------------------------------------------------------------------------
 #
-SEMFILES  = analysis auxfield BCmgr boundary domain		 \
+SEMFILES  = analysis auxfield_mods BCmgr boundary domain	 \
 	    element_mods feml field geometry history integration \
 	    matrix mesh misc pressure
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
