@@ -28,7 +28,7 @@ CPPFLAGS = -I. -I$(SEM)/include
 ifeq ($(ARCH),IRIX)		# -- SGI 32-bit systems.
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = $(DEFINES) -fullwarn -O2
+CXXFLAGS = $(DEFINES) -fullwarn -g
 F77LIBS	 = -lcomplib.sgimath -lftn
 LDFLAGS  = -L$(SEM)/lib/$(ARCH) -lfem -lalp \
 	   $(F77LIBS) -lmalloc -lm
@@ -136,11 +136,11 @@ sem:
 
 ifeq ($(ARCH),SUPER-UX)
 mesh.o: $(VPATH)/mesh.C
-        $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
-        $(VPATH)/mesh.C
+	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+	$(VPATH)/mesh.C
 BCmgr.o: $(VPATH)/BCmgr.C
-        $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
-        $(VPATH)/BCmgr.C
+	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+	$(VPATH)/BCmgr.C
 endif
 
 # -----------------------------------------------------------------------------
