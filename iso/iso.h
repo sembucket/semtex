@@ -94,7 +94,7 @@ void  normalize (      CVF, const int*);
 
 /* -- truncation.c */
 
-void  truncation (CF, const int*);
+void  truncate (CF, const int*);
 
 /* -- derivative.c */
 
