@@ -34,7 +34,8 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
 // ---------------------------------------------------------------------------
 {
   const char name = Bsys -> field();
-  int        found, mode;
+  int        mode;
+  bool       found;
 
   MatrixSys*                   M;
   vector<MatrixSys*>::iterator m;
@@ -55,7 +56,7 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
     const real betak2   = sqr (Field::modeConstant (name, modeIndex, beta));
     const int localMode = mode - baseMode;
 
-    for (found = 0, m = MS.begin(); !found && m != MS.end(); m++) {
+    for (found = false, m = MS.begin(); !found && m != MS.end(); m++) {
       M     = *m;
       found = M -> match (lambda2, betak2, N, method);
     }
@@ -87,15 +88,6 @@ ModalMatrixSys::~ModalMatrixSys ()
 // attempting reuse.
 // ---------------------------------------------------------------------------
 {
-#if 0
-  int       i;
-  const int N = _Msys.size();
-
-  for (i = 0; i < N; i++) {
-    delete    (_Msys[i]);
-    MS.remove (_Msys[i]);
-  }
-#endif  
   int N = _Msys.size();
   while (N--) { delete (_Msys[N]); MS.resize (N); }
 }
@@ -140,7 +132,7 @@ MatrixSys::MatrixSys (const real              lambda2,
   _PC                (0)
 {
   const char     routine[] = "MatrixSys::MatrixSys";
-  const int      verbose   = (int) Femlib::value ("VERBOSE");
+  const int      verbose   = static_cast<int>(Femlib::value ("VERBOSE"));
   const int      np        = Geometry::nP();
   const int      next      = Geometry::nExtElmt();
   const int      nint      = Geometry::nIntElmt();
@@ -275,10 +267,10 @@ MatrixSys::MatrixSys (const real              lambda2,
 }
 
 
-int MatrixSys::match (const real       lambda2,
-		      const real       betak2 ,
-		      const NumberSys* nScheme,
-		      const SolverKind method ) const
+bool MatrixSys::match (const real       lambda2,
+		       const real       betak2 ,
+		       const NumberSys* nScheme,
+		       const SolverKind method ) const
 // ---------------------------------------------------------------------------
 // The unique identifiers of a MatrixSys are presumed to be given
 // by the constants and the numbering system used.  Other things that
@@ -286,18 +278,16 @@ int MatrixSys::match (const real       lambda2,
 // quadrature schemes.
 // ---------------------------------------------------------------------------
 {
-  const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
-
-  if (fabs (_HelmholtzConstant - lambda2) < EPS                         &&
-      fabs (_FourierConstant   - betak2 ) < EPS                         &&
+  if (fabs (_HelmholtzConstant - lambda2) < EPSDP                       &&
+      fabs (_FourierConstant   - betak2 ) < EPSDP                       &&
       _NS -> nGlobal() == nScheme -> nGlobal()                          &&
       _NS -> nSolve()  == nScheme -> nSolve()                           &&
       Veclib::same (_NS->nGlobal(), _NS->btog(), 1, nScheme->btog(), 1) &&
       _method == method                                                  )
-    return 1;
+    return true;
 
   else
-    return 0;
+    return false;
 }
 
 
@@ -323,151 +313,3 @@ MatrixSys::~MatrixSys()
     break;
   }
 }
-
-
-#if 0
-ostream& operator << (ostream&   str,
-		      MatrixSys& M  )
-// ---------------------------------------------------------------------------
-// Output a MatrixSys to file...one day we'll actually use this!
-// ---------------------------------------------------------------------------
-{
-  char *hdr_fmt[] = {
-    "-- Helmholtz MatrixSys Storage File --",
-    "%-25d "    "Elements",
-    "%-25d "    "Global matrix size (words)",
-    "%-25d "    "Global matrix bandwidth",
-    "%-25d "    "Global matrix singularity flag",
-    "%-25.17e " "Helmholtz constant",
-    "%-25d "    "Azimuthal constant",
-    "%-25d "    "Word size (bytes)",
-    "%-25s "    "Format"  
-  };
-  char    bufr[StrMax], fmt[StrMax];
-  int i, n;
-
-  Veclib::describeFormat (fmt);
-  
-  sprintf (bufr, hdr_fmt[0]);                      str << bufr << endl;
-  sprintf (bufr, hdr_fmt[1], M.nel);               str << bufr << endl;
-  sprintf (bufr, hdr_fmt[2], M.npack);             str << bufr << endl;
-  sprintf (bufr, hdr_fmt[3], M.nband);             str << bufr << endl;
-  sprintf (bufr, hdr_fmt[4], M.singular);          str << bufr << endl;
-  sprintf (bufr, hdr_fmt[5], M.HelmholtzConstant); str << bufr << endl;
-  sprintf (bufr, hdr_fmt[6], sizeof (real));       str << bufr << endl;
-  sprintf (bufr, hdr_fmt[7], fmt);                 str << bufr << endl;
-  
-  // -- Global Helmholtz matrix.
-
-  str.write ((char*) M.H, M.npack * sizeof (real));
-
-  // -- Elemental interior / exterior coupling matrices hbi.
-
-  for (i = 0; i < M.nel; i++) {
-    n = M.bipack[i];
-    str.write ((char*) &n, sizeof (integer));
-    str.write ((char*) M.hbi[i], n * sizeof (real));
-  }
-  
-  // -- Elemental interior matrices hii.
-
-  for (i = 0; i < M.nel; i++) {
-    n = M.iipack[i];
-    str.write ((char*) &n, sizeof (integer));
-    str.write ((char*) M.hii[i], n * sizeof (real));
-  }
-  return str;
-}
-
-
-istream& operator >> (istream&   str,
-		      MatrixSys& sys)
-// ---------------------------------------------------------------------------
-// Input a MatrixSys from file, with binary format conversion if required.
-// ---------------------------------------------------------------------------
-{
-  char       routine[] = "MatrixSys::operator >>";
-  char       bufr[StrMax], fmt[StrMax];
-  istrstream s (bufr, strlen (bufr));
-  int        n, swab;
-  real       f;
-  const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
-
-  Veclib::describeFormat (fmt);
-  
-  str.getline (bufr);
-  if (strcmp (bufr, "-- Helmholtz MatrixSys Storage File --"))
-    message (routine, "input file lacks valid header",                  ERROR);
-
-  str.getline (bufr);
-  s >> n;
-  if (n != hbi.getSize ())
-    message (routine, "mismatch: number of elements in file & system",  ERROR);
-
-  str.getline (bufr);
-  s >> n;
-  if (n != H.getSize ())
-    message (routine, "mismatch: size of H in file & system",           ERROR);
-  
-  str.getline (bufr);
-  s >> n;
-  if (n != n_band)
-    message (routine, "mismatch: bandwidth of H in file & system",      ERROR);
-  
-  str.getline (bufr);
-  s >> n;
-  if (n != singular)
-    message (routine, "mismatch: singularity of H in file & system",    ERROR);
-
-  str.getline (bufr);
-  s >> f;
-  if (fabs (f - HelmholtzConstant) > EPS)
-    message (routine, "mismatch: Helmholtz constant in file & system",  ERROR);
-
-  str.getline (bufr);
-  s >> n;
-  if (n != sizeof (real))
-    message (routine, "mismatch: word size/precision in file & system", ERROR);
-
-  str.getline (bufr);
-  if (!strstr (bufr, "IEEE"))
-  	message (routine, "unrecognized binary format", ERROR);
-  	swab = (strstr (bufr, "little") && strstr (fmt, "big")  ||
-		strstr (bufr, "big")    && strstr (fmt, "little"));
-
-  str.read ((char*) &H[0], H.size() * sizeof (real));
-
-  if (swab)   Veclib::brev (H.size(), &H[0], 1, &H[0], 1);
-  
-  register int i;
-  int          n;
-  const int    N = hbi.size();
-
-  for (i = 0; i < N; i++) {
-    str.read ((char*) &n, sizeof (integer));
-    if (n != hbi[i].size())
-      message (routine, "mismatch: size of hbi in file & system", ERROR);
-    else  {
-      str.read ((char*) hbi[i], n * sizeof (real));
-      if (swab)   Veclib::brev (n, hbi[i], 1, hbi[i], 1);
-    }
-    
-    hbi[k] = FamilyMgr::insert (n, hbi[k]);  
-  }
-  
-  for (i = 0; i < N; i++) {
-    str.read ((char*) &n, sizeof (integer));
-    if (n != hii[i].getSize ())
-      message (routine, "mismatch: size of hii in file & system", ERROR);
-    else  {
-      str.read ((char*) hii[i], n * sizeof (real));
-      if (swab)   Veclib::brev (n, hii[i], 1, hii[i], 1);
-    }
-
-    hii[k] = FamilyMgr::insert (n, hii[k]);
-  }
-
-  return str;
-}
-#endif
-
