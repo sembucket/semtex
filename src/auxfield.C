@@ -289,6 +289,26 @@ AuxField& AuxField::addprod (const AuxField& a,
 }
 
 
+AuxField& AuxField::innerProduct (const vector <AuxField*>& a,
+                                  const vector <AuxField*>& b)
+// ---------------------------------------------------------------------------
+// Set this AuxField's value as the inner product of a & b
+// in PHYSICAL space - don't worry about dealiasing
+// ---------------------------------------------------------------------------
+{
+  int       i;
+  const int ntot = Geometry::nTotal();
+  const int ndim = Geometry::nDim();
+  
+  Veclib::zero (ntot, data, 1);
+
+  for (i = 0; i < ndim; i++)
+    Veclib::vvtvp (ntot, a[i] -> data, 1, b[i] -> data, 1, data, 1, data, 1);
+
+  return *this;
+}
+
+
 AuxField& AuxField::axpy (const real      alpha,
 			  const AuxField& x    )
 // ---------------------------------------------------------------------------
@@ -576,7 +596,7 @@ ostream& operator << (ostream&  strm,
 istream& operator >> (istream&  strm,
 		      AuxField& F   )
 // ---------------------------------------------------------------------------
-// Binary read of F's data area.  Zero any blank storage areas, Nyquist data.
+// Binary read of F's data area.  Zero any blank storage areas.
 // ---------------------------------------------------------------------------
 {
   register int i;
@@ -589,6 +609,21 @@ istream& operator >> (istream&  strm,
   if (NP > nP) Veclib::zero (nZ, F.data + nP, NP);
 
   return strm;
+}
+
+
+AuxField& AuxField::zeroNyquist ()
+// ---------------------------------------------------------------------------
+// Set storage for highest frequency mode to zero.  This mode is carried
+// but never evolves.
+// ---------------------------------------------------------------------------
+{
+  const int nZ = Geometry::nZ();
+  const int nP = Geometry::planeSize();
+
+  if (nZ > 1) Veclib::zero (nP, plane[1], 1);
+
+  return *this;
 }
 
 
