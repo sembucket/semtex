@@ -1241,6 +1241,16 @@ void AuxField::mulX (const integer nZ ,
 }
 
 
+AuxField& AuxField::sgn ()
+// ---------------------------------------------------------------------------
+// Take sign of *this: -1 (< 0.0) or +1 otherwise.
+// ---------------------------------------------------------------------------
+{
+  Veclib::vsgn (_size, _data, 1, _data, 1);
+  return *this;
+}
+
+
 real AuxField::probe (const Element* E,
 		      const real     r,
 		      const real     s,
