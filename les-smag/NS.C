@@ -68,11 +68,13 @@ void NavierStokes (Domain*      D,
   CYL = Geometry::system() == Geometry::Cylindrical;
   C3D = CYL && DIM == 3;
 
-  integer       i, j;
+  integer       i, j, k;
   const real    dt     =           Femlib::value ("D_T"   );
   const integer nOrder = (integer) Femlib::value ("N_TIME");
   const integer nStep  = (integer) Femlib::value ("N_STEP");
   const integer nZ     = Geometry::nZProc();
+  const integer ntot   = Geometry::nTotProc();
+  real*         alloc  = new real [(size_t) (2 * DIM + 1) * nOrder * ntot];
 
   // -- Create global matrix systems: rename viscosities beforehand.
 
@@ -94,12 +96,12 @@ void NavierStokes (Domain*      D,
   AuxField*** Us = new AuxField** [(size_t) DIM];
   AuxField*** Uf = new AuxField** [(size_t) DIM];
 
-  for (i = 0; i < DIM; i++) {
+  for (k = 0, i = 0; i < DIM; i++) {
     Us[i] = new AuxField* [(size_t) nOrder];
     Uf[i] = new AuxField* [(size_t) nOrder];
     for (j = 0; j < nOrder; j++) {
-      *(Us[i][j] = new AuxField (D -> elmt)) = 0.0;
-      *(Uf[i][j] = new AuxField (D -> elmt)) = 0.0;
+      *(Us[i][j] = new AuxField (alloc + k++ * ntot, nZ, D -> elmt)) = 0.0;
+      *(Uf[i][j] = new AuxField (alloc + k++ * ntot, nZ, D -> elmt)) = 0.0;
     }
   }
 
@@ -122,7 +124,7 @@ void NavierStokes (Domain*      D,
 
   // -- Create and initialize eddy-viscosity storage.
 
-  AuxField* EV = new AuxField (D -> elmt, 'e');
+  AuxField* EV = new AuxField (alloc + k * ntot, nZ, D -> elmt, 'e');
   *EV = 0.0;
   ROOTONLY EV -> addToPlane (0, Femlib::value ("REFVIS - KINVIS"));
 
