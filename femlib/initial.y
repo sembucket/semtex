@@ -367,7 +367,7 @@ void yy_help (void)
     (stderr, 
      "Unary:      -\n"
      "Binary:     -, +, *, /, ^ (exponentiation), "
-     "~ (atan2), & (hypot), % (fmod)\n"
+     "~ (atan2), & (hypot), %% (fmod)\n"
      "Functions:  sin,  cos,  tan,  abs, floor, ceil, int, heav (Heaviside),\n"
      "            asin, acos, atan, log, log10, exp,  sqrt,\n"
      "            sinh, cosh, tanh, asinh, acosh, atanh,\n"
@@ -566,9 +566,9 @@ static double Jacobi (double z, double n, double alpha, double beta)
 
 /* -- Complex Bessel function, ex netlib, and functions that use it. */
 
-static void F77NAME(zbesj) (const double*, const double*, const double*, 
-			    const int*, const int*, double*, double*, 
-			    int*, int*);
+void F77NAME(zbesj) (const double*, const double*, const double*, 
+		     const int*, const int*, double*, double*, 
+		     int*, int*);
 
 void zbesj (const double *x, const double *y, const double ord, 
 	    const int  Kode, const int n, double *ReJ, 
