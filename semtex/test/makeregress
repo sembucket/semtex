@@ -30,6 +30,10 @@ do
   fi
   compare $i > $i.rst
   $CODE -chk $i > /dev/null
+  if test -f ../regress/$i.ok
+  then
+    chmod 0644 ../regress/$i.ok
+  fi
   compare -n $i $i.fld > /dev/null 2> ../regress/$i.ok
   chmod 0444 ../regress/$i.ok
   rm $i*
