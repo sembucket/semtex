@@ -137,7 +137,7 @@ int main (int    argc,
     fieldfl .getline(buf, StrMax) .getline(buf, StrMax);
     fieldfl .getline(buf, StrMax) .getline(buf, StrMax);
 
-    while (isalpha (buf[nfields])) {
+    while (isalnum (buf[nfields])) {
       fields[nfields] = buf[nfields];
       nfields++;
     }

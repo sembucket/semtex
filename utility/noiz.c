@@ -109,7 +109,7 @@ int main (int    argc,
 
     fgets(fields, STR_MAX, fp_in);
     
-    for (n = 0, i = 0; i < 25; i++) if (isalpha(fields[i])) n++;
+    for (n = 0, i = 0; i < 25; i++) if (isalnum(fields[i])) n++;
 
     fputs (fields, fp_out);
     fgets (buf, STR_MAX, fp_in);

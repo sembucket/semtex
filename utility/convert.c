@@ -157,7 +157,7 @@ static int count_fields (const char *s)
 {
   int n = 0, i = 0;
 
-  while (i++ < 25) if (isalpha (*s++)) n++;
+  while (i++ < 25) if (isalnum (*s++)) n++;
   
   return n;
 }

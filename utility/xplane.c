@@ -77,7 +77,7 @@ int main (int    argc,
       fputs (buf, fp_out);   
     }
 
-    for (nfields = 0, i = 0; i < 25; i++) if (isalpha(buf[i])) nfields++;
+    for (nfields = 0, i = 0; i < 25; i++) if (isalnum(buf[i])) nfields++;
 
     fgets (buf, STR_MAX, fp_in);
     fputs (buf, fp_out);
