@@ -28,6 +28,7 @@ static struct {
 
   "TOL_REL"     ,   1.0e-8 ,	/* -- Relative tolerance (PCG)            */
   "TOL_ABS"     ,   1.0e-8 ,	/* -- Absolute tolerance.                 */
+  "TOL_POS"     ,   1.0e-8 ,    /* -- Positional tolerance.               */
 
   "z"           ,   0.0    ,	/* -- z-plane location.                   */
   "BETA"        ,   1.0    ,	/* -- TWOPI / Lz (Fourier constant).      */
