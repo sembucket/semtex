@@ -12,7 +12,7 @@ void dbrev (int n, const double *x, int incx, double *y, int incy)
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
 
-  for (i=0; i<n; i++) {
+  for (i = 0; i<n; i++) {
     cx = (char*) x;
     cy = (char*) y;
     for (j = 0; j < 4; j++) { 
@@ -38,7 +38,7 @@ void ibrev (int n, const int *x, int incx, int *y, int incy)
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
 
-  for (i=0; i<n; i++) {
+  for (i = 0; i<n; i++) {
     cx = (char*) x;
     cy = (char*) y;
     for (j = 0; j < 2; j++) { 
