@@ -1,6 +1,10 @@
 # Thermal driven cavity problem for buoyancy-driven flow.
 # Left edge is hot, right edge is cool, top and bottom are insulated.
 
+<FIELDS>
+	u v c p
+</FIELDS>
+
 <USER>
 	u = 0.0
 	v = 0.0

@@ -2,7 +2,7 @@
 # Left edge is hot, right edge is cool, top and bottom are insulated.
 
 <FIELDS>
-	c u v p
+	u v c p
 </FIELDS>
 
 <USER>
