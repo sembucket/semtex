@@ -40,7 +40,7 @@
 
 static char RCSid[] = "$Id$";
 
-#include "Fem.h"
+#include <Fem.h>
 
 #ifdef __DECCXX
   #pragma define_template Array1d<int>
@@ -53,22 +53,6 @@ static const int UNSET = -1;
 static const int NIL   =  0;
 
 
-class Curve {
-  // ========================================================================
-  // Abstract base class for curved edges.
-  // ========================================================================
-public:
-  virtual  ~Curve () { }
-  virtual  void    compute (int, const real*, Point*) const = 0;
-  int              ismatch (int e, int s) const {
-    return  (e == curveSide -> thisElmt -> ID && s == curveSide -> ID);
-  }
-
-protected:
-  Mesh::Side*  curveSide;
-};
-
-
 class CircularArc : public Curve {
   // ========================================================================
   // Prototype curved edge class.   To make new kinds, retain the same
@@ -76,12 +60,14 @@ class CircularArc : public Curve {
   // ========================================================================
 public:
   CircularArc (const char*, const Mesh&);
-  virtual void  compute (int, const real*, Point*) const;
+  virtual void  compute  (int, const real*, Point*) const;
+  virtual void  printNek () const;
 
 private:
   Point  centre;
   real   radius;
   real   semiangle;
+  int    convexity;
 };
 
 
@@ -142,7 +128,7 @@ CircularArc::CircularArc (const char* s, const Mesh& m)
   char   err[StrMax];
   int    verbose  = option ("VERBOSE");
 
-  int    cid, elmt, side, convexity;
+  int    cid, elmt, side;
 
   istrstream strm (s, StrMax);
 
@@ -240,7 +226,21 @@ void  CircularArc::compute (int np, const real* spacing, Point* knot) const
 }
 
 
-
+void CircularArc::printNek () const
+// ---------------------------------------------------------------------------
+// Print out information in NEKTON format.
+// ---------------------------------------------------------------------------
+{
+  cout << setw (2)  << curveSide -> ID
+       << setw (5)  << curveSide -> thisElmt -> ID
+       << setw (14) << 1.0*convexity*radius
+       << setw (14) << 0.0
+       << setw (14) << 0.0
+       << setw (14) << 0.0
+       << setw (14) << 0.0
+       << " C"
+       << endl; 
+}
 
 
 class NodeReader {
@@ -818,4 +818,124 @@ void   Mesh::meshSide (int          np     ,
     knot [i].y = P1.y + dy * 0.5 * (spacing[i] + 1.0);
   }
   return;
+}
+
+
+void Mesh::printNek () const
+// ---------------------------------------------------------------------------
+// Print out mesh information in NEKTON format.
+// ---------------------------------------------------------------------------
+{
+  char        err [StrMax];
+  ostrstream  os  (err, StrMax);
+
+  cout.precision (5);
+  cout.setf      (ios::scientific,ios::floatfield);
+
+  // -- Elements.
+
+  cout << setw(14) << 10.0
+       << setw(14) << 10.0
+       << setw(14) << 0.0 
+       << setw(14) << 0.0
+       << " XFAC,YFAC,XZERO,YZERO"
+       << endl;
+
+  cout << "**MESH DATA** 1st line is X of corner 1,2,3,4. 2nd line is Y."
+       << endl;
+
+  cout << setw(10) << nEl () 
+       << setw(10) << 2 
+       << setw(10) << nEl ()
+       << " NEL,NDIM,NELV"
+       << endl;
+
+  for (ElmtsOfMesh i(*this); i.more(); i.next()) {
+    Elmt& E = i.current();
+
+    cout << "ELEMENT   "
+         << setw(10) << E.ID 
+         << " [  1A]  GROUP 0"
+         << endl;
+
+    for (NodesOfElmt k(E); k.more(); k.next())
+      cout << setw(14) << k.current().location().x;
+    cout << endl;
+
+    for (k.reset(); k.more(); k.next())
+      cout << setw(14) << k.current().location().y;
+    cout << endl;
+  }
+
+  // -- Curved sides.
+
+  cout << "***** CURVED SIDE DATA *****" << endl;
+  cout << setw(5) << curveList.length ()
+       << " Curved sides follow IEDGE,IEL,CURVE(I),I=1,5, CCURVE"
+       << endl;
+  for (ListIterator<Curve*> c(curveList); c.more(); c.next())
+    c.current () -> printNek ();
+
+  // -- Boundary conditions.
+
+  cout << "***** BOUNDARY CONDITIONS *****" << endl;
+  cout << "***** FLUID BOUNDARY CONDITIONS *****" << endl;
+
+  for (ElmtsOfMesh e(*this); e.more(); e.next()) {
+    for (SidesOfElmt s(e.current()); s.more(); s.next()) {
+      Side& S = s.current();
+      Elmt* E = S.mateElmt;
+      if (E) {
+	cout << "E  "
+	     << setw (5)  << e.current().ID
+	     << setw (3)  << S.ID
+	     << setw (14) << 1.0*E -> ID
+	     << setw (14) << 1.0*S.mateSide -> ID
+	     << setw (14) << 1.0
+	     << endl;
+      } else {
+	switch (BCmanager::kind (S.BConTag)) {
+	case ESSENTIAL: case ESSENTIAL_FN: case VALUE:
+	  cout << "V  "
+	       << setw (5) << e.current().ID
+	       << setw (3) << S.ID;
+	  BCmanager::enscript (S.BConTag, 1, cout);
+	  BCmanager::enscript (S.BConTag, 2, cout);
+	  cout << setw (14) << 0.0
+	       << endl;
+	  break;
+	case WALL:
+	  cout << "W  "
+	       << setw (5)  << e.current().ID
+	       << setw (3)  << S.ID
+	       << setw (14) << 0.0
+	       << setw (14) << 0.0
+	       << setw (14) << 0.0
+	       << endl;
+	  break;
+	case OUTFLOW:
+	  cout << "O  "
+	       << setw (5)  << e.current().ID
+	       << setw (3)  << S.ID
+	       << setw (14) << 0.0
+	       << setw (14) << 0.0
+	       << setw (14) << 0.0
+	       << endl;
+	  break;
+	case NATURAL: case FLUX: case NATURAL_FN:
+	  os << "Element " << e.current().ID << " side " << S.ID
+	     << " --- FLUX B.C. not implemented" << ends;
+	  message (prog, err, ERROR);
+	  break;
+	case HOPBC:
+	  os << "Element " << e.current().ID << " side " << S.ID
+	     << " --- HOPBC B.C. can't happen" << ends;
+	  message (prog, err, ERROR);
+	  break;
+	default:
+	  break;
+	}
+      }
+    }
+  }
 }
