@@ -784,7 +784,7 @@ AuxField& AuxField::transform (const integer sign)
 // ---------------------------------------------------------------------------
 // Discrete Fourier transform in homogeneous direction.  Number of
 // points in that direction must be even, but is otherwise
-// unrestricted.  Use sign = 1 for forward transform, -1 for inverse.
+// unrestricted.  Use sign = 1 for forward transform, INVERSE for inverse.
 //
 // Normalization is carried out on forward transform, so that the zeroth
 // mode's real data are the average over the homogeneous direction of the
@@ -802,15 +802,15 @@ AuxField& AuxField::transform (const integer sign)
   if (nPR == 1) {
     if (nzt > 1)
       if (nzt == 2)
-	if   (sign == +1) Veclib::zero (nP, _plane[1], 1);
+	if   (sign == FORWARD) Veclib::zero (nP, _plane[1], 1);
 	else              Veclib::copy (nP, _plane[0], 1, _plane[1], 1);
       else
 	Femlib::DFTr  (_data, nzt, nP, sign);
 
   } else {
-    Femlib::exchange (_data, _nz,  nP,   +1);
+    Femlib::exchange (_data, _nz,  nP,   FORWARD);
     Femlib::DFTr     (_data, nzt, nPP, sign);
-    Femlib::exchange (_data, _nz,  nP,   -1);
+    Femlib::exchange (_data, _nz,  nP,   INVERSE);
 
   }
 
@@ -823,10 +823,10 @@ AuxField& AuxField::transform32 (const integer sign,
 // ---------------------------------------------------------------------------
 // Discrete Fourier transform in homogeneous direction, extended for
 // dealiasing.  Input pointer phys points to data in physical space,
-// which acts as input area if sign == +1, output area if sign == -1.
-// So transform is from phys to internal storage if sign == +1 and
-// vice versa.  After transform of either type, the data have normal
-// planar configuration.
+// which acts as input area if sign == FORWARD, output area if sign ==
+// INVERSE.  So transform is from phys to internal storage if sign ==
+// FORWARD and vice versa.  After transform of either type, the data
+// have normal planar configuration.
 //
 // NB: dealiasing does not occur in multiple-processor execution, so phys
 // has the same number of data as *this.
@@ -834,7 +834,11 @@ AuxField& AuxField::transform32 (const integer sign,
 {
   const integer nZ   = Geometry::nZ();
   const integer nP   = Geometry::planeSize();
+#if defined (ALIAS)
+  const integer nZ32 = nZ; assert (Geometry::nProc() == 1);
+#else
   const integer nZ32 = Geometry::nZ32();
+#endif
 
   if (Geometry::nProc() == 1) {	 // -- Single processor.
 
@@ -842,16 +846,16 @@ AuxField& AuxField::transform32 (const integer sign,
     const integer nPad   = nTot32 - _size;
 
     if (nZ <= 2) {
-      if   (sign == +1) Veclib::copy (_size,  phys, 1, _data, 1);
+      if   (sign == FORWARD) Veclib::copy (_size,  phys, 1, _data, 1);
       else              Veclib::copy (_size, _data, 1,  phys, 1);
     } else {
-      if (sign == +1) {
-	Femlib::DFTr (phys, nZ32, nP, +1);
+      if (sign == FORWARD) {
+	Femlib::DFTr (phys, nZ32, nP, FORWARD);
 	Veclib::copy (_size, phys, 1, _data, 1);
       } else {
 	Veclib::copy (_size, _data, 1, phys, 1);
 	Veclib::zero (nPad, phys + _size, 1);
-	Femlib::DFTr (phys, nZ32, nP, -1);
+	Femlib::DFTr (phys, nZ32, nP, INVERSE);
       }
     }
 
@@ -859,16 +863,16 @@ AuxField& AuxField::transform32 (const integer sign,
     
     const integer nPP = Geometry::nBlock();
 
-    if (sign == +1) {
-      Femlib::exchange (phys, nZ32, nP,  +1);
-      Femlib::DFTr     (phys, nZ,   nPP, +1);
-      Femlib::exchange (phys, nZ32, nP,  -1);
+    if (sign == FORWARD) {
+      Femlib::exchange (phys, nZ32, nP,  FORWARD);
+      Femlib::DFTr     (phys, nZ,   nPP, FORWARD);
+      Femlib::exchange (phys, nZ32, nP,  INVERSE);
       Veclib::copy     (_size, phys, 1, _data, 1);
     } else {
       Veclib::copy     (_size, _data, 1, phys, 1);
-      Femlib::exchange (phys, nZ32, nP,  +1);
-      Femlib::DFTr     (phys, nZ,   nPP, -1);
-      Femlib::exchange (phys, nZ32, nP,  -1);
+      Femlib::exchange (phys, nZ32, nP,  FORWARD);
+      Femlib::DFTr     (phys, nZ,   nPP, INVERSE);
+      Femlib::exchange (phys, nZ32, nP,  INVERSE);
     }
   }
 
@@ -1132,12 +1136,12 @@ void AuxField::couple (AuxField*     v  ,
 // direction.  This action is required due to the coupling in the
 // viscous terms of the N--S equations in cylindrical coords.
 //
-// dir == +1
-// ---------
+// dir == FORWARD
+// --------------
 //           v~ <-- v + i w
 //           w~ <-- v - i w
-// dir == -1
-// ---------
+// dir == INVERSE
+// --------------
 //           v  <-- 0.5   * (v~ + w~)
 //           w  <-- 0.5 i * (w~ - v~)
 //
@@ -1155,7 +1159,7 @@ void AuxField::couple (AuxField*     v  ,
   vector<real>     work (nP);
   real             *Vr, *Vi, *Wr, *Wi, *tp = work();
   
-  if (dir == 1) {
+  if (dir == FORWARD) {
 
     for (k = kLo; k < nMode; k++) {
       Re = k  + k;
@@ -1175,7 +1179,7 @@ void AuxField::couple (AuxField*     v  ,
       Veclib::vadd (nP, Vi, 1, tp, 1, Vi, 1);
     }
 
-  } else if (dir == -1) {
+  } else if (dir == INVERSE) {
 
     for (k = kLo; k < nMode; k++) {
       Re = k  + k;
