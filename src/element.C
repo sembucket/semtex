@@ -117,16 +117,16 @@ void Element::map ()
 // subsequent computations.
 // ---------------------------------------------------------------------------
 {
-  const char    routine[] = "Element::map";
-  const real    EPS  = 4 * npnp * ((sizeof(real)==sizeof(double))?EPSDP:EPSSP);
-  const real    dz   = (Geometry::nZ() > 1) ?
-                        Femlib::value ("TWOPI / (BETA * N_Z)") : 1.0;
-  const real    dxyz = sqr (2.0 / (np - 1)) * dz;
-  const real    invD = 1.0 / Geometry::nDim();
-  const real    *x   = xmesh, *y = ymesh;
-  const real    **DV, **DT, *w;
-  char          err[StrMax];
-  real          *jac, *dxdr, *dxds, *dydr, *dyds, *tV, *WW;
+  const char   routine[] = "Element::map";
+  const real   EPS  = 4 * ((sizeof(real) == sizeof(double)) ? EPSDP : EPSSP);
+  const real   dz   = (Geometry::nZ() > 1) ?
+                       Femlib::value ("TWOPI / (BETA * N_Z)") : 1.0;
+  const real   dxyz = sqr (2.0 / (np - 1)) * dz;
+  const real   invD = 1.0 / Geometry::nDim();
+  const real   *x   = xmesh, *y = ymesh;
+  const real   **DV, **DT, *w;
+  char         err[StrMax];
+  real         *jac, *dxdr, *dxds, *dydr, *dyds, *tV, *WW;
 
   vector<real> work;
 
