@@ -1037,3 +1037,56 @@ AuxField& AuxField::Smagorinsky ()
 
   return *this;
 }
+
+
+real AuxField::CFL (const integer dir) const
+// ---------------------------------------------------------------------------
+// Return the inverse CFL timescale using this AuxField as a velocity 
+// component in the nominated direction.  Computations only occur on the
+// zeroth Fourier mode.
+// dir == 0 ==> CFL estimate in first direction, 1 ==> 2nd, 2 ==> 3rd.
+// AuxField is presumed to have been Fourier transformed in 3rd direction.
+// ---------------------------------------------------------------------------
+{
+  const char        routine[] = "AuxField::CFL";
+  register Element* E;
+  register integer  i, offset;
+  const integer     nE = Geometry::nElmt();
+  real              dxy, CFL = 0.0;
+  
+  {
+    const integer nP = Geometry::nP();
+    const real*   z;
+    Femlib::quad (LL, nP, nP, &z, 0, 0, 0, 0, 0, 0);
+    dxy = z[1] - z[0];
+  }
+
+  switch (dir) {
+  case 0:
+    for (i = 0; i < nE; i++) {
+      E      = Elmt[i];
+      offset = E -> dOff();
+      CFL    = max (CFL, E -> CFL (dxy, data + offset, 0));
+      }
+    break;
+  case 1:
+    for (i = 0; i < nE; i++) {
+      E      = Elmt[i];
+      offset = E -> dOff();
+      CFL    = max (CFL, E -> CFL (dxy, 0, data + offset));
+    }
+    break;
+  case 2: {
+    const integer nP = Geometry::nPlane();
+    const real    dz = Femlib::value ("TWOPI / (BETA * N_Z)");
+    for (i = 0; i < nP; i++) CFL = max (CFL, fabs (data[i]));
+    CFL /= dz;
+    break;
+  }
+  default:
+    message (routine, "nominated direction out of range [0--2]", ERROR);
+    break;
+  }
+
+  return CFL;
+}

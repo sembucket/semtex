@@ -372,8 +372,8 @@ void Element::g2eSC (const real*    RHS ,
   // -- Complete static-condensation solution for element-internal storage.
 
   if (nint) {
-    integer   info;
-    real* Fi = F + next;
+    integer info;
+    real*   Fi = F + next;
 
     Lapack::pptrs ("U", nint, 1, hii, Fi, nint, info);
     Blas::gemv    ("N", nint, next, -1.0, hbi, nint, work(), 1, 1.0, Fi, 1);
@@ -1523,4 +1523,43 @@ real Element::probe (const real  r  ,
   Blas::gemv       ("T", np, np, 1.0, src, np, ir, 1, 0.0, tp, 1);
 
   return Blas::dot (np, is, 1, tp, 1);
+}
+
+
+real Element::CFL (const real  d,
+		   const real* u,
+		   const real* v) const
+// ---------------------------------------------------------------------------
+// Return estimate of local inverse timescale for CFL stability condition,
+// for either the x or y velocity component, selected by input pointer.
+//   CFL_x = max (|u| / dx),
+//   CFL_y = max (|v| / dy),
+// where dx or dy are estiamted from local element geometric information:
+//   dx = (dx/dr + dx/ds) * d,
+//   dy = (dy/dr + dy/ds) * d,
+// where d is a mesh spacing in canonical coordinates, estimated as the
+// minimum to be conservative (and supplied as input).
+//
+// The local CFL number is then D_T * CFL
+// ---------------------------------------------------------------------------
+{
+  register integer i;
+  const integer    N = Geometry::nTotElmt();
+  vector<real>     work (N);
+  register real*   tmp = work();
+
+  Veclib::zero (N, tmp, 1);
+
+  if        (u) {
+    if (drdx) for (i = 0; i < N; i++) tmp[i] = d * fabs (drdx[i]);
+    if (dsdx) for (i = 0; i < N; i++) tmp[i] = d * fabs (dsdx[i]);
+    Veclib::vdiv (N, u, 1, tmp, 1, tmp, 1);
+  } else if (v) {
+    if (drdy) for (i = 0; i < N; i++) tmp[i] = d * fabs (drdy[i]);
+    if (dsdy) for (i = 0; i < N; i++) tmp[i] = d * fabs (dsdy[i]);
+    Veclib::vdiv (N, v, 1, tmp, 1, tmp, 1);
+  }
+
+  i = Blas::iamax (N, tmp, 1);
+  return fabs (tmp[i]);
 }
