@@ -7,7 +7,8 @@
 // 
 // Based on code floK by Dwight Barkley & Ron Henderson.
 //
-// Copyright (C) 1999,2004 Hugh Blackburn & John Elston
+// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
+// and John Elston
 //
 // The eigenpairs computed in the subspace are related to the Ritz
 // estimates of those in the original space in a simple way: the

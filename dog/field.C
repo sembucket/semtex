@@ -2,7 +2,7 @@
 // field.C: derived from AuxField, Field adds boundary conditions,
 // global numbering, and the ability to solve Helmholtz problems.
 //
-// Copyright (c) 1994,2004 Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // HELMHOLTZ PROBLEMS
 // ------------------

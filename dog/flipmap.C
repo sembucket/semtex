@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // flipmap.C: generate a list of index pairs for a symmetry-related transform.
 //
-// Copyright (C) 2002,2004 Hugh Blackburn.
+// Copyright (c) 2002 <--> $Date$, Hugh Blackburn
 //
 // USAGE
 // flipmap [options] [file]

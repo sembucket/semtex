@@ -2,7 +2,7 @@
 // integrate.C: integrate unsteady linearised Navier--Stokes problem
 // forward in time.
 //
-// Copyright (C) 2000,2003 Hugh Blackburn
+// Copyright (c) 2000 <--> $Date$, Hugh Blackburn
 //
 // This version implements linearised advection terms and evolves a
 // single Fourier mode.  Both the number of velocity components in the
