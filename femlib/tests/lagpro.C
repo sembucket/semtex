@@ -14,10 +14,11 @@
 
 #include <stdlib.h>
 #include <math.h>
-
 #include <iostream.h>
 #include <iomanip.h>
 #include <fstream.h>
+
+using namespace std;
 
 #include <femdef.h>
 #include <Array.h>
@@ -27,10 +28,12 @@
 #include <Utility.h>
 #include <Stack.h>
 
+static char prog[] = "lagpro";
 
-void getargs (int    argc,
-	      char** argv,
-	      int&   nint)
+void getargs (int       argc,
+	      char**    argv,
+	      int&      nint,
+	      istream*& file)
 // ---------------------------------------------------------------------------
 // Parse command-line args.
 // ---------------------------------------------------------------------------
@@ -52,16 +55,11 @@ void getargs (int    argc,
     }
 
   if (!nint) { cerr << usage; exit (EXIT_FAILURE); }
-    
+
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-      } else {
-	cerr <<  "lagpro: unable to open input file" << endl;
-	exit (EXIT_FAILURE);
-    }
-  }
+    file = new ifstream (*argv);
+    if (file -> bad()) message (prog, "unable to open input file", ERROR);
+  } else file = &cin;
 }
 
 
@@ -91,6 +89,7 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
+  istream*       input;
   int            i, nold, nnew = 0;
   vector<double> u, v;
   const double   **IF, **IB;
@@ -98,9 +97,9 @@ int main (int    argc,
   cout.precision (8);
   cout.setf (ios::fixed, ios::floatfield);
 
-  getargs (argc, argv, nnew);
+  getargs (argc, argv, nnew, input);
 
-  nold = loadVals (cin, v);
+  nold = loadVals (*input, v);
 
   u.setSize (nnew);
 

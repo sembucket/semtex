@@ -9,10 +9,11 @@
 
 #include <stdlib.h>
 #include <math.h>
-
 #include <iostream.h>
 #include <iomanip.h>
 #include <fstream.h>
+
+using namespace std;
 
 #include <femdef.h>
 #include <Array.h>
@@ -22,9 +23,11 @@
 #include <Utility.h>
 #include <Stack.h>
 
+static char prog[] = "lagder";
 
-void getargs (int    argc,
-	      char** argv)
+void getargs (int       argc,
+	      char**    argv,
+	      istream*& file)
 // ---------------------------------------------------------------------------
 // Parse command-line args.
 // ---------------------------------------------------------------------------
@@ -40,14 +43,9 @@ void getargs (int    argc,
     }
 
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-      } else {
-	cerr <<  "lagder: unable to open input file" << endl;
-	exit (EXIT_FAILURE);
-    }
-  }
+    file = new ifstream (*argv);
+    if (file -> bad()) message (prog, "unable to open input file", ERROR);
+  } else file = &cin;
 }
 
 
@@ -77,6 +75,7 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
+  istream*       input;
   int            i, np;
   vector<double> u, v;
   const double   **DV;
@@ -84,9 +83,9 @@ int main (int    argc,
   cout.precision (8);
   cout.setf (ios::fixed, ios::floatfield);
 
-  getargs (argc, argv);
+  getargs (argc, argv, input);
 
-  np = loadVals (cin, v);
+  np = loadVals (*input, v);
 
   u.setSize (np);
 

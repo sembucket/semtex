@@ -13,10 +13,11 @@
 
 #include <stdlib.h>
 #include <math.h>
-
 #include <iostream.h>
 #include <iomanip.h>
 #include <fstream.h>
+
+using namespace std;
 
 #include <femdef.h>
 #include <Array.h>
@@ -26,10 +27,12 @@
 #include <Utility.h>
 #include <Stack.h>
 
+static char prog[] = "lagint";
 
-void getargs (int    argc,
-	      char** argv,
-	      int&   nint)
+void getargs (int       argc,
+	      char**    argv,
+	      int&      nint,
+	      istream*& file)
 // ---------------------------------------------------------------------------
 // Parse command-line args.
 // ---------------------------------------------------------------------------
@@ -53,14 +56,9 @@ void getargs (int    argc,
   if (!nint) { cerr << usage; exit (EXIT_FAILURE); }
 
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-      } else {
-	cerr <<  "lagint: unable to open input file" << endl;
-	exit (EXIT_FAILURE);
-    }
-  }
+    file = new ifstream (*argv);
+    if (file -> bad()) message (prog, "unable to open input file", ERROR);
+  } else file = &cin;
 }
 
 
@@ -90,6 +88,7 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
+  istream*       input;
   int            i, j, ngll, nint = 0;
   vector<double> u, v, w, x, z;
   double         **II, **IT;
@@ -97,9 +96,9 @@ int main (int    argc,
   cout.precision (8);
   cout.setf (ios::fixed, ios::floatfield);
 
-  getargs (argc, argv, nint);
+  getargs (argc, argv, nint, input);
 
-  ngll = loadVals (cin, v);
+  ngll = loadVals (*input, v);
   z.setSize (ngll);
   w.setSize (ngll);
 
