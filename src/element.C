@@ -324,6 +324,8 @@ void Element::e2gSumSC (real*          F   ,
 // and summed into the tgt vector.  In the summation, there is no need
 // to check if the global node is to be solved for or is fixed, since
 // the fixed (essential-BC) partition of tgt is overwritten later.
+//
+// NB: scatr_sum is broken for self-periodic elements on vector machines!
 // ---------------------------------------------------------------------------
 {
   const integer ntot = nTot();
