@@ -12,9 +12,8 @@
 #endif
 
 
-void dspow (int n, const double alpha,
-	    const double* x, int incx,
-	    const double* y, int incy);
+void dspow (const int n, const double alpha,
+	    const double* x, int incx, double* y, int incy)
 {
   register int i;
 
@@ -25,9 +24,8 @@ void dspow (int n, const double alpha,
 }
 
 
-void sspow (int n, const float alpha,
-	    const float* x, int incx,
-	    const float* y, int incy);
+void sspow (const int n, const float alpha,
+	    const float* x, int incx, float* y, int incy)
 {
   register int i;
 
