@@ -30,14 +30,26 @@ Boundary::Boundary (const integer Ident ,
 // Constructor.  Allocate new memory for value & geometric factors.
 // ---------------------------------------------------------------------------
 {
-  const integer np = elmt -> nKnot();
+  const char    routine[] = "Boundary::Boundary";
+  char          err[StrMax];
+  const integer np   = Geometry::nP();
+  const integer npnp = Geometry::nTotElmt();
 
   nx   = new real [(size_t) np];
   ny   = new real [(size_t) np];
   area = new real [(size_t) np];
 
-  elmt -> sideOffset (side, doffset, dskip);
-  elmt -> sideGeom   (side, nx, ny, area);
+  doffset = elmt -> ID() * npnp;
+  switch (side) {
+  case 0: doffset += 0;             dskip = 1;   break;
+  case 1: doffset += (np - 1);      dskip = np;  break;
+  case 2: doffset += np * (np - 1); dskip = -1;  break;
+  case 3: doffset += 0;             dskip = -np; break;
+  default:
+    sprintf (err, "cannot construct side %1d", side + 1);
+    message (routine, err, ERROR);
+  }
+  elmt -> sideGeom (side, nx, ny, area);
 }
 
 
@@ -48,7 +60,7 @@ void Boundary::evaluate (const integer plane,
 // Load boundary condition storage area with numeric values.
 // ---------------------------------------------------------------------------
 {
-  const integer np = elmt -> nKnot();
+  const integer np = Geometry::nP();
 
   bcondn -> evaluate (np, id, plane, elmt, side, step, nx, ny, tgt);
 }
@@ -84,7 +96,8 @@ void Boundary::print () const
 // (Debugging) utility to print internal information.
 // ---------------------------------------------------------------------------
 {
-  char info[StrMax];
+  const integer np = Geometry::nP();
+  char          info[StrMax];
 
   cout << "** Boundary id: " << id + 1 << " -> ";
   cout <<     elmt ->  ID() + 1 << "." << side + 1;
@@ -94,11 +107,11 @@ void Boundary::print () const
 
   cout << info << endl;
 
-  cout << "  " << elmt -> nKnot() << " (number of points along edge)" << endl;
+  cout << "  " << np << " (number of points along edge)" << endl;
   cout << "         nx             ny             area";
   cout << endl;
   
-  printVector (cout, "rrr", elmt -> nKnot(), nx, ny, area);
+  printVector (cout, "rrr", np, nx, ny, area);
 }
 
 
@@ -134,9 +147,9 @@ void Boundary::curlCurl (const integer k ,
 {
   const Geometry::CoordSys space = Geometry::system();
 
-  const integer np   = elmt -> nKnot();
-  const integer ntot = elmt -> nTot();
-  const integer doff = elmt -> dOff();
+  const integer np   = Geometry::nP();
+  const integer ntot = Geometry::nTotElmt();
+  const integer doff = elmt -> ID() * ntot;
 
   vector<real> work (5 * ntot + np);
   real* gw = work();
@@ -276,7 +289,7 @@ Vector Boundary::normalTraction (const char* grp,
 
   if (strcmp (grp, bcondn -> group()) == 0) {
     register integer i;
-    const integer    np = nKnot();
+    const integer    np = Geometry::nP();
 
     Veclib::copy (np, p + doffset, dskip, wrk, 1);
 
@@ -304,8 +317,9 @@ Vector Boundary::tangentTraction (const char* grp,
   Vector Force = {0.0, 0.0, 0.0};
 
   if (strcmp (grp, bcondn -> group()) == 0) {
+    const integer    np     = Geometry::nP();
+    const integer    offset = elmt -> ID() * Geometry::nTotElmt();
     register integer i;
-    const integer    np = nKnot(), offset = elmt -> dOff();
 
     elmt -> sideGrad (side, u + offset, ux, uy);
 
@@ -338,17 +352,18 @@ real Boundary::flux (const char* grp,
   register real dcdn = 0.0;
   
   if (strcmp (grp, bcondn -> group()) == 0) {
+    const integer    np = Geometry::nP();
+    const real*      data = src + elmt -> ID() * Geometry::nTotElmt();
     register integer i;
-    const integer    np = nKnot(), offset = elmt -> dOff();
     register real    *cx = wrk, *cy = wrk + np, *r = wrk + np + np;
 
-    elmt -> sideGrad (side, src + offset, cx, cy);
+    elmt -> sideGrad (side, data, cx, cy);
 
     if (Geometry::system() == Geometry::Cylindrical) {
       elmt -> sideGetR (side, r);
       for (i = 0; i < np; i++)
 	dcdn += (cx[i]*nx[i] + cy[i]*ny[i]) * area[i] * r[i];
-      elmt -> sideGet  (side, src + offset, cy);
+      elmt -> sideGet  (side, data, cy);
       for (i = 0; i < np; i++)
 	dcdn -= cy[i]*ny[i] * area[i];
 
@@ -370,7 +385,7 @@ void Boundary::addForGroup (const char* grp,
 // ---------------------------------------------------------------------------
 {
   if (strcmp (grp, bcondn -> group()) == 0)
-    Veclib::sadd (nKnot(), val, tgt, 1, tgt, 1);
+    Veclib::sadd (Geometry::nP(), val, tgt, 1, tgt, 1);
 }
 
 
@@ -382,5 +397,5 @@ void Boundary::setForGroup (const char* grp,
 // ---------------------------------------------------------------------------
 {
   if (strcmp (grp, bcondn -> group()) == 0)
-    Veclib::fill (nKnot(), val, tgt, 1);
+    Veclib::fill (Geometry::nP(), val, tgt, 1);
 }
