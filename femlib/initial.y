@@ -40,9 +40,9 @@
  * ---------
  * Unary:     -
  * Binary:    -, +, *, /, ^ (exponentiation), ~ (atan2)
- * Functions: sin,  cos,  tan,  int, abs, floor, ceil, heav (Heaviside),
- *            asin, acos, atan, log, log10, exp, sqrt,
- *            sinh, cosh, tanh 
+ * Functions: sin,  cos,  tan,  abs, floor, ceil, int, heav (Heaviside),
+ *            asin, acos, atan, log, log10, exp,  sqrt
+ *            sinh, cosh, tanh, erf, erfc 
  *****************************************************************************/
 
 static char
@@ -80,13 +80,10 @@ typedef struct symbol {
   struct symbol* next;
 } Symbol;
 
-static double  Log  (double),          Log10   (double),
-               Exp  (double),          Sqrt    (double),
-               Asin (double),          Acos    (double),
-               Pow  (double, double),  Integer (double),
-               Sinh (double),          Cosh    (double),
-               Tanh (double),          Heavi   (double),
-               errcheck (const double, const char*);
+static double  Log  (double),  Log10    (double),
+               Asin (double),  Acos     (double),
+               Sqrt (double),  Pow      (double, double),
+               Heavi(double),  errcheck (const double, const char*);
 
 static unsigned hash     (const char*);
 static Symbol*  lookup   (const char*);
@@ -112,7 +109,13 @@ static struct {			    /* -- Built-in functions. */
   "cos"   ,  cos     ,
   "tan"   ,  tan     ,
   "atan"  ,  atan    ,
-  "int"   ,  Integer ,
+  "exp"   ,  exp     ,
+  "sinh"  ,  sinh    ,
+  "cosh"  ,  cosh    ,
+  "tanh"  ,  tanh    ,
+  "erf"   ,  erf     ,
+  "erfc"  ,  erfc    ,
+  "int"   ,  rint    ,
   "abs"   ,  fabs    ,
   "floor" ,  floor   ,
   "ceil"  ,  ceil    ,
@@ -121,11 +124,8 @@ static struct {			    /* -- Built-in functions. */
   "acos"  ,  Acos    ,
   "log"   ,  Log     ,
   "log10" ,  Log10   ,
-  "exp"   ,  Exp     ,
   "sqrt"  ,  Sqrt    ,
-  "sinh"  ,  Sinh    ,
-  "cosh"  ,  Cosh    ,
-  "tanh"  ,  Tanh    ,
+
   NULL    ,  NULL
 };
 
@@ -326,9 +326,9 @@ void yy_help (void)
     (stderr, 
      "Unary    : -\n"
      "Binary   : -, +, *, /, ^ (exponentiation), ~ (atan2)\n"
-     "Functions: sin,  cos,  tan,  int, abs, floor, ceil, heav (Heaviside),\n"
-     "           asin, acos, atan, log, log10, exp, sqrt,\n"
-     "           sinh, cosh, tanh\n");
+     "Functions: sin,  cos,  tan,  abs, floor, ceil, int,  heav (Heaviside),\n"
+     "           asin, acos, atan, log, log10, exp,  sqrt,\n"
+     "           sinh, cosh, tanh, erf, erfc\n");
 }
 
 
@@ -499,9 +499,13 @@ static double errcheck (const double d,
 }
 
 
-static double Heavi (double x)
-{ return (x >= 0.0) ? 1.0 : 0.0;}
+static double Heavi (double x) { return (x >= 0.0) ? 1.0 : 0.0; }
 
+
+/* ------------------------------------------------------------------------- *
+ * Error checking is done for cases where we can have illegal input
+ * values (typically negative), otherwise we accept exception returns.
+ * ------------------------------------------------------------------------- */
 
 static double Log (double x)
 { return errcheck (log (x), "log"); }
@@ -509,10 +513,6 @@ static double Log (double x)
 
 static double Log10 (double x)
 { return errcheck (log10 (x), "log10"); }
-
-
-static double Exp (double x)
-{ return errcheck (exp (x), "exp"); }
 
 
 static double Sqrt (double x)
@@ -529,19 +529,3 @@ static double Acos (double x)
 
 static double Asin (double x)
 { return errcheck (asin (x), "asin"); }
-
-
-static double Integer (double x)
-{ return rint (x); }
-
-
-static double Sinh (double x)
-{ return errcheck (sinh (x), "sinh"); }
-
-
-static double Cosh (double x)
-{ return errcheck (cosh (x), "cosh"); }
-
-
-static double Tanh (double x)
-{ return errcheck (tanh (x), "tanh"); }
