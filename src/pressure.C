@@ -18,7 +18,7 @@ BC*    PBCmanager::essential = 0;
 BC*    PBCmanager::hopbc     = 0;
 
 
-void  PBCmanager::build (Field& f)
+void  PBCmanager::build (Field& P)
 // ---------------------------------------------------------------------------
 // Build class-scope storage structures required for high order PBCs.
 // Reset Field-boundary BCs to have type either HOPBC or ESSENTIAL (0.0).
@@ -43,34 +43,32 @@ void  PBCmanager::build (Field& f)
   hopbc -> kind      = HOPBC;
   hopbc -> value     = 0.0;
 
-  int  nOrder = iparam   ("N_TIME");
-  int  nEdge  = f.nBound ();
-  int  ntot, i, q;
-
-  ntot = f.switchPressureBCs (hopbc, essential);
+  int  nTime = iparam   ("N_TIME");
+  int  nEdge = P.nBound ();
+  int  ntot  = P.switchPressureBCs (hopbc, essential);
+  int  i, q;
 
   store = new HOBC [nEdge];
 
-  store[0].Px = rmatrix (nOrder, ntot);
-  store[0].Py = rmatrix (nOrder, ntot);
-  store[0].Ux = rmatrix (nOrder, ntot);
-  store[0].Uy = rmatrix (nOrder, ntot);
+  store[0].Px = rmatrix (nTime, ntot);
+  store[0].Py = rmatrix (nTime, ntot);
+  store[0].Ux = rmatrix (nTime, ntot);
+  store[0].Uy = rmatrix (nTime, ntot);
 
-  Veclib::zero (nOrder*ntot, *store[0].Px, 1);
-  Veclib::zero (nOrder*ntot, *store[0].Py, 1);
-  Veclib::zero (nOrder*ntot, *store[0].Ux, 1);
-  Veclib::zero (nOrder*ntot, *store[0].Uy, 1);
+  Veclib::zero (nTime*ntot, *store[0].Px, 1);
+  Veclib::zero (nTime*ntot, *store[0].Py, 1);
+  Veclib::zero (nTime*ntot, *store[0].Ux, 1);
+  Veclib::zero (nTime*ntot, *store[0].Uy, 1);
 
-  i = 0;
   ntot = 0;
-  for (ListIterator<Boundary*> j(f.boundary_list);
-       j.more(); j.next(), i++) {
-    if (i) {
-      store[i].Px = new real* [nOrder];
-      store[i].Py = new real* [nOrder];
-      store[i].Ux = new real* [nOrder];
-      store[i].Uy = new real* [nOrder];
-      for (q = 0; q < nOrder; q++) {
+  i    = 0;
+  for (ListIterator<Boundary*> j(P.boundary_list); j.more(); j.next()) {
+    if (ntot) {
+      store[i].Px = new real* [nTime];
+      store[i].Py = new real* [nTime];
+      store[i].Ux = new real* [nTime];
+      store[i].Uy = new real* [nTime];
+      for (q = 0; q < nTime; q++) {
 	store[i].Px[q]  = store[0].Px[q] + ntot;
 	store[i].Py[q]  = store[0].Py[q] + ntot;
 	store[i].Ux[q]  = store[0].Ux[q] + ntot;
@@ -78,27 +76,32 @@ void  PBCmanager::build (Field& f)
       }
     }
     ntot += j.current() -> nKnot();
+    i    += 1;
   }
 }
 
 
-void  PBCmanager::maintain (int  step, Field***  Us, Field***  Uf)
+void  PBCmanager::maintain (int            step  ,
+			    const Field*   master,
+			    const Field*** Us    ,
+			    const Field*** Uf    )
 // ---------------------------------------------------------------------------
 // Update storage for evaluation of high-order pressure boundary condition.
 //
 // No smoothing is done to high-order spatial derivatives computed here.
 //
-// We add estimates of velocity local acceleration to the linear terms;
-// since these must be constructed from velocity fields, there must be the
+// We add estimates of local rate of change of velocity to the linear terms;
+// since these must be extrapolated from velocity fields, there must be the
 // same amount of storage as for the time order of the scheme, (since, e.g.
 // for a first order scheme we need two levels of velocities to estimate a
 // time derivative: these come from the new one passed in, and the boundary
 // store).  Note also that this term cannot be estimated on the first step.
+//
+// Field* master gives a list of pressure boundary conditions with which to
+// traverse storage areas (note this assumes equal-order interpolations).
 // ---------------------------------------------------------------------------
 {
-  int         Je     = iparam ("N_TIME");
-  int         nOrder = Je;
-  real        alpha[TIME_ORDER_MAX], gamma;
+  const int   nTime = iparam ("N_TIME");
   const real  nu    = dparam ("KINVIS");
   const real  invDt = 1.0 / dparam ("DELTAT");
 
@@ -107,13 +110,12 @@ void  PBCmanager::maintain (int  step, Field***  Us, Field***  Uf)
   const Field* Nx = Uf[0][0];
   const Field* Ny = Uf[1][0];
 
-  int   i, q, np, offset, skip;
+  int   i, np, offset, skip;
 
   // -- Roll grad P storage area up, load new level of nonlinear terms.
 
-  Boundary *B1;
-  
-  ListIterator<Boundary*> j(Nx -> boundary_list);
+  Boundary*                B1;
+  ListIterator<Boundary*>  j(master -> boundary_list);
 
   for (i = 0; j.more(); j.next(), i++) {
     B1 = j.current ();
@@ -122,18 +124,20 @@ void  PBCmanager::maintain (int  step, Field***  Us, Field***  Uf)
     offset = B1 -> nOff  ();
     skip   = B1 -> nSkip ();
 
-    roll (store[i].Px, nOrder);
+    roll (store[i].Px, nTime);
     Veclib::copy (np, Nx -> data + offset, skip, store[i].Px[0], 1);
 
-    roll (store[i].Py, nOrder);
+    roll (store[i].Py, nTime);
     Veclib::copy (np, Ny -> data + offset, skip, store[i].Py[0], 1);
   }
 
   // -- Add in -nu * curl curl u and -du/dt.
 
   real *tmp, *wx, *wy;
+  int   Je, q;
+  real  alpha[TIME_ORDER_MAX], gamma;
 
-  for (i = 0, j = Ux -> boundary_list; j.more(); j.next(), i++) {
+  for (i = 0, j.reset(); j.more(); j.next(), i++) {
     B1 = j.current ();
 
     np     = B1 -> nKnot ();
@@ -148,11 +152,11 @@ void  PBCmanager::maintain (int  step, Field***  Us, Field***  Uf)
     Blas::axpy (np, -nu, wy, 1, store[i].Px[0], 1);
     Blas::axpy (np,  nu, wx, 1, store[i].Py[0], 1);
 
-    // -- Estimate -du/dt by backwards differentiation, add in.
+    // -- Estimate -du/dt by backwards differentiation, add in on HOPBs.
 
     if (step > 1 && !B1 -> isEssential()) {
 
-      Je    = min (step - 1, Je);
+      Je    = min (step - 1, nTime);
       tmp   = wx;
       gamma = Icoef[Je - 1].gamma;
       Veclib::copy (Je, Icoef[Je - 1].alpha, 1, alpha, 1);
@@ -172,10 +176,10 @@ void  PBCmanager::maintain (int  step, Field***  Us, Field***  Uf)
 
     // -- Roll velocity storage area up, load new level.
 
-    roll (store[i].Ux, nOrder);
+    roll (store[i].Ux, nTime);
     Veclib::copy (np, Ux -> data + offset, skip, store[i].Ux[0], 1);
 
-    roll (store[i].Uy, nOrder);
+    roll (store[i].Uy, nTime);
     Veclib::copy (np, Uy -> data + offset, skip, store[i].Uy[0], 1);
     
     freeVector (wx);
@@ -187,7 +191,7 @@ void  PBCmanager::maintain (int  step, Field***  Us, Field***  Uf)
 void  PBCmanager::evaluate (int   id,     int   np,  int   step,
 			    real* value,  real* nx,  real* ny  )
 // ---------------------------------------------------------------------------
-// Load PBC storage with values obtained from HOBC multi-level storage.
+// Load PBC value with values obtained from HOBC multi-level storage.
 //
 // The boundary condition for evaluation is
 //
@@ -196,7 +200,7 @@ void  PBCmanager::evaluate (int   id,     int   np,  int   step,
 //   dn   ~   \ ~ ~    ~   ~       ~ ~    dt  /     ~
 //
 // Grad P is estimated at the end of the current timestep using explicit
-// extrapolation.
+// extrapolation, then dotted into n.
 // ---------------------------------------------------------------------------
 {
   int    q, Je = iparam ("N_TIME");
