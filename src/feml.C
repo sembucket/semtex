@@ -43,7 +43,8 @@ FEML::FEML (const char* session)
   const char routine[] = "FEML::FEML";
   char       c, err[STR_MAX], key[STR_MAX], yek[STR_MAX];
   char*      u;
-  integer    i, OK, N, found;
+  int        i, N;
+  bool       OK, found;
 
   const char* reserved[] = {
     "TOKENS",
@@ -56,6 +57,7 @@ FEML::FEML (const char* session)
     "CURVES",
     "USER",
     "HISTORY",
+    "CUT",
     0
   };
   
@@ -69,7 +71,7 @@ FEML::FEML (const char* session)
   strcpy ((feml_root = new char [strlen (session) + 1]), session);
 
   for (i = 0; reserved[i] && i < KEYWORD_MAX; i++) {
-    keyWord[i] = strdup (reserved[i]);
+    keyWord[i] = strcpy ((new char [strlen (reserved[i]) + 1]), reserved[i]);
     keyPosn[i] = 0;
   }
   keyWord[i] = 0;
@@ -88,6 +90,7 @@ FEML::FEML (const char* session)
       
       feml_file >> key;
 
+
       N = strlen (key);
       if (key[N - 1] == '>') {
 	c = '>';
@@ -102,7 +105,7 @@ FEML::FEML (const char* session)
       //    1. install file position immediately following keyword in table;
       //    2. move on to find closing tag.
 
-      for (found = 0, i = 0; !found && keyWord[i]; i++) {
+      for (found = false, i = 0; !found && keyWord[i]; i++) {
 
 	if (strcmp (key, keyWord[i]) == 0) {
 
@@ -118,7 +121,7 @@ FEML::FEML (const char* session)
 
 	  // -- Locate closing "</key>".
 
-	  OK = 0;
+	  OK = false;
       
 	  while ((!OK) && (feml_file >> c)) {
 	    if (c == '<') {
@@ -157,7 +160,7 @@ FEML::FEML (const char* session)
       }
     }
   }
-
+  
   if (!found) message (routine, "no keywords located", ERROR);
 
   feml_file.clear ();		// -- Reset EOF error condition.
@@ -167,24 +170,25 @@ FEML::FEML (const char* session)
 }
 
 
-integer FEML::seek (const char* keyword)
+int FEML::seek (const char* keyword)
 // ---------------------------------------------------------------------------
 // Look for keyword in stored table.
 // If present, stream is positioned after keyword and 1 is returned.
 // If not, stream is rewound and 0 is returned.
 // ---------------------------------------------------------------------------
 {
-  register integer i, found = 0;
+  register int i;
+  bool         found = false;
 
   for (i = 0; !found && keyWord[i]; i++)
     found = (strstr (keyword, keyWord[i]) != 0 &&
-	     static_cast<int>(keyPosn[i])  != 0);
+	     static_cast<int>(keyPosn[i]) != 0);
 
-  if   (!found) {
+  if (!found) {
     feml_file.clear ();  
     feml_file.seekg (0);
     return 0;
-  } else{
+  } else {
     feml_file.clear ();
     feml_file.seekg (keyPosn[i - 1]);
   }
@@ -193,8 +197,8 @@ integer FEML::seek (const char* keyword)
 }
 
 
-integer FEML::attribute (const char* tag ,
-			 const char* attr)
+int FEML::attribute (const char* tag ,
+		     const char* attr)
 // ---------------------------------------------------------------------------
 // Tag attributes are given as options in form <tag attr=int [attr=int ...]>
 // Return integer value following '='.  No whitespace allowed in attributes.
@@ -234,7 +238,7 @@ integer FEML::attribute (const char* tag ,
 }
 
 
-integer FEML::tokens ()
+int FEML::tokens ()
 // ---------------------------------------------------------------------------
 // Install token table.  Return 0 if no TOKEN section is found.
 // NUMBER attribute ignored if present.  Fix any inconsistent values.
@@ -254,12 +258,13 @@ integer FEML::tokens ()
       if (strstr (buf, "TOKENS")) break;
     }
     
-    if ((integer)Femlib::value ("IO_FLD") > (integer)Femlib::value ("N_STEP"))
-      Femlib::value ("IO_FLD", (integer) Femlib::value ("N_STEP"));
+    if (static_cast<int>(Femlib::value ("IO_FLD")) >
+	static_cast<int>(Femlib::value ("N_STEP")))
+      Femlib::value ("IO_FLD", static_cast<int>(Femlib::value ("N_STEP")));
 
-    if ((integer)Femlib::value ("N_TIME") > 3) {
+    if (static_cast<int>(Femlib::value ("N_TIME")) > 3) {
       message (routine, "N_TIME too large, reset to 3", WARNING);
-      Femlib::value ("N_TIME", (integer) 3);
+      Femlib::value ("N_TIME", 3);
     }
     
     return 1;

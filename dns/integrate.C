@@ -37,7 +37,8 @@ static void   Solve     (Domain*, const int, AuxField*, Msys*);
 
 
 void integrateNS (Domain*      D,
-		  DNSAnalyser* A)
+		  DNSAnalyser* A,
+		  Flowrate*    F)
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
 // constraint Field 'p'.
@@ -171,6 +172,8 @@ void integrateNS (Domain*      D,
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 
     // -- Process results of this step.
+
+    ROOTONLY if (F) cout << "Flowrate: " << F -> getQ() << endl;
 
     A -> analyse (Us[0]);
   }

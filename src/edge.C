@@ -118,8 +118,6 @@ void Edge::curlCurl (const int   k  ,
   Vr += elmtOff; Vi += elmtOff;
   Wr += elmtOff; Wi += elmtOff;
 
-#if 1
-
   if (k == 0) {			// -- Zeroth mode / 2D.
 
     Veclib::copy (npnp, Ur, 1, uy, 1);
@@ -229,121 +227,6 @@ void Edge::curlCurl (const int   k  ,
       Blas::axpy (_np, betaK2, Vi + localOff, _dskip, yi, 1);
     }
   }
-
-#else
-  if (k == 0) {			// -- Zeroth mode / 2D.
-
-    Veclib::copy (npnp, Ur, 1, uy, 1);
-    Veclib::copy (npnp, Vr, 1, vx, 1);
-
-    _elmt -> grad (vx, uy, gw);
-
-    // -- (Z-component of) vorticity, w = dv/dx - du/dy.
-
-    Veclib::vsub (npnp, vx, 1, uy, 1, w, 1);
-
-    // -- Find dw/dx & dw/dy on appropriate edge.
-
-    _elmt -> sideGrad (_side, w, yr, xr, ew);
-
-    // -- Add in cylindrical space modification to complete x-component.
-
-    if (Geometry::cylindrical()) {
-      _elmt -> sideGet (_side, w, t);
-
-      Veclib::vmul (_np, xr, 1, _y, 1, xr, 1);
-      Veclib::vmul (_np, yr, 1, _y, 1, yr, 1);
-      Veclib::vadd (_np, xr, 1, t,  1, xr, 1);
-    }
-
-    // -- Sign change to complete y-component of curl curl u.
-    
-    Veclib::neg (_np, yr, 1);
-
-  } else {			// -- 3D.
-
-    const real betaK  = k * Femlib::value ("BETA");
-    const real betaK2 = sqr (betaK);
-
-    // -- Make the equivalents of the 2D terms above.
-
-    Veclib::copy      (npnp, Ur, 1, uy, 1);
-    Veclib::copy      (npnp, Vr, 1, vx, 1);
-    _elmt -> grad     (vx, uy, gw);
-    Veclib::vsub      (npnp, vx, 1, uy, 1, w, 1);
-    _elmt -> sideGrad (_side, w, yr, xr, ew);
-    Veclib::neg       (_np, yr, 1);
-
-    if (Geometry::cylindrical()) {
-      _elmt -> sideGet (_side, w, t);
-      Veclib::vmul (_np, xr, 1, _y, 1, xr, 1);
-      Veclib::vmul (_np, yr, 1, _y, 1, yr, 1);
-      Veclib::vadd (_np, xr, 1, t,  1, xr, 1);     
-    }
-
-    Veclib::copy      (npnp, Ui, 1, uy, 1);
-    Veclib::copy      (npnp, Vi, 1, vx, 1);
-    _elmt -> grad     (vx, uy, gw);
-    Veclib::vsub      (npnp, vx, 1, uy, 1, w, 1);
-    _elmt -> sideGrad (_side, w, yi, xi, ew);
-    Veclib::neg       (_np, yi, 1);
-
-    if (Geometry::cylindrical()) {
-      _elmt -> sideGet (_side, w, t);
-      Veclib::vmul (_np, xi, 1, _y, 1, xi, 1);
-      Veclib::vmul (_np, yi, 1, _y, 1, yi, 1);
-      Veclib::vadd (_np, xi, 1, t,  1, xi, 1);   
-    }
-
-    // -- Semi-Fourier terms based on Wr.
-
-    Veclib::copy  (npnp, Wr, 1, vx, 1);
-    Veclib::copy  (npnp, Wr, 1, uy, 1);
-    _elmt -> grad (vx, uy, gw);
-    if (Geometry::cylindrical()) {
-      _elmt -> sideDivY (_side, Wr, t);
-      Blas::axpy (_np, betaK, vx + localOff, _dskip, xi, 1);
-      Blas::axpy (_np, betaK, uy + localOff, _dskip, yi, 1);
-      Blas::axpy (_np, betaK, t, 1, yi, 1);
-    } else {
-      Blas::axpy (_np, betaK, vx + localOff, _dskip, xi, 1);
-      Blas::axpy (_np, betaK, uy + localOff, _dskip, yi, 1);
-    }
-
-    // -- Semi-Fourier terms based on Wi.
-
-    Veclib::copy  (npnp, Wi, 1, vx, 1);
-    Veclib::copy  (npnp, Wi, 1, uy, 1);
-    _elmt -> grad (vx, uy, gw);
-    if (Geometry::cylindrical()) {
-      _elmt -> sideDivY (_side, Wi, t);
-      Blas::axpy (_np, -betaK, vx + localOff, _dskip, xr, 1);
-      Blas::axpy (_np, -betaK, uy + localOff, _dskip, yr, 1);
-      Blas::axpy (_np, -betaK, t, 1, yr, 1);
-    } else {
-      Blas::axpy (_np, -betaK, vx + localOff, _dskip, xr, 1);
-      Blas::axpy (_np, -betaK, uy + localOff, _dskip, yr, 1);
-    }
-
-    // -- Fourier second derivatives in the third direction.
-
-    if (Geometry::cylindrical()) {
-      _elmt -> sideDivY (_side, Ur,   t);
-      Blas::axpy        (_np, betaK2, t, 1, xr, 1);
-      _elmt -> sideDivY (_side, Ui,   t);
-      Blas::axpy        (_np, betaK2, t, 1, xi, 1);
-      _elmt -> sideDivY (_side, Vr,   t);
-      Blas::axpy        (_np, betaK2, t, 1, yr, 1);
-      _elmt -> sideDivY (_side, Vi,   t);
-      Blas::axpy        (_np, betaK2, t, 1, yi, 1);
-    } else {
-      Blas::axpy (_np, betaK2, Ur + localOff, _dskip, xr, 1);
-      Blas::axpy (_np, betaK2, Ui + localOff, _dskip, xi, 1);
-      Blas::axpy (_np, betaK2, Vr + localOff, _dskip, yr, 1);
-      Blas::axpy (_np, betaK2, Vi + localOff, _dskip, yi, 1);
-    }
-  }
-#endif
 }
 
 
