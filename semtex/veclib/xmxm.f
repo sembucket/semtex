@@ -86,6 +86,50 @@ c
       enddo
       return
       end
+
+c
+c
+c
+c
+      subroutine dmxms (A, nra, B, nca, C, ncb)
+c
+c     C -= A * B.
+c
+      implicit none
+c
+      integer          nra, nca, ncb, i, j, k
+      double precision A(nca, nra), B(ncb, nca), C(ncb, nra)
+c
+      do j = 1, ncb
+         do i = 1, nra
+            do k = 1, nca
+               c(j, i) = c(j, i) - b(j, k) * a(k, i)
+            enddo
+         enddo
+      enddo
+      return
+      end
+c
+c
+      subroutine smxms (A, nra, B, nca, C, ncb)
+c
+c     C -= A * B.
+c
+      implicit none
+c
+      integer  nra, nca, ncb, i, j, k
+      real     A(nca, nra), B(ncb, nca), C(ncb, nra)
+c
+      do j = 1, ncb
+         do i = 1, nra
+            do k = 1, nca
+               c(j, i) = c(j, i) - b(j, k) * a(k, i)
+            enddo
+         enddo
+      enddo
+      return
+      end
+
 c
 c
       subroutine dmxv (A, nra, x, nca, y)
