@@ -64,7 +64,6 @@ static struct {
   "IO_CFL"      ,   50  ,	/* -- Step interval for CFL and modal.   */
   "K_FUND"      ,   1   ,	/* -- Wavenumber of Fourier mode 1.      */
   "N_P"         ,   5   ,	/* -- No. of points along element edge.  */
-  "N_POLY"      ,   5   ,	/* -- Deprecated synonym for N_P.         */
   "N_TIME"      ,   2   ,	/* -- Order of timestepping scheme.      */
   "N_STEP"      ,   1   ,	/* -- Number of timesteps to integrate.  */
   "N_Z"         ,   1   ,	/* -- Number of planes of data.          */
