@@ -11,6 +11,7 @@ meshfile  ... specifies name of NEKTON-format mesh file.
 fieldfile ... specifies name of NEKTON-format (binary) field file.
 options:
 -h        ... print this message
+-s <file> ... read commands from file
 -w        ... white background
 
 FILES
@@ -87,8 +88,12 @@ h                     : show this menu
 l                     : list available isosurfaces
 m <val>               : make isosurface level val with current field
 n <n>                 : invert normal of <n>th isosurface [Default: 0]
+p <x> <y> <z>         : specify coordinate rotation
 q                     : quit
 r <n>                 : remove/delete surface[<n>] from storage
+t <x> <y> <z>         : specify coordinate translation
+z <zoomfactor>        : specify magnification
+?                     : report current t/p/z state values
 
 At startup, the first field has been read into storage as the default,
 and any isosurface creation commands use it as input.  To switch
@@ -114,13 +119,49 @@ normals are aligned the wrong way (there is an binary arbitrariness in
 orientation).  Use the 'n' command to toggle the orientation for
 subsequent display operations.
 
+A script of isosurface manipulation commands can be read from a file,
+as specified on the command line: these are the standard commands a--z
+above.
+
+EXAMPLES
+--------
+See the examples directory.  An example mesh and field (tg.mesh,
+tg.fld) for the evolved Taylor--Green vortex are included, together
+with an example script, tg.sv.
+
+usage: ../sview -s tg.sv tg.mesh tg.fld
+
+For use with mscope there are taylor.ms and taylor.sv (the former is
+an example of an mscope script, the latter is an example of an sview
+script).  This is for a 2D Taylor vortex (invariant in the y
+direction).
+
+usage: mscope -b taylor.ms
+
+PYTHON
+------
+Ron added some bindings for interfacing with Python (pending modification
+of python).
+
+HISTORY
+-------
+The basic marching cubes routine comes from NCSA.  Murray Rudman wrote
+the original version of sview for single-block meshes, calling SGI GL
+graphics.  Murray and Mark Thompson added multiblock capability, and
+the original interface to NEKTON meshes and binary data.  Hugh
+Blackburn ported the code to OpenGL/GLUT graphics routines.  Ron
+Henderson added the script interface, some new commands, and bindings
+for python.
+
+TO DO
+-----
+Arbitary number of repetitions in the z-direction.
+TIFF and PostScript output.
+Python bindings for GLUT.
+
 BUGS
 ----
-
-Ron reported that this link line was needed on a Red Hat Linux system:
-
-
-SGI_GLUT  = -lglut -lGLU -lGL -lX11 -lXext -lXmu -lXt -lXi -lSM -lICE
-
+There are still some problems with isosurface normals , material
+colours and lighting.
 
 $Id$

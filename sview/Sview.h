@@ -3,6 +3,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Prototypes, classes and constants for sview.
 //
+// Copyright (C) 1999 Hugh Blackburn
+//
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -88,7 +90,8 @@ extern Data* Fields;		/* Scalar field data structure/retrieval.   */
 
 /* -- External routines in main.C: */
 
-void message (const char*, const char*, const lev&);
+void message       (const char*, const char*, const lev&);
+void processScript (const char*);
 
 /* -- Routines in semIO.C: */
 
@@ -98,8 +101,9 @@ int   loadData  (Data*, char);
 
 /* -- Routines in keycom.C: */
 
-void commandLine ();
-int  countSurf   (Iso**);
+void commandLine    ();
+void processCommand (const char, const char*);
+int  countSurf      (Iso**);
 
 /* -- Routines in graphics.C: */
 

@@ -17,7 +17,23 @@ void commandLine ()
 // was initiated.
 // ---------------------------------------------------------------------------
 {
-  char routine[] ="commandLine";
+  char buf[StrMax], command;
+
+  cout << "(h = help) > ";
+  cin >> command;
+  cin.getline (buf, StrMax);
+
+  processCommand (command, buf);
+}
+
+
+void processCommand (const char  command,
+		     const char* buf    )
+// ---------------------------------------------------------------------------
+// Do command, with arguments from buf if appropriate.
+// ---------------------------------------------------------------------------
+{
+  char routine[] ="processCommand";
   char help[] =
     "-- sview help menu --\n"
     "a                     : add default isosurface to end of storage\n"
@@ -27,15 +43,15 @@ void commandLine ()
     "l                     : list available isosurfaces\n"
     "m <val>               : make isosurface level val with current field\n"
     "n <n>                 : invert normal of <n>th isosurface [Default: 0]\n"
+    "p <x> <y> <z>         : specify coordinate rotation\n"
     "q                     : quit\n"
-    "r <n>                 : remove/delete surface[<n>] from storage\n";
-  char  buf[StrMax], command, name;
+    "r <n>                 : remove/delete surface[<n>] from storage\n"
+    "t <x> <y> <z>         : specify coordinate translation\n"
+    "z <zoomfactor>        : specify magnification\n"
+    "?                     : report current t/p/z state values\n";
+  char  name;
   float value;
   int   i, j, N;
-
-  cout << "(h = help) > ";
-  cin >> command;
-  cin.getline (buf, StrMax);
 
   switch (command) {
 
@@ -70,7 +86,6 @@ void commandLine ()
     }
 
     State.drawiso = GL_TRUE;
-    State.drawbox = GL_FALSE;
 
     glutPostRedisplay ();
     glutIdleFunc      (0);
@@ -123,8 +138,21 @@ void commandLine ()
     }
     break;
 
+  case 'p': {
+    istrstream strm(buf, strlen(buf));
+    double val[3];
+
+    for (i = 0; i < 3; i++) {
+      strm >> val[i];
+    }
+
+    State.xrot = val[0];
+    State.yrot = val[1];
+    State.zrot = val[2];
+    break;
+  }
+
   case 'q':
-    cerr << "-- sview : normal termination" << endl;
     exit (EXIT_SUCCESS);
     break;
 
@@ -155,10 +183,60 @@ void commandLine ()
     }
     break;
 
-  default:
+  case 't': {
+    istrstream strm(buf, strlen(buf));
+    double val[3];
+
+    for (i = 0; i < 3; i++) {
+      strm >> val[i];
+    }
+
+    State.xrot = val[0];
+    State.yrot = val[1];
+    State.zrot = val[2];
     break;
   }
 
+  case 'z': {
+    istrstream strm(buf, strlen(buf));
+    double val;
+
+    strm >> val;
+
+    State.radius = (1./val) * State.length;
+    break;
+  }
+
+  case '?': {
+    cout << "-- Camera" << endl;
+    cout << "   t " 
+	 << State.xtrans << ' '
+	 << State.ytrans << ' '
+	 << State.ztrans << endl;
+    cout << "   p " 
+	 << State.xrot   << ' '
+	 << State.yrot   << ' '
+	 << State.zrot   << endl;
+    cout << "   z "
+	 << State.length / State.radius << endl;
+      
+    cout << "-- Surfaces" << endl;
+
+    const int N = countSurf(Display);
+    if (!N)
+      cout << "   none" << endl;
+    else {
+      int i;
+      for (i = 0; i < N; i++) {
+	cout << "   " << Display[i]->info << endl;
+      }
+    }
+    break;
+  }
+
+  default:
+    break;
+  }
 }
 
 

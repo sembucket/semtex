@@ -1,9 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
-//
-// SYNOPSIS
-// --------
 // sview: Interactive display of isosurfaces.  This version works with
 // NEKTON/PRISM/SEMTEX multi-element 3D data, and uses OpenGL and GLUT.
+//
+// Copyright (C) 1999 Hugh Blackburn
 //
 // USAGE
 // -----
@@ -11,8 +10,9 @@
 // meshfile  ... specifies name of NEKTON-format mesh file.
 // fieldfile ... specifies name of NEKTON-format (binary) field file.
 // options:
-//   -h      ... print this message
-//   -w      ... white background [Default: black]
+//   -h        ... print this message
+//   -s <file> ... read commands from file
+//   -w        ... white background [Default: black]
 // 
 //
 // REFERENCES
@@ -40,7 +40,7 @@ Iso** Display;
 Sem*  Mesh;
 Data* Fields;
 
-static void getargs (int, char**, char*&, char*&);
+static void getargs (int, char**, char*&, char*&, char*&);
 
 
 void main (int    argc,
@@ -58,7 +58,7 @@ void main (int    argc,
 // ---------------------------------------------------------------------------
 {
   int  i;
-  char *mfile, *ffile;
+  char *mfile, *ffile, *script = 0;
   char start[] = 
     "-- sview : isosurface viewer for spectral element meshes --\n"
     "           OpenGL version CSIRO 1999\n";
@@ -66,7 +66,7 @@ void main (int    argc,
   // -- Initialise.
 
   glutInit (&argc, argv);
-  getargs  (argc,  argv, mfile, ffile);
+  getargs  (argc,  argv, mfile, ffile, script);
 
   cout << start;
 
@@ -115,6 +115,8 @@ void main (int    argc,
 
   initGraphics ();
 
+  if (script) processScript (script);
+
   glutMainLoop ();
 }
 
@@ -122,7 +124,8 @@ void main (int    argc,
 static void getargs (int    argc ,
 		     char** argv ,
 		     char*& mfile,
-		     char*& ffile)
+		     char*& ffile,
+		     char*& sfile)
 // ---------------------------------------------------------------------------
 // Process command-line arguments.
 // ---------------------------------------------------------------------------
@@ -133,14 +136,19 @@ static void getargs (int    argc ,
     "fieldfile ... specifies name of NEKTON-format (binary) field file.\n"
     "options:\n"
     "-h        ... print this message\n"
+    "-s <file> ... read commands from file\n"
     "-w        ... white background\n";
-  char err[StrMax];
+  char c, err[StrMax];
 
   while (--argc && **++argv == '-')
-    switch (**++argv) {
+    switch (c = *++argv[0]) {
     case 'h':
       cerr << usage;
       exit (EXIT_SUCCESS);
+      break;
+    case 's':
+      --argc;
+      sfile = *++argv;
       break;
     case 'w':
       State.blackbk = !State.blackbk;
@@ -180,4 +188,30 @@ void message (const char* routine,
     exit (EXIT_FAILURE);
     break;
   }
+}
+
+
+void processScript (const char *name)
+// ---------------------------------------------------------------------------
+// Process sview commands from file name.
+// ---------------------------------------------------------------------------
+{
+  const char routine[] = "processScript";
+  char       buf[StrMax], command;
+  ifstream   fp(name);
+
+  if (!fp) {
+    sprintf (buf, "couldn't open script file -- %s", name);
+    message (routine, buf, ERROR);
+  } else {
+    sprintf (buf, "Reading commands from %s", name);
+    message (routine, buf, REMARK);
+  }
+
+  while (fp >> command) {
+    fp.getline     (buf, StrMax);
+    processCommand (command, buf);
+  }
+
+  fp.close();
 }
