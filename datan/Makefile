@@ -49,7 +49,7 @@ CLDFLAGS = $(LDFLAGS)
 F77LIBS  = -lfor -lots -lg2c
 endif
 
-ifeq ($(ARCH),Linux-i686)               # -- Linux Intel w GNU compilation.
+ifeq ($(ARCH),Linux)               # -- Linux Intel w GNU compilation.
 CXX      = g++
 LD       = g++
 CC       = gcc
@@ -61,6 +61,7 @@ endif
 CFLAGS   = $(DEFINES) $(OPT)
 CXXFLAGS = $(DEFINES) $(OPT)
 CLDFLAGS = $(LDFLAGS)
+F77LIBS  = -lg2c
 endif
 
 ifeq ($(ARCH),IRIX)			# -- SGI 32-bit systems.
