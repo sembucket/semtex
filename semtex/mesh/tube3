@@ -1,3 +1,5 @@
+# -- 3D uniform flow normal to a tubular volume.
+##############################################################################
 # 4 element uniform flow normal to a tubular geometry, solved in cylindrical
 # space.  u = 0, v = cos(z), w = -sin(z).  There are no nonlinear terms.
 

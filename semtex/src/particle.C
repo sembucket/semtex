@@ -171,8 +171,8 @@ void FluidParticle::integrate (const integer step)
 
     // -- Maintain multilevel storage.
 
-    roll (u, TORD);
-    roll (v, TORD);
+    rollv (u, TORD);
+    rollv (v, TORD);
 
   } else {			// -- 3D integration.
     
@@ -234,8 +234,8 @@ void FluidParticle::integrate (const integer step)
 
     // -- Maintain multilevel storage.
 
-    roll (u, TORD);
-    roll (v, TORD);
-    roll (w, TORD);
+    rollv (u, TORD);
+    rollv (v, TORD);
+    rollv (w, TORD);
   }
 }

@@ -34,7 +34,7 @@ DNSAnalyser::DNSAnalyser (Domain* D   ,
 }
 
 
-void DNSAnalyser::analyse (AuxField*** work)
+void DNSAnalyser::analyse (AuxField** work)
 // ---------------------------------------------------------------------------
 // Step-by-step processing.
 // ---------------------------------------------------------------------------

@@ -71,11 +71,11 @@ void PBCmgr::build (const Field* P)
 }
 
 
-void PBCmgr::maintain (const integer     step   ,
-		       const Field*      P      ,
-		       const AuxField*** Us     ,
-		       const AuxField*** Uf     ,
-		       const integer     timedep)
+void PBCmgr::maintain (const integer    step   ,
+		       const Field*     P      ,
+		       const AuxField** Us     ,
+		       const AuxField** Uf     ,
+		       const integer    timedep)
 // ---------------------------------------------------------------------------
 // Update storage for evaluation of high-order pressure boundary condition.
 // Storage order for each edge represents a CCW traverse of element boundaries.
@@ -107,11 +107,11 @@ void PBCmgr::maintain (const integer     step   ,
   const integer      nMode =  Geometry::nModeProc();
   const integer      mLo   = (Geometry::procID() == 0) ? 1 : 0;
 
-  const AuxField*    Ux = Us[0][0];
-  const AuxField*    Uy = Us[1][0];
-  const AuxField*    Uz = (nZ > 1) ? Us[2][0] : 0;
-  const AuxField*    Nx = Uf[0][0];
-  const AuxField*    Ny = Uf[1][0];
+  const AuxField*    Ux = Us[0];
+  const AuxField*    Uy = Us[1];
+  const AuxField*    Uz = (nZ > 1) ? Us[2] : 0;
+  const AuxField*    Nx = Uf[0];
+  const AuxField*    Ny = Uf[1];
 
   const vector<Boundary*>& BC = P -> _bsys -> BCs (0);
   register Boundary*       B;
@@ -122,8 +122,8 @@ void PBCmgr::maintain (const integer     step   ,
 
   // -- Roll grad P storage area up, load new level of nonlinear terms Uf.
 
-  roll (Pnx, nTime);
-  roll (Pny, nTime);
+  rollv (Pnx, nTime);
+  rollv (Pny, nTime);
 
   for (i = 0; i < nEdge; i++) {
     B      = BC[i];
@@ -210,8 +210,8 @@ void PBCmgr::maintain (const integer     step   ,
 
     // -- Roll velocity storage area up, load new level.
 
-    roll (Unx, nTime);
-    roll (Uny, nTime);
+    rollv (Unx, nTime);
+    rollv (Uny, nTime);
       
     for (i = 0; i < nEdge; i++) {
       B      = BC[i];
