@@ -29,6 +29,7 @@ public:
 
   Data2DF& conjugate  (const bool);
   Data2DF& symmetrize (const bool);
+  Data2DF& shift      (const real alpha, const bool);
 
 protected:
   const char  _name;

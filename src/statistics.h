@@ -24,6 +24,7 @@ protected:
   vector<AuxField*> _src ;	// -- Pointers to the base storage areas.
   vector<AuxField*> _avg ;	// -- Storage area for running averages.
   int_t             _navg;	// -- Number of averages so far.
+  int_t             _iavg;	// -- Same as value of token "AVERAGE".
 };
 
 #endif

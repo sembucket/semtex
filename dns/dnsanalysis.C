@@ -7,7 +7,7 @@
 
 static char RCS[] = "$Id$";
  
-#include "dns.h"
+#include <dns.h>
 
 
 DNSAnalyser::DNSAnalyser (Domain* D   ,

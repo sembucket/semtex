@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////////////////////////////
-// egde.C: implement element-edge operators.
+// edge.C: implement element-edge operators.
 //
 // Copyright (c) 2003 <--> $Date$, Hugh Blackburn
 //

@@ -23,8 +23,6 @@ public:
   char name     ()      const { return _name; }
   void describe (char*) const;
 
-  AuxField& setInput    (real_t*, const int_t);
-
   AuxField& operator  = (const real_t);
   AuxField& operator += (const real_t);
   AuxField& operator -= (const real_t);

@@ -22,8 +22,8 @@
 
 static char RCS[] = "$Id$";
 
-#include "sem.h"
-#include "data2df.h"
+#include <sem.h>
+#include <data2df.h>
 
 static char  prog[] = "lowpass";
 static void  getargs  (int, char**, char&, int_t&, real_t&, istream*&);

@@ -50,29 +50,6 @@ AuxField::AuxField (real_t*           alloc,
 }
 
 
-AuxField& AuxField::setInput (real_t*     alloc,
-			      const int_t nz   )
-// ---------------------------------------------------------------------------
-// Install a new lot of field storage, with nominated number of planes.
-// It is assumed that alloc is at least nZ * geometry::planeSize() long.
-// ---------------------------------------------------------------------------
-{
-  register int_t k;
-  const int_t    nP = Geometry::planeSize();
-
-  _nz   = nz;
-  _size = _nz * nP;
-  _data = alloc;
-
-  delete [] _plane;
-  _plane = new real_t* [static_cast<size_t>(_nz)];
-
-  for (k = 0; k < _nz; k++) _plane[k] = _data + k * nP;
-
-  return *this;
-}
-
-
 AuxField& AuxField::operator = (const real_t val)
 // ---------------------------------------------------------------------------
 // Set field storage area to val.

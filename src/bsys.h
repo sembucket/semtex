@@ -15,7 +15,6 @@ public:
 
   char                     field () const { return _field_name; }
   int_t                    nSurf () const { return _nbound; }
-  int_t                    nWall () const;
   int_t                    mixBC () const { return _mixed; }
   const vector<Boundary*>& BCs   (const int_t) const;
   const NumberSys*         Nsys  (const int_t) const;

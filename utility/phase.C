@@ -1,16 +1,17 @@
 ///////////////////////////////////////////////////////////////////////////////
-// transform.C: carry out Fourier and/or 2D polynomial transform of data.
+// phase.C: do operations on 3D data file in phase/Fourier space.
 //
-// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
+// Copyright (c) 2002 <--> $Date$, Hugh Blackburn
 //
 // USAGE
 // -----
-// transform [options] [file]
+// phase [options] [file]
 // options:
 // -h       ... print this message.
-// -i       ... invert transform.
-// -l       ... polynomial transform is Legendre       [Default: modal]
-// -P||F||B ... Carry out DPT (P), DFT (F) or both (B) [Default: both]
+// -f       ... data are already Fourier transformed (do not transform).
+// -z       ... take mode zero as complex (e.g. it is an eigenmode).
+// -r       ... enforce reflection symmetry of velocity & pressure data.
+// -s <num> ... shift data a fraction <num> of the fundamental wavelength.
 // 
 // If file is not present, read from standard input.  Write to
 // standard output.
@@ -22,11 +23,11 @@ static char RCS[] = "$Id$";
 #include <data2df.h>
 
 
-static char prog[] = "transform";
-static void getargs  (int, char**, int_t&, char&, char&, istream*&);
-static bool getDump  (istream&, ostream&, vector<Data2DF*>&);
-static void loadName (const vector<Data2DF*>&, char*);
-static bool doSwap   (const char*);
+static char  prog[] = "phase";
+static void  getargs  (int,char**,bool&,bool&,bool&,real_t&,istream*&);
+static int_t getDump  (istream&,ostream&,vector<Data2DF*>&);
+static void  loadName (const vector<Data2DF*>&,char*);
+static int_t doSwap   (const char*);
 
 
 int main (int    argc,
@@ -35,18 +36,25 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  int_t            i, dir = FORWARD;
-  char             type   = 'B', basis = 'm';
+  int_t            i;
+  bool             cmplx = false, zero = false, symm = false;
+  real_t           alpha;
   istream*         input;
   vector<Data2DF*> u;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, dir, type, basis, input);
+  getargs (argc, argv, cmplx, zero, symm, alpha, input);
   
   while (getDump (*input, cout, u))
     for (i = 0; i < u.size(); i++) {
-      if (type == 'P' || type == 'B') u[i] -> DPT2D (dir, basis);
-      if (type == 'F' || type == 'B') u[i] -> DFT1D (dir);
+      if (!cmplx|zero) u[i] -> DFT1D (FORWARD);
+
+      if (fabs (alpha) > EPSDP) u[i] -> shift (alpha, zero);
+
+      if (!symm) u[i] -> conjugate   (zero);
+      else       u[i] -> symmetrize  (zero);
+
+      if (!cmplx|zero) u[i] -> DFT1D (INVERSE);
       cout << *u[i];
     }
   
@@ -57,43 +65,41 @@ int main (int    argc,
 
 static void getargs (int       argc ,
 		     char**    argv ,
-		     int_t&      dir  ,
-		     char&     type ,
-		     char&     basis,
+		     bool&     cmplx,
+		     bool&     zero ,
+		     bool&     symm ,
+		     real_t&   shift,
 		     istream*& input)
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  char usage[] = "Usage: transform [options] [file]\n"
-    "options:\n"
-    "-h ... print this message\n"
-    "-P ... Discrete Polynomial Transform (2D)\n"
-    "-F ... Discrete Fourier    Transform (1D)\n"
-    "-B ... do both DPT & DFT [Default]\n"
-    "-i ... carry out inverse transform instead\n"
-    "-l ... use Legendre basis functions instead of modal expansions\n";
-    
+  char usage[] = "Usage: phase [options] [file]\n"
+  "options:\n"
+  "-h       ... print this message\n"
+  "-f       ... data are already complex (do not Fourier transform).\n"
+  "-z       ... take mode zero as complex (e.g. file is an eigenmode).\n"
+  "-r       ... enforce reflection symmetry of velocity & pressure data.\n"
+  "-s <num> ... shift data a fraction <num> of the fundamental wavelength.\n";
+
   while (--argc && **++argv == '-')
     switch (*++argv[0]) {
     case 'h':
       cout << usage;
       exit (EXIT_SUCCESS);
       break;
-    case 'i':
-      dir = INVERSE;
+    case 'f':
+      cmplx = true;
       break;
-    case 'l':
-      basis = 'l';
+    case 'z':
+      zero = true;
       break;
-    case 'P':
-      type = 'P';
+    case 'r':
+      symm = true;
       break;
-    case 'F':
-      type = 'F';
-      break;
-    case 'B':
-      type = 'B';
+    case 's':
+      if   (*++argv[0]) shift = atof (*argv);
+      else { --argc;    shift = atof (*++argv); }
       break;
     default:
       cerr << usage;
@@ -109,7 +115,7 @@ static void getargs (int       argc ,
 
 
 static void loadName (const vector<Data2DF*>& u,
-		      char*                   s)
+		      char*                    s)
 // --------------------------------------------------------------------------
 // Load a string containing the names of fields.
 // ---------------------------------------------------------------------------
@@ -121,7 +127,7 @@ static void loadName (const vector<Data2DF*>& u,
 }
 
 
-static bool doSwap (const char* ffmt)
+static int_t doSwap (const char* ffmt)
 // ---------------------------------------------------------------------------
 // Figure out if byte-swapping of input is required to make sense of input.
 // ---------------------------------------------------------------------------
@@ -140,9 +146,9 @@ static bool doSwap (const char* ffmt)
 }
 
 
-static bool getDump (istream&          ifile,
-		     ostream&          ofile,
-		     vector<Data2DF*>& u    )
+static int_t getDump (istream&           ifile,
+		      ostream&           ofile,
+		      vector<Data2DF*>& u    )
 // ---------------------------------------------------------------------------
 // Read next set of field dumps from ifile, put headers on ofile.
 // ---------------------------------------------------------------------------
@@ -159,8 +165,8 @@ static bool getDump (istream&          ifile,
     "%-25s "    "Fields written\n",
     "%-25s "    "Format\n"
   };
-  char buf[StrMax], fmt[StrMax], fields[StrMax];
-  int_t  i, j, swab, nf, np, nz, nel;
+  char  buf[StrMax], fmt[StrMax], fields[StrMax];
+  int_t i, j, swab, nf, np, nz, nel;
 
   if (ifile.getline(buf, StrMax).eof()) return 0;
   
