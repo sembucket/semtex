@@ -105,6 +105,10 @@ MatrixSystem::MatrixSystem (const real              lambda2,
     H     = new real [npack];
     Veclib::zero (npack, H, 1);
 
+    if (verbose > 1)
+      cout << endl
+	   << "Helmholtz constant (lambda2): " << setw(10) << lambda2
+	   << ", Fourier constant (betak2): "  << setw(10) << betak2;
     if (verbose)
       cout << endl
 	   << "System matrix: "
