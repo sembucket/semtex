@@ -242,18 +242,14 @@ integer FEML::attribute (const char* tag ,
 
 integer FEML::tokens ()
 // ---------------------------------------------------------------------------
-// Initialize femlib parser and install token table.
-// Return 0 if no TOKEN section is found.
-// NUMBER attribute ignored if present.
-//
-// Fix any inconsistent values.
+// Install token table.  Return 0 if no TOKEN section is found.
+// NUMBER attribute ignored if present.  Fix any inconsistent values.
+// Parser must have been initialized before entry.
 // ---------------------------------------------------------------------------
 {
   char           buf[STR_MAX];
   register char* u;
 
-  Femlib::prep();
- 
   if (seek ("TOKENS")) {
     feml_file.ignore (STR_MAX, '\n');
 

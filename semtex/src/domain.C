@@ -17,8 +17,10 @@ Domain::Domain (FEML&       F   ,
 // ---------------------------------------------------------------------------
 // Construct a new Domain with all user Fields, and NumberSystems.
 //
-// By convention, all Fields stored in the Domain have single-character
-// lower-case names.  See the file field.C for significance of the names.
+// By convention, all Fields stored in the Domain have
+// single-character lower-case names.  On input, the names of the
+// Fields to be created are stored in the string "flds".  See the file
+// field.C for significance of the names.
 //
 // No initialization of Field MatrixSystems.
 // ---------------------------------------------------------------------------
@@ -31,7 +33,7 @@ Domain::Domain (FEML&       F   ,
   const integer NF   = strlen (flds);
   const real*   z;
 
-  if (verb) {
+  ROOTONLY if (verb) {
     cout << NE << " elements, ";
     cout << np << "x" << np << "x" << nz << endl;
   }
@@ -43,7 +45,7 @@ Domain::Domain (FEML&       F   ,
 
   Femlib::value ("t", time);
 
-  if (verb) cout << "Building Elements ... ";
+  ROOTONLY if (verb) cout << "Building Elements ... ";
 
   Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
 
@@ -56,9 +58,8 @@ Domain::Domain (FEML&       F   ,
     boff += Esys[k] -> nExt();
   }
 
-  if (verb) cout << "done" << endl;
-  
-  if (verb) cout << "Retrieving prebuilt numbering systems ... ";
+  ROOTONLY if (verb) cout << "done" << endl;
+  ROOTONLY if (verb) cout << "Retrieving prebuilt numbering systems ... ";
 
   // -- Load all the available numbering systems created by enumerate.
 
@@ -69,7 +70,7 @@ Domain::Domain (FEML&       F   ,
   const integer        NS      = Nsys.getSize();
   const NumberSystem** systems = new const NumberSystem* [3];
 
-  if (verb) cout << "done" << endl << "Building Fields ... ";
+  ROOTONLY if (verb) cout << "done" << endl << "Building Fields ... ";
 
   u.setSize (NF);
   for (k = 0; k < NF; k++) {
@@ -77,7 +78,7 @@ Domain::Domain (FEML&       F   ,
     u[k] = new Field (F, B, Esys, fields[k], systems);
   }
 
-  if (verb) cout << " done" << endl;
+  ROOTONLY if (verb) cout << " done" << endl;
 }
 
 
@@ -85,14 +86,15 @@ void Domain::getNumber ()
 // ---------------------------------------------------------------------------
 // Attempt to retrieve numbering schemes (btog and bmsk values) from
 // file "name.num".  If this doesn't exist, first try to create it by
-// running "enumerate" utility.
+// running "enumerate" utility on root processor.
 //
 // The names of fields and their numbering schemes are significant.
 // The convention employed is that the fields have lower-case
 // single-character names.  Numbering schemes have the same names,
 // *except* in the case of cylindrical coordinate systems where the
-// domain includes the symmetry axis.  See file field.C for mode-related
-// significance for upper-cased names of numbering schemes.
+// domain includes the symmetry axis.  See file field.C for
+// mode-related significance for upper-cased names of numbering
+// schemes.
 // ---------------------------------------------------------------------------
 {
   const char       routine[] = "Domain::getNumber";
@@ -104,12 +106,17 @@ void Domain::getNumber ()
   num.open (buf);
 
   if (!num) {
-    sprintf (buf, "enumerate -O1 %s > %s.num", name, name);
-    if (system (buf)) {
-      sprintf (err, "couldn't open session file %s, or %s.num", name, name);
-      message (routine, err, ERROR);
+
+    ROOTONLY {
+      sprintf (buf, "enumerate -O1 %s > %s.num", name, name);
+      if (system (buf)) {
+	sprintf (err, "couldn't open session file %s, or %s.num", name, name);
+	message (routine, err, ERROR);
+      }
     }
     
+    Femlib::synchronize();
+
     strcat    (strcpy (buf, name), ".num");
     num.clear ();
     num.open  (buf);
@@ -319,21 +326,22 @@ void Domain::getNumber ()
 void Domain::setNumber (const char           field ,
 			const NumberSystem** system) const
 // ---------------------------------------------------------------------------
-// Set up the vector of NumberSystems that will be required to construct
-// the named field.  This is rather messy since it encodes the rules for
-// usage of NumberSystems both for Cartesian and cylindrical Fields, as
-// discussed in field.C.
+// Set up the vector of NumberSystems that will be required to
+// construct the named field.  This is rather messy since it encodes
+// the rules for usage of NumberSystems both for Cartesian and
+// cylindrical Fields, as discussed in field.C.
 //
 // For Cartesian (and for 2D cylindrical) geometries, only the first
-// element of the systems vector is used, so the selection of systems is
-// quite straightforward, based only on a match of input variable "field"
-// and the names encoded in the Domain's internal vector of
+// element of the systems vector is used, so the selection of systems
+// is quite straightforward, based only on a match of input variable
+// "field" and the names encoded in the Domain's internal vector of
 // NumberSystems.
 //
-// For 3D Cylindrical geometries, there will be three entries in systems,
-// corresponding to the numbering schemes for the 0th, 1st 2nd (and higher)
-// Fourier modes.  The selection of appropriate NumberSystems depends on the
-// input variable "field".  See remarks at head of file field.C.
+// For 3D Cylindrical geometries, there will be three entries in
+// systems, corresponding to the numbering schemes for the 0th, 1st
+// 2nd (and higher) Fourier modes.  The selection of appropriate
+// NumberSystems depends on the input variable "field".  See remarks
+// at head of file field.C.
 // ---------------------------------------------------------------------------
 {
   const char    routine[] = "Domain::setNumber";
@@ -402,6 +410,7 @@ void Domain::report ()
 
   cout << "   Number of elements      : " << Geometry::nElmt()  << endl;
   cout << "   Number of planes        : " << Geometry::nZ()     << endl;
+  cout << "   Number of processors    : " << Geometry::nProc()  << endl;
   if (Geometry::nZ() > 1) cout << "   Periodic length         : " << lz<< endl;
   cout << "   Polynomial order (np-1) : " << Geometry::nP() - 1 << endl;
 
@@ -418,8 +427,8 @@ void Domain::report ()
 
 void Domain::initialize ()
 // ---------------------------------------------------------------------------
-// If a restart file "name".rst can be found, use it for input.  If this
-// fails, initialize all Fields to zero ICs.
+// If a restart file "name".rst can be found, use it for input.  If
+// this fails, initialize all Fields to zero ICs.
 //
 // Carry out forwards Fourier transformation, zero Nyquist data.
 // ---------------------------------------------------------------------------
@@ -427,24 +436,25 @@ void Domain::initialize ()
   integer       i;
   const integer nF = nField();
   char          restartfile[StrMax];
-
-  cout << "-- Initial condition       : ";
-
-  strcat (strcpy (restartfile, name), ".rst");
-  ifstream file  (restartfile);
+  
+  ROOTONLY cout << "-- Initial condition       : ";
+  ifstream file (strcat (strcpy (restartfile, name), ".rst"));
 
   if (file) {
-    cout << "read from file " << restartfile;
+    ROOTONLY {
+      cout << "read from file " << restartfile;
+      cout.flush();
+    }
     file >> *this;
     file.close();
     transform (+1);
-    for (i = 0; i < nF; i++) u[i] -> zeroNyquist();
+    ROOTONLY for (i = 0; i < nF; i++) u[i] -> zeroNyquist();
   } else {
-    cout << "set to zero";
+    ROOTONLY cout << "set to zero";
     for (i = 0; i < nF; i++) *u[i] = 0.0;
   }
 
-  cout << endl;
+  ROOTONLY cout << endl;
   
   Femlib::value ("t", time);
   step = 0;
@@ -464,40 +474,42 @@ void Domain::dump ()
   const integer final    =   step == (integer) Femlib::value ("N_STEP");
 
   if (!(periodic || final)) return;
+  ofstream output;
+  
+  ROOTONLY {
+    const char    routine[] = "Domain::dump";
+    char          dumpfl[StrMax], backup[StrMax], command[StrMax];
+    const integer verbose   = (integer) Femlib::value ("VERBOSE");
+    const integer chkpoint  = (integer) Femlib::value ("CHKPOINT");
 
-  const char    routine[] = "Domain::dump";
-  const integer verbose   = (integer) Femlib::value ("VERBOSE");
-  const integer chkpoint  = (integer) Femlib::value ("CHKPOINT");
-  ofstream      output;
-  char          dumpfl[StrMax], backup[StrMax], command[StrMax];
-
-  if (chkpoint) {
-    if (final) {
-      strcat (strcpy (dumpfl, name), ".fld");
-      output.open (dumpfl, ios::out);
-    } else {
-      strcat (strcpy (dumpfl, name), ".chk");
-      if (!initial) {
-	strcat  (strcpy (backup, name), ".chk.bak");
-	sprintf (command, "mv ./%s ./%s", dumpfl, backup);
-	system  (command);
+    if (chkpoint) {
+      if (final) {
+	strcat (strcpy (dumpfl, name), ".fld");
+	output.open (dumpfl, ios::out);
+      } else {
+	strcat (strcpy (dumpfl, name), ".chk");
+	if (!initial) {
+	  strcat  (strcpy (backup, name), ".chk.bak");
+	  sprintf (command, "mv ./%s ./%s", dumpfl, backup);
+	  system  (command);
+	}
+	output.open (dumpfl, ios::out);
       }
-      output.open (dumpfl, ios::out);
+    } else {
+      strcat (strcpy (dumpfl, name), ".fld");
+      if   (initial) output.open (dumpfl, ios::out);
+      else           output.open (dumpfl, ios::app);
     }
-  } else {
-    strcat (strcpy (dumpfl, name), ".fld");
-    if   (initial) output.open (dumpfl, ios::out);
-    else           output.open (dumpfl, ios::app);
+    
+    if (!output) message (routine, "can't open dump file", ERROR);
+    if (verbose) message (routine, ": writing field dump", REMARK);
   }
-
-  if (!output) message (routine, "can't open dump file", ERROR);
-  if (verbose) message (routine, ": writing field dump", REMARK);
 
   transform (-1);
   output << *this;
   transform (+1);
 
-  output.close();
+  ROOTONLY output.close();
 }
 
 
@@ -515,8 +527,9 @@ void Domain::transform (const integer sign)
 
 ostream& operator << (ostream& strm, Domain& D)
 // ---------------------------------------------------------------------------
-// Output all Domain field variables on ostream in prism-compatible form.
-// Binary output only.
+// Output all Domain field variables on ostream in prism-compatible
+// form.  Binary output only.  Note that output is only done on root
+// processor.
 // ---------------------------------------------------------------------------
 {
   const char *hdr_fmt[] = { 
@@ -535,48 +548,52 @@ ostream& operator << (ostream& strm, Domain& D)
   const char routine[] = "ostream << Domain";
   char       s1[StrMax], s2[StrMax];
   time_t     tp (::time (0));
+  integer    k;
 
-  sprintf (s1, hdr_fmt[0], D.name);
-  strm << s1;
+  ROOTONLY {
+    sprintf (s1, hdr_fmt[0], D.name);
+    strm << s1;
 
-  strftime (s2, 25, "%a %b %d %H:%M:%S %Y", localtime (&tp));
-  sprintf  (s1, hdr_fmt[1], s2);
-  strm << s1;
+    strftime (s2, 25, "%a %b %d %H:%M:%S %Y", localtime (&tp));
+    sprintf  (s1, hdr_fmt[1], s2);
+    strm << s1;
 
-  D.u[0] -> describe (s2);
-  sprintf (s1, hdr_fmt[2], s2);
-  strm << s1;
+    D.u[0] -> describe (s2);
+    sprintf (s1, hdr_fmt[2], s2);
+    strm << s1;
 
-  sprintf (s1, hdr_fmt[3], D.step);
-  strm << s1;
+    sprintf (s1, hdr_fmt[3], D.step);
+    strm << s1;
 
-  sprintf (s1, hdr_fmt[4], D.time);
-  strm << s1;
+    sprintf (s1, hdr_fmt[4], D.time);
+    strm << s1;
 
-  sprintf (s1, hdr_fmt[5], Femlib::value ("D_T"));
-  strm << s1;
+    sprintf (s1, hdr_fmt[5], Femlib::value ("D_T"));
+    strm << s1;
 
-  sprintf (s1, hdr_fmt[6], Femlib::value ("KINVIS"));
-  strm << s1;
+    sprintf (s1, hdr_fmt[6], Femlib::value ("KINVIS"));
+    strm << s1;
 
-  sprintf (s1, hdr_fmt[7], Femlib::value ("BETA"));
-  strm << s1;
+    sprintf (s1, hdr_fmt[7], Femlib::value ("BETA"));
+    strm << s1;
 
-  integer k;
-  for (k = 0; k < D.nField(); k++) s2[k] = D.u[k] -> name();
-  s2[k] = '\0';
-  sprintf (s1, hdr_fmt[8], s2);
-  strm << s1;
+    for (k = 0; k < D.nField(); k++) s2[k] = D.u[k] -> name();
+    s2[k] = '\0';
+    sprintf (s1, hdr_fmt[8], s2);
+    strm << s1;
 
-  sprintf (s2, "binary ");
-  Veclib::describeFormat (s2 + strlen (s2));
-  sprintf (s1, hdr_fmt[9], s2);
-  strm << s1;
+    sprintf (s2, "binary ");
+    Veclib::describeFormat (s2 + strlen (s2));
+    sprintf (s1, hdr_fmt[9], s2);
+    strm << s1;
+  }
 
-  for (k = 0; k < D.nField (); k++) strm << *D.u[k];
+  for (k = 0; k < D.nField(); k++) strm << *D.u[k];
 
-  if (!strm) message (routine, "failed writing field file", ERROR);
-  strm << flush;
+  ROOTONLY {
+    if (!strm) message (routine, "failed writing field file", ERROR);
+    strm << flush;
+  }
 
   return strm;
 }
@@ -587,8 +604,8 @@ istream& operator >> (istream& strm,
 // ---------------------------------------------------------------------------
 // Input all Domain field variables from prism-compatible istream.
 //
-// Only binary storage format is allowed.  Check if conversion to native
-// format (IEEE little/big-endian) is required.
+// Only binary storage format is allowed.  Check if conversion to
+// native format (IEEE little/big-endian) is required.
 //
 // Ordering of fields in file is allowed to differ from that in D.
 // ---------------------------------------------------------------------------
@@ -602,7 +619,7 @@ istream& operator >> (istream& strm,
   if (strm.getline(s, StrMax).eof()) return strm;
 
   strm.getline(s,StrMax).getline(s,StrMax);
-
+  
   D.u[0] -> describe (f);
   istrstream (s, strlen (s)) >> np    >> np    >> nz    >> nel;
   istrstream (f, strlen (f)) >> npchk >> npchk >> nzchk >> nelchk;
@@ -622,7 +639,8 @@ istream& operator >> (istream& strm,
   istrstream (s, strlen (s)) >> D.time;
   Femlib::value ("t", D.time);
   
-  strm.getline(s,StrMax).getline(s,StrMax).getline(s,StrMax).getline(s,StrMax);
+  strm.getline(s,StrMax).getline(s,StrMax);
+  strm.getline(s,StrMax).getline(s,StrMax);
 
   nfields = 0;
   while (isalpha (s[nfields])) {
@@ -631,12 +649,12 @@ istream& operator >> (istream& strm,
   }
   fields[nfields] = '\0';
   if (nfields != strlen (D.fields)) {
-    sprintf (err, "file: %1d fields, Domain: %1d", nfields, strlen (D.fields));
+    sprintf (err, "file: %1d fields, Domain: %1d", nfields,strlen(D.fields));
     message (routine, err, ERROR);
   }
   for (i = 0; i < nfields; i++) 
     if (!strchr (D.fields, fields[i])) {
-      sprintf (err, "field %c not present in Domain (%s)", fields[i],D.fields);
+      sprintf (err,"field %c not present in Domain (%s)",fields[i],D.fields);
       message (routine, err, ERROR);
     }
 
@@ -649,19 +667,23 @@ istream& operator >> (istream& strm,
   if (!strstr (s, "endian"))
     message (routine, "input field file in unknown binary format", WARNING);
   else {
-    swap = (   (strstr (s, "big") && strstr (f, "little"))
-	    || (strstr (f, "big") && strstr (s, "little")) );
-    if (swap) cout << " (byte-swapping)";
+    swap = ((strstr (s, "big") && strstr (f, "little")) ||
+	    (strstr (f, "big") && strstr (s, "little")) );
+    ROOTONLY {
+      if (swap) cout << " (byte-swapping)";
+      cout.flush();
+    }
   }
 
   for (j = 0; j < nfields; j++) {
     for (i = 0; i < nfields; i++)
       if (D.fields[i] == fields[j]) break;
-    strm >> *D.u[i];
-    if (swap) D.u[i] -> reverse();
+    strm >> *D.u[j];
+    if (swap) D.u[j] -> reverse();
   }
-
-  if (strm.bad()) message (routine, "failed reading field file", ERROR);
+    
+  ROOTONLY if (strm.bad())
+    message (routine, "failed reading field file", ERROR);
     
   return strm;
 }
