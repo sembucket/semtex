@@ -1,11 +1,11 @@
 ##############################################################################
-# Makefile for finite element solver.
+# Makefile for spectral element Helmholtz solver.
 #
 # $Id$
 ##############################################################################
 
-FEM      = ..
-VPATH    = $(FEM)/src
+SEM      = ..
+VPATH    = $(SEM)/src
 
 ARCH     = $(shell uname -s)
 
@@ -15,54 +15,67 @@ else
   DEFINES  =
 endif
 
-CPPFLAGS = -I. -I$(FEM)/include
+CPPFLAGS = -I. -I$(SEM)/include
 
 # ----------- Compiler options for specific machines -------------------------
 
-ifeq ($(ARCH),IRIX)		# -- SGI MIPS R4xxx IRIX5x
+ifeq ($(ARCH),IRIX)		# -- SGI 32-bit systems.
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = $(DEFINES) -mips2 -fullwarn -smart -g
+CXXFLAGS = $(DEFINES) -fullwarn -smart -g
 F77LIBS	 = -lcomplib.sgimath -lisam
-LDFLAGS  = -lfpe -mips2 -L$(FEM)/lib/$(ARCH) -lfem -lalp \
-	   $(F77LIBS) -lmalloc -lm
+LDFLAGS  = -lfpe -L$(SEM)/lib/$(ARCH) -lfem -lalp \
+	   $(F77LIBS) -lmalloc -lmx
 endif
 
-
-ifeq ($(ARCH),IRIX64)		# -- SGI MIPS R8xxx IRIX6x
+ifeq ($(ARCH),IRIX64)		# -- SGI 64-bit systems.
 CXX	 = CC
 LD	 = CC
-CXXFLAGS =  $(DEFINES) -O3
+CXXFLAGS =  $(DEFINES) -g
 F77LIBS	 = -lcomplib.sgimath -lisam
-LDFLAGS  = -L$(FEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lmalloc -lm
+LDFLAGS  = -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lmalloc -lm
 endif
-
 
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha
 CXX	 = cxx
 LD	 = cxx
-CXXFLAGS =  $(DEFINES) -migrate -tune host -O2
+CXXFLAGS =  $(DEFINES) -migrate -tune host -g -w0
 F77LIBS  = -ldxml
-LDFLAGS  = $(CXXFLAGS) -L$(FEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+LDFLAGS  = $(CXXFLAGS) -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
 endif
 
+ifeq ($(ARCH),Linux)		# -- GNU/Linux system.
+CXX	 = g++
+LD	 = g++
+CXXFLAGS = $(DEFINES) -gstabs+
+F77LIBS  = -llapack -lblas -lf2c
+LDFLAGS  = -gstabs+ -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
+	   -lfem -lalp $(F77LIBS)
+endif
 
 # ----------------------------------------------------------------------------
 #
-FEMFILES  = BC boundary domain element family field mesh misc pressure
-FEMOBJ    = $(addsuffix .o,$(FEMFILES))
-FEMHDR    = Fem.h
+
+SEMFILES  = auxfield BCmgr boundary condition domain element	\
+	    feml field integration matrix mesh misc pressure
+SEMOBJ    = $(addsuffix .o,$(SEMFILES))
+SEMHDR    = Sem.h
+
 
 # ----------------------------------------------------------------------------
 #
 ELLOBJ = drive.o helmholtz.o
 
-ell_chk:	$(FEMHDR) $(FEMOBJ) $(ELLOBJ)
-	$(LD) -o elliptic $(ELLOBJ) $(FEMOBJ) $(CPPFLAGS) $(LDFLAGS)
+elliptic:	sem $(SEMHDR) $(SEMOBJ) $(ELLOBJ)
+	cd ../src; $(MAKE)
+	$(LD) -o elliptic $(ELLOBJ) $(SEMOBJ) $(CPPFLAGS) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 #
-$(FEMOBJ): $(FEMHDR)
+$(SEMOBJ): $(SEMHDR)
+
+sem:
+	cd $(VPATH); make install
 
 # -----------------------------------------------------------------------------
 #
