@@ -6,7 +6,7 @@
  *****************************************************************************/
 
 static char
-RCSid_operators[] = "$Id$";
+RCSid_ops[] = "$Id$";
 
 #include <stdio.h>
 #include <malloc.h>
@@ -79,16 +79,16 @@ static sMeshOpr* sMhead = 0;
 
 
 
-void dQuadOps (const int rule,	/* input: quadrature rule: GL or LL          */
-	       const int np  ,	/* input: number of knot points              */
-	       const int nq  ,	/* input: number of quadrature points        */
-	       double**  kp  ,	/* pointer to knot point storage             */
-	       double**  qp  ,	/* pointer to quadrature point storage       */
-	       double**  qw  ,	/* pointer to quadrature weight storage      */
-	       double*** in  ,	/* pointer to interpolation matrix           */
-	       double*** it  ,	/* pointer to transposed interpolant matrix  */
-	       double*** dr  ,	/* pointer to derivative matrix              */
-	       double*** dt  )	/* pointer to transposed derivative matrix   */
+void dQuadOps (const int       rule, /* input: quadrature rule: GL or LL     */
+	       const int       np  , /* input: number of knot points         */
+	       const int       nq  , /* input: number of quadrature points   */
+	       const double**  kp  , /* pointer to knot point storage        */
+	       const double**  qp  , /* pointer to quadrature point storage  */
+	       const double**  qw  , /* pointer to quadrature weight storage */
+	       const double*** in  , /* pointer to interpolation matrix      */
+	       const double*** it  , /* pointer to transposed interp matrix  */
+	       const double*** dr  , /* pointer to derivative matrix         */
+	       const double*** dt  ) /* pointer to transposed deriv matrix   */
 /* ------------------------------------------------------------------------- *
  * Maintain/return QUADRATURE operators for finite elements with GLL BASIS
  * FUNCTIONS.  Quadrature rule may be at nodes (LL, nq = np enforced) or at
@@ -159,25 +159,25 @@ void dQuadOps (const int rule,	/* input: quadrature rule: GL or LL          */
 
   /* -- p now points to valid storage: return requested operators. */
 
-  if (kp) *kp = p -> knot;
-  if (qp) *qp = p -> quad;
-  if (qw) *qw = p -> weight;
-  if (in) *in = p -> interp;
-  if (it) *it = p -> interpT;
-  if (dr) *dr = p -> deriv;
-  if (dt) *dt = p -> derivT;
+  if (kp) *kp = (const double* ) p -> knot;
+  if (qp) *qp = (const double* ) p -> quad;
+  if (qw) *qw = (const double* ) p -> weight;
+  if (in) *in = (const double**) p -> interp;
+  if (it) *it = (const double**) p -> interpT;
+  if (dr) *dr = (const double**) p -> deriv;
+  if (dt) *dt = (const double**) p -> derivT;
 }
 
 
-void dMeshOps (const int old ,	/* input: element basis: STD or GLL          */
-	       const int new ,	/* input: desired basis: STD or GLL          */
-	       const int np  ,	/* input: number of knot points              */
-	       const int ni  ,	/* input: number of interpolant points       */
-	       double**  mesh,	/* pointer to interpolated mesh storage      */
-	       double*** in  ,	/* pointer to interpolation matrix           */
-	       double*** it  ,	/* pointer to transposed interpolant matrix  */
-	       double*** dr  ,	/* pointer to derivative matrix              */
-	       double*** dt  )	/* pointer to transposed derivative matrix   */
+void dMeshOps (const int       old , /* input: element basis: STD or GLL     */
+	       const int       new , /* input: desired basis: STD or GLL     */
+	       const int       np  , /* input: number of knot points         */
+	       const int       ni  , /* input: number of interpolant points  */
+	       const double**  mesh, /* pointer to interpolated mesh storage */
+	       const double*** in  , /* pointer to interpolation matrix      */
+	       const double*** it  , /* pointer to transposed interp matrix  */
+	       const double*** dr  , /* pointer to derivative matrix         */
+	       const double*** dt  ) /* pointer to transposed deriv matrix   */
 /* ------------------------------------------------------------------------- *
  * Maintain/return INTERPOLATION operators for STD and GLL meshes.
  * Operators are defined on the interval [-1, 1].
@@ -274,24 +274,24 @@ void dMeshOps (const int old ,	/* input: element basis: STD or GLL          */
 
   /* p now points to valid storage: return requested operators. */
 
-  if (mesh) *mesh = p -> mesh;
-  if (in)   *in   = p -> interp;
-  if (it)   *it   = p -> interpT;
-  if (dr)   *dr   = p -> deriv;
-  if (dt)   *dt   = p -> derivT;
+  if (mesh) *mesh = (const double* ) p -> mesh;
+  if (in)   *in   = (const double**) p -> interp;
+  if (it)   *it   = (const double**) p -> interpT;
+  if (dr)   *dr   = (const double**) p -> deriv;
+  if (dt)   *dt   = (const double**) p -> derivT;
 }
 
 
-void sQuadOps(const int rule ,
-	      const int np   ,
-	      const int nq   ,
-	      float**   kp   ,
-	      float**   qp   ,
-	      float**   qw   ,
-	      float***  in   ,
-	      float***  it   ,
-	      float***  dr   ,
-	      float***  dt   )
+void sQuadOps(const int       rule ,
+	      const int       np   ,
+	      const int       nq   ,
+	      const float**   kp   ,
+	      const float**   qp   ,
+	      const float**   qw   ,
+	      const float***  in   ,
+	      const float***  it   ,
+	      const float***  dr   ,
+	      const float***  dt   )
 /* ------------------------------------------------------------------------- *
  * As for dQuadOps, but here single-precision operators are made.
  * ------------------------------------------------------------------------- */
@@ -393,26 +393,26 @@ void sQuadOps(const int rule ,
     }
   }
 
-  if (kp) *kp = p -> knot;
-  if (qp) *qp = p -> quad;
-  if (qw) *qw = p -> weight;
-  if (in) *in = p -> interp;
-  if (it) *it = p -> interpT;
-  if (dr) *dr = p -> deriv;
-  if (dt) *dt = p -> derivT;
+  if (kp) *kp = (const float* ) p -> knot;
+  if (qp) *qp = (const float* ) p -> quad;
+  if (qw) *qw = (const float* ) p -> weight;
+  if (in) *in = (const float**) p -> interp;
+  if (it) *it = (const float**) p -> interpT;
+  if (dr) *dr = (const float**) p -> deriv;
+  if (dt) *dt = (const float**) p -> derivT;
 
 }
 
 
-void sMeshOps (const int old ,
-	       const int new ,
-	       const int np  ,
-	       const int ni  ,
-	       float**   mesh,
-	       float***  in  ,
-	       float***  it  ,
-	       float***  dr  ,
-	       float***  dt  )
+void sMeshOps (const int       old ,
+	       const int       new ,
+	       const int       np  ,
+	       const int       ni  ,
+	       const float**   mesh,
+	       const float***  in  ,
+	       const float***  it  ,
+	       const float***  dr  ,
+	       const float***  dt  )
 /* ------------------------------------------------------------------------- *
  * As for dMeshOps, but make single-precision operators.
  * ------------------------------------------------------------------------- */
@@ -607,9 +607,102 @@ void sMeshOps (const int old ,
 
   /* -- p now points to valid storage: return requested operators. */
 
-  if (mesh) *mesh = p -> mesh;
-  if (in)   *in   = p -> interp;
-  if (it)   *it   = p -> interpT;
-  if (dr)   *dr   = p -> deriv;
-  if (dt)   *dt   = p -> derivT;
+  if (mesh) *mesh = (const float* ) p -> mesh;
+  if (in)   *in   = (const float**) p -> interp;
+  if (it)   *it   = (const float**) p -> interpT;
+  if (dr)   *dr   = (const float**) p -> deriv;
+  if (dt)   *dt   = (const float**) p -> derivT;
+}
+
+
+void dIntpOps (const int    basis,  /* element basis: STD or GLL             */
+	       const int    np   ,  /* number of knot points                 */
+	       const double r    ,  /* location of r in [-1, 1]              */
+	       const double s    ,  /* location of s in [-1, 1]              */
+	       double*      inr  ,  /* 1D shape function at r                */
+	       double*      ins  ,  /* 1D shape function at s                */
+	       double*      dvr  ,  /* 1D shape function derivative at r     */
+	       double*      dvs  )  /* 1D shape function derivative at s     */
+/* ------------------------------------------------------------------------- *
+ * Return the interpolation/derivative vectors for tensor-product shape
+ * functions evaluated at canonical coordinates (r, s), each in [-1. 1].
+ *
+ * Take no action for empty vectors.
+ * ------------------------------------------------------------------------- */
+{
+  const double* kp;
+  double        x[1], **dv, **dt;
+
+  dv = dmatrix (0, np - 1, 0, 0);
+  dt = dmatrix (0, 0, 0, np - 1);
+
+  dQuadOps (basis, np, np, &kp, 0, 0, 0, 0, 0, 0);
+
+  x[0] = r;
+  if (inr) {
+    intmat_g (np, kp, 1, x, dv, dt);
+    dcopy    (np, *dv, 1, inr, 1);
+  }
+  if (dvr) {
+    dermat_g (np, kp, 1, x, dv, dt);
+    dcopy    (np, *dv, 1, dvr, 1);
+  }
+
+  x[0] = s;
+  if (ins) {
+    intmat_g (np, kp, 1, x, dv, dt);
+    dcopy    (np, *dv, 1, ins, 1);
+  }
+  if (dvs) {
+    dermat_g (np, kp, 1, x, dv, dt);
+    dcopy    (np, *dv, 1, dvs, 1);
+  }
+
+  freeDmatrix (dv, 0, 0);
+  freeDmatrix (dt, 0, 0);
+}
+
+
+void sIntpOps (const int    basis,
+	       const int    np   ,
+	       const float  r    ,
+	       const float  s    ,
+	       float*       inr  ,
+	       float*       ins  ,
+	       float*       dvr  ,
+	       float*       dvs  )
+/* ------------------------------------------------------------------------- *
+ * Single-precision version of dIntpOps.
+ * ------------------------------------------------------------------------- */
+{
+  const double* kp;
+  double        x[1], **dv, **dt;
+
+  dv = dmatrix (0, np - 1, 0, 0);
+  dt = dmatrix (0, 0, 0, np - 1);
+
+  dQuadOps (basis, np, np, &kp, 0, 0, 0, 0, 0, 0);
+
+  x[0] = r;
+  if (inr) {
+    intmat_g (np, kp, 1, x, dv, dt);
+    vsngl    (np, *dv, 1, inr, 1);
+  }
+  if (dvr) {
+    dermat_g (np, kp, 1, x, dv, dt);
+    vsngl    (np, *dv, 1, dvr, 1);
+  }
+
+  x[0] = s;
+  if (ins) {
+    intmat_g (np, kp, 1, x, dv, dt);
+    vsngl    (np, *dv, 1, ins, 1);
+  }
+  if (dvs) {
+    dermat_g (np, kp, 1, x, dv, dt);
+    vsngl    (np, *dv, 1, dvs, 1);
+  }
+
+  freeDmatrix (dv, 0, 0);
+  freeDmatrix (dt, 0, 0);
 }
