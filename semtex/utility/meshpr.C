@@ -1,75 +1,86 @@
-/*****************************************************************************
- * MESHPR.C:  utility to generate mesh nodes from mesh description file.
- *
- * Usage: meshpr [options] [file]
- *   options:
- *   -h   ... display this message
- *   -v   ... set verbose output
- *   -n N ... override element order to be N
- *
- *****************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+// meshpr.C:  utility to generate mesh nodes from mesh description file.
+//
+// Usage: meshpr [options] file
+//   options:
+//   -h   ... display this message
+//   -v   ... set verbose output
+//   -u   ... set uniform spacing [Default: GLL]
+//   -n N ... override element order to be N
+//
+///////////////////////////////////////////////////////////////////////////////
 
-// $Id$
+static char
+RCSid[] = "$Id$";
 
-
-#include "Fem.h"
-
+#include <stdlib.h>
+#include <iomanip.h>
+#include <femdef.h>
+#include <Femlib.h>
+#include <Mesh.h>
 
 static char prog[] = "meshpr";
+static void getargs (int, char**, char*&, int&, int&, int&);
 
 
-static void getargs (int, char **, char **, int *, int*);
-
-
-int main (int argc, char **argv)
+int main (int argc, char** argv)
 // ---------------------------------------------------------------------------
-// From ASCII file named on command line or on stdin, generate mesh node
-// information and print up on stdout.
+// From FEML file named on command line, generate mesh knot
+// information and print up on standard output.
 // ---------------------------------------------------------------------------
 {
-  char      *session = 0;
-  int        verb    = 0,
-             np      = 0;
-  ifstream   file;
-  Mesh*      M = new Mesh;
-  Field*     F;
+  // -- Set defaults & parse command line.
 
-  initialize();
+  char* session = 0;
+  int   verb    = 0,
+        np      = 0,
+        basis   = GLL;
 
-  getargs   (argc, argv, &session, &verb, &np);
-  setIparam ("VERBOSE", verb);
+  getargs (argc, argv, session, verb, np, basis);
 
-  file.open (session);
-  if (file.bad()) message (prog, "couldn't open session file", ERROR);
+  // -- Set up to read from file, initialize Femlib parsing.
 
-  seekBlock   (file, "parameter");
-  readOptions (file);     
-  readIparams (file);     
-  readFparams (file);     
-  endBlock    (file);
+  FEML feml   (session);
+  feml.tokens ();
 
-  seekBlock (file, "mesh");
-  file >> *M;
-  endBlock (file);
+  if (verb)        Femlib::value ("VERBOSE", verb);
+  if   (np)        Femlib::value ("N_POLY", np);
+  else  np = (int) Femlib::value ("N_POLY");
 
-  if (np) setIparam ("N_POLY", np);
-  M -> connectSC (iparam ("N_POLY"));
+  // -- Build mesh from session file information.
 
-  F = new Field (*M, iparam ("N_POLY"));
-  Field::printMesh (F);
+  Mesh M (feml);
+
+  // -- Generate mesh knots and print up.
+
+  const    int NEL  = M.nEl();
+  const    int NTOT = np * np;
+  const    int NZ   = (int) Femlib::value ("N_Z");
+  register int ID, j;
+  vector<real> x (np*np), y (np*np);
+  real*        z;
+
+  cout << np << " " << np << " " << NZ << " " << NEL << " NR NS NZ NEL"<< endl;
+
+  Femlib::mesh (basis, basis, np, np, &z, 0, 0, 0, 0);
+
+  for (ID = 1; ID <= NEL; ID++) {
+    M.meshElmt (ID, np, z, x(), y());
+
+    for (j = 0; j < NTOT; j++)
+      cout << setw (15) << x (j) << setw (15) << y (j) << endl;
+  }
 
   return EXIT_SUCCESS;
 }
 
 
-
-
-
-static void getargs(int     argc    , 
-		    char  **argv    ,
-		    char  **session ,
-		    int    *verb    ,
-		    int    *np      )
+static void getargs (int    argc   , 
+		     char** argv   ,
+		     char*& session,
+		     int&   verb   ,
+		     int&   np     ,
+		     int&   basis  )
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
@@ -77,6 +88,7 @@ static void getargs(int     argc    ,
   char usage[] = "usage: meshpr [options] session\n"
                  "options:\n"
                  "  -h   ... display this message\n"
+                 "  -u   ... set uniform spacing [Default: GLL]"
                  "  -v   ... set verbose output\n"
 		 "  -n N ... override number of element knots to be N\n";
   char err[StrMax];
@@ -90,14 +102,17 @@ static void getargs(int     argc    ,
       exit (EXIT_SUCCESS);
       break;
     case 'v':
-      for (*verb = 1; **++argv == 'v'; ++*verb);
+      for (verb = 1; *++argv[0] == 'v'; verb++);
+      break;
+    case 'u':
+      basis = STD;
       break;
     case 'n':
       if (*++argv[0])
-	*np = atoi (*argv);
+	np = atoi (*argv);
       else {
 	--argc;
-	*np = atoi (*++argv);
+	np = atoi (*++argv);
       }
       break;
     default:
@@ -106,6 +121,6 @@ static void getargs(int     argc    ,
       break;
     }
 
-  if   (argc == 1) *session = *argv;
+  if   (argc == 1) session = *argv;
   else             message (prog, "must provide session file", ERROR);
 }
