@@ -1,5 +1,5 @@
-///////////////////////////////////////////////////////////////////////////////
-// enumerate.C:  utility to generate mesh numbering from mesh description file.
+//////////////////////////////////////////////////////////////////////////////
+// enumerate.C:  utility to generate mesh numbering from session file.
 //
 // Copyright (c) 1995,2003 Hugh Blackburn
 //
@@ -86,7 +86,7 @@ static const integer FldMax = 16;
 
 static void getargs   (int, char**, char*&, integer&, integer&, integer&);
 static char axial     (FEML*);
-static void getfields (FEML*, char*, const integer);
+static void getfields (FEML*, char*, const bool);
 static void checkVBCs (FEML*, const char*);
 static void checkABCs (FEML*, const char);
        void printup   (const char*y, vector<Nsys*>&, const int);
@@ -109,23 +109,22 @@ int main (int    argc,
 // Print up the masks and numbering schemes on cout.
 // ---------------------------------------------------------------------------
 {
-  char    *session = 0, field[StrMax], axistag;
-  FEML    *file;
-  integer np       = 0,
-          opt      = 1,
-          cyl3D    = 0;
+  char *session = 0, field[StrMax], axistag;
+  FEML *file;
+  int  np = 0, opt = 1;
+  bool cyl3D = false;
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session, verb, np, opt);
 
   file = new FEML (session);
 
-  if (verb)            Femlib::value ("VERBOSE", verb);
-  if   (np)            Femlib::value ("N_POLY", np);
-  else  np = (integer) Femlib::value ("N_POLY");
+  if (verb)                   Femlib::value ("VERBOSE", verb);
+  if   (np)                   Femlib::value ("N_POLY", np);
+  else  np = static_cast<int>(Femlib::value ("N_POLY"));
 
-  cyl3D = (integer) Femlib::value("CYLINDRICAL");
-  //          (integer) Femlib::value("N_Z")         > 1;
+  cyl3D = static_cast<int>(Femlib::value("CYLINDRICAL")) &&
+          static_cast<int>(Femlib::value("N_Z"))         > 1;
 
   getfields (file, field, (axistag = axial (file)) && cyl3D);
   if (axistag) checkABCs (file, axistag);
@@ -171,7 +170,7 @@ int main (int    argc,
       if (strchr (&S[i] -> fields[0], 'p')) {
 	Nsys* pressure = S[i];
 	if (!Veclib::any (pressure -> nbndry, &pressure -> bndmsk[0], 1)) {
-	  pressure -> rebuild (file, clamp ((int) opt, 2, 3));
+	  pressure -> rebuild (file, clamp (static_cast<int>(opt), 2, 3));
 	  break;
 	}
       }
@@ -261,9 +260,9 @@ static char axial (FEML* file)
 }
 
 
-static void getfields (FEML*         file     ,
-		       char*         field    ,
-		       const integer axisModes)
+static void getfields (FEML*      file     ,
+		       char*      field    ,
+		       const bool axisModes)
 // ---------------------------------------------------------------------------
 // Set up the list of fields according to the names found in the
 // 'FIELDS' section of the FEML file, e.g.
@@ -604,7 +603,8 @@ static int cmp1 (const void *a,
 // ---------------------------------------------------------------------------
 // Used by qsort.  Compare first element (global node number) of two arrays.
 // ---------------------------------------------------------------------------
-{ return (int) ((integer *)a)[0] - ((integer *)b)[0]; }
+{ return static_cast<int>
+    (static_cast<const integer *>(a)[0]-static_cast<const integer *>(b)[0]); }
 
 
 static int cmp2 (const void *a,
@@ -612,7 +612,8 @@ static int cmp2 (const void *a,
 // ---------------------------------------------------------------------------
 // Used by qsort.  Compare second element (solve mask) of two arrays.
 // ---------------------------------------------------------------------------
-{ return (int) ((integer *)a)[1] - ((integer *)b)[1]; }
+{ return static_cast<int>
+    (static_cast<const integer *>(a)[1]-static_cast<const integer *>(b)[1]); }
 
 
 

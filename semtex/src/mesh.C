@@ -1574,7 +1574,7 @@ spline2D* Spline::getGeom (const char* name)
     const int    SECTOR_MAX = 16;
     vector<real> tmp;
 
-    if (file.bad()) {
+    if (!file) {
       sprintf (err, "file: %s: not found", name);
       message (routine, err, ERROR);
     }
