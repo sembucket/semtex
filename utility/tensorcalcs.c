@@ -213,7 +213,9 @@ void real_eigenvalues(double  a2, double  a1, double  a0,
   t = CUBE(q) + SQR(r);
 
   if (t > 0) {
+#if 0 /* -- This is mostly caused by rounding errors. Ignore. */
     fprintf(stderr, "warning: t = %g: ==> complex conjugate roots\n", t);
+#endif
     t = 0.0;
   }
 
