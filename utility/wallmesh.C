@@ -68,7 +68,7 @@ int main (int    argc,
   
   printWalls (np, nz, nel, bman, elmt, x, y);
 
-  for (i = 0; i < nz; i++) cout << z[i] << endl;
+  if (nz > 1) for (i = 0; i < nz; i++) cout << z[i] << endl;
 
   Femlib::finalize();
   return EXIT_SUCCESS;
