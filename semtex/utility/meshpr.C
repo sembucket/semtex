@@ -16,6 +16,7 @@ static char
 RCSid[] = "$Id$";
 
 #include <stdlib.h>
+#include <iostream.h>
 #include <iomanip.h>
 #include <femdef.h>
 #include <Femlib.h>
