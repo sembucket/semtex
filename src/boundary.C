@@ -138,18 +138,23 @@ void Boundary::curlCurl (const integer k ,
   const integer ntot = elmt -> nTot();
   const integer doff = elmt -> dOff();
 
-  vector<real> work (3 * ntot + np);
-  real* w  = work();
+  vector<real> work (5 * ntot + np);
+  real* gw = work();
+  real* w  = gw + ntot + ntot;
   real* vx = w  + ntot;
   real* uy = vx + ntot;
   real* t  = uy + ntot;
-  
+  const real** DV;
+  const real** DT;
+
+  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+      
   if (k == 0) {			// -- Zeroth mode / 2D.
 
     Veclib::copy (ntot, Ur + doff, 1, uy, 1);
     Veclib::copy (ntot, Vr + doff, 1, vx, 1);
 
-    elmt -> grad (vx, uy);
+    elmt -> grad (vx, uy, DV, DT, gw);
 
     // -- (Z-component of) vorticity, w = dv/dx - du/dy.
 
@@ -180,7 +185,7 @@ void Boundary::curlCurl (const integer k ,
 
     Veclib::copy     (ntot, Ur + doff, 1, uy, 1);
     Veclib::copy     (ntot, Vr + doff, 1, vx, 1);
-    elmt -> grad     (vx, uy);
+    elmt -> grad     (vx, uy, DV, DT, gw);
     Veclib::vsub     (ntot, vx, 1, uy, 1, w, 1);
     elmt -> sideGrad (side, w, yr, xr);
     Veclib::neg      (np, yr, 1);
@@ -192,7 +197,7 @@ void Boundary::curlCurl (const integer k ,
 
     Veclib::copy     (ntot, Ui + doff, 1, uy, 1);
     Veclib::copy     (ntot, Vi + doff, 1, vx, 1);
-    elmt -> grad     (vx, uy);
+    elmt -> grad     (vx, uy, DV, DT, gw);
     Veclib::vsub     (ntot, vx, 1, uy, 1, w, 1);
     elmt -> sideGrad (side, w, yi, xi);
     Veclib::neg      (np, yi, 1);
@@ -206,7 +211,7 @@ void Boundary::curlCurl (const integer k ,
 
     Veclib::copy      (ntot, Wr + doff, 1, vx, 1);
     Veclib::copy      (ntot, Wr + doff, 1, uy, 1);
-    elmt -> grad      (vx, uy);
+    elmt -> grad      (vx, uy, DV, DT, gw);
     if (space == Geometry::Cylindrical) {
       elmt -> sideDivR  (side, vx,  t);
       Blas::axpy        (np, betaK, t,         1,     xi, 1);
@@ -223,7 +228,7 @@ void Boundary::curlCurl (const integer k ,
 
     Veclib::copy      (ntot, Wi + doff, 1, vx, 1);
     Veclib::copy      (ntot, Wi + doff, 1, uy, 1);
-    elmt -> grad      (vx, uy);
+    elmt -> grad      (vx, uy, DV, DT, gw);
     if (space == Geometry::Cylindrical) {
       elmt -> sideDivR  (side, vx,   t);
       Blas::axpy        (np, -betaK, t,         1,     xr, 1);

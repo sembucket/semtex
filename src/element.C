@@ -780,23 +780,23 @@ void Element::HelmholtzOp (const real  lambda2,
 }
 
 
-void Element::grad (real* tgtA,
-		    real* tgtB) const
+void Element::grad (real*        tgtA,
+		    real*        tgtB,
+		    const real** DV  ,
+		    const real** DT  ,
+		    real*        work) const
 // ---------------------------------------------------------------------------
 // Operate partial derivative d(tgt)/dxi = d_dr*drdxi + d_ds*dsdxi,
 // where the appropriate component of gradient is selected by input pointers.
 // Values are computed at node points.
+//
+// Work area must be 2*nTot() long.
 // ---------------------------------------------------------------------------
 {
-  const real **DV, **DT;
-  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
-
   const integer ntot = nTot();
-  vector<real>  work (ntot + ntot);
-
-  real* tmpA = work();
-  real* tmpB = tmpA + ntot;
-  real* tgt;
+  real*         tmpA = work;
+  real*         tmpB = tmpA + ntot;
+  real*         tgt;
 
   if ((tgt = tgtA)) {
     if (drdx && dsdx) {
@@ -1203,9 +1203,12 @@ real Element::norm_H1 (const real* src) const
   register integer i;
   const integer    ntot = sqr (np);
   
-  vector<real>     work (ntot);
-  register real    *dA = G4, *u = work();
-  
+  vector<real>     work (3 * ntot);
+  register real    *dA = G4, *u = work(), *gw = u + ntot;
+  const real       **DV, **DT;
+
+  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+
   // -- Add in L2 norm of u.
 
   for (i = 0; i < ntot; i++) H1 += src[i] * src[i] * dA[i];
@@ -1213,11 +1216,11 @@ real Element::norm_H1 (const real* src) const
   // -- Add in L2 norm of grad u.
 
   Veclib::copy (ntot, src, 1, u, 1);
-  grad (u, 0);
+  grad (u, 0, DV, DT, gw);
   for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * dA[i];
 
   Veclib::copy (ntot, src, 1, u, 1);
-  grad (0, u);
+  grad (0, u, DV, DT, gw);
   for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * dA[i];
 
   return sqrt (H1);
