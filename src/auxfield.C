@@ -187,7 +187,7 @@ AuxField& AuxField::operator = (const char* function)
     z = k * dz;
     Femlib::value ("z", z);
     for (i = 0; i < ne; i++) {
-      E = Elmt[i];
+      E      = Elmt[i];
       offset = E -> dOff();
 
       E -> evaluate (function, plane[k] + offset);
@@ -513,6 +513,47 @@ AuxField& AuxField::errors (const Mesh& mesh    ,
 }
 
 
+real AuxField::norm_inf () const
+// ---------------------------------------------------------------------------
+// Return infinity-norm (absolute max value) of AuxField data area.
+// ---------------------------------------------------------------------------
+{
+  return fabs (data[Blas::iamax (nTot(), data, 1)]);
+}
+
+
+real AuxField::mode_L2 (const int mode) const
+// ---------------------------------------------------------------------------
+// Return energy norm per unit area for indicated mode = 1/(2*A) \int u.u dA.
+// Mode numbers run 0 -- n_z/2 - 1.
+// ---------------------------------------------------------------------------
+{
+  char         routine[] = "AuxField::mode_L2";
+  real         area = 0.0, Ek = 0.0;
+  register int j, offset;
+  const int    N = nEl();
+  const int    kr = 2 * mode;
+  const int    ki = 2 * mode + 1;
+  Element*     E;
+  
+  if (mode < 0  ) message (routine, "negative mode number",        ERROR);
+  if (ki   > n_z) message (routine, "mode number exceeds maximum", ERROR);
+
+  for (j = 0; j < N; j++) {
+    E      = Elmt[j];
+    offset = E -> dOff();
+    area  += E -> area();
+    Ek    += E -> norm_L2 (plane[kr] + offset);
+    if (kr)
+      Ek  += E -> norm_L2 (plane[ki] + offset);
+  }
+
+  return Ek / (2.0 * area);
+}
+
+
+
+
 ostream& operator << (ostream&  strm,
 		      AuxField& F   )
 // ---------------------------------------------------------------------------
@@ -567,6 +608,9 @@ AuxField& AuxField::transform (const int sign)
 // physical space values.
 // ---------------------------------------------------------------------------
 {
+  Femlib::DFTr (data, n_z, n_plane, 1, n_plane, sign);
+
+#if 0
   if (n_z < 2) return *this;
 
   register int i;
@@ -604,6 +648,7 @@ AuxField& AuxField::transform (const int sign)
     message ("AuxField::transform", "illegal direction flag", ERROR);
     break;
   }
+#endif
   
   return *this;
 }
