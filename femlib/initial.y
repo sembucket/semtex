@@ -188,7 +188,7 @@ void yy_initialize (void)
   register int     i;
   register Symbol* s;
 
-#ifdef __sgi			/* Enable floating-point traps. */
+#if 0			/* Enable floating-point traps. */
 #include <sigfpe.h>
 #include <sgidefs.h>     
 #ifndef _MIPS_SIM_ABI64         /* No 64-bit version of libfpe.a yet. */
