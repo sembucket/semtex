@@ -1136,8 +1136,7 @@ void Mesh::describeBC (char  grp,
 
 void Mesh::buildMask (const int  np  ,
 		      const char fld ,
-		      int*       mask,
-		      const int  axis)
+		      int*       mask)
 // ---------------------------------------------------------------------------
 // This routine generates an integer mask (0/1) vector for element-boundary
 // nodes.  For any location that corresponds to a domain boundary with an
@@ -1148,8 +1147,8 @@ void Mesh::buildMask (const int  np  ,
 // Use is made of the fact that on BCs, there are no mating sides, hence
 // no need to set mask on mating sides.
 //
-// In case axis is non-zero and fld is 'v, 'w' or 'p', generate mask for
-// special cases on the symmetry axis.
+// If fld is 'U', 'v, 'w', 'P' or 'C', set mask for essential BCs on
+// symmetry axis.
 // ---------------------------------------------------------------------------
 {
   char routine[] = "Mesh::buildMask";
@@ -1157,8 +1156,8 @@ void Mesh::buildMask (const int  np  ,
   if (np < 2) message (routine, "need at least 2 knots", ERROR);
 
   register int i, j, k, ns, nb = 0;
-  const    int nel  = nEl(), ni = np - 2;
-  const    int AXIS = axis && (fld == 'v' || fld == 'w' || fld == 'p');
+  const    int nel   = nEl(), ni = np - 2;
+  const    int axisE = strchr ("UvwPC", fld) != 0;
   Elmt*        E;
   Side*        S;
 
@@ -1183,13 +1182,16 @@ void Mesh::buildMask (const int  np  ,
     ns = E -> nNodes();
     for (j = 0; j < ns; j++) {
       S = E -> side (j);
-      if (!(S -> mateElmt) && (matchBC (S -> group, fld, 'D')
-          || (AXIS         &&  matchBC (S -> group, fld, 'A')))) {
-	S -> startNode -> gID = 1;
-	S -> endNode   -> gID = 1;
-	if (ni)      S -> gID = 1;
-	if (S -> startNode -> periodic) S -> startNode -> periodic -> gID = 1;
-	if (S -> endNode   -> periodic) S -> endNode   -> periodic -> gID = 1;
+      if (!(S -> mateElmt)) {
+	if (matchBC (S -> group, tolower (fld), 'D') ||
+	    (axisE &&
+	     matchBC (S -> group, tolower (fld), 'A'))) {
+	  S -> startNode -> gID = 1;
+	  S -> endNode   -> gID = 1;
+	  if (ni)      S -> gID = 1;
+	  if (S -> startNode -> periodic) S -> startNode -> periodic -> gID =1;
+	  if (S -> endNode   -> periodic) S -> endNode   -> periodic -> gID =1;
+	}
       }
     }
   }

@@ -24,13 +24,13 @@ Domain::Domain (FEML&       F   ,
 // No initialization of Field MatrixSystems.
 // ---------------------------------------------------------------------------
 {
-  int       k, doff, boff;
-  const int np   = Geometry::nP();
-  const int nz   = Geometry::nZ();
-  const int verb = (int) Femlib::value ("VERBOSE");
-  const int NE   = M.nEl();
-  const int NF   = strlen (flds);
-  real*     z;
+  int         k, doff, boff;
+  const int   np   = Geometry::nP();
+  const int   nz   = Geometry::nZ();
+  const int   verb = (int) Femlib::value ("VERBOSE");
+  const int   NE   = M.nEl();
+  const int   NF   = strlen (flds);
+  const real* z;
 
   cout << "-- " << NE << " elements, ";
   cout << np << "x" << np << "x" << nz << endl;
@@ -58,12 +58,16 @@ Domain::Domain (FEML&       F   ,
   if (verb) cout << "done" << endl;
   
   if (verb) cout << "   Retrieving prebuilt numbering systems ... ";
-  
+
+  // -- Load all the available numbering systems created by enumerate.
+
   getNumber();
 
-  const int      NS      = Nsys.getSize();
-  NumberSystem** systems = new NumberSystem* [3];
-  
+  // -- Form each Field with a Fourier-mode ordered vector of systems.
+
+  const int            NS      = Nsys.getSize();
+  const NumberSystem** systems = new const NumberSystem* [3];
+
   if (verb) cout << "done" << endl << "   Building Fields ... ";
 
   u.setSize (NF);
@@ -82,14 +86,12 @@ void Domain::getNumber ()
 // file "name.num".  If this doesn't exist, first try to create it by
 // running "enumerate" utility.
 //
-// The names of fields and their numbering schemes can be significant.
+// The names of fields and their numbering schemes are significant.
 // The convention employed is that the fields have lower-case
 // single-character names.  Numbering schemes have the same names,
 // *except* in the case of cylindrical coordinate systems where the
-// domain includes the symmetry axis.  In this case, uppercase letters
-// are used to distinguish the names of additional numbering schemes for
-// the first Fourier mode for scalar variables p and c (i.e. pressure
-// and generic scalar): these schemes can differ from the other modes.
+// domain includes the symmetry axis.  See file field.C for mode-related
+// significance for upper-cased names of numbering schemes.
 // ---------------------------------------------------------------------------
 {
   char         routine[] = "Domain::number";
@@ -270,10 +272,15 @@ void Domain::getNumber ()
 
   // -- At this point, all external data have been read in.
   //    Now create element-boundary mass smoothing vectors.
+  //    Need to take care for cases (in cylindrical coords) where
+  //    mass weighting will be zero where r = 0.
 
   Element*      E;
   NumberSystem* N;
   vector<real>  work (Geometry::nTotElmt());
+  const real    EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+  register real m;
+ 
   real*         unity = work();
 
   for (j = 0; j < nset; j++) {
@@ -286,8 +293,15 @@ void Domain::getNumber ()
       Veclib::fill (E -> nTot(), 1.0, unity, 1);
       E -> bndryDsSum (N -> ns_btog + E -> bOff(), unity, N -> ns_inv_mass);
     }
-
+#if 1
+    for (i = 0; i < N -> ns_nglobal; i++) {
+      m = N -> ns_inv_mass[i];
+      m = (m > EPS) ? 1.0 / m : 0.0;
+      N -> ns_inv_mass[i] = m;
+    }
+#else
     Veclib::vrecp (N -> ns_nglobal, N -> ns_inv_mass, 1, N -> ns_inv_mass, 1);
+#endif
   }
 
   // -- And emask vectors.
@@ -322,77 +336,48 @@ void Domain::setNumber (const char           field ,
 // For 3D Cylindrical geometries, there will be three entries in systems,
 // corresponding to the numbering schemes for the 0th, 1st 2nd (and higher)
 // Fourier modes.  The selection of appropriate NumberSystems depends on the
-// input variable "field".  Note that the NumberSystem for field 'w' is
-// never explicitly requested as by assumption it is the same as for 'v'.
+// input variable "field".  See remarks at head of file field.C.
 // ---------------------------------------------------------------------------
 {
   char      routine[] = "Domain::setNumber", err[StrMax];
   int       i;
-  const int NS = Nsys.getSize();
+  const int N = Nsys.getSize();
+  const int cyl3D =
+    Geometry::system() == Geometry::Cylindrical && Geometry::nDim() == 3;
 
-  for (i = 0; i < 3; i++) system[i] = 0;
+  system[0] = system[1] = system[2] = 0;
 
-  if (strlen (fields)    == 1                 || 
-      Geometry::nDim()   == 2                 ||
-      Geometry::system() == Geometry::Cartesian) {
-    for (i = 0; i < NS; i++)
-      if (strchr (Nsys[i] -> fields(), field)) {
-	system[0] = system[1] = system[2] = Nsys[i];
-	return;
-      }
-  } else {			// -- Assume 3D Cylindrical, 3 component.
+  for (i = 0; i < N; i++)
+    if (strchr (Nsys[i] -> fields(), field))
+      system[0] = system[1] = system[2] = Nsys[i];
+
+  if (cyl3D)
+    for (i = 0; i < N; i++)
     switch (field) {
     case 'u':			// -- Axial velocity.
-      for (i = 0; i < NS; i++)
-	if (strchr (Nsys[i] -> fields(), 'u'))
-	  system[0] = Nsys[i];
-      for (i = 0; i < NS; i++)
-	if (strchr (Nsys[i] -> fields(), 'v'))
-	  system[1] = system[2] = Nsys[i];
-      if (system[0] && system[1] && system[2]) return;
+      if (strchr (Nsys[i] -> fields(), 'U')) system[1] = system[2] = Nsys[i];
       break;
-    case 'v':			// -- Radial velocity (coupled).
-      for (i = 0; i < NS; i++)
-	if (strchr (Nsys[i] -> fields(), 'v'))
-	  system[0]  = system[1]  = system[2] = Nsys[i];
-      if (system[0] && system[1] && system[2]) return;
+    case 'v':			// -- Radial velocity (do nothing).
       break;
     case 'w':			// -- Azimuthal veolcity (coupled).
-      for (i = 0; i < NS; i++)
-	if (strchr (Nsys[i] -> fields(), 'u'))
-	  system[1] = Nsys[i];
-      for (i = 0; i < NS; i++)
-	if (strchr (Nsys[i] -> fields(), 'v'))
-	  system[0] = system[2] = Nsys[i];
-      if (system[0] && system[1] && system[2]) return;
+      if (strchr (Nsys[i] -> fields(), 'W')) system[1] = Nsys[i];
       break;
     case 'c':			// -- Scalar (optional).
-      for (i = 0; i < NS; i++)
-	if (strchr (Nsys[i] -> fields(), 'c'))
-	  system[0] = system[1] = system[2] = Nsys[i];
-      for (i = 0; i < NS; i++)
-	if (strchr (Nsys[i] -> fields(), 'C'))
-	  system[1] = Nsys[i];
-      if (system[0] && system[1] && system[2]) return;      
+      if (strchr (Nsys[i] -> fields(), 'C')) system[1] = system[2] = Nsys[i];
       break;
     case 'p':			// -- Pressure.
-      for (i = 0; i < NS; i++)
-	if (strchr (Nsys[i] -> fields(), 'p'))
-	  system[0] = system[1] = system[2] = Nsys[i];
-      for (i = 0; i < NS; i++)
-	if (strchr (Nsys[i] -> fields(), 'P'))
-	  system[1] = Nsys[i];
-      if (system[0] && system[1] && system[2]) return; 
+      if (strchr (Nsys[i] -> fields(), 'P')) system[1] = system[2] = Nsys[i];
       break;
     default:
       sprintf (err, "unrecognized Field name: %c", field);
       message (routine, err, ERROR);
       break;
     }
+
+  if (!(system[0] && system[1] && system[2])) {
+    sprintf (err, "unsuccessful with field %c", field);
+    message (routine, err, ERROR);
   }
-  
-  sprintf (err, "unsuccessful with field %c", field);
-  message (routine, err, ERROR);
 }
 
 

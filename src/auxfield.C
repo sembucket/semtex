@@ -331,27 +331,6 @@ AuxField& AuxField::reverse ()
 }
 
 
-void AuxField::swapData (AuxField* x,
-			 AuxField* y)
-// ---------------------------------------------------------------------------
-// Swap data areas of two fields.
-// ---------------------------------------------------------------------------
-{
-  register int   k;
-  const int      nZ = Geometry::nZ();
-  register real* tmp = x -> data;
-
-  x -> data = y -> data;
-  y -> data = tmp;
-
-  for (k = 0; k < nZ; k++) {
-    tmp           = x -> plane[k];
-    x -> plane[k] = y -> plane[k];
-    y -> plane[k] = tmp;
-  }
-}
-
-
 AuxField& AuxField::gradient (const int dir)
 // ---------------------------------------------------------------------------
 // Operate on AuxField to produce the nominated index of the gradient.
@@ -442,7 +421,8 @@ AuxField& AuxField::errors (const Mesh& mesh    ,
   vector<real> sol;
   vector<real> v;
   vector<real> tmp;
-  real         *u, *z, **IN, **IT;
+  const real   *z, **IN, **IT;
+  real         *u;
   int          k, np, npp, ntot;
   const int    nE = Geometry::nElmt();
 
@@ -532,8 +512,6 @@ real AuxField::mode_L2 (const int mode) const
 }
 
 
-
-
 ostream& operator << (ostream&  strm,
 		      AuxField& F   )
 // ---------------------------------------------------------------------------
@@ -607,5 +585,162 @@ AuxField& AuxField::addToPlane (const int  k    ,
   else
     Veclib::sadd (Geometry::nPlane(), alpha, plane[k], 1, plane[k], 1);
 
+  return *this;
+}
+
+
+void AuxField::swapData (AuxField* x,
+			 AuxField* y)
+// ---------------------------------------------------------------------------
+// Swap data areas of two fields.
+// ---------------------------------------------------------------------------
+{
+  register int   k;
+  const int      nZ = Geometry::nZ();
+  register real* tmp = x -> data;
+
+  x -> data = y -> data;
+  y -> data = tmp;
+
+  for (k = 0; k < nZ; k++) {
+    tmp           = x -> plane[k];
+    x -> plane[k] = y -> plane[k];
+    y -> plane[k] = tmp;
+  }
+}
+
+
+void AuxField::couple (AuxField* v  ,
+		       AuxField* w  ,
+		       const int dir)
+// ---------------------------------------------------------------------------
+// Couples/uncouple field data for the radial and azimuthal
+// velocity fields in cylindrical coordinates, depending on indicated
+// direction.  This action is required due to the coupling in the viscous
+// terms of the N--S equations in cylindrical coords.
+//
+// dir == +1
+// ---------
+//           v~ <-- v + i w
+//           w~ <-- v - i w
+// dir == -1
+// ---------
+//           v  <-- 0.5   * (v~ + w~)
+//           w  <-- 0.5 i * (w~ - v~)
+//
+// Since there is no coupling for the viscous terms in the 2D equation,
+// do nothing for the zeroth Fourier mode.
+// ---------------------------------------------------------------------------
+{
+  if (Geometry::nDim() < 3) return;
+
+  char         routine[] = "Field::couple";
+  register int k;
+  const int    nZ    = Geometry::nZ(),
+               nP    = Geometry::nPlane(),
+               nMode = nZ >> 1;
+  vector<real> work (nP);
+  real         *Vr, *Vi, *Wr, *Wi, *tp;
+  
+  if (dir == 1) {
+
+    for (k = 1; k < nMode; k++) {
+      
+      tp = work();
+
+      Vr = v -> plane[2 * k];
+      Vi = v -> plane[2 * k + 1];
+      Wr = w -> plane[2 * k];
+      Wi = w -> plane[2 * k + 1];
+
+      Veclib::copy (nP, Vr, 1, tp, 1);
+      Veclib::vsub (nP, Vr, 1, Wi, 1, Vr, 1);
+      Veclib::vadd (nP, Wi, 1, tp, 1, Wi, 1);
+      Veclib::copy (nP, Vi, 1, tp, 1);
+      Veclib::vadd (nP, Vi, 1, Wr, 1, Vi, 1);
+      Veclib::neg  (nP, Wr, 1);
+      Veclib::vadd (nP, Wr, 1, tp, 1, Wr, 1);
+
+      tp                    = w -> plane[2 * k];
+      w -> plane[2 * k]     = w -> plane[2 * k + 1];
+      w -> plane[2 * k + 1] = tp;
+    }
+
+  } else if (dir == -1) {
+
+    for (k = 1; k < nMode; k++) {
+
+      tp = work();
+
+      Vr = v -> plane[2 * k];
+      Vi = v -> plane[2 * k + 1];
+      Wr = w -> plane[2 * k];
+      Wi = w -> plane[2 * k + 1];
+
+      Veclib::copy (nP, Vr, 1, tp, 1);
+      Veclib::vadd (nP, Vr, 1, Wr, 1, Vr, 1);
+      Veclib::vsub (nP, Wr, 1, tp, 1, Wr, 1);
+      Veclib::copy (nP, Vi, 1, tp, 1);
+      Veclib::vadd (nP, Vi, 1, Wi, 1, Vi, 1);
+      Veclib::neg  (nP, Wi, 1);
+      Veclib::vadd (nP, Wi, 1, tp, 1, Wi, 1);
+
+      tp                    = w -> plane[2 * k];
+      w -> plane[2 * k]     = w -> plane[2 * k + 1];
+      w -> plane[2 * k + 1] = tp;
+    }
+
+    Blas::scal (nP * (nZ - 2), 0.5, v -> data + 2 * nP, 1);
+    Blas::scal (nP * (nZ - 2), 0.5, w -> data + 2 * nP, 1);
+
+  } else
+    message (routine, "unknown direction given", ERROR);
+}
+
+
+AuxField& AuxField::divR ()
+// ---------------------------------------------------------------------------
+// Divide data values by radius (i.e. y in cylindrical coords).
+// ---------------------------------------------------------------------------
+{
+  register Element* E;
+  register int      i, k, offset = 0;
+  register real*    p;
+  const int         nE = Geometry::nElmt();
+  const int         nZ = Geometry::nZ();
+
+  for (k = 0; k < nZ; k++) {
+    p = plane[k];
+    for (i = 0; i < nE; i++) {
+      E      = Elmt[i];
+      offset = E -> dOff();
+      E -> divR (p + offset);
+    }
+  }
+  
+  return *this;
+}
+
+
+AuxField& AuxField::mulR ()
+// ---------------------------------------------------------------------------
+// Multiply data values by radius (i.e. y in cylindrical coords).
+// ---------------------------------------------------------------------------
+{
+  register Element* E;
+  register int      i, k, offset = 0;
+  register real*    p;
+  const int         nE = Geometry::nElmt();
+  const int         nZ = Geometry::nZ();
+
+  for (k = 0; k < nZ; k++) {
+    p = plane[k];
+    for (i = 0; i < nE; i++) {
+      E      = Elmt[i];
+      offset = E -> dOff();
+      E -> mulR (p + offset);
+    }
+  }
+  
   return *this;
 }

@@ -7,35 +7,54 @@ RCSid[] = "$Id$";
 
 #include <Sem.h>
 
+static List<MatrixSystem*> MS;
 
-ModalMatrixSystem::ModalMatrixSystem (const real              lambda2,
-				      const real              beta   ,
-				      const int               nmodes ,
-				      const vector<Element*>& Elmt   ,
-				      const NumberSystem*     Nsys   )
+
+ModalMatrixSystem::ModalMatrixSystem (const real              lambda2 ,
+				      const real              beta    ,
+				      const char              name    ,
+				      const int               baseMode,
+				      const int               numModes,
+				      const vector<Element*>& Elmt    ,
+				      const NumberSystem**    Nsys    )
 // ---------------------------------------------------------------------------
-// Generate the vector of MatrixSystems which will be used to solve all
-// the Fourier-mode discrete Helmholtz problems for the associated scalar
-// Fields (called out by names).
+// Generate or retrieve from internal database MS the vector of MatrixSystems
+// which will be used to solve all the Fourier-mode discrete Helmholtz
+// problems for the associated scalar Fields (called out by names).
 //
 // Input variables:
-//   lambda2 is the Helmholtz constant for the problem,	
-//   beta is the Fourier length scale = TWOPI / Lz,
-//   nmodes is the number of Fourier modes which will be solved.
+//   lambda2: Helmholtz constant for the problem,	
+//   beta   : Fourier length scale = TWOPI / Lz,
+//   nmodes : number of Fourier modes which will be solved,
+//   Elmt   : vector of Element*'s used to make local Helmholtz matrices,
+//   Nsys   : truncated modal vector of numbering systems.
 // ---------------------------------------------------------------------------
 {
-  char      routine[] = "ModalMatrixSystem::ModalMatrixSystem";
-  int       k;
-  real      betak2;
-  const int cylindrical = Geometry::system() == Geometry::Cylindrical;
+  int                         k, trunc, found;
+  real                        betak2;
+  ListIterator<MatrixSystem*> m (MS);
+  MatrixSystem*               M;
 
-  fields = strdup (Nsys -> fields());
-  Msys.setSize (nmodes);
+  fields = strdup (Nsys[0] -> fields());
+  Msys.setSize (numModes);
+  cout << "-- Building matrices for Fields \"" << fields << "\" [";
 
-  cout << routine << ": building matrices for Fields \"" << fields << "\" [";
-  for (k = 0; k < nmodes; k++) {
-    betak2 = sqr (k * beta);
-    Msys[k] = new MatrixSystem (lambda2, betak2, Elmt, Nsys);
+  for (k = baseMode; k < numModes; k++) {
+    trunc   = min (k, 2);
+    betak2  = sqr (Field::modeConstant (name, k) * beta);
+    found   = 0;
+    for (m.reset(); !found && m.more(); m.next()) {
+      M     = m.current();
+      found = M -> match (lambda2, betak2, Nsys[trunc]);
+    }
+    if (found) {
+      cout << '.';
+      Msys[k] = M;
+    } else {
+      cout << '*';
+      Msys[k] = new MatrixSystem (lambda2, betak2, Elmt, Nsys[trunc]);
+      MS.add (Msys[k]);
+    }
   }
 
   cout << "]" << endl;
@@ -50,7 +69,8 @@ MatrixSystem::MatrixSystem (const real              lambda2,
 			    HelmholtzConstant      (lambda2),
 			    FourierConstant        (betak2 ),
 			    nel                    (Geometry::nElmt()),
-			    nband                  (Nsys -> nBand())
+			    nband                  (Nsys -> nBand()),
+			    N                      (Nsys)
 // ---------------------------------------------------------------------------
 // Initialize and factorize matrices in this system.
 //
@@ -77,8 +97,8 @@ MatrixSystem::MatrixSystem (const real              lambda2,
   rmat     = hbb  + sqr (Geometry::nExtElmt());
   rwrk     = rmat + sqr (Geometry::nP());
 
-  singular = fabs (HelmholtzConstant+FourierConstant) < EPS && !Nsys-> fmask();
-  nsolve   = (singular) ? Nsys -> nSolve() - 1 : Nsys -> nSolve();
+  singular = fabs (HelmholtzConstant+FourierConstant) < EPS && !N-> fmask();
+  nsolve   = (singular) ? N -> nSolve() - 1 : N -> nSolve();
 
   if (nsolve) {
     npack = nband * nsolve; // -- Size for LAPACK banded format.
@@ -86,14 +106,14 @@ MatrixSystem::MatrixSystem (const real              lambda2,
     Veclib::zero (npack, H, 1);
 
     if (verbose)
-      cout << "-- Building system matrix: "
+      cout << endl
+	   << "   System matrix: "
 	   << nsolve
 	   << "x"
 	   << nband
 	   << "\t("
 	   << npack
-	   << " words)"
-	   << endl;
+	   << " words)";
   }
 
   // -- Loop over elements, creating & posting elemental Helmholtz matrices.
@@ -116,7 +136,7 @@ MatrixSystem::MatrixSystem (const real              lambda2,
 
     E -> HelmholtzSC (lambda2, betak2, hbb, hbi[j], hii[j], rmat, rwrk);
 
-    bmap = Nsys -> btog() + E -> bOff();
+    bmap = N -> btog() + E -> bOff();
 
     for (i = 0; i < next; i++)
       if ((m = bmap[i]) < nsolve)
@@ -142,10 +162,31 @@ MatrixSystem::MatrixSystem (const real              lambda2,
     rwrk = work();
 
     Lapack::pbcon ("U",nsolve,nband-1,H,nband,1.0,cond, rwrk,iwrk(),info);
-    cout << "System condition number:                   " << cond << endl;
+    cout << ", condition number: " << cond << endl;
   }
+}
 
-  cout << '*';
+
+int MatrixSystem::match (const real          lambda2,
+			 const real          betak2 ,
+			 const NumberSystem* nScheme) const
+// ---------------------------------------------------------------------------
+// The unique identifiers of a MatrixSystem are presumed to be given by the
+// constants and the numbering system used.  Other things that could be
+// checked but aren't (yet) include geometric systems and quadrature schemes.
+// ---------------------------------------------------------------------------
+{
+  const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
+
+  if (fabs (HelmholtzConstant - lambda2) < EPS &&
+      fabs (FourierConstant   - betak2 ) < EPS &&
+      N -> nGlobal() == nScheme -> nGlobal()   &&
+      N -> nSolve()  == nScheme -> nSolve()    &&
+      Veclib::same (N -> nGlobal(), N -> btog(), 1, nScheme -> btog(), 1))
+    return 1;
+
+  else
+    return 0;
 }
 
 
