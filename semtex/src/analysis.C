@@ -29,7 +29,7 @@ Analyser::Analyser (Domain* D   ,
 //
 // NB: Particle tracking is broken for multiprocessor application.
 //
-// History points are also set up with.  They are nominated in the
+// History points are also set up here.  They are nominated in the
 // optional HISTORY section of the session file.  Output is to
 // session.his.
 // ---------------------------------------------------------------------------
