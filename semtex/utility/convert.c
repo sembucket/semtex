@@ -1,14 +1,19 @@
 /*****************************************************************************
- * CONVERT:  Format conversion program for PRISM-compatible field files.
+ * convert:  Format conversion program for sem-compatible field files.
  *
- * USAGE: convert [-h] [-o output] [input[.fld]
+ * USAGE: convert [-h] [-format] [-v] [-o output] [input[.fld]
  *
  * Default action is to convert binary to ASCII files or vice versa.
  *
- * Output is either to stdout or an optional file argument.
+ * Optional argument format can be one of:
+ * -a: force ASCII output;
+ * -b: force binary output in current machine IEEE format;
+ * -s: force binary output in byte-swapped    IEEE format.
  *
- * For binary input files, automatic conversion from written format to
- * machine's internal format is carried out before ASCII output, if possible.
+ * Each input is read into an internal buffer in machine's double binary
+ * format prior to output.
+ *
+ * Output is either to stdout or an optional file argument.
  *
  * sample                      Session
  * Mon Apr 22 18:23:13 1991    Created
@@ -28,7 +33,7 @@
  *****************************************************************************/
 
 static char
-rcsid[] = "$Id$";
+RCSid[] = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,40 +41,57 @@ rcsid[] = "$Id$";
 #include <ctype.h>
 
 
+typedef enum { UNKNOWN, ASCII, IEEE_BIG, IEEE_LITTLE } FORMAT;
+
+
 static char  prog[]  = "convert";
-static FILE* fp_in   = stdin;
-static FILE* fp_out  = stdout;
-static int   swap    = 0;
-static char  usage[] = "usage: convert [-h] [-o output] [input[.fld]]\n"
-                       "options\n"
-                      "-h ... print this message\n";
 
-static void parse_args   (int, char**);
-static void err_msg      (const char*);
-static void a_to_b       (int, int, FILE*, FILE*);
-static void b_to_a       (int, int, FILE*, FILE*);
-static void dswap        (int, double*);
-static int  count_fields (const char*);
-static int  iformat      ();
-static void format       (char*);
-static int  swap_format  (char*, const char*);
+static int   verbose = 0;
+static char  usage[] = "Usage: convert [-format] [-h] [-v] [-o output] "
+                       "[input[.fld]]\n"
+                       "format can be one of:\n"
+                       "  -a ... force ASCII output\n"
+                       "  -b ... force IEEE-binary output\n"
+                       "  -s ... force IEEE-binary output (byte-swapped)\n"
+                       "other options are:\n"
+                       "  -h        ... print this message\n"
+                       "  -v        ... be verbose\n"
+                       "  -o output ... output to named file\n";
+    
+
+static void   getargs      (int, char**, FILE**, FILE**, FORMAT*);
+static void   error        (const char*);
+static void   get_data     (FILE*, const FORMAT, const FORMAT,
+			    const int, const int, double**);
+static void   put_data     (FILE*, const FORMAT,       FORMAT,
+			    const int, const int, double**);
+static void   dswap        (const int, double*);
+static int    count_fields (const char*);
+static FORMAT architecture (void);
+static FORMAT classify     (const char*);
+static int    iformat      (void);
 
 
-int main (int argc, char** argv)
+
+int main (int    argc,
+	  char** argv)
 /* ------------------------------------------------------------------------- *
  * Driver routine.
  * ------------------------------------------------------------------------- */
 {
-  char buf[BUFSIZ];
-  char fmt[BUFSIZ];
-  char *c;
-  int  n, nr, ns, nz, nel;
+  char     buf[BUFSIZ];
+  double** data;
+  int      nfields, npts, n, nr, ns, nz, nel;
+  FILE*    fp_in  = stdin;
+  FILE*    fp_out = stdout;
+  FORMAT   inputF   = UNKNOWN,
+           outputF  = UNKNOWN,
+           machineF = architecture();
 
-  parse_args (argc, argv);
+
+  getargs (argc, argv, &fp_in, &fp_out, &outputF);
 
   while (fgets (buf, BUFSIZ, fp_in)) {
-
-    swap = 0;
 
     /* -- Find size information. */
 
@@ -80,129 +102,47 @@ int main (int argc, char** argv)
     }
 
     if (sscanf(buf, "%d%d%d%d", &nr, &ns, &nz, &nel) != 4)
-      err_msg ("unable to read the file size");               
-
+      error ("unable to read the file size");               
+    npts = nr * ns * nz * nel;
+   
     n = 7;
     while (--n) {
       fputs (buf, fp_out);
       fgets (buf, BUFSIZ, fp_in);
     }
-
-    /* -- Find number of fields & format string. */
     
-    n = count_fields(buf);
+    nfields = count_fields (buf);
     fputs (buf, fp_out);
+
+    /* -- Set input format. */
+
     fgets (buf, BUFSIZ, fp_in);
-    c = buf;
-    while (isspace (*c)) c++;
-    format (fmt);
+    inputF = classify (buf);
 
-    switch (*c) {
-    case 'a': case 'A':
-      fprintf (fp_out, "binary %-18s Format\n", fmt);
-      a_to_b  (nr * ns * nz * nel, n, fp_in, fp_out);
-      break;
+    /* -- Allocate storage. */
 
-    case 'b': case 'B':
-      swap = swap_format (c, fmt); 
-      fprintf (fp_out, "%-25s Format\n", "ASCII");
-      b_to_a  (nr * ns * nz * nel, n, fp_in, fp_out);
-      break;
+    data = (double**) malloc (nfields * sizeof (double*));
+    for (n = 0; n < nfields; n++) 
+      data[n] = (double*) malloc (npts*sizeof (double));
 
-    default:
-      sprintf (buf, "unknown format flag -- %c", c);
-      err_msg (buf);
-      break;
-    }
+    /* -- Do input & output of field data. */
+
+    if (verbose)
+      fprintf (stderr, "%s: converting %1d fields, %1d points ",
+	       prog, nfields, npts);
+    
+    get_data (fp_in,  inputF, machineF, npts, nfields, data);
+    put_data (fp_out, inputF, outputF,  npts, nfields, data);
+
+    /* -- Deallocate storage. */
+
+    for (n = 0; n < nfields; n++)
+      free (data[n]);
+    free (data);    
+
   }
 
   return EXIT_SUCCESS;
-}
-
-
-void a_to_b (int npts, int nfields, FILE *in, FILE *out)
-/* ------------------------------------------------------------------------- *
- * Convert ASCII to binary.
- * ------------------------------------------------------------------------- */
-{
-  int    i, j;
-  char   buf[128];
-  double **data;
-
-  /* -- Allocate memory. */
-
-  data = (double**) malloc (nfields * sizeof(double*));
-  for (i = 0; i < nfields; i++) 
-    data[i] = (double*) malloc (npts*sizeof(double));
-
-  /* -- Read the numbers from the file (ASCII). */
-
-  for (j = 0; j < npts; j++) {
-    for (i = 0; i < nfields; i++)
-      if (fscanf (in, "%lf", data[i] + j) != 1) {
-	sprintf (buf, "unable to read a number -- line %d, field %d\n",
-		 j+1, i+1);
-	err_msg (buf);
-      }
-    fgets (buf, 128, in);   /* -- Scan to newline. */
-  }
-
-  /* -- Byte-reverse numbers. */
-
-  if (swap) for (i = 0; i < nfields; i++) dswap (npts, data[i]);
-
-  /* -- Write binary output. */
-
-  for (i = 0; i < nfields; i++)
-    if (fwrite (data[i], sizeof(double), npts, out) != npts)
-      err_msg ("an error has occured while writing");
-  
-  /* -- Free temporary storage. */
-
-  for (i = 0; i < nfields; i++)
-    free (data[i]);
-  free (data);
-}
-
-
-void b_to_a (int npts, int nfields, FILE *in, FILE *out)
-/* ------------------------------------------------------------------------- *
- * Convert binary to ASCII.
- * ------------------------------------------------------------------------- */
-{
-  int    i, j;
-  double **data;
-
-  /* -- Allocate memory. */
-
-  data = (double**) malloc (nfields * sizeof(double*));
-  for (i = 0; i < nfields; i++) 
-    data[i] = (double*) malloc (npts*sizeof(double));
-
-  /* -- Read numbers from file. */
-
-  for (i = 0; i < nfields; i++)
-    if (fread (data[i], sizeof (double), npts, in) != npts)
-      err_msg ("an error has occured while reading");
-
-  /* -- Byte-reverse numbers. */
-
-  if (swap) for (i = 0; i < nfields; i++) dswap (npts, data[i]);
-
-  /* -- Write ASCII output. */
-
-  for (j = 0; j < npts; j++) {
-    for (i = 0; i < nfields; i++)
-      if (fprintf (out, "%#16.10g ", data[i][j]) < 0)
-	err_msg ("an error has occured while writing");
-    fputs ("\n", out);
-  }
-  
-  /* -- Free temporary data storage. */
-
-  for (i = 0; i < nfields; i++)
-    free (data[i]);
-  free (data);
 }
 
 
@@ -219,7 +159,7 @@ static int count_fields (const char *s)
 }
 
 
-static void err_msg (const char *s)
+static void error (const char *s)
 /* ------------------------------------------------------------------------- *
  * Print an error message and die.
  * ------------------------------------------------------------------------- */
@@ -229,7 +169,11 @@ static void err_msg (const char *s)
 }
 
 
-static void parse_args (int argc, char *argv[])
+static void getargs (int     argc  ,
+		     char**  argv  ,
+		     FILE**  fp_in ,
+		     FILE**  fp_out,
+		     FORMAT* outf  )
 /* ------------------------------------------------------------------------- *
  * Parse command line arguments.
  * ------------------------------------------------------------------------- */
@@ -245,9 +189,47 @@ static void parse_args (int argc, char *argv[])
 	fputs (usage, stderr);
 	exit  (EXIT_SUCCESS);
 	break;
-      case 'r':
-	swap = 1;
+
+      case 'a':
+	*outf = ASCII;
 	break;
+
+      case 'b':
+	i = iformat ();
+	switch (i) {
+	case 1:
+	  *outf = IEEE_LITTLE;
+	  break;
+	case 0:
+	  *outf = IEEE_BIG;
+	  break;
+	default:
+	  fprintf (stderr, "%s: non-IEEE internal storage -- fix me", prog);
+	  exit (EXIT_FAILURE);
+	  break;
+	}
+	break;
+
+      case 's':
+	i = iformat ();
+	switch (i) {
+	case 1:
+	  *outf = IEEE_BIG;
+	  break;
+	case 0:
+	  *outf = IEEE_LITTLE;
+	  break;
+	default:
+	  fprintf (stderr, "%s: non-IEEE internal storage -- fix me", prog);
+	  exit (EXIT_FAILURE);
+	  break;
+	}
+	break;
+
+      case 'v':
+	verbose = 1;
+	break;
+
       case 'o':
 	if (*++argv[0])
 	  strcpy (fname, *argv);
@@ -255,9 +237,8 @@ static void parse_args (int argc, char *argv[])
 	  strcpy (fname, *++argv);
 	  argc--;
 	}
-	if ((fp_out = fopen (fname,"w")) == (FILE*) NULL) {
-	  fprintf (stderr, "convert: unable to open the output file -- %s\n", 
-		   fname);
+	if ((*fp_out = fopen (fname,"w")) == (FILE*) NULL) {
+	  fprintf (stderr, "convert: unable to open output file: %s\n", fname);
 	  exit (EXIT_FAILURE);
 	}
 	*argv += strlen (*argv) - 1;
@@ -269,9 +250,9 @@ static void parse_args (int argc, char *argv[])
       }
 
   if (argc == 1)
-    if ((fp_in = fopen (*argv, "r")) == (FILE*) NULL) {
+    if ((*fp_in = fopen (*argv, "r")) == (FILE*) NULL) {
       sprintf (fname, "%s.fld", *argv);
-      if ((fp_in = fopen (fname, "r")) == (FILE*) NULL) {
+      if ((*fp_in = fopen (fname, "r")) == (FILE*) NULL) {
 	fprintf(stderr, "%s: unable to open input file -- %s or %s\n",
 		prog, *argv, fname);
 	exit (EXIT_FAILURE);
@@ -282,17 +263,18 @@ static void parse_args (int argc, char *argv[])
 }
 
 
-static void dswap (int n, double *x)
-/* ------------------------------------------------------------------------ *
+static void dswap (const int n,
+		   double*   x)
+/* ------------------------------------------------------------------------- *
  * Byte-reversal routine.
- * ------------------------------------------------------------------------ */
+ * ------------------------------------------------------------------------- */
 {
-  double *cx = x;
-  char   *c  = (char*) x;
-  register int i,j;
+  register double *cx = x;
+  register char   *c  = (char*) x;
+  register int    i,j;
 
-  for(i = 0; i < n; i++, cx++, c = (char*) cx)
-    for(j = 0; j < 4; j++){
+  for (i = 0; i < n; i++, cx++, c = (char*) cx)
+    for (j = 0; j < 4; j++){
       char d = c[j];
       c[j]   = c[7-j];
       c[7-j] = d;
@@ -320,50 +302,177 @@ static int iformat (void)
 }
 
 
-static void format (char* s)
+static FORMAT architecture (void)
 /* ------------------------------------------------------------------------- *
- * Fill s with a string describing machine's floating-point storage format.
+ * What is this machine?  Die if unrecognized.
  * ------------------------------------------------------------------------- */
 {
   switch (iformat ()) {
-  case -1:
-    sprintf (s, "unknown");
-    break;
   case 1:
-    sprintf (s, "IEEE little-endian");
+    return IEEE_LITTLE;
     break;
-  case 0: default:
-    sprintf (s, "IEEE big-endian");
+  case 0:
+    return IEEE_BIG;
     break;
+  case -1: default:
+    fprintf (stderr, "%s: unrecognized machine architecture", prog);
+    exit (EXIT_FAILURE);
+    break;
+  }
+
+  return UNKNOWN;		/* Never happen. */
+}
+
+
+static FORMAT classify (const char* s)
+/* ------------------------------------------------------------------------- *
+ * Figure out what the input format is.
+ * If ASCII, no problem.
+ * Otherwise, we have to cope with backwards compatibility:
+ *   if plain binary, set to machine's default binary,
+ *   else set to declaration.
+ * ------------------------------------------------------------------------- */
+{
+  const char* c = s;
+  while (isspace (*c)) c++;
+
+  switch (*c) {
+
+  case 'a': case 'A':
+    return ASCII;
+    break;
+
+  case 'b': case 'B':
+    if (!strstr (s, "IEEE"))
+      return architecture ();
+
+    else if (strstr (s, "little"))
+      return IEEE_LITTLE;
+
+    else if (strstr (s, "big"))
+      return IEEE_BIG;
+    
+    break;
+
+  default:
+    fprintf (stderr, "%s: unknown format specifier: %s\n", prog, s);
+    exit (EXIT_FAILURE);
   }
 }
 
 
-static int swap_format (char* input, const char* machine)
+static void get_data (FILE*     fp     ,
+		      const FORMAT format ,
+		      const FORMAT machine,
+		      const int npts   ,
+		      const int nfields,
+		      double**  data   )
 /* ------------------------------------------------------------------------- *
- * Compare strings describing binary input format and this machine's
- * internal storage format.
- *
- * Return:
- *   1 to flag byte reversal IEEE big-endian <--> IEEE little-endian,
- *   0 for no reversal.
- *
- * Unrecognized input formats cause abortion.
+ * Read into data according to signalled format of input stream.
  * ------------------------------------------------------------------------- */
 {
-  if (!strstr (input, "IEEE")) {
-    char  s[BUFSIZ];
-    char  sep[] = " \t\n";
-    char* fmt;
+  register int i, j;
+  char         err[FILENAME_MAX];
+  const int    swap = format != machine;
 
-    fmt = strtok (input, sep);
-    fmt = strtok (0,     sep);
-    sprintf (s, "unrecognized binary format \"%s\"...using default...\n", fmt);
-    fprintf (stderr, s);
+  switch (format) {
+
+  case ASCII:
+    
+    if (verbose) fprintf (stderr, "(ASCII --> ");
+    for (j = 0; j < npts; j++) {
+      for (i = 0; i < nfields; i++)
+	if (fscanf (fp, "%lf", data[i] + j) != 1) {
+	  sprintf (err, "unable to read number: line %d, field %d\n", j+1,i+1);
+	  error (err);
+	}
+      fgets (err, FILENAME_MAX, fp);
+    }
+    break;
+      
+  case IEEE_BIG:
+    if (verbose) fprintf (stderr, "(IEEE-BIG_ENDIAN --> ");
+    goto READ_BINARY;
+
+  case IEEE_LITTLE:
+    if (verbose) fprintf (stderr, "(IEEE-LITTLE_ENDIAN --> ");
+
+  READ_BINARY:
+
+    for (i = 0; i < nfields; i++)
+      if (fread (data[i], sizeof (double), npts, fp) != npts) {
+	sprintf (err, "%s: an error has occured while reading (binary)", prog);
+	error (err);
+      }
+    if (swap) for (i = 0; i < nfields; i++) dswap (npts, data[i]);
+    break;
+
+  default: case UNKNOWN:
+    sprintf (err, "%s: unknown input format", prog);
+    error (err);
+    break;
+
   }
-  
-  if (   (strstr (input, "little") && strstr (machine, "big"   ))
-      || (strstr (input, "big"   ) && strstr (machine, "little"))) return 1;
-  
-  return 0;
+}
+
+
+static void put_data (FILE*     fp     ,
+		      const FORMAT inputF ,
+		            FORMAT outputF,
+		      const int npts   ,
+		      const int nfields,
+		      double**  data   )
+/* ------------------------------------------------------------------------- *
+ * Write from data to fp, according to input and desired output formats.
+ * ------------------------------------------------------------------------- */
+{
+  char         err[FILENAME_MAX];
+  register int i, j;
+  const int    swap = outputF != architecture ();
+
+  if (outputF == UNKNOWN) outputF = (inputF == ASCII) ? architecture() : ASCII;
+
+  switch (outputF) {
+
+  case ASCII:
+    if (verbose) fprintf (stderr, "ASCII)\n");
+
+    fprintf (fp, "ASCII                     Format\n");
+
+    for (j = 0; j < npts; j++) {
+      for (i = 0; i < nfields; i++)
+	if (fprintf (fp, "%#16.10g ", data[i][j]) < 0) {
+	  sprintf (err, "%s: error occured while writing (ASCII)", prog);
+	  error (err);
+	}
+      fputs ("\n", fp);
+    }
+
+    break;
+      
+  case IEEE_BIG:
+    if (verbose) fprintf (stderr, "IEEE-BIG_ENDIAN)\n"); 
+    fprintf (fp, "binary IEEE big-endian    Format\n");
+    goto WRITE_BINARY;
+
+  case IEEE_LITTLE:
+   if (verbose) fprintf (stderr, "IEEE-LITTLE_ENDIAN)\n"); 
+   fprintf (fp, "binary IEEE little-endian Format\n");
+
+  WRITE_BINARY:
+    
+    if (swap) for (i = 0; i < nfields; i++) dswap (npts, data[i]);
+    for (i = 0; i < nfields; i++)
+      if (fwrite (data[i], sizeof (double), npts, fp) != npts) {
+	sprintf (err, "%s: an error has occured while writing (binary)", prog);
+	error (err);
+      }
+    break;
+
+  default: case UNKNOWN:
+    sprintf (err, "%s: unknown input format", prog);
+    error (err);
+    break;
+
+  }  
 }
