@@ -12,19 +12,19 @@
 //                      | .  vv vw |  =  |  .  C  E |
 //                      \ .  .  ww /     \  .  .  F /
 //
-// Reynolds stresses are selected for computation if AVERAGE > 1.  In this
-// case it is assumed that there will be at least DIM fields to be multiplied
-// together as indicated.  NB: what is computed are the running average of the 
-// products uu, uv, etc, which are NOT the actual Reynolds stresses: they need
-// to have the products of the mean values UU, UV etc subtracted, assumed
-// to occur in postprocessing.
+// Reynolds stresses are selected for computation if AVERAGE > 1.  In
+// this case it is assumed that there will be at least DIM fields to
+// be multiplied together as indicated.  NB: what is computed are the
+// running average of the products uu, uv, etc, which are NOT the
+// actual Reynolds stresses: they need to have the products of the
+// mean values UU, UV etc subtracted, assumed to occur in
+// postprocessing.
 //
 // Running averages are kept semi-Fourier, Reynolds stress products in
 // physical space to minimize number of transforms needed.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <Sem.h>
 #include <time.h>
