@@ -27,6 +27,8 @@
 #include <strstream>
 #include <iomanip>
 
+using namespace std;
+
 #include <femdef.h>		/* Semtex headers.     */
 #include <List.h>
 #include <Stack.h>
@@ -221,8 +223,8 @@ class AuxField
 // global numbering system, and no solution routines.
 // ===========================================================================
 {
-friend ifstream& operator >> (ifstream&, AuxField&);
-friend ofstream& operator << (ofstream&, AuxField&);
+friend istream& operator >> (istream&, AuxField&);
+friend ostream& operator << (ostream&, AuxField&);
 friend class     Field;
 friend class     PBCmgr;
 
@@ -1095,4 +1097,3 @@ char*    upperCase   (char *);
 void     writeField  (ofstream&, const char*, const int, const real,
 		      vector<AuxField*>&);
 #endif
-

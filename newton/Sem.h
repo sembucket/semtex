@@ -28,6 +28,8 @@
 #include <strstream>
 #include <iomanip>
 
+using namespace std;
+
 #include <femdef.h>		/* Semtex headers.     */
 #include <List.h>
 #include <Stack.h>
@@ -198,10 +200,10 @@ class AuxField
 // global numbering system, and no solution routines.
 // ===========================================================================
 {
-friend ifstream& operator >> (ifstream&, AuxField&);
-friend ofstream& operator << (ofstream&, AuxField&);
-friend class     Field;
-friend class     PBCmgr;
+friend istream& operator >> (istream&, AuxField&);
+friend ostream& operator << (ostream&, AuxField&);
+friend class    Field;
+friend class    PBCmgr;
 
 public:
   AuxField (real*, const integer, vector<Element*>&, const char = 0);

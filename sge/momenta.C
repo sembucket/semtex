@@ -11,13 +11,15 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <iostream.h>
-#include <strstream.h>
-#include <fstream.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <float.h>
-#include <math.h>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <cstdio>
+#include <cstdlib>
+#include <cfloat>
+#include <cmath>
+
+using namespace std;
 
 #include <Utility.h>
 #include <Stack.h>
@@ -45,6 +47,7 @@ int main (int    argc,
   Stack<doublet*> data;
   vector<double>  z, w;
   int             i, N;
+  istream*        file;
 
   while (--argc && **++argv == '-')
     switch (*++argv[0]) {
@@ -54,16 +57,11 @@ int main (int    argc,
     }
     
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-      } else {
-	cerr << prog << ": unable to open input file" << endl;
-	exit (EXIT_FAILURE);
-    }
-  }
+    file = new ifstream (*argv);
+    if (file -> bad()) message (prog, "unable to open input file", ERROR);
+  } else file = &cin;
 
-  while (cin >> x >> y) {
+  while (*file >> x >> y) {
     zmin  = min (x, zmin);
     zmax  = max (x, zmax);
     datum = new doublet (x, y);
