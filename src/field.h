@@ -41,7 +41,7 @@ public:
   static void   tangTractionV (real_t*, real_t*, real_t*, const Field*,
 			       const Field*, const Field* = 0);
   static void   traction      (real_t*, real_t*, real_t*, real_t*, real_t*,
-			       const int_t, const Field*,
+			       const int_t, const int_t, const Field*,
 			       const Field*, const Field*, const Field* = 0);
 
   static void   coupleBCs    (Field*, Field*, const int_t);
