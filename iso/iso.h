@@ -94,7 +94,7 @@ int  ispow2   (int);
 
 /* -- nonlinear.c */
 
-void  nonlinear (CVF, CVF, CF, CF, CVF,
+void  nonlinear (CVF, CVF, CVF, CF, CF,
 		 const complex*, const complex*);
 void  convolve  (const CF, const CF, const CF, const CF, CF, CF,
 		 const complex*, const complex*);
