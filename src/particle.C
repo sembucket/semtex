@@ -9,7 +9,7 @@
 #include <Sem.h>
 
 Domain*  FluidParticle::D       = 0;
-integer  FluidParticle::NDIM    = 0;
+integer  FluidParticle::NCOM    = 0;
 integer  FluidParticle::NEL     = 0;
 integer  FluidParticle::NZ      = 0;
 integer  FluidParticle::TORD    = 0;
@@ -36,7 +36,7 @@ FluidParticle::FluidParticle (Domain*       d,
 
   if (!D) {			// -- Set up first time through.
     D       = d;
-    NDIM    = Geometry::nDim();
+    NCOM    = (d -> nField() > 3) ? 3 : 2;
     NEL     = Geometry::nElmt();
     NZ      = Geometry::nZ();
     DT      =           Femlib::value ("D_T");
@@ -71,7 +71,7 @@ FluidParticle::FluidParticle (Domain*       d,
   if (!_E) return;
   if (_id > ID_MAX) ID_MAX = _id;
 
-  if (NDIM == 2) {
+  if (NCOM == 2) {
     _p.z = 0.0;
 
     _u = new real [(size_t) (TORD + TORD)];
@@ -113,7 +113,7 @@ void FluidParticle::integrate ()
   predictor = P_coeff + NM * TORD;
   corrector = C_coeff + NM * (TORD+1);
 
-  if (NDIM == 2) {		// -- 2D integration.
+  if (NCOM == 2) {		// -- 2D integration.
     
     // -- Predictor.
 
