@@ -49,6 +49,7 @@ int main (int    argc,
 {
   char               *session, *tok;
   ifstream           fieldfl;
+  ofstream           outfl (1);   	// -- Std output fd is 1.
   char               buf[StrMax], err[StrMax], fmt[StrMax], fields[StrMax];
   char               function[EXACT_MAX][StrMax];
   integer            i, j, np, nz, nel, found;
@@ -172,7 +173,7 @@ int main (int    argc,
     fieldfl.seekg (0);
     for (i = 0; i < 10; i++) {	// -- Copy header information.
       fieldfl.getline (buf, StrMax);
-      cout << buf << endl;
+      outfl << buf << endl;
     }
 
     for (i = 0; i < nfields; i++) {
@@ -212,7 +213,7 @@ int main (int    argc,
 
       if (tran) exact -> transform (+1);
       if (swab) exact -> reverse();
-      cout << *exact;
+      outfl << *exact;
     }
 
   } else {			// -- Create new data.
@@ -236,29 +237,29 @@ int main (int    argc,
     // -- Write the header.
 
     sprintf (s1, hdr_fmt[0], session);
-    cout << s1;
+    outfl << s1;
 
     strftime (s2, 25, "%a %b %d %H:%M:%S %Y", localtime (&tp));
     sprintf  (s1, hdr_fmt[1], s2);
-    cout << s1;
+    outfl << s1;
 
     sprintf (s1, hdr_fmt[2], np, np, nz, nel);
-    cout << s1;
+    outfl << s1;
 
     sprintf (s1, hdr_fmt[3], 0);
-    cout << s1;
+    outfl << s1;
     
     sprintf (s1, hdr_fmt[4], Femlib::value ("t"));
-    cout << s1;
+    outfl << s1;
 
     sprintf (s1, hdr_fmt[5], Femlib::value ("D_T"));
-    cout << s1;
+    outfl << s1;
 
     sprintf (s1, hdr_fmt[6], Femlib::value ("KINVIS"));
-    cout << s1;
+    outfl << s1;
 
     sprintf (s1, hdr_fmt[7], Femlib::value ("BETA"));
-    cout << s1;
+    outfl << s1;
 
     for (j = 0; j < nexact; j++) {
       tok = function[j];
@@ -267,12 +268,12 @@ int main (int    argc,
     }
     fields[j] = '\0';
     sprintf (s1, hdr_fmt[8], fields);
-    cout << s1;
+    outfl << s1;
 
     sprintf (s2, "binary ");
     Veclib::describeFormat (s2 + strlen (s2));
     sprintf (s1, hdr_fmt[9], s2);
-    cout << s1;
+    outfl << s1;
     
     // -- Compute and output fields.
 
@@ -281,11 +282,11 @@ int main (int    argc,
       tok    = strtok (0, "\0");
       *exact = (const char*) tok;
       if (tran) exact -> transform (+1);
-      cout << *exact;
+      outfl << *exact;
     }
   }
   
-  cout.flush();
+  outfl.flush();
   Femlib::finalize();
   return EXIT_SUCCESS;
 }
