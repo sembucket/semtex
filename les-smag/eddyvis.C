@@ -1,9 +1,10 @@
 ///////////////////////////////////////////////////////////////////////////////
 // eddyvis.C: calculate eddy viscosity for LES.
+//
+// Copyright (c) Hugh Blackburn 1998--1999.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <les.h>
 
@@ -175,11 +176,11 @@ static void viscoModel (const Domain* D ,
   
   for (i = 0; i < DIM; i++) {
     for (j = i + 1; j < DIM; j++) {
-      Uf[i + j - 1][0] -> transform32 (tmp, -1);
+      Uf[i + j - 1][0] -> transform32 (-1, tmp);
       Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
     }
     Blas::scal (nTot32, 2.0, sum, 1);
-    Us[i][0] -> transform32 (tmp, -1);
+    Us[i][0] -> transform32 (-1, tmp);
     Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
   }
 
@@ -197,7 +198,7 @@ static void viscoModel (const Domain* D ,
     const real    Cs2     = Cs  * Cs;
     const real    Cs4     = Cs2 * Cs2;
   
-    EV -> transform32 (tmp, -1);
+    EV -> transform32 (-1, tmp);
 
     for (k = 0; k < nZ32; k++) {
       S = sum + k * NP;
@@ -230,7 +231,7 @@ static void viscoModel (const Domain* D ,
 
   // -- Transform back to Fourier space.
 
-  EV -> transform32 (sum, +1);
+  EV -> transform32 (+1, sum);
 }
 
 

@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // NS.C: Unsteady Navier--Stokes solver, using "stiffly-stable" integration.
 //
+// Copyright (c) Hugh Blackburn 1998--1999.
+//
 // This version incorporates LES.  This is handled within the
 // framework of the DNS solver by splitting the SGS stress into two
 // parts: one which can be dealt with implicitly as diffusion of
@@ -32,26 +34,24 @@
 // rate tensor with a spatially-constant NEGATIVE viscosity -KINVIS:
 // the results should be the same as for a DNS with total viscosity
 // KINVIS.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <les.h>
 
 void eddyViscosity (const Domain*, AuxField***, AuxField***, AuxField*);
 
-typedef ModalMatrixSystem  ModeSys;
+typedef ModalMatrixSys  Msys;
 static  integer            DIM, CYL, C3D;
 
-static void      nonLinear (Domain*, AuxField***, AuxField***,
-			    AuxField*, vector<real>&);
-static void      waveProp  (Domain*, const AuxField***, const AuxField***);
-static void      setPForce (const AuxField***, AuxField***);
-static void      project   (const Domain*, AuxField***, AuxField***);
-static ModeSys** preSolve  (const Domain*);
-static void      Solve     (Field*, AuxField*, ModeSys*,
-			    const integer, const integer);
+static void   nonLinear (Domain*, AuxField***, AuxField***,
+			 AuxField*, vector<real>&);
+static void   waveProp  (Domain*, const AuxField***, const AuxField***);
+static void   setPForce (const AuxField***, AuxField***);
+static void   project   (const Domain*, AuxField***, AuxField***);
+static Msys** preSolve  (const Domain*);
+static void   Solve     (Field*, AuxField*, Msys*,const integer,const integer);
 
 
 void NavierStokes (Domain*      D,
@@ -87,7 +87,7 @@ void NavierStokes (Domain*      D,
     Femlib::value ("REFVIS", refVis);
   } 
 
-  ModeSys** MMS = preSolve (D);
+  Msys** MMS = preSolve (D);
 
   // -- Create & initialize multi-level storage for velocities and forcing.
 
@@ -98,8 +98,8 @@ void NavierStokes (Domain*      D,
     Us[i] = new AuxField* [(size_t) nOrder];
     Uf[i] = new AuxField* [(size_t) nOrder];
     for (j = 0; j < nOrder; j++) {
-      *(Us[i][j] = new AuxField (D -> Esys)) = 0.0;
-      *(Uf[i][j] = new AuxField (D -> Esys)) = 0.0;
+      *(Us[i][j] = new AuxField (D -> elmt)) = 0.0;
+      *(Uf[i][j] = new AuxField (D -> elmt)) = 0.0;
     }
   }
 
@@ -122,7 +122,7 @@ void NavierStokes (Domain*      D,
 
   // -- Create and initialize eddy-viscosity storage.
 
-  AuxField* EV = new AuxField (D -> Esys, 'e');
+  AuxField* EV = new AuxField (D -> elmt, 'e');
   *EV = 0.0;
   ROOTONLY EV -> addToPlane (0, Femlib::value ("REFVIS - KINVIS"));
 
@@ -275,24 +275,24 @@ static void nonLinear (Domain*       D ,
 
   // -- Start with contribution from divergence of SGS.
 
-  EV -> transform32 (tmp, -1);
+  EV -> transform32 (-1, tmp);
   Blas::scal (nTot32, -4.0, tmp, 1); // -- 2 = -0.5 * -4 ... see below.
 
   if (CYL) {			// -- Cylindrical coordinates.
 
     // -- 2D stress-divergence terms.
 
-    Us[0][0] -> transform32 (n32[0], -1);
+    Us[0][0] -> transform32 (-1, n32[0]);
     Veclib::vmul            (nTot32,  tmp, 1, n32[0], 1, n32[0], 1);
     master   -> gradient    (nZ32, nP, n32[0], 0);
 
-    Us[1][0] -> transform32 (n32[1], -1);
+    Us[1][0] -> transform32 (-1, n32[1]);
     Veclib::vmul            (nTot32,  tmp, 1, n32[1], 1, n32[1], 1);
     master   -> mulR        (nZ32, n32[1]);
     master   -> gradient    (nZ32, nP, n32[1], 1);
     master   -> divR        (nZ32, n32[1]);
 
-    Uf[0][0] -> transform32 (u32[0], -1);
+    Uf[0][0] -> transform32 (-1, u32[0]);
     Veclib::vmul            (nTot32,  tmp, 1, u32[0], 1, u32[0], 1);
     Veclib::copy            (nTot32,          u32[0], 1, u32[1], 1);
     master   -> mulR        (nZ32, u32[0]);
@@ -306,43 +306,43 @@ static void nonLinear (Domain*       D ,
 
     if (C3D) {		
 
-      Us[2][0] -> transform32 (n32[2], -1);
+      Us[2][0] -> transform32 (-1, n32[2]);
       Veclib::vmul            (nTot32, tmp, 1, n32[2], 1, n32[2], 1);
       Veclib::copy            (nTot32,         n32[2], 1, u32[0], 1);
       master -> divR          (nZ32, u32[0]);
       Veclib::vsub            (nTot32, n32[1], 1, u32[0], 1, n32[1], 1);
-      Femlib::transpose       (n32[2], nZ32,        nP, +1);
+      Femlib::exchange        (n32[2], nZ32,        nP, +1);
       Femlib::DFTr            (n32[2], nZ32 * nPR, nPP, +1);
       Veclib::zero            (nTot32 - nTot, n32[2] + nTot, 1);
       master -> gradient      (nZ, nPP, n32[2], 2);
       Femlib::DFTr            (n32[2], nZ32 * nPR, nPP, -1);
-      Femlib::transpose       (n32[2], nZ32,        nP, -1);
+      Femlib::exchange        (n32[2], nZ32,        nP, -1);
       master -> divR          (nZ32, n32[2]);
 
-      Uf[1][0] -> transform32 (u32[0], -1);
+      Uf[1][0] -> transform32 (-1, u32[0]);
       Veclib::vmul            (nTot32, tmp, 1, u32[0], 1, u32[0], 1);
       Veclib::copy            (nTot32,         u32[0], 1, u32[1], 1);
-      Femlib::transpose       (u32[0], nZ32,        nP, +1);
+      Femlib::exchange        (u32[0], nZ32,        nP, +1);
       Femlib::DFTr            (u32[0], nZ32 * nPR, nPP, +1);
       Veclib::zero            (nTot32 - nTot, u32[0] + nTot, 1);
       master -> gradient      (nZ, nPP, u32[0], 2);
       Femlib::DFTr            (u32[0], nZ32 * nPR, nPP, -1);
-      Femlib::transpose       (u32[0], nZ32,        nP, -1);
+      Femlib::exchange        (u32[0], nZ32,        nP, -1);
       master -> divR          (nZ32, u32[0]);
       master -> gradient      (nZ32, nP, u32[1], 0);
       Veclib::vadd            (nTot32, u32[0], 1, n32[0], 1, n32[0], 1);
       Veclib::vadd            (nTot32, u32[1], 1, n32[2], 1, n32[2], 1);
 
-      Uf[2][0] -> transform32 (u32[0], -1);
+      Uf[2][0] -> transform32 (-1, u32[0]);
       Veclib::vmul            (nTot32, tmp, 1, u32[0], 1, u32[0], 1);
       Veclib::copy            (nTot32,         u32[0], 1, u32[1], 1);
       Veclib::copy            (nTot32,         u32[0], 1, u32[2], 1);
-      Femlib::transpose       (u32[0], nZ32,        nP, +1);      
+      Femlib::exchange        (u32[0], nZ32,        nP, +1);      
       Femlib::DFTr            (u32[0], nZ32 * nPR, nPP, +1);
       Veclib::zero            (nTot32 - nTot, u32[0] + nTot, 1);
       master -> gradient      (nZ, nPP, u32[0], 2);
       Femlib::DFTr            (u32[0], nZ32 * nPR, nPP, -1);
-      Femlib::transpose       (u32[0], nZ32,        nP, -1);      
+      Femlib::exchange        (u32[0], nZ32,        nP, -1);      
       master -> divR          (nZ32, u32[0]);
       master -> gradient      (nZ32, nP, u32[1], 1);
       master -> divR          (nZ32, u32[2]);
@@ -357,16 +357,16 @@ static void nonLinear (Domain*       D ,
 
     for (i = 0; i < DIM; i++) {
 
-      Us[i][0] -> transform32 (n32[i], -1);
+      Us[i][0] -> transform32 (-1, n32[i]);
       Veclib::vmul (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
 
       if (i == 2) {
-	Femlib::transpose  (n32[2], nZ32,        nP, +1);      
+	Femlib::exchange   (n32[2], nZ32,        nP, +1);      
 	Femlib::DFTr       (n32[2], nZ32 * nPR, nPP, +1);
 	Veclib::zero       (nTot32 - nTot, n32[2] + nTot, 1);
 	master -> gradient (nZ, nPP, n32[2], 2);
 	Femlib::DFTr       (n32[2], nZ32 * nPR, nPP, -1);
-	Femlib::transpose  (n32[2], nZ32,        nP, -1);      
+	Femlib::exchange   (n32[2], nZ32,        nP, -1);      
       } else
 	master -> gradient (nZ32, nP, n32[i], i);
     }
@@ -376,19 +376,19 @@ static void nonLinear (Domain*       D ,
     for (i = 0; i < DIM; i++)
       for (j = i + 1; j < DIM; j++) {
 
-	Uf[i + j - 1][0] -> transform32 (u32[0], -1);
+	Uf[i + j - 1][0] -> transform32 (-1, u32[0]);
 	Veclib::vmul                    (nTot32, tmp, 1, u32[0], 1, u32[0], 1);
 	Veclib::copy                    (nTot32,         u32[0], 1, u32[1], 1);
 
 	// -- Super-diagonal.
 
 	if (j == 2) {
-	  Femlib::transpose  (u32[0], nZ32,        nP, +1);
+	  Femlib::exchange   (u32[0], nZ32,        nP, +1);
 	  Femlib::DFTr       (u32[0], nZ32 * nPR, nPP, +1);
 	  Veclib::zero       (nTot32 - nTot, u32[0] + nTot, 1);
 	  master -> gradient (nZ, nPP, u32[0], 2);
 	  Femlib::DFTr       (u32[0], nZ32 * nPR, nPP, -1);
-	  Femlib::transpose  (u32[0], nZ32,        nP, -1);
+	  Femlib::exchange   (u32[0], nZ32,        nP, -1);
 	} else
 	  master -> gradient (nZ32, nP, u32[0], j);
 	Veclib::vadd (nTot32, u32[0], 1, n32[i], 1, n32[i], 1);
@@ -406,7 +406,7 @@ static void nonLinear (Domain*       D ,
     AuxField::swapData (D -> u[i], Us[i][0]);
     U[i] = Us[i][0];
     N[i] = Uf[i][0];
-    U[i] -> transform32 (u32[i], -1);
+    U[i] -> transform32 (-1, u32[i]);
     if (CYL) N[i] -> mulR (nZ32, n32[i]);
   }
   
@@ -424,21 +424,21 @@ static void nonLinear (Domain*       D ,
 
 	if (nZ > 2) {
 	  Veclib::copy       (nTot32, u32[i], 1, tmp, 1);
-	  Femlib::transpose  (tmp, nZ32,        nP, +1);
+	  Femlib::exchange   (tmp, nZ32,        nP, +1);
 	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, +1);
 	  Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
 	  master -> gradient (nZ, nPP, tmp, 2);
 	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, -1);
-	  Femlib::transpose  (tmp, nZ32,        nP, -1);
+	  Femlib::exchange   (tmp, nZ32,        nP, -1);
 	  Veclib::vvtvp      (nTot32, u32[2], 1, tmp, 1, n32[i], 1, n32[i], 1);
 	
 	  Veclib::vmul       (nTot32, u32[i], 1, u32[2], 1, tmp, 1);
-	  Femlib::transpose  (tmp, nZ32,        nP, +1);
+	  Femlib::exchange   (tmp, nZ32,        nP, +1);
 	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, +1);
 	  Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
 	  master -> gradient (nZ, nPP, tmp, 2);
 	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, -1);
-	  Femlib::transpose  (tmp, nZ32,        nP, -1);
+	  Femlib::exchange   (tmp, nZ32,        nP, -1);
 	  Veclib::vadd       (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
 	}
       }
@@ -467,9 +467,9 @@ static void nonLinear (Domain*       D ,
 
       // -- Transform to Fourier space, smooth, add forcing.
 
-      N[i]   -> transform32 (n32[i], +1);
+      N[i]   -> transform32 (+1, n32[i]);
       master -> smooth (N[i]);
-      if (fabs (ff[i]) > EPS) N[i] -> addToPlane (0, -2.0*ff[i]);
+      ROOTONLY if (fabs (ff[i]) > EPS) N[i] -> addToPlane (0, -2.0*ff[i]);
       *N[i] *= -0.5;
     }
   
@@ -482,12 +482,12 @@ static void nonLinear (Domain*       D ,
 
 	Veclib::copy (nTot32, u32[i], 1, tmp,  1);
 	if (j == 2) {
-	  Femlib::transpose  (tmp, nZ32,        nP, +1);
+	  Femlib::exchange   (tmp, nZ32,        nP, +1);
 	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, +1);
 	  Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
 	  master -> gradient (nZ,  nPP, tmp, j);
 	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, -1);
-	  Femlib::transpose  (tmp, nZ32,        nP, -1);
+	  Femlib::exchange   (tmp, nZ32,        nP, -1);
 	} else {
 	  master -> gradient (nZ32, nP, tmp, j);
 	}
@@ -497,12 +497,12 @@ static void nonLinear (Domain*       D ,
 
 	Veclib::vmul  (nTot32, u32[i], 1, u32[j], 1, tmp,  1);
 	if (j == 2) {
-	  Femlib::transpose  (tmp, nZ32,        nP, +1);
+	  Femlib::exchange   (tmp, nZ32,        nP, +1);
 	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, +1);
 	  Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
 	  master -> gradient (nZ,  nPP, tmp, j);
 	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, -1);
-	  Femlib::transpose  (tmp, nZ32,        nP, -1);
+	  Femlib::exchange   (tmp, nZ32,        nP, -1);
 	} else {
 	  master -> gradient (nZ32, nP, tmp, j);
 	}
@@ -511,7 +511,7 @@ static void nonLinear (Domain*       D ,
 
       // -- Transform to Fourier space, smooth, add forcing.
       
-      N[i]   -> transform32 (n32[i], +1);
+      N[i]   -> transform32 (+1, n32[i]);
       master -> smooth (N[i]);
       ROOTONLY if (fabs (ff[i]) > EPS) N[i] -> addToPlane (0, -2.0*ff[i]);
       *N[i] *= -0.5;
@@ -618,27 +618,24 @@ static void project (const Domain* D ,
 }
 
 
-static ModeSys** preSolve (const Domain* D)
+static Msys** preSolve (const Domain* D)
 // ---------------------------------------------------------------------------
-// Set up ModalMatrixSystems for each Field of D.  If iterative solution
-// is selected for any Field, the corresponding ModalMatrixSystem pointer
+// Set up ModalMatrixSyss for each Field of D.  If iterative solution
+// is selected for any Field, the corresponding ModalMatrixSys pointer
 // is set to zero.
 //
 // ITERATIVE == 1 selects iterative solvers for velocity components,
 // ITERATIVE == 2 adds iterative solver for pressure as well.
 // ---------------------------------------------------------------------------
 {
-  char                 name;
-  integer              i;
-  const integer        nSys   = D -> Nsys.getSize();
-  const integer        nmodes = Geometry::nModeProc();
-  const integer        base   = Geometry::baseMode();
-  const integer        itLev  = (integer) Femlib::value ("ITERATIVE");
-  const integer        nOrder = (integer) Femlib::value ("N_TIME");
-  const real           beta   = Femlib::value ("BETA");
-  ModeSys**            M      = new ModeSys* [(size_t) (DIM + 1)];
-  vector<Element*>&    E      = ((Domain*) D) -> Esys;
-  const NumberSystem** N      = new const NumberSystem* [3];
+  const integer           nmodes = Geometry::nModeProc();
+  const integer           base   = Geometry::baseMode();
+  const integer           itLev  = (integer) Femlib::value ("ITERATIVE");
+  const integer           nOrder = (integer) Femlib::value ("N_TIME");
+  const real              beta   = Femlib::value ("BETA");
+  const vector<Element*>& E      = D -> elmt;
+  Msys**                  M      = new Msys* [(size_t) (DIM + 1)];
+  integer                 i;
 
   // -- Velocity systems.
 
@@ -647,21 +644,17 @@ static ModeSys** preSolve (const Domain* D)
     Integration::StifflyStable (nOrder, alpha());
     const real   lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
 
-    for (i = 0; i < DIM; i++) {
-      name = D -> u[i] -> name();
-      D -> setNumber (name, N);
-      M[i] = new ModalMatrixSystem (lambda2, beta, name, base, nmodes, E, N);
-    }
+    for (i = 0; i < DIM; i++)
+      M[i] = new Msys (lambda2, beta, base, nmodes, E, D -> b[i]);
   } else
-    for (i = 0; i < DIM; i++) M[i] = 0;
+    for (i = 0; i < DIM; i++)
+      M[i] = 0;
 
   // -- Pressure system.
 
-  if (itLev < 2) {
-    name = D -> u[DIM] -> name();
-    D -> setNumber (name, N);
-    M[DIM] = new ModalMatrixSystem (0.0, beta, name, base, nmodes, E, N);
-  } else
+  if (itLev < 2)
+    M[DIM] = new Msys (0.0, beta, base, nmodes, E, D -> b[DIM]);
+  else
     M[DIM] = 0;
 
   return M;
@@ -670,7 +663,7 @@ static ModeSys** preSolve (const Domain* D)
 
 static void Solve (Field*        U     ,
 		   AuxField*     Force ,
-		   ModeSys*      M     ,
+		   Msys*         M     ,
 		   const integer step  ,
 		   const integer nOrder)
 // ---------------------------------------------------------------------------

@@ -1,9 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
-// drive.C
+// drive.C: control spectral element LES for incompressible flows.
 //
-// SYNOPSIS:
-// --------
-// Control spectral element LES for incompressible flows.
+// Copyright (C) 1999 Hugh Blackburn
 //
 // USAGE:
 // -----
@@ -21,19 +19,21 @@
 // P.O. Box 56
 // Highett, Vic 3190
 // Australia
-// hmb@dbce.csiro.au
+// hugh.blackburn@dbce.csiro.au
+//
+// $Id$
 //////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <les.h>
 #include <new.h>
 
 static char prog[] = "les";
-static void memExhaust   () { message ("new", "free store exhausted", ERROR); }
-static void getargs      (int, char**, char*&);
-       void NavierStokes (Domain*, LESAnalyser*);
+static void memExhaust () { message ("new", "free store exhausted", ERROR); }
+static void getargs    (int, char**, char*&);
+static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
+			BCmgr*&, BoundarySys*&, Domain*&);
+
+void NavierStokes (Domain*, LESAnalyser*);
 
 
 int main (int    argc,
@@ -47,39 +47,27 @@ int main (int    argc,
   ios::sync_with_stdio();
 #endif
 
-  Geometry::CoordSys system;
-  char               *session, fields[StrMax];
-  integer            np, nz, nel;
-  FEML*              F;
-  Mesh*              M;
-  BCmgr*             B;
-  Domain*            D;
-  LESAnalyser*       A;
+  char             *session;
+  vector<Element*> elmt;
+  FEML*            file;
+  Mesh*            mesh;
+  BCmgr*           bman;
+  BoundarySys*     bsys;
+  Domain*          domain;
+  LESAnalyser*     adjunct;
   
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session);
 
-  F = new FEML  (session);
-  M = new Mesh  (*F);
-  B = new BCmgr (*F);
+  preprocess (session, file, mesh, elmt, bman, bsys, domain);
 
-  nel    =  M -> nEl();  
-  np     =  (integer) Femlib::value ("N_POLY");
-  nz     =  (integer) Femlib::value ("N_Z"   );
-  system = ((integer) Femlib::value ("CYLINDRICAL") ) ?
-                                Geometry::Cylindrical : Geometry::Cartesian;  
+  adjunct = new LESAnalyser (domain, file);
+
+  domain -> restart();
+
+  ROOTONLY domain -> report();
   
-  Geometry::set (np, nz, nel, system);
-  if   (nz > 1) strcpy (fields, "uvwp");
-  else          strcpy (fields, "uvp" );
-
-  D = new Domain      (*F, *M, *B, fields, session);
-  A = new LESAnalyser (*D, *F);
-
-  D -> initialize();
-  ROOTONLY D -> report();
-
-  NavierStokes (D, A);
+  NavierStokes (domain, adjunct);
 
   Femlib::finalize();
 
@@ -95,9 +83,8 @@ static void getargs (int    argc   ,
 // arguments.  Last argument is name of a session file, not dealt with here.
 // ---------------------------------------------------------------------------
 {
-  const char routine[] = "getargs";
-  char       buf[StrMax];
-  char usage[]   =
+  const char *routine = "getargs";
+  char       buf[StrMax], *usage =
     "Usage: %s [options] session-file\n"
     "  [options]:\n"
     "  -h        ... print this message\n"
@@ -139,4 +126,73 @@ static void getargs (int    argc   ,
 
   if   (argc != 1) message (routine, "no session definition file", ERROR);
   else             session = *argv;
+}
+
+
+static void preprocess (const char*       session,
+			FEML*&            file   ,
+			Mesh*&            mesh   ,
+			vector<Element*>& elmt   ,
+			BCmgr*&           bman   ,
+			BoundarySys*&     bsys   ,
+			Domain*&          domain )
+// ---------------------------------------------------------------------------
+// Create objects needed for execution, given the session file name.
+// They are listed in order of creation.
+// ---------------------------------------------------------------------------
+{
+  const integer      verbose = (integer) Femlib::value ("VERBOSE");
+  Geometry::CoordSys space;
+  const real*        z;
+  integer            i, np, nz, nel;
+
+  // -- Initialise problem and set up mesh geometry.
+
+  VERBOSE cout << "Building mesh ..." << endl;
+
+  file = new FEML (session);
+  mesh = new Mesh (*file);
+
+  VERBOSE cout << "done" << endl;
+
+  // -- Set up global geometry variables.
+
+  VERBOSE cout << "Setting geometry ... ";
+
+  nel   = mesh -> nEl();
+  np    =  (integer) Femlib::value ("N_POLY");
+  nz    =  (integer) Femlib::value ("N_Z");
+  space = ((integer) Femlib::value ("CYLINDRICAL")) ? 
+    Geometry::Cylindrical : Geometry::Cartesian;
+  
+  Geometry::set (np, nz, nel, space);
+
+  VERBOSE cout << "done" << endl;
+
+  // -- Build all the elements.
+
+  VERBOSE cout << "Building elements ... ";
+
+  Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
+
+  elmt.setSize (nel);
+  for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
+
+  VERBOSE cout << "done" << endl;
+
+  // -- Build all the boundary condition applicators.
+
+  VERBOSE cout << "Building boundary condition manager ..." << endl;
+
+  bman = new BCmgr (file, elmt);
+
+  VERBOSE cout << "done" << endl;
+
+  // -- Build the solution domain.
+
+  VERBOSE cout << "Building domain ..." << endl;
+
+  domain = new Domain (file, elmt, bman);
+
+  VERBOSE cout << "done" << endl;
 }
