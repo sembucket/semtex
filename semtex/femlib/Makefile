@@ -4,8 +4,9 @@
 # $Id$
 ##############################################################################
 
-SEM = ..
+SEM    = ..
 SEMSRC = $(SEM)/src
+ARCH   = $(shell uname -s)
 
 ifdef MPI
   LIB = libfem_mp.a
@@ -42,8 +43,17 @@ LMD        = $(foreach routine, $(ALL), $(LIB)($(routine).o))
 # Make library, default action.
 #
 $(LIB): $(LMD)
-ifeq ($(RANLIB),ranlib)
-	$(RANLIB) $(LIB)
+#ifdef $(RANLIB) # -- Don't know why this won't work yet...
+#$(RANLIB) $(LIB)
+#endif
+ifeq ($(ARCH),Darwin) # -- So use workaround.
+	ranlib $(LIB)
+endif
+ifeq ($(ARCH),Linux-alpha)
+	ranlib $(LIB)
+endif
+ifeq ($(ARCH),Linux-iX86)
+	ranlib $(LIB)
 endif
 
 # ----------------------------------------------------------------------------

@@ -4,7 +4,7 @@
  * $Id$
  *****************************************************************************/
 
-#include <femdef.h>
+#include <cfemdef>
 
 
 double dsum (integer n, const double* x, integer incx)

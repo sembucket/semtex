@@ -6,7 +6,7 @@
 
 #include <stdlib.h>
 #include <math.h>
-#include <femdef.h>
+#include <cfemdef>
 
 #if defined(__uxp__)
 #pragma global novrec

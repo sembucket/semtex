@@ -10,7 +10,7 @@ static char RCS[] = "$Id$";
 
 #include <sem_h>
 
-Domain*  FluidParticle::_D       = 0;
+Domain*  FluidParticle::_Dom     = 0;
 integer  FluidParticle::_NCOM    = 0;
 integer  FluidParticle::_NEL     = 0;
 integer  FluidParticle::_NZ      = 0;
@@ -36,8 +36,8 @@ FluidParticle::FluidParticle (Domain*       d,
   register integer k;
   const integer    guess = 1;
 
-  if (!_D) {			// -- Set up first time through.
-    _D       = d;
+  if (!_Dom) {			// -- Set up first time through.
+    _Dom     = d;
     _NCOM    = (d -> nField() > 3) ? 3 : 2;
     _NEL     = Geometry::nElmt();
     _NZ      = Geometry::nZ();
@@ -64,8 +64,8 @@ FluidParticle::FluidParticle (Domain*       d,
   _E = 0;
   for (k = 0; k < _NEL; k++) {
     _r = _s = 0.0;
-    if (_D -> elmt[k] -> locate (_p.x, _p.y, _r, _s, guess)) {
-      _E = _D -> elmt[k];
+    if (_Dom -> elmt[k] -> locate (_p.x, _p.y, _r, _s, guess)) {
+      _E = _Dom -> elmt[k];
       break;
     }
   }
@@ -119,8 +119,8 @@ void FluidParticle::integrate ()
     
     // -- Predictor.
 
-    _u[0] = _D -> u[0] -> probe (_E, _r, _s, 0);
-    _v[0] = _D -> u[1] -> probe (_E, _r, _s, 0);
+    _u[0] = _Dom -> u[0] -> probe (_E, _r, _s, 0);
+    _v[0] = _Dom -> u[1] -> probe (_E, _r, _s, 0);
 
     xp = _p.x;
     yp = _p.y;
@@ -133,8 +133,8 @@ void FluidParticle::integrate ()
       _E = 0;
       for (i = 0; i < _NEL; i++) {
 	_r = _s = 0.0;
-	if (_D -> elmt[i] -> locate (xp, yp, _r, _s, guess)) {
-	  _E = _D -> elmt[i];
+	if (_Dom -> elmt[i] -> locate (xp, yp, _r, _s, guess)) {
+	  _E = _Dom -> elmt[i];
 	  break;
 	}
       }
@@ -153,8 +153,8 @@ void FluidParticle::integrate ()
 
     // -- Corrector.
 
-    up = _D -> u[0] -> probe (_E, _r, _s, 0);
-    vp = _D -> u[1] -> probe (_E, _r, _s, 0);
+    up = _Dom -> u[0] -> probe (_E, _r, _s, 0);
+    vp = _Dom -> u[1] -> probe (_E, _r, _s, 0);
 
     _p.x += corrector[0] * up;
     _p.y += corrector[0] * vp;
@@ -167,8 +167,8 @@ void FluidParticle::integrate ()
       _E = 0;
       for (i = 0; i < _NEL; i++) {
 	_r = _s = 0.0;
-	if (_D -> elmt[i] -> locate (_p.x, _p.y, _r, _s, guess)) {
-	  _E = _D -> elmt[i];
+	if (_Dom -> elmt[i] -> locate (_p.x, _p.y, _r, _s, guess)) {
+	  _E = _Dom -> elmt[i];
 	  break;
 	}
       }
@@ -194,9 +194,9 @@ void FluidParticle::integrate ()
     
     // -- Predictor.
 
-    _u[0] = _D -> u[0] -> probe (_E, _r, _s, _p.z);
-    _v[0] = _D -> u[1] -> probe (_E, _r, _s, _p.z);
-    _w[0] = _D -> u[2] -> probe (_E, _r, _s, _p.z);
+    _u[0] = _Dom -> u[0] -> probe (_E, _r, _s, _p.z);
+    _v[0] = _Dom -> u[1] -> probe (_E, _r, _s, _p.z);
+    _w[0] = _Dom -> u[2] -> probe (_E, _r, _s, _p.z);
 
     xp = _p.x;
     yp = _p.y;
@@ -211,8 +211,8 @@ void FluidParticle::integrate ()
       _E = 0;
       for (i = 0; i < _NEL; i++) {
 	_r = _s = 0.0;
-	if (_D -> elmt[i] -> locate (xp, yp, _r, _s, guess)) {
-	  _E = _D -> elmt[i];
+	if (_Dom -> elmt[i] -> locate (xp, yp, _r, _s, guess)) {
+	  _E = _Dom -> elmt[i];
 	  break;
 	}
       }
@@ -221,9 +221,9 @@ void FluidParticle::integrate ()
 
     // -- Corrector.
 
-    up = _D -> u[0] -> probe (_E, _r, _s, zp);
-    vp = _D -> u[1] -> probe (_E, _r, _s, zp);
-    wp = _D -> u[2] -> probe (_E, _r, _s, zp);
+    up = _Dom -> u[0] -> probe (_E, _r, _s, zp);
+    vp = _Dom -> u[1] -> probe (_E, _r, _s, zp);
+    wp = _Dom -> u[2] -> probe (_E, _r, _s, zp);
 
     _p.x += corrector[0] * up;
     _p.y += corrector[0] * vp;
@@ -238,8 +238,8 @@ void FluidParticle::integrate ()
       _E = 0;
       for (i = 0; i < _NEL; i++) {
 	_r = _s = 0.0;
-	if (_D -> elmt[i] -> locate (_p.x, _p.y, _r, _s, guess)) {
-	  _E = _D -> elmt[i];
+	if (_Dom -> elmt[i] -> locate (_p.x, _p.y, _r, _s, guess)) {
+	  _E = _Dom -> elmt[i];
 	  break;
 	}
       }

@@ -51,13 +51,15 @@
  *****************************************************************************/
 
 #include <stdio.h>
-#include <malloc.h>
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <errno.h>
+#ifndef __APPLE__
+  #include <malloc.h>
+#endif
 
 #include <cfemdef>
 #include <cveclib>

@@ -4,7 +4,7 @@
  * $Id$
  *****************************************************************************/
 
-#include <femdef.h>
+#include <cfemdef>
 
 
 integer lany (integer n, const integer* x, integer incx)

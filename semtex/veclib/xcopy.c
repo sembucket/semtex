@@ -7,7 +7,7 @@
  *****************************************************************************/
 
 #include <string.h>
-#include <femdef.h>
+#include <cfemdef>
 
 
 #if defined(__uxp__)

@@ -28,7 +28,7 @@ static char RCS[] = "$Id$";
 #include <cstring>
 #include <cctype>
 
-#include <femdef.h>
+#include <cfemdef>
 #include <utility_h>
 #include <feml_h>
 #include <femlib_h>

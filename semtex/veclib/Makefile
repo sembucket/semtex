@@ -1,5 +1,5 @@
 ##############################################################################
-# Remake linear algebra primitive library (libalp.a), and maintain header
+# Remake linear algebra primitive library (libvec.a), and maintain header
 # files for Veclib, BLAS, & LAPACK calls.
 #
 # $Id$
@@ -8,6 +8,7 @@
 SEM    = ..
 SEMSRC = $(SEM)/src
 LIB    = libvec.a
+ARCH   = $(shell uname -s)
 
 # ----------------------------------------------------------------------------
 # Create dependency list.
@@ -52,8 +53,17 @@ LMD        = $(foreach routine, $(ALL), $(LIB)($(routine).o))
 # Make library, default action.
 #
 $(LIB): $(LMD)
-ifeq ($(RANLIB),ranlib)
-	$(RANLIB) $(LIB)
+#ifdef $(RANLIB) # -- Don't know why this won't work yet...
+#$(RANLIB) $(LIB)
+#endif
+ifeq ($(ARCH),Darwin) # -- So use workaround.
+	ranlib $(LIB)
+endif
+ifeq ($(ARCH),Linux-alpha)
+	ranlib $(LIB)
+endif
+ifeq ($(ARCH),Linux-iX86)
+	ranlib $(LIB)
 endif
 
 # ----------------------------------------------------------------------------

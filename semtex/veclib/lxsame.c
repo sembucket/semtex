@@ -7,7 +7,7 @@
  *****************************************************************************/
 
 #include <math.h>
-#include <femdef.h>
+#include <cfemdef>
 
 #define EPSSP   6.0e-7
 #define EPSDP   6.0e-14

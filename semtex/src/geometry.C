@@ -11,7 +11,7 @@ static char RCS[] = "$Id$";
 #include <cstdio>
 #include <iostream>
 
-#include <femdef.h>
+#include <cfemdef>
 #include <utility_h>
 #include <geometry_h>
 #include <femlib_h>
