@@ -54,8 +54,8 @@ Starting out
 3.  Change directory to elliptic.  Run testsuite.  All indicated errors
     should be small (1.0e-5 at most).
 
-4.  Change directory to dns.  Run testsuite.  Maximum error about
-    0.003.
+4.  Change directory to dns.  Run testregress.  No output means everything
+    is OK.  If there is an error, contact Hugh.
 
 Files
 -----
@@ -122,6 +122,8 @@ Log of major revisions
 12 Mar 1998: RNG eddy-viscosity model added.                       Semtex-5.2.
 
 7  Apr 1999: Mixed BC type added.                                  Semtex-5.3.
+
+13 Apr 2000: Fix pressure BC modal bugs, improve vectorisation.    Semtex-5.4.
 
 
 Notes for specific systems
