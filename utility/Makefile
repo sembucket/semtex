@@ -23,7 +23,7 @@ ifeq ($(ARCH),IRIX)		# -- SGI MIPS R4xxx IRIX5x
 CC       = cc
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = $(DEFINES) -fullwarn -O2
+CXXFLAGS = $(DEFINES) -fullwarn -mips2 -g
 F77LIBS	 = -lcomplib.sgimath -lftn
 LDFLAGS  = -lfpe -mips2 -L$(SEM)/lib/$(ARCH) -lfem -lalp \
 	   $(F77LIBS) -lmalloc -lm
@@ -33,9 +33,9 @@ ifeq ($(ARCH),IRIX64)		# -- SGI MIPS R8xxx IRIX6x
 CC       = cc
 CXX	 = CC
 LD	 = CC
-CXXFLAGS =  $(DEFINES) -g  -mips4 -64 -g -r10000
+CXXFLAGS =  $(DEFINES) -mips4 -64 -Ofast=IP30 -r10000
 F77LIBS	 = -lcomplib.sgimath -lftn
-LDFLAGS  = -mips4 -64 -g -r10000 -L$(SEM)/lib/$(ARCH) -lfem -lalp 	\
+LDFLAGS  = -mips4 -64 -Ofast=IP30 -r10000 -L$(SEM)/lib/$(ARCH) -lfem -lalp \
            $(F77LIBS) -lmalloc -lm
 endif
 
