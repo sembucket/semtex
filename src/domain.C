@@ -1,6 +1,6 @@
-/*****************************************************************************
- * domain.C:  implement Domain class.
- *****************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+// domain.C:  implement Domain class.
+///////////////////////////////////////////////////////////////////////////////
 
 static char
 RCSid[] = "$Id$";
@@ -15,6 +15,9 @@ Domain::Domain (Mesh& M, const char* session, const int& np)
 // On return, all information in Element and Boundary lists is set for u[0].
 // ---------------------------------------------------------------------------
 {
+  cout << "-- " << M.nEl () << " elements, ";
+  cout << np << "x" << np << endl;
+  
   domain_name = new char[StrMax];
   strcpy (domain_name, session);
 
@@ -51,12 +54,27 @@ void Domain::restart ()
 // ---------------------------------------------------------------------------
 {
   char  restartfile[StrMax];
+
   strcat (strcpy (restartfile, domain_name), ".rst");
 
   ifstream file (restartfile);
 
-  if   (file) file >> *this;
-  else        for (int i(0); i < iparam ("N_VAR"); i++) *u[i] = 0.0;
+  if (file) {
+    cout << "-- Restarting from file " << restartfile;
+    file >> *this;
+  } else {
+    cout << " -- Initializing solution at zero";
+    for (int i(0); i < nField (); i++)
+      *u[i] = 0.0;
+  }
+
+  cout << endl;
+
+  cout << "-- Start time: " << time () << endl;
+  cout << "-- Time step: "  << dparam ("DELTAT") << endl;
+  cout << "-- Integration order: " << iparam ("N_TIME") << endl;
+
+  setDparam ("t", time ());
 }
 
 
