@@ -89,8 +89,6 @@ char* upperCase (char *s)
 }
 
 
-
-
 void message (const char* routine,
 	      const char* text   ,
 	      const lev&  level  )

@@ -5,6 +5,7 @@
 //   [options]:
 //   -h       ... print this message
 //   -g       ... disable X11 (and PostScript hardcopy) graphics
+//   -m       ... output suitable for subsequent merging
 //   -s <num> ... number of smoothing passes
 //   -r <num> ... refinement coefficient (0--1)
 //   -v[v...] ... increase verbosity level
@@ -78,15 +79,16 @@ List<Node*> Global::nodeList;
 
 // -- Local routines.
 
-static void     getArgs      (int, char**, int&, ifstream&);
+static void     getArgs      (int, char**, int&, int&, ifstream&);
 static istream& operator >>  (istream&, List<Node*>&);
 static istream& operator >>  (istream&, List<Loop*>&);
 static int      loopDeclared (istream& s);
 static void     connect      (List<Quad*>&);
+static void     renumber     (List<Node*>&);
 static void     deleteNodes  (List<Quad*>&);
 static void     deleteQuads  (List<Quad*>&);
 static void     smooth       (List<Node*>&);
-static void     printNodes   (ostream&, List<Node*>&);
+static void     printNodes   (ostream&, List<Node*>&, const int);
 static void     printMesh    (ostream&, List<Quad*>&);
 
 
@@ -96,12 +98,12 @@ int main (int    argc,
 // Driver routine for mesh generator.
 // ---------------------------------------------------------------------------
 {
-  int         i, nsmooth = 0;
+  int         i, nsmooth = 0, merger = 0;
   ifstream    infile;
   List<Loop*> initial;
   List<Quad*> elements;
 
-  getArgs (argc, argv, nsmooth, infile);
+  getArgs (argc, argv, nsmooth, merger, infile);
 
   // -- Load all predeclared nodes and loops.
 
@@ -136,7 +138,7 @@ int main (int    argc,
   connect (elements);
 
   // -- Try to improve mesh by Node and Quad elimination, see Ref. [4].
-#if 1
+
   do {
     i = Global::nodeList.length();
 
@@ -146,7 +148,9 @@ int main (int    argc,
     connect     (elements);
 
   } while (i != Global::nodeList.length());
-#endif
+
+  renumber (Global::nodeList);
+
   if (graphics) { eraseGraphics(); drawMesh (elements); }
 
   // -- Laplacian smoothing.
@@ -165,7 +169,7 @@ int main (int    argc,
     stopGraphics  ();
   }
 
-  printNodes (cout, Global::nodeList);
+  printNodes (cout, Global::nodeList, merger);
   printMesh  (cout, elements);
 
   return EXIT_SUCCESS;
@@ -175,6 +179,7 @@ int main (int    argc,
 static void getArgs (int       argc   ,
 		     char**    argv   ,
 		     int&      nsmooth,
+		     int&      merger ,
 		     ifstream& infile )
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
@@ -187,6 +192,7 @@ static void getArgs (int       argc   ,
     "  [options]:\n"
     "  -h       ... print this message\n"
     "  -g       ... disable X11 (and PostScript hardcopy) graphics\n"
+    "  -m       ... output suitable for subsequent merging\n"
     "  -s <num> ... number of smoothing passes\n"
     "  -r <num> ... refinement coefficient (0--1)\n"
     "  -v[v...] ... increase verbosity level\n"
@@ -202,6 +208,9 @@ static void getArgs (int       argc   ,
       break;
     case 'g':
       graphics = 0;
+      break;
+    case 'm':
+      merger = 1;
       break;
     case 'r':
       if (*++argv[0])
@@ -265,10 +274,9 @@ static istream& operator >> (istream&     s,
   char  routine[] = "operator >> (istream&, Loop<Node*>&)";
   char  err[StrMax], buf[StrMax];
 
-  int            i, id, npts, found;
+  int            i, id, kind, npts, found;
   Point          pnt, P1, P2;
   real           size;
-  char           kind;
   register Node* N;
 
   if (!(s >> npts)) {
@@ -294,12 +302,17 @@ static istream& operator >> (istream&     s,
       message (routine, err, ERROR);
     }
 
-    switch (toupper (kind)) {
-    case 'B': N = new Node (id, pnt, size, Node::BOUNDARY); break;
-    case 'I': N = new Node (id, pnt, size, Node::INTERIOR); break;
-    case 'O': N = new Node (id, pnt, size, Node::OFFSET  ); break;
+    switch (kind) {
+    case 0: N = new Node (id, pnt, size, Node::INTERIOR);              break;
+    case 1: N = new Node (id, pnt, size, Node::INTERIOR_FIXED);        break;
+    case 2: N = new Node (id, pnt, size, Node::LOOP_OFFSET_FIXED);     break;
+    case 3: N = new Node (id, pnt, size, Node::LOOP_OFFSET_MOBILE);    break;
+    case 4: N = new Node (id, pnt, size, Node::LOOP_BOUNDARY_FIXED);   break;
+    case 5: N = new Node (id, pnt, size, Node::LOOP_BOUNDARY_MOBILE);  break;
+    case 6: N = new Node (id, pnt, size, Node::DOMAIN_OFFSET_FIXED);   break;
+    case 8: N = new Node (id, pnt, size, Node::DOMAIN_BOUNDARY_FIXED); break;
     default:
-      sprintf (err, "read unknown Node kind specifier: %c", kind);
+      sprintf (err, "read unused/unknown Node kind specifier: %1d", kind);
       message (routine, err, ERROR);
       break;
     }
@@ -496,22 +509,37 @@ static void smooth (List<Node*>& nodes)
 }
 
 
-static void printNodes (ostream&     strm ,
-			List<Node*>& nodes)
+static void printNodes (ostream&     strm  ,
+			List<Node*>& nodes ,
+			const int    merger)
 // ---------------------------------------------------------------------------
-// Print Node information in FEML format.
+
+// Print Node information in FEML format.  BUT, if merger != 0, add
+// information to indicate if output nodes are to be fixed (F), mobile
+// (M) or unique (U).  This information will be used for possible
+// subsequent merging and smoothing of output files.
 // ---------------------------------------------------------------------------
 {
+  int                 i = 0;
   Node*               N;
   ListIterator<Node*> n (nodes);
 
   strm << "<NODES NUMBER=" << nodes.length() << ">" <<endl;
   for (n.reset(); n.more(); n.next()) {
     N = n.current();
-    strm << setw (5)  << N -> ID()
+    strm << setw (5)  << ++i
 	 << setw (16) << N -> pos().x 
 	 << setw (16) << N -> pos().y
-	 << setw (16) << 0.0 << endl;
+	 << setw (16) << 0.0;
+
+    if (merger)
+      switch (N -> classify()) { 
+      case 'F': strm << "\tF"; break;
+      case 'U': strm << "\tU"; break;
+      default:  strm << "\tM"; break;
+      }
+
+    strm << endl;
   }
   strm << "</NODES>" << endl << endl;
 }
@@ -623,3 +651,17 @@ static void deleteQuads  (List<Quad*>& mesh)
     }
   } while (found);
 }
+
+
+static void renumber (List<Node*>& nodes)
+// ---------------------------------------------------------------------------
+// After "improving" mesh, there may be some holes in the Node ID numbers.
+// This routine fixes that.
+// ---------------------------------------------------------------------------
+{
+  register int        id;
+  ListIterator<Node*> n (nodes);
+  
+  for (id = 0; n.more(); n.next()) n.current() -> renumber (++id);
+}
+

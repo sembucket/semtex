@@ -18,9 +18,16 @@ ostream& operator << (ostream& s,
   s << setw (5) << n.id << " " << setw (10) << n.ideal;
   
   switch (n.kind) {
-  case Node::BOUNDARY: s << "  B "; break;
-  case Node::OFFSET:   s << "  O "; break;
-  default:             s << "  I "; break;
+  case Node::INTERIOR_FIXED:         s << "  1 "; break;
+  case Node::LOOP_OFFSET_FIXED:      s << "  2 "; break;
+  case Node::LOOP_OFFSET_MOBILE:     s << "  3 "; break;
+  case Node::LOOP_BOUNDARY_FIXED:    s << "  4 "; break;
+  case Node::LOOP_BOUNDARY_MOBILE:   s << "  5 "; break;
+  case Node::DOMAIN_OFFSET_FIXED:    s << "  6 "; break;
+  case Node::DOMAIN_OFFSET_MOBILE:   s << "  7 "; break;
+  case Node::DOMAIN_BOUNDARY_FIXED:  s << "  8 "; break;
+  case Node::DOMAIN_BOUNDARY_MOBILE: s << "  9 "; break;
+  default:                           s << "  0 "; break;
   }
 
   s << setw (10) << n.loc.x << "  " << setw (10) << n.loc.y;

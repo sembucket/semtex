@@ -88,7 +88,18 @@ class Node
 {
 friend ostream& operator << (ostream&, Node&);
 public:
-  enum  nodekind { INTERIOR, BOUNDARY, OFFSET };
+  enum  nodekind {
+    INTERIOR,			/* -- Numeric code 0            */
+    INTERIOR_FIXED,		/* -- Numeric code 1            */
+    LOOP_OFFSET_FIXED,		/* -- Numeric code 2            */
+    LOOP_OFFSET_MOBILE,		/* -- Numeric code 3            */
+    LOOP_BOUNDARY_FIXED,	/* -- Numeric code 4            */
+    LOOP_BOUNDARY_MOBILE,	/* -- Numeric code 5            */
+    DOMAIN_OFFSET_FIXED,	/* -- Numeric code 6            */
+    DOMAIN_OFFSET_MOBILE,	/* -- Numeric code 7 (not used) */
+    DOMAIN_BOUNDARY_FIXED,	/* -- Numeric code 8            */
+    DOMAIN_BOUNDARY_MOBILE	/* -- Numeric code 9 (not used) */
+  };
 
   Node (const int&           i,
 	const Point&         p,
@@ -100,6 +111,7 @@ public:
   const Point& pos      () const { return loc;   }
   const real&  prefSize () const { return ideal; }
 
+  void  renumber (const int i) { id = i; }
   void  xadd     (Node*);
   void  sever    () { contact.clear(); }
   void  setPos   (const Point&);
@@ -107,8 +119,31 @@ public:
   void  setID    (const int&      i) { id    = i; }
   void  setSize  (const real&     s) { ideal = s; }
   Point centroid () const;
-  int   offset   () const { return kind == OFFSET;   }
-  int   interior () const { return kind == INTERIOR; }
+  int   interior () const { return
+			      kind == INTERIOR               ||
+			      kind == INTERIOR_FIXED;
+  }
+  int   offset   () const { return
+			      kind == LOOP_OFFSET_FIXED      ||
+			      kind == LOOP_OFFSET_MOBILE     ||
+			      kind == DOMAIN_OFFSET_FIXED    ||
+			      kind == DOMAIN_OFFSET_MOBILE;
+  }
+  int   mobile   () const { return
+			      kind == INTERIOR               ||
+			      kind == LOOP_BOUNDARY_MOBILE   ||
+			      kind == LOOP_OFFSET_MOBILE     ||
+			      kind == DOMAIN_BOUNDARY_MOBILE ||
+			      kind == DOMAIN_OFFSET_MOBILE;
+  }
+  char  classify () const {
+    if      (kind == INTERIOR_FIXED      ||
+	     kind == LOOP_OFFSET_FIXED   ||
+	     kind == LOOP_BOUNDARY_FIXED  ) return 'F';
+    else if (kind == DOMAIN_OFFSET_FIXED ||
+	     kind == DOMAIN_BOUNDARY_FIXED) return 'U';
+    return 'M';
+  }
   int   adjncy   () const { return contact.length(); }
 
 private:
