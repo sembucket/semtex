@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
 // nonlinear.C: compute nonlinear velocity terms and rates of strain in
-// physical space, then transform, so returning the transform of
+// physical space, then Fourier transform, so returning the transform of
 //
 //   -N(u) - div(SGSS) + body force
 //
@@ -312,11 +312,12 @@ void dynamic (Domain*        D ,
   }
 
   // -- Accumulate LijMij & MijMij terms, conservative Nl terms.
-  // 
-  //    Save a copy of Delta^2 |S| in Us[2].
+  //
+  //    First, multiply    Delta~^2|S~| through S~
+  //    and save a copy of Delta ^2|S | in Us[2].
 
-  real* Delta2S = Us[2];
-  Veclib::copy (nTot, Sm[0], 1, Delta2S, 1);
+  for (i = 0; i < 6; i++) vmul (nTot, Sm[1], 1, St[i], 1, St[i], 1);
+  real* Delta2S = Us[2]; Veclib::copy (nTot, Sm[0], 1, Delta2S, 1);
 
   real* L   = Sm[0]; real* M   = Sm[1];
   real* Num = Us[0]; real* Den = Us[1];
@@ -342,7 +343,7 @@ void dynamic (Domain*        D ,
     transform      (FORWARD, FULL, M);
     lowpass        (M);
     transform      (INVERSE, FULL, M);
-    Veclib::vvtvm  (nTot, St[i], 1, Delta2S, 1, M, 1, M, 1);
+    Veclib::vsub   (nTot, St[i], 1, M, 1, M, 1);
 
     Veclib::vvtvp  (nTot, L, 1, M, 1, Num, 1, Num, 1);
     Veclib::vvtvp  (nTot, M, 1, M, 1, Den, 1, Den, 1);
@@ -371,7 +372,7 @@ void dynamic (Domain*        D ,
       transform       (FORWARD, FULL, M);
       lowpass         (M);
       transform       (INVERSE, FULL, M);
-      Veclib::vvtvm   (nTot, St[ij], 1, Delta2S, 1, M, 1, M, 1);
+      Veclib::vsub    (nTot, St[ij], 1, M, 1, M, 1);
 
       Veclib::svvttvp (nTot, 2.0, L, 1, M, 1, Num, 1, Num, 1);
       Veclib::svvttvp (nTot, 2.0, M, 1, M, 1, Den, 1, Den, 1);
