@@ -4,7 +4,7 @@
  *
  * USAGE
  * -----
- * noiz [-h] [-f] [-o output] [-p perturb] [-m mode] [input[.fld]
+ * noiz [-h] [-f] [-o output] [-p perturb] [-m mode] [-s seed] [input[.fld]
  *
  * SYNOPSIS
  * --------
@@ -39,6 +39,7 @@ static char RCSid[] = "$Id$";
 #define NDIV  (1+(IM-1)/NTAB)
 #define RNMX  (1.0-EPSDP)
 #define UNSET -1
+static long   seed = 0;
 
 static void   getargs (int, char**, FILE**, FILE**, double*, int*, int*);
 static void   a_to_a  (int, int, int, int,
@@ -163,7 +164,6 @@ static void a_to_a (int    np     ,
   double**     data;
   char         buf[STR_MAX];
   double       datum;
-  long         seed = 0;
 
   data = dmatrix (0, nfields - 1, 0, npts - 1);
 
@@ -216,7 +216,6 @@ static void b_to_b (int    np     ,
                npts   = nz * nplane,
                ntot   = nfields * npts;
   double**     data;
-  long         seed = 0;
 
   data = dmatrix (0, nfields - 1, 0, npts - 1);
 
@@ -262,8 +261,9 @@ static void getargs (int     argc  ,
     "-h         ... print this help message\n"
     "-f         ... filter instead of perturb\n"
     "-o output  ... write to named file\n"
-    "-p perturb ... standard deviation of perturbation\n"
-    "-m mode    ... add noise only to this Fourier mode\n";
+    "-p perturb ... standard deviation of perturbation  [Default: 0.0]\n"
+    "-m mode    ... add noise only to this Fourier mode [Default: all modes]\n"
+    "-s seed    ... set random number seed              [Default: 0]\n";
 
   while (--argc && (*++argv)[0] == '-')
     while (c = *++argv[0])
@@ -306,6 +306,14 @@ static void getargs (int     argc  ,
 	  argc--;
 	}
 	break;
+      case 's':
+	if (*++argv[0])
+	  seed = atoi (*argv);
+	else {
+	  seed = atoi (*++argv);
+	  argc--;
+	}
+	break;
       default:
 	fprintf (stderr, "%s: unknown option -- %c\n", prog, c);
 	break;
@@ -330,11 +338,11 @@ static double ran1 (long *idum)
  * Generate IUD random variates on (0, 1).  Numerical Recipes.
  * ------------------------------------------------------------------------- */
 {
-  int     j;
-  long        k;
-  static long iy = 0;
-  static long iv[NTAB];
-  double      temp;
+  register int j;
+  long         k;
+  static long  iy = 0;
+  static long  iv[NTAB];
+  double       temp;
 
   if (*idum <= 0 || !iy) {
     if (-(*idum) < 1) *idum = 1;
@@ -364,9 +372,9 @@ static double gasdev (long *idum)
  * Numerical Recipes.
  * ------------------------------------------------------------------------- */
 {
-  static int iset = 0;
-  static double  gset;
-  double         fac, r, v1, v2;
+  static int    iset = 0;
+  static double gset;
+  double        fac, r, v1, v2;
     
   if  (iset == 0) {
     do {
@@ -398,7 +406,6 @@ static void perturb (double*      data  ,
   const int    npts = nz * nplane;
   const int    kr   = (2 * mode)     * nplane;
   const int    ki   = (2 * mode + 1) * nplane;
-  long         seed = 0;
   double       eps;
 
   if (mode != UNSET) {	/* -- Perturb only specified Fourier mode. */
@@ -423,7 +430,7 @@ static void perturb (double*      data  ,
   } else {			/* -- Perturb all modes. */
     
     eps = pert;
-    for (j = 0; j < npts; j++)   data[j]      += eps * gasdev (&seed);
+    for (j = 0; j < npts; j++) data[j] += eps * gasdev (&seed);
     
   }
 }
