@@ -35,7 +35,7 @@ begin
         end;
     ncols := ncols - 1;
     if (not eoln(infile)) then begin
-        writeln(err,
+        writeln(StdErr,
             'demean: more columns of input than available storage (',
             MAXCOL:1, ')');
         halt
