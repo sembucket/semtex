@@ -588,7 +588,7 @@ Field& Field::solve (AuxField*                f  ,
     forcing = f -> plane[k];
     unknown = plane[k];
     bc      = line[k];
-
+    
     // -- Build RHS = - M f - H g + <h, w>.
 
     Veclib::zero (nglobal, RHS, 1);
@@ -928,8 +928,8 @@ void Field::buildRHS (real*               force ,
 // Build RHS for direct or iterative solution.
 //
 // Iterative solution is flagged by presence of RHSint, a pointer to
-// element-internal node storage.  If RHS is zero, then hbi, a vector of
-// pointers to element interior/exterior coupling matrices, must be 
+// element-internal node storage.  If RHSint is zero, then hbi, a vector
+// of pointers to element interior/exterior coupling matrices, must be 
 // non-zero.
 //
 // Compute RHS vector for direct solution of Helmholtz problem as
@@ -968,7 +968,7 @@ void Field::buildRHS (real*               force ,
     } else
       E -> e2gSumSC (force + doff, btog + boff, RHS, hbi[j]);
   }
-  
+
   // -- Add in <h, w>.
 
   for (j = 0; j < n_bound; j++) {
