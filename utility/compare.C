@@ -202,6 +202,8 @@ int main (int    argc,
       *exact -= *computed;
       t = exact -> norm_inf();
 
+      cerr.setf (ios::scientific, ios::floatfield);
+      cerr << setprecision (4);
       cerr << "Field '" << fields[i] << "': norm_inf: ";
       if   (t < NOISE && noise ) cerr << "noise-level" << endl;
       else                       cerr << t             << endl;
