@@ -8,6 +8,9 @@
 //   -n N     ... override element order to be N
 //   -O [0-3] ... set level of bandwidth optimization
 //
+// Special action may need to be taken to generate numbering schemes for
+// cylindrical coordinate flow problems.  See the discussion in header for
+// field.C, and for routine Mesh::buildMask in mesh.C.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char
@@ -26,7 +29,8 @@ RCSid[] = "$Id$";
 #include <List.h>
 
 class Nsys {
-friend void printup (vector<char>&, vector<Nsys*>&, const int);
+friend void printup (const char*, vector<Nsys*>&, const int);
+
 public:
   Nsys (char, vector<int>&, vector<int>&, const int, const int,
 	const int, const int, const int,  const int, const int);
@@ -58,12 +62,16 @@ private:
   int  bandwidthSC     (const int*, const int*, const int) const;
 };
 
+static const int FldMax = 16;
+
 static char prog[] =  "enumerate";
 static void getargs   (int, char**, char*&, int&, int&, int&);
-static void getfields (FEML&, vector<char>&);
-       void printup   (vector<char>&, vector<Nsys*>&, const int);
+static char axial     (FEML&);
+static void getfields (FEML&, char*, const int);
+static void checkVBCs (FEML&, const char*);
+static void checkABCs (FEML&, const char);
+       void printup   (const char*y, vector<Nsys*>&, const int);
 
-static const int FldMax = 16;
 
 
 int main (int    argc,
@@ -83,26 +91,28 @@ int main (int    argc,
 // Print up the masks and numbering schemes on cout.
 // ---------------------------------------------------------------------------
 {
-  char* session = 0;
-  int   verb    = 0,
-        np      = 0,
-        opt     = 1;
+  char *session = 0, field[StrMax], axistag;
+  int  verb     = 0,
+       np       = 0,
+       opt      = 1,
+       cyl3D    = 0;
 
   getargs (argc, argv, session, verb, np, opt);
 
   FEML feml (session);
 
-                   Femlib::value ("OPTIMIZE", opt);
   if (verb)        Femlib::value ("VERBOSE", verb);
   if   (np)        Femlib::value ("N_POLY", np);
   else  np = (int) Femlib::value ("N_POLY");
 
-  vector<char> field;
+  cyl3D = (int) Femlib::value("CYLINDRICAL") && (int) Femlib::value("N_Z") > 1;
 
-  getfields (feml, field);
-
+  getfields (feml, field, (axistag = axial (feml)) && cyl3D);
+  if (axistag) checkABCs (feml, axistag);
+  if (cyl3D)   checkVBCs (feml, field);
+  
   Mesh          M (feml);
-  vector<Nsys*> S (field.getSize());
+  vector<Nsys*> S (strlen (field));
 
   int         i, j, k = 0, found;
   const  int  NEL      = M.nEl();
@@ -121,7 +131,7 @@ int main (int    argc,
   S[k++] = new Nsys (field[0], btog, mask, opt,
 		     NEL, NTOTAL, NBNDRY, NP_MAX, NEXT_MAX, NINT_MAX);
 
-  for (i = 1; i < field.getSize() - 1; i++) {
+  for (i = 1; i < strlen (field); i++) {
     M.buildMask (np, field[i], mask());
     found = 0;
     for (j = 0; !found && j < k; j++)
@@ -195,69 +205,202 @@ static void getargs (int    argc   ,
 }
 
 
-static void getfields (FEML&         feml ,
-		       vector<char>& field)
+static char axial (FEML& feml)
 // ---------------------------------------------------------------------------
-// The default action is to set up the list of fields according to the
-// names found in the 'BCS' section of the FEML file.
-//
-// If no 'BCS' section is located (valid in the case of all periodic
-// boundaries), the default list of variables is set to either "uvp"
-// or "uvwp" depending on the value of N_Z: for a 2D/Fourier scheme,
-// N_Z effectively decides between a 3 (N_Z == 1) or 4-variable 
-// (N_Z > 1) solution.
+// Return the character tag corresponding to "axis" group, if that  exists.
 // ---------------------------------------------------------------------------
 {
-  if (feml.seek ("BCS")) {
-    int  j, id, nbcs;
-    char fieldc, groupc, nextc, tag[StrMax];
+  if (!feml.seek ("GROUPS")) return '\0';
 
-    feml.attribute ("BCS", "NUMBER");
-    
+  int       i;
+  char      nextc, buf[StrMax];
+  const int N (feml.attribute ("GROUPS", "NUMBER"));
+  
+  for (i = 0; i < N; i++) {
     while ((nextc = feml.stream().peek()) == '#') // -- Skip comments.
       feml.stream().ignore (StrMax, '\n');
+    feml.stream() >> buf >> nextc >> buf;
+    if (strstr (buf, "axis")) return nextc;
+  }
 
-    feml.stream() >> id >> groupc >> nbcs;
+  return '\0';
+}
+
+
+static void getfields (FEML&     feml     ,
+		       char*     field    ,
+		       const int axisModes)
+// ---------------------------------------------------------------------------
+// Set up the list of fields according to the names found in the
+// 'FIELDS' section of the FEML file, e.g.
+//
+// <FIELDS>
+// # optional comment lines...
+//   c u v w p
+// </FIELDS>
+//
+// Input value "axisModes" flags that this is a problem with an axis boundary
+// condition, cylindrical coordinates, and three space dimensions.
+// In that case, there will be of extra numbering schemes set up for the
+// non-zero Fourier modes for variables c, u, w & p (if they exist).
+// The extra schemes get names C, U, W, & P.
+// ---------------------------------------------------------------------------
+{
+  int  i = 0;
+  char c, t[StrMax];
+
+  // -- Set up string for the fields listed.
+
+  if (feml.seek ("FIELDS")) {
+
+    feml.stream().ignore (StrMax, '\n');
     
-    field.setSize (nbcs + 1);
-
-    for (j = 0; j < nbcs; j++) {
-      feml.stream() >> tag >> fieldc;
-      field[j] = fieldc;
+    while ((c = feml.stream().peek()) == '#') // -- Skip comments.
       feml.stream().ignore (StrMax, '\n');
-    }
-    field[nbcs] = '\0';
 
-  } else {
-    if ((int) Femlib::value ("N_Z") > 1) {
-      field.setSize (5);
-      field[0] = 'u';
-      field[1] = 'v';
-      field[2] = 'w';
-      field[3] = 'p';
-      field[4] = '\0';
-    } else {
-      field.setSize (4);
-      field[0] = 'u';
-      field[1] = 'v';
-      field[2] = 'p';
-      field[3] = '\0';
+    do {
+      feml.stream() >> field[i++];
+    } while (field[i - 1] != '<' && i < StrMax);
+
+    if (field[--i] == '<') {
+      field[i] = '\0';
+      feml.stream() >> t;
+      if (!(strstr (t,   "/FIELDS")))
+	   message (prog, "FIELDS section not closed", ERROR);
+    } else message (prog, "FIELDS section not closed", ERROR);
+  } else   message (prog, "FIELDS section not found",  ERROR);
+
+  // -- Add extra names for higher Fourier modes if required.
+
+  if (axisModes) {
+    if (strchr (field, 'c')) {
+      field[i++] = 'C';
+      field[i]   = '\0';
+    }
+    if (strchr (field, 'u')) {
+      field[i++] = 'U';
+      field[i]   = '\0';
+    }
+    if (strchr (field, 'w')) {
+      field[i++] = 'W';
+      field[i]   = '\0';
+    }
+    if (strchr (field, 'p')) {
+      field[i++] = 'P';
+      field[i]   = '\0';
     }
   }
 }
 
 
-void printup (vector<char>&  F   ,
+static void checkVBCs (FEML&       feml ,
+		       const char* field)
+// ---------------------------------------------------------------------------
+// For cylindrical 3D fluids problems, the declared boundary condition types
+// for velocity fields v & w must be the same for all groups, to allow
+// for coupling of these fields (which uncouples the viscous substep).
+//
+// Check it out by running through each group's BCs and checking for 
+// tag agreement on v & w BCs.
+// ---------------------------------------------------------------------------
+{
+  if (!feml.seek ("BCS")) return;
+  if (!strchr (field, 'u')) return;
+  if (!strchr (field, 'v') || !strchr (field, 'w'))
+    message (prog,"radial, azimuthal velocity fields v, w not declared",ERROR);
+
+  int       i, j, id, nbcs;
+  char      vtag, wtag, groupc, fieldc, tagc, tag[StrMax], err[StrMax];
+  const int N (feml.attribute ("BCS", "NUMBER"));
+
+  for (i = 0; i < N; i++) {
+
+    while ((groupc = feml.stream().peek()) == '#') // -- Skip comments.
+      feml.stream().ignore (StrMax, '\n');
+
+    feml.stream() >> id >> groupc >> nbcs;
+    vtag = wtag = '\0';
+
+    for (j = 0; j < nbcs; j++) {
+
+      feml.stream() >> tag;
+      if (strchr (tag, '<') && strchr (tag, '>') && (strlen (tag) == 3))
+	tagc = tag[1];
+      else {
+	sprintf (err, "unrecognized BC tag format: %s", tag);
+	message (prog, err, ERROR);
+      }
+
+      feml.stream() >> fieldc;
+      if      (fieldc == 'v') vtag = tagc;
+      else if (fieldc == 'w') wtag = tagc;
+      feml.stream().ignore (StrMax, '\n');
+    }
+    
+    if (!(vtag && wtag)) {
+      sprintf (err, "group %c: BCs for fields 'v' & 'w' needed", groupc);
+      message (prog, err, ERROR);
+    }
+    if (vtag != wtag) {
+      sprintf (err, "group %c, fields 'v' & 'w': BC type mismatch", groupc);
+      message (prog, err, ERROR);
+    }
+  }
+}
+
+
+static void checkABCs (FEML&      feml ,
+		       const char atag)
+// ---------------------------------------------------------------------------
+// Run through and ensure that for "axis" group, all BCs are of type <A>.
+// ---------------------------------------------------------------------------
+{
+  if (!feml.seek ("BCS")) return;
+
+  int       i, j, id, nbcs;
+  char      groupc, fieldc, tagc, tag[StrMax], err[StrMax];
+  const int N (feml.attribute ("BCS", "NUMBER"));
+
+  for (i = 0; i < N; i++) {
+
+    while ((groupc = feml.stream().peek()) == '#') // -- Skip comments.
+      feml.stream().ignore (StrMax, '\n');
+
+    feml.stream() >> id >> groupc >> nbcs;
+
+    for (j = 0; j < nbcs; j++) {
+
+      feml.stream() >> tag;
+      if (strchr (tag, '<') && strchr (tag, '>') && (strlen (tag) == 3))
+	tagc = tag[1];
+      else {
+	sprintf (err, "unrecognized BC tag format: %s", tag);
+	message (prog, err, ERROR);
+      }
+
+      feml.stream() >> fieldc;
+
+      if (groupc == atag && tagc != 'A') {
+	sprintf (err, "group '%c': field '%c' needs axis BC", groupc, fieldc);
+	message (prog, err, ERROR);
+      }
+      feml.stream().ignore (StrMax, '\n');
+    }
+  }
+}
+
+
+void printup (const char*    F   ,
 	      vector<Nsys*>& S   ,
 	      const int      nSys)
 // ---------------------------------------------------------------------------
-// print up summary info followed by map & mask for eack system.
+// Print up summary info followed by map & mask for each system.
 // ---------------------------------------------------------------------------
 {
   register int i, j, k, side, soff;
   const    int nedge = S[0] -> nbndry / (4 * S[0] -> nel);
   
-  cout << "# FIELDS         :  " << F() << endl;
+  cout << "# FIELDS         :  " << F << endl;
 
   cout << "# ----------------";
   for (j = 0; j < nSys; j++) cout << "  ----------";
