@@ -15,20 +15,20 @@ class AuxField
 {
 friend istream& operator >> (istream&, AuxField&);
 friend ostream& operator << (ostream&, AuxField&);
-friend class     Field;
-friend class     PBCmgr;
+friend class    Field;
+friend class    PBCmgr;
 
 public:
-  AuxField (real*, const integer, vector<Element*>&, const char = 0);
+  AuxField (real_t*, const int_t, vector<Element*>&, const char = 0);
 
   char name     ()      const { return _name; }
   void describe (char*) const;
 
-  AuxField& operator  = (const real);
-  AuxField& operator += (const real);
-  AuxField& operator -= (const real);
-  AuxField& operator *= (const real);
-  AuxField& operator /= (const real);
+  AuxField& operator  = (const real_t);
+  AuxField& operator += (const real_t);
+  AuxField& operator -= (const real_t);
+  AuxField& operator *= (const real_t);
+  AuxField& operator /= (const real_t);
 
   AuxField& operator  = (const AuxField&);
   AuxField& operator += (const AuxField&);
@@ -36,41 +36,43 @@ public:
   AuxField& operator *= (const AuxField&);
 
   AuxField& operator  = (const char*);
-  AuxField& axpy        (const real, const AuxField&);
+  AuxField& axpy        (const real_t, const AuxField&);
 
   AuxField& times       (const AuxField&, const AuxField&);
   AuxField& timesPlus   (const AuxField&, const AuxField&);
   AuxField& timesMinus  (const AuxField&, const AuxField&);
 
-  AuxField& addToPlane  (const integer, const real);
-  AuxField& getPlane    (const integer, real*);
-  AuxField& setPlane    (const integer, const real*);
-  AuxField& setPlane    (const integer, const real);
+  AuxField& addToPlane  (const int_t, const real_t);
+  AuxField& getPlane    (const int_t, real_t*);
+  AuxField& setPlane    (const int_t, const real_t*);
+  AuxField& setPlane    (const int_t, const real_t);
 
-  AuxField& update   (const integer, const real*, const real, const real); 
+  AuxField& update   (const int_t, const real_t*, const real_t, const real_t); 
 
-  AuxField& gradient (const integer);
+  AuxField& gradient (const int_t);
   AuxField& mulY     ();
   AuxField& divY     ();
 
-  real mode_L2     (const integer) const;
-  real integral    ()          const;
-  real CFL         (const integer) const;
+  real_t mode_L2     (const int_t) const;
+  real_t integral    ()          const;
+  real_t CFL         (const int_t) const;
 
-  real probe (const Element*, const real, const real, const integer)  const;
-  real probe (const Element*, const real, const real, const real) const;
+  real_t probe       (const Element*, const real_t, 
+		      const real_t, const int_t)    const;
+  real_t probe       (const Element*, const real_t,
+		      const real_t, const real_t)   const;
 
   AuxField& reverse     ();
   static void swapData  (AuxField*, AuxField*);
-  static void couple    (AuxField*, AuxField*, const integer);
+  static void couple    (AuxField*, AuxField*, const int_t);
 
 protected:
   char              _name ;	// Identification tag.  '\0' by default.
   vector<Element*>& _elmt ;	// Quadrilateral elements.
-  integer           _nz   ;	// number of data planes (per process).
-  integer           _size ;	// _nz * Geometry::planeSize().
-  real*             _data ;	// 2/3D data area, element x element x plane.
-  real**            _plane;	// Pointer into data for each 2D frame.
+  int_t             _nz   ;	// number of data planes (per process).
+  int_t             _size ;	// _nz * Geometry::planeSize().
+  real_t*           _data ;	// 2/3D data area, element x element x plane.
+  real_t**          _plane;	// Pointer into data for each 2D frame.
 
 private:
   AuxField& operator /= (const AuxField&) { return *this; }

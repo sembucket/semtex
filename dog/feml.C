@@ -43,7 +43,7 @@ FEML::FEML (const char* session)
   const char routine[] = "FEML::FEML";
   char       c, err[STR_MAX], key[STR_MAX], yek[STR_MAX];
   char*      u;
-  integer    i, OK, N, found;
+  int_t    i, OK, N, found;
 
   const char* reserved[] = {
     "TOKENS",
@@ -168,14 +168,14 @@ FEML::FEML (const char* session)
 }
 
 
-integer FEML::seek (const char* keyword)
+int_t FEML::seek (const char* keyword)
 // ---------------------------------------------------------------------------
 // Look for keyword in stored table.
 // If present, stream is positioned after keyword and 1 is returned.
 // If not, stream is rewound and 0 is returned.
 // ---------------------------------------------------------------------------
 {
-  register integer i, found = 0;
+  register int_t i, found = 0;
 
   for (i = 0; !found && keyWord[i]; i++)
     found = (strstr (keyword, keyWord[i]) != 0 &&
@@ -194,7 +194,7 @@ integer FEML::seek (const char* keyword)
 }
 
 
-integer FEML::attribute (const char* tag ,
+int_t FEML::attribute (const char* tag ,
 			 const char* attr)
 // ---------------------------------------------------------------------------
 // Tag attributes are given as options in form <tag attr=int [attr=int ...]>
@@ -205,7 +205,7 @@ integer FEML::attribute (const char* tag ,
   const char routine[] = "FEML::attribute";
   char       buf[STR_MAX], err[STR_MAX];
   char*      v;
-  integer    n = 0;
+  int_t    n = 0;
 
   if (!seek (tag)) {
     sprintf (err, "couldn't locate tag %s in feml file", tag);
@@ -255,12 +255,12 @@ bool FEML::tokens ()
       if (strstr (buf, "TOKENS")) break;
     }
     
-    if ((integer)Femlib::value ("IO_FLD") > (integer)Femlib::value ("N_STEP"))
-      Femlib::value ("IO_FLD", (integer) Femlib::value ("N_STEP"));
+    if (Femlib::ivalue ("IO_FLD") > Femlib::ivalue ("N_STEP"))
+        Femlib::ivalue ("IO_FLD",   Femlib::ivalue ("N_STEP"));
 
-    if ((integer)Femlib::value ("N_TIME") > 3) {
+    if (Femlib::ivalue ("N_TIME") > 3) {
       message (routine, "N_TIME too large, reset to 3", WARNING);
-      Femlib::value ("N_TIME", (integer) 3);
+      Femlib::value ("N_TIME", (int_t) 3);
     }
     
     return 1;

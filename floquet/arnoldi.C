@@ -770,8 +770,15 @@ static int_t preprocess (const char* session)
   elmt.resize (nel);
   for (i = 0; i < nel; i++) elmt[i] = new Element (i, np, mesh);
 
-  bman    = new BCmgr        (file, elmt);
-  domain  = new Domain       (file, elmt, bman);
+  bman   = new BCmgr  (file, elmt);
+  domain = new Domain (file, elmt, bman);
+
+  // -- Load restart and base flow data.
+
+  domain -> restart ();
+  domain -> loadBase();
+  domain -> report  ();
+
   analyst = new StabAnalyser (domain, file);
 
   // -- Over-ride any CHKPOINT flag in session file.
@@ -783,12 +790,6 @@ static int_t preprocess (const char* session)
 
   loadmap (session);
 #endif
-
-  // -- Load restart and base flow data.
-
-  domain -> restart ();
-  domain -> loadBase();
-  domain -> report  ();
 
   return Geometry::nPert() * Geometry::planeSize() * Geometry::nZ();
 }

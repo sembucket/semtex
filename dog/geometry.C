@@ -16,22 +16,22 @@ static char RCS[] = "$Id$";
 #include <femlib.h>
 #include <geometry.h>
 
-integer Geometry::_pid    = 0;
-integer Geometry::_nproc  = 0;
-integer Geometry::_np     = 0;
-integer Geometry::_nz     = 0;
-integer Geometry::_nzp    = 0;
-integer Geometry::_nel    = 0;
-integer Geometry::_psize  = 0;
-integer Geometry::_kfund  = 0;
-integer Geometry::_npert  = 0;
-integer Geometry::_nbase  = 0;
-integer Geometry::_nslice = 0;
+int_t Geometry::_pid    = 0;
+int_t Geometry::_nproc  = 0;
+int_t Geometry::_np     = 0;
+int_t Geometry::_nz     = 0;
+int_t Geometry::_nzp    = 0;
+int_t Geometry::_nel    = 0;
+int_t Geometry::_psize  = 0;
+int_t Geometry::_kfund  = 0;
+int_t Geometry::_npert  = 0;
+int_t Geometry::_nbase  = 0;
+int_t Geometry::_nslice = 0;
 Geometry::CoordSys Geometry::_csys = Geometry::Cartesian;
 Geometry::Category Geometry::_cat  = Geometry::O2_3D_SYMM;
 
-void Geometry::set (const integer nel  ,
-		    const integer npert)
+void Geometry::set (const int_t nel  ,
+		    const int_t npert)
 // ---------------------------------------------------------------------------
 // Load values of static internal variables.  Session file should
 // already have been dealt with.  As well as being specific to stability
@@ -70,3 +70,18 @@ void Geometry::set (const integer nel  ,
   if (_nproc  > 1) message (routine, "serial execution only",          ERROR);
   if (_nslice < 1) message (routine, "N_SLICE must be set in session", ERROR);
 }
+
+
+const char* Geometry::symmetry ()
+// ---------------------------------------------------------------------------
+// Return a string value of the spatial symmetry category of problem.
+// ---------------------------------------------------------------------------
+{
+  switch (_cat) {
+  case O2_2D:      return "O(2), 2D"; break;
+  case O2_3D_SYMM: return "O(2), 3D, standing wave"; break;
+  case O2_3D:      return "O(2), 3D, travelling wave"; break;
+  case SO2_3D:     return "SO(2), 3D"; break;
+  }
+}
+

@@ -19,25 +19,25 @@ public:
   Domain (FEML*, vector<Element*>&, BCmgr*);
 
   char*                name;	// Session name.
-  integer              step;	// Runtime step number.
-  real                 time;	// Simulation time.
+  int_t                step;	// Runtime step number.
+  real_t               time;	// Simulation time.
   vector<Element*>&    elmt;	// Shared for equal-order interpolations.
-  vector<real*>        udat;	// Data storage area for solution fields.
+  vector<real_t*>      udat;	// Data storage area for solution fields.
   vector<Field*>       u   ;	// Solution fields: velocities, pressure.
   vector<BoundarySys*> b   ;	// Field boundary systems.
 
-  integer nField    () const { return u.size(); }
-  void    report    (ostream& stream = cout);
-  void    restart   ();
-  void    dump      ();
-  void    setNumber (const char, const NumberSys**) const;
+  int_t nField    () const { return u.size(); }
+  void  report    (ostream& stream = cout);
+  void  restart   ();
+  void  dump      ();
+  void  setNumber (const char, const NumberSys**) const;
 
   // -- Required for base fields and stability analysis.
 
   vector<AuxField*> U       ; // -- Base velocity fields - no BCs.
-  vector<real*>     Udat    ; // -- Data storage area for base auxfields.
-  vector<real*>     baseFlow; // -- Fourier transformed base velocities.
-  real              period  ; // -- total time for one period of base flow.
+  vector<real_t*>   Udat    ; // -- Data storage area for base auxfields.
+  vector<real_t*>   baseFlow; // -- Fourier transformed base velocities.
+  real_t            period  ; // -- total time for one period of base flow.
 
   void loadBase  ();
   void updateBase();

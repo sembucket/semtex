@@ -44,11 +44,11 @@ Analyser::Analyser (Domain* D   ,
   // -- Set up for history points: open files, create points.
 
   if (file -> seek ("HISTORY")) {
-    integer        i, id, num = 0;
-    const integer  NH = file -> attribute ("HISTORY", "NUMBER");
+    int_t          i, id, num = 0;
+    const int_t    NH = file -> attribute ("HISTORY", "NUMBER");
     const Element* E;
     HistoryPoint*  H;
-    real           r, s, x, y, z;
+    real_t         r, s, x, y, z;
     
     for (i = 0; i < NH; i++) {
       file -> stream() >> id >> x >> y >> z;
@@ -93,7 +93,7 @@ void Analyser::analyse (AuxField** work)
 // original absolute positions.
 // ---------------------------------------------------------------------------
 {
-  const integer cflstep = Femlib::ivalue ("IO_CFL");
+  const int_t cflstep = Femlib::ivalue ("IO_CFL");
 
   // -- Run information update.
 
@@ -118,11 +118,11 @@ void Analyser::analyse (AuxField** work)
 
     // -- Output history point data.
       
-    register integer  i, j;
-    const integer     NH = _history.size();
-    const integer     NF = _src -> u.size();
+    register int_t    i, j;
+    const int_t       NH = _history.size();
+    const int_t       NF = _src -> u.size();
     HistoryPoint*     H;
-    vector<real>      tmp (NF);
+    vector<real_t>    tmp (NF);
     vector<AuxField*> u   (NF);
 
     for (i = 0; i < NF; i++)
@@ -148,10 +148,10 @@ void Analyser::modalEnergy ()
 // Print out modal energies per unit area, output by root processor.
 // ---------------------------------------------------------------------------
 {
-  const integer NC = Geometry::nPert();
-  real          ek = 0.0;
+  const int_t NC = Geometry::nPert();
+  real_t      ek = 0.0;
 
-  for (integer i = 0; i < NC; i++) ek += _src -> u[i] -> mode_L2 (0);
+  for (int_t i = 0; i < NC; i++) ek += _src -> u[i] -> mode_L2 (0);
 
   _mdl_strm << setw(10) << _src -> time 
 	    << setw( 5) << 1
@@ -166,8 +166,8 @@ void Analyser::divergence (AuxField** Us) const
 // is used as work area.
 // ---------------------------------------------------------------------------
 {
-  const integer NC = Geometry::nPert();
-  integer       i;
+  const int_t NC = Geometry::nPert();
+  int_t       i;
 
   if (Geometry::system() == Geometry::Cartesian) {
     for (i = 0; i < NC; i++) {
@@ -195,17 +195,17 @@ void Analyser::estimateCFL () const
 // Estimate and print the peak CFL number, based on zero-mode velocities.
 // ---------------------------------------------------------------------------
 {
-  const real CFL_max = 0.7;	// -- Approximate maximum for scheme.
-  const real SAFETY  = 0.9;	// -- Saftey factor.
-  const real dt      = Femlib::value ("D_T");
-  real       CFL_dt, dt_max;
-  integer    percent;
+  const real_t CFL_max = 0.7;	// -- Approximate maximum for scheme.
+  const real_t SAFETY  = 0.9;	// -- Saftey factor.
+  const real_t dt      = Femlib::value ("D_T");
+  real_t       CFL_dt, dt_max;
+  int_t        percent;
 
   CFL_dt = max (_src -> u[0] -> CFL (0), _src -> u[1] -> CFL (1));
   if (Geometry::nPert() == 3) CFL_dt = max (CFL_dt, _src -> u[2] -> CFL (2));
 
   dt_max  = SAFETY * CFL_max / CFL_dt;
-  percent = static_cast<integer>(100.0 * dt / dt_max);
+  percent = static_cast<int_t>(100.0 * dt / dt_max);
 
   cout << "-- CFL: "     << CFL_dt * dt;
   cout << ", dt (max): " << dt_max;

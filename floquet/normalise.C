@@ -55,24 +55,24 @@ static char* hdr_fmt[] = {
 };
 
 typedef struct hdr_data {
-  char    session[StrMax];
-  char    created[StrMax];
-  integer nr, ns, nz, nel;
-  integer step;
-  real    time;
-  real    timestep;
-  real    kinvis;
-  real    beta;
-  char    fields[StrMax];
-  char    format[StrMax];
+  char   session[StrMax];
+  char   created[StrMax];
+  int_t  nr, ns, nz, nel;
+  int_t  step;
+  real_t time;
+  real_t timestep;
+  real_t kinvis;
+  real_t beta;
+  char   fields[StrMax];
+  char   format[StrMax];
 } hdr_info;
 
-static void getargs   (int, char**, real&, ifstream&);
+static void getargs   (int, char**, real_t&, ifstream&);
 static void gethead   (istream&, hdr_info&);
-static void allocate  (hdr_info&, vector<real*>&);
-static void readdata  (hdr_info&, istream&, vector<real*>&);
-static void scaledata (hdr_info&, const real&, vector<real*>&);
-static void writedata (hdr_info&, ostream&, vector<real*>&);
+static void allocate  (hdr_info&, vector<real_t*>&);
+static void readdata  (hdr_info&, istream&, vector<real_t*>&);
+static void scaledata (hdr_info&, const real_t&, vector<real_t*>&);
+static void writedata (hdr_info&, ostream&, vector<real_t*>&);
 static bool doswap    (const char*);
 
 
@@ -82,10 +82,10 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  ifstream      file;
-  hdr_info      head;
-  real          factor = 0.0;
-  vector<real*> u;
+  ifstream        file;
+  hdr_info        head;
+  real_t          factor = 0.0;
+  vector<real_t*> u;
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, factor, file);
@@ -106,7 +106,7 @@ int main (int    argc,
 
 static void getargs (int       argc  ,
 		     char**    argv  ,
-		     real&     factor,
+		     real_t&   factor,
 		     ifstream& file  )
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
@@ -151,8 +151,8 @@ static void gethead (istream&  file,
 // names are packed into a string without spaces.
 // ---------------------------------------------------------------------------
 {
-  char    buf[StrMax];
-  integer i, j; 
+  char  buf[StrMax];
+  int_t i, j; 
 
   file.get (head.session, 25); file.getline (buf, StrMax);
   
@@ -184,38 +184,38 @@ static void gethead (istream&  file,
 }
 
 
-static void allocate (hdr_info&      head,
-		      vector<real*>& u   )
+static void allocate (hdr_info&        head,
+		      vector<real_t*>& u   )
 // ---------------------------------------------------------------------------
 // Allocate enough storage to hold all the data fields (sem format).
 // ---------------------------------------------------------------------------
 {
-  const integer nfield = strlen (head.fields);
-  const integer ntot   = head.nr * head.ns * head.nel * head.nz;
-  integer       i;
+  const int_t nfield = strlen (head.fields);
+  const int_t ntot   = head.nr * head.ns * head.nel * head.nz;
+  int_t       i;
 
   u.resize (nfield);
   
   for (i = 0; i < nfield; i++) {
-    u[i] = new real [ntot];
+    u[i] = new real_t [ntot];
     Veclib::zero (ntot, u[i], 1);
   }
 }
 
 
-static void readdata (hdr_info&      head,
-		      istream&       file,
-		      vector<real*>& u   )
+static void readdata (hdr_info&        head,
+		      istream&         file,
+		      vector<real_t*>& u   )
 // ---------------------------------------------------------------------------
 // Binary read of data areas, with byte-swapping if required.
 // ---------------------------------------------------------------------------
 {
-  integer i, len;
-  real*   addr;
+  int_t   i, len;
+  real_t* addr;
   bool    swab;
 
-  const integer nfield = strlen (head.fields);
-  const integer ntot   = head.nr * head.ns * head.nel * head.nz;
+  const int_t nfield = strlen (head.fields);
+  const int_t ntot   = head.nr * head.ns * head.nel * head.nz;
 
   // -- Read the base flow into the first plane location of u.
 
@@ -223,27 +223,27 @@ static void readdata (hdr_info&      head,
   
   for (i = 0; i < nfield; i++) {
     addr = u[i];
-    len  = ntot * sizeof (real);
+    len  = ntot * sizeof (real_t);
     file.read (reinterpret_cast<char*>(addr), len);
     if (swab) Veclib::brev (ntot, addr, 1, addr, 1);
   }
 }
 
 
-static void scaledata (hdr_info&     head  ,
-		       const real&   factor,
-		       vector<real*>& u    )
+static void scaledata (hdr_info&        head  ,
+		       const real_t&    factor,
+		       vector<real_t*>& u    )
 // ---------------------------------------------------------------------------
 // Scale the data such that the 2-norm of the velocities is unity
 // (optionally a forced rescaling).
 // ---------------------------------------------------------------------------
 {
-  integer i;
-  real    norm = 0.0;
+  int_t  i;
+  real_t norm = 0.0;
 
-  const integer nfield = strlen (head.fields);
-  const integer ncomps = nfield - 1;
-  const integer ntot   = head.nr * head.ns * head.nel * head.nz;
+  const int_t nfield = strlen (head.fields);
+  const int_t ncomps = nfield - 1;
+  const int_t ntot   = head.nr * head.ns * head.nel * head.nz;
 
   if (factor == 0.0) {
     for (i = 0; i < ncomps; i++) norm += Blas::nrm2 (ntot, u[i], 1);
@@ -253,17 +253,17 @@ static void scaledata (hdr_info&     head  ,
 }
 
 
-static void writedata (hdr_info&      head,
-		       ostream&       file,
-		       vector<real*>& u   )
+static void writedata (hdr_info&        head,
+		       ostream&         file,
+		       vector<real_t*>& u   )
 // ---------------------------------------------------------------------------
 // Write out the data, semtex format.
 // ---------------------------------------------------------------------------
 {
-  const   integer nfield = strlen (head.fields);
-  const   integer ntot   = head.nr * head.ns * head.nel * head.nz;
-  char    buf[StrMax], tmp[StrMax];
-  integer i, j;
+  const int_t nfield = strlen (head.fields);
+  const int_t ntot   = head.nr * head.ns * head.nel * head.nz;
+  char        buf[StrMax], tmp[StrMax];
+  int_t       i, j;
 
   sprintf (buf, hdr_fmt[0], head.session);
   file << buf;
@@ -289,7 +289,7 @@ static void writedata (hdr_info&      head,
   file << buf;
 
   for (i = 0; i < nfield; i++) 
-    file.write (reinterpret_cast<char*>(u[i]), ntot * sizeof (real));
+    file.write (reinterpret_cast<char*>(u[i]), ntot * sizeof (real_t));
 }
 
 

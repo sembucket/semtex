@@ -23,11 +23,11 @@ StabAnalyser::StabAnalyser (Domain* D   ,
   char       str[StrMax];
 
   if (file -> seek ("BASE_HIST")) {
-    integer        i, id, num = 0;
-    const integer  NBH = file -> attribute ("BASE_HIST", "NUMBER");
+    int_t          i, id, num = 0;
+    const int_t    NBH = file -> attribute ("BASE_HIST", "NUMBER");
     const Element* EB;
     HistoryPoint*  HB;
-    real           r, s, x, y, z;
+    real_t         r, s, x, y, z;
     
     for (i = 0; i < NBH; i++) {
       file -> stream() >> id >> x >> y >> z;
@@ -65,11 +65,11 @@ void StabAnalyser::analyse (AuxField** work)
 
   // -- Output BASE history point data.
 
-  register integer  j, k;      
-  const integer     NBH = base_history.size();
-  const integer     NBF = 2;  // number of base fields = 2 (UV)
+  register int_t    j, k;      
+  const int_t       NBH = base_history.size();
+  const int_t       NBF = 2;  // number of base fields = 2 (UV)
   HistoryPoint*     HB;
-  vector<real>      tmp_B (NBF);
+  vector<real_t>    tmp_B (NBF);
   vector<AuxField*> U     (NBF);
   
   for (k = 0; k < NBF; k++)
@@ -77,7 +77,6 @@ void StabAnalyser::analyse (AuxField** work)
 
   for (k = 0; k < NBH; k++) {
     HB = base_history[k];
-    
     HB -> extract (U, &tmp_B[0]);
 
     bhs_strm << setw(4) << HB->ID() << " " << setw(14) << _src->time << " ";

@@ -134,9 +134,9 @@ static void preprocess (const char*       session,
 // They are listed in order of creation.
 // ---------------------------------------------------------------------------
 {
-  const integer verbose = Femlib::ivalue ("VERBOSE");
-  const real*   z;
-  integer       i, np, nel, npert;
+  const int_t   verbose = Femlib::ivalue ("VERBOSE");
+  const real_t* z;
+  int_t         i, np, nel, npert;
 
   // -- Set default additional tokens.
 

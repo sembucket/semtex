@@ -1,5 +1,7 @@
 #ifndef STAB_H
 #define STAB_H
+
+
 //////////////////////////////////////////////////////////////////////////////
 // stab.h: header file for linearised NS stability solver.
 //
@@ -28,18 +30,18 @@ extern "C" {
   void F77NAME(dgeev)		// -- Lapack eigensystem routine.
     (const char*    N    ,
      const char*    V    ,
-     const integer& dim1 ,
+     const int_t& dim1 ,
      double*        H    ,
-     const integer& dim2 ,
+     const int_t& dim2 ,
      double*        wr   ,
      double*        wi   ,
      double*        f1   ,
-     const integer& f2   ,
+     const int_t& f2   ,
      double*        Hvec ,
-     const integer& dim3 ,
+     const int_t& dim3 ,
      double*        rwork,
-     const integer& lwork,
-     integer&       ier  );
+     const int_t& lwork,
+     int_t&       ier  );
 }
 
 #endif

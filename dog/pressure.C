@@ -20,10 +20,10 @@ static char RCS[] = "$Id$";
 
 #include <sem.h>
 
-real**** PBCmgr::_Pnx = 0;
-real**** PBCmgr::_Pny = 0;
-real**** PBCmgr::_Unx = 0;
-real**** PBCmgr::_Uny = 0;
+real_t**** PBCmgr::_Pnx = 0;
+real_t**** PBCmgr::_Pny = 0;
+real_t**** PBCmgr::_Unx = 0;
+real_t**** PBCmgr::_Uny = 0;
 
 
 void PBCmgr::build (const Field* P)
@@ -35,31 +35,31 @@ void PBCmgr::build (const Field* P)
 // There is some wastage as memory is also allocated for essential BCs.
 // ---------------------------------------------------------------------------
 {
-  const integer np    = Geometry::nP();
-  const integer nTime = Femlib::ivalue ("N_TIME");
-  const integer nEdge = P -> _nbound;
-  const integer nZ    = P -> _nz;
-  integer       i, j, k;
+  const int_t np    = Geometry::nP();
+  const int_t nTime = Femlib::ivalue ("N_TIME");
+  const int_t nEdge = P -> _nbound;
+  const int_t nZ    = P -> _nz;
+  int_t       i, j, k;
 
-  _Pnx = new real*** [static_cast<size_t>(nTime)];
-  _Pny = new real*** [static_cast<size_t>(nTime)];
-  _Unx = new real*** [static_cast<size_t>(nTime)];
-  _Uny = new real*** [static_cast<size_t>(nTime)];
+  _Pnx = new real_t*** [static_cast<size_t>(nTime)];
+  _Pny = new real_t*** [static_cast<size_t>(nTime)];
+  _Unx = new real_t*** [static_cast<size_t>(nTime)];
+  _Uny = new real_t*** [static_cast<size_t>(nTime)];
 
   for (i = 0; i < nTime; i++) {
-    _Pnx[i] = new real** [static_cast<size_t>(4 * nEdge)];
+    _Pnx[i] = new real_t** [static_cast<size_t>(4 * nEdge)];
     _Pny[i] = _Pnx[i] + nEdge;
     _Unx[i] = _Pny[i] + nEdge;
     _Uny[i] = _Unx[i] + nEdge;
 
     for (j = 0; j < nEdge; j++) {
-      _Pnx[i][j] = new real* [static_cast<size_t>(4 * nZ)];
+      _Pnx[i][j] = new real_t* [static_cast<size_t>(4 * nZ)];
       _Pny[i][j] = _Pnx[i][j] + nZ;
       _Unx[i][j] = _Pny[i][j] + nZ;
       _Uny[i][j] = _Unx[i][j] + nZ;
 
       for (k = 0; k < nZ; k++) {
-	_Pnx[i][j][k] = new real [static_cast<size_t>(4 * np)];
+	_Pnx[i][j][k] = new real_t [static_cast<size_t>(4 * np)];
 	_Pny[i][j][k] = _Pnx[i][j][k] + np;
 	_Unx[i][j][k] = _Pny[i][j][k] + np;
 	_Uny[i][j][k] = _Unx[i][j][k] + np;
@@ -71,7 +71,7 @@ void PBCmgr::build (const Field* P)
 }
 
 
-void PBCmgr::maintain (const integer    step   ,
+void PBCmgr::maintain (const int_t    step   ,
 		       const Field*     P      ,
 		       const AuxField** Us     ,
 		       const AuxField** Uf     ,
@@ -97,12 +97,12 @@ void PBCmgr::maintain (const integer    step   ,
 // No smoothing is done to high-order spatial derivatives computed here.
 // ---------------------------------------------------------------------------
 {
-  const real      nu    = Femlib::value ("KINVIS");
-  const real      invDt = 1.0 / Femlib::value ("D_T");
-  const integer   nTime = Femlib::ivalue ("N_TIME");
-  const integer   nEdge = P -> _nbound;
-  const integer   nZ    = P -> _nz;
-  const integer   nP    =  Geometry::nP();
+  const real_t nu    = Femlib::value ("KINVIS");
+  const real_t invDt = 1.0 / Femlib::value ("D_T");
+  const int_t  nTime = Femlib::ivalue ("N_TIME");
+  const int_t  nEdge = P -> _nbound;
+  const int_t  nZ    = P -> _nz;
+  const int_t  nP    =  Geometry::nP();
 
   const AuxField* Ux = Us[0];
   const AuxField* Uy = Us[1];
@@ -113,8 +113,8 @@ void PBCmgr::maintain (const integer    step   ,
 
   const vector<Boundary*>& BC = P -> _bsys -> BCs (0);
   register Boundary*       B;
-  register integer         i, k, q;
-  integer                  offset, skip, Je;
+  register int_t           i, k, q;
+  int_t                    offset, skip, Je;
 
   // -- Roll grad P storage area up, load new level of nonlinear terms Uf.
 
@@ -140,21 +140,19 @@ void PBCmgr::maintain (const integer    step   ,
   }
 
   // -- Add in -nu * curl curl u. There are 3 cases to deal with:
-  //    perturbation is real, half-complex or full-complex.
+  //    perturbation is real_t, half-complex or full-complex.
 
-  vector<real> work (5 * sqr(nP) + 7 * nP + Integration::OrderMax + 1);
-  real         *UxRe, *UxIm, *UyRe, *UyIm, *UzRe, *UzIm, *tmp;
-  real*        wrk   = &work[0];
-  real*        xr    = wrk + 5*sqr(nP) + 3*nP;
-  real*        xi    = xr + nP;
-  real*        yr    = xi + nP;
-  real*        yi    = yr + nP;
-  real*        alpha = yi + nP;
+  vector<real_t> work (5 * sqr(nP) + 7 * nP + Integration::OrderMax + 1);
+  real_t         *UxRe, *UxIm, *UyRe, *UyIm, *UzRe, *UzIm, *tmp;
+  real_t*        wrk   = &work[0];
+  real_t*        xr    = wrk + 5*sqr(nP) + 3*nP;
+  real_t*        xi    = xr + nP;
+  real_t*        yr    = xi + nP;
+  real_t*        yi    = yr + nP;
+  real_t*        alpha = yi + nP;
 
   for (i = 0; i < nEdge; i++) {
-    B      = BC[i];
-    offset = B -> dOff ();
-    skip   = B -> dSkip();
+    B = BC[i];
 
     if (Geometry::nZ() == 1) {
 
@@ -238,13 +236,13 @@ void PBCmgr::maintain (const integer    step   ,
 }
 
 
-void PBCmgr::evaluate (const integer id   ,
-		       const integer np   ,
-		       const integer plane,
-		       const integer step ,
-		       const real*   nx   ,
-		       const real*   ny   ,
-		       real*         tgt  )
+void PBCmgr::evaluate (const int_t   id   ,
+		       const int_t   np   ,
+		       const int_t   plane,
+		       const int_t   step ,
+		       const real_t* nx   ,
+		       const real_t* ny   ,
+		       real_t*       tgt  )
 // ---------------------------------------------------------------------------
 // Load PBC value with values obtained from HOBC multi-level storage.
 //
@@ -260,11 +258,11 @@ void PBCmgr::evaluate (const integer id   ,
 {
   if (step < 1) return;
 
-  register integer q, Je = Femlib::ivalue ("N_TIME");
-  vector<real>     work (Integration::OrderMax + 2 * np);
-  real*            beta  = &work[0];
-  real*            tmpX  = beta + Integration::OrderMax;
-  real*            tmpY  = tmpX + np;
+  register int_t q, Je = Femlib::ivalue ("N_TIME");
+  vector<real_t> work (Integration::OrderMax + 2 * np);
+  real_t*        beta  = &work[0];
+  real_t*        tmpX  = beta + Integration::OrderMax;
+  real_t*        tmpY  = tmpX + np;
 
   Je = min (step, Je);
   Integration::Extrapolation (Je, beta);
@@ -293,7 +291,7 @@ void PBCmgr::accelerate (const Vector& a,
 {
   const vector<Boundary*>& BC = u -> _bsys -> BCs (0);
   register Boundary*       B;
-  register integer         i;
+  register int_t           i;
 
   for (i = 0; i < u -> _nbound; i++) {
     B = BC[i];
