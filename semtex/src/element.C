@@ -252,11 +252,13 @@ void Element::bndryDsSum (const integer* btog,
 // ---------------------------------------------------------------------------
 {
   register integer i, e;
-  register real*   wt = G4;
+  register real    w;
+  const real       EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
   for (i = 0; i < next; i++) {
     e = emap[i];
-    tgt[btog[i]] += wt[e] * src[e];
+    w = G4[e];
+    tgt[btog[i]] += (w > EPS) ? w * src[e] : src[e];
   }
 }
 

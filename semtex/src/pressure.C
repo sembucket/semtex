@@ -176,50 +176,53 @@ void PBCmgr::maintain (const integer     step   ,
     }
   }
 
-  // -- Estimate -du / dt by backwards differentiation and add in.
+  if (timedep) {
 
-  if (timedep && step > 1) {
-    Je  = min (step - 1, nTime);
-    tmp = xr;
-    Integration::StifflyStable (Je, alpha);
+    // -- Estimate -du / dt by backwards differentiation and add in.
+    
+    if (step > 1) {
+      Je  = min (step - 1, nTime);
+      tmp = xr;
+      Integration::StifflyStable (Je, alpha);
+      
+      for (i = 0; i < nEdge; i++) {
+	B      = BC[i];
+	offset = B -> dOff ();
+	skip   = B -> dSkip();
+
+	for (k = 0; k < nZ; k++) {
+	  ROOTONLY if (k == 1) continue;
+
+	  Veclib::copy (nP, Ux -> _plane[k] + offset, skip, tmp, 1);
+	  Blas::scal   (nP, alpha[0], tmp, 1);
+	  for (q = 0; q < Je; q++)
+	    Blas::axpy (nP, alpha[q + 1], Unx[q][i][k], 1, tmp, 1);
+	  Blas::axpy (nP, -invDt, tmp, 1, Pnx[0][i][k], 1);
+	  
+	  Veclib::copy (nP, Uy -> _plane[k] + offset, skip, tmp, 1);
+	  Blas::scal   (nP, alpha[0], tmp, 1);
+	  for (q = 0; q < Je; q++)
+	    Blas::axpy (nP, alpha[q + 1], Uny[q][i][k], 1, tmp, 1);
+	  Blas::axpy (nP, -invDt, tmp, 1, Pny[0][i][k], 1);
+	}
+      }
+    }
+
+    // -- Roll velocity storage area up, load new level.
+
+    roll (Unx, nTime);
+    roll (Uny, nTime);
       
     for (i = 0; i < nEdge; i++) {
       B      = BC[i];
       offset = B -> dOff ();
       skip   = B -> dSkip();
-
+    
       for (k = 0; k < nZ; k++) {
 	ROOTONLY if (k == 1) continue;
-
-	Veclib::copy (nP, Ux -> _plane[k] + offset, skip, tmp, 1);
-	Blas::scal   (nP, alpha[0], tmp, 1);
-	for (q = 0; q < Je; q++)
-	  Blas::axpy (nP, alpha[q + 1], Unx[q][i][k], 1, tmp, 1);
-	Blas::axpy (nP, -invDt, tmp, 1, Pnx[0][i][k], 1);
-
-	Veclib::copy (nP, Uy -> _plane[k] + offset, skip, tmp, 1);
-	Blas::scal   (nP, alpha[0], tmp, 1);
-	for (q = 0; q < Je; q++)
-	  Blas::axpy (nP, alpha[q + 1], Uny[q][i][k], 1, tmp, 1);
-	Blas::axpy (nP, -invDt, tmp, 1, Pny[0][i][k], 1);
+	Veclib::copy (nP, Ux -> _plane[k] + offset, skip, Unx[0][i][k], 1);
+	Veclib::copy (nP, Uy -> _plane[k] + offset, skip, Uny[0][i][k], 1);
       }
-    }
-  }
-
-  // -- Roll velocity storage area up, load new level.
-
-  roll (Unx, nTime);
-  roll (Uny, nTime);
-      
-  for (i = 0; i < nEdge; i++) {
-    B      = BC[i];
-    offset = B -> dOff ();
-    skip   = B -> dSkip();
-    
-    for (k = 0; k < nZ; k++) {
-      ROOTONLY if (k == 1) continue;
-      Veclib::copy (nP, Ux -> _plane[k] + offset, skip, Unx[0][i][k], 1);
-      Veclib::copy (nP, Uy -> _plane[k] + offset, skip, Uny[0][i][k], 1);
     }
   }
 }

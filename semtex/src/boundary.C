@@ -213,11 +213,12 @@ void Boundary::curlCurl (const integer k ,
 {
   const Geometry::CoordSys space = Geometry::system();
 
-  const integer np   = Geometry::nP();
-  const integer ntot = Geometry::nTotElmt();
-  const integer doff = elmt -> ID() * ntot;
+  const integer np       = Geometry::nP();
+  const integer ntot     = Geometry::nTotElmt();
+  const integer elmtOff  = elmt -> ID() * ntot;
+  const integer localOff = doffset - elmtOff;
 
-  vector<real> work (5 * ntot + np);
+  static vector<real> work (5 * ntot + np);
   real* gw = work();
   real* w  = gw + ntot + ntot;
   real* vx = w  + ntot;
@@ -227,11 +228,17 @@ void Boundary::curlCurl (const integer k ,
   const real** DT;
 
   Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
-      
+  
+  // -- Make pointers to current element storage.
+
+  Ur += elmtOff; Ui += elmtOff;
+  Vr += elmtOff; Vi += elmtOff;
+  Wr += elmtOff; Wi += elmtOff;
+
   if (k == 0) {			// -- Zeroth mode / 2D.
 
-    Veclib::copy (ntot, Ur + doff, 1, uy, 1);
-    Veclib::copy (ntot, Vr + doff, 1, vx, 1);
+    Veclib::copy (ntot, Ur, 1, uy, 1);
+    Veclib::copy (ntot, Vr, 1, vx, 1);
 
     elmt -> grad (vx, uy, DV, DT, gw);
 
@@ -258,12 +265,11 @@ void Boundary::curlCurl (const integer k ,
 
     const real betaK  = k * Femlib::value ("BETA");
     const real betaK2 = sqr (betaK);
-    const integer  loff   = doffset - doff; // -- Side offset in workspace.
 
     // -- Make the equivalents of the 2D terms above.
 
-    Veclib::copy     (ntot, Ur + doff, 1, uy, 1);
-    Veclib::copy     (ntot, Vr + doff, 1, vx, 1);
+    Veclib::copy     (ntot, Ur, 1, uy, 1);
+    Veclib::copy     (ntot, Vr, 1, vx, 1);
     elmt -> grad     (vx, uy, DV, DT, gw);
     Veclib::vsub     (ntot, vx, 1, uy, 1, w, 1);
     elmt -> sideGrad (side, w, yr, xr);
@@ -274,8 +280,8 @@ void Boundary::curlCurl (const integer k ,
       Veclib::vadd     (np, xr, 1, t, 1, xr, 1);
     }
 
-    Veclib::copy     (ntot, Ui + doff, 1, uy, 1);
-    Veclib::copy     (ntot, Vi + doff, 1, vx, 1);
+    Veclib::copy     (ntot, Ui, 1, uy, 1);
+    Veclib::copy     (ntot, Vi, 1, vx, 1);
     elmt -> grad     (vx, uy, DV, DT, gw);
     Veclib::vsub     (ntot, vx, 1, uy, 1, w, 1);
     elmt -> sideGrad (side, w, yi, xi);
@@ -288,54 +294,54 @@ void Boundary::curlCurl (const integer k ,
 
     // -- Semi-Fourier terms based on Wr.
 
-    Veclib::copy      (ntot, Wr + doff, 1, vx, 1);
-    Veclib::copy      (ntot, Wr + doff, 1, uy, 1);
+    Veclib::copy      (ntot, Wr, 1, vx, 1);
+    Veclib::copy      (ntot, Wr, 1, uy, 1);
     elmt -> grad      (vx, uy, DV, DT, gw);
     if (space == Geometry::Cylindrical) {
       elmt -> sideDivR  (side, vx,  t);
-      Blas::axpy        (np, betaK, t,         1,     xi, 1);
+      Blas::axpy        (np,  betaK, t, 1, xi, 1);
       elmt -> sideDivR  (side, uy,  t);
-      Blas::axpy        (np, betaK, t,         1,     yi, 1);
+      Blas::axpy        (np,  betaK, t, 1, yi, 1);
       elmt -> sideDivR2 (side, Wr,  t);
-      Blas::axpy        (np, betaK, t,         1,     yi, 1);
+      Blas::axpy        (np,  betaK, t, 1, yi, 1);
     } else {
-      Blas::axpy        (np, betaK, vx + loff, dskip, xi, 1);
-      Blas::axpy        (np, betaK, uy + loff, dskip, yi, 1);
+      Blas::axpy (np, betaK, vx + localOff, dskip, xi, 1);
+      Blas::axpy (np, betaK, uy + localOff, dskip, yi, 1);
     }
 
     // -- Semi-Fourier terms based on Wi.
 
-    Veclib::copy      (ntot, Wi + doff, 1, vx, 1);
-    Veclib::copy      (ntot, Wi + doff, 1, uy, 1);
+    Veclib::copy      (ntot, Wi, 1, vx, 1);
+    Veclib::copy      (ntot, Wi, 1, uy, 1);
     elmt -> grad      (vx, uy, DV, DT, gw);
     if (space == Geometry::Cylindrical) {
       elmt -> sideDivR  (side, vx,   t);
-      Blas::axpy        (np, -betaK, t,         1,     xr, 1);
+      Blas::axpy        (np, -betaK, t, 1, xr, 1);
       elmt -> sideDivR  (side, uy,   t);
-      Blas::axpy        (np, -betaK, t,         1,     yr, 1);
+      Blas::axpy        (np, -betaK, t, 1, yr, 1);
       elmt -> sideDivR2 (side, Wi,   t);
-      Blas::axpy        (np, -betaK, t,         1,     yr, 1);
+      Blas::axpy        (np, -betaK, t, 1, yr, 1);
     } else {
-      Blas::axpy        (np, -betaK, vx + loff, dskip, xr, 1);
-      Blas::axpy        (np, -betaK, uy + loff, dskip, yr, 1);
+      Blas::axpy (np, -betaK, vx + localOff, dskip, xr, 1);
+      Blas::axpy (np, -betaK, uy + localOff, dskip, yr, 1);
     }
 
     // -- Fourier second derivatives in the third direction.
 
     if (space == Geometry::Cylindrical) {
-      elmt -> sideDivR  (side, Ur,   t);
-      Blas::axpy        (np, betaK2, t,         1,     xr, 1);
-      elmt -> sideDivR  (side, Ui,   t);
-      Blas::axpy        (np, betaK2, t,         1,     xi, 1);
+      elmt -> sideDivR2 (side, Ur,   t);
+      Blas::axpy        (np, betaK2, t, 1, xr, 1);
+      elmt -> sideDivR2 (side, Ui,   t);
+      Blas::axpy        (np, betaK2, t, 1, xi, 1);
       elmt -> sideDivR2 (side, Vr,   t);
-      Blas::axpy        (np, betaK2, t,         1,     yr, 1);
+      Blas::axpy        (np, betaK2, t, 1, yr, 1);
       elmt -> sideDivR2 (side, Vi,   t);
-      Blas::axpy        (np, betaK2, t,         1,     yi, 1);
+      Blas::axpy        (np, betaK2, t, 1, yi, 1);
     } else {
-      Blas::axpy        (np, betaK2, Ur + loff, dskip, xr, 1);
-      Blas::axpy        (np, betaK2, Ui + loff, dskip, xi, 1);
-      Blas::axpy        (np, betaK2, Vr + loff, dskip, yr, 1);
-      Blas::axpy        (np, betaK2, Vi + loff, dskip, yi, 1);
+      Blas::axpy (np, betaK2, Ur + localOff, dskip, xr, 1);
+      Blas::axpy (np, betaK2, Ui + localOff, dskip, xi, 1);
+      Blas::axpy (np, betaK2, Vr + localOff, dskip, yr, 1);
+      Blas::axpy (np, betaK2, Vi + localOff, dskip, yi, 1);
     }
   }
 }
