@@ -275,7 +275,7 @@ static void project (const Domain* D ,
 
     (*Uf[i] = *D -> u[NDIM]) . gradient (i);
 
-    if (CYL) Uf[2] -> divR();
+    if (CYL && i == 2) Uf[2] -> divR();
 
     *Uf[i] *= -dt;
     *Uf[i] += *Us[i];
