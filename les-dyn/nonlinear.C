@@ -1,5 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
-// nonlinear.C: compute nonlinear type terms in physical space.
+// nonlinear.C: compute nonlinear velocity terms and rates of strain in
+// physical space.
 //
 // Copyright (c) 2000 Hugh Blackburn
 //
@@ -8,28 +9,19 @@
 
 #include "les.h"
 
+typedef enum {INVERSE, FORWARD} tran;
+typedef enum {HALF,    FULL   } exch;
+static void transform (const tran, const exch, real*);
+static void gradient  (const AuxField*, real*, const int);
+
 
 void nonLinear (Domain*       D ,
-		AuxField***   Us,
-		AuxField***   Uf,
 		matrix<real>& Ut)
 // ---------------------------------------------------------------------------
-// Compute nonlinear + forcing terms in Navier--Stokes equations
-//                       N(u) + div(2*EV*S) + ff.
-//
-// Here N(u) represents the nonlinear advection terms in the N--S equations
-// transposed to the RHS, div(2*EV*S) is the divergence of the non-constant
-// component of the eddy-viscosity SGS terms and ff is a vector of body
-// force per unit mass.
+// Compute nonlinear and SGSS terms, N(u) and \tau_ij.
 //
 // On entry, D contains the Fourier-transforms of the old velocity
-// (and pressure) fields, the lowest levels of Us & Uf are free.  On
-// exit, the velocity field storage areas of D are free, the zeroth
-// level of Us contains the old velocities and the zeroth level of Uf
-// contains the most recent explicit forcing terms.  Velocity field
-// data areas of D and first level of Us are swapped, then the next
-// stage of nonlinear forcing terms N(u) - a are computed from
-// velocity fields and left in the first level of Uf.
+// (and pressure) fields, the lowest levels of Us & Uf are free.
 //
 // Nonlinear terms N(u) are computed in skew-symmetric form (Zang 1991)
 //                 ~ ~
@@ -50,296 +42,243 @@ void nonLinear (Domain*       D ,
 //           Nz = -0.5 {ud(w)/dx + vd(w)/dy +  d(uw)/dx +
 //                 1/y [wd(w)/dz + d(ww)/dz + d(yvw)/dy + 2wv]}.
 //
-// Data are transformed to physical space for most of the operations, with
-// the Fourier transform extended using zero padding for dealiasing.  For
-// gradients in the Fourier direction however, the data must be transferred
-// back to Fourier space.
+// Data are transformed to physical space for most of the operations,
+// but for gradients in the Fourier direction the data must be
+// transferred back to Fourier space.
 //
-// NB: dealiasing is not used for multiprocessor operation.
+// NB: no dealiasing.
 // ---------------------------------------------------------------------------
 {
-  integer           i, j;
-  const real        EPS    = (sizeof(real) == sizeof(double)) ? EPSDP : EPSSP;
-  const integer     nZ     = Geometry::nZ();
-  const integer     nZP    = Geometry::nZProc();
-  const integer     nP     = Geometry::planeSize();
-  const integer     nPP    = Geometry::nBlock();
-  const integer     nPR    = Geometry::nProc();
-  const integer     nTot   = nZP * nP;
-  const integer     nZ32   = (nPR > 1) ? nZP : (3 * nZ) >> 1;
-  const integer     nTot32 = nZ32 * nP;
-  vector<real>      work ((2 * DIM + 1) * nTot32);
-  vector<real*>     u32 (DIM);
-  vector<real*>     n32 (DIM);
-  vector<AuxField*> U   (DIM);
-  vector<AuxField*> N   (DIM);
-  Field*            master = D -> u[0];
-  real*             tmp    = work() + 2 * DIM * nTot32;
+  const integer nZ   = Geometry::nZ();
+  const integer nZP  = Geometry::nZProc();
+  const integer nP   = Geometry::planeSize();
+  const integer nPP  = Geometry::nBlock();
+  const integer nPR  = Geometry::nProc();
+  const integer nTot = Geometry::nTotProc();
+  Field*        meta = D -> u[0]; // -- A handle to use for Field operations.
+  integer       i, j, ij;
 
-  vector<real*>     Sr (6), St(6), Ua(3), Sm(2);
+  // -- Create names for local computations.
 
-  // -- Set pointers into supplied workspace.
+  vector<real*> u (27);
+  real*         Sr  = u();
+  real*         St  = Sr + 6;
+  real*         Sm  = St + 6;
+  real*         Ua  = Sm + 2;
+  real*         Us  = Ua + 3;
+  real*         Ud  = Us + 3;
+  real*         Nl  = Ud + 3;
+  real*         tmp = Nl + 3;
 
-  for (i = 0; i < 6; i++) { Sr (i) = Ut (i);      St (i) = Ut (6+i); }
-  for (i = 0; i < 3; i++)   Ua (i) = Ut (12 + i);
-  for (i = 0; i < 2; i++)   Sm (i) = Ut (15 + i);
+  // -- Set pointers into supplied workspace, Ut.
+
+  for (i = 0; i < 6; i++) Sr [i] = Ut (     i);
+  for (i = 0; i < 6; i++) St [i] = Ut ( 6 + i);
+  for (i = 0; i < 3; i++) Ua [i] = Ut (12 + i);
+  for (i = 0; i < 2; i++) Sm [i] = Ut (15 + i);
+  for (i = 0; i < 3; i++) Us [i] = Ut (17 + i);
+  for (i = 0; i < 3; i++) Nl [i] = Ut (20 + i);
+
+  for (i = 0; i < 3; i++) Ud [i] = D->udat (i); tmp = D->udat(3);
 
   // -- Transform and filter velocities.
 
   for (i = 0; i < 3; i++) {
-    *Us[i][0] = *D -> u(i);
-    D -> u(i) -> transform32 (-1, Ua(i));
-    lowpass (D -> udat(i));
-    D -> u(i) -> transform   (-1);
+    Veclib::copy (nTot, Ud[i], 1, Us[i], 1);
+    Veclib::copy (nTot, Ud[i], 1, Ua[i], 1);
+    lowpass      (Ud[i]);
+    transform    (INVERSE, FULL, Ud[i]);
+    transform    (INVERSE, FULL, Ua[i]);
   }
 
-  for (i = 0; i < DIM; i++) {
-    u32[i] = work() +  i        * nTot32;
-    n32[i] = work() + (i + DIM) * nTot32;
-  }
-
-  // -- Start with contribution from divergence of SGS.
-
-  EV -> transform32 (-1, tmp);
-  Blas::scal (nTot32, -4.0, tmp, 1); // -- 2 = -0.5 * -4 ... see below.
-
-  if (CYL) {			// -- Cylindrical coordinates.
-
-    // -- 2D stress-divergence terms.
-
-    Us[0][0] -> transform32 (-1, n32[0]);
-    Veclib::vmul            (nTot32,  tmp, 1, n32[0], 1, n32[0], 1);
-    master   -> gradient    (nZ32, nP, n32[0], 0);
-
-    Us[1][0] -> transform32 (-1, n32[1]);
-    Veclib::vmul            (nTot32,  tmp, 1, n32[1], 1, n32[1], 1);
-    master   -> mulR        (nZ32, n32[1]);
-    master   -> gradient    (nZ32, nP, n32[1], 1);
-    master   -> divR        (nZ32, n32[1]);
-
-    Uf[0][0] -> transform32 (-1, u32[0]);
-    Veclib::vmul            (nTot32,  tmp, 1, u32[0], 1, u32[0], 1);
-    Veclib::copy            (nTot32,          u32[0], 1, u32[1], 1);
-    master   -> mulR        (nZ32, u32[0]);
-    master   -> gradient    (nZ32, nP, u32[0], 1);
-    master   -> divR        (nZ32, u32[0]);
-    master   -> gradient    (nZ32, nP, u32[1], 0);
-    Veclib::vadd            (nTot32, u32[0], 1, n32[0], 1, n32[0], 1);
-    Veclib::vadd            (nTot32, u32[1], 1, n32[1], 1, n32[1], 1);
-
-    // -- 3D stress-divergence terms.
-
-    if (C3D) {		
-
-      Us[2][0] -> transform32 (-1, n32[2]);
-      Veclib::vmul            (nTot32, tmp, 1, n32[2], 1, n32[2], 1);
-      Veclib::copy            (nTot32,         n32[2], 1, u32[0], 1);
-      master -> divR          (nZ32, u32[0]);
-      Veclib::vsub            (nTot32, n32[1], 1, u32[0], 1, n32[1], 1);
-      Femlib::exchange        (n32[2], nZ32,        nP, +1);
-      Femlib::DFTr            (n32[2], nZ32 * nPR, nPP, +1);
-      Veclib::zero            (nTot32 - nTot, n32[2] + nTot, 1);
-      master -> gradient      (nZ, nPP, n32[2], 2);
-      Femlib::DFTr            (n32[2], nZ32 * nPR, nPP, -1);
-      Femlib::exchange        (n32[2], nZ32,        nP, -1);
-      master -> divR          (nZ32, n32[2]);
-
-      Uf[1][0] -> transform32 (-1, u32[0]);
-      Veclib::vmul            (nTot32, tmp, 1, u32[0], 1, u32[0], 1);
-      Veclib::copy            (nTot32,         u32[0], 1, u32[1], 1);
-      Femlib::exchange        (u32[0], nZ32,        nP, +1);
-      Femlib::DFTr            (u32[0], nZ32 * nPR, nPP, +1);
-      Veclib::zero            (nTot32 - nTot, u32[0] + nTot, 1);
-      master -> gradient      (nZ, nPP, u32[0], 2);
-      Femlib::DFTr            (u32[0], nZ32 * nPR, nPP, -1);
-      Femlib::exchange        (u32[0], nZ32,        nP, -1);
-      master -> divR          (nZ32, u32[0]);
-      master -> gradient      (nZ32, nP, u32[1], 0);
-      Veclib::vadd            (nTot32, u32[0], 1, n32[0], 1, n32[0], 1);
-      Veclib::vadd            (nTot32, u32[1], 1, n32[2], 1, n32[2], 1);
-
-      Uf[2][0] -> transform32 (-1, u32[0]);
-      Veclib::vmul            (nTot32, tmp, 1, u32[0], 1, u32[0], 1);
-      Veclib::copy            (nTot32,         u32[0], 1, u32[1], 1);
-      Veclib::copy            (nTot32,         u32[0], 1, u32[2], 1);
-      Femlib::exchange        (u32[0], nZ32,        nP, +1);      
-      Femlib::DFTr            (u32[0], nZ32 * nPR, nPP, +1);
-      Veclib::zero            (nTot32 - nTot, u32[0] + nTot, 1);
-      master -> gradient      (nZ, nPP, u32[0], 2);
-      Femlib::DFTr            (u32[0], nZ32 * nPR, nPP, -1);
-      Femlib::exchange        (u32[0], nZ32,        nP, -1);      
-      master -> divR          (nZ32, u32[0]);
-      master -> gradient      (nZ32, nP, u32[1], 1);
-      master -> divR          (nZ32, u32[2]);
-      Veclib::vadd            (nTot32, u32[0], 1, n32[1], 1, n32[1], 1);
-      Veclib::vadd            (nTot32, u32[1], 1, n32[2], 1, n32[2], 1);
-      Blas::axpy              (nTot32, 2.0, u32[2], 1,       n32[2], 1);
-    }
-
-  } else {			// -- Cartesian coordinates.
-
-    // -- Diagonal stress-divergence terms.
-
-    for (i = 0; i < DIM; i++) {
-
-      Us[i][0] -> transform32 (-1, n32[i]);
-      Veclib::vmul (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
-
-      if (i == 2) {
-	Femlib::exchange   (n32[2], nZ32,        nP, +1);      
-	Femlib::DFTr       (n32[2], nZ32 * nPR, nPP, +1);
-	Veclib::zero       (nTot32 - nTot, n32[2] + nTot, 1);
-	master -> gradient (nZ, nPP, n32[2], 2);
-	Femlib::DFTr       (n32[2], nZ32 * nPR, nPP, -1);
-	Femlib::exchange   (n32[2], nZ32,        nP, -1);      
-      } else
-	master -> gradient (nZ32, nP, n32[i], i);
-    }
-
-    // -- Off-diagonal stress-divergence terms.
-
-    for (i = 0; i < DIM; i++)
-      for (j = i + 1; j < DIM; j++) {
-
-	Uf[i + j - 1][0] -> transform32 (-1, u32[0]);
-	Veclib::vmul                    (nTot32, tmp, 1, u32[0], 1, u32[0], 1);
-	Veclib::copy                    (nTot32,         u32[0], 1, u32[1], 1);
-
-	// -- Super-diagonal.
-
-	if (j == 2) {
-	  Femlib::exchange   (u32[0], nZ32,        nP, +1);
-	  Femlib::DFTr       (u32[0], nZ32 * nPR, nPP, +1);
-	  Veclib::zero       (nTot32 - nTot, u32[0] + nTot, 1);
-	  master -> gradient (nZ, nPP, u32[0], 2);
-	  Femlib::DFTr       (u32[0], nZ32 * nPR, nPP, -1);
-	  Femlib::exchange   (u32[0], nZ32,        nP, -1);
-	} else
-	  master -> gradient (nZ32, nP, u32[0], j);
-	Veclib::vadd (nTot32, u32[0], 1, n32[i], 1, n32[i], 1);
-
-	// -- Sub-diagonal.
-
-	master -> gradient (nZ32, nP, u32[1], i);
-	Veclib::vadd       (nTot32, u32[1], 1, n32[j], 1, n32[j], 1);
-      }
-  }
-
-  // -- Nonlinear terms.
-
-  for (i = 0; i < DIM; i++) {
-    AuxField::swapData (D -> u[i], Us[i][0]);
-    U[i] = Us[i][0];
-    N[i] = Uf[i][0];
-    U[i] -> transform32 (-1, u32[i]);
-    if (CYL) N[i] -> mulR (nZ32, n32[i]);
-  }
+  // -- Form off-diagonal terms for RoS tensors, nonconservative Nl terms.
   
-  if (CYL) {			// -- Cylindrical coordinates.
-
-    for (i = 0; i < DIM; i++) {
-
-      // -- Terms involving azimuthal derivatives and frame components.
-
-      if (DIM == 3) {
-	if      (i == 1)	// -- Centripetal.
-	  Veclib::svvttvp (nTot32, -2.0,u32[2],1,u32[2],1,n32[1],1,n32[1],1);
-	else if (i == 2)	// -- Coriolis.
-	  Veclib::svvttvp (nTot32,  2.0,u32[2],1,u32[1],1,n32[2],1,n32[2],1);
-
-	if (nZ > 2) {
-	  Veclib::copy       (nTot32, u32[i], 1, tmp, 1);
-	  Femlib::exchange   (tmp, nZ32,        nP, +1);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, +1);
-	  Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
-	  master -> gradient (nZ, nPP, tmp, 2);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, -1);
-	  Femlib::exchange   (tmp, nZ32,        nP, -1);
-	  Veclib::vvtvp      (nTot32, u32[2], 1, tmp, 1, n32[i], 1, n32[i], 1);
-	
-	  Veclib::vmul       (nTot32, u32[i], 1, u32[2], 1, tmp, 1);
-	  Femlib::exchange   (tmp, nZ32,        nP, +1);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, +1);
-	  Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
-	  master -> gradient (nZ, nPP, tmp, 2);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, -1);
-	  Femlib::exchange   (tmp, nZ32,        nP, -1);
-	  Veclib::vadd       (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
-	}
-      }
-
-      // -- Terms made with product of radius.
-      
-      Veclib::vmul       (nTot32, u32[1], 1, u32[i], 1, tmp,  1);
-      master -> mulR     (nZ32, tmp);
-      master -> gradient (nZ32, nP, tmp, 1);
-      Veclib::vadd       (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
-      master -> divR     (nZ32, n32[i]);
-
-      // -- 2D non-conservative derivatives.
-
-      for (j = 0; j < 2; j++) {
-	Veclib::copy       (nTot32, u32[i], 1, tmp, 1);
-	master -> gradient (nZ32, nP, tmp, j);
-	Veclib::vvtvp      (nTot32, u32[j], 1, tmp, 1, n32[i], 1, n32[i], 1);
-      }
-
-      // -- Remaining conservative derivative.
-      
-      Veclib::vmul       (nTot32, u32[0], 1, u32[i], 1, tmp, 1);
-      master -> gradient (nZ32, nP, tmp, 0);
-      Veclib::vadd       (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
-
-      // -- Transform to Fourier space, smooth, add forcing.
-
-      N[i]   -> transform32 (+1, n32[i]);
-      master -> smooth (N[i]);
-      ROOTONLY if (fabs (ff[i]) > EPS) N[i] -> addToPlane (0, -2.0*ff[i]);
-      *N[i] *= -0.5;
+  for (i = 0; i < 3; i++)
+    for (j = i + 1; j < 3; j++) {
+      ij = i + j - 1;
+      Veclib::copy (nTot, Us[ i], 1, Sr[ij], 1);
+      gradient     (meta, Sr[ij], j);
+      Veclib::copy (nTot, Sr[ij], 1, St[ij], 1);
+      lowpass      (St[ij]);
+      transform    (INVERSE, FULL, Sr[ij]);
+      transform    (INVERSE, FULL, St[ij]);
+      Veclib::vmul (nTot, Ua[j], 1, Sr[ij], 1, Nl[i], 1);
     }
   
-  } else {			// -- Cartesian coordinates.
-
-    for (i = 0; i < DIM; i++) {
-      for (j = 0; j < DIM; j++) {
-      
-	// -- Nonconservative contribution,  n_i += u_j d(u_i) / dx_j.
-
-	Veclib::copy (nTot32, u32[i], 1, tmp,  1);
-	if (j == 2) {
-	  Femlib::exchange   (tmp, nZ32,        nP, +1);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, +1);
-	  Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
-	  master -> gradient (nZ,  nPP, tmp, j);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, -1);
-	  Femlib::exchange   (tmp, nZ32,        nP, -1);
-	} else {
-	  master -> gradient (nZ32, nP, tmp, j);
-	}
-	Veclib::vvtvp (nTot32, u32[j], 1, tmp,  1, n32[i], 1, n32[i], 1);
-
-	// -- Conservative contribution,  n_i += d(u_i u_j) / dx_j.
-
-	Veclib::vmul  (nTot32, u32[i], 1, u32[j], 1, tmp,  1);
-	if (j == 2) {
-	  Femlib::exchange   (tmp, nZ32,        nP, +1);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, +1);
-	  Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
-	  master -> gradient (nZ,  nPP, tmp, j);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, -1);
-	  Femlib::exchange   (tmp, nZ32,        nP, -1);
-	} else {
-	  master -> gradient (nZ32, nP, tmp, j);
-	}
-	Veclib::vadd (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
-      }
-
-      // -- Transform to Fourier space, smooth, add forcing.
-      
-      N[i]   -> transform32 (+1, n32[i]);
-      master -> smooth (N[i]);
-      ROOTONLY if (fabs (ff[i]) > EPS) N[i] -> addToPlane (0, -2.0*ff[i]);
-      *N[i] *= -0.5;
+  for (i = 0; i < 3; i++)
+    for (j = i + 1; j < 3; j++) {
+      Veclib::copy (nTot, Us[j], 1, Sr[i], 1);
+      gradient     (meta, Sr[i], i);
+      Veclib::copy (nTot, Sr[i], 1, St[i], 1);
+      lowpass      (St[i]);
+      transform    (INVERSE, FULL, Sr[i]);
+      transform    (INVERSE, FULL, St[i]);
+      Veclib::vvtvp (nTot, Ua[i], 1, Sr[i], 1, Nl[i], 1, Nl[i]);
     }
+  
+  for (i = 0; i < 3; i++) {
+    Veclib::svvtt (nTot, 0.5, Sr[i], 1, Sr[i+3], 1, Sr[i+3], 1);
+    Veclib::svvtt (nTot, 0.5, St[i], 1, St[i+3], 1, St[i+3], 1);
   }
+
+  // -- Form diagonal terms for RoS tensors, nonconservative Nl terms.
+
+  for (i = 0; i < 3; i++) {
+    Veclib::copy (nTot, Us[i], 1, Sr[i], 1);
+    gradient     (meta, Sr[i], i);
+    Veclib::copy (nTot, Sr[i], 1, St[i], 1);
+    lowpass      (St[i]);
+    transform    (INVERSE, FULL, St[i]);
+    transform    (INVERSE, FULL, Sr[i]);
+    Veclib::vmul (nTot, Ua[i], 1, Sr[i], 1, Nl[i], 1);
+  }
+
+  // -- Form strain rate magnitude estimates |S|, |S~|.
+
+  Veclib::zero (nTot, Sm[0], 1);
+  Veclib::zero (nTot, Sm[1], 1);
+
+  for (i = 0; i < 6; i++) {
+    Veclib::vvvtp (nTot, Sr[i], 1, Sr[i], 1, Sm[0], 1);
+    Veclib::vvvtp (nTot, St[i], 1, St[i], 1, Sm[1], 1);
+  }
+
+  Veclib::vsqrt (nTot, Sm[0], 1);
+  Veclib::vsqrt (nTot, Sm[1], 1);
+
+  // -- Delta^2 |S|.
+
+  Veclib::zero (nP, tmp, 1);
+  meta -> lengthScale (tmp);
+  Veclib::vmul (nP, tmp, 1, tmp, 1, tmp, 1);
+
+  for (i = 0; i < nZP; i++) {
+    Veclib::vmul  (nP,      tmp, 1, Sm[0]+i*nP, 1, Sm[0]+i*nP, 1);
+    Veclib::svvtt (nP, 4.0, tmp, 1, Sm[1]+i*nP, 1, Sm[1]+i*nP, 1);
+  }
+
+  // -- Accumulate LijMij & MijMij terms, conservative Nl terms.
+
+  for (i = 0; i < 6; i++) {
+    Veclib::vmul (nTot, Sm[0], 1, Sr[i], 1, Sr[i], 1);
+    Veclib::vmul (nTot, Sm[1], 1, St[i], 1, St[i], 1);
+  }
+
+  real* L   = Sm[0]; real* M   = Sm[1];
+  real* Num = Us[0]; real* Den = Us[1];
+  Veclib::zero (nTot, Num, 1);
+  Veclib::zero (nTot, Den, 1);
+
+  // -- Diagonal terms.
+
+  for (i = 0; i < 3; i++) {
+    Veclib::vmul  (nTot, Ua[i], 1, Ua[i], 1, tmp, 1);
+    Veclib::copy  (nTot, tmp, 1, L, 1);
+    gradient      (meta, tmp, i);
+    Veclib::vadd  (nTot, tmp, 1, Nl[i], 1, Nl[i], 1);
+    transform     (FORWARD, FULL, L);
+    lowpass       (L);
+    transform     (INVERSE, FULL, L);
+    Veclib::vvvtm (nTot, L, 1, Ud[i], 1, Ud[i], 1, L, 1);
+    Veclib::copy  (nTot, Sr[i], 1, M, 1);
+    transform     (FORWARD, FULL, M);
+    lowpass       (M);
+    transform     (INVERSE, FULL, M);
+    Veclib::vsub  (nTot, St[i], 1, M, 1, M, 1);
+    Veclib::vvtvp (nTot, L, 1, M, 1, Num, 1);
+    Veclib::vvtvp (nTot, M, 1, M, 1, Den, 1);
+  }
+
+  // -- Off-diagonal terms.
+
+  for (i = 0; i < 3; i++)
+    for (j = i + 1; j < 3; j++) {
+      ij = i + j - 1;
+      Veclib::vmul    (nTot, Ua[i], 1, Ua[j], 1, tmp, 1);
+      Veclib::copy    (nTot, tmp, 1, L, 1);
+      Veclib::copy    (nTot, tmp, 1, M, 1);
+      gradient        (meta, M,   i);
+      gradient        (meta, tmp, j);
+      Veclib::vadd    (nTot, M,   1, Nl[j], 1, Nl[j], 1);
+      Veclib::vadd    (nTot, tmp, 1, Nl[i], 1, Nl[i], 1);
+      transform       (FORWARD, FULL, L);
+      lowpass         (L);
+      transform       (INVERSE, FULL, L);
+      Veclib::vvvtm   (nTot, L, 1, Ud[i], 1, Ud[j], 1, L, 1);
+      Veclib::copy    (nTot, Sr[j], 1, M, 1);
+      transform       (FORWARD, FULL, M);
+      lowpass         (M);
+      transform       (INVERSE, FULL, M);
+      Veclib::vsub    (nTot, St[j], 1, M, 1, M, 1);
+      Veclib::svvttvp (nTot, 2.0, L, 1, M, 1, Num, 1);
+      Veclib::svvttvp (nTot, 2.0, M, 1, M, 1, Den, 1);
+    }
+
+  // -- Here is the dynamic estimate, L = -2 Cs^2 = LijMij/MijMij.
+  
+  Veclib::vdiv (nTot, Num, 1, Den, 1, L, 1);
+
+  // -- NB: WE WILL NEED SOME AVERAGING OF Cs HERE.
+
+  // -- Create \tau_ij = -2 Cs^2 Delta^2 |S| Sij.
+
+  for (i = 0; i < 6; i++)
+    Veclib::vmul (nTot, L, 1, Sr[i], 1, Sr[i], 1);
+
+  // -- Normalise skewsymmetric nonlinear terms, direct stiffness summation.
+
+  for (i = 0; i < 3; i++) {
+    Blas::scal (nTot, -0.5, Nl[i], 1);
+    meta -> smooth (nZP, Nl[i]);
+  }
+}
+
+
+static void transform (const tran SIGN,
+		       const exch EXCH,
+		       real*      data)
+// ---------------------------------------------------------------------------
+// Fourier transform a block of data in place with half or full
+// exchange, according to flags.  No dealiasing.
+// ---------------------------------------------------------------------------
+{
+  const integer nZ  = Geometry::nZ();
+  const integer nZP = Geometry::nZProc();
+  const integer nP  = Geometry::planeSize();
+  const integer nPP = Geometry::nBlock();
+  const integer nPR = Geometry::nProc();
+
+  if (SIGN == FORWARD) {
+    Femlib::exchange   (data, nZP, nP,  +1);
+    Femlib::DFTr       (data, nZ,  nPP, +1);
+    if (EXCH == FULL) 
+      Femlib::exchange (data, nZP, nP,  -1);
+  } else {
+    if (EXCH == FULL) 
+      Femlib::exchange (data, nZP, nP,  +1);
+    Femlib::DFTr       (data, nZ,  nPP, -1);
+    Femlib::exchange   (data, nZP, nP,  -1);
+  }
+}
+
+
+static void gradient (const AuxField* meta, 
+		      real*           ui  ,
+		      const int       xj  )
+// ---------------------------------------------------------------------------
+// Carry out gradient operation on data, special case for homogeneous
+// direction.
+// ---------------------------------------------------------------------------
+{
+  const integer nZ  = Geometry::nZ();
+  const integer nZP = Geometry::nZProc();
+  const integer nP  = Geometry::planeSize();
+  const integer nPP = Geometry::nBlock();
+      
+  if (xj == 2) {
+    transform        (FORWARD, HALF, ui);
+    meta -> gradient (nZ, nPP, ui, xj);
+    transform        (INVERSE, HALF, ui);
+  } else
+    meta -> gradient (nZP, nP, ui, xj);
 }

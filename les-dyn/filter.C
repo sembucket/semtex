@@ -102,15 +102,14 @@ void lowpass (real* data)
 // structure.
 // ---------------------------------------------------------------------------
 {
-  const char routine[] = "lowpass";
-  register integer  i;
-  const integer     pid = Geometry::ProcID();
-  const integer     np  = Geometry::nP();
-  const integer     nP  = Geometry::nPlane();
-  const integer     nZP = Geometry::nZProc();
-  vector<real>      tmp (nP);
+  register integer i;
+  const integer    pid = Geometry::ProcID();
+  const integer    np  = Geometry::nP();
+  const integer    nP  = Geometry::nPlane();
+  const integer    nZP = Geometry::nZProc();
+  vector<real>     tmp (nP);
 
-  if (!FourierMask) message (routine, "call initFilters first!", ERROR);
+  if (!FourierMask) initFilters();
 
   for (i = 0; i < nZP; i++) {
     Veclib::zero  (nP, tmp(), 1);

@@ -30,8 +30,6 @@
 typedef ModalMatrixSys  Msys;
 static  integer         DIM, CYL, C3D;
    
-static void   nonLinear (Domain*, AuxField***, AuxField***,
-			 AuxField*, vector<real>&);
 static void   waveProp  (Domain*, const AuxField***, const AuxField***);
 static void   setPForce (const AuxField***, AuxField***);
 static void   project   (const Domain*, AuxField***, AuxField***);
@@ -40,8 +38,6 @@ static void   Solve     (Field*, AuxField*, Msys*,const integer,const integer);
 
 
 void integrate (Domain*      D,
-		const real*  FourierMask,
-		const real*  LegendreMask,
 		LESAnalyser* A)
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
@@ -77,21 +73,21 @@ void integrate (Domain*      D,
   Msys** MMS = preSolve (D);
 
   // -- Create extra storage needed for computation of SGSS, nonlinear terms.
-  //    First DIM*nOrder*2 of these are used for Us & Uf.
+  //    Last DIM*nOrder*2 of these are used for Us & Uf.
   
-  matrix<real> Ut (25, Geometry::nTotProc());
+  matrix<real> Ut (17 + 2*DIM*nOrder, Geometry::nTotProc());
 
-  // -- Create & initialize multi-level storage for velocities and forcing.
+  // -- Create & initialise multi-level storage for velocities and forcing.
 
-  AuxField*** Us = new AuxField** [(size_t) DIM];
-  AuxField*** Uf = new AuxField** [(size_t) DIM];
+  AuxField*** Us = new AuxField** [(size_t) 2 * nOrder];
+  AuxField*** Uf = Us + nOrder;
 
-  for (k = 0, i = 0; i < DIM; i++) {
-    Us[i] = new AuxField* [(size_t) nOrder];
-    Uf[i] = new AuxField* [(size_t) nOrder];
-    for (j = 0; j < nOrder; j++) {
-      *(Us[i][j] = new AuxField (Ut(k++), nZ, D -> elmt)) = 0.0;
-      *(Uf[i][j] = new AuxField (Ut(k++), nZ, D -> elmt)) = 0.0;
+  for (i = 0; i < nOrder; i++) {
+    Us[i] = new AuxField* [(size_t) 2 * DIM];
+    Uf[i] = Us[i] + DIM;
+    for (j = 0; j < DIM; j++) {
+      *(Us[i][j] = new AuxField (Ut(17 +       j), nZ, D -> elmt)) = 0.0;
+      *(Uf[i][j] = new AuxField (Ut(17 + DIM + j), nZ, D -> elmt)) = 0.0;
     }
   }
 
@@ -132,7 +128,7 @@ void integrate (Domain*      D,
 
     turbModel (D, Us, Uf, Ut);
 
-    // -- Fourier Transform velocity fields & nonlinear terms, add forcing.
+    // -- Fourier transform velocity fields & nonlinear terms, add forcing.
 
     transform (D, Uf, Ut, ff);
 
@@ -145,20 +141,20 @@ void integrate (Domain*      D,
     PBCmgr::maintain (D -> step, Pressure,
 		      (const AuxField***) Us, (const AuxField***) Uf, 1);
     Pressure -> evaluateBoundaries (D -> step);
-    for (i = 0; i < DIM; i++) {
-      AuxField::swapData (D -> u[i], Us[i][0]);
-      roll (Uf[i], nOrder);
-    }
+
+    NB WE HAVE TO REPLACE THIS SWAPDATA OPERATION SO AS NOT TO DISTURB Us.
+
+    for (i = 0; i < DIM; i++) AuxField::swapData (D -> u[i], Us[0][i]);
+    pushdown (Uf, nOrder, DIM);
+
     setPForce ((const AuxField***) Us, Uf);
     Solve     (Pressure, Uf[0][0], MMS[DIM], D -> step, nOrder);
     project   (D, Us, Uf);
 
     // -- Update multilevel velocity storage.
 
-    for (i = 0; i < DIM; i++) {
-      *Us[i][0] = *D -> u[i];
-      roll (Us[i], nOrder);
-    }
+    for (i = 0; i < DIM; i++) *Us[0][i] = *D -> u[i];
+    pushdown (Us, nOrder, DIM);
 
     // -- Viscous correction substep.
 
@@ -377,4 +373,20 @@ static void Solve (Field*        U     ,
 
     return;
   }
+}
+
+
+static void pushdown (AuxField***   U   ,
+		      const integer NORD,
+		      const integer NDIM)
+// ---------------------------------------------------------------------------
+// Pushdown time-level stacks of velocity, forcing storage, without
+// changing pointers (i.e. by copying data).
+// ---------------------------------------------------------------------------
+{
+  integer i, j;
+
+  for (i = 1; i < NORD; i++)
+    for (j = 0; j < NDIM; j++)
+      *U[i][j] = *U[i-1][j];
 }
