@@ -25,7 +25,7 @@ enum quadrature_kind {
  * Routines from initial.c:                                                  *
  * ------------------------------------------------------------------------- */
 
-void   initialize (void);
+void   initialize ();
 double interpret  (const char *);
 
 void   vecInit    (const char *names, const char *fn);
@@ -33,15 +33,15 @@ void   vecInterp  (int   ntot, ...);
 
 void   setOption  (const char *, int);
 int    option     (const char *);
-void   showOption (FILE *);
+void   showOption ();
 
 void   setIparam  (const char *, int);
 int    iparam     (const char *);
-void   showIparam (FILE *);
+void   showIparam ();
 
 void   setDparam  (const char *, double);
 double dparam     (const char *);
-void   showDparam (FILE *);
+void   showDparam ();
 
 /* ------------------------------------------------------------------------- *
  * Routines from polyops.c:                                                  *
