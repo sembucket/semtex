@@ -11,10 +11,10 @@ static char RCS[] = "$Id$";
 #include "sem.h"
 
 
-ostream& printVector (ostream&      strm,
-		      const char*   fmt , 
-		      const integer ntot,
-		                    ... )
+ostream& printVector (ostream&    strm,
+		      const char* fmt , 
+		      const int_t ntot,
+		                  ... )
 // ---------------------------------------------------------------------------
 // Print up a variable number of numeric vectors on strm, in columns.
 //
@@ -23,13 +23,13 @@ ostream& printVector (ostream&      strm,
 // same type & length.
 //
 // Allowed types are: int ("i"), real ("r").
-// Examples: four integer vectors ==> fmt is "iiii".  Two reals ==> "rr".
+// Examples: four int_t vectors ==> fmt is "iiii".  Two reals ==> "rr".
 // 
 // Vectors are printed in a fixed field width of 15, regardless of type.
 // ---------------------------------------------------------------------------
 {
   char    routine[] = "printVector";
-  integer nvect;
+  int_t   nvect;
   va_list ap;
 
   nvect = strlen (fmt);
@@ -40,12 +40,12 @@ ostream& printVector (ostream&      strm,
   switch (fmt[0]) {
 
   case 'i': {
-    integer** u = new integer* [nvect];
+    int_t** u = new int_t* [nvect];
     va_start (ap, ntot);
-    for (integer k = 0; k < nvect; k++) u[k] = va_arg (ap, integer*);
+    for (int_t k = 0; k < nvect; k++) u[k] = va_arg (ap, int_t*);
     va_end (ap);
-    for (register integer l = 0; l < ntot; l++) {
-      for (register integer j = 0; j < nvect; j++)
+    for (register int_t l = 0; l < ntot; l++) {
+      for (register int_t j = 0; j < nvect; j++)
 	strm << setw(15) << u[j][l];
       strm << endl;
     }
@@ -53,12 +53,12 @@ ostream& printVector (ostream&      strm,
     break;
   }
   case 'r': {
-    real** u = new real* [nvect];
+    real_t** u = new real_t* [nvect];
     va_start (ap, ntot);
-    for (integer k = 0; k < nvect; k++) u[k] = va_arg (ap, real*);
+    for (int_t k = 0; k < nvect; k++) u[k] = va_arg (ap, real_t*);
     va_end (ap);
-    for (register integer l = 0; l < ntot; l++) {
-      for (register integer j = 0; j < nvect; j++)
+    for (register int_t l = 0; l < ntot; l++) {
+      for (register int_t j = 0; j < nvect; j++)
 	strm << setw(15) << u[j][l];
       strm << endl;
     }
@@ -87,8 +87,8 @@ char* upperCase (char *s)
 
 void writeField (ofstream&          file   ,
 		 const char*        session,
-		 const integer      runstep,
-		 const real         runtime,
+		 const int_t        runstep,
+		 const real_t       runtime,
 		 vector<AuxField*>& field  )
 // ---------------------------------------------------------------------------
 // Write fields out to an opened file, binary prism format.  Output is
@@ -111,8 +111,8 @@ void writeField (ofstream&          file   ,
 
   char          s1[StrMax], s2[StrMax];
   time_t        tp (time (0));
-  integer       i;
-  const integer N = field.size();
+  int_t       i;
+  const int_t N = field.size();
 
   if (N < 1) return;
 
