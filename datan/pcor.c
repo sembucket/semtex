@@ -4,13 +4,11 @@
  *
  * Synopsis:
  * ---------
- * pcor reads ASCII data from stdin or named file. The data is read
- * in blocks of given size nominated on command line.  For each of
- * these blocks, the circular convolution is computed over a nominated
- * number of lags.  The circular correlations and the block means are
- * accumulated.  After all data are read, the product of the accumulated 
- * block means is subtracted from the accumulated circular correlations
- * and the outcome is normalised so the first value is unity.
+ * pcor reads ASCII data from stdin or named file. The data is read in
+ * blocks of given size nominated on command line.  For each of these
+ * blocks, the circular convolution is computed over a nominated
+ * number of lags.  The circular correlations are accumulated and
+ * averaged.
  *
  * Usage:
  * ------
@@ -178,7 +176,7 @@ static void pcor (const int     np,
  * ------------------------------------------------------------------------- */
 {
   register int    i, j, l;
-  register double ax = 0.0, ay = 0.0, corr;
+  register double ax = 0.0, ay = 0.0, corr, norm;
 
   for (i = 0; i < np; i++) {
     ax += x[i];
@@ -191,9 +189,14 @@ static void pcor (const int     np,
     corr = 0.0;
     for (i = 0; i < np; i++) {
       j = (i + l) % np;
-      corr += x[i] * y[j];
+      corr += (x[i] - *mx) * (y[j] - *my);
     }
     c[l] = corr / np;
+  }
+
+  norm  = c[0];
+  for (i = 0; i < nl; i++) {
+    c[i] /= norm;
   }
 }
 
@@ -224,16 +227,9 @@ static void normalize  (const int    nlag,
  * ------------------------------------------------------------------------- */
 {
   register int    i;
-  register double mean2, norm;
-
-  mean2 = msum * msum / navg;
 
   for (i = 0; i < nlag; i++) {
-    csum[i] -= mean2;
-  }
-  norm  = csum[0];
-  for (i = 0; i < nlag; i++) {
-    csum[i] /= norm;
+    csum[i] /= navg;
   }
 }
 

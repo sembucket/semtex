@@ -5,8 +5,9 @@
 #define SQR(a)     ((a) * (a))
 #define MIN(a, b)  ((a) < (b) ?     (a) : (b))
 #define MAX(a, b)  ((a) > (b) ?     (a) : (b))
+#define STR_MAX 256
 
-typedef float    real;
+typedef double   real;
 typedef struct  {real Re, Im;} complex;
 enum    err_lev {WARNING, ERROR, REMARK};
 

@@ -47,7 +47,7 @@
 #include "FFTutil.h"
 
 
-#define  MAXPNT  8192
+#define  MAXPNT  100000
 #define  DEFPOL  10
 #define  DEFEVL  512
 
@@ -111,17 +111,21 @@ int main (int argc, char *argv[])
 }
 
 
-static void doscale (real  fstart, real *fend, real fsamp,
-		     real  dia,    real  vel,  int   neval,
-		     real *scale,  real *interv )
+static void doscale (real  fstart,
+		     real* fend  ,
+		     real  fsamp ,
+		     real  dia   ,
+		     real  vel   ,
+		     int   neval ,
+		     real* scale ,
+		     real* interv)
 /* ------------------------------------------------------------------------- *
  * Compute the scaling factor for frequencies and spectral densities, also
  * the frequency interval.
  * ------------------------------------------------------------------------- */
 {
   *scale  = vel / (fsamp * dia);
-  if (*fend <= 0.0)
-    *fend = 0.5 / *scale;
+  if (*fend <= 0.0) *fend = 0.5 / *scale;
   *interv = (*fend - fstart) / (neval - 1);
 
   if ((fstart < 0.0) || (*fend > fsamp / (2.0 * *scale)))

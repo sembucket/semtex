@@ -20,7 +20,7 @@
 #include <math.h>
 #include "FFTutil.h"
 
-#define MAXCOL	32
+#define MAXCOL	64
 #define	MAXSTR	32
 #define NUMDIG	8
 
