@@ -677,9 +677,11 @@ istream& operator >> (istream& strm,
 
   for (j = 0; j < nfields; j++) {
     for (i = 0; i < nfields; i++)
-      if (D.fields[i] == fields[j]) break;
-    strm >> *D.u[j];
-    if (swap) D.u[j] -> reverse();
+      if (fields[j] == D.fields[i]) {
+	strm >>  *D.u[i];
+	if (swap) D.u[i] -> reverse();
+	break;
+      }
   }
     
   ROOTONLY if (strm.bad())
