@@ -25,7 +25,7 @@ void dmxv(double *A, int nra, double *B, int nca, double *C)
   register double  sum;
   register int     i, j;
 
-  for(i = 0; i < nra; i++) {
+  for (i = 0; i < nra; i++) {
     sum  = 0.0;
     for (j = 0; j < nca; j++) sum += (*a++) * B[j]; 
     *c++ = sum;
@@ -43,7 +43,7 @@ void smxv(float *A, int nra, float *B, int nca, float *C)
   register float  sum;
   register int     i, j;
 
-  for(i = 0; i < nra; i++) {
+  for (i = 0; i < nra; i++) {
     sum  = 0.0F;
     for (j = 0; j < nca; j++) sum += (*a++) * B[j]; 
     *c++ = sum;
