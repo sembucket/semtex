@@ -73,7 +73,7 @@ void   uniknot  (int nk, double *k);
  * Routines from operators.c:                                                *
  * ------------------------------------------------------------------------- */
 
-void  quadOps(int rule     ,	/* input: quadrature rule: GL or GLL         */
+void  quadOps(int rule     ,	/* input: quadrature rule: GL or LL          */
 	      int np       ,	/* input: number of knot points              */
 	      int nq       ,	/* input: number of quadrature points        */
 	      double  **kp ,	/* pointer to knot point storage             */
@@ -93,5 +93,16 @@ void  meshOps(int oldbasis   ,	/* input: element basis: STD or GLL          */
 	      double ***it   ,	/* pointer to transposed interpolant matrix  */
 	      double ***dr   ,	/* pointer to derivative matrix              */
 	      double ***dt   ); /* pointer to transposed derivative matrix   */
+
+/* ------------------------------------------------------------------------- *
+ * Routines from RCM.f:                                                      *
+ * ------------------------------------------------------------------------- */
+
+extern void genrcm_ (int*, int*, int*, int*, int*, int*);
+
+#define genrcm(neqns, xadj, adjncy, perm, mask, xls) \
+(_alpIreg[0] = neqns, genrcm_(_alpIreg, xadj, adjncy, perm, mask, xls))
+
+
 
 #endif
