@@ -1,9 +1,8 @@
 //////////////////////////////////////////////////////////////////////////////
 // helmholtz.C:  routines to solve elliptic problems in one variable.
+//
+// $Id$
 //////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <Sem.h>
 
@@ -29,7 +28,7 @@ void Helmholtz (Domain*     D      ,
 
   if   (forcing) (*Force = forcing) . transform (+1);
   else            *Force = 0.0;
-  
+
   ModalMatrixSys* M = new ModalMatrixSys
     (lambda2, beta, base, nmodes, D -> elmt, D -> b[0], method);
 

@@ -77,22 +77,26 @@ void PBCmgr::maintain (const integer    step   ,
 		       const AuxField** Uf     ,
 		       const integer    timedep)
 // ---------------------------------------------------------------------------
-// Update storage for evaluation of high-order pressure boundary condition.
-// Storage order for each edge represents a CCW traverse of element boundaries.
+// Update storage for evaluation of high-order pressure boundary
+// condition.  Storage order for each edge represents a CCW traverse
+// of element boundaries.
 //
-// If the velocity field varies in time on HOPB field boundaries (e.g. due
-// to time-varying BCs) the local fluid acceleration will be estimated
-// from input velocity fields by explicit extrapolation if timedep is true.
-// This correction cannot be carried out at the first timestep, since the
-// required extrapolation cannot be done.  If the acceleration is known,
-// (for example, a known reference frame acceleration) it is probably better
-// to leave timedep unset, and to use PBCmgr::accelerate() to add in the
-// accelerative term.  Note also that since grad P is dotted with n, the
-// unit outward normal, at a later stage, timedep only needs to be set if
-// there are wall-normal accelerative terms.
+// If the velocity field varies in time on HOPB field boundaries
+// (e.g. due to time-varying BCs) the local fluid acceleration will be
+// estimated from input velocity fields by explicit extrapolation if
+// timedep is true.  This correction cannot be carried out at the
+// first timestep, since the required extrapolation cannot be done.
+// If the acceleration is known, (for example, a known reference frame
+// acceleration) it is probably better to leave timedep unset, and to
+// use PBCmgr::accelerate() to add in the accelerative term.  Note
+// also that since grad P is dotted with n, the unit outward normal,
+// at a later stage, timedep only needs to be set if there are
+// wall-normal accelerative terms.  NB: The default value of timedep
+// is 1.
 //
-// Field* master gives a list of pressure boundary conditions with which to
-// traverse storage areas (note this assumes equal-order interpolations).
+// Field* master gives a list of pressure boundary conditions with
+// which to traverse storage areas (note this assumes equal-order
+// interpolations).
 //
 // No smoothing is done to high-order spatial derivatives computed here.
 // ---------------------------------------------------------------------------
