@@ -6,11 +6,6 @@
 
 #include <femdef.h>
 
-#if defined(__uxp__)
-#pragma global novrec
-#pragma global noalias
-#endif
-
 
 void dfill (integer n, double alpha, double* x, integer incx)
 {
