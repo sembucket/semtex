@@ -42,7 +42,7 @@ void eddyViscosity (const Domain* D ,
   Smagorinsky (Us, Uf, EV);
 
 #if !defined(DEBUG)
-  *EV -= Femlib::value ("REFVIS");
+  ROOTONLY EV -> addToPlane (0, -Femlib::value ("REFVIS"));
 #endif
 }
 
