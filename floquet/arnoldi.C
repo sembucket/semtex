@@ -330,9 +330,12 @@ static void EV_small (real**    Kseq   ,
 
   if (ier) message (routine, "error return from dgeev", ERROR);
 
-  // -- Print up eigenvectors as diagnostic.
+  // -- Print up (unsorted) eigenvalues and eigenvectors as diagnostic.
 
   if (verbose) {
+    info << "eval =" << endl;
+    for (i = 0; i < kdim; i++) info << setw (14) << wr[i]; info << endl;
+    for (i = 0; i < kdim; i++) info << setw (14) << wi[i]; info << endl;
     info << "zvec =" << endl;
     for (i = 0; i < kdim; i++) {
       for (j = 0; j < kdim; j++) 
