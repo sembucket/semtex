@@ -158,34 +158,34 @@ void Domain::loadbase ()
 //
 // Loads up base fields (U+V) -> adapts for multiple base fields.
 // Sets -> period, d_t, PBF, U, Udat
-  //
-  // very clumsy at moment because of difference between passing auxfield and
-  // field.. in loadfield
+//
+// very clumsy at moment because of difference between passing auxfield and
+// field.. in loadfield
 // ---------------------------------------------------------------------------
 {
-  const char     routine[]  = "Domain::loadbase()";
-  const integer  nT         = Geometry::nTotProc();
-  const integer  planeSize  = Geometry::planeSize();
-  const integer  MAX        = (int) Femlib::value ("MAX_BASE_F");
-  char       basefile[StrMax];
-  integer    dump_step, i, x, y;
-  real       first_time = 0.0, dump_time, last_time = -1.0;
-  vector<AuxField*>     PBF ;    // Periodic base file fields
-  vector<real*>         PBFdat;  // data storage area for periodic basefields.
-  vector<Field*>        U_temp;  // tempory storage for dump reads.
-  vector<real*>         U_alloc; // memory for U_temp
-  const integer ntot = Geometry::nTotProc();
+  const char        routine[]  = "Domain::loadbase()";
+  const integer     nT         = Geometry::nTotProc();
+  const integer     planeSize  = Geometry::planeSize();
+  const integer     MAX        = (int) Femlib::value ("MAX_BASE_F");
+  char              basefile[StrMax];
+  integer           dump_step, i, x, y;
+  real              first_time = 0.0, dump_time, last_time = -1.0;
+  vector<AuxField*> PBF ;    // Periodic base file fields
+  vector<real*>     PBFdat;  // data storage area for periodic basefields.
+  vector<Field*>    U_temp;  // tempory storage for dump reads.
+  vector<real*>     U_alloc; // memory for U_temp
+  const integer     ntot = Geometry::nTotProc();
 
-  U_temp.setSize(2);
-  U_alloc.setSize(2);
+  U_temp .setSize (2);
+  U_alloc.setSize (2);
 
-  for (i = 0; i < 2; i++){
+  for (i = 0; i < 2; i++) {
     U_alloc[i] = new real [(size_t) ntot];
-    U_temp[i]  = new Field(b[i],U_alloc[i],1,elmt,'U');
+    U_temp[i]  = new Field (b[i], U_alloc[i], 1, elmt, 'U');
   }
 
-  PBF.setSize(2*MAX);
-  PBFdat.setSize(2*MAX);
+  PBF   .setSize (2 * MAX);
+  PBFdat.setSize (2 * MAX);
   d_t = 0.0;
 
   cout << "-- Base Field condition    : ";
@@ -196,6 +196,7 @@ void Domain::loadbase ()
   // store fields in temp variables PBF,
  
   if (basefile) {
+
     cout << "read from file " << basefile << endl;    
 
     n_basefiles = 0;
@@ -211,15 +212,16 @@ void Domain::loadbase ()
 
       cout << "\t" << n_basefiles << "\t";
 
-      x = 0 + 2*n_basefiles;
-      y = 1 + 2*n_basefiles;
+      x = 0 + 2 * n_basefiles;
+      y = 1 + 2 * n_basefiles;
 
       // PBF memory allocation.
-      PBFdat[x] = new real[(size_t) nT];
-      PBFdat[y] = new real[(size_t) nT];
 
-      PBF[x] = new AuxField(PBFdat[x], 1, elmt, 'U');
-      PBF[y] = new AuxField(PBFdat[y], 1, elmt, 'V');
+      PBFdat[x] = new real [(size_t) nT];
+      PBFdat[y] = new real [(size_t) nT];
+
+      PBF[x] = new AuxField (PBFdat[x], 1, elmt, 'U');
+      PBF[y] = new AuxField (PBFdat[y], 1, elmt, 'V');
 
       cout << ".." << "\t";
 
@@ -243,84 +245,79 @@ void Domain::loadbase ()
     
     }
 
-    // accuracy of time is too low -> read from session tokens.
-    d_t = (real) Femlib::value ("BASE_DT");
+    // -- Set dt (time separating base field dumps) from session tokens.
+
+    d_t = Femlib::value ("BASE_DT");
     cout << endl << "\t" << "BASE_DT: d_t = " << d_t << endl;
 
     file.close();
 
-    for (i=0;i < 2;i++){
-      delete U_temp[i];
-      delete U_alloc[i];
+    for (i = 0; i < 2; i++) {
+      delete U_temp  [i];
+      delete U_alloc [i];
     }
 
     // if only one base file -> no periodic files.
-    if (n_basefiles == 1) {
-      // only 1 base field - set U[0,1] = PBF[0,1]
-      for(i = 0 ; i < 2; i++) { 
-      	U[i] = PBF[i];
-      }     
 
-    } else { // more than one base field set.
+    if (n_basefiles == 1)
 
-      // check that an even number of fields was given -> FFT limitation.
+      for (i = 0; i < 2; i++) U[i] = PBF[i];
+
+    else {
+
+      if (n_basefiles % 2) 
+	message (routine, "require even number of base fields for DFT", ERROR);
       
-      if (n_basefiles% 2) 
-	message(routine, "require even # of base fields", ERROR);
-      
-      // allocate memory for fourier transformed data
-      BaseUV.setSize(2);       // U & V real*
-      BaseUV[0] = new real[n_basefiles*planeSize];
-      BaseUV[1] = new real[n_basefiles*planeSize];
+      // -- Allocate memory for Fourier transformed data.
 
-      // zero new arrays -> if data odd, last entry = 0.0
+      BaseUV.setSize(2);
+      BaseUV[0] = new real [n_basefiles*planeSize];
+      BaseUV[1] = new real [n_basefiles*planeSize];
+
+      // -- Zero new arrays -> if data odd, last entry = 0.0.
+
       Veclib::zero (planeSize*n_basefiles, BaseUV[0],  1);
       Veclib::zero (planeSize*n_basefiles, BaseUV[1],  1);
 
-      // allocate memory for U[0] and U[1] & copy PBF[0,1] across
+      // -- Allocate memory for U[0] and U[1] & copy PBF[0,1] across.
+
       Udat.setSize(2);
-      Udat[0] = new real[(size_t) nT];
-      Udat[1] = new real[(size_t) nT];
+      Udat[0] = new real [(size_t) nT];
+      Udat[1] = new real [(size_t) nT];
 
       U[0] = new AuxField(Udat[0], 1, elmt, 'U');
       U[1] = new AuxField(Udat[1], 1, elmt, 'V');
       *U[0] = *PBF[0];
       *U[1] = *PBF[1];
 
-      // copy across PBF auxfields to BaseUV & delete PBF
-      for(int n = 0; n < n_basefiles; n++) { // was n++
-	PBF[2*n]   -> getPlane(0, BaseUV[0] + n*planeSize);
-	PBF[2*n+1] -> getPlane(0, BaseUV[1] + n*planeSize);
-		 
-	// PBF[n] -> getVel( (n/2)*planeSize, BaseUV[n%2] );
-	// delete PBF[n];
+      // -- Copy across PBF auxfields to BaseUV & delete PBF.
+
+      for (i = 0; i < n_basefiles; i++) {
+	PBF[2*i]   -> getPlane (0, BaseUV[0] + i*planeSize);
+	PBF[2*i+1] -> getPlane (0, BaseUV[1] + i*planeSize);
       }
 
-      // transform data from real to complex.
-      Femlib::DFTr (BaseUV[0], n_basefiles, planeSize, +1);
-      Femlib::DFTr (BaseUV[1], n_basefiles, planeSize, +1);      
+      // -- Transform data from real to complex.
 
+      Femlib::DFTr (BaseUV[0], n_basefiles, planeSize, FORWARD);
+      Femlib::DFTr (BaseUV[1], n_basefiles, planeSize, FORWARD);      
 
-      // scale fields > 0,1 now to avoid duplication.
+      // -- Scale fields > 0,1 to avoid duplication in Fourier interpolation.
       
-      for (int i = 2; i < n_basefiles; i++ ) {
+      for (i = 2; i < n_basefiles; i++) {
 	Blas::scal (planeSize, 2.0, BaseUV[0] + i*planeSize, 1);
 	Blas::scal (planeSize, 2.0, BaseUV[1] + i*planeSize, 1);	
       }
       
-      // set period time.
       period = d_t * n_basefiles;
       cout << "   - " << "Period time = "<< n_basefiles << " x " << d_t
 	   << " = " << period << endl;
-
     }
     
-  } else {
+  } else
     message (routine, "Error opening base field file", ERROR);
-  }
 
   cout << endl;
-  
 }
 
 
@@ -479,6 +476,7 @@ integer Domain::loadfield (ifstream&       strm      ,
   }
 
   if (method == BASE_LOAD) {
+
     // check that field is only 2D
     if (nfields!=3) message (routine, "Base Field number != 3", ERROR);
     
@@ -495,7 +493,7 @@ integer Domain::loadfield (ifstream&       strm      ,
     delete Pmem;
     delete P;
 
-  } else { // method = STD_LOAD
+  } else {
 
     for (j = 0; j < nfields; j++) {
       for (i = 0; i < nfields; i++)
@@ -509,7 +507,6 @@ integer Domain::loadfield (ifstream&       strm      ,
 
   if (strm.bad()) message (routine, "failed reading field file", ERROR);
 
-  // succesful field read 
   return 1;
 }
 
