@@ -53,5 +53,66 @@ modav 123	# Average & plot modal energies
                 } else {
 		  POINTS  ki _lavg
 		}
-
-	
+spectrum 4	# Compute the spectrum of second argument
+		# spectrum takes 4 arguments :
+	        # 1: input, 
+		#    a set representing time values (presumed equi-spaced)
+	        # 2: input,
+		#    a set of values whose spectral density is found
+		# 3: output,
+		#    the frequencies at which the spectrum is computed
+		# 4: output,
+		#    the corresponding spectrum
+		#
+		# The spectrum has N/2+1 points, where N is the
+		# number of data input. 
+                # The integral of the spectrum is the variance.
+		#
+		# Prior to computing the periodogram of $2,
+		# its mean value is removed
+	        # and the Welch (parabolic) data window applied.
+		#
+		# The 5 peak PSDs and their frequencies are echoed
+		# to the screen.
+		#
+		set _t = $1
+		set _u = $2
+		define _N dimen(_t)
+		MinMax _t _tmin _tmax
+		set _ur = _u - ( SUM(_u)/$_N )  # Real part = input - mean
+		set DIMEN(_ui) = DIMEN(_ur)    	# Imag part = 0
+		#
+		# Apply the Welch window.
+		#
+		set _jf = 0, DIMEN(_ur)-1
+		set _wf = 1 - 4*((_jf -0.5*$_N)**2)/($_N**2)
+		set _ur = _ur * _wf
+		define _wss ($_N*sum(_wf*_wf))
+		#
+		# Make spectral estimates.
+		#
+		fft 1 _ur _ui _fur _fui
+		set _upow = 2*($_tmax-$_tmin)*(_fur*_fur+_fui*_fui)/$_wss
+		set _i2   = 0, dimen(_t)/2
+		set _freq = _i2
+		set $3 = _freq[_i2] / ($_tmax - $_tmin) * ($_N)/($_N+1)
+		set $4 = _upow[_i2]
+		#
+		# Echo the peak values.
+		#
+		set _utmp = $4
+		set _ftmp = $3
+		sort { _utmp _ftmp } 
+		set i = DIMEN(_utmp)-1, DIMEN(_utmp)-5, -1
+		set  PSD = _utmp[i]
+		set  f   = _ftmp[i]
+		echo "5 peak spectral values:"
+                print '%10e %10e\n' { f PSD }
+		#
+		# Clean up.
+		#
+		define i { _t _u _ur _ui _jf _wf _fur _fui \
+                           _upow _i2 _utmp _ftmp _f _PSD } 
+		foreach v { $!!i} { DEFINE $v DELETE }
+		define  i { _N _wss _tmin _tmax } 
+		foreach v { $!!i } { DELETE $v }

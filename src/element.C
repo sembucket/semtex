@@ -257,7 +257,7 @@ void Element::map ()
   // effects in LES.  This example is for a pipe flow, radius 0.5.
   // Femlib::prepVec
   // ("delta x y","delta*sqrt(1-exp(-(75.27*abs(0.5-sqrt(x*x+y*y)))^3))");
-  // Femlib__parseVec (nTot(), delta, xmesh, ymesh, delta);
+  // Femlib__parseVec (_npnp, _delta, _xmesh, _ymesh, _delta);
 #endif
 
   // -- Check for family redundancies.
@@ -1428,11 +1428,15 @@ integer Element::locate (const real    x    ,
 // If guess = 0 (the default argument), the input value of (r, s) is used
 // as an initial guess for N--R iteration.  Otherwise the  (r, s) value that
 // corresponds to the closest point in the Element mesh to (x, y) is used.
-// Point tolerances can be changed by setting token TOL_POS.
+//
+// Point tolerances can be changed by setting token TOL_POS, but
+// usually it's better to increase NR_MAX above its default, since
+// TOL_POS is used both as a location test at end of iteration, and on
+// the N--R forcing term.
 // ---------------------------------------------------------------------------
 {
   static real         EPS    = 0.0;
-  const integer       MaxItn = 8;
+  static integer      MaxItn = 0;
   const real          DIVERG = 20.0;
   real                *J, *F, *ir, *is, *dr, *ds, *tp;
   static vector<real> work (5 * _np + 6);
@@ -1446,7 +1450,8 @@ integer Element::locate (const real    x    ,
   J  = ds + _np;
   F  = J  + 4;
 
-  if (EPS == 0.0) EPS = Femlib::value ("TOL_POS");
+  if (EPS == 0.0) EPS    = Femlib::value ("TOL_POS");
+  if (MaxItn== 0) MaxItn = Femlib::value ("NR_MAX");
 
   if (guess) {
     vector<real> tmp (2 * _npnp);
@@ -1466,18 +1471,24 @@ integer Element::locate (const real    x    ,
     
     i = Veclib::imin (_npnp, tx, 1);
 
-    if (tx[i] - diag * diag > 0.0) return 0;
+    if (tx[i] - diag * diag > 0.0) {
+#if defined (DEBUG)
+      if ((int) Femlib::value("VERBOSE") > 3) cerr << "N" << endl;
+#endif
+      return 0;
+    }
 
     j = i % _np;
     i = (i - j) / _np;
 
-    r = knot[i];
-    s = knot[j];
-    
-    if      (r >  0.99) r =  0.99;
-    else if (r < -0.99) r = -0.99;
-    if      (s >  0.99) s =  0.99;
-    else if (s < -0.99) s = -0.99;
+    r = knot[j];
+    s = knot[i];
+#if 0
+    if      (r >  0.999) r =  0.999;
+    else if (r < -0.999) r = -0.999;
+    if      (s >  0.999) s =  0.999;
+    else if (s < -0.999) s = -0.999;
+#endif
   }
 
   i = 0;
@@ -1500,19 +1511,18 @@ integer Element::locate (const real    x    ,
     r += F[0];
     s += F[1];
 
-    if (fabs (r) > DIVERG || fabs (s) > DIVERG) {
+    if (fabs (r) > DIVERG && fabs (s) > DIVERG) {
 #if defined (DEBUG)
       if ((int) Femlib::value("VERBOSE") > 3) cerr << "D" << endl;
 #endif
       return 0;
     }
-
   } while (++i < MaxItn && (fabs (F[0]) > EPS || fabs (F[1]) > EPS));
 
 #if defined (DEBUG)
   if ((int) Femlib::value("VERBOSE") > 3) {
     if (i == MaxItn) cerr << "M" << endl;
-    else if (fabs (r) > 1.0 + EPS && fabs(s) > 1.0 + EPS) cerr << "O" << endl;
+    else if (fabs (r) > 1.0 + EPS || fabs(s) > 1.0 + EPS) cerr << "O" << endl;
   }
 #endif
 
