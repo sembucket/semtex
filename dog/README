@@ -85,13 +85,13 @@ N_BASE  N_PERT  N_Z    COMPLEXITY
 OR, categorizing by symmetries of base flow and dimensionality and
 symmetry of perturbation:
 
-N_BASE  N_PERT  N_Z    CATEGORY
- 2       2       1     O(2)/2D		Working
- 2       3       1     O(2)/3D/SYM	Working / being fixed (call!)
- 2       3       2     O(2)/3D		Under construction
- 3       2       1     SO(2)/2D		Impossible (?)
- 3       3       1     SO(2)/2D		Maybe one day
- 3       3       2     SO(2)/3D		Working
+N_BASE  N_PERT  N_Z    CATEGORY         CARTESIAN     CYLINDRICAL
+ 2       2       1      O(2)/2D		 OK            ?
+ 2       3       1      O(2)/3D/SYM	 OK            X
+ 2       3       2      O(2)/3D		 X             X
+ 3       2       1      SO(2)/2D	 --     NA     --
+ 3       3       1      SO(2)/2D	 --     NA     --
+ 3       3       2      SO(2)/3D	 OK likely     OK
 
 Summary of additional TOKENS and session file requirements
 ----------------------------------------------------------

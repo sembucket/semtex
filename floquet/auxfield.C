@@ -279,19 +279,17 @@ AuxField& AuxField::gradient (const int dir)
 // half-complex (and the sign of z-gradient may need changing).
 // ---------------------------------------------------------------------------
 {
-  const char          routine[] = "AuxField::gradient";
-  const int           nel  = Geometry::nElmt();
-  const int           np   = Geometry::nP();
-  const int           npnp = np  * np;
-  const int           ntot = nel * npnp;
-  const int           nP   = Geometry::planeSize();
-  static vector<real> work (2 * nP);
-  register real       *xr, *xs, *tmp;
-  register int        i, k;
-  const real          **DV, **DT;
-  static const real   beta = Femlib::value ("BETA");
-  static const int    twoD = (Geometry::nDim()) == 2;
-  
+  const char   routine[] = "AuxField::gradient";
+  const int    nel  = Geometry::nElmt();
+  const int    np   = Geometry::nP();
+  const int    npnp = np  * np;
+  const int    ntot = nel * npnp;
+  const int    nP   = Geometry::planeSize();
+  const real   **DV, **DT;
+  vector<real> work (2 * nP);
+  real         *xr, *xs, *tmp;
+  int          i, k;
+
   Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
   switch (dir) {
@@ -333,12 +331,11 @@ AuxField& AuxField::gradient (const int dir)
     break;
 
   case 2: {
+    const real beta = Femlib::value ("BETA");
     xr = &work[0];
     xs = xr + nP;
 
-    if (twoD)			// -- Three component, two-dimensional.
-      Veclib::zero (nP, _plane[0], 1);
-    else if (_nz == 1)          // -- Half-complex (may need sign change).
+    if (_nz == 1)          // -- Half-complex (may need sign change).
       Blas::scal (nP, beta, _plane[0], 1);
     else {			// -- Full-complex.
       Veclib::copy (nP,        _plane[0], 1, xr,        1);
@@ -417,10 +414,6 @@ ofstream& operator << (ofstream& strm,
 // receiving data from other processors.  This ensures that the data
 // are written out in the correct order, and that only one processor
 // needs access to the output stream.
-//
-// UNIX interface used for IO on Fujitsu in order to avoid buffering
-// done by C++.  For this to work strm has to be of ofstream rather
-// than ostream class.
 // ---------------------------------------------------------------------------
 {
   const char   routine[] = "ofstream<<AuxField";
@@ -428,47 +421,6 @@ ofstream& operator << (ofstream& strm,
   const int    nP    = Geometry::nPlane();
   const int    nProc = Geometry::nProc();
   register int i, k;
-
-#if defined (__uxp__)
-  const int fd = strm.rdbuf() -> fd();
-  int   n;
-
-  if (nProc > 1) {
-
-    ROOTONLY {
-      vector<real> buffer (NP);
-
-      strm.rdbuf() -> sync();
-
-      for (i = 0; i < F._nz; i++)
-	n = write (fd, F._plane[i], nP * sizeof (real));
-	if (n != nP * sizeof (real))
-	  message (routine, "unable to write binary output", ERROR);
-
-      for (k = 1; k < nProc; k++)
-	for (i = 0; i < F._nz; i++) {
-	  Femlib::recv (buffer(), NP, k);
-	  n = write (fd, buffer(), nP * sizeof (real));
-	  if (n != nP * sizeof (real))
-	    message (routine, "unable to write binary output", ERROR);
-	}
-
-    } else for (i = 0; i < F._nz; i++) Femlib::send (F._plane[i], NP, 0);
-
-  } else {
-
-    strm.rdbuf() -> sync();
-
-    for (i = 0; i < F._nz; i++) {
-      n = write (fd, F._plane[i], nP * sizeof (real));
-      if (n != nP * sizeof (real))
-	message (routine, "unable to write binary output", ERROR);
-    }
-  }
-
-  strm.rdbuf() -> sync();
-
-#else
 
   if (nProc > 1) {
 
@@ -499,8 +451,6 @@ ofstream& operator << (ofstream& strm,
     }
   }
 
-#endif
-
   return strm;
 }
 
@@ -512,9 +462,6 @@ ifstream& operator >> (ifstream& strm,
 //
 // As for the write operator, only the root processor accesses strm.
 // This precaution is possibly unnecessary for input.
-//
-// UNIX interface used for IO on Fujitsu in order to avoid buffering
-// done by C++.
 // ---------------------------------------------------------------------------
 {
   const char   routine[] = "ifstream>>AuxField";
@@ -522,51 +469,6 @@ ifstream& operator >> (ifstream& strm,
   const int    NP    = Geometry::planeSize();
   const int    nProc = Geometry::nProc();
   register int i, k;
-
-#if defined (__uxp__)
-  const int fd = strm.rdbuf() -> fd();
-  int   n;
-
-  if (nProc > 1) {
-
-    ROOTONLY {
-      vector<real> buffer (NP);
-
-      strm.rdbuf() -> sync();     
-
-      for (i = 0; i < F._nz; i++) {
-	n = read (fd, F._plane[i], nP * sizeof (real));
-	if (n != nP * sizeof (real))
-	  message (routine, "unable to read binary input", ERROR);
-	Veclib::zero (NP - nP, F._plane[i] + nP, 1);
-      }
-
-      for (k = 1; k < nProc; k++) {
-	for (i = 0; i < F._nz; i++) {
-	  n = read (fd, buffer(), nP*sizeof (real));
-	  if (n != nP * sizeof (real))
-	    message (routine, "unable to read binary input", ERROR);
-	  Veclib::zero (NP - nP, buffer() + nP, 1);
-	  Femlib::send (buffer(), NP, k);
-	}
-      }
-    } else for (i = 0; i < F._nz; i++) Femlib::recv (F._plane[i], NP, 0);
-
-  } else {
-
-    strm.rdbuf() -> sync();
-
-    for (i = 0; i < F._nz; i++) {
-      n = read (fd, F._plane[i], nP * sizeof (real));
-      if (n != nP * sizeof (real))
-	message (routine, "unable to read binary input", ERROR);
-      Veclib::zero (NP - nP, F._plane[i] + nP, 1);
-    }
-  }
-
-  strm.rdbuf() -> sync();    
-
-#else
 
   if (nProc > 1) {
 
@@ -600,7 +502,6 @@ ifstream& operator >> (ifstream& strm,
       Veclib::zero (NP - nP, F._plane[i] + nP, 1);
     }
   }
-#endif
 
   return strm;
 }
@@ -742,7 +643,7 @@ void AuxField::couple (AuxField* v  ,
 // half-complex case, where v~, w~ are both pure real.
 // ---------------------------------------------------------------------------
 {
-  if (Geometry::nDim() < 3) return;
+  if (Geometry::problem() == Geometry::O2_2D) return;
 
   const char   routine[] = "Field::couple";
   const int    nP        =  Geometry::planeSize();

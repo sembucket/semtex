@@ -1000,7 +1000,7 @@ void Field::coupleBCs (Field*    v  ,
 // equation, do nothing for the zeroth Fourier mode.
 // ---------------------------------------------------------------------------
 {
-  if (Geometry::nDim() < 3) return;
+  if (Geometry::problem() == Geometry::O2_2D) return;
 
   const char   routine[] = "Field::couple";
   const int    nL        =  v -> _nline;
@@ -1075,15 +1075,17 @@ real Field::modeConstant (const char name,
 // the "Fourier" constant in the Helmholtz equations is +/-1.
 // ---------------------------------------------------------------------------
 {
-  if (Geometry::nDim()    <          3          ||
-      Geometry::system() == Geometry::Cartesian || 
-      name               ==         'c'         ||
-      name               ==         'p'         ||
-      name               ==         'u'          ) return beta * mode;
+  const char routine[] = "Field::modeConstant";
+
+  if (Geometry::problem() == Geometry::O2_2D     ||
+      Geometry::system()  == Geometry::Cartesian || 
+      name                ==         'c'         ||
+      name                ==         'p'         ||
+      name                ==         'u'          ) return beta * mode;
 
   if      (name == 'v') return beta * mode + 1.0;
   else if (name == 'w') return beta * mode - 1.0;
-  else message ("Field::modeConstant", "unrecognized Field name given", ERROR);
+  else message (routine, "unrecognized Field name given", ERROR);
 
   return -1.0;			// -- Never happen.
 }

@@ -67,14 +67,6 @@ Analyser::Analyser (Domain* D   ,
     if (!his_strm) message (routine, "can't open history file", ERROR);
   }
 
-  // -- Initialize averaging.
-
-  if (static_cast<int>(Femlib::value ("AVERAGE"))) {
-    vector<AuxField*> extra (0);
-    stats = new Statistics (D, extra);
-  } else                              
-    stats = 0;
-
   // -- Set up for output of modal energies every IO_CFL steps.
 
   mdl_strm.open (strcat (strcpy (str, src -> name), ".mdl"), ios::out); 
@@ -142,16 +134,9 @@ void Analyser::analyse (AuxField** work)
       for (j = 0; j < NF; j++) his_strm << setw(15) << tmp[j];
       his_strm << endl;
     }
-
-    // -- Statistical analysis.
-
-    if (stats) stats -> update (work);
   }
 
-  // -- Field and statistical dumps.
-
   src -> dump();
-  if (stats) stats -> dump();
 }
 
 
@@ -160,22 +145,15 @@ void Analyser::modalEnergy ()
 // Print out modal energies per unit area, output by root processor.
 // ---------------------------------------------------------------------------
 {
-  const int    DIM   = Geometry::nDim();
-  const int    N     = Geometry::nModeProc();
-  const int    nProc = Geometry::nProc();
-  register int i, m;
-  vector<real> ek (N);
+  const int NC = Geometry::nPert();
+  real      ek = 0.0;
 
-  for (m = 0; m < N; m++) {
-    ek[m] = 0.0;
-    for (i = 0; i < DIM; i++) ek[m] += src -> u[i] -> mode_L2 (m);
-  }
+  for (int i = 0; i < NC; i++) ek += src -> u[i] -> mode_L2 (0);
 
-  for (m = 0; m < N; m++)
-    mdl_strm << setw(10) << src -> time 
-	     << setw( 5) << m 
-	     << setw(15) << ek[m]
-	     << endl;
+  mdl_strm << setw(10) << src -> time 
+	   << setw( 5) << 1
+	   << setw(15) << ek
+	   << endl;
 }
 
 
@@ -185,37 +163,27 @@ void Analyser::divergence (AuxField** Us) const
 // is used as work area.
 // ---------------------------------------------------------------------------
 {
-  const Geometry::CoordSys space = Geometry::system();
+  const int NC = Geometry::nPert();
+  int       i;
 
-  const int    DIM = Geometry::nPert();
-  const int    N   = Geometry::nModeProc();
-  register int i, m;
-  real         L2 = 0.0;
-
-  if (space == Geometry::Cartesian) {
-
-    for (i = 0; i < DIM; i++) {
+  if (Geometry::system() == Geometry::Cartesian) {
+    for (i = 0; i < NC; i++) {
       *Us[i] = *src -> u[i];
       Us[i] -> gradient (i);
     }
-
-  } else {			// -- Cylindrical.
-
-    for (i = 0; i < DIM; i++) *Us[i] = *src -> u[i];
+  } else {
+    for (i = 0; i < NC; i++) *Us[i] = *src -> u[i];
     Us[1] -> mulR();
-    for (i = 0; i < DIM; i++)  Us[i] -> gradient (i);
+    for (i = 0; i < NC; i++)  Us[i] -> gradient (i);
     Us[1] -> divR();
-    if (DIM == 3) Us[2] -> divR();
-
+    if (NC == 3) Us[2] -> divR();
   }
 
-  if (DIM == 3) *Us[2] *= -1.0;	// -- Third velocity component is imaginary.
+  if (Geometry::problem() == Geometry::O2_3D_SYMM) *Us[2] *= -1.0;
 
-  for (i = 1; i < DIM; i++) *Us[0] += *Us[i];
+  for (i = 1; i < NC; i++) *Us[0] += *Us[i];
 
-  for (m = 0; m < N; m++) L2 += Us[0] -> mode_L2 (m);
-
-  cout << "-- Divergence Energy: " << L2 << endl;
+  cout << "-- Divergence Energy: " << Us[0] -> mode_L2 (0) << endl;
 }
 
 
@@ -231,7 +199,7 @@ void Analyser::estimateCFL () const
   int        percent;
 
   CFL_dt = max (src -> u[0] -> CFL (0), src -> u[1] -> CFL (1));
-  if (Geometry::nDim() == 3) CFL_dt = max (CFL_dt, src -> u[2] -> CFL (2));
+  if (Geometry::nPert() == 3) CFL_dt = max (CFL_dt, src -> u[2] -> CFL (2));
 
   dt_max  = SAFETY * CFL_max / CFL_dt;
   percent = static_cast<int>(100.0 * dt / dt_max);

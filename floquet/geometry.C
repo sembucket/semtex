@@ -18,7 +18,6 @@
 
 int Geometry::_pid    = 0;
 int Geometry::_nproc  = 0;
-int Geometry::_ndim   = 0;
 int Geometry::_np     = 0;
 int Geometry::_nz     = 0;
 int Geometry::_nzp    = 0;
@@ -58,7 +57,7 @@ void Geometry::set (const int nel  ,
 
   _nz = _nzp = static_cast<int>(Femlib::value ("N_Z"));
 
-  _ndim = (_nbase == _npert && _nz == 1) ? 2 : 3;
+//  _ndim = (_nbase == _npert && _nz == 1) ? 2 : 3;
 
   if      (_nbase == 2 && _npert == 2 && _nz == 1) _cat = O2_2D;
   else if (_nbase == 2 && _npert == 3 && _nz == 1) _cat = O2_3D_SYMM;

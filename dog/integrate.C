@@ -2,7 +2,7 @@
 // integrate.C: integrate unsteady linearised Navier--Stokes problem
 // forward in time.
 //
-// Copyright (C) 2002,2003 Hugh Blackburn
+// Copyright (C) 2000,2003 Hugh Blackburn
 //
 // This version implements linearised advection terms and evolves a
 // single Fourier mode.  Both the number of velocity components in the
@@ -20,7 +20,7 @@
 
 #include "stab.h"
 
-static int                NORD, NPERT, NBASE, NZ, CYL, C3D;
+static int                NORD, NPERT, NBASE, NZ, CYL, PROB;
 static vector<MatrixSys*> MS;
 
 static void        linAdvect  (Domain*, AuxField**, AuxField**);
@@ -50,7 +50,8 @@ void integrate (Domain*       D,
   NZ    = Geometry::nZ();
   NORD  = static_cast<int>(Femlib::value ("N_TIME"));
   CYL   = Geometry::system() == Geometry::Cylindrical;
-  C3D   = CYL && Geometry::nDim() == 3;
+  PROB  = Geometry::problem();
+//  C3D   = CYL && Geometry::nDim() == 3;
 
   int        i, j, k;
   const real dt    = Femlib::value ("D_T");
@@ -90,7 +91,8 @@ void integrate (Domain*       D,
 
     // -- Apply coupling to radial & azimuthal velocity BCs.
 
-    if (C3D) Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
+    if (CYL && PROB != Geometry::O2_2D)
+      Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
   }
     
   // -- Because we have to restart from scratch on each call, zero these:
@@ -141,12 +143,13 @@ void integrate (Domain*       D,
 
     // -- Viscous correction substep.
 
-    if (C3D) {
+    if (CYL && PROB != Geometry::O2_2D) {
       AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
       AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     }
     for (i = 0; i < NPERT; i++) Solve (D, i, Uf[0][i], MS[i]);
-    if (C3D) AuxField::couple (D -> u[1], D -> u[2], INVERSE);
+    if (CYL && PROB != Geometry::O2_2D)
+      AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 
     // -- Process results of this step.
     
@@ -283,9 +286,9 @@ static void setPForce (const AuxField** Us,
 
   for (i = 0; i < NPERT; i++) (*Uf[i] = *Us[i]) . gradient(i);
 
-  if (NPERT == 3 && NBASE < 3) *Uf[2] *= -1.0; // -- 3D/3C/Symmetry.
+  if (PROB == Geometry::O2_3D_SYMM) *Uf[2] *= -1.0;
 
-  if (C3D) Uf[2] -> divR();	// -- In error.
+  if (CYL && PROB != Geometry::O2_2D) Uf[2] -> divR();
 
   for (i = 1; i < NPERT; i++) *Uf[0] += *Uf[i];  
 
@@ -315,9 +318,9 @@ static void project (const Domain* D ,
   for (i = 0; i < NPERT; i++) {
     (*Uf[i] = *D -> u[NPERT]) . gradient (i);
 
-    if (C3D && i == 2) Uf[2] -> divR();	// -- Cylindrical && i==2 is enough.
+    if (CYL && i == 2) Uf[2] -> divR();
 
-    Us[i] -> axpy (-dt, *Uf[i]);
+    Us[i] -> axpy    (-dt, *Uf[i]);
     Field::swapData (Us[i], Uf[i]);
    
     *Uf[i] *= alpha;
@@ -330,7 +333,7 @@ static MatrixSys** preSolve (const Domain* D)
 // Set up ModalMatrixSystems for system with only 1 Fourier mode.
 // ---------------------------------------------------------------------------
 {
-  const int    mode  = (Geometry::nDim() == 2) ? 0 : 1;
+  const int    mode  = (PROB == Geometry::O2_2D) ? 0 : 1;
   const real   beta  = mode * Femlib::value ("BETA");
   const int    itLev = static_cast<int>(Femlib::value ("ITERATIVE"));
 
@@ -427,7 +430,7 @@ static void Solve (Domain*    D,
 
     // -- We need a temporary matrix system for a viscous solve.
 
-    const int mode = (Geometry::nDim() == 2) ? 0 : 1;
+    const int mode = (PROB == Geometry::O2_2D) ? 0 : 1;
     const int beta = mode * static_cast<int>(Femlib::value ("BETA"));
     const int Je   = min (step, NORD);    
     vector<real>  alpha (Je + 1);

@@ -154,7 +154,7 @@ void PBCmgr::maintain (const int        step   ,
       UxRe = Ux -> _plane[0];
       UyRe = Uy -> _plane[0];
 
-      if (Geometry::nDim() == 2) { // -- Real perturbation.
+      if (Geometry::problem() == Geometry::O2_2D) { // -- Real perturbation.
 	B -> curlCurl (0, UxRe, 0, UyRe, 0, 0, 0,    xr, 0, yr, 0);
       } else {			    // -- Half-complex perturbation.
 	UzIm = Uz -> _plane[0];
