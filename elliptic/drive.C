@@ -1,154 +1,102 @@
 //////////////////////////////////////////////////////////////////////////////
-// drive.C: compute solution to elliptic problem, (compare to exact solution).
+// drive.C
 //
-// Usage:
-// =====
+// SYNOPSIS:
+// --------
+// Compute solution to elliptic problem, (compare to exact solution).
+//
+// USAGE:
+// -----
 // elliptic [options] session
 //   options:
 //   -h        ... print usage prompt
 //   -i        ... use iterative solver
-//   -O[<num>] ... define bandwidth optimization level  
 //   -v[v...]  ... increase verbosity level
 //
-// Files:
-// =====
-// Set-up and execution of the problem is controlled by a session file,
-// which is block-structured.  Each block has a (pre-defined) name and
-// is delimited by '{' & '}'.  Contents of session files are case-insensitive,
-////except* for function strings and named floating-point parameters.
-// Required blocks are: PROBLEM, PARAMETER, BOUNDARY and MESH.
-// Characters between block names and the opening '{' are ignored, and
-// can serve as comments.
-// 
-// PROBLEM block
-// -------------
-// This determines the type of problem to be solved and the kind of
-// geometry used (Cartesian, cylindrical, ...).
 //
-// (1)  Currently can solve Helmholtz (i.e. also Possion, Laplace) problems.
-// (2)  The default (and only current) geometry is 2D Cartesian.
-//
-// Example for a Helmholtz problem:
-//
-// problem {
-// helmholtz
-// [geometry   2D-Cartesian]
-// [forcing    function]
-// [exact      function]
-// }
-//
-// (1)  For a Helmholtz problem, the parameter "LAMBDA2" should be set in the
-//      floating point parameters section.  The default value (pre-installed)
-//      is zero, which converts the Helmholtz problem to a Poisson problem.
-// (2)  The forcing function describes (temporo-spatially-varying) forcing.
-//      If omitted, and LAMBDA2 == 0.0, the problem degenerates to Laplace.
-// (3)  Forcing function can use variables 'x' and 'y' for spatial variation
-//      and 't' for temporal variation.  Function should contain no spaces,
-//      which terminate scanning.
-//
-// PARAMETER block:
-// ---------------
-// In order, there should be option, integer and floating-point parameters.
-// The number of each type is given at the start of each sub-block.
-//
-// BOUNDARY block:
-// --------------
-// Boundary conditions for integer-tagged, non-overlapping boundary segments.
-// The number of segments is given at the start of the block.
-//
-// MESH block:
-// ----------
-// Commences with a list of vertices, followed by a list of elements with
-// corner vertices given as tags in vertex list.  The non-overlapping
-// boundary sectors are supplied as lists of vertices, together with an
-// integer tag which ties back to the BOUNDARY block.  Last comes
-// a list of curved edge specifiers, which are defined on a element-edge
-// basis.
-//
-// Program development by:
-// ======================
+// Author
+// ------
 // Hugh Blackburn
-// CSIRO
-// Division of Building, Construction and Engineering
+// CSIRO Division of Building, Construction and Engineering
 // P.O. Box 56
 // Highett, Vic 3190
 // Australia
 // hmb@dbce.csiro.au
-//
 //////////////////////////////////////////////////////////////////////////////
 
 static char
 RCSid[] = "$Id$";
 
-#include <Fem.h>
+#include <Sem.h>
 #include <new.h>
 
-static char  prog[]  = "elliptic";
-static void  memExhaust () { message ("new", "free store exhausted", ERROR); }
+static char prog[] = "elliptic";
+static void memExhaust () { message ("new", "free store exhausted", ERROR); }
+
+extern void Helmholtz (Domain*, const char*);
+static void getargs   (int, char**, char*&);
+static void setup     (FEML&, char*&, char*&);
 
 
-extern void      Helmholtz  (Domain*, char*, const real&);
-static void      getArgs    (int, char**, char*&);
-static void      setUp      (ifstream&, char*&, char*&);
-static ofstream* createFile (const Domain*);
-
-
-int  main (int argc, char *argv[])
+int main (int    argc,
+	  char** argv)
 // ---------------------------------------------------------------------------
 // Driver.
 // ---------------------------------------------------------------------------
 {
   set_new_handler (&memExhaust);
 #ifndef __DECCXX
-  ios::sync_with_stdio ();
+  ios::sync_with_stdio();
 #endif
   
-  ifstream*  input = new ifstream;
-  ofstream*  output;
-  char*      session;
-  char*      forcing = 0;
-  char*      exact   = 0;
+  char* session;
+  char* forcing = 0;
+  char* exact   = 0;
+  char  fields[StrMax];
 
-  Femlib::prep ();
+  Femlib::prep();
 
-  getArgs       (argc, argv, session);
-  input -> open (session);
-  setUp         (*input, forcing, exact);
+  getargs (argc, argv, session);
+  strcpy  (fields, "u");
 
-  Mesh*    M = preProcess (*input);
-  Domain*  D = new Domain (*M, session, Femlib::integer ("N_POLY"));
-  D -> u[0] -> setName ('u');
+  FEML  F (session);
 
-  input -> close ();
+  setup (F, forcing, exact);
 
-  output = createFile (D);
+  Mesh   M (F);
+  BCmgr  B (F);
+  Domain* D = new Domain (F, M, B, fields, session);
 
-  Helmholtz (D, forcing, Femlib::parameter ("LAMBDA2"));
+  D -> initialize();
 
-  if (exact) D -> u[0] -> errors (exact);
+  Helmholtz (D, forcing);
 
-  D -> dump (*output);
-  output -> close ();
+  if (exact) D -> u[0] -> errors (M, exact);
+
+  char     outname[StrMax];
+  ofstream output (strcat (strcpy (outname, F.root()), ".fld"));
+  D -> dump  (output);
 
   return EXIT_SUCCESS;
 }
 
 
-static void getArgs (int argc, char** argv, char*& session)
+static void getargs (int    argc   ,
+		     char** argv   ,
+		     char*& session)
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
 // arguments.  Last argument is name of a session file, not dealt with here.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "getArgs";
+  char routine[] = "getargs";
   char buf[StrMax], c;
   int  level;
-  char usage[]   =
+  char usage[] =
     "Usage: %s [options] session-file\n"
     "  [options]:\n"
     "  -h       ... print this message\n"
     "  -i       ... use iterative solver\n"
-    "  -O[<n>]  ... set bandwidth optimization level 0, 1 (default) or 2\n"
     "  -v[v...] ... increase verbosity level\n";
  
   while (--argc  && **++argv == '-')
@@ -159,24 +107,11 @@ static void getArgs (int argc, char** argv, char*& session)
       exit (EXIT_SUCCESS);
       break;
     case 'i':
-      Femlib::option ("ITERATIVE", 1);
-      break;
-    case 'O':
-      if (*++argv[0])
-        level = atoi(*argv);
-      else {
-        --argc;
-        level = atoi(*++argv);
-      }
-      if (level < 0 || level > 3) {
-	fprintf (stdout, usage, prog);
-	exit (EXIT_FAILURE);	  
-      } else
-	Femlib::option ("OPTIMIZE", level);
+      Femlib::value ("ITERATIVE", 1);
       break;
     case 'v':
       do
-	Femlib::option ("VERBOSE", Femlib::option ("VERBOSE") + 1);
+	Femlib::value ("VERBOSE", (int) Femlib::value ("VERBOSE") + 1);
       while (*++argv[0] == 'v');
       break;
     default:
@@ -191,79 +126,56 @@ static void getArgs (int argc, char** argv, char*& session)
 }
 
 
-static void setUp (ifstream& file, char*& force, char*& exact)
+static void setup (FEML&  feml ,
+		   char*& force,
+		   char*& exact)
 // ---------------------------------------------------------------------------
-// Return a function to solve, fill in optional strings for distributed 
-// forcing and exact solution, if known.
+// Try to load forcing function string and exact solution string from USER
+// section of FEML file.  The section is not required to be present.
+// 
+// Expect something in the form:
+// <USER>
+// forcing 0
+// exact   sin(TWOPI*x)*sinh(TWOPI*y)/sinh(TWOPI)
+// </USER>
+//
+// Either or both of the two strings may be absent.
 // ---------------------------------------------------------------------------
 {
-  const int MATCH = 0;
+  char routine[] = "setup";
+  char s[StrMax], g[StrMax], err[StrMax];
 
-  if (file.fail ()) message (prog, "couldn't open session file", ERROR);
+  if (feml.seek ("USER")) {
+    feml.stream().ignore (StrMax, '\n');
 
-  char   routine[] = "setProblem";
-  char   s[StrMax], err[StrMax];
-
-  seekBlock (file, "problem");
-
-  file >> s;
-  upperCase (s);
-
-  if (strcmp (s, "HELMHOLTZ") == 0) {
-    setIparam ("N_VAR",    SCALAR   );
-    setOption ("PROBLEM",  HELMHOLTZ);
-    setOption ("GEOMETRY", CART2D   );
-
-    while (file >> s) {
-      if (s[0] == '}') break;
+    while (feml.stream() >> s) {
+      if (strcmp (s, "</USER>") == 0) break;
       upperCase (s);
 
-      if (strcmp (s, "GEOMETRY") == MATCH) {
-	file >> s;
-	upperCase (s);
-	if (strstr (s, "2D") && strstr (s, "CART")) {
-	  setOption ("GEOMETRY", CART2D);
-	} else {
-	  sprintf (err, "can't set geometry to: %s", s);
-	  message (routine, err, ERROR);
-	}
-
-      } else if (strcmp (s, "FORCING") == MATCH) {
+      if (strcmp (s, "FORCING") == 0) {
 	force = new char [StrMax];
-	file >> force;
+	feml.stream() >> force;
 
-      } else if (strcmp (s, "EXACT") == MATCH) {
+      } else if (strcmp (s, "EXACT") == 0) {
 	exact = new char [StrMax];
-	file >> exact;
+	feml.stream() >> exact;
 	
+      } else if (strcmp (s, "GEOMETRY") == 0) {
+	feml.stream() >> g;
+	upperCase (g);
+	if (strcmp (g, "2D-CARTESIAN")) {
+	  sprintf (err, "bad geometry in USER section: %s", g);
+	  message (routine, err, ERROR);
+	} else
+	  Femlib::value ("GEOMETRY", CART2D);
+
       } else {
-	sprintf (err, "Helmholtz problem option? : %s", s);
-	message (routine, s, ERROR);
+	sprintf (err, "undefined in USER section: %s", s);
+	message (routine, err, ERROR);
       }
     }
-    
-    if (s[0] != '}') endBlock (file);
-    
-  } else {
-    sprintf (err, "couldn't recognize a problem type in string: %s", s);
-    message (routine, err, ERROR);
+
+    if (strcmp (s, "</USER>") != 0)
+      message (routine, "couldn't sucessfully close <USER> section", ERROR);
   }
 }
-
-
-static ofstream* createFile (const Domain* D)
-// ---------------------------------------------------------------------------
-// Create and return a field file for writing.
-// ---------------------------------------------------------------------------
-{
-  char       routine[] = "createFile";
-  ofstream*  output    = new ofstream;
-  char       s[StrMax];
-
-  output -> open (strcat (strcpy (s, D -> name ()), ".fld"));
-
-  if (! *output) message (routine, "can't open field file", ERROR);
-
-  return output;
-}
-

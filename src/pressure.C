@@ -1,96 +1,86 @@
 ///////////////////////////////////////////////////////////////////////////////
-// pressure.C: routines to deal with pressure field and boundary conditions.
+// pressure.C: routines to deal with pressure field boundary conditions.
+//
+// Class variables Pn & Un provide storage for the mode equivalents of
+//   Pn:  normal gradient of the pressure field,
+//   Un: normal component of velocity,
+// and are used to construct explicit extrapolative estimates of the natural
+// BCs for the pressure field at the next time level.
+//
+// Reference: Karniadakis, Israeli & Orszag 1991.  "High-order splitting
+// methods for the incompressible Navier--Stokes equations", JCP 9(2).
+//
+// Pn & Un are indexed by time level, boundary, data plane, and location in
+// that order (e.g. Pn[time][boundary][plane][i]).
 ///////////////////////////////////////////////////////////////////////////////
 
 static char 
 RCSid[] = "$Id$";
 
-#include "Fem.h"
+#include <Sem.h>
+
+real**** PBCmgr::Pnx = 0;
+real**** PBCmgr::Pny = 0;
+real**** PBCmgr::Unx = 0;
+real**** PBCmgr::Uny = 0;
 
 #ifdef __DECCXX
-  #pragma define_template roll<double*>
+  #pragma define_template roll<double***>
 #endif
 
 
-// -- Static PBCmanager class variables: 
-
-PBCmanager::HOBC*  PBCmanager::store     = 0;
-BC*                PBCmanager::essential = 0;
-BC*                PBCmanager::hopbc     = 0;
-
-
-void  PBCmanager::build (BoundedField& P)
+void PBCmgr::build (const Field* P)
 // ---------------------------------------------------------------------------
 // Build class-scope storage structures required for high order PBCs.
-// Reset Field-boundary BCs to have type either HOPBC or ESSENTIAL (0.0).
-//
-// Reference: Karniadakis, Israeli & Orszag 1991.  "High-order splitting
-// methods for the incompressible Navier--Stokes equations", JCP 9(2).
 //
 // All BCs of kind HOPBC have their dP/dn values re-evaluated at each step.
 // Here the storage to enable this is allocated and organized.
-// There is some wastage as memory is also allocated for ESSENTIAL BCs.
+// There is some wastage as memory is also allocated for essential BCs.
 // ---------------------------------------------------------------------------
 {
-  // -- Initialize static storage.
+  int       i, j, k, np;
+  const int nTime = (int) Femlib::value ("N_TIME");
+  const int nEdge = P -> n_bound;
+  const int nZ    = P -> n_z;
 
-  essential = new BC;
-  essential -> tag   = 0;
-  essential -> kind  = BC::essential;
-  essential -> value = 0.0;
+  Pnx = new real*** [nTime];
+  Pny = new real*** [nTime];
+  Unx = new real*** [nTime];
+  Uny = new real*** [nTime];
 
-  hopbc = new BC;
-  hopbc -> tag       = 0;
-  hopbc -> kind      = BC::hopbc;
-  hopbc -> value     = 0.0;
+  for (i = 0; i < nTime; i++) {
+    Pnx[i] = new real** [4 * nEdge];
+    Pny[i] = Pnx[i] + nEdge;
+    Unx[i] = Pny[i] + nEdge;
+    Uny[i] = Unx[i] + nEdge;
 
-  int  nTime = Femlib::integer ("N_TIME");
-  int  nEdge = P.nBound ();
-  int  ntot  = P.resetConstraintBCs (hopbc, essential);
-  int  i, q;
+    for (j = 0; j < nEdge; j++) {
+      Pnx[i][j] = new real* [4 * nZ];
+      Pny[i][j] = Pnx[i][j] + nZ;
+      Unx[i][j] = Pny[i][j] + nZ;
+      Uny[i][j] = Unx[i][j] + nZ;
 
-  store = new HOBC [nEdge];
+      for (k = 0; k < nZ; k++) {
+	np = P -> boundary[j] -> nKnot();
+	Pnx[i][j][k] = new real [4 * np];
+	Pny[i][j][k] = Pnx[i][j][k] + np;
+	Unx[i][j][k] = Pny[i][j][k] + np;
+	Uny[i][j][k] = Unx[i][j][k] + np;
 
-  store[0].Px = rmatrix (nTime, ntot);
-  store[0].Py = rmatrix (nTime, ntot);
-  store[0].Ux = rmatrix (nTime, ntot);
-  store[0].Uy = rmatrix (nTime, ntot);
-
-  Veclib::zero (nTime*ntot, *store[0].Px, 1);
-  Veclib::zero (nTime*ntot, *store[0].Py, 1);
-  Veclib::zero (nTime*ntot, *store[0].Ux, 1);
-  Veclib::zero (nTime*ntot, *store[0].Uy, 1);
-
-  ntot = 0;
-  i    = 0;
-  for (ListIterator<Boundary*> j(P.boundary_list); j.more(); j.next()) {
-    if (ntot) {
-      store[i].Px = new real* [nTime];
-      store[i].Py = new real* [nTime];
-      store[i].Ux = new real* [nTime];
-      store[i].Uy = new real* [nTime];
-      for (q = 0; q < nTime; q++) {
-	store[i].Px[q]  = store[0].Px[q] + ntot;
-	store[i].Py[q]  = store[0].Py[q] + ntot;
-	store[i].Ux[q]  = store[0].Ux[q] + ntot;
-	store[i].Uy[q]  = store[0].Uy[q] + ntot;
+	Veclib::zero (4 * np, Pnx[i][j][k], 1);
       }
     }
-    ntot += j.current() -> nKnot();
-    i    += 1;
   }
 }
 
 
-void  PBCmanager::maintain (const int&           step   ,
-			    const BoundedField&  master ,
-			    const Field***       Us     ,
-			    const Field***       Uf     ,
-			    const int&           timedep)
+void PBCmgr::maintain (const int         step   ,
+		       const Field*      P      ,
+		       const AuxField*** Us     ,
+		       const AuxField*** Uf     ,
+		       const int         timedep)
 // ---------------------------------------------------------------------------
 // Update storage for evaluation of high-order pressure boundary condition.
-//
-// No smoothing is done to high-order spatial derivatives computed here.
 //
 // If the velocity field varies in time on HOPB field boundaries (e.g. due
 // to time-varying BCs) the local fluid acceleration will be estimated
@@ -98,105 +88,153 @@ void  PBCmanager::maintain (const int&           step   ,
 // This correction cannot be carried out at the first timestep, since the
 // required extrapolation cannot be done.  If the acceleration is known,
 // (for example, a known reference frame acceleration) it is probably better
-// to leave timedep unset, and to use PBCmanager::accelerate () to add in the
+// to leave timedep unset, and to use PBCmgr::accelerate() to add in the
 // accelerative term.  Note also that since grad P is dotted with n, the
 // unit outward normal, at a later stage, timedep only needs to be set if
 // there are wall-normal accelerative terms.
 //
 // Field* master gives a list of pressure boundary conditions with which to
 // traverse storage areas (note this assumes equal-order interpolations).
+//
+// No smoothing is done to high-order spatial derivatives computed here.
 // ---------------------------------------------------------------------------
 {
-  const int   nTime = Femlib::integer   ("N_TIME");
-  const real  nu    = Femlib::parameter ("KINVIS");
-  const real  invDt = 1.0 / Femlib::parameter ("DELTAT");
+  const real nu    =       Femlib::value ("KINVIS");
+  const real invDt = 1.0 / Femlib::value ("D_T");
+  const int  nTime = (int) Femlib::value ("N_TIME");
+  const int  nEdge = P -> n_bound;
+  const int  nZ    = P -> n_z;
+  const int  nMode = nZ >> 1;
 
-  const Field* Ux = Us[0][0];
-  const Field* Uy = Us[1][0];
-  const Field* Nx = Uf[0][0];
-  const Field* Ny = Uf[1][0];
+  const AuxField* Ux = Us[0][0];
+  const AuxField* Uy = Us[1][0];
+  const AuxField* Uz = (nZ > 1) ? Us[2][0] : 0;
+  const AuxField* Nx = Uf[0][0];
+  const AuxField* Ny = Uf[1][0];
 
-  register int i, np, offset, skip;
+  register Boundary* B;
+  register int       i, k, q;
+  int                m, np, offset, skip, Je;
 
-  // -- Roll grad P storage area up, load new level of nonlinear terms.
+  vector<real> work (4 * P -> elmt_np_max + Integration::OrderMax + 1);
 
-  register     Boundary*   B;
-  ListIterator<Boundary*>  j (master.boundary_list);
+  // -- Roll grad P storage area up, load new level of nonlinear terms Uf.
 
-  for (i = 0; j.more (); j.next (), i++) {
-    B = j.current ();
+  roll (Pnx, nTime);
+  roll (Pny, nTime);
 
-    np     = B -> nKnot ();
-    offset = B -> nOff  ();
-    skip   = B -> nSkip ();
-
-    roll (store[i].Px, nTime);
-    Veclib::copy (np, Nx -> data + offset, skip, store[i].Px[0], 1);
-
-    roll (store[i].Py, nTime);
-    Veclib::copy (np, Ny -> data + offset, skip, store[i].Py[0], 1);
+  for (i = 0; i < nEdge; i++) {
+    B      = P -> boundary[i];
+    np     = B -> nKnot();
+    offset = B -> dOff ();
+    skip   = B -> dSkip();
+    
+    for (k = 0; k < nZ; k++) {
+      if (k == 1) continue;
+      Veclib::copy (np, Nx -> plane[k] + offset, skip, Pnx[0][i][k], 1);
+      Veclib::copy (np, Ny -> plane[k] + offset, skip, Pny[0][i][k], 1);
+    }
   }
 
-  // -- Add in -nu * curl curl u and -du/dt.
+  // -- Add in -nu * curl curl u.
 
-  int    Je, q;
-  real  *tmp, *wx, *wy;
-  real*  alpha = rvector (Integration::OrderMax + 1);
+  real  *UxRe, *UxIm, *UyRe, *UyIm, *UzRe, *UzIm, *tmp;
+  real* xr    = work();
+  real* xi    = xr    + P -> elmt_np_max;
+  real* yr    = xi    + P -> elmt_np_max;
+  real* yi    = yr    + P -> elmt_np_max;
+  real* alpha = yi    + P -> elmt_np_max;
 
-  for (i = 0, j.reset(); j.more(); j.next(), i++) {
-    B = j.current ();
+  for (i = 0; i < nEdge; i++) {
+    B      = P -> boundary[i];
+    np     = B -> nKnot();
+    offset = B -> dOff ();
+    skip   = B -> dSkip();
 
-    np     = B -> nKnot ();
-    offset = B -> nOff  ();
-    skip   = B -> nSkip ();
+    // -- Deal with 2D/zero Fourier mode terms.
+    
+    UxRe = Ux -> plane[0];
+    UyRe = Uy -> plane[0];
+    B -> curlCurl (0, UxRe, 0, UyRe, 0, 0, 0, xr, 0, yr, 0);
+    Blas::axpy (np, -nu, xr, 1, Pnx[0][i][0], 1);
+    Blas::axpy (np, -nu, yr, 1, Pny[0][i][0], 1);
 
-    wx = rvector (np);
-    wy = rvector (np);
+    for (m = 1; m < nMode; m++) { // -- Higher modes.
+      UxRe = Ux -> plane[2 * m] ;
+      UxIm = Ux -> plane[2 * m + 1];
+      UyRe = Uy -> plane[2 * m];
+      UyIm = Uy -> plane[2 * m + 1];
+      UzRe = Uz -> plane[2 * m];
+      UzIm = Uz -> plane[2 * m + 1];
 
-    B -> curlCurl (Ux -> data, Uy -> data, wx, wy);
+      B -> curlCurl (m, UxRe, UxIm, UyRe, UyIm, UzRe, UzIm, xr, xi, yr, yi);
 
-    Blas::axpy (np, -nu, wy, 1, store[i].Px[0], 1);
-    Blas::axpy (np,  nu, wx, 1, store[i].Py[0], 1);
-
-    // -- Estimate -du/dt by backwards differentiation, add in on HOPBs.
-
-    if (timedep && step > 1 && !B -> isEssential ()) {
-
-      Je    = min (step - 1, nTime);
-      tmp   = wx;
-      Integration::StifflyStable (Je, alpha);
-      
-      Veclib::copy (np, Ux -> data + offset, skip, tmp, 1);
-      Blas::scal   (np, alpha[0], tmp, 1);
-      for (q = 0; q < Je; q++)
-	Blas::axpy (np, alpha[q + 1], store[i].Ux[q], 1, tmp, 1);
-      Blas::axpy (np, -invDt, tmp, 1, store[i].Px[0], 1);
-
-      Veclib::copy (np, Uy -> data + offset, skip, tmp, 1);
-      Blas::scal   (np, alpha[0], tmp, 1);
-      for (q = 0; q < Je; q++)
-	Blas::axpy (np, alpha[q + 1], store[i].Uy[q], 1, tmp, 1);
-      Blas::axpy (np, -invDt, tmp, 1, store[i].Py[0], 1);
+      Blas::axpy (np, -nu, xr, 1, Pnx[0][i][2 * m],     1);
+      Blas::axpy (np, -nu, xi, 1, Pnx[0][i][2 * m + 1], 1);
+      Blas::axpy (np, -nu, yr, 1, Pny[0][i][2 * m],     1);
+      Blas::axpy (np, -nu, yi, 1, Pny[0][i][2 * m + 1], 1);
     }
 
-    // -- Roll velocity storage area up, load new level.
-
-    roll (store[i].Ux, nTime);
-    Veclib::copy (np, Ux -> data + offset, skip, store[i].Ux[0], 1);
-
-    roll (store[i].Uy, nTime);
-    Veclib::copy (np, Uy -> data + offset, skip, store[i].Uy[0], 1);
-    
-    freeVector (wx);
-    freeVector (wy);
   }
 
-  freeVector (alpha);
+  // -- Estimate -du / dt by backwards differentiation and add in.
+
+  if (timedep && step > 1) {
+    Je  = min (step - 1, nTime);
+    tmp = xr;
+    Integration::StifflyStable (Je, alpha);
+      
+    for (i = 0; i < nEdge; i++) {
+      B      = P -> boundary[i];
+      np     = B -> nKnot();
+      offset = B -> dOff ();
+      skip   = B -> dSkip();
+
+      for (k = 0; k < nZ; k++) {
+	if (k == 1) continue;
+
+	Veclib::copy (np, Ux -> plane[k] + offset, skip, tmp, 1);
+	Blas::scal   (np, alpha[0], tmp, 1);
+	for (q = 0; q < Je; q++)
+	  Blas::axpy (np, alpha[q + 1], Unx[q][i][k], 1, tmp, 1);
+	Blas::axpy (np, -invDt, tmp, 1, Pnx[0][i][k], 1);
+
+	Veclib::copy (np, Uy -> plane[k] + offset, skip, tmp, 1);
+	Blas::scal   (np, alpha[0], tmp, 1);
+	for (q = 0; q < Je; q++)
+	  Blas::axpy (np, alpha[q + 1], Uny[q][i][k], 1, tmp, 1);
+	Blas::axpy (np, -invDt, tmp, 1, Pny[0][i][k], 1);
+      }
+    }
+  }
+
+  // -- Roll velocity storage area up, load new level.
+
+  roll (Unx, nTime);
+  roll (Uny, nTime);
+      
+  for (i = 0; i < nEdge; i++) {
+    B      = P -> boundary[i];
+    np     = B -> nKnot();
+    offset = B -> dOff ();
+    skip   = B -> dSkip();
+    
+    for (k = 0; k < nZ; k++) {
+      if (k == 1) continue;
+      Veclib::copy (np, Ux -> plane[k] + offset, skip, Unx[0][i][k], 1);
+      Veclib::copy (np, Uy -> plane[k] + offset, skip, Uny[0][i][k], 1);
+    }
+  }
 }
 
 
-void  PBCmanager::evaluate (int   id,    const int&  np, const int&  step,
-			    real* value, const real* nx, const real* ny  )
+void PBCmgr::evaluate (const int   id   ,
+		       const int   np   ,
+		       const int   plane,
+		       const int   step ,
+		       const real* nx   ,
+		       const real* ny   ,
+		       real*       tgt  )
 // ---------------------------------------------------------------------------
 // Load PBC value with values obtained from HOBC multi-level storage.
 //
@@ -210,54 +248,52 @@ void  PBCmanager::evaluate (int   id,    const int&  np, const int&  step,
 // extrapolation, then dotted into n.
 // ---------------------------------------------------------------------------
 {
-  register int  q, Je = Femlib::integer ("N_TIME");
+  if (step < 1) return;
 
-  real*  beta  = rvector (Integration::OrderMax);
-  real*  tmpX  = rvector (np);
-  real*  tmpY  = rvector (np);
+  if (plane == 1) {
+    Veclib::zero (np, tgt, 1);
+    return;
+  }
+
+  register int q, Je = (int) Femlib::value ("N_TIME");
+  vector<real> work (Integration::OrderMax + 2 * np);
+  real*  beta  = work();
+  real*  tmpX  = beta + Integration::OrderMax;
+  real*  tmpY  = tmpX + np;
 
   Je = min (step, Je);
   Integration::Extrapolation (Je, beta);
-
-  Veclib::zero (np, tmpX, 1);
-  Veclib::zero (np, tmpY, 1);
+  Veclib::zero (2 * np, tmpX, 1);
   
-  --id;
-
   for (q = 0; q < Je; q++) {
-    Blas::axpy (np, beta[q], store[id].Px[q], 1, tmpX, 1);
-    Blas::axpy (np, beta[q], store[id].Py[q], 1, tmpY, 1);
+    Blas::axpy (np, beta[q], Pnx[q][id][plane], 1, tmpX, 1);
+    Blas::axpy (np, beta[q], Pny[q][id][plane], 1, tmpY, 1);
   }
     
-  Veclib::vmul  (np, nx, 1, tmpX, 1, value, 1);
-  Veclib::vvtvp (np, ny, 1, tmpY, 1, value, 1, value, 1);
-
-  freeVector (beta);
-  freeVector (tmpX);
-  freeVector (tmpY);
+  Veclib::vmul  (np, nx, 1, tmpX, 1, tgt, 1);
+  Veclib::vvtvp (np, ny, 1, tmpY, 1, tgt, 1, tgt, 1);
 }
 
 
-void PBCmanager::accelerate (const Vector& a, const BoundedField& u)
+void PBCmgr::accelerate (const Vector& a,
+			 const Field*  u)
 // ---------------------------------------------------------------------------
 // Add in frame acceleration term on boundaries that correspond to
 // essential velocity BCs (a = - du/dt).  Note that the acceleration
 // time level should correspond to the time level in the most recently
-// updated pressure gradient storage. 
+// updated pressure gradient storage.  Work only takes place on zeroth
+// Fourier mode.
 //
 // Yes, this is a HACK!
 // ---------------------------------------------------------------------------
 {
-  register     int         i, np;
-  register     Boundary*   B;
-  ListIterator<Boundary*>  j (u.boundary_list);
+  register int       i;
+  register Boundary* B;
 
-  for (i = 0; j.more (); j.next (), i++) {
-    B = j.current ();
-    if (B -> isEssential () && !B -> isWall ()) {
-      np = B -> nKnot ();
-      Veclib::sadd (np, a.x, store[i].Px[0], 1, store[i].Px[0], 1);
-      Veclib::sadd (np, a.y, store[i].Py[0], 1, store[i].Py[0], 1);
-    }
+  for (i = 0; i < u -> n_bound; i++) {
+    B = u -> boundary[i];
+    
+    B -> addForGroup ("velocity", a.x, Pnx[0][i][0]);
+    B -> addForGroup ("velocity", a.y, Pny[0][i][0]);
   }
 }

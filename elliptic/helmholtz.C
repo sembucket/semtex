@@ -5,11 +5,11 @@
 static char
 RCSid[] = "$Id$";
 
+#include <Sem.h>
 
-#include <Fem.h>
 
-
-void Helmholtz (Domain* D, char* forcing, const real& lambda2)
+void Helmholtz (Domain*     D      ,
+		const char* forcing)
 // ---------------------------------------------------------------------------
 // Solve Helmholtz's equation
 //                                  2
@@ -18,21 +18,26 @@ void Helmholtz (Domain* D, char* forcing, const real& lambda2)
 // subject to BCs.
 // ---------------------------------------------------------------------------
 {
-  Field* Force = new Field (*D -> u[0]);
+  const real lambda2   = Femlib::value ("LAMBDA2"  );
+  const real beta      = Femlib::value ("BETA"     );
+  const int  iterative = Femlib::value ("ITERATIVE");
+  const int  nmodes    = (D -> u[0] -> nZ() + 1) >> 1;
+  AuxField*  Force     = new AuxField (D -> Esys, D -> u[0] ->nZ());
 
   if   (forcing) *Force = forcing;
   else           *Force = 0.0;
-
-  D -> u[0] -> evaluateBoundaries (0);
   
-  if (Femlib::option ("ITERATIVE")) {
-    *D -> u[0] = 0.0;
-     D -> u[0] -> solve (Force, lambda2);
-    
+  if (iterative) {
+   *D -> u[0] = 0.0;  
+    D -> u[0] -> solve (Force, lambda2);
+
   } else {
-    D -> u[0] -> assemble (lambda2);
-    D -> u[0] -> solve    (Force);
+    vector<Element*>&  E = D -> Esys;
+    NumberSystem*      N = D -> Nsys[0];
+    ModalMatrixSystem* M = new ModalMatrixSystem (lambda2, beta, nmodes, E, N);
+
+    D -> u[0] -> solve (Force, M);
   }
 
-  D -> step ()++;
+  D -> step++;
 }
