@@ -254,7 +254,7 @@ void rcZFFT (CF             Data,
     for (k = 1; k < Non2; k++) {
       revk = Nz - k;
 
-      _i = rm (i, j, k); _j = rm (i, j, revk);
+      _i = RM (i, j, k); _j = RM (i, j, revk);
       h1r =  0.25 * (data[_i].Re + data[_j].Re);
       h1i =  0.25 * (data[_i].Im - data[_j].Im);
       h2r =  0.25 * (data[_i].Im + data[_j].Im);
@@ -266,11 +266,11 @@ void rcZFFT (CF             Data,
       data[_j].Im = -h1i + Wtab[k].Re * h2i + Wtab[k].Im * h2r;
     }
 
-    _i = rm (i, j, Non2);
+    _i = RM (i, j, Non2);
     data[_i].Re =  0.5 * data[_i].Re;
     data[_i].Im = -0.5 * data[_i].Im;
 
-    _i = rm (i, j, 0);
+    _i = RM (i, j, 0);
     h1r = data[_i].Re;
     data[_i].Re =  0.5 * (h1r + data[_i].Im);
     data[_i].Im =  0.5 * (h1r - data[_i].Im);
@@ -279,7 +279,7 @@ void rcZFFT (CF             Data,
     for (k = 1; k < Non2; k++) {
       revk = Nz - k;
 
-      _i = rm (i, j, k); _j = rm (i, j, revk);
+      _i = RM (i, j, k); _j = RM (i, j, revk);
       h1r =  (data[_i].Re + data[_j].Re);
       h1i =  (data[_i].Im - data[_j].Im);
       h2r = -(data[_i].Im + data[_j].Im);
@@ -291,11 +291,11 @@ void rcZFFT (CF             Data,
       data[_j].Im = -h1i + Wtab[k].Re * h2i - Wtab[k].Im * h2r;
     }
 
-    _i = rm (i, j, Non2);
+    _i = RM (i, j, Non2);
     data[_i].Re =  2.0 * data[_i].Re;
     data[_i].Im = -2.0 * data[_i].Im;
 
-    _i = rm (i, j, 0);
+    _i = RM (i, j, 0);
     h1r = data[_i].Re;
     data[_i].Re = h1r + data[_i].Im;
     data[_i].Im = h1r - data[_i].Im;
@@ -343,7 +343,7 @@ void cZFFT (CF             Data   ,
   s = 0;
   for (t = 0; t < Nm; t++) {
     if (s > t) {
-      _i = rm (i, j, s); _j = rm (i, j, t);
+      _i = RM (i, j, s); _j = RM (i, j, t);
       SWAP (data[_i], data[_j]);
     }
     m = Non2;
@@ -365,7 +365,7 @@ void cZFFT (CF             Data   ,
       for (t = m; t < Nz; t += tstep) {
 	s = t + mmax;
 
-	_i = rm (i, j, s); _j = rm (i, j, t);
+	_i = RM (i, j, s); _j = RM (i, j, t);
 	tempr = Wtab[p].Re*data[_i].Re + s1 * Wtab[p].Im*data[_i].Im;
 	tempi = Wtab[p].Re*data[_i].Im + s2 * Wtab[p].Im*data[_i].Re;
 	data[_i].Re = data[_j].Re - tempr;
@@ -428,14 +428,14 @@ void pcYFFT (CF        Zbuf   ,
   real             s1, s2, s3;
 
   if (Forward) {	/* -- Take mixed-up DFTs & unscramble. */
-    _i = rm (i, Nyo2, 0); _j = rm (i, 0, 0);
+    _i = RM (i, Nyo2, 0); _j = RM (i, 0, 0);
     s1 = data[_i].Re;
     s2 = data[_i].Im;
     s3 = data[_j].Im;
 
     for (j = Nyo2 - 1; j > 0; j--) {
       revj = Ny - j;
-      _i = rm (i, j, 0); _j = rm (i, revj, 0); _k = rm (i, revj-1, 0);
+      _i = RM (i, j, 0); _j = RM (i, revj, 0); _k = RM (i, revj-1, 0);
       A = data[_i];
       B = data[_j];
       data[_i].Re = 0.5*(A.Re + B.Re);
@@ -444,14 +444,14 @@ void pcYFFT (CF        Zbuf   ,
       data[_k].Im = 0.5*(B.Re - A.Re);
     }
 
-    _i = rm (i, 0, 0); _j = rm (i, Ny-1, 0);
+    _i = RM (i, 0, 0); _j = RM (i, Ny-1, 0);
     data[_i].Im = s1;
     data[_j].Re = s3;
     data[_j].Im = s2;
 
   } else {			/* -- Take DFTs of real data & scramble up. */
 
-    _i = rm (i, Ny-1, 0); _j = rm (i, 0, 0);
+    _i = RM (i, Ny-1, 0); _j = RM (i, 0, 0);
     s1 = data[_i].Re;
     s2 = data[_i].Im;
     s3 = data[_j].Im;
@@ -459,7 +459,7 @@ void pcYFFT (CF        Zbuf   ,
     for (j = 1; j < Nyo2; j++) {
       revj = Ny - j;
 
-      _i = rm (i, j, 0); _j = rm (i, revj-1, 0); _k = rm (i, revj, 0);
+      _i = RM (i, j, 0); _j = RM (i, revj-1, 0); _k = RM (i, revj, 0);
       A = data[_i];
       B = data[_j];
       data[_i].Re = A.Re - B.Im;
@@ -468,7 +468,7 @@ void pcYFFT (CF        Zbuf   ,
       data[_k].Im = B.Re - A.Im;
     }
     
-    _i = rm (i, 0, 0); _j = rm (i, Nyo2, 0);
+    _i = RM (i, 0, 0); _j = RM (i, Nyo2, 0);
     data[_i].Im = s1;
     data[_j].Re = s3;
     data[_j].Im = s2;
@@ -508,7 +508,7 @@ void cYFFT (CF             Data   ,
   s = 0;
   for (t = 0; t < Nym; t++) {
     if (s > t) {
-      _i = rm (i, s, k); _j = rm (i, t, k);
+      _i = RM (i, s, k); _j = RM (i, t, k);
       SWAP (data[_i], data[_j]);
     }
     m = Non2;
@@ -529,7 +529,7 @@ void cYFFT (CF             Data   ,
     for (m = 0; m < mmax; m++) {
       for (t = m; t < Ny; t+=tstep) {
 	s = t + mmax;
-	_i = rm (i, s, k); _j = rm (i, t, k);
+	_i = RM (i, s, k); _j = RM (i, t, k);
 	tempr = Wtab[p].Re*data[_i].Re + s1 * Wtab[p].Im*data[_i].Im;
 	tempi = Wtab[p].Re*data[_i].Im + s2 * Wtab[p].Im*data[_i].Re;
 	data[_i].Re = data[_j].Re - tempr;
@@ -596,7 +596,7 @@ void pcXFFT (CF        Zbuf   ,
 
   if (Forward) {	/* -- Take mixed-up DFTs & unscramble. */
 
-    _i = rm (Nxo2, j, 0); _j = rm (0, j, 0);
+    _i = RM (Nxo2, j, 0); _j = RM (0, j, 0);
     s1 = data[_i].Re;
     s2 = data[_i].Im;
     s3 = data[_j].Im;
@@ -604,7 +604,7 @@ void pcXFFT (CF        Zbuf   ,
     for (i = Nxo2-1; i > 0; i--) {
       revi = Nx - i;
       
-      _i = rm (i, j, 0); _j = rm (revi, j, 0); _k = rm (revi-1, j, 0);
+      _i = RM (i, j, 0); _j = RM (revi, j, 0); _k = RM (revi-1, j, 0);
       A = data[_i];
       B = data[_j];
       data[_i].Re = 0.5*(A.Re + B.Re);
@@ -613,14 +613,14 @@ void pcXFFT (CF        Zbuf   ,
       data[_k].Im = 0.5*(B.Re - A.Re);
     }
 
-    _i = rm (0, j, 0); _j = rm (Nx-1, j, 0);
+    _i = RM (0, j, 0); _j = RM (Nx-1, j, 0);
     data[_i].Im = s1;
     data[_j].Re = s3;
     data[_j].Im = s2;
 
   } else {			/* -- Take DFTs of real data & scramble up. */
 
-    _i = rm (Nx-1, j, 0); _j = rm (0, j, 0);
+    _i = RM (Nx-1, j, 0); _j = RM (0, j, 0);
     s1 = data[_i].Re;
     s2 = data[_i].Im;
     s3 = data[_j].Im;
@@ -628,7 +628,7 @@ void pcXFFT (CF        Zbuf   ,
     for (i = 1; i < Nxo2; i++) {
       revi = Nx - i;
 
-      _i = rm (i, j, 0); _j = rm (revi-1, j, 0); _k = rm (revi, j, 0);
+      _i = RM (i, j, 0); _j = RM (revi-1, j, 0); _k = RM (revi, j, 0);
       A = data[_i];
       B = data[_j];
       data[_i].Re = A.Re - B.Im;
@@ -637,7 +637,7 @@ void pcXFFT (CF        Zbuf   ,
       data[_k].Im = B.Re - A.Im;
     }
     
-    _i = rm (0, j, 0); _j = rm (Nxo2, j, 0);
+    _i = RM (0, j, 0); _j = RM (Nxo2, j, 0);
     data[_i].Im = s1;
     data[_j].Re = s3;
     data[_j].Im = s2;
@@ -683,7 +683,7 @@ void cXFFT (CF             Data   ,
   s = 0;
   for (t = 0; t < Nm; t++) {
     if (s > t) {
-      _i = rm(s,j,k); _j = rm(t,j,k);
+      _i = RM(s,j,k); _j = RM(t,j,k);
       SWAP (data[_i], data[_j]);
     }
     m = Non2;
@@ -704,7 +704,7 @@ void cXFFT (CF             Data   ,
     for (m = 0; m < mmax; m++) {
       for (t = m; t < Nx; t += tstep) {
 	s = t + mmax;
-	_i = rm (s, j, k); _j = rm (t, j, k);
+	_i = RM (s, j, k); _j = RM (t, j, k);
 	tempr = Wtab[p].Re*data[_i].Re + s1 * Wtab[p].Im*data[_i].Im;
 	tempi = Wtab[p].Re*data[_i].Im + s2 * Wtab[p].Im*data[_i].Re;
 	data[_i].Re = data[_j].Re - tempr;
