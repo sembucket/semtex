@@ -57,8 +57,8 @@ id time x y z
 
 COLOURS:
 
-Isosurface colour definitions can be loaded from file colour.sv, up to
-the maxium number of isosurfaces alllowed (IsoMax).  Each colour
+Isosurface colour definitions can be loaded from file colours.sv, up
+to the maxium number of isosurfaces alllowed (IsoMax).  Each colour
 defintion has four numbers, specifying red, green, blue and alpha
 values.  Alpha blending is on by default, but can be toggled off.
 Colour definitions can be reparsed by typing 'c' into the graphics
