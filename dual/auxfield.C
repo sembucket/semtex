@@ -486,8 +486,7 @@ real AuxField::norm_inf () const
 real AuxField::mode_L2 (const integer mode) const
 // ---------------------------------------------------------------------------
 // Return energy norm per unit area for indicated mode = 1/(2*A) \int u.u dA.
-//
-// NB: Modified for dual: only 2 modes exist, 0 & 1.
+// Mode numbers run 0 -- n_z/2 - 1.
 // ---------------------------------------------------------------------------
 {
   const integer     nel  = Geometry::nElmt();
@@ -495,13 +494,13 @@ real AuxField::mode_L2 (const integer mode) const
   register real     area = 0.0, Ek = 0.0, *Re, *Im;
   register integer  i;
   register Element* E;
-  
+
   if (mode == 0) {
     Re = _plane[0];
     for (i = 0; i < nel; i++, Re += npnp) {
-      E      = _elmt[i];
-      area  += E -> area();
-      Ek    += sqr (E -> norm_L2 (Re));
+      E       = _elmt[i];
+      area   += E -> area();
+      Ek     += sqr (E -> norm_L2 (Re));
     }
   } else {
     Re = _plane[1];
@@ -515,6 +514,47 @@ real AuxField::mode_L2 (const integer mode) const
   }
 
   return Ek / (2.0 * area);
+}
+
+
+void AuxField::mode_en (const integer mode  ,
+			real&         RePart,
+			real&         ImPart) const
+// ---------------------------------------------------------------------------
+// Return energy norm per unit area for indicated mode = 1/(2*A) \int u.u dA.
+//
+// NB: Modified for dual: only 2 modes exist, 0 & 1.  We return
+// mode_L2 split into components produced by real and imaginary parts.
+// ---------------------------------------------------------------------------
+{
+  const integer     nel  = Geometry::nElmt();
+  const integer     npnp = Geometry::nTotElmt();
+  register real     area = 0.0, *Re, *Im;
+  register integer  i;
+  register Element* E;
+
+  RePart = ImPart = 0.0;
+  
+  if (mode == 0) {
+    Re = _plane[0];
+    for (i = 0; i < nel; i++, Re += npnp) {
+      E       = _elmt[i];
+      area   += E -> area();
+      RePart += sqr (E -> norm_L2 (Re));
+    }
+  } else {
+    Re = _plane[1];
+    Im = _plane[2];
+    for (i = 0; i < nel; i++, Re += npnp, Im += npnp) {
+      E       = _elmt[i];
+      area   += E -> area();
+      RePart += sqr (E -> norm_L2 (Re));
+      ImPart += sqr (E -> norm_L2 (Im));
+    }
+  }
+
+  RePart /= 2.0 * area;
+  ImPart /= 2.0 * area;
 }
 
 

@@ -23,8 +23,7 @@ Analyser::Analyser (Domain* D   ,
 // ---------------------------------------------------------------------------
   src (D)
 {
-  const char routine[] = "Analyser::Analyser";
-  char       str[StrMax];
+  char str[StrMax];
 
   cout << setprecision (6);
 
@@ -42,8 +41,14 @@ Analyser::Analyser (Domain* D   ,
     strcat (strcpy (str, src -> name), ".mdl");
     ROOTONLY {
       mdl_strm.open (str, ios::out); 
-      mdl_strm << "#     Time Mode         Energy" << endl
-	       << "# ----------------------------" << endl;
+      mdl_strm <<
+"#         Time          Mode0          ModeC       ModeC.Re       ModeC.Im"
+<< endl
+	       <<
+"# ------------------------------------------------------------------------" 
+<< endl;
+      mdl_strm.setf (ios::scientific, ios::floatfield);
+      mdl_strm.precision (8);
     }
   }
 }
@@ -97,23 +102,24 @@ void Analyser::modalEnergy ()
 // ---------------------------------------------------------------------------
 {
   const integer    DIM   = Geometry::nDim();
-  const integer    N     = Geometry::nModeProc();
-  const integer    base  = Geometry::baseMode();
-  const integer    nProc = Geometry::nProc();
-  register integer i, m;
-  vector<real>     ek (N);
+  register integer i;
+  real             re, im, ek[4];
 
-  for (m = 0; m < N; m++) {
-    ek[m] = 0.0;
-    for (i = 0; i < DIM; i++)
-      ek[m] += src -> u[i] -> mode_L2 (m);
+  for (i = 0; i < DIM; i++) {
+    src -> u[i] -> mode_en (0, re, im);
+    ek[0] += re;
+    src -> u[i] -> mode_en (1, re, im);
+    ek[1] += re + im;
+    ek[2] += re;
+    ek[3] += im;
   }
 
-  for (m = 0; m < N; m++)
-    mdl_strm << setw(10) << src -> time 
-	     << setw( 5) << m 
-	     << setw(15) << ek[m]
-	     << endl;
+  mdl_strm << setw(10) << src -> time 
+	   << setw(15) << ek[0]
+	   << setw(15) << ek[1]
+	   << setw(15) << ek[2]
+	   << setw(15) << ek[3]
+	   << endl;
 }
 
 

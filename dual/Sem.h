@@ -256,12 +256,13 @@ public:
   void mulR     (const integer, real*)                const;
   void divR     (const integer, real*)                const;
 
-  void lengthScale (real*)                     const;
-  real norm_inf    ()                          const;
-  real mode_L2     (const integer)             const;
-  real integral    ()                          const;
-  real integral    (const integer)             const;
-  real CFL         (const integer)             const;
+  void lengthScale (real*)                       const;
+  real norm_inf    ()                            const;
+  void mode_en     (const integer, real&, real&) const;
+  real mode_L2     (const integer mode)          const;
+  real integral    ()                            const;
+  real integral    (const integer)               const;
+  real CFL         (const integer)               const;
 
   real probe (const Element*, const real, const real, const integer) const;
 
