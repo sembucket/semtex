@@ -978,8 +978,9 @@ real AuxField::probe (const Element* E,
 // ---------------------------------------------------------------------------
 {
   const integer offset = E -> ID() * Geometry::nTotElmt();
+  static vector<real> work (3 * Geometry::nP());
   
-  return E -> probe (r, s, _plane[k] + offset);
+  return E -> probe (r, s, _plane[k] + offset, work());
 }
 
 
@@ -1008,12 +1009,13 @@ real AuxField::CFL (const integer dir) const
 // AuxField is presumed to have been Fourier transformed in 3rd direction.
 // ---------------------------------------------------------------------------
 {
-  const char       routine[] = "AuxField::CFL";
-  const integer    nel  = Geometry::nElmt();
-  const integer    npnp = Geometry::nTotElmt();
-  register integer i;
-  register real*   p;
-  real             dxy, CFL = 0.0;
+  const char          routine[] = "AuxField::CFL";
+  const integer       nel  = Geometry::nElmt();
+  const integer       npnp = Geometry::nTotElmt();
+  register integer    i;
+  register real*      p;
+  real                dxy, CFL = 0.0;
+  static vector<real> work (npnp);
   
   {
     const integer nP = Geometry::nP();
@@ -1025,11 +1027,11 @@ real AuxField::CFL (const integer dir) const
   switch (dir) {
   case 0:
     for (p = _data, i = 0; i < nel; i++, p += npnp)
-      CFL = max (CFL, _elmt[i] -> CFL (dxy, p, 0));
+      CFL = max (CFL, _elmt[i] -> CFL (dxy, p, 0, work()));
     break;
   case 1:
     for (p = _data, i = 0; i < nel; i++, p += npnp)
-      CFL = max (CFL, _elmt[i] -> CFL (dxy, 0, p));
+      CFL = max (CFL, _elmt[i] -> CFL (dxy, 0, p, work()));
     break;
   case 2: {
     const integer nP = Geometry::nPlane();

@@ -764,7 +764,7 @@ void Field::buildRHS (real*                    force ,
   const integer            nglobal = N -> nGlobal();
   const integer*           gid;
   register const Boundary* B;
-  vector<real>             work (np);
+  vector<real>             work (npnp);
   register integer         i, boff;
 
   if   (RHSint) Veclib::zero (nglobal + Geometry::nInode(), RHS, 1);
@@ -776,7 +776,7 @@ void Field::buildRHS (real*                    force ,
     if (RHSint) {
       _elmt[i] -> e2gSum   (force, gid, RHS, RHSint); RHSint += nint;
     } else
-      _elmt[i] -> e2gSumSC (force, gid, RHS, hbi[i]);
+      _elmt[i] -> e2gSumSC (force, gid, RHS, hbi[i], work());
   }
 
   // -- Add in <h, w>.

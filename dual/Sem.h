@@ -140,7 +140,7 @@ public:
 
   void sideGeom  (const integer, real*, real*, real*, real*, real*) const;
   void sideEval  (const integer, real*, const  char*)               const;
-  void sideGrad  (const integer, const real*, real*, real*)         const;
+  void sideGrad  (const integer, const real*, real*, real*, real*)  const;
   void sideGet   (const integer, const real*, real*)                const;
   void sideGetR  (const integer, real*)                             const;
   void sideDivR  (const integer, const real*, real*)                const;
@@ -162,24 +162,24 @@ public:
   real area     ()                   const;
   void weight   (real*)              const;
 
-  void lengthScale (real*)                                const;
-  real CFL         (const real, const real*, const real*) const;
+  void lengthScale (real*)                                       const;
+  real CFL         (const real, const real*, const real*, real*) const;
        
   real norm_inf (const real*) const;
   real norm_L2  (const real*) const;
   real norm_H1  (const real*) const;
        
-  void e2g      (const real*, const integer*, real*, real*)       const;
-  void e2gSum   (const real*, const integer*, real*, real*)       const;
-  void g2e      (real*, const integer*, const real*, const real*) const;
+  void e2g      (const real*, const integer*, real*, real*)        const;
+  void e2gSum   (const real*, const integer*, real*, real*)        const;
+  void g2e      (real*, const integer*, const real*, const real*)  const;
   void g2eSC    (const real*, const integer*, real*,
-		 real*, const real*, const real*, real*)          const;
-  void e2gSumSC (real*, const integer*, real*, const real*)       const;
+		 real*, const real*, const real*, real*)           const;
+  void e2gSumSC (real*, const integer*, real*, const real*, real*) const;
 
   // -- Probe functions.
 
   integer locate (const real, const real, real&, real&, const integer=0) const;
-  real    probe  (const real, const real, const real*)                   const;
+  real    probe  (const real, const real, const real*, real*)            const;
 
   // -- Debugging/informational routines.
 

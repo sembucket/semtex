@@ -592,6 +592,7 @@ static void waveProp (Domain*           D ,
 
 static void setPForce (const AuxField** Us,
 		       AuxField**       Uf)
+// ---------------------------------------------------------------------------
 // On input, intermediate velocity storage u^ is in Us.  Create div u^ / D_T
 // in the first dimension of Uf as a forcing field for discrete PPE.
 // ---------------------------------------------------------------------------
