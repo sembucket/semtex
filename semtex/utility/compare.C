@@ -70,7 +70,8 @@ int main (int    argc,
   nel    = M -> nEl();  
   np     = (int) Femlib::value ("N_POLY");
   nz     = (int) Femlib::value ("N_Z");
-  system = (Femlib::value ("AXIS"))?Geometry::Cylindrical:Geometry::Cartesian;
+  system = (Femlib::value ("CYLINDRICAL"))
+    ? Geometry::Cylindrical : Geometry::Cartesian;
 
   Geometry::set (np, nz, nel, system);
 
@@ -187,7 +188,7 @@ int main (int    argc,
 	if (found = tok[0] == fields[i]) {
 	  tok    = strtok (function[j], "=");
 	  tok    = strtok (0, "\0");
-	  *exact = tok;
+	  *exact = (const char*) tok;
 	  break;
 	}
       }
@@ -276,7 +277,7 @@ int main (int    argc,
     for (j = 0; j < nexact; j++) {
       tok    = strtok (function[j], "=");
       tok    = strtok (0, "\0");
-      *exact = tok;
+      *exact = (const char*) tok;
       if (tran) exact -> transform (+1);
       cout << *exact;
     }
