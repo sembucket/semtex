@@ -313,9 +313,9 @@ int main (int    argc,
     if (nComponent > 2) D -> transform (INVERSE);
 
     if (system == Geometry::Cylindrical && nComponent == 3) {
-      for (i = 0; i < nComponent; i++) Vij[i][2] -> divR();
-      (*work = *D -> u[2]) . divR();  *Vij[1][2] -= *work;
-      (*work = *D -> u[1]) . divR();  *Vij[2][2] += *work;
+      for (i = 0; i < nComponent; i++) Vij[i][2] -> divY();
+      (*work = *D -> u[2]) . divY();  *Vij[1][2] -= *work;
+      (*work = *D -> u[1]) . divY();  *Vij[2][2] += *work;
     }
     
     if (need[INVARIANTS]) {
