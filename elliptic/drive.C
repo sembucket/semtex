@@ -49,23 +49,23 @@ integer main (integer argc,
   ios::sync_with_stdio();
 #endif
   
-  char               *session, *forcing = 0, *exact = 0, fields[StrMax];
+  char               *session, *forcing = 0, *exact = 0, field[2];
   integer            np, nz, nel;
   Geometry::CoordSys space;
   FEML*              F;
   Mesh*              M;
   BCmgr*             B;
 
-  Femlib::prep();
+  Femlib::initialize (&argc, &argv);
 
   getargs (argc, argv, session);
-  strcpy  (fields, "c");
+  strcpy  (field, "c");
 
   F = new FEML  (session);
   M = new Mesh  (*F);
   B = new BCmgr (*F);
 
-  nel   = M -> nEl();  
+  nel   = M -> nEl();
   np    =  (integer) Femlib::value ("N_POLY");
   nz    =  (integer) Femlib::value ("N_Z");
   space = ((integer) Femlib::value ("CYLINDRICAL")) ? 
@@ -73,7 +73,7 @@ integer main (integer argc,
   
   Geometry::set (np, nz, nel, space);
 
-  Domain* D = new Domain (*F, *M, *B, fields, session);
+  Domain* D = new Domain (*F, *M, *B, field, session);
 
   D -> initialize();
 
@@ -81,9 +81,11 @@ integer main (integer argc,
 
   Helmholtz (D, forcing);
 
-  if (exact) D -> u[0] -> errors (*M, exact);
+  ROOTONLY if (exact) D -> u[0] -> errors (*M, exact);
 
-  D -> dump ();
+  D -> dump();
+
+  Femlib::finalize();
 
   return EXIT_SUCCESS;
 }
@@ -109,8 +111,10 @@ static void getargs (integer argc   ,
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
     case 'h':
-      sprintf (buf, usage, prog);
-      cout << buf;
+      ROOTONLY {
+	sprintf (buf, usage, prog);
+	cout << buf;
+      }
       exit (EXIT_SUCCESS);
       break;
     case 'i':
@@ -122,14 +126,17 @@ static void getargs (integer argc   ,
       while (*++argv[0] == 'v');
       break;
     default:
-      sprintf (buf, usage, prog);
-      cout << buf;
+      ROOTONLY {
+	sprintf (buf, usage, prog);
+	cout << buf;
+      }
       exit (EXIT_FAILURE);
       break;
     }
   
-  if   (argc != 1) message (routine, "no session definition file", ERROR);
-  else             session = *argv;
+  if (argc != 1) message (routine, "no session definition file", ERROR);
+
+  session = *argv;
 }
 
 
