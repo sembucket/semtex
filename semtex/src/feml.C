@@ -247,6 +247,7 @@ integer FEML::tokens ()
 // Parser must have been initialized before entry.
 // ---------------------------------------------------------------------------
 {
+  const char     routine[] = "FEML::tokens";
   char           buf[STR_MAX];
   register char* u;
 
@@ -261,6 +262,11 @@ integer FEML::tokens ()
     
     if ((integer)Femlib::value ("IO_FLD") > (integer)Femlib::value ("N_STEP"))
       Femlib::value ("IO_FLD", (integer) Femlib::value ("N_STEP"));
+
+    if ((integer)Femlib::value ("N_TIME") > 3) {
+      message (routine, "N_TIME too large, reset to 3", WARNING);
+      Femlib::value ("N_TIME", 3);
+    }
     
     return 1;
   }
