@@ -78,7 +78,7 @@ void NavierStokes (Domain*      D,
 
   // -- Create global matrix systems: rename viscosities beforehand.
 
-#if defined(NOMODEL)
+#if defined (NOMODEL)
   Femlib::value ("REFVIS", Femlib::value ("2.0 * KINVIS"));
 #endif
 
@@ -215,7 +215,6 @@ void NavierStokes (Domain*      D,
     evfl.open ("visco.fld", ios::out);
     EV -> addToPlane (0, Femlib::value ("KINVIS - REFVIS"));
   }
-
   (*EV /= Femlib::value ("REFVIS")) . transform (INVERSE);
 
   writeField (evfl, D -> name, D -> step, D -> time, visco);
@@ -271,6 +270,10 @@ static void nonLinear (Domain*       D ,
 // the Fourier transform extended using zero padding for dealiasing.  For
 // gradients in the Fourier direction however, the data must be transferred
 // back to Fourier space.
+//
+// Refer to Bird, Stewart & Lightfoot (1960) Appendix A for
+// stress-divergence operations in cylindrical & Cartesian
+// coordinates.
 //
 // NB: dealiasing is not used for multiprocessor operation.
 // ---------------------------------------------------------------------------
@@ -438,7 +441,7 @@ static void nonLinear (Domain*       D ,
     U[i] = Us[i];
     N[i] = Uf[i];
     U[i] -> transform32 (INVERSE, u32[i]);
-    if (CYL) N[i] -> mulR (nZ32, n32[i]);
+    if (CYL) N[i] -> mulR (nZ32,  n32[i]);
   }
   
   if (CYL) {			// -- Cylindrical coordinates.
@@ -456,7 +459,7 @@ static void nonLinear (Domain*       D ,
 	if (i == 1)
 	  Veclib::svvttvp (nTot32, -2.0, u32[2],1,u32[2],1,n32[1],1,n32[1], 1);
 	if (i == 2)
-	  Veclib::svvtt   (nTot32,  3.0, u32[2], 1, u32[1], 1,      n32[2], 1);
+	  Veclib::svvttvp (nTot32,  3.0, u32[2],1,u32[1],1,n32[2],1,n32[2], 1);
 
 	if (nZ > 2) {
 	  Veclib::copy       (nTot32, u32[i], 1, tmp, 1);

@@ -47,7 +47,7 @@ void eddyViscosity (const Domain* D ,
 
   ROOTONLY EV -> addToPlane (0, Femlib::value ("-KINVIS"));
 
-#if defined(NOMODEL)
+#if defined (NOMODEL)
   *EV = 0.0;
   ROOTONLY EV -> addToPlane (0, Femlib::value ("-REFVIS"));
 #endif
@@ -69,11 +69,11 @@ static void strainRate (const Domain* D ,
 //       S =   |    .           dv/dy       1/2(dv/dz + dw/dy) |,
 //       ~     \    .             .                 dw/dz      /
 //
-// while for cylindrical coordinates
+// while for cylindrical coordinates (Batchelor 1967 Appendix 2)
 //           
-//         / du/dx  1/2(du/dy + dv/dx)  1/2(1/y*du/dz +    dw/dx)    \
+//         / du/dx  1/2(du/dy + dv/dx)  1/2(1/y*du/dz + dw/dx      ) \
 //   S =   |    .           dv/dy       1/2(1/y*dv/dz + dw/dy - w/y) |.
-//   ~     \    .             .             1/y*dw/dz +     1/y*v    /
+//   ~     \    .             .             1/y*dw/dz         + v/y  /
 // ---------------------------------------------------------------------------
 {
   register integer i, j;
@@ -170,7 +170,6 @@ static void viscoModel (const Domain* D ,
   real*            delta  = sum + nTot32;
 
   EV -> lengthScale       (delta);
-//  D  -> u[0] -> smooth (1, delta);
 
   Veclib::zero (nTot32, sum, 1);
   
