@@ -109,21 +109,21 @@ int  main (int argc, char *argv[])
   char*      forcing = 0;
   char*      exact   = 0;
 
-  initialize ();
+  Femlib::prep ();
 
   getArgs       (argc, argv, session);
   input -> open (session);
   setUp         (*input, forcing, exact);
 
   Mesh*    M = preProcess (*input);
-  Domain*  D = new Domain (*M, session, iparam ("N_POLY"));
+  Domain*  D = new Domain (*M, session, Femlib::integer ("N_POLY"));
   D -> u[0] -> setName ('u');
 
   input -> close ();
 
   output = createFile (D);
 
-  Helmholtz (D, forcing, dparam ("LAMBDA2"));
+  Helmholtz (D, forcing, Femlib::parameter ("LAMBDA2"));
 
   if (exact) D -> u[0] -> errors (exact);
 
@@ -159,7 +159,7 @@ static void getArgs (int argc, char** argv, char*& session)
       exit (EXIT_SUCCESS);
       break;
     case 'i':
-      setOption ("ITERATIVE", 1);
+      Femlib::option ("ITERATIVE", 1);
       break;
     case 'O':
       if (*++argv[0])
@@ -172,11 +172,11 @@ static void getArgs (int argc, char** argv, char*& session)
 	fprintf (stdout, usage, prog);
 	exit (EXIT_FAILURE);	  
       } else
-	setOption ("OPTIMIZE", level);
+	Femlib::option ("OPTIMIZE", level);
       break;
     case 'v':
       do
-	setOption ("VERBOSE", option ("VERBOSE") + 1);
+	Femlib::option ("VERBOSE", Femlib::option ("VERBOSE") + 1);
       while (*++argv[0] == 'v');
       break;
     default:
