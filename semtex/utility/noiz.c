@@ -20,7 +20,7 @@
  * Default value of perturbation is 0.0.
  *****************************************************************************/
 
-static cahr RCS[] = "$Id$";
+static char RCS[] = "$Id$";
 
 #include <math.h>
 #include <stdio.h>
