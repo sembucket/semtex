@@ -251,19 +251,30 @@ void Element::bndryDsSum (const integer* btog,
 // is using in smoothing Fields along element boundaries.
 // ---------------------------------------------------------------------------
 {
+  const integer     loopcnt = _next; // -- Workaround for NEC vectorisation.
   register integer  i, e;
   register real     w;
   static const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
   static const int  CYL = Geometry::system() == Geometry::Cylindrical;
 
   if (CYL)
-    for (i = 0; i < _next; i++) {
+#if defined(__uxp__)
+#pragma loop novrec
+#elif defined(_SX)
+#pragma vdir nodep
+#endif
+    for (i = 0; i < loopcnt; i++) {
       e = _emap[i];
       w = _G4  [e];
       tgt[btog[i]] += (w > EPS) ? w * src[e] : src[e];
     }
   else
-    for (i = 0; i < _next; i++) {
+#if defined(__uxp__)
+#pragma loop novrec
+#elif defined(_SX)
+#pragma vdir nodep
+#endif
+    for (i = 0; i < loopcnt; i++) {
       e = _emap[i];
       tgt[btog[i]] += _G4[e] * src[e];
     }
@@ -742,6 +753,7 @@ void Element::HelmholtzKern (const real lambda2,
 // Lambda2 is the Helmholtz constant, betak2 is the mode Fourier constant.
 // ---------------------------------------------------------------------------
 {
+  const integer     loopcnt = _npnp; // -- Workaround for NEC vectorisation.
   register integer  ij;
   register real     tmp, r2, hCon;
   register real     *g1 = _G1, *g2 = _G2, *g3 = _G3, *g4 = _G4, *r = _ymesh;
@@ -750,7 +762,7 @@ void Element::HelmholtzKern (const real lambda2,
 
   if (CYL) {
     if (g3) {
-      for (ij = 0; ij < _npnp; ij++) {
+      for (ij = 0; ij < loopcnt; ij++) {
 	r2       = r[ij] * r[ij];
 	hCon     = (r2 > EPS) ? (betak2 / r2 + lambda2) : 0.0;
 	tmp      = R [ij];
@@ -759,7 +771,7 @@ void Element::HelmholtzKern (const real lambda2,
 	tgt[ij]  = g4[ij] * src[ij] * hCon;
       }
     } else {
-      for (ij = 0; ij < _npnp; ij++) {
+      for (ij = 0; ij < loopcnt; ij++) {
 	r2       = r[ij] * r[ij];
 	hCon     = (r2 > EPS) ? (betak2 / r2 + lambda2) : 0.0;
 	R  [ij] *= g1[ij];
@@ -771,14 +783,14 @@ void Element::HelmholtzKern (const real lambda2,
   } else {			// -- Cartesian.
     hCon = betak2 + lambda2;
     if (g3) {
-      for (ij = 0; ij < _npnp; ij++) {
+      for (ij = 0; ij < loopcnt; ij++) {
 	tmp      = R [ij];
 	R  [ij]  = g1[ij] * R  [ij] + g3[ij] * S  [ij];
 	S  [ij]  = g2[ij] * S  [ij] + g3[ij] * tmp;
 	tgt[ij]  = g4[ij] * src[ij] * hCon;
       }
     } else {
-      for (ij = 0; ij < _npnp; ij++) {
+      for (ij = 0; ij < loopcnt; ij++) {
 	R  [ij] *= g1[ij];
 	S  [ij] *= g2[ij];
 	tgt[ij]  = g4[ij] * src[ij] * hCon;
@@ -1235,12 +1247,13 @@ void Element::divR (real* src) const
 // gradient.
 // ---------------------------------------------------------------------------
 {
+  const integer     loopcnt = _npnp; // -- Workaround for NEC vectorisation.
   register integer  i;
   register real     rad, rinv;
   register real*    y   = _ymesh;
   static const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
-  for (i = 0; i < _npnp; i++) {
+  for (i = 0; i < loopcnt; i++) {
     rad     = y[i];
     rinv    = (rad > EPS) ? 1.0 / rad : 0.0;
     src[i] *= rinv;
@@ -1512,23 +1525,24 @@ real Element::CFL (const real  d,
 // The local CFL number is then D_T * CFL
 // ---------------------------------------------------------------------------
 {
+  const integer    loopcnt = _npnp;
   register integer i;
   vector<real>     work (_npnp);
   register real*   tmp = work();
 
-  Veclib::zero (_npnp, tmp, 1);
+  Veclib::zero (loopcnt, tmp, 1);
 
   if        (u) {
-    if (_drdx) for (i = 0; i < _npnp; i++) tmp[i] += d * fabs (_drdx[i]);
-    if (_dsdx) for (i = 0; i < _npnp; i++) tmp[i] += d * fabs (_dsdx[i]);
-    Veclib::vdiv (_npnp, u, 1, tmp, 1, tmp, 1);
+    if (_drdx) for (i = 0; i < loopcnt; i++) tmp[i] += d * fabs (_drdx[i]);
+    if (_dsdx) for (i = 0; i < loopcnt; i++) tmp[i] += d * fabs (_dsdx[i]);
+    Veclib::vdiv (loopcnt, u, 1, tmp, 1, tmp, 1);
   } else if (v) {
-    if (_drdy) for (i = 0; i < _npnp; i++) tmp[i] += d * fabs (_drdy[i]);
-    if (_dsdy) for (i = 0; i < _npnp; i++) tmp[i] += d * fabs (_dsdy[i]);
-    Veclib::vdiv (_npnp, v, 1, tmp, 1, tmp, 1);
+    if (_drdy) for (i = 0; i < loopcnt; i++) tmp[i] += d * fabs (_drdy[i]);
+    if (_dsdy) for (i = 0; i < loopcnt; i++) tmp[i] += d * fabs (_dsdy[i]);
+    Veclib::vdiv (loopcnt, v, 1, tmp, 1, tmp, 1);
   }
 
-  i = Blas::iamax (_npnp, tmp, 1);
+  i = Blas::iamax (loopcnt, tmp, 1);
   return fabs (tmp[i]);
 }
 
