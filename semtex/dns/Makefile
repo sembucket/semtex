@@ -88,6 +88,7 @@ ifdef DEBUG
 else
   OPT    = -O3
 endif
+DEFINES += -D_Linux_alpha
 CXXFLAGS = $(DEFINES) $(OPT)
 ifdef MPI
   LDFLAGS = -L$(SEM)/lib/$(ARCH) -L/usr/lib -L$(MPIHOME)/lib  \
