@@ -162,7 +162,7 @@ FC       = f90
 CC       = cc
 CFLAGS   = $(DEFINES) -fast -tune host
 FFLAGS   = $(DEFINES) -fast -tune host
-CXXFLAGS = $(DEFINES) -fast -tune host
+CXXFLAGS = $(DEFINES) -fast -tune host -stric-ansi
 RANLIB   =
 # -- The EV5 versions of the BLAS, LAPACK are quicker than the EV6's!
 FORTLIBS = /opt/EV5/usr/opt/XMDLIB5500/libcxml_ev5.a -lfor
@@ -173,11 +173,11 @@ ifdef MPI
   MPIHOME   = /usr/local/mpi
   CPPFLAGS += -I$(MPIHOME)/include  
   LIBDIR   += -L$(MPIHOME)/lib/alpha/ch_shmem
-  LDFLAGS   = $(CXXFLAGS) $(LIBDIR) -lfem_mp -lalp $(FORTLIBS) -lm -lmpi
+  LDFLAGS   = $(LIBDIR) -lfem_mp -lalp $(FORTLIBS) -lm -lmpi
 # -- This is needed for Compaq MPI:
 # LDFLAGS  += -lelan
 else
-  LDFLAGS   = $(CXXFLAGS) $(LIBDIR) -lfem -lalp $(FORTLIBS) -lm
+  LDFLAGS   = $(LIBDIR) -lfem -lalp $(FORTLIBS) -lm
 endif
 CLDFLAGS = $(LDFLAGS)
 endif
