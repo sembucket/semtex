@@ -18,16 +18,17 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <math.h>
-#include "FFTutil.h"
 
 #define MAXCOL	64
 #define	MAXSTR	32
 #define NUMDIG	8
 
+enum err_lev {WARNING, ERROR, REMARK};
+
 static int  parse   (char *strin, char *strout, int *pos, char sep);
 static void slit    (FILE *fp, int n, int *col);
 static int  getline (FILE *fp, char coltext[][MAXSTR], int *nwords);
-
+static void message (const char *routine, const char *text, int level);
 
 int main (int argc, char *argv[])
 /* ------------------------------------------------------------------------- *
@@ -176,4 +177,29 @@ static int getline (FILE *fp, char coltext[][MAXSTR], int *nwords)
   }
 
   return c;
+}
+
+
+static void message (const char *routine, const char *text, int level)
+/* ------------------------------------------------------------------------- *
+ * A simple error handler.
+ * ------------------------------------------------------------------------- */
+{
+  switch (level) {
+  case WARNING:
+    fprintf (stderr, "WARNING: %s: %s\n", routine, text); 
+    break;
+  case ERROR:
+    fprintf (stderr, "ERROR: %s: %s\n", routine, text); 
+    break;
+  case REMARK:
+    fprintf (stdout, "%s: %s\n", routine, text);
+    break;
+  default:
+    fprintf (stderr, "bad error level in message: %d\n", level);
+    exit (EXIT_FAILURE);
+    break;
+  }
+
+  if (level == ERROR) exit (EXIT_FAILURE);
 }
