@@ -26,6 +26,7 @@ else
 endif
 
 CPPFLAGS = -I. -I$(SEM)/include
+LIBDIR   = -L$(SEM)/lib/$(ARCH) 
 
 # ----------- Compiler options for specific machines -------------------------
 
@@ -34,9 +35,8 @@ CC       = cc
 CXX	 = CC
 LD	 = CC
 CXXFLAGS = $(DEFINES) -fullwarn -mips2 -g
-F77LIBS	 = -lcomplib.sgimath -lftn
-LDFLAGS  = -lfpe -mips2 -L$(SEM)/lib/$(ARCH) -lfem -lalp \
-	   $(F77LIBS) -lmalloc -lm
+FORTLIBS = -lcomplib.sgimath -lftn
+LDFLAGS  = -lfpe -mips2 $(LIBDIR) -lfem -lalp $(FORTLIBS) -lmalloc -lm
 endif
 
 ifeq ($(ARCH),IRIX64)		# -- SGI MIPS R8xxx IRIX6x
@@ -49,9 +49,8 @@ else
   OPT    = -mips4 -64 -Ofast=IP30 -r10000
 endif
 CXXFLAGS = $(DEFINES) $(OPT)
-F77LIBS	 = -lcomplib.sgimath -lftn
-LDFLAGS  = $(OPT) -L$(SEM)/lib/$(ARCH) -lfem -lalp \
-           $(F77LIBS) -lmalloc -lm
+FORTLIBS = -lcomplib.sgimath -lftn
+LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lalp $(FORTLIBS) -lmalloc -lm
 endif
 
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha
@@ -59,8 +58,8 @@ CC       = cc
 CXX	 = cxx
 LD	 = cxx
 CXXFLAGS =  $(DEFINES) -migrate -tune host -g
-F77LIBS  = -ldxml
-LDFLAGS  = $(CXXFLAGS) -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+FORTLIBS = -ldxml
+LDFLAGS  = $(CXXFLAGS) $(LIBDIR) -lfem -lalp $(FORTLIBS) -lm
 endif
 
 ifeq ($(ARCH),Linux-i586)	# -- Linux Intel system.
@@ -74,9 +73,8 @@ else
 endif
 CXXFLAGS = $(DEFINES) $(OPT)
 CFLAGS   = $(DEFINES) $(OPT)
-F77LIBS  = -llapack -lblas -lg2c
-LDFLAGS  = -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
-	   -lfem -lalp $(F77LIBS) -lm
+FORTLIBS = -llapack -lblas -lg2c
+LDFLAGS  = $(LIBDIR) -L/usr/local/lib -lfem -lalp $(FORTLIBS) -lm
 endif
 
 ifeq ($(ARCH),Linux-alpha)	# -- Linux alpha system.
@@ -89,39 +87,42 @@ else
   OPT    = -O2
 endif
 CXXFLAGS = $(DEFINES) $(OPT)
-F77LIBS  = -lcxml -lots -lfor -lg2c
-LDFLAGS  = -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
-	   -lfem -lalp $(F77LIBS) -lm
+FORTLIBS = -lcxml -lots -lfor -lg2c
+LDFLAGS  = $(LIBDIR) -L/usr/local/lib -lfem -lalp $(FORTLIBS) -lm
 endif
 
 ifeq ($(ARCH),UNIX_System_V)    # -- Fujitsu VPP300.
 LIBDIR   = -L$(SEM)/lib/$(ARCH) 
 LIBDIR  += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
 LIBS     = -lfem -lalp
-LIBS    += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
+LIBS    += -llapack -lblasvpp -lm -lfj90fv -lfj90 -lfj90f -ljsp -lvfl
 CC       = cc
 CXX      = /home/home01/565/hmb565/C++/bin/CC
-LD       = /home/home01/565/hmb565/C++/bin/CC
-#OPTIM    = -Wv,-m3,-Ps 
-OPTIM    = -g
-CXXFLAGS = $(DEFINES)  $(OPTIM)
+LD       = $(CXX)
+ifdef DEBUG
+  OPT    = -g
+else
+  OPT    = -Wv,-m3,-Ps 
+endif
+CXXFLAGS = $(DEFINES)  $(OPT)
 LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 endif
 
 ifeq ($(ARCH),SUPER-UX)         # -- NEC SX-4.
-LIBDIR   = -L$(SEM)/lib/$(ARCH) 
-LIBDIR  += 
-LIBS     = -lfem -llapack_64 -lalp -lblas_64 -lfft_64	\
-           -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm
-CC       = cc
-CXX      = CC
-LD       = CC
-#OPTIM    = -g -hacct
-CFLAGS   = $(DEFINES) -pvctl,fullmsg -hacct -Onooverlap        \
-           -hfloat0 -hnostkchk
-CXXFLAGS = $(CFLAGS) $(OPTIM) +a1 -ispeed
-CXXFLAGS = $(DEFINES)  $(OPTIM)
-LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS) -hacct
+CXX       = c++
+LD        = c++
+DEFINES  += -D_BUILTIN_ -D_SX
+CPPFLAGS += -I/usr/include/CC
+OPT       = -O nooverlap -Nstkchk
+NOVEC     = -c -Nstkchk -acct -dir novec
+CXXFLAGS  = -V $(DEFINES) -pvctl,loopcnt=20000,fullmsg -acct $(OPT)
+FORTLIBS  = -llapack_64 -lblas_64 -lfft_64
+ifdef MPI
+  LIBS    = -lfem_mp -lalp $(FORTLIBS) -lm -lC -lmpi -lpthread
+else
+  LIBS    = -lfem -lalp $(FORTLIBS) -lm -lC
+endif
+LDFLAGS   =  -verbose -V -p -f90libew $(CXXFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 endif
 
 # ----------------------------------------------------------------------------
@@ -278,17 +279,13 @@ $(SEMOBJ): $(SEMHDR)
 
 ifeq ($(ARCH),SUPER-UX)
 mesh.o: $(VPATH)/mesh.C
-	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
-	$(VPATH)/mesh.C
-BCmgr.o: $(VPATH)/BCmgr.C
-	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
-	$(VPATH)/BCmgr.C
+	$(CXX) $(CPPFLAGS) $(NOVEC) $(VPATH)/mesh.C
 endif
 
 # -----------------------------------------------------------------------------
 #
 clean:
-	rm -f *.o *~
+	rm -f *.o *~ *.ti
 	rm -rf ILDUMPS
 	rm -rf ii_files
 	rm -rf ptrepository

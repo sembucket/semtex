@@ -96,7 +96,7 @@ endif
 ifeq ($(ARCH),SUPER-UX)			# -- NEC SX-4
 FC         = f90
 DEFINES   += -D_SX
-CFLAGS     = $(DEFINES) -pvctl,fullmsg -hfloat0 -hnostkchk
+CFLAGS     = $(DEFINES) -pvctl,fullmsg,loopcnt=20000 -hfloat0 -hnostkchk
 FFLAGS     = $(DEFINES) -Cvopt -Wf'-pvctl,fullmsg -ptr byte -b' -float0 -ew
 ifdef MPI
   LIB       = libfem_mp.a
