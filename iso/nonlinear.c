@@ -547,9 +547,11 @@ static void  convolve (/* input     */ const CF        U   ,
   for (k1 = 0; k1 < Npts; k1++) w [k1] = u [k1] * v [k1];
   for (k1 = 0; k1 < Npts; k1++) w_[k1] = u_[k1] * v_[k1];
 
-  rc3DFT  (W,  Dim, Wtab, FORWARD);
-  rc3DFT  (W_, Dim, Wtab, FORWARD);
-  shift   (W_, Dim, Stab, INVERSE);
+  rc3DFT (W,  Dim, Wtab, FORWARD);
+  rc3DFT (W_, Dim, Wtab, FORWARD);
+  shift  (W_, Dim, Stab, INVERSE);
+
+  truncate (W, Dim);
 
   W[ 0][ 0][ 0].Re = 0.5 * (W[ 0][ 0][ 0].Re + W_[ 0][ 0][ 0].Re);
   
