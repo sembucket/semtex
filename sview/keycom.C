@@ -165,8 +165,11 @@ void processCommand (const char  command,
       message (routine, "no index flagged for deletion", WARNING);
     } else {
       istrstream (buf, strlen (buf)) >> i;
+      
+      if (i == 0)
+	message (routine, "can't delete default surface [0]", WARNING);
 
-      if (i && i < (N = countSurf (Surface))) {
+      else if (i < (N = countSurf (Surface))) {
 	Iso* kill = Surface[i];
 	for (j = i + 1; j < N; j++)
 	  Surface[j - 1] = Surface[j];
