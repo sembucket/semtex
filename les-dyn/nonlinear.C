@@ -8,6 +8,11 @@
 //
 // NB: the past pressure field is destroyed here.
 //
+// In order to return the Smagorinsky length scale instead of the
+// dynamic estimate (i.e. so that the Smagorinsky non-dynamic SGSS
+// model is used), deine SMAG during compilation. The dynamic estimate
+// is still computed, but overridden.
+//
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
