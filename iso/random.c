@@ -9,7 +9,6 @@
 
 #include "iso.h"
 
-static real ran2PI        (int*);
 static void doalphabeta   (complex *, complex *, real, int *);
 static void setcomponents (CVF, int, int, int, int, int, int,
 			   complex, complex, real, real);
@@ -143,7 +142,7 @@ static void setcomponents(/* update     */ CVF     U  ,
 }
 
     
-static real ran2PI (int* idum)
+real ran2PI (int* idum)
 /* ------------------------------------------------------------------------- *
  * Generate IUD random variates on (0, 2PI).  This is a doctoring of ran1()
  * from Numerical Recipes.
