@@ -8,5 +8,5 @@
 # Installation of header files.
 
 install:
-	rm -f ../include/Fem.h
-	cp Fem.h ../include
+	rm -f ../include/Sem.h ../include/Feml.h ../include/Mesh.h
+	cp Sem.h Feml.h Mesh.h ../include

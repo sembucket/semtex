@@ -94,20 +94,14 @@ RCSid[] = "$Id$";
 #include <Utility.h>
 #include <Femlib.h>
 
-#ifdef __DECCXX
-  #pragma define_template vector<int>
-  #pragma define_template vector<Mesh::Node*>
-  #pragma define_template vector<Mesh::Side*>
-  #pragma define_template vector<Curve*>
-#endif
-
 
 static inline int rma (int i, int j, int n)
 // -- Row-major offsetting for 2D arrays with 0-based indexing.
 { return j + i * n; }
 
 
-Mesh::Mesh (FEML& f) : feml (f)
+Mesh::Mesh (FEML& f) :
+            feml (f)
 // ---------------------------------------------------------------------------
 // Create a Mesh using information available in feml.
 // ---------------------------------------------------------------------------
@@ -131,7 +125,7 @@ Mesh::Mesh (FEML& f) : feml (f)
     message (routine, err, ERROR);
   }
 
-  if (verb) cout << "Reading vertices ...";
+  if (verb) cout << "Reading vertices ... ";
 
   for (i = 0; i < Nn; i++) {
 
@@ -142,6 +136,7 @@ Mesh::Mesh (FEML& f) : feml (f)
     feml.stream() >> N -> ID >> N -> loc.x >> N -> loc.y >> N -> loc.z;
     N -> ID--;
     N -> gID = UNSET;
+    N -> periodic = 0;
 
     if (N -> ID >= Nn) {
       sprintf (err, "Node ID %1d exceeds attribution (%1d)", N -> ID + 1, Nn);
@@ -150,7 +145,7 @@ Mesh::Mesh (FEML& f) : feml (f)
       nodeTable[N -> ID] = N;
   }
 
-  if (verb) cout << " done" << endl;
+  if (verb) cout << "done" << endl;
 
   // -- Input Elmt corner vertex nodes.
   //    Presently, only quad (<Q>) elements are allowed.
@@ -162,7 +157,7 @@ Mesh::Mesh (FEML& f) : feml (f)
     message (routine, err, ERROR);
   }
 
-  if (verb) cout << "Reading elements ...";
+  if (verb) cout << "Reading elements ... ";
 
   for (i = 0; i < K; i++) {
 
@@ -206,23 +201,23 @@ Mesh::Mesh (FEML& f) : feml (f)
       elmtTable[E -> ID] = E;
   }
 
-  if (verb) cout << " done" << endl;
+  if (verb) cout << "done" << endl;
 
-  if (verb) cout << "Setting up mesh internal connectivity ...";
+  if (verb) cout << "Setting up mesh internal connectivity ... ";
   assemble ();
-  if (verb) cout << " done" << endl;
+  if (verb) cout << "done" << endl;
   
-  if (verb) cout << "Installing mesh external surface data ...";
+  if (verb) cout << "Installing mesh external surface data ... ";
   surfaces ();
-  if (verb) cout << " done" << endl;
+  if (verb) cout << "done" << endl;
 
-  if (verb) cout << "Checking mesh connectivity ...";
+  if (verb) cout << "Checking mesh connectivity ... ";
   checkAssembly ();
-  if (verb) cout << " done" << endl;
+  if (verb) cout << "done" << endl;
 
-  if (verb) cout << "Installing mesh curved sides ...";
+  if (verb) cout << "Installing mesh curved sides ... ";
   curves ();
-  if (verb) cout << " done" << endl;
+  if (verb) cout << "done" << endl;
 }
 
 
@@ -251,7 +246,8 @@ void Mesh::assemble ()
     }
   }
 
-  // -- Now traverse Elmts and build Side--Side connections.
+  // -- Now traverse Elmts and build Side--Side connections based on Node
+  //    identities.  This can't pick up periodic Nodes, not yet installed.
 
   for (i = 0; i < Ne; i++) {
     E = elmtTable (i);
@@ -282,12 +278,15 @@ void Mesh::assemble ()
 
 void Mesh::surfaces ()
 // ---------------------------------------------------------------------------
+// This section reads FEML "SURFACE" information and uses it to set up
+// corresponding element Side storage.
+//
 // Surface information can either declare
 //   a boundary group name <B> group </B>
 // or set up
 //   a periodic boundary   <P> elmt side </P>.
 //
-// Periodic boundaries can be set only once.
+// Periodic boundaries can be set only once (one one side of the matchup).
 // ---------------------------------------------------------------------------
 {
   char      routine[] = "Mesh::surfaces", err[StrMax], tag[StrMax], nextc;
@@ -355,16 +354,17 @@ void Mesh::surfaces ()
       //    Mate information for both this side and its indicated mate
       //    should not be previously set.
 
-      int me, ms;
+      Side *S, *MS;
+      int  me,  ms;
       feml.stream() >> me >> ms;
-      
+
       if (me < 1 || me > nEl()) {
 	sprintf (err, "Surface %1d, mating elmt no. %1d out of range (1--%1d)",
 		 t, me, nEl());
 	message (routine, err, ERROR);
       } else if (ms < 1 || ms > elmtTable (e) -> nNodes()) {
 	sprintf (err, "Surface %1d, mating side no. %1d out of range (1--%1d)",
-		 t, me, elmtTable (e) -> nNodes());
+		 t, ms, elmtTable (e) -> nNodes());
 	message (routine, err, ERROR);
       } else if (elmtTable (me - 1) -> side (ms - 1) -> mateElmt ||
 		 elmtTable (me - 1) -> side (ms - 1) -> group    ) {
@@ -373,13 +373,23 @@ void Mesh::surfaces ()
 	message (routine, err, ERROR);
       }
 
-      me--; ms--;
+      // -- Install mate info.
 
-      elmtTable (e)  -> side (s)  -> mateElmt = elmtTable (me);
-      elmtTable (e)  -> side (s)  -> mateSide = elmtTable (me) -> side (ms);
-      elmtTable (me) -> side (ms) -> mateElmt = elmtTable (e);
-      elmtTable (me) -> side (ms) -> mateSide = elmtTable (e)  -> side (s);
+      me--; ms--;
       
+      S  = elmtTable (e)  -> side (s);
+      MS = elmtTable (me) -> side (ms);
+
+      S  -> mateElmt = elmtTable (me);
+      S  -> mateSide = MS;
+      MS -> mateElmt = elmtTable (e);
+      MS -> mateSide = S;
+
+      S  -> startNode -> periodic = MS -> endNode;
+      S  -> endNode   -> periodic = MS -> startNode;
+      MS -> startNode -> periodic = S  -> endNode;
+      MS -> endNode   -> periodic = S  -> startNode;
+
       // -- Clean up.
       
       feml.stream() >> tag;
@@ -456,8 +466,8 @@ void Mesh::checkAssembly ()
     }
   }
   
-  if (Femlib::value ("VERBOSE") > 1) {
-    cout << "Mesh connectivity summary:" << endl;
+  if ((int) Femlib::value ("VERBOSE") > 1) {
+    cout << endl << "# Summary:" << endl;
     showAssembly (*this);
   }
 }
@@ -481,7 +491,6 @@ void Mesh::curves ()
   char   err[StrMax], buf[StrMax];
   int    i, K, id, elmt, side, ns;
   Curve* C;
-  Elmt*  E;
   Side*  S;
 
   curveTable.setSize (K = feml.attribute ("CURVES", "NUMBER"));
@@ -630,9 +639,9 @@ Point Mesh::Elmt::centroid () const
 }
 
 
-void Mesh::meshSide (int         np     ,
-		     int         elmt   ,
-		     int         side   ,
+void Mesh::meshSide (const int   np     ,
+		     const int   elmt   ,
+		     const int   side   ,
 		     const real* spacing,
 		     Point*      knot   ) const
 // ---------------------------------------------------------------------------
@@ -643,10 +652,10 @@ void Mesh::meshSide (int         np     ,
 // Spacing gives location of knots in master coordinates [-1, 1].
 // ---------------------------------------------------------------------------
 {
-  char      routine[] = "Mesh::meshSide";
-  char      i, j;
-  const int Nc = curveTable.getSize();
-  const int Ne = elmtTable .getSize();
+  char         routine[] = "Mesh::meshSide";
+  register int i;
+  const int    Nc = curveTable.getSize();
+  const int    Ne = elmtTable .getSize();
 
   if (np < 2) message (routine, "must have at least two points", ERROR);
 
@@ -680,7 +689,7 @@ void Mesh::meshElmt (const int   ID,
 		     real*       x ,
 		     real*       y ) const
 // ---------------------------------------------------------------------------
-// Generate mesh points for Elmt No ID (IDs begin at 1).
+// Generate mesh points for Elmt No ID (IDs begin at 0).
 // Generate element-edge points, then internal points using a Coons patch.
 // Input z contains the spacing of edge knot points along interval [-1, 1].
 //
@@ -750,22 +759,22 @@ void Mesh::meshElmt (const int   ID,
 }
 
 
-int Mesh::globalID (const int np  ,
-		    int*      btog)
+int Mesh::buildMap (const int np ,
+		    int*      map)
 // ---------------------------------------------------------------------------
 // Generate connectivity (i.e. global knot numbers) for a mesh with np
 // knot points (i.e. Lagrange knots) along each element side, ignoring
 // internal points (i.e. generate connectivity for static-condensation form).
 //
-// Fill btog (element-by-element storage of these global numbers) for whole
-// mesh: for a mesh of quad elements, btog must hold 4*(np-1)*nEl integers.
+// Fill map (element-by-element storage of these global numbers) for whole
+// mesh: for a mesh of quad elements, map must hold 4*(np-1)*nEl integers.
 // Return the number of global knots (maximum global knot number + 1). 
 //
 // NB: np >= 2, also global numbers generated here start at 0.
 // NB: this connectivity information is generated without reference to BCs.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "Mesh::globalID";
+  char routine[] = "Mesh::buildMap";
 
   if (np < 2) message (routine, "need at least 2 knots", ERROR);
 
@@ -802,16 +811,16 @@ int Mesh::globalID (const int np  ,
     }
   }
 
-  // -- Fill btog.
+  // -- Fill map.
 
   for (i = 0; i < nel; i++) {
     E  = elmtTable (i);
     ns = E -> nNodes();
     for (j = 0; j < ns; j++) {
       S = E -> side (j);
-      btog[nb++] = S -> startNode -> gID;
+      map[nb++] = S -> startNode -> gID;
       for (k = 0; k < ni; k++)
-	btog[nb++] = S -> gID (k);
+	map[nb++] = S -> gID (k);
     }
   }
 
@@ -841,7 +850,10 @@ void Mesh::Side::connect (const int ni ,
   register int   i, k;
   register Side* otherSide;
 
-  if (startNode -> gID == UNSET) startNode -> gID = gid++;
+  if (startNode -> gID == UNSET)
+    startNode -> gID = gid++;
+  if (startNode -> periodic)
+    startNode -> periodic -> gID = startNode -> gID;
 
   if (ni) {			// -- Do side-internal gids.
     if (mateElmt) {
@@ -857,18 +869,22 @@ void Mesh::Side::connect (const int ni ,
 	gID[i] = gid++;
   }
 
-  if (endNode -> gID == UNSET) endNode -> gID = gid++;
+  if (endNode -> gID == UNSET)
+    endNode -> gID = gid++;
+  if (endNode -> periodic)
+    endNode -> periodic -> gID = endNode -> gID;
 }
 
 
-void Mesh::showGlobalID (Mesh& m)
+#if 0
+void Mesh::showMap (Mesh& m)
 // ---------------------------------------------------------------------------
 // Print knot connectivity information (global node numbers).
 // As things are set up now, this function is of no use since gIDs are
 // always UNSET except during calls to Mesh::globalID.
 // ---------------------------------------------------------------------------
 {
-#if 0
+
   register int i, j, k;
   const    int nel = m.nEl();
   int      ni, ns;
@@ -908,8 +924,8 @@ void Mesh::showGlobalID (Mesh& m)
       cout << endl;
     }
   }
-#endif
 }
+#endif
 
 
 void CircularArc::printNek () const
@@ -1076,11 +1092,12 @@ void Mesh::describeGrp (char  G,
 }
 
 
-void Mesh::describeBC (char  G,
-		       char  F, 
-		       char* S) const
+void Mesh::describeBC (char  grp,
+		       char  fld, 
+		       char* tgt) const
 // ---------------------------------------------------------------------------
-// Find the BC description string matching Group G for Field F, load into S.
+// Find BC description string matching group 'grp' and Field 'fld',
+// load into tgt.
 // ---------------------------------------------------------------------------
 {
   char      routine[] = "Mesh::describeBC";
@@ -1105,17 +1122,17 @@ void Mesh::describeBC (char  G,
 
       feml.stream() >> fieldc;
 
-      if (found = (groupc == G) && (fieldc == F)) {
+      if (found = (groupc == grp) && (fieldc == fld)) {
 	feml.stream() >> eql;
 	if (eql == '=') {
-	  S[0] = F;
-	  S[1] = '\0';
-	  strcat (S, " = ");
+	  tgt[0] = fld;
+	  tgt[1] = '\0';
+	  strcat (tgt, " = ");
 	  feml.stream() >> buf;
-	  strcat (S, buf);
+	  strcat (tgt, buf);
 	} else {
 	  sprintf (err, "Group '%c', Field '%c', expected '=', got '%c",
-		   G, F, eql);
+		   grp, fld, eql);
 	  message (routine, err, ERROR);
 	}
       } else {
@@ -1125,7 +1142,133 @@ void Mesh::describeBC (char  G,
   }
       
   if (!found) {
-    sprintf (err, "couldn't find BC to match Group '%c', Field '%c'", G, F);
+    sprintf (err, "couldn't find BC to match Group '%c', Field '%c'",
+	     grp, fld);
     message (routine, err, ERROR);
   }
+}
+
+
+void Mesh::buildMask (const int  np  ,
+		      const char fld ,
+		      int*       mask)
+// ---------------------------------------------------------------------------
+// This routine generates an integer mask (0/1) vector for element-boundary
+// nodes.  For any location that corresponds to a domain boundary with an
+// essential boundary condition and for field name "fld", the corresponding
+// mask value will be 1.  All other locations will be zero.
+//
+// For quads, mask is 4 * nel * (np - 1) long, same as input for buildMap.
+// Use is made of the fact that on BCs, there are no mating sides, hence
+// no need to set mask on mating sides.
+// ---------------------------------------------------------------------------
+{
+  char routine[] = "Mesh::buildMask";
+
+  if (np < 2) message (routine, "need at least 2 knots", ERROR);
+
+  register int i, j, k, ns, nb = 0;
+  const    int nel = nEl(), ni = np - 2;
+  Elmt*        E;
+  Side*        S;
+
+  // -- Allocate space, unmask all gIDs.
+
+  for (i = 0; i < nel; i++) {
+    E  = elmtTable (i);
+    ns = E -> nNodes();
+    for (j = 0; j < ns; j++) {
+      S = E -> side (j);
+      S -> gID.setSize (ni);      
+      S -> startNode -> gID = 0;
+      S -> endNode   -> gID = 0;
+      if (ni)      S -> gID = 0;
+    }
+  }
+
+  // -- Switch on gID in appropriate locations, for D <==> Dirichelet BCs.
+
+  for (i = 0; i < nel; i++) {
+    E  = elmtTable (i);
+    ns = E -> nNodes();
+    for (j = 0; j < ns; j++) {
+      S = E -> side (j);
+      if (!(S -> mateElmt) && matchBC (S -> group, fld, 'D')) {
+	S -> startNode -> gID = 1;
+	S -> endNode   -> gID = 1;
+	if (ni)      S -> gID = 1;
+	if (S -> startNode -> periodic) S -> startNode -> periodic -> gID = 1;
+	if (S -> endNode   -> periodic) S -> endNode   -> periodic -> gID = 1;
+      }
+    }
+  }
+
+  // -- Traverse mesh and load mask values.
+
+  for (i = 0; i < nel; i++) {
+    E  = elmtTable (i);
+    ns = E -> nNodes();
+    for (j = 0; j < ns; j++) {
+      S = E -> side (j);
+      mask[nb++] = S -> startNode -> gID;
+      for (k = 0; k < ni; k++)
+	mask[nb++] = S -> gID (k);
+    }
+  }
+
+  // -- Deallocate internal knot number storage.
+
+  for (i = 0; i < nel; i++) {
+    E  = elmtTable (i);
+    ns = E -> nNodes();
+    for (j = 0; j < ns; j++) {
+      S = E -> side (j);
+      S -> gID.setSize (0);      
+      S -> startNode -> gID = UNSET;
+      S -> endNode   -> gID = UNSET;
+    }
+  }
+}
+
+
+int Mesh::matchBC (const char grp,
+		   const char fld,
+		   const char bcd)
+// ---------------------------------------------------------------------------
+// From FEML BC information, return 1 if the boundary condition kind shown
+// for group 'grp' and field 'fld' is of type 'bcd'.
+// 
+// Presently allowed values for bcd (these correspond to FEML BC tag names):
+//   D <==> Dirichlet, Essential
+//   N <==> Neumann, Natural
+//   H <==> "High-order" (computed, natural) Pressure BC.  See KIO91.
+// ---------------------------------------------------------------------------
+{
+  char      groupc, fieldc, nextc, buf[StrMax];
+  int       i, j, id, nbcs;
+  const int N = feml.attribute ("BCS", "NUMBER");
+
+  for (i = 0; i < N; i++) {
+
+    while ((nextc = feml.stream().peek()) == '#') // -- Skip comments.
+      feml.stream().ignore (StrMax, '\n');
+
+    feml.stream() >> id >> groupc >> nbcs;
+
+    if (groupc != grp) {
+      feml.stream().ignore (StrMax, '\n');
+      for (j = 0; j < nbcs; j++)
+	feml.stream().getline (buf, StrMax);
+    } else {
+      for (j = 0; j < nbcs; j++) {
+	feml.stream() >> buf >> fieldc;
+	if (buf[1] == bcd && fieldc == fld)
+	  return 1;
+	else
+	  feml.stream().ignore (StrMax, '\n');
+      }
+    }
+  }
+
+  return 0;
 }

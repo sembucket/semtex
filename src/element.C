@@ -6,331 +6,69 @@ static char
 RCSid[] = "$Id$";
 
 
-#include <Fem.h>
+#include <Sem.h>
 
 
-Element::Element (const int& ident,
-		  const int& nknot,
-		  const int& nside)
+Element::Element (const int   i   ,
+		  const Mesh& M   ,
+		  const real* z   ,
+		  const int   nk  ,
+		  const int   doff,
+		  const int   boff) :
+
+		  id          (i   ),
+		  ns          (4   ),
+		  np          (nk  ),
+		  dOffset     (doff),
+		  bOffset     (boff)
 // ---------------------------------------------------------------------------
-// Create a new element.
+// Create a new quad element, nk X nk.  Spacing along any size generated
+// by mapping z (defined on domain [-1, 1], np points) onto side.
+//
+// Compute information for internal storage, and economize.
 // ---------------------------------------------------------------------------
 {
   char routine[] = "Element::Element";
+  const int nk2  = sqr (nk);
 
-  if (nside != 4)
-    message (routine, "need 4 sides for quadrilateral element",  ERROR);
-  else if (nknot < 2)
-    message (routine, "need at least 2 knots for element edges", ERROR);
-  else
-    setState (ident, nknot, nside);
-}
+  if (nk < 2) message (routine, "need > 2 knots for element edges", ERROR);
 
+  rule = (int) Femlib::value ("RULE");
+  nq = (rule == LL) ? np : Femlib::nquad (2, np);
 
-Element::Element (const Element& parent,
-		  const int&     np    )
-// ---------------------------------------------------------------------------
-// Use parent as a model for a new element, possibly of different order.
-// ---------------------------------------------------------------------------
-{
-  if (!np) {
-    memcpy (this, &parent, sizeof (Element));
-    esstl = 0;
-  } else if (np == parent.np) {
-    memcpy (this, &parent, sizeof (Element));
-    bmap = esstl = 0;
-    drdx = dsdx  = drdy = dsdy = G1 = G2 = G3 = G4 = mass = 0;
-  } else {
-    setState (parent.id, np, parent.ns);
-    xmesh = ymesh = 0;
-    bmap = esstl = 0;
-    drdx = dsdx  = drdy = dsdy = G1 = G2 = G3 = G4 = mass = 0;
-  }
-}
-
-
-void Element::project (const Element& parent,
-		       const real*    src   ,
-		       real*          tgt   )
-// ---------------------------------------------------------------------------
-// Isoparametrically project mesh from parent Element onto this Element.
-// Optionally project Field data (src) from parent onto projected element.
-// ---------------------------------------------------------------------------
-{
-  char      routine[] = "Element::project";
-  const int nold      = parent.np;
-
-  if (!nold || !np)
-    message (routine, "size of either this or parent Element not set", ERROR);
+  Femlib::buildMaps (np, &emap, &pmap);
   
-  if (nold == np) {
-    Veclib::copy (nTot(), *parent.xmesh, 1, *xmesh, 1);
-    Veclib::copy (nTot(), *parent.ymesh, 1, *ymesh, 1);
-    if (src) Veclib::copy (nTot(), src, 1, tgt, 1);
-
-  } else {
-    real **IN, **IT, *tmp = rvector (np*nold);
-
-    Femlib::mesh (GLL, GLL, nold, np, 0, &IN, &IT, 0, 0);
-
-    Blas::mxm (*IN, np, *parent.xmesh, nold, tmp,    nold);
-    Blas::mxm (tmp, np, *IT,           nold, *xmesh, np  );
-      
-    Blas::mxm (*IN, np, *parent.ymesh, nold, tmp,    nold);
-    Blas::mxm (tmp, np, *IT,           nold, *ymesh, np  );
-
-    if (src) {
-      Blas::mxm (*IN, np, src, nold, tmp, nold);
-      Blas::mxm (tmp, np, *IT, nold, tgt, np  );
-    }
-    
-    freeVector (tmp);
-  }
-}
-
-
-void Element::setState (const int& ident,
-			const int& nknot,
-			const int& nside)
-// ---------------------------------------------------------------------------
-// Set element state variables.
-// ---------------------------------------------------------------------------
-{
-  char routine[] = "Element::setState";
-
-  id    = ident;
-  np    = nknot;
-  ns    = nside;
-  rule  = Femlib::option ("RULE");
-  esstl = 0;
-
-  switch (rule) {
-  case LL:
-    nq = np;
-    break;
-  case GL:
-    nq = Femlib::nquad (2, np);
-    break;
-  default:
-    message (routine, "quadrature rule set incorrectly", ERROR);
-    break;
-  }
-
-  setEdgeMaps (*this);
-}
-
-
-void Element::setEdgeMaps (Element& E)
-// ---------------------------------------------------------------------------
-// An emap is an edge-based list of indices, going CCW around the element
-// edges and then traversing the interior.  This allows us to access element
-// storage by traversing edges, tying in with edge-based global numbering.
-//
-// Pmap (the inversion of emap) is built afterwards.
-//
-// To convert from row-major storage to boundary-major, then back:
-//   gathr (ntot, value, emap, tmp  );
-//   gathr (ntot, tmp,   pmap, value)  OR  scatr (ntot, tmp, emap, value);
-// ---------------------------------------------------------------------------
-{
-  char routine[] = "Element::setEdgeMaps";
-
-  if (!E.np) message (routine, "element order not set", ERROR);
-
-  static List<mapping*> maplist;
-
-  for (ListIterator<mapping*> m(maplist); m.more(); m .next())
-    if (m.current () -> ne == E.np) {
-      E.emap = m.current () -> e;
-      E.pmap = m.current () -> p;
-      return;
-    }
-
-  // -- Not found: build a new pair of emap & pmap.
-
-  register int i, j, k, n;
+  xmesh = new real [nk2];
+  ymesh = new real [nk2];
   
-  E.emap = ivector (sqr (E.np));
-
-  // -- Traverse exterior CCW.
-
-  k = 0;
-  n = 0;
-  E.emap[0] = 0;
-  for (i = 1; i < E.np; i++) E.emap[++k] = n += 1;
-  for (i = 1; i < E.np; i++) E.emap[++k] = n += E.np;
-  for (i = 1; i < E.np; i++) E.emap[++k] = n -= 1;
-  for (i = 1; i < E.np; i++) E.emap[++k] = n -= E.np;
+  M.meshElmt (id, np, z, xmesh, ymesh);
   
-  // -- Traverse interior in row-major order.
-
-  int nm = E.np - 1;
-  for (i = 1; i < nm; i++)
-    for (j = 1; j < nm; j++)
-      E.emap[k++] = i * E.np + j;
-  
-  // -- Build pmap.
-  
-  E.pmap = ivector (sqr (E.np));
-  for (i = 0; i < sqr (E.np); i++) E.pmap[E.emap[i]] = i;
-    
-  // -- Insert in the list of maps.
-
-  mapping *M;
-  maplist.add (M = new mapping);
-  M -> e = E.emap;
-  M -> p = E.pmap;
+  Femlib::adopt (nk2, &xmesh);
+  Femlib::adopt (nk2, &ymesh);
+ 
+  map ();
 }
 
 
-inline
-void Element::terminal (const int& side  ,
-			int&       estart,
-			int&       eskip ,
-			int&       bstart) const
+Element::~Element ()
 // ---------------------------------------------------------------------------
-// Evaluate the element-edge terminal values of estart, skip, bstart.
-// NB: BLAS-conformant terminal start values are delivered for negative skips.
+// Clean up internal storage using Femlib family routines.
 // ---------------------------------------------------------------------------
 {
-  switch (side) {
-  case 1:
-    estart = 0;
-    eskip  = 1;
-    bstart = 0;
-    break;
-  case 2:
-    estart = np - 1;
-    eskip  = np;
-    bstart = np - 1;
-    break;
-  case 3:
-    estart = np * (np - 1);
-    eskip  = -1;
-    bstart = 2  * (np - 1);
-    break;
-  case 4:
-    estart = 0;
-    eskip  = -np;
-    bstart = 3  * (np - 1);
-    break;
-  }
-}
+  Femlib::abandon (&xmesh);
+  Femlib::abandon (&ymesh);
 
+  Femlib::abandon (&drdx);
+  Femlib::abandon (&dsdx);
+  Femlib::abandon (&drdy);
+  Femlib::abandon (&dsdy);
 
-void Element::install (const int& jump,
-		       real*      mesh,
-		       int*       map ,
-		       const int* mask)
-// ---------------------------------------------------------------------------
-// Make Element xmesh, ymesh, bmap point to new memory, set offset
-// in Field data area.  Mesh only installed if pointer is non-zero.
-// Mask is a pointer to an array giving boundary essential BC mask info.
-// ---------------------------------------------------------------------------
-{
-  char routine[] = "Element::install";
-  char s[StrMax];
+  Femlib::abandon (&G1  );
+  Femlib::abandon (&G2  );
+  Femlib::abandon (&G3  );
+  Femlib::abandon (&G4  );
 
-  if (jump) offset = jump;
-  if (map ) bmap   = map;
-
-  if (mesh) {
-    xmesh = new real* [np];
-    ymesh = new real* [np];
-    
-    real *xm = mesh;
-    real *ym = mesh + sqr (np);
-
-    for (register int j = 0; j < np; j++) {
-      xmesh[j] = xm + j * np;
-      ymesh[j] = ym + j * np;
-    }
-  }
-
-  if (mask) {
-    if (esstl) {
-      sprintf (s, "Element %d already has an installed mask", id);
-      message (routine, s, ERROR);
-    }
-
-    esstl = ivector (nExt ());
-    Veclib::copy (nExt (), mask, 1, esstl, 1);
-  }
-}
-
-
-void Element::gidInsert (const int* b)
-// ---------------------------------------------------------------------------
-// Insert an array with Element-boundary global node numbers into bmap.
-// ---------------------------------------------------------------------------
-{
-  Veclib::copy (nExt(), b, 1, bmap, 1);
-}
-
-
-void Element::mesh (const Mesh& M)
-// ---------------------------------------------------------------------------
-// Generate Element mesh internal node locations.
-// ---------------------------------------------------------------------------
-{
-  real*        z;
-  real**       x  = xmesh;
-  real**       y  = ymesh;
-  register int i, j;
-  const int    nm = np - 1;
-  Point*       P = new Point [np];
-
-  // -- Build Element-boundary knots using Mesh functions.
-
-  Femlib::quad (LL, np, np, &z, 0, 0, 0, 0, 0, 0);
-
-  for (j = 1; j <= ns; j++) {
-    M.meshSide (np, id, j, z, P);
-    for (i = 0; i < nm; i++) {
-      switch (j) {
-      case 1:
-	x[0][i]       = P[i].x;
-	y[0][i]       = P[i].y;
-	break;
-      case 2:
-	x[i][nm]      = P[i].x;
-	y[i][nm]      = P[i].y;
-	break;
-      case 3:
-	x[nm][nm - i] = P[i].x;
-	y[nm][nm - i] = P[i].y;
-	break;
-      case 4:
-	x[nm - i][0]  = P[i].x;
-	y[nm - i][0]  = P[i].y;
-	break;
-      }
-    }
-  }
-
-  // --  Make interior knots by averaging linear & bilinear interpolations.
-
-  for (i = 1; i < nm; i++)
-    for (j = 1; j < nm; j++) {
-
-      x[i][j] = 0.50 * ( (1.0 - z[j]) * x[i][0] + (1.0 + z[j]) * x[i][nm] 
-		     +   (1.0 - z[i]) * x[0][j] + (1.0 + z[i]) * x[nm][j] )
-	     
-	      - 0.25 * ( (1.0 - z[j]) * (1.0 - z[i]) * x[ 0][ 0]
-                     +   (1.0 - z[j]) * (1.0 + z[i]) * x[nm][ 0]
-		     +   (1.0 - z[i]) * (1.0 + z[j]) * x[ 0][nm]
-		     +   (1.0 + z[i]) * (1.0 + z[j]) * x[nm][nm] );
-
-      y[i][j] = 0.50 * ( (1.0 - z[j]) * y[i][0] + (1.0 + z[j]) * y[i][nm] 
-		     +   (1.0 - z[i]) * y[0][j] + (1.0 + z[i]) * y[nm][j] )
-	     
-	      - 0.25 * ( (1.0 - z[j]) * (1.0 - z[i]) * y[ 0][ 0]
-                     +   (1.0 - z[j]) * (1.0 + z[i]) * y[nm][ 0]
-		     +   (1.0 - z[i]) * (1.0 + z[j]) * y[ 0][nm]
-		     +   (1.0 + z[i]) * (1.0 + z[j]) * y[nm][nm] );
-    }
-
-  delete [] P;
+  Femlib::abandon (&mass);
 }
 
 
@@ -339,10 +77,10 @@ void Element::map ()
 // Generate geometric factors associated with mapping from 2D Cartesian to
 // isoparametrically-mapped space:
 //
-//   dxdr, drdx,   = dx/dr,  dr/dx,  "Forward Partials"
-//   dxds, dsdx,   = dx/ds,  ds/dx,
-//   dydr, drdy,   = dy/dr,  dr/dy,  "Inverse Partials"
-//   dyds, dsdy,   = dy/ds,  ds/dy,
+//   dxdr, dydr,   = dx/dr,  dy/dr,  "Forward Partials"
+//   dxds, dyds,   = dx/ds,  dy/ds.
+//   drdx, drdy,   = dr/dx,  dr/dy,  "Inverse Partials"
+//   dsdx, dsdy,   = ds/dx,  ds/dy.
 //   jac           = dx/dr * dy/ds - dx/ds * dy/dr.
 //
 // The following relationships are used, where
@@ -355,44 +93,65 @@ void Element::map ()
 //   [dxdr] = [IN][X][DT];    [dydr] = [IN][Y][DT],
 //   [dxds] = [DV][X][IT];    [dyds] = [DV][Y][IT].
 //
-// For a GL quadrature rule, the inverse partials and mass matrix are
-// returned for spatial locations at the mesh nodes, while the forward
-// partials and other geometric factors are for spatial locations at the
-// quadrature points.  For LL rule, everything is at the nodes.
+// For a Gauss--Legendre quadrature rule, the inverse partials and mass
+// matrix are returned for spatial locations at the mesh nodes, while
+// the forward partials and other geometric factors are for spatial
+// locations at the quadrature points.  In general, the amount of storage
+// allocated for forward and inverse partials differ.
+//
+// For Lobatto--Legendre rule, everything is at the nodes.
+//
+// The inverse partials are retained in Element storage, to be used in
+// element gradient operations (e.g. dP/dx = dP/dr * dr/dx + dP/ds * ds/dx)
+// while the forward partials are retained in scrambled form (in combination
+// with quadrature weights) as "geometric factors" G1--G4, to be used in
+// element quadrature operations.
+//
+// Null-mapping optimizations mentioned below occur when the element geometry
+// ensures that the entries of a vector are zero to within roundoff, due
+// either to the edges of elements being aligned with coordinate axes
+// (as can happen for the inverse partials) or if the element is an
+// undistorted (but possibly rotated) rectangle (this applies to G3).
+// In these cases the associated memory is deleted and the pointers
+// are set to zero, so they can serve as flags in subsequent computations.
 // ---------------------------------------------------------------------------
 {
-  char   routine[] = "Element::map";
-  char   buf[StrMax];
-  int    ntot;
-  real  *x, *y;
-  real **DV,   **DT,   **IN,   **IT;
-  real  *jac,   *dxdr,  *dxds,  *dydr,  *dyds,  *tM,   *tV,   *w,  *WW;
+  char  routine[] = "Element::map";
+  char  err[StrMax];
+  int   ntot;
+  real  *x = xmesh, *y = ymesh;
+  real  **DV, **DT,  **IN,  **IT;
+  real  *jac, *dxdr, *dxds, *dydr, *dyds, *tM, *tV, *w, *WW;
 
-  const real EPS = (sizeof(real) == sizeof (double)) ? EPSDP : EPSSP;
+  vector<real> work;
+  const real   EPS = 4 * nTot()*((sizeof(real)==sizeof(double)) ? EPSDP:EPSSP);
 
-  if (rule == LL) {
+  if (rule == LL) {		// -- Lobatto--Legendre quadrature.
     ntot = nTot();
-    x    = *xmesh;
-    y    = *ymesh;
 
-    drdx = rvector (ntot);
-    dsdx = rvector (ntot);
-    drdy = rvector (ntot);
-    dsdy = rvector (ntot);
-    G1   = rvector (ntot);
-    G2   = rvector (ntot);
-    G3   = rvector (ntot);
-    G4   = rvector (ntot);
-    mass = G4;
+    // -- Permanent/family allocations.
+
+    drdx = new real [ntot];
+    dsdx = new real [ntot];
+    drdy = new real [ntot];
+    dsdy = new real [ntot];
+    G1   = new real [ntot];
+    G2   = new real [ntot];
+    G3   = new real [ntot];
+    G4   = new real [ntot];
     
-    dxdr = rvector (ntot);
-    dxds = rvector (ntot);
-    dydr = rvector (ntot);
-    dyds = rvector (ntot);
+    // -- Temporaries.
 
-    jac  = rvector (ntot);
-    WW   = rvector (ntot);
-    tV   = rvector (ntot);
+    work.setSize (7 * ntot);
+
+    dxdr = work();
+    dxds = dxdr + ntot;
+    dydr = dxds + ntot;
+    dyds = dydr + ntot;
+
+    jac  = dyds + ntot;
+    WW   = jac  + ntot;
+    tV   = WW   + ntot;
     
     Femlib::quad (LL, np, np, 0, 0, &w, 0, 0, &DV, &DT);
     Veclib::zero (ntot, WW, 1);
@@ -407,8 +166,8 @@ void Element::map ()
     Veclib::vvvtm (ntot, tV, 1, dxds, 1, dydr, 1, jac, 1);
     
     if (jac[Veclib::imin (ntot, jac, 1)] < EPSSP) {
-      sprintf (buf, "jacobian of element %1d nonpositive", id);
-      message (routine, buf, ERROR);
+      sprintf (err, "jacobian of element %1d nonpositive", id);
+      message (routine, err, ERROR);
     }
     
     Veclib::vmul  (ntot, dyds, 1, dyds, 1, tV, 1);
@@ -439,43 +198,51 @@ void Element::map ()
     Veclib::vdiv (ntot, dsdx, 1, jac, 1, dsdx, 1);
     Veclib::vdiv (ntot, dsdy, 1, jac, 1, dsdy, 1);
 
-    if (Blas::nrm2 (ntot, G3,   1) < EPS) { freeVector (G3);   G3   = 0; }
+    // -- Calculations are done.  Do null-mapping optimizations.
 
-    if (Blas::nrm2 (ntot, drdx, 1) < EPS) { freeVector (drdx); drdx = 0; }
-    if (Blas::nrm2 (ntot, drdy, 1) < EPS) { freeVector (drdy); drdy = 0; }
-    if (Blas::nrm2 (ntot, dsdx, 1) < EPS) { freeVector (dsdx); dsdx = 0; }
-    if (Blas::nrm2 (ntot, dsdy, 1) < EPS) { freeVector (dsdy); dsdy = 0; }
+    if (Blas::nrm2 (ntot, drdx, 1) < EPS) { delete [] drdx; drdx = 0; }
+    if (Blas::nrm2 (ntot, drdy, 1) < EPS) { delete [] drdy; drdy = 0; }
+    if (Blas::nrm2 (ntot, dsdx, 1) < EPS) { delete [] dsdx; dsdx = 0; }
+    if (Blas::nrm2 (ntot, dsdy, 1) < EPS) { delete [] dsdy; dsdy = 0; }
+    if (Blas::nrm2 (ntot, G3,   1) < EPS) { delete [] G3;   G3   = 0; }
 
-    freeVector (dxdr);
-    freeVector (dxds);
-    freeVector (dydr);
-    freeVector (dyds);
-    freeVector (jac);
-    freeVector (WW);
-    freeVector (tV);
-      
-  } else {  // -- rule == GL
-    x = *xmesh;
-    y = *ymesh;
+    // -- Check for family redundancies.
+
+    Femlib::adopt (ntot, &drdx);
+    Femlib::adopt (ntot, &drdy);
+    Femlib::adopt (ntot, &dsdx);
+    Femlib::adopt (ntot, &dsdy);
+    Femlib::adopt (ntot, &G1  );
+    Femlib::adopt (ntot, &G2  );
+    Femlib::adopt (ntot, &G3  );
+    Femlib::adopt (ntot, &G4  );
+
+    // -- Install alias for mass matrix.
+
+    mass = G4;
+
+  } else {  // -- rule == GL: Gauss--Legendre quadrature.
     
     // -- Quadrature point computations.
 
     ntot = sqr (nq);
 
-    G1   = rvector (ntot);
-    G2   = rvector (ntot);
-    G3   = rvector (ntot);
-    G4   = rvector (ntot);
-     
-    dxdr = rvector (ntot);
-    dxds = rvector (ntot);
-    dydr = rvector (ntot);
-    dyds = rvector (ntot);
+    G1 = new real [ntot];
+    G2 = new real [ntot];
+    G3 = new real [ntot];
+    G4 = new real [ntot];
+    
+    work.setSize (7 * ntot + np * nq);
+
+    dxdr = work();
+    dxds = dxdr + ntot;
+    dydr = dxds + ntot;
+    dyds = dydr + ntot;
    
-    jac  = rvector (ntot);
-    WW   = rvector (ntot);
-    tM   = rvector (np * nq);
-    tV   = rvector (ntot);
+    jac  = dyds + ntot;
+    WW   = jac  + ntot;
+    tM   = WW   + ntot;
+    tV   = tM + np * nq;
 
     Femlib::quad (GL, np, nq, 0, 0, &w, &IN, &IT, &DV, &DT);
     Veclib::zero (ntot, WW, 1);
@@ -509,36 +276,38 @@ void Element::map ()
     Veclib::vdiv  (ntot, G3,   1, jac,  1, tV,   1);
     Veclib::vmul  (ntot, tV,   1, WW,   1, G3,   1);
 
-    if (Blas::nrm2 (ntot, G3, 1) < EPS) { freeVector (G3); G3 = 0; }
-    
-    Veclib::vmul  (ntot, jac, 1, WW, 1, G4, 1);
+    Veclib::vmul (ntot, jac, 1, WW, 1, G4, 1);
 
-    freeVector (dxdr);
-    freeVector (dxds);
-    freeVector (dydr);
-    freeVector (dyds);
-    freeVector (jac);
-    freeVector (WW);
-    freeVector (tM);
-    freeVector (tV);
+    // -- Do null-mapping optimization.
+
+    if (Blas::nrm2 (ntot, G3, 1) < EPS) { delete [] G3; G3 = 0; }
     
+    // -- Check family membership.
+
+    Femlib::adopt (ntot, &G1);
+    Femlib::adopt (ntot, &G2);
+    Femlib::adopt (ntot, &G3);
+    Femlib::adopt (ntot, &G4);
+
     // -- Node point computations.
     
     ntot = nTot();
 
-    drdx = rvector (ntot);
-    drdy = rvector (ntot);
-    dsdx = rvector (ntot);
-    dsdy = rvector (ntot);
-    mass = rvector (ntot);
-    
-    dxdr = rvector (ntot);
-    dxds = rvector (ntot);
-    dydr = rvector (ntot);
-    dyds = rvector (ntot);
-    jac  = rvector (ntot);
-    WW   = rvector (ntot);
-    tV   = rvector (ntot);
+    drdx = new real [ntot];
+    drdy = new real [ntot];
+    dsdx = new real [ntot];
+    dsdy = new real [ntot];
+    mass = new real [ntot];
+
+    work.setSize (7 * ntot);
+
+    dxdr = work();
+    dxds = dxdr + ntot;
+    dydr = dxds + ntot;
+    dyds = dydr + ntot;
+    jac  = dyds + ntot;
+    WW   = jac  + ntot;
+    tV   = WW   + ntot;
     
     Femlib::quad (LL, np, np, 0, 0, &w, 0, 0, &DV, &DT);
     Veclib::zero (ntot, WW, 1);
@@ -563,69 +332,101 @@ void Element::map ()
     Veclib::vdiv (ntot, drdy, 1, jac, 1, drdy, 1);
     Veclib::vdiv (ntot, dsdx, 1, jac, 1, dsdx, 1);
     Veclib::vdiv (ntot, dsdy, 1, jac, 1, dsdy, 1);
-    
-    freeVector (dxdr);
-    freeVector (dxds);
-    freeVector (dydr);
-    freeVector (dyds);
-    freeVector (jac);
-    freeVector (WW);
-    freeVector (tV);
+
+    // -- Do null-mapping optimizations.
+
+    if (Blas::nrm2 (ntot, drdx, 1) < EPS) { delete [] drdx; drdx = 0; }
+    if (Blas::nrm2 (ntot, drdy, 1) < EPS) { delete [] drdy; drdy = 0; }
+    if (Blas::nrm2 (ntot, dsdx, 1) < EPS) { delete [] dsdx; dsdx = 0; }
+    if (Blas::nrm2 (ntot, dsdy, 1) < EPS) { delete [] dsdy; dsdy = 0; }
+
+    // -- Family membership.
+
+    Femlib::adopt (ntot, &drdx);
+    Femlib::adopt (ntot, &drdy);
+    Femlib::adopt (ntot, &dsdx);
+    Femlib::adopt (ntot, &dsdy);
+    Femlib::adopt (ntot, &mass);
   }
 }
 
 
-void Element::printBndry (const real* src) const
-// ---------------------------------------------------------------------------
-// (Debugging) utility to print edge connectivity & value information.
-// ---------------------------------------------------------------------------
-{
-  int  ne = nExt ();
-  char s[StrMax];
-
-  message ("", "#   id  emap  bmap  mask value", REMARK);
-
-  for (int i = 0; i < ne; i++) {
-    sprintf
-      (s, "%6d%6d%6d%6d%6d", id, emap[i], bmap[i], 
-       (esstl) ? esstl[i] : 0, src[emap[i]]);
-    message ("", s, REMARK);
-    }
-}
-
-
-void Element::bndryDsSum (const real* src,
-			  real*       tgt) const
+void Element::bndryDsSum (const int*  btog,
+			  const real* src ,
+			  real*       tgt ) const
 // ---------------------------------------------------------------------------
 // Direct-stiffness-sum from element boundary to globally-numbered storage,
-// i.e. tgt[bmap[i]] += mass[emap[i]] * src[emap[i]].
+// i.e. tgt[btog[i]] += mass[emap[i]] * src[emap[i]].
 // This is using in smoothing Fields along element boundaries.
 // ---------------------------------------------------------------------------
 {
-  register int   i, b, e;
-  register int   nxt = nExt();
+  register int   i, e;
+  const int      next = nExt();
   register real* wt = mass;
 
-  for (i = 0; i < nxt; i++) {
-    b = bmap[i];
+  for (i = 0; i < next; i++) {
     e = emap[i];
-    tgt[b] += wt[e] * src[e];
+    tgt[btog[i]] += wt[e] * src[e];
   }
 }
 
 
-void Element::dsForcingSC (real*       F  ,
-			   real*       tgt,
-			   const real* hbi) const
+void Element::bndryMask (const int*  bmsk,
+			 real*       tgt ,
+			 const real* src ,
+			 const int*  btog) const
+// ---------------------------------------------------------------------------
+// Mask the values in (row-major) tgt according to the mask vector bmsk
+// and optionally globally-numbered vector src.
+//
+// If src is non-zero, it is used with boundary-to-global mapping vector
+// btog to impose values within tgt on locations where bmsk is non-zero;
+// other locations are unaffected.
+//
+// If src is zero, then the values within tgt where bmsk is zero are
+// set to zero (i.e. tgt itself is taken as the source).  Btog is then
+// not used and may be zero also.
+//
+// INCORPORATES/REPLACES old routines Element::mask and Element::setEssential.
+// ---------------------------------------------------------------------------
+{
+  register int i, e;
+  const int    ntot = nTot();
+  const int    next = nExt();
+  const int    nint = nInt();
+
+  if (src) {
+    for (i = 0; i < next; i++) {
+      e = emap[i];
+      tgt[e] = (bmsk[i]) ? src[btog[i]] : tgt[e];
+    }
+
+  } else {
+    vector<real>   work (ntot);
+    register real* tmp = work();
+
+    Veclib::gathr (ntot, tgt, emap, tmp);
+    for (i = 0; i < next; i++)
+      tmp[i] = (bmsk[i]) ? tmp[i] : 0.0;
+    Veclib::zero  (nint, tmp + next, 1);
+    Veclib::gathr (ntot, tmp, pmap, tgt);
+  }
+}
+
+
+void Element::e2gSumSC (real*       F   ,
+			const int*  btog,
+			real*       tgt ,
+			const real* hbi ) const
 // ---------------------------------------------------------------------------
 // Create statically-condensed boundary Helmholtz forcing for this element
-// and insert it into tgt by direct stiffness summation.
-//  
+// from row-major F and insert it into globally-numbered tgt by direct
+// stiffness summation.
+//
 // NB: forcing, F, is modified.
 //
 // On entry, F contains the elemental weak boundary-constrained forcing
-//   - M f - H g
-// (see discussion in SystemField.C).
+//   - M f - H g.
 //
 // Elemental storage is then sorted in F so that it is ordered with boundary
 // nodes foremost, i.e. it contains the partition { F | F }.
@@ -633,54 +434,58 @@ void Element::dsForcingSC (real*       F  ,
 //
 // Statically-condensed boundary forcing is created in the first partition:
 //                       -1                         -1
-//   F   <--   F  -  h  h   F           (matrix h  h   supplied by *this)
+//   F   <--   F  -  h  h   F           (matrix h  h   supplied as hbi)
 //    b         b     bi ii  i                   bi ii
 //
 // and summed into the tgt vector.  In the summation, there is no need
 // to check if the global node is to be solved for or is fixed, since
 // the fixed (essential-BC) partition of tgt is overwritten later.
+//
+// REPLACES old routine Element::dsForcingSC
 // ---------------------------------------------------------------------------
 {
-  const int ntot = nTot ();
-  const int nint = nInt ();
-  const int next = nExt ();
+  const int    ntot = nTot();
+  const int    nint = nInt();
+  const int    next = nExt();
+  vector<real> work (ntot);
 
-  real* tmp = rvector (ntot);
-  Veclib::gathr (ntot, F, emap, tmp);
-  Veclib::copy  (ntot, tmp, 1, F, 1);
-  freeVector (tmp);
+  Veclib::gathr (ntot, F, emap, work());
+  Veclib::copy  (ntot, work(), 1, F, 1);
 
   if (nint) Blas::gemv ("T", nint,next, -1.0, hbi,nint, F + next,1, 1.0, F,1);
 
-  Veclib::scatr_sum (next, F, bmap, tgt);
+  Veclib::scatr_sum (next, F, btog, tgt);
 }
 
 
-void Element::resolveSC (const real* RHS,
-			 real*       F  , 
-			 real*       tgt,
-			 const real* hbi,
-			 const real* hii) const
+void Element::g2eSC (const real* RHS ,
+		     const int*  btog,
+		     real*       F   , 
+		     real*       tgt ,
+		     const real* hbi ,
+		     const real* hii ) const
 // ---------------------------------------------------------------------------
 // Complete static condensation solution for internal values of Element.
 //
 // On entry, global-node solution values are in RHS and F contains the
-// weak form of internal forcing in its top end (as installed by dsForcingSC).
+// weak form of internal forcing in its top end (as installed by e2gSumSC).
 //
 // If u is current Element, compute internal solution according to:
 //            -1      -1
 //   u  <--  h  F  - h  h   u
 //    i       ii i    ii ib  b
+//
+// REPLACES old routine Element::resolveSC
 // ----------------------------------------------------------------------------
 {
-  const int next = nExt ();
-  const int nint = nInt ();
-  real*     tmp  = rvector (next);
+  const int    next = nExt();
+  const int    nint = nInt();
+  vector<real> work (next);
 
   // -- Load globally-numbered RHS into element-boundary storage.
 
-  Veclib::gathr (next, RHS, bmap, tmp);
-  Veclib::scatr (next, tmp, emap, tgt);
+  Veclib::gathr (next, RHS,    btog, work());
+  Veclib::scatr (next, work(), emap, tgt   );
 
   // -- Complete static-condensation solution for element-internal storage.
 
@@ -689,47 +494,18 @@ void Element::resolveSC (const real* RHS,
     real* Fi = F + next;
 
     Lapack::pptrs ("U", nint, 1, hii, Fi, nint, info);
-    Blas::gemv    ("N", nint, next, -1.0, hbi, nint, tmp, 1, 1.0, Fi, 1);
+    Blas::gemv    ("N", nint, next, -1.0, hbi, nint, work(), 1, 1.0, Fi, 1);
     Veclib::scatr (nint, Fi, emap + next, tgt);
   }
-  
-  freeVector (tmp);
 }
 
 
-int Element::bandwidthSC () const
-// ---------------------------------------------------------------------------
-// Find the global equation bandwidth of this element, excluding diagonal.
-// ---------------------------------------------------------------------------
-{
-  register int i;
-  register int Min  = INT_MAX;
-  register int Max  = INT_MIN;
-  const int    next = nExt ();
-
-  if (esstl)
-    for (i = 0; i < next; i++) {
-      if (!esstl[i]) {
-	Min = min (bmap[i], Min);
-	Max = max (bmap[i], Max);
-      }
-    }
-  else
-    for (i = 0; i < next; i++) {
-      Min = min (bmap[i], Min);
-      Max = max (bmap[i], Max);
-    }
-
-  return Max - Min;
-}
-
-
-void Element::HelmholtzSC (const real&  lambda2,
-			   real*        hbb    ,
-			   real*        hbi    ,
-			   real*        hii    ,
-			   real*        rmat   ,
-			   real*        rwrk   ) 
+void Element::HelmholtzSC (const real lambda2,
+			   real*      hbb    ,
+			   real*      hbi    ,
+			   real*      hii    ,
+			   real*      rmat   ,
+			   real*      rwrk   ) const
 // ---------------------------------------------------------------------------
 // Compute the discrete elemental Helmholtz matrix and return the
 // statically condensed form in hbb, the interior-exterior coupling
@@ -779,7 +555,8 @@ void Element::HelmholtzSC (const real&  lambda2,
   for (i = 0; i < np; i++)
     for (j = 0; j < np; j++, ij++) {
 
-      helmRow (IT, DV, DT, lambda2, i, j, rmat, rwrk, rwrk+nq, rwrk+nq+nq);
+      helmRow ((const real**) IT, (const real**) DV, (const real**) DT,
+	       lambda2, i, j, rmat, rwrk, rwrk+nq, rwrk+nq+nq);
 
       Veclib::gathr (ntot, rmat, emap, rwrk);
 
@@ -792,7 +569,7 @@ void Element::HelmholtzSC (const real&  lambda2,
     }
 
 #ifdef DEBUG
-  if (Femlib::option ("VERBOSE") > 3) printMatSC (hbb);
+  if ((int) Femlib::value ("VERBOSE") > 3) printMatSC (hbb, hbi, hii);
 #endif
 
   // -- Carry out static condensation step.
@@ -861,10 +638,10 @@ void Element::printMatSC (const real* hbb,
 }
 
 
-void Element::Helmholtz (const real&  lambda2,
-			 real*        h      ,
-			 real*        rmat   ,
-			 real*        rwrk   ) const
+void Element::Helmholtz (const real lambda2,
+			 real*      h      ,
+			 real*      rmat   ,
+			 real*      rwrk   ) const
 // ---------------------------------------------------------------------------
 // Compute the discrete elemental Helmholtz matrix, return in h.
 //
@@ -877,8 +654,8 @@ void Element::Helmholtz (const real&  lambda2,
 // rwrk: vector, length nq*nq + 2*nq.
 // ---------------------------------------------------------------------------
 {
-  register int ij = 0;
-  const int    ntot   = nTot ();
+  register int ij   = 0;
+  const int    ntot = nTot ();
   real         **IT, **DV, **DT;
   real         *wk1 = rwrk, *wk2 = wk1 + nq, *wk3 = wk2 + nq;
 
@@ -886,22 +663,23 @@ void Element::Helmholtz (const real&  lambda2,
 
   for (register int i = 0; i < np; i++)
     for (register int j = 0; j < np; j++, ij++) {
-      helmRow (IT, DV, DT, lambda2, i, j, rmat, wk1, wk2, wk3);
+      helmRow ((const real**) IT, (const real**) DV, (const real**)DT,
+	       lambda2, i, j, rmat, wk1, wk2, wk3);
       Veclib::copy (ntot, rmat, 1, h + ij * np, 1);
     }
 }
 
 
-void Element::helmRow (real**      IT     ,
-		       real**      DV     ,
-		       real**      DT     ,
-		       const real& lambda2,
-		       const int&  i      ,
-		       const int&  j      ,
-		       real*       hij    ,
-		       real*       W1     ,
-		       real*       W2     ,
-		       real*       W0     ) const
+void Element::helmRow (const real** IT     ,
+		       const real** DV     ,
+		       const real** DT     ,
+		       const real   lambda2,
+		       const int    i      ,
+		       const int    j      ,
+		       real*        hij    ,
+		       real*        W1     ,
+		       real*        W2     ,
+		       real*        W0     ) const
 // ---------------------------------------------------------------------------
 // Build row [i,j] of the elemental Helmholtz matrix in array hij (np x np).
 //
@@ -1004,43 +782,8 @@ void Element::helmRow (real**      IT     ,
 }
 
 
-void Element::assemble (const real* hbb   ,
-			real*       H     ,
-			const int&  nsolve,
-			const int&  nband ) const
-// ---------------------------------------------------------------------------
-// Post elemental external node matrix hbb into global Helmholtz matrix H
-// using direct stiffness summation.
-// ---------------------------------------------------------------------------
-{
-  if (!nsolve) return;
-
-  register int i, j, m, n;
-  const int    next = nExt ();
-
-  if (nband) {		          // -- LAPACK upper triangular band storage.
-
-    for (i = 0; i < next; i++)
-      if ((m = bmap[i]) < nsolve)
-	for (j = 0; j < next; j++)
-	  if ((n = bmap[j]) < nsolve && n >= m)
-	    H[Lapack::band_addr (m, n, nband)] +=
-	      hbb[Veclib::row_major (i, j, next)];
-
-  } else {			 // -- LAPACK upper triangular packed storage.
-
-    for (i = 0; i < next; i++)
-      if ((m = bmap[i]) < nsolve)
-	for (j = 0; j < next; j++)
- 	  if ((n = bmap[j]) < nsolve && n >= m)
-	    H[Lapack::pack_addr (m, n)] += 
-	      hbb[Veclib::row_major (i, j, next)];
-  }
-}
-
-
-void Element::grad (real* targA,
-		    real* targB) const
+void Element::grad (real* tgtA,
+		    real* tgtB) const
 // ---------------------------------------------------------------------------
 // Operate partial derivative d(tgt)/dxi = d_dr*drdxi + d_ds*dsdxi,
 // where the appropriate component of gradient is selected by input pointers.
@@ -1050,12 +793,14 @@ void Element::grad (real* targA,
   real  **DV, **DT;
   Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
-  int   ntot = nTot();
-  real* tmpA = rvector (2 * ntot);
+  const int    ntot = nTot();
+  vector<real> work (ntot + ntot);
+
+  real* tmpA = work();
   real* tmpB = tmpA + ntot;
   real* tgt;
 
-  if ((tgt = targA)) {
+  if ((tgt = tgtA)) {
     if (drdx && dsdx) {
       Blas::mxm     (tgt, np, *DT, np, tmpA, np);
       Blas::mxm     (*DV, np, tgt, np, tmpB, np);
@@ -1070,7 +815,7 @@ void Element::grad (real* targA,
     }
   }
 
-  if ((tgt = targB)) {
+  if ((tgt = tgtB)) {
     if (drdy && dsdy) {
       Blas::mxm     (tgt, np, *DT, np, tmpA, np);
       Blas::mxm     (*DV, np, tgt, np, tmpB, np);
@@ -1084,81 +829,64 @@ void Element::grad (real* targA,
       Veclib::vmul  (ntot, tmpB, 1, dsdy, 1, tgt, 1);
     }
   }
-  
-  freeVector (tmpA);
 }
 
 
-void Element::connectivSC (List<int>* adjList) const
+inline
+void Element::terminal (const int side  ,
+			int&      estart,
+			int&      eskip ,
+			int&      bstart) const
 // ---------------------------------------------------------------------------
-// AdjList is an array of linked lists, each of which describes the global
-// nodes that have connectivity with the the current node, i.e. which make
-// a contribution to the weighted-residual integral for this node.
-// This routine fills in the contribution from the current element.
+// Evaluate the element-edge terminal values of estart, skip, bstart.
+// NB: BLAS-conformant terminal start values are delivered for negative skips.
 //
-// For general finite elements, all nodes of an element are interconnected,
-// while for statically-condensed elements, only the boundary nodes are
-// considered (since internal nodes are not global).
-//
-// Essential-BC nodes are ignored, since we're only interested in mimimizing
-// bandwidths of global matrices.
+// Side numbering starts at zero.
 // ---------------------------------------------------------------------------
 {
-  const int    next = nExt();
-  register int i, j, found, gidCurr, gidMate;
-
-  if (esstl) {
-    for (i = 0; i < next; i++) {
-      if (! esstl[i]) {
-	gidCurr = bmap[i];
-
-	for (j = 0; j < next; j++)
-	  if (i != j && ! esstl[j]) {
-	    gidMate = bmap[j];
-
-	    found = 0;
-	    for (ListIterator<int>
-		 a (adjList[gidCurr]); !found && a.more (); a.next ())
-	      found = a.current () == gidMate;
-	    if (!found) adjList[gidCurr].add (gidMate);
-	  }
-      }
-    }
-  } else {
-    for (i = 0; i < next; i++) {
-      gidCurr = bmap[i];
-      for (j = 0; j < next; j++)
-	if (i != j) {
-	  gidMate = bmap[j];
-
-	  found = 0;
-	  for (ListIterator<int>
-	       a (adjList[gidCurr]); !found && a.more (); a.next ())
-	    found = a.current () == gidMate;
-	  if (!found) adjList[gidCurr].add (gidMate);
-	}
-    }
+  switch (side) {
+  case 0:
+    estart = 0;
+    eskip  = 1;
+    bstart = 0;
+    break;
+  case 1:
+    estart = np - 1;
+    eskip  = np;
+    bstart = np - 1;
+    break;
+  case 2:
+    estart = np * (np - 1);
+    eskip  = -1;
+    bstart = 2  * (np - 1);
+    break;
+  case 3:
+    estart = 0;
+    eskip  = -np;
+    bstart = 3  * (np - 1);
+    break;
   }
 }
 
 
-void Element::sideOffset (const int& side ,
-			  int&       start,
-			  int&       skip ) const
+void Element::sideOffset (const int side ,
+			  int&      start,
+			  int&      skip ) const
 // ---------------------------------------------------------------------------
 // Return starting offset & skip in Field storage for this side.
 // ---------------------------------------------------------------------------
 {
   int estart, bstart;
+
   terminal (side, estart, skip, bstart);
-  start = offset + estart;
+  start = dOffset + estart;
 }
 
 
-void Element::sideGeom (const int& side,
-			real*      nx  ,
-			real*      ny  ,
-			real*      area) const
+void Element::sideGeom (const int side,
+			real*     nx  ,
+			real*     ny  ,
+			real*     area) const
 // ---------------------------------------------------------------------------
 // Generate unit outward normal components and change-of-variable
 // Jacobian, area, for use in computation of edge integrals.
@@ -1167,26 +895,27 @@ void Element::sideGeom (const int& side,
 // however, we need to do some recomputation of local forward partial
 // derivatives along edges.
 //
-// Computed vectors have edge-traverse ordering, i.e. are made to operate
+// Computed vectors have CCW edge-traverse ordering, i.e. are made to operate
 // on vectors obtained from base storage using BLAS-conformant copy.
 // ---------------------------------------------------------------------------
 {
-  if (side < 1 || side > ns)
+  if (side < 0 || side >= ns)
     message ("Element::sideGeom", "illegal side", ERROR);
 
-  register int    low, skip;
-  real          **D, *w, *xr, *xs, *yr, *ys, *len;
+  register int low, skip;
+  real         **D, *w, *xr, *xs, *yr, *ys, *len;
+  vector<real> work (np + np);
 
   Femlib::quad (LL, np, np, 0, 0, &w, 0, 0, &D, 0);
 
   switch (side) {
-  case 1: 
+  case 0: 
     skip = 1;
-    xr   = rvector (2 * np);
+    xr   = work();
     yr   = xr + np;
     
-    Blas::gemv    ("T", np, np, 1.0, *D, np, *xmesh, 1, 0.0, xr, 1);
-    Blas::gemv    ("T", np, np, 1.0, *D, np, *ymesh, 1, 0.0, yr, 1);
+    Blas::gemv    ("T", np, np, 1.0, *D, np, xmesh, 1, 0.0, xr, 1);
+    Blas::gemv    ("T", np, np, 1.0, *D, np, ymesh, 1, 0.0, yr, 1);
     Veclib::vmul  (np, xr, 1, xr, 1, area, 1);
     Veclib::vvtvp (np, yr, 1, yr, 1, area, 1, area, 1);
     if   (dsdx) Veclib::smul (np, -1.0, dsdx, skip, nx, 1);
@@ -1194,17 +923,16 @@ void Element::sideGeom (const int& side,
     if   (dsdy) Veclib::smul (np, -1.0, dsdy, skip, ny, 1);
     else        Veclib::zero (np,                   ny, 1);
     
-    freeVector (xr);
     break;
 
-  case 2: 
+  case 1: 
     low  = np - 1;
     skip = np;
-    xs   = rvector (2 * np);
+    xs   = work();
     ys   = xs + np;
       
-    Blas::gemv    ("T", np, np, 1.0, *D, np, *xmesh+low, np, 0.0, xs, 1);
-    Blas::gemv    ("T", np, np, 1.0, *D, np, *ymesh+low, np, 0.0, ys, 1);
+    Blas::gemv    ("T", np, np, 1.0, *D, np, xmesh+low, np, 0.0, xs, 1);
+    Blas::gemv    ("T", np, np, 1.0, *D, np, ymesh+low, np, 0.0, ys, 1);
     Veclib::vmul  (np, xs, 1, xs, 1, area, 1);
     Veclib::vvtvp (np, ys, 1, ys, 1, area, 1, area, 1);
     if   (drdx) Veclib::copy (np, drdx+low, skip, nx, 1);
@@ -1212,17 +940,16 @@ void Element::sideGeom (const int& side,
     if   (drdy) Veclib::copy (np, drdy+low, skip, ny, 1);
     else        Veclib::zero (np,                 ny, 1);
     
-    freeVector (xs);
     break;
 
-  case 3:
+  case 2:
     low  = np * (np - 1);
     skip = -1;
-    xr   = rvector (2 * np);
+    xr   = work();
     yr   = xr + np;
 	
-    Blas::gemv    ("T", np, np, 1.0, *D, np, *xmesh+low, 1, 0.0, xr, 1);
-    Blas::gemv    ("T", np, np, 1.0, *D, np, *ymesh+low, 1, 0.0, yr, 1);
+    Blas::gemv    ("T", np, np, 1.0, *D, np, xmesh+low, 1, 0.0, xr, 1);
+    Blas::gemv    ("T", np, np, 1.0, *D, np, ymesh+low, 1, 0.0, yr, 1);
     Veclib::vmul  (np, xr, 1, xr, 1, area, 1);
     Veclib::vvtvp (np, yr, 1, yr, 1, area, 1, area, 1);
     if   (dsdx) Veclib::copy (np, dsdx+low, skip, nx, 1);
@@ -1230,16 +957,15 @@ void Element::sideGeom (const int& side,
     if   (dsdy) Veclib::copy (np, dsdy+low, skip, ny, 1);
     else        Veclib::zero (np,                 ny, 1);
     
-    freeVector (xr);
     break;
 
-  case 4:
+  case 3:
     skip = -np;
-    xs   = rvector (2 * np);
+    xs   = work();
     ys   = xs + np;
       
-    Blas::gemv    ("T", np, np, 1.0, *D, np, *xmesh, np, 0.0, xs, 1);
-    Blas::gemv    ("T", np, np, 1.0, *D, np, *ymesh, np, 0.0, ys, 1);
+    Blas::gemv    ("T", np, np, 1.0, *D, np, xmesh, np, 0.0, xs, 1);
+    Blas::gemv    ("T", np, np, 1.0, *D, np, ymesh, np, 0.0, ys, 1);
     Veclib::vmul  (np, xs, 1, xs, 1, area, 1);
     Veclib::vvtvp (np, ys, 1, ys, 1, area, 1, area, 1);
     if   (drdx) Veclib::smul (np, -1.0, drdx, skip, nx, 1);
@@ -1247,26 +973,23 @@ void Element::sideGeom (const int& side,
     if   (drdy) Veclib::smul (np, -1.0, drdy, skip, ny, 1);
     else        Veclib::zero (np,                   ny, 1);
     
-    freeVector (xs);
     break;
   }
   
   Veclib::vsqrt (np, area, 1, area, 1);
   Veclib::vmul  (np, area, 1, w,    1, area, 1);
 
-  len = rvector (np);
+  len = work();
 
   Veclib::vhypot (np, nx, 1, ny,  1, len, 1);
   Veclib::vdiv   (np, nx, 1, len, 1, nx,  1);
   Veclib::vdiv   (np, ny, 1, len, 1, ny,  1);
-
-  freeVector (len);
 }
 
 
-void Element::sideEval (const int&   side,
-			real*        tgt ,
-			const char*  func) const
+void Element::sideEval (const int   side,
+			real*       tgt ,
+			const char* func) const
 // ---------------------------------------------------------------------------
 // Evaluate function func along side of element, returning in tgt.
 //
@@ -1276,120 +999,22 @@ void Element::sideEval (const int&   side,
 {
   register  int estart, skip, bstart;
   terminal (side, estart, skip, bstart);
-
-  real *x = rvector (2 * np);
-  real *y = x + np;
-
-  Veclib::copy (np, *xmesh + estart, skip, x, 1);
-  Veclib::copy (np, *ymesh + estart, skip, y, 1);
-
-  Femlib::vecPrep  ("x y", func);
-  Femlib::vecParse (np, x, y, tgt);
-
-  freeVector (x);
-}
-
-
-void Element::sideScatr (const int&  side,
-			 const real* src ,
-			 real*       tgt ) const
-// ---------------------------------------------------------------------------
-// Scatter vector src into globally-numbered tgt vector along this side.
-// ---------------------------------------------------------------------------
-{
-  register  int estart, skip, bstart;
-  terminal (side, estart, skip, bstart);
-
-  if (side == ns) {
-    Veclib::scatr (np - 1, src, bmap + bstart, tgt);
-    tgt[bmap[0]] = src[np - 1];
-  }
-  else
-    Veclib::scatr (np,     src, bmap + bstart, tgt);
-}
-
-
-void Element::setEssential (const real* src,
-			    real*       tgt) const
-// ---------------------------------------------------------------------------
-// On input, src contains a globally-numbered set of current essential BCs.
-// Load them into appropriate boundary nodes of tgt.
-// ---------------------------------------------------------------------------
-{
-  register int i;
-  const int    ne = nExt ();
   
-  for (i = 0; i < ne; i++)
-    tgt[emap[i]] = (esstl[i]) ? src[bmap[i]] : tgt[emap[i]];
+  vector<real> work(np + np);
+  real         *x, *y;
+
+  x = work();
+  y = x + np;
+
+  Veclib::copy (np, xmesh + estart, skip, x, 1);
+  Veclib::copy (np, ymesh + estart, skip, y, 1);
+
+  Femlib::prepVec  ("x y", func);
+  Femlib__parseVec (np, x, y, tgt);
 }
 
 
-void Element::sideSet (const int&  side,
-		       const real* src ,
-		       real*       tgt ) const
-// ---------------------------------------------------------------------------
-// Load edge vector src into globally-numbered tgt.
-// ---------------------------------------------------------------------------
-{
-  register int estart, skip, bstart;
-  const int    nm = np - 1;
-
-  terminal (side, estart, skip, bstart);
-
-  Veclib::scatr (nm, src, bmap + bstart, tgt);
-  if   (side == ns) tgt[bmap[          0]] = src[nm];
-  else              tgt[bmap[bstart + nm]] = src[nm];
-
-}
-
-
-void Element::sideDsSum (const int&  side,
-			 const real* src ,
-			 const real* area,
-			 real*       tgt ) const
-// ---------------------------------------------------------------------------
-// Direct-stiffness-sum (area-weighted) vector src into globally-numbered
-// tgt on side.  This is for evaluation of natural BCs using Gauss--
-// Lobatto quadrature.
-// ---------------------------------------------------------------------------
-{
-  const int    nm  = np - 1;
-  real*        tmp = rvector (np);
-  
-  int estart, skip, bstart;
-  terminal (side, estart, skip, bstart);
-
-  Veclib::vmul (np, src, 1, area, 1, tmp, 1);
-
-  Veclib::scatr_sum (nm, tmp, bmap + bstart, tgt);
-  if   (side == ns) tgt[bmap[          0]] += tmp[nm];
-  else              tgt[bmap[bstart + nm]] += tmp[nm];
-
-  freeVector (tmp);
-}
-
-
-void Element::sideMask (const int& side, int* tgt) const
-// ---------------------------------------------------------------------------
-// Tgt is a globally-numbered vector: set it to 1 for gids on this edge.
-// ---------------------------------------------------------------------------
-{
-  const int    nm  = np - 1;
-  int*         tmp = ivector (np);
-  
-  int estart, skip, bstart;
-  terminal (side, estart, skip, bstart);
-
-  Veclib::fill  (np, 1, tmp, 1);
-  Veclib::scatr (nm, tmp, bmap + bstart, tgt);
-  if   (side == ns) tgt[bmap[          0]] = tmp[nm];
-  else              tgt[bmap[bstart + nm]] = tmp[nm];
-
-  freeVector (tmp);
-}
-
-
-void Element::sideGrad (const int&  side,
+void Element::sideGrad (const int   side,
 			const real* src ,
 			real*       c1  ,
 			real*       c2  ) const
@@ -1397,40 +1022,41 @@ void Element::sideGrad (const int&  side,
 // Using geometric factors for this Element, return the first and second
 // component, c1 and/or c2, of grad src (length nTot()) along side.
 //
-// We have to take some special care on  sides 3 & 4, where the usual skips
+// We have to take some special care on  sides 2 & 3, where the usual skips
 // are negative: we instead use positive skips for formation of dc/dr, dc/ds,
 // then a -1 skip when multiplying by dr/dx, ds/dx, etc.
 // ---------------------------------------------------------------------------
 {
   register  int estart, skip, bstart, d;
   terminal (side, estart, skip, bstart);
+  
+  vector<real> work (np + np);
+  real         *ddr, *dds, **DV, **DT;
 
-  real*  ddr = rvector (2 * np);
-  real*  dds = ddr + np;
-
-  real  **DV, **DT;
+  ddr = work();
+  dds = ddr + np;
 
   Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
   // -- Make dc/dr, dc/ds along element edge.
 
   switch (side) {
-  case 1:
+  case 0:
     d = 1;
     Blas::gemv ("T", np, np, 1.0, *DV, np, src + estart, d*skip, 0.0, ddr, 1);
     Blas::gemv ("N", np, np, 1.0, src, np, *DV + estart, d*skip, 0.0, dds, 1);
     break;
-  case 2:
+  case 1:
     d = 1;
     Blas::gemv ("T", np, np, 1.0, src, np, *DT + estart, d*skip, 0.0, ddr, 1);
     Blas::gemv ("T", np, np, 1.0, *DV, np, src + estart, d*skip, 0.0, dds, 1);
     break;
-  case 3:
+  case 2:
     d = -1;
     Blas::gemv ("T", np, np, 1.0, *DV, np, src + estart, d*skip, 0.0, ddr, 1);
     Blas::gemv ("N", np, np, 1.0, src, np, *DV + estart, d*skip, 0.0, dds, 1);
     break;
-  case 4:
+  case 3:
     d = -1;
     Blas::gemv ("T", np, np, 1.0, src, np, *DT + estart, d*skip, 0.0, ddr, 1);
     Blas::gemv ("T", np, np, 1.0, *DV, np, src + estart, d*skip, 0.0, dds, 1);
@@ -1452,8 +1078,51 @@ void Element::sideGrad (const int&  side,
     else        Veclib::zero  (np, c2, 1);
     if   (dsdy) Veclib::vvtvp (np, dds, d, dsdy + estart, skip, c2, 1, c2, 1);
   }
+}
 
-  freeVector (ddr);
+
+void Element::sideSet (const int   side,
+		       const int*  bmap,
+                       const real* src ,
+                       real*       tgt ) const
+// ---------------------------------------------------------------------------
+// Load edge vector src into globally-numbered tgt.
+// ---------------------------------------------------------------------------
+{
+  register int estart, skip, bstart;
+  const int    nm = np - 1;
+
+  terminal (side, estart, skip, bstart);
+
+  Veclib::scatr (nm, src, bmap + bstart, tgt);
+  if   (side == ns - 1) tgt[bmap[          0]] = src[nm];
+  else                  tgt[bmap[bstart + nm]] = src[nm];
+
+}
+
+
+void Element::sideDsSum (const int   side,
+			 const int*  bmap,
+                         const real* src ,
+                         const real* area,
+                         real*       tgt ) const
+// ---------------------------------------------------------------------------
+// Direct-stiffness-sum (area-weighted) vector src into globally-numbered
+// tgt on side.  This is for evaluation of natural BCs using Gauss--
+// Lobatto quadrature.
+// ---------------------------------------------------------------------------
+{
+  const int nm  = np - 1;
+  vector<real> tmp (np);
+  
+  int estart, skip, bstart;
+  terminal (side, estart, skip, bstart);
+
+  Veclib::vmul (np, src, 1, area, 1, tmp(), 1);
+
+  Veclib::scatr_sum (nm, tmp(), bmap + bstart, tgt);
+  if   (side == ns - 1) tgt[bmap[          0]] += tmp[nm];
+  else                  tgt[bmap[bstart + nm]] += tmp[nm];
 }
 
 
@@ -1464,8 +1133,8 @@ void Element::evaluate (const char* func,
 // Function can explicitly use "x" and "y", for which mesh values are used.
 // ---------------------------------------------------------------------------
 {
-  Femlib::vecPrep  ("x y", func);
-  Femlib::vecParse (nTot (), *xmesh, *ymesh, tgt);
+  Femlib::prepVec  ("x y", func);
+  Femlib__parseVec (nTot (), xmesh, ymesh, tgt);
 }
 
 
@@ -1474,46 +1143,43 @@ real Element::integral (const char* func) const
 // Return integral of func over element, using element quadrature rule.
 // ---------------------------------------------------------------------------
 {
-  real      intgrl;
-  const int ntot = nq*nq;
-  real*     tmp  = rvector (ntot);
+  real         intgrl;
+  const int    ntot = nq * nq;
+  vector<real> tmp (ntot);
 
-  Femlib::vecPrep ("x y", func);
+  Femlib::prepVec ("x y", func);
 
   switch (rule) {
 
   case LL:
-    Femlib::vecParse (ntot, *xmesh, *ymesh, tmp);
+    Femlib__parseVec (ntot, xmesh, ymesh, tmp());
     break;
 
   case GL:
-    real   *x   = rvector (ntot),
-           *y   = rvector (ntot),
-           *wrk = rvector (nq*np);
-    real  **IN, **IT;
+    vector<real> work (ntot + ntot + nq * np);
+    real         *x, *y, *wrk, **IN, **IT;
+
+    x   = work();
+    y   = x + ntot;
+    wrk = y + ntot;
 
     Femlib::quad (GL, np, nq, 0, 0, 0, &IN, &IT, 0, 0);
 
-    Blas::mxm (*IN, nq, *xmesh, np, wrk, np);
-    Blas::mxm (wrk, nq, *IT,    np, x,   nq);
+    Blas::mxm (*IN, nq, xmesh, np, wrk, np);
+    Blas::mxm (wrk, nq, *IT,   np, x,   nq);
 
-    Blas::mxm (*IN, nq, *ymesh, np, wrk, np);
-    Blas::mxm (wrk, nq, *IT,    np, y,   nq);
+    Blas::mxm (*IN, nq, ymesh, np, wrk, np);
+    Blas::mxm (wrk, nq, *IT,   np, y,   nq);
 
-    Femlib::vecParse (ntot, x, y, tmp);
+    Femlib__parseVec (ntot, x, y, tmp());
 
-    freeVector (x);
-    freeVector (y);
-    freeVector (wrk);
     break;
   }
 
-  Veclib::vmul (ntot, tmp, 1, G4, 1, tmp, 1);
+  Veclib::vmul (ntot, tmp(), 1, G4, 1, tmp(), 1);
 
-  intgrl = Veclib::sum (ntot, tmp, 1);
+  intgrl = Veclib::sum (ntot, tmp(), 1);
   
-  freeVector (tmp);
-
   return intgrl;
 }
 
@@ -1523,7 +1189,7 @@ real Element::norm_inf (const real* src) const
 // Return infinity-norm of element value.
 // ---------------------------------------------------------------------------
 {
-  return fabs (src[Blas::iamax (nTot (), src, 1)]);
+  return fabs (src[Blas::iamax (nTot(), src, 1)]);
 }
 
 
@@ -1532,27 +1198,23 @@ real Element::norm_L2 (const real* src) const
 // Return L2-norm of Element value, using Element quadrature rule.
 // ---------------------------------------------------------------------------
 {
-  register real  L2 = 0.0;
   register int   i;
-  const int      ntot = nq*nq;
-  register real* dA;
+  register real  L2   = 0.0;
+  const int      ntot = nq * nq;
+  register real* dA   = G4;
 
   switch (rule) {
 
   case LL:
-    dA = G4;
-
     for (i = 0; i < ntot; i++) L2 += src[i] * src[i] * dA[i];
-
     break;
 
   case GL:
-    real*            wrk = rvector (nq*np);
-    register real*   u   = rvector (ntot);
-    real**           IN;
-    real**           IT;
+    vector<real> work (ntot + nq * np);
+    real         *wrk, *u, **IN, **IT;
     
-    dA = G4;
+    u   = work();
+    wrk = u + ntot;
 
     Femlib::quad (GL, np, nq, 0, 0, 0, &IN, &IT, 0, 0);
 
@@ -1561,9 +1223,6 @@ real Element::norm_L2 (const real* src) const
 
     for (i = 0; i < ntot; i++) L2 += u[i] * u[i] * dA[i];
     
-    freeVector (wrk);
-    freeVector (u);
-
     break;
   }
 
@@ -1576,74 +1235,70 @@ real Element::norm_H1 (const real* src) const
 // Return Sobolev-1 norm of Element value, using Element quadrature rule.
 // ---------------------------------------------------------------------------
 {
-  register real  H1 = 0;
-  register int   i;
-  const int      ntot = nq*nq;
-  register real* u;
-  register real* gw;
+  register real H1 = 0;
+  register int  i;
+  const int     ntot = nq * nq;
+  
+  vector<real>  work (ntot);
+  register real *u, *dA;
+  
+  u = work();
 
   switch (rule) {
 
   case LL:
-    gw = G4;
+    dA = G4;
 
     // -- Add in L2 norm of u.
 
-    for (i = 0; i < ntot; i++) H1 += src[i] * src[i] * gw[i];
+    for (i = 0; i < ntot; i++) H1 += src[i] * src[i] * dA[i];
 
     // -- Add in L2 norm of grad u.
 
-    u = rvector (ntot);
-    
     Veclib::copy (ntot, src, 1, u, 1);
     grad (u, 0);
-    for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * gw[i];
+    for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * dA[i];
 
     Veclib::copy (ntot, src, 1, u, 1);
     grad (0, u);
-    for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * gw[i];
+    for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * dA[i];
 
-    freeVector (u);
     break;
 
   case GL:
-    real*   wrk = rvector (nq*np);
-    real**  IN;
-    real**  IT;
-    real**  DV;
-    real**  DT;
+    vector<real> work2 (nq * np);
+    real         *w, **IN, **IT, **DV, **DT;
+
+    w = work2();
 
     Femlib::quad (GL, np, nq, 0, 0, 0, &IN, &IT, &DV, &DT);
 
-    Blas::mxm (*IN, nq,  src, np, wrk, np);
-    Blas::mxm (wrk, nq, *IT,  np, u,   nq);
+    Blas::mxm (*IN, nq,  src, np, w, np);
+    Blas::mxm (w,   nq, *IT,  np, u, nq);
 
     // -- Add in L2 norm of u.
 
-    gw = G4;
-    for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * gw[i];
+    dA = G4;
+    for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * dA[i];
 
     // -- Add in L2 norm of grad u.
 
-    gw = G1;
-    Blas::mxm (*IN, nq,  src, np, wrk, np);
-    Blas::mxm (wrk, nq, *DV,  np, u,   nq);
-    for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * gw[i];
+    dA = G1;
+    Blas::mxm (*IN, nq,  src, np, w, np);
+    Blas::mxm (w,   nq, *DV,  np, u, nq);
+    for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * dA[i];
 
-    gw = G2;
-    Blas::mxm (*DV, nq,  src, np, wrk, np);
-    Blas::mxm (wrk, nq, *IT,  np, u,   nq);
-    for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * gw[i];
+    dA = G2;
+    Blas::mxm (*DV, nq,  src, np, w, np);
+    Blas::mxm (w,   nq, *IT,  np, u, nq);
+    for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * dA[i];
 
     if (G3) {
-      gw = G3;
-      Blas::mxm (*DV, nq,  src, np, wrk, np);
-      Blas::mxm (wrk, nq, *DT,  np, u,   nq);
-      for (i = 0; i < ntot; i++) H1 += 2.0 * u[i] * u[i] * gw[i];
+      dA = G3;
+      Blas::mxm (*DV, nq,  src, np, w, np);
+      Blas::mxm (w,   nq, *DT,  np, u, nq);
+      for (i = 0; i < ntot; i++) H1 += 2.0 * u[i] * u[i] * dA[i];
     }
-    
-    freeVector (wrk);
-    freeVector (u);
 
     break;
   }
@@ -1652,112 +1307,87 @@ real Element::norm_H1 (const real* src) const
 }
 
 
-void Element::printMesh () const
+void Element::e2g (const real* src     ,
+		   const int*  btog    ,
+		   real*       external,
+		   real*       internal) const
 // ---------------------------------------------------------------------------
-// Print mesh information in prism-compatible form.
-// ---------------------------------------------------------------------------
-{
-  printVector (cout, "rr", nTot(), *xmesh, *ymesh);
-}
-
-
-void Element::economizeGeo ()
-// ---------------------------------------------------------------------------
-// Insert element geometric factors in economized storage.
-// ---------------------------------------------------------------------------
-{ 
-  if (!FamilyMgr::active) return;
-
-  int  size;
-
-  size = nTot ();
-
-  drdx = FamilyMgr::insert (size, drdx);
-  dsdx = FamilyMgr::insert (size, dsdx);
-  drdy = FamilyMgr::insert (size, drdy);
-  dsdy = FamilyMgr::insert (size, dsdy);
-
-  size = sqr (nQuad ());
-  
-  G1   = FamilyMgr::insert (size, G1);
-  G2   = FamilyMgr::insert (size, G2);
-  G3   = FamilyMgr::insert (size, G3);
-
-  if (G4 == mass) {
-    mass = FamilyMgr::insert (size, mass);
-    G4   = mass;
-  } else {
-    mass = FamilyMgr::insert (nTot (), mass);
-    G4   = FamilyMgr::insert (size,    G4  );
-  }
-}
-
-
-void Element::condense (const real* src     ,
-			real*       external,
-			real*       internal) const
-// ---------------------------------------------------------------------------
-// Load this element's boundary data into globally-numbered external, and
-// internal data into un-numbered internal.
+// Src is a row-major vector, representing this Element's data.
+// Load boundary data into globally-numbered vector external, and
+// internal data into un-numbered vector internal.
+//
+// REPLACES old routine Element::condense
 // ---------------------------------------------------------------------------
 {
-  const int next = nExt ();
+  const int next = nExt();
+  const int nint = nInt();
 
-  Veclib::gathr_scatr (next,    src, emap,  bmap, external);
+  Veclib::gathr_scatr (next, src, emap,  btog, external);
   if (internal)
-    Veclib::gathr     (nInt (), src, emap + next, internal);
+    Veclib::gathr     (nint, src, emap + next, internal);
 }
 
 
-void Element::expand (real*       targ    ,
-		      const real* external, 
-		      const real* internal)
+void Element::e2gSum (const real* src     ,
+		      const int*  btog    ,
+		      real*       external,
+		      real*       internal) const
 // ---------------------------------------------------------------------------
-// Load this element's boundary data from globally-numbered external, and
-// internal data from un-numbered internal.
+// Src is a row-major vector, representing this element's data.
+// Sum boundary data into globally-numbered vector external, and
+// internal data into un-numbered vector internal.
+//
+// REPLACES old routine Element::dsForcing
 // ---------------------------------------------------------------------------
 {
-  const int next = nExt ();
+  const int next = nExt();
+  const int nint = nInt();
 
-  Veclib::gathr_scatr (next,    external, bmap,  emap, targ);
+  Veclib::gathr_scatr_sum (next, src, emap,  btog, external);
   if (internal)
-    Veclib::scatr     (nInt (), internal, emap + next, targ);
+    Veclib::gathr_sum     (nint, src, emap + next, internal);
 }
 
 
-void Element::dsForcing (const real* src     ,
-			 real*       external,
-			 real*       internal) const
+void Element::g2e (real*       tgt     ,
+		   const int*  btog    ,
+		   const real* external,
+		   const real* internal) const
 // ---------------------------------------------------------------------------
-// Sum this src's boundary data into globally-numbered external, and
-// internal data into un-numbered internal.
+// Tgt is a row-major vector, representing this Element's data.
+// Load boundary data from globally-numbered vector external, and
+// internal data from un-numbered vector internal.
+//
+// REPLACES old routine Element::expand
 // ---------------------------------------------------------------------------
 {
-  const int next = nExt ();
+  const int next = nExt();
+  const int nint = nInt();
 
-  Veclib::gathr_scatr_sum (next,    src, emap,  bmap, external);
-  Veclib::gathr_sum       (nInt (), src, emap + next, internal);
+  Veclib::gathr_scatr (next, external, btog,  emap, tgt);
+  if (internal)
+    Veclib::scatr     (nint, internal, emap + next, tgt);
 }
 
 
 void Element::HelmholtzOp (const real* src,
 			   real*       tgt, 
-			   const real& L2 ,
+			   const real  L2 ,
 			   real*       wrk) const
 // ---------------------------------------------------------------------------
 // Apply elemental discrete Helmholtz operator on src to make tgt.
 // This routine is specific to 2D Cartesian space with GLL integration.
 //
-// Workspace vector wrk must hold 2 * nTot () elements.
+// Input workspace vector wrk must hold 2 * nTot() elements.
 // ---------------------------------------------------------------------------
 {
   register int  ij;
-  const int     nt = nTot ();
-  register real tmp;
-  real*         R = wrk;
-  real*         S = R + nTot ();
-  real**        DV;
-  real**        DT;
+  const int     ntot = nTot();
+  register real tmp, *R, *S;
+  real          **DV, **DT;
+
+  R = wrk;
+  S = R + ntot;
 
   Femlib::quad (rule, np, nq, 0, 0, 0, 0, 0, &DV, &DT);
 
@@ -1765,14 +1395,14 @@ void Element::HelmholtzOp (const real* src,
   Blas::gemm ("N", "N", np, np, np, 1.0, src, np, *DV, np, 0.0, S, np);
 
   if (G3) {
-    for (ij = 0; ij < nt; ij++) {
+    for (ij = 0; ij < ntot; ij++) {
       tmp      = R [ij];
       R  [ij]  = G1[ij] * R  [ij] + G3[ij] * S  [ij];
       S  [ij]  = G2[ij] * S  [ij] + G3[ij] * tmp;
       tgt[ij]  = G4[ij] * src[ij];
     }
   } else {
-    for (ij = 0; ij < nt; ij++) {
+    for (ij = 0; ij < ntot; ij++) {
       R  [ij] *= G1[ij];
       S  [ij] *= G2[ij];
       tgt[ij]  = G4[ij] * src[ij];
@@ -1781,26 +1411,4 @@ void Element::HelmholtzOp (const real* src,
 
   Blas::gemm ("N", "N", np, np, np, 1.0,  S,  np, *DT, np, L2,  tgt, np);
   Blas::gemm ("N", "N", np, np, np, 1.0, *DV, np,  R,  np, 1.0, tgt, np);
-}
-
-
-void Element::mask (real* tgt) const
-// ---------------------------------------------------------------------------
-// Turn off all elemental values in tgt except those corresponding
-// to essential BC nodes.  Target is assumed to have element-type ordering.
-// ---------------------------------------------------------------------------
-{
-  if (!esstl) return;
-
-  register int i;
-  const int    ntot = nTot ();
-  const int    next = nExt ();
-  real*        tmp  = rvector (ntot);
-
-  Veclib::gathr (ntot, tgt, emap, tmp);
-  for (i = 0; i < next; i++) tmp[i] *= (real) esstl[i];
-  Veclib::zero  (nInt (), tmp + next, 1);
-  Veclib::gathr (ntot, tmp, pmap, tgt);
-  
-  freeVector (tmp);
 }
