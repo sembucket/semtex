@@ -338,8 +338,8 @@ static void checkVBCs (FEML*       file ,
 {
   if (!file->seek ("BCS")) return;
   if (!strchr (field, 'u')) return;
-  if (!strchr (field, 'v') || !strchr (field, 'w'))
-    message (prog,"radial, azimuthal velocity fields v, w not declared",ERROR);
+  if (!strchr (field, 'v') || !strchr (field, 'w')) return;
+//   message (prog,"radial, azimuthal velocity fields v, w not declared",ERROR);
 
   integer       i, j, id, nbcs;
   char          vtag, wtag, groupc, fieldc, tagc, tag[StrMax], err[StrMax];
