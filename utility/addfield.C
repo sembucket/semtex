@@ -18,6 +18,35 @@
 //            (NB: Divergence is ASSUMED equal to zero)
 //   -a   ... add them all
 //
+// Field names used/assumed here:
+//
+// u -- x velocity component (cylindrical: axial)
+// v -- y velocity component (cylindrical: radial)
+// w -- z velocity component (cylindrical: azimuthal)
+// p -- pressure / density
+// A -- uu covariance
+// B -- uv covariance
+// C -- vv covariance
+// D -- uw covariance
+// E -- vw covariance
+// F -- ww covariance
+// r -- x component vorticiy
+// s -- y component vorticity
+// t -- z component vorticity
+// d -- divergence
+// Q -- 2nd invariant of velocity gradient tensor
+// R -- 3rd invariant of velocity gradient tensor
+// L -- Discriminant  of velocity gradient tensor 27/4 R^2 + Q^3
+// G -- Strain rate sqrt (2 Sij Sji)
+// e -- enstrophy = r^2 + s^2 + t^2
+// h -- helicity  = ur  + vs  + wt
+// i -- uu strain rate component
+// j -- uv strain rate component
+// k -- vv strain rate component
+// l -- uw strain rate component
+// m -- vw strain rate component
+// n -- ww strain rate component
+//
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
@@ -29,7 +58,8 @@ static char  prog[] = "addfield";
 static void  memExhaust () { message ("new", "free store exhausted", ERROR); }
 
 static void    getargs  (integer, char**, char*&, char*&,
-			 integer&, integer&, integer&, integer&, integer&, integer&);
+			 integer&, integer&, integer&,
+			 integer&, integer&, integer&);
 static integer getDump  (Domain*, ifstream&);
 static void    putDump  (Domain*, vector<AuxField*>&, integer, ofstream&);
 
