@@ -14,11 +14,11 @@ int idmax(int n, const double *x, int incx)
   imax = 0;
 
   for (i=1; i<n; i++) {
-    if (*x>xmax) {
+   x += incx;
+   if (*x>xmax) {
       xmax = *x;
       imax = i;
     }
-    x += incx;
   }
 
   return imax;
@@ -38,11 +38,11 @@ int iimax(int n, const int *x, int incx)
   imax = 0;
 
   for (i=1; i<n; i++) {
+   x += incx;
     if (*x>xmax) {
       xmax = *x;
       imax = i;
     }
-    x += incx;
   }
 
   return imax;
@@ -63,11 +63,11 @@ int ismax(int n, const float *x, int incx)
   imax = 0;
 
   for (i=1; i<n; i++) {
+    x += incx;
     if (*x>xmax) {
       xmax = *x;
       imax = i;
     }
-    x += incx;
   }
 
   return imax;
