@@ -1,99 +1,95 @@
-/*****************************************************************************
- * drive.C: control finite-element flow solver.
- *
- * Usage:
- * =====
- * fem++ [options] session
- *   options:
- *   -h       ... print usage prompt
- *   -i[i]    ... use iterative solver for viscous [and pressure] steps
- *   -v[v...] ... increase verbosity level
- *   -chk     ... checkpoint field dumps
- *
- * Files:
- * =====
- * Set-up and execution of the problem is controlled by a session file,
- * which is block-structured.  Each block has a (pre-defined) name and
- * is delimited by '{' & '}'.  Contents of session files are case-insensitive,
- * *except* for function strings and named floating-point parameters.
- * Required blocks are: PROBLEM, PARAMETER, BOUNDARY and MESH.
- * Characters between block names and the opening '{' are ignored, and
- * can serve as comments.
- * 
- * PROBLEM block
- * -------------
- * This determines the type of problem to be solved and the kind of
- * geometry used (Cartesian, cylindrical, ...).
- *
- * (1)  Unsteady (Navier)--Stokes problems.
- * (2)  The default (and only current) geometry is 2D Cartesian.
- *
- * Example for a Navier--Stokes problem:
- *
- * problem {
- * navierstokes
- * [geometry   2D-Cartesian]
- * [forcing    function_1 .. function_DIM]
- * }
- *
- * (1)  Unsteady Navier--Stokes problem.  An unsteady Stokes problem can also
- *      be solved: at present this is done by conditional compilation (define
- *      "STOKES" when compiling NS.C).
- * (2)  The kinematic viscosity "KINVIS" should be set in the floating point
- *      parameter section.  Default value, pre-installed, is unity.
- * (3)  Forcing functions describe spatially-distributed force per unit mass
- *      in the various components of the Navier--Stokes equations (in order).
- *      DIM == 2 for 2D Cartesian.  Use 'x', 'y', and 't' as variables.
- * (4)  Solution algorithm is the 'stiffly-stable' method.  This may be
- *      inappropriate for low element orders.  
- *
- * PARAMETER block:
- * ---------------
- * In order, there should be option, integer and floating-point parameters.
- * The number of each type is given at the start of each sub-block.
- *
- * BOUNDARY block:
- * --------------
- * Boundary conditions for integer-tagged, non-overlapping boundary segments.
- * The number of segments is given at the start of the block.
- *
- * MESH block:
- * ----------
- * Commences with a list of vertices, followed by a list of elements with
- * corner vertices given as tags in vertex list.  The non-overlapping
- * boundary sectors are supplied as lists of vertices, together with an
- * integer tag which ties back to the BOUNDARY block.  Last comes
- * a list of curved edge specifiers, which are defined on a element-edge
- * basis.
- *
- * Program development by:
- * ======================
- * Hugh Blackburn
- * CSIRO
- * Division of Building, Construction and Engineering
- * P.O. Box 56
- * Highett, Vic 3190
- * Australia
- * hmb@dbce.csiro.au
- *
- *****************************************************************************/
+//////////////////////////////////////////////////////////////////////////////
+// drive.C: control finite-element flow solver.
+//
+// Usage:
+// =====
+// fem++ [options] session
+//   options:
+//   -h       ... print usage prompt
+//   -i[i]    ... use iterative solver for viscous [and pressure] steps
+//   -v[v...] ... increase verbosity level
+//   -chk     ... checkpoint field dumps
+//
+// Files:
+// =====
+// Set-up and execution of the problem is controlled by a session file,
+// which is block-structured.  Each block has a (pre-defined) name and
+// is delimited by '{' & '}'.  Contents of session files are case-insensitive,
+////except* for function strings and named floating-point parameters.
+// Required blocks are: PROBLEM, PARAMETER, BOUNDARY and MESH.
+// Characters between block names and the opening '{' are ignored, and
+// can serve as comments.
+// 
+// PROBLEM block
+// -------------
+// This determines the type of problem to be solved and the kind of
+// geometry used (Cartesian, cylindrical, ...).
+//
+// (1)  Unsteady (Navier)--Stokes problems.
+// (2)  The default (and only current) geometry is 2D Cartesian.
+//
+// Example for a Navier--Stokes problem:
+//
+// problem {
+// navierstokes
+// [geometry   2D-Cartesian]
+// [forcing    function_1 .. function_DIM]
+// }
+//
+// (1)  Unsteady Navier--Stokes problem.  An unsteady Stokes problem can also
+//      be solved: at present this is done by conditional compilation (define
+//      "STOKES" when compiling NS.C).
+// (2)  The kinematic viscosity "KINVIS" should be set in the floating point
+//      parameter section.  Default value, pre-installed, is unity.
+// (3)  Forcing functions describe spatially-distributed force per unit mass
+//      in the various components of the Navier--Stokes equations (in order).
+//      DIM == 2 for 2D Cartesian.  Use 'x', 'y', and 't' as variables.
+// (4)  Solution algorithm is the 'stiffly-stable' method.  This may be
+//      inappropriate for low element orders.  
+//
+// PARAMETER block:
+// ---------------
+// In order, there should be option, integer and floating-point parameters.
+// The number of each type is given at the start of each sub-block.
+//
+// BOUNDARY block:
+// --------------
+// Boundary conditions for integer-tagged, non-overlapping boundary segments.
+// The number of segments is given at the start of the block.
+//
+// MESH block:
+// ----------
+// Commences with a list of vertices, followed by a list of elements with
+// corner vertices given as tags in vertex list.  The non-overlapping
+// boundary sectors are supplied as lists of vertices, together with an
+// integer tag which ties back to the BOUNDARY block.  Last comes
+// a list of curved edge specifiers, which are defined on a element-edge
+// basis.
+//
+// Program development by:
+// ======================
+// Hugh Blackburn
+// CSIRO
+// Division of Building, Construction and Engineering
+// P.O. Box 56
+// Highett, Vic 3190
+// Australia
+// hmb@dbce.csiro.au
+//////////////////////////////////////////////////////////////////////////////
 
 static char
 RCSid[] = "$Id$";
 
 
-#include <Fem.h>
+#include <NS.h>
 #include <new.h>
 
 
 static char  prog[]  = "ns";
 static void  memExhaust () { message ("new", "free store exhausted", ERROR); }
 
-static void      getArgs    (int, char**, char*& );
-static void      setUp      (ifstream&,   char**&);
-static ofstream* createFile (const Domain*);
-
-extern void      NavierStokes (Domain*, ofstream&);
+static void      getArgs (int, char**, char*& );
+static void      setUp   (ifstream&,   char**&);
 
 
 int main (int argc, char *argv[])
@@ -107,7 +103,6 @@ int main (int argc, char *argv[])
 #endif
 
   ifstream*  input = new ifstream;
-  ofstream*  output;
   char*      session;
   char**     forcing = 0;
 
@@ -146,11 +141,15 @@ int main (int argc, char *argv[])
   PBCmanager::build (*Pressure);
   Pressure -> connect (*M, iparam ("N_POLY"));
 
-  output = createFile (D);
+  // -- Initialize fields.
+
+  D -> restart ();
 
   // -- Solve.
 
-  NavierStokes (D, *output);
+  Analyser*  A = new Analyser (*D);
+
+  NavierStokes (D, A);
 
   return EXIT_SUCCESS;
 }
@@ -264,24 +263,4 @@ static void setUp (ifstream& file, char**& force)
     sprintf (err, "couldn't recognize a problem type in string: %s", s);
     message (routine, err, ERROR);
   }
-}
-
-
-static ofstream* createFile (const Domain* D)
-// ---------------------------------------------------------------------------
-// Create and return a field file for writing.
-// ---------------------------------------------------------------------------
-{
-  char       routine[] = "createFile";
-  ofstream*  output    = new ofstream;
-  char       s[StrMax];
-
-  if (option ("CHKPOINT"))
-    output -> open (strcat (strcpy (s, D -> name ()), ".chk"));
-  else
-    output -> open (strcat (strcpy (s, D -> name ()), ".fld"));
-
-  if (! *output) message (routine, "can't open field file", ERROR);
-
-  return output;
 }
