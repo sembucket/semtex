@@ -132,10 +132,10 @@ MatrixSys::MatrixSys (const real              lambda2,
     integer*        ipiv = pivotmap();
     integer         info;
 
-    _hbi    = new real*   [(size_t) nel];
-    _hii    = new real*   [(size_t) nel];
-    _bipack = new integer [(size_t) nel];
-    _iipack = new integer [(size_t) nel];
+    _hbi    = new real*   [(size_t) _nel];
+    _hii    = new real*   [(size_t) _nel];
+    _bipack = new integer [(size_t) _nel];
+    _iipack = new integer [(size_t) _nel];
 
     if (_nsolve) {
       _H = new real [(size_t) _npack];
@@ -146,8 +146,8 @@ MatrixSys::MatrixSys (const real              lambda2,
 	     << "Helmholtz constant (lambda2): " << setw(10) << lambda2
 	     << ", Fourier constant (betak2): "  << setw(10) << betak2;
       if (verbose)
-	cout << endl << "System matrix: " << nsolve << "x" << nband
-	     << "\t(" << npack << " words)";
+	cout << endl << "System matrix: " << _nsolve << "x" << _nband
+	     << "\t(" << _npack << " words)";
     }
 
     // -- Loop over elements, creating & posting elemental Helmholtz matrices.
@@ -178,7 +178,7 @@ MatrixSys::MatrixSys (const real              lambda2,
       const integer  nbound = bsys -> nSurf();
       const integer* bmap   = _NS   -> btog();
       for (i = 0; i < nbound; i++)
-	BC[i] -> augmentSC (_nband, _nsolve, bmap, rwrk, _H);
+	_BC[i] -> augmentSC (_nband, _nsolve, bmap, rwrk, _H);
     }
 
     // -- Cholesky factor global banded-symmetric Helmholtz matrix.
@@ -198,9 +198,10 @@ MatrixSys::MatrixSys (const real              lambda2,
   } break;
 
   case JACPCG: {
-    real*            PCi;
-    vector<real>     work (2 * npnp + np);
-    real             *ed = work(), *ewrk = work() + npnp;
+    const integer nbound = _BC.getSize();   
+    real*         PCi;
+    vector<real>  work (2 * npnp + np);
+    real          *ed = work(), *ewrk = work() + npnp;
 
     _PC = new real [(size_t) _npts];
     Veclib::zero (_npts, _PC, 1);
@@ -211,7 +212,7 @@ MatrixSys::MatrixSys (const real              lambda2,
     // -- Mixed BC contributions.
 
     if (bsys -> mixBC())
-      for (i = 0; i < _nbound; i++)
+      for (i = 0; i < nbound; i++)
 	_BC[i] -> augmentDg (bmap, _PC);
 
     // -- Element contributions.

@@ -18,28 +18,22 @@ void Helmholtz (Domain*     D      ,
 // subject to BCs.
 // ---------------------------------------------------------------------------
 {
-  const real    lambda2   =           Femlib::value ("LAMBDA2"  );
-  const real    beta      =           Femlib::value ("BETA"     );
-  const integer iterative = (integer) Femlib::value ("ITERATIVE");
-  const integer nmodes    = Geometry::nModeProc();
-  const integer base      = Geometry::baseMode();
-  const integer nz        = Geometry::nZProc();
-  real*         alloc     = new real [(size_t) Geometry::nTotProc() * nz];
-  AuxField*     Force     = new AuxField (alloc, nz, D -> elmt);
+  const real    lambda2 = Femlib::value ("LAMBDA2");
+  const real    beta    = Femlib::value ("BETA");
+  const integer nmodes  = Geometry::nModeProc();
+  const integer base    = Geometry::baseMode();
+  const integer nz      = Geometry::nZProc();
+  real*         alloc   = new real [(size_t) Geometry::nTotProc() * nz];
+  AuxField*     Force   = new AuxField (alloc, nz, D -> elmt);
+  SolverKind    method  = ((int) Femlib::value("ITERATIVE")) ? JACPCG : DIRECT;
 
   if   (forcing) (*Force = forcing) . transform (+1);
   else            *Force = 0.0;
   
-  if (iterative) {
-   *D -> u[0] = 0.0;  
-    D -> u[0] -> solve (Force, lambda2);
+  ModalMatrixSys* M = new ModalMatrixSys
+    (lambda2, beta, base, nmodes, D -> elmt, D -> b[0], method);
 
-  } else {
-    ModalMatrixSys* M =
-      new ModalMatrixSys (lambda2, beta, base, nmodes, D -> elmt, D -> b[0]);
-
-    D -> u[0] -> solve (Force, M);
-  }
+  D -> u[0] -> solve (Force, M);
 
   D -> step++;
 }
