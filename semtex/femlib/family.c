@@ -50,7 +50,7 @@ static integer* iAdopted (const integer, const integer*);
 static double*  dAdopted (const integer, const double*);
 static float*   sAdopted (const integer, const float*);
 
-#ifdef DEBUG
+#if defined (DEBUG)
   static const integer active = 0;	/* -- Disable families. */
 #else
   static const integer active = 1;
