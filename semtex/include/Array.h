@@ -21,7 +21,7 @@ class vector
 public:
   // -- Creation/destruction.
 
-  vector (const int n)          { num_elts = n; data = (n) ? new T[n] : 0; }
+  vector (const long n)         { num_elts = n; data = (n) ? new T[n] : 0; }
   vector ()                     { num_elts = 0; data = 0;                  } 
   vector (const vector<T>& src) { num_elts = src.num_elts;
 				  data = new T[num_elts];
@@ -36,7 +36,8 @@ public:
   }
 
   vector<T>& operator = (const T& src) {
-    register T* p = data + num_elts; while (p > data) *--p = src;
+    register long i;
+    for (i = 0; i < num_elts; i++) data[i] = src;
     return *this;
   }
 
@@ -45,15 +46,15 @@ public:
         T* operator () ()       { return data; }
   const T* operator () () const { return data; } 
 
-        T& operator [] (const int i)       { return data[i]; }
-  const T& operator [] (const int i) const { return data[i]; }
-        T& operator () (const int i)       { return data[i]; }
-  const T& operator () (const int i) const { return data[i]; } 
+        T& operator [] (const long i)       { return data[i]; }
+  const T& operator [] (const long i) const { return data[i]; }
+        T& operator () (const long i)       { return data[i]; }
+  const T& operator () (const long i) const { return data[i]; } 
 
   // -- Size operators/information.
 
-  int  getSize () const      { return num_elts; }
-  void setSize (const int n) {
+  long getSize () const      { return num_elts; }
+  void setSize (const long n) {
     if (n != num_elts) 
       {
 	delete [] data;
@@ -63,12 +64,11 @@ public:
   }
 
 private:
-  int num_elts;
-  T*  data;
+  long num_elts;
+  T*   data;
   void copy (const vector<T>& src) {
-    register T* p =     data + num_elts;
-    register T* q = src.data + num_elts;
-    while (p > data) *--p = *--q;
+    register long i;
+    for (i = 0; i < num_elts; i++) p[i] = q[i];
   }
 };
 
