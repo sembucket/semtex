@@ -27,8 +27,8 @@ RANLIB   =
 # -------------- Compiler options for specific machines. ---------------------
 
 ifeq ($(ARCH),IRIX)			# -- SGI IRIX 32-bit
-CFLAGS     = $(DEFINES) -fullwarn -g
-FFLAGS     = $(DEFINES) -g
+CFLAGS     = $(DEFINES) -fullwarn -O2
+FFLAGS     = $(DEFINES) -O2
 endif
 
 ifeq ($(ARCH),IRIX64)			# -- SGI IRIX 64-bit
@@ -40,9 +40,9 @@ ifeq ($(ARCH),OSF1)			# -- DEC Alpha OSF1
 FC	   = f90
 CXX	   = cxx
 CC         = cc
-CFLAGS     = $(DEFINES) -fast -fp_reorder -inline speed	\
-              -speculate all  -tune host -O4
-FFLAGS     = $(DEFINES) -fast -inline speed -tune host -O5
+CFLAGS     = $(DEFINES) -fast -inline speed \
+              -tune host -O4
+FFLAGS     = $(DEFINES) -fast -inline speed -tune host -O5 -unroll 2
 ifdef MPI
   DEFINES  += -DMPI
   CPPFLAGS += -I/usr/local/mpi/include
