@@ -46,8 +46,8 @@ static void    read_mesh   (FILE*);
 static void    read_data   (FILE*);
 static void    interpolate (void);
 static void    wrap        (void);
-static double* do_interp   (const double**, const double**, 
-			    const double**, const double**, double*);
+static double* do_interp   (const double*, const double*, 
+			    const double*, const double*, double*);
 
 
 int main (int    argc,
@@ -299,7 +299,7 @@ static void interpolate (void)
 {
   register int k, m, nplane_new;
   const int    nplane_old = nr * ns * nel;
-  const double **imr, **itmr, **ims, **itms;
+  const double *imr, *itmr, *ims, *itms;
   double       *mesh_x, *mesh_y;
   double       **newplane = (double**) malloc (nz * sizeof (double*));
 
@@ -320,8 +320,8 @@ static void interpolate (void)
 
   /* -- Compute interpolation matrices. */
 
-  dMeshOps (GLL, STD, nr, np, 0, &imr, &itmr, 0, 0);
-  dMeshOps (GLL, STD, ns, np, 0, &ims, &itms, 0, 0);
+  proj (&imr, &itmr, nr, GLJ, 0.0, 0.0, np, TRZ, 0.0, 0.0);
+  proj (&ims, &itms, ns, GLJ, 0.0, 0.0, np, TRZ, 0.0, 0.0);
 
   /* -- Interpolate the mesh. */
 
@@ -351,11 +351,11 @@ static void interpolate (void)
 }
 
 
-static double* do_interp (const double** imr ,
-			  const double** itmr,
-			  const double** ims ,
-			  const double** itms,
-			  double*        data)
+static double* do_interp (const double* imr ,
+			  const double* itmr,
+			  const double* ims ,
+			  const double* itms,
+			  double*       data)
 /* ------------------------------------------------------------------------- *
  * Wrapper for 2D tensor-product interpolation.
  * ------------------------------------------------------------------------- */
@@ -368,8 +368,8 @@ static double* do_interp (const double** imr ,
                *p    = new;
 
   for (k = 0; k < nel; k++, data += nrns, p += ntot) {
-    dmxm ((double*) *ims, np,  data, ns, tmp, nr);
-    dmxm ( tmp, np, (double*) *itmr, nr, p  , np);
+    dmxm ((double*) ims, np, data, ns, tmp, nr);
+    dmxm (tmp, np, (double*) itmr, nr, p  , np);
   }
 
   return new;
