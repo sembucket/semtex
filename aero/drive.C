@@ -3,7 +3,9 @@
 //
 // SYNOPSIS:
 // --------
-// Control spectral element aeroelastic flow solver.
+// Control spectral element DNS/aeroelastic solver.  Cartesian
+// coordinates.  Body motion computations occur only on root processor
+// in multiprocessor execution.
 //
 // USAGE:
 // -----
@@ -35,9 +37,9 @@ RCSid[] = "$Id$";
 #include <aero.h>
 #include <new.h>
 
-static char prog[]  = "aero";
-static void memExhaust   () { message ("new", "free store exhausted", ERROR); }
-static void getargs      (integer, char**, char*&);
+static char prog[] = "aero";
+static void memExhaust () { message ("new", "free store exhausted", ERROR); }
+static void getargs    (integer, char**, char*&);
 
 
 integer main (integer argc,
@@ -58,10 +60,10 @@ integer main (integer argc,
   BCmgr*        B;
   Domain*       D;
   AeroAnalyser* A;
-  Body*         BD;
+  Body*         BD = 0;
 
-  Femlib::prep  ();
-  getargs       (argc, argv, session);
+  Femlib::initialize (&argc, &argv);
+  getargs (argc, argv, session);
 
   F = new FEML  (session);
   M = new Mesh  (*F);
@@ -75,18 +77,19 @@ integer main (integer argc,
   if   (nz > 1) strcpy (fields, "uvwp");
   else          strcpy (fields, "uvp");
 
-  D  = new Domain  (*F, *M, *B, fields, session);
-  BD = new Body    (session);
+  D  = new Domain (*F, *M, *B, fields, session);
+  ROOTONLY BD = new Body (session);
 
-  D  -> initialize();
-  D  -> report();
+  D -> initialize();
+  ROOTONLY D  -> report();
 
-  BD -> force (*D);
+  ROOTONLY BD -> force (*D);
 
   A = new AeroAnalyser (*D, *F, *BD);
 
   NavierStokes (D, BD, A);
 
+  Femlib::finalize();
   return EXIT_SUCCESS;
 }
 

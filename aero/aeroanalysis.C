@@ -19,18 +19,20 @@ AeroAnalyser::AeroAnalyser (Domain& D   ,
 // moving reference frame.
 // ---------------------------------------------------------------------------
 {
-  const char routine[] = "AeroAnalyser::AeroAnalyser";
-  char       str[StrMax];
+  ROOTONLY {
+    const char routine[] = "AeroAnalyser::AeroAnalyser";
+    char       str[StrMax];
 
-  // -- Open state-variable file.
+    // -- Open state-variable file.
 
-  sta_strm.open (strcat (strcpy (str, src.name), ".sta"));
+    sta_strm.open (strcat (strcpy (str, src.name), ".sta"));
 
-  if (!sta_strm) message (routine, "can't open state file", ERROR);
+    if (!sta_strm) message (routine, "can't open state file", ERROR);
 
-  sta_strm << "# Aero state information file"                 << endl;
-  sta_strm << "# Step Time [pos vel acc Fpre Fvis Ftot]-axis" << endl;
-  sta_strm << "# -------------------------------------------" << endl;
+    sta_strm << "# Aero state information file"                 << endl;
+    sta_strm << "# Step Time [pos vel acc Fpre Fvis Ftot]-axis" << endl;
+    sta_strm << "# -------------------------------------------" << endl;
+  }
 }
 
 
@@ -41,12 +43,14 @@ void AeroAnalyser::analyse (AuxField*** work)
 {
   Analyser::analyse (work);
 
-  const integer periodic = !(src.step %  (integer) Femlib::value ("IO_HIS")) ||
-                           !(src.step %  (integer) Femlib::value ("IO_FLD"));
-  const integer final    =   src.step == (integer) Femlib::value ("N_STEP");
-  const integer state    = periodic || final;
+  ROOTONLY {
+    const integer periodic = !(src.step % (integer)Femlib::value ("IO_HIS")) ||
+                             !(src.step % (integer)Femlib::value ("IO_FLD"));
+    const integer final    =   src.step ==(integer)Femlib::value ("N_STEP");
+    const integer state    = periodic || final;
 
-  if (!state) return;
+    if (!state) return;
 
-  sta_strm << src.step << " " << src.time << body << endl;
+    sta_strm << src.step << " " << src.time << body << endl;
+  }
 }
