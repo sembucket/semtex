@@ -25,9 +25,10 @@
 #include <cstdio>
 #include <cfloat>
 #include <cmath>
-
 #include <iostream>
 #include <fstream>
+
+using namespace std;
 
 #include <Utility.h>
 #include <Stack.h>
@@ -117,6 +118,7 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
+  istream*        input;
   vector<double>  work;
   double          dev, xi, yi, *x, *y, *cof, *X, *Y;
   int             i, N, mm = 1, kk = 1, ncof;
@@ -181,16 +183,11 @@ int main (int    argc,
     }
 
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-    } else {
-      cerr << prog << "unable to open file" << endl;
-      return EXIT_FAILURE;
-    }
-  }
+    input = new ifstream (*argv);
+    if (input -> bad()) message (prog, "unable to open input file", ERROR);
+  } else input = &cin;
 
-  while (cin >> xi >> yi) {
+  while (*input >> xi >> yi) {
     datum = new doublet (xi, yi);
     data.push (datum);
   }

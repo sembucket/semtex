@@ -27,9 +27,10 @@
 
 #include <iostream>
 #include <fstream>
-
 #include <cstdio>
 #include <cstdlib>
+
+using namespace std;
 
 #include <Utility.h>
 #include <Veclib.h>
@@ -41,7 +42,7 @@
 static char prog[]  = "embed";
 static char usage[] = "embed [-h] -n <num> -s <num> [-p <num>] [file]";
 
-static void getargs  (int, char**, int&, int&, int&);
+static void getargs  (int, char**, int&, int&, int&, istream*&);
 static void getdata  (istream&, vector<double>&, const int, const int);
 static void covary   (vector<double>&, vector<double>&, const int);
 static void eigensys (vector<double>&, vector<double>&, const int);
@@ -58,9 +59,10 @@ int main (int    argc,
 {
   vector<double> data, cov, esys;
   int            s = 0, n = 0, p = 0;
+  istream*       file;
 
-  getargs  (argc, argv, s, n, p);
-  getdata  (cin, data, s, n);
+  getargs  (argc, argv, s, n, p, file);
+  getdata  (*file, data, s, n);
 
   covary   (data, cov, n);
   eigensys (cov, esys, n);
@@ -76,7 +78,8 @@ static void getargs (int       argc,
 		     char**    argv,
 		     int&      skip,
 		     int&      wind,
-		     int&      proj)
+		     int&      proj,
+		     istream*& file)
 // ---------------------------------------------------------------------------
 // Parse command line arguments. Skip and wind are mandatory.
 // ---------------------------------------------------------------------------
@@ -122,13 +125,9 @@ static void getargs (int       argc,
     message (prog, "projection cannot exceed data window", ERROR);
 
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-    } else {
-      message (prog, "unable to open input file", ERROR);
-    }
-  }
+    file = new ifstream (*argv);
+    if (file -> bad()) message (prog, "unable to open input file", ERROR);
+  } else file = &cin;
 }
 
 

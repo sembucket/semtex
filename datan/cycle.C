@@ -29,6 +29,8 @@
 #include <cstdlib>
 #include <cfloat>
 
+using namespace std;
+
 #include <Utility.h>
 #include <Veclib.h>
 #include <Stack.h>
@@ -56,6 +58,7 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
+  istream*        input;
   triplet*        datum;
   Stack<triplet*> data;
   vector<double>  t, r, f;	// -- Time, reference, function.
@@ -88,19 +91,14 @@ int main (int    argc,
     }
 
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-      } else {
-	cerr << prog << "unable to open file" << endl;
-	 return EXIT_FAILURE;
-      }
-  }
+    input = new ifstream (*argv);
+    if (input -> bad()) message (prog, "unable to open input file", ERROR);
+  } else input = &cin;
 
   // -- Find first crossing.
 
-  cin >> t1 >> r1 >> f1;
-  while (!crossed && cin >> t2 >> r2 >> f2) {
+  *input >> t1 >> r1 >> f1;
+  while (!crossed && *input >> t2 >> r2 >> f2) {
     if (crossed = ((r1 < 0.0) && (r2 >= 0.0))) {
       datum = new triplet (t1, r1, f1);
       data.push (datum);
@@ -122,7 +120,7 @@ int main (int    argc,
 
   // -- Do first cycle of input found.
 
-  while (!crossed && cin >> t2 >> r2 >> f2) {
+  while (!crossed && *input >> t2 >> r2 >> f2) {
     crossed = ((r1 < 0.0) && (r2 >= 0.0));
     datum = new triplet (t2, r2, f2);
     data.push (datum);

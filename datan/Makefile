@@ -51,7 +51,7 @@ pcor: pcor.c
 	$(CC) $(CFLAGS) -o $@ $@.c
 
 upxf: upxf.C
-	$(CXX) -o $@ $@.C $(CXXFLAGS) $(SEMHDR) $(RECIPES) $(F77LIBS)
+	$(CXX) -o $@ $@.C $(CXXFLAGS) $(SEMHDR) $(VECLIB) $(RECIPES) $(F77LIBS)
 
 peaks: peaks.C
 	$(CXX) -o $@ $@.C

@@ -11,13 +11,16 @@
 #include <iomanip>
 #include <cstdlib>
 
+using namespace std;
+
 
 int main (int    argc,
 	  char** argv)
 {
+  char usage[] = "peaks [-h] [-min] [-v] [file]", c;
+  istream* input;
   double   func[3], time[3];
   int      min = 0, verbose = 0;
-  char usage[] = "peaks [-h] [-min] [-v] [file]", c;
 
   // -- Process command line.
 
@@ -40,20 +43,18 @@ int main (int    argc,
     }
 
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-    } else {
+    input = new ifstream (*argv);
+    if (input -> bad()) {
       cerr << "peaks: unable to open file" << endl;
       return EXIT_FAILURE;
     }
-  }
+  } else input = &cin;
 
   // -- Initialise data windows.
 
-  cin >> time[2] >> func[2];
-  cin >> time[1] >> func[1];
-  if (!cin)  {
+  *input >> time[2] >> func[2];
+  *input >> time[1] >> func[1];
+  if (!*input)  {
     cerr << "unable to initialise from input file" << endl;
     return EXIT_FAILURE;
   }
@@ -62,7 +63,7 @@ int main (int    argc,
 
   // -- Main loop.
 
-  while (cin >> time[0] >> func[0]) {
+  while (*input >> time[0] >> func[0]) {
     if (min) {
       if (func[1] <  func[0] && func[1] <  func[2] ||
 	  func[1] <  func[0] && func[1] == func[2])

@@ -28,6 +28,8 @@
 #include <cstdio>
 #include <cstdlib>
 
+using namespace std;
+
 #include <Utility.h>
 #include <Stack.h>
 #include <Array.h>
@@ -56,6 +58,7 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
+  istream*        input;
   doublet*        datum;
   Stack<doublet*> data;
   vector<double>  t, f;
@@ -93,20 +96,15 @@ int main (int    argc,
     }
 
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-    } else {
-      cerr << prog << "unable to open file" << endl;
-      return EXIT_FAILURE;
-    }
-  }
+    input = new ifstream (*argv);
+    if (input -> bad()) message (prog, "unable to open input file", ERROR);
+  } else input = &cin;
 
   // -- Find first crossing.
 
-  cin >> t1 >> f1;
+  *input >> t1 >> f1;
   f1 -= zref;
-  while (!crossed && cin >> t2 >> f2) {
+  while (!crossed && *input >> t2 >> f2) {
     f2 -= zref;
     if (crossed = ((f1 < 0.0) && (f2 >= 0.0))) {
       datum = new doublet (t1, f1);
@@ -133,9 +131,9 @@ int main (int    argc,
 
   // -- Do the rest of input, cycle by cycle.
 
-  while (cin) {
+  while (*input) {
 
-    while (!crossed && cin >> t2 >> f2) {
+    while (!crossed && *input >> t2 >> f2) {
       f2 -= zref;
       crossed = ((f1 < 0.0) && (f2 >= 0.0));
       datum = new doublet (t2, f2);
@@ -219,7 +217,7 @@ static int dcycle (const int     np    ,
 // ---------------------------------------------------------------------------
 {
   double       xlo, xhi, xav, xtp;
-  const double EPS = 1.0e-6, HUGE = 1.0E99;
+  const double dEPS = 1.0e-6, dHUGE = 1.0E99;
 
   // -- Initalize global variables.
 
@@ -231,17 +229,17 @@ static int dcycle (const int     np    ,
 
   // -- Generate global natural spline coefficients cc.
 
-  Recipes::spline (xx, yy, num, HUGE, HUGE, cc);
+  Recipes::spline (xx, yy, num, dHUGE, dHUGE, cc);
 
   // -- Find zero crossings.
 
   xlo = x[0];
   xhi = xlo + 0.05 * (x[np - 1] - x[0]);
-  xlo = Recipes::rtsec (wave, xlo, xhi, EPS);
+  xlo = Recipes::rtsec (wave, xlo, xhi, dEPS);
 
   xhi = x[np - 1];
   xtp = xhi - 0.05 * (xhi - xlo);
-  xhi = Recipes::rtsec (wave, xtp, xhi, EPS);
+  xhi = Recipes::rtsec (wave, xtp, xhi, dEPS);
 
   period = xhi - xlo;
 
@@ -252,11 +250,11 @@ static int dcycle (const int     np    ,
   
   if (wave (xtp) > 0.0) sign = -1.0;
 
-  min = sign * Recipes::golden (xlo, xtp, xav, wave, EPS, xtp);
+  min = sign * Recipes::golden (xlo, xtp, xav, wave, dEPS, xtp);
 
   xtp  = 0.5 * (xav + xhi);
   sign = -sign;
-  max = sign * Recipes::golden (xav, xtp, xhi, wave, EPS, xtp);
+  max = sign * Recipes::golden (xav, xtp, xhi, wave, dEPS, xtp);
 
   if (sign > 0.0) {
     double tmp = min;

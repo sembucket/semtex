@@ -27,6 +27,8 @@
 #include <cstdio>
 #include <cstdlib>
 
+using namespace std;
+
 #include <Utility.h>
 #include <Stack.h>
 #include <Array.h>
@@ -38,7 +40,7 @@ public:
   double    x, y, z;
 };
 
-static char prog[] = "cycint";
+static char    prog[] = "cycint";
 static int     num;
 static double  sign;
 static double* xx;
@@ -60,6 +62,7 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
+  istream*        input;
   triplet*        datum;
   Stack<triplet*> data;
   vector<double>  t, r, f;	// -- Time, reference, function.
@@ -91,19 +94,14 @@ int main (int    argc,
     }
 
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-      } else {
-	cerr << prog << "unable to open file" << endl;
-	exit (EXIT_FAILURE);
-      }
-  }
+    input = new ifstream (*argv);
+    if (input -> bad()) message (prog, "unable to open input file", ERROR);
+  } else input = &cin;
 
   // -- Find first crossing.
 
-  cin >> t1 >> r1 >> f1;
-  while (!crossed && cin >> t2 >> r2 >> f2) {
+  *input >> t1 >> r1 >> f1;
+  while (!crossed && *input >> t2 >> r2 >> f2) {
     if (crossed = ((r1 < 0.0) && (r2 >= 0.0))) {
       datum = new triplet (t1, r1, f1);
       data.push (datum);
@@ -130,9 +128,9 @@ int main (int    argc,
 
   // -- Do the rest of input, cycle by cycle.
 
-  while (cin) {
+  while (*input) {
 
-    while (!crossed && cin >> t2 >> r2 >> f2) {
+    while (!crossed && *input >> t2 >> r2 >> f2) {
       crossed = ((r1 < 0.0) && (r2 >= 0.0));
       datum = new triplet (t2, r2, f2);
       data.push (datum);
@@ -214,7 +212,7 @@ static int dcycle (const int     np    ,
 // ---------------------------------------------------------------------------
 {
   double       xlo, xhi, xtp;
-  const double EPS = 1.0e-6, HUGE = 1.0E99;
+  const double dEPS = 1.e-6, dHUGE = 1.E99;
 
   // -- Initalize global variables.
 
@@ -226,24 +224,24 @@ static int dcycle (const int     np    ,
 
   // -- Generate global natural spline coefficients cc.
 
-  Recipes::spline (xx, yy, num, HUGE, HUGE, cc);
+  Recipes::spline (xx, yy, num, dHUGE, dHUGE, cc);
 
   // -- Find zero crossings.
 
   xlo = x[0];
   xhi = xlo + 0.05 * (x[np - 1] - x[0]);
-  xlo = Recipes::rtsec (wave, xlo, xhi, EPS);
+  xlo = Recipes::rtsec (wave, xlo, xhi, dEPS);
 
   xhi = x[np - 1];
   xtp = xhi - 0.05 * (xhi - xlo);
-  xhi = Recipes::rtsec (wave, xtp, xhi, EPS);
+  xhi = Recipes::rtsec (wave, xtp, xhi, dEPS);
 
   period = xhi - xlo;
 
   // -- Find area of auxillary function.
 
   yy = (double*) z;
-  Recipes::spline (xx, yy, num, HUGE, HUGE, cc);
+  Recipes::spline (xx, yy, num, dHUGE, dHUGE, cc);
 
   area = dsplquad (x, z, cc, num, xlo, xhi);
 

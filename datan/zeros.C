@@ -13,15 +13,18 @@
 #include <iomanip>
 #include <cstdlib>
 
+using namespace std;
+
 static char prog[] = "zeros";
 
 
 int main (int    argc,
 	  char** argv)
 {
-  double x[2], y[2], zero, val = 0.0;
-  int    verbose = 0;
-  char   usage[] = "zeros [-h] [-v] [-z <num>] [file]";
+  istream* input;
+  double   x[2], y[2], zero, val = 0.0;
+  int      verbose = 0;
+  char     usage[] = "zeros [-h] [-v] [-z <num>] [file]";
 
   // -- Process command line.
 
@@ -45,19 +48,16 @@ int main (int    argc,
     }
 
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-    } else {
-      cerr << prog << "unable to open input file" << endl;
-      return EXIT_FAILURE;
+    input = new ifstream (*argv);
+    if (input -> bad()) {
+      cerr << "peaks: unable to open file" << endl; return EXIT_FAILURE;
     }
-  }
+  } else input = &cin;
 
   // -- Initialise data windows.
 
-  cin >> x[0] >> y[0];
-  if (!cin) {
+  *input >> x[0] >> y[0];
+  if (!*input) {
     cerr << "unable to initialise from input file" << endl;
     return EXIT_FAILURE;
   }
@@ -67,7 +67,7 @@ int main (int    argc,
 
   // -- Main loop.
 
-  while (cin >> x[1] >> y[1]) {
+  while (*input >> x[1] >> y[1]) {
     y[1] -= val;
     zero  = x[0] + (x[1]-x[0])*y[0]/(y[0]-y[1]);
     if        (y[0] < 0.0 && y[1] >= 0.0) { // -- +ve xing.

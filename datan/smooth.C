@@ -29,6 +29,7 @@
 #include <iostream>
 #include <fstream>
 
+using namespace std;
 
 #include <Utility.h>
 #include <Veclib.h>
@@ -38,7 +39,7 @@
 typedef double real;
 
 static char prog[] = "smooth";
-static void getargs (int,char**,int&,int&,int&,real&,int&,int&);
+static void getargs (int,char**,int&,int&,int&,real&,int&,int&,istream*&);
 static void filter  (istream&,ostream&,vector<real>&,const int&,const real&); 
 
 
@@ -48,12 +49,13 @@ int main (int    argc,
 // Drive routines in this file.
 // ---------------------------------------------------------------------------
 {
+  istream*     file;
   char         err[StrMax];
   int          verbose = 0, repro = 0, npol = 0, nwid = 0, nder = 0;
   real         h = 1.0;
   vector<real> c;
 
-  getargs (argc, argv, verbose, repro, nder, h, npol, nwid);
+  getargs (argc, argv, verbose, repro, nder, h, npol, nwid, file);
 
   if (nwid) {
     if (nwid < (npol + 1) >> 1) {
@@ -67,7 +69,7 @@ int main (int    argc,
   c.setSize (2 * nwid + 1);
   Recipes::savgol (c(), c.getSize(), nwid, nwid, nder, npol);
   
-  filter (cin, cout, c, nwid, 1.0 / pow (h, nder));
+  filter (*file, cout, c, nwid, 1.0 / pow (h, nder));
 
   return EXIT_SUCCESS;
 }
@@ -80,7 +82,8 @@ static void getargs (int       argc   ,
 		     int&      nder   ,
 		     real&     h      ,
 		     int&      npol   ,
-		     int&      nwid   )
+		     int&      nwid   ,
+		     istream*& file   )
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
@@ -134,14 +137,9 @@ static void getargs (int       argc   ,
     }
   
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-    } else {
-      sprintf (buf, "unable to open file: %s", *argv);
-      message (prog, buf, ERROR);
-    }
-  }
+    file = new ifstream (*argv);
+    if (file -> bad()) message (prog, "unable to open input file", ERROR);
+  } else file = &cin;
 }
 
 
