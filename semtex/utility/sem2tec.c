@@ -70,7 +70,7 @@ int main (int    argc,
   write_tec   (fp);
 
   if (preplot_it) {
-    sprintf (buf, "preplot %s %s", fname, tecfile);
+    sprintf (buf, "preplot %s %s > /dev/null", fname, tecfile);
     system  (buf);
     remove  (fname);
   } else {
@@ -83,6 +83,7 @@ int main (int    argc,
 
   return EXIT_SUCCESS;
 }
+
 
 static void parse_args (int    argc,
 			char** argv)
