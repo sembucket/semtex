@@ -174,8 +174,8 @@ sem2tec: sem2tec.o
 
 # ----------------------------------------------------------------------------
 # Build compare, exact solution comparison/restart utility.
-COMOBJ = compare.o feml.o mesh.o element.o auxfield.o	\
-	 geometry.o pressure.o integration.o
+COMOBJ = compare.o bsys.o BCmgr.o boundary.o condition.o feml.o mesh.o	\
+	 element.o auxfield.o geometry.o pressure.o integration.o misc.o
 
 compare: $(COMOBJ)
 	$(LD) -o $@ $(COMOBJ) $(LDFLAGS)
