@@ -81,6 +81,7 @@ void PBCmgr::maintain (const int         step   ,
 		       const int         timedep)
 // ---------------------------------------------------------------------------
 // Update storage for evaluation of high-order pressure boundary condition.
+// Storage order for each edge represents a CCW traverse of element boundaries.
 //
 // If the velocity field varies in time on HOPB field boundaries (e.g. due
 // to time-varying BCs) the local fluid acceleration will be estimated
