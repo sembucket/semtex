@@ -20,9 +20,6 @@ BC*    PBCmanager::essential = 0;
 BC*    PBCmanager::hopbc     = 0;
 
 
-
-
-
 void  PBCmanager::build (Field& f)
 // ---------------------------------------------------------------------------
 // Build class-scope storage structures required for high order PBCs.
@@ -87,10 +84,7 @@ void  PBCmanager::build (Field& f)
 }
 
 
-
-
-
-void  PBCmanager::maintain (int step, Field***  Us, Field***  Uf)
+void  PBCmanager::maintain (int  step, Field***  Us, Field***  Uf)
 // ---------------------------------------------------------------------------
 // Update storage for evaluation of high-order pressure boundary condition.
 //
@@ -104,52 +98,54 @@ void  PBCmanager::maintain (int step, Field***  Us, Field***  Uf)
 // store).  Note also that this term cannot be estimated on the first step.
 // ---------------------------------------------------------------------------
 {
-  real   nu = dparam ("KINVIS");
-  int    q, nOrder, Je = iparam ("N_TIME");
-  real   alpha[TIME_ORDER_MAX], gamma;
-  real   invDt = 1.0 / dparam ("DELTAT");
+  int         Je     = iparam ("N_TIME");
+  int         nOrder = Je;
+  real        alpha[TIME_ORDER_MAX], gamma;
+  const real  nu    = dparam ("KINVIS");
+  const real  invDt = 1.0 / dparam ("DELTAT");
 
   const Field* Ux = Us[0][0];
   const Field* Uy = Us[1][0];
   const Field* Nx = Uf[0][0];
   const Field* Ny = Uf[1][0];
 
-  int   i, np;
-  nOrder = Je;
-
-  Boundary *B1, *B2;
+  int   i, q, np, offset, skip;
 
   // -- Roll grad P storage area up, load new level of nonlinear terms.
+
+  Boundary *B1;
   
   ListIterator<Boundary*> j(Nx -> boundary_list);
-  ListIterator<Boundary*> k(Ny -> boundary_list);
-  for (i = 0; j.more(); j.next(), k.next(), i++) {
 
-    B1 = j.current();
-    B2 = k.current();
+  for (i = 0; j.more(); j.next(), i++) {
+    B1 = j.current ();
+
+    np     = B1 -> nKnot ();
+    offset = B1 -> nOff  ();
+    skip   = B1 -> nSkip ();
 
     roll (store[i].Px, nOrder);
-    B1 -> extract (*store[i].Px);
+    Veclib::copy (np, Nx -> data + offset, skip, store[i].Px[0], 1);
 
     roll (store[i].Py, nOrder);
-    B2 -> extract (*store[i].Py);    
+    Veclib::copy (np, Ny -> data + offset, skip, store[i].Py[0], 1);
   }
 
-  // -- Add in -nu * curl curl u.
+  // -- Add in -nu * curl curl u and -du/dt.
 
   real *tmp, *wx, *wy;
 
-  for (i = 0, j = Ux -> boundary_list, k = Uy -> boundary_list;
-       j.more();
-       j.next(), k.next(), i++) {
+  for (i = 0, j = Ux -> boundary_list; j.more(); j.next(), i++) {
+    B1 = j.current ();
 
-    B1 = j.current();
-    B2 = k.current();
-    np = B1 -> nKnot();
+    np     = B1 -> nKnot ();
+    offset = B1 -> nOff  ();
+    skip   = B1 -> nSkip ();
+
     wx = rvector (np);
     wy = rvector (np);
 
-    B1 -> curlCurl (B1, B2, wx, wy);
+    B1 -> curlCurl (Ux -> data, Uy -> data, wx, wy);
 
     Blas::axpy (np, -nu, wy, 1, store[i].Px[0], 1);
     Blas::axpy (np,  nu, wx, 1, store[i].Py[0], 1);
@@ -162,35 +158,32 @@ void  PBCmanager::maintain (int step, Field***  Us, Field***  Uf)
       tmp   = wx;
       gamma = Icoef[Je - 1].gamma;
       Veclib::copy (Je, Icoef[Je - 1].alpha, 1, alpha, 1);
-
-      B1 -> extract (tmp);
-      Blas::scal (np, gamma, tmp, 1);
+      
+      Veclib::copy (np, Ux -> data + offset, skip, tmp, 1);
+      Blas::scal   (np, gamma, tmp, 1);
       for (q = 0; q < Je; q++)
 	Blas::axpy (np, -alpha[q], store[i].Ux[q], 1, tmp, 1);
       Blas::axpy (np, -invDt, tmp, 1, store[i].Px[0], 1);
 
-      B1 -> extract (tmp);
-      Blas::scal (np, gamma, tmp, 1);
+      Veclib::copy (np, Uy -> data + offset, skip, tmp, 1);
+      Blas::scal   (np, gamma, tmp, 1);
       for (q = 0; q < Je; q++)
 	Blas::axpy (np, -alpha[q], store[i].Uy[q], 1, tmp, 1);
       Blas::axpy (np, -invDt, tmp, 1, store[i].Py[0], 1);
     }
 
-    //-- Roll velocity storage area up, load new level.
+    // -- Roll velocity storage area up, load new level.
 
     roll (store[i].Ux, nOrder);
-    B1 -> extract (store[i].Ux[0]);
+    Veclib::copy (np, Ux -> data + offset, skip, store[i].Ux[0], 1);
 
     roll (store[i].Uy, nOrder);
-    B1 -> extract (store[i].Uy[0]);
+    Veclib::copy (np, Uy -> data + offset, skip, store[i].Uy[0], 1);
     
     freeVector (wx);
     freeVector (wy);
   }
 }
-
-
-
 
 
 void  PBCmanager::evaluate (int   id,     int   np,  int   step,
@@ -233,9 +226,3 @@ void  PBCmanager::evaluate (int   id,     int   np,  int   step,
   freeVector (tmpX);
   freeVector (tmpY);
 }
-
-
-
-
-
-
