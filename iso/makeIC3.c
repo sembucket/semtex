@@ -35,7 +35,7 @@ int main (int argc, char *argv[])
 {
   FILE*      fp;
   char       filename[STR_MAX];
-  int        c, i, argnr, cubesize, Npts;
+  int        c, i, argnr, cubesize;
   int        paramerr = FALSE, seed = -1;
   int        code = 0;
   CVF        IC;
@@ -94,8 +94,7 @@ int main (int argc, char *argv[])
 
   Dim    = ivector (1, 3);
   Dim[1] = (Dim[2] = cubesize);
-  Dim[3] = Dim[1];
-  Npts   = Dim[1] * Dim[2] * Dim[3];
+  Dim[3] = Dim[1] / 2;
   
   head = cfield  (Dim, &IC);
   Wtab = cvector (0, Dim[3]-1);
