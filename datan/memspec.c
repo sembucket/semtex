@@ -85,7 +85,6 @@ int main (int argc, char *argv[])
   int    i, NEval = DEFEVL;
   
   FILE  *fp_in = stdin;
-
   
   getargs (argc, argv, &fp_in, 
 	   &Fstart, &Fend, &Fsamp, &Diam, &Vel, &NEval, &NPoles);
@@ -236,9 +235,9 @@ static void getdata (FILE *fp, real *Data, int *Ndata, int MAX)
  * ------------------------------------------------------------------------- */
 {
   *Ndata = 0;
-  while ((!feof (fp)) && *Ndata < MAX){
+  while ((!feof (fp)) && (*Ndata < MAX)) {
     ++*Ndata;
-    fscanf (fp, "%f", Data + *Ndata);
+    fscanf (fp, "%lf", Data + *Ndata);
   }
 }
 
