@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // This version of analysis.C is specialized so that it computes and
 // prints out forces exerted on "wall" boundary group.
+//
+// Copyright (C) 1994, 1999 Hugh Blackburn
 ///////////////////////////////////////////////////////////////////////////////
  
 static char
@@ -9,11 +11,12 @@ RCSid[] = "$Id$";
 #include <dns.h>
 
 
-DNSAnalyser::DNSAnalyser (Domain& D   ,
-			  FEML&   feml) : Analyser (D, feml)
+DNSAnalyser::DNSAnalyser (Domain* D   ,
+			  FEML*   feml) :
 // ---------------------------------------------------------------------------
 // Extensions to Analyser class.
 // ---------------------------------------------------------------------------
+  Analyser (D, feml)
 {
   ROOTONLY {
     const char routine[] = "DNSAnalyser::DNSAnalyser";
@@ -21,7 +24,7 @@ DNSAnalyser::DNSAnalyser (Domain& D   ,
 
     // -- Open state-variable file.
 
-    flx_strm.open (strcat (strcpy (str, src.name), ".flx"));
+    flx_strm.open (strcat (strcpy (str, src -> name), ".flx"));
     if (!flx_strm) message (routine, "can't open flux file",  ERROR);
 
     flx_strm << "# DNS state information file"      << endl;
@@ -41,9 +44,9 @@ void DNSAnalyser::analyse (AuxField*** work)
   Analyser::analyse (work);
 
   ROOTONLY {
-    const integer periodic = !(src.step % (integer)Femlib::value ("IO_HIS")) ||
-                             !(src.step % (integer)Femlib::value ("IO_FLD"));
-    const integer final    =   src.step ==(integer)Femlib::value ("N_STEP");
+    const integer periodic = !(src->step % (integer)Femlib::value("IO_HIS")) ||
+                             !(src->step % (integer)Femlib::value("IO_FLD"));
+    const integer final    =   src->step ==(integer)Femlib::value("N_STEP");
     const integer state    = periodic || final;
 
     if (!state) return;
@@ -52,14 +55,14 @@ void DNSAnalyser::analyse (AuxField*** work)
     char   s[StrMax];
 
     if (DIM == 3) {
-      pfor   = Field::normalTraction  (src.u[3]);
-      vfor   = Field::tangentTraction (src.u[0], src.u[1], src.u[2]);
+      pfor   = Field::normalTraction  (src -> u[3]);
+      vfor   = Field::tangentTraction (src -> u[0], src -> u[1], src -> u[2]);
       tfor.x = pfor.x + vfor.x;
       tfor.y = pfor.y + vfor.y;
       tfor.z = pfor.z + vfor.z;
     } else {
-      pfor   = Field::normalTraction  (src.u[2]);
-      vfor   = Field::tangentTraction (src.u[0], src.u[1]);
+      pfor   = Field::normalTraction  (src -> u[2]);
+      vfor   = Field::tangentTraction (src -> u[0], src -> u[1]);
       tfor.x = pfor.x + vfor.x;
       tfor.y = pfor.y + vfor.y;
       tfor.z = pfor.z = vfor.z = 0.0;
@@ -70,7 +73,7 @@ void DNSAnalyser::analyse (AuxField*** work)
 	     "%#10.6g %#10.6g %#10.6g "
 	     "%#10.6g %#10.6g %#10.6g "
 	     "%#10.6g %#10.6g %#10.6g",
-	     src.step, src.time,
+	     src -> step, src -> time,
 	     pfor.x,   vfor.x,   tfor.x,
 	     pfor.y,   vfor.y,   tfor.y,
 	     pfor.z,   vfor.z,   tfor.z);

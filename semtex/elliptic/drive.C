@@ -1,9 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
-// drive.C
+// drive.C: compute solution to elliptic problem, optionally compare to
+// exact solution.
 //
-// SYNOPSIS:
-// --------
-// Compute solution to elliptic problem, optionally compare to exact solution.
 // Copyright (C) 1994, 1999  Hugh Blackburn.
 //
 // This program is free software; you can redistribute it and/or modify
@@ -47,10 +45,12 @@ RCSid[] = "$Id$";
 
 static char prog[] = "elliptic";
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
+static void getargs    (int, char**, char*&);
+static void getoptions (FEML*, char*&, char*&);
+static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
+			BCmgr*&, BoundarySys*&, Domain*&);
 
-extern void Helmholtz (Domain*, const char*);
-static void getargs   (int, char**, char*&);
-static void setup     (FEML*, char*&, char*&);
+void Helmholtz (Domain*, const char*);
 
 
 int main (int    argc,
@@ -64,41 +64,29 @@ int main (int    argc,
   ios::sync_with_stdio();
 #endif
   
-  char               *session, *forcing = 0, *exact = 0, field[2];
-  integer            np, nz, nel;
-  Geometry::CoordSys space;
-  FEML*              F;
-  Mesh*              M;
-  BCmgr*             B;
+  char             *session, *forcing = 0, *exact = 0;
+  vector<Element*> elmt;
+  FEML*            file;
+  Mesh*            mesh;
+  BCmgr*           bman;
+  BoundarySys*     bsys;
+  Domain*          domain;
 
   Femlib::initialize (&argc, &argv);
 
   getargs (argc, argv, session);
-  strcpy  (field, "c");
 
-  F = new FEML  (session);
-  M = new Mesh  (*F);
-  B = new BCmgr (*F);
+  preprocess (session, file, mesh, elmt, bman, bsys, domain);
 
-  nel   = M -> nEl();
-  np    =  (integer) Femlib::value ("N_POLY");
-  nz    =  (integer) Femlib::value ("N_Z");
-  space = ((integer) Femlib::value ("CYLINDRICAL")) ? 
-    Geometry::Cylindrical : Geometry::Cartesian;
-  
-  Geometry::set (np, nz, nel, space);
+  getoptions (file, forcing, exact);
 
-  Domain* D = new Domain (*F, *M, *B, field, session);
+  domain -> restart();
 
-  D -> initialize();
+  Helmholtz (domain, forcing);
 
-  setup (F, forcing, exact);
+  ROOTONLY if (exact) domain -> u[0] -> errors (mesh, exact);
 
-  Helmholtz (D, forcing);
-
-  ROOTONLY if (exact) D -> u[0] -> errors (*M, exact);
-
-  D -> dump();
+  domain -> dump();
 
   Femlib::finalize();
 
@@ -155,9 +143,78 @@ static void getargs (int    argc   ,
 }
 
 
-static void setup (FEML*  feml ,
-		   char*& force,
-		   char*& exact)
+static void preprocess (const char*       session,
+			FEML*&            file   ,
+			Mesh*&            mesh   ,
+			vector<Element*>& elmt   ,
+			BCmgr*&           bman   ,
+			BoundarySys*&     bsys   ,
+			Domain*&          domain )
+// ---------------------------------------------------------------------------
+// Create objects needed for execution, given the session file name.
+// They are listed in order of creation.
+// ---------------------------------------------------------------------------
+{
+  const integer      verbose = (integer) Femlib::value ("VERBOSE");
+  Geometry::CoordSys space;
+  const real*        z;
+  integer            i, np, nz, nel;
+
+  // -- Initialise problem and set up mesh geometry.
+
+  VERBOSE cout << "Building mesh ..." << endl;
+
+  file = new FEML (session);
+  mesh = new Mesh (*file);
+
+  VERBOSE cout << "done" << endl;
+
+  // -- Set up global geometry variables.
+
+  VERBOSE cout << "Setting geometry ... ";
+
+  nel   = mesh -> nEl();
+  np    =  (integer) Femlib::value ("N_POLY");
+  nz    =  (integer) Femlib::value ("N_Z");
+  space = ((integer) Femlib::value ("CYLINDRICAL")) ? 
+    Geometry::Cylindrical : Geometry::Cartesian;
+  
+  Geometry::set (np, nz, nel, space);
+
+  VERBOSE cout << "done" << endl;
+
+  // -- Build all the elements.
+
+  VERBOSE cout << "Building elements ... ";
+
+  Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
+
+  elmt.setSize (nel);
+  for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
+
+  VERBOSE cout << "done" << endl;
+
+  // -- Build all the boundary condition applicators.
+
+  VERBOSE cout << "Building boundary condition manager ..." << endl;
+
+  bman = new BCmgr (file, elmt);
+
+  VERBOSE cout << "done" << endl;
+
+  // -- Build the solution domain.
+
+  VERBOSE cout << "Building domain ..." << endl;
+
+  domain = new Domain (file, elmt, bman);
+
+  VERBOSE cout << "done" << endl;
+}
+
+
+static void getoptions (FEML*  feml ,
+			char*& force,
+			char*& exact)
 // ---------------------------------------------------------------------------
 // Try to load forcing function string and exact solution string from USER
 // section of FEML file.  The section is not required to be present.
@@ -171,7 +228,7 @@ static void setup (FEML*  feml ,
 // Either or both of the two strings may be absent.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "setup";
+  char routine[] = "options";
   char s[StrMax];
 
   if (feml -> seek ("USER")) {
@@ -179,17 +236,12 @@ static void setup (FEML*  feml ,
 
     while (feml -> stream() >> s) {
       if (strcmp (s, "</USER>") == 0) break;
+
       upperCase (s);
-
-      if (strcmp (s, "FORCING") == 0) {
-	force = new char [StrMax];
-	feml -> stream() >> force;
-
-      } else if (strcmp (s, "EXACT") == 0) {
-	exact = new char [StrMax];
-	feml -> stream() >> exact;
-	
-      }
+      if (strcmp (s, "FORCING") == 0)
+	feml -> stream() >> (force = new char [StrMax]);
+      else if (strcmp (s, "EXACT") == 0)
+	feml -> stream() >> (exact = new char [StrMax]);
     }
 
     if (strcmp (s, "</USER>") != 0)
