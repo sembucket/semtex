@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // meshpr.C:  utility to generate mesh nodes from mesh description file.
 //
-// Copyright (c) 1995--1999 Hugh Blackburn
+// Copyright (c) 1995 Hugh Blackburn
 //
 // Prism-compatible output.
 //
@@ -22,6 +22,8 @@
 #include <cstdlib>
 #include <iostream>
 #include <iomanip>
+
+using namespace std;
 
 #include <femdef.h>
 #include <Femlib.h>
