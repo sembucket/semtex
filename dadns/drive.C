@@ -154,7 +154,7 @@ static void preprocess (const char*       session,
   VERBOSE cout << "Setting geometry ... ";
 
   nel   = mesh -> nEl();
-  np    = static_cast<int>(Femlib::value ("N_POLY"));
+  np    = static_cast<int>(Femlib::value ("N_P"));
   nz    = static_cast<int>(Femlib::value ("N_Z"));
   space = (static_cast<int>(Femlib::value ("CYLINDRICAL"))) ? 
     Geometry::Cylindrical : Geometry::Cartesian;

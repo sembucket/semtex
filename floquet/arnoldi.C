@@ -762,7 +762,7 @@ static int_t preprocess (const char* session)
   file  = new FEML (session);
   mesh  = new Mesh (file);
 
-  np    = Femlib::ivalue ("N_POLY");
+  np    = Femlib::ivalue ("N_P");
   nel   = mesh -> nEl();
   npert = file -> attribute ("FIELDS", "NUMBER") - 1;
   Geometry::set (nel, npert);
@@ -800,7 +800,7 @@ static void loadmap (const char* session)
 // Load symmetry mapping information from session.map.
 // ---------------------------------------------------------------------------
 {
-  const int_t np  = Femlib::ivalue ("N_POLY");
+  const int_t np  = Femlib::ivalue ("N_P");
   const int_t nel = mesh -> nEl();
   char        buf[StrMax], err[StrMax];
   ifstream    file;

@@ -298,7 +298,7 @@ static int_t preprocess (const char* Bsession,
   mesh = new Mesh (BaseFile);
 
   cyl  = Femlib::ivalue ("CYLINDRICAL");
-  np   = Femlib::ivalue ("N_POLY");
+  np   = Femlib::ivalue ("N_P");
   nz   = Femlib::ivalue ("N_Z");
   nel  = mesh -> nEl();
 

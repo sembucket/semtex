@@ -155,7 +155,7 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "Setting geometry ... ";
 
-  np    = Femlib::ivalue ("N_POLY");
+  np    = Femlib::ivalue ("N_P");
   nel   = mesh -> nEl();
   npert = file -> attribute ("FIELDS", "NUMBER") - 1;
   

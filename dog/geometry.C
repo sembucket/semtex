@@ -44,7 +44,7 @@ void Geometry::set (const integer nel  ,
   _pid    = Femlib::ivalue ("I_PROC");
   _nproc  = Femlib::ivalue ("N_PROC");
   _kfund  = Femlib::ivalue ("K_FUND");
-  _np     = Femlib::ivalue ("N_POLY");
+  _np     = Femlib::ivalue ("N_P");
 
   _nbase  = Femlib::ivalue ("N_BASE");
   _nslice = Femlib::ivalue ("N_SLICE");
