@@ -46,7 +46,6 @@ int main (int    argc,
   Param*   Info = (Param*) calloc (1, sizeof (Param));
   real     Max_Vel;
 
-
   /* -- Process command-line arguments. */
 
   if (argc > 4 && argc < 8) {
@@ -107,7 +106,7 @@ int main (int    argc,
   Wtab = cvector (0, K - 1);
   preFFT (Wtab, K);  
 
-  /* -- Generate initial condition Fourier coefficients. */
+  /* -- Generate divegence-free initial condition Fourier coefficients. */
 
   randomise (seed, IC);
   ispectrum (IC, 4.0, 1.0);
@@ -119,10 +118,7 @@ int main (int    argc,
   writeCVF    (fp, IC);
   fclose      (fp);
 
-  sprintf (filename, "        %.3e", 2.0 * M_PI / (N * Max_Vel));
-  message ("CFL timestep estimate", filename, REMARK);
-  sprintf (filename, "            %g", energyF (IC));
-  message ("Check energy: q^2",     filename, REMARK);
+  printf ("Check energy: k=0.5<UiUi>: %g\n", energyF (IC));
 
   return EXIT_SUCCESS;
 }

@@ -140,6 +140,7 @@ int main (int    argc,
   runInfo -> kinvis = setKinvis;
 
   truncateVF (U);
+  projectVF  (U, F);
 
   printParam (stdout, runInfo);
   analyze    (U, runInfo, Wtab);
@@ -150,12 +151,14 @@ int main (int    argc,
 
     zeroVF    (G[0]);
     nonlinear (U, G[0], F, F_, work, Wtab, Stab);
-    project   (G[0], F);
+    projectVF (G[0], F);
     integrate (U, G, runInfo);
     ROLL      (G, runInfo -> norder);
 
     runInfo -> step ++;
     runInfo -> time += runInfo -> dt;
+    
+    if (!(runInfo -> step % 100)) projectVF (U);
 
     analyze (U, runInfo, Wtab);
     dump    (U, runInfo);

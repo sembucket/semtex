@@ -21,7 +21,7 @@ int main (int    argc,
   real**   headD;
   complex* Wtab;
   Param*   Info = (Param*) calloc (1, sizeof (Param));
-  int      i, c;
+  int      i, c, ntot;
   real     div, Max=0.0;
   FILE*    fp;
 
@@ -38,18 +38,15 @@ int main (int    argc,
   readParam  (fp, Info);
   printParam (stdout, Info);
 
-  N = Info -> ngrid;
-  K = N / 2;
-  FourKon3 = (4 * K) / 3;
+  N = Info -> ngrid; K = N / 2; FourKon3 = (4 * K) / 3; ntot = N * N * N;
 
   headU = cfield (&U);
   headD = cfield (&D);
 
   readCVF (fp, U);
-    
-  fclose (fp);
+  fclose  (fp);
 
- /* -- Do dUi/dXi unsummed in Fourier space. */
+  /* -- Do dUi/dXi unsummed in Fourier space. */
 
   deriv (U, 1, D[1], 1);
   deriv (U, 2, D[2], 2);
@@ -66,9 +63,9 @@ int main (int    argc,
 
   /* -- Find maximum divergence. */
 
-  for (i=0; i < 2*Npts; i++) {
+  for (i = 0; i < ntot; i++) {
     div = headD[1][i] + headD[2][i] + headD[3][i];
-    Max = MAX (fabs(div), Max);
+    Max = MAX (fabs (div), Max);
   }
 
   printf("Maximum divergence: %g\n", Max);

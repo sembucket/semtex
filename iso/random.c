@@ -2,7 +2,7 @@
  * random.c: random number generation, randomize a CVF with a uniform 
  * spectral density.
  *
- * Copyright (C) Hugh Blackburn 1992, 1999
+ * Copyright (C) 1992-1999 Hugh Blackburn
  *
  * $Id$
  *****************************************************************************/
@@ -125,7 +125,7 @@ static void setcomponents(/* update     */ CVF     U  ,
 		                           real    k12,
 		                           real    kk )
 /* ------------------------------------------------------------------------- *
- *
+ * This should (check) make U divergence-free.
  * ------------------------------------------------------------------------- */
 {
   static real denom;

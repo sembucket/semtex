@@ -2,6 +2,8 @@
  * filter.c: Fourier-space filter functions.
  *
  * Copyright (C) 1999 Hugh Blackburn
+ *
+ * $Id$
  *****************************************************************************/
 
 #include "iso.h"

@@ -16,49 +16,49 @@
 real energyP (CVF            V   ,
 	      const complex* Wtab)
 /* ------------------------------------------------------------------------- *
- * Compute & return q^2 = <UiUi>/2: diagnostic.  Do sums in PHYSICAL space.
+ * Compute & return k = <UiUi>/2: diagnostic.  Do sums in PHYSICAL space.
  * Also: compare with energy() below to see the discrete Parseval relation.
  * ------------------------------------------------------------------------- */
 {
-  register int    i, c;
-  register real   q2;
-  register real  *u = &V[1][0][0][0].Re,
-                 *v = &V[2][0][0][0].Re,
-                 *w = &V[3][0][0][0].Re; 
-  const int       Npts = N * N * N;
+  register int  i, c;
+  register real k;
+  register real *u    = &V[1][0][0][0].Re,
+                *v    = &V[2][0][0][0].Re,
+                *w    = &V[3][0][0][0].Re; 
+  const int     Npts = N * N * N;
   
   for (c = 1; c <= 3; c++)            /* --> Physical space. */
     rc3DFT (V[c], Wtab, INVERSE);
 
-  q2 = 0.0;
-  for (i = 0; i < Npts; i++) q2 += u[i]*u[i] + v[i]*v[i] + w[i]*w[i];
-  q2 /= 2.0 * Npts;
+  k = 0.0;
+  for (i = 0; i < Npts; i++) k += u[i]*u[i] + v[i]*v[i] + w[i]*w[i];
+  k /= 2.0 * Npts;
 
   for (c = 1; c <= 3; c++) {          /* --> Fourier space. */
     rc3DFT  (V[c], Wtab, FORWARD);
     scaleFT (V[c]);
   }
   
-  return q2;
+  return k;
 }
 
 
 real energyF (const CVF U)
 /* ------------------------------------------------------------------------- *
- * Compute & return q^2 = <UiUi>/2: diagnostic.  Do sums in FOURIER space.
+ * Compute & return k = <UiUi>/2: diagnostic.  Do sums in FOURIER space.
  * ------------------------------------------------------------------------- */
 {
-  register int       i;
-  register real      q2;
-  register complex  *u    = &U[1][0][0][0],
-                    *v    = &U[2][0][0][0],
-                    *w    = &U[3][0][0][0];
-  const int          Npts = N * N * K;
+  register int     i;
+  register real    k;
+  register complex *u    = &U[1][0][0][0],
+                   *v    = &U[2][0][0][0],
+                   *w    = &U[3][0][0][0];
+  const int        Npts = N * N * K;
 
-  q2 = 0.0;
-  for (i = 0; i < Npts; i++) q2 += MAG (u[i]) + MAG (v[i]) + MAG (w[i]);
+  k = 0.0;
+  for (i = 0; i < Npts; i++) k += MAG (u[i]) + MAG (v[i]) + MAG (w[i]);
 
-  return q2;
+  return k;
 }
 
 
@@ -137,15 +137,15 @@ real amaxf (const CF U)
 
 void normalize (CVF IC)
 /* ------------------------------------------------------------------------- *
- * Normalize velocity components to give q^2 = 1.0.
+ * Normalize velocity components to give k = 1.0.
  * 
  * IC components are supplied in FOURIER space.
  * ------------------------------------------------------------------------- */
 {
   int        c;
-  const real q2 = energyF (IC);
+  const real k = energyF (IC);
   
-  for (c = 1; c <= 3; c++) scaleF (IC[c], 1.0 / sqrt (q2));
+  for (c = 1; c <= 3; c++) scaleF (IC[c], 1.0 / sqrt (k));
 }
 
 

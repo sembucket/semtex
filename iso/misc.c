@@ -190,8 +190,8 @@ void subF (CF       f1,
 }
 
 
-void project (CVF G,
-	      CF  W)
+void projectVF (CVF G,
+		CF  W)
 /* ------------------------------------------------------------------------- *
  * Make divergence-free projection of G, using W as workspace.
  *
@@ -202,7 +202,7 @@ void project (CVF G,
   register real    c1, c2, c3, kSqrd;
   register complex *f, *g;
 
-  /* -- Use W to construct kiGi. */
+  /* -- W <-- kiGi. */
   
   zeroF (W);
 
@@ -220,10 +220,12 @@ void project (CVF G,
       f = W[k1][k2];    g = G[2][k1][k2];    PEQ (f,  k2, g);
       f = W[b1][k2];    g = G[1][b1][k2];    PEQ (f, -k1, g);
       f = W[b1][k2];    g = G[2][b1][k2];    PEQ (f,  k2, g);
+
       f = W[k1][ 0]+k2; g = G[1][k1][ 0]+k2; PEQ (f,  k1, g);
       f = W[k1][ 0]+k2; g = G[3][k1][ 0]+k2; PEQ (f,  k2, g);
       f = W[b1][ 0]+k2; g = G[1][b1][ 0]+k2; PEQ (f, -k1, g);
       f = W[b1][ 0]+k2; g = G[3][b1][ 0]+k2; PEQ (f,  k2, g);
+
       f = W[ 0][k1]+k2; g = G[2][ 0][k1]+k2; PEQ (f,  k1, g);
       f = W[ 0][k1]+k2; g = G[3][ 0][k1]+k2; PEQ (f,  k2, g);
       f = W[ 0][b1]+k2; g = G[2][ 0][b1]+k2; PEQ (f, -k1, g);
@@ -246,12 +248,11 @@ void project (CVF G,
 	f = W[b1][b2]+k3; g = G[1][b1][b2]+k3;	PEQ (f, -k1, g);
 	f = W[b1][b2]+k3; g = G[2][b1][b2]+k3;	PEQ (f, -k2, g);
 	f = W[b1][b2]+k3; g = G[3][b1][b2]+k3;	PEQ (f,  k3, g);
-
       }
     }
   }
 
-  /* -- Make Gj = Gj - kj * W / (k*k) */
+  /* -- Gj <-- Gj - kj * W / (k*k) */
 
   for (k1 = 1; k1 < K; k1++) {
     b1    = N - k1;
@@ -265,28 +266,29 @@ void project (CVF G,
     for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
       b2    = N - k2;
       kSqrd = SQR (k1) + SQR (k2);
-      c1    = k1/kSqrd;
-      c2    = k2/kSqrd;
-      c3    = -c1;
+      c1    = k1 / kSqrd;
+      c2    = k2 / kSqrd;
 
-      f = G[1][k1][k2];    g = W[k1][k2];    NEQ (f, c1, g);
-      f = G[2][k1][k2];    g = W[k1][k2];    NEQ (f, c2, g);
-      f = G[1][b1][k2];    g = W[b1][k2];    NEQ (f, c3, g);
-      f = G[2][b1][k2];    g = W[b1][k2];    NEQ (f, c2, g);
-      f = G[1][k1][ 0]+k2; g = W[k1][ 0]+k2; NEQ (f, c1, g);
-      f = G[3][k1][ 0]+k2; g = W[k1][ 0]+k2; NEQ (f, c2, g);
-      f = G[1][b1][ 0]+k2; g = W[b1][ 0]+k2; NEQ (f, c3, g);
-      f = G[3][b1][ 0]+k2; g = W[b1][ 0]+k2; NEQ (f, c2, g);
-      f = G[2][ 0][k1]+k2; g = W[ 0][k1]+k2; NEQ (f, c1, g);
-      f = G[3][ 0][k1]+k2; g = W[ 0][k1]+k2; NEQ (f, c2, g);
-      f = G[2][ 0][b1]+k2; g = W[ 0][b1]+k2; NEQ (f, c3, g);
-      f = G[3][ 0][b1]+k2; g = W[ 0][b1]+k2; NEQ (f, c2, g);
+      f = G[1][k1][k2];    g = W[k1][k2];    NEQ (f,  c1, g);
+      f = G[2][k1][k2];    g = W[k1][k2];    NEQ (f,  c2, g);
+      f = G[1][b1][k2];    g = W[b1][k2];    NEQ (f, -c1, g);
+      f = G[2][b1][k2];    g = W[b1][k2];    NEQ (f,  c2, g);
+
+      f = G[1][k1][ 0]+k2; g = W[k1][ 0]+k2; NEQ (f,  c1, g);
+      f = G[3][k1][ 0]+k2; g = W[k1][ 0]+k2; NEQ (f,  c2, g);
+      f = G[1][b1][ 0]+k2; g = W[b1][ 0]+k2; NEQ (f, -c1, g);
+      f = G[3][b1][ 0]+k2; g = W[b1][ 0]+k2; NEQ (f,  c2, g);
+
+      f = G[2][ 0][k1]+k2; g = W[ 0][k1]+k2; NEQ (f,  c1, g);
+      f = G[3][ 0][k1]+k2; g = W[ 0][k1]+k2; NEQ (f,  c2, g);
+      f = G[2][ 0][b1]+k2; g = W[ 0][b1]+k2; NEQ (f, -c1, g);
+      f = G[3][ 0][b1]+k2; g = W[ 0][b1]+k2; NEQ (f,  c2, g);
 
       for (k3 = 1; k3 < K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
 	kSqrd = SQR (k1) + SQR (k2) + SQR (k3);
-	c1    = k1/kSqrd;
-	c2    = k2/kSqrd;
-	c3    = k3/kSqrd;
+	c1    = k1 / kSqrd;
+	c2    = k2 / kSqrd;
+	c3    = k3 / kSqrd;
 
 	f = G[1][k1][k2]+k3; g = W[k1][k2]+k3; NEQ (f,  c1, g);
 	f = G[2][k1][k2]+k3; g = W[k1][k2]+k3; NEQ (f,  c2, g);
@@ -303,16 +305,15 @@ void project (CVF G,
 	f = G[1][b1][b2]+k3; g = W[b1][b2]+k3; NEQ (f, -c1, g);
 	f = G[2][b1][b2]+k3; g = W[b1][b2]+k3; NEQ (f, -c2, g);
 	f = G[3][b1][b2]+k3; g = W[b1][b2]+k3; NEQ (f,  c3, g);
-
       }
     }
   }
 }
 
 
-void filter (CF    U   ,
-	     real* F_re,
-	     real* F_im)
+void filterF (CF    U   ,
+	      real* F_re,
+	      real* F_im)
 /* ------------------------------------------------------------------------- *
  * Apply a filter mask, with real & imaginary coefficients, to
  * Fourier-transformed field U.  F_re and F_im must be at least K

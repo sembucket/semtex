@@ -454,10 +454,10 @@ void shift (CF             U,
  * Phase shift in FOURIER space <==> interpolate to shifted grid in PHYSICAL.
  * ------------------------------------------------------------------------- */
 {
-  register int      k1, b1, k2, b2, k3;
-  register real     tempRe;
-  register complex  W, *u = &U[0][0][0];
-  const int         SGN      = (Drn == FORWARD) ? 1 : -1;
+  register int     k1, b1, k2, b2, k3;
+  register real    tempRe;
+  register complex W, *u = &U[0][0][0];
+  const int        SGN = (Drn == FORWARD) ? 1 : -1;
 
   for (k1 = 1; k1 < K; k1++) {
     b1 = N - k1;
