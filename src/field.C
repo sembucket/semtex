@@ -23,14 +23,18 @@ Field::Field (Mesh&      M ,
 // ---------------------------------------------------------------------------
 {
   register Element* E;
+  register int      k;
+  const int         N = M.nEl ();
+
+  Elmt.setSize (N);
 
   n_data = n_mesh = n_elmt_bnodes = 0;
 
   // -- Create all the Elements using their Mesh description.
 
-  for (ElmtsOfMesh e (M); e.more (); e.next ()) {
-    E = new Element  (e.ID (), np, e.nSides ());
-    element_list.add (E);
+  k = 0;
+  for (ElmtsOfMesh e (M); e.more (); e.next (), k++) {
+    E = Elmt[k] = new Element (e.ID (), np, e.nSides ());
 
     n_data        += E -> nTot ();
     n_mesh        += E -> nMsh ();
@@ -51,8 +55,8 @@ Field::Field (Mesh&      M ,
   register real* m      = mesh;
   register int   offset = 0;
 
-  for (ListIterator<Element*> k (element_list); k.more (); k.next ()) {
-    E = k.current ();
+  for (k = 0; k < N; k++) {
+    E = Elmt[k];
 
     E -> install      (offset, m, 0, 0);
     E -> mesh         (M);
@@ -65,21 +69,32 @@ Field::Field (Mesh&      M ,
 }
 
 
-Field::Field (const Field& master)
+Field::Field (const Field& master) :
+  Elmt          (0),
+  data          (0),
+  n_data        (master.n_data),
+  n_mesh        (master.n_mesh),
+  n_elmt_bnodes (master.n_elmt_bnodes),
+  n_elmt_inodes (master.n_elmt_inodes),
+  elmt_np_max   (master.elmt_np_max),
+  elmt_nt_max   (master.elmt_nt_max),
+  elmt_ne_max   (master.elmt_ne_max),
+  elmt_ni_max   (master.elmt_ni_max),
+  mesh          (master.mesh)
 // ---------------------------------------------------------------------------
-// Copy constructor: new Field has its own storage area, list of Elements,
+// Copy constructor: new Field has its own storage area, Elements,
 // shares master's mesh geometry.
 // ---------------------------------------------------------------------------
 {
-  memcpy (this, &master, sizeof (Field));
+  Elmt.setSize   (master.nEl ());
   data = rvector (n_data);
-
   setName ();
 
-  element_list.clear ();
+  register int k;
+  const int    N = master.nEl ();
 
-  for (ListIterator<Element*> k (master.element_list); k.more (); k.next ())
-    element_list.add (new Element (*k.current ()));
+  for (k = 0; k < N; k++)
+    Elmt[k] = (new Element (*master.Elmt[k]));
 }
 
 
@@ -217,10 +232,11 @@ Field& Field::operator = (const char* function)
 // ---------------------------------------------------------------------------
 {
   register Element* E;
-  register int      offset = 0;
+  register int      k, offset = 0;
+  const int         N = nEl ();
 
-  for (ListIterator<Element*> k (element_list); k.more (); k.next ()) {
-    E      = k.current ();
+  for (k = 0; k < N; k++) {
+    E      = Elmt[k];
     offset = E -> nOff ();
     E -> evaluate (function, data + offset);
   }
@@ -322,12 +338,14 @@ void Field::printMesh (const Field* F)
 // Mesh location information is written out element-by-element.
 // ---------------------------------------------------------------------------
 {
-  cout << F -> element_list.first() -> nKnot() << " "
-       << F -> element_list.first() -> nKnot() << " 1 " 
+  cout << F -> Elmt[0] -> nKnot() << " "
+       << F -> Elmt[0] -> nKnot() << " 1 " 
        << F -> nEl() << " NR NS NZ NEL" << endl;
 
-  for (ListIterator<Element*> k (F -> element_list); k.more(); k.next())
-    k.current() -> printMesh ();
+  int k, N = F -> nEl ();
+
+  for (k = 0; k < N; k++)
+    F -> Elmt[k] -> printMesh ();
 }
 
 
@@ -339,21 +357,21 @@ Field& Field::grad (const int& flag1,
 {
   char routine[] = "Field::grad";
 
-  register Element*      E;
-  register int           offset;
-  ListIterator<Element*> i (element_list);
+  register Element* E;
+  register int      k, offset;
+  const int         N = nEl ();
 
   if (flag1 && flag2) 
     message (routine, "can't make both components simultaneously", ERROR);
   else if (flag1)
-    for (; i.more(); i.next()) {
-      E      = i.current ();
+    for (k = 0; k < N; k++) {
+      E      = Elmt[k];
       offset = E -> nOff ();
       E -> grad (data + offset, 0);
     }
   else if (flag2)
-    for (; i.more(); i.next()) {
-      E      = i.current ();
+    for (k = 0; k < N; k++) {
+      E      = Elmt[k];
       offset = E -> nOff ();
       E -> grad (0, data + offset);
     }
@@ -373,19 +391,20 @@ Field& Field::errors (const char* function)
 {
   const int NQUAD = 15;
 
-  Element* E;
-  Element* P;
-  real     area = 0.0;
-  real     Li   = 0.0;
-  real     L2   = 0.0;
-  real     H1   = 0.0;
-  real*    sol;
-  real*    v;
-  real*    x;
-  int      ntot, nmsh;
+  Element*  E;
+  Element*  P;
+  real      area = 0.0;
+  real      Li   = 0.0;
+  real      L2   = 0.0;
+  real      H1   = 0.0;
+  real*     sol;
+  real*     v;
+  real*     x;
+  int       k, ntot, nmsh;
+  const int N = nEl ();
 
-  for (ListIterator<Element*> k(element_list); k.more(); k.next()) {
-    E = k.current ();
+  for (k = 0; k < N; k++) {
+    E = Elmt[k];
     P = new Element (*E, NQUAD);
 
     ntot = P -> nTot ();
