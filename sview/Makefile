@@ -44,12 +44,12 @@ endif
 
 CXXFLAGS = $(DEFINES)
 ifdef DEBUG
-  CXXFLAGS += -g -32
+  CXXFLAGS += -g -n32
 else
-  CXXFLAGS += -O2 -32
+  CXXFLAGS += -O2 -n32
 endif
 
-LDFLAGS = -32 -L$(X11_ROOT)/lib -L$(GLUT_ROOT)/lib $(GLUT_LIBS) -lm
+LDFLAGS = -n32 -L$(X11_ROOT)/lib -L$(GLUT_ROOT)/lib32 $(GLUT_LIBS) -lm
 endif
 
 
