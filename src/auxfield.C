@@ -785,10 +785,10 @@ AuxField& AuxField::transform32 (const integer sign,
   const integer nZ   = Geometry::nZ();
   const integer nP   = Geometry::planeSize();
   const integer nTot = Geometry::nTotProc();
+  const integer nZ32 = Geometry::nZ32();
 
   if (Geometry::nProc() == 1) {	 // -- Single processor.
 
-    const integer nZ32   = (3 * nZ) >> 1;
     const integer nTot32 = nZ32 * nP;
     const integer nPad   = nTot32 - nTot;
 
@@ -808,19 +808,18 @@ AuxField& AuxField::transform32 (const integer sign,
 
   } else {			// -- Multiple processor.
     
-    const integer nZP = Geometry::nZProc();
     const integer nPP = Geometry::nBlock();
 
     if (sign == +1) {
-      Femlib::exchange (phys, nZP, nP, +1);
-      Femlib::DFTr     (phys, nZ, nPP, +1);
-      Femlib::exchange (phys, nZP, nP, -1);
+      Femlib::exchange (phys, nZ32, nP, +1);
+      Femlib::DFTr     (phys, nZ,   nPP, +1);
+      Femlib::exchange (phys, nZ32, nP, -1);
       Veclib::copy     (nTot, phys, 1, data, 1);
     } else {
       Veclib::copy     (nTot, data, 1, phys, 1);
-      Femlib::exchange (phys, nZP, nP, +1);
-      Femlib::DFTr     (phys, nZ, nPP, -1);
-      Femlib::exchange (phys, nZP, nP, -1);
+      Femlib::exchange (phys, nZ32, nP, +1);
+      Femlib::DFTr     (phys, nZ,   nPP, -1);
+      Femlib::exchange (phys, nZ32, nP, -1);
     }
   }
 
