@@ -41,7 +41,13 @@ CXX	 = cxx
 LD	 = cxx
 CXXFLAGS =  $(DEFINES) -migrate -tune host -g -w0
 F77LIBS  = -ldxml
-LDFLAGS  = $(CXXFLAGS) -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+ifdef MPI
+  CXXFLAGS += -thread_safe
+  LDFLAGS  = $(CXXFLAGS) -threads -L/home/hmb/mpi/lib/alpha/ch_shmem	\
+             -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm -lmpi
+else
+  LDFLAGS  = $(CXXFLAGS) -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+endif
 endif
 
 ifeq ($(ARCH),Linux)		# -- GNU/Linux system.
