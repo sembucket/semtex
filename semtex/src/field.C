@@ -1,6 +1,6 @@
-/*****************************************************************************
- * field.C:  routines for Field class.
- *****************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+// field.C:  routines for Field class.
+///////////////////////////////////////////////////////////////////////////////
 
 static char 
 RCSid[] = "$Id$";
@@ -83,7 +83,7 @@ Field::Field (const Field& master)
 }
 
 
-Field&  Field::operator = (const real& val)
+Field& Field::operator = (const real& val)
 // ---------------------------------------------------------------------------
 // Set field storage area to val.
 // ---------------------------------------------------------------------------
@@ -95,7 +95,7 @@ Field&  Field::operator = (const real& val)
 }
 
 
-Field&  Field::operator += (const real& val)
+Field& Field::operator += (const real& val)
 // ---------------------------------------------------------------------------
 // Add val to field storage area.
 // ---------------------------------------------------------------------------
@@ -106,7 +106,7 @@ Field&  Field::operator += (const real& val)
 }
 
 
-Field&  Field::operator -= (const real& val)
+Field& Field::operator -= (const real& val)
 // ---------------------------------------------------------------------------
 // Add -val to field storage area.
 // ---------------------------------------------------------------------------
@@ -117,7 +117,7 @@ Field&  Field::operator -= (const real& val)
 }
 
 
-Field&  Field::operator *= (const real& val)
+Field& Field::operator *= (const real& val)
 // ---------------------------------------------------------------------------
 // Multiply field storage area by val.
 // ---------------------------------------------------------------------------
@@ -129,7 +129,7 @@ Field&  Field::operator *= (const real& val)
 }
 
 
-Field&  Field::operator /= (const real& val)
+Field& Field::operator /= (const real& val)
 // ---------------------------------------------------------------------------
 // Divide field storage area by val.
 // ---------------------------------------------------------------------------
@@ -141,7 +141,7 @@ Field&  Field::operator /= (const real& val)
 }
 
 
-Field&  Field::operator = (const Field& f)
+Field& Field::operator = (const Field& f)
 // ---------------------------------------------------------------------------
 // This presumes the two fields conform, and copies f's value storage to LHS.
 // ---------------------------------------------------------------------------
@@ -169,7 +169,7 @@ Field& Field::operator += (const Field& f)
 }
 
 
-Field&  Field::operator -= (const Field& f)
+Field& Field::operator -= (const Field& f)
 // ---------------------------------------------------------------------------
 // Subtract f's value from this Field's.
 // ---------------------------------------------------------------------------
@@ -183,7 +183,7 @@ Field&  Field::operator -= (const Field& f)
 }
 
 
-Field&  Field::operator *= (const Field& f)
+Field& Field::operator *= (const Field& f)
 // ---------------------------------------------------------------------------
 // Multiply this Field's value by f's value.
 // ---------------------------------------------------------------------------
@@ -197,7 +197,7 @@ Field&  Field::operator *= (const Field& f)
 }
 
 
-Field&  Field::operator /= (const Field& f)
+Field& Field::operator /= (const Field& f)
 // ---------------------------------------------------------------------------
 // Divide this Field's value by f's value.
 // ---------------------------------------------------------------------------
@@ -211,7 +211,7 @@ Field&  Field::operator /= (const Field& f)
 }
 
 
-Field&  Field::operator = (const char* function)
+Field& Field::operator = (const char* function)
 // ---------------------------------------------------------------------------
 // Set Field's value to temporo-spatially varying function.
 // ---------------------------------------------------------------------------
@@ -229,7 +229,7 @@ Field&  Field::operator = (const char* function)
 }
 
 
-Field&  Field::prod (const Field& a, const Field& b)
+Field& Field::prod (const Field& a, const Field& b)
 // ---------------------------------------------------------------------------
 // Set this Field's value as the product of a & b.
 // ---------------------------------------------------------------------------
@@ -243,7 +243,7 @@ Field&  Field::prod (const Field& a, const Field& b)
 }
 
 
-Field&  Field::sum (const Field& a, const Field& b)
+Field& Field::sum (const Field& a, const Field& b)
 // ---------------------------------------------------------------------------
 // Set this Field's value as the sum of a & b.
 // ---------------------------------------------------------------------------
@@ -257,7 +257,7 @@ Field&  Field::sum (const Field& a, const Field& b)
 }
 
 
-Field&  Field::addprod (const Field& a, const Field& b)
+Field& Field::addprod (const Field& a, const Field& b)
 // ---------------------------------------------------------------------------
 // Add the product of a & b to this Field.
 // ---------------------------------------------------------------------------
@@ -271,7 +271,7 @@ Field&  Field::addprod (const Field& a, const Field& b)
 }
 
 
-Field&  Field::axpy (const real& alpha, const Field& x)
+Field& Field::axpy (const real& alpha, const Field& x)
 // ---------------------------------------------------------------------------
 // Add alpha * x to this Field.
 // ---------------------------------------------------------------------------
@@ -280,6 +280,17 @@ Field&  Field::axpy (const real& alpha, const Field& x)
     message ("Field::axpy", "size mismatch", ERROR);
 
   Blas::axpy (n_data, alpha, x.data, 1, data, 1);
+
+  return *this;
+}
+
+
+Field& Field::reverse ()
+// ---------------------------------------------------------------------------
+// Reverse order of bytes within each word of data.
+// ---------------------------------------------------------------------------
+{
+  Veclib::brev (n_data, data, 1, data, 1);
 
   return *this;
 }
@@ -431,7 +442,7 @@ istream& operator >> (istream& strm, Field& F)
 }
 
 
-void  Field::describe (char* s)  const
+void Field::describe (char* s)  const
 // ---------------------------------------------------------------------------
 // Load s with a (prism-compatible) description of field geometry:
 // NR NS NZ NEL.
