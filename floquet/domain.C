@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // domain.C: implement domain class functions.
 //
-// Copyright (C) 1994, 2001 Hugh Blackburn
+// Copyright (C) 1994,2003 Hugh Blackburn
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
@@ -25,13 +25,13 @@ Domain::Domain (FEML*             F,
 // ---------------------------------------------------------------------------
   elmt (E)
 {
-  const integer verbose = static_cast<integer>(Femlib::value ("VERBOSE"));
-  const integer nbase   = Geometry::nBase();
-  const integer nz      = Geometry::nZProc();
-  const integer ntot    = Geometry::nTotProc();
-  const integer nplane  = Geometry::planeSize();
-  integer       i, nfield;
-  real*         alloc;
+  const int verbose = static_cast<int>(Femlib::value ("VERBOSE"));
+  const int nbase   = Geometry::nBase();
+  const int nz      = Geometry::nZProc();
+  const int ntot    = Geometry::nTotProc();
+  const int nplane  = Geometry::planeSize();
+  int       i, nfield;
+  real*     alloc;
 
   strcpy ((name = new char [strlen (F -> root()) + 1]), F -> root());
   Femlib::value ("t", time = 0.0);
@@ -46,15 +46,15 @@ Domain::Domain (FEML*             F,
   
   VERBOSE cout << "  Building domain boundary systems ... ";
 
-  b.setSize (nfield);
+  b.resize (nfield);
   for (i = 0; i < nfield; i++) b[i] = new BoundarySys (B, E, field[i]);
 
   VERBOSE cout << "done" << endl;
 
   VERBOSE cout << "  Building domain perturbation fields ... ";
 
-  u   .setSize (nfield);
-  udat.setSize (nfield);
+  u   .resize (nfield);
+  udat.resize (nfield);
 
   alloc = new real [static_cast<size_t> (nfield * ntot)];
   for (i = 0; i < nfield; i++) {
@@ -70,8 +70,8 @@ Domain::Domain (FEML*             F,
   VERBOSE cout << "  Building domain base flow fields: "
 	       << baseField <<" ... ";
 
-  U   .setSize (nbase + 1);
-  Udat.setSize (nbase + 1);
+  U   .resize (nbase + 1);
+  Udat.resize (nbase + 1);
 
   alloc = new real [static_cast<size_t> ((nbase + 1) * nplane)];
   for (i = 0; i < nbase + 1; i++) {
@@ -88,13 +88,13 @@ void Domain::report ()
 // Print a run-time summary of domain & timestep information on cout.
 // ---------------------------------------------------------------------------
 {
-  const real    dt  =                      Femlib::value ("D_T");
-  const real    lz  =                      Femlib::value ("TWOPI / BETA");
-  const real    Re  =                      Femlib::value ("1.0   / KINVIS");
-  const integer ns  = static_cast<integer>(Femlib::value ("N_STEP"));
-  const integer nt  = static_cast<integer>(Femlib::value ("N_TIME"));
-  const integer chk = static_cast<integer>(Femlib::value ("CHKPOINT"));
-  const integer per = static_cast<integer>(Femlib::value ("IO_FLD"));
+  const real dt  =                  Femlib::value ("D_T");
+  const real lz  =                  Femlib::value ("TWOPI / BETA");
+  const real Re  =                  Femlib::value ("1.0   / KINVIS");
+  const int  ns  = static_cast<int>(Femlib::value ("N_STEP"));
+  const int  nt  = static_cast<int>(Femlib::value ("N_TIME"));
+  const int  chk = static_cast<int>(Femlib::value ("CHKPOINT"));
+  const int  per = static_cast<int>(Femlib::value ("IO_FLD"));
 
   cout << "-- Coordinate system       : ";
   if (Geometry::system() == Geometry::Cylindrical)
@@ -131,10 +131,10 @@ void Domain::restart ()
 // this fails, initialise all fields to random noise.
 // ---------------------------------------------------------------------------
 {
-  integer       i;
-  const integer nF   = nField();
-  const integer ntot = Geometry::nTotProc();
-  char          restartfile[StrMax];
+  int       i;
+  const int nF   = nField();
+  const int ntot = Geometry::nTotProc();
+  char      restartfile[StrMax];
   
   ROOTONLY cout << "-- Initial condition       : ";
   ifstream file (strcat (strcpy (restartfile, name), ".rst"));
@@ -145,7 +145,7 @@ void Domain::restart ()
     file.close();
   } else {
     ROOTONLY cout << "randomised";
-    for (i = 0; i < nF; i++) Veclib::vnormal (ntot, 0.0, 1.0, udat(i), 1);
+    for (i = 0; i < nF; i++) Veclib::vnormal (ntot, 0.0, 1.0, udat[i], 1);
   }
 
   ROOTONLY cout << endl;
@@ -160,12 +160,9 @@ void Domain::dump ()
 // Check if a field-file write is required, carry out.
 // ---------------------------------------------------------------------------
 {
-  const integer
-    periodic = !(step %  static_cast<integer>(Femlib::value ("IO_FLD")));
-  const integer
-    initial  = step   == static_cast<integer>(Femlib::value ("IO_FLD"));
-  const integer
-    final    = step   == static_cast<integer>(Femlib::value ("N_STEP"));
+  const int periodic = !(step %  static_cast<int>(Femlib::value ("IO_FLD")));
+  const int initial  = step   == static_cast<int>(Femlib::value ("IO_FLD"));
+  const int final    = step   == static_cast<int>(Femlib::value ("N_STEP"));
 
   if (!(periodic || final)) return;
   ofstream output;
@@ -173,10 +170,10 @@ void Domain::dump ()
   Femlib::synchronize();
 
   ROOTONLY {
-    const char    routine[] = "Domain::dump";
-    char          dumpfl[StrMax], backup[StrMax], command[StrMax];
-    const integer verbose   = static_cast<integer>(Femlib::value ("VERBOSE"));
-    const integer chkpoint  = static_cast<integer>(Femlib::value ("CHKPOINT"));
+    const char routine[] = "Domain::dump";
+    char       dumpfl[StrMax], backup[StrMax], command[StrMax];
+    const int  verbose   = static_cast<int>(Femlib::value ("VERBOSE"));
+    const int  chkpoint  = static_cast<int>(Femlib::value ("CHKPOINT"));
 
     if (chkpoint) {
       if (final) {
@@ -215,11 +212,10 @@ ofstream& operator << (ofstream& strm,
 // processor.
 // ---------------------------------------------------------------------------
 {
-  integer           i;
-  const integer     N = D.u.getSize();
+  const int         N = D.u.size();
   vector<AuxField*> field (N);
 
-  for (i = 0; i < N; i++) field[i] = D.u[i];
+  for (int i = 0; i < N; i++) field[i] = D.u[i];
 
   writeField (strm, D.name, D.step, D.time, field);
 
@@ -239,9 +235,9 @@ ifstream& operator >> (ifstream& strm,
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "strm>>Domain";
-  integer    i, j, np, nz, nel, ntot, nfields;
-  integer    npchk,  nzchk, nelchk;
-  integer    swap = 0, verb = static_cast<integer>(Femlib::value ("VERBOSE"));
+  int        i, j, np, nz, nel, ntot, nfields;
+  int        npchk,  nzchk, nelchk;
+  int        swap = 0, verb = static_cast<int>(Femlib::value ("VERBOSE"));
   char       s[StrMax], f[StrMax], err[StrMax], fields[StrMax];
 
   if (strm.getline(s, StrMax).eof()) return strm;
@@ -332,15 +328,15 @@ void Domain::loadBase()
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "Domain::loadBase()";
-  const integer nP     = Geometry::nP();
-  const integer nEl    = Geometry::nElmt();
-  const integer nBase  = Geometry::nBase();
-  const integer nPlane = Geometry::nPlane();
-  const integer nTot   = Geometry::planeSize();
-  const integer nSlice = Geometry::nSlice();
+  const int  nP     = Geometry::nP();
+  const int  nEl    = Geometry::nElmt();
+  const int  nBase  = Geometry::nBase();
+  const int  nPlane = Geometry::nPlane();
+  const int  nTot   = Geometry::planeSize();
+  const int  nSlice = Geometry::nSlice();
 
   Header   H;
-  integer  i, j;
+  int      i, j;
   real*    addr;
   real     t0, dt = 0;
   int      len;
@@ -349,12 +345,12 @@ void Domain::loadBase()
 
   // -- Allocate storage.
 
-  baseFlow.setSize (nBase);
+  baseFlow.resize (nBase);
 
   if (nSlice > 1)
-    for (i = 0; i < nBase; i++) baseFlow(i) = new real [nTot * nSlice];
+    for (i = 0; i < nBase; i++) baseFlow[i] = new real [nTot * nSlice];
   else
-    for (i = 0; i < nBase; i++) baseFlow(i) = Udat(i);
+    for (i = 0; i < nBase; i++) baseFlow[i] = Udat[i];
 
   // -- Read base velocity fields, ignore pressure fields.
 
@@ -368,7 +364,7 @@ void Domain::loadBase()
 	(nBase == 3 && strcmp (H.flds, "uvwp")))
       message (routine, "mismatch: No. of base components/declaration", ERROR);
     for (j = 0; j < nBase; j++) {
-      addr = baseFlow(j) + i * nTot;
+      addr = baseFlow[j] + i * nTot;
       
       len = nPlane * sizeof(real);
       file.read (reinterpret_cast<char*>(addr), len);
@@ -398,8 +394,8 @@ void Domain::loadBase()
     period = dt * i / (i - 1.0);
     // -- Fourier transform in time, scale for reconstruction.
     for (i = 0; i < nBase; i++) {
-      Femlib::DFTr (baseFlow(i), nSlice, nTot, FORWARD);
-      Blas::scal   ((nSlice-2)*nTot, 2.0, baseFlow(i) + 2*nTot, 1);
+      Femlib::DFTr (baseFlow[i], nSlice, nTot, FORWARD);
+      Blas::scal   ((nSlice-2)*nTot, 2.0, baseFlow[i] + 2*nTot, 1);
     }
   } else period = 0.0;
 
@@ -416,13 +412,13 @@ void Domain::updateBase()
 // Update base velocity fields, using Fourier series reconstruction in time.
 // ---------------------------------------------------------------------------
 {
-  const integer nBase   = Geometry::nBase();
-  const integer nSlice  = Geometry::nSlice();
-  const real    oldTime = Femlib::value ("t - D_T");
-  integer       i;
+  const int  nBase   = Geometry::nBase();
+  const int  nSlice  = Geometry::nSlice();
+  const real oldTime = Femlib::value ("t - D_T");
+  int        i;
   
   if (nSlice < 2) return;
 
   for (i = 0; i < nBase; i++)
-    U[i] -> update (nSlice, baseFlow(i), oldTime, period);
+    U[i] -> update (nSlice, baseFlow[i], oldTime, period);
 }

@@ -31,30 +31,30 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
   nbound     (bcmgr -> nBCedges()),
   mixed      (0)
 {
-  const integer           np = Geometry::nP();
-  ListIterator<BCtriple*> edge (bcmgr -> getBCedges());
-  BCtriple*               BCT;
-  const Condition*        C;
-  const char*             S;
-  char                    buf[StrMax], group;
-  integer                 i, j, k, offset;
+  const integer               np = Geometry::nP();
+  vector<BCtriple*>::iterator edge;
+  BCtriple*                   BCT;
+  const Condition*            C;
+  const char*                 S;
+  char                        buf[StrMax], group;
+  integer                     i, j, k, offset;
 
   number = new NumberSys* [3];
   for (i = 0; i < 3; i++) number[i] = bcmgr -> getNumberSys (field_name, i);
 
   boundary = new vector<Boundary*> [3];
 
-  if (!nbound) { for (i = 0; i < 3; i++) boundary[i].setSize (0); return; }
+  if (!nbound) { for (i = 0; i < 3; i++) boundary[i].resize (0); return; }
 
   // -- Construct vectors of Boundary pointers using BCmgr.
 
-  for (i = 0; i < 3; i++) boundary[i].setSize (nbound);
+  for (i = 0; i < 3; i++) boundary[i].resize (nbound);
  
   // -- Mode 0 boundaries, and default settings for other modes.
 
-  edge.reset();
-  for (offset = 0, i = 0; i < nbound; i++, edge.next(), offset += np) {
-    BCT   = edge.current();
+  edge = bcmgr -> getBCedges().begin();  
+  for (offset = 0, i = 0; i < nbound; i++, edge++, offset += np) {
+    BCT   = *edge;
     group = BCT -> group;
     j     = BCT -> elmt;
     k     = BCT -> side;
@@ -74,9 +74,9 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
 
   // -- Mode 1 boundaries, adjusted on axis.
 
-  edge.reset();
-  for (offset = 0, i = 0; i < nbound; i++, edge.next(), offset += np) {
-    BCT   = edge.current();
+  edge = bcmgr -> getBCedges().begin();  
+  for (offset = 0, i = 0; i < nbound; i++, edge++, offset += np) {
+    BCT   = *edge;
     group = BCT -> group;
     j     = BCT -> elmt;
     k     = BCT -> side;
@@ -89,9 +89,9 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
 
   // -- Mode 2 boundaries,adjusted on axis.
   
-  edge.reset();
-  for (offset = 0, i = 0; i < nbound; i++, edge.next(), offset += np) {
-    BCT   = edge.current();
+  edge = bcmgr -> getBCedges().begin();
+  for (offset = 0, i = 0; i < nbound; i++, edge++, offset += np) {
+    BCT   = *edge;
     group = BCT -> group;
     j     = BCT -> elmt;
     k     = BCT -> side;

@@ -2,7 +2,7 @@
 // misc.C: miscellaneous routines for I/O, memory management, service
 // routines that don't fit class structures.
 //
-// Copyright (C) 1994, 2001 Hugh BLackburn
+// Copyright (C) 1994,2003 Hugh BLackburn
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
@@ -11,10 +11,10 @@
 #include <time.h>
 
 
-ostream& printVector (ostream&      strm,
-		      const char*   fmt , 
-		      const integer ntot,
-		                    ... )
+ostream& printVector (ostream&    strm,
+		      const char* fmt , 
+		      const int   ntot,
+		                  ... )
 // ---------------------------------------------------------------------------
 // Print up a variable number of numeric vectors on strm, in columns.
 //
@@ -23,13 +23,13 @@ ostream& printVector (ostream&      strm,
 // same type & length.
 //
 // Allowed types are: int ("i"), real ("r").
-// Examples: four integer vectors ==> fmt is "iiii".  Two reals ==> "rr".
+// Examples: four int vectors ==> fmt is "iiii".  Two reals ==> "rr".
 // 
 // Vectors are printed in a fixed field width of 15, regardless of type.
 // ---------------------------------------------------------------------------
 {
   char    routine[] = "printVector";
-  integer nvect;
+  int     nvect;
   va_list ap;
 
   nvect = strlen (fmt);
@@ -40,12 +40,12 @@ ostream& printVector (ostream&      strm,
   switch (fmt[0]) {
 
   case 'i': {
-    integer** u = new integer* [nvect];
+    int** u = new int* [nvect];
     va_start (ap, ntot);
-    for (integer k = 0; k < nvect; k++) u[k] = va_arg (ap, integer*);
+    for (int k = 0; k < nvect; k++) u[k] = va_arg (ap, int*);
     va_end (ap);
-    for (register integer l = 0; l < ntot; l++) {
-      for (register integer j = 0; j < nvect; j++)
+    for (register int l = 0; l < ntot; l++) {
+      for (register int j = 0; j < nvect; j++)
 	strm << setw(15) << u[j][l];
       strm << endl;
     }
@@ -55,10 +55,10 @@ ostream& printVector (ostream&      strm,
   case 'r': {
     real** u = new real* [nvect];
     va_start (ap, ntot);
-    for (integer k = 0; k < nvect; k++) u[k] = va_arg (ap, real*);
+    for (int k = 0; k < nvect; k++) u[k] = va_arg (ap, real*);
     va_end (ap);
-    for (register integer l = 0; l < ntot; l++) {
-      for (register integer j = 0; j < nvect; j++)
+    for (register int l = 0; l < ntot; l++) {
+      for (register int j = 0; j < nvect; j++)
 	strm << setw(15) << u[j][l];
       strm << endl;
     }
@@ -112,7 +112,7 @@ void writeField (ofstream&          file   ,
   char      s1[StrMax], s2[StrMax];
   time_t    tp (time (0));
   int       i;
-  const int N = field.getSize();
+  const int N = field.size();
 
   if (N < 1) return;
 

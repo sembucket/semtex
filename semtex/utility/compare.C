@@ -160,7 +160,7 @@ int main (int    argc,
 
   Femlib::mesh (GLL, GLL, np, np, &zeros, 0, 0, 0, 0);
 
-  Esys.setSize (nel);
+  Esys.resize (nel);
   for (i = 0; i < nel; i++) Esys[i] = new Element (i, M, zeros, np);
 
   exact    = new AuxField (new real[Geometry::nTotal()], nz, Esys);

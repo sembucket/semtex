@@ -65,7 +65,7 @@ int main (int    argc,
   
   Geometry::set (NP, NZ, NEL, Geometry::Cartesian);
   Femlib::mesh  (GLL, GLL, NP, NP, &z, 0, 0, 0, 0);
-  Esys.setSize  (NEL);
+  Esys.resize   (NEL);
 
   for (i = 0; i < NEL; i++) {
     Esys[i] = new Element (i, M, z, NP);
@@ -76,7 +76,7 @@ int main (int    argc,
   // -- Load field file, interpolate within it.
 
   while (getDump (fldfile, u, Esys, NP, NZ, NEL)) {
-    for (i = 0; i < u.getSize(); i++) {
+    for (i = 0; i < u.size(); i++) {
       u[i] -> transform (+1);
       cout << u[i] -> name() << ": " << Lz * u[i] -> integral (0) << endl;
     }
@@ -173,13 +173,13 @@ static integer getDump (ifstream&          file,
 
   // -- Create AuxFields on first pass.
 
-  if (u.getSize() == 0) {
-    u.setSize (nf);
+  if (u.size() == 0) {
+    u.resize (nf);
     for (i = 0; i < nf; i++) {
       alloc = new real [Geometry::nTotProc()];
       u[i]  = new AuxField (alloc, nz, Esys, fields[i]);
     }
-  } else if (u.getSize() != nf) 
+  } else if (u.size() != nf) 
     message (prog, "number of fields mismatch with first dump in file", ERROR);
 
   // -- Read binary field data.

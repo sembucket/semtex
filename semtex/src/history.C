@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // history.C
 //
-// Copyright (C) 1994, 1999 Hugh Blackburn
+// Copyright (C) 1994, 2003 Hugh Blackburn
 //
 // Routines to provide history point information at x, y, z locations.
 //
@@ -34,19 +34,13 @@ const Element* HistoryPoint::locate (const real        x   ,
 // an element E, and return its location in r, s coordinates within E.
 // ---------------------------------------------------------------------------
 {
-  register integer i;
-  const integer    NEL    = Esys.getSize();
-  const integer    guess = 1;
-  const Element*   E;
+  register int   i;
+  const int      NEL   = Esys.size();
+  const int      guess = 1;
+  const Element* E;
 
-  E = 0;
-  for (i = 0; i < NEL; i++) {
-    r = s = 0.0;
-    if (Esys[i] -> locate (x, y, r, s, guess)) {
-      E = Esys[i];
-      break;
-    }
-  }
+  for (E = 0, i = 0; E == 0 && i < NEL; i++)
+    if (Esys[i] -> locate (x, y, r = 0.0, s = 0.0, guess)) E = Esys[i];
 
   return E;
 }
@@ -59,8 +53,8 @@ void HistoryPoint::extract (vector<AuxField*>& u  ,
 // assumed to have sufficient storage to suit.
 // ---------------------------------------------------------------------------
 {
-  register integer i;
-  const integer    N = u.getSize();
+  register int i;
+  const int    N = u.size();
 
   for (i = 0; i < N; i++) tgt[i] = u[i] -> probe (_E, _r, _s, _z);
 }

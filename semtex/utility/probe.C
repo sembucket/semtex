@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // probe.C: extract results from a field file at a set of 3D points.
 //
-// Copyright (c) 1997 Hugh Blackburn
+// Copyright (C) 1997,2003 Hugh Blackburn
 //
 // Synopsis
 // --------
@@ -87,8 +87,8 @@ static void  findPoints  (vector<Point*>&, vector<Element*>&,
 static int   getDump     (ifstream&, vector<AuxField*>&, vector<Element*>&,
 			  const int, const int, const int);
 static void  putData     (const char*, const char*, const char*, int,
-			  int, vector<AuxField*>&,
-			  vector<Element*>&, vector<Point*>&, matrix<real>&);
+			  int, vector<AuxField*>&, vector<Element*>&,
+			  vector<Point*>&, vector<vector<real> >&);
 static void  Finterp     (vector<AuxField*>&, const Point*, const Element*,
 			  const real, const real, const int, real*, real*);
 static int   doSwap      (const char*);
@@ -101,21 +101,21 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  char              *session, *dump, *format;
-  char              *interface = 0, *points = 0;
-  int               NP, NZ,  NEL;
-  int               i, j, k, nf, ntot = 0, rotswap = 0;
-  ifstream          fldfile;
-  istream*          pntfile;
-  FEML*             F;
-  Mesh*             M;
-  const real*       knot;
-  vector<real>      r, s, work, datum;
-  vector<Point*>    point;
-  vector<Element*>  elmt;
-  vector<Element*>  Esys;
-  vector<AuxField*> u;
-  matrix<real>      data;
+  char                 *session, *dump, *format;
+  char                 *interface = 0, *points = 0;
+  int                  NP, NZ,  NEL;
+  int                  i, j, k, nf, ntot = 0, rotswap = 0;
+  ifstream             fldfile;
+  istream*             pntfile;
+  FEML*                F;
+  Mesh*                M;
+  const real*          knot;
+  vector<real>         r, s, work, datum;
+  vector<Point*>       point;
+  vector<Element*>     elmt;
+  vector<Element*>     Esys;
+  vector<AuxField*>    u;
+  vector<vector<real> > data;
 
   // -- Initialize.
 
@@ -151,19 +151,19 @@ int main (int    argc,
   M   = new Mesh (F);
 
   NEL = M -> nEl();  
-  NP  = (int) Femlib::value ("N_POLY");
-  NZ  = (int) Femlib::value ("N_Z");
+  NP  = static_cast<int>(Femlib::value ("N_POLY"));
+  NZ  = static_cast<int>(Femlib::value ("N_Z"));
   
   Geometry::set (NP, NZ, NEL, Geometry::Cartesian);
   Femlib::mesh  (GLL, GLL, NP, NP, &knot, 0, 0, 0, 0);
-  Esys.setSize  (NEL);
+  Esys.resize   (NEL);
 
   for (k = 0; k < NEL; k++) Esys[k] = new Element (k, M, knot, NP);
   
   // -- Set up FFT work areas.
 
-  work.setSize  (3*NZ + 15);
-  Femlib::rffti (NZ, work() + NZ);
+  work.resize   (3*NZ + 15);
+  Femlib::rffti (NZ, &work[0] + NZ);
 
   // -- Construct list of points.
 
@@ -187,17 +187,18 @@ int main (int    argc,
   if (!(getDump (fldfile, u, Esys, NP, NZ, NEL)))
     message (prog, "no data extracted", ERROR);
 
-  datum.setSize (nf = u.getSize());
-  data.setSize  (ntot, nf);
+  datum.resize (nf = u.size());
+  data.resize  (ntot);
+  for (i = 0; i < ntot; i++) data[i].resize (nf);
 
   // -- Interpolate within it.
 
   for (i = 0; i < ntot; i++)
     if (elmt[i]) {
-      Finterp (u, point[i], elmt[i], r[i], s[i], NZ, work(), datum()); 
-      for (j = 0; j < nf; j++) data (i, j) = datum (j);
+      Finterp (u, point[i], elmt[i], r[i], s[i], NZ, &work[0], &datum[0]); 
+      for (j = 0; j < nf; j++) data[i][j] = datum[j];
     } else
-      for (j = 0; j < nf; j++) data (i, j) = 0.0;
+      for (j = 0; j < nf; j++) data[i][j] = 0.0;
 
   // -- Output collected data.
 
@@ -208,14 +209,14 @@ int main (int    argc,
 }
 
 
-static void getargs (int argc     ,
-		     char**  argv     ,
-		     char*&  interface,
-		     char*&  format   ,
-		     int&    swap     ,
-		     char*&  session  ,
-		     char*&  dump     ,
-		     char*&  points   )
+static void getargs (int    argc     ,
+		     char** argv     ,
+		     char*& interface,
+		     char*& format   ,
+		     int&   swap     ,
+		     char*& session  ,
+		     char*& dump     ,
+		     char*& points   )
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
@@ -512,7 +513,7 @@ static int loadPoints (istream&        pfile,
   int           ntot, num = 0;
   real          x, y, z;
   Point*        datum;
-  Stack<Point*> data;
+  stack<Point*> data;
 
   while (pfile >> x >> y >> z) {
     datum = new Point;
@@ -524,9 +525,9 @@ static int loadPoints (istream&        pfile,
   }
 
   ntot = num;
-  point.setSize (ntot);
+  point.resize (ntot);
 
-  while (num--) point[num] = data.pop();
+  while (num--) { point[num] = data.top(); data.pop(); }
 
   return ntot;
 }
@@ -545,7 +546,7 @@ static int linePoints (vector<Point*>& point)
   real dy   = (ntot == 1) ? 0.0 : Femlib::value ("Y_DELTA") / (ntot - 1.0);
   real dz   = (ntot == 1) ? 0.0 : Femlib::value ("Z_DELTA") / (ntot - 1.0);
 
-  point.setSize (ntot);
+  point.resize (ntot);
 
   for (i = 0; i < ntot; i++) {
     point[i] = new Point;
@@ -573,7 +574,7 @@ static int planePoints (vector<Point*>& point,
   real       x0, y0, z0, dx, dy, dz;
   Point*     p;
 
-  point.setSize (ntot);
+  point.resize (ntot);
 
   switch (ortho) {
   case X:
@@ -644,16 +645,16 @@ static void findPoints (vector<Point*>&   point,
 // ---------------------------------------------------------------------------
 {
   int       i, k;
-  real       x, y, z, r, s;
-  const int NEL   = Esys .getSize();
-  const int NPT   = point.getSize();
+  real      x, y, z, r, s;
+  const int NEL   = Esys .size();
+  const int NPT   = point.size();
   const int guess = 1;
 
-  elmt.setSize (NPT);
-  rloc.setSize (NPT);
-  sloc.setSize (NPT);
+  elmt.resize (NPT);
+  rloc.resize (NPT);
+  sloc.resize (NPT);
 
-  elmt = 0;
+  elmt.assign (NPT, 0);
 
   cerr.precision (8);
 
@@ -727,11 +728,11 @@ static int getDump (ifstream&          file,
 
   // -- Create AuxFields on first pass.
 
-  if (u.getSize() == 0) {
-    u.setSize (nf);
+  if (u.size() == 0) {
+    u.resize (nf);
     for (i = 0; i < nf; i++)
       u[i] = new AuxField (new real[Geometry::nTotal()], nz, Esys, fields[i]);
-  } else if (u.getSize() != nf) 
+  } else if (u.size() != nf) 
     message (prog, "number of fields mismatch with first dump in file", ERROR);
 
   // -- Read binary field data.
@@ -778,7 +779,7 @@ static void Finterp (vector<AuxField*>& u   ,
 {
   register int  i, k, Re, Im;
   register real phase;
-  const int     NF    = u.getSize();
+  const int     NF    = u.size();
   const int     NZH   = NZ >> 1;
   const int     NHM   = NZH - 1;
   const real    betaZ = P -> z * Femlib::value("BETA");
@@ -837,20 +838,20 @@ static char *root (char *s) {
 }
 
 
-static void putData (const char*        dump     ,
-		     const char*        interface,
-		     const char*        format   ,
-		     int                ntot     ,
-		     int                swap     ,
-		     vector<AuxField*>& u        ,
-		     vector<Element*>&  elmt     ,
-		     vector<Point*>&    point    ,
-		     matrix<real>&      data     )
+static void putData (const char*            dump     ,
+		     const char*            interface,
+		     const char*            format   ,
+		     int                    ntot     ,
+		     int                    swap     ,
+		     vector<AuxField*>&     u        ,
+		     vector<Element*>&      elmt     ,
+		     vector<Point*>&        point    ,
+		     vector<vector<real> >& data     )
 // ---------------------------------------------------------------------------
 // Handle all the different output formats, according to the chosen interface.
 // ---------------------------------------------------------------------------
 {
-  int i, j, k, n, nf = u.getSize();
+  int i, j, k, n, nf = u.size();
 
   if (strstr (format, "free")) {
     cout.precision (6);
@@ -861,7 +862,7 @@ static void putData (const char*        dump     ,
 	     << setw(12) << point[i] -> y << " " 
 	     << setw(12) << point[i] -> z;
 	for (j = 0; j < nf; j++)
-	  cout << setw(15) << data (i, j);
+	  cout << setw(15) << data[i][j];
 	cout << endl;
       }
     }
@@ -870,8 +871,8 @@ static void putData (const char*        dump     ,
   } else if (strstr (format, "sm") && strstr (interface, "probeplane")) {
 
     char      fname[StrMax], *base = root (strdup (dump));
-    const int nx = (int) Femlib::value ("NX");
-    const int ny = (int) Femlib::value ("NY");
+    const int nx = static_cast<int>(Femlib::value ("NX"));
+    const int ny = static_cast<int>(Femlib::value ("NY"));
     ofstream  out;
 
     for (n = 0; n < nf; n++) {
@@ -879,23 +880,23 @@ static void putData (const char*        dump     ,
       out.open  (fname);
       
       if (swap) {
-	out.write ((char*) &ny, sizeof (int));
-	out.write ((char*) &nx, sizeof (int));
+	out.write (reinterpret_cast<const char*>(&ny), sizeof (int));
+	out.write (reinterpret_cast<const char*>(&nx), sizeof (int));
 	
 	for (i = 0; i < nx; i++) {
 	  for (j = 0; j < ny; j++) {
-	    float tmp = (float) data (i + j*nx, n);
-	    out.write ((char*) &tmp, sizeof (float));
+	    float tmp = static_cast<float>(data[i + j*nx][n]);
+	    out.write (reinterpret_cast<char*>(&tmp), sizeof (float));
 	  }
 	}
       } else {
-	out.write ((char*) &nx, sizeof (int));
-	out.write ((char*) &ny, sizeof (int));
+	out.write (reinterpret_cast<const char*>(&nx), sizeof (int));
+	out.write (reinterpret_cast<const char*>(&ny), sizeof (int));
       
 	for (k = 0, j = 0; j < ny; j++) {
 	  for (i = 0; i < nx; i++, k++) {
-	    float tmp = (float) data (k, n);
-	    out.write ((char*) &tmp, sizeof (float));
+	    float tmp = static_cast<float>(data[k][n]);
+	    out.write (reinterpret_cast<char*>(&tmp), sizeof (float));
 	  }
 	}
       }

@@ -3,7 +3,7 @@
 // select scale factor. This utility can be used to normalise
 // eigenvectors.
 //
-// Copyright (c) 2002 Hugh Blackburn
+// Copyright (C) 2002,2003 Hugh Blackburn
 //
 // USAGE
 // -----
@@ -149,8 +149,8 @@ static void gethead (istream&  file,
 // names are packed into a string without spaces.
 // ---------------------------------------------------------------------------
 {
-  char    buf[StrMax];
-  integer i, j; 
+  char buf[StrMax];
+  int  i, j; 
 
   file.get (head.session, 25); file.getline (buf, StrMax);
   

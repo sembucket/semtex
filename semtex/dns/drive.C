@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // drive.C: control spectral element DNS for incompressible flows.
 //
-// Copyright (c) 1994 Hugh Blackburn
+// Copyright (C) 1994,2003 Hugh Blackburn
 //
 // USAGE:
 // -----
@@ -135,10 +135,10 @@ static void preprocess (const char*       session,
 // They are listed in order of creation.
 // ---------------------------------------------------------------------------
 {
-  const integer      verbose = (integer) Femlib::value ("VERBOSE");
+  const int          verbose = static_cast<int>(Femlib::value ("VERBOSE"));
   Geometry::CoordSys space;
   const real*        z;
-  integer            i, np, nz, nel;
+  int                i, np, nz, nel;
 
   // -- Initialise problem and set up mesh geometry.
 
@@ -154,9 +154,9 @@ static void preprocess (const char*       session,
   VERBOSE cout << "Setting geometry ... ";
 
   nel   = mesh -> nEl();
-  np    =  (integer) Femlib::value ("N_POLY");
-  nz    =  (integer) Femlib::value ("N_Z");
-  space = ((integer) Femlib::value ("CYLINDRICAL")) ? 
+  np    = static_cast<int>(Femlib::value ("N_POLY"));
+  nz    = static_cast<int>(Femlib::value ("N_Z"));
+  space = (static_cast<int>(Femlib::value ("CYLINDRICAL"))) ? 
     Geometry::Cylindrical : Geometry::Cartesian;
   
   Geometry::set (np, nz, nel, space);
@@ -169,7 +169,7 @@ static void preprocess (const char*       session,
 
   Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
 
-  elmt.setSize (nel);
+  elmt.resize (nel);
   for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
 
   VERBOSE cout << "done" << endl;

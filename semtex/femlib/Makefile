@@ -27,7 +27,9 @@ MEMORY     = mapping	family          message
 
 MESH       = RCM
 
-ALL        = $(INITIAL) $(OPERATORS) $(FFT) $(MEMORY) $(MESH)
+IMPORT     = recipes
+
+ALL        = $(INITIAL) $(OPERATORS) $(FFT) $(MEMORY) $(MESH) $(IMPORT)
      
 LMD        = $(foreach routine, $(ALL), $(LIB)($(routine).o))
 
@@ -59,10 +61,12 @@ install:
 	rm -f $(SEM)/include/femdef.h;				\
 	rm -f $(SEM)/include/femlib.h;				\
 	rm -f $(SEM)/include/Femlib.h;				\
+	rm -f $(SEM)/include/nr77.h
 
 	cp femdef.h    $(SEM)/include	;			\
 	cp femlib.h    $(SEM)/include	;			\
 	cp Femlib.h    $(SEM)/include	;			\
+	cp nr77.h      $(SEM)/include	;			\
 
 # ----------------------------------------------------------------------------
 # Ensure any new default parser variables are picked up.

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // combine.C: add a perturbation mode to a base flow.
 //
-// Copyright (c) 2002 Hugh Blackburn
+// Copyright (c) 2002,2003 Hugh Blackburn
 //
 // USAGE
 // -----
@@ -205,7 +205,7 @@ static void getargs (int       argc ,
   }
 
   if (mode < 1) {
-    cerr << prog << ": mode number must be a positive integer" << endl;
+    cerr << prog << ": mode number must be a positive int" << endl;
     exit (EXIT_FAILURE);
   }
 
@@ -223,8 +223,8 @@ static void gethead (istream&  file  ,
 // names are packed into a string without spaces.
 // ---------------------------------------------------------------------------
 {
-  char    buf[StrMax];
-  integer i, j; 
+  char buf[StrMax];
+  int  i, j; 
 
   file.get (header.session, 25); file.getline (buf, StrMax);
   

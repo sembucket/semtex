@@ -28,13 +28,13 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  char           line[STR_MAX];
-  istream*       input;
-  real           x, y;
-  Stack <real>   X, Y;
-  matrix<Point*> vertex;
-  int            Nx = 0, Ny = 0;
-  int            i, j, k;
+  char                    line[STR_MAX];
+  istream*                input;
+  real                    x, y;
+  stack <real>            X, Y;
+  vector<vector<Point*> > vertex;
+  int                     Nx = 0, Ny = 0;
+  int                     i, j, k;
 
   getargs (argc, argv, input);
 
@@ -54,22 +54,23 @@ int main (int    argc,
   
   // -- Insert into vertex matrix.
 
-  vertex.setSize (Ny, Nx);
+  vertex.resize (Ny);
+  for (i = 0; i < Ny; i++) vertex[i].resize(Nx);
   for (i = 0; i < Ny; i++)
     for (j = 0; j < Nx; j++) {
-      vertex (i, j) = new Point;
-      vertex (i, j) -> z = 0.0;
+      vertex[i][j] = new Point;
+      vertex[i][j] -> z = 0.0;
     }
 
   j = Nx;
-  while (j--) vertex (0, j) -> x = X.pop();
+  while (j--) { vertex[0][j] -> x = X.top(); X.pop(); }
   i = Ny;
-  while (i--) vertex (i, 0) -> y = Y.pop();
+  while (i--) { vertex[i][0] -> y = Y.top(); Y.pop(); }
 
   for (i = 0; i < Ny; i++)
     for (j = 0; j < Nx; j++) {
-      vertex (i, j) -> x = vertex (0, j) -> x;
-      vertex (i, j) -> y = vertex (i, 0) -> y;
+      vertex[i][j] -> x = vertex[0][j] -> x;
+      vertex[i][j] -> y = vertex[i][0] -> y;
     }
 
   header();
@@ -81,9 +82,9 @@ int main (int    argc,
   for (k = 0, i = 0; i < Ny; i++)
     for (j = 0; j < Nx; j++)
       cout << setw(5)  << ++k << "\t"
-	   << setw(15) << vertex (i, j) -> x
-	   << setw(15) << vertex (i, j) -> y
-	   << setw(15) << vertex (i, j) -> z
+	   << setw(15) << vertex[i][j] -> x
+	   << setw(15) << vertex[i][j] -> y
+	   << setw(15) << vertex[i][j] -> z
 	   << endl;
   
   cout << "</NODES>" << endl;

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // flipmap.C: generate a list of index pairs for a symmetry-related transform.
 //
-// Copyright (C) Hugh Blackburn 2002.
+// Copyright (C) 2002,2003 Hugh Blackburn.
 //
 // USAGE
 // flipmap [options] [file]
@@ -160,8 +160,8 @@ static int loadmesh (ifstream&     file,
 {
   int i, nmap = 0;
 
-  x.setSize (npts);
-  y.setSize (npts);
+  x.resize (npts);
+  y.resize (npts);
 
   for (i = 0; file && i < npts; i++) file >> x[i] >> y[i];
 
@@ -193,14 +193,14 @@ static int loadmesh (ifstream&     file,
 }
 
 
-static void findmap  (const char          gen ,
-		      const int           npts,
-		      const real          tol ,
-		      const vector<real>& x   ,
-		      const vector<real>& y   ,
-		      const int           nmap,
-		      vector<int>&        orig,
-		      vector<int>&        flip)
+static void findmap (const char          gen ,
+		     const int           npts,
+		     const real          tol ,
+		     const vector<real>& x   ,
+		     const vector<real>& y   ,
+		     const int           nmap,
+		     vector<int>&        orig,
+		     vector<int>&        flip)
 // ---------------------------------------------------------------------------
 // This is where the mapping gets constructed. Order npts*npts operation.
 // Take the first available mapping index for each point.
@@ -208,8 +208,8 @@ static void findmap  (const char          gen ,
 {
   int i, j, k = 0, found;
 
-  orig.setSize (nmap);
-  flip.setSize (nmap);
+  orig.resize (nmap);
+  flip.resize (nmap);
 
   if (gen == 'x') {
     for (i = 0; i < npts; i++) {

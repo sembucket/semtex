@@ -214,7 +214,7 @@ void Boundary::curlCurl (const integer k ,
   const integer localOff = _doffset - elmtOff;
 
   static vector<real> work (5 * npnp + 3 * _np);
-  real* gw = work();
+  real* gw = &work[0];
   real* ew = gw + npnp + npnp;
   real* w  = ew + _np  + _np;
   real* vx = w  + npnp;
@@ -390,14 +390,14 @@ Vector Boundary::tangentTraction (const char* grp,
     const integer    offset = _elmt -> ID() * sqr (_np);
     register integer i;
 
-    _elmt -> sideGrad (_side, u + offset, ux, uy, work());
+    _elmt -> sideGrad (_side, u + offset, ux, uy, &work[0]);
 
     for (i = 0; i < _np; i++) {
       Force.x += (2.0*ux[i]*_nx[i] + uy[i]*_ny[i]) * _area[i];
       Force.y +=                     uy[i]*_nx[i]  * _area[i];
     }
 
-    _elmt -> sideGrad (_side, v + offset, ux, uy, work());
+    _elmt -> sideGrad (_side, v + offset, ux, uy, &work[0]);
 
     for (i = 0; i < _np; i++) {
       Force.x +=                     ux[i]*_ny[i]  * _area[i];

@@ -112,7 +112,7 @@ void writeField (ofstream&          file   ,
   char      s1[StrMax], s2[StrMax];
   time_t    tp (time (0));
   int       i;
-  const int N = field.getSize();
+  const int N = field.size();
 
   if (N < 1) return;
 

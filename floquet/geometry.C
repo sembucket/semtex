@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // geometry.C: define geometrical properties for 2D quad X Fourier spaces.
 //
-// Copyright (C) 1994--2001 Hugh Blackburn.
+// Copyright (C) 1994,2003 Hugh Blackburn.
 //
 // Most routines are inlined in header file Geometry.h.
 //
@@ -41,21 +41,21 @@ void Geometry::set (const int nel  ,
 {
   static char routine[] = "Geometry::set";
 
-  _pid       = static_cast<integer>(Femlib::value ("I_PROC"));
-  _nproc     = static_cast<integer>(Femlib::value ("N_PROC"));
-  _kfund     = static_cast<integer>(Femlib::value ("K_FUND"));
-  _np        = static_cast<integer>(Femlib::value ("N_POLY"));
+  _pid       = static_cast<int>(Femlib::value ("I_PROC"));
+  _nproc     = static_cast<int>(Femlib::value ("N_PROC"));
+  _kfund     = static_cast<int>(Femlib::value ("K_FUND"));
+  _np        = static_cast<int>(Femlib::value ("N_POLY"));
 
-  _nbase     = static_cast<integer>(Femlib::value ("N_BASE"));
-  _nslice    = static_cast<integer>(Femlib::value ("N_SLICE"));
-  _csys      = (static_cast<integer>(Femlib::value ("CYLINDRICAL"))) ? 
+  _nbase     = static_cast<int>(Femlib::value ("N_BASE"));
+  _nslice    = static_cast<int>(Femlib::value ("N_SLICE"));
+  _csys      = (static_cast<int>(Femlib::value ("CYLINDRICAL"))) ? 
                                Geometry::Cylindrical : Geometry::Cartesian;
   _npert     = npert;
   _nel       = nel;
   _psize     = nPlane();
 
 #if 1
-  _nz = _nzp = static_cast<integer>(Femlib::value ("N_Z"));
+  _nz = _nzp = static_cast<int>(Femlib::value ("N_Z"));
 #else
   _nz = _nzp = (_nbase == 3 && _npert == 3) ? 2 : 1;
 #endif
@@ -72,6 +72,6 @@ void Geometry::set (const int nel  ,
     message (routine, "N_SLICE must be set in session file",            ERROR);
   if (_npert < 2 || _npert > 3)
     message (routine, "restart file has too many or few fields",        ERROR);
-  if (static_cast<integer>(Femlib::value ("N_Z")) != _nz)
+  if (static_cast<int>(Femlib::value ("N_Z")) != _nz)
     message (routine, "declared value of N_Z clashes with requirement", ERROR);
 }

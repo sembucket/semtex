@@ -7,7 +7,7 @@
 // 
 // Based on code floK by Dwight Barkley & Ron Henderson.
 //
-// Copyright (C) 1999-2002 Hugh Blackburn.
+// Copyright (C) 1999,2003 Hugh Blackburn.
 //
 // The eigenpairs computed in the subspace are related to the Ritz
 // estimates of those in the original space in a simple way: the
@@ -145,9 +145,9 @@ int main (int    argc,
   const int wdim = kdim + kdim + (kdim * kdim) + 2*ntot*(kdim + 1);
 
   vector<real> work (wdim);
-  Veclib::zero (wdim, work(), 1);
+  Veclib::zero (wdim, &work[0], 1);
 
-  real*  wr   = work();
+  real*  wr   = &work[0];
   real*  wi   = wr   + kdim;
   real*  zvec = wi   + kdim;
   real*  kvec = zvec + kdim * kdim;
@@ -294,7 +294,7 @@ static void EV_small (real**    Kseq   ,
   const int    kdimp = kdim + 1;
   int          i, j, ier, lwork = 10 * kdim;
   vector<real> work (kdimp * kdimp + kdim * kdim + lwork);
-  real         *R     = work(),
+  real         *R     = &work[0],
                *H     = R + kdimp * kdimp,
                *rwork = H + kdim * kdim;
 
@@ -405,7 +405,7 @@ static int EV_test (const int  itrn   ,
   int          i, idone = 0;
   vector<real> work (kdim);
   real         re_ev, im_ev, abs_ev, ang_ev, re_Aev, im_Aev;
-  real*        resid = work();
+  real*        resid = &work[0];
   const real   period = Femlib::value ("D_T * N_STEP");
   static real  min_max1, min_max2;
  
@@ -475,7 +475,7 @@ static void EV_sort (real*     evec,
 {
   int          i, j;
   vector<real> work (dim);
-  real         wr_tmp, wi_tmp, te_tmp, *z_tmp = work();
+  real         wr_tmp, wi_tmp, te_tmp, *z_tmp = &work[0];
 
   for (j = 1; j < dim; j++) {
     wr_tmp = wr  [j];
@@ -711,7 +711,7 @@ static void getargs (int    argc   ,
     case 'v':
       verbose = 1;
       Femlib::value ("VERBOSE", 
-		     static_cast<integer>(Femlib::value("VERBOSE") + 1));
+		     static_cast<int>(Femlib::value("VERBOSE") + 1));
       break;
     case 'k':
       if (*++argv[0]) kdim  = atoi (  *argv);
@@ -749,19 +749,19 @@ static int preprocess (const char* session)
 // ---------------------------------------------------------------------------
 {
   const real* z;
-  integer     i, np, nel, npert;
+  int   i, np, nel, npert;
 
   file  = new FEML (session);
   mesh  = new Mesh (file);
 
-  np    =  static_cast<integer>(Femlib::value ("N_POLY"));
+  np    =  static_cast<int>(Femlib::value ("N_POLY"));
   nel   = mesh -> nEl();
   npert = file -> attribute ("FIELDS", "NUMBER") - 1;
   Geometry::set (nel, npert);
 
   Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
 
-  elmt.setSize (nel);
+  elmt.resize (nel);
   for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
 
   bman    = new BCmgr        (file, elmt);
@@ -794,7 +794,7 @@ static void loadmap (const char* session)
 // Load symmetry mapping information from session.map.
 // ---------------------------------------------------------------------------
 {
-  const int np  =  static_cast<integer>(Femlib::value ("N_POLY"));
+  const int np  =  static_cast<int>(Femlib::value ("N_POLY"));
   const int nel = mesh -> nEl();
   char      buf[StrMax], err[StrMax];
   ifstream  file;

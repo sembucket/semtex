@@ -2,7 +2,7 @@
 // drive.C: compute solution to elliptic problem, optionally compare to
 // exact solution (see getoptions(), below).
 //
-// Copyright (C) 1994  Hugh Blackburn.
+// Copyright (C) 1994,2003  Hugh Blackburn.
 //
 // USAGE:
 // -----
@@ -172,7 +172,7 @@ static void preprocess (const char*       session,
 
   Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
 
-  elmt.setSize (nel);
+  elmt.resize (nel);
   for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
 
   VERBOSE cout << "done" << endl;

@@ -2,7 +2,7 @@
 // lns.C: control spectral element DNS for incompressible flows.
 // This version drives linear evolution of a single Fourier mode.
 //
-// Copyright (C) 1994, 2002 Hugh Blackburn.
+// Copyright (C) 1994,2003 Hugh Blackburn.
 //
 // USAGE:
 // -----
@@ -94,18 +94,18 @@ static void getargs (int    argc   ,
     case 'i':
       do
 	Femlib::value ("ITERATIVE",
-		       static_cast<integer>(Femlib::value ("ITERATIVE") + 1));
+		       static_cast<int>(Femlib::value ("ITERATIVE") + 1));
       while (*++argv[0] == 'i');
       break;
     case 'v':
       do
 	Femlib::value ("VERBOSE", 
-		       static_cast<integer>(Femlib::value ("VERBOSE")   + 1));
+		       static_cast<int>(Femlib::value ("VERBOSE")   + 1));
       while (*++argv[0] == 'v');
       break;
     case 'c':
       if (strstr ("chk", *argv)) {
-	Femlib::value ("CHKPOINT",  static_cast<integer>(1));
+	Femlib::value ("CHKPOINT",  static_cast<int>(1));
       } else {
 	fprintf (stdout, usage, prog);
 	exit (EXIT_FAILURE);	  
@@ -135,9 +135,9 @@ static void preprocess (const char*       session,
 // They are listed in order of creation.
 // ---------------------------------------------------------------------------
 {
-  const integer verbose = static_cast<integer>(Femlib::value ("VERBOSE"));
-  const real*   z;
-  integer       i, np, nel, npert;
+  const int   verbose = static_cast<int>(Femlib::value ("VERBOSE"));
+  const real* z;
+  int         i, np, nel, npert;
 
   // -- Initialise problem and set up mesh geometry.
 
@@ -152,7 +152,7 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "Setting geometry ... ";
 
-  np    = static_cast<integer>(Femlib::value ("N_POLY"));
+  np    = static_cast<int>(Femlib::value ("N_POLY"));
   nel   = mesh -> nEl();
   npert = file -> attribute ("FIELDS", "NUMBER") - 1;
   
@@ -166,7 +166,7 @@ static void preprocess (const char*       session,
 
   Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
 
-  elmt.setSize (nel);
+  elmt.resize (nel);
   for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
 
   VERBOSE cout << "done" << endl;

@@ -99,9 +99,9 @@ int main (int    argc,
     for (k = 0; k <= nz; k++) {
       z = k * dz;
       for (ID = 0; ID < NEL; ID++) {
-	M.meshElmt (ID, np, zero, x(), y());
+	M.meshElmt (ID, np, zero, &x[0], &y[0]);
 	for (j = 0; j < NTOT; j++)
-	  cout << x(j) << '\t' << y(j) << '\t' << z << endl;
+	  cout << x[j] << '\t' << y[j] << '\t' << z << endl;
       }
     }
 
@@ -110,9 +110,9 @@ int main (int    argc,
     // -- Print out x-y mesh.
 
     for (ID = 0; ID < NEL; ID++) {
-      M.meshElmt (ID, np, zero, x(), y());
+      M.meshElmt (ID, np, zero, &x[0], &y[0]);
       for (j = 0; j < NTOT; j++)
-	cout << setw(15) << x(j) << setw(15) << y(j) << endl;
+	cout << setw(15) << x[j] << setw(15) << y[j] << endl;
     }
   
     // -- Print out z-mesh.

@@ -153,14 +153,14 @@ int main (int    argc,
 
   Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
 
-  elmt.setSize (nel);
+  elmt.resize (nel);
   for (i = 0; i < nel; i++) elmt[i] = new Element (i, M, z, np);
 
   B = new BCmgr  (F, elmt);
   D = new Domain (F, elmt, B);
 
-  velocity.setSize   (nComponent);
-  vorticity.setSize ((nComponent == 2) ? 1 : 3);
+  velocity.resize   (nComponent);
+  vorticity.resize ((nComponent == 2) ? 1 : 3);
   for (i = 0; i < nComponent; i++) velocity[i] = D -> u[i];
 
   // -- From the requested fields, flag dependencies.
@@ -555,7 +555,7 @@ static void putDump  (Domain*            D       ,
 
   for (i = 0; i <= nComponent; i++) s2[i] = D -> u[i] -> name();
   for (i = 0; i <  nOut; i++)
-    s2[nComponent + i + 1] = addField(i) -> name();
+    s2[nComponent + i + 1] = addField[i] -> name();
   s2[nComponent + nOut + 1] = '\0';
 
   sprintf (s1, hdr_fmt[8], s2);
@@ -567,7 +567,7 @@ static void putDump  (Domain*            D       ,
   strm << s1;
 
   for (i = 0; i <= nComponent; i++) strm << *D -> u[i];
-  for (i = 0; i < nOut; i++) strm << *addField(i);
+  for (i = 0; i < nOut; i++) strm << *addField[i];
 
   if (!strm) message (routine, "failed writing field file", ERROR);
   strm << flush;
