@@ -87,7 +87,7 @@ Analyser::Analyser (Domain* D   ,
     for (i = 0; i < NH; i++) {
       file -> stream() >> id >> x >> y >> z;
       if (E = HistoryPoint::locate (x, y, D -> elmt, r, s)) {
-	H = new HistoryPoint (id, E, r, s, z);
+	H = new HistoryPoint (id, E, r, s, x, y, z);
 	stack.push (H);
 	num++;
       } else {
