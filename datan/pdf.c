@@ -45,8 +45,8 @@ int main(int argc, char *argv[])
 {
   real *pdf;
   FILE  *fp_Store,
-        *fp_in  = stdin,
-        *fp_out = stdout;
+        *fp_in   = stdin,
+        *fp_out  = stdout;
   int    Verbose = 0;
 
   int    i,
@@ -158,11 +158,13 @@ static void refile (FILE *fp_in, FILE *fp_tmp,
  * Fill temp file with data, getting parameters needed for creation of PDF.
  * ------------------------------------------------------------------------- */
 {
-  real datum;
-  char  line[FILENAME_MAX];
+  real      datum;
+  char      line[FILENAME_MAX];
+  const int DP = sizeof (real) == sizeof (double);
 
   while (fgets (line, FILENAME_MAX, fp_in)) {
-    sscanf (line, "%f", &datum);
+    if   (DP) sscanf (line, "%lf", &datum);
+    else      sscanf (line, "%f",  &datum);
     if (!*npts)
       *Min = (*Max = datum);
     else {
