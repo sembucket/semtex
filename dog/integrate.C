@@ -337,9 +337,9 @@ static MatrixSys** preSolve (const Domain* D)
 // Set up ModalMatrixSystems for system with only 1 Fourier mode.
 // ---------------------------------------------------------------------------
 {
-  const int    mode  = (PROB == Geometry::O2_2D) ? 0 : 1;
-  const real   beta  = mode * Femlib::value ("BETA");
-  const int    itLev = static_cast<int>(Femlib::value ("ITERATIVE"));
+  const int  mode  = ((PROB == Geometry::O2_2D) ? 0 : 1) * Geometry::kFund();
+  const real beta  = Femlib::value ("BETA");
+  const int  itLev = static_cast<int>(Femlib::value ("ITERATIVE"));
 
   vector<real> alpha (Integration::OrderMax + 1);
   Integration::StifflyStable (NORD, &alpha[0]);
@@ -358,7 +358,7 @@ static MatrixSys** preSolve (const Domain* D)
 
   // -- Velocities, starting with u.
 
-  N      = D -> b[0] -> Nsys (mode * Geometry::kFund());
+  N      = D -> b[0] -> Nsys (mode);
   betak2 = sqr (Field::modeConstant (D -> u[0] -> name(), mode, beta));
   M = new MatrixSys (lambda2, betak2, mode, D -> elmt, D -> b[0], method);
   MS.insert (MS.end(), M);
@@ -369,7 +369,7 @@ static MatrixSys** preSolve (const Domain* D)
 
   // -- v.
 
-  N      = D -> b[1] -> Nsys (mode * Geometry::kFund());
+  N      = D -> b[1] -> Nsys (mode);
   betak2 = sqr (Field::modeConstant (D -> u[1] -> name(), mode, beta));
 
   for (found = 0, m = MS.begin(); !found && m != MS.end(); m++) {
@@ -388,7 +388,7 @@ static MatrixSys** preSolve (const Domain* D)
   // -- w.
 
   if (NPERT == 3) {
-    N      = D -> b[2] -> Nsys (mode * Geometry::kFund());
+    N      = D -> b[2] -> Nsys (mode);
     betak2 = sqr (Field::modeConstant (D -> u[2] -> name(), mode, beta));
 
     for (found = 0, m = MS.begin(); !found && m != MS.end(); m++) {
@@ -434,9 +434,9 @@ static void Solve (Domain*    D,
 
     // -- We need a temporary matrix system for a viscous solve.
 
-    const int mode = (PROB == Geometry::O2_2D) ? 0 : 1;
-    const int beta = mode * static_cast<int>(Femlib::value ("BETA"));
-    const int Je   = min (step, NORD);    
+    const int  mode = ((PROB == Geometry::O2_2D) ? 0 : 1) * Geometry::kFund();
+    const real beta = (Femlib::value ("BETA");
+    const int  Je   = min (step, NORD);    
     vector<real>  alpha (Je + 1);
     Integration::StifflyStable (Je, &alpha[0]);
     const real betak2  = sqr (Field::modeConstant (D->u[i]->name(),mode,beta));
