@@ -29,11 +29,11 @@ endif
 # ----------------------------------------------------------------------------
 # Semtex standard sources.
 #
-SEMFILES = analysis auxfield BCmgr boundary bsys condition domain	\
+SEMFILES = analysis auxfield bcmgr boundary bsys condition domain	\
 	   edge element family feml field geometry history integration	\
 	   matrix mesh misc particle pressure
 SEMOBJ   = $(addsuffix .o,$(SEMFILES))
-SEMHDR   = sem.h
+SEMHDR   = $(addsuffix .h,$(SEMFILES)) sem.h
 
 # ----------------------------------------------------------------------------
 # Build eigensolver code.
