@@ -5,7 +5,6 @@
  * must be called before the other parts of the code will work.              *
  *                                                                           *
  * Modelled on hoc3 in Chapter 8 of "The UNIX Programming Environment".      *
- * A(nother) good idea of Ron Henderson's...thanks, Ron.                     *
  *                                                                           *
  * We maintain 3 externally-accessible lists:                                *
  *   iparam:  named integer parameters;                                      *
@@ -19,42 +18,42 @@
  * function interpreter.  This is externally accessible through the routine  *
  * interpret(), which returns double.  Operations include single-argument    *
  * functions, unary minus and the binary operators ^ (exponentiation) and    *
- * ~ (atan2). Flow control, procedures and functions are left for revisions. *
+ * ~ (atan2).                                                                *
  *                                                                           *
  * Summary of externally-accessible functions:                               *
  *                                                                           *
- * void   initialize  (void);                                                *
- * double interpret   (char *);                                              *
+ * void   initialize (void);                                                 *
+ * double interpret  (const char *);                                         *
  *                                                                           *
- * void   setOption  (char *, int);                                          *
- * int    getOption  (char *);                                               *
+ * void   vecInit    (const char *, const char *);                           *
+ * void   vecInterp  (int   , ...   );                                       *
+ *                                                                           *
+ * void   setOption  (const char *, int);                                    *
+ * int    option     (const char *);                                         *
  * void   showOption (FILE *);                                               *
  *                                                                           *
- * void   setIparam  (char *, int);                                          *
- * int    getIparam  (char *);                                               *
+ * void   setIparam  (const char *, int);                                    *
+ * int    iparam     (const char *);                                         *
  * void   showIparam (FILE *);                                               *
  *                                                                           *
- * void   setDparam  (char *, double);                                       *
- * double getDparam  (char *);                                               *
- * void   shoDdparam (FILE *);                                               *
+ * void   setDparam  (const char *, double);                                 *
+ * double dparam     (const char *);                                         *
+ * void   showDparam (FILE *);                                               *
  *                                                                           *
  *****************************************************************************/
 
-/*------------------*   
- * RCS Information: *
- *------------------*/
 static char
-  rcsid00[] = "$Id$";
+rcsid00[] = "$Id$";
 
 
 #include <stdio.h>
+#include <string.h>
 #include <math.h>
 #include <stdarg.h>
 #include <errno.h>
+extern int errno;
 
 #include <alplib.h>
-
-extern int errno;
 
 #ifdef __sgi
   #include <sigfpe.h>
@@ -85,14 +84,14 @@ typedef struct symbol {		/* Symbol table entry */
  * File-scope prototypes.                                                    *
  * ------------------------------------------------------------------------- */
 
-static double  Log (double),           Log10   (double),
-               Exp (double),           Sqrt    (double),
+static double  Log  (double),          Log10   (double),
+               Exp  (double),          Sqrt    (double),
                Asin (double),          Acos    (double),
                Pow  (double, double),  integer (double);
 
-static Symbol *lookup(char *);
-static Symbol *install(char *, int, ...);
-static void   *emalloc(size_t);
+static Symbol *lookup  (const char *);
+static Symbol *install (const char *, int, ...);
+static void   *emalloc (size_t);
 
 
 
@@ -100,15 +99,19 @@ static void   *emalloc(size_t);
  * File-scope variables.                                                     *
  * ------------------------------------------------------------------------- */
 
-static Symbol *symlist = NULL;	/* Internal use for function interpreter */
-static Symbol *dlist   = NULL;	/* Storage of double lookup parameters   */
-static Symbol *ilist   = NULL;	/* Storage of integer lookup parameters  */
-static Symbol *olist   = NULL;	/* Storage for option lookup             */
+static Symbol *symlist = NULL;      /* Internal use for function interpreter */
+static Symbol *dlist   = NULL;      /* Storage of double lookup parameters   */
+static Symbol *ilist   = NULL;      /* Storage of integer lookup parameters  */
+static Symbol *olist   = NULL;      /* Storage for option lookup             */
 
-static char   func_string[FILENAME_MAX], *cur_string;
+static char   func_string[STR_MAX], *cur_string;
 static double value;
 
-static struct {			/* Built-in functions */
+#define VEC_MAX 8
+static int     nvar = 0;
+static Symbol *vs[VEC_MAX];	    /* Storage for vector parser variables   */
+
+static struct {			    /* Built-in functions                    */
   char *name;
   PFD   func;
 } builtin[] = {
@@ -188,8 +191,7 @@ expr:     NUMBER
 void initialize(void)
 /* ========================================================================= *
  * Load lookup tables and symbol table with default values.                  *
- * Floating-point errors cause abortion; we have to take special action to   *
- * make this happen on a machine with current release of MIPS FPU.           *
+ *                                                                           *
  * This routine should be called at start of run-time.                       *
  * ========================================================================= */
 {
@@ -209,14 +211,14 @@ void initialize(void)
   for (i=0; consts[i].name; i++)
     install(consts[i].name, DPARAM, consts[i].cval);
 
-  for (i=0; option[i].name; i++) 
-    install(option[i].name, OPTION, option[i].oval);
+  for (i=0; option_init[i].name; i++) 
+    install(option_init[i].name, OPTION, option_init[i].oval);
 
-  for (i=0; iparam[i].name; i++)
-    install(iparam[i].name, IPARAM, iparam[i].ival);
+  for (i=0; iparam_init[i].name; i++)
+    install(iparam_init[i].name, IPARAM, iparam_init[i].ival);
 
-  for (i=0; dparam[i].name; i++)
-    install(dparam[i].name, DPARAM, dparam[i].dval);
+  for (i=0; dparam_init[i].name; i++)
+    install(dparam_init[i].name, DPARAM, dparam_init[i].dval);
 
   for (i=0; builtin[i].name; i++)
     install(builtin[i].name, BLTIN, builtin[i].func);
@@ -226,12 +228,12 @@ void initialize(void)
 
 
 
-double interpret(char *s)
+double interpret(const char *s)
 /* ========================================================================= *
  * Given a string, interpret it as a function using yacc-generated yyparse().*
  * ========================================================================= */
 {
-  if (strlen(s) > FILENAME_MAX)
+  if (strlen(s) > STR_MAX)
     message("in interpret(): too many characters passed\n", s, ERROR);
   
   strcpy(func_string, s);
@@ -247,7 +249,84 @@ double interpret(char *s)
 
 
 
-void setOption(char *s, int v)
+void vecInit(const char *names, const char *fn)
+/* ========================================================================= *
+ * Set up the vector parser.                                                 *
+ *                                                                           *
+ * names contains a blank-separated list of variable names e.g. "x y z",     *
+ * fn    contains a function for evaluation e.g. "sin(x)*cos(y)*exp(z)".     *
+ * ========================================================================= */
+{
+  char   routine   [] = "vecInit()";
+  char   separator [] = " ";
+  char   tmp       [STR_MAX];
+  char   *p;
+  Symbol *s;
+
+
+  strcpy(tmp, names);
+  nvar = 0;
+  p    = strtok(tmp, separator);
+  do {
+    if (nvar++ > VEC_MAX)
+      message(routine, "too many variables passed", ERROR); 
+    vs[nvar-1] = (s=lookup(p)) ? s : install(p, VAR, 0.0);
+  } while (p = strtok(NULL, separator));
+
+  if (strlen(fn) > STR_MAX)
+    message(routine, "too many characters in function string", ERROR);
+  
+  strcpy(func_string, fn);
+  strcat(func_string, "\n");
+}
+
+
+
+
+
+void vecInterp(int ntot, ...)
+/* ========================================================================= *
+ * Vector parser.  Following ntot there should be passed a number of         *
+ * pointers to double (vectors), of which there should be in number the      *
+ * number of variables named previously to vecInit, plus one: the result of  *
+ * continually re-parsing the string "fn" is placed in the last vector, for  *
+ * a total of ntot parsings.                                                 *
+ *                                                                           *
+ * To follow on from the previous example, four vectors would be passed,     *
+ * i.e.  vecInterp(ntot, x, y, z, u); the result fn(x,y,z) is placed in u.   *
+ *                                                                           *
+ * ========================================================================= */
+{
+  char       routine[] = "vecInterp()";
+  register   i, n;
+  double    *x[VEC_MAX];
+  double    *fx = NULL;
+  va_list    ap;
+
+  
+  va_start(ap, ntot);
+  for (i=0; i<nvar; i++) {
+    x[i] = NULL;
+    if (!(x[i] = va_arg(ap, double*)))
+	message(routine, "not enough vectors passed..1", ERROR);
+  }
+  if (!(fx = va_arg(ap, double*)))
+    message(routine, "not enough vectors passed..2", ERROR);
+  va_end(ap);
+
+  for (n=0; n<ntot; n++) {
+    cur_string = func_string;
+    for (i=0; i<nvar; i++) vs[i]->u.dval = x[i][n];
+    yyparse();
+    fx[n] = value;
+  }
+}
+
+
+
+
+
+void setOption(const char *s, int v)
 /* ========================================================================= *
  * Set option on list true/false, or install it.                             *
  * ========================================================================= */
@@ -268,7 +347,7 @@ void setOption(char *s, int v)
 
 
 
-int getOption(char *s)
+int option(const char *s)
 /* ========================================================================= *
  * Retrieve value from option list.                                          *
  * ========================================================================= */
@@ -280,7 +359,7 @@ int getOption(char *s)
     if (strcmp(sp->name, s) == 0)
       return sp->u.ival;
 
-  message("getOption(): name not found", s, WARNING);
+  message("option(): name not found", s, WARNING);
   return 0;
 }
     
@@ -304,7 +383,7 @@ void showOption(FILE *fp)
 
 
 
-void setIparam(char *s, int v)
+void setIparam(const char *s, int v)
 /* ========================================================================= *
  * Set or install iparam on list.                                            *
  * ========================================================================= */
@@ -325,7 +404,7 @@ void setIparam(char *s, int v)
 
 
 
-int getIparam(char *s)
+int iparam(const char *s)
 /* ========================================================================= *
  * Retrieve value from iparam list.                                          *
  * ========================================================================= */
@@ -337,7 +416,7 @@ int getIparam(char *s)
     if (strcmp(sp->name, s) == 0)
       return sp->u.ival;
 
-  message("getIparam(): name not found", s, WARNING);
+  message("iparam(): name not found", s, WARNING);
   return 0;
 }
     
@@ -361,7 +440,7 @@ void showIparam(FILE *fp)
 
 
 
-void setDparam(char *s, double v)
+void setDparam(const char *s, double v)
 /* ========================================================================= *
  * Set or install dparam on list.                                            *
  * ========================================================================= */
@@ -382,7 +461,7 @@ void setDparam(char *s, double v)
 
 
 
-double getDparam(char *s)
+double dparam(const char *s)
 /* ========================================================================= *
  * Retrieve value from dparam list.                                          *
  * ========================================================================= */
@@ -393,7 +472,7 @@ double getDparam(char *s)
     if (strcmp(sp->name, s) == 0)
       return sp->u.dval;
 
-  message("getDparam(): name not found", s, WARNING);
+  message("dparam(): name not found", s, WARNING);
   return 0;
 }
     
@@ -413,11 +492,8 @@ void showDparam(FILE *fp)
     fprintf(fp, "%-12s%-.6g\n", sp->name, sp->u.dval);
 }
 
-/*****************************************************************************
- * Remaining routines are accessible only in this module.                    *
- *****************************************************************************/
 
-
+/* ##################### FILE-SCOPE ROUTINES FOLLOW ######################## */
 
 
 static int yylex(void)
@@ -439,7 +515,7 @@ static int yylex(void)
   }
   if (isalpha(c)) {		/* symbol */
     Symbol *s;
-    char    sbuf[FILENAME_MAX], *p = sbuf;
+    char    sbuf[STR_MAX], *p = sbuf;
     do {
       *p++ = c;
     } while ((c = *cur_string++) != EOF && (isalnum(c) || c == '_'));
@@ -457,7 +533,7 @@ static int yylex(void)
 
 
 
-static Symbol *lookup(char *s)
+static Symbol *lookup(const char *s)
 /* ========================================================================= *
  * Find s in symbol table.                                                   *
  * ========================================================================= */
@@ -476,7 +552,7 @@ static Symbol *lookup(char *s)
 
 
 
-static Symbol *install(char *s, int t, ...)
+static Symbol *install(const char *s, int t, ...)
 /* ========================================================================= *
  * Install value of variable type into appropriate lists.                    *
  * Note that variables of type DPARAM get mounted in both symlist and dlist. *
@@ -534,7 +610,7 @@ static Symbol *install(char *s, int t, ...)
 
   va_end(ap);
 
-  return (sp);
+  return sp;
 }
 
 
@@ -593,49 +669,46 @@ static double errcheck(double d, char *s)
  *****************************************************************************/
 
 
-
-
-
 static double Log(double x)
 {
-  return errcheck(log(x), " log");
+  return errcheck(log(x), "log");
 }
 
 
 static double Log10(double x)
 {
-  return errcheck(log10(x), " log10");
+  return errcheck(log10(x), "log10");
 }
 
 
 static double Exp(double x)
 {
-  return errcheck(exp(x), " exp");
+  return errcheck(exp(x), "exp");
 }
 
 
 static double Sqrt(double x)
 {
-  return errcheck(sqrt(x), " sqrt");
+  return errcheck(sqrt(x), "sqrt");
 }
 
 
 static double Pow(double x, double y)
 {
-  return errcheck(pow(x, y), " exponentiation");
+  return errcheck(pow(x, y), "exponentiation");
 }
 
 
 static double Acos(double x)
 {
-  return errcheck(acos(x), " acos");
+  return errcheck(acos(x), "acos");
 }
 
 
 
 static double Asin(double x)
 {
-  return errcheck(asin(x), " asin");
+  return errcheck(asin(x), "asin");
 }
 
 
