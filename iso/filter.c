@@ -51,35 +51,27 @@ void bvdFilter (const int  N     ,
 }
 
 
-void ispectrum (CVF        U ,
-		const int  k0,
-		const real u0)
+void ispectrum (CVF        U  ,
+		const real TKE,
+		const real k0 ,
+		real       (*Ek)(const real, const real, const real))
 /* ------------------------------------------------------------------------- *
  * Supposing the spectrum of U as input is Gaussian white noise, filter
  * so that the spherically-averaged output energy spectrum is
  *
- *   E(k) = 16 sqrt (2/PI) u0^2/k0 (k/k0)^4 exp [-2 (k/k0)^2]
- * 
- * Taking account of the normalisation of 2PI k^2 that is needed when
- * looking after the full spectrum, and the fact that we also need to
- * take the square root when multiplying our complex spectral
- * coefficients, this means we need to factor coefficients by
- *
- *  2 (2/PI)^(1/4) PI^(-1) u0 (k0)^(2/5) exp [-(k/k0)^2]
+ *   E(k) = given function of TKE, k0, and k
  * ------------------------------------------------------------------------- */
 {
-  const real    A   = pow (2, 1.25) * pow (M_PI, -0.75) * pow (k0, -1.5) * u0;
-  const real    k02 = k0 * k0;
   register int  c, k1, k2, k3, b1, b2;
-  register real kk, tp;
+  register real k, tp;
 
   for (c = 1; c <= 3; c++) {
     U[c][0][0][0].Re = U[c][0][0][0].Im = 0.0;
 
     for (k1 = 1; k1 < K; k1++) {
       b1 = N - k1;
-      kk = k1 * k1;
-      tp = A * k1 * exp (-kk/k02);
+      k  = sqrt(k1 * k1);
+      tp = sqrt (Ek (TKE, k0, k)) / k;
       U[c][k1][ 0][ 0].Re *= tp;
       U[c][k1][ 0][ 0].Im *= tp;
       U[c][ 0][k1][ 0].Re *= tp;
@@ -88,8 +80,8 @@ void ispectrum (CVF        U ,
       U[c][ 0][ 0][k1].Im *= tp;
       for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
 	b2 = N - k2;
-	kk = k1 * k1 + k2 * k2;
-	tp = A * sqrt (kk) * exp (-kk/k02);
+	k  = sqrt (k1 * k1 + k2 * k2);
+	tp = sqrt (Ek (TKE, k0, k)) / k;
 	U[c][ 0][k1][k2].Re *= tp;
 	U[c][ 0][k1][k2].Im *= tp;
 	U[c][ 0][b1][k2].Re *= tp;
@@ -103,8 +95,8 @@ void ispectrum (CVF        U ,
 	U[c][b1][k2][ 0].Re *= tp;
 	U[c][b1][k2][ 0].Im *= tp;
 	for (k3 = 1; k3 < K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
-	  kk = k1 * k1 + k2 * k2 + k3 * k3;
-	  tp = A * sqrt (kk) * exp (-kk/k02);
+	  k  = sqrt (k1 * k1 + k2 * k2 + k3 * k3);
+	  tp = sqrt (Ek (TKE, k0, k)) / k;
 	  U[c][k1][k2][k3].Re *= tp;
 	  U[c][k1][k2][k3].Im *= tp;
 	  U[c][b1][k2][k3].Re *= tp;
@@ -117,5 +109,46 @@ void ispectrum (CVF        U ,
       }
     }
   }
+}
+
+
+real unknown01 (const real TKE,
+		const real k0 ,
+		const real k  )
+/* ------------------------------------------------------------------------- *
+ * Return spectral magnitude at wavenumber k for spectrum
+ *
+ *   E(k) = 16 sqrt (2/PI) u0^2 / k0 (k/k0)^4 exp [ -2 (k/k0)^2 ]
+ *
+ * which (reportedly) has TKE = 3/2 u0^2, epsilon = 15/4 mu u0^2 k0^2,
+ * and Taylor microscale lambda = 2 / k0.
+ * ------------------------------------------------------------------------- */
+{
+  const real u02  = 2.0 / 3.0 * TKE;
+  const real A    = 16.0 * sqrt (2.0 / M_PI) * u02 / k0;
+  const real kok0 = k / k0;
+
+  return A * SQR(SQR(kok0)) * exp (-2.0 * SQR(kok0));
+}
+
+
+real vonKarman (const real TKE,
+		const real k0 ,
+		const real k  )
+/* ------------------------------------------------------------------------- *
+ * Return spectral magnitude at wavenumber k for von Karman spectrum
+ *
+ *   E(k) = 2  TKE  L Cvk (k L)^4 / [1 + (k L)^2)]^p
+ *
+ * where L = 2PI / k0, p = 17/6 gives -5/3 law at high k, and
+ * Cvk = Gamma(p)/[Gamma(5/2)Gamma(p-5/2)] = 1.64646372716 for p = 17/6.
+ * ------------------------------------------------------------------------- */
+{
+  const real L   = 1.0 / (2.0 * M_PI * k0);
+  const real kL  = k * L;
+  const real p   = 17.0 / 6.0;
+  const real Cvk = 1.64646372716;
+
+  return 2.0 * TKE * Cvk * L * pow (kL, 4.0) / pow ((1.0 + SQR(kL)), p);
 }
 

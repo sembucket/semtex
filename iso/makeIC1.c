@@ -1,25 +1,7 @@
 /*****************************************************************************
  * MakeIC1: generate a set of initial condition Fourier coefficients for DNS.
  *
- * Usage: makeIC1 -n <cubesize> -o <outfilename> [-s <seed>]
- *
- * Method: in this version, the Fourier coefficients are generated with a
- * "top-hat" spectrum: i.e., uniform over a range of wavenumber magnitude.
- * If K = <cubesize> / 2 (Nyquist wavenumber), then we give a uniform magni-
- * tude to E(k) over K/3 <= k <= 2K/3, where k = sqrt(k1^2 + k2^2 + k3^2).
- * The method used to generate the various components of the velocity
- * Fourier coefficients is that discussed in detail by Rogallo (1981).
- * We generate the positive k3 part of the spectrum only, since we make use
- * of the fact that the Fourier coefficients are conjugate-symmetric in the
- * simulation.
- *
- * The optional command-line argument -s <seed> can be invoked with a
- * positive integer (e.g., -s 1) to generate different random components.
- * The IC components are normalized such that q^2 = <UiUi>/2 = 1.
- * The maximum velocity component is found (in physical space), and the
- * maximum timestep allowed by the CFL condition Delta_X/Max_Vel is printed
- * on standard output.  The grid-size is calculated with the assumption that
- * the length of the sides of the computational box is 2PI.
+ * Usage: makeIC1 -k <peak> -n <cubesize> -o <outfilename> [-s <seed>]
  *
  * Files: write the data to a file (named <outfile>) which contains a header
  * structure, of which only the size of the cube is of any interest (it is
@@ -47,7 +29,7 @@ int main (int    argc,
   real**   head;
   complex* Wtab;
   Param*   Info = (Param*) calloc (1, sizeof (Param));
-  real     Max_Vel;
+  real     peaK = 4.0, energy, lambda;
 
   /* -- Process command-line arguments. */
 
@@ -62,6 +44,9 @@ int main (int    argc,
 	    paramerr = TRUE;
 	    fprintf (stderr, "size must be power of 2\n");
 	  }
+	} else if (argv[argnr][1] == 'k') {
+	  argnr++;
+	  peaK = atof (argv[argnr]);
 	} else if (argv[argnr][1] == 'o') {
 	  argnr++;
 	  strcpy (filename, argv[argnr]);
@@ -85,7 +70,7 @@ int main (int    argc,
   
   if (paramerr) {
     fprintf (stderr,
-	     "Usage: makeIC1 -n <cubesize> -o <outfilename> [-s <seed>]\n");
+      "Usage: makeIC1 -k <peak> -n <cubesize> -o <outfilename> [-s <seed>]\n");
     exit (EXIT_FAILURE);
   }
 
@@ -109,14 +94,25 @@ int main (int    argc,
   Wtab = cvector (0, K - 1);
   preFFT (Wtab, K);  
 
-  /* -- Generate divegence-free initial condition Fourier coefficients. */
+  /* -- Generate divergence-free initial condition Fourier coefficients. */
 
   randomise (IC, &seed, work);
+#ifdef DEBUG
   printf ("Check energy: k=0.5<UiUi>: %g\n", energyF (IC));
-  ispectrum (IC, 4.0, 1.0);
+#endif
+
+  ispectrum (IC, 1.0, peaK, unknown01);
+#ifdef DEBUG
   printf ("Check energy: k=0.5<UiUi>: %g\n", energyF (IC));
+#endif
+
   normaliseVF (IC);
-  printf ("Check energy: k=0.5<UiUi>: %g\n", energyF (IC));
+
+  energy = energyF (IC);
+  lambda = microF  (IC, work);
+
+  printf ("Check energy: k=0.5<UiUi>: %g\n", energy);
+  printf ("Taylor microscale        : %g\n", lambda);
 
   /* -- Output to file. */
 
