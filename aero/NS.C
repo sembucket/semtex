@@ -220,6 +220,8 @@ static void nonLinear (Domain*    D ,
 //
 //              N  = -0.5 ( u  d(u u ) / dx  + d(u u ) / dx ).
 //               i           j    i j      j      i j      j
+//
+// All product terms are evaluated pseudospectrally, in physical space.
 // ---------------------------------------------------------------------------
 {
   integer           i, j;
@@ -243,15 +245,11 @@ static void nonLinear (Domain*    D ,
 
   ROOTONLY A[0] = a.x; A[1] = a.y; if (NDIM == 3) A[2] = a.z;
 
+  Veclib::zero ((2 * NDIM + 1) * nTot32, work(), 1); // -- A catch-all cleanup.
+
   for (i = 0; i < NDIM; i++) {
     u32[i] = work() +  i        * nTot32;
     n32[i] = work() + (i + NDIM) * nTot32;
-
-    AuxField::swapData  (D -> u[i], Us[i]);
-    U[i] = Us[i];
-    U[i] -> transform32 (INVERSE, u32[i]);
-
-    N[i] = Uf[i];
   }
 
 #if defined (LES)
@@ -306,11 +304,14 @@ static void nonLinear (Domain*    D ,
       master -> gradient (nZ32, nP, u32[1], i);
       Veclib::vadd       (nTot32, u32[1], 1, n32[j], 1, n32[j], 1);
     }
-#else
-
-  Veclib::zero ((2 * NDIM + 1) * nTot32, work(), 1); // -- A catch-all cleanup.
-
 #endif
+
+  for (i = 0; i < NDIM; i++) {
+    U[i] = Us[i];
+    N[i] = Uf[i];
+    AuxField::swapData  (D -> u[i], U[i]);
+    U[i] -> transform32 (INVERSE, u32[i]);
+  }
 
   for (i = 0; i < NDIM; i++) {
     for (j = 0; j < NDIM; j++) {
