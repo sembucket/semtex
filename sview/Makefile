@@ -1,22 +1,30 @@
 ##############################################################################
-# Makefile for SVIEW_2, an isosurface visualization package for SGI machines.
+# Makefile for sview, an isosurface visualization package for OpenGL.
 #
 # $Id$
 #
-CC	= cc
-LD	= cc
-INCDIR  = -I. -I/usr/local/include
-LFLAGS 	= -O2
-CFLAGS	= -DPI $(INCDIR) -O2
-LIBS    = -lgl -limage -lmalloc -lgutil -lm
 
-HDRS    = cell_table.h globals.h image.h lighting.h new_mesh.h sview.h
+ifdef DEBUG
+  DEFINES  = -DDEBUG
+else
+  DEFINES  =
+endif
 
-SOBJ    = main_vis.o display_surface.o flow_io.o m_cube.o	\
-	  make_mesh.o misc_make.o misc_view.o
+X11_ROOT  = /usr/X11R6
+GLUT_ROOT = /usr
+SGI_GLUT  = -lglut -lGLU -lGL -lXmu -lXi -lXext -lX11
 
-sview_2:	$(SOBJ)
-	$(LD) $(CFLAGS) $(LFLAGS) -o $@ $(SOBJ) $(LIBS)
+CXX      = g++
+LD       = g++
+CPPFLAGS = -I. -I$(GLUT_ROOT)/include
+CXXFLAGS = $(DEFINES) -gstabs+
+LDFLAGS  = -L$(X11_ROOT)/lib -L$(GLUT_ROOT)/lib $(SGI_GLUT) -lm
+
+HDRS     = Sview.h
+SOBJ     = main.o graphics.o keycom.o semIO.o
+
+sview_3:	$(SOBJ)
+	$(LD) -o $@ $(SOBJ) $(LDFLAGS)
 
 clean:
 	rm -f *.o
