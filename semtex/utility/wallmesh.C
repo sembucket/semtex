@@ -55,7 +55,7 @@ int main (int    argc,
   nz   = Femlib::ivalue ("N_Z");
   Femlib::ivalue ("NEL", nel);
 
-  Geometry::set (np, nz, nel, Geometry::Cartesian);
+  Geometry::set (np, nz, nel, Geometry::Cylindrical);
 
   elmt.resize (nel);
   for (i = 0; i < nel; i++) elmt[i] = new Element (i, np, mesh);
