@@ -26,7 +26,7 @@ static char prog[] = "wallmesh";
 static void getargs    (int, char**, char*&, istream*&);
 static void readMesh   (istream&,
 			vector<real_t>&, vector<real_t>&, vector<real_t>&);
-static void printWalls (int_t, int_t, BCmgr*, vector<Element*>&,
+static void printWalls (int_t, int_t, int_t, BCmgr*, vector<Element*>&,
 			vector<real_t>&, vector<real_t>&);
 
 
@@ -66,7 +66,7 @@ int main (int    argc,
 
   readMesh (*meshfile, x, y, z);
   
-  printWalls (np, nel, bman, elmt, x, y);
+  printWalls (np, nz, nel, bman, elmt, x, y);
 
   for (i = 0; i < nz; i++) cout << z[i] << endl;
 
@@ -153,6 +153,7 @@ static void readMesh (istream&        file,
 
 
 static void printWalls (int_t             np  ,
+			int_t             nz  ,
 			int_t             nel ,
 			BCmgr*            bman,
 			vector<Element*>& elmt,
@@ -170,6 +171,8 @@ static void printWalls (int_t             np  ,
   vector<BCtriple*>& edge  = bman -> getBCedges();
   int_t              i, j, k, s;
   vector<real_t>     xs (np), ys (np);
+
+  cout << np << " 1 " << nz << " " << Nwall << " NR NS NZ NEL" << endl;
   
   for (i = 0; i < Nedge; i++)
     if (strstr (bman -> groupInfo (edge[i] -> group), "wall")) {
