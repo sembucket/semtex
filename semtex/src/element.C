@@ -8,18 +8,15 @@ RCSid[] = "$Id$";
 #include <Sem.h>
 
 
-Element::Element (const integer i   ,
-		  const Mesh&   M   ,
-		  const real*   z   ,
-		  const integer nk  ,
-		  const integer doff,
-		  const integer boff) :
-
-		  id            (i   ),
-		  ns            (4   ),
-		  np            (nk  ),
-		  dOffset       (doff),
-		  bOffset       (boff)
+Element::Element (const integer i,
+		  const Mesh&   M,
+		  const real*   z,
+		  const integer n) :
+  id   (i),
+  np   (n),
+  npnp (np * np),
+  next (4 * (np - 1)),
+  nint (npnp - next)
 // ---------------------------------------------------------------------------
 // Create a new quad element, nk X nk.  Node spacing along any side generated
 // by mapping z (defined on domain [-1, 1], np points) onto side.
@@ -28,21 +25,20 @@ Element::Element (const integer i   ,
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "Element::Element";
-  const integer nk2  = sqr (nk);
 
-  if (nk < 2) message (routine, "need > 2 knots for element edges", ERROR);
+  if (np < 2) message (routine, "need > 2 knots for element edges", ERROR);
 
   Femlib::buildMaps (np, 2, &emap, &pmap);
   
-  xmesh = new real [(size_t) nk2];
-  ymesh = new real [(size_t) nk2];
+  xmesh = new real [(size_t) npnp];
+  ymesh = new real [(size_t) npnp];
   
   M.meshElmt (id, np, z, xmesh, ymesh);
   
-  Femlib::adopt (nk2, &xmesh);
-  Femlib::adopt (nk2, &ymesh);
+  Femlib::adopt (npnp, &xmesh);
+  Femlib::adopt (npnp, &ymesh);
  
-  map ();
+  map();
 }
 
 
@@ -119,46 +115,45 @@ void Element::map ()
 // ---------------------------------------------------------------------------
 {
   const char    routine[] = "Element::map";
-  char          err[StrMax];
-  const integer ntot = nTot();
-  const real    EPS  = 4 * nTot()*((sizeof(real)==sizeof(double))?EPSDP:EPSSP);
+  const real    EPS  = 4 * npnp * ((sizeof(real)==sizeof(double))?EPSDP:EPSSP);
   const real    dz   = (Geometry::nZ() > 1) ?
                         Femlib::value ("TWOPI / (BETA * N_Z)") : 1.0;
   const real    dxyz = sqr (2.0 / (np - 1)) * dz;
   const real    invD = 1.0 / Geometry::nDim();
   const real    *x   = xmesh, *y = ymesh;
   const real    **DV, **DT, *w;
+  char          err[StrMax];
   real          *jac, *dxdr, *dxds, *dydr, *dyds, *tV, *WW;
 
   vector<real> work;
 
   // -- Permanent/family allocations.
   
-  drdx  = new real [(size_t) ntot];
-  dsdx  = new real [(size_t) ntot];
-  drdy  = new real [(size_t) ntot];
-  dsdy  = new real [(size_t) ntot];
-  G1    = new real [(size_t) ntot];
-  G2    = new real [(size_t) ntot];
-  G3    = new real [(size_t) ntot];
-  G4    = new real [(size_t) ntot];
-  delta = new real [(size_t) ntot];
+  drdx  = new real [(size_t) npnp];
+  dsdx  = new real [(size_t) npnp];
+  drdy  = new real [(size_t) npnp];
+  dsdy  = new real [(size_t) npnp];
+  G1    = new real [(size_t) npnp];
+  G2    = new real [(size_t) npnp];
+  G3    = new real [(size_t) npnp];
+  G4    = new real [(size_t) npnp];
+  delta = new real [(size_t) npnp];
     
   // -- Temporaries.
 
-  work.setSize (7 * ntot);
+  work.setSize (7 * npnp);
 
   dxdr = work();
-  dxds = dxdr + ntot;
-  dydr = dxds + ntot;
-  dyds = dydr + ntot;
+  dxds = dxdr + npnp;
+  dydr = dxds + npnp;
+  dyds = dydr + npnp;
 
-  jac  = dyds + ntot;
-  WW   = jac  + ntot;
-  tV   = WW   + ntot;
+  jac  = dyds + npnp;
+  WW   = jac  + npnp;
+  tV   = WW   + npnp;
     
   Femlib::quad (LL, np, np, 0, 0, &w, 0, 0, &DV, &DT);
-  Veclib::zero (ntot, WW, 1);
+  Veclib::zero (npnp, WW, 1);
   Blas::ger    (np, np, 1.0, w, 1, w, 1, WW, np);
     
   Blas::mxm (  x, np, *DT, np, dxdr, np);
@@ -166,74 +161,74 @@ void Element::map ()
   Blas::mxm (  y, np, *DT, np, dydr, np);
   Blas::mxm (*DV, np,   y, np, dyds, np);
     
-  Veclib::vmul  (ntot,        dxdr, 1, dyds, 1, tV,  1);
-  Veclib::vvvtm (ntot, tV, 1, dxds, 1, dydr, 1, jac, 1);
+  Veclib::vmul  (npnp,        dxdr, 1, dyds, 1, tV,  1);
+  Veclib::vvvtm (npnp, tV, 1, dxds, 1, dydr, 1, jac, 1);
     
-  if (jac[Veclib::imin (ntot, jac, 1)] < EPS) {
+  if (jac[Veclib::imin (npnp, jac, 1)] < EPS) {
     sprintf (err, "jacobian of element %1d nonpositive", id + 1);
     message (routine, err, ERROR);
   }
     
-  Veclib::vmul  (ntot, dyds, 1, dyds, 1, tV, 1);
-  Veclib::vvtvp (ntot, dxds, 1, dxds, 1, tV, 1, G1, 1);
-  Veclib::vdiv  (ntot, G1,   1, jac,  1, tV, 1);
-  Veclib::vmul  (ntot, tV,   1, WW,   1, G1, 1);
+  Veclib::vmul  (npnp, dyds, 1, dyds, 1, tV, 1);
+  Veclib::vvtvp (npnp, dxds, 1, dxds, 1, tV, 1, G1, 1);
+  Veclib::vdiv  (npnp, G1,   1, jac,  1, tV, 1);
+  Veclib::vmul  (npnp, tV,   1, WW,   1, G1, 1);
     
-  Veclib::vmul  (ntot, dydr, 1, dydr, 1, tV, 1);
-  Veclib::vvtvp (ntot, dxdr, 1, dxdr, 1, tV, 1, G2, 1);
-  Veclib::vdiv  (ntot, G2,   1, jac,  1, tV, 1);
-  Veclib::vmul  (ntot, tV,   1, WW,   1, G2, 1);
+  Veclib::vmul  (npnp, dydr, 1, dydr, 1, tV, 1);
+  Veclib::vvtvp (npnp, dxdr, 1, dxdr, 1, tV, 1, G2, 1);
+  Veclib::vdiv  (npnp, G2,   1, jac,  1, tV, 1);
+  Veclib::vmul  (npnp, tV,   1, WW,   1, G2, 1);
     
-  Veclib::vmul  (ntot, dydr, 1, dyds, 1, tV,   1);
-  Veclib::neg   (ntot, tV,   1);
-  Veclib::vvvtm (ntot, tV,   1, dxdr, 1, dxds, 1, G3, 1);
-  Veclib::vdiv  (ntot, G3,   1, jac,  1, tV,   1);
-  Veclib::vmul  (ntot, tV,   1, WW,   1, G3,   1);
+  Veclib::vmul  (npnp, dydr, 1, dyds, 1, tV,   1);
+  Veclib::neg   (npnp, tV,   1);
+  Veclib::vvvtm (npnp, tV,   1, dxdr, 1, dxds, 1, G3, 1);
+  Veclib::vdiv  (npnp, G3,   1, jac,  1, tV,   1);
+  Veclib::vmul  (npnp, tV,   1, WW,   1, G3,   1);
   
-  Veclib::vmul  (ntot, jac,  1, WW,   1, G4, 1);
-  Veclib::smul  (ntot, dxyz, jac, 1,  delta, 1);
+  Veclib::vmul  (npnp, jac,  1, WW,   1, G4, 1);
+  Veclib::smul  (npnp, dxyz, jac, 1,  delta, 1);
 
-  Veclib::copy (ntot, dyds, 1, drdx, 1);
-  Veclib::vneg (ntot, dxds, 1, drdy, 1);
-  Veclib::vneg (ntot, dydr, 1, dsdx, 1);
-  Veclib::copy (ntot, dxdr, 1, dsdy, 1);
+  Veclib::copy (npnp, dyds, 1, drdx, 1);
+  Veclib::vneg (npnp, dxds, 1, drdy, 1);
+  Veclib::vneg (npnp, dydr, 1, dsdx, 1);
+  Veclib::copy (npnp, dxdr, 1, dsdy, 1);
     
-  Veclib::vdiv (ntot, drdx, 1, jac, 1, drdx, 1);
-  Veclib::vdiv (ntot, drdy, 1, jac, 1, drdy, 1);
-  Veclib::vdiv (ntot, dsdx, 1, jac, 1, dsdx, 1);
-  Veclib::vdiv (ntot, dsdy, 1, jac, 1, dsdy, 1);
+  Veclib::vdiv (npnp, drdx, 1, jac, 1, drdx, 1);
+  Veclib::vdiv (npnp, drdy, 1, jac, 1, drdy, 1);
+  Veclib::vdiv (npnp, dsdx, 1, jac, 1, dsdx, 1);
+  Veclib::vdiv (npnp, dsdy, 1, jac, 1, dsdy, 1);
 
   if (Geometry::system() == Geometry::Cylindrical) {
     register integer i;
-    for (i = 0; i < ntot; i++) delta[i] *= (ymesh[i] < EPS) ? EPS : ymesh[i];
+    for (i = 0; i < npnp; i++) delta[i] *= (ymesh[i] < EPS) ? EPS : ymesh[i];
 
-    Veclib::vmul (ntot, G1, 1, y, 1, G1, 1);
-    Veclib::vmul (ntot, G2, 1, y, 1, G2, 1);
-    Veclib::vmul (ntot, G3, 1, y, 1, G3, 1);
-    Veclib::vmul (ntot, G4, 1, y, 1, G4, 1);
+    Veclib::vmul (npnp, G1, 1, y, 1, G1, 1);
+    Veclib::vmul (npnp, G2, 1, y, 1, G2, 1);
+    Veclib::vmul (npnp, G3, 1, y, 1, G3, 1);
+    Veclib::vmul (npnp, G4, 1, y, 1, G4, 1);
   } 
 
-  Veclib::spow (ntot, invD, delta, 1, delta, 1);
+  Veclib::spow (npnp, invD, delta, 1, delta, 1);
 
   // -- Calculations are done.  Do null-mapping optimizations.
   
-  if (Blas::nrm2 (ntot, drdx, 1) < EPS) { delete [] drdx; drdx = 0; }
-  if (Blas::nrm2 (ntot, drdy, 1) < EPS) { delete [] drdy; drdy = 0; }
-  if (Blas::nrm2 (ntot, dsdx, 1) < EPS) { delete [] dsdx; dsdx = 0; }
-  if (Blas::nrm2 (ntot, dsdy, 1) < EPS) { delete [] dsdy; dsdy = 0; }
-  if (Blas::nrm2 (ntot, G3,   1) < EPS) { delete [] G3;   G3   = 0; }
+  if (Blas::nrm2 (npnp, drdx, 1) < EPS) { delete [] drdx; drdx = 0; }
+  if (Blas::nrm2 (npnp, drdy, 1) < EPS) { delete [] drdy; drdy = 0; }
+  if (Blas::nrm2 (npnp, dsdx, 1) < EPS) { delete [] dsdx; dsdx = 0; }
+  if (Blas::nrm2 (npnp, dsdy, 1) < EPS) { delete [] dsdy; dsdy = 0; }
+  if (Blas::nrm2 (npnp, G3,   1) < EPS) { delete [] G3;   G3   = 0; }
 
   // -- Check for family redundancies.
 
-  Femlib::adopt (ntot, &drdx );
-  Femlib::adopt (ntot, &drdy );
-  Femlib::adopt (ntot, &dsdx );
-  Femlib::adopt (ntot, &dsdy );
-  Femlib::adopt (ntot, &G1   );
-  Femlib::adopt (ntot, &G2   );
-  Femlib::adopt (ntot, &G3   );
-  Femlib::adopt (ntot, &G4   );
-  Femlib::adopt (ntot, &delta);
+  Femlib::adopt (npnp, &drdx );
+  Femlib::adopt (npnp, &drdy );
+  Femlib::adopt (npnp, &dsdx );
+  Femlib::adopt (npnp, &dsdy );
+  Femlib::adopt (npnp, &G1   );
+  Femlib::adopt (npnp, &G2   );
+  Femlib::adopt (npnp, &G3   );
+  Femlib::adopt (npnp, &G4   );
+  Femlib::adopt (npnp, &delta);
 }
 
 
@@ -247,8 +242,7 @@ void Element::bndryDsSum (const integer* btog,
 // ---------------------------------------------------------------------------
 {
   register integer i, e;
-  const integer    next = nExt();
-  register real*   wt   = G4;
+  register real*   wt = G4;
 
   for (i = 0; i < next; i++) {
     e = emap[i];
@@ -275,9 +269,6 @@ void Element::bndryMask (const integer* bmsk,
 // ---------------------------------------------------------------------------
 {
   register integer i, e;
-  const integer    ntot = nTot();
-  const integer    next = nExt();
-  const integer    nint = nInt();
 
   if (src) {
     for (i = 0; i < next; i++) {
@@ -286,15 +277,68 @@ void Element::bndryMask (const integer* bmsk,
     }
 
   } else {
-    vector<real>   work (ntot);
+    vector<real>   work (npnp);
     register real* tmp = work();
 
-    Veclib::gathr (ntot, tgt, emap, tmp);
+    Veclib::gathr (npnp, tgt, emap, tmp);
     for (i = 0; i < next; i++)
       tmp[i] = (bmsk[i]) ? tmp[i] : 0.0;
     Veclib::zero  (nint, tmp + next, 1);
-    Veclib::gathr (ntot, tmp, pmap, tgt);
+    Veclib::gathr (npnp, tmp, pmap, tgt);
   }
+}
+
+
+void Element::bndryInsert (const integer* b2g,
+			   const real*    src,
+			   real*          tgt) const
+// ---------------------------------------------------------------------------
+// Load values from globally-numbered src around periphery of element tgt.
+// ---------------------------------------------------------------------------
+{
+  Veclib::gathr_scatr (next, src, b2g, emap, tgt);
+}
+
+       
+void Element::e2g (const real*    src     ,
+		   const integer* btog    ,
+		   real*          external,
+		   real*          internal) const
+// ---------------------------------------------------------------------------
+// Load values from element storage src into (globally-numbered)
+// external & internal partitions of vector.
+// ---------------------------------------------------------------------------
+{
+  Veclib::gathr_scatr (next, src, emap, btog, external);
+  if (internal) Veclib::gathr (nint, src, emap + next, internal);
+}
+
+
+void Element::e2gSum (const real*    src     ,
+		      const integer* btog    ,
+		      real*          external,
+		      real*          internal) const
+// ---------------------------------------------------------------------------
+// Sum values from element storage src into (globally-numbered)
+// external & internal partitions of vector.
+// ---------------------------------------------------------------------------
+{
+  Veclib::gathr_scatr_sum (next, src, emap,  btog, external);
+  if (internal) Veclib::gathr_sum (nint, src, emap + next, internal);
+}
+
+
+void Element::g2e (real*          tgt,
+		   const integer* btog,
+		   const real*    external,
+		   const real*    internal) const
+// ---------------------------------------------------------------------------
+// From (globally-numbered) external & internal partitons of vector, load
+// into elemnt storage tgt.
+// ---------------------------------------------------------------------------
+{
+  Veclib::gathr_scatr (next, external, btog,  emap, tgt);
+  if (internal) Veclib::scatr (nint, internal, emap + next, tgt);
 }
 
 
@@ -328,13 +372,10 @@ void Element::e2gSumSC (real*          F   ,
 // NB: scatr_sum is broken for self-periodic elements on vector machines!
 // ---------------------------------------------------------------------------
 {
-  const integer ntot = nTot();
-  const integer nint = nInt();
-  const integer next = nExt();
-  vector<real>  work (ntot);
+  vector<real> work (npnp);
 
-  Veclib::gathr (ntot, F, emap, work());
-  Veclib::copy  (ntot, work(), 1, F, 1);
+  Veclib::gathr (npnp, F, emap, work());
+  Veclib::copy  (npnp, work(), 1, F, 1);
 
   if (nint) Blas::gemv ("T", nint,next, -1.0, hbi,nint, F + next,1, 1.0, F,1);
 
@@ -363,9 +404,6 @@ void Element::g2eSC (const real*    RHS ,
 // Input vector work has length nTot().  F is overwritten during processing.
 // ----------------------------------------------------------------------------
 {
-  const integer next = nExt();
-  const integer nint = nInt();
-
   // -- Load globally-numbered RHS into element-boundary storage.
 
   Veclib::gathr (next, RHS,  btog, work);
@@ -431,9 +469,6 @@ void Element::HelmholtzSC (const real lambda2,
 {
   const char       routine[] = "Element::HelmholtzSC";
   register integer i, j, eq, info, ij = 0;
-  const integer    ntot = nTot();
-  const integer    next = nExt();
-  const integer    nint = nInt();
   const real       **DV, **DT;
 
   // -- Construct hbb, hbi, hii partitions of elemental Helmholtz matrix.
@@ -445,7 +480,7 @@ void Element::HelmholtzSC (const real lambda2,
 
       helmRow (DV, DT, lambda2, betak2, i, j, rmat, rwrk);
 
-      Veclib::gathr (ntot, rmat, emap, rwrk);
+      Veclib::gathr (npnp, rmat, emap, rwrk);
 
       if ( (eq = pmap[ij]) < next ) {
 	Veclib::copy (next, rwrk,        1, hbb + eq * next, 1);
@@ -482,7 +517,7 @@ void Element::printMatSC (const real* hbb,
 // (Debugging) utility to print up element matrices.
 // ---------------------------------------------------------------------------
 {
-  integer i, j, next = nExt(), nint = nInt(), ntot = nTot();
+  integer i, j;
 
   cout << "-- Helmholtz matrices, element " << id << endl;
 
@@ -532,16 +567,15 @@ void Element::Helmholtz (const real lambda2,
 // rmat: vector, length np*np;
 // ---------------------------------------------------------------------------
 {
-  register integer ij   = 0;
-  const integer    ntot = nTot ();
   const real       **DV, **DT;
+  register integer ij = 0;
 
   Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
   for (register integer i = 0; i < np; i++)
     for (register integer j = 0; j < np; j++, ij++) {
       helmRow      (DV, DT, lambda2, betak2, i, j, rmat, rwrk);
-      Veclib::copy (ntot, rmat, 1, h + ij * np, 1);
+      Veclib::copy (npnp, rmat, 1, h + ij * np, 1);
     }
 }
 
@@ -558,11 +592,10 @@ void Element::HelmholtzDg (const real lambda2,
 // Construction is very similar to that in helmRow except that m, n = i, j.
 // ---------------------------------------------------------------------------
 {
-  register integer i, j, ij;
-  const integer    ntot = sqr (np);
   const real       EPS  = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
   const real**     DT;
-  register real    *dg = work, *tmp = work + ntot;
+  register integer i, j, ij;
+  register real    *dg = work, *tmp = work + npnp;
   real             r2, HCon;
 
   Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, 0, &DT);
@@ -594,7 +627,7 @@ void Element::HelmholtzDg (const real lambda2,
       }
   }
 
-  Veclib::gathr (ntot, work, emap, diag);
+  Veclib::gathr (npnp, work, emap, diag);
 }
 
 
@@ -637,14 +670,13 @@ void Element::helmRow (const real**  DV     ,
 // indentities, and are not required.
 // ---------------------------------------------------------------------------
 {
-  register integer m, n;
-  const integer    ntot = sqr (np);
   const real       r2   = sqr (ymesh[Veclib::row_major (i, j, np)]);
   const real       EPS  = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
   const real       hCon = (Geometry::system() == Geometry::Cylindrical &&
 			r2 > EPS) ? (betak2 / r2 + lambda2) : betak2 + lambda2;
+  register integer m, n;
 
-  Veclib::zero (ntot, hij, 1);
+  Veclib::zero (npnp, hij, 1);
 
   for (n = 0; n < np; n++) {
     Veclib::vmul (np, DT[j], 1, DT[n], 1, work, 1);
@@ -683,14 +715,13 @@ void Element::HelmholtzKern (const real lambda2,
 // ---------------------------------------------------------------------------
 {
   register integer ij;
-  const integer    ntot = nTot();
   register real    tmp, r2, hCon;
   register real    *g1 = G1, *g2 = G2, *g3 = G3, *g4 = G4, *r = ymesh;
   const real       EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
   if (Geometry::system() == Geometry::Cylindrical) {
     if (g3) {
-      for (ij = 0; ij < ntot; ij++) {
+      for (ij = 0; ij < npnp; ij++) {
 	r2       = r[ij] * r[ij];
 	hCon     = (r2 > EPS) ? (betak2 / r2 + lambda2) : 0.0;
 	tmp      = R [ij];
@@ -699,7 +730,7 @@ void Element::HelmholtzKern (const real lambda2,
 	tgt[ij]  = g4[ij] * src[ij] * hCon;
       }
     } else {
-      for (ij = 0; ij < ntot; ij++) {
+      for (ij = 0; ij < npnp; ij++) {
 	r2       = r[ij] * r[ij];
 	hCon     = (r2 > EPS) ? (betak2 / r2 + lambda2) : 0.0;
 	R  [ij] *= g1[ij];
@@ -711,14 +742,14 @@ void Element::HelmholtzKern (const real lambda2,
   } else {			// -- Cartesian.
     hCon = betak2 + lambda2;
     if (g3) {
-      for (ij = 0; ij < ntot; ij++) {
+      for (ij = 0; ij < npnp; ij++) {
 	tmp      = R [ij];
 	R  [ij]  = g1[ij] * R  [ij] + g3[ij] * S  [ij];
 	S  [ij]  = g2[ij] * S  [ij] + g3[ij] * tmp;
 	tgt[ij]  = g4[ij] * src[ij] * hCon;
       }
     } else {
-      for (ij = 0; ij < ntot; ij++) {
+      for (ij = 0; ij < npnp; ij++) {
 	R  [ij] *= g1[ij];
 	S  [ij] *= g2[ij];
 	tgt[ij]  = g4[ij] * src[ij] * hCon;
@@ -735,29 +766,28 @@ void Element::grad (real*        tgtA,
 		    real*        work) const
 // ---------------------------------------------------------------------------
 // Operate partial derivative d(tgt)/dxi = d_dr*drdxi + d_ds*dsdxi,
-// where the appropriate component of gradient is selected by input pointers.
-// Values are computed at node points.
+// where the appropriate component of gradient is selected by input
+// pointers.  Values are computed at node points.
 //
 // Work area must be 2*nTot() long.
 // ---------------------------------------------------------------------------
 {
-  const integer ntot = nTot();
-  real*         tmpA = work;
-  real*         tmpB = tmpA + ntot;
-  real*         tgt;
+  real* tmpA = work;
+  real* tmpB = tmpA + npnp;
+  real* tgt;
 
   if ((tgt = tgtA)) {
     if (drdx && dsdx) {
       Blas::mxm     (tgt, np, *DT, np, tmpA, np);
       Blas::mxm     (*DV, np, tgt, np, tmpB, np);
-      Veclib::vmul  (ntot, tmpA, 1, drdx, 1, tmpA, 1);
-      Veclib::vvtvp (ntot, tmpB, 1, dsdx, 1, tmpA, 1, tgt, 1);
+      Veclib::vmul  (npnp, tmpA, 1, drdx, 1, tmpA, 1);
+      Veclib::vvtvp (npnp, tmpB, 1, dsdx, 1, tmpA, 1, tgt, 1);
     } else if (drdx) {
       Blas::mxm     (tgt, np, *DT, np, tmpA, np);
-      Veclib::vmul  (ntot, tmpA, 1, drdx, 1, tgt, 1);
+      Veclib::vmul  (npnp, tmpA, 1, drdx, 1, tgt, 1);
     } else {
       Blas::mxm     (*DV, np, tgt, np, tmpB, np);
-      Veclib::vmul  (ntot, tmpB, 1, dsdx, 1, tgt, 1);
+      Veclib::vmul  (npnp, tmpB, 1, dsdx, 1, tgt, 1);
     }
   }
 
@@ -765,16 +795,42 @@ void Element::grad (real*        tgtA,
     if (drdy && dsdy) {
       Blas::mxm     (tgt, np, *DT, np, tmpA, np);
       Blas::mxm     (*DV, np, tgt, np, tmpB, np);
-      Veclib::vmul  (ntot, tmpA, 1, drdy, 1, tmpA, 1);
-      Veclib::vvtvp (ntot, tmpB, 1, dsdy, 1, tmpA, 1, tgt, 1);
+      Veclib::vmul  (npnp, tmpA, 1, drdy, 1, tmpA, 1);
+      Veclib::vvtvp (npnp, tmpB, 1, dsdy, 1, tmpA, 1, tgt, 1);
     } else if (drdy) {
       Blas::mxm     (tgt, np, *DT, np, tmpA, np);
-      Veclib::vmul  (ntot, tmpA, 1, drdy, 1, tgt, 1);
+      Veclib::vmul  (npnp, tmpA, 1, drdy, 1, tgt, 1);
     } else {
       Blas::mxm     (*DV, np, tgt, np, tmpB, np);
-      Veclib::vmul  (ntot, tmpB, 1, dsdy, 1, tgt, 1);
+      Veclib::vmul  (npnp, tmpB, 1, dsdy, 1, tgt, 1);
     }
   }
+}
+
+
+void Element::gradX (const real* xr,
+		     const real* xs,
+		     real*       dx) const
+// ---------------------------------------------------------------------------
+// Partial implementation of x-gradient, for use with Femlib::grad2.
+// ---------------------------------------------------------------------------
+{
+  if (drdx && dsdx) Veclib::vvtvvtp (npnp, xr,1,drdx,1,xs,1,dsdx,1,dx,1);
+  else if (drdx)    Veclib::vmul    (npnp, xr,1,drdx,1,dx,1);
+  else              Veclib::vmul    (npnp, xs,1,dsdx,1,dx,1);
+}
+
+
+void Element::gradY (const real* yr,
+		     const real* ys,
+		     real*       dy) const
+// ---------------------------------------------------------------------------
+// Partial implementation of y-gradient, for use with Femlib::grad2.
+// ---------------------------------------------------------------------------
+{
+  if (drdy && dsdy) Veclib::vvtvvtp (npnp, yr,1,drdy,1,ys,1,dsdy,1,dy,1);
+  else if (drdy)    Veclib::vmul    (npnp, yr,1,drdy,1,dy,1);
+  else              Veclib::vmul    (npnp, ys,1,dsdy,1,dy,1);
 }
 
 
@@ -796,7 +852,7 @@ void Element::sideGeom (const integer side,
 // For cylindrical coordinates the area variable is weighted by y (i.e. r).
 // ---------------------------------------------------------------------------
 {
-  if (side < 0 || side >= ns)
+  if (side < 0 || side >= 4)
     message ("Element::sideGeom", "illegal side", ERROR);
 
   register integer low, skip;
@@ -904,11 +960,11 @@ void Element::sideEval (const integer side,
 // parameters previously set).
 // ---------------------------------------------------------------------------
 {
-  register  integer estart, skip, bstart;
-  terminal (side, estart, skip, bstart);
-  
   vector<real> work(np + np);
   real         *x, *y;
+
+  register  integer estart, skip, bstart;
+  terminal (side, estart, skip, bstart);
 
   x = work();
   y = x + np;
@@ -997,15 +1053,14 @@ void Element::sideSet (const integer  side,
 // Load edge vector src into globally-numbered tgt, CCW edge traverse order.
 // ---------------------------------------------------------------------------
 {
-  register integer estart, skip, bstart;
   const integer    nm = np - 1;
+  register integer estart, skip, bstart;
 
   terminal (side, estart, skip, bstart);
 
   Veclib::scatr (nm, src, bmap + bstart, tgt);
-  if   (side == ns - 1) tgt[bmap[          0]] = src[nm];
-  else                  tgt[bmap[bstart + nm]] = src[nm];
-
+  if   (side == 3) tgt[bmap[          0]] = src[nm];
+  else             tgt[bmap[bstart + nm]] = src[nm];
 }
 
 
@@ -1017,6 +1072,7 @@ void Element::sideGet (const integer  side,
 // ---------------------------------------------------------------------------
 {
   register integer estart, skip, bstart;
+
   terminal (side, estart, skip, bstart);
 
   Veclib::copy (np, src + estart, skip, tgt, 1);
@@ -1034,17 +1090,17 @@ void Element::sideDsSum (const integer  side,
 // Lobatto quadrature.
 // ---------------------------------------------------------------------------
 {
-  const integer nm  = np - 1;
+  const integer nm = np - 1;
   vector<real>  tmp (np);
-  
   integer estart, skip, bstart;
+
   terminal (side, estart, skip, bstart);
 
   Veclib::vmul (np, src, 1, area, 1, tmp(), 1);
 
   Veclib::scatr_sum (nm, tmp(), bmap + bstart, tgt);
-  if   (side == ns - 1) tgt[bmap[          0]] += tmp[nm];
-  else                  tgt[bmap[bstart + nm]] += tmp[nm];
+  if   (side == 3) tgt[bmap[          0]] += tmp[nm];
+  else             tgt[bmap[bstart + nm]] += tmp[nm];
 }
 
 
@@ -1056,7 +1112,7 @@ void Element::evaluate (const char* func,
 // ---------------------------------------------------------------------------
 {
   Femlib::prepVec  ("x y", func);
-  Femlib__parseVec (nTot (), xmesh, ymesh, tgt);
+  Femlib__parseVec (npnp, xmesh, ymesh, tgt);
 }
 
 
@@ -1065,18 +1121,55 @@ real Element::integral (const char* func) const
 // Return integral of func over element, using element quadrature rule.
 // ---------------------------------------------------------------------------
 {
-  real          intgrl;
-  const integer ntot = np * np;
-  vector<real>  tmp (ntot);
+  real         intgrl;
+  vector<real> tmp (npnp);
 
   Femlib::prepVec  ("x y", func);
-  Femlib__parseVec (ntot, xmesh, ymesh, tmp());
+  Femlib__parseVec (npnp, xmesh, ymesh, tmp());
 
-  Veclib::vmul (ntot, tmp(), 1, G4, 1, tmp(), 1);
+  Veclib::vmul (npnp, tmp(), 1, G4, 1, tmp(), 1);
 
-  intgrl = Veclib::sum (ntot, tmp(), 1);
+  intgrl = Veclib::sum (npnp, tmp(), 1);
   
   return intgrl;
+}
+
+
+real Element::integral (const real* src,
+			real*       tmp) const
+// ---------------------------------------------------------------------------
+// Discrete approximation to the integral of element src vector.
+// ---------------------------------------------------------------------------
+{
+  Veclib::vmul (npnp, src, 1, G4,  1, tmp, 1);
+  return Veclib::sum (npnp, tmp, 1);
+}
+
+
+real Element::area () const
+// ---------------------------------------------------------------------------
+// Discrete approximation to area of element, using GLL quadrature.
+// ---------------------------------------------------------------------------
+{ 
+  return Veclib::sum (npnp, G4, 1);
+}
+
+
+void Element::weight (real* tgt) const
+// ---------------------------------------------------------------------------
+// Multiply tgt by elemental mass matrix.
+// ---------------------------------------------------------------------------
+{
+  Veclib::vmul (npnp, tgt, 1, G4, 1, tgt, 1);
+}
+
+
+void Element::lengthScale (real* tgt) const
+// ---------------------------------------------------------------------------
+// Load tgt with information about local elemental length scale.
+// ---------------------------------------------------------------------------
+{
+  Veclib::copy (npnp, delta, 1, tgt, 1);
 }
 
 
@@ -1085,7 +1178,7 @@ real Element::norm_inf (const real* src) const
 // Return infinity-norm of element value.
 // ---------------------------------------------------------------------------
 {
-  return fabs (src[Blas::iamax (nTot(), src, 1)]);
+  return fabs (src[Blas::iamax (npnp, src, 1)]);
 }
 
 
@@ -1095,11 +1188,10 @@ real Element::norm_L2 (const real* src) const
 // ---------------------------------------------------------------------------
 {
   register integer i;
-  register real    L2   = 0.0;
-  const integer    ntot = sqr (np);
-  register real*   dA   = G4;
+  register real    L2 = 0.0;
+  register real*   dA = G4;
 
-  for (i = 0; i < ntot; i++) L2 += src[i] * src[i] * dA[i];
+  for (i = 0; i < npnp; i++) L2 += src[i] * src[i] * dA[i];
 
   return sqrt (L2);
 }
@@ -1112,27 +1204,25 @@ real Element::norm_H1 (const real* src) const
 {
   register real    H1 = 0;
   register integer i;
-  const integer    ntot = sqr (np);
-  
-  vector<real>     work (3 * ntot);
-  register real    *dA = G4, *u = work(), *gw = u + ntot;
+  vector<real>     work (3 * npnp);
+  register real    *dA = G4, *u = work(), *gw = u + npnp;
   const real       **DV, **DT;
 
   Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
   // -- Add in L2 norm of u.
 
-  for (i = 0; i < ntot; i++) H1 += src[i] * src[i] * dA[i];
+  for (i = 0; i < npnp; i++) H1 += src[i] * src[i] * dA[i];
 
   // -- Add in L2 norm of grad u.
 
-  Veclib::copy (ntot, src, 1, u, 1);
+  Veclib::copy (npnp, src, 1, u, 1);
   grad (u, 0, DV, DT, gw);
-  for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * dA[i];
+  for (i = 0; i < npnp; i++) H1 += u[i] * u[i] * dA[i];
 
-  Veclib::copy (ntot, src, 1, u, 1);
+  Veclib::copy (npnp, src, 1, u, 1);
   grad (0, u, DV, DT, gw);
-  for (i = 0; i < ntot; i++) H1 += u[i] * u[i] * dA[i];
+  for (i = 0; i < npnp; i++) H1 += u[i] * u[i] * dA[i];
 
   return sqrt (H1);
 }
@@ -1147,14 +1237,22 @@ void Element::divR (real* src) const
   register integer i;
   register real    rad, rinv;
   register real*   y   = ymesh;
-  const integer    N   = nTot();
   const real       EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
-  for (i = 0; i < N; i++) {
+  for (i = 0; i < npnp; i++) {
     rad     = y[i];
     rinv    = (rad > EPS) ? 1.0 / rad : 0.0;
     src[i] *= rinv;
   }
+}
+
+
+void Element::mulR (real* src) const
+// ---------------------------------------------------------------------------
+// Multiply src by y (i.e. r in cylindrical coordinates).
+// ---------------------------------------------------------------------------
+{
+  Veclib::vmul (npnp, src, 1, ymesh, 1, src, 1);
 }
 
 
@@ -1165,6 +1263,7 @@ void Element::sideGetR (const integer side,
 // ---------------------------------------------------------------------------
 {
   register integer estart, skip, bstart;
+
   terminal (side, estart, skip, bstart);
 
   Veclib::copy (np, ymesh + estart, skip, tgt, 1);
@@ -1298,21 +1397,20 @@ integer Element::locate (const real    x    ,
   F  = J  + 4;
   
   if (guess) {
-    const integer    ntot = nTot();
-    vector<real> tmp (2 * ntot);
+    vector<real> tmp (2 * npnp);
     const real*  knot;
-    real         *tx = tmp(), *ty = tmp() + ntot;
+    real         *tx = tmp(), *ty = tmp() + npnp;
 
     const real diag =
       max (hypot(xmesh[np*np-1]  -xmesh[0],    ymesh[np*np-1]  -ymesh[0])   ,
 	   hypot(xmesh[np*(np-1)]-xmesh[np-1], ymesh[np*(np-1)]-ymesh[np-1]));
 
     Femlib::quad     (LL, np, np, &knot, 0, 0, 0, 0, 0, 0);
-    Veclib::ssub     (ntot, x, xmesh, 1, tx, 1);
-    Veclib::ssub     (ntot, y, ymesh, 1, ty, 1);
-    Veclib::vvtvvtp  (ntot, tx, 1, tx, 1, ty, 1, ty, 1, tx, 1);
+    Veclib::ssub     (npnp, x, xmesh, 1, tx, 1);
+    Veclib::ssub     (npnp, y, ymesh, 1, ty, 1);
+    Veclib::vvtvvtp  (npnp, tx, 1, tx, 1, ty, 1, ty, 1, tx, 1);
     
-    i = Veclib::imin (ntot, tx, 1);
+    i = Veclib::imin (npnp, tx, 1);
 
     if (tx[i] - diag * diag > 0.0) return 0;
 
@@ -1405,22 +1503,21 @@ real Element::CFL (const real  d,
 // ---------------------------------------------------------------------------
 {
   register integer i;
-  const integer    N = Geometry::nTotElmt();
-  vector<real>     work (N);
+  vector<real>     work (npnp);
   register real*   tmp = work();
 
-  Veclib::zero (N, tmp, 1);
+  Veclib::zero (npnp, tmp, 1);
 
   if        (u) {
-    if (drdx) for (i = 0; i < N; i++) tmp[i] += d * fabs (drdx[i]);
-    if (dsdx) for (i = 0; i < N; i++) tmp[i] += d * fabs (dsdx[i]);
-    Veclib::vdiv (N, u, 1, tmp, 1, tmp, 1);
+    if (drdx) for (i = 0; i < npnp; i++) tmp[i] += d * fabs (drdx[i]);
+    if (dsdx) for (i = 0; i < npnp; i++) tmp[i] += d * fabs (dsdx[i]);
+    Veclib::vdiv (npnp, u, 1, tmp, 1, tmp, 1);
   } else if (v) {
-    if (drdy) for (i = 0; i < N; i++) tmp[i] += d * fabs (drdy[i]);
-    if (dsdy) for (i = 0; i < N; i++) tmp[i] += d * fabs (dsdy[i]);
-    Veclib::vdiv (N, v, 1, tmp, 1, tmp, 1);
+    if (drdy) for (i = 0; i < npnp; i++) tmp[i] += d * fabs (drdy[i]);
+    if (dsdy) for (i = 0; i < npnp; i++) tmp[i] += d * fabs (dsdy[i]);
+    Veclib::vdiv (npnp, v, 1, tmp, 1, tmp, 1);
   }
 
-  i = Blas::iamax (N, tmp, 1);
+  i = Blas::iamax (npnp, tmp, 1);
   return fabs (tmp[i]);
 }
