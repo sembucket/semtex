@@ -62,12 +62,14 @@ install:
 	rm -f $(SEM)/include/femdef.h;				\
 	rm -f $(SEM)/include/femlib.h;				\
 	rm -f $(SEM)/include/Femlib.h;				\
-	rm -f $(SEM)/include/nr77.h
+	rm -f $(SEM)/include/nr77.h;				\
+	rm -r $(SEM)/include/polylib.h
 
 	cp femdef.h    $(SEM)/include	;			\
 	cp femlib.h    $(SEM)/include	;			\
 	cp Femlib.h    $(SEM)/include	;			\
 	cp nr77.h      $(SEM)/include	;			\
+	cp polylib.h   $(SEM)/include
 
 # ----------------------------------------------------------------------------
 # Ensure any new default parser variables are picked up.
