@@ -7,9 +7,10 @@
 
 #include <stdio.h>
 #include <malloc.h>
-#include <femdef.h>
-#include <veclib.h>
-#include <femlib.h>
+
+#include <cfemdef>
+#include <cveclib>
+#include <cfemlib>
 
 typedef struct mapping {
   integer         np   ;

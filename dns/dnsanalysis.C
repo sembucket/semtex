@@ -2,12 +2,12 @@
 // This version of analysis.C is specialized so that it computes and
 // prints out forces exerted on "wall" boundary group.
 //
-// Copyright (C) 1994, 2000 Hugh Blackburn
+// Copyright (c) 1994,2003 Hugh Blackburn
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
  
-#include "dns.h"
+#include "dns_h"
 
 
 DNSAnalyser::DNSAnalyser (Domain* D   ,

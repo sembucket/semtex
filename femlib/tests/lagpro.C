@@ -12,20 +12,20 @@
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include <stdlib.h>
-#include <math.h>
-#include <iostream.h>
-#include <iomanip.h>
-#include <fstream.h>
+#include <cstdlib>
+#include <cmath>
+#include <iostream>
+#include <iomanip>
+#include <fstream>
 
 using namespace std;
 
-#include <femdef.h>
+#include <cfemdef>
 #include <Array.h>
-#include <Veclib.h>
-#include <Femlib.h>
-#include <Blas.h>
-#include <Utility.h>
+#include <veclib_h>
+#include <femlib_h>
+#include <blas_h>
+#include <utility_h>
 #include <Stack.h>
 
 static char prog[] = "lagpro";

@@ -13,7 +13,7 @@
 
 static char RCS[] = "$Id$";
 
-#include <Sem.h>
+#include <sem_h>
 
 
 Analyser::Analyser (Domain* D   ,

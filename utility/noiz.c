@@ -2,7 +2,7 @@
  * noiz.c: add a random Gaussian perturbation to a velocity field.
  *         Optionally filter out a named mode.
  *
- * Copyright (c) 1996--1999 Hugh Blackburn
+ * Copyright (c) 1996,2003 Hugh Blackburn
  *
  * USAGE
  * -----
@@ -28,9 +28,9 @@
 #include <ctype.h>
 #include <stdlib.h>
 
-#include <femlib.h>
-#include <femdef.h>
-#include <veclib.h>
+#include <cfemlib>
+#include <cfemdef>
+#include <cveclib>
 
 #define IA    16807
 #define IM    2147483647

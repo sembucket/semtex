@@ -1,7 +1,7 @@
 /*****************************************************************************
  * rstress.c:  Compute Reynolds stresses.
  *
- * Copyright (c) 1997--1999 Hugh Blackburn
+ * Copyright (c) 1997,1999 Hugh Blackburn
  *
  * SYNOPSIS
  * --------
@@ -38,8 +38,8 @@
 #include <time.h>
 #include <string.h>
 
-#include <femdef.h>
-#include <veclib.h>
+#include <cfemdef>
+#include <cveclib>
 
 static char  prog[]    = "rstress";
 static char* hdr_fmt[] = {	 /* -- Header output formatting. */

@@ -14,11 +14,11 @@
 
 using namespace std;
 
-#include <femdef.h>
-#include <Veclib.h>
-#include <Femlib.h>
-#include <Blas.h>
-#include <Utility.h>
+#include <cfemdef>
+#include <veclib_h>
+#include <femlib_h>
+#include <blas_h>
+#include <utility_h>
 
 #define TPR2D 0
 #define GRAD2 1

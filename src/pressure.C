@@ -18,7 +18,7 @@
 
 static char RCS[] = "$Id$";
 
-#include <Sem.h>
+#include <sem_h>
 
 real**** PBCmgr::_Pnx = 0;
 real**** PBCmgr::_Pny = 0;

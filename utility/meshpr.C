@@ -25,10 +25,10 @@
 
 using namespace std;
 
-#include <femdef.h>
-#include <Femlib.h>
-#include <Utility.h>
-#include <Mesh.h>
+#include <cfemdef>
+#include <femlib_h>
+#include <utility_h>
+#include <mesh_h>
 
 static char prog[] = "meshpr";
 static void getargs (int, char**, char*&, int&, int&,

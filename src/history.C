@@ -21,7 +21,7 @@
 
 static char RCS[] = "$Id$";
 
-#include <Sem.h>
+#include <sem_h>
 
 
 const Element* HistoryPoint::locate (const real        x   ,

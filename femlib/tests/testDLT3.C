@@ -4,14 +4,18 @@
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include <stdlib.h>
-#include <iostream.h>
-#include <iomanip.h>
+#include <cstdlib>
+
+#include <iostream>
+#include <iomanip>
+
+using namespace std;
+
 #include <Array.h>
-#include <Veclib.h>
-#include <Femlib.h>
-#include <Blas.h>
-#include <Utility.h>
+#include <veclib_h>
+#include <femlib_h>
+#include <blas_h>
+#include <utility_h>
 
 #define SIZE 6
 

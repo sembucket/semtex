@@ -16,14 +16,14 @@ all: essential plain nosrc meshpr calc addfield sem2nek \
 # Standard rules and definitions.
 #
 include $(VPATH)/Makefile
-SEMHDR = Sem.h
+SEMHDR = sem_h
 
 # ----------------------------------------------------------------------------
 # Build compare, exact solution comparison/restart utility.
 #
-COMOBJ = compare.o bsys.o BCmgr.o boundary.o condition.o family.o	\
-	 feml.o mesh.o element.o auxfield.o geometry.o pressure.o	\
-         integration.o misc.o
+COMOBJ = compare.o bsys.o BCmgr.o boundary.o condition.o edge.o		\
+	 family.o feml.o mesh.o element.o auxfield.o geometry.o		\
+         pressure.o integration.o misc.o
 $(COMOBJ): $(SEMHDR)
 
 compare: $(COMOBJ)
@@ -74,17 +74,6 @@ $(ADFOBJ): $(SEMHDR)
 
 addfield: $(ADFOBJ)
 	$(LD) -o $@ $(ADFOBJ) $(LDFLAGS)
-
-# ----------------------------------------------------------------------------
-# Build addvort utility (just compute the vorticity field).
-#
-ADDOBJ = addvort.o auxfield.o BCmgr.o boundary.o bsys.o condition.o 	\
-	 domain.o element.o family.o feml.o field.o geometry.o		\
-	 integration.o mesh.o misc.o pressure.o
-$(ADDOBJ): $(SEMHDR)
-
-addvort: $(ADDOBJ)
-	$(LD) -o $@ $(ADDOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build variant of addfield that multiplies enstrophy by sign of another var.

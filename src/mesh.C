@@ -96,12 +96,12 @@ static char RCS[] = "$Id$";
 
 using namespace std;
 
-#include <Utility.h>
-#include <Femlib.h>
-#include <Veclib.h>
+#include <utility_h>
+#include <femlib_h>
+#include <veclib_h>
 #include <nr77.h>
 
-#include <Mesh.h>
+#include <mesh_h>
 
 
 #define VERBOSE if (verbose)

@@ -3,7 +3,7 @@
 //
 // Copyright (c) 1994,2003 Hugh Blackburn
 //
-// Most routines are inlined in header file Geometry.h
+// Most routines are inlined in header file geometry
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -12,9 +12,9 @@ static char RCS[] = "$Id$";
 #include <iostream>
 
 #include <femdef.h>
-#include <Utility.h>
-#include <Geometry.h>
-#include <Femlib.h>
+#include <utility_h>
+#include <geometry_h>
+#include <femlib_h>
 
 int                Geometry::_pid   = 0;
 int                Geometry::_nproc = 0;

@@ -28,7 +28,7 @@
 
 static char RCS[] = "$Id$";
 
-#include <Sem.h>
+#include <sem_h>
 
 static char prog[] = "elliptic";
 static void getargs    (int, char**, char*&);

@@ -59,8 +59,8 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#include <femdef.h>
-#include <veclib.h>
+#include <cfemdef>
+#include <cveclib>
 
 #if 1
 #define HASHSIZE 199
@@ -160,7 +160,7 @@ static struct {			    /* -- Built-in functions. */
   NULL, NULL, NULL
 };
 
-#include "defaults.h"
+#include "cdefaults"
 
 %}
 /* -- Yacc grammar follows: */

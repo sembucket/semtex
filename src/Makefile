@@ -240,11 +240,11 @@ endif
 # Installation of header files.
 #
 default:
-	rm -f   ../include/Sem.h		\
-		../include/Feml.h		\
-		../include/Mesh.h		\
-		../include/Geometry.h 
-	cp Sem.h Feml.h Mesh.h Geometry.h ../include
+	rm -f   ../include/sem_h			\
+		../include/feml_h			\
+		../include/mesh_h			\
+		../include/geometry_h 
+	cp sem_h feml_h mesh_h geometry_h ../include
 
 #-----------------------------------------------------------------------------
 # Force installation of headers from another make.

@@ -15,8 +15,8 @@
 // </keyword>
 //
 // 1. Keywords case-insensitive on input, converted to uppercase internally.
-// 2. There are reserved keywords; see Feml.h (and below).
-// 3. There is a maximum number of keywords (KEYWORDS_MAX) set in Feml.h.
+// 2. There are reserved keywords; see feml (and below).
+// 3. There is a maximum number of keywords (KEYWORDS_MAX) set in feml.
 // 4. No restriction is placed on options, or on the contents of a section.
 // 5. After seeking, input stream is repositioned just following keyword.
 ///////////////////////////////////////////////////////////////////////////////
@@ -29,9 +29,9 @@ static char RCS[] = "$Id$";
 #include <cctype>
 
 #include <femdef.h>
-#include <Utility.h>
-#include <Feml.h>
-#include <Femlib.h>
+#include <utility_h>
+#include <feml_h>
+#include <femlib_h>
 
 
 FEML::FEML (const char* session)

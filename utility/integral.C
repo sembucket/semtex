@@ -20,7 +20,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Sem.h>
+#include <sem_h>
 
 static char    prog[]  = "integral";
 static integer verbose = 0;
@@ -73,11 +73,10 @@ int main (int    argc,
     Geometry::Cylindrical : Geometry::Cartesian;
 
   Geometry::set (NP, NZ, NEL, space);
-  Femlib::mesh  (GLL, GLL, NP, NP, &z, 0, 0, 0, 0);
   Esys.resize   (NEL);
 
   for (i = 0; i < NEL; i++) {
-    Esys[i] = new Element (i, M, z, NP);
+    Esys[i] = new Element (i, NP, M);
     Area   += Esys[i] -> area();
   }
   cout << Area << endl;

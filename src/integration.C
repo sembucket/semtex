@@ -10,7 +10,7 @@
 
 static char RCS[] = "$Id$";
 
-#include <Sem.h>
+#include <sem_h>
 
 
 const integer Integration::OrderMax = 4;

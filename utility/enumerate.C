@@ -31,11 +31,11 @@
 
 using namespace std;
 
-#include <femdef.h>
-#include <Femlib.h>
-#include <Utility.h>
-#include <Mesh.h>
-#include <Veclib.h>
+#include <cfemdef>
+#include <femlib_h>
+#include <utility_h>
+#include <mesh_h>
+#include <veclib_h>
 
 class Nsys {
 friend void printup (const char*, vector<Nsys*>&, const integer);

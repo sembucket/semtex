@@ -11,9 +11,10 @@
 
 #include <stdio.h>
 #include <malloc.h>
-#include <femdef.h>
-#include <veclib.h>
-#include <femlib.h>
+
+#include <cfemdef>
+#include <cveclib>
+#include <cfemlib>
 
 void dDFTr (double*       data,
 	    const integer tlen,

@@ -6,7 +6,7 @@
 
 static char RCS[] = "$Id$";
 
-#include <Sem.h>
+#include <sem_h>
 
 Element::Element (const int   id,
 		  const int   np,

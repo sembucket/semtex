@@ -17,8 +17,8 @@
 
 #include <stdio.h>
 #include <malloc.h>
-#include <femdef.h>
-#include <veclib.h>
+#include <cfemdef>
+#include <cveclib>
 
 typedef struct ivect {
   integer       size ;		/* Length of stored vector.           */

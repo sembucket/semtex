@@ -8,7 +8,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "dns.h"
+#include "dns_h"
 
 
 void nonLinear (Domain*       D ,

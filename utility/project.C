@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // project.C:  Project solution files to different interpolation orders.
 //
-// Copyright (c) 1996 Hugh Blackburn
+// Copyright (c) 1996,2003 Hugh Blackburn
 //
 // SYNOPSIS
 // --------
@@ -28,7 +28,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Sem.h>
+#include <sem_h>
 
 static int uniform = 0;
 
