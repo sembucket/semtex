@@ -70,7 +70,7 @@ private:
 static const integer FldMax = 16;
 
 static char prog[] =  "enumerate";
-static void getargs   (integer, char**, char*&, integer&, integer&, integer&);
+static void getargs   (int, char**, char*&, integer&, integer&, integer&);
 static char axial     (FEML&);
 static void getfields (FEML&, char*, const integer);
 static void checkVBCs (FEML&, const char*);
@@ -78,8 +78,8 @@ static void checkABCs (FEML&, const char);
        void printup   (const char*y, vector<Nsys*>&, const int);
 
 
-integer main (integer argc,
-	      char**  argv)
+int main (int    argc,
+	  char** argv)
 // ---------------------------------------------------------------------------
 // Determine, from BCs section of FEML file, list of fields for which
 // numbering schemes are to be constructed.
@@ -157,7 +157,7 @@ integer main (integer argc,
 }
 
 
-static void getargs (integer  argc   , 
+static void getargs (int      argc   , 
 		     char**   argv   ,
 		     char*&   session,
 		     integer& verb   ,
