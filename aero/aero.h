@@ -10,29 +10,18 @@
 class Body;
 
 
-class Analyser
+class AeroAnalyser : public Analyser
 // ===========================================================================
 // Implement step-by-step processing and output control for flow solver.
 // ===========================================================================
 {
 public:
-  Analyser  (Domain&, FEML&, Body&);
-  ~Analyser () { }
-
+  AeroAnalyser (Domain&, FEML&, Body&);
   void analyse (AuxField***);
 
 private:
-  Domain&               src;
-  ofstream              par_strm, his_strm;
-  vector<HistoryPoint*> history;
-  List<FluidParticle*>  particle;
-  List<Point*>          initial;
-
-  Body&     body;
-  ofstream  sta_strm;
-
-  void modalEnergy () const;
-  void divergence  (AuxField***) const;
+  Body&    body;
+  ofstream sta_strm;
 };
 
 
@@ -198,3 +187,4 @@ private:
   Vector       traction[3];	// -- Pressure, viscous, total forces.
 };
 
+void NavierStokes (Domain*, Body*, AeroAnalyser*);
