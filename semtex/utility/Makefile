@@ -53,7 +53,7 @@ CC	 = gcc
 CXX	 = g++
 LD	 = g++
 CXXFLAGS = $(DEFINES) -O2
-F77LIBS  = -llapack -lblas -lf2c
+F77LIBS  = -llapack -lblas -lg2c
 LDFLAGS  = -O2 -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
 	   -lfem -lalp $(F77LIBS) -lm
 endif
