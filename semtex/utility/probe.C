@@ -112,7 +112,7 @@ int main (int    argc,
 
   // -- Load field file, interpolate within it.
 
-  cout.precision (10);
+  cout.precision (8);
 
   while (getDump (fldfile, u, Esys, NP, NZ, NEL)) {
 
@@ -227,7 +227,7 @@ static void findPoints (vector<Point*>&   point,
 
   elmt = 0;
 
-  cerr.precision (10);
+  cerr.precision (8);
 
   for (i = 0; i < NPT; i++) {
     x = point[i] -> x;
