@@ -1102,8 +1102,8 @@ real AuxField::probe (const Element* E,
       Femlib::send (lbuf, nZP, 0);
 
   } else {
-    if (nZ < 3)
-      value = E -> probe (r, s, plane[0] + offset);
+    if (nZ < 3)			// -- Hey!  This is 2D!
+      return value = E -> probe (r, s, plane[0] + offset);
   
     else {
       for (k = 0; k < nZ; k++)
