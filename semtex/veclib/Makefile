@@ -18,36 +18,50 @@ LIB     = libalp.a
 OPTIONS  = -g
 
 CC       = cc
-FC	 = f77
 CFLAGS	 = $(OPTIONS)
-FFLAGS   = $(OPTIONS)
 ARFLAGS	 = cr
 RANLIB   =
 
 # ----------- Compiler options for specific machines: ------------------------
 
 ifeq ($(ARCH),IRIX)			# -- SGI IRIX 5.3
-CFLAGS     = -fullwarn -O2 -sopt
-FFLAGS     = -O2 -sopt
+CPPFLAGS   = -I../include
+CFLAGS     = -fullwarn -O2 -sopt -mips2
 endif
 
 ifeq ($(ARCH),IRIX64)			# -- SGI IRIX 64-bit
-CFLAGS     = -fullwarn -g
-FFLAGS     = -g
+CPPFLAGS   = -I../include
+CFLAGS     = -fullwarn -mips4 -O3
 endif
 
 ifeq ($(ARCH),OSF1)			# -- DEC Alpha OSF1
-FC	   = f90
-CFLAGS     = -migrate -O4 -tune host
-FFLAGS     = -migrate -O4 -tune host
+CPPFLAGS   = -I../include
+CC         = cc
+CFLAGS     = -migrate -fast -O4 -tune host
+#CC	   = kcc
+#CFLAGS    = -ckapargs='-optimize=5 -roundoff=3 -scaleropt=3'
 endif
 
 ifeq ($(ARCH),Linux)			# -- GNU/Linux system
+CPPFLAGS   = -I../include
 CC         = gcc
-FC         = g77
 CFLAGS     = -O3
-FFLAGS     = -O3
 RANLIB     = ranlib
+endif
+
+ifeq ($(ARCH),UNIX_System_V)            # -- Fujitsu VPP300
+CPPFLAGS   = -I../include
+CC         = vcc
+#CFLAGS     = -Wv,-ad
+CFLAGS     = -Wv,-m3,-Om
+RANLIB     = 
+endif
+
+ifeq ($(ARCH),SUPER-UX)                 # -- NEC SX-4
+CPPFLAGS   = -I../include
+CC         = cc
+CFLAGS     = -pvctl,fullmsg -c -O nooverlap
+RANLIB     = 
 endif
 
 # ----------------------------------------------------------------------------
@@ -58,14 +72,16 @@ UTIL       = util
 
 MEMORY     = memory
 
-MATH       = xcopy   xfill   xneg    xvneg   xsadd   xvadd   xssub \
-             xvsub   xsmul   xvmul   xsdiv   xvrecp  xvdiv   xzero   
+MATH       = xcopy   xfill   xneg    xvneg   xsadd   xvadd   xssub  \
+             xvsub   xsmul   xvmul   xsdiv   xvrecp  xvdiv   xzero  \
+	     xspow
 
 OTHER      = xvabs   xvamax  xvpow   xvexp   xvlg10  xvlog   xvatan \
-             xvatn2  xvcos   xvsin   xvsqrt  xrand   xfft    xvhypot
+             xvatn2  xvcos   xvsin   xvsqrt  xrand   xvhypot
 
 TRIAD      = xsvmvt  xsvpvt  xsvtsp  xsvtvm  xsvtvp  xsvvmt  xsvvpt \
-	     xsvvtm  xsvvtp  xvvmvt  xvvpvt  xvvtvm  xvvtvp  xvvvtm
+	     xsvvtm  xsvvtp  xvvmvt  xvvpvt  xvvtvm  xvvtvp  xvvvtm \
+	     xsvvtt
 
 RELATIONAL = xseq    xsge    xsle    xslt    xsne
 
@@ -73,10 +89,13 @@ REDUCTION  = icount  ifirst  ixmax   ixmin   xsum    lany    lxsame
 
 CONVERSION = vdble   xvfloa  vsngl   xbrev
 
-MISC       = xscatr          xgathr          xgathr_scatr	\
-	     xscatr_sum      xgathr_sum      xgathr_scatr_sum	\
-	     xramp   xcndst  xmask   xvpoly  xpolint		\
-	     xspline xmxm    xmxv    xmxva   fftdf
+MISC       = xscatr      xgathr      xgathr_scatr	\
+	     xscatr_sum  xgathr_sum  xgathr_scatr_sum	\
+	     xramp       xcndst      xmask       	\
+	     xvpoly      xpolint    			\
+	     xspline     xsplquad			\
+	     xmxm        xmxv        xmxva	  	\
+	     xvvtvvtp    xsvvttvp
 
 ALL        = $(UTIL)       $(MEMORY)    $(MATH)       $(OTHER)   $(TRIAD) \
              $(RELATIONAL) $(REDUCTION) $(CONVERSION) $(MISC)
@@ -95,38 +114,27 @@ endif
 # -- Install library & associated header files.
 
 install:
-	if test ! -d	$(HOME)/lib/$(ARCH) 	;		then	\
-		mkdir	$(HOME)/lib/$(ARCH)	;		fi;	\
-	if test ! -d	$(FEMHOME)/lib		;		then	\
-		mkdir	$(FEMHOME)/lib		; 		fi;	\
-	if test ! -d	$(FEMHOME)/lib/$(ARCH) 	;		then	\
-		mkdir	$(FEMHOME)/lib/$(ARCH)	; 		fi;	\
-	if test -r	$(LIB) 			;		then	\
-		rm -f	$(FEMHOME)/lib/$(ARCH)/$(LIB)	;		\
-		cp $(LIB) $(FEMHOME)/lib/$(ARCH)	;		\
-		rm -f	$(HOME)/lib/$(ARCH)/$(LIB)	;		\
-		cp $(LIB) $(HOME)/lib/$(ARCH)		;	fi
+	if test ! -d    $(FEMHOME)/lib          ;               then    \
+		mkdir   $(FEMHOME)/lib          ;               fi;     \
+	if test ! -d    $(FEMHOME)/lib/$(ARCH)  ;               then    \
+		mkdir   $(FEMHOME)/lib/$(ARCH)  ;               fi;     \
+	if test -r      $(LIB)                  ;               then    \
+		rm -f   $(FEMHOME)/lib/$(ARCH)/$(LIB)   ;               \
+		cp $(LIB) $(FEMHOME)/lib/$(ARCH)        ;       fi
 
-	if test ! -d   $(HOME)/include		;		then	\
-		 mkdir $(HOME)/include		;		fi;	\
-	if test ! -d   $(FEMHOME)/include	;		then	\
-		 mkdir $(FEMHOME)/include	;		fi
+	if test ! -d   $(FEMHOME)/include       ;               then    \
+		mkdir $(FEMHOME)/include       ;               fi
 
-	rm -f $(HOME)/include/alplib.h	$(FEMHOME)/include/alplib.h;	\
-	rm -f $(HOME)/include/Veclib.h	$(FEMHOME)/include/Veclib.h;	\
-	rm -f $(HOME)/include/Utility.h $(FEMHOME)/include/Utility.h;	\
-	rm -f $(HOME)/include/Blas.h 	$(FEMHOME)/include/Blas.h;	\
-	rm -f $(HOME)/include/Lapack.h	$(FEMHOME)/include/Lapack.h
+	rm -f $(FEMHOME)/include/alplib.h;      \
+	rm -f $(FEMHOME)/include/Veclib.h;      \
+	rm -f $(FEMHOME)/include/Utility.h;     \
+	rm -f $(FEMHOME)/include/Blas.h;        \
+	rm -f $(FEMHOME)/include/Lapack.h
 
-	cp alplib.h    $(HOME)/include		;			\
-	cp alplib.h    $(FEMHOME)/include	;			\
-	cp Veclib.h    $(HOME)/include		;			\
-	cp Veclib.h    $(FEMHOME)/include	;			\
-	cp Utility.h   $(HOME)/include		;			\
-	cp Utility.h   $(FEMHOME)/include	;			\
-	cp Blas.h      $(HOME)/include		;			\
-	cp Blas.h      $(FEMHOME)/include	;			\
-	cp Lapack.h    $(HOME)/include		;			\
+	cp alplib.h    $(FEMHOME)/include       ;                       \
+	cp Veclib.h    $(FEMHOME)/include       ;                       \
+	cp Utility.h   $(FEMHOME)/include       ;                       \
+	cp Blas.h      $(FEMHOME)/include       ;                       \
 	cp Lapack.h    $(FEMHOME)/include
 
 tar:
@@ -137,5 +145,5 @@ clean:
 
 ifeq ($(ARCH),IRIX) # -- special compile to avoid bug
 xbrev.o: xbrev.c
-	cc -c -O1 -mips2 xbrev.c
+	cc $(CPPFLAGS) -c -O1 -mips2 xbrev.c
 endif
