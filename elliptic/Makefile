@@ -31,6 +31,7 @@ else
 endif
 
 CPPFLAGS = -I. -I$(SEM)/include
+LIBDIR   = -L$(SEM)/lib/$(ARCH)
 
 # ----------- Compiler options for specific machines -------------------------
 
@@ -39,8 +40,7 @@ CXX	 = CC
 LD	 = CC
 CXXFLAGS = $(DEFINES) -g
 F77LIBS	 = -lcomplib.sgimath -lftn
-LDFLAGS  = -L$(SEM)/lib/$(ARCH) -lfem -lalp \
-	   $(F77LIBS) -lmalloc -lm
+LDFLAGS  = $(LIBDIR) -lfem -lalp $(F77LIBS) -lmalloc -lm
 endif
 
 ifeq ($(ARCH),IRIX64)		# -- SGI 64-bit systems.
@@ -48,7 +48,7 @@ CXX	 = CC
 LD	 = CC
 CXXFLAGS =  $(DEFINES) -64 -g
 F77LIBS	 = -lcomplib.sgimath -lftn
-LDFLAGS  = -g -64 -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lmalloc -lm
+LDFLAGS  = -g -64 $(LIBDIR) -lfem -lalp $(F77LIBS) -lmalloc -lm
 endif
 
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha
@@ -59,9 +59,9 @@ F77LIBS  = -ldxml
 ifdef MPI
   CXXFLAGS += -thread_safe
   LDFLAGS  = $(CXXFLAGS) -threads -L/usr/local/mpi/lib/alpha/ch_shmem	\
-             -L$(SEM)/lib/$(ARCH) -lfem_mp -lalp_mp $(F77LIBS) -lm -lmpi
+             $(LIBDIR) -lfem_mp -lalp_mp $(F77LIBS) -lm -lmpi
 else
-  LDFLAGS  = $(CXXFLAGS) -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+  LDFLAGS  = $(CXXFLAGS) $(LIBDIR) -lfem -lalp $(F77LIBS) -lm
 endif
 endif
 
@@ -75,13 +75,14 @@ else
   OPT = -O3
 endif	
 CXXFLAGS = $(DEFINES) $(OPT)
-LDFLAGS  = $(OPT) -L$(SEM)/lib/$(ARCH) -L/usr/local/lib -lfem -lalp $(F77LIBS)
+LDFLAGS  = $(OPT) $(LIBDIR) -L/usr/local/lib -lfem -lalp $(F77LIBS)
 endif
 
 ifeq ($(ARCH),Linux-alpha)		# -- Linux Alpha system.
 CXX     = g++
 LD      = g++
 F77LIBS = -lcxml -lots -lfor -lg2c
+LIBDIR += -L/usr/local/lib
 ifdef DEBUG
   OPT = -gstabs+
 else
@@ -89,24 +90,22 @@ else
 endif
 CXXFLAGS = $(DEFINES) $(OPT)
 ifdef MPI
-  LDFLAGS = -L$(SEM)/lib/$(ARCH) -L/usr/lib -L$(MPIHOME)/lib \
+  LDFLAGS = $(LIBDIR) -L/usr/lib -L$(MPIHOME)/lib \
             -lfem_mp -lalp $(F77LIBS) -lcpml                 \
 	    -lmpi -ltrillium -ltstdio -lt -largs 
 #           -lmpich
 else
-  LDFLAGS = -L$(SEM)/lib/$(ARCH) -L/usr/local/lib    \
-             -lfem -lalp $(F77LIBS) -lcpml
+  LDFLAGS = $(LIBDIR) -lfem -lalp $(F77LIBS) -lcpml
 endif
 endif
 
 ifeq ($(ARCH),UNIX_System_V)    # -- Fujitsu VPP300.
-LIBDIR   = -L$(SEM)/lib/$(ARCH) 
 LIBDIR  += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
 LIBS     = -lfem -lalp
 LIBS    += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
 CC       = vcc
 CXX      = /home/home01/565/hmb565/C++/bin/CC
-LD       = /home/home01/565/hmb565/C++/bin/CC
+LD       = $(CXX)
 OPTIM    = -Wv,-m3,-Ps -Kpopt
 #OPTIM    = -Wv,-ad
 CXXFLAGS = $(DEFINES)  $(OPTIM)
@@ -114,21 +113,19 @@ LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 endif
 
 ifeq ($(ARCH),SUPER-UX)         # -- NEC SX-4.
-DEFINES += -D_BUILTIN_
-LIBDIR   = -L$(SEM)/lib/$(ARCH) 
-CC       = cc
-CXX      = CC
-LD       = CC
-CFLAGS   = $(DEFINES) -pvctl,fullmsg -hacct -Onooverlap        \
-           -hfloat0 -hnostkchk
-CXXFLAGS = $(CFLAGS) $(OPTIM) +a1
-LDFLAGS  = $(CFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
+CXX       = c++ -V
+LD        = c++ -verbose -V -p
+DEFINES  += -D_BUILTIN_ -D_SX
+CPPFLAGS += -I/usr/include/CC
+OPT       = -O nooverlap -Nstkchk
+CXXFLAGS  = $(DEFINES) -pvctl,loopcnt=20000,fullmsg -acct $(OPT)
+LDFLAGS   = $(CXXFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
+FORTLIBS  = -llapack_64 -lblas_64 -lfft_64 \
+            -lu90sxe -lp90sx -lv90sxe -lf90sxe -li90sx 
 ifdef MPI
-  LIBS   = -lfem_mp -lalp -llapack_64 -lblas_64 -lfft_64	\
-           -lu90sxe -lp90sx -lv90sxe -lf90sxe -li90sx -lm -lmpi -lpthread
+  LIBS    = -lfem_mp -lalp_mp $(FORTLIBS) -lm -lC -lmpi -lpthread
 else
-  LIBS   = -lfem -lalp -llapack_64 -lblas_64 -lfft_64	\
-           -lu90sxe -lp90sx -lv90sxe -lf90sxe -li90sx -lm
+  LIBS    = -lfem -lalp $(FORTLIBS) -lm -lC
 endif
 endif
 
