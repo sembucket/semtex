@@ -60,7 +60,6 @@ void STABAnalyser::analyse (AuxField** work)
 // Step-by-step processing.
 // ---------------------------------------------------------------------------
 {
-
   Analyser::analyse (work);
 
   const integer periodic = !(src->step %  (integer) Femlib::value("IO_HIS")) ||
@@ -70,7 +69,6 @@ void STABAnalyser::analyse (AuxField** work)
 
   if (!state) return;
 
-
   // -- Output BASE history point data.
 
   register integer  j, k;      
@@ -78,7 +76,7 @@ void STABAnalyser::analyse (AuxField** work)
   const integer     NBF = 2;  // number of base fields = 2 (UV)
   HistoryPoint*     HB;
   vector<real>      tmp_B (NBF);
-  vector<AuxField*> U   (NBF);
+  vector<AuxField*> U     (NBF);
   
   for (k = 0; k < NBF; k++)
     U[k] = src -> U[k];

@@ -1,13 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // NS.C: Unsteady Navier--Stokes solver, using "stiffly-stable" integration.
-// Geometries may be 2- or 3-dimensional, Cartesian or cylindrical.
-// Fourier expansions are used in the homogeneous direction.
 //
-// References:
-// 1.  Karniadakis, Israeli & Orszag 1991.  "High-order splitting methods
-//     for the incompressible Navier--Stokes equations", JCP 9(2).
-// 2.  Tomboulides, Orszag & Karniadakis 1993.  "Direct and
-//     large-eddy simulation of axisymmetric wake",  AIAA-93-0546.
+// This version implements linearised advection terms and evolves a
+// single Fourier mode.
 //
 // For cylindrical coordinates:
 //   u <==> axial     velocity,  x <==> axial     coordinate direction,
@@ -17,8 +12,7 @@
 // "$Id$";
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <stab.h>
-#include <Sem.h>
+#include "stab.h"
 
 static integer NORD, CYL, C3D;
 
@@ -52,8 +46,6 @@ void NavierStokes (Domain*       D,
   integer       i, j, k;
   const real    dt    =           Femlib::value ("D_T");
   const integer nStep = (integer) Femlib::value ("N_STEP");
-  const integer ntot  = Geometry::nTotProc();
-  real*         alloc = new real [(size_t) 2 * NVEC * NORD * ntot];
 
   static MatrixSys** MS;
   static AuxField*** Us;
@@ -67,7 +59,10 @@ void NavierStokes (Domain*       D,
     MS = preSolve (D);
     
     // -- Create, initialise multi-level storage for velocities and forcing.
-    
+
+    const integer ntot = Geometry::nTotProc();
+    real* alloc        = new real [(size_t) 2 * NVEC * NORD * ntot];    
+
     Us = new AuxField** [(size_t) NORD];
     Uf = new AuxField** [(size_t) NORD];
     
@@ -84,11 +79,11 @@ void NavierStokes (Domain*       D,
     // -- Create multi-level storage for pressure BCS.
 
     PBCmgr::build (Pressure = D -> u[NVEC]);
+
+    // -- Apply coupling to radial & azimuthal velocity BCs.
+
+    if (C3D) Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
   }
-
-  // -- Apply coupling to radial & azimuthal velocity BCs.
-
-  if (C3D) Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
 
   // -- Timestepping loop.
 
@@ -139,6 +134,7 @@ void NavierStokes (Domain*       D,
 
   } while (D -> step % nStep);
 }
+
 
 static void Linearised (Domain*    D ,
 			AuxField** Us,
@@ -309,6 +305,7 @@ static void project (const Domain* D ,
   }
 }
 
+
 static MatrixSys** preSolve (const Domain* D)
 // ---------------------------------------------------------------------------
 // Set up ModalMatrixSystems for system with only 1 Fourier mode.
@@ -342,14 +339,14 @@ static MatrixSys** preSolve (const Domain* D)
   return M;
 }
 
+
 static void Solve (Domain*       D,
 		   const integer i,
 		   AuxField*     F,
 		   MatrixSys*    M)
 // ---------------------------------------------------------------------------
 // Solve Helmholtz problem for U, using F as a forcing Field.  Iterative
-// or direct solver selected on basis of field type, step, time order
-// and call-back status.
+// or direct solver selected on basis of field type, step, time order.
 // ---------------------------------------------------------------------------
 {
   const integer step = D -> step;
@@ -366,9 +363,9 @@ static void Solve (Domain*       D,
 
     MatrixSys* tmp = new MatrixSys
       (lambda2, betak2, 0, D -> elmt, D -> b[0], JACPCG);
+
     D -> u[i] -> solve (F, tmp);
     delete tmp;
 
   } else D -> u[i] -> solve (F, M);
-
 }

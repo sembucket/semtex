@@ -123,7 +123,6 @@ int main (int    argc,
   real             norm, resnorm;
   int              Total_step = 0;
 
-
   Femlib::initialize (&argc, &argv);
 
   Femlib::value ("DUMP"      , 1 );  // -- toggle field dump for each NS call
@@ -202,11 +201,8 @@ int main (int    argc,
 
   if (!restart) {		// -- Construct.
 
-    if (domain -> loaded())
-      for (j = 0; j < DIM; j++)
-	domain -> u[j] -> getPlane (0, j * Geometry::planeSize() + Kseq[0]);
-    else
-      Veclib::vnormal (ntot, 0.0, 1.0, Kseq[0], 1); 
+    for (j = 0; j < DIM; j++)
+      domain -> u[j] -> getPlane (0, j * Geometry::planeSize() + Kseq[0]);
     norm = Blas::nrm2 (ntot, Kseq[0], 1);
     Blas::scal (ntot, 1.0/norm, Kseq[0], 1);
 
@@ -214,18 +210,10 @@ int main (int    argc,
 
     for (i = 1; i <= kdim; i++) {
 
-      // -- copy Kseq[i-1] across to domain structure.
-
       for (j = 0; j < DIM; j++)
 	domain -> u[j] -> setPlane (0, j * Geometry::planeSize() + Kseq[i-1]);
-
-      // -- call to Linear NS routine to fill Kseq.
-
       NavierStokes (domain, adjunct);
       Total_step = domain->step;
-
-      // -- copy out fields from NS to Kseq[i].
-
       for (j = 0; j < DIM; j++)
 	domain -> u[j] -> getPlane (0, j * Geometry::planeSize() + Kseq[i]);
  
@@ -238,8 +226,8 @@ int main (int    argc,
 
     cout << "matrix constructed ... writing restart";
 
-    write_restart(session, kdim, nits, nvec, ntot, Total_step,
-		  evtol, domain->time, kvec);
+    write_restart (session, kdim, nits, nvec, ntot, Total_step,
+		   evtol, domain->time, kvec);
 
   } else {			// -- Load from file.
 
@@ -271,28 +259,24 @@ int main (int    argc,
   for (itrn = ++it_start; !converged && !stop_cnd && itrn <= nits; itrn++) {
 
     if ((itrn > kdim) && (itrn & 10))
-      write_restart(session, kdim, nits, nvec, ntot, Total_step,
-		    evtol, domain->time, kvec);
+      write_restart (session, kdim, nits, nvec, ntot, Total_step,
+		     evtol, domain->time, kvec);
 
     stop_cnd = !system(stp_cmd);
 
-    if (itrn != kdim || restart) {	     // -- Roll vectors, normalise.
+    if ((itrn != kdim) || restart) {	     // -- Roll vectors, normalise.
       norm = Blas::nrm2 (ntot, Kseq[1], 1);
       for (i = 1; i <= kdim; i++) {
 	Blas::scal   (ntot, 1.0/norm, Kseq[i], 1);
 	Veclib::copy (ntot, Kseq[i], 1, Kseq[i - 1], 1);
       }
       
-      for(j = 0; j < DIM; j++)
-	domain -> u[j]->setPlane(0, j * Geometry::planeSize() + Kseq[kdim-1]);
-
-      // setup and call Linear NS op (pass vector address)
-
+      for (j = 0; j < DIM; j++)
+	domain -> u[j] -> setPlane (0, j*Geometry::planeSize() + Kseq[kdim-1]);
       NavierStokes (domain, adjunct);
       Total_step = domain->step;
-
-      for(j = 0; j < DIM; j++)
-	domain -> u[j]->getPlane(0, j* Geometry::planeSize() + Kseq[kdim]);
+      for (j = 0; j < DIM; j++)
+	domain -> u[j] -> getPlane (0, j*Geometry::planeSize() + Kseq[kdim]);
     }
     
     // -- Get subspace eigenvalues, test for convergence.
@@ -331,10 +315,6 @@ int main (int    argc,
 
 }
 
-
-// --------------------------------------------------------------------------
-// --------------- EV_small -------------------------------------------------
-// --------------------------------------------------------------------------
 
 static void EV_small (real**    Kseq   ,
 		      const int ntot   ,
@@ -448,9 +428,6 @@ static void EV_small (real**    Kseq   ,
 		  R[Veclib::col_major (kdim - 1, kdim - 1, kdimp)] );
 }
 
-// --------------------------------------------------------------------------
-// --------------- EV_test --------------------------------------------------
-// --------------------------------------------------------------------------
 
 static int EV_test (const int  itrn   ,
 		    const int  kdim   ,
@@ -505,7 +482,6 @@ static int EV_test (const int  itrn   ,
   cout << "-- Iteration = " << itrn << ", H(k+1, k) = " << resnorm << endl;
 
   cout.precision(5);
-  // cout.setf(ios::showpoint);
   cout.setf(ios::fixed, ios::floatfield);
 
   period = Femlib::value ("D_T") * (integer) Femlib::value ("N_STEP");
@@ -544,9 +520,6 @@ static int EV_test (const int  itrn   ,
   return idone;
 }
 
-// --------------------------------------------------------------------------
-// --------------- EV_sort --------------------------------------------------
-// --------------------------------------------------------------------------
 
 static void EV_sort (real*     evec,
 		     real*     wr  ,
@@ -582,9 +555,6 @@ static void EV_sort (real*     evec,
   }
 }
 
-// --------------------------------------------------------------------------
-// --------------- EV_big ---------------------------------------------------
-// --------------------------------------------------------------------------
 
 static int EV_big (real**  K_Seq,   // Krylov subspace matrix
 	           real**  evecs,   // eigenvectors
@@ -593,7 +563,9 @@ static int EV_big (real**  K_Seq,   // Krylov subspace matrix
 		   real*   z_vec,
 		   real*   wr,
 		   real*   wi)
-
+// ---------------------------------------------------------------------------
+//
+// ---------------------------------------------------------------------------
 {
   real norm, wgt;
   int i, j;
@@ -661,6 +633,7 @@ static int EV_big (real**  K_Seq,   // Krylov subspace matrix
   return 0;
 
 }
+
 
 static void getargs (int    argc,
 		     char** argv ,
@@ -797,7 +770,9 @@ static void preprocess (const char*       session,
 }
 
 
-void check_input(int kdim, int nvec, int nits)
+void check_input (int kdim,
+		  int nvec,
+		  int nits)
 // ---------------------------------------------------------------------------
 // Check arguments and exit if incorrect.
 // ---------------------------------------------------------------------------

@@ -24,13 +24,12 @@ Domain::Domain (FEML*             F,
 // New Base Fields will have Uppercase letters to distinquish from
 // perturbed fields (JE - 26/5/99)
 // ---------------------------------------------------------------------------
-  elmt                   (E),
-  _initialised_from_file (0)
+  elmt (E)
 {
   const integer verbose = (integer) Femlib::value ("VERBOSE");
+  const integer nz      = Geometry::nZProc();
+  const integer ntot    = Geometry::nTotProc();
   integer       i, nfield;
-  const integer nz   = Geometry::nZProc();
-  const integer ntot = Geometry::nTotProc();
   real*         alloc;
 
   strcpy ((name = new char [strlen(F->root())+1]), F -> root());
@@ -39,8 +38,6 @@ Domain::Domain (FEML*             F,
 
   strcpy ((field = new char [strlen (B -> field()) + 1]), B -> field());
   nfield = strlen (field);
-
-#ifdef STABILITY
 
   // make same length for Domain::loadfield reasons.
   strcpy ((basefield = new char [nfield]),"UV");
@@ -54,8 +51,6 @@ Domain::Domain (FEML*             F,
 
   // memory and auxfields are created as required in loadbase.
 
-#endif 
-  
   VERBOSE cout << "  Domain will contain fields: " << field << endl;
 
   // -- Build boundary system and field for each variable.
@@ -103,13 +98,9 @@ void Domain::report ()
 
   cout << "   Solution fields         : " << field              << endl;
 
-#ifdef STABILITY
-  
   cout << "   Base Solution fields    : " << basefield          << endl;
   cout << "   Base flow Dimension     : 2" << endl;
   cout << "   Perturbed Dimension     : " << nField()-1          << endl;
-
-#endif
 
   cout << "   Number of elements      : " << Geometry::nElmt()  << endl;
   cout << "   Number of planes        : " << Geometry::nZ()     << endl;
@@ -140,23 +131,20 @@ void Domain::restart ()
   const integer nF = nField();
   char          restartfile[StrMax];
   
-  ROOTONLY cout << "-- Initial condition       : ";
+  cout << "-- Initial condition       : ";
   ifstream file (strcat (strcpy (restartfile, name), ".rst"));
 
   if (file) {
-    ROOTONLY {
-      cout << "read from file " << restartfile;
-      cout.flush();
-    }
+    cout << "read from file " << restartfile;
+    cout.flush();
     file >> *this;
     file.close();
-    _initialised_from_file = 1;
   } else {
     cout << "generating random noise";
     for (i = 0; i < nF; i++) u[i] -> randomise();
   }
 
-  ROOTONLY cout << endl;
+  cout << endl;
   
   Femlib::value ("t", time);
   step = 0;
@@ -188,19 +176,17 @@ void Domain::loadbase ()
   vector<real*>         U_alloc; // memory for U_temp
   const integer ntot = Geometry::nTotProc();
 
-
   U_temp.setSize(2);
   U_alloc.setSize(2);
 
-  for(i = 0; i < 2; i++){
+  for (i = 0; i < 2; i++){
     U_alloc[i] = new real [(size_t) ntot];
-    U_temp[i] = new Field(b[i],U_alloc[i],1,elmt,'U');
+    U_temp[i]  = new Field(b[i],U_alloc[i],1,elmt,'U');
   }
 
   PBF.setSize(2*MAX);
   PBFdat.setSize(2*MAX);
   d_t = 0.0;
-
 
   cout << "-- Base Field condition    : ";
   ifstream file (strcat (strcpy (basefile, name), ".bse"));
@@ -246,9 +232,8 @@ void Domain::loadbase ()
       if  (!n_basefiles) first_time = dump_time;   
       cout << dump_time-first_time << "\t";
 
-      if (n_basefiles > 0) {
+      if (n_basefiles > 0)
 	d_t = dump_time - last_time;
-      }
       last_time = dump_time;
 
       cout << "\t" << d_t << endl;
@@ -338,16 +323,14 @@ void Domain::loadbase ()
   
 }
 
+
 void Domain::Base_update()
-  // -------------------------------------------------------------------
-  // update fields U and V with probe data from BaseUV at time t.
-  // -------------------------------------------------------------------
-
+// ------------------------------------------------------------------
+// Update fields U and V with probe data from BaseUV at time t.
+// -------------------------------------------------------------------
 {
-  
-  U[0] -> update(n_basefiles, BaseUV[0], time, period);
-  U[1] -> update(n_basefiles, BaseUV[1], time, period);
-
+  U[0] -> update (n_basefiles, BaseUV[0], time, period);
+  U[1] -> update (n_basefiles, BaseUV[1], time, period);
 }
 
 
@@ -359,47 +342,43 @@ void Domain::dump ()
 // provide physical space values.
 // ---------------------------------------------------------------------------
 {
+  const char    routine[] = "Domain::dump";
+
   const integer periodic = !(step %  (integer) Femlib::value ("IO_FLD"));
   const integer initial  =   step == (integer) Femlib::value ("IO_FLD");
   const integer final    =   step == (integer) Femlib::value ("N_STEP");
 
   if (!(periodic || final)) return;
-  ofstream output;
-  
-  ROOTONLY {
-    const char    routine[] = "Domain::dump";
-    char          dumpfl[StrMax], backup[StrMax], command[StrMax];
-    const integer verbose   = (integer) Femlib::value ("VERBOSE");
-    const integer chkpoint  = (integer) Femlib::value ("CHKPOINT");
 
-    if (chkpoint) {
-      if (final) {
-	strcat (strcpy (dumpfl, name), ".fld");
-	output.open (dumpfl, ios::out);
-      } else {
-	strcat (strcpy (dumpfl, name), ".chk");
-	if (!initial) {
-	  strcat  (strcpy (backup, name), ".chk.bak");
-	  sprintf (command, "mv ./%s ./%s", dumpfl, backup);
-	  system  (command);
-	}
-	output.open (dumpfl, ios::out);
-      }
-    } else {
+  char          dumpfl[StrMax], backup[StrMax], command[StrMax];
+  const integer verbose   = (integer) Femlib::value ("VERBOSE");
+  const integer chkpoint  = (integer) Femlib::value ("CHKPOINT");
+  ofstream      output;
+
+  if (chkpoint) {
+    if (final) {
       strcat (strcpy (dumpfl, name), ".fld");
-      if   (initial) output.open (dumpfl, ios::out);
-      else           output.open (dumpfl, ios::app);
+      output.open (dumpfl, ios::out);
+    } else {
+      strcat (strcpy (dumpfl, name), ".chk");
+      if (!initial) {
+	strcat  (strcpy (backup, name), ".chk.bak");
+	sprintf (command, "mv ./%s ./%s", dumpfl, backup);
+	system  (command);
+      }
+      output.open (dumpfl, ios::out);
     }
-    
-    if (!output) message (routine, "can't open dump file", ERROR);
-    if (verbose) message (routine, ": writing field dump", REMARK);
+  } else {
+    strcat (strcpy (dumpfl, name), ".fld");
+    if   (initial) output.open (dumpfl, ios::out);
+    else           output.open (dumpfl, ios::app);
   }
+    
+  if (!output) message (routine, "can't open dump file", ERROR);
+  if (verbose) message (routine, ": writing field dump", REMARK);
 
-  this -> transform (INVERSE);
   output << *this;
-  this -> transform (FORWARD);
-
-  ROOTONLY output.close();
+  output.close();
 }
 
 
@@ -434,19 +413,22 @@ ofstream& operator << (ofstream& strm,
   return strm;
 }
 
-integer Domain::loadfield(ifstream&       strm      ,
-			  integer*        strm_step ,
-			  real*           strm_time ,
-			  char*           strm_field,
-			  vector<Field*>  strm_u    ,
-			  const LoadKind  method    )
-{
-  const char     routine[] = "Domain::loadField";
-  char           s[StrMax], f[StrMax], fields[StrMax];
-  integer        npchk,  nzchk, nelchk;
-  integer        i, j, np, nz, nel, ntot, nfields;
-  integer        swap = 0;
 
+integer Domain::loadfield (ifstream&       strm      ,
+			   integer*        strm_step ,
+			   real*           strm_time ,
+			   char*           strm_field,
+			   vector<Field*>& strm_u    ,
+			   const LoadKind  method    )
+// ---------------------------------------------------------------------------
+//
+// ---------------------------------------------------------------------------
+{
+  const char routine[] = "Domain::loadField";
+  char       s[StrMax], f[StrMax], fields[StrMax];
+  integer    npchk,  nzchk, nelchk;
+  integer    i, j, np, nz, nel, ntot, nfields;
+  integer    swap = 0;
 
   if (strm.getline(s, StrMax).eof()) return 0;
 
@@ -481,21 +463,6 @@ integer Domain::loadfield(ifstream&       strm      ,
   }
   fields[nfields] = '\0';
 
-#ifndef STABILITY
-  char err[StrMax];
-  if (nfields != (int) strlen (strm_field)) {
-    sprintf (err, "file: %1d fields, Domain: %1d", nfields,
-	     strlen(strm_field));
-    message (routine, err, ERROR);
-  }
-
-  for (i = 0; i < nfields; i++) 
-    if (!strchr (strm_field, fields[i])) {
-      sprintf (err,"field %c not present in Domain (%s)",fields[i],field);
-      message (routine, err, ERROR);
-    }
-#endif
-
   strm.getline (s, StrMax);
   Veclib::describeFormat (f);
 
@@ -507,10 +474,8 @@ integer Domain::loadfield(ifstream&       strm      ,
   else {
     swap = ((strstr (s, "big") && strstr (f, "little")) ||
 	    (strstr (f, "big") && strstr (s, "little")) );
-    ROOTONLY {
-      if (swap) cout << " (byte-swapping)";
-      cout.flush();
-    }
+    if (swap) cout << " (byte-swapping)";
+    cout.flush();
   }
 
   if (method == BASE_LOAD) {
@@ -529,8 +494,8 @@ integer Domain::loadfield(ifstream&       strm      ,
     
     delete Pmem;
     delete P;
-  }
-  else { // method = STD_LOAD
+
+  } else { // method = STD_LOAD
 
     for (j = 0; j < nfields; j++) {
       for (i = 0; i < nfields; i++)
@@ -542,13 +507,12 @@ integer Domain::loadfield(ifstream&       strm      ,
     }
   }
 
-  ROOTONLY if (strm.bad())
-    message (routine, "failed reading field file", ERROR);
+  if (strm.bad()) message (routine, "failed reading field file", ERROR);
 
   // succesful field read 
   return 1;
-
 }
+
 
 ifstream& operator >> (ifstream& strm,
 		       Domain&   D   )
@@ -561,11 +525,9 @@ ifstream& operator >> (ifstream& strm,
 // Ordering of fields in file is allowed to differ from that in D.
 // ---------------------------------------------------------------------------
 {
-
   D.loadfield (strm, &D.step, &D.time, D.field, D.u, STD_LOAD);
  
   Femlib::value ("t", D.time);
 
   return strm;
 }
-
