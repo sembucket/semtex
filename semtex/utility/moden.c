@@ -78,11 +78,16 @@ int main (int    argc,
       fputs (buf, fp_out);   
     }
 
-
     fgets(fields, STR_MAX, fp_in);
+    memset(fields+25, '\0', STR_MAX-25);
     for (nfields = 0, i = 0; i < 25; i++) if (isalpha(fields[i])) nfields++;
-    if (!(strchr(fields, 'u') && strchr(fields, 'v') && strchr(fields, 'w')))
+    if (nfields < 4) {
+      if (!(strchr(fields, 'u') && strchr(fields, 'v')))
+	message (prog, "need fields u, v to compute K.E.", ERROR);
+    } else {
+      if (!(strchr(fields, 'u') && strchr(fields, 'v') && strchr(fields, 'w')))
 	message (prog, "need fields u, v, w to compute K.E.", ERROR);
+    }
     fprintf (fp_out, hdr_fmt[8], "q");
 
     fgets (buf, STR_MAX, fp_in);
@@ -124,22 +129,18 @@ int main (int    argc,
     
     /* -- Compute K.E.: start by adding in real part. */
 
-    vcmpt = data[_index (fields, 'u')] + 2 * mode * nplane;
-    dvmul (nplane, vcmpt, 1, vcmpt, 1, plane, 1);
-    vcmpt = data[_index (fields, 'v')] + 2 * mode * nplane;
-    dvvtvp (nplane, vcmpt, 1, vcmpt, 1, plane, 1, plane, 1);
-    vcmpt = data[_index (fields, 'w')] + 2 * mode * nplane;
-    dvvtvp (nplane, vcmpt, 1, vcmpt, 1, plane, 1, plane, 1);
+    for (i = 0; i < nfields - 1; i++) {
+      vcmpt = data[_index (fields, 'u' + i)] + 2 * mode * nplane;
+      dvmul (nplane, vcmpt, 1, vcmpt, 1, plane, 1);
+    }
 
     /* -- Add in imaginary part if not mode zero. */
 
     if (mode || cmplx) {
-      vcmpt = data[_index (fields, 'u')] + (2 * mode + 1) * nplane;
-      dvvtvp (nplane, vcmpt, 1, vcmpt, 1, plane, 1, plane, 1);
-      vcmpt = data[_index (fields, 'v')] + (2 * mode + 1) * nplane;
-      dvvtvp (nplane, vcmpt, 1, vcmpt, 1, plane, 1, plane, 1);
-      vcmpt = data[_index (fields, 'w')] + (2 * mode + 1) * nplane;
-      dvvtvp (nplane, vcmpt, 1, vcmpt, 1, plane, 1, plane, 1);
+      for (i = 0; i < nfields - 1; i++) {
+	vcmpt = data[_index (fields, 'u' + i)] + (2 * mode + 1) * nplane;
+	dvvtvp (nplane, vcmpt, 1, vcmpt, 1, plane, 1, plane, 1);
+      }
     }
 
     /*  -- Normalise to make q = 0.5*UiUi. */
