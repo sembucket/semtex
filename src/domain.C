@@ -412,6 +412,8 @@ void Domain::initialize (const char* src)
   }
 
   cout << endl;
+  
+  step = 0;
 
   real dt =       Femlib::value ("D_T"   );
   int  ns = (int) Femlib::value ("N_STEP");
@@ -587,8 +589,10 @@ istream& operator >> (istream& strm,
   if (ntot != Geometry::nTot())
     message (routine, "declared sizes mismatch", ERROR);
 
-  strm.getline(s,StrMax).getline(s,StrMax);
+  strm.getline(s,StrMax);
+  istrstream (s, strlen (s)) >> D.step;
 
+  strm.getline(s,StrMax);
   istrstream (s, strlen (s)) >> D.time;
   Femlib::value ("t", D.time);
   
