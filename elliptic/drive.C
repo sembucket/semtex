@@ -1,8 +1,8 @@
 //////////////////////////////////////////////////////////////////////////////
 // drive.C: compute solution to elliptic problem, optionally compare to
-// exact solution.
+// exact solution (see getoptions(), below).
 //
-// Copyright (C) 1994, 1999  Hugh Blackburn.
+// Copyright (C) 1994--2002  Hugh Blackburn.
 //
 // USAGE:
 // -----
@@ -12,15 +12,18 @@
 //   -i       ... use iterative solver
 //   -v[v...] ... increase verbosity level
 //
+// If session.frc is found, use this field file as forcing for the
+// elliptic problem, otherwise use the 'forcing' string in the USER
+// section; failing that, set forcing to zero.
 //
 // Author
 // ------
 // Hugh Blackburn
-// CSIRO Division of Building, Construction and Engineering
+// CSIRO Building, Construction and Engineering
 // P.O. Box 56
 // Highett, Vic 3190
 // Australia
-// hugh.blackburn@dbce.csiro.au
+// hugh.blackburn@csiro.au
 //
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
@@ -33,9 +36,10 @@ static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, char*&);
 static void getoptions (FEML*, char*&, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
-			BCmgr*&, BoundarySys*&, Domain*&);
+			BCmgr*&, BoundarySys*&, Domain*&, AuxField*&);
+static void getforcing (const char*, const char*, AuxField*);
 
-void Helmholtz (Domain*, const char*);
+void Helmholtz (Domain*, AuxField*);
 
 
 int main (int    argc,
@@ -49,25 +53,25 @@ int main (int    argc,
   ios::sync_with_stdio();
 #endif
   
-  char             *session, *forcing = 0, *exact = 0;
+  char             *session, *forcefunc = 0, *exact = 0;
   vector<Element*> elmt;
   FEML*            file;
   Mesh*            mesh;
   BCmgr*           bman;
   BoundarySys*     bsys;
   Domain*          domain;
+  AuxField*        forcefld;
 
   Femlib::initialize (&argc, &argv);
 
   getargs (argc, argv, session);
 
-  preprocess (session, file, mesh, elmt, bman, bsys, domain);
+  preprocess (session, file, mesh, elmt, bman, bsys, domain, forcefld);
 
-  getoptions (file, forcing, exact);
+  getoptions (file, forcefunc, exact);
+  getforcing (session, forcefunc, forcefld);
 
-  domain -> restart();
-
-  Helmholtz (domain, forcing);
+  Helmholtz (domain, forcefld);
 
   ROOTONLY if (exact) domain -> u[0] -> errors (mesh, exact);
 
@@ -134,7 +138,8 @@ static void preprocess (const char*       session,
 			vector<Element*>& elmt   ,
 			BCmgr*&           bman   ,
 			BoundarySys*&     bsys   ,
-			Domain*&          domain )
+			Domain*&          domain ,
+			AuxField*&        forcing)
 // ---------------------------------------------------------------------------
 // Create objects needed for execution, given the session file name.
 // They are listed in order of creation.
@@ -194,11 +199,19 @@ static void preprocess (const char*       session,
   domain = new Domain (file, elmt, bman);
 
   VERBOSE cout << "done" << endl;
+
+  // -- Build the forcing field.
+
+  VERBOSE cout << "Building forcing ...";
+
+  forcing = new AuxField (new real [(size_t)Geometry::nTotProc()],nz,elmt,'f');
+
+  VERBOSE cout << "done" << endl;
 }
 
 
 static void getoptions (FEML*  feml ,
-			char*& force,
+			char*& forcf,
 			char*& exact)
 // ---------------------------------------------------------------------------
 // Try to load forcing function string and exact solution string from USER
@@ -224,7 +237,7 @@ static void getoptions (FEML*  feml ,
 
       upperCase (s);
       if (strcmp (s, "FORCING") == 0)
-	feml -> stream() >> (force = new char [StrMax]);
+	feml -> stream() >> (forcf = new char [StrMax]);
       else if (strcmp (s, "EXACT") == 0)
 	feml -> stream() >> (exact = new char [StrMax]);
     }
@@ -232,4 +245,96 @@ static void getoptions (FEML*  feml ,
     if (strcmp (s, "</USER>") != 0)
       message (routine, "couldn't sucessfully close <USER> section", ERROR);
   }
+}
+
+
+static void getforcing (const char* session  , 
+			const char* forcefunc,
+			AuxField*   forcefld )
+// ---------------------------------------------------------------------------
+// If file session.frc is found, use the contents (of the first field
+// variable) to initialise forcefld, failing that use the string
+// forcefunc, otherwise initialise to zero.  Finally, Fourier
+// transform.
+// ---------------------------------------------------------------------------
+{
+  const char routine[] = "getforcing";
+  char restartfile[StrMax];
+  
+  ROOTONLY cout << "-- Forcing          : ";
+  ifstream file (strcat (strcpy (restartfile, session), ".frc"));
+
+  if (file) {
+    ROOTONLY {
+      cout << "read from file " << restartfile;
+      cout.flush();
+    }
+
+    // -- Strip header and check the data conforms.
+
+    integer np, nz, nel, ntot, nfields;
+    integer npchk,  nzchk, nelchk, swab = 0;
+    char    s[StrMax], f[StrMax];
+
+    if (file.getline(s, StrMax).eof())
+      message (routine, "forcing file is empty", ERROR);
+
+    file.getline(s,StrMax).getline(s,StrMax);
+  
+    forcefld -> describe (f);
+    istrstream (s, strlen (s)) >> np    >> np    >> nz    >> nel;
+    istrstream (f, strlen (f)) >> npchk >> npchk >> nzchk >> nelchk;
+  
+    if (np  != npchk ) message (routine, "element size mismatch",       ERROR);
+    if (nz  != nzchk ) message (routine, "number of z planes mismatch", ERROR);
+    if (nel != nelchk) message (routine, "number of elements mismatch", ERROR);
+  
+    ntot = np * np * nz * nel;
+    if (ntot != Geometry::nTot())
+      message (routine, "declared sizes mismatch", ERROR);
+
+    file.getline(s,StrMax).getline(s,StrMax);
+    file.getline(s,StrMax).getline(s,StrMax);
+    file.getline(s,StrMax).getline(s,StrMax);
+
+    nfields = 0; while (isalpha (s[nfields])) nfields++;
+    if (!nfields) message (routine, "no fields declared in forcing", ERROR);
+
+    file.getline (s, StrMax);
+    Veclib::describeFormat (f);
+
+    if (!strstr (s, "binary"))
+      message (routine, "input field file not in binary format", ERROR);
+  
+    if (!strstr (s, "endian"))
+      message (routine, "input field file in unknown binary format", WARNING);
+    else {
+      swab = ((strstr (s, "big") && strstr (f, "little")) ||
+	      (strstr (f, "big") && strstr (s, "little")) );
+      ROOTONLY {
+	if (swab) cout << " (byte-swapping)";
+	cout.flush();
+      }
+    }
+
+    // -- Read data, byteswap if required. 
+
+    file >> *forcefld;
+    if (swab) forcefld -> reverse();
+    file.close();
+
+    forcefld -> transform (FORWARD);
+    ROOTONLY forcefld -> zeroNyquist();
+
+  } else if (forcefunc) {
+    ROOTONLY cout << "set to string: " << forcefunc;
+    (*forcefld = forcefunc).transform (FORWARD);
+    ROOTONLY forcefld -> zeroNyquist();
+
+  } else {
+    ROOTONLY cout << "set to zero";
+    *forcefld = 0.0;
+  }
+
+  ROOTONLY cout << endl;
 }
