@@ -41,18 +41,17 @@ RCSid[] = "$Id$";
 
 void eddyViscosity (const Domain*, AuxField***, AuxField***, AuxField*);
 
-typedef ModalMatrixSystem ModeSys;
-static  integer           DIM, CYL, C3D;
+typedef ModalMatrixSystem  ModeSys;
+static  integer            DIM, CYL, C3D;
 
-static void nonLinear (Domain*, AuxField***, AuxField***,
-		       AuxField*, vector<real>&);
-static void waveProp  (Domain*, const AuxField***, const AuxField***);
-static void setPForce (const AuxField***, AuxField***);
-static void project   (const Domain*, AuxField***, AuxField***);
-
-static ModeSys** preSolve (const Domain*);
-static void      Solve    (Field*, AuxField*, ModeSys*,
-			   const integer, const integer);
+static void      nonLinear (Domain*, AuxField***, AuxField***,
+			    AuxField*, vector<real>&);
+static void      waveProp  (Domain*, const AuxField***, const AuxField***);
+static void      setPForce (const AuxField***, AuxField***);
+static void      project   (const Domain*, AuxField***, AuxField***);
+static ModeSys** preSolve  (const Domain*);
+static void      Solve     (Field*, AuxField*, ModeSys*,
+			    const integer, const integer);
 
 
 void NavierStokes (Domain*   D,
@@ -65,10 +64,6 @@ void NavierStokes (Domain*   D,
 // Uf is multi-level auxillary Field storage for nonlinear forcing terms.
 // ---------------------------------------------------------------------------
 {
-#if defined(DEBUG)
-  Femlib::value ("KINVIS", 2.0 * Femlib::value ("KINVIS"));
-#endif
-
   DIM = Geometry::nDim();
   CYL = Geometry::system() == Geometry::Cylindrical;
   C3D = CYL && DIM == 3;
@@ -79,19 +74,18 @@ void NavierStokes (Domain*   D,
   const integer nStep  = (integer) Femlib::value ("N_STEP");
   const integer nZ     = Geometry::nZProc();
 
-#if !defined(DEBUG)
-  // -- If a reference viscosity is given. set KINVIS = REFVIS
-  //    and vice versa in order to maintain current code structure.
+  // -- Create global matrix systems: rename viscosities beforehand.
+
+#if defined(DEBUG)
+  Femlib::value ("REFVIS", Femlib::value ("2.0 * KINVIS"));
+#endif
 
   if (Femlib::value ("REFVIS") > 0.0) {
     real kinVis = Femlib::value ("REFVIS");
-    real refVis = Femlib::value ("KINVIS - REFVIS");
+    real refVis = Femlib::value ("KINVIS");
     Femlib::value ("KINVIS", kinVis);
     Femlib::value ("REFVIS", refVis);
   } 
-#endif
-
-  // -- Create global matrix systems.
 
   ModeSys** MMS = preSolve (D);
 
@@ -104,8 +98,8 @@ void NavierStokes (Domain*   D,
     Us[i] = new AuxField* [(size_t) nOrder];
     Uf[i] = new AuxField* [(size_t) nOrder];
     for (j = 0; j < nOrder; j++) {
-      *(Us[i][j] = new AuxField (D -> Esys, nZ)) = 0.0;
-      *(Uf[i][j] = new AuxField (D -> Esys, nZ)) = 0.0;
+      *(Us[i][j] = new AuxField (D -> Esys)) = 0.0;
+      *(Uf[i][j] = new AuxField (D -> Esys)) = 0.0;
     }
   }
 
@@ -126,9 +120,11 @@ void NavierStokes (Domain*   D,
 
   if (C3D) Field::coupleBCs (D -> u[1], D -> u[2], +1);
 
-  // -- Create eddy-viscosity storage.
+  // -- Create and initialize eddy-viscosity storage.
 
-  AuxField* EV = new AuxField (D -> Esys, nZ);
+  AuxField* EV = new AuxField (D -> Esys, 'e');
+  *EV = 0.0;
+  ROOTONLY EV -> addToPlane (0, Femlib::value ("REFVIS - KINVIS"));
 
   // -- Timestepping loop.
 
@@ -138,7 +134,7 @@ void NavierStokes (Domain*   D,
     D -> time += dt;
     Femlib::value ("t", D -> time);
 
-    // -- Compute spatially-varying kinematic eddy viscosity.
+    // -- Compute spatially-varying kinematic eddy viscosity \epsilon.
 
     eddyViscosity (D, Us, Uf, EV);
 
@@ -182,6 +178,24 @@ void NavierStokes (Domain*   D,
 
     A -> analyse (Us);
   }
+
+  // -- Dump ratio eddy/molecular viscosity to file visco.fld.
+
+  ofstream          evfl;
+  vector<AuxField*> visco (1);
+
+  visco[0] = EV;
+
+  ROOTONLY {
+    evfl.open ("visco.fld", ios::out);
+    EV -> addToPlane (0, Femlib::value ("KINVIS"));
+  }
+
+  (*EV /= Femlib::value ("REFVIS")) . transform (-1);
+
+  writeField (evfl, D -> name, D -> step, D -> time, visco);
+
+  ROOTONLY evfl.close();
 }
 
 
@@ -233,7 +247,7 @@ static void nonLinear (Domain*       D ,
 // gradients in the Fourier direction however, the data must be transferred
 // back to Fourier space.
 //
-// NB: dealiasing is not used for multiprocesssor operation.
+// NB: dealiasing is not used for multiprocessor operation.
 // ---------------------------------------------------------------------------
 {
   integer           i, j;
@@ -622,7 +636,7 @@ static ModeSys** preSolve (const Domain* D)
   const integer        itLev  = (integer) Femlib::value ("ITERATIVE");
   const integer        nOrder = (integer) Femlib::value ("N_TIME");
   const real           beta   = Femlib::value ("BETA");
-  ModeSys**            M      = new ModeSys* [(szie_t) (DIM + 1)];
+  ModeSys**            M      = new ModeSys* [(size_t) (DIM + 1)];
   vector<Element*>&    E      = ((Domain*) D) -> Esys;
   const NumberSystem** N      = new const NumberSystem* [3];
 

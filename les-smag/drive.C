@@ -42,11 +42,6 @@ integer main (integer argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  set_new_handler (&memExhaust);
-#if !defined(__DECCXX)
-  ios::sync_with_stdio();
-#endif
-
   Geometry::CoordSys system;
   char      *session, fields[StrMax];
   integer   np, nz, nel;
@@ -55,6 +50,11 @@ integer main (integer argc,
   BCmgr*    B;
   Domain*   D;
   Analyser* A;
+
+  set_new_handler (&memExhaust);
+#if !defined(__alpha)
+  ios::sync_with_stdio();
+#endif
   
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session);

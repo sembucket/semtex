@@ -7,10 +7,12 @@ RCSid[] = "$Id$";
 
 #include <Sem.h>
 
-static integer DIM, CYL, C3D;
+static integer DIM, CYL, ITR_MAX;
+static real    EPS2;
 
 static void strainRate  (const Domain*,AuxField***,AuxField***);
-static void Smagorinsky (AuxField***, AuxField***, AuxField*);
+static void viscoModel  (AuxField***, AuxField***, AuxField*);
+static real RNG_quartic (const real, const real, const real);
 
 
 void eddyViscosity (const Domain* D ,
@@ -18,7 +20,7 @@ void eddyViscosity (const Domain* D ,
 		    AuxField***   Uf,
 		    AuxField*     EV)
 // ---------------------------------------------------------------------------
-// Compute the resolved strain-rate field and E, the eddy viscosity field
+// Compute the resolved strain-rate field and EV, the eddy viscosity field
 // from it.
 //
 // On entry, D contains velocity (and pressure) fields, and the first
@@ -29,20 +31,23 @@ void eddyViscosity (const Domain* D ,
 //                      / Us[0][0]  Uf[0][0]  Uf[1][0] \
 //                S =   |    .      Us[1][0]  Uf[2][0] |
 //                ~     \    .         .      Us[2][0] /
-//
-// As a final step, subtract off the difference between the kinematic
-// and reference viscosities stored in REFVIS.
 // ---------------------------------------------------------------------------
 {
-  DIM = Geometry::nDim();
-  CYL = Geometry::system() == Geometry::Cylindrical;
-  C3D = CYL && DIM == 3;
+  DIM     = Geometry::nDim();
+  CYL     = Geometry::system() == Geometry::Cylindrical;
+  ITR_MAX = (integer) Femlib::value ("STEP_MAX");
+  EPS2    = sqr (EPSSP);
 
-  strainRate  (D,  Us, Uf);
-  Smagorinsky (Us, Uf, EV);
+  ROOTONLY EV -> addToPlane (0, Femlib::value ("KINVIS"));
 
-#if !defined(DEBUG)
-  ROOTONLY EV -> addToPlane (0, -Femlib::value ("REFVIS"));
+  strainRate (D,  Us, Uf);
+  viscoModel (Us, Uf, EV);
+
+  ROOTONLY EV -> addToPlane (0, Femlib::value ("-KINVIS"));
+
+#if defined(DEBUG)
+  *EV = 0.0;
+  ROOTONLY EV -> addToPlane (0, Femlib::value ("-REFVIS"));
 #endif
 }
 
@@ -69,7 +74,7 @@ static void strainRate (const Domain* D ,
 //   ~     \    .             .             1/y*dw/dz +     1/y*v    /
 // ---------------------------------------------------------------------------
 {
-  integer i, j;
+  register integer i, j;
 
   if (CYL) {			// -- Cylindrical geometry.
 
@@ -128,39 +133,41 @@ static void strainRate (const Domain* D ,
 }
 
 
-static void Smagorinsky (AuxField*** Us,
-			 AuxField*** Uf,
-			 AuxField*   EV)
+static void viscoModel (AuxField*** Us,
+			AuxField*** Uf,
+			AuxField*   EV)
 // ---------------------------------------------------------------------------
 // On entry the first-level areas of Us & Uf contain the components of
-// the strain-rate tensor S.  On exit EV contains the Smagorinsky eddy
-// viscosity field \nu_S = (Cs \Delta)^2 |S|, where
+// the strain-rate tensor S and EV contains the old values of eddy viscosity.
+// On exit, by default EV contains the Smagorinsky eddy viscosity field
+//                 \nu_S = (Cs \Delta)^2 |S|, where
 //
 // |S| = sqrt [(S11)^2 + (S22)^2 + (S33)^2 + 2(S12)^2 + 2(S13)^2 + 2(S23)^2].
 //
 // As noted in the header to NS.C, EV = -KINVIS for debugging (NB: Fourier!).
 //
 // NB: the products in |S| are only dealiased for single-processor operation.
+//
+// For RNG, the "decreed" value of C_SMAG = 0.1114, RNG_C = 75, RNG_BIG = 500.
 // ---------------------------------------------------------------------------
 {
-#if defined(DEBUG)
-  *EV = 0.0;
-  ROOTONLY EV -> addToPlane (0, -0.5 * Femlib::value ("KINVIS"));
+  register integer i, j, k;
+  const integer    nP     = Geometry::nPlane();
+  const integer    NP     = Geometry::planeSize();
+  const integer    nPR    = Geometry::nProc();
+  const integer    nZ     = Geometry::nZProc();
+  const integer    nZ32   = (nPR > 1) ? nZ : (3 * nZ) >> 1;
+  const integer    nTot32 = nZ32 * NP;
+  const real       Cs     = Femlib::value ("C_SMAG");
+  const real       molvis = Femlib::value ("REFVIS");
 
-#else
-
-  integer       i, j;
-  const integer nP     = Geometry::planeSize();
-  const integer nPR    = Geometry::nProc();
-  const integer nZ     = Geometry::nZProc();
-  const integer nZ32   = (nPR > 1) ? nZ : (3 * nZ) >> 1;
-  const integer nTot32 = nZ32 * nP;
-
-  vector<real>  work (2 * nTot32);
-  real*         tmp = work();
-  real*         sum = tmp + nTot32;
+  vector<real>     work (2 * nTot32 + nP);
+  real*            tmp    = work();
+  real*            sum    = tmp + nTot32;
+  real*            delta  = sum + nTot32;
 
   Veclib::zero (nTot32, sum, 1);
+  EV -> lengthScale (delta);
   
   for (i = 0; i < DIM; i++) {
     for (j = i + 1; j < DIM; j++) {
@@ -173,9 +180,78 @@ static void Smagorinsky (AuxField*** Us,
   }
 
   Veclib::vsqrt (nTot32, sum, 1, sum, 1);
-  EV -> transform32 (sum, +1);
-  EV -> Smagorinsky ();
 
-#endif
+  // -- At this point we have S in physical space.
+
+  if ((int) Femlib::value ("RNG")) {
+
+    register real *S, *E, D2;
+    register real cutoff;
+    const real    C       = Femlib::value ("RNG_C");
+    const real    BIG     = Femlib::value ("RNG_BIG");
+    const real    molvis3 = molvis * molvis * molvis;
+    const real    Cs2     = Cs  * Cs;
+    const real    Cs4     = Cs2 * Cs2;
+  
+    EV -> transform32 (tmp, -1);
+
+    for (k = 0; k < nZ; k++) {
+      S = sum + k * NP;
+      E = tmp + k * NP;
+      
+      for (i = 0; i < nP; i++) {
+	D2 = delta[i] * delta[i];
+	cutoff  = Cs4  * D2 * D2 / molvis3;
+	cutoff *= S[i] * S[i] * E[i];
+	
+	if      (cutoff <= C) 
+	  S[i] = molvis;
+	else if (cutoff > BIG)
+	  S[i] = molvis + Cs2 * D2 * S[i];
+	else
+	  S[i] = molvis * RNG_quartic (E[i]/molvis, C-1., -cutoff*E[i]/molvis);
+      }
+    }
+
+  } else {			// -- Smagorinsky.
+
+    Blas::scal   (nP, Cs, delta, 1);
+    Veclib::vmul (nP, delta, 1, delta, 1, delta, 1);
+
+    for (k = 0; k < nZ; k++)
+      Veclib::vmul (nP, delta, 1, sum + k * NP, 1, sum + k * NP, 1);
+  }
+
+  // -- Transform back to Fourier space.
+
+  EV -> transform32 (sum, +1);
 }
 
+
+static real RNG_quartic (const real x0,
+			 const real a1,
+			 const real a0)
+// ---------------------------------------------------------------------------
+// Solve quartic equation x^4 + a1 x + a0 = 0 by Newton-Raphson.
+// Input value x0 is an initial guess for the ratio of the turbulent and
+// molecular viscosities.  Minimum returned value for x is 1.0.
+// ---------------------------------------------------------------------------
+{
+  const char routine[] = "RNG_quartic";
+  register real x = x0, dx, f, df, x3;
+  register int  i = 0;
+
+  for (i = 0; i < ITR_MAX; i++) {
+    x3  = x * x * x;
+    df  = a1 + 4.0 * x3;
+    f   = a0 + x * (a1 + x3);
+    dx  = -f / df;
+    x  += dx;
+    if (dx * dx < EPS2 || fabs (f) < EPSSP) break;
+  }
+
+  if (i == ITR_MAX) message (routine, "failed to converge", ERROR);
+  else if (x < 1.0) message (routine, "invalid solution",   WARNING);
+
+  return max (1.0, x);
+}
