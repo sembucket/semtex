@@ -1,9 +1,7 @@
 /*****************************************************************************
- * sem2tec: convert a SEM field file to AMTEC Tecplot format.
+ * sem2vtk: convert a SEM field file to VTK unstructured grid data file.
  *
- * Usage: sem2tec [-h] [-o output] [-m mesh] [-n #] [-d #] [-w] input[.fld]
- *
- * Based on the original code by Ron Henderson.
+ * Usage: sem2vtk [-h] [-n #] [-d #] [-w] meshfile numfile session[.fld]
  *
  * $Id$
  *****************************************************************************/
@@ -17,14 +15,12 @@
 #include <alplib.h>
 #include <femlib.h>
 
-#define   MAXFIELDS 16
+#define MAXFIELDS 16
 
 static char usage[] = 
-  "usage: sem2tec [options] session[.fld]\n"
+  "usage: sem2vtk [options] meshfile numfile session[.fld]\n"
   "options:\n"
   "-h       ... print this message\n"
-  "-o file  ... write output to the named file instead of running preplot\n" 
-  "-m file  ... read the mesh from the named file (instead of stdin)\n"
   "-d <num> ... extract dump <num> from file\n"
   "-n <num> ... evaluate the solution on an evenly-spaced mesh with N X N\n"
   "             points.  If N = 0, then no interpolation is done, i.e., the\n"
@@ -32,15 +28,16 @@ static char usage[] =
   "-w       ... extend the data by one additional plane in the z-direction\n";
 
 static FILE    *fp_fld = 0,          /* default input files */
+               *fp_num = 0,
                *fp_msh = 0;
-static char    *tecfile;             /* output file name */
+static char    *vtkfile;             /* output file name */
 
 static int     nr, ns, nz, nel, nfields;
-static int     nzp = 0, preplot_it = 1, np = 1, dump = 1;
+static int     nzp = 0, np = 1, dump = 1, binary = 0;
 static char    type[MAXFIELDS];
 static double  *data[MAXFIELDS], *x, *y, *z;
 
-static void    write_tec   (FILE*);
+static void    write_vtk   (FILE*);
 static void    parse_args  (int, char**);
 static void    read_mesh   (FILE*);
 static void    read_data   (FILE*);
@@ -58,12 +55,12 @@ int main (int    argc,
 {
   char  fname[STR_MAX];
   char  buf  [STR_MAX];
-  FILE  *fp, *fp_tec;
+  FILE  *fp, *fp_vtk;
   
   fp_msh = stdin;
 
   if ((fp = fopen (tmpnam (fname),"w+")) == (FILE*) NULL) {
-    fprintf (stderr, "sem2tec: unable to open a temporary file\n");
+    fprintf (stderr, "sem2vtk: unable to open a temporary file\n");
     exit    (EXIT_FAILURE);
   }
 
@@ -73,19 +70,7 @@ int main (int    argc,
   while (dump--) read_data (fp_fld);
   interpolate ();
   wrap        ();
-  write_tec   (fp);
-
-  if (preplot_it) {
-    sprintf (buf, "preplot %s %s > /dev/null", fname, tecfile);
-    system  (buf);
-    remove  (fname);
-  } else {
-    rewind (fp);
-    fp_tec = fopen (tecfile, "w");
-    while  (fgets(buf, STR_MAX, fp)) fputs(buf, fp_tec);
-    fclose (fp_tec);
-    fclose (fp);
-  }
+  write_vtk   (fp);
 
   return EXIT_SUCCESS;
 }
