@@ -63,7 +63,6 @@ void nonLinear (Domain*       D ,
   real**        Nl  = Ud + 3;
   real*         tmp = D -> udat[3];
 
-
   // -- Set pointers into supplied workspace, Ut.
 
   for (i = 0; i < 6; i++) Sr [i] = Ut (     i);
@@ -110,10 +109,10 @@ void nonLinear (Domain*       D ,
 
   for (i = 0; i < 3; i++)	// -- Off-diagonal terms.
     for (j = i + 1; j < 3; j++) {
-      ij = i + j - 1;
+      ij = 3 + i + j - 1;
       Veclib::copy (nTot, Sr[ij], 1, tmp, 1);
       realGradient (meta, Sr[ij], j);
-      realGradient (meta, tmp,   i);
+      realGradient (meta, tmp,    i);
       Veclib::vsub (nTot, Nl[i], 1, Sr[ij], 1, Nl[i], 1);
       Veclib::vsub (nTot, Nl[j], 1, tmp,    1, Nl[j], 1);
     }
@@ -182,9 +181,9 @@ void dynamic (Domain*       D ,
 // scaled (dynamic estimate) eddy viscosity -2Cs^2 = LijMij/MijMji in
 // Ut[6].  If NL isn't set, do not compute the nonlinear terms and
 // return the unscaled (dynamic estimate) eddy viscosity
-// Cs^2*Delta^2*|S|.  This is ugly but means we can use the same bit
-// of code both for normal running and for computing the eddy
-// viscosity estimate as a diagnostic.
+// Cs^2*Delta^2*|S|.  This is ugly but means we can use the same code
+// both for normal running and for computing the eddy viscosity
+// estimate as a stand-alone diagnostic.
 // ---------------------------------------------------------------------------
 {
   const integer nZ   = Geometry::nZ();
@@ -236,8 +235,8 @@ void dynamic (Domain*       D ,
   // -- Form off-diagonal terms for RoS tensors, nonconservative Nl terms.
   
   for (i = 0; i < 3; i++)
-    for (j = i + 1; j < 3; j++) {
-      ij = i + j - 1;
+    for (j = i + 1; j < 3; j++) { // -- Superdiagonal terms.
+      ij = 3 + i + j - 1;
       Veclib::copy   (nTot, Us[i], 1, Sr[ij], 1);
       meta->gradient (nZP, nP, Sr[ij], j);
       Veclib::copy   (nTot, Sr[ij], 1, St[ij], 1);
@@ -248,7 +247,7 @@ void dynamic (Domain*       D ,
     }
   
   for (i = 0; i < 3; i++)
-    for (j = i + 1; j < 3; j++) {
+    for (j = i + 1; j < 3; j++) { // -- Subdiagonal terms.
       Veclib::copy   (nTot, Us[j], 1, Sr[i], 1);
       meta->gradient (nZP, nP, Sr[i], i);
       Veclib::copy   (nTot, Sr[i], 1, St[i], 1);
@@ -259,8 +258,8 @@ void dynamic (Domain*       D ,
     }
   
   for (i = 0; i < 3; i++) {
-    Veclib::svvtt (nTot, 0.5, Sr[i], 1, Sr[i+3], 1, Sr[i+3], 1);
-    Veclib::svvtt (nTot, 0.5, St[i], 1, St[i+3], 1, St[i+3], 1);
+    Veclib::svvpt (nTot, 0.5, Sr[i], 1, Sr[i+3], 1, Sr[i+3], 1);
+    Veclib::svvpt (nTot, 0.5, St[i], 1, St[i+3], 1, St[i+3], 1);
   }
 
   // -- Form diagonal terms for RoS tensors, nonconservative Nl terms.
@@ -275,7 +274,7 @@ void dynamic (Domain*       D ,
     if (NL) Veclib::vvtvp (nTot, Ua[i], 1, Sr[i], 1, Nl[i], 1, Nl[i], 1);
   }
 
-  // -- Form strain rate magnitude estimates |S|, |S~|.
+  // -- Form strain rate magnitude estimates |S|, |S~|: sqrt (2 Sij Sji).
 
   Veclib::zero (nTot, Sm[0], 1);
   Veclib::zero (nTot, Sm[1], 1);
@@ -343,7 +342,7 @@ void dynamic (Domain*       D ,
 
   for (i = 0; i < 3; i++)
     for (j = i + 1; j < 3; j++) {
-      ij = i + j - 1;
+      ij = 3 + i + j - 1;
       Veclib::vmul    (nTot, Ua[i], 1, Ua[j], 1, tmp, 1);
       Veclib::copy    (nTot, tmp, 1, L, 1);
       Veclib::copy    (nTot, tmp, 1, M, 1);
@@ -355,11 +354,11 @@ void dynamic (Domain*       D ,
       lowpass         (L);
       transform       (INVERSE, FULL, L);
       Veclib::vvvtm   (nTot, L, 1, Ud[i], 1, Ud[j], 1, L, 1);
-      Veclib::copy    (nTot, Sr[j], 1, M, 1);
+      Veclib::copy    (nTot, Sr[ij], 1, M, 1);
       transform       (FORWARD, FULL, M);
       lowpass         (M);
       transform       (INVERSE, FULL, M);
-      Veclib::vsub    (nTot, St[j], 1, M, 1, M, 1);
+      Veclib::vsub    (nTot, St[ij], 1, M, 1, M, 1);
       Veclib::svvttvp (nTot, 2.0, L, 1, M, 1, Num, 1, Num, 1);
       Veclib::svvttvp (nTot, 2.0, M, 1, M, 1, Den, 1, Den, 1);
     }
@@ -383,12 +382,13 @@ void dynamic (Domain*       D ,
     Veclib::svvtt (nTot, -0.5, Delta2S, 1, L, 1, L, 1);
 
     for (i = 0; i < 3; i++) {
+      meta -> smooth (nZP, L);
       Veclib::copy (nTot, Ua[i], 1, Us[i], 1);
       transform    (FORWARD, FULL,  Us[i]);
     }
   }
 
-  // -- NB: We need some averaging of Cs for stability.
+  // -- NB: We need (?) some averaging of Cs for stability.
 
 #if 1				// -- Homogeneous average.
 

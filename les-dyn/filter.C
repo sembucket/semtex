@@ -84,9 +84,9 @@ void initFilters ()
   
   n     = Geometry::nP();
   nm    = n - 1;
-  order = (integer) Femlib::value ("L_ORDER");
-  lag   =           Femlib::value ("L_ROLL" );
-  atten =           Femlib::value ("L_ATTEN");
+  order = (integer) Femlib::value ("P_ORDER");
+  lag   =           Femlib::value ("P_ROLL" );
+  atten =           Femlib::value ("P_ATTEN");
 
   PolyMask = new real [n];
 
@@ -118,22 +118,22 @@ void lowpass (real* data)
 // ---------------------------------------------------------------------------
 {
 #if 1
-  register integer i;
-  const integer    pid = Geometry::procID();
-  const integer    np  = Geometry::nP();
-  const integer    nP  = Geometry::planeSize();
-  const integer    nZP = Geometry::nZProc();
-  const integer    nel = Geometry::nElmt();
-  vector<real>     tmp (nP);
-  real*            dataplane;
+  integer       i;
+  const integer pid = Geometry::procID();
+  const integer np  = Geometry::nP();
+  const integer nP  = Geometry::planeSize();
+  const integer nZP = Geometry::nZProc();
+  const integer nel = Geometry::nElmt();
+  vector<real>  tmp (nP);
+  real*         dataplane;
 
   if (!FourierMask) initFilters();
 
   for (i = 0; i < nZP; i++) {
     dataplane = data + i*nP;
     Femlib::tpr2d (dataplane, dataplane, tmp(), Du, Dt, np, nel);
-    Veclib::smul  (nP, FourierMask[i+pid*nZP], dataplane, 1, dataplane, 1);
     Femlib::tpr2d (dataplane, dataplane, tmp(), Iu, It, np, nel);
+    Veclib::smul  (nP, FourierMask[i+pid*nZP], dataplane, 1, dataplane, 1);
   }
 #else
   const integer    nP  = Geometry::planeSize();
