@@ -129,7 +129,7 @@ static void getargs (int       argc  ,
     }
 
   if (argc == 1)
-    file.open (argv[1], ios::in);
+    file.open (argv[0], ios::in);
   else {
     cerr << usage;
     exit (EXIT_FAILURE);
