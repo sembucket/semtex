@@ -94,7 +94,7 @@ int main (int    argc,
   real     norm, resnorm, evtol = 1.0e-6;
   int      i, j;
   char     buf[StrMax];
-  ofstream diag;
+  ofstream info;
 
   Femlib::initialize (&argc, &argv);
 
@@ -113,7 +113,7 @@ int main (int    argc,
   cout << "   Maximum iterations      : " << nits  << endl;
 
   strcat (strcpy (buf, session), ".evl");
-  diag.open (buf, ios::out);
+  info.open (buf, ios::out);
   
   // -- Allocate eigenproblem storage.
   
@@ -142,13 +142,20 @@ int main (int    argc,
   norm = Blas::nrm2 (ntot, Kseq[0], 1);
   Blas::scal (ntot, 1.0/norm, Kseq[0], 1);
 
+  // -- Apply operator once to enforce BCs, incompressibility, etc.
+
+  EV_update (Kseq[0], Kseq[1]);
+  Veclib::copy (ntot, Kseq[1], 1, Kseq[0], 1);
+  norm = Blas::nrm2 (ntot, Kseq[0], 1);
+  Blas::scal (ntot, 1.0/norm, Kseq[0], 1);
+
   // -- Fill initial Krylov sequence -- during which convergence may occur.
 
   for (i = 1; !converged && i <= kdim; i++) {
     EV_update (Kseq[i - 1], Kseq[i]);
-    Veclib::copy (ntot * (kdim + 1), kvec, 1, tvec, 1);
-    EV_small  (Tseq, ntot, i, zvec, wr, wi, resnorm, verbose, diag);
-    converged = EV_test (i,i, zvec, wr,wi, resnorm, evtol, min(i, nvec), diag);
+    Veclib::copy (ntot * (i + 1), kvec, 1, tvec, 1);
+    EV_small  (Tseq, ntot, i, zvec, wr, wi, resnorm, verbose, info);
+    converged = EV_test (i,i, zvec, wr,wi, resnorm, evtol, min(i, nvec), info);
     converged = max (converged, 0); // -- Only exit on evtol.
   }
 
@@ -168,14 +175,14 @@ int main (int    argc,
     // -- Get subspace eigenvalues, test for convergence.
 
     Veclib::copy (ntot * (kdim + 1), kvec, 1, tvec, 1);
-    EV_small (Tseq, ntot, kdim, zvec, wr, wi, resnorm, verbose, diag); 
+    EV_small (Tseq, ntot, kdim, zvec, wr, wi, resnorm, verbose, info); 
 
-    converged = EV_test (i, kdim, zvec, wr, wi, resnorm, evtol, nvec, diag);
+    converged = EV_test (i, kdim, zvec, wr, wi, resnorm, evtol, nvec, info);
   }
 
-  EV_post (Tseq, Kseq, ntot, min(--i, kdim), nvec,zvec, wr,wi, converged,diag);
+  EV_post (Tseq, Kseq, ntot, min(--i, kdim), nvec,zvec, wr,wi, converged,info);
 
-  diag.close();
+  info.close();
   Femlib::finalize();
   return (EXIT_SUCCESS);
 }
@@ -230,7 +237,7 @@ static void EV_small (real**    Kseq   ,
 		      real*     wi     ,
 		      real&     resnorm,
 		      const int verbose,
-		      ofstream& diag   )
+		      ofstream& info   )
 // ---------------------------------------------------------------------------
 // Here we take as input the Krylov sequence Kseq =
 //          x,
@@ -242,7 +249,7 @@ static void EV_small (real**    Kseq   ,
 //
 // and from it find Q (an orthonormal basis), by a Gram--Schmidt
 // algorithm that produces the decomposition Kseq = Q R.  Kseq is
-// destroyed in the process, and replaced by an othonormal basis for
+// destroyed in the process, and replaced by an orthonormal basis for
 // Kseq.
 //
 // Then we compute Hessenberg matrix H = Q* A Q (using Q* A = R), find
@@ -283,11 +290,11 @@ static void EV_small (real**    Kseq   ,
   // -- QR decomposition completed.  Print up R as diagnostic.
 
   if (verbose) {
-    diag << "R =" << endl;
+    info << "R =" << endl;
     for (i = 0; i < kdim; i++) {
       for (j = 0; j < kdim; j++) 
-	diag << setw (14) << R[Veclib::col_major (i, j, kdimp)];
-      diag << endl;
+	info << setw (14) << R[Veclib::col_major (i, j, kdimp)];
+      info << endl;
     }
   }
 
@@ -306,11 +313,11 @@ static void EV_small (real**    Kseq   ,
   // -- Print up H as diagnostic.
 
   if (verbose) {
-    diag << "H =" << endl;
+    info << "H =" << endl;
     for (i = 0; i < kdim; i++) {
       for (j = 0; j < kdim; j++) 
-	diag << setw (14) << H[Veclib::col_major (i, j, kdim)];
-      diag << endl;
+	info << setw (14) << H[Veclib::col_major (i, j, kdim)];
+      info << endl;
     }
   }
 
@@ -326,11 +333,11 @@ static void EV_small (real**    Kseq   ,
   // -- Print up eigenvectors as diagnostic.
 
   if (verbose) {
-    diag << "zvec =" << endl;
+    info << "zvec =" << endl;
     for (i = 0; i < kdim; i++) {
       for (j = 0; j < kdim; j++) 
-	diag << setw (14) << zvec[Veclib::col_major (i, j, kdim)];
-      diag << endl;
+	info << setw (14) << zvec[Veclib::col_major (i, j, kdim)];
+      info << endl;
     }
   }
   
@@ -349,7 +356,7 @@ static int EV_test (const int  itrn   ,
 		    const real resnorm,
 		    const real evtol  ,
 		    const int  nvec   ,
-		    ofstream&  diag   )
+		    ofstream&  info   )
 // ---------------------------------------------------------------------------
 // Test convergence of eigenvalues and print up diagnostic information.
 //
@@ -389,12 +396,12 @@ static int EV_test (const int  itrn   ,
 
   // -- Print diagnostic information.
 
-  diag << "-- Iteration = " << itrn << ", H(k+1, k) = " << resnorm << endl;
+  info << "-- Iteration = " << itrn << ", H(k+1, k) = " << resnorm << endl;
 
-  diag.precision(4);
-  diag.setf(ios::scientific, ios::floatfield);
+  info.precision(4);
+  info.setf(ios::scientific, ios::floatfield);
 
-  diag << "EV  Magnitude   Angle       Growth      Frequency   Residual"
+  info << "EV  Magnitude   Angle       Growth      Frequency   Residual"
        << endl;
 
   for (i = 0; i < kdim; i++) {
@@ -404,7 +411,7 @@ static int EV_test (const int  itrn   ,
     ang_ev = atan2 (im_ev, re_ev);
     re_Aev = log (abs_ev) / period;
     im_Aev = ang_ev       / period;
-    diag << setw(2)  << i
+    info << setw(2)  << i
          << setw(12) << abs_ev
       	 << setw(12) << ang_ev
 	 << setw(12) << re_Aev
@@ -413,8 +420,8 @@ static int EV_test (const int  itrn   ,
 	 << endl;
   }
 
-  diag.precision(6);
-  diag.setf(ios::fixed);
+  info.precision(6);
+  info.setf(ios::fixed);
   
   return idone;
 }
@@ -464,7 +471,7 @@ static void EV_post (real**      Tseq,
 		     const real* wr  , 
 		     const real* wi  , 
 		     const int   icon,
-		     ofstream&   diag)
+		     ofstream&   info)
 // ---------------------------------------------------------------------------
 // Carry out postprocessing of estimates, depending on value of icon
 // (as output by EV_test).
@@ -492,7 +499,7 @@ static void EV_post (real**      Tseq,
 
   if (icon == 0) {
 
-    diag << prog
+    info << prog
 	 << ": not converged, writing final Krylov vector."
 	 << endl;
 
@@ -508,7 +515,7 @@ static void EV_post (real**      Tseq,
 
   } else if (icon < 0) {
     
-    diag << prog
+    info << prog
 	 << ": minimum residual reached, writing initial Krylov vector."
 	 << endl;
     
@@ -521,7 +528,7 @@ static void EV_post (real**      Tseq,
 
   } else if (icon == nvec) {
 
-    diag << prog
+    info << prog
 	 << ": converged, writing "
 	 << icon
 	 << " eigenvectors."

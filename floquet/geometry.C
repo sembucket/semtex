@@ -45,6 +45,7 @@ void Geometry::set (const int nel  ,
   _nproc     = static_cast<integer>(Femlib::value ("N_PROC"));
   _kfund     = static_cast<integer>(Femlib::value ("K_FUND"));
   _np        = static_cast<integer>(Femlib::value ("N_POLY"));
+
   _nbase     = static_cast<integer>(Femlib::value ("N_BASE"));
   _nslice    = static_cast<integer>(Femlib::value ("N_SLICE"));
   _csys      = (static_cast<integer>(Femlib::value ("CYLINDRICAL"))) ? 
@@ -52,6 +53,7 @@ void Geometry::set (const int nel  ,
   _npert     = npert;
   _nel       = nel;
   _psize     = nPlane();
+
 #if 1
   _nz = _nzp = static_cast<integer>(Femlib::value ("N_Z"));
 #else

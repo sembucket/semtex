@@ -198,7 +198,7 @@ void Domain::dump ()
     }
     
     if (!output) message (routine, "can't open dump file", ERROR);
-    if (verbose) message (routine, ": writing field dump", REMARK);
+    if (verbose) message (routine, "writing field dump",  REMARK);
   }
 
   output << *this;
@@ -372,7 +372,7 @@ void Domain::loadBase()
       
       len = nPlane * sizeof(real);
       file.read (reinterpret_cast<char*>(addr), len);
-      if (H.swab()) Veclib::brev (len, addr, 1, addr, 1);
+      if (H.swab()) Veclib::brev (nTot, addr, 1, addr, 1);
     
       len = (H.nz - 1) * nPlane * sizeof (real);
       file.ignore (len); // -- Ignore higher planes.
