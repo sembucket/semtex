@@ -21,6 +21,8 @@
  * These are routines from Numerical Recipes, modified to use base-0
  * indexed arrays.
  *
+ * NB: the vector x must be ordered such that x[0] < x[1] < ... < x[n-1];
+ *
  * $Id$
  *****************************************************************************/
 
@@ -86,7 +88,7 @@ double dsplint (integer n, double x, const double* xa, const double* ya,
     khi = n-1;
   }
     
-  while (khi-klo > 1) {    /* search for the bracketing integererval */
+  while (khi-klo > 1) {    /* search for the bracketing interval */
     k = (khi+klo) >> 1;
     if (xa[k] > x) 
       khi = k; 
