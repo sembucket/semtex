@@ -2,10 +2,7 @@
 # This directory contains code for simulation of isotropic turbulence by a
 # Fourier Galerkin pseudo-spectral method.   See more extensive comments in 
 # the driver file main.c
-# $Author$
-# $Date$
-# $Source$
-# $Revision$
+# $Id$
 
 
 ##############################################################################
@@ -27,7 +24,7 @@ HEADER    = globals.h
 # Make iso.db with debugging compilation. (DEFAULT).
 ISOOBJ    = allocate.o io.o convolve.o integrate.o nonlin.o rc3DFT.o\
             rcZFFT.o cZFFT.o cYFFT.o cXFFT.o pcYFFT.o pcXFFT.o\
-            maketables.o main.o energy.o
+            maketables.o drive.o energy.o
 
 iso.db: $(ISOOBJ) $(HEADER)
 	$(CC) $(DEBUGF) -o $(DEBUGN) $(ISOOBJ) $(LIBS)
@@ -37,7 +34,7 @@ iso.db: $(ISOOBJ) $(HEADER)
 # Make iso with -O3 optimization, after debugging.
 ISOSRC    = allocate.c io.c convolve.c integrate.c nonlin.c rc3DFT.c\
             rcZFFT.c cZFFT.c cYFFT.c cXFFT.c pcYFFT.c pcXFFT.c\
-            maketables.c main.c energy.c
+            maketables.c drive.c energy.c
 
 iso: 	$(ISOSRC) $(HEADER)
 	$(CC) $(FINALF) -s -o $(FINALN) $(ISOSRC) $(LIBS)
