@@ -81,7 +81,14 @@ public:
     }
   }
 
-  void clear  () { head = tail = 0; nel = 0; }
+  void clear  () {
+    while (head != 0) {
+      Node* p = head -> link;
+      delete head;
+      head    = p;
+    } 
+    head = tail = 0; nel = 0; 
+  }
 
   int  length () const { return nel;                       }
   T    first  () const { return (nel) ? head -> datum : 0; }
