@@ -293,10 +293,7 @@ static void nonLinear (Domain*       D ,
 #endif
   const integer     nTot32 = nZ32 * nP;
   vector<real>      work ((2 * NDIM + 1) * nTot32);
-  vector<real*>     u32 (NDIM);
-  vector<real*>     n32 (NDIM);
-  vector<AuxField*> U   (NDIM);
-  vector<AuxField*> N   (NDIM);
+  vector<real*>     u32(NDIM), n32(NDIM);
   Field*            master = D -> u[0];
   real*             tmp    = work() + 2 * NDIM * nTot32;
 
@@ -305,145 +302,12 @@ static void nonLinear (Domain*       D ,
     n32[i] = work() + (i + NDIM) * nTot32;
   }
 
-  // -- Start with contribution from divergence of SGS.
+  Veclib::zero (3*nTot32, n32[0], 1);
 
-  EV -> transform32 (INVERSE, tmp);
-  Blas::scal (nTot32, -4.0, tmp, 1); // -- 2 = -0.5 * -4 ... see below.
+  // -- Nonlinear terms proper.
+ 
+  for (i = 0; i < NDIM; i++) D -> u[i] -> transform32 (INVERSE, u32[i]);
 
-  if (CYL) {			// -- Cylindrical coordinates.
-
-    // -- 2D stress-divergence terms.
-
-    Us[0] -> transform32 (INVERSE, n32[0]);
-    Veclib::vmul         (nTot32, tmp, 1, n32[0], 1, n32[0], 1);
-    master -> gradient   (nZ32, nP, n32[0], 0);
-
-    Us[1] -> transform32 (INVERSE, n32[1]);
-    Veclib::vmul         (nTot32, tmp, 1, n32[1], 1, n32[1], 1);
-    Veclib::copy         (nTot32,         n32[1], 1, u32[0], 1);
-    master -> gradient   (nZ32, nP, n32[1], 1);
-    master -> divR       (nZ32, u32[0]);
-    Veclib::vadd         (nTot32, n32[1], 1, u32[0], 1, n32[1], 1);
-
-    Uf[0] -> transform32 (INVERSE, u32[0]);
-    Veclib::vmul         (nTot32, tmp, 1, u32[0], 1, u32[0], 1);
-    Veclib::copy         (nTot32,         u32[0], 1, u32[1], 1);
-    master -> gradient   (nZ32, nP, u32[1], 0);
-    Veclib::vadd         (nTot32,   u32[1], 1, n32[1], 1, n32[1], 1);
-    Veclib::copy         (nTot32,              u32[0], 1, u32[1], 1);
-    master -> gradient   (nZ32, nP, u32[0], 1);
-    Veclib::vadd         (nTot32,   u32[0], 1, n32[0], 1, n32[0], 1);
-    master -> divR       (nZ32,     u32[1]);
-    Veclib::vadd         (nTot32,   u32[1], 1, n32[0], 1, n32[0], 1);
-
-    // -- 3D stress-divergence terms.
-
-    if (C3D) {		
-
-      Us[2] -> transform32 (INVERSE, n32[2]);
-      Veclib::vmul         (nTot32, tmp, 1, n32[2], 1, n32[2], 1);
-      Veclib::copy         (nTot32,         n32[2], 1, u32[0], 1);
-      master -> divR       (nZ32, u32[0]);
-      Veclib::vsub         (nTot32, n32[1], 1, u32[0], 1, n32[1], 1);
-      Femlib::exchange     (n32[2], nZ32,        nP, FORWARD);
-      Femlib::DFTr         (n32[2], nZ32 * nPR, nPP, FORWARD);
-      Veclib::zero         (nTot32 - nTot, n32[2] + nTot, 1);
-      master -> gradient   (nZ, nPP, n32[2], 2);
-      Femlib::DFTr         (n32[2], nZ32 * nPR, nPP, INVERSE);
-      Femlib::exchange     (n32[2], nZ32,        nP, INVERSE);
-      master -> divR       (nZ32, n32[2]);
-
-      Uf[1] -> transform32 (INVERSE, u32[0]);
-      Veclib::vmul         (nTot32, tmp, 1, u32[0], 1, u32[0], 1);
-      Veclib::copy         (nTot32,         u32[0], 1, u32[1], 1);
-      Femlib::exchange     (u32[0], nZ32,        nP, FORWARD);
-      Femlib::DFTr         (u32[0], nZ32 * nPR, nPP, FORWARD);
-      Veclib::zero         (nTot32 - nTot, u32[0] + nTot, 1);
-      master -> gradient   (nZ, nPP, u32[0], 2);
-      Femlib::DFTr         (u32[0], nZ32 * nPR, nPP, INVERSE);
-      Femlib::exchange     (u32[0], nZ32,        nP, INVERSE);
-      master -> divR       (nZ32, u32[0]);
-      master -> gradient   (nZ32, nP, u32[1], 0);
-      Veclib::vadd         (nTot32, u32[0], 1, n32[0], 1, n32[0], 1);
-      Veclib::vadd         (nTot32, u32[1], 1, n32[2], 1, n32[2], 1);
-
-      Uf[2] -> transform32 (INVERSE, u32[0]);
-      Veclib::vmul         (nTot32, tmp, 1, u32[0], 1, u32[0], 1);
-      Veclib::copy         (nTot32,         u32[0], 1, u32[1], 1);
-      Veclib::copy         (nTot32,         u32[0], 1, u32[2], 1);
-      Femlib::exchange     (u32[0], nZ32,        nP, FORWARD);      
-      Femlib::DFTr         (u32[0], nZ32 * nPR, nPP, FORWARD);
-      Veclib::zero         (nTot32 - nTot, u32[0] + nTot, 1);
-      master -> gradient   (nZ, nPP, u32[0], 2);
-      Femlib::DFTr         (u32[0], nZ32 * nPR, nPP, INVERSE);
-      Femlib::exchange     (u32[0], nZ32,        nP, INVERSE);      
-      master -> divR       (nZ32, u32[0]);
-      master -> gradient   (nZ32, nP, u32[1], 1);
-      master -> divR       (nZ32, u32[2]);
-      Veclib::vadd         (nTot32, u32[0], 1, n32[1], 1, n32[1], 1);
-      Veclib::vadd         (nTot32, u32[1], 1, n32[2], 1, n32[2], 1);
-      Blas::axpy           (nTot32, 2.0, u32[2], 1,       n32[2], 1);
-    }
-
-  } else {			// -- Cartesian coordinates.
-
-    // -- Diagonal stress-divergence terms.
-
-    for (i = 0; i < NDIM; i++) {
-
-      Us[i] -> transform32 (INVERSE, n32[i]);
-      Veclib::vmul (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
-
-      if (i == 2) {
-	Femlib::exchange   (n32[2], nZ32,        nP, FORWARD);      
-	Femlib::DFTr       (n32[2], nZ32 * nPR, nPP, FORWARD);
-	Veclib::zero       (nTot32 - nTot, n32[2] + nTot, 1);
-	master -> gradient (nZ, nPP, n32[2], 2);
-	Femlib::DFTr       (n32[2], nZ32 * nPR, nPP, INVERSE);
-	Femlib::exchange   (n32[2], nZ32,        nP, INVERSE);      
-      } else
-	master -> gradient (nZ32, nP, n32[i], i);
-    }
-
-    // -- Off-diagonal stress-divergence terms.
-
-    for (i = 0; i < NDIM; i++)
-      for (j = i + 1; j < NDIM; j++) {
-
-	Uf[i + j - 1] -> transform32 (INVERSE, u32[0]);
-	Veclib::vmul                 (nTot32, tmp, 1, u32[0], 1, u32[0], 1);
-	Veclib::copy                 (nTot32,         u32[0], 1, u32[1], 1);
-
-	// -- Super-diagonal.
-
-	if (j == 2) {
-	  Femlib::exchange   (u32[0], nZ32,        nP, FORWARD);
-	  Femlib::DFTr       (u32[0], nZ32 * nPR, nPP, FORWARD);
-	  Veclib::zero       (nTot32 - nTot, u32[0] + nTot, 1);
-	  master -> gradient (nZ, nPP, u32[0], 2);
-	  Femlib::DFTr       (u32[0], nZ32 * nPR, nPP, INVERSE);
-	  Femlib::exchange   (u32[0], nZ32,        nP, INVERSE);
-	} else
-	  master -> gradient (nZ32, nP, u32[0], j);
-	Veclib::vadd (nTot32, u32[0], 1, n32[i], 1, n32[i], 1);
-
-	// -- Sub-diagonal.
-
-	master -> gradient (nZ32, nP, u32[1], i);
-	Veclib::vadd       (nTot32, u32[1], 1, n32[j], 1, n32[j], 1);
-      }
-  }
-
-  // -- Nonlinear terms.
-
-  for (i = 0; i < NDIM; i++) {
-    AuxField::swapData (D -> u[i], Us[i]);
-    U[i] = Us[i];
-    N[i] = Uf[i];
-    U[i] -> transform32 (INVERSE, u32[i]);
-    if (CYL) N[i] -> mulR (nZ32,  n32[i]);
-  }
-  
   if (CYL) {			// -- Cylindrical coordinates.
 
     for (i = 0; i < NDIM; i++) {
@@ -451,15 +315,15 @@ static void nonLinear (Domain*       D ,
       // -- Terms involving azimuthal derivatives and frame components.
 
       if (i == 0)
-	Veclib::vvtvp (nTot32, u32[0], 1, u32[1], 1, n32[0], 1, n32[0], 1);
+	Veclib::vmul (nTot32, u32[0], 1, u32[1], 1, n32[0], 1);
       if (i == 1)
-	Veclib::vvtvp (nTot32, u32[1], 1, u32[1], 1, n32[1], 1, n32[1], 1);
+	Veclib::vmul (nTot32, u32[1], 1, u32[1], 1, n32[1], 1);
 
       if (NDIM == 3) {
 	if (i == 1)
 	  Veclib::svvttvp (nTot32, -2.0, u32[2],1,u32[2],1,n32[1],1,n32[1], 1);
 	if (i == 2)
-	  Veclib::svvttvp (nTot32,  3.0, u32[2],1,u32[1],1,n32[2],1,n32[2], 1);
+	  Veclib::svvtt   (nTot32,  3.0, u32[2],1,u32[1],1,         n32[2], 1);
 
 	if (nZ > 2) {
 	  Veclib::copy       (nTot32, u32[i], 1, tmp, 1);
@@ -499,15 +363,8 @@ static void nonLinear (Domain*       D ,
 	master -> gradient (nZ32, nP, tmp, j);
 	Veclib::vadd       (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
       }
-
-      // -- Transform to Fourier space, smooth, add forcing.
-
-      N[i]   -> transform32 (FORWARD, n32[i]);
-      master -> smooth (N[i]);
-      ROOTONLY if (fabs (ff[i]) > EPS) N[i] -> addToPlane (0, -2.0*ff[i]);
-      *N[i] *= -0.5;
     }
- 
+
   } else {			// -- Cartesian coordinates.
 
     for (i = 0; i < NDIM; i++) {
@@ -543,14 +400,149 @@ static void nonLinear (Domain*       D ,
 	}
 	Veclib::vadd (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
       }
-
-      // -- Transform to Fourier space, smooth, add forcing.
-      
-      N[i]   -> transform32 (FORWARD, n32[i]);
-      master -> smooth (N[i]);
-      ROOTONLY if (fabs (ff[i]) > EPS) N[i] -> addToPlane (0, -2.0*ff[i]);
-      *N[i] *= -0.5;
     }
+  }
+
+  // -- Add contribution from divergence of SGS.
+
+  EV -> transform32 (INVERSE, tmp);
+  Blas::scal (nTot32, -4.0, tmp, 1); // -- 2 = -0.5 * -4 ... see below.
+
+  if (CYL) {			// -- Cylindrical coordinates.
+
+    // -- 2D stress-divergence terms.
+
+    Us[0] -> transform32 (INVERSE, u32[0]);
+    Veclib::vmul         (nTot32, tmp, 1, u32[0], 1, u32[0], 1);
+    master -> gradient   (nZ32, nP, u32[0], 0);
+    Veclib::vadd         (nTot32, u32[0], 1, n32[0], 1, n32[0], 1);
+
+    Us[1] -> transform32 (INVERSE, u32[1]);
+    Veclib::vmul         (nTot32, tmp, 1, u32[1], 1, u32[1], 1);
+    Veclib::copy         (nTot32,         u32[1], 1, u32[0], 1);
+    master -> gradient   (nZ32, nP, u32[1], 1);
+    master -> divR       (nZ32,   u32[0]);
+    Veclib::vadd         (nTot32, n32[1], 1, u32[0], 1, n32[1], 1);
+    Veclib::vadd         (nTot32, n32[1], 1, u32[1], 1, n32[1], 1);
+
+    Uf[0] -> transform32 (INVERSE, u32[0]);
+    Veclib::vmul         (nTot32, tmp, 1, u32[0], 1, u32[0], 1);
+    Veclib::copy         (nTot32,         u32[0], 1, u32[1], 1);
+    Veclib::copy         (nTot32,         u32[0], 1, u32[2], 1);
+    master -> gradient   (nZ32, nP, u32[1], 0);
+    Veclib::vadd         (nTot32,   u32[1], 1, n32[1], 1, n32[1], 1);
+    master -> gradient   (nZ32, nP, u32[0], 1);
+    Veclib::vadd         (nTot32,   u32[0], 1, n32[0], 1, n32[0], 1);
+    master -> divR       (nZ32,     u32[2]);
+    Veclib::vadd         (nTot32,   u32[2], 1, n32[0], 1, n32[0], 1);
+
+    // -- 3D stress-divergence terms.
+
+    if (C3D) {		
+
+      Us[2] -> transform32 (INVERSE, u32[2]);
+      Veclib::vmul         (nTot32, tmp, 1, u32[2], 1, u32[2], 1);
+      Veclib::copy         (nTot32,         u32[2], 1, u32[0], 1);
+      master -> divR       (nZ32,   u32[0]);
+      Veclib::vsub         (nTot32, n32[1], 1, u32[0], 1, n32[1], 1);
+      Femlib::exchange     (u32[2], nZ32,        nP, FORWARD);
+      Femlib::DFTr         (u32[2], nZ32 * nPR, nPP, FORWARD);
+      Veclib::zero         (nTot32 - nTot, u32[2] + nTot, 1);
+      master -> gradient   (nZ, nPP, u32[2], 2);
+      Femlib::DFTr         (u32[2], nZ32 * nPR, nPP, INVERSE);
+      Femlib::exchange     (u32[2], nZ32,        nP, INVERSE);
+      master -> divR       (nZ32,   u32[2]);
+      Veclib::vadd         (nTot32, n32[2], 1, u32[2], 1, n32[2], 1);
+
+      Uf[1] -> transform32 (INVERSE, u32[0]);
+      Veclib::vmul         (nTot32, tmp, 1, u32[0], 1, u32[0], 1);
+      Veclib::copy         (nTot32,         u32[0], 1, u32[1], 1);
+      Femlib::exchange     (u32[0], nZ32,        nP, FORWARD);
+      Femlib::DFTr         (u32[0], nZ32 * nPR, nPP, FORWARD);
+      Veclib::zero         (nTot32 - nTot, u32[0] + nTot, 1);
+      master -> gradient   (nZ, nPP, u32[0], 2);
+      Femlib::DFTr         (u32[0], nZ32 * nPR, nPP, INVERSE);
+      Femlib::exchange     (u32[0], nZ32,        nP, INVERSE);
+      master -> divR       (nZ32, u32[0]);
+      master -> gradient   (nZ32, nP, u32[1], 0);
+      Veclib::vadd         (nTot32, u32[0], 1, n32[0], 1, n32[0], 1);
+      Veclib::vadd         (nTot32, u32[1], 1, n32[2], 1, n32[2], 1);
+
+      Uf[2] -> transform32 (INVERSE, u32[0]);
+      Veclib::vmul         (nTot32, tmp, 1, u32[0], 1, u32[0], 1);
+      Veclib::copy         (nTot32,         u32[0], 1, u32[1], 1);
+      Veclib::copy         (nTot32,         u32[0], 1, u32[2], 1);
+      Femlib::exchange     (u32[0], nZ32,        nP, FORWARD);      
+      Femlib::DFTr         (u32[0], nZ32 * nPR, nPP, FORWARD);
+      Veclib::zero         (nTot32 - nTot, u32[0] + nTot, 1);
+      master -> gradient   (nZ, nPP, u32[0], 2);
+      Femlib::DFTr         (u32[0], nZ32 * nPR, nPP, INVERSE);
+      Femlib::exchange     (u32[0], nZ32,        nP, INVERSE);      
+      master -> divR       (nZ32, u32[0]);
+      master -> gradient   (nZ32, nP, u32[1], 1);
+      master -> divR       (nZ32, u32[2]);
+      Veclib::vadd         (nTot32, u32[0], 1, n32[1], 1, n32[1], 1);
+      Veclib::vadd         (nTot32, u32[1], 1, n32[2], 1, n32[2], 1);
+      Blas::axpy           (nTot32, 2.0,       u32[2], 1, n32[2], 1);
+    }
+
+  } else {			// -- Cartesian coordinates.
+
+    // -- Diagonal stress-divergence terms.
+
+    for (i = 0; i < NDIM; i++) {
+
+      Us[i] -> transform32 (INVERSE, u32[i]);
+      Veclib::vmul (nTot32, tmp, 1, u32[i], 1, u32[i], 1);
+
+      if (i == 2) {
+	Femlib::exchange   (u32[2], nZ32,        nP, FORWARD);      
+	Femlib::DFTr       (u32[2], nZ32 * nPR, nPP, FORWARD);
+	Veclib::zero       (nTot32 - nTot, u32[2] + nTot, 1);
+	master -> gradient (nZ, nPP, u32[2], 2);
+	Femlib::DFTr       (u32[2], nZ32 * nPR, nPP, INVERSE);
+	Femlib::exchange   (u32[2], nZ32,        nP, INVERSE);      
+      } else
+	master -> gradient (nZ32, nP, u32[i], i);
+
+      Veclib::vadd (nTot32, u32[i], 1, n32[i], 1, n32[i], 1);
+    }
+
+    // -- Off-diagonal stress-divergence terms.
+
+    for (i = 0; i < NDIM; i++)
+      for (j = i + 1; j < NDIM; j++) {
+
+	Uf[i + j - 1] -> transform32 (INVERSE, u32[0]);
+	Veclib::vmul                 (nTot32, tmp, 1, u32[0], 1, u32[0], 1);
+	Veclib::copy                 (nTot32,         u32[0], 1, u32[1], 1);
+
+	// -- Super-diagonal.
+
+	if (j == 2) {
+	  Femlib::exchange   (u32[0], nZ32,        nP, FORWARD);
+	  Femlib::DFTr       (u32[0], nZ32 * nPR, nPP, FORWARD);
+	  Veclib::zero       (nTot32 - nTot, u32[0] + nTot, 1);
+	  master -> gradient (nZ, nPP, u32[0], 2);
+	  Femlib::DFTr       (u32[0], nZ32 * nPR, nPP, INVERSE);
+	  Femlib::exchange   (u32[0], nZ32,        nP, INVERSE);
+	} else
+	  master -> gradient (nZ32, nP, u32[0], j);
+	Veclib::vadd (nTot32, u32[0], 1, n32[i], 1, n32[i], 1);
+
+	// -- Sub-diagonal.
+
+	master -> gradient (nZ32, nP, u32[1], i);
+	Veclib::vadd       (nTot32, u32[1], 1, n32[j], 1, n32[j], 1);
+      }
+  }
+
+  for (i = 0; i < NDIM; i++) {
+    AuxField::swapData (D -> u[i], Us[i]);
+    Uf[i] -> transform32 (FORWARD, n32[i]);
+    ROOTONLY if (fabs (ff[i]) > EPS) Uf[i] -> addToPlane (0, -2.0*ff[i]);
+    master -> smooth (Uf[i]);
+    *Uf[i] *= -0.5;
   }
 }
 

@@ -169,7 +169,7 @@ static void viscoModel (const Domain* D ,
   real*            sum    = tmp + nTot32;
   real*            delta  = sum + nTot32;
 
-  EV -> lengthScale       (delta);
+  EV -> lengthScale (delta);
 
   Veclib::zero (nTot32, sum, 1);
   
