@@ -108,7 +108,7 @@ void dvvtvp (integer n,
   register integer i;
 
   if (incw == 1 && incx == 1 && incy == 1 && incz == 1) 
-   for (i = 0; i < n; i++) z[i] = w[i] * x[i] + y[i]; 
+   for (i = 0; i < n; i++) z[i] = (w[i] * x[i]) + y[i]; 
 
   else {
 
@@ -117,7 +117,7 @@ void dvvtvp (integer n,
     y += (incy<0) ? (-n+1)*incy : 0;
     z += (incz<0) ? (-n+1)*incz : 0;
 
-    for (i = 0; i < n; i++) z[i*incz] = w[i*incw] * x[i*incx] + y[i*incy];
+    for (i = 0; i < n; i++) z[i*incz] = (w[i*incw] * x[i*incx]) + y[i*incy];
   }
 
 #endif
