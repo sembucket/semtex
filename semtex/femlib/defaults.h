@@ -50,8 +50,6 @@ static struct {
 
   /* -- Option switches. */
 
-  "BASIS"       ,   GLL ,	/* -- Basis for Lagrange polynomials.     */
-  "RULE"        ,   LL  ,	/* -- Quadrature rule.                    */
   "ITERATIVE"   ,   0   ,	/* -- Select PCG solver for velocities.   */
   "CYLINDRICAL" ,   0   ,	/* -- Select cylindrical coordinates.     */
   "VERBOSE"     ,   0   ,	/* -- Set verbose output.                 */
@@ -61,7 +59,6 @@ static struct {
   "NUMOPTLEVEL" ,   3   , 	/* -- Default for numbering optimization. */
   
   /* -- Default integer values. */
-
 
   "IO_FLD"      ,   500 ,	/* -- Step interval for field dumps.     */
   "IO_HIS"      ,   10  ,	/* -- Step interval for history points.  */

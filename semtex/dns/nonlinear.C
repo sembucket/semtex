@@ -155,22 +155,17 @@ void nonLinear (Domain*       D ,
 #endif
 	}
       }
-#if defined (OLDCODE)
-      if (i >  0) master -> divY (nZ32, n32[i]);
-#else
+
       if (i == 2) master -> divY (nZ32, n32[i]);
-#endif
 
       // -- 2D non-conservative derivatives.
 
       for (j = 0; j < 2; j++) {
 	Veclib::copy (nTot32, u32[i], 1, tmp, 1);
 	master -> gradient (nZ32, nP, tmp, j);
-#if defined (OLDCODE)
-	if (i == 0) master -> mulY (nZ32, tmp);
-#else
+
 	if (i <  2) master -> mulY (nZ32, tmp);
-#endif
+
 	Veclib::vvtvp (nTot32, u32[j], 1, tmp, 1, n32[i], 1, n32[i], 1);
       }
 
@@ -180,11 +175,9 @@ void nonLinear (Domain*       D ,
       for (j = 0; j < 2; j++) {
 	Veclib::vmul (nTot32, u32[j], 1, u32[i], 1, tmp, 1);
 	master -> gradient (nZ32, nP, tmp, j);
-#if defined (OLDCODE)
-        if (i == 0) master -> mulY (nZ32, tmp);
-#else
+
 	if (i <  2) master -> mulY (nZ32, tmp);
-#endif
+
 	Veclib::vadd (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
       }
 #endif

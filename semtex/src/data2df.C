@@ -14,7 +14,6 @@ Data2DF::Data2DF (const int_t nP  ,
 		  const int_t nZ  ,
 		  const int_t nEl ,
 		  const char  Name) :
-
   _name (Name),
   _np   (nP  ),
   _nz   (nZ  ),
@@ -149,7 +148,7 @@ Data2DF& Data2DF::operator = (const Data2DF& rhs)
     vector<real_t>  work (rhs._np * _np);
     real_t*         tmp = &work[0];
 
-    Femlib::projection (&IN, &IT, rhs._np, LL, 0.0, 0.0, _np, LL, 0.0, 0.0);
+    Femlib::projection (&IN, &IT, rhs._np, 'L', 0.0, 0.0, _np, 'L', 0.0, 0.0);
 
     for (k = 0; k < nzm; k++) {	// -- 2D planar projections.
       LHS = _plane[k];

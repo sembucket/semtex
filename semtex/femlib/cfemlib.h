@@ -6,129 +6,132 @@
  * $Id$
  *****************************************************************************/
 
-#include <cfemdef.h>
+#include "cfemdef.h"
 
 /* -- Routines from initial.c: */
 
 void    yy_initialize (void);
-double  yy_interpret  (const char*);
+real_t  yy_interpret  (const char*);
 
 void    yy_vec_init   (const char*, const char*);
-void    yy_vec_interp (const integer, ...);
+void    yy_vec_interp (const int_t, ...);
 
 void    yy_help       (void);
 void    yy_show       (void);
 
 /* -- Routines from polyops.c: */
 
-void   dermat_g (const integer, const double*, const integer,
-		 const double*, double*, double*);
-void   intmat_g (const integer, const double*, const integer,
-		 const double*, double*, double*);
-void   dermat_k (const integer, const double*, double*, double*);
+void   dermat_g (const int_t, const real_t*, const int_t,
+		 const real_t*, real_t*, real_t*);
+void   intmat_g (const int_t, const real_t*, const int_t,
+		 const real_t*, real_t*, real_t*);
+void   dermat_k (const int_t, const real_t*, real_t*, real_t*);
 
+void   JACG     (const int_t, const real_t, const real_t, real_t*);
+void   JACGR    (const int_t, const real_t, const real_t, real_t*);
+void   JACGL    (const int_t, const real_t, const real_t, real_t*);
 
-void   JACG     (const integer, const double, const double, double*);
-void   JACGR    (const integer, const double, const double, double*);
-void   JACGL    (const integer, const double, const double, double*);
+void   ZWGL     (real_t*, real_t*, const int_t);
+void   ZWGRL    (real_t*, real_t*, const int_t);
+void   ZWGLL    (real_t*, real_t*, const int_t);
+void   ZWGLJ    (real_t*, real_t*, const real_t, const real_t, const int_t);
 
-void   ZWGL     (double*, double*, const integer);
-void   ZWGRL    (double*, double*, const integer);
-void   ZWGLL    (double*, double*, const integer);
-void   ZWGLJ    (double*, double*, const double, const double, const integer);
+void   DGLL     (const int_t, const real_t*, real_t**, real_t**);
 
-void   DGLL     (const integer, const double*, double**, double**);
+real_t PNLEG    (const real_t, const int_t);
+real_t PNDLEG   (const real_t, const int_t);
+real_t PND2LEG  (const real_t, const int_t);
+real_t PNMOD    (const real_t, const int_t);
 
-double PNLEG    (const double,  const integer);
-double PNDLEG   (const double,  const integer);
-double PND2LEG  (const double,  const integer);
-double PNMOD    (const double, const integer);
-
-void   uniknot  (const integer, double*);
+void   uniknot  (const int_t, real_t*);
 
 /* -- Routines from operators.c: */
 
-void  dQuadOps(const integer   rule, /* input: quadrature rule: GL or LL     */
-	       const integer   np  , /* input: number of knot points         */
-	       const integer   nq  , /* input: number of quadrature points   */
-	       const double**  kp  , /* pointer to knot point storage        */
-	       const double**  qp  , /* pointer to quadrature point storage  */
-	       const double**  qw  , /* pointer to quadrature weight storage */
-	       const double*** in  , /* pointer to interpolation matrix      */
-	       const double*** it  , /* pointer to transposed interp matrix  */
-	       const double*** dr  , /* pointer to derivative matrix         */
-	       const double*** dt  );/* pointer to transposed deriv matrix   */
+void zquad (const real_t** point ,  /* Quadrature points.                    */
+	    const real_t** weight,  /* Quadrature weights.                   */
+	    const real_t** dv    ,  /* Derivative operator at points.        */
+	    const real_t** dt    ,  /* (Transpose) derivative operator.      */
+	    const int_t    np    ,  /* Input: Number of quadrature points.   */
+	    const char     rule  ,  /* Input: 'G'auss, 'R'adau, or 'L'obatto.*/
+	    const real_t   alpha ,  /* Input: Jacobi polynomial constant.    */
+	    const real_t   beta  ); /* Input: Jacobi polynomial constant.    */
 
-void  dMeshOps(const integer   old , /* input: element basis: STD or GLL     */
-	       const integer   new , /* input: desired basis: STD or GLL     */
-	       const integer   np  , /* input: number of knot points         */
-	       const integer   ni  , /* input: number of interpolant points  */
-	       const double**  mesh, /* pointer to interpolated mesh storage */
-	       const double*** in  , /* pointer to interpolation matrix      */
-	       const double*** it  , /* pointer to transposed interp matrix  */
-	       const double*** dr  , /* pointer to derivative matrix         */
-	       const double*** dt  );/* pointer to transposed deriv matrix   */
+void proj  (const real_t** IN    ,  /* Interpolant operator matrix           */
+	    const real_t** IT    ,  /* Transposed interpolant operator matrix*/
+	    const int_t    nfrom ,  /* Input: Number of "from" points        */
+	    const char     rulefr,  /* Input: 'G', 'R', 'L', or 'U', "from"  */
+	    const real_t   alphfr,  /* Input: Jacobi constant, "from"        */
+	    const real_t   betafr,  /* Input: Jacobi constant, "from"        */
+	    const int_t    nto   ,  /* Input: Number of "to" points          */
+	    const char     ruleto,  /* Input: 'G', 'R', 'L', or 'U', "to"    */
+	    const real_t   alphto,  /* Input: Jacobi constant, "to"          */
+	    const real_t   betato); /* Input: Jacobi constant, "to"          */
 
-void dIntpOps (const integer basis,  /* element basis: STD or GLL            */
-	       const integer np   ,  /* number of knot points                */
-	       const double  r    ,  /* location of r in [-1, 1]             */
-	       const double  s    ,  /* location of s in [-1, 1]             */
-	       double*       inr  ,  /* 1D shape function at r               */
-	       double*       ins  ,  /* 1D shape function at s               */
-	       double*       dvr  ,  /* 1D shape function derivative at r    */
-	       double*       dvs  ); /* 1D shape function derivative at s    */
+void intp  (real_t*        inr   ,  /* 1D shape function at r                */
+	    real_t*        ins   ,  /* 1D shape function at s                */
+	    real_t*        dvr   ,  /* 1D shape function derivative at r     */
+	    real_t*        dvs   ,  /* 1D shape function derivative at s     */
+	    const int_t    nr    ,  /* Input: number of points, r-direction  */
+	    const char     basisr,  /* Input: 'G', 'R', 'L', r-direction     */
+	    const real_t   alphar,  /* Input: Jacobi constant, r-direction   */
+	    const real_t   betar ,  /* Input: Jacobi constant, r-direction   */
+	    const int_t    ns    ,  /* Input: number of points, s-direction  */
+	    const char     basiss,  /* Input: 'G', 'R', 'L', s-direction     */
+	    const real_t   alphas,  /* Input: Jacobi constant, s-direction   */
+	    const real_t   betas ,  /* Input: Jacobi constant, s-direction   */
+	    const real_t   r     ,  /* Input: location of r in [-1, 1]       */
+	    const real_t   s     ); /* Input: location of s in [-1, 1]       */
 
-void dglldpc (const integer  np,    /* input: number of points for Leg polys */
-	      const double** cd);   /* output: pointer to table of coeffs.   */
+void dglldpc (const int_t    np,    /* input: number of points for Leg polys */
+	      const real_t** cd);   /* output: pointer to table of coeffs.   */
 
-void dglldpt (const integer  np,    /* input:  number of points for DLT      */
-	      const double** fw,    /* output: 1D forward transform matrix   */
-	      const double** ft,    /* output: transpose of fw               */
-	      const double** bw,    /* output: 1D inverse transform matrix   */
-	      const double** bt,    /* output: transpose of bw               */
-	      const double** fu,    /* output: 2D forward transform matrix   */
-	      const double** bu);   /* output: 2D inverse transform matrix   */
+void dglldpt (const int_t    np,    /* input:  number of points for DLT      */
+	      const real_t** fw,    /* output: 1D forward transform matrix   */
+	      const real_t** ft,    /* output: transpose of fw               */
+	      const real_t** bw,    /* output: 1D inverse transform matrix   */
+	      const real_t** bt,    /* output: transpose of bw               */
+	      const real_t** fu,    /* output: 2D forward transform matrix   */
+	      const real_t** bu);   /* output: 2D inverse transform matrix   */
 
 /* -- Routines from mapping.c: */
 
-void edgemaps (const integer np, const integer dim,
-	       integer** emap, integer** pmap);
+void edgemaps (const int_t np, const int_t dim,
+	       int_t** emap, int_t** pmap);
 
 /* -- Routines from family.c: */
 
-void iadopt   (const integer, integer**);
-void dadopt   (const integer, double** );
-void sadopt   (const integer, float**  );
+void iadopt   (const int_t, int_t**);
+void dadopt   (const int_t, real_t** );
+void sadopt   (const int_t, float**  );
 
-void iabandon (integer**);
-void dabandon (double**);
+void iabandon (int_t**);
+void dabandon (real_t**);
 void sabandon (float**);
 
-integer FamilySize (integer*, integer*, integer*);
+int_t FamilySize (int_t*, int_t*, int_t*);
 
 /* -- Routines from RCM.f: */
 
-void genrcm_ (integer*, integer*, integer*, integer*, integer*, integer*);
+void genrcm_ (int_t*, int_t*, int_t*, int_t*, int_t*, int_t*);
 #define genrcm(neqns, xadj, adjncy, perm, mask, xls) \
 (_vecIreg[0] = neqns, genrcm_(_vecIreg, xadj, adjncy, perm, mask, xls))
 
-void fnroot_ (integer*, integer*, integer*, integer*,
-	      integer*, integer*, integer*);
+void fnroot_ (int_t*, int_t*, int_t*, int_t*,
+	      int_t*, int_t*, int_t*);
 #define fnroot(root, xadj, adncy, mask, nlvl, xls, ls) \
 (_vecIreg[0] = root, _vecIreg[1] = nlvl,                   \
  fnroot_(_vecIreg, xadj, adjncy, mask, _vecIreg + 1, xls, ls))
 
-void rcm_    (integer*, integer*, integer*, integer*,
-	      integer*, integer*, integer*);
+void rcm_    (int_t*, int_t*, int_t*, int_t*,
+	      int_t*, int_t*, int_t*);
 #define rcm(root, xadj, adjncy, mask, perm, ccsize, deg)  \
 (_vecIreg[0] = root, rcm_(_vecIreg, xadj, adjncy, mask, perm, ccsize, deg))
 
 /* -- Routines from fftpack.f (NETLIB/FFTPACK): */
 
-#if 1
-void drffti_ (integer*, double*, integer*);
-void drfftf_ (integer*, double*, double*, double*, integer*);
-void drfftb_ (integer*, double*, double*, double*, integer*);
+void drffti_ (int_t*, real_t*, int_t*);
+void drfftf_ (int_t*, real_t*, real_t*, real_t*, int_t*);
+void drfftb_ (int_t*, real_t*, real_t*, real_t*, int_t*);
 
 #define drffti(n,wa,ifac) \
   (_vecIreg[0]=n, drffti_ (_vecIreg, wa, ifac))
@@ -136,18 +139,10 @@ void drfftb_ (integer*, double*, double*, double*, integer*);
   (_vecIreg[0]=n, drfftf_ (_vecIreg, c, ch, wa, ifac))
 #define drfftb(n,c,ch,wa,ifac) \
   (_vecIreg[0]=n, drfftb_ (_vecIreg, c, ch, wa, ifac))
-#else
-void drffti_ (integer*, double*);
-void drfftf_ (integer*, double*, double*);
-void drfftb_ (integer*, double*, double*);
 
-#define drffti(n,wsave)   (_vecIreg[0]=n, drffti_ (_vecIreg, wsave))
-#define drfftf(n,r,wsave) (_vecIreg[0]=n, drfftf_ (_vecIreg, r, wsave))
-#define drfftb(n,r,wsave) (_vecIreg[0]=n, drfftb_ (_vecIreg, r, wsave))
-#endif
 /* -- Routines from canfft.f (Canuto FFT routines): */
 
-void factor_ (integer*, integer*, integer*);
+void factor_ (int_t*, int_t*, int_t*);
 
 #define factor(n, nfac, ifac) (_vecIreg[0]=n, factor_ (_vecIreg, nfac, ifac))
 
@@ -159,12 +154,12 @@ dmrcft_(v, _vecIreg, _vecIreg+1, w, _vecIreg+2, ifac, trig, _vecIreg+3))
 
 /* -- Routines from temfftd.f (Temperton FFT routines): */
 
-void prf235_ (integer*, integer*, integer*, integer*, integer*);
+void prf235_ (int_t*, int_t*, int_t*, int_t*, int_t*);
 #define prf235(n,ip,iq,ir,ipqr2) (prf235_(n,ip,iq,ir,ipqr2))
 
-void dsetpf_ (double*, integer*, integer*, integer*, integer*);
-void dmpfft_ (double*, double*,  integer*, integer*, integer*,
-	      integer*, integer*, double*, integer*);
+void dsetpf_ (real_t*, int_t*, int_t*, int_t*, int_t*);
+void dmpfft_ (real_t*, real_t*,  int_t*, int_t*, int_t*,
+	      int_t*, int_t*, real_t*, int_t*);
 
 #define dsetpf(trig,n,ip,iq,ir)                               \
 (_vecIreg[0]=n,_vecIreg[1]=ip,_vecIreg[2]=iq, _vecIreg[3]=ir, \
@@ -177,8 +172,7 @@ _vecIreg+3,_vecIreg+4,trig,_vecIreg+5))
 
 /* -- Routines from matops.F: */
 
-void dgrad2_ (double*,double*,double*,double*,double*,double*,
-	      integer*,integer*);
+void dgrad2_ (real_t*,real_t*,real_t*,real_t*,real_t*,real_t*,int_t*,int_t*);
 
 #define dgrad2(u,v,ur,vs,dv,dt,np,nel)                          \
 (_vecIreg[0]=np,_vecIreg[1]=nel,dgrad2_(u,v,ur,vs,dv,dt,_vecIreg,_vecIreg+1))
@@ -187,8 +181,8 @@ void dgrad2_ (double*,double*,double*,double*,double*,double*,
 
 /* -- Routines from NEC FFT library: floating precision depends on library. */
 
-void rftfax_ (integer*,integer*,real*);
-void rfft_   (real*,real*,real*,integer*,integer*,integer*,real*);
+void rftfax_ (int_t*,int_t*,real*);
+void rfft_   (real*,real*,real*,int_t*,int_t*,int_t*,real*);
 
 #define rftfax(n,ifax,trigs)                        \
 (_vecIreg[0]=n,rftfax_(_vecIreg,ifax,trigs))
@@ -200,25 +194,25 @@ rfft_(r,w,trigs,ifax,_vecIreg,_vecIreg+1,_vecDreg))
 
 /* -- Routines from fourier.c */
 
-void dDFTr (double*, const integer, const integer, const integer);
+void dDFTr (real_t*, const int_t, const int_t, const int_t);
 
 /* -- Routines from filter.c */
 
-void bvdFilter (const integer,const integer,const integer, const real, real*);
+void bvdFilter (const int_t,const int_t,const int_t, const real, real*);
 
 /* -- Routines from message.c: */
 
 void message_init      (int*, char***);
 void message_stop      ();
 void message_sync      ();
-void message_dsend     (double*,  const integer, const integer);
-void message_drecv     (double*,  const integer, const integer);
-void message_ssend     (float*,   const integer, const integer);
-void message_srecv     (float*,   const integer, const integer);
-void message_isend     (integer*, const integer, const integer);
-void message_irecv     (integer*, const integer, const integer);
-void message_dexchange (double*,  const integer, const integer,const integer);
-void message_sexchange (float*,   const integer, const integer,const integer);
-void message_iexchange (integer*, const integer, const integer,const integer);
+void message_dsend     (real_t*, const int_t, const int_t);
+void message_drecv     (real_t*, const int_t, const int_t);
+void message_ssend     (float*,  const int_t, const int_t);
+void message_srecv     (float*,  const int_t, const int_t);
+void message_isend     (int_t*,  const int_t, const int_t);
+void message_irecv     (int_t*,  const int_t, const int_t);
+void message_dexchange (real_t*, const int_t, const int_t,const int_t);
+void message_sexchange (float*,  const int_t, const int_t,const int_t);
+void message_iexchange (int_t*,  const int_t, const int_t,const int_t);
 
 #endif

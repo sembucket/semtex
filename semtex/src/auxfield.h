@@ -1,7 +1,6 @@
 #ifndef AUXFIELD_H
 #define AUXFIELD_H
 
-
 class AuxField
 // ===========================================================================
 // Physical field storage class, no BCs.
@@ -19,7 +18,6 @@ friend class    Field;
 friend class    PBCmgr;
 
 public:
-
   AuxField (real_t*, const int_t, vector<Element*>&, const char = 0);
 
   char name     ()      const { return _name; }
