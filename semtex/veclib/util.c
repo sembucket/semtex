@@ -22,7 +22,7 @@ double  _alpDreg[NVREG];
 char     buf[STR_MAX];		/* A string for general use. */
 
 
-void message (const char *routine, const char *text, integer level)
+void message (const char *routine, const char *text, int level)
 /* ------------------------------------------------------------------------- *
  * A simple error handler.
  * ------------------------------------------------------------------------- */
