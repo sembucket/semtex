@@ -1,27 +1,56 @@
 ///////////////////////////////////////////////////////////////////////////////
 // NS.C: Unsteady Navier--Stokes solver, using "stiffly-stable" integration.
-//             This version has Smagorinsky eddy-viscosity LES.
+//
+// This version incorporates LES.  This is handled within the
+// framework of the DNS solver by splitting the SGS stress into two
+// parts: one which can be dealt with implicitly as diffusion of
+// momentum with a spatially-constant kinematic viscosity KINVIS, the
+// other dealt with explicitly as the divergence of a stress.  This
+// way the velocity BCs are still set correctly in the viscous
+// substep.  The splitting is convenient for eddy-viscosity approaches
+// to computing SGS stresses, but may need re-evaluation for other
+// techniques.
+//
+// The splitting technique has been discussed by
+//
+//  @InCollection{koy93,
+//  author = 	 "George E. Karnidakis and Steven A. Orszag and Victor Yakhot",
+//  title = 	 "Renormalization Group Theory Simulation of Transitional
+//                and Turbulent Flow over a Backward-Facing Step",
+//  booktitle =	 "Large Eddy Simulation of Complex Engineering and
+//		  Geophysical Flows",
+//  publisher =	 "Cambridge",
+//  year =	 1993,
+//  editor =	 "Boris Galperin and Steven A. Orszag",
+//  chapter =	 8,
+//  pages =	 "159--177"
+//  }
+//
+// For testing, define DEBUG during compilation.  This will set the
+// kinematic viscosity equal to twice the input value and formulate
+// the SGS stresses as those supplied by the product of the strain
+// rate tensor with a spatially-constant NEGATIVE viscosity -KINVIS:
+// the total effect should be the same as for a DNS with total
+// viscosity KINVIS.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char
 RCSid[] = "$Id$";
 
-#include <NS.h>
+#include <les.h>
 
 #ifdef __DECCXX
   #pragma define_template roll<AuxField*>
 #endif
 
 typedef ModalMatrixSystem ModeSys;
-static  int               DIM;
+static  int               DIM, NZ;
 
-static void strainRate    (const Domain*,AuxField***,AuxField***);
-static void eddyViscosity (AuxField***,AuxField***,AuxField*);
-static void nonLinear     (Domain*,AuxField***,AuxField***,AuxField*,Vector&);
-static void waveProp      (Domain*,const AuxField***,const AuxField***);
-static void setPForce     (const Domain*,const AuxField***,AuxField***);
-static void project       (const Domain*,AuxField***,AuxField***);
-static void setUForce     (const Domain*,AuxField***);
+static void nonLinear (Domain*, AuxField***, AuxField***,
+		       AuxField*, vector<real>&);
+static void waveProp  (Domain*, const AuxField***, const AuxField***);
+static void setPForce (const Domain*, const AuxField***, AuxField***);
+static void project   (const Domain*, AuxField***, AuxField***);
 
 static ModeSys** preSolve (const Domain*);
 static void      Solve    (Field*, AuxField*, ModeSys*, const int, const int);
@@ -37,18 +66,23 @@ void NavierStokes (Domain*   D,
 // Uf is multi-level auxillary Field storage for nonlinear forcing terms.
 // ---------------------------------------------------------------------------
 {
-  DIM = D -> nField() - 1;
+#if defined (DEBUG)
+  Femlib::value ("KINVIS", 2.0 * Femlib::value ("KINVIS"));
+#endif
+
+  DIM = Geometry::nDim();
+  NZ  = Geometry::nZ();
 
   int        i, j;
-  const real dt       =       Femlib::value ("D_T");
-  const int  nOrder   = (int) Femlib::value ("N_TIME");
-  const int  nStep    = (int) Femlib::value ("N_STEP");
-  const int  nZ       = (int) Femlib::value ("N_Z");
+  const real dt     =       Femlib::value ("D_T"   );
+  const int  nOrder = (int) Femlib::value ("N_TIME");
+  const int  nStep  = (int) Femlib::value ("N_STEP");
 
-  Field*     Pressure = D -> u[DIM];
-  ModeSys**  MMS      = preSolve (D);
+  // -- Create global matrix systems.
 
-  // -- Set up multi-level storage for velocities and forcing.
+  ModeSys** MMS = preSolve (D);
+
+  // -- Create multi-level storage for velocities and forcing.
 
   AuxField*** Us = new AuxField** [DIM];
   AuxField*** Uf = new AuxField** [DIM];
@@ -57,26 +91,27 @@ void NavierStokes (Domain*   D,
     Us[i] = new AuxField* [nOrder];
     Uf[i] = new AuxField* [nOrder];
     for (j = 0; j < nOrder; j++) {
-      Us[i][j] = new AuxField (D -> Esys, nZ);
-      Uf[i][j] = new AuxField (D -> Esys, nZ);
+      Us[i][j] = new AuxField (D -> Esys, NZ);
+      Uf[i][j] = new AuxField (D -> Esys, NZ);
     }
   }
 
-  // -- Set up multi-level storage for pressure BCS.
+  // -- Create multi-level storage for pressure BCS.
 
+  Field* Pressure = D -> u[DIM];
   PBCmgr::build (Pressure);
 
-  // -- Set up spatially-constant forcing terms.
+  // -- Create spatially-constant forcing terms.
 
-  Vector ff = {0.0, 0.0, 0.0};
+  vector<real> ff (3);
 
-  ff.x = Femlib::value ("FFX");
-  ff.y = Femlib::value ("FFY");
-  ff.z = Femlib::value ("FFZ");
+  ff[0] = Femlib::value ("FFX");
+  ff[1] = Femlib::value ("FFY");
+  ff[2] = Femlib::value ("FFZ");
 
-  // -- Set up eddy viscosity storage.
+  // -- Create eddy-viscosity storage.
 
-  AuxField* varVis = new AuxField (D -> Esys, nZ);
+  AuxField* EV = new AuxField (D -> Esys, NZ);
 
   // -- Timestepping loop.
 
@@ -86,21 +121,19 @@ void NavierStokes (Domain*   D,
     D -> time += dt;
     Femlib::value ("t", D -> time);
 
-    // -- Compute spatially-varying kinematic viscosity.
+    // -- Find old SGS stress.
 
-    strainRate    (D, Us, Uf);
-    eddyViscosity (Us, Uf, varVis);
-    *varVis -= Femlib::value ("KINVIS");
+    eddyViscosity (D, Us, Uf, EV);
 
     // -- Unconstrained forcing substep.
 
-    nonLinear (D, Us, Uf, varVis, ff);
+    nonLinear (D, Us, Uf, EV, ff);
     waveProp  (D, (const AuxField***) Us, (const AuxField***) Uf);
 
     // -- Pressure projection substep.
 
-    PBCmgr::maintain (D -> step, Pressure,
-		      (const AuxField***) Us, (const AuxField***) Uf, 1);
+    PBCmgr::maintain(D -> step, Pressure,
+		     (const AuxField***)Us, (const AuxField***)Uf, 1);
     Pressure -> evaluateBoundaries (D -> step);
     for (i = 0; i < DIM; i++) {
       AuxField::swapData (D -> u[i], Us[i][0]);
@@ -112,7 +145,6 @@ void NavierStokes (Domain*   D,
 
     // -- Viscous correction substep.
 
-    setUForce (D, Uf);
     for (i = 0; i < DIM; i++) {
       *Us[i][0] = *D -> u[i];
       roll (Us[i], nOrder);
@@ -125,95 +157,18 @@ void NavierStokes (Domain*   D,
   }
 }
 
-static void strainRate (const Domain* D ,
-			AuxField***   Us,
-			AuxField***   Uf)
-// ---------------------------------------------------------------------------
-// On entry D contains the velocity fields Ui and the first-level areas of
-// Us and Uf are free.  Construct the symmetric strain-rate tensor terms,
-// leave the diagonal terms Sii (unsummed) in Us and the off-diagonal terms
-// Sij (i != j) in Uf.
-//           
-//           / dU1/dx1  1/2(dU1/dx2 + dU2/dx1)  1/2(dU1/dx3 + dU3/dx1) \
-//   Sij =   |    .              dU2/dx2        1/2(dU2/dx3 + dU3/dx2) |  (3D)
-//           \    .                 .                     dU3/dx3      /
-// ---------------------------------------------------------------------------
-{
-  int i, j;
 
-  // -- Off-diagonal terms.
-
-  AuxField* tmp = Us[0][0];
-
-  for (i = 0; i < DIM; i++)
-    for (j = 0; j < DIM; j++) {
-      if (j == i) continue;
-      (*tmp = *D -> u[i]) . gradient (j);
-      if   (j > i) *Uf[i + j - 1][0]  = *tmp;
-      else         *Uf[i + j - 1][0] += *tmp;
-    }
-      
-  for (i = 0; i < DIM; i++)
-    for (j = i + 1; j < DIM; j++)
-      *Uf[i + j - 1][0] *= 0.5;
-
-  // -- Diagonal.
-
-  for (i = 0; i < DIM; i++)
-    (*Us[i][0] = *D -> u[i]) . gradient (i);
-}
-
-
-static void eddyViscosity (AuxField*** Us ,
-			   AuxField*** Uf ,
-			   AuxField*   nuT)
-// ---------------------------------------------------------------------------
-// On entry the first-level areas of Us & Uf contain the components of the
-// strain-rate tensor Sij.  Construct in nuT the Smagorinsky eddy-viscosity
-// field (Cs \Delta)^2 |S| where (3D, symmetry)
-//
-// |S| = sqrt [(S11)^2 + (S22)^2 + (S33)^2 + 2(S12)^2 + 2(S13)^2 + 2(S23)^2].
-// ---------------------------------------------------------------------------
-{
-  int          i, j;
-  const int    nZ     = Geometry::nZ();
-  const int    nP     = Geometry::planeSize();
-  const int    nZ32   = (3 * nZ) >> 1;
-  const int    nTot32 = nZ32 * nP;
-
-  vector<real> work (2 * nTot32);
-  real*        tmp    = work();
-  real*        sum    = tmp + nTot32;
-
-  Veclib::zero (nTot32, sum, 1);
-  
-  for (i = 0; i < DIM; i++) {
-    for (j = i + 1; j < DIM; j++) {
-      Uf[i + j - 1][0] -> transform32 (tmp, -1);
-      Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
-    }
-    Blas::scal (nTot32, 2.0, sum, 1);
-    Us[i][0] -> transform32 (tmp, -1);
-    Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
-  }
-
-  Veclib::vsqrt (nTot32, sum, 1, sum, 1);
-  nuT -> transform32 (sum, +1);
-  nuT -> Smagorinsky ();
-}
-
-
-static void nonLinear (Domain*     D ,
-		       AuxField*** Us,
-		       AuxField*** Uf,
-		       AuxField*   vV,
-		       Vector&     ff)
+static void nonLinear (Domain*       D ,
+		       AuxField***   Us,
+		       AuxField***   Uf,
+		       AuxField*     EV,
+		       vector<real>& ff)
 // ---------------------------------------------------------------------------
 // Compute nonlinear + forcing terms in Navier--Stokes equations
-//                       N(u) + 2*div(vV*S) + ff.
+//                       N(u) + div(2*EV*S) + ff.
 //
 // Here N(u) represents the nonlinear advection terms in the N--S equations
-// transposed to the RHS, div(vV*S) is the divergence of the non-constant
+// transposed to the RHS, div(2*EV*S) is the divergence of the non-constant
 // component of the eddy-viscosity SGS terms and ff is a vector of body
 // force per unit mass.
 //
@@ -243,15 +198,10 @@ static void nonLinear (Domain*     D ,
 // back to Fourier space.
 // ---------------------------------------------------------------------------
 {
-  int          i, j;
-  vector<real> F (DIM);
-
-  F[0] = ff.x; F[1] = ff.y; if (DIM == 3) F[2] = ff.z;
-
-  const int         nZ     = Geometry::nZ();
+  int               i, j;
   const int         nP     = Geometry::planeSize();
-  const int         nTot   = nZ * nP;
-  const int         nZ32   = (3 * nZ) >> 1;
+  const int         nTot   = NZ * nP;
+  const int         nZ32   = (3 * NZ) >> 1;
   const int         nTot32 = nZ32 * nP;
   const real        EPS    = (sizeof(real) == sizeof(double)) ? EPSDP : EPSSP;
   vector<real>      work ((2 * DIM + 1) * nTot32);
@@ -262,40 +212,54 @@ static void nonLinear (Domain*     D ,
   Field*            master = D -> u[0];
   real*             tmp    = work() + 2 * DIM * nTot32;
 
-  // -- Divergence of SGS.
-
   for (i = 0; i < DIM; i++) {
     u32[i] = work() +  i        * nTot32;
     n32[i] = work() + (i + DIM) * nTot32;
   }
 
-  vV -> transform32 (u32[0], -1);
+  EV -> transform32 (tmp, -1);
+  Blas::scal (nTot32, -4.0, tmp, 1); // -- 2 = -0.5 * -4 ... see below.
+
+  // -- Diagonal stress-divergence terms.
 
   for (i = 0; i < DIM; i++) {
 
-    // -- Diagonal.
-
     Us[i][0] -> transform32 (n32[i], -1);
-
-    // -- Off-diagonal.
-
-    for (j = i + 1; j < DIM; j++) {
-      Uf[i + j - 1][0] -> transform32 (tmp, -1);
-      Veclib::vadd (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
-      Veclib::vadd (nTot32, tmp, 1, n32[j], 1, n32[j], 1);
-    }
-
-    // -- Convert rates of strain into stresses, account for factor -0.5 below.
-
-    Veclib::svvtt (nTot32, -4.0, u32[0], 1, n32[i], 1, n32[1], 1);
+    Veclib::vmul (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
 
     if (i == 2) {
       Femlib::DFTr (n32[2], nZ32, nP, +1);
       Veclib::zero (nTot32 - nTot, n32[2] + nTot, 1);
-      master -> gradient (nZ, n32[2], 2);
+      master -> gradient (NZ, n32[2], 2);
       Femlib::DFTr (n32[2], nZ32, nP, -1);
-    } else {
+    } else
       master -> gradient (nZ32, n32[i], i);
+  }
+
+  // -- Off-diagonal stress-divergence terms.
+
+  for (i = 0; i < DIM; i++) {
+    for (j = i + 1; j < DIM; j++) {
+
+      Uf[i + j - 1][0] -> transform32 (u32[0], -1);
+      Veclib::vmul (nTot32, tmp, 1, u32[0], 1, u32[0], 1);
+      Veclib::copy (nTot32,         u32[0], 1, u32[1], 1);
+
+      // -- Super-diagonal.
+
+      if (j == 2) {
+	Femlib::DFTr (u32[0], nZ32, nP, +1);
+	Veclib::zero (nTot32 - nTot, u32[0] + nTot, 1);
+	master -> gradient (NZ, u32[0], 2);
+	Femlib::DFTr (u32[2], nZ32, nP, -1);
+      } else
+	master -> gradient (nZ32, u32[0], j);
+      Veclib::vadd (nTot32, u32[0], 1, n32[i], 1, n32[i], 1);
+
+      // -- Sub-diagonal.
+
+      master -> gradient (nZ32, u32[1], i);
+      Veclib::vadd (nTot32, u32[1], 1, n32[i], 1, n32[i], 1);
     }
   }
 
@@ -317,7 +281,7 @@ static void nonLinear (Domain*     D ,
       if (j == 2) {
 	Femlib::DFTr (tmp, nZ32, nP, +1);
 	Veclib::zero (nTot32 - nTot, tmp + nTot, 1);
-	master -> gradient (nZ, tmp, j);
+	master -> gradient (NZ, tmp, j);
 	Femlib::DFTr (tmp, nZ32, nP, -1);
       } else {
 	master -> gradient (nZ32, tmp, j);
@@ -330,7 +294,7 @@ static void nonLinear (Domain*     D ,
       if (j == 2) {
 	Femlib::DFTr (tmp, nZ32, nP, +1);
 	Veclib::zero (nTot32 - nTot, tmp + nTot, 1);
-	master -> gradient (nZ, tmp, j);
+	master -> gradient (NZ, tmp, j);
 	Femlib::DFTr (tmp, nZ32, nP, -1);
       } else {
 	master -> gradient (nZ32, tmp, j);
@@ -341,7 +305,7 @@ static void nonLinear (Domain*     D ,
     N[i]   -> transform32 (n32[i], +1);
     master -> smooth (N[i]);
 
-    if (fabs (F[i]) > EPS) N[i] -> addToPlane (0, -2.0*F[i]);
+    if (fabs (ff[i]) > EPS) N[i] -> addToPlane (0, -2.0*ff[i]);
     *N[i] *= -0.5;
   }
 }
@@ -419,13 +383,13 @@ static void project (const Domain* D ,
 //                    u^^ = u^ - D_T * grad P;
 // u^^ is left in lowest level of Uf.
 //
-// A frame-swapping operation takes place in the first time level of the
-// Fourier direction of Uf.  This returns to original place the swapping done
-// by setPForce.
+// After creation of u^^, it is scaled by -1.0 / (D_T * KINVIS) to compute
+// forcing for viscous step.
 // ---------------------------------------------------------------------------
 {
   int        i;
-  const real dt = Femlib::value ("D_T");
+  const real dt    = Femlib::value ("D_T");
+  const real alpha = -1.0 / Femlib::value ("D_T * KINVIS");
 
   for (i = 0; i < DIM; i++) {
 
@@ -434,27 +398,15 @@ static void project (const Domain* D ,
   
     Us[i][0] -> axpy (-dt, *Uf[i][0]);
     Field::swapData (Us[i][0], Uf[i][0]);
+
+    *Uf[i][0] *= alpha;
   }
-}
-
-
-static void setUForce (const Domain* D ,
-		       AuxField***   Uf)
-// ---------------------------------------------------------------------------
-// On entry, intermediate velocity storage u^^ is in lowest levels of Uf.
-// Multiply by -1.0 / (D_T * KINVIS) to create forcing for viscous step.
-// ---------------------------------------------------------------------------
-{
-  int        i;
-  const real alpha = -1.0 / Femlib::value ("D_T*KINVIS");
-
-  for (i = 0; i < DIM; i++) *Uf[i][0] *= alpha;
 }
 
 
 static ModeSys** preSolve (const Domain* D)
 // ---------------------------------------------------------------------------
-// Set up ModalMatrixSystems for each Field of D.  If iterative solution
+// Create ModalMatrixSystems for each Field of D.  If iterative solution
 // is selected for any Field, the corresponding ModalMatrixSystem pointer
 // is set to zero.
 //
@@ -465,8 +417,7 @@ static ModeSys** preSolve (const Domain* D)
   char                 name;
   int                  i;
   const int            nSys   = D -> Nsys.getSize();
-  const int            nZ     = Geometry::nZ();
-  const int            nModes = (nZ + 1) >> 1;
+  const int            nModes = (NZ + 1) >> 1;
   const int            base   = 0;
   const int            itLev  = (int) Femlib::value ("ITERATIVE");
   const int            nOrder = (int) Femlib::value ("N_TIME");
