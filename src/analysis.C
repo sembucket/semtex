@@ -37,7 +37,9 @@ Analyser::Analyser (Domain& D   ,
   const char routine[] = "Analyser::Analyser";
   char       str[StrMax];
 
-  cout << setprecision (3);
+  cout << setprecision (6);
+
+  // -- Set up for particle tracking.
 
   ROOTONLY {
     
@@ -71,7 +73,7 @@ Analyser::Analyser (Domain& D   ,
     }
   }
 
-  // -- Open history point files, create history points.
+  // -- Set up for history points: open files, create points.
 
   if (feml.seek ("HISTORY")) {
     integer              i, id, num = 0;
@@ -95,11 +97,13 @@ Analyser::Analyser (Domain& D   ,
     
     history.setSize (num);
     while (num--) history[num] = stack.pop();
-      
-    his_strm.open (strcat (strcpy (str, src.name), ".his"));
-    his_strm.setf (ios::scientific, ios::floatfield);
-    his_strm.precision (6);
-    if (!his_strm) message (routine, "can't open history file", ERROR);
+
+    ROOTONLY {
+      his_strm.open (strcat (strcpy (str, src.name), ".his"));
+      his_strm.setf (ios::scientific, ios::floatfield);
+      his_strm.precision (6);
+      if (!his_strm) message (routine, "can't open history file", ERROR);
+    }
   }
 
   // -- Initialize averaging.
@@ -109,6 +113,17 @@ Analyser::Analyser (Domain& D   ,
     stats = new Statistics (D, extra);
   } else                              
     stats = 0;
+
+  // -- Set up for output of modal energies every IO_CFL steps if 3D.
+
+  if (Geometry::nDim() == 3) {
+    strcat (strcpy (str, src.name), ".mdl");
+    ROOTONLY {
+      mdl_strm.open (str, ios::out); 
+      mdl_strm << "#     Time Mode         Energy" << endl
+	       << "# ----------------------------" << endl;
+    }
+  }
 }
 
 
@@ -123,6 +138,8 @@ void Analyser::analyse (AuxField*** work)
   const integer add     = (integer) Femlib::value ("SPAWN");
 
   ListIterator<FluidParticle*> p (particle);
+
+  // -- Step-by-step updates.
 
   ROOTONLY {
 
@@ -147,15 +164,16 @@ void Analyser::analyse (AuxField*** work)
     }
 
     for (p.reset(); p.more(); p.next()) p.current() -> integrate (src.step);
-
   }
 
   // -- CFL, energy, divergence information.
 
-  if (verbose && cflstep && !(src.step % cflstep)) {
-    ROOTONLY estimateCFL();
-    modalEnergy ();
-    divergence  (work);
+  if (cflstep && !(src.step % cflstep)) {
+    if (Geometry::nDim() == 3) modalEnergy();
+    ROOTONLY {
+      estimateCFL ();
+      divergence  (work);
+    }
   }
 
   // -- Periodic dumps and global information.
@@ -225,24 +243,52 @@ void Analyser::analyse (AuxField*** work)
 }
 
 
-void Analyser::modalEnergy () const
+void Analyser::modalEnergy ()
 // ---------------------------------------------------------------------------
-// Print out modal energies per unit area.
+// Print out modal energies per unit area, output by root processor.
 // ---------------------------------------------------------------------------
 {
-  const integer    DIM  = Geometry::nDim();
-  const integer    N    = Geometry::nModeProc();
-  const integer    base = Geometry::baseMode();
+  const integer    DIM   = Geometry::nDim();
+  const integer    N     = Geometry::nModeProc();
+  const integer    base  = Geometry::baseMode();
+  const integer    nProc = Geometry::nProc();
   register integer i, m;
-  real             ek;
+  vector<real>     ek (N);
 
   for (m = 0; m < N; m++) {
-    ek = 0.0;
-    for (i = 0; i < DIM; i++)
-      ek += src.u[i] -> mode_L2 (m);
-
-    cout << "-- Mode " << setw (2) << base + m << ": Energy  : " << ek << endl;
+    ek[m] = 0.0;
+    for (i = 0; i < DIM; i++) ek[m] += src.u[i] -> mode_L2 (m);
   }
+
+  if (nProc > 1) {
+
+    ROOTONLY {
+      for (m = 0; m < N; m++)
+	mdl_strm << setw(10) << src.time 
+		 << setw( 5) << m 
+		 << setw(15) << ek[m]
+		 << endl;
+
+      for (i = 1; i < nProc; i++) {
+	Femlib::recv (ek(), N, i);
+	for (m = 0; m < N; m++)
+	  mdl_strm << setw(10) << src.time 
+		   << setw( 5) << m + i * N
+		   << setw(15) << ek[m]
+		   << endl;
+      }
+      
+      mdl_strm.flush();
+
+    } else
+      Femlib::send (ek(), N, 0);
+
+  } else 
+    for (m = 0; m < N; m++)
+      mdl_strm << setw(10) << src.time 
+	       << setw( 5) << m 
+	       << setw(15) << ek[m]
+	       << endl;
 }
 
 
