@@ -34,7 +34,6 @@ static char prog[] = "meshpr";
 static void getargs (int, char**, char*&, int&, int&,
 		     int&, int&, int&, int&, real&);
 
-
 int main (int    argc,
 	  char** argv)
 // ---------------------------------------------------------------------------
@@ -50,7 +49,7 @@ int main (int    argc,
         threed  = 0,
         np      = 0,
         nz      = 0,
-        basis   = GLL;
+        basis   = GLJ;
   real  beta    = -1.;
 
   Femlib::initialize (&argc, &argv);
@@ -89,7 +88,7 @@ int main (int    argc,
       << nz  << " "
       << NEL << " NR NS NZ NEL"<< endl;
 
-  if (basis == STD) {
+  if (basis == TRZ) {
     Femlib::equispacedMesh (np, &unimesh[0]);
     zero_r = zero_s = &unimesh[0];
   } else {
@@ -174,7 +173,7 @@ static void getargs (int    argc   ,
       check = 0;
       break;
     case 'u':
-      basis = STD;
+      basis = TRZ;
       break;
     case '3':
       threed = 1;
