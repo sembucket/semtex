@@ -50,20 +50,18 @@ Element::Element (const int   id,
  
   this -> mapping();
 
-#if 0  
-  Femlib::adopt (_npnp, &_xmesh);
-  Femlib::adopt (_npnp, &_ymesh);
-  Femlib::adopt (_npnp, &_drdx );
-  Femlib::adopt (_npnp, &_drdy );
-  Femlib::adopt (_npnp, &_dsdx );
-  Femlib::adopt (_npnp, &_dsdy );
-  Femlib::adopt (_npnp, &_Q1   );
-  Femlib::adopt (_npnp, &_Q2   );
-  Femlib::adopt (_npnp, &_Q3   );
-  Femlib::adopt (_npnp, &_Q4   );
-  Femlib::adopt (_npnp, &_Q8   );
-  Femlib::adopt (_npnp, &_delta);
-#endif
+  Family::adopt (_npnp, &_xmesh);
+  Family::adopt (_npnp, &_ymesh);
+  Family::adopt (_npnp, &_drdx );
+  Family::adopt (_npnp, &_drdy );
+  Family::adopt (_npnp, &_dsdx );
+  Family::adopt (_npnp, &_dsdy );
+  Family::adopt (_npnp, &_Q1   );
+  Family::adopt (_npnp, &_Q2   );
+  Family::adopt (_npnp, &_Q3   );
+  Family::adopt (_npnp, &_Q4   );
+  Family::adopt (_npnp, &_Q8   );
+  Family::adopt (_npnp, &_delta);
 
 #if defined (DAMPING)
 #include "damping.C"
@@ -83,20 +81,20 @@ Element::~Element ()
 // Clean up internal storage using Femlib family routines.
 // ---------------------------------------------------------------------------
 {
-  Femlib::abandon (&_xmesh);
-  Femlib::abandon (&_ymesh);
-  Femlib::abandon (&_delta);
+  Family::abandon (&_xmesh);
+  Family::abandon (&_ymesh);
+  Family::abandon (&_delta);
 
-  Femlib::abandon (&_drdx );
-  Femlib::abandon (&_dsdx );
-  Femlib::abandon (&_drdy );
-  Femlib::abandon (&_dsdy );
+  Family::abandon (&_drdx );
+  Family::abandon (&_dsdx );
+  Family::abandon (&_drdy );
+  Family::abandon (&_dsdy );
 
-  Femlib::abandon (&_Q1   );
-  Femlib::abandon (&_Q2   );
-  Femlib::abandon (&_Q3   );
-  Femlib::abandon (&_Q4   );
-  Femlib::abandon (&_Q8   );
+  Family::abandon (&_Q1   );
+  Family::abandon (&_Q2   );
+  Family::abandon (&_Q3   );
+  Family::abandon (&_Q4   );
+  Family::abandon (&_Q8   );
 }
 
 

@@ -54,7 +54,7 @@ Statistics::Statistics (Domain*            D    ,
   const int NT    = NF + NE + NR;
   const int nz    = Geometry::nZProc();
   const int ntot  = Geometry::nTotProc();
-  real*     alloc = new real [(size_t) NT * ntot];
+  real*     alloc = new real [static_cast<size_t>(NT * ntot)];
 
   ROOTONLY cout << "-- Initialising averaging  : ";  
 

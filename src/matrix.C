@@ -89,7 +89,8 @@ ModalMatrixSys::~ModalMatrixSys ()
 // ---------------------------------------------------------------------------
 {
   int N = _Msys.size();
-  while (N--) { delete (_Msys[N]); MS.resize (N); }
+  while (N--) delete (_Msys[N]);
+  MS.resize (0);
 }
 
 
@@ -149,15 +150,15 @@ MatrixSys::MatrixSys (const real              lambda2,
     real*           rmat = hbb  + sqr (next);
     real*           rwrk = rmat + sqr (np);
     integer*        ipiv = &pivotmap[0];
-    int         info;
+    int             info;
 
-    _hbi    = new real*   [(size_t) _nel];
-    _hii    = new real*   [(size_t) _nel];
-    _bipack = new integer [(size_t) _nel];
-    _iipack = new integer [(size_t) _nel];
+    _hbi    = new real*   [static_cast<size_t>(_nel)];
+    _hii    = new real*   [static_cast<size_t>(_nel)];
+    _bipack = new integer [static_cast<size_t>(_nel)];
+    _iipack = new integer [static_cast<size_t>(_nel)];
 
     if (_nsolve) {
-      _H = new real [(size_t) _npack];
+      _H = new real [static_cast<size_t>(_npack)];
       Veclib::zero (_npack, _H, 1);
 
       if (verbose > 1)
@@ -176,8 +177,8 @@ MatrixSys::MatrixSys (const real              lambda2,
       _iipack[j] = nint * nint;
 
       if (nint) {
-	_hbi[j] = new real [(size_t) _bipack[j]];
-	_hii[j] = new real [(size_t) _iipack[j]];
+	_hbi[j] = new real [static_cast<size_t>(_bipack[j])];
+	_hii[j] = new real [static_cast<size_t>(_iipack[j])];
 	Veclib::zero (_bipack[j], _hbi[j], 1);
 	Veclib::zero (_iipack[j], _hii[j], 1);
       } else
@@ -193,8 +194,9 @@ MatrixSys::MatrixSys (const real              lambda2,
 	      _H[Lapack::band_addr (m, n, _nband)] +=
 		hbb[Veclib::row_major (i, k, next)];
 
-      Femlib::adopt (_bipack[j], _hbi + j);  
-      Femlib::adopt (_iipack[j], _hii + j);
+      Family::adopt (_bipack[j], _hbi + j);
+      Family::adopt (_iipack[j], _hii + j);
+
     }
     if (_nsolve) {
       // -- Loop over BCs and add diagonal contribution from mixed BCs.
@@ -209,7 +211,8 @@ MatrixSys::MatrixSys (const real              lambda2,
       // -- Cholesky factor global banded-symmetric Helmholtz matrix.
     
       Lapack::pbtrf ("U",_nsolve,_nband-1,_H,_nband,info);
-      Femlib::adopt (_npack, &_H);
+
+      Family::adopt (_npack, &_H);
 
       if (info) message (routine, "failed to factor Helmholtz matrix", ERROR);
 
@@ -230,7 +233,8 @@ MatrixSys::MatrixSys (const real              lambda2,
     vector<real> work (2 * npnp + np);
     real         *ed = &work[0], *ewrk = &work[0] + npnp;
 
-    _PC = new real [(size_t) _npts];
+    _PC = new real [static_cast<size_t>(_npts)];
+
     Veclib::zero (_npts, _PC, 1);
 
     PCi  = _PC + _NS -> nGlobal();
@@ -256,7 +260,7 @@ MatrixSys::MatrixSys (const real              lambda2,
     Veclib::fill  (_npts, 1.0, _PC, 1);
 #endif
 
-    //    Femlib::adopt (_npts, &_PC);
+    Family::adopt (_npts, &_PC);
 
   } break;
 
@@ -299,15 +303,17 @@ MatrixSys::~MatrixSys()
 {
   switch (_method) {
   case JACPCG:
-    Femlib::abandon (&_PC);
+    Family::abandon (&_PC);
     break;
   case DIRECT: {
     int i;
     for (i = 0; i < _nel; i++) {
-      Femlib::abandon (_hbi + i);
-      Femlib::abandon (_hii + i);
+      Family::abandon (_hbi + i);
+      Family::abandon (_hii + i);
     }
-    Femlib::abandon (&_H);
+    Family::abandon (&_H);
+    delete[] _bipack;
+    delete[] _iipack;
   } break;
   default:
     break;
