@@ -20,6 +20,8 @@ void dscatr_sum (integer n, const double* x, const integer* y, double* z)
 
 #if defined(__uxp__)
 #pragma loop novrec z
+#elif defined(_SX)
+#pragma vdir nodep
 #endif
 
   for (i = 0; i < n; i++) z[y[i]] += x[i];
@@ -32,6 +34,8 @@ void iscatr_sum (integer n, const integer* x, const integer* y, integer* z)
 
 #if defined(__uxp__)
 #pragma loop novrec z
+#elif defined(_SX)
+#pragma vdir nodep
 #endif
 
   for (i = 0; i < n; i++) z[y[i]] += x[i];
@@ -44,6 +48,8 @@ void sscatr_sum (integer n, const float* x, const integer* y, float* z)
 
 #if defined(__uxp__)
 #pragma loop novrec z
+#elif defined(_SX)
+#pragma vdir nodep
 #endif
 
   for (i = 0; i < n; i++) z[y[i]] += x[i];
