@@ -119,7 +119,7 @@ static void getargs (int    argc   ,
       int level;
       if (*++argv[0]) level = atoi (*argv);
       else {level = atoi (*++argv); argc--;}
-      level = clamp (level, 0, 3);
+      level = clamp (level, -1, 3);
       Femlib::value ("NUMOPTLEVEL", 
 		     static_cast<int>(level));
       break;
