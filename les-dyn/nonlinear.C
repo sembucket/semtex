@@ -18,9 +18,9 @@ static void realGradient    (const AuxField*, real*, const int);
 static void complexGradient (const AuxField*, real*, const int);
 
 
-void nonLinear (Domain*       D ,
-		matrix<real>& Ut,
-		vector<real>& ff)
+void nonLinear (Domain*        D ,
+		vector<real*>& Ut,
+		vector<real>&  ff)
 // ---------------------------------------------------------------------------
 // Compute nonlinear and SGSS terms, N(u) and \tau_ij.
 //
@@ -62,7 +62,7 @@ void nonLinear (Domain*       D ,
   real**        Us  = Ua + 3;
   real**        Ud  = Us + 3;
   real**        Nl  = Ud + 3;
-  real*         tmp = D -> udat[3];
+  real*         tmp = D -> udat[3]; // -- NB: pressure field gets destroyed.
 
   // -- Set pointers into supplied workspace, Ut.
 
@@ -86,24 +86,19 @@ void nonLinear (Domain*       D ,
   dynamic (D, Ut);
 
   // -- Subtract off our spatially-constant reference viscosity
-  //    (disguised as KINVIS), note factor of 2, and that we need to
-  //    divide through by Delta^2|S| --- we're making [-2*Cs^2 +
-  //    2*REFVIS/(Delta^2|S|)] since Sij has been premultiplied by
-  //    Delta^2|S|.
+  //    (disguised as KINVIS), note factor of 2, --- we make
+  //    -2*Cs^2 + 2*REFVIS, then multiply through by Delta^2 |S|.
 
   real* nut     = Sm[0];
   real* Delta2S = Us[2];
 
-  Veclib::sdiv (nTot, 2.0*refV, Delta2S, 1, Delta2S, 1);
-  Veclib::vadd (nTot, nut, 1, Delta2S, 1, nut, 1);
+  Veclib::svvtp (nTot, 2.0*refV, nut, 1, Delta2S, 1, nut, 1);
+
+  meta -> smooth (nZP, nut);
 
   // -- Create SGSS \tau_ij = -2 (Cs^2 Delta^2 |S| - refVisc) Sij.
 
   for (i = 0; i < 6; i++) Veclib::vmul (nTot, nut, 1, Sr[i], 1, Sr[i], 1);
-
-  // -- Normalise skewsymmetric nonlinear terms.
-
-  for (i = 0; i < 3; i++) Blas::scal (nTot, -0.5, Nl[i], 1);
 
 #if !defined (NOMODEL)
   // -- Subtract divergence of SGSS from nonlinear terms.
@@ -145,9 +140,9 @@ void nonLinear (Domain*       D ,
 }
 
 
-void dynamic (Domain*       D ,
-	      matrix<real>& Ut,
-	      const int     NL)
+void dynamic (Domain*        D ,
+	      vector<real*>& Ut,
+	      const int      NL)
 // ---------------------------------------------------------------------------
 // Compute nonlinear and SGSS terms: N(u) and eddy viscosity.
 //
@@ -317,13 +312,8 @@ void dynamic (Domain*       D ,
 
   // -- Accumulate LijMij & MijMij terms, conservative Nl terms.
   // 
-  //    Note that we premultiply strain rate tensor by Delta^2 |S| here;
-  //    save a copy in Delta2S.
+  //    Save a copy of Delta^2 |S| in Us[2].
 
-  for (i = 0; i < 6; i++) {
-    Veclib::vmul (nTot, Sm[0], 1, Sr[i], 1, Sr[i], 1);
-    Veclib::vmul (nTot, Sm[1], 1, St[i], 1, St[i], 1);
-  }
   real* Delta2S = Us[2];
   Veclib::copy (nTot, Sm[0], 1, Delta2S, 1);
 
@@ -336,21 +326,25 @@ void dynamic (Domain*       D ,
   // -- Diagonal terms.
 
   for (i = 0; i < 3; i++) {
-    Veclib::vmul  (nTot, Ua[i], 1, Ua[i], 1, tmp, 1);
-    Veclib::copy  (nTot, tmp, 1, L, 1);
-    realGradient  (meta, tmp, i);
-    if (NL) Veclib::vadd (nTot, tmp, 1, Nl[i], 1, Nl[i], 1);
-    transform     (FORWARD, FULL, L);
-    lowpass       (L);
-    transform     (INVERSE, FULL, L);
-    Veclib::vvvtm (nTot, L, 1, Ud[i], 1, Ud[i], 1, L, 1);
-    Veclib::copy  (nTot, Sr[i], 1, M, 1);
-    transform     (FORWARD, FULL, M);
-    lowpass       (M);
-    transform     (INVERSE, FULL, M);
-    Veclib::vsub  (nTot, St[i], 1, M, 1, M, 1);
-    Veclib::vvtvp (nTot, L, 1, M, 1, Num, 1, Num, 1);
-    Veclib::vvtvp (nTot, M, 1, M, 1, Den, 1, Den, 1);
+    Veclib::vmul   (nTot, Ua[i], 1, Ua[i], 1, tmp, 1);
+    Veclib::copy   (nTot, tmp, 1, L, 1);
+    if (NL) {
+      realGradient (meta, tmp, i);
+      Veclib::vadd (nTot, tmp, 1, Nl[i], 1, Nl[i], 1);
+    }
+    transform      (FORWARD, FULL, L);
+    lowpass        (L);
+    transform      (INVERSE, FULL, L);
+    Veclib::vvvtm  (nTot, L, 1, Ud[i], 1, Ud[i], 1, L, 1);
+
+    Veclib::vmul   (nTot, Sr[i], 1, Delta2S, 1, M, 1);
+    transform      (FORWARD, FULL, M);
+    lowpass        (M);
+    transform      (INVERSE, FULL, M);
+    Veclib::vvtvm  (nTot, St[i], 1, Delta2S, 1, M, 1, M, 1);
+
+    Veclib::vvtvp  (nTot, L, 1, M, 1, Num, 1, Num, 1);
+    Veclib::vvtvp  (nTot, M, 1, M, 1, Den, 1, Den, 1);
   }
 
   // -- Off-diagonal terms.
@@ -361,36 +355,49 @@ void dynamic (Domain*       D ,
       Veclib::vmul    (nTot, Ua[i], 1, Ua[j], 1, tmp, 1);
       Veclib::copy    (nTot, tmp, 1, L, 1);
       Veclib::copy    (nTot, tmp, 1, M, 1);
-      realGradient    (meta, M,   i);
-      realGradient    (meta, tmp, j);
-      if (NL) Veclib::vadd (nTot, M,   1, Nl[j], 1, Nl[j], 1);
-      if (NL) Veclib::vadd (nTot, tmp, 1, Nl[i], 1, Nl[i], 1);
+      if (NL) {
+	realGradient  (meta, M,   i);
+	realGradient  (meta, tmp, j);
+	Veclib::vadd  (nTot, M,   1, Nl[j], 1, Nl[j], 1);
+	Veclib::vadd  (nTot, tmp, 1, Nl[i], 1, Nl[i], 1);
+      }
       transform       (FORWARD, FULL, L);
       lowpass         (L);
       transform       (INVERSE, FULL, L);
       Veclib::vvvtm   (nTot, L, 1, Ud[i], 1, Ud[j], 1, L, 1);
-      Veclib::copy    (nTot, Sr[ij], 1, M, 1);
+
+      Veclib::vmul    (nTot, Sr[ij], 1, Delta2S, 1, M, 1);
       transform       (FORWARD, FULL, M);
       lowpass         (M);
       transform       (INVERSE, FULL, M);
-      Veclib::vsub    (nTot, St[ij], 1, M, 1, M, 1);
+      Veclib::vvtvm   (nTot, St[ij], 1, Delta2S, 1, M, 1, M, 1);
+
       Veclib::svvttvp (nTot, 2.0, L, 1, M, 1, Num, 1, Num, 1);
       Veclib::svvttvp (nTot, 2.0, M, 1, M, 1, Den, 1, Den, 1);
     }
 
-  // -- Nudge denominator and strain rate magnitude in case they're very small.
+  // -- Nudge denominator in case it's very small.
 
   const real EPS = (sizeof(real)==sizeof(double))? EPSDP : EPSSP;
   
   Veclib::sadd (nTot, EPS, Den, 1, Den, 1);
-  Veclib::sadd (nTot, EPS, Delta2S, 1, Delta2S, 1);
 
   // -- Here is the dynamic estimate, L = -2 Cs^2 = LijMij/MijMij.
 
   Veclib::vdiv (nTot, Num, 1, Den, 1, L, 1);
 
-  if (!NL) {
+#if defined (SMAG)			// -- Use Smag const for checking.
 
+  Veclib::fill (nTot, Femlib::value ("-2.*C_SMAG*C_SMAG"), L, 1);
+
+#endif
+
+  if (NL)
+    // -- Normalise skewsymmetric nonlinear terms.
+
+    for (i = 0; i < 3; i++) Blas::scal (nTot, -0.5, Nl[i], 1);
+
+  else {
     // -- We are calculating eddy viscosity from L, make sure also we
     //    put transformed velocities back in D.  L is in physical space.
 
@@ -403,9 +410,7 @@ void dynamic (Domain*       D ,
     }
   }
 
-  // -- NB: We need (?) some averaging of Cs for stability.
-
-#if 1				// -- Homogeneous average.
+#if 0				// -- Average Cs for stability.
 
   // -- Homogeneous average.
 

@@ -37,6 +37,7 @@ static Msys** preSolve  (const Domain*);
 static void   Solve     (Domain*, const integer, AuxField*, Msys*);
 static void   pushdown  (AuxField***, const integer, const integer);
 
+
 void integrate (Domain*      D,
 		LESAnalyser* A)
 // ---------------------------------------------------------------------------
@@ -73,9 +74,12 @@ void integrate (Domain*      D,
   // -- Create extra storage needed for computation of SGSS, nonlinear
   //    terms.  Last 2*NDIM*NORD of these are used for Us & Uf, first 17
   //    are used for SGSS modelling work.
-  
-  matrix<real> Ut (17 + 2*NDIM*NORD, Geometry::nTotProc());
 
+  const integer nwork = 17 + 2 * NDIM * NORD;
+  vector<real*> Ut   (nwork);
+  vector<real>  work (nwork * nTot);
+  for (i = 0; i < nwork; i++) Ut[i] = work() + i * nTot;
+  
   // -- Create & initialise multi-level storage for velocities and forcing.
 
   AuxField*** Us = new AuxField** [(size_t) 2 * NORD];
@@ -95,7 +99,7 @@ void integrate (Domain*      D,
   Field* Pressure = D -> u[NDIM];
   PBCmgr::build (Pressure);
 
-  // -- Create spatially-constant forcing terms.
+  // -- Create spatially constant forcing terms.
 
   vector<real> ff (3);
 
@@ -145,6 +149,7 @@ void integrate (Domain*      D,
     pushdown  (Uf, NORD, NDIM);
     setPForce ((const AuxField**)Us[0], Uf[0]);
     Solve     (D, NDIM, Uf[0][0], MMS[NDIM]);
+    Pressure -> zeroNyquist();
     project   (D, Us[0], Uf[0]);
 
     // -- Update multilevel velocity storage.
@@ -167,6 +172,7 @@ void integrate (Domain*      D,
     A -> analyse (Us[0]);
 
   }
+
 #if 1
   // -- Dump ratio eddy/molecular viscosity to file visco.fld.
 

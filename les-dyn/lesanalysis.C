@@ -9,11 +9,12 @@
 #include <les.h>
 
 
-LESAnalyser::LESAnalyser (Domain* D    ,
-			  FEML*   feml) : Analyser (D, feml)
+LESAnalyser::LESAnalyser (Domain* D   ,
+			  FEML*   feml) :
 // ---------------------------------------------------------------------------
 // Extensions to Analyser class.
 // ---------------------------------------------------------------------------
+  Analyser (D, feml)
 {
   ROOTONLY {
     const char routine[] = "LESAnalyser::LESAnalyser";

@@ -33,5 +33,5 @@ void integrate (Domain*, LESAnalyser*);
 
 // -- nonlinear.C:
 
-void nonLinear (Domain*, matrix<real>&, vector<real>&);
-void dynamic   (Domain*, matrix<real>&, const int = 1);
+void nonLinear (Domain*, vector<real*>&, vector<real>&);
+void dynamic   (Domain*, vector<real*>&, const int = 1);

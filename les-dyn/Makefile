@@ -15,8 +15,12 @@ endif
 SEM   = ../semtex
 VPATH = $(SEM)/src
 
-ifdef NOMODEL
+ifdef NOMODEL			# -- This will produce DNS.
   DEFINES += -DNOMODEL
+endif
+
+ifdef SMAG			# -- Over-ride dynamic estimate with C_SMAG
+  DEFINES += -DSMAG
 endif
 
 # ----------------------------------------------------------------------------
