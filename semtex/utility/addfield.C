@@ -56,6 +56,14 @@
 // m -- vw strain rate component
 // n -- ww strain rate component
 //
+// NB: product terms -- such as are used to calculate enstrophy,
+// helicity, the invariants and the discriminant of the velocity
+// gradient tensor, and the strain rate magnitude -- are not
+// dealiased.  Therefore it is advisable to project the original field
+// to a greater number of planes (3/2 rule) before these terms are
+// calculated, otherwise the products can be quite different from what
+// would be expected (especially if N_Z is small, say 4).
+//
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
