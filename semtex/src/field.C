@@ -529,6 +529,7 @@ void Field::traction (real_t*      nx,
 		      real_t*      ty, 
 		      real_t*      tz,
 		      const int_t  N ,
+		      const int_t  M ,
 		      const Field* p ,
 		      const Field* u ,
 		      const Field* v , 
@@ -566,20 +567,22 @@ void Field::traction (real_t*      nx,
     wi = (nz > 1) ? w -> _plane[k+1] : 0;
 
     for (i = 0, j = 0; i < nbound; i++) {
+
+      // -- We loop over all boundaries but only do the work for walls.
       
       if (UBC[i] -> inGroup ("wall")) {
 
-	tnxr = nx + j*np + k*np*N;
-	tnyr = ny + j*np + k*np*N;
-	ttxr = tx + j*np + k*np*N;
+	tnxr = nx + j*np + k*M;
+	tnyr = ny + j*np + k*M;
+	ttxr = tx + j*np + k*M;
 	ttyr = ty + j*np + k*np*N;
 	ttzr = (w) ? tz + j*np + k*np*N : 0;
 
-	tnxi = (nz > 1) ? nx + j*np + (k+1)*np*N : 0;
-	tnyi = (nz > 1) ? ny + j*np + (k+1)*np*N : 0;
-	ttxi = (nz > 1) ? tx + j*np + (k+1)*np*N : 0;
-	ttyi = (nz > 1) ? ty + j*np + (k+1)*np*N : 0;
-	ttzi = (nz > 1) ? tz + j*np + (k+1)*np*N : 0;
+	tnxi = (nz > 1) ? nx + j*np + (k+1)*M : 0;
+	tnyi = (nz > 1) ? ny + j*np + (k+1)*M : 0;
+	ttxi = (nz > 1) ? tx + j*np + (k+1)*M : 0;
+	ttyi = (nz > 1) ? ty + j*np + (k+1)*M : 0;
+	ttzi = (nz > 1) ? tz + j*np + (k+1)*M : 0;
 
 	UBC[i] -> traction (mode, mu, pr, pi, ur, ui, vr, vi, wr, wi,
 			    tnxr,tnxi,tnyr,tnyi,

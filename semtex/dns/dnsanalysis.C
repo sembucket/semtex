@@ -55,7 +55,7 @@ DNSAnalyser::DNSAnalyser (Domain* D   ,
 
     cout << _npad << endl;   
 
-    _work.resize (_npad);
+    _work.resize (_npad * nz);
 
     // -- Open file.
 
@@ -132,15 +132,15 @@ void DNSAnalyser::analyse (AuxField** work)
 
     if (DIM == 3 || _src -> nField() == 4)
       Field::traction (&_work[0], &_work[_nline], &_work[2*_nline],
-		       &_work[3*_nline], &_work[4*_nline], _nwall,
+		       &_work[3*_nline], &_work[4*_nline], _nwall, _npad,
 		       _src -> u[3], _src -> u[0], _src -> u[1], _src -> u[2]);
     else
       Field::traction (&_work[0], &_work[_nline], &_work[2*_nline],
-		       &_work[3*_nline], &_work[4*_nline], _nwall,
+		       &_work[3*_nline], &_work[4*_nline], _nwall, _npad,
 		       _src -> u[2], _src -> u[0], _src -> u[1]);
 
     // -- Inverse Fourier transform (like Field::bTransform).
-
+#if 1
     if (nPR == 1) {
       if (nZ > 1)
 	if (nZ == 2)
@@ -152,23 +152,23 @@ void DNSAnalyser::analyse (AuxField** work)
       Femlib::DFTr     (&_work[0], nZ,  nPP, INVERSE);
       Femlib::exchange (&_work[0], nZP, nP,  INVERSE);
     }
-
+#endif
     // -- Write to file.
 
     // -- Header: this will be a lot like a standard header.
 
     ROOTONLY {
       const char *hdr_fmt[] = { 
-	"%-25s "                "Session\n",
-	"%-25s "                "Created\n",
+	"%-25s "           "Session\n",
+	"%-25s "           "Created\n",
 	"%-5d %-5d %-14d"  "Np, Nz, Elements\n",
-	"%-25d "                "Step\n",
-	"%-25.6g "              "Time\n",
-	"%-25.6g "              "Time step\n",
-	"%-25.6g "              "Kinvis\n",
-	"%-25.6g "              "Beta\n",
-	"%-25s "                "Fields written\n",
-	"%-25s "                "Format\n"
+	"%-25d "           "Step\n",
+	"%-25.6g "         "Time\n",
+	"%-25.6g "         "Time step\n",
+	"%-25.6g "         "Kinvis\n",
+	"%-25.6g "         "Beta\n",
+	"%-25s "           "Fields written\n",
+	"%-25s "           "Format\n"
       };
 
       char   s1[StrMax], s2[StrMax];
