@@ -312,7 +312,7 @@ void jacgr(int n, double alpha, double beta, double *xjac)
 {
   int     np,  i,    j,    k;
   double  pn,  pdn,  pnp1, pdnp1,  pnm1, pdnm1, func, funcd;
-  double  x,   delx, con,  recsum, deriv;
+  double  x,   delx, con,  recsum;
   
 
   np  = n + 1;
@@ -330,7 +330,6 @@ void jacgr(int n, double alpha, double beta, double *xjac)
       recsum = 0.0;
       for (i=0; i<j-1; i++) recsum += 1.0 / (x - xjac[i]);
 
-      deriv =  funcd - recsum * func;
       delx  = -func  / (funcd - recsum*func);
       x    += delx;
     } while (fabs(delx) > EPSDP && k++ < STOP);
