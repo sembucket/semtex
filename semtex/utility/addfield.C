@@ -149,7 +149,7 @@ int main (int    argc,
 
   work = new AuxField (new real[allocSize], nz, elmt);
 
-  if (add[VORTICITY] && add[ENSTROPHY]) {
+  if (add[VORTICITY] || add[ENSTROPHY]) {
     if (nComponent == 2)
       vorticity[0] = new AuxField (new real[allocSize], nz, elmt, 't');
     else
@@ -168,7 +168,7 @@ int main (int    argc,
     }
   }
 
-  if (add[DIVERGENCE] && add[INVARIANTS]) {
+  if (add[DIVERGENCE] || add[INVARIANTS]) {
     dataField (nData) = new AuxField (new real[allocSize], nz, elmt, 'd');
     Div = dataField (nData);
     nData += 1;
@@ -176,7 +176,7 @@ int main (int    argc,
   
   integer iadd = 0;
 
-  if (add[STRAINTENSOR] && add[INVARIANTS] && add[STRAINRATE]) {
+  if (add[STRAINTENSOR] || add[INVARIANTS] || add[STRAINRATE]) {
     Sij = new AuxField** [nComponent];
     for (i = 0; i < nComponent; i++) {
       Sij[i] = new AuxField* [nComponent];
@@ -240,12 +240,12 @@ int main (int    argc,
       (*work = *D -> u[1]) . divR(); *Vij[2][2] += *work;
     }
 	
-    if (add[DIVERGENCE] && add[INVARIANTS]) {
+    if (add[DIVERGENCE] || add[INVARIANTS]) {
       *Div = 0.0;
       for (i = 0; i < nComponent; i++) *Div += *Vij[i][i];
     }
     
-    if (add[VORTICITY] && add[ENSTROPHY]) {
+    if (add[VORTICITY] || add[ENSTROPHY]) {
       
       if (nComponent == 2) {
 	*vorticity[0]  = *Vij[1][0];
@@ -260,7 +260,7 @@ int main (int    argc,
       }
     }
 
-    if (add[STRAINTENSOR] && add[STRAINRATE] && add[INVARIANTS]) {
+    if (add[STRAINTENSOR] || add[STRAINRATE] || add[INVARIANTS]) {
       
       for (i = 0; i < nComponent; i++)
 	for (j = i; j < nComponent; j++) {
