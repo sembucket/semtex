@@ -12,7 +12,7 @@ using namespace std;
 // -- Materials definitions, in display order ---
 //    blue, red, yellow, green, purple, white, turquoise, grey-blue
 
-static const GLfloat diffuse[IsoMax][4] = {
+static GLfloat diffuse[IsoMax][4] = {
   {0.2,  0.2,  1.0,  1.0},
   {0.95, 0.2,  0.0,  1.0},
   {1.0,  1.0,  0.0,  1.0},
@@ -22,6 +22,8 @@ static const GLfloat diffuse[IsoMax][4] = {
   {0.0,  0.9,  0.9,  1.0},
   {0.5,  0.7,  1.0,  1.0}
 };
+
+static GLfloat fogColor[4] = {0.5, 0.5, 0.5, 1.0};
 
 static void drawMesh   ();
 static void drawSurf   ();
@@ -57,29 +59,59 @@ void keyboard (unsigned char key,
     skeleton();
     break;
   case 'a':
-    if (State.noalias = !State.noalias) {
-      glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    if (State.alpha = !State.alpha) {
       glEnable    (GL_BLEND);
-      glEnable    (GL_POLYGON_SMOOTH);
+      glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     } else {
       glDisable   (GL_BLEND);
-      glDisable   (GL_POLYGON_SMOOTH);
     }
     break;
   case 'b':
     State.drawbox = !State.drawbox;
     break;
-  case 'P':
-    State.drawpar = !State.drawpar;
+  case 'c':
+    {
+      ifstream table ("colours.sv");
+      if (table) {
+	cout << "-- Loading colour definitions from colours.sv [";
+	int k = 0;
+	double r, g, b, a;
+	while (k < IsoMax && table >> r >> g >> b >> a) {
+	  diffuse[k][0] = r;
+	  diffuse[k][1] = g;
+	  diffuse[k][2] = b;
+	  diffuse[k][3] = a;
+	  k++;
+	}
+	cout << k << "]" << endl;
+      }
+      table.close();
+    }
     break;
   case 'd':
-
     writetiff ("sview.tif", "Isosurface", COMPRESSION_PACKBITS);
     cout << "Wrote file sview.tif" << endl;
+    break;
+  case 'f': 
+    if (State.fog = !State.fog) {
+      glEnable (GL_FOG);
+      glHint   (GL_FOG_HINT, GL_NICEST);
+      glFogi   (GL_FOG_MODE, GL_EXP2);
+      glFogfv  (GL_FOG_COLOR, fogColor);
+      glFogf   (GL_FOG_DENSITY, 0.01);
+    } else {
+      glDisable (GL_FOG);
+    }
+    break;
+  case 'i':
+    if   (State.blackbk = !State.blackbk) glClearColor (0.0, 0.0, 0.0, 0.0);
+    else                                  glClearColor (1.0, 1.0, 1.0, 0.0);
     break;
   case 'k':
     {
       ofstream knobs ("knobs.sv");
+      knobs << "v"
+	    << " " << State.wangle << endl;
       knobs << "z"
 	    << " " << State.length / State.radius << endl;
       knobs << "p"
@@ -91,14 +123,18 @@ void keyboard (unsigned char key,
 	    << " " << State.ytrans
 	    << " " << State.ztrans << endl;
       knobs.close();
+      cout << "Wrote file knobs.sv" << endl;
     }
     break;
   case 'l':
     processScript ("knobs.sv");
     break;
-  case 'i':
-    if   (State.blackbk = !State.blackbk) glClearColor (0.0, 0.0, 0.0, 0.0);
-    else                                  glClearColor (1.0, 1.0, 1.0, 0.0);
+  case 'n':
+    if (State.wangle > 0.0)  State.wangle = MAX (State.wangle - 5.0, 0.0);
+    skeleton();
+    break;
+  case 'P':
+    State.drawpar = !State.drawpar;
     break;
   case 'r':
     State.xrot    = 0.0;
@@ -108,6 +144,10 @@ void keyboard (unsigned char key,
     State.ytrans  = 0.0;
     State.ztrans  = 0.0;
     State.radius  = 1.0 * State.length;
+    break;
+  case 'w':
+    if (State.wangle < 90.0) State.wangle = MIN (State.wangle + 5.0, 90.0);
+    skeleton();
     break;
   }
   State.drawiso = GL_TRUE;
@@ -188,6 +228,11 @@ void display ()
   polarView    (State.radius, State.zrot, State.xrot, State.yrot);
   glTranslated (State.xtrans, State.ytrans, State.ztrans);
 
+  glMatrixMode   (GL_PROJECTION);
+  glLoadIdentity ();
+  gluPerspective (State.wangle, 1.0, 0.01 * State.length, 100 * State.length);
+  glMatrixMode   (GL_MODELVIEW);
+
   if (State.drawbox) drawMesh ();
   if (State.drawiso) drawSurf ();
   if (State.drawpar) drawPoints();
@@ -212,7 +257,7 @@ void reshape (GLint w,
 
   glMatrixMode   (GL_PROJECTION);
   glLoadIdentity ();
-  gluPerspective (45.0, AR, 0.01 * State.length, 100.0 * State.length);
+  gluPerspective (State.wangle, AR, 0.01 * State.length, 100.0 * State.length);
   glMatrixMode   (GL_MODELVIEW);
 }
 
@@ -222,11 +267,27 @@ void initGraphics ()
 // Set up drawing defaults.
 // ---------------------------------------------------------------------------
 {
-  GLfloat specular[] = {1.0, 1.0, 1.0, 1.0};
+  // -- Attempt to load surface colour definition table from file.
 
-  cout <<
-    "   press ESC key in display window to enter surface manipulation mode\n"
-    "   press 'q' key in display window to exit sview" << endl;
+  ifstream table ("colours.sv");
+
+  if (table) {
+    cout << "-- Loading colour definitions from colours.sv [";
+    int    k = 0;
+    double r, g, b, a;
+    while (k < IsoMax && table >> r >> g >> b >> a) {
+      diffuse[k][0] = r;
+      diffuse[k][1] = g;
+      diffuse[k][2] = b;
+      diffuse[k][3] = a;
+      k++;
+    }
+    cout << k << "]" << endl;
+  }
+
+  table.close();
+
+  // -- Set window background colour and linewidth for skeleton.
 
   if   (State.blackbk) glClearColor (0.0, 0.0, 0.0, 0.0);
   else                 glClearColor (1.0, 1.0, 1.0, 0.0);
@@ -243,10 +304,17 @@ void initGraphics ()
   glEnable       (GL_LIGHTING);
   glEnable       (GL_LIGHT0);
   glLightModelf  (GL_LIGHT_MODEL_TWO_SIDE, GL_FALSE);
+  
+  // -- Blending (enabled by default).
+
+  glEnable       (GL_BLEND);
+  glBlendFunc    (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   // -- Shared material properties:
   //    both surfaces have white highlights,
   //    but only "front" surface is shiny.
+
+  GLfloat specular[] = {1.0, 1.0, 1.0, 1.0};
 
   glMaterialf    (GL_FRONT,          GL_SHININESS, 80.0); 
   glMaterialfv   (GL_FRONT_AND_BACK, GL_SPECULAR,  specular);
@@ -254,8 +322,15 @@ void initGraphics ()
   // -- Perspective.
 
   glMatrixMode   (GL_PROJECTION);
-  gluPerspective (45.0, 1.0, 0.01 * State.length, 100 * State.length);
+  gluPerspective (State.wangle, 1.0, 0.01 * State.length, 100 * State.length);
   glMatrixMode   (GL_MODELVIEW);
+
+  // -- Issue prompt, also indicating initialisation is OK.
+
+  cout <<
+    "!  press ESC key in display window to enter surface manipulation mode\n"
+    "!  press 'q' key in display window to exit sview" << endl;
+
 }
 
 

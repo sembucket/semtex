@@ -1,7 +1,7 @@
 # Example of a "script" for setting up an sview scene.
 # Usage: sview -s tg.sv tg.mesh tg.fld
 
-t 0 0 0
+t 0 0.5 0
 p -25 35 0
 z 1.2
 f u

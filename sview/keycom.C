@@ -48,6 +48,7 @@ void processCommand (const char  command,
     "q                     : quit\n"
     "r <n>                 : remove/delete surface[<n>] from storage\n"
     "t <x> <y> <z>         : specify coordinate translation\n"
+    "v <angle>             : angle of view, degrees (0 < v < 90)\n"
     "z <zoomfactor>        : specify magnification\n"
     "?                     : report current t/p/z state values\n";
   char  name;
@@ -207,6 +208,21 @@ void processCommand (const char  command,
     break;
   }
 
+  case 'v': {
+    istrstream strm(buf, strlen(buf));
+    float val;
+
+    strm >> val;
+
+    if (!strm)
+      message (routine, "insufficient arguments to set view angle", WARNING);
+    else if (val < 0.0 || val > 90.0)
+      message (routine, "0 < angle < 90", WARNING);
+    else
+      State.wangle = val;
+    break;
+  }
+
   case 'z': {
     istrstream strm(buf, strlen(buf));
     float val;
@@ -230,6 +246,8 @@ void processCommand (const char  command,
 	 << State.xrot   << ' '
 	 << State.yrot   << ' '
 	 << State.zrot   << endl;
+    cout << "   v "
+	 << State.wangle << endl;
     cout << "   z "
 	 << State.length / State.radius << endl;
       

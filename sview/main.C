@@ -76,7 +76,8 @@ void main (int    argc,
   State.drawpar = GL_FALSE;
   State.rotate  = GL_TRUE;
   State.blackbk = GL_TRUE;
-  State.noalias = GL_FALSE;
+  State.alpha   = GL_TRUE;
+  State.fog     = GL_FALSE;
   State.cylind  = GL_FALSE;
   State.dump    = GL_FALSE;
 
@@ -87,6 +88,7 @@ void main (int    argc,
   State.ytrans  = 0.0;
   State.ztrans  = 0.0;
   State.radius  = 1.0;
+  State.wangle  = 45.0;
 
   // -- Initialise.
 
@@ -234,7 +236,7 @@ void processScript (const char *name)
     sprintf (buf, "couldn't open script file -- %s", name);
     message (routine, buf, WARNING);
   } else {
-    sprintf (buf, "Reading commands from %s", name);
+    sprintf (buf, "-- Reading commands from %s", name);
     message (routine, buf, REMARK);
 
     while (fp >> command) {

@@ -41,10 +41,12 @@ typedef struct flag {		/* Global state variables.              */
   GLboolean drawpar;		/* Toggle drawing particles.            */
   GLboolean rotate ;		/* Toggle rotation/translation of view. */
   GLboolean blackbk;		/* Toggle black/white background.       */
-  GLboolean noalias;		/* Toggle antaliasing of polygons.      */
+  GLboolean alpha;		/* Toggle alpha blending.               */
+  GLboolean fog  ;              /* Toggle fog effects.                  */
   GLboolean cylind ;		/* True for cylindrical coordinates.    */
   GLboolean dump   ;		/* Flag dump of TIFF image.             */
   GLdouble  radius ;		/* Positioning of viewing point.        */
+  GLdouble  wangle ;		/* View angle (degrees, >0, <90).       */
   GLdouble  xrot   ;		/*                                      */
   GLdouble  yrot   ;		/*                                      */
   GLdouble  zrot   ;		/*                                      */

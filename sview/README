@@ -34,6 +34,8 @@ file is now specified.  The code detects and inverts IEEE big/little
 endian, but if this is not specified it assumes the binary format of
 the machine.
 
+DATA:
+
 Example field file header:
 
 swim                      Session
@@ -47,9 +49,30 @@ Wed Jun 03 15:26:16 1998  Created
 uvwp                      Fields written
 binary IEEE big-endian    Format
 
+PARTICLES:
+
 Each line of point/particle files have form:
 
 id time x y z
+
+COLOURS:
+
+Isosurface colour definitions can be loaded from file colour.sv, up to
+the maxium number of isosurfaces alllowed (IsoMax).  Each colour
+defintion has four numbers, specifying red, green, blue and alpha
+values.  Alpha blending is on by default, but can be toggled off.
+Colour definitions can be reparsed by typing 'c' into the graphics
+window.
+
+SCRIPTS:
+
+A script file gives commands that would otherwise be typed into the
+command window. It is parsed once on initialisation.
+
+POSITIONAL:
+
+The script file knobs.sv can be written ('k') or read ('l'). It
+contains positional and camera information.
 
 OPERATION
 ---------
@@ -75,14 +98,18 @@ Cartesian axes.
 
 Other key commands:
 
-'a': toggle antialiased drawing of lines and polygons (slows rendering). 
+'a': toggle alpha blending of isosurfaces. 
 'b': toggle rendering of mesh outlines.
+'c': load isosurface colour tables from "colours.sv".
 'd': dump a TIFF image of window to file "sview.tif".
 'i': toggle inversion of background from black to white (default black).
 'k': write viewpoint-setting commands to file "knobs.sv".
 'l': read viewing information from file "knobs.sv".
+'n': narrow the view angle in 5 deg steps (min 0).
 'r': reset view.
+'P': toggle drawing of particles.
 'q': quit sview (also in the terminal interface, see below).
+'w': widen the view angle in 5 degree steps (45 deg default, 90 deg max).
 ESC: iconifies the window and puts sview in isosurface manipulation mode.
 
 2.  Isosurface manipulation mode/operations: commands in keycom.C.
@@ -108,6 +135,7 @@ p <x> <y> <z>         : specify coordinate rotation
 q                     : quit
 r <n>                 : remove/delete surface[<n>] from storage
 t <x> <y> <z>         : specify coordinate translation
+v <angle>             : angle of view, degrees (0 < v < 90)
 z <zoomfactor>        : specify magnification
 ?                     : report current t/p/z state values
 
