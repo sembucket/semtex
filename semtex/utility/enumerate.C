@@ -170,7 +170,7 @@ int main (int    argc,
       if (strchr (&S[i] -> fields[0], 'p')) {
 	Nsys* pressure = S[i];
 	if (!Veclib::any (pressure -> nbndry, &pressure -> bndmsk[0], 1)) {
-	  pressure -> rebuild (file, clamp (static_cast<integer>(opt), 2, 3));
+	  pressure -> rebuild (file, clamp (static_cast<int>(opt), 2, 3));
 	  break;
 	}
       }
