@@ -6,13 +6,16 @@
 // routine; after initialisation, integrate may be called repeatedly
 // without reinitialising internal storage.
 //
-// Copyright (c) 1994<-->$Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // References:
-// 1.  Karniadakis, Israeli & Orszag 1991.  "High-order splitting methods
-//     for the incompressible Navier--Stokes equations", JCP 9(2).
-// 2.  Tomboulides, Orszag & Karniadakis 1993.  "Direct and
-//     large-eddy simulation of axisymmetric wakes",  AIAA-93-0546.
+// 1. Karniadakis, Israeli & Orszag (1991) "High-order splitting methods
+//    for the incompressible Navier--Stokes equations", JCP 9(2).
+// 2. Guermond & Shen (2003) "Velocity correction projection methods for 
+//    incompressible flows", SIAM J Numer Anal 41(1).
+// 3. Blackburn & Sherwin (2004) "Formulation of a Galerkin spectral
+//    element--Fourier method for three-dimensional incompressible flows
+//    in cylindrical geometries", JCP.
 //
 // For cylindrical coordinates:
 //   u <==> axial     velocity,  x <==> axial     coordinate direction,
@@ -53,7 +56,7 @@ void integrateNS (Domain*      D,
   C3D  = Geometry::cylindrical() && NCOM == 3;
 
   integer            i, j, k;
-  const real         dt    = Femlib::value ("D_T");
+  const real         dt    = Femlib:: value ("D_T");
   const integer      nStep = Femlib::ivalue ("N_STEP");
   const integer      nZ    = Geometry::nZProc();
 
@@ -79,8 +82,8 @@ void integrateNS (Domain*      D,
       Us[i] = new AuxField* [static_cast<size_t>(2 * NCOM)];
       Uf[i] = Us[i] + NCOM;
       for (j = 0; j < NCOM; j++) {
-	*(Us[i][j] = new AuxField (alloc + k++ * ntot, nZ, D -> elmt)) = 0.0;
-	*(Uf[i][j] = new AuxField (alloc + k++ * ntot, nZ, D -> elmt)) = 0.0;
+	Us[i][j] = new AuxField (alloc + k++ * ntot, nZ, D -> elmt);
+	Uf[i][j] = new AuxField (alloc + k++ * ntot, nZ, D -> elmt);
       }
     }
 
@@ -117,16 +120,21 @@ void integrateNS (Domain*      D,
     D -> time += dt;
     Femlib::value ("t", D -> time);
 
-    // -- Unconstrained forcing substep.
+    // -- Compute nonlinear terms from previous velocity field.
 
     nonLinear (D, Us[0], Uf[0], ff);
 
-#if defined (OLDCODE)
+    // -- Update high-order pressure BC storage.
+
     PBCmgr::maintain (D -> step, Pressure, 
 		      const_cast<const AuxField**>(Us[0]),
 		      const_cast<const AuxField**>(Uf[0]));
     Pressure -> evaluateBoundaries (D -> step);
-    if (Geometry::cylindrical()) { Us[0][0] -> mulY(); }
+
+    // -- Complete unconstrained advective substep and compute pressure.
+
+#if defined (OLDCODE)
+    if (Geometry::cylindrical()) Us[0][0] -> mulY();
     waveProp  (D, const_cast<const AuxField***>(Us),
 	          const_cast<const AuxField***>(Uf));
     for (i = 0; i < NCOM; i++) AuxField::swapData (D -> u[i], Us[0][i]);
@@ -135,19 +143,16 @@ void integrateNS (Domain*      D,
     Solve     (D, NCOM,  Uf[0][0], MMS[NCOM]); 
     if (Geometry::cylindrical()) { Us[0][1] -> mulY(); }
 #else
-    PBCmgr::maintain (D -> step, Pressure, 
-		      const_cast<const AuxField**>(Us[0]),
-		      const_cast<const AuxField**>(Uf[0]));
-    Pressure -> evaluateBoundaries (D -> step);
     if (Geometry::cylindrical()) { Us[0][0] -> mulY(); Us[0][1] -> mulY(); }
     waveProp (D, const_cast<const AuxField***>(Us),
 	         const_cast<const AuxField***>(Uf));
     for (i = 0; i < NCOM; i++) AuxField::swapData (D -> u[i], Us[0][i]);
     rollm     (Uf, NORD, NCOM);
     setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);
-
     Solve     (D, NCOM,  Uf[0][0], MMS[NCOM]);
 #endif
+    
+    // -- Correct velocities for pressure.
 
     project   (D, Us[0], Uf[0]);
 

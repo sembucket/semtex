@@ -14,6 +14,9 @@
   typedef double  real;
 #endif
 
+typedef integer int_t;
+typedef real    real_t;
+
 typedef struct { real x, y, z; } Point;
 typedef Point                    Vector;
 
