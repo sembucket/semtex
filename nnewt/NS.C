@@ -142,7 +142,7 @@ void NavierStokes (Domain*        D,
     D -> time += dt;
     Femlib::value ("t", D -> time);
 
-    // -- Compute spatially-varying kinematic eddy viscosity \epsilon.
+    // -- Compute spatially-varying kinematic eddy viscosity.
 
     viscosity (D, Us[0], Uf[0], NNV);
 

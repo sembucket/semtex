@@ -252,6 +252,10 @@ void Statistics::update (AuxField** wrka,
   int_t  i, j;
   Field* master = _base -> u[0];
   map<char, AuxField*>::iterator k;
+  
+  // ** NEW ** Add reference viscosity back!
+
+  ROOTONLY _raw['l'] -> addToPlane (0, Femlib::value ("-KINVIS"));
 
   // -- Weight old running averages.
 
@@ -289,6 +293,7 @@ void Statistics::update (AuxField** wrka,
     // -- General set-up.
 
     _raw['l'] -> transform (INVERSE);
+
     AuxField* wrkc = _raw['p'];	// -- Caveat emptor.
 
     // -- Pressure--velocity terms.

@@ -677,11 +677,18 @@ static void covary  (map<char, AuxField*>& in  ,
 
   // -- Finally, compute the sum, 'S':
 
-  *out['S']  = *out['0'];
-  *out['S'] += *out['1'];
+  //  *out['S']  = *out['0'];
+
+  *out['S']  = 0.0;
+
   *out['S'] += *out['2'];
   *out['S'] += *out['3'];
   *out['S'] += *out['4'];
+  *out['S'] += *out['5'];
+  *out['S'] += *out['6'];
   *out['S'] += *out['7'];
+  *out['S'] += *out['8'];
+  *out['S'] += *out['9'];
+  *out['S'] += *out['0'];
 }
 
