@@ -255,7 +255,7 @@ void Statistics::update (AuxField** wrka,
   
   // ** NEW ** Add reference viscosity back!
 
-  ROOTONLY _raw['l'] -> addToPlane (0, Femlib::value ("-KINVIS"));
+  ROOTONLY _raw['l'] -> addToPlane (0, Femlib::value ("KINVIS"));
 
   // -- Weight old running averages.
 

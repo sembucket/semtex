@@ -9,6 +9,8 @@
 // example in addfield.C are broken (names are here used for different
 // variables).
 //
+// Also: the formulation has not been checked to work for cylindrical coords.
+//
 // Usage:
 // -----
 // eneq [options] session session.avg
@@ -551,7 +553,9 @@ static void covary  (map<char, AuxField*>& in  ,
     work[0] -> timesPlus (*in['Q'], *in['s']);
   }
   *work[0] *= 2.0;
-  (*out['8'] += *work[0]) *= -2.0;
+  *out['8'] += *work[0];
+  *out['8'] *= *in['l'];
+  *out['8'] *= -2.0;
 
   // -- Compute term '6':
 
@@ -593,7 +597,7 @@ static void covary  (map<char, AuxField*>& in  ,
   if (nvel == 3) {
       work[0] -> times     (*in['r'], *in['u']);
       work[0] -> timesPlus (*in['s'], *in['v']);
-      work[0] -> timesPlus (*in['w'], *in['w']);
+      work[0] -> timesPlus (*in['t'], *in['w']);
       *work[0] *= *in['l'];
       *in['k'] -= *work[0];
   }
@@ -626,13 +630,14 @@ static void covary  (map<char, AuxField*>& in  ,
   *out['7'] *= -2.0;
 
   // -- Compute term 9:
+  //    Note we have already premultiplied 'n', 'r', 's' by sqrt(2).
 
   work[0] -> times (*in['N'], *in['n']);
   if (nvel == 3) {
     work[0] -> timesPlus (*in['P'], *in['r']);
     work[0] -> timesPlus (*in['Q'], *in['s']);
   }
-  *work[0] *= 2.0;
+  *work[0] *= sqrt (2.0);
   work[0] -> timesPlus (*in['M'], *in['m']);
   work[0] -> timesPlus (*in['O'], *in['o']);
   if (nvel == 3) work[0] -> timesPlus (*in['R'], *in['t']);
@@ -646,7 +651,7 @@ static void covary  (map<char, AuxField*>& in  ,
     work[0] -> timesPlus (*in['r'], *in['r']);
     work[0] -> timesPlus (*in['s'], *in['s']);
   }
-  *work[0] *= 2.0;
+  *work[0] *= sqrt (2.0);
   work[0] -> timesPlus (*in['m'], *in['m']);
   work[0] -> timesPlus (*in['o'], *in['o']);
   if (nvel == 3) work[0] -> timesPlus (*in['t'], *in['t']);
@@ -654,7 +659,7 @@ static void covary  (map<char, AuxField*>& in  ,
 
   *in['e'] -= *work[0];
 
-  (*out['9'] = *in['e']) *= 2.0;
+  (*out['9'] = *in['e']) *= -2.0;
   
   // -- Compute term '0' (production):
 
