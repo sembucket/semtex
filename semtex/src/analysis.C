@@ -95,6 +95,14 @@ Analyser::Analyser (Domain& D   ,
     his_strm.precision (6);
     if (!his_strm) message (routine, "can't open history file", ERROR);
   }
+
+  // -- Initialize averaging.
+
+  if ((integer) Femlib::value ("AVERAGE")) {
+    vector<AuxField*> extra (0);
+    stats = new Statistics (D, extra);
+  } else                              
+    stats = 0;
 }
 
 
@@ -111,7 +119,6 @@ void Analyser::analyse (AuxField*** work)
   // -- Run information update.
 
   cout << "Step: " << src.step << "  Time: " << src.time << endl;
-  src.dump ();
 
   // -- Track particles.
 
@@ -147,48 +154,58 @@ void Analyser::analyse (AuxField*** work)
   const integer final    =   src.step == (integer) Femlib::value ("N_STEP");
   const integer state    = periodic || final;
 
-  if (!state) return;
+  if (state) {
 
-  // -- Track particles.
+    // -- Track particles.
 
-  Point          P;
-  FluidParticle* F;
+    Point          P;
+    FluidParticle* F;
 
-  for (p.reset(); p.more(); p.next()) {
-    F = p.current();
-    if (F -> inMesh()) {
-      P = F -> location();
-      par_strm
-	<< setw(10) << F -> ID()
-	<< setw(15) << src.time
-	<< setw(15) << P.x
-	<< setw(15) << P.y
-	<< setw(15) << P.z
-	<< endl;
+    for (p.reset(); p.more(); p.next()) {
+      F = p.current();
+      if (F -> inMesh()) {
+	P = F -> location();
+	par_strm
+	  << setw(10) << F -> ID()
+	  << setw(15) << src.time
+	  << setw(15) << P.x
+	  << setw(15) << P.y
+	  << setw(15) << P.z
+	  << endl;
+      }
     }
-  }
 
-  // -- History points.
+    // -- History points.
 
-  register integer  i, j;
-  const integer     NH = history.getSize();
-  const integer     NF = src.u.getSize();
-  HistoryPoint*     H;
-  vector<real>      tmp (NF);
-  vector<AuxField*> u    (NF);
+    register integer  i, j;
+    const integer     NH = history.getSize();
+    const integer     NF = src.u.getSize();
+    HistoryPoint*     H;
+    vector<real>      tmp (NF);
+    vector<AuxField*> u   (NF);
 
-  for (i = 0; i < NF; i++)
-    u[i] = src.u[i];
+    for (i = 0; i < NF; i++)
+      u[i] = src.u[i];
 
-  for (i = 0; i < NH; i++) {
-    H = history[i];
+    for (i = 0; i < NH; i++) {
+      H = history[i];
 
-    H -> extract (u, tmp());
+      H -> extract (u, tmp());
     
-    his_strm << setw(10) << H -> ID();
-    for (j = 0; j < NF; j++) his_strm << setw(15) << tmp[j];
-    his_strm << endl;
+      his_strm << setw(10) << H -> ID();
+      for (j = 0; j < NF; j++) his_strm << setw(15) << tmp[j];
+      his_strm << endl;
+    }
+
+    // -- Statistical analysis.
+
+    if (stats) stats -> update();
   }
+
+  // -- Field and statistical dumps.
+
+  src.dump ();
+  if (stats) stats -> dump();
 }
 
 
@@ -267,7 +284,7 @@ void Analyser::estimateCFL () const
   dt_max  = SAFETY * CFL_max / CFL_dt;
   percent = 100.0 * dt / dt_max;
 
-  cout << "-- CFL = "    << CFL_dt * dt;
+  cout << "-- CFL: "     << CFL_dt * dt;
   cout << ", dt (max): " << dt_max;
   cout << ", dt (set): " << dt;
   cout << " ("           << percent << "%)" << endl;
