@@ -630,7 +630,6 @@ static void getargs (int    argc   ,
 // ---------------------------------------------------------------------------
 {
   char usage[] = "arnoldi [options] session\n"
-    "session: specifies name of session file\n"
     "options:\n"
     "-h       ... print this message\n"
     "-v       ... set verbose\n"
