@@ -116,7 +116,7 @@ int main (int    argc,
 
   // -- Load field file, interpolate within it.
 
-  cout.precision (10);
+  cout.precision (8);
   while (getDump (fldfile, u, Esys, NP, NZ, NEL,
 		  step, time, timestep, kinvis, beta)) {
 
@@ -259,7 +259,7 @@ static void findPoints (vector<Point*>&   point,
 
   elmt = 0;
 
-  cerr.precision (10);
+  cerr.precision (8);
 
   for (i = 0; i < NPT; i++) {
     x = point[i] -> x;
@@ -275,7 +275,7 @@ static void findPoints (vector<Point*>&   point,
     }
 
     if (!elmt[i])
-      cerr << "point (" << setw(15) << x << ","
+      cerr << "interp: point (" << setw(15) << x << ","
 	   << setw(15) << y << ") is not in the mesh" << endl;
   }
 }
