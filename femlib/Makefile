@@ -9,9 +9,10 @@
 
 ARCH = $(shell uname -s)
 
-OPTIONS  = -O2
-#OPTIONS  = -g
+OPTIONS  = -O2 -sopt
 
+FEMHOME  = ../..
+LIBHOME  = $(shell pwd)
 LIB      = libfem.a
 
 CFLAGS	 = $(OPTIONS)
@@ -19,18 +20,17 @@ FFLAGS   = $(OPTIONS)
 ARFLAGS	 = cr
 CPPFLAGS = -I../../include
 
-# ----------- compiler options for specific machines.
+# -------------- compiler options for specific machines. ---------------------
 
 ifeq ($(ARCH),IRIX)
-CFLAGS     = -mips2 -sopt -fullwarn $(OPTIONS)
-FFLAGS     = -mips2 -sopt $(OPTIONS)
+CFLAGS     = -mips2 -fullwarn $(OPTIONS)
+FFLAGS     = -mips2  $(OPTIONS)
 endif
 
 ifeq ($(ARCH),IRIX64)
-CFLAGS     = -sopt -fullwarn $(OPTIONS)
-FFLAGS     = -sopt $(OPTIONS)
+CFLAGS     = -fullwarn $(OPTIONS)
+FFLAGS     = $(OPTIONS)
 endif
-
 
 #-----------------------------------------------------------------------------
 # Create dependency list.
@@ -38,7 +38,7 @@ endif
 
 INITIAL    = initial
 
-OPERATORS  = polyops   operators
+OPERATORS  = polyops   operators    norm
 
 MESH       = RCM
 
@@ -51,14 +51,25 @@ LMD        = $(foreach routine, $(ALL), $(LIB)($(routine).o))
 $(LIB): $(LMD)
 
 install:
-	mv $(LIB) ..; \
-	cd ../../include; rm -f femlib.h; ln -s ../lib/femlib/femlib.h femlib.h
+	cd $(FEMHOME)/lib; rm -f $(LIB);			\
+	ln -s $(LIBHOME)/$(LIB) $(LIB);				\
+	cd $(HOME)/lib; rm -f $(LIB);				\
+	ln -s $(LIBHOME)/$(LIB) $(LIB);				\
+	cd $(HOME)/include; 					\
+	rm -f femlib.h Femlib.h;                              	\
+	ln -s $(LIBHOME)/femlib.h    femlib.h;			\
+	ln -s $(LIBHOME)/Femlib.h    Femlib.h;
+
+	cd $(FEMHOME)/include; 					\
+	rm -f femlib.h Femlib.h;				\
+	ln -s $(LIBHOME)/femlib.h    femlib.h;			\
+	ln -s $(LIBHOME)/Femlib.h    Femlib.h
 
 initial.y: defaults.h
 
 testpoly: testpoly.c
-	cc $(CFLAGS) -o testpoly testpoly.c -I$(HOME)/include -I. \
-	-L$(HOME)/lib -L. -lfem -llinalp -lm -lmalloc
+	cc $(CFLAGS) -o testpoly testpoly.c -I$(FEMHOME)/include -I. \
+	-L$(FEMHOME)/lib -lfem -lalp -lm -lmalloc
 
 tar:
 	tar cvf femlib.tar *
