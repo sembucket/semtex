@@ -7,11 +7,12 @@
 
 
 void dvpoly(int n, const double *x, int incx, int m,
-	           const double *c, int incc, 
+	                 double *c, int incc, 
 		         double *y, int incy)
 {
-  register int    i,   j;
-  register double sum, xval, *cp, *csave;
+  register int     i,   j;
+  register double  sum, xval, *cp;
+           double *csave;
 
 
   csave = c;
@@ -27,7 +28,7 @@ void dvpoly(int n, const double *x, int incx, int m,
       sum = sum * xval + *cp;
       cp += incc;
     }
-    *y = p;
+    *y = sum;
     x += incx;
     y += incy;
   }
@@ -38,11 +39,12 @@ void dvpoly(int n, const double *x, int incx, int m,
 
 
 void svpoly(int n, const float  *x, int incx, int m,
-	           const float  *c, int incc, 
+	                 float  *c, int incc, 
 		         float  *y, int incy)
 {
   register int    i,   j;
-  register float  sum, xval, *cp, *csave;
+  register float  sum, xval, *cp;
+           float *csave;
 
 
   csave = c;
@@ -58,7 +60,7 @@ void svpoly(int n, const float  *x, int incx, int m,
       sum = sum * xval + *cp;
       cp += incc;
     }
-    *y = p;
+    *y = sum;
     x += incx;
     y += incy;
   }

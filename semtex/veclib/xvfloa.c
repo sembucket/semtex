@@ -22,7 +22,7 @@ void dvfloa(int n, const int *x, int incx, double *y, int incy)
 
 
 
-void svfloa(int n, cont int *x, int incx, float *y, int incy)
+void svfloa(int n, const int *x, int incx, float *y, int incy)
 {
   register int  i;
 

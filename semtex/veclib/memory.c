@@ -56,7 +56,7 @@ double *dvector(long nl, long nh)
 
 
 
-float *fvector(long nl, long nh)
+float *svector(long nl, long nh)
 /* ========================================================================= *
  * Allocates a float vector with range [nl..nh].                             *
  * ========================================================================= */
@@ -65,7 +65,7 @@ float *fvector(long nl, long nh)
   
 
   v = (float*) malloc((size_t) ((nh-nl+1)*sizeof(float)));
-  if (!v) message("fvector()", "allocation failure", ERROR);
+  if (!v) message("svector()", "allocation failure", ERROR);
 
   return v-nl;
 }
@@ -162,7 +162,7 @@ double **dmatrix(long nrl, long nrh, long ncl, long nch)
 
 
 
-float **fmatrix(long nrl, long nrh, long ncl, long nch)
+float **smatrix(long nrl, long nrh, long ncl, long nch)
 /* ========================================================================= *
  * Allocate a float matrix with subscript ranges [nrl..nrh][ncl..nch].       *
  * ========================================================================= */
@@ -172,11 +172,11 @@ float **fmatrix(long nrl, long nrh, long ncl, long nch)
 
 
   m = (float**) malloc((size_t) (nrow*sizeof(float*)));
-  if (!m) message("fmatrix()", "allocation failure 1", ERROR);
+  if (!m) message("smatrix()", "allocation failure 1", ERROR);
   m -= nrl;
 
   m[nrl] = (float*) malloc((size_t) (nrow*ncol*sizeof(float)));
-  if (!m[nrl]) message("fmatrix()", "allocation failure 2", ERROR);
+  if (!m[nrl]) message("smatrix()", "allocation failure 2", ERROR);
   m[nrl] -= ncl;
 
   for (i=nrl+1; i<=nrh; i++) m[i] = m[i-1] + ncol;
@@ -250,15 +250,15 @@ complex ***c3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
   t = (complex***) malloc((size_t) (nrow*sizeof(complex**)));
-  if (!t) message("f3tensor()", "allocation failure 1", ERROR);
+  if (!t) message("s3tensor()", "allocation failure 1", ERROR);
   t -= nrl;
 
   t[nrl] = (complex**) malloc((size_t) (nrow*ncol*sizeof(complex*)));
-  if (!t[nrl]) message("f3tensor()", "allocation failure 2", ERROR);
+  if (!t[nrl]) message("s3tensor()", "allocation failure 2", ERROR);
   t[nrl] -= ncl;
 
   t[nrl][ncl] = (complex*) malloc((size_t) (nrow*ncol*ndep*sizeof(complex)));
-  if (!t[nrl][ncl]) message("f3tensor()", "allocation failure 3", ERROR);
+  if (!t[nrl][ncl]) message("s3tensor()", "allocation failure 3", ERROR);
   t[nrl][ncl] -= ndl;
 
   for (j=ncl+1; j<=nch; j++)
@@ -287,15 +287,15 @@ double ***d3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
   t = (double***) malloc((size_t) (nrow*sizeof(double**)));
-  if (!t) message("f3tensor()", "allocation failure 1", ERROR);
+  if (!t) message("s3tensor()", "allocation failure 1", ERROR);
   t -= nrl;
 
   t[nrl] = (double**) malloc((size_t) (nrow*ncol*sizeof(double*)));
-  if (!t[nrl]) message("f3tensor()", "allocation failure 2", ERROR);
+  if (!t[nrl]) message("s3tensor()", "allocation failure 2", ERROR);
   t[nrl] -= ncl;
 
   t[nrl][ncl] = (double*) malloc((size_t) (nrow*ncol*ndep*sizeof(double)));
-  if (!t[nrl][ncl]) message("f3tensor()", "allocation failure 3", ERROR);
+  if (!t[nrl][ncl]) message("s3tensor()", "allocation failure 3", ERROR);
   t[nrl][ncl] -= ndl;
 
   for (j=ncl+1; j<=nch; j++)
@@ -314,7 +314,7 @@ double ***d3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
 
-float ***f3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
+float ***s3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 /* ========================================================================= *
  * Allocate a float 3-tensor with ranges [nrl..nrh][ncl..nch][ndl..ndh].     *
  * ========================================================================= */
@@ -324,15 +324,15 @@ float ***f3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
   t = (float***) malloc((size_t) (nrow*sizeof(float**)));
-  if (!t) message("f3tensor()", "allocation failure 1", ERROR);
+  if (!t) message("s3tensor()", "allocation failure 1", ERROR);
   t -= nrl;
 
   t[nrl] = (float**) malloc((size_t) (nrow*ncol*sizeof(float*)));
-  if (!t[nrl]) message("f3tensor()", "allocation failure 2", ERROR);
+  if (!t[nrl]) message("s3tensor()", "allocation failure 2", ERROR);
   t[nrl] -= ncl;
 
   t[nrl][ncl] = (float*) malloc((size_t) (nrow*ncol*ndep*sizeof(float)));
-  if (!t[nrl][ncl]) message("f3tensor()", "allocation failure 3", ERROR);
+  if (!t[nrl][ncl]) message("s3tensor()", "allocation failure 3", ERROR);
   t[nrl][ncl] -= ndl;
 
   for (j=ncl+1; j<=nch; j++)
@@ -361,15 +361,15 @@ int ***i3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
   t = (int***) malloc((size_t) (nrow*sizeof(int**)));
-  if (!t) message("f3tensor()", "allocation failure 1", ERROR);
+  if (!t) message("s3tensor()", "allocation failure 1", ERROR);
   t -= nrl;
 
   t[nrl] = (int**) malloc((size_t) (nrow*ncol*sizeof(int*)));
-  if (!t[nrl]) message("f3tensor()", "allocation failure 2", ERROR);
+  if (!t[nrl]) message("s3tensor()", "allocation failure 2", ERROR);
   t[nrl] -= ncl;
 
   t[nrl][ncl] = (int*) malloc((size_t) (nrow*ncol*ndep*sizeof(int)));
-  if (!t[nrl][ncl]) message("f3tensor()", "allocation failure 3", ERROR);
+  if (!t[nrl][ncl]) message("s3tensor()", "allocation failure 3", ERROR);
   t[nrl][ncl] -= ndl;
 
   for (j=ncl+1; j<=nch; j++)
@@ -398,15 +398,15 @@ zomplex ***z3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
 
 
   t = (zomplex***) malloc((size_t) (nrow*sizeof(zomplex**)));
-  if (!t) message("f3tensor()", "allocation failure 1", ERROR);
+  if (!t) message("s3tensor()", "allocation failure 1", ERROR);
   t -= nrl;
 
   t[nrl] = (zomplex**) malloc((size_t) (nrow*ncol*sizeof(zomplex*)));
-  if (!t[nrl]) message("f3tensor()", "allocation failure 2", ERROR);
+  if (!t[nrl]) message("s3tensor()", "allocation failure 2", ERROR);
   t[nrl] -= ncl;
 
   t[nrl][ncl] = (zomplex*) malloc((size_t) (nrow*ncol*ndep*sizeof(zomplex)));
-  if (!t[nrl][ncl]) message("f3tensor()", "allocation failure 3", ERROR);
+  if (!t[nrl][ncl]) message("s3tensor()", "allocation failure 3", ERROR);
   t[nrl][ncl] -= ndl;
 
   for (j=ncl+1; j<=nch; j++)
@@ -448,9 +448,9 @@ void free_dvector(double *v, long nl)
 
 
 
-void free_fvector(float *v, long nl)
+void free_svector(float *v, long nl)
 /* ========================================================================= *
- * Frees a float vector allocated by fvector().                              *
+ * Frees a float vector allocated by svector().                              *
  * ========================================================================= */
 {
   free((FREE_ARG) (v+nl));
@@ -510,9 +510,9 @@ void free_dmatrix(double **m, long nrl, long ncl)
 
 
 
-void free_fmatrix(float **m, long nrl, long ncl)
+void free_smatrix(float **m, long nrl, long ncl)
 /* ========================================================================= *
- * Frees a float matrix allocated with fmatrix().                            *
+ * Frees a float matrix allocated with smatrix().                            *
  * ========================================================================= */
 {
   free((FREE_ARG) (m[nrl]+ncl));
@@ -577,9 +577,9 @@ void free_d3tensor(double ***t, long nrl, long ncl, long ndl)
 
 
 
-void free_f3tensor(float ***t, long nrl, long ncl, long ndl)
+void free_s3tensor(float ***t, long nrl, long ncl, long ndl)
 /* ========================================================================= *
- * Frees a float 3-tensor allocated with f3tensor().                         *
+ * Frees a float 3-tensor allocated with s3tensor().                         *
  * ========================================================================= */
 {
   free ((FREE_ARG) (t[nrl][ncl]+ndl));

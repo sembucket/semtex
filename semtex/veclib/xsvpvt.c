@@ -3,7 +3,7 @@
  *****************************************************************************/
 
 
-void dsvmvt(int n, double alpha, const double *x, int incx,
+void dsvpvt(int n, double alpha, const double *x, int incx,
                                  const double *y, int incy,
                                        double *z, int incz)
 {
