@@ -106,7 +106,7 @@ void integrate (CVF, const CVF*, const Param*);
 real energyP     (CVF V, const complex*);
 real energyF     (const CVF);
 real enstrophyF  (const CVF, CVF, CF);
-real microF       (const CVF, CF);
+real microF      (const CVF, CF);
 real rmsEns      (const CVF);
 real L2norm      (const CF);
 real amaxF       (const CF);
@@ -151,7 +151,6 @@ void truncateVF (CVF);
 
 void filterF    (CF, real*, real*);
 void projectVF  (CVF, CF);
-
 
 /* -- random.c */
 
