@@ -10,7 +10,10 @@
 //
 // USAGE
 // -----
-// compare session [field.file]
+// compare [options] session [field.file]
+// options:
+// -h ... print this message
+// -f ... forward Fourier transform output
 //
 // EXAMPLE
 // -------
@@ -35,6 +38,8 @@ RCSid[] = "$Id$";
 static char prog[]    = "compare";
 const  int  EXACT_MAX = 32;
 
+static void getargs (int, char**, int&, char*&, ifstream&);
+
 
 int main (int    argc,
 	  char** argv)
@@ -42,37 +47,32 @@ int main (int    argc,
 // Everything is in here, no file-scope subroutines.
 // ---------------------------------------------------------------------------
 {
-  char             *session, *tok;
-  ifstream         fieldfl;
-  char             buf[StrMax], err[StrMax], fmt[StrMax], fields[StrMax];
-  char             function[EXACT_MAX][StrMax];
-  int              i, j, k, np, nz, nel;
-  int              found, offset = 0, nexact = 0, nfields = 0, swab = 0;
-  real             t, dz, z;
-  real*            zeros;
-  vector<Element*> Esys;
-  AuxField         *exact, *computed;
+  char               *session, *tok;
+  ifstream           fieldfl;
+  char               buf[StrMax], err[StrMax], fmt[StrMax], fields[StrMax];
+  char               function[EXACT_MAX][StrMax];
+  int                i, j, np, nz, nel, found;
+  int                offset = 0, nexact = 0, nfields = 0, swab = 0, tran = 0;
+  real               t, *zeros;
+  Geometry::CoordSys system;
+  vector<Element*>   Esys;
+  AuxField           *exact, *computed;
 
-  switch (argc) {
-  case 2:
-    session = argv[1];
-    break;
-  case 3:
-    session = argv[1];
-    fieldfl.open (argv[2], ios::in);
-    if (!fieldfl) message (prog, "couldn't open field file", ERROR);
-    break;
-  default:
-    cerr << "usage: compare session [field.file]" << endl;
-    return EXIT_FAILURE;
-    break;
-  }
+  getargs (argc, argv, tran, session, fieldfl);
+
   Veclib::describeFormat (fmt);
 
   // -- Set up from session file.
 
   FEML* F = new FEML (session);
   Mesh* M = new Mesh (*F);
+
+  nel    = M -> nEl();  
+  np     = (int) Femlib::value ("N_POLY");
+  nz     = (int) Femlib::value ("N_Z");
+  system = (Femlib::value ("AXIS"))?Geometry::Cylindrical:Geometry::Cartesian;
+
+  Geometry::set (np, nz, nel, system);
 
   if (F -> seek ("USER")) {	// -- Search for lines of form "char = string".
 
@@ -88,7 +88,7 @@ int main (int    argc,
     }
   }
 
-  if (argc == 3) {
+  if (fieldfl) {
 
     // -- A field file exists.
 
@@ -104,19 +104,19 @@ int main (int    argc,
 
     istrstream (buf, strlen (buf)) >> np >> np >> nz >> nel;
   
-    if (np != (int) Femlib::value ("N_POLY")) {
+    if (np != Geometry::nP()) {
       sprintf (err, "polynomial order mismatch (%1d <--> %1d)",
-	       np, (int) Femlib::value ("N_POLY"));
+	       np, Geometry::nP());
       message (prog, err, ERROR);
     }
-    if (nz != (int) Femlib::value ("N_Z")) {
+    if (nz != Geometry::nZ()) {
       sprintf (err, "number of z-planes mismatch (%1d <--> %1d)",
-	       nz, (int) Femlib::value ("N_Z"));
+	       nz, Geometry::nZ());
       message (prog, err, ERROR);
     }
     if (nel != M -> nEl()) {
       sprintf (err, "number of elements mismatch (%1d <--> %1d)",
-	       nel, M -> nEl());
+	       nel, Geometry::nElmt());
       message (prog, err, ERROR);
     }
 
@@ -151,10 +151,6 @@ int main (int    argc,
 
   // -- Build Element information, then comparison AuxFields.
 
-  np  = (int) Femlib::value ("N_POLY");
-  nz  = (int) Femlib::value ("N_Z"   );
-  nel = M -> nEl();
-
   Femlib::mesh (GLL, GLL, np, np, &zeros, 0, 0, 0, 0);
 
   Esys.setSize (nel);
@@ -163,15 +159,15 @@ int main (int    argc,
     offset += Esys[i] -> nTot();
   }
 
-  exact    = new AuxField (Esys, nz);
-  computed = new AuxField (Esys, nz);
+  exact    = new AuxField (Esys);
+  computed = new AuxField (Esys);
 
   // -- Perform comparisons, output.
 
   if (nfields) {		// -- Have a set of data to check.
 
     fieldfl.seekg (0);
-    for (i = 0; i < 10; i++) {
+    for (i = 0; i < 10; i++) {	// -- Copy header information.
       fieldfl.getline (buf, StrMax);
       cout << buf << endl;
     }
@@ -211,6 +207,7 @@ int main (int    argc,
 	<< exact -> norm_inf()
 	<< endl;
 
+      if (tran) exact -> transform (+1);
       if (swab) exact -> reverse();
       cout << *exact;
     }
@@ -280,6 +277,7 @@ int main (int    argc,
       tok    = strtok (function[j], "=");
       tok    = strtok (0, "\0");
       *exact = tok;
+      if (tran) exact -> transform (+1);
       cout << *exact;
     }
 
@@ -289,3 +287,50 @@ int main (int    argc,
 }
 
 
+static void getargs (int       argc,
+		     char**    argv,
+		     int&      tran,
+		     char*&    sess,
+		     ifstream& fldf)
+// ---------------------------------------------------------------------------
+// Parse command-line arguments.
+// ---------------------------------------------------------------------------
+{
+  char usage[] = "usage: compare [options] session [field.file]\n"
+                 "options:\n"
+                 "  -h ... display this message\n"
+                 "  -t ... forward Fourier transform output\n";
+  char err[StrMax];
+  char c;
+
+  while (--argc && **++argv == '-')
+    switch (c = *++argv[0]) {
+    case 'h':
+      cerr << usage;
+      exit (EXIT_SUCCESS);
+      break;
+    case 't':
+      tran = 1;
+      break;
+    default:
+      sprintf (err, "illegal option: %c\n", c);
+      message (prog, err, ERROR);
+      break;
+    }
+
+  switch (argc) {
+  case 1:
+    sess = argv[0];
+    fldf.close();
+    break;
+  case 2:
+    sess = argv[0];
+    fldf.open (argv[1], ios::in);
+    if (!fldf) message (prog, "couldn't open field file", ERROR);
+    break;
+  default:
+    cerr << usage;
+    exit (EXIT_FAILURE);
+    break;
+  }  
+}
