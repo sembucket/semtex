@@ -44,12 +44,12 @@ endif
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha
 CXX	 = cxx
 LD	 = cxx
-CXXFLAGS =  $(DEFINES) -migrate -tune host -Olimit 1000 -g -w0
+CXXFLAGS = $(DEFINES) -migrate -tune host -Olimit 1000 -g -w0
 F77LIBS  = -ldxml
 ifdef MPI
   CXXFLAGS += -thread_safe
-  LDFLAGS  = $(CXXFLAGS) -threads -L/home/hmb/mpi/lib/alpha/ch_shmem	\
-             -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm -lmpi
+  LDFLAGS  = $(CXXFLAGS) -threads -L/usr/local/mpi/lib/alpha/ch_shmem	\
+             -L$(SEM)/lib/$(ARCH) -lfem_mp -lalp_mp $(F77LIBS) -lm -lmpi
 else
   LDFLAGS  = $(CXXFLAGS) -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
 endif
