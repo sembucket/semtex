@@ -147,14 +147,14 @@ typedef struct quadop  { /* ------- quadrature operator information  ------- */
 
 static QuadOp* Qroot = 0;
 
-void quad (const double** point , /* Quadrature points.                      */
-	   const double** weight, /* Quadrature weights.                     */
-	   const double** dv    , /* Derivative operator at points.          */
-	   const double** dt    , /* (Transpose) derivative operator.        */
-	   const int      np    , /* Input: Number of quadrature points.     */
-	   const char     rule  , /* Input: 'G'auss, 'R'adau, or 'L'obatto.  */
-	   const double   alpha , /* Input: Jacobi polynomial constant.      */
-	   const double   beta  ) /* Input: Jacobi polynomial constant.      */
+void zquad (const double** point , /* Quadrature points.                     */
+	    const double** weight, /* Quadrature weights.                    */
+	    const double** dv    , /* Derivative operator at points.         */
+	    const double** dt    , /* (Transpose) derivative operator.       */
+	    const int      np    , /* Input: Number of quadrature points.    */
+	    const char     rule  , /* Input: 'G'auss, 'R'adau, or 'L'obatto. */
+	    const double   alpha , /* Input: Jacobi polynomial constant.     */
+	    const double   beta  ) /* Input: Jacobi polynomial constant.     */
 /* ------------------------------------------------------------------------- *
  * Maintain/return QUADRATURE operators for finite elements with
  * spectral basis functions, defined on the master interval [-1, +1].
@@ -588,8 +588,8 @@ void intp (double*      inr   ,  /* 1D shape function at r               */
   DVs = dmatrix (0, 0, 0, ns - 1);
   DTs = dmatrix (0, ns - 1, 0, 0);
 
-  quad (&kr, NULL, NULL, NULL, nr, ruler, alphar, betar);
-  quad (&ks, NULL, NULL, NULL, ns, rules, alphas, betas);
+  zquad (&kr, NULL, NULL, NULL, nr, ruler, alphar, betar);
+  zquad (&ks, NULL, NULL, NULL, ns, rules, alphas, betas);
 
   x[0] = r;
   if (inr) {
