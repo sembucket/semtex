@@ -1111,11 +1111,13 @@ void Element::sideGrad (const integer side,
 // We have to take some special care on sides 2 & 3, where the usual
 // skips are negative: we instead use positive skips for formation of
 // dc/dr, dc/ds, then a -1 skip when multiplying by dr/dx, ds/dx, etc.
+//
+// Work vector is 2 * _np long.
 // ---------------------------------------------------------------------------
 {
-  register integer    d, estart, skip;
-  const real          **DV, **DT;
-  real                *ddr, *dds;
+  register integer d, estart, skip;
+  const real       **DV, **DT;
+  real             *ddr, *dds;
 
   this -> terminal (side, estart, skip);
 
