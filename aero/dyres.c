@@ -1,8 +1,8 @@
 /*****************************************************************************
- * Dyres: update a session.cou file to reflect new state-variable data.
+ * Dyres: update a session.bdy file to reflect new state-variable data.
  *
- * See the usage prompt below.  Dyres does rely on the fact that Aero reads
- * through .cou files to get the last state-variable data, so we can append
+ * See the usage prompt below.  Dyres relies on the fact that Aero reads
+ * through .bdy files to get the last state-variable data, so we can append
  * to the end of the file.
  *****************************************************************************/
 
@@ -11,7 +11,7 @@ RCSid[] = "$Id$";
 
 static char usage[] =
   "usage: dyres session[.fld]\n"
-  "   or: dyres session.fld session.sta session.cou\n\n"
+  "   or: dyres session.fld session.sta session.bdy\n\n"
   "   or: dyres -h (...generates this message)\n";
 
 #include <stdio.h>
@@ -26,7 +26,7 @@ int main (int argc, char *argv[])
  * ------------------------------------------------------------------------- */
 {
   char   f_name[FILENAME_MAX], line[BUFSIZ];
-  FILE  *fld_fp, *cou_fp, *sta_fp;
+  FILE  *fld_fp, *bdy_fp, *sta_fp;
   double dtime;
   double step, time,
          xpos, xvel, xacc, xpf, xvf, xtf,
@@ -51,9 +51,9 @@ int main (int argc, char *argv[])
 	fprintf(stderr, "dyres: Unable to open .sta file %s\n", f_name);
 	exit(1);
       }
-      strcpy(f_name + strlen(f_name)-3, "cou");
-      if (!(cou_fp = fopen(f_name, "a+"))) {
-	fprintf(stderr, "dyres: Unable to open .cou file %s\n", f_name);
+      strcpy(f_name + strlen(f_name)-3, "bdy");
+      if (!(bdy_fp = fopen(f_name, "a+"))) {
+	fprintf(stderr, "dyres: Unable to open .bdy file %s\n", f_name);
 	exit(1);
       }
     }
@@ -67,8 +67,8 @@ int main (int argc, char *argv[])
 	fprintf(stderr, "dyres: Unable to open .sta file %s\n", f_name);
 	exit(1);
       }
-    if (!(cou_fp = fopen(argv[3], "a+"))) {
-	fprintf(stderr, "dyres: Unable to open .cou file %s\n", f_name);
+    if (!(bdy_fp = fopen(argv[3], "a+"))) {
+	fprintf(stderr, "dyres: Unable to open .bdy file %s\n", f_name);
 	exit(1);
       }
     break;
@@ -124,10 +124,10 @@ int main (int argc, char *argv[])
 
   /* -- Now append state-variable information to coupling file. */
 
-  fprintf(cou_fp, "x-state %14g %14g\n", xpos, xvel);
-  fprintf(cou_fp, "y-state %14g %14g\n", ypos, yvel);
+  fprintf(bdy_fp, "x-state %14g %14g\n", xpos, xvel);
+  fprintf(bdy_fp, "y-state %14g %14g\n", ypos, yvel);
 
-  fclose(cou_fp);
+  fclose(bdy_fp);
 
   return 0;
 }
