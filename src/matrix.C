@@ -60,7 +60,7 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
       Msys[localMode] = M;
       cout << '.'; cout.flush();
     } else {
-      Msys[localMode] = new MatrixSys (lambda2,betak2, mode, Elmt, Bsys);
+      Msys[localMode] = new MatrixSys (lambda2, betak2, mode, Elmt, Bsys);
       MS.add (Msys[localMode]);
       cout << '*'; cout.flush();
     }
@@ -87,7 +87,6 @@ MatrixSys::MatrixSys (const real               lambda2,
 // ---------------------------------------------------------------------------
 // NB: these get evaluated in the order they appear in the class
 // definition!:
-  FourierMode       (mode   ),
   HelmholtzConstant (lambda2),
   FourierConstant   (betak2 ),
   BC                (bsys -> BCs  (mode)),

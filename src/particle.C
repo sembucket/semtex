@@ -2,10 +2,9 @@
 // particle.C: functions for integrating positions of particles.
 //
 // Copyright (C) 1994, 1999 Hugh Blackburn
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <Sem.h>
 

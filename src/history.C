@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // history.C
 //
+// Copyright (C) 1994, 1999 Hugh Blackburn
+//
 // Routines to provide history point information at x, y, z locations.
 //
 // History points are nominated in the session file, e.g.
@@ -15,10 +17,9 @@
 // fall within the first spatial period.
 //
 // Output to a file called session.his.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <Sem.h>
 

@@ -15,22 +15,20 @@
 //
 // The data are transformed to physical space for storage in restart
 // files.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char 
-RCSid[] = "$Id$";
 
 #include <Sem.h>
 
 
 AuxField::AuxField (vector<Element*>& Elts,
 		    const char        name) :
-		    
-		    field_name       (name),
-		    Elmt             (Elts)
 // ---------------------------------------------------------------------------
 // Allocate field storage area and integer size records.
 // ---------------------------------------------------------------------------
+  field_name (name),
+  Elmt       (Elts)
 {
   const char       routine[] = "AuxField::AuxField";
   const integer    nZ = Geometry::nZProc();
@@ -547,13 +545,31 @@ real AuxField::integral () const
   const real    Lz   = (Geometry::nDim() > 2) ? Femlib::value("TWOPI/BETA"):1.;
   register integer  i;
   vector<real>      work (npnp);
-  real              total, *p, *tmp = work();
+  real              total = 0.0, *p, *tmp = work();
 
   ROOTONLY
-    for (total = 0.0, p = plane[0], i = 0; i < nel; i++, p += npnp)
+    for (p = plane[0], i = 0; i < nel; i++, p += npnp)
       total += Elmt[i] -> integral (p, tmp);
 
   return Lz * total;
+}
+
+
+real AuxField::integral (const integer k) const
+// ---------------------------------------------------------------------------
+// Return the total amount of scalar, integrated over plane k.
+// ---------------------------------------------------------------------------
+{
+  const integer    nel  = Geometry::nElmt();
+  const integer    npnp = Geometry::nTotElmt();
+  register integer i;
+  vector<real>     work (npnp);
+  real             total = 0.0, *p, *tmp = work();
+
+  for (p = plane[k], i = 0; i < nel; i++, p += npnp)
+    total += Elmt[i] -> integral (p, tmp);
+
+  return total;
 }
 
 
@@ -766,12 +782,12 @@ AuxField& AuxField::transform32 (const integer sign,
 // has the same number of data as *this.
 // ---------------------------------------------------------------------------
 {
-  const integer nZ = Geometry::nZ();
-  const integer nP = Geometry::planeSize();
+  const integer nZ   = Geometry::nZ();
+  const integer nP   = Geometry::planeSize();
+  const integer nTot = Geometry::nTotProc();
 
   if (Geometry::nProc() == 1) {	 // -- Single processor.
 
-    const integer nTot   = Geometry::nTotProc();
     const integer nZ32   = (3 * nZ) >> 1;
     const integer nTot32 = nZ32 * nP;
     const integer nPad   = nTot32 - nTot;
@@ -792,9 +808,8 @@ AuxField& AuxField::transform32 (const integer sign,
 
   } else {			// -- Multiple processor.
     
-    const integer nZP  = Geometry::nZProc();
-    const integer nPP  = Geometry::nBlock();
-    const integer nTot = nZP * nP;
+    const integer nZP = Geometry::nZProc();
+    const integer nPP = Geometry::nBlock();
 
     if (sign == +1) {
       Femlib::exchange (phys, nZP, nP, +1);
