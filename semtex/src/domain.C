@@ -60,21 +60,28 @@ void Domain::restart ()
   ifstream file (restartfile);
 
   if (file) {
-    cout << "-- Restarting from file " << restartfile;
+    cout << "-- Restarting from file:  " << restartfile;
     file >> *this;
   } else {
-    cout << " -- Initializing solution at zero";
+    cout << "-- Initializing solution at zero";
     for (int i(0); i < nField (); i++)
       *u[i] = 0.0;
   }
 
   cout << endl;
 
-  cout << "-- Start time: " << time () << endl;
-  cout << "-- Time step: "  << dparam ("DELTAT") << endl;
-  cout << "-- Integration order: " << iparam ("N_TIME") << endl;
+  real t  = time   ();
+  real dt = dparam ("DELTAT");
+  int  ns = iparam ("N_STEP");
+  int  nt = iparam ("N_TIME");
 
-  setDparam ("t", time ());
+  setDparam ("t", t);
+
+  cout << "   Start time:            " << t           << endl;
+  cout << "   Time step:             " << dt          << endl;
+  cout << "   Number of steps:       " << ns          << endl;
+  cout << "   End time:              " << t + ns * dt << endl;
+  cout << "   Integration order:     " << nt          << endl;
 }
 
 
