@@ -7,7 +7,7 @@
 //
 // Usage:
 // -----
-// project [h] [-n num] [-z num] [file]
+// project [-h] [-n num] [-z num] [-u] [file]
 ///////////////////////////////////////////////////////////////////////////////
 
 static char
@@ -32,6 +32,8 @@ RCSid[] = "$Id$";
 #include <Lapack.h>
 #include <Veclib.h>
 #include <Femlib.h>
+
+static int uniform = 0;
 
 
 class Field2DF
@@ -129,7 +131,10 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
     vector<real>  work (rhs.np * np);
     real*         tmp = work();
 
-    Femlib::mesh (GLL, GLL, rhs.np, np, 0, &IN, &IT, 0, 0);
+    if (uniform)
+      Femlib::mesh (GLL, STD, rhs.np, np, 0, &IN, &IT, 0, 0);
+    else
+      Femlib::mesh (GLL, GLL, rhs.np, np, 0, &IN, &IT, 0, 0);
 
     for (k = 0; k < nzm; k++) {	// -- 2D planar projections.
       LHS = plane[k];
@@ -285,14 +290,15 @@ static void getargs (int       argc,
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  char c, usage[] = "Usage: project [options] [file]\n"
+  char usage[] = "Usage: project [options] [file]\n"
     "  options:\n"
     "  -h       ... print this message\n"
     "  -n <num> ... 2D projection onto num X num\n"
-    "  -z <num> ... 3D projection onto num planes\n";
+    "  -z <num> ... 3D projection onto num planes\n"
+    "  -u       ... project to uniform grid [Default: GLL]\n";
  
   while (--argc  && **++argv == '-')
-    switch (c = *++argv[0]) {
+    switch (*++argv[0]) {
     case 'h':
       cout << usage;
       exit (EXIT_SUCCESS);
@@ -312,6 +318,10 @@ static void getargs (int       argc,
 	--argc;
 	nz = atoi (*++argv);
       }
+      break;
+    case 'u':
+      --argc;
+      uniform = 1;
       break;
     default:
       cerr << usage;
