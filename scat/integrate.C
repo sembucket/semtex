@@ -104,6 +104,13 @@ void NavierStokes (Domain*       D,
     for (i = 0; i <= NDIM; i++) *Us[0][i] = *D -> u[i];
     rollm (Us, NORD, NDIM+1);
 
+#if defined (UNSTEADY)		// -- Unsteady velocity BCs.
+    for (i = 0; i < NDIM; i++) {
+      D -> u[i] -> evaluateBoundaries (D -> step);
+      D -> u[i] -> bTransform (FORWARD);
+    }
+#endif
+
     // -- Viscous and thermal diffusion substep.
 
     if (C3D) {
