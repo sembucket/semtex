@@ -210,6 +210,8 @@ void  PBCmanager::evaluate (int   id,     int   np,  int   step,
   Veclib::zero (np, tmpX, 1);
   Veclib::zero (np, tmpY, 1);
   
+  --id;
+
   for (q = 0; q < Je; q++) {
     Blas::axpy (np, beta[q], store[id].Px[q], 1, tmpX, 1);
     Blas::axpy (np, beta[q], store[id].Py[q], 1, tmpY, 1);

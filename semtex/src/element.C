@@ -18,6 +18,25 @@ Element::Element ()
 
 
 
+Element::Element (int ident, int nknot, int nside)
+// ---------------------------------------------------------------------------
+// Create a new element.
+// ---------------------------------------------------------------------------
+{
+  char  routine[] = "Element::Element";
+
+  if (nside != 4)
+    message (routine, "need 4 sides for quadrilateral element",  ERROR);
+  else if (nknot < 2)
+    message (routine, "need at least 2 knots for element edges", ERROR);
+  else
+    setState (ident, nknot, nside);
+}
+
+
+
+
+
 Element::Element (const Element& parent, int NP)
 // ---------------------------------------------------------------------------
 // Use parent as a model for a new element, possibly of different order.
@@ -28,7 +47,6 @@ Element::Element (const Element& parent, int NP)
 
   } else if (NP == parent.np) {
     memcpy (this, &parent, sizeof (Element));
-    mate  = 0;
     bmap  = solve = 0;
     dxdr = dxds = dydr = dyds = mass = 0;
     drdx = dsdx = drdy = dsdy = G1 = G2 = G3 = G4 = 0;
@@ -37,7 +55,6 @@ Element::Element (const Element& parent, int NP)
   } else {
     setState (parent.id, NP, parent.ns);
     xmesh = ymesh = value = 0;
-    mate  = 0;
     bmap  = solve = 0;
     dxdr = dxds = dydr = dyds = mass = 0;
     drdx = dsdx = drdy = dsdy = G1 = G2 = G3 = G4 = 0;
@@ -82,7 +99,6 @@ void  Element::project (const Element& parent)
     Blas::mxm (tmp, np, *IT,           nold, *value, np  );
     
     freeVector (tmp);
-
   }
 }
 
@@ -190,22 +206,22 @@ void  Element::terminal (int side, int& estart, int& eskip, int& bstart) const
 // ---------------------------------------------------------------------------
 {
   switch (side) {
-  case 0:
+  case 1:
     estart = 0;
     eskip  = 1;
     bstart = 0;
     break;
-  case 1:
+  case 2:
     estart = np - 1;
     eskip  = np;
     bstart = np - 1;
     break;
-  case 2:
+  case 3:
     estart = np * (np - 1);
     eskip  = -1;
     bstart = 2 * (np - 1);
     break;
-  case 3:
+  case 4:
     estart = 0;
     eskip  = -np;
     bstart = 3 * (np - 1);
@@ -252,80 +268,60 @@ void  Element::install (real* data, real* mesh, int* map, int* mask)
 
 
 
-int  Element::gidInsert (const char* s)
+void  Element::gidInsert (const int* b)
 // ---------------------------------------------------------------------------
-// From string, "elmt_id  side  offset  global", insert gid into bmap.
+// Insert an array with Element-boundary global node numbers into bmap.
 // ---------------------------------------------------------------------------
 {
-  char  routine[] = "Element::gidInsert";
-  int   side, offset, gid;
-
-  if (sscanf (s, "%*s %d %d %d", &side, &offset, &gid) != 3)
-    message (routine, "failed scanning connectivity data",  ERROR);
-  if (side > ns)
-    message (routine, "side number exceeds element max",    ERROR);
-  if (offset > np)
-    message (routine, "offset exceeds number of points",    ERROR);
-
-  --side; --offset; --gid;
-
-  bmap[side * (np - 1) + offset] = gid;
-
-  return gid + 1;
+  Veclib::copy (nExt(), b, 1, bmap, 1);
 }
 
 
 
 
-void  Element::mesh (int* vnode, Point* vertex)
+void  Element::mesh (const Mesh& M)
 // ---------------------------------------------------------------------------
 // Generate Element mesh internal node locations.
-//
-// vnode is an array of indices for locations in vertex list.
-//
-// For now the mesh has only linear edges.
 // ---------------------------------------------------------------------------
 {
-  real  *z;
-  real **x  = xmesh,
-       **y  = ymesh;
-  int    nm = np - 1;
+  real*         z;
+  real**        x  = xmesh;
+  real**        y  = ymesh;
+  register int  i, j, nm = np - 1;
+  Point*        P = new Point [np];
 
+  // -- Build Element-boundary knots using Mesh functions.
 
   quadOps (LL, np, np, &z, 0, 0, 0, 0, 0, 0);
-  
-  // -- Load element vertices.
-  
-  x[ 0][ 0] = vertex[ vnode[0] ].x;
-  x[ 0][nm] = vertex[ vnode[1] ].x;
-  x[nm][nm] = vertex[ vnode[2] ].x;
-  x[nm][ 0] = vertex[ vnode[3] ].x;
 
-  y[ 0][ 0] = vertex[ vnode[0] ].y;
-  y[ 0][nm] = vertex[ vnode[1] ].y;
-  y[nm][nm] = vertex[ vnode[2] ].y;
-  y[nm][ 0] = vertex[ vnode[3] ].y;
-
-  // -- Linear interpolation along element edges to get edge-internal points.
-  
-  for (register int i = 1; i < nm; i++) {
-
-    x[ 0][ i] = 0.5*( (1.0 - z[i])*x[ 0][ 0] + (1.0 + z[i])*x[ 0][nm] );
-    x[ i][nm] = 0.5*( (1.0 - z[i])*x[ 0][nm] + (1.0 + z[i])*x[nm][nm] );
-    x[nm][ i] = 0.5*( (1.0 - z[i])*x[nm][ 0] + (1.0 + z[i])*x[nm][nm] );
-    x[ i][ 0] = 0.5*( (1.0 - z[i])*x[ 0][ 0] + (1.0 + z[i])*x[nm][ 0] );
-
-    y[ 0][ i] = 0.5*( (1.0 - z[i])*y[ 0][ 0] + (1.0 + z[i])*y[ 0][nm] );
-    y[ i][nm] = 0.5*( (1.0 - z[i])*y[ 0][nm] + (1.0 + z[i])*y[nm][nm] );
-    y[nm][ i] = 0.5*( (1.0 - z[i])*y[nm][ 0] + (1.0 + z[i])*y[nm][nm] );
-    y[ i][ 0] = 0.5*( (1.0 - z[i])*y[ 0][ 0] + (1.0 + z[i])*y[nm][ 0] );
-
+  for (j = 1; j <= ns; j++) {
+    M.meshSide (np, id, j, z, P);
+    for (i = 0; i < nm; i++) {
+      switch (j) {
+      case 1:
+	x[0][i]       = P[i].x;
+	y[0][i]       = P[i].y;
+	break;
+      case 2:
+	x[i][nm]      = P[i].x;
+	y[i][nm]      = P[i].y;
+	break;
+      case 3:
+	x[nm][nm - i] = P[i].x;
+	y[nm][nm - i] = P[i].y;
+	break;
+      case 4:
+	x[nm - i][0]  = P[i].x;
+	y[nm - i][0]  = P[i].y;
+	break;
+      }
+    }
   }
 
-  // --  Make interior points by averaging linear & bilinear interpolations.
+  // --  Make interior knots by averaging linear & bilinear interpolations.
 
   for (i = 1; i < nm; i++)
-    for (register int j = 1; j < nm; j++) {
+    for (j = 1; j < nm; j++) {
 
       x[i][j] = 0.50 * ( (1.0 - z[j])*x[i][0] + (1.0 + z[j])*x[i][nm] 
 		     +   (1.0 - z[i])*x[0][j] + (1.0 + z[i])*x[nm][j] )
@@ -343,6 +339,8 @@ void  Element::mesh (int* vnode, Point* vertex)
 		     +   (1.0 - z[i])*(1.0 + z[j])*y[ 0][nm]
 		     +   (1.0 + z[i])*(1.0 + z[j])*y[nm][nm] );
     }
+
+  delete [] P;
 }
 
 
@@ -1163,6 +1161,9 @@ void  Element::connectivSC (List<int>* adjncyList) const
 // For general finite elements, all nodes of an element are interconnected,
 // while for statically-condensed elements, only the boundary nodes are
 // considered (since internal nodes are not global).
+//
+// Essential-BC nodes are ignored, since we're only interested in mimimizing
+// bandwidths of global matrices.
 // ---------------------------------------------------------------------------
 {
   int                next  = nExt();
@@ -1189,133 +1190,6 @@ void  Element::connectivSC (List<int>* adjncyList) const
 
 
 
-void  Element::checkMate (List<Element*>& elmt_list) const
-// ---------------------------------------------------------------------------
-// Check that the edge-based connectivity information for this element
-// agrees with those it is said to mate with.
-// ---------------------------------------------------------------------------
-{
-  char      routine[] = "Element::checkMate";
-  char      s[StrMax];
-  int       locElmtId, remElmtId, locSideId, remSideId, found, side;
-  Element*  remElmt;
- 
-  for (side = 0; side < ns; side++) {
-    remElmtId = mate[side].elmt_id;
-    remSideId = mate[side].facetag;
-    
-    if (remElmtId != DOMAIN_BOUNDARY) {
-      found = 0;
-      for (ListIterator<Element*> r(elmt_list); !found && r.more(); r.next())
-	found = (remElmt = r.current()) -> ID () == remElmtId;
-
-      if (!found) {
-	sprintf (s, "connectivity problem: no element %1d", remElmtId);
-	message (routine, s, ERROR);
-      } else {
-	locElmtId = remElmt -> mate[remSideId].elmt_id;
-	locSideId = remElmt -> mate[remSideId].facetag;
-	if (locElmtId != id || locSideId != side) {
-	  sprintf (s, "connectivity problem:"
-		   " %1d.%1d -> %1d.%1d -> %1d.%1d",
-		   id       + 1, side      + 1,
-		   remElmtId + 1, remSideId + 1,
-		   locElmtId + 1, locSideId + 1);
-	  message (routine, s, ERROR);
-	}
-      }
-    }
-  }
-}
-
-
-
-
-
-void  Element::read (istream& strm, int*& vertexTable)
-// ---------------------------------------------------------------------------
-// Read in element-edge-based connectivity information and vertexTable.
-// ---------------------------------------------------------------------------
-{
-  char   routine[] = "Element::read";
-  char   s1[StrMax], s2[StrMax];
-  char*  sp;
-
-  vertexTable = ivector (ns);
-
-  strm.getline (s1, StrMax);
-  sscanf (sp = strtok (s1, " \t"), "%d", vertexTable);
-  vertexTable[0]--;
-
-  for (int side = 1; side < ns; side++) {
-    sscanf (sp = strtok (0, " \t\0"), "%d", vertexTable + side);
-    vertexTable[side]--;
-  }
-
-  // -- Get inter-element connection information.
-	   
-  mate = new Link[ns];
-
-  for (side = 0; side < ns; side++) {
-    strm.getline (s1, StrMax);
-    upperCase  (s1);
-
-    if (strstr (s1, "BC")) {
-      sscanf (s1, "%*s %*s %*s %d",
-	      &mate[side].facetag);
-      mate[side].facetag--;
-      mate[side].elmt_id = DOMAIN_BOUNDARY;
-    } else if (strstr (s1, "EL")) {
-      sscanf (s1, "%*s %*s %*s %d %*s %d",
-	      &mate[side].elmt_id, &mate[side].facetag);
-      mate[side].facetag--;
-      mate[side].elmt_id--;
-    } else {
-      sprintf (s2, "can't parse element %1d edge %1d data: %s",
-	       id + 1, side + 1, s1);
-      message (routine, s2, ERROR);
-    }
-  }
-}
-
-
-
-
-
-BCtag  Element::sideTag (int side) const
-// ---------------------------------------------------------------------------
-// Return facetag for nominated element side: for a DOMAIN_BOUNDARY, this
-// is the BC tag.
-// ---------------------------------------------------------------------------
-{
-  char  routine[] = "Element::sideTag";
-
-  if (side < 0 || side >= ns)
-    message (routine, "illegal side requested", ERROR);
-
-  return mate[side].facetag;
-}
-
-
-
-
-
-int  Element::sideKind (int side) const
-// ---------------------------------------------------------------------------
-// Return elmt_id for nominated element side: produces DOMAIN_BOUNDARY on
-// edge of Field.
-// ---------------------------------------------------------------------------
-{
-  char  routine[] = "Element::sideKind";
-
-  if (side < 0 || side >= ns)
-    message (routine, "illegal side requested", ERROR);
-
-  return mate[side].elmt_id;
-}
-
-
-
 
 
 void  Element::sideGeom (int side, real* nx, real* ny, real* area) const
@@ -1329,7 +1203,7 @@ void  Element::sideGeom (int side, real* nx, real* ny, real* area) const
 // where the forward partials were computed at internal quadrature points.
 // ---------------------------------------------------------------------------
 {
-  if (side < 0 || side >= ns)
+  if (side < 1 || side > ns)
     message ("Element::sideGeom", "illegal side", ERROR);
 
   int    low, skip;
@@ -1340,14 +1214,14 @@ void  Element::sideGeom (int side, real* nx, real* ny, real* area) const
   if (rule == LL) {  // -- Lobatto: we have all partials.
 
     switch (side) {
-    case 0:
+    case 1:
       skip = 1;
       Veclib::smul  (np, -1.0, *dsdx, skip, nx, 1);
       Veclib::smul  (np, -1.0, *dsdy, skip, ny, 1);
       Veclib::vmul  (np, *dxdr, skip, *dxdr, skip, area, 1);
       Veclib::vvtvp (np, *dydr, skip, *dydr, skip, area, 1, area, 1);
       break;
-    case 1:
+    case 2:
       low  = np - 1;
       skip = np;
       Veclib::copy  (np, *drdx+low, skip, nx, 1);
@@ -1355,7 +1229,7 @@ void  Element::sideGeom (int side, real* nx, real* ny, real* area) const
       Veclib::vmul  (np, *dxds+low, skip, *dxds+low, skip, area, 1);
       Veclib::vvtvp (np, *dyds+low, skip, *dyds+low, skip, area, 1, area, 1);
       break;
-    case 2:
+    case 3:
       low  = np * (np - 1);
       skip = -1;
       Veclib::copy  (np, *dsdx+low, skip, nx, 1);
@@ -1363,7 +1237,7 @@ void  Element::sideGeom (int side, real* nx, real* ny, real* area) const
       Veclib::vmul  (np, *dxdr+low, skip, *dxdr+low, skip, area, 1);
       Veclib::vvtvp (np, *dydr+low, skip, *dydr+low, skip, area, 1, area, 1);
       break;
-    case 3:
+    case 4:
       skip  = -np;
       Veclib::smul  (np, -1.0, *drdx, skip, nx, 1);
       Veclib::smul  (np, -1.0, *drdy, skip, ny, 1);
@@ -1375,7 +1249,7 @@ void  Element::sideGeom (int side, real* nx, real* ny, real* area) const
   } else {	     // -- Gauss element rule: recompute edge partials.
 
     switch (side) {
-    case 0: {
+    case 1: {
       real *xr = rvector (np);
       real *yr = rvector (np);
       
@@ -1394,7 +1268,7 @@ void  Element::sideGeom (int side, real* nx, real* ny, real* area) const
 
       break;
       }
-    case 1: {
+    case 2: {
       real *xs = rvector (np);
       real *ys = rvector (np);
 
@@ -1414,7 +1288,7 @@ void  Element::sideGeom (int side, real* nx, real* ny, real* area) const
       
       break;
       }
-    case 2: {
+    case 3: {
       real *xr = rvector (np);
       real *yr = rvector (np);
 	
@@ -1434,7 +1308,7 @@ void  Element::sideGeom (int side, real* nx, real* ny, real* area) const
       
       break;
     }
-    case 3: {
+    case 4: {
       real *xs = rvector (np);
       real *ys = rvector (np);
       
@@ -1507,7 +1381,7 @@ void  Element::sideScatr (int side, const real* src, real* target) const
   int estart, skip, bstart;
   terminal (side, estart, skip, bstart);
 
-  if (side == ns - 1) {
+  if (side == ns) {
     Veclib::scatr (np - 1, src, bmap + bstart, target);
     target[bmap[0]] = src[np - 1];
   }
@@ -1538,12 +1412,12 @@ void  Element::sideDsSum (int         side  ,
 
   Veclib::vmul (np, src, 1, area, 1, tmp, 1);
 
-  if (solve[bstart])              target[bmap[bstart]  ] += tmp[0];
+  if (solve[bstart])          target[bmap[bstart]  ] += tmp[0];
 
-  for (i = 1; i < nm; i++)        target[bmap[bstart+i]] += tmp[i];
+  for (i = 1; i < nm; i++)    target[bmap[bstart+i]] += tmp[i];
 
-  if (side == ns - 1 && solve[0]) target[bmap[0]       ] += tmp[i];
-  else if (solve[bstart+i])       target[bmap[bstart+i]] += tmp[i];
+  if (side == ns && solve[0]) target[bmap[0]       ] += tmp[i];
+  else if (solve[bstart+i])   target[bmap[bstart+i]] += tmp[i];
 
   freeVector (tmp);
 }
@@ -1558,7 +1432,9 @@ void  Element::sideMask (int side, int* gmask) const
 // ---------------------------------------------------------------------------
 {
   register int i, nm = np - 1;
-      
+
+  --side;
+
   for (i = 0; i < nm; i++) gmask[bmap[side*nm + i]] &= 0;
   gmask[bmap[nm*(side + 1) % nExt()]]               &= 0;
 }
@@ -1618,19 +1494,19 @@ void  Element::sideD_dx (int side, const real* src, real* target) const
   quadOps (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
   switch (side) {
-  case 0:
+  case 1:
     Blas::gemv ("T", np, np,  1.0, *DV, np, src + estart, skip, 0.0, tmpA, 1);
     Blas::gemv ("N", np, np,  1.0, src, np, *DV + estart, skip, 0.0, tmpB, 1);
     break;
-  case 2:
+  case 3:
     Blas::gemv ("T", np, np, -1.0, *DV, np, src + estart, skip, 0.0, tmpA, 1);
     Blas::gemv ("N", np, np, -1.0, src, np, *DV + estart, skip, 0.0, tmpB, 1);
     break;
-  case 1:
+  case 2:
     Blas::gemv ("T", np, np,  1.0, src, np, *DT + estart, skip, 0.0, tmpA, 1);
     Blas::gemv ("T", np, np,  1.0, *DV, np, src + estart, skip, 0.0, tmpB, 1);
     break;
-  case 3:
+  case 4:
     Blas::gemv ("T", np, np, -1.0, src, np, *DT + estart, skip, 0.0, tmpA, 1);
     Blas::gemv ("T", np, np, -1.0, *DV, np, src + estart, skip, 0.0, tmpB, 1);
     break;
@@ -1666,19 +1542,19 @@ void  Element::sideD_dy (int side, const real* src, real* target) const
   quadOps (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
   switch (side) {
-  case 0:
+  case 1:
     Blas::gemv ("T", np, np,  1.0, *DV, np, src + estart, skip, 0.0, tmpA, 1);
     Blas::gemv ("N", np, np,  1.0, src, np, *DV + estart, skip, 0.0, tmpB, 1);
     break;
-  case 2:
+  case 3:
     Blas::gemv ("T", np, np, -1.0, *DV, np, src + estart, skip, 0.0, tmpA, 1);
     Blas::gemv ("N", np, np, -1.0, src, np, *DV + estart, skip, 0.0, tmpB, 1);
     break;
-  case 1:
+  case 2:
     Blas::gemv ("T", np, np,  1.0, src, np, *DT + estart, skip, 0.0, tmpA, 1);
     Blas::gemv ("T", np, np,  1.0, *DV, np, src + estart, skip, 0.0, tmpB, 1);
     break;
-  case 3:
+  case 4:
     Blas::gemv ("T", np, np, -1.0, src, np, *DT + estart, skip, 0.0, tmpA, 1);
     Blas::gemv ("T", np, np, -1.0, *DV, np, src + estart, skip, 0.0, tmpB, 1);
     break;
@@ -1715,19 +1591,19 @@ void  Element::sideGrad (int side, real* c1, real* c2) const
   Veclib::copy (ntot, *value, 1, w, 1);
 
   switch (side) {
-  case 0:
+  case 1:
     Blas::gemv ("T", np, np,  1.0, *DV, np,  w  + estart, skip, 0.0, tmpA, 1);
     Blas::gemv ("N", np, np,  1.0,  w,  np, *DV + estart, skip, 0.0, tmpB, 1);
     break;
-  case 2:
+  case 3:
     Blas::gemv ("T", np, np, -1.0, *DV, np,  w  + estart, skip, 0.0, tmpA, 1);
     Blas::gemv ("N", np, np, -1.0,  w,  np, *DV + estart, skip, 0.0, tmpB, 1);
     break;
-  case 1:
+  case 2:
     Blas::gemv ("T", np, np,  1.0,  w,  np, *DT + estart, skip, 0.0, tmpA, 1);
     Blas::gemv ("T", np, np,  1.0, *DV, np,  w  + estart, skip, 0.0, tmpB, 1);
     break;
-  case 3:
+  case 4:
     Blas::gemv ("T", np, np, -1.0,  w,  np, *DT + estart, skip, 0.0, tmpA, 1);
     Blas::gemv ("T", np, np, -1.0, *DV, np,  w  + estart, skip, 0.0, tmpB, 1);
     break;
@@ -1767,19 +1643,19 @@ void  Element::sideGrad (int side, const real* src, real* c1, real* c2 ) const
   quadOps (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
   switch (side) {
-  case 0:
+  case 1:
     Blas::gemv ("T", np, np,  1.0, *DV, np, src + estart, skip, 0.0, tmpA, 1);
     Blas::gemv ("N", np, np,  1.0, src, np, *DV + estart, skip, 0.0, tmpB, 1);
     break;
-  case 2:
+  case 3:
     Blas::gemv ("T", np, np, -1.0, *DV, np, src + estart, skip, 0.0, tmpA, 1);
     Blas::gemv ("N", np, np, -1.0, src, np, *DV + estart, skip, 0.0, tmpB, 1);
     break;
-  case 1:
+  case 2:
     Blas::gemv ("T", np, np,  1.0, src, np, *DT + estart, skip, 0.0, tmpA, 1);
     Blas::gemv ("T", np, np,  1.0, *DV, np, src + estart, skip, 0.0, tmpB, 1);
     break;
-  case 3:
+  case 4:
     Blas::gemv ("T", np, np, -1.0, src, np, *DT + estart, skip, 0.0, tmpA, 1);
     Blas::gemv ("T", np, np, -1.0, *DV, np, src + estart, skip, 0.0, tmpB, 1);
     break;

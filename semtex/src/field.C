@@ -45,8 +45,54 @@ Hc              (0)
 
 
 
+
+Field::Field (const Mesh& M, int np)
+// ---------------------------------------------------------------------------
+// Use M to allocate storage for Field and its Elements.  Name Field 'u'.
+//
+// Compute Mesh knot locations (xmesh & ymesh), but not geometric partials.
+// ---------------------------------------------------------------------------
+{
+  Element* E;
+
+  n_data = n_mesh = n_elmt_bnodes = 0;
+
+  for (ElmtsOfMesh e(M); e.more(); e.next()) {
+    E = new Element  (e.ID(), np, e.nSides());
+    element_list.add (E);
+    n_data        += E -> nTot ();
+    n_mesh        += E -> nMsh ();
+    n_elmt_bnodes += E -> nExt ();
+  }
+
+  data            = rvector (n_data);
+  mesh            = rvector (n_mesh);
+  elmt_bndry_gid  = ivector (n_elmt_bnodes);
+  elmt_bndry_mask = ivector (n_elmt_bnodes);
+
+  real*  d = data;
+  real*  m = mesh;
+  int*   g = elmt_bndry_gid;
+  int*   s = elmt_bndry_mask;
+
+  for (ListIterator<Element*> k(element_list); k.more(); k.next()) {
+    E = k.current  ();
+    E -> install   (d, m, g, s);
+    E -> mesh      (M);
+    d += E -> nTot ();
+    m += E -> nMsh ();
+    g += E -> nExt ();
+    s += E -> nExt ();
+  }
+
+  field_name = 'u';
+}
+
+
+
+
  
-Field::Field (const Field& f, char tag)
+Field::Field (const Field& f, const Mesh& M, char tag)
 // ---------------------------------------------------------------------------
 // Copy constructor.
 //
@@ -96,10 +142,8 @@ Field::Field (const Field& f, char tag)
       s += E -> nExt();
     }
     
-    if (tag == 'p')
-      buildBoundaries (f);
-    else
-      buildBoundaries ();
+    if   (tag == PRESSURE) buildBoundaries (f);
+    else                   buildBoundaries (M);
 
   } else {
     for (ListIterator<Element*> k(f.element_list); k.more(); k.next()) {
@@ -343,187 +387,6 @@ Field&  Field::axpy (real alpha, const Field& x)
 
 
 
-void  Field::readMesh (istream& strm, int np)
-// ---------------------------------------------------------------------------
-// Read mesh description from mesh stream strm.
-//
-// Mesh node locations (xmesh & ymesh) are computed, but geometric partials
-// are not.
-//
-// Mesh file description:
-// ---------------------
-// The first line of the file contains the number of element corner
-// vertices: <num> VERTICES.  Following this is a list of corner vertices
-// given in Cartesian form, one vertex per line.  E.g.:
-// 4 VERTICES
-// 0.0  0.0
-// 1.0  0.0
-// 1.0  1.0
-// 0.0  1.0
-//
-// The list of vertices is followed by a blank line, then a section which
-// describes the elements, starting with the line <num> ELEMENTS.
-// This is also followed by a blank line and domain information is then
-// given on an element-wise basis.  No global node-numbering is needed; this
-// is generated automatically (& dealt with elsewhere).
-//
-// Corner vertex numbering proceeds CCW round the element.  Side 1 lies
-// between corner vertices 1 & 2 and side numbering is also CCW-sequential
-// around the element.  Sides can either lie on the domain boundary (BC) or
-// mate with another element (EL).  Internal numbering of elements and sides
-// starts at zero.
-//
-// Information for each element is followed by a blank line, except that the
-// last element may be followed by EOF.
-//
-// Element data for a biquadratic element:
-// ELEMENT number ORDER 2
-// 1 2 3 4                             (these are indices in the vertex list)
-// SIDE 1  BC  tag-num
-// side 2  EL  mate-el SIDE mate-side
-// SI   3  EL  mate-el si   mate-side
-// SIDE 4  EL  mate-el SIDE mate-side
-// ---------------------------------------------------------------------------
-{
-  char  routine[] = "Field::readMesh";
-  char  s1[StrMax], s2[StrMax];
-  int   nvert;
-
-  // -- Input vertex information.
-
-  while (strm.getline (s1, StrMax)) {
-    upperCase (s1);
-    if ( (strstr (s1, "VERTICES")) && (sscanf (s1, "%d", &nvert))) {
-      strm.getline (s1, StrMax);
-      break;
-    } else {
-      sprintf (s2, "couldn't get number of vertices: %s", s1);
-      message (routine, s2, ERROR);
-    }
-  }
-
-  Point* vertexList = new Point[nvert];
-
-  int  i(0);
-  while (strm.getline (s1, StrMax) && i < nvert) {
-    if (sscanf (s1, "%*s%lf%lf", &vertexList[i].x, &vertexList[i].y) != 2) {
-      sprintf (s2, "expected info for vertex %1d, got: %s", i+1, s1);
-      message (routine, s2, ERROR);
-    }
-    ++i;
-  }
-  
-  // -- Check that vertex input completed OK.
-
-  if (i < nvert) {
-    sprintf (s1, "expected another vertex, got newline at vertex #%1d", i);
-    message (routine, s1, ERROR);
-  } else if (s1[0]) {
-    sprintf (s2, "read all vertices, but next line not blank: %s", s1);
-    message (routine, s2, ERROR);
-  }
-
-  // -- Input element information.
-
-  int nel;
-
-  while (strm.getline (s1, StrMax)) {
-    upperCase (s1);
-    if ( (strstr (s1, "ELEMENTS")) && (sscanf (s1, "%d", &nel)))
-      break;
-    else{
-      sprintf (s2, "couldn't get number of elements: %s", s1);
-      message (routine, s2, ERROR);
-    }
-  }
-
-  int       id;
-  int**     vertexTable = new int* [nel];
-  Element*  E;
-
-  for (i = 0; i < nel; i++) {
-    strm.getline(s1, StrMax).getline(s1, StrMax);
-    upperCase (s1);
-
-    if (strstr (s1, "ELEMENT")) {
-
-      element_list.add (E = new Element);
-      
-      sscanf (s1, "%*s %d", &id);
-      if (id > nel) {
-	sprintf (s2, "element id: %1d exceeds no. of elements: %1d", id, nel);
-	message (routine, s2, ERROR);
-      }
-
-      E -> setState (--id, np, 4);
-      E -> read     (strm, vertexTable[id]);
-
-    } else {
-      sprintf (s2, "element descriptor for #%1d? : %s", i+1, s1);
-      message (routine, s2, ERROR);
-    }
-  }
-
-  // -- Check element input and nominated element connectivity.
-
-  int* check = ivector (nel);
-  Veclib::fill (nel, 1, check, 1);
-  for (ListIterator<Element*> k(element_list); k.more(); k.next())
-    check[k.current() -> ID ()] = 0;
-  if (Veclib::any (nel, check, 1)) {
-    sprintf (s1, "no input for element %1d", Veclib::first (nel, check, 1)+1);
-    message (routine, s1, ERROR);
-  }
-  freeVector (check);
-
-  for (k.reset(); k.more(); k.next()) k.current() -> checkMate (element_list);
-
-  // -- All the mesh input file has been read; allocate & install storage.
-
-  n_data = n_mesh = n_elmt_bnodes = 0;
-
-  for (k.reset(); k.more(); k.next()) {
-    E = k.current();
-    n_data        += E -> nTot ();
-    n_mesh        += E -> nMsh ();
-    n_elmt_bnodes += E -> nExt ();
-  }
-
-  data            = rvector (n_data);
-  mesh            = rvector (n_mesh);
-  elmt_bndry_gid  = ivector (n_elmt_bnodes);
-  elmt_bndry_mask = ivector (n_elmt_bnodes);
-
-  double* d = data;
-  double* m = mesh;
-  int*    g = elmt_bndry_gid;
-  int*    s = elmt_bndry_mask;
-
-  for (k.reset(); k.more(); k.next(), i++) {
-    E = k.current();
-    E -> install (d, m, g, s);
-    d += E -> nTot ();
-    m += E -> nMsh ();
-    g += E -> nExt ();
-    s += E -> nExt ();
-  }
-
-  // -- Fill mesh internal node locations.
-
-  for (k.reset(), i = 0; k.more(); k.next(), i++)
-    k.current() -> mesh (vertexTable[i], vertexList);
-
-  for (i = 0; i < nel; i++) delete [] vertexTable[i];
-  delete [] vertexTable;
-  delete [] vertexList;
-
-  field_name = 'u';
-}
-
-
-
-
-
 void  Field::printMesh (Field* F)
 // ---------------------------------------------------------------------------
 // Mesh location information is written out element-by-element.
@@ -549,7 +412,7 @@ void  Field::mapElements ()
 // ---------------------------------------------------------------------------
 {
   for (ListIterator<Element*> i(element_list); i.more(); i.next())
-    i.current() -> map();
+    i.current() -> map ();
 }
 
 
@@ -564,7 +427,7 @@ void  Field::buildBoundaries (const Field& f)
 // each Boundary, while making pointers into the current element_list.
 // ---------------------------------------------------------------------------
 {
-  Boundary* N;
+  Boundary*  N;
 
   for (ListIterator<Boundary*> b(f.boundary_list); b.more(); b.next()) {
     N = new Boundary (*b.current (), element_list);
@@ -576,34 +439,33 @@ void  Field::buildBoundaries (const Field& f)
 
 
 
-void  Field::buildBoundaries ()
+void  Field::buildBoundaries (const Mesh& M)
 // ---------------------------------------------------------------------------
-// Construct a new list of Boundary edges, using BCmanager.
-//
-// The list is made by searching the list of elements: each time an element
-// edge is identified as lying on the domain boundary, a new Boundary structure
-// is made and added to the list.  Boundary condition information is found
-// by searching the list of boundary condition specifiers for a matching tag,
-// after which the a pointer to its specifier is placed in Bedge structure.
-//
-// NB: estart values assume BLAS-conformant behaviour with negative skips.
+// Construct a new list of Boundary edges, using BCmanager and Mesh M.
 // ---------------------------------------------------------------------------
 {
-  int       side, id  = 0;
-  Element*  E;
-  Boundary* B;
-  BC*       bc;
+  Element*   E;
+  Boundary*  B;
+  BC*        bc;
+  int        tag;
+  int        id = 0;
 
   BCmanager::incVar ();
 
-  for (ListIterator<Element*> i(element_list); i.more(); i.next()) {
-    E = i.current();
-    for (side = 0; side < E -> nSide(); side++)
-      if (E -> sideKind (side) == DOMAIN_BOUNDARY) {
-	bc = BCmanager::getBC (E -> sideTag (side));
-	B  = new Boundary (id++, E, side, bc);
-	boundary_list.add(B);
+  for (ElmtsOfMesh e(M); e.more(); e.next()) {
+    for (Mesh::SidesOfElmt s(e.current()); s.more(); s.next()) {
+      if (s.current().isBoundary (tag)) {
+	bc = BCmanager::getBC (tag);
+	for (ListIterator<Element*> i(element_list); i.more(); i.next()) {
+	  E = i.current ();
+	  if (E -> ID() == e.current().ID) {
+	    B = new Boundary (++id, E, s.current().ID, bc);
+	    boundary_list.add (B);
+	    break;
+	  }
+	}
       }
+    }
   }
 }
 
@@ -646,68 +508,53 @@ void  Field::evaluateBoundaries (int step)
 
 
 
-void  Field::readConnect (const char *session)
+void  Field::connect (Mesh& M, int np)
 // ---------------------------------------------------------------------------
-// Read in global mesh-numbering information generated by CONNECT, and
-// re-arrange so that Essential BCs have highest numbers.
-//
-// Input "name" is the root of session, for connectivity file "name.con".
-//
-// The data then contained in element bmaps are the global equation numbers
-// (if solve mask is non-zero).
-//
+// Generate global node numbers for element boundaries.
+
 // Method:
-// 1)  Read in a list of global node numbers generated by CONNECT.
-// 2)  Sort the numbers so that Essential boundary conditions come last.
+// 1)  Generate an initial set of numbers using Mesh functions;
+// 2)  Sort the numbers so that Essential boundary conditions come last;
 // 3)  Scatter the rearranged list into the bmap storage of the elements.
 // ---------------------------------------------------------------------------
 {
-  char       routine[] = "Field::readConnect";
-  char       s[StrMax];
+  Element*  E;
+  int*      b;
 
-  int                     elmt, nLines = 0, nExpect = 0;
-  ListIterator<Element*>  e(element_list);
-  Element*                Esave   = 0;
-  int                     nel     = nEl();
+  n_gid = M.connectSC (np);
 
-  ifstream file (strcat (strcpy (s, session), ".con"));
-  if (!file) message (routine, "can't open connectivity file", ERROR);
-
-  n_gid = 0;
-  while (file.getline (s, StrMax)) {
-    if (s[0] == '#') continue;
-
-    if (sscanf (s, "%d", &elmt) != 1)
-      message (routine, "failed scanning connectivity data",  ERROR);
-    if (elmt > nel)
-      message (routine, "element number exceeds declaration", ERROR);
-    --elmt;
-    ++nLines;
- 
-    if (Esave && elmt == Esave -> ID ())
-      n_gid = max (n_gid, Esave -> gidInsert (s));
-    else {
-      Esave = 0;
-      for (e.reset (); !Esave && e.more (); e.next ())
-	if (elmt  == e.current () -> ID ()) {
-	  Esave    = e.current ();
-	  nExpect += Esave -> nKnot () * Esave -> nSide ();
-	}
-      if (!Esave) {
-	sprintf (s, "couldn't locate element %1d in list", elmt + 1);
-	message (routine, s, ERROR);
-      } else
-	n_gid = max (n_gid, Esave -> gidInsert (s));
+  for (ListIterator<Element*> k(element_list); k.more(); k.next()) {
+    E = k.current();
+    b = ivector (E -> nExt());
+    for (ElmtsOfMesh e(M); e.more(); e.next()) {
+      Mesh::Elmt& ME = e.current();
+      if (E -> ID() == ME.ID) {
+	ME.getGid (b);
+	E -> gidInsert (b);
+      }
     }
+    freeVector (b);
   }
 
-  file.close();
-
-  if (nLines != nExpect)
-    message (routine, "number of connectivity data mismatch", ERROR);
-
   setMask ();
+  
+  sortGid ();
 
+  M.connectSC (2);		// -- Minimize M's internal storage.
+}
+
+
+
+
+
+void  Field::sortGid ()
+// ---------------------------------------------------------------------------
+// Global node numbers get sorted to place essential-BC nodes last; this
+// simplifies the later partition of global matrices---see the header for
+// Field::buildSys.  The non-essential type node numbers can be sorted to
+// optimize global matric bandwidths, but this is not done here.
+// ---------------------------------------------------------------------------
+{
   int** gOrder = imatrix (n_gid, 2);        // For sorting global numbers.
   int*  bOld   = ivector (n_elmt_bnodes);   // Copy of original boundary map.
   int*  ramp   = ivector (n_gid);           // Ordered global node numbers.
@@ -804,11 +651,11 @@ void  Field::renumber ()
 
   // -- Allocate memory.
 
-  int* adjncy  = ivector (tabSize);
-  int* xadj    = ivector (n_solve+1);
-  int* perm    = ivector (n_solve);
-  int* mask    = ivector (n_solve);
-  int* xls     = ivector (n_solve);
+  int* adjncy = ivector (tabSize);
+  int* xadj   = ivector (n_solve+1);
+  int* perm   = ivector (n_solve);
+  int* mask   = ivector (n_solve);
+  int* xls    = ivector (n_solve);
 
   int* invperm = ivector (n_gid);
   int* oldmap  = ivector (n_elmt_bnodes);
