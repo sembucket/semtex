@@ -372,6 +372,7 @@ void Domain::loadBase()
       
       len = nPlane * sizeof(real);
       file.read (reinterpret_cast<char*>(addr), len);
+      if (H.swab()) Veclib::brev (len, addr, 1, addr, 1);
     
       len = (H.nz - 1) * nPlane * sizeof (real);
       file.ignore (len); // -- Ignore higher planes.
@@ -400,7 +401,11 @@ void Domain::loadBase()
       Blas::scal   ((nSlice-2)*nTot, 2.0, baseFlow(i) + 2*nTot, 1);
     }
   
-  ROOTONLY cout << "read from file " << filename << endl;
+  ROOTONLY {
+    cout << "read from file " << filename;
+    if (H.swab()) cout << " (byte swapping)";
+    cout << endl;
+  }
 }
 
 

@@ -246,3 +246,29 @@ ofstream& operator << (ofstream& file,
 
   return file;
 }
+
+int Header::swab() const
+// ---------------------------------------------------------------------------
+// Return true if coding of binary information in *this conflicts with 
+// that for the machine (indicating byte swapping is required).
+// ---------------------------------------------------------------------------
+{
+  char routine[] = "Header::swab";
+  char machine[StrMax];
+  int  swap = 0;
+
+  Veclib::describeFormat (machine);
+
+  if (!strstr (frmt, "binary"))
+    message (routine, "input field file not in binary format", ERROR);
+  
+  if (!strstr (frmt, "endian"))
+    message (routine, "input field file in unknown binary format", WARNING);
+  else
+    swap = ((strstr (machine, "big") && strstr (frmt,    "little")) ||
+	    (strstr (frmt,    "big") && strstr (machine, "little")) );
+  
+  return swap;
+}
+
+
