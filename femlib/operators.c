@@ -633,8 +633,8 @@ void dIntpOps (const int    basis,  /* element basis: STD or GLL             */
   const double* kp;
   double        x[1], **dv, **dt;
 
-  dv = dmatrix (0, np - 1, 0, 0);
-  dt = dmatrix (0, 0, 0, np - 1);
+  dv = dmatrix (0, 0, 0, np - 1);
+  dt = dmatrix (0, np - 1, 0, 0);
 
   dQuadOps (basis, np, np, &kp, 0, 0, 0, 0, 0, 0);
 
