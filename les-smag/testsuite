@@ -76,3 +76,20 @@ foreach SESS (tube1 tube2 tube3 sbr tc1 cylkov2)
   compare $SESS $SESS.fld > /dev/null
   rm $SESS*
 end
+
+# Note: tc1 gives large errors, but these seem like a CFL instability
+# as reducing the timestep gets rid of them: (200 x 0.001)
+#
+# Field 'u': norm_inf: 2.2474e-04
+# Field 'v': norm_inf: 3.7103e-05
+# Field 'w': norm_inf: 3.3585e-06
+# Field 'p': norm_inf: 6.6341e-02
+#
+# Likewise with cylkov2, reducing the timesteps (going 1000 x 0.001)
+# changes the errors to
+#
+# Field 'u': norm_inf: 9.6606e-03
+# Field 'v': norm_inf: 8.3193e-03
+# Field 'w': norm_inf: 7.6242e-03
+# Field 'p': norm_inf: 4.7013e-01
+

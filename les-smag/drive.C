@@ -141,6 +141,14 @@ static void preprocess (const char*       session,
   Geometry::CoordSys space;
   int_t              i, np, nz, nel;
 
+  // -- Install default values of non-predefined tokens.
+  //    For RNG, the "decreed" values of C_SMAG, RNG_C, RNG_BIG follow:
+
+  Femlib::ivalue ("RNG",     0     );
+  Femlib:: value ("C_SMAG",  0.1114);
+  Femlib:: value ("RNG_C",   75.0  );
+  Femlib:: value ("RNG_BIG", 500.0 );
+
   // -- Initialise problem and set up mesh geometry.
 
   VERBOSE cout << "Building mesh ..." << endl;
@@ -155,8 +163,8 @@ static void preprocess (const char*       session,
   VERBOSE cout << "Setting geometry ... ";
 
   nel   = mesh -> nEl();
-  np    = Femlib::ivalue ("N_POLY");
-  nz    = Femlib::ivalue ("N_Z");
+  np    =  Femlib::ivalue ("N_POLY");
+  nz    =  Femlib::ivalue ("N_Z");
   space = (Femlib::ivalue ("CYLINDRICAL")) ? 
                      Geometry::Cylindrical : Geometry::Cartesian;
   
