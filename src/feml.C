@@ -245,6 +245,8 @@ integer FEML::tokens ()
 // Initialize femlib parser and install token table.
 // Return 0 if no TOKEN section is found.
 // NUMBER attribute ignored if present.
+//
+// Fix any inconsistent values.
 // ---------------------------------------------------------------------------
 {
   char           buf[STR_MAX];
@@ -260,6 +262,9 @@ integer FEML::tokens ()
       u = buf; while (*u = toupper (*u)) u++;
       if (strstr (buf, "TOKENS")) break;
     }
+    
+    if ((integer)Femlib::value ("IO_FLD") > (integer)Femlib::value ("N_STEP"))
+      Femlib::value ("IO_FLD", (integer) Femlib::value ("N_STEP"));
     
     return 1;
   }
