@@ -1,4 +1,0 @@
-CUBIT
------
-This is a library for ADAPTIVE spectral elements.  All connectivity data is
-constructed on the fly using the VDB library.
