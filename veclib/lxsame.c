@@ -55,7 +55,7 @@ int lssame (int n, const  float *x, int incx, const float* y, int incy)
 #ifdef __GNUC__			/* -- No support for single-precision math. */
     if (fabs  (*x - *y) > EPSSP) return 0;
 #else
-    if (fabsf (*x - *y) > ESPSP) return 0;
+    if (fabsf (*x - *y) > EPSSP) return 0;
 #endif
     x += incx;
     y += incy;
