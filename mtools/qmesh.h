@@ -33,13 +33,6 @@ template<class T> inline T sgn(T x)      { return (x < 0) ? -1 : 1; }
 template<class T> inline T min(T a, T b) { return (a < b) ?  a : b; }
 template<class T> inline T max(T a, T b) { return (a > b) ?  a : b; }
 
-// -- Splitting parameters: "rules of thumb" described in Reference [1].
-
-const  real C1 = 0.5;	// -- Angle  weight factor.
-const  real C2 = 0.3;	// -- Length weight factor.
-const  real C3 = 0.2;	// -- Error  weight factor.
-extern real refcoeff;	// -- Refinement coefficient per Ref. [1].
-
 const int InsMax = 512;	// -- Max Nodes to insert on splitting line.
 
 
@@ -115,6 +108,7 @@ public:
   Point centroid () const;
   int   offset   () const { return kind == OFFSET;   }
   int   interior () const { return kind == INTERIOR; }
+  int   adjncy   () const { return contact.length(); }
 
 private:
   int         id;

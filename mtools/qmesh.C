@@ -41,7 +41,7 @@
 // -- End.
 //
 // A binary tree is used to maintain the loop/subloop structure, see
-// file loop.cc
+// file loop.C.
 //
 // By convention, CCW is direction of loop traverses and positive angles.      
 //
@@ -52,6 +52,9 @@
 //     elements and Bezier curve boundary definition.  IJNME V29, 1551--1567.
 // [2] F. S. Hill, Jr., 1990.  Computer Graphics.  Collier Macmillan.
 // [3] R. Sedgewick, 1990.  Algorithms in C.  Addison-Wesley.
+// [4] J. Z. Zhu, O. C. Zienkiewicz, E. Hinton & J. Wu, 1991.  A new approach
+//     to the development of automatic quadrilateral mesh generation.
+//     IJMME V32, 849--866.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char
@@ -76,6 +79,7 @@ static istream& operator >>  (istream&, List<Node*>&);
 static istream& operator >>  (istream&, List<Loop*>&);
 static int      loopDeclared (istream& s);
 static void     connect      (List<Quad*>&);
+static void     deleteNodes  (List<Quad*>&);
 static void     smooth       (List<Node*>&);
 static void     printNodes   (ostream&, List<Node*>&);
 static void     printMesh    (ostream&, List<Quad*>&);
@@ -122,9 +126,22 @@ int main (int    argc,
     L -> quads   (elements);
   }
 
-  // --  Join up all quads into mesh, and smooth.
+  // -- Join up all quads into mesh.
 
   connect (elements);
+
+  // -- Attempt to improve mesh by Node elimination, see Ref. [4].
+
+  deleteNodes (elements);
+
+  // -- Laplacian smoothing.
+
+  for (i = 0; i < nsmooth; i++) {
+    smooth (Global::nodeList); if (graphics) drawMesh (elements);
+  }
+
+  // -- Attempt to improve mesh by Node elimination, see Ref. [4], smooth.
+
   for (i = 0; i < nsmooth; i++) {
     smooth (Global::nodeList); if (graphics) drawMesh (elements);
   }
@@ -496,5 +513,44 @@ static void printMesh (ostream&     strm,
     strm << "  </Q>" << endl;
   }
   strm << "</ELEMENTS>" << endl << endl;
+}
+
+
+static void deleteNodes (List<Quad*>& mesh)
+// ---------------------------------------------------------------------------
+// Improve mesh by node elimination.  See \S 3.1.1 in Ref [4].
+// ---------------------------------------------------------------------------
+{
+  char routine[] = "deleteNodes";
+  int   i, i1, i2, kill;
+  Node  *N;
+  Quad  *Q, *Q1, *Q2;
+
+  do {
+    ListIterator<Node*> n (Global::nodeList);
+    ListIterator<Quad*> q (mesh);
+
+    for (kill = 0; !kill && n.more(); n.next()) {
+      N = n.current();
+      if (N -> adjncy() == 2 && N -> interior()) {
+	kill = 1;
+	for (Q1 = 0, Q2 = 0; !(Q1 && Q2) && q.more(); q.next()) {
+	  Q = q.current();
+	  for (i = 0; i < 4; i++)
+	    if (Q -> vertex[i] == N) {
+	      if   (!Q1) { Q1 = Q; i1 = i; }
+	      else       { Q2 = Q; i2 = i; }
+	    }
+	}
+	if (!(Q1 && Q2))
+	  message (routine, "node marked but can't find two elements", ERROR);
+	Q1 -> vertex[i1] = Q2 -> vertex[(i2 + 2) % 4];
+      }
+    }
+    if (kill) {
+      Global::nodeList.remove (N);
+      mesh            .remove (Q2);
+    }
+  } while (kill);
 }
 
