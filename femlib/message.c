@@ -188,8 +188,8 @@ void message_dtranspose (double*       data,
 
     for (i = 0; i < np; i++)
       if (i != ip) {
-	MPI_Isend   (data+i*NM, NM, MPI_DOUBLE, i,0,MPI_COMM_WORLD, request);
-	MPI_Irecv   (tmp,       NM, MPI_DOUBLE, i,0,MPI_COMM_WORLD, request+1);
+	MPI_Isend   (data+i*NM, NM, MPI_DOUBLE, i,9,MPI_COMM_WORLD, request);
+	MPI_Irecv   (tmp,       NM, MPI_DOUBLE, i,9,MPI_COMM_WORLD, request+1);
 	MPI_Waitall (2, request, status);
 	memcpy      (data+i*NM, tmp, NM * dsize);
       }
@@ -198,8 +198,8 @@ void message_dtranspose (double*       data,
 
     for (i = 0; i < np; i++)
       if (i != ip) {
-	MPI_Isend   (data+i*NM, NM, MPI_DOUBLE, i,0,MPI_COMM_WORLD, request);
-	MPI_Irecv   (tmp,       NM, MPI_DOUBLE, i,0,MPI_COMM_WORLD, request+1);
+	MPI_Isend   (data+i*NM, NM, MPI_DOUBLE, i,9,MPI_COMM_WORLD, request);
+	MPI_Irecv   (tmp,       NM, MPI_DOUBLE, i,9,MPI_COMM_WORLD, request+1);
 	MPI_Waitall (2, request, status);
 	memcpy      (data+i*NM, tmp, NM * dsize);
       }
@@ -335,8 +335,8 @@ void message_stranspose (float*        data,
 
     for (i = 0; i < np; i++)
       if (i != ip) {
-	MPI_Isend   (data+i*NM, NM, MPI_FLOAT, i, 0, MPI_COMM_WORLD,request);
-	MPI_Irecv   (tmp,       NM, MPI_FLOAT, i, 0, MPI_COMM_WORLD,request+1);
+	MPI_Isend   (data+i*NM, NM, MPI_FLOAT, i, 9, MPI_COMM_WORLD,request);
+	MPI_Irecv   (tmp,       NM, MPI_FLOAT, i, 9, MPI_COMM_WORLD,request+1);
 	MPI_Waitall (2, request, status);
 	memcpy      (data+i*NM, tmp, NM * dsize);
       }
@@ -345,8 +345,8 @@ void message_stranspose (float*        data,
 
     for (i = 0; i < np; i++)
       if (i != ip) {
-	MPI_Isend   (data+i*NM, NM, MPI_FLOAT, i, 0, MPI_COMM_WORLD,request);
-	MPI_Irecv   (tmp,       NM, MPI_FLOAT, i, 0, MPI_COMM_WORLD,request+1);
+	MPI_Isend   (data+i*NM, NM, MPI_FLOAT, i, 9, MPI_COMM_WORLD,request);
+	MPI_Irecv   (tmp,       NM, MPI_FLOAT, i, 9, MPI_COMM_WORLD,request+1);
 	MPI_Waitall (2, request, status);
 	memcpy      (data+i*NM, tmp, NM * dsize);
       }
@@ -463,16 +463,16 @@ void message_itranspose (integer*      data,
     if (sizeof (integer) == sizeof (int)) {
       for (i = 0; i < np; i++)
 	if (i != ip) {
-	  MPI_Isend   (data+i*NM, NM, MPI_INT, i, 0, MPI_COMM_WORLD,request);
-	  MPI_Irecv   (tmp,       NM, MPI_INT, i, 0, MPI_COMM_WORLD,request+1);
+	  MPI_Isend   (data+i*NM, NM, MPI_INT, i, 9, MPI_COMM_WORLD,request);
+	  MPI_Irecv   (tmp,       NM, MPI_INT, i, 9, MPI_COMM_WORLD,request+1);
 	  MPI_Waitall (2, request, status);
 	  memcpy      (data+i*NM, tmp, NM * dsize);
 	}
     } else {
       for (i = 0; i < np; i++)
 	if (i != ip) {
-	  MPI_Isend   (data+i*NM, NM, MPI_LONG, i, 0,MPI_COMM_WORLD,request);
-	  MPI_Irecv   (tmp,       NM, MPI_LONG, i, 0,MPI_COMM_WORLD,request+1);
+	  MPI_Isend   (data+i*NM, NM, MPI_LONG, i, 9,MPI_COMM_WORLD,request);
+	  MPI_Irecv   (tmp,       NM, MPI_LONG, i, 9,MPI_COMM_WORLD,request+1);
 	  MPI_Waitall (2, request, status);
 	  memcpy      (data+i*NM, tmp, NM * dsize);
 	}
@@ -481,16 +481,16 @@ void message_itranspose (integer*      data,
     if (sizeof (integer) == sizeof (int)) {
       for (i = 0; i < np; i++)
 	if (i != ip) {
-	  MPI_Isend   (data+i*NM, NM, MPI_INT, i, 0, MPI_COMM_WORLD,request);
-	  MPI_Irecv   (tmp,       NM, MPI_INT, i, 0, MPI_COMM_WORLD,request+1);
+	  MPI_Isend   (data+i*NM, NM, MPI_INT, i, 9, MPI_COMM_WORLD,request);
+	  MPI_Irecv   (tmp,       NM, MPI_INT, i, 9, MPI_COMM_WORLD,request+1);
 	  MPI_Waitall (2, request, status);
 	  memcpy      (data+i*NM, tmp, NM * dsize);
 	}
     } else {
       for (i = 0; i < np; i++)
 	if (i != ip) {
-	  MPI_Isend   (data+i*NM, NM, MPI_LONG, i, 0,MPI_COMM_WORLD,request);
-	  MPI_Irecv   (tmp,       NM, MPI_LONG, i, 0,MPI_COMM_WORLD,request+1);
+	  MPI_Isend   (data+i*NM, NM, MPI_LONG, i, 9,MPI_COMM_WORLD,request);
+	  MPI_Irecv   (tmp,       NM, MPI_LONG, i, 9,MPI_COMM_WORLD,request+1);
 	  MPI_Waitall (2, request, status);
 	  memcpy      (data+i*NM, tmp, NM * dsize);
 	}
