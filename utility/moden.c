@@ -163,30 +163,23 @@ static void getargs (int    argc ,
  * Parse command line arguments.
  * ------------------------------------------------------------------------- */
 {
-  char c;
-  int  i;
   char fname[FILENAME_MAX];
   char usage[] = "moden [-h] [-m mode] [input[.fld]\n";
 
   while (--argc && (*++argv)[0] == '-')
-    while (c = *++argv[0])
-      switch (c) {
-      case 'h':
-	fputs (usage, stderr);
-	exit  (EXIT_SUCCESS);
-	break;
-      case 'm':
-	if (*++argv[0])
-	  *mode = atoi (*argv);
-	else {
-	  *mode = atoi (*++argv);
-	  argc--;
-	}
-	break;
-      default:
-	fprintf (stderr, "%s: unknown option -- %c\n", prog, c);
-	break;
-      }
+    switch (*++argv[0]) {
+    case 'h':
+      fputs (usage, stderr);
+      exit  (EXIT_SUCCESS);
+      break;
+    case 'm':
+      if (*++argv[0]) *mode = atoi (*argv);
+      else { *mode = atoi (*++argv); argc--; }
+      break;
+    default:
+      fprintf (stderr, "%s: unknown option -- %c\n", prog, c);
+      break;
+    }
 
   if (argc == 1)
     if ((*fp_in = fopen(*argv, "r")) == (FILE*) NULL) {

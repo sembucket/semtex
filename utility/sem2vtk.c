@@ -1,6 +1,8 @@
 /*****************************************************************************
  * sem2vtk: convert a SEM field file to VTK unstructured grid data file.
  *
+ * This is work in progress.
+ *
  * Usage: sem2vtk [-h] [-n #] [-d #] [-w] meshfile numfile session[.fld]
  *
  * $Id$
