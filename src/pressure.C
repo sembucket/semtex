@@ -36,17 +36,17 @@ void  PBCmanager::build (Field& P)
 
   essential = new BC;
   essential -> id    = 0;
-  essential -> kind  = ESSENTIAL;
+  essential -> kind  = BC::essential;
   essential -> value = 0.0;
 
   hopbc = new BC;
   hopbc -> id        = 0;
-  hopbc -> kind      = HOPBC;
+  hopbc -> kind      = BC::hopbc;
   hopbc -> value     = 0.0;
 
-  int  nTime = iparam   ("N_TIME");
-  int  nEdge = P.nBound ();
-  int  ntot  = P.switchPressureBCs (hopbc, essential);
+  int  nTime = iparam ("N_TIME");
+  int  nEdge = P.nBound    ();
+  int  ntot  = P.resetPBCs (hopbc, essential);
   int  i, q;
 
   store = new HOBC [nEdge];
@@ -115,7 +115,7 @@ void  PBCmanager::maintain (int            step  ,
 
   // -- Roll grad P storage area up, load new level of nonlinear terms.
 
-  regsiter     Boundary*   B;
+  register     Boundary*   B;
   ListIterator<Boundary*>  j (master -> boundary_list);
 
   for (i = 0; j.more (); j.next (), i++) {
@@ -205,7 +205,8 @@ void  PBCmanager::evaluate (int   id,     int   np,  int   step,
 // extrapolation, then dotted into n.
 // ---------------------------------------------------------------------------
 {
-  int    q, Je = iparam ("N_TIME");
+  register int  q, Je = iparam ("N_TIME");
+
   real*  beta  = rvector (Integration::OrderMax);
   real*  tmpX  = rvector (np);
   real*  tmpY  = rvector (np);
