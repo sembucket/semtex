@@ -15,35 +15,39 @@ VPATH    = $(FEM)/src
 ARCH     = $(shell uname -s)
 PROG     = fem++
 
-OPTIONS  = -g
-DEFINES  =
+ifdef DEBUG
+  DEFINES  = -DDEBUG
+else
+  DEFINES  =
+endif
 
 CPPFLAGS = -I. -I$(FEM)/include
 
 # ----------- Compiler options for specific machines -------------------------
 
 ifeq ($(ARCH),IRIX)		# -- SGI MIPS R4xxx IRIX5x
-CXX	 = CC
-LD	 = CC
-CXXFLAGS = -mips2 -fullwarn -smart
+CXX	 = DCC
+LD	 = DCC
+CXXFLAGS = $(DEFINES) -mips2 -fullwarn -smart -g
 F77LIBS	 = -lcomplib.sgimath -lisam
-LDFLAGS  = -lfpe -mips2 -L$(FEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+LDFLAGS  = -lfpe -mips2 -L$(FEM)/lib/$(ARCH) -lfem -lalp \
+	   $(F77LIBS) -lm
 endif
 
 
 ifeq ($(ARCH),IRIX64)		# -- SGI MIPS R8xxx IRIX6x
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = -O3
+CXXFLAGS =  $(DEFINES) -O3
 F77LIBS	 = -lcomplib.sgimath -lisam
-LDFLAGS  = -L$(FEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+LDFLAGS  = -L$(FEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lmalloc -lm
 endif
 
 
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha
 CXX	 = cxx
 LD	 = cxx
-CXXFLAGS = -O2 -migrate -tune host
+CXXFLAGS =  $(DEFINES) -migrate -tune host -O2
 F77LIBS  = -ldxml
 LDFLAGS  = $(CXXFLAGS) -L$(FEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
 endif
@@ -109,8 +113,7 @@ dist:
 # Make full source code distribution with library sources.
 
 fulldist:
-	tar cvf fulldist.tar Makefile include/*.h src/*.C src/*.h lib	\
-		util/*.C util/*.c util/*.h examples alplib femlib bin
+	tar cvf fulldist.tar include src lib util examples alplib femlib bin
 	compress -f fulldist.tar
 
 # ----------------------------------------------------------------------------
