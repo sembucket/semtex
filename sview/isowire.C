@@ -13,7 +13,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Sview.h>
+#include <sview_h>
 
 const int VERT_MAX = 2000000;
 const int POLY_MAX = 2000000;

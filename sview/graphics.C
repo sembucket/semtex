@@ -6,7 +6,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Sview.h>
+#include <sview_h>
 using namespace std;
 
 // -- Materials definitions, in display order ---
@@ -163,7 +163,7 @@ void speckeys (int key,
 // ---------------------------------------------------------------------------
 {
   switch (key) {
-  case GLUT_KEY_INSERT:
+  case GLUT_KEY_HOME:
     State.rotate = !State.rotate;
     break;
   case GLUT_KEY_LEFT:
@@ -249,8 +249,8 @@ void display ()
 }
 
 
-void reshape (GLint w,
-	      GLint h)
+void reshape (int w,
+	      int h)
 // ---------------------------------------------------------------------------
 // GLUT callback for reshaping of graphics window.
 // ---------------------------------------------------------------------------

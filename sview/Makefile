@@ -31,49 +31,59 @@ endif
 # -- Select compilation system.
 
 ifeq ($(ARCH),IRIX64)		# -- SGI 64-bit systems.
-
 CXX = CC
 LD  = CC
-
 GLUT_LIBS = -ltiff -lglut -lGLU -lGL -lX11 -lXext -lXmu -lXt -lSM -lICE
-
 CPPFLAGS = -I. -I$(GLUT_ROOT)/include
 ifdef PYTHON
   CPPFLAGS += -I$(PYTHON_HDRS)
 endif
-
 CXXFLAGS = $(DEFINES)
 ifdef DEBUG
   CXXFLAGS += -g -n32
 else
   CXXFLAGS += -O2 -n32
 endif
-
 LDFLAGS = -n32 -L$(X11_ROOT)/lib -L$(GLUT_ROOT)/lib32 $(GLUT_LIBS) -lm
 endif
 
 
 ifeq ($(ARCH),Linux)		# -- GNU/Linux system.
-
 CXX = g++
 LD  = g++
-
 GLUT_LIBS = -ltiff -ljpeg -lz -lglut -lGLU -lGL	\
             -lX11 -lXext -lXmu -lXt -lXi -lSM -lICE
-
 CPPFLAGS = -I.
 ifdef PYTHON
   CPPFLAGS += -I$(PYTHON_HDRS)
 endif
-
 CXXFLAGS = $(DEFINES)
 ifdef DEBUG
   CXXFLAGS += -gstabs+
 else
   CXXFLAGS += -O3
 endif
-
 LDFLAGS  = -L$(X11_ROOT)/lib -L$(GLUT_ROOT)/lib $(GLUT_LIBS) -lm
+endif
+
+
+ifeq ($(ARCH),Darwin)		# -- Mac OSX (10.3).
+CXX = g++
+LD  = g++
+#GLUT_LIBS = -ltiff
+GLUT_LIBS = -ltiff -lglut
+CPPFLAGS = -I. -I/sw/include
+ifdef PYTHON
+  CPPFLAGS += -I$(PYTHON_HDRS)
+endif
+CXXFLAGS = $(DEFINES)
+ifdef DEBUG
+  CXXFLAGS += -gstabs+
+else
+  CXXFLAGS += -O2
+endif
+#LDFLAGS = -L/sw/lib -framework GLUT -framework OpenGL $(GLUT_LIBS) -lobjc
+LDFLAGS = -framework OpenGL -L/sw/lib $(GLUT_LIBS)
 endif
 
 

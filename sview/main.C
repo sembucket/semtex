@@ -32,7 +32,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Sview.h>
+#include "sview_h"
 
 static char prog[] = "sview";
 using namespace std;

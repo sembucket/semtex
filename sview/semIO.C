@@ -6,7 +6,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Sview.h>
+#include <sview_h>
 
 static int  _swab;		// -- File-scope flag for byte-swapped input.
 static int  iformat ();

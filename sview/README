@@ -90,7 +90,7 @@ between the isosurface display and manipulation modes.
 When the display window is not iconified, (single-character) commands
 typed in it will manipulate the view.  By default, arrow keys and page
 up/down rotate the viewpoint around the origin, and +/- are used to
-zoom in or out.  The insert key toggles the arrow keys from rotational
+zoom in or out.  The home key toggles the arrow keys from rotational
 to linear motion (linear motion moves the mesh origin along the three
 axes).  The motion model used is that the observer rotates/zooms
 around a mesh that does not rotate but can be moved along the

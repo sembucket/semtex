@@ -5,7 +5,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Sview.h>
+#include <sview_h>
 
 static void catalogue ();
 static int  addSurf   ();
