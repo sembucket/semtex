@@ -70,7 +70,7 @@
 #define HASHSEED 31
 #define VEC_MAX  32
 
-typedef double (*PFD)(); /* NB: no arguments -- non-ANSI (on purpose). */
+typedef double (*PFD)( ); /* NB: no arguments -- non-ANSI (on purpose). */
 
 typedef struct symbol {
   char* name;
