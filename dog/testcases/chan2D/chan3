@@ -26,7 +26,7 @@
 
 	N_TIME   = 2
 	N_POLY   = 11
-	N_STEP   = 50000
+	N_STEP   = 50
 	D_T      = 0.005
 	Re_D     = 7500
 	KINVIS   = 1/Re_D

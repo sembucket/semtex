@@ -1,8 +1,3 @@
-moden chan3.mdl
-his2d chan3.his
-moden chan3.mdl
-his2d chan3.his
-moden chan3.mdl
 his2d chan3.his
 moden chan3.mdl
 his2d chan3.his
@@ -82,4 +77,11 @@ his2d chan3.his
 erase moden chan3.mdl
 quit
 moden chan3.mdl
+quit
+moden chan3.mdl
+quit
+moden chan3.mdl
+erase moden chan3.mdl
+his2d chan3.his
+erase moden chan3.mdl
 quit
