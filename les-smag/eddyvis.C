@@ -223,7 +223,7 @@ static void viscoModel (const Domain* D ,
     Veclib::vmul (nP, delta, 1, delta, 1, delta, 1);
 
     for (k = 0; k < nZ32; k++)
-      Veclib::vmul (nP, delta, 1, sum + k * NP, 1, sum + k * NP, 1);
+      Veclib::svvtp (nP, molvis, delta, 1, sum + k * NP, 1, sum + k * NP, 1);
   }
 
   D -> u[0] -> smooth (nZ32, sum);
