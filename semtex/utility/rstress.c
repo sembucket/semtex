@@ -293,14 +293,11 @@ static void covary (Dump* h)
   j = _index (h -> field, 'v');
 
   k = _index (h -> field, 'A');
-  dvvvtm (npts, h->data[i], 1, h->data[i], 1, h->data[k], 1, h->data[k], 1);
-  dneg   (npts, h->data[k], 1);
+  dvvvtm (npts, h->data[k], 1, h->data[i], 1, h->data[i], 1, h->data[k], 1);
   k = _index (h -> field, 'B');
-  dvvvtm (npts, h->data[i], 1, h->data[j], 1, h->data[k], 1, h->data[k], 1);
-  dneg   (npts, h->data[k], 1);
+  dvvvtm (npts, h->data[k], 1, h->data[i], 1, h->data[j], 1, h->data[k], 1);
   k = _index ( h -> field, 'C');
-  dvvvtm (npts, h->data[j], 1, h->data[j], 1, h->data[k], 1, h->data[k], 1);
-  dneg   (npts, h->data[k], 1);
+  dvvvtm (npts, h->data[k], 1, h->data[j], 1, h->data[j], 1, h->data[k], 1);
 
   if (!strstr (h -> field, "w")) return;
 
@@ -309,14 +306,11 @@ static void covary (Dump* h)
   k = _index (h -> field, 'w');
 
   m = _index (h -> field, 'D');
-  dvvvtm (npts, h->data[i], 1, h->data[k], 1, h->data[m], 1, h->data[m], 1);
-  dneg   (npts, h->data[m], 1);
+  dvvvtm (npts, h->data[m], 1, h->data[i], 1, h->data[k], 1, h->data[m], 1);
   m = _index (h -> field, 'E');
-  dvvvtm (npts, h->data[j], 1, h->data[k], 1, h->data[m], 1, h->data[m], 1);
-  dneg   (npts, h->data[m], 1);
+  dvvvtm (npts, h->data[m], 1, h->data[j], 1, h->data[k], 1, h->data[m], 1);
   m = _index (h -> field, 'F');
-  dvvvtm (npts, h->data[k], 1, h->data[k], 1, h->data[k], 1, h->data[m], 1);
-  dneg   (npts, h->data[m], 1);
+  dvvvtm (npts, h->data[m], 1, h->data[k], 1, h->data[k], 1, h->data[m], 1);
 }
 
 
