@@ -6,10 +6,9 @@
 //
 // Either X or Y reflections change the sense of rotation around elements.
 // Angular rotations are taken CCW, measured in degrees.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <qmesh.h>
 
@@ -66,11 +65,11 @@ static void getArgs (int       argc  ,
 // arguments.  Last (optional) argument is the name of an input file.
 // ---------------------------------------------------------------------------
 {
-  char buf[StrMax], c;
+  char buf[StrMax];
   char usage[] = "Usage: %s [-x || -y] [-r x0 y0 ang] [-h] [file]\n";
  
   while (--argc  && **++argv == '-')
-    switch (c = *++argv[0]) {
+    switch (*++argv[0]) {
     case 'h':
       sprintf (buf, usage, prog);
       cout << buf;
@@ -157,7 +156,7 @@ static int getVertices (ifstream&      S,
 
     P.x = x; P.y = y;
     if (buf[0] == 'B')
-      N = new Node (id, P, 1.0, Node::BOUNDARY);
+      N = new Node (id, P, 1.0, Node::DOMAIN_BOUNDARY_FIXED);
     else if (buf[0] == 'I')
       N = new Node (id, P, 1.0);
     else {
@@ -183,7 +182,8 @@ static int getVertices (ifstream&      S,
 
     if (Pd.distance (P) > EPSSP)
       N = new Node (++refId, Pd, 1.0,
-		    (N -> interior()) ? Node::INTERIOR : Node::BOUNDARY);
+		    (N -> interior()) ?
+		    Node::INTERIOR : Node::DOMAIN_BOUNDARY_FIXED);
 
     V[i + num] = N;
   }

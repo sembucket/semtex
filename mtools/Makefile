@@ -81,7 +81,7 @@ $(QOBJ): $(HDR)
 # ----------------------------------------------------------------------------
 # reflect --- mesh manipulation utility.
 
-RSRC = reflect node point misc
+RSRC = reflect node point misc global
 ROBJ = $(addsuffix .o,$(RSRC))
 
 reflect: $(HDR) $(ROBJ)
