@@ -113,7 +113,10 @@ void integrate (Domain*      D,
     D -> step += 1; 
     D -> time += dt;
     Femlib::value ("t", D -> time);
-
+#if 1
+    for (i = 0; i < NDIM; i++)
+      lowpass (D -> udat(i));
+#else
     // -- Compute nonlinear terms + divergence(SGSS) + body forces.
 
     nonLinear (D, Ut, ff);
@@ -150,7 +153,7 @@ void integrate (Domain*      D,
     for (i = 0; i < NDIM; i++) Solve (D, i, Uf[0][i], MMS[i]);
     if (C3D)
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
-
+#endif
     // -- Process results of this step.
 
     A -> analyse (Us[0]);

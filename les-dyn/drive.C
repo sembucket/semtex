@@ -53,7 +53,6 @@ int main (int    argc,
   BCmgr*           bmgr;
   BoundarySys*     bsys;
   Domain*          domain;
-  LESAnalyser*     analyst;
   
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session);
@@ -65,7 +64,7 @@ int main (int    argc,
 
   ROOTONLY domain -> report();
   
-  integrate (domain, analyst = new LESAnalyser (domain, file));
+  integrate (domain, new LESAnalyser (domain, file));
 
   Femlib::finalize();
 

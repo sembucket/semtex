@@ -62,7 +62,7 @@ void nonLinear (Domain*       D ,
   const integer nPP  = Geometry::nBlock();
   const integer nPR  = Geometry::nProc();
   const integer nTot = Geometry::nTotProc();
-  const real    refV = Femlib::value ("KINVIS");
+  const real    refV = Femlib::value ("KINVIS-REFVIS");
   const real    EPS  = (sizeof(real) == sizeof(double)) ? EPSDP : EPSSP;
   Field*        meta = D -> u[0]; // -- A handle to use for Field operations.
   integer       i, j, ij;
@@ -173,16 +173,23 @@ void nonLinear (Domain*       D ,
   }
 
   // -- Accumulate LijMij & MijMij terms, conservative Nl terms.
+  // 
+  //    Note that we premultiply strain rate tensor by Delta^2 |S| here;
+  //    save a copy in Delta2S.
 
   for (i = 0; i < 6; i++) {
     Veclib::vmul (nTot, Sm[0], 1, Sr[i], 1, Sr[i], 1);
     Veclib::vmul (nTot, Sm[1], 1, St[i], 1, St[i], 1);
   }
+  real* Delta2S = Us[2];
+  Veclib::copy (nTot, Sm[0], 1, Delta2S, 1);
 
   real* L   = Sm[0]; real* M   = Sm[1];
   real* Num = Us[0]; real* Den = Us[1];
+
   Veclib::zero (nTot, Num, 1);
   Veclib::zero (nTot, Den, 1);
+
 
   // -- Diagonal terms.
 
@@ -235,9 +242,12 @@ void nonLinear (Domain*       D ,
   Veclib::vdiv (nTot, Num, 1, Den, 1, L, 1);
 
   // -- Subtract off our spatially-constant reference viscosity
-  //    (disguised as KINIVS), note factor of 2.
+  //    (disguised as KINIVS), note factor of 2, and that we need
+  //    to divide through by Delta^2|S| --- we're making
+  //    [-2*Cs^2 + 2*REFVIS/(Delta^2|S|)].
 
-  Veclib::sadd (nTot, 2.0*refV, L, 1, L, 1);
+  Veclib::sdiv (nTot, 2.0*refV, Delta2S, 1, Delta2S, 1);
+  Veclib::vadd (nTot, L, 1, Delta2S, 1, L, 1);
 
   // -- Create SGSS \tau_ij = -2 (Cs^2 Delta^2 |S| - refVisc) Sij.
 
