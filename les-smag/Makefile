@@ -118,7 +118,7 @@ SEMHDR    = Sem.h
 
 # ----------------------------------------------------------------------------
 # Default build for Navier-Stokes solver.
-LESOBJ = drive.o NS.o eddyvis.o
+LESOBJ = drive.o NS.o eddyvis.o lesanalysis.o
 
 $(PROG): sem $(SEMOBJ) $(LESOBJ) 
 	$(LD) -o $@ $(LESOBJ) $(SEMOBJ) $(LDFLAGS)
