@@ -94,7 +94,7 @@ void Domain::getNumber ()
 // significance for upper-cased names of numbering schemes.
 // ---------------------------------------------------------------------------
 {
-  char         routine[] = "Domain::number";
+  char         routine[] = "Domain::getNumber";
   char         buf[StrMax], err[StrMax];
   register int i, j, nset;
   ifstream     num;
@@ -121,7 +121,7 @@ void Domain::getNumber ()
 
   num >> buf >> buf;
   if (strcmp (buf, "FIELDS")) {
-    sprintf (err, "expected \"FIELDS\", found %s in %s.num", buf, name);
+    sprintf (err, "couldn't locate \"FIELDS\" in %s.num", name);
     message (routine, err, ERROR);
   }
 

@@ -37,7 +37,7 @@ ModalMatrixSystem::ModalMatrixSystem (const real              lambda2 ,
 
   fields = strdup (Nsys[0] -> fields());
   Msys.setSize (numModes);
-  cout << "-- Building matrices for Fields \"" << fields << "\" [";
+  cout << "-- Building matrices for Fields \"" << fields << "\"\t[";
 
   for (k = baseMode; k < numModes; k++) {
     trunc   = min (k, 2);
