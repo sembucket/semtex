@@ -231,7 +231,7 @@ Data* setFields (const char* fname)
   for (i = 0; i < D -> nfields; i++) {
     cout << D -> name[i];
     D -> fldPosn[i] = D -> file.tellg();
-    D -> file.read (tmp, ntot * sizeof (double));
+    D -> file.read ((char*) tmp, ntot * sizeof (double));
   }
   if (D -> file)
     cout << ", OK" << endl;
@@ -287,7 +287,7 @@ int loadData (Data* F   ,
 
   F -> file.clear ();
   F -> file.seekg (F -> fldPosn[i - 1]);
-  F -> file.read  (tmp, ntot * sizeof (double));
+  F -> file.read  ((char*) tmp, ntot * sizeof (double));
 
   if (_swab) dbrev (ntot, tmp, tmp);
 
@@ -305,6 +305,8 @@ int loadData (Data* F   ,
       }
     }
   }
+
+  F -> current = name;
 
   cout << "Field '"   << name
        << "': min = " << dmin

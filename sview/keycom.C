@@ -9,6 +9,9 @@
 
 #include <Sview.h>
 
+static void catalogue ();
+static int  addSurf   ();
+
 
 void commandLine ()
 // ---------------------------------------------------------------------------
@@ -19,30 +22,55 @@ void commandLine ()
   char routine[] ="commandLine";
   char help[] =
     "-- sview help menu --\n"
-    "a                     : add default isosurface to end of storage list\n"
-    "d                     : display default [0] isosurface\n"
-    "d <n1> [<n2> .. <nx>] : display numbered isosurfaces\n"
-    "f <c>                 : set field to c [Default: first field]\n"
+    "a                     : add default isosurface to end of storage\n"
+    "d <n1> [<n2> .. <nx>] : display numbered isosurfaces [Default: 0]\n"
+    "f <c>                 : set field to <c> [Default: first field]\n"
+    "h                     : show this menu\n"
     "l                     : list available isosurfaces\n"
     "m <val>               : make isosurface level val with current field\n"
-    "n                     : invert normals of default isosurface\n";
-  char  buf[StrMax], command;
+    "n <n>                 : invert normal of <n>th isosurface [Default: 0]\n"
+    "q                     : quit\n"
+    "r <n>                 : remove/delete surface[<n>] from storage\n";
+  char  buf[StrMax], command, name;
   float value;
+  int   i, j, N;
 
-  cout << "-- Enter isosurface commands, h for usage prompt." << endl;
-  cout << "> ";
+  cout << "(h = help) > ";
   cin >> command;
   cin.getline (buf, StrMax);
 
   switch (command) {
-  case 'h':
-    cout << help;
+
+  case 'a':
+    addSurf ();
     break;
+
   case 'd':
     if (!Surface[0]) {
       message (routine, "no default isosurface defined yet", WARNING);
       break;
     }
+
+    for (i = 0; i < IsoMax; i++) Display[i] = 0;
+
+    if (!strlen (buf))
+      Display[0] = Surface[0];	// -- Default.
+    else {			// -- Parse list of indices.
+      istrstream strm (buf, strlen(buf));
+      int        count = 0;
+
+      while (strm >> i) {
+	if (++count >= IsoMax) {
+	  message (routine, "too many surfaces requested", WARNING);
+	  break;
+	} else if ((i+1) > countSurf (Surface)) {
+	  message (routine, "requested surface not in store", WARNING);
+	} else {
+	  Display[count-1] = Surface[i];
+	}
+      }
+    }
+
     State.drawiso = GL_TRUE;
     State.drawbox = GL_FALSE;
 
@@ -50,27 +78,135 @@ void commandLine ()
     glutIdleFunc      (0);
     glutShowWindow    ();
     break;
+
+  case 'f':
+    istrstream (buf, strlen(buf)) >> name;
+    loadData   (Fields, name);
+    break;
+
+  case 'h':
+    cout << help;
+    break;
+
+  case 'l':
+    catalogue ();
+    break;
+
   case 'm':
     istrstream (buf, strlen (buf)) >> value;
+
+    if (Surface[0]) {
+      delete [] Surface[0] -> info;
+      delete [] Surface[0] -> pxyz;
+      delete [] Surface[0] -> nxyz;
+      delete [] Surface[0] -> plist;
+      delete    Surface[0];
+      Surface[0] = 0;
+    }
+
     Surface[0] = makeSurf (Mesh   -> nel  ,
-			   Mesh   -> xgrid,
-			   Mesh   -> ygrid,
-			   Mesh   -> zgrid,
+			   Mesh   -> xgrid, Mesh -> ygrid, Mesh -> zgrid,
 			   Fields -> elmt ,
-			   Mesh   -> idim ,
-			   Mesh   -> jdim ,
-			   Mesh   -> kdim ,
-			   value,    0    );
+			   Mesh   -> idim , Mesh -> jdim , Mesh -> kdim ,
+			   Fields -> current,
+			   value,    0      );
     break;
+
   case 'n':
     if (!Surface[0]) {
       message (routine, "no default isosurface defined yet", WARNING);
       break;
     }
-    flipNorms (Surface[0]);
+    if (!strlen (buf)) flipNorms (Surface[0]);
+    else {
+      istrstream (buf, strlen (buf)) >> i;
+
+      if (i >= 0 && i < (N = countSurf (Surface))) flipNorms (Surface[i]);
+    }
     break;
+
+  case 'q':
+    exit (EXIT_SUCCESS);
+    break;
+
+  case 'r':
+    if (!strlen (buf)) {
+      message (routine, "no index flagged for deletion", WARNING);
+    } else {
+      istrstream (buf, strlen (buf)) >> i;
+
+      if (i && i < (N = countSurf (Surface))) {
+	Iso* kill = Surface[i];
+	for (j = i + 1; j < N; j++)
+	  Surface[j - 1] = Surface[j];
+	Surface[N - 1] = 0;
+
+	delete [] kill -> info;
+	delete [] kill -> pxyz;
+	delete [] kill -> nxyz;
+	delete [] kill -> plist;
+	delete    kill;
+
+      } else
+      	message (routine, "index flagged for deletion unavailable", WARNING);
+
+      for (i = 1; i < IsoMax; i++) Display[i] = 0;
+      Display[0] = Surface[0];
+
+    }
+    break;
+
   default:
     break;
   }
 
 }
+
+
+int countSurf (Iso** list)
+// ---------------------------------------------------------------------------
+// How many surfaces (including the default, 0) are stored in global array?
+// ---------------------------------------------------------------------------
+{
+  int i = 0;
+
+  while (i < IsoMax && list[i]) i++;
+
+  return i;
+}
+
+
+static void catalogue ()
+// ---------------------------------------------------------------------------
+//
+// ---------------------------------------------------------------------------
+{
+  int       i;
+  const int N = countSurf (Surface);
+
+  cout << "Available fields are: " << Fields -> name << endl;
+  if (!N) 
+    cout << "No surfaces defined" << endl;
+  for (i = 0; i < N; i++)
+    cout << "Surface[" << i << "]: " << Surface[i] -> info << endl;
+}
+
+
+static int addSurf ()
+// ---------------------------------------------------------------------------
+// Add default surface to end of Surface array.
+// ---------------------------------------------------------------------------
+{
+  char routine[] = "addSurf";
+  int       i = 0;
+  const int N = countSurf (Surface);
+
+  if (N == IsoMax)
+    message (routine, "storage area is full", WARNING);
+
+  Surface[N] = copySurf (Surface[0]);
+
+  return i;
+}
+
+

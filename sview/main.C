@@ -12,6 +12,7 @@
 // fieldfile ... specifies name of NEKTON-format (binary) field file.
 // options:
 //   -h      ... print this message
+//   -w      ... white background [Default: black]
 // 
 //
 // REFERENCES
@@ -29,16 +30,17 @@
 
 #include <Sview.h>
 
-static char  prog[] = "sview";
+static char prog[] = "sview";
 
 // -- Global variables needed for graphics routines.
 
 Flag  State;
 Iso** Surface;
+Iso** Display;
 Sem*  Mesh;
 Data* Fields;
 
-static void getargs  (int, char**, char*&, char*&);
+static void getargs (int, char**, char*&, char*&);
 
 
 void main (int    argc,
@@ -69,7 +71,11 @@ void main (int    argc,
   cout << start;
 
   Surface = new Iso* [IsoMax];
-  for (i = 0; i < IsoMax; i++) Surface[i] = 0;
+  Display = new Iso* [IsoMax];
+  for (i = 0; i < IsoMax; i++) {
+    Surface[i] = 0;
+    Display[i] = 0;
+  }
 
   // -- Load external file information.
 
@@ -81,6 +87,8 @@ void main (int    argc,
   State.drawbox = GL_TRUE;
   State.drawiso = GL_FALSE;
   State.rotate  = GL_TRUE;
+  State.blackbk = GL_TRUE;
+  State.noalias = GL_FALSE;
 
   State.xrot    = 0.0;
   State.yrot    = 0.0;
@@ -124,7 +132,8 @@ static void getargs (int    argc ,
     "meshfile  ... specifies name of NEKTON-format mesh file.\n"
     "fieldfile ... specifies name of NEKTON-format (binary) field file.\n"
     "options:\n"
-    "-h        ... print this message\n";
+    "-h        ... print this message\n"
+    "-w        ... white background\n";
   char err[StrMax];
 
   while (--argc && **++argv == '-')
@@ -132,6 +141,9 @@ static void getargs (int    argc ,
     case 'h':
       cerr << usage;
       exit (EXIT_SUCCESS);
+      break;
+    case 'w':
+      State.blackbk = !State.blackbk;
       break;
     default:
       sprintf (err, "illegal option: %c\n", **argv);

@@ -6,6 +6,53 @@
 
 #include <Sview.h>
 
+// -- Materials definitions, in display order ---
+//    Grey-blue, red, blue, yellow, green, purple, white, turquoise.
+
+static const GLfloat shininess[IsoMax] = { 
+  150.0,			// -- Grey-blue.
+  150.0,			// -- Red.
+  150.0,			// -- Blue.
+  150.0,			// -- Yellow.
+  150.0,			// -- Green.
+  150.0,			// -- Purple.
+  150.0,			// -- White.
+  150.0				// -- Turquoise.
+};
+
+static const GLfloat diffuse[IsoMax][4] = {
+  {0.5,  0.7,  1.0,  1.0},
+  {0.95, 0.2,  0.0,  1.0},
+  {0.0,  0.3,  0.95, 1.0},
+  {1.0,  1.0,  0.0,  1.0},
+  {0.0,  0.9,  0.3,  1.0},
+  {1.0,  0.0,  1.0,  1.0},
+  {1.0,  1.0,  1.0,  1.0},
+  {0.0,  0.9,  0.9,  1.0}
+};
+
+static const GLfloat ambient[IsoMax][4] = {
+  {0.2,  0.2,  0.3,  1.0},
+  {0.3,  0.1,  0.0,  1.0},
+  {0.0,  0.1,  0.3,  1.0},
+  {0.2,  0.2,  0.0,  1.0},
+  {0.0,  0.2,  0.0,  1.0},
+  {0.25, 0.0,  0.2,  1.0},
+  {0.15, 0.15, 0.15, 1.0},
+  {0.0,  0.2,  0.2,  1.0}
+};
+
+static const GLfloat specular[IsoMax][4] = {
+  {0.5,  0.6,  0.7,  1.0},
+  {0.6,  0.2,  0.0,  1.0},
+  {0.0,  0.4,  0.6,  1.0},
+  {0.6,  0.6,  0.0,  1.0},
+  {0.1,  0.7,  0.4,  1.0},
+  {0.4,  0.4,  0.4,  1.0},
+  {0.5,  0.5,  0.5,  1.0},
+  {0.0,  0.5,  0.5,  1.0}
+};
+
 static void drawMesh  ();
 static void drawSurf  ();
 static void skeleton  ();
@@ -38,6 +85,20 @@ void keyboard (unsigned char key,
     State.radius /= 0.95;
     skeleton();
     break;
+#if 0
+  case 'a':
+    State.noalias = !State.noalias;
+    if (State.noalias) {
+      glEnable  (GL_BLEND);
+      glEnable  (GL_POLYGON_SMOOTH);
+      glDisable (GL_DEPTH_TEST);
+    } else {
+      glDisable (GL_BLEND);
+      glDisable (GL_POLYGON_SMOOTH);
+      glEnable  (GL_DEPTH_TEST);
+    }
+    break;
+#endif
   case 'b':
     State.drawbox = !State.drawbox;
     break;
@@ -49,6 +110,11 @@ void keyboard (unsigned char key,
     State.ytrans  = 0.0;
     State.ztrans  = 0.0;
     State.radius  = 1.0 * State.length;
+    break;
+  case 'i':
+    State.blackbk = !State.blackbk;
+    if   (State.blackbk) glClearColor (0.0, 0.0, 0.0, 0.0);
+    else                 glClearColor (1.0, 1.0, 1.0, 0.0);
     break;
   }
   State.drawiso = GL_TRUE;
@@ -129,8 +195,8 @@ void display ()
   polarView       (State.radius, State.zrot, State.xrot, State.yrot);
   glTranslated    (State.xtrans, State.ytrans, State.ztrans);
 
-  if (State.drawbox)               drawMesh ();
-  if (State.drawiso && Surface[0]) drawSurf ();
+  if (State.drawbox) drawMesh ();
+  if (State.drawiso) drawSurf ();
 
   glPopMatrix     ();
 
@@ -165,7 +231,9 @@ void initGraphics ()
   
   cout << help;
 
-  glClearColor   (0.0, 0.0, 0.0, 0.0);
+  if   (State.blackbk) glClearColor (0.0, 0.0, 0.0, 0.0);
+  else                 glClearColor (1.0, 1.0, 1.0, 0.0);
+
   glShadeModel   (GL_SMOOTH);
   glEnable       (GL_DEPTH_TEST);
 
@@ -287,22 +355,35 @@ static void drawSurf ()
 // Draw the isosurfaces selected for display.
 // ---------------------------------------------------------------------------
 {
+  const int    N = countSurf (Display);
   register int i, v0, v1, v2;
-  const int    npoly = Surface[0] -> npoly;
-  float*       norm  = Surface[0] -> nxyz;
-  float*       vert  = Surface[0] -> pxyz;
-  int*         pind  = Surface[0] -> plist;
+  int          j, npoly;
+  float        *norm, *vert;
+  int          *pind;
   
-  for (i = 0; i < npoly; i++) {
-    v0 = 3 * pind[3 * i];
-    v1 = 3 * pind[3 * i + 1];
-    v2 = 3 * pind[3 * i + 2];
-    glBegin (GL_POLYGON);
-    glNormal3fv (norm + v0); glVertex3fv (vert + v0);
-    glNormal3fv (norm + v1); glVertex3fv (vert + v1);
-    glNormal3fv (norm + v2); glVertex3fv (vert + v2);
-    glEnd ();
-  } 
+  for (j = 0; j < N; j++) {
+
+    glMaterialf  (GL_FRONT_AND_BACK, GL_SHININESS, shininess[j]);
+    glMaterialfv (GL_FRONT_AND_BACK, GL_SPECULAR,  specular [j]);
+    glMaterialfv (GL_FRONT_AND_BACK, GL_DIFFUSE,   diffuse  [j]);
+    glMaterialfv (GL_FRONT_AND_BACK, GL_AMBIENT,   ambient  [j]);
+
+    npoly = Display[j] -> npoly;
+    norm  = Display[j] -> nxyz;
+    vert  = Display[j] -> pxyz;
+    pind  = Display[j] -> plist;
+
+    for (i = 0; i < npoly; i++) {
+      v0 = 3 * pind[3 * i];
+      v1 = 3 * pind[3 * i + 1];
+      v2 = 3 * pind[3 * i + 2];
+      glBegin (GL_POLYGON);
+      glNormal3fv (norm + v0); glVertex3fv (vert + v0);
+      glNormal3fv (norm + v1); glVertex3fv (vert + v1);
+      glNormal3fv (norm + v2); glVertex3fv (vert + v2);
+      glEnd ();
+    }
+  }
 }
 
 
@@ -326,14 +407,11 @@ static void initLight ()
 // Initialize lighting and materials.
 // ---------------------------------------------------------------------------
 {
-  GLfloat ambient[]             = {0.1, 0.1,   0.1,  1.0};
-  GLfloat diffuse[]             = {0.5, 1.0,   1.0,  1.0};
-  GLfloat position0[]           = {0.0, 0.0,  20.0,  0.0};
-  GLfloat position1[]           = {0.0, 0.0, -20.0,  0.0};
-  GLfloat front_mat_shininess[] = {60.0};
-  GLfloat front_mat_specular[]  = {0.2, 0.2,   0.2,  1.0};
-  GLfloat front_mat_diffuse[]   = {0.5, 0.28,  0.38, 1.0};
-  GLfloat lmodel_ambient[]      = {1.0, 1.0,   1.0,  1.0};
+  GLfloat ambient[]             = {0.15,   0.15,   0.15,  1.0};
+  GLfloat diffuse[]             = {0.5,    0.5,    0.5,   1.0};
+  GLfloat position0[]           = {0.0,  100.0,  100.0,   0.0};
+  GLfloat position1[]           = {0.0, -100.0,   50.0,   0.0};
+  GLfloat lmodel_ambient[]      = {0.1,    0.1,    0.1,   1.0};
   GLfloat lmodel_twoside[]      = {GL_FALSE};
 
   glLightfv      (GL_LIGHT0, GL_AMBIENT,  ambient);
@@ -349,10 +427,6 @@ static void initLight ()
   glLightModelfv (GL_LIGHT_MODEL_AMBIENT,  lmodel_ambient);
   glLightModelfv (GL_LIGHT_MODEL_TWO_SIDE, lmodel_twoside);
   glEnable       (GL_LIGHTING);
-
-  glMaterialfv   (GL_FRONT_AND_BACK, GL_SHININESS, front_mat_shininess);
-  glMaterialfv   (GL_FRONT_AND_BACK, GL_SPECULAR,  front_mat_specular);
-  glMaterialfv   (GL_FRONT_AND_BACK, GL_DIFFUSE,   front_mat_diffuse);
 }
 
 

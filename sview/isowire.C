@@ -2,7 +2,13 @@
 // isowire.C: generate and manipulate triangulated wireframe
 // approximations to isosurfaces.
 //
-// Much of this code is reproduced verbatim from sview_2.
+// Much of this code is reproduced verbatim from sview_2.  The only
+// non-standard data structure used by this section of the code is
+// Iso; apart from that it is designed to be stand-alone so that it
+// can easily be incorporated into other codes.  Also it is restricted
+// to C and does not use any C++ concepts.  At present it calls
+// message() to deliver error messages, but that could be changed in
+// the interests of independence.
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
@@ -29,12 +35,12 @@ static int    too_many_polys;
 
 // -- Local prototypes.
 
-static int   add_vertex   (int, float*, int);
-static int   equal_vertex (float*, int);
-static float tri_lin_int  (float [3], int, int, int, float*);
-static int   add_polygon  (float* [3], int, int, int, int, int, int,
-			   float*, float*, float*);
-static float calc_norm    (float*, int*, float*);
+static int          add_vertex   (int, float*, int);
+static int          equal_vertex (float*, int);
+static inline float tri_lin_int  (float [3], int, int, int, float*);
+static int          add_polygon  (float* [3], int, int, int, int, int, int,
+				  float*, float*, float*);
+static float        calc_norm    (float*, int*, float*);
 
 // -- NCSA "marching cubes" routine prototypes.
 
@@ -45,7 +51,7 @@ static void get_cell_polys       (int, float [13][3], int, int, int, int,
 				  int, int, float*, float*, float*);
 
 
-Iso* makeSurf (int     nel  ,	// -- Number of spectral elements.
+Iso* makeSurf (int     nel  ,	// -- Number of spectral elements/blocks.
 	       float** xgrid,	// -- Array of x mesh locations for each elmt.
 	       float** ygrid,	// -- ...      y ...
 	       float** zgrid,	// -- ...      z ...
@@ -53,13 +59,14 @@ Iso* makeSurf (int     nel  ,	// -- Number of spectral elements.
 	       int*    idim ,	// -- I dimension of each element.
 	       int*    jdim ,	// -- J dimension of each element.
 	       int*    kdim ,	// -- K dimension of each element.
+	       char    name ,	// -- Name of field.
 	       float   iso  ,	// -- Isosurface value.
 	       int     both )	// -- Flag for isosurfacing +/- values.
 /* ------------------------------------------------------------------------- *
  * Generate a wire-frame interpolant to data at value iso.
  *
  * In this version of the code we assume that there will not be more
- * than VERT_MAX vertices or POLY_MAX polygons - if there are, don't
+ * than VERT_MAX vertices or POLY_MAX polygons --- if there are, don't
  * make wire-frame.
  * ------------------------------------------------------------------------- */
 {
@@ -99,7 +106,7 @@ Iso* makeSurf (int     nel  ,	// -- Number of spectral elements.
   
   /* -- Generate polygons - loop through each macro element. */
     
-  for (l = 0; l < nel; l++) {
+  for (l = 0; !too_many_polys && l < nel; l++) {
     
     npoints = idim[l] * jdim[l] * kdim[l];
     
@@ -132,9 +139,9 @@ Iso* makeSurf (int     nel  ,	// -- Number of spectral elements.
       return 0;
     }
 
-    for (k = 0; k < kdim[l] - 1; k++)
-      for (j = 0; j < jdim[l] - 1; j++)
-	for (i = 0 ; i < idim[l] - 1; i++) {
+    for (k = 0; !too_many_polys && k < kdim[l] - 1; k++)
+      for (j = 0; !too_many_polys && j < jdim[l] - 1; j++)
+	for (i = 0; !too_many_polys && i < idim[l] - 1; i++) {
 	  last_poly [(k*jdim[l]+j)*idim[l]+i] = 0;
 	  first_poly[(k*jdim[l]+j)*idim[l]+i] = NUM_POLYGONS + 1;
 	  calc_index_and_temps (data[l], i, j, k, 
@@ -151,9 +158,9 @@ Iso* makeSurf (int     nel  ,	// -- Number of spectral elements.
     if (!both) continue;
     iso = -iso;
     
-    for (k = 0; k < kdim[l] - 1; k++)
-      for (j = 0; j < jdim[l] - 1; j++)
-	for (i = 0 ; i < idim[l] - 1; i++) {
+    for (k = 0; !too_many_polys && k < kdim[l] - 1; k++)
+      for (j = 0; !too_many_polys && j < jdim[l] - 1; j++)
+	for (i = 0; !too_many_polys && i < idim[l] - 1; i++) {
 	  last_poly [(k*jdim[l]+j)*idim[l]+i] = 0;
 	  first_poly[(k*jdim[l]+j)*idim[l]+i] = NUM_POLYGONS + 1;
 	  calc_index_and_temps (data[l], i, j, k,
@@ -173,12 +180,13 @@ Iso* makeSurf (int     nel  ,	// -- Number of spectral elements.
 
   if (!NUM_POLYGONS)
     message (routine, "no polygons extracted --- bad iso-value", WARNING);
-  else if (too_many_polys)
+  else if (too_many_polys) {
     message (routine, "memory allocation failure, no surface made", WARNING);
-  else {
+  } else {
     S = (Iso*) malloc (sizeof (Iso));
     S -> nvert = NUM_VERTICES;
     S -> npoly = NUM_POLYGONS;
+    S -> info  = (char*)  calloc (StrMax,            sizeof (char));
     S -> pxyz  = (float*) malloc (3 * NUM_VERTICES * sizeof (float));
     S -> nxyz  = (float*) calloc (3 * NUM_VERTICES,  sizeof (float));
     S -> plist = (int*)   malloc (3 * NUM_POLYGONS * sizeof (int));
@@ -206,17 +214,47 @@ Iso* makeSurf (int     nel  ,	// -- Number of spectral elements.
       vect[1] *= mag;
       vect[2] *= mag;
     }
-
+#if 1				/* -- OK, this *is* C++! */
     cout << "Isosurface has "
 	 << NUM_VERTICES << " vertices, "
 	 << NUM_POLYGONS << " triangles, "
 	 << nzero        << " zero length normals" << endl;
+#endif
+    sprintf (S -> info, 
+	     "Field = %c, isovalue = %g: %1d vertices, %1d triangles",
+	     name, iso, NUM_VERTICES, NUM_POLYGONS);
   }
   
   free (POLYGONS);
   free (ZVERTICES);
   free (YVERTICES);
   free (XVERTICES);
+
+  return S;
+}
+
+
+Iso* copySurf (Iso* src)
+// ---------------------------------------------------------------------------
+// Create a new surface in image of src.
+// ---------------------------------------------------------------------------
+{
+  Iso*      S = 0;
+  const int nVert = src -> nvert;
+  const int nPoly = src -> npoly;
+
+  S = (Iso*) malloc (sizeof (Iso));
+  S -> nvert = nVert;
+  S -> npoly = nPoly;
+  S -> info  = (char*)  calloc (StrMax,     sizeof (char));
+  S -> pxyz  = (float*) malloc (3 * nVert * sizeof (float));
+  S -> nxyz  = (float*) calloc (3 * nVert,  sizeof (float));
+  S -> plist = (int*)   malloc (3 * nPoly * sizeof (int));
+  
+  memcpy (S -> pxyz,  src -> pxyz,  3 * nVert * sizeof (float));
+  memcpy (S -> plist, src -> plist, 3 * nPoly * sizeof (int)  );
+  memcpy (S -> nxyz,  src -> nxyz,  3 * nVert * sizeof (float));
+  memcpy (S -> info,  src -> info,  StrMax *    sizeof (char) );
 
   return S;
 }
@@ -232,6 +270,35 @@ void flipNorms (Iso* S)
   register float* component = S -> nxyz;
 
   for (i = 0; i < ntot; i++) component[i] *= -1.0F;
+}
+
+
+static inline float tri_lin_int (float  p[3],
+				 int    i   ,
+				 int    j   ,
+				 int    k   ,
+				 float* tg  )
+/* ------------------------------------------------------------------------- *
+ * Tri-linear interpolation.  Should replace by a #define for C use.
+ * ------------------------------------------------------------------------- */
+{
+  float x, y, z, value;
+
+  x = p[0];
+  y = p[1];
+  z = p[2];
+
+  value =
+    ((float)(i+1)-x)*((float)(j+1)-y)*((float)(k+1)-z) * tg[goff[0][0][0]] +
+    (  x-(float)(i))*((float)(j+1)-y)*((float)(k+1)-z) * tg[goff[1][0][0]] +
+    ((float)(i+1)-x)*(  y-(float)(j))*((float)(k+1)-z) * tg[goff[0][1][0]] +
+    (  x-(float)(i))*(  y-(float)(j))*((float)(k+1)-z) * tg[goff[1][1][0]] +
+    ((float)(i+1)-x)*((float)(j+1)-y)*(  z-(float)(k)) * tg[goff[0][0][1]] +
+    (  x-(float)(i))*((float)(j+1)-y)*(  z-(float)(k)) * tg[goff[1][0][1]] +
+    ((float)(i+1)-x)*(  y-(float)(j))*(  z-(float)(k)) * tg[goff[0][1][1]] +
+    (  x-(float)(i))*(  y-(float)(j))*(  z-(float)(k)) * tg[goff[1][1][1]] ;
+  
+  return value;
 }
 
 
@@ -372,33 +439,52 @@ static int equal_vertex (float* new_vertex,
 }
 
 
-static float tri_lin_int (float  p[3],
-			  int    i   ,
-			  int    j   ,
-			  int    k   ,
-			  float* tg  )
+static float calc_norm (float* poly,
+			int*   vert,
+			float* norm)
 /* ------------------------------------------------------------------------- *
- * Tri-linear interpolation.  Inline this?
+ * For each triangle, calculate a unit surface normal that points away
+ * from the origin using any two of the sides - ADD this normal to any
+ * unit normals that have been previously calculated for EACH of the 3
+ * vertices in the triangle (if the vertex is AT the origin or if its
+ * normal is perpendicular to the radius vector, ensure the normal has
+ * positive x co-ord (or positive y-co-ord if x-co-ord=0 (or ...))
+ *
+ * NB: these comments were written by Murray...
  * ------------------------------------------------------------------------- */
 {
-  float x, y, z, value;
-
-  x = p[0];
-  y = p[1];
-  z = p[2];
-
-  value =
-    ((float)(i+1)-x)*((float)(j+1)-y)*((float)(k+1)-z) * tg[goff[0][0][0]] +
-    (  x-(float)(i))*((float)(j+1)-y)*((float)(k+1)-z) * tg[goff[1][0][0]] +
-    ((float)(i+1)-x)*(  y-(float)(j))*((float)(k+1)-z) * tg[goff[0][1][0]] +
-    (  x-(float)(i))*(  y-(float)(j))*((float)(k+1)-z) * tg[goff[1][1][0]] +
-    ((float)(i+1)-x)*((float)(j+1)-y)*(  z-(float)(k)) * tg[goff[0][0][1]] +
-    (  x-(float)(i))*((float)(j+1)-y)*(  z-(float)(k)) * tg[goff[1][0][1]] +
-    ((float)(i+1)-x)*(  y-(float)(j))*(  z-(float)(k)) * tg[goff[0][1][1]] +
-    (  x-(float)(i))*(  y-(float)(j))*(  z-(float)(k)) * tg[goff[1][1][1]] ;
+  float r1[3],r2[3],r3[3], mag;
   
-  return value;
+  r1[0] = *(poly+3*vert[0])   - *(poly+3*vert[2]);
+  r2[0] = *(poly+3*vert[1])   - *(poly+3*vert[2]);
+  r1[1] = *(poly+3*vert[0]+1) - *(poly+3*vert[2]+1);
+  r2[1] = *(poly+3*vert[1]+1) - *(poly+3*vert[2]+1);
+  r1[2] = *(poly+3*vert[0]+2) - *(poly+3*vert[2]+2);
+  r2[2] = *(poly+3*vert[1]+2) - *(poly+3*vert[2]+2);
+  
+  r3[0] = r1[1]*r2[2] - r2[1]*r1[2];
+  r3[1] = r2[0]*r1[2] - r1[0]*r2[2];
+  r3[2] = r1[0]*r2[1] - r2[0]*r1[1];
+  
+  if ((mag = v_mag(r3)) == 0.0) return mag;
+
+  /* -- Add the new normal to any existing normals at each triangle vertex. */
+
+  *(norm+3*vert[0])   += r3[0];
+  *(norm+3*vert[0]+1) += r3[1];
+  *(norm+3*vert[0]+2) += r3[2];
+  
+  *(norm+3*vert[1])   += r3[0];
+  *(norm+3*vert[1]+1) += r3[1];
+  *(norm+3*vert[1]+2) += r3[2];
+  
+  *(norm+3*vert[2])   += r3[0];
+  *(norm+3*vert[2]+1) += r3[1];
+  *(norm+3*vert[2]+2) += r3[2];
+  
+  return mag;
 }
+
 
 /*****************************************************************************
  * Remainder of this file contains the marching cubes algorithm used to
@@ -594,54 +680,6 @@ static void get_cell_polys (int    index           ,
     
     /* store the polygons */
     
-    if (!(add_polygon (p, i, j, k, idim, jdim, kdim, gx, gy, gz))) {
-      printf ("\n    *** error from add_polygon\n");
-      exit   (1);
-    }
+    if (!(add_polygon (p, i, j, k, idim, jdim, kdim, gx, gy, gz))) return;
   }
-}
-
-
-static float calc_norm (float* poly,
-			int*   vert,
-			float* norm)
-/* ------------------------------------------------------------------------- *
- * For each triangle, calculate a unit surface normal that points away
- * from the origin using any two of the sides - ADD this normal to any
- * unit normals that have been previously calculated for EACH of the 3
- * vertices in the triangle (if the vertex is AT the origin or if its
- * normal is perpendicular to the radius vector, ensure the normal has
- * positive x co-ord (or positive y-co-ord if x-co-ord=0 (or ...))
- * ------------------------------------------------------------------------- */
-{
-  float r1[3],r2[3],r3[3], mag;
-  
-  r1[0] = *(poly+3*vert[0])   - *(poly+3*vert[2]);
-  r2[0] = *(poly+3*vert[1])   - *(poly+3*vert[2]);
-  r1[1] = *(poly+3*vert[0]+1) - *(poly+3*vert[2]+1);
-  r2[1] = *(poly+3*vert[1]+1) - *(poly+3*vert[2]+1);
-  r1[2] = *(poly+3*vert[0]+2) - *(poly+3*vert[2]+2);
-  r2[2] = *(poly+3*vert[1]+2) - *(poly+3*vert[2]+2);
-  
-  r3[0] = r1[1]*r2[2] - r2[1]*r1[2];
-  r3[1] = r2[0]*r1[2] - r1[0]*r2[2];
-  r3[2] = r1[0]*r2[1] - r2[0]*r1[1];
-  
-  if ((mag = v_mag(r3)) == 0.0) return mag;
-
-  /* -- Add the new normal to any existing normals at each triangle vertex. */
-
-  *(norm+3*vert[0])   += r3[0];
-  *(norm+3*vert[0]+1) += r3[1];
-  *(norm+3*vert[0]+2) += r3[2];
-  
-  *(norm+3*vert[1])   += r3[0];
-  *(norm+3*vert[1]+1) += r3[1];
-  *(norm+3*vert[1]+2) += r3[2];
-  
-  *(norm+3*vert[2])   += r3[0];
-  *(norm+3*vert[2]+1) += r3[1];
-  *(norm+3*vert[2]+2) += r3[2];
-  
-  return mag;
 }
