@@ -44,6 +44,8 @@ const real C1     = 0.5;	// -- Angle  weight factor.
 const real C2     = 0.3;	// -- Length weight factor.
 const real C3     = 0.2;	// -- Error  weight factor.
 
+const real refine = 0.15;	// -- Refinement coefficient.
+
 const int  InsMax = 64;	        // -- Max Nodes to insert on splitting line.
 
 
