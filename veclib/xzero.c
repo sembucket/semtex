@@ -7,6 +7,10 @@
 #include <string.h>
 #include <femdef.h>
 
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
 
 void dzero (integer n, double* x, integer incx)
 {

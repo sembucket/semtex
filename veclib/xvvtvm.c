@@ -6,6 +6,10 @@
 
 #include <femdef.h>
 
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
 
 void dvvtvm (integer n, 
 	     const double* w, integer incw,

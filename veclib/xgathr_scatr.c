@@ -9,6 +9,10 @@
 
 #include <femdef.h>
 
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
   
 void dgathr_scatr (integer n,
 		   const double* w,

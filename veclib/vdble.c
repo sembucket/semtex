@@ -6,6 +6,10 @@
 
 #include <femdef.h>
 
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
 
 void vdble (integer n, const float *x, integer incx, double *y, integer incy)
 {

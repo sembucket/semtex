@@ -15,6 +15,11 @@
 #include <time.h>
 #include <femdef.h>
 
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
+
 static double  UD     (double, double);
 static double  GD     (double, double);
 static double  ran2   (long *);

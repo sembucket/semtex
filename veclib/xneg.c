@@ -7,6 +7,11 @@
 #include <femdef.h>
 
 
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
+
 void dneg (integer n, double* x, integer incx)
 {
   register integer i;

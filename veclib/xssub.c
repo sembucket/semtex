@@ -6,6 +6,10 @@
 
 #include <femdef.h>
 
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
 
 void dssub (integer n, double alpha, const double* x, integer incx,
 	                                   double* y, integer incy)

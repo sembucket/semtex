@@ -19,6 +19,10 @@
 
 #include <femdef.h>
 
+#if defined(__uxp__)
+#pragma global novrec
+#pragma global noalias
+#endif
 
 void dmxv (double* A, integer nra, double* B, integer nca, double* C)
 {
