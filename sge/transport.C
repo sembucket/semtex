@@ -18,89 +18,121 @@
 static char
 RCSid[] = "$Id$";
 
-#include <chroma.h>
+#include "Sem.h"
 
-typedef ModalMatrixSystem ModeSys;
+typedef ModalMatrixSys Msys;
 
-static void     advection (AuxField*, AuxField*, const real*);
-static void     extrap    (AuxField*, AuxField**, AuxField**, const int);
-static ModeSys* preSolve  (const Domain*);
-static void     Solve     (Field*, AuxField*, ModeSys*, const int, const int);
+static void  advection (AuxField*, AuxField*, const real*);
+static void  extrap    (AuxField*, AuxField**, AuxField**,
+			const int, const real);
+static Msys* preSolve  (const Domain*, const real);
+static void  Solve     (Field*, Field*, const AuxField*, const AuxField*,
+		        AuxField*, AuxField*, Msys*, Msys*,
+			MixPatch*, const int);
 
-static real dt;
-static int  nZ;
+static int np, nz, nel1, nel2;
+static Geometry::CoordSys space;
+
+#define SET1 Geometry::set (np, nz, nel1, space)
+#define SET2 Geometry::set (np, nz, nel2, space)
 
 
-void transport (Domain*     D,
-		RunInfo*    I,
-		const real* w)
+void transport (Domain*     d1   ,
+		Domain*     d2   ,
+		Analyser*   a1   ,
+		Analyser*   a2   ,
+		const real* gas  ,
+		MixPatch*   patch)
 // ---------------------------------------------------------------------------
-// On entry, D contains storage for scalar Field 'c', pre-transformed in
+// On entry, d1 & d2 contain storage for scalar Field 'c', pre-transformed in
 // the z direction.  Input w contains the z-component velocity field.
+// The first domain is assumed to be the mobile phase, and the matching
+// gas data supplies the velocity field for advection.
 //
 // Us is multi-level auxillary Field storage for scalar history and 
 // Uf is multi-level auxillary Field storage for advection history terms.
 // ---------------------------------------------------------------------------
 {
-  int        i;
-  const int  Je     = (int) Femlib::value ("N_TIME");
-  const int  nStep  = (int) Femlib::value ("N_STEP");
-  Field*     scalar = D -> u[0];
-  const real conScalar = Femlib::value ("CONSERV");
-  const real Lz        = Femlib::value ("TWOPI / BETA");
-  real       amount;
+  const real dt    = Femlib::value ("D_T");
+  const int  Je    = (int) Femlib::value ("N_TIME");
+  const int  nStep = (int) Femlib::value ("N_STEP");
+  const real DC1   = Femlib::value ("DC_GAS");
+  const real DC2   = Femlib::value ("DC_FIX");
+  int        i, order;
 
-  // -- Set file-scope globals;
+  // -- Set file-scope global variables.
 
-  dt = Femlib::value ("D_T");
-  nZ = Geometry::nZProc();
+  np    = Geometry::nP();
+  nz    = Geometry::nZ();
+  nel1  = d1 -> elmt.getSize();
+  nel2  = d2 -> elmt.getSize();
+  space = Geometry::Cartesian;
 
   // -- Create global matrix systems.
 
-  ModeSys* MMS = preSolve (D);
+  SET1; Msys* MMS1 = preSolve (d1, DC1);
+  SET2; Msys* MMS2 = preSolve (d2, DC2);
+
+  // -- Coupled diffusion substep work areas.
+
+  SET1; AuxField* tmp1 = new AuxField (d1 -> elmt, nz);
+  SET2; AuxField* tmp2 = new AuxField (d2 -> elmt, nz);
 
   // -- Create & initialise multi-level storage for old fields and advection.
 
-  AuxField** Us = new AuxField* [(size_t) Je];
-  AuxField** Uf = new AuxField* [(size_t) Je];
+  AuxField** Us1 = new AuxField* [(size_t) Je];
+  AuxField** Uf1 = new AuxField* [(size_t) Je];
+  AuxField** Us2 = new AuxField* [(size_t) Je];
 
   for (i = 0; i < Je; i++) {
-    *(Us[i] = new AuxField (D -> Esys, nZ)) = 0.0;
-    *(Uf[i] = new AuxField (D -> Esys, nZ)) = 0.0;
+    SET1;
+    *(Us1[i] = new AuxField (d1 -> elmt, nz)) = 0.0;
+    *(Uf1[i] = new AuxField (d1 -> elmt, nz)) = 0.0;
+    SET2;
+    *(Us2[i] = new AuxField (d2 -> elmt, nz)) = 0.0;
   }
 
   // -- Timestepping loop.
 
-  while (D -> step < nStep) {
+  while (d1 -> step < nStep) {
  
-    D -> step += 1; 
-    D -> time += dt;
-    Femlib::value ("t", D -> time);
+    d1 -> step += 1; d1 -> time += dt;
+    d2 -> step += 1; d2 -> time += dt;
 
-    // -- Explicit update for advection and old time levels.
+    Femlib::value ("t", d1 -> time);
+    
+    order = clamp (d1 -> step, 0, Je);
 
-    AuxField::swapData (scalar, Us[0]);
-    advection (Us[0],  Uf[0], w);
-    extrap    (scalar, Us, Uf, D -> step);
-    roll      (Us, Je);
-    roll      (Uf, Je);
-    AuxField::swapData (scalar, Us[0]);
+    // -- Explicit update for advection and old time levels on d1.
 
-    // -- Diffusion substep.
+    SET1;
+    AuxField::swapData (d1 -> u[0], Us1[0]);
+    advection (Us1[0],  Uf1[0], gas);
+    extrap    (d1 -> u[0], Us1, Uf1, order, DC1);
+    roll      (Us1, Je);
+    roll      (Uf1, Je);
+    AuxField::swapData (d1 -> u[0], Us1[0]);
 
-    Solve (scalar, Us[0], MMS, D -> step, Je);
+    // -- Explicit update for old time levels on d2 (no advection).
 
-    // -- Conserve scalar quantity, with partitioning.
+    SET2;
+    AuxField::swapData (d2 -> u[0], Us2[0]);
+    extrap (d2 -> u[0], Us2, 0, order, DC2);
+    roll   (Us2, Je);
+    AuxField::swapData (d2 -> u[0], Us2[0]);
 
-    ROOTONLY {
-      amount = conScalar - scalar -> integral();
-      cout << "Mean correction: " << amount << " ";
-      scalar -> addToPlane (0, amount/Lz);
-    }
+    // -- Diffusion substep, coupling two domains over patch.
 
-    // -- Process results of this step.
+    Solve (d1 -> u[0], d2 -> u[0],
+	   Us1[0],     Us2[0],
+	   tmp1,       tmp2,
+	   MMS1,       MMS2,
+	   patch,      order);
 
-    I -> report (Us[0]);
+    // -- Print diagnostic information.
+
+    SET1; a1 -> analyse();
+    SET2; a2 -> analyse();
   }
 }
 
@@ -121,9 +153,10 @@ static void advection (AuxField*   C,
 // Old time level of scalar is passed in as C.
 // ---------------------------------------------------------------------------
 {
-  int i;
+  static const int nzp = Geometry::nZProc();
+  int              i;
 
-  for (i = 0; i < nZ; i++)
+  for (i = 0; i < nzp; i++)
     A -> setPlane (i, w);
 
   (A -> times (*A, *C)) . gradient (2);
@@ -133,7 +166,8 @@ static void advection (AuxField*   C,
 static void extrap (AuxField*  C  ,
 		    AuxField** Us ,
 		    AuxField** Uf ,
-		    const int  step)
+		    const int  step,
+		    const real DiffusionCoeff)
 // ---------------------------------------------------------------------------
 // Compute the RHS explicit approximation of forcing terms.
 //
@@ -142,48 +176,47 @@ static void extrap (AuxField*  C  ,
 // computed and left in C's storage areas.
 // ---------------------------------------------------------------------------
 {
-  int          q, Je = (int) Femlib::value ("N_TIME");
+  static real  dt = Femlib::value ("D_T");
+  int          q;
   vector<real> alpha (Integration::OrderMax + 1);
   vector<real> beta  (Integration::OrderMax);
 
-  Je = min (step, Je);  
-  Integration::StifflyStable (Je, alpha());
-  Integration::Extrapolation (Je, beta ());
-  Blas::scal (Je + 1, 1.0 / dt, alpha(),  1);
+  Integration::StifflyStable (step, alpha());
+  Integration::Extrapolation (step, beta ());
+  Blas::scal (step + 1, 1.0 / (dt * DiffusionCoeff), alpha(), 1);
+  Blas::scal (step,     1.0 /       DiffusionCoeff,  beta(),  1);
 
   *C = 0.0;
 
-  for (q = 0; q < Je; q++) {
-    C -> axpy (alpha[q + 1], *Us[q]);
-    C -> axpy (beta [q]    , *Uf[q]);
-  }
+          for (q = 0; q < step; q++) C -> axpy (alpha[q + 1], *Us[q]);
+
+  if (Uf) for (q = 0; q < step; q++) C -> axpy (beta [q]    , *Uf[q]);
+
 }
 
 
-static ModeSys* preSolve (const Domain* D)
+static Msys* preSolve (const Domain* D             ,
+		       const real    DiffusionCoeff)
 // ---------------------------------------------------------------------------
 // Set up ModalMatrixSystem for D -> u[0].  If iterative solution
 // (ITERATIVE == 1) is selected, return 0.
 // ---------------------------------------------------------------------------
 {
-  const char           name   = D -> u[0] -> name();
-  const int            nSys   = D -> Nsys.getSize();
-  const int            nmodes = Geometry::nModeProc();
-  const int            base   = Geometry::baseMode();
-  const int            itLev  = (int) Femlib::value ("ITERATIVE");
-  const int            nOrder = (int) Femlib::value ("N_TIME");
-  const real           beta   = Femlib::value ("BETA");
-  ModeSys*             M;
-  vector<Element*>&    E      = ((Domain*) D) -> Esys;
-  const NumberSystem** N      = new const NumberSystem* [(size_t) 3];
+  const int               nmodes = Geometry::nModeProc();
+  const int               base   = Geometry::baseMode();
+  const int               itLev  = (int) Femlib::value ("ITERATIVE");
+  const int               nOrder = (int) Femlib::value ("N_TIME");
+  const real              beta   = Femlib::value ("BETA");
+  const real              dt     = Femlib::value ("D_T");
+  Msys*                   M;
+  const vector<Element*>& E      = ((Domain*) D) -> elmt;
 
   if (itLev < 1) {
     vector<real> alpha (Integration::OrderMax + 1);
     Integration::StifflyStable (nOrder, alpha());
-    const real lambda2 = alpha[0] / dt;
+    const real lambda2 = alpha[0] / (dt * DiffusionCoeff);
 
-    D -> setNumber (name, N);
-    M = new ModalMatrixSystem (lambda2, beta, name, base, nmodes, E, N);
+    M = new Msys (lambda2, beta, base, nmodes, E, D -> b[0]);
 
   } else M = 0;
 
@@ -191,27 +224,87 @@ static ModeSys* preSolve (const Domain* D)
 }
 
 
-static void Solve (Field*    U     ,
-		   AuxField* Force ,
-		   ModeSys*  M     ,
-		   const int step  ,
-		   const int nOrder)
+static void Solve (Field*          c1   ,
+		   Field*          c2   ,
+		   const AuxField* f1   ,
+		   const AuxField* f2   ,
+		   AuxField*       t1   ,
+		   AuxField*       t2   ,
+		   Msys*           M1   ,
+		   Msys*           M2   ,
+		   MixPatch*       patch,
+		   const int       je   )
 // ---------------------------------------------------------------------------
-// Solve Helmholtz problem for U, using F as a forcing Field.  Iterative
-// or direct solver selected on basis of field type, step, time order
-// and command-line arguments.
+// Coupled Helmholtz solution for fields c1 & c2.  Termination is less
+// efficient than it could be, since we continue to iterate until all
+// modes have converged, instead of stopping each mode as it is done.
 // ---------------------------------------------------------------------------
 {
-  if (M == 0 || step < nOrder) {
+  static const int  verbose = (int) Femlib::value ("VERBOSE");
+  static const int  JE      = (int) Femlib::value ("N_TIME");
+  static const int  MAXITN  = (int) Femlib::value ("STEP_MAX");
+  static const real TOLREL  = Femlib::value ("TOL_REL");
+  static const real DCON1   = Femlib::value ("DC_GAS");
+  static const real DCON2   = Femlib::value ("DC_FIX");
+  static const real DT      = Femlib::value ("D_T");
+  static const int  nmodes  = Geometry::nModeProc();
 
-    const int    Je = min (step, nOrder);
-    vector<real> alpha (Je + 1);
-    Integration::StifflyStable (Je, alpha());
-    const real   lambda2 = alpha[0] / dt;
+  const int    DIRECT = !(je < JE || M1 == 0);		     
+  vector<real> alpha (Integration::OrderMax + 1);
+  vector<real> L2new1 (nmodes), L2old1 (nmodes);
+  vector<real> L2new2 (nmodes), L2old2 (nmodes);
+  vector<int>  test1  (nmodes), test2  (nmodes);
+  integer      i, k, converged;
 
-    U -> solve (Force, lambda2);
+  Integration::StifflyStable (je, alpha());
+  const real lambda2_1 = alpha[0] / (DT * DCON1);
+  const real lambda2_2 = alpha[0] / (DT * DCON2);
 
-  } else
-    U -> solve (Force, M);
+  L2old1 = 0.0;
+  L2old2 = 0.0;
 
+  for (converged = 0, i = 0; i < MAXITN && !converged; i++) {
+    c1 -> setPatch (patch);
+    c2 -> setPatch (patch);
+
+    c1 -> getPatch (patch);
+    c2 -> getPatch (patch);
+
+    SET1; *t1 = *f1;
+    SET2; *t2 = *f2;
+
+    if (DIRECT) {
+
+      SET1; c1 -> solve (t1, M1);
+      SET2; c2 -> solve (t2, M2);
+
+    } else {
+
+      SET1; c1 -> solve (t1, lambda2_1);
+      SET2; c2 -> solve (t2, lambda2_2);
+
+    }
+
+    SET1;
+    for (k = 0; k < nmodes; k++) {
+      L2new1[k] = c1 -> mode_L2 (k);
+      test1 [k] = fabs ((L2new1[k] - L2old1[k])/L2new1[k]) < TOLREL;
+      L2old1[k] = L2new1[k];
+      VERBOSE cout << "mode: " << k << ", energy1 = " << L2old1[k];
+    }
+
+    SET2;
+    for (k = 0; k < nmodes; k++) {
+      L2new2[k] = c2 -> mode_L2 (k);
+      test2 [k] = fabs ((L2new2[k] - L2old2[k])/L2new2[k]) < TOLREL;
+      L2old2[k] = L2new2[k];
+      VERBOSE cout  << "mode: " << k << ", energy2 = " << L2old2[k];
+    }
+    VERBOSE cout << endl;
+
+    for (converged = 1, k = 0; converged && k < nmodes; k++)
+      converged = converged && test1[k] && test2[k];
+  }
+  
+  cout << i << " BC iterations" << endl;
 }
