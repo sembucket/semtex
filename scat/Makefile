@@ -5,18 +5,23 @@
 # $Id$
 ##############################################################################
 
-SEM      = ..
-VPATH    = $(SEM)/src
+SEM   = ..
+VPATH = $(SEM)/src
 
-ARCH     = $(shell uname -s)
+ARCH  = $(shell uname -s)
 
 ifdef DEBUG
-  DEFINES  = -DDEBUG
+  DEFINES = -DDEBUG
 else
   DEFINES  =
 endif
 ifdef STOKES
   DEFINES += -DSTOKES
+endif
+ifdef MPI
+  PROG = buoy_mp
+else
+  PROG = buoy
 endif
 
 CPPFLAGS = -I. -I$(SEM)/include
@@ -65,31 +70,43 @@ LDFLAGS  = -gstabs+ -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
 endif
 
 ifeq ($(ARCH),UNIX_System_V)    # -- Fujitsu VPP300.
-LIBDIR   = -L$(SEM)/lib/$(ARCH) 
-LIBDIR  += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
-LIBS     = -lfem -lalp
-LIBS    += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
 CC       = vcc
 CXX      = /usr/uxp/C++/bin/CC
 LD       = /usr/uxp/C++/bin/CC
-#OPTIM    = -Wv,-m3,-Ps 
-OPTIM    = -Wv,-m3,-Om
+OPTIM    = -Wv,-m3,-Om,-te
 CXXFLAGS = $(DEFINES)  $(OPTIM)
 LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS)
+ifdef MPI
+  LIBDIR   = -L$(SEM)/lib/$(ARCH)
+  LIBDIR  += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
+  LIBDIR  += -L/usr/lang/mpi/lib
+  LIBS     = -lfem_mp -lalp
+  LIBS    += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
+  LIBS    += -lmpi -lmp
+  LDFLAGS += -Wl,-P
+else
+  LIBDIR   = -L$(SEM)/lib/$(ARCH) 
+  LIBDIR  += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
+  LIBS     = -lfem -lalp
+  LIBS    += -llapack -lblasvpp  -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
+endif
 endif
 
 ifeq ($(ARCH),SUPER-UX)         # -- NEC SX-4.
 LIBDIR   = -L$(SEM)/lib/$(ARCH) 
-LIBDIR  += 
-LIBS     = -lfem -lalp -llapack -lblas	\
-           -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm
 CC       = cc
-FC       = f77
 CXX      = CC
 LD       = CC
-OPTIM    = -g -hacct
+OPTIM    = -pvctl,fullmsg -hacct -hvector -p -ptn -Onooverlap
 CXXFLAGS = $(DEFINES)  $(OPTIM)
 LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS) -hacct
+ifdef MPI
+  LIBS   = -lfem_mp -llapack_64 -lalp_mp -lblas_64 -lfft_64	\
+           -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm -lmpi -lpthread
+else
+  LIBS   = -lfem -llapack_64 -lalp -lblas_64 -lfft_64	\
+           -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm
+endif
 endif
 
 # ----------------------------------------------------------------------------
@@ -104,7 +121,7 @@ SEMHDR    = Sem.h
 # Default build for Navier-Stokes solver.
 NS_OBJ = drive.o NS.o
 
-buoy:	sem $(SEMOBJ) $(NS_OBJ) 
+$(PROG): sem $(SEMOBJ) $(NS_OBJ) 
 	$(LD) -o $@ $(NS_OBJ) $(SEMOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
@@ -114,6 +131,18 @@ $(SEMOBJ): $(SEMHDR)
 #-----------------------------------------------------------------------------
 sem:
 	cd $(VPATH); gmake install
+
+# ----------------------------------------------------------------------------
+# Special machine-dependent compilations.
+
+ifeq ($(ARCH),SUPER-UX)
+mesh.o: $(VPATH)/mesh.C
+	CC -I$(SEM)/include -c -pvctl,fullmsg -hacct -hvector -p -ptn   \
+	$(VPATH)/mesh.C
+BCmgr.o: $(VPATH)/BCmgr.C
+	CC -I$(SEM)/include -c -pvctl,fullmsg -hacct -hvector -p -ptn   \
+	$(VPATH)/BCmgr.C
+endif
 
 # -----------------------------------------------------------------------------
 #
