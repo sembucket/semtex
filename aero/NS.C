@@ -1,8 +1,12 @@
-//////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 // NS.C:  Unsteady Navier--Stokes solver, using "stiffly-stable" integration.
 //
+// Copyright (c) Hugh Blackburn 1997--2001.
+//
 // This version includes body coupling and solves Navier--Stokes in an
-// accelerating reference frame.
+// accelerating reference frame.  In addition, it allows
+// Smagorinsky-based LES to be used: for this, define LES during
+// compilation.
 //
 // It is assumed that any velocity boundary conditions are not functions
 // of "z", i.e. that all the information is in the zeroth Fourier mode.
@@ -18,14 +22,14 @@
 //     an oscillating cylinder", JFM 385, 255--286.
 //
 // $Id$
-//////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
-#include <aero.h>
+#include "aero.h"
 
 typedef ModalMatrixSys Msys;
 static  integer        NDIM, NORD;
 
-static void   nonLinear (Domain*, AuxField**, AuxField**, Vector&);
+static void   nonLinear (Domain*, AuxField**, AuxField**, AuxField*, Vector&);
 static void   waveProp  (Domain*, const AuxField***, const AuxField***);
 static void   setPForce (const AuxField**, AuxField**);
 static void   project   (const Domain*, AuxField**, AuxField**);
@@ -82,6 +86,26 @@ void NavierStokes (Domain*       D,
   Field* Pressure = D -> u[NDIM];
   PBCmgr::build (Pressure);
 
+#if defined (LES)
+
+  if (Femlib::value ("REFVIS") > 0.0) {
+    real kinVis = Femlib::value ("REFVIS");
+    real refVis = Femlib::value ("KINVIS");
+    Femlib::value ("KINVIS", kinVis);
+    Femlib::value ("REFVIS", refVis);
+  } 
+
+  alloc = new real [(size_t) ntot];
+ 
+  AuxField* EV = new AuxField (alloc, nZ, D -> elmt, 'e');
+  *EV = 0.0;
+  ROOTONLY EV -> addToPlane (0, Femlib::value ("REFVIS - KINVIS"));
+
+#else
+
+  AuxField* EV = 0;
+#endif
+
   // -- Timestepping loop.
 
   while (D -> step < nStep) {
@@ -94,9 +118,15 @@ void NavierStokes (Domain*       D,
     D -> time += dt;
     Femlib::value ("t", D -> time);
 
+#if defined (LES)
+    // -- Compute spatially-varying kinematic eddy viscosity.
+
+    eddyViscosity (D, Us[0], Uf[0], EV);
+#endif
+
     // -- Unconstrained forcing substep.
 
-    nonLinear (D, Us[0], Uf[0], a);
+    nonLinear (D, Us[0], Uf[0], EV, a);
     waveProp  (D, (const AuxField***)Us, (const AuxField***)Uf);
 
     // -- Body motion, get velocity at new time level.
@@ -144,15 +174,38 @@ void NavierStokes (Domain*       D,
 
     A -> analyse (Us[0]);
   }
+
+#if defined (LES)
+
+  // -- Dump ratio eddy/molecular viscosity to file visco.fld.
+
+  ofstream          evfl;
+  vector<AuxField*> visco (1);
+
+  visco[0] = EV;
+
+  ROOTONLY {
+    evfl.open ("visco.fld", ios::out);
+    EV -> addToPlane (0, Femlib::value ("KINVIS - REFVIS"));
+  }
+  (*EV /= Femlib::value ("REFVIS")) . transform (INVERSE);
+
+  writeField (evfl, D -> name, D -> step, D -> time, visco);
+
+  ROOTONLY evfl.close();
+
+#endif
 }
 
 
 static void nonLinear (Domain*    D ,
 		       AuxField** Us,
 		       AuxField** Uf,
+		       AuxField*  EV,
 		       Vector&    a )
 // ---------------------------------------------------------------------------
-// Compute nonlinear (forcing) terms in Navier--Stokes equations: N(u) - a.
+// Compute nonlinear (forcing) terms in Navier--Stokes equations
+//                   N(u) + div(2*EV*S) - a.
 //
 // Velocity field data areas of D and first level of Us are swapped, then
 // the next stage of nonlinear forcing terms N(u) - a are computed from
@@ -190,8 +243,6 @@ static void nonLinear (Domain*    D ,
 
   ROOTONLY A[0] = a.x; A[1] = a.y; if (NDIM == 3) A[2] = a.z;
 
-  Veclib::zero ((2 * NDIM + 1) * nTot32, work(), 1); // -- A catch-all cleanup.
-
   for (i = 0; i < NDIM; i++) {
     u32[i] = work() +  i        * nTot32;
     n32[i] = work() + (i + NDIM) * nTot32;
@@ -202,6 +253,64 @@ static void nonLinear (Domain*    D ,
 
     N[i] = Uf[i];
   }
+
+#if defined (LES)
+
+  // -- Start with contribution from divergence of SGS.
+
+  EV -> transform32 (INVERSE, tmp);
+  Blas::scal (nTot32, -4.0, tmp, 1); // -- 2 = -0.5 * -4 ... see below.
+
+  // -- Diagonal stress-divergence terms.
+
+  for (i = 0; i < NDIM; i++) {
+
+    Us[i] -> transform32 (INVERSE, n32[i]);
+    Veclib::vmul (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
+
+    if (i == 2) {
+      Femlib::exchange   (n32[2], nZ32,        nP, FORWARD);      
+      Femlib::DFTr       (n32[2], nZ32 * nPR, nPP, FORWARD);
+      Veclib::zero       (nTot32 - nTot, n32[2] + nTot, 1);
+      master -> gradient (nZ, nPP, n32[2], 2);
+      Femlib::DFTr       (n32[2], nZ32 * nPR, nPP, INVERSE);
+      Femlib::exchange   (n32[2], nZ32,        nP, INVERSE);      
+    } else
+      master -> gradient (nZ32, nP, n32[i], i);
+  }
+
+  // -- Off-diagonal stress-divergence terms.
+
+  for (i = 0; i < NDIM; i++)
+    for (j = i + 1; j < NDIM; j++) {
+
+      Uf[i + j - 1] -> transform32 (INVERSE, u32[0]);
+      Veclib::vmul                 (nTot32, tmp, 1, u32[0], 1, u32[0], 1);
+      Veclib::copy                 (nTot32,         u32[0], 1, u32[1], 1);
+
+      // -- Super-diagonal.
+      
+      if (j == 2) {
+	Femlib::exchange   (u32[0], nZ32,        nP, FORWARD);
+	Femlib::DFTr       (u32[0], nZ32 * nPR, nPP, FORWARD);
+	Veclib::zero       (nTot32 - nTot, u32[0] + nTot, 1);
+	master -> gradient (nZ, nPP, u32[0], 2);
+	Femlib::DFTr       (u32[0], nZ32 * nPR, nPP, INVERSE);
+	Femlib::exchange   (u32[0], nZ32,        nP, INVERSE);
+      } else
+	master -> gradient (nZ32, nP, u32[0], j);
+      Veclib::vadd (nTot32, u32[0], 1, n32[i], 1, n32[i], 1);
+
+      // -- Sub-diagonal.
+
+      master -> gradient (nZ32, nP, u32[1], i);
+      Veclib::vadd       (nTot32, u32[1], 1, n32[j], 1, n32[j], 1);
+    }
+#else
+
+  Veclib::zero ((2 * NDIM + 1) * nTot32, work(), 1); // -- A catch-all cleanup.
+
+#endif
 
   for (i = 0; i < NDIM; i++) {
     for (j = 0; j < NDIM; j++) {

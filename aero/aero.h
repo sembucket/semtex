@@ -189,4 +189,5 @@ private:
   Vector       traction[3];	// -- Pressure, viscous, total forces.
 };
 
-void NavierStokes (Domain*, Body*, AeroAnalyser*);
+void NavierStokes  (Domain*, Body*, AeroAnalyser*);
+void eddyViscosity (const Domain*, AuxField**, AuxField**, AuxField*);

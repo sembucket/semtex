@@ -11,6 +11,15 @@ else
   PROG = aero
 endif
 
+ifdef LES		# -- Compile in Smagorinsky-based LES.
+  DEFINES += -DLES
+endif
+
+ifdef DAMPING		# -- Compile in van-Driest damping (caveat emptor).
+  DEFINES += -DDAMPING
+endif
+
+
 SEM   = ../semtex
 VPATH = $(SEM)/src
 
@@ -27,6 +36,10 @@ SEMHDR    = Sem.h
 
 NS_OBJ = aeroanalysis.o body.o drive.o NS.o 
 NS_HDR = aero.h
+ifdef LES
+  NS_OBJ += eddyvis.o
+endif
+
 
 $(PROG): sem $(SEMOBJ) $(NS_OBJ) 
 	$(LD) -o $@ $(NS_OBJ) $(SEMOBJ) $(LDFLAGS)
