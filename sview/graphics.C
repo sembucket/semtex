@@ -192,6 +192,8 @@ void display ()
   if (State.drawiso) drawSurf ();
   if (State.drawpar) drawPoints();
 
+  drawSpecial();
+
   glPopMatrix     ();
   glutSwapBuffers ();
 
