@@ -542,7 +542,7 @@ void BCmgr::buildnum (const char*       session,
     ROOTONLY {
       sprintf (buf, "enumerate -O1 %s > %s", session, file);
       if (system (buf)) {
-        sprintf (err, "couldn't open session file %s, or %", session, file);
+        sprintf (err, "couldn't open session file %s, or %s", session, file);
         message (routine, err, ERROR);
       }
     }

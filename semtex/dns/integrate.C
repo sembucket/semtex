@@ -30,7 +30,7 @@ static char RCS[] = "$Id$";
 typedef ModalMatrixSys Msys;
 
 static integer NDIM, NCOM, NORD;
-static bool    CYL,  C3D;
+static bool    C3D;
 
 static void   waveProp  (Domain*, const AuxField***, const AuxField***);
 static void   setPForce (const AuxField**, AuxField**);

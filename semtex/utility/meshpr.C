@@ -105,8 +105,7 @@ int main (int    argc,
     for (k = 0; k <= nz; k++) {
       z = k * dz;
       for (ID = 0; ID < NEL; ID++) {
-	if (M.isAxial (ID)) M.meshElmt (ID, np, zero_r, zero_s, &x[0], &y[0]);
-	else                M.meshElmt (ID, np, zero_r, zero_r, &x[0], &y[0]);
+	M.meshElmt (ID, np, zero_r, zero_r, &x[0], &y[0]);
 	for (j = 0; j < NTOT; j++)
 	  cout << x[j] << '\t' << y[j] << '\t' << z << endl;
       }
@@ -117,8 +116,7 @@ int main (int    argc,
     // -- Print out x-y mesh.
 
     for (ID = 0; ID < NEL; ID++) {
-      if (M.isAxial (ID)) M.meshElmt (ID, np, zero_r, zero_s, &x[0], &y[0]);
-      else                M.meshElmt (ID, np, zero_r, zero_r, &x[0], &y[0]);
+      M.meshElmt (ID, np, zero_r, zero_r, &x[0], &y[0]);
       for (j = 0; j < NTOT; j++)
 	cout << setw(15) << x[j] << setw(15) << y[j] << endl;
     }
