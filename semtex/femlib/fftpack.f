@@ -23,8 +23,9 @@ C     IFAC should be an integer array, length 15.
 C     Once the arrays have been initialised for a certain N, they
 C     can be used for repetitious calls to DRFFTF and DRFFTB.
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
-      DIMENSION       WA(*)      ,IFAC(*)    ,NTRYH(4)
+      DIMENSION WA(*), IFAC(*), NTRYH(4)
       DATA NTRYH(1),NTRYH(2),NTRYH(3),NTRYH(4)/4,2,3,5/
+      IF (N .EQ. 1) RETURN
       NL = N
       NF = 0
       J = 0
@@ -88,7 +89,8 @@ C     transformed. CH is a real work array, length N. WA is a data
 C     array, length N. IFAC is an integer data array, length 15.
 C     Both WA and IFAC are precomputed by DRFFTI.
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
-      DIMENSION       CH(*)      ,C(*)       ,WA(*)      ,IFAC(*)
+      DIMENSION CH(*), C(*), WA(*), IFAC(*)
+      IF (N .EQ. 1) RETURN
       NF = IFAC(2)
       NA = 1
       L2 = N
@@ -155,7 +157,8 @@ C     transformed. CH is a real work array, length N. WA is a data
 C     array, length N. IFAC is an integer data array, length 15.
 C     Both WA and IFAC are precomputed by DRFFTI.
       IMPLICIT DOUBLE PRECISION (A-H,O-Z)
-      DIMENSION       CH(*)      ,C(*)       ,WA(*)      ,IFAC(*)
+      DIMENSION CH(*), C(*), WA(*), IFAC(*)
+      IF (N .EQ. 1) RETURN
       NF = IFAC(2)
       NA = 0
       L1 = 1

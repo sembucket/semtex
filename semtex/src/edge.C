@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // egde.C: implement element-edge operators.
 //
-// Copyright (c) Hugh Blackburn 2003.
+// Copyright (c) 2003<-->$Date$, Hugh Blackburn
 //
 // Edges, like boundaries (to which they contribute) always belong to
 // a group.
@@ -9,7 +9,7 @@
 
 static char RCS[] = "$Id$";
 
-#include <sem_h>
+#include <sem.h>
 
 
 Edge::Edge (const char*    grp ,

@@ -12,8 +12,8 @@
 #include <mpi.h>
 #endif
 
-#include <cfemdef>
-#include <cfemlib>
+#include <cfemdef.h>
+#include <cfemlib.h>
 
 
 void message_init (int*    argc,

@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // enumerate.C:  utility to generate mesh numbering from session file.
 //
-// Copyright (c) 1995,2003 Hugh Blackburn
+// Copyright (c) 1995,2004 Hugh Blackburn
 //
 // Usage: enumerate [options] file
 //   options:
@@ -18,9 +18,9 @@
 // zero-mode pressure node occurs on the axis in 3D cylindrical
 // simulations.  The code attempts to fix this problem, and lets you
 // know if it can't.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <cstdlib>
 #include <cstring>
@@ -31,11 +31,11 @@
 
 using namespace std;
 
-#include <cfemdef>
-#include <femlib_h>
-#include <utility_h>
-#include <mesh_h>
-#include <veclib_h>
+#include <cfemdef.h>
+#include <femlib.h>
+#include <utility.h>
+#include <mesh.h>
+#include <veclib.h>
 
 class Nsys {
 friend void printup (const char*, vector<Nsys*>&, const integer);

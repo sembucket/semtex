@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // interp.C: interpolate results from a field file onto a set of 2D points.
 //
-// Copyright (c) 1997,2003 Hugh Blackburn
+// Copyright (c) 1997,2004 Hugh Blackburn
 //
 // Synopsis:
 // --------
@@ -30,11 +30,11 @@
 // If a point cannot be located in the mesh, zero values are output for
 // that point location.  Points can either be supplied on standard input
 // or in a named file.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <sem_h>
+static char RCS[] = "$Id$";
+
+#include <sem.h>
 #include <ctime>
 
 static char prog[]  = "interp";

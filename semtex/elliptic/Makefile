@@ -19,7 +19,7 @@ endif
 SEMFILES  = auxfield BCmgr boundary bsys condition domain edge element \
             family feml field geometry integration matrix mesh misc pressure
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
-SEMHDR    = sem_h
+SEMHDR    = sem.h
 
 # ----------------------------------------------------------------------------
 # Default build.

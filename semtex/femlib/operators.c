@@ -12,10 +12,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <cfemdef>
-#include <cveclib>
-#include <cfemlib>
-#include <cpolylib>
+#include <cfemdef.h>
+#include <cveclib.h>
+#include <cfemlib.h>
+#include <polylib.h>
 
 
 typedef struct dquadopr {	/* ---- quadrature operator information  --- */

@@ -33,9 +33,9 @@
  *                               binary/BINARY assumed to be machine's default.
  *                               binary IEEE little-endian
  *                               binary IEEE big-endian
- *
- * $Id$
  *****************************************************************************/
+
+static char RCS[] = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>

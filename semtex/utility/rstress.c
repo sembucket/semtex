@@ -1,7 +1,7 @@
 /*****************************************************************************
  * rstress.c:  Compute Reynolds stresses.
  *
- * Copyright (c) 1997,1999 Hugh Blackburn
+ * Copyright (c) 1997 <--> $Date$, Hugh Blackburn
  *
  * SYNOPSIS
  * --------
@@ -27,9 +27,9 @@
  * rstress [options] avg.file [field.file]
  * options:
  * -h ... print this message
- *
- * $Id$
  *****************************************************************************/
+
+static char RCS[] = "$Id$";
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -37,8 +37,8 @@
 #include <time.h>
 #include <string.h>
 
-#include <cfemdef>
-#include <cveclib>
+#include <cfemdef.h>
+#include <cveclib.h>
 
 static char  prog[]    = "rstress";
 static char* hdr_fmt[] = {	 /* -- Header output formatting. */

@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 #include <cfemdef>
-#include <cveclib>
+#include <cveclib.h>
 
 #define FREE_ARG  void*
 

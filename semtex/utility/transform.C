@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // transform.C: carry out Fourier and/or 2D polynomial transform of data.
 //
-// Copyright (c) 1999-2004 Hugh Blackburn
+// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 //
 // USAGE
 // -----
@@ -18,7 +18,7 @@
 
 static char RCS[] = "$Id$";
 
-#include <sem_h>
+#include <sem.h>
 
 class Field2DF
 // ============================================================================

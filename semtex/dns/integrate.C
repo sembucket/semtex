@@ -6,7 +6,7 @@
 // routine; after initialisation, integrate may be called repeatedly
 // without reinitialising internal storage.
 //
-// Copyright (C) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994<-->$Date$, Hugh Blackburn
 //
 // References:
 // 1.  Karniadakis, Israeli & Orszag 1991.  "High-order splitting methods
@@ -22,7 +22,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "dns_h"
+#include "dns.h"
 
 typedef ModalMatrixSys Msys;
 

@@ -46,9 +46,9 @@
  *             erf, erfc, lgamma,
  *             j0, j1, y0, y1, jn.
  * Procedures: jn, yn, rad, ang, rejn, imjn, jacobi, womcos, womsin.
- *
- * $Id$
  *****************************************************************************/
+
+static char RCS[] = "$Id$";
 
 #include <stdio.h>
 #include <string.h>
@@ -58,8 +58,8 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#include <cfemdef>
-#include <cveclib>
+#include <cfemdef.h>
+#include <cveclib.h>
 
 #if 1
 #define HASHSIZE 199
@@ -159,7 +159,7 @@ static struct {			    /* -- Built-in functions. */
   NULL, NULL, NULL
 };
 
-#include "cdefaults"
+#include "defaults.h"
 
 %}
 /* -- Yacc grammar follows: */

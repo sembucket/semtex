@@ -1,6 +1,5 @@
 /******************************************************************************
- * PDF: produce probability density function from a selected column of
- * standard input.
+ * slit.c: reproduce specified columns of input on output.
  *
  * Synopsis:
  * ---------
@@ -10,10 +9,9 @@
  * record maximum & minimum values, read back the stored temporary file,
  * accumulating sums for pdf, print the pdf, with header information, on
  * standard output.
- *
- * $Id$
- *
  *****************************************************************************/
+
+static char RCS[] = "$Id$";
 
 #include <stdio.h>
 #include <ctype.h>
@@ -25,9 +23,6 @@
 int  parse   (char *strin, char *strout, int *pos, char sep);
 void slit    (FILE *fp, int n, int *col);
 int  getline (FILE *fp, char coltext[][MAXSTR], int *nwords);
-
-
-
 
 
 main(int argc, char *argv[])

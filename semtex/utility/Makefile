@@ -16,7 +16,7 @@ all: essential plain nosrc meshpr calc addfield sem2nek \
 # Standard rules and definitions.
 #
 include $(VPATH)/Makefile
-SEMHDR = sem_h
+SEMHDR = sem.h
 
 # ----------------------------------------------------------------------------
 # Build compare, exact solution comparison/restart utility.

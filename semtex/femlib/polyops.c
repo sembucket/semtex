@@ -34,9 +34,9 @@
 #include <math.h>
 #include <stdio.h>
 
-#include <cfemdef>
-#include <cfemlib>
-#include <cveclib>
+#include <cfemdef.h>
+#include <cfemlib.h>
+#include <cveclib.h>
 
 #define STOP 16
 static double gammaF(double x);

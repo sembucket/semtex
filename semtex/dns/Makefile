@@ -46,7 +46,7 @@ SEMFILES = analysis auxfield BCmgr boundary bsys condition domain   \
 	   edge element family feml field flowrate geometry history \
            integration matrix mesh misc particle pressure statistics
 SEMOBJ   = $(addsuffix .o,$(SEMFILES))
-SEMHDR   = sem_h
+SEMHDR   = sem.h
 
 # ----------------------------------------------------------------------------
 # Default build for Navier-Stokes solver.

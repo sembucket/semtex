@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // meshpr.C:  utility to generate mesh nodes from mesh description file.
 //
-// Copyright (c) 1995,2003 Hugh Blackburn
+// Copyright (c) 1995 <--> $Date$, Hugh Blackburn
 //
 // Prism-compatible output.
 //
@@ -15,9 +15,9 @@
 //   -n <num> ... override element order to be num
 //   -z <num> ... override number of planes to be num
 //   -b <num> ... override wavenumber beta to be <num> (3D)
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id";
 
 #include <cstdlib>
 #include <iostream>
@@ -25,10 +25,10 @@
 
 using namespace std;
 
-#include <cfemdef>
-#include <femlib_h>
-#include <utility_h>
-#include <mesh_h>
+#include <cfemdef.h>
+#include <femlib.h>
+#include <utility.h>
+#include <mesh.h>
 
 static char prog[] = "meshpr";
 static void getargs (int, char**, char*&, int&, int&,

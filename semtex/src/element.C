@@ -1,12 +1,12 @@
 ///////////////////////////////////////////////////////////////////////////////
 // element.C: 2D quad spectral element class routines.
 //
-// Copyright (c) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
 
-#include <sem_h>
+#include <sem.h>
 
 Element::Element (const integer id,
 		  const integer np,

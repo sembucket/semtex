@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // integral.C: return the domain integral of all fields in dump file.
 //
-// Copyright (c) 1999,2003 Hugh Blackburn
+// Copyright (c) 1999,2004 Hugh Blackburn
 //
 // Synopsis:
 // --------
@@ -16,11 +16,11 @@
 //
 // If the coordinate system is cylindrical, then the integrals are
 // weighted by the radius. Use -c switch to turn this off.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <sem_h>
+static char RCS[] = "$Id$";
+
+#include <sem.h>
 
 static char    prog[]  = "integral";
 static integer verbose = 0;

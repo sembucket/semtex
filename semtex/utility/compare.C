@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // compare.C
 //
-// Copyright (c) 1996,2003 Hugh Blackburn
+// Copyright (c) 1996,2004 Hugh Blackburn
 //
 // SYNOPSIS
 // --------
@@ -35,7 +35,7 @@
 
 static char RCS[] = "$Id$";
 
-#include <sem_h>
+#include <sem.h>
 #include <ctime>
 
 static char    prog[]    = "compare";

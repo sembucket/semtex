@@ -18,8 +18,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <cfemdef>
-#include <cveclib>
+#include <cfemdef.h>
+#include <cveclib.h>
 
 typedef struct ivect {
   integer       size ;		/* Length of stored vector.           */

@@ -3,14 +3,14 @@
  * plane output 2D data file.  Field must be binary format.  By
  * default, output plane 1.
  *
- * Copyright (c) 2000 Hugh Blackburn
+ * Copyright (c) 2000 <--> $Date$, Hugh Blackburn
  *
  * USAGE
  * -----
  * xplane [-h] [-n plane] [input[.fld]
- *
- * $Id$
  *****************************************************************************/
+
+static char RCS[] = "$Id$";
 
 #include <math.h>
 #include <stdio.h>
@@ -18,9 +18,9 @@
 #include <ctype.h>
 #include <stdlib.h>
 
-#include <cfemlib>
-#include <cfemdef>
-#include <cveclib>
+#include <cfemlib.h>
+#include <cfemdef.h>
+#include <cveclib.h>
 
 static void getargs (int, char**, FILE**, int*);
 

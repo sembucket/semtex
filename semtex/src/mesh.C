@@ -2,7 +2,7 @@
 // mesh.C: read information from a FEML stream, provide
 // facilities for generation of mesh knots and initial connectivity.
 //
-// Copyright (c) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994<-->$Date$, Hugh Blackburn
 //
 // Example/required parts of a FEML file:
 //
@@ -96,12 +96,12 @@ static char RCS[] = "$Id$";
 
 using namespace std;
 
-#include <cnr77>
+#include <nr77.h>
 
-#include <utility_h>
-#include <femlib_h>
-#include <veclib_h>
-#include <mesh_h>
+#include <utility.h>
+#include <femlib.h>
+#include <veclib.h>
+#include <mesh.h>
 
 
 #define VERBOSE if (verbose)

@@ -1,5 +1,10 @@
 /*
 
+This seems to work on many UNIX compilations:
+
+cc preplot.c -DIRIS -o preplot
+
+
 USAGE:
 -----------------------------------------------------------------------
 This source code, in part or whole may be used without permission
