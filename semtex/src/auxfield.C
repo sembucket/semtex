@@ -838,7 +838,7 @@ AuxField& AuxField::transform32 (const integer sign,
   const integer nZ   = Geometry::nZ();
   const integer nP   = Geometry::planeSize();
 #if defined (ALIAS)
-  const integer nZ32 = nZ; assert (Geometry::nProc() == 1);
+  const integer nZ32 = Geometry::nZProc();
 #else
   const integer nZ32 = Geometry::nZ32();
 #endif
