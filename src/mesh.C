@@ -95,6 +95,7 @@ RCSid[] = "$Id$";
 #include <Utility.h>
 #include <Femlib.h>
 
+#define VERBOSE if (verbose)
 
 static inline integer rma (integer i, integer j, integer n)
 // -- Row-major offsetting for 2D arrays with 0-based indexing.
@@ -116,7 +117,7 @@ Mesh::Mesh (FEML&     f    ,
   const char    routine[] = "Mesh::Mesh";
   char          err[StrMax], tag[StrMax];
   integer       i, j, k, K, Nn;
-  const integer verb = (integer) Femlib::value ("VERBOSE");
+  const integer verbose = (integer) Femlib::value ("VERBOSE");
   Node*         N;
   Elmt*         E;
 
@@ -133,7 +134,7 @@ Mesh::Mesh (FEML&     f    ,
     message (routine, err, ERROR);
   }
 
-  if (verb) cout << "Reading vertices ... ";
+  VERBOSE cout << "  Reading vertices ... ";
 
   for (i = 0; i < Nn; i++) {
 
@@ -153,7 +154,7 @@ Mesh::Mesh (FEML&     f    ,
       nodeTable[N -> ID] = N;
   }
 
-  if (verb) cout << "done" << endl;
+  VERBOSE cout << "done" << endl;
 
   // -- Input Elmt corner vertex nodes.
   //    Presently, only quad (<Q>) elements are allowed.
@@ -165,7 +166,7 @@ Mesh::Mesh (FEML&     f    ,
     message (routine, err, ERROR);
   }
 
-  if (verb) cout << "Reading elements ... ";
+  VERBOSE cout << "  Reading elements ... ";
 
   for (i = 0; i < K; i++) {
 
@@ -209,25 +210,26 @@ Mesh::Mesh (FEML&     f    ,
       elmtTable[E -> ID] = E;
   }
 
-  if (verb) cout << "done" << endl;
+  VERBOSE cout << "done" << endl;
 
+  VERBOSE cout << "  Setting up mesh internal connectivity ... ";
 
-  if (verb) cout << "Setting up mesh internal connectivity ... ";
   assemble ();
-  if (verb) cout << "done" << endl;
+
+  VERBOSE cout << "done" << endl;
 
   if (check) {  
-    if (verb) cout << "Installing mesh external surface data ... ";
+    VERBOSE cout << "  Installing mesh external surface data ... ";
     surfaces ();
-    if (verb) cout << "done" << endl;
+    VERBOSE cout << "done" << endl;
 
-    if (verb) cout << "Checking mesh connectivity ... ";
+    VERBOSE cout << "  Checking mesh connectivity ... ";
     checkAssembly ();
-    if (verb) cout << "done" << endl;
+    VERBOSE cout << "done" << endl;
 
-    if (verb) cout << "Installing mesh curved sides ... ";
+    VERBOSE cout << "  Installing mesh curved sides ... ";
     curves ();
-    if (verb) cout << "done" << endl;
+    VERBOSE cout << "done" << endl;
   }
 }
 

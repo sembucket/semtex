@@ -34,13 +34,13 @@ RCSid[] = "$Id$";
 #include <Femlib.h>
 
 
-FEML::FEML (const char* name)
+FEML::FEML (const char* session)
 // ---------------------------------------------------------------------------
-// Attempt to open named file, prescan to locate sections.
-// Look for name and name.pdf.  Set pdf_root.  Load tokens.
+// Attempt to open session file, prescan to locate sections.  Set
+// pdf_root.  Load tokens.
 // ---------------------------------------------------------------------------
 {
-  const char routine[] = "FEML::open";
+  const char routine[] = "FEML::FEML";
   char       c, err[STR_MAX], key[STR_MAX], yek[STR_MAX];
   char*      u;
   integer    i, OK, N, found;
@@ -59,20 +59,14 @@ FEML::FEML (const char* name)
     0
   };
   
-  feml_file.open (name);
+  feml_file.open (session);
 
   if (!feml_file) {
-    strcat (strcpy (err, name), ".feml");
-    feml_file.open (err);
-  }
-
-  if (!feml_file) {
-    sprintf (err, "couldn't open file %s or %s.feml", name, name);
+    sprintf (err, "couldn't open session file %s", session);
     message (routine, err, ERROR);
   }
 
-  feml_root = strdup (name);
-  if (strstr (name, ".feml")) feml_root[strlen (name) - 5] = '\0';
+  strcpy ((feml_root = new char [strlen (session) + 1]), session);
 
   for (i = 0; reserved[i] && i < KEYWORD_MAX; i++) {
     keyWord[i] = strdup (reserved[i]);
