@@ -68,7 +68,7 @@ int main (int    argc,
   
   printWalls (np, nz, nel, bman, elmt, x, y);
 
-  if (nz > 1) for (i = 0; i < nz; i++) cout << z[i] << endl;
+  if (nz > 1) for (i = 0; i <= nz; i++) cout << z[i] << endl;
 
   Femlib::finalize();
   return EXIT_SUCCESS;
@@ -142,11 +142,11 @@ static void readMesh (istream&        file,
 
   x.resize (ntot);
   y.resize (ntot);
-  z.resize ((nz > 1) ? nz : 0);
+  z.resize ((nz > 1) ? nz+1 : 0);
 
   for (i = 0; i < ntot; i++) file >> x[i] >> y[i];
 
-  if (nz > 1) for (i = 0; i < nz; i++) file >> z[i];
+  if (nz > 1) for (i = 0; i <= nz; i++) file >> z[i];
 
   if (!file) message (prog, "reached end of mesh file prematurely", ERROR);
 }
