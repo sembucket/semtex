@@ -158,7 +158,7 @@ int main (int    argc,
     runInfo -> step ++;
     runInfo -> time += runInfo -> dt;
     
-    if (!(runInfo -> step % 100)) projectVF (U);
+    if (!(runInfo -> step % 100)) projectVF (U, F);
 
     analyze (U, runInfo, Wtab);
     dump    (U, runInfo);
