@@ -40,7 +40,6 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-
 #include <stab.h>
 #include <unistd.h>
 
@@ -48,8 +47,8 @@
 
 extern "C" {
   void F77name(dgeev)		// -- Lapack eigensystem routine.
-    (const char*    N    ,      // computes all eigenvalues of matrix ??
-     const char*    V    ,      // and returns as ??
+    (const char*    N    ,
+     const char*    V    ,
      const integer& dim1 ,
      double*        H    ,
      const integer& dim2 ,
@@ -67,8 +66,8 @@ extern "C" {
 static ofstream   eig_strm; // File for eigenvalues.
 
 static char prog[] = "arnoldi";
-static void getargs  (int, char**, int&, int&, int&, int&, real&,
-		      int&, char*&);
+static void getargs  (int, char**, int&, int&, int&, int&,
+		      real&, int&, char*&);
 static void EV_small (real**, const int, const int, 
 		      real*, real*, real*, real&, const int); 
 static int  EV_test  (const int, const int, real*, real*, real*,
@@ -78,13 +77,12 @@ static void EV_sort  (real*, real*, real*, real*, const int);
 static int  EV_big (real**, real**, int, int, real*, real*, real*);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, BoundarySys*&, Domain*&);
+
 void NavierStokes (Domain*, STABAnalyser*);
 void check_input(int, int, int);
 void arnoldi_report(int, int, int, int);
 void write_restart (char*, int, int, int, int, int, real, real, real*);
 void create_eigstrm(ofstream&, char*);
-
-// ------------------ MAGIC NUMBERS (default values) ------------------------
 
 const int    kdim_def = 2;       
 const int    nvec_def = 2;
@@ -95,12 +93,12 @@ const real  evtol_def = 1.0e-12;
     const int        nwrt = 3;       
 #endif
 
-// --------------------------------------------------------------------------
-// ------------------- MAIN -------------------------------------------------
-// --------------------------------------------------------------------------
 
 int main (int    argc,
 	  char** argv)
+// ---------------------------------------------------------------------------
+// Driver routine for stability analysis code.
+// ---------------------------------------------------------------------------
 {
   int          kdim = kdim_def;
   int          nvec = nvec_def;
@@ -108,11 +106,11 @@ int main (int    argc,
   real        evtol = evtol_def;
 
   int              verbose = 0;
-  int              restart = 0;      // FALSE - no restart file
+  int              restart = 0;
   char             res_name[StrMax];
   char             stp_cmd[StrMax];
-  int              stop_cnd = 0;     // default = false
-  ifstream         rst_strm;         // Krylov matrix restart file.
+  int              stop_cnd = 0;
+  ifstream         rst_strm;
   char*            session;
   vector<Element*> elmt;
   FEML*            file;
@@ -120,10 +118,10 @@ int main (int    argc,
   BCmgr*           bman;
   BoundarySys*     bsys;
   Domain*          domain;
-  STABAnalyser*     adjunct;
-  integer       i, it_start, itrn, j, converged = 0;  
-  real          norm, resnorm;
-  int           Total_step = 0;  // default value is overiden by restart
+  STABAnalyser*    adjunct;
+  integer          i, it_start, itrn, j, converged = 0;  
+  real             norm, resnorm;
+  int              Total_step = 0;
 
 
   Femlib::initialize (&argc, &argv);
@@ -156,10 +154,8 @@ int main (int    argc,
       
     }
     else message ("arnoldi", "no restart file found", ERROR);
-  }
-  else {
+  } else
     check_input(kdim, nvec, nits);
-  }
 
   preprocess (session, file, mesh, elmt, bman, bsys, domain);
 
@@ -173,20 +169,19 @@ int main (int    argc,
 
   domain -> report();
 
-  create_eigstrm(eig_strm, domain-> name);  
+  create_eigstrm (eig_strm, domain -> name);  
     		 
-  int  DIM =  domain -> nField() -1;
+  int DIM = domain -> nField() -1;
   
   cout << "DIM ....." << DIM << endl;
-  int ntot = (domain -> nField() -1) * Geometry::planeSize();
 
-  arnoldi_report(ntot, kdim, nits, DIM);
+  int ntot = (domain -> nField() - 1) * Geometry::planeSize();
+
+  arnoldi_report (ntot, kdim, nits, DIM);
   
   // -- Allocate eigenproblem storage.
 
-  vector<real>  work (kdim + kdim + (kdim * kdim) +
-		      3*ntot*(kdim + 1) );
-
+  vector<real>  work (kdim + kdim + (kdim * kdim) + 3*ntot*(kdim + 1));
   real*         wr   = work();
   real*         wi   = wr   + kdim;
   real*         zvec = wi   + kdim;
@@ -203,37 +198,36 @@ int main (int    argc,
     Eseq[i] = evec + i * ntot;
   }
 
+  // -- Construct or load Krylov matrix.
 
-  // ****************************************************************
-  // ************** construct or load krylov matrix *****************
-  // ****************************************************************
+  if (!restart) {		// -- Construct.
 
-  if (!restart) { // ************ construction ************
-
-    // -- Generate random initial guess, this random is 0 - 1 !?
-    Veclib::vrandom (ntot, Kseq[0], 1); 
-    // shift to range (-0.5 to 0.5)
-    Veclib::sadd (ntot, -0.5, Kseq[0], 1, Kseq[0], 1); 
-
+    if (domain -> loaded())
+      for (j = 0; j < DIM; j++)
+	domain -> u[j] -> getPlane (0, j * Geometry::planeSize() + Kseq[0]);
+    else
+      Veclib::vnormal (ntot, 0.0, 1.0, Kseq[0], 1); 
     norm = Blas::nrm2 (ntot, Kseq[0], 1);
     Blas::scal (ntot, 1.0/norm, Kseq[0], 1);
 
     // -- Fill initial Krylov sequence.
+
     for (i = 1; i <= kdim; i++) {
 
-      // copy Kseq[i-1] across to domain structure 
-      for (j = 0; j < DIM; j++) {
-	domain -> u[j]->setPlane(0, j * Geometry::planeSize() + Kseq[i-1]);
-      }
+      // -- copy Kseq[i-1] across to domain structure.
 
-      // call to Linear NS routine to fill Kseq.
-      domain -> step = 0;
+      for (j = 0; j < DIM; j++)
+	domain -> u[j] -> setPlane (0, j * Geometry::planeSize() + Kseq[i-1]);
+
+      // -- call to Linear NS routine to fill Kseq.
+
       NavierStokes (domain, adjunct);
-      Total_step += domain->step;
+      Total_step = domain->step;
 
-      // copy out fields from NS to Kseq[i]
-      for(j = 0; j < DIM; j++)
-	domain -> u[j]->getPlane(0, j* Geometry::planeSize() + Kseq[i]);
+      // -- copy out fields from NS to Kseq[i].
+
+      for (j = 0; j < DIM; j++)
+	domain -> u[j] -> getPlane (0, j * Geometry::planeSize() + Kseq[i]);
  
       Veclib::copy (ntot * (kdim + 1), kvec, 1, tvec, 1);
 
@@ -241,22 +235,19 @@ int main (int    argc,
       EV_test  (i, i, zvec, wr, wi, resnorm, evtol, i, Total_step,
 		restart, domain->time);
     }
-    // write restart file now and at end of iterations.
+
     cout << "matrix constructed ... writing restart";
 
     write_restart(session, kdim, nits, nvec, ntot, Total_step,
 		  evtol, domain->time, kvec);
-  }
-  else { // *************** restarting from krylov matrix *********
+
+  } else {			// -- Load from file.
 
     cout << "loading krylov matrix.....";
 
     // binary read of date -> make sure endl is removed.
     while (rst_strm.get() != '\n') continue;
     rst_strm.read((char *) kvec, (ntot*(kdim+1)*sizeof(real)));
-
-    // check input is sensible (enabled if debugging)
-    // for (int q = 0 ;q <10 ;q++) cout << setw(20) << kvec[q] << endl;
 
     rst_strm.close();
     cout << "done" << endl << endl;
@@ -272,10 +263,6 @@ int main (int    argc,
 
   // construct command for stop file test.
   strcat(strcat( strcpy(stp_cmd, "test -e "), session),".stp");
-
-  // ********************************************************************
-  // **************** Iterative Loop ************************************
-  // ********************************************************************
 
   // -- Carry out iterative solution.
 
@@ -300,10 +287,9 @@ int main (int    argc,
 	domain -> u[j]->setPlane(0, j * Geometry::planeSize() + Kseq[kdim-1]);
 
       // setup and call Linear NS op (pass vector address)
-      // domain -> time = 0.0;
-      domain -> step = 0;
+
       NavierStokes (domain, adjunct);
-      Total_step += domain->step;
+      Total_step = domain->step;
 
       for(j = 0; j < DIM; j++)
 	domain -> u[j]->getPlane(0, j* Geometry::planeSize() + Kseq[kdim]);
@@ -320,15 +306,13 @@ int main (int    argc,
 
   if (stop_cnd) cout << "encountered stop file... stopping program" << endl;
 
-  // ******************************************************************
-  // ************** output results to screen and file *****************
-  // ******************************************************************
-
+  // -- Output results to screen and file.
 
   if (itrn > kdim) write_restart(session, kdim, nits, nvec, ntot,
 				 Total_step, evtol, domain-> time, kvec);
 
-  // - calculate matching eigenvectors.
+  // -- calculate matching eigenvectors.
+
   cout << "calculating eigenvectors with length "<< ntot << endl;
   EV_big (Tseq, Eseq, ntot, kdim, zvec, wr, wi);
 
@@ -336,20 +320,17 @@ int main (int    argc,
   domain -> dump ();
   cout << endl;
  
-  if      (!converged)
+  if (!converged)
     message (prog, "not converged", ERROR);
   else if (converged == nvec) {
     message (prog, ": all estimates converged",  REMARK);
-    
-  }
-  else
+  } else
     message (prog, ": minimum residual reached", REMARK);
 
-  // dump leading eigenvector to field file
-
-
   return (EXIT_SUCCESS);
+
 }
+
 
 // --------------------------------------------------------------------------
 // --------------- EV_small -------------------------------------------------
@@ -681,10 +662,6 @@ static int EV_big (real**  K_Seq,   // Krylov subspace matrix
 
 }
 
-// --------------------------------------------------------------------------
-// --------------- GETARGS --------------------------------------------------
-// --------------------------------------------------------------------------
-
 static void getargs (int    argc,
 		     char** argv ,
 		     int&   kdim , 
@@ -694,9 +671,9 @@ static void getargs (int    argc,
 		     real&  evtol,
 		     int&   restart,
 		     char*& session)
-
-  /* Parse command-line arguments. */
-
+// ---------------------------------------------------------------------------
+// Parse command-line arguments.
+// ---------------------------------------------------------------------------
 {
   char usage[] = "arnoldi [options] session\n"
     "session: specifies name of session file\n"
@@ -750,9 +727,6 @@ static void getargs (int    argc,
   else             session = *argv;
 }
 
-// --------------------------------------------------------------------------
-// --------------- PREPROCESS -----------------------------------------------
-// --------------------------------------------------------------------------
 
 static void preprocess (const char*       session,
 			FEML*&            file   ,
@@ -761,10 +735,10 @@ static void preprocess (const char*       session,
 			BCmgr*&           bman   ,
 			BoundarySys*&     bsys   ,
 			Domain*&          domain )
-
-  /* Create objects needed for execution, given the session file name.
-     They are listed in order of creation. */
-
+// ---------------------------------------------------------------------------
+// Create objects needed for execution, given the session file name.
+// They are listed in order of creation.
+// ---------------------------------------------------------------------------
 {
   const integer      verbose = (integer) Femlib::value ("VERBOSE");
   Geometry::CoordSys space;
@@ -822,14 +796,11 @@ static void preprocess (const char*       session,
   VERBOSE cout << "done" << endl;
 }
 
-// --------------------------------------------------------------------------
-// ---------- check_input ---------------------------------------------------
-// --------------------------------------------------------------------------
 
 void check_input(int kdim, int nvec, int nits)
-
-  /* check arguments and exit if incorrect */
-
+// ---------------------------------------------------------------------------
+// Check arguments and exit if incorrect.
+// ---------------------------------------------------------------------------
 {
   if (kdim < 1)    message (prog, "param error: KDIM must be > 1",     ERROR);
   if (nvec < 1)    message (prog, "param error: NVEC must be > 1",     ERROR);
@@ -837,14 +808,14 @@ void check_input(int kdim, int nvec, int nits)
   if (kdim < nvec) message (prog, "param error: NVEC must be <= KDIM", ERROR);
 }
 
-// --------------------------------------------------------------------------
-// ---------- arnoldi_report ------------------------------------------------
-// --------------------------------------------------------------------------
 
-void arnoldi_report (int ntot, int kdim, int nits, int DIM)
-
-  /* display info on arnoldi matrices */
-
+void arnoldi_report (int ntot,
+		     int kdim,
+		     int nits,
+		     int DIM)
+// ---------------------------------------------------------------------------
+// Display info on arnoldi matrices.
+// ---------------------------------------------------------------------------
 {
   cout << endl;
   cout << "-------- Arnoldi Info" << endl;
@@ -857,6 +828,7 @@ void arnoldi_report (int ntot, int kdim, int nits, int DIM)
 
 }
 
+
 void write_restart (char*   session,
 		    int         kdim,
 		    int         nits,
@@ -866,6 +838,9 @@ void write_restart (char*   session,
 		    real        evtol,
 		    real        NS_time,
 		    real*       Kvec)
+// ---------------------------------------------------------------------------
+//
+// ---------------------------------------------------------------------------
 {
   char  kry_name[StrMax];
 
@@ -895,7 +870,12 @@ void write_restart (char*   session,
   cout << "....done" << endl;
 }
 
-void create_eigstrm(ofstream& strm, char* name)
+
+void create_eigstrm (ofstream& strm,
+		     char*     name)
+// ---------------------------------------------------------------------------
+//
+// ---------------------------------------------------------------------------
 {
   char   str[StrMax], sys_cmd[StrMax];
   int new_file;

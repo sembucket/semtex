@@ -1497,28 +1497,29 @@ AuxField& AuxField::buildMask (const char* function)
 }
 
 
-AuxField& AuxField::update (int nPer_flds, real* FFT_data,
-			    real time, real Period_Time)
-  // ------------------------------------------------------------------------
-  // for each point in 2D base field plane determine a new value based
-  // on fourier transformed periodic data given in ???
-  //
-  // fourier transformed fields have been scaled on creation
-  // ------------------------------------------------------------------------
+AuxField& AuxField::update (int   nPer_flds  ,
+			    real* FFT_data   ,
+			    real  time       ,
+			    real  Period_Time)
+// ---------------------------------------------------------------------------
+// for each point in 2D base field plane determine a new value based
+// on Fourier transformed periodic data given in ???
+//
+// Fourier transformed fields have been scaled on creation
+// ---------------------------------------------------------------------------
 {
   const integer PSize = Geometry::planeSize();
-  const integer Limit    = nPer_flds;
+  const integer Limit = nPer_flds;
+  const real    BetaT = fmod( time, Period_Time )/ Period_Time * TWOPI;
   real          phase;
-
-  // set time as (time modulus Period_Time)
-  real    BetaT = fmod( time, Period_Time )/ Period_Time * TWOPI;
   
-  // for each point in auxfield plane do an inverse fourier transform
+  // -- For each point in auxfield plane do an inverse Fourier transform.
+
   Veclib::copy (PSize, FFT_data, 1, _data, 1);
   Blas::axpy (PSize, cos(0.5*Limit*BetaT), FFT_data + PSize, 1, _data, 1);
 
-  for(int j = 2; j < Limit; j+=2) {
-    phase = (j>>1) *BetaT;
+  for(int j = 2; j < Limit; j += 2) {
+    phase = (j>>1) * BetaT;
     Blas::axpy (PSize,  cos(phase), FFT_data +  j   *PSize, 1, _data, 1);
     Blas::axpy (PSize, -sin(phase), FFT_data + (j+1)*PSize, 1, _data, 1);
   }
@@ -1529,15 +1530,12 @@ AuxField& AuxField::update (int nPer_flds, real* FFT_data,
 
 AuxField& AuxField::randomise ()
 // ---------------------------------------------------------------------------
-// Sets data area to random noise between -0.5 to 0.5
+// Sets data area to Gaussian random noise, variance = 1.0;
 // ---------------------------------------------------------------------------
 {
   const integer ntot = Geometry::nTotProc();
-  
-  // -- Generate random initial guess, this random is 0 - 1 !
-  Veclib::vrandom (ntot, _data, 1); 
-  // shift to range (-0.5 to 0.5)
-  Veclib::sadd (ntot, -0.5, _data, 1, _data, 1); 
+
+  Veclib::vnormal (ntot, 0.0, 1.0, _data, 1); 
 
   return *this;
 }

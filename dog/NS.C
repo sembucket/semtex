@@ -20,7 +20,7 @@
 #include <stab.h>
 #include <Sem.h>
 
-static integer NORD, CYL, C3D, CALLBACK = 0;
+static integer NORD, CYL, C3D;
 
 integer NVEC = 0;  // -- Number of components in perturbation velocity.
 
@@ -60,13 +60,13 @@ void NavierStokes (Domain*       D,
   static AuxField*** Uf;
   static Field*      Pressure;
 
-  if (!CALLBACK) {			// -- Initialise static data.
+  if (D -> step == 0) {			// -- Initialise static data.
     
     // -- Create global matrix systems
 
     MS = preSolve (D);
     
-    // -- Create, initialize multi-level storage for velocities and forcing.
+    // -- Create, initialise multi-level storage for velocities and forcing.
     
     Us = new AuxField** [(size_t) NORD];
     Uf = new AuxField** [(size_t) NORD];
@@ -83,18 +83,8 @@ void NavierStokes (Domain*       D,
 
     // -- Create multi-level storage for pressure BCS.
 
-    Pressure = D -> u[NVEC];
-    PBCmgr::build(Pressure);
-
-  } else {
-  // initialize Us & Uf
-    for (i = 0; i < NORD; i++) {
-      for (j = 0; j < NDIM; j++) {
-	*Us[i][j] = 0.0;
-	*Uf[i][j] = 0.0;
-      }
-    }
-
+    PBCmgr::build (Pressure = D -> u[NVEC]);
+  }
 
   // -- Apply coupling to radial & azimuthal velocity BCs.
 
@@ -102,8 +92,7 @@ void NavierStokes (Domain*       D,
 
   // -- Timestepping loop.
 
-  while (D -> step < nStep) {    
-
+  do {
     D -> step += 1; 
     D -> time += dt;
     Femlib::value ("t", D -> time);
@@ -138,8 +127,8 @@ void NavierStokes (Domain*       D,
     // -- Viscous correction substep.
 
     if (C3D) {
-      AuxField::couple (Uf[0][1], Uf[0][2], +1);
-      AuxField::couple (D -> u[1], D -> u[2], +1);
+      AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
+      AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     }
     for (i = 0; i < NVEC; i++) Solve (D, i, Uf[0][i], MS[i]);
     if (C3D) AuxField::couple (D -> u[1], D -> u[2], INVERSE);
@@ -147,9 +136,8 @@ void NavierStokes (Domain*       D,
     // -- Process results of this step.
 
     A -> analyse (Us[0]);
-  }
 
-//  CALLBACK = 1;	    // -- We can use old values of Us & Uf next time.
+  } while (D -> step % nStep);
 }
 
 static void Linearised (Domain*    D ,
@@ -249,13 +237,10 @@ static void waveProp (Domain*           D ,
      H[i] = D -> u[i];
     *H[i] = 0.0;
   }
-#if 0
-  const integer Je = (CALLBACK) ? NORD : min (D -> step, NORD);
-#else
+
   const integer Je = min (D -> step, NORD);
-#endif
-  vector<real> alpha (Integration::OrderMax + 1);
-  vector<real> beta  (Integration::OrderMax);
+  vector<real>  alpha (Integration::OrderMax + 1);
+  vector<real>  beta  (Integration::OrderMax);
   
   Integration::StifflyStable (Je, alpha());
   Integration::Extrapolation (Je, beta ());
@@ -369,7 +354,7 @@ static void Solve (Domain*       D,
 {
   const integer step = D -> step;
 
-  if ((!CALLBACK) && i < NVEC && step < NORD) {
+  if (i < NVEC && step < NORD) {
 
     // -- We need a temporary matrix system for a viscous solve.
 

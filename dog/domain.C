@@ -24,7 +24,8 @@ Domain::Domain (FEML*             F,
 // New Base Fields will have Uppercase letters to distinquish from
 // perturbed fields (JE - 26/5/99)
 // ---------------------------------------------------------------------------
-  elmt (E)
+  elmt                   (E),
+  _initialised_from_file (0)
 {
   const integer verbose = (integer) Femlib::value ("VERBOSE");
   integer       i, nfield;
@@ -50,6 +51,7 @@ Domain::Domain (FEML*             F,
 
   U   .setSize(2);
   Udat.setSize(2);
+
   // memory and auxfields are created as required in loadbase.
 
 #endif 
@@ -148,17 +150,10 @@ void Domain::restart ()
     }
     file >> *this;
     file.close();
-    transform (FORWARD);
-    ROOTONLY for (i = 0; i < nF; i++) u[i] -> zeroNyquist();
+    _initialised_from_file = 1;
   } else {
-
-#ifdef STABILITY
     cout << "generating random noise";
     for (i = 0; i < nF; i++) u[i] -> randomise();
-#else
-    ROOTONLY cout << "set to zero";
-    for (i = 0; i < nF; i++) *u[i] = 0.0;
-#endif
   }
 
   ROOTONLY cout << endl;
