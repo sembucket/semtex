@@ -325,7 +325,7 @@ void yy_help (void)
   fprintf 
     (stderr, 
      "Unary    : -\n"
-     "Binary   : -, +, *, /, ^ (exponentiation), ~ (atan2), % (fmod)\n"
+     "Binary   : -, +, *, /, ^ (exponentiation), ~ (atan2), %% (fmod)\n"
      "Functions: sin,  cos,  tan,  abs, floor, ceil, int,  heav (Heaviside),\n"
      "           asin, acos, atan, log, log10, exp,  sqrt,\n"
      "           sinh, cosh, tanh, erf, erfc\n");
