@@ -6,9 +6,7 @@
 
 ARCH = $(shell uname -s)
 
-OPTIONS  = -g
-
-FEMHOME  = ..
+SEMHOME  = ..
 LIB      = libfem.a
 
 DEFINES  =
@@ -19,10 +17,11 @@ endif
 CC	 = cc
 CXX	 = CC
 FC	 = f77
+OPTIONS  = -g
 CFLAGS	 = $(OPTIONS)
 FFLAGS   = $(OPTIONS)
 ARFLAGS	 = cr
-CPPFLAGS = -I$(FEMHOME)/include
+CPPFLAGS = -I$(SEMHOME)/include
 RANLIB   =
 
 # -------------- Compiler options for specific machines. ---------------------
@@ -30,13 +29,11 @@ RANLIB   =
 ifeq ($(ARCH),IRIX)			# -- SGI IRIX 32-bit
 CFLAGS     = $(DEFINES) -fullwarn -O2
 FFLAGS     = $(DEFINES) -O2
-F77LIBS    = -lcomplib.sgimath -lftn
 endif
 
 ifeq ($(ARCH),IRIX64)			# -- SGI IRIX 64-bit
 CFLAGS     = $(DEFINES) -fullwarn -mips4 -O2
 FFLAGS     = $(DEFINES) -mips4 -O2
-F77LIBS    = -lcomplib.sgimath -lftn
 endif
 
 ifeq ($(ARCH),OSF1)			# -- DEC Alpha OSF1
@@ -44,7 +41,6 @@ FC	   = f90
 CXX	   = cxx
 CFLAGS     = $(DEFINES) -migrate -fast -tune host -O4
 FFLAGS     = $(DEFINES) -migrate -fast -tune host -O5
-F77LIBS    = -ldxml
 endif
 
 ifeq ($(ARCH),Linux)			# -- GNU/Linux system
@@ -57,28 +53,15 @@ RANLIB     = ranlib
 endif
 
 ifeq ($(ARCH),UNIX_System_V)            # -- Fujitsu VPP300
-LIBDIR     = -L$(SEM)/lib/$(ARCH) 
-LIBDIR    += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib 
-LIBS       = -lfem -lalp
-LIBS      += -lblasvpp -lm -lfj90fv -lfj90 -lfj90f -ljsp -lvfl
 CC         = vcc
 FC         = frt
-CXX        = /usr/uxp/C++/bin/CC
-LD         = /usr/uxp/C++/bin/CC
-OPTIM      = -Wv,-m3,-Om,-te
-CXXFLAGS   = $(OPTIM)
-CFLAGS     = $(OPTIM)
-LDFLAGS    = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS)
+CFLAGS     = -Wv,-m3,-Om,-te
 FFLAGS     = -Wv,-m3,-te
-RANLIB     = 
 endif
 
 ifeq ($(ARCH),SUPER-UX)                 # -- NEC SX-4
-CC         = cc
-FC         = f77
 CFLAGS     = -pvctl,fullmsg -O nooverlap -float0
 FFLAGS     = -Wf'-pvctl,fullmsg -ptr byte' -float0 -ew
-RANLIB     = 
 endif
 
 
@@ -112,31 +95,31 @@ endif
 # -- Install library & associated header files.
 
 install:
-	if test ! -d $(FEMHOME)/lib 		;		then	\
-		mkdir $(FEMHOME)/lib 		; 		fi;	\
-	if test ! -d $(FEMHOME)/lib/$(ARCH) 	;		then	\
-		mkdir $(FEMHOME)/lib/$(ARCH)	; 		fi;	\
+	if test ! -d $(SEMHOME)/lib 		;		then	\
+		mkdir $(SEMHOME)/lib 		; 		fi;	\
+	if test ! -d $(SEMHOME)/lib/$(ARCH) 	;		then	\
+		mkdir $(SEMHOME)/lib/$(ARCH)	; 		fi;	\
 	if test -r $(LIB) 			;		then	\
-		rm -f $(FEMHOME)/lib/$(ARCH)/$(LIB)	;		\
-		cp $(LIB) $(FEMHOME)/lib/$(ARCH)	;	fi
+		rm -f $(SEMHOME)/lib/$(ARCH)/$(LIB)	;		\
+		cp $(LIB) $(SEMHOME)/lib/$(ARCH)	;	fi
 
-	rm -f $(FEMHOME)/include/femdef.h;				\
-	rm -f $(FEMHOME)/include/femlib.h;				\
-	rm -f $(FEMHOME)/include/Femlib.h;				\
+	rm -f $(SEMHOME)/include/femdef.h;				\
+	rm -f $(SEMHOME)/include/femlib.h;				\
+	rm -f $(SEMHOME)/include/Femlib.h;				\
 
-	cp femdef.h    $(FEMHOME)/include	;			\
-	cp femlib.h    $(FEMHOME)/include	;			\
-	cp Femlib.h    $(FEMHOME)/include	;			\
+	cp femdef.h    $(SEMHOME)/include	;			\
+	cp femlib.h    $(SEMHOME)/include	;			\
+	cp Femlib.h    $(SEMHOME)/include	;			\
 
 initial.o: defaults.h
 
 testpoly: testpoly.c
-	cc $(CFLAGS) -o testpoly testpoly.c -I$(FEMHOME)/include -I. \
-	-L$(FEMHOME)/lib -lfem -lalp -lm -lmalloc
+	cc $(CFLAGS) -o testpoly testpoly.c -I$(SEMHOME)/include -I. \
+	-L$(SEMHOME)/lib -lfem -lalp -lm -lmalloc
 
 testFFT: testFFT.C
-	$(CXX) -o $@ testFFT.C temfft.o -I$(FEMHOME)/include -I. -g \
-	-L$(FEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lftn -lm
+	$(CXX) -o $@ testFFT.C temfft.o -I$(SEMHOME)/include -I. -g \
+	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lftn -lm
 
 tar:
 	tar cvf femlib.tar *
@@ -183,7 +166,7 @@ endif
 
 ifeq ($(ARCH),SUPER-UX)
 temfftd.o: temfftd.F
-        f77 -c -Wf'-pvctl,fullmsg' -float0 -ew temfftd.F
+	f77 -c -Wf'-pvctl,fullmsg' -float0 -ew temfftd.F
 temffts.o: temffts.F
-        f77 -c -Wf'-pvctl,fullmsg' -float0 -ew temffts.F
+	f77 -c -Wf'-pvctl,fullmsg' -float0 -ew temffts.F
 endif
