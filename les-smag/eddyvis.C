@@ -99,9 +99,7 @@ static void strainRate (const Domain* D ,
 	else         *Uf[i + j - 1] += *tp1;
       }
   
-    for (i = 0; i < DIM; i++)
-      for (j = i + 1; j < DIM; j++)
-	*Uf[i + j - 1] *= 0.5;
+    for (i = 0; i < DIM; i++) *Uf[i] *= 0.5;
   
     // -- Diagonal.
 
@@ -124,9 +122,7 @@ static void strainRate (const Domain* D ,
 	else         *Uf[i + j - 1] += *tmp;
       }
       
-    for (i = 0; i < DIM; i++)
-      for (j = i + 1; j < DIM; j++)
-	*Uf[i + j - 1] *= 0.5;
+    for (i = 0; i < DIM; i++) *Uf[i] *= 0.5;
 
     // -- Diagonal.
 
@@ -155,12 +151,16 @@ static void viscoModel (const Domain* D ,
 // For RNG, the "decreed" value of C_SMAG = 0.1114, RNG_C = 75, RNG_BIG = 500.
 // ---------------------------------------------------------------------------
 {
-  register integer i, j, k;
+  register integer i, k;
   const integer    nP     = Geometry::nPlane();
   const integer    NP     = Geometry::planeSize();
   const integer    nPR    = Geometry::nProc();
   const integer    nZ     = Geometry::nZProc();
+#if defined (ALIAS)
+  const integer    nZ32   = nZ; assert (Geometry::nProc() == 1);
+#else
   const integer    nZ32   = (nPR > 1) ? nZ : (3 * nZ) >> 1;
+#endif
   const integer    nTot32 = nZ32 * NP;
   const real       Cs     = Femlib::value ("C_SMAG");
   const real       molvis = Femlib::value ("REFVIS");
@@ -176,10 +176,8 @@ static void viscoModel (const Domain* D ,
   Veclib::zero (nTot32, sum, 1);
   
   for (i = 0; i < DIM; i++) {
-    for (j = i + 1; j < DIM; j++) {
-      Uf[i + j - 1] -> transform32 (INVERSE, tmp);
-      Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
-    }
+    Uf[i] -> transform32 (INVERSE, tmp);
+    Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
   }
   Blas::scal (nTot32, 2.0, sum, 1);
 

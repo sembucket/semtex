@@ -18,6 +18,10 @@ ifdef DAMPING		# -- Compile in van-Driest damping (caveat emptor).
   DEFINES += -DDAMPING
 endif
 
+ifdef ALIAS		# -- No dealiasing done.
+  DEFINES += -DALIAS
+endif
+
 # ----------------------------------------------------------------------------
 #
 SEMFILES  = analysis auxfield BCmgr boundary bsys condition domain \

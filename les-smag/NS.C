@@ -283,7 +283,11 @@ static void nonLinear (Domain*       D ,
   const integer     nPP    = Geometry::nBlock();
   const integer     nPR    = Geometry::nProc();
   const integer     nTot   = nZP * nP;
+#if defined (ALIAS)
+  const integer     nZ32   = nZP; assert (Geometry::nProc() == 1);
+#else
   const integer     nZ32   = (nPR > 1) ? nZP : (3 * nZ) >> 1;
+#endif
   const integer     nTot32 = nZ32 * nP;
   vector<real>      work ((2 * NDIM + 1) * nTot32);
   vector<real*>     u32 (NDIM);
