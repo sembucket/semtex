@@ -15,7 +15,7 @@ RCSid[] = "$Id$";
 #include <Sem.h>
 
 typedef ModalMatrixSystem ModeSys;
-static  integer           DIM, NZ;
+static  integer           DIM;
 
 static void  nonLinear (Domain*, AuxField***, AuxField***);
 static void  buoyancy  (Domain*, AuxField***, AuxField***, vector<real>&);
@@ -39,12 +39,12 @@ void NavierStokes (Domain*   D,
 // ---------------------------------------------------------------------------
 {
   DIM = Geometry::nDim();
-  NZ  = Geometry::nZ();
 
   integer       i, j;
   const real    dt     =           Femlib::value ("D_T");
   const integer nOrder = (integer) Femlib::value ("N_TIME");
   const integer nStep  = (integer) Femlib::value ("N_STEP");
+  const integer nZ     = Geometry::nZProc();
 
   // -- Set up gravity vector.  Note directional components g_1, g_2, g_3.
   
@@ -70,8 +70,8 @@ void NavierStokes (Domain*   D,
     Us[i] = new AuxField* [nOrder];
     Uf[i] = new AuxField* [nOrder];
     for (j = 0; j < nOrder; j++) {
-      *(Us[i][j] = new AuxField (D -> Esys, NZ)) = 0.0;
-      *(Uf[i][j] = new AuxField (D -> Esys, NZ)) = 0.0;
+      *(Us[i][j] = new AuxField (D -> Esys, nZ)) = 0.0;
+      *(Uf[i][j] = new AuxField (D -> Esys, nZ)) = 0.0;
     }
   }
 
@@ -165,9 +165,13 @@ static void nonLinear (Domain*     D ,
 
 #else
 
+  const integer     nZ     = Geometry::nZ();
+  const integer     nZP    = Geometry::nZProc();
   const integer     nP     = Geometry::planeSize();
-  const integer     nTot   = NZ * nP;
-  const integer     nZ32   = (3 * NZ) >> 1;
+  const integer     nPP    = Geometry::nBlock();
+  const integer     nPR    = Geometry::nProc();
+  const integer     nTot   = nZP * nP;
+  const integer     nZ32   = (nPR > 1) ? nZP : (3 * nZP) >> 1;
   const integer     nTot32 = nZ32 * nP;
   vector<real>      work ((2 * (DIM + 1) + 1) * nTot32);
   vector<real*>     u32 (DIM + 1);
@@ -192,16 +196,18 @@ static void nonLinear (Domain*     D ,
   for (i = 0; i <= DIM; i++) {
     for (j = 0; j < DIM; j++) {
       
-      // -- Perform n_i = u_j d(u_i) / dx_j.
+      // -- Perform n_i += u_j d(u_i) / dx_j.
 
       Veclib::copy (nTot32, u32[i], 1, tmp,  1);
       if (j == 2) {
-	Femlib::DFTr (tmp, nZ32, nP, +1);
-	Veclib::zero (nTot32 - nTot, tmp + nTot, 1);
-	master -> gradient (NZ, tmp, j);
-	Femlib::DFTr (tmp, nZ32, nP, -1);
+	Femlib::transpose  (tmp, nZ32,        nP, +1);
+	Femlib::DFTr       (tmp, nZ32 * nPR, nPP, +1);
+	Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
+	master -> gradient (nZ,  nPP, tmp, j);
+	Femlib::DFTr       (tmp, nZ32 * nPR, nPP, -1);
+	Femlib::transpose  (tmp, nZ32,        nP, -1);
       } else {
-	master -> gradient (nZ32, tmp, j);
+	master -> gradient (nZ32, nP, tmp, j);
       }
       Veclib::vvtvp (nTot32, u32[j], 1, tmp,  1, n32[i], 1, n32[i], 1);
 
@@ -209,15 +215,17 @@ static void nonLinear (Domain*     D ,
 
       Veclib::vmul  (nTot32, u32[i], 1, u32[j], 1, tmp,  1);
       if (j == 2) {
-	Femlib::DFTr (tmp, nZ32, nP, +1);
-	Veclib::zero (nTot32 - nTot, tmp + nTot, 1);
-	master -> gradient (NZ, tmp, j);
-	Femlib::DFTr (tmp, nZ32, nP, -1);
+	Femlib::transpose  (tmp, nZ32,        nP, +1);
+	Femlib::DFTr       (tmp, nZ32 * nPR, nPP, +1);
+	Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
+	master -> gradient (nZ,  nPP, tmp, j);
+	Femlib::DFTr       (tmp, nZ32 * nPR, nPP, -1);
+	Femlib::transpose  (tmp, nZ32,        nP, -1);
       } else {
-	master -> gradient (nZ32, tmp, j);
+	master -> gradient (nZ32, nP, tmp, j);
       }
       Veclib::vadd (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
-
+	
     }
     N[i]   -> transform32 (n32[i], +1);
     master -> smooth (N[i]);
@@ -303,9 +311,6 @@ static void setPForce (const AuxField*** Us,
 // On input, intermediate velocity storage u^ is in first time-level of Us.
 // Create div u^ / D_T in the first dimension, first level storage
 // of Uf as a forcing field for discrete PPE.
-//
-// A plane-swapping operation takes place in the first time level of the
-// Fourier direction of Uf as a result of gradient operation.
 // ---------------------------------------------------------------------------
 {
   integer    i;
@@ -331,10 +336,6 @@ static void project (const Domain* D ,
 // level u^ is stored in lowest level of Us.  Constrain velocity field:
 //                    u^^ = u^ - D_T * grad P;
 // u^^ is left in lowest level of Uf.
-//
-// A frame-swapping operation takes place in the first time level of the
-// Fourier direction of Uf.  This returns to original place the swapping done
-// by setPForce.
 //
 // In addition, the intermediate temperature Field is transferred from the
 // lowest level of Us to Uf for subsequent operations.
@@ -380,15 +381,16 @@ static ModeSys** preSolve (const Domain* D)
 // ---------------------------------------------------------------------------
 {
   char                 name;
-  integer              i, base = 0;
-  const integer        nSys    = D -> Nsys.getSize();
-  const integer        nModes  = Geometry::nMode();
-  const integer        itLev   = (integer) Femlib::value ("ITERATIVE");
-  const integer        nOrder  = (integer) Femlib::value ("N_TIME");
-  const real           beta    = Femlib::value ("BETA");
-  ModeSys**            M       = new ModeSys* [DIM + 2];
-  vector<Element*>&    E       = ((Domain*) D) -> Esys;
-  const NumberSystem** N       = new const NumberSystem* [3];
+  integer              i;
+  const integer        nSys   = D -> Nsys.getSize();
+  const integer        nmodes = Geometry::nModeProc();
+  const integer        base   = Geometry::baseMode();
+  const integer        itLev  = (integer) Femlib::value ("ITERATIVE");
+  const integer        nOrder = (integer) Femlib::value ("N_TIME");
+  const real           beta   = Femlib::value ("BETA");
+  ModeSys**            M      = new ModeSys* [DIM + 2];
+  vector<Element*>&    E      = ((Domain*) D) -> Esys;
+  const NumberSystem** N      = new const NumberSystem* [3];
 
   // -- Velocity and temperature systems.
 
@@ -403,7 +405,7 @@ static ModeSys** preSolve (const Domain* D)
     for (i = 0; i < DIM; i++) {
       name = D -> u[i] -> name();
       D -> setNumber (name, N);
-      M[i] = new ModalMatrixSystem (lambda2, beta, name, base, nModes, E, N);
+      M[i] = new ModalMatrixSystem (lambda2, beta, name, base, nmodes, E, N);
     }
 
     // -- Temperature.
@@ -412,7 +414,7 @@ static ModeSys** preSolve (const Domain* D)
 
     name    = D -> u[DIM] -> name();
     D -> setNumber (name, N);
-    M[DIM]  = new ModalMatrixSystem (lambda2, beta, name, base, nModes, E, N);
+    M[DIM]  = new ModalMatrixSystem (lambda2, beta, name, base, nmodes, E, N);
 
   } else
     for (i = 0; i <= DIM; i++) M[i] = 0;
@@ -422,7 +424,7 @@ static ModeSys** preSolve (const Domain* D)
   if (itLev < 2) {
     name    = D -> u[DIM + 1] -> name();
     D -> setNumber (name, N);
-    M[DIM + 1] = new ModalMatrixSystem (0.0, beta, name, base, nModes, E, N);
+    M[DIM + 1] = new ModalMatrixSystem (0.0, beta, name, base, nmodes, E, N);
   } else
     M[DIM + 1] = 0;
 

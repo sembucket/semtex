@@ -43,9 +43,15 @@ endif
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha.
 CXX	 = cxx
 LD	 = cxx
-CXXFLAGS =  $(DEFINES) -migrate -tune host -g
+CXXFLAGS =  $(DEFINES) -tune host -O2
 F77LIBS  = -ldxml
-LDFLAGS  = $(CXXFLAGS) -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+ifdef MPI
+  CXXFLAGS += -thread_safe
+  LDFLAGS   = $(CXXFLAGS) -threads -L/usr/local/mpi/lib/alpha/ch_shmem	\
+	     -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm -lmpi
+else
+  LDFLAGS  = $(CXXFLAGS) -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+endif
 endif
 
 ifeq ($(ARCH),Linux)		# -- GNU/Linux system.
@@ -114,3 +120,4 @@ clean:
 	rm -f *.o *~
 	rm -rf ILDUMPS
 	rm -rf ii_files
+	rm -rf ptrepository

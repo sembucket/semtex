@@ -4,6 +4,7 @@
 // SYNOPSIS:
 // --------
 // Control spectral element unsteady incompressible/buoyant flow solver.
+// Cartesian coordinates only.
 //
 // USAGE:
 // -----
@@ -55,8 +56,8 @@ integer main (integer argc,
   Domain*   D;
   Analyser* A;
   
-  Femlib::prep ();
-  getargs      (argc, argv, session);
+  Femlib::initialize (&argc, &argv);
+  getargs (argc, argv, session);
 
   F = new FEML  (session);
   M = new Mesh  (*F);
@@ -74,9 +75,11 @@ integer main (integer argc,
   A = new Analyser (*D, *F);
 
   D -> initialize();
-  D -> report();
+  ROOTONLY D -> report();
 
   NavierStokes (D, A);
+
+  Femlib::finalize ();
 
   return EXIT_SUCCESS;
 }
