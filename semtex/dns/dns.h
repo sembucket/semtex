@@ -1,14 +1,14 @@
 #ifndef DNS_H
 #define DNS_H
 //////////////////////////////////////////////////////////////////////////////
-// dns_h: header file for direct numerical simulation solver.
+// dns.h: header file for direct numerical simulation solver.
 //
-// Copyright (c) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include <sem.h>
+#include "sem.h"
 
 
 class DNSAnalyser : public Analyser
@@ -17,12 +17,22 @@ class DNSAnalyser : public Analyser
 // ===========================================================================
 {
 public:
-  DNSAnalyser  (Domain*, FEML*);
+  DNSAnalyser  (Domain*, BCmgr*, FEML*);
   void analyse (AuxField**);
 
 private:
-  ofstream flx_strm;
+  ofstream       _flx_strm;
+
+  bool           _wss; // -- Shorthand for Wall Shear Stress/traction.
+  ofstream       _wss_strm;
+  int_t          _nline;
+  int_t          _nwall;
+  int_t          _npad;
+  
+  vector<real_t> _work;
+
+  void extract_wall ();
 };
 
-void nonLinear (Domain*, AuxField**, AuxField**, vector<real>&);
+void nonLinear (Domain*, AuxField**, AuxField**, vector<real_t>&);
 #endif

@@ -55,7 +55,7 @@ int main (int    argc,
 
   preprocess (session, file, mesh, elmt, bman, bsys, domain);
 
-  analyst = new DNSAnalyser (domain, file);
+  analyst = new DNSAnalyser (domain, bman, file);
   
   if (file -> seek ("CUT")) discharge = new Flowrate (domain, file);
 
@@ -106,12 +106,8 @@ static void getargs (int    argc   ,
       while (*++argv[0] == 'v');
       break;
     case 'c':
-      if (strstr ("chk", *argv)) {
-	Femlib::ivalue ("CHKPOINT", static_cast<int>(1));
-      } else {
-	fprintf (stdout, usage, prog);
-	exit (EXIT_FAILURE);	  
-      }
+      if (strstr ("chk", *argv)) Femlib::ivalue ("CHKPOINT", 1);
+      else { fprintf (stdout, usage, prog); exit (EXIT_FAILURE); }
       break;
     default:
       sprintf (buf, usage, prog);
@@ -122,6 +118,10 @@ static void getargs (int    argc   ,
   
   if   (argc != 1) message (routine, "no session definition file", ERROR);
   else             session = *argv;
+
+  // -- Install default values of special tokens:
+
+  Femlib::ivalue ("IO_WSS", 0);	// -- Toggle for output of wall traction.
 }
 
 

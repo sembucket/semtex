@@ -129,7 +129,7 @@ real Flowrate::getQ () const
   real Q = 0.0;
   
   for (c = _curve.begin(); c != _curve.end(); c++)
-    Q += (*c)->normalFlux ("flowrate", _src->udat[0], _src->udat[1], &work[0]);
+    Q += (*c)->vectorFlux ("flowrate", _src->udat[0], _src->udat[1], &work[0]);
   
   return Q;
 }

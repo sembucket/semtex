@@ -13,19 +13,19 @@ public:
   BoundarySys (BCmgr*, const vector<Element*>&, const char);
   ~BoundarySys () { };
 
-  char                     field () const { return field_name; }
-  integer                  nSurf () const { return nbound; }
-  integer                  mixBC () const { return mixed; }
-  const vector<Boundary*>& BCs   (const integer) const;
-  const NumberSys*         Nsys  (const integer) const;
-  const real*              Imass (const integer) const;
+  char                     field () const { return _field_name; }
+  int_t                    nSurf () const { return _nbound; }
+  int_t                    mixBC () const { return _mixed; }
+  const vector<Boundary*>& BCs   (const int_t) const;
+  const NumberSys*         Nsys  (const int_t) const;
+  const real*              Imass (const int_t) const;
 
 private:
-  char               field_name;
-  integer            nbound    ;  // Number of element edges with BCs.
-  integer            mixed     ;  // Flags presence of mixed BC type.
-  vector<Boundary*>* boundary  ;  // Boundary*'s           for modes 0, 1, 2.
-  NumberSys**        number    ;  // NumberSys*'s          for modes 0, 1, 2.
+  char               _field_name;
+  int_t              _nbound    ;  // Number of element edges with BCs.
+  bool               _mixed     ;  // Flags presence of mixed BC type.
+  vector<Boundary*>* _boundary  ;  // Boundary*'s           for modes 0, 1, 2.
+  NumberSys**        _number    ;  // NumberSys*'s          for modes 0, 1, 2.
 
   void buildbcs (const BCmgr*, const vector<Element*>&);
 };

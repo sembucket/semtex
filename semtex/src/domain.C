@@ -24,11 +24,11 @@ Domain::Domain (FEML*             F,
 // ---------------------------------------------------------------------------
   elmt (E)
 {
-  const integer verbose = Femlib::ivalue ("VERBOSE");
-  const integer nz   = Geometry::nZProc();
-  const integer ntot = Geometry::nTotProc();
-  integer       i, nfield;
-  real*         alloc;
+  const int_t verbose = Femlib::ivalue ("VERBOSE");
+  const int_t nz   = Geometry::nZProc();
+  const int_t ntot = Geometry::nTotProc();
+  int_t       i, nfield;
+  real_t*     alloc;
 
   strcpy ((name = new char [strlen (F -> root()) + 1]), F -> root());
   Femlib::value ("t", time = 0.0);
@@ -53,7 +53,7 @@ Domain::Domain (FEML*             F,
   u   .resize (nfield);
   udat.resize (nfield);
 
-  alloc = new real [static_cast<size_t>(nfield * ntot)];
+  alloc = new real_t [static_cast<size_t>(nfield * ntot)];
   for (i = 0; i < nfield; i++) {
     udat[i] = alloc + i * ntot;
     u[i]    = new Field (b[i], udat[i], nz, E, field[i]);
@@ -68,13 +68,13 @@ void Domain::report ()
 // Print a run-time summary of domain & timestep information on cout.
 // ---------------------------------------------------------------------------
 {
-  const real    t   = time;
-  const real    dt  = Femlib:: value ("D_T");
-  const real    lz  = Femlib:: value ("TWOPI / BETA");
-  const integer ns  = Femlib::ivalue ("N_STEP");
-  const integer nt  = Femlib::ivalue ("N_TIME");
-  const integer chk = Femlib::ivalue ("CHKPOINT");
-  const integer per = Femlib::ivalue ("IO_FLD");
+  const real_t t   = time;
+  const real_t dt  = Femlib:: value ("D_T");
+  const real_t lz  = Femlib:: value ("TWOPI / BETA");
+  const int_t  ns  = Femlib::ivalue ("N_STEP");
+  const int_t  nt  = Femlib::ivalue ("N_TIME");
+  const int_t  chk = Femlib::ivalue ("CHKPOINT");
+  const int_t  per = Femlib::ivalue ("IO_FLD");
 
   cout << "-- Coordinate system       : ";
   if (Geometry::cylindrical())
@@ -109,9 +109,9 @@ void Domain::restart ()
 // Carry out forwards Fourier transformation, zero Nyquist data.
 // ---------------------------------------------------------------------------
 {
-  integer       i;
-  const integer nF = nField();
-  char          restartfile[StrMax];
+  int_t       i;
+  const int_t nF = nField();
+  char        restartfile[StrMax];
   
   ROOTONLY cout << "-- Initial condition       : ";
   ifstream file (strcat (strcpy (restartfile, name), ".rst"));
@@ -145,9 +145,9 @@ void Domain::dump ()
 // provide physical space values.
 // ---------------------------------------------------------------------------
 {
-  const integer periodic = !(step %  Femlib::ivalue ("IO_FLD"));
-  const integer initial  =   step == Femlib::ivalue ("IO_FLD");
-  const integer final    =   step == Femlib::ivalue ("N_STEP");
+  const bool periodic = !(step %  Femlib::ivalue ("IO_FLD"));
+  const bool initial  =   step == Femlib::ivalue ("IO_FLD");
+  const bool final    =   step == Femlib::ivalue ("N_STEP");
 
   if (!(periodic || final)) return;
   ofstream output;
@@ -155,10 +155,10 @@ void Domain::dump ()
   Femlib::synchronize();
 
   ROOTONLY {
-    const char    routine[] = "Domain::dump";
-    char          dumpfl[StrMax], backup[StrMax], command[StrMax];
-    const integer verbose   = Femlib::ivalue ("VERBOSE");
-    const integer chkpoint  = Femlib::ivalue ("CHKPOINT");
+    const char  routine[] = "Domain::dump";
+    char        dumpfl[StrMax], backup[StrMax], command[StrMax];
+    const int_t verbose   = Femlib::ivalue ("VERBOSE");
+    const int_t chkpoint  = Femlib::ivalue ("CHKPOINT");
 
     if (chkpoint) {
       if (final) {
@@ -197,13 +197,13 @@ void Domain::dump ()
 }
 
 
-void Domain::transform (const integer sign)
+void Domain::transform (const int_t sign)
 // ---------------------------------------------------------------------------
 // Fourier transform all Fields according to sign.
 // ---------------------------------------------------------------------------
 {
-  integer       i;
-  const integer N = this -> nField ();
+  int_t       i;
+  const int_t N = this -> nField ();
   
   for (i = 0; i < N; i++) u[i] -> transform (sign);
 }
@@ -217,8 +217,8 @@ ofstream& operator << (ofstream& strm,
 // processor.
 // ---------------------------------------------------------------------------
 {
-  integer           i;
-  const integer     N = D.u.size();
+  int_t             i;
+  const int_t       N = D.u.size();
   vector<AuxField*> field (N);
 
   for (i = 0; i < N; i++) field[i] = D.u[i];
@@ -241,9 +241,9 @@ ifstream& operator >> (ifstream& strm,
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "strm>>Domain";
-  integer    i, j, np, nz, nel, ntot, nfields;
-  integer    npchk,  nzchk, nelchk;
-  integer    swap = 0, verb = Femlib::ivalue ("VERBOSE");
+  int_t      i, j, np, nz, nel, ntot, nfields;
+  int_t      npchk,  nzchk, nelchk;
+  int_t      swap = 0, verb = Femlib::ivalue ("VERBOSE");
   char       s[StrMax], f[StrMax], err[StrMax], fields[StrMax];
 
   if (strm.getline(s, StrMax).eof()) return strm;

@@ -17,19 +17,19 @@ public:
   Domain (FEML*, vector<Element*>&, BCmgr*);
 
   char*                name;	// Session name.
-  integer              step;	// Runtime step number.
-  real                 time;	// Simulation time.
+  int_t                step;	// Runtime step number.
+  real_t               time;	// Simulation time.
   vector<Element*>&    elmt;	// Shared for equal-order interpolations.
-  vector<real*>        udat;	// Data storage area for solution fields.
+  vector<real_t*>      udat;	// Data storage area for solution fields.
   vector<Field*>       u   ;	// Solution fields: velocities, pressure.
   vector<BoundarySys*> b   ;	// Field boundary systems.
 
-  integer  nField    () const { return u.size(); }
-  void report    ();
-  void restart   ();
-  void dump      ();
-  void transform (const integer);
-  void setNumber (const char, const NumberSys**) const;
+  int_t nField    () const { return u.size(); }
+  void  report    ();
+  void  restart   ();
+  void  dump      ();
+  void  transform (const int_t);
+  void  setNumber (const char, const NumberSys**) const;
 
 private:
   char* field;		// Lower-case single character field names.
