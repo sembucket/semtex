@@ -37,7 +37,7 @@ RCSid01[] = "$Id$";
 #include <alplib.h>
 
 
-#define STOP 10
+#define STOP 16
 
 
 
