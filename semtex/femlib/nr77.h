@@ -13,18 +13,19 @@
 #define F77NAME(x) x##_
 
 extern "C" {
-  void   F77NAME(spline) (double*, double*, const int&,
+  void   F77NAME(spline) (const double*, const double*, const int&,
 			  const double&, const double&, double*);
-  void   F77NAME(splint) (double*, double*, double*, const int&,
-			  const double&, double&);
+  void   F77NAME(splint) (const double*, const double*, const double*, 
+			  const int&, const double&, double&);
   double F77NAME(rtsec)  (double(*)(const double&), const double&,
 			  const double&, const double&);
   double F77NAME(golden) (const double&, const double&, const double&,
 			  double(*)(const double&), const double&, double&);
   void   F77NAME(savgol) (double*, const int&, const int&,
 			  const int&, const int&, const int&);
-  void   F77NAME(polint) (double*, double*, const int&, const double&,
-			  double&, double&);
+  void   F77NAME(polint) (const double*, const double*, const int&,
+			  const double&, double&, double&);
+  void   F77NAME(polcoe) (const double*, const double*, const int&, double*);
   void   F77NAME(rk4)    (const double*, const double*, const int&,
 			  const double&, const double&, double*,
 			  void(*)(const double&, const double*, double*));
@@ -39,17 +40,20 @@ extern "C" {
 			  double(*)(const double&), const double&, double&);
   void   F77NAME(mnbrak) (double&, double&, double&, double&, double&, double&,
 			  double(*)(const double&));
+  void   F77NAME(ludcmp) (double*, const int&, const int&, int*, double&);
+  void   F77NAME(lubksb) (const double*, const int&, const int&,
+			  const int*, double*);
 }
 
 
 class Recipes {
 public:
-  static void spline   (double* x, double* y, const int& n,
+  static void spline   (const double* x, const double* y, const int& n,
 			const double& yp1, const double& yp2, double* y2) {
     F77NAME(spline) (x, y, n, yp1, yp2, y2);
   }
-  static void splint   (double* xa, double* ya, double* ya2, const int& n,
-			const double& x, double& y) {
+  static void splint   (const double* xa, const double* ya, const double* ya2,
+			const int& n, const double& x, double& y) {
     F77NAME(splint) (xa, ya, ya2, n, x, y);
   }
   static double rtsec  (double(*func)(const double&), const double& x1,
@@ -65,7 +69,11 @@ public:
 			const int& nr, const int& ld, const int& m) {
     F77NAME(savgol) (c, np, nl, nr, ld, m);
   }
-  static void polint   (double* xa, double* ya, const int& n, 
+  static void polcoe   (const double* x, const double* y,
+			const int& n, double* cof) {
+    F77NAME(polcoe) (x, y, n, cof);
+  }
+  static void polint   (const double* xa, const double* ya, const int& n, 
 			const double& x, double& y, double& dy) {
     F77NAME(polint) (xa, ya, n, x, y, dy);
   }
@@ -97,6 +105,14 @@ public:
 			double& fa, double& fb, double& fc,
 			double(*func)(const double&)) {
     F77NAME(mnbrak) (ax, bx, cx, fa, fb, fc, func);
+  }
+  static void ludcmp   (double* a, const int& n, const int& np,
+			int* indx, double& d) {
+    F77NAME(ludcmp) (a, n, np, indx, d);
+  }
+  static void lubksb (const double* a, const int&n , const int& np,
+		      const int* indx, double* b) {
+    F77NAME(lubksb) (a, n, np, indx, b);
   }
 };
 

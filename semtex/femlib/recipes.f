@@ -191,7 +191,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
       SUBROUTINE polint(xa,ya,n,x,y,dy)
       INTEGER n,NMAX
       DOUBLE PRECISION dy,x,y,xa(n),ya(n)
-      PARAMETER (NMAX=10)
+      PARAMETER (NMAX=32)
       INTEGER i,m,ns
       DOUBLE PRECISION den,dif,dift,ho,hp,w,c(NMAX),d(NMAX)
       ns=1
@@ -226,6 +226,39 @@ C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
         endif
         y=y+dy
 13    continue
+      return
+      END
+C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
+
+      SUBROUTINE polcoe(x,y,n,cof)
+      INTEGER n,NMAX
+      DOUBLE PRECISION cof(n),x(n),y(n)
+      PARAMETER (NMAX=33)
+      INTEGER i,j,k
+      DOUBLE PRECISION b,ff,phi,s(NMAX)
+      do 11 i=1,n
+        s(i)=0.d0
+        cof(i)=0.d0
+11    continue
+      s(n)=-x(1)
+      do 13 i=2,n
+        do 12 j=n+1-i,n-1
+          s(j)=s(j)-x(i)*s(j+1)
+12      continue
+        s(n)=s(n)-x(i)
+13    continue
+      do 16 j=1,n
+        phi=n
+        do 14 k=n-1,1,-1
+          phi=k*s(k+1)+x(j)*phi
+14      continue
+        ff=y(j)/phi
+        b=1.0d0
+        do 15 k=n,1,-1
+          cof(k)=cof(k)+b*ff
+          b=s(k)+x(j)*b
+15      continue
+16    continue
       return
       END
 C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
@@ -529,7 +562,6 @@ C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
       ratval=sumn/(1.0d0+sumd)
       return
       END
-
 C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
 
       FUNCTION brent(ax,bx,cx,f,tol,xmin)
@@ -703,20 +735,21 @@ C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
       return
       END
 C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
+
       SUBROUTINE ludcmp(a,n,np,indx,d)
       INTEGER n,np,indx(n),NMAX
       DOUBLE PRECISION d,a(np,np),TINY
       PARAMETER (NMAX=500,TINY=1.0e-20)
       INTEGER i,imax,j,k
       DOUBLE PRECISION aamax,dum,sum,vv(NMAX)
-      d=1.
+      d=1.0d0
       do 12 i=1,n
-        aamax=0.
+        aamax=0.0d0
         do 11 j=1,n
           if (abs(a(i,j)).gt.aamax) aamax=abs(a(i,j))
 11      continue
-        if (aamax.eq.0.) pause 'singular matrix in ludcmp'
-        vv(i)=1./aamax
+        if (aamax.eq.0.0d0) pause 'singular matrix in ludcmp'
+        vv(i)=1.0d0/aamax
 12    continue
       do 19 j=1,n
         do 14 i=1,j-1
@@ -726,7 +759,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
 13        continue
           a(i,j)=sum
 14      continue
-        aamax=0.
+        aamax=0.0d0
         do 16 i=j,n
           sum=a(i,j)
           do 15 k=1,j-1
@@ -749,9 +782,9 @@ C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
           vv(imax)=vv(j)
         endif
         indx(j)=imax
-        if(a(j,j).eq.0.)a(j,j)=TINY
+        if(a(j,j).eq.0.0d0)a(j,j)=TINY
         if(j.ne.n)then
-          dum=1./a(j,j)
+          dum=1.0d0/a(j,j)
           do 18 i=j+1,n
             a(i,j)=a(i,j)*dum
 18        continue
@@ -760,6 +793,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
       return
       END
 C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
+
       SUBROUTINE lubksb(a,n,np,indx,b)
       INTEGER n,np,indx(n)
       DOUBLE PRECISION a(np,np),b(n)
@@ -774,7 +808,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
           do 11 j=ii,i-1
             sum=sum-a(i,j)*b(j)
 11        continue
-        else if (sum.ne.0.) then
+        else if (sum.ne.0.0d0) then
           ii=i
         endif
         b(i)=sum
