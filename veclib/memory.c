@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 #include <femdef.h>
-#include <alplib.h>
+#include <veclib.h>
 
 #define FREE_ARG  void*
 

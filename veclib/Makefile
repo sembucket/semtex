@@ -7,7 +7,7 @@
 
 SEM    = ..
 SEMSRC = $(SEM)/src
-LIB    = libalp.a
+LIB    = libvec.a
 
 # ----------------------------------------------------------------------------
 # Create dependency list.
@@ -76,13 +76,13 @@ install:
 	if test ! -d   $(SEM)/include       ;               then    \
 		mkdir $(SEM)/include        ;               fi
 
-	rm -f $(SEM)/include/alplib.h;      \
+	rm -f $(SEM)/include/veclib.h;      \
 	rm -f $(SEM)/include/Veclib.h;      \
 	rm -f $(SEM)/include/Utility.h;     \
 	rm -f $(SEM)/include/Blas.h;        \
 	rm -f $(SEM)/include/Lapack.h
 
-	cp alplib.h    $(SEM)/include       ;                       \
+	cp veclib.h    $(SEM)/include       ;                       \
 	cp Veclib.h    $(SEM)/include       ;                       \
 	cp Utility.h   $(SEM)/include       ;                       \
 	cp Blas.h      $(SEM)/include       ;                       \

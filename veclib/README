@@ -1,10 +1,10 @@
 ###############################################################################
-#              L I N E A R    A L G E B R A    P R I M I T I V E S
+#              V E C T O R    A L G E B R A    P R I M I T I V E S
 #
 # $Id$
 ###############################################################################
 
-SYNOPSIS: Linear algebra primitives (alplib).
+SYNOPSIS: Vector algebra primitives (veclib).
 ---------
 
 INTRODUCTION:

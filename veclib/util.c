@@ -11,13 +11,13 @@
 #include <time.h>
 
 #include <femdef.h>
-#include <alplib.h>
+#include <veclib.h>
 
 
-integer _alpIreg[NVREG];	/* For FORTRAN linkage. */
-char    _alpCreg[NVREG];
-float   _alpSreg[NVREG];
-double  _alpDreg[NVREG];
+integer _vecIreg[NVREG];	/* For FORTRAN linkage. */
+char    _vecCreg[NVREG];
+float   _vecSreg[NVREG];
+double  _vecDreg[NVREG];
 
 char     buf[STR_MAX];		/* A string for general use. */
 
