@@ -33,7 +33,7 @@ void svhypot (int n, const float *x, int incx, const float *y, int incy,
   z += (incz<0) ? (-n+1)*incz : 0;
 
   for (i = 0; i < n; i++) {
-#ifdef __GNUC__			/* -- No support for single-precision maths. */
+#if (defined(__GNUC__) || defined (__uxp__)) /* -- No single-precision maths */
     *z = (float) hypot (*x, *y);
 #else
     *z = hypotf (*x, *y);
