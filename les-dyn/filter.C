@@ -105,6 +105,8 @@ void initFilters ()
   Blas::mxm    (*IB, n, *PF, nm, Iu, n);
   Blas::mxm    (*PT, n, *IT, nm, It, n);
 
+  ROOTONLY cout << "-- Spectral projection filter." << endl;
+
 #else              // -- Parameterised Boyd--Vandeven filter.
 
   n     = Geometry::nP();
@@ -127,13 +129,19 @@ void initFilters ()
   It = Iu + n*n;
 
 #if 1
+  ROOTONLY cout << "-- Modal DPT filter." << endl;
   Femlib::modTran (n, &Du, &Dt, 0, &dpt, 0, 0);
 #else
+  ROOTONLY cout << "-- Legendre DPT filter." << endl;
   Femlib::legTran (n, &Du, &Dt, 0, &dpt, 0, 0);
 #endif
 
   for (i = 0; i < n; i++)
     Veclib::smul (n, PolyMask[i], dpt + i*n, 1, It + i*n, 1);
+
+  Blas::mxm    (Dt, n, It, n, Iu, n);
+  Veclib::copy (n*n,   Iu, 1, It, 1);
+
   for (i = 0; i < n; i++)
     for (j = 0; j < n; j++)
       Iu[Veclib::row_major (j, i, n)] = It[Veclib::row_major (i, j, n)];
@@ -160,7 +168,7 @@ void lowpass (real* data)
 
   if (!FourierMask) initFilters();
 
-#if defined (PROJ)
+#if 1
 
   for (i = 0; i < nZP; i++) {
     dataplane = data + i*nP;
@@ -179,3 +187,16 @@ void lowpass (real* data)
 
 #endif
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -116,8 +116,8 @@ void nonLinear (Domain*        D ,
 
   // -- Add on molecular viscosity to get total viscosity, then clip.
 
-  Veclib::sadd (nTot, molvis, nut, 1, nut, 1);
-  Veclib::clip (nTot, 0.0, 1e6*molvis, nut, 1, nut, 1);
+  Veclib::sadd   (nTot, molvis, nut, 1, nut, 1);
+  Veclib::clipup (nTot, 0.0,    nut, 1, nut, 1);
 
   // -- Subtract off spatially-constant reference viscosity.
 
