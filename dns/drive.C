@@ -21,9 +21,9 @@
 // Highett, Vic 3190
 // Australia
 // hugh.blackburn@csiro.au
-//
-// $Id$
 //////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <dns.h>
 
