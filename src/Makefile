@@ -85,7 +85,7 @@ endif
 CFLAGS   = $(DEFINES) $(OPT)
 FFLAGS   = $(DEFINES) $(OPT)
 CXXFLAGS = $(DEFINES) $(OPT)
-LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lalp $(F77LIBS)
+LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lalp $(F77LIBS) -lm
 RANLIB   = ranlib
 F77LIBS  = -llapack -lblas -lg2c
 LIBDIR  += -L/usr/local/lib
@@ -107,15 +107,15 @@ CXX	 = CC
 LD	 = CC
 CC       = cc
 FC       = f77
-CFLAGS   = $(DEFINES) -mips4 -64 $(OPT)
-FFLAGS   = $(DEFINES) -mips4 -64 $(OPT)
-CXXFLAGS = $(DEFINES) -mips4 -64 $(OPT)
-LDFLAGS  = -64 -mips4 $(OPT) $(LIBDIR) -lfem -lalp $(F77LIBS) -lm
+CFLAGS   = $(DEFINES) -64 $(OPT)
+FFLAGS   = $(DEFINES) -64 $(OPT)
+CXXFLAGS = $(DEFINES) -64 $(OPT)
+LDFLAGS  = -64 $(OPT) $(LIBDIR) -lfem -lalp $(F77LIBS) -lm
 RANLIB   =
 ifdef DEBUG
   OPT    = -g
 else
-  OPT    =  -r10000 -Ofast=IP30 -OPT:roundoff=3
+  OPT    =  -r10000 -Ofast=$(MACH) -OPT:roundoff=3
 endif
 F77LIBS  = -lcomplib.sgimath -lftn
 endif
