@@ -151,11 +151,21 @@ void DNSAnalyser::analyse (AuxField** work0,
 	Femlib::exchange (&_work[0], nZP, nP,  INVERSE);
       }
 
+#if 1
+      // -- Just output normal and tangential traction magnitudes.
+    Veclib::vhypot (_nline,&_work[0],1,&_work[1],1,&_work[0],1);
+    Veclib::vmag   (_nline,&_work[2],1,&_work[3],1,&_work[4],1,&_work[1],1);
+#endif
+
       // -- Write to file.
 
       // -- Header: this will be a lot like a standard header.
+#if 1
+      //    Output normal and tangential traction magnitudes, 'n' & 't'.
+#else
       //    In order, the components output are Nx, Ny, Tx, Ty, Tz,
       //    where N stands for normal and T for tangential.
+#endif
       //    Ultimately we should change the list to CSV. For now
       //    we will use abcde to denote these components.
 
@@ -163,7 +173,7 @@ void DNSAnalyser::analyse (AuxField** work0,
 	const char *hdr_fmt[] = { 
 	  "%-25s "                "Session\n",
 	  "%-25s "                "Created\n",
-	  "%-5d1    %-5d %-10d"  "Nr, Ns, Nz, Elements\n",
+	  "%-5d1    %-5d %-10d"   "Nr, Ns, Nz, Elements\n",
 	  "%-25d "                "Step\n",
 	  "%-25.6g "              "Time\n",
 	  "%-25.6g "              "Time step\n",
@@ -186,7 +196,11 @@ void DNSAnalyser::analyse (AuxField** work0,
 	sprintf (s1, hdr_fmt[5], Femlib::value ("D_T"));    _wss_strm << s1;
 	sprintf (s1, hdr_fmt[6], Femlib::value ("KINVIS")); _wss_strm << s1;
 	sprintf (s1, hdr_fmt[7], Femlib::value ("BETA"));   _wss_strm << s1;
+#if 1
+	sprintf (s1, hdr_fmt[8], "nt");                     _wss_strm << s1;
+#else
 	sprintf (s1, hdr_fmt[8], "abcde");                  _wss_strm << s1;
+#endif
 	sprintf (s2, "binary "); Veclib::describeFormat  (s2 + strlen (s2));
 	sprintf (s1, hdr_fmt[9], s2);                       _wss_strm << s1;
 
@@ -197,7 +211,11 @@ void DNSAnalyser::analyse (AuxField** work0,
       // -- Data.
 
       if (nPR > 1) {		// -- Parallel.
+#if 1
+	for (j = 0; j < 2; j++)	// -- Reminder: there are 2 magnitudes.
+#else
 	for (j = 0; j < 5; j++)	// -- Reminder: there are 5 components.
+#endif
 	  ROOTONLY {
   	    for (i = 0; i < nZP; i++) {
 	      plane = &_work[i*_npad + j*_nline];
@@ -221,7 +239,11 @@ void DNSAnalyser::analyse (AuxField** work0,
 	      Femlib::send (plane, _nline, 0);
 	    }
       } else {			// -- Serial.
+#if 1
+	for (j = 0; j < 2; j++)
+#else
 	for (j = 0; j < 5; j++)
+#endif
 	  for (i = 0; i < nZ; i++) {
 	    plane = &_work[i*_npad + j*_nline];
 	    _wss_strm.write (reinterpret_cast<char*>(plane),

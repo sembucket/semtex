@@ -183,6 +183,12 @@ extern "C" {
 		    const double* y, integer incy, double* z, integer incz);
   void    svhypot  (integer n, const float*  x, integer incx,
 		    const float*  y, integer incy, float*  z, integer incz);
+  void    dvmag    (integer n, const double* w, integer incw, 
+		    const double* x, integer incx, const double* y,
+		    integer incy, double* z, integer incz);
+  void    svmag    (integer n, const float* w, integer incw, 
+		    const float*  x, integer incx, const float*  y,
+		    integer incy, float*  z, integer incz);
 
   void    dvpow    (integer n, const double* x, integer incx,
 		    const double* y, integer incy, double* z, integer incz);
@@ -814,6 +820,16 @@ class Veclib {
 		                 const float*  y, integer incy,
                                        float*  z, integer incz)
   { svhypot (n, x, incx, y, incy, z, incz); }
+  static void vmag (integer n, const double* w, integer incw,
+		    const double* x, integer incx,
+		    const double* y, integer incy,
+		          double* z, integer incz)
+  { dvmag (n, w, incw, x, incx, y, incy, z, incz); }
+  static void vmag (integer n, const float*  w, integer incw,
+		    const float*  x, integer incx,
+		    const float*  y, integer incy,
+		          float*  z, integer incz)
+  { svmag (n, w, incw, x, incx, y, incy, z, incz); }
 
   static void vpow (integer n, const double* x, integer incx,
 		    const double* y, integer incy, double* z, integer incz)

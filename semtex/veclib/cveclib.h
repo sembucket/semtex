@@ -319,6 +319,12 @@ void dvhypot (integer n, const double* x, integer incx,
 	      const double* y, integer incy, double* z, integer incz);
 void svhypot (integer n, const float*  x, integer incx,
 	      const float*  y, integer incy, float*  z, integer incz);
+void dvmag   (integer n, const double* w, integer incw, 
+	      const double* x, integer incx, const double* y,
+	      integer incy, double* z, integer incz);
+void svmag   (integer n, const float* w, integer incw, 
+	      const float*  x, integer incx, const float*  y,
+	      integer incy, float*  z, integer incz);
 
 void dvpow (integer n, const double* x, integer incx,
 	    const double* y, integer incy, double* z, integer incz);

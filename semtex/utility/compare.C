@@ -36,7 +36,7 @@
 static char RCS[] = "$Id$";
 
 #include <ctime>
-#include "sem.h"
+#include <sem.h>
 
 static char  prog[]    = "compare";
 const  int_t EXACT_MAX = 32;

@@ -9,6 +9,9 @@
 // example in addfield.C are broken (names are here used for different
 // variables).
 //
+// Also: the reduction has only been confirmed to work for Cartesian,
+// not cylindrical, cordinate systems.
+//
 // Usage:
 // -----
 // eneq [options] session session.avg
@@ -520,13 +523,15 @@ static void covary  (map<char, AuxField*>& in  ,
 
   *out['0'] *= -1.0;
 
-  // -- Finally, compute the sum, 'S':
+  // -- Finally, compute the sum, 'S' (should converge to zero):
 
-  *out['S']  = *out['0'];
-  *out['S'] += *out['1'];
+  //  *out['S']  = *out['1'];
+  *out['S'] = 0.0;
+
   *out['S'] += *out['2'];
   *out['S'] += *out['3'];
   *out['S'] += *out['4'];
   *out['S'] += *out['7'];
+  *out['S'] += *out['0'];
 }
 
