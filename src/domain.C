@@ -254,7 +254,7 @@ istream& operator >> (istream& strm, Domain& D)
   else {
     swap = (   (strstr (s, "big") && strstr (f, "little"))
 	    || (strstr (f, "big") && strstr (s, "little")) );
-    if (swap) message (routine, ": byte-swapping input fields", REMARK);
+    if (swap) cout << " (byte-swapping input fields)";
   }
 
   for (int n = 0; n < nfields; n++) {
