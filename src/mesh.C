@@ -356,7 +356,6 @@ void Mesh::surfaces ()
       //    should not be previously set.
 
       Side *S, *MS;
-      Node *PN;
       int  me,  ms;
       feml.stream() >> me >> ms;
 
@@ -375,12 +374,6 @@ void Mesh::surfaces ()
 	message (routine, err, ERROR);
       }
 
-      // -- Install mate info.
-      //    Note that it is possible for side-to-side periodicity
-      //    to miss the fact that a node is already periodic
-      //    with something else, so we test for those cases,
-      //    and choose the lowest Node ID out of available alternatives.
-
       me--; ms--;
       
       S  = elmtTable (e)  -> side (s);
@@ -391,31 +384,8 @@ void Mesh::surfaces ()
       MS -> mateElmt = elmtTable (e);
       MS -> mateSide = S;
 
-      if (!S -> startNode -> periodic) {
-	PN = (S->startNode->ID < MS->endNode->ID) ?
-	  S->startNode : MS->endNode;
-	S -> startNode -> periodic = MS -> endNode -> periodic = PN;
-      } else {
-	PN = (S->startNode->periodic->ID < MS->endNode->ID) ?
-	  S->startNode->periodic : MS->endNode;
-	if (MS -> endNode -> periodic)
-	  PN = (PN->ID < MS->endNode->periodic->ID) ?
-	    PN : MS->endNode->periodic;
-	S -> startNode -> periodic = PN;
-      }
-
-      if (!S -> endNode -> periodic) {
-	PN = (S->endNode->ID < MS->startNode->ID) ?
-	  S->endNode : MS->startNode;
-	S -> endNode -> periodic = MS -> startNode -> periodic = PN;
-      } else {
-	PN = (S->endNode->periodic->ID < MS->startNode->ID) ? 
-	  S->endNode->periodic : MS->startNode;
-	if (MS -> endNode -> periodic)
-	  PN = (PN->ID < MS->startNode->periodic->ID) ?
-	    PN : MS->startNode->periodic;
-	S -> endNode -> periodic = PN;
-      }
+      chooseNode (S -> startNode, MS ->   endNode);
+      chooseNode (S ->   endNode, MS -> startNode);
 
       // -- Clean up.
       
@@ -428,6 +398,88 @@ void Mesh::surfaces ()
     } else {
       sprintf (err, "couldn't recognize Surface tag %s", tag);
       message (routine, err, ERROR);
+    }
+  }
+}
+
+
+void Mesh::chooseNode (Node* N1,
+		       Node* N2)
+// ---------------------------------------------------------------------------
+// It is possible for side-to-side periodicity to miss the fact that a
+// node is already periodic with something else, so we test for those
+// cases, and choose the lowest Node ID out of available alternatives.
+//
+// There are 9 possible combinations of N1 -> periodic & N1 -> periodic
+// depending on whether they are set or not and whether, if set, they
+// are self-referential or not.  In 5 of these cases, a "dangling" pointer
+// will be left (one that doesn't point to a self-referential periodicity),
+// and these cases have to be fixed by a call to fixPeriodic.
+// ---------------------------------------------------------------------------
+{
+  Node* PN = 0;
+
+  if (!N1->periodic)
+    if (!N2->periodic) {
+      PN = (N1->ID < N2->ID) ? N1 : N2;
+      N1->periodic = N2->periodic = PN;
+    } else if (N2->periodic != N2) {
+      PN = (N1->ID < N2->periodic->ID) ? N1 : N2->periodic;
+      N1->periodic = N2->periodic = N2->periodic->periodic = PN;
+    } else {
+      PN = (N1->ID < N2->ID) ? N1 : N2;
+      N1->periodic = N2->periodic = PN;
+      fixPeriodic();
+    }
+  else if (N1->periodic != N1)
+    if (!N2->periodic) {
+      PN = (N1->periodic->ID < N2->ID) ? N1->periodic : N2;
+      N2->periodic = N1->periodic = N1->periodic->periodic = PN;
+    } else if (N2->periodic != N2) {
+      PN = (N1->periodic->ID < N2->periodic->ID) ? N1->periodic : N2->periodic;
+      N1->periodic = N2->periodic =
+	N1->periodic->periodic = N2->periodic->periodic = PN;
+    } else {
+      PN = (N1->periodic->ID < N2->ID) ? N1->periodic : N2;
+      N2->periodic = N1->periodic = N1->periodic->periodic = PN;
+      fixPeriodic();
+    }
+  else {
+    if (!N2 -> periodic) {
+      PN = (N1->ID < N2->ID) ? N1 : N2;
+      N1->periodic = N2->periodic = PN;
+      fixPeriodic();
+    } else if (N2 -> periodic != N2) {
+      PN = (N1->ID < N2->periodic->ID) ? N1 : N2;
+      N2->periodic = N1->periodic = N1->periodic->periodic = PN;
+      fixPeriodic();
+    } else {
+      PN = (N1->ID < N2->ID) ? N1 : N2;
+      N1->periodic = N2->periodic = PN;
+      fixPeriodic();
+    }
+  }
+  
+  if (!PN) message ("Mesh::chooseNode", "NEVER HAPPEN", ERROR);
+}
+
+
+void Mesh::fixPeriodic ()
+// ---------------------------------------------------------------------------
+// Traverse all Nodes and fix up any Nodes whose periodic value doesn't
+// terminate self-referentially (not recursively as this is not needed).
+// ---------------------------------------------------------------------------
+{
+  register int i;
+  const int    N = nodeTable.getSize();
+  Node         *np, *npp;
+
+  for (i = 0; i < N; i++) {
+    np  = nodeTable [i];
+    npp = np -> periodic;
+    if (npp && npp -> periodic != npp) {
+      npp = npp -> periodic;
+      if (!npp) message ("Mesh::fixPeriodic", "NEVER HAPPEN", ERROR);
     }
   }
 }
