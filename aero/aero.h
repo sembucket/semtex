@@ -16,14 +16,17 @@ class Analyser
 // ===========================================================================
 {
 public:
-  Analyser  (Domain&, Body&);
+  Analyser  (Domain&, FEML&, Body&);
   ~Analyser () { }
 
   void analyse (AuxField***);
 
 private:
-  Domain&   src;
-  ofstream  fld_strm;
+  Domain&               src;
+  ofstream              fld_strm, par_strm, his_strm;
+  vector<HistoryPoint*> history;
+  List<FluidParticle*>  particle;
+  List<Point*>          initial;
 
   Body&     body;
   ofstream  sta_strm;
