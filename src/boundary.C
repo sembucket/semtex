@@ -94,7 +94,7 @@ void  Boundary::print() const
 
   cout << "** Boundary id: " << id  << " -> ";
   cout <<     elmt ->  ID () << "." << side;
-  cout << " Element id.side" << endl;
+  cout << " (Element id.side)" << endl;
   
   switch (condition -> kind) {
   case ESSENTIAL:
@@ -122,7 +122,7 @@ void  Boundary::print() const
     message (routine, "unknown boundary condition kind", ERROR);
     break;
   }
-  cout << "  " << elmt -> nKnot() << "number of points along edge" << endl;
+  cout << "  " << elmt -> nKnot() << " (number of points along edge)" << endl;
   cout << "         nx             ny             area           value";
   cout << endl;
   

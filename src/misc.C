@@ -40,27 +40,27 @@ ostream& printVector (ostream&     strm,
 
   case 'i': {
     int** u = new int* [nvect];
-    va_start (ap, nvect);
+    va_start (ap, ntot);
     for (int k = 0; k < nvect; k++) u[k] = va_arg (ap, int*);
+    va_end (ap);
     for (register int l = 0; l < ntot; l++) {
       for (register int j = 0; j < nvect; j++)
 	strm << setw(15) << u[j][l];
       strm << endl;
     }
-    va_end (ap);
     delete [] u;
     break;
   }
   case 'r': {
     real** u = new real* [nvect];
-    va_start (ap, nvect);
+    va_start (ap, ntot);
     for (int k = 0; k < nvect; k++) u[k] = va_arg (ap, real*);
+    va_end (ap);
     for (register int l = 0; l < ntot; l++) {
       for (register int j = 0; j < nvect; j++)
 	strm << setw(15) << u[j][l];
       strm << endl;
     }
-    va_end (ap);
     delete [] u;
     break;
   }
@@ -85,7 +85,8 @@ istream&  nextBlock (istream& strm, char* s)
 // Then uppercase the new start line.
 // ---------------------------------------------------------------------------
 {
-  while (strm.getline (s, StrMax)) if (s[0] != '#' && s[0] != '\n') break;
+  while (strm.getline (s, StrMax))
+    if (s[0] != '#') break;
   upperCase (s);
 
   return strm;
@@ -405,4 +406,160 @@ void freeMatrix (real** m)
 {
   delete [] m[0];
   delete [] m;
+}
+
+
+
+
+
+istream& readOptions (istream& istr)
+// ---------------------------------------------------------------------------
+// Read solution options from istr, set into external list.
+//
+// Option parameters may be either integer or character (the first char of
+// a string), but in either case the integer representation is stored.  This
+// means that string option parameters can be distinguished if the first
+// character is unique (case sensitive).
+// ---------------------------------------------------------------------------
+{
+  char   routine[] = "readOptions";
+  char   s1[StrMax], s2[StrMax];
+  int    i;
+  
+  istr.getline (s1, StrMax).getline (s1, StrMax);
+
+  do {
+    if (isalpha (s1[0])) {
+      i = (int) s1[0];
+      if (sscanf (s1, "%*s %s", s2) != 1) {
+	sprintf (s2, "unable to scan character parameter from string %s", s1);
+	message (routine, s2, ERROR);
+      }
+    } else {
+      if (sscanf (s1, "%d %s", &i, s2) != 2) {
+	sprintf (s2, "unable to scan integer parameter from string %s", s1);
+	message (routine, s2, ERROR);
+      }
+    }
+
+    setOption (s2, i);
+    
+    istr.getline(s1, StrMax);
+  } while (s1[0]);
+
+  return istr;
+}
+
+
+
+
+
+istream& readIparams (istream& istr)
+// ---------------------------------------------------------------------------
+// Read integer parameters from istr, set into external list.
+// ---------------------------------------------------------------------------
+{
+  char   routine[] = "readIparams";
+  char   s1[StrMax], s2[StrMax];
+  int    i;
+
+  istr.getline(s1, StrMax).getline(s1, StrMax);
+
+  do {
+    if (sscanf (s1, "%d %s", &i, s2) != 2) {
+      sprintf (s2, "unable to scan integer parameter from string %s", s1);
+      message (routine, s2, ERROR);
+    }
+    setIparam (s2, i);
+    
+    istr.getline(s1, StrMax);
+  } while (s1[0]);
+
+  return istr;
+}
+
+
+
+
+
+istream& readFparams (istream& istr)
+// ---------------------------------------------------------------------------
+// Read floating-point parameters from istr, set into external list.
+//
+// Values may be defined in terms of previously-defined symbols.
+// Symbols are case-sensitive.
+//
+// Example:
+// 500      Re
+// 1/Re     KINVIS  (sets dparam "KINVIS" = 0.002).
+// ---------------------------------------------------------------------------
+{
+  char   routine[] = "readFparams";
+  char   s1[StrMax], s2[StrMax], s3[StrMax];
+
+  istr.getline(s1, StrMax).getline(s1, StrMax);
+
+  do {
+    if (sscanf (s1, "%s %s", s2, s3) != 2)
+      message (routine, strcat(s1, "?"), ERROR);
+
+    setDparam(s3, interpret (s2));
+    
+    istr.getline(s1, StrMax);
+  } while (s1[0]);
+
+  return istr;
+}
+
+
+
+
+
+Mesh*  preProcess (istream& strm)
+// ---------------------------------------------------------------------------
+// Get run-time parameters, BCs & Mesh from strm.
+//
+// The named parts of input (separated by blank lines) are, in order:
+//   ** OPTION               parameters
+//   ** INTEGER              parameters
+//   ** FLOATing point       parameters
+//   ** BOUNDARY CONDITIONs
+//   ** MESH     INFORMATION
+// ---------------------------------------------------------------------------
+{
+  char   routine[] = "preProcess";
+  char   s[StrMax];
+  Mesh*  M = new Mesh;
+
+  // -- Scan the parts of a session file.
+   
+  nextBlock (strm, s);
+
+  if (strstr (s, "**") && strstr (s, "OPTION"))    {
+    readOptions (strm);     
+    nextBlock   (strm, s); 
+  }
+  
+  if (strstr (s, "**") && strstr (s, "INTEGER"))   {
+    readIparams (strm);     
+    nextBlock   (strm, s);
+  }
+  
+  if (strstr (s, "**") && strstr (s, "FLOAT"))     {
+    readFparams (strm);     
+    nextBlock   (strm, s); 
+  }
+ 
+  if (strstr (s, "**") && strstr (s, "BOUNDARY") && strstr (s, "CONDITION")) { 
+    if (!BCmanager::read (strm)) message (routine, "no BCs set", ERROR);
+    nextBlock       (strm, s); 
+  } else
+    message (routine, "can't find boundary conditions", ERROR);
+
+  if (strstr (s, "**") && strstr (s, "MESH") && strstr (s, "INFORMATION")) {
+    strm >> *M;
+  } else
+    message (routine, "can't find mesh information", ERROR);
+
+  return M;
 }
