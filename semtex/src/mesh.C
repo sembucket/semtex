@@ -882,13 +882,13 @@ void Mesh::printNek () const
   cout << "***** BOUNDARY CONDITIONS *****" << endl;
   cout << "***** FLUID BOUNDARY CONDITIONS *****" << endl;
 
-  for (ElmtsOfMesh e(*this); e.more(); e.next()) {
-    for (Mesh::SidesOfElmt s(e.current()); s.more(); s.next()) {
-      Mesh::Side& S = s.current();
+  for (ElmtsOfMesh e (*this); e.more (); e.next ()) {
+    for (Mesh::SidesOfElmt s (e.current ()); s.more (); s.next ()) {
+      Mesh::Side& S = s.current ();
       Mesh::Elmt* E = S.mateElmt;
       if (E) {
 	cout << "E  "
-	     << setw (5)  << e.current().ID
+	     << setw (5)  << e.current ().ID
 	     << setw (3)  << S.ID
 	     << setw (14) << 1.0*E -> ID
 	     << setw (14) << 1.0*S.mateSide -> ID
@@ -896,7 +896,7 @@ void Mesh::printNek () const
 	     << endl;
       } else {
 	switch (BCmanager::kind (S.BConTag)) {
-	case ESSENTIAL: case ESSENTIAL_FN: case VALUE:
+	case BC::essential: case BC::essential_fn:
 	  cout << "V  "
 	       << setw (5) << e.current().ID
 	       << setw (3) << S.ID;
@@ -905,7 +905,7 @@ void Mesh::printNek () const
 	  cout << setw (14) << 0.0
 	       << endl;
 	  break;
-	case WALL:
+	case BC::wall:
 	  cout << "W  "
 	       << setw (5)  << e.current().ID
 	       << setw (3)  << S.ID
@@ -914,7 +914,7 @@ void Mesh::printNek () const
 	       << setw (14) << 0.0
 	       << endl;
 	  break;
-	case OUTFLOW:
+	case BC::outflow:
 	  cout << "O  "
 	       << setw (5)  << e.current().ID
 	       << setw (3)  << S.ID
@@ -923,12 +923,12 @@ void Mesh::printNek () const
 	       << setw (14) << 0.0
 	       << endl;
 	  break;
-	case NATURAL: case FLUX: case NATURAL_FN:
+	case BC::natural: case BC::natural_fn:
 	  os << "Element " << e.current().ID << " side " << S.ID
 	     << " --- FLUX B.C. not implemented" << ends;
 	  message (routine, err, ERROR);
 	  break;
-	case HOPBC:
+	case BC::hopbc:
 	  os << "Element " << e.current().ID << " side " << S.ID
 	     << " --- HOPBC B.C. can't happen" << ends;
 	  message (routine, err, ERROR);
