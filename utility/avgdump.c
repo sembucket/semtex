@@ -38,7 +38,7 @@
 #include <string.h>
 
 #include <femdef.h>
-#include <alplib.h>
+#include <veclib.h>
 
 static char  prog[]    = "avgdump";
 static char* hdr_fmt[] = {	 /* -- Header output formatting. */

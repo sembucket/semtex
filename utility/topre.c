@@ -43,7 +43,7 @@ static char
 #include <ctype.h>
 #include <string.h>
 #include <math.h>
-#include <alplib.h>		/* Like veclib */
+#include <veclib.h>		/* Like veclib */
 
 static char prog[] = "topre";
 

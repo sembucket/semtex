@@ -14,7 +14,7 @@
 #include <ctype.h>
 
 #include <femdef.h>
-#include <alplib.h>
+#include <veclib.h>
 #include <femlib.h>
 
 #define MAXFIELDS 16

@@ -24,7 +24,7 @@
 
 #include <femlib.h>
 #include <femdef.h>
-#include <alplib.h>
+#include <veclib.h>
 
 static void getargs (int, char**, FILE**, int*);
 static int  roundup (const int);
