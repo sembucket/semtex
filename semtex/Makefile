@@ -80,7 +80,7 @@ test:  libs
 	rm -f compare;   ln -s ../utility/compare   . ;	\
 	rm -f enumerate; ln -s ../utility/enumerate . ; \
 	rm -f dns;       ln -s ../dns/dns . ; \
-	testregress dns
+	./testregress dns
 
 # ----------------------------------------------------------------------------
 # Run test of parallel version of DNS solver: do "make test" first.
