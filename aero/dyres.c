@@ -6,8 +6,7 @@
  * to the end of the file.
  *****************************************************************************/
 
-static char
-RCSid[] = "$Id$";
+static char RCS[] = "$Id$";
 
 static char usage[] =
   "usage: dyres session[.fld]\n"

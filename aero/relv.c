@@ -53,17 +53,17 @@
  *        prxf is X pressure force,         pryf is Y pressure force,
  *        vixf is X viscous  force,         viyf is Y viscous  force,
  *        toxf is X total    force,         toyf is Y total    force.
- *
- * $Id$
  *****************************************************************************/
+
+static char RCS[] = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
-#include <femdef.h>
-#include <veclib.h>
+#include <cfemdef.h>
+#include <cveclib.h>
 
 static void getargs      (int, char**, char**, char**, char**, char**,
 			  char**, double*, double*, int*, int*, int*);

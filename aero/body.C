@@ -1,8 +1,8 @@
 //////////////////////////////////////////////////////////////////////////////
 // body.C: implement Body class for aeroelastic coupling.
-//
-// $Id$
 //////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include "aero.h"
 
@@ -138,7 +138,7 @@ Vector Body::position ()
 }
 
 
-void Body::move (const integer step)
+void Body::move (const int_t step)
 // ---------------------------------------------------------------------------
 // Update estimates of position, velocity and acceleration at next time level.
 // Note that for SMD class, acceleration is updated by Body::force instead.
@@ -155,7 +155,7 @@ Vector Body::force (const Domain* D)
 // Return total force.
 // ---------------------------------------------------------------------------
 {
-  const integer DIM = Geometry::nDim();
+  const int_t DIM = Geometry::nDim();
 
   traction[0] = Field::normalTraction  (D->u[DIM]);
   traction[1] = Field::tangentTraction (D->u[0], D->u[1]);
@@ -225,14 +225,14 @@ Cosine::Cosine (char* s)
 }
 
 
-void Cosine::move (const integer dummi)
+void Cosine::move (const int_t dummi)
 // ---------------------------------------------------------------------------
 // Update state variables.  Dummy input variable not used.
 // ---------------------------------------------------------------------------
 {
-  real mag   = Femlib::value (amplitude);
-  real omega = Femlib::value ("TWOPI") * Femlib::value (frequency);
-  real angle = omega * Femlib::value ("t") + Femlib::value (phaseangl);
+  real_t mag   = Femlib::value (amplitude);
+  real_t omega = Femlib::value ("TWOPI") * Femlib::value (frequency);
+  real_t angle = omega * Femlib::value ("t") + Femlib::value (phaseangl);
 
   pos =                  mag * cos (angle);
   vel =         -omega * mag * sin (angle);
@@ -286,7 +286,7 @@ Function::Function (char* s)
 }
 
 
-void Function::move (const integer dummi)
+void Function::move (const int_t dummi)
 // ---------------------------------------------------------------------------
 // Update state variables.  Neither input is used.
 // ---------------------------------------------------------------------------
@@ -335,32 +335,31 @@ SMD::SMD (char* s)
     message (routine, err, ERROR);
   }
 
-  x    = new real [Integration::OrderMax];
-  xdot = new real [Integration::OrderMax];
-  f    = new real [Integration::OrderMax];
+  x    = new real_t [Integration::OrderMax];
+  xdot = new real_t [Integration::OrderMax];
+  f    = new real_t [Integration::OrderMax];
 
   pos = vel = acc = x[0] = xdot[0] = f[0] = 0.0;
 }
 
 
-void SMD::move (const integer step)
+void SMD::move (const int_t step)
 // ---------------------------------------------------------------------------
 // Update state variables using stiffly-stable time integration scheme.
 // 
 // On exit, position and velocity have been integrated to end of new step.
 // ---------------------------------------------------------------------------
 {
-  const real    w    = Femlib::value ("TWOPI") * Femlib::value (natf);
-  const real    z    = Femlib::value (zeta);
-  const real    dt   = Femlib::value ("D_T");
-  const integer Jmax = (integer) Femlib::value ("N_TIME");
+  const real_t w    = Femlib:: value ("TWOPI") * Femlib::value (natf);
+  const real_t z    = Femlib:: value (zeta);
+  const real_t dt   = Femlib:: value ("D_T");
+  const int_t  Jmax = Femlib::ivalue ("N_TIME");
+  int_t        q, Je = min (max ((int_t) 1, step), Jmax);
+  real_t       *alpha, *betaDt;
 
-  integer       q, Je = min (max ((integer) 1, step), Jmax);
-  real          *alpha, *betaDt;
+  vector<real_t> work (2 * Je + 1);
 
-  vector<real> work (2 * Je + 1);
-
-  alpha  = work();
+  alpha  = &work[0];
   betaDt = alpha + Je + 1;
 
   Integration::StifflyStable (Je, alpha);
@@ -389,7 +388,7 @@ void SMD::move (const integer step)
 }
 
 
-void SMD::force (const real F)
+void SMD::force (const real_t F)
 // ---------------------------------------------------------------------------
 // Update force per unit mass extrapolation vector, estimate acceleration
 // at current time level.
@@ -397,10 +396,10 @@ void SMD::force (const real F)
 // F is the tractive force on this axis at end of current time step.
 // ---------------------------------------------------------------------------
 {
-  const real    m    = Femlib::value (mass);
-  const real    w    = Femlib::value ("TWOPI") * Femlib::value (natf);
-  const real    z    = Femlib::value (zeta);
-  const integer Jmax = (integer) Femlib::value ("N_TIME");
+  const real_t m    = Femlib:: value (mass);
+  const real_t w    = Femlib:: value ("TWOPI") * Femlib::value (natf);
+  const real_t z    = Femlib:: value (zeta);
+  const int_t  Jmax = Femlib::ivalue ("N_TIME");
 
   rollv (f, Jmax);
   f[0] = F / m;

@@ -44,14 +44,14 @@
 // 3.  No action takes place on lines that do not include "axis cosine".
 // 4.  In the conversion to a new frequency, the original frequency and
 //     phase angles are assumed to be constant with time.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "Sem.h"
+static char RCS[] = "$Id$";
+
+#include "sem.h"
 
 static char prog[] = "refreq";
-static void getargs (int, char**, char*&, double&, double&, int&);
+static void getargs (int, char**, char*&, real_t&, real_t&, int_t&);
 
 
 int main (int    argc,
@@ -63,8 +63,8 @@ int main (int    argc,
   char     err[StrMax], buf[StrMax];
   ifstream file;
   char*    session = 0;
-  double   factor  = 0.0, freq = 0.0, time;
-  int      i, zero = 0;
+  real_t   factor  = 0.0, freq = 0.0, time;
+  int_t      i, zero = 0;
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session, factor, freq, zero);
@@ -113,7 +113,7 @@ int main (int    argc,
 	message (prog, err, ERROR);
       } 
 
-      double oldfreq  = Femlib::value (frequency),  newfreq,
+      real_t oldfreq  = Femlib::value (frequency),  newfreq,
 	     oldphase = Femlib::value (phaseangle), newphase;
 
       if (factor != 0.0)
@@ -144,9 +144,9 @@ int main (int    argc,
 static void getargs (int     argc   ,
 		     char**  argv   ,
 		     char*&  session,
-		     double& factor ,
-		     double& freq   , 
-		     int&    zero   )
+		     real_t& factor ,
+		     real_t& freq   , 
+		     int_t&  zero   )
 // ---------------------------------------------------------------------------
 // Parse command-line args.
 // ---------------------------------------------------------------------------

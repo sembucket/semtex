@@ -6,7 +6,7 @@
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include <Sem.h>
+#include "sem.h"
 
 class Body;
 
@@ -36,12 +36,12 @@ class AxisMotion
 public:
   virtual ~AxisMotion() { };
 
-  virtual real getA () = 0;
-  virtual real getV () = 0;
-  virtual real getX () = 0;
+  virtual real_t getA () = 0;
+  virtual real_t getV () = 0;
+  virtual real_t getX () = 0;
   
-  virtual void move  (const integer)  = 0;
-  virtual void force (const real) = 0;
+  virtual void move  (const int_t)  = 0;
+  virtual void force (const real_t) = 0;
 
   virtual void describe (char*) = 0;
 };
@@ -55,17 +55,17 @@ class Fixed : public AxisMotion
 public:
   Fixed () : zero (0) { }
 
-  virtual real getA () { return zero; }
-  virtual real getV () { return zero; }
-  virtual real getX () { return zero; }
+  virtual real_t getA () { return zero; }
+  virtual real_t getV () { return zero; }
+  virtual real_t getX () { return zero; }
   
-  virtual void move  (const integer = 0) { }
-  virtual void force (const real)    { }
+  virtual void move  (const int_t = 0) { }
+  virtual void force (const real_t)    { }
 
   virtual void describe (char* s) { strcpy (s, "fixed"); }
 
  private:
-  real zero;
+  real_t zero;
 };
 
 
@@ -79,12 +79,12 @@ class Cosine : public AxisMotion
 public:
   Cosine (char*);
 
-  virtual real getA () { return acc; }
-  virtual real getV () { return vel; }
-  virtual real getX () { return pos; }
+  virtual real_t getA () { return acc; }
+  virtual real_t getV () { return vel; }
+  virtual real_t getX () { return pos; }
 
-  virtual void move  (const integer = 0);
-  virtual void force (const real) { }
+  virtual void move  (const int_t = 0);
+  virtual void force (const real_t) { }
 
   virtual void describe (char*);
 
@@ -93,9 +93,9 @@ private:
   char frequency[StrMax];
   char phaseangl[StrMax];
 
-  real pos;
-  real vel;
-  real acc;
+  real_t pos;
+  real_t vel;
+  real_t acc;
 };
 
 
@@ -110,12 +110,12 @@ class Function : public AxisMotion
 public:
   Function (char*);
 
-  virtual real getA () { return acc; }
-  virtual real getV () { return vel; }
-  virtual real getX () { return pos; }
+  virtual real_t getA () { return acc; }
+  virtual real_t getV () { return vel; }
+  virtual real_t getX () { return pos; }
 
-  virtual void move  (const integer = 0);
-  virtual void force (const real) { }
+  virtual void move  (const int_t = 0);
+  virtual void force (const real_t) { }
 
   virtual void describe (char*);
 
@@ -124,9 +124,9 @@ private:
   char velocity[StrMax];
   char position[StrMax];
   
-  real pos;
-  real vel;
-  real acc;
+  real_t pos;
+  real_t vel;
+  real_t acc;
 };
 
 
@@ -140,12 +140,12 @@ class SMD : public AxisMotion
 public:
   SMD (char*);
 
-  virtual real getA () { return acc; }
-  virtual real getV () { return vel; }
-  virtual real getX () { return pos; }
+  virtual real_t getA () { return acc; }
+  virtual real_t getV () { return vel; }
+  virtual real_t getX () { return pos; }
 
-  virtual void move  (const integer );
-  virtual void force (const real);
+  virtual void move  (const int_t );
+  virtual void force (const real_t);
 
   virtual void describe (char*);
 
@@ -156,13 +156,13 @@ private:
   char natf[StrMax];
   char zeta[StrMax];
   
-  real pos;
-  real vel;
-  real acc;
+  real_t pos;
+  real_t vel;
+  real_t acc;
 
-  real* xdot;			// -- Velocity state variables for integration.
-  real* x;			// -- Position state variables.
-  real* f;			// -- Force per unit mass.
+  real_t* xdot;			// -- Velocity state variables for integration.
+  real_t* x;			// -- Position state variables.
+  real_t* f;			// -- Force per unit mass.
 };
   
 
@@ -182,7 +182,7 @@ public:
   Vector  position     ();
   Vector  force        (const Domain*);
 
-  void    move         (const integer);
+  void    move         (const int_t);
 
 private:
   AxisMotion*  axis[2];		// -- Array of motion interface classes.

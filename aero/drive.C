@@ -104,17 +104,17 @@ static void getargs (int    argc   ,
       break;
     case 'i':
       do
-	Femlib::value ("ITERATIVE", (integer) Femlib::value ("ITERATIVE") + 1);
+	Femlib::value ("ITERATIVE", (int_t) Femlib::value ("ITERATIVE") + 1);
       while (*++argv[0] == 'i');
       break;
     case 'v':
       do
-	Femlib::value ("VERBOSE",   (integer) Femlib::value ("VERBOSE")   + 1);
+	Femlib::value ("VERBOSE",   (int_t) Femlib::value ("VERBOSE")   + 1);
       while (*++argv[0] == 'v');
       break;
     case 'c':
       if (strstr ("chk", *argv)) {
-	Femlib::value ("CHKPOINT", (integer) 1);
+	Femlib::value ("CHKPOINT", (int_t) 1);
       } else {
 	fprintf (stdout, usage, prog);
 	exit (EXIT_FAILURE);	  
@@ -144,10 +144,9 @@ static void preprocess (const char*       session,
 // They are listed in order of creation.
 // ---------------------------------------------------------------------------
 {
-  const integer      verbose = (integer) Femlib::value ("VERBOSE");
+  const int_t        verbose = Femlib::ivalue ("VERBOSE");
+  int_t              i, np, nz, nel;
   Geometry::CoordSys space;
-  const real*        z;
-  integer            i, np, nz, nel;
 
   // -- Initialise problem and set up mesh geometry.
 
@@ -163,10 +162,10 @@ static void preprocess (const char*       session,
   VERBOSE cout << "Setting geometry ... ";
 
   nel   = mesh -> nEl();
-  np    =  (integer) Femlib::value ("N_POLY");
-  nz    =  (integer) Femlib::value ("N_Z");
-  space = ((integer) Femlib::value ("CYLINDRICAL")) ? 
-    Geometry::Cylindrical : Geometry::Cartesian;
+  np    =  Femlib::ivalue ("N_POLY");
+  nz    =  Femlib::ivalue ("N_Z");
+  space = (Femlib::ivalue ("CYLINDRICAL")) ? 
+                     Geometry::Cylindrical : Geometry::Cartesian;
   
   Geometry::set (np, nz, nel, space);
 
@@ -176,10 +175,8 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "Building elements ... ";
 
-  Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
-
-  elmt.setSize (nel);
-  for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
+  elmt.resize (nel);
+  for (i = 0; i < nel; i++) elmt[i] = new Element (i, np, mesh);
 
   VERBOSE cout << "done" << endl;
 

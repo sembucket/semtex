@@ -85,7 +85,7 @@ void AeroAnalyser::forceDist ()
   const integer    nZProc = Geometry::nZProc();
   Field*           master = src -> u[0];
   vector<real>     work (5 * nZProc);
-  register real    *px = work(),
+  register real    *px = &work[0],
                    *py = px + nZProc,
                    *vx = py + nZProc,
                    *vy = vx + nZProc,
@@ -105,7 +105,7 @@ void AeroAnalyser::forceDist ()
 
     ROOTONLY {
       vector<real>  force (4 * nZ);	// -- Even number forced by DFTr.
-      register real *x = force(), *y = x + 1, *z = y + 1, *t = z + 1;
+      register real *x = &force[0], *y = x + 1, *z = y + 1, *t = z + 1;
       const real    dz = Femlib::value ("TWOPI / BETA / N_Z");
 
       for (i = 0; i < nZProc; i++) {
@@ -143,7 +143,7 @@ void AeroAnalyser::forceDist ()
   } else {			// -- Serial version.
 
     vector<real>  force (4 * nZ);
-    register real *x = force(), *y = x + 1, *z = y + 1, *t = z + 1;
+    register real *x = &force[0], *y = x + 1, *z = y + 1, *t = z + 1;
     const real    dz = Femlib::value ("TWOPI / BETA / N_Z");
 
     for (k = 0; k < nZ; k++) {
