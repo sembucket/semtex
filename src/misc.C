@@ -72,17 +72,50 @@ ostream& printVector (ostream&     strm,
 }
 
 
-istream&  nextBlock (istream& strm, char* s)
+ifstream&  seekBlock (ifstream& strm, const char* name)
 // ---------------------------------------------------------------------------
-// Advance to start of the next block of information in file, skipping
-// empty lines and comment lines (lines starting with '#').
-// Then uppercase the new start line.
+// Search input file stream for a block starting with name (case insensitive).
+// Then read on until first "{" is encountered.
 // ---------------------------------------------------------------------------
 {
-  while (strm.getline (s, StrMax))
-    if (s[0] != '#') break;
-  upperCase (s);
+  char  routine[] = "seekBlock";
+  char  s[StrMax], uname[StrMax];
+  int   c;
 
+  strcpy     (uname, name);
+  upperCase  (uname);
+  strm.seekg (0, ios::beg);
+
+  while (strm >> s) {
+    upperCase (s);
+    if (strcmp (s, uname) == 0) {
+      while ((c = strm.get ()) != '{' && c != '}' && c != EOF);
+      if (c == EOF) 
+	message (routine, "reached EOF while looking for '{'", ERROR);
+      if (c == '}')
+	message (routine,   "found '}' while looking for '{'", ERROR);
+      return strm;
+    } else
+      endBlock (strm);
+  }
+
+  sprintf (s, "failed to locate block \"%s\"", name);
+  message (routine, s, ERROR);
+  return  strm;
+}
+
+
+istream&  endBlock (istream& strm)
+// ---------------------------------------------------------------------------
+// Advance to next "}" in file.
+// ---------------------------------------------------------------------------
+{
+  char  routine[] = "endBlock";
+  int   c;
+
+  while ((c = strm.get ()) != '}' && c != EOF);
+  if (c == EOF) message (routine, "reached EOF while looking for '}'", ERROR);
+  
   return strm;
 }
 
@@ -375,29 +408,33 @@ istream& readOptions (istream& istr)
 // ---------------------------------------------------------------------------
 {
   char   routine[] = "readOptions";
-  char   s1[StrMax], s2[StrMax];
-  int    i;
+  char   p[StrMax], s[StrMax], err[StrMax];
+  int    n, i;
   
-  istr.getline (s1, StrMax).getline (s1, StrMax);
+  istr >> s;
+  istrstream (s, strlen (s)) >> n;
+  if (n < 0) {
+    sprintf (err, "expected integer number of options, read: %s", s);
+    message (routine, err, ERROR);
+  }
+  if (n > 20) {
+    sprintf (err, "found a large number of options (%1d) in: %s", s);
+    message (routine, err, WARNING);
+  }
+  istr.getline (s, StrMax);
+  upperCase    (s);
+  if (!strstr (s, "OPTION")) {
+    sprintf (err, "can't locate 'OPTION' string in: %s", s);
+    message (routine, err, ERROR);
+  }
 
-  do {
-    if (isalpha (s1[0])) {
-      i = (int) s1[0];
-      if (sscanf (s1, "%*s %s", s2) != 1) {
-	sprintf (s2, "unable to scan character parameter from string %s", s1);
-	message (routine, s2, ERROR);
-      }
-    } else {
-      if (sscanf (s1, "%d %s", &i, s2) != 2) {
-	sprintf (s2, "unable to scan integer parameter from string %s", s1);
-	message (routine, s2, ERROR);
-      }
-    }
-
-    setOption (s2, i);
-    
-    istr.getline(s1, StrMax);
-  } while (s1[0]);
+  while (n--) {
+    istr >> p;
+    istr >> s;
+    if   (isalpha (p[0])) i = (int) p[0];
+    else                  istrstream (s, strlen (p)) >> i;
+    setOption (s, i);
+  }
 
   return istr;
 }
@@ -409,20 +446,31 @@ istream& readIparams (istream& istr)
 // ---------------------------------------------------------------------------
 {
   char   routine[] = "readIparams";
-  char   s1[StrMax], s2[StrMax];
-  int    i;
+  char   s[StrMax], err[StrMax];
+  int    n, i;
+  
+  istr >> s;
+  istrstream (s, strlen (s)) >> n;
+  if (n < 0) {
+    sprintf (err, "expected number of parameters, read: %s", s);
+    message (routine, err, ERROR);
+  }
+  if (n > 20) {
+    sprintf (err, "found a large number of parameters (%1d) in: %s", s);
+    message (routine, err, WARNING);
+  }
+  istr.getline (s, StrMax);
+  upperCase    (s);
+  if (!strstr (s, "INTEGER")) {
+    sprintf (err, "can't locate 'INTEGER' string in: %s", s);
+    message (routine, err, ERROR);
+  }
 
-  istr.getline(s1, StrMax).getline(s1, StrMax);
-
-  do {
-    if (sscanf (s1, "%d %s", &i, s2) != 2) {
-      sprintf (s2, "unable to scan integer parameter from string %s", s1);
-      message (routine, s2, ERROR);
-    }
-    setIparam (s2, i);
-    
-    istr.getline(s1, StrMax);
-  } while (s1[0]);
+  while (n--) {
+    istr >> i;
+    istr >> s;
+    setIparam (s, i);
+  }
 
   return istr;
 }
@@ -441,68 +489,73 @@ istream& readFparams (istream& istr)
 // ---------------------------------------------------------------------------
 {
   char   routine[] = "readFparams";
-  char   s1[StrMax], s2[StrMax], s3[StrMax];
+  char   p[StrMax], s[StrMax], err[StrMax];
+  int    n;
+  
+  istr >> s;
+  istrstream (s, strlen (s)) >> n;
+  if (n < 0) {
+    sprintf (err, "expected number of parameters, read: %s", s);
+    message (routine, err, ERROR);
+  }
+  if (n > 20) {
+    sprintf (err, "found a large number of parameters (%1d) in: %s", s);
+    message (routine, err, WARNING);
+  }
+  istr.getline (s, StrMax);
+  upperCase    (s);
+  if (!strstr (s, "FLOAT")) {
+    sprintf (err, "can't locate 'FLOAT' string in: %s", s);
+    message (routine, err, ERROR);
+  }
 
-  istr.getline (s1, StrMax).getline (s1, StrMax);
-
-  do {
-    if (sscanf (s1, "%s %s", s2, s3) != 2)
-      message (routine, strcat(s1, "?"), ERROR);
-
-    setDparam (s3, interpret (s2));
-    
-    istr.getline (s1, StrMax);
-  } while (s1[0]);
+  while (n--) {
+    istr >> p;
+    istr >> s;
+    setDparam (s, interpret (p));
+  }
 
   return istr;
 }
 
 
-Mesh*  preProcess (istream& strm)
+Mesh*  preProcess (ifstream& strm)
 // ---------------------------------------------------------------------------
 // Get run-time parameters, BCs & Mesh from strm.
-//
-// The named parts of input (separated by blank lines) are, in order:
-//   ** OPTION               parameters
-//   ** INTEGER              parameters
-//   ** FLOATing point       parameters
-//   ** BOUNDARY CONDITIONs
-//   ** MESH     INFORMATION
 // ---------------------------------------------------------------------------
 {
   char   routine[] = "preProcess";
-  char   s[StrMax];
+  int    verbose   = option ("VERBOSE");
   Mesh*  M = new Mesh;
 
-  // -- Scan the parts of a session file.
-   
-  nextBlock (strm, s);
+  seekBlock   (strm, "parameter");
+  readOptions (strm);     
+  readIparams (strm);     
+  readFparams (strm);     
+  endBlock    (strm); 
 
-  if (strstr (s, "**") && strstr (s, "OPTION"))    {
-    readOptions (strm);     
-    nextBlock   (strm, s); 
+  if (verbose) {
+    message (routine, "-- OPTION PARAMETERS:",         REMARK); showOption ();
+    message (routine, "-- INTEGER PARAMETERS:",        REMARK); showIparam ();
+    message (routine, "-- FLOATING POINT PARAMETERS:", REMARK); showDparam ();
   }
-  
-  if (strstr (s, "**") && strstr (s, "INTEGER"))   {
-    readIparams (strm);     
-    nextBlock   (strm, s);
-  }
-  
-  if (strstr (s, "**") && strstr (s, "FLOAT"))     {
-    readFparams (strm);     
-    nextBlock   (strm, s); 
-  }
- 
-  if (strstr (s, "**") && strstr (s, "BOUNDARY") && strstr (s, "CONDITION")) { 
-    if (!BCmanager::read (strm)) message (routine, "no BCs set", ERROR);
-    nextBlock       (strm, s); 
-  } else
-    message (routine, "can't find boundary conditions", ERROR);
 
-  if (strstr (s, "**") && strstr (s, "MESH") && strstr (s, "INFORMATION")) {
-    strm >> *M;
-  } else
-    message (routine, "can't find mesh information", ERROR);
+  seekBlock (strm, "boundary");
+  if (!BCmanager::read (strm)) message (routine, "no BCs set", ERROR);
+  endBlock  (strm); 
+
+  if (verbose) {
+    message (routine, "-- BOUNDARY CONDITIONS:", REMARK); BCmanager::print ();
+  }
+
+  seekBlock (strm, "mesh");
+  strm >> *M;
+  endBlock  (strm);
+
+  if (verbose) {
+    message (routine, "-- MESH ASSEMBLY INFORMATION:", REMARK);
+    Mesh::printAssembly (*M);
+  }
 
   return M;
 }
