@@ -57,7 +57,8 @@ public:
   
 private:
   const char name;
-  const int  np, nz, nel, np2, nplane, ntot;
+  const int  np, nz, nel, np2;
+  int        nplane, ntot;
   real*      data;
   real**     plane;
 };
@@ -73,20 +74,22 @@ Field2DF::Field2DF (const int  nP  ,
 		    nz        (nZ  ),
 		    nel       (nEl ),
 		    
-		    np2       (np * np),
-		    nplane    (np * np * nel),
-		    ntot      (np * np * nel * nz)
-
+		    np2       (np * np)
 // ---------------------------------------------------------------------------
 // Field2DF constructor. 
 // ---------------------------------------------------------------------------
 {
   register int i;
+  
+  nplane = np * np * nel;
+  if (nplane & 1) nplane++;
+  ntot   = nplane * nz;
 
   data  = new real  [ntot];
   plane = new real* [nz];
 
   for (i = 0; i < nz; i++) plane [i] = data + i * nplane;
+  Veclib::zero (ntot, data, 1);
 }
 
 
@@ -121,7 +124,7 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
 
     register int  i, k;
     register real *LHS, *RHS;
-    const real    **IN, **IT;
+    real          **IN, **IT;
     const int     nzm = min (rhs.nz, nz);
     vector<real>  work (rhs.np * np);
     real*         tmp = work();
@@ -136,8 +139,8 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
 	Veclib::copy (nplane, RHS, 1, LHS, 1);
       else
 	for (i = 0; i < nel; i++, LHS += np2, RHS += rhs.np2) {
-	  Blas::mxm ((real*) *IN, np, RHS, rhs.np, tmp, rhs.np);
-	  Blas::mxm (tmp, np, (real*) *IT, rhs.np, LHS,     np);
+	  Blas::mxm (*IN, np, RHS, rhs.np, tmp, rhs.np);
+	  Blas::mxm (tmp, np, *IT, rhs.np, LHS,     np);
 	}
     }
 
@@ -178,7 +181,10 @@ ostream& operator << (ostream&  strm,
 // Binary write of F's data area.
 // ---------------------------------------------------------------------------
 {
-  strm.write ((char*) F.data, F.ntot * sizeof (real));
+  int i;
+  
+  for (i = 0; i < F.nz; i++)
+    strm.write ((char*) F.plane[i], F.np * F.np * F.nel * sizeof (real));
 
   return strm;
 }
@@ -190,7 +196,10 @@ istream& operator >> (istream&  strm,
 // Binary read of F's data area.
 // ---------------------------------------------------------------------------
 {
-  strm.read ((char*) F.data, F.ntot * sizeof (real));
+  int i;
+  
+  for (i = 0; i < F.nz; i++)
+    strm.read ((char*) F.plane[i], F.np * F.np * F.nel * sizeof (real));
 
   return strm;
 }
