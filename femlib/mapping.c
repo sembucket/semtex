@@ -14,6 +14,7 @@ RCSid_operators[] = "$Id$";
 
 typedef struct mapping {
   integer         np   ;
+  integer         dim  ;
   integer*        emap ;
   integer*        pmap ;
   struct mapping* next ;
@@ -23,6 +24,7 @@ static Mapping* mHead = 0;
 
 
 void edgemaps (const integer nk ,
+	       const integer dim,
 	       integer**     map,
 	       integer**     inv)
 /* ------------------------------------------------------------------------- *
@@ -43,15 +45,18 @@ void edgemaps (const integer nk ,
  * ------------------------------------------------------------------------- */
 {
   char              routine[] = "edgemaps";
-  const integer     nk2 = nk * nk;
+  const integer     len = (dim == 2) ? nk * nk : nk;
   register integer  found = 0;
   register Mapping* p;
 
   if (nk < 2)
     message (routine, "input nk < 2", ERROR);
 
+  if (dim < 1 || dim > 2)
+    message (routine, "number of space dimensions must be 1 or 2", ERROR);
 
-  for (p = mHead; p; p = p -> next) if (found = nk == p -> np) break;
+  for (p = mHead; p; p = p -> next)
+    if (found = nk == p -> np && dim == p -> dim) break;
 
   if (!found) {
     register integer i, j, k, n;
@@ -63,31 +68,41 @@ void edgemaps (const integer nk ,
     mHead = p;
 
     p -> np   = nk;
-    p -> emap = ivector (0, nk2);
-    p -> pmap = ivector (0, nk2);
+    p -> dim  = dim;
+    p -> emap = ivector (0, len);
+    p -> pmap = ivector (0, len);
 
     em = p -> emap;
     pm = p -> pmap;
 
-    /* -- Traverse exterior CCW. */
+    if (dim == 1) {
+      
+      em[0] = 0;
+      em[1] = nk - 1;
+      for (i = 2; i < nk; i++) em[i] = i - 1;
 
-    k = 0;
-    n = 0;
-    em[0] = 0;
-    for (i = 1; i < nk; i++) em[++k] = n += 1;
-    for (i = 1; i < nk; i++) em[++k] = n += nk;
-    for (i = 1; i < nk; i++) em[++k] = n -= 1;
-    for (i = 1; i < nk; i++) em[++k] = n -= nk;
-  
-    /* -- Traverse interior in row-major order. */
+    } else if (dim == 2) {
 
-    for (i = 1; i < nm; i++)
-      for (j = 1; j < nm; j++)
-	em[k++] = i * nk + j;
+      /* -- Traverse exterior CCW. */
+
+      k = 0;
+      n = 0;
+      em[0] = 0;
+      for (i = 1; i < nk; i++) em[++k] = n += 1;
+      for (i = 1; i < nk; i++) em[++k] = n += nk;
+      for (i = 1; i < nk; i++) em[++k] = n -= 1;
+      for (i = 1; i < nk; i++) em[++k] = n -= nk;
   
+      /* -- Traverse interior in row-major order. */
+
+      for (i = 1; i < nm; i++)
+	for (j = 1; j < nm; j++)
+	  em[k++] = i * nk + j;
+    }
+
     /* -- Build pmap. */
   
-    for (i = 0; i < nk2; i++) pm[em[i]] = i;
+    for (i = 0; i < len; i++) pm[em[i]] = i;
   }
 
   /* -- p now points to valid storage: return requested operators. */
