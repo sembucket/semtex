@@ -320,10 +320,15 @@ void dglldpc (const integer  np,
  * points contain values of the zeroth Legendre polynomial at the GLL
  * points (these are identically 1.0), the second np points the values
  * of the first polynomial, etc.  So rows index polynomial, while
- * columns index spatial location.  The final np points (the np-th row
- * of the table, for 0-based indexing) contains the weights 1/gamma_k
- * (see Canuto et al., 2.3.13).
- * ------------------------------------------------------------------------- */
+ * columns index spatial location. 
+ *
+ * NB: this is the opposite ordering used for dglmdpc, below.
+ *
+ * The final np points (the np-th row of the table, for 0-based
+ * indexing) contains the weights 1/gamma_k (see Canuto et al.,
+ * 2.3.13).
+ * -------------------------------------------------------------------------
+ * */
 {
   register integer  found = 0;
   register legCoef* p;
@@ -508,10 +513,13 @@ void dglmdpc (const integer  np,
  *
  * Tables contain values of modal expansion functions evaluated at GLL
  * quadrature points, and the associated quadrature weights.  Storage
- * is row-major: the first np points contain values of the zeroth
- * modal basis function at the GLL points, the second np points the
- * values of the first basis function, etc.  So rows index polynomial,
- * while columns index spatial location.
+ * is column-major: the first np points contain values of the all the
+ * modal basis function at the first GLL point, the second np points
+ * the values of the all the basis functions at the second point, etc.
+ * So rows index quadrature point, while columns index polynomial.
+ *
+ * NB: this ordering is THE OPPOSITE of that used for dglldpc, but it
+ * conforms to that used by Karniadakis & Sherwin.
  *
  * The modal expansion functions are a set of hierarchical functions
  * based on the Jacobi polynomials.
@@ -549,7 +557,7 @@ void dglmdpc (const integer  np,
 
     for (i = 0; i < np; i++)
       for (j = 0; j < np; j++) {
-	k = j + i * np;
+	k = i + j * np;
 	p -> dtab[k] = pnmod (z[j], i);
       }
   }
@@ -596,32 +604,25 @@ void dglmdpt (const integer  np,
  *
  * The 1D discrete forward transform is defined as
  *
- *   ^         t -1
- *   u = [B W B ]   B W u  = F u
- *   ~                  ~      ~
- * 
- * with inverse
- *
- *         ^
- *   u = B u
- *   ~     ~
+ *   ^     t     -1 t                                  ^
+ *   u = [B W B ]  B  W u  = F u,  with inverse  u = B u
+ *   ~                  ~      ~                 ~     ~
  *
  * where u_i is a vector of function values evaluated at the ith
- * quadrature point, B_ji is the jth basis function evaluated at the
+ * quadrature point, B_ij is the jth basis function evaluated at the
  * ith quadrature point and W_i are the associated quadrature weights.
  * The vector of coefficients of the new basis functions is u^.
  *
  * The equivalent 2D tensor-product (sum-factorisation) relationships are
- *   ^              t
- *   uij = Fip upq Fqj
- *             ^    t
- *   uij = Bip upq Bqj
+ *
+ *   ^              t                 ^    t
+ *   uij = Fip upq Fqj,     uij = Bip upq Bqj
  *
  * Instead of these tensor-product forms, we can also "unroll" the
  * matrix multiplies above to be a single matrix-vector product in
  * each case, so that
- *   ^                             ^
- *   uij = Fijpq upq,  uij = Bijpq upq.
+ *   ^                                  ^
+ *   uij = Fijpq upq,       uij = Bijpq upq.
  *
  * This form, although involving more operations, can actually be
  * faster on vector architectures (depending on np).
@@ -729,6 +730,3 @@ void dglmdpt (const integer  np,
   if (fu) *fu = (const double*) p -> UF;
   if (bu) *bu = (const double*) p -> UB;
 }
-
-
-
