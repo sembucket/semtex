@@ -1,6 +1,7 @@
 ##############################################################################
-# Makefile for dns, spectral element solver for unsteady Navier--Stokes
-# problems.
+# Makefile for lns, spectral element solver for linearised unsteady
+# Navier--Stokes problems, and arnoldi, a Krylov-method solver for
+# stability problems (including Floquet problems).
 #
 # $Id$
 ##############################################################################
@@ -27,13 +28,19 @@ lns: sem $(ST_OBJ) $(SEMOBJ) stab.h
 	$(LD) -o $@ $(ST_OBJ) $(SEMOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
-# Build eigensolver code
+# Build eigensolver code.
 
 FL_FILES = arnoldi integrate stabanalysis
 FL_OBJ   = $(addsuffix .o,$(FL_FILES))
 
 arnoldi: sem $(FL_OBJ) $(SEMOBJ) stab.h
 	$(LD) -o $@ $(FL_OBJ) $(SEMOBJ) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build combine, a utility to combine a base and a perturbation field.
+#
+combine: combine.o
+	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Header dependency.

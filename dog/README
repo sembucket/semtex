@@ -72,6 +72,10 @@ N_BASE  N_PERT  N_Z    COMPLEXITY
  3       3       2     Full-complex
  3       2       -     -
 
+Note: the case where N_BASE = N_PERT = 3 and N_Z = 1 (e.g. a 2D,
+3-component axisymmetric perturbation on a 2D, 3-component swirling
+flow) needs to be dealt with too.
+
 Summary of additional TOKENS and session file requirements
 ----------------------------------------------------------
 
