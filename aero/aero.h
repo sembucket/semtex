@@ -19,7 +19,7 @@ public:
   Analyser  (Domain&, Body&);
   ~Analyser () { }
 
-  void analyse ();
+  void analyse (AuxField***);
 
 private:
   Domain&   src;
@@ -29,6 +29,7 @@ private:
   ofstream  sta_strm;
 
   void modalEnergy () const;
+  void divergence  (AuxField***) const;
 };
 
 

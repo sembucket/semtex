@@ -103,7 +103,7 @@ void NavierStokes (Domain*   D,
 
     // -- Process results of this step.
 
-    A -> analyse();
+    A -> analyse (Us);
   }
 }
 
@@ -126,8 +126,8 @@ static void nonLinear (Domain*     D ,
 //
 // i.e., in Cartesian component form
 //
-//              N  = -0.5 ( u  d(u u ) / dx  + d(u u ) / dx ).
-//               i           j    i j      j      i j      j
+//              N  = -0.5 ( u  d(u ) / dx  + d(u u ) / dx ).
+//               i           j    i      j      i j      j
 //
 // If STOKES is defined for compilation, the nonlinear terms are set to zero.
 //
