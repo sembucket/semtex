@@ -37,7 +37,7 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
   int        mode;
   bool       found;
 
-  MatrixSys*                   M;
+  MatrixSys* M;
   vector<MatrixSys*>::iterator m;
 
   _fields = new char [strlen (Bsys -> Nsys (0) -> fields()) + 1];
