@@ -123,8 +123,7 @@ int main (int    argc,
   if   (np)                   Femlib::value ("N_POLY", np);
   else  np = static_cast<int>(Femlib::value ("N_POLY"));
 
-  cyl3D = static_cast<int>(Femlib::value("CYLINDRICAL")) &&
-          static_cast<int>(Femlib::value("N_Z"))         > 1;
+  cyl3D = static_cast<int>(Femlib::value("CYLINDRICAL"));
 
   getfields (file, field, (axistag = axial (file)) && cyl3D);
   if (axistag) checkABCs (file, axistag);
@@ -339,8 +338,8 @@ static void checkVBCs (FEML*       file ,
 {
   if (!file->seek ("BCS")) return;
   if (!strchr (field, 'u')) return;
-  if (!strchr (field, 'v') || !strchr (field, 'w')) return;
-//  message (prog,"radial, azimuthal velocity fields v, w not declared",ERROR);
+  if (!strchr (field, 'v') || !strchr (field, 'w'))
+    message (prog,"radial, azimuthal velocity fields v, w not declared",ERROR);
 
   integer       i, j, id, nbcs;
   char          vtag, wtag, groupc, fieldc, tagc, tag[StrMax], err[StrMax];
