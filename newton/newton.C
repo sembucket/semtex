@@ -59,6 +59,12 @@
 
 static char prog[] = "newton";
 
+// -- Linear system convergence control.
+
+const real    INITOL  = 1.0e-3;
+const real    SHRINK  = 0.67;
+const integer NSTABLE = 3;
+
 // -- Duplicates for base and perturbation systems.
 
 static Domain* BaseDomain;
@@ -106,8 +112,8 @@ int main (int    argc,
   ios::sync_with_stdio();
 #endif
 
-  int  maxiLsys = 100,    maxiNewt = 20, i, itn;
-  real tolLsys  = 1.0e-6, tolNewt  = 1.0e-6, rnorm, tol;
+  int  maxiLsys = 100, maxiNewt = 20, i, itn;
+  real tol, pretol, tolLsys = 1.0e-6, tolNewt = 1.0e-6, rnorm;
   int  verbose  = 0, converged = 0, ier;
   char *BaseSession, *PertSession;
 
@@ -120,6 +126,13 @@ int main (int    argc,
 
   getargs (argc, argv, maxiLsys, maxiNewt, tolLsys, tolNewt, verbose,
 	   BaseSession, PertSession);
+
+  // -- Echo execution parameters.
+
+  cout << "-- Newton convergence tol  : " << tolNewt  << endl;
+  cout << "          iteration limit  : " << maxiNewt << endl;
+  cout << "-- BiCGS  convergence tol  : " << tolLsys  << endl;
+  cout << "          iteration limit  : " << maxiLsys << endl;
 
   // -- Allocate storage.
   
@@ -143,7 +156,8 @@ int main (int    argc,
   cout.setf (ios::scientific, ios::floatfield); cout.precision (2);
 
   initVec (U);
-
+  pretol = INITOL;
+  
   // -- Newton iteration.
 
   for (i = 1; !converged && i <= maxiNewt; i++) {
@@ -151,12 +165,14 @@ int main (int    argc,
     NS_update (U, dU);
     Veclib::vsub (ntot, dU, 1, U, 1, dU, 1);
     
-    itn = maxiLsys; tol = tolLsys;
+    itn = maxiLsys;
+    tol = pretol;
+
     Veclib::zero (ntot, u, 1);
 
 #if defined (NSPCG)
     F77NAME (dfault) (iparm, rparm);
-    iparm[1] = itn; iparm[2] = 0; rparm[0] = tol;
+    iparm[1] = itn; iparm[2] = 0; rparm[0] = pretol;
 
     F77NAME (bcgsw) (matvec, ident, ident, 0, 0, 0, 0,
 		     ntot, u, ubar, dU, lwrk, nw, iparm, rparm, ier);
@@ -166,19 +182,34 @@ int main (int    argc,
     F77NAME (bicgstab) (ntot, dU, u, lwrk, ntot, itn, tol, matvec, ident, ier);
 #endif
 
-    if (ier < 0) message (prog, "error return from iterative solver", ERROR);
+    if (ier < 0) {
+      cout << " WARNING: error return from iterative solver" << endl;
+      break;
+    }
 
     rnorm     = sqrt (Blas::nrm2 (ntot, u, 1) / Blas::nrm2 (ntot, U, 1));
     converged = rnorm < tolNewt;
 
-    cout << "Iteration "           << setw(3) << i 
-	 << ", BiCGS iterations: " << setw(3) << itn
-	 << ", resid: "            << tol
-	 << ", Rnorm: "            << rnorm 
+    cout << "Iteration "     << setw(3) << i
+	 << ", tol: "        << pretol
+         << ", BiCGS itns: " << setw(3) << itn
+	 << ", resid: "      << tol
+	 << ", Rnorm: "      << rnorm 
 	 << endl;
 
-    Veclib::vsub (ntot, U, 1, u, 1, U, 1);
+    if (itn < NSTABLE)		// -- Tighten tolerance.
+      pretol *= (pretol < tolLsys) ? 1.0 : SHRINK;
+    else if (itn == maxiLsys)	// -- Loosen tolerance (and try again).
+      pretol /= SHRINK;
+
+    if (itn < maxiLsys)		// -- Accept adjustment to solution.
+      Veclib::vsub (ntot, U, 1, u, 1, U, 1);
   }
+
+  if (converged)
+    cout << "Writing converged solution."                     << endl;
+  else
+    cout << "Not converged: writing final solution estimate." << endl;
 
   BaseDomain -> dump();
 
