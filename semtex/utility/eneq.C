@@ -384,9 +384,9 @@ static void covary  (map<char, AuxField*>& in  ,
   // -- The pressure-velocity covariances: m, n (o).
 
   work[0] -> times (*in['p'], *in['u']); *in['m'] -= *work[0];
-  work[0] -> times (*in['p'], *in['u']); *in['n'] -= *work[0];
+  work[0] -> times (*in['p'], *in['v']); *in['n'] -= *work[0];
   if (nvel == 3) {
-    work[0] -> times (*in['p'], *in['u']); *in['o'] -= *work[0];
+    work[0] -> times (*in['p'], *in['w']); *in['o'] -= *work[0];
   }
 
   // -- Everything from now on involves derivatives in one way or another.
@@ -411,14 +411,18 @@ static void covary  (map<char, AuxField*>& in  ,
     *out['2'] += *in['t'];
   }
 
+  *out['2'] *= -1.0;
+
   // -- Term '3' (pressure work), destroying 'm', 'n', 'o' as we go:
 
   in['m'] -> gradient (0); *out['3']  = *in['m'];
   in['n'] -> gradient (1); *out['3'] += *in['n'];
   if (nvel == 3) {
     (in['o'] ->  transform (FORWARD)) . gradient (2) . transform (INVERSE);
-    *out['3'] *= *in['o'];
+    *out['3'] += *in['o'];
   }
+
+  *out['3'] *= -1.0;
 
   // -- Next we build the mean rate-of-strain tensor for further work.
   //    The '2d' components get stored in 'm', 'n', 'o' while 
@@ -484,7 +488,7 @@ static void covary  (map<char, AuxField*>& in  ,
     *out['4'] += *in['c'];
   }
   
-  *out['4'] *= -2.0 * kinvis;
+  *out['4'] *= 2.0 * kinvis;
   
   // -- Compute term '7' (dissipation):
 

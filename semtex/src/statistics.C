@@ -193,8 +193,9 @@ void Statistics::update (AuxField** wrka,
 {
   if (_iavg < 1) return;
   
-  char  key;
-  int_t i, j;
+  char   key;
+  int_t  i, j;
+  Field* master = _base -> u[0];
   map<char, AuxField*>::iterator k;
 
   // -- Weight old running averages.
@@ -375,10 +376,12 @@ void Statistics::update (AuxField** wrka,
     }
   }
 
-  // -- Normalise running averages.
+  // -- Normalise and smooth running averages.
 
-  for (k = _avg.begin(); k != _avg.end(); k++)
+  for (k = _avg.begin(); k != _avg.end(); k++) {
+    master -> smooth (k -> second);
     *(k -> second) /= static_cast<real_t>(_navg + 1);
+  }
 
   _navg++;
 }
@@ -398,7 +401,6 @@ void Statistics::dump (const char* filename)
   const bool   periodic = !(step %  Femlib::ivalue ("IO_FLD"));
   const bool   initial  =   step == Femlib::ivalue ("IO_FLD");
   const bool   final    =   step == Femlib::ivalue ("N_STEP");
-  Field*       master   = _base -> u[0];
 
   if (!(periodic || final)) return;
 
@@ -418,10 +420,8 @@ void Statistics::dump (const char* filename)
   // -- All terms are written out in physical space but some are
   //    held internally in Fourier space.
 
-  for (k = _raw.begin(); k != _raw.end(); k++) {
-    master -> smooth (k -> second);
+  for (k = _raw.begin(); k != _raw.end(); k++)
     _avg[k -> second -> name()] -> transform (INVERSE);
-  }
 
   if (_neng) {
     _avg['G'] -> transform (INVERSE);
