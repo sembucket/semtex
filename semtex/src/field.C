@@ -187,7 +187,7 @@ Field::Field (FEML&                feml ,
 // ---------------------------------------------------------------------------
 {
   char      routine[] = "Field::Field", err[StrMax], tag[StrMax];
-  char      group, nextc;
+  char      group;
   int       i, k, t, elmt, side;
   const int Nsurf = feml.attribute ("SURFACES", "NUMBER");
   const int nZ    =  Geometry::nZ();
