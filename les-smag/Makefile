@@ -70,7 +70,7 @@ ifeq ($(ARCH),UNIX_System_V)    # -- Fujitsu VPP300.
 CC       = vcc
 CXX      = /usr/uxp/C++/bin/CC
 LD       = /usr/uxp/C++/bin/CC
-OPTIM    = -Wv,-m3,-Om,-te
+OPTIM    = -Wv,-m3,-Om,-te -Kpopt
 CXXFLAGS = $(DEFINES)  $(OPTIM)
 LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 ifdef MPI
@@ -97,7 +97,7 @@ CXX      = CC
 LD       = CC
 CFLAGS   = $(DEFINES) -pvctl,fullmsg -hacct -Onooverlap        \
            -hfloat0 -hnostkchk
-CXXFLAGS = $(CFLAGS) $(OPTIM) +a1
+CXXFLAGS = $(CFLAGS) $(OPTIM) +a1 -ispeed
 LDFLAGS  = $(CFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 ifdef MPI
   LIBS   = -lfem_mp -llapack_64 -lalp_mp -lblas_64 -lfft_64	\
@@ -110,7 +110,7 @@ endif
 
 # ----------------------------------------------------------------------------
 #
-SEMFILES  = analysis auxfield BCmgr boundary condition domain 	\
+SEMFILES  = analysis auxfield BCmgr boundary domain 		\
 	    element feml field geometry history integration  	\
 	    matrix mesh misc particle pressure statistics
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
@@ -141,9 +141,6 @@ mesh.o: $(VPATH)/mesh.C
 BCmgr.o: $(VPATH)/BCmgr.C
         $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
         $(VPATH)/BCmgr.C
-condition.o: $(VPATH)/condition.C
-        $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
-        $(VPATH)/condition.C
 endif
 
 # -----------------------------------------------------------------------------

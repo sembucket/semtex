@@ -63,7 +63,7 @@ endif
 ifeq ($(ARCH),UNIX_System_V)            # -- Fujitsu VPP300
 CC         = vcc
 FC	   = frt
-CFLAGS     = -Wv,-m3,-Om
+CFLAGS     = -Wv,-m3,-Om -Kpopt
 FFLAGS     = -Wv,-m3,-te
 endif
 
