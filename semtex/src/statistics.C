@@ -92,12 +92,12 @@ Statistics::Statistics (Domain&            D    ,
 
 void Statistics::update (AuxField*** work)
 // ---------------------------------------------------------------------------
-// Update running averages.  Zeroth time level of work is available as
-// workspace, but not used yet.  Reynolds stress terms are calculated 
-// without dealiasing, and are held in physical space.
+// Update running averages, using zeroth time level of work as
+// workspace.  Reynolds stress terms are calculated without
+// dealiasing, and are held in physical space.
 // ---------------------------------------------------------------------------
 {
-  integer       i, j, k;
+  integer       i;
   const integer NT = avg.getSize();
   const integer ND = Geometry::nDim();
   const integer NR = ((integer) Femlib::value ("AVERAGE") > 1) ? 
