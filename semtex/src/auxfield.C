@@ -1453,7 +1453,7 @@ real AuxField::CFL (const integer dir) const
   {
     const integer nP = Geometry::nP();
     const real*  z;
-    Femlib::quadrature (&z, 0, 0, 0, nP, 'L', 0.0, 0.0);
+    Femlib::quadrature (&z, 0, 0, 0, nP, LL, 0.0, 0.0);
     dxy = z[1] - z[0];
   }
 
