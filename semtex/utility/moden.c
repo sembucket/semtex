@@ -102,7 +102,6 @@ int main (int    argc,
 
     nplane     = np * np * nel;
     nplaneEven = (nplane & 1) ? nplane + 1 : nplane;
-    npts       = nz * nplane;
     nptsEven   = nz * nplaneEven;
     ntot       = nfields * nptsEven;
 
