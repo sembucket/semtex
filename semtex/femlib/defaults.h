@@ -61,6 +61,7 @@ static struct {
   "AVERAGE"     ,   0   ,	/* -- Select averaging of fields.         */
   "SPAWN"       ,   0   ,	/* -- Set respawning for particle tracks. */
   "RNG"         ,   0   ,	/* -- Set RNG form for Smagorinsky LES.   */
+  "NUMOPTLEVEL" ,   3   , 	/* -- Default for numbering optimization. */
   
   /* -- Default integer values. */
 

@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // auxfield.C: routines for AuxField class, including Fourier expansions.
 //
-// Copyright (C) 1994,2003 Hugh Blackburn.
+// Copyright (c) 1994,2003 Hugh Blackburn
 //
 // For 2D problems, the data storage is organized by 2D Elements.
 //
@@ -17,9 +17,9 @@
 //
 // The data are transformed to physical space for storage in restart
 // files.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <Sem.h>
 
@@ -44,7 +44,7 @@ AuxField::AuxField (real*             alloc,
   if (Geometry::nElmt() != _elmt.size())
     message (routine, "conflicting number of elements in input data", ERROR);
 
-  _plane = new real* [(size_t) _nz];
+  _plane = new real* [static_cast<size_t>(_nz)];
 
   for (k = 0; k < _nz; k++) _plane[k] = _data + k * nP;
 }
@@ -65,7 +65,7 @@ AuxField& AuxField::setInput (real*     alloc,
   _data = alloc;
 
   delete [] _plane;
-  _plane = new real* [(size_t) _nz];
+  _plane = new real* [static_cast<size_t>(_nz)];
 
   for (k = 0; k < _nz; k++) _plane[k] = _data + k * nP;
 
@@ -184,6 +184,8 @@ AuxField& AuxField::operator = (const char* function)
   const int     nel = Geometry::nElmt();
   const int     np2 = Geometry::nTotElmt();
   const int     kb  = Geometry::basePlane();
+  const int     nP  = Geometry::nPlane();
+  const int     NP  = Geometry::planeSize();
   const real    dz  = Femlib::value ("TWOPI / BETA / N_Z");
   register int  i, k;
   real*         p;
@@ -192,6 +194,7 @@ AuxField& AuxField::operator = (const char* function)
     Femlib::value ("z", (kb + k) * dz);
     for (p = _plane[k], i = 0; i < nel; i++, p += np2)
       _elmt[i] -> evaluate (function, p);
+    Veclib::zero (NP-nP, _plane[k] + nP, 1);
   }
   
   return *this;
@@ -327,56 +330,33 @@ AuxField& AuxField::gradient (const int dir)
 // AuxField is presumed to have been Fourier transformed in 3rd direction.
 // ---------------------------------------------------------------------------
 {
-  const char    routine[] = "AuxField::gradient";
-  const int     nel  = Geometry::nElmt();
-  const int     np   = Geometry::nP();
-  const int     npnp = np  * np;
-  const int     ntot = nel * npnp;
-  const int     nP   = Geometry::planeSize();
-  vector<real>  work;
-  register real *xr, *xs, *tmp;
-  register int  i, k;
-  const real    **DV, **DT;
-
-  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+  const char   routine[] = "AuxField::gradient";
+  const int    nel  = Geometry::nElmt();
+  const int    np   = Geometry::nP();
+  const int    npnp = np  * np;
+  const int    ntot = nel * npnp;
+  const int    nP   = Geometry::planeSize();
+  int          i, k;
+  vector<real> work;
+  real         *tmp;
 
   switch (dir) {
 
   case 0:
-    work.resize (2 * nP);
-    xr = &work[0];
-    xs = xr + nP;
-
+    work.resize (2 * npnp);
     for (k = 0; k < _nz; k++) {
-      tmp = _plane[k];
-
-      Veclib::zero  (2 * nP, xr, 1);
-      Femlib::grad2 (tmp, tmp, xr, xs, *DV, *DT, np, nel);
-
-      for (i = 0; i < nel; i++, xr += npnp, xs += npnp, tmp += npnp)
-	_elmt[i] -> gradX (xr, xs, tmp);
-      
-      xr -= ntot;
-      xs -= ntot;
+     tmp = _plane[k];
+     for (i = 0; i < nel; i++, tmp += npnp)
+       _elmt[i] -> grad (tmp, 0, &work[0]);
     }
     break;
 
   case 1:
-    work.resize (2 * nP);
-    xr = &work[0];
-    xs = xr + nP;
-
+    work.resize (2 * npnp);
     for (k = 0; k < _nz; k++) {
       tmp = _plane[k];
-
-      Veclib::zero  (2 * nP, xr, 1);
-      Femlib::grad2 (tmp, tmp, xr, xs, *DV, *DT, np, nel);
-
-      for (i = 0; i < nel; i++, xr += npnp, xs += npnp, tmp += npnp)
-	_elmt[i] -> gradY (xr, xs, tmp);
-      
-      xr -= ntot;
-      xs -= ntot;
+      for (i = 0; i < nel; i++, tmp += npnp)
+	_elmt[i] -> grad (0, tmp, &work[0]);
     }
     break;
 
@@ -387,7 +367,6 @@ AuxField& AuxField::gradient (const int dir)
     int        Re, Im, klo;
 
     work.resize (nP);
-    xr = &work[0];
 
     if (base == 0) { // -- We have real & Nyquist planes, to be set zero.
       klo = 1; Veclib::zero (2 * nP, _data, 1);
@@ -397,9 +376,9 @@ AuxField& AuxField::gradient (const int dir)
     for (k = klo; k < nmodes; k++) {
       Re = k  + k;
       Im = Re + 1;
-      Veclib::copy (nP,                     _plane[Re], 1, xr,         1);
-      Veclib::smul (nP, -beta * (k + base), _plane[Im], 1, _plane[Re], 1);
-      Veclib::smul (nP,  beta * (k + base), xr,         1, _plane[Im], 1);
+      Veclib::copy (nP,                   _plane[Re], 1, &work[0],   1);
+      Veclib::smul (nP, -beta * (k+base), _plane[Im], 1, _plane[Re], 1);
+      Veclib::smul (nP,  beta * (k+base), &work[0],   1, _plane[Im], 1);
     }
     break;
   }
@@ -428,73 +407,46 @@ void AuxField::gradient (const int nZ ,
 // NB: the Fourier mode index is assumed to start at zero for all processes.
 // ---------------------------------------------------------------------------
 {
-  const char    routine[] = "AuxField::gradient";
-  const int     nel  = Geometry::nElmt();
-  const int     np   = Geometry::nP();
-  const int     npnp = np  * np;
-  const int     ntot = nel * npnp;
-  register int  i, k;
-  vector<real>  work;
-  register real *plane, *xr, *xs, *Re, *Im;
-  const real    **DV, **DT;
-
-  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+  const char   routine[] = "AuxField::gradient";
+  const int    nel  = Geometry::nElmt();
+  const int    np   = Geometry::nP();
+  const int    npnp = np  * np;
+  const int    ntot = nel * npnp;
+  int          i, k;
+  vector<real> work;
+  real         *plane, *Re, *Im;
 
   switch (dir) {
 
   case 0:
-    work.resize (2 * nP);
-    xr = &work[0];
-    xs = xr + nP;
-
-    for (k = 0; k < nZ; k++) {
-      plane = src + k * nP;
-
-      Veclib::zero  (2 * nP, xr, 1);
-      Femlib::grad2 (plane, plane, xr, xs, *DV, *DT, np, nel);
-
-      for (i = 0; i < nel; i++, xr += npnp, xs += npnp, plane += npnp)
-	_elmt[i] -> gradX (xr, xs, plane);
-      xr -= ntot;
-      xs -= ntot;
-    }
+    work.resize (2 * npnp);
+    for (plane = src, k = 0; k < nZ; k++, plane += nP)
+      for (Re = plane, i = 0; i < nel; i++, Re += npnp)
+	_elmt[i] -> grad (Re, 0, &work[0]);
     break;
 
   case 1:
-    work.resize (2 * nP);
-    xr = &work[0];
-    xs = xr + nP;
-
-    for (k = 0; k < nZ; k++) {
-      plane = src + k * nP;
-
-      Veclib::zero  (2 * nP, xr, 1);
-      Femlib::grad2 (plane, plane, xr, xs, *DV, *DT, np, nel);
-
-      for (i = 0; i < nel; i++, xr += npnp, xs += npnp, plane += npnp)
-	_elmt[i] -> gradY (xr, xs, plane);
-      xr -= ntot;
-      xs -= ntot;
-    }
+    work.resize (2 * npnp);
+    for (plane = src, k = 0; k < nZ; k++, plane += nP)
+      for (Re = plane, i = 0; i < nel; i++, Re += npnp)
+	_elmt[i] -> grad (0, Re, &work[0]);
     break;
 
   case 2: {
-    if (nZ == 1) break;
+    if (nZ < 2) break;
 
     const int  nmodes = nZ >> 1;
     const real beta   = Femlib::value ("BETA");
 
-    work.resize (nP);
-    xr = &work[0];
-
+    work.resize  (nP);
     Veclib::zero (2 * nP, src, 1);
 
     for (k = 1; k < nmodes; k++) {
       Re = src + 2 * k * nP;
       Im = Re  + nP;
-      Veclib::copy (nP,             Re, 1, xr, 1);
-      Veclib::smul (nP, -beta * k,  Im, 1, Re, 1);
-      Veclib::smul (nP,  beta * k,  xr, 1, Im, 1);
+      Veclib::copy (nP,             Re,       1, &work[0], 1);
+      Veclib::smul (nP, -beta * k,  Im,       1, Re,       1);
+      Veclib::smul (nP,  beta * k,  &work[0], 1, Im,       1);
     }
     break;
   }
@@ -519,40 +471,33 @@ void AuxField::errors (const Mesh* mesh    ,
 {
   const char routine[] = "AuxField::errors";
 
-  if (!function) {
-    message (routine, "empty function string", WARNING);
-    return;
-  }
+  if (!function) { message (routine,"empty function string",WARNING); return; }
   
-  const int nq   = 15;
-  const int nqnq = nq * nq;
+
   const int np   = Geometry::nP();
+  const int nq   = min (15, np + np);
+  const int nqnq = nq * nq;
+  const int npnq = np * nq;
   const int npnp = Geometry::nTotElmt();
   const int nel  = Geometry::nElmt();
 
   Element      *E, *P;
   real         area = 0.0, Li = 0.0, L2 = 0.0, H1 = 0.0;
-  vector<real> work (np * nq + 2 * nqnq);
-  real         *u, *err = &work[0], *sol = err + nqnq, *tmp = sol + nqnq;
-  const real   *z, **IN, **IT;
+  vector<real> work (npnq + 2 * nqnq);
+  real         *u, *wrk = &work[0], *sol = wrk + npnq, *err = sol + nqnq;
   int          k;
-
-  Femlib::mesh (GLL, GLL, nq, nq, &z, 0,   0,  0, 0);
-  Femlib::mesh (GLL, GLL, np, nq, 0, &IN, &IT, 0, 0);
 
   for (u = _plane[0], k = 0; k < nel; k++, u += npnp) {
 
     E = _elmt[k];
-    P = new Element (E -> ID(), mesh, z, nq);
+    E -> project (np, u, nq, err, wrk);
 
-    Blas::mxm (*IN, nq,  u,  np, tmp, np);
-    Blas::mxm (tmp, nq, *IT, np, err, nq);
-
+    P = new Element (E -> ID(), nq, mesh);
     P -> evaluate (function, sol);
     Veclib::vsub  (nqnq, err, 1, sol, 1, err, 1);
 
-    area += P -> area ();
     Li    = max (Li, P -> norm_inf (err));
+    area += P -> area ();
     L2   += P -> norm_L2 (err);
     H1   += P -> norm_H1 (err);
 
@@ -940,6 +885,23 @@ AuxField& AuxField::setPlane (const int   k  ,
 }
 
 
+AuxField& AuxField::addToPlane (const int   k  ,
+				const real* src)
+// ---------------------------------------------------------------------------
+// Add src to nominated plane.
+// ---------------------------------------------------------------------------
+{
+  const char routine[] = "AuxField::setPlane";
+
+  if (k < 0 || k >= _nz)
+    message (routine, "nominated plane doesn't exist", ERROR);
+  else
+    Veclib::vadd (Geometry::nPlane(), src, 1, _plane[k], 1, _plane[k], 1);
+
+  return *this;
+}
+
+
 AuxField& AuxField::setPlane (const int  k    ,
 			      const real alpha)
 // ---------------------------------------------------------------------------
@@ -1063,7 +1025,7 @@ void AuxField::couple (AuxField* v  ,
 }
 
 
-AuxField& AuxField::divR ()
+AuxField& AuxField::divY ()
 // ---------------------------------------------------------------------------
 // Divide data values by radius (i.e. y in cylindrical coords).
 // ---------------------------------------------------------------------------
@@ -1075,13 +1037,13 @@ AuxField& AuxField::divR ()
 
   for (k = 0; k < _nz; k++)
     for (p = _plane[k], i = 0; i < nel; i++, p += npnp)
-      _elmt[i] -> divR (p);
+      _elmt[i] -> divY (p);
   
   return *this;
 }
 
 
-void AuxField::divR (const int nZ ,
+void AuxField::divY (const int nZ ,
 		     real*     src) const
 // ---------------------------------------------------------------------------
 // Divide src by radius (i.e. y in cylindrical coords).
@@ -1095,11 +1057,11 @@ void AuxField::divR (const int nZ ,
 
   for (k = 0; k < nZ; k++)
     for (p = src + k * ntot, i = 0; i < nel; i++, p += npnp)
-      _elmt[i] -> divR (p);
+      _elmt[i] -> divY (p);
 }
 
 
-AuxField& AuxField::mulR ()
+AuxField& AuxField::mulY ()
 // ---------------------------------------------------------------------------
 // Multiply data values by radius (i.e. y in cylindrical coords).
 // ---------------------------------------------------------------------------
@@ -1111,13 +1073,13 @@ AuxField& AuxField::mulR ()
 
   for (k = 0; k < _nz; k++)
     for (p = _plane[k], i = 0; i < nel; i++, p += npnp)
-      _elmt[i] -> mulR (p);
+      _elmt[i] -> mulY (p);
   
   return *this;
 }
 
 
-void AuxField::mulR (const int nZ ,
+void AuxField::mulY (const int nZ ,
 		     real*     src) const
 // ---------------------------------------------------------------------------
 // Multiply data values by radius (i.e. y in cylindrical coords).
@@ -1131,7 +1093,7 @@ void AuxField::mulR (const int nZ ,
 
   for (k = 0; k < nZ; k++)
     for (p = src + k * ntot, i = 0; i < nel; i++, p += npnp)
-      _elmt[i] -> mulR (p);
+      _elmt[i] -> mulY (p);
 }
 
 
@@ -1304,7 +1266,7 @@ real AuxField::CFL (const int dir) const
   {
     const int   nP = Geometry::nP();
     const real* z;
-    Femlib::quad (LL, nP, nP, &z, 0, 0, 0, 0, 0, 0);
+    Femlib::quadrature (&z, 0, 0, 0, nP, 'L', 0.0, 0.0);
     dxy = z[1] - z[0];
   }
 
@@ -1339,115 +1301,6 @@ AuxField& AuxField::sqroot()
 // ---------------------------------------------------------------------------
 {
   Veclib::vsqrt (_size, _data, 1, _data, 1);
-
-  return *this;
-}
-
-
-static real genMaskValue (const real delta,
-			  const real lag  ,
-			  const real order,
-			  const int  mode )
-// ---------------------------------------------------------------------------
-// Generates a mask value used to filter out the higher order Fourier
-// modes close to the axis. The function defining the lag is given in
-// the USER section of the session file and is called "MASK_LAG".
-//
-// Example: 
-// In USER   section, MASK_LAG (2./N_Z)+tanh(4.*y) (generally between 0 & 1).
-// In TOKENS section, MASK_DELTA = 4, MASK_ORDER = 4.
-// ---------------------------------------------------------------------------
-{
-  const real N = lag + delta, EPS = EPSSP;
-  real       arg, theta, chi, omega;
-
-  if      (mode <= lag)
-    return 1.0;
-  else if (mode < N) {
-    theta = (mode - lag) / delta;
-    omega = fabs(theta) - 0.5;
-    if ((fabs (theta - 0.5)) < EPS) 
-      chi = 1.0;
-    else {
-      arg = 1.0 - 4.0 * omega * omega;
-      chi = sqrt (-log (arg) / (4.0 * omega * omega));
-    }
-    return 0.5 * erfc (2.0 * sqrt (order) * chi * omega);
-  } else
-    return 0.0;
-}
-
-
-AuxField& AuxField::buildMask (const char* function)
-// ---------------------------------------------------------------------------
-// Set up an AuxField to be used as a mask for the Fourier modes close
-// to the axis.
-// ---------------------------------------------------------------------------
-{
-  const int    nel    = Geometry::nElmt();
-  const int    np2    = Geometry::nTotElmt();
-  const int    nmodes = Geometry::nMode();
-  const int    base   = Geometry::baseMode();
-  const real   order  = Femlib::value ("MASK_ORDER");
-  const real   delta  = Femlib::value ("MASK_DELTA");
-  register int i, j, k;
-  int          mode;
-  real*        p;
-  vector<real> lag (np2);
-
-  for (k = 0; k < _nz; k++) {
-    mode = base + (k >> 1);
-    for (p = _plane[k], i = 0; i < nel; i++, p += np2) {
-      _elmt[i] -> evaluate (function, &lag[0]);
-      for (j = 0; j < np2; j++)
-	p[j] = genMaskValue (delta, lag[j]*nmodes, order, mode);
-    }
-  }
-
-  this -> zeroNyquist();
-
-  return *this;
-}
-
-
-AuxField& AuxField::projStab (const real alpha,
-			      AuxField&  work )
-// ---------------------------------------------------------------------------
-// Carry out a "projection stabilisation" operation, as described by
-// Fischer & Mullen.  This replaces the current data area by a
-// weighted sum of itself and a projection onto a one-order lower GLL
-// Lagrange interpolant.  
-//
-// u <-- (1-alpha) u + alpha u_(-1).
-//
-// Typically 0 <= alpha <= 1 (Fischer & Mullen use 0.05--0.3), but
-// this is not enforced.
-//
-// Work is overwritten during processing.
-// ---------------------------------------------------------------------------
-{
-  const int   nel  = Geometry::nElmt();
-  const int   np   = Geometry::nP();
-  const int   nm   = np - 1;
-  const int   npnp = np * np;
-  const int   nP   = Geometry::planeSize();
-  int         k;
-  real        *A, *B, *scr;
-  const real  **PF, **PT, **IB, **IT;
-  vector<real> tmp (nP + 2 * npnp);
-  
-  scr = &tmp[0]; A = scr + nP; B = A + npnp;
-
-  Femlib::mesh (GLL, GLL, np, nm, 0, &PF, &PT, 0, 0);
-  Femlib::mesh (GLL, GLL, nm, np, 0, &IB, &IT, 0, 0);
-  Blas::mxm    (*IB, np, *PF, nm, A, np);
-  Blas::mxm    (*PT, np, *IT, nm, B, np);
-
-  for (k = 0; k < _nz; k++)
-    Femlib::tpr2d (_plane[k], work._plane[k], scr, A, B, np, np, nel);
-  
-  Blas::axpy (_size, alpha/(1.0-alpha), work._data, 1, _data, 1);
-  Blas::scal (_size, (1.0-alpha), _data, 1);
 
   return *this;
 }

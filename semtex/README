@@ -32,12 +32,11 @@ FORTRAN77 compilers.
 Author
 ------
 Hugh M. Blackburn
-CSIRO Division of Building, Construction and Engineering
+CSIRO Manufacturing and Infrastructure Technology
 P.O. Box 56
 Highett 3190
 Australia
-hugh.blackburn@dbce.csiro.au
-http://fluids.csiro.au/~hmb
+mailto:hugh.blackburn@csiro.au
 
 Starting out
 ------------
@@ -124,6 +123,8 @@ Log of major revisions
 7  Apr 1999: Mixed BC type added.                                  Semtex-5.3.
 
 13 Apr 2000: Fix pressure BC modal bugs, improve vectorisation.    Semtex-5.4.
+
+1  Jun 2003: Adopt standard C++ libraries wherever possible.       Semtex-5.5.
 
 
 Notes for specific systems

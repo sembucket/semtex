@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // statistics.C: routines for statistical analysis of AuxFields.
 //
-// Copyright (C) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994,2003 Hugh Blackburn
 //
 // At present, this is limited to running averages of primitive
 // variables and product terms for Reynolds stresses.
@@ -22,9 +22,9 @@
 //
 // Running averages are kept semi-Fourier, Reynolds stress products in
 // physical space to minimize number of transforms needed.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <ctime>
 #include <Sem.h>

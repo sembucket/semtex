@@ -18,13 +18,8 @@ do
   then
     cp $MESHDIR/$i .
   fi
-  if test -f $i.num
-  then
-    rm -f $i.num
-  fi
-  enumerate -O3 $i > $i.num 2> /dev/null
   compare $i > $i.rst
-  $CODE -chk $i > /dev/null
+  $CODE -chk $i >& /dev/null
   compare -n $i $i.fld > /dev/null 2> $i.new
   cmp -s $i.new ../regress/$i.ok
   case $? in

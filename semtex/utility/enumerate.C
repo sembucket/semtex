@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // enumerate.C:  utility to generate mesh numbering from mesh description file.
 //
-// Copyright (c) 1995--1999 Hugh Blackburn
+// Copyright (c) 1995,2003 Hugh Blackburn
 //
 // Usage: enumerate [options] file
 //   options:
@@ -27,6 +27,7 @@
 #include <climits>
 #include <iostream>
 #include <iomanip>
+#include <vector>
 
 using namespace std;
 
@@ -35,7 +36,6 @@ using namespace std;
 #include <Utility.h>
 #include <Mesh.h>
 #include <Veclib.h>
-#include <List.h>
 
 class Nsys {
 friend void printup (const char*, vector<Nsys*>&, const integer);
@@ -66,10 +66,10 @@ public:
 
   integer sortGid         (integer*, integer*);
   void    renumber        (const integer, const integer = 0);
-  integer buildAdjncy     (List<integer>*)                 const;
-  void    fillAdjncy      (List<integer>*, integer*,
+  integer buildAdjncy     (vector<integer>*)                 const;
+  void    fillAdjncy      (vector<integer>*, integer*,
 			   integer*, const integer)        const;
-  void    connectivSC     (List<integer>*, const integer*,
+  void    connectivSC     (vector<integer>*, const integer*,
 			   const integer*, const integer)  const;
   integer globalBandwidth ()                               const;
   integer highAxis        ()                               const;
@@ -124,8 +124,8 @@ int main (int    argc,
   if   (np)            Femlib::value ("N_POLY", np);
   else  np = (integer) Femlib::value ("N_POLY");
 
-  cyl3D = (integer) Femlib::value("CYLINDRICAL") &&
-          (integer) Femlib::value("N_Z")         > 1;
+  cyl3D = (integer) Femlib::value("CYLINDRICAL");
+  //          (integer) Femlib::value("N_Z")         > 1;
 
   getfields (file, field, (axistag = axial (file)) && cyl3D);
   if (axistag) checkABCs (file, axistag);
@@ -340,8 +340,8 @@ static void checkVBCs (FEML*       file ,
 {
   if (!file->seek ("BCS")) return;
   if (!strchr (field, 'u')) return;
-  if (!strchr (field, 'v') || !strchr (field, 'w'))
-    message (prog,"radial, azimuthal velocity fields v, w not declared",ERROR);
+  if (!strchr (field, 'v') || !strchr (field, 'w')) return;
+//  message (prog,"radial, azimuthal velocity fields v, w not declared",ERROR);
 
   integer       i, j, id, nbcs;
   char          vtag, wtag, groupc, fieldc, tagc, tag[StrMax], err[StrMax];
@@ -712,7 +712,7 @@ void Nsys::renumber (const integer optlevel,
 
   // -- Build node adjacency tables.
   
-  List<integer>* adjncyList = new List<integer> [nsolve];
+  vector<integer>* adjncyList = new vector<integer> [nsolve];
   const integer  tabSize    = buildAdjncy (adjncyList);
 
   // -- Allocate memory.
@@ -813,7 +813,7 @@ void Nsys::renumber (const integer optlevel,
 }
 
 
-integer Nsys::buildAdjncy (List<integer>* adjncyList) const
+integer Nsys::buildAdjncy (vector<integer>* adjncyList) const
 // ---------------------------------------------------------------------------
 // Traverse elements and build up a vector of linked lists that
 // describe the global nodes adjacent to each global node.
@@ -831,13 +831,13 @@ integer Nsys::buildAdjncy (List<integer>* adjncyList) const
   }
 
   for (k = 0, ntab = 0; k < nsolve; k++)
-    ntab += adjncyList[k].length();
+    ntab += adjncyList[k].size();
 
   return ntab;
 }
 
 
-void Nsys::fillAdjncy (List<integer>* adjncyList,
+void Nsys::fillAdjncy (vector<integer>* adjncyList,
 		       integer*       adjncy    ,
 		       integer*       xadj      ,
 		       const integer  tabSize   ) const
@@ -846,13 +846,14 @@ void Nsys::fillAdjncy (List<integer>* adjncyList,
 // adjncy & xadj required by genrcm.
 // ---------------------------------------------------------------------------
 {
-  const char       routine[] = "Nsys::fillAdjncy";
-  register integer i, k;
+  const char routine[] = "Nsys::fillAdjncy";
+  register integer        i, k;
+  vector<integer>::iterator p;
 
   for (i = 0, k = 1; i < nsolve; i++) {
     xadj[i] = k;
-    for (ListIterator<integer> p(adjncyList[i]); p.more(); p.next(), k++)
-      adjncy[k - 1] = p.current() + 1;
+    for (p = adjncyList[i].begin(); p != adjncyList[i].end(); p++, k++)
+      adjncy[k - 1] = *p + 1;
   }
   
   if (k != tabSize + 1)
@@ -863,7 +864,7 @@ void Nsys::fillAdjncy (List<integer>* adjncyList,
 }
 
 
-void Nsys::connectivSC (List<integer>* adjList,
+void Nsys::connectivSC (vector<integer>* adjList,
 			const integer* bmap   ,
 			const integer* mask   ,
 			const integer  next   ) const
@@ -884,6 +885,7 @@ void Nsys::connectivSC (List<integer>* adjList,
 // ---------------------------------------------------------------------------
 {
   register integer i, j, found, gidCurr, gidMate;
+  vector<integer>::iterator a;
   
   for (i = 0; i < next; i++) {
     if (! mask[i]) {
@@ -891,11 +893,10 @@ void Nsys::connectivSC (List<integer>* adjList,
       
       for (j = 0; j < next; j++) {
 	if (i != j && ! mask[j]) {
-	  ListIterator<integer> a (adjList[gidCurr]);
-
-	  for (gidMate = bmap[j], found = 0; !found && a.more(); a.next())
-	    found = a.current() == gidMate;
-	  if (!found) adjList[gidCurr].add (gidMate);
+	  for (a = adjList[gidCurr].begin(), gidMate = bmap[j], found = 0;
+	       !found && a != adjList[gidCurr].end(); a++)
+	    found = *a == gidMate;
+	  if (!found) adjList[gidCurr].push_back (gidMate);
 	}
       }
     }

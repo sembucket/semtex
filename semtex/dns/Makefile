@@ -20,9 +20,9 @@ ifdef ALIAS		# -- No dealiasing (parallel is never dealiased).
   PROG := $(PROG)_alias
 endif
 
-ifdef NCONSERVE		# -- Make only non-conservative nonlinear terms.
-  DEFINES += -DNCONSERVE
-  PROG := $(PROG)_ncons
+ifdef SKEW		# -- Make skew-symmetric nonlinear terms.
+  DEFINES += -DSKEW
+  PROG := $(PROG)_skew
 endif
 
 ifdef TBCS		# -- Recompute mode 0 velocity BCs every time step.
@@ -46,7 +46,7 @@ SEMHDR   = Sem.h
 # ----------------------------------------------------------------------------
 # Default build for Navier-Stokes solver.
 #
-NS_FILES = drive integrateNS dnsanalysis
+NS_FILES = drive integrate dnsanalysis
 NS_OBJ   = $(addsuffix .o,$(NS_FILES))
 
 $(PROG): sem $(SEMOBJ) $(NS_OBJ) 

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // pressure.C: routines to deal with pressure field boundary conditions.
 //
-// Copyright (C) 1994, 1999 Hugh Blackburn
+// Copyright (c) 1994,2003 Hugh Blackburn
 //
 // Class variables Pn & Un provide storage for the mode equivalents of
 //   Pn:  normal gradient of the pressure field,
@@ -14,9 +14,9 @@
 //
 // Pn & Un are indexed by time level, boundary, data plane, and location in
 // that order (e.g. Pn[time][boundary][plane][i]).
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <Sem.h>
 
@@ -36,30 +36,30 @@ void PBCmgr::build (const Field* P)
 // ---------------------------------------------------------------------------
 {
   const integer np    = Geometry::nP();
-  const integer nTime = (integer) Femlib::value ("N_TIME");
+  const integer nTime = static_cast<int>(Femlib::value ("N_TIME"));
   const integer nEdge = P -> _nbound;
   const integer nZ    = P -> _nz;
   integer       i, j, k;
 
-  Pnx = new real*** [(size_t) nTime];
-  Pny = new real*** [(size_t) nTime];
-  Unx = new real*** [(size_t) nTime];
-  Uny = new real*** [(size_t) nTime];
+  Pnx = new real*** [static_cast<size_t>(nTime)];
+  Pny = new real*** [static_cast<size_t>(nTime)];
+  Unx = new real*** [static_cast<size_t>(nTime)];
+  Uny = new real*** [static_cast<size_t>(nTime)];
 
   for (i = 0; i < nTime; i++) {
-    Pnx[i] = new real** [(size_t) (4 * nEdge)];
+    Pnx[i] = new real** [static_cast<size_t>(4 * nEdge)];
     Pny[i] = Pnx[i] + nEdge;
     Unx[i] = Pny[i] + nEdge;
     Uny[i] = Unx[i] + nEdge;
 
     for (j = 0; j < nEdge; j++) {
-      Pnx[i][j] = new real* [(size_t) (4 * nZ)];
+      Pnx[i][j] = new real* [static_cast<size_t>(4 * nZ)];
       Pny[i][j] = Pnx[i][j] + nZ;
       Unx[i][j] = Pny[i][j] + nZ;
       Uny[i][j] = Unx[i][j] + nZ;
 
       for (k = 0; k < nZ; k++) {
-	Pnx[i][j][k] = new real [(size_t) (4 * np)];
+	Pnx[i][j][k] = new real [static_cast<size_t>(4 * np)];
 	Pny[i][j][k] = Pnx[i][j][k] + np;
 	Unx[i][j][k] = Pny[i][j][k] + np;
 	Uny[i][j][k] = Unx[i][j][k] + np;
@@ -71,11 +71,11 @@ void PBCmgr::build (const Field* P)
 }
 
 
-void PBCmgr::maintain (const integer    step   ,
+void PBCmgr::maintain (const int        step   ,
 		       const Field*     P      ,
 		       const AuxField** Us     ,
 		       const AuxField** Uf     ,
-		       const integer    timedep)
+		       const bool       timedep)
 // ---------------------------------------------------------------------------
 // Update storage for evaluation of high-order pressure boundary
 // condition.  Storage order for each edge represents a CCW traverse
@@ -101,9 +101,9 @@ void PBCmgr::maintain (const integer    step   ,
 // No smoothing is done to high-order spatial derivatives computed here.
 // ---------------------------------------------------------------------------
 {
-  const real         nu    =           Femlib::value ("KINVIS");
-  const real         invDt = 1.0     / Femlib::value ("D_T");
-  const integer      nTime = (integer) Femlib::value ("N_TIME");
+  const real         nu    = Femlib::value ("KINVIS");
+  const real         invDt = 1.0 / Femlib::value ("D_T");
+  const integer      nTime = static_cast<int>(Femlib::value ("N_TIME"));
   const integer      nEdge = P -> _nbound;
   const integer      nZ    = P -> _nz;
   const integer      nP    =  Geometry::nP();
@@ -201,12 +201,14 @@ void PBCmgr::maintain (const integer    step   ,
 	  Blas::scal   (nP, alpha[0], tmp, 1);
 	  for (q = 0; q < Je; q++)
 	    Blas::axpy (nP, alpha[q + 1], Unx[q][i][k], 1, tmp, 1);
+	  if (Geometry::cylindrical()) B -> mulY (tmp);
 	  Blas::axpy (nP, -invDt, tmp, 1, Pnx[0][i][k], 1);
 	  
 	  Veclib::copy (nP, Uy -> _plane[k] + offset, skip, tmp, 1);
 	  Blas::scal   (nP, alpha[0], tmp, 1);
 	  for (q = 0; q < Je; q++)
 	    Blas::axpy (nP, alpha[q + 1], Uny[q][i][k], 1, tmp, 1);
+	  if (Geometry::cylindrical()) B -> mulY (tmp);
 	  Blas::axpy (nP, -invDt, tmp, 1, Pny[0][i][k], 1);
 	}
       }
@@ -254,12 +256,9 @@ void PBCmgr::evaluate (const integer id   ,
 {
   if (step < 1) return;
 
-  ROOTONLY if (plane == 1) {
-    Veclib::zero (np, tgt, 1);
-    return;
-  }
+  ROOTONLY if (plane == 1) { Veclib::zero (np, tgt, 1); return; }
 
-  register integer q, Je = (integer) Femlib::value ("N_TIME");
+  register integer q, Je = static_cast<int>(Femlib::value ("N_TIME"));
   vector<real>     work (Integration::OrderMax + 2 * np);
   real*            beta  = &work[0];
   real*            tmpX  = beta + Integration::OrderMax;

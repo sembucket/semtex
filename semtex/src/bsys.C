@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // bsys.C: BoundarySys class functions.
 //
-// Copyright (C) 1999 Hugh Blackburn
+// Copyright (c) 1999,2003 Hugh Blackburn
 //
 // The information to be returned by class functions are the global
 // numbering scheme and vector of Boundary*'s for a given Field and

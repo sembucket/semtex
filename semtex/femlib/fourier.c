@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <femdef.h>
-#include <alplib.h>
+#include <veclib.h>
 #include <femlib.h>
 
 void dDFTr (double*       data,
@@ -77,7 +77,7 @@ void dDFTr (double*       data,
   freeIvector (ifax, 0);
   freeDvector (work, 0);
 
-#elif defined(DEBUG)  /* -- Unvectorized FFTPACK routines. */
+#elif defined(DEBUG_FFT)  /* -- Unvectorized FFTPACK routines. */
 
   work = dvector (0, 3 * tlen + 14);
   Wtab = work + tlen;

@@ -56,10 +56,10 @@ ifdef MPI
   MPIHOME   = /opt/lam-6.3.3b20
   CPPFLAGS += -I$(MPIHOME)/include
   LIBDIR   += -L$(MPIHOME)/lib
-  LDFLAGS  += -lfem_mp -lalp $(F77LIBS) -lmpi -llam -lsocket
+  LDFLAGS  += -lfem_mp -lvec $(F77LIBS) -lmpi -llam -lsocket
 else
-  LDFLAGS  += -lfem -lalp $(F77LIBS)
-  CLDFLAGS += -lfem -lalp $(F77LIBS)
+  LDFLAGS  += -lfem -lvec $(F77LIBS)
+  CLDFLAGS += -lfem -lvec $(F77LIBS)
 endif
 endif
 
@@ -90,15 +90,15 @@ ifdef NOCXML     # -- For testing, avoid Compaq math libs.
 endif
 ifdef MPI
   MPIHOME   = /usr/local/mpich
-  LDFLAGS  += -lfem_mp -lalp $(F77LIBS) -lcpml \
+  LDFLAGS  += -lfem_mp -lvec $(F77LIBS) -lcpml \
               -lmpich -lsnet_vipl -lvipl -ldl
 # MPIHOME   = /usr/local/lam
-# LDFLAGS  += -lfem_mp -lalp $(F77LIBS) -lcpml \
+# LDFLAGS  += -lfem_mp -lvec $(F77LIBS) -lcpml \
 #             -lmpi -ltrillium -ltstdio -lt -largs
   CPPFLAGS += -I$(MPIHOME)/include
   LIBDIR   += -L$(MPIHOME)/lib
 else
-  LDFLAGS += -lfem -lalp $(F77LIBS) -lcpml
+  LDFLAGS += -lfem -lvec $(F77LIBS) -lcpml
 endif
 CLDFLAGS = $(LDFLAGS)
 endif
@@ -116,7 +116,7 @@ endif
 CFLAGS   = $(DEFINES) $(OPT)
 FFLAGS   = $(DEFINES) $(OPT)
 CXXFLAGS = $(DEFINES) $(OPT)
-LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lalp $(F77LIBS) -lm
+LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS) -lm
 RANLIB   = ranlib
 F77LIBS  = -llapack -lblas -lg2c
 #F77LIBS  = -llapack -lfastblas -lg2c
@@ -132,7 +132,7 @@ CFLAGS   = $(DEFINES) -fullwarn -O2
 FFLAGS   = $(DEFINES) -O2
 CXXFLAGS = $(DEFINES) -fullwarn -O2
 F77LIBS	 = -lcomplib.sgimath -lftn
-LDFLAGS  = $(LIBDIR) -lfem -lalp $(F77LIBS) -lmalloc -lm
+LDFLAGS  = $(LIBDIR) -lfem -lvec $(F77LIBS) -lmalloc -lm
 CLDFLAGS = $(LDFLAGS)
 endif
 
@@ -144,7 +144,7 @@ FC       = f77
 CFLAGS   = $(DEFINES) -n32 -mips4 $(OPT)
 FFLAGS   = $(DEFINES) -n32 -mips4 $(OPT)
 CXXFLAGS = $(DEFINES) -n32 -mips4 $(OPT)
-LDFLAGS  = -n32 -mips4 $(OPT) $(LIBDIR) -lfem -lalp $(F77LIBS) -lm
+LDFLAGS  = -n32 -mips4 $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS) -lm
 RANLIB   =
 ifdef DEBUG
   OPT    = -g
@@ -173,11 +173,11 @@ ifdef MPI
   MPIHOME   = /usr/local/mpi
   CPPFLAGS += -I$(MPIHOME)/include  
   LIBDIR   += -L$(MPIHOME)/lib/alpha/ch_shmem
-  LDFLAGS   = $(LIBDIR) -lfem_mp -lalp $(FORTLIBS) -lm -lmpi
+  LDFLAGS   = $(LIBDIR) -lfem_mp -lvec $(FORTLIBS) -lm -lmpi
 # -- This is needed for Compaq MPI:
 # LDFLAGS  += -lelan
 else
-  LDFLAGS   = $(LIBDIR) -lfem -lalp $(FORTLIBS) -lm
+  LDFLAGS   = $(LIBDIR) -lfem -lvec $(FORTLIBS) -lm
 endif
 CLDFLAGS = $(LDFLAGS)
 endif
@@ -196,13 +196,13 @@ ifdef MPI
   CPPFLAGS += -I/usr/lang/mpi/include
   LIBDIR   += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
   LIBDIR   += -L/usr/lang/mpi/lib
-  LIBS      = -lfem_mp -lalp
+  LIBS      = -lfem_mp -lvec
   LIBS     += -llapack -lblasvpp -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
   LIBS     += -lmpi -lmp
   OPT      += -Wl,-P
 else
   LIBDIR   += -L/opt/blas/blas_vpp300/lib -L/opt/LAPACK/lib -L/usr/uxplib
-  LIBS      = -lfem -lalp
+  LIBS      = -lfem -lvec
   LIBS     += -llapack -lblasvpp -lm -lfj90fv -lfj90 -lfj90f  -ljsp -lvfl
 endif
 LDFLAGS  = $(OPT) $(CPPFLAGS) $(LIBDIR) $(LIBS)
@@ -225,9 +225,9 @@ OPT       = -O nooverlap -Nstkchk
 NOVEC     = -c -Nstkchk -acct -dir novec
 FORTLIBS  = -llapack_64 -lblas_64 -lfft_64
 ifdef MPI
-  LIBS    = -lfem_mp -lalp $(FORTLIBS) -lm -lC -lmpi -lpthread
+  LIBS    = -lfem_mp -lvec $(FORTLIBS) -lm -lC -lmpi -lpthread
 else
-  LIBS    = -lfem -lalp $(FORTLIBS) -lm -lC
+  LIBS    = -lfem -lvec $(FORTLIBS) -lm -lC
 endif
 LDFLAGS   =  -verbose -V -f90libew $(CXXFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 # -- Add this to enable profiling:

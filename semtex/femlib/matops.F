@@ -4,40 +4,46 @@ C     -- Matrix operators for gradients, etc.
 C
 C     $Id$
 C
-C
-      SUBROUTINE DGRAD2 (X, Y, UR, US, DV, DT, NP, NEL)
-C
-C     Ur = dX/dr, Us = dY/ds over all nel elements each np*np.
-C     Ur & Us are updated by addition, so should be zero on entry.
-C     Conceivably Ur & Us can be aliased to one another, so
-C     the operations are broken out into two loops.
+      SUBROUTINE DGRAD2 (X, Y, UR, US, DV, DT, NR, NS, NEL)
 C
 C     This operator can be used for any field operation that can be 
 C     described by the tensor-product forms
 C
-C     UR = [DV]  X
-C     US =  Y  [DT]
+C     UR =  X    [DT] (This is a derivative in the "r" direction.)
+C     US =  [DV]  Y   (This is a derivative in the "s" direction.)
 C
-C     Typically for tensor-product forms, DT = transpose (DV).
-C     This routine is designed for use with row-major (C-like) matrices.
+C     Often for tensor-product forms, and when NR=NS, DT = transpose
+C     (DV), but this restriction is not assumed here.  A typical
+C     application is for taking derivatives: Ur = dX/dr, Us = dY/ds over
+C     all nel elements each np*np.  The routine is designed for use with
+C     row-major (C-like) matrices.
+C
+C     UR & US are updated by addition, so should be zero on entry.
+C     Conceivably UR & US can be aliased to one another, so
+C     the operations are broken out into two loops.
+C
+C     Matrix X:  NR x NS (x NEL)
+C     Matrix Y:  NR x NS (x NEL)
+C     Matrix DV: NS x NS
+C     Matrix DT: NR x NR
 C
       IMPLICIT NONE
 C
-      INTEGER          NP, NEL, I, J, K, L
-      DOUBLE PRECISION  X(NP,NP,NEL),  Y(NP,NP,NEL)
-      DOUBLE PRECISION UR(NP,NP,NEL), US(NP,NP,NEL)
-      DOUBLE PRECISION DV(NP,NP),     DT(NP,NP)
+      INTEGER          NR, NS, NEL, I, J, K, L
+      DOUBLE PRECISION  X(NR,NS,NEL),  Y(NR,NS,NEL)
+      DOUBLE PRECISION UR(NR,NS,NEL), US(NR,NS,NEL)
+      DOUBLE PRECISION DV(NS,NS),     DT(NR,NR)
 C
 #if defined (_SX) || defined (__uxp__)
       IF (NEL.EQ.1) THEN
-         CALL DGEMM ('N','N',NP,NP,NP,1.0D0,DT,NP, X,NP,1.0D0,UR,NP)
-         CALL DGEMM ('N','N',NP,NP,NP,1.0D0, Y,NP,DV,NP,1.0D0,US,NP)
+         CALL DGEMM ('N','N',NR,NS,NR,1.0D0,DT,NR, X,NR,1.0D0,UR,NR)
+         CALL DGEMM ('N','N',NR,NS,NS,1.0D0,Y, NR,DV,NS,1.0D0,US,NR)
       ELSE
-         DO K = 1, NP
-            DO J = 1, NP
-               DO L = 1, NP
+         DO K = 1, NR
+            DO J = 1, NS
+               DO L = 1, NR
                   DO I = 1, NEL
-                     UR(K,J,I) = UR(K,J,I) + X(L,J,I) * DV(L,K)
+                     UR(K,J,I) = UR(K,J,I) + X(L,J,I) * DT(K,L)
                   ENDDO
                ENDDO
             ENDDO
@@ -45,27 +51,27 @@ C
 #if defined (_SX)
 !CDIR NOVECTOR
 #endif
-         DO J = 1, NP
+         DO J = 1, NS
 #if defined (_SX)
 !CDIR NOVECTOR
 #endif
-            DO L = 1, NP
+            DO L = 1, NS
 #if defined (_SX)
 !CDIR NOVECTOR
 #endif
-               DO K = 1, NP
+               DO K = 1, NR
                   DO I = 1, NEL
-                     US(K,J,I) = US(K,J,I) + Y(K,L,I) * DT(J,L)
+                     US(K,J,I) = US(K,J,I) + Y(K,L,I) * DV(L,J)
                   ENDDO
                ENDDO
             ENDDO
          ENDDO
       ENDIF
 #else
-      CALL DGEMM ('N','N',NP,NP*NEL,NP,1.0D0,DT,NP,X,NP,1.0D0,UR,NP)
+      CALL DGEMM ('N','N',NR,NS*NEL,NR,1.0D0,DT,NR,X,NR,1.0D0,UR,NR)
       DO I = 1, NEL
-         CALL DGEMM ('N','N',NP,NP,NP,1.0D0,Y(1,1,I),
-     +        NP,DV,NP,1.0D0,US(1,1,I),NP)
+         CALL DGEMM ('N','N',NR,NS,NS,1.0D0,Y(1,1,I),
+     +        NR,DV,NS,1.0D0,US(1,1,I),NR)
       ENDDO
 #endif
       RETURN
@@ -75,20 +81,23 @@ C
        SUBROUTINE DTPR2D (X, Y, T, DV, DT, NR, NS, NEL)
 C
 C     This operator can be used for any field operation that can be 
-C     described by the tensor-product form
+C     described (in C, row-major ordering) by the tensor-product form
 C
-C     Y  = [DV] X [DT]
+C     Y  = [DV] X [DT].
 C
-C     X and Y are not required to be distinct if NR = NS.
+C     X and Y are both square: X is NS x NS, Y is NR x NR.
+C     X and Y are not required to be distinct if NR = NS (i.e. in-place).
 C
-C     Typically for tensor-product forms, DT = transpose (DV).
-C     This routine is designed for use with row-major (C-like) matrices.
+C     Typically for tensor-product forms, DT = transpose (DV), but this
+C     is not enforced here.  A typical application is for projections of
+C     one element order to another.  The routine is designed for use
+C     with row-major (C-like) matrices.
 C     
 C     Matrix X:  NS x NS (x NEL)
 C     Matrix Y:  NR x NR (x NEL)
-C     Matrix T:  NS x NR (in C, row-major, x NEL, workspace)
-C     Matrix DV: NR x NS (in C, row-major)
-C     Matrix DT: NS x NR (in C, row-major)
+C     Matrix T:  NS x NR (x NEL, workspace)
+C     Matrix DV: NR x NS
+C     Matrix DT: NS x NR
 C
       IMPLICIT NONE
 C
@@ -98,39 +107,40 @@ C
 C
 #if defined (_SX) || defined (__uxp__)
       IF (NEL.EQ.1) THEN
-         CALL DGEMM ('N','N',NP,NP,NP,1.0D0, X,NP,DV,NP,0.0D0,T,NP)
-         CALL DGEMM ('N','N',NP,NP,NP,1.0D0,DT,NP, T,NP,0.0D0,Y,NP)
+         CALL DGEMM ('N','N',NR,NS,NS,1.0D0,DT,NR, X,NS,0.0D0,T,NR)
+         CALL DGEMM ('N','N',NR,NR,NS,1.0D0, T,NR,DV,NS,0.0D0,Y,NR)
       ELSE
-         NTOT = NP*NP*NEL
+         NTOT = NR*NS*NEL
          DO I = 1, NTOT
             T(I,1,1) = 0.0D0
          ENDDO
 #if defined (_SX)
 !CDIR NOVECTOR
 #endif
-         DO J = 1, NP
+         DO J = 1, NS
 #if defined (_SX)
 !CDIR NOVECTOR
 #endif
-            DO L = 1, NP
+            DO L = 1, NS
 #if defined (_SX)
 !CDIR NOVECTOR
 #endif
-               DO K = 1, NP
+               DO K = 1, NR
                   DO I = 1, NEL
-                     T(K,J,I) = T(K,J,I) + X(K,L,I) * DT(J,L)
+                     T(K,J,I) = T(K,J,I) + X(L,J,I) * DT(K,L)
                   ENDDO
                ENDDO
             ENDDO
          ENDDO
+         NTOT = NR*NR*NEL
          DO I = 1, NTOT
             Y(I,1,1) = 0.0D0
          ENDDO
-         DO K = 1, NP
-            DO J = 1, NP
-               DO L = 1, NP
+         DO K = 1, NR
+            DO J = 1, NR
+               DO L = 1, NS
                   DO I = 1, NEL
-                     Y(K,J,I) = Y(K,J,I) + T(L,J,I) * DV(L,K)
+                     Y(K,J,I) = Y(K,J,I) + T(K,L,I) * DV(L,J)
                   ENDDO
                ENDDO
             ENDDO

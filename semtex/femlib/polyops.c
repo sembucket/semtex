@@ -35,9 +35,10 @@
 #include <stdio.h>
 #include <femdef.h>
 #include <femlib.h>
-#include <alplib.h>
+#include <veclib.h>
 
 #define STOP 16
+static double gammaF(double x);
 
 
 void dermat_g (const integer K   ,
@@ -192,16 +193,16 @@ void intmat_g (const integer K   ,
 }  
 
 
-void jacobf (const integer n     ,
-	     const double  x     ,
-	     const double  alpha ,
-	     const double  beta  ,
-	     double*       poly  ,
-	     double*       pder  ,
-	     double*       polym1,
-	     double*       pderm1,
-	     double*       polym2,
-	     double*       pderm2)
+static void JACOBF (const integer n     ,
+		    const double  x     ,
+		    const double  alpha ,
+		    const double  beta  ,
+		    double*       poly  ,
+		    double*       pder  ,
+		    double*       polym1,
+		    double*       pderm1,
+		    double*       polym2,
+		    double*       pderm2)
 /* ------------------------------------------------------------------------- *
  * Computes the Jacobi polynomial (poly) of degree n, and its derivative
  * (pder), at location x.  Values for lower degree are also returned.
@@ -262,7 +263,7 @@ void jacobf (const integer n     ,
 }
 
 
-void jacg (const integer n    ,
+void JACG (const integer n    ,
 	   const double  alpha,
 	   const double  beta ,
 	   double*       xjac )
@@ -286,7 +287,7 @@ void jacg (const integer n    ,
 
     k = 0;
     do {
-      jacobf (np, x, alpha, beta, &poly,&pder,&polym1,&pderm1,&polym2,&pderm2);
+      JACOBF (np, x, alpha, beta, &poly,&pder,&polym1,&pderm1,&polym2,&pderm2);
 
       recsum = 0.0;
       for (i = 0; i < j-1; i++) recsum += 1.0 / (x - xjac[n - i]);
@@ -303,13 +304,17 @@ void jacg (const integer n    ,
 }
 
 
-void jacgr (const integer n    ,
+void JACGR (const integer n    ,
 	    const double  alpha,
 	    const double  beta ,
 	    double*       xjac )
 /* ------------------------------------------------------------------------- *
  * Computes the Gauss-Radau points xjac for polynomial of degree n on
  * [-1, 1].  Points are returned in ascending order.
+ *
+ * The GRL rule is asymmetric: this version assumes the desired
+ * end-point is at z=-1. If you'd wanted the endpoint at +1, instead,
+ * the ordering and sign of the points should be reversed.
  *
  * Alpha, beta = 0.0 => Gauss-Legendre; = -0.5 => Chebyshev.
  * ------------------------------------------------------------------------- */
@@ -326,7 +331,7 @@ void jacgr (const integer n    ,
 
     k = 0;
     do {
-      jacobf (np, x, alpha, beta, &pn, &pdn, &pnp1, &pdnp1, &pnm1, &pdnm1);
+      JACOBF (np, x, alpha, beta, &pn, &pdn, &pnp1, &pdnp1, &pnm1, &pdnm1);
       func  = pn  + pnp1;
       funcd = pdn + pdnp1;
 
@@ -342,13 +347,13 @@ void jacgr (const integer n    ,
 }
 
 
-void jacgl (const integer n    ,
+void JACGL (const integer n    ,
 	    const double  alpha,
 	    const double  beta ,
 	    double*       xjac )
 /* ------------------------------------------------------------------------- *
  * Computes the Gauss-Lobatto points xjac for polynomial of degree n on
- * [-1, 1].  Points are returned in ascending order
+ * [-1, 1].  Points are returned in ascending order.
  *
  * Alpha, beta = 0.0 => Gauss-Legendre, = -0.5 => Chebyshev.
  * ------------------------------------------------------------------------- */
@@ -360,25 +365,26 @@ void jacgl (const integer n    ,
 
   np      = n + 1;
   nh      = np >> 1;
-  xjac[n] = 1.0;
+  xjac[0] = -1.0;
+  xjac[n] =  1.0;
   con     = M_PI / (double) n;
 
-  jacobf (np,  1.0, alpha, beta, &pnp1p, &pdnp1p, &pnp, &pdnp, &pnm1p, &pdnm1);
-  jacobf (np, -1.0, alpha, beta, &pnp1m, &pdnp1m, &pnm, &pdnm, &pnm1m, &pdnm1);
+  JACOBF (np,  1.0, alpha, beta, &pnp1p, &pdnp1p, &pnp, &pdnp, &pnm1p, &pdnm1);
+  JACOBF (np, -1.0, alpha, beta, &pnp1m, &pdnp1m, &pnm, &pdnm, &pnm1m, &pdnm1);
   det = pnp*pnm1m - pnm*pnm1p;
   rp  = -pnp1p;
   rm  = -pnp1m;
   a   = (rp*pnm1m - rm*pnm1p) / det;
   b   = (rm*pnp   -   rp*pnm) / det;
 
-  for (j = 1; j < nh; j++) {
+  for (j = 1; j < n; j++) {
     jm = j - 1;
     x  = cos (con * j);
 
     k  = 0;
 
     do {
-      jacobf (np, x, alpha,beta, &pnp1p, &pdnp1p, &pnp, &pdnp, &pnm1p, &pdnm1);
+      JACOBF (np, x, alpha,beta, &pnp1p, &pdnp1p, &pnp, &pdnp, &pnm1p, &pdnm1);
       poly = pnp1p  + a*pnp  + b*pnm1p;
       pder = pdnp1p + a*pdnp + b*pdnm1;
       
@@ -391,15 +397,10 @@ void jacgl (const integer n    ,
 
     xjac[n - j] = x;
   }
-
-  xjac[0] = -1.0;
-  for (i = 1; i < nh; i++) xjac[i] = -xjac[n - i];
-
-  if (np & 1) xjac[nh] = 0.0;
 }
 
 
-void zwgl (double*       z ,
+void ZWGL (double*       z ,
 	   double*       w ,
 	   const integer np)
 /* ------------------------------------------------------------------------- *
@@ -420,16 +421,16 @@ void zwgl (double*       z ,
   }
   
   n  = np - 1;
-  jacg (n, 0.0, 0.0, z);
+  JACG (n, 0.0, 0.0, z);
 
   for (i = 0; i < np; i++) {
-    jacobf (np, z[i], 0.0, 0.0, &poly,&pder,&polym1,&pderm1,&polym2,&pderm2);
+    JACOBF (np, z[i], 0.0, 0.0, &poly,&pder,&polym1,&pderm1,&polym2,&pderm2);
     w[i] = 2.0 / ( (1.0 - SQR(z[i])) * SQR(pder) );
   }
 }
   
 
-void zwgrl (double*       z ,
+void ZWGRL (double*       z ,
 	    double*       w ,
 	    const integer np)
 /* ------------------------------------------------------------------------- *
@@ -452,18 +453,18 @@ void zwgrl (double*       z ,
   n   = np - 1;
   con = 1.0 / SQR(np);
 
-  jacgr (n, 0.0, 0.0, z);
+  JACGR (n, 0.0, 0.0, z);
   
   w[0] = 2.0 * con;
 
   for (i = 1; i < np; i++) {
-    jacobf (n, z[i], 0.0, 0.0, &poly,&pder,&polym1,&pderm1,&polym2,&pderm2);
+    JACOBF (n, z[i], 0.0, 0.0, &poly,&pder,&polym1,&pderm1,&polym2,&pderm2);
     w[i] = con * (1.0 * z[i]) / SQR(poly);
   }
 }
    
 
-void zwgll (double*       z ,
+void ZWGLL (double*       z ,
 	    double*       w ,
 	    const integer np)
 /* ------------------------------------------------------------------------- *
@@ -491,16 +492,51 @@ void zwgll (double*       z ,
   n   = np - 1;
   con = 2.0 / (double) (n * np);
   
-  jacgl (n, 0.0, 0.0, z);
+  JACGL (n, 0.0, 0.0, z);
 
   for (i = 0; i < np; i++) {
-    jacobf (n, z[i], 0.0, 0.0, &poly,&pder,&polym1,&pderm1,&polym2,&pderm2);
+    JACOBF (n, z[i], 0.0, 0.0, &poly,&pder,&polym1,&pderm1,&polym2,&pderm2);
     w[i] = con / (SQR(poly));
   }
 }
+   
+
+void ZWGLJ (double*       z ,
+	    double*       w ,
+	    const double  alpha,
+	    const double  beta ,
+	    const integer np)
+/* ------------------------------------------------------------------------- *
+ * Gauss-Lobatto-Jacobi points and weights, for Jacobi constants alpha & beta.
+ *
+ * Generate np G-L-J points (z) and weights (w) for integration over the
+ * range [-1, 1] for a polynomial of degree n = np - 1.
+ *
+ * Reference: Canuto et al., eq (2.3.12).
+ * ------------------------------------------------------------------------- */
+{
+  register integer i, n;
+  double           poly, pder, polym1, pderm1, polym2, pderm2, con;
+  const double     apb = alpha + beta;
+
+  if (np < 2) { z[0] = w[0] = 0.0; return; }
+
+  n    = np - 1;
+  con  = pow(2.0,apb + 1.0)*gammaF(alpha + np)*gammaF(beta + np);
+  con /= n*gammaF(np)*gammaF(alpha + beta + np + 1.0);
+  
+  JACGL (n, alpha, beta, z);
+
+  for (i = 0; i < np; i++) {
+    JACOBF (n,z[i],alpha,beta,&poly,&pder,&polym1,&pderm1,&polym2,&pderm2);
+    w[i] = con / (SQR(poly));
+  }
+  w[0] *= (beta  + 1.0);
+  w[n] *= (alpha + 1.0);
+}
 
 
-double pnleg (const double  z,
+double PNLEG (const double  z,
 	      const integer n)
 /* ------------------------------------------------------------------------- *
  * Compute the value of the nth order Legendre polynomial at z, based on the
@@ -526,7 +562,7 @@ double pnleg (const double  z,
 }
 
 
-double pndleg (const double  z,
+double PNDLEG (const double  z,
 	       const integer n)
 /* ------------------------------------------------------------------------- *
  * Compute the value of the derivative of the nth order Legendre polynomial
@@ -556,7 +592,7 @@ double pndleg (const double  z,
 }
 
 
-double pnd2leg (const double  z,
+double PND2LEG (const double  z,
 		const integer n)
 /* ------------------------------------------------------------------------- *
  * Compute the value of the second derivative of the nth order Legendre
@@ -566,11 +602,11 @@ double pnd2leg (const double  z,
  *               (1 - z*z)L(z)'' - 2 z L' + n (n+1) L = 0.
  * ------------------------------------------------------------------------- */
 {
-  return (2.0 * z * pndleg (z, n) - n * (n+1) * pnleg (z, n) / (1.0 - SQR(z)));
+  return (2.0 * z * PNDLEG (z, n) - n * (n+1) * PNLEG (z, n) / (1.0 - SQR(z)));
 }
 
 
-void dgll (const integer  nz,
+void DGLL (const integer  nz,
 	   const double*  z ,
 	   double**       D ,
 	   double**       DT)
@@ -602,9 +638,44 @@ void dgll (const integer  nz,
 
   for (i = 0; i < nz; i++)
     for (j=0; j<nz; j++) {
-      if (i != j) D[i][j] = pnleg (z[i], n) / (pnleg(z[j], n) * (z[i] - z[j]));
+      if (i != j) D[i][j] = PNLEG (z[i], n) / (PNLEG(z[j], n) * (z[i] - z[j]));
       DT[j][i] = D[i][j];
     }
+}
+
+
+double PNMOD (const double  z,
+	      const integer n)
+/* ------------------------------------------------------------------------- *
+ * Compute the value of the nth order modal basis function at z.
+ *
+ * p_0(z) = 0.5  (1 + z)
+ *
+ * p_1(z) = 0.5  (1 - z)
+ *                                1,1
+ * p_n(z) = 0.25 (1 + z) (1 - z) J   (z)   n >= 2.
+ *                                n-2
+ *
+ * where J is a Jacobi polynomial.
+ *
+ * Refs:
+ *
+ * eq.(2.16), R.D. Henderson, "Adaptive Spectral Element Methods", in
+ * "High-Order Methods for Computational Physics", eds T.J. Barth &
+ * H. Deconinck, Springer, 1999.
+ *
+ * eq.(2.40), G.E. Karniadakis & S.J. Sherwin, "Spectral/hp Element
+ * Methods for CFD", Oxford, 1999.
+ * ------------------------------------------------------------------------- */
+{
+  double poly, pder, polym1, pderm1, polym2, pderm2;
+ 
+  if (n  < 1) return 0.5 * (1.0 + z);
+  if (n == 1) return 0.5 * (1.0 - z);
+
+  JACOBF (n-2, z, 1.0, 1.0, &poly, &pder, &polym1, &pderm1, &polym2, &pderm2);
+
+  return 0.25 * (1.0 + z) * (1.0 - z) * poly;
 }
 
 					     
@@ -635,58 +706,33 @@ void uniknot (const integer nk,
 }
 
 
-integer quadComplete (const integer dim,
-		      const integer np )
+static double gammaF (double x)
 /* ------------------------------------------------------------------------- *
- * Return the number of Gauss-Legendre quadrature points sufficient to
- * achieve the full rate of convergence for tensor-product element bases.
- *
- * Dim is the number of space dimensions, np the number of points defining
- * basis polynomials.
- *
- * References: Hughes \S 4.1, Strang & Fix \S 4.3.
+ * Gamma function for integer or semi-integer values of x.
  * ------------------------------------------------------------------------- */
 {
-  register integer  n, ktot;
+  double gamma = 1.0;
+  
+  if      (x == -0.5) gamma = -2.0*sqrt(M_PI);
+  else if (x == 0.0) return gamma;
+  else if ((x-(int)x) == 0.5) { 
+    int n = (int) x;
+    double tmp = x;
 
-  ktot = (dim + 1)*(np - 1) - 2;
-  n = (ktot & 0) ? ktot + 2 : ktot + 1;
-  n >>= 1;
+    gamma = sqrt(M_PI);
+    while(n--){
+      tmp   -= 1.0;
+      gamma *= tmp;
+    }
+  } else if ((x-(int)x) == 0.0){
+    int n = (int) x;
+    double tmp = x;
 
-  return MAX (n, 2);
-}
-
-
-double pnmod (const double  z,
-	      const integer n)
-/* ------------------------------------------------------------------------- *
- * Compute the value of the nth order modal basis function at z.
- *
- * p_0(z) = 0.5  (1 + z)
- *
- * p_1(z) = 0.5  (1 - z)
- *                                1,1
- * p_n(z) = 0.25 (1 + z) (1 - z) J   (z)   n >= 2.
- *                                n-2
- *
- * where J is a Jacobi polynomial.
- *
- * Refs:
- *
- * eq.(2.16), R.D. Henderson, "Adaptive Spectral Element Methods", in
- * "High-Order Methods for Computational Physics", eds T.J. Barth &
- * H. Deconinck, Springer, 1999.
- *
- * eq.(2.40), G.E. Karniadakis & S.J. Sherwin, "Spectral/hp Element
- * Methods for CFD", Oxford, 1999.
- * ------------------------------------------------------------------------- */
-{
-  double poly, pder, polym1, pderm1, polym2, pderm2;
- 
-  if (n  < 1) return 0.5 * (1.0 + z);
-  if (n == 1) return 0.5 * (1.0 - z);
-
-  jacobf (n-2, z, 1.0, 1.0, &poly, &pder, &polym1, &pderm1, &polym2, &pderm2);
-
-  return 0.25 * (1.0 + z) * (1.0 - z) * poly;
+    while(--n){
+      tmp   -= 1.0;
+      gamma *= tmp;
+    }
+  } else
+    fprintf (stderr,"%lf is not of integer or half order\n",x);
+  return gamma;
 }

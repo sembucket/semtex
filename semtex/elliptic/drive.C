@@ -2,7 +2,7 @@
 // drive.C: compute solution to elliptic problem, optionally compare to
 // exact solution (see getoptions(), below).
 //
-// Copyright (C) 1994,2003  Hugh Blackburn.
+// Copyright (c) 1994,2003 Hugh Blackburn
 //
 // USAGE:
 // -----
@@ -24,9 +24,9 @@
 // Highett, Vic 3190
 // Australia
 // hugh.blackburn@csiro.au
-//
-// $Id$
 //////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <Sem.h>
 
@@ -63,6 +63,8 @@ int main (int    argc,
 
   getoptions (file, forcefunc, exact);
   getforcing (session, forcefunc, forcefld);
+
+  domain -> restart();
 
   Helmholtz (domain, forcefld);
 
@@ -103,11 +105,11 @@ static void getargs (int    argc   ,
       exit (EXIT_SUCCESS);
       break;
     case 'i':
-      Femlib::value ("ITERATIVE", (integer) 1);
+      Femlib::value ("ITERATIVE",static_cast<int>(1));
       break;
     case 'v':
       do
-	Femlib::value ("VERBOSE", (integer) Femlib::value ("VERBOSE") + 1);
+	Femlib::value ("VERBOSE",static_cast<int>(Femlib::value("VERBOSE"))+1);
       while (*++argv[0] == 'v');
       break;
     default:
@@ -140,7 +142,6 @@ static void preprocess (const char*       session,
 {
   const integer      verbose = (integer) Femlib::value ("VERBOSE");
   Geometry::CoordSys space;
-  const real*        z;
   integer            i, np, nz, nel;
 
   // -- Initialise problem and set up mesh geometry.
@@ -170,10 +171,8 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "Building elements ... ";
 
-  Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
-
   elmt.resize (nel);
-  for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
+  for (i = 0; i < nel; i++) elmt[i] = new Element (i, np, mesh);
 
   VERBOSE cout << "done" << endl;
 

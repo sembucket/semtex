@@ -1,12 +1,12 @@
 ///////////////////////////////////////////////////////////////////////////////
 // geometry.C: define geometrical properties for 2D quad X Fourier spaces.
 //
-// Copyright (C) 1994--2001 Hugh Blackburn
+// Copyright (c) 1994,2003 Hugh Blackburn
 //
 // Most routines are inlined in header file Geometry.h
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <cstdio>
 #include <iostream>

@@ -2,13 +2,13 @@
 // misc.C: miscellaneous routines for I/O, memory management, service
 // routines that don't fit class structures.
 //
-// Copyright (C) 1994, 1999 Hugh BLackburn
-//
-// $Id$
+// Copyright (c) 1994,2003 Hugh BLackburn
 ///////////////////////////////////////////////////////////////////////////////
 
+static char RCS[] = "$Id$";
+
 #include <Sem.h>
-#include <time.h>
+#include <ctime>
 
 
 ostream& printVector (ostream&      strm,
@@ -98,7 +98,7 @@ void writeField (ofstream&          file   ,
   const char routine [] = "writeField";
   const char *hdr_fmt[] = { 
     "%-25s "    "Session\n",
-    "%-25s "    "Created\n",
+    "%-25s "     "Created\n",
     "%-25s "    "Nr, Ns, Nz, Elements\n",
     "%-25d "    "Step\n",
     "%-25.6g "  "Time\n",
@@ -119,8 +119,11 @@ void writeField (ofstream&          file   ,
   ROOTONLY {
     sprintf (s1, hdr_fmt[0], session);
     file << s1;
-
+#if 0
     strftime (s2, 25, "%a %b %d %H:%M:%S %Y", localtime (&tp));
+#else
+    sprintf (s2, "Dummy date");
+#endif
     sprintf  (s1, hdr_fmt[1], s2);
     file << s1;
 

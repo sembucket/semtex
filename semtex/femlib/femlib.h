@@ -18,7 +18,6 @@ void    yy_vec_interp (const integer, ...);
 
 void    yy_help       (void);
 void    yy_show       (void);
-integer yy_dump       (char*, const integer);
 
 /* -- Routines from polyops.c: */
 
@@ -28,23 +27,26 @@ void   intmat_g (const integer, const double*, const integer,
 		 const double*, double**, double**);
 void   dermat_k (const integer, const double*, double**, double**);
 
-void   jacg     (const integer, const double, const double, double*);
-void   jacgr    (const integer, const double, const double, double*);
-void   jacgl    (const integer, const double, const double, double*);
 
-void   zwgl     (double*, double*, const integer);
-void   zwgrl    (double*, double*, const integer);
-void   zwgll    (double*, double*, const integer);
+void   JACG     (const integer, const double, const double, double*);
+void   JACGR    (const integer, const double, const double, double*);
+void   JACGL    (const integer, const double, const double, double*);
 
-double pnleg    (const double,  const integer);
-double pndleg   (const double,  const integer);
-double pnd2leg  (const double,  const integer);
-void   dgll     (const integer, const double*, double**, double**);
+void   ZWGL     (double*, double*, const integer);
+void   ZWGRL    (double*, double*, const integer);
+void   ZWGLL    (double*, double*, const integer);
+void   ZWGLJ    (double*, double*, const double, const double, const integer);
 
-void    uniknot      (const integer, double*);
-integer quadComplete (const integer, const integer);
+void   DGLL     (const integer, const double*, double**, double**);
 
-double pnmod    (const double, const integer);
+double PNLEG    (const double,  const integer);
+double PNDLEG   (const double,  const integer);
+double PND2LEG  (const double,  const integer);
+double PNMOD    (const double, const integer);
+
+void   uniknot  (const integer, double*);
+
+
 
 /* -- Routines from operators.c: */
 
@@ -77,7 +79,7 @@ void dIntpOps (const integer basis,  /* element basis: STD or GLL            */
 	       double*       ins  ,  /* 1D shape function at s               */
 	       double*       dvr  ,  /* 1D shape function derivative at r    */
 	       double*       dvs  ); /* 1D shape function derivative at s    */
-
+#if 0
 void dglldpc (const integer  np,    /* input: number of points for Leg polys */
 	      const double** cd);   /* output: pointer to table of coeffs.   */
 
@@ -88,6 +90,7 @@ void dglldpt (const integer  np,    /* input:  number of points for DLT      */
 	      const double** bt,    /* output: transpose of bw               */
 	      const double** fu,    /* output: 2D forward transform matrix   */
 	      const double** bu);   /* output: 2D inverse transform matrix   */
+#endif
 
 /* -- Routines from mapping.c: */
 
@@ -110,18 +113,18 @@ integer  FamilySize (integer*, integer*, integer*);
 
 void genrcm_ (integer*, integer*, integer*, integer*, integer*, integer*);
 #define genrcm(neqns, xadj, adjncy, perm, mask, xls) \
-(_alpIreg[0] = neqns, genrcm_(_alpIreg, xadj, adjncy, perm, mask, xls))
+(_vecIreg[0] = neqns, genrcm_(_vecIreg, xadj, adjncy, perm, mask, xls))
 
 void fnroot_ (integer*, integer*, integer*, integer*,
 	      integer*, integer*, integer*);
 #define fnroot(root, xadj, adncy, mask, nlvl, xls, ls) \
-(_alpIreg[0] = root, _alpIreg[1] = nlvl,                   \
- fnroot_(_alpIreg, xadj, adjncy, mask, _alpIreg + 1, xls, ls))
+(_vecIreg[0] = root, _vecIreg[1] = nlvl,                   \
+ fnroot_(_vecIreg, xadj, adjncy, mask, _vecIreg + 1, xls, ls))
 
 void rcm_    (integer*, integer*, integer*, integer*,
 	      integer*, integer*, integer*);
 #define rcm(root, xadj, adjncy, mask, perm, ccsize, deg)  \
-(_alpIreg[0] = root, rcm_(_alpIreg, xadj, adjncy, mask, perm, ccsize, deg))
+(_vecIreg[0] = root, rcm_(_vecIreg, xadj, adjncy, mask, perm, ccsize, deg))
 
 /* -- Routines from fftpack.f (NETLIB/FFTPACK): */
 
@@ -129,21 +132,21 @@ void drffti_ (integer*, double*);
 void drfftf_ (integer*, double*, double*);
 void drfftb_ (integer*, double*, double*);
 
-#define drffti(n,wsave)   (_alpIreg[0]=n, drffti_ (_alpIreg, wsave))
-#define drfftf(n,r,wsave) (_alpIreg[0]=n, drfftf_ (_alpIreg, r, wsave))
-#define drfftb(n,r,wsave) (_alpIreg[0]=n, drfftb_ (_alpIreg, r, wsave))
+#define drffti(n,wsave)   (_vecIreg[0]=n, drffti_ (_vecIreg, wsave))
+#define drfftf(n,r,wsave) (_vecIreg[0]=n, drfftf_ (_vecIreg, r, wsave))
+#define drfftb(n,r,wsave) (_vecIreg[0]=n, drfftb_ (_vecIreg, r, wsave))
 
 /* -- Routines from canfft.f (Canuto FFT routines): */
 
 void factor_ (integer*, integer*, integer*);
 
-#define factor(n, nfac, ifac) (_alpIreg[0]=n, factor_ (_alpIreg, nfac, ifac))
+#define factor(n, nfac, ifac) (_vecIreg[0]=n, factor_ (_vecIreg, nfac, ifac))
 
 #define dpreft(n,nfac,ifac,trig)  \
-(_alpIreg[0]=n, dpreft_ (_alpIreg, nfac, ifac, trig))
+(_vecIreg[0]=n, dpreft_ (_vecIreg, nfac, ifac, trig))
 #define dmrcft(v, np, nz, w, nfac, ifac, trig, sign)  \
-(_alpIreg[0]=np, _alpIreg[1]=nz, _alpIreg[2]=nfac, _alpIreg[3]=sign,  \
-dmrcft_(v, _alpIreg, _alpIreg+1, w, _alpIreg+2, ifac, trig, _alpIreg+3))
+(_vecIreg[0]=np, _vecIreg[1]=nz, _vecIreg[2]=nfac, _vecIreg[3]=sign,  \
+dmrcft_(v, _vecIreg, _vecIreg+1, w, _vecIreg+2, ifac, trig, _vecIreg+3))
 
 /* -- Routines from temfftd.f (Temperton FFT routines): */
 
@@ -155,13 +158,13 @@ void dmpfft_ (double*, double*,  integer*, integer*, integer*,
 	      integer*, integer*, double*, integer*);
 
 #define dsetpf(trig,n,ip,iq,ir)                               \
-(_alpIreg[0]=n,_alpIreg[1]=ip,_alpIreg[2]=iq, _alpIreg[3]=ir, \
-dsetpf_(trig,_alpIreg,_alpIreg+1,_alpIreg+2,_alpIreg+3))
+(_vecIreg[0]=n,_vecIreg[1]=ip,_vecIreg[2]=iq, _vecIreg[3]=ir, \
+dsetpf_(trig,_vecIreg,_vecIreg+1,_vecIreg+2,_vecIreg+3))
 #define dmpfft(v,w,np,nz,ip,iq,ir,trig,isign)                 \
-(_alpIreg[0]=np,_alpIreg[1]=nz,_alpIreg[2]=ip,                \
-_alpIreg[3]=iq, _alpIreg[4]=ir,_alpIreg[5]=isign,             \
-dmpfft_(v,w,_alpIreg,_alpIreg+1,_alpIreg+2,                   \
-_alpIreg+3,_alpIreg+4,trig,_alpIreg+5))
+(_vecIreg[0]=np,_vecIreg[1]=nz,_vecIreg[2]=ip,                \
+_vecIreg[3]=iq, _vecIreg[4]=ir,_vecIreg[5]=isign,             \
+dmpfft_(v,w,_vecIreg,_vecIreg+1,_vecIreg+2,                   \
+_vecIreg+3,_vecIreg+4,trig,_vecIreg+5))
 
 /* -- Routines from matops.F: */
 
@@ -169,7 +172,7 @@ void dgrad2_ (double*,double*,double*,double*,double*,double*,
 	      integer*,integer*);
 
 #define dgrad2(u,v,ur,vs,dv,dt,np,nel)                          \
-(_alpIreg[0]=np,_alpIreg[1]=nel,dgrad2_(u,v,ur,vs,dv,dt,_alpIreg,_alpIreg+1))
+(_vecIreg[0]=np,_vecIreg[1]=nel,dgrad2_(u,v,ur,vs,dv,dt,_vecIreg,_vecIreg+1))
 
 #if defined(SX)
 
@@ -179,10 +182,10 @@ void rftfax_ (integer*,integer*,real*);
 void rfft_   (real*,real*,real*,integer*,integer*,integer*,real*);
 
 #define rftfax(n,ifax,trigs)                        \
-(_alpIreg[0]=n,rftfax_(_alpIreg,ifax,trigs))
+(_vecIreg[0]=n,rftfax_(_vecIreg,ifax,trigs))
 #define rfft(r,w,trigs,ifax,n,l,xnorm)              \
-(_alpIreg[0]=n,_alpIreg[1]=l,_alpDreg[0]=xnorm,     \
-rfft_(r,w,trigs,ifax,_alpIreg,_alpIreg+1,_alpDreg))
+(_vecIreg[0]=n,_vecIreg[1]=l,_vecDreg[0]=xnorm,     \
+rfft_(r,w,trigs,ifax,_vecIreg,_vecIreg+1,_vecDreg))
 
 #endif
 
