@@ -572,7 +572,8 @@ Vector Field::normalTraction (const Field* P)
 
 
 Vector Field::tangentTraction (const Field* U,
-			       const Field* V)
+			       const Field* V,
+			       const Field* W)
 // ---------------------------------------------------------------------------
 // Static member function.
 //
@@ -585,7 +586,7 @@ Vector Field::tangentTraction (const Field* U,
 //
 // where
 //
-//  T_ij = viscous stress tensor
+//  T_ij = viscous stress tensor (here in Cartesian coords)
 //                          dU_i    dU_j
 //       = RHO * KINVIS * ( ----  + ---- ) .
 //                          dx_j    dx_i
@@ -605,9 +606,10 @@ Vector Field::tangentTraction (const Field* U,
 
   for (i = 0; i < U -> n_bound; i++) {
     secF = U -> boundary[0][i] -> tangentTraction 
-      ("wall", U -> data, V -> data, mu, ddx, ddy);
-    F.x += secF.x;
-    F.y += secF.y;
+      ("wall", U -> data, V -> data, ddx, ddy);
+    F.x        -= mu * secF.x;
+    F.y        -= mu * secF.y;
+    if (W) F.z -= mu * W -> boundary[0][i] -> flux ("wall", W -> data, work());
   }
 
   return F;
