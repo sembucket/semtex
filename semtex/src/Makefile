@@ -5,9 +5,7 @@
 ##############################################################################
 
 ifdef DEBUG
-  DEFINES = -DDEBUG
-else
-  DEFINES =
+  DEFINES += -DDEBUG
 endif
 ifdef MPI
   DEFINES += -DMPI

@@ -1477,17 +1477,19 @@ integer Element::locate (const real    x    ,
     s += F[1];
 
     if (fabs (r) > DIVERG || fabs (s) > DIVERG) {
-#if defined(DEBUG)
-      cerr << "D" << endl;
+#if defined (DEBUG)
+      if ((int) Femlib::value("VERBOSE") > 3) cerr << "D" << endl;
 #endif
       return 0;
     }
 
   } while (++i < MaxItn && (fabs (F[0]) > EPS || fabs (F[1]) > EPS));
 
-#if defined(DEBUG)
-  if (i == MaxItn) cerr << "M" << endl;
-  else if (fabs (r) > 1.0 + EPS && fabs(s) > 1.0 + EPS) cerr << "O" << endl;
+#if defined (DEBUG)
+  if ((int) Femlib::value("VERBOSE") > 3) {
+    if (i == MaxItn) cerr << "M" << endl;
+    else if (fabs (r) > 1.0 + EPS && fabs(s) > 1.0 + EPS) cerr << "O" << endl;
+  }
 #endif
 
   return (i < MaxItn && fabs (r) < 1.0 + EPS && fabs(s) < 1.0 + EPS) ? 1 : 0;
