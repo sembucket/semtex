@@ -14,6 +14,7 @@ static char
 RCSid[] = "$Id$";
 
 #include <stdlib.h>
+#include <string.h>
 #include <limits.h>
 #include <iomanip.h>
 #include <femdef.h>
@@ -26,15 +27,20 @@ RCSid[] = "$Id$";
 class Nsys {
 friend void printup (vector<char>&, vector<Nsys*>&, const int);
 public:
-  Nsys (char, vector<int>&, vector<int>&, const int);
+  Nsys (char, vector<int>&, vector<int>&, const int, const int,
+	const int, const int, const int,  const int, const int);
 
   int  match    (vector<int>&);
   void addField (char);
 
 private:
   int          nel;
-  int          nglobal;
+  int          np_max;
+  int          next_max;
+  int          nint_max;
+  int          ntotal;
   int          nbndry;
+  int          nglobal;
   int          nsolve;
   int          nbandw;
   int          optlev;
@@ -54,7 +60,7 @@ private:
 static char prog[] =  "enumerate";
 static void getargs   (int, char**, char*&, int&, int&, int&);
 static void getfields (FEML&, vector<char>&);
-static void printup   (vector<char>&, vector<Nsys*>&, const int);
+       void printup   (vector<char>&, vector<Nsys*>&, const int);
 
 static const int FldMax = 16;
 
@@ -79,7 +85,7 @@ int main (int    argc,
   char* session = 0;
   int   verb    = 0,
         np      = 0,
-        opt     = 0;
+        opt     = 1;
 
   getargs (argc, argv, session, verb, np, opt);
 
@@ -98,17 +104,23 @@ int main (int    argc,
   vector<Nsys*> S (field.getSize());
 
   int         i, j, k = 0, found;
-  const  int  NEL  = M.nEl();
-  const  int  NTOT = 4 * NEL * (np - 1);
-  vector<int> btog (NTOT);
-  vector<int> mask (NTOT);
+  const  int  NEL      = M.nEl();
+  const  int  NP_MAX   = np;
+  const  int  NEXT_MAX = 4 * (NP_MAX - 1);
+  const  int  NINT_MAX = sqr (NP_MAX - 2);
+  const  int  NBNDRY   = NEL * NEXT_MAX;
+  const  int  NTOTAL   = NEL * sqr (NP_MAX);
+
+  vector<int> btog (NBNDRY);
+  vector<int> mask (NBNDRY);
 
   M.buildMask (np, field[0], mask());
   M.buildMap  (np, btog());
 
-  S[k++] = new Nsys (field[0], btog, mask, NEL);
+  S[k++] = new Nsys (field[0], btog, mask, opt,
+		     NEL, NTOTAL, NBNDRY, NP_MAX, NEXT_MAX, NINT_MAX);
 
-  for (i = 1; i < field.getSize(); i++) {
+  for (i = 1; i < field.getSize() - 1; i++) {
     M.buildMask (np, field[i], mask());
     found = 0;
     for (j = 0; !found && j < k; j++)
@@ -116,7 +128,8 @@ int main (int    argc,
 	S[j] -> addField (field[i]);
     if (!found) {
       M.buildMap (np, btog());
-      S[k++] = new Nsys (field[i], btog, mask, NEL);
+      S[k++] = new Nsys (field[i], btog, mask, opt,
+			 NEL, NTOTAL, NBNDRY, NP_MAX, NEXT_MAX, NINT_MAX);
     }
   }
 
@@ -205,34 +218,37 @@ static void getfields (FEML&         feml ,
 
     feml.stream() >> id >> groupc >> nbcs;
     
-    field.setSize (nbcs);
+    field.setSize (nbcs + 1);
 
     for (j = 0; j < nbcs; j++) {
       feml.stream() >> tag >> fieldc;
       field[j] = fieldc;
       feml.stream().ignore (StrMax, '\n');
     }
+    field[nbcs] = '\0';
 
   } else {
     if ((int) Femlib::value ("N_Z") > 1) {
-      field.setSize (4);
+      field.setSize (5);
       field[0] = 'u';
       field[1] = 'v';
       field[2] = 'w';
       field[3] = 'p';
+      field[4] = '\0';
     } else {
-      field.setSize (3);
+      field.setSize (4);
       field[0] = 'u';
       field[1] = 'v';
       field[2] = 'p';
+      field[3] = '\0';
     }
   }
 };
 
 
-static void printup (vector<char>&  F   ,
-		     vector<Nsys*>& S   ,
-		     const int      nSys)
+void printup (vector<char>&  F   ,
+	      vector<Nsys*>& S   ,
+	      const int      nSys)
 // ---------------------------------------------------------------------------
 // print up summary info followed by map & mask for eack system.
 // ---------------------------------------------------------------------------
@@ -240,9 +256,13 @@ static void printup (vector<char>&  F   ,
   register int i, j, k, side, soff;
   const    int nedge = S[0] -> nbndry / (4 * S[0] -> nel);
   
-  cout << "# FIELDS         : " << F() << endl;
+  cout << "# FIELDS         :  " << F() << endl;
 
-  cout << "# MATCHING       :";
+  cout << "# ----------------";
+  for (j = 0; j < nSys; j++) cout << "  ----------";
+  cout << endl;
+
+  cout << "# " << nSys << " NUMBER SETS  :";
   for (j = 0; j < nSys; j++) {
     cout << setw (12);
     cout << S[j] -> fields();
@@ -255,7 +275,35 @@ static void printup (vector<char>&  F   ,
     cout << S[j] -> nel;
   }
   cout << endl;
-
+  
+  cout << "# NP_MAX         :";
+  for (j = 0; j < nSys; j++) {
+    cout << setw (12);
+    cout << S[j] -> np_max;
+  }
+  cout << endl;
+  
+  cout << "# NEXT_MAX       :";
+  for (j = 0; j < nSys; j++) {
+    cout << setw (12);
+    cout << S[j] -> next_max;
+  }
+  cout << endl;
+  
+  cout << "# NINT_MAX       :";
+  for (j = 0; j < nSys; j++) {
+    cout << setw (12);
+    cout << S[j] -> nint_max;
+  }
+  cout << endl;
+  
+  cout << "# NTOTAL         :";
+  for (j = 0; j < nSys; j++) {
+    cout << setw (12);
+    cout << S[j] -> ntotal;
+  }
+  cout << endl;
+  
   cout << "# NBOUNDARY      :";
   for (j = 0; j < nSys; j++) {
     cout << setw (12);
@@ -291,7 +339,10 @@ static void printup (vector<char>&  F   ,
   }
   cout << endl;
 
-  cout << "#" << endl;
+  cout << "# ----------------";
+  for (j = 0; j < nSys; j++) cout << "  ----------";
+  cout << endl;
+
   cout << "# elmt  side offst";
   for (j = 0; j < nSys; j++) cout << "  bmap  mask";
   cout << endl;
@@ -309,10 +360,24 @@ static void printup (vector<char>&  F   ,
 }
 
 
-Nsys::Nsys (char         name,
-	    vector<int>& map ,
-	    vector<int>& mask,
-	    const int    nEl )
+Nsys::Nsys (char         name    ,
+	    vector<int>& map     ,
+	    vector<int>& mask    ,
+	    const  int   opt     ,
+	    const  int   NEL     ,
+	    const  int   NTOTAL  ,
+	    const  int   NBNDRY  ,
+	    const  int   NP_MAX  ,
+	    const  int   NEXT_MAX,
+	    const  int   NINT_MAX) :
+
+	    nel         (NEL     ),
+	    np_max      (NP_MAX  ),
+	    next_max    (NEXT_MAX),
+	    nint_max    (NINT_MAX),
+	    ntotal      (NTOTAL  ),
+	    nbndry      (NBNDRY  ),
+	    optlev      (opt     )
 // ---------------------------------------------------------------------------
 // Constructor also carries out bandwidth optimization task.
 // ---------------------------------------------------------------------------
@@ -320,11 +385,9 @@ Nsys::Nsys (char         name,
   fields.setSize (FldMax);
   memset (fields(), '\0', FldMax);
   fields[0] = name;
-  nel       = nEl;
   bndmap    = map;
   bndmsk    = mask;
   nbndry    = bndmap.getSize();
-  optlev    = (int) Femlib::value ("OPTIMIZE");
   nglobal   = bndmap (Veclib::imax (nbndry, bndmap(), 1)) + 1;
   nsolve    = sortGid (bndmap(), bndmsk());
 
@@ -458,7 +521,7 @@ void Nsys::renumber (const int optl)
   const int verb = (int) Femlib::value ("VERBOSE");
 
   if (verb)
-    cout << "-- Bandwidth optimization (" << optl
+    cout << "Bandwidth optimization (" << optl
       << "), Field '" << fields() << "'";
 
   register int i;
