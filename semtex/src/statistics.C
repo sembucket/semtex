@@ -56,7 +56,7 @@ Statistics::Statistics (Domain*            D    ,
   const integer ntot  = Geometry::nTotProc();
   real*         alloc = new real [(size_t) NT * ntot];
 
-  ROOTONLY cout << "-- Initializing averaging  : ";  
+  ROOTONLY cout << "-- Initialising averaging  : ";  
 
   // -- Set pointers, allocate storage.
 
