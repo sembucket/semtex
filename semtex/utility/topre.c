@@ -22,8 +22,8 @@
  * [ EOF ]                                                                   *
  *                                                                           *
  * Vertex locations can be specified in Cartesian ("c") notation, or in      *
- * polar ("p") notation (r, \theta, theta in degrees).  Points are stored    *
- * internally in Cartesian form.                                             *
+ * polar ("p") notation (radius, theta; theta in degrees).  Points are       *
+ * stored internally in Cartesian form.                                      *
  *                                                                           *
  * No internal checking of consistency is done, but, as a part of every run, *
  * an ASCII file called "sm.dat" is generated, so that sm can be used for a  *
@@ -38,7 +38,9 @@ static char
   RCSid[] = "$Id$";
 
 
+
 #include <stdio.h>
+#include <ctype.h>
 #include <string.h>
 #include <math.h>
 #include <alplib.h>		/* Like veclib */
