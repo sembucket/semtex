@@ -32,23 +32,22 @@ RCSid[] = "$Id$";
 
 static char prog[] = "ns";
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
-static void getargs    (int, char**, char*&);
+static void getargs    (integer, char**, char*&);
 
 
-int main (int    argc,
-	  char** argv)
+integer main (integer argc,
+	      char**  argv)
 // ---------------------------------------------------------------------------
 // Driver.
 // ---------------------------------------------------------------------------
 {
   set_new_handler (&memExhaust);
-#ifndef __DECCXX
+#if !defined(__DECCXX)
   ios::sync_with_stdio();
 #endif
 
-  Geometry::CoordSys system;
   char      *session, fields[StrMax];
-  int       np, nz, nel;
+  integer   np, nz, nel;
   FEML*     F;
   Mesh*     M;
   BCmgr*    B;
@@ -58,20 +57,15 @@ int main (int    argc,
   Femlib::prep ();
   getargs      (argc, argv, session);
   
-  F = new FEML (session);
+  F = new FEML  (session);
+  M = new Mesh  (*F);
+  B = new BCmgr (*F);
 
-  nz = (int) Femlib::value ("N_Z");
+  nel = M -> nEl();  
+  np  = (integer) Femlib::value ("N_POLY");
+  nz  = (integer) Femlib::value ("N_Z"   );
   
-  M = new Mesh     (*F);
-  B = new BCmgr    (*F);
-
-  nel    = M -> nEl();  
-  np     =  (int) Femlib::value ("N_POLY");
-  nz     =  (int) Femlib::value ("N_Z"   );
-  system = ((int) Femlib::value ("CYLINDRICAL") ) ?
-                     Geometry::Cylindrical : Geometry::Cartesian;
-  
-  Geometry::set (np, nz, nel, system);
+  Geometry::set (np, nz, nel, Geometry::Cartesian);
   if   (nz > 1) strcpy (fields, "uvwp");
   else          strcpy (fields, "uvp");
 
@@ -79,25 +73,25 @@ int main (int    argc,
   A = new Analyser (*D, *F);
 
   D -> initialize();
-
+  D -> report();
+  
   NavierStokes (D, A);
 
   return EXIT_SUCCESS;
 }
 
 
-static void getargs (int    argc   ,
-		     char** argv   ,
-		     char*& session)
+static void getargs (integer argc   ,
+		     char**  argv   ,
+		     char*&  session)
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
 // arguments.  Last argument is name of a session file, not dealt with here.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "getargs";
-  char buf[StrMax], c;
-  char usage[]   =
-    "Usage: %s [options] session-file\n"
+  const char routine[] = "getargs";
+  char       buf[StrMax];
+  char       usage[]   = "Usage: %s [options] session-file\n"
     "  [options]:\n"
     "  -h        ... print this message\n"
     "  -i[i]     ... use iterative solver for viscous [& pressure] steps\n"
@@ -105,7 +99,7 @@ static void getargs (int    argc   ,
     "  -chk      ... checkpoint field dumps\n";
  
   while (--argc  && **++argv == '-')
-    switch (c = *++argv[0]) {
+    switch (*++argv[0]) {
     case 'h':
       sprintf (buf, usage, prog);
       cout << buf;
@@ -113,12 +107,12 @@ static void getargs (int    argc   ,
       break;
     case 'i':
       do
-	Femlib::value ("ITERATIVE", (int) Femlib::value ("ITERATIVE") + 1);
+	Femlib::value ("ITERATIVE", (integer) Femlib::value ("ITERATIVE") + 1);
       while (*++argv[0] == 'i');
       break;
     case 'v':
       do
-	Femlib::value ("VERBOSE",   (int) Femlib::value ("VERBOSE")   + 1);
+	Femlib::value ("VERBOSE",   (integer) Femlib::value ("VERBOSE")   + 1);
       while (*++argv[0] == 'v');
       break;
     case 'c':
