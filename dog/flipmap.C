@@ -8,6 +8,7 @@
 // options:
 //   -h       ... print this message
 //   -x || -y ... reflection symmetry to be used to generate map
+//   -t <num> ... set positional tolerance to num
 //
 // FILES
 // Input file is a semtex/prism ASCII mesh file, generated e.g. by meshpr.
@@ -49,15 +50,15 @@
 
 static char prog[] = "flipmap";
 
-const double EPS = EPSSP;	// Positional tolerance.
+const real EPS = EPSSP;	// -- Default positional tolerance.
 
-static void getargs  (int, char**, char&, ifstream&);
+static void getargs  (int, char**, char&, real&, ifstream&);
 static int  header   (ifstream&);
 static int  loadmesh (ifstream&, const int, const char,
 		      vector<real>&, vector<real>&);
-static void findmap  (const char,
-		      const int, const vector<real>&, const vector<real>&,
-		      const int, vector<int>&, vector<int>& );
+static void findmap  (const char, const int, const real tol,
+		      const vector<real>&, const vector<real>&,
+		      const int, vector<int>&, vector<int>&);
 static void printup  (const char, const int,
 		      const vector<int>&, const vector<int>&);
 
@@ -73,13 +74,14 @@ int main (int    argc,
   vector<real> x, y;
   vector<int>  orig, flip;
   int          npts, nmap;
+  real         tol = EPS;
 
-  getargs (argc, argv, generator, file);
+  getargs (argc, argv, generator, tol, file);
 
   npts = header   (file);
   nmap = loadmesh (file, npts, generator, x, y);
   
-  findmap (generator, npts, x, y, nmap, orig, flip);
+  findmap (generator, npts, tol, x, y, nmap, orig, flip);
   printup (generator, nmap, orig, flip);
 
   return EXIT_SUCCESS;
@@ -89,18 +91,23 @@ int main (int    argc,
 static void getargs (int       argc,
 		     char**    argv,
 		     char&     gen ,
+		     real&     tol ,
 		     ifstream& file)
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  char usage[] = "Usage: flipmap [-h] -x || -y [meshfile]\n";
+  char usage[] = "Usage: flipmap [-h] -x || -y [-t <num>] [meshfile]\n";
  
   while (--argc && **++argv == '-')
     switch (*++argv[0]) {
     case 'h':
       cout << usage;
       exit (EXIT_SUCCESS);
+      break;
+    case 't':
+      if (*++argv[0]) tol = atof (  *argv);
+      else { --argc;  tol = atof (*++argv); }
       break;
     case 'x':
       gen = 'x';
@@ -205,6 +212,7 @@ static int loadmesh (ifstream&     file,
 
 static void findmap  (const char          gen ,
 		      const int           npts,
+		      const real          tol ,
 		      const vector<real>& x   ,
 		      const vector<real>& y   ,
 		      const int           nmap,
@@ -222,9 +230,9 @@ static void findmap  (const char          gen ,
 
   if (gen == 'x') {
     for (i = 0; i < npts; i++) {
-      if (x[i] > EPS || x[i] < -EPS) {
+      if (x[i] > tol || x[i] < -tol) {
 	for (found = 0, j = 0; !found && j < npts; j++) {
-	  if (fabs(x[i] + x[j]) < EPS && fabs(y[i] - y[j]) < EPS) {
+	  if (fabs(x[i] + x[j]) < tol && fabs(y[i] - y[j]) < tol) {
 	    orig[k]   = i;
 	    flip[k++] = j;
 	    found     = 1;
@@ -238,9 +246,9 @@ static void findmap  (const char          gen ,
     }
   } else {
     for (i = 0; i < npts; i++) {
-      if (y[i] > EPS || y[i] < -EPS) {
+      if (y[i] > tol || y[i] < -tol) {
 	for (found = 0, j = 0; !found && j < npts; j++) {
-	  if (fabs(y[i] + y[j]) < EPS && fabs(x[i] - x[j]) < EPS) {
+	  if (fabs(y[i] + y[j]) < tol && fabs(x[i] - x[j]) < tol) {
 	    orig[k]   = i;
 	    flip[k++] = j;
 	    found     = 1;
