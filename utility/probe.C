@@ -356,13 +356,13 @@ static void Finterp (vector<AuxField*>& u   ,
 
       // -- Just 2D.
 
-      data[i] = u[i] -> probe (E, 0, r, s);
+      data[i] = u[i] -> probe (E, r, s, 0);
 
     else {
 
       // -- 2D interpolation.
       
-      for (k = 0; k < NZ; k++) work[k] = u[i] -> probe (E, k, r, s);
+      for (k = 0; k < NZ; k++) work[k] = u[i] -> probe (E, r, s, k);
 
       // -- Fourier interpolation.
 
