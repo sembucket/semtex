@@ -105,7 +105,7 @@ void  Element::setState (int ident, int nknot, int nside)
   if (rule == LL)
     nq = np;
   else if (rule == GL)
-    nq = quadComplete (DIM, np);
+    nq = quadComplete (2, np);
   else
     message (routine, "quadrature rule set incorrectly", ERROR);
 
