@@ -117,7 +117,7 @@ void lowpass (real* data)
 // structure.
 // ---------------------------------------------------------------------------
 {
-#if 0
+#if 1
   register integer i;
   const integer    pid = Geometry::procID();
   const integer    np  = Geometry::nP();
