@@ -59,8 +59,6 @@ void  cleanup     (Param*, const int);
 /* -- allocate.c */
 
 real**    cfield     (int*, CVF*);
-void      tophat     (int*, CVF, int);
-real      normalize  (int*, complex*, real**, CVF);
 int*      ivector    (int, int);
 complex*  cvector    (int, int);
 real*     cbox       (int, int, int, int, int, int, CF*);
@@ -87,11 +85,12 @@ void integrate (CVF, const CVF, const CVF, const Param*, const int*);
 
 /* -- energy.c */
 
-real  energyP  (CVF   V,   const complex*, const int*);
-real  energyF  (const CVF, const int*);
-real  rmsEns   (const CVF, const int*);
-real  L2norm   (const CF,  const int*);
-real  amaxf    (const CF,  const int*);
+real  energyP   (CVF   V,   const complex*, const int*);
+real  energyF   (const CVF, const int*);
+real  rmsEns    (const CVF, const int*);
+real  L2norm    (const CF,  const int*);
+real  amaxf     (const CF,  const int*);
+void  normalize (      CVF, const int*);
 
 /* -- truncation.c */
 
@@ -118,6 +117,7 @@ real  Brachet        (const real);
 void  zeroVF  (CVF, const int*);
 void  zeroF   (CF,  const int*);
 void  copyF   (CF,  const CF, const int*);
+void  scaleF  (CF,  const real, const int*);
 void  setF    (CF,  const CF, const int*);
 void  addF    (CF,  const CF, const int*);
 void  subF    (CF,  const CF, const int*);
@@ -126,3 +126,7 @@ void  project (CVF, CF, const int*);
 /* -- random.c */
 
 real  ran2PI (int*);
+
+/* -- tophat.c */
+
+void  tophat (int*, CVF, int);
