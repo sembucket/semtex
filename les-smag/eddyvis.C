@@ -35,8 +35,6 @@ void eddyViscosity (const Domain* D ,
 
   strainRate  (D,  Us, Uf);
   Smagorinsky (Us, Uf, EV);
-
-  *EV -= Femlib::value ("KINVIS");
 }
 
 
@@ -88,11 +86,11 @@ static void Smagorinsky (AuxField*** Us,
 // field \nu_S = (Cs \Delta)^2 |S|, where
 // |S| = sqrt [(S11)^2 + (S22)^2 + (S33)^2 + 2(S12)^2 + 2(S13)^2 + 2(S23)^2].
 //
-// As noted in the header to NS.C, \nu_T = -KINVIS for debugging.
+// As noted in the header to NS.C, EV = -KINVIS for debugging (NB: Fourier!).
 // ---------------------------------------------------------------------------
 {
 #ifdef DEBUG
-  *EV = 0.0;
+  (*EV = 0.0) . addToPlane (0, -0.5 * Femlib::value ("KINVIS"));
 
 #else
   int          i, j;

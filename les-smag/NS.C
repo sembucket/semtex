@@ -30,8 +30,8 @@
 // kinematic viscosity equal to twice the input value and formulate
 // the SGS stresses as those supplied by the product of the strain
 // rate tensor with a spatially-constant NEGATIVE viscosity -KINVIS:
-// the total effect should be the same as for a DNS with total
-// viscosity KINVIS.
+// the results should be the same as for a DNS with total viscosity
+// KINVIS.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char
@@ -66,7 +66,7 @@ void NavierStokes (Domain*   D,
 // Uf is multi-level auxillary Field storage for nonlinear forcing terms.
 // ---------------------------------------------------------------------------
 {
-#if defined (DEBUG)
+#ifdef DEBUG
   Femlib::value ("KINVIS", 2.0 * Femlib::value ("KINVIS"));
 #endif
 
@@ -121,7 +121,7 @@ void NavierStokes (Domain*   D,
     D -> time += dt;
     Femlib::value ("t", D -> time);
 
-    // -- Find old SGS stress.
+    // -- Rates of strain & eddy viscosity.
 
     eddyViscosity (D, Us, Uf, EV);
 
@@ -132,8 +132,8 @@ void NavierStokes (Domain*   D,
 
     // -- Pressure projection substep.
 
-    PBCmgr::maintain(D -> step, Pressure,
-		     (const AuxField***)Us, (const AuxField***)Uf, 1);
+    PBCmgr::maintain (D -> step, Pressure,
+		      (const AuxField***) Us, (const AuxField***) Uf, 1);
     Pressure -> evaluateBoundaries (D -> step);
     for (i = 0; i < DIM; i++) {
       AuxField::swapData (D -> u[i], Us[i][0]);
@@ -238,7 +238,7 @@ static void nonLinear (Domain*       D ,
 
   // -- Off-diagonal stress-divergence terms.
 
-  for (i = 0; i < DIM; i++) {
+  for (i = 0; i < DIM; i++)
     for (j = i + 1; j < DIM; j++) {
 
       Uf[i + j - 1][0] -> transform32 (u32[0], -1);
@@ -251,7 +251,7 @@ static void nonLinear (Domain*       D ,
 	Femlib::DFTr (u32[0], nZ32, nP, +1);
 	Veclib::zero (nTot32 - nTot, u32[0] + nTot, 1);
 	master -> gradient (NZ, u32[0], 2);
-	Femlib::DFTr (u32[2], nZ32, nP, -1);
+	Femlib::DFTr (u32[0], nZ32, nP, -1);
       } else
 	master -> gradient (nZ32, u32[0], j);
       Veclib::vadd (nTot32, u32[0], 1, n32[i], 1, n32[i], 1);
@@ -259,9 +259,8 @@ static void nonLinear (Domain*       D ,
       // -- Sub-diagonal.
 
       master -> gradient (nZ32, u32[1], i);
-      Veclib::vadd (nTot32, u32[1], 1, n32[i], 1, n32[i], 1);
+      Veclib::vadd (nTot32, u32[1], 1, n32[j], 1, n32[j], 1);
     }
-  }
 
   // -- Nonlinear terms.
 
@@ -431,7 +430,7 @@ static ModeSys** preSolve (const Domain* D)
   if (itLev < 1) {
     vector<real> alpha (Integration::OrderMax + 1);
     Integration::StifflyStable (nOrder, alpha());
-    const real   lambda2 = alpha[0] / Femlib::value ("KINVIS*D_T");
+    const real   lambda2 = alpha[0] / Femlib::value ("KINVIS * D_T");
 
     for (i = 0; i < DIM; i++) {
       name = D -> u[i] -> name();
