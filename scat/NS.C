@@ -63,12 +63,12 @@ void NavierStokes (Domain*   D,
 
   // -- Create & initialize multi-level storage for velocities and forcing.
 
-  AuxField*** Us = new AuxField** [DIM + 1];
-  AuxField*** Uf = new AuxField** [DIM + 1];
+  AuxField*** Us = new AuxField** [(size_t) (DIM + 1)];
+  AuxField*** Uf = new AuxField** [(size_t) (DIM + 1)];
 
   for (i = 0; i <= DIM; i++) {
-    Us[i] = new AuxField* [nOrder];
-    Uf[i] = new AuxField* [nOrder];
+    Us[i] = new AuxField* [(size_t) nOrder];
+    Uf[i] = new AuxField* [(size_t) nOrder];
     for (j = 0; j < nOrder; j++) {
       *(Us[i][j] = new AuxField (D -> Esys, nZ)) = 0.0;
       *(Uf[i][j] = new AuxField (D -> Esys, nZ)) = 0.0;
@@ -388,9 +388,9 @@ static ModeSys** preSolve (const Domain* D)
   const integer        itLev  = (integer) Femlib::value ("ITERATIVE");
   const integer        nOrder = (integer) Femlib::value ("N_TIME");
   const real           beta   = Femlib::value ("BETA");
-  ModeSys**            M      = new ModeSys* [DIM + 2];
+  ModeSys**            M      = new ModeSys* [(szie_t) (DIM + 2)];
   vector<Element*>&    E      = ((Domain*) D) -> Esys;
-  const NumberSystem** N      = new const NumberSystem* [3];
+  const NumberSystem** N      = new const NumberSystem* [(size_t) 3];
 
   // -- Velocity and temperature systems.
 
