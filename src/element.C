@@ -1341,19 +1341,19 @@ void Element::sideDivR (const integer side,
     base = _np - 1;
     skip = _np;
     y    = _ymesh + base;
-    s    = src   + base;
+    s    = src    + base;
     break;
   case 2:
     base = _np * _np - 1;
     skip = -1;
     y    = _ymesh + base;
-    s    = src   + base;
+    s    = src    + base;
     break;
   case 3:
     base = _np * (_np - 1);
     skip = -_np;
     y    = _ymesh + base;
-    s    = src   + base;
+    s    = src    + base;
     break;
   }
 
@@ -1390,19 +1390,19 @@ void Element::sideDivR2 (const integer side,
     base = _np - 1;
     skip = _np;
     y    = _ymesh + base;
-    s    = src   + base;
+    s    = src    + base;
     break;
   case 2:
     base = _np * _np - 1;
     skip = -1;
     y    = _ymesh + base;
-    s    = src   + base;
+    s    = src    + base;
     break;
   case 3:
     base = _np * (_np - 1);
     skip = -_np;
     y    = _ymesh + base;
-    s    = src   + base;
+    s    = src    + base;
     break;
   }
 
@@ -1426,7 +1426,7 @@ integer Element::locate (const real    x    ,
 // If guess = 0 (the default argument), the input value of (r, s) is used
 // as an initial guess for N--R iteration.  Otherwise the  (r, s) value that
 // corresponds to the closest point in the Element mesh to (x, y) is used.
-// Fairly loose tolerances are employed.
+// Point tolerances can be changed by setting token TOL_POS.
 // ---------------------------------------------------------------------------
 {
   static real         EPS    = 0.0;

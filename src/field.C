@@ -1109,8 +1109,7 @@ real Field::modeConstant (const char    name,
 // the "Fourier" constant in the Helmholtz equations is 1.
 // ---------------------------------------------------------------------------
 {
-  if (Geometry::nDim()    <          3          ||
-      Geometry::system() == Geometry::Cartesian || 
+  if (Geometry::system() == Geometry::Cartesian || 
       name               ==         'c'         ||
       name               ==         'p'         ||
       name               ==         'u'          ) return beta * mode;
