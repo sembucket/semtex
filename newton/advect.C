@@ -2,25 +2,26 @@
 // advect.C: different forms of advection terms for Navier--Stokes problems
 // in primitive variables.
 //
-// Copyright (C) 2002 Hugh Blackburn
-//
-// $Id$
+// Copyright (c) 2002 <--> $Date$, Hugh Blackburn
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include "newt.h"
 
-
-void nonlinear (Domain*    D ,
-		AuxField** Us,
-		AuxField** Uf)
+void nonlinear (Domain*       D ,
+		AuxField**    Us,
+		AuxField**    Uf)
 // ---------------------------------------------------------------------------
-// Compute nonlinear (forcing) terms in Navier--Stokes equations, N(u).
+// Compute nonlinear (forcing) terms in Navier--Stokes equations: N(u),
+// where N(u) represents the nonlinear advection terms in the N--S equations
+// transposed to the RHS.
 //
-// Velocity field data areas of D and first level of Us are swapped,
-// then the next stage of nonlinear forcing terms N(u) are computed
-// from velocity fields and left in the first level of Uf.
+// Velocity field data areas of D and first level of Us are swapped, then
+// the next stage of nonlinear forcing terms N(u) - a are computed from
+// velocity fields and left in the first level of Uf.
 //
-// Nonlinear terms N(u) are computed in skew-symmetric form (Zang 1991)
+// Nonlinear terms N(u) in skew-symmetric form are
 //                 ~ ~
 //           N  = -0.5 ( u . grad u + div uu )
 //           ~           ~        ~       ~~
@@ -44,37 +45,38 @@ void nonlinear (Domain*    D ,
 // gradients in the Fourier direction however, the data must be transferred
 // back to Fourier space.
 //
-// NB: no dealiasing for concurrent execution (or if ALIAS is defined).
+// Define ALIAS to force Fourier-aliased nonlinear terms (serial only).
+// Define CONV  to get convective as opposed to default skew-symmetric form.
 // ---------------------------------------------------------------------------
 {
-  const integer     NCOM   = D -> nField() - 1;
-  const integer     NDIM   = Geometry::nDim();
-  const integer     nZ     = Geometry::nZ();
-  const integer     nZP    = Geometry::nZProc();
-  const integer     nP     = Geometry::planeSize();
-  const integer     nPP    = Geometry::nBlock();
-  const integer     nPR    = Geometry::nProc();
-  const integer     nTot   = Geometry::nTotProc();
+  const int NDIM = Geometry::nDim();	// -- Number of space dimensions.
+  const int NCOM = D -> nField() - 1;	// -- Number of velocity components.
+  int       i, j;
 #if defined (ALIAS)
-  const integer     nZ32   = Geometry::nZProc();
+  const int         nZ32   = Geometry::nZProc();
 #else
-  const integer     nZ32   = Geometry::nZ32();
+  const int         nZ32   = Geometry::nZ32();
 #endif 
-  const integer     nTot32 = nZ32 * nP;
-  integer           i, j;
+  const int         nZ     = Geometry::nZ();
+  const int         nZP    = Geometry::nZProc();
+  const int         nP     = Geometry::planeSize();
+  const int         nPP    = Geometry::nBlock();
+  const int         nPR    = Geometry::nProc();
+  const int         nTot   = Geometry::nTotProc();
+  const int         nTot32 = nZ32 * nP;
   vector<real>      work ((2 * NCOM + 1) * nTot32);
   vector<real*>     u32 (NCOM);
   vector<real*>     n32 (NCOM);
   vector<AuxField*> U   (NCOM);
   vector<AuxField*> N   (NCOM);
   Field*            master = D -> u[0];
-  real*             tmp    = work() + 2 * NCOM * nTot32;
+  real*             tmp    = &work[0] + 2 * NCOM * nTot32;
 
-  Veclib::zero ((2 * NCOM + 1) * nTot32, work(), 1); // -- A catch-all cleanup.
+  Veclib::zero ((2 * NCOM + 1) * nTot32, &work[0], 1); // -- Catch-all cleanup.
 
   for (i = 0; i < NCOM; i++) {
-    u32[i] = work() +  i         * nTot32;
-    n32[i] = work() + (i + NCOM) * nTot32;
+    u32[i] = &work[0] +  i         * nTot32;
+    n32[i] = &work[0] + (i + NCOM) * nTot32;
 
     AuxField::swapData (D -> u[i], Us[i]);
 
@@ -83,22 +85,32 @@ void nonlinear (Domain*    D ,
     N[i] = Uf[i];
   }
 
-  if (Geometry::system() == Geometry::Cylindrical) {
+  if (Geometry::cylindrical()) {
 
     for (i = 0; i < NCOM; i++) {
 
       // -- Terms involving azimuthal derivatives and frame components.
 
+#if !defined (CONV)
       if (i == 0)
 	Veclib::vmul (nTot32, u32[0], 1, u32[1], 1, n32[0], 1);
       if (i == 1)
 	Veclib::vmul (nTot32, u32[1], 1, u32[1], 1, n32[1], 1);
+#endif
 
       if (NCOM == 3) {
+
+#if !defined (CONV)
 	if (i == 1)
 	  Veclib::svvttvp (nTot32, -2.0, u32[2],1,u32[2],1,n32[1],1,n32[1], 1);
 	if (i == 2)
 	  Veclib::svvtt   (nTot32,  3.0, u32[2], 1, u32[1], 1,      n32[2], 1);
+#else
+	if (i == 1)
+	  Veclib::svvttvp (nTot32, -1.0, u32[2],1,u32[2],1,n32[1],1,n32[1], 1);
+	if (i == 2)
+	  Veclib::vmul    (nTot32, u32[2], 1, u32[1], 1, n32[2], 1);
+#endif
 
 	if (nZ > 2) {
 	  Veclib::copy       (nTot32, u32[i], 1, tmp, 1);
@@ -109,7 +121,8 @@ void nonlinear (Domain*    D ,
 	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
 	  Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
 	  Veclib::vvtvp      (nTot32, u32[2], 1, tmp, 1, n32[i], 1, n32[i], 1);
-	
+
+#if !defined (CONV)
 	  Veclib::vmul       (nTot32, u32[i], 1, u32[2], 1, tmp, 1);
 	  Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
 	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
@@ -118,32 +131,41 @@ void nonlinear (Domain*    D ,
 	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
 	  Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
 	  Veclib::vadd       (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
+#endif
 	}
       }
-
-      master -> divR (nZ32, n32[i]);
+      if (i == 2) master -> divY (nZ32, n32[i]);
 
       // -- 2D non-conservative derivatives.
 
       for (j = 0; j < 2; j++) {
-	Veclib::copy       (nTot32, u32[i], 1, tmp, 1);
+	Veclib::copy (nTot32, u32[i], 1, tmp, 1);
 	master -> gradient (nZ32, nP, tmp, j);
-	Veclib::vvtvp      (nTot32, u32[j], 1, tmp, 1, n32[i], 1, n32[i], 1);
+	if (i <  2) master -> mulY (nZ32, tmp);
+	Veclib::vvtvp (nTot32, u32[j], 1, tmp, 1, n32[i], 1, n32[i], 1);
       }
 
+#if !defined (CONV)
       // -- 2D conservative derivatives.
      
       for (j = 0; j < 2; j++) {
-	Veclib::vmul       (nTot32, u32[j], 1, u32[i], 1, tmp, 1);
+	Veclib::vmul (nTot32, u32[j], 1, u32[i], 1, tmp, 1);
 	master -> gradient (nZ32, nP, tmp, j);
-	Veclib::vadd       (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
+	if (i <  2) master -> mulY (nZ32, tmp);
+	Veclib::vadd (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
       }
+#endif
 
       // -- Transform to Fourier space, smooth, add forcing.
 
       N[i]   -> transform32 (FORWARD, n32[i]);
-      master -> smooth (N[i]);
+
+#if !defined (CONV)
       *N[i] *= -0.5;
+#else
+      *N[i] *= -1.0;
+#endif
+
     }
   
   } else {			// -- Cartesian coordinates.
@@ -166,6 +188,7 @@ void nonlinear (Domain*    D ,
 	}
 	Veclib::vvtvp (nTot32, u32[j], 1, tmp,  1, n32[i], 1, n32[i], 1);
 
+#if !defined (CONV)
 	// -- Perform n_i += d(u_i u_j) / dx_j.
 
 	Veclib::vmul  (nTot32, u32[i], 1, u32[j], 1, tmp,  1);
@@ -180,14 +203,18 @@ void nonlinear (Domain*    D ,
 	  master -> gradient (nZ32, nP, tmp, j);
 	}
 	Veclib::vadd (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
-	
+#endif	
       }
 
       // -- Transform to Fourier space, smooth, add forcing.
       
       N[i]   -> transform32 (FORWARD, n32[i]);
-      master -> smooth (N[i]);
+
+#if !defined (CONV)
       *N[i] *= -0.5;
+#else
+      *N[i] *= -1.0;
+#endif
     }
   }
 }
@@ -224,33 +251,33 @@ void linear (Domain*    D ,
 //
 // ---------------------------------------------------------------------------
 { 
-  const integer     NCOM   = D -> nField() - 1;
-  const integer     NDIM   = Geometry::nDim();
-  const integer     nZ     = Geometry::nZ();
-  const integer     nZP    = Geometry::nZProc();
-  const integer     nP     = Geometry::planeSize();
-  const integer     nPP    = Geometry::nBlock();
-  const integer     nPR    = Geometry::nProc();
-  const integer     nTot   = Geometry::nTotProc();
+  const int_t       NCOM   = D -> nField() - 1;
+  const int_t       NDIM   = Geometry::nDim();
+  const int_t       nZ     = Geometry::nZ();
+  const int_t       nZP    = Geometry::nZProc();
+  const int_t       nP     = Geometry::planeSize();
+  const int_t       nPP    = Geometry::nBlock();
+  const int_t       nPR    = Geometry::nProc();
+  const int_t       nTot   = Geometry::nTotProc();
 #if defined (ALIAS)
-  const integer     nZ32   = Geometry::nZProc();
+  const int_t       nZ32   = Geometry::nZProc();
 #else
-  const integer     nZ32   = Geometry::nZ32();
+  const int_t       nZ32   = Geometry::nZ32();
 #endif 
-  const integer     nTot32 = nZ32 * nP;
-  integer           i, j;
-  vector<real>      work((3 * NCOM + 1) * nTot32);
-  vector<real*>     u32(NCOM), U32(NCOM), L32(NCOM);
+  const int_t       nTot32 = nZ32 * nP;
+  int_t             i, j;
+  vector<real_t>    work((3 * NCOM + 1) * nTot32);
+  vector<real_t*>   u32(NCOM), U32(NCOM), L32(NCOM);
   vector<AuxField*> u  (NCOM), U  (NCOM), L  (NCOM);
   Field*            master = D -> u[0];
-  real*             tmp    = work() + 3 * NCOM * nTot32;
+  real_t*           tmp    = &work[0] + 3 * NCOM * nTot32;
 
-  Veclib::zero ((3 * NCOM + 1) * nTot32, work(), 1); // -- A catch-all cleanup.
+  Veclib::zero ((3 * NCOM + 1) * nTot32, &work[0], 1);
 
   for (i = 0; i < NCOM; i++) {
-    u32[i] = work() +  i                * nTot32;
-    U32[i] = work() + (i + NCOM)        * nTot32;
-    L32[i] = work() + (i + NCOM + NCOM) * nTot32;
+    u32[i] = &work[0] +  i                * nTot32;
+    U32[i] = &work[0] + (i + NCOM)        * nTot32;
+    L32[i] = &work[0] + (i + NCOM + NCOM) * nTot32;
 
     AuxField::swapData (D -> u[i], Us[i]);
 
@@ -296,17 +323,20 @@ void linear (Domain*    D ,
 	}
       }
 
-      master -> divR (nZ32, L32[i]);
+      if (i == 2) master -> divY (nZ32, L32[i]);
 
-      // -- 2D non-conservative derivatives.
+      // -- 2D convective derivatives.
 
       for (j = 0; j < 2; j++) {
 	Veclib::copy       (nTot32, U32[i], 1, tmp, 1);
 	master -> gradient (nZ32, nP, tmp, j);
+	if      (i  < 2 && j  < 2) master -> mulY (nZ32, tmp);
+	else if (i == 2 && j == 2) master -> divY (nZ32, tmp);
 	Veclib::vvvtm      (nTot32, L32[i], 1, u32[j], 1, tmp, 1, L32[i], 1);
 
 	Veclib::copy       (nTot32, u32[i], 1, tmp, 1);
 	master -> gradient (nZ32, nP, tmp, j);
+	if ( i < 2) master -> mulY (nZ32, tmp);
 	Veclib::vvvtm      (nTot32, L32[i], 1, U32[j], 1, tmp, 1, L32[i], 1);
       }
     }
@@ -347,8 +377,5 @@ void linear (Domain*    D ,
       }
   }
   
-  for (i = 0; i < NCOM; i++) {
-    L[i]   -> transform32 (FORWARD, L32[i]);
-    master -> smooth (L[i]);
-  }
+  for (i = 0; i < NCOM; i++) L[i] -> transform32 (FORWARD, L32[i]);
 }

@@ -8,7 +8,7 @@
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include "Sem.h"
+#include "sem.h"
 
 typedef void   (*Advection) (Domain*, AuxField**, AuxField**);
 void integrate (Domain*, Advection);
@@ -19,41 +19,41 @@ extern "C" {
 
   void F77NAME(bicgstab)	// -- Templates Bi-Conj-Grad-Stab solver.
 
-    (const integer& N    ,
-     const real*    B    ,
-     real*          X    ,
-     real*          WORK ,
-     const integer& LDW  ,
-     integer&       ITER ,
-     real&          RESID,
-     void (*MATVEC) (const real&, const real*, const real&, real*),
-     void (*PSOLVE) (real*, const real*),
-     integer&       INFO );
+    (const int_t&   N    ,
+     const real_t*  B    ,
+     real_t*        X    ,
+     real_t*        WORK ,
+     const int_t&   LDW  ,
+     int_t&         ITER ,
+     real_t&        RESID,
+     void (*MATVEC) (const real_t&, const real_t*, const real_t&, real_t*),
+     void (*PSOLVE) (real_t*, const real_t*),
+     int_t&         INFO );
 
   void F77NAME (bcgsw)		// -- NSPCG Bi-Conj-Grad-Squared solver.
 
-    (void (*SUBA)   (const real*, const integer*, const real*, const integer*,
-	  	     const integer&, const real*, real*),
-     void (*SUBQL)  (const real*, const integer*, const real*, const integer*,
-		     const integer&, const real*, real*),
-     void (*SUBQR)  (const real*, const integer*, const real*, const integer*,
-		     const integer&, const real*, real*),
-     const real*    COEFF ,
-     const integer* JCOEFF,
-     const real*    WFAC  ,
-     const integer* JWFAC ,
-     const integer& N     ,
-     real*          U     ,
-     const real*    UBAR  ,
-     const real*    RHS   ,
-     real*          WKSP  ,
-     integer&       NW    ,
-     integer*       IPARM ,
-     real*          RPARM ,
-     integer&       IER   );
+    (void (*SUBA)   (const real_t*, const int_t*, const real_t*, const int_t*,
+	  	     const int_t&, const real_t*, real_t*),
+     void (*SUBQL)  (const real_t*, const int_t*, const real_t*, const int_t*,
+		     const int_t&, const real_t*, real_t*),
+     void (*SUBQR)  (const real_t*, const int_t*, const real_t*, const int_t*,
+		     const int_t&, const real_t*, real_t*),
+     const real_t* COEFF ,
+     const int_t*  JCOEFF,
+     const real_t* WFAC  ,
+     const int_t*  JWFAC ,
+     const int_t&  N     ,
+     real_t*       U     ,
+     const real_t* UBAR  ,
+     const real_t* RHS   ,
+     real_t*       WKSP  ,
+     int_t&        NW    ,
+     int_t*        IPARM ,
+     real_t*       RPARM ,
+     int_t&        IER   );
 
   void F77NAME (dfault)		// -- NSPCG setup.
-    (integer*, real*);
+    (int_t*, real_t*);
 
 }
 

@@ -1,12 +1,12 @@
 //////////////////////////////////////////////////////////////////////////////
 // domain.C: implement domain class functions.
 //
-// Copyright (C) 1994, 2001 Hugh Blackburn
-//
-// $Id$
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "Sem.h"
+static char RCS[] = "$Id$";
+
+#include "sem.h"
 
 Domain::Domain (FEML*             F,
 		vector<Element*>& E,
@@ -24,12 +24,12 @@ Domain::Domain (FEML*             F,
 // ---------------------------------------------------------------------------
   elmt (E)
 {
-  const integer verbose = static_cast<integer>(Femlib::value ("VERBOSE"));
-  const integer nz      = Geometry::nZProc();
-  const integer ntot    = Geometry::nTotProc();
-  const integer nplane  = Geometry::planeSize();
-  integer       i, nfield;
-  real*         alloc;
+  const int_t verbose = static_cast<int_t>(Femlib::value ("VERBOSE"));
+  const int_t nz      = Geometry::nZProc();
+  const int_t ntot    = Geometry::nTotProc();
+  const int_t nplane  = Geometry::planeSize();
+  int_t       i, nfield;
+  real_t*     alloc;
 
   strcpy ((name = new char [strlen (F -> root()) + 1]), F -> root());
   Femlib::value ("t", time = 0.0);
@@ -44,17 +44,17 @@ Domain::Domain (FEML*             F,
   
   VERBOSE cout << "  Building domain boundary systems ... ";
 
-  b.setSize (nfield);
+  b.resize (nfield);
   for (i = 0; i < nfield; i++) b[i] = new BoundarySys (B, E, field[i]);
 
   VERBOSE cout << "done" << endl;
 
   VERBOSE cout << "  Building domain fields ... ";
 
-  u   .setSize (nfield);
-  udat.setSize (nfield);
+  u   .resize (nfield);
+  udat.resize (nfield);
 
-  alloc = new real [static_cast<size_t> (nfield * ntot)];
+  alloc = new real_t [static_cast<size_t> (nfield * ntot)];
   Veclib::zero (nfield * ntot, alloc, 1);
   for (i = 0; i < nfield; i++) {
     udat[i] = alloc + i * ntot;
@@ -63,13 +63,12 @@ Domain::Domain (FEML*             F,
 
   VERBOSE cout << "done" << endl;
 
-  // -- Allocate vectors for base flow pointers but leave them null.
+  // -- Allocate vectors for base flow pointers -- these are only used
+  // -- for the perturbation flow domain, and they are set to match
+  // -- the base fields' u & udat storage areas (in preprocess()).
 
-  U   .setSize (nfield);
-  Udat.setSize (nfield);
-
-  U    = 0;
-  Udat = 0;
+  U   .resize (nfield);
+  Udat.resize (nfield);
 }
 
 
@@ -78,16 +77,16 @@ void Domain::report ()
 // Print a run-time summary of domain & timestep information on cout.
 // ---------------------------------------------------------------------------
 {
-  const real    dt  =                      Femlib::value ("D_T");
-  const real    lz  =                      Femlib::value ("TWOPI / BETA");
-  const real    Re  =                      Femlib::value ("1.0   / KINVIS");
-  const integer ns  = static_cast<integer>(Femlib::value ("N_STEP"));
-  const integer nt  = static_cast<integer>(Femlib::value ("N_TIME"));
-  const integer chk = static_cast<integer>(Femlib::value ("CHKPOINT"));
-  const integer per = static_cast<integer>(Femlib::value ("IO_FLD"));
+  const real_t dt  = Femlib:: value ("D_T");
+  const real_t lz  = Femlib:: value ("TWOPI / BETA");
+  const real_t Re  = Femlib:: value ("1.0   / KINVIS");
+  const int_t  ns  = Femlib::ivalue ("N_STEP");
+  const int_t  nt  = Femlib::ivalue ("N_TIME");
+  const int_t  chk = Femlib::ivalue ("CHKPOINT");
+  const int_t  per = Femlib::ivalue ("IO_FLD");
 
   cout << "-- Coordinate system       : ";
-  if (Geometry::system() == Geometry::Cylindrical)
+  if (Geometry::cylindrical())
     cout << "cylindrical" << endl;
   else
     cout << "Cartesian" << endl;
@@ -115,24 +114,24 @@ void Domain::restart ()
 // this fails, initialise all fields to zero.
 // ---------------------------------------------------------------------------
 {
-  integer       i;
-  const integer nF   = nField();
-  const integer ntot = Geometry::nTotProc();
-  char          restartfile[StrMax];
+  int_t       i;
+  const int_t nF   = nField();
+  const int_t ntot = Geometry::nTotProc();
+  char        restartfile[StrMax];
   
-  ROOTONLY cout << "-- Initial condition       : ";
+  cout << "-- Initial condition       : ";
   ifstream file (strcat (strcpy (restartfile, name), ".rst"));
 
   if (file) {
-    ROOTONLY cout << "read from file " << restartfile << flush;
+    cout << "read from file " << restartfile << flush;
     file >> *this;
     file.close();
   } else {
-    ROOTONLY cout << "set to zero";
-    for (i = 0; i < nF; i++) Veclib::zero (ntot, udat(i), 1);
+    cout << "set to zero";
+    for (i = 0; i < nF; i++) *u[i] = 0.0;
   }
 
-  ROOTONLY cout << endl;
+  cout << endl;
   
   Femlib::value ("t", time);
   step = 0;
@@ -144,12 +143,9 @@ void Domain::dump ()
 // Check if a field-file write is required, carry out.
 // ---------------------------------------------------------------------------
 {
-  const integer
-    periodic = !(step %  static_cast<integer>(Femlib::value ("IO_FLD")));
-  const integer
-    initial  = step   == static_cast<integer>(Femlib::value ("IO_FLD"));
-  const integer
-    final    = step   == static_cast<integer>(Femlib::value ("N_STEP"));
+  const bool periodic = !(step  % Femlib::ivalue ("IO_FLD"));
+  const bool initial  =   step == Femlib::ivalue ("IO_FLD");
+  const bool final    =   step == Femlib::ivalue ("N_STEP");
 
   if (!(periodic || final)) return;
   ofstream output;
@@ -157,10 +153,10 @@ void Domain::dump ()
   Femlib::synchronize();
 
   ROOTONLY {
-    const char    routine[] = "Domain::dump";
-    char          dumpfl[StrMax], backup[StrMax], command[StrMax];
-    const integer verbose   = static_cast<integer>(Femlib::value ("VERBOSE"));
-    const integer chkpoint  = static_cast<integer>(Femlib::value ("CHKPOINT"));
+    const char  routine[] = "Domain::dump";
+    char        dumpfl[StrMax], backup[StrMax], command[StrMax];
+    const int_t verbose   = Femlib::ivalue ("VERBOSE");
+    const int_t chkpoint  = Femlib::ivalue ("CHKPOINT");
 
     if (chkpoint) {
       if (final) {
@@ -199,8 +195,8 @@ ofstream& operator << (ofstream& strm,
 // processor.
 // ---------------------------------------------------------------------------
 {
-  integer           i;
-  const integer     N = D.u.getSize();
+  int_t             i;
+  const int_t       N = D.u.size();
   vector<AuxField*> field (N);
 
   for (i = 0; i < N; i++) field[i] = D.u[i];
@@ -223,9 +219,9 @@ ifstream& operator >> (ifstream& strm,
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "strm>>Domain";
-  integer    i, j, np, nz, nel, ntot, nfields;
-  integer    npchk,  nzchk, nelchk;
-  integer    swap = 0, verb = static_cast<integer>(Femlib::value ("VERBOSE"));
+  int_t      i, j, np, nz, nel, ntot, nfields;
+  int_t      npchk,  nzchk, nelchk;
+  int_t      swap = 0, verb = Femlib::ivalue ("VERBOSE");
   char       s[StrMax], f[StrMax], err[StrMax], fields[StrMax];
 
   if (strm.getline(s, StrMax).eof()) return strm;
