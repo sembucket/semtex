@@ -37,10 +37,9 @@ void dDFTr (double*       data,
  * (1) Data are scaled/normalized with 1/tlen when sign is +1, so that
  *     the zeroth Fourier mode contains the spatial average value.
  * (2) After forward (r-->c) transform, data are ordered so that within
- *     each transform, the zeroth mode datum comes first.  Then ordering
- *     depends on tlen (even or odd): if even, the zeroth mode is followed
- *     by the real datum from the maximum frequency mode, after which
- *     the real and imaginary parts for each mode alternate (both cases).
+ *     each transform, the zeroth mode datum comes first.  The zeroth
+ *     mode is followed by the real datum from the maximum frequency mode,
+ *     after which the real and imaginary parts for each mode alternate.
  * ------------------------------------------------------------------------- */
 {
   const char       routine[] = "dDFTr";
@@ -63,7 +62,7 @@ void dDFTr (double*       data,
   if (ifax[0] == -99)
     message (routine, "tlen needs prime factors 2, 3, 5", ERROR);
 
-  if (sign == +1) {
+  if (sign == FORWARD) {
     rfft  (data, work, Wtab, ifax, tlen, ntrn, 1.0 / (double) tlen);
     dcopy ((tlen - 2) * ntrn, data +              ntrn, 1, work,            1);
     dcopy (             ntrn, data + (tlen - 1) * ntrn, 1, data + ntrn,     1);
@@ -78,50 +77,35 @@ void dDFTr (double*       data,
   freeIvector (ifax, 0);
   freeDvector (work, 0);
 
-#elif defined(DEBUG_FFT)  /* -- Unvectorized FFTPACK routines. */
+#elif defined(DEBUG_FFT) /* -- Unvectorized FFTPACK routines. */
 
-  work = dvector (0, 3 * tlen + 14);
-  Wtab = work + tlen;
+  work = dvector (0, 3 * tlen - 1);
+  ifax = ivector (0, 14);
+  Wtab = work + 2 * tlen;
   ptr  = data;
 
-  drffti (tlen, Wtab);
+  drffti (tlen, Wtab, ifax);
 
   switch (sign) {
 
-  case +1:
-    if (tlen & 1) {
-      for (i = 0; i < ntrn; i++, ptr++) {
-	dcopy  (tlen, ptr, ntrn, work, 1);
-	drfftf (tlen, work, Wtab);
-	dcopy  (tlen, work, 1, ptr, ntrn);
-      }
-    } else {
-      for (i = 0; i < ntrn; i++, ptr++) {
-	dcopy  (tlen, ptr, ntrn, work, 1);
-	drfftf (tlen, work, Wtab);
-	dcopy  (tlen - 2, work + 1, 1, ptr + 2 * ntrn, ntrn);
-	ptr[0]    = work[0];
-	ptr[ntrn] = work[tlen - 1];
-      }
+  case FORWARD:
+    for (i = 0; i < ntrn; i++, ptr++) {
+      dcopy  (tlen, ptr, ntrn, work, 1);
+      drfftf (tlen, work, work + tlen, Wtab, ifax);
+      dcopy  (tlen - 2, work + 1, 1, ptr + 2 * ntrn, ntrn);
+      ptr[0]    = work[0];
+      ptr[ntrn] = work[tlen - 1];
     }
     dscal (ntot, 1.0 / tlen, data, 1);
     break;
 
-  case -1:
-    if (tlen & 1) {
-      for (i = 0; i < ntrn; i++, ptr++) {
-	dcopy  (tlen, ptr, ntrn, work, 1);
-	drfftb (tlen, work, Wtab);
-	dcopy  (tlen, work, 1, ptr, ntrn);
-      }
-    } else {
-      for (i = 0; i < ntrn; i++, ptr++) {
-	work[tlen - 1] = ptr[ntrn];
-	work[0]        = ptr[0];
-	dcopy  (tlen - 2, ptr + 2 * ntrn, ntrn, work + 1, 1);
-	drfftb (tlen, work, Wtab);
-	dcopy  (tlen, work, 1, ptr, ntrn);
-      }
+  case INVERSE:
+    for (i = 0; i < ntrn; i++, ptr++) {
+      work[tlen - 1] = ptr[ntrn];
+      work[0]        = ptr[0];
+      dcopy  (tlen - 2, ptr + 2 * ntrn, ntrn, work + 1, 1);
+      drfftb (tlen, work, work + tlen, Wtab, ifax);
+      dcopy  (tlen, work, 1, ptr, ntrn);
     }
     break;
 
@@ -131,15 +115,14 @@ void dDFTr (double*       data,
   }
   
   freeDvector (work, 0);
+  freeIvector (ifax, 0);
 
-#else
-
-  /* -- Temperton FFT routine is default. */
+#else /* -- Temperton FFT routine is default. */
 
   dum = tlen;
   prf235 (&dum, &ip, &iq, &ir, &ipqr2);
   
-  if (!dum    ) {
+  if (!dum) {
     sprintf (err, "transform length (%1d) needs prime factors 2, 3, 5", tlen);
     message (routine, err, ERROR);
   }
@@ -153,7 +136,7 @@ void dDFTr (double*       data,
 
   dsetpf (Wtab, tlen, ip, iq, ir);
   dmpfft (data, work, ntrn, tlen, ip, iq, ir, Wtab, sign);
-  if (sign == +1) dscal (ntot, 1.0 / tlen, data, 1);
+  if (sign == FORWARD) dscal (ntot, 1.0 / tlen, data, 1);
 
   freeDvector (work, 0);
 

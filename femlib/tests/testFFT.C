@@ -1,5 +1,19 @@
 //////////////////////////////////////////////////////////////////////////////
-// testFFT.C: test run multiple FFT routines against versions known to work.
+
+// testFFT.C: test run multiple FFT routines from different sources,
+// to cross-verify computations and obtain relative timings. (We
+// assume that the NETLIB FFTPACK routines provide the correct
+// results.) Data for FFT are internally-generated random numbers.
+
+// usage: testFFT [-n <num>] [-m <num>]
+// -n <num> ... sets the size of the FFT buffer [default: 64]
+// -m <num> ... sets number of multiple calls [default: 1]
+//
+// If one of the routines can't deal with an FFT buffer of given size,
+// it is not run, and an error message is issued. This would happen
+// for example when the requested size is not prime-factorable by
+// 2,3,5 for the Temperton GPFA FFT routine.
+
 //
 // $Id$
 //////////////////////////////////////////////////////////////////////////////

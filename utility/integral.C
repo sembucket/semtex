@@ -85,7 +85,7 @@ int main (int    argc,
 
   while (getDump (*fldfile, u, Esys, NP, NZ, NEL)) {
     for (i = 0; i < u.size(); i++) {
-      u[i] -> transform (+1);
+      u[i] -> transform (FORWARD);
       cout << u[i] -> name() << ": " << Lz * u[i] -> integral (0) << endl;
     }
   }

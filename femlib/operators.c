@@ -417,7 +417,7 @@ void proj (const double** IN    , /* Interpolant operator matrix             */
 	   const double   betato) /* Input: Jacobi constant, "to"            */
 /* ------------------------------------------------------------------------- *
  * Maintain/return operator matrices for projection *from* one mesh
- * *to* another.  spectral basis functions, defined on the master
+ * *to* another.  Spectral basis functions, defined on the master
  * interval [-1, +1]. If the "from" or "to" meshes are "spectral"
  * (i.e. 'G', 'R', or 'L'), they are assumed to be defined by the
  * generating Gauss-Jacobi-type rule, and the alpha, beta
@@ -619,7 +619,7 @@ void intp (double*       inr   ,  /* 1D shape function at r               */
 }
 
  
-#if 0
+#if 1
 
 typedef struct legcoef {	/* ---- Table for GLL Legendre transform --- */
   integer         np  ;		/* Number of mesh points                     */
@@ -679,7 +679,7 @@ void dglldpc (const integer  np,
       p -> dtab[k] = (i < nm) ?  0.5*(i+i+1) : 0.5*nm;
       for (j = 0; j < np; j++) {
 	k = j + i * np;
-	p -> dtab[k] = pnleg (z[j], i);
+	p -> dtab[k] = PNLEG (z[j], i);
       }
     }
   }
@@ -880,7 +880,7 @@ void dglmdpc (const integer  np,
     for (i = 0; i < np; i++)
       for (j = 0; j < np; j++) {
 	k = i + j * np;
-	p -> dtab[k] = pnmod (z[j], i);
+	p -> dtab[k] = PNMOD (z[j], i);
       }
   }
 
@@ -912,7 +912,6 @@ void dglmdpt (const integer  np,
 	      const double** fu,
 	      const double** bu)
 /* ------------------------------------------------------------------------- *
-
  * Return pointers to matrices for 1D and 2D modal expansion
  * transforms of np data, based on the Gauss--Lobatto nodes.  The
  * "modal" expansion functions are a set of hierarchical basis
