@@ -42,6 +42,7 @@ integer main (integer argc,
           np      = 0,
           basis   = GLL;
 
+  Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session, verb, np, basis);
 
   // -- Set up to read from file, initialize Femlib parsing.
@@ -86,6 +87,7 @@ integer main (integer argc,
       cout << setw (15) << j * dz << endl;
   }
 
+  Femlib::finalize();
   return EXIT_SUCCESS;
 }
 

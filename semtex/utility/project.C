@@ -231,6 +231,7 @@ integer main (integer argc,
   integer           nPnew = 0, nZnew = 0, nEl;
   vector<Field2DF*> Uold, Unew;
 
+  Femlib::initialize (&argc, &argv);
   getargs (argc, argv, nPnew, nZnew, file);
   
   while (getDump (file, cout, Uold, nPnew, nZnew, nEl, fInc)) {
@@ -277,7 +278,8 @@ integer main (integer argc,
       cout << *Unew[i];
     }
   }
-    
+  
+  Femlib::finalize();
   return EXIT_SUCCESS;
 }
 

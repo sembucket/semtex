@@ -101,6 +101,7 @@ integer main (integer argc,
            opt      = 1,
            cyl3D    = 0;
 
+  Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session, verb, np, opt);
 
   FEML feml (session);
@@ -151,6 +152,7 @@ integer main (integer argc,
 
   printup (field, S, k);
 
+  Femlib::finalize();
   return EXIT_SUCCESS;
 }
 

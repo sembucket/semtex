@@ -59,6 +59,7 @@ integer main (integer argc,
   vector<Element*>   Esys;
   AuxField           *exact, *computed;
 
+  Femlib::initialize (&argc, &argv);
   getargs (argc, argv, tran, session, fieldfl);
 
   Veclib::describeFormat (fmt);
@@ -286,7 +287,7 @@ integer main (integer argc,
   }
   
   cout.flush();
-
+  Femlib::finalize();
   return EXIT_SUCCESS;
 }
 

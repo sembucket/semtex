@@ -59,9 +59,8 @@ integer main (integer argc,
       add_sij =0,
       add_inv =0;
   
-  Femlib::prep ();
-  getargs      (argc, argv, session, 
-		dump, add_vort, add_enst, add_div, add_sij, add_inv);
+  Femlib::initialize (&argc, &argv);
+  getargs (argc, argv, session,dump,add_vort,add_enst,add_div,add_sij,add_inv);
 
   // -- Set up domain.
 
@@ -274,7 +273,7 @@ integer main (integer argc,
   }
   
   file.close();
-  
+  Femlib::finalize();
   return EXIT_SUCCESS;
 }
 
