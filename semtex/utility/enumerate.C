@@ -8,9 +8,14 @@
 //   -n N     ... override element order to be N
 //   -O [0-3] ... set level of bandwidth optimization
 //
-// Special action may need to be taken to generate numbering schemes for
-// cylindrical coordinate flow problems.  See the discussion in header for
-// field.C, and for routine Mesh::buildMask in mesh.C.
+// Special action may need to be taken to generate numbering schemes
+// for cylindrical coordinate flow problems.  See the discussion in
+// header for field.C, and for routine Mesh::buildMask in mesh.C.
+//
+// Divergence problems sometimes arise when the highest numbered
+// zero-mode pressure node occurs on the axis in 3D cylindrical
+// simulations.  The code attempts to fix this problem, and lets you
+// know if it can't.
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
@@ -39,7 +44,6 @@ public:
   integer match    (vector<integer>&);
   void    addField (char);
 
-private:
   integer         nel;
   integer         np_max;
   integer         next_max;
@@ -53,22 +57,29 @@ private:
   vector<char>    fields;
   vector<integer> bndmap;
   vector<integer> bndmsk;
+  vector<integer> axelmt;
+  vector<integer> axside;
 
   integer sortGid         (integer*, integer*);
-  void    renumber        (const integer);
+  void    renumber        (const integer, const integer = 0);
   integer buildAdjncy     (List<integer>*)                 const;
   void    fillAdjncy      (List<integer>*, integer*,
 			   integer*, const integer)        const;
   void    connectivSC     (List<integer>*, const integer*,
 			   const integer*, const integer)  const;
   integer globalBandwidth ()                               const;
+  integer highAxis        ()                               const;
   integer bandwidthSC     (const integer*, const integer*,
 			   const integer)                  const;
+  void    rebuild         (FEML&, const integer);
+
 };
 
+static char          prog[] = "enumerate";
+static integer       verb   = 0;
 static const integer FldMax = 16;
 
-static char prog[] =  "enumerate";
+
 static void getargs   (int, char**, char*&, integer&, integer&, integer&);
 static char axial     (FEML&);
 static void getfields (FEML&, char*, const integer);
@@ -94,11 +105,10 @@ int main (int    argc,
 // Print up the masks and numbering schemes on cout.
 // ---------------------------------------------------------------------------
 {
-  char *session = 0, field[StrMax], axistag;
-  integer  verb     = 0,
-           np       = 0,
-           opt      = 1,
-           cyl3D    = 0;
+  char    *session = 0, field[StrMax], axistag;
+  integer np       = 0,
+          opt      = 1,
+          cyl3D    = 0;
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session, verb, np, opt);
@@ -147,6 +157,19 @@ int main (int    argc,
       S[k++] = new Nsys (field[i], btog, mask, opt,
 			 NEL, NTOTAL, NBNDRY, NP_MAX, NEXT_MAX, NINT_MAX);
     }
+  }
+
+  // -- Potentially have to fix numbering for cylindrical mode-zero pressure.
+
+  if (axistag) {
+    for (i = 0; i < k; i++)
+      if (strchr (S[i] -> fields(), 'p')) {
+	Nsys* pressure = S[i];
+	if (!Veclib::any (pressure -> nbndry, pressure -> bndmsk(), 1)) {
+	  pressure -> rebuild (feml, clamp ((const integer) opt, 2, 3));
+	  break;
+	}
+      }
   }
 
   printup (field, S, k);
@@ -597,14 +620,16 @@ integer Nsys::sortGid (integer* bmap,
 // The non-essential type node numbers can be further sorted to
 // optimize global matrix bandwidths, but this is not done here.
 //
-// A globally-numbered table (reOrder) is constructed, each entry of which is
-// two ints: the global node number and the essential BC mask value (0/1).
-// This is then partitioned into "unknown" and "known" node numbers, with the
-// "known" numbers last in the table.  Each partition is then sorted into
-// ascending node number order, and the information is used to create
-// a new element boundary-to-global numbering scheme in btog.
+// A globally-numbered table (reOrder) is constructed, each entry of
+// which is two ints: the global node number and the essential BC mask
+// value (0/1).  This is then partitioned into "unknown" and "known"
+// node numbers, with the "known" numbers last in the table.  Each
+// partition is then sorted into ascending node number order, and the
+// information is used to create a new element boundary-to-global
+// numbering scheme in btog.
 //
-// Return number of global nodes at which solution is not set by essential BCs.
+// Return number of global nodes at which solution is not set by
+// essential BCs.
 // ---------------------------------------------------------------------------
 {
   vector<integer> work (nbndry + 3 * nglobal);
@@ -645,10 +670,11 @@ integer Nsys::sortGid (integer* bmap,
 }
 
 
-void Nsys::renumber (const integer optl)
+void Nsys::renumber (const integer optlevel,
+		     const integer penalty )
 // ---------------------------------------------------------------------------
-// From the initial ordering specified in bndmap, use RCM to generate a
-// reduced-bandwidth numbering scheme.  Reload into bndmap.
+// From the initial ordering specified in bndmap, use RCM to generate
+// a reduced-bandwidth numbering scheme.  Reload into bndmap.
 //
 // Different optimization levels are allowed:
 //
@@ -660,19 +686,21 @@ void Nsys::renumber (const integer optl)
 // 3: Do not use FNROOT.  Try all unknown node numbers as trial roots for RCM.
 //    Choose root to minimize global bandwidth.
 //
+// If penalty is set, then we apply a penalty to numbering schemes
+// that have the highest-numbered pressure node on the axis.  By
+// default penalty is off.
+//
 // Reference:
 //    A. George and J. W-H. Liu
 //    Computer Solution of Large Sparse Positive Definite Systems
 //    Prentice-Hall (1981)
 // ---------------------------------------------------------------------------
 {
-  if (!optl || !nsolve) return;
-
-  const integer verb = (integer) Femlib::value ("VERBOSE");
+  if (!optlevel || !nsolve) return;
 
   if (verb)
-    cout << "Bandwidth optimization (" << optl
-      << "), Field '" << fields() << "'";
+    cout << "Bandwidth optimization (" << optlevel
+	 << "), Field '" << fields() << "'";
 
   register integer i;
   integer          root, nlvl;
@@ -701,7 +729,7 @@ void Nsys::renumber (const integer optl)
   fillAdjncy (adjncyList, adjncy, xadj, tabSize);
   delete   [] adjncyList;
 
-  switch (optl) {
+  switch (optlevel) {
   case 1: {
     root = 1;
     Veclib::fill   (nsolve, 1, mask, 1);
@@ -710,9 +738,9 @@ void Nsys::renumber (const integer optl)
     break;
   }
   case 2: {
-    integer  rtest, BWtest, BWmin = INT_MAX, best;
+    integer rtest, BWtest, BWmin = INT_MAX, best;
 
-    if (verb) cout << ":";
+    if (verb) cout << ":" << endl;
 
     for (root = 1; root <= nsolve; root += 10) {
       rtest = root;
@@ -724,11 +752,12 @@ void Nsys::renumber (const integer optl)
       for (i = 0; i < nsolve; i++) invperm[perm[i]] = i;
       Veclib::gathr (nbndry, invperm, bsave, bndmap());
 
-      BWtest = globalBandwidth ();
+      BWtest = globalBandwidth();
+      if (penalty && highAxis()) BWtest += nglobal;
       if (BWtest < BWmin) {
 	BWmin = BWtest;
 	best  = rtest;
-	if (verb) cout << " " << BWmin;
+	if (verb) cout << "root = " << root << ", BW = " << BWmin << endl;
       }
     }
 
@@ -738,9 +767,9 @@ void Nsys::renumber (const integer optl)
     break;
   }
   case 3: {
-    integer  BWtest, BWmin = INT_MAX, best;
+    integer BWtest, BWmin = INT_MAX, best;
 
-    if (verb) cout << ":";
+    if (verb) cout << ":" << endl;
 
     for (root = 1; root <= nsolve; root++) {
       Veclib::fill (nsolve, 1, mask, 1);
@@ -750,11 +779,12 @@ void Nsys::renumber (const integer optl)
       for (i = 0; i < nsolve; i++) invperm[perm[i]] = i;
       Veclib::gathr (nbndry, invperm, bsave, bndmap());
 
-      BWtest = globalBandwidth ();
+      BWtest = globalBandwidth();
+      if (penalty && highAxis()) BWtest += nglobal;
       if (BWtest < BWmin) {
 	BWmin = BWtest;
 	best  = root;
-	if (verb) cout << " " << BWmin;
+	if (verb) cout << "root = " << root << ", BW = " << BWmin << endl;
       }
     }
 
@@ -770,7 +800,10 @@ void Nsys::renumber (const integer optl)
   Veclib::sadd (nsolve, -1, perm, 1, perm, 1);
   for (i = 0; i < nsolve; i++) invperm[perm[i]] = i;
   Veclib::gathr (nbndry, invperm, bsave, bndmap());
-  
+
+  if (penalty && highAxis())
+    message (prog, "Highest numbered pressure node remains on axis", WARNING);
+
   if (verb) cout << endl;
 }
 
@@ -830,17 +863,19 @@ void Nsys::connectivSC (List<integer>* adjList,
 			const integer* mask   ,
 			const integer  next   ) const
 // ---------------------------------------------------------------------------
-// AdjList is an array of linked lists, each of which describes the global
-// nodes that have connectivity with the the current node, i.e. which make
-// a contribution to the weighted-residual integral for this node.
-// This routine fills in the contribution from the current element.
+// AdjList is an array of linked lists, each of which describes the
+// global nodes that have connectivity with the the current node,
+// i.e. which make a contribution to the weighted-residual integral
+// for this node.  This routine fills in the contribution from the
+// current element.
 //
-// For general finite elements, all nodes of an element are interconnected,
-// while for statically-condensed elements, only the boundary nodes are
-// considered (since internal nodes are not global).
+// For general finite elements, all nodes of an element are
+// interconnected, while for statically-condensed elements, only the
+// boundary nodes are considered (since internal nodes are not
+// global).
 //
-// Essential-BC nodes are ignored, since we're only interested in mimimizing
-// bandwidths of global matrices.
+// Essential-BC nodes are ignored, since we're only interested in
+// mimimizing bandwidths of global matrices.
 // ---------------------------------------------------------------------------
 {
   register integer i, j, found, gidCurr, gidMate;
@@ -865,7 +900,8 @@ void Nsys::connectivSC (List<integer>* adjList,
 
 integer Nsys::globalBandwidth () const
 // --------------------------------------------------------------------------
-// Precompute the bandwidth of assembled global matrix (including diagonal).
+// Precompute the bandwidth of assembled global matrix (including
+// diagonal).
 // --------------------------------------------------------------------------
 {
   register integer k, noff, nband = 0;
@@ -887,7 +923,8 @@ integer Nsys::bandwidthSC (const integer* bmap,
 			   const integer* mask,
 			   const integer  next) const
 // ---------------------------------------------------------------------------
-// Find the global equation bandwidth of this element, excluding diagonal.
+// Find the global equation bandwidth of this element, excluding
+// diagonal.
 // ---------------------------------------------------------------------------
 {
   register integer i;
@@ -902,4 +939,105 @@ integer Nsys::bandwidthSC (const integer* bmap,
   }
 
   return Max - Min;
+}
+
+
+void Nsys::rebuild (FEML&         file  ,
+		    const integer optlev)
+// ---------------------------------------------------------------------------
+// The pressure numbering scheme gets rebuilt if the highest-numbered
+// pressure node lies on the axis.  Before getting here, we are sure
+// that this is the appropriate Nsys for the zero-mode pressure and
+// has no essential BCs, so pressure system is singular.
+// ---------------------------------------------------------------------------
+{
+  // -- Build a table of elements and sides that touch the axis.
+  
+  const char    axisBC = axial (file);
+  const integer nsurf (file.attribute ("SURFACES", "NUMBER"));
+  char          tagc, tag[StrMax], err[StrMax];
+  integer       i, j, id, el, si, naxis = 0;
+
+  for (i = 0; i < nsurf; i++) {
+    while ((tagc = file.stream().peek()) == '#') // -- Skip comments.
+      file.stream().ignore (StrMax, '\n');
+    
+    file.stream() >> id >> el >> si >> tag;
+    if (strchr (tag, '<') && strchr (tag, '>') && strlen (tag) == 3) {
+      if (tag[1] == 'B') {
+	file.stream() >> tagc;
+	if (tagc == axisBC) naxis++;
+      }
+    } else {
+      sprintf (err, "unrecognized surface tag format: %s", tag);
+      message (prog, err, ERROR);
+    }
+
+    file.stream().ignore (StrMax, '\n');
+  }
+
+  if (!naxis) return;
+
+  axelmt.setSize (naxis);
+  axside.setSize (naxis);
+
+  file.attribute ("SURFACES", "NUMBER");
+
+  for (j = 0, i = 0; i < nsurf; i++) {
+    while ((tagc = file.stream().peek()) == '#') // -- Skip comments.
+      file.stream().ignore (StrMax, '\n');
+    
+    file.stream() >> id >> el >> si >> tag;
+    if (tag[1] == 'B') {
+      file.stream() >> tagc;
+      if (tagc == axisBC) {
+	axelmt[j] = --el;
+	axside[j] = --si;
+	j++;
+      }
+    }
+
+    file.stream().ignore (StrMax, '\n');
+  }
+
+  if (j != naxis) message (prog, "mismatch of axis surfaces", ERROR);
+
+  // -- Now we are assured that there is at least one axial BC node.
+  //    Before throwing out the numbering scheme, we must check if
+  //    the highest-numbered node lies on the axis.
+
+  if (highAxis()) {
+    message(prog,"highest pressure node lies on axis. Renumbering...",WARNING);
+    renumber (optlev, 1); 
+  }
+}
+
+
+integer Nsys::highAxis() const
+// ---------------------------------------------------------------------------
+// Return 1 if the highest numbered pressure node lies on the axis,
+// otherwise 0.  Internal tables axelmt and axside must have been
+// built in advance.
+// ---------------------------------------------------------------------------
+{
+  const integer pmax  = nglobal - 1;
+  const integer naxis = axelmt.getSize();
+  integer       i, j, loff, soff, elmtID, sideID;
+
+  for (i = 0; i < nbndry; i++)
+    if (bndmap[i] == pmax) {
+      loff   = i % next_max;
+      elmtID = (i - loff) / next_max;
+      sideID = (loff - loff % np_max) / np_max;
+      soff   = loff - sideID * np_max;
+      for (j = 0; j < naxis; j++)
+	if (axelmt[j] == elmtID && axside[j] == sideID) return 1;
+      if (soff == 0) {		// -- Check also end of CCW side.
+	sideID = (sideID + 3) % 4;
+	for (j = 0; j < naxis; j++)
+	  if (axelmt[j] == elmtID && axside[j] == sideID) return 1;
+      }
+    }
+  
+  return 0;
 }
