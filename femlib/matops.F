@@ -5,7 +5,7 @@ C
 C     $Id$
 C
 C
-      SUBROUTINE DGRAD2 (U, UR, US, DV, DT, NP, NEL)
+      SUBROUTINE DGRAD2 (U, UR, US, DV, NP, NEL)
 C
 C     -- Ur = dU/dr, Us = dU/ds over all nel elements each np*np.
 C
@@ -13,14 +13,14 @@ C
 C
       INTEGER          NP, NEL, I, J, K, L
       DOUBLE PRECISION U(NP,NP,NEL), UR(NP,NP,NEL), US(NP,NP,NEL)
-      DOUBLE PRECISION DT(NP,NP), DV(NP,NP)
+      DOUBLE PRECISION DV(NP,NP)
 C
 #if   defined (_SX)
       DO J = 1, NP
          DO K = 1, NP
             DO L = 1, NP
                DO I = 1, NEL
-                  UR(K,J,I) = UR(K,J,I) + U(L,J,I) * DT(K,L)
+                  UR(K,J,I) = UR(K,J,I) + U(L,J,I) * DV(L,K)
               ENDDO
            ENDDO
         ENDDO
@@ -44,7 +44,7 @@ C     -- NB restricted to 512 elements.
 !OCL NOVREC
 !OCL REPEAT(512)
                DO I = 1, NEL
-                  UR(K,J,I) = UR(K,J,I) + U(L,J,I) * DT(K,L)
+                  UR(K,J,I) = UR(K,J,I) + U(L,J,I) * DV(L,K)
                   US(K,J,I) = US(K,J,I) + U(K,L,I) * DV(L,J)
               ENDDO
            ENDDO
@@ -55,7 +55,7 @@ C     -- NB restricted to 512 elements.
          DO J = 1, NP
             DO L = 1, NP
                DO K = 1, NP
-                  UR(K,J,I) = UR(K,J,I) + U(L,J,I) * DT(K,L)
+                  UR(K,J,I) = UR(K,J,I) + U(L,J,I) * DV(L,K)
                   US(K,J,I) = US(K,J,I) + U(K,L,I) * DV(L,J)
               ENDDO
            ENDDO
@@ -66,7 +66,7 @@ C     -- NB restricted to 512 elements.
       END
 C
 C
-      SUBROUTINE SGRAD2 (U, UR, US, DV, DT, NP, NEL)
+      SUBROUTINE SGRAD2 (U, UR, US, DV, NP, NEL)
 C
 C     -- Ur = dU/dr, Us = dU/ds over all nel elements each np*np.
 C
@@ -74,14 +74,14 @@ C
 C
       INTEGER  NP, NEL, I, J, K, L
       REAL     U(NP,NP,NEL), UR(NP,NP,NEL), US(NP,NP,NEL)
-      REAL     DT(NP,NP), DV(NP,NP)
+      REAL     DV(NP,NP)
 C
 #if   defined (_SX)
       DO J = 1, NP
          DO K = 1, NP
             DO L = 1, NP
                DO I = 1, NEL
-                  UR(K,J,I) = UR(K,J,I) + U(L,J,I) * DT(K,L)
+                  UR(K,J,I) = UR(K,J,I) + U(L,J,I) * DV(L,K)
               ENDDO
            ENDDO
         ENDDO
@@ -104,7 +104,7 @@ C
 !OCL NOVREC
 !OCL REPEAT(512)
                DO I = 1, NEL
-                  UR(K,J,I) = UR(K,J,I) + U(L,J,I) * DT(K,L)
+                  UR(K,J,I) = UR(K,J,I) + U(L,J,I) * DV(L,K)
                   US(K,J,I) = US(K,J,I) + U(K,L,I) * DV(L,J)
               ENDDO
            ENDDO
@@ -119,7 +119,7 @@ C                  UR((I*NP+J)*NP+K) =
 C     +                 UR((I*NP+J)*NP+K) + U((I*NP+J)*NP+L) * DT(L*NP+K)
 C                  US((I*NP+J)*NP+K) = 
 C     +                 US((I*NP+J)*NP+K) + U((I*NP+L)*NP+K) * DV(J*NP+L)
-                  UR(K,J,I) = UR(K,J,I) + U(L,J,I) * DT(K,L)
+                  UR(K,J,I) = UR(K,J,I) + U(L,J,I) * DV(L,K)
                   US(K,J,I) = US(K,J,I) + U(K,L,I) * DV(L,J)
               ENDDO
            ENDDO
