@@ -25,7 +25,7 @@ CXX	 = CC
 LD	 = CC
 CXXFLAGS = $(DEFINES) -fullwarn -g
 F77LIBS	 = -lcomplib.sgimath -lftn
-LDFLAGS  = -lfpe -L$(SEM)/lib/$(ARCH) -lfem -lalp \
+LDFLAGS  = -L$(SEM)/lib/$(ARCH) -lfem -lalp \
 	   $(F77LIBS) -lmalloc -lm
 endif
 
@@ -84,16 +84,15 @@ endif
 
 # ----------------------------------------------------------------------------
 #
-SEMFILES  = auxfield BCmgr boundary condition domain element	\
-	    feml field geometry history integration matrix 	\
-	    mesh misc particle pressure
+SEMFILES  = analysis auxfield BCmgr boundary condition domain 	\
+	    element feml field geometry history integration  	\
+	    matrix mesh misc particle pressure
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
 SEMHDR    = Sem.h
 
 # ----------------------------------------------------------------------------
 # Default build for Navier-Stokes solver.
-LESOBJ = drive.o NS.o eddyvis.o analysis.o
-LESHDR = les.h
+LESOBJ = drive.o NS.o eddyvis.o
 
 les:	$(SEMOBJ) $(LESOBJ) 
 	cd ../src; $(MAKE)
@@ -102,7 +101,6 @@ les:	$(SEMOBJ) $(LESOBJ)
 # ----------------------------------------------------------------------------
 #
 $(SEMOBJ): $(SEMHDR)
-$(LESOBJ): $(LESHDR)
 
 # -----------------------------------------------------------------------------
 #

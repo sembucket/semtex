@@ -37,7 +37,9 @@
 static char
 RCSid[] = "$Id$";
 
-#include <les.h>
+#include <Sem.h>
+
+void eddyViscosity (const Domain*, AuxField***, AuxField***, AuxField*);
 
 typedef ModalMatrixSystem ModeSys;
 static  integer           DIM, NZ;
