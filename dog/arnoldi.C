@@ -144,6 +144,7 @@ int main (int    argc,
     Veclib::copy (ntot * (kdim + 1), kvec, 1, tvec, 1);
     EV_small  (Tseq, ntot, i, zvec, wr, wi, resnorm, verbose);
     converged = EV_test (i, i, zvec, wr, wi, resnorm, evtol, min (i, nvec));
+    converged = max (converged, 0); // -- Only exit on evtol.
   }
 
   // -- Carry out iterative solution.
@@ -346,7 +347,7 @@ static int EV_test (const int  itrn   ,
 //
 // Return value:
 //   nvec:  all of the first nvec eigenvalue estimates have converged;
-//  -1:     the residuals aren't shrinking;
+//  -1,-2:  the residuals aren't shrinking;
 //   0:     neither of the above is true: not converged.
 // ---------------------------------------------------------------------------
 {
@@ -371,11 +372,9 @@ static int EV_test (const int  itrn   ,
 
   // -- Stopping test.
 
-  if      (resid[nvec - 1] < evtol)
-    idone = nvec;
-  else if (min_max1 < 0.01 && resid[nvec - 1] > 10.0 * min_max1 ||
-	   min_max2 < 0.01 && resnorm         > 10.0 * min_max2 )
-    idone = -1;
+  if      (resid[nvec - 1] < evtol)                              idone = nvec;
+  else if (min_max1 < 0.01 && resid[nvec - 1] > 10.0 * min_max1) idone = -1;
+  else if (min_max2 < 0.01 && resnorm         > 10.0 * min_max2) idone = -2;
 
   min_max1 = min (min_max1, resid[nvec - 1]);
   min_max2 = min (min_max2, resnorm);
@@ -464,7 +463,7 @@ static void EV_post (real**      Tseq,
 // icon == 0:
 //   Solution has not converged.  The final value of the Krylov sequence 
 //   is presumed to have already been output within the integration loop.
-// icon == -1:
+// icon == -1, -2:
 //   Solution has not converged, but the residuals are getting no smaller.
 //   In this case we write out the starting vector for the last kdim
 //   iterates.
@@ -498,7 +497,7 @@ static void EV_post (real**      Tseq,
     strcat    (strcpy (nom, domain -> name), ".fld");
     file.open (nom, ios::out); file << *domain; file.close();
 
-  } else if (icon == -1) {
+  } else if (icon < 0) {
     
     cout << prog
 	 << ": minimum residual reached, writing initial Krylov vector."
