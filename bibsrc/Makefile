@@ -12,7 +12,7 @@ bib:
 	mechanics.bib viv.bib flap.bib rotate.bib aero.bib spray.bib    \
 	compress.bib sphere.bib equip.bib combust.bib expttech.bib      \
 	> hmb.bib;	                                                \
-	cd ..; if test ! -f hmb.bib ; then ln -s bibsrc/hmb.bib . ; fi
+#	cd ..; if test ! -f hmb.bib ; then ln -s bibsrc/hmb.bib . ; fi
 
 clean:
 	rm -f *~
