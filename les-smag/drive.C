@@ -7,7 +7,7 @@
 //
 // USAGE:
 // -----
-// smag [options] session
+// les [options] session
 //   options:
 //   -h       ... print usage prompt
 //   -i[i]    ... use iterative solver for viscous [and pressure] steps
@@ -27,10 +27,10 @@
 static char
 RCSid[] = "$Id$";
 
-#include <NS.h>
+#include <les.h>
 #include <new.h>
 
-static char prog[] = "smag";
+static char prog[] = "les";
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, char*&);
 
@@ -58,25 +58,21 @@ int main (int    argc,
   Femlib::prep ();
   getargs      (argc, argv, session);
 
-  cout << prog << ": Smagorinsky eddy viscosity LES" << endl;
-  cout << "      (c) CSIRO 1995--97."        << endl << endl;
+  cout << prog << ": eddy viscosity based LES" << endl;
+  cout << "      (c) CSIRO 1997." << endl << endl;
   
-  F = new FEML (session);
-
-  nz = (int) Femlib::value ("N_Z");
-  
+  F = new FEML  (session);
   M = new Mesh  (*F);
   B = new BCmgr (*F);
 
   nel    = M -> nEl();  
-  np     =  (int) Femlib::value ("N_POLY");
-  nz     =  (int) Femlib::value ("N_Z"   );
-  system = ((int) Femlib::value ("CYLINDRICAL") ) ?
-                     Geometry::Cylindrical : Geometry::Cartesian;
+  np     = (int) Femlib::value ("N_POLY");
+  nz     = (int) Femlib::value ("N_Z"   );
+  system = Geometry::Cartesian;
   
   Geometry::set (np, nz, nel, system);
   if   (nz > 1) strcpy (fields, "uvwp");
-  else          strcpy (fields, "uvp");
+  else          strcpy (fields, "uvp" );
 
   D = new Domain   (*F, *M, *B, fields, session);
   A = new Analyser (*D, *F);
@@ -98,7 +94,7 @@ static void getargs (int    argc   ,
 // ---------------------------------------------------------------------------
 {
   char routine[] = "getargs";
-  char buf[StrMax], c;
+  char buf[StrMax];
   char usage[]   =
     "Usage: %s [options] session-file\n"
     "  [options]:\n"
@@ -108,7 +104,7 @@ static void getargs (int    argc   ,
     "  -chk      ... checkpoint field dumps\n";
  
   while (--argc  && **++argv == '-')
-    switch (c = *++argv[0]) {
+    switch (*++argv[0]) {
     case 'h':
       sprintf (buf, usage, prog);
       cout << buf;
