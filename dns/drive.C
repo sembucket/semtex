@@ -3,11 +3,11 @@
 //
 // SYNOPSIS:
 // --------
-// Control spectral element unsteady incompressible flow solver.
+// Control spectral element DNS for incompressible flows.
 //
 // USAGE:
 // -----
-// ns [options] session
+// dns [options] session
 //   options:
 //   -h       ... print usage prompt
 //   -i[i]    ... use iterative solver for viscous [and pressure] steps
@@ -30,7 +30,7 @@ RCSid[] = "$Id$";
 #include <Sem.h>
 #include <new.h>
 
-static char prog[] = "ns";
+static char prog[] = "dns";
 static void memExhaust   () { message ("new", "free store exhausted", ERROR); }
 static void getargs      (integer, char**, char*&);
        void NavierStokes (Domain*, Analyser*);
@@ -47,6 +47,7 @@ integer main (integer argc,
   ios::sync_with_stdio();
 #endif
 
+  Geometry::CoordSys system;
   char      *session, fields[StrMax];
   integer   np, nz, nel;
   FEML*     F;
@@ -55,18 +56,20 @@ integer main (integer argc,
   Domain*   D;
   Analyser* A;
   
-  Femlib::prep ();
-  getargs      (argc, argv, session);
+  Femlib::initialize (&argc, &argv);
+  getargs (argc, argv, session);
   
   F = new FEML  (session);
   M = new Mesh  (*F);
   B = new BCmgr (*F);
 
-  nel = M -> nEl();  
-  np  = (integer) Femlib::value ("N_POLY");
-  nz  = (integer) Femlib::value ("N_Z"   );
-  
-  Geometry::set (np, nz, nel, Geometry::Cartesian);
+  nel    = M -> nEl();  
+  np     =  (integer) Femlib::value ("N_POLY");
+  nz     =  (integer) Femlib::value ("N_Z"   );
+  system = ((integer) Femlib::value ("CYLINDRICAL") ) ?
+                                Geometry::Cylindrical : Geometry::Cartesian;  
+
+  Geometry::set (np, nz, nel, system);
   if   (nz > 1) strcpy (fields, "uvwp");
   else          strcpy (fields, "uvp");
 
@@ -74,9 +77,11 @@ integer main (integer argc,
   A = new Analyser (*D, *F);
 
   D -> initialize();
-  D -> report();
+  ROOTONLY D -> report();
   
   NavierStokes (D, A);
+
+  Femlib::finalize();
 
   return EXIT_SUCCESS;
 }
