@@ -34,7 +34,7 @@
  *    (b), to retrieve the value of an installed symbol: e.g. "name";
  *    (c), to evaluate a function string: e.g. "cos(x)*exp(-t)".
  * 6. yy_vec_init is used to set up the interpreter for vector evaluation.
- * 7. yy_vec_interp subsequently used for vectorized calls to yy_interpret.
+ * 7. yy_vec_interp subsequently used for "vectorized" calls to yy_interpret.
  *
  * Operators
  * ---------
@@ -43,10 +43,9 @@
  * Functions: sin,  cos,  tan,  abs, floor, ceil, int, heav (Heaviside),
  *            asin, acos, atan, log, log10, exp,  sqrt
  *            sinh, cosh, tanh, erf, erfc 
+ *
+ * $Id$
  *****************************************************************************/
-
-static char
-RCSid_initial[] = "$Id$";
 
 #include <stdio.h>
 #include <malloc.h>
@@ -119,12 +118,12 @@ static struct {			    /* -- Built-in functions. */
   "abs"   ,  fabs    ,
   "floor" ,  floor   ,
   "ceil"  ,  ceil    ,
+  "asin"  ,  asin    ,
+  "acos"  ,  acos    ,
+  "log"   ,  log     ,
+  "log10" ,  log10   ,
+  "sqrt"  ,  sqrt    ,
   "heav"  ,  Heavi   ,
-  "asin"  ,  Asin    ,		    /* -- Rest do error-checking */
-  "acos"  ,  Acos    ,
-  "log"   ,  Log     ,
-  "log10" ,  Log10   ,
-  "sqrt"  ,  Sqrt    ,
 
   NULL    ,  NULL
 };
@@ -170,7 +169,7 @@ expr:     NUMBER
 					  "division by zero", ERROR);
 			       $$ = $1 / $3;
 			     }
-        | expr '^' expr      { $$ = Pow   ($1, $3); }
+        | expr '^' expr      { $$ = pow   ($1, $3); }
         | expr '~' expr      { $$ = atan2 ($1, $3); }
         | '(' expr ')'       { $$ = $2; }
         | '-' expr %prec UNARYMINUS { $$ = -$2; }
@@ -501,10 +500,13 @@ static double errcheck (const double d,
 
 static double Heavi (double x) { return (x >= 0.0) ? 1.0 : 0.0; }
 
-
+#if 0
 /* ------------------------------------------------------------------------- *
  * Error checking is done for cases where we can have illegal input
  * values (typically negative), otherwise we accept exception returns.
+ *
+ * After much trouble with underflow errors, I've turned these off for now.
+ * HMB -- 1/6/2001.
  * ------------------------------------------------------------------------- */
 
 static double Log (double x)
@@ -529,3 +531,4 @@ static double Acos (double x)
 
 static double Asin (double x)
 { return errcheck (asin (x), "asin"); }
+#endif

@@ -44,6 +44,7 @@ static struct {
   "C_SMAG"      ,   0.1114 ,	/* -- Smagorinsky's constant (RNG value). */
   "RNG_C"       ,   75.0   ,    /* -- a / gamma^4 for 3D RNG.             */
   "RNG_BIG"     ,   500.0  ,    /* -- Switch to plain Smag in RNG.        */
+  "LAMBDA_M"    ,   2.0    ,    /* -- Assumed difference in mesh lengths. */
 
   "FFX"         ,   0.0    ,	/* -- Body force per unit mass (x).       */
   "FFY"         ,   0.0    ,	/* -- y component.                        */
