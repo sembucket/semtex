@@ -43,7 +43,7 @@
 void eddyViscosity (const Domain*, AuxField***, AuxField***, AuxField*);
 
 typedef ModalMatrixSys  Msys;
-static  integer            DIM, CYL, C3D;
+static  integer         DIM, CYL, C3D;
 
 static void   nonLinear (Domain*, AuxField***, AuxField***,
 			 AuxField*, vector<real>&);
@@ -51,8 +51,7 @@ static void   waveProp  (Domain*, const AuxField***, const AuxField***);
 static void   setPForce (const AuxField***, AuxField***);
 static void   project   (const Domain*, AuxField***, AuxField***);
 static Msys** preSolve  (const Domain*);
-static void   Solve     (Field*, AuxField*, Msys*,const integer,const integer);
-
+static void   Solve     (Domain*, const integer, AuxField*, Msys*);
 
 void NavierStokes (Domain*      D,
 		   LESAnalyser* A)
@@ -155,7 +154,7 @@ void NavierStokes (Domain*      D,
       roll (Uf[i], nOrder);
     }
     setPForce ((const AuxField***) Us, Uf);
-    Solve     (Pressure, Uf[0][0], MMS[DIM], D -> step, nOrder);
+    Solve     (D, DIM, Uf[0][0], MMS[DIM]);
     project   (D, Us, Uf);
 
     // -- Update multilevel velocity storage.
@@ -172,7 +171,7 @@ void NavierStokes (Domain*      D,
       AuxField::couple (D -> u[1], D -> u[2], +1);
     }
     for (i = 0; i < DIM; i++)
-      Solve (D -> u[i], Uf[i][0], MMS[i], D -> step, nOrder);
+      Solve (D, i, Uf[i][0], MMS[i]);
     if (C3D)
       AuxField::couple (D -> u[1], D -> u[2], -1);
 
@@ -253,7 +252,7 @@ static void nonLinear (Domain*       D ,
 // ---------------------------------------------------------------------------
 {
   integer           i, j;
-  const real        EPS    = (sizeof(real) == sizeof(double)) ? EPSDP : EPSSP;
+  const real        EPS    = (sizeof(real) == sizeof(double)) ? EPSDP : EPSSP; 
   const integer     nZ     = Geometry::nZ();
   const integer     nZP    = Geometry::nZProc();
   const integer     nP     = Geometry::planeSize();
@@ -622,8 +621,8 @@ static void project (const Domain* D ,
 
 static Msys** preSolve (const Domain* D)
 // ---------------------------------------------------------------------------
-// Set up ModalMatrixSyss for each Field of D.  If iterative solution
-// is selected for any Field, the corresponding ModalMatrixSys pointer
+// Set up ModalMatrixSystems for each Field of D.  If iterative solution
+// is selected for any Field, the corresponding ModalMatrixSystem pointer
 // is set to zero.
 //
 // ITERATIVE == 1 selects iterative solvers for velocity components,
@@ -638,69 +637,51 @@ static Msys** preSolve (const Domain* D)
   const vector<Element*>& E      = D -> elmt;
   Msys**                  M      = new Msys* [(size_t) (DIM + 1)];
   integer                 i;
+  vector<real>            alpha (Integration::OrderMax + 1);
+  Integration::StifflyStable (nOrder, alpha());
+  const real              lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
 
   // -- Velocity systems.
 
-  if (itLev < 1) {
-    vector<real> alpha (Integration::OrderMax + 1);
-    Integration::StifflyStable (nOrder, alpha());
-    const real   lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
-
-    for (i = 0; i < DIM; i++)
-      M[i] = new Msys (lambda2, beta, base, nmodes, E, D -> b[i]);
-  } else
-    for (i = 0; i < DIM; i++)
-      M[i] = 0;
+  for (i = 0; i < DIM; i++)
+    M[i] = new Msys
+      (lambda2, beta, base, nmodes, E, D -> b[i],   (itLev<1) ? DIRECT:JACPCG);
 
   // -- Pressure system.
 
-  if (itLev < 2)
-    M[DIM] = new Msys (0.0, beta, base, nmodes, E, D -> b[DIM]);
-  else
-    M[DIM] = 0;
+  M[DIM] = new Msys
+      (0.0,     beta, base, nmodes, E, D -> b[DIM], (itLev<2) ? DIRECT:JACPCG);
 
   return M;
 }
 
 
-static void Solve (Field*        U     ,
-		   AuxField*     Force ,
-		   Msys*         M     ,
-		   const integer step  ,
-		   const integer nOrder)
+static void Solve (Domain*       D,
+		   const integer i,
+		   AuxField*     F,
+		   Msys*         M)
 // ---------------------------------------------------------------------------
-// Solve Helmholtz problem for U, using F as a forcing Field.  Iterative
-// or direct solver selected on basis of field type, step, time order
-// and command-line arguments.
+// Solve Helmholtz problem for D->u[i], using F as a forcing Field.
+// Iterative or direct solver selected on basis of field type, step,
+// time order and command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  const char    routine[] = "Solve";
-  const integer iterative = M == 0;
-  const char    name      = U -> name();
-  const integer velocity  = name == 'u' || name == 'v' || name == 'w';
-  const integer pressure  = name == 'p';
+  const integer step  = D -> step;
+  const integer order = (integer) Femlib::value ("N_TIME");
 
-  if (!(velocity || pressure))
-    message (routine, "input field type not recognized", ERROR);
+  if (i < DIM && step < order) { // -- We need a temporary matrix system.
+    const integer Je      = min (step, order);    
+    const integer base    = Geometry::baseMode();
+    const integer nmodes  = Geometry::nModeProc();
+    vector<real>  alpha (Je + 1);
+    Integration::StifflyStable (Je, alpha());
+    const real    lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
+    const real    beta    = Femlib::value ("BETA");
 
-  if (pressure) {
-    if   (iterative) U -> solve (Force, 0.0);
-    else             U -> solve (Force, M);
-    return;
-  }
+    Msys* tmp = new Msys
+      (lambda2, beta, base, nmodes, D -> elmt, D -> b[i], JACPCG);
+    D -> u[i] -> solve (F, tmp);
+    delete tmp;
 
-  if (velocity) {
-    if (iterative || step < nOrder) {
-      const integer    Je = min (step, nOrder);
-      vector<real> alpha (Je + 1);
-      Integration::StifflyStable (Je, alpha());
-      const real   lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
-      
-      U -> solve (Force, lambda2);
-
-    } else
-      U -> solve (Force, M);
-
-    return;
-  }
+  } else D -> u[i] -> solve (F, M);
 }

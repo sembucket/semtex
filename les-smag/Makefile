@@ -140,11 +140,11 @@ CFLAGS   = $(DEFINES) -pvctl,fullmsg -hacct -Onooverlap        \
 CXXFLAGS = $(CFLAGS) $(OPTIM) +a1 -ispeed
 LDFLAGS  = $(CFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 ifdef MPI
-  LIBS   = -lfem_mp -lalp_mp -llapack_64 dtrsm.o -lblas_64 -lfft_64	\
-           -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm -lmpi -lpthread
+  LIBS   = -lfem_mp -lalp -llapack_64 -lblas_64 -lfft_64	\
+           -lu90sxe -lp90sx -lv90sxe -lf90sxe -li90sx -lm -lmpi -lpthread
 else
-  LIBS   = -lfem -lalp -llapack_64 dtrsm.o -lblas_64 -lfft_64	\
-           -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm
+  LIBS   = -lfem -lalp -llapack_64 -lblas_64 -lfft_64	\
+           -lu90sxe -lp90sx -lv90sxe -lf90sxe -li90sx -lm
 endif
 endif
 
@@ -181,15 +181,18 @@ mesh.o: $(VPATH)/mesh.C
 BCmgr.o: $(VPATH)/BCmgr.C
 	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
 	$(VPATH)/BCmgr.C
-lesanalysis.o: lesanalysis.C
-	$(CXX) -I. -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
-	lesanalysis.C
 bsys.o: $(VPATH)/bsys.C
         $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
         $(VPATH)/bsys.C
 condition.o: $(VPATH)/condition.C
         $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
         $(VPATH)/condition.C
+domain.o: $(VPATH)/domain.C
+        $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+        $(VPATH)/domain.C
+lesanalysis.o: lesanalysis.C
+	$(CXX) -I. -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+	lesanalysis.C
 endif
 
 # -----------------------------------------------------------------------------
