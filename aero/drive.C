@@ -92,7 +92,7 @@ int main (int    argc,
   D  -> initialize();
   BD -> force (*D);
 
-  A = new Analyser (*D, *BD);
+  A = new Analyser (*D, *F, *BD);
 
   NavierStokes (D, BD, A);
 
