@@ -9,9 +9,12 @@ C     xPREFT:  set up prime factors, trigonometric data.
 C     xMRCFT:  multiple real--complex 1D FFTs.
 C
 C     -- The following are not intended to be called by the user:
-C     FACTOR:  compute prime factors.
 C     xFFT1:   multiple complex--complex 1D FFT.
 C     xPASS1:  FFT kernel.
+C
+C     NB: the angular factors in xPREFT and xPASS1 have had the signs
+C     of the sines reversed compared to the published versions.
+C     This makes the forward DFT have exp(-TWOPIijk/N).
 C
 C     $Id$
 C     ===================================================================
@@ -24,7 +27,8 @@ C     other routines.
 C
 C     NB: note sign change on the SINes compared to Canuto.
 C     -------------------------------------------------------------------
-      IMPLICIT         NONE
+      IMPLICIT NONE
+C
       INTEGER          K, N, NFAX, IFAX(*)
       REAL             TRIG(2,0:N-1)
       DOUBLE PRECISION ARG, TWOPI
@@ -47,6 +51,7 @@ C     Compute the (2, 3) prime factors of N.
 C     If there is an error, NFAX is returned as zero.
 C     -------------------------------------------------------------------
       IMPLICIT NONE
+C
       INTEGER  N, NFAX, IFAX(*), II, NN
 C
       NFAX = 0
@@ -97,53 +102,107 @@ C
 C     W is used as workspace, total amount of storage is also NP*NZ.
 C     -------------------------------------------------------------------
       IMPLICIT NONE
-      INTEGER  NP, NPH, NZ, NZH, NZHM, ISIGN, NFAX, IFAX(*)
-      INTEGER  I, J, IP, JE, JO, MJ
-      REAL     V    (NP,0:NZ-1)
-      REAL     W    (NP/2,2,0:NZ-1)
-      REAL     TRIG (2,0:NZ-1)
+C
+      INTEGER NP, NPH, NZ, NZH, NZHM, ISIGN, NFAX, IFAX(*)
+      INTEGER I, J, IP, JE, JO, MJ
+      REAL    V    (NP,0:NZ-1)
+      REAL    W    (NP/2,2,0:NZ-1)
+      REAL    TRIG (2,0:NZ-1)
+      LOGICAL NZODD
 C 
       NPH  = NP / 2
       NZH  = NZ / 2
       NZHM = NZH - 1
+      IF (NZH+NZH .EQ. NZ) THEN
+         NZODD = .FALSE.
+      ELSE
+         NZODD = .TRUE.
+      ENDIF
 C         
       IF (ISIGN .EQ. +1) THEN
          CALL SFFT1 (V,W,NZ,NFAX,IFAX,+1,TRIG,NPH)
-         DO 10 J = 1, NZHM
-            JE = J  + J
-            JO = JE + 1
-            MJ = NZ - J
-            DO 20 I = 1, NPH
+C
+         IF (NZODD) THEN
+            DO 10 J = 1, NZH
+               JE = J  + J
+               JO = JE - 1
+               MJ = NZ - J
+               DO 20 I = 1, NPH
+                  IP = I + NPH
+                  V (I,  JO) = 0.5 * (W (I, 1,  J) + W (I, 1, MJ))
+                  V (I,  JE) = 0.5 * (W (I, 2,  J) - W (I, 2, MJ))
+                  V (IP, JO) = 0.5 * (W (I, 2,  J) + W (I, 2, MJ))
+                  V (IP, JE) = 0.5 * (W (I, 1, MJ) - W (I, 1,  J))
+ 20            CONTINUE
+ 10         CONTINUE
+            DO 30 I = 1, NPH
                IP = I + NPH
-               V (I,   0) = W (I, 1,   0)
-               V (I,   1) = W (I, 1, NZH)
-               V (IP,  0) = W (I, 2,   0)
-               V (IP,  1) = W (I, 2, NZH)
-               V (I,  JE) = 0.5 * (W (I, 1,  J) + W (I, 1, MJ))
-               V (I,  JO) = 0.5 * (W (I, 2,  J) - W (I, 2, MJ))
-               V (IP, JE) = 0.5 * (W (I, 2,  J) + W (I, 2, MJ))
-               V (IP, JO) = 0.5 * (W (I, 1, MJ) - W (I, 1,  J))
- 20         CONTINUE
- 10      CONTINUE
+               V (I,  0) = W (I, 1, 0)
+               V (IP, 0) = W (I, 2, 0)
+ 30         CONTINUE
+         ELSE
+            DO 40 J = 1, NZHM
+               JE = J  + J
+               JO = JE + 1
+               MJ = NZ - J
+               DO 50 I = 1, NPH
+                  IP = I + NPH
+                  V (I,  JE) = 0.5 * (W (I, 1,  J) + W (I, 1, MJ))
+                  V (I,  JO) = 0.5 * (W (I, 2,  J) - W (I, 2, MJ))
+                  V (IP, JE) = 0.5 * (W (I, 2,  J) + W (I, 2, MJ))
+                  V (IP, JO) = 0.5 * (W (I, 1, MJ) - W (I, 1,  J))
+ 50            CONTINUE
+ 40         CONTINUE
+            DO 60 I = 1, NPH
+               IP = I + NPH
+               V (I,  0) = W (I, 1,   0)
+               V (I,  1) = W (I, 1, NZH)
+               V (IP, 0) = W (I, 2,   0)
+               V (IP, 1) = W (I, 2, NZH)
+ 60         CONTINUE
+         ENDIF
 C     
       ELSE
 C     
-         DO 30 J = 1, NZHM
-            JE = J  + J
-            JO = JE + 1
-            MJ = NZ - J
-            DO 40 I = 1, NPH
+         IF (NZODD) THEN
+            DO 70 J = 1, NZH
+               JE = J  + J
+               JO = JE - 1
+               MJ = NZ - J
+               DO 80 I = 1, NPH
+                  IP = I + NPH
+                  W (I, 1,  J) = V (I,  JO) - V (IP, JE)
+                  W (I, 2,  J) = V (I,  JE) + V (IP, JO)
+                  W (I, 1, MJ) = V (I,  JO) + V (IP, JE)
+                  W (I, 2, MJ) = V (IP, JO) - V (I,  JE)
+ 80            CONTINUE
+ 70         CONTINUE
+            DO 90 I = 1, NPH
+               IP = I + NPH
+               W (I, 1, 0) = V (I,  0)
+               W (I, 2, 0) = V (IP, 0)
+ 90         CONTINUE
+         ELSE
+            DO 100 J = 1, NZHM
+               JE = J  + J
+               JO = JE + 1
+               MJ = NZ - J
+               DO 110 I = 1, NPH
+                  IP = I + NPH
+                  W (I, 1,  J) = V (I,  JE) - V (IP, JO)
+                  W (I, 2,  J) = V (I,  JO) + V (IP, JE)
+                  W (I, 1, MJ) = V (I,  JE) + V (IP, JO)
+                  W (I, 2, MJ) = V (IP, JE) - V (I,  JO)
+ 110           CONTINUE
+ 100        CONTINUE
+            DO 120 I = 1, NPH
                IP = I + NPH
                W (I, 1,   0) = V (I,  0)
                W (I, 2,   0) = V (IP, 0)
                W (I, 1, NZH) = V (I,  1)
                W (I, 2, NZH) = V (IP, 1)
-               W (I, 1,   J) = V (I,  JE) - V (IP, JO)
-               W (I, 2,   J) = V (I,  JO) + V (IP, JE)
-               W (I, 1,  MJ) = V (I,  JE) + V (IP, JO)
-               W (I, 2,  MJ) = V (IP, JE) - V (I,  JO)
- 40         CONTINUE
- 30      CONTINUE
+ 120        CONTINUE
+         ENDIF
          CALL SFFT1 (W,V,NZ,NFAX,IFAX,-1,TRIG,NPH)
 C     
       ENDIF
@@ -179,10 +238,11 @@ C              TRIG (2, J) =  - SIN (2 * PI * J / N).
 C     LEN:   Number of distinct transforms to be performed.
 C     -------------------------------------------------------------------
       IMPLICIT NONE
+C
+      INTEGER  ISIGN, N, LEN, NFAX, IFAX(*), IFAC, LA, I, IJ
       REAL     A(LEN,2,0:N-1)
       REAL     C(LEN,2,0:N-1)
       REAL     TRIG(2,0:N-1)
-      INTEGER  ISIGN, N, LEN, NFAX, IFAX(*), IFAC, LA, I, IJ
       LOGICAL  ODD
 C
       LA  = 1
@@ -218,22 +278,19 @@ C     Performs one pass of FFT.
 C
 C     This routine is never called directly by the user.
 C     The arguments are similar to those of FFT1.
-C     
-C     The following constants presume a 64-bit machine.  They are the
-C     sines of 45 degrees and 60 degrees.
+C     NB: sign of ASN60 changed to agree with SPREFT.
 C     -------------------------------------------------------------------
-      IMPLICIT  NONE
+      IMPLICIT NONE
+C
       INTEGER   IND(0:20),JND(0:20)
       INTEGER   N, LEN, ISIGN, IFAC
       INTEGER   M, I, J, K, L, LA, I0, I1, I2, J0, J1, J2, JUMP, IJ
-      REAL      A(LEN,2,0:N-1)
-      REAL      C(LEN,2,0:N-1)
-      REAL      TRIG(2,0:N-1)
-      REAL      SN60, CC, SS, C1, C2, T1, T2
-      REAL      AM1, AM2, TA1, TA2, AP1, AP2
-      REAL      S1, S2, ROOT, ASN60
-      PARAMETER ( ROOT  = 0.707106781186548 )
-      PARAMETER ( ASN60 = 0.866025403784439 )
+      REAL      A    (LEN,2,0:N-1)
+      REAL      C    (LEN,2,0:N-1)
+      REAL      TRIG (2,0:N-1)
+      REAL      CC, SS, C1, C2, T1, T2, S1, S2
+      REAL      AM1, AM2, TA1, TA2, AP1, AP2, SN60, ASN60
+      PARAMETER ( ASN60 = -0.866025403784439 )
 C
       SN60 = ISIGN * ASN60
       M    = N / IFAC
@@ -247,7 +304,7 @@ C
       JUMP = (IFAC-1) * LA
       DO 130 K = 0, M-LA, LA
          DO 120 L = 1, LA
-            IF (IFAC.EQ.2) THEN
+            IF (IFAC .EQ. 2) THEN
                I0 = IND(0) + I
                I1 = IND(1) + I
                J0 = JND(0) + J
@@ -271,13 +328,13 @@ C
                      C(IJ,2,J1) = SS * AM1 + CC * AM2
  50               CONTINUE
                END IF
-            ELSE IF (IFAC.EQ.3) THEN
-               I0 =IND(0) + I
-               I1 =IND(1) + I
-               I2 =IND(2) + I
-               J0 =JND(0) + J
-               J1 =JND(1) + J
-               J2 =JND(2) + J
+            ELSE IF (IFAC .EQ. 3) THEN
+               I0 = IND(0) + I
+               I1 = IND(1) + I
+               I2 = IND(2) + I
+               J0 = JND(0) + J
+               J1 = JND(1) + J
+               J2 = JND(2) + J
                IF (K.EQ.0) THEN
                   DO 60 IJ = 1, LEN
                      AP1 = A(IJ,1,I1) + A(IJ,1,I2)
@@ -332,7 +389,8 @@ C
 C     -------------------------------------------------------------------
 C     See comments for SPREFT.
 C     -------------------------------------------------------------------
-      IMPLICIT         NONE
+      IMPLICIT NONE
+C
       INTEGER          K, N, NFAX, IFAX(*)
       DOUBLE PRECISION TRIG(2,0:N-1), ARG, TWOPI
       PARAMETER        ( TWOPI = 6.28318530717958647688D0 )
@@ -352,56 +410,111 @@ C
 C     -------------------------------------------------------------------
 C     See comments for SMRCFT.
 C     -------------------------------------------------------------------
-      IMPLICIT         NONE
+      IMPLICIT NONE
+C
       INTEGER          NP, NPH, NZ, NZH, NZHM, ISIGN, NFAX, IFAX(*)
       INTEGER          I, J, IP, JE, JO, MJ
       DOUBLE PRECISION V    (NP,0:NZ-1)
       DOUBLE PRECISION W    (NP/2,2,0:NZ-1)
       DOUBLE PRECISION TRIG (2,0:NZ-1)
+      LOGICAL          NZODD
+C 
 C 
       NPH  = NP / 2
       NZH  = NZ / 2
       NZHM = NZH - 1
+      IF (NZH+NZH .EQ. NZ) THEN
+         NZODD = .FALSE.
+      ELSE
+         NZODD = .TRUE.
+      ENDIF
 C         
       IF (ISIGN .EQ. +1) THEN
          CALL DFFT1 (V,W,NZ,NFAX,IFAX,+1,TRIG,NPH)
-         DO 10 J = 1, NZHM
-            JE = J  + J
-            JO = JE + 1
-            MJ = NZ - J
-            DO 20 I = 1, NPH
-               IP = I + NPH
-               V (I,   0) = W (I, 1,   0)
-               V (I,   1) = W (I, 1, NZH)
-               V (IP,  0) = W (I, 2,   0)
-               V (IP,  1) = W (I, 2, NZH)
-               V (I,  JE) = 0.5 * (W (I, 1,  J) + W (I, 1, MJ))
-               V (I,  JO) = 0.5 * (W (I, 2,  J) - W (I, 2, MJ))
-               V (IP, JE) = 0.5 * (W (I, 2,  J) + W (I, 2, MJ))
-               V (IP, JO) = 0.5 * (W (I, 1, MJ) - W (I, 1,  J))
- 20         CONTINUE
- 10      CONTINUE
 C
+         IF (NZODD) THEN
+            DO 10 J = 1, NZH
+               JE = J  + J
+               JO = JE - 1
+               MJ = NZ - J
+               DO 20 I = 1, NPH
+                  IP = I + NPH
+                  V (I,  JO) = 0.5 * (W (I, 1,  J) + W (I, 1, MJ))
+                  V (I,  JE) = 0.5 * (W (I, 2,  J) - W (I, 2, MJ))
+                  V (IP, JO) = 0.5 * (W (I, 2,  J) + W (I, 2, MJ))
+                  V (IP, JE) = 0.5 * (W (I, 1, MJ) - W (I, 1,  J))
+ 20            CONTINUE
+ 10         CONTINUE
+            DO 30 I = 1, NPH
+               IP = I + NPH
+               V (I,  0) = W (I, 1, 0)
+               V (IP, 0) = W (I, 2, 0)
+ 30         CONTINUE
+         ELSE
+            DO 40 J = 1, NZHM
+               JE = J  + J
+               JO = JE + 1
+               MJ = NZ - J
+               DO 50 I = 1, NPH
+                  IP = I + NPH
+                  V (I,  JE) = 0.5 * (W (I, 1,  J) + W (I, 1, MJ))
+                  V (I,  JO) = 0.5 * (W (I, 2,  J) - W (I, 2, MJ))
+                  V (IP, JE) = 0.5 * (W (I, 2,  J) + W (I, 2, MJ))
+                  V (IP, JO) = 0.5 * (W (I, 1, MJ) - W (I, 1,  J))
+ 50            CONTINUE
+ 40         CONTINUE
+            DO 60 I = 1, NPH
+               IP = I + NPH
+               V (I,  0) = W (I, 1,   0)
+               V (I,  1) = W (I, 1, NZH)
+               V (IP, 0) = W (I, 2,   0)
+               V (IP, 1) = W (I, 2, NZH)
+ 60         CONTINUE
+         ENDIF
+C     
       ELSE
 C     
-         DO 30 J = 1, NZHM
-            JE = J  + J
-            JO = JE + 1
-            MJ = NZ - J
-            DO 40 I = 1, NPH
+         IF (NZODD) THEN
+            DO 70 J = 1, NZH
+               JE = J  + J
+               JO = JE - 1
+               MJ = NZ - J
+               DO 80 I = 1, NPH
+                  IP = I + NPH
+                  W (I, 1,  J) = V (I,  JO) - V (IP, JE)
+                  W (I, 2,  J) = V (I,  JE) + V (IP, JO)
+                  W (I, 1, MJ) = V (I,  JO) + V (IP, JE)
+                  W (I, 2, MJ) = V (IP, JO) - V (I,  JE)
+ 80            CONTINUE
+ 70         CONTINUE
+            DO 90 I = 1, NPH
+               IP = I + NPH
+               W (I, 1, 0) = V (I,  0)
+               W (I, 2, 0) = V (IP, 0)
+ 90         CONTINUE
+         ELSE
+            DO 100 J = 1, NZHM
+               JE = J  + J
+               JO = JE + 1
+               MJ = NZ - J
+               DO 110 I = 1, NPH
+                  IP = I + NPH
+                  W (I, 1,  J) = V (I,  JE) - V (IP, JO)
+                  W (I, 2,  J) = V (I,  JO) + V (IP, JE)
+                  W (I, 1, MJ) = V (I,  JE) + V (IP, JO)
+                  W (I, 2, MJ) = V (IP, JE) - V (I,  JO)
+ 110           CONTINUE
+ 100        CONTINUE
+            DO 120 I = 1, NPH
                IP = I + NPH
                W (I, 1,   0) = V (I,  0)
                W (I, 2,   0) = V (IP, 0)
                W (I, 1, NZH) = V (I,  1)
                W (I, 2, NZH) = V (IP, 1)
-               W (I, 1,   J) = V (I,  JE) - V (IP, JO)
-               W (I, 2,   J) = V (I,  JO) + V (IP, JE)
-               W (I, 1,  MJ) = V (I,  JE) + V (IP, JO)
-               W (I, 2,  MJ) = V (IP, JE) - V (I,  JO)
- 40         CONTINUE
- 30      CONTINUE
+ 120        CONTINUE
+         ENDIF
          CALL DFFT1 (W,V,NZ,NFAX,IFAX,-1,TRIG,NPH)
-C
+C     
       ENDIF
 C
       RETURN
@@ -412,11 +525,12 @@ C
 C     -------------------------------------------------------------------
 C     See comments for SFFT1.
 C     -------------------------------------------------------------------
-      IMPLICIT         NONE
+      IMPLICIT NONE
+C
+      INTEGER          ISIGN, N, LEN, NFAX, IFAX(*), IFAC, LA, I, IJ
       DOUBLE PRECISION A(LEN,2,0:N-1)
       DOUBLE PRECISION C(LEN,2,0:N-1)
       DOUBLE PRECISION TRIG(2,0:N-1)
-      INTEGER          ISIGN, N, LEN, NFAX, IFAX(*), IFAC, LA, I, IJ
       LOGICAL          ODD
 C
       LA  = 1
@@ -450,19 +564,18 @@ C
 C     -------------------------------------------------------------------
 C     See comments for SPASS1.
 C     -------------------------------------------------------------------
-      IMPLICIT         NONE
-      INTEGER          IND(0:20),JND(0:20)
+      IMPLICIT NONE
+C
+      INTEGER          IND(0:20), JND(0:20)
       INTEGER          N, LEN, ISIGN, IFAC
       INTEGER          M, I, J, K, L, LA, I0, I1, I2
       INTEGER          J0, J1, J2, JUMP, IJ
-      DOUBLE PRECISION A(LEN,2,0:N-1)
-      DOUBLE PRECISION C(LEN,2,0:N-1)
-      DOUBLE PRECISION TRIG(2,0:N-1)
-      DOUBLE PRECISION SN60, CC, SS, C1, C2, T1, T2
-      DOUBLE PRECISION AM1, AM2, TA1, TA2, AP1, AP2
-      DOUBLE PRECISION S1, S2, ROOT, ASN60
-      PARAMETER        ( ROOT  = 0.707106781186548D0 )
-      PARAMETER        ( ASN60 = 0.866025403784439D0 )
+      DOUBLE PRECISION A    (LEN,2,0:N-1)
+      DOUBLE PRECISION C    (LEN,2,0:N-1)
+      DOUBLE PRECISION TRIG (2,0:N-1)
+      DOUBLE PRECISION CC, SS, C1, C2, T1, T2, S1, S2
+      DOUBLE PRECISION AM1, AM2, TA1, TA2, AP1, AP2, SN60, ASN60
+      PARAMETER        ( ASN60 = -0.866025403784439D0 )
 C
       SN60 = ISIGN * ASN60
       M    = N / IFAC
@@ -476,14 +589,14 @@ C
       JUMP = (IFAC-1) * LA
       DO 130 K = 0, M-LA, LA
          DO 120 L = 1, LA
-            IF (IFAC.EQ.2) THEN
+            IF (IFAC .EQ. 2) THEN
                I0 = IND(0) + I
                I1 = IND(1) + I
                J0 = JND(0) + J
                J1 = JND(1) + J
                CC =         TRIG(1,K)
                SS = ISIGN * TRIG(2,K)
-               IF (K.EQ.0) THEN
+               IF (K .EQ. 0) THEN
                   DO 20 IJ = 1, LEN
                      C(IJ,1,J0) = A(IJ,1,I0) + A(IJ,1,I1)
                      C(IJ,2,J0) = A(IJ,2,I0) + A(IJ,2,I1)
@@ -500,14 +613,14 @@ C
                      C(IJ,2,J1) = SS * AM1 + CC * AM2
  50               CONTINUE
                END IF
-            ELSE IF (IFAC.EQ.3) THEN
-               I0 =IND(0) + I
-               I1 =IND(1) + I
-               I2 =IND(2) + I
-               J0 =JND(0) + J
-               J1 =JND(1) + J
-               J2 =JND(2) + J
-               IF (K.EQ.0) THEN
+            ELSE IF (IFAC .EQ. 3) THEN
+               I0 = IND(0) + I
+               I1 = IND(1) + I
+               I2 = IND(2) + I
+               J0 = JND(0) + J
+               J1 = JND(1) + J
+               J2 = JND(2) + J
+               IF (K .EQ. 0) THEN
                   DO 60 IJ = 1, LEN
                      AP1 = A(IJ,1,I1) + A(IJ,1,I2)
                      AP2 = A(IJ,2,I1) + A(IJ,2,I2)
