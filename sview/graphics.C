@@ -11,19 +11,8 @@
 // -- Materials definitions, in display order ---
 //    Grey-blue, red, blue, yellow, green, purple, white, turquoise.
 
-static const GLfloat shininess[IsoMax] = { 
-  150.0,			// -- Grey-blue.
-  150.0,			// -- Red.
-  150.0,			// -- Blue.
-  150.0,			// -- Yellow.
-  150.0,			// -- Green.
-  150.0,			// -- Purple.
-  150.0,			// -- White.
-  150.0				// -- Turquoise.
-};
-
 static const GLfloat diffuse[IsoMax][4] = {
-  {0.5,  0.7,  1.0,  1.0},
+  {0.3,  0.3,  1.0,  1.0},
   {0.95, 0.2,  0.0,  1.0},
   {0.0,  0.3,  0.95, 1.0},
   {1.0,  1.0,  0.0,  1.0},
@@ -31,28 +20,6 @@ static const GLfloat diffuse[IsoMax][4] = {
   {1.0,  0.0,  1.0,  1.0},
   {1.0,  1.0,  1.0,  1.0},
   {0.0,  0.9,  0.9,  1.0}
-};
-
-static const GLfloat ambient[IsoMax][4] = {
-  {0.2,  0.2,  0.3,  1.0},
-  {0.3,  0.1,  0.0,  1.0},
-  {0.0,  0.1,  0.3,  1.0},
-  {0.2,  0.2,  0.0,  1.0},
-  {0.0,  0.2,  0.0,  1.0},
-  {0.25, 0.0,  0.2,  1.0},
-  {0.15, 0.15, 0.15, 1.0},
-  {0.0,  0.2,  0.2,  1.0}
-};
-
-static const GLfloat specular[IsoMax][4] = {
-  {0.5,  0.6,  0.7,  1.0},
-  {0.6,  0.2,  0.0,  1.0},
-  {0.0,  0.4,  0.6,  1.0},
-  {0.6,  0.6,  0.0,  1.0},
-  {0.1,  0.7,  0.4,  1.0},
-  {0.4,  0.4,  0.4,  1.0},
-  {0.5,  0.5,  0.5,  1.0},
-  {0.0,  0.5,  0.5,  1.0}
 };
 
 static void drawMesh  ();
@@ -90,11 +57,9 @@ void keyboard (unsigned char key,
       glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
       glEnable    (GL_BLEND);
       glEnable    (GL_POLYGON_SMOOTH);
-      glEnable    (GL_LINE_SMOOTH);
     } else {
       glDisable   (GL_BLEND);
       glDisable   (GL_POLYGON_SMOOTH);
-      glDisable   (GL_LINE_SMOOTH);
     }
     break;
   case 'b':
@@ -247,12 +212,7 @@ void initGraphics ()
 // Set up drawing defaults.
 // ---------------------------------------------------------------------------
 {
-  GLfloat ambient[]        = {  0.15,   0.15,   0.15,  1.0};
-  GLfloat diffuse[]        = {  0.5,    0.5,    0.5,   1.0};
-  GLfloat position0[]      = {100.0,  100.0,  100.0,   1.0};
-  GLfloat position1[]      = {  0.0, -100.0,   50.0,   1.0};
-  GLfloat lmodel_ambient[] = {  0.1,    0.1,    0.1,   1.0};
-  GLfloat lmodel_twoside[] = {GL_FALSE};
+  GLfloat specular[] = {1.0, 1.0, 1.0, 1.0};
 
   cout <<
     "   press ESC key in display window to enter surface manipulation mode\n"
@@ -261,6 +221,8 @@ void initGraphics ()
   if   (State.blackbk) glClearColor (0.0, 0.0, 0.0, 0.0);
   else                 glClearColor (1.0, 1.0, 1.0, 0.0);
 
+  glLineWidth (1.5);
+
   // -- Isosurface shading.
 
   glShadeModel   (GL_SMOOTH);
@@ -268,18 +230,16 @@ void initGraphics ()
 
   // -- Lighting.
 
-  glLightfv      (GL_LIGHT0, GL_AMBIENT,  ambient);
-  glLightfv      (GL_LIGHT0, GL_DIFFUSE,  diffuse);
-  glLightfv      (GL_LIGHT0, GL_POSITION, position0);
+  glEnable       (GL_LIGHTING);
   glEnable       (GL_LIGHT0);
+  glLightModelf  (GL_LIGHT_MODEL_TWO_SIDE, GL_FALSE);
 
-  glLightfv      (GL_LIGHT1, GL_AMBIENT,  ambient);
-  glLightfv      (GL_LIGHT1, GL_DIFFUSE,  diffuse);
-  glLightfv      (GL_LIGHT1, GL_POSITION, position1);
-  glEnable       (GL_LIGHT1);
+  // -- Shared material properties:
+  //    both surfaces have white highlights,
+  //    but only "front" surface is shiny.
 
-  glLightModelfv (GL_LIGHT_MODEL_AMBIENT,  lmodel_ambient);
-  glLightModelfv (GL_LIGHT_MODEL_TWO_SIDE, lmodel_twoside);
+  glMaterialf    (GL_FRONT,          GL_SHININESS, 80.0); 
+  glMaterialfv   (GL_FRONT_AND_BACK, GL_SPECULAR,  specular);
 
   // -- Perspective.
 
@@ -410,10 +370,8 @@ static void drawSurf ()
 
   for (j = 0; j < N; j++) {
 
-    glMaterialf  (GL_FRONT_AND_BACK, GL_SHININESS, shininess[j]);
-    glMaterialfv (GL_FRONT_AND_BACK, GL_SPECULAR,  specular [j]);
-    glMaterialfv (GL_FRONT_AND_BACK, GL_DIFFUSE,   diffuse  [j]);
-    glMaterialfv (GL_FRONT_AND_BACK, GL_AMBIENT,   ambient  [j]);
+    glMaterialfv (GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse [j]); 
+    glMaterialfv (GL_FRONT_AND_BACK, GL_AMBIENT, diffuse [j]);
 
     npoly = Display[j] -> npoly;
     norm  = Display[j] -> nxyz;
