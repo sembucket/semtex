@@ -386,6 +386,11 @@ AuxField& AuxField::gradient (const integer dir)
   const integer     nE = Geometry::nElmt();
   const integer     nZ = Geometry::nZ();
   const integer     nP = Geometry::planeSize();
+  vector<real>      tmp (2*Geometry::nTotElmt());
+  register real*    work = tmp();
+  const real        **DV, **DT;
+
+  Femlib::quad (LL, Geometry::nP(), Geometry::nP(), 0, 0, 0, 0, 0, &DV, &DT);
 
   switch (dir) {
 
@@ -395,7 +400,7 @@ AuxField& AuxField::gradient (const integer dir)
 	E      = Elmt[i];
 	offset = E -> dOff();
 
-	E -> grad (plane[k] + offset, 0);
+	E -> grad (plane[k] + offset, 0, DV, DT, work);
       }
     break;
 
@@ -405,7 +410,7 @@ AuxField& AuxField::gradient (const integer dir)
 	E      = Elmt[i];
 	offset = E -> dOff();
 
-	E -> grad (0, plane[k] + offset);
+	E -> grad (0, plane[k] + offset, DV, DT, work);
       }
     break;
 
@@ -449,6 +454,11 @@ void AuxField::gradient (const integer nZ ,
   register integer  i, k, offset;
   const integer     nE = Geometry::nElmt();
   const integer     nP = Geometry::planeSize();
+  vector<real>      tmp (2*Geometry::nTotElmt());
+  register real*    work = tmp();
+  const real        **DV, **DT;
+
+  Femlib::quad (LL, Geometry::nP(), Geometry::nP(), 0, 0, 0, 0, 0, &DV, &DT);
 
   switch (dir) {
 
@@ -458,7 +468,7 @@ void AuxField::gradient (const integer nZ ,
 	E      = Elmt[i];
 	offset = E -> dOff();
 
-	E -> grad (src + k * nP + offset, 0);
+	E -> grad (src + k * nP + offset, 0, DV, DT, work);
       }
     break;
 
@@ -468,7 +478,7 @@ void AuxField::gradient (const integer nZ ,
 	E      = Elmt[i];
 	offset = E -> dOff();
 
-	E -> grad (0, src + k * nP + offset);
+	E -> grad (0, src + k * nP + offset, DV, DT, work);
       }
     break;
 
