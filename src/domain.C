@@ -8,10 +8,6 @@
 #include "Fem.h"
 
 
-
-
-
-
 Domain::Domain (Mesh& M, const char* session, int np)
 // ---------------------------------------------------------------------------
 // Construct a new Domain with a single Field from a named file.
@@ -44,6 +40,10 @@ Domain::Domain (Mesh& M, const char* session, int np)
 
   u[0] -> connect  (M, np);
   u[0] -> renumber ();
+
+#ifdef DEBUG
+  Field::printConnect (u[0]);
+#endif
 
   // -- Clean up.
 
