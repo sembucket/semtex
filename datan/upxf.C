@@ -39,6 +39,7 @@ public:
   double    x, y;
 };
 
+static char    prog[] = "upxf";
 static int     num;
 static double  sign;
 static double* xx;
@@ -55,7 +56,6 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  ifstream        file;
   doublet*        datum;
   Stack<doublet*> data;
   vector<double>  t, f;
@@ -92,19 +92,21 @@ int main (int    argc,
       break;
     }
 
-  if   (argc == 1) file.open   (*argv, ios::in);
-  else             file.attach (0);
-
-  if (!file) {
-    cerr << "unable to open input file" << endl;
-    return EXIT_FAILURE;
+  if (argc == 1) {
+    ifstream* inputfile = new ifstream (*argv);
+    if (inputfile -> good()) {
+      cin = *inputfile;
+    } else {
+      cerr << prog << "unable to open file" << endl;
+      return EXIT_FAILURE;
+    }
   }
 
   // -- Find first crossing.
 
-  file >> t1 >> f1;
+  cin >> t1 >> f1;
   f1 -= zref;
-  while (!crossed && file >> t2 >> f2) {
+  while (!crossed && cin >> t2 >> f2) {
     f2 -= zref;
     if (crossed = ((f1 < 0.0) && (f2 >= 0.0))) {
       datum = new doublet (t1, f1);
@@ -131,9 +133,9 @@ int main (int    argc,
 
   // -- Do the rest of input, cycle by cycle.
 
-  while (file) {
+  while (cin) {
 
-    while (!crossed && file >> t2 >> f2) {
+    while (!crossed && cin >> t2 >> f2) {
       f2 -= zref;
       crossed = ((f1 < 0.0) && (f2 >= 0.0));
       datum = new doublet (t2, f2);

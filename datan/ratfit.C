@@ -32,7 +32,7 @@
 #include <Utility.h>
 #include <Stack.h>
 #include <Array.h>
-#include <nr77.h>
+#include "nr77.h"
 
 #define SIGN(a,b) ((b) > 0.0 ? fabs(a) : -fabs(a))
 
@@ -122,7 +122,6 @@ int main (int    argc,
   int             i, N, mm = 1, kk = 1, ncof;
   int             neval = 0;
   double          lo = 0.0, hi = 1.0;
-  ifstream        file;
   doublet*        datum;
   Stack<doublet*> data;
 
@@ -181,15 +180,17 @@ int main (int    argc,
       return EXIT_SUCCESS;
     }
 
-  if   (argc == 1) file.open   (*argv, ios::in);
-  else             file.attach (0);
-
-  if (!file) {
-    cerr << prog << ": unable to open input file" << endl;
-    return EXIT_FAILURE;
+  if (argc == 1) {
+    ifstream* inputfile = new ifstream (*argv);
+    if (inputfile -> good()) {
+      cin = *inputfile;
+    } else {
+      cerr << prog << "unable to open file" << endl;
+      return EXIT_FAILURE;
+    }
   }
 
-  while (file >> xi >> yi) {
+  while (cin >> xi >> yi) {
     datum = new doublet (xi, yi);
     data.push (datum);
   }

@@ -13,14 +13,15 @@
 #include <iomanip.h>
 #include <stdlib.h>
 
+static char prog[] = "zeros";
+
 
 int main (int    argc,
 	  char** argv)
 {
-  ifstream file;
-  double   x[2], y[2], zero, val = 0.0;
-  int      verbose = 0;
-  char usage[] = "zeros [-h] [-v] [-z <num>] [file]";
+  double x[2], y[2], zero, val = 0.0;
+  int    verbose = 0;
+  char   usage[] = "zeros [-h] [-v] [-z <num>] [file]";
 
   // -- Process command line.
 
@@ -43,13 +44,20 @@ int main (int    argc,
       break;
     }
 
-  if   (argc == 1) file.open   (*argv, ios::in);
-  else             file.attach (0);
+  if (argc == 1) {
+    ifstream* inputfile = new ifstream (*argv);
+    if (inputfile -> good()) {
+      cin = *inputfile;
+    } else {
+      cerr << prog << "unable to open input file" << endl;
+      return EXIT_FAILURE;
+    }
+  }
 
   // -- Initialise data windows.
 
-  file >> x[0] >> y[0];
-  if (!file) {
+  cin >> x[0] >> y[0];
+  if (!cin) {
     cerr << "unable to initialise from input file" << endl;
     return EXIT_FAILURE;
   }
@@ -59,7 +67,7 @@ int main (int    argc,
 
   // -- Main loop.
 
-  while (file >> x[1] >> y[1]) {
+  while (cin >> x[1] >> y[1]) {
     y[1] -= val;
     zero  = x[0] + (x[1]-x[0])*y[0]/(y[0]-y[1]);
     if        (y[0] < 0.0 && y[1] >= 0.0) { // -- +ve xing.

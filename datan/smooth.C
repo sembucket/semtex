@@ -37,7 +37,7 @@
 typedef double real;
 
 static char prog[] = "smooth";
-static void getargs (int,char**,int&,int&,int&,real&,int&,int&,ifstream&);
+static void getargs (int,char**,int&,int&,int&,real&,int&,int&);
 static void filter  (istream&,ostream&,vector<real>&,const int&,const real&); 
 
 
@@ -49,11 +49,10 @@ int main (int    argc,
 {
   char         err[StrMax];
   int          verbose = 0, repro = 0, npol = 0, nwid = 0, nder = 0;
-  ifstream     ifile;
   real         h = 1.0;
   vector<real> c;
 
-  getargs (argc, argv, verbose, repro, nder, h, npol, nwid, ifile);
+  getargs (argc, argv, verbose, repro, nder, h, npol, nwid);
 
   if (nwid) {
     if (nwid < (npol + 1) >> 1) {
@@ -67,7 +66,7 @@ int main (int    argc,
   c.setSize (2 * nwid + 1);
   Recipes::savgol (c(), c.getSize(), nwid, nwid, nder, npol);
   
-  filter (ifile, cout, c, nwid, 1.0 / pow (h, nder));
+  filter (cin, cout, c, nwid, 1.0 / pow (h, nder));
 
   return EXIT_SUCCESS;
 }
@@ -80,8 +79,7 @@ static void getargs (int       argc   ,
 		     int&      nder   ,
 		     real&     h      ,
 		     int&      npol   ,
-		     int&      nwid   ,
-		     ifstream& infile )
+		     int&      nwid   )
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
@@ -89,14 +87,14 @@ static void getargs (int       argc   ,
   char buf[StrMax], c;
   char usage[] =
     "Usage: %s [options] [file]\n"
-      "options are:\n"
-	"-d <num> ... compute derivative of desired order (default: 0)\n"
-	  "-s <num> ... stepsize, only used for derivatives (default: 1)\n"
-	    "-p <num> ... filter polynomial order             (default: 0)\n"
-	      "-w <num> ... filter semi-width                   (default: 1)\n"
-		"-r       ... reproduce input in output\n"
-		  "-h       ... print this message\n"
-		    "-v       ... be verbose\n";
+    "options are:\n"
+    "-d <num> ... compute derivative of desired order (default: 0)\n"
+    "-s <num> ... stepsize, only used for derivatives (default: 1)\n"
+    "-p <num> ... filter polynomial order             (default: 0)\n"
+    "-w <num> ... filter semi-width                   (default: 1)\n"
+    "-r       ... reproduce input in output\n"
+    "-h       ... print this message\n"
+    "-v       ... be verbose\n";
  
   while (--argc  && **++argv == '-')
     switch (c = *++argv[0]) {
@@ -134,12 +132,14 @@ static void getargs (int       argc   ,
       break;
     }
   
-  if   (argc == 1) infile.open   (*argv, ios::in);
-  else             infile.attach (0);
-
-  if (!infile) {
-    sprintf (buf, "unable to open file: %s", *argv);
-    message (prog, buf, ERROR);
+  if (argc == 1) {
+    ifstream* inputfile = new ifstream (*argv);
+    if (inputfile -> good()) {
+      cin = *inputfile;
+    } else {
+      sprintf (buf, "unable to open file: %s", *argv);
+      message (prog, buf, ERROR);
+    }
   }
 }
 

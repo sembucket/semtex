@@ -28,6 +28,13 @@ extern "C" {
   void   F77NAME(rk4)    (const double*, const double*, const int&,
 			  const double&, const double&, double*,
 			  void(*)(const double&, const double*, double*));
+  void   F77NAME(svdcmp) (double*, const int&, const int&, const int&,
+			  const int&, double*, double*);
+  void   F77NAME(svbksb) (const double*, const double*, const double*,
+			  const int&, const int&, const int&, const int&,
+			  const double*, double*);
+  double F77NAME(ratval) (const double&, const double*, const int&,
+			  const int&);
 }
 
 
@@ -63,6 +70,19 @@ public:
 			void(*derivs)(const double&, const double*, double*)) {
     F77NAME(rk4) (y, dydx, n, x, h, yout, derivs);
   } 
+  static void svdcmp   (double* a, const int& m, const int& n, const int mp,
+			const int& np, double* w, double* v) {
+    F77NAME(svdcmp) (a, m, n, mp, np, w, v); 
+  }
+  static void svbksb   (const double* u, const double* w, const double* v,
+			const int& m, const int& n, const int& mp,
+                        const int& np, const double* b, double* x) {
+    F77NAME(svbksb) (u, w, v, m, n, mp, np, b, x);
+  }
+  static double ratval   (const double& x, const double* cof, const int& mm,
+			  const int& kk) {
+    return F77NAME(ratval) (x, cof, mm, kk);
+  }
 };
 
 

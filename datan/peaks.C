@@ -15,7 +15,6 @@
 int main (int    argc,
 	  char** argv)
 {
-  ifstream file;
   double   func[3], time[3];
   int      min = 0, verbose = 0;
   char usage[] = "peaks [-h] [-min] [-v] [file]", c;
@@ -40,14 +39,21 @@ int main (int    argc,
       break;
     }
 
-  if   (argc == 1) file.open   (*argv, ios::in);
-  else             file.attach (0);
+  if (argc == 1) {
+    ifstream* inputfile = new ifstream (*argv);
+    if (inputfile -> good()) {
+      cin = *inputfile;
+    } else {
+      cerr << "peaks: unable to open file" << endl;
+      return EXIT_FAILURE;
+    }
+  }
 
   // -- Initialise data windows.
 
-  file >> time[2] >> func[2];
-  file >> time[1] >> func[1];
-  if (!file)  {
+  cin >> time[2] >> func[2];
+  cin >> time[1] >> func[1];
+  if (!cin)  {
     cerr << "unable to initialise from input file" << endl;
     return EXIT_FAILURE;
   }
@@ -56,7 +62,7 @@ int main (int    argc,
 
   // -- Main loop.
 
-  while (file >> time[0] >> func[0]) {
+  while (cin >> time[0] >> func[0]) {
     if (min) {
       if (func[1] <  func[0] && func[1] <  func[2] ||
 	  func[1] <  func[0] && func[1] == func[2])

@@ -41,8 +41,8 @@
 static char prog[]  = "embed";
 static char usage[] = "embed [-h] -n <num> -s <num> [-p <num>] [file]";
 
-static void getargs  (int, char**, int&, int&, int&, ifstream&);
-static void getdata  (ifstream&, vector<double>&, const int, const int);
+static void getargs  (int, char**, int&, int&, int&);
+static void getdata  (istream&, vector<double>&, const int, const int);
 static void covary   (vector<double>&, vector<double>&, const int);
 static void eigensys (vector<double>&, vector<double>&, const int);
 static void putsys   (const vector<double>&, const int);
@@ -56,12 +56,11 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  ifstream       file;
   vector<double> data, cov, esys;
   int            s = 0, n = 0, p = 0;
 
-  getargs  (argc, argv, s, n, p, file);
-  getdata  (file, data, s, n);
+  getargs  (argc, argv, s, n, p);
+  getdata  (cin, data, s, n);
 
   covary   (data, cov, n);
   eigensys (cov, esys, n);
@@ -77,8 +76,7 @@ static void getargs (int       argc,
 		     char**    argv,
 		     int&      skip,
 		     int&      wind,
-		     int&      proj,
-		     ifstream& file)
+		     int&      proj)
 // ---------------------------------------------------------------------------
 // Parse command line arguments. Skip and wind are mandatory.
 // ---------------------------------------------------------------------------
@@ -123,15 +121,18 @@ static void getargs (int       argc,
   if (proj < 0 || proj > wind) 
     message (prog, "projection cannot exceed data window", ERROR);
 
-  if   (argc == 1) file.open   (*argv, ios::in);
-  else             file.attach (0);
-
-  if (!file) message (prog, "unable to open input file", ERROR);
-
+  if (argc == 1) {
+    ifstream* inputfile = new ifstream (*argv);
+    if (inputfile -> good()) {
+      cin = *inputfile;
+    } else {
+      message (prog, "unable to open input file", ERROR);
+    }
+  }
 }
 
 
-static void getdata (ifstream&       file,
+static void getdata (istream&        file,
 		     vector<double>& data,
 		     const int       skip,
 		     const int       wind)

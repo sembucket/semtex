@@ -60,7 +60,6 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  ifstream        file;
   triplet*        datum;
   Stack<triplet*> data;
   vector<double>  t, r, f;	// -- Time, reference, function.
@@ -91,18 +90,20 @@ int main (int    argc,
       break;
     }
 
-  if   (argc == 1) file.open   (*argv, ios::in);
-  else             file.attach (0);
-
-  if (!file) {
-    cerr << prog << ": unable to open input file" << endl;
-    return EXIT_FAILURE;
+  if (argc == 1) {
+    ifstream* inputfile = new ifstream (*argv);
+    if (inputfile -> good()) {
+      cin = *inputfile;
+      } else {
+	cerr << prog << "unable to open file" << endl;
+	exit (EXIT_FAILURE);
+      }
   }
 
   // -- Find first crossing.
 
-  file >> t1 >> r1 >> f1;
-  while (!crossed && file >> t2 >> r2 >> f2) {
+  cin >> t1 >> r1 >> f1;
+  while (!crossed && cin >> t2 >> r2 >> f2) {
     if (crossed = ((r1 < 0.0) && (r2 >= 0.0))) {
       datum = new triplet (t1, r1, f1);
       data.push (datum);
@@ -129,9 +130,9 @@ int main (int    argc,
 
   // -- Do the rest of input, cycle by cycle.
 
-  while (file) {
+  while (cin) {
 
-    while (!crossed && file >> t2 >> r2 >> f2) {
+    while (!crossed && cin >> t2 >> r2 >> f2) {
       crossed = ((r1 < 0.0) && (r2 >= 0.0));
       datum = new triplet (t2, r2, f2);
       data.push (datum);
