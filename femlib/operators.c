@@ -1,5 +1,5 @@
 /*****************************************************************************
- * OPERATORS.C:  maintain operators for mesh points, derivatives.            *
+ * OPERATORS.C:  operators for mesh points, derivatives, quadratures.        *
  *                                                                           *
  *****************************************************************************/
 
@@ -15,7 +15,7 @@ static char
 
 
 typedef struct quadopr {	/* ---- quadrature operator information  --- */
-  int             basis   ;	/* STD or GLL                                */
+  int             rule    ;	/* quadrature rule: GL or LL                 */
   int             np      ;	/* number of interpolant knot points         */
   int             nq      ;	/* number of quadrature points               */
   double         *knot    ;	/* Lagrange knots    on [-1, 1]              */
@@ -48,9 +48,9 @@ static MeshOpr *Mhead = NULL;
 
 
 
-void  quadOps(int basis ,	/* input: element basis: STD or GLL     */
-	      int np    ,	/* input: number of knot points              */
-	      int nq    ,	/* input: number of quadrature points        */
+void  quadOps(int rule     ,	/* input: quadrature rule: GL or LL          */
+	      int np       ,	/* input: number of knot points              */
+	      int nq       ,	/* input: number of quadrature points        */
 	      double  **kp ,	/* pointer to knot point storage             */
 	      double  **qp ,	/* pointer to quadrature point storage       */
 	      double  **qw ,	/* pointer to quadrature weight storage      */
@@ -59,8 +59,11 @@ void  quadOps(int basis ,	/* input: element basis: STD or GLL     */
 	      double ***dr ,	/* pointer to derivative matrix              */
 	      double ***dt )	/* pointer to transposed derivative matrix   */
 /* ========================================================================= *
- * Maintain/return QUADRATURE operators for finite elements with high- or    *
- * low-order basis functions. Operators are defined on the interval [-1, 1]. *
+ * Maintain/return QUADRATURE operators for finite elements with GLL BASIS   *
+ * FUNCTIONS.  Quadrature rule may be at nodes (LL, nq = np enforced) or at  *
+ * Gauss(-Legendre) points (GL).                                             *
+ *                                                                           *
+ * Operators are defined on the interval [-1, 1].                            *
  *                                                                           *
  * If the required operators are "in stock", they are returned from a list,  *
  * otherwise they are created and added to the list as a first step.         *
@@ -68,28 +71,33 @@ void  quadOps(int basis ,	/* input: element basis: STD or GLL     */
  *                                                                           *
  * ========================================================================= */
 {
-  char     *routine = "quadOps";
+  char      routine[] = "quadOps";
   int       found   = 0;
   QuadOpr  *p;
 
 
   for (p=Qhead; p; p=p->next) {
-    found = p->basis == basis && p->np == np && p->nq == nq;
+    found = p->rule == rule && p->np == np && p->nq == nq;
     if (found) break;
   }
 
+  if (!found) {
 
-  if (!found) {		/* Make more storage and operators. */
+    if (rule != LL && rule != GL)
+      message(routine, "unrecognized quadrature rule", ERROR);
 
     p = (QuadOpr *) calloc(1, sizeof(QuadOpr));
     if (Qhead) p -> next = Qhead;
     Qhead = p;
 
-    p -> basis = basis;
-    p -> np    = np;
-    p -> nq    = (basis == STD) ? nq : np;
+    p -> rule = rule;
+    p -> np   = np;
+    p -> nq   = (rule == GL) ? nq : np;
 
-    if (basis == GLL) {
+    if (rule == LL && np != nq)
+      message(routine, "np != nq in LL rule...enforcing", WARNING);
+
+    if (rule == LL) {
 
       p -> knot    = dvector(0, np-1);
       p -> quad    = p -> knot;
@@ -102,7 +110,7 @@ void  quadOps(int basis ,	/* input: element basis: STD or GLL     */
       zwgll (p->knot, p->weight, np);
       dgll  (np, p->knot, p->deriv, p->derivT);
 
-    } else if (basis == STD ) {
+    } else {
 
       p -> knot    = dvector(0, np-1);
       p -> quad    = dvector(0, nq-1);
@@ -111,14 +119,13 @@ void  quadOps(int basis ,	/* input: element basis: STD or GLL     */
       p -> interpT = dmatrix(0, np-1, 0, nq-1);
       p -> deriv   = dmatrix(0, nq-1, 0, np-1);
       p -> derivT  = dmatrix(0, np-1, 0, nq-1);
-      
-      uniknot  (np, p->knot);
-      zwgl     (p->quad, p->weight, nq);
+
+      jacgl    (np-1, 0.0, 0.0, p->knot);     /* Knots at Lobatto points.    */
+      zwgl     (p->quad, p->weight, nq);      /* Quadrature at Gauss points. */
       intmat_g (np, p->knot, nq, p->quad, p->interp, p->interpT);
       dermat_g (np, p->knot, nq, p->quad, p->deriv,  p->derivT );
 
-    } else 
-      message(routine, "basis function unrecognized as STD or GLL", ERROR);
+    }
   }
 
 
@@ -148,8 +155,9 @@ void  meshOps(int oldbasis   ,	/* input: element basis: STD or GLL          */
 	      double ***dr   ,	/* pointer to derivative matrix              */
 	      double ***dt   )	/* pointer to transposed derivative matrix   */
 /* ========================================================================= *
- * Maintain/return INTERPOLATION operators for finite elements with high- or *
- * low-order basis functions. Operators are defined on the interval [-1, 1]. *
+ * Maintain/return INTERPOLATION operators for STD and GLL meshes.           *
+ * Operators are defined on the interval [-1, 1].                            *
+ *                                                                           *
  * It is legal to ask for interpolation onto the same mesh as input, in      *
  * which case the mesh storage and interpolation matrices are NULL.          *
  *                                                                           *
@@ -159,8 +167,8 @@ void  meshOps(int oldbasis   ,	/* input: element basis: STD or GLL          */
  *                                                                           *
  * ========================================================================= */
 {
-  char     *routine = "meshOps()";
-  int       found   = 0;
+  char      routine[] = "meshOps()";
+  int       found = 0;
   MeshOpr  *p;
   double   *oldmesh;
 
