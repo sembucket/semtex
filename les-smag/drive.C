@@ -7,7 +7,7 @@
 //
 // USAGE:
 // -----
-// ns [options] session
+// smag [options] session
 //   options:
 //   -h       ... print usage prompt
 //   -i[i]    ... use iterative solver for viscous [and pressure] steps
@@ -30,7 +30,7 @@ RCSid[] = "$Id$";
 #include <NS.h>
 #include <new.h>
 
-static char prog[] = "ns";
+static char prog[] = "smag";
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, char*&);
 
@@ -57,13 +57,16 @@ int main (int    argc,
   
   Femlib::prep ();
   getargs      (argc, argv, session);
+
+  cout << prog << ": Smagorinsky eddy viscosity LES" << endl;
+  cout << "      (c) CSIRO 1995--97."        << endl << endl;
   
   F = new FEML (session);
 
   nz = (int) Femlib::value ("N_Z");
   
-  M = new Mesh     (*F);
-  B = new BCmgr    (*F);
+  M = new Mesh  (*F);
+  B = new BCmgr (*F);
 
   nel    = M -> nEl();  
   np     =  (int) Femlib::value ("N_POLY");
