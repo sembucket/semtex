@@ -39,7 +39,7 @@ public:
 
 private:
   const Domain* _domain;
-  AuxField*     _Cs2   ;
+  AuxField*     _Lmix2 ;
   real*         _work  ;
   real          _BB    ;
   real          _AA    ;

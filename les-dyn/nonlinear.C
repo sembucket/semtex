@@ -4,7 +4,7 @@
 //
 //   -N(u) - div(SGSS) + body force
 //
-// Copyright (c) 2000 Hugh Blackburn
+// Copyright (c) 2000--2001 Hugh Blackburn
 //
 // NB: the past pressure field is destroyed here.
 //
@@ -45,8 +45,7 @@ void nonLinear (Domain*        D ,
   const integer nPP  = Geometry::nBlock();
   const integer nPR  = Geometry::nProc();
   const integer nTot = Geometry::nTotProc();
-  const real    refV = Femlib::value ("KINVIS-REFVIS");
-  const real    EPS  = (sizeof(real) == sizeof(double)) ? EPSDP : EPSSP;
+
   Field*        meta = D -> u[0]; // -- A handle to use for Field operations.
   integer       i, j, ij;
 
@@ -56,13 +55,13 @@ void nonLinear (Domain*        D ,
   // -- Create names for local computations.
 
   vector<real*> u (26);
-  real**        Sr  = u();
-  real**        St  = Sr + 6;
-  real**        Sm  = St + 6;
-  real**        Ua  = Sm + 2;
-  real**        Us  = Ua + 3;
-  real**        Ud  = Us + 3;
-  real**        Nl  = Ud + 3;
+  real**        Sr  = u();	// -- Strain rate tensor, unfiltered velocity.
+  real**        St  = Sr + 6;	// -- Strain rate tensor, filtered velocity.
+  real**        Ua  = St + 6;	// -- Physical space velocities.
+  real**        Sm  = Ua + 3;	// -- Strain rate magnitude.
+  real**        Us  = Sm + 2;	// -- Top level of velocity storage.
+  real**        Nl  = Us + 3;	// -- Top level of nonlinear/forcing storage.
+  real**        Ud  = Nl + 3;	// -- Domain velocity field, filtered.
   real*         tmp = D -> udat[3]; // -- NB: pressure field gets destroyed.
 
   // -- Set pointers into supplied workspace, Ut.
@@ -74,34 +73,61 @@ void nonLinear (Domain*        D ,
   for (i = 0; i < 3; i++) Us [i] = Ut (17 + i);
   for (i = 0; i < 3; i++) Nl [i] = Ut (20 + i);
 
-  for (i = 0; i < 3; i++) Ud [i] = D->udat(i);
+  for (i = 0; i < 3; i++) Ud [i] = D->udat (i);
 
   // -- Zero workspace areas.
 
   Veclib::zero (6*nTot, Sr[0], 1);
   Veclib::zero (6*nTot, St[0], 1);
 
-  // -- Compute the dynamic eddy viscosity estimate -2Cs^2 in Ut[15].
-  //    Also compute the nonlinear terms.
+  // -- Compute the dynamic mixing length estimate L_mix^2 in Ut[15],
+  //    the strain rate magnitude |S| in Ut[16], along with the strain
+  //    rate tensor in Ut[0-5].  Also compute the nonlinear terms.
 
   dynamic (D, Ut);
 
-  // -- Subtract off our spatially-constant reference viscosity
-  //    (disguised as KINVIS), note factor of 2.
+  real* Lmix2 = Sm[0];
+  real* RoS   = Sm[1];
 
-  real* nut     = Sm[0];
-  real* Delta2S = Us[2];
+  const real refvis = Femlib::value ("KINVIS");
+  const real molvis = Femlib::value ("REFVIS");
 
-  meta -> smooth (nZP, nut);
-  S    -> update (nut);
+  // -- Direct stiffness summation and temporal smoothing of L_mix^2.
 
-  Veclib::svvtp (nTot, 2.0*refV, nut, 1, Delta2S, 1, nut, 1);
+  meta -> smooth (nZP, Lmix2);
+  S    -> update      (Lmix2);
 
-  // -- Create SGSS \tau_ij = -2 (Cs^2 Delta^2 |S| - refVisc) Sij.
+  // -- Compose the turbulent eddy viscosity in Sm[0]: nut = L_mix^2 |S|.
 
-  for (i = 0; i < 6; i++) Veclib::vmul (nTot, nut, 1, Sr[i], 1, Sr[i], 1);
+  real* nut = Sm[0];
 
-#if !defined (NOMODEL)
+  Veclib::vmul(nTot, Lmix2, 1, RoS, 1, nut, 1);
+
+#if 1				// -- Diagnostic printout.
+  if (!(D->step % (int) Femlib::value ("IO_CFL")))
+    cout << "-- Eddy/molecular viscosity"
+	 << ", min: "
+	 << nut[Veclib::imin (nTot, nut, 1)]/molvis
+	 << ", max: "
+	 << nut[Veclib::imax (nTot, nut, 1)]/molvis
+	 << endl;
+#endif
+
+  // -- Add on molecular viscosity to get total viscosity, then clip.
+
+  Veclib::sadd (nTot, molvis, nut, 1, nut, 1);
+  Veclib::clip (nTot, 0.0, 1e6*molvis, nut, 1, nut, 1);
+
+  // -- Subtract off spatially-constant reference viscosity.
+
+  Veclib::sadd (nTot, -refvis, nut, 1, nut, 1);
+
+  // -- Create SGSS \tau_ij = -2 (L_mix^2 |S| - refVisc) Sij.
+
+  for (i = 0; i < 6; i++)
+    Veclib::svvtt (nTot, -2.0, nut, 1, Sr[i], 1, Sr[i], 1);
+
+#if !defined (NOMODEL)		// -- Define NOMODEL to run as DNS.
   // -- Subtract divergence of SGSS from nonlinear terms.
 
   for (i = 0; i < 3; i++) {	// -- Diagonal terms.
@@ -136,7 +162,7 @@ void nonLinear (Domain*        D ,
 
   ROOTONLY
     for (i = 0; i < 3; i++)
-      if (fabs (ff[i]) > EPS)
+      if (fabs (ff[i]) > EPSDP)
 	Veclib::sadd (Geometry::nPlane(), ff[i], Nl[i], 1, Nl[i], 1);
 }
 
@@ -177,15 +203,26 @@ void dynamic (Domain*        D ,
 // but for gradients in the Fourier direction the data must be
 // transferred back to Fourier space.
 //
-// NB: no dealiasing.
+// If flag NL is set, then we compute the nonlinear terms and return
+// also the scaled (dynamic estimate) mixing length
 //
-// If NL is set, then we compute the nonlinear terms and return the
-// scaled (dynamic estimate) eddy viscosity -2Cs^2 = LijMij/MijMji in
-// Ut[6].  If NL isn't set, do not compute the nonlinear terms and
-// return the unscaled (dynamic estimate) eddy viscosity
-// Cs^2*Delta^2*|S|.  This is ugly but means we can use the same code
+//          Cs^2 \Delta^2 = L_mix^2 = -0.5 <LijMij>/<MijMji>
+//
+// in Ut[15] = Sm[0].  If NL isn't set, do not compute the nonlinear
+// terms and return the dynamic estimate of eddy viscosity
+//
+//          \nu_t = Cs^2 \Delta^2 |S| = L_mix^2 |S|
+//
+// This coding approach is ugly but means we can use the same code
 // both for normal running and for computing the eddy viscosity
 // estimate as a stand-alone diagnostic.
+// 
+// In either case, the unfiltered strain rate tensor terms are also
+// returned, in the Ut[0-5], together with the unfiltered strain rate
+// magnitude |S| in Ut[19] = Us[2].
+//
+// NB: no dealiasing occurs, either for serial or parallel
+// calculations: they should return the same values.
 // ---------------------------------------------------------------------------
 {
   const integer    nZ   = Geometry::nZ();
@@ -194,8 +231,7 @@ void dynamic (Domain*        D ,
   const integer    nPP  = Geometry::nBlock();
   const integer    nPR  = Geometry::nProc();
   const integer    nTot = Geometry::nTotProc();
-  const integer    nEl  = Geometry::nElmt();
-  const integer    nP2  = Geometry::nTotElmt();
+
   Field*           meta = D -> u[0]; // -- A handle for Field operations.
   register integer i, j, ij;
 
@@ -207,11 +243,11 @@ void dynamic (Domain*        D ,
   vector<real*> u (26);
   real**        Sr  = u();	// -- Strain rate tensor, unfiltered velocity.
   real**        St  = Sr + 6;	// -- Strain rate tensor, filtered velocity.
-  real**        Sm  = St + 6;	// -- Strain rate magnitude.
-  real**        Ua  = Sm + 2;	// -- Physical space velocities.
-  real**        Us  = Ua + 3;	// -- Top level of velocity storage.
-  real**        Ud  = Us + 3;	// -- Domain velocity field, filtered.
-  real**        Nl  = Ud + 3;	// -- Top level of nonlinear/forcing storage.
+  real**        Ua  = St + 6;	// -- Physical space velocities.
+  real**        Sm  = Ua + 3;	// -- Strain rate magnitude.
+  real**        Us  = Sm + 2;	// -- Top level of velocity storage.
+  real**        Nl  = Us + 3;	// -- Top level of nonlinear/forcing storage.
+  real**        Ud  = Nl + 3;	// -- Domain velocity field, filtered.
   real*         tmp = D -> udat[3];
 
   // -- Set pointers into supplied workspace, Ut.
@@ -223,7 +259,7 @@ void dynamic (Domain*        D ,
   for (i = 0; i < 3; i++) Us [i] = Ut (17 + i);
   for (i = 0; i < 3; i++) Nl [i] = Ut (20 + i);
 
-  for (i = 0; i < 3; i++) Ud [i] = D->udat(i);
+  for (i = 0; i < 3; i++) Ud [i] = D->udat (i);
 
   // -- Transform and filter velocities.
 
@@ -298,26 +334,20 @@ void dynamic (Domain*        D ,
   Veclib::vsqrt (nTot, Sm[0], 1, Sm[0], 1);
   Veclib::vsqrt (nTot, Sm[1], 1, Sm[1], 1);
 
-  // -- Delta^2 |S|.  
-  //    Magic number 4.0 below is square of the assumed difference in
-  //    mesh length scales for the standard and filtered fields.
-
-  Veclib::zero (nP, tmp, 1);
-  meta -> lengthScale (tmp);
-  Veclib::vmul (nP, tmp, 1, tmp, 1, tmp, 1);
-
-  for (i = 0; i < nZP; i++) {
-    Veclib::vmul  (nP,      tmp, 1, Sm[0]+i*nP, 1, Sm[0]+i*nP, 1);
-    Veclib::svvtt (nP, 4.0, tmp, 1, Sm[1]+i*nP, 1, Sm[1]+i*nP, 1);
-  }
-
   // -- Accumulate LijMij & MijMij terms, conservative Nl terms.
   //
-  //    First, multiply    Delta~^2|S~| through S~
-  //    and save a copy of Delta ^2|S | in Us[2].
+  //    First, multiply LAMBDA_M^2 |S~| through S~, where the token
+  //    LAMBDA_M is the assumed ratio of length scales on the coarse
+  //    mesh to those on the fine mesh (e.g. 2).
+  //  
+  //    And save a copy of |S| (called RoS for Rate of Strain) in Us[2].
 
-  for (i = 0; i < 6; i++) vmul (nTot, Sm[1], 1, St[i], 1, St[i], 1);
-  real* Delta2S = Us[2]; Veclib::copy (nTot, Sm[0], 1, Delta2S, 1);
+  for (i = 0; i < 6; i++)
+    Veclib::svvtt
+      (nTot, Femlib::value ("LAMBDA_M^2"), Sm[1], 1, St[i], 1, St[i], 1);
+
+  real* RoS = Us[2];
+  Veclib::copy (nTot, Sm[0], 1, RoS, 1);
 
   real* L   = Sm[0]; real* M   = Sm[1];
   real* Num = Us[0]; real* Den = Us[1];
@@ -339,7 +369,7 @@ void dynamic (Domain*        D ,
     transform      (INVERSE, FULL, L);
     Veclib::vvvtm  (nTot, L, 1, Ud[i], 1, Ud[i], 1, L, 1);
 
-    Veclib::vmul   (nTot, Sr[i], 1, Delta2S, 1, M, 1);
+    Veclib::vmul   (nTot, Sr[i], 1, RoS, 1, M, 1);
     transform      (FORWARD, FULL, M);
     lowpass        (M);
     transform      (INVERSE, FULL, M);
@@ -368,7 +398,7 @@ void dynamic (Domain*        D ,
       transform       (INVERSE, FULL, L);
       Veclib::vvvtm   (nTot, L, 1, Ud[i], 1, Ud[j], 1, L, 1);
 
-      Veclib::vmul    (nTot, Sr[ij], 1, Delta2S, 1, M, 1);
+      Veclib::vmul    (nTot, Sr[ij], 1, RoS, 1, M, 1);
       transform       (FORWARD, FULL, M);
       lowpass         (M);
       transform       (INVERSE, FULL, M);
@@ -378,19 +408,63 @@ void dynamic (Domain*        D ,
       Veclib::svvttvp (nTot, 2.0, M, 1, M, 1, Den, 1, Den, 1);
     }
 
+  // -- Averaging of Num = <LijMij> and Den = <MijMij>, for stability.
+
+#if 1 // -- Homogeneous average.
+
+  Femlib::exchange (Num, nZP, nP, FORWARD);
+  Femlib::exchange (Den, nZP, nP, FORWARD);
+  for (i = 1; i < nZ; i++) {
+    Veclib::vadd (nPP, Num + i * nPP, 1, Num, 1, Num, 1);
+    Veclib::vadd (nPP, Den + i * nPP, 1, Den, 1, Den, 1);
+  }
+  Blas::scal (nPP, 1.0/nZ, Num, 1);
+  Blas::scal (nPP, 1.0/nZ, Den, 1);
+  for (i = 1; i < nZ; i++) {
+    Veclib::copy (nPP, Num, 1, Num + i * nPP, 1);
+    Veclib::copy (nPP, Den, 1, Den + i * nPP, 1);
+  }
+  Femlib::exchange (Num, nZP, nP, INVERSE);
+  Femlib::exchange (Den, nZP, nP, INVERSE);
+#endif
+
+#if 1 // -- Elemental average.
+
+  const integer nEl = Geometry::nElmt();
+  const integer nP2 = Geometry::nTotElmt();
+
+  for (i = 0; i < nEl; i++) {
+    Num[ij] = Veclib::sum (nP2, Num + i * nP2, 1) / nP2;
+    Den[ij] = Veclib::sum (nP2, Den + i * nP2, 1) / nP2;
+    Veclib::fill (nP2, Num[ij], Num + i * nP2, 1);
+    Veclib::fill (nP2, Den[ij], Den + i * nP2, 1);
+  }
+  for (i = 1; i < nZP; i++) {
+    Veclib::copy (nP, Num, 1, Num + i * nP, 1);
+    Veclib::copy (nP, Den, 1, Den + i * nP, 1);
+  }
+#endif
+
   // -- Nudge denominator in case it's very small.
 
-  const real EPS = (sizeof(real)==sizeof(double))? EPSDP : EPSSP;
-  
-  Veclib::sadd (nTot, EPS, Den, 1, Den, 1);
+  Veclib::sadd (nTot, EPSDP, Den, 1, Den, 1);
 
-  // -- Here is the dynamic estimate, L = -2 Cs^2 = LijMij/MijMij.
+  // -- Here is the dynamic estimate, L = L_mix^2 = -0.5 <LijMij>/<MijMij>.
 
   Veclib::vdiv (nTot, Num, 1, Den, 1, L, 1);
+  Blas::scal   (nTot, -0.5, L, 1);
 
-#if defined (SMAG)			// -- Use Smag const for checking.
+#if defined (SMAG)		// -- For debugging.
 
-  Veclib::fill (nTot, Femlib::value ("-2.*C_SMAG*C_SMAG"), L, 1);
+  // -- Substitute a length scale based on the Smagorinsky constant.
+  //    L = L_mix^2 = C_s^2 \Delta^2.
+
+  meta -> lengthScale (tmp);
+  Blas::scal   (nP, Femlib::value ("C_SMAG"), tmp, 1);
+  Veclib::vmul (nP, tmp, 1, tmp, 1, tmp, 1);
+  
+  for (i = 0; i < nZP; i++)
+    Veclib::copy (nP, tmp, 1, L + i * nP, 1);
 
 #endif
 
@@ -402,8 +476,9 @@ void dynamic (Domain*        D ,
   else {
     // -- We are calculating eddy viscosity from L, make sure also we
     //    put transformed velocities back in D.  L is in physical space.
+    //    \nu_t = L_mix^2 |S|.
 
-    Veclib::svvtt (nTot, -0.5, Delta2S, 1, L, 1, L, 1);
+    Veclib::vmul (nTot, RoS, 1, L, 1, L, 1);
 
     for (i = 0; i < 3; i++) {
       meta -> smooth (nZP, L);
@@ -412,33 +487,9 @@ void dynamic (Domain*        D ,
     }
   }
 
-#if 0				// -- Average Cs for stability.
+  // -- Copy |S| to Sm[1], so we have L_mix^2 in Sm[0], |S| in Sm[1].
 
-  // -- Homogeneous average.
-
-  Femlib::exchange (L, nZP, nP, FORWARD);
-  for (i = 1; i < nZ; i++)
-    Veclib::vadd (nPP, L + i * nPP, 1, L, 1, L, 1);
-  Blas::scal (nPP, 1.0/nZ, L, 1);
-  for (i = 1; i < nZ; i++)
-    Veclib::copy (nPP, L, 1, L + i * nPP, 1);
-  Femlib::exchange (L, nZP, nP, INVERSE);
-  
-  // -- Elemental average.
-
-  for (i = 0; i < nEl; i++) {
-    ij = i * nP2;
-    for (j = 1; j < nP2; j++) {
-      L[ij] += L[j + ij];
-    }
-    L[ij] /= nP2;
-    Veclib::fill (nP2, L[ij], L + ij, 1);
-  }
-  for (i = 1; i < nZP; i++)
-    Veclib::copy (nP, L, 1, L + i * nP, 1);
-
-#endif
-
+  Veclib::copy (nTot, RoS, 1, Sm[1], 1);
 }
 
 

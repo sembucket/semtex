@@ -1,27 +1,29 @@
 ///////////////////////////////////////////////////////////////////////////////
 // sumintegrator.C: implement SumIntegrator class.
 //
-// Copyright (C) 2000 Hugh Blackburn
+// Copyright (C) 2000-2001 Hugh Blackburn
 //
 // This class exists to carry out first-order system temporal
-// smoothing of the dynamic estimate of Smagorinsky constant.
+// smoothing of the dynamic estimate of turbulent mixing length.
 // 
 // Given token "TIME_CONST", which is the characteristic time for the
 // first order system, this class initialises internal storage and
 // provides a method for the update
 //
-//   Cs^2[n] = A*Cs^2_dyn + B*Cs^2[n-1],
+//   L_mix^2[n] = A*L_mix^2_dyn + B*L_mix^2[n-1],
 //
 // where A+B=1 and B = exp (-TIME_CONST * D_T).  This carries out a
 // first-order system relaxation towards the ensemble-average dynamic
-// estimate.
+// estimate.  Smaller values of TIME_CONST result in slower response.
 //
-// The class relies on files session.smg (which contains the last
-// finalised estimate of Cs^2) and session.sma (which contains the
-// checkpoint estimate).  If it can't find session.smg, the
-// constructor will open it, fill it with C_SMAG*C_SMAG.  The file
-// update and rollover techniques are similar to what happens in the
-// Statistics class.
+// The class relies on files session.mix (which contains the last
+// finalised estimate of L_mix^2) and session.mic (which contains the
+// checkpoint estimate).  If it can't find session.mix, the
+// constructor will open it, fill initial estimate with
+// C_SMAG^2*\Delta^2.
+//
+// The file checkpoint and rollover techniques are similar to those of
+// the Statistics class (.mix <==> .avg, .mic <==> .ave).
 //
 // The update method is designed to be called every timestep.
 //
@@ -41,22 +43,32 @@ SumIntegrator::SumIntegrator (Domain* info) :
   _ntot   (Geometry::nTotProc()),
   _nz     (Geometry::nZProc())
 {
-  _work = new real [(size_t) _ntot];
-  _Cs2 = new AuxField (_work, _nz, _domain -> elmt, 'x');
+  _work  = new real [(size_t) _ntot];
+  _Lmix2 = new AuxField (_work, _nz, _domain -> elmt, 'x');
 
-  ROOTONLY cout << "-- Initialising Smagorinsky constant : ";
+  ROOTONLY cout << "-- Initialising mixing length : ";
 
   char s[StrMax];
-  ifstream file (strcat (strcpy (s, _domain -> name), ".smg"));
+  ifstream file (strcat (strcpy (s, _domain -> name), ".mix"));
 
   if (file) {
     ROOTONLY { cout << "read from file " << s; cout.flush(); }
     file >> *this;
     file.close();
+
   } else {
-    const real cs2 = Femlib::value ("C_SMAG*C_SMAG");
-    ROOTONLY cout << " set to " << cs2;
-    *_Cs2 = cs2;
+    const integer nP  = Geometry::planeSize();
+    const integer nZP = Geometry::nZProc();
+    integer       i;
+
+    _Lmix2 -> lengthScale (_work);
+    Blas::scal   (nP, Femlib::value ("C_SMAG"), _work, 1);
+    Veclib::vmul (nP, _work, 1, _work, 1, _work, 1);
+  
+    for (i = 1; i < nZP; i++)
+      Veclib::copy (nP, _work, 1, _work + i * nP, 1);
+
+    ROOTONLY cout << " set to " << Femlib::value ("C_SMAG^2") << " * Delta^2";
   }
 
   ROOTONLY cout << endl;
@@ -67,12 +79,12 @@ void SumIntegrator::update (real* src)
 // ---------------------------------------------------------------------------
 // Take the new dynamic estimate and do a relaxation update.
 //
-// Actually the input is -2*Cs^2.
+// The input is L_mix^2.
 // ---------------------------------------------------------------------------
 { 
-  Veclib::smul  (_ntot, _BB,      _work, 1, _work, 1);
-  Veclib::svtvp (_ntot, -0.5*_AA, src,   1, _work, 1, _work, 1);
-  Veclib::smul  (_ntot, -2.0,     _work, 1, src,   1);
+  Veclib::smul  (_ntot, _BB,         _work, 1, _work, 1);
+  Veclib::svtvp (_ntot, _AA, src, 1, _work, 1, _work, 1);
+  Veclib::copy  (_ntot, _work, 1, src, 1);
 }
 
 
@@ -98,19 +110,19 @@ void SumIntegrator::dump ()
 
     if (chkpoint) {
       if (final) {
-	strcat (strcpy (dumpfl, _domain -> name), ".smg");
+	strcat (strcpy (dumpfl, _domain -> name), ".mix");
 	output.open (dumpfl, ios::out);
       } else {
-	strcat (strcpy (dumpfl, _domain -> name), ".sma");
+	strcat (strcpy (dumpfl, _domain -> name), ".mic");
 	if (!initial) {
-	  strcat  (strcpy (backup, _domain -> name), ".sma.bak");
+	  strcat  (strcpy (backup, _domain -> name), ".mic.bak");
 	  sprintf (command, "mv ./%s ./%s", dumpfl, backup);
 	  system  (command);
 	}
 	output.open (dumpfl, ios::out);
       }
     } else {
-      strcat (strcpy (dumpfl, _domain -> name), ".smg");
+      strcat (strcpy (dumpfl, _domain -> name), ".mix");
       if   (initial) output.open (dumpfl, ios::out);
       else           output.open (dumpfl, ios::app);
     }
@@ -132,7 +144,7 @@ ofstream& operator << (ofstream&      strm,
 // ---------------------------------------------------------------------------
 {
   const Domain* D = src._domain;
-  vector<AuxField*> tmp(1); tmp[0] = src._Cs2;
+  vector<AuxField*> tmp(1); tmp[0] = src._Lmix2;
 
   writeField (strm, D -> name, D -> step, D -> time, tmp);
 
@@ -155,7 +167,7 @@ ifstream& operator >> (ifstream&      strm,
   
   strm.getline (s, StrMax) . getline (s, StrMax);
 
-  tgt._Cs2 -> describe (f);
+  tgt._Lmix2 -> describe (f);
   istrstream (s, strlen (s)) >> np    >> np    >> nz    >> nel;
   istrstream (f, strlen (f)) >> npchk >> npchk >> nzchk >> nelchk;
   
@@ -188,11 +200,11 @@ ifstream& operator >> (ifstream&      strm,
     }
   }
     
-  strm >> *tgt._Cs2;
-  if (swap) tgt._Cs2 -> reverse();
+  strm  >> *tgt._Lmix2;
+  if (swap) tgt._Lmix2 -> reverse();
   
   ROOTONLY if (strm.bad())
-    message (routine, "failed reading Smagorinsky file", ERROR);
+    message (routine, "failed reading mixing length file", ERROR);
 
   return strm;
 }

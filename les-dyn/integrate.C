@@ -174,11 +174,13 @@ void integrate (Domain*        D,
     S -> dump    ();
   }
 
-#if 0
+#if 1
   // -- Dump ratio eddy/molecular viscosity to file visco.fld.
 
-  dynamic (D, S, Ut, 0);
-  D -> u[0] -> smooth (Geometry::nZP(), Ut[15]);
+  dynamic (D, Ut, 0);
+
+  Blas::scal (nTot, 1.0/Femlib::value("REFVIS"), Ut[15], 1);
+  D -> u[0] -> smooth (Geometry::nZProc(), Ut[15]);
 
   AuxField* EV = new AuxField (Ut(15), nZ, D->elmt, 'e');
 
@@ -187,8 +189,6 @@ void integrate (Domain*        D,
   visco[0] = EV;
 
   ROOTONLY evfl.open ("visco.fld", ios::out);
-
-  *EV /= Femlib::value ("REFVIS");
 
   writeField (evfl, D -> name, D -> step, D -> time, visco);
 
