@@ -10,7 +10,8 @@
  * field file, the average values contained in the average file are
  * subtracted from the field file (i.e. the field file is assumed to
  * contain instantaneous values from which the average is to be
- * subtracted).
+ * subtracted).  Note that this also allows rstress to be used to
+ * subtract (instantaneous) values in one field dump from another.
  *
  * Both average and field files are assumed to be in binary, double,
  * physical-space format.  The field files and average files (if both
@@ -336,7 +337,9 @@ static void printup (FILE* f,
  * Output the modified data.
  * ------------------------------------------------------------------------- */
 {
+  int       i;
   const int ntot = h -> np * h -> np * h -> nz * h -> nel;
+  const int nfields = strlen (h -> field);
   char      s1[STR_MAX], s2[STR_MAX];
   time_t    tp = time (0);
 
@@ -362,5 +365,7 @@ static void printup (FILE* f,
   sprintf  (s1, hdr_fmt[9], s2);
   fprintf  (f, s1);
 
-  fwrite   (h -> data[0], sizeof (double), ntot, f);
+  for (i = 0; i < nfields; i++) 
+    if (fwrite (h -> data[i], sizeof (double), ntot, f) != ntot)
+      message (prog, "error occurred while writing", ERROR);
 }
