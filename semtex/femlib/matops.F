@@ -5,14 +5,15 @@ C
 C     $Id$
 C
 C
-      SUBROUTINE DGRAD2 (U, UR, US, DV, NP, NEL)
+      SUBROUTINE DGRAD2 (X, Y, UR, US, DV, NP, NEL)
 C
-C     -- Ur = dU/dr, Us = dU/ds over all nel elements each np*np.
+C     -- Ur = dX/dr, Us = dY/ds over all nel elements each np*np.
 C
       IMPLICIT NONE
 C
       INTEGER          NP, NEL, I, J, K, L
-      DOUBLE PRECISION U(NP,NP,NEL), UR(NP,NP,NEL), US(NP,NP,NEL)
+      DOUBLE PRECISION  X(NP,NP,NEL),  Y(NP,NP,NEL)
+      DOUBLE PRECISION UR(NP,NP,NEL), US(NP,NP,NEL)
       DOUBLE PRECISION DV(NP,NP)
 C
 #if   defined (_SX)
@@ -20,7 +21,7 @@ C
          DO K = 1, NP
             DO L = 1, NP
                DO I = 1, NEL
-                  UR(K,J,I) = UR(K,J,I) + U(L,J,I) * DV(L,K)
+                  UR(K,J,I) = UR(K,J,I) + X(L,J,I) * DV(L,K)
               ENDDO
            ENDDO
         ENDDO
@@ -30,7 +31,7 @@ C
             DO K = 1, NP
 *VDIR NODEP, UNROLL=2
                DO I = 1, NEL
-                  US(K,J,I) = US(K,J,I) + U(K,L,I) * DV(L,J)
+                  US(K,J,I) = US(K,J,I) + Y(K,L,I) * DV(L,J)
               ENDDO
            ENDDO
         ENDDO
@@ -44,8 +45,8 @@ C     -- NB restricted to 512 elements.
 !OCL NOVREC
 !OCL REPEAT(512)
                DO I = 1, NEL
-                  UR(K,J,I) = UR(K,J,I) + U(L,J,I) * DV(L,K)
-                  US(K,J,I) = US(K,J,I) + U(K,L,I) * DV(L,J)
+                  UR(K,J,I) = UR(K,J,I) + X(L,J,I) * DV(L,K)
+                  US(K,J,I) = US(K,J,I) + Y(K,L,I) * DV(L,J)
               ENDDO
            ENDDO
         ENDDO
@@ -55,8 +56,8 @@ C     -- NB restricted to 512 elements.
          DO J = 1, NP
             DO L = 1, NP
                DO K = 1, NP
-                  UR(K,J,I) = UR(K,J,I) + U(L,J,I) * DV(L,K)
-                  US(K,J,I) = US(K,J,I) + U(K,L,I) * DV(L,J)
+                  UR(K,J,I) = UR(K,J,I) + X(L,J,I) * DV(L,K)
+                  US(K,J,I) = US(K,J,I) + Y(K,L,I) * DV(L,J)
               ENDDO
            ENDDO
         ENDDO
@@ -66,14 +67,15 @@ C     -- NB restricted to 512 elements.
       END
 C
 C
-      SUBROUTINE SGRAD2 (U, UR, US, DV, NP, NEL)
+      SUBROUTINE SGRAD2 (X, Y, UR, US, DV, NP, NEL)
 C
-C     -- Ur = dU/dr, Us = dU/ds over all nel elements each np*np.
+C     -- Ur = dX/dr, Us = dY/ds over all nel elements each np*np.
 C
       IMPLICIT NONE
 C
       INTEGER  NP, NEL, I, J, K, L
-      REAL     U(NP,NP,NEL), UR(NP,NP,NEL), US(NP,NP,NEL)
+      REAL      X(NP,NP,NEL),  Y(NP,NP,NEL)
+      REAL     UR(NP,NP,NEL), US(NP,NP,NEL)
       REAL     DV(NP,NP)
 C
 #if   defined (_SX)
@@ -81,7 +83,7 @@ C
          DO K = 1, NP
             DO L = 1, NP
                DO I = 1, NEL
-                  UR(K,J,I) = UR(K,J,I) + U(L,J,I) * DV(L,K)
+                  UR(K,J,I) = UR(K,J,I) + X(L,J,I) * DV(L,K)
               ENDDO
            ENDDO
         ENDDO
@@ -91,7 +93,7 @@ C
             DO K = 1, NP
 *VDIR NODEP, UNROLL=2
                DO I = 1, NEL
-                  US(K,J,I) = US(K,J,I) + U(K,L,I) * DV(L,J)
+                  US(K,J,I) = US(K,J,I) + Y(K,L,I) * DV(L,J)
               ENDDO
            ENDDO
         ENDDO
@@ -104,8 +106,8 @@ C
 !OCL NOVREC
 !OCL REPEAT(512)
                DO I = 1, NEL
-                  UR(K,J,I) = UR(K,J,I) + U(L,J,I) * DV(L,K)
-                  US(K,J,I) = US(K,J,I) + U(K,L,I) * DV(L,J)
+                  UR(K,J,I) = UR(K,J,I) + X(L,J,I) * DV(L,K)
+                  US(K,J,I) = US(K,J,I) + Y(K,L,I) * DV(L,J)
               ENDDO
            ENDDO
         ENDDO
@@ -116,11 +118,11 @@ C
             DO L = 1, NP
                DO K = 1, NP
 C                  UR((I*NP+J)*NP+K) =
-C     +                 UR((I*NP+J)*NP+K) + U((I*NP+J)*NP+L) * DT(L*NP+K)
+C     +                 UR((I*NP+J)*NP+K) + X((I*NP+J)*NP+L) * DT(L*NP+K)
 C                  US((I*NP+J)*NP+K) = 
-C     +                 US((I*NP+J)*NP+K) + U((I*NP+L)*NP+K) * DV(J*NP+L)
-                  UR(K,J,I) = UR(K,J,I) + U(L,J,I) * DV(L,K)
-                  US(K,J,I) = US(K,J,I) + U(K,L,I) * DV(L,J)
+C     +                 US((I*NP+J)*NP+K) + Y((I*NP+L)*NP+K) * DV(J*NP+L)
+                  UR(K,J,I) = UR(K,J,I) + X(L,J,I) * DV(L,K)
+                  US(K,J,I) = US(K,J,I) + Y(K,L,I) * DV(L,J)
               ENDDO
            ENDDO
         ENDDO
