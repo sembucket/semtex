@@ -8,8 +8,6 @@
 #include "Fem.h"
 
 
-
-
 Boundary::Boundary (int ident, Element* E, int sideNo,  BC* cond)
 // ---------------------------------------------------------------------------
 // Constructor.  Allocate new memory for value & geometric factors.
@@ -24,11 +22,9 @@ Boundary::Boundary (int ident, Element* E, int sideNo,  BC* cond)
   ny        = rvector (E -> nKnot());
   area      = rvector (E -> nKnot());
 
-  E -> sideGeom (side, nx, ny, area);
+  E -> sideOffset (side, offset, skip);
+  E -> sideGeom   (side, nx, ny, area);
 }
-
-
-
 
 
 Boundary::Boundary (const Boundary& B, const List<Element*>& E)
@@ -55,9 +51,6 @@ Boundary::Boundary (const Boundary& B, const List<Element*>& E)
 }
 
 
-
-
-
 void  Boundary::evaluate (int step)
 // ---------------------------------------------------------------------------
 // Load boundary condition storage area with numeric values.
@@ -80,9 +73,6 @@ void  Boundary::evaluate (int step)
     break;
   }
 }
-
-
-
 
 
 void  Boundary::print() const
@@ -130,19 +120,13 @@ void  Boundary::print() const
 }
 
 
-
-
-
 void  Boundary::enforce (real* target) const
 // ---------------------------------------------------------------------------
-// This is for ESSENTIAL BCs: load BC data into target.
+// This is for ESSENTIAL BCs: load BC data into globally-numbered target.
 // ---------------------------------------------------------------------------
 {
   elmt -> sideScatr (side, value, target);
 }
-
-
-
 
 
 void  Boundary::dsSum (real* target) const
@@ -152,9 +136,6 @@ void  Boundary::dsSum (real* target) const
 {
   elmt -> sideDsSum (side, value, area, target);
 }
-
-
-
 
 
 int  Boundary::isEssential () const
@@ -172,9 +153,6 @@ int  Boundary::isEssential () const
 }
 
 
-
-
-
 void  Boundary::mask (int* gmask) const
 // ---------------------------------------------------------------------------
 // Mask global node-number vector for this boundary.
@@ -184,40 +162,29 @@ void  Boundary::mask (int* gmask) const
 }
 
 
-
-
-
-void  Boundary::extract (real* target) const
-// ---------------------------------------------------------------------------
-// Load target with element-edge values.
-// ---------------------------------------------------------------------------
-{
-  elmt -> sideExtract (side, target);
-}
-
-
-
-
-
-void Boundary::curlCurl (const Boundary* u ,  const Boundary* v ,
-			 real*          wx,  real*          wy) const
+void Boundary::curlCurl (const real*  U ,  const real*  V ,
+			 real*        wx,  real*        wy) const
 // ---------------------------------------------------------------------------
 // Evaluate dw/dx & dw/dy (where w is the z-component of vorticity) from
 // element velocity fields, according to the side of the element on which
-// they are required.  U & v are Boundaries on the two velocity Fields.
+// they are required.  u & v are Boundaries on the two velocity Fields.
+// U & V are pointers to the data storage areas for U & V velocity Fields.
 //
 // NB: sense of traverse in wx & wy is BLAS-conformant (according to sign
 // of skip on relevant edge).
 // ---------------------------------------------------------------------------
 {
-  int    ntot = elmt -> nTot();
+  const int  ntot   = elmt -> nTot ();
+  const int  offset = elmt -> nOff ();
 
-  real*  w    = rvector (ntot);
-  real*  vx   = rvector (ntot);
-  real*  uy   = rvector (ntot);
+  real*  w   = rvector (ntot);
+  real*  vx  = rvector (ntot);
+  real*  uy  = rvector (ntot);
 
-  u -> elmt -> d_dy (uy);
-  v -> elmt -> d_dx (vx);
+  Veclib::copy (ntot, U + offset, 1, uy, 1);
+  Veclib::copy (ntot, V + offset, 1, vx, 1);
+  elmt -> d_dy (uy);
+  elmt -> d_dx (vx);
 
   // -- Vorticity, w = dv/dx - du/dy.
 
@@ -233,9 +200,6 @@ void Boundary::curlCurl (const Boundary* u ,  const Boundary* v ,
 }
 
 
-
-
-
 void  Boundary::resetKind (const BC* new_other, const BC* new_outflow)
 // ---------------------------------------------------------------------------
 // Examine & reset BC kind for this Boundary.
@@ -245,4 +209,3 @@ void  Boundary::resetKind (const BC* new_other, const BC* new_outflow)
   if (condition -> kind == OUTFLOW) condition = (BC*) new_outflow;
   else                              condition = (BC*) new_other;
 }
-
