@@ -13,6 +13,7 @@
 // compare [options] session [field.file]
 // options:
 // -h ... print this message
+// -n ... print "noise" if result is less than noise level
 // -f ... forward Fourier transform output
 //
 // EXAMPLE
@@ -27,10 +28,8 @@
 //   p = (1.0-exp(lambda*x))/2.0
 // </USER>
 //
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <Sem.h>
 #include <time.h>
@@ -38,7 +37,7 @@ RCSid[] = "$Id$";
 static char    prog[]    = "compare";
 const  integer EXACT_MAX = 32;
 
-static void getargs (int, char**, integer&, char*&, ifstream&);
+static void getargs (int, char**, integer&, integer&, char*&, ifstream&);
 
 
 int main (int    argc,
@@ -53,15 +52,16 @@ int main (int    argc,
   char               buf[StrMax], err[StrMax], fmt[StrMax], fields[StrMax];
   char               function[EXACT_MAX][StrMax];
   integer            i, j, np, nz, nel, found;
-  integer            nexact = 0, nfields = 0, swab = 0, tran = 0;
+  integer            nexact = 0, nfields = 0, swab = 0, tran = 0, noise = 0;
   real               t;
   const real*        zeros;
   Geometry::CoordSys system;
   vector<Element*>   Esys;
   AuxField           *exact, *computed;
+  const real         NOISE = 1e-12;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, tran, session, fieldfl);
+  getargs (argc, argv, tran, noise, session, fieldfl);
 
   Veclib::describeFormat (fmt);
 
@@ -200,13 +200,11 @@ int main (int    argc,
       }
 
       *exact -= *computed;
+      t = exact -> norm_inf();
 
-      cerr 
-	<< "Field '"
-	<< fields[i]
-	<< "': norm_inf: "
-	<< exact -> norm_inf()
-	<< endl;
+      cerr << "Field '" << fields[i] << "': norm_inf: ";
+      if   (t < NOISE && noise ) cerr << "noise-level" << endl;
+      else                       cerr << t             << endl;
 
       if (tran) exact -> transform (+1);
       if (swab) exact -> reverse();
@@ -289,11 +287,12 @@ int main (int    argc,
 }
 
 
-static void getargs (int       argc,
-		     char**    argv,
-		     integer&  tran,
-		     char*&    sess,
-		     ifstream& fldf)
+static void getargs (int       argc ,
+		     char**    argv ,
+		     integer&  tran ,
+		     integer&  noise,
+		     char*&    sess ,
+		     ifstream& fldf )
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
@@ -301,22 +300,18 @@ static void getargs (int       argc,
   char usage[] = "usage: compare [options] session [field.file]\n"
                  "options:\n"
                  "  -h ... display this message\n"
+                 "  -n ... print 'noise-level' for small errors\n"
                  "  -t ... forward Fourier transform output\n";
   char err[StrMax], c;
 
   while (--argc && **++argv == '-')
     switch (c = *++argv[0]) {
-    case 'h':
-      cerr << usage;
-      exit (EXIT_SUCCESS);
-      break;
-    case 't':
-      tran = 1;
-      break;
+    case 'h': cerr << usage; exit (EXIT_SUCCESS); break;
+    case 'n': noise = 1; break;
+    case 't': tran = 1; break;
     default:
       sprintf (err, "illegal option: %c\n", c);
-      message (prog, err, ERROR);
-      break;
+      message (prog, err, ERROR); break;
     }
 
   switch (argc) {

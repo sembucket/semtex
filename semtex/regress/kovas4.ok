@@ -1,4 +1,4 @@
 Field 'u': norm_inf: 1.27071e-08
-Field 'v': norm_inf: 6.51517e-15
-Field 'w': norm_inf: 3.35455e-09
+Field 'v': norm_inf: noise-level
+Field 'w': norm_inf: 3.35456e-09
 Field 'p': norm_inf: 0.935109
