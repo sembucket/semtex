@@ -11,13 +11,13 @@ else
   PROG = aero
 endif
 
-SEM   = ..
+SEM   = ../semtex
 VPATH = $(SEM)/src
 
 # ----------------------------------------------------------------------------
 #
-SEMFILES  = analysis auxfield BCmgr boundary domain		\
-	    element feml field geometry history integration 	\
+SEMFILES  = analysis auxfield BCmgr boundary bsys condition domain	\
+	    element feml field geometry history integration 		\
 	    matrix mesh misc particle pressure statistics
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
 SEMHDR    = Sem.h

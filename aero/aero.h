@@ -16,11 +16,11 @@ class AeroAnalyser : public Analyser
 // ===========================================================================
 {
 public:
-  AeroAnalyser (Domain&, FEML&, Body&);
-  void analyse (AuxField***);
+  AeroAnalyser (Domain*, FEML*, Body*);
+  void analyse (AuxField**);
 
 private:
-  Body&    body;
+  Body*    body;
   ofstream sta_strm;
   ofstream for_strm;
   void     forceDist();
@@ -171,7 +171,7 @@ class Body
 // solver.
 // ===========================================================================
 {
-friend ostream& operator << (ostream&, Body&);
+friend ostream& operator << (ostream&, Body*);
 public:
   Body  (const char*);
   ~Body () { }
@@ -179,7 +179,7 @@ public:
   Vector  acceleration ();
   Vector  velocity     ();
   Vector  position     ();
-  Vector  force        (const Domain&);
+  Vector  force        (const Domain*);
 
   void    move         (const integer);
 

@@ -1,9 +1,8 @@
 //////////////////////////////////////////////////////////////////////////////
 // body.C: implement Body class for aeroelastic coupling.
+//
+// $Id$
 //////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <aero.h>
 
@@ -156,7 +155,7 @@ void Body::move (const integer step)
 }
 
 
-Vector Body::force (const Domain& D)
+Vector Body::force (const Domain* D)
 // ---------------------------------------------------------------------------
 // Compute and install pressure, viscous and total forces exerted on body.
 // Return total force.
@@ -164,8 +163,8 @@ Vector Body::force (const Domain& D)
 {
   const integer DIM = Geometry::nDim();
 
-  traction[0] = Field::normalTraction  (D.u[DIM]);
-  traction[1] = Field::tangentTraction (D.u[0], D.u[1]);
+  traction[0] = Field::normalTraction  (D->u[DIM]);
+  traction[1] = Field::tangentTraction (D->u[0], D->u[1]);
 
   traction[2].x = traction[0].x + traction[1].x;
   traction[2].y = traction[0].y + traction[1].y;
@@ -177,7 +176,7 @@ Vector Body::force (const Domain& D)
 }
 
 
-ostream& operator << (ostream& S, Body& B)
+ostream& operator << (ostream& S, Body* B)
 // ---------------------------------------------------------------------------
 // Print up motion state variables (x, xdot, xddot, Fvis, Fpre, Ftot).
 // ---------------------------------------------------------------------------
@@ -185,16 +184,16 @@ ostream& operator << (ostream& S, Body& B)
   char   s[StrMax];
   Vector x, xdot, xddot;
 
-  x     = B.position     ();
-  xdot  = B.velocity     ();
-  xddot = B.acceleration ();
+  x     = B->position     ();
+  xdot  = B->velocity     ();
+  xddot = B->acceleration ();
 
   sprintf (s, " %#10.6g %#10.6g %#10.6g %#10.6g %#10.6g %#10.6g"
               " %#10.6g %#10.6g %#10.6g %#10.6g %#10.6g %#10.6g",
 	               x.x,          xdot.x,         xddot.x,
-	   B.traction[0].x, B.traction[1].x, B.traction[2].x,
+	   B->traction[0].x, B->traction[1].x, B->traction[2].x,
 	               x.y,          xdot.y,         xddot.y, 
-	   B.traction[0].y, B.traction[1].y, B.traction[2].y);
+	   B->traction[0].y, B->traction[1].y, B->traction[2].y);
   S << s;
 
   return S;
@@ -391,8 +390,8 @@ void SMD::move (const integer step)
 
   // -- Maintain motion state variable FIFO storage.
   
-  roll (x,    Jmax);    x[0] = pos;
-  roll (xdot, Jmax); xdot[0] = vel;
+  rollv (x,    Jmax);    x[0] = pos;
+  rollv (xdot, Jmax); xdot[0] = vel;
 }
 
 
@@ -404,12 +403,12 @@ void SMD::force (const real F)
 // F is the tractive force on this axis at end of current time step.
 // ---------------------------------------------------------------------------
 {
-  const real    m = Femlib::value (mass);
-  const real    w = Femlib::value ("TWOPI") * Femlib::value (natf);
-  const real    z = Femlib::value (zeta);
+  const real    m    = Femlib::value (mass);
+  const real    w    = Femlib::value ("TWOPI") * Femlib::value (natf);
+  const real    z    = Femlib::value (zeta);
   const integer Jmax = (integer) Femlib::value ("N_TIME");
 
-  roll (f, Jmax);
+  rollv (f, Jmax);
   f[0] = F / m;
 
   acc = f[0] - 2.0 * z * w * vel - sqr (w) * pos;

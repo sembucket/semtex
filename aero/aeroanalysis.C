@@ -1,17 +1,16 @@
 ///////////////////////////////////////////////////////////////////////////////
 // aeroanalysis.C: implement AeroAnalyser class,
 // an extension to Analyser class.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <aero.h>
 
 
-AeroAnalyser::AeroAnalyser (Domain& D   ,
-			    FEML&   feml,
-			    Body&   B   ) : Analyser (D, feml), body (B)
+AeroAnalyser::AeroAnalyser (Domain* D   ,
+			    FEML*   feml,
+			    Body*   B   ) : Analyser (D, feml), body (B)
 // ---------------------------------------------------------------------------
 // Extensions to Analyser class.
 //
@@ -25,7 +24,7 @@ AeroAnalyser::AeroAnalyser (Domain& D   ,
 
     // -- Open state-variable file.
 
-    sta_strm.open (strcat (strcpy (str, src.name), ".sta"));
+    sta_strm.open (strcat (strcpy (str, src -> name), ".sta"));
 
     if (!sta_strm) message (routine, "can't open state file", ERROR);
 
@@ -36,7 +35,7 @@ AeroAnalyser::AeroAnalyser (Domain& D   ,
 #if defined(FORCES)
     // -- Open force file.
 
-    for_strm.open (strcat (strcpy (str, src.name), ".for"));
+    for_strm.open (strcat (strcpy (str, src -> name), ".for"));
 
     if (!for_strm) message (routine, "can't open force file", ERROR);
 
@@ -48,7 +47,7 @@ AeroAnalyser::AeroAnalyser (Domain& D   ,
 }
 
 
-void AeroAnalyser::analyse (AuxField*** work)
+void AeroAnalyser::analyse (AuxField** work)
 // ---------------------------------------------------------------------------
 // Step-by-step processing.
 // ---------------------------------------------------------------------------
@@ -56,21 +55,21 @@ void AeroAnalyser::analyse (AuxField*** work)
   Analyser::analyse (work);
 
   ROOTONLY {
-    const integer periodic = !(src.step % (integer)Femlib::value ("IO_HIS")) ||
-                             !(src.step % (integer)Femlib::value ("IO_FLD"));
-    const integer final    =   src.step ==(integer)Femlib::value ("N_STEP");
+    const integer periodic = !(src->step% (integer)Femlib::value ("IO_HIS")) ||
+                             !(src->step% (integer)Femlib::value ("IO_FLD"));
+    const integer final    =   src->step==(integer)Femlib::value ("N_STEP");
     const integer state    = periodic || final;
 
     if (!state) return;
 
-    sta_strm << src.step << " " << src.time << body << endl;
+    sta_strm << src -> step << " " << src -> time << body << endl;
   }
 
 #if defined(FORCES)
   const integer forstep = (integer) Femlib::value ("IO_HIS");
 
-  if (forstep && !(src.step % forstep) && Geometry::nDim() == 3) forceDist();
-#endif
+  if (forstep && !(src->step % forstep) && Geometry::nDim() == 3) forceDist();
+#endif 
 }
 
 
@@ -84,7 +83,7 @@ void AeroAnalyser::forceDist ()
   const integer    nZ     = Geometry::nZ();
   const integer    nProc  = Geometry::nProc();
   const integer    nZProc = Geometry::nZProc();
-  Field*           master = src.u[0];
+  Field*           master = src -> u[0];
   vector<real>     work (5 * nZProc);
   register real    *px = work(),
                    *py = px + nZProc,
@@ -95,8 +94,8 @@ void AeroAnalyser::forceDist ()
   // -- Fill local copy of force data.
 
   Veclib::zero (5 * nZProc, px, 1);
-  master -> normTractionV (px, py,     src.u[3]);
-  master -> tangTractionV (vx, vy, vz, src.u[0], src.u[1], src.u[2]);
+  master -> normTractionV (px, py,     src -> u[3]);
+  master -> tangTractionV (vx, vy, vz, src -> u[0], src -> u[1], src -> u[2]);
   Veclib::vadd (nZProc, vx, 1, px, 1, vx, 1);
   Veclib::vadd (nZProc, vy, 1, py, 1, vy, 1);
 
@@ -129,7 +128,7 @@ void AeroAnalyser::forceDist ()
       Femlib::DFTr (x, nZ, 4, -1);
 
       for (k = 0; k < nZ; k++)
-	for_strm << setw(10) << src.time 
+	for_strm << setw(10) << src -> time 
 		 << setw(15) << k * dz
 		 << setw(15) << x[4 * k]
 		 << setw(15) << y[4 * k]
@@ -157,7 +156,7 @@ void AeroAnalyser::forceDist ()
     Femlib::DFTr (x, nZ, 4, -1);
 
     for (k = 0; k < nZ; k++)
-      for_strm << setw(10) << src.time 
+      for_strm << setw(10) << src -> time 
 	       << setw(15) << k * dz
 	       << setw(15) << x[4 * k]
 	       << setw(15) << y[4 * k]

@@ -28,11 +28,10 @@
 // P.O. Box 56
 // Highett, Vic 3190
 // Australia
-// hmb@dbce.csiro.au
+// hugh.blackburn@dbce.csiro.au
+//
+// $Id$
 //////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <aero.h>
 #include <new.h>
@@ -40,7 +39,8 @@ RCSid[] = "$Id$";
 static char prog[] = "aero";
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, char*&);
-
+static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
+			BCmgr*&, BoundarySys*&, Domain*&);
 
 int main (int    argc,
 	  char** argv)
@@ -53,41 +53,33 @@ int main (int    argc,
   ios::sync_with_stdio ();
 #endif
 
-  char          *session, fields[StrMax];
-  integer       np, nz, nel;
-  FEML*         F;
-  Mesh*         M;
-  BCmgr*        B;
-  Domain*       D;
-  AeroAnalyser* A;
-  Body*         BD = 0;
+
+  char*            session;
+  vector<Element*> elmt;
+  FEML*            file;
+  Mesh*            mesh;
+  BCmgr*           bman;
+  BoundarySys*     bsys;
+  Domain*          domain;
+  AeroAnalyser*    analyst;
+  Body*            body = 0;
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session);
 
-  F = new FEML  (session);
-  M = new Mesh  (*F);
-  B = new BCmgr (*F);
+  preprocess (session, file, mesh, elmt, bman, bsys, domain);
 
-  nel = M -> nEl();  
-  np  = (integer) Femlib::value ("N_POLY");
-  nz  = (integer) Femlib::value ("N_Z"   );
-  
-  Geometry::set (np, nz, nel, Geometry::Cartesian);
-  if   (nz > 1) strcpy (fields, "uvwp");
-  else          strcpy (fields, "uvp");
+  ROOTONLY body = new Body (session);
 
-  D  = new Domain (*F, *M, *B, fields, session);
-  ROOTONLY BD = new Body (session);
+  domain -> restart();
 
-  D -> initialize();
-  ROOTONLY D  -> report();
+  ROOTONLY domain  -> report();
 
-  ROOTONLY BD -> force (*D);
+  ROOTONLY body -> force (domain);
 
-  A = new AeroAnalyser (*D, *F, *BD);
+  analyst = new AeroAnalyser (domain, file, body);
 
-  NavierStokes (D, BD, A);
+  NavierStokes (domain, body, analyst);
 
   Femlib::finalize();
   return EXIT_SUCCESS;
@@ -145,4 +137,73 @@ static void getargs (int    argc   ,
 
   if   (argc != 1) message (prog, "no session definition file", ERROR);
   else             session = *argv;  
+}
+
+
+static void preprocess (const char*       session,
+			FEML*&            file   ,
+			Mesh*&            mesh   ,
+			vector<Element*>& elmt   ,
+			BCmgr*&           bman   ,
+			BoundarySys*&     bsys   ,
+			Domain*&          domain )
+// ---------------------------------------------------------------------------
+// Create objects needed for execution, given the session file name.
+// They are listed in order of creation.
+// ---------------------------------------------------------------------------
+{
+  const integer      verbose = (integer) Femlib::value ("VERBOSE");
+  Geometry::CoordSys space;
+  const real*        z;
+  integer            i, np, nz, nel;
+
+  // -- Initialise problem and set up mesh geometry.
+
+  VERBOSE cout << "Building mesh ..." << endl;
+
+  file = new FEML (session);
+  mesh = new Mesh (file);
+
+  VERBOSE cout << "done" << endl;
+
+  // -- Set up global geometry variables.
+
+  VERBOSE cout << "Setting geometry ... ";
+
+  nel   = mesh -> nEl();
+  np    =  (integer) Femlib::value ("N_POLY");
+  nz    =  (integer) Femlib::value ("N_Z");
+  space = ((integer) Femlib::value ("CYLINDRICAL")) ? 
+    Geometry::Cylindrical : Geometry::Cartesian;
+  
+  Geometry::set (np, nz, nel, space);
+
+  VERBOSE cout << "done" << endl;
+
+  // -- Build all the elements.
+
+  VERBOSE cout << "Building elements ... ";
+
+  Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
+
+  elmt.setSize (nel);
+  for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
+
+  VERBOSE cout << "done" << endl;
+
+  // -- Build all the boundary condition applicators.
+
+  VERBOSE cout << "Building boundary condition manager ..." << endl;
+
+  bman = new BCmgr (file, elmt);
+
+  VERBOSE cout << "done" << endl;
+
+  // -- Build the solution domain.
+
+  VERBOSE cout << "Building domain ..." << endl;
+
+  domain = new Domain (file, elmt, bman);
+
+  VERBOSE cout << "done" << endl;
 }
