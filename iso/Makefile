@@ -87,26 +87,23 @@ IC3: $(IC3OBJ) $(IC3CHK) $(HEADER)
 TESTOBJ = allocate.o io.o energy.o misc.o FFT.o random.c DFT_chk.o
 
 DFT: $(TESTOBJ) $(HEADER)
-	$(CC) -o DFT_chk $(TESTOBJ) $(LDFLAGS)
+	$(CC) -o dft_chk $(TESTOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Divergence-checking diagnostic.
-CHKOBJ = allocate.o io.o derivative.o energy.o FFT.o misc.c div_chk.o
+CHKOBJ = allocate.o io.o derivative.o energy.o FFT.o misc.o div_chk.o
 
 div_chk: $(CHKOBJ) $(HEADER)
-	$(CC) -o $@ $(CHKOBJ) $(LDFLAGS)
+	$(CC) -o div_chk $(CHKOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Convert field file to tecplot format, with vorticity too.
 TECOBJ = allocate.o io.o energy.o derivative.o misc.o FFT.o iso2tec.o
 
 iso2tec: $(TECOBJ) $(HEADER)
-	$(LD) $(CFLAGS) -o $@ $(TECOBJ) $(LDFLAGS)
+	$(LD) $(CFLAGS) -o iso2tec $(TECOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Clean up.
 clean:
 	rm -f *.o *.u *~
-
-
-
