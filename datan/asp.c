@@ -72,6 +72,7 @@ int main (int argc, char *argv[])
   int       npts, navg, blocksize, blocksize_4, blocksize_2;
   real      mean, meanhat, samprate, Wss, variance;
   int       demean, overlap, verbose, starter;
+  const int DP = (sizeof (real) == sizeof (double) ) ? 1 : 0;
 
   blocksize  = 512;
   samprate   = 1.0;
@@ -87,7 +88,7 @@ int main (int argc, char *argv[])
   getargs (argc, argv, &session,
 	   &blocksize, &samprate, window, &demean, &overlap, &verbose);
 
-  fp_in = (session) ? fopen(session, "r") : stdin;
+  fp_in = (session) ? fopen (session, "r") : stdin;
 
   blocksize_2 = blocksize >> 1;
   blocksize_4 = blocksize >> 2;
@@ -104,8 +105,10 @@ int main (int argc, char *argv[])
 
   if (overlap) {         /* -- Do a startup half-read for overlap averaging. */
     for (i = 0; i < blocksize_4; i++) {
-      if (fscanf (fp_in, "%lf %lf", &inbuf[i].Re, &inbuf[i].Im) != 2)
-	break;
+      if (DP) 
+	if (fscanf (fp_in, "%lf %lf", &inbuf[i].Re, &inbuf[i].Im) != 2) break;
+      else
+	if (fscanf (fp_in, "%f %f",   &inbuf[i].Re, &inbuf[i].Im) != 2) break;
     }
     if (i != blocksize_4)
       message ("asp", " insufficient data", ERROR);
@@ -116,7 +119,11 @@ int main (int argc, char *argv[])
       for (i = 0, mean = 0.0; i < blocksize_4; i++) {
 	k = i + blocksize_4;
 	workspace[i] = inbuf[i];
+	if (DP)
 	if (fscanf (fp_in, "%lf %lf", &workspace[k].Re, &workspace[k].Im) != 2)
+	  break;
+	else
+	if (fscanf (fp_in, "%f %f",   &workspace[k].Re, &workspace[k].Im) != 2)
 	  break;
 	mean += workspace[i].Re + workspace[i].Im +
 	        workspace[k].Re + workspace[k].Im;
@@ -126,8 +133,13 @@ int main (int argc, char *argv[])
 	message("asp", " insufficient data", ERROR);
     } else {
       for (i = 0, mean = 0.0; i < blocksize_2; i++) {
-	if (fscanf (fp_in, "%lf %lf", &workspace[i].Re, &workspace[i].Im) != 2)
+	if (DP)
+	if (fscanf (fp_in, "%lf %lf", &workspace[k].Re, &workspace[k].Im) != 2)
 	  break;
+	else
+	if (fscanf (fp_in, "%f %f",   &workspace[k].Re, &workspace[k].Im) != 2)
+	  break;
+
 	mean += workspace[i].Re + workspace[i].Im;
 	npts += 2;
       }
@@ -146,7 +158,7 @@ int main (int argc, char *argv[])
     if (!strstr (window, "none"))
       datawindow (workspace, windowmask, window, blocksize_2);
     rcFFT (workspace, blocksize_2, Wtab, blocksize_2, 1);
-    sum (workspace, autobuf, blocksize_2);
+    sum   (workspace, autobuf, blocksize_2);
     navg++;
   }
 
