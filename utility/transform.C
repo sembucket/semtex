@@ -114,16 +114,58 @@ Field2DF& Field2DF::DLT2D (const integer sign)
 // Carry out 2D discrete Legendre transform (element-by-element) on planes.
 // ---------------------------------------------------------------------------
 {
-  register integer i, k, offset;
+  register integer p, q, pq, r, s, rs;
+  register real    cr, cs, P, Q;
+  integer          i, k, offset;
   vector<real>     work (np2);
-  real             *p, *tmp = work();
+  real             *pk, *src, *tmp = work();
+  const real       *w, *legtab;
 
-  for (k = 0; k < nz; k++) {
-    p = plane[k];
-    for (i = 0, offset = 0; i < nel; i++, offset += np2) {
-      if   (sign == 1) Femlib::DLT2D (np,  p + offset, tmp);
-      else             Femlib::DLT2I (np,  p + offset, tmp);
-      Veclib::copy  (np2, tmp, 1, p + offset, 1);
+  Femlib::legCoef (np, &legtab);
+  Femlib::quad    (LL, np, np, 0, 0, &w, 0, 0, 0, 0);
+
+  if (sign == 1) {		// -- Forward transform.
+    for (k = 0; k < nz; k++) {
+      pk = plane[k];
+      for (i = 0, offset = 0; i < nel; i++, offset += np2) {
+	src = pk + offset;
+	Veclib::zero (np2, tmp, 1);
+	for (rs = 0, r = 0; r < np; r++) {
+	  cr = legtab[Veclib::row_major (np, r, np)];
+	  for (s = 0; s < np; s++, rs++) {
+	    cs = legtab[Veclib::row_major (np, s, np)];
+	    for (pq = 0, p = 0; p < np; p++) {
+	      P = legtab[Veclib::row_major (r, p, np)];
+	      for (q = 0; q < np; q++, pq++) {
+		Q = legtab[Veclib::row_major (s, q, np)];
+		tmp[rs] += w[p] * w[q] * P * Q * src[pq];
+	      }
+	    }
+	    tmp[rs] *= cr * cs;
+	  }
+	}
+	Veclib::copy (np2, tmp, 1, src, 1);
+      }
+    }
+  } else {			// -- Inverse transform.
+    for (k = 0; k < nz; k++) {
+      pk = plane[k];
+      for (i = 0, offset = 0; i < nel; i++, offset += np2) {
+	src = pk + offset;
+	Veclib::zero (np2, tmp, 1);
+	for (rs = 0, r = 0; r < np; r++) {
+	  for (s = 0; s < np; s++, rs++) {
+	    for (pq = 0, p = 0; p < np; p++) {
+	      P = legtab[Veclib::row_major (p, r, np)];
+	      for (q = 0; q < np; q++, pq++) {
+		Q = legtab[Veclib::row_major (q, s, np)];
+		tmp[rs] += P * Q * src[pq];
+	      }
+	    }
+	  }
+	}
+	Veclib::copy (np2, tmp, 1, src, 1);
+      }
     }
   }
 
