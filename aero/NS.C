@@ -110,7 +110,7 @@ void NavierStokes (Domain*       D,
 
     PBCmgr::maintain (D -> step, Pressure,
 		      (const AuxField**)Us[0],
-		      (const AuxField**)Uf[0]);
+		      (const AuxField**)Uf[0], 0);
     ROOTONLY PBCmgr::accelerate (a, D -> u[0]);
 
     Pressure -> evaluateBoundaries (D -> step);
