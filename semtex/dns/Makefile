@@ -188,7 +188,7 @@ endif
 # -----------------------------------------------------------------------------
 #
 clean:
-	rm -f *.o *~
+	rm -f *.o *~ *.ti
 	rm -rf ILDUMPS
 	rm -rf ii_files
 	rm -rf ptrepository
