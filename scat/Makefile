@@ -97,9 +97,12 @@ SEMHDR    = Sem.h
 # Default build for Navier-Stokes solver.
 NS_OBJ = drive.o NS.o
 
-buoy:	$(SEMOBJ) $(NS_OBJ) 
-	cd ../src; $(MAKE)
+buoy:	sem $(SEMOBJ) $(NS_OBJ) 
 	$(LD) -o $@ $(NS_OBJ) $(SEMOBJ) $(LDFLAGS)
+
+#-----------------------------------------------------------------------------
+sem:
+        cd $(VPATH); gmake install
 
 # ----------------------------------------------------------------------------
 #

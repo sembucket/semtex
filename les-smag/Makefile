@@ -23,7 +23,7 @@ CPPFLAGS = -I. -I$(SEM)/include
 ifeq ($(ARCH),IRIX)		# -- SGI 32-bit systems.
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = $(DEFINES) -fullwarn -g
+CXXFLAGS = $(DEFINES) -fullwarn -O2
 F77LIBS	 = -lcomplib.sgimath -lftn
 LDFLAGS  = -L$(SEM)/lib/$(ARCH) -lfem -lalp \
 	   $(F77LIBS) -lmalloc -lm
@@ -94,9 +94,12 @@ SEMHDR    = Sem.h
 # Default build for Navier-Stokes solver.
 LESOBJ = drive.o NS.o eddyvis.o
 
-les:	$(SEMOBJ) $(LESOBJ) 
-	cd ../src; $(MAKE)
+les:	sem $(SEMOBJ) $(LESOBJ) 
 	$(LD) -o $@ $(LESOBJ) $(SEMOBJ) $(LDFLAGS)
+
+#-----------------------------------------------------------------------------
+sem:
+        cd $(VPATH); gmake install
 
 # ----------------------------------------------------------------------------
 #

@@ -100,9 +100,12 @@ SEMHDR    = Sem.h
 NS_OBJ = drive.o NS.o aeroanalysis.o body.o
 NS_HDR = aero.h
 
-aero:	$(SEMOBJ) $(NS_OBJ) 
-	cd ../src; $(MAKE)
+aero:	sem $(SEMOBJ) $(NS_OBJ) 
 	$(LD) -o $@ $(NS_OBJ) $(SEMOBJ) $(LDFLAGS)
+
+#-----------------------------------------------------------------------------
+sem:
+        cd $(VPATH); gmake install
 
 # ----------------------------------------------------------------------------
 #
