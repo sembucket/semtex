@@ -93,7 +93,6 @@ void nonlinear (/* input     */  CVF             U   ,
     b1 = N - k1;
 
     f = F[k1][ 0]; g = G[1][k1][ 0]; PEQ (g,  k1, f);
-    f = F[b1][ 0]; g = G[1][b1][ 0]; PEQ (g, -k1, f);
 
     for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
 
@@ -132,7 +131,6 @@ void nonlinear (/* input     */  CVF             U   ,
     b1 = N - k1;
 
     f = F[ 0][k1]; g = G[2][ 0][k1]; PEQ (g,  k1, f);
-    f = F[ 0][b1]; g = G[2][ 0][b1]; PEQ (g, -k1, f);
 
     for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
 
@@ -208,9 +206,7 @@ void nonlinear (/* input     */  CVF             U   ,
     b1 = N - k1;
 
     f = F[k1][ 0]; g = G[2][k1][ 0]; PEQ (g,  k1, f);
-    f = F[b1][ 0]; g = G[2][b1][ 0]; PEQ (g, -k1, f);
     f = F[ 0][k1]; g = G[1][ 0][k1]; PEQ (g,  k1, f);
-    f = F[ 0][b1]; g = G[1][ 0][b1]; PEQ (g, -k1, f);
 
     for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
 
@@ -259,9 +255,7 @@ void nonlinear (/* input     */  CVF             U   ,
 
     b1 = N - k1;
 
-    f = F[ 0][k1]; g = G[3][ 0][k1]; PEQ (g,  k1, f);
-    f = F[ 0][b1]; g = G[3][ 0][b1]; PEQ (g, -k1, f);
-
+    f = F[ 0][k1];    g = G[3][ 0][k1];    PEQ (g,  k1, f);
     f = F[ 0][ 0]+k1; g = G[2][ 0][ 0]+k1; PEQ (g,  k1, f);
 
     for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
@@ -308,7 +302,6 @@ void nonlinear (/* input     */  CVF             U   ,
     b1 = N - k1;
 
     f = F[k1][ 0];    g = G[3][k1][ 0];    PEQ (g,  k1, f);
-    f = F[b1][ 0];    g = G[3][b1][ 0];    PEQ (g, -k1, f); 
     f = F[ 0][ 0]+k1; g = G[1][ 0][ 0]+k1; PEQ (g,  k1, f);
 
     for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
