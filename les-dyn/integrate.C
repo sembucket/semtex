@@ -120,7 +120,7 @@ void integrate (Domain*        D,
     D -> time += dt;
     Femlib::value ("t", D -> time);
 
-#if 1
+#if 0
 
     for (i = 0; i < NDIM; i++) {
       lowpass (D -> udat[i]);
