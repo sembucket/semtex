@@ -24,6 +24,8 @@
  * a library of spectral routines written in FORTRAN by Einar Ronquist, MIT.
  * Many of the formulae used may be found in Canuto, Hussaini, Quarteroni &
  * Zang, "Spectral Methods in Fluid Dynamics", Springer, 1988.
+ * The jacobf routine comes from Funaro, as that has been verified to work
+ * also for alpha, beta != 0.0, 0.5.
  *
  * Everything here is double precision.
  *
@@ -191,16 +193,16 @@ void intmat_g (const integer K   ,
 }  
 
 
-static void jacobf (const integer n     ,
-		    const double  x     ,
-		    const double  alpha ,
-		    const double  beta  ,
-		    double*       poly  ,
-		    double*       pder  ,
-		    double*       polym1,
-		    double*       pderm1,
-		    double*       polym2,
-		    double*       pderm2)
+void jacobf (const integer n     ,
+	     const double  x     ,
+	     const double  alpha ,
+	     const double  beta  ,
+	     double*       poly  ,
+	     double*       pder  ,
+	     double*       polym1,
+	     double*       pderm1,
+	     double*       polym2,
+	     double*       pderm2)
 /* ------------------------------------------------------------------------- *
  * Computes the Jacobi polynomial (poly) of degree n, and its derivative
  * (pder), at location x.  Values for lower degree are also returned.
@@ -213,50 +215,51 @@ static void jacobf (const integer n     ,
  *                                   alpha = beta = -0.5 <==> G-L-Chebyshev.
  *
  * References:
- *   LIBRARY ROUTINES FOR SPECTRAL METHODS, Einar Ronquist, 1988.
- *   Canuto et al.,  "Spectral Methods in Fluid Dynamics".  1988. App C.
+ *   "FORTRAN Routines for Spectral Methods", D. Funaro, 1993
  * ------------------------------------------------------------------------- */
 {
-  register integer k;
-  register double  apb, a1, a2, a3, a4, b3, dk, kk, aambb;
-  register double  polylst, pderlst, polyn, pdern, psave, pdsave;
+  register integer i;
+  register double  y, ym, yp, dy, dym, dyp, ys, dys, apb;
+  register double  di, c0, c1, c2, c3, c4;
 
-  *poly = 1.0;
-  *pder = 0.0;
+  *poly = y  = 1.0;
+  *pder = dy = 0.0;
+  if (n == 0) return;
 
-  if (n < 1)  return;
-
-  apb     = alpha + beta;
-  aambb   = SQR(alpha) - SQR(beta);
-  polylst = *poly;
-  pderlst = *pder;
-  *poly   = 0.5*(alpha-beta+(apb+2.0)*x);
-  *pder   = 0.5*(apb+2.0);
-
+  apb  = alpha + beta;
+  *polym1 = y;
+  *pderm1 = dy;
+  *poly = y  = 0.5 * (apb + 2.0) * x + 0.5 * (alpha - beta);
+  *pder = dy = 0.5 * (apb + 2.0);
   if (n == 1) return;
 
-  for (k = 2; k <= n; k++) {
-    dk      = (double) k;
-    kk      = (double) (k << 1);
-    a1      = kk * (dk + apb) * (kk + apb - 2.0);
-    a2      = (kk + apb - 1.0) * aambb;
-    b3      = (kk + apb - 2.0);
-    a3      = b3 * (b3 + 1.0) * (b3 + 2.0);
-    a4      = 2.0 * (dk + alpha - 1.0) * (dk + beta - 1.0) * (kk + apb);
-    polyn   = ((a2 + a3*x)*(*poly) - a4*polylst) / a1;
-    pdern   = ((a2 + a3*x)*(*pder) - a4*pderlst + a3*(*poly)) / a1;
-    psave   = polylst;
-    pdsave  = pderlst;
-    polylst = *poly;
-    *poly   = polyn;
-    pderlst = *pder;
-    *pder   = pdern;
+  yp   = 1.0;
+  dyp  = 0.0;
+  for (i=2; i <= n; i++) {
+    di  = (double)(i);
+
+    c0  = 2.0 * di + apb;
+    c1  = 2.0 * di * (di + apb) * (c0 - 2.0);
+    c2  = (c0 - 1.0) * (c0 - 2.0) * c0;
+    c3  = (c0 - 1.0) * (alpha - beta) * apb;
+    c4  = 2.0 * (di + alpha - 1.0) * c0 * (di + beta - 1.0);
+    
+    ys  = yp;
+    dys = dyp;
+    ym  = y;
+    y   = ( (c2 * x + c3) * y - c4 * yp) / c1;
+    yp  = ym;
+    dym = dy;
+    dy  = ( (c2 * x + c3) * dy - c4 * dyp + c2 * yp) / c1;
+    dyp = dym;
   }
 
-  *polym1 = polylst;
-  *pderm1 = pderlst;
-  *polym2 = psave;
-  *pderm2 = pdsave;
+  *poly   = y;
+  *pder   = dy;
+  *polym1 = yp;
+  *pderm1 = dyp;
+  *polym2 = ys;
+  *pderm2 = dys;
 }
 
 
