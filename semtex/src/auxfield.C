@@ -784,7 +784,8 @@ AuxField& AuxField::transform (const integer sign)
 // ---------------------------------------------------------------------------
 // Discrete Fourier transform in homogeneous direction.  Number of
 // points in that direction must be even, but is otherwise
-// unrestricted.  Use sign = 1 for forward transform, INVERSE for inverse.
+// unrestricted.  Use sign = FROWARD for forward transform, INVERSE
+// for inverse.
 //
 // Normalization is carried out on forward transform, so that the zeroth
 // mode's real data are the average over the homogeneous direction of the
@@ -808,9 +809,9 @@ AuxField& AuxField::transform (const integer sign)
 	Femlib::DFTr  (_data, nzt, nP, sign);
 
   } else {
-    Femlib::exchange (_data, _nz,  nP,   FORWARD);
+    Femlib::exchange (_data, _nz,  nP, FORWARD);
     Femlib::DFTr     (_data, nzt, nPP, sign);
-    Femlib::exchange (_data, _nz,  nP,   INVERSE);
+    Femlib::exchange (_data, _nz,  nP, INVERSE);
 
   }
 

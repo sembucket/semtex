@@ -244,5 +244,5 @@ sem:
 # Clean up.
 #
 clean:
-	rm -f *.o *.O *.a *~ *.ti
+	rm -f *.o *.O *.a *~ *.ti SunWS_cache
 	rm -rf ILDUMPS ii_files ptrepository
