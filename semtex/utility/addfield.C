@@ -372,7 +372,7 @@ int main (int    argc,
 	*vorticity[1]  = *Vij[0][2];
 	*vorticity[1] -= *Vij[2][0];
 	*vorticity[2]  = *Vij[1][0];
-	*vorticity[2] -= *Vij[0][1];
+ 	*vorticity[2] -= *Vij[0][1];
       }
     }
     

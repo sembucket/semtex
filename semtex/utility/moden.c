@@ -10,7 +10,7 @@
  * moden [-h] [-m <mode>] [-z] [input[.fld]
  *
  * -m nominates mode to select [Default: 0]
- * -z forces mode zero to be delt with as complex.
+ * -z forces mode zero to be dealt with as complex.
  *
  * $Id$
  *****************************************************************************/
@@ -110,8 +110,8 @@ int main (int    argc,
     nptsEven   = nz * nplaneEven;
     ntot       = nfields * nptsEven;
 
-    data   = dmatrix (0, nfields - 1, 0, nptsEven - 1);
-    plane  = dvector (0, nplane - 1);
+    data  = dmatrix (0, nfields - 1, 0, nptsEven - 1);
+    plane = dvector (0, nplane - 1);
     
     /* -- Read in all data fields. */
 

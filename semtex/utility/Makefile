@@ -125,6 +125,12 @@ transform: transform.C
 	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
+# Build conjugate, which takes complex conjugate of Fourier data.
+#
+conjugate: conjugate.C
+	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
 # Build interp, field dump interpolator.
 #
 INTOBJ = interp.o feml.o mesh.o element.o auxfield.o geometry.o
