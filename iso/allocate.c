@@ -1,7 +1,7 @@
 /*****************************************************************************
  * allocate.c: make storage for user-defined types.
  *
- * $Id$
+ * : allocate.c,v 2.1 1995/11/08 00:42:04 hmb Exp $
  *****************************************************************************/
 
 #include "iso.h"
@@ -14,7 +14,7 @@ int*  ivector (int lo, int hi)
 {
   int* v;
   
-  v = (int*) malloc ((unsigned)(hi-lo+1) * sizeof (int));
+  v = (int*) calloc (hi-lo+1, sizeof (int));
   if (!v) message ("ivector", "allocation failure", ERROR);
   return v - lo;
 }
@@ -27,7 +27,7 @@ complex*  cvector (int lo, int hi)
 {
   complex* v;
   
-  v = (complex*) malloc((unsigned)(hi-lo+1) * sizeof (complex));
+  v = (complex*) calloc (hi-lo+1, sizeof (complex));
   if (!v) message ("cvector", "allocation failure", ERROR);
   return v-lo;
 }
@@ -50,17 +50,17 @@ real*  cbox (int ilo, int ihi, int jlo, int jhi, int klo, int khi, CF *c)
 
   /* -- Allocate contiguous storage. */
   head = (complex*)
-   malloc((unsigned)(ihi-ilo+1)*(jhi-jlo+1)*(khi-klo+1)*sizeof(complex));
+   calloc ((ihi-ilo+1)*(jhi-jlo+1)*(khi-klo+1), sizeof (complex));
   if (!head) message (routine, "contiguous allocation failure", ERROR);
   
   /* -- Allocate pointers to i-direction. */
-  *c = (complex ***) malloc((unsigned)(ihi-ilo+1)*sizeof(complex **));
+  *c = (complex ***) calloc (ihi-ilo+1, sizeof (complex **));
   if (!*c) message (routine, "allocation failure 1", ERROR);
   *c -= ilo;
 
   /* -- Allocate pointers to j-direction. */
   for (i = ilo; i <= ihi; i++) {
-    *(*c + i) = (complex**) malloc ((unsigned)(jhi-jlo+1)*sizeof(complex *));
+    *(*c + i) = (complex**) calloc (jhi-jlo+1, sizeof (complex *));
     if (!(*(*c + i)))  message (routine, "allocation failure 2", ERROR);
     *(*c + i) -= jlo;
   }
@@ -90,11 +90,11 @@ real**  cfield (int* Dim, CVF* u)
   char    routine[] = "cfield";
   real**  h;
 
-  *u = (CVF) malloc (3 * sizeof (CF));
+  *u = (CVF) calloc (3, sizeof (CF));
   if (!u) message (routine, "unable to allocate complex vector field", ERROR);
   *u -= 1;   /* indices are [1..3] */
 
-  h = (real**) malloc (3 * sizeof (real *));
+  h = (real**) calloc (3, sizeof (real *));
   if (!h) message (routine, "unable to allocate component handles", ERROR);
   h -= 1;
 
@@ -106,15 +106,15 @@ real**  cfield (int* Dim, CVF* u)
 }
 
 
-void allocate (CVF*          V    ,
-	       CVF*          G    ,
-	       CVF*          G_old,
-	       CVF*          WK   ,
-	       CF*           F    ,
-	       CF*           F_   ,
-	       complex**     Wtab ,
-	       complex**     Stab ,
-	       int*          Dim  )
+void allocate (CVF*       V    ,
+	       CVF*       G    ,
+	       CVF*       G_old,
+	       CVF*       WK   ,
+	       CF*        F    ,
+	       CF*        F_   ,
+	       complex**  Wtab ,
+	       complex**  Stab ,
+	       int*       Dim  )
 /* ------------------------------------------------------------------------- *
  * Use the above routines to get main storage for problem.
  * ------------------------------------------------------------------------- */
@@ -128,7 +128,4 @@ void allocate (CVF*          V    ,
   cbox (0, Dim[1]-1, 0, Dim[2]-1, 0, Dim[3]-1, F_);
   *Wtab = cvector (0, Dim[3]-1);
   *Stab = cvector (-(Dim[1]-1), Dim[1]-1);
-  
-  zeroVF (*G, Dim);
-  zeroVF (*G_old, Dim);
 }
