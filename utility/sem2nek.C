@@ -41,6 +41,7 @@ integer main (integer argc,
   ifstream  file;
   char*     session;
 
+  Femlib::initialize (&argc, &argv);
   getArgs (argc, argv, session);
 
   FEML feml (session);
@@ -51,6 +52,7 @@ integer main (integer argc,
   M.printNek();
   printTail ();
 
+  Femlib::finalize();
   return EXIT_SUCCESS;
 }
 

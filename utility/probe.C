@@ -69,9 +69,9 @@ integer main (integer argc,
 
   // -- Initialize.
 
-  set_new_handler (&memExhaust);
-  Femlib::prep    ();
-  getargs         (argc, argv, session, dump, points);
+  set_new_handler    (&memExhaust);
+  Femlib::initialize (&argc, &argv);
+  getargs            (argc, argv, session, dump, points);
 
   fldfile.open (dump, ios::in);
   if (!fldfile) message (prog, "no field file", ERROR);
@@ -126,6 +126,7 @@ integer main (integer argc,
       }
   }
   
+  Femlib::finalize();
   return EXIT_SUCCESS;
 }
 

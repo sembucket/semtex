@@ -31,8 +31,7 @@ integer main (integer argc,
   char     buf[StrMax];
   ifstream file;
 
-  Femlib::prep ();
-
+  Femlib::initialize (&argc, &argv);
   getargs (argc, argv, file);
 
   while (file.getline (buf, FILENAME_MAX))
@@ -40,7 +39,8 @@ integer main (integer argc,
       Femlib::value (buf);
     else
       cout << setprecision(17) << Femlib::value (buf) << endl;
-
+  
+  Femlib::finalize();
   return EXIT_SUCCESS;
 }
 
