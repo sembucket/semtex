@@ -823,7 +823,7 @@ int Mesh::buildMap (const int np ,
       S -> gID.resize (ni);      
       S -> startNode -> gID = UNSET;
       S -> endNode   -> gID = UNSET;
-      if (ni) S -> gID.assign (S -> gID.size(), UNSET);
+      if (ni) Veclib::fill (ni, UNSET, &S -> gID[0], 1);
     }
   }
 
@@ -1161,7 +1161,7 @@ void Mesh::buildMask (const int  np  ,
       S -> gID.resize (ni);      
       S -> startNode -> gID = 0;
       S -> endNode   -> gID = 0;
-      if (ni) S -> gID.assign (S -> gID.size(), 0);
+      if (ni) Veclib::fill (ni, 0, &S -> gID[0], 1);
     }
   }
 
@@ -1178,7 +1178,7 @@ void Mesh::buildMask (const int  np  ,
 	     matchBC (S -> group, tolower (fld), 'A'))) {
 	  S -> startNode -> gID = 1;
 	  S -> endNode   -> gID = 1;
-	  if (ni) S -> gID.assign(S -> gID.size(), 1);
+	  if (ni) Veclib::fill (ni, 1, &S -> gID[0], 1);
 	  if (S -> startNode -> periodic) S -> startNode -> periodic -> gID =1;
 	  if (S -> endNode   -> periodic) S -> endNode   -> periodic -> gID =1;
 	}
