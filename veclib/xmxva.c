@@ -22,7 +22,7 @@
 
 #include <stdio.h>
 #include <femdef.h>
-#include <veclib.h>
+#include <cveclib>
 
 #if defined(__uxp__)
 #pragma global novrec

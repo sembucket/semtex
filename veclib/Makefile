@@ -69,23 +69,23 @@ install:
 		mkdir   $(SEM)/lib          ;               fi;     \
 	if test ! -d    $(SEM)/lib/$(ARCH)  ;               then    \
 		mkdir   $(SEM)/lib/$(ARCH)  ;               fi;     \
-	if test -r      $(LIB)                  ;               then    \
+	if test -r      $(LIB)              ;               then    \
 		rm -f   $(SEM)/lib/$(ARCH)/$(LIB)   ;               \
 		cp $(LIB) $(SEM)/lib/$(ARCH)        ;       fi
 
 	if test ! -d   $(SEM)/include       ;               then    \
 		mkdir $(SEM)/include        ;               fi
 
-	rm -f $(SEM)/include/veclib.h;      \
-	rm -f $(SEM)/include/Veclib.h;      \
-	rm -f $(SEM)/include/Utility.h;     \
-	rm -f $(SEM)/include/Blas.h;        \
-	rm -f $(SEM)/include/Lapack.h
+	rm -f $(SEM)/include/cveclib;  	    \
+	rm -f $(SEM)/include/veclib_h;      \
+	rm -f $(SEM)/include/utility_h;     \
+	rm -f $(SEM)/include/blas_h;        \
+	rm -f $(SEM)/include/lapack_h
 
-	cp veclib.h    $(SEM)/include       ;                       \
-	cp Veclib.h    $(SEM)/include       ;                       \
-	cp Utility.h   $(SEM)/include       ;                       \
-	cp Blas.h      $(SEM)/include       ;                       \
-	cp Lapack.h    $(SEM)/include
+	cp cveclib	$(SEM)/include      ;                       \
+	cp veclib_h    	$(SEM)/include      ;                       \
+	cp utility_h	$(SEM)/include      ;                       \
+	cp blas_h	$(SEM)/include      ;                       \
+	cp lapack_h	$(SEM)/include
 
 
