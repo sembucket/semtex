@@ -633,7 +633,7 @@ static void project (const Domain* D ,
 
     (*Uf[i] = *D -> u[NDIM]) . gradient (i);
 
-    if (C3D) Uf[2] -> divR();
+    if (C3D && i == 2) Uf[2] -> divR();
 
     Us[i] -> axpy (-dt, *Uf[i]);
     Field::swapData (Us[i], Uf[i]);
