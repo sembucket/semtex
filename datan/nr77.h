@@ -25,6 +25,9 @@ extern "C" {
 			  const int&, const int&, const int&);
   void   F77NAME(polint) (double*, double*, const int&, const double&,
 			  double&, double&);
+  void   F77NAME(rk4)    (const double*, const double*, const int&,
+			  const double&, const double&, double*,
+			  void(*)(const double&, const double*, double*));
 }
 
 
@@ -55,6 +58,11 @@ public:
 			const double& x, double& y, double& dy) {
     F77NAME(polint) (xa, ya, n, x, y, dy);
   }
+  static void rk4      (const double* y, const double* dydx, const int& n,
+			const double& x, const double& h, double* yout,
+			void(*derivs)(const double&, const double*, double*)) {
+    F77NAME(rk4) (y, dydx, n, x, h, yout, derivs);
+  } 
 };
 
 
