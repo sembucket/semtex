@@ -90,8 +90,9 @@ static void  putData     (const char*, const char*, const char*, int,
 			  int, vector<AuxField*>&, vector<Element*>&,
 			  vector<Point*>&, vector<vector<real> >&);
 static void  Finterp     (vector<AuxField*>&, const Point*, const Element*,
-			  const real, const real, const int, real*, real*);
-static int   doSwap      (const char*);
+			  const real, const real, const int,
+			  real*, integer*, real*);
+static bool  doSwap      (const char*);
 static char* root        (char*);
 
 
@@ -101,20 +102,21 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  char                 *session, *dump, *format;
-  char                 *interface = 0, *points = 0;
-  int                  NP, NZ,  NEL;
-  int                  i, j, k, nf, ntot = 0, rotswap = 0;
-  ifstream             fldfile;
-  istream*             pntfile;
-  FEML*                F;
-  Mesh*                M;
-  const real*          knot;
-  vector<real>         r, s, work, datum;
-  vector<Point*>       point;
-  vector<Element*>     elmt;
-  vector<Element*>     Esys;
-  vector<AuxField*>    u;
+  char                  *session, *dump, *format;
+  char                  *interface = 0, *points = 0;
+  int                   NP, NZ,  NEL;
+  int                   i, j, k, nf, ntot = 0, rotswap = 0;
+  ifstream              fldfile;
+  istream*              pntfile;
+  FEML*                 F;
+  Mesh*                 M;
+  const real*           knot;
+  vector<integer>       iwork(15);
+  vector<real>          rwork, r, s, datum;
+  vector<Point*>        point;
+  vector<Element*>      elmt;
+  vector<Element*>      Esys;
+  vector<AuxField*>     u;
   vector<vector<real> > data;
 
   // -- Initialize.
@@ -124,17 +126,17 @@ int main (int    argc,
 
   // -- Set defaults for probeplane interface.
 
-  Femlib::value ("SIZED"  , None);
-  Femlib::value ("NX"     , NPTS);
-  Femlib::value ("NY"     , NPTS);
-  Femlib::value ("ORTHO"  , Z   );
-  Femlib::value ("OFFSET" , 0.0 );
-  Femlib::value ("X_MIN"  , 0.0 );
-  Femlib::value ("Y_MIN"  , 0.0 );
-  Femlib::value ("Z_MIN"  , 0.0 );
-  Femlib::value ("X_DELTA", 0.0 );
-  Femlib::value ("Y_DELTA", 0.0 );
-  Femlib::value ("Z_DELTA", 0.0 );
+  Femlib::ivalue ("SIZED"  , None);
+  Femlib::ivalue ("NX"     , NPTS);
+  Femlib::ivalue ("NY"     , NPTS);
+  Femlib::ivalue ("ORTHO"  , Z   );
+  Femlib:: value ("OFFSET" , 0.0 );
+  Femlib:: value ("X_MIN"  , 0.0 );
+  Femlib:: value ("Y_MIN"  , 0.0 );
+  Femlib:: value ("Z_MIN"  , 0.0 );
+  Femlib:: value ("X_DELTA", 0.0 );
+  Femlib:: value ("Y_DELTA", 0.0 );
+  Femlib:: value ("Z_DELTA", 0.0 );
 
   // -- Parse command line.
 
@@ -151,8 +153,8 @@ int main (int    argc,
   M   = new Mesh (F);
 
   NEL = M -> nEl();  
-  NP  = static_cast<int>(Femlib::value ("N_POLY"));
-  NZ  = static_cast<int>(Femlib::value ("N_Z"));
+  NP  = Femlib::ivalue ("N_POLY");
+  NZ  = Femlib::ivalue ("N_Z");
   
   Geometry::set (NP, NZ, NEL, Geometry::Cartesian);
   Esys.resize   (NEL);
@@ -161,8 +163,8 @@ int main (int    argc,
   
   // -- Set up FFT work areas.
 
-  work.resize   (3*NZ + 15);
-  Femlib::rffti (NZ, &work[0] + NZ);
+  rwork.resize  (3*NZ);
+  Femlib::rffti (NZ, &rwork[0], &iwork[0]);
 
   // -- Construct list of points.
 
@@ -194,7 +196,7 @@ int main (int    argc,
 
   for (i = 0; i < ntot; i++)
     if (elmt[i]) {
-      Finterp (u, point[i], elmt[i], r[i], s[i], NZ, &work[0], &datum[0]); 
+      Finterp (u,point[i],elmt[i],r[i],s[i],NZ,&rwork[0],&iwork[0],&datum[0]); 
       for (j = 0; j < nf; j++) data[i][j] = datum[j];
     } else
       for (j = 0; j < nf; j++) data[i][j] = 0.0;
@@ -537,7 +539,7 @@ static int linePoints (vector<Point*>& point)
 // Probe point generation for the "probeline" interface.
 // ---------------------------------------------------------------------------
 {
-  int  i, ntot = (int) Femlib::value ("NPTS");
+  int  i, ntot = Femlib::ivalue ("NPTS");
   real xmin = Femlib::value ("X_MIN");
   real ymin = Femlib::value ("Y_MIN");
   real zmin = Femlib::value ("Z_MIN");
@@ -565,10 +567,10 @@ static int planePoints (vector<Point*>& point,
 // ---------------------------------------------------------------------------
 {
   int        i, j, k;
-  const int  nx     = (int) Femlib::value ("NX");
-  const int  ny     = (int) Femlib::value ("NY");
-  const int  ortho  = (int) Femlib::value ("ORTHO");
-  const real offset =       Femlib::value ("OFFSET");
+  const int  nx     = Femlib::ivalue ("NX");
+  const int  ny     = Femlib::ivalue ("NY");
+  const int  ortho  = Femlib::ivalue ("ORTHO");
+  const real offset = Femlib:: value ("OFFSET");
   const int  ntot   = nx * ny;
   real       x0, y0, z0, dx, dy, dz;
   Point*     p;
@@ -605,7 +607,7 @@ static int planePoints (vector<Point*>& point,
       }
     break;
   case Z:
-    if (!((int) Femlib::value ("SIZED"))) {
+    if (!(Femlib::ivalue ("SIZED"))) {
       Point lo, hi;
       mesh -> extent (lo, hi);
       Femlib::value ("X_MIN", lo.x);
@@ -693,7 +695,8 @@ static int getDump (ifstream&          file,
 // ---------------------------------------------------------------------------
 {
   char    buf[StrMax], fields[StrMax];
-  int i, swab, nf, npnew, nznew, nelnew;
+  integer i, nf, npnew, nznew, nelnew;
+  bool    swab;
 
   if (file.getline(buf, StrMax).eof()) return 0;
   
@@ -745,7 +748,7 @@ static int getDump (ifstream&          file,
 }
 
 
-static int doSwap (const char* ffmt)
+static bool doSwap (const char* ffmt)
 // ---------------------------------------------------------------------------
 // Figure out if byte-swapping is required to make sense of binary input.
 // ---------------------------------------------------------------------------
@@ -764,14 +767,15 @@ static int doSwap (const char* ffmt)
 }
 
 
-static void Finterp (vector<AuxField*>& u   ,
-		     const Point*       P   ,
-		     const Element*     E   ,
-		     const real         r   , 
-		     const real         s   ,
-		     const int          NZ  ,
-		     real*              work,
-		     real*              data)
+static void Finterp (vector<AuxField*>& u    ,
+		     const Point*       P    ,
+		     const Element*     E    ,
+		     const real         r    , 
+		     const real         s    ,
+		     const int          NZ   ,
+		     real*              rwork,
+		     integer*           iwork, 
+		     real*              data )
 // ---------------------------------------------------------------------------
 // Carry out 2DxFourier interpolation.
 // ---------------------------------------------------------------------------
@@ -782,7 +786,9 @@ static void Finterp (vector<AuxField*>& u   ,
   const int     NZH   = NZ >> 1;
   const int     NHM   = NZH - 1;
   const real    betaZ = P -> z * Femlib::value("BETA");
-  const real*   Wtab  = work + NZ;
+  const real*   Wtab  = rwork;
+  real*         work  = rwork + NZ;
+  real*         temp  = rwork + NZ + NZ;
 
   for (i = 0; i < NF; i++)	// -- For each field.
 
@@ -800,7 +806,7 @@ static void Finterp (vector<AuxField*>& u   ,
 
       // -- Fourier interpolation.
 
-      Femlib::rfftf (NZ, work, Wtab);
+      Femlib::rfftf (NZ, work, temp, Wtab, iwork);
       Blas::scal    (NZ, 2.0/NZ, work, 1);
 
       if (NZ & 1) {
@@ -870,8 +876,8 @@ static void putData (const char*            dump     ,
   } else if (strstr (format, "sm") && strstr (interface, "probeplane")) {
 
     char      fname[StrMax], *base = root (strdup (dump));
-    const int nx = static_cast<int>(Femlib::value ("NX"));
-    const int ny = static_cast<int>(Femlib::value ("NY"));
+    const int nx = Femlib::ivalue ("NX");
+    const int ny = Femlib::ivalue ("NY");
     ofstream  out;
 
     for (n = 0; n < nf; n++) {

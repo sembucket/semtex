@@ -1319,6 +1319,17 @@ AuxField& AuxField::sgn ()
 }
 
 
+AuxField& AuxField::clipPos ()
+// ---------------------------------------------------------------------------
+// Clip *this so that it is zero or greater.
+// ---------------------------------------------------------------------------
+{
+  Veclib::clipup (_size, 0.0, _data, 1, _data, 1);
+
+  return *this;
+}
+
+
 real AuxField::probe (const Element* E,
 		      const real     r,
 		      const real     s,
