@@ -62,9 +62,14 @@ endif
 ifeq ($(ARCH),Linux)		# -- GNU/Linux system.
 CXX	 = g++
 LD	 = g++
-CXXFLAGS = $(DEFINES) -O3
-F77LIBS  = -llapack -lblas -lf2c
-LDFLAGS  = -gstabs+ -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
+ifdef DEBUG
+  OPT    = -gstabs+
+else
+  OPT    = -O3
+endif
+CXXFLAGS = $(DEFINES) $(OPT)
+F77LIBS  = -llapack -lblas -lg2c
+LDFLAGS  = $(OPT) -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
 	   -lfem -lalp $(F77LIBS)
 endif
 
@@ -112,11 +117,11 @@ endif
 
 # ----------------------------------------------------------------------------
 #
-SEMFILES  = analysis auxfield BCmgr boundary domain 		\
-	    element feml field geometry history integration  	\
-	    matrix mesh misc particle pressure statistics
-SEMOBJ    = $(addsuffix .o,$(SEMFILES))
-SEMHDR    = Sem.h
+SEMFILES = analysis auxfield BCmgr boundary bsys condition domain   \
+	   element feml field geometry history integration  	\
+	   matrix mesh misc particle pressure statistics
+SEMOBJ   = $(addsuffix .o,$(SEMFILES))
+SEMHDR   = Sem.h
 
 # ----------------------------------------------------------------------------
 # Default build for Navier-Stokes solver.
@@ -143,6 +148,9 @@ mesh.o: $(VPATH)/mesh.C
 BCmgr.o: $(VPATH)/BCmgr.C
 	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
 	$(VPATH)/BCmgr.C
+dnsanalysis.o: dnsanalysis.C
+	$(CXX) -I$(SEM)/include -I. -c -hnostkchk +a1 -hacct -hnovector -p \
+	dnsanalysis.C
 endif
 
 # -----------------------------------------------------------------------------
