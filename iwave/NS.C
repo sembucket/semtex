@@ -312,8 +312,8 @@ static void nonLinear (Domain*       D ,
   const real t     = Femlib::value ("t");
   const real cost  = cos (t);
   const real sint  = sin (t);
-  const real omega = Femlib::value ("OMEGA");
-  const real w2ow1 = 2.0 * omega - 1.0;
+  const real omega = Femlib::value ("OMEGA"); // -- w = 2(1+w2/w1).
+  const real w2ow1 = 0.5 * omega - 1.0;
   const real A1    = 2.0 * w2ow1 * sin0;
   const real A2    = 2.0 * (1.0 + w2ow1 * cos0);
   const real dz    = Femlib::value ("TWOPI/BETA") / (nZ32 * nPR);
