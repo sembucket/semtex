@@ -86,6 +86,9 @@ double dclock(void)
 }
 
 
+
+
+
 float sclock(void)
 /* ========================================================================= *
  * Single-precision timing routine.                                          *
@@ -101,18 +104,19 @@ float sclock(void)
 
 
 
-void putDvector(FILE      *fp     ,
-		int        width  ,
-		int        prec   ,
-		int        ntot   ,
-		int        nfield , ...)
+void printDvector(FILE  *fp     ,
+		  int    width  ,
+		  int    prec   ,
+		  int    ntot   ,
+		  int    inc    ,
+		  int    nfield , ...)
 /* ========================================================================= *
- * Write (ASCII) a variable number of dvectors on fp, in columns.            *
+ * Print up a variable number of dvectors on fp, in columns.                 *
  * ========================================================================= */
 {
-  int        i, j;
-  double   **u;
-  va_list    ap;
+  int       i, j, k;
+  double  **u;
+  va_list   ap;
 
 
   u = (double **) calloc (nfield, sizeof(double*));
@@ -120,10 +124,13 @@ void putDvector(FILE      *fp     ,
   for (i=0; i<nfield; i++) u[i] = va_arg(ap, double*); 
   va_end(ap);
 
+  k = (inc<0) ? (-ntot+1)*inc : 0;
+
   for (i=0; i<ntot; i++) {
     for (j=0; j<nfield; j++) {
-      fprintf(fp, "%*.*f", width, prec, u[j][i]);
+      fprintf(fp, "%*.*f", width, prec, u[j][k]);
     }
+    k += inc;
     fprintf(fp, "\n");
   }
 
@@ -135,15 +142,16 @@ void putDvector(FILE      *fp     ,
 
 
 
-void putIvector(FILE      *fp     ,
-		int        width  ,
-		int        ntot   ,
-		int        nfield , ...)
+void printIvector(FILE  *fp     ,
+		  int    width  ,
+		  int    ntot   ,
+		  int    inc    ,
+		  int    nfield , ...)
 /* ========================================================================= *
- * Write (ASCII) a variable number of ivectors on fp, in columns.            *
+ * Print up a variable number of ivectors on fp, in columns.                 *
  * ========================================================================= */
 {
-  int        i, j;
+  int        i, j, k;
   int      **u;
   va_list    ap;
 
@@ -153,10 +161,13 @@ void putIvector(FILE      *fp     ,
   for (i=0; i<nfield; i++) u[i] = va_arg(ap, int*); 
   va_end(ap);
 
+  k = (inc<0) ? (-ntot+1)*inc : 0;
+
   for (i=0; i<ntot; i++) {
     for (j=0; j<nfield; j++) {
-      fprintf(fp, "%*d", width, u[j][i]);
+      fprintf(fp, "%*d", width, u[j][k]);
     }
+    k += inc;
     fprintf(fp, "\n");
   }
 
@@ -168,16 +179,17 @@ void putIvector(FILE      *fp     ,
 
 
 
-void putSvector(FILE      *fp     ,
-		int        width  ,
-		int        prec   ,
-		int        ntot   ,
-		int        nfield , ...)
+void printSvector(FILE  *fp     ,
+		  int    width  ,
+		  int    prec   ,
+		  int    ntot   ,
+		  int    inc    ,
+		  int    nfield , ...)
 /* ========================================================================= *
  * Write (ASCII) a variable number of svectors on fp, in columns.            *
  * ========================================================================= */
 {
-  int       i, j;
+  int       i, j, k;
   float   **u;
   va_list   ap;
 
@@ -187,10 +199,13 @@ void putSvector(FILE      *fp     ,
   for (i=0; i<nfield; i++) u[i] = va_arg(ap, float*); 
   va_end(ap);
 
+  k = (inc<0) ? (-ntot+1)*inc : 0;
+
   for (i=0; i<ntot; i++) {
     for (j=0; j<nfield; j++) {
-      fprintf(fp, "%*.*f", width, prec, u[j][i]);
+      fprintf(fp, "%*.*f", width, prec, u[j][k]);
     }
+    k += inc;
     fprintf(fp, "\n");
   }
 
