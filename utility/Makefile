@@ -33,9 +33,9 @@ ifeq ($(ARCH),IRIX64)		# -- SGI MIPS R8xxx IRIX6x
 CC       = cc
 CXX	 = CC
 LD	 = CC
-CXXFLAGS =  $(DEFINES) -g
+CXXFLAGS =  $(DEFINES) -g  -mips4 -64 -g -r10000
 F77LIBS	 = -lcomplib.sgimath -lftn
-LDFLAGS  = -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lmalloc -lm
+LDFLAGS  =  -mips4 -64 -g -r10000 -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lmalloc -lm
 endif
 
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha
@@ -89,7 +89,8 @@ headers:
 	cd $(VPATH); make install
 
 all: meshpr  enumerate calc   addfield  sem2nek  sem2tec \
-     convert compare   noiz   project   interp   probe
+     convert compare   noiz   project   interp   probe   \
+     rstress
 
 # ----------------------------------------------------------------------------
 # Build meshpr utility.
@@ -190,6 +191,12 @@ PRBOBJ = probe.o feml.o mesh.o element.o auxfield.o geometry.o
 
 probe: $(PRBOBJ)
 	$(CXX) $(CPPFLAGS) -g -o $@ $(PRBOBJ) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build rstress, Reynolds stress calculator.
+
+rstress: rstress.c
+	$(CC) $(CPPFLAGS) -o $@ $@.c $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 #
