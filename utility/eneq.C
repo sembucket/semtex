@@ -65,11 +65,11 @@
 // use arabic numeric characters to name these terms.
 //
 // 1: Uj dq/dxj
-// 2: d(q.uj)/dxj
-// 3: d(1/rho p.uj)/dxj
-// 4: -2 kinvis d(sij.ui)/dxj
-// 7: 2 kinvis sij.sij
-// 0: ui.uj.Sij
+// 2: -d(q.uj)/dxj
+// 3: -d(1/rho p.uj)/dxj
+// 4: 2 kinvis d(sij.ui)/dxj
+// 7: -2 kinvis sij.sij
+// 0: -ui.uj.Sij
 //
 // Note: the "missing" names 5,6,8,9 are for non-Newtonian flow.  The
 // above terms should sum to zero for stationary turbulence, so we
@@ -341,39 +341,31 @@ static void covary  (map<char, AuxField*>& in  ,
 
   // -- Turn ABC... into Reynolds stresses.
 
-  work[0] -> times (*in['u'], *in['u']); *in['A'] -= *work[0];
-  work[0] -> times (*in['u'], *in['v']); *in['B'] -= *work[0];
-  work[0] -> times (*in['v'], *in['v']); *in['C'] -= *work[0];
+  in['A'] -> timesMinus (*in['u'], *in['u']);
+  in['B'] -> timesMinus (*in['u'], *in['v']);
+  in['C'] -> timesMinus (*in['v'], *in['v']);
   if (nvel == 3) {
-    work[0] -> times (*in['u'], *in['w']); *in['D'] -= *work[0];
-    work[0] -> times (*in['v'], *in['w']); *in['E'] -= *work[0];
-    work[0] -> times (*in['w'], *in['w']); *in['F'] -= *work[0];
+    in['D'] -> timesMinus (*in['u'], *in['w']);
+    in['E'] -> timesMinus (*in['v'], *in['w']);
+    in['F'] -> timesMinus (*in['w'], *in['w']);
   }
 
   // -- At this stage, in['q'] still holds the total kinetic energy.
 
-#if 1
-  work[0] -> times (*in['A'], *in['u']); *in['r'] -= *work[0];
-  work[0] -> times (*in['B'], *in['v']); *in['r'] -= *work[0];
-  work[0] -> times (*in['q'], *in['u']); *in['r'] -= *work[0];
-  work[0] -> times (*in['B'], *in['u']); *in['s'] -= *work[0];
-  work[0] -> times (*in['C'], *in['v']); *in['s'] -= *work[0];
-  work[0] -> times (*in['q'], *in['v']); *in['s'] -= *work[0];
+  in['r'] -> timesMinus (*in['A'], *in['u']);
+  in['r'] -> timesMinus (*in['B'], *in['v']);
+  in['r'] -> timesMinus (*in['q'], *in['u']);
+  in['s'] -> timesMinus (*in['B'], *in['u']);
+  in['s'] -> timesMinus (*in['C'], *in['v']);
+  in['s'] -> timesMinus (*in['q'], *in['v']);
   if (nvel == 3) {
-    work[0] -> times (*in['D'], *in['w']); *in['r'] -= *work[0];
-    work[0] -> times (*in['E'], *in['w']); *in['s'] -= *work[0];
-    work[0] -> times (*in['D'], *in['u']); *in['t'] -= *work[0];
-    work[0] -> times (*in['E'], *in['v']); *in['t'] -= *work[0];
-    work[0] -> times (*in['F'], *in['w']); *in['t'] -= *work[0];
-    work[0] -> times (*in['q'], *in['w']); *in['t'] -= *work[0];
+    in['r'] -> timesMinus (*in['D'], *in['w']);
+    in['s'] -> timesMinus (*in['E'], *in['w']);
+    in['t'] -> timesMinus (*in['D'], *in['u']);
+    in['t'] -> timesMinus (*in['E'], *in['v']);
+    in['t'] -> timesMinus (*in['F'], *in['w']);
+    in['t'] -> timesMinus (*in['q'], *in['w']);
   }
-#else
-  work[0] -> times (*work[1], *in['u']); *in['r'] -= *work[0];
-  work[0] -> times (*work[1], *in['v']); *in['s'] -= *work[0];
-  if (nvel == 3) {
-    work[0] -> times (*work[1], *in['w']); *in['t'] -= *work[0];
-  }
-#endif
 
   // -- Rework in['q'] so it holds the fluctuating KE.
 
@@ -383,11 +375,9 @@ static void covary  (map<char, AuxField*>& in  ,
 
   // -- The pressure-velocity covariances: m, n (o).
 
-  work[0] -> times (*in['p'], *in['u']); *in['m'] -= *work[0];
-  work[0] -> times (*in['p'], *in['v']); *in['n'] -= *work[0];
-  if (nvel == 3) {
-    work[0] -> times (*in['p'], *in['w']); *in['o'] -= *work[0];
-  }
+  in['m'] -> timesMinus (*in['p'], *in['u']);
+  in['n'] -> timesMinus (*in['p'], *in['v']);
+  if (nvel == 3) in['o'] -> timesMinus (*in['p'], *in['w']);
 
   // -- Everything from now on involves derivatives in one way or another.
 

@@ -155,11 +155,11 @@ probe: $(PRBOBJ)
 # ----------------------------------------------------------------------------
 # Build eneq, which computes terms in the fluctuating flow energy equations.
 #
-PRBOBJ = eneq.o feml.o mesh.o element.o family.o auxfield.o geometry.o misc.o
-$(PRBOBJ): $(SEMHDR)
+ENOBJ = eneq.o feml.o mesh.o element.o family.o auxfield.o geometry.o misc.o
+$(ENOBJ): $(SEMHDR)
 
-eneq: $(PRBOBJ)
-	$(CXX) $(CPPFLAGS) -o $@ $(PRBOBJ) $(LDFLAGS)
+eneq: $(ENOBJ)
+	$(CXX) $(CPPFLAGS) -o $@ $(ENOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build rectmesh, rectangular mesh generator.
