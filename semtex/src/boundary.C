@@ -335,3 +335,15 @@ void Boundary::addForGroup (const char* grp,
   if (strcmp (grp, bcondn -> group()) == 0)
     Veclib::sadd (nKnot(), val, tgt, 1, tgt, 1);
 }
+
+
+void Boundary::setForGroup (const char* grp,
+			    const real  val,
+			    real*       tgt) const
+// ---------------------------------------------------------------------------
+// Set tgt to val if this Boundary falls in group.
+// ---------------------------------------------------------------------------
+{
+  if (strcmp (grp, bcondn -> group()) == 0)
+    Veclib::fill (nKnot(), val, tgt, 1);
+}
