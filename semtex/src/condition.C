@@ -33,9 +33,9 @@ Essential::Essential (const char* v,
 // Essential condition constructor, for a condition with a constant real
 // value, also sets boundary group name in base class.
 // ---------------------------------------------------------------------------
-  value (strtod (v, 0))
+  _value (strtod (v, 0))
 {
-  strcpy ((grp = new char [strlen (g) + 1]), g);
+  strcpy ((_grp = new char [strlen (g) + 1]), g);
 }
 
 
@@ -52,7 +52,7 @@ void Essential::evaluate (const integer  np  ,
 // Load external value storage area tgt with installed constant.
 // ---------------------------------------------------------------------------
 {
-  Veclib::fill (np, value, tgt, 1);
+  Veclib::fill (np, _value, tgt, 1);
 }
 
 
@@ -131,7 +131,7 @@ void Essential::describe (char* tgt) const
 // Load descriptive/diagnostic material into tgt.
 // ---------------------------------------------------------------------------
 {
-  sprintf (tgt, "boundary-group: %s, essential:\t%g", grp, value);
+  sprintf (tgt, "boundary-group: %s, essential:\t%g", _grp, _value);
 }
 
 
@@ -143,8 +143,8 @@ EssentialFunction::EssentialFunction (const char* f,
 // installed token values.  Otherwise the same as Essential class.
 // ---------------------------------------------------------------------------
 {
-  strcpy ((function = new char [strlen (f) + 1]), f);
-  strcpy ((grp      = new char [strlen (g) + 1]), g);
+  strcpy ((_function = new char [strlen (f) + 1]), f);
+  strcpy ((_grp      = new char [strlen (g) + 1]), g);
 }
 
 
@@ -161,7 +161,7 @@ void EssentialFunction:: evaluate (const integer  np  ,
 // Load external tgt by interpreting function.
 // ---------------------------------------------------------------------------
 {
-  E -> sideEval (side, tgt, function);
+  E -> sideEval (side, tgt, _function);
 }
 
 
@@ -241,7 +241,7 @@ void EssentialFunction::describe (char* tgt) const
 // Load descriptive/diagnostic material into tgt.
 // ---------------------------------------------------------------------------
 {
-  sprintf (tgt, "boundary-group: %s, essential-function:\t%s", grp, function);
+  sprintf (tgt, "boundary-group: %s, essential-function:\t%s", _grp, _function);
 }
 
 
@@ -250,9 +250,9 @@ Natural::Natural (const char* v,
 // ---------------------------------------------------------------------------
 // Used to apply natural type BCs using a constant real value.
 // ---------------------------------------------------------------------------
-  value (strtod (v, 0))
+  _value (strtod (v, 0))
 {
-  strcpy ((grp = new char [strlen (g) + 1]), g);
+  strcpy ((_grp = new char [strlen (g) + 1]), g);
 }
 
 
@@ -269,7 +269,7 @@ void Natural::evaluate (const integer  np  ,
 // Load external value storage area tgt with installed constant.
 // ---------------------------------------------------------------------------
 {
-  Veclib::fill (np, value, tgt, 1);
+  Veclib::fill (np, _value, tgt, 1);
 }
 
 
@@ -352,7 +352,7 @@ void Natural::describe (char* tgt) const
 // Load descriptive/diagnostic material into tgt.
 // ---------------------------------------------------------------------------
 {
-  sprintf (tgt, "boundary-group: %s, natural:\t%g", grp, value);
+  sprintf (tgt, "boundary-group: %s, natural:\t%g", _grp, _value);
 }
 
 
@@ -364,8 +364,8 @@ NaturalFunction::NaturalFunction (const char* f,
 // installed token values.  Otherwise the same as Natural class.
 // ---------------------------------------------------------------------------
 {
-  strcpy ((function = new char [strlen (f) + 1]), f);
-  strcpy ((grp      = new char [strlen (g) + 1]), g);
+  strcpy ((_function = new char [strlen (f) + 1]), f);
+  strcpy ((_grp      = new char [strlen (g) + 1]), g);
 }
 
 
@@ -382,7 +382,7 @@ void NaturalFunction::evaluate (const integer  np  ,
 // Load external tgt by interpreting function.
 // ---------------------------------------------------------------------------
 {
-  E -> sideEval (side, tgt, function);
+  E -> sideEval (side, tgt, _function);
 }
 
 
@@ -464,7 +464,7 @@ void NaturalFunction::describe (char* tgt) const
 // Load descriptive/diagnostic material into tgt.
 // ---------------------------------------------------------------------------
 {
-  sprintf (tgt, "boundary-group: %s, natural-function:\t%g", grp, function);
+  sprintf (tgt, "boundary-group: %s, natural-function:\t%g", _grp, _function);
 }
 
 
@@ -473,7 +473,7 @@ NaturalHOPBC::NaturalHOPBC (const char* g)
 // Construct by initializing base Condition class.
 // ---------------------------------------------------------------------------
 { 
-  strcpy ((grp = new char [strlen (g) + 1]), g);
+  strcpy ((_grp = new char [strlen (g) + 1]), g);
 }
 
 
@@ -572,7 +572,7 @@ void NaturalHOPBC::describe (char* tgt) const
 // Load descriptive/diagnostic material into tgt.
 // ---------------------------------------------------------------------------
 {
-  sprintf (tgt, "boundary-group: %s, high-order-pressure", grp);
+  sprintf (tgt, "boundary-group: %s, high-order-pressure", _grp);
 }
 
 
@@ -586,19 +586,19 @@ Mixed::Mixed (const char* v,
   const char routine[] = "Mixed::Mixed";
   char buf[StrMax], *tok, *sep = ";,";
 
-  strcpy ((grp = new char [strlen (g) + 1]), g);
+  strcpy ((_grp = new char [strlen (g) + 1]), g);
 
   strcpy (buf, v);
   tok = strtok (buf, sep);
 
-  K = Femlib::value (tok);
+  _K_ = Femlib::value (tok);
 
-  if (K <= EPSSP) {
+  if (_K_ <= EPSSP) {
     sprintf (buf, "transfer coefficient K must be positive (%s)", tok);
     message (routine, buf, ERROR);
   }
 
-  C = Femlib::value (tok = strtok (0, sep));
+  _C_ = Femlib::value (tok = strtok (0, sep));
 }
 
 
@@ -615,7 +615,7 @@ void Mixed::evaluate (const integer  np  ,
 // Load external value storage area tgt with installed constants.
 // ---------------------------------------------------------------------------
 {
-  Veclib::fill (np, K * C, tgt, 1);
+  Veclib::fill (np, _K_ * _C_, tgt, 1);
 }
 
 
@@ -651,7 +651,7 @@ void Mixed::sum (const integer  side  ,
   default: break;
   }
 
-  Veclib::smul (np, K * C,  weight, 1, work, 1);
+  Veclib::smul (np, _K_ * _C_,  weight, 1, work, 1);
 
   Veclib::scatr_sum (nm, work, start, tgt);
   if   (side == 3) tgt[bmap [ 0]] += work[nm];
@@ -682,7 +682,7 @@ void Mixed::augmentSC (const integer  side  ,
   default: break;
   }
 
-  Veclib::smul (np, K, area, 1, work, 1);
+  Veclib::smul (np, _K_, area, 1, work, 1);
 
   for (i = 0; i < nm; i++)
     if ((k = start[i]) < nsolve)
@@ -717,10 +717,10 @@ void Mixed::augmentOp (const integer  side,
   }
 
   for (i = 0; i < nm; i++)
-    tgt[start[i]] += K * area[i] * src[start[i]];
+    tgt[start[i]] += _K_ * area[i] * src[start[i]];
 
   i = (side == 3) ? bmap[0] : start[nm];
-  tgt[i] += K * area[nm] * src[i];
+  tgt[i] += _K_ * area[nm] * src[i];
 }
 
 
@@ -747,10 +747,10 @@ void Mixed::augmentDg (const integer  side,
   }
 
   for (i = 0; i < nm; i++)
-    tgt[start[i]] += K * area[i];
+    tgt[start[i]] += _K_ * area[i];
 
   i = (side == 3) ? bmap[0] : start[nm];
-  tgt[i] += K * area[nm];
+  tgt[i] += _K_ * area[nm];
 }
 
 
@@ -759,5 +759,5 @@ void Mixed::describe (char* tgt) const
 // Load descriptive/diagnostic material into tgt.
 // ---------------------------------------------------------------------------
 {
-  sprintf (tgt, "boundary-group: %s, mixed:\t%g\t%g", grp, K, C);
+  sprintf (tgt, "boundary-group: %s, mixed:\t%g\t%g", _grp, _K_, _C_);
 }

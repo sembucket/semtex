@@ -24,35 +24,34 @@ Boundary::Boundary (const integer    Ident ,
 // ---------------------------------------------------------------------------
 // Constructor.  Allocate new memory for value & geometric factors.
 // ---------------------------------------------------------------------------
-  id      (Ident ),
-  np      (Geometry::nP()),
-  bgroup  (Bgroup),
-  bcondn  (Bcondn),
-  elmt    (Elmt  ),
-  side    (Side  )
+  _id      (Ident ),
+  _np      (Geometry::nP()),
+  _bgroup  (Bgroup),
+  _bcondn  (Bcondn),
+  _elmt    (Elmt  ),
+  _side    (Side  )
 {
   const char    routine[] = "Boundary::Boundary";
-  const integer np        = Geometry::nP();
-  const integer npnp      = Geometry::nTotElmt();
+  const integer npnp      = sqr (_np);
   char          err[StrMax];
 
-  x    = new real [(size_t) 5 * np];
-  y    = x  + np;
-  nx   = y  + np;
-  ny   = nx + np;
-  area = ny + np;
+  _x    = new real [(size_t) 5 * _np];
+  _y    = _x  + _np;
+  _nx   = _y  + _np;
+  _ny   = _nx + _np;
+  _area = _ny + _np;
 
-  doffset = elmt -> ID() * npnp;
-  switch (side) {
-  case 0: doffset += 0;             dskip = 1;   break;
-  case 1: doffset += (np - 1);      dskip = np;  break;
-  case 2: doffset += np * (np - 1); dskip = -1;  break;
-  case 3: doffset += 0;             dskip = -np; break;
+  _doffset = _elmt -> ID() * npnp;
+  switch (_side) {
+  case 0: _doffset += 0;               _dskip = 1;    break;
+  case 1: _doffset += (_np - 1);       _dskip = _np;  break;
+  case 2: _doffset += _np * (_np - 1); _dskip = -1;   break;
+  case 3: _doffset += 0;               _dskip = -_np; break;
   default:
-    sprintf (err, "cannot construct side %1d", side + 1);
+    sprintf (err, "cannot construct side %1d", _side + 1);
     message (routine, err, ERROR);
   }
-  elmt -> sideGeom (side, x, y, nx, ny, area);
+  _elmt -> sideGeom (_side, _x, _y, _nx, _ny, _area);
 }
 
 
@@ -65,11 +64,11 @@ void Boundary::geometry (real* X   ,
 // Copy internal geometric info for exterior use.
 // ---------------------------------------------------------------------------
 {
-  Veclib::copy (np, x, 1, X, 1);
-  Veclib::copy (np, y, 1, Y, 1);
-  if (Nx)   Veclib::copy (np, nx,   1, Nx,   1);
-  if (Ny)   Veclib::copy (np, ny,   1, Ny,   1);
-  if (Area) Veclib::copy (np, area, 1, Area, 1);
+  Veclib::copy (_np, _x, 1, X, 1);
+  Veclib::copy (_np, _y, 1, Y, 1);
+  if (Nx)   Veclib::copy (_np, _nx,   1, Nx,   1);
+  if (Ny)   Veclib::copy (_np, _ny,   1, Ny,   1);
+  if (Area) Veclib::copy (_np, _area, 1, Area, 1);
 }
 
 
@@ -80,9 +79,7 @@ void Boundary::evaluate (const integer plane,
 // Load boundary condition storage area with numeric values.
 // ---------------------------------------------------------------------------
 {
-  const integer np = Geometry::nP();
-
-  bcondn -> evaluate (np, id, plane, elmt, side, step, nx, ny, tgt);
+  _bcondn -> evaluate (_np, _id, plane, _elmt, _side, step, _nx, _ny, tgt);
 }
 
 
@@ -97,7 +94,7 @@ void Boundary::set (const real*    src,
 // element's edge nodes.
 // ---------------------------------------------------------------------------
 {
-  bcondn -> set (side, b2g, src, tgt);
+  _bcondn -> set (_side, b2g, src, tgt);
 }
 
 
@@ -114,7 +111,7 @@ void Boundary::sum (const real*    src,
 // element's edge nodes.  wrk is a work array, np long.
 // ---------------------------------------------------------------------------
 {
-  bcondn -> sum (side, b2g, src, area, wrk, tgt);
+  _bcondn -> sum (_side, b2g, src, _area, wrk, tgt);
 }
 
 
@@ -128,7 +125,7 @@ void Boundary::augmentSC (const integer  nband ,
 // Work array must be np long.
 // ---------------------------------------------------------------------------
 {
-  bcondn -> augmentSC (side, nband, nsolve, b2g + bOff(), area, work, H);
+  _bcondn -> augmentSC (_side, nband, nsolve, b2g + bOff(), _area, work, H);
 }
 
 
@@ -141,7 +138,7 @@ void Boundary::augmentOp (const integer* b2g ,
 // <K*src, w> to tgt.  Both src and tgt are globally-numbered vectors.
 // ---------------------------------------------------------------------------
 {
-  bcondn -> augmentOp (side, b2g + bOff(), area, src, tgt);
+  _bcondn -> augmentOp (_side, b2g + bOff(), _area, src, tgt);
 }
 
 
@@ -153,7 +150,7 @@ void Boundary::augmentDg (const integer* b2g,
 // BCs.  Add in diagonal terms <K, w> to globally-numbered tgt.
 // ---------------------------------------------------------------------------
 {
-  bcondn -> augmentDg (side, b2g + bOff(), area, tgt);
+  _bcondn -> augmentDg (_side, b2g + bOff(), _area, tgt);
 }
 
 
@@ -162,22 +159,21 @@ void Boundary::print () const
 // (Debugging) utility to print internal information.
 // ---------------------------------------------------------------------------
 {
-  const integer np = Geometry::nP();
-  char          info[StrMax];
+  char info[StrMax];
 
-  cout << "** Boundary id: " << id + 1 << " -> ";
-  cout <<     elmt ->  ID() + 1 << "." << side + 1;
+  cout << "** Boundary id: " << _id + 1 << " -> ";
+  cout << _elmt ->  ID() + 1 << "." << _side + 1;
   cout << " (Element id.side)" << endl;
   
-  bcondn -> describe (info);
+  _bcondn -> describe (info);
 
   cout << info << endl;
 
-  cout << "  " << np << " (number of points along edge)" << endl;
+  cout << "  " << _np << " (number of points along edge)" << endl;
   cout << "         nx             ny             area";
   cout << endl;
   
-  printVector (cout, "rrr", np, nx, ny, area);
+  printVector (cout, "rrr", _np, _nx, _ny, _area);
 }
 
 
@@ -213,21 +209,20 @@ void Boundary::curlCurl (const integer k ,
 {
   const Geometry::CoordSys space = Geometry::system();
 
-  const integer np       = Geometry::nP();
-  const integer ntot     = Geometry::nTotElmt();
-  const integer elmtOff  = elmt -> ID() * ntot;
-  const integer localOff = doffset - elmtOff;
+  const integer npnp     = sqr (_np);
+  const integer elmtOff  = _elmt -> ID() * npnp;
+  const integer localOff = _doffset - elmtOff;
 
-  static vector<real> work (5 * ntot + np);
+  static vector<real> work (5 * npnp + _np);
   real* gw = work();
-  real* w  = gw + ntot + ntot;
-  real* vx = w  + ntot;
-  real* uy = vx + ntot;
-  real* t  = uy + ntot;
+  real* w  = gw + npnp + npnp;
+  real* vx = w  + npnp;
+  real* uy = vx + npnp;
+  real* t  = uy + npnp;
   const real** DV;
   const real** DT;
 
-  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+  Femlib::quad (LL, _np, _np, 0, 0, 0, 0, 0, &DV, &DT);
   
   // -- Make pointers to current element storage.
 
@@ -237,29 +232,29 @@ void Boundary::curlCurl (const integer k ,
 
   if (k == 0) {			// -- Zeroth mode / 2D.
 
-    Veclib::copy (ntot, Ur, 1, uy, 1);
-    Veclib::copy (ntot, Vr, 1, vx, 1);
+    Veclib::copy (npnp, Ur, 1, uy, 1);
+    Veclib::copy (npnp, Vr, 1, vx, 1);
 
-    elmt -> grad (vx, uy, DV, DT, gw);
+    _elmt -> grad (vx, uy, DV, DT, gw);
 
     // -- (Z-component of) vorticity, w = dv/dx - du/dy.
 
-    Veclib::vsub (ntot, vx, 1, uy, 1, w, 1);
+    Veclib::vsub (npnp, vx, 1, uy, 1, w, 1);
 
     // -- Find dw/dx & dw/dy on appropriate edge.
 
-    elmt -> sideGrad (side, w, yr, xr);
+    _elmt -> sideGrad (_side, w, yr, xr);
     
     // -- Add in cylindrical space modification to complete x-component.
 
     if (space == Geometry::Cylindrical) {
-      elmt -> sideDivR (side, w, t);
-      Veclib::vadd     (np, xr, 1, t, 1, xr, 1);
+      _elmt -> sideDivR (_side, w, t);
+      Veclib::vadd      (_np, xr, 1, t, 1, xr, 1);
     }
 
     // -- Sign change to complete y-component of curl curl u.
     
-    Veclib::neg (np, yr, 1);
+    Veclib::neg (_np, yr, 1);
 
   } else {			// -- 3D.
 
@@ -268,80 +263,80 @@ void Boundary::curlCurl (const integer k ,
 
     // -- Make the equivalents of the 2D terms above.
 
-    Veclib::copy     (ntot, Ur, 1, uy, 1);
-    Veclib::copy     (ntot, Vr, 1, vx, 1);
-    elmt -> grad     (vx, uy, DV, DT, gw);
-    Veclib::vsub     (ntot, vx, 1, uy, 1, w, 1);
-    elmt -> sideGrad (side, w, yr, xr);
-    Veclib::neg      (np, yr, 1);
+    Veclib::copy      (npnp, Ur, 1, uy, 1);
+    Veclib::copy      (npnp, Vr, 1, vx, 1);
+    _elmt -> grad     (vx, uy, DV, DT, gw);
+    Veclib::vsub      (npnp, vx, 1, uy, 1, w, 1);
+    _elmt -> sideGrad (_side, w, yr, xr);
+    Veclib::neg       (_np, yr, 1);
 
     if (space == Geometry::Cylindrical) {
-      elmt -> sideDivR (side, w, t);
-      Veclib::vadd     (np, xr, 1, t, 1, xr, 1);
+      _elmt -> sideDivR (_side, w, t);
+      Veclib::vadd      (_np, xr, 1, t, 1, xr, 1);
     }
 
-    Veclib::copy     (ntot, Ui, 1, uy, 1);
-    Veclib::copy     (ntot, Vi, 1, vx, 1);
-    elmt -> grad     (vx, uy, DV, DT, gw);
-    Veclib::vsub     (ntot, vx, 1, uy, 1, w, 1);
-    elmt -> sideGrad (side, w, yi, xi);
-    Veclib::neg      (np, yi, 1);
+    Veclib::copy      (npnp, Ui, 1, uy, 1);
+    Veclib::copy      (npnp, Vi, 1, vx, 1);
+    _elmt -> grad     (vx, uy, DV, DT, gw);
+    Veclib::vsub      (npnp, vx, 1, uy, 1, w, 1);
+    _elmt -> sideGrad (_side, w, yi, xi);
+    Veclib::neg       (_np, yi, 1);
 
     if (space == Geometry::Cylindrical) {
-      elmt -> sideDivR (side, w, t);
-      Veclib::vadd     (np, xi, 1, t, 1, xi, 1);
+      _elmt -> sideDivR (_side, w, t);
+      Veclib::vadd     (_np, xi, 1, t, 1, xi, 1);
     }
 
     // -- Semi-Fourier terms based on Wr.
 
-    Veclib::copy      (ntot, Wr, 1, vx, 1);
-    Veclib::copy      (ntot, Wr, 1, uy, 1);
-    elmt -> grad      (vx, uy, DV, DT, gw);
+    Veclib::copy  (npnp, Wr, 1, vx, 1);
+    Veclib::copy  (npnp, Wr, 1, uy, 1);
+    _elmt -> grad (vx, uy, DV, DT, gw);
     if (space == Geometry::Cylindrical) {
-      elmt -> sideDivR  (side, vx,  t);
-      Blas::axpy        (np,  betaK, t, 1, xi, 1);
-      elmt -> sideDivR  (side, uy,  t);
-      Blas::axpy        (np,  betaK, t, 1, yi, 1);
-      elmt -> sideDivR2 (side, Wr,  t);
-      Blas::axpy        (np,  betaK, t, 1, yi, 1);
+      _elmt -> sideDivR  (_side, vx,  t);
+      Blas::axpy         (_np,  betaK, t, 1, xi, 1);
+      _elmt -> sideDivR  (_side, uy,  t);
+      Blas::axpy         (_np,  betaK, t, 1, yi, 1);
+      _elmt -> sideDivR2 (_side, Wr,  t);
+      Blas::axpy         (_np,  betaK, t, 1, yi, 1);
     } else {
-      Blas::axpy (np, betaK, vx + localOff, dskip, xi, 1);
-      Blas::axpy (np, betaK, uy + localOff, dskip, yi, 1);
+      Blas::axpy (_np, betaK, vx + localOff, _dskip, xi, 1);
+      Blas::axpy (_np, betaK, uy + localOff, _dskip, yi, 1);
     }
 
     // -- Semi-Fourier terms based on Wi.
 
-    Veclib::copy      (ntot, Wi, 1, vx, 1);
-    Veclib::copy      (ntot, Wi, 1, uy, 1);
-    elmt -> grad      (vx, uy, DV, DT, gw);
+    Veclib::copy  (npnp, Wi, 1, vx, 1);
+    Veclib::copy  (npnp, Wi, 1, uy, 1);
+    _elmt -> grad (vx, uy, DV, DT, gw);
     if (space == Geometry::Cylindrical) {
-      elmt -> sideDivR  (side, vx,   t);
-      Blas::axpy        (np, -betaK, t, 1, xr, 1);
-      elmt -> sideDivR  (side, uy,   t);
-      Blas::axpy        (np, -betaK, t, 1, yr, 1);
-      elmt -> sideDivR2 (side, Wi,   t);
-      Blas::axpy        (np, -betaK, t, 1, yr, 1);
+      _elmt -> sideDivR  (_side, vx,   t);
+      Blas::axpy         (_np, -betaK, t, 1, xr, 1);
+      _elmt -> sideDivR  (_side, uy,   t);
+      Blas::axpy         (_np, -betaK, t, 1, yr, 1);
+      _elmt -> sideDivR2 (_side, Wi,   t);
+      Blas::axpy         (_np, -betaK, t, 1, yr, 1);
     } else {
-      Blas::axpy (np, -betaK, vx + localOff, dskip, xr, 1);
-      Blas::axpy (np, -betaK, uy + localOff, dskip, yr, 1);
+      Blas::axpy (_np, -betaK, vx + localOff, _dskip, xr, 1);
+      Blas::axpy (_np, -betaK, uy + localOff, _dskip, yr, 1);
     }
 
     // -- Fourier second derivatives in the third direction.
 
     if (space == Geometry::Cylindrical) {
-      elmt -> sideDivR2 (side, Ur,   t);
-      Blas::axpy        (np, betaK2, t, 1, xr, 1);
-      elmt -> sideDivR2 (side, Ui,   t);
-      Blas::axpy        (np, betaK2, t, 1, xi, 1);
-      elmt -> sideDivR2 (side, Vr,   t);
-      Blas::axpy        (np, betaK2, t, 1, yr, 1);
-      elmt -> sideDivR2 (side, Vi,   t);
-      Blas::axpy        (np, betaK2, t, 1, yi, 1);
+      _elmt -> sideDivR2 (_side, Ur,   t);
+      Blas::axpy         (_np, betaK2, t, 1, xr, 1);
+      _elmt -> sideDivR2 (_side, Ui,   t);
+      Blas::axpy         (_np, betaK2, t, 1, xi, 1);
+      _elmt -> sideDivR2 (_side, Vr,   t);
+      Blas::axpy         (_np, betaK2, t, 1, yr, 1);
+      _elmt -> sideDivR2 (_side, Vi,   t);
+      Blas::axpy         (_np, betaK2, t, 1, yi, 1);
     } else {
-      Blas::axpy (np, betaK2, Ur + localOff, dskip, xr, 1);
-      Blas::axpy (np, betaK2, Ui + localOff, dskip, xi, 1);
-      Blas::axpy (np, betaK2, Vr + localOff, dskip, yr, 1);
-      Blas::axpy (np, betaK2, Vi + localOff, dskip, yi, 1);
+      Blas::axpy (_np, betaK2, Ur + localOff, _dskip, xr, 1);
+      Blas::axpy (_np, betaK2, Ui + localOff, _dskip, xi, 1);
+      Blas::axpy (_np, betaK2, Vr + localOff, _dskip, yr, 1);
+      Blas::axpy (_np, betaK2, Vi + localOff, _dskip, yi, 1);
     }
   }
 }
@@ -359,15 +354,15 @@ Vector Boundary::normalTraction (const char* grp,
 {
   Vector Force = {0.0, 0.0, 0.0};
 
-  if (strcmp (grp, bcondn -> group()) == 0) {
+  if (strcmp (grp, _bcondn -> group()) == 0) {
     register integer i;
     const integer    np = Geometry::nP();
 
-    Veclib::copy (np, p + doffset, dskip, wrk, 1);
+    Veclib::copy (_np, p + _doffset, _dskip, wrk, 1);
 
-    for (i = 0; i < np; i++) {
-      Force.x += nx[i] * wrk[i] * area[i];
-      Force.y += ny[i] * wrk[i] * area[i];
+    for (i = 0; i < _np; i++) {
+      Force.x += _nx[i] * wrk[i] * _area[i];
+      Force.y += _ny[i] * wrk[i] * _area[i];
     }
   }
 
@@ -388,23 +383,22 @@ Vector Boundary::tangentTraction (const char* grp,
 {
   Vector Force = {0.0, 0.0, 0.0};
 
-  if (strcmp (grp, bcondn -> group()) == 0) {
-    const integer    np     = Geometry::nP();
-    const integer    offset = elmt -> ID() * Geometry::nTotElmt();
+  if (strcmp (grp, _bcondn -> group()) == 0) {
+    const integer    offset = _elmt -> ID() * sqr (_np);
     register integer i;
 
-    elmt -> sideGrad (side, u + offset, ux, uy);
+    _elmt -> sideGrad (_side, u + offset, ux, uy);
 
-    for (i = 0; i < np; i++) {
-      Force.x += (2.0*ux[i]*nx[i] + uy[i]*ny[i]) * area[i];
-      Force.y +=                    uy[i]*nx[i]  * area[i];
+    for (i = 0; i < _np; i++) {
+      Force.x += (2.0*ux[i]*_nx[i] + uy[i]*_ny[i]) * _area[i];
+      Force.y +=                     uy[i]*_nx[i]  * _area[i];
     }
 
-    elmt -> sideGrad (side, v + offset, ux, uy);
+    _elmt -> sideGrad (_side, v + offset, ux, uy);
 
-    for (i = 0; i < np; i++) {
-      Force.x +=                    ux[i]*ny[i]  * area[i];
-      Force.y += (2.0*uy[i]*ny[i] + ux[i]*nx[i]) * area[i];
+    for (i = 0; i < _np; i++) {
+      Force.x +=                     ux[i]*_ny[i]  * _area[i];
+      Force.y += (2.0*uy[i]*_ny[i] + ux[i]*_nx[i]) * _area[i];
     }
   }
 
@@ -423,25 +417,24 @@ real Boundary::flux (const char* grp,
 {
   register real dcdn = 0.0;
   
-  if (strcmp (grp, bcondn -> group()) == 0) {
-    const integer    np = Geometry::nP();
-    const real*      data = src + elmt -> ID() * Geometry::nTotElmt();
+  if (strcmp (grp, _bcondn -> group()) == 0) {
+    const real*      data = src + _elmt -> ID() * Geometry::nTotElmt();
     register integer i;
-    register real    *cx = wrk, *cy = wrk + np, *r = wrk + np + np;
+    register real    *cx = wrk, *cy = wrk + _np, *r = wrk + _np + _np;
 
-    elmt -> sideGrad (side, data, cx, cy);
+    _elmt -> sideGrad (_side, data, cx, cy);
 
     if (Geometry::system() == Geometry::Cylindrical) {
-      elmt -> sideGetR (side, r);
-      for (i = 0; i < np; i++)
-	dcdn += (cx[i]*nx[i] + cy[i]*ny[i]) * area[i] * r[i];
-      elmt -> sideGet  (side, data, cy);
-      for (i = 0; i < np; i++)
-	dcdn -= cy[i]*ny[i] * area[i];
+      _elmt -> sideGetR (_side, r);
+      for (i = 0; i < _np; i++)
+	dcdn += (cx[i]*_nx[i] + cy[i]*_ny[i]) * _area[i] * r[i];
+      _elmt -> sideGet  (_side, data, cy);
+      for (i = 0; i < _np; i++)
+	dcdn -= cy[i]*_ny[i] * _area[i];
 
     } else {			// -- Cartesian.
-      for (i = 0; i < np; i++)
-	dcdn += (cx[i]*nx[i] + cy[i]*ny[i]) * area[i];
+      for (i = 0; i < _np; i++)
+	dcdn += (cx[i]*_nx[i] + cy[i]*_ny[i]) * _area[i];
     }
   }
 
@@ -456,8 +449,8 @@ void Boundary::addForGroup (const char* grp,
 // Add val to tgt if this Boundary falls in group.
 // ---------------------------------------------------------------------------
 {
-  if (strcmp (grp, bcondn -> group()) == 0)
-    Veclib::sadd (Geometry::nP(), val, tgt, 1, tgt, 1);
+  if (strcmp (grp, _bcondn -> group()) == 0)
+    Veclib::sadd (_np, val, tgt, 1, tgt, 1);
 }
 
 
@@ -468,8 +461,8 @@ void Boundary::setForGroup (const char* grp,
 // Set tgt to val if this Boundary falls in group.
 // ---------------------------------------------------------------------------
 {
-  if (strcmp (grp, bcondn -> group()) == 0)
-    Veclib::fill (Geometry::nP(), val, tgt, 1);
+  if (strcmp (grp, _bcondn -> group()) == 0)
+    Veclib::fill (_np, val, tgt, 1);
 }
 
 
@@ -480,7 +473,7 @@ void Boundary::get (const real* src,
 // element-wise data storage src.
 // ---------------------------------------------------------------------------
 {
-  Veclib::copy (np, src + doffset, dskip, tgt, 1);
+  Veclib::copy (_np, src + _doffset, _dskip, tgt, 1);
 }
 
 
@@ -489,5 +482,5 @@ const char* Boundary::group () const
 // Return group of underlying boundary Condition.
 // ---------------------------------------------------------------------------
 {
-  return bcondn -> group();
+  return _bcondn -> group();
 }
