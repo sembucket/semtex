@@ -1,7 +1,7 @@
 ##############################################################################
 # This directory contains code for simulation of isotropic turbulence by a
 # Fourier Galerkin pseudo-spectral method.   See more extensive comments in 
-# the driver file main.c
+# the driver file drive.c
 # $Id$
 
 
