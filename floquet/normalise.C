@@ -1,22 +1,19 @@
 ///////////////////////////////////////////////////////////////////////////////
-// normalise.C: scale a flow field so that its 2-norm is 1.
+// normalise.C: scale a flow field so that its 2-norm is 1. Optionally
+// select scale factor. This utility can be used to normalise
+// eigenvectors.
 //
 // Copyright (c) 2002 Hugh Blackburn
 //
 // USAGE
 // -----
-// normalise file
-//
-// This utility can be used to normalise eigenvectors.
+// normalise [-h] [-s <num>] file
 //
 // NB: The 2-norm is not the same as the L2-norm, as the 2-norm does
 // not account for the mass-matrix weighting of different nodal
 // values.
 //
 // NBB: The input field is assumed to contain velocities and pressure ONLY!
-//
-// NBBB: normalise is redundant, since its function is in effect carried out
-// by combine if the norm of the base flow is zero.
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
@@ -68,11 +65,11 @@ typedef struct hdr_data {
   char   format[StrMax];
 } hdr_info;
 
-static void getargs   (int, char**, ifstream&);
+static void getargs   (int, char**, real&, ifstream&);
 static void gethead   (istream&, hdr_info&);
 static void allocate  (hdr_info&, vector<real*>&);
 static void readdata  (hdr_info&, istream&, vector<real*>&);
-static void scaledata (hdr_info&, vector<real*>&);
+static void scaledata (hdr_info&, const real&, vector<real*>&);
 static void writedata (hdr_info&, ostream&, vector<real*>&);
 static int  doswap    (const char*);
 
@@ -85,10 +82,11 @@ int main (int    argc,
 {
   ifstream      file;
   hdr_info      head;
+  real          factor = 0.0;
   vector<real*> u;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, file);
+  getargs (argc, argv, factor, file);
   gethead (file, head);
 
   allocate (head, u);
@@ -96,7 +94,7 @@ int main (int    argc,
 
   file.close();
   
-  scaledata (head, u);
+  scaledata (head, factor, u);
   writedata (head, cout, u);
   
   Femlib::finalize();
@@ -104,16 +102,33 @@ int main (int    argc,
 }
 
 
-static void getargs (int       argc,
-		     char**    argv,
-		     ifstream& file)
+static void getargs (int       argc  ,
+		     char**    argv  ,
+		     real&     factor,
+		     ifstream& file  )
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  char usage[] = "Usage: normalise file\n";
+  char usage[] = "Usage: normalise [-h] [-s <num>] file\n";
  
-  if (argc == 2)
+  while (--argc && **++argv == '-')
+    switch (*++argv[0]) {
+    case 'h':
+      cout << usage;
+      exit (EXIT_SUCCESS);
+      break;
+    case 's':
+      if (*++argv[0]) factor  = atof (  *argv);
+      else { --argc;  factor  = atof (*++argv); }
+      break;
+    default:
+      cerr << usage;
+      exit (EXIT_FAILURE);
+      break;
+    }
+
+  if (argc == 1)
     file.open (argv[1], ios::in);
   else {
     cerr << usage;
@@ -212,28 +227,26 @@ static void readdata (hdr_info&      head,
 }
 
 
-static void scaledata (hdr_info&     head,
-		      vector<real*>& u   )
+static void scaledata (hdr_info&     head  ,
+		       const real&   factor,
+		       vector<real*>& u    )
 // ---------------------------------------------------------------------------
-// Scale the data such that the 2-norm of the velocities is unity.
+// Scale the data such that the 2-norm of the velocities is unity
+// (optionally a forced rescaling).
 // ---------------------------------------------------------------------------
 {
-  int  i, swab;
+  int  i;
   real norm = 0.0;
 
   const int nfield = strlen (head.fields);
   const int ncomps = nfield - 1;
   const int ntot   = head.nr * head.ns * head.nel * head.nz;
 
-  // -- Read the base flow into the first plane location of u.
-
-  swab = doswap (head.format);
-  
-  for (i = 0; i < ncomps; i++)
-    norm += Blas::nrm2 (ntot, u[i], 1);
-  
-  for (i = 0; i < nfield; i++)
-    Blas::scal (ntot, 1.0/norm, u[i], 1);
+  if (factor == 0.0) {
+    for (i = 0; i < ncomps; i++) norm += Blas::nrm2 (ntot, u[i], 1);
+    for (i = 0; i < nfield; i++) Blas::scal (ntot, 1.0/norm, u[i], 1);
+  } else
+    for (i = 0; i < nfield; i++) Blas::scal (ntot, factor,   u[i], 1);
 }
 
 

@@ -364,6 +364,9 @@ static int EV_test (const int  itrn   ,
 //   nvec:  all of the first nvec eigenvalue estimates have converged;
 //  -1,-2:  the residuals aren't shrinking;
 //   0:     neither of the above is true: not converged.
+//
+// Hold off on testing residual shrinkage until we're in steady-state
+// operation.
 // ---------------------------------------------------------------------------
 {
   int          i, idone = 0;
@@ -391,8 +394,8 @@ static int EV_test (const int  itrn   ,
   else if (min_max1 < 0.01 && resid[nvec - 1] > 10.0 * min_max1) idone = -1;
   else if (min_max2 < 0.01 && resnorm         > 10.0 * min_max2) idone = -2;
 
-  min_max1 = min (min_max1, resid[nvec - 1]);
-  min_max2 = min (min_max2, resnorm);
+  min_max1 = (itrn > kdim) ? min (min_max1, resid[nvec - 1]) : min_max1;
+  min_max2 = (itrn > kdim) ? min (min_max2, resnorm)         : min_max2;
 
   // -- Print diagnostic information.
 
