@@ -11,11 +11,22 @@
 %\usepackage{garamond}
 \usepackage{pifont}
 \usepackage{endnotesn}
-\usepackage{bibtopic}
-\usepackage{natbib}
+%\usepackage{bibtopic}
+%\usepackage{natbib}
 \usepackage{makeidx}
 \usepackage{setspace}
 \usepackage{fancyhdr}
+\usepackage[%
+  authorformat=year,%
+  titleformat=italic,%
+  titleformat=commasep,%
+  ibidem=strict,%
+  citefull=first,oxford,%
+%  pages=format,
+  opcit,%
+  commabeforerest,
+]{jurabib}
+
 
 % -- The following for A4 paper.
 
@@ -36,11 +47,13 @@
 \setlength{\parindent}     {2.5ex}
 \setlength{\parsep}        {0ex}
 \setlength{\topsep}        {0ex}
-\setlength{\bibsep}        {\parskip}
+%\setlength{\bibsep}        {\parskip}
 
 \renewcommand{\baselinestretch}{1.0}
 
 \newcommand{\clearemptydoublepage}{\newpage{\pagestyle{empty}\cleardoublepage}}
+
+\newcommand{\cb}{$^\dag$}
 
 \newcommand{\closure}{%
   \medskip%
@@ -48,8 +61,10 @@
   \noindent%
 }
 
-\renewcommand{\footnote}{\endnote}
+%\renewcommand{\footnote}{\endnote}
+\let\footnote=\endnote
 \newcommand{\fn}[1]{\footnote{#1}}
+%\renewcommand{\bibtfont}{\itshape}
 
 \hyphenation{Ar-thur Arth-ur}
 \hyphenation{Mon-thly Month-ly}
@@ -90,16 +105,17 @@
  ,ch14
  ,ch15
  ,ch16
- ,abbrev
+% ,abbrev
  ,notes
- ,selectbib
+% ,selectbib
+% ,bibliography
 }
 
 \makeindex
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
-\bibliographystyle{agsm}
+%\bibliographystyle{agsm}
 
 \frontmatter
 
@@ -116,6 +132,17 @@
 
 {\bfseries\sffamily\Huge Pioneering Irrigation \\[0.5ex]
 in Australia to 1920}
+
+\vspace*{20mm}
+
+\begin{center}
+\begin{minipage}{85mm}
+\itshape Gerard ('Dick') Blackburn (1918--1999) was a research
+scientist with the CSIRO, employed in the Division of Soils,
+Adelaide. He had a life-long interest in Australian rural history and
+wrote this book in his retirement.
+\end{minipage}
+\end{center}
 
 \end{center}
 \clearemptydoublepage
@@ -233,14 +260,16 @@ Reproduced from camera-ready copy typeset in \LaTeX.
 \clearemptydoublepage
 
 \backmatter
-\include{abbrev}
-\clearemptydoublepage
+%\include{abbrev}
+%\clearemptydoublepage
 \include{notes}
 \clearemptydoublepage
-\include{selectbib}
-\clearemptydoublepage
+%\include{selectbib}
+%\include{bibliography}
+%\clearemptydoublepage
 
 \fancyhead[RE]{\sffamily \small Index}
+\addcontentsline{toc}{chapter}{Index}
 {\small
 \printindex
 }
