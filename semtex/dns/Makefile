@@ -46,7 +46,7 @@ LIBDIR  += -L/usr/local/lib
 LDFLAGS  = $(LIBDIR)
 ifdef STATIC
   F77LIBS  = -lcxml -lfor -lFutil -lUfor -lots -lg2c
-  LDFLAGS + -static
+  LDFLAGS += -static
 else
   F77LIBS  = -lcxml -lfor -lots -lg2c
 endif
