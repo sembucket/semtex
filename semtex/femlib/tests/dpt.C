@@ -20,10 +20,11 @@
 
 #include <stdlib.h>
 #include <math.h>
-
 #include <iostream.h>
 #include <iomanip.h>
 #include <fstream.h>
+
+using namespace std;
 
 #include <femdef.h>
 #include <Array.h>
@@ -33,11 +34,13 @@
 #include <Utility.h>
 #include <Stack.h>
 
+static char prog[] = "dpt";
 
-static void getargs (int    argc,
-		     char** argv,
-		     int&   invt,
-		     char&  ptyp)
+static void getargs (int       argc,
+		     char**    argv,
+		     int&      invt,
+		     char&     ptyp,
+		     istream*& file)
 // ---------------------------------------------------------------------------
 // Parse command-line args.
 // ---------------------------------------------------------------------------
@@ -63,14 +66,9 @@ static void getargs (int    argc,
   if (!(ptyp == 'l' || ptyp == 'm')) { cerr << usage; exit (EXIT_FAILURE); }
 
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-      } else {
-	cerr <<  "dpt: unable to open input file" << endl;
-	exit (EXIT_FAILURE);
-    }
-  }
+    file = new ifstream (*argv);
+    if (file -> bad()) message (prog, "unable to open input file", ERROR);
+  } else file = &cin;
 }
 
 
@@ -100,6 +98,7 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
+  istream*       file;
   int            i, ngll, dir = FORWARD;
   char           polytype;
   vector<double> u, v;
@@ -108,9 +107,9 @@ int main (int    argc,
   cout.precision (8);
   cout.setf (ios::fixed, ios::floatfield);
 
-  getargs (argc, argv, dir, polytype);
+  getargs (argc, argv, dir, polytype, file);
 
-  v.setSize (ngll = loadVals (cin, u));
+  v.setSize (ngll = loadVals (*file, u));
 
   switch (polytype) {
   case 'l': Femlib::legTran (ngll, &F, 0, &I, 0, 0, 0); break;
