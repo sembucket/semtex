@@ -30,7 +30,7 @@ CPPFLAGS = -I. -I$(SEM)/include
 ifeq ($(ARCH),IRIX)		# -- SGI 32-bit systems.
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = $(DEFINES) -O2
+CXXFLAGS = $(DEFINES) -g
 F77LIBS	 = -lcomplib.sgimath -lftn
 LDFLAGS  = -L$(SEM)/lib/$(ARCH) -lfem -lalp \
 	   $(F77LIBS) -lmalloc -lm
@@ -39,9 +39,9 @@ endif
 ifeq ($(ARCH),IRIX64)		# -- SGI 64-bit systems.
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = $(DEFINES) -mips4 -64 -Ofast=IP30 -r10000
+CXXFLAGS = $(DEFINES) -mips4 -64 -r10000 -Ofast=IP30 -OPT:roundoff=3
 F77LIBS	 = -lcomplib.sgimath -lftn
-LDFLAGS  = -64 -mips4 -Ofast=IP30 -r10000 	\
+LDFLAGS  = -64 -mips4 -r10000 -Ofast=IP30 -OPT:roundoff=3 	\
            -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
 endif
 
@@ -99,7 +99,7 @@ CXX      = CC
 LD       = CC
 CFLAGS   = $(DEFINES) -pvctl,fullmsg -hacct -Onooverlap        \
            -hfloat0 -hnostkchk
-CXXFLAGS = $(CFLAGS) $(OPTIM) +a1
+CXXFLAGS = $(CFLAGS) $(OPTIM) +a1 -ispeed
 LDFLAGS  = $(CFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 ifdef MPI
   LIBS   = -lfem_mp -llapack_64 -lalp_mp -lblas_64 -lfft_64	\
@@ -112,7 +112,7 @@ endif
 
 # ----------------------------------------------------------------------------
 #
-SEMFILES  = analysis auxfield BCmgr boundary condition domain 	\
+SEMFILES  = analysis auxfield BCmgr boundary domain 		\
 	    element feml field geometry history integration  	\
 	    matrix mesh misc particle pressure statistics
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
@@ -143,9 +143,6 @@ mesh.o: $(VPATH)/mesh.C
 BCmgr.o: $(VPATH)/BCmgr.C
         $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
         $(VPATH)/BCmgr.C
-condition.o: $(VPATH)/condition.C
-        $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
-        $(VPATH)/condition.C
 endif
 
 # -----------------------------------------------------------------------------

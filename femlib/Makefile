@@ -32,8 +32,8 @@ FFLAGS     = $(DEFINES) -O2
 endif
 
 ifeq ($(ARCH),IRIX64)			# -- SGI IRIX 64-bit
-CFLAGS     = $(DEFINES) -mips4 -64 -Ofast=IP30 -r10000
-FFLAGS     = $(DEFINES) -mips4 -64 -Ofast=IP30 -r10000
+CFLAGS     = $(DEFINES) -mips4 -64 -r10000 -Ofast=IP30
+FFLAGS     = $(DEFINES) -mips4 -64 -r10000 -Ofast=IP30 -OPT:roundoff=3
 endif
 
 ifeq ($(ARCH),OSF1)			# -- DEC Alpha OSF1
@@ -73,8 +73,9 @@ endif
 endif
 
 ifeq ($(ARCH),SUPER-UX)                 # -- NEC SX-4
-CFLAGS     = $(DEFINES) -pvctl,fullmsg -hfloat0
-FFLAGS     = $(DEFINES) -Wf'-pvctl,fullmsg -ptr byte' -float0 -ew
+DEFINES   += -D_BUILTIN_
+CFLAGS     = $(DEFINES) -pvctl,fullmsg -hfloat0 -hnostkchk
+FFLAGS     = $(DEFINES) -Cvopt -Wf'-pvctl,fullmsg -ptr byte' -float0 -ew
 ifdef MPI
   LIB       = libfem_mp.a
   DEFINES  += -DMPI
@@ -90,7 +91,7 @@ endif
 
 INITIAL    = initial
 
-OPERATORS  = polyops	operators
+OPERATORS  = polyops	operators	matops
 
 FFT	   = temfftd	temffts		fftpack		fourier
 
@@ -144,23 +145,9 @@ tar:
 	tar cvf femlib.tar *
 
 clean:
-	rm -rf *.o *.a *~ ii_files *.F
+	rm -rf *.O *.o *.a *~ ii_files *.F
 
-# -- Special compiles for .F FFT routines, there is a problem otherwise.
-
-ifeq ($(ARCH),IRIX)
-temfftd.o: temfftd.F
-	f77 -c -O2 temfftd.F
-temffts.o: temffts.F
-	f77 -c -O2 temffts.F
-endif
-
-ifeq ($(ARCH),IRIX64)
-temfftd.o: temfftd.F
-	f77 -c  -mips4 -64 -Ofast=IP30 -r10000 temfftd.F
-temffts.o: temffts.F
-	f77 -c  -mips4 -64 -Ofast=IP30 -r10000 temffts.F
-endif
+# -- Special machine-dependent optimizations.
 
 ifeq ($(ARCH),OSF1)
 temfftd.o: temfftd.F
@@ -169,23 +156,8 @@ temffts.o: temffts.F
 	f90 -c -fast -inline speed -tune host temffts.F -O5 -unroll 2
 endif
 
-ifeq ($(ARCH),Linux)
-temfftd.o: temfftd.F
-	g77 -c -O3 temfftd.F
-temffts.o: temffts.F
-	g77 -c -O3 temffts.F
-endif
+# -- Rules to help with .F routines.
 
-ifeq ($(ARCH),UNIX_System_V)
+matops.o:  matops.F
 temfftd.o: temfftd.F
-	frt -c -Wv,-m3,-te temfftd.F
 temffts.o: temffts.F
-	frt -c -Wv,-m3,-te temffts.F
-endif
-
-ifeq ($(ARCH),SUPER-UX)
-temfftd.o: temfftd.F
-	f77 -c -Wf'-pvctl,fullmsg -ptr byte' -float0 -ew temfftd.F
-temffts.o: temffts.F
-	f77 -c -Wf'-pvctl,fullmsg -ptr byte' -float0 -ew temffts.F
-endif
