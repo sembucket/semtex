@@ -120,7 +120,7 @@ void integrate (Domain*        D,
     D -> time += dt;
     Femlib::value ("t", D -> time);
 
-#if 0
+#if 1
 
     for (i = 0; i < NDIM; i++) {
       lowpass (D -> udat[i]);
@@ -174,7 +174,7 @@ void integrate (Domain*        D,
     S -> dump    ();
   }
 
-#if 1
+#if 0
   // -- Dump ratio eddy/molecular viscosity to file visco.fld.
 
   dynamic (D, Ut, 0);

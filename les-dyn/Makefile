@@ -6,25 +6,33 @@
 # $Id$
 ##############################################################################
 
-ifdef MPI
+SEM   = ../semtex
+VPATH = $(SEM)/src
+
+# ----------------------------------------------------------------------------
+# Conditional compilation flags.
+
+ifdef MPI			# -- Link parallel code.
   PROG = les-dyn_mp
 else
   PROG = les-dyn
 endif
 
-SEM   = ../semtex
-VPATH = $(SEM)/src
-
 ifdef NOMODEL			# -- This will produce DNS.
   DEFINES += -DNOMODEL
 endif
 
-ifdef SMAG			# -- Over-ride dynamic estimate with C_SMAG
+ifdef SMAG			# -- Over-ride dynamic estimate with C_SMAG.
   DEFINES += -DSMAG
 endif
 
+ifdef PROJ			# -- Use 2D projection instead of BVD filter.
+  DEFINES += -DPROJ
+endif
+
 # ----------------------------------------------------------------------------
-#
+# Standard semtex objects.
+
 SEMFILES = analysis auxfield BCmgr boundary bsys condition domain \
 	   element feml field geometry history integration  	  \
 	   matrix mesh misc particle pressure statistics
@@ -32,7 +40,8 @@ SEMOBJ   = $(addsuffix .o,$(SEMFILES))
 SEMHDR   = Sem.h
 
 # ----------------------------------------------------------------------------
-# Default build for Navier-Stokes solver.
+# Local objects and build.
+
 LESFILES = drive integrate nonlinear filter lesanalysis sumintegrator
 LESOBJ   = $(addsuffix .o,$(LESFILES))
 

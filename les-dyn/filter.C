@@ -20,21 +20,30 @@ void initFilters ()
 // compute matrices required for polynomial forward transform+filter,
 // inverse transform.
 //
-// Both sets of filters are of erfc (or Boyd--Vandeven) type.  The
-// Fourier filter is of length NZ / 2 + 1 (so notionally it takes the
-// Nyquist frequency into account too), and is zero-phase (i.e. only
-// real coefficients).  The polynomial filter is long enough to fit
-// along the side of an element (i.e. Geometry::nP() long).
+// By default, both sets of filters are of erfc (or Boyd--Vandeven)
+// type.  The Fourier filter is of length NZ / 2 + 1 (so notionally it
+// takes the Nyquist frequency into account too), and is zero-phase
+// (i.e. only real coefficients).  The polynomial filter is long
+// enough to fit along the side of an element (i.e. Geometry::nP()
+// long).
+// 
+// If PROJ is defined for compilation, the in-plane filtering takes
+// place by a projection to a set of Lagrange interpolants of half the
+// order of the basis selcted for the simulation.  In this case, no
+// filter parameters are needed for the in-plane filtering.
 //
 // The Fourier mask is returned with length nZ, and has same structure
 // as the planes of data (k=0.Re, k=Nyquist.Re, k=1.Re, k=1.Im,
 // k=2.Re, ...).
 //
-// Each filter is defined by three parameters (supplied in the TOKENS section)
+// Each BVD filter is defined by three parameters (supplied in the
+// TOKENS section)
+//
 //   x_ROLL,  real number in 0--1 that defines where filter roll-off begins;
 //   x_ORDER, integer that defines filter order (e.g. 2 or more);
 //   x_ATTEN, real number in 0--1 that defines degree of attenuation,
-// where x = F for Fourier mask, L for polynomial mask.
+//
+// where x = F for Fourier mask, P for polynomial mask.
 //
 // @Article{lih97,
 //  author = 	 {Julia G. Levin and Mohammed Iskandarani and
@@ -81,7 +90,23 @@ void initFilters ()
   }
 
   // -- polynomial mask.
+
+#if defined (PROJ) // -- Projection to half-order Lagrange interpolants.
+
+  const real **PF, **PT, **IB, **IT;
+
+  n  = Geometry::nP();
+  nm = (n + 1) / 2;
+  Iu = new real [(size_t) (2 * n*n)];
+  It = Iu + n*n;
   
+  Femlib::mesh (GLL, GLL, n,  nm, 0, &PF, &PT, 0, 0);
+  Femlib::mesh (GLL, GLL, nm, n,  0, &IB, &IT, 0, 0);
+  Blas::mxm    (*IB, n, *PF, nm, Iu, n);
+  Blas::mxm    (*PT, n, *IT, nm, It, n);
+
+#else              // -- Parameterised Boyd--Vandeven filter.
+
   n     = Geometry::nP();
   nm    = n - 1;
   order = (integer) Femlib::value ("P_ORDER");
@@ -107,6 +132,8 @@ void initFilters ()
   for (i = 0; i < n; i++)
     for (j = 0; j < n; j++)
       Iu[Veclib::row_major (j, i, n)] = It[Veclib::row_major (i, j, n)];
+
+#endif
 }
 
 
@@ -128,10 +155,22 @@ void lowpass (real* data)
 
   if (!FourierMask) initFilters();
 
+#if defined (PROJ)
+
+  for (i = 0; i < nZP; i++) {
+    dataplane = data + i*nP;
+    Femlib::tpr2d (dataplane, dataplane, tmp(), Iu, It, np, nel);
+    Veclib::smul  (nP, FourierMask[i+pid*nZP], dataplane, 1, dataplane, 1);
+  }
+
+#else
+
   for (i = 0; i < nZP; i++) {
     dataplane = data + i*nP;
     Femlib::tpr2d (dataplane, dataplane, tmp(), Du, Dt, np, nel);
     Femlib::tpr2d (dataplane, dataplane, tmp(), Iu, It, np, nel);
     Veclib::smul  (nP, FourierMask[i+pid*nZP], dataplane, 1, dataplane, 1);
   }
+
+#endif
 }
