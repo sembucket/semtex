@@ -68,7 +68,7 @@ int main (int argc, char *argv[])
       }
       break;
     default:
-      fprintf (stderr, "%chop: unknown arg %s\n", *argv);
+      fprintf (stderr, "chop: unknown arg %s\n", *argv);
       exit    (EXIT_FAILURE);
     }
   }

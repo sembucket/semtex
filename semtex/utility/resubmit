@@ -2,8 +2,6 @@
 #
 # resubmit session time
 # returns 1 if the final time in session.rst exceeds time (i.e. no resubmit).
-#
-# $Id$
 
 head $1.rst | grep Time | grep -v step | \
 	nawk '{t = $1} \
