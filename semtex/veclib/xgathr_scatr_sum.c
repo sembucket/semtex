@@ -23,6 +23,8 @@ void dgathr_scatr_sum (integer n,
 
 #if defined(__uxp__)
 #pragma loop novrec z
+#elif defined(_SX)
+#pragma vdir nodep
 #endif
 
   for (i = 0; i < n; i++) z[y[i]] += w[x[i]];
@@ -38,6 +40,8 @@ void igathr_scatr_sum (integer n,
 
 #if defined(__uxp__)
 #pragma loop novrec z
+#elif defined(_SX)
+#pragma vdir nodep
 #endif
 
   for (i = 0; i < n; i++) z[y[i]] += w[x[i]];
@@ -53,6 +57,8 @@ void sgathr_scatr_sum (integer n,
 
 #if defined(__uxp__)
 #pragma loop novrec z
+#elif defined(_SX)
+#pragma vdir nodep
 #endif
 
   for (i = 0; i < n; i++) z[y[i]] += w[x[i]];
