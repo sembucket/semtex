@@ -8,8 +8,7 @@
 #
 # where lambda = Re/2 - sqrt(0.25*Re*Re + 4*PI*PI).
 #
-# This 3D version uses symmetry planes on the upper and lower boundaries
-# with flow in the x-z plane.
+# Only 4 plane/2 modes are needed for full resoultion.
 
 <USER>
 	u = 0
@@ -23,16 +22,16 @@
 </FIELDS>
 
 <TOKENS>
-	N_Z    = 8
-	Lz     = 1.0
-	BETA   = TWOPI/Lz
-	N_TIME = 1
-	N_POLY = 8
-	N_STEP = 500
-	D_T    = 0.008
-	Re     = 40.0
-	KINVIS = 1.0/Re
-	LAMBDA = Re/2.0-sqrt(0.25*Re*Re+4.0*PI*PI)
+	N_Z=4
+	Lz=1.0
+	BETA=TWOPI/Lz
+	N_TIME=2
+	N_POLY=14
+	N_STEP=500
+	D_T=0.005
+	Re=40.0
+	KINVIS=1.0/Re
+	LAMBDA=Re/2.0-sqrt(0.25*Re*Re+4.0*PI*PI)
 </TOKENS>
 
 <GROUPS NUMBER=1>
@@ -66,11 +65,13 @@
 	4 <Q> 5 6 9 8 </Q>
 </ELEMENTS>
 
-<SURFACES NUMBER=6>
+<SURFACES NUMBER=8>
 	1	1	1	<B>	v	</B>
 	2	2	1	<B>	v	</B>
-	3	2	2	<P>	1	4	</P>
-	4	4	2	<P>	3	4	</P>
+	3	2	2	<B>	v	</B>
+	4	4	2	<B>	v	</B>
 	5	4	3	<B>	v	</B>
 	6	3	3	<B>	v	</B>
+	7	3	4	<B>	v	</B>
+	8	1	4	<B>	v	</B>
 </SURFACES>
