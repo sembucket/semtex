@@ -1,5 +1,5 @@
 # 4 element channel flow, laminar, driven by FFX.
-# du/dy_wall = +/-4; FFX = KINVIS * du_dy_wall * 4 * 2 = 4.
+# du/dy_wall = +/-4; FFX = KINVIS * du_dy_wall * 4 * 2 / 4 = 4.
 
 <FIELDS>
 	u v p
