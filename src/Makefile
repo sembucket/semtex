@@ -36,6 +36,7 @@ endif
 #
 
 ifeq ($(ARCH),Darwin)               # -- Mac OSX.
+DEFINES += -D_VECTOR_ARCH
 CXX      = g++
 LD       = g++
 CC       = gcc
@@ -204,6 +205,7 @@ CLDFLAGS = $(LDFLAGS)
 endif
 
 ifeq ($(ARCH),UNIX_System_V)    	# -- Fujitsu VPP300.
+DEFINES += -D_VECTOR_ARCH
 CC       = vcc
 FC       = frt
 CXX      = /home/home01/565/hmb565/C++/bin/CC
@@ -231,7 +233,7 @@ CLDFLAGS = $(LDFLAGS)
 endif
 
 ifeq ($(ARCH),SUPER-UX)         	# -- NEC SX-4/5.
-DEFINES += -D_BUILTIN_ -D_SX
+DEFINES += -D_BUILTIN_ -D_SX -D_VECTOR_ARCH
 CXX       = c++
 LD        = c++
 FC        = f90

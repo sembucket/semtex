@@ -341,6 +341,91 @@ AuxField& AuxField::gradient (const int dir)
 // AuxField is presumed to have been Fourier transformed in 3rd direction.
 // ---------------------------------------------------------------------------
 {
+#if defined (_VECTOR_ARCH)	// -- Use vectorised grad2 routines.
+
+  const char    routine[] = "AuxField::gradient";
+  const int     nel  = Geometry::nElmt();
+  const int     np   = Geometry::nP();
+  const int     npnp = np  * np;
+  const int     ntot = nel * npnp;
+  const int     nP   = Geometry::planeSize();
+  vector<real>  work;
+  register real *xr, *xs, *tmp;
+  register int  i, k;
+  const real    *DV, *DT;
+
+  Femlib::quadrature (0, 0, &DV, 0  , np, 'L', 0.0, 0.0);
+  Femlib::quadrature (0, 0, 0  , &DT, np, 'L', 0.0, 0.0);
+
+  switch (dir) {
+
+  case 0:
+    work.resize (2 * nP);
+    xr = &work[0];
+    xs = xr + nP;
+
+    for (k = 0; k < _nz; k++) {
+      tmp = _plane[k];
+
+      Veclib::zero  (2 * nP, xr, 1);
+      Femlib::grad2 (tmp, tmp, xr, xs, DV, DT, np, np, nel);
+
+      for (i = 0; i < nel; i++, xr += npnp, xs += npnp, tmp += npnp)
+	_elmt[i] -> gradX (xr, xs, tmp);
+      
+      xr -= ntot;
+      xs -= ntot;
+    }
+    break;
+
+  case 1:
+    work.resize (2 * nP);
+    xr = &work[0];
+    xs = xr + nP;
+
+    for (k = 0; k < _nz; k++) {
+      tmp = _plane[k];
+
+      Veclib::zero  (2 * nP, xr, 1);
+      Femlib::grad2 (tmp, tmp, xr, xs, DV, DT, np, np, nel);
+
+      for (i = 0; i < nel; i++, xr += npnp, xs += npnp, tmp += npnp)
+	_elmt[i] -> gradY (xr, xs, tmp);
+      
+      xr -= ntot;
+      xs -= ntot;
+    }
+    break;
+
+  case 2: {
+    const int  nmodes = Geometry::nModeProc();
+    const int  base   = Geometry::baseMode();
+    const real beta   = Femlib::value ("BETA");
+    int        Re, Im, klo;
+
+    work.resize (nP);
+    xr = &work[0];
+
+    if (base == 0) { // -- We have real & Nyquist planes, to be set zero.
+      klo = 1; Veclib::zero (2 * nP, _data, 1);
+    } else
+      klo = 0;
+
+    for (k = klo; k < nmodes; k++) {
+      Re = k  + k;
+      Im = Re + 1;
+      Veclib::copy (nP,                     _plane[Re], 1, xr,         1);
+      Veclib::smul (nP, -beta * (k + base), _plane[Im], 1, _plane[Re], 1);
+      Veclib::smul (nP,  beta * (k + base), xr,         1, _plane[Im], 1);
+    }
+    break;
+  }
+  default:
+    message (routine, "nominated direction out of range [0--2]", ERROR);
+    break;
+  }
+
+#else
   const char   routine[] = "AuxField::gradient";
   const int    nel  = Geometry::nElmt();
   const int    np   = Geometry::nP();
@@ -397,6 +482,7 @@ AuxField& AuxField::gradient (const int dir)
     message (routine, "nominated direction out of range [0--2]", ERROR);
     break;
   }
+#endif
 
   return *this;
 }
@@ -418,6 +504,84 @@ void AuxField::gradient (const int nZ ,
 // NB: the Fourier mode index is assumed to start at zero for all processes.
 // ---------------------------------------------------------------------------
 {
+#if defined (_VECTOR_ARCH)
+  const char    routine[] = "AuxField::gradient";
+  const int     nel  = Geometry::nElmt();
+  const int     np   = Geometry::nP();
+  const int     npnp = np  * np;
+  const int     ntot = nel * npnp;
+  register int  i, k;
+  vector<real>  work;
+  register real *plane, *xr, *xs, *Re, *Im;
+  const real    *DV, *DT;
+
+  Femlib::quadrature (0, 0, &DV, 0   , np, 'L', 0.0, 0.0);
+  Femlib::quadrature (0, 0, 0   , &DT, np, 'L', 0.0, 0.0);
+
+  switch (dir) {
+
+  case 0:
+    work.resize (2 * nP);
+    xr = &work[0];
+    xs = xr + nP;
+
+    for (k = 0; k < nZ; k++) {
+      plane = src + k * nP;
+
+      Veclib::zero  (2 * nP, xr, 1);
+      Femlib::grad2 (plane, plane, xr, xs, DV, DT, np, np, nel);
+
+      for (i = 0; i < nel; i++, xr += npnp, xs += npnp, plane += npnp)
+	_elmt[i] -> gradX (xr, xs, plane);
+      xr -= ntot;
+      xs -= ntot;
+    }
+    break;
+
+  case 1:
+    work.resize (2 * nP);
+    xr = &work[0];
+    xs = xr + nP;
+
+    for (k = 0; k < nZ; k++) {
+      plane = src + k * nP;
+
+      Veclib::zero  (2 * nP, xr, 1);
+      Femlib::grad2 (plane, plane, xr, xs, DV, DT, np, np, nel);
+
+      for (i = 0; i < nel; i++, xr += npnp, xs += npnp, plane += npnp)
+	_elmt[i] -> gradY (xr, xs, plane);
+      xr -= ntot;
+      xs -= ntot;
+    }
+    break;
+
+  case 2: {
+    if (nZ == 1) break;
+
+    const int  nmodes = nZ >> 1;
+    const real beta   = Femlib::value ("BETA");
+
+    work.resize (nP);
+    xr = &work[0];
+
+    Veclib::zero (2 * nP, src, 1);
+
+    for (k = 1; k < nmodes; k++) {
+      Re = src + 2 * k * nP;
+      Im = Re  + nP;
+      Veclib::copy (nP,             Re, 1, xr, 1);
+      Veclib::smul (nP, -beta * k,  Im, 1, Re, 1);
+      Veclib::smul (nP,  beta * k,  xr, 1, Im, 1);
+    }
+    break;
+  }
+  default:
+    message (routine, "nominated direction out of range [0--2]", ERROR);
+    break;
+  }
+
+#else
   const char   routine[] = "AuxField::gradient";
   const int    nel  = Geometry::nElmt();
   const int    np   = Geometry::nP();
@@ -465,6 +629,7 @@ void AuxField::gradient (const int nZ ,
     message (routine, "nominated direction out of range [0--2]", ERROR);
     break;
   }
+#endif
 }
 
 
