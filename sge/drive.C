@@ -296,8 +296,11 @@ static real* gasdata (const char* session,
     file.read ((char*) w, Geometry::nPlane() * sizeof (real));
     if (swab) Veclib::brev (Geometry::nPlane(), w, 1, w, 1);
 
+
     cout << "-- Gas velocity field      : read from "
-	 << session << ".gas" << endl;
+	 << session << ".gas";
+    if (swab) cout << " (byte-swapping)";
+    cout << endl;
 
     if (nProc > 1)
       for (i = 1; i < nProc; i++)

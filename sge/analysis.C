@@ -15,7 +15,7 @@ Analyser::Analyser (Domain* D   ,
 // ---------------------------------------------------------------------------
 // Set up.
 //
-// History points are also set up with.  They are nominated in the
+// History points are also set up here.  They are nominated in the
 // optional HISTORY section of the session file.  Output is to
 // session.his.
 // ---------------------------------------------------------------------------
@@ -58,6 +58,20 @@ Analyser::Analyser (Domain* D   ,
       if (!his_strm) message (routine, "can't open history file", ERROR);
     }
   }
+
+  // -- Set up for output of plane-integral data.
+  
+  strcat (strcpy (str, src -> name), ".int");
+  ROOTONLY {
+
+    const real lz = Femlib::value ("TWOPI/ BETA");
+    const int  nz = Geometry::nZ();
+    int_strm.open (str, ios::out); 
+    int_strm << "#  " << lz << "  " << nz  << "     : Lz, Nz" << endl
+	     << "#  Time        Z-location         Amount"    << endl
+	     << "# --------------------------------------"    << endl;
+  }
+
 }
 
 
@@ -87,6 +101,9 @@ void Analyser::analyse ()
     register integer  i, j;
     const integer     NH = history.getSize();
     const integer     NF = src -> u.getSize();
+    const integer     NZ = Geometry::nZProc();
+    const integer     NP = Geometry::nProc();
+    const real        dz = Femlib::value ("TWOPI / BETA") / (NZ * NP);
     HistoryPoint*     H;
     vector<real>      tmp (NF);
     vector<AuxField*> u   (NF);
@@ -104,6 +121,42 @@ void Analyser::analyse ()
 	for (j = 0; j < NF; j++) his_strm << setw(15) << tmp[j];
 	his_strm << endl;
       }
+    }
+
+    // -- Output plane-integral data.
+
+    tmp.setSize (NZ*NP);
+
+    for (i = 0; i < NZ; i++) tmp[i] = src -> u[0] -> integral (i);
+  
+    if (NP > 1) {
+      ROOTONLY
+	for (j = 1; j < NP; j++) 
+	  Femlib::recv (tmp() + j * NZ, NZ, j);
+      else
+	Femlib::send (tmp(), NZ, 0);
+    }
+
+    ROOTONLY {
+      // -- Rearrange data for, compute inverse DFT.  Output.
+
+      const integer nz = NZ * NP;
+      vector<real>  wtab (2 * nz + 15);
+      
+      wtab[0] = tmp[1];
+      for (i = 2; i < nz - 1; i++) tmp[i - 1] = tmp[i];
+      tmp[nz - 1] = wtab[0];
+
+      Femlib::rffti (nz, wtab());
+      Femlib::rfftb (nz, tmp(), wtab());
+
+      for (i = 0; i < nz; i++)
+	int_strm << setw(10) << src -> time 
+		 << setw(15) << i * dz
+		 << setw(15) << tmp[i]
+		 << endl;
+
+      int_strm.flush();
     }
   }
 

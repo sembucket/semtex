@@ -269,6 +269,7 @@ public:
   real norm_inf    ()                          const;
   real mode_L2     (const integer)             const;
   real integral    ()                          const;
+  real integral    (const integer)             const;
   real CFL         (const integer)             const;
 
   real probe (const Element*, const real, const real, const integer) const;
@@ -376,7 +377,7 @@ public:
 			  const real*, real*)                           const;
   virtual void sum       (const integer, const integer*,
 			  const real*, const real*, real*, real*)       const;
-  virtual void augmentSC (const integer, const integer, const intege,
+  virtual void augmentSC (const integer, const integer, const integer,
 			  const integer*, const real*, real*, real*)    const;
   virtual void augmentOp (const integer, const integer*,
 			  const real*, const real*, real*)              const;
@@ -403,7 +404,7 @@ public:
 			  const real*, real*)                           const;
   virtual void sum       (const integer, const integer*,
 			  const real*, const real*, real*, real*)       const;
-  virtual void augmentSC (const integer, const integer, const intege,
+  virtual void augmentSC (const integer, const integer, const integer,
 			  const integer*, const real*, real*, real*)    const;
   virtual void augmentOp (const integer, const integer*,
 			  const real*, const real*, real*)              const;
@@ -430,7 +431,7 @@ public:
 			  const real*, real*)                           const;
   virtual void sum       (const integer, const integer*,
 			  const real*, const real*, real*, real*)       const;
-  virtual void augmentSC (const integer, const integer, const intege,
+  virtual void augmentSC (const integer, const integer, const integer,
 			  const integer*, const real*, real*, real*)    const;
   virtual void augmentOp (const integer, const integer*,
 			  const real*, const real*, real*)              const;
@@ -458,7 +459,7 @@ public:
 			  const real*, real*)                           const;
   virtual void sum       (const integer, const integer*,
 			  const real*, const real*, real*, real*)       const;
-  virtual void augmentSC (const integer, const integer, const intege,
+  virtual void augmentSC (const integer, const integer, const integer,
 			  const integer*, const real*, real*, real*)    const;
   virtual void augmentDg (const integer, const integer*, 
 			  const real*, real*)                           const;
@@ -486,7 +487,7 @@ public:
 			  const real*, real*)                           const;
   virtual void sum       (const integer, const integer*,
 			  const real*, const real*, real*, real*)       const;
-  virtual void augmentSC (const integer, const integer, const intege,
+  virtual void augmentSC (const integer, const integer, const integer,
 			  const integer*, const real*, real*, real*)    const;
   virtual void augmentOp (const integer, const integer*,
 			  const real*, const real*, real*)              const;
@@ -610,7 +611,7 @@ public:
   const char*    fields () const { return ns_fields;              }
   const integer* bmask  () const { return ns_bmask;               }
   const integer* emask  () const { return ns_emask;               }
-  const integer  fmask  () const { return ns_nglobal - ns_nsolve; }
+  integer        fmask  () const { return ns_nglobal - ns_nsolve; }
   const integer* btog   () const { return ns_btog;                }
   const real*    imass  () const { return ns_imass;               }
 
@@ -702,9 +703,9 @@ class BoundarySys
 public:
   BoundarySys (BCmgr*, const vector<Element*>&, const char);
 
-  const char               field () const { return field_name; }
-  const integer            nSurf () const { return nbound; }
-  const integer            mixBC () const { return mixed; }
+  char                     field () const { return field_name; }
+  integer                  nSurf () const { return nbound; }
+  integer                  mixBC () const { return mixed; }
   const vector<Boundary*>& BCs   (const integer = 0) const;
   const NumberSys*         Nsys  (const integer = 0) const;
   const real*              Imass (const integer = 0) const;
@@ -735,8 +736,8 @@ public:
   integer match (const real, const real,  const NumberSys*) const;
 
 private:
-  real HelmholtzConstant;	// Same for all modes.
-  real FourierConstant  ;	// Varies with mode number.
+  real  HelmholtzConstant;	// Same for all modes.
+  real  FourierConstant  ;	// Varies with mode number.
  
   const vector<Boundary*>& BC;	// Internal copy of Boundary conditions.
   const NumberSys*         NS;	// Internal copy of NumberSys.
@@ -978,9 +979,8 @@ public:
 
 protected:
   Domain*               src      ; // Source information.
-  ofstream              par_strm ; // File for particle tracking.
   ofstream              his_strm ; // File for history points.
-  ofstream              mdl_strm ; // File for modal energies.
+  ofstream              int_strm ; // File for plane-integral dumps.
   vector<HistoryPoint*> history  ; // Locations, etc. of history points.
 };
 
