@@ -37,8 +37,8 @@ CONVERSION = vdble   xvfloa  vsngl   xbrev
 MISC       = xscatr      xgathr      	xgathr_scatr		\
 	     xscatr_sum  xgathr_sum  	xgathr_scatr_sum	\
 	     xramp       xcndst      	xmask       		\
-	     xvpoly      xpolint    				\
-	     xspline     xsplquad				\
+	     xvpoly      xpolint    	xclip			\
+	     xspline     xsplquad	xiclip			\
 	     xmxv        xmxva	  				\
 	     xvvtvvtp    xsvvttvp	 xvvtvvtm
 
