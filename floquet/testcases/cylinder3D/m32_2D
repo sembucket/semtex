@@ -11,7 +11,7 @@
 </BASE>
 
 <FIELDS>
-	u v w p
+	u v p
 </FIELDS>
 
 <TOKENS>
