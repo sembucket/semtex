@@ -58,10 +58,10 @@ HEADER    = iso.h
 
 ifdef TG
   ISOOBJ = allocate.o io.o nonlinear.o integrate.o energy.o FFT.o	\
-	   misc.o taylor.o drive.o
+	   misc.o taylor.o truncation.o drive.o
 else
   ISOOBJ = allocate.o io.o nonlinear.o integrate.o energy.o FFT.o	\
-	   misc.o drive.o
+	   misc.o truncation.o drive.o
 endif
 
 $(PROG): $(ISOOBJ) $(HEADER)
