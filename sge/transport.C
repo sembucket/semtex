@@ -10,13 +10,6 @@
 //   -- + w -- = D div grad c.
 //   dt     dz
 //
-// We use incompressibility of the velocity field and implement 
-// the advection terms in a "skew-symmetric" formulation:
-//
-//   dc         /   dc   dwc \
-//   -- = - 0.5 | w -- + --- | + D div grad c.
-//   dt         \   dz    dz /
-//
 // Time split is discussed in: Karniadakis, Israeli & Orszag,
 // "High-order splitting methods for the incompressible Navier--Stokes
 // equations", JCP 9(2). 1991.
