@@ -48,8 +48,8 @@ endif
 ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha.
 CXX	 = cxx
 LD	 = cxx
-CXXFLAGS =  $(DEFINES) -tune host -O2
-F77LIBS  = /usr/lib/libdxml.a -lfor
+CXXFLAGS = $(DEFINES) -tune host -O2
+F77LIBS  = -ldxml -lfor
 ifdef MPI
   CXXFLAGS += -thread_safe
   LDFLAGS   = $(CXXFLAGS) -threads -L/usr/local/mpi/lib/alpha/ch_shmem	\

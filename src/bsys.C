@@ -107,7 +107,7 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
 }
 
 
-const vector<Boundary*>& BoundarySys::BCs (integer mode) const
+const vector<Boundary*>& BoundarySys::BCs (const integer mode) const
 // ---------------------------------------------------------------------------
 // Return appropriate vector of Boundary*'s for field name, according
 // to Fourier mode.  Mode number is the actual number, counting from
@@ -118,7 +118,7 @@ const vector<Boundary*>& BoundarySys::BCs (integer mode) const
 }
 
 
-const NumberSys* BoundarySys::Nsys (integer mode) const
+const NumberSys* BoundarySys::Nsys (const integer mode) const
 // ---------------------------------------------------------------------------
 // Return appropriate NumberSystem* for field name, according to
 // Fourier mode.
