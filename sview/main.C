@@ -10,6 +10,7 @@
 // meshfile  ... specifies name of NEKTON-format mesh file.
 // fieldfile ... specifies name of NEKTON-format (binary) field file.
 // options:
+//   -b        ... start without mesh box
 //   -c        ... set cylindrcal coordinates
 //   -d        ... dump a TIFF image to file "sview.tif" on quitting.
 //   -h        ... print this message
@@ -141,6 +142,7 @@ static void getargs (int    argc ,
     "meshfile  ... specifies name of NEKTON-format mesh file.\n"
     "fieldfile ... specifies name of NEKTON-format (binary) field file.\n"
     "options:\n"
+    "-b        ... start without mesh box\n"
     "-c        ... set cylindrical coordinates\n"
     "-d        ... dump a TIFF image to file \"sview.tif\" on quitting\n"
     "-h        ... print this message\n"
@@ -150,6 +152,9 @@ static void getargs (int    argc ,
 
   while (--argc && **++argv == '-')
     switch (c = *++argv[0]) {
+    case 'b':
+      State.drawbox = GL_FALSE;
+      break;
     case 'c':
       State.cylind = GL_TRUE;
       break;
