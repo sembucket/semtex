@@ -576,17 +576,22 @@ void  Element::bndryInsert (const real* src, real* target) const
 }
 
 
-void  Element::bndryDsSum (const real* src,  real* target) const
+void  Element::bndryDsSum (const real* src, real* target) const
 // ---------------------------------------------------------------------------
 // Direct-stiffness-sum from element boundary to globally-numbered storage,
-// i.e. target[bmap[i]] += src[emap[i]].  This is using in smoothing
-// Fields along element boundaries.
+// i.e. target[bmap[i]] += mass[emap[i]] * src[emap[i]].
+// This is using in smoothing Fields along element boundaries.
 // ---------------------------------------------------------------------------
 {
-  register int i;
-  register int nxt = nExt();
+  register int    i, b, e;
+  register int    nxt = nExt();
+  register real*  wt = *mass;
 
-  for (i = 0; i < nxt; i++) target[bmap[i]] += src[emap[i]];
+  for (i = 0; i < nxt; i++) {
+    b = bmap[i];
+    e = emap[i];
+    target[b] += wt[e] * src[e];
+  }
 }
 
 

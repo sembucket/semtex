@@ -1,8 +1,8 @@
 /*****************************************************************************
  * field.C:  routines to deal with Fields.
+ *
+ * $Id$
  *****************************************************************************/
-
-// $Id$
 
 #include "Fem.h"
 
@@ -148,7 +148,6 @@ Field::Field (const Field& f, const Mesh& M, char tag)
     }
   }
 }
-
 
 
 Field&  Field::operator = (real val)
@@ -340,14 +339,12 @@ void  Field::printMesh (Field* F)
 // Mesh location information is written out element-by-element.
 // ---------------------------------------------------------------------------
 {
-  cout
-    << F -> element_list.first() -> nKnot() << " "
-    << F -> element_list.first() -> nKnot() << " 1 " 
-    << F -> nEl() << " NR NS NZ NEL" << endl;
+  cout << F -> element_list.first() -> nKnot() << " "
+       << F -> element_list.first() -> nKnot() << " 1 " 
+       << F -> nEl() << " NR NS NZ NEL" << endl;
 
   for (ListIterator<Element*> k(F -> element_list); k.more(); k.next())
     k.current() -> printMesh ();
-
 }
 
 
@@ -441,11 +438,14 @@ void  Field::evaluateBoundaries (int step)
 void  Field::connect (Mesh& M, int np)
 // ---------------------------------------------------------------------------
 // Generate global node numbers for element boundaries.
-
+//
 // Method:
 // 1)  Generate an initial set of numbers using Mesh functions;
 // 2)  Sort the numbers so that Essential boundary conditions come last;
 // 3)  Scatter the rearranged list into the bmap storage of the elements.
+//
+// Then carry out RCM renumbering and build element-boundary smoothing
+// weights.
 // ---------------------------------------------------------------------------
 {
   Element*  E;
@@ -471,6 +471,9 @@ void  Field::connect (Mesh& M, int np)
   sortGid ();
 
   M.connectSC (2);		// -- Minimize M's internal storage.
+
+  renumber ();
+  buildSmoother ();
 }
 
 
@@ -590,7 +593,7 @@ void  Field::renumber ()
   fillAdjncy (adjncyList, adjncy, xadj, tabSize);
 
   genrcm (n_solve, xadj, adjncy, perm, mask, xls);
-  Veclib::sadd   (n_solve, -1, perm, 1, perm, 1);
+  Veclib::sadd (n_solve, -1, perm, 1, perm, 1);
 
   // -- Invert rcm's perm vector (identity for nodes that won't be changed).
 
@@ -604,7 +607,6 @@ void  Field::renumber ()
   Veclib::gathr (n_elmt_bnodes, invperm, oldmap, elmt_bndry_gid);
 
   // -- Clean up.
-
 
   delete [] adjncyList;
 
@@ -665,32 +667,53 @@ void  Field::fillAdjncy (List<int>* adjncyList,
 }
 
 
+void  Field::buildSmoother ()
+// ---------------------------------------------------------------------------
+// Make element-boundary mass-averaged smoothing denominator in inv_mass
+// storage area.  Call this procedure after creating a new field with its
+// own global numbering system (after calling connect, so that n_gid is set).
+// ---------------------------------------------------------------------------
+{
+  int       ntot;
+  real*     unity;
+  Element*  E;
+
+  inv_mass = rvector (n_gid);
+  Veclib::zero (n_gid, inv_mass, 1);
+
+  for (ListIterator<Element*> k(element_list); k.more(); k.next()) {
+    E     = k.current ();
+    ntot  = E -> nTot ();
+    unity = rvector (ntot);
+    Veclib::fill (ntot, 1.0, unity, 1);
+    E -> bndryDsSum (unity, inv_mass);
+    freeVector (unity);
+  }
+
+  Veclib::vrecp (n_gid, inv_mass, 1, inv_mass, 1);
+}
+
+
 Field&  Field::dsSmooth ()
 // ---------------------------------------------------------------------------
 // Smooth values along element boundaries by direct stiffness summation.
 //
-// Simple average smoothing.
+// Mass-average smoothing.
 // ---------------------------------------------------------------------------
 {
-  register int            i, offset;
-  ListIterator<Element*>  k(element_list);
-  Element*                E;
+  register int  offset;
+  Element*      E;
 
   real* dssum = rvector (n_gid);
-  real* denom = rvector (n_gid);
-
   Veclib::zero (n_gid, dssum, 1);
-  Veclib::zero (n_gid, denom, 1);
 
-  for (i = 0; i < n_elmt_bnodes; i++) denom[elmt_bndry_gid[i]] += 1.0;
-
-  for (k.reset(); k.more(); k.next()) {
+  for (ListIterator<Element*> k(element_list); k.more(); k.next()) {
     E      = k.current ();
     offset = E -> nOff ();
     E -> bndryDsSum  (data + offset, dssum);
   }
 
-  Veclib::vdiv (n_gid, dssum, 1, denom, 1, dssum, 1);
+  Veclib::vmul (n_gid, dssum, 1, inv_mass, 1, dssum, 1);
 
   for (k.reset(); k.more(); k.next()) {
     E      = k.current ();
@@ -699,7 +722,6 @@ Field&  Field::dsSmooth ()
   }
 
   freeVector (dssum);
-  freeVector (denom);
 
   return *this;
 }
