@@ -21,8 +21,6 @@ double  _alpDreg[NVREG];
 char     buf[STR_MAX];		/* A string for general use. */
 
 
-
-
 void message (const char *routine, const char *text, int level)
 /* ========================================================================= *
  * A simple error handler.
@@ -36,7 +34,7 @@ void message (const char *routine, const char *text, int level)
     fprintf (stderr, "ERROR: %s: %s\n", routine, text); 
     break;
   case REMARK:
-    fprintf (stdout, "%s: %s\n", routine, text);
+    fprintf (stdout, "%s %s\n", routine, text);
     break;
   default:
     fprintf (stderr, "bad error level in message: %d\n", level);
@@ -48,28 +46,22 @@ void message (const char *routine, const char *text, int level)
 }
 
 
-
-
-
-FILE *efopen(const char *file, const char *mode)
+FILE *efopen (const char *file, const char *mode)
 /* ========================================================================= *
  * fopen file, die if can't.
  * ========================================================================= */
 {
   FILE *fp;
 
+  if (fp = fopen (file, mode)) return fp;
 
-  if ( fp = fopen(file, mode) ) return fp;
-
-  sprintf(buf, "can't open %s mode %s", file, mode);
-  message("efopen()", buf, ERROR);
+  sprintf (buf, "can't open %s mode %s", file, mode);
+  message ("efopen", buf, ERROR);
 }
 
 
-
-
-
 #if !defined(i860) && !defined(dclock)
+
 
 double dclock (void)
 /* ========================================================================= *
@@ -79,9 +71,6 @@ double dclock (void)
   static double tps = 1.0 / CLOCKS_PER_SEC;
   return (double) clock() * tps;
 }
-
-
-
 
 
 float sclock (void)
@@ -96,9 +85,6 @@ float sclock (void)
 #endif
 
 
-
-
-
 void printDvector(FILE  *fp     ,
 		  int    width  ,
 		  int    prec   ,
@@ -109,11 +95,10 @@ void printDvector(FILE  *fp     ,
  * Print up a variable number of dvectors on fp, in columns.
  * ========================================================================= */
 {
-  char      routine[] = "printDvector()";
+  char      routine[] = "printDvector";
   int       i, j, k;
   double  **u;
   va_list   ap;
-
 
   u = (double **) calloc (nfield, sizeof (double*));
   va_start (ap, nfield);
@@ -124,17 +109,14 @@ void printDvector(FILE  *fp     ,
 
   for (i = 0; i < ntot; i++) {
     for (j = 0; j < nfield; j++)
-      if (fprintf(fp, "%*.*f", width, prec, u[j][k]) < 0)
+      if (fprintf (fp, "%*.*f", width, prec, u[j][k]) < 0)
 	message (routine, "unable to write to file", ERROR);
     k += inc;
     fprintf(fp, "\n");
   }
 
-  free(u);
+  free (u);
 }
-
-
-
 
 
 void printIvector(FILE  *fp     ,
@@ -146,11 +128,10 @@ void printIvector(FILE  *fp     ,
  * Print up a variable number of ivectors on fp, in columns.
  * ========================================================================= */
 {
-  char       routine[] = "printIvector()";
+  char       routine[] = "printIvector";
   int        i, j, k;
   int      **u;
   va_list    ap;
-
 
   u = (int **) calloc (nfield, sizeof (int*));
   va_start (ap, nfield);
@@ -171,9 +152,6 @@ void printIvector(FILE  *fp     ,
 }
 
 
-
-
-
 void printSvector(FILE  *fp     ,
 		  int    width  ,
 		  int    prec   ,
@@ -184,11 +162,10 @@ void printSvector(FILE  *fp     ,
  * Write (ASCII) a variable number of svectors on fp, in columns.
  * ========================================================================= */
 {
-  char      routine[] = "printSvector()";
+  char      routine[] = "printSvector";
   int       i, j, k;
   float   **u;
   va_list   ap;
-
 
   u = (float **) calloc (nfield, sizeof (float*));
   va_start (ap, nfield);
@@ -207,8 +184,3 @@ void printSvector(FILE  *fp     ,
 
   free (u);
 }
-
-
-
-
-
