@@ -2,31 +2,28 @@
  *                            FILE & I-O UTILITIES                           *
  *****************************************************************************/
 
-/*------------------*
- * RCS Information: *
- *------------------*/
 static char
-  RCS_util[] = "$Id$";
+RCS_util[] = "$Id$";
 
 
 #include <sys/types.h>
 #include <malloc.h>
 #include <stdio.h>
 #include <time.h>
-#include <alplib.h>
+#include "alplib.h"
 
 
-int     _lapIreg[NVREG];	/* For FORTRAN linkage. */
-char    _lapCreg[NVREG];
-float   _lapSreg[NVREG];
-double  _lapDreg[NVREG];
+int     _alpIreg[NVREG];	/* For FORTRAN linkage. */
+char    _alpCreg[NVREG];
+float   _alpSreg[NVREG];
+double  _alpDreg[NVREG];
 
 char     buf[STR_MAX];		/* A string for general use. */
 
 
 
 
-void message(char *routine, char *text, err_lev level)
+void message(const char *routine, const char *text, int level)
 /* ========================================================================= *
  * A general error handler.                                                  *
  * ========================================================================= */
@@ -56,7 +53,7 @@ void message(char *routine, char *text, err_lev level)
 
 
 
-FILE *efopen(char *file, char *mode)
+FILE *efopen(const char *file, const char *mode)
 /* ========================================================================= *
  * fopen file, die if can't.                                                 *
  * ========================================================================= */
