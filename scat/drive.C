@@ -3,11 +3,11 @@
 //
 // SYNOPSIS:
 // --------
-// Control spectral element unsteady incompressible flow solver.
+// Control spectral element unsteady incompressible/buoyant flow solver.
 //
 // USAGE:
 // -----
-// ns [options] session
+// buoy [options] session
 //   options:
 //   -h       ... print usage prompt
 //   -i[i]    ... use iterative solver for viscous [and pressure] steps
@@ -30,7 +30,7 @@ RCSid[] = "$Id$";
 #include <NS.h>
 #include <new.h>
 
-static char prog[] = "ns";
+static char prog[] = "buoy";
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void getargs    (int, char**, char*&);
 
@@ -56,6 +56,9 @@ int main (int    argc,
   
   Femlib::prep ();
   getargs      (argc, argv, session);
+
+  cout << prog << ": Navier--Stokes--Boussinesq solver"  << endl;
+  cout << "      (c) Hugh Blackburn 1995--97."   << endl << endl;
   
   F = new FEML (session);
 
@@ -65,9 +68,9 @@ int main (int    argc,
       sprintf (fields, "N_Z (%1d) must be even", nz);
       message (prog, fields, ERROR);
     }
-    strcpy (fields, "uvwp");
+    strcpy (fields, "uvwTp");
   } else
-    strcpy (fields, "uvp");
+    strcpy (fields, "uvTp");
   
   M = new Mesh     (*F);
   B = new BCmgr    (*F);
