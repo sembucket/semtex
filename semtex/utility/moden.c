@@ -47,8 +47,8 @@ int main (int    argc,
  * ------------------------------------------------------------------------- */
 {
   char   buf[STR_MAX], fields[STR_MAX], fmt[STR_MAX];
-  int    i, n, np, nz, nel, mode = 0, swab = 0;
-  int    nfields, nplane, npts, npad, ntot;
+  int    i, j, n, np, nz, nel, mode = 0, swab = 0;
+  int    nfields, nplane, nplaneEven, npts, nptsEven, npad, ntot;
   FILE   *fp_in = stdin, *fp_out = stdout;
   double **data, *plane, *vcmpt;
 
@@ -95,25 +95,32 @@ int main (int    argc,
     sprintf (buf, "%s %s", "binary", fmt);
     fprintf (fp_out, hdr_fmt[9], buf);
 
-    // -- Set sizes, allocate storage.
+    /* -- Set sizes, allocate storage. */
 
-    nplane = np * np * nel;
-    npts   = nz * nplane;
-    ntot   = nfields * nplane;
+    nplane     = np * np * nel;
+    nplaneEven = (nplane & 1) ? nplane + 1 : nplane;
+    npts       = nz * nplane;
+    nptsEven   = nz * nplaneEven;
+    ntot       = nfields * nptsEven;
 
-    data   = dmatrix (0, nfields - 1, 0, npts - 1);
+    data   = dmatrix (0, nfields - 1, 0, nptsEven - 1);
     plane  = dvector (0, nplane - 1);
     
-    // -- Read in all data fields.
+    /* -- Read in all data fields. */
+
+    dzero (ntot, data[0], 1);
 
     for (i = 0; i < nfields; i++) {
-      if (fread (data[i], sizeof (double), npts, fp_in) != npts)
-	message (prog, "an error has occured while reading", ERROR);
-      if (swab) dbrev (npts, data[i], 1, data[i], 1);
-      dDFTr (data[i], nz, nplane, +1);
+      for (j = 0; j < nz; j++) {
+	if (fread (data[i] + j*nplaneEven, sizeof (double), nplane, fp_in)
+	    != nplane)
+	  message (prog, "an error occured while reading", ERROR);
+      }
+      if (swab) dbrev (nptsEven, data[i], 1, data[i], 1);
+      dDFTr (data[i], nz, nplaneEven, +1);
     }
     
-    // -- Compute K.E.: start by adding in real part.
+    /* -- Compute K.E.: start by adding in real part. */
 
     vcmpt = data[_index (fields, 'u')] + 2 * mode * nplane;
     dvmul (nplane, vcmpt, 1, vcmpt, 1, plane, 1);
@@ -122,7 +129,7 @@ int main (int    argc,
     vcmpt = data[_index (fields, 'w')] + 2 * mode * nplane;
     dvvtvp (nplane, vcmpt, 1, vcmpt, 1, plane, 1, plane, 1);
 
-    // -- Add in imaginary part for if not mode zero.
+    /* -- Add in imaginary part if not mode zero. */
 
     if (mode) {
       vcmpt = data[_index (fields, 'u')] + (2 * mode + 1) * nplane;
@@ -133,12 +140,12 @@ int main (int    argc,
       dvvtvp (nplane, vcmpt, 1, vcmpt, 1, plane, 1, plane, 1);
     }
 
-    // -- Normalise to make q = 0.5*UiUi.
+    /*  -- Normalise to make q = 0.5*UiUi. */
 
     dsmul (nplane, 0.5, plane, 1, plane, 1);
     
     if (fwrite (plane, sizeof (double), nplane, fp_out) != nplane)
-      message (prog, "an error has occured while writing", ERROR);
+      message (prog, "an error occured while writing", ERROR);
 
     freeDmatrix (data,  0, 0);
     freeDvector (plane, 0);
@@ -148,10 +155,10 @@ int main (int    argc,
 }
 
 
-static void getargs (int     argc ,
-		     char**  argv ,
-		     FILE**  fp_in,
-		     int*    mode )
+static void getargs (int    argc ,
+		     char** argv ,
+		     FILE** fp_in,
+		     int*   mode )
 /* ------------------------------------------------------------------------- *
  * Parse command line arguments.
  * ------------------------------------------------------------------------- */

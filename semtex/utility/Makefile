@@ -8,8 +8,15 @@ SEM      = ..
 VPATH    = $(SEM)/src
 
 ARCH = $(shell uname -s)
+MACH  = $(shell uname -m)
+
 ifeq ($(ARCH),Linux)
-  ARCH += -$(shell uname -m)
+  ifeq ($(MACH),alpha)
+    ARCH = Linux-alpha
+  endif
+  ifeq ($(MACH),i586)
+    ARCH = Linux-i586
+  endif
 endif
 
 ifdef DEBUG
@@ -66,6 +73,7 @@ else
   OPT    = -O2
 endif
 CXXFLAGS = $(DEFINES) $(OPT)
+CFLAGS   = $(DEFINES) $(OPT)
 F77LIBS  = -llapack -lblas -lg2c
 LDFLAGS  = -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
 	   -lfem -lalp $(F77LIBS) -lm
@@ -203,6 +211,12 @@ compare: $(COMOBJ)
 
 noiz: noiz.c
 	$(CC) $(CPPFLAGS) -o $@ $@.c $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build moden, to compute TKE distribution for a given mode.
+
+moden: moden.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.c $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build project, field dump projection to higher/lower orders.

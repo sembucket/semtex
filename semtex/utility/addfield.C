@@ -4,6 +4,8 @@
 //
 // Copyright (c) 1998--1999 Hugh Blackburn, Murray Rudman
 //
+// This is only designed for serial execution.
+//
 // Usage:
 // -----
 // addvort [options] -s session session.fld
@@ -60,7 +62,7 @@
 #include <time.h>
 
 #define FLAG_MAX 8
-enum {VORTICITY, ENSTROPHY, DIVERGENGE, STRAINTENSOR, STRAINRATE, INVARIANTS};
+enum {VORTICITY, ENSTROPHY, DIVERGENCE, STRAINTENSOR, STRAINRATE, INVARIANTS};
 
 static char prog[] = "addfield";
 static void memExhaust () { message ("new", "free store exhausted", ERROR); }
@@ -80,7 +82,7 @@ int main (int    argc,
 
   Geometry::CoordSys system;
   char               *session, *dump, fields[StrMax];
-  integer            i, j, np, nz, nel, DIM, nData= 0;
+  integer            i, j, np, nz, nel, allocSize, nComponent, nData= 0;
   integer            add[FLAG_MAX];
   ifstream           file;
   ofstream           outp (1);
@@ -94,11 +96,11 @@ int main (int    argc,
   vector<AuxField*>  AuxPoint(3), dataField(12), vorticity(3);
   AuxField***        Sij;
 
+  Femlib::initialize (&argc, &argv);
+
   // -- Set command line defaults.
 
-  for (i = 0; i < FLAG_MAX; i++) add[i] = 0;
-
-  Femlib::initialize (&argc, &argv);
+  Veclib::zero (FLAG_MAX, add, 1);
   getargs (argc, argv, session, dump, add);
 
   // -- Set up domain.
@@ -115,10 +117,11 @@ int main (int    argc,
   Geometry::set (np, nz, nel, system);
   if   (nz > 1) strcpy (fields, "uvwp");
   else          strcpy (fields, "uvp");
-  DIM = Geometry::nDim();
+  nComponent = Geometry::nDim();
+  allocSize  = Geometry::nTotal();
 
-  vorticity.setSize ((DIM == 2) ? 1 : 3);
-  if (DIM < 3) add[ENSTROPHY] = 0;
+  vorticity.setSize ((nComponent == 2) ? 1 : 3);
+  if (nComponent < 3) add[ENSTROPHY] = 0;
 
   Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
 
@@ -133,67 +136,68 @@ int main (int    argc,
   // -- Compute the velocity gradient tensor irrespective of
   //    what fields we want to output.
 
-  AuxField*** Vij = new AuxField** [DIM];
-  for (i = 0; i < DIM; i++) {
-    Vij[i] = new AuxField* [DIM];
-    for (j = 0; j < DIM; j++) {
-       Vij[i][j] = new AuxField (elmt);
+  AuxField*** Vij = new AuxField** [nComponent];
+  for (i = 0; i < nComponent; i++) {
+    Vij[i] = new AuxField* [nComponent];
+    for (j = 0; j < nComponent; j++) {
+       Vij[i][j] = new AuxField (new real[allocSize], nz, elmt);
       *Vij[i][j] = 0.0;
     }
   }
   
   // -- Create workspace and dataField storage areas.
 
-  work = new AuxField (elmt);
+  work = new AuxField (new real[allocSize], nz, elmt);
 
   if (add[VORTICITY] && add[ENSTROPHY]) {
-    if (DIM == 2)
-      vorticity[0] = new AuxField (elmt, 't');
+    if (nComponent == 2)
+      vorticity[0] = new AuxField (new real[allocSize], nz, elmt, 't');
     else
-      for (i = 0; i < DIM; i++)
-	vorticity [i] = new AuxField (elmt, 'r' + i);
+      for (i = 0; i < nComponent; i++)
+	vorticity [i] = new AuxField (new real[allocSize], nz, elmt, 'r' + i);
     if (add[VORTICITY]) {
-      for (i = 0 ; i < 2*DIM - 3 ; i++ ) dataField(i) = vorticity[i];
-      nData += 2*DIM - 3;
+      for (i = 0 ; i < 2*nComponent - 3 ; i++ ) dataField(i) = vorticity[i];
+      nData += 2*nComponent - 3;
     }
     if (add[ENSTROPHY]) {
-      dataField(nData)   = new AuxField (elmt, 'e');
-      dataField(nData+1) = new AuxField (elmt, 'h');
-      Ens = dataField(nData);
-      Hel = dataField(nData+1);
+      dataField(nData)   = new AuxField (new real[allocSize], nz, elmt, 'e');
+      dataField(nData+1) = new AuxField (new real[allocSize], nz, elmt, 'h');
+      Ens = dataField (nData);
+      Hel = dataField (nData+1);
       nData += 2;
     }
   }
 
   if (add[DIVERGENCE] && add[INVARIANTS]) {
-    dataField(nData) = new AuxField (elmt, 'd'); Div = dataField(nData);
+    dataField (nData) = new AuxField (new real[allocSize], nz, elmt, 'd');
+    Div = dataField (nData);
     nData += 1;
   }
   
   integer iadd = 0;
 
   if (add[STRAINTENSOR] && add[INVARIANTS] && add[STRAINRATE]) {
-    Sij = new AuxField** [DIM];
-    for (i = 0; i < DIM; i++) {
-      Sij[i] = new AuxField* [DIM];
-      for (j = 0 ; j < DIM ; j++) {
+    Sij = new AuxField** [nComponent];
+    for (i = 0; i < nComponent; i++) {
+      Sij[i] = new AuxField* [nComponent];
+      for (j = 0 ; j < nComponent ; j++) {
 	if (i <= j) {
-	  Sij[i][j] = new AuxField (elmt, 'i' + iadd);
+	  Sij[i][j] = new AuxField (new real[allocSize], nz, elmt, 'i' + iadd);
 	  iadd++;
 	} else
 	  Sij[i][j] = Sij[j][i];
       }
     }
     if (add[STRAINTENSOR])
-      for ( i = 0 ; i < DIM ; i++)
-	for ( j = i ; j < DIM ; j++ ) {
-	  dataField(nData) = Sij[i][j];
+      for ( i = 0 ; i < nComponent ; i++)
+	for ( j = i ; j < nComponent ; j++ ) {
+	  dataField (nData) = Sij[i][j];
 	  nData++;
 	}
     if (add[INVARIANTS]) {
-      dataField(nData)   = new AuxField (elmt, 'Q');
-      dataField(nData+1) = new AuxField (elmt, 'R');
-      dataField(nData+2) = new AuxField (elmt, 'L');
+      dataField (nData)   = new AuxField (new real[allocSize], nz, elmt, 'Q');
+      dataField (nData+1) = new AuxField (new real[allocSize], nz, elmt, 'R');
+      dataField (nData+2) = new AuxField (new real[allocSize], nz, elmt, 'L');
 
       *(InvQ = dataField(nData))   = 0.0;
       *(InvR = dataField(nData+1)) = 0.0;
@@ -201,8 +205,8 @@ int main (int    argc,
       nData += 3;
     }
     if (add[STRAINRATE]) {
-      dataField(nData) = new AuxField (elmt, 'G');
-      *(Strain = dataField(nData)) = 0.0;
+      dataField (nData) = new AuxField (new real[allocSize], nz, elmt, 'G');
+      *(Strain = dataField (nData)) = 0.0;
       nData++;
     }
   }
@@ -217,33 +221,33 @@ int main (int    argc,
   
   while (getDump (D, file)) {
     
-    if (DIM > 2) D -> transform (+1);
+    if (nComponent > 2) D -> transform (+1);
 
     // -- Velocity gradient tensor, calculated in Fourier, transformed back.
 
-    for (i = 0; i < DIM ; i++)
-      for (j = 0; j < DIM ; j++) {
+    for (i = 0; i < nComponent ; i++)
+      for (j = 0; j < nComponent ; j++) {
 	(*Vij[i][j] = *D -> u[i]) . gradient (j);
 	D -> u[0] -> smooth (Vij[i][j]);
 	Vij[i][j] -> transform(-1);
       }
 
-    if (DIM > 2) D -> transform (-1);
+    if (nComponent > 2) D -> transform (-1);
 
-    if (system == Geometry::Cylindrical && DIM == 3) {
-      for (i = 0; i < DIM; i++) Vij[i][2] -> divR();
+    if (system == Geometry::Cylindrical && nComponent == 3) {
+      for (i = 0; i < nComponent; i++) Vij[i][2] -> divR();
       (*work = *D -> u[2]) . divR(); *Vij[1][2] -= *work;
       (*work = *D -> u[1]) . divR(); *Vij[2][2] += *work;
     }
 	
     if (add[DIVERGENCE] && add[INVARIANTS]) {
       *Div = 0.0;
-      for (i = 0; i < DIM; i++) *Div += *Vij[i][i];
+      for (i = 0; i < nComponent; i++) *Div += *Vij[i][i];
     }
     
     if (add[VORTICITY] && add[ENSTROPHY]) {
       
-      if (DIM == 2) {
+      if (nComponent == 2) {
 	*vorticity[0]  = *Vij[1][0];
 	*vorticity[0] -= *Vij[0][1];
       } else {
@@ -258,8 +262,8 @@ int main (int    argc,
 
     if (add[STRAINTENSOR] && add[STRAINRATE] && add[INVARIANTS]) {
       
-      for (i = 0; i < DIM; i++)
-	for (j = i; j < DIM; j++) {
+      for (i = 0; i < nComponent; i++)
+	for (j = i; j < nComponent; j++) {
 	  *Sij[i][j]  = *Vij[i][j];
 	  *Sij[i][j] += *Vij[j][i];
 	  *Sij[i][j] *= 0.5;
@@ -302,10 +306,10 @@ int main (int    argc,
       }
     }    
 
-    if (add[STRINRATE]) {
+    if (add[STRAINRATE]) {
       *Strain = 0.0;
-      for (i = 0; i < DIM; i++)
-	for (j = 0; j < DIM; j++)
+      for (i = 0; i < nComponent; i++)
+	for (j = 0; j < nComponent; j++)
 	  Strain -> timesPlus (*Sij[i][j], *Sij[j][i]);
       *Strain *= 2.0;
       Strain -> sqroot();
@@ -313,7 +317,7 @@ int main (int    argc,
     
     if (add[ENSTROPHY]) {
       Ens -> innerProduct (vorticity, vorticity) *= 0.5;
-      for (i = 0; i < DIM; i++) AuxPoint[i] = D -> u[i];
+      for (i = 0; i < nComponent; i++) AuxPoint[i] = D -> u[i];
       Hel -> innerProduct (vorticity, AuxPoint)  *= 0.5;
     }
       
@@ -330,7 +334,7 @@ static void getargs (int       argc   ,
 		     char**    argv   ,
 		     char*&    session,
 		     char*&    dump   ,
-		     integer[] flag   )
+		     integer*  flag   )
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
@@ -374,7 +378,7 @@ static void getargs (int       argc   ,
     default: sprintf (buf, usage, prog); cout<<buf; exit(EXIT_FAILURE); break;
     }
 
-  for (sum = 0, i = 0; i++) sum += flag[i];
+  for (sum = 0, i = 0; i < FLAG_MAX; i++) sum += flag[i];
   if (!sum) flag[VORTICITY] = 1;
 
   if   (!session)  message (prog, "no session file", ERROR);
@@ -416,7 +420,7 @@ static void putDump  (Domain*            D       ,
   };
 
   integer       i;
-  const integer DIM = (D -> nField() == 3) ? 2 : 3;
+  const integer nComponent = (D -> nField() == 3) ? 2 : 3;
   char      routine[] = "putDump";
   char      s1[StrMax], s2[StrMax];
   time_t    tp (::time (0));
@@ -447,10 +451,10 @@ static void putDump  (Domain*            D       ,
   sprintf (s1, hdr_fmt[7], Femlib::value ("BETA"));
   strm << s1;
 
-  for (i = 0; i <= DIM; i++) s2[i] = D -> u[i] -> name();
+  for (i = 0; i <= nComponent; i++) s2[i] = D -> u[i] -> name();
   for (i = 0; i <  nOut; i++)
-    s2[DIM + i + 1] = outField(i) -> name();
-  s2[DIM + nOut + 1] = '\0';
+    s2[nComponent + i + 1] = outField(i) -> name();
+  s2[nComponent + nOut + 1] = '\0';
 
   sprintf (s1, hdr_fmt[8], s2);
   strm << s1;
@@ -460,7 +464,7 @@ static void putDump  (Domain*            D       ,
   sprintf (s1, hdr_fmt[9], s2);
   strm << s1;
 
-  for (i = 0; i <= DIM; i++) strm << *D -> u[i];
+  for (i = 0; i <= nComponent; i++) strm << *D -> u[i];
   for (i = 0; i < nOut; i++) strm << *outField(i);
 
   if (!strm) message (routine, "failed writing field file", ERROR);
