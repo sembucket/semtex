@@ -109,9 +109,11 @@ Analyser::Analyser (Domain* D   ,
 
   // -- Initialise standard averaging.
 
-  if (Femlib::ivalue ("AVERAGE"))
-    (_stats = new Statistics (D)) -> initialise();
-  else
+  if (Femlib::ivalue ("AVERAGE")) {
+    char     filename[StrMax];
+    ifstream file (strcat (strcpy (filename, _src -> name), ".avg"));
+    (_stats = new Statistics (D)) -> initialise (filename);
+  } else
     _stats = 0;
 
   // -- Initialise phase averaging.
@@ -152,7 +154,8 @@ Analyser::Analyser (Domain* D   ,
 }
 
 
-void Analyser::analyse (AuxField** work)
+void Analyser::analyse (AuxField** work0,
+			AuxField** work1)
 // ---------------------------------------------------------------------------
 // Step-by-step processing.  If SPAWN was set, add more particles at
 // original absolute positions.
@@ -195,7 +198,7 @@ void Analyser::analyse (AuxField** work)
 
   if (cflstep && !(_src -> step % cflstep)) {
     if (Geometry::nDim() == 3) modalEnergy();
-    ROOTONLY { estimateCFL(); divergence (work); }
+    ROOTONLY { estimateCFL(); divergence (work0); }
   }
 
   // -- Phase averaging.
@@ -206,7 +209,7 @@ void Analyser::analyse (AuxField** work)
     const bool  update  = !(_src -> step % nPhase);
     const int_t iPhase  =  (_src -> step % nPeriod) / nPhase;
 
-    if (update) _ph_stats -> phaseUpdate (iPhase, work);
+    if (update) _ph_stats -> phaseUpdate (iPhase, work0, work1);
   }
 
   // -- Periodic dumps and global information.
@@ -263,13 +266,17 @@ void Analyser::analyse (AuxField** work)
      
     // -- Statistical analysis.
 
-    if (_stats) _stats -> update (work);
+    if (_stats) _stats -> update (work0, work1);
   }
 
   // -- Field and statistical dumps.
 
   _src -> dump ();
-  if (_stats) _stats -> dump();
+  if (_stats) {
+    char     filename[StrMax];
+    ifstream file (strcat (strcpy (filename, _src -> name), ".avg"));
+    _stats -> dump (filename);
+  }
 }
 
 

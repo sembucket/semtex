@@ -7,7 +7,6 @@
 
 static char RCS[] = "$Id$";
 
-#include <ctime>
 #include <sem.h>
 
 
@@ -85,7 +84,7 @@ char* upperCase (char *s)
 }
 
 
-void writeField (ofstream&          file   ,
+void writeField (ostream&           file   ,
 		 const char*        session,
 		 const int_t        runstep,
 		 const real_t       runtime,

@@ -71,7 +71,7 @@ wallmesh: $(WALOBJ)
 	$(LD) -o $@ $(WALOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
-# Build calc, an interactive interface to the alplib function parser.
+# Build calc, an interactive interface to the femlib function parser.
 #
 calc: calc.o
 	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
@@ -140,7 +140,6 @@ interp: interp.o $(INTOBJ)
 # ----------------------------------------------------------------------------
 # Build integral, field dump scalar integral evaluator.
 #
-
 integral: integral.o  $(INTOBJ)
 	$(CXX) $(CPPFLAGS) -o $@ $@.o $(INTOBJ) $(LDFLAGS)
 
@@ -151,6 +150,15 @@ PRBOBJ = probe.o feml.o mesh.o element.o family.o auxfield.o geometry.o
 $(PRBOBJ): $(SEMHDR)
 
 probe: $(PRBOBJ)
+	$(CXX) $(CPPFLAGS) -o $@ $(PRBOBJ) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build eneq, which computes terms in the fluctuating flow energy equations.
+#
+PRBOBJ = eneq.o feml.o mesh.o element.o family.o auxfield.o geometry.o misc.o
+$(PRBOBJ): $(SEMHDR)
+
+eneq: $(PRBOBJ)
 	$(CXX) $(CPPFLAGS) -o $@ $(PRBOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------

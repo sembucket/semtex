@@ -12,7 +12,7 @@ public:
   Analyser  (Domain*, FEML*);
   ~Analyser () { }
 
-  void analyse (AuxField**);
+  void analyse (AuxField**, AuxField**);
 
 protected:
   Domain*               _src      ; // Source information.
