@@ -2,8 +2,8 @@
  * xmxv: Matrix - Vector Multiply.                                           *
  *                                                                           *
  * This following function computes the matrix-vector product C = A * B.     *
- * The matrix A is assumed to be stored in row-major order and must oc-      *
- * cupy consecutive memory locations.                                        *
+ * The matrix A is assumed to be stored in row-major order and must occupy   *
+ * consecutive memory locations.                                             *
  *                                                                           *
  *      mxv(A,nra,B,nca,C)                                                   *
  *                                                                           *
@@ -14,15 +14,11 @@
  *      C   ... double* ... vector product (output)                          *
  *                                                                           *
  * A more general matrix-vector multiply with arbitrary skips is given in    *
- * mxva().                                                                   *
+ * mxva().  Consider also the BLAS2 routines xgemv.                          *
  *****************************************************************************/
 
-#include <stdio.h>
-#include <alplib.h>
 
-#if !defined(mxv)
-
-void dmxv(double* A, int nra, double* B, int nca, double *C)
+void dmxv(double *A, int nra, double *B, int nca, double *C)
 {
   register double *a = A,
                   *c = C;
@@ -40,7 +36,7 @@ void dmxv(double* A, int nra, double* B, int nca, double *C)
 
 
 
-void smxv(float* A, int nra, float* B, int nca, float *C)
+void smxv(float *A, int nra, float *B, int nca, float *C)
 {
   register float  *a = A,
                   *c = C;
@@ -53,5 +49,3 @@ void smxv(float* A, int nra, float* B, int nca, float *C)
     *c++ = sum;
   }
 }
-
-#endif
