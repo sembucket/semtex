@@ -39,7 +39,7 @@ void nonLinear (Domain*       D ,
 //
 //           Nx = -0.5 {ud(u)/dx + vd(u)/dy +  d(uu)/dx + d(vu)/dy +
 //                 1/y [wd(u)/dz + d(uw)/dz + vu      ]}
-//          p Ny = -0.5 {ud(v)/dx + vd(v)/dy +  d(uv)/dx + d(vv)/dy +
+//           Ny = -0.5 {ud(v)/dx + vd(v)/dy +  d(uv)/dx + d(vv)/dy +
 //                 1/y [wd(v)/dz + d(vw)/dz + vv - 2ww]}
 //           Nz = -0.5 {ud(w)/dx + vd(w)/dy +  d(uw)/dx + d(vw)/dy +
 //                 1/y [wd(w)/dz + d(ww)/dz + 3wv     ]}

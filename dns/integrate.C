@@ -20,9 +20,9 @@
 //   w <==> azimuthal velocity,  z <==> azimuthal coordinate direction.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id";
+static char RCS[] = "$Id$";
 
-#include <dns.h>
+#include "dns.h"
 
 typedef ModalMatrixSys Msys;
 
