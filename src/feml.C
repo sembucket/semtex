@@ -178,7 +178,7 @@ integer FEML::seek (const char* keyword)
 
   for (i = 0; !found && keyWord[i]; i++)
     found = (strstr (keyword, keyWord[i]) != 0 &&
-	                      keyPosn[i]  != 0);
+	     static_cast<int>(keyPosn[i])  != 0);
 
   if   (!found) {
     feml_file.clear ();  

@@ -15,26 +15,29 @@
 #include <fstream>
 #include <iomanip>
 
+using namespace std;
+
 #include <femdef.h>
 #include <Utility.h>
 #include <Femlib.h>
 
 static char prog[] = "calc";
-static void getargs (int, char**);
+static void getargs (int, char**, istream*&);
 
 
 int main (int    argc,
 	  char** argv)
-/* ------------------------------------------------------------------------- *
- * Driver.
- * ------------------------------------------------------------------------- */
+// ---------------------------------------------------------------------------
+// Driver.
+// ---------------------------------------------------------------------------
 {
-  char buf[StrMax];
+  char     buf[StrMax];
+  istream* input;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv);
+  getargs (argc, argv, input);
 
-  while (cin.getline (buf, FILENAME_MAX))
+  while (input -> getline (buf, FILENAME_MAX))
     if (strstr (buf, "="))
       Femlib::value (buf);
     else
@@ -45,8 +48,9 @@ int main (int    argc,
 }
 
 
-static void getargs (int    argc,
-		     char** argv)
+static void getargs (int       argc ,
+		     char**    argv ,
+		     istream*& input)
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
@@ -71,15 +75,12 @@ static void getargs (int    argc,
     }
 
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-    } else {
-      sprintf (buf, usage, prog);
-      cerr << buf;
+    input = new ifstream (*argv);
+    if (input -> bad()) {
+      cerr << usage;
       sprintf (buf, "unable to open file: %s", *argv);
       message (prog, buf, ERROR);
     }
-  }
+  } else input = &cin;
 }
 

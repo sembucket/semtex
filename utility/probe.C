@@ -105,7 +105,8 @@ int main (int    argc,
   char              *interface = 0, *points = 0;
   int               NP, NZ,  NEL;
   int               i, j, k, nf, ntot = 0, rotswap = 0;
-  ifstream          fldfile, pntfile;
+  ifstream          fldfile;
+  istream*          pntfile;
   FEML*             F;
   Mesh*             M;
   const real*       knot;

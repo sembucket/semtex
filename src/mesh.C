@@ -2,7 +2,7 @@
 // mesh.C: read information from a FEML stream, provide
 // facilities for generation of mesh knots and initial connectivity.
 //
-// Copyright (C) 1994, 1999 Hugh Blackburn
+// Copyright (c) 1994 Hugh Blackburn
 //
 // Example/required parts of a FEML file:
 //
@@ -91,6 +91,8 @@
 #include <fstream>
 #include <strstream>
 #include <iomanip>
+
+using namespace std;
 
 #include <femdef.h>
 #include <Mesh.h>

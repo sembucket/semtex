@@ -654,8 +654,8 @@ real AuxField::integral (const integer k) const
 }
 
 
-ofstream& operator << (ofstream& strm,
-		       AuxField& F   )
+ostream& operator << (ostream&  strm,
+		      AuxField& F   )
 // ---------------------------------------------------------------------------
 // Binary write of F's data area.
 //
@@ -663,10 +663,6 @@ ofstream& operator << (ofstream& strm,
 // receiving data from other processors.  This ensures that the data
 // are written out in the correct order, and that only one processor
 // needs access to the output stream.
-//
-// UNIX interface used for IO on Fujitsu in order to avoid buffering
-// done by C++.  For this to work strm has to be of ofstream rather
-// than ostream class.
 // ---------------------------------------------------------------------------
 {
   const char       routine[] = "ofstream<<AuxField";
@@ -674,47 +670,6 @@ ofstream& operator << (ofstream& strm,
   const integer    nP    = Geometry::nPlane();
   const integer    nProc = Geometry::nProc();
   register integer i, k;
-
-#if defined (__uxp__)
-  const int        fd    = strm.rdbuf() -> fd();
-  integer          n;
-
-  if (nProc > 1) {
-
-    ROOTONLY {
-      vector<real> buffer (NP);
-
-      strm.rdbuf() -> sync();
-
-      for (i = 0; i < F._nz; i++)
-	n = write (fd, F._plane[i], nP * sizeof (real));
-	if (n != nP * sizeof (real))
-	  message (routine, "unable to write binary output", ERROR);
-
-      for (k = 1; k < nProc; k++)
-	for (i = 0; i < F._nz; i++) {
-	  Femlib::recv (buffer(), NP, k);
-	  n = write (fd, buffer(), nP * sizeof (real));
-	  if (n != nP * sizeof (real))
-	    message (routine, "unable to write binary output", ERROR);
-	}
-
-    } else for (i = 0; i < F._nz; i++) Femlib::send (F._plane[i], NP, 0);
-
-  } else {
-
-    strm.rdbuf() -> sync();
-
-    for (i = 0; i < F._nz; i++) {
-      n = write (fd, F._plane[i], nP * sizeof (real));
-      if (n != nP * sizeof (real))
-	message (routine, "unable to write binary output", ERROR);
-    }
-  }
-
-  strm.rdbuf() -> sync();
-
-#else
 
   if (nProc > 1) {
 
@@ -745,22 +700,17 @@ ofstream& operator << (ofstream& strm,
     }
   }
 
-#endif
-
   return strm;
 }
 
 
-ifstream& operator >> (ifstream& strm,
-		       AuxField& F   )
+istream& operator >> (istream&  strm,
+		      AuxField& F   )
 // ---------------------------------------------------------------------------
 // Binary read of F's data area.  Zero any unused storage areas.
 //
 // As for the write operator, only the root processor accesses strm.
 // This precaution is possibly unnecessary for input.
-//
-// UNIX interface used for IO on Fujitsu in order to avoid buffering
-// done by C++.
 // ---------------------------------------------------------------------------
 {
   const char       routine[] = "ifstream>>AuxField";
@@ -768,51 +718,6 @@ ifstream& operator >> (ifstream& strm,
   const integer    NP    = Geometry::planeSize();
   const integer    nProc = Geometry::nProc();
   register integer i, k;
-
-#if defined (__uxp__)
-  const int        fd    = strm.rdbuf() -> fd();
-  integer          n;
-
-  if (nProc > 1) {
-
-    ROOTONLY {
-      vector<real> buffer (NP);
-
-      strm.rdbuf() -> sync();     
-
-      for (i = 0; i < F._nz; i++) {
-	n = read (fd, F._plane[i], nP * sizeof (real));
-	if (n != nP * sizeof (real))
-	  message (routine, "unable to read binary input", ERROR);
-	Veclib::zero (NP - nP, F._plane[i] + nP, 1);
-      }
-
-      for (k = 1; k < nProc; k++) {
-	for (i = 0; i < F._nz; i++) {
-	  n = read (fd, buffer(), nP*sizeof (real));
-	  if (n != nP * sizeof (real))
-	    message (routine, "unable to read binary input", ERROR);
-	  Veclib::zero (NP - nP, buffer() + nP, 1);
-	  Femlib::send (buffer(), NP, k);
-	}
-      }
-    } else for (i = 0; i < F._nz; i++) Femlib::recv (F._plane[i], NP, 0);
-
-  } else {
-
-    strm.rdbuf() -> sync();
-
-    for (i = 0; i < F._nz; i++) {
-      n = read (fd, F._plane[i], nP * sizeof (real));
-      if (n != nP * sizeof (real))
-	message (routine, "unable to read binary input", ERROR);
-      Veclib::zero (NP - nP, F._plane[i] + nP, 1);
-    }
-  }
-
-  strm.rdbuf() -> sync();    
-
-#else
 
   if (nProc > 1) {
 
@@ -846,7 +751,6 @@ ifstream& operator >> (ifstream& strm,
       Veclib::zero (NP - nP, F._plane[i] + nP, 1);
     }
   }
-#endif
 
   return strm;
 }
