@@ -360,7 +360,7 @@ static MatrixSys** preSolve (const Domain* D)
 
   N      = D -> b[0] -> Nsys (mode * Geometry::kFund());
   betak2 = sqr (Field::modeConstant (D -> u[0] -> name(), mode, beta));
-  M = new MatrixSys (lambda2, betak2, 0, D -> elmt, D -> b[0], method);
+  M = new MatrixSys (lambda2, betak2, mode, D -> elmt, D -> b[0], method);
   MS.insert (MS.end(), M);
   system[0] = M;
   cout << ((method == DIRECT) ? '*' : '&') << flush;
@@ -379,7 +379,7 @@ static MatrixSys** preSolve (const Domain* D)
     system[1] = M;
     cout << "." << flush;
   } else {
-    M = new MatrixSys (lambda2, betak2, 0, D -> elmt, D -> b[1], method);
+    M = new MatrixSys (lambda2, betak2, mode, D -> elmt, D -> b[1], method);
     MS.insert (MS.end(), M);
     system[1] = M;
     cout << ((method == DIRECT) ? '*' : '&') << flush;
@@ -398,7 +398,7 @@ static MatrixSys** preSolve (const Domain* D)
       system[2] = M;
       cout << "." << flush;
     } else {
-      M = new MatrixSys (lambda2, betak2, 0, D -> elmt, D -> b[2], method);
+      M = new MatrixSys (lambda2, betak2, mode, D -> elmt, D -> b[2], method);
       MS.insert (MS.end(), M);
       system[2] = M;
       cout <<  ((method == DIRECT) ? '*' : '&') << flush;
@@ -410,7 +410,7 @@ static MatrixSys** preSolve (const Domain* D)
   method = (itLev < 2) ? DIRECT : JACPCG;
 
   betak2 = sqr (Field::modeConstant (D -> u[NPERT] -> name(), mode, beta));
-  M      = new MatrixSys (0.0, betak2, 0, D -> elmt, D -> b[NPERT], method);
+  M      = new MatrixSys (0.0, betak2, mode, D -> elmt, D -> b[NPERT], method);
   MS.insert (MS.end(), M);
   system[NPERT] = M;
   cout << ((method == DIRECT) ? '*' : '&') << endl;
@@ -443,7 +443,7 @@ static void Solve (Domain*    D,
     const real lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
 
     MatrixSys* tmp =
-      new MatrixSys (lambda2, betak2, 0, D -> elmt, D -> b[i], JACPCG);
+      new MatrixSys (lambda2, betak2, mode, D -> elmt, D -> b[i], JACPCG);
 
     D -> u[i] -> solve (F, tmp);
     delete tmp;

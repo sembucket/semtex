@@ -251,8 +251,8 @@ Field& Field::smooth (AuxField* slave)
   const int        next    = Geometry::nExtElmt();
   const NumberSys* N       = _bsys -> Nsys  (0);
   const real*      imass   = _bsys -> Imass (0);
-  const int        nglobal = N    -> nGlobal();
-  const integer*   btog    = N    -> btog();
+  const int        nglobal = N     -> nGlobal();
+  const integer*   btog    = N     -> btog();
   const integer*   gid;
   register int     i, k;
   vector<real>     work (nglobal);
@@ -280,7 +280,7 @@ Field& Field::smooth (AuxField* slave)
 
 
 void Field::smooth (const int nZ ,
-		    real*         tgt) const
+		    real*     tgt) const
 // ---------------------------------------------------------------------------
 // Smooth tgt field along element boundaries using *this, with
 // mass-average smoothing.  Tgt is assumed to be arranged by planes, with
@@ -545,11 +545,11 @@ Field& Field::solve (AuxField*        f,
     switch (M -> _method) {
     
     case DIRECT: {
-      const real*    H       = const_cast<const real*>   (M -> _H);
-      const real**   hii     = const_cast<const real**>  (M -> _hii);
-      const real**   hbi     = const_cast<const real**>  (M -> _hbi);
-      const integer* b2g     = const_cast<const integer*>(N -> btog());
-      int            nband   = M -> _nband;
+      const real*    H     = const_cast<const real*>   (M -> _H);
+      const real**   hii   = const_cast<const real**>  (M -> _hii);
+      const real**   hbi   = const_cast<const real**>  (M -> _hbi);
+      const integer* b2g   = const_cast<const integer*>(N -> btog());
+      int            nband = M -> _nband;
 
       vector<real>   work (nglobal + npnp);
       real           *RHS = &work[0], *tmp = RHS + nglobal;
