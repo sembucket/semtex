@@ -1339,3 +1339,39 @@ integer Mesh::matchBC (const char grp,
 
   return 0;
 }
+
+
+void Mesh::extent (Point& lo,
+		   Point& hi) const
+// ---------------------------------------------------------------------------
+// Traverse element vertices and extract maximum and minumum x, y locations.
+// Could do this with the vertex list but some vertices might be unused.
+// ---------------------------------------------------------------------------
+{
+  integer i, j;
+  Elmt*   E;
+  real    x, xmax = FLT_MIN, xmin = FLT_MAX;
+  real    y, ymax = FLT_MIN, ymin = FLT_MAX;
+
+  const integer Ne = nEl();  
+  for (i = 0; i < Ne; i++) {
+    E = elmtTable (i);
+    const integer Nn = E -> nNodes();
+    for (j = 0; j < Nn; j++) {
+      x = E -> node (j) -> loc.x;
+      y = E -> node (j) -> loc.y;
+      xmin = min (xmin, x);
+      xmax = max (xmax, x);
+      ymin = min (ymin, y);
+      ymax = max (ymax, y);
+    }
+  }
+  
+  lo.x = xmin;
+  lo.y = ymin;
+  lo.z = 0.0;
+
+  hi.x = xmax;
+  hi.y = ymax;
+  hi.z = 0.0;
+}
