@@ -18,6 +18,7 @@
 // -n <num> ... project elements to num x num.
 // -z <num> ... project to <num> planes in the homogeneous direction.
 // -u       ... project elements to uniform internal grid [Default: GLL].
+// -U       ... project from uniform grid to GLL.
 // 
 // If file is not present, read from standard input.  Write to
 // standard output.
@@ -144,8 +145,12 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
     vector<real>     work (rhs.np * np);
     real*            tmp = work();
 
-    if   (uniform) Femlib::mesh (GLL, STD, rhs.np, np, 0, &IN, &IT, 0, 0);
-    else           Femlib::mesh (GLL, GLL, rhs.np, np, 0, &IN, &IT, 0, 0);
+    if      (uniform ==  1)
+      Femlib::mesh (GLL, STD, rhs.np, np, 0, &IN, &IT, 0, 0);
+    else if (uniform == -1) 
+      Femlib::mesh (STD, GLL, rhs.np, np, 0, &IN, &IT, 0, 0);
+    else
+      Femlib::mesh (GLL, GLL, rhs.np, np, 0, &IN, &IT, 0, 0);
 
     for (k = 0; k < nzm; k++) {	// -- 2D planar projections.
       LHS = plane[k];
@@ -310,7 +315,8 @@ static void getargs (int       argc ,
     "  -n <num> ... 2D projection onto num X num\n"
     "  -z <num> ... 3D projection onto num planes\n"
     "  -w       ... Retain w components in 3D-->2D proj'n [Default: delete]\n"
-    "  -u       ... project to uniform grid [Default: GLL]\n";
+    "  -u       ... project to uniform grid from GLL\n"
+    "  -U       ... project from uniform grid to GLL\n";
  
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
@@ -335,7 +341,10 @@ static void getargs (int       argc ,
       }
       break;
     case 'u':
-      uniform = 1;
+      uniform =  1;
+      break;
+    case 'U':
+      uniform = -1;
       break;
     case 'w':
       keepW   = 1;
