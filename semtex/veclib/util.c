@@ -29,19 +29,21 @@ void message(const char *routine, const char *text, int level)
  * A general error handler.                                                  *
  * ========================================================================= */
 {
-  fprintf (stderr, "%s: ", routine);
-
   switch (level) {
-  case WARNING: fprintf (stderr, "WARNING: "); break;
-  case ERROR:   fprintf (stderr, "ERROR: "  ); break;
-  case REMARK:  break;
+  case WARNING:
+    fprintf (stderr, "%s: WARNING: %s\n", routine, text); 
+    break;
+  case ERROR:
+    fprintf (stderr, "%s: ERROR: %s\n", routine, text); 
+    break;
+  case REMARK:
+    fprintf (stdout, "%s: %s\n", routine, text);
+    break;
   default:
     fprintf (stderr, "bad error level in message: %d\n", level);
     exit (EXIT_FAILURE);
     break;
   }
-
-  fprintf (stderr, "%s\n", text);
 
   if (level == ERROR) exit (EXIT_FAILURE);
 }
