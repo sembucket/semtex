@@ -14,11 +14,11 @@ int idmin(int n, const double *x, int incx)
   imin = 0;
 
   for (i=1; i<n; i++) {
+    x += incx;
     if (*x<xmin) {
       xmin = *x;
       imin = i;
     }
-    x += incx;
   }
 
   return imin;
@@ -38,11 +38,11 @@ int iimin(int n, const int *x, int incx)
   imin = 0;
 
   for (i=1; i<n; i++) {
+    x += incx;
     if (*x<xmin) {
       xmin = *x;
       imin = i;
     }
-    x += incx;
   }
 
   return imin;
@@ -63,11 +63,11 @@ int ismin(int n, const float *x, int incx)
   imin = 0;
 
   for (i=1; i<n; i++) {
+    x += incx;
     if (*x<xmin) {
       xmin = *x;
       imin = i;
     }
-    x += incx;
   }
 
   return imin;
