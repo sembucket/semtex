@@ -360,7 +360,7 @@ void Field::smooth (const int nZ ,
 }
 
 
-real Field::flux (const Field* C)
+real Field::gradientFlux (const Field* C)
 // ---------------------------------------------------------------------------
 // Static member function.
 //

@@ -32,7 +32,7 @@ static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, BoundarySys*&, Domain*&);
 
-void integrateNS (Domain*, DNSAnalyser*);
+void integrateNS (Domain*, DNSAnalyser*, Flowrate*);
 
 
 int main (int    argc,
@@ -49,6 +49,7 @@ int main (int    argc,
   BoundarySys*     bsys;
   Domain*          domain;
   DNSAnalyser*     analyst;
+  Flowrate*        discharge = 0;
   
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session);
@@ -56,12 +57,14 @@ int main (int    argc,
   preprocess (session, file, mesh, elmt, bman, bsys, domain);
 
   analyst = new DNSAnalyser (domain, file);
+  
+  if (file -> seek ("CUT")) discharge = new Flowrate (domain, file);
 
   domain -> restart();
 
   ROOTONLY domain -> report();
   
-  integrateNS (domain, analyst);
+  integrateNS (domain, analyst, discharge);
 
   Femlib::finalize();
 
@@ -164,9 +167,9 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "Setting geometry ... ";
 
-  nel   = mesh -> nEl();
-  np    = static_cast<int>(Femlib::value ("N_POLY"));
-  nz    = static_cast<int>(Femlib::value ("N_Z"));
+  nel   =  mesh -> nEl();
+  np    =  static_cast<int>(Femlib::value ("N_POLY"));
+  nz    =  static_cast<int>(Femlib::value ("N_Z"));
   space = (static_cast<int>(Femlib::value ("CYLINDRICAL"))) ? 
     Geometry::Cylindrical : Geometry::Cartesian;
   

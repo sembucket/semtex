@@ -165,3 +165,112 @@ void writeField (ofstream&          file   ,
   }
 }
 
+
+
+Header::Header ()
+// ---------------------------------------------------------------------------
+// Allocate storage for Header.
+// ---------------------------------------------------------------------------
+{
+  sess = new char [StrMax];
+  sesd = new char [StrMax];
+  flds = new char [StrMax];
+  frmt = new char [StrMax];
+
+  sess[0] = sesd[0] = flds[0] = '\0';
+  sprintf (frmt, "binary "); Veclib::describeFormat (frmt + strlen (frmt));
+  nr = ns = nz = nel = step = 0;
+  time = dt = visc = beta = 0.0;
+}
+
+
+istream& operator >> (istream& file,
+		      Header&  hdr )
+// ---------------------------------------------------------------------------
+// Insert data into Header struct from file.
+// ---------------------------------------------------------------------------
+{
+  char routine[] = "operator: istream >> Header";
+  char s[StrMax];
+
+  if (file.get(hdr.sess, 25).eof()) return file; file.getline(s, StrMax);
+  file.get(hdr.sesd, 25);                        file.getline(s, StrMax);
+  file >> hdr.nr >> hdr.ns >> hdr.nz >> hdr.nel; file.getline(s, StrMax);
+  file >> hdr.step;                              file.getline(s, StrMax);
+  file >> hdr.time;                              file.getline(s, StrMax);
+  file >> hdr.dt;                                file.getline(s, StrMax);
+  file >> hdr.visc;                              file.getline(s, StrMax);
+  file >> hdr.beta;                              file.getline(s, StrMax);
+  file >> hdr.flds;                              file.getline(s, StrMax);
+  file.get(hdr.frmt, 26);                        file.getline(s, StrMax);
+
+  if (!file) message (routine, "failed reading header information", ERROR);
+  return file;
+}
+
+
+ostream& operator << (ostream& file,
+		      Header&  hdr )
+// ---------------------------------------------------------------------------
+// Put data from Header struct onto file. Use current time info.
+// ---------------------------------------------------------------------------
+{
+  const char routine [] = "operator: ofstream << Header";
+  const char *hdr_fmt[] = { 
+    "%-25s "                "Session\n",
+    "%-25s "                "Created\n",
+    "%-5d %-5d %-5d %-5d "  "Nr, Ns, Nz, Elements\n",
+    "%-25d "                "Step\n",
+    "%-25.6g "              "Time\n",
+    "%-25.6g "              "Time step\n",
+    "%-25.6g "              "Kinvis\n",
+    "%-25.6g "              "Beta\n",
+    "%-25s "                "Fields written\n",
+    "%-25s "                "Format\n"
+  };
+
+  char   s1[StrMax], s2[StrMax];
+  time_t tp (time (0));
+
+  strftime (s2, 25, "%a %b %d %H:%M:%S %Y", localtime (&tp));
+
+  sprintf  (s1, hdr_fmt[0], hdr.sess);                        file << s1;
+  sprintf  (s1, hdr_fmt[1], s2);                              file << s1;
+  sprintf  (s1, hdr_fmt[2], hdr.nr, hdr.ns, hdr.nz, hdr.nel); file << s1;
+  sprintf  (s1, hdr_fmt[3], hdr.step);                        file << s1;
+  sprintf  (s1, hdr_fmt[4], Femlib::value ("t"));             file << s1;
+  sprintf  (s1, hdr_fmt[5], Femlib::value ("D_T"));           file << s1;
+  sprintf  (s1, hdr_fmt[6], Femlib::value ("KINVIS"));        file << s1;
+  sprintf  (s1, hdr_fmt[7], Femlib::value ("BETA"));          file << s1;
+  sprintf  (s1, hdr_fmt[8], hdr.flds);                        file << s1;
+  sprintf  (s1, hdr_fmt[9], hdr.frmt);                        file << s1;
+
+  if (!file) message (routine, "failed writing field file header", ERROR);
+  file << flush;
+
+  return file;
+}
+
+int Header::swab() const
+// ---------------------------------------------------------------------------
+// Return true if coding of binary information in *this conflicts with 
+// that for the machine (indicating byte swapping is required).
+// ---------------------------------------------------------------------------
+{
+  char routine[] = "Header::swab";
+  char machine[StrMax];
+  int  swap = 0;
+
+  Veclib::describeFormat (machine);
+
+  if (!strstr (frmt, "binary"))
+    message (routine, "input field file not in binary format", ERROR);
+  
+  if (!strstr (frmt, "endian"))
+    message (routine, "input field file in unknown binary format", WARNING);
+  else
+    swap = ((strstr (machine, "big") && strstr (frmt,    "little")) ||
+	    (strstr (frmt,    "big") && strstr (machine, "little")) );
+  
+  return swap;
+}
