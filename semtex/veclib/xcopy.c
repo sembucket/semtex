@@ -2,22 +2,29 @@
  * xcopy:  y[i] = x[i].                                                      *
  *                                                                           *
  * NB: dcopy and scopy are also in the BLAS.                                 *
+ * We do fast copy for cases where both skips are unity.                     *
  *****************************************************************************/
+
+#include <string.h>
 
 
 void  dcopy(int n, const double *x, int incx,
                          double *y, int incy)
 {
-  register int  i;
-  
+  if (incx == 1 && incy ==1)
+    memcpy (y, x, n * sizeof (double));
 
-  x += (incx<0) ? (-n+1)*incx : 0;
-  y += (incy<0) ? (-n+1)*incy : 0;
+  else {
+    register int  i;
 
-  for (i=0; i<n; i++) {
-    *y = *x;
-    x += incx;
-    y += incy;
+    x += (incx < 0) ? (-n + 1)*incx : 0;
+    y += (incy < 0) ? (-n + 1)*incy : 0;
+
+    for (i = 0; i < n; i++) {
+      *y = *x;
+      x += incx;
+      y += incy;
+    }
   }
 }
 
@@ -28,16 +35,20 @@ void  dcopy(int n, const double *x, int incx,
 void  icopy(int n, const int *x, int incx,
                          int *y, int incy)
 {
-  register int  i;
+  if (incx == 1 && incy ==1) 
+    memcpy (y, x, n * sizeof (int));
+
+  else {
+    register int  i;
   
+    x += (incx < 0) ? (-n + 1)*incx : 0;
+    y += (incy < 0) ? (-n + 1)*incy : 0;
 
-  x += (incx<0) ? (-n+1)*incx : 0;
-  y += (incy<0) ? (-n+1)*incy : 0;
-
-  for (i=0; i<n; i++) {
-    *y = *x;
-    x += incx;
-    y += incy;
+    for (i = 0; i < n; i++) {
+      *y = *x;
+      x += incx;
+      y += incy;
+    }
   }
 }
 
@@ -48,15 +59,19 @@ void  icopy(int n, const int *x, int incx,
 void  scopy(int n, const float *x, int incx,
                          float *y, int incy)
 {
-  register int  i;
+  if (incx == 1 && incy ==1) 
+    memcpy (y, x, n * sizeof (float));
+
+  else {
+    register int  i;
   
+    x += (incx < 0) ? (-n + 1)*incx : 0;
+    y += (incy < 0) ? (-n + 1)*incy : 0;
 
-  x += (incx<0) ? (-n+1)*incx : 0;
-  y += (incy<0) ? (-n+1)*incy : 0;
-
-  for (i=0; i<n; i++) {
-    *y = *x;
-    x += incx;
-    y += incy;
+    for (i = 0; i < n; i++) {
+      *y = *x;
+      x += incx;
+      y += incy;
+    }
   }
 }
