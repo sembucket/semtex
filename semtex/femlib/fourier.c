@@ -64,14 +64,14 @@ void sDFTr (float*    data ,
       srfftf (len, work, Wtab);
       scopy  (len - 2, work + 1, 1, ptr + 2 * skipd, skipd);
       ptr[0]     = work[0];
-      ptr[skipd] = 0.0;
+      ptr[skipd] = work[len - 1];
     }
     sscal (len * skipd * skips, 1.0 / len, data, 1);
     break;
 
   case -1:
     for (i = 0; i < nopr; i++, ptr += skips) {
-      work[len - 1] = 0.0;
+      work[len - 1] = ptr[nopr];
       work[0]       = ptr[0];
       scopy  (len - 2, ptr + 2 * skipd, skipd, work + 1, 1);
       srfftb (len, work, Wtab);
@@ -121,14 +121,14 @@ void dDFTr (double*   data ,
       drfftf (len, work, Wtab);
       dcopy  (len - 2, work + 1, 1, ptr + 2 * skipd, skipd);
       ptr[0]     = work[0];
-      ptr[skipd] = 0.0;
+      ptr[skipd] = work[len - 1];
     }
     dscal (len * skipd * skips, 1.0 / len, data, 1);
     break;
 
   case -1:
     for (i = 0; i < nopr; i++, ptr += skips) {
-      work[len - 1] = 0.0;
+      work[len - 1] = ptr[nopr];
       work[0]       = ptr[0];
       dcopy  (len - 2, ptr + 2 * skipd, skipd, work + 1, 1);
       drfftb (len, work, Wtab);
