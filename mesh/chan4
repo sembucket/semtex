@@ -48,7 +48,7 @@
 			<D>	u = 0.0		</D>
 			<D>	v = 0.0		</D>
 			<D>	w = 0.0		</D>
-			<H>	p = 0		</H>
+			<H>	p 		</H>
 </BCS>
 
 <NODES NUMBER=77>

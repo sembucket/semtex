@@ -48,7 +48,7 @@ friend istream& operator >> (istream&, Field2DF&);
 friend ostream& operator << (ostream&, Field2DF&);
 
 public:
-  Field2DF  (const integer nP, const integer nZ, const integer nEl,
+  Field2DF  (const int nP, const int nZ, const int nEl,
 	     const char Name='\0');
   ~Field2DF () { delete data; delete plane; }
 
@@ -57,36 +57,35 @@ public:
   Field2DF& operator = (const Field2DF&);
   Field2DF& operator = (const real);
 
-  Field2DF& DFT1D (const integer);
-  Field2DF& DPT2D (const integer, const char);
+  Field2DF& DFT1D (const int);
+  Field2DF& DPT2D (const int, const char);
 
   Field2DF& reverse   ();
   
 private:
-  const char    name;
-  const integer np, nz, nel, np2;
-  integer       nplane, ntot;
-  real*         data;
-  real**        plane;
+  const char name;
+  const int  np, nz, nel, np2;
+  int        nplane, ntot;
+  real*      data;
+  real**     plane;
 };
 
 
-Field2DF::Field2DF (const integer  nP  ,
-		    const integer  nZ  ,
-		    const integer  nEl ,
-		    const char     Name) :
+Field2DF::Field2DF (const int  nP  ,
+		    const int  nZ  ,
+		    const int  nEl ,
+		    const char Name) :
 
-		    name          (Name),
-                    np            (nP  ),
-		    nz            (nZ  ),
-		    nel           (nEl ),
-		    
-		    np2          (np * np)
+		    name       (Name   ),
+                    np         (nP     ),
+		    nz         (nZ     ),
+		    nel        (nEl    ),
+		    np2        (np * np)
 // ---------------------------------------------------------------------------
 // Field2DF constructor. 
 // ---------------------------------------------------------------------------
 {
-  register integer i;
+  register int i;
   
   nplane = np * np * nel;
   if (nplane & 1) nplane++;
@@ -100,7 +99,7 @@ Field2DF::Field2DF (const integer  nP  ,
 }
 
 
-Field2DF& Field2DF::DFT1D (const integer sign)
+Field2DF& Field2DF::DFT1D (const int sign)
 // ---------------------------------------------------------------------------
 // Carry out discrete Fourier transformation in z direction.
 // ---------------------------------------------------------------------------
@@ -111,12 +110,12 @@ Field2DF& Field2DF::DFT1D (const integer sign)
 }
 
 
-Field2DF& Field2DF::DPT2D (const integer sign, const char basis)
+Field2DF& Field2DF::DPT2D (const int sign, const char basis)
 // ---------------------------------------------------------------------------
 // Carry out 2D discrete polynomial transform (element-by-element) on planes.
 // ---------------------------------------------------------------------------
 {
-  integer      i;
+  int          i;
   vector<real> work (nplane);
   const real   *Fu, *Ft, *Bu, *Bt;
 
@@ -154,12 +153,12 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
 
   else {			// -- Perform projection.
 
-    register integer i, k;
-    register real    *LHS, *RHS;
-    const real       **IN, **IT;
-    const integer    nzm = min (rhs.nz, nz);
-    vector<real>     work (rhs.np * np);
-    real*            tmp = work();
+    register int  i, k;
+    register real *LHS, *RHS;
+    const real    **IN, **IT;
+    const int     nzm = min (rhs.nz, nz);
+    vector<real>  work (rhs.np * np);
+    real*         tmp = work();
 
     Femlib::mesh (GLL, GLL, rhs.np, np, 0, &IN, &IT, 0, 0);
 
@@ -213,7 +212,7 @@ ostream& operator << (ostream&  strm,
 // Binary write of F's data area.
 // ---------------------------------------------------------------------------
 {
-  integer i;
+  int i;
   
   for (i = 0; i < F.nz; i++)
     strm.write ((char*) F.plane[i], F.np * F.np * F.nel * sizeof (real));
@@ -228,7 +227,7 @@ istream& operator >> (istream&  strm,
 // Binary read of F's data area.
 // ---------------------------------------------------------------------------
 {
-  integer i;
+  int i;
   
   for (i = 0; i < F.nz; i++)
     strm.read ((char*) F.plane[i], F.np * F.np * F.nel * sizeof (real));
@@ -237,11 +236,11 @@ istream& operator >> (istream&  strm,
 }
 
 
-static char    prog[] = "transform";
-static void    getargs  (int, char**, integer&, char&, char&, ifstream&);
-static integer getDump  (ifstream&, ostream&, vector<Field2DF*>&);
-static void    loadName (const vector<Field2DF*>&, char*);
-static integer doSwap   (const char*);
+static char prog[] = "transform";
+static void getargs  (int, char**, int&, char&, char&);
+static int  getDump  (istream&, ostream&, vector<Field2DF*>&);
+static void loadName (const vector<Field2DF*>&, char*);
+static int  doSwap   (const char*);
 
 
 int main (int    argc,
@@ -250,15 +249,14 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  ifstream          file;
-  integer           i, dir = FORWARD;
+  int               i, dir = FORWARD;
   char              type   = 'B', basis = 'm';
   vector<Field2DF*> u;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, dir, type, basis, file);
+  getargs (argc, argv, dir, type, basis);
   
-  while (getDump (file, cout, u))
+  while (getDump (cin, cout, u))
     for (i = 0; i < u.getSize(); i++) {
       if (type == 'P' || type == 'B') u[i] -> DPT2D (dir, basis);
       if (type == 'F' || type == 'B') u[i] -> DFT1D (dir);
@@ -270,12 +268,11 @@ int main (int    argc,
 }
 
 
-static void getargs (int       argc ,
-		     char**    argv ,
-		     integer&  dir  ,
-		     char&     type ,
-		     char&     basis,
-		     ifstream& file )
+static void getargs (int    argc ,
+		     char** argv ,
+		     int&   dir  ,
+		     char&  type ,
+		     char&  basis)
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
@@ -316,12 +313,14 @@ static void getargs (int       argc ,
       break;
     }
 
-  if   (argc == 1) file.open   (*argv, ios::in);
-  else             file.attach (0);
-
-  if (!file) {
-    cerr << prog << ": unable to open input file" << endl;
-    exit (EXIT_FAILURE);
+  if (argc == 1) {
+    ifstream* inputfile = new ifstream (*argv);
+    if (inputfile -> good()) {
+      cin = *inputfile;
+      } else {
+	cerr << prog << ": unable to open input file" << endl;
+	exit (EXIT_FAILURE);
+    }
   }
 }
 
@@ -332,14 +331,14 @@ static void loadName (const vector<Field2DF*>& u,
 // Load a string containing the names of fields.
 // ---------------------------------------------------------------------------
 {
-  integer i, N = u.getSize();
+  int i, N = u.getSize();
 
   for (i = 0; i < N; i++) s[i] = u[i] -> getName();
   s[N] = '\0';
 }
 
 
-static integer doSwap (const char* ffmt)
+static int doSwap (const char* ffmt)
 // ---------------------------------------------------------------------------
 // Figure out if byte-swapping of input is required to make sense of input.
 // ---------------------------------------------------------------------------
@@ -358,9 +357,9 @@ static integer doSwap (const char* ffmt)
 }
 
 
-static integer getDump (ifstream&          ifile,
-			ostream&           ofile,
-			vector<Field2DF*>& u    )
+static int getDump (istream&           ifile,
+		    ostream&           ofile,
+		    vector<Field2DF*>& u    )
 // ---------------------------------------------------------------------------
 // Read next set of field dumps from ifile, put headers on ofile.
 // ---------------------------------------------------------------------------
@@ -377,8 +376,8 @@ static integer getDump (ifstream&          ifile,
     "%-25s "    "Fields written\n",
     "%-25s "    "Format\n"
   };
-  char    buf[StrMax], fmt[StrMax], fields[StrMax];
-  integer i, j, swab, nf, np, nz, nel;
+  char buf[StrMax], fmt[StrMax], fields[StrMax];
+  int  i, j, swab, nf, np, nz, nel;
 
   if (ifile.getline(buf, StrMax).eof()) return 0;
   
