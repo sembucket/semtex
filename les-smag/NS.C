@@ -77,10 +77,6 @@ void NavierStokes (Domain*   D,
     // -- Unconstrained forcing substep.
 
     nonLinear (D, Us, Uf, a);
-#if 0
-    // -- Add some forcing to lowest active Fourier mode.
-    Uf[2][0] -> addToPlane (2, 0.001);
-#endif
     waveProp  (D, (const AuxField***) Us, (const AuxField***) Uf);
 
     // -- Pressure projection substep.
@@ -102,10 +98,6 @@ void NavierStokes (Domain*   D,
     for (i = 0; i < DIM; i++) {
       *Us[i][0] = *D -> u[i];
       roll (Us[i], nOrder);
-#if 0
-      // -- This is no longer allowed.
-      D -> u[i] -> evaluateBoundaries (D -> step);
-#endif
       Solve (D -> u[i], Uf[i][0], MMS[i], D -> step, nOrder);
     }
 
