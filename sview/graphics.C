@@ -67,6 +67,9 @@ void keyboard (unsigned char key,
   case 'b':
     State.drawbox = !State.drawbox;
     break;
+  case 'P':
+    State.drawpar = !State.drawpar;
+    break;
   case 'd':
 
     writetiff ("sview.tif", "Isosurface", COMPRESSION_PACKBITS);
@@ -185,7 +188,7 @@ void display ()
 
   if (State.drawbox) drawMesh ();
   if (State.drawiso) drawSurf ();
-  drawPoints();
+  if (State.drawpar) drawPoints();
 
   glPopMatrix     ();
   glutSwapBuffers ();

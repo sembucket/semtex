@@ -37,7 +37,8 @@ template<class T> inline T MAX(T a, T b) { return (a > b) ?  a : b; }
 
 typedef struct flag {		/* Global state variables.              */
   GLboolean drawbox;		/* Toggle drawing spectral elements.    */
-  GLboolean drawiso;		/* Toggle drawing enabled isosurfaces   */
+  GLboolean drawiso;		/* Toggle drawing enabled isosurfaces.  */
+  GLboolean drawpar;		/* Toggle drawing particles.            */
   GLboolean rotate ;		/* Toggle rotation/translation of view. */
   GLboolean blackbk;		/* Toggle black/white background.       */
   GLboolean noalias;		/* Toggle antaliasing of polygons.      */

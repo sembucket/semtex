@@ -153,6 +153,7 @@ void initSview()
 
   State.drawbox = GL_TRUE;
   State.drawiso = GL_FALSE;
+  State.drawpar = GL_FALSE;
   State.rotate  = GL_TRUE;
   State.blackbk = GL_TRUE;
   State.noalias = GL_FALSE;
