@@ -23,20 +23,19 @@ endif
 #
 
 INITIAL    = initial
-#INITIAL    = manager tree
 
-OPERATORS  = polyops	operators	matops     polylib     filter
+OPERATORS  = polyops  operators  matops  polylib  filter
 
-FFT	   = temfftd	fftpack		fourier
+FFT	   = temfftd  fftpack canfft  fourier
 
-MEMORY     = mapping	family          message
+MEMORY     = mapping  family  message
 
 MESH       = RCM
 
-IMPORT     = recipes zbesj mach xerbla
+IMPORT     = recipes  zbesj  mach  xerbla
 
 ALL        = $(INITIAL) $(OPERATORS) $(FFT) $(MEMORY) $(MESH) $(IMPORT)
-     
+
 LMD        = $(foreach routine, $(ALL), $(LIB)($(routine).o))
 
 # ----------------------------------------------------------------------------
@@ -65,24 +64,29 @@ include $(SEMSRC)/Makefile
 # Install library & associated header files.
 #
 install:
-	if test ! -d $(SEM)/lib 		;		then	\
-		mkdir $(SEM)/lib 		; 		fi;	\
-	if test ! -d $(SEM)/lib/$(ARCH) 	;		then	\
-		mkdir $(SEM)/lib/$(ARCH)	; 		fi;	\
-	if test -r $(LIB) 			;		then	\
-		rm -f $(SEM)/lib/$(ARCH)/$(LIB)	;			\
-		cp $(LIB) $(SEM)/lib/$(ARCH)	;		fi
+	if test ! -d $(SEM)/lib 			;	then	\
+		mkdir $(SEM)/lib 			; 	fi;	\
+	if test ! -d $(SEM)/lib/$(ARCH) 		;	then	\
+		mkdir $(SEM)/lib/$(ARCH)		;	fi;	\
+	if test -r $(LIB) 				;	then	\
+		rm -f $(SEM)/lib/$(ARCH)/$(LIB)		;		\
+		cp $(LIB) $(SEM)/lib/$(ARCH)		;	fi
+	if test ! -z $(RANLIB)				;	then	\
+		$(RANLIB) $(SEM)/lib/$(ARCH)/$(LIB)	;	fi
 
-	rm -f $(SEM)/include/cfemdef	;			\
-	rm -f $(SEM)/include/cfemlib    ;			\
-	rm -f $(SEM)/include/cnr77      ;			\
-	rm -f $(SEM)/include/cpolylib   ;			\
+	if test ! -d   $(SEM)/include	;	then    \
+		mkdir $(SEM)/include	;	fi
+
+	rm -f $(SEM)/include/cfemdef	;	\
+	rm -f $(SEM)/include/cfemlib    ;	\
+	rm -f $(SEM)/include/cnr77      ;	\
+	rm -f $(SEM)/include/cpolylib   ;	\
 	rm -f $(SEM)/include/femlib_h	;			
 
-	cp cfemdef	$(SEM)/include	;			\
-	cp cfemlib	$(SEM)/include	;			\
-	cp cnr77	$(SEM)/include	;			\
-	cp cpolylib	$(SEM)/include  ;			\
+	cp cfemdef	$(SEM)/include	;	\
+	cp cfemlib	$(SEM)/include	;	\
+	cp cnr77	$(SEM)/include	;	\
+	cp cpolylib	$(SEM)/include  ;	\
 	cp femlib_h	$(SEM)/include
 
 # ----------------------------------------------------------------------------

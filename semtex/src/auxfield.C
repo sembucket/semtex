@@ -947,7 +947,7 @@ AuxField& AuxField::transform (const integer sign)
 
 
 AuxField& AuxField::transform32 (const integer sign,
-				 real*     phys)
+				 real*         phys)
 // ---------------------------------------------------------------------------
 // Discrete Fourier transform in homogeneous direction, extended for
 // dealiasing.  Input pointer phys points to data in physical space,

@@ -5,8 +5,11 @@ C     self-sorting in-place FFT, and wrapper routine  for  real--complex
 C     FFT.
 C
 C     CALL PRF235 (N, IP, IQ, IR, IPQR2)
-C     CALL xSETPF (TRIG, IP, IQ, IR)
-C     CALL xMPFFT (V, W, NP, NZ, IP, IQ, IR, TRIG, ISIGN)
+C     CALL DSETPF (TRIG, IP, IQ, IR)
+C     CALL DMPFFT (V, W, NP, NZ, IP, IQ, IR, TRIG, ISIGN)
+C
+C     Direct call to Temperton's underlying complex--complex FFT:
+C     CALL DGPFA  (A,B,TRIG,INC,JUMP,N,IP,IQ,IR,LOT,ISIGN) 
 C     
 C     Reference:
 C     C. Temperton, "A generalized prime factor FFT algorithm
@@ -17,7 +20,7 @@ C     Routines are based on the original GPFA code by Temperton,
 C       Recherche en Prevision Numerique
 C       Atmospheric Environment Service, Canada.
 C
-C     Note that the definition of the DFT employed in xGPFA is
+C     Note that the definition of the DFT employed in DGPFA is
 C
 C        X(J) = SUM(K=0,...,N-1)(C(K)*EXP(ISIGN*2*I*J*K*PI/N)).
 C
@@ -25,8 +28,8 @@ C     This file contains DOUBLE PRECISION versions of routines.
 C
 C     $Id$
 C     ==================================================================
-
-
+C
+C
       SUBROUTINE PRF235 (N, IP, IQ, IR, IPQR2)
 C     ------------------------------------------------------------------
 C     Compute prime factors of N (factors of 2, 3, and 5 are allowed).
@@ -71,8 +74,8 @@ C
 C
       RETURN
       END
-
-
+C
+C
       SUBROUTINE DSETPF (TRIG,N,IP,IQ,IR)
 C     ------------------------------------------------------------------
 C     Setup routine for self-sorting in-place
@@ -132,8 +135,8 @@ C
 C
       RETURN
       END
-
-
+C
+C
       SUBROUTINE DMPFFT (V,W,NP,NZ,IP,IQ,IR,TRIG,ISIGN)
 C     ------------------------------------------------------------------
 C     Compute multiple 1D real--complex transforms of V, 
@@ -196,89 +199,49 @@ C
          CALL DGPFA (V,V(1+NPH,0),TRIG,NP,1,NZ,IP,IQ,IR,NPH,-1)
          CALL DCOPY (NP*NZ, V, 1, W, 1)
 C
-         IF (NZODD) THEN
-            DO 10 J = 1, NZH
-               JE = J  + J
-               JO = JE - 1
-               MJ = NZ - J
-               DO 20 I = 1, NPH
-                  II = I + NPH
-                  V (I,  JO) = 0.5D0 * (W (I, 1,  J) + W (I, 1, MJ))
-                  V (I,  JE) = 0.5D0 * (W (I, 2,  J) - W (I, 2, MJ))
-                  V (II, JO) = 0.5D0 * (W (I, 2,  J) + W (I, 2, MJ))
-                  V (II, JE) = 0.5D0 * (W (I, 1, MJ) - W (I, 1,  J))
- 20            CONTINUE
- 10         CONTINUE
-            DO 30 I = 1, NPH
+         DO 40 J = 1, NZHM
+            JE = J  + J
+            JO = JE + 1
+            MJ = NZ - J
+            DO 50 I = 1, NPH
                II = I + NPH
-               V (I,  0) = W (I, 1, 0)
-               V (II, 0) = W (I, 2, 0)
- 30         CONTINUE
-         ELSE
-            DO 40 J = 1, NZHM
-               JE = J  + J
-               JO = JE + 1
-               MJ = NZ - J
-               DO 50 I = 1, NPH
-                  II = I + NPH
-                  V (I,  JE) = 0.5D0 * (W (I, 1,  J) + W (I, 1, MJ))
-                  V (I,  JO) = 0.5D0 * (W (I, 2,  J) - W (I, 2, MJ))
-                  V (II, JE) = 0.5D0 * (W (I, 2,  J) + W (I, 2, MJ))
-                  V (II, JO) = 0.5D0 * (W (I, 1, MJ) - W (I, 1,  J))
- 50            CONTINUE
- 40         CONTINUE
-            DO 60 I = 1, NPH
-               II = I + NPH
-               V (I,  0) = W (I, 1,   0)
-               V (I,  1) = W (I, 1, NZH)
-               V (II, 0) = W (I, 2,   0)
-               V (II, 1) = W (I, 2, NZH)
- 60         CONTINUE
-         ENDIF
+               V (I,  JE) = 0.5D0 * (W (I, 1,  J) + W (I, 1, MJ))
+               V (I,  JO) = 0.5D0 * (W (I, 2,  J) - W (I, 2, MJ))
+               V (II, JE) = 0.5D0 * (W (I, 2,  J) + W (I, 2, MJ))
+               V (II, JO) = 0.5D0 * (W (I, 1, MJ) - W (I, 1,  J))
+ 50         CONTINUE
+ 40      CONTINUE
+         DO 60 I = 1, NPH
+            II = I + NPH
+            V (I,  0) = W (I, 1,   0)
+            V (I,  1) = W (I, 1, NZH)
+            V (II, 0) = W (I, 2,   0)
+            V (II, 1) = W (I, 2, NZH)
+ 60      CONTINUE
 C     
       ELSE
 C
 C     -- Inverse transform
 C
-         IF (NZODD) THEN
-            DO 70 J = 1, NZH
-               JE = J  + J
-               JO = JE - 1
-               MJ = NZ - J
-               DO 80 I = 1, NPH
-                  II = I + NPH
-                  W (I, 1,  J) = V (I,  JO) - V (II, JE)
-                  W (I, 2,  J) = V (I,  JE) + V (II, JO)
-                  W (I, 1, MJ) = V (I,  JO) + V (II, JE)
-                  W (I, 2, MJ) = V (II, JO) - V (I,  JE)
- 80            CONTINUE
- 70         CONTINUE
-            DO 90 I = 1, NPH
+         DO 100 J = 1, NZHM
+            JE = J  + J
+            JO = JE + 1
+            MJ = NZ - J
+            DO 110 I = 1, NPH
                II = I + NPH
-               W (I, 1, 0) = V (I,  0)
-               W (I, 2, 0) = V (II, 0)
- 90         CONTINUE
-         ELSE
-            DO 100 J = 1, NZHM
-               JE = J  + J
-               JO = JE + 1
-               MJ = NZ - J
-               DO 110 I = 1, NPH
-                  II = I + NPH
-                  W (I, 1,  J) = V (I,  JE) - V (II, JO)
-                  W (I, 2,  J) = V (I,  JO) + V (II, JE)
-                  W (I, 1, MJ) = V (I,  JE) + V (II, JO)
-                  W (I, 2, MJ) = V (II, JE) - V (I,  JO)
- 110           CONTINUE
- 100        CONTINUE
-            DO 120 I = 1, NPH
-               II = I + NPH
-               W (I, 1,   0) = V (I,  0)
-               W (I, 2,   0) = V (II, 0)
-               W (I, 1, NZH) = V (I,  1)
-               W (I, 2, NZH) = V (II, 1)
- 120        CONTINUE
-         ENDIF
+               W (I, 1,  J) = V (I,  JE) - V (II, JO)
+               W (I, 2,  J) = V (I,  JO) + V (II, JE)
+               W (I, 1, MJ) = V (I,  JE) + V (II, JO)
+               W (I, 2, MJ) = V (II, JE) - V (I,  JO)
+ 110        CONTINUE
+ 100     CONTINUE
+         DO 120 I = 1, NPH
+            II = I + NPH
+            W (I, 1,   0) = V (I,  0)
+            W (I, 2,   0) = V (II, 0)
+            W (I, 1, NZH) = V (I,  1)
+            W (I, 2, NZH) = V (II, 1)
+ 120     CONTINUE
          CALL DGPFA (W,W(1,2,0),TRIG,NP,1,NZ,IP,IQ,IR,NPH,+1)
          CALL DCOPY (NZ*NP, W, 1, V, 1)
 C     
@@ -286,8 +249,8 @@ C
 C
       RETURN
       END
-
-
+C
+C
       SUBROUTINE DGPFA (A,B,TRIG,INC,JUMP,N,IP,IQ,IR,LOT,ISIGN)
 C     ------------------------------------------------------------------
 C     Self-sorting in-place generalized prime factor (complex) FFT.

@@ -9,12 +9,12 @@ C     JCP V52, 1--23, 1983.
 C
 C     -- User routines:
 C     FACTOR:  compute prime factors.
-C     xPREFT:  set up prime factors, trigonometric data.
-C     xMRCFT:  multiple real--complex 1D FFTs.
+C     DPREFT:  set up prime factors, trigonometric data.
+C     DMRCFT:  multiple real--complex 1D FFTs.
 C
 C     -- The following are not intended to be called by the user:
-C     xFFT1:   multiple complex--complex 1D FFT.
-C     xPASS1:  FFT kernel.
+C     DFFT1:   multiple complex--complex 1D FFT.
+C     DPASS1:  FFT kernel.
 C
 C     NB: the angular factors in xPREFT and xPASS1 have had the signs
 C     of the sines reversed compared to the published versions.
@@ -22,6 +22,56 @@ C     This makes the forward DFT have exp(-TWOPIijk/N).
 C
 C     $Id$
 C     ==================================================================
+C
+C
+      SUBROUTINE FACTOR (N,NFAX,IFAX)
+C     ------------------------------------------------------------------
+C     Compute NFAX 2,3-based prime factors of N, return in IFAX.
+C     (To be safe dimension IFAX to be N long.) If N isn't fully
+C     factorisable by 2 and/or 3, set NFAX = 0.
+C     ------------------------------------------------------------------
+      IMPLICIT NONE
+C
+      INTEGER N, NFAX, IFAX(*)
+      INTEGER II, NN
+C      
+      NFAX = 0
+      NN   = N
+C
+C     Extract factors of 3.
+C
+      DO 10 II = 1, 20
+         IF (NN .EQ. 3*(NN/3)) THEN
+            NFAX = NFAX + 1
+            IFAX(NFAX) = 3
+            NN = NN / 3
+         ELSE
+            GO TO 20
+         END IF
+ 10   CONTINUE
+ 20   CONTINUE
+C
+C     Extract factors of 2.
+C
+      DO 30 II = NFAX + 1, 20
+         IF (NN .EQ. 2*(NN/2)) THEN
+            NFAX = NFAX + 1
+            IFAX(NFAX) = 2
+            NN = NN / 2
+         ELSE
+            GO TO 40
+         END IF
+ 30   CONTINUE
+ 40   CONTINUE
+C
+C     Check: is N fully factored?
+C
+      IF (NN .NE. 1) THEN
+         NFAX = 0
+      END IF
+C
+      RETURN
+      END
 C
 C
       SUBROUTINE DPREFT (N,NFAX,IFAX,TRIG)

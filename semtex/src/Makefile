@@ -36,7 +36,7 @@ endif
 #
 
 ifeq ($(ARCH),Darwin)               # -- Mac OSX.
-DEFINES += -D_VECTOR_ARCH
+#DEFINES += -D_VECTOR_ARCH
 CXX      = g++
 LD       = g++
 CC       = gcc

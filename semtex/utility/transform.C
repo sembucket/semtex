@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // transform.C: carry out Fourier and/or 2D polynomial transform of data.
 //
-// Copyright (c) 1999 Hugh Blackburn
+// Copyright (c) 1999-2004 Hugh Blackburn
 //
 // USAGE
 // -----
@@ -14,9 +14,9 @@
 // 
 // If file is not present, read from standard input.  Write to
 // standard output.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <sem_h>
 
@@ -108,10 +108,10 @@ Field2DF& Field2DF::DPT2D (const int sign, const char basis)
 
   if (sign == FORWARD)
     for (i = 0; i < nz; i++)
-      Femlib::tpr2d (plane[i], plane[i], &work[0], Fu, Ft, np, nel);
+      Femlib::tpr2d (plane[i], plane[i], &work[0], Fu, Ft, np, np, nel);
   else
     for (i = 0; i < nz; i++)
-      Femlib::tpr2d (plane[i], plane[i], &work[0], Bu, Bt, np, nel);
+      Femlib::tpr2d (plane[i], plane[i], &work[0], Bu, Bt, np, np, nel);
 
   return *this;
 }
@@ -137,12 +137,13 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
 
     register int  i, k;
     register real *LHS, *RHS;
-    const real    **IN, **IT;
+    const real    *IN, *IT;
     const int     nzm = min (rhs.nz, nz);
     vector<real>  work (rhs.np * np);
     real*         tmp = &work[0];
 
-    Femlib::mesh (GLL, GLL, rhs.np, np, 0, &IN, &IT, 0, 0);
+    //    Femlib::mesh (GLL, GLL, rhs.np, np, 0, &IN, &IT, 0, 0);
+    Femlib::projection (&IN, &IT, rhs.np, GLL, 0.0, 0.0, np, GLL, 0.0, 0.0);
 
     for (k = 0; k < nzm; k++) {	// -- 2D planar projections.
       LHS = plane[k];
@@ -152,8 +153,8 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
 	Veclib::copy (nplane, RHS, 1, LHS, 1);
       else
 	for (i = 0; i < nel; i++, LHS += np2, RHS += rhs.np2) {
-	  Blas::mxm (*IN, np, RHS, rhs.np, tmp, rhs.np);
-	  Blas::mxm (tmp, np, *IT, rhs.np, LHS,     np);
+	  Blas::mxm (IN, np, RHS, rhs.np, tmp, rhs.np);
+	  Blas::mxm (tmp, np, IT, rhs.np, LHS,     np);
 	}
     }
 
