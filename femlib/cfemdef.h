@@ -23,15 +23,11 @@ typedef Point                    Vector;
 #define STR_MAX    256
 #define F77NAME(x) x##_
 
-typedef enum basis_kind {
-  STD = 'U',	/* Standard, uniformly-spaced mesh. */
-  GLL = 'S'	/* Gauss-Lobatto-Legendre mesh.     */
-} BasisKind;
-
 typedef enum quadrature_kind {
-  GL = 'G',	/* Gauss-Legendre quadrature.      */
-  LL = 'L',	/* Lobatto-Legendre quadrature.    */
-  GR = 'R'	/* Special Gauss-Radau quadrature. */
+  GJ  = 'G',	/* Gauss-Jacobi quadrature.         */
+  GLJ = 'L',	/* Gauss-Lobatto-Jacobi quadrature. */
+  GRJ = 'R',	/* Gauss-Radau-Jacobi quadrature.   */
+  TRZ = 'U'	/* Trapezoidal (uniform mesh).      */
 } QuadratureKind;
 
 typedef enum solver_kind {

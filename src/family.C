@@ -7,7 +7,7 @@
 // it in C++ ensures that we can delete copies of arrays allocated
 // using new. See the equivalent family routines in Femlib.
 //
-// This would all be templated if instantiation was more standard
+// This would be templated if instantiation was more standard
 // across compilation regimes (or I could figure out how to make it
 // all work), but the minimum requirement is real arrays...so that's
 // all for now.
@@ -15,7 +15,7 @@
 
 static char RCS[] = "$Id$";
 
-#include<sem.h>
+#include "sem.h"
 class rvect { public: integer size; real* data; integer nrep; };
 
 static vector<rvect*> rv;

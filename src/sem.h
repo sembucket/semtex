@@ -34,20 +34,20 @@
 
 using namespace std;
 
-#include <cfemdef.h>		/* Semtex library headers.     */
-#include <blas.h>
-#include <lapack.h>
-#include <utility.h>
-#include <veclib.h>
-#include <femlib.h>
+#include "cfemdef.h"		/* Semtex library headers.     */
+#include "blas.h"
+#include "lapack.h"
+#include "utility.h"
+#include "veclib.h"
+#include "femlib.h"
 
 #define ROOTONLY if (Geometry::procID() == 0)
 #define VERBOSE  ROOTONLY if (verbose)
 
-#include <feml.h>		/* Semtex src headers. */
-#include <geometry.h>
-#include <mesh.h>
-#include <element.h>
+#include "feml.h"		/* Semtex src headers. */
+#include "geometry.h"
+#include "mesh.h"
+#include "element.h"
 
 class Boundary;
 class BoundarySys;

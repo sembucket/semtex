@@ -13,7 +13,7 @@
 
 static char RCS[] = "$Id$";
 
-#include <sem.h>
+#include "sem.h"
 
 
 Analyser::Analyser (Domain* D   ,
@@ -23,11 +23,15 @@ Analyser::Analyser (Domain* D   ,
 //
 // Fluid particle files (session.par) are dealt with here.
 // Each line is of form
-// #     tag  time  x     y      z
-//       1    0.0   1.0   10.0   0.5.
-// Output is of the same form, called session.trk.
 //
-// NB: Particle tracking is broken for multiprocessor application.
+// #     tag  time  ctime  x     y      z
+//       1    0.0   21.0   1.0   10.0   0.5.
+//
+// Output is of the same form, called session.trk. Time is the time at
+// which the information was dumped, ctime the time at which the
+// particle was created.
+//
+// NB: Particle tracking does not work for multiprocessor runs.
 //
 // History points are also set up here.  They are nominated in the
 // optional HISTORY section of the session file.  Output is to
@@ -49,8 +53,8 @@ Analyser::Analyser (Domain* D   ,
     ifstream pfile (strcat (strcpy (str, src -> name), ".par"));  
 
     if (!pfile.fail()) {
-      const integer  add = Femlib::ivalue ("SPAWN");
-      integer        id, i = 0;
+      const int_t    add = Femlib::ivalue ("SPAWN");
+      int_t          id, i = 0;
       Point          P, *I;
       FluidParticle* F;
 
@@ -58,7 +62,7 @@ Analyser::Analyser (Domain* D   ,
       par_strm.setf (ios::scientific, ios::floatfield);
       par_strm.precision (6);
 
-      while (pfile >> id >> P.x >> P.x >> P.y >> P.z) {
+      while (pfile >> id >> P.x >> P.x >> P.x >> P.y >> P.z) {
 	F = new FluidParticle (src, ++i, P);
 	if (!(F -> inMesh())) {
 	  sprintf (str, "Particle at (%f, %f, %f) not in mesh", P.x, P.y, P.z);
@@ -77,11 +81,11 @@ Analyser::Analyser (Domain* D   ,
   // -- Set up for history points: open files, create points.
 
   if (file -> seek ("HISTORY")) {
-    integer        i, id, num = 0;
-    const integer  NH = file -> attribute ("HISTORY", "NUMBER");
+    int_t          i, id, num = 0;
+    const int_t    NH = file -> attribute ("HISTORY", "NUMBER");
     const Element* E;
     HistoryPoint*  H;
-    real           r, s, x, y, z;
+    real_t         r, s, x, y, z;
     
     for (i = 0; i < NH; i++) {
       file -> stream() >> id >> x >> y >> z;
@@ -129,10 +133,10 @@ void Analyser::analyse (AuxField** work)
 // original absolute positions.
 // ---------------------------------------------------------------------------
 {
-  const integer verbose = Femlib::ivalue ("VERBOSE");
-  const integer cflstep = Femlib::ivalue ("IO_CFL" );
-  const bool    add     = Femlib::ivalue ("SPAWN"  ) &&
-    ! (src -> step      % Femlib::ivalue ("SPAWN"  ));
+  const int_t verbose = Femlib::ivalue ("VERBOSE");
+  const int_t cflstep = Femlib::ivalue ("IO_CFL" );
+  const bool  add     = Femlib::ivalue ("SPAWN"  ) &&
+    ! (src -> step    % Femlib::ivalue ("SPAWN"  ));
 
   list<FluidParticle*>::iterator p;
 
@@ -148,9 +152,9 @@ void Analyser::analyse (AuxField** work)
 
     if (add) {
       FluidParticle *F;
-      Point         P, *I;
-      integer       i = 0, j;
-      const integer N = initial.size();
+      Point          P, *I;
+      int_t          i = 0, j;
+      const int_t    N = initial.size();
 
       for (j = 0; j < N; j++) {
 	I = initial[j];
@@ -166,7 +170,7 @@ void Analyser::analyse (AuxField** work)
 
   if (cflstep && !(src -> step % cflstep)) {
     if (Geometry::nDim() == 3) modalEnergy();
-    ROOTONLY { estimateCFL (); divergence  (work); }
+    ROOTONLY { estimateCFL(); divergence (work); }
   }
 
   // -- Periodic dumps and global information.
@@ -187,11 +191,12 @@ void Analyser::analyse (AuxField** work)
 	if (F -> inMesh()) {
 	  P = F -> location();
 	  par_strm
-	    << setw(10) << F -> ID()
-	    << setw(15) << src -> time
-	    << setw(15) << P.x
-	    << setw(15) << P.y
-	    << setw(15) << P.z
+	    << setw (6) << F -> ID()
+	    << setw(14) << src -> time
+	    << setw(14) << F -> ctime()
+	    << setw(14) << P.x
+	    << setw(14) << P.y
+	    << setw(14) << P.z
 	    << endl;
 	}
       }
@@ -199,15 +204,14 @@ void Analyser::analyse (AuxField** work)
 
     // -- Output history point data.
       
-    register integer  i, j;
-    const integer     NH = history.size();
-    const integer     NF = src-> u.size();
+    int_t             i, j;
+    const int_t       NH = history.size();
+    const int_t       NF = src-> u.size();
     HistoryPoint*     H;
-    vector<real>      tmp (NF);
+    vector<real_t>    tmp (NF);
     vector<AuxField*> u   (NF);
 
-    for (i = 0; i < NF; i++)
-      u[i] = src -> u[i];
+    for (i = 0; i < NF; i++) u[i] = src -> u[i];
 
     for (i = 0; i < NH; i++) {
       H = history[i];
@@ -238,12 +242,12 @@ void Analyser::modalEnergy ()
 // Print out modal energies per unit area, output by root processor.
 // ---------------------------------------------------------------------------
 {
-  const integer    DIM   = Geometry::nDim();
-  const integer    N     = Geometry::nModeProc();
-  const integer    base  = Geometry::baseMode();
-  const integer    nProc = Geometry::nProc();
-  register integer i, m;
-  vector<real>     ek (N);
+  const int_t    DIM   = Geometry::nDim();
+  const int_t    N     = Geometry::nModeProc();
+  const int_t    base  = Geometry::baseMode();
+  const int_t    nProc = Geometry::nProc();
+  register int_t i, m;
+  vector<real_t> ek (N);
 
   for (m = 0; m < N; m++) {
     ek[m] = 0.0;
@@ -290,11 +294,11 @@ void Analyser::divergence (AuxField** Us) const
 {
   const Geometry::CoordSys space = Geometry::system();
 
-  const integer DIM = Geometry::nDim();
-  const integer N   = Geometry::nModeProc();
-  const real    Lz  = Femlib::value ("TWOPI / BETA");
-  integer       i, m;
-  real          L2 = 0.0;
+  const int_t  DIM = Geometry::nDim();
+  const int_t  N   = Geometry::nModeProc();
+  const real_t Lz  = Femlib::value ("TWOPI / BETA");
+  int_t        i, m;
+  real_t       L2 = 0.0;
 
   if (Geometry::cylindrical()) {
     for (i = 0; i < DIM; i++) *Us[i] = *src -> u[i];
@@ -324,17 +328,17 @@ void Analyser::estimateCFL () const
 // Estimate and print the peak CFL number, based on zero-mode velocities.
 // ---------------------------------------------------------------------------
 {
-  const real CFL_max = 0.7;	// -- Approximate maximum for scheme.
-  const real SAFETY  = 0.9;	// -- Saftey factor.
-  const real dt      = Femlib::value ("D_T");
-  real       CFL_dt, dt_max;
-  integer    percent;
+  const real_t CFL_max = 0.7;	// -- Approximate maximum for scheme.
+  const real_t SAFETY  = 0.9;	// -- Saftey factor.
+  const real_t dt      = Femlib::value ("D_T");
+  real_t       CFL_dt, dt_max;
+  int_t        percent;
 
   CFL_dt = max (src -> u[0] -> CFL (0), src -> u[1] -> CFL (1));
   if (src -> nField() > 3) CFL_dt = max (CFL_dt, src -> u[2] -> CFL (2));
 
   dt_max  = SAFETY * CFL_max / CFL_dt;
-  percent = static_cast<integer>(100.0 * dt / dt_max);
+  percent = static_cast<int_t>(100.0 * dt / dt_max);
 
   cout << "-- CFL: "     << CFL_dt * dt;
   cout << ", dt (max): " << dt_max;

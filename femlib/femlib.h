@@ -75,38 +75,6 @@ void intp  (real_t*        inr   ,  // 1D shape function at r
 	    const real_t   r     ,  // Input: location of r in [-1, 1]
 	    const real_t   s     ); // Input: location of s in [-1, 1]
 
-#if 0 // Don't think these get used any more...
-void dQuadOps (const int_t rule,  // input: quadrature rule: GL or LL
-	       const int_t np  ,  // input: number of knot points
-	       const int_t nq  ,  // input: number of quadrature points
-	       const real_t**  kp  ,  // pointer to knot point storage
-	       const real_t**  qp  ,  // pointer to quadrature point storage
-	       const real_t**  qw  ,  // pointer to quadrature weight storage
-	       const real_t*** in  ,  // pointer to interpolation matrix
-	       const real_t*** it  ,  // pointer to transposed interp matrix
-	       const real_t*** dr  ,  // pointer to collocation deriv matrix
-	       const real_t*** dt  ); // pointer to transposed  deriv matrix
-
-void dMeshOps (const int_t oldb,  // input: old element basis: STD or GLL
-	       const int_t newb,  // input: new/desired basis: STD or GLL
-	       const int_t np  ,  // input: number of knot points
-	       const int_t ni  ,  // input: number of interpolant points
-	       const real_t**  mesh,  // pointer to interpolated mesh storage
-	       const real_t*** in  ,  // pointer to interpolation matrix
-	       const real_t*** it  ,  // pointer to transposed interp matrix
-	       const real_t*** dr  ,  // pointer to interpolation deriv matrix
-	       const real_t*** dt  ); // pointer to transposed    deriv matrix
-
-void dIntpOps (const int_t basis,  // element basis: STD or GLL
-	       const int_t np   ,  // number of knot points
-	       const real_t    r    ,  // location of r in [-1, 1]
-	       const real_t    s    ,  // location of s in [-1, 1]
-	       real_t*         inr  ,  // 1D shape function at r
-	       real_t*         ins  ,  // 1D shape function at s
-	       real_t*         dvr  ,  // 1D shape function derivative at r
-	       real_t*         dvs  ); // 1D shape function derivative at s
-#endif
-
 void dglldpc (const int_t    np,     // input:  number of points for Leg polys
 	      const real_t** cd);    // output: pointer to table of coeffs
 
@@ -131,8 +99,7 @@ void dglmdpt (const int_t    np,     // input:  number of points for DPT
 
 // -- Routines from mapping.c:
 
-void edgemaps (const int_t np, const int_t dim, 
-	       int_t** emap, int_t** pmap);
+void edgemaps (const int_t np, const int_t dim, int_t** emap, int_t** pmap);
 
 // -- Routines from family.c:
 
@@ -297,7 +264,6 @@ public:
 			     const real_t r     ,
 			     const real_t s     )
   { intp (inr,ins,dvr,dvs,nr,basisr,alphar,betar,ns,basiss,alphas,betas,r,s); }
-
 
   static void legCoef (const int_t n,
 		       const real_t**  c)

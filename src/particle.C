@@ -8,34 +8,35 @@
 
 static char RCS[] = "$Id$";
 
-#include <sem.h>
+#include "sem.h"
 
-Domain*  FluidParticle::_Dom     = 0;
-integer  FluidParticle::_NCOM    = 0;
-integer  FluidParticle::_NEL     = 0;
-integer  FluidParticle::_NZ      = 0;
-integer  FluidParticle::_TORD    = 0;
-integer  FluidParticle::_ID_MAX  = 0;
-real*    FluidParticle::_P_coeff = 0;
-real*    FluidParticle::_C_coeff = 0;
-real*    FluidParticle::_Work    = 0;
-real     FluidParticle::_DT      = 0.0;
-real     FluidParticle::_Lz      = 0.0;
+Domain* FluidParticle::_Dom     = 0;
+int_t   FluidParticle::_NCOM    = 0;
+int_t   FluidParticle::_NEL     = 0;
+int_t   FluidParticle::_NZ      = 0;
+int_t   FluidParticle::_TORD    = 0;
+int_t   FluidParticle::_ID_MAX  = 0;
+real_t* FluidParticle::_P_coeff = 0;
+real_t* FluidParticle::_C_coeff = 0;
+real_t* FluidParticle::_Work    = 0;
+real_t  FluidParticle::_DT      = 0.0;
+real_t  FluidParticle::_Lz      = 0.0;
 
 
-FluidParticle::FluidParticle (Domain*       d,
-			      const integer i,
-			      Point&        p) :
+FluidParticle::FluidParticle (Domain*     d,
+			      const int_t i,
+			      Point&      p) :
 // ---------------------------------------------------------------------------
 // Initially particle is located at p.  Find it in the 2D mesh.  Trim to
 // periodic length in 3D if required.
 // ---------------------------------------------------------------------------
-  _id   (i),
-  _step (0),
-  _p    (p)
+  _id    (i),
+  _ctime (d -> time),
+  _step  (0),
+  _p     (p)
 {
-  register integer k;
-  const bool       guess = true;
+  int_t      k;
+  const bool guess = true;
 
   if (!_Dom) {			// -- Set up first time through.
     _Dom     = d;
@@ -45,9 +46,9 @@ FluidParticle::FluidParticle (Domain*       d,
     _DT      = Femlib::value  ("D_T");
     _Lz      = Femlib::value  ("TWOPI / BETA");
     _TORD    = Femlib::ivalue ("N_TIME");
-    _P_coeff = new real [static_cast<size_t>(_TORD + _TORD)];
-    _C_coeff = new real [static_cast<size_t>(_TORD*(_TORD + 1))];
-    _Work    = new real [static_cast<size_t>(max 
+    _P_coeff = new real_t [static_cast<size_t>(_TORD + _TORD)];
+    _C_coeff = new real_t [static_cast<size_t>(_TORD*(_TORD + 1))];
+    _Work    = new real_t [static_cast<size_t>(max 
 			(2*Geometry::nTotElmt(), 5 * Geometry::nP() + 6))];
 
     Veclib::zero (_TORD*_TORD,     _P_coeff, 1);
@@ -79,14 +80,14 @@ FluidParticle::FluidParticle (Domain*       d,
   if (_NCOM == 2) {
     _p.z = 0.0;
 
-    _u = new real [static_cast<size_t>(_TORD + _TORD)];
+    _u = new real_t [static_cast<size_t>(_TORD + _TORD)];
     _v = _u + _TORD;
 
   } else {
     if   (_p.z < 0.0) _p.z = _Lz - fmod (fabs (_p.z), _Lz);
     else              _p.z = fmod (_p.z, _Lz);
     
-    _u = new real [static_cast<size_t>(_TORD + _TORD + _TORD)];
+    _u = new real_t [static_cast<size_t>(_TORD + _TORD + _TORD)];
     _v = _u + _TORD;
     _w = _v + _TORD;
   }
@@ -107,13 +108,13 @@ void FluidParticle::integrate ()
 #if defined (DEBUG)
   const char routine[] = "FluidParticle::integrate";
 #endif
-  register integer i;
-  const integer    N     = min (++_step, _TORD);
-  const integer    NP    = N + 1;
-  const integer    NM    = N - 1;
-  const bool       guess = true;
-  real             xp, yp, zp, up, vp, wp;
-  real             *predictor, *corrector;
+  register int_t i;
+  const int_t    N     = min (++_step, _TORD);
+  const int_t    NP    = N + 1;
+  const int_t    NM    = N - 1;
+  const bool     guess = true;
+  real_t         xp, yp, zp, up, vp, wp;
+  real_t         *predictor, *corrector;
 
   predictor = _P_coeff + NM *  _TORD;
   corrector = _C_coeff + NM * (_TORD+1);
@@ -122,8 +123,8 @@ void FluidParticle::integrate ()
     
     // -- Predictor.
 
-    _u[0] = _Dom -> u[0] -> probe (_E, _r, _s, static_cast<integer>(0));
-    _v[0] = _Dom -> u[1] -> probe (_E, _r, _s, static_cast<integer>(0));
+    _u[0] = _Dom -> u[0] -> probe (_E, _r, _s, static_cast<int_t>(0));
+    _v[0] = _Dom -> u[1] -> probe (_E, _r, _s, static_cast<int_t>(0));
 
     xp = _p.x;
     yp = _p.y;
@@ -156,8 +157,8 @@ void FluidParticle::integrate ()
 
     // -- Corrector.
 
-    up = _Dom -> u[0] -> probe (_E, _r, _s, static_cast<integer>(0));
-    vp = _Dom -> u[1] -> probe (_E, _r, _s, static_cast<integer>(0));
+    up = _Dom -> u[0] -> probe (_E, _r, _s, static_cast<int_t>(0));
+    vp = _Dom -> u[1] -> probe (_E, _r, _s, static_cast<int_t>(0));
 
     _p.x += corrector[0] * up;
     _p.y += corrector[0] * vp;

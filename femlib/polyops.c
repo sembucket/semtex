@@ -26,7 +26,7 @@
  * The jacobf routine comes from Funaro, as that has been verified to work
  * also for alpha, beta != 0.0, 0.5.
  *
- * Everything here is double precision.
+ * Everything here is real_t (double) precision.
  *
  * $Id$
  *****************************************************************************/
@@ -34,23 +34,23 @@
 #include <math.h>
 #include <stdio.h>
 
-#include <cfemdef.h>
-#include <cfemlib.h>
-#include <cveclib.h>
+#include "cfemdef.h"
+#include "cfemlib.h"
+#include "cveclib.h"
 
 #define STOP 16
-static double gammaF(double x);
+static real_t gammaF(real_t x);
 
 /* Row-major access in an array with rows of length n. */
 
 #define RMA(i,j,n) (j+i*n) 
 
-void dermat_g (const integer K   ,
-	       const double* zero, 
-	       const integer I   ,
-	       const double* x   ,
-	       double*       D   ,
-	       double*       DT  )
+void dermat_g (const int_t   K   ,
+	       const real_t* zero, 
+	       const int_t   I   ,
+	       const real_t* x   ,
+	       real_t*       D   ,
+	       real_t*       DT  )
 /* ------------------------------------------------------------------------- *
  * Given a set of zeros for a Lagrange interpolant order K-1 and a set of I
  * points x, return the derivative operator matrix D and its transpose DT.
@@ -71,9 +71,9 @@ void dermat_g (const integer K   ,
  * Reference: Abramowitz & Stegun 25.3.2.
  * ------------------------------------------------------------------------- */
 {
-  register integer i, j, k, l;
-  register double* a;
-  register double  sum, prod;
+  register int_t i, j, k, l;
+  register real_t* a;
+  register real_t  sum, prod;
 
   a = dvector (0, K-1);
   dfill (K, 1.0, a, 1);
@@ -101,10 +101,10 @@ void dermat_g (const integer K   ,
 }
 
 
-void dermat_k (const integer K   ,
-	       const double* zero,
-	       double*       D   ,
-	       double*       DT  )
+void dermat_k (const int_t   K   ,
+	       const real_t* zero,
+	       real_t*       D   ,
+	       real_t*       DT  )
 /* ------------------------------------------------------------------------- *
  * Given a set of zeros for a Lagrange interpolant order K-1, return the
  * (collocation) derivative operator matrix D and its transpose DT.
@@ -126,9 +126,9 @@ void dermat_k (const integer K   ,
  *   pseudospectral methods".  JCP 81, 239--276
  * ------------------------------------------------------------------------- */
 {
-  register integer j, k, l;
-  register double* a;
-  register double  sum, prod;
+  register int_t   j, k, l;
+  register real_t* a;
+  register real_t  sum, prod;
 
   a = dvector (0, K-1);
   dfill (K, 1.0, a, 1);
@@ -144,25 +144,23 @@ void dermat_k (const integer K   ,
 	 for (l = 0; l < K; l++)
 	   if (l != k) sum += 1.0 / (zero[k] - zero[l]);
 	 D[RMA(k,k,K)] = DT[RMA(k,k,K)] = sum;
-	 /* D[k][k] = DT[k][k] = sum;*/
        } else {			    /* -- Off-diagonal term: use eq (2.7). */
 	 prod = 1.0;
 	 for (l = 0; l < K; l++) 
 	   if (l != j) prod *= zero[j] - zero[l];
 	 D[RMA(j,k,K)] = DT[RMA(k,j,K)] = prod / ((zero[j] - zero[k]) * a[k]);
-	 /* D[j][k] = DT[k][j] = prod / ((zero[j] - zero[k]) * a[k]); */
        }
 
   freeDvector (a, 0);
 }
 
 
-void intmat_g (const integer K   ,
-	       const double* zero,
-	       const integer I   ,
-	       const double* x   ,
-	       double*       IN  ,
-	       double*       IT  )
+void intmat_g (const int_t   K   ,
+	       const real_t* zero,
+	       const int_t   I   ,
+	       const real_t* x   ,
+	       real_t*       IN  ,
+	       real_t*       IT  )
 /* ------------------------------------------------------------------------- *
  * Given a set of zeros for a Lagrange interpolant order K-1 and a set of I
  * points x, return the interpolation matrix IN and its transpose IT.
@@ -177,9 +175,9 @@ void intmat_g (const integer K   ,
  * Reference: Abramowitz & Stegun 25.2.2.
  * ------------------------------------------------------------------------- */
 {
-  register integer i, j, k, l;
-  register double* a;
-  register double  prod;
+  register int_t   i, j, k, l;
+  register real_t* a;
+  register real_t  prod;
 
   a = dvector (0, K-1);
   dfill (K, 1.0, a, 1);
@@ -201,16 +199,16 @@ void intmat_g (const integer K   ,
 }  
 
 
-static void JACOBF (const integer n     ,
-		    const double  x     ,
-		    const double  alpha ,
-		    const double  beta  ,
-		    double*       poly  ,
-		    double*       pder  ,
-		    double*       polym1,
-		    double*       pderm1,
-		    double*       polym2,
-		    double*       pderm2)
+static void JACOBF (const int_t  n     ,
+		    const real_t x     ,
+		    const real_t alpha ,
+		    const real_t beta  ,
+		    real_t*      poly  ,
+		    real_t*      pder  ,
+		    real_t*      polym1,
+		    real_t*      pderm1,
+		    real_t*      polym2,
+		    real_t*      pderm2)
 /* ------------------------------------------------------------------------- *
  * Computes the Jacobi polynomial (poly) of degree n, and its derivative
  * (pder), at location x.  Values for lower degree are also returned.
@@ -226,9 +224,9 @@ static void JACOBF (const integer n     ,
  *   "FORTRAN Routines for Spectral Methods", D. Funaro, 1993
  * ------------------------------------------------------------------------- */
 {
-  register integer i;
-  register double  y, ym, yp, dy, dym, dyp, ys, dys, apb;
-  register double  di, c0, c1, c2, c3, c4;
+  register int_t  i;
+  register real_t y, ym, yp, dy, dym, dyp, ys, dys, apb;
+  register real_t di, c0, c1, c2, c3, c4;
 
   *poly = y  = 1.0;
   *pder = dy = 0.0;
@@ -244,7 +242,7 @@ static void JACOBF (const integer n     ,
   yp   = 1.0;
   dyp  = 0.0;
   for (i=2; i <= n; i++) {
-    di  = (double)(i);
+    di  = (real_t)(i);
 
     c0  = 2.0 * di + apb;
     c1  = 2.0 * di * (di + apb) * (c0 - 2.0);
@@ -271,10 +269,10 @@ static void JACOBF (const integer n     ,
 }
 
 
-void JACG (const integer n    ,
-	   const double  alpha,
-	   const double  beta ,
-	   double*       xjac )
+void JACG (const int_t  n    ,
+	   const real_t alpha,
+	   const real_t beta ,
+	   real_t*      xjac )
 /* ------------------------------------------------------------------------- *
  * Compute Gauss points xjac for a polynomial of degree n on range [-1, 1].
  * Points are returned in ascending order.  N + 1 points are found.
@@ -282,9 +280,9 @@ void JACG (const integer n    ,
  * Alpha, beta = 0.0 => Gauss-Legendre; = -0.5 => Chebyshev.
  * ------------------------------------------------------------------------- */
 {
-  register integer i, j, k, np, nh;
-  register double  dth, recsum, x, delx;
-  double           poly, pder, polym1, pderm1, polym2, pderm2;
+  register int_t  i, j, k, np, nh;
+  register real_t dth, recsum, x, delx;
+  real_t          poly, pder, polym1, pderm1, polym2, pderm2;
 
   np  = n + 1;
   nh  = np >> 1;
@@ -312,10 +310,10 @@ void JACG (const integer n    ,
 }
 
 
-void JACGR (const integer n    ,
-	    const double  alpha,
-	    const double  beta ,
-	    double*       xjac )
+void JACGR (const int_t  n    ,
+	    const real_t alpha,
+	    const real_t beta ,
+	    real_t*      xjac )
 /* ------------------------------------------------------------------------- *
  * Computes the Gauss-Radau points xjac for polynomial of degree n on
  * [-1, 1].  Points are returned in ascending order.
@@ -327,9 +325,9 @@ void JACGR (const integer n    ,
  * Alpha, beta = 0.0 => Gauss-Legendre; = -0.5 => Chebyshev.
  * ------------------------------------------------------------------------- */
 {
-  register integer np, i, j, k;
-  register double  x, delx, con, recsum;
-  double           pn, pdn, pnp1, pdnp1, pnm1, pdnm1, func, funcd;
+  register int_t  np, i, j, k;
+  register real_t x, delx, con, recsum;
+  real_t          pn, pdn, pnp1, pdnp1, pnm1, pdnm1, func, funcd;
 
   np  = n + 1;
   con = 2.0 * M_PI / (n<<1 + 1);
@@ -355,10 +353,10 @@ void JACGR (const integer n    ,
 }
 
 
-void JACGL (const integer n    ,
-	    const double  alpha,
-	    const double  beta ,
-	    double*       xjac )
+void JACGL (const int_t  n    ,
+	    const real_t alpha,
+	    const real_t beta ,
+	    real_t*      xjac )
 /* ------------------------------------------------------------------------- *
  * Computes the Gauss-Lobatto points xjac for polynomial of degree n on
  * [-1, 1].  Points are returned in ascending order.
@@ -366,16 +364,16 @@ void JACGL (const integer n    ,
  * Alpha, beta = 0.0 => Gauss-Legendre, = -0.5 => Chebyshev.
  * ------------------------------------------------------------------------- */
 {
-  register integer i, j, k, np, jm, nh;
-  register double  a, b, det, con, rp, rm, x, delx, recsum;
-  double           poly, pder, pnp1p, pdnp1p, pnp, pdnp, pnm1p, pdnm1;
-  double           pnp1m, pdnp1m, pnm, pdnm, pnm1m;
+  register int_t  i, j, k, np, jm, nh;
+  register real_t a, b, det, con, rp, rm, x, delx, recsum;
+  real_t          poly, pder, pnp1p, pdnp1p, pnp, pdnp, pnm1p, pdnm1;
+  real_t          pnp1m, pdnp1m, pnm, pdnm, pnm1m;
 
   np      = n + 1;
   nh      = np >> 1;
   xjac[0] = -1.0;
   xjac[n] =  1.0;
-  con     = M_PI / (double) n;
+  con     = M_PI / (real_t) n;
 
   JACOBF (np,  1.0, alpha, beta, &pnp1p, &pdnp1p, &pnp, &pdnp, &pnm1p, &pdnm1);
   JACOBF (np, -1.0, alpha, beta, &pnp1m, &pdnp1m, &pnm, &pdnm, &pnm1m, &pdnm1);
@@ -408,9 +406,9 @@ void JACGL (const integer n    ,
 }
 
 
-void ZWGL (double*       z ,
-	   double*       w ,
-	   const integer np)
+void ZWGL (real_t*     z ,
+	   real_t*     w ,
+	   const int_t np)
 /* ------------------------------------------------------------------------- *
  * Gauss-Legendre points and weights.
  *
@@ -420,13 +418,10 @@ void ZWGL (double*       z ,
  * Reference: Canuto et al., eq (2.3.10).
  * ------------------------------------------------------------------------- */
 {
-  register integer i, n;
-  double           poly, pder, polym1, pderm1, polym2, pderm2;
+  register int_t i, n;
+  real_t         poly, pder, polym1, pderm1, polym2, pderm2;
 
-  if (np < 2) {
-    z[0] = 0.0;  w[0] = 2.0;
-    return;
-  }
+  if (np < 2) { z[0] = 0.0;  w[0] = 2.0; return; }
   
   n  = np - 1;
   JACG (n, 0.0, 0.0, z);
@@ -438,9 +433,9 @@ void ZWGL (double*       z ,
 }
   
 
-void ZWGRL (double*       z ,
-	    double*       w ,
-	    const integer np)
+void ZWGRL (real_t*     z ,
+	    real_t*     w ,
+	    const int_t np)
 /* ------------------------------------------------------------------------- *
  * Gauss-Radau-Legendre points and weights.
  *
@@ -450,13 +445,10 @@ void ZWGRL (double*       z ,
  * Reference: Canuto et al., eq (2.3.11).
  * ------------------------------------------------------------------------- */
 {
-  register integer i, n;
-  double           poly, pder, polym1, pderm1, polym2, pderm2, con;
+  register int_t i, n;
+  real_t         poly, pder, polym1, pderm1, polym2, pderm2, con;
 
-  if (np < 2) {
-    z[0] = 0.0; w[0] = 2.0;
-    return;
-  }
+  if (np < 2) { z[0] = 0.0; w[0] = 2.0; return; }
 
   n   = np - 1;
   con = 1.0 / SQR(np);
@@ -472,9 +464,9 @@ void ZWGRL (double*       z ,
 }
    
 
-void ZWGLL (double*       z ,
-	    double*       w ,
-	    const integer np)
+void ZWGLL (real_t*     z ,
+	    real_t*     w ,
+	    const int_t np)
 /* ------------------------------------------------------------------------- *
  * Gauss-Lobatto-Legendre points and weights.
  *
@@ -484,21 +476,15 @@ void ZWGLL (double*       z ,
  * Reference: Canuto et al., eq (2.3.12).
  * ------------------------------------------------------------------------- */
 {
-  register integer i, n;
-  double           poly, pder, polym1, pderm1, polym2, pderm2, con;
+  register int_t i, n;
+  real_t         poly, pder, polym1, pderm1, polym2, pderm2, con;
 
-  if (np < 2) {
-    z[0] = w[0] = 0.0;
-    return;
-  }
+  if (np  < 2) { z[0] = w[0] = 0.0; return; }
 
-  if (np == 2) {
-    z[0] = -(z[1] = w[0] = w[1] = 1.0);
-    return;
-  }
+  if (np == 2) { z[0] = -(z[1] = w[0] = w[1] = 1.0); return; }
 
   n   = np - 1;
-  con = 2.0 / (double) (n * np);
+  con = 2.0 / (real_t) (n * np);
   
   JACGL (n, 0.0, 0.0, z);
 
@@ -509,11 +495,11 @@ void ZWGLL (double*       z ,
 }
    
 
-void ZWGLJ (double*       z ,
-	    double*       w ,
-	    const double  alpha,
-	    const double  beta ,
-	    const integer np)
+void ZWGLJ (real_t*      z ,
+	    real_t*      w ,
+	    const real_t alpha,
+	    const real_t beta ,
+	    const int_t  np)
 /* ------------------------------------------------------------------------- *
  * Gauss-Lobatto-Jacobi points and weights, for Jacobi constants alpha & beta.
  *
@@ -523,9 +509,9 @@ void ZWGLJ (double*       z ,
  * Reference: Canuto et al., eq (2.3.12).
  * ------------------------------------------------------------------------- */
 {
-  register integer i, n;
-  double           poly, pder, polym1, pderm1, polym2, pderm2, con;
-  const double     apb = alpha + beta;
+  register int_t i, n;
+  real_t         poly, pder, polym1, pderm1, polym2, pderm2, con;
+  const real_t   apb = alpha + beta;
 
   if (np < 2) { z[0] = w[0] = 0.0; return; }
 
@@ -544,15 +530,15 @@ void ZWGLJ (double*       z ,
 }
 
 
-double PNLEG (const double  z,
-	      const integer n)
+real_t PNLEG (const real_t z,
+	      const int_t  n)
 /* ------------------------------------------------------------------------- *
  * Compute the value of the nth order Legendre polynomial at z, based on the
  * recursion formula for Legendre polynomials.
  * ------------------------------------------------------------------------- */
 {
-  register integer k;
-  register double  dk, p1, p2, p3;
+  register int_t k;
+  register real_t  dk, p1, p2, p3;
  
   if (n < 1) return 1.0;
 
@@ -560,7 +546,7 @@ double PNLEG (const double  z,
   p3 = p2 = z;
 
   for (k = 1; k < n; k++) {
-    dk = (double) k;
+    dk = (real_t) k;
     p3 = ((2.0*dk + 1.0)*z*p2 - dk*p1) / (dk + 1.0);
     p1 = p2;
     p2 = p3;
@@ -570,15 +556,15 @@ double PNLEG (const double  z,
 }
 
 
-double PNDLEG (const double  z,
-	       const integer n)
+real_t PNDLEG (const real_t z,
+	       const int_t  n)
 /* ------------------------------------------------------------------------- *
  * Compute the value of the derivative of the nth order Legendre polynomial
  * at z, based on the recursion formula for Legendre polynomials.
  * ------------------------------------------------------------------------- */
 {
-  register integer k;
-  register double  dk, p1, p2, p3, p1d, p2d, p3d;
+  register int_t  k;
+  register real_t dk, p1, p2, p3, p1d, p2d, p3d;
 
   if (n < 1) return 0.0;
 
@@ -587,7 +573,7 @@ double PNDLEG (const double  z,
   p1  = p2d = p3d = 1.0;
 
   for (k = 1; k < n; k++) {
-    dk  = (double) k;
+    dk  = (real_t) k;
     p3  = ((2.0*dk + 1.0)*z*p2 - dk*p1) / (dk + 1.0);
     p3d = ((2.0*dk + 1.0)*p2 + (2.0*dk + 1.0)*z*p2d - dk*p1d) / (dk + 1.0);
     p1  = p2;
@@ -600,8 +586,8 @@ double PNDLEG (const double  z,
 }
 
 
-double PND2LEG (const double  z,
-		const integer n)
+real_t PND2LEG (const real_t z,
+		const int_t  n)
 /* ------------------------------------------------------------------------- *
  * Compute the value of the second derivative of the nth order Legendre
  * polynomial at z, based on the definition of the singular Sturm-Liouville
@@ -614,10 +600,10 @@ double PND2LEG (const double  z,
 }
 
 
-void DGLL (const integer  nz,
-	   const double*  z ,
-	   double**       D ,
-	   double**       DT)
+void DGLL (const int_t   nz,
+	   const real_t* z ,
+	   real_t**      D ,
+	   real_t**      DT)
 /* ------------------------------------------------------------------------- *
  * Compute the derivative operator matrix D and its transpose DT associated
  * with the nth order Lagrangian interpolants through the nz Gauss-Lobatto-
@@ -629,13 +615,10 @@ void DGLL (const integer  nz,
  * NB: D & DT are both nz x nz.  Canuto et al. eq (2.3.25).
  * ------------------------------------------------------------------------- */
 {
-  register integer i, j, n;
-  register double  d0;
+  register int_t  i, j, n;
+  register real_t d0;
 
-  if (nz < 2) {
-    D[0][0] = DT[0][0] = 0.0;
-    return;
-  }
+  if (nz < 2) { D[0][0] = DT[0][0] = 0.0; return; }
   
   n  = nz - 1;
   d0 = n * (n + 1) * 0.25;
@@ -652,8 +635,8 @@ void DGLL (const integer  nz,
 }
 
 
-double PNMOD (const double  z,
-	      const integer n)
+real_t PNMOD (const real_t z,
+	      const int_t  n)
 /* ------------------------------------------------------------------------- *
  * Compute the value of the nth order modal basis function at z.
  *
@@ -676,7 +659,7 @@ double PNMOD (const double  z,
  * Methods for CFD", Oxford, 1999.
  * ------------------------------------------------------------------------- */
 {
-  double poly, pder, polym1, pderm1, polym2, pderm2;
+  real_t poly, pder, polym1, pderm1, polym2, pderm2;
  
   if (n  < 1) return 0.5 * (1.0 + z);
   if (n == 1) return 0.5 * (1.0 - z);
@@ -687,23 +670,20 @@ double PNMOD (const double  z,
 }
 
 					     
-void uniknot (const integer nk,
-	      double*       k )
+void uniknot (const int_t nk,
+	      real_t*     k )
 /* ------------------------------------------------------------------------- *
  * Return nk knot points with uniform spacing on [-1, 1].
  * ------------------------------------------------------------------------- */
 {
-  register integer i, nh;
-  register double  dx;
+  register int_t  i, nh;
+  register real_t dx;
 
-  if (nk < 2) {
-    *k = 0.0;
-    return;
-  }
+  if (nk < 2) { *k = 0.0; return; }
 
   nh = nk >> 1;
 
-  dx      =  2.0 / (double) (nk - 1);
+  dx      =  2.0 / (real_t) (nk - 1);
   k[0]    = -1.0;
   k[nk-1] =  1.0;
   for (i = 1; i < nh; i++) {
@@ -714,33 +694,33 @@ void uniknot (const integer nk,
 }
 
 
-static double gammaF (double x)
+static real_t gammaF (real_t x)
 /* ------------------------------------------------------------------------- *
- * Gamma function for integer or semi-integer values of x.
+ * Gamma function for int_t or semi-int_t values of x.
  * ------------------------------------------------------------------------- */
 {
-  double gamma = 1.0;
+  real_t gamma = 1.0;
   
   if      (x == -0.5) gamma = -2.0*sqrt(M_PI);
-  else if (x == 0.0) return gamma;
-  else if ((x-(int)x) == 0.5) { 
-    int n = (int) x;
-    double tmp = x;
+  else if (x ==  0.0) return gamma;
+  else if ((x-(int_t)x) == 0.5) { 
+    int_t  n = (int_t) x;
+    real_t tmp = x;
 
     gamma = sqrt(M_PI);
     while(n--){
       tmp   -= 1.0;
       gamma *= tmp;
     }
-  } else if ((x-(int)x) == 0.0){
-    int n = (int) x;
-    double tmp = x;
+  } else if ((x-(int_t)x) == 0.0){
+    int_t  n = (int_t) x;
+    real_t tmp = x;
 
     while(--n){
       tmp   -= 1.0;
       gamma *= tmp;
     }
   } else
-    fprintf (stderr,"%lf is not of integer or half order\n",x);
+    fprintf (stderr,"%lf is not of int_t or half order\n",x);
   return gamma;
 }

@@ -9,7 +9,7 @@
 namespace polylib {
 #endif
 
-#include <cfemdef.h>
+#include "cfemdef.h"
 
 /*-----------------------------------------------------------------------
                          M A I N     R O U T I N E S
