@@ -95,9 +95,11 @@ void nonLinear (Domain*        D ,
   const real refvis = Femlib::value ("KINVIS");
   const real molvis = Femlib::value ("REFVIS");
 
+#if !defined(SMAG)
   // -- Temporal filtering of L_mix^2.
 
   S -> update (Lmix2);
+#endif
 
   // -- Compose the turbulent eddy viscosity in Sm[0]: nut = L_mix^2 |S|.
 
@@ -204,10 +206,6 @@ void nonLinear (Domain*        D ,
 
 #endif
 
-  // -- Direct stiffness summation.
-
-  for (i = 0; i < 3; i++) meta -> smooth (nZP, Nl[i]);
-
   // -- Fourier transform velocities and nonlinear terms.
 
   for (i = 0; i < 3; i++) {
@@ -222,6 +220,10 @@ void nonLinear (Domain*        D ,
     for (i = 0; i < 3; i++)
       if (fabs (ff[i]) > EPSDP)
 	Veclib::sadd (Geometry::nPlane(), ff[i], Nl[i], 1, Nl[i], 1);
+
+  // -- Direct stiffness summation.
+
+  for (i = 0; i < 3; i++) meta -> smooth (nZP, Nl[i]);
 }
 
 
