@@ -27,12 +27,13 @@
 static char
 RCSid[] = "$Id$";
 
-#include <NS.h>
+#include <Sem.h>
 #include <new.h>
 
 static char prog[] = "ns";
-static void memExhaust () { message ("new", "free store exhausted", ERROR); }
-static void getargs    (integer, char**, char*&);
+static void memExhaust   () { message ("new", "free store exhausted", ERROR); }
+static void getargs      (integer, char**, char*&);
+       void NavierStokes (Domain*, Analyser*);
 
 
 integer main (integer argc,
