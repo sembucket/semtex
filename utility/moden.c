@@ -51,7 +51,7 @@ int main (int    argc,
 {
   char   buf[STR_MAX], fields[STR_MAX], fmt[STR_MAX];
   int    i, j, n, np, nz, nel, mode = 0, swab = 0, cmplx = 0;
-  int    nfields, nplane, nplaneEven, npts, nptsEven, npad, ntot;
+  int    nfields, nplane, nplaneEven, nptsEven, ntot;
   FILE   *fp_in = stdin, *fp_out = stdout;
   double **data, *plane, *vcmpt;
 
