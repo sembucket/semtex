@@ -115,7 +115,7 @@ INITIAL    = initial
 
 OPERATORS  = polyops	operators	matops          filter
 
-FFT	   = temfftd	temffts		fftpack		fourier
+FFT	   = temfftd	fftpack		fourier
 
 MEMORY     = mapping	family          message
 

@@ -12,6 +12,19 @@ C     Ur & Us are updated by addition, so should be zero on entry.
 C     Conceivably Ur & Us can be aliased to one another, so
 C     the operations are broken out into two loops.
 C
+C     This operator can be used for any field operation that can be 
+C     described by the tensor-product forms
+C
+C     UR = [DV]  X
+C     US =  Y  [DT]
+C
+C     and/or 
+C     
+C     U  = [DV] X [DT]  (here X and Y are aliases, so are UR & US).
+C
+C     Typically for tensor-product forms, DT = transpose (DV).
+C     This routine is designed for use with row-major (C-like) matrices.
+C
       IMPLICIT NONE
 C
       INTEGER          NP, NEL, I, J, K, L
@@ -25,84 +38,24 @@ C
             DO L = 1, NP
                DO I = 1, NEL
                   UR(K,J,I) = UR(K,J,I) + X(L,J,I) * DV(L,K)
-              ENDDO
-           ENDDO
-        ENDDO
+               ENDDO
+            ENDDO
+         ENDDO
       ENDDO
       DO J = 1, NP
          DO L = 1, NP
             DO K = 1, NP
                DO I = 1, NEL
                   US(K,J,I) = US(K,J,I) + Y(K,L,I) * DT(J,L)
-              ENDDO
-           ENDDO
-        ENDDO
+               ENDDO
+            ENDDO
+         ENDDO
       ENDDO
 #else
       CALL DGEMM ('N','N',NP,NP*NEL,NP,1.0D0,DT,NP,X,NP,1.0D0,UR,NP)
       DO I = 1, NEL
          CALL DGEMM ('N','N',NP,NP,NP,1.0D0,Y(1,1,I),
      +        NP,DV,NP,1.0D0,US(1,1,I),NP)
-      ENDDO
-#endif
-      RETURN
-      END
-C
-C
-      SUBROUTINE SGRAD2 (X, Y, UR, US, DV, DT, NP, NEL)
-C
-C     -- Ur = dX/dr, Us = dY/ds over all nel elements each np*np.
-C
-      IMPLICIT NONE
-C
-      INTEGER  NP, NEL, I, J, K, L
-      REAL      X(NP,NP,NEL),  Y(NP,NP,NEL)
-      REAL     UR(NP,NP,NEL), US(NP,NP,NEL)
-      REAL     DV(NP,NP),     DT(NP,NP)
-C
-#if defined (_SX) || defined (__uxp__)
-      DO K = 1, NP
-         DO J = 1, NP
-            DO L = 1, NP
-               DO I = 1, NEL
-                  UR(K,J,I) = UR(K,J,I) + X(L,J,I) * DV(L,K)
-              ENDDO
-           ENDDO
-        ENDDO
-      ENDDO
-      DO J = 1, NP
-         DO L = 1, NP
-            DO K = 1, NP
-               DO I = 1, NEL
-                  US(K,J,I) = US(K,J,I) + Y(K,L,I) * DT(J,L)
-              ENDDO
-           ENDDO
-        ENDDO
-      ENDDO
-#elif defined (__sgi) || defined (__alpha)
-      CALL SGEMM ('N','N',NP,NP*NEL,NP,1.0D0,DT,NP,X,NP,1.0D0,UR,NP)
-      DO I = 1, NEL
-         CALL SGEMM ('N','N',NP,NP,NP,1.0D0,Y(1,1,I),
-     +        NP,DV,NP,1.0D0,US(1,1,I),NP)
-      ENDDO
-#else
-      DO I = 1, NEL
-         DO J = 1, NP
-            DO L = 1, NP
-               DO K = 1, NP
-                  UR(K,J,I) = UR(K,J,I) + X(L,J,I) * DV(L,K)
-              ENDDO
-           ENDDO
-        ENDDO
-      ENDDO
-      DO I = 1, NEL
-         DO J = 1, NP
-            DO L = 1, NP
-               DO K = 1, NP
-                  US(K,J,I) = US(K,J,I) + Y(K,L,I) * DT(J,L)
-              ENDDO
-           ENDDO
-        ENDDO
       ENDDO
 #endif
       RETURN
