@@ -360,7 +360,7 @@ real Field::flux (const Field* C)
 // ---------------------------------------------------------------------------
 {
   const vector<Boundary*>& BC = C -> _bsys -> BCs (0);
-  vector<real>             work(3 * Geometry::nP());
+  vector<real>             work(4 * Geometry::nP());
   real                     F = 0.0, *tmp = work();
   register integer         i;
   
