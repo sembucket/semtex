@@ -41,7 +41,6 @@ void NavierStokes (Domain*       D,
 
   integer       i, j, k;
   const real    dt     =                      Femlib::value ("D_T");
-  const integer nOrder = static_cast<integer>(Femlib::value ("N_TIME"));
   const integer nStep  = static_cast<integer>(Femlib::value ("N_STEP"));
   const integer nZ     = Geometry::nZProc();
   const integer ntot   = Geometry::nTotProc();
@@ -95,9 +94,9 @@ void NavierStokes (Domain*       D,
 		      const_cast<const AuxField**>(Uf[0]));
     Pressure -> evaluateBoundaries (D -> step);
     for (i = 0; i <= NDIM; i++) AuxField::swapData (D -> u[i], Us[0][i]);
-    rollm     (Uf[i], NORD, NDIM+1);
+    rollm     (Uf, NORD, NDIM+1);
     setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);
-    Solve     (D, NDIM,  Uf[0][0], MMS[NDIM+1]);
+    Solve     (D, NDIM+1,  Uf[0][0], MMS[NDIM+1]);
     project   (D, Us[0], Uf[0]);
 
     // -- Update multilevel velocity storage.
@@ -158,7 +157,7 @@ static void advection (Domain*    D ,
 
 #if defined(STOKES)
 
-  for (i = 0; i < NDIM+1; i++) {
+  for (i = 0; i <= NDIM; i++) {
     *Uf[i] = 0.0;
     AuxField::swapData (D -> u[i], Us[i]);
   }
@@ -188,8 +187,8 @@ static void advection (Domain*    D ,
   Veclib::zero ((2*(NDIM+1)+1) * nTot32, work(), 1); // -- A catch-all cleanup.
 
   for (i = 0; i <= NDIM; i++) {
-    u32[i] = work() +  i         * nTot32;
-    n32[i] = work() + (i + NDIM) * nTot32;
+    u32[i] = work() +  i             * nTot32;
+    n32[i] = work() + (i + NDIM + 1) * nTot32;
 
     AuxField::swapData (D -> u[i], Us[i]);
 
@@ -400,7 +399,7 @@ static void project (const Domain* D ,
   alpha = -1.0 / Femlib::value ("D_T * KINVIS");
   for (i = 0; i < NDIM; i++) {
 
-    (*Uf[i] = *D -> u[NDIM]) . gradient (i);
+    (*Uf[i] = *D -> u[NDIM+1]) . gradient (i);
 
     if (C3D) Uf[2] -> divR();
 

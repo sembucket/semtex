@@ -14,6 +14,14 @@ endif
 SEM   = ../semtex
 VPATH = $(SEM)/src
 
+ifdef STOKES
+  DEFINES += -DSTOKES
+endif
+
+ifdef ALIAS		# -- No dealiasing done.
+  DEFINES += -DALIAS
+endif
+
 # ----------------------------------------------------------------------------
 #
 SEMFILES  = analysis auxfield BCmgr boundary bsys condition domain	\
