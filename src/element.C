@@ -1551,12 +1551,12 @@ real Element::CFL (const real  d,
   Veclib::zero (N, tmp, 1);
 
   if        (u) {
-    if (drdx) for (i = 0; i < N; i++) tmp[i] = d * fabs (drdx[i]);
-    if (dsdx) for (i = 0; i < N; i++) tmp[i] = d * fabs (dsdx[i]);
+    if (drdx) for (i = 0; i < N; i++) tmp[i] += d * fabs (drdx[i]);
+    if (dsdx) for (i = 0; i < N; i++) tmp[i] += d * fabs (dsdx[i]);
     Veclib::vdiv (N, u, 1, tmp, 1, tmp, 1);
   } else if (v) {
-    if (drdy) for (i = 0; i < N; i++) tmp[i] = d * fabs (drdy[i]);
-    if (dsdy) for (i = 0; i < N; i++) tmp[i] = d * fabs (dsdy[i]);
+    if (drdy) for (i = 0; i < N; i++) tmp[i] += d * fabs (drdy[i]);
+    if (dsdy) for (i = 0; i < N; i++) tmp[i] += d * fabs (dsdy[i]);
     Veclib::vdiv (N, v, 1, tmp, 1, tmp, 1);
   }
 
