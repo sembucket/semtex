@@ -64,7 +64,7 @@ int main (int argc, char *argv[])
  *      are blocksize_4 complex (blocksize_2 real) read in at a time.
  * ------------------------------------------------------------------------- */
 {
-  char     *session, window[FILENAME_MAX];
+  char     *session, window[STR_MAX];
   FILE     *fp_in, *fp_out=stdout;
   complex  *workspace, *Wtab, *inbuf;
   real     *windowmask, *autobuf;
@@ -83,6 +83,7 @@ int main (int argc, char *argv[])
   navg       = 0;
   npts       = 0;
   meanhat    = 0.0;
+  session    = 0;
   strcpy (window, "hann");
 
   getargs (argc, argv, &session,
@@ -103,48 +104,34 @@ int main (int argc, char *argv[])
   Wss = setmask (windowmask, window, blocksize);
   preFFT (Wtab, blocksize_2, -1);
 
-  if (overlap) {         /* -- Do a startup half-read for overlap averaging. */
-    for (i = 0; i < blocksize_4; i++) {
-      if (DP) 
-	if (fscanf (fp_in, "%lf %lf", &inbuf[i].Re, &inbuf[i].Im) != 2) break;
-      else
-	if (fscanf (fp_in, "%f %f",   &inbuf[i].Re, &inbuf[i].Im) != 2) break;
-    }
-    if (i != blocksize_4)
-      message ("asp", " insufficient data", ERROR);
-  }
+  if (overlap)		/* -- Do a startup half-read for overlap averaging. */
+    for (i = 0; i < blocksize_4; i++)
+      if (fscanf (fp_in, (DP) ? "%lf %lf" : "%f %f",
+		  &inbuf[i].Re, &inbuf[i].Im) != 2)
+	message ("asp", "insufficient data to half-fill buffer", ERROR);
 
   while (moreinput (fp_in)) {       /* -- Main processing loop. */
     if (overlap) {
       for (i = 0, mean = 0.0; i < blocksize_4; i++) {
 	k = i + blocksize_4;
 	workspace[i] = inbuf[i];
-	if (DP)
-	if (fscanf (fp_in, "%lf %lf", &workspace[k].Re, &workspace[k].Im) != 2)
-	  break;
-	else
-	if (fscanf (fp_in, "%f %f",   &workspace[k].Re, &workspace[k].Im) != 2)
-	  break;
+	if (fscanf (fp_in, (DP) ? "%lf %lf" : "%f %f",
+		    &workspace[k].Re, &workspace[k].Im) != 2) break;
 	mean += workspace[i].Re + workspace[i].Im +
 	        workspace[k].Re + workspace[k].Im;
 	npts += 4;
       }
-      if (i != blocksize_4  && starter)
-	message("asp", " insufficient data", ERROR);
+      if ((i != blocksize_4) && starter)
+	message ("asp", "insufficient data to fill buffer", ERROR);
     } else {
       for (i = 0, mean = 0.0; i < blocksize_2; i++) {
-	if (DP)
-	if (fscanf (fp_in, "%lf %lf", &workspace[k].Re, &workspace[k].Im) != 2)
-	  break;
-	else
-	if (fscanf (fp_in, "%f %f",   &workspace[k].Re, &workspace[k].Im) != 2)
-	  break;
-
+	if (fscanf (fp_in, (DP) ? "%lf %lf" : "%f %f",
+		    &workspace[k].Re, &workspace[k].Im) != 2) break;
 	mean += workspace[i].Re + workspace[i].Im;
 	npts += 2;
       }
-      if (i != blocksize_2  && starter)
-	message ("asp", " insufficient data", ERROR);
+      if ((i != blocksize_2) && starter)
+	message ("asp", "insufficient data to fill buffer", ERROR);
     }
 
     starter = 0;
@@ -298,13 +285,10 @@ static int moreinput (FILE *fp)
 {
   register c;
 
-  while (isspace(c = getc(fp))) ;
+  while (isspace (c = fgetc (fp))) ;
   
-  if (c == EOF) {
-    return 0;
-  } else {
-    ungetc(c, fp);
-    return 1;
+  if (c == EOF) {          return 0;
+  } else { ungetc (c, fp); return 1;
   }
 }
 

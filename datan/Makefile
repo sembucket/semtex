@@ -42,6 +42,7 @@ ifdef DEBUG
 else
   OPT    = -O3
 endif
+#CFLAGS   = $(DEFINES) $(OPT)
 CFLAGS   = $(DEFINES) -arch host -tune host -fast -O4
 CXXFLAGS = $(DEFINES) $(OPT)
 LDFLAGS  = $(LIBDIR)

@@ -50,7 +50,7 @@ int main ()
     for (i = 0; i < numcols; i++) {
       fread (&datum, sizeof (double), 1, store[i]);
       datum -= mean[i];
-      fprintf (stdout, " %.8e", datum);
+      fprintf (stdout, " %.12e", datum);
     }
     fprintf (stdout, "\n");
   }
