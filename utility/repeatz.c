@@ -46,7 +46,7 @@ int main (int    argc,
  * Wrapper.
  * ------------------------------------------------------------------------- */
 {
-  char   buf[STR_MAX], fields[STR_MAX], fmt[STR_MAX];
+  char   buf[STR_MAX], fmt[STR_MAX];
   int    i, j, n, np, nz, nel, nrep = 1;
   int    nfields, nplane, npts, swab;
   FILE   *fp_in = stdin, *fp_out = stdout;
