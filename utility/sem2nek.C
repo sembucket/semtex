@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // sem2nek.C: read a semtex input file, print a NEKTON-style input file.
 //
+// Copyright (c) 1997--1999 Hugh Blackburn
+//
 // Usage:
 // -----
 // sem2nek [options] session
@@ -12,10 +14,9 @@
 // The GROUPS BCS NODES ELEMENTS blocks of a semtex input file are required,
 // the others need not be set.  Output concentrates on mesh & BC descriptions,
 // other sections may need to be edited by hand.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <stdlib.h>
 #include <iomanip.h>

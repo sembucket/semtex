@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // transform.C: carry out Fourier and/or 2D Legendre transform of data.
 //
+// Copyright (c) 1999 Hugh Blackburn
+//
 // USAGE
 // -----
 // transform [options] [file]
@@ -11,10 +13,9 @@
 // 
 // If file is not present, read from standard input.  Write to
 // standard output.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <stdarg.h>
 #include <stdlib.h>

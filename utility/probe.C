@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // probe.C: extract results from a field file at a set of 3D points.
 //
+// Copyright (c) 1997--1999 Hugh Blackburn
+//
 // Synopsis
 // --------
 // Probe has three different user interfaces --- the internal
@@ -59,10 +61,8 @@
 // -tec              ... write TECPLOT-formatted ASCII output
 // -sm               ... write SM-formatted binary output
 //
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <new.h>
 #include <time.h>

@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // meshpr.C:  utility to generate mesh nodes from mesh description file.
 //
+// Copyright (c) 1995--1999 Hugh Blackburn
+//
 // Prism-compatible output.
 //
 // Usage: meshpr [options] file
@@ -12,10 +14,8 @@
 //   -n N ... override element order to be N
 //   -z N ... override number of planes to be N
 //
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <stdlib.h>
 #include <iostream.h>

@@ -1,6 +1,8 @@
 /*****************************************************************************
  * rstress.c:  Compute Reynolds stresses.
  *
+ * Copyright (c) 1997--1999 Hugh Blackburn
+ *
  * SYNOPSIS
  * --------
  * Rstress deals with field-average files.  If called with just an
@@ -25,10 +27,9 @@
  * rstress [options] avg.file [field.file]
  * options:
  * -h ... print this message
+ *
+ * $Id$
  *****************************************************************************/
-
-static char
-RCSid[] = "$Id$";
 
 #include <stdarg.h>
 #include <stdlib.h>

@@ -4,10 +4,9 @@
  * Usage: sem2tec [-h] [-o output] [-m mesh] [-n #] [-d #] [-w] input[.fld]
  *
  * Based on the original code by Ron Henderson.
+ *
+ * $Id$
  *****************************************************************************/
-
-static char
-RCSid[] = "$Id$";
 
 #include <stdlib.h>
 #include <stdio.h>

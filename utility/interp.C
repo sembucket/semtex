@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // interp.C: interpolate results from a field file onto a set of 2D points.
 //
+// Copyright (c) 1997--1999 Hugh Blackburn
+//
 // Synopsis:
 // --------
 // interp [-h] [-v] [-m file] -s session dump [file]
@@ -28,10 +30,9 @@
 // If a point cannot be located in the mesh, zero values are output for
 // that point location.  Points can either be supplied on standard input
 // or in a named file.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <new.h>
 #include <time.h>
