@@ -5,7 +5,7 @@
 # $Id$
 ##############################################################################
 
-SEM      = ..
+SEM      = ../../develop/semtex
 VPATH    = $(SEM)/src
 
 ARCH     = $(shell uname -s)
@@ -38,6 +38,7 @@ ifeq ($(ARCH),IRIX64)		# -- SGI 64-bit systems.
 CXX	 = CC
 LD	 = CC
 CXXFLAGS = $(DEFINES) -mips4 -64 -Ofast=IP30 -r10000
+
 F77LIBS	 = -lcomplib.sgimath -lftn
 LDFLAGS  = -64 -mips4 -Ofast=IP30 -r10000 	\
            -L$(SEM)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
@@ -47,7 +48,7 @@ ifeq ($(ARCH),OSF1)		# -- DEC OSF1 Alpha.
 CXX	 = cxx
 LD	 = cxx
 CXXFLAGS =  $(DEFINES) -tune host -O2
-F77LIBS  = /usr/lib/libdxml.a -lfor
+F77LIBS  = -ldxml -lfor
 ifdef MPI
   CXXFLAGS += -thread_safe
   LDFLAGS   = $(CXXFLAGS) -threads -L/usr/local/mpi/lib/alpha/ch_shmem	\
@@ -100,18 +101,18 @@ CFLAGS   = $(DEFINES) -pvctl,fullmsg -hacct -Onooverlap        \
 CXXFLAGS = $(CFLAGS) $(OPTIM) +a1 -ispeed
 LDFLAGS  = $(CFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 ifdef MPI
-  LIBS   = -lfem_mp -llapack_64 -lalp_mp -lblas_64 -lfft_64	\
+  LIBS   = -lfem_mp -lalp_mp -llapack_64 dtrsm.o -lblas_64 -lfft_64	\
            -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm -lmpi -lpthread
 else
-  LIBS   = -lfem -llapack_64 -lalp -lblas_64 -lfft_64	\
+  LIBS   = -lfem -lalp -llapack_64 dtrsm.o -lblas_64 -lfft_64	\
            -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm
 endif
 endif
 
 # ----------------------------------------------------------------------------
 #
-SEMFILES  = analysis auxfield BCmgr boundary domain 		\
-	    element feml field geometry history integration  	\
+SEMFILES  = analysis auxfield BCmgr boundary bsys condition domain \
+	    element feml field geometry history integration  	   \
 	    matrix mesh misc particle pressure statistics
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
 SEMHDR    = Sem.h
@@ -141,6 +142,15 @@ mesh.o: $(VPATH)/mesh.C
 BCmgr.o: $(VPATH)/BCmgr.C
 	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
 	$(VPATH)/BCmgr.C
+lesanalysis.o: lesanalysis.C
+	$(CXX) -I. -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+	lesanalysis.C
+bsys.o: $(VPATH)/bsys.C
+        $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+        $(VPATH)/bsys.C
+condition.o: $(VPATH)/condition.C
+        $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+        $(VPATH)/condition.C
 endif
 
 # -----------------------------------------------------------------------------

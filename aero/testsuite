@@ -28,15 +28,15 @@ echo "\t******************************************************"
 
 rm -f *.num
 
-if (!(-e kovas1))  cp ../mesh/kovas1  .
-if (!(-e kovas2))  cp ../mesh/kovas2  .
-if (!(-e kovas3))  cp ../mesh/kovas3  .
-if (!(-e taylor2)) cp ../mesh/taylor2 .
-if (!(-e taylor3)) cp ../mesh/taylor3 .
-if (!(-e taylor4)) cp ../mesh/taylor4 .
-if (!(-e taylor5)) cp ../mesh/taylor5 .
-if (!(-e box1))    cp ../mesh/box1*   .
-if (!(-e box2))    cp ../mesh/box2*   .
+if (!(-e kovas1))  cp ../semtex-5.2/mesh/kovas1  .
+if (!(-e kovas2))  cp ../semtex-5.2/mesh/kovas2  .
+if (!(-e kovas3))  cp ../semtex-5.2/mesh/kovas3  .
+if (!(-e taylor2)) cp ../semtex-5.2/mesh/taylor2 .
+if (!(-e taylor3)) cp ../semtex-5.2/mesh/taylor3 .
+if (!(-e taylor4)) cp ../semtex-5.2/mesh/taylor4 .
+if (!(-e taylor5)) cp ../semtex-5.2/mesh/taylor5 .
+if (!(-e box1))    cp ../semtex-5.2/mesh/box1*   .
+if (!(-e box2))    cp ../semtex-5.2/mesh/box2*   .
 
 echo "\n\t*** 2D TESTS ***"
 
@@ -57,6 +57,7 @@ echo "\n\t*** AEROELASTIC TESTS ***"
 
 echo ""
 echo "-- 2D FLOW IN ACCELERATING BOX, PERIODIC BOUNDARIES"
+echo "NB: can fail on a vector machine"
 aero box1 > /dev/null
 compare box1 box1.fld > /dev/null
 rm box1*
