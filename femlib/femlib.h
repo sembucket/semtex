@@ -36,9 +36,11 @@ void   zwgl     (double*, double*, const integer);
 void   zwgrl    (double*, double*, const integer);
 void   zwgll    (double*, double*, const integer);
 
-double pnleg    (const double, const integer);
-double pndleg   (const double, const integer);
-double pnd2leg  (const double, const integer);
+double pnleg    (const double,  const integer);
+double pndleg   (const double,  const integer);
+double pnd2leg  (const double,  const integer);
+void   legtr2d  (const integer, const double*, double*);
+void   legtr2i  (const integer, const double*, double*);
 
 void   dgll     (const integer, const double*, double**, double**);
 
@@ -90,9 +92,32 @@ void  sMeshOps(const integer   old , /* input: element basis: STD or GLL     */
 	       const float***  dr  , /* pointer to derivative matrix         */
 	       const float***  dt  );/* pointer to transposed deriv matrix   */
 
+void dIntpOps (const integer basis,  /* element basis: STD or GLL            */
+	       const integer np   ,  /* number of knot points                */
+	       const double  r    ,  /* location of r in [-1, 1]             */
+	       const double  s    ,  /* location of s in [-1, 1]             */
+	       double*       inr  ,  /* 1D shape function at r               */
+	       double*       ins  ,  /* 1D shape function at s               */
+	       double*       dvr  ,  /* 1D shape function derivative at r    */
+	       double*       dvs  ); /* 1D shape function derivative at s    */
+
+void sIntpOps (const integer basis,
+	       const integer np   ,
+	       const float   r    ,
+	       const float   s    ,
+	       float*        inr  ,
+	       float*        ins  ,
+	       float*        dvr  ,
+	       float*        dvs  );
+
+void LegCoefGL (const integer  np,  /* input: number of points for Leg polys */
+		const double** cd,  /* output: pointer to table of coeffs.   */
+		const float**  cs); /* output: single-precision coeffs.      */
+
 /* -- Routines from mapping.c: */
 
-void edgemaps (const integer np, integer** emap, integer** pmap);
+void edgemaps (const integer np, const integer dim,
+	       integer** emap, integer** pmap);
 
 /* -- Routines from family.c: */
 
@@ -229,6 +254,10 @@ rfft_(r,w,trigs,ifax,_alpIreg,_alpIreg+1,_alpDreg))
 
 void sDFTr (float*,  const integer, const integer, const integer);
 void dDFTr (double*, const integer, const integer, const integer);
+
+/* -- Routines from filter.c */
+
+void bvdFilter (const integer,const integer,const integer, const real, real*);
 
 /* -- Routines from message.c: */
 
