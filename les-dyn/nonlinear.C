@@ -152,14 +152,16 @@ void nonLinear (Domain*       D ,
   Veclib::zero (nTot, Sm[1], 1);
 
   for (i = 0; i < 6; i++) {
-    Veclib::vvtvp (nTot, Sr[i], 1, Sr[i], 1, Sm[0], 1, Sm[0], 1);
-    Veclib::vvtvp (nTot, St[i], 1, St[i], 1, Sm[1], 1, Sm[1], 1);
+    Veclib::svvttvp (nTot, 2.0, Sr[i], 1, Sr[i], 1, Sm[0], 1, Sm[0], 1);
+    Veclib::svvttvp (nTot, 2.0, St[i], 1, St[i], 1, Sm[1], 1, Sm[1], 1);
   }
 
   Veclib::vsqrt (nTot, Sm[0], 1, Sm[0], 1);
   Veclib::vsqrt (nTot, Sm[1], 1, Sm[1], 1);
 
-  // -- Delta^2 |S|.
+  // -- Delta^2 |S|.  
+  //    Magic number 4.0 below is square of the assumed difference in
+  //    mesh length scales for the standard and filtered fields.
 
   Veclib::zero (nP, tmp, 1);
   meta -> lengthScale (tmp);
@@ -239,13 +241,11 @@ void nonLinear (Domain*       D ,
 
   // -- Create SGSS \tau_ij = -2 (Cs^2 Delta^2 |S| - refVisc) Sij.
 
-  for (i = 0; i < 6; i++)
-    Veclib::vmul (nTot, L, 1, Sr[i], 1, Sr[i], 1);
+  for (i = 0; i < 6; i++) Veclib::vmul (nTot, L, 1, Sr[i], 1, Sr[i], 1);
 
   // -- Normalise skewsymmetric nonlinear terms.
 
-  for (i = 0; i < 3; i++)
-    Blas::scal (nTot, -0.5, Nl[i], 1);
+  for (i = 0; i < 3; i++) Blas::scal (nTot, -0.5, Nl[i], 1);
 
 #if !defined (NOMODEL)
   // -- Subtract divergence of SGSS from nonlinear terms.
@@ -258,18 +258,17 @@ void nonLinear (Domain*       D ,
   for (i = 0; i < 3; i++)	// -- Off-diagonal terms.
     for (j = i + 1; j < 3; j++) {
       ij = i + j - 1;
-      Veclib::copy (nTot, Sr[j], 1, tmp, 1);
-      realGradient (meta, Sr[j], j);
+      Veclib::copy (nTot, Sr[ij], 1, tmp, 1);
+      realGradient (meta, Sr[ij], j);
       realGradient (meta, tmp,   i);
-      Veclib::vsub (nTot, Nl[i], 1, Sr[j], 1, Nl[i], 1);
-      Veclib::vsub (nTot, Nl[j], 1, tmp,   1, Nl[j], 1);
+      Veclib::vsub (nTot, Nl[i], 1, Sr[ij], 1, Nl[i], 1);
+      Veclib::vsub (nTot, Nl[j], 1, tmp,    1, Nl[j], 1);
     }
 #endif
 
   // -- Direct stiffness summation.
 
-  for (i = 0; i < 3; i++)
-    meta -> smooth (nZP, Nl[i]);
+  for (i = 0; i < 3; i++) meta -> smooth (nZP, Nl[i]);
 
   // -- Fourier transform velocities and nonlinear terms.
 
