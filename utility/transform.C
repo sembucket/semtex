@@ -427,7 +427,7 @@ static integer getDump (ifstream&          ifile,
   
   sprintf (fmt, "%1d %1d %1d %1d", np, np, nz, nel);
   sprintf (buf, hdr_fmt[2], fmt);
-  cout << buf;
+  ofile << buf;
 
   for (i = 0; i < 5; i++) {
    ifile.getline (buf, StrMax);
@@ -441,7 +441,7 @@ static integer getDump (ifstream&          ifile,
   for (j = 0, i = 0; i < nf; i++) fmt[j++] = fields[i];
   fmt[j] = '\0';
   sprintf (buf, hdr_fmt[8], fmt);
-  cout << buf;
+  ofile << buf;
   ifile.getline (buf, StrMax);
 
   // -- Arrange for byte-swapping if required.
@@ -453,7 +453,7 @@ static integer getDump (ifstream&          ifile,
   sprintf (buf, "binary ");
   Veclib::describeFormat (buf + strlen (buf));
   sprintf (fmt, hdr_fmt[9], buf);
-  cout << fmt;
+  ofile << fmt;
 
   if (u.getSize() != nf) {
     u.setSize (nf);
@@ -467,5 +467,3 @@ static integer getDump (ifstream&          ifile,
 
   return ifile.good();
 }
-
-
