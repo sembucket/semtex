@@ -48,6 +48,7 @@ void initFilters ()
 // }
 // ---------------------------------------------------------------------------
 {
+  static char routine[]= "initFilters";
   integer      i, j, n, nm, order;
   real         lag, atten;
   const real*  dlt;
@@ -62,6 +63,9 @@ void initFilters ()
   order = (integer) Femlib::value ("F_ORDER");
   lag   =           Femlib::value ("F_ROLL" );
   atten =           Femlib::value ("F_ATTEN");
+
+  if (order < 2) message (routine, "Filter properties not defined", ERROR);
+
   work.setSize (nm + 1);
   FourierMask = new real [n];
 

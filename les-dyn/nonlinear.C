@@ -271,9 +271,9 @@ void nonLinear (Domain*       D ,
   // -- Fourier transform velocities and nonlinear terms.
 
   for (i = 0; i < 3; i++) {
-    Veclib::copy (nTot, Ud[i], 1, Us[i], 1);
-    transform    (FORWARD, FULL, Us[i]);
-    transform    (FORWARD, FULL, Nl[i]);
+    Veclib::copy (nTot, Ua[i], 1, Us[i], 1);
+    transform    (FORWARD, FULL,  Us[i]);
+    transform    (FORWARD, FULL,  Nl[i]);
   }
 
   // -- Add on body force terms.

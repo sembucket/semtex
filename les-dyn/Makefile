@@ -26,9 +26,9 @@ else
 endif
 ifdef MPI
   MPIHOME = /usr/local/lam
-  PROG    = les_mp
+  PROG    = dynles_mp
 else
-  PROG    = les
+  PROG    = dynles
 endif
 
 CPPFLAGS = -I. -I$(SEM)/include

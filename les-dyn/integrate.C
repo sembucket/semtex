@@ -40,7 +40,7 @@ static void   pushdown  (AuxField***, const integer, const integer);
 void integrate (Domain*      D,
 		LESAnalyser* A)
 // ---------------------------------------------------------------------------
-// On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
+// On entry, D contains storage for velocity Fields 'u', 'v' 'w' and
 // constraint Field 'p'.
 //
 // Us is multi-level auxillary Field storage for velocities and 
@@ -62,14 +62,14 @@ void integrate (Domain*      D,
 #if defined(DEBUG)
   Femlib::value ("REFVIS", Femlib::value ("2.0 * KINVIS"));
 #endif
-
+#if 0
   if (Femlib::value ("REFVIS") > 0.0) {
     real kinVis = Femlib::value ("REFVIS");
     real refVis = Femlib::value ("KINVIS");
     Femlib::value ("KINVIS", kinVis);
     Femlib::value ("REFVIS", refVis);
   } 
-
+#endif
   Msys** MMS = preSolve (D);
 
   // -- Create extra storage needed for computation of SGSS, nonlinear terms.
@@ -119,7 +119,9 @@ void integrate (Domain*      D,
     // -- Compute nonlinear terms + divergence(SGSS) + body forces.
 
     nonLinear (D, Ut, ff);
-
+#if 1
+    for (i = 0; i < DIM; i++) *Uf[0][i] = 0.0;
+#endif
     // -- Take unconstrained forcing substep.
 
     waveProp (D, (const AuxField***) Us, (const AuxField***) Uf);
@@ -129,7 +131,6 @@ void integrate (Domain*      D,
     PBCmgr::maintain (D -> step, Pressure,
 		      (const AuxField***) Us, (const AuxField***) Uf);
     Pressure -> evaluateBoundaries (D -> step);
-
     for (i = 0; i < DIM; i++) {
       *Pressure = *D -> u[i];
       *D -> u[i] = *Us[0][i];
@@ -139,6 +140,9 @@ void integrate (Domain*      D,
 
     setPForce ((const AuxField***) Us, Uf);
     Solve     (D, DIM, Uf[0][0], MMS[DIM]);
+#if 1
+    *D -> u[DIM] = 0.0;
+#endif
     project   (D, Us, Uf);
 
     // -- Update multilevel velocity storage.
@@ -254,9 +258,8 @@ static void project (const Domain* D ,
 
     if (C3D) Uf[0][2] -> divR();
 
-    Us[0][i] -> axpy (-dt, *Uf[0][i]);
-    Field::swapData (Us[0][i], Uf[0][i]);
-
+    *Uf[0][i] *= -dt;
+    *Uf[0][i] += *Us[0][i];
     *Uf[0][i] *= alpha;
   }
 }
@@ -340,7 +343,7 @@ static void pushdown (AuxField***   U   ,
 {
   integer i, j;
 
-  for (i = 1; i < NORD; i++)
+  for (i = NORD - 1; i; i--)
     for (j = 0; j < NDIM; j++)
       *U[i][j] = *U[i-1][j];
 }
