@@ -59,7 +59,10 @@ integer main (integer argc,
   AuxField*          Strain;
   AuxField*          work;
   integer            nData = 0;
+  const real*        z;
+  vector <Element*>  elmt;
   vector <AuxField*> AuxPoint(3);
+  vector<AuxField*>  vorticity;
   vector <AuxField*> dataField(12);
   AuxField***        Sij;
 
@@ -80,7 +83,7 @@ integer main (integer argc,
 
   F = new FEML  (session);
   M = new Mesh  (*F);
-  B = new BCmgr (*F);
+
 
   nel    = M -> nEl();  
   np     =  (integer) Femlib::value ("N_POLY");
@@ -93,11 +96,16 @@ integer main (integer argc,
   else          strcpy (fields, "uvp");
   DIM = Geometry::nDim();
 
+  vorticity.setSize ((DIM == 2) ? 1 : 3);
   if (DIM < 3) add_enst = 0;
 
-  vector<AuxField*> vorticity ((DIM == 2) ? 1 : 3);
+  Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
 
-  D = new Domain (*F, *M, *B, fields, session);
+  elmt.setSize (nel);
+  for (i = 0; i < nel; i++) elmt[i] = new Element (i, M, z, np);
+
+  B = new BCmgr (F, elmt);
+  D = new Domain (F, elmt, B);
 
   file.open (dump);
 
@@ -108,28 +116,28 @@ integer main (integer argc,
   for (i = 0; i < DIM; i++) {
     Vij[i] = new AuxField* [DIM];
     for (j = 0; j < DIM; j++) {
-       Vij[i][j] = new AuxField (D -> Esys);
+       Vij[i][j] = new AuxField (elmt);
       *Vij[i][j] = 0.0;
     }
   }
   
   // -- Create workspace and dataField storage areas.
 
-  work = new AuxField (D -> Esys);
+  work = new AuxField (elmt);
 
   if (add_vort + add_enst) {
     if (DIM == 2)
-      vorticity[0] = new AuxField (D -> Esys, 't');
+      vorticity[0] = new AuxField (elmt, 't');
     else
       for (i = 0; i < DIM; i++)
-	vorticity [i] = new AuxField (D -> Esys, 'r' + i);
+	vorticity [i] = new AuxField (elmt, 'r' + i);
     if (add_vort == 1) {
       for (i = 0 ; i < 2*DIM - 3 ; i++ ) dataField(i) = vorticity[i];
       nData += 2*DIM - 3;
     }
     if (add_enst == 1) {
-      dataField(nData)   = new AuxField (D -> Esys, 'e');
-      dataField(nData+1) = new AuxField (D -> Esys, 'h');
+      dataField(nData)   = new AuxField (elmt, 'e');
+      dataField(nData+1) = new AuxField (elmt, 'h');
       Ens = dataField(nData);
       Hel = dataField(nData+1);
       nData += 2;
@@ -137,7 +145,7 @@ integer main (integer argc,
   }
 
   if(add_div+add_inv > 0) {
-    dataField(nData) = new AuxField (D -> Esys, 'd'); Div = dataField(nData);
+    dataField(nData) = new AuxField (elmt, 'd'); Div = dataField(nData);
     nData += 1;
   }
   
@@ -149,7 +157,7 @@ integer main (integer argc,
       Sij[i] = new AuxField* [DIM];
       for ( j = 0 ; j < DIM ; j++ ) {
 	if (i <= j) {
-	  Sij[i][j] = new AuxField (D -> Esys, 'i' + iadd);
+	  Sij[i][j] = new AuxField (elmt, 'i' + iadd);
 	  iadd++;
 	} else
 	  Sij[i][j] = Sij[j][i];
@@ -162,9 +170,9 @@ integer main (integer argc,
 	  nData++;
 	}
     if (add_inv == 1) {
-      dataField(nData)   = new AuxField (D -> Esys, 'Q');
-      dataField(nData+1) = new AuxField (D -> Esys, 'R');
-      dataField(nData+2) = new AuxField (D -> Esys, 'L');
+      dataField(nData)   = new AuxField (elmt, 'Q');
+      dataField(nData+1) = new AuxField (elmt, 'R');
+      dataField(nData+2) = new AuxField (elmt, 'L');
 
       *(InvQ = dataField(nData))   = 0.0;
       *(InvR = dataField(nData+1)) = 0.0;
@@ -172,7 +180,7 @@ integer main (integer argc,
       nData += 3;
     }
     if (add_strain == 1) {
-      dataField(nData) = new AuxField (D -> Esys, 'G');
+      dataField(nData) = new AuxField (elmt, 'G');
       *(Strain = dataField(nData)) = 0.0;
       nData++;
     }

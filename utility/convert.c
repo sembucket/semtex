@@ -368,6 +368,8 @@ static FORMAT classify (const char* s)
     fprintf (stderr, "%s: unknown format specifier: %s\n", prog, s);
     exit (EXIT_FAILURE);
   }
+
+  return ASCII;
 }
 
 
