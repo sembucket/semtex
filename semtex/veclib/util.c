@@ -15,14 +15,13 @@ static char
 #include <time.h>
 #include <alplib.h>
 
-char    buf[STR_MAX];           /* General I-O buffer.  */
 
-int     _lap_ireg[NVREG];	/* For FORTRAN linkage. */
-char    _lap_creg[NVREG];
-float   _lap_sreg[NVREG];
-double  _lap_dreg[NVREG];
+int     _lapIreg[NVREG];	/* For FORTRAN linkage. */
+char    _lapCreg[NVREG];
+float   _lapSreg[NVREG];
+double  _lapDreg[NVREG];
 
-
+char     buf[STR_MAX];		/* A string for general use. */
 
 
 
@@ -72,6 +71,9 @@ FILE *efopen(char *file, char *mode)
 }
 
 
+
+
+
 #if !defined(i860) && !defined(dclock)
 
 double dclock(void)
@@ -94,3 +96,109 @@ float sclock(void)
 }
 
 #endif
+
+
+
+
+
+void putDvector(FILE      *fp     ,
+		int        width  ,
+		int        prec   ,
+		int        ntot   ,
+		int        nfield , ...)
+/* ========================================================================= *
+ * Write (ASCII) a variable number of dvectors on fp, in columns.            *
+ * ========================================================================= */
+{
+  int        i, j;
+  double   **u;
+  va_list    ap;
+
+
+  u = (double **) calloc (nfield, sizeof(double*));
+  va_start(ap, nfield);
+  for (i=0; i<nfield; i++) u[i] = va_arg(ap, double*); 
+  va_end(ap);
+
+  for (i=0; i<ntot; i++) {
+    for (j=0; j<nfield; j++) {
+      fprintf(fp, "%*.*f", width, prec, u[j][i]);
+    }
+    fprintf(fp, "\n");
+  }
+
+  free(u);
+
+}
+
+
+
+
+
+void putIvector(FILE      *fp     ,
+		int        width  ,
+		int        ntot   ,
+		int        nfield , ...)
+/* ========================================================================= *
+ * Write (ASCII) a variable number of ivectors on fp, in columns.            *
+ * ========================================================================= */
+{
+  int        i, j;
+  int      **u;
+  va_list    ap;
+
+
+  u = (int **) calloc (nfield, sizeof(int*));
+  va_start(ap, nfield);
+  for (i=0; i<nfield; i++) u[i] = va_arg(ap, int*); 
+  va_end(ap);
+
+  for (i=0; i<ntot; i++) {
+    for (j=0; j<nfield; j++) {
+      fprintf(fp, "%*d", width, u[j][i]);
+    }
+    fprintf(fp, "\n");
+  }
+
+  free(u);
+
+}
+
+
+
+
+
+void putSvector(FILE      *fp     ,
+		int        width  ,
+		int        prec   ,
+		int        ntot   ,
+		int        nfield , ...)
+/* ========================================================================= *
+ * Write (ASCII) a variable number of svectors on fp, in columns.            *
+ * ========================================================================= */
+{
+  int       i, j;
+  float   **u;
+  va_list   ap;
+
+
+  u = (float **) calloc (nfield, sizeof(float*));
+  va_start(ap, nfield);
+  for (i=0; i<nfield; i++) u[i] = va_arg(ap, float*); 
+  va_end(ap);
+
+  for (i=0; i<ntot; i++) {
+    for (j=0; j<nfield; j++) {
+      fprintf(fp, "%*.*f", width, prec, u[j][i]);
+    }
+    fprintf(fp, "\n");
+  }
+
+  free(u);
+
+}
+
+
+
+
+
