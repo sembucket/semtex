@@ -105,7 +105,9 @@ void Element::map ()
 // premultiplication by this factor for cylindrical coords.
 //
 // The local length-scale, delta, is a measure of the size of the local
-// mesh: delta = [[2/(np - 1)]^2*jac * dz]^(1/DIM).
+// mesh length: delta = sqrt{(dx^2 + dy^2 + dz^2)/3}
+//                    ~ sqrt{([dr^2 + ds^2]*jac + dz^2)/3)}
+// or modified as appropriate for cylindrical cases and 2D.
 //
 // Null-mapping optimizations mentioned below occur when the element
 // geometry ensures that the entries of a vector are zero to within
