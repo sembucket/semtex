@@ -7,6 +7,7 @@
 # $Id$
 ##############################################################################
 
+#OPTIONS  = -O2 -mips2 -sopt
 OPTIONS  = -g
 
 LIB      = liblinalp.a
@@ -51,8 +52,12 @@ LMD        = $(foreach routine, $(ALL), $(LIB)($(routine).o))
 $(LIB): $(LMD)
 
 install:
-	mv $(LIB) ..; \
-	cd $(HOME)/include; rm -f alplib.h; ln -s lib/linalp/alplib.h alplib.h
+	mv $(LIB) $(HOME)/lib; \
+	cd $(HOME)/include; rm -f alplib.h; \
+	ln -s $(HOME)/lib/linalp/alplib.h alplib.h
+
+tar:
+	tar cvf linalp.tar *
 
 clean:
 	rm *.o *.a *~ 
