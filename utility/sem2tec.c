@@ -185,8 +185,8 @@ static void read_mesh (FILE *fp)
   }
 
   n  = nr * ns * nel;
-  x  = dvector (0, n );
-  y  = dvector (0, n );
+  x  = dvector (0, n);
+  y  = dvector (0, n);
   z  = (nz > 1) ? dvector (0, nz) : 0;
 
   for (i = 0; i < n; i++) {
@@ -246,7 +246,7 @@ static int read_data (FILE *fp)
 
   nplane = nr * ns * nel;
   for (n = 0; n < nfields; n++)
-    data[n] = (double*) malloc (nplane * nz * sizeof (double));
+    data[n] = (double*) malloc (nz * nplane * sizeof (double));
 
   /* -- Check the format. */
 
@@ -271,14 +271,13 @@ static int read_data (FILE *fp)
     swab = (strstr (buf, "little") && machine == 0 ||
 	    strstr (buf, "big"   ) && machine == 1  ) ? 1 : 0;
 
-    for (m = 0; m < nz; m++)
-      for (n = 0; n < nfields; n++) {
-	if (fread (data[n] + m*nplane, sizeof(double), nplane, fp) != nplane) {
+    for (n = 0; n < nfields; n++) {
+      if (fread (data[n], sizeof(double), nz * nplane, fp) != nz * nplane) {
 	  fputs("sem2tec: field file (binary) read error\n", stderr);
 	  exit (EXIT_FAILURE);
-	}
-	if (swab) dbrev (nplane, data[n] + m*nplane, 1, data[n] + m*nplane, 1);
       }
+      if (swab) dbrev (nz * nplane, data[n], 1, data[n], 1);
+    }
     break;
   }
 
@@ -297,8 +296,8 @@ static int interpolate (void)
  * Interpolate from the GLL mesh to an evenly-spaced mesh.
  * ------------------------------------------------------------------------- */
 {
-  register int k, m;
-  const int    nrns = nr * ns, nplane = nr * ns * nel;
+  register int k, m, nplane_new;
+  const int    nrns = nr * ns, nplane_old = nr * ns * nel;
   double       **imr, **itmr, **ims, **itms, *mesh_x, *mesh_y;
   double       **newplane = (double**) malloc (nz * sizeof (double*));
 
@@ -315,6 +314,8 @@ static int interpolate (void)
     break;
   }
   
+  nplane_new = np * np * nel;
+
   imr  = dmatrix (0, np-1, 0, nr-1);
   itmr = dmatrix (0, nr-1, 0, np-1);
   ims  = dmatrix (0, np-1, 0, ns-1);
@@ -338,13 +339,13 @@ static int interpolate (void)
   for (k = 0; k < nfields; k++) {
 
     for (m = 0; m < nz; m++)
-      newplane[m] = do_interp (imr, itmr, ims, itms, data[k] + m * nplane);
+      newplane[m] = do_interp (imr, itmr, ims, itms, data[k] + m * nplane_old);
 
     free (data[k]);
-    data[k] = (double*) malloc (nz * nplane * sizeof (double));
+    data[k] = (double*) malloc (nplane_new * nz * sizeof (double));
 
     for (m = 0; m < nz; m++) {
-      dcopy (nplane, newplane[m], 1, data[k] + m * nplane, 1);
+      dcopy (nplane_new, newplane[m], 1, data[k] + m * nplane_new, 1);
       free (newplane[m]);
     }
   }
@@ -375,8 +376,6 @@ static double* do_interp (double** imr ,
     dmxm (*ims, np,  data, ns, tmp, nr);
     dmxm ( tmp, np, *itmr, nr, p  , np);
   }
-
-  free (tmp);
 
   return new;
 }
