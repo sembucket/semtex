@@ -1,34 +1,55 @@
 ##############################################################################
-# Makefile for finite element method solver.
+# Makefile for "fem++" finite element solver.
 #
-# Written for the GNUmake utility by Stallman & McGrath.
+# $Id$
 ##############################################################################
 
-PROG     = fem
+ARCH     = $(shell uname -s)
+PROG     = fem++
 
-OPTIONS  = -g -mips2
+OPTIONS  = -O2
+DEFINES  =
 
-CC       = cc
-LD       = cc
+CXX      = CC
+LD       = CC
 
-CFLAGS   = $(OPTIONS)
+CXXFLAGS = $(OPTIONS) $(DEFINES)
 CPPFLAGS = -I../include
-F77LIBS  = -lcomplib.sgimath -lF77 -lI77 -lU77 -lisam
-LDFLAGS  = -L../lib -lfem -lalp $(F77LIBS) -lm -lfpe -lmalloc
+F77LIBS  = -lcomplib.sgimath -lisam
+LDFLAGS  = -L../lib -lfem -lalp $(F77LIBS) -lm -lfpe
+
+# ----------- Compiler options for specific machines -------------------------
+
+ifeq ($(ARCH),IRIX)
+override CXXFLAGS += -mips2 -fullwarn
+override LDFLAGS  += -mips2
+endif
+
+ifeq ($(ARCH),IRIX64)
+
+endif
+
+# ----------------------------------------------------------------------------
 
 
-FILES    = boundary drive edge element field matrix mesh prepost
-SRCS     = $(addsuffix .c,$(FILES))
+FILES    = drive domain field element BC boundary pressure elliptic NS misc
 OBJS     = $(addsuffix .o,$(FILES))
-HEADER   = $(PROG).h
+HEADER   = Fem.h
 
 
 
 $(PROG): $(HEADER) $(OBJS)
-	$(LD) $(CFLAGS) -o $(PROG).tmp $(OBJS) $(CPPFLAGS) $(LDFLAGS)
+	$(LD) -o $(PROG).tmp $(OBJS) $(CPPFLAGS) $(LDFLAGS)
 	mv $(PROG).tmp $(PROG)
+
+$(OBJS): $(HEADER)
 
 clean:
 	rm -f *.o *~
+
+
+
+
+
 
 
