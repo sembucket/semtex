@@ -53,10 +53,9 @@
  *        prxf is X pressure force,         pryf is Y pressure force,
  *        vixf is X viscous  force,         viyf is Y viscous  force,
  *        toxf is X total    force,         toyf is Y total    force.
+ *
+ * $Id$
  *****************************************************************************/
-
-static char
-RCSid[] = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -97,7 +96,7 @@ int main (int    argc,
 {
   char    fmt[STR_MAX], *c;
   char    *field=0, *state=0, *outfile=0, *meshin=0, *meshout = 0;
-  int     i, nr, ns, nz, nel, npts, nfields, step, his_step, swab = 0;
+  int     i, nr, ns, nz, nel, npts, nfields, step, swab = 0;
   int     nread = 0, selected = 1, nselect = 0, verbose = 0, position = 0;
   double  X, Y, Xp, Yp, Xv, Yv, Xa, Ya, Xf, Yf, U=0.0, V=0.0;
   FILE    *fps_in = 0, *fpf_in = 0, *fpf_out = 0, *fpm_in = 0, *fpm_out = 0;
@@ -379,7 +378,7 @@ static void getargs (int     argc,
     "  -V U V               ... subtract off global velocities U & V too\n"
     "  -v                   ... verbose output: body position on stderr\n";
 
-  if (argc < 3) fprintf (stderr, usage);
+  if (argc < 3) { fprintf (stderr, usage); exit (EXIT_FAILURE); }
 
   while (--argc && **++argv == '-')
     switch (c = *++argv[0]) {
