@@ -284,6 +284,8 @@ integer main (integer argc,
     }
 
   }
+  
+  cout.flush();
 
   return EXIT_SUCCESS;
 }
@@ -305,7 +307,7 @@ static void getargs (integer   argc,
   char err[StrMax], c;
 
   while (--argc && **++argv == '-')
-    switch (*++argv[0]) {
+    switch (c = *++argv[0]) {
     case 'h':
       cerr << usage;
       exit (EXIT_SUCCESS);
