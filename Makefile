@@ -31,10 +31,13 @@ srcdist:
 
 libs:
 	cd veclib;		\
-	$(MAKE) -s headers;	\
+	$(MAKE) -s headers;
 
 	cd femlib;		\
-	$(MAKE) -s headers;	\
+	$(MAKE) -s headers;
+
+	cd src;			\
+	$(MAKE) -s
 
 	cd veclib;		\
 	$(MAKE) -s clean;	\
@@ -52,7 +55,7 @@ libs:
 parlib:
 
 	cd femlib;		\
-	$(MAKE) -s install;	\
+	$(MAKE) -s install;
 
 	cd femlib;		\
 	$(MAKE) -s clean;	\
@@ -64,7 +67,7 @@ parlib:
 # Run this to compile all executables.
 
 all:
-	cd src;      $(MAKE) install
+	cd src;      $(MAKE)
 	cd utility;  $(MAKE) clean; $(MAKE) all
 	cd elliptic; $(MAKE) clean; $(MAKE)
 	cd dns;      $(MAKE) clean; $(MAKE)
@@ -73,9 +76,8 @@ all:
 # Run a test of the (serial) DNS solver.  This could take a few minutes.
 
 test:  libs
-	cd src; $(MAKE) -s
 	cd utility; $(MAKE) -s clean; $(MAKE) -s enumerate; $(MAKE) -s compare
-	cd dns ; $(MAKE) -s clean; $(MAKE) -s ;
+	cd dns; $(MAKE) -s clean; $(MAKE) -s;
 	cd test ; \
 	rm -f compare;   ln -s ../utility/compare   . ;	\
 	rm -f enumerate; ln -s ../utility/enumerate . ; \
