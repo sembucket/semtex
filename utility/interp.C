@@ -35,7 +35,7 @@
 static char RCS[] = "$Id$";
 
 #include <ctime>
-#include "sem.h"
+#include <sem.h>
 
 static char prog[]  = "interp";
 static int_t  verbose = 0;

@@ -19,7 +19,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "sem.h"
+#include <sem.h>
 
 static char prog[] = "wallmesh";
 
