@@ -17,7 +17,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <cfemdef>
+#include <cfemdef.h>
 
 extern "C" {
   double  F77NAME(ddot)  (const integer& n,

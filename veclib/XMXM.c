@@ -17,7 +17,7 @@
  * $Id$
  *****************************************************************************/
 
-#include <cfemdef>
+#include <cfemdef.h>
 
 
 void dmxm (double* A, integer nra,

@@ -12,7 +12,7 @@
 
 #include <stdio.h>
 #include <math.h>
-#include <cfemdef>
+#include <cfemdef.h>
 #include <cveclib.h>
 
 #if defined(__uxp__)

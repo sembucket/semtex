@@ -8,7 +8,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <cfemdef>
+#include <cfemdef.h>
 
 template<class T> inline T sqr(T x)             { return x * x;            }
 template<class T> inline T sgn(T x)             { return (x < 0) ? -1 : 1; }
