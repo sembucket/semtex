@@ -21,7 +21,7 @@ SEMHDR = Sem.h
 # ----------------------------------------------------------------------------
 # Build compare, exact solution comparison/restart utility.
 #
-COMOBJ = compare.o bsys.o BCmgr.o boundary.o condition.o famiily.o	\
+COMOBJ = compare.o bsys.o BCmgr.o boundary.o condition.o family.o	\
 	 feml.o mesh.o element.o auxfield.o geometry.o pressure.o	\
          integration.o misc.o
 $(COMOBJ): $(SEMHDR)
