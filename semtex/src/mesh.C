@@ -1,44 +1,45 @@
-/*****************************************************************************
- * Routines to deal with meshes based on vertices.
- *
- * Here is an example mesh description.  Note that all sections of mesh
- * description are required.
- *
- * mesh 
- * {
- * 9	vertices
- * #id  x       y       z
- * 1	0.0	0.0	0.0
- * 2	2.0	0.0	0.0
- * 3	4.0	0.0	0.0
- * 4	0.0	0.5	0.0
- * 5	2.0	0.5	0.0
- * 6	4.0	0.5	0.0
- * 7	0.0	1.0	0.0
- * 8	2.0	1.0	0.0
- * 9	4.0	1.0	0.0
- *
- * 4	elements
- * #id  n_vert  vertices
- * 1	4	1 2 5 4
- * 2	4	2 3 6 5
- * 3	4	4 5 8 7
- * 4	4	5 6 9 8
- *
- * 4	boundaries
- * #id  BCtag   n_vert  vertices
- * 1	2	3	1 2 3
- * 2	2	3	7 8 9
- * 3	1	3	7 4 1
- * 4	3	3	3 6 9
- *
- * 1	curve
- * #id   kind   elmt   side   param   param
- * 1	 c	1      2      1.0     +
- * }
- *****************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+// Routines to deal with meshes based on vertices.
+//
+// Here is an example mesh description.  Note that all sections of mesh
+// description are required.
+//
+// mesh 
+// {
+// 9	vertices
+// #id  x       y       z
+// 1	0.0	0.0	0.0
+// 2	2.0	0.0	0.0
+// 3	4.0	0.0	0.0
+// 4	0.0	0.5	0.0
+// 5	2.0	0.5	0.0
+// 6	4.0	0.5	0.0
+// 7	0.0	1.0	0.0
+// 8	2.0	1.0	0.0
+// 9	4.0	1.0	0.0
+//
+// 4	elements
+// #id  n_vert  vertices
+// 1	4	1 2 5 4
+// 2	4	2 3 6 5
+// 3	4	4 5 8 7
+// 4	4	5 6 9 8
+//
+// 4	boundaries
+// #id  BCtag   n_vert  vertices
+// 1	2	3	1 2 3
+// 2	2	3	7 8 9
+// 3	1	3	7 4 1
+// 4	3	3	3 6 9
+//
+// 1	curve
+// #id   kind   elmt   side   param   param
+// 1	 c	1      2      1.0     +
+// }
+///////////////////////////////////////////////////////////////////////////////
 
-static char RCSid[] = "$Id$";
+static char
+RCSid[] = "$Id$";
 
 #include <Fem.h>
 
@@ -126,7 +127,7 @@ CircularArc::CircularArc (const char* s, const Mesh& m)
 {
   char   routine[] = "CircularArc::CircularArc";
   char   err[StrMax];
-  int    verbose  = option ("VERBOSE");
+  int    verbose  = Femlib::option ("VERBOSE");
 
   int    cid, elmt, side;
 

@@ -71,9 +71,9 @@ void Domain::restart ()
   cout << endl;
 
   real t  = time   ();
-  real dt = dparam ("DELTAT");
-  int  ns = iparam ("N_STEP");
-  int  nt = iparam ("N_TIME");
+  real dt = Femlib::parameter ("DELTAT");
+  int  ns = Femlib::integer   ("N_STEP");
+  int  nt = Femlib::integer   ("N_TIME");
 
   setDparam ("t", t);
 
@@ -90,14 +90,14 @@ void  Domain::dump (ofstream& output)
 // Check if a field-file write is required, carry out.
 // ---------------------------------------------------------------------------
 {
-  int periodic = !(domain_step %  iparam ("IO_FLD"));
-  int final    =   domain_step == iparam ("N_STEP");
+  int periodic = !(domain_step %  Femlib::integer ("IO_FLD"));
+  int final    =   domain_step == Femlib::integer ("N_STEP");
 
   if ( ! (periodic || final) ) return;
 
   char  routine[] = "Domain::dump";
-  int   verbose   = option ("VERBOSE");
-  int   chkpoint  = option ("CHKPOINT");
+  int   verbose   = Femlib::option ("VERBOSE");
+  int   chkpoint  = Femlib::option ("CHKPOINT");
 
   if (chkpoint) {
     char s[StrMax], b[StrMax], c[StrMax];
@@ -147,9 +147,9 @@ ostream& operator << (ostream& strm, Domain& D)
     "%-25s "    "Format\n"
   };
 
-  char      routine[] = "ostream << Domain";
-  char      s1[StrMax], s2[StrMax];
-  time_t    tp   (::time (0));
+  char   routine[] = "ostream << Domain";
+  char   s1[StrMax], s2[StrMax];
+  time_t tp   (::time (0));
 
   sprintf (s1, hdr_fmt[0], D.name());
   strm << s1;
@@ -168,13 +168,13 @@ ostream& operator << (ostream& strm, Domain& D)
   sprintf (s1, hdr_fmt[4], D.time());
   strm << s1;
 
-  sprintf (s1, hdr_fmt[5], dparam ("DELTAT"));
+  sprintf (s1, hdr_fmt[5], Femlib::parameter ("DELTAT"));
   strm << s1;
 
-  sprintf (s1, hdr_fmt[6], dparam ("KINVIS"));
+  sprintf (s1, hdr_fmt[6], Femlib::parameter ("KINVIS"));
   strm << s1;
 
-  sprintf (s1, hdr_fmt[7], dparam ("BETA"));
+  sprintf (s1, hdr_fmt[7], Femlib::parameter ("BETA"));
   strm << s1;
 
   int k;
@@ -205,14 +205,14 @@ istream& operator >> (istream& strm, Domain& D)
 // format (IEEE little/big-endian) is required.
 // ---------------------------------------------------------------------------
 {
-  char  routine[] = "strm>>Domain";
-  int   np, nz, nel, ntot, nfields;
-  int   npchk,  nzchk, nelchk, swap = 0;
-  char  s[StrMax], f[StrMax];
+  char routine[] = "strm>>Domain";
+  int  np, nz, nel, ntot, nfields;
+  int  npchk,  nzchk, nelchk, swap = 0;
+  char s[StrMax], f[StrMax];
 
   if (strm.getline(s, StrMax).eof()) return strm;
 
-  strm . getline (s, StrMax) . getline (s, StrMax);
+  strm.getline(s,StrMax).getline(s,StrMax);
 
   D.u[0] -> describe (f);
   istrstream (s, strlen (s)) >> np    >> np    >> nz    >> nel;
@@ -226,10 +226,10 @@ istream& operator >> (istream& strm, Domain& D)
   if (ntot != D.u[0] -> nTot ())
     message (routine, "declared sizes mismatch",     ERROR);
 
-  strm . getline (s, StrMax) . getline(s, StrMax);
+  strm.getline(s,StrMax).getline(s,StrMax);
 
   istrstream (s, strlen (s)) >> D.time ();
-  setDparam  ("t", D.time ());
+  Femlib::parameter ("t", D.time ());
   
   strm.getline(s,StrMax).getline(s,StrMax).getline(s,StrMax).getline(s,StrMax);
   
