@@ -56,8 +56,6 @@ ifdef MPI
   LIB       = libfem_mp.a
   DEFINES  += -DMPI
   CPPFLAGS += -I/usr/local/mpi/include
-  CFLAGS   += -pthread
-  FFLAGS   += -D_THREAD_SAFE
 endif
 endif
 
