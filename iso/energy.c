@@ -13,26 +13,27 @@
 		       MAG(U[2][(k1)][(k2)][(k3)]) + \
 		       MAG(U[3][(k1)][(k2)][(k3)]) )
 
+
 real energyP (CVF            V   ,
 	      const complex* Wtab)
 /* ------------------------------------------------------------------------- *
  * Compute & return k = <UiUi>/2: diagnostic.  Do sums in PHYSICAL space.
- * Also: compare with energy() below to see the discrete Parseval relation.
+ * Also: compare with energyF() below to check discrete Parseval identity.
  * ------------------------------------------------------------------------- */
 {
+  const int     ntot = N * N * N;
   register int  i, c;
   register real k;
-  register real *u    = &V[1][0][0][0].Re,
-                *v    = &V[2][0][0][0].Re,
-                *w    = &V[3][0][0][0].Re; 
-  const int     Npts = N * N * N;
+  register real *u = &V[1][0][0][0].Re,
+                *v = &V[2][0][0][0].Re,
+                *w = &V[3][0][0][0].Re; 
   
   for (c = 1; c <= 3; c++)            /* --> Physical space. */
     rc3DFT (V[c], Wtab, INVERSE);
 
   k = 0.0;
-  for (i = 0; i < Npts; i++) k += u[i]*u[i] + v[i]*v[i] + w[i]*w[i];
-  k /= 2.0 * Npts;
+  for (i = 0; i < ntot; i++) k += u[i]*u[i] + v[i]*v[i] + w[i]*w[i];
+  k /= 2.0 * ntot;
 
   for (c = 1; c <= 3; c++) {          /* --> Fourier space. */
     rc3DFT  (V[c], Wtab, FORWARD);
@@ -45,18 +46,44 @@ real energyP (CVF            V   ,
 
 real energyF (const CVF U)
 /* ------------------------------------------------------------------------- *
- * Compute & return k = <UiUi>/2: diagnostic.  Do sums in FOURIER space.
+ * Compute & return k = <Ui Ui>/2.  Do sums in FOURIER space, using
+ * Parseval's identity.
  * ------------------------------------------------------------------------- */
 {
-  register int     i;
+  const int        ntot = N * N * K;
+  register int     c, i;
   register real    k;
-  register complex *u    = &U[1][0][0][0],
-                   *v    = &U[2][0][0][0],
-                   *w    = &U[3][0][0][0];
-  const int        Npts = N * N * K;
+  register complex *u;
 
-  k = 0.0;
-  for (i = 0; i < Npts; i++) k += MAG (u[i]) + MAG (v[i]) + MAG (w[i]);
+  for (k = 0.0, c = 1; c <= 3; c++) {
+    u = &U[c][0][0][0];
+    for (i = 0; i < ntot; i++)
+      k += MAG (u[i]);
+  }
+
+  return k;
+}
+
+
+real enstrophyF (const CVF U   ,
+		 CVF       vort,
+		 CF        work)
+/* ------------------------------------------------------------------------- *
+ * Compute & return k = <Omega_i Omega_i>/2.  Do sums in FOURIER space.
+ * ------------------------------------------------------------------------- */
+{
+  const int        ntot = N * N * K;
+  register int     c, i;
+  register real    k;
+  register complex *wi;
+
+  curl (U, vort, work);
+
+  for (k = 0.0, c = 1; c <= 3; c++) {
+    wi = &vort[c][0][0][0];
+    for (i = 0; i < ntot; i++)
+      k += MAG(wi[i]);
+  }
 
   return k;
 }
@@ -109,10 +136,10 @@ real L2norm (const CF U)
   register int      i;
   register real     l2;
   register complex* u    = &U[0][0][0];
-  const int         Npts = N * N * K;
+  const int         ntot = N * N * K;
 
   l2 = 0.0;
-  for (i = 0; i < Npts; i++) l2 += MAG (u[i]);
+  for (i = 0; i < ntot; i++) l2 += MAG (u[i]);
   l2 *= 2.0;
 
   return l2;
@@ -127,17 +154,17 @@ real amaxF (const CF U)
   register int   i;
   register real  mx   = 0.0;
   register real* u    = &U[0][0][0].Re;
-  const int      Npts = N * N * N;
+  const int      ntot = N * N * N;
 
-  for (i = 0; i < Npts; i++) mx = MAX (fabs(u[i]), mx);
+  for (i = 0; i < ntot; i++) mx = MAX (fabs(u[i]), mx);
 
   return mx;
 }
 
 
-void normalizeVF (CVF IC)
+void normaliseVF (CVF IC)
 /* ------------------------------------------------------------------------- *
- * Normalize velocity components to give k = 1.0.
+ * Normalise velocity components to give k = 1.0.
  * 
  * IC components are supplied in FOURIER space.
  * ------------------------------------------------------------------------- */
@@ -160,7 +187,7 @@ void energySpec (const CVF U   ,
  * contributions on Nyquist planes.  
  * ------------------------------------------------------------------------- */
 {
-  const real   norm     = 1.0 / (M_PI + M_PI);
+  const real   norm = 1.0;
   real         de;
   register int k, k1, b1, k2, b2, k3;
 
@@ -174,13 +201,13 @@ void energySpec (const CVF U   ,
     spec[k1] += de;
     for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
       b2 = N - k2;
-      k  = (int) sqrt (k1 * k1 + k2 * k2);
+      k  = (int) sqrt (k1*k1 + k2*k2);
       if (k >= K) continue;
       de = norm * (EN (0, k1, k2) + EN (0, b1, k2)); spec[k] += de;
       de = norm * (EN (k1, 0, k2) + EN (b1, 0, k2)); spec[k] += de;
       de = norm * (EN (k1, k2, 0) + EN (b1, k2, 0)); spec[k] += de;
       for (k3 = 1; k3 < K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
-	k = (int) sqrt (k1 * k1 + k2 * k2 + k3 * k3);
+	k = (int) sqrt (k1*k1 + k2*k2 + k3*k3);
 	if (k >= K) continue;
 	de = norm * (EN (k1, k2, k3) + EN (b1, k2, k3)); spec[k] += de;
 	de = norm * (EN (k1, b2, k3) + EN (b1, b2, k3)); spec[k] += de;
