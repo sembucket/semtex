@@ -33,7 +33,7 @@
 
 #include <stdio.h>
 #include <math.h>
-#include <linalp.h>
+#include <alplib.h>
 
 
 #define STOP 10
@@ -89,7 +89,7 @@ void dermat_g(int K, double *zero, int I, double *x, double **D, double **DT)
        D[j][k]  = DT[k][j] = sum / a[k];
      }
 
-  free_dvector(a, 0);
+  freeDvector(a, 0);
 }
 
 
@@ -144,7 +144,7 @@ void dermat_k(int K, double *zero, double **D, double **DT)
 	 D[j][k] = DT[k][j] = prod / ((zero[j] - zero[k]) * a[k]);
        }
 
-  free_dvector(a, 0);
+  freeDvector(a, 0);
 }
 
 
@@ -186,7 +186,7 @@ void intmat_g(int K, double *zero, int I, double *x, double **IN, double **IT)
       IN[j][k] = IT[k][j] = prod / a[k];
     }
 
-  free_dvector(a, 0);
+  freeDvector(a, 0);
 }  
 
 
