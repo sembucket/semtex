@@ -38,7 +38,6 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  ifstream        file;
   double          x, y, zpk, zav, wt, ww, dz, lz, shift;
   double          sum, nfac, mean, sdev, var, skew, flat;
   double          wmax = -FLT_MAX, zmin = FLT_MAX, zmax = -FLT_MAX;
@@ -53,16 +52,18 @@ int main (int    argc,
       cout << prog << " [file]" << endl;
       return EXIT_SUCCESS;
     }
-
-  if   (argc == 1) file.open   (*argv, ios::in);
-  else             file.attach (0);
-
-  if (!file) {
-    cerr << prog << ": unable to open input file" << endl;
-    return EXIT_FAILURE;
+    
+  if (argc == 1) {
+    ifstream* inputfile = new ifstream (*argv);
+    if (inputfile -> good()) {
+      cin = *inputfile;
+      } else {
+	cerr << prog << ": unable to open input file" << endl;
+	exit (EXIT_FAILURE);
+    }
   }
 
-  while (file >> x >> y) {
+  while (cin >> x >> y) {
     zmin  = min (x, zmin);
     zmax  = max (x, zmax);
     datum = new doublet (x, y);

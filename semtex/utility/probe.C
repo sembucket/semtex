@@ -82,18 +82,18 @@ static void  memExhaust () { message ("new", "free store exhausted", ERROR); }
 
 static void  getargs     (int, char**, char*&, char*&, int&,
 			  char*&, char*&, char*&);
-static int   loadPoints  (ifstream&, vector<Point*>&);
+static int   loadPoints  (istream&, vector<Point*>&);
 static int   linePoints  (vector<Point*>&);
 static int   planePoints (vector<Point*>&, Mesh*);
 static void  findPoints  (vector<Point*>&, vector<Element*>&,
 			  vector<Element*>&, vector<real>&, vector<real>&);
 static int   getDump     (ifstream&, vector<AuxField*>&, vector<Element*>&,
-			  const integer, const integer, const integer);
+			  const int, const int, const int);
 static void  putData     (const char*, const char*, const char*, int,
 			  int, vector<AuxField*>&,
 			  vector<Element*>&, vector<Point*>&, matrix<real>&);
 static void  Finterp     (vector<AuxField*>&, const Point*, const Element*,
-			  const real, const real, const integer, real*, real*);
+			  const real, const real, const int, real*, real*);
 static int   doSwap      (const char*);
 static char* root        (char*);
 
@@ -106,8 +106,8 @@ int main (int    argc,
 {
   char              *session, *dump, *format;
   char              *interface = 0, *points = 0;
-  integer           NP, NZ,  NEL;
-  integer           i, j, k, nf, ntot = 0, rotswap = 0;
+  int           NP, NZ,  NEL;
+  int           i, j, k, nf, ntot = 0, rotswap = 0;
   ifstream          fldfile, pntfile;
   FEML*             F;
   Mesh*             M;
@@ -154,8 +154,8 @@ int main (int    argc,
   M   = new Mesh (F);
 
   NEL = M -> nEl();  
-  NP  = (integer) Femlib::value ("N_POLY");
-  NZ  = (integer) Femlib::value ("N_Z");
+  NP  = (int) Femlib::value ("N_POLY");
+  NZ  = (int) Femlib::value ("N_Z");
   
   Geometry::set (NP, NZ, NEL, Geometry::Cartesian);
   Femlib::mesh  (GLL, GLL, NP, NP, &knot, 0, 0, 0, 0);
@@ -171,9 +171,14 @@ int main (int    argc,
   // -- Construct list of points.
 
   if (strcmp (interface, "probe") == 0) {
-    if   (points) pntfile.open   (points, ios::in);
-    else          pntfile.attach (0);
-    ntot = loadPoints (pntfile, point);
+    if (points) {
+      ifstream* inputfile = new ifstream (points);
+      if (inputfile -> good())
+	cin = *inputfile;
+      else
+	message (prog, "unable to open point file", ERROR);
+    }
+    ntot = loadPoints (cin, point);
   } 
   else if (strcmp (interface, "probeline")  == 0) ntot = linePoints  (point);
   else if (strcmp (interface, "probeplane") == 0) ntot = planePoints (point,M);
@@ -208,7 +213,7 @@ int main (int    argc,
 }
 
 
-static void getargs (integer argc     ,
+static void getargs (int argc     ,
 		     char**  argv     ,
 		     char*&  interface,
 		     char*&  format   ,
@@ -503,7 +508,7 @@ static void getargs (integer argc     ,
 }
 
 
-static int loadPoints (ifstream&       pfile,
+static int loadPoints (istream&        pfile,
                        vector<Point*>& point)
 // ---------------------------------------------------------------------------
 // Probe point input for the "probe" interface, from file.
@@ -643,11 +648,11 @@ static void findPoints (vector<Point*>&   point,
 // Locate points within elements, set Element pointer & r--s locations.
 // ---------------------------------------------------------------------------
 {
-  integer       i, k;
-  real          x, y, z, r, s;
-  const integer NEL   = Esys .getSize();
-  const integer NPT   = point.getSize();
-  const integer guess = 1;
+  int       i, k;
+  real       x, y, z, r, s;
+  const int NEL   = Esys .getSize();
+  const int NPT   = point.getSize();
+  const int guess = 1;
 
   elmt.setSize (NPT);
   rloc.setSize (NPT);
@@ -683,9 +688,9 @@ static void findPoints (vector<Point*>&   point,
 static int getDump (ifstream&          file,
 		    vector<AuxField*>& u   ,
 		    vector<Element*>&  Esys,
-		    const integer      np  ,
-		    const integer      nz  ,
-		    const integer      nel )
+		    const int          np  ,
+		    const int          nz  ,
+		    const int          nel )
 // ---------------------------------------------------------------------------
 // Load data from field dump, with byte-swapping if required.
 // If there is more than one dump in file, it is required that the
@@ -693,7 +698,7 @@ static int getDump (ifstream&          file,
 // ---------------------------------------------------------------------------
 {
   char    buf[StrMax], fields[StrMax];
-  integer i, swab, nf, npnew, nznew, nelnew;
+  int i, swab, nf, npnew, nznew, nelnew;
 
   if (file.getline(buf, StrMax).eof()) return 0;
   
@@ -769,20 +774,20 @@ static void Finterp (vector<AuxField*>& u   ,
 		     const Element*     E   ,
 		     const real         r   , 
 		     const real         s   ,
-		     const integer      NZ  ,
+		     const int          NZ  ,
 		     real*              work,
 		     real*              data)
 // ---------------------------------------------------------------------------
 // Carry out 2DxFourier interpolation.
 // ---------------------------------------------------------------------------
 {
-  register integer i, k, Re, Im;
-  register real    phase;
-  const integer    NF    = u.getSize();
-  const integer    NZH   = NZ >> 1;
-  const integer    NHM   = NZH - 1;
-  const real       betaZ = P -> z * Femlib::value("BETA");
-  const real*      Wtab  = work + NZ;
+  register int  i, k, Re, Im;
+  register real phase;
+  const int     NF    = u.getSize();
+  const int     NZH   = NZ >> 1;
+  const int     NHM   = NZH - 1;
+  const real    betaZ = P -> z * Femlib::value("BETA");
+  const real*   Wtab  = work + NZ;
 
   for (i = 0; i < NF; i++)	// -- For each field.
 

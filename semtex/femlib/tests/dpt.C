@@ -33,11 +33,11 @@
 #include <Utility.h>
 #include <Stack.h>
 
-static void getargs (int       argc,
-		     char**    argv,
-		     int&      invt,
-		     char&     ptyp,
-		     ifstream& file)
+
+static void getargs (int    argc,
+		     char** argv,
+		     int&   invt,
+		     char&  ptyp)
 // ---------------------------------------------------------------------------
 // Parse command-line args.
 // ---------------------------------------------------------------------------
@@ -62,16 +62,19 @@ static void getargs (int       argc,
  
   if (!(ptyp == 'l' || ptyp == 'm')) { cerr << usage; exit (EXIT_FAILURE); }
 
-  if   (argc == 1) file.open   (*argv, ios::in);
-  else             file.attach (0);
-
-  if (!file) {
-    cerr << "dpt: unable to open input file" << endl; exit (EXIT_FAILURE);
+  if (argc == 1) {
+    ifstream* inputfile = new ifstream (*argv);
+    if (inputfile -> good()) {
+      cin = *inputfile;
+      } else {
+	cerr <<  "dpt: unable to open input file" << endl;
+	exit (EXIT_FAILURE);
+    }
   }
 }
 
 
-int loadVals (ifstream&       file,
+int loadVals (istream&        file,
 	      vector<double>& val )
 // ---------------------------------------------------------------------------
 // Get nodal values from file, return number of values.
@@ -97,7 +100,6 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  ifstream       file;
   int            i, ngll, dir = FORWARD;
   char           polytype;
   vector<double> u, v;
@@ -106,9 +108,9 @@ int main (int    argc,
   cout.precision (8);
   cout.setf (ios::fixed, ios::floatfield);
 
-  getargs (argc, argv, dir, polytype, file);
+  getargs (argc, argv, dir, polytype);
 
-  v.setSize (ngll = loadVals (file, u));
+  v.setSize (ngll = loadVals (cin, u));
 
   switch (polytype) {
   case 'l': Femlib::legTran (ngll, &F, 0, &I, 0, 0, 0); break;

@@ -23,9 +23,8 @@
 #include <Stack.h>
 
 
-void getargs (int       argc,
-	      char**    argv,
-	      ifstream& file)
+void getargs (int    argc,
+	      char** argv)
 // ---------------------------------------------------------------------------
 // Parse command-line args.
 // ---------------------------------------------------------------------------
@@ -33,23 +32,26 @@ void getargs (int       argc,
   const char *usage = 
     "Usage: lagder [file]\n";
 
-  while (--argc  && **++argv == '-')
+  while (--argc && **++argv == '-')
     switch (*++argv[0]) {
     default:
       cerr << usage; exit (EXIT_FAILURE);
       break;
     }
 
-  if   (argc == 1) file.open   (*argv, ios::in);
-  else             file.attach (0);
-
-  if (!file) {
-    cerr << "lagder: unable to open input file" << endl; exit (EXIT_FAILURE);
+  if (argc == 1) {
+    ifstream* inputfile = new ifstream (*argv);
+    if (inputfile -> good()) {
+      cin = *inputfile;
+      } else {
+	cerr <<  "lagder: unable to open input file" << endl;
+	exit (EXIT_FAILURE);
+    }
   }
 }
 
 
-int loadVals (ifstream&       file,
+int loadVals (istream&        file,
 	      vector<double>& val )
 // ---------------------------------------------------------------------------
 // Get nodal values from file, return number of values.
@@ -75,7 +77,6 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  ifstream       file;
   int            i, np;
   vector<double> u, v;
   const double   **DV;
@@ -83,9 +84,9 @@ int main (int    argc,
   cout.precision (8);
   cout.setf (ios::fixed, ios::floatfield);
 
-  getargs (argc, argv, file);
+  getargs (argc, argv);
 
-  np = loadVals (file, v);
+  np = loadVals (cin, v);
 
   u.setSize (np);
 

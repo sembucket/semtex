@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // calc: a basic calculator using the function parser.
 //
-// Copyright (c) 1994--1999 Hugh Blackburn
+// Copyright (c) 1994--2003 Hugh Blackburn
 //
 // Usage: calc [-h] [file]
 //
@@ -20,7 +20,7 @@
 #include <Femlib.h>
 
 static char prog[] = "calc";
-static void getargs (integer, char**, ifstream&);
+static void getargs (int, char**);
 
 
 int main (int    argc,
@@ -29,13 +29,12 @@ int main (int    argc,
  * Driver.
  * ------------------------------------------------------------------------- */
 {
-  char     buf[StrMax];
-  ifstream file;
+  char buf[StrMax];
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, file);
+  getargs (argc, argv);
 
-  while (file.getline (buf, FILENAME_MAX))
+  while (cin.getline (buf, FILENAME_MAX))
     if (strstr (buf, "="))
       Femlib::value (buf);
     else
@@ -46,9 +45,8 @@ int main (int    argc,
 }
 
 
-static void getargs (integer   argc,
-		     char**    argv,
-		     ifstream& file)
+static void getargs (int    argc,
+		     char** argv)
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
@@ -71,15 +69,17 @@ static void getargs (integer   argc,
       exit (EXIT_FAILURE);
       break;
     }
-  
-  if   (argc == 1) file.open   (*argv, ios::in);
-  else             file.attach (0);
 
-  if (!file) {
-    sprintf (buf, usage, prog);
-    cerr << buf;
-    sprintf (buf, "unable to open file: %s", *argv);
-    message (prog, buf, ERROR);
+  if (argc == 1) {
+    ifstream* inputfile = new ifstream (*argv);
+    if (inputfile -> good()) {
+      cin = *inputfile;
+      } else {
+	sprintf (buf, usage, prog);
+	cerr << buf;
+	sprintf (buf, "unable to open file: %s", *argv);
+	message (prog, buf, ERROR);
+      }
   }
 }
 

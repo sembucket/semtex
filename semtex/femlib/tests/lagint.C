@@ -27,10 +27,9 @@
 #include <Stack.h>
 
 
-void getargs (int       argc,
-	      char**    argv,
-	      int&      nint,
-	      ifstream& file)
+void getargs (int    argc,
+	      char** argv,
+	      int&   nint)
 // ---------------------------------------------------------------------------
 // Parse command-line args.
 // ---------------------------------------------------------------------------
@@ -52,17 +51,20 @@ void getargs (int       argc,
     }
 
   if (!nint) { cerr << usage; exit (EXIT_FAILURE); }
-    
-  if   (argc == 1) file.open   (*argv, ios::in);
-  else             file.attach (0);
 
-  if (!file) {
-    cerr << "lagint: unable to open input file" << endl; exit (EXIT_FAILURE);
+  if (argc == 1) {
+    ifstream* inputfile = new ifstream (*argv);
+    if (inputfile -> good()) {
+      cin = *inputfile;
+      } else {
+	cerr <<  "lagint: unable to open input file" << endl;
+	exit (EXIT_FAILURE);
+    }
   }
 }
 
 
-int loadVals (ifstream&       file,
+int loadVals (istream&        file,
 	      vector<double>& val )
 // ---------------------------------------------------------------------------
 // Get nodal values from file, return number of values.
@@ -88,7 +90,6 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  ifstream       file;
   int            i, j, ngll, nint = 0;
   vector<double> u, v, w, x, z;
   double         **II, **IT;
@@ -96,9 +97,9 @@ int main (int    argc,
   cout.precision (8);
   cout.setf (ios::fixed, ios::floatfield);
 
-  getargs (argc, argv, nint, file);
+  getargs (argc, argv, nint);
 
-  ngll = loadVals (file, v);
+  ngll = loadVals (cin, v);
   z.setSize (ngll);
   w.setSize (ngll);
 

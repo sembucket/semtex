@@ -11,10 +11,9 @@
 // boundaries, one per line.  A blank line separates x from y
 // locations.  Output consists of a (2D) session file with an element
 // order of 7, and "wall" group boundaries around the domain border.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -30,7 +29,7 @@ RCSid[] = "$Id$";
 
 
 static char prog[] = "rectmesh";
-static void getargs (int, char**, char*&);
+static void getargs (int, char**);
 static void header  ();
 
 
@@ -41,27 +40,33 @@ int main (int    argc,
 // ---------------------------------------------------------------------------
 {
   char           line[STR_MAX], *points = 0;
-  ifstream       pntfile;
   real           x, y;
   Stack <real>   X, Y;
   matrix<Point*> vertex;
   int            Nx = 0, Ny = 0;
   int            i, j, k;
 
-  getargs (argc, argv, points);
+  getargs (argc, argv);
 
-  if   (points) pntfile.open   (points, ios::in);
-  else          pntfile.attach (0);
+  if (points) {
+    ifstream* inputfile = new ifstream (points);
+    if (inputfile -> good())
+      cin = *inputfile;
+    else {
+      cerr << prog << ": unable to open geometry file" << endl;
+      return EXIT_FAILURE;
+    }
+  }
 
   // -- Read x, then y locations onto two stacks.
 
-  while (pntfile.getline(line, STR_MAX).gcount() > 1) {
+  while (cin.getline(line, STR_MAX).gcount() > 1) {
     istrstream (line, strlen(line)) >> x;
     X.push (x);
     Nx++;
   }
 
-  while (pntfile.getline(line, STR_MAX)) {
+  while (cin.getline(line, STR_MAX)) {
     istrstream (line, strlen(line)) >> y;
     Y.push (y);
     Ny++;
@@ -152,9 +157,8 @@ int main (int    argc,
 }
 
 
-static void getargs (int    argc  ,
-		     char** argv  ,
-		     char*& points)
+static void getargs (int    argc,
+		     char** argv)
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
@@ -174,8 +178,6 @@ static void getargs (int    argc  ,
       exit (EXIT_FAILURE);
       break;
     }
-  
-  if (argc == 1) points = *argv;
 }
 
 
