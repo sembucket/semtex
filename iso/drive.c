@@ -20,17 +20,21 @@
  *
  * Method:
  * -------
- * Time evolution of Fourier coefficients of flow in box with sides of length
- * 2PI and periodic boundary conditions.  Number of modes in each direction
- * must be the same integer power of two.
+ * Time evolution of Fourier coefficients of flow in box with sides of
+ * length 2PI and periodic boundary conditions.  Number of modes in
+ * each direction must be the same integer power of two.
  *
- * Computation of the non-linear terms is fully de-aliased by the method
- * of isotropically-truncated convolution sums in conjunction with phase
- * shifts, as described by Orszag [1].
+ * Computation of the non-linear terms is fully de-aliased by the
+ * method of isotropically-truncated convolution sums in conjunction
+ * with phase shifts, as described by Orszag [1].
  *
  * Time advancement is explicit, Adams-Bashforth 2 on the nonlinear
- * terms, with an analytic integrating-factor treatment of viscous terms,
- * developed by Rogallo [2].  Initial timestep is Euler.
+ * terms, with an analytic integrating-factor treatment of viscous
+ * terms, developed by Rogallo [2].  Initial timestep is Euler.
+ *
+ * If INVISCID is defined for compilation, the viscosity is set to
+ * zero, and leapfrog is used for timestepping after the initial Euler
+ * step.
  *
  * A general description of the Fourier treatment and elimination of
  * pressure by projection in Fourier-space can be found in ch. 4 of
@@ -38,25 +42,26 @@
  *
  * Storage requirements:
  * ---------------------
- * In terms of main storage, the programme carries 14*N*N*N words, with
- * additional incidental requirements for storage of one-dimensional vectors,
- * pointers and scalar variables.
+ * In terms of main storage, the programme carries 14*N*N*N words,
+ * with additional incidental requirements for storage of
+ * one-dimensional vectors, pointers and scalar variables.
  *
  * Main storage consists of the Fourier coefficients of the velocities
- * (3*N*N*N), the nonlinear terms at the current timestep (G) and the last
- * timestep (G_old) (6*N*N*N), and workspace (5*N*N*N).  The most obvious
- * ways to save storage would be to carry only two velocity components, and
- * to keep G_old on disk: this would produce a saving of 4*N*N*N.  With much
- * hard work, an additional N*N*N of workspace could probably be saved.
- * For large simulations, out-of-core storage will be needed.
+ * (3*N*N*N), the nonlinear terms at the current timestep (G) and the
+ * last timestep (G_old) (6*N*N*N), and workspace (5*N*N*N).  The most
+ * obvious ways to save storage would be to carry only two velocity
+ * components, and to keep G_old on disk: this would produce a saving
+ * of 4*N*N*N.  With much hard work, an additional N*N*N of workspace
+ * could probably be saved.  For large simulations, out-of-core
+ * storage will be needed.
  *
  * Workload:
  * ---------
- * The bulk of CPU time is spent in 3D real--complex FFTs.  For the fully-
- * dealiased computations, there are 21 FFTs per timestep.  For a solution
- * with aliasing, this could be reduced to 12 (storage requirements would
- * also be reduced to 10*N*N*N words --- 9 for velocity fields and nonlinear
- * terms, 1 for workspace).
+ * The bulk of CPU time is spent in 3D real--complex FFTs.  For the
+ * fully- dealiased computations, there are 21 FFTs per timestep.  For
+ * a solution with aliasing, this could be reduced to 12 (storage
+ * requirements would also be reduced to 10*N*N*N words --- 9 for
+ * velocity fields and nonlinear terms, 1 for workspace).
  *
  * Files:
  * ------
@@ -112,11 +117,12 @@ int main (int    argc,
  * Driver routine for simulation code.
  * ------------------------------------------------------------------------- */
 {
-  CVF     U, work1;
+  CVF*    U = malloc (sizeof (CVF*));
   CVF*    G = malloc (sizeof (CVF*));
+  Param*  I = calloc (1, sizeof (Param));
+  CVF     work1;
   CF      work2, work3;
   complex *Wtab, *Stab;
-  Param*  I = calloc (1, sizeof (Param));
   real    setKinvis;
 
   /* -- Set up. */
@@ -131,37 +137,52 @@ int main (int    argc,
 
   N = I -> ngrid; K = N / 2; FourKon3 = (4 * K) / 3;
 
-  allocate   (&U, G, I -> norder, &work1, &work2, &work3, &Wtab, &Stab);
+#if defined (INVISCID)
+  printf     ("Inviscid solution\n\n");
+  allocate   (G, U, I -> norder, &work1, &work2, &work3, &Wtab, &Stab);
+#else
+  allocate   (U, G, I -> norder, &work1, &work2, &work3, &Wtab, &Stab);
+#endif
 
   preFFT     (Wtab, K);
   preShift   (Stab, N);
 
-  restart    (U, I);
+  restart    (U[0], I);
   I -> kinvis = setKinvis;
 
-  truncateVF (U);
-  projectVF  (U, work2);
+  truncateVF (U[0]);
+  projectVF  (U[0], work2);
 
   printParam (stdout, I);
-  analyze    (U, I, Wtab);
+  analyze    (U[0], I, Wtab);
 
   /* -- Time-stepping loop. */
 
+#if defined (INVISCID)
+  if (I -> norder == 2) copyVF (U[1], U[0]);
+#endif
+  
   while (I -> step < I -> nstep) {
 
     zeroVF    (G[0]);
-    nonlinear (U, G[0], work1, work2, work3, Wtab, Stab);
+    nonlinear (U[0], G[0], work1, work2, work3, Wtab, Stab);
     projectVF (G[0], work2);
-    integrate (U, G, I);
+
+#if defined (INVISCID)
+    ROLL      (U, I -> norder);
+    integrate (U[0], G, I);
+#else
+    integrate (U[0], G, I);
     ROLL      (G, I -> norder);
+#endif
 
     I -> step ++;
     I -> time += I -> dt;
     
-    if (!(I -> step % 100)) projectVF (U, work2);
+    if (!(I -> step % 100)) projectVF (U[0], work2);
 
-    analyze (U, I, Wtab);
-    dump    (U, I);
+    analyze (U[0], I, Wtab);
+    dump    (U[0], I);
   }
 
   cleanup (I);
@@ -247,7 +268,12 @@ static void getargs (int    argc,
       break;
     }
 
+#if defined (INVISCID)
+  I -> kinvis = 0.0;
+  if (I->norder > 2) message (prog, "maximum timestepping order is 2", ERROR);
+#else
   if (I->norder > 3) message (prog, "maximum timestepping order is 3", ERROR);
+#endif
 
   if   (argc != 1)  message (prog, "no session definition file", ERROR);
   else              I -> session = *argv;

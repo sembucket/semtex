@@ -9,6 +9,78 @@
 #include "iso.h"
 
 
+#if defined (INVISCID)
+
+void integrate (CVF          U,
+                const CVF*   G,
+		const Param* I)
+/* ------------------------------------------------------------------------- *
+ * Update the velocity field Fourier coefficients for inviscid case.
+ * Time advancement is explicit, using explicit Euler for the first
+ * step, then leapfrog subsequently.  For leapfrog, U is taken to contain
+ * u[n-1] on input and u[n+1] on output.
+ * ------------------------------------------------------------------------- */
+{
+  const int     order = CLAMP (I -> step + 1, 1, 2);
+  register int  c, k1, b1, k2, b2, k3;
+  register real C;
+  register CF   H, V;
+
+  if (order == 1)		/* -- Take an Euler step. */
+    C = I -> dt;
+  else				/* -- Take a leapfrog step. */
+    C = 2.0 * I -> dt;
+  
+  for (c = 1; c <= 3; c++) {
+    H = G[0][c];
+    V = U[c];
+
+    for (k1 = 1; k1 < K; k1++) {
+      b1 = N - k1;
+
+      V[k1][ 0][ 0].Re += C * H[k1][ 0][ 0].Re;
+      V[k1][ 0][ 0].Im += C * H[k1][ 0][ 0].Im;
+      V[ 0][k1][ 0].Re += C * H[ 0][k1][ 0].Re;
+      V[ 0][k1][ 0].Im += C * H[ 0][k1][ 0].Im;
+      V[ 0][ 0][k1].Re += C * H[ 0][ 0][k1].Re;
+      V[ 0][ 0][k1].Im += C * H[ 0][ 0][k1].Im;
+
+      for (k2 = 1; k2 < K && k1+k2 INSIDE; k2++) {
+	b2 = N - k2;
+	  
+	V[ 0][k1][k2].Re += C * H[ 0][k1][k2].Re;
+	V[ 0][k1][k2].Im += C * H[ 0][k1][k2].Im;
+	V[ 0][b1][k2].Re += C * H[ 0][b1][k2].Re; 
+	V[ 0][b1][k2].Im += C * H[ 0][b1][k2].Im; 
+	
+	V[k1][ 0][k2].Re += C * H[k1][ 0][k2].Re;
+	V[k1][ 0][k2].Im += C * H[k1][ 0][k2].Im;
+	V[b1][ 0][k2].Re += C * H[b1][ 0][k2].Re; 
+	V[b1][ 0][k2].Im += C * H[b1][ 0][k2].Im; 
+
+	V[k1][k2][ 0].Re += C * H[k1][k2][ 0].Re;
+	V[k1][k2][ 0].Im += C * H[k1][k2][ 0].Im;
+	V[b1][k2][ 0].Re += C * H[b1][k2][ 0].Re; 
+	V[b1][k2][ 0].Im += C * H[b1][k2][ 0].Im; 
+
+	for (k3 = 1; k3 < K && k2+k3 INSIDE && k1+k3 INSIDE; k3++) {
+	    
+	  V[k1][k2][k3].Re += C * H[k1][k2][k3].Re; 
+	  V[k1][k2][k3].Im += C * H[k1][k2][k3].Im;
+	  V[b1][k2][k3].Re += C * H[b1][k2][k3].Re; 
+	  V[b1][k2][k3].Im += C * H[b1][k2][k3].Im;
+	  V[k1][b2][k3].Re += C * H[k1][b2][k3].Re; 
+	  V[k1][b2][k3].Im += C * H[k1][b2][k3].Im;
+	  V[b1][b2][k3].Re += C * H[b1][b2][k3].Re; 
+	  V[b1][b2][k3].Im += C * H[b1][b2][k3].Im;
+	}
+      }
+    }
+  }
+}
+
+#else
+
 void integrate (CVF          U,
                 const CVF*   G,
 		const Param* I)
@@ -397,3 +469,5 @@ void integrate (CVF          U,
     }
   } 
 } 
+
+#endif
