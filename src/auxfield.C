@@ -1205,6 +1205,42 @@ void AuxField::mulR (const integer nZ ,
 }
 
 
+AuxField& AuxField::mulX ()
+// ---------------------------------------------------------------------------
+// Multiply data values by x (i.e. axial distance in cylindrical coords).
+// ---------------------------------------------------------------------------
+{
+  const integer    nel  = Geometry::nElmt();
+  const integer    npnp = Geometry::nTotElmt();
+  register integer i, k;
+  register real*   p;
+
+  for (k = 0; k < _nz; k++)
+    for (p = _plane[k], i = 0; i < nel; i++, p += npnp)
+      _elmt[i] -> mulX (p);
+  
+  return *this;
+}
+
+
+void AuxField::mulX (const integer nZ ,
+		     real*         src) const
+// ---------------------------------------------------------------------------
+// Multiply data values by x (i.e. axial distance in cylindrical coords).
+// ---------------------------------------------------------------------------
+{
+  const integer    nel  = Geometry::nElmt();
+  const integer    npnp = Geometry::nTotElmt();
+  const integer    ntot = Geometry::planeSize();
+  register integer i, k;
+  register real*   p;   
+
+  for (k = 0; k < nZ; k++)
+    for (p = src + k * ntot, i = 0; i < nel; i++, p += npnp)
+      _elmt[i] -> mulX (p);
+}
+
+
 real AuxField::probe (const Element* E,
 		      const real     r,
 		      const real     s,
