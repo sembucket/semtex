@@ -53,7 +53,7 @@ public:
 
   // -- Size operators/information.
 
-  long getSize () const      { return num_elts; }
+  long getSize () const       { return num_elts; }
   void setSize (const long n) {
     if (n != num_elts) 
       {
@@ -68,7 +68,7 @@ private:
   T*   data;
   void copy (const vector<T>& src) {
     register long i;
-    for (i = 0; i < num_elts; i++) p[i] = q[i];
+    for (i = 0; i < num_elts; i++) data[i] = src.data[i];
   }
 };
 
