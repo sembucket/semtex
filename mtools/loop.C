@@ -1,23 +1,24 @@
 ///////////////////////////////////////////////////////////////////////////////
 // loop.C
 //
-// The Loop class is central to the mesh generation algorithm.  All Loops
-// are created by dividing a parent Loop into left and right subLoops,
-// hence it is natural to use a binary tree data structure as the
-// underlying paradigm.
+// The Loop class is central to the mesh generation algorithm.  All
+// new Loops are created by dividing a parent Loop into left and right
+// subLoops, hence it is natural to use a binary tree data structure
+// as the underlying paradigm.
 // 
 // Loops always have an even number of Nodes.  Loops are recursively
 // subdivided by a dividing-line strategy until they end up as either
-// 4-Noded or 6-Noded.  Each 6-Noded Loop is then split into two subLoops
-// of various sizes according to a set of rules enshrined in
+// 4-Noded or 6-Noded.  Each 6-Noded Loop is then split into two
+// subLoops of various sizes according to a set of rules enshrined in
 // Loop::splitSix: these subLoops are passed back to the recursion.
 // Finally all Loops are 4-Noded and the process terminates.
 //
-// Exceptions to this sequence occur for "offset" type boundary nodes, where
-// 4-Noded subLoops are created before the splitting line strategy is
-// employed, however the division process is the same as above in that
-// the 4-Noded subLoops are split off the parent Loop one at a time until
-// all offset Nodes are consumed.  This is a recursive process too.
+// Exceptions to this sequence occur for "offset" type boundary nodes,
+// where 4-Noded subLoops are created before the splitting line
+// strategy is employed, however the division process is the same as
+// above in that the 4-Noded subLoops are split off the parent Loop
+// one at a time until all offset Nodes are consumed.  This is a
+// recursive process too.
 // 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -28,19 +29,11 @@ RCSid[] = "$Id$";
 #include <qmesh.h>
 
 
-// -- Initialize static class members.
-
-int         Loop::node_id_max = 0;
-int         Loop::loop_id_max = 0;
-List<Node*> Loop::node_list;
-real        Loop::size = 1.0;
-
-
 static inline int CW  (const int i, const int n) { return (i + n - 1) % n; }
 static inline int CCW (const int i, const int n) { return (i     + 1) % n; }
 
 
-Loop::Loop () :
+Loop::Loop (const int& numnodes) :
  left  (0),
  right (0)
 // ---------------------------------------------------------------------------
@@ -48,9 +41,9 @@ Loop::Loop () :
 // and never destroyed.
 // ---------------------------------------------------------------------------
 {
-  id = ++loop_id_max;
+  id = ++Global::loopIdMax;
 
-  nodes    .setSize (0);
+  nodes    .setSize (numnodes);
   splitline.setSize (0);
 }
 
@@ -73,7 +66,7 @@ Loop::Loop (vector<Node*>& bound,
 // 5. Complete fill by installing Nodes from bound.
 // ---------------------------------------------------------------------------
 {
-  id = ++loop_id_max;
+  id = ++Global::loopIdMax;
 
   char routine[] = "Loop::Loop";
 
@@ -194,7 +187,7 @@ void Loop::split ()
   }
 
 #ifdef PROMPT
-  pause ();
+  qpause ();
 #endif
 
   if        (left  -> area() < EPSSP) {
@@ -290,10 +283,10 @@ void Loop::bestSplit (List<Node*>* visible,
 {
   char routine[] = "Loop::bestSplit";
 
-  const int N = nodes.getSize ();
+  const int N = nodes.getSize();
   int       i, best = 0;
   real      param = FLT_MAX;
-  real      reflength = lengthScale ();
+  real      reflength = Global::lengthScale();
 
   vector<real> SL     (N);	// -- Performance index for each split.
   vector<int>  End    (N);	// -- Matching end node index for start node.
@@ -450,7 +443,7 @@ void Loop::bestLine (List<Node*>& visible ,
 
     // -- the combined performance index, eq. (1).  Keep index of least SL.
 
-    SL = C1*theta + C2*L + C3*epsilon;
+    SL = Global::C1*theta + Global::C2*L + Global::C3*epsilon;
     
     if (SL < best) { best = SL; i = j; }
   }
@@ -461,126 +454,36 @@ void Loop::bestLine (List<Node*>& visible ,
 }
 
 
-real Loop::lengthScale () const
-// ---------------------------------------------------------------------------
-// Return a descriptive length scale for loop.
-// As a first hack, return hypotenuse of smallest spanning x-y rectangle.
-// ---------------------------------------------------------------------------
-{
-  Point Pmin, Pmax;
-
-  limits (Pmin, Pmax);
-
-  return hypot (Pmax.x - Pmin.x, Pmax.y - Pmin.y);
-}
-
-
 istream& operator >> (istream& s,
 		      Loop&    l)
 // ---------------------------------------------------------------------------
-// Read in first Loop from a stream.
+// Read in Loop from Node list in stream.
 //
-// Format/Example structure:
-// -- BOF --
-// NN boundary nodes        { NN gives number of following nodes.
-// 1  0.3  B  0.0 0.0       { Tag, prefsize, kind, x, y.
-// 2  0.4  B  1.0 0.0       { Allowed kinds: B <==> fixed location boundary.
-// ..                       {                O <==> fixed, but create offset.
-// NN 0.1  B  0.0 0.1       {                I <==> interior (moveable).
-//                          {
-// MM node loop             { MM gives number of following node tag numbers.
 // 1 2 3 4 5 ... NN ...     { Loop is assumed closed by return to start tag.
-// -- EOF --
 //
-// NN & MM specifiers must be on lines of their own, but input is
+// MM specifiers must be on lines of their own, but input is
 // otherwise free-format.
-//
-// Boundary node tags must be supplied in increasing order starting at 1,
-// increment 1.
-//
-// It is OK to specify nodes that are not used, but if there are no unused
-// nodes, one expects that MM >= NN.
 //
 // The first tag does not need to be re-specified at the end of the node loop
 // tag list: MM is the number of nodes in the loop not including the return
 // to the first node (e.g. a quad loop would have MM = 4, not 5).
-//
-// MM must be even.
 // ---------------------------------------------------------------------------
 {
   char  routine[] = "operator >> (istream&, Loop&)";
-  char  err[StrMax];
+  char                err[StrMax];
+  int                 i, id, npts, found;
+  register Node*      N;
+  ListIterator<Node*> n (Global::nodeList);
 
-  int            i, id, npts, found;
-  Point          pnt;
-  real           size;
-  char           kind;
-  register Node* N;
-
-  // -- Set up initial list of nodes.
-
-  s >> npts;
-  if (s.fail ()) {
-    sprintf (err, "problem reading initial number of nodes");
-    message (routine, err, ERROR);
-  }
+  npts = l.nodes.getSize ();
 
   for (i = 0; i < npts; i++) {
-    s >> id >> size >> kind >> pnt;
-
-    if (!s) {
-      sprintf (err, "problem reading point %1d", i+1);
-      message (routine, err, ERROR);
-    } else if (++l.node_id_max != id) {
-      sprintf (err, "node %1d specified out of order (%1d)", id,l.node_id_max);
-      message (routine, err, ERROR);
-    }
-
-    switch (toupper (kind)) {
-    case 'B':
-      N = new Node (id, pnt, size, Node::BOUNDARY);
-      break;
-    case 'I':
-      N = new Node (id, pnt, size, Node::INTERIOR);
-      break;
-    case 'O':
-      N = new Node (id, pnt, size, Node::OFFSET  );
-      break;
-    default:
-      sprintf (err, "read unknown Node kind specifier: %c", kind);
-      message (routine, err, ERROR);
-      break;
-    }
-    if (!l.exist (N, l.node_list))
-      l.node_list.add (N);
-    else {
-      sprintf (err, "Node %1d has already allocated, check input", N->ID());
-      message (routine, err, ERROR);
-    }
-  }
-
-  // -- Set up initial loop.
-
-  s >> npts;
-  if (s.fail ()) {
-    sprintf (err, "problem reading number of nodes in initial loop");
-    message (routine, err, ERROR);
-  } else if (npts & 1) {
-    sprintf (err, "initial loop has odd number of points: %1d", npts);
-    message (routine, err, WARNING);
-  }
-
-  l.nodes.setSize (npts);
-
-  for (i = 0; i < npts; i++) {
-    s >> id;
-    if (s.fail ()) {
+    if (!(s >> id)) {
       sprintf (err, "problem reading tag for loop node %1d", i);
       message (routine, err, ERROR);
     }
-
-    found = 0;
-    for (ListIterator<Node*> n (l.node_list); !found && n.more(); n.next()) {
+    
+    for (found = 0, n.reset(); !found && n.more(); n.next()) {
       N = n.current();
       found = N -> ID() == id;
     }
@@ -591,8 +494,6 @@ istream& operator >> (istream& s,
     } else
       l.nodes[i] = N;
   }
-
-  size = l.lengthScale ();
 
   return s;
 }
@@ -616,34 +517,6 @@ ostream& operator << (ostream& s,
   if (l.right) s << *(l.right);
   
   return s;
-}
-
-
-void Loop::limits (Point& Pmin,
-		   Point& Pmax) const
-// ---------------------------------------------------------------------------
-// Get x & y limits for this loop.
-// ---------------------------------------------------------------------------
-{
-  register int i;
-  const int    N = nodes.getSize (); 
-
-  real X, Y, xmin, ymin, xmax, ymax;
-
-  xmin = ymin =  FLT_MAX;
-  xmax = ymax = -FLT_MAX;
-
-  for (i = 0; i < N; i++) {
-    X = nodes[i] -> pos () . x;
-    Y = nodes[i] -> pos () . y;
-    if      (X < xmin) xmin = X;
-    else if (X > xmax) xmax = X;
-    if      (Y < ymin) ymin = Y;
-    else if (Y > ymax) ymax = Y;
-  }
-
-  Pmin.x = xmin;  Pmin.y = ymin;
-  Pmax.x = xmax;  Pmax.y = ymax;
 }
 
 
@@ -724,7 +597,7 @@ real Loop::spaceNodes (const Node*    begin   ,
   else                                            { N1 = end;   N2 = begin; }
 
   const real b = N1 -> prefSize ();
-  const int  M = (int) (refcoeff * (real) insertN);
+  const int  M = (int) (Global::refCoeff * (real) insertN);
 
   real idealLength   = 0;
   real idealGradient = (N2 -> prefSize() - N1 -> prefSize()) / (insertN - M);
@@ -767,7 +640,7 @@ void Loop::insertNodes (const Node* begin  ,
   else                                            { N1 = end;   N2 = begin; }
 
   const real b = N1 -> prefSize();
-  const int  M = (int) (refcoeff * (real) insertN);
+  const int  M = (int) (Global::refCoeff * (real) insertN);
   Point      P, D = N2 -> pos() - N1 -> pos();
 
   idealGradient = (N2 -> prefSize() - N1 -> prefSize()) / (insertN - M);
@@ -785,17 +658,17 @@ void Loop::insertNodes (const Node* begin  ,
     sumlen += spacing[i];
     propn   = sumlen / idealLength ;
     P = N1 -> pos() + propn * D;
-    newNode = new Node (++node_id_max, P, 0.5*(spacing[i] + spacing[i+1]));
-    if (oldNode = exist (newNode, node_list)) {
+    newNode = new Node (++Global::nodeIdMax, P, 0.5*(spacing[i]+spacing[i+1]));
+    if (oldNode = Global::exist (newNode)) {
       delete newNode;
-      node_id_max--;
+      Global::nodeIdMax--;
       newNode = oldNode;
     }
     if (N1 == begin)
       splitline[i] = newNode;
     else
       splitline[insertN - i - 1] = newNode;
-    node_list.add (newNode);
+    Global::nodeList.add (newNode);
   }
 }
 
@@ -825,7 +698,7 @@ void Loop::splitSix (int& begin, int& end)
 // For all cases where new Nodes are created, their ideal mesh size is
 // set as the size of the Loop.
 //
-// The code is dealing with a bunch of special cases, so it's fairly hideous.
+// The code deals with a bunch of special cases, so it's fairly hideous.
 // ---------------------------------------------------------------------------
 {
   char         routine[] = "Loop::splitSix";
@@ -860,9 +733,10 @@ void Loop::splitSix (int& begin, int& end)
 
   // -- All inputs guaranteed convex from now on.
 
-  limits (P1, P2);
+  Global::limits (P1, P2);
   const real psize = 0.5 * P2.distance (P1);
   Node       *oldNode, *newNode;
+  int        nodd, nsum;
 
   switch (n180) {
 
@@ -926,13 +800,13 @@ void Loop::splitSix (int& begin, int& end)
 
       P2 = P1 + d3 / d2 * D1;
 
-      newNode = new Node (++node_id_max, P2, psize);
-      if (oldNode = exist (newNode, node_list)) {
+      newNode = new Node (++Global::nodeIdMax, P2, psize);
+      if (oldNode = Global::exist (newNode)) {
 	delete newNode;
-	node_id_max--;
+	Global::nodeIdMax--;
 	newNode = oldNode;
       } else 
-	node_list.add (newNode);	
+	Global::nodeList.add (newNode);	
       
       splitline[0] = newNode;
       
@@ -941,13 +815,13 @@ void Loop::splitSix (int& begin, int& end)
 
       P2 = P1 + d3 / d2 * D1;
 
-      newNode = new Node (++node_id_max, P2, psize);
-      if (oldNode = exist (newNode, node_list)) {
+      newNode = new Node (++Global::nodeIdMax, P2, psize);
+      if (oldNode = Global::exist (newNode)) {
 	delete newNode;
-	node_id_max--;
+	Global::nodeIdMax--;
 	newNode = oldNode;
       } else 
-	node_list.add (newNode);
+	Global::nodeList.add (newNode);
       splitline[1] = newNode;
       
       begin = i5;
@@ -962,13 +836,13 @@ void Loop::splitSix (int& begin, int& end)
       P *= 0.25;
 
       splitline.setSize (1);
-      newNode = new Node (++node_id_max, P, psize);
-      if (oldNode = exist (newNode, node_list)) {
+      newNode = new Node (++Global::nodeIdMax, P, psize);
+      if (oldNode = Global::exist (newNode)) {
 	delete newNode;
-	node_id_max--;
+	Global::nodeIdMax--;
 	newNode = oldNode;
       } else 
-	node_list.add (newNode);
+	Global::nodeList.add (newNode);
       splitline[0] = newNode;
 
       begin = i6;
@@ -989,13 +863,13 @@ void Loop::splitSix (int& begin, int& end)
       P *= 0.25;
 
       splitline.setSize (1);
-      newNode = new Node (++node_id_max, P, psize);
-      if (oldNode = exist (newNode, node_list)) {
+      newNode = new Node (++Global::nodeIdMax, P, psize);
+      if (oldNode = Global::exist (newNode)) {
 	delete newNode;
-	node_id_max--;
+	Global::nodeIdMax--;
 	newNode = oldNode;
       } else 
-	node_list.add (newNode);
+	Global::nodeList.add (newNode);
       splitline[0] = newNode;
 
       begin = i5;
@@ -1027,13 +901,13 @@ void Loop::splitSix (int& begin, int& end)
 
       P2 = P1 + d3 / d2 * D1;
 
-      newNode = new Node (++node_id_max, P2, psize);
-      if (oldNode = exist (newNode, node_list)) {
+      newNode = new Node (++Global::nodeIdMax, P2, psize);
+      if (oldNode = Global::exist (newNode)) {
 	delete newNode;
-	node_id_max--;
+	Global::nodeIdMax--;
 	newNode = oldNode;
       } else 
-	node_list.add (newNode);	
+	Global::nodeList.add (newNode);	
     
       splitline[0] = newNode;
 
@@ -1042,13 +916,13 @@ void Loop::splitSix (int& begin, int& end)
 
       P2 = P1 + d3 / d2 * D1;
 
-      newNode = new Node (++node_id_max, P2, psize);
-      if (oldNode = exist (newNode, node_list)) {
+      newNode = new Node (++Global::nodeIdMax, P2, psize);
+      if (oldNode = Global::exist (newNode)) {
 	delete newNode;
-	node_id_max--;
+	Global::nodeIdMax--;
 	newNode = oldNode;
       } else 
-	node_list.add (newNode);	
+	Global::nodeList.add (newNode);	
   
       splitline[1] = newNode;
 
@@ -1070,7 +944,8 @@ void Loop::splitSix (int& begin, int& end)
     //    consecutive 180-degree interior angles (1, 2, or 3).
     //    We can pick between these on basis of index180.
     
-    int nsum = 0, nodd = 0;
+    nsum = 0;
+    nodd = 0;
     for (i1 = 0; i1 < 3; i1++) {
       nodd += (index180[i1] & 1) ? 1 : 0;
       nsum +=  index180[i1];
@@ -1088,13 +963,13 @@ void Loop::splitSix (int& begin, int& end)
       P *= 0.3333333333333;
         
       splitline.setSize (1);
-      newNode = new Node (++node_id_max, P, psize);
-      if (oldNode = exist (newNode, node_list)) {
+      newNode = new Node (++Global::nodeIdMax, P, psize);
+      if (oldNode = Global::exist (newNode)) {
 	delete newNode;
-	node_id_max--;
+	Global::nodeIdMax--;
 	newNode = oldNode;
       } else 
-	node_list.add (newNode);
+	Global::nodeList.add (newNode);
       splitline[0] = newNode;
 
       begin = index180[0];
@@ -1162,31 +1037,31 @@ void Loop::splitSix (int& begin, int& end)
       D2 = P2 + 0.66666666666 * (D3 - P2);
       D3 =      0.33333333333 * (D1 + D2 + nodes[i4] -> pos());
 
-      newNode = new Node (++node_id_max, D1, psize);
-      if (oldNode = exist (newNode, node_list)) {
+      newNode = new Node (++Global::nodeIdMax, D1, psize);
+      if (oldNode = Global::exist (newNode)) {
 	delete newNode;
-	node_id_max--;
+	Global::nodeIdMax--;
 	newNode = oldNode;
       } else 
-	node_list.add (newNode);	
+	Global::nodeList.add (newNode);	
       splitline[0] = newNode;
 
-      newNode = new Node (++node_id_max, D3, psize);
-      if (oldNode = exist (newNode, node_list)) {
+      newNode = new Node (++Global::nodeIdMax, D3, psize);
+      if (oldNode = Global::exist (newNode)) {
 	delete newNode;
-	node_id_max--;
+	Global::nodeIdMax--;
 	newNode = oldNode;
       } else 
-	node_list.add (newNode);	
+	Global::nodeList.add (newNode);	
       splitline[1] = newNode;
 
-      newNode = new Node (++node_id_max, D2, psize);
-      if (oldNode = exist (newNode, node_list)) {
+      newNode = new Node (++Global::nodeIdMax, D2, psize);
+      if (oldNode = Global::exist (newNode)) {
 	delete newNode;
-	node_id_max--;
+	Global::nodeIdMax--;
 	newNode = oldNode;
       } else 
-	node_list.add (newNode);
+	Global::nodeList.add (newNode);
       splitline[2] = newNode;
 
       begin = i1;
@@ -1214,7 +1089,7 @@ void Loop::connect ()
     register Node*      N;
     register Node*      N1;
     register Node*      N2;
-    ListIterator<Node*> n (node_list);
+    ListIterator<Node*> n (Global::nodeList);
     
     for (i = 0; i < 4; i++) {
       N1 = nodes[i];
@@ -1244,7 +1119,7 @@ void Loop::smooth ()
 // centroid of connected Nodes.
 // ---------------------------------------------------------------------------
 {
-  ListIterator<Node*> n (node_list);
+  ListIterator<Node*> n (Global::nodeList);
   register Node*      N;
   Point               cen;
 
@@ -1267,6 +1142,28 @@ void Loop::drawQuad (const int& numbers) const
 
   if (left)  left  -> drawQuad (numbers);
   if (right) right -> drawQuad (numbers);
+}
+
+
+void Loop::quads (List<Quad*>& elements) const
+// ---------------------------------------------------------------------------
+// Load 4-noded loops into elements.  We could just point to the nodes
+// vector for each 4-noded loop, but this way, elements is subsequently
+// completely independent of the Loop tree.
+// ---------------------------------------------------------------------------
+{
+  int       i;
+  Quad*     E;
+  const int N = nodes.getSize ();
+
+  if (N == 4) {
+    E = new Quad;
+    for (i = 0; i < 4; i++) E -> vertex[i] = nodes[i];
+    elements.add (E);
+  }
+
+  if (left)  left  -> quads (elements);
+  if (right) right -> quads (elements);
 }
 
 
@@ -1370,13 +1267,13 @@ void Loop::offset ()
 	if (Nj -> interior ()) {
 	  splitline.setSize (1);
 	  P  = Np -> pos().relative (Nq -> pos(), Np -> prefSize(), 0.5*anglB);
-	  newNode = new Node (++node_id_max, P, Np -> prefSize ());
-	  if (oldNode = exist (newNode, node_list)) {
+	  newNode = new Node (++Global::nodeIdMax, P, Np -> prefSize ());
+	  if (oldNode = Global::exist (newNode)) {
 	    delete newNode;
-	    node_id_max--;
+	    Global::nodeIdMax--;
 	    newNode = oldNode;
 	  } else 
-	    node_list.add (newNode);
+	    Global::nodeList.add (newNode);
 	  splitline[0] = newNode;
 
 	  left  = new Loop (nodes, splitline, CW (i, N), CCW (i, N), 1);
@@ -1386,22 +1283,22 @@ void Loop::offset ()
 	  P1 = Ni -> pos().relative (Np -> pos(), Ni -> prefSize(), 0.5*anglA);
 	  P2 = Np -> pos().relative (Nq -> pos(), Np -> prefSize(), 0.5*anglB);
 
-	  newNode = new Node (++node_id_max, P2, Np -> prefSize ());
-	  if (oldNode = exist (newNode, node_list)) {
+	  newNode = new Node (++Global::nodeIdMax, P2, Np -> prefSize ());
+	  if (oldNode = Global::exist (newNode)) {
 	    delete newNode;
-	    node_id_max--;
+	    Global::nodeIdMax--;
 	    newNode = oldNode;
 	  } else 
-	    node_list.add (newNode);
+	    Global::nodeList.add (newNode);
 	  splitline[0] = newNode;
 
-	  newNode = new Node (++node_id_max, P1, Ni -> prefSize ());
-	  if (oldNode = exist (newNode, node_list)) {
+	  newNode = new Node (++Global::nodeIdMax, P1, Ni -> prefSize ());
+	  if (oldNode = Global::exist (newNode)) {
 	    delete newNode;
-	    node_id_max--;
+	    Global::nodeIdMax--;
 	    newNode = oldNode;
 	  } else 
-	    node_list.add (newNode);
+	    Global::nodeList.add (newNode);
 	  splitline[1] = newNode;
 
 	  left  = new Loop (nodes, splitline, i, CCW (i, N), 1);
@@ -1415,26 +1312,26 @@ void Loop::offset ()
 	P1 = Np -> pos() - Nq -> pos();
 	P2 = Np -> pos() - Ni -> pos();
 	P  = Np -> pos() + (P1 + P2);
-	newNode = new Node (++node_id_max, P, Np -> prefSize());
-	if (oldNode = exist (newNode, node_list)) {
+	newNode = new Node (++Global::nodeIdMax, P, Np -> prefSize());
+	if (oldNode = Global::exist (newNode)) {
 	  delete newNode;
-	  node_id_max--;
+	  Global::nodeIdMax--;
 	  newNode = oldNode;
 	} else 
-	  node_list.add (newNode);
+	  Global::nodeList.add (newNode);
 	splitline[0] = newNode;
 
 	P1 = Ni -> pos() - Np -> pos();
 	P2 = Ni -> pos() - Nj -> pos();
 	P  = Ni -> pos() + (P1 + P2);
 
-	newNode = new Node (++node_id_max, P, Ni -> prefSize());
-	if (oldNode = exist (newNode, node_list)) {
+	newNode = new Node (++Global::nodeIdMax, P, Ni -> prefSize());
+	if (oldNode = Global::exist (newNode)) {
 	  delete newNode;
-	  node_id_max--;
+	  Global::nodeIdMax--;
 	  newNode = oldNode;
 	} else 
-	  node_list.add (newNode);
+	  Global::nodeList.add (newNode);
 	splitline[1] = newNode;
 
 	left  = new Loop (nodes, splitline, i, CCW (i, N), 1);
@@ -1448,13 +1345,13 @@ void Loop::offset ()
 	P2 = Nq -> pos() - Np -> pos();
 	P  = Np -> pos() + (P1 + P2);
 
-	newNode = new Node (++node_id_max, P, Np -> prefSize());
-	if (oldNode = exist (newNode, node_list)) {
+	newNode = new Node (++Global::nodeIdMax, P, Np -> prefSize());
+	if (oldNode = Global::exist (newNode)) {
 	  delete newNode;
-	  node_id_max--;
+	  Global::nodeIdMax--;
 	  newNode = oldNode;
 	} else 
-	  node_list.add (newNode);
+	  Global::nodeList.add (newNode);
 	splitline[0] = newNode;
 
 	left  = new Loop (nodes, splitline, i, CCW (CCW (i, N), N), 1);
@@ -1473,13 +1370,13 @@ void Loop::offset ()
 	  P  = Ni -> pos() + (P1 + P2);
 	}
 
-	newNode = new Node (++node_id_max, P, Ni -> prefSize());
-	if (oldNode = exist (newNode, node_list)) {
+	newNode = new Node (++Global::nodeIdMax, P, Ni -> prefSize());
+	if (oldNode = Global::exist (newNode)) {
 	  delete newNode;
-	  node_id_max--;
+	  Global::nodeIdMax--;
 	  newNode = oldNode;
 	} else 
-	  node_list.add (newNode);
+	  Global::nodeList.add (newNode);
 	splitline[0] = newNode;
 
 	left  = new Loop (nodes, splitline, CW (i, N), CCW (i, N), 1);
@@ -1494,25 +1391,25 @@ void Loop::offset ()
 	P2 = Np -> pos() - Ni -> pos();
 	P  = Np -> pos() + (P1 + P2);
 	
-	newNode = new Node (++node_id_max, P, Np -> prefSize());
-	if (oldNode = exist (newNode, node_list)) {
+	newNode = new Node (++Global::nodeIdMax, P, Np -> prefSize());
+	if (oldNode = Global::exist (newNode)) {
 	  delete newNode;
-	  node_id_max--;
+	  Global::nodeIdMax--;
 	  newNode = oldNode;
 	} else 
-	  node_list.add (newNode);
+	  Global::nodeList.add (newNode);
 
 	splitline[0] = newNode;
 
 	P  = Ni -> pos().relative (Np -> pos(), Ni -> prefSize(), 0.5 * anglA);
 
-	newNode = new Node (++node_id_max, P, Ni -> prefSize());
-	if (oldNode = exist (newNode, node_list)) {
+	newNode = new Node (++Global::nodeIdMax, P, Ni -> prefSize());
+	if (oldNode = Global::exist (newNode)) {
 	  delete newNode;
-	  node_id_max--;
+	  Global::nodeIdMax--;
 	  newNode = oldNode;
 	} else 
-	  node_list.add (newNode);
+	  Global::nodeList.add (newNode);
 
 	splitline[1] = newNode;
 
@@ -1525,26 +1422,26 @@ void Loop::offset ()
 	splitline.setSize (2);
 	P  = Np -> pos().relative (Nq -> pos(), Nq -> prefSize(), 0.5 * anglB);
 
-	newNode = new Node (++node_id_max, P, Ni -> prefSize());
- 	if (oldNode = exist (newNode, node_list)) {
+	newNode = new Node (++Global::nodeIdMax, P, Ni -> prefSize());
+ 	if (oldNode = Global::exist (newNode)) {
 	  delete newNode;
-	  node_id_max--;
+	  Global::nodeIdMax--;
 	  newNode = oldNode;
 	} else 
-	  node_list.add (newNode);
+	  Global::nodeList.add (newNode);
 	splitline[0] = newNode;
 
 	P1 = Ni -> pos() - Nj -> pos();
 	P2 = Ni -> pos() - Np -> pos();
 	P  = Ni -> pos() + (P1 + P2);
 
-	newNode = new Node (++node_id_max, P, Ni -> prefSize());
-	if (oldNode = exist (newNode, node_list)) {
+	newNode = new Node (++Global::nodeIdMax, P, Ni -> prefSize());
+	if (oldNode = Global::exist (newNode)) {
 	  delete newNode;
-	  node_id_max--;
+	  Global::nodeIdMax--;
 	  newNode = oldNode;
 	} else 
-	  node_list.add (newNode);
+	  Global::nodeList.add (newNode);
 	splitline[1] = newNode;
 
 	left  = new Loop (nodes, splitline, i, CCW (i, N), 1);
@@ -1558,13 +1455,13 @@ void Loop::offset ()
 	P2 = Np -> pos() - Ni -> pos();
 	P  = Np -> pos() + (P1 + P2);
 
-	newNode = new Node (++node_id_max, P, Np -> prefSize());
-	if (oldNode = exist (newNode, node_list)) {
+	newNode = new Node (++Global::nodeIdMax, P, Np -> prefSize());
+	if (oldNode = Global::exist (newNode)) {
 	  delete newNode;
-	  node_id_max--;
+	  Global::nodeIdMax--;
 	  newNode = oldNode;
 	} else 
-	  node_list.add (newNode);
+	  Global::nodeList.add (newNode);
 	splitline[0] = newNode;
 
 	left  = new Loop (nodes, splitline, CW (i, N), CCW (i, N), 1);
@@ -1578,13 +1475,13 @@ void Loop::offset ()
 	P2 = Ni -> pos() - Np -> pos();
 	P  = Ni -> pos() + (P1 + P2);
 
-	newNode = new Node (++node_id_max, P, Ni -> prefSize());
-	if (oldNode = exist (newNode, node_list)) {
+	newNode = new Node (++Global::nodeIdMax, P, Ni -> prefSize());
+	if (oldNode = Global::exist (newNode)) {
 	  delete newNode;
-	  node_id_max--;
+	  Global::nodeIdMax--;
 	  newNode = oldNode;
 	} else 
-	  node_list.add (newNode); 
+	  Global::nodeList.add (newNode); 
 	splitline[0] = newNode;
 
 	left  = new Loop (nodes, splitline, i, CCW (CCW (i, N), N), 1);
@@ -1599,45 +1496,18 @@ void Loop::offset ()
 }
 
 
-Node* Loop::exist (const Node*  N,
-		   List<Node*>& L) const
-// ---------------------------------------------------------------------------
-// Check if a Node corresponding to N has already been created.
-// Return 1 if it has, else zero.
-// ---------------------------------------------------------------------------
-{
-  char           err[StrMax], routine[] = "Loop::exist";
-  int            found = 0;
-  register Node* oldNode;
-  const Point    P = N -> pos();
-  const real     TOL = 0.001;
-
-  for (ListIterator<Node*> n (L); !found && n.more(); n.next()) {
-    oldNode = n.current();
-    found   = oldNode -> pos().distance (P) / size < TOL;
-  }
-
-  if (found) {
-    sprintf (err, "position for Node %1d exists, deleting", N -> ID());
-    message (routine, err, WARNING);
-    return oldNode;
-  }
-  
-  return 0;
-}
-
-
 void Loop::printMesh (ostream& s) const
 // ---------------------------------------------------------------------------
 // Print up list of Nodes and 4-noded Loops (elements) on s.
 // ---------------------------------------------------------------------------
 {
-  int   num;
-  Node* start;
+  int                 num;
+  Node*               start;
+  ListIterator<Node*> n (Global::nodeList);
 
   s << "Mesh {" << endl;
-  s << node_list.length() << "  Vertices" << endl;
-  for (ListIterator<Node*> n(node_list); n.more(); n.next())
+  s << Global::nodeList.length() << "  Vertices" << endl;
+  for (n .reset(); n.more(); n.next())
     s << *(n.current()) << setw (10) << 0.0 << endl;
 
   num = 0;
