@@ -294,6 +294,7 @@ AuxField& AuxField::gradient (const integer dir)
   register integer    i, k;
   const real          **DV, **DT;
   static const real   beta = Femlib::value ("BETA");
+  static const int    twoD = (Geometry::nDim()) == 2;
   
   Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
 
@@ -339,7 +340,9 @@ AuxField& AuxField::gradient (const integer dir)
     xr = work();
     xs = xr + nP;
 
-    if (_nz == 1)		// -- Half-complex (may need sign change).
+    if (twoD)			// -- Three component, two-dimensional.
+      Veclib::zero (nP, _plane[0], 1);
+    else if (_nz == 1)          // -- Half-complex (may need sign change).
       Blas::scal (nP, beta, _plane[0], 1);
     else {			// -- Full-complex.
       Veclib::copy (nP,        _plane[0], 1, xr,        1);
@@ -744,7 +747,7 @@ void AuxField::couple (AuxField*     v  ,
 // half-complex case, where v~, w~ are both pure real.
 // ---------------------------------------------------------------------------
 {
-  if (Geometry::nPert() < 3) return;
+  if (Geometry::nDim() < 3) return;
 
   const char    routine[] = "Field::couple";
   const integer nP        =  Geometry::planeSize();

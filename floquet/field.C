@@ -1001,7 +1001,7 @@ void Field::coupleBCs (Field*        v  ,
 // equation, do nothing for the zeroth Fourier mode.
 // ---------------------------------------------------------------------------
 {
-  if (Geometry::nPert() < 3) return;
+  if (Geometry::nDim() < 3) return;
 
   const char    routine[] = "Field::couple";
   const integer nL        =  v -> _nline;
@@ -1076,7 +1076,7 @@ real Field::modeConstant (const char    name,
 // the "Fourier" constant in the Helmholtz equations is +/-1.
 // ---------------------------------------------------------------------------
 {
-  if (Geometry::nPert()   <          3          ||
+  if (Geometry::nDim()    <          3          ||
       Geometry::system() == Geometry::Cartesian || 
       name               ==         'c'         ||
       name               ==         'p'         ||

@@ -1,10 +1,10 @@
 Synopsis
 --------
 
-This version of semtex is specialised for linear stability and Floquet
-analysis, which implies a number of restrictions not present in the
-basic code.  The stability analysis code derives from the
-Barkley/Henderson floK code.
+This version of semtex is specialised for linearised steady and
+Floquet stability analysis, which implies a number of restrictions not
+present in the basic semtex package.  The stability analysis code
+derives from the Barkley/Henderson floK code.
 
 Copyright (C) 1999, 2002 Hugh Blackburn.
 
@@ -13,7 +13,7 @@ semtex/dns: it evolves the linearised Navier--Stokes equations.
 Arnoldi is the actual analysis code, which carries out eigensolution
 of the stability problem.  The time integration routines required to
 evolve the linearised Navier--Stokes equations are identical for the
-two codes.  Typically one would use lns to evolve an initially random
+two codes.  Typically one might use lns to evolve an initially random
 perturbation to an exponential growth or decay phase, then apply
 arnoldi to estimate the leading Ritz eigenvalues and vectors of the
 flow.
@@ -43,8 +43,8 @@ time.
 The "perturbation field" can be regarded as a Fourier mode, and dealt
 with always in Fourier-transformed space. It is possible for the
 perturbation field to be two-component and two-dimensional, otherwise
-it is three-component (and three-dimensional).  If the base flow is
-two-component (i.e. U & V only), and the perturbation is
+it is three-component (and two- or three-dimensional).  If the base
+flow is two-component (i.e. U & V only), and the perturbation is
 three-component, there exists a special decomposition of the
 perturbation field into two decoupled parts, and it suffices to study
 the behaviour of one of the parts only.  Under this decomposition the
@@ -69,12 +69,9 @@ Summary of number of velocity components
 N_BASE  N_PERT  N_Z    COMPLEXITY
  2       2       1     Real only:     u.Re v.Re      p.Re
  2       3       1     Half-complex:  u.Re v.Re w.Im p.Re
+ 3       3       1     Real only:     u.Re v.Re w.Re p.Re (under construction)
  3       3       2     Full-complex
- 3       2       -     -
-
-Note: the case where N_BASE = N_PERT = 3 and N_Z = 1 (e.g. a 2D,
-3-component axisymmetric perturbation on a 2D, 3-component swirling
-flow) needs to be dealt with too.
+ 3       2       -     N/A
 
 Summary of additional TOKENS and session file requirements
 ----------------------------------------------------------

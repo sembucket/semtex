@@ -39,7 +39,7 @@ void Geometry::set (const int nel  ,
 // analysis, this version is written for serial execution.
 // ---------------------------------------------------------------------------
 {
-  static char routine[] = "Geometry::set", err[StrMax];
+  static char routine[] = "Geometry::set";
 
   _pid       = static_cast<integer>(Femlib::value ("I_PROC"));
   _nproc     = static_cast<integer>(Femlib::value ("N_PROC"));
@@ -52,8 +52,14 @@ void Geometry::set (const int nel  ,
   _npert     = npert;
   _nel       = nel;
   _psize     = nPlane();
+#if 1
+  _nz = _nzp = static_cast<integer>(Femlib::value ("N_Z"));
+#else
   _nz = _nzp = (_nbase == 3 && _npert == 3) ? 2 : 1;
+#endif
 
+  _ndim = (_nbase == _npert && _nz == 1) ? 2 : 3;
+  
   // -- Sanity checks.
 
   if (_nproc > 1)

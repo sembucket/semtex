@@ -330,7 +330,7 @@ static MatrixSys** preSolve (const Domain* D)
 // Set up ModalMatrixSystems for system with only 1 Fourier mode.
 // ---------------------------------------------------------------------------
 {
-  const integer mode  = (NPERT < 3) ? 0 : 1;
+  const integer mode  = (Geometry::nDim() == 2) ? 0 : 1;
   const real    beta  = mode * Femlib::value ("BETA");
   const integer itLev = static_cast<integer>(Femlib::value ("ITERATIVE"));
 
@@ -427,7 +427,7 @@ static void Solve (Domain*       D,
 
     // -- We need a temporary matrix system for a viscous solve.
 
-    const integer mode = (NPERT < 3) ? 0 : 1;
+    const integer mode = (Geometry::nDim() == 2) ? 0 : 1;
     const integer beta = mode * static_cast<integer>(Femlib::value ("BETA"));
     const integer Je   = min (step, NORD);    
     vector<real>  alpha (Je + 1);
