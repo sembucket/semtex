@@ -1,17 +1,44 @@
-moden 1	# Plot Modal energies
-	DATA $1
-	READ { t 1 m 2 e 3 }
-	SET le = lg(e)
-	LIMITS t le
-	NOTATION -5 5 1 1
-	TICKSIZE 0 0 -1 0
-	LOCATION 5000 31000 5000 31000
-	EXPAND 1.1
-	BOX
-	POINTS t le
-	XLABEL \it t
-	YLABEL \it E_k
-	EXPAND 1.0
+moden 1		# Plot Modal energies
+		DATA $1
+		READ { t 1 m 2 e 3 }
+		SET le = lg(e)
+		LIMITS t le
+		NOTATION -5 5 1 1
+		TICKSIZE 0 0 -1 0
+		LOCATION 5000 31000 5000 31000
+		EXPAND 1.1
+		BOX
+		POINTS t le
+		XLABEL \it t
+		YLABEL \it E_k
+		EXPAND 1.0
+modav 12	# Average & plot modal energies
+		# usage: modav filename nmodes
+		DATA $1
+		READ { t 1 k 2 ek 3 }
+		DEFINE _nmode $2
+		DEFINE _ndata (dimen (ek))
+		DEFINE _navg  ($_ndata / $_nmode)
+		SET ki = 0, ($_nmode - 1), 1
+		SET DIMEN(_avg) = $_nmode
+		DO i=0,($_navg - 1) {
+		  DO j=0,($_nmode - 1) {
+		  SET _avg[$j] = _avg[$j] + ek[($i * $_nmode + $j)]
+		  }
+		}
+		SET _avg  = _avg / $_navg
+		SET _lavg = LG(_avg)
+		SET ki    = ki + 0.000001
+		NOTATION -5 5 1 1
+		TICKSIZE 0 0 -1 0
+		EXPAND 1.7
+		PTYPE 4 1
+		LOCATION 5000 31000 5000 31000
+		LIMITS ki _lavg
+		BOX
+		XLABEL \i k
+		YLABEL \i E(k)
+		POINTS ki _lavg
 
 
 	
