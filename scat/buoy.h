@@ -13,7 +13,7 @@ class BuoyAnalyser : public Analyser
 // ===========================================================================
 {
 public:
-  BuoyAnalyser (Domain&, FEML&);
+  BuoyAnalyser (Domain*, FEML*);
   void analyse (AuxField***);
 
 private:

@@ -9,11 +9,12 @@ RCSid[] = "$Id$";
 #include <buoy.h>
 
 
-BuoyAnalyser::BuoyAnalyser (Domain& D   ,
-			    FEML&   feml) : Analyser (D, feml)
+BuoyAnalyser::BuoyAnalyser (Domain* D   ,
+			    FEML*   feml) :
 // ---------------------------------------------------------------------------
 // Extensions to Analyser class.
 // ---------------------------------------------------------------------------
+  Analyser (D, feml)
 {
   ROOTONLY {
     const char routine[] = "BuoyAnalyser::BuoyAnalyser";
@@ -21,7 +22,7 @@ BuoyAnalyser::BuoyAnalyser (Domain& D   ,
 
     // -- Open state-variable file.
 
-    flx_strm.open (strcat (strcpy (str, src.name), ".flx"));
+    flx_strm.open (strcat (strcpy (str, src -> name), ".flx"));
     if (!flx_strm) message (routine, "can't open flux file",  ERROR);
 
     flx_strm << "# Buoy state information file"          << endl;
@@ -41,9 +42,9 @@ void BuoyAnalyser::analyse (AuxField*** work)
   Analyser::analyse (work);
 
   ROOTONLY {
-    const integer periodic = !(src.step % (integer)Femlib::value ("IO_HIS")) ||
-                             !(src.step % (integer)Femlib::value ("IO_FLD"));
-    const integer final    =   src.step ==(integer)Femlib::value ("N_STEP");
+    const integer periodic = !(src->step% (integer)Femlib::value ("IO_HIS")) ||
+                             !(src->step% (integer)Femlib::value ("IO_FLD"));
+    const integer final    =   src->step==(integer)Femlib::value ("N_STEP");
     const integer state    = periodic || final;
 
     if (!state) return;
@@ -52,16 +53,16 @@ void BuoyAnalyser::analyse (AuxField*** work)
     Vector pfor, vfor, tfor;
     char   s[StrMax];
 
-    flux   = Field::flux            (src.u[DIM]);
-    pfor   = Field::normalTraction  (src.u[DIM + 1]);
-    vfor   = Field::tangentTraction (src.u[0], src.u[1]);
+    flux   = Field::flux            (src -> u[DIM]);
+    pfor   = Field::normalTraction  (src -> u[DIM + 1]);
+    vfor   = Field::tangentTraction (src -> u[0], src-> u[1]);
     tfor.x = pfor.x + vfor.x;
     tfor.y = pfor.y + vfor.y;
 
     sprintf (s,
 	     "%#6d %#10.6g %#10.6g "
 	     "%#10.6g %#10.6g %#10.6g %#10.6g %#10.6g %#10.6g",
-	     src.step, src.time, flux  ,
+	     src -> step, src -> time, flux  ,
 	     pfor.x,   vfor.x,   tfor.x,
 	     pfor.y,   vfor.y,   tfor.y);
 

@@ -14,18 +14,16 @@ RCSid[] = "$Id$";
 
 #include <buoy.h>
 
-typedef ModalMatrixSystem ModeSys;
-static  integer           DIM;
+typedef ModalMatrixSys Msys;
+static  integer        DIM;
 
-static void  nonLinear (Domain*, AuxField***, AuxField***);
-static void  buoyancy  (Domain*, AuxField***, AuxField***, vector<real>&);
-static void  waveProp  (Domain*, const AuxField***, const AuxField***);
-static void  setPForce (const AuxField***, AuxField***);
-static void  project   (const Domain*, AuxField***, AuxField***);
-
-static ModeSys** preSolve (const Domain*);
-static void      Solve    (Field*, AuxField*, ModeSys*,
-			   const integer, const integer);
+static void   nonLinear (Domain*, AuxField***, AuxField***);
+static void   buoyancy  (Domain*, AuxField***, AuxField***, vector<real>&);
+static void   waveProp  (Domain*, const AuxField***, const AuxField***);
+static void   setPForce (const AuxField***, AuxField***);
+static void   project   (const Domain*, AuxField***, AuxField***);
+static Msys** preSolve  (const Domain*);
+static void   Solve     (Field*, AuxField*, Msys*,const integer,const integer);
 
 
 void NavierStokes (Domain*       D,
@@ -59,7 +57,7 @@ void NavierStokes (Domain*       D,
 
   // -- Create global matrix systems.
 
-  ModeSys** MMS = preSolve (D);
+  Msys** MMS = preSolve (D);
 
   // -- Create & initialize multi-level storage for velocities and forcing.
 
@@ -70,8 +68,8 @@ void NavierStokes (Domain*       D,
     Us[i] = new AuxField* [(size_t) nOrder];
     Uf[i] = new AuxField* [(size_t) nOrder];
     for (j = 0; j < nOrder; j++) {
-      *(Us[i][j] = new AuxField (D -> Esys, nZ)) = 0.0;
-      *(Uf[i][j] = new AuxField (D -> Esys, nZ)) = 0.0;
+      *(Us[i][j] = new AuxField (D -> elmt, nZ)) = 0.0;
+      *(Uf[i][j] = new AuxField (D -> elmt, nZ)) = 0.0;
     }
   }
 
@@ -187,7 +185,7 @@ static void nonLinear (Domain*     D ,
 
     AuxField::swapData (D -> u[i], Us[i][0]);
     U[i] = Us[i][0];
-    U[i] -> transform32  (u32[i], -1);
+    U[i] -> transform32  (-1, u32[i]);
 
     N[i] = Uf[i][0];
     Veclib::zero (nTot32, n32[i],  1);
@@ -200,12 +198,12 @@ static void nonLinear (Domain*     D ,
 
       Veclib::copy (nTot32, u32[i], 1, tmp,  1);
       if (j == 2) {
-	Femlib::transpose  (tmp, nZ32,        nP, +1);
+	Femlib::exchange   (tmp, nZ32,        nP, +1);
 	Femlib::DFTr       (tmp, nZ32 * nPR, nPP, +1);
 	Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
 	master -> gradient (nZ,  nPP, tmp, j);
 	Femlib::DFTr       (tmp, nZ32 * nPR, nPP, -1);
-	Femlib::transpose  (tmp, nZ32,        nP, -1);
+	Femlib::exchange   (tmp, nZ32,        nP, -1);
       } else {
 	master -> gradient (nZ32, nP, tmp, j);
       }
@@ -215,19 +213,19 @@ static void nonLinear (Domain*     D ,
 
       Veclib::vmul  (nTot32, u32[i], 1, u32[j], 1, tmp,  1);
       if (j == 2) {
-	Femlib::transpose  (tmp, nZ32,        nP, +1);
+	Femlib::exchange   (tmp, nZ32,        nP, +1);
 	Femlib::DFTr       (tmp, nZ32 * nPR, nPP, +1);
 	Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
 	master -> gradient (nZ,  nPP, tmp, j);
 	Femlib::DFTr       (tmp, nZ32 * nPR, nPP, -1);
-	Femlib::transpose  (tmp, nZ32,        nP, -1);
+	Femlib::exchange   (tmp, nZ32,        nP, -1);
       } else {
 	master -> gradient (nZ32, nP, tmp, j);
       }
       Veclib::vadd (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
 	
     }
-    N[i]   -> transform32 (n32[i], +1);
+    N[i]   -> transform32 (+1, n32[i]);
     master -> smooth (N[i]);
     *N[i] *= -0.5;
   }
@@ -370,7 +368,7 @@ static void project (const Domain* D ,
 }
 
 
-static ModeSys** preSolve (const Domain* D)
+static Msys** preSolve (const Domain* D)
 // ---------------------------------------------------------------------------
 // Set up ModalMatrixSystems for each Field of D.  If iterative solution
 // is selected for any Field, the corresponding ModalMatrixSystem pointer
@@ -380,17 +378,14 @@ static ModeSys** preSolve (const Domain* D)
 // ITERATIVE == 2 adds iterative solver for pressure as well.
 // ---------------------------------------------------------------------------
 {
-  char                 name;
-  integer              i;
-  const integer        nSys   = D -> Nsys.getSize();
-  const integer        nmodes = Geometry::nModeProc();
-  const integer        base   = Geometry::baseMode();
-  const integer        itLev  = (integer) Femlib::value ("ITERATIVE");
-  const integer        nOrder = (integer) Femlib::value ("N_TIME");
-  const real           beta   = Femlib::value ("BETA");
-  ModeSys**            M      = new ModeSys* [(size_t) (DIM + 2)];
-  vector<Element*>&    E      = ((Domain*) D) -> Esys;
-  const NumberSystem** N      = new const NumberSystem* [(size_t) 3];
+  const integer           nmodes = Geometry::nModeProc();
+  const integer           base   = Geometry::baseMode();
+  const integer           itLev  = (integer) Femlib::value ("ITERATIVE");
+  const integer           nOrder = (integer) Femlib::value ("N_TIME");
+  const real              beta   = Femlib::value ("BETA");
+  const vector<Element*>& E      = D -> elmt;
+  Msys**                  M      = new Msys* [(size_t) (DIM + 1)];
+  integer                 i;
 
   // -- Velocity and temperature systems.
 
@@ -402,19 +397,14 @@ static ModeSys** preSolve (const Domain* D)
 
     real lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
 
-    for (i = 0; i < DIM; i++) {
-      name = D -> u[i] -> name();
-      D -> setNumber (name, N);
-      M[i] = new ModalMatrixSystem (lambda2, beta, name, base, nmodes, E, N);
-    }
+    for (i = 0; i < DIM; i++)
+      M[i] = new Msys (lambda2, beta, base, nmodes, E, D -> b[i]);
 
     // -- Temperature.
 
     lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS / PRANDTL");
 
-    name    = D -> u[DIM] -> name();
-    D -> setNumber (name, N);
-    M[DIM]  = new ModalMatrixSystem (lambda2, beta, name, base, nmodes, E, N);
+    M[DIM]  = new Msys (lambda2, beta, base, nmodes, E, D -> b[DIM]);
 
   } else
     for (i = 0; i <= DIM; i++) M[i] = 0;
@@ -422,9 +412,7 @@ static ModeSys** preSolve (const Domain* D)
   // -- Pressure system.
 
   if (itLev < 2) {
-    name    = D -> u[DIM + 1] -> name();
-    D -> setNumber (name, N);
-    M[DIM + 1] = new ModalMatrixSystem (0.0, beta, name, base, nmodes, E, N);
+    M[DIM + 1] = new Msys (0.0, beta, base, nmodes, E, D -> b[DIM + 1]);
   } else
     M[DIM + 1] = 0;
 
@@ -434,7 +422,7 @@ static ModeSys** preSolve (const Domain* D)
 
 static void Solve (Field*        U     ,
 		   AuxField*     Force ,
-		   ModeSys*      M     ,
+		   Msys*         M     ,
 		   const integer step  ,
 		   const integer nOrder)
 // ---------------------------------------------------------------------------
