@@ -250,7 +250,7 @@ MatrixSys::MatrixSys (const real              lambda2,
     Veclib::fill  (_npts, 1.0, _PC, 1);
 #endif
 
-    Femlib::adopt (_npts, &_PC);
+//    Femlib::adopt (_npts, &_PC);
 
   } break;
 

@@ -69,6 +69,7 @@ public:
 	  delete curr;
 	  curr = head;
 	} else {
+	  if (curr == tail) tail = prev;
 	  prev -> link = curr -> link;
 	  datum = curr -> datum;
 	  delete curr;

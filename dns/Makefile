@@ -81,8 +81,8 @@ endif
 ifeq ($(ARCH),Linux-alpha)		# -- Linux alpha.
 CXX      = g++
 LD       = g++
-F77LIBS  = -lcxml -lots -lfor -lg2c
-#F77LIBS = -llapack -lgemm -lblas -lots -lfor -lg2c
+F77LIBS  = -lcxml -lfor -lots -lg2c
+#F77LIBS = -llapack -lgemm -lcxml -lots -lfor -lg2c
 ifdef DEBUG
   OPT    = -gstabs+
 else
