@@ -200,7 +200,7 @@ static void linAdvect (Domain*    D ,
      N[i] = Uf[i];
     *N[i] = 0.0;
   }
-  
+
   // -- Centrifugal, Coriolis terms for cylindrical coords.
 
   if (CYL) {
@@ -231,6 +231,7 @@ static void linAdvect (Domain*    D ,
     T -> smooth (N[i]);
     *N[i] *= -1.0;
   }
+
 }
 
 
@@ -312,7 +313,6 @@ static void project (const Domain* D ,
   const real alpha = -1.0 / Femlib::value ("D_T * KINVIS");
 
   for (i = 0; i < NPERT; i++) {
-
     (*Uf[i] = *D -> u[NPERT]) . gradient (i);
 
     if (C3D && i == 2) Uf[2] -> divR();
