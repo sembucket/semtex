@@ -13,7 +13,7 @@
 
 int N, K, FourKon3;
 
-#define SIZE 8
+#define SIZE 16
 
 static char prog[] = "con_chk";
 
@@ -24,7 +24,8 @@ int main()
  * ------------------------------------------------------------------------- */
 {
   CF      U, V, U_, V_, F, F_, UU, VV, WW;
-  real    *u, *v, *w, emax, test;
+  CVF     WORK;
+  real    *u, *v, *w, *us, *vs, *ws, emax, test;
   complex *Wtab, *Stab, *WTAB;
   char    s[STR_MAX];
   int     seed = 1, k1, k2, k3, b1, b2, B1, B2, L, i, j, k, ntot;
@@ -44,6 +45,8 @@ int main()
   cbox (0, L-1, 0, L-1, 0, N-1, &VV);
   cbox (0, L-1, 0, L-1, 0, N-1, &WW);
 
+  cfield (&WORK);
+
   /* -- Set up tables. */
 
   Wtab = cvector (0, K-1);
@@ -58,24 +61,16 @@ int main()
   zeroF (U);
   zeroF (V);
 
-  u = &U[0][0][0].Re;
-  v = &V[0][0][0].Re;
+  us = &U[0][0][0].Re;
+  vs = &V[0][0][0].Re;
+  ws = &F[0][0][0].Re;
 
   ntot = N * N * N;
-#if 0
-  for (i = 0; i < ntot; i++) u[i] = ran2PI (&seed);
-  for (i = 0; i < ntot; i++) v[i] = ran2PI (&seed);
-#else
-  for (i = 0; i < ntot; i++) u[i] = 0.0;
-  for (i = 0; i < ntot; i++) v[i] = 0.0;
-#endif
 
-  U[1][0][0].Re = V[1][0][0].Re = 1.0;
-
-#if 0
+  for (i = 0; i < ntot; i++) us[i] = ran2PI (&seed);
+  for (i = 0; i < ntot; i++) vs[i] = ran2PI (&seed);
   truncateF (U);
   truncateF (V);
-#endif
 
   /* -- Zero the padded data areas UU & VV. */
 
@@ -137,7 +132,7 @@ int main()
   }
 
   /* -- F <-- "shifted-grid + truncated" convolution of U & V. */
-  
+
   copyF  (U_, U);
   copyF  (V_, V);
   shift  (U_, Stab, FORWARD);
@@ -148,9 +143,7 @@ int main()
   rc3DFT (V_, Wtab, INVERSE);
 
   convolve (U, V, U_, V_, F, F_, Wtab, Stab);
-
-  rc3DFT  (F, Wtab, FORWARD);
-  scaleFT (F);
+  scaleFT  (F);
 
   /* -- WW <-- "zero padded" convolution of UU & VV. */
 
@@ -170,8 +163,7 @@ int main()
   rc3DFT  (WW, WTAB, FORWARD);
   scaleFT (WW);
 
-  N = SIZE;
-  K = SIZE / 2;
+  N = SIZE; K = SIZE / 2; FourKon3 = (4 * K) / 3;
 
   /* -- Subtract WW from F. */
 
@@ -256,6 +248,3 @@ int main()
 
   return (EXIT_SUCCESS);
 }
-
-
-  
