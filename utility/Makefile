@@ -52,9 +52,9 @@ ifeq ($(ARCH),Linux)		# -- GNU/Linux system.
 CC	 = gcc
 CXX	 = g++
 LD	 = g++
-CXXFLAGS = $(DEFINES) -gstabs+
+CXXFLAGS = $(DEFINES) -O2
 F77LIBS  = -llapack -lblas -lf2c
-LDFLAGS  = -gstabs+ -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
+LDFLAGS  = -O2 -L$(SEM)/lib/$(ARCH) -L/usr/local/lib	\
 	   -lfem -lalp $(F77LIBS) -lm
 endif
 
@@ -75,12 +75,15 @@ endif
 ifeq ($(ARCH),SUPER-UX)         # -- NEC SX-4.
 LIBDIR   = -L$(SEM)/lib/$(ARCH) 
 LIBDIR  += 
-LIBS     = -lfem -llapack_64 -lalp -lblas_64	\
+LIBS     = -lfem -llapack_64 -lalp -lblas_64 -lfft_64	\
            -lu77sxe -lp77sx -lv77sxe -lf77sxe -li77sx -lm
 CC       = cc
 CXX      = CC
 LD       = CC
-OPTIM    = -g -hacct
+#OPTIM    = -g -hacct
+CFLAGS   = $(DEFINES) -pvctl,fullmsg -hacct -Onooverlap        \
+           -hfloat0 -hnostkchk
+CXXFLAGS = $(CFLAGS) $(OPTIM) +a1 -ispeed
 CXXFLAGS = $(DEFINES)  $(OPTIM)
 LDFLAGS  = $(OPTIM) $(CPPFLAGS) $(LIBDIR) $(LIBS) -hacct
 endif
@@ -91,7 +94,7 @@ headers:
 
 all: meshpr  enumerate calc   addfield  sem2nek  sem2tec \
      convert compare   noiz   project   interp   probe   \
-     rstress
+     rstress rectmesh  transform
 
 # ----------------------------------------------------------------------------
 # Build meshpr utility.
@@ -106,6 +109,13 @@ ENUOBJ = feml.o mesh.o enumerate.o
 
 enumerate:	headers $(ENUOBJ)
 	$(LD) -o $@ $(ENUOBJ) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build enumerate utility.
+ENUOBJ = feml.o mesh.o newmerate.o
+
+newmerate:	headers $(ENUOBJ)
+	$(LD) -o $@ $(ENUOBJ) $(LDFLAGS) -L. -lmetis
 
 # ----------------------------------------------------------------------------
 # Build calc utility.
@@ -161,11 +171,11 @@ sem2tec: sem2tec.o
 
 # ----------------------------------------------------------------------------
 # Build compare, exact solution comparison/restart utility.
-COMOBJ = compare.o feml.o mesh.o element.o auxfield.o geometry.o
+COMOBJ = compare.o feml.o mesh.o element.o auxfield.o	\
+	 geometry.o pressure.o integration.o
 
 compare: $(COMOBJ)
 	$(LD) -o $@ $(COMOBJ) $(LDFLAGS)
-
 
 # ----------------------------------------------------------------------------
 # Build noiz, velocity field perturber.
@@ -177,6 +187,13 @@ noiz: noiz.c
 # Build project, field dump projection to higher/lower orders.
 
 project: project.C
+	$(CXX) $(CPPFLAGS) -g -o $@ $@.C $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build transform, which does forward/inverse Fourier/Legendre transforms.
+TRNOBJ = transform.o auxfield.o element.o geometry.o mesh.o feml.o
+
+transform: transform.C
 	$(CXX) $(CPPFLAGS) -g -o $@ $@.C $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
@@ -199,6 +216,13 @@ probe: $(PRBOBJ)
 rstress: rstress.c
 	$(CC) $(CPPFLAGS) -o $@ $@.c $(LDFLAGS)
 
+
+# ----------------------------------------------------------------------------
+# Build rectmesh, rectangular mesh generator;
+
+rectmesh: rectmesh.C
+	$(CXX) $(CPPFLAGS) -o $@ $@.C -g
+
 # ----------------------------------------------------------------------------
 #
 $(SEMOBJ): $(SEMHDR)
@@ -208,11 +232,11 @@ $(SEMOBJ): $(SEMHDR)
 
 ifeq ($(ARCH),SUPER-UX)
 mesh.o: $(VPATH)/mesh.C
-        $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
-        $(VPATH)/mesh.C
+	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+	$(VPATH)/mesh.C
 BCmgr.o: $(VPATH)/BCmgr.C
-        $(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
-        $(VPATH)/BCmgr.C
+	$(CXX) -I$(SEM)/include -c -hnostkchk +a1 -hacct -hnovector -p \
+	$(VPATH)/BCmgr.C
 endif
 
 # -----------------------------------------------------------------------------
