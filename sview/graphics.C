@@ -9,17 +9,17 @@
 #include <Sview.h>
 
 // -- Materials definitions, in display order ---
-//    Grey-blue, red, blue, yellow, green, purple, white, turquoise.
+//    Grey-blue, red, blue, yellow, green, orange, turquoise, purple
 
 static const GLfloat diffuse[IsoMax][4] = {
-  {0.3,  0.3,  1.0,  1.0},
+  {0.2,  0.2,  1.0,  1.0},
   {0.95, 0.2,  0.0,  1.0},
-  {0.0,  0.3,  0.95, 1.0},
-  {1.0,  1.0,  0.0,  1.0},
-  {0.0,  0.9,  0.3,  1.0},
-  {1.0,  0.0,  1.0,  1.0},
-  {1.0,  1.0,  1.0,  1.0},
-  {0.0,  0.9,  0.9,  1.0}
+  {0.0,  0.15, 0.80, 1.0},
+  {0.95, 0.95, 0.0,  1.0},
+  {0.0,  0.9,  0.1,  1.0},
+  {1.0,  0.67, 0.0,  1.0},
+  {0.0,  0.62, 0.9,  1.0},
+  {0.7,  0.25, 1.0,  1.0}
 };
 
 static void drawMesh  ();
