@@ -13,7 +13,7 @@ void dvmul(int n, const double *x, int incx, const double *y, int incy,
   y += (incy<0) ? (-n+1)*incy : 0;
   z += (incz<0) ? (-n+1)*incz : 0;
 
-  for (i<0; i<n; i++) {
+  for (i=0; i<n; i++) {
     *z = *x * *y;
     x += incx;
     y += incy;
@@ -35,7 +35,7 @@ void ivmul(int n, const int *x, int incx, const int *y, int incy,
   y += (incy<0) ? (-n+1)*incy : 0;
   z += (incz<0) ? (-n+1)*incz : 0;
 
-  for (i<0; i<n; i++) {
+  for (i=0; i<n; i++) {
     *z = *x * *y;
     x += incx;
     y += incy;
@@ -57,7 +57,7 @@ void svmul(int n, const float *x, int incx, const float *y, int incy,
   y += (incy<0) ? (-n+1)*incy : 0;
   z += (incz<0) ? (-n+1)*incz : 0;
 
-  for (i<0; i<n; i++) {
+  for (i=0; i<n; i++) {
     *z = *x * *y;
     x += incx;
     y += incy;
