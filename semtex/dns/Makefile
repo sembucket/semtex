@@ -5,14 +5,14 @@
 # $Id$
 ##############################################################################
 
-SEM   = ..
-VPATH = $(SEM)/src
-
 ifdef MPI
   PROG = dns_mp
 else
   PROG = dns
 endif
+
+SEM   = ..
+VPATH = $(SEM)/src
 
 ifdef STOKES
   DEFINES += -DSTOKES
