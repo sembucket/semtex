@@ -16,6 +16,15 @@
 //   -v[v...] ... increase verbosity level
 //   -chk     ... checkpoint field dumps
 //
+// SPECIAL TOKENS:
+// --------------
+// The following special tokens must be defined in the session file:
+//
+// NEL_GAS -- Integer, number of elements in gas phase (at most, total number).
+// DC_GAS  -- Gas phase diffusion coefficient.
+// DC_FIX  -- Stationary phase diffusion coefficient.
+// K_PART  -- Partition coefficient.
+//
 // AUTHOR:
 // ------
 // Hugh Blackburn
@@ -36,7 +45,6 @@ static char  prog[] = "chroma";
 static void  memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void  getargs    (int, char**, char*&);
 static real* gasdata    (const char*, const int, const int);
-       void  transport  (Domain*, RunInfo*, const real*);
 
 
 int main (int    argc,
@@ -77,11 +85,13 @@ int main (int    argc,
   I = new RunInfo (*D, *F);
   G = gasdata     (session, np, nel);
 
-  D -> initialize(); ROOTONLY D -> report();
+  D -> initialize();
+  ROOTONLY D -> report();
+  Femlib::value ("CONSERV", D -> u[0] -> integral());
 
   transport (D, I, G);
 
-  Femlib::finalize ();
+  Femlib::finalize();
 
   return EXIT_SUCCESS;
 }
@@ -216,3 +226,4 @@ static real* gasdata (const char* session,
 
   return w;
 }
+

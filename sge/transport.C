@@ -42,10 +42,13 @@ void transport (Domain*     D,
 // Uf is multi-level auxillary Field storage for advection history terms.
 // ---------------------------------------------------------------------------
 {
-  int       i;
-  const int Je     = (int) Femlib::value ("N_TIME");
-  const int nStep  = (int) Femlib::value ("N_STEP");
-  Field*    scalar = D -> u[0];
+  int        i;
+  const int  Je     = (int) Femlib::value ("N_TIME");
+  const int  nStep  = (int) Femlib::value ("N_STEP");
+  Field*     scalar = D -> u[0];
+  const real conScalar = Femlib::value ("CONSERV");
+  const real Lz        = Femlib::value ("TWOPI / BETA");
+  real       amount;
 
   // -- Set file-scope globals;
 
@@ -87,10 +90,17 @@ void transport (Domain*     D,
 
     Solve (scalar, Us[0], MMS, D -> step, Je);
 
+    // -- Conserve scalar quantity, with partitioning.
+
+    ROOTONLY {
+      amount = (conScalar - D -> u[0] -> integral()) / Lz;
+      cout << "Mean correction: " << amount << " ";
+      D -> u[0] -> addToPlane (0, amount);
+    }
+
     // -- Process results of this step.
 
     I -> report (Us[0]);
-
   }
 }
 
