@@ -1,12 +1,12 @@
 /*****************************************************************************
  * OPERATORS.C:  operators for mesh points, derivatives, quadratures.        *
- *                                                                           *
  *****************************************************************************/
 
 static char
 RCSid02[] = "$Id$";
 
 #include <stdio.h>
+#include <malloc.h>
 #include <alplib.h>
 #include "femlib.h"
 
