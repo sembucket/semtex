@@ -112,11 +112,12 @@ static void getargs(int     argc    ,
 
 static void preRoll (istream& strm)
 // ---------------------------------------------------------------------------
-// Read strm until first blank line is encountered: this signals the
-// start of parameter and mesh parts of input.
+// Read strm until second blank line is encountered:
+// this signals the start of parameter and mesh parts of input.
 // ---------------------------------------------------------------------------
 {
   char s[StrMax];
 
+  while (strm.getline (s, StrMax) && s[0]);
   while (strm.getline (s, StrMax) && s[0]);
 }
