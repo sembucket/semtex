@@ -9,10 +9,9 @@
 //
 // It is assumed that the first 2 or 3 (for 3D) entries in the Domain
 // u vector are velocity fields.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <Sem.h>
 
