@@ -41,7 +41,8 @@ endif
 ifeq ($(ARCH),IRIX64)		# -- IRIX64
 CXX	 = CC
 LD	 = CC
-CXXFLAGS = $(DEFINES) -n32 -g -LANG:std
+#CXXFLAGS = $(DEFINES) -n32 -g -LANG:std
+CXXFLAGS = $(DEFINES) -32 -g -LANG:std
 LDFLAGS  = $(CXXFLAGS)  -L/usr/local/lib/sm -L/usr/X11/lib -lm
 SMLIBS   = -lplotsub -ldevices -lutils
 X11LIBS  = -lX11
