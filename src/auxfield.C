@@ -643,16 +643,20 @@ ofstream& operator << (ofstream& strm,
 // are written out in the correct order, and that only one processor
 // needs access to the output stream.
 //
-// UNIX interface used for IO in order to avoid buffering done by C++.
-// For this to work strm has to be of ofstream rather than ostream class.
+// UNIX interface used for IO on Fujitsu in order to avoid buffering
+// done by C++.  For this to work strm has to be of ofstream rather
+// than ostream class.
 // ---------------------------------------------------------------------------
 {
   const char       routine[] = "ofstream<<AuxField";
   const integer    NP    = Geometry::planeSize();
   const integer    nP    = Geometry::nPlane();
   const integer    nProc = Geometry::nProc();
+  register integer i, k;
+
+#if defined (__uxp__)
   const int        fd    = strm.rdbuf() -> fd();
-  register integer i, k, n;
+  integer          n;
 
   if (nProc > 1) {
 
@@ -691,6 +695,43 @@ ofstream& operator << (ofstream& strm,
   }
 
   strm.rdbuf() -> sync();
+#else
+  if (nProc > 1) {
+
+    ROOTONLY {
+      vector<real> buffer (NP);
+
+      for (i = 0; i < F._nz; i++)
+        strm.clear();
+        strm.write((char*) F._plane[i], (int) (nP * sizeof (real))); 
+        if (strm.fail())
+	  message (routine, "unable to write binary output", ERROR);
+
+      for (k = 1; k < nProc; k++)
+	for (i = 0; i < F._nz; i++) {
+	  Femlib::recv (buffer(), NP, k);
+          strm.clear();
+	  strm.write((char*) buffer(), (int) (nP * sizeof (real))); 
+          if (strm.fail()) 
+	    message (routine, "unable to write binary output", ERROR);
+	}
+
+      strm.flush();
+
+    } else for (i = 0; i < F._nz; i++) Femlib::send (F._plane[i], NP, 0);
+
+  } else {
+
+    for (i = 0; i < F._nz; i++) {
+      strm.clear();
+      strm.write((char*) F._plane[i], (int) (nP * sizeof (real))); 
+      if (strm.fail())
+	message (routine, "unable to write binary output", ERROR);
+    }
+  }
+
+#endif
+
   return strm;
 }
 
@@ -703,15 +744,19 @@ ifstream& operator >> (ifstream&  strm,
 // As for the write operator, only the root processor accesses strm.
 // This precaution is possibly unnecessary for input.
 //
-// UNIX interface used for IO in order to avoid buffering done by C++.
+// UNIX interface used for IO on Fujitsu in order to avoid buffering
+// done by C++.
 // ---------------------------------------------------------------------------
 {
   const char       routine[] = "ifstream>>AuxField";
   const integer    nP    = Geometry::nPlane();
   const integer    NP    = Geometry::planeSize();
   const integer    nProc = Geometry::nProc();
+  register integer i, k;
+
+#if defined (__uxp__)
   const int        fd    = strm.rdbuf() -> fd();
-  register integer i, k, n;
+  integer          n;
 
   if (nProc > 1) {
 
@@ -751,6 +796,45 @@ ifstream& operator >> (ifstream&  strm,
   }
 
   strm.rdbuf() -> sync();    
+
+#else
+
+  if (nProc > 1) {
+
+    ROOTONLY {
+      vector<real> buffer (NP);
+
+      for (i = 0; i < F._nz; i++) {
+        strm.clear();
+	strm.read ((char*) F._plane[i], (int) (nP * sizeof (real))); 
+        if (strm.fail()) 
+	  message (routine, "unable to read binary input", ERROR);
+	Veclib::zero (NP - nP, F._plane[i] + nP, 1);
+      }
+
+      for (k = 1; k < nProc; k++) {
+	for (i = 0; i < F._nz; i++) {
+          strm.clear();
+	  strm.read ((char*) F._plane[i], (int) (nP * sizeof (real))); 
+          if (strm.fail()) 
+	    message (routine, "unable to read binary input", ERROR);
+	  Veclib::zero (NP - nP, buffer() + nP, 1);
+	  Femlib::send (buffer(), NP, k);
+	}
+      }
+    } else for (i = 0; i < F._nz; i++) Femlib::recv (F._plane[i], NP, 0);
+
+  } else {
+
+    for (i = 0; i < F._nz; i++) {
+      strm.clear();
+      strm.read ((char*) F._plane[i], (int) (nP * sizeof (real))); 
+      if (strm.fail()) 
+	message (routine, "unable to read binary input", ERROR);
+      Veclib::zero (NP - nP, F._plane[i] + nP, 1);
+    }
+  }
+#endif
 
   return strm;
 }

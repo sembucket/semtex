@@ -171,6 +171,8 @@ ifdef MPI
   CPPFLAGS += -I$(MPIHOME)/include  
   LIBDIR   += -L$(MPIHOME)/lib/alpha/ch_shmem
   LDFLAGS   = $(CXXFLAGS) $(LIBDIR) -lfem_mp -lalp $(FORTLIBS) -lm -lmpi
+# -- This is needed for Compaq MPI:
+# LDFLAGS  += -lelan
 else
   LDFLAGS   = $(CXXFLAGS) $(LIBDIR) -lfem -lalp $(FORTLIBS) -lm
 endif
@@ -204,7 +206,7 @@ LDFLAGS  = $(OPT) $(CPPFLAGS) $(LIBDIR) $(LIBS)
 CLDFLAGS = $(LDFLAGS)
 endif
 
-ifeq ($(ARCH),SUPER-UX)         	# -- NEC SX-4.
+ifeq ($(ARCH),SUPER-UX)         	# -- NEC SX-4/5.
 DEFINES += -D_BUILTIN_ -D_SX
 CXX       = c++
 LD        = c++
@@ -223,7 +225,9 @@ ifdef MPI
 else
   LIBS    = -lfem -lalp $(FORTLIBS) -lm -lC
 endif
-LDFLAGS   =  -verbose -V -p -f90libew $(CXXFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
+LDFLAGS   =  -verbose -V -f90libew $(CXXFLAGS) $(CPPFLAGS) $(LIBDIR) $(LIBS)
+# -- Add this to enable profiling:
+#LDFLAGS += -p
 CLDFLAGS  = $(LDFLAGS)
 endif
 

@@ -227,7 +227,7 @@ static void getargs (int      argc   ,
       }
       break;
     default:
-      sprintf (err, "%s: illegal option: %c\n", c);
+      sprintf (err, "getargs: illegal option: %c\n", c);
       message (prog, err, ERROR);
       break;
     }
