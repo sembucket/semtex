@@ -1423,7 +1423,7 @@ int Element::locate (const real x,
   F  = J  + 4;
 
   do {
-    Femlib::interp (GLL, np, r, s, ir, is, dr, ds);
+    Femlib::interp (LL, np, r, s, ir, is, dr, ds);
 
                Blas::gemv ("T", np, np, 1.0, xmesh, np, ir, 1, 0.0, tp, 1);
     F[0] = x - Blas::dot  (np, is, 1, tp, 1);
@@ -1434,9 +1434,9 @@ int Element::locate (const real x,
                Blas::gemv ("T", np, np, 1.0, xmesh, np, dr, 1, 0.0, tp, 1);
     J[0] =     Blas::dot  (np, is, 1, tp, 1);
                Blas::gemv ("T", np, np, 1.0, ymesh, np, dr, 1, 0.0, tp, 1);
-    J[2] =     Blas::dot  (np, is, 1, tp, 1);
+    J[1] =     Blas::dot  (np, is, 1, tp, 1);
     
-    Lapack::gesv (np, 1, J, np, ipiv, F, np, info);
+    Lapack::gesv (2, 1, J, 2, ipiv, F, 2, info);
     
     r += F[0];
     s += F[1];
@@ -1463,7 +1463,7 @@ real Element::probe (const real  r  ,
   is = ir + np;
   tp = is + np;
 
-  Femlib::interp   (GLL, np, r, s, ir, is, 0, 0);
+  Femlib::interp   (LL, np, r, s, ir, is, 0, 0);
   Blas::gemv       ("T", np, np, 1.0, src, np, ir, 1, 0.0, tp, 1);
 
   return Blas::dot (np, is, 1, tp, 1);
