@@ -8,7 +8,8 @@
 // combine [options] base pert
 // options:
 // -h       ... print this message.
-// -r <num> ... relative size of perturbation is <num>.      [Default: 1e-6]
+// -b <num> ... set beta, wavenumber of base flow to <num> (3D) [Default: 1.0]
+// -r <num> ... relative size of perturbation is <num>.         [Default: 1.0]
 // -m <num> ... mode number for perturbation is <num> (3D only) [Default: 1]
 // 
 // Write to standard output.
@@ -90,7 +91,7 @@ typedef struct hdr_data {
   char   format[StrMax];
 } hdr_info;
 
-static void getargs   (int, char**, int&, real&, ifstream&, ifstream&);
+static void getargs   (int, char**, int&, real&, real&, ifstream&, ifstream&);
 static void gethead   (istream&, hdr_info&);
 static int  conform   (const hdr_info&, const hdr_info&);
 static int  roundup   (int&, int&, const hdr_info&, const hdr_info&);
@@ -99,7 +100,8 @@ static void readdata  (hdr_info&, istream&, hdr_info&, istream&,
 		       vector<real*>&, const real);
 static void packdata  (hdr_info&, const int, const int, vector<real*>&);
 static void transform (hdr_info&, const int, vector<real*>&, const int);
-static void writedata (hdr_info&, ostream&, const int, vector<real*>&);
+static void writedata (hdr_info&, ostream&, const int,
+		       const real, vector<real*>&);
 static int  doswap    (const char*);
 
 
@@ -113,11 +115,11 @@ int main (int    argc,
   hdr_info      bHead, pHead;
   int           nBase, nPert;
   int           mode = 1, nz;
-  real          wght = 1e-6;
+  real          wght = 1.0, beta = 1.0;
   vector<real*> u;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, mode, wght, bFile, pFile);
+  getargs (argc, argv, mode, wght, beta, bFile, pFile);
   gethead (bFile, bHead);
   gethead (pFile, pHead);
 
@@ -131,7 +133,8 @@ int main (int    argc,
     packdata  (pHead, mode, nz, u);
     transform (pHead, nz, u, INVERSE);
   }
-  writedata (pHead, cout, nz, u);
+
+  writedata (pHead, cout, nz, beta, u);
   
   Femlib::finalize();
   return EXIT_SUCCESS;
@@ -142,6 +145,7 @@ static void getargs (int       argc ,
 		     char**    argv ,
 		     int&      mode ,
 		     real&     wght ,
+		     real&     beta ,
 		     ifstream& bfile,
 		     ifstream& pfile)
 // ---------------------------------------------------------------------------
@@ -151,8 +155,10 @@ static void getargs (int       argc ,
   char usage[] = "Usage: combine [options] base pert\n"
     "options:\n"
     "-h       ... print this message.\n"
+    "-b <num> ... set beta, wavenumber of base flow to <num> (3D)"
+    " [Default: 1.0]\n"
     "-r <num> ... relative size of perturbation is <num>."
-    " [Default: 1e-6]\n"
+    " [Default: 1.0]\n"
     "-m <num> ... mode number for perturbation is <num> (3D only)"
     " [Default: 1]\n";
  
@@ -161,6 +167,10 @@ static void getargs (int       argc ,
     case 'h':
       cout << usage;
       exit (EXIT_SUCCESS);
+      break;
+    case 'b':
+      if (*++argv[0])  beta = atof (*argv);
+      else           { beta = atof (*++argv); argc--; }
       break;
     case 'm':
       if (*++argv[0])  mode = atoi (*argv);
@@ -493,6 +503,7 @@ static void transform (hdr_info&      header,
 static void writedata (hdr_info&      header,
 		       ostream&       file  ,
 		       const int      nz    ,
+		       const real     beta  ,
 		       vector<real*>& u     )
 // ---------------------------------------------------------------------------
 //
@@ -517,7 +528,7 @@ static void writedata (hdr_info&      header,
   sprintf (buf, hdr_fmt[4], header.time);     file << buf;
   sprintf (buf, hdr_fmt[5], header.timestep); file << buf;
   sprintf (buf, hdr_fmt[6], header.kinvis);   file << buf;
-  sprintf (buf, hdr_fmt[7], header.beta);     file << buf;
+  sprintf (buf, hdr_fmt[7], beta);            file << buf;
 
   sprintf (buf, hdr_fmt[8], header.fields);
   file << buf;  
