@@ -20,25 +20,25 @@ Element::Element (const integer i,
 //
 // Compute information for internal storage, and economise.
 // ---------------------------------------------------------------------------
-  id   (i),
-  np   (n),
-  npnp (np * np),
-  next (4 * (np - 1)),
-  nint (npnp - next)
+  _id   (i),
+  _np   (n),
+  _npnp (_np * _np),
+  _next (4 * (_np - 1)),
+  _nint (_npnp - _next)
 {
   const char routine[] = "Element::Element";
 
-  if (np < 2) message (routine, "need > 2 knots for element edges", ERROR);
+  if (_np < 2) message (routine, "need > 2 knots for element edges", ERROR);
 
-  Femlib::buildMaps (np, 2, &emap, &pmap);
+  Femlib::buildMaps (_np, 2, &_emap, &_pmap);
   
-  xmesh = new real [(size_t) npnp];
-  ymesh = new real [(size_t) npnp];
+  _xmesh = new real [(size_t) _npnp];
+  _ymesh = new real [(size_t) _npnp];
   
-  M -> meshElmt (id, np, z, xmesh, ymesh);
+  M -> meshElmt (_id, _np, z, _xmesh, _ymesh);
   
-  Femlib::adopt (npnp, &xmesh);
-  Femlib::adopt (npnp, &ymesh);
+  Femlib::adopt (_npnp, &_xmesh);
+  Femlib::adopt (_npnp, &_ymesh);
  
   map();
 }
@@ -49,19 +49,19 @@ Element::~Element ()
 // Clean up internal storage using Femlib family routines.
 // ---------------------------------------------------------------------------
 {
-  Femlib::abandon (&xmesh);
-  Femlib::abandon (&ymesh);
+  Femlib::abandon (&_xmesh);
+  Femlib::abandon (&_ymesh);
 
-  Femlib::abandon (&drdx );
-  Femlib::abandon (&dsdx );
-  Femlib::abandon (&drdy );
-  Femlib::abandon (&dsdy );
+  Femlib::abandon (&_drdx );
+  Femlib::abandon (&_dsdx );
+  Femlib::abandon (&_drdy );
+  Femlib::abandon (&_dsdy );
 
-  Femlib::abandon (&G1   );
-  Femlib::abandon (&G2   );
-  Femlib::abandon (&G3   );
-  Femlib::abandon (&G4   );
-  Femlib::abandon (&delta);
+  Femlib::abandon (&_G1   );
+  Femlib::abandon (&_G2   );
+  Femlib::abandon (&_G3   );
+  Femlib::abandon (&_G4   );
+  Femlib::abandon (&_delta);
 }
 
 
@@ -122,9 +122,9 @@ void Element::map ()
   const char   routine[] = "Element::map";
   const real   EPS  = 4 * ((sizeof(real) == sizeof(double)) ? EPSDP : EPSSP);
   const real   dz   = Femlib::value ("TWOPI / (BETA * N_Z)");
-  const real   dxy  = 2.0 * sqr (2.0 / (np - 1));
+  const real   dxy  = 2.0 * sqr (2.0 / (_np - 1));
   const real   invD = 1.0 / Geometry::nDim();
-  const real   *x   = xmesh, *y = ymesh;
+  const real   *x   = _xmesh, *y = _ymesh;
   const real   **DV, **DT, *w;
   char         err[StrMax];
   real         *jac, *dxdr, *dxds, *dydr, *dyds, *tV, *WW;
@@ -133,112 +133,112 @@ void Element::map ()
 
   // -- Permanent/family allocations.
   
-  drdx  = new real [(size_t) npnp];
-  dsdx  = new real [(size_t) npnp];
-  drdy  = new real [(size_t) npnp];
-  dsdy  = new real [(size_t) npnp];
-  G1    = new real [(size_t) npnp];
-  G2    = new real [(size_t) npnp];
-  G3    = new real [(size_t) npnp];
-  G4    = new real [(size_t) npnp];
-  delta = new real [(size_t) npnp];
+  _drdx  = new real [(size_t) _npnp];
+  _dsdx  = new real [(size_t) _npnp];
+  _drdy  = new real [(size_t) _npnp];
+  _dsdy  = new real [(size_t) _npnp];
+  _G1    = new real [(size_t) _npnp];
+  _G2    = new real [(size_t) _npnp];
+  _G3    = new real [(size_t) _npnp];
+  _G4    = new real [(size_t) _npnp];
+  _delta = new real [(size_t) _npnp];
     
   // -- Temporaries.
 
-  work.setSize (7 * npnp);
+  work.setSize (7 * _npnp);
 
   dxdr = work();
-  dxds = dxdr + npnp;
-  dydr = dxds + npnp;
-  dyds = dydr + npnp;
+  dxds = dxdr + _npnp;
+  dydr = dxds + _npnp;
+  dyds = dydr + _npnp;
 
-  jac  = dyds + npnp;
-  WW   = jac  + npnp;
-  tV   = WW   + npnp;
+  jac  = dyds + _npnp;
+  WW   = jac  + _npnp;
+  tV   = WW   + _npnp;
     
-  Femlib::quad (LL, np, np, 0, 0, &w, 0, 0, &DV, &DT);
-  Veclib::zero (npnp, WW, 1);
-  Blas::ger    (np, np, 1.0, w, 1, w, 1, WW, np);
+  Femlib::quad (LL, _np, _np, 0, 0, &w, 0, 0, &DV, &DT);
+  Veclib::zero (_npnp, WW, 1);
+  Blas::ger    (_np, _np, 1.0, w, 1, w, 1, WW, _np);
     
-  Blas::mxm (  x, np, *DT, np, dxdr, np);
-  Blas::mxm (*DV, np,   x, np, dxds, np);
-  Blas::mxm (  y, np, *DT, np, dydr, np);
-  Blas::mxm (*DV, np,   y, np, dyds, np);
+  Blas::mxm (  x, _np, *DT, _np, dxdr, _np);
+  Blas::mxm (*DV, _np,   x, _np, dxds, _np);
+  Blas::mxm (  y, _np, *DT, _np, dydr, _np);
+  Blas::mxm (*DV, _np,   y, _np, dyds, _np);
     
-  Veclib::vmul  (npnp,        dxdr, 1, dyds, 1, tV,  1);
-  Veclib::vvvtm (npnp, tV, 1, dxds, 1, dydr, 1, jac, 1);
+  Veclib::vmul  (_npnp,        dxdr, 1, dyds, 1, tV,  1);
+  Veclib::vvvtm (_npnp, tV, 1, dxds, 1, dydr, 1, jac, 1);
     
-  if (jac[Veclib::imin (npnp, jac, 1)] < EPS) {
-    sprintf (err, "jacobian of element %1d nonpositive", id + 1);
+  if (jac[Veclib::imin (_npnp, jac, 1)] < EPS) {
+    sprintf (err, "jacobian of element %1d nonpositive", _id + 1);
     message (routine, err, ERROR);
   }
     
-  Veclib::vmul  (npnp, dyds, 1, dyds, 1, tV, 1);
-  Veclib::vvtvp (npnp, dxds, 1, dxds, 1, tV, 1, G1, 1);
-  Veclib::vdiv  (npnp, G1,   1, jac,  1, tV, 1);
-  Veclib::vmul  (npnp, tV,   1, WW,   1, G1, 1);
+  Veclib::vmul  (_npnp, dyds, 1, dyds, 1, tV,  1);
+  Veclib::vvtvp (_npnp, dxds, 1, dxds, 1, tV,  1, _G1, 1);
+  Veclib::vdiv  (_npnp, _G1,  1, jac,  1, tV,  1);
+  Veclib::vmul  (_npnp, tV,   1, WW,   1, _G1, 1);
     
-  Veclib::vmul  (npnp, dydr, 1, dydr, 1, tV, 1);
-  Veclib::vvtvp (npnp, dxdr, 1, dxdr, 1, tV, 1, G2, 1);
-  Veclib::vdiv  (npnp, G2,   1, jac,  1, tV, 1);
-  Veclib::vmul  (npnp, tV,   1, WW,   1, G2, 1);
+  Veclib::vmul  (_npnp, dydr, 1, dydr, 1, tV,  1);
+  Veclib::vvtvp (_npnp, dxdr, 1, dxdr, 1, tV,  1, _G2, 1);
+  Veclib::vdiv  (_npnp, _G2,  1, jac,  1, tV,  1);
+  Veclib::vmul  (_npnp, tV,   1, WW,   1, _G2, 1);
     
-  Veclib::vmul  (npnp, dydr, 1, dyds, 1, tV,   1);
-  Veclib::neg   (npnp, tV,   1);
-  Veclib::vvvtm (npnp, tV,   1, dxdr, 1, dxds, 1, G3, 1);
-  Veclib::vdiv  (npnp, G3,   1, jac,  1, tV,   1);
-  Veclib::vmul  (npnp, tV,   1, WW,   1, G3,   1);
+  Veclib::vmul  (_npnp, dydr, 1, dyds, 1, tV,    1);
+  Veclib::neg   (_npnp, tV,   1);
+  Veclib::vvvtm (_npnp, tV,   1, dxdr, 1, dxds,  1, _G3, 1);
+  Veclib::vdiv  (_npnp, _G3,  1, jac,  1, tV,    1);
+  Veclib::vmul  (_npnp, tV,   1, WW,   1, _G3,   1);
   
-  Veclib::vmul  (npnp, jac,  1, WW,   1, G4, 1);
-  Veclib::smul  (npnp, dxy,  jac, 1,  delta, 1);
+  Veclib::vmul  (_npnp, jac,  1, WW,   1, _G4, 1);
+  Veclib::smul  (_npnp, dxy,  jac, 1,  _delta, 1);
 
-  Veclib::copy (npnp, dyds, 1, drdx, 1);
-  Veclib::vneg (npnp, dxds, 1, drdy, 1);
-  Veclib::vneg (npnp, dydr, 1, dsdx, 1);
-  Veclib::copy (npnp, dxdr, 1, dsdy, 1);
+  Veclib::copy (_npnp, dyds, 1, _drdx, 1);
+  Veclib::vneg (_npnp, dxds, 1, _drdy, 1);
+  Veclib::vneg (_npnp, dydr, 1, _dsdx, 1);
+  Veclib::copy (_npnp, dxdr, 1, _dsdy, 1);
     
-  Veclib::vdiv (npnp, drdx, 1, jac, 1, drdx, 1);
-  Veclib::vdiv (npnp, drdy, 1, jac, 1, drdy, 1);
-  Veclib::vdiv (npnp, dsdx, 1, jac, 1, dsdx, 1);
-  Veclib::vdiv (npnp, dsdy, 1, jac, 1, dsdy, 1);
+  Veclib::vdiv (_npnp, _drdx, 1, jac, 1, _drdx, 1);
+  Veclib::vdiv (_npnp, _drdy, 1, jac, 1, _drdy, 1);
+  Veclib::vdiv (_npnp, _dsdx, 1, jac, 1, _dsdx, 1);
+  Veclib::vdiv (_npnp, _dsdy, 1, jac, 1, _dsdy, 1);
 
   if (Geometry::nDim() == 3) {
     if (Geometry::system() == Geometry::Cylindrical)
-      Veclib::smul (npnp, dz, ymesh, 1, tV, 1);
+      Veclib::smul (_npnp, dz, _ymesh, 1, tV, 1);
     else
-      Veclib::fill (npnp, dz, tV, 1);
-    Veclib::vmul (npnp, tV, 1, tV, 1, tV, 1);
-    Veclib::vadd (npnp, tV, 1, delta, 1, delta, 1);
+      Veclib::fill (_npnp, dz, tV, 1);
+    Veclib::vmul (_npnp, tV, 1, tV, 1, tV, 1);
+    Veclib::vadd (_npnp, tV, 1, _delta, 1, _delta, 1);
   }
-  Blas::scal    (npnp, invD,     delta, 1);
-  Veclib::vsqrt (npnp, delta, 1, delta, 1);
+  Blas::scal    (_npnp, invD,      _delta, 1);
+  Veclib::vsqrt (_npnp, _delta, 1, _delta, 1);
 
   if (Geometry::system() == Geometry::Cylindrical) {
-    Veclib::vmul (npnp, G1, 1, y, 1, G1, 1);
-    Veclib::vmul (npnp, G2, 1, y, 1, G2, 1);
-    Veclib::vmul (npnp, G3, 1, y, 1, G3, 1);
-    Veclib::vmul (npnp, G4, 1, y, 1, G4, 1);
+    Veclib::vmul (_npnp, _G1, 1, y, 1, _G1, 1);
+    Veclib::vmul (_npnp, _G2, 1, y, 1, _G2, 1);
+    Veclib::vmul (_npnp, _G3, 1, y, 1, _G3, 1);
+    Veclib::vmul (_npnp, _G4, 1, y, 1, _G4, 1);
   } 
 
   // -- Calculations are done.  Do null-mapping optimizations.
   
-  if (Blas::nrm2 (npnp, drdx, 1) < EPS) { delete [] drdx; drdx = 0; }
-  if (Blas::nrm2 (npnp, drdy, 1) < EPS) { delete [] drdy; drdy = 0; }
-  if (Blas::nrm2 (npnp, dsdx, 1) < EPS) { delete [] dsdx; dsdx = 0; }
-  if (Blas::nrm2 (npnp, dsdy, 1) < EPS) { delete [] dsdy; dsdy = 0; }
-  if (Blas::nrm2 (npnp, G3,   1) < EPS) { delete [] G3;   G3   = 0; }
+  if (Blas::nrm2 (_npnp, _drdx, 1) < EPS) { delete [] _drdx; _drdx = 0; }
+  if (Blas::nrm2 (_npnp, _drdy, 1) < EPS) { delete [] _drdy; _drdy = 0; }
+  if (Blas::nrm2 (_npnp, _dsdx, 1) < EPS) { delete [] _dsdx; _dsdx = 0; }
+  if (Blas::nrm2 (_npnp, _dsdy, 1) < EPS) { delete [] _dsdy; _dsdy = 0; }
+  if (Blas::nrm2 (_npnp, _G3,   1) < EPS) { delete [] _G3;   _G3   = 0; }
 
   // -- Check for family redundancies.
 
-  Femlib::adopt (npnp, &drdx );
-  Femlib::adopt (npnp, &drdy );
-  Femlib::adopt (npnp, &dsdx );
-  Femlib::adopt (npnp, &dsdy );
-  Femlib::adopt (npnp, &G1   );
-  Femlib::adopt (npnp, &G2   );
-  Femlib::adopt (npnp, &G3   );
-  Femlib::adopt (npnp, &G4   );
-  Femlib::adopt (npnp, &delta);
+  Femlib::adopt (_npnp, &_drdx );
+  Femlib::adopt (_npnp, &_drdy );
+  Femlib::adopt (_npnp, &_dsdx );
+  Femlib::adopt (_npnp, &_dsdy );
+  Femlib::adopt (_npnp, &_G1   );
+  Femlib::adopt (_npnp, &_G2   );
+  Femlib::adopt (_npnp, &_G3   );
+  Femlib::adopt (_npnp, &_G4   );
+  Femlib::adopt (_npnp, &_delta);
 }
 
 
@@ -257,15 +257,15 @@ void Element::bndryDsSum (const integer* btog,
   static const int  CYL = Geometry::system() == Geometry::Cylindrical;
 
   if (CYL)
-    for (i = 0; i < next; i++) {
-      e = emap[i];
-      w = G4  [e];
+    for (i = 0; i < _next; i++) {
+      e = _emap[i];
+      w = _G4  [e];
       tgt[btog[i]] += (w > EPS) ? w * src[e] : src[e];
     }
   else
-    for (i = 0; i < next; i++) {
-      e = emap[i];
-      tgt[btog[i]] += G4[e] * src[e];
+    for (i = 0; i < _next; i++) {
+      e = _emap[i];
+      tgt[btog[i]] += _G4[e] * src[e];
     }
 }
 
@@ -290,20 +290,20 @@ void Element::bndryMask (const integer* bmsk,
   register integer i, e;
 
   if (src) {
-    for (i = 0; i < next; i++) {
-      e = emap[i];
+    for (i = 0; i < _next; i++) {
+      e = _emap[i];
       tgt[e] = (bmsk[i]) ? src[btog[i]] : tgt[e];
     }
 
   } else {
-    vector<real>   work (npnp);
+    vector<real>   work (_npnp);
     register real* tmp = work();
 
-    Veclib::gathr (npnp, tgt, emap, tmp);
-    for (i = 0; i < next; i++)
+    Veclib::gathr (_npnp, tgt, _emap, tmp);
+    for (i = 0; i < _next; i++)
       tmp[i] = (bmsk[i]) ? tmp[i] : 0.0;
-    Veclib::zero  (nint, tmp + next, 1);
-    Veclib::gathr (npnp, tmp, pmap, tgt);
+    Veclib::zero  (_nint, tmp + _next, 1);
+    Veclib::gathr (_npnp, tmp, _pmap, tgt);
   }
 }
 
@@ -316,7 +316,7 @@ void Element::bndryInsert (const integer* b2g,
 // tgt.
 // ---------------------------------------------------------------------------
 {
-  Veclib::gathr_scatr (next, src, b2g, emap, tgt);
+  Veclib::gathr_scatr (_next, src, b2g, _emap, tgt);
 }
 
        
@@ -329,8 +329,8 @@ void Element::e2g (const real*    src     ,
 // external & internal partitions of vector.
 // ---------------------------------------------------------------------------
 {
-  Veclib::gathr_scatr (next, src, emap, btog, external);
-  if (internal) Veclib::gathr (nint, src, emap + next, internal);
+  Veclib::gathr_scatr (_next, src, _emap, btog, external);
+  if (internal) Veclib::gathr (_nint, src, _emap + _next, internal);
 }
 
 
@@ -343,8 +343,8 @@ void Element::e2gSum (const real*    src     ,
 // external & internal partitions of vector.
 // ---------------------------------------------------------------------------
 {
-  Veclib::gathr_scatr_sum (next, src, emap,  btog, external);
-  if (internal) Veclib::gathr_sum (nint, src, emap + next, internal);
+  Veclib::gathr_scatr_sum (_next, src, _emap,  btog, external);
+  if (internal) Veclib::gathr_sum (_nint, src, _emap + _next, internal);
 }
 
 
@@ -357,8 +357,8 @@ void Element::g2e (real*          tgt,
 // load into elemnt storage tgt.
 // ---------------------------------------------------------------------------
 {
-  Veclib::gathr_scatr (next, external, btog,  emap, tgt);
-  if (internal) Veclib::scatr (nint, internal, emap + next, tgt);
+  Veclib::gathr_scatr (_next, external, btog,  _emap, tgt);
+  if (internal) Veclib::scatr (_nint, internal, _emap + _next, tgt);
 }
 
 
@@ -392,14 +392,14 @@ void Element::e2gSumSC (real*          F   ,
 // NB: scatr_sum is broken for self-periodic elements on vector machines!
 // ---------------------------------------------------------------------------
 {
-  vector<real> work (npnp);
+  vector<real> work (_npnp);
 
-  Veclib::gathr (npnp, F, emap, work());
-  Veclib::copy  (npnp, work(), 1, F, 1);
+  Veclib::gathr (_npnp, F, _emap, work());
+  Veclib::copy  (_npnp, work(), 1, F, 1);
 
-  if (nint) Blas::gemv ("T", nint,next, -1.0, hbi,nint, F + next,1, 1.0, F,1);
+  if (_nint) Blas::gemv ("T",_nint,_next, -1. ,hbi,_nint,F+_next,1, 1., F,1);
 
-  Veclib::scatr_sum (next, F, btog, tgt);
+  Veclib::scatr_sum (_next, F, btog, tgt);
 }
 
 
@@ -428,19 +428,19 @@ void Element::g2eSC (const real*    RHS ,
 {
   // -- Load globally-numbered RHS into element-boundary storage.
 
-  Veclib::gathr (next, RHS,  btog, work);
-  Veclib::scatr (next, work, emap, tgt );
+  Veclib::gathr (_next, RHS,  btog, work);
+  Veclib::scatr (_next, work, _emap, tgt );
 
   // -- Complete static-condensation solution for element-internal storage.
 
-  if (nint) {
-    real* Fi   = F    + next;
-    real* wint = work + next;
+  if (_nint) {
+    real* Fi   = F    + _next;
+    real* wint = work + _next;
 
-    Veclib::copy  (nint, Fi, 1, wint, 1);
-    Blas::gemv    ("T", nint, nint,  1.0, hii, nint, wint, 1, 0.0, Fi, 1);
-    Blas::gemv    ("N", nint, next, -1.0, hbi, nint, work, 1, 1.0, Fi, 1);
-    Veclib::scatr (nint, Fi, emap + next, tgt);
+    Veclib::copy  (_nint, Fi, 1, wint, 1);
+    Blas::gemv    ("T", _nint, _nint,  1.0, hii, _nint, wint, 1, 0.0, Fi, 1);
+    Blas::gemv    ("N", _nint, _next, -1.0, hbi, _nint, work, 1, 1.0, Fi, 1);
+    Veclib::scatr (_nint, Fi, _emap + _next, tgt);
   }
 }
 
@@ -496,39 +496,40 @@ void Element::HelmholtzSC (const real lambda2,
 
   // -- Construct hbb, hbi, hii partitions of elemental Helmholtz matrix.
 
-  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+  Femlib::quad (LL, _np, _np, 0, 0, 0, 0, 0, &DV, &DT);
 
-  for (i = 0; i < np; i++)
-    for (j = 0; j < np; j++, ij++) {
+  for (i = 0; i < _np; i++)
+    for (j = 0; j < _np; j++, ij++) {
 
       helmRow (DV, DT, lambda2, betak2, i, j, rmat, rwrk);
 
-      Veclib::gathr (npnp, rmat, emap, rwrk);
+      Veclib::gathr (_npnp, rmat, _emap, rwrk);
 
-      if ( (eq = pmap[ij]) < next ) {
-	Veclib::copy (next, rwrk,        1, hbb + eq * next, 1);
-	Veclib::copy (nint, rwrk + next, 1, hbi + eq * nint, 1);
+      if ( (eq = _pmap[ij]) < _next ) {
+	Veclib::copy (_next, rwrk,        1, hbb + eq * _next, 1);
+	Veclib::copy (_nint, rwrk + _next, 1, hbi + eq * _nint, 1);
       } else
-	Veclib::copy (nint, rwrk + next, 1, hii + (eq - next) * nint, 1);
+	Veclib::copy (_nint, rwrk + _next, 1, hii + (eq - _next) * _nint, 1);
     }
 
   // -- Static condensation.
 
-  if (nint) {
+  if (_nint) {
 
-    Lapack::getrf (nint, nint, hii, nint, iwrk, info);
+    Lapack::getrf (_nint, _nint, hii, _nint, iwrk, info);
     if (info) message (routine, "matrix hii has singular factor", ERROR);
 
 #if defined(DEBUG)
   if ((integer) Femlib::value ("VERBOSE") > 3) printMatSC (hbb, hbi, hii);
 #endif
 
-    Lapack::getri (nint, hii, nint, iwrk, rwrk, nint*next, info);
+    Lapack::getri (_nint, hii, _nint, iwrk, rwrk, _nint*_next, info);
     if (info) message (routine, "matrix hii is singular",         ERROR);
 
-    Blas::gemm   ("N","N",nint,next,nint, 1.0,hii,nint,hbi,nint,0.0,rwrk,nint);
-    Blas::gemm   ("T","N",next,next,nint,-1.0,hbi,nint,rwrk,nint,1.0,hbb,next);
-    Veclib::copy (nint*next, rwrk, 1, hbi, 1);
+    Blas::mxm    (hbi, next, hii, nint, rwrk, nint);
+    Blas::gemm   ("T","N",_next,_next,_nint,-1.0,hbi,
+		  _nint,rwrk,_nint, 1.0,hbb,_next);
+    Veclib::copy (_nint*_next, rwrk, 1, hbi, 1);
   }
 }
 
@@ -542,31 +543,31 @@ void Element::printMatSC (const real* hbb,
 {
   integer i, j;
 
-  cout << "-- Helmholtz matrices, element " << id << endl;
+  cout << "-- Helmholtz matrices, element " << _id << endl;
 
   cout << "-- hbb:" << endl;
 
   cout.precision(3);
 
-  for (i = 0; i < next; i++) {
-    for (j = 0; j < next; j++)
-      cout << setw (10) << hbb[Veclib::row_major (i, j, next)];
+  for (i = 0; i < _next; i++) {
+    for (j = 0; j < _next; j++)
+      cout << setw (10) << hbb[Veclib::row_major (i, j, _next)];
     cout << endl;
   }
 
   cout << "-- hii:" << endl;
 
-  for (i = 0; i < nint; i++) {
-    for (j = 0; j < nint; j++)
-      cout << setw (10) << hii[Veclib::row_major (i, j, nint)];
+  for (i = 0; i < _nint; i++) {
+    for (j = 0; j < _nint; j++)
+      cout << setw (10) << hii[Veclib::row_major (i, j, _nint)];
     cout << endl;
   }
 
   cout << "-- hbi:" << endl;
 
-  for (i = 0; i < next; i++) {
-    for (j = 0; j < nint; j++)
-      cout << setw (10) << hbi[Veclib::row_major (i, j, nint)];
+  for (i = 0; i < _next; i++) {
+    for (j = 0; j < _nint; j++)
+      cout << setw (10) << hbi[Veclib::row_major (i, j, _nint)];
     cout << endl;
   }
 
@@ -593,12 +594,12 @@ void Element::Helmholtz (const real lambda2,
   const real       **DV, **DT;
   register integer ij = 0;
 
-  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+  Femlib::quad (LL, _np, _np, 0, 0, 0, 0, 0, &DV, &DT);
 
-  for (register integer i = 0; i < np; i++)
-    for (register integer j = 0; j < np; j++, ij++) {
+  for (register integer i = 0; i < _np; i++)
+    for (register integer j = 0; j < _np; j++, ij++) {
       helmRow      (DV, DT, lambda2, betak2, i, j, rmat, rwrk);
-      Veclib::copy (npnp, rmat, 1, h + ij * np, 1);
+      Veclib::copy (_npnp, rmat, 1, h + ij * _np, 1);
     }
 }
 
@@ -609,7 +610,7 @@ void Element::HelmholtzDg (const real lambda2,
 			   real*      work   ) const
 // ---------------------------------------------------------------------------
 // Create the diagonal of the elemental Helmholtz matrix in diag.  The
-// diagonal is sorted in emap order: i.e., boundary nodes are first.
+// diagonal is sorted in _emap order: i.e., boundary nodes are first.
 //
 // Input vector diag must be nTot() long, work must be Ntot() +
 // nKnot() long.  Construction is very similar to that in helmRow
@@ -620,39 +621,39 @@ void Element::HelmholtzDg (const real lambda2,
   static const int  CYL = Geometry::system() == Geometry::Cylindrical;
   const real**      DT;
   register integer  i, j, ij;
-  register real     *dg = work, *tmp = work + npnp;
+  register real     *dg = work, *tmp = work + _npnp;
   real              r2, HCon;
 
-  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, 0, &DT);
+  Femlib::quad (LL, _np, _np, 0, 0, 0, 0, 0, 0, &DT);
 
   if (CYL) {
-    for (ij = 0, i = 0; i < np; i++)
-      for (j = 0; j < np; j++, ij++) {
-	r2   = sqr (ymesh[Veclib::row_major (i, j, np)]);
+    for (ij = 0, i = 0; i < _np; i++)
+      for (j = 0; j < _np; j++, ij++) {
+	r2   = sqr (_ymesh[Veclib::row_major (i, j, _np)]);
 	HCon = (r2 > EPS) ? (betak2 / r2 + lambda2) : 0.0;
-	Veclib::vmul (np, DT[j], 1, DT[j], 1, tmp, 1);
-	dg[ij] = Blas::dot   (np, G1 + i*np, 1, tmp, 1);
-	Veclib::vmul (np, DT[i], 1, DT[i], 1, tmp, 1);
-	dg[ij] += Blas::dot   (np, G2 + j,   np, tmp, 1);
-	if (G3)
-	  dg[ij] += 2.0 * G3[Veclib::row_major (i, j, np)] * DT[j][j]*DT[i][i];
-	dg[ij] += HCon  * G4[Veclib::row_major (i, j, np)];
+	Veclib::vmul (_np, DT[j], 1, DT[j], 1, tmp, 1);
+	dg[ij] = Blas::dot   (_np, _G1 + i*_np, 1, tmp, 1);
+	Veclib::vmul (_np, DT[i], 1, DT[i], 1, tmp, 1);
+	dg[ij] += Blas::dot   (_np, _G2 + j,   _np, tmp, 1);
+	if (_G3)
+	  dg[ij] += 2. * _G3[Veclib::row_major (i, j, _np)]*DT[j][j]*DT[i][i];
+	dg[ij] += HCon * _G4[Veclib::row_major (i, j, _np)];
       }
   } else {
     HCon = lambda2 + betak2;
-    for (ij = 0, i = 0; i < np; i++)
-      for (j = 0; j < np; j++, ij++) {
-	Veclib::vmul (np, DT[j], 1, DT[j], 1, tmp, 1);
-	dg[ij]  = Blas::dot   (np, G1 + i*np, 1, tmp, 1);
-	Veclib::vmul (np, DT[i], 1, DT[i], 1, tmp, 1);
-	dg[ij] += Blas::dot   (np, G2 + j,   np, tmp, 1);
-	if (G3)
-	  dg[ij] += 2.0 * G3[Veclib::row_major (i, j, np)] * DT[j][j]*DT[i][i];
-	dg[ij] += HCon  * G4[Veclib::row_major (i, j, np)];
+    for (ij = 0, i = 0; i < _np; i++)
+      for (j = 0; j < _np; j++, ij++) {
+	Veclib::vmul (_np, DT[j], 1, DT[j], 1, tmp, 1);
+	dg[ij]  = Blas::dot   (_np, _G1 + i*_np, 1, tmp, 1);
+	Veclib::vmul (_np, DT[i], 1, DT[i], 1, tmp, 1);
+	dg[ij] += Blas::dot   (_np, _G2 + j,   _np, tmp, 1);
+	if (_G3)
+	  dg[ij] += 2. * _G3[Veclib::row_major (i, j, _np)]*DT[j][j]*DT[i][i];
+	dg[ij] += HCon * _G4[Veclib::row_major (i, j, _np)];
       }
   }
 
-  Veclib::gathr (npnp, work, emap, diag);
+  Veclib::gathr (_npnp, work, _emap, diag);
 }
 
 
@@ -698,34 +699,34 @@ void Element::helmRow (const real**  DV     ,
 // are identities, and are not required.
 // ---------------------------------------------------------------------------
 {
-  const real       r2   = sqr (ymesh[Veclib::row_major (i, j, np)]);
+  const real       r2   = sqr (_ymesh[Veclib::row_major (i, j, _np)]);
   const real       EPS  = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
   const real       hCon = (Geometry::system() == Geometry::Cylindrical &&
 			r2 > EPS) ? (betak2 / r2 + lambda2) : betak2 + lambda2;
   register integer m, n;
 
-  Veclib::zero (npnp, hij, 1);
+  Veclib::zero (_npnp, hij, 1);
 
-  for (n = 0; n < np; n++) {
-    Veclib::vmul (np, DT[j], 1, DT[n], 1, work, 1);
-    hij[Veclib::row_major (i, n, np)]  = Blas::dot (np, G1 + i*np, 1, work, 1);
+  for (n = 0; n < _np; n++) {
+    Veclib::vmul (_np, DT[j], 1, DT[n], 1, work, 1);
+    hij[Veclib::row_major (i, n, _np)]  = Blas::dot (_np,_G1+i*_np,1,work,1);
   }
 
-  for (m = 0; m < np; m++) {
-    Veclib::vmul (np, DT[i], 1, DT[m], 1, work, 1);
-    hij[Veclib::row_major (m, j, np)] += Blas::dot (np, G2 + j,   np, work, 1);
+  for (m = 0; m < _np; m++) {
+    Veclib::vmul (_np, DT[i], 1, DT[m], 1, work, 1);
+    hij[Veclib::row_major (m, j, _np)] += Blas::dot (_np,_G2+j,_np,work,1);
   }
 
-  if (G3)
-    for (m = 0; m < np; m++)
-      for (n = 0; n < np; n++) {
-	hij [Veclib::row_major (m, n, np)] +=
-	  G3[Veclib::row_major (i, n, np)] * DV[n][j] * DV[i][m];
-	hij [Veclib::row_major (m, n, np)] +=
-	  G3[Veclib::row_major (m, j, np)] * DV[j][n] * DV[m][i];
+  if (_G3)
+    for (m = 0; m < _np; m++)
+      for (n = 0; n < _np; n++) {
+	hij [Veclib::row_major (m, n, _np)] +=
+	  _G3[Veclib::row_major (i, n, _np)] * DV[n][j] * DV[i][m];
+	hij [Veclib::row_major (m, n, _np)] +=
+	  _G3[Veclib::row_major (m, j, _np)] * DV[j][n] * DV[m][i];
       }
 
-  hij[Veclib::row_major (i, j, np)] += G4[Veclib::row_major (i, j, np)] * hCon;
+  hij[Veclib::row_major (i, j, _np)] += _G4[Veclib::row_major (i,j,_np)]*hCon;
 }
 
 
@@ -744,13 +745,13 @@ void Element::HelmholtzKern (const real lambda2,
 {
   register integer  ij;
   register real     tmp, r2, hCon;
-  register real     *g1 = G1, *g2 = G2, *g3 = G3, *g4 = G4, *r = ymesh;
+  register real     *g1 = _G1, *g2 = _G2, *g3 = _G3, *g4 = _G4, *r = _ymesh;
   static const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
   static const int  CYL = Geometry::system() == Geometry::Cylindrical;
 
   if (CYL) {
     if (g3) {
-      for (ij = 0; ij < npnp; ij++) {
+      for (ij = 0; ij < _npnp; ij++) {
 	r2       = r[ij] * r[ij];
 	hCon     = (r2 > EPS) ? (betak2 / r2 + lambda2) : 0.0;
 	tmp      = R [ij];
@@ -759,7 +760,7 @@ void Element::HelmholtzKern (const real lambda2,
 	tgt[ij]  = g4[ij] * src[ij] * hCon;
       }
     } else {
-      for (ij = 0; ij < npnp; ij++) {
+      for (ij = 0; ij < _npnp; ij++) {
 	r2       = r[ij] * r[ij];
 	hCon     = (r2 > EPS) ? (betak2 / r2 + lambda2) : 0.0;
 	R  [ij] *= g1[ij];
@@ -771,14 +772,14 @@ void Element::HelmholtzKern (const real lambda2,
   } else {			// -- Cartesian.
     hCon = betak2 + lambda2;
     if (g3) {
-      for (ij = 0; ij < npnp; ij++) {
+      for (ij = 0; ij < _npnp; ij++) {
 	tmp      = R [ij];
 	R  [ij]  = g1[ij] * R  [ij] + g3[ij] * S  [ij];
 	S  [ij]  = g2[ij] * S  [ij] + g3[ij] * tmp;
 	tgt[ij]  = g4[ij] * src[ij] * hCon;
       }
     } else {
-      for (ij = 0; ij < npnp; ij++) {
+      for (ij = 0; ij < _npnp; ij++) {
 	R  [ij] *= g1[ij];
 	S  [ij] *= g2[ij];
 	tgt[ij]  = g4[ij] * src[ij] * hCon;
@@ -802,36 +803,36 @@ void Element::grad (real*        tgtA,
 // ---------------------------------------------------------------------------
 {
   real* tmpA = work;
-  real* tmpB = tmpA + npnp;
+  real* tmpB = tmpA + _npnp;
   real* tgt;
 
   if ((tgt = tgtA)) {
-    if (drdx && dsdx) {
-      Blas::mxm     (tgt, np, *DT, np, tmpA, np);
-      Blas::mxm     (*DV, np, tgt, np, tmpB, np);
-      Veclib::vmul  (npnp, tmpA, 1, drdx, 1, tmpA, 1);
-      Veclib::vvtvp (npnp, tmpB, 1, dsdx, 1, tmpA, 1, tgt, 1);
-    } else if (drdx) {
-      Blas::mxm     (tgt, np, *DT, np, tmpA, np);
-      Veclib::vmul  (npnp, tmpA, 1, drdx, 1, tgt, 1);
+    if (_drdx && _dsdx) {
+      Blas::mxm     (tgt, _np, *DT, _np, tmpA, _np);
+      Blas::mxm     (*DV, _np, tgt, _np, tmpB, _np);
+      Veclib::vmul  (_npnp, tmpA, 1, _drdx, 1, tmpA, 1);
+      Veclib::vvtvp (_npnp, tmpB, 1, _dsdx, 1, tmpA, 1, tgt, 1);
+    } else if (_drdx) {
+      Blas::mxm     (tgt, _np, *DT, _np, tmpA, _np);
+      Veclib::vmul  (_npnp, tmpA, 1, _drdx, 1, tgt, 1);
     } else {
-      Blas::mxm     (*DV, np, tgt, np, tmpB, np);
-      Veclib::vmul  (npnp, tmpB, 1, dsdx, 1, tgt, 1);
+      Blas::mxm     (*DV, _np, tgt, _np, tmpB, _np);
+      Veclib::vmul  (_npnp, tmpB, 1, _dsdx, 1, tgt, 1);
     }
   }
 
   if ((tgt = tgtB)) {
-    if (drdy && dsdy) {
-      Blas::mxm     (tgt, np, *DT, np, tmpA, np);
-      Blas::mxm     (*DV, np, tgt, np, tmpB, np);
-      Veclib::vmul  (npnp, tmpA, 1, drdy, 1, tmpA, 1);
-      Veclib::vvtvp (npnp, tmpB, 1, dsdy, 1, tmpA, 1, tgt, 1);
-    } else if (drdy) {
-      Blas::mxm     (tgt, np, *DT, np, tmpA, np);
-      Veclib::vmul  (npnp, tmpA, 1, drdy, 1, tgt, 1);
+    if (_drdy && _dsdy) {
+      Blas::mxm     (tgt, _np, *DT, _np, tmpA, _np);
+      Blas::mxm     (*DV, _np, tgt, _np, tmpB, _np);
+      Veclib::vmul  (_npnp, tmpA, 1, _drdy, 1, tmpA, 1);
+      Veclib::vvtvp (_npnp, tmpB, 1, _dsdy, 1, tmpA, 1, tgt, 1);
+    } else if (_drdy) {
+      Blas::mxm     (tgt, _np, *DT, _np, tmpA, _np);
+      Veclib::vmul  (_npnp, tmpA, 1, _drdy, 1, tgt, 1);
     } else {
-      Blas::mxm     (*DV, np, tgt, np, tmpB, np);
-      Veclib::vmul  (npnp, tmpB, 1, dsdy, 1, tgt, 1);
+      Blas::mxm     (*DV, _np, tgt, _np, tmpB, _np);
+      Veclib::vmul  (_npnp, tmpB, 1, _dsdy, 1, tgt, 1);
     }
   }
 }
@@ -844,9 +845,9 @@ void Element::gradX (const real* xr,
 // Partial implementation of x-gradient, for use with Femlib::grad2.
 // ---------------------------------------------------------------------------
 {
-  if (drdx && dsdx) Veclib::vvtvvtp (npnp, xr,1,drdx,1,xs,1,dsdx,1,dx,1);
-  else if (drdx)    Veclib::vmul    (npnp, xr,1,drdx,1,dx,1);
-  else              Veclib::vmul    (npnp, xs,1,dsdx,1,dx,1);
+  if (_drdx && _dsdx) Veclib::vvtvvtp (_npnp, xr,1,_drdx,1,xs,1,_dsdx,1,dx,1);
+  else if (_drdx)    Veclib::vmul    (_npnp, xr,1,_drdx,1,dx,1);
+  else              Veclib::vmul    (_npnp, xs,1,_dsdx,1,dx,1);
 }
 
 
@@ -857,9 +858,9 @@ void Element::gradY (const real* yr,
 // Partial implementation of y-gradient, for use with Femlib::grad2.
 // ---------------------------------------------------------------------------
 {
-  if (drdy && dsdy) Veclib::vvtvvtp (npnp, yr,1,drdy,1,ys,1,dsdy,1,dy,1);
-  else if (drdy)    Veclib::vmul    (npnp, yr,1,drdy,1,dy,1);
-  else              Veclib::vmul    (npnp, ys,1,dsdy,1,dy,1);
+  if (_drdy && _dsdy) Veclib::vvtvvtp (_npnp, yr,1,_drdy,1,ys,1,_dsdy,1,dy,1);
+  else if (_drdy)    Veclib::vmul    (_npnp, yr,1,_drdy,1,dy,1);
+  else              Veclib::vmul    (_npnp, ys,1,_dsdy,1,dy,1);
 }
 
 
@@ -889,107 +890,106 @@ void Element::sideGeom (const integer side,
   register integer low, skip;
   const real       **D, *w;
   real             *xr, *xs, *yr, *ys, *len;
-  vector<real>     work (np + np);
+  vector<real>     work (_np + _np);
 
-  Femlib::quad (LL, np, np, 0, 0, &w, 0, 0, &D, 0);
+  Femlib::quad (LL, _np, _np, 0, 0, &w, 0, 0, &D, 0);
 
   switch (side) {
   case 0: 
     low  = 0;
     skip = 1;
     xr   = work();
-    yr   = xr + np;
+    yr   = xr + _np;
         
-    Veclib::copy  (np, xmesh + low, skip, x, 1);
-    Veclib::copy  (np, ymesh + low, skip, y, 1);
+    Veclib::copy  (_np, _xmesh + low, skip, x, 1);
+    Veclib::copy  (_np, _ymesh + low, skip, y, 1);
+    Blas::gemv    ("T", _np, _np, 1.0, *D, _np, _xmesh+low, 1, 0.0, xr, 1);
+    Blas::gemv    ("T", _np, _np, 1.0, *D, _np, _ymesh+low, 1, 0.0, yr, 1);
+    Veclib::vmul  (_np, xr, 1, xr, 1, area, 1);
+    Veclib::vvtvp (_np, yr, 1, yr, 1, area, 1, area, 1);
 
-    Blas::gemv    ("T", np, np, 1.0, *D, np, xmesh+low, 1, 0.0, xr, 1);
-    Blas::gemv    ("T", np, np, 1.0, *D, np, ymesh+low, 1, 0.0, yr, 1);
-    Veclib::vmul  (np, xr, 1, xr, 1, area, 1);
-    Veclib::vvtvp (np, yr, 1, yr, 1, area, 1, area, 1);
-
-    if   (dsdx) Veclib::smul (np, -1.0, dsdx, skip, nx, 1);
-    else        Veclib::zero (np,                   nx, 1);
-    if   (dsdy) Veclib::smul (np, -1.0, dsdy, skip, ny, 1);
-    else        Veclib::zero (np,                   ny, 1);
+    if   (_dsdx) Veclib::smul (_np, -1.0, _dsdx, skip, nx, 1);
+    else        Veclib::zero (_np,                   nx, 1);
+    if   (_dsdy) Veclib::smul (_np, -1.0, _dsdy, skip, ny, 1);
+    else        Veclib::zero (_np,                   ny, 1);
     
     break;
 
   case 1: 
-    low  = np - 1;
-    skip = np;
+    low  = _np - 1;
+    skip = _np;
     xs   = work();
-    ys   = xs + np;
+    ys   = xs + _np;
 
-    Veclib::copy  (np, xmesh + low, skip, x, 1);
-    Veclib::copy  (np, ymesh + low, skip, y, 1);
+    Veclib::copy  (_np, _xmesh + low, skip, x, 1);
+    Veclib::copy  (_np, _ymesh + low, skip, y, 1);
       
-    Blas::gemv    ("T", np, np, 1.0, *D, np, xmesh+low, np, 0.0, xs, 1);
-    Blas::gemv    ("T", np, np, 1.0, *D, np, ymesh+low, np, 0.0, ys, 1);
-    Veclib::vmul  (np, xs, 1, xs, 1, area, 1);
+    Blas::gemv    ("T", _np, _np, 1.0, *D, _np, _xmesh+low, _np, 0.0, xs, 1);
+    Blas::gemv    ("T", _np, _np, 1.0, *D, _np, _ymesh+low, _np, 0.0, ys, 1);
+    Veclib::vmul  (_np, xs, 1, xs, 1, area, 1);
 
-    Veclib::vvtvp (np, ys, 1, ys, 1, area, 1, area, 1);
+    Veclib::vvtvp (_np, ys, 1, ys, 1, area, 1, area, 1);
 
-    if   (drdx) Veclib::copy (np, drdx+low, skip, nx, 1);
-    else        Veclib::zero (np,                 nx, 1);
-    if   (drdy) Veclib::copy (np, drdy+low, skip, ny, 1);
-    else        Veclib::zero (np,                 ny, 1);
+    if   (_drdx) Veclib::copy (_np, _drdx+low, skip, nx, 1);
+    else        Veclib::zero (_np,                 nx, 1);
+    if   (_drdy) Veclib::copy (_np, _drdy+low, skip, ny, 1);
+    else        Veclib::zero (_np,                 ny, 1);
     
     break;
 
   case 2:
-    low  = np * (np - 1);
+    low  = _np * (_np - 1);
     skip = -1;
     xr   = work();
-    yr   = xr + np;
+    yr   = xr + _np;
     
-    Veclib::copy  (np, xmesh + low, skip, x, 1);
-    Veclib::copy  (np, ymesh + low, skip, y, 1);
+    Veclib::copy  (_np, _xmesh + low, skip, x, 1);
+    Veclib::copy  (_np, _ymesh + low, skip, y, 1);
 	
-    Blas::gemv    ("T", np, np, 1.0, *D, np, xmesh+low, 1, 0.0, xr, 1);
-    Blas::gemv    ("T", np, np, 1.0, *D, np, ymesh+low, 1, 0.0, yr, 1);
-    Veclib::vmul  (np, xr, 1, xr, 1, area, 1);
-    Veclib::vvtvp (np, yr, 1, yr, 1, area, 1, area, 1);
+    Blas::gemv    ("T", _np, _np, 1.0, *D, _np, _xmesh+low, 1, 0.0, xr, 1);
+    Blas::gemv    ("T", _np, _np, 1.0, *D, _np, _ymesh+low, 1, 0.0, yr, 1);
+    Veclib::vmul  (_np, xr, 1, xr, 1, area, 1);
+    Veclib::vvtvp (_np, yr, 1, yr, 1, area, 1, area, 1);
 
-    if   (dsdx) Veclib::copy (np, dsdx+low, skip, nx, 1);
-    else        Veclib::zero (np,                 nx, 1);
-    if   (dsdy) Veclib::copy (np, dsdy+low, skip, ny, 1);
-    else        Veclib::zero (np,                 ny, 1);
+    if   (_dsdx) Veclib::copy (_np, _dsdx+low, skip, nx, 1);
+    else        Veclib::zero (_np,                 nx, 1);
+    if   (_dsdy) Veclib::copy (_np, _dsdy+low, skip, ny, 1);
+    else        Veclib::zero (_np,                 ny, 1);
 
     break;
 
   case 3:
     low  = 0;
-    skip = -np;
+    skip = -_np;
     xs   = work();
-    ys   = xs + np;
+    ys   = xs + _np;
     
-    Veclib::copy  (np, xmesh + low, skip, x, 1);
-    Veclib::copy  (np, ymesh + low, skip, y, 1);
+    Veclib::copy  (_np, _xmesh + low, skip, x, 1);
+    Veclib::copy  (_np, _ymesh + low, skip, y, 1);
       
-    Blas::gemv    ("T", np, np, 1.0, *D, np, xmesh+low, np, 0.0, xs, 1);
-    Blas::gemv    ("T", np, np, 1.0, *D, np, ymesh+low, np, 0.0, ys, 1);
-    Veclib::vmul  (np, xs, 1, xs, 1, area, 1);
-    Veclib::vvtvp (np, ys, 1, ys, 1, area, 1, area, 1);
+    Blas::gemv    ("T", _np, _np, 1.0, *D, _np, _xmesh+low, _np, 0.0, xs, 1);
+    Blas::gemv    ("T", _np, _np, 1.0, *D, _np, _ymesh+low, _np, 0.0, ys, 1);
+    Veclib::vmul  (_np, xs, 1, xs, 1, area, 1);
+    Veclib::vvtvp (_np, ys, 1, ys, 1, area, 1, area, 1);
 
-    if   (drdx) Veclib::smul (np, -1.0, drdx, skip, nx, 1);
-    else        Veclib::zero (np,                   nx, 1);
-    if   (drdy) Veclib::smul (np, -1.0, drdy, skip, ny, 1);
-    else        Veclib::zero (np,                   ny, 1);
+    if   (_drdx) Veclib::smul (_np, -1.0, _drdx, skip, nx, 1);
+    else        Veclib::zero (_np,                   nx, 1);
+    if   (_drdy) Veclib::smul (_np, -1.0, _drdy, skip, ny, 1);
+    else        Veclib::zero (_np,                   ny, 1);
 
     break;
   }
   
-  Veclib::vsqrt  (np, area, 1, area, 1);
-  Veclib::vmul   (np, area, 1, w,    1, area, 1);
+  Veclib::vsqrt  (_np, area, 1, area, 1);
+  Veclib::vmul   (_np, area, 1, w,    1, area, 1);
   if (Geometry::system() == Geometry::Cylindrical)
-    Veclib::vmul (np, area, 1, ymesh+low, skip, area, 1);
+    Veclib::vmul (_np, area, 1, _ymesh+low, skip, area, 1);
 
   len = work();
 
-  Veclib::vhypot (np, nx, 1, ny,  1, len, 1);
-  Veclib::vdiv   (np, nx, 1, len, 1, nx,  1);
-  Veclib::vdiv   (np, ny, 1, len, 1, ny,  1);
+  Veclib::vhypot (_np, nx, 1, ny,  1, len, 1);
+  Veclib::vdiv   (_np, nx, 1, len, 1, nx,  1);
+  Veclib::vdiv   (_np, ny, 1, len, 1, ny,  1);
 }
 
 
@@ -1003,20 +1003,20 @@ void Element::sideEval (const integer side,
 // floating-point parameters previously set).
 // ---------------------------------------------------------------------------
 {
-  vector<real> work(np + np);
+  vector<real> work(_np + _np);
   real         *x, *y;
 
   register  integer estart, skip;
   terminal (side, estart, skip);
 
   x = work();
-  y = x + np;
+  y = x + _np;
 
-  Veclib::copy (np, xmesh + estart, skip, x, 1);
-  Veclib::copy (np, ymesh + estart, skip, y, 1);
+  Veclib::copy (_np, _xmesh + estart, skip, x, 1);
+  Veclib::copy (_np, _ymesh + estart, skip, y, 1);
 
   Femlib::prepVec  ("x y", func);
-  Femlib__parseVec (np, x, y, tgt);
+  Femlib__parseVec (_np, x, y, tgt);
 }
 
 
@@ -1037,54 +1037,54 @@ void Element::sideGrad (const integer side,
   register integer d, estart, skip;
   terminal (side, estart, skip);
   
-  vector<real> work (np + np);
+  vector<real> work (_np + _np);
   const real   **DV, **DT;
   real         *ddr, *dds;
 
   ddr = work();
-  dds = ddr + np;
+  dds = ddr + _np;
 
-  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+  Femlib::quad (LL, _np, _np, 0, 0, 0, 0, 0, &DV, &DT);
 
   // -- Make dc/dr, dc/ds along element edge.
 
   switch (side) {
   case 0:
     d = 1;
-    Blas::gemv ("T", np, np, 1.0, *DV, np, src + estart, d*skip, 0.0, ddr, 1);
-    Blas::gemv ("N", np, np, 1.0, src, np, *DV + estart, d*skip, 0.0, dds, 1);
+    Blas::gemv ("T",_np,_np, 1.0, *DV, _np, src + estart, d*skip, 0.0, ddr, 1);
+    Blas::gemv ("N",_np,_np, 1.0, src, _np, *DV + estart, d*skip, 0.0, dds, 1);
     break;
   case 1:
     d = 1;
-    Blas::gemv ("T", np, np, 1.0, src, np, *DT + estart, d*skip, 0.0, ddr, 1);
-    Blas::gemv ("T", np, np, 1.0, *DV, np, src + estart, d*skip, 0.0, dds, 1);
+    Blas::gemv ("T",_np,_np, 1.0, src, _np, *DT + estart, d*skip, 0.0, ddr, 1);
+    Blas::gemv ("T",_np,_np, 1.0, *DV, _np, src + estart, d*skip, 0.0, dds, 1);
     break;
   case 2:
     d = -1;
-    Blas::gemv ("T", np, np, 1.0, *DV, np, src + estart, d*skip, 0.0, ddr, 1);
-    Blas::gemv ("N", np, np, 1.0, src, np, *DV + estart, d*skip, 0.0, dds, 1);
+    Blas::gemv ("T",_np,_np, 1.0, *DV, _np, src + estart, d*skip, 0.0, ddr, 1);
+    Blas::gemv ("N",_np,_np, 1.0, src, _np, *DV + estart, d*skip, 0.0, dds, 1);
     break;
   case 3:
     d = -1;
-    Blas::gemv ("T", np, np, 1.0, src, np, *DT + estart, d*skip, 0.0, ddr, 1);
-    Blas::gemv ("T", np, np, 1.0, *DV, np, src + estart, d*skip, 0.0, dds, 1);
+    Blas::gemv ("T",_np,_np, 1.0, src, _np, *DT + estart, d*skip, 0.0, ddr, 1);
+    Blas::gemv ("T",_np,_np, 1.0, *DV, _np, src + estart, d*skip, 0.0, dds, 1);
     break;
   }
 
   // -- dc/dx = dc/dr * dr/dx + dc/ds * ds/dx.
 
   if (c1) {
-    if   (drdx) Veclib::vmul  (np, ddr, d, drdx + estart, skip, c1, 1);
-    else        Veclib::zero  (np, c1, 1);
-    if   (dsdx) Veclib::vvtvp (np, dds, d, dsdx + estart, skip, c1, 1, c1, 1);
+    if   (_drdx) Veclib::vmul  (_np, ddr, d, _drdx+estart, skip, c1, 1);
+    else        Veclib::zero  (_np, c1, 1);
+    if   (_dsdx) Veclib::vvtvp (_np, dds, d, _dsdx+estart, skip, c1, 1, c1, 1);
   }
   
   // -- dc/dy = dc/dr * dr/dy + dc/ds * ds/dy.
 
   if (c2) {
-    if   (drdy) Veclib::vmul  (np, ddr, d, drdy + estart, skip, c2, 1);
-    else        Veclib::zero  (np, c2, 1);
-    if   (dsdy) Veclib::vvtvp (np, dds, d, dsdy + estart, skip, c2, 1, c2, 1);
+    if   (_drdy) Veclib::vmul  (_np, ddr, d, _drdy+estart, skip, c2, 1);
+    else        Veclib::zero  (_np, c2, 1);
+    if   (_dsdy) Veclib::vvtvp (_np, dds, d, _dsdy+estart, skip, c2, 1, c2, 1);
   }
 }
 
@@ -1100,7 +1100,7 @@ void Element::sideGet (const integer  side,
 
   terminal (side, start, skip);
 
-  Veclib::copy (np, src + start, skip, tgt, 1);
+  Veclib::copy (_np, src + start, skip, tgt, 1);
 }
 
 
@@ -1112,7 +1112,7 @@ void Element::evaluate (const char* func,
 // ---------------------------------------------------------------------------
 {
   Femlib::prepVec  ("x y", func);
-  Femlib__parseVec (npnp, xmesh, ymesh, tgt);
+  Femlib__parseVec (_npnp, _xmesh, _ymesh, tgt);
 }
 
 
@@ -1123,14 +1123,14 @@ real Element::integral (const char* func) const
 // ---------------------------------------------------------------------------
 {
   real         intgrl;
-  vector<real> tmp (npnp);
+  vector<real> tmp (_npnp);
 
   Femlib::prepVec  ("x y", func);
-  Femlib__parseVec (npnp, xmesh, ymesh, tmp());
+  Femlib__parseVec (_npnp, _xmesh, _ymesh, tmp());
 
-  Veclib::vmul (npnp, tmp(), 1, G4, 1, tmp(), 1);
+  Veclib::vmul (_npnp, tmp(), 1, _G4, 1, tmp(), 1);
 
-  intgrl = Veclib::sum (npnp, tmp(), 1);
+  intgrl = Veclib::sum (_npnp, tmp(), 1);
   
   return intgrl;
 }
@@ -1142,8 +1142,8 @@ real Element::integral (const real* src,
 // Discrete approximation to the integral of element src vector.
 // ---------------------------------------------------------------------------
 {
-  Veclib::vmul (npnp, src, 1, G4,  1, tmp, 1);
-  return Veclib::sum (npnp, tmp, 1);
+  Veclib::vmul (_npnp, src, 1, _G4,  1, tmp, 1);
+  return Veclib::sum (_npnp, tmp, 1);
 }
 
 
@@ -1152,7 +1152,7 @@ real Element::area () const
 // Discrete approximation to area of element, using GLL quadrature.
 // ---------------------------------------------------------------------------
 { 
-  return Veclib::sum (npnp, G4, 1);
+  return Veclib::sum (_npnp, _G4, 1);
 }
 
 
@@ -1161,7 +1161,7 @@ void Element::weight (real* tgt) const
 // Multiply tgt by elemental mass matrix.
 // ---------------------------------------------------------------------------
 {
-  Veclib::vmul (npnp, tgt, 1, G4, 1, tgt, 1);
+  Veclib::vmul (_npnp, tgt, 1, _G4, 1, tgt, 1);
 }
 
 
@@ -1170,7 +1170,7 @@ void Element::lengthScale (real* tgt) const
 // Load tgt with information about local elemental length scale.
 // ---------------------------------------------------------------------------
 {
-  Veclib::copy (npnp, delta, 1, tgt, 1);
+  Veclib::copy (_npnp, _delta, 1, tgt, 1);
 }
 
 
@@ -1179,7 +1179,7 @@ real Element::norm_inf (const real* src) const
 // Return infinity-norm of element value.
 // ---------------------------------------------------------------------------
 {
-  return fabs (src[Blas::iamax (npnp, src, 1)]);
+  return fabs (src[Blas::iamax (_npnp, src, 1)]);
 }
 
 
@@ -1190,9 +1190,9 @@ real Element::norm_L2 (const real* src) const
 {
   register integer i;
   register real    L2 = 0.0;
-  register real*   dA = G4;
+  register real*   dA = _G4;
 
-  for (i = 0; i < npnp; i++) L2 += src[i] * src[i] * dA[i];
+  for (i = 0; i < _npnp; i++) L2 += src[i] * src[i] * dA[i];
 
   return sqrt (L2);
 }
@@ -1205,25 +1205,25 @@ real Element::norm_H1 (const real* src) const
 {
   register real    H1 = 0;
   register integer i;
-  vector<real>     work (3 * npnp);
-  register real    *dA = G4, *u = work(), *gw = u + npnp;
+  vector<real>     work (3 * _npnp);
+  register real    *dA = _G4, *u = work(), *gw = u + _npnp;
   const real       **DV, **DT;
 
-  Femlib::quad (LL, np, np, 0, 0, 0, 0, 0, &DV, &DT);
+  Femlib::quad (LL, _np, _np, 0, 0, 0, 0, 0, &DV, &DT);
 
   // -- Add in L2 norm of u.
 
-  for (i = 0; i < npnp; i++) H1 += src[i] * src[i] * dA[i];
+  for (i = 0; i < _npnp; i++) H1 += src[i] * src[i] * dA[i];
 
   // -- Add in L2 norm of grad u.
 
-  Veclib::copy (npnp, src, 1, u, 1);
+  Veclib::copy (_npnp, src, 1, u, 1);
   grad (u, 0, DV, DT, gw);
-  for (i = 0; i < npnp; i++) H1 += u[i] * u[i] * dA[i];
+  for (i = 0; i < _npnp; i++) H1 += u[i] * u[i] * dA[i];
 
-  Veclib::copy (npnp, src, 1, u, 1);
+  Veclib::copy (_npnp, src, 1, u, 1);
   grad (0, u, DV, DT, gw);
-  for (i = 0; i < npnp; i++) H1 += u[i] * u[i] * dA[i];
+  for (i = 0; i < _npnp; i++) H1 += u[i] * u[i] * dA[i];
 
   return sqrt (H1);
 }
@@ -1238,10 +1238,10 @@ void Element::divR (real* src) const
 {
   register integer  i;
   register real     rad, rinv;
-  register real*    y   = ymesh;
+  register real*    y   = _ymesh;
   static const real EPS = (sizeof (real) == sizeof (double)) ? EPSDP : EPSSP;
 
-  for (i = 0; i < npnp; i++) {
+  for (i = 0; i < _npnp; i++) {
     rad     = y[i];
     rinv    = (rad > EPS) ? 1.0 / rad : 0.0;
     src[i] *= rinv;
@@ -1254,7 +1254,7 @@ void Element::mulR (real* src) const
 // Multiply src by y (i.e. r in cylindrical coordinates).
 // ---------------------------------------------------------------------------
 {
-  Veclib::vmul (npnp, src, 1, ymesh, 1, src, 1);
+  Veclib::vmul (_npnp, src, 1, _ymesh, 1, src, 1);
 }
 
 
@@ -1268,7 +1268,7 @@ void Element::sideGetR (const integer side,
 
   terminal (side, estart, skip);
 
-  Veclib::copy (np, ymesh + estart, skip, tgt, 1);
+  Veclib::copy (_np, _ymesh + estart, skip, tgt, 1);
 }
 
 
@@ -1289,30 +1289,30 @@ void Element::sideDivR (const integer side,
   case 0: 
     base = 0;
     skip = 1;
-    y    = ymesh;
+    y    = _ymesh;
     s    = src;
     break;
   case 1:
-    base = np - 1;
-    skip = np;
-    y    = ymesh + base;
+    base = _np - 1;
+    skip = _np;
+    y    = _ymesh + base;
     s    = src   + base;
     break;
   case 2:
-    base = np * np - 1;
+    base = _np * _np - 1;
     skip = -1;
-    y    = ymesh + base;
+    y    = _ymesh + base;
     s    = src   + base;
     break;
   case 3:
-    base = np * (np - 1);
-    skip = -np;
-    y    = ymesh + base;
+    base = _np * (_np - 1);
+    skip = -_np;
+    y    = _ymesh + base;
     s    = src   + base;
     break;
   }
 
-  for (i = 0; i < np; i++) {
+  for (i = 0; i < _np; i++) {
     r      = y[i*skip];
     rinv   = (r > EPS) ? 1.0 / r : 0.0;
     tgt[i] = rinv * s[i*skip];
@@ -1337,30 +1337,30 @@ void Element::sideDivR2 (const integer side,
   case 0: 
     base = 0;
     skip = 1;
-    y    = ymesh;
+    y    = _ymesh;
     s    = src;
     break;
   case 1:
-    base = np - 1;
-    skip = np;
-    y    = ymesh + base;
+    base = _np - 1;
+    skip = _np;
+    y    = _ymesh + base;
     s    = src   + base;
     break;
   case 2:
-    base = np * np - 1;
+    base = _np * _np - 1;
     skip = -1;
-    y    = ymesh + base;
+    y    = _ymesh + base;
     s    = src   + base;
     break;
   case 3:
-    base = np * (np - 1);
-    skip = -np;
-    y    = ymesh + base;
+    base = _np * (_np - 1);
+    skip = -_np;
+    y    = _ymesh + base;
     s    = src   + base;
     break;
   }
 
-  for (i = 0; i < np; i++) {
+  for (i = 0; i < _np; i++) {
     r      = y[i*skip];
     rinv2  = (r > EPS) ? 1.0 / sqr(r) : 0.0;
     tgt[i] = rinv2 * s[i*skip];
@@ -1387,39 +1387,41 @@ integer Element::locate (const real    x    ,
   const integer MaxItn = 8;
   const real    DIVERG = 20.0;
   real          *J, *F, *ir, *is, *dr, *ds, *tp;
-  vector<real>  work (5 * np + 6);
+  vector<real>  work (5 * _np + 6);
   integer       ipiv[2], info, i, j;
   
   tp = work();
-  ir = tp + np;
-  is = ir + np;
-  dr = is + np;
-  ds = dr + np;
-  J  = ds + np;
+  ir = tp + _np;
+  is = ir + _np;
+  dr = is + _np;
+  ds = dr + _np;
+  J  = ds + _np;
   F  = J  + 4;
 
   if (EPS == 0.0) EPS = Femlib::value ("TOL_POS");
 
   if (guess) {
-    vector<real> tmp (2 * npnp);
+    vector<real> tmp (2 * _npnp);
     const real*  knot;
-    real         *tx = tmp(), *ty = tmp() + npnp;
+    real         *tx = tmp(), *ty = tmp() + _npnp;
 
     const real diag =
-      max (hypot(xmesh[np*np-1]  -xmesh[0],    ymesh[np*np-1]  -ymesh[0])   ,
-	   hypot(xmesh[np*(np-1)]-xmesh[np-1], ymesh[np*(np-1)]-ymesh[np-1]));
+      max (hypot(_xmesh[_np*_np-1]  -_xmesh[0],
+		 _ymesh[_np*_np-1]  -_ymesh[0])   ,
+	   hypot(_xmesh[_np*(_np-1)]-_xmesh[_np-1],
+		 _ymesh[_np*(_np-1)]-_ymesh[_np-1]));
 
-    Femlib::quad     (LL, np, np, &knot, 0, 0, 0, 0, 0, 0);
-    Veclib::ssub     (npnp, x, xmesh, 1, tx, 1);
-    Veclib::ssub     (npnp, y, ymesh, 1, ty, 1);
-    Veclib::vvtvvtp  (npnp, tx, 1, tx, 1, ty, 1, ty, 1, tx, 1);
+    Femlib::quad     (LL, _np, _np, &knot, 0, 0, 0, 0, 0, 0);
+    Veclib::ssub     (_npnp, x, _xmesh, 1, tx, 1);
+    Veclib::ssub     (_npnp, y, _ymesh, 1, ty, 1);
+    Veclib::vvtvvtp  (_npnp, tx, 1, tx, 1, ty, 1, ty, 1, tx, 1);
     
-    i = Veclib::imin (npnp, tx, 1);
+    i = Veclib::imin (_npnp, tx, 1);
 
     if (tx[i] - diag * diag > 0.0) return 0;
 
-    j = i % np;
-    i = (i - j) / np;
+    j = i % _np;
+    i = (i - j) / _np;
 
     r = knot[i];
     s = knot[j];
@@ -1432,18 +1434,18 @@ integer Element::locate (const real    x    ,
 
   i = 0;
   do {
-    Femlib::interp (LL, np, r, s, ir, is, dr, ds);
+    Femlib::interp (LL, _np, r, s, ir, is, dr, ds);
 
-               Blas::gemv ("T", np, np, 1.0, xmesh, np, ir, 1, 0.0, tp, 1);
-    F[0] = x - Blas::dot  (np, is, 1, tp, 1);
-    J[2] =     Blas::dot  (np, ds, 1, tp, 1);
-               Blas::gemv ("T", np, np, 1.0, ymesh, np, ir, 1, 0.0, tp, 1);
-    F[1] = y - Blas::dot  (np, is, 1, tp, 1);
-    J[3] =     Blas::dot  (np, ds, 1, tp, 1);
-               Blas::gemv ("T", np, np, 1.0, xmesh, np, dr, 1, 0.0, tp, 1);
-    J[0] =     Blas::dot  (np, is, 1, tp, 1);
-               Blas::gemv ("T", np, np, 1.0, ymesh, np, dr, 1, 0.0, tp, 1);
-    J[1] =     Blas::dot  (np, is, 1, tp, 1);
+               Blas::mxv (_xmesh, _np, ir, _np, tp);
+    F[0] = x - Blas::dot (_np, is, 1, tp, 1);
+    J[2] =     Blas::dot (_np, ds, 1, tp, 1);
+               Blas::mxv (_ymesh, _np, ir, _np, tp);
+    F[1] = y - Blas::dot (_np, is, 1, tp, 1);
+    J[3] =     Blas::dot (_np, ds, 1, tp, 1);
+               Blas::mxv (_xmesh, _np, dr, _np, tp);
+    J[0] =     Blas::dot (_np, is, 1, tp, 1);
+               Blas::mxv (_ymesh, _np, dr, _np, tp);
+    J[1] =     Blas::dot (_np, is, 1, tp, 1);
     
     Lapack::gesv (2, 1, J, 2, ipiv, F, 2, info);
     
@@ -1475,17 +1477,16 @@ real Element::probe (const real  r  ,
 // Return the value of field storage located at r, s, in this element.
 // ---------------------------------------------------------------------------
 {
-  real         *ir, *is, *tp;
-  vector<real> work (3 * np);
+  real               *ir, *is, *tp;
+  static vector<real> work (3 * _np);
 
   ir = work();
-  is = ir + np;
-  tp = is + np;
+  is = ir + _np;
+  tp = is + _np;
 
-  Femlib::interp   (LL, np, r, s, ir, is, 0, 0);
-  Blas::gemv       ("T", np, np, 1.0, src, np, ir, 1, 0.0, tp, 1);
-
-  return Blas::dot (np, is, 1, tp, 1);
+  Femlib::interp   (LL, _np, r, s, ir, is, 0, 0);
+  Blas::mxv        (src, _np, ir, _np, tp);
+  return Blas::dot (_np, is, 1, tp, 1);
 }
 
 
@@ -1513,21 +1514,23 @@ real Element::CFL (const real  d,
 // ---------------------------------------------------------------------------
 {
   register integer i;
-  vector<real>     work (npnp);
+  vector<real>     work (_npnp);
   register real*   tmp = work();
 
-  Veclib::zero (npnp, tmp, 1);
+  Veclib::zero (_npnp, tmp, 1);
 
   if        (u) {
-    if (drdx) for (i = 0; i < npnp; i++) tmp[i] += d * fabs (drdx[i]);
-    if (dsdx) for (i = 0; i < npnp; i++) tmp[i] += d * fabs (dsdx[i]);
-    Veclib::vdiv (npnp, u, 1, tmp, 1, tmp, 1);
+    if (_drdx) for (i = 0; i < _npnp; i++) tmp[i] += d * fabs (_drdx[i]);
+    if (_dsdx) for (i = 0; i < _npnp; i++) tmp[i] += d * fabs (_dsdx[i]);
+    Veclib::vdiv (_npnp, u, 1, tmp, 1, tmp, 1);
   } else if (v) {
-    if (drdy) for (i = 0; i < npnp; i++) tmp[i] += d * fabs (drdy[i]);
-    if (dsdy) for (i = 0; i < npnp; i++) tmp[i] += d * fabs (dsdy[i]);
-    Veclib::vdiv (npnp, v, 1, tmp, 1, tmp, 1);
+    if (_drdy) for (i = 0; i < _npnp; i++) tmp[i] += d * fabs (_drdy[i]);
+    if (_dsdy) for (i = 0; i < _npnp; i++) tmp[i] += d * fabs (_dsdy[i]);
+    Veclib::vdiv (_npnp, v, 1, tmp, 1, tmp, 1);
   }
 
-  i = Blas::iamax (npnp, tmp, 1);
+  i = Blas::iamax (_npnp, tmp, 1);
   return fabs (tmp[i]);
 }
+
+
