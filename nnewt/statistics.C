@@ -103,8 +103,8 @@ Statistics::Statistics (Domain* D) :
   _name (D -> name),
   _base (D),
   _iavg (Femlib::ivalue ("AVERAGE")),
-  _nraw (_base -> nField()),
-  _nvel (_nraw - 1),
+  _nraw (_base -> ua.size()),
+  _nvel (D -> nField() - 1),
   _nrey ((_iavg > 1) ? ((_nvel+1)*_nvel)/2 : 0),
   _neng (0)
 {
@@ -119,12 +119,12 @@ Statistics::Statistics (Domain* D) :
   // -- Set pointers, allocate storage.
 
   for (i = 0; i < _nraw; i++)	// -- Local pointers to raw variables.
-    _raw[_base -> u[i] -> name()] = (AuxField*) _base -> u[i];
+    _raw[_base -> ua[i] -> name()] = _base -> ua[i];
 
   if (_iavg > 0) // -- Set up buffers for averages of raw variables.
     for (j = 0, i = 0; i < _nraw; i++, j++)
-      _avg[_base -> u[i] -> name()] =
-	new AuxField (new real_t[ntot],nz,_base->elmt,_base->u[i]->name());
+      _avg[_base -> ua[i] -> name()] =
+	new AuxField (new real_t[ntot],nz,_base->elmt,_base->ua[i]->name());
 
   if (_iavg > 1) // -- Set up buffers for Reynolds stress correlations.
     for (i = 0; i < _nrey; i++, j++)
@@ -151,25 +151,29 @@ Statistics::Statistics (Domain* D) :
 
     _avg['r'] = new AuxField (new real_t[ntot],nz,_base->elmt,'r'); ++_neng;
     _avg['s'] = new AuxField (new real_t[ntot],nz,_base->elmt,'s'); ++_neng;
-    if (_nvel == 3)
+    if (_nvel == 3) {
       _avg['t'] = new AuxField (new real_t[ntot],nz,_base->elmt,'t'); ++_neng;
+    }
 
     _avg['a'] = new AuxField (new real_t[ntot],nz,_base->elmt,'a'); ++_neng;
     _avg['b'] = new AuxField (new real_t[ntot],nz,_base->elmt,'b'); ++_neng;
-    if (_nvel == 3)
+    if (_nvel == 3) {
       _avg['c'] = new AuxField (new real_t[ntot],nz,_base->elmt,'c'); ++_neng;
+    }
 
     // ** NEW for nnewt:
 
     _avg['f'] = new AuxField (new real_t[ntot],nz,_base->elmt,'f'); ++_neng;
     _avg['g'] = new AuxField (new real_t[ntot],nz,_base->elmt,'g'); ++_neng;
-    if (_nvel == 3)
+    if (_nvel == 3) {
       _avg['h'] = new AuxField (new real_t[ntot],nz,_base->elmt,'h'); ++_neng;
+    }
 
     _avg['i'] = new AuxField (new real_t[ntot],nz,_base->elmt,'i'); ++_neng;
     _avg['j'] = new AuxField (new real_t[ntot],nz,_base->elmt,'j'); ++_neng;
-    if (_nvel == 3)
+    if (_nvel == 3) {
       _avg['k'] = new AuxField (new real_t[ntot],nz,_base->elmt,'k'); ++_neng;
+    }
       
     // -- Tensor.
     
@@ -431,10 +435,10 @@ void Statistics::update (AuxField** wrka,
 
     wrkc -> times     (*wrkb[1], *_raw['u']);
     wrkc -> timesPlus (*wrka[2], *_raw['v']);
-    if (_nvel == 3)
+    if (_nvel == 3) {
       wrkc -> timesPlus (*wrka[2], *_raw['w']);
-    
-    *_avg['c'] += *wrkc; *wrkc *= *_raw['l']; *_avg['k'] += *wrkc;
+      *_avg['c'] += *wrkc; *wrkc *= *_raw['l']; *_avg['k'] += *wrkc;
+    }
 
     // -- Compute fully-contracted strain rate scalar, d, and the
     // -- product of same with viscosity, e.

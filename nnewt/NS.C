@@ -76,7 +76,7 @@ void NavierStokes (Domain*        D,
 // ---------------------------------------------------------------------------
 {
   NDIM = Geometry::nDim();	// -- Number of space dimensions.
-  NCOM = D -> nField() - 2;	// -- Number of velocity components.
+  NCOM = D -> nField() - 1;	// -- Number of velocity components.
   NORD = Femlib::ivalue ("N_TIME");
   C3D  = Geometry::cylindrical() && NCOM == 3;
 
@@ -120,7 +120,7 @@ void NavierStokes (Domain*        D,
 
   // -- Set pointer to non-Newtonian viscosity storage.
   
-  AuxField* NNV = D -> u[NCOM + 1];
+  AuxField* NNV = D -> ua[NCOM + 1];
 
   // -- Create spatially-constant forcing terms.
 
