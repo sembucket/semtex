@@ -59,7 +59,7 @@ void nonLinear (Domain*       D ,
   const int NCOM = D -> nField() - 1;	// -- Number of velocity components.
   int       i, j;
 
-#if defined(STOKES)
+#if defined (STOKES)
 
   for (i = 0; i < NCOM; i++) {
     *Uf[i] = 0.0;
@@ -130,7 +130,7 @@ void nonLinear (Domain*       D ,
 	if (i == 1)
 	  Veclib::svvttvp (nTot32, -1.0, u32[2],1,u32[2],1,n32[1],1,n32[1], 1);
 	if (i == 2)
-	  Veclib::svvtt   (nTot32,  1.0, u32[2], 1, u32[1], 1,      n32[2], 1);
+	  Veclib::vmul    (nTot32, u32[2], 1, u32[1], 1, n32[2], 1);
 #endif
 
 	if (nZ > 2) {
@@ -155,15 +155,22 @@ void nonLinear (Domain*       D ,
 #endif
 	}
       }
-
+#if defined (OLDCODE)
+      if (i >  0) master -> divY (nZ32, n32[i]);
+#else
       if (i == 2) master -> divY (nZ32, n32[i]);
+#endif
 
       // -- 2D non-conservative derivatives.
 
       for (j = 0; j < 2; j++) {
 	Veclib::copy (nTot32, u32[i], 1, tmp, 1);
 	master -> gradient (nZ32, nP, tmp, j);
-	if (i < 2) master -> mulY (nZ32, tmp);
+#if defined (OLDCODE)
+	if (i == 0) master -> mulY (nZ32, tmp);
+#else
+	if (i <  2) master -> mulY (nZ32, tmp);
+#endif
 	Veclib::vvtvp (nTot32, u32[j], 1, tmp, 1, n32[i], 1, n32[i], 1);
       }
 
@@ -173,7 +180,11 @@ void nonLinear (Domain*       D ,
       for (j = 0; j < 2; j++) {
 	Veclib::vmul (nTot32, u32[j], 1, u32[i], 1, tmp, 1);
 	master -> gradient (nZ32, nP, tmp, j);
-	if (i < 2) master -> mulY (nZ32, tmp);
+#if defined (OLDCODE)
+        if (i == 0) master -> mulY (nZ32, tmp);
+#else
+	if (i <  2) master -> mulY (nZ32, tmp);
+#endif
 	Veclib::vadd (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
       }
 #endif
@@ -181,9 +192,7 @@ void nonLinear (Domain*       D ,
       // -- Transform to Fourier space, smooth, add forcing.
 
       N[i]   -> transform32 (FORWARD, n32[i]);
-#if 0
-      master -> smooth (N[i]);
-#endif
+
 #if defined (SKEW)
       ROOTONLY if (fabs (ff[i]) > EPSDP) {
 	Veclib::fill (nP, -2.0*ff[i], tmp, 1);
@@ -243,9 +252,7 @@ void nonLinear (Domain*       D ,
       // -- Transform to Fourier space, smooth, add forcing.
       
       N[i]   -> transform32 (FORWARD, n32[i]);
-#if 0
-      master -> smooth (N[i]);
-#endif
+
 #if defined (SKEW)
       ROOTONLY if (fabs (ff[i]) > EPSDP) N[i] -> addToPlane (0, -2.0*ff[i]);
       *N[i] *= -0.5;

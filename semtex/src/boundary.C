@@ -485,3 +485,18 @@ void Boundary::mulY (real* tgt) const
   Veclib::vmul (_np, tgt, 1, _y, 1, tgt, 1);
 }
 
+
+void Boundary::divY (real* tgt) const
+// ---------------------------------------------------------------------------
+// Divide tgt by y (i.e. radius) along this edge.
+// ---------------------------------------------------------------------------
+{
+  register int i;
+  real     invr;
+
+  for (i = 0; i < _np; i++) {
+    invr = (_y[i] > EPSDP) ? 1.0/_y[i] : 0.0;
+    tgt[i] *= invr;
+  }
+}
+
