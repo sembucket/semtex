@@ -32,8 +32,10 @@ Domain::Domain (FEML&       F   ,
   const int   NF   = strlen (flds);
   const real* z;
 
-  cout << "-- " << NE << " elements, ";
-  cout << np << "x" << np << "x" << nz << endl;
+  if (verb) {
+    cout << "-- " << NE << " elements, ";
+    cout << np << "x" << np << "x" << nz << endl;
+  }
 
   name   = strdup (sess);
   fields = strdup (flds);
@@ -410,9 +412,9 @@ void Domain::initialize (const char* src)
 
   cout << endl;
 
-  real dt = Femlib::value ("D_T"   );
-  int  ns = Femlib::value ("N_STEP");
-  int  nt = Femlib::value ("N_TIME");
+  real dt =       Femlib::value ("D_T"   );
+  int  ns = (int) Femlib::value ("N_STEP");
+  int  nt = (int) Femlib::value ("N_TIME");
 
   real t  = time;
   Femlib::value ("t", t);
@@ -565,7 +567,7 @@ istream& operator >> (istream& strm,
 {
   char routine[] = "strm>>Domain";
   int  i, j, np, nz, nel, ntot, nfields;
-  int  npchk,  nzchk, nelchk, swap = 0;
+  int  npchk,  nzchk, nelchk, swap = 0, verb = (int) Femlib::value ("VERBOSE");
   char s[StrMax], f[StrMax], err[StrMax], fields[StrMax];
 
   if (strm.getline(s, StrMax).eof()) return strm;
@@ -618,7 +620,7 @@ istream& operator >> (istream& strm,
   else {
     swap = (   (strstr (s, "big") && strstr (f, "little"))
 	    || (strstr (f, "big") && strstr (s, "little")) );
-    if (swap) cout << " (byte-swapping input fields)";
+    if (swap && verb) cout << " (byte-swapping input fields)";
   }
 
   for (j = 0; j < nfields; j++) {
