@@ -44,9 +44,9 @@ RCSid[] = "$Id$";
 #include <Fem.h>
 
 #ifdef __DECCXX
-  #pragma define_template Array1d<int>
-  #pragma define_template Array1d<Mesh::Node*>
-  #pragma define_template Array1d<Mesh::Side*>
+  #pragma define_template vector<int>
+  #pragma define_template vector<Mesh::Node*>
+  #pragma define_template vector<Mesh::Side*>
 #endif
 
 
@@ -90,7 +90,7 @@ Curve*  Mesh::createCurve (const char* s)
   char    kind;
   int     id;
 
-  istrstream strm (s, StrMax);
+  istrstream strm ((char*) s, StrMax);
 
   strm >> id >> kind;
 
@@ -131,7 +131,7 @@ CircularArc::CircularArc (const char* s, const Mesh& m)
 
   int    cid, elmt, side;
 
-  istrstream strm (s, StrMax);
+  istrstream strm ((char*) s, StrMax);
 
   if (verbose == 2) message (routine, s, REMARK);
 
@@ -609,7 +609,7 @@ void operator << (ostream& strm, Mesh::Side& s)
   strm << setw (5) << s.startNode -> gID;
   strm << endl;
 
-  int ni = s.gID.numElts ();
+  int ni = s.gID.getSize ();
 
   if (ni)
     for (int i (0); i < ni; i++) {
@@ -746,7 +746,7 @@ void  Mesh::Elmt::getGid (int* b)
 
   for (SidesOfElmt s(*this); s.more(); s.next()) {
     Side& S  = s.current ();
-    nint     = S.gID.numElts();
+    nint     = S.gID.getSize();
     start    = (S.ID - 1) * (nint + 1);
     b[start] = S.startNode -> gID;
     for (register int i(0); i < nint; i++) b[start + i + 1] = S.gID[i];
@@ -767,8 +767,8 @@ Point  Mesh::Elmt::centroid () const
     C.y += P.y;
   }
 
-  C.x /= nodeArray.numElts ();
-  C.y /= nodeArray.numElts ();
+  C.x /= nodeArray.getSize ();
+  C.y /= nodeArray.getSize ();
 
   return C;
 }
