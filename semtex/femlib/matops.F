@@ -53,7 +53,7 @@ C     -- NB restricted to 512 elements.
       END
 C
 C
-      SUBROUTINE DGRADS (U, US, DV, NP, NEL)
+      SUBROUTINE DGRADS (U, US, DT, NP, NEL)
 C
 C     -- Us = dU/ds over all NEL elements each NP*NP.
 C
@@ -68,7 +68,7 @@ C
             DO K = 1, NP
 *VDIR NODEP, UNROLL=2
                DO I = 1, NEL
-                  US(K,J,I) = US(K,J,I) + U(K,L,I) * DV(L,J)
+                  US(K,J,I) = US(K,J,I) + U(K,L,I) * DT(J,L)
               ENDDO
            ENDDO
         ENDDO
@@ -82,7 +82,7 @@ C     -- NB restricted to 512 elements.
 !OCL NOVREC
 !OCL REPEAT(512)
                DO I = 1, NEL
-                  US(K,J,I) = US(K,J,I) + U(K,L,I) * DV(L,J)
+                  US(K,J,I) = US(K,J,I) + U(K,L,I) * DT(J,L)
               ENDDO
            ENDDO
         ENDDO
@@ -92,7 +92,7 @@ C     -- NB restricted to 512 elements.
          DO J = 1, NP
             DO L = 1, NP
                DO K = 1, NP
-                  US(K,J,I) = US(K,J,I) + U(K,L,I) * DV(L,J)
+                  US(K,J,I) = US(K,J,I) + U(K,L,I) * DT(J,L)
               ENDDO
            ENDDO
         ENDDO
@@ -150,7 +150,7 @@ C     -- NB restricted to 512 elements.
       END
 C
 C
-      SUBROUTINE SGRADS (U, US, DV, NP, NEL)
+      SUBROUTINE SGRADS (U, US, DT, NP, NEL)
 C
 C     -- Us = dU/ds over all NEL elements each NP*NP.
 C
@@ -165,7 +165,7 @@ C
             DO K = 1, NP
 *VDIR NODEP, UNROLL=2
                DO I = 1, NEL
-                  US(K,J,I) = US(K,J,I) + U(K,L,I) * DV(L,J)
+                  US(K,J,I) = US(K,J,I) + U(K,L,I) * DT(J,L)
               ENDDO
            ENDDO
         ENDDO
@@ -179,7 +179,7 @@ C     -- NB restricted to 512 elements.
 !OCL NOVREC
 !OCL REPEAT(512)
                DO I = 1, NEL
-                  US(K,J,I) = US(K,J,I) + U(K,L,I) * DV(L,J)
+                  US(K,J,I) = US(K,J,I) + U(K,L,I) * DT(J,L)
               ENDDO
            ENDDO
         ENDDO
@@ -189,7 +189,7 @@ C     -- NB restricted to 512 elements.
          DO J = 1, NP
             DO L = 1, NP
                DO K = 1, NP
-                  US(K,J,I) = US(K,J,I) + U(K,L,I) * DV(L,J)
+                  US(K,J,I) = US(K,J,I) + U(K,L,I) * DT(J,L)
               ENDDO
            ENDDO
         ENDDO
