@@ -34,7 +34,7 @@ RCSid[] = "$Id$";
 static char prog[] = "buoy";
 static void memExhaust   () { message ("new", "free store exhausted", ERROR); }
 static void getargs      (integer, char**, char*&);
-       void NavierStokes (Domain*, Analyser*);
+       void NavierStokes (Domain*, BuoyAnalyser*);
 
 
 integer main (integer argc,
@@ -48,13 +48,13 @@ integer main (integer argc,
   ios::sync_with_stdio();
 #endif
 
-  char      *session, fields[StrMax];
-  integer   np, nz, nel;
-  FEML*     F;
-  Mesh*     M;
-  BCmgr*    B;
-  Domain*   D;
-  Analyser* A;
+  char          *session, fields[StrMax];
+  integer       np, nz, nel;
+  FEML*         F;
+  Mesh*         M;
+  BCmgr*        B;
+  Domain*       D;
+  BuoyAnalyser* A;
   
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session);
@@ -71,8 +71,8 @@ integer main (integer argc,
   if   (nz > 1) strcpy (fields, "uvwcp");
   else          strcpy (fields, "uvcp");
 
-  D = new Domain   (*F, *M, *B, fields, session);
-  A = new Analyser (*D, *F);
+  D = new Domain       (*F, *M, *B, fields, session);
+  A = new BouyAnalyser (*D, *F);
 
   D -> initialize();
   ROOTONLY D -> report();
