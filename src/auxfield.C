@@ -865,16 +865,59 @@ void AuxField::mulR (const int nZ ,
 }
 
 
-real AuxField::probe (const Element* E ,
-		      const int      pk,
-		      const real     r ,
-		      const real     s ) const
+real AuxField::probe (const Element* E,
+		      const real     r,
+		      const real     s,
+		      const int      k) const
 // ---------------------------------------------------------------------------
-// Return the value of data on plane pk, in Element E, location r, s.
+// Return the value of data on plane k, in Element E, location r, s.
 // ---------------------------------------------------------------------------
 {
   const int offset = E -> dOff();
   
-  return E -> probe (r, s, plane[pk] + offset);
+  return E -> probe (r, s, plane[k] + offset);
+}
+
+
+real AuxField::probe (const Element* E,
+		      const real     r,
+		      const real     s,
+		      const real     z) const
+// ---------------------------------------------------------------------------
+// Return the value of data, in Element E, location r, s, z.
+//
+// NB: interpolation assumes that AuxField is Fourier transformed.
+// ---------------------------------------------------------------------------
+{
+  register int   k, Re, Im;
+  register real  value, phase;
+  const int      NZ     = Geometry::nZ();
+  const int      NZH    = NZ >> 1;
+  const int      NHM    = NZH - 1;
+  const int      offset = E -> dOff();
+  const real     betaZ  = z * Femlib::value("BETA");
+  vector<real>   work (NZ);
+  register real* fbuf = work();
+
+  if (NZ < 3)
+    value = E -> probe (r, s, plane[0] + offset);
+  
+  else {
+    for (k = 0; k < NZ; k++)
+      fbuf[k] = E -> probe (r, s, plane[k] + offset);
+
+    Blas::scal (NZ - 2, 2.0, fbuf + 2, 1);
+
+    value  = fbuf[0];
+    value += fbuf[1] * cos (NZH * betaZ);
+    for (k = 1; k < NHM; k++) {
+      Re     = k  + k;
+      Im     = Re + 1;
+      phase  = k * betaZ;
+      value += fbuf[Re] * cos (phase) - fbuf[Im] * sin (phase);
+    }
+  }
+   
+  return value;
 }
 
