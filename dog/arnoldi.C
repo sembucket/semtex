@@ -68,13 +68,13 @@ static int  preprocess (const char*);
 static void EV_init    (real*);
 static void EV_update  (const real*, real*);
 static void EV_small   (real**, const int, const int, 
-		        real*, real*, real*, real&, const int, ostream&); 
+		        real*, real*, real*, real&, const int, ofstream&); 
 static int  EV_test    (const int, const int, real*, real*, real*,
-		        const real, const real, const int, ostream&);
+		        const real, const real, const int, ofstream&);
 static void EV_sort    (real*, real*, real*, real*, const int);
 static void EV_post    (real**, real**, const int, const int, 
 			const int, const real*, const real*, 
-			const real*, const int, ostream&);
+			const real*, const int, ofstream&);
 static void EV_big     (real**, real**, const int, const int, const int,
 			const real*, const real*, const real*);
 
@@ -230,7 +230,7 @@ static void EV_small (real**    Kseq   ,
 		      real*     wi     ,
 		      real&     resnorm,
 		      const int verbose,
-		      ostream&   diag   )
+		      ofstream& diag   )
 // ---------------------------------------------------------------------------
 // Here we take as input the Krylov sequence Kseq =
 //          x,
@@ -349,7 +349,7 @@ static int EV_test (const int  itrn   ,
 		    const real resnorm,
 		    const real evtol  ,
 		    const int  nvec   ,
-		    ostream&    diag   )
+		    ofstream&  diag   )
 // ---------------------------------------------------------------------------
 // Test convergence of eigenvalues and print up diagnostic information.
 //
@@ -464,7 +464,7 @@ static void EV_post (real**      Tseq,
 		     const real* wr  , 
 		     const real* wi  , 
 		     const int   icon,
-		     ostream&     diag)
+		     ofstream&   diag)
 // ---------------------------------------------------------------------------
 // Carry out postprocessing of estimates, depending on value of icon
 // (as output by EV_test).
