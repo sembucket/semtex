@@ -42,7 +42,7 @@ ifeq ($(ARCH),Linux-alpha)              # -- Linux alpha.
 DEFINES += -D_Linux_alpha
 CXX      = g++
 LD       = g++
-LIBDIR  += /usr/local/lib
+LIBDIR  += -L/usr/local/lib
 LDFLAGS  = $(LIBDIR)
 ifdef STATIC
   F77LIBS  = -lcxml -lfor -lFutil -lUfor -lots -lg2c
