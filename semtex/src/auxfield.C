@@ -742,9 +742,9 @@ AuxField& AuxField::transform (const integer sign)
 	Femlib::DFTr  (data, nZ, nP, sign);
 
   } else {
-    Femlib::transpose (data, nZP, nP,   +1);
-    Femlib::DFTr      (data, nZ, nPP, sign);
-    Femlib::transpose (data, nZP, nP,   -1);
+    Femlib::exchange (data, nZP, nP,   +1);
+    Femlib::DFTr     (data, nZ, nPP, sign);
+    Femlib::exchange (data, nZP, nP,   -1);
 
   }
 
@@ -766,16 +766,16 @@ AuxField& AuxField::transform32 (const integer sign,
 // has the same number of data as *this.
 // ---------------------------------------------------------------------------
 {
-  const integer nZ     = Geometry::nZ();
-  const integer nP     = Geometry::planeSize();
-  const integer nPR    = Geometry::nProc();
-  const integer nZP    = Geometry::nZProc();
-  const integer nPP    = Geometry::nBlock();
-  const integer nTot   = Geometry::nTotProc();
-  const integer nZ32   = (3 * nZ) >> 1;
-  const integer nTot32 = nZ32 * nP;
+  const integer nZ = Geometry::nZ();
+  const integer nP = Geometry::planeSize();
 
-  if (nPR == 1) {		// -- Single processor.
+  if (Geometry::nProc() == 1) {	 // -- Single processor.
+
+    const integer nTot   = Geometry::nTotProc();
+    const integer nZ32   = (3 * nZ) >> 1;
+    const integer nTot32 = nZ32 * nP;
+    const integer nPad   = nTot32 - nTot;
+
     if (nZ <= 2) {
       if   (sign == +1) Veclib::copy (nTot, phys, 1, data, 1);
       else              Veclib::copy (nTot, data, 1, phys, 1);
@@ -785,21 +785,27 @@ AuxField& AuxField::transform32 (const integer sign,
 	Veclib::copy (nTot, phys, 1, data, 1);
       } else {
 	Veclib::copy (nTot, data, 1, phys, 1);
-	Veclib::zero (nTot32 - nTot, phys + nTot, 1);
+	Veclib::zero (nPad, phys + nTot, 1);
 	Femlib::DFTr (phys, nZ32, nP, -1);
       }
     }
+
   } else {			// -- Multiple processor.
+    
+    const integer nZP  = Geometry::nZProc();
+    const integer nPP  = Geometry::nBlock();
+    const integer nTot = nZP * nP;
+
     if (sign == +1) {
-      Femlib::transpose (phys, nZP, nP, +1);
-      Femlib::DFTr      (phys, nZ, nPP, +1);
-      Femlib::transpose (phys, nZP, nP, -1);
-      Veclib::copy      (nTot, phys, 1, data, 1);
+      Femlib::exchange (phys, nZP, nP, +1);
+      Femlib::DFTr     (phys, nZ, nPP, +1);
+      Femlib::exchange (phys, nZP, nP, -1);
+      Veclib::copy     (nTot, phys, 1, data, 1);
     } else {
-      Veclib::copy      (nTot, data, 1, phys, 1);
-      Femlib::transpose (phys, nZP, nP, +1);
-      Femlib::DFTr      (phys, nZ, nPP, -1);
-      Femlib::transpose (phys, nZP, nP, -1);
+      Veclib::copy     (nTot, data, 1, phys, 1);
+      Femlib::exchange (phys, nZP, nP, +1);
+      Femlib::DFTr     (phys, nZ, nPP, -1);
+      Femlib::exchange (phys, nZP, nP, -1);
     }
   }
 

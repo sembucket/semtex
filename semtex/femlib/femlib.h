@@ -261,17 +261,17 @@ void bvdFilter (const integer,const integer,const integer, const real, real*);
 
 /* -- Routines from message.c: */
 
-void message_init       (int*, char***);
-void message_stop       ();
-void message_sync       ();
-void message_dsend      (double*,  const integer, const integer);
-void message_drecv      (double*,  const integer, const integer);
-void message_ssend      (float*,   const integer, const integer);
-void message_srecv      (float*,   const integer, const integer);
-void message_isend      (integer*, const integer, const integer);
-void message_irecv      (integer*, const integer, const integer);
-void message_dtranspose (double*,  const integer, const integer,const integer);
-void message_stranspose (float*,   const integer, const integer,const integer);
-void message_itranspose (integer*, const integer, const integer,const integer);
+void message_init      (int*, char***);
+void message_stop      ();
+void message_sync      ();
+void message_dsend     (double*,  const integer, const integer);
+void message_drecv     (double*,  const integer, const integer);
+void message_ssend     (float*,   const integer, const integer);
+void message_srecv     (float*,   const integer, const integer);
+void message_isend     (integer*, const integer, const integer);
+void message_irecv     (integer*, const integer, const integer);
+void message_dexchange (double*,  const integer, const integer,const integer);
+void message_sexchange (float*,   const integer, const integer,const integer);
+void message_iexchange (integer*, const integer, const integer,const integer);
 
 #endif
