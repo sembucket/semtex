@@ -175,7 +175,6 @@ void PBCmgr::maintain (const int         step   ,
       Blas::axpy (np, -nu, yr, 1, Pny[0][i][2 * m],     1);
       Blas::axpy (np, -nu, yi, 1, Pny[0][i][2 * m + 1], 1);
     }
-
   }
 
   // -- Estimate -du / dt by backwards differentiation and add in.
@@ -293,7 +292,7 @@ void PBCmgr::accelerate (const Vector& a,
 
   for (i = 0; i < u -> n_bound; i++) {
     B = u -> boundary[0][i];
-    
+
     B -> addForGroup ("velocity", a.x, Pnx[0][i][0]);
     B -> addForGroup ("velocity", a.y, Pny[0][i][0]);
   }

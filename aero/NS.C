@@ -104,10 +104,10 @@ void NavierStokes (Domain*   D,
 
     // -- Pressure projection substep.
 
-    PBCmgr::maintain (D -> step, Pressure,
-		      (const AuxField***) Us,
-		      (const AuxField***) Uf,
-		      0);	// -- *NOT* time dependent!
+    PBCmgr::maintain   (D -> step, Pressure,
+		        (const AuxField***) Us,
+			(const AuxField***) Uf,
+		        0);	// -- *NOT* time dependent!
     PBCmgr::accelerate (a, D -> u[0]);
 
     Pressure -> evaluateBoundaries (D -> step);
@@ -247,7 +247,7 @@ static void waveProp (Domain*           D ,
 // computed and left in D's velocity areas. 
 // ---------------------------------------------------------------------------
 {
-  int               i, q;
+  int               i, q, Je;
   vector<AuxField*> H (DIM);	// -- Mnemonic for u^{Hat}.
 
   for (i = 0; i < DIM; i++) {
@@ -255,7 +255,7 @@ static void waveProp (Domain*           D ,
     *H[i] = 0.0;
   }
 
-  int  Je = (int) Femlib::value ("N_TIME");
+  Je = (int) Femlib::value ("N_TIME");
   Je = min (D -> step, Je);
 
   vector<real> alpha (Integration::OrderMax + 1);
@@ -263,7 +263,7 @@ static void waveProp (Domain*           D ,
   
   Integration::StifflyStable (Je, alpha());
   Integration::Extrapolation (Je, beta ());
-  Blas::scal (Je, Femlib::value ("D_T"), beta(),  1);
+  Blas::scal (Je, Femlib::value ("D_T"), beta(), 1);
 
   for (i = 0; i < DIM; i++)
     for (q = 0; q < Je; q++) {
@@ -279,12 +279,9 @@ static void setPForce (const AuxField*** Us,
 // On input, intermediate velocity storage u^ is in first time-level of Us.
 // Create div u^ / D_T in the first dimension, first level storage
 // of Uf as a forcing field for discrete PPE.
-//
-// A frame-swapping operation takes place in the first time level of the
-// Fourier direction of Uf as a result of gradient operation.
 // ---------------------------------------------------------------------------
 {
-  int         i;
+  int        i;
   const real dt = Femlib::value ("D_T");
 
   for (i = 0; i < DIM; i++) {
@@ -306,10 +303,6 @@ static void project (const Domain* D ,
 // level u^ is stored in lowest level of Us.  Constrain velocity field:
 //                    u^^ = u^ - D_T * grad P;
 // u^^ is left in lowest level of Uf.
-//
-// A frame-swapping operation takes place in the first time level of the
-// Fourier direction of Uf.  This returns to original place the swapping done
-// by setPForce.
 //
 // After creation of u^^, it is scaled by -1.0 / (D_T * KINVIS) to create
 // forcing for viscous step.
@@ -415,7 +408,7 @@ static void Solve (Field*    U     ,
       const int    Je = min (step, nOrder);
       vector<real> alpha (Je + 1);
       Integration::StifflyStable (Je, alpha());
-      const real   lambda2 = alpha[0] / Femlib::value ("D_T*KINVIS");
+      const real   lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
       
       U -> solve (Force, lambda2);
 
