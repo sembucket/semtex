@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // project.C:  Project solution files to different interpolation orders.
 //
-// Copyright (c) 1996,2003 Hugh Blackburn
+// Copyright (c) 1996,2004 Hugh Blackburn
 //
 // SYNOPSIS
 // --------
@@ -137,20 +137,19 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
 
   else {			// -- Perform projection.
 
-    register     int i, k;
-    register     real    *LHS, *RHS;
-    const        real       **IN, **IT;
-    const int    nzm = min (rhs.nz, nz);
-    vector<real> work (rhs.np * np);
-    real*        tmp = &work[0];
+    register int  i, k;
+    register real *LHS, *RHS;
+    const real    *IN,  *IT;
+    const int     nzm = min (rhs.nz, nz);
+    vector<real>  work (rhs.np * np);
+    real*         tmp = &work[0];
 
     if      (uniform == +1)
-      Femlib::mesh (GLL, STD, rhs.np, np, 0, &IN, &IT, 0, 0);
+      Femlib::projection (&IN, &IT, rhs.np, GLL, 0.0, 0.0, np, STD, 0.0, 0.0);
     else if (uniform == -1) 
-      Femlib::mesh (STD, GLL, rhs.np, np, 0, &IN, &IT, 0, 0);
+      Femlib::projection (&IN, &IT, rhs.np, STD, 0.0, 0.0, np, GLL, 0.0, 0.0);
     else
-      Femlib::mesh (GLL, GLL, rhs.np, np, 0, &IN, &IT, 0, 0);
-
+      Femlib::projection (&IN, &IT, rhs.np, GLL, 0.0, 0.0, np, GLL, 0.0, 0.0);
     for (k = 0; k < nzm; k++) {	// -- 2D planar projections.
       LHS = plane[k];
       RHS = rhs.plane[k];
@@ -159,8 +158,8 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
 	Veclib::copy (nplane, RHS, 1, LHS, 1);
       else
 	for (i = 0; i < nel; i++, LHS += np2, RHS += rhs.np2) {
-	  Blas::mxm (*IN, np, RHS, rhs.np, tmp, rhs.np);
-	  Blas::mxm (tmp, np, *IT, rhs.np, LHS,     np);
+	  Blas::mxm (IN, np, RHS, rhs.np, tmp, rhs.np);
+	  Blas::mxm (tmp, np, IT, rhs.np, LHS,     np);
 	}
     }
 
