@@ -28,7 +28,6 @@ do
   then
     rm -f $i.num
   fi
-  enumerate -O3 $i > $i.num 2> /dev/null
   compare $i > $i.rst
   $CODE -chk $i > /dev/null
   compare -n $i $i.fld > /dev/null 2> ../regress/$i.ok
