@@ -43,19 +43,19 @@ RANLIB   =
 include $(SEMHOME)/src/Makefile
 
 testpoly: testpoly.c
-	cc $(CFLAGS) -o testpoly testpoly.c -I$(SEMHOME)/include -I. \
+	$(CC) $(CFLAGS) -o $@ $@.c -I$(SEMHOME)/include -I. \
 	-L$(SEMHOME)/lib -lfem -lalp -lm
 
 testFFT: testFFT.C
-	$(CXX) -o $@ testFFT.C -I$(SEMHOME)/include -I. -g \
+	$(CXX) -o $@ $@.C -I$(SEMHOME)/include -I. -g \
 	$(CXXFLAGS) -L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
 
 testFFTW: testFFTW.C
-	$(CXX) -o $@ testFFTW.C -I$(SEMHOME)/include -I. -g \
+	$(CXX) -o $@ $@.C -I$(SEMHOME)/include -I. -g \
 	$(CXXFLAGS) -L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
 
 testDLT: testDLT.C
-	$(CXX) -o $@ testDLT.C $(CXXFLAGS) -I$(SEMHOME)/include -I. -g \
+	$(CXX) -o $@ $@.C $(CXXFLAGS) -I$(SEMHOME)/include -I. -g \
 	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
 
 testDLT2: testDLT2.C
@@ -75,5 +75,17 @@ glzw: glzw.C
 	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
 
 shapes: shapes.C
+	$(CXX) -o $@ $@.C $(CXXFLAGS) -I$(SEMHOME)/include -I. -g \
+	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+
+lagint: lagint.C
+	$(CXX) -o $@ $@.C $(CXXFLAGS) -I$(SEMHOME)/include -I. -g \
+	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+
+lagpro: lagpro.C
+	$(CXX) -o $@ $@.C $(CXXFLAGS) -I$(SEMHOME)/include -I. -g \
+	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
+
+dpt: dpt.C
 	$(CXX) -o $@ $@.C $(CXXFLAGS) -I$(SEMHOME)/include -I. -g \
 	-L$(SEMHOME)/lib/$(ARCH) -lfem -lalp $(F77LIBS) -lm
