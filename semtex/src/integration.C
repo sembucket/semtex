@@ -1,19 +1,20 @@
-/*****************************************************************************
- * integration.C:  supply coefficients for discrete time integration schemes.
- *
- * Maximum time order supported is 3.
- *****************************************************************************/
+///////////////////////////////////////////////////////////////////////////////
+// integration.C:  supply coefficients for discrete time integration schemes.
+//
+// Maximum time order supported is 3.
+///////////////////////////////////////////////////////////////////////////////
 
 static char 
 RCSid[] = "$Id$";
 
-#include <Fem.h>
+#include <Sem.h>
 
 
 const int Integration::OrderMax = 3;
 
 
-void Integration::AdamsBashforth  (const int n, real* coeff)
+void Integration::AdamsBashforth  (const int n    ,
+				   real*     coeff)
 // ---------------------------------------------------------------------------
 // Adams-Bashforth predictor coefficients of order n.
 // ---------------------------------------------------------------------------
@@ -40,7 +41,8 @@ void Integration::AdamsBashforth  (const int n, real* coeff)
 }
 
 
-void Integration::StifflyStable (const int n, real* coeff)
+void Integration::StifflyStable (const int n    ,
+				 real*     coeff)
 // ---------------------------------------------------------------------------
 // "Stiffly-stable" backwards differentiation coefficients of order n.
 // NB: vector coeff must be of length n + 1.  First coefficient in each
@@ -72,7 +74,8 @@ void Integration::StifflyStable (const int n, real* coeff)
 }
 
 
-void Integration::Extrapolation  (const int n, real* coeff)
+void Integration::Extrapolation  (const int n    ,
+				  real*     coeff)
 // ---------------------------------------------------------------------------
 // Coefficients of order n for explicit extrapolation to end of timestep.
 // ---------------------------------------------------------------------------

@@ -1,268 +1,289 @@
 ///////////////////////////////////////////////////////////////////////////////
 // boundary.C
+//
+// Boundaries correspond to domain edges that have boundary conditions
+// applied (as opposed to periodic edges).  The ordering of internal
+// storage for condition values and geometric factors corresponds to
+// CCW traverse of 2D element edges.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char
 RCSid[] = "$Id$";
 
+#include <Sem.h>
 
-#include <Fem.h>
 
+Boundary::Boundary (const int   Ident ,
+		    const int   Voffst,
+		    const char* Bgroup,
+		    Condition*  Bcondn,
+		    Element*    Elmt  ,
+		    const int   Side  ) :
 
-Boundary::Boundary (int       ident ,
-		    Element*  E     ,
-		    int       sideNo,
-		    BC*       cond  )
+		    id         (Ident ),
+		    bgroup     (Bgroup),
+		    bcondn     (Bcondn),
+		    elmt       (Elmt  ),
+		    side       (Side  ),
+		    voffset    (Voffst)
 // ---------------------------------------------------------------------------
 // Constructor.  Allocate new memory for value & geometric factors.
 // ---------------------------------------------------------------------------
 {
-  id        = ident;
-  elmt      = E;
-  side      = sideNo;
-  condition = cond;
-  value     = rvector (E -> nKnot());
-  nx        = rvector (E -> nKnot());
-  ny        = rvector (E -> nKnot());
-  area      = rvector (E -> nKnot());
+  const int np = elmt -> nKnot();
 
-  E -> sideOffset (side, offset, skip);
-  E -> sideGeom   (side, nx, ny, area);
+  nx   = new real [np];
+  ny   = new real [np];
+  area = new real [np];
+
+  elmt -> sideOffset (side, doffset, dskip);
+  elmt -> sideGeom   (side, nx, ny, area);
 }
 
 
-Boundary::Boundary (const Boundary&         B,
-		    const vector<Element*>& E)
-// ---------------------------------------------------------------------------
-// Make a copy of an existing Boundary edge, with new data storage area
-// and with element pointer into the list of associated new Elements (input).
-//
-// The boundary condition is set according to the input condition's tag and
-// the state of BCmanager::currentVar.
-// ---------------------------------------------------------------------------
-{
-  char routine[] = "Boundary::Boundary(Boundary&, List<Element*>&)";
-
-  memcpy (this, &B, sizeof (Boundary));
-
-  register int k, found = 0;
-  const int    N = E.getSize ();
-
-  for (k = 0; !found && k < N; k++)
-    if (found = E[k] -> ID () == elmt -> ID ()) {
-      elmt      = E[k];
-      value     = rvector (elmt -> nKnot());
-      condition = BCmanager::getBC (B.condition -> tag);
-    }
-
-  if (!found) message (routine, "can't find a match to new element id", ERROR);
-}
-
-
-void  Boundary::evaluate (int step)
+void Boundary::evaluate (const int plane,
+			 const int step ,
+			 real*     tgt  ) const
 // ---------------------------------------------------------------------------
 // Load boundary condition storage area with numeric values.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "Boundary::evaluate";
-  int  np        = elmt -> nKnot ();
+  const int np = elmt -> nKnot();
 
-  switch (condition -> kind) {
-  case BC::essential: case BC::natural:
-    Veclib::fill (np, condition -> value, value, 1);
-    break;
-  case BC::essential_fn: case BC::natural_fn: 
-    elmt -> sideEval (side, value, condition -> string);
-    break;
-  case BC::outflow: case BC::wall:
-    Veclib::fill (np, 0.0, value, 1);
-    break;
-  case BC::hopbc:
-    PBCmanager::evaluate (id, np, step, value, nx, ny);
-    break;
-  default:
-    message (routine, "illegal BC kind", ERROR);
-    break;
-  }
+  bcondn -> evaluate (np, id, plane, elmt, side, step, nx, ny, tgt);
 }
 
 
-void  Boundary::print () const
+void Boundary::set (const real* src,
+		    const int*  b2g,
+		    real*       tgt) const
+// ---------------------------------------------------------------------------
+// Use (boundary condition) values in src to over-ride (set) values
+// in globally-numbered tgt.  This will only take place on essential BCs.
+// ---------------------------------------------------------------------------
+{
+  bcondn -> set (elmt, side, b2g, src, tgt);
+}
+
+
+void Boundary::sum (const real* src,
+		    const int*  b2g,
+		    real*       tgt) const
+// ---------------------------------------------------------------------------
+// Use (boundary condition) values in src to add in the boundary-integral
+// terms generated in constructing the weak form of the MWR into globally-
+// numbered tgt.  This will only take place on natural BCs.
+// ---------------------------------------------------------------------------
+{
+  bcondn -> sum (elmt, side, b2g, src, area, tgt);
+}
+
+
+void Boundary::print () const
 // ---------------------------------------------------------------------------
 // (Debugging) utility to print internal information.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "Boundary::print";
+  char info[StrMax];
 
-  cout << "** Boundary id: " << id  << " -> ";
-  cout <<     elmt ->  ID () << "." << side;
+  cout << "** Boundary id: " << id + 1 << " -> ";
+  cout <<     elmt ->  ID() + 1 << "." << side + 1;
   cout << " (Element id.side)" << endl;
   
-  switch (condition -> kind) {
-  case BC::essential:
-    cout << "ESSENTIAL:    " << condition -> value  << endl;
-    break;
-  case BC::essential_fn:
-    cout << "ESSENTIAL_FN: " << condition -> string << endl;
-    break;
-  case BC::natural:
-    cout << "NATURAL:      " << condition -> value  << endl;
-    break;
-  case BC::natural_fn:
-    cout << "NATURAL_FN:   " << condition -> string << endl;
-    break;
-  case BC::wall:
-    cout << "WALL"                                  << endl;
-    break;
-  case BC::outflow:
-    cout << "OUTFLOW"                               << endl;
-    break;
-  case BC::hopbc:
-    cout << "HOPBC"                                 << endl;
-    break;
-  default:
-    message (routine, "unknown boundary condition kind", ERROR);
-    break;
-  }
+  bcondn -> describe (info);
+
+  cout << info << endl;
+
   cout << "  " << elmt -> nKnot() << " (number of points along edge)" << endl;
   cout << "         nx             ny             area           value";
   cout << endl;
   
-  printVector (cout, "rrrr", elmt -> nKnot(), nx, ny, area, value);
+  printVector (cout, "rrrr", elmt -> nKnot(), nx, ny, area);
 }
 
 
-void Boundary::curlCurl (const real*  U ,
-			 const real*  V ,
-			 real*        wx,
-			 real*        wy) const
+void Boundary::curlCurl (const int    k ,
+			 const real*  Ur,
+			 const real*  Ui,
+			 const real*  Vr,
+			 const real*  Vi,
+			 const real*  Wr,
+			 const real*  Wi,
+			 real*        xr,
+			 real*        xi,
+			 real*        yr,
+			 real*        yi) const
 // ---------------------------------------------------------------------------
-// Evaluate dw/dx & dw/dy (where w is the z-component of vorticity) from
-// element velocity fields, according to the side of the element on which
-// they are required.  u & v are Boundaries on the two velocity Fields.
-// U & V are pointers to the data storage areas for U & V velocity Fields.
+// Generate (the Fourier mode equivalent of) curl curl u along this boundary.
 //
-// NB: sense of traverse in wx & wy is BLAS-conformant (according to sign
-// of skip on relevant edge).
+// Input k is the Fourier-mode index.
+//
+// Input pointers Ur, Ui etc correspond to the real and imaginary planes of
+// data for the three components of vector field u corresponding to the
+// kth Fourier mode.  The third component is treated as the transformed
+// direction.
+//
+// Output pointers are to the (real and imaginary parts of) the first and
+// second components of curl curl u along this boundary edge.  The third
+// component is not computed as it is not required by the application.
+//
+// When k == 0, all the imaginary components, also the third velocity vector
+// component pointers are not used, and may be provided as NULL values.
+// This allows the same routine to be used for 2D solutions.
+//
 // ---------------------------------------------------------------------------
 {
-  const int ntot   = elmt -> nTot ();
-  const int offset = elmt -> nOff ();
+  const int np   = elmt -> nKnot();
+  const int ntot = elmt -> nTot();
+  const int doff = elmt -> dOff();
 
-  real* w  = rvector (3 * ntot);
+  vector<real> work (3 * ntot);
+  real* w  = work();
   real* vx = w  + ntot;
   real* uy = vx + ntot;
+  
+  if (k == 0) {			// -- Zeroth mode / 2D.
 
-  Veclib::copy (ntot, U + offset, 1, uy, 1);
-  Veclib::copy (ntot, V + offset, 1, vx, 1);
-  elmt -> grad (vx, uy);
+    Veclib::copy (ntot, Ur + doff, 1, uy, 1);
+    Veclib::copy (ntot, Vr + doff, 1, vx, 1);
 
-  // -- Vorticity, w = dv/dx - du/dy.
+    elmt -> grad (vx, uy);
 
-  Veclib::vsub (ntot, vx, 1, uy, 1, w, 1);
+    // -- (Z-component of) vorticity, w = dv/dx - du/dy.
 
-  // -- find dw/dx & dw/dy on appropriate edge.
+    Veclib::vsub (ntot, vx, 1, uy, 1, w, 1);
 
-  elmt -> sideGrad (side, w, wx, wy);
+    // -- Find dw/dx & dw/dy on appropriate edge.
 
-  freeVector (w);
+    elmt -> sideGrad (side, w, yr, xr);
+
+    // -- Sign change to complete y-component of curl curl u.
+    
+    Veclib::neg (np, yr, 1);
+
+  } else {			// -- 3D.
+
+    const real betaK  = k * Femlib::value ("BETA");
+    const real betaK2 = sqr (betaK);
+    const int  loff   = doffset - doff; // -- Side offset in workspace.
+
+    // -- Make the equivalents of the 2D terms above.
+
+    Veclib::copy     (ntot, Ur + doff, 1, uy, 1);
+    Veclib::copy     (ntot, Vr + doff, 1, vx, 1);
+    elmt -> grad     (vx, uy);
+    Veclib::vsub     (ntot, vx, 1, uy, 1, w, 1);
+    elmt -> sideGrad (side, w, yr, xr);
+    Veclib::neg      (np, yr, 1);
+
+    Veclib::copy     (ntot, Ui + doff, 1, uy, 1);
+    Veclib::copy     (ntot, Vi + doff, 1, vx, 1);
+    elmt -> grad     (vx, uy);
+    Veclib::vsub     (ntot, vx, 1, uy, 1, w, 1);
+    elmt -> sideGrad (side, w, yi, xi);
+    Veclib::neg      (np, yi, 1);
+
+    // -- Semi-Fourier terms based on Wr.
+
+    Veclib::copy     (ntot, Wr + doff, 1, vx, 1);
+    Veclib::copy     (ntot, Wr + doff, 1, uy, 1);
+    elmt -> grad     (vx, uy);
+    Blas::axpy       (np, betaK, vx + loff, dskip, xi, 1);
+    Blas::axpy       (np, betaK, uy + loff, dskip, yi, 1);
+
+    // -- Semi-Fourier terms based on Wi.
+
+    Veclib::copy     (ntot, Wi + doff, 1, vx, 1);
+    Veclib::copy     (ntot, Wi + doff, 1, uy, 1);
+    elmt -> grad     (vx, uy);
+    Blas::axpy       (np, -betaK, vx + loff, dskip, xr, 1);
+    Blas::axpy       (np, -betaK, uy + loff, dskip, yr, 1);
+
+    // -- Fourier second derivatives in the third direction.
+
+    Blas::axpy       (np, betaK2, Ur + loff, dskip, xr, 1);
+    Blas::axpy       (np, betaK2, Ui + loff, dskip, xi, 1);
+    Blas::axpy       (np, betaK2, Vr + loff, dskip, yr, 1);
+    Blas::axpy       (np, betaK2, Vi + loff, dskip, yi, 1);
+  }
 }
 
 
-void  Boundary::resetPBCs (const BC*  new_other  ,
-			   const BC*  new_outflow)
+Vector Boundary::normalTraction (const char* grp,
+				 const real* p  ,
+				 real*       wrk) const
 // ---------------------------------------------------------------------------
-// Examine & reset BC kind for this Boundary.
-// This routine is intended for resetting pressure BCs.
-// ---------------------------------------------------------------------------
-{
-  if   (condition -> kind == BC::outflow) condition = (BC*) new_outflow;
-  else                                    condition = (BC*) new_other;
-}
-
-
-void  Boundary::switchBC (const BC::type&  original   ,
-			  const BC*        replacement)
-// ---------------------------------------------------------------------------
-// Examine & reset BC for this Boundary.
+// Compute normal tractive force on this boundary segment, if it lies
+// in group called grp, using p as a pressure stress field data area.
+//
+// Wrk is a work vector elmt_np_max long.
 // ---------------------------------------------------------------------------
 {
-  if (condition -> kind == original) condition = (BC*) replacement;
-}
+  Vector Force = {0.0, 0.0, 0.0};
 
+  if (strcmp (grp, bcondn -> group()) == 0) {
+    register int i;
+    const int    np = nKnot();
 
-Vector  Boundary::normalTraction (const real*  p  ,
-				  real*        wrk) const
-// ---------------------------------------------------------------------------
-// Compute normal tractive force on this boundary segment, using p as
-// a pressure stress field data area.  Wrk is a work vector elmt_np_max long.
-// ---------------------------------------------------------------------------
-{
-  register int i;
-  const int    np = nKnot ();
-  Vector       Force = {0.0, 0.0, 0.0};
+    Veclib::copy (np, p + doffset, dskip, wrk, 1);
 
-  Veclib::copy (np, p + nOff (), skip, wrk, 1);
-
-  for (i = 0; i < np; i++) {
-    Force.x += nx[i] * wrk[i] * area[i];
-    Force.y += ny[i] * wrk[i] * area[i];
+    for (i = 0; i < np; i++) {
+      Force.x += nx[i] * wrk[i] * area[i];
+      Force.y += ny[i] * wrk[i] * area[i];
+    }
   }
 
   return Force;
 }
 
 
-Vector Boundary::tangentTraction (const real*  u ,
-				  const real*  v ,
-				  const real&  mu,
-				  real*        ux,
-				  real*        uy) const
+Vector Boundary::tangentTraction (const char* grp,
+				  const real* u  ,
+				  const real* v  ,
+				  const real  mu ,
+				  real*       ux ,
+				  real*       uy ) const
 // ---------------------------------------------------------------------------
-// Compute viscous stress on this boundary segment.
+// Compute viscous stress on this boundary segment, if it lies in group grp.
 // u is data area for first velocity component field, v is for second.
 // Ux and uy are work vectors, each elmt_np_max long.
 // ---------------------------------------------------------------------------
 {
-  register int i;
-  const int    np = nKnot (), offset = elmt -> nOff ();
-  Vector       Force = {0.0, 0.0, 0.0};
+  Vector Force = {0.0, 0.0, 0.0};
 
-  elmt -> sideGrad (side, u + offset, ux, uy);
+  if (strcmp (grp, bcondn -> group()) == 0) {
+    register int i;
+    const int    np = nKnot(), offset = elmt -> dOff();
 
-  for (i = 0; i < np; i++) {
-    Force.x += (2.0*ux[i]*nx[i] + uy[i]*ny[i]) * area[i];
-    Force.y +=                    uy[i]*nx[i]  * area[i];
+    elmt -> sideGrad (side, u + offset, ux, uy);
+
+    for (i = 0; i < np; i++) {
+      Force.x += (2.0*ux[i]*nx[i] + uy[i]*ny[i]) * area[i];
+      Force.y +=                    uy[i]*nx[i]  * area[i];
+    }
+
+    elmt -> sideGrad (side, v + offset, ux, uy);
+
+    for (i = 0; i < np; i++) {
+      Force.x +=                    ux[i]*ny[i]  * area[i];
+      Force.y += (2.0*uy[i]*ny[i] + ux[i]*nx[i]) * area[i];
+    }
+
+    Force.x *= -mu;
+    Force.y *= -mu;
   }
-
-  elmt -> sideGrad (side, v + offset, ux, uy);
-
-  for (i = 0; i < np; i++) {
-    Force.x +=                    ux[i]*ny[i]  * area[i];
-    Force.y += (2.0*uy[i]*ny[i] + ux[i]*nx[i]) * area[i];
-  }
-
-  Force.x *= -mu;
-  Force.y *= -mu;
 
   return Force;
 }
 
 
-void  Boundary::addIn (const real&      val   ,
-		       const BC::type&  select)
+void Boundary::addForGroup (const char* grp,
+			    const real  val,
+			    real*       tgt) const
 // ---------------------------------------------------------------------------
-// Add val to value storage if onlyFor matches kind of current boundary
-// _fn kinds match non_fn kinds, i.e. BC::essential_fn matches BC::essential,
-// but note that for _fn kinds the real value should be added after the
-// regular function has been evaluated.
+// Add val to tgt if this Boundary falls in group.
 // ---------------------------------------------------------------------------
 {
-  if (   (select                     == condition -> kind                    )
-      || (select == BC::essential    && condition -> kind == BC::essential_fn)
-      || (select == BC::essential_fn && condition -> kind == BC::essential   )
-      || (select == BC::natural      && condition -> kind == BC::natural_fn  )
-      || (select == BC::natural_fn   && condition -> kind == BC::natural     )
-     )
-    Veclib::sadd (nKnot (), val, value, 1, value, 1);
+  if (strcmp (grp, bcondn -> group()) == 0)
+    Veclib::sadd (nKnot(), val, tgt, 1, tgt, 1);
 }
