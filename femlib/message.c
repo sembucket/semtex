@@ -6,6 +6,7 @@ static char
 RCSid[] = "$Id$";
 
 #include <stdio.h>
+#include <string.h>
 #include <malloc.h>
 #include <femdef.h>
 #include <femlib.h>
@@ -19,7 +20,7 @@ void message_init (int*    argc,
 		   char*** argv)
 /* ------------------------------------------------------------------------- *
  * Do whatever is required to initialize message-passing.  Set up global 
- * variables.  The parser must have been initialized already.
+ * variables.
  * ------------------------------------------------------------------------- */
 {
 #if defined(MPI)
@@ -28,6 +29,7 @@ void message_init (int*    argc,
   char s[STR_MAX];
 
   MPI_Init      (argc, argv);
+  yy_initialize ();
 
   MPI_Comm_rank (MPI_COMM_WORLD,   &n);
   sprintf       (s, "I_PROC = %1d", n);
@@ -66,6 +68,8 @@ void message_sync ()
 
 #endif
 }
+
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 
 static int first (int n, const int* x)
@@ -116,14 +120,12 @@ void message_dtranspose (double*       data,
   const int    NM = nP * nZ / np;  /* Size of message block.             */
   const int    dsize = sizeof (double);
   double*      tmp;
-  MPI_Request* request;
-  MPI_Status*  status;
+  MPI_Request  request[2];
+  MPI_Status   status[2];
 
   if (np == 1) return;
 
-  tmp     = (double*)      malloc (nB           * dsize);
-  request = (MPI_Request*) malloc (2 * (np - 1) * sizeof (MPI_Request));
-  status  = (MPI_Status*)  malloc (2 * (np - 1) * sizeof (MPI_Status));
+  tmp = (double*) malloc (MAX(nB,NM) * dsize);
 
   if (sign == 1) {		/* -- "Forwards" transpose. */
 
@@ -180,21 +182,23 @@ void message_dtranspose (double*       data,
 
     /* -- Inter-processor transpose, with NB blocks size nZ*nB / processor. */
 
-    for (i = 0, j = 0; i < np; i++)
+    for (i = 0; i < np; i++)
       if (i != ip) {
-	MPI_Isend (data+i*NM, NM, MPI_DOUBLE, i,0,MPI_COMM_WORLD, request+j++);
-	MPI_Irecv (data+i*NM, NM, MPI_DOUBLE, i,0,MPI_COMM_WORLD, request+j++);
+	MPI_Isend   (data+i*NM, NM, MPI_DOUBLE, i,0,MPI_COMM_WORLD, request);
+	MPI_Irecv   (tmp,       NM, MPI_DOUBLE, i,0,MPI_COMM_WORLD, request+1);
+	MPI_Waitall (2, request, status);
+	memcpy      (data+i*NM, tmp, NM * dsize);
       }
-    MPI_Waitall (2 * (np - 1), request, status);
 
   } else {			/* -- "Backwards" transpose. */
 
-    for (i = 0, j = 0; i < np; i++)
+    for (i = 0; i < np; i++)
       if (i != ip) {
-	MPI_Isend (data+i*NM, NM, MPI_DOUBLE, i,0,MPI_COMM_WORLD, request+j++);
-	MPI_Irecv (data+i*NM, NM, MPI_DOUBLE, i,0,MPI_COMM_WORLD, request+j++);
+	MPI_Isend   (data+i*NM, NM, MPI_DOUBLE, i,0,MPI_COMM_WORLD, request);
+	MPI_Irecv   (tmp,       NM, MPI_DOUBLE, i,0,MPI_COMM_WORLD, request+1);
+	MPI_Waitall (2, request, status);
+	memcpy      (data+i*NM, tmp, NM * dsize);
       }
-    MPI_Waitall (2 * (np - 1), request, status);
 
     if (NB == nZ) {
 
@@ -244,8 +248,6 @@ void message_dtranspose (double*       data,
   }
 
   free (tmp);
-  free (request);
-  free (status);
 #endif
 }
 
@@ -268,14 +270,12 @@ void message_stranspose (float*        data,
   const int    NM = nP * nZ / np;
   const int    dsize = sizeof (float);
   float*       tmp;
-  MPI_Request* request;
-  MPI_Status*  status;
+  MPI_Request  request[2];
+  MPI_Status   status[2];
 
   if (np == 1) return;
 
-  tmp     = (float*)       malloc (nB           * dsize);
-  request = (MPI_Request*) malloc (2 * (np - 1) * sizeof (MPI_Request));
-  status  = (MPI_Status*)  malloc (2 * (np - 1) * sizeof (MPI_Status));
+  tmp = (float*) malloc (MAX(nB,NM) * dsize);
 
   if (sign == 1) {		/* -- "Forward" transpose. */
 
@@ -329,21 +329,23 @@ void message_stranspose (float*        data,
       free (kmove);
     }
 
-    for (i = 0, j = 0; i < np; i++)
+    for (i = 0; i < np; i++)
       if (i != ip) {
-	MPI_Isend (data+i*NM, NM, MPI_FLOAT, i,0,MPI_COMM_WORLD, request+j++);
-	MPI_Irecv (data+i*NM, NM, MPI_FLOAT, i,0,MPI_COMM_WORLD, request+j++);
+	MPI_Isend   (data+i*NM, NM, MPI_FLOAT, i, 0, MPI_COMM_WORLD,request);
+	MPI_Irecv   (tmp,       NM, MPI_FLOAT, i, 0, MPI_COMM_WORLD,request+1);
+	MPI_Waitall (2, request, status);
+	memcpy      (data+i*NM, tmp, NM * dsize);
       }
-    MPI_Waitall (2 * (np - 1), request, status);
 
   } else {			/* -- "Backwards" transpose. */
 
-    for (i = 0, j = 0; i < np; i++)
+    for (i = 0; i < np; i++)
       if (i != ip) {
-	MPI_Isend (data+i*NM, NM, MPI_FLOAT, i,0,MPI_COMM_WORLD, request+j++);
-	MPI_Irecv (data+i*NM, NM, MPI_FLOAT, i,0,MPI_COMM_WORLD, request+j++);
+	MPI_Isend   (data+i*NM, NM, MPI_FLOAT, i, 0, MPI_COMM_WORLD,request);
+	MPI_Irecv   (tmp,       NM, MPI_FLOAT, i, 0, MPI_COMM_WORLD,request+1);
+	MPI_Waitall (2, request, status);
+	memcpy      (data+i*NM, tmp, NM * dsize);
       }
-    MPI_Waitall (2 * (np - 1), request, status);
 
     if (NB == nZ) {
       for (i = 0; i < nZ; i++)
@@ -391,8 +393,6 @@ void message_stranspose (float*        data,
   }
 
   free (tmp);
-  free (request);
-  free (status);
 #endif
 }
 
@@ -414,12 +414,10 @@ void message_itranspose (integer*      data,
   const int    NM = nP * nZ / np;
   const int    dsize = sizeof (integer);
   integer*     tmp;
-  MPI_Request* request;
-  MPI_Status*  status;
+  MPI_Request  request[2];
+  MPI_Status   status[2];
   if (np == 1) return;
-  tmp     = (integer*)     malloc (nB           * dsize);
-  request = (MPI_Request*) malloc (2 * (np - 1) * sizeof (MPI_Request));
-  status  = (MPI_Status*)  malloc (2 * (np - 1) * sizeof (MPI_Status));
+  tmp = (integer*) malloc (MAX(nB,NM) * dsize);
   if (sign == 1) {
     if (NB == nZ) {
       for (i = 0; i < nZ; i++)
@@ -459,35 +457,39 @@ void message_itranspose (integer*      data,
       free (kmove);
     }    
     if (sizeof (integer) == sizeof (int)) {
-      for (i = 0, j = 0; i < np; i++)
+      for (i = 0; i < np; i++)
 	if (i != ip) {
-	  MPI_Isend (data+i*NM, NM, MPI_INT, i,0,MPI_COMM_WORLD, request+j++);
-	  MPI_Irecv (data+i*NM, NM, MPI_INT, i,0,MPI_COMM_WORLD, request+j++);
+	  MPI_Isend   (data+i*NM, NM, MPI_INT, i, 0, MPI_COMM_WORLD,request);
+	  MPI_Irecv   (tmp,       NM, MPI_INT, i, 0, MPI_COMM_WORLD,request+1);
+	  MPI_Waitall (2, request, status);
+	  memcpy      (data+i*NM, tmp, NM * dsize);
 	}
-      MPI_Waitall (2 * (np - 1), request, status);
     } else {
-      for (i = 0, j = 0; i < np; i++)
+      for (i = 0; i < np; i++)
 	if (i != ip) {
-	  MPI_Isend (data+i*NM, NM, MPI_LONG, i,0,MPI_COMM_WORLD, request+j++);
-	  MPI_Irecv (data+i*NM, NM, MPI_LONG, i,0,MPI_COMM_WORLD, request+j++);
+	  MPI_Isend   (data+i*NM, NM, MPI_LONG, i, 0,MPI_COMM_WORLD,request);
+	  MPI_Irecv   (tmp,       NM, MPI_LONG, i, 0,MPI_COMM_WORLD,request+1);
+	  MPI_Waitall (2, request, status);
+	  memcpy      (data+i*NM, tmp, NM * dsize);
 	}
-      MPI_Waitall (2 * (np - 1), request, status);
     }
   } else {
     if (sizeof (integer) == sizeof (int)) {
-      for (i = 0, j = 0; i < np; i++)
+      for (i = 0; i < np; i++)
 	if (i != ip) {
-	  MPI_Isend (data+i*NM, NM, MPI_INT, i,0,MPI_COMM_WORLD, request+j++);
-	  MPI_Irecv (data+i*NM, NM, MPI_INT, i,0,MPI_COMM_WORLD, request+j++);
+	  MPI_Isend   (data+i*NM, NM, MPI_INT, i, 0, MPI_COMM_WORLD,request);
+	  MPI_Irecv   (tmp,       NM, MPI_INT, i, 0, MPI_COMM_WORLD,request+1);
+	  MPI_Waitall (2, request, status);
+	  memcpy      (data+i*NM, tmp, NM * dsize);
 	}
-      MPI_Waitall (2 * (np - 1), request, status);
     } else {
-      for (i = 0, j = 0; i < np; i++)
+      for (i = 0; i < np; i++)
 	if (i != ip) {
-	  MPI_Isend (data+i*NM, NM, MPI_LONG, i,0,MPI_COMM_WORLD, request+j++);
-	  MPI_Irecv (data+i*NM, NM, MPI_LONG, i,0,MPI_COMM_WORLD, request+j++);
+	  MPI_Isend   (data+i*NM, NM, MPI_LONG, i, 0,MPI_COMM_WORLD,request);
+	  MPI_Irecv   (tmp,       NM, MPI_LONG, i, 0,MPI_COMM_WORLD,request+1);
+	  MPI_Waitall (2, request, status);
+	  memcpy      (data+i*NM, tmp, NM * dsize);
 	}
-      MPI_Waitall (2 * (np - 1), request, status);
     }
     if (NB == nZ) {
       for (i = 0; i < nZ; i++)
@@ -528,8 +530,6 @@ void message_itranspose (integer*      data,
     }
   }
   free (tmp);
-  free (request);
-  free (status);
 #endif
 }
 
