@@ -16,9 +16,9 @@
  * NOTES
  * -----
  * Default value of perturbation is 0.0.
+ *
+ * $Id$
  *****************************************************************************/
-
-static char RCSid[] = "$Id$";
 
 #include <math.h>
 #include <stdio.h>
