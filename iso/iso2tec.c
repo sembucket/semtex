@@ -20,11 +20,9 @@ int N, K, FourKon3;
 static const char prog[] = "iso2tec";
 
 static void getargs   (int, char**, const char**, int* , int*);
-static void enstrophy (CF, const CVF, const int*);
-static void tecout    (const char*, const CVF, const CVF, const CF,
-		       const int*, const int);
-static void semout    (const char*, const CVF, const CVF, const CF,
-		       const int*, const int);
+static void enstrophy (CF, const CVF);
+static void tecout    (const char*, const CVF, const CVF, const CF, const int);
+static void semout    (const char*, const CVF, const CVF, const CF, const int);
 
 
 int main (int    argc,
@@ -33,15 +31,14 @@ int main (int    argc,
  * Driver.
  * ------------------------------------------------------------------------- */
 {
-  CVF          U;
-  CVF          Q;
-  CF           Work;
-  Param*       Info = (Param*) calloc (1, sizeof (Param));
-  complex*     Wtab;
-  int          N, Npts;
-  FILE*        fp;
-  const char*  session;
-  int          i, semtex = 0, transform = 1;
+  CVF         U;
+  CVF         Q;
+  CF          Work;
+  Param*      Info = (Param*) calloc (1, sizeof (Param));
+  complex*    Wtab;
+  FILE*       fp;
+  const char* session;
+  int         i, semtex = 0, transform = 1;
 
   /* -- Process command-line arguments. */
 
@@ -52,9 +49,7 @@ int main (int    argc,
 
   /* -- Set up the problem size. */
 
-  N        = Info -> ngrid;
-  K        = N / 2;
-  FourKon3 = (4 * K) / 3;
+  N = Info -> ngrid; K = N / 2; FourKon3 = (4 * K) / 3;
 
   /* -- Allocate storage for the solution. */
 
