@@ -15,8 +15,8 @@
 
 
 void bvdFilter (const integer N     ,
-		const integer order ,
-		const integer lag   ,
+		const real    order ,
+		const real    lag   ,
 		const real    attn  ,
 		real*         filter)
 /* ------------------------------------------------------------------------- *
@@ -28,6 +28,9 @@ void bvdFilter (const integer N     ,
  * 
  * Input parameter attn gives the attenuation at high
  * wavenumbers. 0<=attn<=1, with attn = 1 giving complete attenuation.
+ * 
+ * Input parameter lag is the proportion (0--1) of the length 0--N at
+ * which filter rolloff starts.
  *
  * Reference:
  * J.G. Levin & M. Iskandarani & D.B. Haidvogel (1997), A spectral
@@ -37,20 +40,21 @@ void bvdFilter (const integer N     ,
 {
   integer    i;
   real       arg, theta, chi, omega;
-  const real EPS = EPSSP;
+  const real shift = N * lag, EPS = EPSSP;
 
-  for (i = 0; i < lag; i++)
-    filter[i] = 1.0;
-  
-  for (i = lag; i <= N; i++) {
-    theta = (i - lag) / (real) (N - lag);
-    omega = fabs(theta) - 0.5;
-    if ((fabs (theta - 0.5)) < EPS) 
-      chi = 1.0;
+  for (i = 0; i <= N; i++) {
+    if (i < shift) 
+      filter[i] = 1.0;
     else {
-      arg = 1.0 - 4.0 * SQR (omega);
-      chi = sqrt (-log (arg) / (4.0 * SQR (omega)));
+      theta = (i - shift) / (N - shift);
+      omega = fabs (theta) - 0.5;
+      if ((fabs (theta - 0.5)) < EPS) 
+	chi = 1.0;
+      else {
+	arg = 1.0 - 4.0 * SQR (omega);
+	chi = sqrt (-log (arg) / (4.0 * SQR (omega)));
+      }
+      filter[i] = (1.0 - attn) + attn * 0.5 * erfc (2.0*sqrt(order)*chi*omega);
     }
-    filter[i] = (1.0 - attn) + attn * 0.5 * erfc (2.0*sqrt(order)*chi*omega);
   }
 }

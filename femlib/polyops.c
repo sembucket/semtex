@@ -16,7 +16,6 @@
  * pnleg   : Evaluate Legendre polynomial.
  * pndleg  : Evaluate derivative of Legendre polynomial.
  * pnd2leg : Evaluate second derivative of Legendre polynomial.
- * legtr2d : Compute 2D Legendre transform based on GLL grid.
  * dgll    : Derivative operator for Gauss-Lobatto-Legendre interpolant.
  * uniknot : Points uniformly distributed on [-1, 1].
  *
