@@ -11,10 +11,9 @@
 // Special action may need to be taken to generate numbering schemes for
 // cylindrical coordinate flow problems.  See the discussion in header for
 // field.C, and for routine Mesh::buildMask in mesh.C.
+//
+// $Id$
 ///////////////////////////////////////////////////////////////////////////////
-
-static char
-RCSid[] = "$Id$";
 
 #include <stdlib.h>
 #include <string.h>
