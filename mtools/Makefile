@@ -58,19 +58,40 @@ endif
 
 # ----------------------------------------------------------------------------
 #
-SRC = main loop node point graphics
-OBJ = $(addsuffix .o,$(SRC))
-HDR = qmesh.h
+HDR  = qmesh.h
 
 # ----------------------------------------------------------------------------
-#
+# Make qmesh, mesh generation utility.
 
-qmesh: $(HDR) $(OBJ)
-	$(LD) -o qmesh $(OBJ) $(CPPFLAGS) $(LDFLAGS) $(SMLIBS) $(X11LIBS)
+QSRC = main loop node point graphics misc
+QOBJ = $(addsuffix .o,$(QSRC))
+
+qmesh: $(HDR) $(QOBJ)
+	$(LD) -o qmesh $(QOBJ) $(CPPFLAGS) $(LDFLAGS) $(SMLIBS) $(X11LIBS)
+
+$(QOBJ): $(HDR)
 
 # ----------------------------------------------------------------------------
-#
-$(OBJ): $(HDR)
+# Make reflect, mesh manipulation utility.
+
+RSRC = reflect node point misc
+ROBJ = $(addsuffix .o,$(RSRC))
+
+reflect: $(HDR) $(ROBJ)
+	$(CXX) -o reflect $(ROBJ) $(CPPFLAGS) $(LDFLAGS)
+
+$(ROBJ): $(HDR)
+
+# ----------------------------------------------------------------------------
+# Make outline, input generator for qmesh.
+
+OSRC = outline node point misc
+OOBJ = $(addsuffix .o,$(OSRC))
+
+outline: $(HDR) $(OOBJ)
+	$(CXX) -o outline $(OOBJ) $(CPPFLAGS) $(LDFLAGS)
+
+$(OOBJ): $(HDR)
 
 # -----------------------------------------------------------------------------
 #

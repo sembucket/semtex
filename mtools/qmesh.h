@@ -11,6 +11,7 @@
 #include <iomanip.h>
 #include <fstream.h>
 #include <stdlib.h>
+#include <string.h>
 #include <limits.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -21,17 +22,11 @@
 
 typedef  double real;
 enum lev {WARNING, ERROR, REMARK};
-void message (const char*, const char*, const lev&);
-
 
 const  int    StrMax = 256;
 const  double EPSSP  = 6.0e-7;
 const  double EPSDP  = 6.0e-14;
 const  double TWOPI  = 6.28318530717958647692;
-
-extern int  verbose;
-extern int  graphics;
-extern real refcoeff;
 
 template<class T> inline T sqr(T x)      { return x * x;            }
 template<class T> inline T sgn(T x)      { return (x < 0) ? -1 : 1; }
@@ -40,11 +35,12 @@ template<class T> inline T max(T a, T b) { return (a > b) ?  a : b; }
 
 // -- Splitting parameters: "rules of thumb" described in Reference [1].
 
-const real C1     = 0.5;	// -- Angle  weight factor.
-const real C2     = 0.3;	// -- Length weight factor.
-const real C3     = 0.2;	// -- Error  weight factor.
+const  real C1 = 0.5;	// -- Angle  weight factor.
+const  real C2 = 0.3;	// -- Length weight factor.
+const  real C3 = 0.2;	// -- Error  weight factor.
+extern real refcoeff;	// -- Refinement coefficient per Ref. [1].
 
-const int  InsMax = 64;	        // -- Max Nodes to insert on splitting line.
+const int  InsMax = 128;	        // -- Max Nodes to insert on splitting line.
 
 
 class Point
@@ -113,6 +109,9 @@ public:
 
   void  xadd     (Node*);
   void  setPos   (const Point&);
+  void  setKind  (const nodekind& k) { kind  = k; }
+  void  setID    (const int&      i) { id    = i; }
+  void  setSize  (const real&     s) { ideal = s; }
   Point centroid () const;
   int   offset   () const { return kind == OFFSET;   }
   int   interior () const { return kind == INTERIOR; }
@@ -144,12 +143,15 @@ public:
   void  split   ();
   void  connect ();
   void  smooth  ();
-  void  draw    () const;
+ 
+  void  limits   (Point&, Point&)                 const;
+  int   points   (vector<float>&, vector<float>&) const;
+  int   line     (vector<float>&, vector<float>&) const;
+  void  drawQuad (const int& = 0)                 const;
 
-  void  limits (Point&, Point&)                 const;
-  int   points (vector<float>&, vector<float>&) const;
-  int   line   (vector<float>&, vector<float>&) const;
-  
+  void  nodeLabel (const int&, char*)             const;
+  void  printMesh (ostream&)                      const;
+
 private:
   int                id;
   static int         node_id_max;
@@ -162,9 +164,9 @@ private:
   Loop*         left;
   Loop*         right;
 
-  Node* exist        (const Node*, List<Node*>&) const;
-  real  lengthScale  () const;
-  Point centroid     () const;
+  Node* exist        (const Node*, List<Node*>&)                         const;
+  real  lengthScale  ()                                                  const;
+  Point centroid     ()                                                  const;
 
   void  visibleNodes (List<Node*>&, const int&)                          const;
   void  bestSplit    (List<Node*>*, int&, int&, int&)                    const;
@@ -174,18 +176,32 @@ private:
   void  insertNodes  (const Node*, const Node*, const int&);
 
   void  splitSix     (int&, int&);
-  
+
+  void  printQuad    (ostream&, int&)                                    const;
+  void  countElements(int&)                                              const;
 };
 
 
 // -- Routines in graphics.cc:
 
+extern int graphics;
+
 void initGraphics  (const char*);
 void stopGraphics  ();
 void eraseGraphics ();
-void drawBox  (const Loop*);
-void drawLoop (const Loop*);
-void hardCopy (const Loop*);
-void pause ();
+void drawBox       (const Loop*);
+void drawLoop      (const Loop*, const int& = 0);
+void hardCopy      (const Loop*);
+void pause         ();
+void message       (const char*, const char*, const lev&);
+
+// -- Routines in misc.cc:
+
+extern int verbose;
+
+void      error     (const char*, const char*, const lev&);
+istream&  seekBlock (istream&, const char*);
+istream&  endBlock  (istream&);
+char*     upperCase (char*);
 
 #endif
