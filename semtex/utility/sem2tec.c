@@ -44,7 +44,8 @@ static void    parse_args  (int, char**);
 static void    read_mesh   (FILE*);
 static int     read_data   (FILE*);
 static int     interpolate (void);
-static double* do_interp   (double**, double**, double**, double**, double*);
+static double* do_interp   (const double**, const double**, 
+			    const double**, const double**, double*);
 
 
 int main (int    argc,
@@ -299,7 +300,8 @@ static int interpolate (void)
 {
   register int k, m, nplane_new;
   const int    nrns = nr * ns, nplane_old = nr * ns * nel;
-  double       **imr, **itmr, **ims, **itms, *mesh_x, *mesh_y;
+  const double **imr, **itmr, **ims, **itms;
+  double       *mesh_x, *mesh_y;
   double       **newplane = (double**) malloc (nz * sizeof (double*));
 
   switch (np) {
@@ -316,11 +318,6 @@ static int interpolate (void)
   }
   
   nplane_new = np * np * nel;
-
-  imr  = dmatrix (0, np-1, 0, nr-1);
-  itmr = dmatrix (0, nr-1, 0, np-1);
-  ims  = dmatrix (0, np-1, 0, ns-1);
-  itms = dmatrix (0, ns-1, 0, np-1);
 
   /* -- Compute interpolation matrices. */
 
@@ -357,11 +354,11 @@ static int interpolate (void)
 }
 
 
-static double* do_interp (double** imr ,
-			  double** itmr,
-			  double** ims ,
-			  double** itms,
-			  double*  data)
+static double* do_interp (const double** imr ,
+			  const double** itmr,
+			  const double** ims ,
+			  const double** itms,
+			  double*        data)
 /* ------------------------------------------------------------------------- *
  * Wrapper for 2D tensor-product interpolation.
  * ------------------------------------------------------------------------- */
@@ -374,8 +371,8 @@ static double* do_interp (double** imr ,
                *p    = new;
 
   for (k = 0; k < nel; k++, data += nrns, p += ntot) {
-    dmxm (*ims, np,  data, ns, tmp, nr);
-    dmxm ( tmp, np, *itmr, nr, p  , np);
+    dmxm ((double*) *ims, np,  data, ns, tmp, nr);
+    dmxm ( tmp, np, (double*) *itmr, nr, p  , np);
   }
 
   return new;
@@ -416,4 +413,3 @@ static void write_tec (FILE *fp)
 
   return;
 }
-
