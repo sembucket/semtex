@@ -215,7 +215,7 @@ static void findmap  (const char          gen ,
 // Take the first available mapping index for each point.
 // ---------------------------------------------------------------------------
 {
-  int i, j, k = 0;
+  int i, j, k = 0, found;
 
   orig.setSize (nmap);
   flip.setSize (nmap);
@@ -223,24 +223,32 @@ static void findmap  (const char          gen ,
   if (gen == 'x') {
     for (i = 0; i < npts; i++) {
       if (x[i] > EPS || x[i] < -EPS) {
-	for (j = 0; j < npts; j++) {
+	for (found = 0, j = 0; !found && j < npts; j++) {
 	  if (fabs(x[i] + x[j]) < EPS && fabs(y[i] - y[j]) < EPS) {
 	    orig[k]   = i;
 	    flip[k++] = j;
-	    break;
+	    found     = 1;
 	  }
+	}
+	if (!found) {
+	  cerr << "Warning: mesh point "
+	       << x[i] << ",\t" << y[i] << "\tnot mirrored" << endl;
 	}
       }
     }
   } else {
     for (i = 0; i < npts; i++) {
       if (y[i] > EPS || y[i] < -EPS) {
-	for (j = 0; j < npts; j++) {
+	for (found = 0, j = 0; !found && j < npts; j++) {
 	  if (fabs(y[i] + y[j]) < EPS && fabs(x[i] - x[j]) < EPS) {
 	    orig[k]   = i;
 	    flip[k++] = j;
-	    break;
+	    found     = 1;
 	  }
+	}
+	if (!found) {
+	  cerr << "Warning: mesh point "
+	       << x[i] << ",\t" << y[i] << "\tnot mirrored" << endl;
 	}
       } 
     }
