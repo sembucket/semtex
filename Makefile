@@ -28,12 +28,16 @@ srcdist:
 libs:
 	cd alplib;		\
 	gmake install;		\
+
+	cd femlib;		\
+	gmake install;		\
+
+	cd alplib;		\
 	gmake clean;		\
 	gmake;			\
 	gmake install
 
 	cd femlib;		\
-	gmake install;		\
 	gmake clean;		\
 	gmake;			\
 	gmake install
