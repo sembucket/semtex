@@ -111,6 +111,12 @@ conjugate: conjugate.C
 	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
+# Build lowpass, which filters data.
+#
+lowpass: lowpass.o data2df.o data2df.h $(SEMHDR)
+	$(CXX) $(CPPFLAGS) -o $@ $@.o data2df.o $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
 # Build interp, field dump interpolator.
 #
 INTOBJ = feml.o mesh.o element.o family.o auxfield.o geometry.o
