@@ -24,10 +24,6 @@ real**** PBCmgr::Pny = 0;
 real**** PBCmgr::Unx = 0;
 real**** PBCmgr::Uny = 0;
 
-#if defined(__DECCXX)
-  #pragma define_template roll<double***>
-#endif
-
 
 void PBCmgr::build (const Field* P)
 // ---------------------------------------------------------------------------
