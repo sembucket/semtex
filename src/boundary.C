@@ -5,7 +5,7 @@
 static char
 RCSid[] = "$Id$";
 
-#include "Fem.h"
+#include <Fem.h>
 
 
 Boundary::Boundary (int       ident ,
@@ -129,63 +129,6 @@ void  Boundary::print () const
 }
 
 
-void Boundary::set (real* target) const
-// ---------------------------------------------------------------------------
-// Load BC data into element-wise numbered target.
-// ---------------------------------------------------------------------------
-{
-  elmt -> sideSet (side, value, target + elmt -> nOff ());
-}
-
-
-void Boundary::dsSum (real* target) const
-// ---------------------------------------------------------------------------
-// This is for natural BCs: direct-stiffness-sum weighted BC data into 
-// globally-numbered target.
-// ---------------------------------------------------------------------------
-{
-  elmt -> sideDsSum (side, value, area, target);
-}
-
-
-int  Boundary::isWall () const
-// ---------------------------------------------------------------------------
-// Return 1 for wall-type BC, 0 otherwise.
-// ---------------------------------------------------------------------------
-{
-  return condition -> kind == BC::wall;
-}
-
-
-int  Boundary::isEssential () const
-// ---------------------------------------------------------------------------
-// Return 1 for essential-type BC, 0 for natural.
-// ---------------------------------------------------------------------------
-{
-  return (   condition -> kind == BC::essential
-	  || condition -> kind == BC::essential_fn
-	  || condition -> kind == BC::wall        );
-}
-
-
-void  Boundary::setMask (int* gmask) const
-// ---------------------------------------------------------------------------
-// Mask vector of global node-numbers for this boundary.
-// ---------------------------------------------------------------------------
-{
-  elmt -> sideMask (side, gmask);
-}
-
-
-void  Boundary::mask (real* gnode) const
-// ---------------------------------------------------------------------------
-// Mask globally-numbered vector gnode for this boundary.
-// ---------------------------------------------------------------------------
-{
-  elmt -> sideMask (side, gnode);
-}
-
-
 void Boundary::curlCurl (const real*  U ,
 			 const real*  V ,
 			 real*        wx,
@@ -200,12 +143,12 @@ void Boundary::curlCurl (const real*  U ,
 // of skip on relevant edge).
 // ---------------------------------------------------------------------------
 {
-  const int  ntot   = elmt -> nTot ();
-  const int  offset = elmt -> nOff ();
+  const int ntot   = elmt -> nTot ();
+  const int offset = elmt -> nOff ();
 
-  real*  w   = rvector (ntot);
-  real*  vx  = rvector (ntot);
-  real*  uy  = rvector (ntot);
+  real* w  = rvector (3 * ntot);
+  real* vx = w  + ntot;
+  real* uy = vx + ntot;
 
   Veclib::copy (ntot, U + offset, 1, uy, 1);
   Veclib::copy (ntot, V + offset, 1, vx, 1);
@@ -220,8 +163,6 @@ void Boundary::curlCurl (const real*  U ,
   elmt -> sideGrad (side, w, wx, wy);
 
   freeVector (w);
-  freeVector (vx);
-  freeVector (uy);
 }
 
 
@@ -254,8 +195,9 @@ Vector  Boundary::normalTraction (const real*  p  ,
 // a pressure stress field data area.  Wrk is a work vector elmt_np_max long.
 // ---------------------------------------------------------------------------
 {
-  register int  i, np = nKnot ();
-  Vector        Force = {0.0, 0.0, 0.0};
+  register int i;
+  const int    np = nKnot ();
+  Vector       Force = {0.0, 0.0, 0.0};
 
   Veclib::copy (np, p + nOff (), skip, wrk, 1);
 
@@ -279,8 +221,9 @@ Vector Boundary::tangentTraction (const real*  u ,
 // Ux and uy are work vectors, each elmt_np_max long.
 // ---------------------------------------------------------------------------
 {
-  register int   i, np = nKnot (), offset = elmt -> nOff ();
-  Vector         Force = {0.0, 0.0, 0.0};
+  register int i;
+  const int    np = nKnot (), offset = elmt -> nOff ();
+  Vector       Force = {0.0, 0.0, 0.0};
 
   elmt -> sideGrad (side, u + offset, ux, uy);
 
