@@ -42,10 +42,11 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
   strcpy (_fields, Bsys -> Nsys (0) -> fields());
   _Msys.setSize (numModes);
 
-  ROOTONLY cout << "-- Installing matrices for field '" << name << "' [";
-  cout.flush();
-
-  Femlib::synchronize();
+  if (method == DIRECT) {
+    ROOTONLY cout << "-- Installing matrices for field '" << name << "' [";
+    cout.flush();
+    Femlib::synchronize();
+  }
 
   for (mode = baseMode; mode < baseMode + numModes; mode++) {
     const NumberSys* N         = Bsys -> Nsys (mode);
@@ -58,19 +59,29 @@ ModalMatrixSys::ModalMatrixSys (const real              lambda2 ,
     }
     if (found) {
       _Msys[localMode] = M;
-      cout << '.'; cout.flush();
+      if (method == DIRECT) { cout << '.'; cout.flush(); }
     } else {
       _Msys[localMode] =
 	new MatrixSys (lambda2, betak2, mode, Elmt, Bsys, method);
       MS.add (_Msys[localMode]);
-      cout << '*'; cout.flush();
+      if (method == DIRECT) { cout << '*'; cout.flush(); }
     }
   }
 
-  Femlib::synchronize();
+  if (method == DIRECT) {
+    Femlib::synchronize();
+    ROOTONLY cout << "]" << endl;
+    cout.flush();
+  }
+}
 
-  ROOTONLY cout << "]" << endl;
-  cout.flush();
+
+ModalMatrixSys::~ModalMatrixSys ()
+// ---------------------------------------------------------------------------
+// Destructor hands off calls to MatrixSys::~MatrixSys.
+// ---------------------------------------------------------------------------
+{
+
 }
 
 
@@ -171,29 +182,31 @@ MatrixSys::MatrixSys (const real              lambda2,
       Femlib::adopt (_bipack[j], _hbi + j);  
       Femlib::adopt (_iipack[j], _hii + j);
     }
+    if (_nsolve) {
+      // -- Loop over BCs and add diagonal contribution from mixed BCs.
 
-    // -- Loop over BCs and add diagonal contribution from mixed BCs.
+      if (bsys -> mixBC()) {
+	const integer  nbound = bsys -> nSurf();
+	const integer* bmap   = _NS   -> btog();
+	for (i = 0; i < nbound; i++)
+	  _BC[i] -> augmentSC (_nband, _nsolve, bmap, rwrk, _H);
+      }
 
-    if (bsys -> mixBC()) {
-      const integer  nbound = bsys -> nSurf();
-      const integer* bmap   = _NS   -> btog();
-      for (i = 0; i < nbound; i++)
-	_BC[i] -> augmentSC (_nband, _nsolve, bmap, rwrk, _H);
-    }
-
-    // -- Cholesky factor global banded-symmetric Helmholtz matrix.
+      // -- Cholesky factor global banded-symmetric Helmholtz matrix.
     
-    Lapack::pbtrf ("U",_nsolve,_nband-1,_H,_nband,info);
+      Lapack::pbtrf ("U",_nsolve,_nband-1,_H,_nband,info);
+      Femlib::adopt (_npack, &_H);
 
-    if (info) message (routine, "failed to factor Helmholtz matrix", ERROR);
+      if (info) message (routine, "failed to factor Helmholtz matrix", ERROR);
 
-    if (verbose) {
-      real cond;
-      pivotmap.setSize (_nsolve);  ipiv = pivotmap();
-      work.setSize (3 * _nsolve);  rwrk = work();
+      if (verbose) {
+	real cond;
+	pivotmap.setSize (_nsolve);  ipiv = pivotmap();
+	work.setSize (3 * _nsolve);  rwrk = work();
 
-      Lapack::pbcon ("U",_nsolve,_nband-1,_H,_nband, 1.0,cond,rwrk,ipiv,info);
-      cout << ", condition number: " << cond << endl;
+	Lapack::pbcon ("U",_nsolve,_nband-1,_H,_nband,1.0,cond,rwrk,ipiv,info);
+	cout << ", condition number: " << cond << endl;
+      }
     }
   } break;
 
@@ -229,6 +242,8 @@ MatrixSys::MatrixSys (const real              lambda2,
     Veclib::fill  (_npts, 1.0, _PC, 1);
 #endif
 
+    Femlib::adopt (_npts, &_PC);
+
   } break;
 
   default:
@@ -261,6 +276,31 @@ integer MatrixSys::match (const real       lambda2,
 
   else
     return 0;
+}
+
+
+MatrixSys::~MatrixSys()
+// ---------------------------------------------------------------------------
+// Destructor.  Because there may be aliases to the internal vector
+// storage we use the Femlib family routines.
+// ---------------------------------------------------------------------------
+{
+  cout << "HEY" << endl;
+  switch (_method) {
+  case JACPCG:
+    Femlib::abandon (&_PC);
+    break;
+  case DIRECT: {
+    integer i;
+    for (i = 0; i < _nel; i++) {
+      Femlib::abandon (_hbi + i);
+      Femlib::abandon (_hii + i);
+    }
+    Femlib::abandon (&_H);
+  } break;
+  default:
+    break;
+  }
 }
 
 
