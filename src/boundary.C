@@ -55,20 +55,24 @@ void  Boundary::evaluate (int step)
 // Load boundary condition storage area with numeric values.
 // ---------------------------------------------------------------------------
 {
-  int np = elmt -> nKnot ();
+  char routine[] = "Boundary::evaluate";
+  int  np        = elmt -> nKnot ();
 
   switch (condition -> kind) {
-  case ESSENTIAL: case NATURAL:
+  case ESSENTIAL: case NATURAL: case VALUE: case FLUX:
     Veclib::fill (np, condition -> value, value, 1);
     break;
   case ESSENTIAL_FN: case NATURAL_FN: 
     elmt -> sideEval (side, value, condition -> string);
     break;
-  case OUTFLOW: case WALL: default:
+  case OUTFLOW: case WALL:
     Veclib::fill (np, 0.0, value, 1);
     break;
   case HOPBC:
     PBCmanager::evaluate (id, np, step, value, nx, ny);
+    break;
+  default:
+    message (routine, "illegal BC kind", ERROR);
     break;
   }
 }
@@ -191,8 +195,7 @@ void Boundary::curlCurl (const real*  U ,  const real*  V ,
 
   Veclib::copy (ntot, U + offset, 1, uy, 1);
   Veclib::copy (ntot, V + offset, 1, vx, 1);
-  elmt -> d_dy (uy);
-  elmt -> d_dx (vx);
+  elmt -> grad (vx, uy);
 
   // -- Vorticity, w = dv/dx - du/dy.
 
@@ -214,8 +217,8 @@ void  Boundary::resetKind (const BC* new_other, const BC* new_outflow)
 // This routine is intended for resetting pressure BCs.
 // ---------------------------------------------------------------------------
 {
-  if (condition -> kind == OUTFLOW) condition = (BC*) new_outflow;
-  else                              condition = (BC*) new_other;
+  if   (condition -> kind == OUTFLOW) condition = (BC*) new_outflow;
+  else                                condition = (BC*) new_other;
 }
 
 
