@@ -115,7 +115,7 @@ int main (int    argc,
 
   } break;
   
-  case 'l':			// -- Legendgre polynomials.
+  case 'l':			// -- Legendre polynomials.
 
     for (j = 0; j < ns; j++)
       for (i = 0; i < ni; i++)
