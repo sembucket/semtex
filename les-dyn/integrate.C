@@ -5,7 +5,7 @@
 //
 // This version incorporates eddy-viscosity SGS stress, with the
 // dynamic algorithm.  After computation of the spatially-variable
-// eddy viscoisty, it is handled within the framework of the
+// eddy viscosity, it is handled within the framework of the
 // implicit-explicit time integration by splitting the SGS stress into
 // two parts: one which can be dealt with implicitly as diffusion of
 // momentum with a spatially-constant kinematic viscosity KINVIS, the
@@ -28,7 +28,7 @@
 #include "les.h"
 
 typedef ModalMatrixSys  Msys;
-static  integer         NORD, NDIM, CYL, C3D;
+static  integer         NORD, NDIM, CYL;
    
 static void   waveProp  (Domain*, const AuxField***, const AuxField***);
 static void   setPForce (const AuxField**, AuxField**);
@@ -110,7 +110,7 @@ void integrate (Domain*        D,
 
   // -- Apply coupling to radial & azimuthal velocity BCs.
 
-  if (C3D) Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
+  if (CYL) Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
 
   // -- Timestepping loop.
 
@@ -160,12 +160,12 @@ void integrate (Domain*        D,
 
     // -- Viscous correction substep.
 
-    if (C3D) {
+    if (CYL) {
       AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
       AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     }
     for (i = 0; i < NDIM; i++) Solve (D, i, Uf[0][i], MMS[i]);
-    if (C3D)
+    if (CYL)
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 
     // -- Process results of this step.
@@ -244,7 +244,7 @@ static void setPForce (const AuxField** Us,
 
   for (i = 0; i < NDIM; i++) (*Uf[i] = *Us[i]) . gradient (i);
 
-  if (C3D) Uf[2] -> divR();
+  if (CYL) Uf[2] -> divR();
 
   for (i = 1; i < NDIM; i++) *Uf[0] += *Uf[i];
 
@@ -275,7 +275,7 @@ static void project (const Domain* D ,
 
     (*Uf[i] = *D -> u[NDIM]) . gradient (i);
 
-    if (C3D) Uf[2] -> divR();
+    if (CYL) Uf[2] -> divR();
 
     *Uf[i] *= -dt;
     *Uf[i] += *Us[i];

@@ -4,7 +4,7 @@
 // This version for dynamic eddy-viscosity based SGSS, with Smagorinsky
 // as the underlying model.
 //
-// Copyright (c) 1999--2000 Hugh Blackburn
+// Copyright (c) 1999--2001 Hugh Blackburn
 //
 // USAGE:
 // -----
@@ -20,7 +20,7 @@
 // P.O. Box 56
 // Highett, Vic 3190
 // Australia
-// hugh.blackburn@dbce.csiro.au
+// hugh.blackburn@csiro.au
 //
 // $Id$
 //////////////////////////////////////////////////////////////////////////////

@@ -45,12 +45,10 @@ void nonLinear (Domain*        D ,
   const integer nPP  = Geometry::nBlock();
   const integer nPR  = Geometry::nProc();
   const integer nTot = Geometry::nTotProc();
+  const integer CYL  = Geometry::system() == Geometry::Cylindrical;
 
   Field*        meta = D -> u[0]; // -- A handle to use for Field operations.
   integer       i, j, ij;
-
-  if (Geometry::system() == Geometry::Cylindrical)
-    message ("nonLinear", "no cylindrical coordinate version yet", ERROR);
 
   // -- Create names for local computations.
 
@@ -92,10 +90,9 @@ void nonLinear (Domain*        D ,
   const real refvis = Femlib::value ("KINVIS");
   const real molvis = Femlib::value ("REFVIS");
 
-  // -- Direct stiffness summation and temporal smoothing of L_mix^2.
+  // -- Temporal filtering of L_mix^2.
 
-  meta -> smooth (nZP, Lmix2);
-  S    -> update      (Lmix2);
+  S -> update (Lmix2);
 
   // -- Compose the turbulent eddy viscosity in Sm[0]: nut = L_mix^2 |S|.
 
@@ -114,37 +111,92 @@ void nonLinear (Domain*        D ,
 	 << endl;
 #endif
 
-  // -- Add on molecular viscosity to get total viscosity, then clip.
+  // -- Add molecular viscosity to get total viscosity, then clip and smooth.
 
   Veclib::sadd   (nTot, molvis, nut, 1, nut, 1);
   Veclib::clipup (nTot, 0.0,    nut, 1, nut, 1);
+  meta -> smooth (nZP, nut);
 
-  // -- Subtract off spatially-constant reference viscosity.
+  // -- Subtract spatially-constant reference viscosity.
 
   Veclib::sadd (nTot, -refvis, nut, 1, nut, 1);
 
-  // -- Create SGSS \tau_ij = -2 (L_mix^2 |S| - refVisc) Sij.
+  // -- Create SGSS \tau_ij = -2 (L_mix^2 |S| + molvisc - refVisc) Sij.
 
   for (i = 0; i < 6; i++)
     Veclib::svvtt (nTot, -2.0, nut, 1, Sr[i], 1, Sr[i], 1);
 
-#if !defined (NOMODEL)		// -- Define NOMODEL to run as DNS.
+#if !defined (NOMODEL)
+  // -- Define NOMODEL, set REFVIS = KINVIS to run as *aliased* dns.
+
   // -- Subtract divergence of SGSS from nonlinear terms.
 
-  for (i = 0; i < 3; i++) {	// -- Diagonal terms.
-    realGradient (meta, Sr[i], i);
-    Veclib::vsub (nTot, Nl[i], 1, Sr[i], 1, Nl[i], 1);
+  if (CYL) {			// -- Cylindrical geometry.
+
+    // -- Diagonal stress-divergence terms.
+      
+    realGradient (meta, Sr[0], 0);                      // -- Txx.
+    Veclib::vsub (nTot, Nl[0], 1, Sr[0], 1, Nl[0], 1);
+
+    Veclib::copy (nTot, Sr[1], 1, tmp, 1);              // -- Tyy.
+    meta -> divR (nZP,  tmp);
+    realGradient (meta, Sr[1], 1);
+    Veclib::vsub (nTot, Nl[1], 1, tmp,   1, Nl[1], 1);
+    Veclib::vsub (nTot, Nl[1], 1, Sr[1], 1, Nl[1], 1);
+
+    Veclib::copy (nTot, Sr[2], 1, tmp, 1);              // -- Tzz.
+    meta -> divR (nZP,  tmp);
+    Veclib::vadd (nTot, Nl[1], 1, tmp,   1, Nl[1], 1);
+    realGradient (meta, Sr[2], 2);
+    meta -> divR (nZP,  Sr[2]);
+    Veclib::vsub (nTot, Nl[2], 1, Sr[2], 1, Nl[2], 1);
+
+    // -- Off-diagonal terms.
+
+    Veclib::copy (nTot, Sr[3], 1, Sr[0], 1);            // -- Txy, Tyx.
+    Veclib::copy (nTot, Sr[3], 1, Sr[1], 1);
+    realGradient (meta, Sr[0], 0);
+    realGradient (meta, Sr[1], 1);
+    meta -> divR (nZP,  Sr[3]);
+    Veclib::vsub (nTot, Nl[1], 1, Sr[0], 1, Nl[1], 1);
+    Veclib::vsub (nTot, Nl[0], 1, Sr[1], 1, Nl[0], 1);
+    Veclib::vsub (nTot, Nl[0], 1, Sr[3], 1, Nl[0], 1);
+
+    Veclib::copy (nTot, Sr[4], 1, tmp, 1);              // -- Txz, Tzx.
+    realGradient (meta, Sr[4], 2);
+    realGradient (meta, tmp,   0);
+    meta -> divR (nZP,  Sr[4]);
+    Veclib::vsub (nTot, Nl[0], 1, Sr[4], 1, Nl[0], 1);
+    Veclib::vsub (nTot, Nl[2], 1, tmp,   1, Nl[2], 1);
+
+    Veclib::copy (nTot, Sr[5], 1, Sr[0], 1);            // -- Tyz, Tzy.
+    Veclib::copy (nTot, Sr[5], 1, Sr[1], 1);
+    realGradient (meta, Sr[0], 2);
+    meta -> divR (nZP,  Sr[0]);
+    realGradient (meta, Sr[1], 1);
+    meta -> divR (nZP,  Sr[5]);
+    Veclib::vsub (nTot, Nl[1], 1, Sr[0], 1, Nl[1], 1);
+    Veclib::vsub (nTot, Nl[2], 1, Sr[1], 1, Nl[2], 1);
+    Blas::axpy   (nTot, -2.0,     Sr[5], 1, Nl[2], 1);
+
+  } else {			// -- Cartesian geometry.
+
+    for (i = 0; i < 3; i++) {	// -- Diagonal terms.
+      realGradient (meta, Sr[i], i);
+      Veclib::vsub (nTot, Nl[i], 1, Sr[i], 1, Nl[i], 1);
+    }
+
+    for (i = 0; i < 3; i++)	// -- Off-diagonal terms.
+      for (j = i + 1; j < 3; j++) {
+	ij = 3 + i + j - 1;
+	Veclib::copy (nTot, Sr[ij], 1, tmp, 1);
+	realGradient (meta, Sr[ij], j);
+	realGradient (meta, tmp,    i);
+	Veclib::vsub (nTot, Nl[i], 1, Sr[ij], 1, Nl[i], 1);
+	Veclib::vsub (nTot, Nl[j], 1, tmp,    1, Nl[j], 1);
+      }
   }
 
-  for (i = 0; i < 3; i++)	// -- Off-diagonal terms.
-    for (j = i + 1; j < 3; j++) {
-      ij = 3 + i + j - 1;
-      Veclib::copy (nTot, Sr[ij], 1, tmp, 1);
-      realGradient (meta, Sr[ij], j);
-      realGradient (meta, tmp,    i);
-      Veclib::vsub (nTot, Nl[i], 1, Sr[ij], 1, Nl[i], 1);
-      Veclib::vsub (nTot, Nl[j], 1, tmp,    1, Nl[j], 1);
-    }
 #endif
 
   // -- Direct stiffness summation.
@@ -175,11 +227,11 @@ void dynamic (Domain*        D ,
 // Compute nonlinear and SGSS terms: N(u) and eddy viscosity.
 //
 // On entry, D contains the Fourier-transforms of the old velocity
-// (and pressure) fields, the lowest levels of Us & Uf are free.
-// On exit, the lowest levels of Us contain the Fourier transforms
-// of the old velocity fields and lowest levels of Uf contain the 
-// Fourier transforms of the corresponding nonlinear terms plus
-// body force terms, minus divergence of SGSS.
+// (and pressure) fields, the lowest levels of Us & Uf are free.  On
+// exit, the lowest levels of Us the old velocity fields and lowest
+// levels of Uf contain the nonlinear terms, both in physical space,
+// while other areas hold the mixing length, the rate of strain
+// magnitude and components (again, all in physical space).
 //
 // Nonlinear terms N(u) are computed in skew-symmetric form (Zang 1991)
 //                 ~ ~
@@ -193,16 +245,18 @@ void dynamic (Domain*        D ,
 //
 // while for cylindrical coordinates
 //
-//           Nx = -0.5 {ud(u)/dx + vd(u)/dy +  d(uu)/dx +
-//                 1/y [wd(u)/dz + d(uw)/dz + d(yvu)/dy      ]}
-//           Ny = -0.5 {ud(v)/dx + vd(v)/dy +  d(uv)/dx +
-//                 1/y [wd(v)/dz + d(vw)/dz + d(yvv)/dy - 2ww]}
-//           Nz = -0.5 {ud(w)/dx + vd(w)/dy +  d(uw)/dx +
-//                 1/y [wd(w)/dz + d(ww)/dz + d(yvw)/dy + 2wv]}.
+// in cylindrical coordinates
 //
-// Data are transformed to physical space for most of the operations,
-// but for gradients in the Fourier direction the data must be
-// transferred back to Fourier space.
+//           Nx = -0.5 {ud(u)/dx + vd(u)/dy +  d(uu)/dx + d(vu)/dy +
+//                 1/y [wd(u)/dz + d(uw)/dz + vu      ]}
+//           Ny = -0.5 {ud(v)/dx + vd(v)/dy +  d(uv)/dx + d(vv)/dy +
+//                 1/y [wd(v)/dz + d(vw)/dz + vv - 2ww]}
+//           Nz = -0.5 {ud(w)/dx + vd(w)/dy +  d(uw)/dx + d(vw)/dy +
+//                 1/y [wd(w)/dz + d(ww)/dz + 3wv     ]}
+//
+// Data are kept in physical space for most of the operations, but for
+// gradients in the Fourier direction the data must be transferred
+// back to Fourier space.
 //
 // If flag NL is set, then we compute the nonlinear terms and return
 // also the scaled (dynamic estimate) mixing length
@@ -232,12 +286,10 @@ void dynamic (Domain*        D ,
   const integer    nPP  = Geometry::nBlock();
   const integer    nPR  = Geometry::nProc();
   const integer    nTot = Geometry::nTotProc();
+  const integer    CYL  = Geometry::system() == Geometry::Cylindrical;
 
   Field*           meta = D -> u[0]; // -- A handle for Field operations.
   register integer i, j, ij;
-
-  if (Geometry::system() == Geometry::Cylindrical)
-    message ("dynamic", "no cylindrical coordinate version yet", ERROR);
 
   // -- Create names for local computations.
 
@@ -284,8 +336,40 @@ void dynamic (Domain*        D ,
       lowpass         (St[ij]);
       transform       (INVERSE, FULL, Sr[ij]);
       transform       (INVERSE, FULL, St[ij]);
-      if (NL) Veclib::vvtvp (nTot, Ua[j], 1, Sr[ij], 1, Nl[i], 1, Nl[i], 1);
-    }
+      if (NL) {
+	if (CYL) {
+	  switch (ij) { 
+	  case 3:
+	    Veclib::vmul    (nTot, Ua[1], 1, Sr[3], 1, Nl[0], 1);
+	    break;
+	  case 4:
+	    Veclib::vmul    (nTot, Ua[2], 1, Sr[4], 1, tmp, 1);
+	    Veclib::vvtvp   (nTot, Ua[0], 1, Ua[1], 1, tmp, 1, tmp, 1);
+	    meta -> divR    (nZP, tmp);
+	    Veclib::vadd    (nTot, Nl[0], 1, tmp, 1, Nl[0], 1);
+	    break;
+	  case 5:
+	    Veclib::vmul    (nTot, Ua[2], 1, Sr[5], 1,     Nl[1], 1);
+	    Veclib::vvtvp   (nTot, Ua[1], 1, Ua[1], 1,     Nl[1], 1, Nl[1], 1);
+	    Veclib::svvttvp (nTot, -2.0, Ua[2],1, Ua[2],1, Nl[1], 1, Nl[1], 1);
+	    meta -> divR    (nZP, Nl[1]);
+	    break;
+	  }
+	} else {
+	  Veclib::vvtvp (nTot, Ua[j], 1, Sr[ij], 1, Nl[i], 1, Nl[i], 1);
+	}
+      }
+      if (CYL) {
+	if (ij == 5) {
+	  Veclib::vsub (nTot, Sr[ij], 1, Ua[2], 1, Sr[ij], 1);
+	  Veclib::vsub (nTot, St[ij], 1, Ud[2], 1, St[ij], 1);
+	}  
+	if (ij > 3) {
+	  meta -> divR (nZP, Sr[ij]);
+	  meta -> divR (nZP, St[ij]);
+	}
+      }
+    }  
   
   for (i = 0; i < 3; i++)
     for (j = i + 1; j < 3; j++) { // -- Subdiagonal terms.
@@ -313,7 +397,21 @@ void dynamic (Domain*        D ,
     lowpass         (St[i]);
     transform       (INVERSE, FULL, St[i]);
     transform       (INVERSE, FULL, Sr[i]);
-    if (NL) Veclib::vvtvp (nTot, Ua[i], 1, Sr[i], 1, Nl[i], 1, Nl[i], 1);
+    if (NL) {
+      if (CYL && i == 2) {
+	Veclib::vmul    (nTot,      Ua[2], 1, Sr[2], 1, tmp, 1);
+	Veclib::svvttvp (nTot, 3.0, Ua[1], 1, Ua[2], 1, tmp, 1, tmp, 1);
+	meta -> divR    (nZP, tmp);
+	Veclib::vadd    (nTot,      tmp, 1, Nl[2], 1, Nl[2], 1);
+      } else
+	Veclib::vvtvp   (nTot, Ua[i], 1, Sr[i], 1, Nl[i], 1, Nl[i], 1);
+    }
+    if (CYL && i == 2) {
+      Veclib::vadd (nTot, Ua[1], 1, Sr[2], 1, Sr[2], 1);
+      Veclib::vadd (nTot, Ud[1], 1, St[2], 1, St[2], 1);
+      meta -> divR (nZP, Sr[2]);
+      meta -> divR (nZP, St[2]);
+    }
   }
 
   // -- Form strain rate magnitude estimates |S|, |S~|: sqrt (2 Sij Sji).
@@ -363,6 +461,7 @@ void dynamic (Domain*        D ,
     Veclib::copy   (nTot, tmp, 1, L, 1);
     if (NL) {
       realGradient (meta, tmp, i);
+      if (CYL && i == 2) meta -> divR (nZP, tmp);
       Veclib::vadd (nTot, tmp, 1, Nl[i], 1, Nl[i], 1);
     }
     transform      (FORWARD, FULL, L);
@@ -391,6 +490,7 @@ void dynamic (Domain*        D ,
       if (NL) {
 	realGradient  (meta, M,   i);
 	realGradient  (meta, tmp, j);
+	if (CYL && j == 2) meta -> divR (nZP, tmp);
 	Veclib::vadd  (nTot, M,   1, Nl[j], 1, Nl[j], 1);
 	Veclib::vadd  (nTot, tmp, 1, Nl[i], 1, Nl[i], 1);
       }
