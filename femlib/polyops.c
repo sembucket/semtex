@@ -75,17 +75,17 @@ void dermat_g(int K, double *zero, int I, double *x, double **D, double **DT)
     for (l=0; l<K; l++)
       if (l != k) a[k] *= zero[k] - zero[l];
 
-   for (j=0; i<I; i++)
+   for (j=0; j<I; j++)
      for (k=0; k<K; k++) {
        sum = 0.0;
-	 for (l=0; l<K; l++) {
-	   if (l != k) {
-	     prod = 1.0;
-	     for (i=0; i<K; i++)
-	       if (i != l) prod *= x[j] - zero[i];
-	     sum += prod;
-	   }
+       for (l=0; l<K; l++) {
+	 if (l != k) {
+	   prod = 1.0;
+	   for (i=0; i<K; i++)
+	     if (i != k && i != l) prod *= x[j] - zero[i];
+	   sum += prod;
 	 }
+       }
        D[j][k]  = DT[k][j] = sum / a[k];
      }
 
