@@ -14,6 +14,7 @@
 \usepackage{natbib}
 \usepackage{makeidx}
 \usepackage{setspace}
+\usepackage{fancyhdr}
 
 % -- The following for A4 paper.
 
@@ -52,6 +53,13 @@
 \hyphenation{Ar-thur Arth-ur}
 \hyphenation{Mon-thly Month-ly}
 \hyphenation{nor-thern north-ern}
+
+
+\fancypagestyle{plain}{%
+  \fancyhf{}%
+  \fancyfoot[C]{\sffamily \thepage}%
+  \renewcommand{\headrulewidth}{0pt}%
+  \renewcommand{\footrulewidth}{0pt}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \title{\textbf{\huge\textsf{Pioneering Irrigation \\ in Australia to 1920}}}
@@ -101,7 +109,12 @@
 \clearemptydoublepage
 
 \mainmatter
-\pagestyle{myheadings}
+%\pagestyle{myheadings}
+\pagestyle{fancy}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[LE,RO]{\sffamily \thepage}
+\fancyhead[LO]{\sffamily Pioneering Irrigation in Australia}
+\fancyfoot{}
 
 \include{ch02}
 \clearemptydoublepage
@@ -142,8 +155,9 @@
 \include{selectbib}
 \clearemptydoublepage
 
-\markboth{Index}%
-{Pioneering Irrigation in Australia}
+\fancyhead[RE]{\sffamily Index}
+%\markboth{Index}%
+%{Pioneering Irrigation in Australia}
 {\small
 \printindex
 }
