@@ -468,7 +468,6 @@ istream&  operator >> (istream& strm, Mesh& m)
 {
   char  routine[] = "Mesh::operator >>";
   char  s[StrMax],  err[StrMax];
-  int   verbose   = option ("VERBOSE");
 
   // -- Look for number of mesh vertices, then input table.
 
