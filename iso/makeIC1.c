@@ -40,8 +40,11 @@ int main (int    argc,
   FILE*    fp;
   char     filename[STR_MAX];
   int      c, i, argnr;
-  int      paramerr = FALSE, seed = -1;
+  int      paramerr = FALSE;
+  int      seed = -1;
   CVF      IC;
+  CF       work;
+  real**   head;
   complex* Wtab;
   Param*   Info = (Param*) calloc (1, sizeof (Param));
   real     Max_Vel;
@@ -100,16 +103,20 @@ int main (int    argc,
   K        = N / 2;
   FourKon3 = (4 * K) / 3;
 
-  cfield (&IC);
-  zeroVF (IC);
+  head = cfield (&IC);
+  cbox (0, N-1, 0, N-1, 0, K-1, &work);
 
   Wtab = cvector (0, K - 1);
   preFFT (Wtab, K);  
 
   /* -- Generate divegence-free initial condition Fourier coefficients. */
 
-  randomise (seed, IC);
+  randomise (IC, &seed, work);
+  printf ("Check energy: k=0.5<UiUi>: %g\n", energyF (IC));
   ispectrum (IC, 4.0, 1.0);
+  printf ("Check energy: k=0.5<UiUi>: %g\n", energyF (IC));
+  normaliseVF (IC);
+  printf ("Check energy: k=0.5<UiUi>: %g\n", energyF (IC));
 
   /* -- Output to file. */
 
@@ -117,8 +124,6 @@ int main (int    argc,
   writeParam  (fp, Info);
   writeCVF    (fp, IC);
   fclose      (fp);
-
-  printf ("Check energy: k=0.5<UiUi>: %g\n", energyF (IC));
 
   return EXIT_SUCCESS;
 }
