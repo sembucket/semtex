@@ -40,7 +40,7 @@ const  real C2 = 0.3;	// -- Length weight factor.
 const  real C3 = 0.2;	// -- Error  weight factor.
 extern real refcoeff;	// -- Refinement coefficient per Ref. [1].
 
-const int  InsMax = 128;	// -- Max Nodes to insert on splitting line.
+const int InsMax = 512;	// -- Max Nodes to insert on splitting line.
 
 
 class Point
