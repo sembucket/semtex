@@ -30,11 +30,11 @@ AuxField::AuxField (vector<Element*>& Elts,
 // Allocate field storage area and integer size records.
 // ---------------------------------------------------------------------------
 {
-  char         routine[] = "AuxField::AuxField";
-  register int k;
-  const int    nZ = Geometry::nZ();
-  const int    nP = Geometry::planeSize();
-  const int    nT = Geometry::nTotal();
+  const char       routine[] = "AuxField::AuxField";
+  register integer k;
+  const integer    nZ = Geometry::nZ();
+  const integer    nP = Geometry::planeSize();
+  const integer    nT = Geometry::nTotal();
 
   if (Geometry::nElmt() != Elmt.getSize())
     message (routine, "conflicting number of elements in input data", ERROR);
@@ -143,9 +143,9 @@ AuxField& AuxField::operator = (const char* function)
 // ---------------------------------------------------------------------------
 {
   register Element* E;
-  register int      i, k, offset = 0;
-  const int         nE = Geometry::nElmt();
-  const int         nZ = Geometry::nZ();
+  register integer  i, k, offset = 0;
+  const integer     nE = Geometry::nElmt();
+  const integer     nZ = Geometry::nZ();
   const real        dz = Femlib::value ("TWOPI / BETA") / nZ;
   real              z;
 
@@ -175,15 +175,15 @@ AuxField& AuxField::product (const AuxField& a,
     Veclib::vmul (Geometry::nTotal(), a.data, 1, b.data, 1, data, 1);
 
   else {
-    register int i, k;
-    const int    nZ    = Geometry::nZ();
-    const int    nP    = Geometry::nPlane();
-    const int    nm    = nZ - 1;
-    const int    nz32  = 3 * (nZ >> 1);
-    const int    nzero = nz32 - nm;
+    register integer i, k;
+    const integer    nZ    = Geometry::nZ();
+    const integer    nP    = Geometry::nPlane();
+    const integer    nm    = nZ - 1;
+    const integer    nz32  = 3 * (nZ >> 1);
+    const integer    nzero = nz32 - nm;
 
-    vector<real> work (4 * nz32 + 15);
-    real         *at, *bt, *Wtab;
+    vector<real>     work (4 * nz32 + 15);
+    real             *at, *bt, *Wtab;
 
     at   = work();
     bt   = at + nz32;
@@ -238,15 +238,15 @@ AuxField& AuxField::addprod (const AuxField& a,
     Veclib::vvtvp (Geometry::nTotal(), a.data, 1, b.data, 1, data, 1, data, 1);
 
   else {
-    register int i, k;
-    const int    nZ    = Geometry::nZ();
-    const int    nP    = Geometry::nPlane();
-    const int    nm    = nZ - 1;
-    const int    nz32  = 3 * (nZ >> 1);
-    const int    nzero = nz32 - nm;
+    register integer i, k;
+    const integer    nZ    = Geometry::nZ();
+    const integer    nP    = Geometry::nPlane();
+    const integer    nm    = nZ - 1;
+    const integer    nz32  = 3 * (nZ >> 1);
+    const integer    nzero = nz32 - nm;
 
-    vector<real> work (4 * nz32 + 15);
-    real         *at, *bt, *Wtab;
+    vector<real>     work (4 * nz32 + 15);
+    real             *at, *bt, *Wtab;
 
     at   = work();
     bt   = at + nz32;
@@ -293,12 +293,12 @@ AuxField& AuxField::innerProduct (const vector <AuxField*>& a,
                                   const vector <AuxField*>& b)
 // ---------------------------------------------------------------------------
 // Set this AuxField's value as the inner product of a & b
-// in PHYSICAL space - don't worry about dealiasing
+// in PHYSICAL space --- don't worry about dealiasing.
 // ---------------------------------------------------------------------------
 {
-  int       i;
-  const int ntot = Geometry::nTotal();
-  const int ndim = Geometry::nDim();
+  integer       i;
+  const integer ntot = Geometry::nTotal();
+  const integer ndim = Geometry::nDim();
   
   Veclib::zero (ntot, data, 1);
 
@@ -307,6 +307,43 @@ AuxField& AuxField::innerProduct (const vector <AuxField*>& a,
 
   return *this;
 }
+
+
+AuxField& AuxField::times (const AuxField& a,
+			   const AuxField& b)
+// ---------------------------------------------------------------------------
+// Set this AuxField equal to the product of a & b (in physical space).
+// ---------------------------------------------------------------------------
+{
+  const int ntot = Geometry::nTotal();
+
+  Veclib::vmul (ntot, a.data, 1, b.data, 1, data, 1);
+
+  return *this;
+}
+
+AuxField& AuxField::timesPlus (const AuxField& a,
+			       const AuxField& b)
+// ---------------------------------------------------------------------------
+// Add the product of a & b to this AuxField (in physical space).
+// ---------------------------------------------------------------------------
+{
+  Veclib::vvtvp (Geometry::nTotal(), a.data, 1, b.data, 1, data, 1, data, 1);
+
+  return *this;
+}
+
+AuxField& AuxField::timesMinus (const AuxField& a,
+			        const AuxField& b)
+// ---------------------------------------------------------------------------
+// Subtract the product of a & b from this AuxField (in physical space).
+// ---------------------------------------------------------------------------
+{
+  Veclib::vvvtm (Geometry::nTotal(), data, 1, a.data, 1, b.data, 1, data, 1);
+
+  return *this;
+}
+
 
 
 AuxField& AuxField::axpy (const real      alpha,
@@ -332,20 +369,19 @@ AuxField& AuxField::reverse ()
 }
 
 
-AuxField& AuxField::gradient (const int dir)
+AuxField& AuxField::gradient (const integer dir)
 // ---------------------------------------------------------------------------
 // Operate on AuxField to produce the nominated index of the gradient.
 // dir == 0 ==> gradient in first direction, 1 ==> 2nd, 2 ==> 3rd.
 // AuxField is presumed to have been Fourier transformed in 3rd direction.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "AuxField::gradient";
-
+  const char        routine[] = "AuxField::gradient";
   register Element* E;
-  register int      i, k, offset;
-  const int         nE = Geometry::nElmt();
-  const int         nZ = Geometry::nZ();
-  const int         nP = Geometry::planeSize();
+  register integer  i, k, offset;
+  const integer     nE = Geometry::nElmt();
+  const integer     nZ = Geometry::nZ();
+  const integer     nP = Geometry::planeSize();
 
   switch (dir) {
 
@@ -370,11 +406,11 @@ AuxField& AuxField::gradient (const int dir)
     break;
 
   case 2: {
-    int          Re, Im;
-    const int    nmodes = Geometry::nMode();
-    const real   beta   = Femlib::value ("BETA");
-    vector<real> work (nP);
-    real*        tmp = work();
+    integer       Re, Im;
+    const integer nmodes = Geometry::nMode();
+    const real    beta   = Femlib::value ("BETA");
+    vector<real>  work (nP);
+    real*         tmp = work();
 
     Veclib::zero (2 * nP, data, 1);
     for (k = 1; k < nmodes; k++) {
@@ -395,21 +431,20 @@ AuxField& AuxField::gradient (const int dir)
 }
 
 
-void AuxField::gradient (const int nZ ,
-			 real*     src,
-			 const int dir) const
+void AuxField::gradient (const integer nZ ,
+			 real*         src,
+			 const integer dir) const
 // ---------------------------------------------------------------------------
 // Use Field structure to perform gradient operations on data area src,
 // according to nominated direction.  Input value nZ is the number of planes
 // to operate on.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "AuxField::gradient";
-
+  const char        routine[] = "AuxField::gradient";
   register Element* E;
-  register int      i, k, offset;
-  const int         nE = Geometry::nElmt();
-  const int         nP = Geometry::planeSize();
+  register integer  i, k, offset;
+  const integer     nE = Geometry::nElmt();
+  const integer     nP = Geometry::planeSize();
 
   switch (dir) {
 
@@ -434,10 +469,10 @@ void AuxField::gradient (const int nZ ,
     break;
 
   case 2: {
-    const int    nmodes = Geometry::nMode();
-    const real   beta   = Femlib::value ("BETA");
-    vector<real> work (nP);
-    real         *Re, *Im, *tmp = work();
+    const integer nmodes = Geometry::nMode();
+    const real    beta   = Femlib::value ("BETA");
+    vector<real>  work (nP);
+    real          *Re, *Im, *tmp = work();
 
     Veclib::zero (2 * nP, src, 1);
     for (k = 1; k < nmodes; k++) {
@@ -452,6 +487,7 @@ void AuxField::gradient (const int nZ ,
   default:
     message (routine, "nominated direction out of range [0--2]", ERROR);
     break;
+
   }
 }
 
@@ -468,28 +504,28 @@ AuxField& AuxField::errors (const Mesh& mesh    ,
 // Warning: these routines only work in 2D at the moment.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "AuxField::errors";
+  const char routine[] = "AuxField::errors";
 
   if (!function) {
     message (routine, "empty function string", WARNING);
     return *this;
   }
   
-  const int NQUAD = 15;
+  const integer NQUAD = 15;
 
-  Element*     E;
-  Element*     P;
-  real         area = 0.0;
-  real         Li   = 0.0;
-  real         L2   = 0.0;
-  real         H1   = 0.0;
-  vector<real> sol;
-  vector<real> v;
-  vector<real> tmp;
-  const real   *z, **IN, **IT;
-  real         *u;
-  int          k, np, npp, ntot;
-  const int    nE = Geometry::nElmt();
+  Element*      E;
+  Element*      P;
+  real          area = 0.0;
+  real          Li   = 0.0;
+  real          L2   = 0.0;
+  real          H1   = 0.0;
+  vector<real>  sol;
+  vector<real>  v;
+  vector<real>  tmp;
+  const real    *z, **IN, **IT;
+  real          *u;
+  integer       k, np, npp, ntot;
+  const integer nE = Geometry::nElmt();
 
   Femlib::mesh (GLL, GLL, NQUAD, NQUAD, &z, 0, 0, 0, 0);
 
@@ -546,20 +582,20 @@ real AuxField::norm_inf () const
 }
 
 
-real AuxField::mode_L2 (const int mode) const
+real AuxField::mode_L2 (const integer mode) const
 // ---------------------------------------------------------------------------
 // Return energy norm per unit area for indicated mode = 1/(2*A) \int u.u dA.
 // Mode numbers run 0 -- n_z/2 - 1.
 // ---------------------------------------------------------------------------
 {
-  char         routine[] = "AuxField::mode_L2";
-  real         area = 0.0, Ek = 0.0;
-  register int j, offset;
-  const int    nE = Geometry::nElmt();
-  const int    nZ = Geometry::nZ();
-  const int    kr = 2 * mode;
-  const int    ki = 2 * mode + 1;
-  Element*     E;
+  const char        routine[] = "AuxField::mode_L2";
+  real              area = 0.0, Ek = 0.0;
+  register integer  j, offset;
+  const integer     nE = Geometry::nElmt();
+  const integer     nZ = Geometry::nZ();
+  const integer     kr = 2 * mode;
+  const integer     ki = 2 * mode + 1;
+  register Element* E;
   
   if (mode < 0 ) message (routine, "negative mode number",        ERROR);
   if (ki   > nZ) message (routine, "mode number exceeds maximum", ERROR);
@@ -583,9 +619,9 @@ ostream& operator << (ostream&  strm,
 // Binary write of F's data area.
 // ---------------------------------------------------------------------------
 {
-  register int i;
-  const int    nZ = Geometry::nZ();
-  const int    nP = Geometry::nPlane();
+  register integer i;
+  const integer    nZ = Geometry::nZ();
+  const integer    nP = Geometry::nPlane();
   
   for (i = 0; i < nZ; i++) strm.write ((char*) F.plane[i], nP * sizeof (real));
 
@@ -599,10 +635,10 @@ istream& operator >> (istream&  strm,
 // Binary read of F's data area.  Zero any blank storage areas.
 // ---------------------------------------------------------------------------
 {
-  register int i;
-  const int    nZ = Geometry::nZ();
-  const int    nP = Geometry::nPlane();
-  const int    NP = Geometry::planeSize();
+  register integer i;
+  const integer    nZ = Geometry::nZ();
+  const integer    nP = Geometry::nPlane();
+  const integer    NP = Geometry::planeSize();
   
   for (i = 0; i < nZ; i++) strm.read ((char*) F.plane[i], nP * sizeof (real));
 
@@ -618,8 +654,8 @@ AuxField& AuxField::zeroNyquist ()
 // but never evolves.
 // ---------------------------------------------------------------------------
 {
-  const int nZ = Geometry::nZ();
-  const int nP = Geometry::planeSize();
+  const integer nZ = Geometry::nZ();
+  const integer nP = Geometry::planeSize();
 
   if (nZ > 1) Veclib::zero (nP, plane[1], 1);
 
@@ -640,7 +676,7 @@ void AuxField::describe (char* s)  const
 }
 
 
-AuxField& AuxField::transform (const int sign)
+AuxField& AuxField::transform (const integer sign)
 // ---------------------------------------------------------------------------
 // Discrete Fourier transform in homogeneous direction.  Number of points
 // in that direction must be even, but is otherwise unrestricted. 
@@ -657,8 +693,8 @@ AuxField& AuxField::transform (const int sign)
 }
 
 
-AuxField& AuxField::transform32 (real*     phys,
-				 const int sign)
+AuxField& AuxField::transform32 (real*         phys,
+				 const integer sign)
 // ---------------------------------------------------------------------------
 // Discrete Fourier transform in homogeneous direction, extended for
 // dealiasing.  Input pointer phys points to data in physical space, 
@@ -667,11 +703,11 @@ AuxField& AuxField::transform32 (real*     phys,
 // vice versa.
 // ---------------------------------------------------------------------------
 {
-  const int nZ     = Geometry::nZ();
-  const int nP     = Geometry::planeSize();
-  const int nTot   = nZ * nP;
-  const int nZ32   = (3 * nZ) >> 1;
-  const int nTot32 = nZ32 * nP;
+  const integer nZ     = Geometry::nZ();
+  const integer nP     = Geometry::planeSize();
+  const integer nTot   = nZ * nP;
+  const integer nZ32   = (3 * nZ) >> 1;
+  const integer nTot32 = nZ32 * nP;
 
   if (nZ <= 2) {
     if (sign == +1)
@@ -694,14 +730,14 @@ AuxField& AuxField::transform32 (real*     phys,
 }
 
 
-AuxField& AuxField::addToPlane (const int  k    ,
-				const real alpha)
+AuxField& AuxField::addToPlane (const integer k    ,
+				const real    alpha)
 // ---------------------------------------------------------------------------
 // Add in a constant to the values on nominated plane (if it exists),
 // starting at plane zero.
 // ---------------------------------------------------------------------------
 {
-  char routine[] = "AuxField::addToPlane";
+  const char routine[] = "AuxField::addToPlane";
 
   if (k < 0 || k >= Geometry::nZ())
     message (routine, "nominated plane doesn't exist", ERROR);
@@ -718,9 +754,9 @@ void AuxField::swapData (AuxField* x,
 // Swap data areas of two fields.
 // ---------------------------------------------------------------------------
 {
-  register int   k;
-  const int      nZ = Geometry::nZ();
-  register real* tmp = x -> data;
+  register integer k;
+  const integer    nZ = Geometry::nZ();
+  register real*   tmp = x -> data;
 
   x -> data = y -> data;
   y -> data = tmp;
@@ -733,9 +769,9 @@ void AuxField::swapData (AuxField* x,
 }
 
 
-void AuxField::couple (AuxField* v  ,
-		       AuxField* w  ,
-		       const int dir)
+void AuxField::couple (AuxField*     v  ,
+		       AuxField*     w  ,
+		       const integer dir)
 // ---------------------------------------------------------------------------
 // Couples/uncouple field data for the radial and azimuthal
 // velocity fields in cylindrical coordinates, depending on indicated
@@ -757,13 +793,13 @@ void AuxField::couple (AuxField* v  ,
 {
   if (Geometry::nDim() < 3) return;
 
-  char         routine[] = "Field::couple";
-  register int k, Re, Im;
-  const int    nZ    = Geometry::nZ(),
-               nP    = Geometry::planeSize(),
-               nMode = nZ >> 1;
-  vector<real> work (nP);
-  real         *Vr, *Vi, *Wr, *Wi, *tp = work();
+  const char       routine[] = "Field::couple";
+  register integer k, Re, Im;
+  const integer    nZ    = Geometry::nZ(),
+                   nP    = Geometry::planeSize(),
+                   nMode = nZ >> 1;
+  vector<real>     work (nP);
+  real             *Vr, *Vi, *Wr, *Wi, *tp = work();
   
   if (dir == 1) {
 
@@ -816,10 +852,10 @@ AuxField& AuxField::divR ()
 // ---------------------------------------------------------------------------
 {
   register Element* E;
-  register int      i, k, offset = 0;
+  register integer  i, k, offset = 0;
   register real*    p;
-  const int         nE = Geometry::nElmt();
-  const int         nZ = Geometry::nZ();
+  const integer     nE = Geometry::nElmt();
+  const integer     nZ = Geometry::nZ();
 
   for (k = 0; k < nZ; k++) {
     p = plane[k];
@@ -834,16 +870,16 @@ AuxField& AuxField::divR ()
 }
 
 
-void AuxField::divR (const int nZ ,
-		     real*     src) const
+void AuxField::divR (const integer nZ ,
+		     real*         src) const
 // ---------------------------------------------------------------------------
 // Divide src by radius (i.e. y in cylindrical coords).
 // ---------------------------------------------------------------------------
 {
   register Element* E;
-  register int      i, k, offset = 0;
-  const int         nE = Geometry::nElmt();
-  const int         nP = Geometry::planeSize();
+  register integer  i, k, offset = 0;
+  const integer     nE = Geometry::nElmt();
+  const integer     nP = Geometry::planeSize();
 
   for (k = 0; k < nZ; k++) {
     for (i = 0; i < nE; i++) {
@@ -861,10 +897,10 @@ AuxField& AuxField::mulR ()
 // ---------------------------------------------------------------------------
 {
   register Element* E;
-  register int      i, k, offset = 0;
+  register integer  i, k, offset = 0;
   register real*    p;
-  const int         nE = Geometry::nElmt();
-  const int         nZ = Geometry::nZ();
+  const integer     nE = Geometry::nElmt();
+  const integer     nZ = Geometry::nZ();
 
   for (k = 0; k < nZ; k++) {
     p = plane[k];
@@ -879,16 +915,16 @@ AuxField& AuxField::mulR ()
 }
 
 
-void AuxField::mulR (const int nZ ,
-		     real*     src) const
+void AuxField::mulR (const integer nZ ,
+		     real*         src) const
 // ---------------------------------------------------------------------------
 // Multiply data values by radius (i.e. y in cylindrical coords).
 // ---------------------------------------------------------------------------
 {
   register Element* E;
-  register int      i, k, offset = 0;
-  const int         nE = Geometry::nElmt();
-  const int         nP = Geometry::planeSize();
+  register integer  i, k, offset = 0;
+  const integer     nE = Geometry::nElmt();
+  const integer     nP = Geometry::planeSize();
 
   for (k = 0; k < nZ; k++) {
     for (i = 0; i < nE; i++) {
@@ -903,12 +939,12 @@ void AuxField::mulR (const int nZ ,
 real AuxField::probe (const Element* E,
 		      const real     r,
 		      const real     s,
-		      const int      k) const
+		      const integer  k) const
 // ---------------------------------------------------------------------------
 // Return the value of data on plane k, in Element E, location r, s.
 // ---------------------------------------------------------------------------
 {
-  const int offset = E -> dOff();
+  const integer offset = E -> dOff();
   
   return E -> probe (r, s, plane[k] + offset);
 }
@@ -924,15 +960,15 @@ real AuxField::probe (const Element* E,
 // NB: interpolation assumes that AuxField is Fourier transformed.
 // ---------------------------------------------------------------------------
 {
-  register int   k, Re, Im;
-  register real  value, phase;
-  const int      NZ     = Geometry::nZ();
-  const int      NZH    = NZ >> 1;
-  const int      NHM    = NZH - 1;
-  const int      offset = E -> dOff();
-  const real     betaZ  = z * Femlib::value ("BETA");
-  vector<real>   work (NZ);
-  register real* fbuf = work();
+  register integer k, Re, Im;
+  register real    value, phase;
+  const integer    NZ     = Geometry::nZ();
+  const integer    NZH    = NZ >> 1;
+  const integer    NHM    = NZH - 1;
+  const integer    offset = E -> dOff();
+  const real       betaZ  = z * Femlib::value ("BETA");
+  vector<real>     work (NZ);
+  register real*   fbuf = work();
 
   if (NZ < 3)
     value = E -> probe (r, s, plane[0] + offset);
@@ -964,11 +1000,11 @@ AuxField& AuxField::Smagorinsky ()
 //                      \nu_T = (Cs delta)^2 S.
 // ---------------------------------------------------------------------------
 {
-  register int      k, offset;
+  register integer  k, offset;
   register Element* E;
-  const int         nZ = Geometry::nZ();
-  const int         nE = Geometry::nElmt();
-  const int         nP = Geometry::nPlane();
+  const integer     nZ = Geometry::nZ();
+  const integer     nE = Geometry::nElmt();
+  const integer     nP = Geometry::nPlane();
   const real        Cs = Femlib::value ("C_SMAG");
   vector<real>      work (nP);
 

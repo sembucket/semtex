@@ -9,21 +9,22 @@ RCSid[] = "$Id$";
 
 #include <stdio.h>
 
+#include <femdef.h>
 #include <Utility.h>
 #include <Geometry.h>
 #include <Femlib.h>
 
 
-int                Geometry::np    = 0;
-int                Geometry::nz    = 0;
-int                Geometry::nel   = 0;
-int                Geometry::psize = 0;
+integer            Geometry::np    = 0;
+integer            Geometry::nz    = 0;
+integer            Geometry::nel   = 0;
+integer            Geometry::psize = 0;
 Geometry::CoordSys Geometry::csys  = Geometry::Cartesian;
 
 
-void Geometry::set (const int      NP,
-		    const int      NZ,
-		    const int      NE,
+void Geometry::set (const integer  NP,
+		    const integer  NZ,
+		    const integer  NE,
 		    const CoordSys CS)
 // ---------------------------------------------------------------------------
 // Load values of static internal variables.

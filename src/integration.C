@@ -12,11 +12,11 @@ RCSid[] = "$Id$";
 #include <Sem.h>
 
 
-const int Integration::OrderMax = 4;
+const integer Integration::OrderMax = 4;
 
 
-void Integration::AdamsBashforth  (const int n    ,
-				   real*     coeff)
+void Integration::AdamsBashforth  (const integer n    ,
+				   real*         coeff)
 // ---------------------------------------------------------------------------
 // Adams--Bashforth (predictor) coefficients of order n.  Gear, Table 7.3.
 // ---------------------------------------------------------------------------
@@ -43,8 +43,8 @@ void Integration::AdamsBashforth  (const int n    ,
 }
 
 
-void Integration::AdamsMoulton (const int n    ,
-				real*     coeff)
+void Integration::AdamsMoulton (const integer n    ,
+				real*         coeff)
 // ---------------------------------------------------------------------------
 // Adams--Moulton (corrector) coefficients of order n.  Gear, Table 7.5.
 // ---------------------------------------------------------------------------
@@ -77,8 +77,8 @@ void Integration::AdamsMoulton (const int n    ,
 }
 
 
-void Integration::StifflyStable (const int n    ,
-				 real*     coeff)
+void Integration::StifflyStable (const integer n    ,
+				 real*         coeff)
 // ---------------------------------------------------------------------------
 // "Stiffly-stable" backwards differentiation coefficients of order n.
 // NB: vector coeff must be of length n + 1.  First coefficient in each
@@ -110,8 +110,8 @@ void Integration::StifflyStable (const int n    ,
 }
 
 
-void Integration::Extrapolation  (const int n    ,
-				  real*     coeff)
+void Integration::Extrapolation  (const integer n    ,
+				  real*         coeff)
 // ---------------------------------------------------------------------------
 // Coefficients of order n for explicit extrapolation to end of timestep.
 // ---------------------------------------------------------------------------
