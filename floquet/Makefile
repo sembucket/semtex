@@ -10,7 +10,7 @@ SEM   = ../semtex
 VPATH = $(SEM)/src
 
 ifdef FLIP
-  KPROG = flipper
+  KPROG = arnoldi-RT
   DEFINES += -DFLIP
 else
   KPROG = arnoldi
