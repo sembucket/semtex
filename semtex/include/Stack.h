@@ -11,20 +11,35 @@
 
 #include <iostream.h>
 
+template<class T> class StackNode {
+public:
+  StackNode (T x) : next (0), datum (x) {}
+  StackNode<T>* next;
+  T     datum;
+};
 
-template<class T>
-class Stack {
+template<class T> class Stack {
+private:
+  StackNode<T>* top;
+
+  Stack(const Stack<T>&);                // Prohibit, since not implemented.
+  Stack<T>& operator=(const Stack<T>&);  // Prohibit, since not implemented.
+
 public:
   int   isEmpty () { return top == 0; }
 
   Stack  () : top (0) { }
-  ~Stack (){ while (!isEmpty()) {Node* p = top -> next; delete top; top = p;} }
+  ~Stack (){ while (!isEmpty()) {
+    StackNode<T>* p = top->next;
+    delete top;
+    top = p;} 
+  }
 
   void  push    (T x) {
     if (isEmpty())
-      top = new Node (x);
+      top = new StackNode<T> (x);
     else {
-      Node *p = new Node (x);
+      StackNode<T>* p = new StackNode<T> (x);
       p -> next = top;
       top = p;
     }
@@ -34,26 +49,14 @@ public:
     if (isEmpty()) {
       return 0;
     } else {
-      Node *p     = top;
-      T     value = top -> datum;
+      StackNode<T>* p     = top;
+      T             value = top -> datum;
       top = top -> next;
       delete p;
       return value;
     }
   }
 
-private:
-  class Node {
-  public:
-    Node (T x) : next (0), datum (x) {}
-    Node* next;
-    T     datum;
-  };
-
-  Node* top;
-
-  Stack(const Stack<T>&);                // Prohibit, since not implemented.
-  Stack<T>& operator=(const Stack<T>&);  // Prohibit, since not implemented.
 };
 
 #endif
