@@ -25,7 +25,7 @@ void Helmholtz (Domain* D, char* forcing, const real& lambda2)
 
   D -> u[0] -> evaluateBoundaries (0);
   
-  if (option ("ITERATIVE")) {
+  if (Femlib::option ("ITERATIVE")) {
     *D -> u[0] = 0.0;
      D -> u[0] -> solve (Force, lambda2);
     
