@@ -35,9 +35,9 @@ void initGraphics (const char* device)
   vector<float> pp (1);
   pp[0] = 41.0;
 
-  if (sm_device( (char*) device))
+  if (sm_device ((char*) device))
     message (routine, "unable to initialize plotting device", ERROR);
- 
+
   sm_graphics ();
   sm_location (3000, 31000, 3000, 31000);
   sm_defvar   ("TeX_strings", "1");
@@ -45,7 +45,7 @@ void initGraphics (const char* device)
   sm_ptype    (pp(), 1);
   sm_lweight  (1);
   sm_erase    ();
-  sm_window   (1, 1, 1, 1);
+  sm_window   (1, 1, 1, 1, 1, 1);
 #endif
 }
 
@@ -79,37 +79,8 @@ void eraseGraphics ()
 
 void drawBox ()
 // ---------------------------------------------------------------------------
-// Underloaded version of drawBox.  Look for limits in file "limits.sm",
-// otherwise use [-10, -10], [10, 10].
-// ---------------------------------------------------------------------------
-{
-#ifdef GRAPHICS
-  Point Pmax, Pmin, Centre, Range;
-  float xmin, xmax, ymin, ymax;
-
-  ifstream file ("limits.sm");
-
-  if (!file) {
-    xmin = -10.0;
-    xmax =  10.0;
-    ymin = -10.0;
-    ymax =  10.0;
-  } else
-    file >> xmin >> xmax >> ymin >> ymax;
-
-  sm_limits (xmin, xmax, ymin, ymax);
-  sm_box    (1, 2, 0, 0);
-  sm_expand (1.6);
-#endif
-}
-
-
-void drawBox (const Loop* L)
-// ---------------------------------------------------------------------------
-// L is the initial Loop.  Use it to set up window.
-//
 // If the file "limits.sm" can be found, open it and attempt to read
-// xmin xmax ymin ymax from it.  Otherwise, determine them from L.
+// xmin xmax ymin ymax from it.  Otherwise, determine them from Node list.
 // ---------------------------------------------------------------------------
 {
 #ifdef GRAPHICS
@@ -121,7 +92,7 @@ void drawBox (const Loop* L)
 
   if (!file) {
 
-    L -> limits (Pmin, Pmax);
+    Global::limits (Pmin, Pmax);
 
     Centre.x = 0.5 * (Pmin.x + Pmax.x);
     Centre.y = 0.5 * (Pmin.y + Pmax.y);
@@ -149,6 +120,7 @@ void drawBox (const Loop* L)
   sm_limits (xmin, xmax, ymin, ymax);
   sm_box    (1, 2, 0, 0);
   sm_expand (1.6);
+  sm_gflush ();
 #endif
 }
 
@@ -188,24 +160,54 @@ void drawLoop (const Loop* L      ,
 }
 
 
-void hardCopy (const Loop* L)
+void drawMesh (List<Quad*>& mesh)
 // ---------------------------------------------------------------------------
-// Draw L in PostScript file.
+// Draw the mesh (with replicated mating edges --- the easy option!).
 // ---------------------------------------------------------------------------
 {
 #ifdef GRAPHICS
-  sm_alpha ();
-  initGraphics ("postfile mesh.eps");
-  drawBox (L);
-  L -> drawQuad (1);
+  int                 i;
+  float               x[4], y[4];
+  ListIterator<Quad*> q (mesh);
+  Quad*               Q;
 
-  sm_hardcopy ();
-  sm_alpha ();
+  for (; q.more(); q.next()) {
+    Q = q.current();
+    for (i = 0; i < 4; i++) {
+      x[i] = Q -> vertex[i] -> pos().x;
+      y[i] = Q -> vertex[i] -> pos().y;
+    }
+
+    sm_conn (x, y, 4);
+    sm_draw (x[0], y[0]);
+  }
+
+  sm_gflush ();
 #endif
 }
 
 
-void pause ()
+void hardCopy (List<Quad*>& mesh)
+// ---------------------------------------------------------------------------
+// Draw m in PostScript file.
+// ---------------------------------------------------------------------------
+{
+#ifdef GRAPHICS
+  sm_gflush    ();
+  sm_hardcopy  ();
+  sm_alpha     ();
+
+  initGraphics ("postfile mesh.eps");
+  drawBox      ();
+  drawMesh     (mesh);
+
+  sm_hardcopy  ();
+  sm_alpha     ();
+#endif
+}
+
+
+void qpause ()
 // ---------------------------------------------------------------------------
 // Wait for input.
 // ---------------------------------------------------------------------------
