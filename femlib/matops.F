@@ -65,6 +65,12 @@ C     -- NB restricted to 512 elements.
            ENDDO
         ENDDO
       ENDDO
+#elif defined (__sgi)
+      CALL DGEMM ('N','N',NP,NP*NEL,NP,1.0D0,DT,NP,X,NP,1.0D0,UR,NP)
+      DO I = 1, NEL
+         CALL DGEMM ('N','N',NP,NP,NP,1.0D0,Y(1,1,I),
+     +        NP,DV,NP,1.0D0,US(1,1,I),NP)
+      ENDDO
 #else
       DO I = 1, NEL
          DO J = 1, NP
@@ -145,6 +151,12 @@ C     -- NB restricted to 512 elements.
               ENDDO
            ENDDO
         ENDDO
+      ENDDO
+#elif defined (__sgi)
+      CALL SGEMM ('N','N',NP,NP*NEL,NP,1.0D0,DT,NP,X,NP,1.0D0,UR,NP)
+      DO I = 1, NEL
+         CALL SGEMM ('N','N',NP,NP,NP,1.0D0,Y(1,1,I),
+     +        NP,DV,NP,1.0D0,US(1,1,I),NP)
       ENDDO
 #else
       DO I = 1, NEL
