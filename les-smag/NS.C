@@ -214,13 +214,13 @@ static void nonLinear (Domain*       D ,
 // force per unit mass.
 //
 // On entry, D contains the old velocity (and pressure) fields, the
-// lowest levels of Us & Uf contain the components of the old strain-rate
-// tensor and vV contains the spatially-varying viscosity.  On exit, the
-// velocity field storage areas of D are free, the zeroth level of Us contains
-// the old velocities and the zeroth level of Uf contains the most recent
-// explcit forcing terms.
-// Velocity field data areas of D and first level of Us are swapped, then
-// the next stage of nonlinear forcing terms N(u) - a are computed from
+// lowest levels of Us & Uf contain the components of the old
+// strain-rate tensor and vV contains the spatially-varying viscosity.
+// On exit, the velocity field storage areas of D are free, the zeroth
+// level of Us contains the old velocities and the zeroth level of Uf
+// contains the most recent explicit forcing terms.  Velocity field
+// data areas of D and first level of Us are swapped, then the next
+// stage of nonlinear forcing terms N(u) - a are computed from
 // velocity fields and left in the first level of Uf.
 //
 // Nonlinear terms N(u) are computed in skew-symmetric form (Zang 1991)
