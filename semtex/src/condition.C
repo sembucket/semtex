@@ -20,7 +20,6 @@
 // for the pressure Poisson equation: they are derived from the
 // momentum equations and computed using an extrapolative process
 // described in KIO91.
-//
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -28,15 +27,15 @@ static char RCS[] = "$Id$";
 #include "sem.h"
 
 
-void Essential::evaluate (const integer  np  ,
-			  const integer  id  ,
-			  const integer  nz  ,
+void Essential::evaluate (const int_t    np  ,
+			  const int_t    id  ,
+			  const int_t    nz  ,
 			  const Element* E   ,
-			  const integer  side,
-			  const integer  step,
-			  const real*    nx  ,
-			  const real*    ny  ,
-			  real*          tgt ) const
+			  const int_t    side,
+			  const int_t    step,
+			  const real_t*  nx  ,
+			  const real_t*  ny  ,
+			  real_t*        tgt ) const
 // ---------------------------------------------------------------------------
 // Load external value storage area tgt with installed constant.
 // ---------------------------------------------------------------------------
@@ -45,16 +44,16 @@ void Essential::evaluate (const integer  np  ,
 }
 
 
-void Essential::set (const integer  side,
-		     const integer* bmap,
-		     const real*    src ,
-		     real*          tgt ) const
+void Essential::set (const int_t   side,
+		     const int_t*  bmap,
+		     const real_t* src ,
+		     real_t*       tgt ) const
 // ---------------------------------------------------------------------------
 // Scatter external value storage area src into globally-numbered tgt. 
 // ---------------------------------------------------------------------------
 {
-  const integer  nm    = Geometry::nP() - 1;
-  const integer* start = bmap;
+  const int_t  nm    = Geometry::nP() - 1;
+  const int_t* start = bmap;
   
   switch (side) {
   case 1: start += nm;           break;
@@ -89,15 +88,15 @@ EssentialFunction::EssentialFunction (const char* f)
 }
 
 
-void EssentialFunction:: evaluate (const integer  np  ,
-				   const integer  id  ,
-				   const integer  nz  ,
+void EssentialFunction:: evaluate (const int_t    np  ,
+				   const int_t    id  ,
+				   const int_t    nz  ,
 				   const Element* E   ,
-				   const integer  side,
-				   const integer  step,
-				   const real*    nx  ,
-				   const real*    ny  ,
-				   real*          tgt ) const
+				   const int_t    side,
+				   const int_t    step,
+				   const real_t*  nx  ,
+				   const real_t*  ny  ,
+				   real_t*        tgt ) const
 // ---------------------------------------------------------------------------
 // Load external tgt by interpreting function.
 // ---------------------------------------------------------------------------
@@ -106,17 +105,17 @@ void EssentialFunction:: evaluate (const integer  np  ,
 }
 
 
-void EssentialFunction::set (const integer  side,
-			     const integer* bmap,
-			     const real*    src ,
-			     real*          tgt ) const
+void EssentialFunction::set (const int_t   side,
+			     const int_t*  bmap,
+			     const real_t* src ,
+			     real_t*       tgt ) const
 // ---------------------------------------------------------------------------
 // Scatter external value storage area src into globally-numbered tgt
 // (as for Essential class).
 // ---------------------------------------------------------------------------
 {
-  const integer  nm    = Geometry::nP() - 1;
-  const integer* start = bmap;
+  const int_t  nm    = Geometry::nP() - 1;
+  const int_t* start = bmap;
   
   switch (side) {
   case 1: start += nm;           break;
@@ -140,15 +139,15 @@ void EssentialFunction::describe (char* tgt) const
 }
 
 
-void Natural::evaluate (const integer  np  ,
-			const integer  id  ,
-			const integer  nz  ,
+void Natural::evaluate (const int_t    np  ,
+			const int_t    id  ,
+			const int_t    nz  ,
 			const Element* E   ,
-			const integer  side,
-			const integer  step,
-			const real*    nx  ,
-			const real*    ny  ,
-			real*          tgt ) const
+			const int_t    side,
+			const int_t    step,
+			const real_t*  nx  ,
+			const real_t*  ny  ,
+			real_t*        tgt ) const
 // ---------------------------------------------------------------------------
 // Load external value storage area tgt with installed constant.
 // ---------------------------------------------------------------------------
@@ -157,20 +156,20 @@ void Natural::evaluate (const integer  np  ,
 }
 
 
-void Natural::sum (const integer  side  ,
-		   const integer* bmap  ,
-		   const real*    src   ,
-		   const real*    weight,
-		   real*          work  ,
-		   real*          tgt   ) const
+void Natural::sum (const int_t   side  ,
+		   const int_t*  bmap  ,
+		   const real_t* src   ,
+		   const real_t* weight,
+		   real_t*       work  ,
+		   real_t*       tgt   ) const
 // ---------------------------------------------------------------------------
 // Add boundary-integral terms into globally-numbered tgt.
 // Work vector must be np long.
 // ---------------------------------------------------------------------------
 { 
-  const integer  np    = Geometry::nP();
-  const integer  nm    = np - 1;
-  const integer* start = bmap;
+  const int_t  np    = Geometry::nP();
+  const int_t  nm    = np - 1;
+  const int_t* start = bmap;
   
   switch (side) {
   case 1: start += nm;           break;
@@ -207,15 +206,15 @@ NaturalFunction::NaturalFunction (const char* f)
 }
 
 
-void NaturalFunction::evaluate (const integer  np  ,
-				const integer  id  ,
-				const integer  nz  ,
+void NaturalFunction::evaluate (const int_t    np  ,
+				const int_t    id  ,
+				const int_t    nz  ,
 				const Element* E   ,
-				const integer  side,
-				const integer  step,
-				const real*    nx  ,
-				const real*    ny  ,
-				real*          tgt ) const
+				const int_t    side,
+				const int_t    step,
+				const real_t*  nx  ,
+				const real_t*  ny  ,
+				real_t*        tgt ) const
 // ---------------------------------------------------------------------------
 // Load external tgt by interpreting function.
 // ---------------------------------------------------------------------------
@@ -224,19 +223,19 @@ void NaturalFunction::evaluate (const integer  np  ,
 }
 
 
-void NaturalFunction::sum (const integer  side  ,
-			   const integer* bmap  ,
-			   const real*    src   ,
-			   const real*    weight,
-			   real*          work  ,
-			   real*          tgt   ) const
+void NaturalFunction::sum (const int_t   side  ,
+			   const int_t*  bmap  ,
+			   const real_t* src   ,
+			   const real_t* weight,
+			   real_t*       work  ,
+			   real_t*       tgt   ) const
 // ---------------------------------------------------------------------------
 // Add boundary-integral terms into globally-numbered tgt.
 // ---------------------------------------------------------------------------
 { 
-  const integer  np    = Geometry::nP();
-  const integer  nm    = np - 1;
-  const integer* start = bmap;
+  const int_t  np    = Geometry::nP();
+  const int_t  nm    = np - 1;
+  const int_t* start = bmap;
   
   switch (side) {
   case 1: start += nm;           break;
@@ -252,6 +251,7 @@ void NaturalFunction::sum (const integer  side  ,
   else             tgt[start[nm]] += work[nm];  
 }
 
+
 void NaturalFunction::describe (char* tgt) const
 // ---------------------------------------------------------------------------
 // Load descriptive/diagnostic material into tgt.
@@ -261,15 +261,15 @@ void NaturalFunction::describe (char* tgt) const
 }
 
 
-void NaturalHOPBC::evaluate (const integer  np  ,
-			     const integer  id  ,
-			     const integer  nz  ,
+void NaturalHOPBC::evaluate (const int_t    np  ,
+			     const int_t    id  ,
+			     const int_t    nz  ,
 			     const Element* E   ,
-			     const integer  side,
-			     const integer  step,
-			     const real*    nx  ,
-			     const real*    ny  ,
-			     real*          tgt ) const
+			     const int_t    side,
+			     const int_t    step,
+			     const real_t*  nx  ,
+			     const real_t*  ny  ,
+			     real_t*        tgt ) const
 // ---------------------------------------------------------------------------
 // Load external via a call to PBCmgr to compute terms.
 // ---------------------------------------------------------------------------
@@ -278,19 +278,19 @@ void NaturalHOPBC::evaluate (const integer  np  ,
 }
 
 
-void NaturalHOPBC::sum (const integer  side  ,
-			const integer* bmap  ,
-			const real*    src   ,
-			const real*    weight,
-			real*          work  ,
-			real*          tgt   ) const
+void NaturalHOPBC::sum (const int_t   side  ,
+			const int_t*  bmap  ,
+			const real_t* src   ,
+			const real_t* weight,
+			real_t*       work  ,
+			real_t*       tgt   ) const
 // ---------------------------------------------------------------------------
 // Add boundary-integral terms into globally-numbered tgt.
 // ---------------------------------------------------------------------------
 { 
-  const integer  np    = Geometry::nP();
-  const integer  nm    = np - 1;
-  const integer* start = bmap;
+  const int_t  np    = Geometry::nP();
+  const int_t  nm    = np - 1;
+  const int_t* start = bmap;
   
   switch (side) {
   case 1: start += nm;           break;
@@ -319,7 +319,7 @@ void NaturalHOPBC::describe (char* tgt) const
 Mixed::Mixed (const char* v)
 // ---------------------------------------------------------------------------
 // The format for a Mixed BC is: "field = mulvalue, refvalue".
-// Each of these is expected to evaluate to a real constant.
+// Each of these is expected to evaluate to a real_t constant.
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "Mixed::Mixed";
@@ -340,15 +340,15 @@ Mixed::Mixed (const char* v)
 }
 
 
-void Mixed::evaluate (const integer  np  ,
-		      const integer  id  ,
-		      const integer  nz  ,
+void Mixed::evaluate (const int_t    np  ,
+		      const int_t    id  ,
+		      const int_t    nz  ,
 		      const Element* E   ,
-		      const integer  side,
-		      const integer  step,
-		      const real*    nx  ,
-		      const real*    ny  ,
-		      real*          tgt ) const
+		      const int_t    side,
+		      const int_t    step,
+		      const real_t*  nx  ,
+		      const real_t*  ny  ,
+		      real_t*        tgt ) const
 // ---------------------------------------------------------------------------
 // Load external value storage area tgt with installed constants.
 // ---------------------------------------------------------------------------
@@ -357,20 +357,20 @@ void Mixed::evaluate (const integer  np  ,
 }
 
 
-void Mixed::sum (const integer  side  ,
-		 const integer* bmap  ,
-		 const real*    src   ,
-		 const real*    weight,
-		 real*          work  ,
-		 real*          tgt   ) const
+void Mixed::sum (const int_t   side  ,
+		 const int_t*  bmap  ,
+		 const real_t* src   ,
+		 const real_t* weight,
+		 real_t*       work  ,
+		 real_t*       tgt   ) const
 // ---------------------------------------------------------------------------
 // Add boundary-integral terms into globally-numbered tgt.  This is
 // used to add K*C (supplied as src) to RHS forcing.
 // ---------------------------------------------------------------------------
 { 
-  const integer  np    = Geometry::nP();
-  const integer  nm    = np - 1;
-  const integer* start = bmap;
+  const int_t  np    = Geometry::nP();
+  const int_t  nm    = np - 1;
+  const int_t* start = bmap;
   
   switch (side) {
   case 1: start += nm;           break;
@@ -387,21 +387,21 @@ void Mixed::sum (const integer  side  ,
 }
 
 
-void Mixed::augmentSC (const integer  side  ,
-		       const integer  nband ,
-		       const integer  nsolve,
-		       const integer* bmap  ,
-		       const real*    area  ,
-		       real*          work  ,
-		       real*          tgt   )  const
+void Mixed::augmentSC (const int_t   side  ,
+		       const int_t   nband ,
+		       const int_t   nsolve,
+		       const int_t*  bmap  ,
+		       const real_t* area  ,
+		       real_t*       work  ,
+		       real_t*       tgt   )  const
 // ---------------------------------------------------------------------------
 // Add <K, w> terms to (banded LAPACK) matrix tgt.
 // ---------------------------------------------------------------------------
 {
-  const integer    np    = Geometry::nP();
-  const integer    nm    = np - 1;
-  const integer*   start = bmap;
-  register integer i, k;
+  const int_t    np    = Geometry::nP();
+  const int_t    nm    = np - 1;
+  const int_t*   start = bmap;
+  register int_t i, k;
   
   switch (side) {
   case 1: start += nm;           break;
@@ -421,21 +421,21 @@ void Mixed::augmentSC (const integer  side  ,
 }
 
 
-void Mixed::augmentOp (const integer  side, 
-		       const integer* bmap,
-		       const real*    area,
-		       const real*    src ,
-		       real*          tgt ) const
+void Mixed::augmentOp (const int_t   side, 
+		       const int_t*  bmap,
+		       const real_t* area,
+		       const real_t* src ,
+		       real_t*       tgt ) const
 // ---------------------------------------------------------------------------
 // This operation is used to augment the element-wise Helmholtz
 // operations where there are mixed BCs.  Add in diagonal terms
 // <K*src, w> to tgt.  Both src and tgt are globally-numbered vectors.
 // ---------------------------------------------------------------------------
 {
-  const integer    np    = Geometry::nP();
-  const integer    nm    = np - 1;
-  const integer*   start = bmap;
-  register integer i;
+  const int_t    np    = Geometry::nP();
+  const int_t    nm    = np - 1;
+  const int_t*   start = bmap;
+  register int_t i;
   
   switch (side) {
   case 1: start += nm;           break;
@@ -452,20 +452,20 @@ void Mixed::augmentOp (const integer  side,
 }
 
 
-void Mixed::augmentDg (const integer  side, 
-		       const integer* bmap,
-		       const real*    area,
-		       real*          tgt ) const
+void Mixed::augmentDg (const int_t   side, 
+		       const int_t*  bmap,
+		       const real_t* area,
+		       real_t*       tgt ) const
 // ---------------------------------------------------------------------------
 // This operation is used to augment the element-wise construction of
 // the diagonal of the global Helmholtz matrix where there are mixed
 // BCs.  Add in diagonal terms <K, w> to globally-numbered tgt.
 // ---------------------------------------------------------------------------
 {
-  const integer    np    = Geometry::nP();
-  const integer    nm    = np - 1;
-  const integer*   start = bmap;
-  register integer i;
+  const int_t    np    = Geometry::nP();
+  const int_t    nm    = np - 1;
+  const int_t*   start = bmap;
+  register int_t i;
   
   switch (side) {
   case 1: start += nm;           break;

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // bsys.C: BoundarySys class functions.
 //
-// Copyright (c) 1999,2003 Hugh Blackburn
+// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 //
 // The information to be returned by class functions are the global
 // numbering scheme and vector of Boundary*'s for a given Field and
@@ -14,9 +14,9 @@
 // 3, the number of boundary frames and numbering systems is set to 3,
 // for the 0th, 1st and 2nd (and higher) modes, irrespective of the
 // number of Fourier modes actually used.  See BCmgr.C.
-//
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include "sem.h"
 
@@ -31,13 +31,13 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
   nbound     (bcmgr -> nBCedges()),
   mixed      (0)
 {
-  const integer               np = Geometry::nP();
+  const int_t                 np = Geometry::nP();
   vector<BCtriple*>::iterator edge;
   BCtriple*                   BCT;
   const Condition*            C;
   const char*                 S;
   char                        buf[StrMax], group;
-  integer                     i, j, k, offset;
+  int_t                       i, j, k, offset;
 
   number = new NumberSys* [3];
   for (i = 0; i < 3; i++) number[i] = bcmgr -> getNumberSys (field_name, i);
@@ -104,7 +104,7 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
 }
 
 
-const vector<Boundary*>& BoundarySys::BCs (const integer mode) const
+const vector<Boundary*>& BoundarySys::BCs (const int_t mode) const
 // ---------------------------------------------------------------------------
 // Return appropriate vector of Boundary*'s for field name, according
 // to Fourier mode.  Mode number is the actual number, counting from
@@ -112,28 +112,27 @@ const vector<Boundary*>& BoundarySys::BCs (const integer mode) const
 // ---------------------------------------------------------------------------
 {
   return
-    boundary [clamp (mode, static_cast<integer>(0), static_cast<integer>(2))];
+    boundary [clamp (mode,static_cast<int_t>(0),static_cast<int_t>(2))];
 }
 
 
-const NumberSys* BoundarySys::Nsys (const integer mode) const
+const NumberSys* BoundarySys::Nsys (const int_t mode) const
 // ---------------------------------------------------------------------------
 // Return appropriate NumberSystem* for field name, according to
 // Fourier mode.
 // ---------------------------------------------------------------------------
 {
   return
-    number [clamp (mode, static_cast<integer>(0), static_cast<integer>(2))];
+    number [clamp (mode,static_cast<int_t>(0),static_cast<int_t>(2))];
 }
 
 
-const real* BoundarySys::Imass (const integer mode) const
+const real_t* BoundarySys::Imass (const int_t mode) const
 // ---------------------------------------------------------------------------
 // Return appropriate inverse mass matrix for field name, according to
 // Fourier mode.
 // ---------------------------------------------------------------------------
 {
   return 
-    number [clamp (mode, static_cast<integer>(0), static_cast<integer>(2))]
-    -> imass();
+    number [clamp (mode,static_cast<int_t>(0),static_cast<int_t>(2))]->imass();
 }

@@ -9,8 +9,8 @@
 #include <vector>
 #include <string>
 
-#include <cfemdef.h>
-#include <feml.h>
+#include "cfemdef.h"
+#include "feml.h"
 
 class Curve;
 
@@ -43,23 +43,23 @@ public:
 
   Mesh (FEML*, const bool = true);
 
-  integer nEl         () const { return _elmtTable.size(); }
-  integer buildMap    (const integer, integer*);
-  void    buildMask   (const integer, const char, integer*);
-  void    meshElmt    (const integer, const integer, const real*, const real*,
-		       real*, real*) const;
-  void printNek       () const;
-  void extent         (Point&, Point&) const;
+  int_t nEl         () const { return _elmtTable.size(); }
+  int_t buildMap    (const int_t, int_t*);
+  void  buildMask   (const int_t, const char, int_t*);
+  void  meshElmt    (const int_t, const int_t, const real_t*, const real_t*,
+		     real_t*, real_t*) const;
+  void  printNek    () const;
+  void  extent      (Point&, Point&) const;
 
   static void showGlobalID (Mesh&);
   static void showAssembly (Mesh&);
 
   class Node {
   public:
-    integer ID;
-    integer gID;
-    Point   loc;
-    Node*   periodic;
+    int_t ID;
+    int_t gID;
+    Point loc;
+    Node* periodic;
   };
 
   class Elmt {
@@ -68,32 +68,32 @@ public:
     vector<Node*> node;
     vector<Side*> side;
   public:
-    integer ID;
-    integer nNodes   () const    { return node.size(); }
-    Node*   ccwNode  (integer i) { return node[(i         +1) % nNodes()]; }
-    Node*   cwNode   (integer i) { return node[(i+nNodes()-1) % nNodes()]; }
-    Point   centroid () const;
+    int_t ID;
+    int_t nNodes   () const  { return node.size(); }
+    Node* ccwNode  (int_t i) { return node[(i         +1) % nNodes()]; }
+    Node* cwNode   (int_t i) { return node[(i+nNodes()-1) % nNodes()]; }
+    Point centroid () const;
   };
   
   class Side {
     friend class Mesh;
   private:
-    Side (integer id, Node* n1, Node* n2) :
+    Side (int_t id, Node* n1, Node* n2) :
       ID(id), startNode(n1), endNode(n2), mateElmt(0) {
       gID.resize (0); mateSide = 0;
       axial = (n1 -> loc.y == 0.0) && (n2 -> loc.y == 0.0);
     }
     Side () {}
   public:
-    integer         ID;
-    bool            axial;
-    vector<integer> gID;
-    Node*           startNode;
-    Node*           endNode;
-    Elmt*           thisElmt;
-    Elmt*           mateElmt;	// -- Doubles as a flag for union:
+    int_t         ID;
+    bool          axial;
+    vector<int_t> gID;
+    Node*         startNode;
+    Node*         endNode;
+    Elmt*         thisElmt;
+    Elmt*         mateElmt;	// -- Doubles as a flag for union:
     union { Side* mateSide; char group; };
-    void connect (const integer, integer&);
+    void connect (const int_t, int_t&);
   };
 
 private:
@@ -113,8 +113,8 @@ private:
   void describeBC  (char, char, char*)    const;
   bool matchBC     (const char, const char, const char);
 
-  void meshSide (const integer, const integer, const integer,
-		 const real*, Point*)                          const;
+  void meshSide (const int_t, const int_t, const int_t,
+		 const real_t*, Point*)                          const;
 };
 
 
@@ -126,10 +126,10 @@ class Curve
 public:
   virtual ~Curve () { }
 
-  virtual void compute  (const integer, const real*, Point*) const = 0;
+  virtual void compute  (const int_t, const real_t*, Point*) const = 0;
   virtual void printNek ()                                   const = 0;
 
-  bool ismatch (const integer e, const integer s) const {
+  bool ismatch (const int_t e, const int_t s) const {
     return (e == curveSide -> thisElmt -> ID && s == curveSide -> ID);
   }
 
@@ -145,15 +145,15 @@ class CircularArc : public Curve
 // ===========================================================================
 {
 public:
-  CircularArc (const integer, Mesh::Side*, const real);
-  virtual void compute  (const integer, const real*, Point*) const;
+  CircularArc (const int_t, Mesh::Side*, const real_t);
+  virtual void compute  (const int_t, const real_t*, Point*) const;
   virtual void printNek () const;
 
 private:
-  Point   centre;
-  real    radius;
-  real    semiangle;
-  integer convexity;
+  Point  centre;
+  real_t radius;
+  real_t semiangle;
+  int_t  convexity;
 };
 
 
@@ -163,13 +163,13 @@ class spline2D
 // ===========================================================================
 {
 public:
-  const char*  name  ;		// name of file containing knot points
-  vector<real> x     ;		// knot x-coordinates
-  vector<real> y     ;		// knot y-coordinates
-  vector<real> sx    ;		// spline x-coefficients
-  vector<real> sy    ;		// spline y-coefficients
-  vector<real> arclen;	        // arclength along curve at knot locations
-  integer      pos   ;		// index of last confirmed position
+  const char*    name  ;	// name of file containing knot points
+  vector<real_t> x     ;	// knot x-coordinates
+  vector<real_t> y     ;	// knot y-coordinates
+  vector<real_t> sx    ;	// spline x-coefficients
+  vector<real_t> sy    ;	// spline y-coefficients
+  vector<real_t> arclen;        // arclength along curve at knot locations
+  int_t         pos   ;		// index of last confirmed position
 };
 
 
@@ -179,20 +179,20 @@ class Spline : public Curve
 // ===========================================================================
 {
 public:
-  Spline (const integer, Mesh::Side*, const char*);
-  virtual void compute  (const integer, const real*, Point*) const;
+  Spline (const int_t, Mesh::Side*, const char*);
+  virtual void compute  (const int_t, const real_t*, Point*) const;
   virtual void printNek () const;
 
 private:
   char*     _name;
   spline2D* _geom;
-  real      _startarc;
-  real      _endarc;
+  real_t    _startarc;
+  real_t    _endarc;
 
   spline2D* getGeom  (const char*);
-  real      getAngl  (const real&);
-  integer   closest  (const Point&);
-  real      arcCoord ();
+  real_t    getAngl  (const real_t&);
+  int_t     closest  (const Point&);
+  real_t    arcCoord ();
 };
 
 

@@ -11,10 +11,10 @@ static char RCS[] = "$Id$";
 #include "dns.h"
 
 
-void nonLinear (Domain*       D ,
-		AuxField**    Us,
-		AuxField**    Uf,
-		vector<real>& ff)
+void nonLinear (Domain*         D ,
+		AuxField**      Us,
+		AuxField**      Uf,
+		vector<real_t>& ff)
 // ---------------------------------------------------------------------------
 // Compute nonlinear (forcing) terms in Navier--Stokes equations: N(u) + ff.
 //
@@ -55,9 +55,9 @@ void nonLinear (Domain*       D ,
 // Define CONV  to get convective as opposed to default skew-symmetric form.
 // ---------------------------------------------------------------------------
 {
-  const int NDIM = Geometry::nDim();	// -- Number of space dimensions.
-  const int NCOM = D -> nField() - 1;	// -- Number of velocity components.
-  int       i, j;
+  const int_t NDIM = Geometry::nDim();	// -- Number of space dimensions.
+  const int_t NCOM = D -> nField() - 1;	// -- Number of velocity components.
+  int_t       i, j;
 
 #if defined (STOKES)
 
@@ -74,24 +74,22 @@ void nonLinear (Domain*       D ,
 #else
 
 #if defined (ALIAS)
-  const int         nZ32   = Geometry::nZProc();
+  const int_t       nZ32   = Geometry::nZProc();
 #else
-  const int         nZ32   = Geometry::nZ32();
+  const int_t       nZ32   = Geometry::nZ32();
 #endif 
-  const int         nZ     = Geometry::nZ();
-  const int         nZP    = Geometry::nZProc();
-  const int         nP     = Geometry::planeSize();
-  const int         nPP    = Geometry::nBlock();
-  const int         nPR    = Geometry::nProc();
-  const int         nTot   = Geometry::nTotProc();
-  const int         nTot32 = nZ32 * nP;
-  vector<real>      work ((2 * NCOM + 1) * nTot32);
-  vector<real*>     u32 (NCOM);
-  vector<real*>     n32 (NCOM);
-  vector<AuxField*> U   (NCOM);
-  vector<AuxField*> N   (NCOM);
+  const int_t       nZ     = Geometry::nZ();
+  const int_t       nZP    = Geometry::nZProc();
+  const int_t       nP     = Geometry::planeSize();
+  const int_t       nPP    = Geometry::nBlock();
+  const int_t       nPR    = Geometry::nProc();
+  const int_t       nTot   = Geometry::nTotProc();
+  const int_t       nTot32 = nZ32 * nP;
+  vector<real_t>    work ((2 * NCOM + 1) * nTot32);
+  vector<real_t*>   u32 (NCOM), n32 (NCOM);
+  vector<AuxField*> U   (NCOM), N   (NCOM);
   Field*            master = D -> u[0];
-  real*             tmp    = &work[0] + 2 * NCOM * nTot32;
+  real_t*           tmp    = &work[0] + 2 * NCOM * nTot32;
 
   Veclib::zero ((2 * NCOM + 1) * nTot32, &work[0], 1); // -- Catch-all cleanup.
 

@@ -1,7 +1,6 @@
 #ifndef CONDITION_H
 #define CONDITION_H
 
-
 class Condition
 // ===========================================================================
 // Virtual base class for boundary condition application.
@@ -19,19 +18,19 @@ class Condition
 // ===========================================================================
 {
 public:
-  virtual void evaluate  (const integer, const integer, const integer,
-			  const Element*, const integer, const integer,
-			  const real*, const real*, real*)           const = 0;
-  virtual void set       (const integer, const integer*,
-			  const real*, real*)                        const = 0;
-  virtual void sum       (const integer, const integer*,
-		          const real*, const real*, real*, real*)    const = 0;
-  virtual void augmentSC (const integer, const integer, const integer,
-			  const integer*, const real*, real*, real*) const = 0;
-  virtual void augmentOp (const integer, const integer*,
-			  const real*, const real*, real*)           const = 0;
-  virtual void augmentDg (const integer, const integer*, 
-			  const real*, real*)                        const = 0;
+  virtual void evaluate  (const int_t, const int_t, const int_t,
+			  const Element*, const int_t, const int_t,
+			  const real_t*, const real_t*, real_t*)           const = 0;
+  virtual void set       (const int_t, const int_t*,
+			  const real_t*, real_t*)                        const = 0;
+  virtual void sum       (const int_t, const int_t*,
+		          const real_t*, const real_t*, real_t*, real_t*)    const = 0;
+  virtual void augmentSC (const int_t, const int_t, const int_t,
+			  const int_t*, const real_t*, real_t*, real_t*) const = 0;
+  virtual void augmentOp (const int_t, const int_t*,
+			  const real_t*, const real_t*, real_t*)           const = 0;
+  virtual void augmentDg (const int_t, const int_t*, 
+			  const real_t*, real_t*)                        const = 0;
   virtual void describe  (char* tgt)                                 const = 0;
 
   virtual ~Condition()   { }
@@ -46,26 +45,26 @@ class Essential : public Condition
 {
 public:
   Essential              (const char* v) : _value (strtod (v, 0)) { }
-  virtual void evaluate  (const integer, const integer, const integer,
-			  const Element*, const integer, const integer,
-			  const real*, const real*, real*)           const;
-  virtual void set       (const integer, const integer*,
-			  const real*, real*)                        const;
-  virtual void sum       (const integer, const integer*,
-			  const real*, const real*, real*, real*)    const
+  virtual void evaluate  (const int_t, const int_t, const int_t,
+			  const Element*, const int_t, const int_t,
+			  const real_t*, const real_t*, real_t*)           const;
+  virtual void set       (const int_t, const int_t*,
+			  const real_t*, real_t*)                        const;
+  virtual void sum       (const int_t, const int_t*,
+			  const real_t*, const real_t*, real_t*, real_t*)    const
     { };
-  virtual void augmentSC (const integer, const integer, const integer,
-			  const integer*, const real*, real*, real*) const
+  virtual void augmentSC (const int_t, const int_t, const int_t,
+			  const int_t*, const real_t*, real_t*, real_t*) const
     { };
-  virtual void augmentOp (const integer, const integer*,
-			  const real*, const real*, real*)           const
+  virtual void augmentOp (const int_t, const int_t*,
+			  const real_t*, const real_t*, real_t*)           const
     { };
-  virtual void augmentDg (const integer, const integer*, 
-			  const real*, real*)                        const
+  virtual void augmentDg (const int_t, const int_t*, 
+			  const real_t*, real_t*)                        const
     { };
   virtual void describe  (char*)                                     const;
 private:
-  real _value;
+  real_t _value;
 };
 
 
@@ -77,22 +76,22 @@ class EssentialFunction : public Condition
 {
 public:
   EssentialFunction      (const char*);
-  virtual void evaluate  (const integer, const integer, const integer,
-			  const Element*, const integer, const integer,
-			  const real*, const real*, real*)           const;
-  virtual void set       (const integer, const integer*,
-			  const real*, real*)                        const;
-  virtual void sum       (const integer, const integer*,
-			  const real*, const real*, real*, real*)    const
+  virtual void evaluate  (const int_t, const int_t, const int_t,
+			  const Element*, const int_t, const int_t,
+			  const real_t*, const real_t*, real_t*)           const;
+  virtual void set       (const int_t, const int_t*,
+			  const real_t*, real_t*)                        const;
+  virtual void sum       (const int_t, const int_t*,
+			  const real_t*, const real_t*, real_t*, real_t*)    const
     { };
-  virtual void augmentSC (const integer, const integer, const integer,
-			  const integer*, const real*, real*, real*) const
+  virtual void augmentSC (const int_t, const int_t, const int_t,
+			  const int_t*, const real_t*, real_t*, real_t*) const
     { };
-  virtual void augmentOp (const integer, const integer*,
-			  const real*, const real*, real*)           const
+  virtual void augmentOp (const int_t, const int_t*,
+			  const real_t*, const real_t*, real_t*)           const
     { };
-  virtual void augmentDg (const integer, const integer*, 
-			  const real*, real*)                        const
+  virtual void augmentDg (const int_t, const int_t*, 
+			  const real_t*, real_t*)                        const
     { };
   virtual void describe  (char*)                                     const;
 private:
@@ -108,26 +107,26 @@ class Natural : public Condition
 {
 public:
   Natural                (const char* v) : _value (strtod (v, 0)) { }
-  virtual void evaluate  (const integer, const integer, const integer,
-			  const Element*, const integer, const integer,
-			  const real*, const real*, real*)           const;
-  virtual void set       (const integer, const integer*,
-			  const real*, real*)                        const
+  virtual void evaluate  (const int_t, const int_t, const int_t,
+			  const Element*, const int_t, const int_t,
+			  const real_t*, const real_t*, real_t*)           const;
+  virtual void set       (const int_t, const int_t*,
+			  const real_t*, real_t*)                        const
     { };
-  virtual void sum       (const integer, const integer*,
-			  const real*, const real*, real*, real*)    const;
-  virtual void augmentSC (const integer, const integer, const integer,
-			  const integer*, const real*, real*, real*) const
+  virtual void sum       (const int_t, const int_t*,
+			  const real_t*, const real_t*, real_t*, real_t*)    const;
+  virtual void augmentSC (const int_t, const int_t, const int_t,
+			  const int_t*, const real_t*, real_t*, real_t*) const
     { };
-  virtual void augmentOp (const integer, const integer*,
-			  const real*, const real*, real*)           const
+  virtual void augmentOp (const int_t, const int_t*,
+			  const real_t*, const real_t*, real_t*)           const
     { };
-  virtual void augmentDg (const integer, const integer*, 
-			  const real*, real*)                        const
+  virtual void augmentDg (const int_t, const int_t*, 
+			  const real_t*, real_t*)                        const
     { };
   virtual void describe  (char*)                                     const;
 private:
-  real _value;
+  real_t _value;
 };
 
 
@@ -139,22 +138,22 @@ class NaturalFunction : public Condition
 {
 public:
   NaturalFunction        (const char*);
-  virtual void evaluate  (const integer, const integer, const integer,
-			  const Element*, const integer, const integer,
-			  const real*, const real*, real*)           const;
-  virtual void set       (const integer, const integer*,
-			  const real*, real*)                        const
+  virtual void evaluate  (const int_t, const int_t, const int_t,
+			  const Element*, const int_t, const int_t,
+			  const real_t*, const real_t*, real_t*)           const;
+  virtual void set       (const int_t, const int_t*,
+			  const real_t*, real_t*)                        const
     { };
-  virtual void sum       (const integer, const integer*,
-			  const real*, const real*, real*, real*)    const;
-  virtual void augmentSC (const integer, const integer, const integer,
-			  const integer*, const real*, real*, real*) const
+  virtual void sum       (const int_t, const int_t*,
+			  const real_t*, const real_t*, real_t*, real_t*)    const;
+  virtual void augmentSC (const int_t, const int_t, const int_t,
+			  const int_t*, const real_t*, real_t*, real_t*) const
     { };
-  virtual void augmentOp (const integer, const integer*,
-			  const real*, const real*, real*)           const
+  virtual void augmentOp (const int_t, const int_t*,
+			  const real_t*, const real_t*, real_t*)           const
     { };
-  virtual void augmentDg (const integer, const integer*, 
-			  const real*, real*)                        const
+  virtual void augmentDg (const int_t, const int_t*, 
+			  const real_t*, real_t*)                        const
     { };
   virtual void describe  (char*)                                     const;
 private:
@@ -171,22 +170,22 @@ class NaturalHOPBC : public Condition
 {
 public:
   NaturalHOPBC           () { }
-  virtual void evaluate  (const integer, const integer, const integer,
-			  const Element*, const integer, const integer,
-			  const real*, const real*, real*)           const;
-  virtual void set       (const integer, const integer*,
-			  const real*, real*)                        const
+  virtual void evaluate  (const int_t, const int_t, const int_t,
+			  const Element*, const int_t, const int_t,
+			  const real_t*, const real_t*, real_t*)           const;
+  virtual void set       (const int_t, const int_t*,
+			  const real_t*, real_t*)                        const
     { };
-  virtual void sum       (const integer, const integer*,
-			  const real*, const real*, real*, real*)    const;
-  virtual void augmentSC (const integer, const integer, const integer,
-			  const integer*, const real*, real*, real*) const
+  virtual void sum       (const int_t, const int_t*,
+			  const real_t*, const real_t*, real_t*, real_t*)    const;
+  virtual void augmentSC (const int_t, const int_t, const int_t,
+			  const int_t*, const real_t*, real_t*, real_t*) const
     { };
-  virtual void augmentDg (const integer, const integer*, 
-			  const real*, real*)                        const
+  virtual void augmentDg (const int_t, const int_t*, 
+			  const real_t*, real_t*)                        const
     { };
-  virtual void augmentOp (const integer, const integer*,
-			  const real*, const real*, real*)           const
+  virtual void augmentOp (const int_t, const int_t*,
+			  const real_t*, const real_t*, real_t*)           const
     { };
   virtual void describe  (char*)                                     const;
 };
@@ -201,24 +200,24 @@ class Mixed : public Condition
 {
 public:
   Mixed                  (const char*);
-  virtual void evaluate  (const integer, const integer, const integer,
-			  const Element*, const integer, const integer,
-			  const real*, const real*, real*)           const;
-  virtual void set       (const integer, const integer*,
-			  const real*, real*)                        const
+  virtual void evaluate  (const int_t, const int_t, const int_t,
+			  const Element*, const int_t, const int_t,
+			  const real_t*, const real_t*, real_t*)         const;
+  virtual void set       (const int_t, const int_t*,
+			  const real_t*, real_t*)                        const
     { };
-  virtual void sum       (const integer, const integer*,
-			  const real*, const real*, real*, real*)    const;
-  virtual void augmentSC (const integer, const integer, const integer,
-			  const integer*, const real*, real*, real*) const;
-  virtual void augmentOp (const integer, const integer*,
-			  const real*, const real*, real*)           const;
-  virtual void augmentDg (const integer, const integer*, 
-			  const real*, real*)                        const;
-  virtual void describe  (char*)                                     const;
+  virtual void sum       (const int_t, const int_t*, const real_t*,
+			  const real_t*, real_t*, real_t*)               const;
+  virtual void augmentSC (const int_t, const int_t, const int_t,
+			  const int_t*, const real_t*, real_t*, real_t*) const;
+  virtual void augmentOp (const int_t, const int_t*,
+			  const real_t*, const real_t*, real_t*)         const;
+  virtual void augmentDg (const int_t, const int_t*, 
+			  const real_t*, real_t*)                        const;
+  virtual void describe  (char*)                                         const;
 private:
-  real _K_;		// -- This is "K" above.
-  real _C_;		// -- This is "C" above.
+  real_t _K_;		// -- This is "K" above.
+  real_t _C_;		// -- This is "C" above.
 };
 
 #endif
