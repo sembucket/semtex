@@ -17,7 +17,7 @@ enum   Action { UNDEFINED, X, Y, R };
 static char       prog[] = "reflect";
 static const real D2R    = 1.0 / 57.29577951308232087721;
 
-static void getArgs     (int, char**, Action&, Point&, real&);
+static void getArgs     (int, char**, Action&, Point&, real&, istream*&);
 static int  getVertices (istream&, vector<Node*>&, const Action,
 			 const Point&, const real);
 static int  getElements (istream&, vector<Node*>&, vector<Node*>*&);
@@ -37,15 +37,16 @@ int main (int    argc,
   int            nVert, nEl;	// -- Numbers read from input.
   vector<Node*>  vertices;
   vector<Node*>* elements;
+  istream*       file;
 
-  getArgs (argc, argv, mirror, axis, angle);
+  getArgs (argc, argv, mirror, axis, angle, file);
 
-  seekBlock (cin, "Mesh");
+  seekBlock (*file, "Mesh");
 
-  nVert = getVertices (cin, vertices, mirror, axis, angle);
-  nEl   = getElements (cin, vertices, elements);
+  nVert = getVertices (*file, vertices, mirror, axis, angle);
+  nEl   = getElements (*file, vertices, elements);
 
-  endBlock (cin);
+  endBlock (*file);
 
   printUp  (cout, const_cast<const vector<Node*>&>(vertices),
 	    const_cast<const vector<Node*>*&>(elements), nEl, mirror);
@@ -58,7 +59,8 @@ static void getArgs (int       argc  ,
 		     char**    argv  ,
 		     Action&   mirror,
 		     Point&    axis  ,
-		     real&     angle )
+		     real&     angle ,
+		     istream*& file  )
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
 // arguments.  Last (optional) argument is the name of an input file.
@@ -101,16 +103,11 @@ static void getArgs (int       argc  ,
     cout << buf;
     exit (EXIT_FAILURE);
   }
-  
+        
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-      } else {
-	sprintf (buf, "unable to open file: %s", *argv);
-	error (prog, buf, ERROR);
-      }
-  }
+    file = new ifstream (*argv);
+    if (file -> bad()) error (prog, "unable to open input file", ERROR);
+  } else file = &cin;
 }
 
 

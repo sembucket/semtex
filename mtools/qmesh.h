@@ -16,6 +16,8 @@
 #include <cctype>
 #include <cmath>
 
+using namespace std;
+
 #include <Array.h>
 #include <List.h>
 

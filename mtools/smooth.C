@@ -19,7 +19,7 @@
 
 static char  prog[] = "smooth";
 
-static void getArgs     (int, char**, int&);
+static void getArgs     (int, char**, int&, istream*&);
 static int  getVertices (istream&, vector<Node*>&);
 static int  getElements (istream&, vector<Node*>&, vector<Node*>*&);
 static void connect     (vector<Node*>&, vector<Node*>*&, const int);
@@ -39,19 +39,20 @@ int main (int    argc,
 // Driver for other routines.
 // ---------------------------------------------------------------------------
 {
+  istream*&      file;
   int            nPass = 1;	// -- Number of smoothing passes.
   int            nVert, nEl;	// -- Numbers read from input.
   vector<Node*>  vertices;
   vector<Node*>* elements;
 
-  getArgs (argc, argv, nPass);
+  getArgs (argc, argv, nPass, file);
 
-  seekBlock (cin, "Mesh");
+  seekBlock (*file, "Mesh");
 
-  nVert = getVertices (cin, vertices);
-  nEl   = getElements (cin, vertices, elements);
+  nVert = getVertices (*file, vertices);
+  nEl   = getElements (*file, vertices, elements);
 
-  endBlock (cin);
+  endBlock (*file);
 
   smStart ("x11");
   smBox   ();
@@ -70,7 +71,8 @@ int main (int    argc,
 
 static void getArgs (int       argc ,
 		     char**    argv ,
-		     int&      npass)
+		     int&      npass,
+		     istream*& file )
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
 // arguments.  Last (optional) argument is the name of an input file.
@@ -103,16 +105,11 @@ static void getArgs (int       argc ,
       exit (EXIT_FAILURE);
       break;
     }
-
+        
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-      } else {
-	sprintf (buf, "unable to open file: %s", *argv);
-	error (prog, buf, ERROR);
-      }
-  }
+    file = new ifstream (*argv);
+    if (file -> bad()) error (prog, "unable to open input file", ERROR);
+  } else file = &cin;
 }
 
 

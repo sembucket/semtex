@@ -67,7 +67,7 @@ static const int INS_MAX = 4096;
 
 enum key { UNDEFINED, STRAIGHT, ARC, PUSH, POP };
 
-static void getArgs       (int, char**);
+static void getArgs       (int, char**, istream*& file);
 static key  parse         (istream&);
 static int  generateNodes (istream&, const key&, const Node*&, Node*&,
 			   const int&, List<Node*>&, List<int>&,
@@ -82,6 +82,7 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
+  istream*    file;
   char        err[StrMax];
 
   List<Node*> nodes;
@@ -93,28 +94,28 @@ int main (int    argc,
   Node        *startN, *homeN, *precN;
   key         Keyword;
 
-  getArgs (argc, argv);
+  getArgs (argc, argv, file);
 
-  cin >> P;
+  *file >> P;
   startN = new Node (++id_max, P, 1.0, Node::BOUNDARY);
   homeN  = startN;
   nodes.add (homeN);
   loop.add  (homeN -> ID());
 
   do {
-    switch (Keyword = parse (cin)) {
+    switch (Keyword = parse (*file)) {
     case PUSH:
       if (pushing) error (prog, "pushes cannot be nested (yet)", ERROR);
       pushing = 1;
       precN   = startN;
       break;
     case STRAIGHT: case ARC:
-      cin >> nP;
+      *file >> nP;
       if (nP < 1 || nP > INS_MAX) {
 	sprintf (err, "Number of points (%1d) out of range", nP);
 	error (prog, err, ERROR);
       }
-      moreInput = generateNodes (cin, Keyword, homeN, startN, nP,
+      moreInput = generateNodes (*file, Keyword, homeN, startN, nP,
 				 nodes, loop, id_max, pushing, save);
       break;
     case POP:
@@ -142,8 +143,9 @@ int main (int    argc,
 }
 
 
-static void getArgs (int       argc,
-		     char**    argv)
+static void getArgs (int       argc ,
+		     char**    argv ,
+		     istream*& input)
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
@@ -167,15 +169,6 @@ static void getArgs (int       argc,
       break;
     }
 
-  if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-      } else {
-	sprintf (buf, "unable to open file: %s", *argv);
-	message (prog, buf, ERROR);
-      }
-  }
 }
 
 

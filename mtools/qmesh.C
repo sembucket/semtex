@@ -69,7 +69,7 @@ char prog[] = "qmesh";
 
 // -- Local routines.
 
-static void     getArgs      (int, char**, int&, int&);
+static void     getArgs      (int, char**, int&, int&, istream*&);
 static istream& operator >>  (istream&, List<Node*>&);
 static istream& operator >>  (istream&, List<Loop*>&);
 static int      loopDeclared (istream& s);
@@ -88,16 +88,17 @@ int main (int    argc,
 // Driver routine for mesh generator.
 // ---------------------------------------------------------------------------
 {
+  istream*    input;
   int         i, nsmooth = 0, merger = 0;
   List<Loop*> initial;
   List<Quad*> elements;
 
-  getArgs (argc, argv, nsmooth, merger);
+  getArgs (argc, argv, nsmooth, merger, input);
 
   // -- Load all predeclared nodes and loops.
 
-  cin >> Global::nodeList;
-  cin >> initial;
+  *input >> Global::nodeList;
+  *input >> initial;
 
   // -- Start drawing of subdivision process.
 
@@ -167,7 +168,8 @@ int main (int    argc,
 static void getArgs (int       argc   ,
 		     char**    argv   ,
 		     int&      nsmooth,
-		     int&      merger )
+		     int&      merger ,
+		     istream*& input  )
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
 // arguments.  Last argument is name of a session file, not dealt with here.
@@ -228,16 +230,11 @@ static void getArgs (int       argc   ,
       exit (EXIT_FAILURE);
       break;
     }
-  
+      
   if (argc == 1) {
-    ifstream* inputfile = new ifstream (*argv);
-    if (inputfile -> good()) {
-      cin = *inputfile;
-      } else {
-	sprintf (buf, "unable to open file: %s", *argv);
-	error (prog, buf, ERROR);
-      }
-  }
+    input = new ifstream (*argv);
+    if (input -> bad()) error (prog, "unable to open input file", ERROR);
+  } else input = &cin;
 }
 
 
