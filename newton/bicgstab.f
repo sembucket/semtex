@@ -144,7 +144,7 @@
       DOUBLE PRECISION TOL, BNRM2
 *     ..
 *     .. External subroutines ..
-      EXTERNAL         BICSTABGREVCOM, STOPTEST2
+      EXTERNAL         BICGSTABREVCOM, STOPTEST2
 *     ..
 *     .. Executable Statements ..
 *
