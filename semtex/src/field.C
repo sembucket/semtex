@@ -807,7 +807,7 @@ void Field::jacobi (const real          lambda2,
 
     E -> HelmholtzDg (lambda2, betak2, ed, ewrk);
     
-    Veclib::scatr_sum (next, ed, btog, PC);
+    Veclib::scatr_sum (next, ed,  btog,    PC);
     Veclib::copy      (nint, ed + next, 1, PCi, 1);
 
     btog += next;
