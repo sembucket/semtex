@@ -354,7 +354,9 @@ static int EV_test (const int  itrn   ,
 {
   int          i, idone;
   vector<real> work (kdim);
-  real         re_ev, im_ev, abs_ev, *resid = work();
+  real         re_ev, im_ev, abs_ev, ang_ev, re_Aev, im_Aev;
+  real*        resid = work();
+  const real   period = Femlib::value ("D_T * N_STEP");
   static real  min_max1, min_max2;
  
   if (min_max1 == 0.0) min_max1 = 1000.0;
@@ -384,34 +386,27 @@ static int EV_test (const int  itrn   ,
 
   // -- Print diagnostic information.
 
-  const integer floquet = Geometry::nSlice() > 1;
-  real          re_Aev, im_Aev;
-  const real    period = Femlib::value ("D_T * N_STEP");
-
   cout << "-- Iteration = " << itrn << ", H(k+1, k) = " << resnorm << endl;
 
   cout.precision(4);
   cout.setf(ios::scientific, ios::floatfield);
 
-  cout << "EV  Re          Im          Magnitude   Residual";
-  if (!floquet) cout << "    Growth      Frequency";
-  cout << endl;
+  cout << "EV  Magnitude   Angle     Growth      Frequency   Residual" << endl;
 
   for (i = 0; (i < kdim) && (i < 10); i++) {
     re_ev  = wr[i];
     im_ev  = wi[i];
     abs_ev = hypot (re_ev, im_ev);
-    re_Aev = log   (abs_ev)       / period;
-    im_Aev = atan2 (im_ev, re_ev) / period;
+    ang_ev = atan2 (im_ev, re_ev);
+    re_Aev = log (abs_ev) / period;
+    im_Aev = ang_ev       / period;
     cout << setw(2)  << i
-	 << setw(12) << re_ev
-	 << setw(12) << im_ev
          << setw(12) << abs_ev
-	 << setw(12) << resid[i];
-    if (!floquet)
-      cout << setw(12) << re_Aev
-	   << setw(12) << im_Aev;
-    cout << endl;
+      	 << setw(12) << ang_ev
+	 << setw(12) << re_Aev
+	 << setw(12) << im_Aev
+	 << setw(12) << resid[i]
+	 << endl;
   }
 
   cout.precision(6);
