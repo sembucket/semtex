@@ -6,9 +6,11 @@
 CC	= cc
 LD	= cc
 INCDIR  = -I. -I/usr/local/include
-LFLAGS 	= -O2 
-CFLAGS	= -O2 -DPI $(INCDIR)
-LIBS    = -lgl -lm -lsun -limage -lbsd -lmalloc -lgutil
+LFLAGS 	= -O2
+CFLAGS	= -DPI $(INCDIR) -O2
+LIBS    = -lgl -limage -lmalloc -lgutil -lm
+
+HDRS    = cell_table.h globals.h image.h lighting.h new_mesh.h sview.h
 
 SOBJ    = main_vis.o display_surface.o flow_io.o m_cube.o	\
 	  make_mesh.o misc_make.o misc_view.o
@@ -18,3 +20,5 @@ sview_2:	$(SOBJ)
 
 clean:
 	rm -f *.o
+
+$(SOBJ):	$(HDRS)
