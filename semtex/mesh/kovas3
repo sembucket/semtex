@@ -25,7 +25,7 @@
 </FIELDS>
 
 <TOKENS>
-	N_Z    = 8
+	N_Z    = 4
 	N_TIME = 1
 	N_POLY = 8
 	N_STEP = 500

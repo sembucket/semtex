@@ -20,14 +20,15 @@
 	N_STEP      = 1
 	D_T         = 0.01
 	KINVIS      = 0.5
+	FFX         = 2.0
 </TOKENS>
 
-<GROUPS NUMBER=1>
+<GROUPS NUMBER=2>
 	1	v	value
-	4	a	axis
+	2	a	axis
 </GROUPS>
 
-<BCS NUMBER=1>
+<BCS NUMBER=2>
 	1	v	4
 			<D>	u = 0		</D>
 			<D>	v = cos(z)	</D>
@@ -41,9 +42,9 @@
 </BCS>
 
 <NODES NUMBER=9>
-	1	0.0	0.1	0.0
-	2	1.0	0.1	0.0
-	3	2.0	0.1	0.0
+	1	0.0	0.0	0.0
+	2	1.0	0.0	0.0
+	3	2.0	0.0	0.0
 	4	0.0	0.5	0.0
 	5	1.0	0.5	0.0
 	6	2.0	0.5	0.0
@@ -60,8 +61,8 @@
 </ELEMENTS>
 
 <SURFACES NUMBER=8>
-	1	1	1	<B>	v	</B>
-	2	2	1	<B>	v	</B>
+	1	1	1	<B>	a	</B>
+	2	2	1	<B>	a	</B>
 	3	2	2	<B>	v	</B>
 	4	4	2	<B>	v	</B>
 	5	4	3	<B>	v	</B>
