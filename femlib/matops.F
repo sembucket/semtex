@@ -33,24 +33,38 @@ C
       DOUBLE PRECISION DV(NP,NP),     DT(NP,NP)
 C
 #if defined (_SX) || defined (__uxp__)
-      DO K = 1, NP
+      IF (NEL.EQ.1) THEN
+         CALL DGEMM ('N','N',NP,NP,NP,1.0D0,DT,NP, X,NP,1.0D0,UR,NP)
+         CALL DGEMM ('N','N',NP,NP,NP,1.0D0, Y,NP,DV,NP,1.0D0,US,NP)
+      ELSE
+         DO K = 1, NP
+            DO J = 1, NP
+               DO L = 1, NP
+                  DO I = 1, NEL
+                     UR(K,J,I) = UR(K,J,I) + X(L,J,I) * DV(L,K)
+                  ENDDO
+               ENDDO
+            ENDDO
+         ENDDO
+#if defined (_SX)
+!CDIR NOVECTOR
+#endif
          DO J = 1, NP
+#if defined (_SX)
+!CDIR NOVECTOR
+#endif
             DO L = 1, NP
-               DO I = 1, NEL
-                  UR(K,J,I) = UR(K,J,I) + X(L,J,I) * DV(L,K)
+#if defined (_SX)
+!CDIR NOVECTOR
+#endif
+               DO K = 1, NP
+                  DO I = 1, NEL
+                     US(K,J,I) = US(K,J,I) + Y(K,L,I) * DT(J,L)
+                  ENDDO
                ENDDO
             ENDDO
          ENDDO
-      ENDDO
-      DO J = 1, NP
-         DO L = 1, NP
-            DO K = 1, NP
-               DO I = 1, NEL
-                  US(K,J,I) = US(K,J,I) + Y(K,L,I) * DT(J,L)
-               ENDDO
-            ENDDO
-         ENDDO
-      ENDDO
+      ENDIF
 #else
       CALL DGEMM ('N','N',NP,NP*NEL,NP,1.0D0,DT,NP,X,NP,1.0D0,UR,NP)
       DO I = 1, NEL
