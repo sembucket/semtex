@@ -237,6 +237,8 @@ mesh directory.  Other files have standard extensions:
         integrated over the \texttt{wall} boundary group.\\
 \texttt{session.mdl} \> Time series of kinetic energies in the Fourier
         modes (only for 3D execution).\\
+\texttt{session.par} \> Used to define initial particle locations.\\
+\texttt{session.trk} \> Integrated particle locations.\\
 \end{tabbing}
 
 When writing a new session file it is best to run \texttt{meshpr}
@@ -1296,9 +1298,11 @@ to relocate particles within each element at every timestep.
 The application looks for a file called \verb+session.par+.  Each line
 of this file is of form
 \begin{verbatim}
-#     tag  time  x     y      z
-      1    0.0   1.0   10.0   0.5.
+#     tag  time  ctime  x     y      z
+      1    0.0   0.0    1.0   10.0   0.5.
 \end{verbatim}
+The \verb+time+ value is the integration time, while \verb+ctime+
+records the time at which integration was initialised.
 
 Output is of the same form, and is called \verb+session.trk+.  The use
 of separate files, rather than by declaration in the session file, is
