@@ -414,7 +414,7 @@ real Boundary::flux (const char* grp,
 		     real*       wrk) const
 // ---------------------------------------------------------------------------
 // Compute wall-normal flux of field src on this boundary segment,
-// if it lies in group grp.  Wrk is a work vector, 3 * elmt_np_max long.
+// if it lies in group grp.  Wrk is a work vector, 4 * elmt_np_max long.
 // NB: n is a unit outward normal, with no component in Fourier direction.
 // NB: For cylindrical coords, it is assumed we are dealing with a scalar!
 // ---------------------------------------------------------------------------
