@@ -50,9 +50,10 @@ void  get_ops(char      basis ,	/* input: element basis: 'f' or 's'          */
  *                                                                           *
  * If the required operators are "in stock", they are returned from a list,  *
  * otherwise they are created and added to the list as a first step.         *
- * NULL pointers are not assigned a value.                                   *
+ * NULL input pointers are not assigned a value.                             *
  * ========================================================================= */
 {
+  char            *routine = "get_ops()";
   int              found;
   static Meshopr  *head = NULL;
          Meshopr  *p;
@@ -75,41 +76,51 @@ void  get_ops(char      basis ,	/* input: element basis: 'f' or 's'          */
 
     switch (basis) {
 
-    case STANDARD:		/* Standard finite-element basis functions. */
-
-      p -> knot    = dvector(0, nk-1);
-      p -> quad    = dvector(0, nq-1);
-      p -> weight  = dvector(0, nq-1);
-      p -> interp  = dmatrix(0, nq-1, 0, nk-1);
-      p -> interpT = dmatrix(0, nk-1, 0, nq-1);
-      p -> deriv   = dmatrix(0, nq-1, 0, nk-1);
-      p -> derivT  = dmatrix(0, nk-1, 0, nq-1);
-
-      uniknot  (nk, p->knot);
-      zwgl     (p->quad, p->weight, nq);
-      intmat_g (nk, p->knot, nq, p->quad, p->interp, p->interpT);
-      dermat_g (nk, p->knot, nq, p->quad, p->deriv,  p->derivT );
-      break;
-
-    case GLL:			/* Spectral element basis functions. */
+    case GLL:
 
       if (nk != nq)
-	message("GetOps()", "spectral element: need nk & nq identical", ERROR);
+	message(routine, "spectral element: need nk & nq identical", ERROR);
 
       p -> knot    = dvector(0, nk-1);
       p -> quad    = p -> knot;
       p -> weight  = dvector(0, nk-1);
-      p -> interp  = NULL;	/* No interpolation is needed. */
-      p -> interpT = NULL;
+      p -> interp  = (double **) NULL;	/* No interpolation needed. */
+      p -> interpT = (double **) NULL;
       p -> deriv   = dmatrix(0, nk-1, 0, nk-1);
       p -> derivT  = dmatrix(0, nk-1, 0, nk-1);
 
       zwgll (p->knot, p->weight, nk);
       dgll  (nk, p->knot, p->deriv, p->derivT);
-      break;
-      
-    default:
-      message("GetOps()", "unknown basis kind", ERROR);
+      break;		/* Spectral element basis functions. */
+
+    case STANDARD: default:
+
+      if (nk == nq) {		/* Just need derivative operators. */
+
+	p -> knot   = dvector(0, nk-1);
+	p -> quad   = p ->weight  = (double * ) NULL;
+	p -> interp = p ->interpT = (double **) NULL;
+	p -> deriv  = dmatrix(0, nk-1, 0, nk-1);
+	p -> derivT = dmatrix(0, nk-1, 0, nk-1);
+
+	uniknot  (nk, p->knot);
+	dermat_k (nk, p->knot, p->deriv, p->derivT);
+
+      } else {			/* Will need to interpolate to Gauss points. */
+
+	p -> knot    = dvector(0, nk-1);
+	p -> quad    = dvector(0, nq-1);
+	p -> weight  = dvector(0, nq-1);
+	p -> interp  = dmatrix(0, nq-1, 0, nk-1);
+	p -> interpT = dmatrix(0, nk-1, 0, nq-1);
+	p -> deriv   = dmatrix(0, nq-1, 0, nk-1);
+	p -> derivT  = dmatrix(0, nk-1, 0, nq-1);
+
+	uniknot  (nk, p->knot);
+	zwgl     (p->quad, p->weight, nq);
+	intmat_g (nk, p->knot, nq, p->quad, p->interp, p->interpT);
+	dermat_g (nk, p->knot, nq, p->quad, p->deriv,  p->derivT );
+      }
       break;
     }
   }
