@@ -233,7 +233,7 @@ static void getheader (istream&  file  ,
 
   if (!strstr (header.format, "binary"))
     message (prog, "input field file not in binary format", ERROR);
-  else if (!strstr (header.format, "endian"))
+  else if (!strstr (header.format, "-endia"))
     message (prog, "input field file in unknown binary format", WARNING);
 }
 
@@ -387,7 +387,7 @@ static int doswap (const char* ffmt)
 
   if (!strstr (ffmt, "binary"))
     message (prog, "input field file not in binary format", ERROR);
-  else if (!strstr (ffmt, "endian"))
+  else if (!strstr (ffmt, "-endia"))
     message (prog, "input field file in unknown binary format", WARNING);
 
   return (strstr (ffmt, "big") && strstr (mfmt, "little")) || 
