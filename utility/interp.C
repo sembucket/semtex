@@ -3,7 +3,7 @@
 //
 // Synopsis:
 // --------
-// interp [-h] [-m file] -s session dump [file]
+// interp [-h] [-v] [-m file] -s session dump [file]
 //
 // Description:
 // -----------
@@ -38,7 +38,10 @@ RCSid[] = "$Id$";
 #include <Sem.h>
 #include <Stack.h>
 
-static char prog[] = "interp";
+static char prog[]  = "interp";
+static int  verbose = 0;
+static int  nreport = 100;
+
 static void  memExhaust () { message ("new", "free store exhausted", ERROR); }
 
 static void getargs    (int, char**, char*&, char*&, char*&);
@@ -131,6 +134,10 @@ int main (int    argc,
 	  else           c = 0.0;
 	  cout << setw(15) <<  c;
 	}
+	if (verbose && !((i + 1)% nreport))
+	  cerr 
+	    << "interp: plane " << k + 1 << ", "
+	    << i + 1 << " points interpolated" << endl;
 	cout << endl;
       }
   }
@@ -151,7 +158,8 @@ static void getargs (int    argc   ,
   char usage[] = "Usage: interp [options] -s session dump\n"
     "  options:\n"
     "  -h      ... print this message\n"
-    "  -m file ... name file of point data [Default: stdin]\n";
+    "  -m file ... name file of point data [Default: stdin]\n"
+    "  -v      ... verbose output\n";
  
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
@@ -174,6 +182,9 @@ static void getargs (int    argc   ,
 	--argc;
 	session = *++argv;
       }
+      break;
+    case 'v':
+      verbose = 1;
       break;
     default:
       cerr << usage;
@@ -205,7 +216,8 @@ static void loadPoints (ifstream&       pfile,
   pfile.getline (buf, StrMax);
   if (strstr (buf, "NEL")) {	// -- This is a structured set of points.
     sscanf (buf, "%d %d %*s %d", &np, &np, &nel);
-    ntot = np * np * nel;
+    ntot    = np * np * nel;
+    nreport = np * np;
 
   } else {
     if   (sizeof (real) == sizeof (double)) sscanf (buf, "%lf %lf", &x, &y);
@@ -247,7 +259,7 @@ static void findPoints (vector<Point*>&   point,
 // Locate points within elements, set Element pointer & r--s locations.
 // ---------------------------------------------------------------------------
 {
-  int       i, k;
+  int       i, k, kold;
   real      x, y, r, s;
   const int guess = 1;
   const int NEL   = Esys .getSize();
@@ -261,23 +273,34 @@ static void findPoints (vector<Point*>&   point,
 
   cerr.precision (8);
 
+  kold = 0;
   for (i = 0; i < NPT; i++) {
     x = point[i] -> x;
     y = point[i] -> y;
-    for (k = 0; k < NEL; k++) {
-      r = s = 0.0;
-      if (Esys[k] -> locate (x, y, r, s, guess)) {
-	elmt[i] = Esys[k];
-	rloc[i] = r;
-	sloc[i] = s;
-	break;
+    if (Esys[kold] -> locate (x, y, r, s, guess)) {
+      elmt[i] = Esys[kold];
+      rloc[i] = r;
+      sloc[i] = s;
+    } else {
+      for (k = 0; k < NEL; k++) {
+	if (k == kold) continue;
+	if (Esys[k] -> locate (x, y, r, s, guess)) {
+	  elmt[i] = Esys[k];
+	  rloc[i] = r;
+	  sloc[i] = s;
+	  kold    = k;
+	  break;
+	}
       }
     }
 
     if (!elmt[i])
       cerr << "interp: point (" << setw(15) << x << ","
 	   << setw(15) << y << ") is not in the mesh" << endl;
+    if (verbose && !((i + 1)% nreport))
+	cerr << "interp: " << i + 1 << " points found" << endl;
   }
+  if (verbose) cerr << endl;
 }
 
 
