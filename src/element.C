@@ -988,6 +988,7 @@ bool Element::locate (const real x    ,
 		      const real y    ,
 		      real&      r    ,
 		      real&      s    ,
+		      real*      work ,
 		      const bool guess) const
 // ---------------------------------------------------------------------------
 // If x & y fall in this element, compute the corresponding r & s
@@ -1007,11 +1008,10 @@ bool Element::locate (const real x    ,
   static real    EPS    = 0.0;
   static integer MaxItn = 0;
   const real     DIVERG = 20.0;
-  real           *J, *F, *ir, *is, *dr, *ds, *tp;
-  vector<real>   work (5 * _np + 6);
+  real           *J, *F, *ir, *is, *dr, *ds, *tp, idet;
   integer        ipiv[2], info, i, j;
   
-  tp = &work[0];
+  tp = work;
   ir = tp + _np;
   is = ir + _np;
   dr = is + _np;
@@ -1019,13 +1019,11 @@ bool Element::locate (const real x    ,
   J  = ds + _np;
   F  = J  + 4;
 
-  if (EPS == 0.0) EPS    = Femlib:: value ("TOL_POS");
-  if (MaxItn== 0) MaxItn = Femlib::ivalue ("NR_MAX");
+  if (EPS  == 0.0) EPS    = Femlib:: value ("TOL_POS");
+  if (MaxItn == 0) MaxItn = Femlib::ivalue ("NR_MAX");
 
   if (guess) {
-    vector<real> tmp (2 * _npnp);
-    const real*  knot;
-    real         *tx = &tmp[0], *ty = &tmp[0] + _npnp;
+    real *tx = work, *ty = work + _npnp;
 
     const real diag =
       max (hypot(_xmesh[_np*_np-1]  -_xmesh[0],
@@ -1073,11 +1071,20 @@ bool Element::locate (const real x    ,
     J[0] =     Blas::dot (_np, is, 1, tp, 1);
                Blas::mxv (_ymesh, _np, dr, _np, tp);
     J[1] =     Blas::dot (_np, is, 1, tp, 1);
-    
+#if 0
+    // -- General/robust matrix solution routine.
     Lapack::gesv (2, 1, J, 2, ipiv, F, 2, info);
     
     r += F[0];
     s += F[1];
+#else
+    // -- Cramer's rule.
+    idet = J[0]*J[3] - J[1]*J[2];
+    idet = (fabs (idet) < EPSDP) ? 1.0/EPSDP : 1.0/idet;
+
+    r   += (F[0]*J[3] - F[1]*J[2]) * idet;
+    s   += (F[1]*J[0] - F[0]*J[1]) * idet;
+#endif
 
     if (fabs (r) > DIVERG && fabs (s) > DIVERG) {
 #if defined (DEBUG)

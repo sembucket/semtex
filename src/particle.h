@@ -34,6 +34,7 @@ private:
   static integer _ID_MAX ;	// Highest issued id.
   static real*   _P_coeff;	// Integration (predictor) coefficients.
   static real*   _C_coeff;	// Integration (corrector) coefficients.
+  static real*   _Work   ;	// Work area for point location routines.
   static real    _DT     ;	// Time step.
   static real    _Lz     ;	// Periodic length.
 };

@@ -786,7 +786,7 @@ void BCmgr::buildsurf (FEML*             file,
 
   if (Geometry::cylindrical()) {
     const integer np = Geometry::nP();
-    vector<real> work (np);
+    vector<real>  work (np);
     vector<BCtriple*>::iterator b;
 
     for (b = _elmtbc.begin(); b != _elmtbc.end(); b++) {

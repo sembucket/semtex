@@ -239,12 +239,6 @@ Mesh::Mesh (FEML*      f    ,
     VERBOSE cout << "  Installing mesh curved sides ... ";
     this -> curves ();
     VERBOSE cout << "done" << endl;
-
-    if (static_cast<bool>(Femlib::value("CYLINDRICAL"))) {
-      VERBOSE cout << "  Checking axial sides ... ";
-      this -> checkAxial ();
-      VERBOSE cout << "done" << endl;
-    }
   }
 }
 
@@ -575,37 +569,6 @@ void Mesh::checkAssembly()
   if (Femlib::ivalue ("VERBOSE") > 1) {
     cout << endl << "# Summary:" << endl;
     showAssembly (*this);
-  }
-}
-
-
-void Mesh::checkAxial()
-// ---------------------------------------------------------------------------
-// In an mesh for cylindrical coordinates, we want any edge that
-// touches the x axis to be the first side of the element. And it has
-// to touch all along the boundary.  Check it out.  But
-// surfaces() must have been called first.
-// ---------------------------------------------------------------------------
-{
-  if (static_cast<bool>(Femlib::value ("CYLINDRICAL"))) {
-    char             routine[] = "Mesh::checkAxial", err[StrMax];
-    const integer    Ne = nEl();
-    Elmt*            E;
-    Side*            S;
-    register integer i, j;
-
-    for (i = 0; i < Ne; i++) {
-      E = _elmtTable[i];
-      const integer Ns = E -> nNodes();
-      for (j = 0; j < Ns; j++) {
-	S = E -> side[j];
-	if (S -> axial && j) {
-	  sprintf (err, "Elmt %1d Side %1d (not 1) on axis",
-		   S -> thisElmt -> ID + 1, S -> ID + 1);
-	  message (routine, err, ERROR);
-	}
-      }
-    }
   }
 }
 
