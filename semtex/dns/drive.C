@@ -6,6 +6,7 @@
  * fem++ [options] session
  *   options:
  *   -h       ... print usage prompt
+ *   -i[i]    ... use iterative solver for viscous [and pressure] steps
  *   -v[v...] ... increase verbosity level
  *   -chk     ... checkpoint field dumps
  *
@@ -24,8 +25,7 @@
  * This determines the type of problem to be solved and the kind of
  * geometry used (Cartesian, cylindrical, ...).
  *
- * (1)  Currently can solve Helmholtz (Possion, Laplace) and unsteady
- *      (Navier)--Stokes problems.
+ * (1)  Unsteady (Navier)--Stokes problems.
  * (2)  The default (and only current) geometry is 2D Cartesian.
  *
  * Example for a Navier--Stokes problem:
@@ -78,7 +78,9 @@
  *
  *****************************************************************************/
 
-static char  RCSid[] = "$Id$";
+static char
+RCSid[] = "$Id$";
+
 
 #include <Fem.h>
 #include <new.h>
@@ -87,13 +89,14 @@ static char  RCSid[] = "$Id$";
 static char  prog[]  = "ns";
 static void  memExhaust () { message ("new", "free store exhausted", ERROR); }
 
+static void      getArgs    (int, char**, char*& );
+static void      setUp      (ifstream&,   char**&);
+static ofstream* createFile (const Domain*);
 
-static void getArgs (int, char**, char*& );
-static void setUp   (ifstream&,   char**&);
-void   NavierStokes (Domain*, Mesh*, char**);
+extern void      NavierStokes (Domain*, ofstream&);
 
 
-int  main (int argc, char *argv[])
+int main (int argc, char *argv[])
 // ---------------------------------------------------------------------------
 // Driver.
 // ---------------------------------------------------------------------------
@@ -103,27 +106,51 @@ int  main (int argc, char *argv[])
   ios::sync_with_stdio ();
 #endif
 
-  ifstream  file;
-  char*     session;
-  char**    forcing = 0;
+  ifstream*  input = new ifstream;
+  ofstream*  output;
+  char*      session;
+  char**     forcing = 0;
 
-  initialize ();
+  // -- Initialization section.
 
-  getArgs   (argc, argv, session);
+  initialize    ();
+  getArgs       (argc, argv, session);
+  input -> open (session);
+  setUp         (*input, forcing);
 
-  file.open (session);
-  setUp     (file, forcing);
+  // -- Get mesh information, save BC and parameter information.
 
-  Mesh*     M = preProcess (file);
-  Domain*   D = new Domain (*M, session, iparam ("N_POLY"));
+  Mesh*  M = preProcess (*input);
+  input -> close ();
 
-  file.close ();
+  // -- Set up domain with single field, 'u'.
 
-  D -> openFiles ();
+  Domain*  D = new Domain (*M, session, iparam ("N_POLY"));
+  D -> u[0] -> setName ('u');
 
-  NavierStokes (D, M, forcing);
+  // -- Add remaining velocity fields.
 
-  D -> cleanup ();
+  const int DIM = iparam ("N_VAR" );
+  SystemField*  newField;
+  for (int i = 1; i < DIM; i++) {
+    newField = new SystemField (*D -> u[0]);
+    D -> addField (newField);
+    D -> u[i] -> setName ('u' + i);
+  }
+
+  // -- And constraint field 'p'.
+
+  SystemField* Pressure = new SystemField (*D -> u[0], 1);
+  D -> addField (Pressure);
+  Pressure -> setName ('p');  
+  PBCmanager::build (*Pressure);
+  Pressure -> connect (*M, iparam ("N_POLY"));
+
+  output = createFile (D);
+
+  // -- Solve.
+
+  NavierStokes (D, *output);
 
   return EXIT_SUCCESS;
 }
@@ -141,6 +168,7 @@ static void getArgs (int argc, char** argv, char*& session)
     "Usage: %s [options] session-file\n"
     "  [options]:\n"
     "  -h        ... print this message\n"
+    "  -i[i]     ... use iterative solver for viscous [& pressure] steps\n"
     "  -v[v...]  ... increase verbosity level\n"
     "  -chk      ... checkpoint field dumps\n";
  
@@ -151,9 +179,14 @@ static void getArgs (int argc, char** argv, char*& session)
       cout << buf;
       exit (EXIT_SUCCESS);
       break;
+    case 'i':
+      do
+	setOption ("ITERATIVE", option ("ITERATIVE") + 1);
+      while (*++argv[0] == 'i');
+      break;
     case 'v':
       do
-	setOption ("VERBOSE", option ("VERBOSE") + 1);
+	setOption ("VERBOSE",   option ("VERBOSE")   + 1);
       while (*++argv[0] == 'v');
       break;
     case 'c':
@@ -234,4 +267,21 @@ static void setUp (ifstream& file, char**& force)
 }
 
 
+static ofstream* createFile (const Domain* D)
+// ---------------------------------------------------------------------------
+// Create and return a field file for writing.
+// ---------------------------------------------------------------------------
+{
+  char       routine[] = "createFile";
+  ofstream*  output    = new ofstream;
+  char       s[StrMax];
 
+  if (option ("CHKPOINT"))
+    output -> open (strcat (strcpy (s, D -> name ()), ".chk"));
+  else
+    output -> open (strcat (strcpy (s, D -> name ()), ".fld"));
+
+  if (! *output) message (routine, "can't open field file", ERROR);
+
+  return output;
+}
