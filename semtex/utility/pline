@@ -25,9 +25,9 @@ then
 	DZ = $7 - $4 
     }
     END {
-	for (i = 0; i < N; i++) {
-	printf ("%8g %8g %8g\n", X0+i*DX/(N-1),Y0+i*DY/(N-1),Z0+i*DZ/(N-1))
-	}
+	for (i = 0; i < N; i++)
+	    printf ("%8g %8g %8g\n", X0+i*DX/(N-1),Y0+i*DY/(N-1),Z0+i*DZ/(N-1))
+
     } '
 else
     echo 'number of points must be at least 2'
