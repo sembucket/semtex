@@ -1407,11 +1407,12 @@ int Element::locate (const real x    ,
 // If guess = 0 (the default argument), the input value of (r, s) is used
 // as an initial guess for N--R iteration.  Otherwise the  (r, s) value that
 // corresponds to the closest point in the Element mesh to (x, y) is used.
+// Fairly loose tolerances are used.
 // ---------------------------------------------------------------------------
 {
-  const int    MaxItn = 16;
-  const real   EPS    = 50*((sizeof (double)==sizeof (real)) ? EPSDP : EPSSP);
-  const real   DIVERG = 1.5;
+  const int    MaxItn = 8;
+  const real   EPS    = EPSm5;
+  const real   DIVERG = 10.0;
   real         *J, *F, *ir, *is, *dr, *ds, *tp;
   vector<real> work (5 * np + 6);
   int          ipiv[2], info, i, j;
@@ -1430,17 +1431,29 @@ int Element::locate (const real x    ,
     const real*  knot;
     real         *tx = tmp(), *ty = tmp() + ntot;
 
+    const real diag =
+      max (hypot(xmesh[np*np-1]  -xmesh[0],    ymesh[np*np-1]  -ymesh[0])   ,
+	   hypot(xmesh[np*(np-1)]-xmesh[np-1], ymesh[np*(np-1)]-ymesh[np-1]));
+
     Femlib::quad     (LL, np, np, &knot, 0, 0, 0, 0, 0, 0);
     Veclib::ssub     (ntot, x, xmesh, 1, tx, 1);
     Veclib::ssub     (ntot, y, ymesh, 1, ty, 1);
     Veclib::vvtvvtp  (ntot, tx, 1, tx, 1, ty, 1, ty, 1, tx, 1);
     
     i = Veclib::imin (ntot, tx, 1);
+
+    if (tx[i] - diag * diag > 0.0) return 0;
+
     j = i % np;
     i = (i - j) / np;
 
     r = knot[i];
     s = knot[j];
+    
+    if      (r >  0.99) r =  0.99;
+    else if (r < -0.99) r = -0.99;
+    if      (s >  0.99) s =  0.99;
+    else if (s < -0.99) s = -0.99;
   }
 
   i = 0;
@@ -1463,9 +1476,19 @@ int Element::locate (const real x    ,
     r += F[0];
     s += F[1];
 
-    if (fabs (r) > DIVERG || fabs (s) > DIVERG) return 0;
+    if (fabs (r) > DIVERG || fabs (s) > DIVERG) {
+#ifdef DEBUG
+      cerr << "D" << endl;
+#endif
+      return 0;
+    }
 
   } while (++i < MaxItn && (fabs (F[0]) > EPS || fabs (F[1]) > EPS));
+
+#ifdef DEBUG
+  if (i == MaxItn) cerr << "M" << endl;
+  else if (fabs (r) > 1.0 + EPS && fabs(s) > 1.0 + EPS) cerr << "O" << endl;
+#endif
 
   return (i < MaxItn && fabs (r) < 1.0 + EPS && fabs(s) < 1.0 + EPS) ? 1 : 0;
 }
