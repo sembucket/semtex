@@ -11,7 +11,7 @@ VPATH = $(SEM)/src
 # ----------------------------------------------------------------------------
 # Semtex standard sources.
 #
-SEMFILES = analysis auxfield BCmgr boundary bsys condition domain	\
+SEMFILES = auxfield BCmgr boundary bsys condition domain	\
 	   element feml field geometry history integration		\
 	   matrix mesh misc particle pressure statistics
 SEMOBJ   = $(addsuffix .o,$(SEMFILES))

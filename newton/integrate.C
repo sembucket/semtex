@@ -25,7 +25,6 @@ static void   Solve     (Domain*, const integer, AuxField*, Msys*);
 
 
 void integrate (Domain*        D,
-		Analyser*      A,
 		Advection scheme)
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
@@ -136,10 +135,6 @@ void integrate (Domain*        D,
     for (i = 0; i < NCOM; i++) Solve (D, i, Uf[0][i], MMS[i]);
     if (C3D)
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
-
-    // -- Process results of this step.
-
-    A -> analyse (Us[0]);
   }
 }
 

@@ -28,6 +28,13 @@
 //   *session.num: computed automatically if not supplied
 //   *session.rst: restart file (only relevant for base flow)
 //
+// Note that the base and perturbation session files *should be
+// identical* except for boundary conditions (and possibly the USER
+// section) -- typically the boundary conditions for the perturbation
+// should be all zero. The TOKENS get read and the parser is reset,
+// each time (in order), so at least the geometric descriptors in each
+// session file have to match.
+//
 // REFERENCES
 // ----------
 // [1] C.K. Mamun & L.S. Tuckerman (1995), "Asymmetry and Hopf Bifurcation
@@ -59,7 +66,6 @@ static BCmgr*  PertBCman;
 
 // -- These are shared/utilised by both systems.
 
-static Analyser*        analyst;
 static Mesh*            mesh;
 static vector<Element*> elmt;
 
@@ -238,8 +244,7 @@ static int preprocess (const char* Bsession,
   BaseDomain = new Domain (BaseFile, elmt, BaseBCman);
   PertDomain = new Domain (PertFile, elmt, PertBCman);
 
-  nf      = BaseDomain -> nField();
-  analyst = new Analyser (BaseDomain, BaseFile);
+  nf = BaseDomain -> nField();
 
   // -- Tie the two systems together.
 
@@ -294,7 +299,7 @@ static void NS_update (const real* src,
   BaseDomain -> step = 0;
   BaseDomain -> time = 0.0;
 
-  integrate (BaseDomain, analyst, nonlinear);
+  integrate (BaseDomain, nonlinear);
 
   for (i = 0; i < NC; i++)
     for (k = 0; k < NZ; k++) {
@@ -330,7 +335,7 @@ void matvec (const real& alpha,
   PertDomain -> step = 0;
   PertDomain -> time = 0.0;
 
-  integrate (PertDomain, analyst, linear);
+  integrate (PertDomain, linear);
 
   for (i = 0; i < NC; i++)
     for (k = 0; k < NZ; k++)
