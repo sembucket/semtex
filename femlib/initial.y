@@ -26,17 +26,17 @@
  * void   initialize  (void);                                                *
  * double interpret   (char *);                                              *
  *                                                                           *
- * void   set_option  (char *, int);                                         *
- * int    get_option  (char *);                                              *
- * void   show_option (FILE *);                                              *
+ * void   setOption  (char *, int);                                          *
+ * int    getOption  (char *);                                               *
+ * void   showOption (FILE *);                                               *
  *                                                                           *
- * void   set_iparam  (char *, int);                                         *
- * int    get_iparam  (char *);                                              *
- * void   show_iparam (FILE *);                                              *
+ * void   setIparam  (char *, int);                                          *
+ * int    getIparam  (char *);                                               *
+ * void   showIparam (FILE *);                                               *
  *                                                                           *
- * void   set_dparam  (char *, double);                                      *
- * double get_dparam  (char *);                                              *
- * void   show_dparam (FILE *);                                              *
+ * void   setDparam  (char *, double);                                       *
+ * double getDparam  (char *);                                               *
+ * void   shoDdparam (FILE *);                                               *
  *                                                                           *
  *****************************************************************************/
 
@@ -234,7 +234,7 @@ double interpret(char *s)
  * ========================================================================= */
 {
   if (strlen(s) > FILENAME_MAX)
-    message("in interpret(): too many characters passed:\n", s, ERROR);
+    message("in interpret(): too many characters passed\n", s, ERROR);
   
   strcpy(func_string, s);
   strcat(func_string, "\n");
@@ -249,7 +249,7 @@ double interpret(char *s)
 
 
 
-void set_option(char *s, int v)
+void setOption(char *s, int v)
 /* ========================================================================= *
  * Set option on list true/false, or install it.                             *
  * ========================================================================= */
@@ -270,7 +270,7 @@ void set_option(char *s, int v)
 
 
 
-int get_option(char *s)
+int getOption(char *s)
 /* ========================================================================= *
  * Retrieve value from option list.                                          *
  * ========================================================================= */
@@ -282,14 +282,15 @@ int get_option(char *s)
     if (strcmp(sp->name, s) == 0)
       return sp->u.ival;
 
-  message("get_option(): name not found: ", s, WARNING);
+  message("getOption(): name not found", s, WARNING);
+  return 0;
 }
     
 
 
 
 
-void show_option(FILE *fp)
+void showOption(FILE *fp)
 /* ========================================================================= *
  * Echo option list to fp.                                                   *
  * ========================================================================= */
@@ -305,7 +306,7 @@ void show_option(FILE *fp)
 
 
 
-void set_iparam(char *s, int v)
+void setIparam(char *s, int v)
 /* ========================================================================= *
  * Set or install iparam on list.                                            *
  * ========================================================================= */
@@ -326,7 +327,7 @@ void set_iparam(char *s, int v)
 
 
 
-int get_iparam(char *s)
+int getIparam(char *s)
 /* ========================================================================= *
  * Retrieve value from iparam list.                                          *
  * ========================================================================= */
@@ -338,14 +339,15 @@ int get_iparam(char *s)
     if (strcmp(sp->name, s) == 0)
       return sp->u.ival;
 
-  message("get_iparam(): name not found:", s, WARNING);
+  message("getIparam(): name not found", s, WARNING);
+  return 0;
 }
     
 
 
 
 
-void show_iparam(FILE *fp)
+void showIparam(FILE *fp)
 /* ========================================================================= *
  * Echo iparam list to fp.                                                   *
  * ========================================================================= */
@@ -361,7 +363,7 @@ void show_iparam(FILE *fp)
 
 
 
-void set_dparam(char *s, double v)
+void setDparam(char *s, double v)
 /* ========================================================================= *
  * Set or install dparam on list.                                            *
  * ========================================================================= */
@@ -382,7 +384,7 @@ void set_dparam(char *s, double v)
 
 
 
-double get_dparam(char *s)
+double getDparam(char *s)
 /* ========================================================================= *
  * Retrieve value from dparam list.                                          *
  * ========================================================================= */
@@ -393,14 +395,15 @@ double get_dparam(char *s)
     if (strcmp(sp->name, s) == 0)
       return sp->u.dval;
 
-  message("get_dparam(): name not found:", s, WARNING);
+  message("getDparam(): name not found", s, WARNING);
+  return 0;
 }
     
 
 
 
 
-void show_dparam(FILE *fp)
+void showDparam(FILE *fp)
 /* ========================================================================= *
  * Echo dparam list to fp.                                                   *
  * ========================================================================= */
@@ -577,10 +580,10 @@ static double errcheck(double d, char *s)
 {
   if (errno == EDOM) {
     errno = 0;
-    message("errcheck(): argument out of domain in call to ", s, ERROR);
+    message("errcheck(): argument out of domain in call to", s, ERROR);
   } else if (errno == ERANGE) {
     errno = 0;
-    message("errcheck(): result out of range in call to ", s, ERROR);
+    message("errcheck(): result out of range in call to", s, ERROR);
   }
 
   return d;
