@@ -77,6 +77,14 @@ typedef struct smeshopr {	/* ------- mesh operator information ------- */
 
 static sMeshOpr* sMhead = 0;
 
+typedef struct legcoef {	/* ---- Table for GLL Legendre transform --- */
+  integer         np  ;		/* Number of mesh points                     */
+  double*         dtab;		/* (np+1)*np table of polynomials & weights  */
+  float*          stab;		/* Single precision version of same          */
+  struct legcoef* next;		/* link to next one                          */
+} legCoef;			/* ----------------------------------------- */
+
+static legCoef* lChead = 0;
 
 
 void dQuadOps (const integer   rule, /* input: quadrature rule: GL or LL     */
@@ -705,4 +713,61 @@ void sIntpOps (const integer basis,
 
   freeDmatrix (dv, 0, 0);
   freeDmatrix (dt, 0, 0);
+}
+
+
+void LegCoefGL (const integer  np,
+		const double** cd,
+		const float**  cs)
+/* ------------------------------------------------------------------------- *
+ * Return pointers to look-up tables of Legendre polynomials and weights.
+ * The tables can be used in calculating discrete Legendre transforms.
+ *
+ * Tables contain values of Legendre polynomials evaluated at GLL
+ * quadrature points, and weights.  Storage is row-major: the first np
+ * points contain values of the zeroth Legendre polynomial at the GLL
+ * points (these are identically 1.0), the second np points the values
+ * of the first polynomial, etc.  So rows index polynomial, while
+ * columns index spatial location.  The final np points (the np-th row
+ * of the table, for 0-based indexing) contains the weights 1/gamma_k
+ * (see Canuto et al., 2.3.13).
+ * ------------------------------------------------------------------------- */
+{
+  register integer  found = 0;
+  register legCoef* p;
+
+  for (p = lChead; p; p = p->next) {
+    found = p -> np == np;
+    if (found) break;
+  }
+
+  if (!found) {		/* -- Make more storage and operators. */
+    register integer i, j;
+    const integer    nm = np - 1;
+    const double*    z;
+
+    p = (legCoef*) calloc (1, sizeof (legCoef));
+    if (lChead) p -> next = lChead;
+    lChead = p;
+
+    p -> np   = np;
+    p -> dtab = dvector (0, np * (np + 1) - 1);
+    p -> stab = svector (0, np * (np + 1) - 1);
+
+    dQuadOps (LL, np, np, &z, 0, 0, 0, 0, 0, 0);
+
+    for (i = 0; i < np; i++) {
+      p -> dtab[i + np * np] = (i < nm) ?  0.5*(i+i+1) : 0.5*nm;
+      p -> stab[i + np * np] = (float) p -> dtab[i + np * np];
+      for (j = 0; j < np; j++) {
+	p -> dtab[j + i * np] = pnleg (z[j], i);
+	p -> stab[j + i * np] = (float) p -> dtab[j + i * np];
+      }
+    }
+  }
+
+  /* p now points to valid storage: return requested operators. */
+
+  if (cd) *cd = (const double*) p -> dtab;
+  if (cs) *cs = (const float*)  p -> stab;
 }
