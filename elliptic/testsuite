@@ -99,5 +99,5 @@ rm helmholtz1*
 
 echo ""
 echo "-- 2D POISSON PROBLEM, 1 MIXED BC"
-elliptic helmholtz1
-rm helmholtz1*
+elliptic mixed1
+rm mixed1*
