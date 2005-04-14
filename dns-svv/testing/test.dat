@@ -1,0 +1,43 @@
+Brown & Minion's JCP 122 "thick" shear layer problem, integrated to
+time 1.2 starting with rho=30 and eps=0.05. Refer to Xu & Pasquetti
+JCP 196, 680-704 for SVV nomenclature. 256 rectangular elements on
+domain [0,1]x[0,1]. Standard stiffly-stable algorithm, skew-symmetric
+nonlinear terms, smoothed, second-order time.
+
+Mod <==> SVV stabilization occurs in modal polynomial space.
+Leg <==> SVV stabilization occurs in Legendre polynomial space.
+
+Reported values are either spatial-average divergence energy at end of
+integration, or number of steps at which blowup occurred.
+
+N_P=9, 1024 timesteps, SVV_EPSN=1/9
+-----------------------------------
+
+No SVV: blowup @ 390 steps
+
+SVV_MN	Mod	Leg
+6	490	470
+5	8.7e-4	870
+4	2.1e-3	1.7e-3
+3	2.0e-3	1.3e-3
+2	9.5e-4	7.3e-4
+1	370	380
+
+N_P=11, 2048 timesteps, SVV_EPSN=1/11
+-------------------------------------
+
+No SVV: blowup @ 1100 steps
+
+SVV_MN	Mod	Leg
+5	6.4e-4	4.0e-4
+4	2.6e-4	2.4e-4
+3	6.4e-4	4.5e-4
+2	6.2e-4	3.7e-4
+
+N_P=11, 3072 timesteps, SVV_EPSN=1/11
+-------------------------------------
+
+No SVV: blowup after 2420 steps.
+
+SVV_MN	Leg
+4	1.6e-4

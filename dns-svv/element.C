@@ -23,13 +23,13 @@ Element::Element (const int_t id,
   _npnp (_np * _np),
   _next (4 * (_np - 1)),
   _nint (_npnp - _next),
-  _cyl  (Geometry::system() == Geometry::Cylindrical)
+  _cyl  (Geometry::cylindrical())
 {
   const char routine[] = "Element::Element";
 
   if (_np < 2) message (routine, "need >= 2 knots for element edges", ERROR);
 
-  Femlib::quadrature (&_zr, &_wr, &_DVr, &_DTr, _np, LL, 0.0, 0.0);
+  Femlib::quadrature (&_zr, &_wr, &_DVr, &_DTr, _np, 'L', 0.0, 0.0);
 
   // -- Make special SVV-modified differentiation matrices if required.
 
@@ -402,8 +402,8 @@ void Element::project (const int_t   nsrc,
 {
   const real_t *IN, *IT;
 
-  Femlib::projection (0, &IT, nsrc, LL, 0.0, 0.0, ntgt, LL, 0.0, 0.0);
-  Femlib::projection (&IN, 0, nsrc, LL, 0.0, 0.0, ntgt, LL, 0.0, 0.0);
+  Femlib::projection (0, &IT, nsrc, 'L', 0.0, 0.0, ntgt, 'L', 0.0, 0.0);
+  Femlib::projection (&IN, 0, nsrc, 'L', 0.0, 0.0, ntgt, 'L', 0.0, 0.0);
   
   Blas::mxm (src, nsrc, IT,   nsrc, work, ntgt);
   Blas::mxm (IN,  ntgt, work, nsrc, tgt,  ntgt);
@@ -1070,7 +1070,7 @@ bool Element::locate (const real_t x    ,
 
   i = 0;
   do {
-    Femlib::interpolation (ir,is,dr,ds,_np,LL,0.0,0.0,_np,LL,0.0,0.0,r,s);
+    Femlib::interpolation (ir,is,dr,ds,_np,'L',0.0,0.0,_np,'L',0.0,0.0,r,s);
 
                Blas::mxv (_xmesh, _np, ir, _np, tp);
     F[0] = x - Blas::dot (_np, is, 1, tp, 1);
@@ -1134,7 +1134,7 @@ real_t Element::probe (const real_t  r   ,
   real_t* is = ir + _np;
   real_t* tp = is + _np;
 
-  Femlib::interpolation (ir,is,0,0,_np,LL,0.0,0.0,_np,LL,0.0,0.0,r,s);
+  Femlib::interpolation (ir,is,0,0,_np,'L',0.0,0.0,_np,'L',0.0,0.0,r,s);
 
   Blas::mxv        (src, _np, ir, _np, tp);
   return Blas::dot (_np, is, 1, tp, 1);
