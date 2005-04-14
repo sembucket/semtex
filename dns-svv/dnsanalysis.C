@@ -7,7 +7,7 @@
 
 static char RCS[] = "$Id$";
  
-#include "dns.h"
+#include <dns.h>
 
 
 DNSAnalyser::DNSAnalyser (Domain* D   ,
@@ -23,7 +23,7 @@ DNSAnalyser::DNSAnalyser (Domain* D   ,
 
     // -- Open state-variable file.
 
-    flx_strm.open (strcat (strcpy (str, src -> name), ".flx"));
+    flx_strm.open (strcat (strcpy (str, _src -> name), ".flx"));
     if (!flx_strm) message (routine, "can't open flux file",  ERROR);
 
     flx_strm << "# DNS state information file"      << endl;
@@ -33,19 +33,20 @@ DNSAnalyser::DNSAnalyser (Domain* D   ,
 }
 
 
-void DNSAnalyser::analyse (AuxField** work)
+void DNSAnalyser::analyse (AuxField** work0,
+			   AuxField** work1)
 // ---------------------------------------------------------------------------
 // Step-by-step processing.
 // ---------------------------------------------------------------------------
 {
   const integer DIM = Geometry::nDim();
 
-  Analyser::analyse (work);
+  Analyser::analyse (work0, work1);
 
   ROOTONLY {
-    const bool periodic = !(src->step %  Femlib::ivalue ("IO_HIS")) ||
-                          !(src->step %  Femlib::ivalue ("IO_FLD"));
-    const bool final    =   src->step == Femlib::ivalue ("N_STEP");
+    const bool periodic = !(_src->step %  Femlib::ivalue ("IO_HIS")) ||
+                          !(_src->step %  Femlib::ivalue ("IO_FLD"));
+    const bool final    =   _src->step == Femlib::ivalue ("N_STEP");
     const bool state    = periodic || final;
 
     if (!state) return;
@@ -54,14 +55,14 @@ void DNSAnalyser::analyse (AuxField** work)
     char   s[StrMax];
 
     if (DIM == 3) {
-      pfor   = Field::normalTraction  (src -> u[3]);
-      vfor   = Field::tangentTraction (src -> u[0], src -> u[1], src -> u[2]);
+      pfor   = Field::normTraction (_src -> u[3]);
+      vfor   = Field::tangTraction (_src -> u[0], _src -> u[1], _src -> u[2]);
       tfor.x = pfor.x + vfor.x;
       tfor.y = pfor.y + vfor.y;
       tfor.z = pfor.z + vfor.z;
     } else {
-      pfor   = Field::normalTraction  (src -> u[2]);
-      vfor   = Field::tangentTraction (src -> u[0], src -> u[1]);
+      pfor   = Field::normTraction (_src -> u[2]);
+      vfor   = Field::tangTraction (_src -> u[0], _src -> u[1]);
       tfor.x = pfor.x + vfor.x;
       tfor.y = pfor.y + vfor.y;
       tfor.z = pfor.z = vfor.z = 0.0;
@@ -72,7 +73,7 @@ void DNSAnalyser::analyse (AuxField** work)
 	     "%#10.6g %#10.6g %#10.6g "
 	     "%#10.6g %#10.6g %#10.6g "
 	     "%#10.6g %#10.6g %#10.6g",
-	     src -> step, src -> time,
+	     _src -> step, _src -> time,
 	     pfor.x,   vfor.x,   tfor.x,
 	     pfor.y,   vfor.y,   tfor.y,
 	     pfor.z,   vfor.z,   tfor.z);
