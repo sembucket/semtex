@@ -210,7 +210,7 @@ static void viscoModel (const Domain* D ,
     const real_t N         = Femlib::value ("HB_N") - 1.0;
     const real_t Gamma_min = Femlib::value ("HB_ZERO");  // Limit shear.
 
-#if 0
+#if 1
     Veclib::clipup (nTot32, Gamma_min, sum, 1, tmp, 1);
     Veclib::spow   (nTot32, N, sum, 1, tmp, 1);
     Veclib::smul   (nTot32, K, tmp, 1, tmp, 1);
