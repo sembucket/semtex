@@ -344,18 +344,20 @@ static void covary  (map<char, AuxField*>& in  ,
 // This does the actual work of building energy equation terms.
 // ---------------------------------------------------------------------------
 {
-  const char   list2d[] = "uvpABCqdmnrsabGHIleMNOfgij";
-  const char   list3d[] = "uvwpABCDEFqdmnorstabcGHIJKLleMNOPQRfghijk";
+  const char   list2d[] = "ABCGHIIMNOabdefgijmnpqrsuv";
+  const char   list3d[] = "ABCDEFGHIJKLMNOPQRabcdefghijklmnopqrstuvw";
   const char*  names    = fieldNames (in);
   const int_t  nvel     = (strchr (names, 'w')) ? 3 : 2;
   const real_t kinvis   = Femlib::value ("KINVIS");
   char         err[StrMax];
 
-  if (nvel == 2 && !(strcmp (names, list2d) != 0)) {
-    sprintf (buf,"list of names should match %s: have %s", list2d, names);
-    message (prog, err, ERROR);
-  } else if (!(strcmp (names, list3d) != 0)) {
-    sprintf (buf,"list of names should match %s: have %s", list3d, names);
+  if (nvel == 2) {
+    if (strcmp (names, list2d) != 0) {
+      sprintf (err,"list of names should match %s: have %s", list2d, names);
+      message (prog, err, ERROR);
+    } 
+  } else if (strcmp (names, list3d) != 0) {
+    sprintf (err,"list of names should match %s: have %s", list3d, names);
     message (prog, err, ERROR);
   }
 
@@ -553,9 +555,7 @@ static void covary  (map<char, AuxField*>& in  ,
     work[0] -> timesPlus (*in['Q'], *in['s']);
   }
   *work[0] *= 2.0;
-  *out['8'] += *work[0];
-  *out['8'] *= *in['l'];
-  *out['8'] *= -2.0;
+  (*out['8'] += *work[0]) *= -2.0;
 
   // -- Compute term '6':
 
@@ -651,7 +651,6 @@ static void covary  (map<char, AuxField*>& in  ,
     work[0] -> timesPlus (*in['r'], *in['r']);
     work[0] -> timesPlus (*in['s'], *in['s']);
   }
-  *work[0] *= sqrt (2.0);
   work[0] -> timesPlus (*in['m'], *in['m']);
   work[0] -> timesPlus (*in['o'], *in['o']);
   if (nvel == 3) work[0] -> timesPlus (*in['t'], *in['t']);
@@ -682,10 +681,7 @@ static void covary  (map<char, AuxField*>& in  ,
 
   // -- Finally, compute the sum, 'S':
 
-  //  *out['S']  = *out['0'];
-
-  *out['S']  = 0.0;
-
+  *out['S']  = *out['1'];
   *out['S'] += *out['2'];
   *out['S'] += *out['3'];
   *out['S'] += *out['4'];
