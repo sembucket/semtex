@@ -48,8 +48,6 @@
  * Procedures: jn, yn, rad, ang, rejn, imjn, jacobi, womcos, womsin.
  *****************************************************************************/
 
-static char RCS[] = "$Id$";
-
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>

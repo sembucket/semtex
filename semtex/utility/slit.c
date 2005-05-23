@@ -10,8 +10,8 @@ static char RCS[] = "$Id$";
 #include <stdio.h>
 #include <ctype.h>
 
-#define MAXCOL	32
-#define	MAXSTR	32
+#define MAXCOL	256
+#define	MAXSTR	256
 #define NUMDIG	8
 
 int  parse   (char *strin, char *strout, int *pos, char sep);

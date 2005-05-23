@@ -1,5 +1,3 @@
-# $Id$
-
 his2d	13      # Plot a 2-D history file
 		# usage: his2d filename [start skip]
 		DATA $1
@@ -39,4 +37,6 @@ his3d	1	# Plot a 3-D history file
 		NextPlot 0
 		LIMITS t_his p_his BOX POINTS t_his p_his
 		XLABEL p(t)
+
+limcyc		window 1 1 1 1 limits u_his v_his box points u_his v_his
 

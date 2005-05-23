@@ -325,18 +325,20 @@ static void covary  (map<char, AuxField*>& in  ,
 // This does the actual work of building energy equation terms.
 // ---------------------------------------------------------------------------
 {
-  const char   list2d[] = "uvpABCqdmnrsabGHI";
-  const char   list3d[] = "uvwpABCDEFqdmnorstabcGHIJKL";
+  const char   list2d[] = "ABCGHIabdmnpqrsuv";
+  const char   list3d[] = "ABCDEFGHIJKLabcdmnopqrstuvw";
   const char*  names    = fieldNames (in);
   const int_t  nvel     = (strchr (names, 'w')) ? 3 : 2;
   const real_t kinvis   = Femlib::value ("KINVIS");
   char         err[StrMax];
 
-  if (nvel == 2 && !(strcmp (names, list2d) != 0)) {
-    sprintf (buf,"list of names should match %s: have %s", list2d, names);
-    message (prog, err, ERROR);
-  } else if (!(strcmp (names, list3d) != 0)) {
-    sprintf (buf,"list of names should match %s: have %s", list3d, names);
+  if (nvel == 2) {
+    if (strcmp (names, list2d) != 0) {
+      sprintf (err,"list of names should match %s: have %s", list2d, names);
+      message (prog, err, ERROR);
+    } 
+  } else if (strcmp (names, list3d) != 0) {
+    sprintf (err,"list of names should match %s: have %s", list3d, names);
     message (prog, err, ERROR);
   }
 
@@ -525,9 +527,7 @@ static void covary  (map<char, AuxField*>& in  ,
 
   // -- Finally, compute the sum, 'S' (should converge to zero):
 
-  //  *out['S']  = *out['1'];
-  *out['S'] = 0.0;
-
+  *out['S']  = *out['1'];
   *out['S'] += *out['2'];
   *out['S'] += *out['3'];
   *out['S'] += *out['4'];
