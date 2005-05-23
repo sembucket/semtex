@@ -41,83 +41,90 @@ void nnewtAnalyser::analyse (AuxField** work, AuxField** temp, AuxField* NNV)
   int_t       i;
 
   ROOTONLY NNV -> addToPlane (0, Femlib::value ("KINVIS"));  
-  Analyser::analyse (work, temp);
+
   
   const bool periodic = !(_src->step %  Femlib::ivalue("IO_HIS")) ||
                         !(_src->step %  Femlib::ivalue("IO_FLD"));
   const bool final    =   _src->step == Femlib::ivalue("N_STEP");
   const bool state    = periodic || final;
   
-  if (!state) return;
+  if (state) {
 
-  if (Geometry::cylindrical()) {
-    flx_strm << "*** Cylindrical Analysis Not Yet Coded" << endl;
-    return;
-  }
+    if (Geometry::cylindrical()) {
+      flx_strm << "*** Cylindrical Analysis Not Yet Coded" << endl;
+      return;
+    }
 
-  // -- We are going to work out loads on walls:
+    // -- We are going to work out loads on walls:
 
-  Vector pfor, vfor, tfor;
-  char   s[StrMax];
+    Vector pfor, vfor, tfor;
+    char   s[StrMax];
   
-  NNV -> transform (INVERSE);
+    NNV -> transform (INVERSE);
 
-  // -- First do the 2-D components:
+    // -- First do the 2-D components:
 
-  *(work[0]) = *(_src -> u[0]);
-  *(temp[0]) = *(_src -> u[1]);
-  *(work[1]) = *(work[0]);
-  *(temp[1]) = *(temp[0]);
-
-  for (i = 0; i < 2; i++) {
-    (*(work[i])) . gradient (i);
-    (*(temp[i])) . gradient (i);
-    work[i] -> transform (INVERSE);
-    temp[i] -> transform (INVERSE);
-    *(work[i]) *= *NNV;
-    *(temp[i]) *= *NNV;
-    work[i] -> transform (FORWARD);
-    temp[i] -> transform (FORWARD);
-  }
-
-  ROOTONLY {
-    tfor.z = pfor.z = vfor.z = 0.0;
-    pfor   = Field::normTraction (_src -> u[DIM]);
-    vfor   = Field::xytangTractionNN (_src -> u[0], work, temp);
-    tfor.x = pfor.x + vfor.x;
-    tfor.y = pfor.y + vfor.y;
-    tfor.z = pfor.z;
-  }
-
-  // -- Now do the Z-component if needed. 
-
-  if (DIM == 3) {
-    *(work[0]) = *(_src -> u[2]);
+    *(work[0]) = *(_src -> u[0]);
+    *(temp[0]) = *(_src -> u[1]);
     *(work[1]) = *(work[0]);
+    *(temp[1]) = *(temp[0]);
 
     for (i = 0; i < 2; i++) {
       (*(work[i])) . gradient (i);
+      (*(temp[i])) . gradient (i);
       work[i] -> transform (INVERSE);
+      temp[i] -> transform (INVERSE);
       *(work[i]) *= *NNV;
+      *(temp[i]) *= *NNV;
       work[i] -> transform (FORWARD);
+      temp[i] -> transform (FORWARD);
     }
     
     ROOTONLY {
-      vfor.z  = (Field::ztangTractionNN (_src -> u[2], work)).z;
-      tfor.z += vfor.z;
+      tfor.z = pfor.z = vfor.z = 0.0;
+      pfor   = Field::normTraction (_src -> u[DIM]);
+      vfor   = Field::xytangTractionNN (_src -> u[0], work, temp);
+      tfor.x = pfor.x + vfor.x;
+      tfor.y = pfor.y + vfor.y;
+      tfor.z = pfor.z;
+    }
+
+    // -- Now do the Z-component if needed. 
+
+    if (DIM == 3) {
+      *(work[0]) = *(_src -> u[2]);
+      *(work[1]) = *(work[0]);
+
+      for (i = 0; i < 2; i++) {
+	(*(work[i])) . gradient (i);
+	work[i] -> transform (INVERSE);
+	*(work[i]) *= *NNV;
+	work[i] -> transform (FORWARD);
+      }
+    
+      ROOTONLY {
+	vfor.z  = (Field::ztangTractionNN (_src -> u[2], work)).z;
+	tfor.z += vfor.z;
+      }
+    }
+  
+    ROOTONLY {
+      sprintf (s,
+	       "%#6d %#10.6g "
+	       "%#10.6g %#10.6g %#10.6g "
+	       "%#10.6g %#10.6g %#10.6g "
+	       "%#10.6g %#10.6g %#10.6g",
+	       _src -> step, _src -> time,
+	       pfor.x,   vfor.x,   tfor.x,
+	       pfor.y,   vfor.y,   tfor.y,
+	       pfor.z,   vfor.z,   tfor.z);
+    
+      flx_strm << s << endl;
     }
   }
-  
-  ROOTONLY { sprintf (s,
-	     "%#6d %#10.6g "
-	     "%#10.6g %#10.6g %#10.6g "
-	     "%#10.6g %#10.6g %#10.6g "
-	     "%#10.6g %#10.6g %#10.6g",
-	     _src -> step, _src -> time,
-	     pfor.x,   vfor.x,   tfor.x,
-	     pfor.y,   vfor.y,   tfor.y,
-	     pfor.z,   vfor.z,   tfor.z);
 
-    flx_strm << s << endl;
-  }
+  // -- This is done after all the wall computations in nnewt because for
+  //    AVERAGE = 3 the pressure (needed for wall loads) will get destroyed.
+
+  Analyser::analyse (work, temp);
 }

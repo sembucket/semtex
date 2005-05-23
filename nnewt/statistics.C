@@ -474,8 +474,8 @@ void Statistics::update (AuxField** wrka,
 
     _raw['u'] -> transform (FORWARD);
     _raw['v'] -> transform (FORWARD);
-    if (_nvel == 3)
-      _raw['w'] -> transform (FORWARD);
+    if (_nvel == 3) _raw['w'] -> transform (FORWARD);
+    _raw['l'] -> transform (FORWARD);
   }
 
   // -- Normalise and smooth running averages.
