@@ -1,5 +1,3 @@
-# $Id$
-
 moden 1		# Plot Modal energies
 		DATA $1
 		READ { t 1 m 2 e 3 }

@@ -1,5 +1,3 @@
-# $Id$
-
 arro	4	# Draw an arrow-head pointing along line (x1,y1)--(x2,y2).
 		# Input is in pairs: $1 = x1, $2 = y1, $3 = x2, $4 = y2.
 		# _dl is defined as some length (typically in screen coords).

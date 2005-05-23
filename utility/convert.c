@@ -62,7 +62,7 @@ static char  usage[] = "Usage: convert [-format] [-h] [-v] [-o output] "
 
 static void   getargs      (int, char**, FILE**, FILE**, FORMAT*, int*);
 static void   error        (const char*);
-static void   get_data     (FILE*, const FORMAT, const FORMAT,
+static void   get_data     (FILE*, const int, const FORMAT, const FORMAT,
 			    const int, const int, double**);
 static void   put_data     (FILE*, const FORMAT, const FORMAT,
 			    const int, const int, double**);
@@ -135,15 +135,16 @@ int main (int    argc,
       fprintf (stderr, "%s: converting %1d fields, %1d points ",
 	       prog, nfields, npts);
     
-    get_data (fp_in, inputF, machineF, npts, nfields, data);
+    get_data (fp_in, selected, inputF, machineF, npts, nfields, data);
     if (selected) put_data (fp_out, inputF, outputF,  npts, nfields, data);
 
     /* -- Deallocate storage. */
 
     for (n = 0; n < nfields; n++)
       free (data[n]);
-    free (data);    
+    free (data);
 
+    if (selected) /* -- No need to do any more work: quit. */ break;
   }
 
   return EXIT_SUCCESS;
@@ -370,14 +371,18 @@ static FORMAT classify (const char* s)
 }
 
 
-static void get_data (FILE*        fp     ,
-		      const FORMAT format ,
-		      const FORMAT machine,
-		      const int    npts   ,
-		      const int    nfields,
-		      double**     data   )
+static void get_data (FILE*        fp      ,
+		      const int    selected,
+		      const FORMAT format  ,
+		      const FORMAT machine ,
+		      const int    npts    ,
+		      const int    nfields ,
+		      double**     data    )
 /* ------------------------------------------------------------------------- *
  * Read into data according to signalled format of input stream.
+ * 
+ * If this is a binary read, we can just fseek over data if this is
+ * not the selected set.
  * ------------------------------------------------------------------------- */
 {
   register int i, j;
@@ -407,13 +412,19 @@ static void get_data (FILE*        fp     ,
     if (verbose) fprintf (stderr, "(IEEE-LITTLE_ENDIAN --> ");
 
   READ_BINARY:
-
-    for (i = 0; i < nfields; i++)
-      if (fread (data[i], sizeof (double), npts, fp) != npts) {
-	sprintf (err, "%s: an error has occured while reading (binary)", prog);
-	error (err);
+    if (selected) {
+      for (i = 0; i < nfields; i++)
+	if (fread (data[i], sizeof (double), npts, fp) != npts) {
+	  sprintf (err,"%s: an error has occured while reading (binary)",prog);
+	  error   (err);
+	}
+      if (swap) for (i = 0; i < nfields; i++) dswap (npts, data[i]);
+    } else {
+      if (fseek (fp, sizeof(double)*npts*nfields, 1)) {
+	sprintf (err,"%s: an error has occured while seeking (binary)",prog);
+	error   (err);
       }
-    if (swap) for (i = 0; i < nfields; i++) dswap (npts, data[i]);
+    }
     break;
 
   default: case UNKNOWN:

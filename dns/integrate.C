@@ -320,9 +320,9 @@ static void Solve (Domain*       D,
   const int_t step = D -> step;
 
   if (i < NCOM && step < NORD) { // -- We need a temporary matrix system.
-    const int_t Je      = min (step, NORD);    
-    const int_t base    = Geometry::baseMode();
-    const int_t nmodes  = Geometry::nModeProc();
+    const int_t Je     = min (step, NORD);    
+    const int_t base   = Geometry::baseMode();
+    const int_t nmodes = Geometry::nModeProc();
 
     vector<real_t> alpha (Je + 1);
     Integration::StifflyStable (Je, &alpha[0]);

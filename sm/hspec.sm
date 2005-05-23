@@ -1,5 +1,3 @@
-# $Id$
-
 hspec	24	# usage: hspec t f [nk] [kmax]
 		#
 		# Show the "spectrum" of a history file

@@ -51,10 +51,10 @@ ModalMatrixSys::ModalMatrixSys (const real_t            lambda2 ,
   }
 
   for (mode = baseMode; mode < baseMode + numModes; mode++) {
-    const int_t    modeIndex = mode * Geometry::kFund();
-    const NumberSys* N  = Bsys -> Nsys (modeIndex);
-    const real_t    betak2   = sqr (Field::modeConstant (name, modeIndex, beta));
-    const int_t localMode = mode - baseMode;
+    const int_t      modeIndex = mode * Geometry::kFund();
+    const NumberSys* N         = Bsys -> Nsys(modeIndex);
+    const real_t     betak2    = sqr(Field::modeConstant(name,modeIndex,beta));
+    const int_t      localMode = mode - baseMode;
 
     for (found = false, m = MS.begin(); !found && m != MS.end(); m++) {
       M     = *m;
@@ -83,14 +83,17 @@ ModalMatrixSys::~ModalMatrixSys ()
 // ---------------------------------------------------------------------------
 // Destructor hands off calls to MatrixSys::~MatrixSys.  Note there
 // can be side effects here, owing to the multiple use of MatrixSys*'s
-// in different ModalMatrixSys's.  If multiple related ModalMatrixSys's
-// exist, it is advisable to delete and recreal_tte all of them before
-// attempting reuse.
+// in different ModalMatrixSys's.  If multiple related
+// ModalMatrixSys's exist, it is advisable to delete and recreate all
+// of them before attempting reuse.
 // ---------------------------------------------------------------------------
 {
   int_t N = _Msys.size();
-  while (N--) delete (_Msys[N]);
-  MS.resize (0);
+  vector<MatrixSys*>::iterator p;
+  while (N--) {
+    for (p = MS.begin(); p != MS.end(); p++)
+      if (*p == _Msys[N]) { delete (_Msys[N]); MS.erase(p); break; }
+  }
 }
 
 

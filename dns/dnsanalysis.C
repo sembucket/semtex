@@ -152,16 +152,17 @@ void DNSAnalyser::analyse (AuxField** work0,
       }
 
 #if 1
-      // -- Just output normal and tangential traction magnitudes.
-    Veclib::vhypot (_nline,&_work[0],1,&_work[1],1,&_work[0],1);
-    Veclib::vmag   (_nline,&_work[2],1,&_work[3],1,&_work[4],1,&_work[1],1);
+      // -- Just output normal and 2 tangential tractions.
+    Veclib::vhypot (_nline, &_work[0], 1, &_work[1], 1, &_work[0], 1);
+    Veclib::vhypot (_nline, &_work[2], 1, &_work[3], 1, &_work[1], 1);
+    Veclib::copy   (_nline, &_work[4], 1, &_work[2], 1);
 #endif
 
       // -- Write to file.
 
       // -- Header: this will be a lot like a standard header.
 #if 1
-      //    Output normal and tangential traction magnitudes, 'n' & 't'.
+      //    Output normal and tangential traction magnitudes, 'n', 't' & 's'.
 #else
       //    In order, the components output are Nx, Ny, Tx, Ty, Tz,
       //    where N stands for normal and T for tangential.
@@ -170,7 +171,7 @@ void DNSAnalyser::analyse (AuxField** work0,
       //    we will use abcde to denote these components.
 
       ROOTONLY {
-	const char *hdr_fmt[] = { 
+	const char *Hdr_Fmt[] = { 
 	  "%-25s "                "Session\n",
 	  "%-25s "                "Created\n",
 	  "%-5d1    %-5d %-10d"   "Nr, Ns, Nz, Elements\n",
@@ -188,21 +189,21 @@ void DNSAnalyser::analyse (AuxField** work0,
 
 	strftime (s2, 25, "%a %b %d %H:%M:%S %Y", localtime (&tp));
 	
-	sprintf (s1, hdr_fmt[0], _src->name);               _wss_strm << s1;
-	sprintf (s1, hdr_fmt[1], s2);                       _wss_strm << s1;
-	sprintf (s1, hdr_fmt[2], nP, nZ, _nwall);           _wss_strm << s1;
-	sprintf (s1, hdr_fmt[3], _src->step);               _wss_strm << s1;
-	sprintf (s1, hdr_fmt[4], _src->time);               _wss_strm << s1;
-	sprintf (s1, hdr_fmt[5], Femlib::value ("D_T"));    _wss_strm << s1;
-	sprintf (s1, hdr_fmt[6], Femlib::value ("KINVIS")); _wss_strm << s1;
-	sprintf (s1, hdr_fmt[7], Femlib::value ("BETA"));   _wss_strm << s1;
+	sprintf (s1, Hdr_Fmt[0], _src->name);               _wss_strm << s1;
+	sprintf (s1, Hdr_Fmt[1], s2);                       _wss_strm << s1;
+	sprintf (s1, Hdr_Fmt[2], nP, nZ, _nwall);           _wss_strm << s1;
+	sprintf (s1, Hdr_Fmt[3], _src->step);               _wss_strm << s1;
+	sprintf (s1, Hdr_Fmt[4], _src->time);               _wss_strm << s1;
+	sprintf (s1, Hdr_Fmt[5], Femlib::value ("D_T"));    _wss_strm << s1;
+	sprintf (s1, Hdr_Fmt[6], Femlib::value ("KINVIS")); _wss_strm << s1;
+	sprintf (s1, Hdr_Fmt[7], Femlib::value ("BETA"));   _wss_strm << s1;
 #if 1
-	sprintf (s1, hdr_fmt[8], "nt");                     _wss_strm << s1;
+	sprintf (s1, Hdr_Fmt[8], "nts");                    _wss_strm << s1;
 #else
-	sprintf (s1, hdr_fmt[8], "abcde");                  _wss_strm << s1;
+	sprintf (s1, Hdr_Fmt[8], "abcde");                  _wss_strm << s1;
 #endif
 	sprintf (s2, "binary "); Veclib::describeFormat  (s2 + strlen (s2));
-	sprintf (s1, hdr_fmt[9], s2);                       _wss_strm << s1;
+	sprintf (s1, Hdr_Fmt[9], s2);                       _wss_strm << s1;
 
 	if (!_wss_strm) message (routine, "failed writing WSS header", ERROR);
 	_wss_strm << flush;
@@ -212,7 +213,7 @@ void DNSAnalyser::analyse (AuxField** work0,
 
       if (nPR > 1) {		// -- Parallel.
 #if 1
-	for (j = 0; j < 2; j++)	// -- Reminder: there are 2 magnitudes.
+	for (j = 0; j < 3; j++)	// -- Reminder: there are 3 components.
 #else
 	for (j = 0; j < 5; j++)	// -- Reminder: there are 5 components.
 #endif
@@ -240,7 +241,7 @@ void DNSAnalyser::analyse (AuxField** work0,
 	    }
       } else {			// -- Serial.
 #if 1
-	for (j = 0; j < 2; j++)
+	for (j = 0; j < 3; j++)
 #else
 	for (j = 0; j < 5; j++)
 #endif
