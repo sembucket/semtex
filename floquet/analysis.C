@@ -87,7 +87,8 @@ Analyser::Analyser (Domain* D   ,
 }
 
 
-void Analyser::analyse (AuxField** work)
+void Analyser::analyse (AuxField** work,
+			AuxField** not_used)
 // ---------------------------------------------------------------------------
 // Step-by-step processing.  If SPAWN was set, add more particles at
 // original absolute positions.

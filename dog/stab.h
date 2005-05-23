@@ -17,7 +17,7 @@ class StabAnalyser : public Analyser
 {
 public:
   StabAnalyser (Domain*, FEML*);
-  void analyse (AuxField**);
+  void analyse (AuxField**, AuxField** = 0);
 
 private:
   vector<HistoryPoint*> base_history; // -- Locations, etc. of history points.

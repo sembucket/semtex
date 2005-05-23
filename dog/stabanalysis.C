@@ -49,12 +49,13 @@ StabAnalyser::StabAnalyser (Domain* D   ,
 }
 
 
-void StabAnalyser::analyse (AuxField** work)
+void StabAnalyser::analyse (AuxField** work0,
+			    AuxField** work1)
 // ---------------------------------------------------------------------------
 // Step-by-step processing.
 // ---------------------------------------------------------------------------
 {
-  Analyser::analyse (work);
+  Analyser::analyse (work0, work1);
 
   const bool periodic = !(_src -> step %  Femlib::ivalue ("IO_HIS")) ||
                         !(_src -> step %  Femlib::ivalue ("IO_FLD"));
