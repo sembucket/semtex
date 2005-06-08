@@ -20,7 +20,8 @@ utility   Various utility programs.
 
 The code has been tested with (and makefiles support) the following
 operating systems: SGI IRIX6.5 (32 & 64-bit), DEC OSF1/Digital Unix,
-GNU/Linux (iX86 & alpha), Fujitsu VPP300, NEC SX-4/5 and Mac OSX 10.3.
+GNU/Linux (iX86 & alpha), Fujitsu VPP300, NEC SX-4/5, Mac OSX 10.3,
+Linux-AMD Opteron x86_64 and Linix-Intel Itanium-2 ia64.
 
 Makefiles assume GNUmake: for purposes of automated compilation and
 testing decribed below "gmake", in your path, should find GNUmake.

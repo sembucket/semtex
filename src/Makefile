@@ -32,13 +32,44 @@ ifeq ($(ARCH),Linux)
   ifeq ($(MACH),x86_64)
     ARCH = Linux-x86_64
   endif
+  ifeq ($(MACH),ia64)
+    ARCH = Linux-ia64
+  endif
 endif
 
 # ----------------------------------------------------------------------------
 # Compiler options for specific machines.
 #
 
-ifeq ($(ARCH),Linux-x86_64)             # -- Linux Opternon w GNU compilation.
+ifeq ($(ARCH),Linux-ia64)               # -- Itanium-2, Intel compilers.
+  CXX      = icc
+  LD       = icc
+  CC       = icc
+  FC       = ifort
+ifdef DEBUG
+  OPT    = -g
+else
+  OPT    = -O3
+endif
+CFLAGS   = $(DEFINES) $(OPT)
+FFLAGS   = $(DEFINES) $(OPT)
+CXXFLAGS = $(DEFINES) $(OPT) -Wno-deprecated
+RANLIB   = ranlib
+FCHOME   = /opt/intel-fc/9.0.009
+GOTOHOME = /home/565/hmb565/lib
+MKLHOME  = /opt/intel-mkl/7.2.008/mkl72/lib/64
+F77LIBS  = -L$(GOTOHOME) -lmkl_lapack -lgoto_it2-r0.95 -lmkl_i2p -lguide -L$(FCH
+OME)/lib -lifcore -lstdc++ -lipr
+LDFLAGS  = $(OPT)  $(LIBDIR)
+CLDFLAGS = $(LDFLAGS)
+ifdef MPI
+  LDFLAGS  += -lfem_mp -lvec  $(F77LIBS) -L/opt/mpt-1.11.1/lib -lmpi -limf
+else
+  LDFLAGS += -lfem -lvec $(F77LIBS) -limf
+endif
+endif
+
+ifeq ($(ARCH),Linux-x86_64)             # -- Linux Opteron, GNU compilation.
 CXX      = g++
 LD       = g++
 CC       = gcc
@@ -56,9 +87,9 @@ LIBDIR  += -L/usr/local/lib
 LDFLAGS  = $(OPT) $(LIBDIR)
 RANLIB   = ranlib
 ifdef MPI
-	LDFLAGS += -lfem_mp -lvec $(F77LIBS) -lmpi -llam -lpthread
+  LDFLAGS += -lfem_mp -lvec $(F77LIBS) -lmpi -llam -lpthread
 else
-	LDFLAGS += -lfem -lvec $(F77LIBS)
+  LDFLAGS += -lfem -lvec $(F77LIBS)
 endif
 CLDFLAGS = $(LDFLAGS)
 endif
