@@ -144,7 +144,7 @@ int main (int    argc,
       free (data[n]);
     free (data);
 
-    if (selected) /* -- No need to do any more work: quit. */ break;
+    if (ndump && selected) /* -- No need to do any more work: quit. */ break;
   }
 
   return EXIT_SUCCESS;
@@ -184,9 +184,9 @@ static void getargs (int     argc  ,
  * Parse command line arguments.
  * ------------------------------------------------------------------------- */
 {
-  char  c;
-  int   i;
-  char  fname[FILENAME_MAX];
+  char c;
+  int  i;
+  char fname[FILENAME_MAX];
 
   while (--argc && (*++argv)[0] == '-')
     switch (c = *++argv[0]) {

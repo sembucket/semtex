@@ -46,8 +46,7 @@ slit chop:\
 # ----------------------------------------------------------------------------
 # Standalone (bar semtex standard libs) C programs.
 #
-nosrc: avgdump moden noiz rstress xplane sem2tec convert repeatz repeatxy
-avgdump moden noiz rstress xplane sem2tec convert repeatz repeatxy: \
+nosrc: avgdump moden noiz rstress xplane sem2tec convert repeatz repeatxy} \
 	avgdump.c moden.c xplane.c noiz.c rstress.c sem2tec.c \
         convert.c repeatz.c repeatxy
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.c $(CLDFLAGS) -lm
