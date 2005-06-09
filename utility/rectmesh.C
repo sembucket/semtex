@@ -3,7 +3,8 @@
 //
 // Usage:
 // -----
-// rectmesh [file]
+// rectmesh [-b <num>] [file]
+//   -b <num> ... output in <num> blocks, contiguous in x. [Default: 1]
 //
 // Files:
 // -----
@@ -18,7 +19,7 @@ static char RCS[] = "$Id$";
 #include <sem.h>
 
 static char prog[] = "rectmesh";
-static void getargs (int, char**, istream*&);
+static void getargs (int, char**, int&, istream*&);
 static void header  ();
 
 
@@ -33,10 +34,10 @@ int main (int    argc,
   real                    x, y;
   stack <real>            X, Y;
   vector<vector<Point*> > vertex;
-  int                     Nx = 0, Ny = 0;
-  int                     i, j, k;
+  int                     Nx = 0, Ny = 0, Nb = 1, NelB;
+  int                     i, j, k, b;
 
-  getargs (argc, argv, input);
+  getargs (argc, argv, Nb, input);
 
   // -- Read x, then y locations onto two stacks.
 
@@ -46,12 +47,19 @@ int main (int    argc,
     Nx++;
   }
 
+  if ((Nx - 1) % Nb)
+    message (prog,
+	     "Nx-1 (No. of elements in x) must be an integer multiple of Nb",
+	     ERROR);
+
   while (input -> getline(line, STR_MAX)) {
     istrstream (line, strlen(line)) >> y;
     Y.push (y);
     Ny++;
   }
   
+  NelB = (Nx-1)/Nb*(Ny-1);
+
   // -- Insert into vertex matrix.
 
   vertex.resize (Ny);
@@ -91,16 +99,28 @@ int main (int    argc,
 
   // -- Print up elements.
 
-  cout << endl << "<ELEMENTS NUMBER=" << (Nx-1)*(Ny-1) << ">" << endl;
+  cout << endl << "<ELEMENTS NUMBER=" << NelB*Nb << ">" << endl;
 
-  for (k = 0, i = 0; i < (Ny - 1); i++)
-    for (j = 0; j < (Nx - 1); j++)
-      cout << setw(5) << ++k << "\t" << "<Q>"
+#if 1
+  for (k = 0, b = 0; b < Nb; b++)
+    for (i = 0; i < (Ny - 1); i++)
+      for (j = b*((Nx-1)/Nb); j < (b+1)*((Nx-1)/Nb); j++, k++)
+	cout << setw(5) << k << "\t" << "<Q>"
+	     << setw(5) << j +  i      * Nx + 1
+	     << setw(5) << j +  i      * Nx + 2
+	     << setw(5) << j + (i + 1) * Nx + 2
+	     << setw(5) << j + (i + 1) * Nx + 1
+	     << "    </Q>" << endl;
+#else
+  for (k = 1, i = 0; i < (Ny - 1); i++)
+    for (j = 0; j < (Nx - 1); j++, k++)
+      cout << setw(5) << k << "\t" << "<Q>"
 	   << setw(5) << j +  i      * Nx + 1
 	   << setw(5) << j +  i      * Nx + 2
 	   << setw(5) << j + (i + 1) * Nx + 2
 	   << setw(5) << j + (i + 1) * Nx + 1
 	   << "    </Q>" << endl;
+#endif
     
   cout << "</ELEMENTS>" << endl;
 
@@ -108,29 +128,51 @@ int main (int    argc,
 
   cout << endl << "<SURFACES NUMBER=" << 2*((Nx-1)+(Ny-1)) << ">" << endl;
 
-  for (k = 0, j = 0; j < (Nx - 1); j++)
-    cout << setw(5) << ++k << setw(5) 
+#if 1
+  for (k = 1, b = 0; b < Nb; b++)
+    for (j = 0; j < (Nx-1)/Nb; j++, k++)
+      cout << setw(5) << k << setw(5) 
+	   << b*NelB + j + 1
+	   << "    1"
+	   << "    <B> w </B>" << endl;
+  for (i = 0; i < (Ny - 1); i++, k++)
+    cout << setw(5) << k 
+	 << setw(5) << (Nb - 1)*NelB + (i + 1)*(Nx - 1)/Nb
+	 << "    2"
+	 << "    <B> w </B>" << endl;
+  for (b = Nb; b > 0; b--)
+    for (j = (Nx-1)/Nb; j > 0; j--, k++)
+      cout << setw(5) << k 
+	   << setw(5) <<  b*NelB - (Nx - 1)/Nb + j
+	   << "    3"
+	   << "    <B> w </B>" << endl;
+  for (i = Ny - 1; i > 0; i--, k++)
+    cout << setw(5) << k 
+	 << setw(5) << (i - 1) * (Nx - 1)/Nb + 1   
+	 << "    4"
+	 << "    <B> w </B>" << endl;
+#else
+  for (k = 1, j = 0; j < (Nx - 1); j++, k++)
+    cout << setw(5) << k << setw(5) 
 	 <<  j + 1
 	 << "    1"
 	 << "    <B> w </B>" << endl;
-
-  for (i = 0; i < (Ny - 1); i++)
-    cout << setw(5) << ++k 
+  for (i = 0; i < (Ny - 1); i++, k++)
+    cout << setw(5) << k 
 	 << setw(5) << (i + 1) * (Nx - 1)
 	 << "    2"
 	 << "    <B> w </B>" << endl;
-
-  for (j = Nx - 1; j > 0; j--)
-    cout << setw(5) << ++k 
+  for (j = Nx - 1; j > 0; j--, k++)
+    cout << setw(5) << k 
 	 << setw(5) <<  j + (Nx - 1) * (Ny - 2)
 	 << "    3"
 	 << "    <B> w </B>" << endl;
-
-  for (i = Ny - 1; i > 0; i--)
-    cout << setw(5) << ++k 
+  for (i = Ny - 1; i > 0; i--, k++)
+    cout << setw(5) << k 
 	 << setw(5) << (i - 1) * (Nx - 1) + 1   
 	 << "    4"
 	 << "    <B> w </B>" << endl;
+#endif
     
   cout << "</SURFACES>" << endl;
 
@@ -140,6 +182,7 @@ int main (int    argc,
 
 static void getargs (int       argc ,
 		     char**    argv ,
+		     int&      Nb   ,
 		     istream*& input)
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
@@ -147,13 +190,18 @@ static void getargs (int       argc ,
 {
   char usage[] = "Usage: rectmesh [options] [file]\n"
     "  options:\n"
-    "  -h ... print this message\n";
+    "  -h       ... print this message\n"
+    "  -b <num> ... output in <num> blocks, contiguous in x [Default: 1]\n";
  
   while (--argc && **++argv == '-')
     switch (*++argv[0]) {
     case 'h':
       cout << usage;
       exit (EXIT_SUCCESS);
+      break;
+    case 'b':
+      if (*++argv[0]) Nb = atoi (*argv);
+      else {Nb = atoi (*++argv); argc--;}
       break;
     default:
       cerr << usage;
