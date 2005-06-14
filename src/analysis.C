@@ -116,25 +116,27 @@ Analyser::Analyser (Domain* D   ,
   } else
     _stats = 0;
 
-  // -- Initialise phase averaging.
+  // -- Initialise phase averaging by setting N_PHASE > 0.
   // -- Must also have defined tokens STEPS_P (steps per period)
   //    and N_PHASE (number of phase points per period)
   //    and STEPS_P modulo N_PHASE must be integer
   //    and N_STEP  modulo STEPS_P must be integer
+  //
+  // -- NB: set IO_FLD = STEPS_P / N_PHASE.
 
-  if (Femlib::ivalue ("PHASE")) {
-    
+  if (Femlib::ivalue ("N_PHASE")) {
+
     if (!Femlib::ivalue ("STEPS_P")) 
       message (routine, "phase averaging is on but STEPS_P not set", ERROR);
     
-    if (!Femlib::ivalue ("N_PHASE")) 
-      message (routine, "phase averaging is on but N_PHASE not set", ERROR);
-
     if (fabs(fmod(Femlib::value("STEPS_P"), Femlib::value("N_PHASE"))) > EPSDP)
       message (routine, "STEPS_P / N_PHASE non-integer", ERROR);
 
     if (fabs(fmod(Femlib::value("N_STEP"),  Femlib::value("STEPS_P"))) > EPSDP)
       message (routine, "N_STEP / STEPS_P non-integer", ERROR);
+
+    if (Femlib::ivalue("IO_FLD") != Femlib::ivalue("STEPS_P / N_PHASE"))
+      message (routine, "phase averaging: IO_FLD != STEPS_P / N_PHASE", ERROR);
 
     _ph_stats = new Statistics (D);
 

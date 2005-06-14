@@ -399,10 +399,10 @@ void Statistics::dump (const char* filename)
 // We also smooth all the outputs with the mass matrix.
 // ---------------------------------------------------------------------------
 {
-  const int_t  step     = _base -> step;
-  const bool   periodic = !(step %  Femlib::ivalue ("IO_FLD"));
-  const bool   initial  =   step == Femlib::ivalue ("IO_FLD");
-  const bool   final    =   step == Femlib::ivalue ("N_STEP");
+  const int_t step     = _base -> step;
+  const bool  periodic = !(step %  Femlib::ivalue ("IO_FLD"));
+  const bool  initial  =   step == Femlib::ivalue ("IO_FLD");
+  const bool  final    =   step == Femlib::ivalue ("N_STEP");
 
   if (!(periodic || final)) return;
 
@@ -579,86 +579,9 @@ void Statistics::phaseUpdate (const int_t j   ,
 
   sprintf (filename, "%s.%1d.phs", _name, j);
 
+  cout << filename << endl;
+
   this -> initialise (filename);
   this -> update     (wrka, wrkb);
   this -> dump       (filename);
-
-#if 0
-  ifstream ifile (s);
-  
-  VERBOSE cout << "-- Updating phase average " << j << ": ";
-
-  if (ifile) {
-    VERBOSE {
-      cout << "read from file " << s;
-      cout.flush();
-    }
-    ifile >> *this;
-    ifile.close();
-    for (i = 0; i < NT - NR; i++) _avg[i] -> transform (FORWARD);
-  
-  } else {			// -- No file, set to zero.
-    VERBOSE cout << "set to zero";
-    for (i = 0; i < NT; i++) *_avg[i] = 0.0;
-    _navg = 0;
-  }
-
-  VERBOSE cout << endl;
-
-  // -- Stuff has been read in to local buffers. Now do running average.
-
-  if (NR) {
-    
-    // -- Running averages and Reynolds stresses.
-
-    for (i = 0; i < NC; i++) {
-      *work[i] = *_src[i];
-       work[i] -> transform (INVERSE);
-    }
-
-    for (i = 0; i < NF; i++) *_avg[i] *= static_cast<real_t>(_navg);
-
-    for (i = 0; i < NF; i++) *_avg[i] += *_src[i];
-
-    _avg[NF + 0] -> timesPlus (*work[0], *work[0]);
-    _avg[NF + 1] -> timesPlus (*work[0], *work[1]);
-    _avg[NF + 2] -> timesPlus (*work[1], *work[1]);
-    
-    if (NC > 2) {
-      _avg[NF + 3] -> timesPlus (*work[0], *work[2]);
-      _avg[NF + 4] -> timesPlus (*work[1], *work[2]);
-      _avg[NF + 5] -> timesPlus (*work[2], *work[2]);
-    }
-
-    for (i = 0; i < NT; i++) *_avg[i] /= static_cast<real_t>(_navg + 1);
-
-  } else {
-
-    // -- Running averages only.
-
-    for (i = 0; i < NF; i++) {
-      *_avg[i] *= static_cast<real_t>(_navg);
-      *_avg[i] += *_src[i];
-      *_avg[i] /= static_cast<real_t>(_navg + 1);
-    }
-  }
-
-  // -- Increment the number of averages for output.
-  //    NB: This value is re-read from file each time we do an update,
-  //    so this increment does not get to corrupt other phase points.
-
-  _navg++;
-
-  // -- Write the updated averages back out to file.
-
-  ofstream ofile (s);
-
-  for (i = 0; i < NF; i++) _avg[i] -> transform (INVERSE);
-
-  ofile << *this;
-
-  for (i = 0; i < NF; i++) _avg[i] -> transform (FORWARD);
-
-  ROOTONLY ofile.close();
-#endif
 }

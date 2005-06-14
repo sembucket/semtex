@@ -56,7 +56,7 @@ static struct {
   "CHKPOINT"    ,   1   ,	/* -- Set checkpointing of field dumps.   */
   "AVERAGE"     ,   0   ,	/* -- Select averaging of fields.         */
   "SPAWN"       ,   0   ,	/* -- Set respawning for particle tracks. */
-  "PHASE"       ,   0   ,       /* -- Toggle phase averaging.             */
+  "N_PHASE"     ,   0   ,       /* -- Toggle phase averaging.             */
   
   /* -- Default integer values. */
 
