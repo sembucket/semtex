@@ -88,7 +88,7 @@ int main (int    argc,
 {
   FILE *avgfile = 0, *fldfile = 0;
   Dump *heada   = 0, *headf   = 0;
-  int  npts, ntot;
+  int  i, npts, ntot;
 
   getargs (argc, argv, &avgfile, &fldfile);
 
@@ -106,8 +106,14 @@ int main (int    argc,
 	heada -> nel != headf -> nel)
       message (prog, "structure of files don't match",           ERROR);
 
+#if 0
     if (!strstr (heada -> field, headf -> field))
       message (prog, "average fields don't match dumped fields", ERROR);
+#else
+    for (i = 0; i < strlen(headf -> field); i++)
+      if (!strchr (heada -> field, headf -> field[i]))
+      message (prog, "average fields don't match dumped fields", ERROR);
+#endif
 
     getdata   (avgfile, heada);
     getdata   (fldfile, headf);
