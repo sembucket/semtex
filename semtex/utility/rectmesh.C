@@ -102,7 +102,7 @@ int main (int    argc,
   cout << endl << "<ELEMENTS NUMBER=" << NelB*Nb << ">" << endl;
 
 #if 1
-  for (k = 0, b = 0; b < Nb; b++)
+  for (k = 1, b = 0; b < Nb; b++)
     for (i = 0; i < (Ny - 1); i++)
       for (j = b*((Nx-1)/Nb); j < (b+1)*((Nx-1)/Nb); j++, k++)
 	cout << setw(5) << k << "\t" << "<Q>"
