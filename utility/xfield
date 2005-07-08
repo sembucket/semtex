@@ -25,7 +25,7 @@ c                         Fields written
 w
 q
 XXXoooXXX
-convert -a $f | chop -s11 | slit -c$n > fld.asc
+convert -a $f | chop -s 11 | slit -c $n > fld.asc
 cat hdr.asc fld.asc  
 
 exit 0

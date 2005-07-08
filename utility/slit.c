@@ -20,14 +20,13 @@ int  getline (FILE *fp, char coltext[][MAXSTR], int *nwords);
 
 
 main(int argc, char *argv[])
-/*===========================================================================*
+/* ========================================================================= *
  * This does adminstration for the routines which do all the work.
- *===========================================================================*/
+ * ========================================================================= */
 {
   int	i, ncol=1, colnum[MAXCOL];
   char	num[NUMDIG];
   FILE *fp;
-  
   
   colnum[0] = 0;
   while (argc > 1 && argv[1][0] == '-') {
@@ -100,9 +99,6 @@ int parse(char *strin, char *strout, int *pos, char sep)
 }
 
 
-
-
-
 void slit(FILE *fp, int n, int *col)
 /* =========================================================================
  * Slit into columns, print up.
@@ -120,9 +116,6 @@ void slit(FILE *fp, int n, int *col)
     (void)printf("\n");
   }
 }
-
-
-
 
 
 int getline(FILE *fp, char coltext[][MAXSTR], int *nwords)
