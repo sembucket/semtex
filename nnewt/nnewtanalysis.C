@@ -125,6 +125,7 @@ void nnewtAnalyser::analyse (AuxField** work, AuxField** temp, AuxField* NNV)
 
   // -- This is done after all the wall computations in nnewt because for
   //    AVERAGE = 3 the pressure (needed for wall loads) will get destroyed.
+  //    However, any HISTORY POINT DATA FOR PRESSURE will then also be wrong.
 
   Analyser::analyse (work, temp);
 }

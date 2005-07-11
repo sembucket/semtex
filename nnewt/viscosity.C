@@ -191,15 +191,9 @@ static void viscoModel (const Domain* D ,
     const real_t N         = Femlib::value ("PL_N") - 1.0;
     const real_t Gamma_min = Femlib::value ("PL_ZERO");  // Limit shear.
 
-#if 1
     Veclib::clipup (nTot32, Gamma_min, sum, 1, tmp, 1);
     Veclib::spow   (nTot32, N, tmp, 1, tmp, 1);
     Veclib::smul   (nTot32, K, tmp, 1, tmp, 1);
-#else // -- Avoid clipup for testing: just ADD min shear.
-    Veclib::sadd (nTot32, Gamma_min, sum, 1, tmp, 1);     
-    Veclib::spow (nTot32, N, tmp, 1, tmp, 1);
-    Veclib::smul (nTot32, K, tmp, 1, tmp, 1);
-#endif
     
   } else if (Femlib::ivalue ("HB")) {
 
@@ -210,19 +204,11 @@ static void viscoModel (const Domain* D ,
     const real_t N         = Femlib::value ("HB_N") - 1.0;
     const real_t Gamma_min = Femlib::value ("HB_ZERO");  // Limit shear.
 
-#if 1
     Veclib::clipup (nTot32, Gamma_min, sum, 1, tmp, 1);
     Veclib::spow   (nTot32, N, sum, 1, tmp, 1);
     Veclib::smul   (nTot32, K, tmp, 1, tmp, 1);
     Veclib::sdiv   (nTot32, Tau_Y, sum, 1, sum, 1);
     Veclib::vadd   (nTot32, sum, 1, tmp, 1, tmp, 1);
-#else // -- If no clipup routine: just ADD min shear.
-    Veclib::sadd (nTot32, Gamma_min, sum, 1, sum, 1);     
-    Veclib::spow (nTot32, N, sum, 1, tmp, 1);
-    Veclib::smul (nTot32, K, tmp, 1, tmp, 1);
-    Veclib::sdiv (nTot32, Tau_Y, sum, 1, sum, 1);
-    Veclib::vadd (nTot32, sum, 1, tmp, 1, tmp, 1);
-#endif
 
   } else if (Femlib::value ("CAR_YAS")) {
 
