@@ -111,11 +111,12 @@ int main (int    argc,
     ntot       = nfields * nptsEven;
 
     data  = dmatrix (0, nfields - 1, 0, nptsEven - 1);
-    plane = dvector (0, nplane - 1);
+    plane = dvector (0, nplane  - 1);
     
     /* -- Read in all data fields. */
 
     dzero (ntot, data[0], 1);
+    dzero (nplane, plane, 1);
 
     for (i = 0; i < nfields; i++) {
       for (j = 0; j < nz; j++) {
@@ -131,7 +132,7 @@ int main (int    argc,
 
     for (i = 0; i < nfields - 1; i++) {
       vcmpt = data[_index (fields, 'u' + i)] + 2 * mode * nplane;
-      dvmul (nplane, vcmpt, 1, vcmpt, 1, plane, 1);
+      dvvtvp (nplane, vcmpt, 1, vcmpt, 1, plane, 1, plane, 1);
     }
 
     /* -- Add in imaginary part if not mode zero. */
