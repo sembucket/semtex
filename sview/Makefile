@@ -10,11 +10,16 @@
 #
 
 ARCH  = $(shell uname -s)
+MACH  = $(shell uname -m)
 
 # -- These may need editing: they specify where to find X & GLUT libraries:
 
 X11_ROOT  = /usr/X11R6
-GLUT_ROOT = /usr
+ifeq ($(MACH),x86_64)
+  GLUT_ROOT = /usr/local
+else
+  GLUT_ROOT = /usr
+endif
 
 # -- If compiling Python bindings tell the system where the headers are:
 
@@ -61,9 +66,27 @@ CXXFLAGS = $(DEFINES)
 ifdef DEBUG
   CXXFLAGS += -gstabs+
 else
-  CXXFLAGS += -O3
+  CXXFLAGS += -O2
 endif
-LDFLAGS  = -L$(X11_ROOT)/lib -L$(GLUT_ROOT)/lib $(GLUT_LIBS) -lm
+LDFLAGS  = -L$(X11_ROOT)/lib64 -L$(GLUT_ROOT)/lib $(GLUT_LIBS) -lm
+endif
+
+ifeq ($(MACH),x86_64)		# -- GNU/Linux/Opteron system.
+CXX = g++
+LD  = g++
+GLUT_LIBS = -ltiff -ljpeg -lz /usr/lib64/libglut.a -lGLU -lGL 		\
+		-lX11 -lXext -lXmu -lXt -lXi -lSM -lICE
+CPPFLAGS = -I.
+ifdef PYTHON
+  CPPFLAGS += -I$(PYTHON_HDRS)
+endif
+CXXFLAGS = $(DEFINES)
+ifdef DEBUG
+  CXXFLAGS += -gstabs+
+else
+  CXXFLAGS += -O2
+endif
+LDFLAGS  = -L$(X11_ROOT)/lib64 -L$(GLUT_ROOT)/lib $(GLUT_LIBS) -lm
 endif
 
 

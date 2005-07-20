@@ -93,6 +93,8 @@ int main (int    argc,
   // -- Initialise.
 
   glutInit (&argc, argv);
+  glutInitWindowPosition(0, 0);
+
   getargs  (argc,  argv, mfile, ffile, pfile, script);
 
   cout << start;
@@ -158,8 +160,11 @@ static void getargs (int    argc ,
     "-h        ... print this message\n"
     "-p <file> ... specifies name of SEMTEX format point data file.\n"
     "-s <file> ... read commands from file\n"
-    "-w        ... white background\n";
+    "-w        ... white background\n"
+    "-g x y    ... set window size *** BUG FIX FOR PROBLEM IN GLUTINIT ***\n";
+
   char err[StrMax];
+  int  x, y;
 
   while (--argc && **++argv == '-')
     switch (*++argv[0]) {
@@ -188,12 +193,20 @@ static void getargs (int    argc ,
     case 'w':
       State.blackbk = !State.blackbk;
       break;
+
+    case 'g':
+      --argc; --argc;
+      x = atoi (*++argv);
+      y = atoi (*++argv);
+      glutInitWindowSize(x, y);
+      break;
+
     default:
       sprintf (err, "illegal option: %c\n", **argv);
       message (prog, err, ERROR);
       break;
     }
-
+  cout <<argc<<endl;
   if (argc == 2) {
     mfile = argv[0];
     ffile = argv[1];

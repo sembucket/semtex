@@ -21,7 +21,7 @@
 #ifdef __APPLE__
   #include <GLUT/glut.h> /* We use the Apple header but the fink library! */
 #else
-  #include "/usr/include/GL/glut.h"
+  #include "/usr/local/include/GL/glut.h"
 #endif
 
 #include <tiffio.h>		/* Sam Leffler's libtiff library. */
