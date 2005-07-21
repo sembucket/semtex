@@ -88,23 +88,36 @@ void Domain::report (ostream& file)
 // Print a run-time summary of domain & timestep information on file.
 // ---------------------------------------------------------------------------
 {
-  const real_t dt  = Femlib::value  ("D_T");
-  const real_t lz  = Femlib::value  ("TWOPI / BETA");
-  const real_t Re  = Femlib::value  ("1.0   / KINVIS");
-  const int_t  ns  = Femlib::ivalue ("N_STEP");
-  const int_t  nt  = Femlib::ivalue ("N_TIME");
-  const int_t  chk = Femlib::ivalue ("CHKPOINT");
-  const int_t  per = Femlib::ivalue ("IO_FLD");
+  const real_t dt   = Femlib::value  ("D_T");
+  const real_t lz   = Femlib::value  ("TWOPI / BETA");
+  const real_t Re   = Femlib::value  ("1.0   / KINVIS");
+  const int_t  ns   = Femlib::ivalue ("N_STEP");
+  const int_t  nt   = Femlib::ivalue ("N_TIME");
+  const int_t  chk  = Femlib::ivalue ("CHKPOINT");
+  const int_t  per  = Femlib::ivalue ("IO_FLD");
+  const int_t  kdim = Femlib::ivalue ("KRYLOV_KDIM");
+  const int_t  nits = Femlib::ivalue ("KRYLOV_NITS");
+  const int_t  nvec = Femlib::ivalue ("KRYLOV_NVEC");
+  const real_t eps  = Femlib::value  ("KRYLOV_KTOL");
 
   file << "-- Coordinate system       : ";
-  if (Geometry::system() == Geometry::Cylindrical)
+  if (Geometry::cylindrical())
     file << "cylindrical" << endl;
   else
-    file << "Cartesian" << endl;
+    file << "Cartesian"   << endl;
 
   file << "   Spatial symmetry        : " << Geometry::symmetry() << endl;
 
-  file << "   Solution fields         : " << field                << endl;
+#ifdef FLIP
+  file << "   with half-period-flip"                              << endl;
+#endif
+
+  file << "-- Krylov dimension        : " << kdim                 << endl;
+  file << "   Convergence dimension   : " << nvec                 << endl;
+  file << "   Convergence tolerance   : " << eps                  << endl;
+  file << "   Maximum iterations      : " << nits                 << endl;
+
+  file << "-- Solution fields         : " << field                << endl;
   file << "   Base flow fields        : " << baseField            << endl;
   file << "   Number of base slices   : " << Geometry::nSlice()   << endl;
   file << "   Number of elements      : " << Geometry::nElmt()    << endl;

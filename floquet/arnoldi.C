@@ -134,10 +134,12 @@ int main (int    argc,
   if (nits < kdim) message (prog, "param error: NITS must be >= KDIM", ERROR);
   if (kdim < nvec) message (prog, "param error: NVEC must be <= KDIM", ERROR);
 
-  cout << "-- Krylov dimension        : " << kdim  << endl;
-  cout << "   Convergence dimension   : " << nvec  << endl;
-  cout << "   Convergence tolerance   : " << evtol << endl;
-  cout << "   Maximum iterations      : " << nits  << endl;
+  // -- Install lookup copies for reporting purposes.
+
+  Femlib::ivalue ("KRYLOV_KDIM", kdim);
+  Femlib::ivalue ("KRYLOV_NVEC", nvec);
+  Femlib::ivalue ("KRYLOV_NITS", nits);
+  Femlib::value  ("KRYLOV_KTOL", evtol);
 
   strcat (strcpy (buf, session), ".evl");
   info.open (buf, ios::out);
