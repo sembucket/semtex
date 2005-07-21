@@ -38,6 +38,7 @@ Analyser::Analyser (Domain* D   ,
 {
   const char routine[] = "Analyser::Analyser";
   char       str[StrMax];
+  time_t     tp (time (0));
 
   cout << setprecision (6);
 
@@ -80,6 +81,9 @@ Analyser::Analyser (Domain* D   ,
   gethostname (str, StrMax);
   runfile << "-- Host                    : " << str << endl;
   runfile << "   PID                     : " << getpid() << endl;
+
+  strftime (str, 25, "%a %b %d %H:%M:%S %Y", localtime (&tp));
+  runfile << "   Date                    : " << str << endl;
 
   D -> report (runfile);
   
