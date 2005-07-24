@@ -179,7 +179,7 @@ Data2DF& Data2DF::operator = (const Data2DF& rhs)
     vector<real_t>  work (rhs._np * _np);
     real_t*         tmp = &work[0];
 
-    Femlib::projection (&IN, &IT, rhs._np, 'L', 0.0, 0.0, _np, 'L', 0.0, 0.0);
+    Femlib::projection (&IN, &IT, rhs._np, GLJ, 0.0, 0.0, _np, GLJ, 0.0, 0.0);
 
     for (k = 0; k < nzm; k++) {	// -- 2D planar projections.
       LHS = _plane[k];
