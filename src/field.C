@@ -895,8 +895,8 @@ void Field::HelmholtzOperator (const real_t* x      ,
   const real_t *DV, *DT;
   real_t       *P = work, *R = P + ntot, *S = R + ntot;
 
-  Femlib::quadrature (0, 0, &DV, 0  , np, 'L', 0.0, 0.0);
-  Femlib::quadrature (0, 0, 0  , &DT, np, 'L', 0.0, 0.0);
+  Femlib::quadrature (0, 0, &DV, 0  , np, GLJ, 0.0, 0.0);
+  Femlib::quadrature (0, 0, 0  , &DT, np, GLJ, 0.0, 0.0);
 
   Veclib::zero (ntot + ntot, R, 1);
 
