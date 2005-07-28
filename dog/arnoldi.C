@@ -109,7 +109,7 @@ static void  EV_post    (real_t**, real_t**, const int_t, const int_t,
 			 const real_t*, const int_t, ofstream&);
 static void  EV_big     (real_t**, real_t**, const int_t, const int_t,
 			 const int_t, const real_t*, const real_t*,
-			 const real_t*);
+			 const real_t*, ofstream&);
 
 int main (int    argc,
 	  char** argv)
@@ -237,7 +237,8 @@ static void EV_update  (const real_t* src,
 			real_t*       tgt)
 // ---------------------------------------------------------------------------
 // Generate tgt by applying linear operator (here, a linearised
-// Navier--Stokes integrator) to src.
+// Navier--Stokes integrator) to src.  Src and tgt could be the same
+// vector.
 //
 // If RT-flipping, apply flip-map.
 // ---------------------------------------------------------------------------
@@ -291,8 +292,8 @@ static void EV_small (real_t**    Kseq   ,
 // its eigenvalues (wr, wi) and (right) eigenvectors, zvec, related to
 // those of A.
 //
-// The residual norm for each eigenvector is related to H(kdim+1, kdim),
-// which is passed back for convergence testing.
+// The residual norm for each eigenvector is related to R(kdim+1, kdim),
+// which says how much the (k+1) component lies outside Q.
 // ---------------------------------------------------------------------------
 {
   char           routine[] = "EV_small";
@@ -360,13 +361,8 @@ static void EV_small (real_t**    Kseq   ,
   //    For complex-conjugate eigenvalues, the corresponding
   //    complex eigenvector is a real-imaginary pair of rows
   //    of zvec.
-#if 1
-  // -- Right eigenvectors.
+
   F77NAME(dgeev) ("N","V",kdim,H,kdim,wr,wi,0,1,zvec,kdim,rwork,lwork,ier);
-#else
-  // -- Left eigenvectors.
-  F77NAME(dgeev) ("V","N",kdim,H,kdim,wr,wi,zvec,kdim,0,1,rwork,lwork,ier);
-#endif
 
   if (ier) message (routine, "error return from dgeev", ERROR);
 
@@ -425,8 +421,8 @@ static int_t EV_test (const int_t  itrn   ,
   // -- Sort subspace eigenvectors by residual.
 
   for (i = 0; i < kdim; i++) {
-    resid[i] = resnorm * fabs (zvec[kdim - 1 + i * kdim])
-      / sqrt (Blas::dot (kdim, zvec + i * kdim, 1, zvec + i * kdim, 1));
+    resid[i] = resnorm *
+      fabs (zvec[kdim - 1 + i*kdim]) / Blas::nrm2 (kdim, zvec + i*kdim, 1);
     if (wi[i] < 0.0) resid[i - 1] = resid[i] = hypot (resid[i - 1], resid[i]);
   }
   EV_sort (zvec, wr, wi, resid, kdim);
@@ -580,7 +576,7 @@ static void EV_post (real_t**      Tseq,
 	 << " eigenvectors."
 	 << endl;
     
-    EV_big (Tseq, Kseq, ntot, kdim, icon, zvec, wr, wi);
+    EV_big (Tseq, Kseq, ntot, kdim, icon, zvec, wr, wi, info);
     for (j = 0; j < icon; j++) {
       src = Kseq[j];
       for (i = 0; i < ND; i++)
@@ -605,7 +601,8 @@ static void EV_big (real_t**      bvecs,
 		    const int_t   nvec ,
 		    const real_t* zvecs,
 		    const real_t* wr   ,
-		    const real_t* wi   )
+		    const real_t* wi   ,
+		    ofstream&     info )
 // ---------------------------------------------------------------------------
 // Compute the Ritz eigenvector estimates of the linear operator using
 // the eigenvalues and eigenvectors of H computed in the subspace.
@@ -631,7 +628,7 @@ static void EV_big (real_t**      bvecs,
 // computations are only done for the first nvec eigenvectors.
 // ---------------------------------------------------------------------------
 {
-  real_t norm, wgt;
+  real_t norm, resid, wgt;
   int_t  i, j;
 
   // -- Generate big e-vectors.
@@ -647,10 +644,10 @@ static void EV_big (real_t**      bvecs,
   // -- Normalize big e-vectors.
 
   for (i = 0; i < nvec; i++)
-    if (wi[i] == 0.0) {
+    if (wi[i] == 0.0) {		// -- This a real mode.
       norm = Blas::nrm2 (ntot, evecs[i], 1);
       Blas::scal (ntot, 1.0/norm, evecs[i], 1);
-    } else if (wi[i] > 0.0) {
+    } else {			// -- It's complex.
       norm  = sqr (Blas::nrm2 (ntot, evecs[i],   1));
       norm += sqr (Blas::nrm2 (ntot, evecs[i+1], 1));
       norm = sqrt (norm);
@@ -659,35 +656,29 @@ static void EV_big (real_t**      bvecs,
       i++;
     }
 
-#if BIG_RESIDS  // -- This is not yet recoded: HMB 8/2/2002.
+  if (Femlib::ivalue ("BIG_RESIDS") > 0) {
 
-  // Compute residuals of big vectors directly (i.e. A(u)-mu(u)).
-  real_t resid;
- 
-  for (i = 0; i < nwrt; i++) {
-    V_copy(ntot, evecs[i], bvecs[0]);
-    A_op(bvecs[0]);
-    tsteps -= nsteps;
-    ftime  -= nsteps*dt;
-    if(wi[i]==0.) {
-      V_axpy(ntot, -wr[i], evecs[i], bvecs[0]);
-      resid = V_nrm2(ntot, bvecs[0]);
-      printf("big resid(%d) = %g \n", i, resid);
-    }
-    else if(wi[i] > 0.) {
-      V_axpy(ntot, -wr[i], evecs[i],   bvecs[0]);
-      V_axpy(ntot,  wi[i], evecs[i+1], bvecs[0]);
-      resid = V_nrm2(ntot, bvecs[0])/V_nrm2(ntot, evecs[i]);
-      printf("big resid(%d) = %g \n", i, resid);
-    }
-    else {
-      V_axpy(ntot, -wr[i], evecs[i],   bvecs[0]);
-      V_axpy(ntot,  wi[i], evecs[i-1], bvecs[0]);
-      resid = V_nrm2(ntot, bvecs[0])/V_nrm2(ntot, evecs[i]);
-      printf("big resid(%d) = %g \n", i, resid);
+    // -- Compute residuals of big eigenvectors directly, i.e. A(u)-lambda(u).
+
+    for (i = 0; i < nvec; i++) {
+
+      EV_update (evecs[i], bvecs[0]);
+
+      if (wi[i] == 0.0)
+	Blas::axpy (ntot, -wr[i], evecs[i], 1, bvecs[0], 1);
+      else if(wi[i] > 0.) {
+	Blas::axpy (ntot, -wr[i], evecs[i],   1, bvecs[0], 1);
+	Blas::axpy (ntot,  wi[i], evecs[i+1], 1, bvecs[0], 1);
+      } else {
+	Blas::axpy (ntot, -wr[i], evecs[i],   1, bvecs[0], 1);
+	Blas::axpy (ntot,  wi[i], evecs[i-1], 1, bvecs[0], 1);
+      }
+
+      resid = Blas::nrm2 (ntot, bvecs[0], 1) / Blas::nrm2 (ntot, evecs[i], 1);
+    
+      info << "Big-space residual of eigenvector " <<i<< ": " << resid << endl;
     }
   }
-#endif
 }
 
 
@@ -762,7 +753,8 @@ static int_t preprocess (const char* session)
 
   // -- Set default additional tokens.
 
-  Femlib::value ("BASE_PERIOD", 0.0);
+  Femlib::value  ("BASE_PERIOD", 0.0);
+  Femlib::ivalue ("BIG_RESIDS",  0);
 
   // -- Start up dealing with session file.
 
