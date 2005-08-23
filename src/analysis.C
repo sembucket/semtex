@@ -113,27 +113,31 @@ Analyser::Analyser (Domain* D   ,
     char     filename[StrMax];
     ifstream file (strcat (strcpy (filename, _src -> name), ".avg"));
     (_stats = new Statistics (D)) -> initialise (filename);
+
   } else
     _stats = 0;
 
-  // -- Initialise phase averaging by setting N_PHASE > 0.
-  // -- Must also have defined tokens STEPS_P (steps per period)
-  //    and N_PHASE (number of phase points per period)
-  //    and STEPS_P modulo N_PHASE must be integer
-  //    and N_STEP  modulo STEPS_P must be integer
-  //
-  // -- NB: set IO_FLD = STEPS_P / N_PHASE.
+  // -- Initialise phase averaging by setting N_PHASE > 0, as well.
 
-  if (Femlib::ivalue ("N_PHASE")) {
+  if (Femlib::ivalue ("N_PHASE") > 0) {
+
+    if (!Femlib::ivalue ("AVERAGE"))
+      message (routine, "if N_PHASE is set, AVERAGE > 0 also required", ERROR);
+
+    // -- Must also have defined tokens STEPS_P (steps per period)
+    //    and N_PHASE (number of phase points per period)
+    //    and STEPS_P modulo N_PHASE must be 0
+    //    and N_STEP  modulo N_PHASE must be 0
+    //    and IO_FLD = STEPS_P / N_PHASE.
 
     if (!Femlib::ivalue ("STEPS_P")) 
       message (routine, "phase averaging is on but STEPS_P not set", ERROR);
     
-    if (fabs(fmod(Femlib::value("STEPS_P"), Femlib::value("N_PHASE"))) > EPSDP)
+    if ( Femlib::ivalue ("STEPS_P") % Femlib::ivalue ("N_PHASE") )
       message (routine, "STEPS_P / N_PHASE non-integer", ERROR);
 
-    if (fabs(fmod(Femlib::value("N_STEP"),  Femlib::value("STEPS_P"))) > EPSDP)
-      message (routine, "N_STEP / STEPS_P non-integer", ERROR);
+    if ( Femlib::ivalue ("N_STEP")  % Femlib::ivalue ("N_PHASE") )
+      message (routine, "N_STEP / N_PHASE non-integer", ERROR);
 
     if (Femlib::ivalue("IO_FLD") != Femlib::ivalue("STEPS_P / N_PHASE"))
       message (routine, "phase averaging: IO_FLD != STEPS_P / N_PHASE", ERROR);
