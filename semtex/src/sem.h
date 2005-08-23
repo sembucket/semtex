@@ -24,6 +24,12 @@
 #include <cassert>
 #include <ctime>
 
+
+#ifdef __itanium__             /* Special for FPE on Itanium2 */
+#include <fenv.h>
+#endif
+
+
 #include <iostream>		/* System C++ headers. */
 #include <fstream>
 #include <strstream>
@@ -84,7 +90,7 @@ class NumberSys;
 #include <statistics.h>
 
 
-template<class T> inline void rollv (T* u, const integer n)
+template<class T> inline void rollv (T* u, const int_t n)
 // ===========================================================================
 // Stack roll template.  u is an array of type T, with at least n
 // elements.  Roll up by one element.
@@ -94,20 +100,20 @@ template<class T> inline void rollv (T* u, const integer n)
 
   T tmp(u[n - 1]);
 
-  for (register integer q(n - 1); q; q--)
+  for (register int_t q(n - 1); q; q--)
     u[q] = u[q - 1];
   u[0] = tmp;
 }
 
 
-template<class T> inline void rollm (T** u, const integer m, const integer n)
+template<class T> inline void rollm (T** u, const int_t m, const int_t n)
 // ===========================================================================
 // Stack roll template.  u is an matrix of type T, with at least n*m
 // elements.  m = number of rows, n = number of columns. Roll up by one row.
 // ===========================================================================
 {
   if (m < 2) return;
-  integer i, j;
+  int_t i, j;
   for (j = 0; j < n; j++) {
     T tmp (u[m-1][j]);
     for (i = m - 1; i; i--)
