@@ -68,7 +68,7 @@ ifdef DEBUG
 else
   CXXFLAGS += -O2
 endif
-LDFLAGS  = -L$(X11_ROOT)/lib64 -L$(GLUT_ROOT)/lib $(GLUT_LIBS) -lm
+LDFLAGS  = -L$(X11_ROOT)/lib -L$(GLUT_ROOT)/lib $(GLUT_LIBS) -lm
 endif
 
 ifeq ($(MACH),x86_64)		# -- GNU/Linux/Opteron system.
