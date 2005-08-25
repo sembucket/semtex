@@ -40,6 +40,10 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
+#ifdef __itanium__
+  feenableexcept (FE_OVERFLOW);    // -- Force SIG8 crash on FP overflow.
+#endif
+
   char*            session;
   vector<Element*> elmt;
   FEML*            file;

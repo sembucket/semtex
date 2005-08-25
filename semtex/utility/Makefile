@@ -38,19 +38,25 @@ enumerate: feml.o mesh.o enumerate.o $(SEMHDR)
 # ----------------------------------------------------------------------------
 # Plain (C) programmes.
 #
-plain: slit chop
-slit chop:\
-	slit.c chop.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.c -lm
+
+# -- Default build for a C source file.
+
+.c: 
+	$(CC) -o $@ $@.c $(CFLAGS) $(CPPFLAGS) $(CLDFLAGS) -lm
+
+#plain: slit chop
+#slit chop:\
+#	slit.c chop.c
+#	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.c -lm
 
 # ----------------------------------------------------------------------------
 # Standalone (bar semtex standard libs) C programs.
 #
-nosrc: avgdump moden noiz rstress xplane sem2tec convert repeatz repeatxy
-avgdump moden noiz rstress xplane sem2tec convert repeatz repeatxy : \
-	avgdump.c moden.c xplane.c noiz.c rstress.c sem2tec.c \
-        convert.c repeatz.c repeatxy
-	$(CC) -o $@ $@.c $(CFLAGS) $(CPPFLAGS) $(CLDFLAGS) -lm
+#nosrc: avgdump moden noiz rstress xplane sem2tec convert repeatz repeatxy
+#avgdump moden noiz rstress xplane sem2tec convert repeatz repeatxy : \
+#	avgdump.c moden.c xplane.c noiz.c rstress.c sem2tec.c \
+#        convert.c repeatz.c repeatxy.c
+#	$(CC) -o $@ $@.c $(CFLAGS) $(CPPFLAGS) $(CLDFLAGS) -lm
 
 # ----------------------------------------------------------------------------
 # Build meshpr, 2D mesh node computation utility.
