@@ -20,7 +20,7 @@ typedef real    real_t;
 typedef struct { real x, y, z; } Point;
 typedef Point                    Vector;
 
-#define STR_MAX    256
+#define STR_MAX    2048
 #define F77NAME(x) x##_
 
 typedef enum quadrature_kind {

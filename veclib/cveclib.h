@@ -32,7 +32,7 @@ extern double  _vecDreg[NVREG];
 #define SIGN(a, b) ((b) > 0.0 ? fabs(a) : -fabs(a))
 
 #ifndef STR_MAX
-#define STR_MAX 256
+#define STR_MAX 2048
 #endif
 
 #ifndef M_PI
