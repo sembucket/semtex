@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // enumerate.C:  utility to generate mesh numbering from session file.
 //
-// Copyright (c) 1995,2004 Hugh Blackburn
+// Copyright (c) 1995 <--> $Date$, Hugh Blackburn
 //
 // Usage: enumerate [options] file
 //   options:

@@ -684,23 +684,17 @@ void Element::evaluate (const char* func,
 }
 
 
-real_t Element::integral (const char* func) const
+real_t Element::integral (const char* func,
+			  real_t*     tmp ) const
 // ---------------------------------------------------------------------------
 // Return integral of func over element, using element quadrature
 // rule.
 // ---------------------------------------------------------------------------
 {
-  real_t         intgrl;
-  vector<real_t> tmp (_npnp);
-
-  Femlib::prepVec  ("x y", func);
-  Femlib__parseVec (_npnp, _xmesh, _ymesh, &tmp[0]);
-
-  Veclib::vmul (_npnp, &tmp[0], 1, _Q4, 1, &tmp[0], 1);
-
-  intgrl = Veclib::sum (_npnp, &tmp[0], 1);
-  
-  return intgrl;
+  Femlib::prepVec    ("x y", func);
+  Femlib__parseVec   (_npnp, _xmesh, _ymesh, &tmp[0]);
+  Veclib::vmul       (_npnp, &tmp[0], 1, _Q4, 1, &tmp[0], 1);
+  return Veclib::sum (_npnp, &tmp[0], 1);
 }
 
 
@@ -710,7 +704,55 @@ real_t Element::integral (const real_t* src,
 // Discrete approximation to the integral of element src vector.
 // ---------------------------------------------------------------------------
 {
-  Veclib::vmul (_npnp, src, 1, _Q4,  1, tmp, 1);
+  Veclib::vmul (_npnp, src, 1, _Q4, 1, tmp, 1);
+  return Veclib::sum (_npnp, tmp, 1);
+}
+
+
+real_t Element::momentX (const char* func,
+			 real_t*     tmp ) const
+// ---------------------------------------------------------------------------
+// The integral weighted by x location.
+// ---------------------------------------------------------------------------
+{
+  Femlib::prepVec    ("x y", func);
+  Femlib__parseVec   (_npnp, _xmesh, _ymesh, &tmp[0]);
+  Veclib::vvvtt      (_npnp, &tmp[0], 1, _Q4, 1, _xmesh, 1, &tmp[0], 1);
+  return Veclib::sum (_npnp, &tmp[0], 1);
+}
+
+
+real_t Element::momentY (const char* func,
+			 real_t*     tmp ) const
+// ---------------------------------------------------------------------------
+// The integral weighted by y location.
+// ---------------------------------------------------------------------------
+{
+  Femlib::prepVec    ("x y", func);
+  Femlib__parseVec   (_npnp, _xmesh, _ymesh, &tmp[0]);
+  Veclib::vvvtt      (_npnp, &tmp[0], 1, _Q4, 1, _ymesh, 1, &tmp[0], 1);
+  return Veclib::sum (_npnp, &tmp[0], 1);
+}
+
+
+real_t Element::momentX (const real_t* src,
+			 real_t*       tmp) const
+// ---------------------------------------------------------------------------
+// The integral weighted by x location.
+// ---------------------------------------------------------------------------
+{
+  Veclib::vvvtt (_npnp, src, 1, _Q4, 1, _xmesh, 1, tmp, 1);
+  return Veclib::sum (_npnp, tmp, 1);
+}
+
+
+real_t Element::momentY (const real_t* src,
+			 real_t*       tmp) const
+// ---------------------------------------------------------------------------
+// The integral weighted by y location.
+// ---------------------------------------------------------------------------
+{
+  Veclib::vvvtt (_npnp, src, 1, _Q4, 1, _ymesh, 1, tmp, 1);
   return Veclib::sum (_npnp, tmp, 1);
 }
 

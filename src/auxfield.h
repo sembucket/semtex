@@ -71,6 +71,7 @@ public:
   real_t mode_L2     (const int_t)               const;
   real_t integral    ()                          const;
   real_t integral    (const int_t)               const;
+  Vector centroid    (const int_t)               const;
   real_t CFL         (const int_t)               const;
 
   real_t probe (const Element*, const real_t, const real_t, const int_t) const;

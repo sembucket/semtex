@@ -27,7 +27,7 @@ OTHER      = xvabs   xvamax  xvpow   xvexp   xvlg10  xvlog   xvatan \
 
 TRIAD      = xsvmvt  xsvpvt  xsvtsp  xsvtvm  xsvtvp  xsvvmt  xsvvpt \
 	     xsvvtm  xsvvtp  xvvmvt  xvvpvt  xvvtvm  xvvtvp  xvvvtm \
-	     xsvvtt
+	     xsvvtt  xvvvtt
 
 RELATIONAL = xseq    xsge    xsle    xslt    xsne
 
