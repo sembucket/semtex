@@ -29,7 +29,7 @@ AuxField::AuxField (real_t*           alloc,
 		    vector<Element*>& elmt ,
 		    const char        name ) :
 // ---------------------------------------------------------------------------
-// Install field storage area and int size records.
+// Install field storage area and size records.
 // ---------------------------------------------------------------------------
   _name (name),
   _elmt (elmt),
@@ -710,19 +710,19 @@ real_t AuxField::mode_L2 (const int_t mode) const
 real_t AuxField::integral () const
 // ---------------------------------------------------------------------------
 // Return the total amount of scalar, integrated over spatial volume.
-// It is assumed that the AuxField is in the Fourier-transformed state,
-// so that the integration takes place over the zeroth Fourier mode
-// only, then is scaled for Fourier normalisation.
+// It is assumed that the AuxField is in the Fourier-transformed
+// state, so that the integration takes place over the zeroth Fourier
+// mode only, then is scaled for Fourier normalisation. NB: this is
+// currently only done on the root process.
 // ---------------------------------------------------------------------------
 {
   const int_t    nel  = Geometry::nElmt();
   const int_t    npnp = Geometry::nTotElmt();
-  const real_t   Lz   = (Geometry::nDim()   >  2 ||
-			 Geometry::system() == Geometry::Cylindrical) ?
+  const real_t   Lz   = (Geometry::nDim() >  2 || Geometry::cylindrical()) ?
                          Femlib::value ("TWOPI/BETA") : 1.0;
-  register int_t i;
-  vector<real_t> work (npnp);
+  int_t          i;
   real_t         total = 0.0, *p;
+  vector<real_t> work (npnp);
 
   ROOTONLY
     for (p = _plane[0], i = 0; i < nel; i++, p += npnp)
@@ -739,14 +739,39 @@ real_t AuxField::integral (const int_t k) const
 {
   const int_t    nel  = Geometry::nElmt();
   const int_t    npnp = Geometry::nTotElmt();
-  register int_t i;
-  vector<real_t> work (npnp);
+  int_t          i;
   real_t         total = 0.0, *p;
+  vector<real_t> work (npnp);
 
   for (p = _plane[k], i = 0; i < nel; i++, p += npnp)
     total += _elmt[i] -> integral (p, &work[0]);
 
   return total;
+}
+
+
+Vector AuxField::centroid (const int_t k) const
+// ---------------------------------------------------------------------------
+// Return centroid (x,y)-location of scalar on plane k.
+// ---------------------------------------------------------------------------
+{
+  const int_t    nel  = Geometry::nElmt();
+  const int_t    npnp = Geometry::nTotElmt();
+  int_t          i;
+  real_t         total = 0.0, *p;
+  vector<real_t> work (npnp);
+  Vector         Centroid = { 0.0, 0.0, 0.0 };
+
+  total = this -> integral (k);
+
+  for (p = _plane[k], i = 0; i < nel; i++, p += npnp) {
+    Centroid.x += _elmt[i] -> momentX (p, &work[0]);
+    Centroid.y += _elmt[i] -> momentY (p, &work[0]);
+  }
+  Centroid.x /= total;
+  Centroid.y /= total;
+
+  return Centroid;
 }
 
 

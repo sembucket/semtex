@@ -282,6 +282,13 @@ extern "C" {
   void   svvvtm (integer n, const float*  w, integer incw, const float*  x,
 		 integer incx, const float*  y, integer incy,
 		 float*  z, integer incz);
+
+  void   dvvvtt (integer n, const double* w, integer incw, const double* x,
+		 integer incx, const double* y, integer incy,
+		 double* z, integer incz);
+  void   svvvtt (integer n, const float*  w, integer incw, const float*  x,
+		 integer incx, const float*  y, integer incy,
+		 float*  z, integer incz);
   
   /* -- RELATIONAL PRIMITIVE OPERATIONS */
 
@@ -999,6 +1006,18 @@ class Veclib {
 		                const float*  y, integer incy,
 		                      float*  z, integer incz)
   { svvvtm (n, w, incw, x, incx, y, incy, z, incz); }
+  
+
+  static void vvvtt (integer n, const double* w, integer incw,
+		                const double* x, integer incx,
+		                const double* y, integer incy,
+		                      double* z, integer incz)
+  { dvvvtt (n, w, incw, x, incx, y, incy, z, incz); }
+  static void vvvtt (integer n, const float*  w, integer incw,
+		                const float*  x, integer incx,
+		                const float*  y, integer incy,
+		                      float*  z, integer incz)
+  { svvvtt (n, w, incw, x, incx, y, incy, z, incz); }
 
  
   // -- RELATIONAL PRIMITIVE OPERATIONS:

@@ -82,8 +82,12 @@ public:
   
   void evaluate (const char*,real_t*) const;
 
-  real_t integral (const char*)           const;
+  real_t integral (const char*,  real_t*) const;
   real_t integral (const real_t*,real_t*) const;
+  real_t momentX  (const char*,  real_t*) const;
+  real_t momentY  (const char*,  real_t*) const;
+  real_t momentX  (const real_t*,real_t*) const;
+  real_t momentY  (const real_t*,real_t*) const;
   real_t area     ()                      const;
   void   weight   (real_t*)               const;
 

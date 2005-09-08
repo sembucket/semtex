@@ -1,18 +1,19 @@
 ///////////////////////////////////////////////////////////////////////////////
 // integral.C: return the domain integral of all fields in dump file.
 //
-// Copyright (c) 1999,2004 Hugh Blackburn
+// Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 //
 // Synopsis:
 // --------
 // integral [-h] [-v] [-c] session [file]
 //
-// Description:
-// -----------
+// Description: 
+// ----------- 
 // Read in file, print up area of domain.  If 3D perform Fourier
 // transform to get mean value into plane zero for each field.  Then
-// return integral for each scalar field.  For 3D, values are
-// multiplied by domain length, to produce volume integrals.
+// return integral (and centroidal x,y locations) for each scalar
+// field.  For 3D, values are multiplied by domain length, to produce
+// volume integrals.
 //
 // If the coordinate system is cylindrical, then the integrals are
 // weighted by the radius. Use -c switch to turn this off.
@@ -40,7 +41,8 @@ int main (int    argc,
   istream            *fldfile;
   integer            NP, NZ,  NEL;
   integer            np, nel, ntot, i;
-  real               Lz, Area = 0.;
+  real               Lz, Area = 0.0, integral;
+  Vector             centroid;
   const real         *z;
   FEML*              F;
   Mesh*              M;
@@ -66,10 +68,10 @@ int main (int    argc,
   M   = new Mesh (F);
 
   NEL = M -> nEl();  
-  NP  = (integer)  Femlib::value ("N_P");
-  NZ  = (integer)  Femlib::value ("N_Z"   );
+  NP  = Femlib::ivalue ("N_P");
+  NZ  = Femlib::ivalue ("N_Z");
   Lz  = (NZ > 1) ? Femlib::value ("TWOPI / BETA") : 1.;
-  space = (static_cast<int>(Femlib::value ("CYLINDRICAL")) && cylind) ? 
+  space = (Femlib::ivalue ("CYLINDRICAL") && cylind) ? 
     Geometry::Cylindrical : Geometry::Cartesian;
 
   Geometry::set (NP, NZ, NEL, space);
@@ -86,7 +88,10 @@ int main (int    argc,
   while (getDump (*fldfile, u, Esys, NP, NZ, NEL)) {
     for (i = 0; i < u.size(); i++) {
       u[i] -> transform (FORWARD);
-      cout << u[i] -> name() << ": " << Lz * u[i] -> integral (0) << endl;
+      centroid = u[i] -> centroid (0);
+      integral = u[i] -> integral (0);
+      cout << u[i] -> name() << ": " << Lz * integral 
+	   << " , centroid: " << centroid.x << " , " << centroid.y << endl;
     }
   }
 
