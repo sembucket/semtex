@@ -576,10 +576,7 @@ void Statistics::phaseUpdate (const int_t j   ,
 // ---------------------------------------------------------------------------
 {
   char filename[StrMax];
-
   sprintf (filename, "%s.%1d.phs", _name, j);
-
-  cout << filename << endl;
 
   this -> initialise (filename);
   this -> update     (wrka, wrkb);

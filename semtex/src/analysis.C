@@ -279,8 +279,8 @@ void Analyser::analyse (AuxField** work0,
 
   _src -> dump ();
   if (_stats) {
-    char     filename[StrMax];
-    ifstream file (strcat (strcpy (filename, _src -> name), ".avg"));
+    char filename[StrMax];
+    strcat (strcpy (filename, _src -> name), ".avg");
     _stats -> dump (filename);
   }
 }
