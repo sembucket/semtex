@@ -2,10 +2,11 @@
 // This version of analysis.C is specialized so that it computes and
 // prints out forces exerted on "wall" boundary group.
 //
-// Copyright (C) 1994, 1999 Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
-// $Id$
 ///////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
  
 #include <dns.h>
 
@@ -23,7 +24,7 @@ DNSAnalyser::DNSAnalyser (Domain* D   ,
 
     // -- Open state-variable file.
 
-    flx_strm.open (strcat (strcpy (str, src -> name), ".flx"));
+    flx_strm.open (strcat (strcpy (str, _src -> name), ".flx"));
     if (!flx_strm) message (routine, "can't open flux file",  ERROR);
 
     flx_strm << "# DNS state information file"      << endl;
@@ -33,20 +34,21 @@ DNSAnalyser::DNSAnalyser (Domain* D   ,
 }
 
 
-void DNSAnalyser::analyse (AuxField** work)
+void DNSAnalyser::analyse (AuxField** work0,
+			   AuxField** work1)
 // ---------------------------------------------------------------------------
 // Step-by-step processing.
 // ---------------------------------------------------------------------------
 {
-  const integer DIM = Geometry::nDim();
+  const int_t DIM = Geometry::nDim();
 
-  Analyser::analyse (work);
+  Analyser::analyse (work0, work1);
 
   ROOTONLY {
-    const integer periodic = !(src->step % (integer)Femlib::value("IO_HIS")) ||
-                             !(src->step % (integer)Femlib::value("IO_FLD"));
-    const integer final    =   src->step ==(integer)Femlib::value("N_STEP");
-    const integer state    = periodic || final;
+    const bool periodic = !(src->step % Femlib::ivalue("IO_HIS")) ||
+                           (src->step % Femlib::ivalue("IO_FLD"));
+    const bool final    =   src->step ==Femlib::ivalue("N_STEP");
+    const bool state    = periodic || final;
 
     if (!state) return;
 

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // history.C
 //
-// Copyright (C) 1994, 1999 Hugh Blackburn
+// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // Routines to provide history point information at x, y, z locations.
 //
@@ -26,52 +26,44 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <Sem.h>
+#include <sem.h>
 
-
-const Element* HistoryPoint::locate (const real        x   ,
-				     const real        y   ,
+const Element* HistoryPoint::locate (const real_t        x   ,
+				     const real_t        y   ,
 				     vector<Element*>& Esys,
-				     real&             r   ,
-				     real&             s   )
+				     real_t&             r   ,
+				     real_t&             s   )
 // ---------------------------------------------------------------------------
 // Static class member function which tries to locate x, y, point within
 // an element E, and return its location in r, s coordinates within E.
 // ---------------------------------------------------------------------------
 {
-  register integer i;
-  const integer    NEL    = Esys.getSize();
-  const integer    guess = 1;
-  const Element*   E;
+  register int_t i;
+  const int_t    NEL   = Esys.size();
+  const bool     guess = true;
+  const Element* E;
+  vector<real_t> work (max (2*Geometry::nTotElmt(), 5*Geometry::nP() + 6));
 
-  E = 0;
-  for (i = 0; i < NEL; i++) {
-    r = s = 0.0;
-    if (Esys[i] -> locate (x, y, r, s, guess)) {
-      E = Esys[i];
-      break;
-    }
-  }
+  for (E = 0, i = 0; i < NEL; i++)
+    if (Esys[i] -> locate (x, y, r=0.0, s=0.0, &work[0], guess)) E = Esys[i];
 
   return E;
 }
 
 
 void HistoryPoint::extract (vector<AuxField*>& u  ,
-			    real*              tgt) const
+			    real_t*              tgt) const
 // ---------------------------------------------------------------------------
 // Load tgt with information extracted from each AuxField in u, tgt is
 // assumed to have sufficient storage to suit.
 // ---------------------------------------------------------------------------
 {
-  register integer i;
-  const integer    N = u.getSize();
-
-  static const integer FIX = (integer) Femlib::value ("LDV_FIXED");
-  static const real    w1  =           Femlib::value ("OMEGA_1");
-
-  const real wt = w1 * Femlib::value ("t");
-  const real wp = w1 * _y;
+  register int_t      i;
+  const int_t         N   = u.size();
+  static const int_t  FIX = Femlib::ivalue ("LDV_FIXED");
+  static const real_t w1  = Femlib::value  ("OMEGA_1");
+  const real_t        wt = w1 * Femlib::value ("t");
+  const real_t        wp = w1 * _y;
 
   if (FIX) {
     for (i = 0; i < N; i++)
@@ -80,4 +72,3 @@ void HistoryPoint::extract (vector<AuxField*>& u  ,
   } else
     for (i = 0; i < N; i++) tgt[i] = u[i] -> probe (_E, _r, _s, _z);
 }
-

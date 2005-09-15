@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // drive.C
 //
-// Copyright (c) Hugh Blackburn, 1998
+// Copyright (c) 1998 <--> $Date$, Hugh Blackburn
 //
 // SYNOPSIS:
 // --------
@@ -19,14 +19,15 @@
 // AUTHOR:
 // ------
 // Hugh Blackburn
-// CSIRO Division of Building, Construction and Engineering
-// P.O. Box 56
+// CSIRO Manufacturing and Infrastructure Technology
+// PO Box 56
 // Highett, Vic 3190
 // Australia
-// hmb@dbce.csiro.au
+// Hugh.Blackburn@csiro.au
 //
-// $Id$
 //////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <dns.h>
 
@@ -34,9 +35,8 @@ static char prog[] = "iwave";
 static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, BoundarySys*&, Domain*&);
-static void getoptions (FEML*, char*&);
 
-void NavierStokes (Domain*, DNSAnalyser*, const char*);
+void NavierStokes (Domain*, DNSAnalyser*);
 
 
 int main (int    argc,
@@ -45,7 +45,7 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-  char             *session, *mask = 0;
+  char             *session;
   vector<Element*> elmt;
   FEML*            file;
   Mesh*            mesh;
@@ -58,7 +58,6 @@ int main (int    argc,
   getargs (argc, argv, session);
 
   preprocess (session, file, mesh, elmt, bman, bsys, domain);
-  getoptions (file, mask);
 
   analyst = new DNSAnalyser (domain, file);
 
@@ -66,7 +65,7 @@ int main (int    argc,
 
   ROOTONLY domain -> report();
   
-  NavierStokes (domain, analyst, mask);
+  NavierStokes (domain, analyst);
 
   Femlib::finalize();
 
@@ -100,17 +99,17 @@ static void getargs (int    argc   ,
       break;
     case 'i':
       do
-	Femlib::value ("ITERATIVE", (integer) Femlib::value ("ITERATIVE") + 1);
+	Femlib::ivalue ("ITERATIVE", Femlib::ivalue ("ITERATIVE") + 1);
       while (*++argv[0] == 'i');
       break;
     case 'v':
       do
-	Femlib::value ("VERBOSE",   (integer) Femlib::value ("VERBOSE")   + 1);
+	Femlib::ivalue ("VERBOSE",   Femlib::ivalue ("VERBOSE")   + 1);
       while (*++argv[0] == 'v');
       break;
     case 'c':
       if (strstr ("chk", *argv)) {
-	Femlib::value ("CHKPOINT",  (integer) 1);
+	Femlib::ivalue ("CHKPOINT", 1);
       } else {
 	fprintf (stdout, usage, prog);
 	exit (EXIT_FAILURE);	  
@@ -140,10 +139,10 @@ static void preprocess (const char*       session,
 // They are listed in order of creation.
 // ---------------------------------------------------------------------------
 {
-  const integer      verbose = (integer) Femlib::value ("VERBOSE");
+  const int_t        verbose = Femlib::ivalue ("VERBOSE");
   Geometry::CoordSys space;
   const real*        z;
-  integer            i, np, nz, nel;
+  int_t            i, np, nz, nel;
 
   // -- Initialise problem and set up mesh geometry.
 
@@ -159,9 +158,9 @@ static void preprocess (const char*       session,
   VERBOSE cout << "Setting geometry ... ";
 
   nel   = mesh -> nEl();
-  np    =  (integer) Femlib::value ("N_P");
-  nz    =  (integer) Femlib::value ("N_Z");
-  space = ((integer) Femlib::value ("CYLINDRICAL")) ? 
+  np    =  Femlib::ivalue ("N_P");
+  nz    =  Femlib::ivalue ("N_Z");
+  space = (Femlib::ivalue ("CYLINDRICAL")) ? 
     Geometry::Cylindrical : Geometry::Cartesian;
   
   Geometry::set (np, nz, nel, space);
@@ -172,10 +171,8 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "Building elements ... ";
 
-  Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
-
-  elmt.setSize (nel);
-  for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
+  elmt.resize (nel);
+  for (i = 0; i < nel; i++) elmt[i] = new Element (i, np, mesh);
 
   VERBOSE cout << "done" << endl;
 
@@ -194,31 +191,4 @@ static void preprocess (const char*       session,
   domain = new Domain (file, elmt, bman);
 
   VERBOSE cout << "done" << endl;
-}
-
-
-static void getoptions (FEML*  feml,
-			char*& mask)
-// ---------------------------------------------------------------------------
-// Try to load mask lag string from USER section of FEML file.
-// The section is not required to be present.
-// ---------------------------------------------------------------------------
-{
-  char routine[] = "options";
-  char s[StrMax];
-
-  if (feml -> seek ("USER")) {
-    feml -> stream().ignore (StrMax, '\n');
-
-    while (feml -> stream() >> s) {
-      if (strcmp (s, "</USER>") == 0) break;
-
-      upperCase (s);
-      if (strcmp (s, "MASK_LAG") == 0)
-	feml -> stream() >> (mask = new char [StrMax]);
-    }
-
-    if (strcmp (s, "</USER>") != 0)
-      message (routine, "couldn't sucessfully close <USER> section", ERROR);
-  }
 }
