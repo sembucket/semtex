@@ -20,15 +20,15 @@ endif
 
 # ----------------------------------------------------------------------------
 #
-SEMFILES = analysis auxfield BCmgr boundary bsys condition domain   \
-	   element feml field geometry history integration  	\
+SEMFILES = analysis auxfield bcmgr boundary bsys condition domain   \
+	   edge element family feml field geometry history integration  \
 	   matrix mesh misc particle pressure statistics
 SEMOBJ   = $(addsuffix .o,$(SEMFILES))
 SEMHDR   = sem.h
 
 # ----------------------------------------------------------------------------
 # Default build for Navier-Stokes solver.
-NS_OBJ = drive.o NS.o dnsanalysis.o
+NS_OBJ = drive.o integrate.o nonlinear.o dnsanalysis.o
 
 $(PROG): sem $(SEMOBJ) $(NS_OBJ) 
 	$(LD) -o $@ $(NS_OBJ) $(SEMOBJ) $(LDFLAGS)

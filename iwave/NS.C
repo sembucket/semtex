@@ -4,10 +4,9 @@
 // Fourier expansions are used in the homogeneous direction.
 //
 // References:
-// 1.  Karniadakis, Israeli & Orszag 1991.  "High-order splitting methods
-//     for the incompressible Navier--Stokes equations", JCP 9(2).
-// 2.  Tomboulides, Orszag & Karniadakis 1993.  "Direct and
-//     large-eddy simulation of axisymmetric wakes",  AIAA-93-0546.
+// 1. Blackburn & Sherwin (2004) "Formulation of a Galerkin spectral
+//    element--Fourier method for three-dimensional incompressible flows
+//    in cylindrical geometries", JCP 179(2).
 //
 // For cylindrical coordinates:
 //   u <==> axial     velocity,  x <==> axial     coordinate direction,
