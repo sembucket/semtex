@@ -264,6 +264,7 @@ void nonLinear (Domain*    D ,
   static const real_t dz    = Femlib::value ("TWOPI/BETA") / (nZ32 * nPR);
   static const real_t dt    = Femlib::value ("D_T");
   static const real_t w2ow1 = Femlib::value ("OMEGA_2 / OMEGA_1");
+  static const real_t THETA = Femlib::value ("THETA");
   const real_t t            = Femlib::value ("t") - dt;
   real_t       z, cosfac;
 
@@ -271,7 +272,7 @@ void nonLinear (Domain*    D ,
   
   for (i = 0; i < nZ32; i++) {
     z      = dz * (i + nZ32*Geometry::procID());
-    cosfac = -2.0*w2ow1*cos (z + t);
+    cosfac = -THETA*2.0*w2ow1*cos (z + t);
     Veclib::fill   (nP, cosfac, tmp, 1);
     master -> mulY (1, tmp);
     master -> mulY (1, tmp);
@@ -280,13 +281,13 @@ void nonLinear (Domain*    D ,
 
   // -- Radial component.
 
-  Veclib::smul   (nTot32,  2.0*(w2ow1+1.0), u32[2], 1, tmp, 1);
+  Veclib::smul   (nTot32,  THETA*2.0*(w2ow1+1.0), u32[2], 1, tmp, 1);
   master -> mulY (nZ32, tmp);
   Veclib::vadd   (nTot32, tmp, 1, n32[1], 1, n32[1], 1);
 
   // -- Azimuthal component.
 
-  Veclib::svtvp  (nTot32, -2.0*(w2ow1+1.0), u32[1], 1, n32[2], 1, n32[2], 1);
+  Veclib::svtvp  (nTot32, -THETA*2.0*(w2ow1+1.0), u32[1],1,n32[2],1,n32[2],1);
 
 #endif
   
