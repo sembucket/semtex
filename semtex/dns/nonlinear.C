@@ -44,6 +44,9 @@ void nonLinear (Domain*         D ,
 //           Nz = -0.5 {ud(w)/dx + vd(w)/dy +  d(uw)/dx + d(vw)/dy +
 //                 1/y [wd(w)/dz + d(ww)/dz + 3wv     ]}
 //
+// NB: for the cylindrical coordinate formulation we actually here 
+// compute y*Nx, y*Ny, Nz, as outlined in reference[3].
+//
 // If STOKES is defined for compilation, the nonlinear terms are set to zero.
 //
 // Data are transformed to physical space for most of the operations, with

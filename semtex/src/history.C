@@ -36,7 +36,7 @@ const Element* HistoryPoint::locate (const real_t      x   ,
 {
   register int_t i;
   const int_t    NEL   = Esys.size();
-  const int_t    guess = 1;
+  const bool     guess = true;
   const Element* E;
   vector<real_t> work (max (2*Geometry::nTotElmt(), 5*Geometry::nP() + 6));
 
