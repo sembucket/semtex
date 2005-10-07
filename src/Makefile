@@ -56,7 +56,8 @@ CXXFLAGS = $(DEFINES) $(OPT) -Wno-deprecated
 RANLIB   = ranlib
 FCHOME   = /opt/intel-fc/8.1.029
 MKLHOME  = /opt/intel-mkl/7.2.1.003/mkl721/lib/64
-F77LIBS  = -L$(FCHOME)/lib -L$(MKLHOME) -lmkl_lapack -lmkl -lmkl_ipf -lguide -lifcore -lstdc++ -lipr
+GOTOHOME = /home/565/hmb565/lib
+F77LIBS  = -L$(FCHOME)/lib -L$(MKLHOME) -L$(GOTOHOME) -lgoto_it2-r0.95 -lmkl_lapack -lmkl -lmkl_ipf -lguide -lifcore -lstdc++ -lipr
 
 LDFLAGS  = $(OPT)  $(LIBDIR)
 CLDFLAGS = $(LDFLAGS)
