@@ -538,7 +538,9 @@ void Field::traction (real_t*      nx,
 // Static member function. Compute the pressure and viscous tractions
 // on the "wall" surfaces (the number of which is given as input
 // parameter N). All computations are carried out on
-// Fourier-transformed variables.
+// Fourier-transformed variables. Input parameter M is the
+// (exchange-padded) length of each variable's wall-tagged storage,
+// per data plane.
 // ---------------------------------------------------------------------------
 {
   const vector<Boundary*>& UBC    = u -> _bsys -> BCs(0);

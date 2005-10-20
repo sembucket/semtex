@@ -151,6 +151,8 @@ Data2DF& Data2DF::shift (const real alpha,
       Im[i] = tmp   * sinA + Im[i] * cosA;
     }
   }
+
+  return *this;
 }
 
 
