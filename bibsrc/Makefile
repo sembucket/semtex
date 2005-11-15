@@ -11,7 +11,7 @@ bib:
 	sem.bib machine.bib swirl.bib iwave.bib chroma.bib              \
 	mechanics.bib viv.bib flap.bib rotate.bib aero.bib spray.bib    \
 	compress.bib sphere.bib equip.bib combust.bib expttech.bib      \
-	bio.bib ring.bib fuelcell.bib > hmb.bib;                        \
+	bio.bib ring.bib fuelcell.bib mhd.bib > hmb.bib;                \
 #	cd ..; if test ! -f hmb.bib ; then ln -s bibsrc/hmb.bib . ; fi
 
 clean:
