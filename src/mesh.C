@@ -1511,7 +1511,7 @@ void Spline::printNek () const
 }
 
 
-spline2D* Spline::getGeom (const char* name)
+spline2D* Spline::getGeom (const char* fname)
 // ---------------------------------------------------------------------------
 // Return a natural spline curve of given name from internal store,
 // otherwise open a file of the same name and compute coefficients
@@ -1524,11 +1524,11 @@ spline2D* Spline::getGeom (const char* name)
   spline2D*   c;
   char        err[StrMax];
 
-  VERBOSE cerr << routine << ": spline filename: " << name << endl;
-
-  for (vector<spline2D*>::iterator k = gcurve.begin();
+  VERBOSE cerr << routine << ": spline filename: " << fname << endl;
+ 
+  for (vector<spline2D*>::const_iterator k = gcurve.begin();
        !found && k != gcurve.end(); k++) {
-    c = *k; found = (strcmp (c->name, name) == 0);
+    c = *k; found = (strcmp (c->name, fname) == 0);
   }
 
   if (!found) {
@@ -1536,18 +1536,19 @@ spline2D* Spline::getGeom (const char* name)
     VERBOSE cerr << routine << ": adding new spline curve" << endl;
 
     const int_t    SECTOR_MAX = 16;
-    ifstream       file (name);   
+    ifstream       file (fname);   
     real_t         x, y;
     int_t          i, j, N;
     vector<real_t> tmp;
 
     if (!file) {
-      sprintf (err, "file: %s: not found", name);
+      sprintf (err, "file: %s: not found", fname);
       message (routine, err, ERROR);
     }
 
     c = new spline2D;
-    c->name = name;
+    strcpy ((c->name = new char [strlen(fname) + 1]), fname);
+    //    c->name = fname;
     c->pos  = 0;
 
     while (file.peek() == '#') file.ignore (StrMax, '\n');

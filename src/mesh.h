@@ -163,13 +163,13 @@ class spline2D
 // ===========================================================================
 {
 public:
-  const char*    name  ;	// name of file containing knot points
+  char*          name  ;	// name of file containing knot points
   vector<real_t> x     ;	// knot x-coordinates
   vector<real_t> y     ;	// knot y-coordinates
   vector<real_t> sx    ;	// spline x-coefficients
   vector<real_t> sy    ;	// spline y-coefficients
   vector<real_t> arclen;        // arclength along curve at knot locations
-  int_t         pos   ;		// index of last confirmed position
+  int_t          pos   ;	// index of last confirmed position
 };
 
 
