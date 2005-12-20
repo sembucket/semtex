@@ -168,8 +168,7 @@ void Domain::dump ()
 	strcat (strcpy (dumpfl, name), ".chk");
 	if (!initial) {
 	  strcat  (strcpy (backup, name), ".chk.bak");
-	  sprintf (command, "mv ./%s ./%s", dumpfl, backup);
-	  system  (command);
+	  rename  (dumpfl, backup);
 	}
 	output.open (dumpfl, ios::out);
       }
