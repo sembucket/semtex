@@ -9,8 +9,16 @@ VPATH = $(SEM)/src
 
 essential: sem compare enumerate
 
-all: essential plain nosrc meshpr calc addfield sem2nek \
-     convert project interp probe rectmesh transform
+all: essential plain preplot nosrc meshpr calc addfield sem2nek \
+     convert project interp probe rectmesh transform wallmesh   \
+     phase lowpass eneq integral
+
+distclean:
+	make clean
+	rm -f addfield avgdump calc chop compare convert eneq enumerate \
+        integral interp lowpass meshpr moden noiz phase preplot probe   \
+        probeline probeplane project rectmesh repeatxy repeatz rstress  \
+        sem2nek sem2tec slit transform wallmesh xplane
 
 # ----------------------------------------------------------------------------
 # Standard rules and definitions.
@@ -44,19 +52,23 @@ enumerate: feml.o mesh.o enumerate.o $(SEMHDR)
 .c: 
 	$(CC) -o $@ $@.c $(CFLAGS) $(CPPFLAGS) $(CLDFLAGS) -lm
 
-#plain: slit chop
-#slit chop:\
-#	slit.c chop.c
-#	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.c -lm
+plain: slit chop
+slit chop:\
+	slit.c chop.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.c -lm
+
+preplot: preplot.c
+	$(CC) -DIRIS $(CFLAGS) $(CPPFLAGS) -o $@ $@.c -lm
 
 # ----------------------------------------------------------------------------
 # Standalone (bar semtex standard libs) C programs.
 #
-#nosrc: avgdump moden noiz rstress xplane sem2tec convert repeatz repeatxy
-#avgdump moden noiz rstress xplane sem2tec convert repeatz repeatxy : \
-#	avgdump.c moden.c xplane.c noiz.c rstress.c sem2tec.c \
-#        convert.c repeatz.c repeatxy.c
-#	$(CC) -o $@ $@.c $(CFLAGS) $(CPPFLAGS) $(CLDFLAGS) -lm
+
+nosrc: avgdump moden noiz rstress xplane sem2tec convert repeatz repeatxy
+avgdump moden noiz rstress xplane sem2tec convert repeatz repeatxy : \
+	avgdump.c moden.c xplane.c noiz.c rstress.c sem2tec.c \
+        convert.c repeatz.c repeatxy.c
+	$(CC) -o $@ $@.c $(CFLAGS) $(CPPFLAGS) $(CLDFLAGS) -lm
 
 # ----------------------------------------------------------------------------
 # Build meshpr, 2D mesh node computation utility.
@@ -157,6 +169,8 @@ $(PRBOBJ): $(SEMHDR)
 
 probe: $(PRBOBJ)
 	$(CXX) $(CPPFLAGS) -o $@ $(PRBOBJ) $(LDFLAGS)
+	ln -s probe probeline
+	ln -s probe probeplane
 
 # ----------------------------------------------------------------------------
 # Build eneq, which computes terms in the fluctuating flow energy equations.

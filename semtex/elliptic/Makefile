@@ -37,6 +37,14 @@ $(SEMOBJ): $(SEMHDR)
 include $(VPATH)/Makefile
 
 # ----------------------------------------------------------------------------
+# Clean up executables and anything else
+#
+distclean:
+	$(MAKE) clean
+	rm -f elliptic elliptic_mp
+
+
+# ----------------------------------------------------------------------------
 # Special machine-dependent compilations.
 
 ifeq ($(ARCH),SUPER-UX)

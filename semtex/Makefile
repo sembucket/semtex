@@ -27,7 +27,7 @@ srcdist:
 	gzip srcdist.tar
 
 # ----------------------------------------------------------------------------
-# Run this to compile libraries required by program.
+# Run this to compile libraries required by programs.
 
 libs:
 	cd veclib;		\
@@ -53,7 +53,6 @@ libs:
 # Make version of femlib with MPI.
 
 parlib:
-
 	cd femlib;		\
 	$(MAKE) -s headers;
 
@@ -64,19 +63,25 @@ parlib:
 
 
 # ----------------------------------------------------------------------------
-# Run this to compile all executables.
+# Run this to compile all serial executables.
 
-all:
-	cd src;      $(MAKE)
-	cd utility;  $(MAKE) clean; $(MAKE) all
-	cd elliptic; $(MAKE) clean; $(MAKE)
-	cd dns;      $(MAKE) clean; $(MAKE)
+all: libs
+	cd utility;  $(MAKE) clean; $(MAKE) -s all
+	cd elliptic; $(MAKE) clean; $(MAKE) -s
+	cd dns;      $(MAKE) clean; $(MAKE) -s; $(MAKE) -s tbcs
 
 # ----------------------------------------------------------------------------
-# Run a test of the (serial) DNS solver.  This could take a few minutes.
+# Compile parallel executables.
+
+parallel: parlib
+	cd dns; $(MAKE) MPI=1; $(MAKE) tbcs MPI=1
+	cd elliptic; $(MAKE) MPI=1
+
+# ----------------------------------------------------------------------------
+# Run a regression test of the (serial) DNS solver.
 
 test:  libs
-	cd utility; $(MAKE) -s clean; $(MAKE) -s enumerate; $(MAKE) -s compare
+	cd utility; $(MAKE) -s clean; $(MAKE) -s essential
 	cd dns; $(MAKE) -s clean; $(MAKE) -s;
 	cd test ; \
 	rm -f compare;   ln -s ../utility/compare   . ;	\
@@ -86,7 +91,7 @@ test:  libs
 
 # ----------------------------------------------------------------------------
 # Run test of parallel version of DNS solver: do "make test" first.
-# Also, you may need to edit the file dns/testregress_mp to get MPI to run.
+# Also may need to edit the file test/testregress_mp to set MPI command.
 
 partest: parlib
 	cd dns ; $(MAKE) -s clean ; $(MAKE) -s ALIAS=1 MPI=1
@@ -96,6 +101,8 @@ partest: parlib
 # Clean up.
 
 clean:
-	rm -f *.o *~
-	rm -rf ILDUMPS
-	rm -rf ii_files
+	cd veclib;   $(MAKE) clean
+	cd femlib;   $(MAKE) clean
+	cd utility;  $(MAKE) distclean
+	cd elliptic; $(MAKE) distclean
+	cd dns;      $(MAKE) distclean
