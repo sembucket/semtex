@@ -69,6 +69,20 @@ $(SEMOBJ): $(SEMHDR)
 #
 include $(VPATH)/Makefile
 
+# ----------------------------------------------------------------------------
+# Clean up executables and anything else
+#
+distclean:
+	$(MAKE) clean
+	rm -f dns dns_tbcs dns_mp dns_tbcs_mp
+
+# ----------------------------------------------------------------------------
+# Make codes for time-varying BCs
+#
+tbcs:
+	rm -f integrate.o
+	$(MAKE) TBCS=1
+
 #-----------------------------------------------------------------------------
 # Machine-dependent compilations.
 
