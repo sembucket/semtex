@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // sem2nek.C: read a semtex input file, print a NEKTON-style input file.
 //
-// Copyright (c) 1997 Hugh Blackburn
+// Copyright (c) 1997 <--> $Date$,  Hugh Blackburn
 //
 // Usage:
 // -----
@@ -18,13 +18,15 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
+static char RCS[] = "$Id$";
+
 #include <cstdlib>
 #include <iomanip>
 
 #include <cfemdef.h>
-#include <Femlib.h>
-#include <Mesh.h>
-#include <Utility.h>
+#include <femlib.h>
+#include <mesh.h>
+#include <utility.h>
 
 static char prog[] = "sem2nek";
 
