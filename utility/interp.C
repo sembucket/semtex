@@ -37,9 +37,9 @@ static char RCS[] = "$Id$";
 #include <ctime>
 #include <sem.h>
 
-static char prog[]  = "interp";
-static int_t  verbose = 0;
-static int_t  nreport = 100;
+static char  prog[]  = "interp";
+static int_t verbose = 0;
+static int_t nreport = 100;
 static void  getargs    (int, char**, char*&, char*&, char*&);
 static void  loadPoints (istream&, int_t&, int_t&, int_t&, vector<Point*>&);
 static void  findPoints (vector<Point*>&, vector<Element*>&,
@@ -90,7 +90,7 @@ int main (int    argc,
 
   NEL = M -> nEl();  
   NP  = Femlib::ivalue ("N_P");
-  NZ  = Femlib::ivalue ("N_Z"   );
+  NZ  = Femlib::ivalue ("N_Z");
   
   Geometry::set (NP, NZ, NEL, Geometry::Cartesian);
   Esys.resize   (NEL);

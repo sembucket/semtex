@@ -92,8 +92,8 @@ int main (int    argc,
     Femlib::equispacedMesh (np, &unimesh[0]);
     zero_r = zero_s = &unimesh[0];
   } else {
-    Femlib::quadrature (&zero_r, 0, 0, 0, np, GRJ, 0.0, 0.0);
-    Femlib::quadrature (&zero_s, 0, 0, 0, np, GRJ, 0.0, 0.0);
+    Femlib::quadrature (&zero_r, 0, 0, 0, np, GLJ, 0.0, 0.0);
+    Femlib::quadrature (&zero_s, 0, 0, 0, np, GLJ, 0.0, 0.0);
   }
 
   if (threed) {

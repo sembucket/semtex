@@ -81,15 +81,15 @@ void zquad (const real_t** point , /* Quadrature points.                     */
     p -> deriv  = (real_t*) malloc (sizeof (real_t) * np*np);
     p -> derivT = (real_t*) malloc (sizeof (real_t) * np*np);
 
-    if        (rule == 'G') {	/* Gauss-Jacobi         */
-      zwgj    (p->point, p->weight, np, alpha, beta);
-      Dgj     (p->deriv, p->derivT, p->point, np, alpha, beta);
+    if        (rule == 'L') {	/* Gauss-Lobatto-Jacobi -- most common case.*/
+      zwglj   (p->point, p->weight, np, alpha, beta);
+      Dglj    (p->deriv, p->derivT, p->point, np, alpha, beta);
     } else if (rule == 'R') {	/* Gauss-Radau-Jacobi   */
       zwgrjp  (p->point, p->weight, np, alpha, beta);
       Dgrjp   (p->deriv, p->derivT, p->point, np, alpha, beta);
-    } else if (rule == 'L') {	/* Gauss-Lobatto-Jacobi */
-      zwglj   (p->point, p->weight, np, alpha, beta);
-      Dglj    (p->deriv, p->derivT, p->point, np, alpha, beta);
+    } else if (rule == 'G') {	/* Gauss-Jacobi         */
+      zwgj    (p->point, p->weight, np, alpha, beta);
+      Dgj     (p->deriv, p->derivT, p->point, np, alpha, beta);
     } else {
       char err[STR_MAX];
       sprintf (err, "unrecognized quadrature rule: %c", rule);

@@ -30,16 +30,16 @@ static char RCS[] = "$Id$";
 
 #include <sem.h>
 
-static int uniform = 0;
+static int_t uniform = 0;
 
 
-static int _index (const char* s, char c)
+static int_t _index (const char* s, char c)
 /* ------------------------------------------------------------------------- *
  * Return index of c in s, -1 if not found.
  * ------------------------------------------------------------------------- */
 {
-  int       i;
-  const int len = strlen (s);
+  int_t       i;
+  const int_t len = strlen (s);
 
   for (i = 0; i < len; i++) if (s[i] == c) return i;
 
@@ -57,31 +57,31 @@ friend istream& operator >> (istream&, Field2DF&);
 friend ostream& operator << (ostream&, Field2DF&);
 
 public:
-  Field2DF  (const int nP, const int nZ, const int nEl,
+  Field2DF  (const int_t nP, const int_t nZ, const int_t nEl,
 	     const char Name='\0');
   ~Field2DF () { delete data; delete plane; }
 
   char getName () { return name; }
 
   Field2DF& operator = (const Field2DF&);
-  Field2DF& operator = (const real);
+  Field2DF& operator = (const real_t);
 
-  Field2DF& transform (const int);
+  Field2DF& transform (const int_t);
   Field2DF& reverse   ();
   
 private:
-  const char    name;
-  const int np, nz, nel, np2;
-  int       nplane, ntot;
-  real*         data;
-  real**        plane;
+  const char  name;
+  const int_t np, nz, nel, np2;
+  int_t       nplane, ntot;
+  real_t*     data;
+  real_t**    plane;
 };
 
 
-Field2DF::Field2DF (const int  nP  ,
-		    const int  nZ  ,
-		    const int  nEl ,
-		    const char Name) :
+Field2DF::Field2DF (const int_t nP  ,
+		    const int_t nZ  ,
+		    const int_t nEl ,
+		    const char  Name) :
 
 		    name       (Name),
                     np         (nP  ),
@@ -92,21 +92,21 @@ Field2DF::Field2DF (const int  nP  ,
 // Field2DF constructor. 
 // ---------------------------------------------------------------------------
 {
-  register int i;
+  register int_t i;
   
   nplane = np * np * nel;
   if (nplane & 1) nplane++;
   ntot   = nplane * nz;
 
-  data  = new real  [ntot];
-  plane = new real* [nz];
+  data  = new real_t  [ntot];
+  plane = new real_t* [nz];
 
   for (i = 0; i < nz; i++) plane [i] = data + i * nplane;
   Veclib::zero (ntot, data, 1);
 }
 
 
-Field2DF& Field2DF::transform (const int sign)
+Field2DF& Field2DF::transform (const int_t sign)
 // ---------------------------------------------------------------------------
 // Carry out Fourier transformation in z direction.
 // ---------------------------------------------------------------------------
@@ -137,19 +137,19 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
 
   else {			// -- Perform projection.
 
-    register int  i, k;
-    register real *LHS, *RHS;
-    const real    *IN,  *IT;
-    const int     nzm = min (rhs.nz, nz);
-    vector<real>  work (rhs.np * np);
-    real*         tmp = &work[0];
+    register int_t  i, k;
+    register real_t *LHS, *RHS;
+    const real_t    *IN,  *IT;
+    const int_t     nzm = min (rhs.nz, nz);
+    vector<real_t>  work (rhs.np * np);
+    real_t*         tmp = &work[0];
 
     if      (uniform == +1)
-      Femlib::projection (&IN, &IT, rhs.np, GRJ, 0.0, 0.0, np, TRZ, 0.0, 0.0);
+      Femlib::projection (&IN, &IT, rhs.np, GLJ, 0.0, 0.0, np, TRZ, 0.0, 0.0);
     else if (uniform == -1) 
-      Femlib::projection (&IN, &IT, rhs.np, TRZ, 0.0, 0.0, np, GRJ, 0.0, 0.0);
+      Femlib::projection (&IN, &IT, rhs.np, TRZ, 0.0, 0.0, np, GLJ, 0.0, 0.0);
     else
-      Femlib::projection (&IN, &IT, rhs.np, GRJ, 0.0, 0.0, np, GRJ, 0.0, 0.0);
+      Femlib::projection (&IN, &IT, rhs.np, GLJ, 0.0, 0.0, np, GLJ, 0.0, 0.0);
     for (k = 0; k < nzm; k++) {	// -- 2D planar projections.
       LHS = plane[k];
       RHS = rhs.plane[k];
@@ -171,7 +171,7 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
 }
 
 
-Field2DF& Field2DF::operator = (const real val)
+Field2DF& Field2DF::operator = (const real_t val)
 // ---------------------------------------------------------------------------
 // Set field storage area to val.
 // ---------------------------------------------------------------------------
@@ -200,10 +200,10 @@ ostream& operator << (ostream&  strm,
 // Binary write of F's data area.
 // ---------------------------------------------------------------------------
 {
-  int i;
+  int_t i;
   
   for (i = 0; i < F.nz; i++)
-    strm.write ((char*) F.plane[i], F.np * F.np * F.nel * sizeof (real));
+    strm.write ((char*) F.plane[i], F.np * F.np * F.nel * sizeof (real_t));
 
   return strm;
 }
@@ -215,20 +215,20 @@ istream& operator >> (istream&  strm,
 // Binary read of F's data area.
 // ---------------------------------------------------------------------------
 {
-  int i;
+  int_t i;
   
   for (i = 0; i < F.nz; i++)
-    strm.read ((char*) F.plane[i], F.np * F.np * F.nel * sizeof (real));
+    strm.read ((char*) F.plane[i], F.np * F.np * F.nel * sizeof (real_t));
 
   return strm;
 }
 
 
 static char prog[] = "project";
-static void getargs  (int, char**, int&, int&, int&, istream*&);
-static int  getDump  (istream&, ostream&, vector<Field2DF*>&,
-		      int&, int&, int&, int&, int&, char*);
-static int  doSwap   (const char*);
+static void getargs  (int, char**, int_t&, int_t&, int_t&, istream*&);
+static bool getDump  (istream&, ostream&, vector<Field2DF*>&,
+		      int_t&, int_t&, int_t&, int_t&, int_t&, char*);
+static bool doSwap   (const char*);
 
 
 int main (int    argc,
@@ -238,8 +238,8 @@ int main (int    argc,
 // ---------------------------------------------------------------------------
 {
   char              fields[StrMax];
-  int               i, j, nEl, fInc;
-  int               nPnew = 0, nZnew = 0, keepW = 0;
+  int_t             i, j, nEl, fInc;
+  int_t             nPnew = 0, nZnew = 0, keepW = 0;
   istream*          input;
   vector<Field2DF*> Uold, Unew;
 
@@ -297,9 +297,9 @@ int main (int    argc,
 
 static void getargs (int       argc ,
 		     char**    argv ,
-		     int&      np   ,
-		     int&      nz   ,
-		     int&      keepW,
+		     int_t&      np   ,
+		     int_t&      nz   ,
+		     int_t&      keepW,
 		     istream*& input)
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
@@ -358,7 +358,7 @@ static void getargs (int       argc ,
 }
 
 
-static int doSwap (const char* ffmt)
+static bool doSwap (const char* ffmt)
 // ---------------------------------------------------------------------------
 // Figure out if byte-swapping of input is required to make sense of input.
 // ---------------------------------------------------------------------------
@@ -377,15 +377,15 @@ static int doSwap (const char* ffmt)
 }
 
 
-static int getDump (istream&           ifile ,
-		    ostream&           ofile ,
-		    vector<Field2DF*>& u     ,
-		    int&               npnew ,
-		    int&               nznew ,
-		    int&               nel   ,
-		    int&               keepW ,
-		    int&               finc  ,
-		    char*              fields)
+static bool getDump (istream&           ifile ,
+		     ostream&           ofile ,
+		     vector<Field2DF*>& u     ,
+		     int_t&             npnew ,
+		     int_t&             nznew ,
+		     int_t&             nel   ,
+		     int_t&             keepW ,
+		     int_t&             finc  ,
+		     char*              fields)
 // ---------------------------------------------------------------------------
 // Read next set of field dumps from ifile, put headers on ofile.
 //
@@ -404,8 +404,8 @@ static int getDump (istream&           ifile ,
     "%-25s "    "Fields written\n",
     "%-25s "    "Format\n"
   };
-  char buf[StrMax], fmt[StrMax], oldfields[StrMax];
-  int  i, j, swab, nf, np, nz;
+  char  buf[StrMax], fmt[StrMax], oldfields[StrMax];
+  int_t i, j, swab, nf, np, nz;
 
   if (ifile.getline(buf, StrMax).eof()) return 0;
   
