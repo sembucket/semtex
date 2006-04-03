@@ -1,7 +1,7 @@
 /*****************************************************************************
  * avgdump.c:  Compute (running) averages of field files.
  *
- * Copyright (c) 1999,2004 Hugh Blackburn
+ * Copyright (c) 1999 <--> $Date$, Hugh Blackburn
  *
  * SYNOPSIS
  * --------

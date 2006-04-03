@@ -27,7 +27,7 @@ esac
 
 if test $1 -ge 2 && test $2 -ge 2
 then
-echo $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} | nawk '
+echo $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} | awk '
 {
     NP      = $1      ;
     NA      = $2      ;
