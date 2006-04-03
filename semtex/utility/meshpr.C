@@ -187,7 +187,7 @@ static void getargs (int     argc   ,
       else { --argc;  nz = atoi (*++argv); }
       break;
     default:
-      sprintf (err, "%s: illegal option: %c\n", c);
+      sprintf (err, "illegal option: %c\n", c);
       message (prog, err, ERROR);
       break;
     }
