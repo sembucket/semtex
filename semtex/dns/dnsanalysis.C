@@ -152,17 +152,18 @@ void DNSAnalyser::analyse (AuxField** work0,
       }
 
 #if 1
-      // -- Just output normal and 2 tangential tractions.
-    Veclib::vhypot (_nline, &_work[0], 1, &_work[1], 1, &_work[0], 1);
-    Veclib::vhypot (_nline, &_work[2], 1, &_work[3], 1, &_work[1], 1);
-    Veclib::copy   (_nline, &_work[4], 1, &_work[2], 1);
+      // -- Just output normal and tangential traction magnitudes.
+      Veclib::vhypot (_nline, &_work[0       ], 1, &_work[  _nline], 1,
+		      &_work[0], 1);
+      Veclib::vmag   (_nline, &_work[2*_nline], 1, &_work[3*_nline], 1,
+		      &_work[4*_nline], 1, &_work[_nline], 1);
 #endif
 
       // -- Write to file.
 
       // -- Header: this will be a lot like a standard header.
 #if 1
-      //    Output normal and tangential traction magnitudes, 'n', 't' & 's'.
+      //    Output normal and tangential traction magnitudes, 'n', 't'.
 #else
       //    In order, the components output are Nx, Ny, Tx, Ty, Tz,
       //    where N stands for normal and T for tangential.
@@ -198,7 +199,7 @@ void DNSAnalyser::analyse (AuxField** work0,
 	sprintf (s1, Hdr_Fmt[6], Femlib::value ("KINVIS")); _wss_strm << s1;
 	sprintf (s1, Hdr_Fmt[7], Femlib::value ("BETA"));   _wss_strm << s1;
 #if 1
-	sprintf (s1, Hdr_Fmt[8], "nts");                    _wss_strm << s1;
+	sprintf (s1, Hdr_Fmt[8], "nt");                     _wss_strm << s1;
 #else
 	sprintf (s1, Hdr_Fmt[8], "abcde");                  _wss_strm << s1;
 #endif
@@ -213,7 +214,7 @@ void DNSAnalyser::analyse (AuxField** work0,
 
       if (nPR > 1) {		// -- Parallel.
 #if 1
-	for (j = 0; j < 3; j++)	// -- Reminder: there are 3 components.
+	for (j = 0; j < 2; j++)	// -- Reminder: there are 3 components.
 #else
 	for (j = 0; j < 5; j++)	// -- Reminder: there are 5 components.
 #endif
@@ -241,7 +242,7 @@ void DNSAnalyser::analyse (AuxField** work0,
 	    }
       } else {			// -- Serial.
 #if 1
-	for (j = 0; j < 3; j++)
+	for (j = 0; j < 2; j++)
 #else
 	for (j = 0; j < 5; j++)
 #endif
