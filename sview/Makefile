@@ -90,7 +90,7 @@ LDFLAGS  = -L$(X11_ROOT)/lib64 -L$(GLUT_ROOT)/lib $(GLUT_LIBS) -lm
 endif
 
 
-ifeq ($(ARCH),Darwin)		# -- Mac OSX (10.3).
+ifeq ($(ARCH),Darwin)		# -- Mac OSX (10.3, 10.4).
 CXX = g++
 LD  = g++
 CPPFLAGS = -I. -I/sw/include
@@ -103,10 +103,11 @@ ifdef DEBUG
 else
   CXXFLAGS += -O2
 endif
-#LDFLAGS = -framework GLUT -framework OpenGL -lobjc -L/sw/lib -ltiff
-# -- Using the OSX GLUT framework gives problems with command-line
+# -- Using the OSX GLUT framework in OSX 10.3 gives problems with command-line
 #    filename resolution. Instead, we use the fink-supplied libglut:
-LDFLAGS = -framework OpenGL -L/sw/lib -ltiff -lglut
+#LDFLAGS = -framework OpenGL -L/sw/lib -ltiff -lglut
+# -- But in OSX 10.4 it works fine:
+LDFLAGS = -framework OpenGL -framework GLUT -L/sw/lib -ltiff
 endif
 
 
