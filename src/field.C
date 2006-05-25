@@ -419,7 +419,7 @@ Vector Field::tangTraction (const Field* U,
 //
 // Compute viscous tractive forces on wall from
 //
-//  t_i  = - T_ij * n_j       (minus sign for force exerted BY fluid ON wall),
+//  t_i  = - T_ij  n_j       (minus sign for force exerted BY fluid ON wall),
 //
 // where
 //
@@ -522,7 +522,7 @@ void Field::tangTractionV (real_t*      fx,
   }
 }
 
-
+#if 0
 void Field::traction (real_t*      nx,
 		      real_t*      ny, 
 		      real_t*      tx, 
@@ -595,7 +595,71 @@ void Field::traction (real_t*      nx,
     }
   }
 }
+#else
+void Field::traction (real_t*      n, // Normal/pressure
+		      real_t*      t, // In-plane tangent/viscous
+		      real_t*      s, // Out-of-plane tangent/viscous
+		      const int_t  N ,
+		      const int_t  M ,
+		      const Field* p ,
+		      const Field* u ,
+		      const Field* v , 
+		      const Field* w )
+// ---------------------------------------------------------------------------
+// Static member function. Compute the pressure and viscous tractions
+// on the "wall" surfaces (the number of which is given as input
+// parameter N). All computations are carried out on
+// Fourier-transformed variables. Input parameter M is the
+// (exchange-padded) length of each variable's wall-tagged storage,
+// per data plane.
+// ---------------------------------------------------------------------------
+{
+  const vector<Boundary*>& UBC    = u -> _bsys -> BCs(0);
+  const int_t              np     = Geometry::nP();
+  const int_t              nz     = Geometry::nZProc();
+  const int_t              nbound = u -> _nbound;
+  const int_t              bmode  = Geometry::baseMode();
+  const real_t             mu     = Femlib::value ("RHO * KINVIS");
+  const real_t             *ur, *ui, *vr, *vi, *wr, *wi, *pr, *pi;
+  real_t                   *nr, *ni, *tr, *ti, *sr, *si;
+  int_t                    i, j, k, mode;
+  vector<real_t>           work (4 * np);
+    
+  for (k = 0; k < nz; k += 2) {
+    mode = bmode + (k >> 1);
 
+    pr = p -> _plane[k];
+    ur = u -> _plane[k];
+    vr = v -> _plane[k];
+    wr = (w) ? w -> _plane[k] : 0;
+    
+    pi = (nz > 1) ? p -> _plane[k+1] : 0;
+    ui = (nz > 1) ? u -> _plane[k+1] : 0;
+    vi = (nz > 1) ? v -> _plane[k+1] : 0;
+    wi = (nz > 1) ? w -> _plane[k+1] : 0;
+
+    for (i = 0, j = 0; i < nbound; i++) {
+
+      // -- We loop over all boundaries but only do the work for walls.
+      
+      if (UBC[i] -> inGroup ("wall")) {
+
+	nr = n + j*np + k*M;
+	tr = t + j*np + k*M;
+	sr = s + j*np + k*M;
+
+	ni = (nz > 1) ? n + j*np + (k+1)*M : 0;
+	ti = (nz > 1) ? t + j*np + (k+1)*M : 0;
+	si = (nz > 1) ? s + j*np + (k+1)*M : 0;
+
+	UBC[i] -> traction (mode, mu, pr, pi, ur, ui, vr, vi, wr, wi,
+			    nr, ni, tr, ti, sr, si, &work[0]);
+	j++;
+      }
+    }
+  }
+}
+#endif
 
 Field& Field::solve (AuxField*             f  ,
 		     const ModalMatrixSys* MMS)
@@ -1199,7 +1263,7 @@ real_t Field::modeConstant (const char   name,
 			    const int_t  mode,
 			    const real_t beta)
 // ---------------------------------------------------------------------------
-// For cylindrical coordinates & 3D, the radial and azimuthal fields
+// For cylindrical coordinates with 3D, the radial and azimuthal fields
 // are coupled before solution of the viscous step.  This means that
 // the Fourier constant used for solution may vary from that which
 // applies to the axial component.

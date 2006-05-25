@@ -250,8 +250,8 @@ ifstream& operator >> (ifstream& strm,
   strm.getline(s,StrMax).getline(s,StrMax);
   
   D.u[0] -> describe (f);
-  istrstream (s, strlen (s)) >> np    >> np    >> nz    >> nel;
-  istrstream (f, strlen (f)) >> npchk >> npchk >> nzchk >> nelchk;
+  istrstream (s, StrMax) >> np    >> np    >> nz    >> nel;
+  istrstream (f, StrMax) >> npchk >> npchk >> nzchk >> nelchk;
   
   if (np  != npchk ) message (routine, "element size mismatch",       ERROR);
   if (nz  != nzchk ) message (routine, "number of z planes mismatch", ERROR);
@@ -262,10 +262,10 @@ ifstream& operator >> (ifstream& strm,
     message (routine, "declared sizes mismatch", ERROR);
 
   strm.getline(s,StrMax);
-  istrstream (s, strlen (s)) >> D.step;
+  istrstream (s, StrMax) >> D.step;
 
   strm.getline(s,StrMax);
-  istrstream (s, strlen (s)) >> D.time;
+  istrstream (s, StrMax) >> D.time;
   Femlib::value ("t", D.time);
   
   strm.getline(s,StrMax).getline(s,StrMax);

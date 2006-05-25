@@ -347,6 +347,7 @@ real_t Edge::scalarFlux (const char*   grp,
   return dcdn;
 }
 
+#if 0
 
 void Edge::traction (const int_t   k   , // Fourier mode index
 		     const real_t  mu  , // Viscosity
@@ -370,13 +371,13 @@ void Edge::traction (const int_t   k   , // Fourier mode index
 		     real_t*       ttzi,
 		     real_t*       wrk ) const
 // ---------------------------------------------------------------------------
-// Compute the viscous and pressure tractive stress components along
+// Compute the viscous and pressure stress tractive components along
 // this edge, in Fourier space, one mode at a time.
 //
 // If k == 0, then the imaginary parts of all the inputs and outputs
 // should be supplied as NULL/0. Also, in that case, Wr could be
-// NULL/0 if the spanwise velocity is not being considered: if 0, then
-// ttzr not operated upon if it is NULL/0, otherwise it is set to zero.
+// NULL/0 if the spanwise velocity is not being considered: if it's 0,
+// ttzr it is set to zero.
 //
 // Work vector wrk 4*np*np long.
 // ---------------------------------------------------------------------------
@@ -484,6 +485,178 @@ void Edge::traction (const int_t   k   , // Fourier mode index
   }
 }
 
+#else
+
+void Edge::traction (const int_t   k   , // Fourier mode index
+		     const real_t  mu  , // Viscosity
+		     const real_t* Pr  , // Real part of pressure
+		     const real_t* Pi  , // Imag part of pressure
+		     const real_t* Ur  , // Real part of x-velocity
+		     const real_t* Ui  , // Imag part of x-velocity
+		     const real_t* Vr  , // Real ....... y-velocity
+		     const real_t* Vi  ,
+		     const real_t* Wr  , // ............ z-velocity
+		     const real_t* Wi  ,
+		     real_t*       nr, // Normal  traction,          real
+		     real_t*       ni, //                            imag
+		     real_t*       tr, // In-plane tangent traction, real
+		     real_t*       ti,
+		     real_t*       sr, // Normal tangent   traction, real
+		     real_t*       si,
+		     real_t*       wrk ) const
+// ---------------------------------------------------------------------------
+// Compute the viscous and pressure stress tractive components along
+// this edge, in Fourier space, one mode at a time.
+//
+// If k == 0, then the imaginary parts of all the inputs and outputs
+// should be supplied as NULL/0 (they are not referenced). Also, in
+// that case, Wr could be NULL/0 if the spanwise velocity is not being
+// considered: if it's 0, sr it is set to zero.
+//
+// Work vector wrk 4*np*np long.
+// ---------------------------------------------------------------------------
+{
+  const real_t betaK = k * Femlib::value ("BETA");
+  real_t*      ux    = wrk + 2 * _np;
+  real_t*      uy    = wrk + 3 * _np;
+  
+  if (k == 0) {			// -- Zeroth mode / 2D.
+
+    // -- Pressure/normal.
+    
+    Veclib::copy (_np, Pr+_doffset, _dskip, nr, 1);
+
+    // -- Viscous.
+
+    _elmt -> sideGrad (_side, Ur+_eoffset, ux, uy, wrk);
+
+    Veclib::vvvtt (_np, ux, 1, _nx, 1, _ny, 1, tr, 1);
+    Blas::scal    (_np, -2.0, tr, 1);
+    Veclib::vvvtt (_np, uy, 1, _ny, 1, _ny, 1, wrk, 1);
+    Veclib::vsub  (_np, tr, 1, wrk, 1, tr, 1);
+    Veclib::vvvtt (_np, uy, 1, _nx, 1, _nx, 1, wrk, 1);
+    Veclib::vadd  (_np, tr, 1, wrk, 1, tr, 1);
+
+    _elmt -> sideGrad (_side, Vr+_eoffset, ux, uy, wrk);
+
+    Veclib::vvvtt (_np, uy, 1, _nx, 1, _ny, 1, wrk, 1);
+    Veclib::svtvp (_np,  2.0, wrk, 1, tr, 1, tr, 1);
+    Veclib::vvvtt (_np, ux, 1, _ny, 1, _ny, 1, wrk, 1);
+    Veclib::vsub  (_np, tr, 1, wrk, 1, tr, 1);
+    Veclib::vvvtt (_np, ux, 1, _ny, 1, _ny, 1, wrk, 1);
+    Veclib::vadd  (_np, tr, 1, wrk, 1, tr, 1);
+
+    if (Wr) {
+      _elmt -> sideGrad (_side, Wr+_eoffset, ux, uy, wrk);
+      if (Geometry::cylindrical()) {
+	_elmt -> sideDivY (_side, Wr+_eoffset, wrk);
+	Veclib::vsub      (_np, uy, 1, wrk, 1, uy, 1);
+      }
+      Veclib::vmul  (_np, ux, 1, _nx, 1, sr, 1);
+      Veclib::vvtvp (_np, uy, 1, _ny, 1, sr, 1, sr, 1);
+    } else
+      Veclib::zero (_np, sr, 1);
+
+    // -- Multiply by viscosity and negate to get shear tractions on surface.
+
+    Blas::scal (_np, -mu, tr, 1);
+    if (Wr) Blas::scal (_np, -mu, sr, 1);
+
+  } else {			// -- 3D.
+
+    // -- Pressure.
+    
+    Veclib::copy (_np, Pr+_doffset, _dskip, nr, 1);
+    Veclib::copy (_np, Pi+_doffset, _dskip, ni, 1);
+
+    // -- Viscous.
+
+    // -- First, the in-plane component.
+
+    _elmt -> sideGrad (_side, Ur+_eoffset, ux, uy, wrk);
+
+    Veclib::vvvtt (_np, ux, 1, _nx, 1, _ny, 1, tr, 1);
+    Blas::scal    (_np, -2.0, tr, 1);
+    Veclib::vvvtt (_np, uy, 1, _ny, 1, _ny, 1, wrk, 1);
+    Veclib::vsub  (_np, tr, 1, wrk, 1, tr, 1);
+    Veclib::vvvtt (_np, uy, 1, _nx, 1, _nx, 1, wrk, 1);
+    Veclib::vadd  (_np, tr, 1, wrk, 1, tr, 1);
+
+    _elmt -> sideGrad (_side, Vr+_eoffset, ux, uy, wrk);
+
+    Veclib::vvvtt (_np, uy, 1, _nx, 1, _ny, 1, wrk, 1);
+    Veclib::svtvp (_np,  2.0, wrk, 1, tr, 1, tr, 1);
+    Veclib::vvvtt (_np, ux, 1, _ny, 1, _ny, 1, wrk, 1);
+    Veclib::vsub  (_np, tr, 1, wrk, 1, tr, 1);
+    Veclib::vvvtt (_np, ux, 1, _ny, 1, _ny, 1, wrk, 1);
+    Veclib::vadd  (_np, tr, 1, wrk, 1, tr, 1);
+
+    _elmt -> sideGrad (_side, Ui+_eoffset, ux, uy, wrk);
+
+    Veclib::vvvtt (_np, ux, 1, _nx, 1, _ny, 1, ti, 1);
+    Blas::scal    (_np, -2.0, ti, 1);
+    Veclib::vvvtt (_np, uy, 1, _ny, 1, _ny, 1, wrk, 1);
+    Veclib::vsub  (_np, ti, 1, wrk, 1, ti, 1);
+    Veclib::vvvtt (_np, uy, 1, _nx, 1, _nx, 1, wrk, 1);
+    Veclib::vadd  (_np, ti, 1, wrk, 1, ti, 1);
+
+    _elmt -> sideGrad (_side, Vi+_eoffset, ux, uy, wrk);
+
+    Veclib::vvvtt (_np, uy, 1, _nx, 1, _ny, 1, wrk, 1);
+    Veclib::svtvp (_np,  2.0, wrk, 1, ti, 1, ti, 1);
+    Veclib::vvvtt (_np, ux, 1, _ny, 1, _ny, 1, wrk, 1);
+    Veclib::vsub  (_np, ti, 1, wrk, 1, ti, 1);
+    Veclib::vvvtt (_np, ux, 1, _ny, 1, _ny, 1, wrk, 1);
+    Veclib::vadd  (_np, ti, 1, wrk, 1, ti, 1);
+
+    // -- Now the out-of-plane component.
+
+    _elmt -> sideGrad (_side, Wr+_eoffset, ux, uy, wrk);
+    
+    if (Geometry::cylindrical()) {
+      _elmt -> sideDivY (_side, Wr+_eoffset, wrk);
+      Veclib::vsub      (_np, uy, 1, wrk, 1, uy, 1);
+    }
+
+    if (Geometry::cylindrical()) _elmt -> sideDivY (_side, Ui+_eoffset, wrk);
+    else                         _elmt -> sideGet  (_side, Ui+_eoffset, wrk);
+    Veclib::svtvp (_np, -betaK, wrk, 1, ux, 1, ux, 1);
+
+    if (Geometry::cylindrical()) _elmt -> sideDivY (_side, Vi+_eoffset, wrk);
+    else                         _elmt -> sideGet  (_side, Vi+_eoffset, wrk);
+    Veclib::svtvp (_np, -betaK, wrk, 1, uy, 1, uy, 1);
+
+    Veclib::vmul  (_np, ux, 1, _nx, 1, sr, 1);
+    Veclib::vvtvp (_np, uy, 1, _ny, 1, sr, 1, sr, 1);
+
+    _elmt -> sideGrad (_side, Wi+_eoffset, ux, uy, wrk);
+    
+    if (Geometry::cylindrical()) {
+      _elmt -> sideDivY (_side, Wi+_eoffset, wrk);
+      Veclib::vsub      (_np, uy, 1, wrk, 1, uy, 1);
+    }
+
+    if (Geometry::cylindrical()) _elmt -> sideDivY (_side, Ur+_eoffset, wrk);
+    else                         _elmt -> sideGet  (_side, Ur+_eoffset, wrk);
+    Veclib::svtvp (_np, betaK, wrk, 1, ux, 1, ux, 1);
+
+    if (Geometry::cylindrical()) _elmt -> sideDivY (_side, Vr+_eoffset, wrk);
+    else                         _elmt -> sideGet  (_side, Vr+_eoffset, wrk);
+    Veclib::svtvp (_np, betaK, wrk, 1, uy, 1, uy, 1);
+
+    Veclib::vmul  (_np, ux, 1, _nx, 1, si, 1);
+    Veclib::vvtvp (_np, uy, 1, _ny, 1, si, 1, si, 1);
+
+    // -- Multiply by viscosity and negate to get tractions exerted on surface.
+
+    Blas::scal (_np, -mu, tr, 1);
+    Blas::scal (_np, -mu, sr, 1);
+    Blas::scal (_np, -mu, ti, 1);
+    Blas::scal (_np, -mu, si, 1);
+  }
+}
+
+#endif
 
 void Edge::addForGroup (const char*  grp,
 			const real_t val,

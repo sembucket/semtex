@@ -97,7 +97,8 @@ ifeq ($(ARCH),Darwin)               # -- Mac OSX.
 CXX      = g++
 LD       = g++
 CC       = gcc
-FC       = g77
+#FC       = g77
+FC       = g95
 AR	 = libtool
 ARFLAGS  = -static -o
 RANLIB   = ranlib
@@ -111,7 +112,8 @@ FFLAGS   = $(DEFINES) $(OPT)
 CXXFLAGS = $(DEFINES) $(OPT) -ansi
 LIBDIR   += -L/sw/lib
 LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
-F77LIBS  = -framework Accelerate -lg2c
+#F77LIBS  = -framework Accelerate -lg2c
+F77LIBS  = -framework Accelerate -lg95
 CLDFLAGS = $(LDFLAGS)
 endif
 

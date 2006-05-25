@@ -122,9 +122,6 @@ static void getargs (int    argc   ,
   if   (argc != 1) message (routine, "no session definition file", ERROR);
   else             session = *argv;
 
-  // -- Install default values of special tokens:
-
-  Femlib::ivalue ("IO_WSS", 0);	// -- Toggle for output of wall traction.
 }
 
 

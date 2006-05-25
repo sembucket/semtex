@@ -40,9 +40,15 @@ public:
   static void   normTractionV (real_t*, real_t*, const Field*);
   static void   tangTractionV (real_t*, real_t*, real_t*, const Field*,
 			       const Field*, const Field* = 0);
+#if 0
   static void   traction      (real_t*, real_t*, real_t*, real_t*, real_t*,
 			       const int_t, const int_t, const Field*,
 			       const Field*, const Field*, const Field* = 0);
+#else
+  static void   traction      (real_t*, real_t*, real_t*,
+			       const int_t, const int_t, const Field*,
+			       const Field*, const Field*, const Field* = 0);
+#endif
 
   static void   coupleBCs    (Field*, Field*, const int_t);
   static real_t modeConstant (const char, const int_t, const real_t);
