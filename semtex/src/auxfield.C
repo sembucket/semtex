@@ -661,8 +661,8 @@ void AuxField::errors (const Mesh* mesh    ,
 
   char  s[StrMax];
   ostrstream (s, StrMax) << "AuxField '"
-                         << name()
-                         << "' error norms (inf, L2, H1): "
+			 << name()
+			 << "' error norms (inf, L2, H1): "
 			 << Li << "  " << L2 << "  " << H1 << ends;
   message ("", s, REMARK);
 }
@@ -688,12 +688,14 @@ real_t AuxField::mode_L2 (const int_t mode) const
   const int_t       kr   = 2 * mode;
   const int_t       ki   = kr + 1;
   const int_t       npnp = Geometry::nTotElmt();
-  register real_t   area = 0.0, Ek = 0.0, *Re = _plane[kr], *Im = _plane[ki];
+  register real_t   area = 0.0, Ek = 0.0, *Re, *Im;
   register int_t    i;
   register Element* E;
   
   if (kr < 0  ) message (routine, "negative mode number",        ERROR);
   if (ki > _nz) message (routine, "mode number exceeds maximum", ERROR);
+
+  Re = _plane[kr]; Im = (_nz > 1) ? _plane[ki] : 0;
 
   for (i = 0; i < nel; i++, Re += npnp, Im += npnp) {
     E      = _elmt[i];
@@ -903,9 +905,9 @@ void AuxField::describe (char* s)  const
 // ---------------------------------------------------------------------------
 {
   ostrstream (s, StrMax) << Geometry::nP()    << " "
-                         << Geometry::nP()    << " "
-                         << Geometry::nZ()    << " "
-                         << Geometry::nElmt() << ends;
+			 << Geometry::nP()    << " "
+			 << Geometry::nZ()    << " "
+			 << Geometry::nElmt() << ends;
 }
 
 

@@ -60,7 +60,28 @@ void nonLinear (Domain*         D ,
 {
   const int_t NDIM = Geometry::nDim();	// -- Number of space dimensions.
   const int_t NCOM = D -> nField() - 1;	// -- Number of velocity components.
-  int_t       i, j;
+  const int_t nP   = Geometry::planeSize();
+
+#if defined (ALIAS)
+  const int_t       nZ32   = Geometry::nZProc();
+#else
+  const int_t       nZ32   = Geometry::nZ32();
+#endif 
+  const int_t       nZ     = Geometry::nZ();
+  const int_t       nZP    = Geometry::nZProc();
+
+  const int_t       nPP    = Geometry::nBlock();
+  const int_t       nPR    = Geometry::nProc();
+  const int_t       nTot   = Geometry::nTotProc();
+  const int_t       nTot32 = nZ32 * nP;
+
+  vector<real_t*>   u32 (NCOM), n32 (NCOM);
+  vector<AuxField*> U   (NCOM), N   (NCOM);
+  Field*            master = D -> u[0];
+
+  vector<real_t> work ((2 * NCOM + 1) * nTot32);
+  real_t*        tmp  = &work[0] + 2 * NCOM * nTot32;
+  int_t          i, j;
 
 #if defined (STOKES)
 
@@ -76,23 +97,6 @@ void nonLinear (Domain*         D ,
 
 #else
 
-#if defined (ALIAS)
-  const int_t       nZ32   = Geometry::nZProc();
-#else
-  const int_t       nZ32   = Geometry::nZ32();
-#endif 
-  const int_t       nZ     = Geometry::nZ();
-  const int_t       nZP    = Geometry::nZProc();
-  const int_t       nP     = Geometry::planeSize();
-  const int_t       nPP    = Geometry::nBlock();
-  const int_t       nPR    = Geometry::nProc();
-  const int_t       nTot   = Geometry::nTotProc();
-  const int_t       nTot32 = nZ32 * nP;
-  vector<real_t>    work ((2 * NCOM + 1) * nTot32);
-  vector<real_t*>   u32 (NCOM), n32 (NCOM);
-  vector<AuxField*> U   (NCOM), N   (NCOM);
-  Field*            master = D -> u[0];
-  real_t*           tmp    = &work[0] + 2 * NCOM * nTot32;
 
   Veclib::zero ((2 * NCOM + 1) * nTot32, &work[0], 1); // -- Catch-all cleanup.
 

@@ -147,9 +147,9 @@ Analyser::Analyser (Domain* D   ,
   } else
     _ph_stats = 0;
 
-  // -- Set up for output of modal energies every IO_CFL steps if 3D.
+  // -- Set up for output of modal energies teps if toggled.
 
-  if (Geometry::nDim() == 3) {
+  if (Femlib::ivalue ("IO_MDL")) {
     strcat (strcpy (str, _src -> name), ".mdl");
     ROOTONLY {
       _mdl_strm.open (str, ios::out); 
@@ -200,12 +200,10 @@ void Analyser::analyse (AuxField** work0,
     for (p = _particle.begin(); p != _particle.end(); p++) (*p) -> integrate();
   }
 
-  // -- CFL, energy, divergence information.
+  // -- CFL, divergence information.
 
-  if (cflstep && !(_src -> step % cflstep)) {
-    if (Geometry::nDim() == 3) modalEnergy();
-    ROOTONLY { estimateCFL(); divergence (work0); }
-  }
+  if (cflstep && !(_src -> step % cflstep))
+    ROOTONLY { this -> estimateCFL(); this -> divergence (work0); }
 
   // -- Phase averaging.
 
@@ -221,7 +219,8 @@ void Analyser::analyse (AuxField** work0,
   // -- Periodic dumps and global information.
   
   const bool periodic = !(_src -> step %  Femlib::ivalue ("IO_HIS")) ||
-                        !(_src -> step %  Femlib::ivalue ("IO_FLD"));
+                        !(_src -> step %  Femlib::ivalue ("IO_FLD")) ||
+                        !(_src -> step %  Femlib::ivalue ("IO_MDL")) ;
   const bool final    =   _src -> step == Femlib::ivalue ("N_STEP");
   const bool state    = periodic || final;
 
@@ -269,6 +268,10 @@ void Analyser::analyse (AuxField** work0,
 	_his_strm << endl;
       }
     }
+
+    // -- Modal energies.
+
+    this -> modalEnergy();
      
     // -- Statistical analysis.
 
