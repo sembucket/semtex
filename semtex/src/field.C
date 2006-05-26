@@ -522,80 +522,7 @@ void Field::tangTractionV (real_t*      fx,
   }
 }
 
-#if 0
-void Field::traction (real_t*      nx,
-		      real_t*      ny, 
-		      real_t*      tx, 
-		      real_t*      ty, 
-		      real_t*      tz,
-		      const int_t  N ,
-		      const int_t  M ,
-		      const Field* p ,
-		      const Field* u ,
-		      const Field* v , 
-		      const Field* w )
-// ---------------------------------------------------------------------------
-// Static member function. Compute the pressure and viscous tractions
-// on the "wall" surfaces (the number of which is given as input
-// parameter N). All computations are carried out on
-// Fourier-transformed variables. Input parameter M is the
-// (exchange-padded) length of each variable's wall-tagged storage,
-// per data plane.
-// ---------------------------------------------------------------------------
-{
-  const vector<Boundary*>& UBC    = u -> _bsys -> BCs(0);
-  const int_t              np     = Geometry::nP();
-  const int_t              nz     = Geometry::nZProc();
-  const int_t              nbound = u -> _nbound;
-  const int_t              bmode  = Geometry::baseMode();
-  const real_t             mu     = Femlib::value ("RHO * KINVIS");
-  const real_t             *ur, *ui, *vr, *vi, *wr, *wi, *pr, *pi;
-  real_t                   *tnxr, *tnxi, *tnyr, *tnyi;
-  real_t                   *ttxr, *ttxi, *ttyr, *ttyi, *ttzr, *ttzi;
-  int_t                    i, j, k, mode;
-  vector<real_t>           work (4 * np);
-    
-  for (k = 0; k < nz; k += 2) {
-    mode = bmode + (k >> 1);
 
-    pr = p -> _plane[k];
-    ur = u -> _plane[k];
-    vr = v -> _plane[k];
-    wr = (w) ? w -> _plane[k] : 0;
-    
-    pi = (nz > 1) ? p -> _plane[k+1] : 0;
-    ui = (nz > 1) ? u -> _plane[k+1] : 0;
-    vi = (nz > 1) ? v -> _plane[k+1] : 0;
-    wi = (nz > 1) ? w -> _plane[k+1] : 0;
-
-    for (i = 0, j = 0; i < nbound; i++) {
-
-      // -- We loop over all boundaries but only do the work for walls.
-      
-      if (UBC[i] -> inGroup ("wall")) {
-
-	tnxr = nx + j*np + k*M;
-	tnyr = ny + j*np + k*M;
-	ttxr = tx + j*np + k*M;
-	ttyr = ty + j*np + k*M;
-	ttzr = tz + j*np + k*M;
-
-	tnxi = (nz > 1) ? nx + j*np + (k+1)*M : 0;
-	tnyi = (nz > 1) ? ny + j*np + (k+1)*M : 0;
-	ttxi = (nz > 1) ? tx + j*np + (k+1)*M : 0;
-	ttyi = (nz > 1) ? ty + j*np + (k+1)*M : 0;
-	ttzi = (nz > 1) ? tz + j*np + (k+1)*M : 0;
-
-	UBC[i] -> traction (mode, mu, pr, pi, ur, ui, vr, vi, wr, wi,
-			    tnxr,tnxi,tnyr,tnyi,
-			    ttxr,ttxi,ttyr,ttyi,ttzr,ttzi,
-			    &work[0]);
-	j++;
-      }
-    }
-  }
-}
-#else
 void Field::traction (real_t*      n, // Normal/pressure
 		      real_t*      t, // In-plane tangent/viscous
 		      real_t*      s, // Out-of-plane tangent/viscous
@@ -659,7 +586,7 @@ void Field::traction (real_t*      n, // Normal/pressure
     }
   }
 }
-#endif
+
 
 Field& Field::solve (AuxField*             f  ,
 		     const ModalMatrixSys* MMS)
