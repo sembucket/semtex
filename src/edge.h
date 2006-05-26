@@ -32,18 +32,10 @@ public:
   Vector normTraction (const char*,const real_t*,real_t*)                const;
   Vector tangTraction (const char*,const real_t*,const real_t*,real_t*)  const;
 
-#if 0
-  void traction (const int_t,const real_t, 
-		 const real_t*,const real_t*,const real_t*,const real_t*,
-		 const real_t*,const real_t*,const real_t*,const real_t*,
-		 real_t*,real_t*,real_t*,real_t*,real_t*,
-		 real_t*,real_t*,real_t*,real_t*,real_t*,real_t*)        const;
-#else
   void traction (const int_t,const real_t,
 		 const real_t*,const real_t*,const real_t*,const real_t*,
 		 const real_t*,const real_t*,const real_t*,const real_t*,
 		 real_t*,real_t*,real_t*,real_t*,real_t*,real_t*,real_t*)const;
-#endif
 
 protected:
   int_t          _np     ;	// Matches Geometry::nP().

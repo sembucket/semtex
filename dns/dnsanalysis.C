@@ -39,19 +39,13 @@ DNSAnalyser::DNSAnalyser (Domain* D   ,
     const int_t npr = Geometry::nProc();
     const int_t np  = Geometry::nP();
     const int_t nz  = Geometry::nZProc();
-#if 0
-    // -- Allocate storage area: 5 = 2 normal components + 3 tangential.
-    
-    _nwall = B -> nWall();
-    _nline = np * _nwall;
-    _npad  = 5  * _nline;
-#else
+
     // -- Allocate storage area: 3 = 1 normal component + 2 tangential.
     
     _nwall = B -> nWall();
     _nline = np * _nwall;
     _npad  = 3  * _nline;
-#endif
+
     // -- Round up length for Fourier transform/exchange.
 
     if   (npr > 1) _npad += 2 * npr - _npad % (2 * npr);
@@ -133,23 +127,14 @@ void DNSAnalyser::analyse (AuxField** work0,
       // -- Load the local storage area.
 
       Veclib::zero (_work.size(), &_work[0], 1);
-#if 0
-      if (DIM == 3 || _src -> nField() == 4)
-	Field::traction (&_work[0], &_work[_nline], &_work[2*_nline],
-			 &_work[3*_nline], &_work[4*_nline], _nwall, _npad,
-			 _src->u[3], _src->u[0], _src->u[1], _src->u[2]);
-      else
-	Field::traction (&_work[0], &_work[_nline], &_work[2*_nline],
-			 &_work[3*_nline], &_work[4*_nline], _nwall, _npad,
-			 _src->u[2], _src->u[0], _src->u[1]);
-#else
+
       if (DIM == 3 || _src -> nField() == 4)
 	Field::traction (&_work[0], &_work[_nline], &_work[2*_nline], _nwall,
 			 _npad, _src->u[3],_src->u[0],_src->u[1],_src->u[2]);
       else
 	Field::traction (&_work[0], &_work[_nline], &_work[2*_nline], _nwall,
 			 _npad, _src->u[2],_src->u[0],_src->u[1]);
-#endif
+
       // -- Inverse Fourier transform (like Field::bTransform).
 
       if (nPR == 1) {
@@ -164,25 +149,10 @@ void DNSAnalyser::analyse (AuxField** work0,
 	Femlib::exchange (&_work[0], nZP, nP,  INVERSE);
       }
 
-#if 0
-      // -- Just output normal and tangential traction magnitudes.
-      Veclib::vhypot (_nline, &_work[0       ], 1, &_work[  _nline], 1,
-		      &_work[0], 1);
-      Veclib::vmag   (_nline, &_work[2*_nline], 1, &_work[3*_nline], 1,
-		      &_work[4*_nline], 1, &_work[_nline], 1);
-#endif
-
       // -- Write to file.
 
       // -- Header: this will be a lot like a standard header.
-#if 1
       //    Output normal and tangential tractions, 'n', 't', 's'.
-#else
-      //    In order, the components output are Nx, Ny, Tx, Ty, Tz,
-      //    where N stands for normal and T for tangential.
-#endif
-      //    Ultimately we should change the list to CSV. For now
-      //    we will use abcde to denote these components.
 
       ROOTONLY {
 	const char *Hdr_Fmt[] = { 
@@ -211,11 +181,7 @@ void DNSAnalyser::analyse (AuxField** work0,
 	sprintf (s1, Hdr_Fmt[5], Femlib::value ("D_T"));    _wss_strm << s1;
 	sprintf (s1, Hdr_Fmt[6], Femlib::value ("KINVIS")); _wss_strm << s1;
 	sprintf (s1, Hdr_Fmt[7], Femlib::value ("BETA"));   _wss_strm << s1;
-#if 1
 	sprintf (s1, Hdr_Fmt[8], "nts");                     _wss_strm << s1;
-#else
-	sprintf (s1, Hdr_Fmt[8], "abcde");                  _wss_strm << s1;
-#endif
 	sprintf (s2, "binary "); Veclib::describeFormat  (s2 + strlen (s2));
 	sprintf (s1, Hdr_Fmt[9], s2);                       _wss_strm << s1;
 
@@ -226,11 +192,7 @@ void DNSAnalyser::analyse (AuxField** work0,
       // -- Data.
 
       if (nPR > 1) {		// -- Parallel.
-#if 1
 	for (j = 0; j < 3; j++)	// -- Reminder: there are 3 components.
-#else
-	for (j = 0; j < 5; j++)	// -- Reminder: there are 5 components.
-#endif
 	  ROOTONLY {
   	    for (i = 0; i < nZP; i++) {
 	      plane = &_work[i*_npad + j*_nline];
@@ -254,11 +216,7 @@ void DNSAnalyser::analyse (AuxField** work0,
 	      Femlib::send (plane, _nline, 0);
 	    }
       } else {			// -- Serial.
-#if 1
 	for (j = 0; j < 3; j++)
-#else
-	for (j = 0; j < 5; j++)
-#endif
 	  for (i = 0; i < nZ; i++) {
 	    plane = &_work[i*_npad + j*_nline];
 	    _wss_strm.write (reinterpret_cast<char*>(plane),

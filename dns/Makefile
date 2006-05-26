@@ -82,6 +82,15 @@ distclean:
 tbcs:
 	rm -f integrate.o
 	$(MAKE) TBCS=1
+	rm -f integrate.o
+
+# ----------------------------------------------------------------------------
+# Make unsteady Stokes solver:
+#
+stokes:
+	rm -f nonlinear.o
+	$(MAKE) STOKES=1
+	rm -f nonlinear.o
 
 #-----------------------------------------------------------------------------
 # Machine-dependent compilations.

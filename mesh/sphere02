@@ -1,63 +1,61 @@
-# Flow (+ scalar convection) past a sphere: mesh is symmetrical about y axis.
+# Stokes flow past a sphere (see Schlichting ch6).
 
 <USER>
-u = 0.0
-v = 0.0
-c = 0.0
+u = 0.75*R*x*x/(x*x+y*y)^1.5*(R*R/(x*x+y*y)-1)-0.25*R/sqrt(x*x+y*y)*(3+R*R/(x*x+y*y))+1
+v = 0.75*R*x*y/(x*x+y*y)^1.5*(R*R/(x*x+y*y)-1)
 p = 0.0
 </USER>
 
 <FIELDS>
-u v c p
+u v p
 </FIELDS>
 
 <TOKENS>
 	CYLINDRICAL = 1
 	CHKPOINT    = 1
-	N_P      = 7
-	D_T         = 0.005
-	N_STEP      = 4000
-	AMAX        = 2.0
-	OMEGA       = 1.0
-	N_TIME      = 2
-	Re          = 100.0
-	KINVIS      = 1/Re
-	PRANDTL     = 10.0
-	IO_CFL      = 20
+	R           = 0.5
+	N_P         = 7
+	D_T         = 0.01
+	N_STEP      = 5000
+	N_TIME      = 1
+	KINVIS      = 1
+	IO_FLD      = N_STEP
+	IO_WSS      = N_STEP
 </TOKENS>
 
 <HISTORY NUMBER=1>
         1 2 0 0
 </HISTORY>
 
-<GROUPS NUMBER=4>
+<GROUPS NUMBER=5>
         1       v       velocity
         2       a       axis
         3       w       wall
-	4	s	symmetry
+        4       o       outflow
+	5	s	symmetry
 </GROUPS>
 
-<BCS NUMBER=4>
-1       v       4
-        <D>     u = OMEGA*AMAX*sin(OMEGA*t) </D>
-        <D>     v = 0.0 </D>
-        <D>     c = 0.0 </D>
+<BCS NUMBER=5>
+1       v       3
+        <D>     u = 0.75*R*x*x/(x*x+y*y)^1.5*(R*R/(x*x+y*y)-1)-0.25*R/sqrt(x*x+y*y)*(3+R*R/(x*x+y*y))+1 </D>
+        <D>     v = 0.75*R*x*y/(x*x+y*y)^1.5*(R*R/(x*x+y*y)-1) </D>
         <H>     p       </H>
-2       a       4
+2       a       3
         <A>     u       </A>
         <A>     v       </A>
-        <A>     c       </A>
         <A>     p       </A>
-3       w       4
+3       w       3
         <D>     u = 0.0 </D>
         <D>     v = 0.0 </D>
-        <D>     c = 1.0 </D>
         <H>     p       </H>
-4       s       4
-        <D>     u = OMEGA*AMAX*sin(OMEGA*t) </D>
+4       o	3
+        <N>     u = 0.0 </N>
         <N>     v = 0.0 </N>
-        <D>     c = 0.0 </D>
-        <H>     p       </H>
+        <D>     p = 0.0 </D>
+5       s	3
+        <N>     u = 0.0 </N>
+        <D>     v = 0.0 </D>
+        <H>     p	</H>
 </BCS>
 
 
@@ -419,10 +417,10 @@ u v c p
 	27	70	3	<B>	a	</B>
 	28	75	3	<B>	a	</B>
 
-	29	34	2	<B>	v	</B>
-	30	33	2	<B>	v	</B>
-	31	32	2	<B>	v	</B>
-	32	41	2	<B>	v	</B>
+	29	34	2	<B>	o	</B>
+	30	33	2	<B>	o	</B>
+	31	32	2	<B>	o	</B>
+	32	41	2	<B>	o	</B>
 
 	33	82	2	<B>	v	</B>
 	34	73	2	<B>	v	</B>
