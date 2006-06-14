@@ -129,8 +129,14 @@ static void readMesh (istream&        file,
   file.getline (buf, StrMax);
   if (!strstr (buf, "NR NS NZ NEL"))
     message (prog, "input not a mesh file", ERROR);
-  
+
+#if 1
+  string s (buf);
+  istringstream ss (buf);
+  ss  >> nr >> ns >> nz >> nel;
+#else
   istrstream (buf, strlen (buf)) >> nr >> ns >> nz >> nel;
+#endif
 
   if (nr  != Femlib::ivalue ("N_P") ||
       nz  != Femlib::ivalue ("N_Z") ||
