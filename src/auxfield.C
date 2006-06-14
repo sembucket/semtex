@@ -659,12 +659,21 @@ void AuxField::errors (const Mesh* mesh    ,
   L2 /= area;
   H1 /= area;
 
+#if 1
+  ostringstream sf;
+  sf << "AuxField '"
+     << name()
+     << "' error norms (inf, L2, H1): "
+     << Li << "  " << L2 << "  " << H1;
+  message ("", sf.str().c_str(), REMARK);
+#else
   char  s[StrMax];
   ostrstream (s, StrMax) << "AuxField '"
 			 << name()
 			 << "' error norms (inf, L2, H1): "
 			 << Li << "  " << L2 << "  " << H1 << ends;
   message ("", s, REMARK);
+#endif
 }
 
 
@@ -904,10 +913,19 @@ void AuxField::describe (char* s)  const
 // NR NS NZ NEL.
 // ---------------------------------------------------------------------------
 {
+#if 1
+  ostringstream sf;
+  sf << Geometry::nP()    << " "
+     << Geometry::nP()    << " "
+     << Geometry::nZ()    << " "
+     << Geometry::nElmt() << ends;
+  strcpy (s, sf.str().c_str());
+#else
   ostrstream (s, StrMax) << Geometry::nP()    << " "
 			 << Geometry::nP()    << " "
 			 << Geometry::nZ()    << " "
 			 << Geometry::nElmt() << ends;
+#endif
 }
 
 

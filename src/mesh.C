@@ -91,7 +91,11 @@ static char RCS[] = "$Id$";
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#include <strstream>
+#if 0
+ #include <strstream>
+#else
+ #include <sstream>
+#endif
 #include <algorithm>
 
 using namespace std;
@@ -942,8 +946,14 @@ void Mesh::printNek () const
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "Mesh::printNek";
-  char       err [StrMax], buf[StrMax];
+  char       buf[StrMax];
+#if 0
+  char       err [StrMax];
   ostrstream os  (err, StrMax);
+#else
+  string        err;
+  ostringstream os(err);
+#endif
   int_t      i, j, ns, nel = nEl();
   float      vbc;
   Elmt       *E, *ME;
@@ -1057,7 +1067,11 @@ void Mesh::printNek () const
 	  os << "Elmt " << E -> ID + 1 << " side " << S -> ID + 1
 	     << " --- B.C. type "  << buf
 	     << " not implemented" << ends;
+#if 0
 	  message (routine, err, ERROR);
+#else	  
+	  message (routine, os.str().c_str(), ERROR);
+#endif
 	}
       }
     }

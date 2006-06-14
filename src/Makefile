@@ -97,7 +97,6 @@ ifeq ($(ARCH),Darwin)               # -- Mac OSX.
 CXX      = g++
 LD       = g++
 CC       = gcc
-#FC       = g77
 FC       = g95
 AR	 = libtool
 ARFLAGS  = -static -o
