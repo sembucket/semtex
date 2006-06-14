@@ -36,13 +36,21 @@ int main (int    argc,
   vector<vector<Point*> > vertex;
   int                     Nx = 0, Ny = 0, Nb = 1, NelB;
   int                     i, j, k, b;
+#if 1
+  string                  s;
+#endif
 
   getargs (argc, argv, Nb, input);
 
   // -- Read x, then y locations onto two stacks.
 
   while (input -> getline(line, STR_MAX).gcount() > 1) {
+#if 1
+    istringstream ss (s = line);
+    ss >> x;
+#else
     istrstream (line, strlen(line)) >> x;
+#endif
     X.push (x);
     Nx++;
   }
@@ -53,7 +61,12 @@ int main (int    argc,
 	     ERROR);
 
   while (input -> getline(line, STR_MAX)) {
+#if 1
+    istringstream ss (s = line);
+    ss >> y;
+#else
     istrstream (line, strlen(line)) >> y;
+#endif
     Y.push (y);
     Ny++;
   }
