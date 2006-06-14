@@ -491,10 +491,19 @@ void AuxField::describe (char* s)  const
 // NR NS NZ NEL.
 // ---------------------------------------------------------------------------
 {
+#if 1
+  ostringstream sf;
+  sf << Geometry::nP()    << " "
+     << Geometry::nP()    << " "
+     << Geometry::nZ()    << " "
+     << Geometry::nElmt() << ends;
+  strcpy (s, sf.str().c_str());
+#else
   ostrstream (s, StrMax) << Geometry::nP()    << " "
                          << Geometry::nP()    << " "
                          << Geometry::nZ()    << " "
                          << Geometry::nElmt() << ends;
+#endif
 }
 
 

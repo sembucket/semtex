@@ -260,9 +260,23 @@ ifstream& operator >> (ifstream& strm,
 
   strm.getline(s,StrMax).getline(s,StrMax);
   
+#if 1
+  string ss(s);
+  istringstream sss (ss);
+  sss >> np >> np >> nz >> nel;
+
+  cout << "np: " << np << " nz: " << nz << " nel: " << nel << endl;
+
+  D.u[0] -> describe (f);
+  sss.str (ss = f);
+  sss >> npchk >> npchk >> nzchk >> nelchk;
+  cout << "npchk: " << npchk << " nzchk: " << nzchk << " nelchk: " << nelchk << endl;
+
+#else  
   D.u[0] -> describe (f);
   istrstream (s, strlen (s)) >> np    >> np    >> nz    >> nel;
   istrstream (f, strlen (f)) >> npchk >> npchk >> nzchk >> nelchk;
+#endif
   
   if (np  != npchk ) message (routine, "element size mismatch",       ERROR);
   if (nz  != nzchk ) message (routine, "number of z planes mismatch", ERROR);
@@ -271,14 +285,23 @@ ifstream& operator >> (ifstream& strm,
   ntot = np * np * nz * nel;
   if (ntot != Geometry::nTot())
     message (routine, "declared sizes mismatch", ERROR);
+#if 1
+  strm.getline(s,StrMax);
+  sss.str (ss = s);
+  sss >> D.step;
 
+  strm.getline(s,StrMax);
+  sss.str (ss = s);
+  sss >> D.time;
+  Femlib::value ("t", D.time);
+#else
   strm.getline(s,StrMax);
   istrstream (s, strlen (s)) >> D.step;
 
   strm.getline(s,StrMax);
   istrstream (s, strlen (s)) >> D.time;
   Femlib::value ("t", D.time);
-  
+#endif  
   strm.getline(s,StrMax).getline(s,StrMax);
   strm.getline(s,StrMax).getline(s,StrMax);
 

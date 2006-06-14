@@ -492,11 +492,21 @@ ifstream& operator >> (ifstream&   strm,
   
   strm.getline (s, StrMax) . getline (s, StrMax);
 
+#if 1
+  string ss(s);
+  istringstream sss (ss);
+  sss >> np >> np >> nz >> nel;
+ 
+  tgt._avg.begin()->second->describe (f);
+  sss.str (ss = f);
+  sss >> npchk >> npchk >> nzchk >> nelchk;
+#else
   tgt._avg.begin()->second->describe (f);
 
   istrstream (s, StrMax) >> np    >> np    >> nz    >> nel;
   istrstream (f, StrMax) >> npchk >> npchk >> nzchk >> nelchk;
-  
+#endif
+
   if (np  != npchk ) message (routine, "element size mismatch",       ERROR);
   if (nz  != nzchk ) message (routine, "number of z planes mismatch", ERROR);
   if (nel != nelchk) message (routine, "number of elements mismatch", ERROR);
@@ -506,7 +516,13 @@ ifstream& operator >> (ifstream&   strm,
     message (routine, "declared sizes mismatch", ERROR);
 
   strm.getline (s, StrMax);
+
+#if 1
+  ss = s;
+  sss >> tgt._navg;
+#else
   istrstream (s, StrMax) >> tgt._navg;
+#endif
     
   strm.getline (s, StrMax) . getline (s, StrMax);
   strm.getline (s, StrMax) . getline (s, StrMax) . getline (s, StrMax);

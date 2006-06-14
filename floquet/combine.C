@@ -58,7 +58,7 @@ static char RCS[] = "$Id$";
 
 #include <iostream>
 #include <fstream>
-#include <strstream>
+
 #include <iomanip>
 #include <vector>
 
