@@ -188,20 +188,6 @@ void nonLinear (Domain*         D ,
 	}
 	Veclib::vvtvp (nTot32, u32[j], 1, tmp,  1, n32[i], 1, n32[i], 1);
 
-	// -- Perform n_i += d(u_i u_j) / dx_j.
-
-	Veclib::vmul  (nTot32, u32[i], 1, u32[j], 1, tmp,  1);
-	if (j == 2) {
-	  Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
-	  Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
-	  master -> gradient (nZ,  nPP, tmp, j);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
-	  Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
-	} else {
-	  master -> gradient (nZ32, nP, tmp, j);
-	}
-	Veclib::vadd (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
       }
 
       // -- Transform to Fourier space, smooth, add forcing.
