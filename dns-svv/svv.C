@@ -87,7 +87,7 @@ void operators (const int_t    np ,
     // -- Gather up the various matrices.
 
     for (i = 0; i < np; i++) sqrtS[i] = sqrt (S[i]);
-    Femlib::quadrature (0, 0, &DV, 0, np, 'L', 0.0, 0.0);
+    Femlib::quadrature (0, 0, &DV, 0, np, LL, 0.0, 0.0);
 
 #if 1  // -- Legendre polynomial transform.
     Femlib::legTran (np, &MF, 0, &MI, 0, 0, 0);

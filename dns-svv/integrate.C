@@ -180,7 +180,7 @@ void integrateNS (Domain*      D,
 
     ROOTONLY if (F) cout << "Flowrate: " << F -> getQ() << endl;
 
-    A -> analyse (Us[0], Uf[0]);
+    A -> analyse (Us[0]);
   }
 
 }
