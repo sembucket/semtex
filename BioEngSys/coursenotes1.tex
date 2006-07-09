@@ -73,11 +73,19 @@ The basic distinction between solids and fluids is that solids in
 equilibrium (\ie at rest) can resist shear stress, whereas fluids,
 both gases and liquids, cannot. If fluids are subjected to a shear
 stress (\ie a tangential stress), they deform continuously in time and
-space until the shear stress reaches zero.
+space until the shear stress reaches zero, as shown in
+figure~\ref{fig.def}.
 
-
-{\bf Need a figure to illustrate this.}
-
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.6\textwidth]{Shames-1.1.eps}
+\end{center}
+\caption{The most basic difference between solids and fluids is that
+  when placed under shear, solids reach a fixed deformation whereas
+  fluids deform continuously.
+  \citep[From][]{shames62}}
+\label{fig.def}
+\end{figure}
 
 The basic distinction between a liquid and a gas is that liquids have
 a distinct surface, whereas gases do not. If placed inside a
@@ -571,7 +579,8 @@ The concise vector form of this is
 \bm{x}+(\bm{I}+\bm{\nabla u})\bm{\cdot}\cd{\bm{x}},
 \]
 where $\bm{I}$ is the $3\times3$ identity matrix, and is not
-associated with deformation. Note the equivalence between the
+associated with deformation: $\bm{I}\,\cd\bm{x}$ represents the
+original infinitesimal length. Note the equivalence between the
 coordinate-free expression $\bm{\nabla u}$ and the $3\times3$ array of
 partial derivatives above. We will stay with this form temporarily. To
 make further progress we decompose this (tensor) operator $\bm{\nabla
@@ -637,21 +646,21 @@ back out again we have
 (And we can see why more compact notations are preferred!) Note the
 respective symmetry and anti-symmetry of the two matrices on the
 right-hand-side of this expression. Now if first we examine in detail
-the final term in this equation, we find that it is exactly equivalent
-to the vector cross product $\frac{1}{2}\bm{\omega}\times\cd \bm{x}$,
-where $\omega_{x}=\partial w/\partial y - \partial v/\partial z$,
-etc.\ (or in full $\bm{\omega}=\bm{\nabla}\times\bm{u}$). In turn this
-means that the displacement it causes is exactly equivalent to an
-infinitesimal solid-body rotation through angle
-$\frac{1}{2}\bm{\omega}$. But a solid-body rotation by definition
-causes no distortion of the body concerned. Therefore only the first
-term in the right-hand-side of equation (\ref{eq.decomp}), due to the
-symmetric part of $\bm{\nabla u}$, produces distortion (and, as we
-will see later, is associated with stress in solids). This symmetric
-part (with at most 6 independent terms out of 9) is called the
-infinitesimal strain tensor. The other, anti-symmetric part (with at
-most 3 independent terms out of 9), is called the infinitesimal
-rotation tensor.
+the final term in this equation, we find that the components in it are
+exactly equivalent to those of the vector cross product
+$\frac{1}{2}\bm{\omega}\times\cd \bm{x}$, where $\omega_{x}=\partial
+w/\partial y - \partial v/\partial z$, etc.\ (or in full
+$\bm{\omega}=\bm{\nabla}\times\bm{u}$). In turn this means that the
+displacement it causes is exactly equivalent to an infinitesimal
+solid-body rotation through angle $\frac{1}{2}\bm{\omega}$. But a
+solid-body rotation by definition causes no distortion of the body
+concerned. Therefore only the first term in the right-hand-side of
+equation (\ref{eq.decomp}), due to the symmetric part of $\bm{\nabla
+u}$, produces distortion (and, as we will see later, is associated
+with stress in solids). This symmetric part (with at most 6
+independent terms out of 9) is called the infinitesimal strain
+tensor. The other, anti-symmetric part (with at most 3 independent
+terms out of 9), is called the infinitesimal rotation tensor.
 
 The notation we will use for the infinitesimal strain tensor is
 $\bm{e}\equiv e_{ij}=(\partial u_i/\partial x_j + \partial
@@ -837,15 +846,16 @@ The volume rate of flow $Q$ through an (imaginary) surface in a flow
 field is a fundamentally important quantity. Now the direction of the
 flow relative to the direction of the surface must be
 considered. Refer to figure~\ref{fig.flowQ}. Naturally, if the flow
-direction is parallel to the surface (\ie if the velocity $\bm{V}$ is
-parallel to the unit outward normal $\bm{n}$), then there is \emph{no}
-volume flow through the surface, while if the flow direction matches
-that of the unit outward normal $\bm{n}$ to the surface, then the
-volume flow through the surface is maximised. Evidently the volume
-flow rate (volume swept through per unit time) $\cd Q$ through a small
-element of surface $\cd A$ depends on the cosine of the angle $\theta$
-between the velocity vector and the unit outward normal, which we can
-simply express through a vector dot product:
+direction is parallel to the surface (\ie if the velocity $\bm{u}$ is
+itself normal parallel to the unit outward normal $\bm{n}$), then
+there is \emph{no} volume flow through the surface, while if the flow
+direction matches that of the unit outward normal $\bm{n}$ to the
+surface, then the volume flow through the surface is
+maximised. Evidently the volume flow rate (volume swept through per
+unit time) $\cd Q$ through a small element of surface $\cd A$ depends
+on the cosine of the angle $\theta$ between the velocity vector and
+the unit outward normal, which we can simply express through a vector
+dot product:
 \[
 \cd Q=|\bm{u}| \cos(\bm{n}, \bm{u})\,\cd A = \bm{u\cdot n}\,\cd A,
 \]
@@ -882,10 +892,10 @@ Diffusion occurs through random motion of molecules, and is driven by
 a tendency to statistical uniformity, \ie a state of statistical
 equilibrium. In order for diffusive transport to occur, all that is
 needed is a spatial gradient of concentration of some property. Unlike
-transport associated with the velocity field, diffusive transport will
-occur in a direction normal to a surface even if there is no component
-of the bulk velocity normal to the surface, so long as there is a
-concentration gradient across it.
+transport associated directly with the velocity field, diffusive
+transport will occur in a direction normal to a surface even if there
+is no component of the bulk velocity normal to the surface, so long as
+there is a concentration gradient across it.
 
 The `property' with which diffusive flux is associated depends on the
 conserved quantity under investigation. It may be the total amount of
@@ -1476,12 +1486,21 @@ or in component form
 \end{equation}
 The two constants $\lambda$ and $G$ are here known as the first and
 second Lam\'{e} constants. In engineering practice, the symbol $G$ is
-usually called the \emph{shear modulus} of the material. The constants
-$\lambda$ and $G$ are also sometimes combined in various ways to
-produce other constants (Poisson's ratio $\nu$, Young's modulus $E$,
-and the bulk modulus $K$), but fundamentally there are only two
-independent constants required to characterise a Hookean elastic
-solid.
+usually called the \emph{shear modulus} of the material.
+
+The constants $\lambda$ and $G$ are often also combined in various
+ways to produce other constants (Poisson's ratio $\nu$, Young's
+modulus $E$, and the bulk modulus $K$), but fundamentally there are
+only two independent constants required to characterise a Hookean
+elastic solid. For reference, here are the relationships between the
+three other constants and the two Lam\'{e} constants:
+\begin{eqnarray*}
+{\nu} &=\frac{\lambda}{2(\lambda + G)},\\
+E   &=\frac{G(3\lambda+2G)}{\lambda+G},\\
+K   &=\lambda + \frac{2}{3} G.
+\end{eqnarray*}
+(Note that the symbol $\nu$ is also used in fluid mechanics, but to
+represent the \emph{kinematic viscosity} $\nu=\mu/\rho$.)
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
