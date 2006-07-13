@@ -3,18 +3,27 @@
 %
 % $Id$
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\documentclass[a4paper,11pt]		{report}
-\usepackage{amsmath,amssymb,amsxtra,bm,natbib,graphicx,epic,eepic,textcomp}
+\documentclass[twoside,11pt]		{report}
+
+\usepackage{amsmath,amssymb,amsxtra,bm}
+\usepackage{natbib}
+\usepackage{graphicx,epic,eepic}
+\usepackage{textcomp}
+\usepackage{fancyheadings}
+\usepackage{a4wide}
+
 %\usepackage[all,import]{xy}
 
 \graphicspath{{./Figs/}} 
 
-\setlength{\textheight}			{245mm}
-\setlength{\textwidth}			{165mm}
-\setlength{\topmargin}			{-5mm}
-\setlength{\headsep}			{0mm}
-\setlength{\oddsidemargin}		{0mm}
-\setlength{\parsep}                     {0mm}
+%\setlength{\textheight}		{240mm}
+%\setlength{\textwidth}		{165mm}
+%\setlength{\voffset}            {-15mm}
+%\setlength{\hoffset}            {-10mm}
+%\setlength{\topmargin}			{-5ex}
+%\setlength{\headsep}			{2ex}
+%\setlength{\oddsidemargin}		{0mm}
+%\setlength{\parsep}                     {0mm}
 
 \renewcommand{\baselinestretch}		{1.00}
 
@@ -22,11 +31,12 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
+\pagestyle{fancy}
 
 \begin{titlepage}
-\biomedsubject{421-286}{Bioengineering Systems 2}{2006}
+\biomedsubject{421-286}{Bioengineering Systems Modelling 2}{2006}
 
-\vspace*{15em}
+\vspace*{18em}
 
 \begin{center}
 {\huge
@@ -34,7 +44,7 @@ An Introduction to Continuum Mechanics\\[5pt]
 for Biomedical Applications
 }
 
-\vspace*{15em}
+\vspace*{20em}
 
 {\Large Hugh M Blackburn}
 
@@ -42,32 +52,47 @@ for Biomedical Applications
 
 \end{titlepage}
 
-%\maketitle
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\part{Continuum mechanics}
+%\part{Continuum mechanics}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-
-
+\cleardoublepage
 
 %#############################################################################
 \chapter{Continua}
 \label{ch.cont}
 
-At biological length scales it often becomes difficult to ignore the
-discrete nature of the materials involved. However, in order to make
-progress in analysing large-scale mechanical effects, \eg on the
-length scale of the human body, or of the larger arteries, we usually
-need to assume the materials involved are continua. The three
-fundamental kinds of continua are solids, liquids and gases. Sometimes
-we group liquids and gases together as fluids, on the basis of the
-similarity of their mechanical behaviours.
+
+\lhead[\bfseries\thepage]{\rightmark}
+\chead{}
+\rhead[\leftmark]{\bfseries\thepage}
+%\rhead{\bfseries\thepage}
+\lfoot[\footnotesize Biomedical Engineering, The University of Melbourne]%
+{\footnotesize Biomedical Engineering, The University of Melbourne}
+\cfoot{}{}
+\rfoot[\footnotesize 421-286 Bioengineering Systems Modelling 2]%
+{\footnotesize 421-286 Bioengineering Systems Modelling 2}
+
+At the small end of the range of biological length scales it can
+becomes difficult to ignore the discrete nature of the materials
+involved, as for example we may be concerned with the behaviour of
+single cells. In order to make progress in analysing large-scale
+mechanical effects, \eg on the length scale of the human body, in
+bones, or of the larger arteries, we usually need to assume the
+materials involved are continua, that is, that the number of molecules
+or cells dealt with at a time is very large, and the individuals do
+not need to be considered.  The basic assumption is that properties
+like concentration, density, velocity, vary smoothly in space and
+hence can be analysed via differential calculus.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Basic properties of solids and fluids}
+
+The three fundamental kinds of continua are
+solids, liquids and gases. Sometimes we group liquids and gases
+together as fluids, on the basis of the similarity of their mechanical
+behaviours.
 
 The basic distinction between solids and fluids is that solids in
 equilibrium (\ie at rest) can resist shear stress, whereas fluids,
@@ -295,7 +320,7 @@ following section are discussed in much greater depth by
 
 In continuum mechanics, we are generally concerned with two kinds of
 forces that can be exerted on a material region: surface forces (as
-the name implies, exterted over a surface) and body forces, or forces
+the name implies, exerted over a surface) and body forces, or forces
 that are distributed through the volume. We will deal with surface
 forces in the following section, but first we will briefly consider
 body forces. The one with which we are most familiar is that of
@@ -314,6 +339,15 @@ acceleration.
 
 %=============================================================================
 \subsection{The traction vector}
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.30\textwidth]{Fung-3.1.eps}
+\end{center}
+\caption{The idea of a traction on a surface, leading to the
+  definition of stress. \citep[After][]{fung69}}
+\label{fig.tract}
+\end{figure}
 
 Suppose we have a continuum occupying region $B$, and within it, a
 closed surface $S$, as shown in figure~\ref{fig.tract}. On some
@@ -339,17 +373,8 @@ is linked directly to the fact that the unit normal is reversed (or,
 equivalently, Newton's First Law), but the dependence of $\bm{T}$ on
 $\bm{n}$ is more far-reaching than this.
 
-\begin{figure}
-\begin{center}
-\includegraphics[width=0.30\textwidth]{Fung-3.1.eps}
-\end{center}
-\caption{The idea of a traction on a surface, leading to the
-  definition of stress. \citep[After][]{fung69}}
-\label{fig.tract}
-\end{figure}
-
 %=============================================================================
-\subsection{Stress and stess components}
+\subsection{Stress and stress components}
 
 \begin{figure}
 \begin{center}
@@ -528,7 +553,7 @@ tensor. We will not pursue this point in more depth, but in general,
 considerations of symmetry pervade continuum mechanics.
 
 %=============================================================================
-\subsection{Isotropic and deviatoric stress components}
+%\subsection{Isotropic and deviatoric stress components}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Deformation of continua}
@@ -742,7 +767,7 @@ locally fixed in space. \citet*{bsl62} give the example of the
 concentration of fish in a river as seen by an observer sitting on a
 bridge, and looking down at one point in the river.
 
-Next, supposing we get in a motorboat and speed around on the river,
+Next, supposing we get in a motor-boat and speed around on the river,
 and observe the concentration of fish from the boat. Then the time
 rate of change of $c$ is the `total time derivative', which, using the
 chain rule, is
@@ -834,7 +859,7 @@ acceleration field depends non-linearly on the velocity.
 \section{Transport phenomena}
 
 As well as forces (stresses) and deformation, another central focus in
-continum mechanics is the transport of conserved quantities such as
+continuum mechanics is the transport of conserved quantities such as
 mass, momentum, energy. The two main means of transport are advection,
 \ie direct transport by being carried with a flow, and molecular
 diffusion brought about by random motion of molecules.
@@ -921,7 +946,7 @@ final parenthesised expression. The negative sign expresses the idea
 that the direction of diffusive flux is from a region of high
 concentration to a region of low concentration. If we wish to know how
 fast the total amount of the quantity associated with $c$ is
-transported across a small area $\cd A$, then the situtation is much
+transported across a small area $\cd A$, then the situation is much
 the same as shown in figure~\ref{fig.flowQ}, except that the diffusive
 flux $\bm{f}$ replaces the velocity. Thus the diffusive flux through
 $\cd A$ of the quantity concerned is
@@ -931,7 +956,7 @@ $\cd A$ of the quantity concerned is
 
 If the quantity concerned is momentum, then the concentration of
 momentum per unit volume is $\rho\bm{u}$ (note: a vector) and for
-diffussion of momentum the transport coefficient is the viscosity of the
+diffusion of momentum the transport coefficient is the viscosity of the
 fluid, $\mu$.
 
 
@@ -1043,10 +1068,10 @@ or, in vector notation,
 \frac{\cD \rho}{\cD t} =-\rho\bm{\nabla\cdot u}.
 \end{equation}
 This tells us that the rate of change of density following a particle
-of fluid is the negative of the divergence or dilatation of the
-velocity field. For the applications we will discuss, we can take
-$\cD\rho/\cD t=0$, and use the fact that then $\bm{\nabla\cdot
-u}=0$\,---\,flows with this property are called
+of fluid is the (density times the) negative of the divergence or
+dilatation of the velocity field. For the applications we will
+discuss, we can take $\cD\rho/\cD t=0$, and use the fact that then
+$\bm{\nabla\cdot u}=0$\,---\,flows with this property are called
 incompressible. Simplifying even further we could take
 $\rho=\textrm{constant}$, which is philosophically slightly different,
 but has the same consequence for the divergence of velocity.
@@ -1092,7 +1117,7 @@ figure~\ref{fig.massV}, we can write this as
 \end{multline}
 Dividing by $\Delta V$ and taking limits, we have
 \begin{equation}
-\frac{\partial c}{\partial t}=
+\Frac{\partial c}{\partial t}=
 -\left(\frac{\partial cu}{\partial x}+\frac{\partial cv}{\partial
   y}+\frac{\partial cw}{\partial z}\right) + \frac{\partial}{\partial
   x}\left(k\frac{\partial c}{\partial x}\right)+ \frac{\partial}{\partial
@@ -1136,7 +1161,7 @@ equations.
 The equation for conservation of momentum is nothing more than
 Newton's Second Law written for a continuum. We have to allow for
 two kinds of forces: `body forces' which act in a distributed sense
-(\eg due to graviational attraction), and `surface forces' or
+(\eg due to gravitational attraction), and `surface forces' or
 tractions, which act on surfaces of a volume as a result of internal
 stress.  Like velocity and acceleration, momentum is a vector
 property, so we will end up with a set of three scalar equations, one
@@ -1339,7 +1364,7 @@ variables than equations (there are three components of $\bm{u}$, six
 components of $\bm{\tau}$, and just three equations), and so we cannot
 solve them.  Constitutive equations relate stresses to the
 displacement field (for a solid) or to the velocity field (for a
-fluid). We then are able to close the momemtum equations, and solve
+fluid). We then are able to close the momentum equations, and solve
 for the displacements, velocities and stresses.
 
 The stresses are related to the strain (in a solid) or rate of strain
@@ -1459,7 +1484,7 @@ fluid.
 \section{The Hookean elastic solid}
 
 For solids, the treatment is similar, except (\textit{i}) the strain
-tensor replaces ther rate-of-strain tensor, and (\textit{ii}) we do
+tensor replaces the rate-of-strain tensor, and (\textit{ii}) we do
 not need to allow for a pressure (or mean normal stress) when there is
 no strain. Assuming a linear relationship between stress and strain
 (which is Hooke's Law), we have
@@ -1659,85 +1684,85 @@ models of it in the case of turbulent flow.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\part{Fluid mechanics}
+%\part{Fluid mechanics}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %#############################################################################
-\chapter{Introduction to fluid mechanics}
-\label{ch.intro}
+%\chapter{Introduction to fluid mechanics}
+%\label{ch.intro}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Viscosity, and the rheology of blood}
+%\section{Viscosity, and the rheology of blood}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Hydrostatics}
+%\section{Hydrostatics}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Pressure and its measurement}
+%\section{Pressure and its measurement}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Attached and detached flows}
+%\section{Attached and detached flows}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Laminar and turbulent flows}
+%\section{Laminar and turbulent flows}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Flows in arterial branches and stenoses}
-
-
-
-
-%#############################################################################
-\chapter{Integral relationships}
-\label{ch.integral}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{One-dimensional energy equation}
-
-
-%#############################################################################
-\chapter{Pipe flows}
-\label{ch.pipe}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Poiseuille flow}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{The pipe flow friction factor}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Losses at bends and fittings}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Analysis of steady flows in pipes}
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Branching and pipe networks}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Solution of steady laminar flows in networks}
-
+%\section{Flows in arterial branches and stenoses}
 
 
 
 
 %#############################################################################
-\chapter{Cardiovascular flow}
-\label{ch.cardio}
+%\chapter{Integral relationships}
+%\label{ch.integral}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{The heart as a pump}
+%\section{One-dimensional energy equation}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{The arterial tree}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Peripheral resistance and flow regulation}
 
 %#############################################################################
-\chapter{Diffusion and dispersion in pipe flow}
-\label{ch.disper}
+%\chapter{Pipe flows}
+%\label{ch.pipe}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\section{Poiseuille flow}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\section{The pipe flow friction factor}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\section{Losses at bends and fittings}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\section{Analysis of steady flows in pipes}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\section{Branching and pipe networks}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\section{Solution of steady laminar flows in networks}
+
+
+
+
+
+%#############################################################################
+%\chapter{Cardiovascular flow}
+%\label{ch.cardio}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\section{The heart as a pump}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\section{The arterial tree}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\section{Peripheral resistance and flow regulation}
+
+%#############################################################################
+%\chapter{Diffusion and dispersion in pipe flow}
+%\label{ch.disper}
 
 
 %#############################################################################
