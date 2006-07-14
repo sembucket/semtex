@@ -47,9 +47,15 @@ void integrate (Domain*        D,
 
   vector<real_t> ff (3);
 
-  ff[0] = Femlib::value ("FFX");
-  ff[1] = Femlib::value ("FFY");
-  ff[2] = Femlib::value ("FFZ");
+  if (scheme == linear ) {
+    ff[0] = 0.0;
+    ff[1] = 0.0;
+    ff[2] = 0.0;
+  } else {
+    ff[0] = Femlib::value ("FFX");
+    ff[1] = Femlib::value ("FFY");
+    ff[2] = Femlib::value ("FFZ");
+  }
 
   static Msys**      MMSL;
   static Msys**      MMSN;
