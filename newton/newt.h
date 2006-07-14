@@ -10,10 +10,10 @@
 
 #include "sem.h"
 
-typedef void   (*Advection) (Domain*, AuxField**, AuxField**);
+typedef void   (*Advection) (Domain*, AuxField**, AuxField**, vector<real_t>&);
 void integrate (Domain*, Advection);
-void nonlinear (Domain*, AuxField**, AuxField**);
-void linear    (Domain*, AuxField**, AuxField**);
+void nonlinear (Domain*, AuxField**, AuxField**, vector<real_t>&);
+void linear    (Domain*, AuxField**, AuxField**, vector<real_t>&);
 
 extern "C" {
 

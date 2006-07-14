@@ -84,7 +84,6 @@ static vector<Element*> elmt;
 
 // -- File-scope routines.
 
-static void  memExhaust () { message ("new", "free store exhausted", ERROR); }
 static void  getargs    (int, char**, int_t&, int_t&, real_t&, real_t&,
 			 int_t&, char*&, char*&);
 static int_t preprocess (const char*, const char*);

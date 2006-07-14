@@ -45,6 +45,12 @@ void integrate (Domain*        D,
   const int_t  nZ    = Geometry::nZProc();
   Msys**       MMS;
 
+  vector<real_t> ff (3);
+
+  ff[0] = Femlib::value ("FFX");
+  ff[1] = Femlib::value ("FFY");
+  ff[2] = Femlib::value ("FFZ");
+
   static Msys**      MMSL;
   static Msys**      MMSN;
   static AuxField*** Us;
@@ -105,7 +111,7 @@ void integrate (Domain*        D,
 
     // -- Compute advection terms from previous velocity field.
 
-    scheme (D, Us[0], Uf[0]);
+    scheme (D, Us[0], Uf[0], ff);
 
     // -- Update high-order pressure BC storage.
 

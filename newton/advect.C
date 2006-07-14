@@ -9,9 +9,10 @@ static char RCS[] = "$Id$";
 
 #include "newt.h"
 
-void nonlinear (Domain*       D ,
-		AuxField**    Us,
-		AuxField**    Uf)
+void nonlinear (Domain*         D ,
+		AuxField**      Us,
+		AuxField**      Uf,
+		vector<real_t>& ff)
 // ---------------------------------------------------------------------------
 // Compute nonlinear (forcing) terms in Navier--Stokes equations: N(u),
 // where N(u) represents the nonlinear advection terms in the N--S equations
@@ -161,8 +162,18 @@ void nonlinear (Domain*       D ,
       N[i]   -> transform32 (FORWARD, n32[i]);
 
 #if !defined (CONV)
+     ROOTONLY if (fabs (ff[i]) > EPSDP) {
+	Veclib::fill (nP, -2.0*ff[i], tmp, 1);
+	if (i < 2) master -> mulY (1, tmp);
+	N[i] -> addToPlane (0, tmp);
+      }
       *N[i] *= -0.5;
 #else
+      ROOTONLY if (fabs (ff[i]) > EPSDP) {
+	Veclib::fill (nP, -ff[i], tmp, 1);
+	if (i < 2) master -> mulY (1, tmp);
+	N[i] -> addToPlane (0, tmp);
+      }
       *N[i] *= -1.0;
 #endif
 
@@ -211,8 +222,10 @@ void nonlinear (Domain*       D ,
       N[i]   -> transform32 (FORWARD, n32[i]);
 
 #if !defined (CONV)
+      ROOTONLY if (fabs (ff[i]) > EPSDP) N[i] -> addToPlane (0, -2.0*ff[i]);
       *N[i] *= -0.5;
 #else
+      ROOTONLY if (fabs (ff[i]) > EPSDP) N[i] -> addToPlane (0, -ff[i]);
       *N[i] *= -1.0;
 #endif
     }
@@ -220,9 +233,10 @@ void nonlinear (Domain*       D ,
 }
 
 
-void linear (Domain*    D ,
-	     AuxField** Us,
-	     AuxField** Uf)
+void linear (Domain*         D ,
+	     AuxField**      Us,
+	     AuxField**      Uf,
+	     vector<real_t>& ff)
 // ---------------------------------------------------------------------------
 // Compute linearised (forcing) terms in Navier--Stokes equations: L(u).
 //
@@ -288,7 +302,7 @@ void linear (Domain*    D ,
     L[i] = Uf[i];
   }
 
-  if (Geometry::system() == Geometry::Cylindrical) {
+  if (Geometry::cylindrical()) {
 
     for (i = 0; i < NCOM; i++) {
 
@@ -339,6 +353,7 @@ void linear (Domain*    D ,
 	if ( i < 2) master -> mulY (nZ32, tmp);
 	Veclib::vvvtm      (nTot32, L32[i], 1, U32[j], 1, tmp, 1, L32[i], 1);
       }
+
     }
   } else {			// -- Cartesian coordinates.
 
@@ -377,5 +392,15 @@ void linear (Domain*    D ,
       }
   }
   
-  for (i = 0; i < NCOM; i++) L[i] -> transform32 (FORWARD, L32[i]);
+  for (i = 0; i < NCOM; i++) {
+    L[i] -> transform32 (FORWARD, L32[i]);
+    if (Geometry::cylindrical()) {
+      ROOTONLY if (fabs (ff[i]) > EPSDP) {
+	Veclib::fill (nP, ff[i], tmp, 1);
+	if (i < 2) master -> mulY (1, tmp);
+	L[i] -> addToPlane (0, tmp);
+      }
+    } else
+      ROOTONLY if (fabs (ff[i]) > EPSDP) L[i] -> addToPlane (0, ff[i]);
+  }
 }
