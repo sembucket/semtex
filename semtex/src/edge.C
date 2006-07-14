@@ -241,6 +241,11 @@ Vector Edge::normTraction (const char*   grp,
 // in group called grp, using p as a pressure stress field data area.
 //
 // Wrk is a work vector elmt_np_max long.
+//
+// NB NB NB!!! This is presently in error, or at least mis-named,
+// since there is a viscous contribution to the normal traction
+// vector. What is computed here is the pressure contribution to the
+// force on this boundary segment.
 // ---------------------------------------------------------------------------
 {
   int_t  i;
@@ -265,10 +270,12 @@ Vector Edge::tangTraction (const char*   grp,
 			   const real_t* v  ,
 			   real_t*       wrk) const
 // ---------------------------------------------------------------------------
-// Compute viscous stress on this boundary segment, if it lies in group grp.
+// Compute viscous force on this boundary segment, if it lies in group grp.
 // u is data area for first velocity component field, v is for second.
 //
 // Work is a work vector, 4 * _np long.
+//
+// NB NB NB!!! This should be called viscous traction.
 // ---------------------------------------------------------------------------
 {
   Vector Force = {0.0, 0.0, 0.0};
@@ -375,6 +382,9 @@ void Edge::traction (const int_t   k   , // Fourier mode index
 // considered: if it's 0, sr it is set to zero.
 //
 // Work vector wrk 4*np*np long.
+//
+// NB NB NB!!! Currently in error because any viscous contribution to
+// the normal traction is ignored.
 // ---------------------------------------------------------------------------
 {
   const real_t betaK = k * Femlib::value ("BETA");

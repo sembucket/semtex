@@ -254,13 +254,10 @@ ifstream& operator >> (ifstream& strm,
   istringstream sss (ss);
   sss >> np >> np >> nz >> nel;
 
-  cout << "np: " << np << " nz: " << nz << " nel: " << nel << endl;
-
-  D.u[0] -> describe (f);
+   D.u[0] -> describe (f);
   sss.str (ss = f);
   sss >> npchk >> npchk >> nzchk >> nelchk;
-  cout << "npchk: " << npchk << " nzchk: " << nzchk << " nelchk: " << nelchk << endl;
-
+ 
 #else
   D.u[0] -> describe (f);
   istrstream (s, StrMax) >> np    >> np    >> nz    >> nel;
