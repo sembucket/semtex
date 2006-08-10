@@ -59,6 +59,7 @@ void Geometry::set (const int_t nel  ,
   if      (_nbase == 2 && _npert == 2 && _nz == 1) _cat = O2_2D;
   else if (_nbase == 2 && _npert == 3 && _nz == 1) _cat = O2_3D_SYMM;
   else if (_nbase == 2 && _npert == 3 && _nz == 2) _cat = O2_3D;
+  else if (_nbase == 3 && _npert == 3 && _nz == 1) _cat = SO2_2D;
   else if (_nbase == 3 && _npert == 3 && _nz == 2) _cat = SO2_3D;
   else {
     sprintf (err, "illegal: N_BASE = %1d, N_PERT = %1d, N_Z = %1d",
@@ -81,6 +82,7 @@ const char* Geometry::symmetry ()
   case O2_2D:      return "O(2), 2D"; break;
   case O2_3D_SYMM: return "O(2), 3D, standing wave"; break;
   case O2_3D:      return "O(2), 3D, travelling wave"; break;
+  case SO2_2D:     return "SO(2), 2D"; break;
   case SO2_3D:     return "SO(2), 3D"; break;
   }
 }

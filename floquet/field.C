@@ -583,7 +583,9 @@ Field& Field::solve (AuxField*        f,
       vector<real_t> work (5*npts + 4*Geometry::nTotElmt());
 
       const int_t mode =
-	(((Geometry::problem()) == Geometry::O2_2D)?0:1) * Geometry::kFund();
+	((Geometry::problem() == Geometry::O2_2D ||
+	  Geometry::problem() == Geometry::SO2_2D
+	  ) ? 0 : 1) * Geometry::kFund();
 
       real_t* r   = &work[0];
       real_t* p   = r + npts;
@@ -962,7 +964,8 @@ void Field::coupleBCs (Field*      v  ,
 // equation, do nothing for the zeroth Fourier mode.
 // --------------
 {
-  if (Geometry::problem() == Geometry::O2_2D) return;
+  if (Geometry::problem() == Geometry::O2_2D ||
+      Geometry::problem() == Geometry::SO2_2D ) return;
 
   const char     routine[] = "Field::couple";
   const int_t    nL        =  v -> _nline;
@@ -1040,6 +1043,7 @@ real_t Field::modeConstant (const char   name,
   const char routine[] = "Field::modeConstant";
 
   if (Geometry::problem() == Geometry::O2_2D     ||
+      Geometry::problem() == Geometry::SO2_2D    ||
       Geometry::system()  == Geometry::Cartesian || 
       name                ==         'c'         ||
       name                ==         'p'         ||

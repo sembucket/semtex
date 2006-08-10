@@ -630,7 +630,8 @@ void AuxField::couple (AuxField*   v  ,
 // half-complex case, where v~, w~ are both pure real_t.
 // ---------------------------------------------------------------------------
 {
-  if (Geometry::problem() == Geometry::O2_2D) return;
+  if (Geometry::problem() == Geometry::O2_2D ||
+      Geometry::problem() == Geometry::SO2_2D ) return;
 
   const char     routine[] = "Field::couple";
   const int_t    nP        =  Geometry::planeSize();

@@ -29,7 +29,7 @@ class Geometry
 {
 public:
   enum CoordSys { Cartesian, Cylindrical };
-  enum Category { O2_2D, O2_3D, O2_3D_SYMM, SO2_3D }; // Refer to README file.
+  enum Category { O2_2D, O2_3D, O2_3D_SYMM, SO2_2D, SO2_3D }; // ->README file.
 
   static void set (const int_t, const int_t);
 

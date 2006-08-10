@@ -14,7 +14,7 @@ semtex/dns: it evolves the linearised Navier--Stokes equations.
 Arnoldi is the actual analysis code, which carries out eigensolution
 of the stability problem.  The time integration routines required to
 evolve the linearised Navier--Stokes equations are identical for the
-two codes.  Typically one might use lns to evolve an initially random
+two codes.  One might use lns to evolve an initially random
 perturbation to an exponential growth or decay phase, then apply
 arnoldi to estimate the leading Ritz eigenvalues and vectors of the
 flow. Both codes are designed for serial execution only.
@@ -80,7 +80,7 @@ N_BASE  N_PERT  N_Z    COMPLEXITY
  2       3       1     Half-complex:  u.Re v.Re w.Im p.Re
  2       3       2     Full-complex
  3       2       1     NA
- 3       3       1     NA
+ 3       3       1     Real only:     u.Re v.Re w.Re p.Re
  3       3       2     Full-complex
 
 
@@ -91,8 +91,8 @@ N_BASE  N_PERT  N_Z    CATEGORY         CARTESIAN     CYLINDRICAL
  2       2       1      O(2)/2D		 OK            OK
  2       3       1      O(2)/3D/SYM	 OK            OK
  2       3       2      O(2)/3D		 OK            OK
- 3       2       1      SO(2)/2D	 --     NA     --
- 3       3       1      SO(2)/2D	 --     NA     --
+ 3       2       1                       --     NA     --
+ 3       3       1      SO(2)/2D	 ??            ??
  3       3       2      SO(2)/3D	 ??            OK
 
 (?? cases most likely are OK.)
@@ -100,7 +100,7 @@ N_BASE  N_PERT  N_Z    CATEGORY         CARTESIAN     CYLINDRICAL
 Summary of additional TOKENS and session file requirements
 ----------------------------------------------------------
 
-N_BASE:  number of velocity components (2 or 3)
+N_BASE:  number of velocity components in base flow (2 or 3)
 N_SLICE: number of time slices in session.bse (1 for steady base flow)
 
 N_PERT is set according to the number of velocity fields nominated in

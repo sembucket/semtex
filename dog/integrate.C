@@ -52,7 +52,7 @@ void integrate (Domain*       D,
   NORD  = Femlib::ivalue ("N_TIME");
 
   int_t        i, j, k;
-  const real_t dt    = Femlib::value ("D_T");
+  const real_t dt    = Femlib::value  ("D_T");
   const int_t  nStep = Femlib::ivalue ("N_STEP");
 
   static MatrixSys** MS;
@@ -89,7 +89,8 @@ void integrate (Domain*       D,
 
     // -- Apply coupling to radial & azimuthal velocity BCs.
 
-    if (Geometry::cylindrical() && PROB != Geometry::O2_2D)
+    if (Geometry::cylindrical() && 
+	(PROB != Geometry::O2_2D || PROB != Geometry::SO2_2D))
       Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
   }
     
@@ -143,7 +144,8 @@ void integrate (Domain*       D,
 
     // -- Viscous correction substep.
 
-    if (Geometry::cylindrical() && PROB != Geometry::O2_2D) {
+    if (Geometry::cylindrical() && 
+	(PROB != Geometry::O2_2D || PROB != Geometry::SO2_2D)) {
       AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
       AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     }
@@ -153,7 +155,8 @@ void integrate (Domain*       D,
 #endif 
       Solve (D, i, Uf[0][i], MS[i]);
     }
-    if (Geometry::cylindrical() && PROB != Geometry::O2_2D)
+    if (Geometry::cylindrical() &&
+	(PROB != Geometry::O2_2D || PROB != Geometry::SO2_2D))
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 
     // -- Process results of this step.
@@ -290,7 +293,7 @@ static void setPForce (const AuxField** Us,
 // storage of Uf as a forcing field for discrete PPE.
 // ---------------------------------------------------------------------------
 {
-  int_t    i;
+  int_t        i;
   const real_t dt = Femlib::value ("D_T");
 
   for (i = 0; i < NPERT; i++) (*Uf[i] = *Us[i]) . gradient (i);
@@ -337,7 +340,8 @@ static MatrixSys** preSolve (const Domain* D)
 // Set up ModalMatrixSystems for system with only 1 Fourier mode.
 // ---------------------------------------------------------------------------
 {
-  const int_t  mode  = (PROB == Geometry::O2_2D) ? 0 : 1;
+  const int_t  mode  = (PROB == Geometry::O2_2D ||
+			PROB == Geometry::SO2_2D)  ? 0 : 1;
   const int_t  bmode = mode * Geometry::kFund();
   const real_t beta  = mode * Femlib::value ("BETA");
   const int_t  itLev = Femlib::ivalue ("ITERATIVE");
@@ -350,7 +354,7 @@ static MatrixSys** preSolve (const Domain* D)
   MatrixSys*       M;
   bool             found;
   solver_kind      method;
-  real_t             betak2;
+  real_t           betak2;
   const NumberSys* N;
 
   cout << "-- Installing matrices     : " << flush;
@@ -435,7 +439,8 @@ static void Solve (Domain*     D,
 
     // -- We need a temporary matrix system for a viscous solve.
 
-    const int_t     mode  = (PROB == Geometry::O2_2D) ? 0 : 1;
+    const int_t     mode  = (PROB == Geometry::O2_2D ||
+			     PROB == Geometry::SO2_2D ) ? 0 : 1;
     const int_t     bmode = mode * Geometry::kFund();
     const real_t    beta  = mode * Femlib::value ("BETA");
     const int_t     Je    = min (step, NORD);    
