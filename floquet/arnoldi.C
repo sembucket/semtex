@@ -5,7 +5,7 @@
 // three component, cylindrical or Cartesian, but must be
 // two-dimensional.
 // 
-// Based on code floK by Dwight Barkley & Ron Henderson.
+// Originally based on code "floK" by Dwight Barkley & Ron Henderson.
 //
 // Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 // and John Elston
@@ -23,6 +23,7 @@
 //   options:
 //   -h       ... print this message
 //   -v       ... set verbose
+//   -a or -g ... solve the adjoint or alternatively, optimal growth problem
 //   -k <num> ... set dimension of subspace (maximum number of pairs) to num
 //   -m <num> ... set maximum number of iterations         (m >= k)
 //   -n <num> ... compute num eigenvalue/eigenvector pairs (n <= k)
@@ -93,22 +94,24 @@ static FEML*            file;
 static Mesh*            mesh;
 static BCmgr*           bman;
 
-static void  getargs    (int, char**, int_t&, int_t&, int_t&,
+static void  getargs    (int, char**, problem_t&, int_t&, int_t&, int_t&,
 			 int_t&, real_t&, char*&);
 static int_t preprocess (const char*);
 
 static void  EV_init    (real_t*);
-static void  EV_update  (const real_t*, real_t*);
+static void  EV_update  (const problem_t, const real_t*, real_t*);
 static void  EV_small   (real_t**, const int_t, const int_t, real_t*,
 			 real_t*, real_t*, real_t&, const int_t, ofstream&); 
 static int_t EV_test    (const int_t, const int_t, real_t*, real_t*, real_t*,
 			 const real_t, const real_t, const int_t, ofstream&);
 static void  EV_sort    (real_t*, real_t*, real_t*, real_t*, const int_t);
-static void  EV_post    (real_t**, real_t**, const int_t, const int_t, 
-			 const int_t, const real_t*, const real_t*, 
+static void  EV_post    (const problem_t, real_t**, real_t**,
+			 const int_t, const int_t, const int_t,
+			 const real_t*, const real_t*, 
 			 const real_t*, const int_t, ofstream&);
-static void  EV_big     (real_t**, real_t**, const int_t, const int_t,
-			 const int_t, const real_t*, const real_t*,
+static void  EV_big     (const problem_t, real_t**, real_t**,
+			 const int_t, const int_t, const int_t,
+			 const real_t*, const real_t*,
 			 const real_t*, ofstream&);
 
 int main (int    argc,
@@ -117,15 +120,16 @@ int main (int    argc,
 // Driver routine for stability analysis code.
 // ---------------------------------------------------------------------------
 {
-  int_t    kdim = 2, nvec = 2, nits = 2, verbose = 0, converged = 0;
-  real_t   norm, resnorm, evtol = 1.0e-6;
-  int_t    i, j;
-  char     buf[StrMax];
-  ofstream info;
+  int_t     kdim = 2, nvec = 2, nits = 2, verbose = 0, converged = 0;
+  real_t    norm, resnorm, evtol = 1.0e-6;
+  int_t     i, j;
+  char      buf[StrMax];
+  ofstream  info;
+  problem_t task = PRIMAL;
 
   Femlib::initialize (&argc, &argv);
 
-  getargs (argc, argv, kdim, nits, nvec, verbose, evtol, session);
+  getargs (argc, argv, task, kdim, nits, nvec, verbose, evtol, session);
 
   // -- Check, echo parameter values.
 
@@ -173,7 +177,7 @@ int main (int    argc,
 
   // -- Apply operator once to enforce BCs, incompressibility, etc.
 
-  EV_update (Kseq[0], Kseq[1]);
+  EV_update (task, Kseq[0], Kseq[1]);
   Veclib::copy (ntot, Kseq[1], 1, Kseq[0], 1);
   norm = Blas::nrm2 (ntot, Kseq[0], 1);
   Blas::scal (ntot, 1.0/norm, Kseq[0], 1);
@@ -181,7 +185,7 @@ int main (int    argc,
   // -- Fill initial Krylov sequence -- during which convergence may occur.
 
   for (i = 1; !converged && i <= kdim; i++) {
-    EV_update (Kseq[i - 1], Kseq[i]);
+    EV_update (task, Kseq[i - 1], Kseq[i]);
     Veclib::copy (ntot * (i + 1), kvec, 1, tvec, 1);
     EV_small  (Tseq, ntot, i, zvec, wr, wi, resnorm, verbose, info);
     converged = EV_test (i,i, zvec, wr,wi, resnorm, evtol, min(i, nvec), info);
@@ -199,7 +203,7 @@ int main (int    argc,
       Blas::scal   (ntot, 1.0/norm, Kseq[j], 1);
       Veclib::copy (ntot, Kseq[j], 1, Kseq[j - 1], 1);
     }
-    EV_update (Kseq[kdim - 1], Kseq[kdim]);
+    EV_update (task, Kseq[kdim - 1], Kseq[kdim]);
     
     // -- Get subspace eigenvalues, test for convergence.
 
@@ -209,7 +213,7 @@ int main (int    argc,
     converged = EV_test (i, kdim, zvec, wr, wi, resnorm, evtol, nvec, info);
   }
 
-  EV_post (Tseq, Kseq, ntot, min(--i, kdim), nvec,zvec, wr,wi, converged,info);
+  EV_post (task,Tseq,Kseq,ntot,min(--i, kdim),nvec,zvec,wr,wi,converged,info);
 
   info.close();
   Femlib::finalize();
@@ -233,8 +237,9 @@ static void EV_init (real_t* tgt)
 }
 
 
-static void EV_update  (const real_t* src,
-			real_t*       tgt)
+static void EV_update  (const problem_t task,
+                        const real_t*   src,
+			real_t*         tgt)
 // ---------------------------------------------------------------------------
 // Generate tgt by applying linear operator (here, a linearised
 // Navier--Stokes integrator) to src.  Src and tgt could be the same
@@ -252,8 +257,7 @@ static void EV_update  (const real_t* src,
     for (k = 0; k < NZ; k++)
       domain -> u[i] -> setPlane (k, src + (i*NZ + k)*NP);
 
-  domain -> step = 0;
-  integrate (domain, analyst);
+  integrate (task, domain, analyst);
 
   for (i = 0; i < ND; i++)
     for (k = 0; k < NZ; k++)
@@ -504,16 +508,17 @@ static void EV_sort (real_t*     evec,
 }
 
 
-static void EV_post (real_t**      Tseq,
-		     real_t**      Kseq, 
-		     const int_t   ntot, 
-		     const int_t   kdim, 
-		     const int_t   nvec,
-		     const real_t* zvec, 
-		     const real_t* wr  , 
-		     const real_t* wi  , 
-		     const int_t   icon,
-		     ofstream&     info)
+static void EV_post (const problem_t task,
+		     real_t**        Tseq,
+		     real_t**        Kseq, 
+		     const int_t     ntot, 
+		     const int_t     kdim, 
+		     const int_t     nvec,
+		     const real_t*   zvec, 
+		     const real_t*   wr  , 
+		     const real_t*   wi  , 
+		     const int_t     icon,
+		     ofstream&       info)
 // ---------------------------------------------------------------------------
 // Carry out postprocessing of estimates, depending on value of icon
 // (as output by EV_test).
@@ -576,7 +581,7 @@ static void EV_post (real_t**      Tseq,
 	 << " eigenvectors."
 	 << endl;
     
-    EV_big (Tseq, Kseq, ntot, kdim, icon, zvec, wr, wi, info);
+    EV_big (task, Tseq, Kseq, ntot, kdim, icon, zvec, wr, wi, info);
     for (j = 0; j < icon; j++) {
       src = Kseq[j];
       for (i = 0; i < ND; i++)
@@ -594,15 +599,16 @@ static void EV_post (real_t**      Tseq,
 }
 
 
-static void EV_big (real_t**      bvecs,
-	            real_t**      evecs,
-		    const int_t   ntot ,
-		    const int_t   kdim ,
-		    const int_t   nvec ,
-		    const real_t* zvecs,
-		    const real_t* wr   ,
-		    const real_t* wi   ,
-		    ofstream&     info )
+static void EV_big (const problem_t task ,
+		    real_t**        bvecs,
+	            real_t**        evecs,
+		    const int_t     ntot ,
+		    const int_t     kdim ,
+		    const int_t     nvec ,
+		    const real_t*   zvecs,
+		    const real_t*   wr   ,
+		    const real_t*   wi   ,
+		    ofstream&       info )
 // ---------------------------------------------------------------------------
 // Compute the Ritz eigenvector estimates of the linear operator using
 // the eigenvalues and eigenvectors of H computed in the subspace.
@@ -662,7 +668,7 @@ static void EV_big (real_t**      bvecs,
 
     for (i = 0; i < nvec; i++) {
 
-      EV_update (evecs[i], bvecs[0]);
+      EV_update (task, evecs[i], bvecs[0]);
 
       if (wi[i] == 0.0)
 	Blas::axpy (ntot, -wr[i], evecs[i], 1, bvecs[0], 1);
@@ -682,14 +688,15 @@ static void EV_big (real_t**      bvecs,
 }
 
 
-static void getargs (int     argc   ,
-		     char**  argv   ,
-		     int_t&  kdim   , 
-		     int_t&  maxit  ,
-		     int_t&  neval  ,
-		     int_t&  verbose,
-		     real_t& evtol  ,
-		     char*&  session)
+static void getargs (int        argc   ,
+		     char**     argv   ,
+		     problem_t& task   ,
+		     int_t&     kdim   , 
+		     int_t&     maxit  ,
+		     int_t&     neval  ,
+		     int_t&     verbose,
+		     real_t&    evtol  ,
+		     char*&     session)
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
@@ -698,6 +705,7 @@ static void getargs (int     argc   ,
     "options:\n"
     "-h       ... print this message\n"
     "-v       ... set verbose\n"
+    "-a or -g ... solve adjoint, or alternatvely optimal growth, problem\n"
     "-k <num> ... set dimension of subspace (maximum number of pairs) to num\n"
     "-m <num> ... set maximum number of iterations         (m >= k)\n"
     "-n <num> ... compute num eigenvalue/eigenvector pairs (n <= k)\n"
@@ -713,8 +721,14 @@ static void getargs (int     argc   ,
       verbose = 1;
       Femlib::ivalue ("VERBOSE", Femlib::ivalue("VERBOSE") + 1);
       break;
+    case 'a':
+      task = ADJOINT;
+      break;
+    case 'g':
+      task = GROWTH;
+      break;
     case 'k':
-      if (*++argv[0]) kdim  = atoi (  *argv);
+     if (*++argv[0]) kdim  = atoi (  *argv);
       else { --argc;  kdim  = atoi (*++argv); }
       break;
     case 'm':
@@ -737,6 +751,8 @@ static void getargs (int     argc   ,
 
   if   (argc != 1) message (prog, "no session file",   ERROR);
   else             session = *argv;
+
+  Femlib::ivalue ("TASK", task);
 }
 
 

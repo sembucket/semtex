@@ -3,7 +3,7 @@
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
-// Most routines are inlined in header file Geometry.h.
+// Most routines are inlined in header file geometry.h.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";

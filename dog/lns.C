@@ -47,6 +47,7 @@ int main (int    argc,
   BoundarySys*     bsys;
   Domain*          domain;
   StabAnalyser*    analyst;
+  problem_t        task = ADJOINT;
 
   Femlib::initialize (&argc, &argv);
 
@@ -60,7 +61,7 @@ int main (int    argc,
   domain -> loadBase();
   domain -> report  ();
   
-  integrate (domain, analyst);
+  integrate (task, domain, analyst);
 
   Femlib::finalize();
 

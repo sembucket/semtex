@@ -233,9 +233,9 @@ AuxField& AuxField::timesMinus (const AuxField& a,
   if (b._nz > 1) message (routine, "second operand must be real", ERROR);
 
   Veclib::vvvtm
-    (b._size, a._plane[0], 1, b._plane[0], 1, _plane[0], 1, _plane[0], 1);
+    (b._size, _plane[0], 1, a._plane[0], 1, b._plane[0], 1, _plane[0], 1);
   if (a._nz == 2) Veclib::vvvtm
-    (b._size, a._plane[1], 1, b._plane[0], 1, _plane[1], 1, _plane[1], 1);
+    (b._size, _plane[1], 1, a._plane[1], 1, b._plane[0], 1, _plane[1], 1);
 
   return *this;
 }

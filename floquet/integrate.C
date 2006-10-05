@@ -23,16 +23,18 @@ static char RCS[] = "$Id$";
 static int_t              NORD, NPERT, NBASE, NZ, CYL, PROB;
 static vector<MatrixSys*> MS;
 
-static void        linAdvect (Domain*, AuxField**, AuxField**);
-static void        waveProp  (Domain*, const AuxField***, const AuxField***);
-static void        setPForce (const AuxField**, AuxField**);
-static void        project   (const Domain*, AuxField**, AuxField**);
-static MatrixSys** preSolve  (const Domain*);
-static void        Solve     (Domain*, const int_t, AuxField*, MatrixSys*);
+static void        linAdvect  (Domain*, AuxField**, AuxField**);
+static void        linAdvectT (Domain*, AuxField**, AuxField**);
+static void        waveProp   (Domain*, const AuxField***, const AuxField***);
+static void        setPForce  (const AuxField**, AuxField**);
+static void        project    (const Domain*, AuxField**, AuxField**);
+static MatrixSys** preSolve   (const Domain*);
+static void        Solve      (Domain*, const int_t, AuxField*, MatrixSys*);
 
 
-void integrate (Domain*       D,
-		StabAnalyser* A)
+void integrate (const problem_t task,
+		Domain*         D   ,
+		StabAnalyser*   A   )
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
 // constraint Field 'p'.
@@ -104,65 +106,135 @@ void integrate (Domain*       D,
 
   // -- Timestepping loop.
 
-  while (D -> step < nStep) {
+  if (task == PRIMAL || task == GROWTH) {
 
-    D -> step += 1; 
-    D -> time += dt;
-    Femlib::value ("t", D -> time);
+    D -> step = 0;
 
-    // -- Update base velocity fields if appropriate.
+    while (D -> step < nStep) {
 
-    D -> updateBase();
+      D -> step += 1; 
+      D -> time += dt;
+      Femlib::value ("t", D -> time);
 
-    // -- Unconstrained forcing substep.
+      // -- Update base velocity fields if appropriate.
 
-    linAdvect (D, Us[0], Uf[0]);
+      D -> updateBase();
 
-    // -- Pressure substep.
+      // -- Unconstrained forcing substep.
 
-    PBCmgr::maintain (D -> step, Pressure, 
-		      const_cast<const AuxField**>(Us[0]),
-		      const_cast<const AuxField**>(Uf[0]));
-    Pressure -> evaluateBoundaries (D -> step);
+      linAdvect (D, Us[0], Uf[0]);
 
-    if (Geometry::cylindrical()) { Us[0][0] -> mulY(); Us[0][1] -> mulY(); }
+      // -- Pressure substep.
 
-    waveProp (D, const_cast<const AuxField***>(Us),
-	         const_cast<const AuxField***>(Uf));
+      PBCmgr::maintain (D -> step, Pressure, 
+			const_cast<const AuxField**>(Us[0]),
+			const_cast<const AuxField**>(Uf[0]));
+      Pressure -> evaluateBoundaries (D -> step);
 
-    for (i = 0; i < NPERT; i++) AuxField::swapData (D -> u[i], Us[0][i]);
+      if (Geometry::cylindrical()) { Us[0][0] -> mulY(); Us[0][1] -> mulY(); }
 
-    rollm     (Uf, NORD, NPERT);
-    setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);
-    Solve     (D, NPERT,  Uf[0][0], MS[NPERT]);
-    project   (D, Us[0], Uf[0]);
+      waveProp (D, const_cast<const AuxField***>(Us),
+		const_cast<const AuxField***>(Uf));
 
-    // -- Update multilevel velocity storage.
+      for (i = 0; i < NPERT; i++) AuxField::swapData (D -> u[i], Us[0][i]);
 
-    for (i = 0; i < NPERT; i++) *Us[0][i] = *D -> u[i];
-    rollm (Us, NORD, NPERT);
+      rollm     (Uf, NORD, NPERT);
+      setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);
+      Solve     (D, NPERT,  Uf[0][0], MS[NPERT]);
+      project   (D, Us[0], Uf[0]);
 
-    // -- Viscous correction substep.
+      // -- Update multilevel velocity storage.
 
-    if (Geometry::cylindrical() && 
-	(PROB != Geometry::O2_2D || PROB != Geometry::SO2_2D)) {
-      AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
-      AuxField::couple (D -> u[1], D -> u[2], FORWARD);
-    }
-    for (i = 0; i < NPERT; i++) {
-#if defined (TBCS) // -- Re-evaluate the (time-varying) 2D BCs. Use with care.
-      ROOTONLY D -> u[i] -> evaluateM0Boundaries (D -> step);
-#endif 
-      Solve (D, i, Uf[0][i], MS[i]);
-    }
-    if (Geometry::cylindrical() &&
-	(PROB != Geometry::O2_2D || PROB != Geometry::SO2_2D))
-      AuxField::couple (D -> u[1], D -> u[2], INVERSE);
+      for (i = 0; i < NPERT; i++) *Us[0][i] = *D -> u[i];
+      rollm (Us, NORD, NPERT);
 
-    // -- Process results of this step.
+      // -- Viscous correction substep.
+
+      if (Geometry::cylindrical() && 
+	  (PROB != Geometry::O2_2D || PROB != Geometry::SO2_2D)) {
+	AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
+	AuxField::couple (D -> u[1], D -> u[2], FORWARD);
+      }
+      for (i = 0; i < NPERT; i++) {
+	ROOTONLY D -> u[i] -> evaluateM0Boundaries (D -> step);
+	Solve (D, i, Uf[0][i], MS[i]);
+      }
+      if (Geometry::cylindrical() &&
+	  (PROB != Geometry::O2_2D || PROB != Geometry::SO2_2D))
+	AuxField::couple (D -> u[1], D -> u[2], INVERSE);
+
+      // -- Process results of this step.
     
-    A -> analyse (Us[0]);
+      A -> analyse (Us[0]);
+    }
   }
+
+  if (task == ADJOINT || task == GROWTH) {
+
+    D -> step = 0;
+
+    while (D -> step < nStep) {
+
+      D -> step += 1; 
+      D -> time -= dt;
+      Femlib::value ("t", D -> time);
+
+      // -- Update base velocity fields if appropriate.
+
+      D -> updateBase();
+
+      // -- Unconstrained forcing substep.
+
+      linAdvectT (D, Us[0], Uf[0]);
+      *D -> u[0] = *Uf[0][0];
+      *D -> u[1] = *Uf[0][1];
+
+      // -- Pressure substep.
+
+      PBCmgr::maintain (D -> step, Pressure, 
+			const_cast<const AuxField**>(Us[0]),
+			const_cast<const AuxField**>(Uf[0]));
+      Pressure -> evaluateBoundaries (D -> step);
+
+      if (Geometry::cylindrical()) { Us[0][0] -> mulY(); Us[0][1] -> mulY(); }
+
+      waveProp (D, const_cast<const AuxField***>(Us),
+ 		   const_cast<const AuxField***>(Uf));
+
+      for (i = 0; i < NPERT; i++) AuxField::swapData (D -> u[i], Us[0][i]);
+
+      rollm     (Uf, NORD, NPERT);
+      setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);
+      Solve     (D, NPERT,  Uf[0][0], MS[NPERT]);
+
+      project   (D, Us[0], Uf[0]);
+
+      // -- Update multilevel velocity storage.
+
+      for (i = 0; i < NPERT; i++) *Us[0][i] = *D -> u[i];
+      rollm (Us, NORD, NPERT);
+
+      // -- Viscous correction substep.
+
+      if (Geometry::cylindrical() && 
+	  (PROB != Geometry::O2_2D || PROB != Geometry::SO2_2D)) {
+	AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
+	AuxField::couple (D -> u[1], D -> u[2], FORWARD);
+      }
+      for (i = 0; i < NPERT; i++) {
+	ROOTONLY D -> u[i] -> evaluateM0Boundaries (D -> step);
+	Solve (D, i, Uf[0][i], MS[i]);
+      }
+      if (Geometry::cylindrical() &&
+	  (PROB != Geometry::O2_2D || PROB != Geometry::SO2_2D))
+	AuxField::couple (D -> u[1], D -> u[2], INVERSE);
+
+      // -- Process results of this step.
+
+      A -> analyse (Us[0]);
+    }
+  }
+
 }
 
 
@@ -193,7 +265,8 @@ static void linAdvect (Domain*    D ,
 // To deal with this, Auxfield operations times and timesPlus
 // (actually convolutions) are assumed to have a purely real Auxfield
 // as the second operand.  Assignment and Gradient operators are also
-// modified.
+// modified. And this difference in structure is the reason behind
+// using two lots of temporary storage, T, and U[NBASE].
 // ---------------------------------------------------------------------------
 {
   int_t             i, j;
@@ -242,6 +315,79 @@ static void linAdvect (Domain*    D ,
       N[i] -> timesPlus (*u[j], *U[NBASE]);
     }
 
+  for (i = 0; i < NPERT; i++) {
+    T -> smooth (N[i]);
+    *N[i] *= -1.0;
+  }
+
+}
+
+
+static void linAdvectT (Domain*    D ,
+			AuxField** Us,
+			AuxField** Uf)
+// ---------------------------------------------------------------------------
+// Compute ADJOINT linearised terms in Navier--Stokes equations: N(u).
+//
+// Here N(u) represents the linearised advection terms in the N--S equations
+// transposed to the RHS.
+//
+// Velocity field data areas of D and first level of Us are swapped,
+// then the next stage of nonlinear forcing terms N(u) are computed
+// from velocity fields and left in the first level of Uf.
+//
+// Adjoint terms N(u) are (NB sign change and transpose)
+//
+//           N  = - ( grad U.u - U.grad u )
+//           ~             ~ ~   ~      ~
+// ---------------------------------------------------------------------------
+{
+  int_t             i, j;
+  vector<AuxField*> U(NBASE + 1), u(NPERT), N(NPERT);
+  Field*            T = D -> u[0];
+
+  // -- Set up local aliases.
+
+  for (i = 0; i < NBASE + 1; i++)
+    U[i] = D -> U[i];
+
+  for (i = 0; i < NPERT; i++) {
+    AuxField::swapData (D -> u[i], Us[i]);
+     u[i] = Us[i];
+     N[i] = Uf[i];
+    *N[i] = 0.0;
+  }
+
+  // -- Centrifugal, Coriolis terms for cylindrical coords.
+
+  if (Geometry::cylindrical()) {
+    if (NPERT == 3)
+     *N[2] += T -> times (*u[2], *U[1]) . divY();
+    if (NBASE == 3) {
+      N[1] -> axpy (-2.0, T -> times (*u[2], *U[2]));
+     *N[2] += T -> times (*u[1], *U[2]) . divY();
+    }
+  }
+
+  // -- N_i -= U_j d(u_i) / dx_j.
+
+  for (i = 0; i < NPERT; i++)
+    for (j = 0; j < NBASE; j++) {
+      (*T = *u[i]) . gradient (j);
+      if      (Geometry::cylindrical() && i <  2 && j <  2) T -> mulY();
+      else if (Geometry::cylindrical() && i == 2 && j == 2) T -> divY();
+      N[i] -> timesMinus (*T, *U[j]);
+    }
+#if 1
+  // -- N_i += u_j d(U_j) / dx_i; dU_j/dz=0.
+
+  for (i = 0; i < 2; i++)
+    for (j = 0; j < NBASE; j++) {
+      (*U[NBASE] = *U[j]) . gradient (i);
+      if (Geometry::cylindrical() && i < 2) U[NBASE] -> mulY();
+      N[i] -> timesPlus (*u[j], *U[NBASE]);
+    }
+#endif
   for (i = 0; i < NPERT; i++) {
     T -> smooth (N[i]);
     *N[i] *= -1.0;

@@ -30,7 +30,6 @@ public:
   void  report    (ostream& stream = cout);
   void  restart   ();
   void  dump      ();
-  void  setNumber (const char, const NumberSys**) const;
 
   // -- Required for base fields and stability analysis.
 
