@@ -3,7 +3,6 @@
 // This version drives linear evolution of a single Fourier mode.
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
-// and John Elston
 //
 // USAGE:
 // -----
@@ -47,7 +46,7 @@ int main (int    argc,
   BoundarySys*     bsys;
   Domain*          domain;
   StabAnalyser*    analyst;
-  problem_t        task = ADJOINT;
+  problem_t        task = PRIMAL;
 
   Femlib::initialize (&argc, &argv);
 
