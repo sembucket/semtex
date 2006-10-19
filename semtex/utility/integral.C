@@ -23,12 +23,12 @@ static char RCS[] = "$Id$";
 
 #include <sem.h>
 
-static char    prog[]  = "integral";
-static integer verbose = 0;
-static void    getargs  (int, char**, char*&, char*&, bool&);
-static integer getDump  (istream&, vector<AuxField*>&, vector<Element*>&,
-			 const integer, const integer, const integer);
-static integer doSwap   (const char*);
+static char  prog[]  = "integral";
+static int_t verbose = 0;
+static void  getargs  (int, char**, char*&, char*&, bool&);
+static bool  getDump  (istream&, vector<AuxField*>&, vector<Element*>&,
+		       const int_t, const int_t, const int_t);
+static bool  doSwap   (const char*);
 
 
 int main (int    argc,
@@ -39,11 +39,11 @@ int main (int    argc,
 {
   char               *session = 0, *dump = 0;
   istream            *fldfile;
-  integer            NP, NZ,  NEL;
-  integer            np, nel, ntot, i;
-  real               Lz, Area = 0.0, integral;
+  int_t              NP, NZ,  NEL;
+  int_t              np, nel, ntot, i;
+  real_t             Lz, Area = 0.0, integral;
   Vector             centroid;
-  const real         *z;
+  const real_t       *z;
   FEML*              F;
   Mesh*              M;
   Geometry::CoordSys space;
@@ -139,12 +139,12 @@ static void getargs (int    argc   ,
 }
 
 
-static integer getDump (istream&           file,
-			vector<AuxField*>& u   ,
-			vector<Element*>&  Esys,
-			const integer      np  ,
-			const integer      nz  ,
-			const integer      nel )
+static bool getDump (istream&           file,
+		     vector<AuxField*>& u   ,
+		     vector<Element*>&  Esys,
+		     const int_t        np  ,
+		     const int_t        nz  ,
+		     const int_t        nel )
 // ---------------------------------------------------------------------------
 // Load data from field dump, with byte-swapping if required.
 // If there is more than one dump in file, it is required that the
@@ -152,8 +152,8 @@ static integer getDump (istream&           file,
 // ---------------------------------------------------------------------------
 {
   char    buf[StrMax], fields[StrMax];
-  integer i, swab, nf, npnew, nznew, nelnew;
-  real*   alloc;
+  int_t   i, swab, nf, npnew, nznew, nelnew;
+  real_t* alloc;
 
   if (file.getline(buf, StrMax).eof()) return 0;
   
@@ -190,7 +190,7 @@ static integer getDump (istream&           file,
   if (u.size() == 0) {
     u.resize (nf);
     for (i = 0; i < nf; i++) {
-      alloc = new real [Geometry::nTotProc()];
+      alloc = new real_t [Geometry::nTotProc()];
       u[i]  = new AuxField (alloc, nz, Esys, fields[i]);
     }
   } else if (u.size() != nf) 
@@ -207,7 +207,7 @@ static integer getDump (istream&           file,
 }
 
 
-static integer doSwap (const char* ffmt)
+static bool doSwap (const char* ffmt)
 // ---------------------------------------------------------------------------
 // Figure out if byte-swapping is required to make sense of binary input.
 // ---------------------------------------------------------------------------

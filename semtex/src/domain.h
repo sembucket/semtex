@@ -29,7 +29,6 @@ public:
   void  restart   ();
   void  dump      ();
   void  transform (const int_t);
-  void  setNumber (const char, const NumberSys**) const;
 
 private:
   char* field;		// Lower-case single character field names.

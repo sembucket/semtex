@@ -25,8 +25,8 @@ Domain::Domain (FEML*             F,
   elmt (E)
 {
   const int_t verbose = Femlib::ivalue ("VERBOSE");
-  const int_t nz   = Geometry::nZProc();
-  const int_t ntot = Geometry::nTotProc();
+  const int_t nz      = Geometry::nZProc();
+  const int_t ntot    = Geometry::nTotProc();
   int_t       i, nfield;
   real_t*     alloc;
 
