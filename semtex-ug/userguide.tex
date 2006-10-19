@@ -7,6 +7,7 @@
 
 \usepackage{graphicx}
 \usepackage{natbib}
+\usepackage{bm}
 
 \graphicspath{{./Figs/}}
 
@@ -134,14 +135,17 @@ The top level of the code is written in C++, with calls to C and
 FORTRAN library routines, e.g.\ BLAS \& LAPACK. The original
 implementation for two-dimensional Cartesian geometries was extended
 to three dimensions using Fourier expansion functions for
-spatially-periodic directions in Cartesian and cylindrical spaces. The
-code also incorporates heat transfer and buoyancy terms, using the
-Boussinesq approximation for buoyancy. Concurrent execution is
-supported, using MPI as the basis for interprocessor communications,
-and the code has been ported to DEC, NEC, Fujitsu and Linux
-multiprocessor machines.  We are presently using the code to conduct
-research into LES formulations for complex geometries, and stability
-analysis.
+spatially-periodic directions in Cartesian and cylindrical spaces.
+Concurrent execution is supported, using MPI as the basis for
+interprocessor communications, and the code has been ported to DEC,
+NEC, Fujitsu, Compaq, SGI, Apple and Linux multiprocessor machines.
+
+There are various code extensions that are not part of the base
+distribution. These include dynamic and non-dynamic LES, simple
+power-law type non-Newtonian rheologies, scalar transport, buoyancy
+via the Boussinesq approximation, accelerating frame of refernce
+coupling for aeroelasticity, solution of steady-state flows via
+Newton-Raphson iteration, linear stability analysis.
 
 %-----------------------------------------------------------------------------
 \section{Further reading}
@@ -265,6 +269,8 @@ will need to make most of these by hand (using the supplied
         Generate restart files, compare solutions to a function.\\
 \texttt{convert} \>   
         Convert field file formats (IEEE-big/little, ASCII).\\
+\texttt{eneq} \>   
+        Compute terms in the energy transport equation.\\
 \texttt{enumerate}  \>
         Generate global node numbering, with RCM optimization.\\
 \texttt{integral} \> Obtain the 2D integral of fields over the
@@ -294,6 +300,9 @@ will need to make most of these by hand (using the supplied
 \texttt{transform} \>      
         Take Fourier, Legendre, modal basis transform of a field
 	file. Invertible.\\
+\texttt{wallmesh} \>      
+        Extract the mesh nodes corresponding to surfaces with the
+	\verb+wall+ group.
 \end{tabbing}
 
 
@@ -1216,6 +1225,17 @@ forces per radian (in the $x$ and $y$ directions) and torque per
 radian (in the $z$ direction) rather than forces per unit length.
 
 %=============================================================================
+\section{Wall tractions}
+
+If the token \verb+IO_WSS+ is set to a non-zero value then the normal
+and the single (2D) or two (3D) components of tangential boundary
+traction are computed on the \verb+wall+ group, and output every
+\verb+IO_WSS+ steps in the file \verb+session.wss+.  This is a binary
+file with structure similar to a field dump.  The utility
+\verb+wallmesh+ is used to extract the corresponding mesh points
+along the walls.
+
+%=============================================================================
 \section{Modal energies}
 
 For 3D simulations (\verb+N_Z > 2+), a file of modal energies,
@@ -1226,7 +1246,7 @@ is
 \[
 E_k =
 \frac{1}{2A}\int_\Omega
-\hat{\bs{u}}_k\cdot\hat{\bs{u}}_k \,{\rm d}\Omega,
+\hat{\bs{u}}_k^\ast\cdot\hat{\bs{u}}_k \,{\rm d}\Omega,
 \]
 where $A$ is the area of the 2D domain~$\Omega$.  Each line of the
 file contains the time $t$, mode number $k$ and $E_k$.
@@ -1285,6 +1305,13 @@ file from another:
 rstress good.fld test.fld | convert | diff
 \end{verbatim}
 
+Setting \verb+AVERAGE = 3+ will accumlate sums of additional products
+for computation of terms in the energy transport equation. You will
+then need to use the \verb+eneq+ utility to actually compute the
+terms. Presently this part of the code is only written for Cartesian
+coordinates.
+
+
 %=============================================================================
 \section{Particle tracking}
 
@@ -1312,24 +1339,65 @@ Setting \verb+SPAWN = 1+, re-initiates extra particles at the original
 positions every timestep.  With spawning, particle tracking can
 quickly grow to become the most time-consuming part of execution.
 
-%=============================================================================
-\section{Stokes solver}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Compilation of specialised executables}
 
-To produce an unsteady Stokes solver (i.e.\ \verb+dns+ without
-nonlinear terms included), compile using \verb+make STOKES=1+, to
-produce the executable \verb+dns_stokes+.
+The special compilations below can be combined.
 
 %=============================================================================
 \section{Concurrent execution}
 
 The code supports concurrent execution for 3D simulations, with MPI
-used as the message-passing kernel. Compile using \verb+make MPI=1+
-to produce \verb+dns_mp+.  Nonlinear terms are not dealiased when
-running in parallel, but are dealiased in the Fourier direction when
-running on one process, or running the serial code. To get a serial
-code that does not perform dealiasing on Fourier terms (e.g.\ for
-cross-checking), compile the serial code using \verb+make ALIAS=1+
-to produce \verb+dns_alias+.
+used as the message-passing kernel. Compile using \verb+make MPI=1+ to
+produce \verb+dns_mp+. (You will also need to compile in the
+appropriate message-passing routines in compiling \verb+femlib+, for
+which change to the \verb+femlib+ directory, then do
+\verb+make clean; make MPI=1; make install MPI=1+.)  Nonlinear terms
+are not dealiased when running in parallel, but are dealiased in the
+Fourier direction when running on one process, or running the serial
+code. To get a serial code that does not perform dealiasing on Fourier
+terms (e.g.\ for cross-checking), compile the serial code using
+\verb+make ALIAS=1+ to produce \verb+dns_alias+ (in which case make
+sure you delete \verb+nonlinear.o+ first).
+
+%=============================================================================
+\section{Time-varying boundary conditions}
+
+By default, the velocity boundary conditions are frozen for the time
+corresponding to the initial conditions. If you compile with
+\verb+make TBCS=1+ you will generate \verb+dns_tbcs+ in which the
+\emph{zeroth Fourier mode's} (2D) velocity boundary conditions are
+re-evaluated every time step. Usually one only wants to vary the 2D
+boundary conditions. NB: make sure you delete \verb+integrate.o+
+first.
+
+%=============================================================================
+\section{Convective advection terms}
+
+By default, the code computes the nonlinear advection terms in
+skew-symmetric form $0.5(\bm{\nabla\cdot u u}+\bm{u\cdot\nabla u})$,
+as this seems to be the most robust at high Reynolds numbers. However,
+it is also comparatively costly. If you want to compile a code with
+only the standard convective terms $\bm{u\cdot\nabla u}$, compile with
+\verb+make CONV=1+ to produce \verb+dns_conv+.  NB: make sure you
+delete \verb+nonlinear.o+ first.
+
+%=============================================================================
+\section{Stokes solver}
+
+To produce an unsteady Stokes solver (i.e.\ \verb+dns+ without
+nonlinear terms included), compile using \verb+make STOKES=1+, to
+produce the executable \verb+dns_stokes+.  NB: make sure you delete
+\verb+nonlinear.o+ first.
+
+%=============================================================================
+\section{Particle tracking in steady flows}
+
+This is a very mindless hack. If you want to particle-track in steady
+flows, then there is no need to update the Navier--Stokes solution. If
+you \verb+make SPAR=1+ you will produce a code version
+(\verb+dns_spar+) that will do particle tracking in whatever restart
+file is provided. NB: make sure you delete \verb+integrate.o+ first.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

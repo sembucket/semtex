@@ -214,8 +214,8 @@ public:
   void  smooth  ();
  
   void  limits   (Point&, Point&)                 const;
-  int   points   (vector<float>&, vector<float>&) const;
-  int   line     (vector<float>&, vector<float>&) const;
+  int   points   (vector<real>&, vector<real>&) const;
+  int   line     (vector<real>&, vector<real>&) const;
   void  quads    (List<Quad*>&)                   const;
   void  drawQuad (const int& = 0)                 const;
 

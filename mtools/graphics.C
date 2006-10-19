@@ -13,8 +13,9 @@
 
 #include <qmesh.h>
 
+
 #ifdef GRAPHICS
-  #include <sm_options.h>
+//#include <sm_options.h>
   #include <sm_declare.h>
 #endif
 
@@ -30,7 +31,7 @@ void initGraphics (const char* device)
 #ifdef GRAPHICS
   char routine[] = "initGraphics";
 
-  vector<float> pp (1);
+  vector<real> pp (1);
   pp[0] = 41.0;
 
   if (sm_device ((char*) device))
@@ -40,10 +41,10 @@ void initGraphics (const char* device)
   sm_location (3000, 31000, 3000, 31000);
   sm_defvar   ("TeX_strings", "1");
   sm_expand   (1.0);
-  sm_ptype    (pp(), 1);
+  sm_ptype    (&pp[0], 1);
   sm_lweight  (1);
   sm_erase    ();
-  sm_window   (1, 1, 1, 1);
+  sm_window   (1, 1, 1, 1, 1, 1);
 #endif
 }
 
@@ -83,7 +84,7 @@ void drawBox ()
 {
 #ifdef GRAPHICS
   Point Pmax, Pmin, Centre, Range;
-  float xmin, xmax, ymin, ymax;
+  real  xmin, xmax, ymin, ymax;
   real  AR;
 
   ifstream file ("limits.sm");
@@ -132,8 +133,8 @@ void drawLoop (const Loop* L      ,
 {
 #ifdef GRAPHICS
   int npts;
-  vector<float> x;
-  vector<float> y;
+  vector<real> x;
+  vector<real> y;
   
   npts = L -> points (x, y);
 
@@ -167,7 +168,7 @@ void drawMesh (List<Quad*>& mesh,
 {
 #ifdef GRAPHICS
   register int        i;
-  float               x[4], y[4];
+  real                x[4], y[4];
   ListIterator<Quad*> q (mesh);
   Quad*               Q;
   char                label[StrMax];
@@ -233,4 +234,3 @@ void qpause ()
 #endif
   cin.get(a);
 }
-

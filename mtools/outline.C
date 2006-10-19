@@ -41,12 +41,13 @@
 // Line-generation commands are generally bracketed by points which define
 // the start and end locations of the line to be generated.
 // 
-// Exceptions to this occur when "push" or "pop" follow the start point.
-// Push & pop should always occur in matching pairs.  After push is issued,
-// generated points are pushed on a duplication stack as they are made.
-// When the matching pop occurs, the duplicate points are produced and the
-// last one is used as the starting point for the next line.
-// Push and pop pairs cannot be nested (yet).
+// Exceptions to this occur when "push" or "pop" follow the start
+// point.  Push & pop should always occur in matching pairs.  After
+// push is issued, generated points are pushed on a duplication stack
+// as they are made.  When the matching pop occurs, the duplicate
+// points are produced and the last one is used as the starting point
+// for the next line. This allows the generation of internal lines of
+// nodes.  Push and pop pairs cannot be nested (yet).
 //
 // On encountering EOF (or any input that can't be interpreted as a Point)
 // the loop of Points is closed to the first point read and execution
@@ -69,7 +70,7 @@ enum key { UNDEFINED, STRAIGHT, ARC, PUSH, POP };
 
 static void getArgs       (int, char**, istream*& file);
 static key  parse         (istream&);
-static int  generateNodes (istream&, const key&, const Node*&, Node*&,
+static int  generateNodes (istream&, const key&, Node*&, Node*&,
 			   const int&, List<Node*>&, List<int>&,
 			   int&, const int&, Stack<int>&);
 static void setSizes      (List<Node*>&, const List<int>&);
@@ -97,7 +98,8 @@ int main (int    argc,
   getArgs (argc, argv, file);
 
   *file >> P;
-  startN = new Node (++id_max, P, 1.0, Node::BOUNDARY);
+//startN = new Node (++id_max, P, 1.0, Node::BOUNDARY);
+  startN = new Node (++id_max, P, 1.0, Node::DOMAIN_BOUNDARY_FIXED);
   homeN  = startN;
   nodes.add (homeN);
   loop.add  (homeN -> ID());
@@ -169,6 +171,14 @@ static void getArgs (int       argc ,
       break;
     }
 
+  if (argc == 1) {
+    input = new ifstream (*argv);
+    if (input -> bad()) {
+      cerr << usage;
+      sprintf (buf, "unable to open file: %s", *argv);
+      message (prog, buf, ERROR);
+    }
+  } else input = &cin;
 }
 
 
@@ -202,7 +212,7 @@ static key parse (istream& S)
 
 static int generateNodes (istream&     infile ,
 			  const key&   Keyword,
-			  const Node*& homeN  ,
+			  Node*&       homeN  ,
 			  Node*&       startN ,
 			  const int&   nP     ,
 			  List<Node*>& nodes  ,
@@ -248,83 +258,87 @@ static int generateNodes (istream&     infile ,
   switch (Keyword) {
 
   case STRAIGHT:
-    infile >> buf;
-    strcpy (err, buf);
-    upperCase (err);
+    {
+      infile >> buf;
+      strcpy (err, buf);
+      upperCase (err);
 
-    if (strstr (err, "UNIFORM")) {
-      infile >> endP;
-      if (!infile) { goHome = 1; endP = homeP; }
-      dP = endP - startP;
-      for (i = 0; i < nP; i++)
-	point[i] = (i + 1) / (real) nP * dP + startP;
-
-    } else if (strstr (err, "GEOMETRIC")) {
-      real initial, growth, len, dl, frac;
-
-      infile >> growth;
-      if (!infile) error (routine, "can't find geometric growth rate", ERROR);
-      infile >> endP;
-      if (!infile) { goHome = 1; endP = homeP; }
-      dP  = endP - startP;
-      len = endP.distance (startP);
-
-      if (fabs (growth - 1.0) < EPSSP) { // -- Use uniform spacing.
+      if (strstr (err, "UNIFORM")) {
+	infile >> endP;
+	if (!infile) { goHome = 1; endP = homeP; }
+	dP = endP - startP;
 	for (i = 0; i < nP; i++)
 	  point[i] = (i + 1) / (real) nP * dP + startP;
-      } else {			         // -- Geometric progression.
-	initial = len * (1.0 - growth) / (1.0 - pow (growth, nP));
-	dl      = initial;
-	for (i = 0; i < nP; i++) {
-	  frac     = dl / len;
-	  point[i] = frac * dP + startP;
-	  initial *= growth;
-	  dl      += initial;
-	}
-      }
 
-    } else {
-      sprintf (err, "invalid straight line modifier: %s", buf);
-      error (routine, err, ERROR);
+      } else if (strstr (err, "GEOMETRIC")) {
+	real initial, growth, len, dl, frac;
+	
+	infile >> growth;
+	if (!infile) error (routine, "can't find geom. growth rate", ERROR);
+	infile >> endP;
+	if (!infile) { goHome = 1; endP = homeP; }
+	dP  = endP - startP;
+	len = endP.distance (startP);
+
+	if (fabs (growth - 1.0) < EPSSP) { // -- Use uniform spacing.
+	  for (i = 0; i < nP; i++)
+	    point[i] = (i + 1) / (real) nP * dP + startP;
+	} else {			         // -- Geometric progression.
+	  initial = len * (1.0 - growth) / (1.0 - pow (growth, nP));
+	  dl      = initial;
+	  for (i = 0; i < nP; i++) {
+	    frac     = dl / len;
+	    point[i] = frac * dP + startP;
+	    initial *= growth;
+	    dl      += initial;
+	  }
+	}
+
+      } else {
+	sprintf (err, "invalid straight line modifier: %s", buf);
+	error (routine, err, ERROR);
+      }
     }
     break;
 
   case ARC:
-    real  radius, len, semiangle, angle;
-    int   sign;
-    Point midPoint, n, centre;
+    {
+      real  radius, len, semiangle, angle;
+      int   sign;
+      Point midPoint, n, centre;
 
-    infile >> radius;
-    if (!infile) error (routine, "can't find arc's radius", ERROR);
-    infile >> endP;
-    if (!infile) { goHome = 1; endP = homeP; }
+      infile >> radius;
+      if (!infile) error (routine, "can't find arc's radius", ERROR);
+      infile >> endP;
+      if (!infile) { goHome = 1; endP = homeP; }
     
-    len    = endP.distance (startP);
-    sign   = (radius < 0.0) ? -1      :      1;
-    radius = (sign   <   0) ? -radius : radius;
+      len    = endP.distance (startP);
+      sign   = (radius < 0.0) ? -1      :      1;
+      radius = (sign   <   0) ? -radius : radius;
+      
+      if (2.0 * radius < len - EPSSP) {
+	sprintf (err, "arc, radius %g can't span gap %g", radius, len);
+	error (routine, err, ERROR);
+      }
 
-    if (2.0 * radius < len - EPSSP) {
-      sprintf (err, "arc, radius %g can't span gap %g", radius, len);
-      error (routine, err, ERROR);
+      dP = endP - startP;
+      n  = unitNormal (startP, endP);
+      midPoint  = 0.5 * (startP + endP);
+      semiangle = asin (0.5 * len / radius);
+
+      centre = -sign * cos (semiangle) * radius * n + midPoint;
+
+      if (sign == 1)
+	for (i = 0; i < nP; i++) {
+	  angle = (i + 1) / (real) nP * 2.0 * semiangle;
+	  point[i] = centre.relative (startP, radius, angle);
+	}
+      else 
+	for (i = 0; i < nP; i++) {
+	  angle = (nP - i - 1) / (real) nP * 2.0 * semiangle;
+	  point[i] = centre.relative (endP, radius, angle);
+	}
     }
-
-    dP = endP - startP;
-    n  = unitNormal (startP, endP);
-    midPoint  = 0.5 * (startP + endP);
-    semiangle = asin (0.5 * len / radius);
-
-    centre = -sign * cos (semiangle) * radius * n + midPoint;
-
-    if (sign == 1)
-      for (i = 0; i < nP; i++) {
-	angle = (i + 1) / (real) nP * 2.0 * semiangle;
-	point[i] = centre.relative (startP, radius, angle);
-      }
-    else 
-      for (i = 0; i < nP; i++) {
-	angle = (nP - i - 1) / (real) nP * 2.0 * semiangle;
-	point[i] = centre.relative (endP, radius, angle);
-      }
     break;
 
   default:
@@ -345,7 +359,8 @@ static int generateNodes (istream&     infile ,
     }
   else
     for (i = 0; i < nn; i++) {
-      N = new Node (++id_max, point[i], 1.0, Node::BOUNDARY);
+//    N = new Node (++id_max, point[i], 1.0, Node::BOUNDARY);
+      N = new Node (++id_max, point[i], 1.0, Node::DOMAIN_BOUNDARY_FIXED);
       nodes.add (N);
       loop.add  (N -> ID());
     }
@@ -399,12 +414,12 @@ static void printup (ostream&           S    ,
 // Print up input used by qmesh.
 // ---------------------------------------------------------------------------
 {
-  S << nodes.length() << endl;
+  S << nodes.length() << " BOUNDARY NODES" << endl;
   for (ListIterator<Node*> n(nodes); n.more(); n.next())
     S << *n.current() << endl;
   S << endl;
 
-  S << loop.length() << endl;
+  S << loop.length() << " NODE LOOP" << endl;
   for (ListIterator<int> l(loop); l.more(); l.next())
     S << setw(5) << l.current();
   S << endl;

@@ -244,7 +244,7 @@ static istream& operator >> (istream&     s,
 // Node information for all predeclared loops exists in the following
 // format:
 //
-// NN boundary nodes        { NN gives number of following nodes.
+// NN BOUNDARY NODES        { NN gives number of following nodes.
 // 1  0.3  B  0.0 0.0       { Tag, prefsize, kind, x, y.
 // 2  0.4  B  1.0 0.0       { Allowed kinds: B <==> fixed location boundary.
 // ..                       {                O <==> fixed, but create offset.
@@ -341,7 +341,7 @@ static int loopDeclared (istream& s)
 // ---------------------------------------------------------------------------
 // Test: is a loop declared for input?
 //
-// MM node loop             { MM gives number of following node tag numbers.
+// MM NODE LOOP             { MM gives number of following node tag numbers.
 // 1 2 3 4 5 ... NN ...     { Loop is assumed closed by return to start tag.
 //
 // MM specifiers must be on lines of their own, but input is
@@ -439,7 +439,6 @@ static void printNodes (ostream&     strm  ,
 			List<Node*>& nodes ,
 			const int    merger)
 // ---------------------------------------------------------------------------
-
 // Print Node information in FEML format.  BUT, if merger != 0, add
 // information to indicate if output nodes are to be fixed (F), mobile
 // (M) or unique (U).  This information will be used for possible

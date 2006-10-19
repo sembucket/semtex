@@ -5,7 +5,8 @@
 ##############################################################################
 
 ARCH     = $(shell uname -s)
-CPPFLAGS = -I. -I$(HOME)/develop/semtex/include -I$(HOME)/include/sm
+#CPPFLAGS = -I. -I$(HOME)/develop/semtex/include -I$(HOME)/include/sm
+CPPFLAGS = -I. -I$(HOME)/include/sm
 DEFINES  = 
 
 # -- Set DEBUG=1 on command line if you want debugging output.
@@ -27,6 +28,25 @@ ifdef PROMPT
 endif
 
 # ----------- Compiler options for specific machines -------------------------
+
+ifeq ($(ARCH),Darwin)               # -- Mac OSX.
+CXX      = g++
+LD       = g++
+CC       = gcc
+ifdef DEBUG
+  OPT    = -gstabs+
+else
+  OPT    = -O2
+endif
+DEFINES += -DmacOSX		# This is for SM graphics
+CFLAGS   = $(DEFINES) $(OPT) -ansi
+CXXFLAGS = $(DEFINES) $(OPT) -ansi
+LIBDIR   += -L/sw/lib -L/usr/X11R6/lib
+CPPFLAGS += -I/sw/include
+LDFLAGS  = $(OPT) $(LIBDIR) 
+CLDFLAGS = $(LDFLAGS)
+SMLIBS   = -lsm_plotsub -lsm_devices -lsm_utils -lX11
+endif
 
 ifeq ($(ARCH),IRIX)		# -- SGI MIPS R4xxx IRIX5x
 SMLIBS    = -lplotsub -ldevices -lutils
@@ -75,7 +95,7 @@ QSRC = qmesh loop node point graphics misc global
 QOBJ = $(addsuffix .o,$(QSRC))
 
 qmesh: $(HDR) $(QOBJ)
-	$(LD) -o qmesh $(QOBJ) $(CPPFLAGS) $(LDFLAGS) $(SMLIBS) $(X11LIBS) -lm
+	$(LD) -o qmesh $(QOBJ) $(LDFLAGS) $(SMLIBS) $(X11LIBS) -lm
 
 $(QOBJ): $(HDR)
 

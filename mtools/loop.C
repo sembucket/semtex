@@ -517,8 +517,8 @@ ostream& operator << (ostream& s,
 }
 
 
-int Loop::points (vector<float>& x,
-		  vector<float>& y) const
+int Loop::points (vector<real>& x,
+		  vector<real>& y) const
 // ---------------------------------------------------------------------------
 // Load locations of Nodes into x & y.
 // ---------------------------------------------------------------------------
@@ -540,8 +540,8 @@ int Loop::points (vector<float>& x,
 }
 
 
-int Loop::line (vector<float>& x,
-		vector<float>& y) const
+int Loop::line (vector<real>& x,
+		vector<real>& y) const
 // ---------------------------------------------------------------------------
 // Load locations of splitline Nodes into x & y.
 // ---------------------------------------------------------------------------
