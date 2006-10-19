@@ -109,13 +109,9 @@ int main (int    argc,
 
     // -- Check it conforms with the description in session file.
 
-#if 1
     string ss (buf);
     istringstream sss (ss);
     sss  >> np >> np >> nz >> nel;
-#else
-    istrstream (buf, strlen (buf)) >> np >> np >> nz >> nel;
-#endif
 
     if (np != Geometry::nP()) {
       sprintf (err, "polynomial order mismatch (%1d <--> %1d)",
@@ -137,12 +133,9 @@ int main (int    argc,
 
     fieldfl .getline(buf, StrMax) .getline(buf, StrMax);
 
-#if 1
     sss.str (ss = buf);
     sss >> t;
-#else    
-    istrstream (buf, strlen (buf)) >> t;
-#endif
+
     Femlib::value ("t", t);
     
     fieldfl .getline(buf, StrMax) .getline(buf, StrMax);

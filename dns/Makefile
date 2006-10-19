@@ -30,11 +30,6 @@ ifdef TBCS		# -- Recompute mode 0 velocity BCs every time step.
   PROG    := $(PROG)_tbcs
 endif
 
-ifdef OLDCODE		# -- Make the old cylindrical code version.
-  DEFINES += -DOLDCODE
-  PROG    := $(PROG)_old
-endif
-
 ifdef MPI		# -- Make a parallel executable.
   PROG := $(PROG)_mp
 endif

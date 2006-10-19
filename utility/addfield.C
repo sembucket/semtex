@@ -13,7 +13,8 @@
 // addfield [options] -s session session.fld
 //   options:
 //   -h        ... print this message
-//   -v        ... add vorticity (default)
+//   -q        ... add kinetic energy per unit mass (default)
+//   -v        ... add vorticity
 //   -e        ... add enstrophy
 //   -B        ... add elliptic instability growth rate
 //   -b        ... add ellipticity
@@ -60,7 +61,8 @@
 // m -- x component Lamb vector
 // n -- y component Lamb vector
 // o -- z component Lamb vector
-// q -- divergence  Lamb vector
+// Q -- divergence  Lamb vector
+// q -- kinetic energy per unit mass 0.5*(u^2 + v^2 + w^2)
 // r -- x component vorticity
 // s -- y component vorticity
 // t -- z component vorticity
@@ -80,14 +82,15 @@ static char RCS[] = "$Id$";
 #include <tensorcalcs.h>
 
 #define FLDS_MAX 64 // -- More than we'll ever want.
-#define FLAG_MAX 12 // -- NB: FLAG_MAX should tally with the following enum:
+#define FLAG_MAX 13 // -- NB: FLAG_MAX should tally with the following enum:
 enum {
+  ENERGY      ,     // -- NB: the placing of ENERGY and FUNCTION in the first
+  FUNCTION    ,	    //    two positions is significant: don't break this.
   EGROWTH     ,
   ELLIPTICITY ,
   ENSTROPHY   ,
   DISCRIMINANT,
   DIVERGENCE  ,
-  FUNCTION    ,
   HELICITY    ,
   LAMBVECTOR  ,
   STRAINRATE  ,
@@ -113,7 +116,7 @@ int main (int    argc,
   int_t                      i, j, k, p, q;
   int_t                      np, nz, nel, allocSize, nComponent;
   int_t                      iAdd = 0;
-  bool                       add[FLAG_MAX], need[FLAG_MAX];
+  bool                       add[FLAG_MAX], need[FLAG_MAX], gradient;
   ifstream                   file;
   FEML*                      F;
   Mesh*                      M;
@@ -121,16 +124,16 @@ int main (int    argc,
   Domain*                    D;
   vector<Element*>           elmt;
   AuxField                   *Ens, *Hel, *Div, *InvQ, *InvR, *Disc, *Strain;
-  AuxField                   *Func, *Ell, *Egr, *Vtx, *work, *DivL;
+  AuxField                   *Func, *Ell, *Egr, *Vtx, *work, *DivL, *Nrg;
   vector<AuxField*>          lamb, velocity, vorticity, addField(FLDS_MAX);
   vector<vector<AuxField*> > Sij;
-  vector<vector<AuxField*> > Vij;     // -- Always computed, for internal use.
+  vector<vector<AuxField*> > Vij;     // -- Usually computed, for internal use.
   vector<vector<real_t*> >   VijData; // -- For pointwise access.
   real_t                     *egrow, *VtxData; // -- Ditto.
   real_t                     tensor[9];
 
   Femlib::initialize (&argc, &argv);
-  for (i = 0; i < FLAG_MAX; i++) add[i] = need [i] = false;
+  for (i = 0; i < FLAG_MAX; i++) add [i] = need [i] = false;
 
   // -- Read command line.
 
@@ -171,6 +174,11 @@ int main (int    argc,
 
   for (p = 0, i = 0; i < FLAG_MAX; i++) p += (add[i]) ? 1 : 0;
   if  (p == 0) message (prog, "nothing to be done", ERROR);
+
+  for (p = 0, i = 0; i < FLAG_MAX; i++)
+    p += (add[i]) ? (i + 1) : 0;
+  if (p <= 3) gradient = false; else gradient = true;
+
   for (i = 0; i < FLAG_MAX; i++) need[i] = add[i];
 
   if (add[ENSTROPHY]) {
@@ -201,23 +209,30 @@ int main (int    argc,
     need[LAMBVECTOR]   = true;
   }
 
-  // -- Always compute the velocity gradient tensor for internal use.
-
-  Vij    .resize (nComponent);
-  VijData.resize (nComponent);
-  for (i = 0; i < nComponent; i++) {
-    Vij    [i].resize (nComponent);
-    VijData[i].resize (nComponent);
-    for (j = 0; j < nComponent; j++) {
-      VijData[i][j] = new real_t [allocSize];
-       Vij   [i][j] = new AuxField (VijData[i][j], nz, elmt);
-      *Vij   [i][j] = 0.0;
+  // -- If any gradients need to be computed, we make all of the.
+  
+  if (gradient) {
+    Vij    .resize (nComponent);
+    VijData.resize (nComponent);
+    for (i = 0; i < nComponent; i++) {
+      Vij    [i].resize (nComponent);
+      VijData[i].resize (nComponent);
+      for (j = 0; j < nComponent; j++) {
+	VijData[i][j] = new real_t [allocSize];
+	Vij   [i][j] = new AuxField (VijData[i][j], nz, elmt);
+	*Vij  [i][j] = 0.0;
+      }
     }
   }
   
   // -- Fields without dependants.
 
   work = new AuxField (new real_t[allocSize], nz, elmt);
+
+  if (need[ENERGY]) {
+    Nrg = new AuxField (new real_t[allocSize], nz, elmt, 'q');
+    addField[iAdd++] = Nrg;
+  }
 
   if (need[FUNCTION]) {
     Func = new AuxField (new real_t[allocSize], nz, elmt, 'f');
@@ -269,7 +284,7 @@ int main (int    argc,
 	lamb[i] = new AuxField (new real_t[allocSize], nz, elmt, 'm' + i);
       for (i = 0; i < 3; i++) addField[iAdd++] = lamb[i];
     }
-    DivL = new AuxField (new real_t[allocSize], nz, elmt, 'q');
+    DivL = new AuxField (new real_t[allocSize], nz, elmt, 'Q');
     addField[iAdd++] = DivL;
   }
 
@@ -327,11 +342,19 @@ int main (int    argc,
 
     if (nComponent > 2) D -> transform (FORWARD);
 
-    for (i = 0; i < nComponent ; i++)
-      for (j = 0; j < nComponent ; j++) {
-	(*Vij[i][j] = *velocity[i]) . gradient (j);
-	Vij[i][j] -> transform (INVERSE);
-      }
+    if (gradient)
+      for (i = 0; i < nComponent ; i++)
+	for (j = 0; j < nComponent ; j++) {
+	  (*Vij[i][j] = *velocity[i]) . gradient (j);
+	  Vij[i][j] -> transform (INVERSE);
+	}
+
+    if (need[ENERGY]) {
+      *Nrg = 0.0;
+      for (i = 0; i < nComponent ; i++)
+	Nrg -> timesPlus (*D -> u[i], *D -> u[i]);
+      *Nrg *= 0.5;
+    }
 
     if (nComponent > 2) D -> transform (INVERSE);
 
@@ -495,7 +518,8 @@ static void getargs (int    argc   ,
     "Usage: %s [options] -s session dump.fld\n"
     "options:\n"
     "  -h        ... print this message \n"
-    "  -v        ... add vorticity (default)\n"
+    "  -q        ... add kinetic energy per unit mass (default)\n"
+    "  -v        ... add vorticity\n"
     "  -e        ... add enstrophy\n"
     "  -H        ... add helicity (3D only)\n"
     "  -b        ... add ellipticity\n"
@@ -532,6 +556,7 @@ static void getargs (int    argc   ,
     case 'i': flag[DISCRIMINANT] = true; break;
     case 'j': flag[VORTEXCORE]   = true; break;
     case 'l': flag[LAMBVECTOR]   = true; break;
+    case 'q': flag[ENERGY]       = true; break;
     case 'a': for (i = 0; i < FLAG_MAX; i++) flag[i] = true; break;
     case 'f':
       if (*++argv[0]) func = *argv; else { --argc; func = *++argv; }
@@ -540,7 +565,7 @@ static void getargs (int    argc   ,
     }
 
   for (i = 0; i < FLAG_MAX; i++) sum += (flag[i]) ? 1 : 0;
-  if (!sum) flag[VORTICITY] = true;
+  if (!sum) flag[ENERGY] = true;
 
   if   (!session)  message (prog, "no session file", ERROR);
   if   (argc != 1) message (prog, "no field file",   ERROR);

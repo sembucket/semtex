@@ -67,11 +67,12 @@ else
 endif
 endif
 
-ifeq ($(ARCH),Linux-x86_64)             # -- Linux Opteron, GNU compilation.
+ifeq ($(ARCH),Linux-x86_64)             # -- Linux Opteron or EM64T
 CXX      = g++
 LD       = g++
 CC       = gcc
 FC       = g77
+#FC       = gfortran (when g77 ceases to exist).
 ifdef DEBUG
   OPT    = -gstabs+
 else
@@ -81,6 +82,7 @@ CFLAGS   = $(DEFINES) $(OPT)
 FFLAGS   = $(DEFINES) $(OPT)
 CXXFLAGS = $(DEFINES) $(OPT) -Wno-deprecated
 F77LIBS  = -llapack -lfastblas -lg2c
+#F77LIBS  = -llapack -lblas -lgfortran
 LIBDIR  += -L/usr/local/lib
 LDFLAGS  = $(OPT) $(LIBDIR)
 RANLIB   = ranlib
