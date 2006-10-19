@@ -327,18 +327,11 @@ static void linAdvectT (Domain*    D ,
 			AuxField** Us,
 			AuxField** Uf)
 // ---------------------------------------------------------------------------
-// Compute ADJOINT linearised terms in Navier--Stokes equations: N(u).
+// Compute ADJOINT linearised terms in Navier--Stokes equations: M(u).
 //
-// Here N(u) represents the linearised advection terms in the N--S equations
-// transposed to the RHS.
+// Adjoint terms M(u) are (NB sign change and transpose)
 //
-// Velocity field data areas of D and first level of Us are swapped,
-// then the next stage of nonlinear forcing terms N(u) are computed
-// from velocity fields and left in the first level of Uf.
-//
-// Adjoint terms N(u) are (NB sign change and transpose)
-//
-//           N  = - ( grad U.u - U.grad u )
+//           M  = - ( grad U.u - U.grad u )
 //           ~             ~ ~   ~      ~
 // ---------------------------------------------------------------------------
 {
@@ -358,15 +351,15 @@ static void linAdvectT (Domain*    D ,
     *N[i] = 0.0;
   }
 
-  // -- Centrifugal, Coriolis terms for cylindrical coords.
+  // -- Transposed centrifugal, Coriolis terms for cylindrical coords.
 
-  if (Geometry::cylindrical()) {
-    if (NPERT == 3)
-     *N[2] += T -> times (*u[2], *U[1]) . divY();
-    if (NBASE == 3) {
-      N[1] -> axpy (-2.0, T -> times (*u[2], *U[2]));
-     *N[2] += T -> times (*u[1], *U[2]) . divY();
-    }
+  if (Geometry::cylindrical() && NBASE == 3) {
+    // -- If NBASE = 3 then also NPERT = 3.
+    T -> times (*u[1], *U[2]) . divY();
+    *T *= -2.0;
+    *N[2] += *T;
+    *N[2] *= T -> times (*u[2], *U[1]) . divY();
+    *N[1] *= T -> times (*u[2], *U[2]);
   }
 
   // -- N_i -= U_j d(u_i) / dx_j.
@@ -378,7 +371,7 @@ static void linAdvectT (Domain*    D ,
       else if (Geometry::cylindrical() && i == 2 && j == 2) T -> divY();
       N[i] -> timesMinus (*T, *U[j]);
     }
-#if 1
+
   // -- N_i += u_j d(U_j) / dx_i; dU_j/dz=0.
 
   for (i = 0; i < 2; i++)
@@ -387,7 +380,7 @@ static void linAdvectT (Domain*    D ,
       if (Geometry::cylindrical() && i < 2) U[NBASE] -> mulY();
       N[i] -> timesPlus (*u[j], *U[NBASE]);
     }
-#endif
+
   for (i = 0; i < NPERT; i++) {
     T -> smooth (N[i]);
     *N[i] *= -1.0;

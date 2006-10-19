@@ -97,6 +97,8 @@ N_BASE  N_PERT  N_Z    CATEGORY         CARTESIAN     CYLINDRICAL
 
 (?? cases most likely are OK.)
 
+Note that N_PERT >= N_BASE always.
+
 Summary of additional TOKENS and session file requirements
 ----------------------------------------------------------
 
