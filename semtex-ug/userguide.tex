@@ -50,7 +50,7 @@
 \vspace{\fill}
 
 {\large H.\,M. Blackburn}\\
-CSIRO Manufacturing and Infrastructure Technology\\
+CSIRO Manufacturing and Materials Technology\\
 
 \vspace{\fill}
 
@@ -125,7 +125,7 @@ requirements for assembled system matrices.
 
 While the numerical method is very accurate and efficient, it also has
 the advantage that complex geometries can be accommodated by employing
-unstructured meshes.  Exterior boundaries of spectral elements can be
+unstructured meshes.  The vertices of spectral elements meshes can be
 produced using finite-element mesh generation procedures.
 
 %-----------------------------------------------------------------------------
@@ -138,14 +138,19 @@ to three dimensions using Fourier expansion functions for
 spatially-periodic directions in Cartesian and cylindrical spaces.
 Concurrent execution is supported, using MPI as the basis for
 interprocessor communications, and the code has been ported to DEC,
-NEC, Fujitsu, Compaq, SGI, Apple and Linux multiprocessor machines.
+NEC, Fujitsu, Compaq, SGI, Apple and Linux multiprocessor
+machines. Basically it ought to work with little trouble on any
+contemporary UNIX system.
 
 There are various code extensions that are not part of the base
-distribution. These include dynamic and non-dynamic LES, simple
-power-law type non-Newtonian rheologies, scalar transport, buoyancy
-via the Boussinesq approximation, accelerating frame of refernce
-coupling for aeroelasticity, solution of steady-state flows via
-Newton-Raphson iteration, linear stability analysis.
+distribution. These include dynamic and non-dynamic LES
+\citep{blsc03}, simple power-law type non-Newtonian rheologies
+\citep{rb06}, scalar transport \citep{hmb01a,hmb02b}, buoyancy via the
+Boussinesq approximation, accelerating frame of reference coupling for
+aeroelasticity \citep{bh96a,bh99,bgw01,hmb03}, solution of
+steady-state flows via Newton-Raphson iteration \citep{hmb02a}, linear
+stability analysis
+\citep{hmb02a,bllo03b,bllo03a,bml04,shbl04,ebs06,blsh06}.
 
 %-----------------------------------------------------------------------------
 \section{Further reading}
@@ -159,10 +164,11 @@ three spatial dimensions is discussed by \citet{ap89}, \citet{kar89}
 and \citet{kar90}.  The use of spectral element techniques in
 cylindrical coordinates is dealt with in \citet{blsh04}.  The
 time-splitting method used for time integration is described by
-\citet{kio91}.  The book by \citet{fun97} provides useful information
+\citet*{kio91}.  The book by \citet{fun97} provides useful information
 and further references.  Recent overviews and some applications appear
 in \citet{kh98,hen99b}.  The definitive reference is now the book by
-\citet{kars99}.
+\citet{kars05}, but you may also find the text by \citet*{dfm02}
+useful for alternative explanations and views.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Starting out}
@@ -491,7 +497,11 @@ Read lines 2 to 485 from taylor2.msh
 \end{verbatim}
 }
 \noindent
-You should have seen a plot like that in figure~\ref{tay2msh}.
+You should have seen a plot like that in figure~\ref{tay2msh}. (Note:
+while you are building up the mesh parts of a session file, you can
+use \texttt{meshpr -c} to suppress some of the checking for matching
+element edges and curved boundaries that \texttt{meshpr} does by
+default.)
 \begin{figure}
 \begin{center}
 \includegraphics[width=0.5\textwidth]{taylor2mesh.eps}
@@ -741,16 +751,21 @@ solvers.
 \end{verbatim}
 }
 
+%----------------------------------------------------------------------------
+\subsection{Curved element edges}
+
 The mesh is somewhat similar to that for the Taylor flow example, the
 only difference being in the use of a curved edge for the 3rd edge of
-element~4, as specified in the \texttt{CURVES} section.  Only
-\texttt{ARC} type curves are currently implemented.  The parameter
-supplies the radius of the curve: a positive value implies that the
-curve makes the element convex on that side, while a negative value
-implies a concave side.  Note that where elements mate along a curved
-side, the curve must be defined twice, once for each element, and with
-radii of different signs on each side.  The mesh for this problem can
-be seen in figure~\ref{lapcurve}.
+element~4, as specified in the \texttt{CURVES} section.  Both
+\texttt{ARC} and \texttt{SPLINE} type curves are currently
+implemented.  For the \texttt{ARC} type, the parameter supplies the
+radius of the curve: a positive value implies that the curve makes the
+element convex on that side, while a negative value implies a concave
+side.  Note that where elements mate along a curved side, the curve
+must be defined twice, once for each element, and with radii of
+different signs on each side.  The mesh for this problem can be seen
+in figure~\ref{lapcurve}.
+
 \begin{figure}
 \begin{center}
 \includegraphics[width=0.5\textwidth]{laplace6mesh.eps}
@@ -760,6 +775,19 @@ be seen in figure~\ref{lapcurve}.
   The mesh corresponding to the \texttt{laplace6} session file.
 }
 \end{figure}
+
+For the \texttt{SPLINE} type, the parameter supplies the name of an
+ASCII file which contains a list of ($x$,\,$y$) coordinate pairs
+(white-space delimited). Naturally, the list of points should be in
+arc-length order. A single file can be used to supply the curved edges
+for a set of element edges. The vertices of the relevant elements do
+not have to lie exactly on the splined curve\,---\,if they do not,
+those vertices get shifted to the intersection of the projection of
+the straight line joining the original vertex position and its
+neighbouring ``curve-normal' vertex, and the cubic spline joining the
+points in the file. On the other hand, it is good practise to ensure
+that the declared vertex locations lie close to the spline, and to
+check the mesh that is produced: use \texttt{meshpr} to do this.
 
 %----------------------------------------------------------------------------
 \subsection{Boundary conditions}
@@ -1389,15 +1417,6 @@ To produce an unsteady Stokes solver (i.e.\ \verb+dns+ without
 nonlinear terms included), compile using \verb+make STOKES=1+, to
 produce the executable \verb+dns_stokes+.  NB: make sure you delete
 \verb+nonlinear.o+ first.
-
-%=============================================================================
-\section{Particle tracking in steady flows}
-
-This is a very mindless hack. If you want to particle-track in steady
-flows, then there is no need to update the Navier--Stokes solution. If
-you \verb+make SPAR=1+ you will produce a code version
-(\verb+dns_spar+) that will do particle tracking in whatever restart
-file is provided. NB: make sure you delete \verb+integrate.o+ first.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
