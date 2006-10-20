@@ -83,8 +83,6 @@ void integrateNS (Domain*      D,
       }
     }
 
-#if !defined (SPAR)
-
     // -- Create global matrix systems.
 
     MMS = preSolve (D);
@@ -95,8 +93,6 @@ void integrateNS (Domain*      D,
     // -- Apply coupling to radial & azimuthal velocity BCs.
     
     if (C3D) Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
-
-#endif
   }
     
   // -- Because we may restart from scratch on each call, zero these:
@@ -122,8 +118,6 @@ void integrateNS (Domain*      D,
     D -> step += 1; 
     D -> time += dt;
     Femlib::value ("t", D -> time);
-
-#if !defined (SPAR)		// -- Then integrate momentum equations.
 
     // -- Compute nonlinear terms from previous velocity field.
 
@@ -173,8 +167,6 @@ void integrateNS (Domain*      D,
     // -- Process results of this step.
 
     ROOTONLY if (F) cout << "Flowrate: " << F -> getQ() << endl;
-
-#endif
 
     A -> analyse (Us[0], Uf[0]);
   }
