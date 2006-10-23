@@ -273,7 +273,8 @@ ifstream& operator >> (ifstream& strm,
   sss >> np >> np >> nz >> nel;
 
   D.u[0] -> describe (f);
-  sss.str (ss = f);
+  sss.clear();
+  sss.str  (ss = f);
   sss >> npchk >> npchk >> nzchk >> nelchk;
   
   if (np  != npchk ) message (routine, "element size mismatch",       ERROR);
@@ -285,11 +286,13 @@ ifstream& operator >> (ifstream& strm,
     message (routine, "declared sizes mismatch", ERROR);
 
   strm.getline(s,StrMax);
-  sss.str (ss = s);
+  sss.clear();
+  sss.str  (ss = s);
   sss >> D.step;
 
   strm.getline(s,StrMax);
-  sss.str (ss = s);
+  sss.clear();
+  sss.str  (ss = s);
   sss >> D.time;
   Femlib::value ("t", D.time);
 
