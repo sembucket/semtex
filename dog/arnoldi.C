@@ -95,7 +95,7 @@ static BCmgr*           bman;
 
 static void  getargs    (int, char**, problem_t&, int_t&, int_t&, int_t&,
 			 int_t&, real_t&, char*&);
-static int_t preprocess (const char*);
+static int_t preprocess (const char*, bool&);
 
 static void  EV_init    (real_t*);
 static void  EV_update  (const problem_t, const real_t*, real_t*);
@@ -125,6 +125,7 @@ int main (int    argc,
   char      buf[StrMax];
   ofstream  info;
   problem_t task = PRIMAL;
+  bool      restart = false;
 
   Femlib::initialize (&argc, &argv);
 
@@ -149,7 +150,7 @@ int main (int    argc,
   
   // -- Allocate eigenproblem storage.
   
-  const int_t ntot = preprocess (session);
+  const int_t ntot = preprocess (session, restart);
   const int_t wdim = kdim + kdim + (kdim * kdim) + 2*ntot*(kdim + 1);
 
   vector<real_t> work (wdim);
@@ -174,12 +175,16 @@ int main (int    argc,
   norm = Blas::nrm2 (ntot, Kseq[0], 1);
   Blas::scal (ntot, 1.0/norm, Kseq[0], 1);
 
-  // -- Apply operator once to enforce BCs, incompressibility, etc.
+  if (!restart) {
 
-  EV_update (task, Kseq[0], Kseq[1]);
-  Veclib::copy (ntot, Kseq[1], 1, Kseq[0], 1);
-  norm = Blas::nrm2 (ntot, Kseq[0], 1);
-  Blas::scal (ntot, 1.0/norm, Kseq[0], 1);
+    // -- If we had a random initial condition, apply operator
+    //    once to enforce BCs, incompressibility, etc.
+
+    EV_update (task, Kseq[0], Kseq[1]);
+    Veclib::copy (ntot, Kseq[1], 1, Kseq[0], 1);
+    norm = Blas::nrm2 (ntot, Kseq[0], 1);
+    Blas::scal (ntot, 1.0/norm, Kseq[0], 1);
+  }
 
   // -- Fill initial Krylov sequence -- during which convergence may occur.
 
@@ -755,7 +760,8 @@ static void getargs (int        argc   ,
 }
 
 
-static int_t preprocess (const char* session)
+static int_t preprocess (const char* session,
+			 bool&       restart)
 // ---------------------------------------------------------------------------
 // Create objects needed for semtex execution, given the session file name.
 //
@@ -789,7 +795,7 @@ static int_t preprocess (const char* session)
 
   // -- Load restart and base flow data.
 
-  domain -> restart ();
+  restart = domain -> restart ();
   domain -> loadBase();
   domain -> report  ();
 

@@ -28,7 +28,7 @@ public:
 
   int_t nField    () const { return u.size(); }
   void  report    (ostream& stream = cout);
-  void  restart   ();
+  bool  restart   ();
   void  dump      ();
 
   // -- Required for base fields and stability analysis.

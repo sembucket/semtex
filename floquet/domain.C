@@ -148,7 +148,7 @@ void Domain::report (ostream& file)
 }
 
 
-void Domain::restart ()
+bool Domain::restart()
 // ---------------------------------------------------------------------------
 // If a restart file "name".rst can be found, use it for input.  If
 // this fails, initialise all fields to random noise.
@@ -158,6 +158,7 @@ void Domain::restart ()
   const int_t nF   = nField();
   const int_t ntot = Geometry::nTotProc();
   char        restartfile[StrMax];
+  bool        restarted = false;
   
   ROOTONLY cout << "-- Initial condition       : ";
   ifstream file (strcat (strcpy (restartfile, name), ".rst"));
@@ -166,6 +167,7 @@ void Domain::restart ()
     ROOTONLY cout << "read from file " << restartfile << flush;
     file >> *this;
     file.close();
+    restarted = true;
   } else {
     ROOTONLY cout << "randomised";
     for (i = 0; i < nF; i++) Veclib::vnormal (ntot, 0.0, 1.0, udat[i], 1);
@@ -175,6 +177,8 @@ void Domain::restart ()
   
   Femlib::value ("t", time);
   step = 0;
+  
+  return restarted;
 }
 
 
