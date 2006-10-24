@@ -147,7 +147,7 @@
 //         |      w~    |     w~  = 0    dw~/dr = 0      w~ = 0    |
 //         +------------+------------------------------------------+
 //
-// In order to deal with this modal dependence on BCs, three levels of
+// In order to deal with this modal dependence of BCs, three levels of
 // Boundary pointers are maintained for cylindrical Fields,
 // corresponding to Fourier modes 0, 1, 2 (and higher), even if there
 // are no axial BCs to be applied.  These BC pointers are carried by
