@@ -1,6 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
-// addfield.C: process sem field files, computing and adding vorticity and
-// divergence, rate of strain tensor, velocity gradient invariants, etc.
+// addfield.C: process NEKTON-type field files, computing and adding
+// vorticity and divergence, rate of strain tensor, velocity gradient
+// invariants, etc.
 //
 // Copyright (c) 1998 <--> $Date$, 
 //   Hugh Blackburn, Murray Rudman
@@ -101,7 +102,7 @@ enum {
 
 static char  prog[] = "addfield";
 static void  getargs  (int, char**, char*&, char*&, char*&, bool[]);
-static int_t getDump  (Domain*, ifstream&);
+static bool  getDump  (Domain*, ifstream&);
 static void  putDump  (Domain*, vector<AuxField*>&, int_t, ostream&);
 
 
@@ -209,7 +210,7 @@ int main (int    argc,
     need[LAMBVECTOR]   = true;
   }
 
-  // -- If any gradients need to be computed, we make all of the.
+  // -- If any gradients need to be computed, we make all of them.
   
   if (gradient) {
     Vij    .resize (nComponent);
@@ -573,8 +574,8 @@ static void getargs (int    argc   ,
 }
 
 
-static int_t getDump (Domain*   D   ,
-		      ifstream& dump)
+static bool getDump (Domain*   D   ,
+		     ifstream& dump)
 // ---------------------------------------------------------------------------
 // Read next set of field dumps from file.
 // ---------------------------------------------------------------------------
