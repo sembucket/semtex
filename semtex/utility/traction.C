@@ -13,12 +13,14 @@
 
 static char RCS[] = "$Id$";
 
-#include <dns.h>
+#include <sem.h>
 
 static char prog[] = "traction";
-static void getargs    (int, char**, char*&);
+static void getargs    (int, char**, char*&, istream*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, Domain*&);
+static bool getDump    (Domain*, istream&);
+
 
 int main (int    argc,
 	  char** argv)
@@ -27,8 +29,8 @@ int main (int    argc,
 // ---------------------------------------------------------------------------
 {
   Geometry::CoordSys         system;
-  char                       *session;
-  istream                    *file;
+  char*                      session;
+  istream*                   file;
   FEML*                      F;
   Mesh*                      M;
   BCmgr*                     B;
@@ -47,21 +49,19 @@ int main (int    argc,
 
   // -- Loop over all dumps in field file, compute and print traction.
 
-  while (getDump (D, file)) {
+  while (getDump (D, *file)) {
 
-    putDump (D, addField, iAdd, cout);
   }
   
-  file.close();
   Femlib::finalize();
   return EXIT_SUCCESS;
 }
 
 
-static void getargs (int       argc   ,
-		     char**    argv   ,
-		     char*&    session,
-		     istream*& file   )
+static void getargs (int        argc   ,
+		     char**     argv   ,
+		     char*&     session,
+		     istream*&  file   )
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
 // arguments.  Last argument is name of a session file, not dealt with here.
@@ -180,8 +180,8 @@ static void preprocess (const char*       session,
 }
 
 
-static bool getDump (Domain*   D   ,
-		     ifstream& dump)
+static bool getDump (Domain*    D   ,
+		     istream&   dump)
 // ---------------------------------------------------------------------------
 // Read next set of field dumps from file.
 // ---------------------------------------------------------------------------
