@@ -11,7 +11,7 @@ essential: sem compare enumerate
 
 all: essential plain preplot nosrc meshpr calc addfield sem2nek \
      convert project interp probe rectmesh transform wallmesh   \
-     phase lowpass eneq integral
+     phase lowpass eneq integral traction
 
 distclean:
 	make clean
@@ -87,6 +87,18 @@ $(WALOBJ): $(SEMHDR)
 
 wallmesh: $(WALOBJ)
 	$(LD) -o $@ $(WALOBJ) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build traction, utility to compute normal & tangential tractions on walls
+#
+TRCOBJ = traction.o feml.o auxfield.o bcmgr.o element.o geometry.o	\
+         domain.o condition.o family.o mesh.o bsys.o field.o edge.o	\
+         boundary.o pressure.o misc.o integration.o
+         
+$(TRCOBJ): $(SEMHDR)
+
+traction: $(TRCOBJ)
+	$(LD) -o $@ $(TRCOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build calc, an interactive interface to the femlib function parser.

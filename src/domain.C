@@ -208,8 +208,8 @@ void Domain::transform (const int_t sign)
 }
 
 
-ofstream& operator << (ofstream& strm,
-		       Domain&   D   )
+ostream& operator << (ostream& strm,
+		      Domain&  D   )
 // ---------------------------------------------------------------------------
 // Output all Domain field variables on ostream in prism-compatible
 // form.  Binary output only.  Note that output is only done on root
@@ -228,8 +228,8 @@ ofstream& operator << (ofstream& strm,
 }
 
 
-ifstream& operator >> (ifstream& strm,
-		       Domain&   D   )
+istream& operator >> (istream& strm,
+		      Domain&  D   )
 // ---------------------------------------------------------------------------
 // Input all Domain field variables from prism-compatible istream.
 //

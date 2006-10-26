@@ -83,11 +83,11 @@ int main (int    argc,
   }
   cout << Area << endl;
   
-  // -- Load field file, interpolate within it.
+  // -- Load field file, Gauss--Lobatto integrate all variables within it.
 
   while (getDump (*fldfile, u, Esys, NP, NZ, NEL)) {
     for (i = 0; i < u.size(); i++) {
-      u[i] -> transform (FORWARD);
+      u[i] -> transform (FORWARD); // -- Go back to Fourier space.
       centroid = u[i] -> centroid (0);
       integral = u[i] -> integral (0);
       cout << u[i] -> name() << ": " << Lz * integral 
