@@ -55,6 +55,10 @@ int main (int    argc,
 
   while (getDump (D, *file)) {
 
+    // -- Input was in physical space but we need Fourier.
+
+    D -> transform (FORWARD);
+
     // -- Set up to compute wall shear stresses.    
     
     const int_t npr = Geometry::nProc();
@@ -78,9 +82,6 @@ int main (int    argc,
 
     const int_t    nP  = Geometry::nP();
     const int_t    nZ  = Geometry::nZ();
-    const int_t    nZP = Geometry::nZProc();
-    const int_t    nPR = Geometry::nProc();
-    const int_t    nPP = _npad / nPR;
     int_t          i, j, k;
     real_t*        plane;
     vector<real_t> buffer (_nline);
@@ -98,17 +99,11 @@ int main (int    argc,
 
     // -- Inverse Fourier transform (like Field::bTransform).
 
-    if (nPR == 1) {
-      if (nZ > 1)
-	if (nZ == 2)
-	  Veclib::copy (_npad, &_work[0], 1, &_work[_npad], 1);
-	else
-	  Femlib::DFTr (&_work[0], nZ, _npad, INVERSE);
-    } else {
-      Femlib::exchange (&_work[0], nZP, nP,  FORWARD);
-      Femlib::DFTr     (&_work[0], nZ,  nPP, INVERSE);
-      Femlib::exchange (&_work[0], nZP, nP,  INVERSE);
-    }
+    if (nZ > 1)
+      if (nZ == 2)
+	Veclib::copy (_npad, &_work[0], 1, &_work[_npad], 1);
+      else
+	Femlib::DFTr (&_work[0], nZ, _npad, INVERSE);
 
     // -- Write to file.
     
