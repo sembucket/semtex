@@ -2,7 +2,7 @@
 // drive.C: control spectral element solver for unsteady incompressible
 // flow with scalar transport.
 //
-// Copyright (C) 1997, 2001 Hugh Blackburn
+// Copyright (C) 1997 <--> $Date$, Hugh Blackburn
 //
 // USAGE:
 // -----
@@ -21,9 +21,9 @@
 // Highett, Vic 3190
 // Australia
 // hugh.blackburn@csiro.au
-//
-// $Id$
 //////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include "scat.h"
 
@@ -95,14 +95,12 @@ static void getargs (int    argc   ,
       break;
     case 'i':
       do
-	Femlib::value ("ITERATIVE",
-		       static_cast<integer>(Femlib::value ("ITERATIVE")) + 1);
+	Femlib::value ("ITERATIVE", Femlib::ivalue ("ITERATIVE") + 1);
       while (*++argv[0] == 'i');
       break;
     case 'v':
       do
-	Femlib::value ("VERBOSE",
-		       static_cast<integer>(Femlib::value ("VERBOSE"))   + 1);
+	Femlib::value ("VERBOSE", Femlib::ivalue ("VERBOSE") + 1);
       while (*++argv[0] == 'v');
       break;
     case 'c':
@@ -138,10 +136,10 @@ static void preprocess (const char*       session,
 // They are listed in order of creation.
 // ---------------------------------------------------------------------------
 {
-  const integer      verbose = static_cast<integer>(Femlib::value ("VERBOSE"));
+  const int_t        verbose = Femlib::ivalue ("VERBOSE");
   Geometry::CoordSys space;
-  const real*        z;
-  integer            i, np, nz, nel;
+  const real_t*      z;
+  int_t              i, np, nz, nel;
 
   // -- Initialise problem and set up mesh geometry.
 
@@ -157,11 +155,11 @@ static void preprocess (const char*       session,
   VERBOSE cout << "Setting geometry ... ";
 
   nel   = mesh -> nEl();
-  np    =  static_cast<integer>(Femlib::value ("N_POLY"));
-  nz    =  static_cast<integer>(Femlib::value ("N_Z"));
-  space = (static_cast<integer>(Femlib::value ("CYLINDRICAL"))) ? 
-    Geometry::Cylindrical : Geometry::Cartesian;
-  
+  np    =  Femlib::ivalue ("N_P");
+  nz    =  Femlib::ivalue ("N_Z");
+  space = (Femlib::ivalue ("CYLINDRICAL")) ?
+                     Geometry::Cylindrical : Geometry::Cartesian;
+   
   Geometry::set (np, nz, nel, space);
 
   VERBOSE cout << "done" << endl;
@@ -170,10 +168,8 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "Building elements ... ";
 
-  Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
-
-  elmt.setSize (nel);
-  for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
+  elmt.resize (nel);
+  for (i = 0; i < nel; i++) elmt[i] = new Element (i, np, mesh);
 
   VERBOSE cout << "done" << endl;
 

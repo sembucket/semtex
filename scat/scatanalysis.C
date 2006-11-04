@@ -21,7 +21,7 @@ ScatAnalyser::ScatAnalyser (Domain* D   ,
 
     // -- Open state-variable file.
 
-    flx_strm.open (strcat (strcpy (str, src -> name), ".flx"));
+    flx_strm.open (strcat (strcpy (str, _src -> name), ".flx"));
     if (!flx_strm) message (routine, "can't open flux file",  ERROR);
 
     flx_strm << "# Buoy state information file"          << endl;
@@ -31,37 +31,37 @@ ScatAnalyser::ScatAnalyser (Domain* D   ,
 }
 
 
-void ScatAnalyser::analyse (AuxField** work)
+void ScatAnalyser::analyse (AuxField** wrk1, AuxField** wrk2)
 // ---------------------------------------------------------------------------
 // Step-by-step processing.
 // ---------------------------------------------------------------------------
 {
-  const integer DIM = Geometry::nDim();
+  const int_t DIM = Geometry::nDim();
 
-  Analyser::analyse (work);
+  Analyser::analyse (wrk1, wrk2);
 
   ROOTONLY {
-    const integer periodic = !(src->step% (integer)Femlib::value ("IO_HIS")) ||
-                             !(src->step% (integer)Femlib::value ("IO_FLD"));
-    const integer final    =   src->step==(integer)Femlib::value ("N_STEP");
-    const integer state    = periodic || final;
+    const int_t periodic = !(_src->step% Femlib::ivalue ("IO_HIS")) ||
+                           !(_src->step% Femlib::ivalue ("IO_FLD"));
+    const int_t final    =   _src->step==Femlib::ivalue ("N_STEP");
+    const int_t state    = periodic || final;
 
     if (!state) return;
 
-    real   flux;
+    real_t flux;
     Vector pfor, vfor, tfor;
     char   s[StrMax];
 
-    flux   = Field::flux            (src -> u[DIM]);
-    pfor   = Field::normalTraction  (src -> u[DIM + 1]);
-    vfor   = Field::tangentTraction (src -> u[0], src-> u[1]);
+    flux   = Field::scalarFlux   (_src -> u[DIM]);
+    pfor   = Field::normTraction (_src -> u[DIM + 1]);
+    vfor   = Field::tangTraction (_src -> u[0], _src-> u[1]);
     tfor.x = pfor.x + vfor.x;
     tfor.y = pfor.y + vfor.y;
 
     sprintf (s,
 	     "%#6d %#10.6g %#10.6g "
 	     "%#10.6g %#10.6g %#10.6g %#10.6g %#10.6g %#10.6g",
-	     src -> step, src -> time, flux  ,
+	     _src -> step, _src -> time, flux  ,
 	     pfor.x,   vfor.x,   tfor.x,
 	     pfor.y,   vfor.y,   tfor.y);
 

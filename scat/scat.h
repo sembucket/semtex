@@ -4,7 +4,7 @@
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include <Sem.h>
+#include <sem.h>
 
 
 class ScatAnalyser : public Analyser
@@ -14,7 +14,7 @@ class ScatAnalyser : public Analyser
 {
 public:
   ScatAnalyser (Domain*, FEML*);
-  void analyse (AuxField**);
+  void analyse (AuxField**, AuxField**);
 
 private:
   ofstream flx_strm;
