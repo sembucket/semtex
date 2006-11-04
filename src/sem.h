@@ -32,12 +32,8 @@
 
 #include <iostream>		/* System C++ headers. */
 #include <fstream>
-#if 0
- #include <strstream>
-#else
- #include <string>
- #include <sstream>
-#endif
+#include <string>
+#include <sstream>
 #include <iomanip>
 
 #include <vector>

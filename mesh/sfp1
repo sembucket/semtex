@@ -1,3 +1,5 @@
+# A mesh for a conical-bottom tank.
+
 <TOKENS>
 	CYLINDRICAL	= 1
 

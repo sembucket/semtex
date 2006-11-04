@@ -156,7 +156,7 @@ static struct {			    /* -- Built-in functions. */
   "womcos",  5, Womcos  ,
   "womsin",  5, Womsin  ,
 
-  NULL, NULL, NULL
+  NULL, 0, NULL
 };
 
 #include "defaults.h"
