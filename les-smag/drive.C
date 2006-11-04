@@ -16,7 +16,7 @@
 // AUTHOR:
 // ------
 // Hugh Blackburn
-// CSIRO Manufacturing and Infrastructure Technology
+// CSIRO
 // P.O. Box 56
 // Highett, Vic 3190
 // Australia
@@ -25,7 +25,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "les.h"
+#include <les.h>
 
 static char prog[] = "les";
 static void getargs    (int, char**, char*&);
