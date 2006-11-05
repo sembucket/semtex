@@ -137,9 +137,9 @@ static void preprocess (const char*       session,
 // They are listed in order of creation.
 // ---------------------------------------------------------------------------
 {
-  const integer      verbose = Femlib::ivalue ("VERBOSE");
+  const int_t        verbose = Femlib::ivalue ("VERBOSE");
   Geometry::CoordSys space;
-  integer            i, np, nz, nel;
+  int_t              i, np, nz, nel;
 
   // -- Initialise problem and set up mesh geometry.
 
@@ -261,18 +261,24 @@ static void getforcing (const char* session  ,
 
     // -- Strip header and check the data conforms.
 
-    integer np, nz, nel, ntot, nfields;
-    integer npchk,  nzchk, nelchk, swab = 0;
-    char    s[StrMax], f[StrMax];
+    int_t         np, nz, nel, ntot, nfields;
+    int_t         npchk,  nzchk, nelchk, swab = 0;
+    char          s[StrMax], f[StrMax];
+    string        ss(s);
+    istringstream sss (ss);
 
     if (file.getline(s, StrMax).eof())
       message (routine, "forcing file is empty", ERROR);
 
     file.getline(s,StrMax).getline(s,StrMax);
+
+    sss >> np    >> np    >> nz    >> nel;
   
     forcefld -> describe (f);
-    istrstream (s, strlen (s)) >> np    >> np    >> nz    >> nel;
-    istrstream (f, strlen (f)) >> npchk >> npchk >> nzchk >> nelchk;
+
+    sss.clear();
+    sss.str (ss = f);
+    sss >> npchk >> npchk >> nzchk >> nelchk;
   
     if (np  != npchk ) message (routine, "element size mismatch",       ERROR);
     if (nz  != nzchk ) message (routine, "number of z planes mismatch", ERROR);
