@@ -21,7 +21,8 @@
 //   -m <num> ... set maximum number of Newton iterations
 //   -c <num> ... set convergence tolerance on Newton iteration
 //   -n <num> ... set maximum number of BiCGS iterations per Newton step
-//   -t <num> ... set BiCGS convergence tolerance
+//   -i <num> ... set inital BiCGS convergence tolerance
+//   -t <num> ... set final BiCGS convergence tolerance
 // 
 // FILES
 // -----
@@ -64,7 +65,6 @@ static char prog[] = "newton";
 
 // -- Linear system convergence control.
 
-const real_t INITOL  = 1.0e-3;
 const real_t SHRINK  = 0.67;
 const int_t  NSTABLE = 3;
 
@@ -84,8 +84,8 @@ static vector<Element*> elmt;
 
 // -- File-scope routines.
 
-static void  getargs    (int, char**, int_t&, int_t&, real_t&, real_t&,
-			 int_t&, char*&, char*&);
+static void  getargs    (int, char**, int_t&, int_t&, real_t&,
+                         real_t&, real_t&, int_t&, char*&, char*&);
 static int_t preprocess (const char*, const char*);
 static void  initVec    (real_t*);
 static void  NS_update  (const real_t*, real_t*);
@@ -110,7 +110,7 @@ int main (int    argc,
 // ---------------------------------------------------------------------------
 {
   int_t  maxiLsys = 100, maxiNewt = 20, i, itn;
-  real_t tol, pretol, tolLsys = 1.0e-6, tolNewt = 1.0e-6, rnorm;
+  real_t tol, pretol, tolLsys = 1.0e-6, tolNewt = 1.0e-6, initol = 1e-3, rnorm;
   int_t  verbose  = 0, ier;
   bool   converged = false;
   char   *BaseSession, *PertSession;
@@ -122,14 +122,15 @@ int main (int    argc,
 
   Femlib::initialize (&argc, &argv);
 
-  getargs (argc, argv, maxiLsys, maxiNewt, tolLsys, tolNewt, verbose,
+  getargs (argc, argv, maxiLsys, maxiNewt, initol, tolLsys, tolNewt, verbose,
 	   BaseSession, PertSession);
 
   // -- Echo execution parameters.
 
   cout << "-- Newton convergence tol  : " << tolNewt  << endl;
   cout << "          iteration limit  : " << maxiNewt << endl;
-  cout << "-- BiCGS  convergence tol  : " << tolLsys  << endl;
+  cout << "-- BiCGS initial soln tol  : " << initol   << endl;
+  cout << "--        final soln  tol  : " << tolLsys  << endl;
   cout << "          iteration limit  : " << maxiLsys << endl;
 
   // -- Allocate storage.
@@ -154,7 +155,7 @@ int main (int    argc,
   cout.setf (ios::scientific, ios::floatfield); cout.precision (2);
 
   initVec (U);
-  pretol = INITOL;
+  pretol = initol;
   
   // -- Newton iteration.
 
@@ -200,8 +201,10 @@ int main (int    argc,
     else if (itn == maxiLsys)	// -- Loosen tolerance (and try again).
       pretol /= SHRINK;
 
+
     if (itn < maxiLsys)		// -- Accept adjustment to solution.
       Veclib::vsub (ntot, U, 1, u, 1, U, 1);
+
   }
 
   if (converged)
@@ -220,6 +223,7 @@ static void getargs (int     argc    ,
 		     char**  argv    , 
 		     int_t&  maxiLsys,
 		     int_t&  maxiNewt,
+		     real_t& initol  ,
 		     real_t& tolLsys ,
 		     real_t& tolNewt ,
 		     int_t&  verbose ,
@@ -239,7 +243,9 @@ static void getargs (int     argc    ,
     "default=1e-6\n"
     "-n <num> ... set maximum number of BiCGS iterations per Newton step, "
     "default=100\n"
-    "-t <num> ... set BiCGS convergence tolerance, "
+    "-i <num> ... set initial BiCGS convergence tolerance, "
+    "default=1e-3\n"
+    "-t <num> ... set final BiCGS convergence tolerance, "
     "default=1e-6\n";
 
   while (--argc && **++argv == '-')
@@ -255,6 +261,10 @@ static void getargs (int     argc    ,
     case 'c':
       if (*++argv[0]) tolNewt  = atof (  *argv);
       else { --argc;  tolNewt  = atof (*++argv); }
+      break;
+    case 'i':
+      if (*++argv[0]) initol   = atof (  *argv);
+      else { --argc;  initol   = atof (*++argv); }
       break;
     case 'm':
       if (*++argv[0]) maxiNewt = atoi (  *argv);
