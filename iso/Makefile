@@ -5,11 +5,10 @@
 #
 # Hugh Blackburn
 # CSIRO
-# Building, Construction & Engineering
 # PO Box 56
 # Highett 3190
 # Australia
-# hugh.blackburn@dbce.csiro.au
+# hugh.blackburn@csiro.au
 #
 # $Id$
 ##############################################################################
@@ -68,11 +67,22 @@ ifdef DEBUG
 else
   OPT    = -O3
 endif
-CFLAGS   = $(DEFINES) $(OPT)
+CFLAGS   = $(DEFINES) $(OPT) -ansi
 LDFLAGS  = $(CFLAGS) -lm
 ifdef PROF
  CFLAGS += -p
 endif
+endif
+
+ifeq ($(ARCH),Darwin)               # -- Mac OSX.
+CC       = gcc
+LD       = gcc
+ifdef DEBUG
+  OPT    = -gstabs+
+else
+  OPT    = -O3
+endif
+CFLAGS   = $(DEFINES) $(OPT) -ansi
 endif
 
 # ----------------------------------------------------------------------------
