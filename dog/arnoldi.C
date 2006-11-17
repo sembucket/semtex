@@ -22,7 +22,7 @@
 //   options:
 //   -h       ... print this message
 //   -v       ... set verbose
-//   -a or -g ... solve the adjoint or alternatively, optimal growth problem
+//   -a||g||s ... solve adjoint or optimal growth or optimal shrink problem
 //   -k <num> ... set dimension of subspace (maximum number of pairs) to num
 //   -m <num> ... set maximum number of iterations         (m >= k)
 //   -n <num> ... compute num eigenvalue/eigenvector pairs (n <= k)
@@ -261,7 +261,24 @@ static void EV_update  (const problem_t task,
     for (k = 0; k < NZ; k++)
       domain -> u[i] -> setPlane (k, src + (i*NZ + k)*NP);
 
-  integrate (task, domain, analyst);
+  switch (task) {
+  case PRIMAL:			// -- Forward in time.
+    integrate (linAdvect , domain, analyst); break;
+
+  case ADJOINT:			// -- Backward in time.
+    integrate (linAdvectT, domain, analyst); break;
+
+  case GROWTH:			// -- Forward, then backward.
+    integrate (linAdvect , domain, analyst);
+    integrate (linAdvectT, domain, analyst); break;
+
+  case SHRINK:			// -- Backward, then forward.
+    integrate (linAdvectT, domain, analyst);
+    integrate (linAdvect , domain, analyst); break;
+
+  default:
+    message ("EV_update", "Impossible task", ERROR); break;
+  }
 
   for (i = 0; i < ND; i++)
     for (k = 0; k < NZ; k++)
@@ -709,7 +726,7 @@ static void getargs (int        argc   ,
     "options:\n"
     "-h       ... print this message\n"
     "-v       ... set verbose\n"
-    "-a or -g ... solve adjoint, or alternatvely optimal growth, problem\n"
+    "-a||g||s ... solve adjoint or optimal growth or optimal shrink, problem\n"
     "-k <num> ... set dimension of subspace (maximum number of pairs) to num\n"
     "-m <num> ... set maximum number of iterations         (m >= k)\n"
     "-n <num> ... compute num eigenvalue/eigenvector pairs (n <= k)\n"
@@ -730,6 +747,9 @@ static void getargs (int        argc   ,
       break;
     case 'g':
       task = GROWTH;
+      break;
+    case 's':
+      task = SHRINK;
       break;
     case 'k':
      if (*++argv[0]) kdim  = atoi (  *argv);
@@ -755,6 +775,8 @@ static void getargs (int        argc   ,
 
   if   (argc != 1) message (prog, "no session file",   ERROR);
   else             session = *argv;
+
+  // -- Here is a minor hack:
 
   Femlib::ivalue ("TASK", task);
 }

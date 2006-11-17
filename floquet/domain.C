@@ -117,6 +117,7 @@ void Domain::report (ostream& file)
   file << "-- Task for solution       : ";
   if      (task == 1) file << "adjoint ";
   else if (task == 2) file << "growth ";
+  else if (task == 3) file << "shrink ";
   else                file << "primal "; 
   file << "problem" << endl;
 

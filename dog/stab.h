@@ -9,7 +9,7 @@
 
 #include <sem.h>
 
-typedef enum { PRIMAL, ADJOINT, GROWTH } problem_t;
+typedef enum { PRIMAL, ADJOINT, GROWTH, SHRINK } problem_t;
 
 class StabAnalyser : public Analyser
 // ===========================================================================
@@ -25,7 +25,11 @@ private:
   ofstream              bhs_strm;     // -- File for base history points.
 };
 
-void integrate (const problem_t, Domain*, StabAnalyser*);
+void integrate  (void (*)(Domain*, AuxField**, AuxField**),
+		 Domain*, StabAnalyser*);
+void linAdvect  (Domain*, AuxField**, AuxField**);
+void linAdvectT (Domain*, AuxField**, AuxField**);
+
 
 extern "C" {
   void F77NAME(dgeev)		// -- Lapack eigensystem routine.
