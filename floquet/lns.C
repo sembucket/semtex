@@ -60,7 +60,7 @@ int main (int    argc,
   domain -> loadBase();
   domain -> report  ();
   
-  integrate (task, domain, analyst);
+  integrate (linAdvect, domain, analyst);
 
   Femlib::finalize();
 
