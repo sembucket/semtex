@@ -14,8 +14,10 @@
 // 
 // Write to standard output.
 //
-// Four cases of combinations of base and perturbation fields may be
-// identified based on the number of velocity field variables and
+// NOTES
+// -----
+// 1. Four cases of combinations of base and perturbation fields may
+// be identified based on the number of velocity field variables and
 // planes of data in the perturbation (see README file):
 //
 // N_BASE  N_PERT  N_Z    COMPLEXITY
@@ -31,18 +33,23 @@
 // full-complex cases, the perturbation field is considered to be a
 // Fourier mode.  The output field is transformed to physical space.
 //
-// Note that only the first data plane of the base flow is read in, so
-// N_Z=2 is effectively the same as N_Z=1 for the base flow: if all we
-// have is a N_Z=1 base flow it can safely be projected to N_Z=2 for
-// use by this program. In future this should be fixed, but for now
-// the workaround is OK.
+// 2. Note that only the first data plane of the base flow is read in,
+// so N_Z=2 is effectively the same as N_Z=1 for the base flow: if all
+// we have is a N_Z=1 base flow it can safely be projected to N_Z=2
+// for use by this program. In future this should be fixed, but for
+// now the workaround is OK.
 //
-// When producing a 3D field file, the file is given minimal number of
-// modes required to contain it, subject to the 2, 3, 5 prime factor
-// requirement for FFT: the number of modes is rounded up to suit
-// this.
+// 3. Note also that the data files are assumed to only have
+// velocities and pressure data, in the standard ordering, i.e. uvp or
+// uvwp. The pressure of the outcome is set to zero, and is ignored in
+// doing the scaling.
 //
-// The relative size of the perturbation is based on the 2-norms of
+// 4. When producing a 3D field file, the file is given minimal number
+// of modes required to contain it, subject to the 2, 3, 5 prime
+// factor requirement for FFT: the number of modes is rounded up to
+// suit this.
+//
+// 5. The relative size of the perturbation is based on the 2-norms of
 // the respective fields, NB not the same as the L2-norms, as the
 // 2-norm does not account for the mass-matrix weighting of different
 // nodal values.
@@ -352,6 +359,7 @@ static void allocate (hdr_info&        header,
 // ---------------------------------------------------------------------------
 // Allocate enough storage to hold all the data fields (sem format).
 // Return the length of each scalar field (padded also so it's even).
+// Initialise all the storage to zero.
 // ---------------------------------------------------------------------------
 {
   const int_t nfield    = strlen (header.fields);
@@ -416,12 +424,15 @@ static void readdata (hdr_info&        bhead,
   }
 
   // -- If required, move the 3rd and higher fields up by 1 to allow for 'w'.
+  //    After this, both the base and perturbation fields have same number
+  //    of components, nPfield.
 
   if (nPfield == nBfield + 1) {
     for (i = nBfield; i > 2; i--)
       Veclib::copy (planesize, u[i-1], 1, u[i], 1);
     Veclib::zero (planesize, u[2], 1);
   }
+  Veclib::zero (planesize, u[nPfield-1], 1); // -- Zero the pressure.
 
   // -- Read perturbation flow into temporary storage.
  
@@ -440,8 +451,9 @@ static void readdata (hdr_info&        bhead,
   // -- Compute the 2-norms of base and perturbation flows, scale perturbation.
   //    If the base flow's energy is zero (i.e. we just want to look at the
   //    perturbation field, have used a zero base field), reset it to be 1.0.
+  //    NB: ignore the pressure fields.
 
-  for (i = 0; i < nPfield; i++) {
+  for (i = 0; i < nPfield-1; i++) {
     U2 += Blas::nrm2 (ntotelmt, u[i], 1);
     for (j = 0; j < nzP; j++) {
       u2 += Blas::nrm2 (ntotelmt, &utmp[i][j*planesize], 1);
@@ -457,16 +469,16 @@ static void readdata (hdr_info&        bhead,
   // -- Add the scaled perturbation to the base flow.
 
   if (nPfield == nBfield && nzP == 1) {	// -- Everything has 1 plane of data.
-    for (i = 0; i < nPfield; i++)
+    for (i = 0; i < nPfield-1; i++)
       Veclib::vadd (ntotelmt, &utmp[i][0], 1, u[i], 1, u[i], 1);
   } else if (nPfield == nBfield + 1 && nzP == 1) { // -- half-complex pert.
-    for (i = 0; i < nPfield; i++)
+    for (i = 0; i < nPfield-1; i++)
       if (phead.fields[i] != 'w')
 	Veclib::copy (ntotelmt, &utmp[i][0], 1, u[i]+planesize, 1);
       else
 	Veclib::copy (ntotelmt, &utmp[i][0], 1, u[i]+2*planesize, 1);
   } else if (nPfield == nBfield && nzP == 2) { // -- full-complex pert.
-    for (i = 0; i < nPfield; i++) {
+    for (i = 0; i < nPfield-1; i++) {
       Veclib::copy (ntotelmt, &utmp[i][0],         1, u[i]  +planesize, 1);
       Veclib::copy (ntotelmt, &utmp[i][planesize], 1, u[i]+2*planesize, 1);
     }
