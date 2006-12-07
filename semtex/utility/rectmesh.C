@@ -3,8 +3,10 @@
 //
 // Usage:
 // -----
-// rectmesh [-b <num>] [file]
+// rectmesh [-b <num>] [-e <num>] [-v <num>] [file]
 //   -b <num> ... output in <num> blocks, contiguous in x. [Default: 1]
+//   -e <num> ... offset first element number by <num>.
+//   -v <num> ... offset first vertex number by <num>.
 //
 // Files:
 // -----
@@ -19,7 +21,7 @@ static char RCS[] = "$Id$";
 #include <sem.h>
 
 static char prog[] = "rectmesh";
-static void getargs (int, char**, int&, istream*&);
+static void getargs (int, char**, int&, int&, int&, istream*&);
 static void header  ();
 
 
@@ -35,22 +37,17 @@ int main (int    argc,
   stack <real>            X, Y;
   vector<vector<Point*> > vertex;
   int                     Nx = 0, Ny = 0, Nb = 1, NelB;
+  int                     eOffset = 0, vOffset = 0;
   int                     i, j, k, b;
-#if 1
   string                  s;
-#endif
 
-  getargs (argc, argv, Nb, input);
+  getargs (argc, argv, Nb, eOffset, vOffset, input);
 
   // -- Read x, then y locations onto two stacks.
 
   while (input -> getline(line, STR_MAX).gcount() > 1) {
-#if 1
     istringstream ss (s = line);
     ss >> x;
-#else
-    istrstream (line, strlen(line)) >> x;
-#endif
     X.push (x);
     Nx++;
   }
@@ -61,12 +58,8 @@ int main (int    argc,
 	     ERROR);
 
   while (input -> getline(line, STR_MAX)) {
-#if 1
     istringstream ss (s = line);
     ss >> y;
-#else
-    istrstream (line, strlen(line)) >> y;
-#endif
     Y.push (y);
     Ny++;
   }
@@ -100,7 +93,7 @@ int main (int    argc,
 
   cout << "<NODES NUMBER=" << Nx*Ny << ">" << endl;
 
-  for (k = 0, i = 0; i < Ny; i++)
+  for (k = vOffset, i = 0; i < Ny; i++)
     for (j = 0; j < Nx; j++)
       cout << setw(5)  << ++k << "\t"
 	   << setw(15) << vertex[i][j] -> x
@@ -115,23 +108,23 @@ int main (int    argc,
   cout << endl << "<ELEMENTS NUMBER=" << NelB*Nb << ">" << endl;
 
 #if 1
-  for (k = 1, b = 0; b < Nb; b++)
+  for (k = eOffset+1, b = 0; b < Nb; b++)
     for (i = 0; i < (Ny - 1); i++)
       for (j = b*((Nx-1)/Nb); j < (b+1)*((Nx-1)/Nb); j++, k++)
 	cout << setw(5) << k << "\t" << "<Q>"
-	     << setw(5) << j +  i      * Nx + 1
-	     << setw(5) << j +  i      * Nx + 2
-	     << setw(5) << j + (i + 1) * Nx + 2
-	     << setw(5) << j + (i + 1) * Nx + 1
+	     << setw(5) << vOffset + j +  i      * Nx + 1
+	     << setw(5) << vOffset + j +  i      * Nx + 2
+	     << setw(5) << vOffset + j + (i + 1) * Nx + 2
+	     << setw(5) << vOffset + j + (i + 1) * Nx + 1
 	     << "    </Q>" << endl;
 #else
-  for (k = 1, i = 0; i < (Ny - 1); i++)
+  for (k = e)ffset+1, i = 0; i < (Ny - 1); i++)
     for (j = 0; j < (Nx - 1); j++, k++)
       cout << setw(5) << k << "\t" << "<Q>"
-	   << setw(5) << j +  i      * Nx + 1
-	   << setw(5) << j +  i      * Nx + 2
-	   << setw(5) << j + (i + 1) * Nx + 2
-	   << setw(5) << j + (i + 1) * Nx + 1
+	   << setw(5) << vOffset + j +  i      * Nx + 1
+	   << setw(5) << vOffset + j +  i      * Nx + 2
+	   << setw(5) << vOffset + j + (i + 1) * Nx + 2
+	   << setw(5) << vOffset + j + (i + 1) * Nx + 1
 	   << "    </Q>" << endl;
 #endif
     
@@ -145,44 +138,44 @@ int main (int    argc,
   for (k = 1, b = 0; b < Nb; b++)
     for (j = 0; j < (Nx-1)/Nb; j++, k++)
       cout << setw(5) << k << setw(5) 
-	   << b*NelB + j + 1
+	   << eOffset + b*NelB + j + 1
 	   << "    1"
 	   << "    <B> w </B>" << endl;
   for (i = 0; i < (Ny - 1); i++, k++)
     cout << setw(5) << k 
-	 << setw(5) << (Nb - 1)*NelB + (i + 1)*(Nx - 1)/Nb
+	 << setw(5) << eOffset + (Nb - 1)*NelB + (i + 1)*(Nx - 1)/Nb
 	 << "    2"
 	 << "    <B> w </B>" << endl;
   for (b = Nb; b > 0; b--)
     for (j = (Nx-1)/Nb; j > 0; j--, k++)
       cout << setw(5) << k 
-	   << setw(5) <<  b*NelB - (Nx - 1)/Nb + j
+	   << setw(5) <<  eOffset + b*NelB - (Nx - 1)/Nb + j
 	   << "    3"
 	   << "    <B> w </B>" << endl;
   for (i = Ny - 1; i > 0; i--, k++)
     cout << setw(5) << k 
-	 << setw(5) << (i - 1) * (Nx - 1)/Nb + 1   
+	 << setw(5) << eOffset +  (i - 1) * (Nx - 1)/Nb + 1   
 	 << "    4"
 	 << "    <B> w </B>" << endl;
 #else
   for (k = 1, j = 0; j < (Nx - 1); j++, k++)
     cout << setw(5) << k << setw(5) 
-	 <<  j + 1
+	 <<  eOffset + j + 1
 	 << "    1"
 	 << "    <B> w </B>" << endl;
   for (i = 0; i < (Ny - 1); i++, k++)
     cout << setw(5) << k 
-	 << setw(5) << (i + 1) * (Nx - 1)
+	 << setw(5) << eOffset + (i + 1) * (Nx - 1)
 	 << "    2"
 	 << "    <B> w </B>" << endl;
   for (j = Nx - 1; j > 0; j--, k++)
     cout << setw(5) << k 
-	 << setw(5) <<  j + (Nx - 1) * (Ny - 2)
+	 << setw(5) <<  eOffset + j + (Nx - 1) * (Ny - 2)
 	 << "    3"
 	 << "    <B> w </B>" << endl;
   for (i = Ny - 1; i > 0; i--, k++)
     cout << setw(5) << k 
-	 << setw(5) << (i - 1) * (Nx - 1) + 1   
+	 << setw(5) << eOffset + (i - 1) * (Nx - 1) + 1   
 	 << "    4"
 	 << "    <B> w </B>" << endl;
 #endif
@@ -196,6 +189,8 @@ int main (int    argc,
 static void getargs (int       argc ,
 		     char**    argv ,
 		     int&      Nb   ,
+		     int&      eOff ,
+                     int&      vOff ,
 		     istream*& input)
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
@@ -204,8 +199,10 @@ static void getargs (int       argc ,
   char usage[] = "Usage: rectmesh [options] [file]\n"
     "  options:\n"
     "  -h       ... print this message\n"
-    "  -b <num> ... output in <num> blocks, contiguous in x [Default: 1]\n";
- 
+    "  -b <num> ... output in <num> blocks, contiguous in x [Default: 1]\n"
+    "  -e <num> ... offset first element number by <num>\n"
+      "  -v <num> ... offset first vertex number by <num>\n";
+
   while (--argc && **++argv == '-')
     switch (*++argv[0]) {
     case 'h':
@@ -215,6 +212,14 @@ static void getargs (int       argc ,
     case 'b':
       if (*++argv[0]) Nb = atoi (*argv);
       else {Nb = atoi (*++argv); argc--;}
+      break;
+    case 'e':
+      if (*++argv[0]) eOff = atoi (*argv);
+      else {eOff = atoi (*++argv); argc--;}
+      break;
+    case 'v':
+      if (*++argv[0]) vOff = atoi (*argv);
+      else {vOff = atoi (*++argv); argc--;}
       break;
     default:
       cerr << usage;
@@ -245,11 +250,7 @@ static void header ()
   cout << "</BCS>" << endl << endl;
 
   cout << "<TOKENS>" << endl;
-  cout << "\tFFX       = 0.0"       << endl;
-  cout << "\tRNG       = 0"         << endl;
-  cout << "\tC_SMAG    = 0.1"       << endl;
   cout << "\tKINVIS    = 2e-6"      << endl;
-  cout << "\tREFVIS    = 10*KINVIS" << endl;        
   cout << "\tD_T       = 0.005"     << endl;
   cout << "\tN_STEP    = 100"       << endl;
   cout << "\tN_TIME    = 2"         << endl;
@@ -258,8 +259,6 @@ static void header ()
   cout << "\tBETA      = 1.0"       << endl;
   cout << "\tIO_CFL    = 50"        << endl;
   cout << "\tIO_FLD    = 1000"      << endl;
-  cout << "\tAVERAGE   = 0"         << endl;
   cout << "\tCHKPOINT  = 1"         << endl;
-  cout << "\tITERATIVE = 1"         << endl;
   cout << "</TOKENS>" << endl << endl;
 }
