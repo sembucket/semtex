@@ -264,22 +264,23 @@ static void getforcing (const char* session  ,
     int_t         np, nz, nel, ntot, nfields;
     int_t         npchk,  nzchk, nelchk, swab = 0;
     char          s[StrMax], f[StrMax];
-    string        ss(s);
-    istringstream sss (ss);
 
     if (file.getline(s, StrMax).eof())
       message (routine, "forcing file is empty", ERROR);
 
     file.getline(s,StrMax).getline(s,StrMax);
 
+    string        ss(s);
+    istringstream sss (ss);
+
     sss >> np    >> np    >> nz    >> nel;
-  
+
     forcefld -> describe (f);
 
     sss.clear();
     sss.str (ss = f);
     sss >> npchk >> npchk >> nzchk >> nelchk;
-  
+
     if (np  != npchk ) message (routine, "element size mismatch",       ERROR);
     if (nz  != nzchk ) message (routine, "number of z planes mismatch", ERROR);
     if (nel != nelchk) message (routine, "number of elements mismatch", ERROR);

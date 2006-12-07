@@ -81,6 +81,7 @@ typedef struct symbol {
 
 static double
   Heavi  (double), 
+  White  (double),
   Step   (double,double),
   Jn     (double,double),
   Yn     (double,double),
@@ -141,6 +142,7 @@ static struct {			    /* -- Built-in functions. */
   "y0"    ,  1, y0      ,
   "y1"    ,  1, y1      ,
   "lgamma",  1, lgamma  ,
+  "white",   1, White   ,
 
   "jn"    ,  2, Jn      ,
   "yn"    ,  2, Yn      ,
@@ -370,8 +372,8 @@ void yy_help (void)
      "~ (atan2), & (hypot), %% (fmod)\n"
      "Functions:  sin,  cos,  tan,  asin,  acos,  atan,\n"
      "            sinh, cosh, tanh, asinh, acosh, atanh,\n"
-     "            abs, floor, ceil, int, heav (Heaviside),\n"
-     "            log, log10, exp,  sqrt,\n"
+     "            abs, floor, ceil, int,   heav (Heaviside),\n"
+     "            log, log10, exp,  sqrt,  white\n"
      "            erf, erfc, lgamma,\n"
      "            j0, j1, y0, y1, jn\n"
      "Procedures: step, jn, yn, rad, ang, rejn,imjn, jacobi, womcos,womsin\n");
@@ -527,6 +529,7 @@ static void *emalloc (const size_t n)
 }
 
 static double Heavi (double x) { return (x >= 0.0) ? 1.0 : 0.0; }
+static double White (double x) { return dnormal (0, x); }
 static double Step  (double x, double a) { return (x >= a) ? 1.0 : 0.0; }
 
 static double Rad (double x, double y) { return hypot (x, y);  }
