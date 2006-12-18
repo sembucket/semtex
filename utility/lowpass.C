@@ -25,11 +25,11 @@ static char RCS[] = "$Id$";
 #include <sem.h>
 #include <data2df.h>
 
-static char  prog[] = "lowpass";
-static void  getargs  (int, char**, char&, int_t&, real_t&, istream*&);
-static int_t getDump  (istream&, ostream&, vector<Data2DF*>&);
-static void  loadName (const vector<Data2DF*>&, char*);
-static bool  doSwap   (const char*);
+static char prog[] = "lowpass";
+static void getargs  (int, char**, char&, int_t&, real_t&, istream*&);
+static bool getDump  (istream&, ostream&, vector<Data2DF*>&);
+static void loadName (const vector<Data2DF*>&, char*);
+static bool doSwap   (const char*);
 
 
 int main (int    argc,
@@ -150,9 +150,9 @@ static bool doSwap (const char* ffmt)
 }
 
 
-static int_t getDump (istream&          ifile,
-		      ostream&          ofile,
-		      vector<Data2DF*>& u    )
+static bool getDump (istream&          ifile,
+		     ostream&          ofile,
+		     vector<Data2DF*>& u    )
 // ---------------------------------------------------------------------------
 // Read next set of field dumps from ifile, put headers on ofile.
 // ---------------------------------------------------------------------------
@@ -172,7 +172,7 @@ static int_t getDump (istream&          ifile,
   char  buf[StrMax], fmt[StrMax], fields[StrMax];
   int_t i, j, swab, nf, np, nz, nel;
 
-  if (ifile.getline(buf, StrMax).eof()) return 0;
+  if (ifile.getline(buf, StrMax).eof()) return false;
   
   if (!strstr (buf, "Session")) message (prog, "not a field file", ERROR);
   ofile << buf << endl;

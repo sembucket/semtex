@@ -86,6 +86,7 @@ void integrateNS (Domain*      D,
     // -- Create global matrix systems.
 
     MMS = preSolve (D);
+
     // -- Create multi-level storage for pressure BCS.
 
     PBCmgr::build (Pressure);
