@@ -1,5 +1,5 @@
 /*****************************************************************************
- * POLYOPS.C:  Routines for manipulating polynomials.
+ * polyops.c:  Routines for manipulating polynomials.
  *
  * Summary of routines:
  * --------------------
@@ -696,7 +696,7 @@ void uniknot (const int_t nk,
 
 static real_t gammaF (real_t x)
 /* ------------------------------------------------------------------------- *
- * Gamma function for int_t or semi-int_t values of x.
+ * Gamma function for integer or semi-integer values of x.
  * ------------------------------------------------------------------------- */
 {
   real_t gamma = 1.0;
@@ -721,6 +721,6 @@ static real_t gammaF (real_t x)
       gamma *= tmp;
     }
   } else
-    fprintf (stderr,"%lf is not of int_t or half order\n",x);
+    fprintf (stderr,"%lf is not of integer or half order\n",x);
   return gamma;
 }
