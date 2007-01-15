@@ -79,7 +79,7 @@ void integrate (Domain*        D,
   const integer nwork = 17 + 2 * NDIM * NORD;
   vector<real*> Ut   (nwork);
   vector<real>  work (nwork * nTot);
-  for (i = 0; i < nwork; i++) Ut[i] = work() + i * nTot;
+  for (i = 0; i < nwork; i++) Ut[i] = &work[0] + i * nTot;
   
   // -- Create & initialise multi-level storage for velocities and forcing.
 
@@ -170,7 +170,7 @@ void integrate (Domain*        D,
 
     // -- Process results of this step.
 #endif
-    A -> analyse (Us[0]);
+    A -> analyse (Us[0], Uf[0]);
     S -> dump    ();
   }
 

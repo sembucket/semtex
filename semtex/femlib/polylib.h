@@ -44,6 +44,7 @@ void  Imgrjp(double*, double*, double*, integer, integer, double, double);
 void  Imglj (double*, double*, double*, integer, integer, double, double);
 
 /* Polynomial functions */
+
 void jacobfd (integer, double *, double *, double *, integer , double, double);
 void jacobd  (integer, double *, double *,  integer , double, double);
 
@@ -98,8 +99,8 @@ void jacobd  (integer, double *, double *,  integer , double, double);
 #define Imgrcp(im,zgrl,zm,nz,mz) Imgrjp(im,zgrl,zm,nz,mz,-0.5,-0.5)
 #define Imglc( im,zgll,zm,nz,mz) Imglj (im,zgll,zm,nz,mz,-0.5,-0.5)
 
+/* Macro for backward compatibility with Nektar */
 
-/* Macro for previous compatibility with Nektar */
 #define zwgrj(z,w,np,alpha,beta)      zwgrjm (z,w,np,alpha,beta)
 #define zwgrl(z,w,np)                 zwgrjm (z,w,np,0.0,0.0);
 #define hgrj(i,z,zgrj,np,alpha,beta)  hgrjm  (i,z,zgrj,np,alpha,beta) 

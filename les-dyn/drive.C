@@ -148,9 +148,9 @@ static void preprocess (const char*       session,
   VERBOSE cout << "Setting geometry ... ";
 
   nel   = mesh -> nEl();
-  np    =  (integer) Femlib::value ("N_P");
-  nz    =  (integer) Femlib::value ("N_Z");
-  space = ((integer) Femlib::value ("CYLINDRICAL")) ? 
+  np    =  Femlib::ivalue ("N_P");
+  nz    =  Femlib::ivalue ("N_Z");
+  space = (Femlib::ivalue ("CYLINDRICAL")) ? 
     Geometry::Cylindrical : Geometry::Cartesian;
 
   if (nz < 2) message (prog, "3D only, N_Z > 1 required", ERROR);
@@ -163,10 +163,8 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "Building elements ... ";
 
-  Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
-
-  elmt.setSize (nel);
-  for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
+  elmt.resize (nel);
+  for (i = 0; i < nel; i++) elmt[i] = new Element (i, np, mesh);
 
   VERBOSE cout << "done" << endl;
 

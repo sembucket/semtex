@@ -912,7 +912,6 @@ public:
   void restart    ();
   void dump       ();
   void transform  (const integer);
-  void setNumber  (const char, const NumberSys**) const;
 
 private:
   char* field;		// Lower-case single character field names.

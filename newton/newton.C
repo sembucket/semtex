@@ -130,7 +130,7 @@ int main (int    argc,
   cout << "-- Newton convergence tol  : " << tolNewt  << endl;
   cout << "          iteration limit  : " << maxiNewt << endl;
   cout << "-- BiCGS initial soln tol  : " << initol   << endl;
-  cout << "--        final soln  tol  : " << tolLsys  << endl;
+  cout << "          final soln  tol  : " << tolLsys  << endl;
   cout << "          iteration limit  : " << maxiLsys << endl;
 
   // -- Allocate storage.

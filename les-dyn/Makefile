@@ -33,11 +33,11 @@ endif
 # ----------------------------------------------------------------------------
 # Standard semtex objects.
 
-SEMFILES = analysis auxfield BCmgr boundary bsys condition domain \
-	   element feml field geometry history integration  	  \
+SEMFILES = analysis auxfield bcmgr boundary bsys condition domain \
+	   edge element feml field geometry history integration  	  \
 	   matrix mesh misc particle pressure statistics
 SEMOBJ   = $(addsuffix .o,$(SEMFILES))
-SEMHDR   = Sem.h
+SEMHDR   = sem.h
 
 # ----------------------------------------------------------------------------
 # Local objects and build.

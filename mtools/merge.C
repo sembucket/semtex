@@ -27,7 +27,7 @@
 
 char prog[] = "merge";
 
-static const int NSMOOTH = 0;
+static const int NSMOOTH = 20;
 
 static int  getNum      (istream*, const char*);
 static void buildTable  (istream*, const int, const int, Node**);

@@ -143,8 +143,6 @@ void nonLinear (Domain*    D ,
     Blas::scal (nTot32, -0.5, n32[i], 1);
   }
 
-    // -- Transform to Fourier space, smooth, add forcing.
-
 #if 0
   // -- Add forcing for inertia-wave problem (transient version):
   //    (NB: T here is actually OMEGA_1*t.)

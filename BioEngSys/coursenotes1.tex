@@ -36,7 +36,7 @@
 \begin{titlepage}
 \biomedsubject{421-286}{Bioengineering Systems Modelling 2}{2006}
 
-\vspace*{18em}
+\vspace*{15em}
 
 \begin{center}
 {\huge
@@ -44,7 +44,7 @@ An Introduction to Continuum Mechanics\\[5pt]
 for Biomedical Applications
 }
 
-\vspace*{20em}
+\vspace*{25em}
 
 {\Large Hugh M Blackburn}
 
@@ -56,6 +56,68 @@ for Biomedical Applications
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %\part{Continuum mechanics}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{table}
+\begin{center}
+\begin{tabular*}{30em}{l@{\extracolsep{\fill}}l@{\extracolsep{\fill}}l}
+\hline
+Quantity          & Dimension  & SI Unit \\[3pt]
+Mass              & [M]        & kg \\
+Length            & [L]        & m \\
+Time              & [T]        & s \\
+Temperature       & [$\theta$] & K \\
+\hline
+\end{tabular*}
+\end{center}
+\caption{Some primary dimensions used in mechanics and their SI units.}
+\end{table}
+
+\begin{table}
+\begin{center}
+\begin{tabular*}{30em}{l@{\extracolsep{\fill}}l@{\extracolsep{\fill}}l}
+\hline
+Quantity            & Dimension                  & SI Unit \\[3pt]
+Area                & [L$^2$]                    & m$^2$ \\
+Volume              & [L$^3$]                    & m$^3$ \\
+Velocity            & [LT$^{-1}$]                & m/s   \\
+Acceleration        & [LT$^{-2}$]                & m/s$^2$ \\
+Density             & [ML$^{-3}$]                & kg/m$^3$ \\
+Force               & [MLT$^{-2}$]               & N = kg\,m/s$^{2}$ \\
+Pressure, stress    & [ML$^{-1}$T$^{-2}$]        & Pa = N/m$^{2}$ \\
+Frequency           & [T$^{-1}$]                 & Hz = 1/s \\
+Angle               & [LL$^{-1}$] = [1]          & rad (dimensionless) \\
+Angular velocity    & [T$^{-1}$]                 & rad/s \\
+Energy, work        & [ML$^2$T$^{-2}$]           & J = N.m \\
+Power               & [M$^2$T$^{-3}$]            & W = J/s \\
+Viscosity           & [ML$^{-1}$T$^{-1}$]        & Pa.s = kg/(m.s) \\
+Specific heat       & [L$^2$T$^{-2}\theta^{-1}$] & m$^2$/(s$^2$.K) \\
+Kinematic viscosity & [L$^2$T$^{-1}$]            & m$^2$/s \\
+Diffusivity         & [L$^2$T$^{-1}$]            & m$^2$/s \\
+\hline
+\end{tabular*}
+\end{center}
+\caption{Some secondary dimensions and their SI units.}
+\end{table}
+
+\begin{table}
+\begin{center}
+\begin{tabular*}{30em}{l@{\extracolsep{\fill}}l@{\extracolsep{\fill}}l@{\extracolsep{\fill}}l}
+\hline
+Quantity     & cgs unit    & SI Unit & Conversion \\[3pt]
+Force        & dyne        & Newton  &
+$1\,\textrm{dyne}=1\times10^{-5}\,\textrm{N}$ \\
+Stress       & dyne/cm$^2$ & Pascal &
+$1\,\textrm{dyne/cm}^2=0.1\,\textrm{Pa}$ \\
+Viscosity    & poise       & Pascal second &
+$1\,\textrm{poise}=0.1\,\textrm{Pa.s}$ \\
+Energy       & erg         & Joule         &
+$1\,\textrm{erg}=1\times10^{-7}\textrm{J}$\\
+\hline
+\end{tabular*}
+\end{center}
+\caption{Conversion between cgs and SI units.}
+\end{table}
 
 \cleardoublepage
 
@@ -85,6 +147,10 @@ or cells dealt with at a time is very large, and the individuals do
 not need to be considered.  The basic assumption is that properties
 like concentration, density, velocity, vary smoothly in space and
 hence can be analysed via differential calculus.
+
+General reading for the material to be covered here is given by
+\citet*{bgl95}. Other texts will be cited, as appropriate, for more
+detailed expositions.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Basic properties of solids and fluids}
@@ -552,9 +618,6 @@ principal stresses or the eigenvalues of the original stress
 tensor. We will not pursue this point in more depth, but in general,
 considerations of symmetry pervade continuum mechanics.
 
-%=============================================================================
-%\subsection{Isotropic and deviatoric stress components}
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Deformation of continua}
 
@@ -960,22 +1023,6 @@ diffusion of momentum the transport coefficient is the viscosity of the
 fluid, $\mu$.
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 %#############################################################################
 \chapter{Conservation Laws in continuum form}
 \label{ch.cons}
@@ -986,7 +1033,6 @@ gives an excellent discussion of our understanding of physical
 laws. We will examine conservation of mass, a passive scalar, and
 momentum. Another conservation law can be written for conservation of
 energy, but we will not examine this in continuum form. 
-%We will generally regard the materials as being of constant density.
 
 The conservation laws will be derived in a Cartesian coordinate
 system, but where appropriate we will give the equivalent
@@ -1108,16 +1154,16 @@ figure~\ref{fig.massV}, we can write this as
 \Delta y\Delta z\left[(c u)|_{x}-(c u)|_{x+\Delta x}\right]+
 \Delta x\Delta z\left[(c v)|_{y}-(c v)|_{y+\Delta y}\right]+\\
 \Delta x\Delta y\left[(c w)|_{z}-(c w)|_{z+\Delta z}\right]+\\
-\Delta y\Delta z\left[(k \frac{\partial c}{\partial x})|_{x}-(k
+\Delta y\Delta z\left[-(k \frac{\partial c}{\partial x})|_{x}+(k
   \frac{\partial c}{\partial x})|_{x+\Delta x}\right]+
-\Delta x\Delta z\left[(k \frac{\partial c}{\partial y})|_{y}-(k
+\Delta x\Delta z\left[-(k \frac{\partial c}{\partial y})|_{y}+(k
   \frac{\partial c}{\partial y})|_{y+\Delta y}\right]+\\
-\Delta x\Delta y\left[(k \frac{\partial c}{\partial z})|_{z}-(k
+\Delta x\Delta y\left[-(k \frac{\partial c}{\partial z})|_{z}+(k
   \frac{\partial c}{\partial z})|_{z+\Delta y}\right].
 \end{multline}
 Dividing by $\Delta V$ and taking limits, we have
 \begin{equation}
-\Frac{\partial c}{\partial t}=
+\frac{\partial c}{\partial t}=
 -\left(\frac{\partial cu}{\partial x}+\frac{\partial cv}{\partial
   y}+\frac{\partial cw}{\partial z}\right) + \frac{\partial}{\partial
   x}\left(k\frac{\partial c}{\partial x}\right)+ \frac{\partial}{\partial
@@ -1176,15 +1222,6 @@ orientation of the surface on which the traction acts. The tractions
 are produced by molecular-level effects\,---\,in a fluid, by molecular
 diffusion of momentum, and in a solid by inter-molecular forces.
 
-%It is
-%conventional and convenient to decompose the state of stress into an
-%`isotropic' component, that is the same in all directions, and a
-%non-isotropic or `deviatoric' component that encapsulates the tensor
-%behaviour. From everyday experience we are used to the isotropic
-%component: it is the pressure, and stems fundamentally from
-%compression of the material. In fluids, the deviatoric component of
-%the stress is produced by shear and viscosity.
-
 In words, the expression for conservation of momentum for a volume
 fixed in space is
 \begin{equation}
@@ -1199,7 +1236,8 @@ zero.
 
 \begin{figure}
 \begin{center}
-\includegraphics[width=0.5\textwidth]{BSL-3.1-2.eps}
+%\includegraphics[width=0.5\textwidth]{BSL-3.1-2.eps}
+\includegraphics[width=0.5\textwidth]{Fung-3.8.eps}
 \end{center}
 \caption{A finite elemental volume $\Delta V=\Delta x\Delta y\Delta z$
 with surface tractions acting on its faces.}
@@ -1210,7 +1248,7 @@ We will start with $x$-component momentum per unit mass (locally,
 $\rho u$).  Consider the elemental volume $\Delta V=\Delta x\Delta
 y\Delta z$ shown in figure~\ref{fig.momV}. The rate at which
 $x$-component momentum accumulates within $\Delta V$ is $\Delta
-V\partial \rho u/\partial x$. The rate at which $x$-component momentum
+V\partial \rho u/\partial t$. The rate at which $x$-component momentum
 convects into the face at $x$ is given by $\rho uu|_{x}\Delta y\Delta
 z$; the rate at which it convects out at $x+\Delta x$ is $\rho
 uu|_{x+\Delta x}\Delta y\Delta z$. The rate at which it enters at $y$
@@ -1223,17 +1261,22 @@ z(\rho uv|_y-\rho uv|_{y+\Delta y})+\Delta x\Delta y(\rho uw|_z-\rho
 uw|_{z+\Delta z}).
 \end{equation}
 Next we consider the $x$-component tractions acting on the six
-faces. The deviatoric tractions have two indices, \eg $\tau_{yx}$ is
+faces. The tractions have two indices, \eg $\tau_{yx}$ is
 the traction on a face normal to the $y$ direction and which points in
 the $x$ direction. Note that $\tau_{xx}$ is a traction acting normal
 to a face of our elemental volume, while $\tau_{yx}$ and $\tau_{zx}$
 act tangentially to the faces on which they apply. Adding up the
-%isotropic and deviatoric 
 $x$-direction contributions on the six faces, we get
 \begin{equation}
-\Delta y\Delta z([\tau_{xx}]|_x-[\tau_{xx}]|_{x+\Delta x})+\Delta x\Delta
-z(\tau_{yx}|_y-\tau_{yx}|_{y+\Delta y})+\Delta x\Delta
-y(\tau_{zx}|_z-\tau_{zx}|_{z+\Delta z}).
+\Delta y\Delta z(\tau_{xx}|_{x+\Delta x}-\tau_{xx}|_x)+\Delta x\Delta
+z(\tau_{yx}|_{y+\Delta y} - \tau_{yx}|_y)+\Delta x\Delta
+y(\tau_{zx}|_{z+\Delta z}-\tau_{zx}|_z),
+\end{equation}
+or
+\begin{equation}
+\Delta y\Delta z(\tau_{xx}+\frac{\partial \tau_{xx}}{\partial x}\Delta x-\tau_{xx})+\Delta x\Delta
+z(\tau_{yx} + \frac{\partial\tau_{yx}}{\partial y}\Delta y - \tau_{yx})+\Delta x\Delta
+y(\tau_{zx}+\frac{\partial\tau_{zx}}{\partial z}\Delta z-\tau_{zx}).
 \end{equation}
 The typical distributed or body force is that due to gravity, which,
 if there is a component $g_x$ in the $x$-direction, we can write as
@@ -1250,12 +1293,11 @@ and take the limit as these lengths approach zero, we get
 \frac{\partial}{\partial y}\rho uv+
 \frac{\partial}{\partial z}\rho uw
 \right)
--\left(
++\left(
 \frac{\partial}{\partial x}\tau_{xx}+
 \frac{\partial}{\partial y}\tau_{yx}+
 \frac{\partial}{\partial z}\tau_{zx}
 \right)
-%-\frac{\partial p}{\partial x}
 +\rho g_x.
 \end{equation}
 Similarly, the equations for the $y$- and $z$-components of momentum are
@@ -1266,12 +1308,11 @@ Similarly, the equations for the $y$- and $z$-components of momentum are
 \frac{\partial}{\partial y}\rho vv+
 \frac{\partial}{\partial z}\rho vw
 \right)
--\left(
++\left(
 \frac{\partial}{\partial x}\tau_{xy}+
 \frac{\partial}{\partial y}\tau_{yy}+
 \frac{\partial}{\partial z}\tau_{zy}
 \right)
-%-\frac{\partial p}{\partial y}
 +\rho g_y,
 \end{equation}
 \begin{equation}
@@ -1281,12 +1322,11 @@ Similarly, the equations for the $y$- and $z$-components of momentum are
 \frac{\partial}{\partial y}\rho wv+
 \frac{\partial}{\partial z}\rho ww
 \right)
--\left(
++\left(
 \frac{\partial}{\partial x}\tau_{xz}+
 \frac{\partial}{\partial y}\tau_{yz}+
 \frac{\partial}{\partial z}\tau_{zz}
 \right)
-%-\frac{\partial p}{\partial z}
 +\rho g_z.
 \end{equation}
 
@@ -1298,18 +1338,16 @@ use the continuity equation (\ref{eq.contin}) in order to arrive at
 \rho u\frac{\partial u}{\partial x} +
 \rho v\frac{\partial u}{\partial y} +
 \rho w\frac{\partial u}{\partial z} =&
-%-\frac{\partial p}{\partial x} -
 \left(
 \frac{\partial \tau_{xx}}{\partial x} +
 \frac{\partial \tau_{yx}}{\partial y} +
 \frac{\partial \tau_{zx}}{\partial z}
 \right)
-\rho g_x,\\
++\rho g_x,\\
 \rho\frac{\cD v}{\cD t}=\rho\frac{\partial v}{\partial t} + 
 \rho u\frac{\partial v}{\partial x} +
 \rho v\frac{\partial v}{\partial y} +
 \rho w\frac{\partial v}{\partial z} =&
-%-\frac{\partial p}{\partial y} -
 \left(
 \frac{\partial \tau_{xy}}{\partial x} +
 \frac{\partial \tau_{yy}}{\partial y} +
@@ -1320,7 +1358,6 @@ use the continuity equation (\ref{eq.contin}) in order to arrive at
 \rho u\frac{\partial w}{\partial x} +
 \rho v\frac{\partial w}{\partial y} +
 \rho w\frac{\partial w}{\partial z} =&
-%-\frac{\partial p}{\partial z} -
 \left(
 \frac{\partial \tau_{xz}}{\partial x} +
 \frac{\partial \tau_{yz}}{\partial y} +
@@ -1330,16 +1367,14 @@ use the continuity equation (\ref{eq.contin}) in order to arrive at
 \end{align}
 Using vector notation we can write this set in coordinate-free form as
 \begin{equation}
-\rho\frac{\cD\bm{u}}{\cD t}=%-\nabla p
+\rho\frac{\cD\bm{u}}{\cD t}=
 \bm{\nabla\cdot\tau} + \rho\bm{\cg}.
 \label{eq.momvec}
 \end{equation}
 In words, this reads
 \begin{equation}
 \left\{ \parbox{23mm}{mass per unit volume times acceleration} \right\}=
-%\left\{ \parbox{23mm}{pressure force per\\ unit volume} \right\}+
-\left\{ \parbox{25mm}{%deviatoric 
-                      stress force \\
+\left\{ \parbox{25mm}{stress force \\
                       per\\ unit volume} \right\} +
 \left\{ \parbox{25mm}{gravitational force per unit volume} \right\}.
 \label{eq.newt2_words}
@@ -1416,7 +1451,7 @@ Cartesian coordinate system \citep[see e.g.][ch.~8]{fung69}. Along
 with the assumption that the coefficients do not depend on the strain
 rate, it turns out that instead of 81 independent variables to
 describe $\bm{D}$, we need \emph{at most two}, a very considerable
-simplification. In that case it turns out that 
+simplification. In this case it transpires that
 \begin{equation}
 D_{ijkl} = \lambda \delta_{ij}\delta_{kl} +
  \mu\left(\delta_{ik}\delta_{jl} + \delta_{il}\delta_{jk}\right),
@@ -1578,8 +1613,9 @@ velocities are infinitesimal, so that
 \frac{\cD \bm{U}}{\cD t}\equiv\frac{\partial\bm{U}}{\partial t}=
 \frac{\partial^2 \bm{u}}{\partial t^2}.
 \]
-Hence the momentum equation linearised for small displacements and
-velocities is
+This approach is reasonable because in fact the values of strain are
+typically small in solid mechanics applications.  Hence the momentum
+equation linearised for small displacements and velocities is
 \begin{equation}
 \rho\frac{\partial^2 \bm{u}}{\partial t^2}=\bm{\nabla\cdot\tau} + \rho\bm{\cg},
 \end{equation}
@@ -1608,8 +1644,8 @@ G\left[\bm{\nabla u} + (\bm{\nabla u})^T\right]\right) +
 G\nabla^2\bm{u} +
 \rho\bm{\cg},
 \end{align}
-which is known as Navier's equation.  Written in Cartesian component
-form (and using the summation convention) this is
+which is known as \emph{Navier's equation}.  Written in Cartesian
+component form (and using the summation convention) this is
 \begin{equation}
 \rho\frac{\partial^2 u_i}{\partial t^2}
 =
@@ -1660,9 +1696,9 @@ final closed system of equations is then
 =
 -\nabla p+\mu\nabla^2\bm{u} + \rho\bm{\cg},
 \end{equation}
-which is known as the Navier--Stokes equation, along with the
-continuity equation.
-Written in Cartesian component form,
+which is known as the \emph{incompressible Navier--Stokes equation},
+along with the continuity equation $\bm{\nabla\cdot u}=0$.  Written in
+Cartesian component form (with the summation convention),
 \begin{align}
 \rho\left(\frac{\partial u_i}{\partial t} + u_j\frac{\partial
   u_i}{\partial x_j}\right)
@@ -1682,6 +1718,103 @@ data. With the advent of digital computers, many problems can now be
 addressed by directly solving the the momentum equation, or simplified
 models of it in the case of turbulent flow.
 
+Expressed in coordinate-free form, or using the summation convention
+in Cartesian coordinates, as above, these equations are succint. When
+written out in full for particular coordinate systems they become
+rather longer. For example, here are the incompressible-flow \NavSto\
+equations written out in full for Cartesian coordinates:
+\begin{align*}
+\rho\left(
+ \frac{\partial u}{\partial t} +
+u\frac{\partial u}{\partial x} +
+v\frac{\partial u}{\partial y} +
+w\frac{\partial u}{\partial z}\right) &=
+-\frac{\partial p}{\partial x}+
+\mu\left(
+\frac{\partial^2 u}{\partial x^2} +
+\frac{\partial^2 u}{\partial y^2} +
+\frac{\partial^2 u}{\partial z^2}
+\right) + \rho\cg_x,\\
+\rho\left(
+ \frac{\partial v}{\partial t} +
+u\frac{\partial v}{\partial x} +
+v\frac{\partial v}{\partial y} +
+w\frac{\partial v}{\partial z}\right) &=
+-\frac{\partial p}{\partial x}+
+\mu\left(
+\frac{\partial^2 v}{\partial x^2} +
+\frac{\partial^2 v}{\partial y^2} +
+\frac{\partial^2 v}{\partial z^2}
+\right) + \rho\cg_y,\\
+\rho\left(
+ \frac{\partial w}{\partial t} +
+u\frac{\partial w}{\partial x} +
+v\frac{\partial w}{\partial y} +
+w\frac{\partial w}{\partial z}\right) &=
+-\frac{\partial p}{\partial x}+
+\mu\left(
+\frac{\partial^2 w}{\partial x^2} +
+\frac{\partial^2 w}{\partial y^2} +
+\frac{\partial^2 w}{\partial z^2}
+\right) + \rho\cg_z,
+\end{align*}
+\[
+\frac{\partial u}{\partial x} +
+\frac{\partial v}{\partial y} +
+\frac{\partial w}{\partial z} = 0.
+\]
+
+And in cylindrical coordinates, with $z$, $r$, $\theta$ respectively
+representing the axial, radial and azimuthal directions, and $u$, $v$,
+$w$ the corresponding velocity components:
+\begin{multline*}
+\rho\left(
+ \frac{\partial u}{\partial t} +
+u\frac{\partial u}{\partial z} +
+v\frac{\partial u}{\partial r} +
+\frac{1}{r}\left[w\frac{\partial u}{\partial\theta}\right]\right) =\\
+\shoveright{-\frac{\partial p}{\partial z}+
+\mu\left[
+\frac{\partial^2 u}{\partial z^2} +
+\frac{1}{r}\frac{\partial}{\partial r}\left(r\frac{\partial u}{\partial r}\right) +
+\frac{1}{r^2}\frac{\partial^2 u}{\partial\theta^2}
+\right] +\rho\cg_z,}\\
+\shoveleft{\rho\left(
+ \frac{\partial v}{\partial t} +
+u\frac{\partial v}{\partial z} +
+v\frac{\partial v}{\partial r} +
+\frac{1}{r}\left[w\frac{\partial v}{\partial\theta} - ww\right]\right) =}\\
+\shoveright{-\frac{\partial p}{\partial r}+
+\mu\left[
+\frac{\partial^2 v}{\partial z^2} +
+\frac{\partial}{\partial r}\left(\frac{1}{r}\frac{\partial
+ rv}{\partial r}\right) -
+\frac{2}{r^2}\frac{\partial w}{\partial\theta} +
+\frac{1}{r^2}\frac{\partial^2 v}{\partial\theta^2}
+\right] + \rho\cg_r,}\\
+\shoveleft{\rho\left(
+ \frac{\partial w}{\partial t} +
+u\frac{\partial w}{\partial z} +
+v\frac{\partial w}{\partial r} +
+\frac{1}{r}\left[w\frac{\partial w}{\partial\theta} + vw\right]\right) =}\\
+-\frac{1}{r}\frac{\partial p}{\partial\theta}+
+\mu\left[
+\frac{\partial^2 w}{\partial z^2} +
+\frac{\partial}{\partial r}\left(\frac{1}{r}\frac{\partial
+ rw}{\partial r}\right) + \frac{2}{r^2}\frac{\partial v}{\partial\theta} +
+\frac{1}{r^2}\frac{\partial^2 w}{\partial\theta^2}
+\right] + \rho\cg_\theta,
+\end{multline*}
+\[
+\frac{\partial u}{\partial z} +
+\frac{1}{r}\frac{\partial rv}{\partial r} +
+\frac{1}{r}\frac{\partial w}{\partial \theta} = 0.
+\]
+The derivation of the \NavSto\ equations in cylindrical and also
+spherical coordinates can be found in \citet{bsl62}. In general
+curvilinear coordinates (as opposed to the above three orthogonal
+coordinate systems), the component forms can become very complicated
+indeed.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %\part{Fluid mechanics}
