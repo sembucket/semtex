@@ -19,11 +19,11 @@
 // Author
 // ------
 // Hugh Blackburn
-// CSIRO
-// P.O. Box 56
-// Highett, Vic 3190
+// Department of Mechanical Engineering
+// Monash University
+// Vic 3800
 // Australia
-// hugh.blackburn@csiro.au
+// hugh.blackburn@eng.monash.edu.au
 //////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
