@@ -556,6 +556,7 @@ void Mesh::checkAssembly()
   Elmt*          E;
   Side*          S;
   register int_t i, j;
+  bool           OK = true;
 
   for (i = 0; i < Ne; i++) {
     E = _elmtTable[i];
@@ -565,11 +566,14 @@ void Mesh::checkAssembly()
       if (S -> mateSide == 0) {
 	sprintf (err, "Elmt %1d Side %1d not set",
 		 S -> thisElmt -> ID + 1, S -> ID + 1);
-	message (routine, err, ERROR);
+	message (routine, err, WARNING);
+	OK = false;
       }
     }
   }
   
+  if (!OK) message (routine, "some element edges not accounted for", ERROR);
+
   if (Femlib::ivalue ("VERBOSE") > 1) {
     cout << endl << "# Summary:" << endl;
     showAssembly (*this);
