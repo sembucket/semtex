@@ -1,34 +1,52 @@
 /*****************************************************************************
- * TOPRE.C:  make a NEKTON preprocessor input file.                          *
- *                                                                           *
- * Generate, from an indexed list of 2D points and a list of index           *
- * quadruplets, the element-description part of a text file to be used as    *
- * input for the NEKTON preprocessor, PRE.  The quadruplets give the indices *
- * of quadrilateral element corner vertices in CCW traverse.                 *
- *                                                                           *
- * Example input file for two elements follows:                              *
- * # Any number of comment lines beginning with "#";                         *
- * 6 VERTICES                                                                *
- * 1 c  0.0   0.0                                                            *
- * 2 c  1.0   0.0                                                            *
- * 3 c  1.0   1.0                                                            *
- * 4 c  0.0   1.0                                                            *
- * 5 c  1.0   2.0                                                            *
- * 6 p  2.0  90.0                                                            *
- * [ blank line]                                                             *
- * 2 ELEMENTS                                                                *
- * 1  1 2 3 4                                                                *
- * 2  4 3 5 6                                                                *
- * [ EOF ]                                                                   *
- *                                                                           *
- * Vertex locations can be specified in Cartesian ("c") notation, or in      *
- * polar ("p") notation (radius, theta; theta in degrees).  Points are       *
- * stored internally in Cartesian form.                                      *
- *                                                                           *
- * No internal checking of consistency is done, but, as a part of every run, *
- * an ASCII file called "sm.dat" is generated, so that sm can be used for a  *
- * quick visual check of the mesh (using Ron's "meshplot" macro set).        *
- *                                                                           *
+ * TOPRE.C: make a NEKTON preprocessor input file. (This is out of date.)
+ *
+ * Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+ *
+ * This file is part of Semtex.
+ * 
+ * Semtex is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ * 
+ * Semtex is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with Semtex (see the file COPYING); if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA
+ *
+ * Generate, from an indexed list of 2D points and a list of index
+ * quadruplets, the element-description part of a text file to be used as
+ * input for the NEKTON preprocessor, PRE.  The quadruplets give the indices
+ * of quadrilateral element corner vertices in CCW traverse.
+ *
+ * Example input file for two elements follows:
+ * # Any number of comment lines beginning with "#";
+ * 6 VERTICES
+ * 1 c  0.0   0.0
+ * 2 c  1.0   0.0
+ * 3 c  1.0   1.0
+ * 4 c  0.0   1.0
+ * 5 c  1.0   2.0
+ * 6 p  2.0  90.0
+ * [ blank line]
+ * 2 ELEMENTS
+ * 1  1 2 3 4
+ * 2  4 3 5 6
+ * [ EOF ]
+ *
+ * Vertex locations can be specified in Cartesian ("c") notation, or in
+ * polar ("p") notation (radius, theta; theta in degrees).  Points are
+ * stored internally in Cartesian form.
+ *
+ * No internal checking of consistency is done, but, as a part of every run,
+ * an ASCII file called "sm.dat" is generated, so that sm can be used for a
+ * quick visual check of the mesh (using Ron's "meshplot" macro set).
  *****************************************************************************/
 
 static char RCS[] = "$Id$";
