@@ -32,12 +32,10 @@ MEMORY     = mapping  family  message
 
 MESH       = RCM
 
-IMPORT     = recipes  zbesj  mach  xerbla
-#IMPORT     = recipes  zbesj  xerbla
+IMPORT     =  zbesj  mach  xerbla
 
 ALL        = $(INITIAL) $(OPERATORS) $(FFT) $(MEMORY) $(MESH) $(IMPORT)
 
-#LMD        = $(foreach routine, $(ALL), $(LIB)($(routine).o))
 LMD        = $(foreach routine, $(ALL), $(routine).o)
 
 # ----------------------------------------------------------------------------
@@ -67,13 +65,11 @@ headers:
 
 	rm -f $(SEM)/include/cfemdef.h	;	\
 	rm -f $(SEM)/include/cfemlib.h  ;	\
-	rm -f $(SEM)/include/nr77.h     ;	\
 	rm -f $(SEM)/include/polylib.h  ;	\
 	rm -f $(SEM)/include/femlib.h	;			
 
 	cp cfemdef.h	$(SEM)/include	;	\
 	cp cfemlib.h	$(SEM)/include	;	\
-	cp nr77.h	$(SEM)/include	;	\
 	cp polylib.h	$(SEM)/include  ;	\
 	cp femlib.h	$(SEM)/include
 
