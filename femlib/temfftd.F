@@ -1,5 +1,23 @@
 C12345678901234567890123456789012345678901234567890123456789012345678901
 C     ==================================================================
+C
+C     This file is part of Semtex.
+C 
+C     Semtex is free software; you can redistribute it and/or modify it
+C     under the terms of the GNU General Public License as published by
+C     the Free Software Foundation; either version 2 of the License, or
+C     (at your option) any later version.
+C 
+C     Semtex is distributed in the hope that it will be useful, but
+C     WITHOUT ANY WARRANTY; without even the implied warranty of
+C     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+C     General Public License for more details.
+C 
+C     You should have received a copy of the GNU General Public License
+C     along with Semtex (see the file COPYING); if not, write to the
+C     Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
+C     Boston, MA 02110-1301 USA
+
 C     Routines for generalized multiple 1D prime factor complex--complex
 C     self-sorting in-place FFT, and wrapper routine  for  real--complex
 C     FFT.
@@ -16,9 +34,9 @@ C     C. Temperton, "A generalized prime factor FFT algorithm
 C       for any N = (2**P)(3**Q)(5**R)",
 C       SIAM J. Sci. Stat. Comp., May 1992.
 C
-C     Routines are based on the original GPFA code by Temperton,
-C       Recherche en Prevision Numerique
-C       Atmospheric Environment Service, Canada.
+C     The complex--complex FFT routines are the original GPFA code
+C     written by Clive Temperton, Recherche en Prevision Numerique
+C     Atmospheric Environment Service, Canada.
 C
 C     Note that the definition of the DFT employed in DGPFA is
 C
