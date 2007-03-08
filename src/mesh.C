@@ -91,11 +91,7 @@ static char RCS[] = "$Id$";
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#if 0
- #include <strstream>
-#else
- #include <sstream>
-#endif
+#include <sstream>
 #include <algorithm>
 
 using namespace std;
@@ -1700,20 +1696,25 @@ real_t Spline::arcCoord ()
 // point on the spline gs.
 // ---------------------------------------------------------------------------
 {
-  const int_t i  = closest (gp);
-  const int_t ip = i + 1;
+  const int_t i   = closest (gp);
+  const int_t ip  = i + 1;
   real_t      TOL = 1.0e-6;
   real_t      s0, s1, s2;
   real_t      f0, f1, f2;
 
   s0 = gs->arclen[i];
   s1 = gs->arclen[ip];
-  
+#if 0  
   Recipes::mnbrak (s0, s1, s2, f0, f1, f2, ::getAngl);
   if (fabs (f1) > TOL) {
     Recipes::brent (s0, s1, s2, ::getAngl, TOL, f1);
     s1 = f1;
   }
-
+#else
+  Femlib::bracket (s0, s1, s2, f0, f1, f2, ::getAngl);
+  if (fabs (f1) > TOL) {
+    s1 = Femlib::brent (s0, s2, ::getAngl, TOL);
+  }
+#endif
   return s1;
 }

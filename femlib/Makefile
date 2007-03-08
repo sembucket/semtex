@@ -26,15 +26,13 @@ INITIAL    = initial
 
 OPERATORS  = polyops  operators  matops  polylib  filter
 
-FFT	   = temfftd  fftpack canfft  fourier
+FFT	   = temfftd  canfft  fourier
 
 MEMORY     = mapping  family  message
 
-MESH       = RCM
+IMPORT     = netlib
 
-IMPORT     =  zbesj  mach  xerbla
-
-ALL        = $(INITIAL) $(OPERATORS) $(FFT) $(MEMORY) $(MESH) $(IMPORT)
+ALL        = $(INITIAL) $(OPERATORS) $(FFT) $(MEMORY) $(IMPORT)
 
 LMD        = $(foreach routine, $(ALL), $(routine).o)
 
