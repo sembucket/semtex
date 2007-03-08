@@ -1,3 +1,1969 @@
+C12345678901234567890123456789012345678901234567890123456789012345678901
+C
+C     This file contains standard FORTRAN 77 routines from Netlib.
+C     All double precision.
+C
+C     ##################################################################
+C     1. Miscellaneous utilities.
+C     ##################################################################
+C
+      SUBROUTINE XERBLA( SRNAME, INFO )
+*
+*  -- LAPACK auxiliary routine (preliminary version) --
+*     Univ. of Tennessee, Univ. of California Berkeley, NAG Ltd.,
+*     Courant Institute, Argonne National Lab, and Rice University
+*     February 29, 1992
+*
+*     .. Scalar Arguments ..
+      CHARACTER*6        SRNAME
+      INTEGER            INFO
+*     ..
+*
+*  Purpose
+*  =======
+*
+*  XERBLA  is an error handler for the LAPACK routines.
+*  It is called by an LAPACK routine if an input parameter has an
+*  invalid value.  A message is printed and execution stops.
+*
+*  Installers may consider modifying the STOP statement in order to
+*  call system-specific exception-handling facilities.
+*
+*  Arguments
+*  =========
+*
+*  SRNAME  (input) CHARACTER*6
+*          The name of the routine which called XERBLA.
+*
+*  INFO    (input) INTEGER
+*          The position of the invalid parameter in the parameter list
+*          of the calling routine.
+*
+*
+      WRITE( *, FMT = 9999 )SRNAME, INFO
+*
+      STOP
+*
+ 9999 FORMAT( ' ** On entry to ', A6, ' parameter number ', I2, ' had ',
+     $      'an illegal value' )
+*
+*     End of XERBLA
+*
+      END
+
+      DOUBLE PRECISION FUNCTION D1MACH(I)
+      INTEGER I
+C
+C  DOUBLE-PRECISION MACHINE CONSTANTS
+C  D1MACH( 1) = B**(EMIN-1), THE SMALLEST POSITIVE MAGNITUDE.
+C  D1MACH( 2) = B**EMAX*(1 - B**(-T)), THE LARGEST MAGNITUDE.
+C  D1MACH( 3) = B**(-T), THE SMALLEST RELATIVE SPACING.
+C  D1MACH( 4) = B**(1-T), THE LARGEST RELATIVE SPACING.
+C  D1MACH( 5) = LOG10(B)
+C
+      INTEGER SMALL(2)
+      INTEGER LARGE(2)
+      INTEGER RIGHT(2)
+      INTEGER DIVER(2)
+      INTEGER LOG10(2)
+      INTEGER SC, CRAY1(38), J
+      COMMON /D9MACH/ CRAY1
+      SAVE SMALL, LARGE, RIGHT, DIVER, LOG10, SC
+      DOUBLE PRECISION DMACH(5)
+      EQUIVALENCE (DMACH(1),SMALL(1))
+      EQUIVALENCE (DMACH(2),LARGE(1))
+      EQUIVALENCE (DMACH(3),RIGHT(1))
+      EQUIVALENCE (DMACH(4),DIVER(1))
+      EQUIVALENCE (DMACH(5),LOG10(1))
+C  THIS VERSION ADAPTS AUTOMATICALLY TO MOST CURRENT MACHINES.
+C  R1MACH CAN HANDLE AUTO-DOUBLE COMPILING, BUT THIS VERSION OF
+C  D1MACH DOES NOT, BECAUSE WE DO NOT HAVE QUAD CONSTANTS FOR
+C  MANY MACHINES YET.
+C  TO COMPILE ON OLDER MACHINES, ADD A C IN COLUMN 1
+C  ON THE NEXT LINE
+      DATA SC/0/
+C  AND REMOVE THE C FROM COLUMN 1 IN ONE OF THE SECTIONS BELOW.
+C  CONSTANTS FOR EVEN OLDER MACHINES CAN BE OBTAINED BY
+C          mail netlib@research.bell-labs.com
+C          send old1mach from blas
+C  PLEASE SEND CORRECTIONS TO dmg OR ehg@bell-labs.com.
+C
+C     MACHINE CONSTANTS FOR THE HONEYWELL DPS 8/70 SERIES.
+C      DATA SMALL(1),SMALL(2) / O402400000000, O000000000000 /
+C      DATA LARGE(1),LARGE(2) / O376777777777, O777777777777 /
+C      DATA RIGHT(1),RIGHT(2) / O604400000000, O000000000000 /
+C      DATA DIVER(1),DIVER(2) / O606400000000, O000000000000 /
+C      DATA LOG10(1),LOG10(2) / O776464202324, O117571775714 /, SC/987/
+C
+C     MACHINE CONSTANTS FOR PDP-11 FORTRANS SUPPORTING
+C     32-BIT INTEGERS.
+C      DATA SMALL(1),SMALL(2) /    8388608,           0 /
+C      DATA LARGE(1),LARGE(2) / 2147483647,          -1 /
+C      DATA RIGHT(1),RIGHT(2) /  612368384,           0 /
+C      DATA DIVER(1),DIVER(2) /  620756992,           0 /
+C      DATA LOG10(1),LOG10(2) / 1067065498, -2063872008 /, SC/987/
+C
+C     MACHINE CONSTANTS FOR THE UNIVAC 1100 SERIES.
+C      DATA SMALL(1),SMALL(2) / O000040000000, O000000000000 /
+C      DATA LARGE(1),LARGE(2) / O377777777777, O777777777777 /
+C      DATA RIGHT(1),RIGHT(2) / O170540000000, O000000000000 /
+C      DATA DIVER(1),DIVER(2) / O170640000000, O000000000000 /
+C      DATA LOG10(1),LOG10(2) / O177746420232, O411757177572 /, SC/987/
+C
+C     ON FIRST CALL, IF NO DATA UNCOMMENTED, TEST MACHINE TYPES.
+      IF (SC .NE. 987) THEN
+         DMACH(1) = 1.D13
+         IF (      SMALL(1) .EQ. 1117925532
+     *       .AND. SMALL(2) .EQ. -448790528) THEN
+*           *** IEEE BIG ENDIAN ***
+            SMALL(1) = 1048576
+            SMALL(2) = 0
+            LARGE(1) = 2146435071
+            LARGE(2) = -1
+            RIGHT(1) = 1017118720
+            RIGHT(2) = 0
+            DIVER(1) = 1018167296
+            DIVER(2) = 0
+            LOG10(1) = 1070810131
+            LOG10(2) = 1352628735
+         ELSE IF ( SMALL(2) .EQ. 1117925532
+     *       .AND. SMALL(1) .EQ. -448790528) THEN
+*           *** IEEE LITTLE ENDIAN ***
+            SMALL(2) = 1048576
+            SMALL(1) = 0
+            LARGE(2) = 2146435071
+            LARGE(1) = -1
+            RIGHT(2) = 1017118720
+            RIGHT(1) = 0
+            DIVER(2) = 1018167296
+            DIVER(1) = 0
+            LOG10(2) = 1070810131
+            LOG10(1) = 1352628735
+         ELSE IF ( SMALL(1) .EQ. -2065213935
+     *       .AND. SMALL(2) .EQ. 10752) THEN
+*               *** VAX WITH D_FLOATING ***
+            SMALL(1) = 128
+            SMALL(2) = 0
+            LARGE(1) = -32769
+            LARGE(2) = -1
+            RIGHT(1) = 9344
+            RIGHT(2) = 0
+            DIVER(1) = 9472
+            DIVER(2) = 0
+            LOG10(1) = 546979738
+            LOG10(2) = -805796613
+         ELSE IF ( SMALL(1) .EQ. 1267827943
+     *       .AND. SMALL(2) .EQ. 704643072) THEN
+*               *** IBM MAINFRAME ***
+            SMALL(1) = 1048576
+            SMALL(2) = 0
+            LARGE(1) = 2147483647
+            LARGE(2) = -1
+            RIGHT(1) = 856686592
+            RIGHT(2) = 0
+            DIVER(1) = 873463808
+            DIVER(2) = 0
+            LOG10(1) = 1091781651
+            LOG10(2) = 1352628735
+         ELSE IF ( SMALL(1) .EQ. 1120022684
+     *       .AND. SMALL(2) .EQ. -448790528) THEN
+*           *** CONVEX C-1 ***
+            SMALL(1) = 1048576
+            SMALL(2) = 0
+            LARGE(1) = 2147483647
+            LARGE(2) = -1
+            RIGHT(1) = 1019215872
+            RIGHT(2) = 0
+            DIVER(1) = 1020264448
+            DIVER(2) = 0
+            LOG10(1) = 1072907283
+            LOG10(2) = 1352628735
+         ELSE IF ( SMALL(1) .EQ. 815547074
+     *       .AND. SMALL(2) .EQ. 58688) THEN
+*           *** VAX G-FLOATING ***
+            SMALL(1) = 16
+            SMALL(2) = 0
+            LARGE(1) = -32769
+            LARGE(2) = -1
+            RIGHT(1) = 15552
+            RIGHT(2) = 0
+            DIVER(1) = 15568
+            DIVER(2) = 0
+            LOG10(1) = 1142112243
+            LOG10(2) = 2046775455
+         ELSE
+            DMACH(2) = 1.D27 + 1
+            DMACH(3) = 1.D27
+            LARGE(2) = LARGE(2) - RIGHT(2)
+            IF (LARGE(2) .EQ. 64 .AND. SMALL(2) .EQ. 0) THEN
+               CRAY1(1) = 67291416
+               DO 10 J = 1, 20
+                  CRAY1(J+1) = CRAY1(J) + CRAY1(J)
+ 10               CONTINUE
+               CRAY1(22) = CRAY1(21) + 321322
+               DO 20 J = 22, 37
+                  CRAY1(J+1) = CRAY1(J) + CRAY1(J)
+ 20               CONTINUE
+               IF (CRAY1(38) .EQ. SMALL(1)) THEN
+*                  *** CRAY ***
+                  CALL I1MCRY(SMALL(1), J, 8285, 8388608, 0)
+                  SMALL(2) = 0
+                  CALL I1MCRY(LARGE(1), J, 24574, 16777215, 16777215)
+                  CALL I1MCRY(LARGE(2), J, 0, 16777215, 16777214)
+                  CALL I1MCRY(RIGHT(1), J, 16291, 8388608, 0)
+                  RIGHT(2) = 0
+                  CALL I1MCRY(DIVER(1), J, 16292, 8388608, 0)
+                  DIVER(2) = 0
+                  CALL I1MCRY(LOG10(1), J, 16383, 10100890, 8715215)
+                  CALL I1MCRY(LOG10(2), J, 0, 16226447, 9001388)
+               ELSE
+                  WRITE(*,9000)
+                  STOP 779
+                  END IF
+            ELSE
+               WRITE(*,9000)
+               STOP 779
+               END IF
+            END IF
+         SC = 987
+         END IF
+*    SANITY CHECK
+      IF (DMACH(4) .GE. 1.0D0) STOP 778
+      IF (I .LT. 1 .OR. I .GT. 5) THEN
+         WRITE(*,*) 'D1MACH(I): I =',I,' is out of bounds.'
+         STOP
+         END IF
+      D1MACH = DMACH(I)
+      RETURN
+ 9000 FORMAT(/' Adjust D1MACH by uncommenting data statements'/
+     *' appropriate for your machine.')
+* /* Standard C source for D1MACH -- remove the * in column 1 */
+*#include <stdio.h>
+*#include <float.h>
+*#include <math.h>
+*double d1mach_(long *i)
+*{
+*	switch(*i){
+*	  case 1: return DBL_MIN;
+*	  case 2: return DBL_MAX;
+*	  case 3: return DBL_EPSILON/FLT_RADIX;
+*	  case 4: return DBL_EPSILON;
+*	  case 5: return log10((double)FLT_RADIX);
+*	  }
+*	fprintf(stderr, "invalid argument: d1mach(%ld)\n", *i);
+*	exit(1); return 0; /* some compilers demand return values */
+*}
+      END
+
+      SUBROUTINE I1MCRY(A, A1, B, C, D)
+**** SPECIAL COMPUTATION FOR OLD CRAY MACHINES ****
+      INTEGER A, A1, B, C, D
+      A1 = 16777216*B + C
+      A = 16777216*A1 + D
+      END
+      INTEGER FUNCTION I1MACH(I)
+      INTEGER I
+C
+C    I1MACH( 1) = THE STANDARD INPUT UNIT.
+C    I1MACH( 2) = THE STANDARD OUTPUT UNIT.
+C    I1MACH( 3) = THE STANDARD PUNCH UNIT.
+C    I1MACH( 4) = THE STANDARD ERROR MESSAGE UNIT.
+C    I1MACH( 5) = THE NUMBER OF BITS PER INTEGER STORAGE UNIT.
+C    I1MACH( 6) = THE NUMBER OF CHARACTERS PER CHARACTER STORAGE UNIT.
+C    INTEGERS HAVE FORM SIGN ( X(S-1)*A**(S-1) + ... + X(1)*A + X(0) )
+C    I1MACH( 7) = A, THE BASE.
+C    I1MACH( 8) = S, THE NUMBER OF BASE-A DIGITS.
+C    I1MACH( 9) = A**S - 1, THE LARGEST MAGNITUDE.
+C    FLOATS HAVE FORM  SIGN (B**E)*( (X(1)/B) + ... + (X(T)/B**T) )
+C               WHERE  EMIN .LE. E .LE. EMAX.
+C    I1MACH(10) = B, THE BASE.
+C  SINGLE-PRECISION
+C    I1MACH(11) = T, THE NUMBER OF BASE-B DIGITS.
+C    I1MACH(12) = EMIN, THE SMALLEST EXPONENT E.
+C    I1MACH(13) = EMAX, THE LARGEST EXPONENT E.
+C  DOUBLE-PRECISION
+C    I1MACH(14) = T, THE NUMBER OF BASE-B DIGITS.
+C    I1MACH(15) = EMIN, THE SMALLEST EXPONENT E.
+C    I1MACH(16) = EMAX, THE LARGEST EXPONENT E.
+C
+      INTEGER IMACH(16), OUTPUT, SC, SMALL(2)
+      SAVE IMACH, SC
+      REAL RMACH
+      EQUIVALENCE (IMACH(4),OUTPUT), (RMACH,SMALL(1))
+      INTEGER I3, J, K, T3E(3)
+      DATA T3E(1) / 9777664 /
+      DATA T3E(2) / 5323660 /
+      DATA T3E(3) / 46980 /
+C  THIS VERSION ADAPTS AUTOMATICALLY TO MOST CURRENT MACHINES,
+C  INCLUDING AUTO-DOUBLE COMPILERS.
+C  TO COMPILE ON OLDER MACHINES, ADD A C IN COLUMN 1
+C  ON THE NEXT LINE
+      DATA SC/0/
+C  AND REMOVE THE C FROM COLUMN 1 IN ONE OF THE SECTIONS BELOW.
+C  CONSTANTS FOR EVEN OLDER MACHINES CAN BE OBTAINED BY
+C          mail netlib@research.bell-labs.com
+C          send old1mach from blas
+C  PLEASE SEND CORRECTIONS TO dmg OR ehg@bell-labs.com.
+C
+C     MACHINE CONSTANTS FOR THE HONEYWELL DPS 8/70 SERIES.
+C
+C      DATA IMACH( 1) /    5 /
+C      DATA IMACH( 2) /    6 /
+C      DATA IMACH( 3) /   43 /
+C      DATA IMACH( 4) /    6 /
+C      DATA IMACH( 5) /   36 /
+C      DATA IMACH( 6) /    4 /
+C      DATA IMACH( 7) /    2 /
+C      DATA IMACH( 8) /   35 /
+C      DATA IMACH( 9) / O377777777777 /
+C      DATA IMACH(10) /    2 /
+C      DATA IMACH(11) /   27 /
+C      DATA IMACH(12) / -127 /
+C      DATA IMACH(13) /  127 /
+C      DATA IMACH(14) /   63 /
+C      DATA IMACH(15) / -127 /
+C      DATA IMACH(16) /  127 /, SC/987/
+C
+C     MACHINE CONSTANTS FOR PDP-11 FORTRANS SUPPORTING
+C     32-BIT INTEGER ARITHMETIC.
+C
+C      DATA IMACH( 1) /    5 /
+C      DATA IMACH( 2) /    6 /
+C      DATA IMACH( 3) /    7 /
+C      DATA IMACH( 4) /    6 /
+C      DATA IMACH( 5) /   32 /
+C      DATA IMACH( 6) /    4 /
+C      DATA IMACH( 7) /    2 /
+C      DATA IMACH( 8) /   31 /
+C      DATA IMACH( 9) / 2147483647 /
+C      DATA IMACH(10) /    2 /
+C      DATA IMACH(11) /   24 /
+C      DATA IMACH(12) / -127 /
+C      DATA IMACH(13) /  127 /
+C      DATA IMACH(14) /   56 /
+C      DATA IMACH(15) / -127 /
+C      DATA IMACH(16) /  127 /, SC/987/
+C
+C     MACHINE CONSTANTS FOR THE UNIVAC 1100 SERIES.
+C
+C     NOTE THAT THE PUNCH UNIT, I1MACH(3), HAS BEEN SET TO 7
+C     WHICH IS APPROPRIATE FOR THE UNIVAC-FOR SYSTEM.
+C     IF YOU HAVE THE UNIVAC-FTN SYSTEM, SET IT TO 1.
+C
+C      DATA IMACH( 1) /    5 /
+C      DATA IMACH( 2) /    6 /
+C      DATA IMACH( 3) /    7 /
+C      DATA IMACH( 4) /    6 /
+C      DATA IMACH( 5) /   36 /
+C      DATA IMACH( 6) /    6 /
+C      DATA IMACH( 7) /    2 /
+C      DATA IMACH( 8) /   35 /
+C      DATA IMACH( 9) / O377777777777 /
+C      DATA IMACH(10) /    2 /
+C      DATA IMACH(11) /   27 /
+C      DATA IMACH(12) / -128 /
+C      DATA IMACH(13) /  127 /
+C      DATA IMACH(14) /   60 /
+C      DATA IMACH(15) /-1024 /
+C      DATA IMACH(16) / 1023 /, SC/987/
+C
+      IF (SC .NE. 987) THEN
+*        *** CHECK FOR AUTODOUBLE ***
+         SMALL(2) = 0
+         RMACH = 1E13
+         IF (SMALL(2) .NE. 0) THEN
+*           *** AUTODOUBLED ***
+            IF (      (SMALL(1) .EQ. 1117925532
+     *           .AND. SMALL(2) .EQ. -448790528)
+     *       .OR.     (SMALL(2) .EQ. 1117925532
+     *           .AND. SMALL(1) .EQ. -448790528)) THEN
+*               *** IEEE ***
+               IMACH(10) = 2
+               IMACH(14) = 53
+               IMACH(15) = -1021
+               IMACH(16) = 1024
+            ELSE IF ( SMALL(1) .EQ. -2065213935
+     *          .AND. SMALL(2) .EQ. 10752) THEN
+*               *** VAX WITH D_FLOATING ***
+               IMACH(10) = 2
+               IMACH(14) = 56
+               IMACH(15) = -127
+               IMACH(16) = 127
+            ELSE IF ( SMALL(1) .EQ. 1267827943
+     *          .AND. SMALL(2) .EQ. 704643072) THEN
+*               *** IBM MAINFRAME ***
+               IMACH(10) = 16
+               IMACH(14) = 14
+               IMACH(15) = -64
+               IMACH(16) = 63
+            ELSE
+               WRITE(*,9010)
+               STOP 777
+               END IF
+            IMACH(11) = IMACH(14)
+            IMACH(12) = IMACH(15)
+            IMACH(13) = IMACH(16)
+         ELSE
+            RMACH = 1234567.
+            IF (SMALL(1) .EQ. 1234613304) THEN
+*               *** IEEE ***
+               IMACH(10) = 2
+               IMACH(11) = 24
+               IMACH(12) = -125
+               IMACH(13) = 128
+               IMACH(14) = 53
+               IMACH(15) = -1021
+               IMACH(16) = 1024
+               SC = 987
+            ELSE IF (SMALL(1) .EQ. -1271379306) THEN
+*               *** VAX ***
+               IMACH(10) = 2
+               IMACH(11) = 24
+               IMACH(12) = -127
+               IMACH(13) = 127
+               IMACH(14) = 56
+               IMACH(15) = -127
+               IMACH(16) = 127
+               SC = 987
+            ELSE IF (SMALL(1) .EQ. 1175639687) THEN
+*               *** IBM MAINFRAME ***
+               IMACH(10) = 16
+               IMACH(11) = 6
+               IMACH(12) = -64
+               IMACH(13) = 63
+               IMACH(14) = 14
+               IMACH(15) = -64
+               IMACH(16) = 63
+               SC = 987
+            ELSE IF (SMALL(1) .EQ. 1251390520) THEN
+*              *** CONVEX C-1 ***
+               IMACH(10) = 2
+               IMACH(11) = 24
+               IMACH(12) = -128
+               IMACH(13) = 127
+               IMACH(14) = 53
+               IMACH(15) = -1024
+               IMACH(16) = 1023
+            ELSE
+               DO 10 I3 = 1, 3
+                  J = SMALL(1) / 10000000
+                  K = SMALL(1) - 10000000*J
+                  IF (K .NE. T3E(I3)) GO TO 20
+                  SMALL(1) = J
+ 10               CONTINUE
+*              *** CRAY T3E ***
+               IMACH( 1) = 5
+               IMACH( 2) = 6
+               IMACH( 3) = 0
+               IMACH( 4) = 0
+               IMACH( 5) = 64
+               IMACH( 6) = 8
+               IMACH( 7) = 2
+               IMACH( 8) = 63
+               CALL I1MCR1(IMACH(9), K, 32767, 16777215, 16777215)
+               IMACH(10) = 2
+               IMACH(11) = 53
+               IMACH(12) = -1021
+               IMACH(13) = 1024
+               IMACH(14) = 53
+               IMACH(15) = -1021
+               IMACH(16) = 1024
+               GO TO 35
+ 20            CALL I1MCR1(J, K, 16405, 9876536, 0)
+               IF (SMALL(1) .NE. J) THEN
+                  WRITE(*,9020)
+                  STOP 777
+                  END IF
+*              *** CRAY 1, XMP, 2, AND 3 ***
+               IMACH(1) = 5
+               IMACH(2) = 6
+               IMACH(3) = 102
+               IMACH(4) = 6
+               IMACH(5) = 46
+               IMACH(6) = 8
+               IMACH(7) = 2
+               IMACH(8) = 45
+               CALL I1MCR1(IMACH(9), K, 0, 4194303, 16777215)
+               IMACH(10) = 2
+               IMACH(11) = 47
+               IMACH(12) = -8188
+               IMACH(13) = 8189
+               IMACH(14) = 94
+               IMACH(15) = -8141
+               IMACH(16) = 8189
+               GO TO 35
+               END IF
+            END IF
+         IMACH( 1) = 5
+         IMACH( 2) = 6
+         IMACH( 3) = 7
+         IMACH( 4) = 6
+         IMACH( 5) = 32
+         IMACH( 6) = 4
+         IMACH( 7) = 2
+         IMACH( 8) = 31
+         IMACH( 9) = 2147483647
+ 35      SC = 987
+         END IF
+ 9010 FORMAT(/' Adjust autodoubled I1MACH by uncommenting data'/
+     * ' statements appropriate for your machine and setting'/
+     * ' IMACH(I) = IMACH(I+3) for I = 11, 12, and 13.')
+ 9020 FORMAT(/' Adjust I1MACH by uncommenting data statements'/
+     * ' appropriate for your machine.')
+      IF (I .LT. 1  .OR.  I .GT. 16) GO TO 40
+      I1MACH = IMACH(I)
+      RETURN
+ 40   WRITE(*,*) 'I1MACH(I): I =',I,' is out of bounds.'
+      STOP
+* /* C source for I1MACH -- remove the * in column 1 */
+* /* Note that some values may need changing. */
+*#include <stdio.h>
+*#include <float.h>
+*#include <limits.h>
+*#include <math.h>
+*
+*long i1mach_(long *i)
+*{
+*	switch(*i){
+*	  case 1:  return 5;	/* standard input */
+*	  case 2:  return 6;	/* standard output */
+*	  case 3:  return 7;	/* standard punch */
+*	  case 4:  return 0;	/* standard error */
+*	  case 5:  return 32;	/* bits per integer */
+*	  case 6:  return sizeof(int);
+*	  case 7:  return 2;	/* base for integers */
+*	  case 8:  return 31;	/* digits of integer base */
+*	  case 9:  return LONG_MAX;
+*	  case 10: return FLT_RADIX;
+*	  case 11: return FLT_MANT_DIG;
+*	  case 12: return FLT_MIN_EXP;
+*	  case 13: return FLT_MAX_EXP;
+*	  case 14: return DBL_MANT_DIG;
+*	  case 15: return DBL_MIN_EXP;
+*	  case 16: return DBL_MAX_EXP;
+*	  }
+*	fprintf(stderr, "invalid argument: i1mach(%ld)\n", *i);
+*	exit(1);return 0; /* some compilers demand return values */
+*}
+      END
+      SUBROUTINE I1MCR1(A, A1, B, C, D)
+**** SPECIAL COMPUTATION FOR OLD CRAY MACHINES ****
+      INTEGER A, A1, B, C, D
+      A1 = 16777216*B + C
+      A = 16777216*A1 + D
+      END
+
+C     ##################################################################
+C     2. FFTPACK
+C     ##################################################################
+C
+C     ******************************************************************
+C     Routines to compute real <--> complex prime-factor 1D FFTS
+C
+C     $Id$
+C     ******************************************************************
+C
+C     Source:    NETLIB/FFTPACK
+C     Author:    Paul N. Swarztrauber, NCAR.
+C
+C     DRFFTI:    Initialize DRFFTF and DRFFTB;
+C     DRFFTF:    Forward  transform of a real periodic sequence;
+C     DRFFTB:    Backward transform of a real coefficient array;
+C
+C     ******************************************************************
+C     DOUBLE PRECISION versions of FFTPACK.
+C     Source: netlib/bihar.
+C     ******************************************************************
+C
+C
+      SUBROUTINE DRFFTI (N,WA,IFAC)
+C     Real data array WA should be N long.
+C     IFAC should be an integer array, length 15.
+C     Once the arrays have been initialised for a certain N, they
+C     can be used for repetitious calls to DRFFTF and DRFFTB.
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+      DIMENSION WA(*), IFAC(*), NTRYH(4)
+      DATA NTRYH(1),NTRYH(2),NTRYH(3),NTRYH(4)/4,2,3,5/
+      IF (N .EQ. 1) RETURN
+      NL = N
+      NF = 0
+      J = 0
+  101 J = J+1
+      IF (J-4) 102,102,103
+  102 NTRY = NTRYH(J)
+      GO TO 104
+  103 NTRY = NTRY+2
+  104 NQ = NL/NTRY
+      NR = NL-NTRY*NQ
+      IF (NR) 101,105,101
+  105 NF = NF+1
+      IFAC(NF+2) = NTRY
+      NL = NQ
+      IF (NTRY .NE. 2) GO TO 107
+      IF (NF .EQ. 1) GO TO 107
+      DO 106 I=2,NF
+         IB = NF-I+2
+         IFAC(IB+2) = IFAC(IB+1)
+  106 CONTINUE
+      IFAC(3) = 2
+  107 IF (NL .NE. 1) GO TO 104
+      IFAC(1) = N
+      IFAC(2) = NF
+      TPI = 6.28318530717958647692D0
+      ARGH = TPI/DFLOAT(N)
+      IS = 0
+      NFM1 = NF-1
+      L1 = 1
+      IF (NFM1 .EQ. 0) RETURN
+      DO 110 K1=1,NFM1
+         IP = IFAC(K1+2)
+         LD = 0
+         L2 = L1*IP
+         IDO = N/L2
+         IPM = IP-1
+         DO 109 J=1,IPM
+            LD = LD+L1
+            I = IS
+            ARGLD = DFLOAT(LD)*ARGH
+            FI = 0.0D0
+            DO 108 II=3,IDO,2
+               I = I+2
+               FI = FI+1.0D0
+               ARG = FI*ARGLD
+               WA(I-1) = DCOS(ARG)
+               WA(I) = DSIN(ARG)
+  108       CONTINUE
+            IS = IS+IDO
+  109    CONTINUE
+         L1 = L2
+  110 CONTINUE
+      RETURN
+      END
+C
+C
+      SUBROUTINE DRFFTF (N,C,CH,WA,IFAC)
+C     Forward FFT.
+C     C is a real array of length N which contains the data to be
+C     transformed. CH is a real work array, length N. WA is a data
+C     array, length N. IFAC is an integer data array, length 15.
+C     Both WA and IFAC are precomputed by DRFFTI.
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+      DIMENSION CH(*), C(*), WA(*), IFAC(*)
+      IF (N .EQ. 1) RETURN
+      NF = IFAC(2)
+      NA = 1
+      L2 = N
+      IW = N
+      DO 111 K1=1,NF
+         KH = NF-K1
+         IP = IFAC(KH+3)
+         L1 = L2/IP
+         IDO = N/L2
+         IDL1 = IDO*L1
+         IW = IW-(IP-1)*IDO
+         NA = 1-NA
+         IF (IP .NE. 4) GO TO 102
+         IX2 = IW+IDO
+         IX3 = IX2+IDO
+         IF (NA .NE. 0) GO TO 101
+         CALL RADF4 (IDO,L1,C,CH,WA(IW),WA(IX2),WA(IX3))
+         GO TO 110
+  101    CALL RADF4 (IDO,L1,CH,C,WA(IW),WA(IX2),WA(IX3))
+         GO TO 110
+  102    IF (IP .NE. 2) GO TO 104
+         IF (NA .NE. 0) GO TO 103
+         CALL RADF2 (IDO,L1,C,CH,WA(IW))
+         GO TO 110
+  103    CALL RADF2 (IDO,L1,CH,C,WA(IW))
+         GO TO 110
+  104    IF (IP .NE. 3) GO TO 106
+         IX2 = IW+IDO
+         IF (NA .NE. 0) GO TO 105
+         CALL RADF3 (IDO,L1,C,CH,WA(IW),WA(IX2))
+         GO TO 110
+  105    CALL RADF3 (IDO,L1,CH,C,WA(IW),WA(IX2))
+         GO TO 110
+  106    IF (IP .NE. 5) GO TO 108
+         IX2 = IW+IDO
+         IX3 = IX2+IDO
+         IX4 = IX3+IDO
+         IF (NA .NE. 0) GO TO 107
+         CALL RADF5 (IDO,L1,C,CH,WA(IW),WA(IX2),WA(IX3),WA(IX4))
+         GO TO 110
+  107    CALL RADF5 (IDO,L1,CH,C,WA(IW),WA(IX2),WA(IX3),WA(IX4))
+         GO TO 110
+  108    IF (IDO .EQ. 1) NA = 1-NA
+         IF (NA .NE. 0) GO TO 109
+         CALL RADFG (IDO,IP,L1,IDL1,C,C,C,CH,CH,WA(IW))
+         NA = 1
+         GO TO 110
+  109    CALL RADFG (IDO,IP,L1,IDL1,CH,CH,CH,C,C,WA(IW))
+         NA = 0
+  110    L2 = L1
+  111 CONTINUE
+      IF (NA .EQ. 1) RETURN
+      DO 112 I=1,N
+         C(I) = CH(I)
+  112 CONTINUE
+      RETURN
+      END
+C
+C
+      SUBROUTINE DRFFTB (N,C,CH,WA,IFAC)
+C     Backward/inverse FFT.
+C     C is a real array of length N which contains the data to be
+C     transformed. CH is a real work array, length N. WA is a data
+C     array, length N. IFAC is an integer data array, length 15.
+C     Both WA and IFAC are precomputed by DRFFTI.
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+      DIMENSION CH(*), C(*), WA(*), IFAC(*)
+      IF (N .EQ. 1) RETURN
+      NF = IFAC(2)
+      NA = 0
+      L1 = 1
+      IW = 1
+      DO 116 K1=1,NF
+         IP = IFAC(K1+2)
+         L2 = IP*L1
+         IDO = N/L2
+         IDL1 = IDO*L1
+         IF (IP .NE. 4) GO TO 103
+         IX2 = IW+IDO
+         IX3 = IX2+IDO
+         IF (NA .NE. 0) GO TO 101
+         CALL RADB4 (IDO,L1,C,CH,WA(IW),WA(IX2),WA(IX3))
+         GO TO 102
+  101    CALL RADB4 (IDO,L1,CH,C,WA(IW),WA(IX2),WA(IX3))
+  102    NA = 1-NA
+         GO TO 115
+  103    IF (IP .NE. 2) GO TO 106
+         IF (NA .NE. 0) GO TO 104
+         CALL RADB2 (IDO,L1,C,CH,WA(IW))
+         GO TO 105
+  104    CALL RADB2 (IDO,L1,CH,C,WA(IW))
+  105    NA = 1-NA
+         GO TO 115
+  106    IF (IP .NE. 3) GO TO 109
+         IX2 = IW+IDO
+         IF (NA .NE. 0) GO TO 107
+         CALL RADB3 (IDO,L1,C,CH,WA(IW),WA(IX2))
+         GO TO 108
+  107    CALL RADB3 (IDO,L1,CH,C,WA(IW),WA(IX2))
+  108    NA = 1-NA
+         GO TO 115
+  109    IF (IP .NE. 5) GO TO 112
+         IX2 = IW+IDO
+         IX3 = IX2+IDO
+         IX4 = IX3+IDO
+         IF (NA .NE. 0) GO TO 110
+         CALL RADB5 (IDO,L1,C,CH,WA(IW),WA(IX2),WA(IX3),WA(IX4))
+         GO TO 111
+  110    CALL RADB5 (IDO,L1,CH,C,WA(IW),WA(IX2),WA(IX3),WA(IX4))
+  111    NA = 1-NA
+         GO TO 115
+  112    IF (NA .NE. 0) GO TO 113
+         CALL RADBG (IDO,IP,L1,IDL1,C,C,C,CH,CH,WA(IW))
+         GO TO 114
+  113    CALL RADBG (IDO,IP,L1,IDL1,CH,CH,CH,C,C,WA(IW))
+  114    IF (IDO .EQ. 1) NA = 1-NA
+  115    L1 = L2
+         IW = IW+(IP-1)*IDO
+  116 CONTINUE
+      IF (NA .EQ. 0) RETURN
+      DO 117 I=1,N
+         C(I) = CH(I)
+  117 CONTINUE
+      RETURN
+      END
+C
+C
+      SUBROUTINE RADF2 (IDO,L1,CC,CH,WA1)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+      DIMENSION       CH(IDO,2,L1)           ,CC(IDO,L1,2)           ,
+     1                WA1(1)
+      DO 101 K=1,L1
+         CH(1,1,K) = CC(1,K,1)+CC(1,K,2)
+         CH(IDO,2,K) = CC(1,K,1)-CC(1,K,2)
+  101 CONTINUE
+      IF (IDO-2) 107,105,102
+  102 IDP2 = IDO+2
+      DO 104 K=1,L1
+         DO 103 I=3,IDO,2
+            IC = IDP2-I
+            TR2 = WA1(I-2)*CC(I-1,K,2)+WA1(I-1)*CC(I,K,2)
+            TI2 = WA1(I-2)*CC(I,K,2)-WA1(I-1)*CC(I-1,K,2)
+            CH(I,1,K) = CC(I,K,1)+TI2
+            CH(IC,2,K) = TI2-CC(I,K,1)
+            CH(I-1,1,K) = CC(I-1,K,1)+TR2
+            CH(IC-1,2,K) = CC(I-1,K,1)-TR2
+  103    CONTINUE
+  104 CONTINUE
+      IF (MOD(IDO,2) .EQ. 1) RETURN
+  105 DO 106 K=1,L1
+         CH(1,2,K) = -CC(IDO,K,2)
+         CH(IDO,1,K) = CC(IDO,K,1)
+  106 CONTINUE
+  107 RETURN
+      END
+C
+C
+      SUBROUTINE RADB2 (IDO,L1,CC,CH,WA1)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+      DIMENSION       CC(IDO,2,L1)           ,CH(IDO,L1,2)           ,
+     1                WA1(1)
+      DO 101 K=1,L1
+         CH(1,K,1) = CC(1,1,K)+CC(IDO,2,K)
+         CH(1,K,2) = CC(1,1,K)-CC(IDO,2,K)
+  101 CONTINUE
+      IF (IDO-2) 107,105,102
+  102 IDP2 = IDO+2
+      DO 104 K=1,L1
+         DO 103 I=3,IDO,2
+            IC = IDP2-I
+            CH(I-1,K,1) = CC(I-1,1,K)+CC(IC-1,2,K)
+            TR2 = CC(I-1,1,K)-CC(IC-1,2,K)
+            CH(I,K,1) = CC(I,1,K)-CC(IC,2,K)
+            TI2 = CC(I,1,K)+CC(IC,2,K)
+            CH(I-1,K,2) = WA1(I-2)*TR2-WA1(I-1)*TI2
+            CH(I,K,2) = WA1(I-2)*TI2+WA1(I-1)*TR2
+  103    CONTINUE
+  104 CONTINUE
+      IF (MOD(IDO,2) .EQ. 1) RETURN
+  105 DO 106 K=1,L1
+         CH(IDO,K,1) = CC(IDO,1,K)+CC(IDO,1,K)
+         CH(IDO,K,2) = -(CC(1,2,K)+CC(1,2,K))
+  106 CONTINUE
+  107 RETURN
+      END
+C
+C
+      SUBROUTINE RADF3 (IDO,L1,CC,CH,WA1,WA2)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+      DIMENSION       CH(IDO,3,L1)           ,CC(IDO,L1,3)           ,
+     1                WA1(1)     ,WA2(1)
+C     *** TAUI IS -SQRT(3)/2 ***
+      DATA TAUR,TAUI /-0.5D0,0.86602540378443864676D0/
+      DO 101 K=1,L1
+         CR2 = CC(1,K,2)+CC(1,K,3)
+         CH(1,1,K) = CC(1,K,1)+CR2
+         CH(1,3,K) = TAUI*(CC(1,K,3)-CC(1,K,2))
+         CH(IDO,2,K) = CC(1,K,1)+TAUR*CR2
+  101 CONTINUE
+      IF (IDO .EQ. 1) RETURN
+      IDP2 = IDO+2
+      DO 103 K=1,L1
+         DO 102 I=3,IDO,2
+            IC = IDP2-I
+            DR2 = WA1(I-2)*CC(I-1,K,2)+WA1(I-1)*CC(I,K,2)
+            DI2 = WA1(I-2)*CC(I,K,2)-WA1(I-1)*CC(I-1,K,2)
+            DR3 = WA2(I-2)*CC(I-1,K,3)+WA2(I-1)*CC(I,K,3)
+            DI3 = WA2(I-2)*CC(I,K,3)-WA2(I-1)*CC(I-1,K,3)
+            CR2 = DR2+DR3
+            CI2 = DI2+DI3
+            CH(I-1,1,K) = CC(I-1,K,1)+CR2
+            CH(I,1,K) = CC(I,K,1)+CI2
+            TR2 = CC(I-1,K,1)+TAUR*CR2
+            TI2 = CC(I,K,1)+TAUR*CI2
+            TR3 = TAUI*(DI2-DI3)
+            TI3 = TAUI*(DR3-DR2)
+            CH(I-1,3,K) = TR2+TR3
+            CH(IC-1,2,K) = TR2-TR3
+            CH(I,3,K) = TI2+TI3
+            CH(IC,2,K) = TI3-TI2
+  102    CONTINUE
+  103 CONTINUE
+      RETURN
+      END
+C
+C
+      SUBROUTINE RADB3 (IDO,L1,CC,CH,WA1,WA2)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+      DIMENSION       CC(IDO,3,L1)           ,CH(IDO,L1,3)           ,
+     1                WA1(1)     ,WA2(1)
+C     *** TAUI IS SQRT(3)/2 *** 
+      DATA TAUR,TAUI /-0.5D0,0.86602540378443864676D0/
+      DO 101 K=1,L1
+         TR2 = CC(IDO,2,K)+CC(IDO,2,K)
+         CR2 = CC(1,1,K)+TAUR*TR2
+         CH(1,K,1) = CC(1,1,K)+TR2
+         CI3 = TAUI*(CC(1,3,K)+CC(1,3,K))
+         CH(1,K,2) = CR2-CI3
+         CH(1,K,3) = CR2+CI3
+  101 CONTINUE
+      IF (IDO .EQ. 1) RETURN
+      IDP2 = IDO+2
+      DO 103 K=1,L1
+         DO 102 I=3,IDO,2
+            IC = IDP2-I
+            TR2 = CC(I-1,3,K)+CC(IC-1,2,K)
+            CR2 = CC(I-1,1,K)+TAUR*TR2
+            CH(I-1,K,1) = CC(I-1,1,K)+TR2
+            TI2 = CC(I,3,K)-CC(IC,2,K)
+            CI2 = CC(I,1,K)+TAUR*TI2
+            CH(I,K,1) = CC(I,1,K)+TI2
+            CR3 = TAUI*(CC(I-1,3,K)-CC(IC-1,2,K))
+            CI3 = TAUI*(CC(I,3,K)+CC(IC,2,K))
+            DR2 = CR2-CI3
+            DR3 = CR2+CI3
+            DI2 = CI2+CR3
+            DI3 = CI2-CR3
+            CH(I-1,K,2) = WA1(I-2)*DR2-WA1(I-1)*DI2
+            CH(I,K,2) = WA1(I-2)*DI2+WA1(I-1)*DR2
+            CH(I-1,K,3) = WA2(I-2)*DR3-WA2(I-1)*DI3
+            CH(I,K,3) = WA2(I-2)*DI3+WA2(I-1)*DR3
+  102    CONTINUE
+  103 CONTINUE
+      RETURN
+      END
+C
+C
+      SUBROUTINE RADF4 (IDO,L1,CC,CH,WA1,WA2,WA3)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+      DIMENSION       CC(IDO,L1,4)           ,CH(IDO,4,L1)           ,
+     1                WA1(1)     ,WA2(1)     ,WA3(1)
+      DATA HSQT2 /0.70710678118654752440D0/
+      DO 101 K=1,L1
+         TR1 = CC(1,K,2)+CC(1,K,4)
+         TR2 = CC(1,K,1)+CC(1,K,3)
+         CH(1,1,K) = TR1+TR2
+         CH(IDO,4,K) = TR2-TR1
+         CH(IDO,2,K) = CC(1,K,1)-CC(1,K,3)
+         CH(1,3,K) = CC(1,K,4)-CC(1,K,2)
+  101 CONTINUE
+      IF (IDO-2) 107,105,102
+  102 IDP2 = IDO+2
+      DO 104 K=1,L1
+         DO 103 I=3,IDO,2
+            IC = IDP2-I
+            CR2 = WA1(I-2)*CC(I-1,K,2)+WA1(I-1)*CC(I,K,2)
+            CI2 = WA1(I-2)*CC(I,K,2)-WA1(I-1)*CC(I-1,K,2)
+            CR3 = WA2(I-2)*CC(I-1,K,3)+WA2(I-1)*CC(I,K,3)
+            CI3 = WA2(I-2)*CC(I,K,3)-WA2(I-1)*CC(I-1,K,3)
+            CR4 = WA3(I-2)*CC(I-1,K,4)+WA3(I-1)*CC(I,K,4)
+            CI4 = WA3(I-2)*CC(I,K,4)-WA3(I-1)*CC(I-1,K,4)
+            TR1 = CR2+CR4
+            TR4 = CR4-CR2
+            TI1 = CI2+CI4
+            TI4 = CI2-CI4
+            TI2 = CC(I,K,1)+CI3
+            TI3 = CC(I,K,1)-CI3
+            TR2 = CC(I-1,K,1)+CR3
+            TR3 = CC(I-1,K,1)-CR3
+            CH(I-1,1,K) = TR1+TR2
+            CH(IC-1,4,K) = TR2-TR1
+            CH(I,1,K) = TI1+TI2
+            CH(IC,4,K) = TI1-TI2
+            CH(I-1,3,K) = TI4+TR3
+            CH(IC-1,2,K) = TR3-TI4
+            CH(I,3,K) = TR4+TI3
+            CH(IC,2,K) = TR4-TI3
+  103    CONTINUE
+  104 CONTINUE
+      IF (MOD(IDO,2) .EQ. 1) RETURN
+  105 CONTINUE
+      DO 106 K=1,L1
+         TI1 = -HSQT2*(CC(IDO,K,2)+CC(IDO,K,4))
+         TR1 = HSQT2*(CC(IDO,K,2)-CC(IDO,K,4))
+         CH(IDO,1,K) = TR1+CC(IDO,K,1)
+         CH(IDO,3,K) = CC(IDO,K,1)-TR1
+         CH(1,2,K) = TI1-CC(IDO,K,3)
+         CH(1,4,K) = TI1+CC(IDO,K,3)
+  106 CONTINUE
+  107 RETURN
+      END
+C
+C
+      SUBROUTINE RADB4 (IDO,L1,CC,CH,WA1,WA2,WA3)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+      DIMENSION       CC(IDO,4,L1)           ,CH(IDO,L1,4)           ,
+     1                WA1(1)     ,WA2(1)     ,WA3(1)
+      DATA SQRT2 /1.41421356237309504880D0/
+      DO 101 K=1,L1
+         TR1 = CC(1,1,K)-CC(IDO,4,K)
+         TR2 = CC(1,1,K)+CC(IDO,4,K)
+         TR3 = CC(IDO,2,K)+CC(IDO,2,K)
+         TR4 = CC(1,3,K)+CC(1,3,K)
+         CH(1,K,1) = TR2+TR3
+         CH(1,K,2) = TR1-TR4
+         CH(1,K,3) = TR2-TR3
+         CH(1,K,4) = TR1+TR4
+  101 CONTINUE
+      IF (IDO-2) 107,105,102
+  102 IDP2 = IDO+2
+      DO 104 K=1,L1
+         DO 103 I=3,IDO,2
+            IC = IDP2-I
+            TI1 = CC(I,1,K)+CC(IC,4,K)
+            TI2 = CC(I,1,K)-CC(IC,4,K)
+            TI3 = CC(I,3,K)-CC(IC,2,K)
+            TR4 = CC(I,3,K)+CC(IC,2,K)
+            TR1 = CC(I-1,1,K)-CC(IC-1,4,K)
+            TR2 = CC(I-1,1,K)+CC(IC-1,4,K)
+            TI4 = CC(I-1,3,K)-CC(IC-1,2,K)
+            TR3 = CC(I-1,3,K)+CC(IC-1,2,K)
+            CH(I-1,K,1) = TR2+TR3
+            CR3 = TR2-TR3
+            CH(I,K,1) = TI2+TI3
+            CI3 = TI2-TI3
+            CR2 = TR1-TR4
+            CR4 = TR1+TR4
+            CI2 = TI1+TI4
+            CI4 = TI1-TI4
+            CH(I-1,K,2) = WA1(I-2)*CR2-WA1(I-1)*CI2
+            CH(I,K,2) = WA1(I-2)*CI2+WA1(I-1)*CR2
+            CH(I-1,K,3) = WA2(I-2)*CR3-WA2(I-1)*CI3
+            CH(I,K,3) = WA2(I-2)*CI3+WA2(I-1)*CR3
+            CH(I-1,K,4) = WA3(I-2)*CR4-WA3(I-1)*CI4
+            CH(I,K,4) = WA3(I-2)*CI4+WA3(I-1)*CR4
+  103    CONTINUE
+  104 CONTINUE
+      IF (MOD(IDO,2) .EQ. 1) RETURN
+  105 CONTINUE
+      DO 106 K=1,L1
+         TI1 = CC(1,2,K)+CC(1,4,K)
+         TI2 = CC(1,4,K)-CC(1,2,K)
+         TR1 = CC(IDO,1,K)-CC(IDO,3,K)
+         TR2 = CC(IDO,1,K)+CC(IDO,3,K)
+         CH(IDO,K,1) = TR2+TR2
+         CH(IDO,K,2) = SQRT2*(TR1-TI1)
+         CH(IDO,K,3) = TI2+TI2
+         CH(IDO,K,4) = -SQRT2*(TR1+TI1)
+  106 CONTINUE
+  107 RETURN
+      END
+C
+C
+      SUBROUTINE RADF5 (IDO,L1,CC,CH,WA1,WA2,WA3,WA4)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+      DIMENSION       CC(IDO,L1,5)           ,CH(IDO,5,L1)           ,
+     1                WA1(1)     ,WA2(1)     ,WA3(1)     ,WA4(1)
+      DATA TR11,TI11,TR12,TI12 /0.3090169943749474241D0,
+     +     0.95105651629515357212D0,
+     1     -0.8090169943749474241D0, 0.58778525229247312917D0/
+      DO 101 K=1,L1
+         CR2 = CC(1,K,5)+CC(1,K,2)
+         CI5 = CC(1,K,5)-CC(1,K,2)
+         CR3 = CC(1,K,4)+CC(1,K,3)
+         CI4 = CC(1,K,4)-CC(1,K,3)
+         CH(1,1,K) = CC(1,K,1)+CR2+CR3
+         CH(IDO,2,K) = CC(1,K,1)+TR11*CR2+TR12*CR3
+         CH(1,3,K) = TI11*CI5+TI12*CI4
+         CH(IDO,4,K) = CC(1,K,1)+TR12*CR2+TR11*CR3
+         CH(1,5,K) = TI12*CI5-TI11*CI4
+  101 CONTINUE
+      IF (IDO .EQ. 1) RETURN
+      IDP2 = IDO+2
+      DO 103 K=1,L1
+         DO 102 I=3,IDO,2
+            IC = IDP2-I
+            DR2 = WA1(I-2)*CC(I-1,K,2)+WA1(I-1)*CC(I,K,2)
+            DI2 = WA1(I-2)*CC(I,K,2)-WA1(I-1)*CC(I-1,K,2)
+            DR3 = WA2(I-2)*CC(I-1,K,3)+WA2(I-1)*CC(I,K,3)
+            DI3 = WA2(I-2)*CC(I,K,3)-WA2(I-1)*CC(I-1,K,3)
+            DR4 = WA3(I-2)*CC(I-1,K,4)+WA3(I-1)*CC(I,K,4)
+            DI4 = WA3(I-2)*CC(I,K,4)-WA3(I-1)*CC(I-1,K,4)
+            DR5 = WA4(I-2)*CC(I-1,K,5)+WA4(I-1)*CC(I,K,5)
+            DI5 = WA4(I-2)*CC(I,K,5)-WA4(I-1)*CC(I-1,K,5)
+            CR2 = DR2+DR5
+            CI5 = DR5-DR2
+            CR5 = DI2-DI5
+            CI2 = DI2+DI5
+            CR3 = DR3+DR4
+            CI4 = DR4-DR3
+            CR4 = DI3-DI4
+            CI3 = DI3+DI4
+            CH(I-1,1,K) = CC(I-1,K,1)+CR2+CR3
+            CH(I,1,K) = CC(I,K,1)+CI2+CI3
+            TR2 = CC(I-1,K,1)+TR11*CR2+TR12*CR3
+            TI2 = CC(I,K,1)+TR11*CI2+TR12*CI3
+            TR3 = CC(I-1,K,1)+TR12*CR2+TR11*CR3
+            TI3 = CC(I,K,1)+TR12*CI2+TR11*CI3
+            TR5 = TI11*CR5+TI12*CR4
+            TI5 = TI11*CI5+TI12*CI4
+            TR4 = TI12*CR5-TI11*CR4
+            TI4 = TI12*CI5-TI11*CI4
+            CH(I-1,3,K) = TR2+TR5
+            CH(IC-1,2,K) = TR2-TR5
+            CH(I,3,K) = TI2+TI5
+            CH(IC,2,K) = TI5-TI2
+            CH(I-1,5,K) = TR3+TR4
+            CH(IC-1,4,K) = TR3-TR4
+            CH(I,5,K) = TI3+TI4
+            CH(IC,4,K) = TI4-TI3
+  102    CONTINUE
+  103 CONTINUE
+      RETURN
+      END
+C
+C
+      SUBROUTINE RADB5 (IDO,L1,CC,CH,WA1,WA2,WA3,WA4)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+      DIMENSION       CC(IDO,5,L1)           ,CH(IDO,L1,5)           ,
+     1                WA1(1)     ,WA2(1)     ,WA3(1)     ,WA4(1)
+C     *** TR11=COS(2*PI/5), TI11=SIN(2*PI/5)
+C     *** TR12=COS(4*PI/5), TI12=SIN(4*PI/5)      
+      DATA TR11,TI11,TR12,TI12 /0.3090169943749474241D0,
+     +     0.95105651629515357212D0,
+     +     -0.8090169943749474241D0,0.58778525229247312917D0/
+      DO 101 K=1,L1
+         TI5 = CC(1,3,K)+CC(1,3,K)
+         TI4 = CC(1,5,K)+CC(1,5,K)
+         TR2 = CC(IDO,2,K)+CC(IDO,2,K)
+         TR3 = CC(IDO,4,K)+CC(IDO,4,K)
+         CH(1,K,1) = CC(1,1,K)+TR2+TR3
+         CR2 = CC(1,1,K)+TR11*TR2+TR12*TR3
+         CR3 = CC(1,1,K)+TR12*TR2+TR11*TR3
+         CI5 = TI11*TI5+TI12*TI4
+         CI4 = TI12*TI5-TI11*TI4
+         CH(1,K,2) = CR2-CI5
+         CH(1,K,3) = CR3-CI4
+         CH(1,K,4) = CR3+CI4
+         CH(1,K,5) = CR2+CI5
+  101 CONTINUE
+      IF (IDO .EQ. 1) RETURN
+      IDP2 = IDO+2
+      DO 103 K=1,L1
+         DO 102 I=3,IDO,2
+            IC = IDP2-I
+            TI5 = CC(I,3,K)+CC(IC,2,K)
+            TI2 = CC(I,3,K)-CC(IC,2,K)
+            TI4 = CC(I,5,K)+CC(IC,4,K)
+            TI3 = CC(I,5,K)-CC(IC,4,K)
+            TR5 = CC(I-1,3,K)-CC(IC-1,2,K)
+            TR2 = CC(I-1,3,K)+CC(IC-1,2,K)
+            TR4 = CC(I-1,5,K)-CC(IC-1,4,K)
+            TR3 = CC(I-1,5,K)+CC(IC-1,4,K)
+            CH(I-1,K,1) = CC(I-1,1,K)+TR2+TR3
+            CH(I,K,1) = CC(I,1,K)+TI2+TI3
+            CR2 = CC(I-1,1,K)+TR11*TR2+TR12*TR3
+            CI2 = CC(I,1,K)+TR11*TI2+TR12*TI3
+            CR3 = CC(I-1,1,K)+TR12*TR2+TR11*TR3
+            CI3 = CC(I,1,K)+TR12*TI2+TR11*TI3
+            CR5 = TI11*TR5+TI12*TR4
+            CI5 = TI11*TI5+TI12*TI4
+            CR4 = TI12*TR5-TI11*TR4
+            CI4 = TI12*TI5-TI11*TI4
+            DR3 = CR3-CI4
+            DR4 = CR3+CI4
+            DI3 = CI3+CR4
+            DI4 = CI3-CR4
+            DR5 = CR2+CI5
+            DR2 = CR2-CI5
+            DI5 = CI2-CR5
+            DI2 = CI2+CR5
+            CH(I-1,K,2) = WA1(I-2)*DR2-WA1(I-1)*DI2
+            CH(I,K,2) = WA1(I-2)*DI2+WA1(I-1)*DR2
+            CH(I-1,K,3) = WA2(I-2)*DR3-WA2(I-1)*DI3
+            CH(I,K,3) = WA2(I-2)*DI3+WA2(I-1)*DR3
+            CH(I-1,K,4) = WA3(I-2)*DR4-WA3(I-1)*DI4
+            CH(I,K,4) = WA3(I-2)*DI4+WA3(I-1)*DR4
+            CH(I-1,K,5) = WA4(I-2)*DR5-WA4(I-1)*DI5
+            CH(I,K,5) = WA4(I-2)*DI5+WA4(I-1)*DR5
+  102    CONTINUE
+  103 CONTINUE
+      RETURN
+      END
+C
+C
+      SUBROUTINE RADFG (IDO,IP,L1,IDL1,CC,C1,C2,CH,CH2,WA)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+      DIMENSION       CH(IDO,L1,IP)          ,CC(IDO,IP,L1)          ,
+     1                C1(IDO,L1,IP)          ,C2(IDL1,IP),
+     2                CH2(IDL1,IP)           ,WA(1)
+      DATA TPI/6.28318530717958647692D0/
+      ARG = TPI/DFLOAT(IP)
+      DCP = DCOS(ARG)
+      DSP = DSIN(ARG)
+      IPPH = (IP+1)/2
+      IPP2 = IP+2
+      IDP2 = IDO+2
+      NBD = (IDO-1)/2
+      IF (IDO .EQ. 1) GO TO 119
+      DO 101 IK=1,IDL1
+         CH2(IK,1) = C2(IK,1)
+  101 CONTINUE
+      DO 103 J=2,IP
+         DO 102 K=1,L1
+            CH(1,K,J) = C1(1,K,J)
+  102    CONTINUE
+  103 CONTINUE
+      IF (NBD .GT. L1) GO TO 107
+      IS = -IDO
+      DO 106 J=2,IP
+         IS = IS+IDO
+         IDIJ = IS
+         DO 105 I=3,IDO,2
+            IDIJ = IDIJ+2
+            DO 104 K=1,L1
+               CH(I-1,K,J) = WA(IDIJ-1)*C1(I-1,K,J)+WA(IDIJ)*C1(I,K,J)
+               CH(I,K,J) = WA(IDIJ-1)*C1(I,K,J)-WA(IDIJ)*C1(I-1,K,J)
+  104       CONTINUE
+  105    CONTINUE
+  106 CONTINUE
+      GO TO 111
+  107 IS = -IDO
+      DO 110 J=2,IP
+         IS = IS+IDO
+         DO 109 K=1,L1
+            IDIJ = IS
+            DO 108 I=3,IDO,2
+               IDIJ = IDIJ+2
+               CH(I-1,K,J) = WA(IDIJ-1)*C1(I-1,K,J)+WA(IDIJ)*C1(I,K,J)
+               CH(I,K,J) = WA(IDIJ-1)*C1(I,K,J)-WA(IDIJ)*C1(I-1,K,J)
+  108       CONTINUE
+  109    CONTINUE
+  110 CONTINUE
+  111 IF (NBD .LT. L1) GO TO 115
+      DO 114 J=2,IPPH
+         JC = IPP2-J
+         DO 113 K=1,L1
+            DO 112 I=3,IDO,2
+               C1(I-1,K,J) = CH(I-1,K,J)+CH(I-1,K,JC)
+               C1(I-1,K,JC) = CH(I,K,J)-CH(I,K,JC)
+               C1(I,K,J) = CH(I,K,J)+CH(I,K,JC)
+               C1(I,K,JC) = CH(I-1,K,JC)-CH(I-1,K,J)
+  112       CONTINUE
+  113    CONTINUE
+  114 CONTINUE
+      GO TO 121
+  115 DO 118 J=2,IPPH
+         JC = IPP2-J
+         DO 117 I=3,IDO,2
+            DO 116 K=1,L1
+               C1(I-1,K,J) = CH(I-1,K,J)+CH(I-1,K,JC)
+               C1(I-1,K,JC) = CH(I,K,J)-CH(I,K,JC)
+               C1(I,K,J) = CH(I,K,J)+CH(I,K,JC)
+               C1(I,K,JC) = CH(I-1,K,JC)-CH(I-1,K,J)
+  116       CONTINUE
+  117    CONTINUE
+  118 CONTINUE
+      GO TO 121
+  119 DO 120 IK=1,IDL1
+         C2(IK,1) = CH2(IK,1)
+  120 CONTINUE
+  121 DO 123 J=2,IPPH
+         JC = IPP2-J
+         DO 122 K=1,L1
+            C1(1,K,J) = CH(1,K,J)+CH(1,K,JC)
+            C1(1,K,JC) = CH(1,K,JC)-CH(1,K,J)
+  122    CONTINUE
+  123 CONTINUE
+C
+      AR1 = 1.0D0
+      AI1 = 0.0D0
+      DO 127 L=2,IPPH
+         LC = IPP2-L
+         AR1H = DCP*AR1-DSP*AI1
+         AI1 = DCP*AI1+DSP*AR1
+         AR1 = AR1H
+         DO 124 IK=1,IDL1
+            CH2(IK,L) = C2(IK,1)+AR1*C2(IK,2)
+            CH2(IK,LC) = AI1*C2(IK,IP)
+  124    CONTINUE
+         DC2 = AR1
+         DS2 = AI1
+         AR2 = AR1
+         AI2 = AI1
+         DO 126 J=3,IPPH
+            JC = IPP2-J
+            AR2H = DC2*AR2-DS2*AI2
+            AI2 = DC2*AI2+DS2*AR2
+            AR2 = AR2H
+            DO 125 IK=1,IDL1
+               CH2(IK,L) = CH2(IK,L)+AR2*C2(IK,J)
+               CH2(IK,LC) = CH2(IK,LC)+AI2*C2(IK,JC)
+  125       CONTINUE
+  126    CONTINUE
+  127 CONTINUE
+      DO 129 J=2,IPPH
+         DO 128 IK=1,IDL1
+            CH2(IK,1) = CH2(IK,1)+C2(IK,J)
+  128    CONTINUE
+  129 CONTINUE
+C
+      IF (IDO .LT. L1) GO TO 132
+      DO 131 K=1,L1
+         DO 130 I=1,IDO
+            CC(I,1,K) = CH(I,K,1)
+  130    CONTINUE
+  131 CONTINUE
+      GO TO 135
+  132 DO 134 I=1,IDO
+         DO 133 K=1,L1
+            CC(I,1,K) = CH(I,K,1)
+  133    CONTINUE
+  134 CONTINUE
+  135 DO 137 J=2,IPPH
+         JC = IPP2-J
+         J2 = J+J
+         DO 136 K=1,L1
+            CC(IDO,J2-2,K) = CH(1,K,J)
+            CC(1,J2-1,K) = CH(1,K,JC)
+  136    CONTINUE
+  137 CONTINUE
+      IF (IDO .EQ. 1) RETURN
+      IF (NBD .LT. L1) GO TO 141
+      DO 140 J=2,IPPH
+         JC = IPP2-J
+         J2 = J+J
+         DO 139 K=1,L1
+            DO 138 I=3,IDO,2
+               IC = IDP2-I
+               CC(I-1,J2-1,K) = CH(I-1,K,J)+CH(I-1,K,JC)
+               CC(IC-1,J2-2,K) = CH(I-1,K,J)-CH(I-1,K,JC)
+               CC(I,J2-1,K) = CH(I,K,J)+CH(I,K,JC)
+               CC(IC,J2-2,K) = CH(I,K,JC)-CH(I,K,J)
+  138       CONTINUE
+  139    CONTINUE
+  140 CONTINUE
+      RETURN
+  141 DO 144 J=2,IPPH
+         JC = IPP2-J
+         J2 = J+J
+         DO 143 I=3,IDO,2
+            IC = IDP2-I
+            DO 142 K=1,L1
+               CC(I-1,J2-1,K) = CH(I-1,K,J)+CH(I-1,K,JC)
+               CC(IC-1,J2-2,K) = CH(I-1,K,J)-CH(I-1,K,JC)
+               CC(I,J2-1,K) = CH(I,K,J)+CH(I,K,JC)
+               CC(IC,J2-2,K) = CH(I,K,JC)-CH(I,K,J)
+  142       CONTINUE
+  143    CONTINUE
+  144 CONTINUE
+      RETURN
+      END
+C
+C
+      SUBROUTINE RADBG (IDO,IP,L1,IDL1,CC,C1,C2,CH,CH2,WA)
+      IMPLICIT DOUBLE PRECISION (A-H,O-Z)
+      DIMENSION       CH(IDO,L1,IP)          ,CC(IDO,IP,L1)          ,
+     1                C1(IDO,L1,IP)          ,C2(IDL1,IP),
+     2                CH2(IDL1,IP)           ,WA(1)
+      DATA TPI/6.28318530717958647692D0/
+      ARG = TPI/DFLOAT(IP)
+      DCP = DCOS(ARG)
+      DSP = DSIN(ARG)
+      IDP2 = IDO+2
+      NBD = (IDO-1)/2
+      IPP2 = IP+2
+      IPPH = (IP+1)/2
+      IF (IDO .LT. L1) GO TO 103
+      DO 102 K=1,L1
+         DO 101 I=1,IDO
+            CH(I,K,1) = CC(I,1,K)
+  101    CONTINUE
+  102 CONTINUE
+      GO TO 106
+  103 DO 105 I=1,IDO
+         DO 104 K=1,L1
+            CH(I,K,1) = CC(I,1,K)
+  104    CONTINUE
+  105 CONTINUE
+  106 DO 108 J=2,IPPH
+         JC = IPP2-J
+         J2 = J+J
+         DO 107 K=1,L1
+            CH(1,K,J) = CC(IDO,J2-2,K)+CC(IDO,J2-2,K)
+            CH(1,K,JC) = CC(1,J2-1,K)+CC(1,J2-1,K)
+  107    CONTINUE
+  108 CONTINUE
+      IF (IDO .EQ. 1) GO TO 116
+      IF (NBD .LT. L1) GO TO 112
+      DO 111 J=2,IPPH
+         JC = IPP2-J
+         DO 110 K=1,L1
+            DO 109 I=3,IDO,2
+               IC = IDP2-I
+               CH(I-1,K,J) = CC(I-1,2*J-1,K)+CC(IC-1,2*J-2,K)
+               CH(I-1,K,JC) = CC(I-1,2*J-1,K)-CC(IC-1,2*J-2,K)
+               CH(I,K,J) = CC(I,2*J-1,K)-CC(IC,2*J-2,K)
+               CH(I,K,JC) = CC(I,2*J-1,K)+CC(IC,2*J-2,K)
+  109       CONTINUE
+  110    CONTINUE
+  111 CONTINUE
+      GO TO 116
+  112 DO 115 J=2,IPPH
+         JC = IPP2-J
+         DO 114 I=3,IDO,2
+            IC = IDP2-I
+            DO 113 K=1,L1
+               CH(I-1,K,J) = CC(I-1,2*J-1,K)+CC(IC-1,2*J-2,K)
+               CH(I-1,K,JC) = CC(I-1,2*J-1,K)-CC(IC-1,2*J-2,K)
+               CH(I,K,J) = CC(I,2*J-1,K)-CC(IC,2*J-2,K)
+               CH(I,K,JC) = CC(I,2*J-1,K)+CC(IC,2*J-2,K)
+  113       CONTINUE
+  114    CONTINUE
+  115 CONTINUE
+  116 AR1 = 1.0D0
+      AI1 = 0.0D0
+      DO 120 L=2,IPPH
+         LC = IPP2-L
+         AR1H = DCP*AR1-DSP*AI1
+         AI1 = DCP*AI1+DSP*AR1
+         AR1 = AR1H
+         DO 117 IK=1,IDL1
+            C2(IK,L) = CH2(IK,1)+AR1*CH2(IK,2)
+            C2(IK,LC) = AI1*CH2(IK,IP)
+  117    CONTINUE
+         DC2 = AR1
+         DS2 = AI1
+         AR2 = AR1
+         AI2 = AI1
+         DO 119 J=3,IPPH
+            JC = IPP2-J
+            AR2H = DC2*AR2-DS2*AI2
+            AI2 = DC2*AI2+DS2*AR2
+            AR2 = AR2H
+            DO 118 IK=1,IDL1
+               C2(IK,L) = C2(IK,L)+AR2*CH2(IK,J)
+               C2(IK,LC) = C2(IK,LC)+AI2*CH2(IK,JC)
+  118       CONTINUE
+  119    CONTINUE
+  120 CONTINUE
+      DO 122 J=2,IPPH
+         DO 121 IK=1,IDL1
+            CH2(IK,1) = CH2(IK,1)+CH2(IK,J)
+  121    CONTINUE
+  122 CONTINUE
+      DO 124 J=2,IPPH
+         JC = IPP2-J
+         DO 123 K=1,L1
+            CH(1,K,J) = C1(1,K,J)-C1(1,K,JC)
+            CH(1,K,JC) = C1(1,K,J)+C1(1,K,JC)
+  123    CONTINUE
+  124 CONTINUE
+      IF (IDO .EQ. 1) GO TO 132
+      IF (NBD .LT. L1) GO TO 128
+      DO 127 J=2,IPPH
+         JC = IPP2-J
+         DO 126 K=1,L1
+            DO 125 I=3,IDO,2
+               CH(I-1,K,J) = C1(I-1,K,J)-C1(I,K,JC)
+               CH(I-1,K,JC) = C1(I-1,K,J)+C1(I,K,JC)
+               CH(I,K,J) = C1(I,K,J)+C1(I-1,K,JC)
+               CH(I,K,JC) = C1(I,K,J)-C1(I-1,K,JC)
+  125       CONTINUE
+  126    CONTINUE
+  127 CONTINUE
+      GO TO 132
+  128 DO 131 J=2,IPPH
+         JC = IPP2-J
+         DO 130 I=3,IDO,2
+            DO 129 K=1,L1
+               CH(I-1,K,J) = C1(I-1,K,J)-C1(I,K,JC)
+               CH(I-1,K,JC) = C1(I-1,K,J)+C1(I,K,JC)
+               CH(I,K,J) = C1(I,K,J)+C1(I-1,K,JC)
+               CH(I,K,JC) = C1(I,K,J)-C1(I-1,K,JC)
+  129       CONTINUE
+  130    CONTINUE
+  131 CONTINUE
+  132 CONTINUE
+      IF (IDO .EQ. 1) RETURN
+      DO 133 IK=1,IDL1
+         C2(IK,1) = CH2(IK,1)
+  133 CONTINUE
+      DO 135 J=2,IP
+         DO 134 K=1,L1
+            C1(1,K,J) = CH(1,K,J)
+  134    CONTINUE
+  135 CONTINUE
+      IF (NBD .GT. L1) GO TO 139
+      IS = -IDO
+      DO 138 J=2,IP
+         IS = IS+IDO
+         IDIJ = IS
+         DO 137 I=3,IDO,2
+            IDIJ = IDIJ+2
+            DO 136 K=1,L1
+               C1(I-1,K,J) = WA(IDIJ-1)*CH(I-1,K,J)-WA(IDIJ)*CH(I,K,J)
+               C1(I,K,J) = WA(IDIJ-1)*CH(I,K,J)+WA(IDIJ)*CH(I-1,K,J)
+  136       CONTINUE
+  137    CONTINUE
+  138 CONTINUE
+      GO TO 143
+  139 IS = -IDO
+      DO 142 J=2,IP
+         IS = IS+IDO
+         DO 141 K=1,L1
+            IDIJ = IS
+            DO 140 I=3,IDO,2
+               IDIJ = IDIJ+2
+               C1(I-1,K,J) = WA(IDIJ-1)*CH(I-1,K,J)-WA(IDIJ)*CH(I,K,J)
+               C1(I,K,J) = WA(IDIJ-1)*CH(I,K,J)+WA(IDIJ)*CH(I-1,K,J)
+  140       CONTINUE
+  141    CONTINUE
+  142 CONTINUE
+  143 RETURN
+      END
+C
+C     ##################################################################
+C     3. SPARSPAK
+C     ##################################################################
+C
+C     Routines from SPARSPAK that carry out Reverse Cuthill--McKee 
+C     node ordering.  Main routine is GENRCM
+
+
+C----- SUBROUTINE ROOTLS
+C***************************************************************        
+C***************************************************************        
+C********     ROOTLS ..... ROOTED LEVEL STRUCTURE      *********        
+C***************************************************************        
+C***************************************************************        
+C                                                                       
+C     PURPOSE - ROOTLS GENERATES THE LEVEL STRUCTURE ROOTED             
+C        AT THE INPUT NODE CALLED ROOT. ONLY THOSE NODES FOR            
+C        WHICH MASK IS NONZERO WILL BE CONSIDERED.                      
+C                                                                       
+C     INPUT PARAMETERS -                                                
+C        ROOT - THE NODE AT WHICH THE LEVEL STRUCTURE IS TO             
+C               BE ROOTED.                                              
+C        (XADJ, ADJNCY) - ADJACENCY STRUCTURE PAIR FOR THE              
+C               GIVEN GRAPH.                                            
+C        MASK - IS USED TO SPECIFY A SECTION SUBGRAPH. NODES            
+C               WITH MASK(I)=0 ARE IGNORED.                             
+C                                                                       
+C     OUTPUT PARAMETERS -                                               
+C        NLVL - IS THE NUMBER OF LEVELS IN THE LEVEL STRUCTURE.         
+C        (XLS, LS) - ARRAY PAIR FOR THE ROOTED LEVEL STRUCTURE.         
+C                                                                       
+C***************************************************************        
+C                                                                       
+      SUBROUTINE  ROOTLS ( ROOT, XADJ, ADJNCY, MASK, NLVL, XLS, LS )    
+C                                                                       
+C***************************************************************        
+C                                                                       
+         INTEGER ADJNCY(1), LS(1), MASK(1), XLS(1)                      
+         INTEGER XADJ(1), I, J, JSTOP, JSTRT, LBEGIN,                   
+     1           CCSIZE, LVLEND, LVSIZE, NBR, NLVL,                     
+     1           NODE, ROOT                                             
+C                                                                       
+C***************************************************************        
+C                                                                       
+C        ------------------                                             
+C        INITIALIZATION ...                                             
+C        ------------------                                             
+         MASK(ROOT) = 0                                                 
+         LS(1) = ROOT                                                   
+         NLVL = 0                                                       
+         LVLEND = 0                                                     
+         CCSIZE = 1                                                     
+C        -----------------------------------------------------          
+C        LBEGIN IS THE POINTER TO THE BEGINNING OF THE CURRENT          
+C        LEVEL, AND LVLEND POINTS TO THE END OF THIS LEVEL.             
+C        -----------------------------------------------------          
+  200    LBEGIN = LVLEND + 1                                            
+         LVLEND = CCSIZE                                                
+         NLVL = NLVL + 1                                                
+         XLS(NLVL) = LBEGIN                                             
+C        -------------------------------------------------              
+C        GENERATE THE NEXT LEVEL BY FINDING ALL THE MASKED              
+C        NEIGHBORS OF NODES IN THE CURRENT LEVEL.                       
+C        -------------------------------------------------              
+         DO 400 I = LBEGIN, LVLEND                                      
+            NODE = LS(I)                                                
+            JSTRT = XADJ(NODE)                                          
+            JSTOP = XADJ(NODE + 1) - 1                                  
+            IF ( JSTOP .LT. JSTRT )  GO TO 400                          
+               DO 300 J = JSTRT, JSTOP                                  
+                  NBR = ADJNCY(J)                                       
+                  IF (MASK(NBR) .EQ. 0) GO TO 300                       
+                     CCSIZE = CCSIZE + 1                                
+                     LS(CCSIZE) = NBR                                   
+                     MASK(NBR) = 0                                      
+  300          CONTINUE                                                 
+  400    CONTINUE                                                       
+C        ------------------------------------------                     
+C        COMPUTE THE CURRENT LEVEL WIDTH.                               
+C        IF IT IS NONZERO, GENERATE THE NEXT LEVEL.                     
+C        ------------------------------------------                     
+         LVSIZE = CCSIZE - LVLEND                                       
+         IF (LVSIZE .GT. 0 ) GO TO 200                                  
+C        -------------------------------------------------------        
+C        RESET MASK TO ONE FOR THE NODES IN THE LEVEL STRUCTURE.        
+C        -------------------------------------------------------        
+         XLS(NLVL+1) = LVLEND + 1                                       
+         DO 500 I = 1, CCSIZE                                           
+            NODE = LS(I)                                                
+            MASK(NODE) = 1                                              
+  500    CONTINUE                                                       
+         RETURN                                                         
+      END                                                               
+                                                                        
+                                                                        
+                                                                        
+                                                                        
+                                                                        
+C----- SUBROUTINE FNROOT                                                
+C***************************************************************        
+C***************************************************************        
+C*******     FNROOT ..... FIND PSEUDO-PERIPHERAL NODE    *******        
+C***************************************************************        
+C***************************************************************        
+C                                                                       
+C    PURPOSE - FNROOT IMPLEMENTS A MODIFIED VERSION OF THE              
+C       SCHEME BY GIBBS, POOLE, AND STOCKMEYER TO FIND PSEUDO-          
+C       PERIPHERAL NODES.  IT DETERMINES SUCH A NODE FOR THE            
+C       SECTION SUBGRAPH SPECIFIED BY MASK AND ROOT.                    
+C                                                                       
+C    INPUT PARAMETERS -                                                 
+C       (XADJ, ADJNCY) - ADJACENCY STRUCTURE PAIR FOR THE GRAPH.        
+C       MASK - SPECIFIES A SECTION SUBGRAPH. NODES FOR WHICH            
+C              MASK IS ZERO ARE IGNORED BY FNROOT.                      
+C                                                                       
+C    UPDATED PARAMETER -                                                
+C       ROOT - ON INPUT, IT (ALONG WITH MASK) DEFINES THE               
+C              COMPONENT FOR WHICH A PSEUDO-PERIPHERAL NODE IS          
+C              TO BE FOUND. ON OUTPUT, IT IS THE NODE OBTAINED.         
+C                                                                       
+C    OUTPUT PARAMETERS -                                                
+C       NLVL - IS THE NUMBER OF LEVELS IN THE LEVEL STRUCTURE           
+C              ROOTED AT THE NODE ROOT.                                 
+C       (XLS,LS) - THE LEVEL STRUCTURE ARRAY PAIR CONTAINING            
+C                  THE LEVEL STRUCTURE FOUND.                           
+C                                                                       
+C    PROGRAM SUBROUTINES -                                              
+C       ROOTLS.                                                         
+C                                                                       
+C***************************************************************        
+C                                                                       
+      SUBROUTINE  FNROOT ( ROOT, XADJ, ADJNCY, MASK, NLVL, XLS, LS )    
+C                                                                       
+C***************************************************************        
+C                                                                       
+         INTEGER ADJNCY(1), LS(1), MASK(1), XLS(1)                      
+         INTEGER XADJ(1), CCSIZE, J, JSTRT, K, KSTOP, KSTRT,            
+     1           MINDEG, NABOR, NDEG, NLVL, NODE, NUNLVL,               
+     1           ROOT                                                   
+C                                                                       
+C***************************************************************        
+C                                                                       
+C        ---------------------------------------------                  
+C        DETERMINE THE LEVEL STRUCTURE ROOTED AT ROOT.                  
+C        ---------------------------------------------                  
+         CALL  ROOTLS ( ROOT, XADJ, ADJNCY, MASK, NLVL, XLS, LS )       
+         CCSIZE = XLS(NLVL+1) - 1                                       
+         IF ( NLVL .EQ. 1 .OR. NLVL .EQ. CCSIZE ) RETURN                
+C        ----------------------------------------------------           
+C        PICK A NODE WITH MINIMUM DEGREE FROM THE LAST LEVEL.           
+C        ----------------------------------------------------           
+  100    JSTRT = XLS(NLVL)                                              
+         MINDEG = CCSIZE                                                
+         ROOT = LS(JSTRT)                                               
+         IF ( CCSIZE .EQ. JSTRT )  GO TO 400                            
+            DO 300 J = JSTRT, CCSIZE                                    
+               NODE = LS(J)                                             
+               NDEG = 0                                                 
+               KSTRT = XADJ(NODE)                                       
+               KSTOP = XADJ(NODE+1) - 1                                 
+               DO 200 K = KSTRT, KSTOP                                  
+                  NABOR = ADJNCY(K)                                     
+                  IF ( MASK(NABOR) .GT. 0 )  NDEG = NDEG + 1            
+  200          CONTINUE                                                 
+               IF ( NDEG .GE. MINDEG ) GO TO 300                        
+                  ROOT = NODE                                           
+                  MINDEG = NDEG                                         
+  300       CONTINUE                                                    
+C        ----------------------------------------                       
+C        AND GENERATE ITS ROOTED LEVEL STRUCTURE.                       
+C        ----------------------------------------                       
+  400    CALL  ROOTLS ( ROOT, XADJ, ADJNCY, MASK, NUNLVL, XLS, LS )     
+         IF (NUNLVL .LE. NLVL)  RETURN                                  
+            NLVL = NUNLVL                                               
+            IF ( NLVL .LT. CCSIZE )  GO TO 100                          
+            RETURN                                                      
+      END                                                               
+
+                                                                        
+C----- SUBROUTINE DEGREE                                                
+C***************************************************************        
+C***************************************************************        
+C********     DEGREE ..... DEGREE IN MASKED COMPONENT   ********        
+C***************************************************************        
+C***************************************************************        
+C                                                                       
+C     PURPOSE - THIS ROUTINE COMPUTES THE DEGREES OF THE NODES          
+C        IN THE CONNECTED COMPONENT SPECIFIED BY MASK AND ROOT.         
+C        NODES FOR WHICH MASK IS ZERO ARE IGNORED.                      
+C                                                                       
+C     INPUT PARAMETER -                                                 
+C        ROOT - IS THE INPUT NODE THAT DEFINES THE COMPONENT.           
+C        (XADJ, ADJNCY) - ADJACENCY STRUCTURE PAIR.                     
+C        MASK - SPECIFIES A SECTION SUBGRAPH.                           
+C                                                                       
+C     OUTPUT PARAMETERS -                                               
+C        DEG - ARRAY CONTAINING THE DEGREES OF THE NODES IN             
+C              THE COMPONENT.                                           
+C        CCSIZE-SIZE OF THE COMPONENT SPECIFED BY MASK AND ROOT         
+C                                                                       
+C     WORKING PARAMETER -                                               
+C        LS - A TEMPORARY VECTOR USED TO STORE THE NODES OF THE         
+C               COMPONENT LEVEL BY LEVEL.                               
+C                                                                       
+C***************************************************************        
+C                                                                       
+      SUBROUTINE  DEGREE ( ROOT, XADJ, ADJNCY, MASK,                    
+     1                     DEG, CCSIZE, LS )                            
+C                                                                       
+C***************************************************************        
+C                                                                       
+         INTEGER ADJNCY(1), DEG(1), LS(1), MASK(1)                      
+         INTEGER XADJ(1), CCSIZE, I, IDEG, J, JSTOP, JSTRT,             
+     1           LBEGIN, LVLEND, LVSIZE, NBR, NODE, ROOT                
+C                                                                       
+C***************************************************************        
+C                                                                       
+C        -------------------------------------------------              
+C        INITIALIZATION ...                                             
+C        THE ARRAY XADJ IS USED AS A TEMPORARY MARKER TO                
+C        INDICATE WHICH NODES HAVE BEEN CONSIDERED SO FAR.              
+C        -------------------------------------------------              
+         LS(1) = ROOT                                                   
+         XADJ(ROOT) = -XADJ(ROOT)                                       
+         LVLEND = 0                                                     
+         CCSIZE = 1                                                     
+C        -----------------------------------------------------          
+C        LBEGIN IS THE POINTER TO THE BEGINNING OF THE CURRENT          
+C        LEVEL, AND LVLEND POINTS TO THE END OF THIS LEVEL.             
+C        -----------------------------------------------------          
+  100    LBEGIN = LVLEND + 1                                            
+         LVLEND = CCSIZE                                                
+C        -----------------------------------------------                
+C        FIND THE DEGREES OF NODES IN THE CURRENT LEVEL,                
+C        AND AT THE SAME TIME, GENERATE THE NEXT LEVEL.                 
+C        -----------------------------------------------                
+         DO 400 I = LBEGIN, LVLEND                                      
+            NODE = LS(I)                                                
+            JSTRT = -XADJ(NODE)                                         
+            JSTOP = IABS(XADJ(NODE + 1)) - 1                            
+            IDEG = 0                                                    
+            IF ( JSTOP .LT. JSTRT ) GO TO 300                           
+               DO 200 J = JSTRT, JSTOP                                  
+                  NBR = ADJNCY(J)                                       
+                  IF ( MASK(NBR) .EQ. 0 )  GO TO  200                   
+                     IDEG = IDEG + 1                                    
+                     IF ( XADJ(NBR) .LT. 0 ) GO TO 200                  
+                        XADJ(NBR) = -XADJ(NBR)                          
+                        CCSIZE = CCSIZE + 1                             
+                        LS(CCSIZE) = NBR                                
+  200          CONTINUE                                                 
+  300       DEG(NODE) = IDEG                                            
+  400    CONTINUE                                                       
+C        ------------------------------------------                     
+C        COMPUTE THE CURRENT LEVEL WIDTH.                               
+C        IF IT IS NONZERO , GENERATE ANOTHER LEVEL.                     
+C        ------------------------------------------                     
+         LVSIZE = CCSIZE - LVLEND                                       
+         IF ( LVSIZE .GT. 0 ) GO TO 100                                 
+C        ------------------------------------------                     
+C        RESET XADJ TO ITS CORRECT SIGN AND RETURN.                     
+C        ------------------------------------------                     
+         DO 500 I = 1, CCSIZE                                           
+            NODE = LS(I)                                                
+            XADJ(NODE) = -XADJ(NODE)                                    
+  500    CONTINUE                                                       
+         RETURN                                                         
+      END                                                               
+
+                                                                        
+C----- SUBROUTINE RCM                                                   
+C***************************************************************        
+C***************************************************************        
+C********     RCM ..... REVERSE CUTHILL-MCKEE ORDERING   *******        
+C***************************************************************        
+C***************************************************************        
+C                                                                       
+C     PURPOSE - RCM NUMBERS A CONNECTED COMPONENT SPECIFIED BY          
+C        MASK AND ROOT, USING THE RCM ALGORITHM.                        
+C        THE NUMBERING IS TO BE STARTED AT THE NODE ROOT.               
+C                                                                       
+C     INPUT PARAMETERS -                                                
+C        ROOT - IS THE NODE THAT DEFINES THE CONNECTED                  
+C               COMPONENT AND IT IS USED AS THE STARTING                
+C               NODE FOR THE RCM ORDERING.                              
+C        (XADJ, ADJNCY) - ADJACENCY STRUCTURE PAIR FOR                  
+C               THE GRAPH.                                              
+C                                                                       
+C     UPDATED PARAMETERS -                                              
+C        MASK - ONLY THOSE NODES WITH NONZERO INPUT MASK                
+C               VALUES ARE CONSIDERED BY THE ROUTINE.  THE              
+C               NODES NUMBERED BY RCM WILL HAVE THEIR                   
+C               MASK VALUES SET TO ZERO.                                
+C                                                                       
+C     OUTPUT PARAMETERS -                                               
+C        PERM - WILL CONTAIN THE RCM ORDERING.                          
+C        CCSIZE - IS THE SIZE OF THE CONNECTED COMPONENT                
+C               THAT HAS BEEN NUMBERED BY RCM.                          
+C                                                                       
+C     WORKING PARAMETER -                                               
+C        DEG - IS A TEMPORARY VECTOR USED TO HOLD THE DEGREE            
+C               OF THE NODES IN THE SECTION GRAPH SPECIFIED             
+C               BY MASK AND ROOT.                                       
+C                                                                       
+C     PROGRAM SUBROUTINES -                                             
+C        DEGREE.                                                        
+C                                                                       
+C***************************************************************        
+C                                                                       
+      SUBROUTINE  RCM ( ROOT, XADJ, ADJNCY, MASK,                       
+     1                  PERM, CCSIZE, DEG )                             
+C                                                                       
+C***************************************************************        
+C                                                                       
+         INTEGER ADJNCY(1), DEG(1), MASK(1), PERM(1)                    
+         INTEGER XADJ(1), CCSIZE, FNBR, I, J, JSTOP,                    
+     1           JSTRT, K, L, LBEGIN, LNBR, LPERM,                      
+     1           LVLEND, NBR, NODE, ROOT                                
+C                                                                       
+C***************************************************************        
+C                                                                       
+C        -------------------------------------                          
+C        FIND THE DEGREES OF THE NODES IN THE                           
+C        COMPONENT SPECIFIED BY MASK AND ROOT.                          
+C        -------------------------------------                          
+         CALL  DEGREE ( ROOT, XADJ, ADJNCY, MASK, DEG,                  
+     1                  CCSIZE, PERM )                                  
+         MASK(ROOT) = 0                                                 
+         IF ( CCSIZE .LE. 1 ) RETURN                                    
+         LVLEND = 0                                                     
+         LNBR = 1                                                       
+C        --------------------------------------------                   
+C        LBEGIN AND LVLEND POINT TO THE BEGINNING AND                   
+C        THE END OF THE CURRENT LEVEL RESPECTIVELY.                     
+C        --------------------------------------------                   
+  100    LBEGIN = LVLEND + 1                                            
+         LVLEND = LNBR                                                  
+         DO 600 I = LBEGIN, LVLEND                                      
+C           ----------------------------------                          
+C           FOR EACH NODE IN CURRENT LEVEL ...                          
+C           ----------------------------------                          
+            NODE = PERM(I)                                              
+            JSTRT = XADJ(NODE)                                          
+            JSTOP = XADJ(NODE+1) - 1                                    
+C           ------------------------------------------------            
+C           FIND THE UNNUMBERED NEIGHBORS OF NODE.                      
+C           FNBR AND LNBR POINT TO THE FIRST AND LAST                   
+C           UNNUMBERED NEIGHBORS RESPECTIVELY OF THE CURRENT            
+C           NODE IN PERM.                                               
+C           ------------------------------------------------            
+            FNBR = LNBR + 1                                             
+            DO 200 J = JSTRT, JSTOP                                     
+               NBR = ADJNCY(J)                                          
+               IF ( MASK(NBR) .EQ. 0 )  GO TO 200                       
+                  LNBR = LNBR + 1                                       
+                  MASK(NBR) = 0                                         
+                  PERM(LNBR) = NBR                                      
+  200       CONTINUE                                                    
+            IF ( FNBR .GE. LNBR )  GO TO 600                            
+C              ------------------------------------------               
+C              SORT THE NEIGHBORS OF NODE IN INCREASING                 
+C              ORDER BY DEGREE. LINEAR INSERTION IS USED.               
+C              ------------------------------------------               
+               K = FNBR                                                 
+  300          L = K                                                    
+                  K = K + 1                                             
+                  NBR = PERM(K)                                         
+  400             IF ( L .LT. FNBR )  GO TO 500                         
+                     LPERM = PERM(L)                                    
+                     IF ( DEG(LPERM) .LE. DEG(NBR) )  GO TO 500         
+                        PERM(L+1) = LPERM                               
+                        L = L - 1                                       
+                        GO TO 400                                       
+  500             PERM(L+1) = NBR                                       
+                  IF ( K .LT. LNBR )  GO TO 300                         
+  600    CONTINUE                                                       
+         IF (LNBR .GT. LVLEND) GO TO 100                                
+C        ---------------------------------------                        
+C        WE NOW HAVE THE CUTHILL MCKEE ORDERING.                        
+C        REVERSE IT BELOW ...                                           
+C        ---------------------------------------                        
+         K = CCSIZE/2                                                   
+         L = CCSIZE                                                     
+         DO 700 I = 1, K                                                
+            LPERM = PERM(L)                                             
+            PERM(L) = PERM(I)                                           
+            PERM(I) = LPERM                                             
+            L = L - 1                                                   
+  700    CONTINUE                                                       
+         RETURN                                                         
+      END                                                               
+                                                                        
+                                                                        
+C----- SUBROUTINE GENRCM                                                
+C***************************************************************        
+C***************************************************************        
+C********   GENRCM ..... GENERAL REVERSE CUTHILL MCKEE   *******        
+C***************************************************************        
+C***************************************************************        
+C                                                                       
+C     PURPOSE - GENRCM FINDS THE REVERSE CUTHILL-MCKEE                  
+C        ORDERING FOR A GENERAL GRAPH. FOR EACH CONNECTED               
+C        COMPONENT IN THE GRAPH, GENRCM OBTAINS THE ORDERING            
+C        BY CALLING THE SUBROUTINE RCM.                                 
+C                                                                       
+C     INPUT PARAMETERS -                                                
+C        NEQNS - NUMBER OF EQUATIONS                                    
+C        (XADJ, ADJNCY) - ARRAY PAIR CONTAINING THE ADJACENCY           
+C               STRUCTURE OF THE GRAPH OF THE MATRIX.                   
+C                                                                       
+C     OUTPUT PARAMETER -                                                
+C        PERM - VECTOR THAT CONTAINS THE RCM ORDERING.                  
+C                                                                       
+C     WORKING PARAMETERS -                                              
+C        MASK - IS USED TO MARK VARIABLES THAT HAVE BEEN                
+C               NUMBERED DURING THE ORDERING PROCESS. IT IS             
+C               INITIALIZED TO 1, AND SET TO ZERO AS EACH NODE          
+C               IS NUMBERED.                                            
+C        XLS - THE INDEX VECTOR FOR A LEVEL STRUCTURE.  THE             
+C               LEVEL STRUCTURE IS STORED IN THE CURRENTLY              
+C               UNUSED SPACES IN THE PERMUTATION VECTOR PERM.           
+C                                                                       
+C     PROGRAM SUBROUTINES -                                             
+C        FNROOT, RCM.                                                   
+C                                                                       
+C***************************************************************        
+C                                                                       
+      SUBROUTINE  GENRCM ( NEQNS, XADJ, ADJNCY, PERM, MASK, XLS )       
+C                                                                       
+C***************************************************************        
+C                                                                       
+         INTEGER ADJNCY(1), MASK(1), PERM(1), XLS(1)                    
+         INTEGER XADJ(1), CCSIZE, I, NEQNS, NLVL,                       
+     1           NUM, ROOT                                              
+C                                                                       
+C***************************************************************        
+C                                                                       
+         DO 100 I = 1, NEQNS                                            
+            MASK(I) = 1                                                 
+  100    CONTINUE                                                       
+         NUM = 1                                                        
+         DO 200 I = 1, NEQNS                                            
+C           ---------------------------------------                     
+C           FOR EACH MASKED CONNECTED COMPONENT ...                     
+C           ---------------------------------------                     
+            IF (MASK(I) .EQ. 0) GO TO 200                               
+               ROOT = I                                                 
+C              -----------------------------------------                
+C              FIRST FIND A PSEUDO-PERIPHERAL NODE ROOT.                
+C              NOTE THAT THE LEVEL STRUCTURE FOUND BY                   
+C              FNROOT IS STORED STARTING AT PERM(NUM).                  
+C              THEN RCM IS CALLED TO ORDER THE COMPONENT                
+C              USING ROOT AS THE STARTING NODE.                         
+C              -----------------------------------------                
+               CALL  FNROOT ( ROOT, XADJ, ADJNCY, MASK,                 
+     1                        NLVL, XLS, PERM(NUM) )                    
+               CALL     RCM ( ROOT, XADJ, ADJNCY, MASK,                 
+     1                        PERM(NUM), CCSIZE, XLS )                  
+               NUM = NUM + CCSIZE                                       
+               IF (NUM .GT. NEQNS) RETURN                               
+  200    CONTINUE                                                       
+         RETURN                                                         
+      END                                                               
+C
+C     ##################################################################
+C     4. Special functions.
+C     ##################################################################
+C
       SUBROUTINE ZBESJ(ZR, ZI, FNU, KODE, N, CYR, CYI, NZ, IERR)
 C***BEGIN PROLOGUE  ZBESJ
 C***DATE WRITTEN   830501   (YYMMDD)
@@ -4577,4 +6543,241 @@ C-----------------------------------------------------------------------
       NZ = -1
       IF(NW.EQ.(-2)) NZ=-2
       RETURN
+      END
+C
+C     ##################################################################
+C     5. Minimization.
+C     ##################################################################
+C
+      double precision function fbrent(ax,bx,f,tol)
+      double precision ax,bx,f,tol
+c
+c      an approximation  x  to the point where  f  attains a minimum  on
+c  the interval  (ax,bx)  is determined.
+c
+c  input..
+c
+c  ax    left endpoint of initial interval
+c  bx    right endpoint of initial interval
+C        (See below: ax, bx no longer need to be in ascending order).
+c  f     function subprogram which evaluates  f(x) for any  x
+c        in the interval  (ax,bx)
+c  tol   desired length of the interval of uncertainty of the final
+c        result (.ge.0.)
+c
+c  output..
+c
+c  fmin  abcissa approximating the point where  f  attains a
+c        minimum
+c
+c      the method used is a combination of  golden  section  search  and
+c  successive parabolic interpolation.  convergence is never much slower
+c  than  that  for  a  fibonacci search.  if  f  has a continuous second
+c  derivative which is positive at the minimum (which is not  at  ax  or
+c  bx),  then  convergence  is  superlinear, and usually of the order of
+c  about  1.324....
+c      the function  f  is never evaluated at two points closer together
+c  than  eps*abs(fmin)+(tol/3), where eps is  approximately  the  square
+c  root  of  the  relative  machine  precision.   if   f   is a unimodal
+c  function and the computed values of   f   are  always  unimodal  when
+c  separated  by  at least  eps*abs(x)+(tol/3), then  fmin  approximates
+c  the abcissa of the global minimum of  f  on the interval  ax,bx  with
+c  an error less than  3*eps*abs(fmin)+tol.  if   f   is  not  unimodal,
+c  then fmin may approximate a local, but perhaps non-global, minimum to
+c  the same accuracy.
+c      this function subprogram is a slightly modified  version  of  the
+c  algol  60 procedure  localmin  given in richard brent, algorithms for
+c  minimization without derivatives, prentice-hall, inc. (1973).
+c
+c
+      double precision  a,b,c,d,e,eps,xm,p,q,r,tol1,t2,u,v,w,fu,fv,fw,
+     2    fx,x,tol3
+      double precision  dabs,dsqrt,d1mach
+c
+c  c is the squared inverse of the golden ratio
+      c=0.5d0*(3.0d0-dsqrt(5.0d0))
+c
+c  eps is approximately the square root of the relative machine
+c  precision.
+c
+   10 eps=d1mach(4)
+      tol1=eps+1.0d0
+      eps=dsqrt(eps)
+c
+C     a=ax
+C     b=bx
+C     No longer assume that ax and bx are input in ascending order:
+      a=min(ax,bx)
+      b=max(ax,bx)
+      v=a+c*(b-a)
+      w=v
+      x=v
+      e=0.0d0
+      fx=f(x)
+      fv=fx
+      fw=fx
+      tol3=tol/3.0d0
+c
+c  main loop starts here
+c
+   20 xm=0.5d0*(a+b)
+      tol1=eps*dabs(x)+tol3
+      t2=2.0d0*tol1
+c
+c  check stopping criterion
+c
+      if (dabs(x-xm).le.(t2-0.5d0*(b-a))) go to 190
+      p=0.0d0
+      q=0.0d0
+      r=0.0d0
+      if (dabs(e).le.tol1) go to 50
+c
+c  fit parabola
+c
+      r=(x-w)*(fx-fv)
+      q=(x-v)*(fx-fw)
+      p=(x-v)*q-(x-w)*r
+      q=2.0d0*(q-r)
+      if (q.le.0.0d0) go to 30
+      p=-p
+      go to 40
+   30 q=-q
+   40 r=e
+      e=d
+   50 if ((dabs(p).ge.dabs(0.5d0*q*r)).or.(p.le.q*(a-x))
+     2          .or.(p.ge.q*(b-x))) go to 60
+c
+c  a parabolic-interpolation step
+c
+      d=p/q
+      u=x+d
+c
+c  f must not be evaluated too close to ax or bx
+c
+      if (((u-a).ge.t2).and.((b-u).ge.t2)) go to 90
+      d=tol1
+      if (x.ge.xm) d=-d
+      go to 90
+c
+c  a golden-section step
+c
+   60 if (x.ge.xm) go to 70
+      e=b-x
+      go to 80
+   70 e=a-x
+   80 d=c*e
+c
+c  f must not be evaluated too close to x
+c
+   90 if (dabs(d).lt.tol1) go to 100
+      u=x+d
+      go to 120
+  100 if (d.le.0.0d0) go to 110
+      u=x+tol1
+      go to 120
+  110 u=x-tol1
+  120 fu=f(u)
+c
+c  update  a, b, v, w, and x
+c
+      if (fx.gt.fu) go to 140
+      if (u.ge.x) go to 130
+      a=u
+      go to 140
+  130 b=u
+  140 if (fu.gt.fx) go to 170
+      if (u.ge.x) go to 150
+      b=x
+      go to 160
+  150 a=x
+  160 v=w
+      fv=fw
+      w=x
+      fw=fx
+      x=u
+      fx=fu
+      go to 20
+  170 if ((fu.gt.fw).and.(w.ne.x)) go to 180
+      v=w
+      fv=fw
+      w=u
+      fw=fu
+      go to 20
+  180 if ((fu.gt.fv).and.(v.ne.x).and.(v.ne.w)) go to 20
+      v=u
+      fv=fu
+      go to 20
+c
+c  end of main loop
+c
+  190 fbrent=x
+      return
+      end
+C
+C
+      SUBROUTINE braket(ax,bx,cx,fa,fb,fc,func)
+C     Given distinct initial points ax and bx, return three points 
+C     ax, bx and cx that bracket a minimum of function func.
+      DOUBLE PRECISION ax,bx,cx,fa,fb,fc,func,GOLD,GLIMIT,TINY
+      EXTERNAL func
+      PARAMETER (GOLD=1.618034, GLIMIT=100., TINY=1.e-20)
+      DOUBLE PRECISION dum,fu,q,r,u,ulim
+      fa=func(ax)
+      fb=func(bx)
+      if(fb.gt.fa)then
+        dum=ax
+        ax=bx
+        bx=dum
+        dum=fb
+        fb=fa
+        fa=dum
+      endif
+      cx=bx+GOLD*(bx-ax)
+      fc=func(cx)
+1     if(fb.ge.fc)then
+        r=(bx-ax)*(fb-fc)
+        q=(bx-cx)*(fb-fa)
+        u=bx-((bx-cx)*q-(bx-ax)*r)/(2.*sign(max(abs(q-r),TINY),q-r))
+        ulim=bx+GLIMIT*(cx-bx)
+        if((bx-u)*(u-cx).gt.0.)then
+          fu=func(u)
+          if(fu.lt.fc)then
+            ax=bx
+            fa=fb
+            bx=u
+            fb=fu
+            return
+          else if(fu.gt.fb)then
+            cx=u
+            fc=fu
+            return
+          endif
+          u=cx+GOLD*(cx-bx)
+          fu=func(u)
+        else if((cx-u)*(u-ulim).gt.0.)then
+          fu=func(u)
+          if(fu.lt.fc)then
+            bx=cx
+            cx=u
+            u=cx+GOLD*(cx-bx)
+            fb=fc
+            fc=fu
+            fu=func(u)
+          endif
+        else if((u-ulim)*(ulim-cx).ge.0.)then
+          u=ulim
+          fu=func(u)
+        else
+          u=cx+GOLD*(cx-bx)
+          fu=func(u)
+        endif
+        ax=bx
+        bx=cx
+        cx=u
+        fa=fb
+        fb=fc
+        fc=fu
+        goto 1
+      endif
+      return
       END

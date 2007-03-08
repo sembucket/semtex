@@ -113,17 +113,44 @@ void sabandon (float**);
 
 int_t  FamilySize (int_t*, int_t*, int_t*);
 
-// -- Routines from RCM.f (NETLIB/SPARSPAK):
+// -- Routines from fourier.c:
+
+void dDFTr (real_t*, const int_t, const int_t, const int_t);
+
+// -- Routines from filter.c
+
+void bvdFilter (const int_t,const real_t,const real_t, const real_t, real_t*);
+
+// -- Routines from message.c:
+
+void message_init      (int*, char***);
+void message_stop      ();
+void message_sync      ();
+void message_dsend     (real_t*, const int_t, const int_t);
+void message_drecv     (real_t*, const int_t, const int_t);
+void message_ssend     (float*,  const int_t, const int_t);
+void message_srecv     (float*,  const int_t, const int_t);
+void message_isend     (int_t*,  const int_t, const int_t);
+void message_irecv     (int_t*,  const int_t, const int_t);
+void message_dexchange (real_t*, const int_t, const int_t, const int_t);
+void message_sexchange (float*,  const int_t, const int_t, const int_t);
+void message_iexchange (int_t*,  const int_t, const int_t, const int_t);
+
+// -- FORTRAN
+// -- Routines from NETLIB.f:
 
 void F77NAME(genrcm) (const int_t&,int_t*,int_t*,int_t*,int_t*,int_t*);
 void F77NAME(fnroot) (int_t&,int_t*,int_t*,int_t*,int_t&,int_t*,int_t*);
 void F77NAME(rcm)    (const int_t&,int_t*,int_t*,int_t*,int_t*,int_t&,int_t*);
 
-// -- Routines from fftpack.f (NETLIB/FFTPACK):
-
 void F77NAME(drffti) (const int_t&,real_t*,int_t*);
 void F77NAME(drfftf) (const int_t&,real_t*,real_t*,const real_t*,const int_t*);
 void F77NAME(drfftb) (const int_t&,real_t*,real_t*,const real_t*,const int_t*);
+
+double F77NAME(fbrent) (const real_t&, const real_t&,
+			real_t(*)(const real_t&), const real_t&);
+void   F77NAME(braket) (real_t&, real_t&, real_t&, real_t&, real_t&, real_t&,
+			real_t(*)(const real_t&));
 
 // -- Routines from canfft.f:
 
@@ -150,29 +177,6 @@ void F77NAME(dgpfa)  (real_t*, real_t*, const real_t*, const int_t&,
 		      const int_t&, const int_t&, const int_t&,
 		      const int_t&);
 
-// -- Routines from fourier.c:
-
-void dDFTr (real_t*, const int_t, const int_t, const int_t);
-
-// -- Routines from filter.c
-
-void bvdFilter (const int_t,const real_t,const real_t, const real_t, real_t*);
-
-// -- Routines from message.c:
-
-void message_init      (int*, char***);
-void message_stop      ();
-void message_sync      ();
-void message_dsend     (real_t*, const int_t, const int_t);
-void message_drecv     (real_t*, const int_t, const int_t);
-void message_ssend     (float*,  const int_t, const int_t);
-void message_srecv     (float*,  const int_t, const int_t);
-void message_isend     (int_t*,  const int_t, const int_t);
-void message_irecv     (int_t*,  const int_t, const int_t);
-void message_dexchange (real_t*, const int_t, const int_t, const int_t);
-void message_sexchange (float*,  const int_t, const int_t, const int_t);
-void message_iexchange (int_t*,  const int_t, const int_t, const int_t);
-
 // -- Routines from matops.F:
 
 void F77NAME(dgrad2) (const real_t*, const real_t*, real_t*, real_t*,
@@ -180,6 +184,7 @@ void F77NAME(dgrad2) (const real_t*, const real_t*, real_t*, real_t*,
 		      const int_t&, const int_t&);
 void F77NAME(dtpr2d) (const real_t*, real_t*, real_t*, const real_t*,
 		      const real_t*, const int_t&, const int_t&, const int_t&);
+
 }
 
 class Femlib {
@@ -323,6 +328,16 @@ public:
   	const real_t* wa, const int_t* ifac) 
     { F77NAME(drfftb) (n, c, ch, wa, ifac); }
 
+  static real_t brent  (const real_t& ax, const real_t& bx,
+			real_t(*f)(const real_t&),
+			const real_t& tol) {
+    return F77NAME(fbrent) (ax, bx, f, tol);
+  }
+  static void bracket   (real_t& ax, real_t& bx, real_t& cx,
+			 real_t& fa, real_t& fb, real_t& fc,
+			 real_t(*func)(const real_t&)) {
+    F77NAME(braket) (ax, bx, cx, fa, fb, fc, func);
+  }
   static void DFTr (real_t*  data, const int_t nz, const int_t np,
 		    const int_t sign)
     { dDFTr (data, nz, np, sign); }

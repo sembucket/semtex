@@ -4,6 +4,26 @@ C     -- Matrix operators for gradients, etc.
 C
 C     $Id$
 C
+C     Copyright (c) 2002 <--> $Date$, Hugh Blackburn
+C
+C     This file is part of Semtex.
+C     
+C     Semtex is free software; you can redistribute it and/or modify it
+C     under the terms of the GNU General Public License as published by
+C     the Free Software Foundation; either version 2 of the License, or
+C     (at your option) any later version.
+C 
+C     Semtex is distributed in the hope that it will be useful, but
+C     WITHOUT ANY WARRANTY; without even the implied warranty of
+C     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+C     General Public License for more details.
+C 
+C     You should have received a copy of the GNU General Public License
+C     along with Semtex (see the file COPYING); if not, write to the
+C     Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
+C     Boston, MA 02110-1301 USA
+
+C
       SUBROUTINE DGRAD2 (X, Y, UR, US, DV, DT, NR, NS, NEL)
 C
 C     This operator can be used for any field operation that can be 
