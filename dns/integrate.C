@@ -8,6 +8,7 @@
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
+// --
 // This file is part of Semtex.
 // 
 // Semtex is free software; you can redistribute it and/or modify it
@@ -23,7 +24,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-// 02110-1301 USA
+// 02110-1301 USA.
+// --
 //
 // References:
 // 1. Karniadakis, Israeli & Orszag (1991) "High-order splitting methods
