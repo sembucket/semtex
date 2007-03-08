@@ -115,8 +115,6 @@ static char RCS[] = "$Id$";
 
 using namespace std;
 
-#include <nr77.h>
-
 #include <utility.h>
 #include <femlib.h>
 #include <veclib.h>
