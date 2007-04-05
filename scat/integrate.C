@@ -2,7 +2,7 @@
 // integrate.C: unsteady Navier--Stokes DNS, using "stiffly-stable"
 // time integration.
 //
-// Copyright (C) 2001 Hugh Blackburn.
+// Copyright (C) 2001 <--> $Date$, Hugh Blackburn.
 //
 // This version of basic semtex DNS includes transport of a passive
 // scalar 'c', carried as the DIMth Field; pressure is
@@ -18,6 +18,7 @@ static  int_t          NDIM, NORD;
 static  bool           C3D;
 
 static void   advection (Domain*, AuxField**, AuxField**, vector<real_t>&);
+static void   buoyancy  (Domain*, AuxField**, AuxField**, vector<real_t>&);
 static void   waveProp  (Domain*, const AuxField***, const AuxField***);
 static void   setPForce (const AuxField**, AuxField**);
 static void   project   (const Domain*, AuxField**, AuxField**);
@@ -80,6 +81,17 @@ void NavierStokes (Domain*       D,
   ff[0] = Femlib::value ("FFX");
   ff[1] = Femlib::value ("FFY");
   ff[2] = Femlib::value ("FFZ");
+  
+  // -- Set up gravity vector.  Note directional components g_1, g_2, g_3.
+  
+  vector<real_t> g(3);
+  {
+    const real_t norm = Femlib::value ("sqrt (g_1*g_1 + g_2*g_2 + g_3*g_3)");
+
+    g[0] = Femlib::value ("g_1 * GRAVITY") / norm;
+    g[1] = Femlib::value ("g_2 * GRAVITY") / norm;
+    g[2] = Femlib::value ("g_3 * GRAVITY") / norm;
+  }
 
   // -- Timestepping loop.
 
@@ -92,6 +104,8 @@ void NavierStokes (Domain*       D,
     // -- Unconstrained forcing substep.
 
     advection (D, Us[0], Uf[0], ff);
+    buoyancy  (D, Us[0], Uf[0], g);
+
     waveProp  (D, const_cast<const AuxField***>(Us),
 	          const_cast<const AuxField***>(Uf));
 
@@ -324,6 +338,36 @@ static void advection (Domain*         D ,
   }
 
 #endif
+}
+
+
+static void buoyancy (Domain*         D ,
+		      AuxField**      Us,
+		      AuxField**      Uf,
+		      vector<real_t>& g )
+// ---------------------------------------------------------------------------
+// The buoyancy term in the momentum equation is
+//
+//                      - BETA_T * (T - T_REF) g.
+//                                             ~
+// We add an explicit estimate of this to the nonlinear terms in Uf.
+// The first level of Us has the last values of the data Fields, D is free.
+// ---------------------------------------------------------------------------
+{
+  int_t        i;
+  const real_t EPS  = (sizeof (real_t) == sizeof (double)) ? EPSDP : EPSSP;
+  AuxField*    T      = Us [NDIM];
+  AuxField*    work   = D -> u[NDIM];
+
+  for (i = 0; i < NDIM; i++) {
+    if (fabs (g[i]) > EPS) {
+      *work      = *T;
+      *work     -=  Femlib::value ("T_REF" );
+      *work     *=  Femlib::value ("BETA_T");
+      *work     *=  g[i];
+      *Uf[i] -= *work;
+    }
+  }
 }
 
 
