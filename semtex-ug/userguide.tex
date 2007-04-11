@@ -37,7 +37,7 @@
 
 \vspace*{\fill}
 
-{\huge Using {\sffamily semtex}}
+{\huge Using {\sffamily Semtex}}
 
 \vspace{\fill}
 
@@ -54,7 +54,7 @@ Monash University
 
 \vspace{\fill}
 
-{\large Doc.\ 97/159(M)}\\
+%{\large Doc.\ 97/159(M)}\\
 \today
 
 \textsf{semtex} version 6.1
@@ -77,8 +77,12 @@ spectral element method is a high-order finite element technique that
 combines the geometric flexibility of finite elements with the high
 accuracy of spectral methods.  The method was pioneered in the mid
 1980's by Anthony Patera at MIT \cite{pat84,kp86}. \textsf{Semtex}
-uses parametrically mapped quadrilateral elements, and the `nodal'
-shape function basis.
+uses parametrically mapped quadrilateral elements, and the classic GLL
+`nodal' shape function basis.  Algorithmically the code is similar to
+Ron Henderson's \textsf{Prism} \citep{hk95,kh98,hen99b}, but with some
+differences in design, and lacking mortar element capability. A
+notable extension is that \textsf{Semtex} can solve problems in
+cylindrical as well as Cartesian coordinate systems \citep{blsh04}.
 
 %-----------------------------------------------------------------------------
 \section{Numerical method}
@@ -150,7 +154,7 @@ Boussinesq approximation, accelerating frame of reference coupling for
 aeroelasticity \citep{bh96a,bh99,bgw01,hmb03}, solution of
 steady-state flows via Newton-Raphson iteration \citep{hmb02a}, linear
 stability analysis
-\citep{hmb02a,bllo03b,bllo03a,bml04,shbl04,ebs06,blsh06}.
+\citep{hmb02a,bllo03b,bllo03a,bml04,shbl04,ebs06,blsh07}.
 
 %-----------------------------------------------------------------------------
 \section{Further reading}
@@ -167,18 +171,18 @@ time-splitting method used for time integration is described by
 \citet*{kio91}.  The book by \citet{fun97} provides useful information
 and further references.  Recent overviews and some applications appear
 in \citet{kh98,hen99b}.  The definitive reference is now the book by
-\citet{kars05}, but you may also find the text by \citet*{dfm02}
+\citet{kars05}, but you will also find the text by \citet*{dfm02}
 useful for alternative explanations and views.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Starting out}
 
-It is assumed you're using some version of UNIX, and the current
-versions assume that your C++ compiler supports the standard
-libraries. Makefiles assume GNUmake.  SuperMongo and TECPLOT would be
-nice to have but are not essential to get up and running.  All major
-executables have a \texttt{-h} command line option which provides a
-usage prompt.
+It is assumed you're using some version of UNIX (this includes Mac OS
+X), and the current Semtex versions assume that your C++ compiler
+supports the standard libraries. Makefiles assume GNUmake.  SuperMongo
+and TECPLOT would be nice to have but are not essential to get up and
+running.  All major executables have a \texttt{-h} command line option
+which provides a usage prompt.
 
 Application programs/Makefiles can be found in top and upper-level
 directories:
@@ -200,7 +204,7 @@ make two central utilities (\texttt{compare} and \texttt{enumerate}),
 then make the direct numerical simulation solver \texttt{dns} and run
 regression checks on its output for a number of test cases. If all
 goes well, this process will end with a number of tests reported as
-\texttt{passed}. 
+\texttt{passed}.
 
 %----------------------------------------------------------------------------
 \subsection{Troubleshooting}
@@ -208,19 +212,31 @@ If the above process didn't work, there are a number of possible
 things lacking on your system, e.g.:
 \begin{enumerate}
 \item
-GNU's \texttt{make}: it needs to be in your
-\texttt{path} somewhere under the name \texttt{gmake}.
+GNU's \texttt{make}: it needs to be in your \texttt{path} somewhere
+under the name \texttt{gmake}. On many systems now, \texttt{make}
+\emph{is} \texttt{gmake}, in which case you might want to make a soft
+link from \texttt{make} to \texttt{gmake} somewhere.
 \item
-the BLAS and LAPACK libraries\,---\,these should be
-either under \texttt{/usr/lib} or in \texttt{/usr/local/lib}: search
-for \texttt{libblas} and \texttt{liblapack}.
+the BLAS and LAPACK libraries\,---\,these should be either under
+\texttt{/usr/lib} or in \texttt{/usr/local/lib}: search for
+\texttt{libblas} and \texttt{liblapack}.  On many systems, BLAS and
+LAPACK are vendor-supplied as part of some `math kernel' library.  NB:
+since quite heavy use is made of BLAS routine \texttt{dgemm}, it can
+be worthwhile finding BLAS versions in which this is well optimised.
 \item
-a standard C++ compiler, or a FORTRAN77 compiler.
+a standard C++ compiler, or a FORTRAN77 compiler.  Note that F90, F95
+compilers now often supplant F77 compilers, and these can (and should)
+be substituted if available.
 \end{enumerate}
-As well, check the \texttt{README} file in the top directory. Of
-course, it is possible that the code is incompatible with some detail
-of your compilation system or has a bug, but it has had fairly
-extensive exercise on a number of UNIX systems by now.
+The first place to look is in the file \texttt{src/Makefile} which has
+the master set of compilation flags and directives for various
+operating systems. You my find your system here, or one that is
+similar. Even if this is not the case, you should pick up some clues
+about how to set up for compilation on a new system.  As well, check
+the \texttt{README} file in the top directory. Of course, it is
+possible that the code is incompatible with some detail of your
+compilation system or has a bug, but it has had fairly extensive
+exercise on a number of UNIX systems by now.
 
 
 %============================================================================
