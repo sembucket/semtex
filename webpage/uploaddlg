@@ -1,0 +1,5 @@
+#!/bin/bash
+
+curl -T dlg-data.html ftp://hugh.blackburn:hot4Texta@users.bigpond.net.au
+
+

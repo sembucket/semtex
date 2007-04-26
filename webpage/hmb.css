@@ -1,0 +1,30 @@
+<STYLE>
+
+H1 {font-size: 36pt}
+H2 {color:#003366 ; font-family:sans-serif; background: #99ccFF; margin-right: 30%}
+H3 {background: #bbeeFF; margin-right: 70% }
+H4 {margin-left: 10%}
+H5 {font-size:24pt; font-family:sans-serif; background:green;color:white}
+H6 {background: red; text-align: center; font-size:18pt; margin-left: 10%; margin-right: 10%}
+
+.footer { background: #dddddd;  margin-left: 20%; margin-right: 20%}
+
+.bigblue {
+        font-size:      24px;  
+        font-weight:    bold;
+        color:          blue;
+        }
+
+.logo {
+     position:       absolute;
+     top:            80%;
+     left:           30px;
+     visibility:     visible;
+     z-index:        1;
+     font-family:    times;
+     font-size:      64px;
+     color:          #008000;
+     }
+
+</STYLE>
+
