@@ -5,5 +5,5 @@ curl -T index.html     ftp://hugh.blackburn:hot4Texta@users.bigpond.net.au
 curl -T hmb.css        ftp://hugh.blackburn:hot4Texta@users.bigpond.net.au
 curl -T gb-book.html   ftp://hugh.blackburn:hot4Texta@users.bigpond.net.au
 curl -T blackburn.html ftp://hugh.blackburn:hot4Texta@users.bigpond.net.au
-curl -T semtex.html    ftp://hugh.blackburn:hot4Texta@users.bigpond.net.au
+#curl -T semtex.html    ftp://hugh.blackburn:hot4Texta@users.bigpond.net.au
 
