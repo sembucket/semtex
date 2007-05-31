@@ -116,7 +116,7 @@ void genrcm_ (int_t*, int_t*, int_t*, int_t*, int_t*, int_t*);
 #define genrcm(neqns, xadj, adjncy, perm, mask, xls) \
 (_vecIreg[0] = neqns, genrcm_(_vecIreg, xadj, adjncy, perm, mask, xls))
 
-void fnroot_ (int_t*, int_t*, int_t*, int_t*,
+void F77NAME(fnroot) (int_t*, int_t*, int_t*, int_t*,
 	      int_t*, int_t*, int_t*);
 #define fnroot(root, xadj, adncy, mask, nlvl, xls, ls) \
 (_vecIreg[0] = root, _vecIreg[1] = nlvl,                   \

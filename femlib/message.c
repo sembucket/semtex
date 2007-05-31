@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #if defined(MPI)
 #include <mpi.h>
@@ -33,6 +34,7 @@
 
 #include <cfemdef.h>
 #include <cfemlib.h>
+#include <cveclib.h>
 
 
 void message_init (int*    argc,
@@ -54,13 +56,22 @@ void message_init (int*    argc,
   sprintf       (s, "I_PROC = %1d", n);
   yy_interpret  (s);
 
+#if 0 /* Seed random number with a unique value for this run and process. */
+  raninit (-(n+1) * time (NULL));
+#endif
+
   MPI_Comm_size (MPI_COMM_WORLD,   &n);
   sprintf       (s, "N_PROC = %1d", n);
   yy_interpret  (s);
 
 #else
 
+
   yy_initialize ();
+
+#if 0 /* Seed random number with a unique value for this run. */
+  raninit (-time (NULL));
+#endif
 
 #endif
 }

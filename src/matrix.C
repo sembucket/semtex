@@ -191,7 +191,7 @@ MatrixSys::MatrixSys (const real_t            lambda2,
 	     << "\t(" << _npack << " words)";
     }
 
-    // -- Loop over elements, creal_tting & posting elemental Helmholtz matrices.
+    // -- Loop over elements, creating & posting elemental Helmholtz matrices.
 
     for (bmap = _NS -> btog(), j = 0; j < _nel; j++, bmap += next) {
       _bipack[j] = next * nint;
@@ -319,7 +319,7 @@ bool MatrixSys::match (const real_t     lambda2,
 MatrixSys::~MatrixSys()
 // ---------------------------------------------------------------------------
 // Destructor.  Because there may be aliases to the internal vector
-// storage we use the Femlib family routines.
+// storage we use the family class routines.
 // ---------------------------------------------------------------------------
 {
   switch (_method) {

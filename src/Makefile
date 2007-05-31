@@ -114,6 +114,7 @@ FFLAGS   = $(DEFINES) $(OPT)
 LIBDIR   += -L/sw/lib
 LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
 #F77LIBS  = -framework Accelerate -lg2c
+#F77LIBS  = -lfastblas -framework Accelerate -lg95
 F77LIBS  = -framework Accelerate -lg95
 CLDFLAGS = $(LDFLAGS)
 endif
