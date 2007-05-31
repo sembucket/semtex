@@ -3,25 +3,6 @@
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
-// --
-// This file is part of Semtex.
-// 
-// Semtex is free software; you can redistribute it and/or modify it
-// under the terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2 of the License, or (at your
-// option) any later version.
-// 
-// Semtex is distributed in the hope that it will be useful, but WITHOUT
-// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-// for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with Semtex (see the file COPYING); if not, write to the Free
-// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-// 02110-1301 USA.
-// --
-//
 // This deals with output of runtime information such as step numbers,
 // CFL estimation, modal energies, etc. If set, also output history
 // point and particle track information, and adminster update of
@@ -282,8 +263,14 @@ void Analyser::analyse (AuxField** work0,
       H -> extract (u, &tmp[0]);
 
       ROOTONLY {
-	_his_strm << setw(4) << H->ID() << " " << setw(14) << _src->time<< " ";
-	for (j = 0; j < NF; j++) _his_strm << setw(15) << tmp[j];
+	_his_strm << setw(4) << H->ID()
+		  << setprecision(8) << setw(15)
+		  << _src->time
+		  << setprecision(6);
+//	for (j = 0; j < NF; j++) _his_strm << setw(15) << tmp[j];
+// -- modified to give higher-precision pressure output.
+	for (j = 0; j < NF-1; j++) _his_strm << setw(14) << tmp[j];
+	_his_strm<< setprecision(11)<< setw(19)<< tmp[NF-1]<< setprecision(6);
 	_his_strm << endl;
       }
     }

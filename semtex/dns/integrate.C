@@ -8,25 +8,6 @@
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
-// --
-// This file is part of Semtex.
-// 
-// Semtex is free software; you can redistribute it and/or modify it
-// under the terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2 of the License, or (at your
-// option) any later version.
-// 
-// Semtex is distributed in the hope that it will be useful, but WITHOUT
-// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-// for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with Semtex (see the file COPYING); if not, write to the Free
-// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-// 02110-1301 USA.
-// --
-//
 // References:
 // 1. Karniadakis, Israeli & Orszag (1991) "High-order splitting methods
 //    for the incompressible Navier--Stokes equations", JCP 9(2).
@@ -105,7 +86,6 @@ void integrateNS (Domain*      D,
     // -- Create global matrix systems.
 
     MMS = preSolve (D);
-
     // -- Create multi-level storage for pressure BCS.
 
     PBCmgr::build (Pressure);
@@ -176,8 +156,15 @@ void integrateNS (Domain*      D,
       AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     }
     for (i = 0; i < NCOM; i++) {
-#if defined (TBCS) // -- Re-evaluate the (time-varying) 2D base BCs (only).
+#if defined (TBCS)
+#if 1
+      // -- Re-evaluate the (time-varying) 2D base BCs (only).
       ROOTONLY D -> u[i] -> evaluateM0Boundaries (D -> step);
+#else
+      // -- Re-evaluate time-varying BCs, everywhere in physical space.
+      D -> u[i] -> evaluateBoundaries (0, false);
+      D -> u[i] -> bTransform (FORWARD);
+#endif
 #endif
       Solve (D, i, Uf[0][i], MMS[i]);
     }

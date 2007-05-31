@@ -54,9 +54,9 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "cfemdef.h"
-#include "cfemlib.h"
-#include "cveclib.h"
+#include <cfemdef.h>
+#include <cfemlib.h>
+#include <cveclib.h>
 
 #define STOP 16
 static real_t gammaF(real_t x);

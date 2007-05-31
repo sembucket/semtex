@@ -31,10 +31,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "cfemdef.h"
-#include "cveclib.h"
-#include "cfemlib.h"
-#include "polylib.h"
+#include <cfemdef.h>
+#include <cveclib.h>
+#include <cfemlib.h>
+#include <polylib.h>
 
 
 typedef struct quadop  { /* ------- quadrature operator information  ------- */

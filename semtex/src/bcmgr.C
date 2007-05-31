@@ -834,7 +834,7 @@ int_t BCmgr::nWall ()
 {
   vector<BCtriple*>::const_iterator b;
   int_t                             count = 0;
-  BCtriple*   BCT;
+  BCtriple*                         BCT;
 
   for (b = _elmtbc.begin(); b != _elmtbc.end(); b++) {
     BCT = *b;

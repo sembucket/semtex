@@ -125,7 +125,7 @@ static void     yyerror (char*);
 static double  value;
 static Symbol* hashtab[HASHSIZE];
 static char    func_string[STR_MAX], *cur_string;
-static int_t nvec = 0;
+static int_t   nvec = 0;
 static Symbol* vs[VEC_MAX];
 extern int     errno;
 
@@ -249,8 +249,8 @@ void yy_initialize (void)
  * This routine should be called at start of run-time.
  * ------------------------------------------------------------------------- */
 {
-  static   int_t initialized = 0;
-  register int_t i;
+  static   int_t   initialized = 0;
+  register int_t   i;
   register Symbol* s;
 
   if (!initialized) {
@@ -595,7 +595,7 @@ void F77NAME(zbesj) (const double*, const double*, const double*,
 		     const int_t*, const int_t*, double*, double*, 
 		     int_t*, int_t*);
 
-void zbesj (const double *x, const double *y, const double ord, 
+void Zbesj (const double *x, const double *y, const double ord, 
 	    const int_t Kode, const int_t n, double *ReJ, 
 	    double *ImJ, int_t* nz, int_t* ierr) {
   int_t N = n;
@@ -603,7 +603,7 @@ void zbesj (const double *x, const double *y, const double ord,
   double  order = ord;
 
   F77NAME(zbesj) (x, y, &order, &K, &N, ReJ, ImJ, nz, ierr);
-  if (*ierr) message ("initial.y", "zbesj", ERROR);
+  if (*ierr) message ("initial.y", "Zbesj", ERROR);
 }
 
 static double ReJn (double n, double x,  double y)
@@ -611,7 +611,7 @@ static double ReJn (double n, double x,  double y)
   int_t nz, ierr;
   double  rej, imj;
   
-  zbesj (&x,&y,n,1,1,&rej,&imj,&nz,&ierr);
+  Zbesj (&x,&y,n,1,1,&rej,&imj,&nz,&ierr);
   return rej;
 }
 
@@ -620,7 +620,7 @@ static double ImJn (double n, double x, double y)
   int_t nz, ierr;
   double  rej, imj;
   
-  zbesj (&x,&y,n,1,1,&rej,&imj,&nz,&ierr);
+  Zbesj (&x,&y,n,1,1,&rej,&imj,&nz,&ierr);
   return imj;
 }
 
@@ -661,7 +661,7 @@ static double Womersley (double A,
 
       re  = -alpha*isqrt2;
       im  =  alpha*isqrt2;
-      zbesj(&re,&im,0,1,2,retmp,imtmp,&nz,&ierr);
+      Zbesj(&re,&im,0,1,2,retmp,imtmp,&nz,&ierr);
       j0r = retmp[0]; j0i = imtmp[0];
       rej = retmp[1]; imj = imtmp[1];
 
@@ -682,7 +682,7 @@ static double Womersley (double A,
 
     re  = -alpha*isqrt2*r/R;
     im  =  alpha*isqrt2*r/R;
-    zbesj(&re,&im,0,1,1,&rej,&imj,&nz,&ierr);
+    Zbesj(&re,&im,0,1,1,&rej,&imj,&nz,&ierr);
     fac = 1/(j0r*j0r+j0i*j0i);
     J0r = 1-fac*(rej*j0r+imj*j0i);
     J0i = -fac*(imj*j0r-rej*j0i);
