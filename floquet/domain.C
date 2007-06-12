@@ -430,7 +430,8 @@ void Domain::loadBase()
 
   if (nSlice > 1) {
     period = Femlib::value ("BASE_PERIOD"); // -- Use this if installed.
-    if (period < EPSDP) period = dt * i / (i - 1.0);
+    if (period < EPSDP)
+      Femlib::value ("BASE_PERIOD", period = dt * i / (i - 1.0));
     // -- Fourier transform in time, scale for reconstruction.
     for (i = 0; i < nBase; i++) {
       Femlib::DFTr (baseFlow[i], nSlice, nTot, FORWARD);
