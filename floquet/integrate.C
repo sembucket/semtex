@@ -111,7 +111,7 @@ void integrate (void            (*Advection)(Domain*, AuxField**, AuxField**),
 
   // -- If base flow is periodic in time, start at the correct phase point.
 
-  D -> time = (forwards && period > EPSDP) ? 0.0 : dt*nStep - period;
+  if (period > EPSDP) D -> time = (forwards) ? 0.0 : dt*nStep;
 
   while (D -> step < nStep) {
 
