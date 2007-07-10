@@ -118,6 +118,7 @@ using namespace std;
 #include <utility.h>
 #include <femlib.h>
 #include <veclib.h>
+#include <blas.h>
 #include <mesh.h>
 
 
@@ -136,7 +137,7 @@ Mesh::Mesh (FEML*      f    ,
 // If check is true (default value) then attempt to install all mesh
 // information, including surfaces and curved sides.  If it is not,
 // then only sufficient information to define the elements is loaded
-// (i.e nodes and element vertices).
+// (i.e. nodes and element vertices).
 // ---------------------------------------------------------------------------
   _feml (*f)
 {
@@ -739,6 +740,8 @@ void Mesh::meshElmt (const int_t   ID,
 		     real_t*       x ,
 		     real_t*       y ) const
 // ---------------------------------------------------------------------------
+// This is a routine for use of Mesh by other classes (like Element).
+//
 // Generate mesh points for Elmt No ID (IDs begin at 0).  Generate
 // element-edge points, then internal points using a Coons patch.
 // Inputs zr, zs contain the spacing of edge knot points along
@@ -749,11 +752,15 @@ void Mesh::meshElmt (const int_t   ID,
 // Because the element edges will be mapped in CCW order, we have to
 // reverse the direction of the input spacings zr and zs on sides 2
 // and 3.
+//
+// Scale in x and y directions by X_SCALE and Y_SCALE TOKEN values.
 // ---------------------------------------------------------------------------
 {
   const char     routine[] = "Mesh::meshElmt";
-  const int_t    nm = np - 1;
-  const int_t    ns = _elmtTable[ID] -> nNodes();
+  const int_t    nm     = np - 1;
+  const int_t    ns     = _elmtTable[ID] -> nNodes();
+  const real_t   x_scal = Femlib::value ("X_SCALE");
+  const real_t   y_scal = Femlib::value ("Y_SCALE");
   register int_t i, j;
   vector<Point>  P (np);
   vector<real_t> work (np);
@@ -827,6 +834,11 @@ void Mesh::meshElmt (const int_t   ID,
 		    (1.0 - zs[i]) * (1.0 + zr[j]) * y[rma ( 0, nm, np)] +
 		    (1.0 + zs[i]) * (1.0 + zr[j]) * y[rma (nm, nm, np)] );
     }
+
+  // -- Carry out x--y scaling if required.
+
+  if (fabs (x_scal - 1.0) > EPSDP) Blas::scal (np*np, x_scal, x, 1);
+  if (fabs (y_scal - 1.0) > EPSDP) Blas::scal (np*np, y_scal, y, 1);
 }
 
 

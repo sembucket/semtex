@@ -56,7 +56,7 @@ static char RCS[] = "$Id$";
 
 #include <cfemdef.h>
 #include <cveclib.h>
-
+v
 static char  prog[]    = "rstress";
 static char* hdr_fmt[] = {	 /* -- Header output formatting. */
   "%-25s "             "Session\n",
@@ -123,14 +123,9 @@ int main (int    argc,
 	heada -> nel != headf -> nel)
       message (prog, "structure of files don't match",           ERROR);
 
-#if 0
-    if (!strstr (heada -> field, headf -> field))
-      message (prog, "average fields don't match dumped fields", ERROR);
-#else
     for (i = 0; i < strlen(headf -> field); i++)
       if (!strchr (heada -> field, headf -> field[i]))
       message (prog, "average fields don't match dumped fields", ERROR);
-#endif
 
     getdata   (avgfile, heada);
     getdata   (fldfile, headf);
@@ -345,7 +340,7 @@ static void demean (Dump* a,
 {
   int       i, j;
   const int nfields = strlen (f -> field);
-  const int npts = a -> np * a -> np * a -> nz * a -> nel;
+  const int npts    = a -> np * a -> np * a -> nz * a -> nel;
 
   for (i = 0; i < nfields; i++) {
     j = _index (a -> field, f -> field[i]);

@@ -18,18 +18,20 @@ public:
   char getName () { return _name; }
   Data2DF& reverse    ();
 
-  Data2DF& operator = (const Data2DF&);
-  Data2DF& operator = (const real_t);
+  Data2DF& operator  = (const Data2DF&);
+  Data2DF& operator  = (const real_t);
 
-  Data2DF& DFT1D      (const int_t);
-  Data2DF& DPT2D      (const int_t, const char);
+  Data2DF& operator *= (const Data2DF&);
 
-  Data2DF& filter1D   (const real_t, const int_t);
-  Data2DF& filter2D   (const real_t, const int_t);
+  Data2DF& DFT1D       (const int_t);
+  Data2DF& DPT2D       (const int_t, const char);
 
-  Data2DF& conjugate  (const bool);
-  Data2DF& symmetrize (const bool);
-  Data2DF& shift      (const real alpha, const bool);
+  Data2DF& filter1D    (const real_t, const int_t);
+  Data2DF& filter2D    (const real_t, const int_t);
+
+  Data2DF& conjugate   (const bool);
+  Data2DF& symmetrize  (const bool);
+  Data2DF& shift       (const real alpha, const bool);
 
 protected:
   const char  _name;
