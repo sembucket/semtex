@@ -751,7 +751,7 @@ static int_t getDump (ifstream&          file,
   if (u.size() == 0) {
     u.resize (nf);
     for (i = 0; i < nf; i++)
-      u[i] = new AuxField (new real_t[Geometry::nTotal()], nz, Esys, fields[i]);
+      u[i] = new AuxField (new real_t[Geometry::nTotal()], nz, Esys,fields[i]);
   } else if (u.size() != nf) 
     message (prog, "number of fields mismatch with first dump in file", ERROR);
 

@@ -48,6 +48,9 @@ static struct {
   "FFY"         ,   0.0    ,	/* -- y component.                        */
   "FFZ"         ,   0.0    ,	/* -- z component.                        */
 
+  "X_SCALE"     ,   1.0    ,    /* -- Optional factor to scale mesh in x. */
+  "Y_SCALE"     ,   1.0    ,    /* -- Optional factor to scale mesh in y. */
+
   /* -- Option switches. */
 
   "ITERATIVE"   ,   0   ,	/* -- Select PCG solver for velocities.   */
