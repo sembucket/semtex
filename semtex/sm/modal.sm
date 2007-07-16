@@ -12,6 +12,22 @@ moden 1		# Plot Modal energies
 		XLABEL \it t
 		YLABEL \it E_k
 		EXPAND 1.0
+mode0 1		# Plot Modal energies, mode 0/2D only
+		DATA $1
+		READ { t 1 m 2 e 3 }
+		SET e0 = e IF (m == 0)
+		SET t0 = t IF (m == 0)
+		SET le = lg(e0)
+		LIMITS t0 le
+		NOTATION -5 5 1 1
+		TICKSIZE 0 0 -1 0
+		LOCATION 5000 31000 5000 31000
+		EXPAND 1.1
+		BOX
+		POINTS t0 le
+		XLABEL \it t
+		YLABEL \it E_0
+		EXPAND 1.0
 mavg  123	# Compute average modal energies
 		# usage: mavg nmodes ek specvec
 		# input:  nmodes  number of Fourier modes
@@ -45,7 +61,7 @@ modav 123	# Average & plot modal energies
 		LIMITS ki _lavg
 		BOX
 		XLABEL \i k
-		YLABEL <{\i E(k)}>
+		YLABEL \langle{\i E(k)}\rangle
 		IF( $?3 ) { SET _mode = $3 } ELSE { SET _mode = 0 }
 		IF( _mode == 1 ) {
 		  CONNECT ki _lavg

@@ -1,9 +1,10 @@
 his2d	13      # Plot a 2-D history file
 		# usage: his2d filename [start skip]
 		DATA $1
+		TICKSIZE 0 0 0 0
 		if ($?2) { DEFINE start $2 } else { DEFINE start 0 }
 		if ($?3) { DEFINE skip  $3 } else { DEFINE skip  1 }
-		READ { t_his 1 u_his 2 v_his 3 p_his 4 }
+		READ { t_his 2 u_his 3 v_his 4 p_his 5 }
 		if ($start != 0 || $skip != 1) {
 		      set _iv = $start, DIMEN(t_his)-1, $skip
 		      foreach v { t_his u_his v_his p_his } {
@@ -23,7 +24,8 @@ his2d	13      # Plot a 2-D history file
 		XLABEL p(t)
 his3d	1	# Plot a 3-D history file
 		DATA $1
-		READ { t_his 1 u_his 2 v_his 3 w_his 4 p_his 5 }
+		TICKSIZE 0 0 0 0
+		READ { t_his 2 u_his 3 v_his 4 w_his 5 p_his 6 }
 		ERASE
 		LIMITS t_his u_his BOX POINTS t_his u_his
 		XLABEL u(t)
@@ -39,4 +41,3 @@ his3d	1	# Plot a 3-D history file
 		XLABEL p(t)
 
 limcyc		window 1 1 1 1 limits u_his v_his box points u_his v_his
-

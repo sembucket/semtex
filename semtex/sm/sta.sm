@@ -48,6 +48,39 @@ parrow  2       # Plot arrow-heads along line connecting $1 & $2
 			arro $_x1 $_y1 $_x2 $_y2
 		}
 
+arrow_line 45	# Draw a line in current style with an arrow-head on the end
+		# $1 = x1, $2 = y1
+		# $3 = x2, $4 = y2
+		# optional $5 = arrow size, relative to window (0.02 typical)
+		if ($?5) { \
+		DEFINE _dl ($5*SQRT(($gx2-$gx1)*($gx2-$gx1)	\
+				   +($gy2-$gy1)*($gy2-$gy1)))   \
+		} else { \
+		DEFINE _dl (0.02*SQRT(($gx2-$gx1)*($gx2-$gx1)	\
+				     +($gy2-$gy1)*($gy2-$gy1))) \
+		}
+		RELOCATE $1 $2
+		DEFINE _xp1 $($xp)
+		DEFINE _yp1 $($yp)
+		DRAW     $3 $4
+		DEFINE _xp2 $($xp)
+		DEFINE _yp2 $($yp)
+		DEFINE dx   ($_xp1 - $_xp2)
+		DEFINE dy   ($_yp1 - $_yp2)
+		DEFINE angl (ATAN2($dy,$dx))
+		DEFINE dx1 ($_dl*COS(0.25+$angl))
+		DEFINE dy1 ($_dl*SIN(0.25+$angl))
+		DEFINE _xx ($_xp2 + $dx1)
+		DEFINE _yy ($_yp2 + $dy1)
+		RELOCATE ( $_xp2 $_yp2 )
+		DRAW     ( $_xx $_yy )
+		DEFINE dx1 ($_dl*COS(-0.25+$angl))
+		DEFINE dy1 ($_dl*SIN(-0.25+$angl))
+		DEFINE _xx ($_xp2 + $dx1)
+		DEFINE _yy ($_yp2 + $dy1)
+		RELOCATE ( $_xp2 $_yp2 )
+		DRAW ( $_xx $_yy )
+
 xstate	1	# Plot X-state-variable history
 		DATA $1
 		READ { t_his 2 x_his 3 v_his 4 a_his 5 }
@@ -232,8 +265,10 @@ power	1	# Compute power flow in both directions
 
 ps	1	# Set up to direct output to PostScript file plot.ps
 		dev postscript :SY@: :OF@: $1
-eps	1       # Set up to redirect Encapulsted PostScript to file
+eps	1       # Set up to redirect Encapsulated PostScript to file
 		dev postfile   :SY@: :OF@: $1
+eps2	1       # Set up to redirect Encapsulated PostScript to file
+		dev postfile600   :SY@: :OF@: $1
 cps	1       # Set up to redirect Encapulsted Color PostScript to file
 		dev postcolfile   :SY@: :OF@: $1
 asp	1	# Plot autospectrum
