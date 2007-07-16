@@ -387,7 +387,11 @@ static void EV_small (real_t**    Kseq   ,
   //    complex eigenvector is a real-imaginary pair of rows
   //    of zvec.
 
+#if 1 // -- Right eigenvectors.
   F77NAME(dgeev) ("N","V",kdim,H,kdim,wr,wi,0,1,zvec,kdim,rwork,lwork,ier);
+#else // -- Left eigenvectors.
+  F77NAME(dgeev) ("V","N",kdim,H,kdim,wr,wi,0,1,zvec,kdim,rwork,lwork,ier);
+#endif
 
   if (ier) message (routine, "error return from dgeev", ERROR);
 
