@@ -27,7 +27,10 @@
 \def\Rey{\mbox{\it Re}}                             % Reynolds number
 \def\St{\mbox{\it St}}                              % Strouhal number
 \def\undertext#1{$\underline{\smash{\hbox{#1}}}$}   % underline running text
-\def\refitem{\noindent\hangindent=2em}              % hanging index for refs.
+\def\refitem{\noindent\hangindent=2em}              % hanging indent
+
+\newcommand{\NavSto}{Navier--Stokes}
+\newcommand{\Semtex}{\emph{Semtex}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
@@ -37,7 +40,7 @@
 
 \vspace*{\fill}
 
-{\huge Using {\sffamily Semtex}}
+{\huge Using \Semtex}
 
 \vspace{\fill}
 
@@ -57,7 +60,7 @@ Monash University
 %{\large Doc.\ 97/159(M)}\\
 \today
 
-\textsf{semtex} version 6.1
+\Semtex\ version 6.1
 
 \vspace*{\fill}
 
@@ -72,17 +75,18 @@ Monash University
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Introduction}
 
-\textsf{Semtex} is a family of spectral element simulation codes.  The
+\Semtex\ is a family of spectral element simulation codes.  The
 spectral element method is a high-order finite element technique that
 combines the geometric flexibility of finite elements with the high
 accuracy of spectral methods.  The method was pioneered in the mid
-1980's by Anthony Patera at MIT \cite{pat84,kp86}. \textsf{Semtex}
-uses parametrically mapped quadrilateral elements, and the classic GLL
-`nodal' shape function basis.  Algorithmically the code is similar to
-Ron Henderson's \textsf{Prism} \citep{hk95,kh98,hen99b}, but with some
-differences in design, and lacking mortar element capability. A
-notable extension is that \textsf{Semtex} can solve problems in
-cylindrical as well as Cartesian coordinate systems \citep{blsh04}.
+1980's by Anthony Patera at MIT \citep{pat84,kp86}. \Semtex\ uses
+parametrically mapped quadrilateral elements, the classic GLL `nodal'
+shape function basis, and continuous Galerkin projection.
+Algorithmically the code is similar to Ron Henderson's \emph{Prism}
+\citep{hk95,kh98,hen99b}, but with some differences in design, and
+lacking mortar element capability. A notable extension is that
+\Semtex\ can solve problems in cylindrical as well as Cartesian
+coordinate systems \citep{blsh04}.
 
 %-----------------------------------------------------------------------------
 \section{Numerical method}
@@ -94,9 +98,9 @@ is achieved by using tensor-product Lagrange interpolants within each
 element, where the nodes of these shape functions are placed at the
 zeros of Legendre polynomials mapped from the canonical domain
 [-1,~1]$\times$[-1,~1] to each element.  In one spatial dimension, the
-resulting Gauss--Lobatto--Legendre Lagrange interpolant which is~1 at
-one of the $N + 1$ Gauss--Lobatto points $x_j$ in [-1, 1] and~0 at the
-others is
+resulting Gauss--Lobatto--Legendre Lagrange interpolant which is unity
+at one of the $N + 1$ Gauss--Lobatto points $x_j$ in [-1, 1] and zero at
+the others is
 \begin{equation}
 \psi_j(x) = \frac{1}{N(N+1)L_N(x_j)}\frac{(1-x^2)L_N^\prime(x)}{x - x_j}.
 \end{equation}
@@ -132,11 +136,19 @@ the advantage that complex geometries can be accommodated by employing
 unstructured meshes.  The vertices of spectral elements meshes can be
 produced using finite-element mesh generation procedures.
 
+Time integration employs a backwards-time differencing scheme
+described by \citet{kio91}, more recently classified as a
+velocity-correction method by \citet{gush03}. One can select
+first, second, or third-order time integration, but second order is
+usually a reasonable compromise, and is the default
+scheme. Equal-order interpolation is used for velocity and pressure
+\citep[see][]{gms06}.
+
 %-----------------------------------------------------------------------------
 \section{Implementation}
 
 The top level of the code is written in C++, with calls to C and
-FORTRAN library routines, e.g.\ BLAS \& LAPACK. The original
+FORTRAN library routines, e.g.\ BLAS and LAPACK. The original
 implementation for two-dimensional Cartesian geometries was extended
 to three dimensions using Fourier expansion functions for
 spatially-periodic directions in Cartesian and cylindrical spaces.
@@ -166,23 +178,22 @@ although some aspects have changed with time and \citet{mt89} is more
 up-to-date.  The use of Fourier expansions to extend the method to
 three spatial dimensions is discussed by \citet{ap89}, \citet{kar89}
 and \citet{kar90}.  The use of spectral element techniques in
-cylindrical coordinates is dealt with in \citet{blsh04}.  The
-time-splitting method used for time integration is described by
-\citet*{kio91}.  The book by \citet{fun97} provides useful information
-and further references.  Recent overviews and some applications appear
-in \citet{kh98,hen99b}.  The definitive reference is now the book by
-\citet{kars05}, but you will also find the text by \citet*{dfm02}
-useful for alternative explanations and views.
+cylindrical coordinates is dealt with in \citet{blsh04}.  The book by
+\citet{fun97} provides useful information and further references.
+Recent overviews and some applications appear in \citet{kh98,hen99b}.
+The definitive reference is now the book by \citet{kars05}, but you
+will also find the text by \citet*{dfm02} useful for alternative
+explanations and views.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Starting out}
 
 It is assumed you're using some version of UNIX (this includes Mac OS
-X), and the current Semtex versions assume that your C++ compiler
-supports the standard libraries. Makefiles assume GNUmake.  SuperMongo
-and TECPLOT would be nice to have but are not essential to get up and
-running.  All major executables have a \texttt{-h} command line option
-which provides a usage prompt.
+X), and the current \Semtex\ versions assume that your C++ compiler
+supports the standard libraries. Makefiles assume GNUmake.
+\emph{SuperMongo} and \emph{Tecplot} would be nice to have but are not
+essential to get up and running.  All major executables have a
+\texttt{-h} command line option which provides a usage prompt.
 
 Application programs/Makefiles can be found in top and upper-level
 directories:
@@ -190,9 +201,9 @@ directories:
 \texttt{elliptic}    \= 
         Solve elliptic (Laplace, Poisson, Helmholtz) problems.\\
 \texttt{dns} \>
-        Solve time-varying Navier--Stokes problems, Cartesian/cylindrical.\\
+        Solve time-varying \NavSto\ problems, Cartesian/cylindrical.\\
 \end{tabbing}
-The Navier--Stokes solver can also be used to solve unsteady Stokes
+The \NavSto\ solver can also be used to solve unsteady Stokes
 problems.
 
 %============================================================================
@@ -204,10 +215,11 @@ make two central utilities (\texttt{compare} and \texttt{enumerate}),
 then make the direct numerical simulation solver \texttt{dns} and run
 regression checks on its output for a number of test cases. If all
 goes well, this process will end with a number of tests reported as
-\texttt{passed}.
+\texttt{passed}. In that case, go on and compile all the utilities,
+too (\texttt{cd utility; make all}).
 
 %----------------------------------------------------------------------------
-\subsection{Troubleshooting}
+\subsection{Troubleshooting installation problems}
 If the above process didn't work, there are a number of possible
 things lacking on your system, e.g.:
 \begin{enumerate}
@@ -215,19 +227,23 @@ things lacking on your system, e.g.:
 GNU's \texttt{make}: it needs to be in your \texttt{path} somewhere
 under the name \texttt{gmake}. On many systems now, \texttt{make}
 \emph{is} \texttt{gmake}, in which case you might want to make a soft
-link from \texttt{make} to \texttt{gmake} somewhere.
+link from \texttt{make} to \texttt{gmake}.
 \item
-the BLAS and LAPACK libraries\,---\,these should be either under
-\texttt{/usr/lib} or in \texttt{/usr/local/lib}: search for
+the BLAS and LAPACK libraries\,---\,these may be in
+\texttt{/usr/lib} or \texttt{/usr/local/lib}: search for
 \texttt{libblas} and \texttt{liblapack}.  On many systems, BLAS and
 LAPACK are vendor-supplied as part of some `math kernel' library.  NB:
 since quite heavy use is made of BLAS routine \texttt{dgemm}, it can
-be worthwhile finding BLAS versions in which this is well optimised.
+be worthwhile finding BLAS versions in which this is well optimised,
+see \S\,\ref{sec.speed}.
 \item
-a standard C++ compiler, or a FORTRAN77 compiler.  Note that F90, F95
+a standard C++ compiler, or a FORTRAN-77 compiler.  Note that F90, F95
 compilers now often supplant F77 compilers, and these can (and should)
 be substituted if available.
 \end{enumerate}
+If you have all these things but there are still compilation problems,
+you have some work to do.
+
 The first place to look is in the file \texttt{src/Makefile} which has
 the master set of compilation flags and directives for various
 operating systems. You my find your system here, or one that is
@@ -236,18 +252,33 @@ about how to set up for compilation on a new system.  As well, check
 the \texttt{README} file in the top directory. Of course, it is
 possible that the code is incompatible with some detail of your
 compilation system or has a bug, but it has had fairly extensive
-exercise on a number of UNIX systems by now.
+exercise on a number of UNIX systems by now. 
+
+If you are having problems, it's usually best to start small and work
+up. First try to make and install the \verb+veclib+ and \verb+femlib+
+libraries, since they do not use C++ or the linker. Try
+\verb+make libs+ at the top level, then if this is still problematic
+go to the \verb+veclib+ directory, do \texttt{make clean; make; make
+install}. When that works, do the same in the \texttt{femlib}
+directory. Next move on and try a simple C++ compile and link, e.g.\
+in the \texttt{utility} directory do \texttt{make calc} and try
+running \texttt{calc} (which is a little like the UNIX calculator
+utility \texttt{bc}, but uses \Semtex's function parser, and links
+\texttt{libfem.a}, the library produced in \texttt{femlib}): try say
+\texttt{1+1}. Next you should try compiling something that links to
+the BLAS and LAPACK, e.g.\ \texttt{compare}. Once this will compile,
+everything should.
 
 
 %============================================================================
 \section{Files}
 
-\textsf{Semtex} uses a base input file which describes the mesh,
-boundary conditions.  We call this a \verb+session+ file and
-typically it has no root extension.  It is written in a format
-patterned on HTML, which we have called FEML (for Finite Element
-Markup Language).  There are a number of example session files in the
-mesh directory.  Other files have standard extensions:
+\Semtex\ uses a base input file which describes the mesh, boundary
+conditions.  We call this a \verb+session+ file and typically it has
+no root extension.  It is written in a format patterned on HTML, which
+we have called FEML (for Finite Element Markup Language).  There are a
+number of example session files in the mesh directory.  Other files
+have standard extensions:
 \begin{tabbing}
 \texttt{session.num}  \=
         Global node numbers, produced by enumerate utility.\\
@@ -265,7 +296,6 @@ mesh directory.  Other files have standard extensions:
 \texttt{session.par} \> Used to define initial particle locations.\\
 \texttt{session.trk} \> Integrated particle locations.\\
 \end{tabbing}
-
 When writing a new session file it is best to run \texttt{meshpr}
 (and/or \texttt{meshpr -c}) on it before trying to use it for
 simulations.  \texttt{Meshpr} will catch most of the easier-to-make
@@ -277,7 +307,7 @@ utility as a visual check.
 
 Source code for these is found in the \texttt{utility} directory. You
 will need to make most of these by hand (using the supplied
-\texttt{Makefile}).  Here is a summary:
+\texttt{Makefile}, and \texttt{make all}).  Here is a summary:
 \begin{tabbing}
 \texttt{enumerate}  \= \kill
 \texttt{addfield} \>   
@@ -318,7 +348,7 @@ will need to make most of these by hand (using the supplied
         time-averaged variables.\\
 \texttt{save} \> Shell utility for automatic job resubmssion.\\
 \texttt{sem2tec} \>   
-        Convert field files to Amtec TECPLOT format.\\
+        Convert field files to Amtec \emph{Tecplot} format.\\
 \texttt{transform} \>      
         Take Fourier, Legendre, modal basis transform of a field
 	file. Invertible.\\
@@ -329,7 +359,7 @@ will need to make most of these by hand (using the supplied
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\chapter{Examples}
+\chapter{Examples and hints}
 
 We will run through some examples to illustrate input files, utility
 routines, and the use of the solvers.
@@ -337,7 +367,7 @@ routines, and the use of the solvers.
 %============================================================================
 \section{2D Taylor flow}
 
-Taylor flow is an analytical solution to the Navier--Stokes equations.
+Taylor flow is an analytical solution to the \NavSto\ equations.
 In the $x$--$y$ plane the solution is 
 \begin{eqnarray}
         u &=& -\cos(\pi x) \sin(\pi y) \exp(-2\pi^2\nu t),\\
@@ -345,7 +375,7 @@ In the $x$--$y$ plane the solution is
         p &=& -(\cos(2\pi x) + \cos(2\pi y)) \exp(-4\pi^2\nu t)/4.
 \end{eqnarray}
 The solution is doubly periodic in space, with periodic length 2.  As
-usual for Navier--Stokes solutions, the pressure can only be specified
+usual for \NavSto\ solutions, the pressure can only be specified
 up to an arbitrary constant.  An interesting feature of this solution
 is that the nonlinear and pressure gradient terms balance one another,
 leaving a diffusive decay of the initial condition --- this property
@@ -354,7 +384,7 @@ is occasionally useful for checking codes.
 %----------------------------------------------------------------------------
 \subsection{Session file}
 
-Below is the complete input or \textsl{session} file we will use; it
+Below is the complete input or \emph{session} file we will use; it
 has four elements, each of the same size, with 11 nodes along each
 edge.  We will call this session file \texttt{taylor2} in the
 following.
@@ -440,7 +470,7 @@ appear in the session file is irrelevant.
 The \texttt{USER} section is ignored by the solvers, and is used
 instead by utilities --- in this case it will be used by the
 \texttt{compare} utility both to generate the initial condition or
-\textsl{restart} file and to check the computed solution.  This
+\emph{restart} file and to check the computed solution.  This
 section declares the variables corresponding to the solution fields
 with the corresponding analytical solutions.  The variables
 \texttt{x}, \texttt{y}, \texttt{z} and \texttt{t} can be used to
@@ -561,7 +591,7 @@ karman[20] head -20 taylor2.num
 }
 
 The \texttt{compare} utility is used to generate a file of initial
-conditions.  This \textsl{restart} file contains binary data, but
+conditions.  This \emph{restart} file contains binary data, but
 we'll have a look at the start of it by converting it to ASCII format.
 Also, the header of these files is always in ASCII format, and so can
 be examined directly using the Unix \texttt{head} command.
@@ -593,7 +623,7 @@ ASCII                     Format
 }
 
 Then the \texttt{dns} solver is run to generate a solution or
-\textsl{field} file, \texttt{taylor2.fld}.  This has the same format
+\emph{field} file, \texttt{taylor2.fld}.  This has the same format
 as the restart file.
 {\small
 \begin{verbatim}
@@ -647,9 +677,9 @@ The velocity error norms are small, as expected, but the pressure norm
 will always be arbitrary, corresponding to the fact that the pressure
 can only be specified to within an arbitrary constant.
 
-Finally we will use \texttt{sem2tec} to generate a TECPLOT input file.
-The TECPLOT utility \texttt{preplot} must also be in your \texttt{path}.
-{\small
+Finally we will use \texttt{sem2tec} to generate a \emph{Tecplot}
+input file.  The \emph{Tecplot} utility \texttt{preplot} must also be
+in your \texttt{path}.  {\small
 \begin{verbatim}
 karman[36] sem2tec -m taylor2.msh taylor2.fld
 \end{verbatim}
@@ -668,7 +698,7 @@ grid of the same order.
 \end{center}
 \caption{
 \label{tay2soln}
-  Solution to the \texttt{taylor2} problem, visualized using TECPLOT.
+  Solution to the \texttt{taylor2} problem, visualized using \emph{Tecplot}.
 }
 \end{figure}
 
@@ -689,7 +719,7 @@ the selection of the PCG solver.  We will call the session file
 The elliptic solver can also be used to solve Poisson and Helmholtz
 problems in 2D and 3D Cartesian and cylindrical coordinate systems.
 Apart from this use it provides a means to test new formulations of
-elliptic solution routines used also in the Navier--Stokes type
+elliptic solution routines used also in the \NavSto\ type
 solvers.
 
 {\small
@@ -1015,7 +1045,7 @@ internally, so no value is required (if given, it will be ignored).
 After running \verb+dns+, we confirm there is only a single dump in the
 field file \verb+kovas3.fld+, then run compare in order to examine the
 error norms for the solution.  Following that we prepare input for
-TECPLOT, projecting the interpolation to a $20\times20$ grid in each
+\emph{Tecplot}, projecting the interpolation to a $20\times20$ grid in each
 element.  A view of the result can be seen in figure~\ref{kov3soln}.
 {\small
 \begin{verbatim}
@@ -1031,33 +1061,32 @@ karman[27] meshpr kovas3 | sem2tec -n20 kovas3.fld
 }
 \begin{figure}
 \begin{center}
-\includegraphics[width=0.75\textwidth]{kovas3_bitmap.eps}
+\includegraphics[width=0.65\textwidth]{kovas3_bitmap.eps}
 \end{center}
 \caption{
 \label{kov3soln}
-  Solution to the \texttt{kovas3} problem, visualized using TECPLOT.
-  The plot shows contours of $v$ velocity component and streamlines.
-  }
+  Solution to the \texttt{kovas3} problem, visualized using
+  \emph{Tecplot}.  The plot shows contours of $v$ velocity component
+  and streamlines.  }
 \end{figure}
 
 %============================================================================
-\section{Vortex breakdown\,---\,a cylindrical problem}
+\section{Vortex breakdown\,---\,a cylindrical-coordinate problem}
 
 Here we will examine a problem which uses the cylindrical coordinate
 option of \verb+dns+.  The physical situation is a cylindrical cavity,
 $H/R=2.5$ with the flow driven by a spinning lid at one end.  At the
 Reynolds number we'll use, $\Rey=\Omega R^2/\nu=2119$, a vortex
 breakdown is known to occur.  The flow in this case is invariant in
-the azimuthal direction, so we will solve with only two azimuthal
-planes: in fact in the Fourier decomposition, the second plane will
-correspond to the spatial Nyquist frequency and the code will set it
-to zero with no temporal evolution.  There must be at least two
-azimuthal planes in order to to have three velocity components however
-it would be possible to write a code which solved for three velocity
-components in two dimensions.  In the cylindrical code, the order of
-spatial directions and velocity components is $z$, $r$, $\theta$.
-Note for a full circle in the azimuthal direction, \texttt{BETA =
-1.0}, (which is the default value).
+the azimuthal direction, but has three velocity components (it is
+2D/3C).  In the cylindrical code, the order of spatial directions and
+velocity components is $z$, $r$, $\theta$.
+
+Note that for a full circle in the azimuthal direction, \texttt{BETA =
+  1.0}, (which is the default value). In fact, the value would not be
+used in the present solution, since all derivatives in the azimuthal
+direction are implicitly zero when \verb+N_Z=1+. (But see
+\S\,\ref{sec.cbcs} below.)
 
 {\small
 \begin{verbatim}
@@ -1070,13 +1099,14 @@ Note for a full circle in the azimuthal direction, \texttt{BETA =
 
 <TOKENS>
         CYLINDRICAL = 1
-        N_Z         = 2
+        N_Z         = 1
         BETA        = 1.0
         N_TIME      = 2
         N_P         = 11
         N_STEP      = 100000
         D_T         = 0.01
-        KINVIS      = 0.000472
+	Re          = 2119
+        KINVIS      = 1/Re
         OMEGA       = 1.0
         TOL_REL     = 1e-12
 </TOKENS>
@@ -1176,7 +1206,7 @@ velocity field is shown compared to an experimental streakline flow
 visualisation on the front cover of this document.
 \begin{figure}
 \begin{center}
-\includegraphics[width=0.75\textwidth]{vb1mesh.eps}
+\includegraphics[width=0.6\textwidth]{vb1mesh.eps}
 \end{center}
 \caption{
 \label{vb1msh}
@@ -1186,25 +1216,132 @@ visualisation on the front cover of this document.
 
 %----------------------------------------------------------------------------
 \subsection{BCs for cylindrical coordinates}
+\label{sec.cbcs}
 
 A new feature here is the use of BCs of type \verb+A+ on the axis of
 the flow.  Internally, the code sets the BC there either as zero
 essential or zero natural, depending on the physical variable and the
 Fourier mode.  Owing to the coupling scheme used in the code
-\cite{blsh04}, the boundary conditions for the radial and azimuthal
+\citep{blsh04}, the boundary conditions for the radial and azimuthal
 velocities \verb+v+ and \verb+w+ must be of the same type within each
 group.  A further restriction is that the group to which the axis
 belongs must have name \verb+axis+.
+
+Finally, say you wish to solve a cylindrical-coordinate problem where
+there is an $n$-fold azimuthal symmetry (say $n=3$). In that case, it
+is much cheaper to solve with \verb+BETA=3+, and use 1/3 the number of
+azimuthal planes that would be required for \verb+BETA=1+. However, if
+the axis is included in the domain, you should also set
+\verb+K_FUND=3+ --- this ensures that the correct axial boundary
+conditions (which are Fourier-mode-number dependent) get selected by
+the code. Usually I set say \verb+K_FUND=3+ and \verb+BETA=K_FUND+.
+
+%=============================================================================
+\section{Fixing problems}
+\label{sec.fix}
+
+You are liable to come up against a few generic problems when making
+and running your own cases. Here we will restrict discussion to
+\NavSto\ problems and \verb+dns+. The best diagnostic of trouble is
+the divergence of the solution. The code will output an estimate of
+the CFL-timestep every \verb+IO_CFL+ timesteps (default 50), along
+with the average divergence of the solution (in the operator-splitting
+used, incompressibility is only ensured in the spatial-convergence
+limit). Unfortunately the CFL estimate is presently rather unreliable,
+but the divergence energy provides an excellent diagnostic of trouble!
+If velocity and length scales are of order unity, the reported
+divergence energy should be much less than unity; if the divergence is
+large then either the solution is blowing up\footnote{One wag
+suggested the name \Semtex\ was associated with this property of the
+solutions.}, or the spatial resolution is inadequate, or both.
+
+By far the most common problem is that the solution will have a
+CFL-type instability brought about by using too large a time-step;
+this instability is unavoidably associated with using explicit time
+integration for the advection terms in the \NavSto\ equations. This
+problem is easily enough fixed: try reducing \verb+D_T+ and increasing
+\verb+N_STEP+ to maintain the same integration interval. Obviously you
+will typically want \verb+D_T+ as large as possible, so if the problem
+runs stably, increase the timestep as much as is reasonable. If the
+velocity and timescales are of order unity, then the maximum timestep
+would typically be of order two orders of magnitude smaller
+(\verb+0.01+). Note that CFL-stability will decrease with increasing
+time-integration order (\verb+N_TIME+).
+
+If the solution persists in blowing up when the timestep is reduced,
+the next most common cause is that there is inflow across an outflow
+boundary (in which case the problem is ill-posed, however, in practice
+\emph{some} inflow across an outflow boundary over restricted times
+may be present without causing difficulty). To check if this is the
+cause, you could put some history points near the outflow (see
+\S\,\ref{sec.history}), but the best method is to run the solution up
+to a time when divergence starts to increase markedly, then use
+\emph{Tecplot} or some other postprocessor to examine the solution
+near the outflow. Fixing the problem will generally require the mesh
+to be altered: sometimes the mesh is badly structured near the outflow
+(e.g.\ element sizes have been varied too rapidly); sometimes the
+problem can be overcome by extending the domain downstream; sometimes
+the domain needs to be reshaped (e.g.\ by contracting it in the
+cross-flow direction) so that there will be no outflow over the inflow
+boundary. But unfortunately, sometimes one will conclude that no
+matter how the problem is tackled, there will be inflow somewhere over
+the outflow boundary: try a different problem.
+
+Any time you change the element polynomial order by changing
+\verb+N_P+, or alter the structure of the boundary conditions, you
+should remake the numbering file \verb+session.num+. It is especially
+important to remember this if you have changed the structure of the
+boundary conditions without changing element order, as no warning will
+be triggered; however, in this case you may no longer be actually
+applying the boundary conditions you have set in the session file
+because the \verb+mask+ values in \texttt{session.num} (which are set
+to \verb+1+ along a Dirichlet-type boundary) may no longer match what
+is implied by \texttt{session}.
+
+%=============================================================================
+\section{Speed}
+\label{sec.speed}
+
+\Semtex\ relies heavily on the BLAS, so it can be worth seeking fast
+implementations. Especially, performance of matrix--matrix
+multiplication routine \verb+dgemm+ is critical. Consistently of late,
+Kazushige Goto's implementation of the BLAS gives best performance and
+is worth seeking out, although I understand his \verb+dgemm+ has also
+now been licenced to various vendors and is what you'll get if you
+link their versions of the BLAS.
+
+As Reynolds numbers increase (i.e.\ \verb+KINVIS+ decreases), the
+viscous Helmholtz matrices in the operator splitting become more
+diagonally dominant and better conditioned. In this case, you may find
+that iterative solution of the viscous step (obtained by setting
+\verb+ITERATIVE=1+ or running \verb+dns -i+) is actually faster than
+the direction solution that is obtained by default. This is nice
+because additionally, less memory is required. It is generally worth
+checking this if you plan an extended series of runs, and Reynolds
+numbers are large.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Extra controls}
 
 This chapter describes some additional features that are implemented
-within the Navier--Stokes solver \verb+dns+ to control execution and
+within the \NavSto\ solver \verb+dns+ to control execution and
 output.
 
 %=============================================================================
+\section{Default values of flags and internal variables}
+\label{sec.default}
+
+There are two simple ways to establish the default values of all the
+internal flags and variables used by \Semtex. The first is via
+the \verb+calc+ utility: run \verb+calc -h+ and check the output (this
+will also show you all the functions available to the parser for
+calculating \verb+TOKEN+ variables, initial and boundary
+conditions). The second is to examine the file
+\verb+femlib/defaults.h+.
+
+%=============================================================================
 \section{Checkpointing}
+\label{sec.check}
 
 By default, intermediate solutions are appended to \verb+session.fld+
 every \verb+IO_FLD+ steps (default value \verb+IO_FLD = 500+).  For
@@ -1222,6 +1359,7 @@ over-ridden by whatever is set in the \verb+session+ file.
 
 %=============================================================================
 \section{Iterative solution}
+\label{sec.iterative}
 
 Two matrix solution methods are implemented for Helmholtz problems
 associated with the pressure and viscous substeps of the time
@@ -1256,6 +1394,7 @@ premium.
 
 %=============================================================================
 \section{Wall fluxes}
+\label{sec.flux}
 
 A file called \verb+session.flx+ is used to store the integral over
 the \verb+wall+ group boundaries of viscous and pressure stresses
@@ -1270,6 +1409,7 @@ radian (in the $z$ direction) rather than forces per unit length.
 
 %=============================================================================
 \section{Wall tractions}
+\label{sec.traction}
 
 If the token \verb+IO_WSS+ is set to a non-zero value then the normal
 and the single (2D) or two (3D) components of tangential boundary
@@ -1281,6 +1421,7 @@ along the walls.
 
 %=============================================================================
 \section{Modal energies}
+\label{sec.modal}
 
 For 3D simulations (\verb+N_Z > 2+), a file of modal energies,
 \verb+session.mdl+, is produced.  This provides valuable diagnostic
@@ -1292,11 +1433,13 @@ E_k =
 \frac{1}{2A}\int_\Omega
 \hat{\bs{u}}_k^\ast\cdot\hat{\bs{u}}_k \,{\rm d}\Omega,
 \]
-where $A$ is the area of the 2D domain~$\Omega$.  Each line of the
-file contains the time $t$, mode number $k$ and $E_k$.
+where $A$ is the area of the 2D domain~$\Omega$.  (In cylindrical
+coordinate problems, the integrand is multiplied by radius.) Each line
+of the file contains the time $t$, mode number $k$ and $E_k$.
 
 %=============================================================================
 \section{History points}
+\label{sec.history}
 
 History points are used to record solution variables at fixed spatial
 locations as the simulation proceeds.  The locations need not
@@ -1319,6 +1462,7 @@ controlled by the \verb+IO_HIS+ token; the default value is
 
 %=============================================================================
 \section{Averaging}
+\label{sec.average}
 
 Set \verb+AVERAGE = 1+ in the tokens section to get averages of field
 variables left in files \verb+session.ave+ and \verb+session.avg+
@@ -1358,6 +1502,7 @@ coordinates.
 
 %=============================================================================
 \section{Particle tracking}
+\label{sec.particle}
 
 The code allows for tracking of massless particles, but this only
 works correctly for non-concurrent execution at present.  Tracking is
@@ -1390,6 +1535,7 @@ The special compilations below can be combined.
 
 %=============================================================================
 \section{Concurrent execution}
+\label{sec.parallel}
 
 The code supports concurrent execution for 3D simulations, with MPI
 used as the message-passing kernel. Compile using \verb+make MPI=1+ to
@@ -1406,6 +1552,7 @@ sure you delete \verb+nonlinear.o+ first).
 
 %=============================================================================
 \section{Time-varying boundary conditions}
+\label{sec.tbcs}
 
 By default, the velocity boundary conditions are frozen for the time
 corresponding to the initial conditions. If you compile with
@@ -1417,6 +1564,7 @@ first.
 
 %=============================================================================
 \section{Convective advection terms}
+\label{sec.advect}
 
 By default, the code computes the nonlinear advection terms in
 skew-symmetric form $0.5(\bm{\nabla\cdot u u}+\bm{u\cdot\nabla u})$,
@@ -1428,6 +1576,7 @@ delete \verb+nonlinear.o+ first.
 
 %=============================================================================
 \section{Stokes solver}
+\label{sec.stokes}
 
 To produce an unsteady Stokes solver (i.e.\ \verb+dns+ without
 nonlinear terms included), compile using \verb+make STOKES=1+, to
