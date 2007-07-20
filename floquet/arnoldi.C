@@ -390,7 +390,7 @@ static void EV_small (real_t**    Kseq   ,
 #if 1 // -- Right eigenvectors.
   F77NAME(dgeev) ("N","V",kdim,H,kdim,wr,wi,0,1,zvec,kdim,rwork,lwork,ier);
 #else // -- Left eigenvectors.
-  F77NAME(dgeev) ("V","N",kdim,H,kdim,wr,wi,0,1,zvec,kdim,rwork,lwork,ier);
+  F77NAME(dgeev) ("V","N",kdim,H,kdim,wr,wi,zvec,kdim,0,1,rwork,lwork,ier);
 #endif
 
   if (ier) message (routine, "error return from dgeev", ERROR);
@@ -801,6 +801,7 @@ static int_t preprocess (const char* session,
   // -- Set default additional tokens.
 
   Femlib::value  ("BASE_PERIOD", 0.0);
+  Femlib::value  ("T_OFFSET",    0.0);
   Femlib::ivalue ("BIG_RESIDS",  0);
 
   // -- Start up dealing with session file.

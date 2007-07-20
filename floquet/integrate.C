@@ -54,6 +54,7 @@ void integrate (void            (*Advection)(Domain*, AuxField**, AuxField**),
   int_t        i, j, k;
   const real_t dt       = Femlib::value  ("D_T");
   const real_t period   = Femlib::value  ("BASE_PERIOD");
+  const real_t tstart   = Femlib::value  ("T_0FFSET");
   const int_t  nStep    = Femlib::ivalue ("N_STEP");
   const bool   forwards = (Advection == linAdvect) ? true : false;
 
@@ -111,7 +112,7 @@ void integrate (void            (*Advection)(Domain*, AuxField**, AuxField**),
 
   // -- If base flow is periodic in time, start at the correct phase point.
 
-  if (period > EPSDP) D -> time = (forwards) ? 0.0 : dt*nStep;
+  if (period > EPSDP) D -> time = (forwards) ? tstart : tstart + dt*nStep;
 
   while (D -> step < nStep) {
 
