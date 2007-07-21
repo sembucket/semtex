@@ -141,6 +141,7 @@ static void preprocess (const char*       session,
   // -- Set default additional tokens.
 
   Femlib::value ("BASE_PERIOD", 0.0);
+  Femlib::value ("T_OFFSET",    0.0);
 
   // -- Initialise problem and set up mesh geometry.
 
