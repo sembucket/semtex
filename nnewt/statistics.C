@@ -593,11 +593,15 @@ ifstream& operator >> (ifstream&   strm,
   
   strm.getline (s, StrMax) . getline (s, StrMax);
 
+  string ss(s);
+  istringstream sss (ss);
+  sss >> np >> np >> nz >> nel;
+ 
   tgt._avg.begin()->second->describe (f);
+  sss.clear ();
+  sss.str   (ss = f);
+  sss >> npchk >> npchk >> nzchk >> nelchk;
 
-  istrstream (s, strlen (s)) >> np    >> np    >> nz    >> nel;
-  istrstream (f, strlen (f)) >> npchk >> npchk >> nzchk >> nelchk;
-  
   if (np  != npchk ) message (routine, "element size mismatch",       ERROR);
   if (nz  != nzchk ) message (routine, "number of z planes mismatch", ERROR);
   if (nel != nelchk) message (routine, "number of elements mismatch", ERROR);
@@ -606,8 +610,11 @@ ifstream& operator >> (ifstream&   strm,
   if (ntot != Geometry::nTot())
     message (routine, "declared sizes mismatch", ERROR);
 
-  strm.getline (s,StrMax);
-  istrstream (s, strlen (s)) >> tgt._navg;
+  strm.getline (s, StrMax);
+
+  sss.clear();
+  sss.str  (ss = s);
+  sss >> tgt._navg;
     
   strm.getline (s, StrMax) . getline (s, StrMax);
   strm.getline (s, StrMax) . getline (s, StrMax) . getline (s, StrMax);

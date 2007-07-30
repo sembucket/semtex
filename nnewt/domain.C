@@ -173,8 +173,7 @@ void Domain::dump ()
 	strcat (strcpy (dumpfl, name), ".chk");
 	if (!initial) {
 	  strcat  (strcpy (backup, name), ".chk.bak");
-	  sprintf (command, "mv ./%s ./%s", dumpfl, backup);
-	  system  (command);
+	  rename  (dumpfl, backup);
 	}
 	output.open (dumpfl, ios::out);
       }
@@ -214,8 +213,8 @@ void Domain::transform (const int_t sign)
 }
 
 
-ofstream& operator << (ofstream& strm,
-		       Domain&   D   )
+ostream& operator << (ostream& strm,
+		      Domain&  D   )
 // ---------------------------------------------------------------------------
 // Output all Domain field variables on ostream in prism-compatible
 // form.  Binary output only.  Note that output is only done on root
@@ -230,8 +229,8 @@ ofstream& operator << (ofstream& strm,
 }
 
 
-ifstream& operator >> (ifstream& strm,
-		       Domain&   D   )
+istream& operator >> (istream& strm,
+		      Domain&  D   )
 // ---------------------------------------------------------------------------
 // Input all Domain field variables from prism-compatible istream.
 //
@@ -252,10 +251,14 @@ ifstream& operator >> (ifstream& strm,
   if (strm.getline(s, StrMax).eof()) return strm;
 
   strm.getline(s,StrMax).getline(s,StrMax);
-  
+  string ss(s);
+  istringstream sss (ss);
+  sss >> np >> np >> nz >> nel;
+
   D.u[0] -> describe (f);
-  istrstream (s, strlen (s)) >> np    >> np    >> nz    >> nel;
-  istrstream (f, strlen (f)) >> npchk >> npchk >> nzchk >> nelchk;
+  sss.clear();
+  sss.str (ss = f);
+  sss >> npchk >> npchk >> nzchk >> nelchk;
   
   if (np  != npchk ) message (routine, "element size mismatch",       ERROR);
   if (nz  != nzchk ) message (routine, "number of z planes mismatch", ERROR);
@@ -266,12 +269,15 @@ ifstream& operator >> (ifstream& strm,
     message (routine, "declared sizes mismatch", ERROR);
 
   strm.getline(s,StrMax);
-  istrstream (s, strlen (s)) >> D.step;
+  sss.clear();
+  sss.str  (ss = s);
+  sss >> D.step;
 
   strm.getline(s,StrMax);
-  istrstream (s, strlen (s)) >> D.time;
+  sss.clear();
+  sss.str  (ss = s);
   Femlib::value ("t", D.time);
-  
+
   strm.getline(s,StrMax).getline(s,StrMax);
   strm.getline(s,StrMax).getline(s,StrMax);
 

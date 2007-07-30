@@ -13,8 +13,8 @@ class Domain
 // NB: ua is added for nnewt.
 // ===========================================================================
 {
-friend ifstream& operator >> (ifstream&, Domain&);
-friend ofstream& operator << (ofstream&, Domain&);
+friend istream& operator >> (istream&, Domain&);
+friend ostream& operator << (ostream&, Domain&);
 public:
   Domain (FEML*, vector<Element*>&, BCmgr*);
 
