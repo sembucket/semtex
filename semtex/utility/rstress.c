@@ -56,7 +56,7 @@ static char RCS[] = "$Id$";
 
 #include <cfemdef.h>
 #include <cveclib.h>
-v
+
 static char  prog[]    = "rstress";
 static char* hdr_fmt[] = {	 /* -- Header output formatting. */
   "%-25s "             "Session\n",
