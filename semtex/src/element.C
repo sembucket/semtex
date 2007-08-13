@@ -786,7 +786,7 @@ real_t Element::area () const
 
 void Element::weight (real_t* tgt) const
 // ---------------------------------------------------------------------------
-// Multiply tgt by elemental mass matrix. Not multiplied by radius.
+// Multiply tgt by elemental mass matrix. NB: not multiplied by radius.
 // ---------------------------------------------------------------------------
 {
   Veclib::vmul (_npnp, tgt, 1, _Q8, 1, tgt, 1);

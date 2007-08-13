@@ -60,7 +60,7 @@ void integrateNS (Domain*      D,
   int_t              i, j, k;
   const real_t       dt    = Femlib:: value ("D_T");
   const int_t        nStep = Femlib::ivalue ("N_STEP");
-  const int_t        TBCS  = clamp (Femlib::ivalue ("TBCS"), 0, 2);
+  const int_t        TBCS  = Femlib::ivalue ("TBCS");
   const int_t        nZ    = Geometry::nZProc();
 
   static Msys**      MMS;
