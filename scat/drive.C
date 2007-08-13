@@ -1,6 +1,9 @@
 //////////////////////////////////////////////////////////////////////////////
-// drive.C: control spectral element solver for unsteady incompressible
-// flow with scalar transport.
+// drive.C: control spectral element solver for unsteady
+// incompressible flow with scalar transport.
+//
+// Optional Boussinesq buoyancy. NB: for cylindrical coordinates, only
+// axial gravity is currently implemented.
 //
 // Copyright (C) 1997 <--> $Date$, Hugh Blackburn
 //
@@ -10,22 +13,23 @@
 //   options:
 //   -h       ... print usage prompt
 //   -i[i]    ... use iterative solver for viscous [and pressure] steps
+//   -t[t]    ... select time-varying BCs for mode 0 [or all modes]
 //   -v[v...] ... increase verbosity level
-//   -chk     ... checkpoint field dumps
+//   -chk     ... turn off checkpoint field dumps [default: selected]
 //
 // AUTHOR:
 // ------
 // Hugh Blackburn
-// CSIRO
-// P.O. Box 56
-// Highett, Vic 3190
+// Department of Mechanical Engineering
+// Monash University
+// Vic 3800
 // Australia
-// hugh.blackburn@csiro.au
+// hugh.blackburn@eng.monash.edu.au
 //////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
 
-#include "scat.h"
+#include <scat.h>
 
 static char prog[] = "scat";
 static void getargs    (int, char**, char*&);
@@ -35,12 +39,16 @@ static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 void NavierStokes (Domain*, ScatAnalyser*);
 
 
-integer main (int    argc,
-	      char** argv)
+int main (int    argc,
+	  char** argv)
 // ---------------------------------------------------------------------------
 // Driver.
 // ---------------------------------------------------------------------------
 {
+#ifdef _GNU_SOURCE
+  feenableexcept (FE_OVERFLOW);    // -- Force SIG8 crash on FP overflow.
+#endif
+
   char*            session;
   vector<Element*> elmt;
   FEML*            file;
@@ -82,9 +90,10 @@ static void getargs (int    argc   ,
     "Usage: %s [options] session-file\n"
     "  [options]:\n"
     "  -h        ... print this message\n"
-    "  -i[i]     ... use iterative solver for viscous [& pressure] steps\n"
-    "  -v[v...]  ... increase verbosity level\n"
-    "  -chk      ... checkpoint field dumps\n";
+    "  -i[i]    ... use iterative solver for viscous [& pressure] steps\n"
+    "  -t[t]    ... select time-varying BCs for mode 0 [or all modes]\n"
+    "  -v[v...] ... increase verbosity level\n"
+    "  -chk     ... turn off checkpoint field dumps [default: selected]\n";
  
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
@@ -95,21 +104,22 @@ static void getargs (int    argc   ,
       break;
     case 'i':
       do
-	Femlib::value ("ITERATIVE", Femlib::ivalue ("ITERATIVE") + 1);
+	Femlib::ivalue ("ITERATIVE", Femlib::ivalue ("ITERATIVE") + 1);
+      while (*++argv[0] == 'i');
+      break;
+    case 't':
+      do
+	Femlib::ivalue ("TBCS",      Femlib::ivalue ("TBCS")      + 1);
       while (*++argv[0] == 'i');
       break;
     case 'v':
       do
-	Femlib::value ("VERBOSE", Femlib::ivalue ("VERBOSE") + 1);
+	Femlib::ivalue ("VERBOSE",   Femlib::ivalue ("VERBOSE")   + 1);
       while (*++argv[0] == 'v');
       break;
     case 'c':
-      if (strstr ("chk", *argv)) {
-	Femlib::value ("CHKPOINT", 1);
-      } else {
-	fprintf (stdout, usage, prog);
-	exit (EXIT_FAILURE);	  
-      }
+      if (strstr ("chk", *argv))     Femlib::ivalue ("CHKPOINT",    0);
+      else { fprintf (stdout, usage, prog); exit (EXIT_FAILURE); }
       break;
     default:
       sprintf (buf, usage, prog);
