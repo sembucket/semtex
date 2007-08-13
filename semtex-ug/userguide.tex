@@ -1393,6 +1393,22 @@ the pressure substep is only of any practical use when memory at a
 premium.
 
 %=============================================================================
+\section{Time-varying boundary conditions}
+\label{sec.tbcs}
+
+By default, the velocity boundary conditions are frozen for the time
+corresponding to the initial conditions. However, you can also use
+boundary conditions that vary with time if they are written as a
+function of \texttt{t}. In addition you need to set command-line flags
+to \texttt{dns}, or set the token \texttt{TBCS}. If you run
+\verb+dns -t+ or set \texttt{TOKEN} \verb+TBCS=1+ then the
+\emph{zeroth Fourier mode's} (2D) velocity boundary conditions are
+re-evaluated every time step.  However, if you run \verb+dns -tt+ or
+set \texttt{TOKEN} \verb+TBCS=2+ then the then the complete set of
+(3D) velocity boundary conditions are re-evaluated every time step.
+
+
+%=============================================================================
 \section{Wall fluxes}
 \label{sec.flux}
 
@@ -1549,18 +1565,6 @@ code. To get a serial code that does not perform dealiasing on Fourier
 terms (e.g.\ for cross-checking), compile the serial code using
 \verb+make ALIAS=1+ to produce \verb+dns_alias+ (in which case make
 sure you delete \verb+nonlinear.o+ first).
-
-%=============================================================================
-\section{Time-varying boundary conditions}
-\label{sec.tbcs}
-
-By default, the velocity boundary conditions are frozen for the time
-corresponding to the initial conditions. If you compile with
-\verb+make TBCS=1+ you will generate \verb+dns_tbcs+ in which the
-\emph{zeroth Fourier mode's} (2D) velocity boundary conditions are
-re-evaluated every time step. Usually one only wants to vary the 2D
-boundary conditions. NB: make sure you delete \verb+integrate.o+
-first.
 
 %=============================================================================
 \section{Convective advection terms}
