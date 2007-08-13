@@ -293,6 +293,7 @@ void nonLinear (Domain*         D ,
 	if (i < 2) master -> mulY (1, tmp);
 	N[i] -> addToPlane (0, tmp);
       }
+
       *N[i] *= -0.5;
     }
   

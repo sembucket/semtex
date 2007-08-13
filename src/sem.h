@@ -13,7 +13,7 @@
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <cstdarg>		/* System C headers.  */
+#include <cstdarg>		/* System C(++) headers.  */
 #include <cstdlib>
 #include <cstdio>
 #include <cmath>
@@ -24,10 +24,7 @@
 #include <cassert>
 #include <ctime>
 
-
-#ifdef __itanium__             /* Special for FPE on Itanium2 */
-#include <fenv.h>
-#endif
+#include <fenv.h>		/* Std C floating-point error handling. */
 
 
 #include <iostream>		/* System C++ headers. */

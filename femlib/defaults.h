@@ -1,6 +1,6 @@
 /*****************************************************************************
  * DEFAULTS.H:  default parameter initializations for initial.y.
- * All variables are now in a single table, everything is double precision.
+ * All parameters are now in a single table, everything is double precision.
  *
  * $Id$
  *****************************************************************************/
@@ -54,6 +54,7 @@ static struct {
   /* -- Option switches. */
 
   "ITERATIVE"   ,   0   ,	/* -- Select PCG solver for velocities.   */
+  "TBCS"        ,   0   ,	/* -- Select time-varying BCs.            */
   "CYLINDRICAL" ,   0   ,	/* -- Select cylindrical coordinates.     */
   "VERBOSE"     ,   0   ,	/* -- Set verbose output.                 */
   "CHKPOINT"    ,   1   ,	/* -- Set checkpointing of field dumps.   */
