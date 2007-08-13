@@ -29,6 +29,8 @@ static char RCS[] = "$Id$";
 
 typedef ModalMatrixSys Msys;
 
+// -- File-scope constants:
+
 static int_t NDIM, NCOM, NORD;
 static bool  C3D;
 
@@ -58,6 +60,7 @@ void integrateNS (Domain*      D,
   int_t              i, j, k;
   const real_t       dt    = Femlib:: value ("D_T");
   const int_t        nStep = Femlib::ivalue ("N_STEP");
+  const int_t        TBCS  = clamp (Femlib::ivalue ("N_STEP"), 0, 2);
   const int_t        nZ    = Geometry::nZProc();
 
   static Msys**      MMS;
@@ -149,25 +152,28 @@ void integrateNS (Domain*      D,
     for (i = 0; i < NCOM; i++) *Us[0][i] = *D -> u[i];
     rollm (Us, NORD, NCOM);
 
+    // -- Re-evaluate (time-dependent) BCs?
+
+    if (TBCS == 1)
+      // -- 2D/mode0 base BCs (only).
+      for (i = 0; i < NCOM; i++)
+	ROOTONLY D -> u[i] -> evaluateM0Boundaries (D -> step);
+    else if (TBCS == 2) {
+      // -- All modes.
+      for (i = 0; i < NCOM; i++) {
+	D -> u[i] -> evaluateBoundaries (0, false);
+	D -> u[i] -> bTransform (FORWARD);
+      }
+      if (C3D) Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
+    }
+
     // -- Viscous correction substep.
 
     if (C3D) {
       AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
       AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     }
-    for (i = 0; i < NCOM; i++) {
-#if defined (TBCS)
-#if 1
-      // -- Re-evaluate the (time-varying) 2D base BCs (only).
-      ROOTONLY D -> u[i] -> evaluateM0Boundaries (D -> step);
-#else
-      // -- Re-evaluate time-varying BCs, everywhere in physical space.
-      D -> u[i] -> evaluateBoundaries (0, false);
-      D -> u[i] -> bTransform (FORWARD);
-#endif
-#endif
-      Solve (D, i, Uf[0][i], MMS[i]);
-    }
+    for (i = 0; i < NCOM; i++) Solve (D, i, Uf[0][i], MMS[i]);
     if (C3D)
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 
@@ -306,10 +312,10 @@ static Msys** preSolve (const Domain* D)
 }
 
 
-static void Solve (Domain*       D,
+static void Solve (Domain*     D,
 		   const int_t i,
-		   AuxField*     F,
-		   Msys*         M)
+		   AuxField*   F,
+		   Msys*       M)
 // ---------------------------------------------------------------------------
 // Solve Helmholtz problem for D->u[i], using F as a forcing Field.
 // Iterative or direct solver selected on basis of field type, step,

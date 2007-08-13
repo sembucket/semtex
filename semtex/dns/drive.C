@@ -64,7 +64,7 @@ int main (int    argc,
   feenableexcept (FE_OVERFLOW);    // -- Force SIG8 crash on FP overflow.
 #endif
 
-  Char*            session;
+  char*            session;
   vector<Element*> elmt;
   FEML*            file;
   Mesh*            mesh;
