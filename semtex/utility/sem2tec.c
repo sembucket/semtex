@@ -170,14 +170,13 @@ static void parse_args (int    argc,
     exit(EXIT_FAILURE);
   }
 
-  /* open the input file */
+  /* open the input file, must end in .fld */
 
-  if ((fp_fld = fopen(*argv, "r")) == (FILE*) NULL) {
-    sprintf(fname, "%s.fld", *argv);
-    if ((fp_fld = fopen(fname, "r")) == (FILE*) NULL) {
-      fprintf(stderr, "sem2tec: unable to open %s or %s\n", *argv, fname);
-      exit(EXIT_FAILURE);
-    }
+  if (!strstr (*argv, ".fld")) sprintf (fname, "%s.fld", *argv);
+  else                         sprintf (fname, "%s",     *argv);
+  if ((fp_fld = fopen(fname, "r")) == (FILE*) NULL) {
+    fprintf(stderr, "sem2tec: unable to open %s or %s\n", *argv, fname);
+    exit(EXIT_FAILURE);
   }
 
   /* get the name of the ouput file (if not supplied) */
@@ -248,10 +247,12 @@ static void read_data (FILE *fp)
   
   /* -- Read the header down to the field list, check size of input. */
 
-  for (n = 0; n < 3; n++) fgets(buf, STR_MAX, fp);
+  for (n = 0; n < 3; n++) {
+    fgets (buf, STR_MAX, fp);
+  }
 
   if (sscanf (buf, "%d%d%d%d", &nr_chk, &ns_chk, &nz_chk, &nel_chk) != 4) {
-    fputs ("error while reading mesh\n", stderr);
+    fputs ("error reading size of field\n", stderr);
     exit  (EXIT_FAILURE);
   }
 
