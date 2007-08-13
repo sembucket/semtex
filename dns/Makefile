@@ -25,11 +25,6 @@ ifdef CONV		# -- Make convective nonlinear terms (not skew-symm).
   PROG    := $(PROG)_conv
 endif
 
-ifdef TBCS		# -- Recompute mode 0 velocity BCs every time step.
-  DEFINES += -DTBCS
-  PROG    := $(PROG)_tbcs
-endif
-
 ifdef MPI		# -- Make a parallel executable.
   PROG := $(PROG)_mp
 endif
