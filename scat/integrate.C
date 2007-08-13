@@ -396,13 +396,13 @@ static void buoyancy (Domain*         D ,
   AuxField* T    = Us [NCOM];
   AuxField* work = D -> u[NCOM];
 
-  if (Geometry.cylindrical()) {
+  if (Geometry::cylindrical()) {
     if (fabs (g[0]) > EPSDP) {
       *work      = *T;
       *work     -=  Femlib::value ("T_REF" );
       *work     *=  Femlib::value ("BETA_T");
       *work     *=  g[0];
-      *work     -> mulY();
+       work     -> mulY();
       *Uf[0] -= *work;
     }
   } else
