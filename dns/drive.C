@@ -28,8 +28,9 @@
 //   options:
 //   -h       ... print usage prompt
 //   -i[i]    ... use iterative solver for viscous [and pressure] steps
+//   -t[t]    ... select time-varying BCs for mode 0 [or all modes]
 //   -v[v...] ... increase verbosity level
-//   -chk     ... checkpoint field dumps
+//   -chk     ... turn off checkpoint field dumps [default: selected]
 //
 // AUTHOR:
 // ------
@@ -59,11 +60,11 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-#ifdef __itanium__
+#ifdef _GNU_SOURCE
   feenableexcept (FE_OVERFLOW);    // -- Force SIG8 crash on FP overflow.
 #endif
 
-  char*            session;
+  Char*            session;
   vector<Element*> elmt;
   FEML*            file;
   Mesh*            mesh;
@@ -107,8 +108,9 @@ static void getargs (int    argc   ,
     "  [options]:\n"
     "  -h       ... print this message\n"
     "  -i[i]    ... use iterative solver for viscous [& pressure] steps\n"
+    "  -t[t]    ... select time-varying BCs for mode 0 [or all modes]\n"
     "  -v[v...] ... increase verbosity level\n"
-    "  -chk     ... checkpoint field dumps\n";
+    "  -chk     ... turn off checkpoint field dumps [default: selected]\n";
 
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
@@ -122,13 +124,18 @@ static void getargs (int    argc   ,
 	Femlib::ivalue ("ITERATIVE", Femlib::ivalue ("ITERATIVE") + 1);
       while (*++argv[0] == 'i');
       break;
+    case 't':
+      do
+	Femlib::ivalue ("TBCS",      Femlib::ivalue ("TBCS")      + 1);
+      while (*++argv[0] == 'i');
+      break;
     case 'v':
       do
-	Femlib::ivalue ("VERBOSE", Femlib::ivalue ("VERBOSE") + 1);
+	Femlib::ivalue ("VERBOSE",   Femlib::ivalue ("VERBOSE")   + 1);
       while (*++argv[0] == 'v');
       break;
     case 'c':
-      if (strstr ("chk", *argv)) Femlib::ivalue ("CHKPOINT", 1);
+      if (strstr ("chk", *argv))     Femlib::ivalue ("CHKPOINT",    0);
       else { fprintf (stdout, usage, prog); exit (EXIT_FAILURE); }
       break;
     default:
