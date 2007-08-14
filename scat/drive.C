@@ -188,7 +188,7 @@ static void preprocess (const char*       session,
   VERBOSE cout << "Building boundary condition manager ..." << endl;
 
   bman = new BCmgr (file, elmt);
-
+  /*
   if (Geometry::nDim() == 2) {
     if (strcmp (bman -> field(), "uvcp"))
       message (prog, "expected fields u v c p",   ERROR);
@@ -196,6 +196,7 @@ static void preprocess (const char*       session,
     if (strcmp (bman -> field(), "uvwcp"))
       message (prog, "expected fields u v w c p", ERROR);
   }
+  */
 
   VERBOSE cout << "done" << endl;
 
