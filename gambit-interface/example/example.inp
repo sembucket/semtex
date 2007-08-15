@@ -1,0 +1,37 @@
+# case name for export
+&ExportCase
+casename = example /
+
+# grid information
+&grid
+file   = example.msh
+xScale = 1.000
+yScale = 1.000 /
+
+# boundary curves
+&boundary_curve
+name = left, geom = 1 /
+&boundary_curve
+name = right, geom = 1 /
+&boundary_curve
+name = bottom, geom = 1 /
+&boundary_curve
+name = top, geom = 1 /
+&boundary_curve
+name = front, geom = 5, x0 = 0.0, y0 = 0.0 /
+&boundary_curve
+name = back, geom = 4, file = 'back_geometry.dat' /
+
+# boundary conditions
+&Boundary_Condition
+name = left, key = v /
+&Boundary_Condition
+name = right, key = o /
+&Boundary_Condition
+name = bottom, key = p, link = top /
+&Boundary_Condition
+name = top, key = p, link = bottom /
+&Boundary_Condition
+name = front, key = w /
+&Boundary_Condition
+name = back, key = w /

@@ -1,0 +1,34 @@
+# case name for export
+&ExportCase
+casename = square /
+
+# grid information
+&grid
+file   = square.msh
+xScale = 1.000
+yScale = 1.000
+type   = 0 /
+
+# boundary curves
+&boundary_curve
+name = left, geom = 1 /
+&boundary_curve
+name = right, geom = 1 /
+&boundary_curve
+name = bottom, geom = 1 /
+&boundary_curve
+name = top, geom = 1 /
+&boundary_curve
+name = hole, geom = 5, x0 = 0.0, y0 = 0.0 /
+
+# boundary conditions
+&Boundary_Condition
+name = left, key = v /
+&Boundary_Condition
+name = right, key = o /
+&Boundary_Condition
+name = bottom, key = w /
+&Boundary_Condition
+name = top, key = w /
+&Boundary_Condition
+name = hole, key = w /

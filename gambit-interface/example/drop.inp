@@ -1,0 +1,20 @@
+# case name for export
+&ExportCase
+casename = drop /
+
+# grid information
+&grid
+file   = drop.msh /
+
+# boundary curves
+&boundary_curve
+name = rear, geom = 4 /
+#name = rear, geom = 4, file = 'drop_rear.dat' /
+&boundary_curve
+name = front, geom = 5, x0 = 0.0, y0 = 0.0 /
+
+# boundary conditions
+&Boundary_Condition
+name = rear, key = w /
+&Boundary_Condition
+name = front, key = w /

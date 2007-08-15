@@ -1,0 +1,18 @@
+(0) Make sure that you have installed a Fortran95 compliant compiler, e.g. G95.
+(1) Change to the source directory
+      > cd src
+    and adjust GNUmakefile such that FC contains the path to the compiler, and
+    FPOTS provides appropriate options. In particular, it should be considered
+    that the sources are given in free form. For example
+      FC = g95
+      FOPTS = -ffree-form
+    should work with the free G95 compiler, and
+      FC = ifort
+      FOPTS = -FR
+    with the Intel compiler.
+(2) Clean up and build the converter:
+      > make tidy
+      > make
+
+To try the example follow the instructions given in the userguide (doc/ug.pdf).
+     
