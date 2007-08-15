@@ -236,10 +236,14 @@ void Analyser::analyse (AuxField** work0,
   }
 
   // -- Periodic dumps and global information.
+
+  // -- Note that history points and particle positions are guaranteed
+  //    to be available whenever a field dump is written as well as every
+  //    IO_HIS steps. But note you may thereby end up with more history
+  //    data than expected.
   
   const bool periodic = !(_src -> step %  Femlib::ivalue ("IO_HIS")) ||
-                        !(_src -> step %  Femlib::ivalue ("IO_FLD")) ||
-                        !(_src -> step %  Femlib::ivalue ("IO_MDL")) ;
+                        !(_src -> step %  Femlib::ivalue ("IO_FLD")) ;
   const bool final    =   _src -> step == Femlib::ivalue ("N_STEP");
   const bool state    = periodic || final;
 
@@ -286,25 +290,25 @@ void Analyser::analyse (AuxField** work0,
 		  << setprecision(8) << setw(15)
 		  << _src->time
 		  << setprecision(6);
-//	for (j = 0; j < NF; j++) _his_strm << setw(15) << tmp[j];
-// -- modified to give higher-precision pressure output.
 	for (j = 0; j < NF-1; j++) _his_strm << setw(14) << tmp[j];
 	_his_strm<< setprecision(11)<< setw(19)<< tmp[NF-1]<< setprecision(6);
 	_his_strm << endl;
       }
     }
-
-    // -- Modal energies.
-
-    this -> modalEnergy();
-     
-    // -- Statistical analysis.
-
-    if (_stats) _stats -> update (work0, work1);
   }
 
-  // -- Field and statistical dumps.
+  // -- Statistical analysis, updated every IO_HIS steps.
 
+  if (_stats && !(_src -> step % Femlib::ivalue ("IO_HIS")))
+    _stats -> update (work0, work1);
+
+  // -- Modal energies, written every IO_MDL steps.
+
+  if (!(_src -> step % Femlib::ivalue ("IO_MDL")))
+    this -> modalEnergy();
+
+  // -- Field and statistical dumps.
+  
   _src -> dump ();
   if (_stats) {
     char filename[StrMax];
