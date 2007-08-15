@@ -181,8 +181,8 @@ $(PRBOBJ): $(SEMHDR)
 
 probe: $(PRBOBJ)
 	$(CXX) $(CPPFLAGS) -o $@ $(PRBOBJ) $(LDFLAGS)
-	ln -s probe probeline
-	ln -s probe probeplane
+	ln -s -f probe probeline
+	ln -s -f probe probeplane
 
 # ----------------------------------------------------------------------------
 # Build eneq, which computes terms in the fluctuating flow energy equations.
