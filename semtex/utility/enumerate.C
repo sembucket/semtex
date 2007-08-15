@@ -55,58 +55,56 @@ using namespace std;
 #include <veclib.h>
 
 class Nsys {
-friend void printup (const char*, vector<Nsys*>&, const integer);
+friend void printup (const char*, vector<Nsys*>&, const int_t);
 
 public:
-  Nsys (char, vector<integer>&, vector<integer>&, const integer, 
-	const integer, const integer, const integer,
-	const integer, const integer, const integer);
+  Nsys (char, vector<int_t>&, vector<int_t>&, const int_t, 
+	const int_t, const int_t, const int_t,
+	const int_t, const int_t, const int_t);
 
-  bool match    (vector<integer>&);
+  bool match    (vector<int_t>&);
   void addField (char);
 
-  integer         nel;
-  integer         np_max;
-  integer         next_max;
-  integer         nint_max;
-  integer         ntotal;
-  integer         nbndry;
-  integer         nglobal;
-  integer         nsolve;
-  integer         nbandw;
-  integer         optlev;
-  vector<char>    fields;
-  vector<integer> bndmap;
-  vector<integer> bndmsk;
-  vector<integer> axelmt;
-  vector<integer> axside;
+  int_t         nel;
+  int_t         np_max;
+  int_t         next_max;
+  int_t         nint_max;
+  int_t         ntotal;
+  int_t         nbndry;
+  int_t         nglobal;
+  int_t         nsolve;
+  int_t         nbandw;
+  int_t         optlev;
+  vector<char>  fields;
+  vector<int_t> bndmap;
+  vector<int_t> bndmsk;
+  vector<int_t> axelmt;
+  vector<int_t> axside;
 
-  integer sortGid         (integer*, integer*);
-  void    renumber        (const integer, const integer = 0);
-  integer buildAdjncy     (vector<integer>*)                 const;
-  void    fillAdjncy      (vector<integer>*, integer*,
-			   integer*, const integer)        const;
-  void    connectivSC     (vector<integer>*, const integer*,
-			   const integer*, const integer)  const;
-  integer globalBandwidth ()                               const;
-  integer highAxis        ()                               const;
-  integer bandwidthSC     (const integer*, const integer*,
-			   const integer)                  const;
-  void    rebuild         (FEML*, const integer);
+  int_t sortGid         (int_t*, int_t*);
+  void  renumber        (const int_t, const int_t = 0);
+  int_t buildAdjncy     (vector<int_t>*)                              const;
+  void  fillAdjncy      (vector<int_t>*, int_t*, int_t*, const int_t) const;
+  void  connectivSC     (vector<int_t>*, const int_t*,
+			 const int_t*, const int_t)                   const;
+  int_t globalBandwidth ()                                            const;
+  bool  highAxis        ()                                            const;
+  int_t bandwidthSC     (const int_t*, const int_t*, const int_t)     const;
+  void    rebuild       (FEML*, const int_t);
 
 };
 
-static char          prog[] = "enumerate";
-static integer       verb   = 0;
-static const integer FldMax = 16;
+static char        prog[] = "enumerate";
+static int_t       verb   = 0;
+static const int_t FldMax = 16;
 
 
-static void getargs   (int, char**, char*&, integer&, integer&, integer&);
+static void getargs   (int, char**, char*&, int_t&, int_t&, int_t&);
 static char axial     (FEML*);
 static void getfields (FEML*, char*, const bool);
 static void checkVBCs (FEML*, const char*);
 static void checkABCs (FEML*, const char);
-       void printup   (const char*, vector<Nsys*>&, const integer);
+       void printup   (const char*, vector<Nsys*>&, const int_t);
 
 
 int main (int    argc,
@@ -126,10 +124,10 @@ int main (int    argc,
 // Print up the masks and numbering schemes on cout.
 // ---------------------------------------------------------------------------
 {
-  char *session = 0, field[StrMax], axistag;
-  FEML *file;
-  integer  np = 0, opt = 1;
-  bool cyl3D = false;
+  char   *session = 0, field[StrMax], axistag;
+  FEML*  file;
+  int_t  np = 0, opt = 1;
+  bool   cyl3D = false;
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session, verb, np, opt);
@@ -149,17 +147,17 @@ int main (int    argc,
   Mesh            M (file);
   vector<Nsys*>   S (strlen (field));
 
-  integer         i, j, k = 0;
+  int_t           i, j, k = 0;
   bool            found;
-  const  integer  NEL      = M.nEl();
-  const  integer  NP_MAX   = np;
-  const  integer  NEXT_MAX = 4 * (NP_MAX - 1);
-  const  integer  NINT_MAX = sqr (NP_MAX - 2);
-  const  integer  NBNDRY   = NEL * NEXT_MAX;
-  const  integer  NTOTAL   = NEL * sqr (NP_MAX);
+  const int_t     NEL      = M.nEl();
+  const int_t     NP_MAX   = np;
+  const int_t     NEXT_MAX = 4 * (NP_MAX - 1);
+  const int_t     NINT_MAX = sqr (NP_MAX - 2);
+  const int_t     NBNDRY   = NEL * NEXT_MAX;
+  const int_t     NTOTAL   = NEL * sqr (NP_MAX);
 
-  vector<integer> btog (NBNDRY);
-  vector<integer> mask (NBNDRY);
+  vector<int_t>   btog (NBNDRY);
+  vector<int_t>   mask (NBNDRY);
 
   M.buildMask (np, field[0], &mask[0]);
   M.buildMap  (np, &btog[0]);
@@ -200,12 +198,12 @@ int main (int    argc,
 }
 
 
-static void getargs (int      argc   , 
-		     char**   argv   ,
-		     char*&   session,
-		     integer& verb   ,
-		     integer& np     ,
-		     integer& opt    )
+static void getargs (int    argc   , 
+		     char** argv   ,
+		     char*& session,
+		     int_t& verb   ,
+		     int_t& np     ,
+		     int_t& opt    )
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
@@ -262,9 +260,9 @@ static char axial (FEML* file)
 {
   if (!file->seek ("GROUPS")) return '\0';
 
-  integer       i;
-  char          nextc, buf[StrMax];
-  const integer N (file->attribute ("GROUPS", "NUMBER"));
+  int_t       i;
+  char        nextc, buf[StrMax];
+  const int_t N (file->attribute ("GROUPS", "NUMBER"));
   
   for (i = 0; i < N; i++) {
     while ((nextc = file->stream().peek()) == '#') // -- Skip comments.
@@ -296,8 +294,8 @@ static void getfields (FEML*      file     ,
 // The extra schemes get names C, U, W, & P.
 // ---------------------------------------------------------------------------
 {
-  integer i = 0;
-  char    t[StrMax];
+  int_t i = 0;
+  char  t[StrMax];
 
   // -- Set up string for the fields listed.
 
@@ -357,11 +355,10 @@ static void checkVBCs (FEML*       file ,
   if (!file->seek ("BCS")) return;
   if (!strchr (field, 'u')) return;
   if (!strchr (field, 'v') || !strchr (field, 'w')) return;
-//message (prog,"radial, azimuthal velocity fields v, w not declared",ERROR);
 
-  integer       i, j, id, nbcs;
+  int_t       i, j, id, nbcs;
   char          vtag, wtag, groupc, fieldc, tagc, tag[StrMax], err[StrMax];
-  const integer N (file->attribute ("BCS", "NUMBER"));
+  const int_t N (file->attribute ("BCS", "NUMBER"));
 
   for (i = 0; i < N; i++) {
 
@@ -407,9 +404,9 @@ static void checkABCs (FEML*      file ,
 {
   if (!file->seek ("BCS")) return;
 
-  integer       i, j, id, nbcs;
-  char          groupc, fieldc, tagc, tag[StrMax], err[StrMax];
-  const integer N (file->attribute ("BCS", "NUMBER"));
+  int_t       i, j, id, nbcs;
+  char        groupc, fieldc, tagc, tag[StrMax], err[StrMax];
+  const int_t N (file->attribute ("BCS", "NUMBER"));
 
   for (i = 0; i < N; i++) {
 
@@ -442,13 +439,13 @@ static void checkABCs (FEML*      file ,
 
 void printup (const char*    F   ,
 	      vector<Nsys*>& S   ,
-	      const integer  nSys)
+	      const int_t    nSys)
 // ---------------------------------------------------------------------------
 // Print up summary info followed by map & mask for each system.
 // ---------------------------------------------------------------------------
 {
-  register integer i, j, k, side, soff;
-  const    integer nedge = S[0] -> nbndry / (4 * S[0] -> nel);
+  register int_t i, j, k, side, soff;
+  const    int_t nedge = S[0] -> nbndry / (4 * S[0] -> nel);
   
   cout << "# FIELDS         :  " << F << endl;
 
@@ -554,24 +551,24 @@ void printup (const char*    F   ,
 }
 
 
-Nsys::Nsys (char             name    ,
-	    vector<integer>& map     ,
-	    vector<integer>& mask    ,
-	    const  integer   opt     ,
-	    const  integer   NEL     ,
-	    const  integer   NTOTAL  ,
-	    const  integer   NBNDRY  ,
-	    const  integer   NP_MAX  ,
-	    const  integer   NEXT_MAX,
-	    const  integer   NINT_MAX) :
+Nsys::Nsys (char           name    ,
+	    vector<int_t>& map     ,
+	    vector<int_t>& mask    ,
+	    const  int_t   opt     ,
+	    const  int_t   NEL     ,
+	    const  int_t   NTOTAL  ,
+	    const  int_t   NBNDRY  ,
+	    const  int_t   NP_MAX  ,
+	    const  int_t   NEXT_MAX,
+	    const  int_t   NINT_MAX) :
 
-	    nel             (NEL     ),
-	    np_max          (NP_MAX  ),
-	    next_max        (NEXT_MAX),
-	    nint_max        (NINT_MAX),
-	    ntotal          (NTOTAL  ),
-	    nbndry          (NBNDRY  ),
-	    optlev          (opt     )
+	    nel           (NEL     ),
+	    np_max        (NP_MAX  ),
+	    next_max      (NEXT_MAX),
+	    nint_max      (NINT_MAX),
+	    ntotal        (NTOTAL  ),
+	    nbndry        (NBNDRY  ),
+	    optlev        (opt     )
 // ---------------------------------------------------------------------------
 // Constructor also carries out bandwidth optimization task.
 // ---------------------------------------------------------------------------
@@ -590,7 +587,7 @@ Nsys::Nsys (char             name    ,
 }
 
 
-bool Nsys::match (vector<integer>& test)
+bool Nsys::match (vector<int_t>& test)
 // ---------------------------------------------------------------------------
 // Return true if test and bndmsk match.
 // ---------------------------------------------------------------------------
@@ -607,7 +604,7 @@ void Nsys::addField (char name)
 // Add a new field which matches the present one.
 // ---------------------------------------------------------------------------
 {
-  integer k = 0;
+  int_t k = 0;
 
   while (fields[k]) k++;
 
@@ -622,7 +619,7 @@ static int cmp1 (const void *a,
 // Used by qsort.  Compare first element (global node number) of two arrays.
 // ---------------------------------------------------------------------------
 { return static_cast<int>
-    (static_cast<const integer *>(a)[0]-static_cast<const integer *>(b)[0]); }
+    (static_cast<const int_t *>(a)[0]-static_cast<const int_t *>(b)[0]); }
 
 
 static int cmp2 (const void *a,
@@ -631,12 +628,12 @@ static int cmp2 (const void *a,
 // Used by qsort.  Compare second element (solve mask) of two arrays.
 // ---------------------------------------------------------------------------
 { return static_cast<int>
-    (static_cast<const integer *>(a)[1]-static_cast<const integer *>(b)[1]); }
+    (static_cast<const int_t *>(a)[1]-static_cast<const int_t *>(b)[1]); }
 
 
 
-integer Nsys::sortGid (integer* bmap,
-		       integer* bmsk)
+int_t Nsys::sortGid (int_t* bmap,
+		     int_t* bmsk)
 // ---------------------------------------------------------------------------
 // Global node numbers get sorted to place essential-BC nodes last:
 // this simplifies the later partition of global matrices.
@@ -656,9 +653,9 @@ integer Nsys::sortGid (integer* bmap,
 // essential BCs.
 // ---------------------------------------------------------------------------
 {
-  vector<integer> work (nbndry + 3 * nglobal);
-  integer         *bsave, *tmp, *reOrder;
-  integer         unknowns;
+  vector<int_t> work (nbndry + 3 * nglobal);
+  int_t         *bsave, *tmp, *reOrder;
+  int_t         unknowns;
 
   bsave   = &work[0];
   tmp     = bsave + nbndry;
@@ -675,12 +672,12 @@ integer Nsys::sortGid (integer* bmap,
 
     // -- Partition into "unknown" nodes & "essential BC" nodes.
 
-    qsort (reOrder,              nglobal,            2*sizeof (integer), cmp2);
+    qsort (reOrder,              nglobal,            2*sizeof (int_t), cmp2);
 
     // -- Sort each partition into ascending node number order.
 
-    qsort (reOrder,              unknowns,           2*sizeof (integer), cmp1);
-    qsort (reOrder + 2*unknowns, nglobal - unknowns, 2*sizeof (integer), cmp1);
+    qsort (reOrder,              unknowns,           2*sizeof (int_t), cmp1);
+    qsort (reOrder + 2*unknowns, nglobal - unknowns, 2*sizeof (int_t), cmp1);
 
     // -- Reload new gids.
 
@@ -694,8 +691,8 @@ integer Nsys::sortGid (integer* bmap,
 }
 
 
-void Nsys::renumber (const integer optlevel,
-		     const integer penalty )
+void Nsys::renumber (const int_t optlevel,
+		     const int_t penalty )
 // ---------------------------------------------------------------------------
 // From the initial ordering specified in bndmap, use RCM to generate
 // a reduced-bandwidth numbering scheme.  Reload into bndmap.
@@ -726,18 +723,18 @@ void Nsys::renumber (const integer optlevel,
     cout << "Bandwidth optimization (" << optlevel
 	 << "), Field '" << &fields[0] << "'";
 
-  register integer i;
-  integer          root, nlvl;
+  register int_t i;
+  int_t          root, nlvl;
 
   // -- Build node adjacency tables.
   
-  vector<integer>* adjncyList = new vector<integer> [nsolve];
-  const integer  tabSize    = buildAdjncy (adjncyList);
+  vector<int_t>* adjncyList = new vector<int_t> [nsolve];
+  const int_t    tabSize    = buildAdjncy (adjncyList);
 
   // -- Allocate memory.
 
-  vector<integer> work(tabSize + 1 + 4 * nsolve + 1 + nglobal + nbndry);
-  integer         *adjncy, *xadj, *perm, *mask, *xls, *invperm, *bsave;
+  vector<int_t> work(tabSize + 1 + 4 * nsolve + 1 + nglobal + nbndry);
+  int_t         *adjncy, *xadj, *perm, *mask, *xls, *invperm, *bsave;
 
   adjncy  = &work[0];
   xadj    = adjncy  + tabSize + 1;
@@ -762,7 +759,7 @@ void Nsys::renumber (const integer optlevel,
     break;
   }
   case 2: {
-    integer rtest, BWtest, BWmin = INT_MAX, best;
+    int_t rtest, BWtest, BWmin = INT_MAX, best;
 
     if (verb) cout << ":" << endl;
 
@@ -791,7 +788,7 @@ void Nsys::renumber (const integer optlevel,
     break;
   }
   case 3: {
-    integer BWtest, BWmin = INT_MAX, best;
+    int_t BWtest, BWmin = INT_MAX, best;
 
     if (verb) cout << ":" << endl;
 
@@ -832,17 +829,17 @@ void Nsys::renumber (const integer optlevel,
 }
 
 
-integer Nsys::buildAdjncy (vector<integer>* adjncyList) const
+int_t Nsys::buildAdjncy (vector<int_t>* adjncyList) const
 // ---------------------------------------------------------------------------
 // Traverse elements and build up a vector of linked lists that
 // describe the global nodes adjacent to each global node.
 //
 // Return the total amount of storage required when information is packed
-// into an integer vector, as required by genrcm.
+// into an int_t vector, as required by genrcm.
 // ---------------------------------------------------------------------------
 {
-  register integer k, ntab;
-  const integer    next = nbndry / nel;
+  register int_t k, ntab;
+  const int_t    next = nbndry / nel;
 
   for (k = 0, ntab = 0; k < nel; k++) {
     connectivSC (adjncyList, &bndmap[0] + ntab, &bndmsk[0] + ntab, next);
@@ -856,18 +853,18 @@ integer Nsys::buildAdjncy (vector<integer>* adjncyList) const
 }
 
 
-void Nsys::fillAdjncy (vector<integer>* adjncyList,
-		       integer*       adjncy    ,
-		       integer*       xadj      ,
-		       const integer  tabSize   ) const
+void Nsys::fillAdjncy (vector<int_t>* adjncyList,
+		       int_t*         adjncy    ,
+		       int_t*         xadj      ,
+		       const int_t    tabSize   ) const
 // ---------------------------------------------------------------------------
 // Load the information contained in adjncyList into the two vectors
 // adjncy & xadj required by genrcm.
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "Nsys::fillAdjncy";
-  register integer        i, k;
-  vector<integer>::iterator p;
+  register int_t        i, k;
+  vector<int_t>::iterator p;
 
   for (i = 0, k = 1; i < nsolve; i++) {
     xadj[i] = k;
@@ -883,10 +880,10 @@ void Nsys::fillAdjncy (vector<integer>* adjncyList,
 }
 
 
-void Nsys::connectivSC (vector<integer>* adjList,
-			const integer* bmap   ,
-			const integer* mask   ,
-			const integer  next   ) const
+void Nsys::connectivSC (vector<int_t>* adjList,
+			const int_t*   bmap   ,
+			const int_t*   mask   ,
+			const int_t    next   ) const
 // ---------------------------------------------------------------------------
 // AdjList is an array of linked lists, each of which describes the
 // global nodes that have connectivity with the the current node,
@@ -903,8 +900,8 @@ void Nsys::connectivSC (vector<integer>* adjList,
 // mimimizing bandwidths of global matrices.
 // ---------------------------------------------------------------------------
 {
-  register integer i, j, found, gidCurr, gidMate;
-  vector<integer>::iterator a;
+  register int_t          i, j, found, gidCurr, gidMate;
+  vector<int_t>::iterator a;
   
   for (i = 0; i < next; i++) {
     if (! mask[i]) {
@@ -923,14 +920,14 @@ void Nsys::connectivSC (vector<integer>* adjList,
 }
 
 
-integer Nsys::globalBandwidth () const
+int_t Nsys::globalBandwidth () const
 // --------------------------------------------------------------------------
 // Precompute the bandwidth of assembled global matrix (including
 // diagonal).
 // --------------------------------------------------------------------------
 {
-  register integer k, noff, nband = 0;
-  const integer    next = nbndry / nel;
+  register int_t k, noff, nband = 0;
+  const int_t    next = nbndry / nel;
 
   for (k = 0, noff = 0; k < nel; k++) {
     nband = max (bandwidthSC (&bndmap[0]+noff, &bndmsk[0]+noff, next), nband);
@@ -944,17 +941,17 @@ integer Nsys::globalBandwidth () const
 
 
 
-integer Nsys::bandwidthSC (const integer* bmap,
-			   const integer* mask,
-			   const integer  next) const
+int_t Nsys::bandwidthSC (const int_t* bmap,
+			   const int_t* mask,
+			   const int_t  next) const
 // ---------------------------------------------------------------------------
 // Find the global equation bandwidth of this element, excluding
 // diagonal.
 // ---------------------------------------------------------------------------
 {
-  register integer i;
-  register integer Min  = INT_MAX;
-  register integer Max  = INT_MIN;
+  register int_t i;
+  register int_t Min  = INT_MAX;
+  register int_t Max  = INT_MIN;
 
   for (i = 0; i < next; i++) {
     if (!mask[i]) {
@@ -967,8 +964,8 @@ integer Nsys::bandwidthSC (const integer* bmap,
 }
 
 
-void Nsys::rebuild (FEML*         file  ,
-		    const integer optlev)
+void Nsys::rebuild (FEML*       file  ,
+		    const int_t optlev)
 // ---------------------------------------------------------------------------
 // The pressure numbering scheme gets rebuilt if the highest-numbered
 // pressure node lies on the axis.  Before getting here, we are sure
@@ -978,10 +975,10 @@ void Nsys::rebuild (FEML*         file  ,
 {
   // -- Build a table of elements and sides that touch the axis.
   
-  const char    axisBC = axial (file);
-  const integer nsurf (file->attribute ("SURFACES", "NUMBER"));
-  char          tagc, tag[StrMax], err[StrMax];
-  integer       i, j, id, el, si, naxis = 0;
+  const char  axisBC = axial (file);
+  const int_t nsurf (file->attribute ("SURFACES", "NUMBER"));
+  char        tagc, tag[StrMax], err[StrMax];
+  int_t       i, j, id, el, si, naxis = 0;
 
   for (i = 0; i < nsurf; i++) {
     while ((tagc = file->stream().peek()) == '#') // -- Skip comments.
@@ -1038,16 +1035,16 @@ void Nsys::rebuild (FEML*         file  ,
 }
 
 
-integer Nsys::highAxis() const
+bool Nsys::highAxis() const
 // ---------------------------------------------------------------------------
-// Return 1 if the highest numbered pressure node lies on the axis,
-// otherwise 0.  Internal tables axelmt and axside must have been
+// Return true if the highest numbered pressure node lies on the axis,
+// otherwise false.  Internal tables axelmt and axside must have been
 // built in advance.
 // ---------------------------------------------------------------------------
 {
-  const integer pmax  = nglobal - 1;
-  const integer naxis = axelmt.size();
-  integer       i, j, loff, soff, elmtID, sideID;
+  const int_t pmax  = nglobal - 1;
+  const int_t naxis = axelmt.size();
+  int_t       i, j, loff, soff, elmtID, sideID;
 
   for (i = 0; i < nbndry; i++)
     if (bndmap[i] == pmax) {
@@ -1056,13 +1053,13 @@ integer Nsys::highAxis() const
       sideID = (loff - loff % np_max) / np_max;
       soff   = loff - sideID * np_max;
       for (j = 0; j < naxis; j++)
-	if (axelmt[j] == elmtID && axside[j] == sideID) return 1;
+	if (axelmt[j] == elmtID && axside[j] == sideID) return true;
       if (soff == 0) {		// -- Check also end of CCW side.
 	sideID = (sideID + 3) % 4;
 	for (j = 0; j < naxis; j++)
-	  if (axelmt[j] == elmtID && axside[j] == sideID) return 1;
+	  if (axelmt[j] == elmtID && axside[j] == sideID) return true;
       }
     }
   
-  return 0;
+  return false;
 }

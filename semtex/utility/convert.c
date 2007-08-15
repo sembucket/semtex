@@ -20,7 +20,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
  *
- * USAGE: convert [-h] [-format] [-v] [-n dump] [-o output] [input[.fld]
+ * USAGE: convert [-h] [-format] [-v] [-n dump] [-o output] [-z] [input[.fld]
  *
  * Default action is to convert binary to ASCII files or vice versa.
  *
@@ -30,7 +30,7 @@
  * -s: force binary output in byte-swapped    IEEE format.
  *
  * If both -s & -b are specified then whichever is last on the comand line
- * takes precedence.
+ * takes precedence. -z sets the Step and Time to zero.
  *
  * Each input is read into an internal buffer in machine's double binary
  * format prior to output.
@@ -76,10 +76,11 @@ static char  usage[] = "Usage: convert [-format] [-h] [-v] [-o output] "
                        "  -h        ... print this message\n"
                        "  -n dump   ... select dump number\n"
                        "  -v        ... be verbose\n"
-                       "  -o output ... output to named file\n";
+                       "  -o output ... output to named file\n"
+                       "  -z        ... zero Time and Step in output\n";
     
 
-static void   getargs      (int, char**, FILE**, FILE**, FORMAT*, int*);
+static void   getargs      (int, char**, FILE**, FILE**, FORMAT*, int*, int*);
 static void   error        (const char*);
 static void   get_data     (FILE*, const int, const FORMAT, const FORMAT,
 			    const int, const int, double**);
@@ -101,14 +102,14 @@ int main (int    argc,
   char     buf[BUFSIZ];
   double** data;
   int      nfields, npts, n, nr, ns, nz, nel;
-  int      ndump = 0, nread = 0, selected = 1;
+  int      ndump = 0, nread = 0, selected = 1, zero = 0;
   FILE*    fp_in    = stdin;
   FILE*    fp_out   = stdout;
   FORMAT   inputF   = UNKNOWN,
            outputF  = UNKNOWN,
            machineF = architecture();
 
-  getargs (argc, argv, &fp_in, &fp_out, &outputF, &ndump);
+  getargs (argc, argv, &fp_in, &fp_out, &outputF, &ndump, &zero);
 
   while (fgets (buf, BUFSIZ, fp_in)) {
 
@@ -125,13 +126,22 @@ int main (int    argc,
     if (sscanf(buf, "%d%d%d%d", &nr, &ns, &nz, &nel) != 4)
       error ("unable to read the file size");               
     npts = nr * ns * nz * nel;
-   
-    n = 7;
+    
+    /* -- Zero time and step if required. */
+
+    if (selected) fputs (buf, fp_out);
+    fgets (buf, BUFSIZ, fp_in);
+    if (zero) sprintf (buf, "%-25d Step\n", 0);
+    if (selected) fputs (buf, fp_out);
+    fgets (buf, BUFSIZ, fp_in);
+    if (zero) sprintf (buf, "%-25.6g Time\n", 0.0);
+    
+    n = 5;
     while (--n) {
       if (selected) fputs (buf, fp_out);
       fgets (buf, BUFSIZ, fp_in);
     }
-    
+
     nfields = count_fields (buf);
     if (selected) fputs (buf, fp_out);
 
@@ -198,7 +208,8 @@ static void getargs (int     argc  ,
 		     FILE**  fp_in ,
 		     FILE**  fp_out,
 		     FORMAT* outf  ,
-		     int*    ndump )
+		     int*    ndump ,
+		     int*    zero  )
 /* ------------------------------------------------------------------------- *
  * Parse command line arguments.
  * ------------------------------------------------------------------------- */
@@ -275,6 +286,10 @@ static void getargs (int     argc  ,
 	exit (EXIT_FAILURE);
       }
       *argv += strlen (*argv) - 1;
+      break;
+
+    case 'z':
+      *zero = 1;		/* -- Cryptic, huh? */
       break;
 
     default:
