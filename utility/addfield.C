@@ -72,7 +72,7 @@
 // d -- divergence
 // e -- enstrophy 0.5*(r^2 + s^2 + t^2)
 // f -- a computed function of spatial variables
-// G -- Strain rate magnitude sqrt(2SijSij)
+// g -- Strain rate magnitude sqrt(2SijSij)
 // h -- helicity  0.5*(u*r + v*s + w*t)
 // J -- The vortex core identification measure of Jeong and Hussain, JFM 285.
 // L -- Discriminant of velocity gradient tensor 27/4 R^2 + Q^3
@@ -337,7 +337,7 @@ int main (int    argc,
   }
 
   if (need[STRAINRATE]) {
-    *(Strain = new AuxField (new real_t[allocSize], nz, elmt, 'G')) = 0.0;
+    *(Strain = new AuxField (new real_t[allocSize], nz, elmt, 'g')) = 0.0;
     if (add[STRAINRATE]) addField[iAdd++] = Strain;
   }
 
