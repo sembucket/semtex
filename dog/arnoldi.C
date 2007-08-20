@@ -182,13 +182,12 @@ int main (int    argc,
     Veclib::copy (ntot, Kseq[1], 1, Kseq[0], 1);
   }
 
-  // -- Fill initial Krylov sequence -- during which convergence may occur.
+  // -- Fill initial Krylov sequence, during which convergence may occur.
+  //    Always normalise sequence so the next input vector has unity norm.
 
   for (i = 1; !converged && i <= kdim; i++) {
 
-    // -- Normalise whole sequence so that the next input vector has norm = 1.
-
-    norm = Blas::nrm2 (ntot, Kseq[i-1], 1);
+    norm = sqrt (Blas::nrm2 (ntot, Kseq[i-1], 1));
     for (j = 0; j < i; j++)
       Blas::scal (ntot, 1.0/norm, Kseq[j], 1);
 
@@ -206,7 +205,7 @@ int main (int    argc,
 
     // -- Normalise Krylov sequence & update.
 
-    norm = Blas::nrm2 (ntot, Kseq[kdim], 1);
+    norm = sqrt (Blas::nrm2 (ntot, Kseq[kdim], 1));
     for (j = 1; j <= kdim; j++) {
       Blas::scal   (ntot, 1.0/norm, Kseq[j], 1);
       Veclib::copy (ntot, Kseq[j], 1, Kseq[j - 1], 1);
@@ -315,7 +314,7 @@ static void EV_small (real_t**    Kseq   ,
 // and from it find Q (an orthonormal basis), by a Gram--Schmidt
 // algorithm that produces the decomposition Kseq = Q R.  Kseq is
 // destroyed in the process, and replaced by an orthonormal basis for
-// Kseq.
+// Kseq (Q).
 //
 // Then we compute Hessenberg matrix H = Q* A Q (using Q* A = R), find
 // its eigenvalues (wr, wi) and (right) eigenvectors, zvec, related to
