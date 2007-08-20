@@ -172,8 +172,6 @@ int main (int    argc,
   // -- Load starting vector.
 
   EV_init (Kseq[0]);
-  norm = Blas::nrm2 (ntot, Kseq[0], 1);
-  Blas::scal (ntot, 1.0/norm, Kseq[0], 1);
 
   if (!restart) {
 
@@ -182,14 +180,20 @@ int main (int    argc,
 
     EV_update (task, Kseq[0], Kseq[1]);
     Veclib::copy (ntot, Kseq[1], 1, Kseq[0], 1);
-    norm = Blas::nrm2 (ntot, Kseq[0], 1);
-    Blas::scal (ntot, 1.0/norm, Kseq[0], 1);
   }
 
   // -- Fill initial Krylov sequence -- during which convergence may occur.
 
   for (i = 1; !converged && i <= kdim; i++) {
+
+    // -- Normalise whole sequence so that the next input vector has norm = 1.
+
+    norm = Blas::nrm2 (ntot, Kseq[i-1], 1);
+    for (j = 0; j < i; j++)
+      Blas::scal (ntot, 1.0/norm, Kseq[j], 1);
+
     EV_update (task, Kseq[i - 1], Kseq[i]);
+
     Veclib::copy (ntot * (i + 1), kvec, 1, tvec, 1);
     EV_small  (Tseq, ntot, i, zvec, wr, wi, resnorm, verbose, info);
     converged = EV_test (i,i, zvec, wr,wi, resnorm, evtol, min(i, nvec), info);
@@ -202,7 +206,7 @@ int main (int    argc,
 
     // -- Normalise Krylov sequence & update.
 
-    norm = Blas::nrm2 (ntot, Kseq[1], 1);
+    norm = Blas::nrm2 (ntot, Kseq[kdim], 1);
     for (j = 1; j <= kdim; j++) {
       Blas::scal   (ntot, 1.0/norm, Kseq[j], 1);
       Veclib::copy (ntot, Kseq[j], 1, Kseq[j - 1], 1);
