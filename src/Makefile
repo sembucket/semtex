@@ -113,10 +113,15 @@ CXXFLAGS = $(DEFINES) $(OPT) -ansi
 FFLAGS   = $(DEFINES) $(OPT)
 LIBDIR   += -L/sw/lib
 LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
-#F77LIBS  = -framework Accelerate -lg2c
-#F77LIBS  = -lfastblas -framework Accelerate -lg95
 F77LIBS  = -framework Accelerate -lg95
 CLDFLAGS = $(LDFLAGS)
+ifdef MPI
+  CPPFLAGS += -I/sw/include/lammpi
+  LIBDIR   += -L/sw/lib/lammpi
+  LDFLAGS   =  $(OPT) $(LIBDIR) -lfem_mp -lvec $(F77LIBS) -lmpi -llam
+else
+  LDFLAGS   =  $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
+endif
 endif
 
 ifeq ($(ARCH),SunOS)              	# -- Sun.
