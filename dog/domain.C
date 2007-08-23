@@ -402,7 +402,9 @@ void Domain::loadBase()
 	(nBase == 3 && strcmp (H.flds, "uvwp")))
       message (routine, "mismatch: No. of base components/declaration", ERROR);
     for (j = 0; j < nBase; j++) {
-      addr = baseFlow[j] + i * nTot;
+
+      // -- Note that we wrap around so that the last dump goes first:
+      addr = baseFlow[j] + ((i+1) % nSlice) * nTot;
       
       len = nPlane * sizeof(real_t);
       file.read (reinterpret_cast<char*>(addr), len);

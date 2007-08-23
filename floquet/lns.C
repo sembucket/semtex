@@ -9,6 +9,7 @@
 // lns [options] session
 //   options:
 //   -h       ... print usage prompt
+//   -a       ... use adjoint LNSE instead of primal LNSE
 //   -i[i]    ... use iterative solver for viscous [and pressure] steps
 //   -v[v...] ... increase verbosity level
 //   -chk     ... checkpoint field dumps
@@ -28,7 +29,7 @@ static char RCS[] = "$Id$";
 #include <stab.h>
 
 static char prog[] = "lns";
-static void getargs    (int, char**, char*&);
+static void getargs    (int, char**, problem_t&, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, BoundarySys*&, Domain*&);
 
@@ -50,7 +51,7 @@ int main (int    argc,
 
   Femlib::initialize (&argc, &argv);
 
-  getargs (argc, argv, session);
+  getargs (argc, argv, task, session);
 
   preprocess (session, file, mesh, elmt, bman, bsys, domain);
  
@@ -60,7 +61,8 @@ int main (int    argc,
   domain -> loadBase();
   domain -> report  ();
   
-  integrate (linAdvect, domain, analyst);
+  if (task = PRIMAL) integrate (linAdvect,  domain, analyst);
+  else               integrate (linAdvectT, domain, analyst);
 
   Femlib::finalize();
 
@@ -68,9 +70,10 @@ int main (int    argc,
 }
 
 
-static void getargs (int    argc   ,
-		     char** argv   ,
-		     char*& session)
+static void getargs (int        argc   ,
+		     char**     argv   ,
+		     problem_t& task   ,
+		     char*&     session)
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
 // arguments.  Last argument is name of a session file, not dealt with here.
@@ -81,6 +84,7 @@ static void getargs (int    argc   ,
   char       usage[]   = "Usage: %s [options] session-file\n"
     "[options]:\n"
     "-h        ... print this message\n"
+    "-a        ... use adjoint LNSE instead of primal LNSE\n"
     "-i[i]     ... use iterative solver for viscous [& pressure] steps\n"
     "-v[v...]  ... increase verbosity level\n"
     "-chk      ... checkpoint field dumps\n";
@@ -91,6 +95,9 @@ static void getargs (int    argc   ,
       sprintf (buf, usage, prog);
       cout << buf;
       exit (EXIT_SUCCESS);
+      break;
+    case 'a':
+      task = ADJOINT;
       break;
     case 'i':
       do

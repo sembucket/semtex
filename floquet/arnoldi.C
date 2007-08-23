@@ -199,11 +199,11 @@ int main (int    argc,
     converged = max (converged, 0); // -- Only exit on evtol.
   }
 
-  // -- Carry out iterative solution.
+  // -- Carry out iterative solution with explictly updated Arnoldi.
 
   for (i = kdim + 1; !converged && i <= nits; i++) {
 
-    // -- Normalise Krylov sequence & update.
+    // -- Normalise and update Krylov sequence.
 
     norm = sqrt (Blas::nrm2 (ntot, Kseq[kdim], 1));
     for (j = 1; j <= kdim; j++) {
