@@ -61,8 +61,8 @@ int main (int    argc,
   domain -> loadBase();
   domain -> report  ();
   
-  if (task = PRIMAL) integrate (linAdvect,  domain, analyst);
-  else               integrate (linAdvectT, domain, analyst);
+  if (task == PRIMAL) integrate (linAdvect,  domain, analyst);
+  else                integrate (linAdvectT, domain, analyst);
 
   Femlib::finalize();
 
