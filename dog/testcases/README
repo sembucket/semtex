@@ -188,3 +188,51 @@ EV  Magnitude   Angle       Growth      Frequency   Residual
 11  1.3551e-01  3.1416e+00 -7.0670e-02  1.1108e-01  1.5836e-01
 arnoldi: converged, writing 1 eigenvectors.
 
+TRANSIENT GROWTH
+================
+
+pulseChan
+---------
+
+This is transient growth in 2D pulsatile channel flow. The analytical solution for the base flow is given by
+
+@Article{straatman02,
+  author = {A. G. Straatman and R. E. Khayat and E. Haj-Qasem
+            and D. A. Steinman},
+  title = {On the hydrodynamic stability of pulsatile flow in a plane
+           channel},
+  journal = {Physics of Fluids},
+  volume = 14,
+  pages = {1938--1944},
+  year = 2002
+}
+
+Running
+
+../../arnoldi -g -k 4 -n 1 -m 50 -t 1e-6 chan3 > /dev/null
+
+converges to 
+
+-- Iteration = 6, H(k+1, k) = 0.012683
+EV  Magnitude   Angle       Growth      Frequency   Residual
+ 0  5.3788e-01  0.0000e+00 -4.9348e-02  0.0000e+00  2.7288e-07
+ 1  8.4661e-02  0.0000e+00 -1.9649e-01  0.0000e+00  2.5166e-03
+ 2  6.4262e-02  0.0000e+00 -2.1842e-01  0.0000e+00  5.8113e-03
+ 3  3.4631e-02  0.0000e+00 -2.6762e-01  0.0000e+00  1.1108e-02
+arnoldi: converged, writing 1 eigenvectors.
+
+One can check the result by restarting lns using chan3.eig.0 as a
+restart file, then looking at the energies in the starting and final
+condtion, using moden and integral:
+
+[avia pulseChan]$ moden chan3.rst | integral chan3
+12.566371
+q: 0.0014471185 , centroid: -0.0002869032 , -0.015883868
+[avia pulseChan]$ moden chan3.fld | integral chan3
+12.566371
+q: 0.00077780029 , centroid: -4.2811406e-06 , -0.0062704707
+[avia pulseChan]$ calc
+0.00077780029/0.0014471185
+0.5374820997727553
+
+
