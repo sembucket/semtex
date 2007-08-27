@@ -1,0 +1,18 @@
+#!/bin/bash
+##############################################################################
+
+INC=`echo  1/64 | calc`
+FIN=`echo 63/64 | calc`
+
+rm -f chan3.bse
+rm -f chan3_prof.dat
+for i in `index 0 $FIN $INC`
+do
+  sed "s/t .*=.*/t = $i*PERIOD/" < chan3 > chan3p
+#  grep PERIOD chan3p
+  compare chan3p > chan3.tmp
+  probeline -p "129:0,-1,0,0,2,0" -s chan3 chan3.tmp | slit -c 1,3,5 >> chan3_prof.dat
+  cat chan3.tmp >> chan3.bse
+done
+rm chan3p chan3.tmp
+
