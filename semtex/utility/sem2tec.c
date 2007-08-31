@@ -170,6 +170,7 @@ static void parse_args (int    argc,
     exit(EXIT_FAILURE);
   }
 
+#if 0
   /* open the input file, must end in .fld */
 
   if (!strstr (*argv, ".fld")) sprintf (fname, "%s.fld", *argv);
@@ -178,6 +179,17 @@ static void parse_args (int    argc,
     fprintf(stderr, "sem2tec: unable to open %s or %s\n", *argv, fname);
     exit(EXIT_FAILURE);
   }
+#else
+  /* open the input file */
+
+  if ((fp_fld = fopen(*argv, "r")) == (FILE*) NULL) {
+    sprintf(fname, "%s.fld", *argv);
+    if ((fp_fld = fopen(fname, "r")) == (FILE*) NULL) {
+      fprintf(stderr, "sem2tec: unable to open %s or %s\n", *argv, fname);
+      exit(EXIT_FAILURE);
+    }
+  }
+#endif
 
   /* get the name of the ouput file (if not supplied) */
 
