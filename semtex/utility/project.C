@@ -36,6 +36,7 @@
 // -h       ... print this message.
 // -n <num> ... project elements to num x num.
 // -z <num> ... project to <num> planes in the homogeneous direction.
+// -w       ... Retain w components in 3D-->2D proj'n [Default: delete]
 // -u       ... project elements to uniform internal grid [Default: GLL].
 // -U       ... project from uniform grid to GLL.
 // 
