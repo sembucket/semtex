@@ -194,12 +194,12 @@ int main (int    argc,
     EV_update (task, Kseq[i - 1], Kseq[i]);
 
     Veclib::copy (ntot * (i + 1), kvec, 1, tvec, 1);
-    EV_small  (Tseq, ntot, i, zvec, wr, wi, resnorm, verbose, info);
+    EV_small (Tseq, ntot, i, zvec, wr, wi, resnorm, verbose, info);
     converged = EV_test (i,i, zvec, wr,wi, resnorm, evtol, min(i, nvec), info);
     converged = max (converged, 0); // -- Only exit on evtol.
   }
 
-  // -- Carry out iterative solution with explictly updated Arnoldi.
+  // -- Carry out iterative solution with a full sequence.
 
   for (i = kdim + 1; !converged && i <= nits; i++) {
 

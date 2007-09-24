@@ -1,7 +1,7 @@
 ##############################################################################
 # Makefile for lns, spectral element solver for linearised unsteady
-# Navier--Stokes problems, and arnoldi, a Krylov-method solver for
-# stability problems (including Floquet problems).
+# Navier--Stokes problems, and dsa, a Krylov-method solver for
+# stability problems (including Floquet and transient-growth problems).
 #
 # $Id$
 ##############################################################################
@@ -10,10 +10,10 @@ SEM   = ../semtex
 VPATH = $(SEM)/src
 
 ifdef FLIP		# -- Use the "half-period-flip map".
-  KPROG = arnoldi-H
+  KPROG = dsa-H
   DEFINES += -DFLIP
 else
-  KPROG = arnoldi
+  KPROG = dsa
 endif
 
 ifdef TBCS		# -- Recompute mode 0 velocity BCs every time step.
@@ -33,7 +33,7 @@ SEMHDR   = $(addsuffix .h,$(SEMFILES)) sem.h
 # ----------------------------------------------------------------------------
 # Build eigensolver code.
 
-FL_FILES = arnoldi integrate stabanalysis
+FL_FILES = dsa integrate stabanalysis
 FL_OBJ   = $(addsuffix .o,$(FL_FILES))
 
 $(KPROG): sem $(FL_OBJ) $(SEMOBJ) stab.h

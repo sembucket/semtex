@@ -194,7 +194,8 @@ TRANSIENT GROWTH
 pulseChan
 ---------
 
-This is transient growth in 2D pulsatile channel flow. The analytical solution for the base flow is given by
+This is transient growth in 2D pulsatile channel flow. 
+The analytical solution for the base flow is given by
 
 @Article{straatman02,
   author = {A. G. Straatman and R. E. Khayat and E. Haj-Qasem

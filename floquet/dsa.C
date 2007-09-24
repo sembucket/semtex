@@ -1,8 +1,9 @@
 ///////////////////////////////////////////////////////////////////////////////
-// arnoldi.C: compute leading eigenvalues and eigenvectors for
-// stability analysis based on linearised (Navier--Stokes) operators.
-// The base flow can be either steady or periodic in time, two or
-// three component, cylindrical or Cartesian, but must be
+// dsa.C: compute leading eigenvalues and eigenvectors for stability
+// analysis based on linearised (Navier--Stokes) operators.
+// Optionally compute the optimal transient growth initial
+// condition. The base flow can be either steady or periodic in time,
+// two or three component, cylindrical or Cartesian, but must be
 // two-dimensional.
 // 
 // Originally based on code "floK" by Dwight Barkley & Ron Henderson.
@@ -17,7 +18,7 @@
 //
 // USAGE
 // -----
-// arnoldi [options] session
+// dsa [options] session
 //   session: specifies name of semtex session file.
 //   options:
 //   -h       ... print this message
@@ -40,9 +41,9 @@
 // contains the rule for transforming the perturbation velocity field.
 //
 // The user has to ensure that the integration time in the session
-// file is T/2 (just as, for arnoldi, it must be T).
+// file is T/2 (just as, for dsa, it must be T).
 //
-// Usage is the same as for arnoldi, except the code is called arnoldi-H.
+// Usage is the same as for dsa, except the code is called dsa-H.
 // (H is for "half-period".)
 //
 #endif
@@ -77,13 +78,13 @@ static char RCS[] = "$Id$";
 #include <stab.h>
 
 #ifdef FLIP
-static char             prog[] = "arnoldi-H";
+static char             prog[] = "dsa-H";
 static char             generator;
 static vector<int_t>    positive, negative;
 static void loadmap     (const char*);
 static void mirror      (real_t*);
 #else
-static char             prog[] = "arnoldi";
+static char             prog[] = "dsa";
 #endif
 static char*            session;
 static Domain*          domain;
@@ -99,8 +100,9 @@ static int_t preprocess (const char*, bool&);
 
 static void  EV_init    (real_t*);
 static void  EV_update  (const problem_t, const real_t*, real_t*);
-static void  EV_small   (real_t**, const int_t, const int_t, real_t*,
-			 real_t*, real_t*, real_t&, const int_t, ofstream&); 
+static void  EV_small   (real_t**, const int_t, const real_t*, const int_t,
+			 real_t*, real_t*, real_t*, real_t&, const int_t, 
+			 ofstream&); 
 static int_t EV_test    (const int_t, const int_t, real_t*, real_t*, real_t*,
 			 const real_t, const real_t, const int_t, ofstream&);
 static void  EV_sort    (real_t*, real_t*, real_t*, real_t*, const int_t);
@@ -151,18 +153,19 @@ int main (int    argc,
   // -- Allocate eigenproblem storage.
   
   const int_t ntot = preprocess (session, restart);
-  const int_t wdim = kdim + kdim + (kdim * kdim) + 2*ntot*(kdim + 1);
+  const int_t wdim = kdim + kdim + (kdim * kdim) + (2*ntot+1)*(kdim + 1);
 
   vector<real_t> work (wdim);
   Veclib::zero (wdim, &work[0], 1);
-
-  real_t*  wr   = &work[0];
-  real_t*  wi   = wr   + kdim;
-  real_t*  zvec = wi   + kdim;
-  real_t*  kvec = zvec + kdim * kdim;
-  real_t*  tvec = kvec + ntot * (kdim + 1);
-  real_t** Kseq = new real_t* [kdim + 1];
-  real_t** Tseq = new real_t* [kdim + 1];
+  
+  real_t* alpha = &work[0];	             // -- Scale factors.
+  real_t*  wr   = alpha + (kdim + 1);        // -- Eigenvalues (real part).
+  real_t*  wi   = wr   + kdim;	             //                (imag part).
+  real_t*  zvec = wi   + kdim;	             // -- Subspace eigenvectors.
+  real_t*  kvec = zvec + kdim * kdim;        // -- Krylov sequence (flat).
+  real_t*  tvec = kvec + ntot * (kdim + 1);  // -- Orthonormalised equivalent.
+  real_t** Kseq = new real_t* [kdim + 1];    // -- Handles for Krylov sequence.
+  real_t** Tseq = new real_t* [kdim + 1];    // -- Handles for ortho  sequence.
 
   for (i = 0; i <= kdim; i++) {
     Kseq[i] = kvec + i * ntot;
@@ -182,19 +185,26 @@ int main (int    argc,
     Veclib::copy (ntot, Kseq[1], 1, Kseq[0], 1);
   }
 
+  alpha[0] = sqrt (Blas::nrm2 (ntot, Kseq[0], 1));
+  Blas::scal (ntot, 1.0/alpha[0], Kseq[0], 1);
+
   // -- Fill initial Krylov sequence, during which convergence may occur.
   //    Always normalise sequence so the next input vector has unity norm.
 
   for (i = 1; !converged && i <= kdim; i++) {
 
+#if 0
     norm = sqrt (Blas::nrm2 (ntot, Kseq[i-1], 1));
     for (j = 0; j < i; j++)
       Blas::scal (ntot, 1.0/norm, Kseq[j], 1);
-
+#endif
     EV_update (task, Kseq[i - 1], Kseq[i]);
 
+    alpha[i] = sqrt (Blas::nrm2 (ntot, Kseq[i], 1));
+    Blas::scal (ntot, 1.0/alpha[i], Kseq[i], 1);
+
     Veclib::copy (ntot * (i + 1), kvec, 1, tvec, 1);
-    EV_small (Tseq, ntot, i, zvec, wr, wi, resnorm, verbose, info);
+    EV_small (Tseq, ntot, alpha, i, zvec, wr, wi, resnorm, verbose, info);
     converged = EV_test (i,i, zvec, wr,wi, resnorm, evtol, min(i, nvec), info);
     converged = max (converged, 0); // -- Only exit on evtol.
   }
@@ -205,17 +215,32 @@ int main (int    argc,
 
     // -- Normalise and update Krylov sequence.
 
+#if 0
     norm = sqrt (Blas::nrm2 (ntot, Kseq[kdim], 1));
     for (j = 1; j <= kdim; j++) {
       Blas::scal   (ntot, 1.0/norm, Kseq[j], 1);
       Veclib::copy (ntot, Kseq[j], 1, Kseq[j - 1], 1);
     }
+#endif
+
+    // -- Update Krylov sequence. 
+
+    for (j = 1; j <= kdim; j++) {
+      alpha[j - 1] = alpha[j];
+      Veclib::copy (ntot, Kseq[j], 1, Kseq[j - 1], 1);
+    }
+
     EV_update (task, Kseq[kdim - 1], Kseq[kdim]);
+
+    // -- Compute new scale factor.
+
+    alpha[kdim] = sqrt (Blas::nrm2 (ntot, Kseq[kdim], 1));
+    Blas::scal (ntot, 1.0/alpha[kdim], Kseq[kdim], 1);
     
     // -- Get subspace eigenvalues, test for convergence.
 
     Veclib::copy (ntot * (kdim + 1), kvec, 1, tvec, 1);
-    EV_small (Tseq, ntot, kdim, zvec, wr, wi, resnorm, verbose, info); 
+    EV_small (Tseq, ntot, alpha, kdim, zvec, wr, wi, resnorm, verbose, info); 
 
     converged = EV_test (i, kdim, zvec, wr, wi, resnorm, evtol, nvec, info);
   }
@@ -293,15 +318,16 @@ static void EV_update  (const problem_t task,
 }
 
 
-static void EV_small (real_t**    Kseq   ,
-		      const int_t ntot   ,
-		      const int_t kdim   ,
-		      real_t*     zvec   ,
-		      real_t*     wr     ,
-		      real_t*     wi     ,
-		      real_t&     resnorm,
-		      const int_t verbose,
-		      ofstream&   info   )
+static void EV_small (real_t**      Kseq   ,
+		      const int_t   ntot   ,
+		      const real_t* alpha  ,
+		      const int_t   kdim   ,
+		      real_t*       zvec   ,
+		      real_t*       wr     ,
+		      real_t*       wi     ,
+		      real_t&       resnorm,
+		      const int_t   verbose,
+		      ofstream&     info   )
 // ---------------------------------------------------------------------------
 // Here we take as input the Krylov sequence Kseq =
 //          x,
@@ -362,13 +388,14 @@ static void EV_small (real_t**    Kseq   ,
     }
   }
 
-  // -- H(i, j) = (q_i, A q_j) = 1 / R(j, j) * (R(i, j + 1) - H(i, l).R(l, j)),
+  // -- H(i, j) = (q_i, A q_j) 
+  //            = 1 / R(j, j) * (alpha(j + 1)*R(i, j + 1) - H(i, l).R(l, j)),
   //    with the last inner product taken over l < j.
 
   for (i = 0; i < kdim; i++) {
     for (j = 0; j < kdim; j++) {
       H[Veclib::col_major (i, j, kdim)] =
-	R[Veclib::col_major (i, j + 1, kdimp)]
+	alpha[j + 1] * R[Veclib::col_major (i, j + 1, kdimp)]
 	- Blas::dot (j, H + i, kdim, R + j * kdimp, 1);
       H[Veclib::col_major (i, j, kdim)] /= R [Veclib::col_major (j, j, kdimp)];
     }
@@ -385,16 +412,12 @@ static void EV_small (real_t**    Kseq   ,
     }
   }
 
-  // -- Find eigenpairs of H using LAPACK routine dgeev (q.v.).
+  // -- Find eigenpairs of H using LAPACK routine dgeev.
   //    For complex-conjugate eigenvalues, the corresponding
   //    complex eigenvector is a real-imaginary pair of rows
   //    of zvec.
 
-#if 1 // -- Right eigenvectors.
   F77NAME(dgeev) ("N","V",kdim,H,kdim,wr,wi,0,1,zvec,kdim,rwork,lwork,ier);
-#else // -- Left eigenvectors.
-  F77NAME(dgeev) ("V","N",kdim,H,kdim,wr,wi,zvec,kdim,0,1,rwork,lwork,ier);
-#endif
 
   if (ier) message (routine, "error return from dgeev", ERROR);
 
@@ -414,8 +437,9 @@ static void EV_small (real_t**    Kseq   ,
   
   // -- Compute residual information.
 
-  resnorm = fabs (R[Veclib::col_major (kdim,     kdim,     kdimp)] /
-		  R[Veclib::col_major (kdim - 1, kdim - 1, kdimp)] );
+  resnorm = alpha[kdim] * fabs 
+    (R[Veclib::col_major (kdim,     kdim,     kdimp)] /
+     R[Veclib::col_major (kdim - 1, kdim - 1, kdimp)] );
 }
 
 
@@ -729,7 +753,7 @@ static void getargs (int        argc   ,
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  char usage[] = "arnoldi(-H) [options] session\n"
+  char usage[] = "dsa(-H) [options] session\n"
     "options:\n"
     "-h       ... print this message\n"
     "-v       ... set verbose\n"
