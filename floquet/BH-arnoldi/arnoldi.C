@@ -210,7 +210,7 @@ int main (int    argc,
   // -- IRAM iteration.
 
   
-  for (i = 0; ido != done; i++) {
+  while (ido != done) {
 
     F77name(dspmvc) (0, HBnr, 1, HBval, HBcptr, HBrptr,
 		     workd+ipntr[0]-1, HBnr, workd+ipntr[1]-1, HBnr);
