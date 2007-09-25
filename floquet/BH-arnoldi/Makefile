@@ -9,10 +9,14 @@ VPATH    = $(SEM)/src
 
 ARCH     = $(shell uname -s)
 
+DEFINES = 
+
 ifdef DEBUG
-  DEFINES  = -DDEBUG
-else
-  DEFINES  =
+  DEFINES += -DDEBUG
+endif
+
+ifdef ARPACK
+  DEFINES += -DARPACK
 endif
 
 CPPFLAGS = -I. -I$(SEM)/include
@@ -30,4 +34,8 @@ arnoldi:	$(OBJ)
 # Standard rules and definitions.
 #
 include $(VPATH)/Makefile
-#F77LIBS  = -larpack -framework Accelerate -lg95
+
+ifdef ARPACK
+  F77LIBS = -larpack -framework Accelerate -lg95
+endif
+

@@ -3,7 +3,7 @@
 // arbitrary sparse matrix using Arnoldi iteration.  Sparse matrices
 // are read and stored internally using Harwell--Boeing (HB) format.
 // 
-// Based on code by Dwight Barkley & Ron Henderson.
+// Based on code floK by Dwight Barkley
 //
 // USAGE
 // -----
@@ -81,6 +81,27 @@ extern "C" {
      const int_t&   ldx   ,
      double*        y     ,
      const int_t&   ldy   );
+
+#if defined (ARPACK)
+  void F77name(dnaupd) 		// -- ARPACK reverse-communications interface.
+    (int_t&         ido   ,
+     const char*    bmat  ,
+     const int_t&   n     ,
+     const char*    which ,
+     const int_t&   nev   ,
+     const real_t&  tol   ,
+     real_t*        resid ,
+     const int_t&   ncv   ,
+     real_t*        v     ,
+     const int_t&   ldv   ,
+     int_t*         iparam,
+     int_t*         ipntr ,
+     real_t*        workd ,
+     real_t*        workl ,
+     const int_t&   lworkl,
+     int_t&         info
+     );
+#endif
 }
 
 static char prog[] = "arnoldi";
@@ -100,9 +121,10 @@ int main (int    argc,
 // ---------------------------------------------------------------------------
 {
   char   *HBfile, *HBtype;
-  int_t  *HBrptr,  *HBcptr;
+  int_t  *HBrptr, *HBcptr;
   real_t *HBval;
   int_t   HBnr, HBnc, HBnz, HBnrhs;
+
   int_t   ntot, kdim = 2, nvec = 2, nits = 2, verbose = 0;
   real_t  evtol = 1.0e-6;
 
@@ -126,6 +148,58 @@ int main (int    argc,
   readHB_newmat_double (HBfile, &HBnr, &HBnc, &HBnz, &HBcptr, &HBrptr, &HBval);
 
   ntot = HBnr;
+
+#if defined (ARPACK)		// -- Solution using ARPACK.
+
+  const int_t done = 99, lworkl = 3*kdim*kdim + 6*kdim;
+  int_t       ido, info, iparam[11], ipntr[14];
+
+  iparam [0] = 1;		// -- Shifting will be handled by ARPACK.
+  iparam [1] = 0; 		// -- Not used.
+  iparam [2] = nits;		// -- Input: maximum, output: number done.
+  iparam [3] = 1;		// -- Blocksize, ARPACK say = 1.
+  iparam [4] = 0;		// -- Output, number of converged values.
+  iparam [5] = 0;		// -- Not used.
+  iparam [6] = 1;		// -- Mode: solve A x = lambda x.
+  iparam [7] = 0; 		// -- For user shifts, not used here.
+  iparam [8] = 0;		// -- Output, number of Op x operations.
+  iparam [9] = 0;		// -- Output, not used here.
+  iparam[10] = 0;		// -- Output, number of re-orthog steps.
+
+  // -- Allocate storage.
+
+  vector<real_t> work (3*ntot + lworkl + ntot*kdim + ntot);
+  real_t*        workd = &work[0];
+  real_t*        workl = workd + 3*ntot;
+  real_t*        v     = workl + lworkl;
+  real_t*        resid = v + ntot*kdim;
+
+  // -- Set up for reverse communication.
+
+  cout << "set up ... " << flush; 
+
+  F77name(dnaupd) (ido=0, "I", ntot*ntot, "LM", nvec, evtol, resid, kdim, 
+		   v, ntot, iparam, ipntr, workd, workl, lworkl, info);
+
+  cout << "done" << endl;
+
+  // -- IRAM iteration.
+
+  while (ido != done) {
+
+    cout << "call Aop ... " << flush ;
+    F77name(dspmvc) (0, HBnr, 1, HBval, HBcptr, HBrptr,
+		     workd+ipntr[0]-1, HBnr, workd+ipntr[1]-1, HBnr);
+
+    cout << "done" << endl;
+    
+    F77name(dnaupd) (ido, "I", ntot*ntot, "LM", nvec, evtol, resid, kdim,
+		     v, ntot, iparam, ipntr, workd, workl, lworkl, info);
+
+    cout << "Info: " << info << "  resid: " << resid << endl;
+  }
+
+#else                           // -- Solution using Dwight's algorithm.
 
   // -- Allocate eigenproblem storage.
   
@@ -203,6 +277,8 @@ int main (int    argc,
     message (prog, ": all estimates converged",  REMARK);
   else
     message (prog, ": minimum residual reached", REMARK);
+
+#endif
 
   return (EXIT_SUCCESS);
 }
