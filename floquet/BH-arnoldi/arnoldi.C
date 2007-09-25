@@ -99,8 +99,33 @@ extern "C" {
      real_t*        workd ,
      real_t*        workl ,
      const int_t&   lworkl,
-     int_t&         info
-     );
+     int_t&         info  );
+  void F77name(dneupd)		// -- Postprocessing.
+    (const int_t&   rvec  ,
+     const char*    howmny,
+     const int*     select,
+     real_t*        dr    ,
+     real_t*        di    ,
+     real_t*        z     ,
+     const int_t&   ldz   ,
+     const real_t&  sigmar,
+     const real_t&  sigmai,
+     real_t*        workev,
+     const char*    bmat  ,	// -- Remainder unchanged after dnaupd.
+     const int_t&   n     ,
+     const char*    which ,
+     const int_t&   nev   ,
+     const real_t&  tol   ,
+     real_t*        resid ,
+     const int_t&   ncv   ,
+     real_t*        v     ,
+     const int_t&   ldv   ,
+     int_t*         iparam,
+     int_t*         ipntr ,
+     real_t*        workd ,
+     real_t*        workl ,
+     const int_t&   lworkl,
+     int_t&         info  );     
 #endif
 }
 
@@ -152,7 +177,7 @@ int main (int    argc,
 #if defined (ARPACK)		// -- Solution using ARPACK.
 
   const int_t done = 99, lworkl = 3*kdim*kdim + 6*kdim;
-  int_t       ido, info, iparam[11], ipntr[14];
+  int_t       i, ido, info, iparam[11], ipntr[14], select[kdim];
 
   iparam [0] = 1;		// -- Shifting will be handled by ARPACK.
   iparam [1] = 0; 		// -- Not used.
@@ -168,36 +193,44 @@ int main (int    argc,
 
   // -- Allocate storage.
 
-  vector<real_t> work (3*ntot + lworkl + ntot*kdim + ntot);
-  real_t*        workd = &work[0];
-  real_t*        workl = workd + 3*ntot;
-  real_t*        v     = workl + lworkl;
-  real_t*        resid = v + ntot*kdim;
+  vector<real_t> work (3*ntot+lworkl+ntot*kdim+ntot+2*(nvec+1)+3*kdim);
+  real_t*        workd  = &work[0];
+  real_t*        workl  = workd + 3*ntot;
+  real_t*        v      = workl + lworkl;
+  real_t*        resid  = v + ntot*kdim;
+  real_t*        dr     = resid + ntot;
+  real_t*        di     = dr + nvec + 1;
+  real_t*        workev = di + nvec + 1;
 
   // -- Set up for reverse communication.
 
-  cout << "set up ... " << flush; 
-
-  F77name(dnaupd) (ido=0, "I", ntot*ntot, "LM", nvec, evtol, resid, kdim, 
+  F77name(dnaupd) (ido=0, "I", ntot, "LM", nvec, evtol, resid, kdim, 
 		   v, ntot, iparam, ipntr, workd, workl, lworkl, info);
-
-  cout << "done" << endl;
 
   // -- IRAM iteration.
 
-  while (ido != done) {
+  
+  for (i = 0; ido != done; i++) {
 
-    cout << "call Aop ... " << flush ;
     F77name(dspmvc) (0, HBnr, 1, HBval, HBcptr, HBrptr,
 		     workd+ipntr[0]-1, HBnr, workd+ipntr[1]-1, HBnr);
 
-    cout << "done" << endl;
-    
-    F77name(dnaupd) (ido, "I", ntot*ntot, "LM", nvec, evtol, resid, kdim,
+    F77name(dnaupd) (ido, "I", ntot, "LM", nvec, evtol, resid, kdim,
 		     v, ntot, iparam, ipntr, workd, workl, lworkl, info);
-
-    cout << "Info: " << info << "  resid: " << resid << endl;
   }
+
+  if (info < 0) message (prog, "ARPACK error", ERROR);
+
+  cout << "Converged in " << iparam[8] << " iterations" << endl;
+
+  // -- Post-process to obtain eigenvalues.
+
+  F77name(dneupd) (0, "A", select, dr, di, 0, 1, 0, 0, workev,
+		   "I", ntot, "LM", nvec, evtol, resid, kdim,
+		   v, ntot, iparam, ipntr, workd, workl, lworkl, info);
+
+  for (i = nvec; i; i--)
+    cout << dr[i-1] << "  " << di[i-1] << endl;
 
 #else                           // -- Solution using Dwight's algorithm.
 
