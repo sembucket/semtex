@@ -209,7 +209,6 @@ int main (int    argc,
 
   // -- IRAM iteration.
 
-  
   while (ido != done) {
 
     F77name(dspmvc) (0, HBnr, 1, HBval, HBcptr, HBrptr,
@@ -288,7 +287,7 @@ int main (int    argc,
       Veclib::copy (ntot, Kseq[j], 1, Kseq[j - 1], 1);
     }
 
-      // -- Matrix-vector product.
+    // -- Matrix-vector product.
 
     F77name(dspmvc) (0, HBnr, 1, HBval, HBcptr, HBrptr,
 		     Kseq[kdim - 1], HBnr, Kseq[kdim], HBnr);
