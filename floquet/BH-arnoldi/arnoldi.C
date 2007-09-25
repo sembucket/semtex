@@ -52,10 +52,10 @@
 
 #include <iostream>		/* System C++ headers. */
 #include <fstream>
-#include <strstream>
+#include <string>
+#include <sstream>
 #include <iomanip>
 #include <vector>
-
 
 using namespace std;
 
@@ -71,26 +71,26 @@ using namespace std;
 
 extern "C" {
   void F77name(dspmvc)		// -- HB matrix-vector product.
-    (const integer& trans ,
-     const integer& n     ,
-     const integer& m     ,
+    (const int_t&   trans ,
+     const int_t&   n     ,
+     const int_t&   m     ,
      const double*  a     ,
-     const integer* colptr,
-     const integer* rowind,
+     const int_t*   colptr,
+     const int_t*   rowind,
      const double*  x     ,
-     const integer& ldx   ,
+     const int_t&   ldx   ,
      double*        y     ,
-     const integer& ldy   );
+     const int_t&   ldy   );
 }
 
 static char prog[] = "arnoldi";
 
-static void getargs  (int, char**, int&, int&, int&, int&, real&, char*&);
-static void EV_small (real**, const int, const int, 
-		      real*, real*, real*, real&, const int); 
-static int  EV_test  (const int, const int, real*, real*, real*,
-		      const real, const real, const int);
-static void EV_sort  (real*, real*, real*, real*, const int);
+static void  getargs  (int, char**,int_t&,int_t&,int_t&,int_t&,real_t&,char*&);
+static void  EV_small (real_t**, const int_t, const real_t*, const int_t, 
+		       real_t*, real_t*, real_t*, real_t&, const int_t); 
+static int_t EV_test  (const int_t, const int_t, real_t*, real_t*, real_t*,
+		       const real_t, const real_t, const int_t);
+static void  EV_sort  (real_t*, real_t*, real_t*, real_t*, const int_t);
 
 
 int main (int    argc,
@@ -100,11 +100,11 @@ int main (int    argc,
 // ---------------------------------------------------------------------------
 {
   char   *HBfile, *HBtype;
-  int    *HBrptr,  *HBcptr;
-  double *HBval;
-  int     HBnr, HBnc, HBnz, HBnrhs;
-  int     ntot, kdim = 2, nvec = 2, nits = 2, verbose = 0;
-  real    evtol = 1.0e-6;
+  int_t  *HBrptr,  *HBcptr;
+  real_t *HBval;
+  int_t   HBnr, HBnc, HBnz, HBnrhs;
+  int_t   ntot, kdim = 2, nvec = 2, nits = 2, verbose = 0;
+  real_t  evtol = 1.0e-6;
 
   getargs (argc, argv, kdim, nits, nvec, verbose, evtol, HBfile);
 
@@ -129,16 +129,21 @@ int main (int    argc,
 
   // -- Allocate eigenproblem storage.
   
-  integer       i, itrn, converged = 0;
-  real          norm, resnorm;
-  vector<real>  work (kdim + kdim + kdim * kdim + 2 * ntot * (kdim + 1));
-  real*         wr   = &work[0];
-  real*         wi   = wr   + kdim;
-  real*         zvec = wi   + kdim;
-  real*         kvec = zvec + kdim * kdim;
-  real*         tvec = kvec + ntot * (kdim + 1);
-  real**        Kseq = new real* [kdim + 1];
-  real**        Tseq = new real* [kdim + 1];
+  int_t           i, j, converged = 0;
+  real_t          resnorm;
+  int_t           nwork  = kdim + kdim + kdim*kdim + (2*ntot + 1)*(kdim + 1);
+
+  vector<real_t>  work (nwork);
+  Veclib::zero (nwork, &work[0], 1);
+
+  real_t*         alpha = &work[0];
+  real_t*         wr    = alpha + (kdim + 1);
+  real_t*         wi    = wr   + kdim;
+  real_t*         zvec  = wi   + kdim;
+  real_t*         kvec  = zvec + kdim * kdim;
+  real_t*         tvec  = kvec + ntot * (kdim + 1);
+  real_t**        Kseq  = new real_t* [kdim + 1];
+  real_t**        Tseq  = new real_t* [kdim + 1];
 
   for (i = 0; i <= kdim; i++) {
     Kseq[i] = kvec + i * ntot;
@@ -148,42 +153,48 @@ int main (int    argc,
   // -- Generate random initial guess, zero evals.
 
   Veclib::vrandom (ntot, Kseq[0], 1);
-  norm = Blas::nrm2 (ntot, Kseq[0], 1);
-  Blas::scal (ntot, 1.0/norm, Kseq[0], 1);
+  alpha[0] = sqrt(Blas::nrm2 (ntot, Kseq[0], 1));
+  Blas::scal (ntot, 1.0/alpha[0], Kseq[0], 1);
 
   // -- Fill initial Krylov sequence.
 
-  for (i = 1; i <= kdim; i++) {
+  for (i = 1; !converged && i <= kdim; i++) {
+
     F77NAME(dspmvc) (0, HBnr, 1, HBval, HBcptr, HBrptr,
 		     Kseq[i - 1], HBnr, Kseq[i], HBnr);
-    Veclib::copy (ntot * (kdim + 1), kvec, 1, tvec, 1);
-    EV_small (Tseq, ntot, i, zvec, wr, wi, resnorm, verbose);
-    EV_test  (i, i, zvec, wr, wi, resnorm, evtol, i);
+
+    alpha[i] = sqrt(Blas::nrm2(ntot, Kseq[i], 1));
+    Blas::scal (ntot, 1.0/alpha[i], Kseq[i], 1);
+
+    Veclib::copy (ntot * (i + 1), kvec, 1, tvec, 1);
+    EV_small (Tseq, ntot, alpha, i, zvec, wr, wi, resnorm, verbose);
+    converged = EV_test (i, i, zvec, wr, wi, resnorm, evtol, min(i, nvec));
+    converged = max (converged, 0);
   }
 
   // -- Carry out iterative solution.
 
-  for (itrn = kdim; !converged && itrn < nits; itrn++) {
+  for (i = kdim + 1; !converged && i <= nits; i++) {
 
-    if (itrn != kdim) {		// -- Roll vectors, normalise.
-      norm = Blas::nrm2 (ntot, Kseq[1], 1);
-      for (i = 1; i <= kdim; i++) {
-	Blas::scal   (ntot, 1.0/norm, Kseq[i], 1);
-	Veclib::copy (ntot, Kseq[i], 1, Kseq[i - 1], 1);
-      }
+    for (j = 1; j <= kdim; j++) {
+      alpha[j - 1] = alpha[j];
+      Veclib::copy (ntot, Kseq[j], 1, Kseq[j - 1], 1);
+    }
 
       // -- Matrix-vector product.
 
-      F77name(dspmvc) (0, HBnr, 1, HBval, HBcptr, HBrptr,
-		       Kseq[kdim - 1], HBnr, Kseq[kdim], HBnr);
-    }
+    F77name(dspmvc) (0, HBnr, 1, HBval, HBcptr, HBrptr,
+		     Kseq[kdim - 1], HBnr, Kseq[kdim], HBnr);
+
+    alpha[kdim] = sqrt (Blas::nrm2 (ntot, Kseq[kdim], 1));
+    Blas::scal (ntot, 1.0/alpha[kdim], Kseq[kdim], 1);
 
     // -- Get subspace eigenvalues, test for convergence.
 
     Veclib::copy (ntot * (kdim + 1), kvec, 1, tvec, 1);
-    EV_small (Tseq, ntot, kdim, zvec, wr, wi, resnorm, verbose); 
+    EV_small (Tseq, ntot, alpha, kdim, zvec, wr, wi, resnorm, verbose); 
 
-    converged = EV_test (itrn, kdim, zvec, wr, wi, resnorm, evtol, nvec);
+    converged = EV_test (i, kdim, zvec, wr, wi, resnorm, evtol, nvec);
   }
 
   if      (!converged)
@@ -197,14 +208,14 @@ int main (int    argc,
 }
 
 
-static void getargs (int    argc,
-		     char** argv ,
-		     int&   kdim , 
-		     int&   maxit,
-		     int&   neval,
-		     int&   verb ,
-		     real&  evtol,
-		     char*& mfile)
+static void getargs (int     argc,
+		     char**  argv ,
+		     int_t&  kdim , 
+		     int_t&  maxit,
+		     int_t&  neval,
+		     int_t&  verb ,
+		     real_t& evtol,
+		     char*&  mfile)
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
@@ -255,14 +266,15 @@ static void getargs (int    argc,
 }
 
 
-static void EV_small (real**    Kseq   ,
-		      const int ntot   ,
-		      const int kdim   ,
-		      real*     zvec   ,
-		      real*     wr     ,
-		      real*     wi     ,
-		      real&     resnorm,
-		      const int verbose)
+static void EV_small (real_t**      Kseq   ,
+		      const int_t   ntot   ,
+		      const real_t* alpha  , 
+		      const int_t   kdim   ,
+		      real_t*       zvec   ,
+		      real_t*       wr     ,
+		      real_t*       wi     ,
+		      real_t&       resnorm,
+		      const int_t   verbose)
 // ---------------------------------------------------------------------------
 // Here we take as input the Krylov sequence Kseq =
 //          x,
@@ -283,18 +295,18 @@ static void EV_small (real**    Kseq   ,
 // which is passed back for convergence testing.
 // ---------------------------------------------------------------------------
 {
-  char         routine[] = "EV_small";
-  const int    kdimp = kdim + 1;
-  int          i, j, ier, lwork = 10 * kdim;
-  vector<real> work (kdimp * kdimp + kdim * kdim + lwork);
-  real         *R = &work[0], *H = R + kdimp * kdimp, *rwork = H + kdim * kdim;
+  char           routine[] = "EV_small";
+  const int_t    kdimp = kdim + 1;
+  int_t          i, j, ier, lwork = 10 * kdim;
+  vector<real_t> work (kdimp * kdimp + kdim * kdim + lwork);
+  real_t         *R = &work[0], *H = R + kdimp*kdimp, *rwork = H + kdim*kdim;
 
   Veclib::zero (kdimp * kdimp, R, 1);
 
   // -- Modified G--S orthonormalisation.
 
   for (i = 0; i < kdimp; i++) {
-    real gsc = Blas::nrm2 (ntot, Kseq[i], 1);
+    real_t gsc = Blas::nrm2 (ntot, Kseq[i], 1);
     if (gsc == 0.0)
       message (routine, "basis vectors linearly dependent", ERROR);
 
@@ -319,13 +331,14 @@ static void EV_small (real**    Kseq   ,
     }
   }
 
-  // -- H(i, j) = (q_i, A q_j) = 1 / R(j, j) * (R(i, j + 1) - H(i, l).R(l, j)),
+  // -- H(i, j) = (q_i, A q_j) 
+  //            = 1 / R(j, j) * (alpha(j + 1)*R(i, j + 1) - H(i, l).R(l, j)),
   //    with the last inner product taken over l < j.
 
   for (i = 0; i < kdim; i++) {
     for (j = 0; j < kdim; j++) {
       H[Veclib::col_major (i, j, kdim)] =
-	R[Veclib::col_major (i, j + 1, kdimp)]
+	alpha[j + 1] * R[Veclib::col_major (i, j + 1, kdimp)]
 	- Blas::dot (j, H + i, kdim, R + j * kdimp, 1);
       H[Veclib::col_major (i, j, kdim)] /= R [Veclib::col_major (j, j, kdimp)];
     }
@@ -361,27 +374,31 @@ static void EV_small (real**    Kseq   ,
   
   // -- Compute residual information.
 
-  resnorm = fabs (R[Veclib::col_major (kdim,     kdim,     kdimp)] /
-		  R[Veclib::col_major (kdim - 1, kdim - 1, kdimp)] );
+  resnorm = alpha[kdim] * fabs 
+    (R[Veclib::col_major (kdim,     kdim,     kdimp)] /
+     R[Veclib::col_major (kdim - 1, kdim - 1, kdimp)] );
 }
 
 
-static int EV_test (const int  itrn   ,
-		    const int  kdim   ,
-		    real*      zvec   ,
-		    real*      wr     ,
-		    real*      wi     ,
-		    const real resnorm,
-		    const real evtol  ,
-		    const int  nvec   )
+static int_t EV_test (const int_t  itrn   ,
+		      const int_t  kdim   ,
+		      real_t*      zvec   ,
+		      real_t*      wr     ,
+		      real_t*      wi     ,
+		      const real_t resnorm,
+		      const real_t evtol  ,
+		      const int_t  nvec   )
 // ---------------------------------------------------------------------------
-// Return true if converged.
+// Return value:
+//   nvec:  all of the first nvec eigenvalue estimates have converged;
+//  -1,-2:  the residuals aren't shrinking;
+//   0:     neither of the above is true: not converged.
 // ---------------------------------------------------------------------------
 {
-  int          i, idone;
-  vector<real> work (kdim);
-  real         re_ev, im_ev, max_resid, *resid = &work[0];
-  static real  min_max1, min_max2;
+  int_t          i, idone;
+  vector<real_t> work (kdim);
+  real_t         re_ev, im_ev, max_resid, *resid = &work[0];
+  static real_t  min_max1, min_max2;
  
   if (min_max1 == 0.0) min_max1 = 1000.0;
   if (min_max2 == 0.0) min_max2 = 1000.0;
@@ -425,19 +442,19 @@ static int EV_test (const int  itrn   ,
 }
 
 
-static void EV_sort (real*     evec,
-		     real*     wr  ,
-		     real*     wi  ,
-		     real*     test,
-		     const int dim )
+static void EV_sort (real_t*     evec,
+		     real_t*     wr  ,
+		     real_t*     wi  ,
+		     real_t*     test,
+		     const int_t dim )
 // ---------------------------------------------------------------------------
 // Insertion sort to rearrange eigenvalues and eigenvectors to ascending
 // order according to vector test.  See equivalent Numerical Recipes routine.
 // ---------------------------------------------------------------------------
 {
-  int          i, j;
-  vector<real> work (dim);
-  real         wr_tmp, wi_tmp, te_tmp, *z_tmp = &work[0];
+  int_t          i, j;
+  vector<real_t> work (dim);
+  real_t         wr_tmp, wi_tmp, te_tmp, *z_tmp = &work[0];
 
   for (j = 1; j < dim; j++) {
     wr_tmp = wr  [j];

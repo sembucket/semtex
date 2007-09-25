@@ -22,6 +22,7 @@ CPPFLAGS = -I. -I$(SEM)/include
 
 OBJ = iohb.o dspmvc.o arnoldi.o
 
+
 arnoldi:	$(OBJ)
 	$(LD) -o $@ $(OBJ) $(LDFLAGS)
 
@@ -29,3 +30,4 @@ arnoldi:	$(OBJ)
 # Standard rules and definitions.
 #
 include $(VPATH)/Makefile
+#F77LIBS  = -larpack -framework Accelerate -lg95

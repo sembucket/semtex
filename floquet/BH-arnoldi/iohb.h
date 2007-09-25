@@ -8,16 +8,16 @@ extern "C" {
 #endif
 
 int readHB_info(const char* filename, int* M, int* N, int* nz, char** Type, 
-                                                      int* Nrhs);
+		int* Nrhs);
 
 int readHB_header(FILE* in_file, char* Title, char* Key, char* Type, 
-                    int* Nrow, int* Ncol, int* Nnzero, int* Nrhs,
-                    char* Ptrfmt, char* Indfmt, char* Valfmt, char* Rhsfmt, 
-                    int* Ptrcrd, int* Indcrd, int* Valcrd, int* Rhscrd, 
-                    char *Rhstype);
+		  int* Nrow, int* Ncol, int* Nnzero, int* Nrhs,
+		  char* Ptrfmt, char* Indfmt, char* Valfmt, char* Rhsfmt, 
+		  int* Ptrcrd, int* Indcrd, int* Valcrd, int* Rhscrd, 
+		  char *Rhstype);
 
 int readHB_mat_double(const char* filename, int colptr[], int rowind[], 
-                                                                 double val[]);
+		      double val[]);
 
 int readHB_newmat_double(const char* filename, int* M, int* N, int* nonzeros, 
                          int** colptr, int** rowind, double** val);
