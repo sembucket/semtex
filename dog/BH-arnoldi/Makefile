@@ -36,6 +36,7 @@ arnoldi:	$(OBJ)
 include $(VPATH)/Makefile
 
 ifdef ARPACK
-  F77LIBS = -larpack -llapack -lfastblas -lg2c
+#  F77LIBS = -larpack -llapack -lfastblas -lg2c
+  F77LIBS = -larpack -llapack -lfastblas -lg95
 endif
 
