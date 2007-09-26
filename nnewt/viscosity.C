@@ -136,7 +136,7 @@ static void viscoModel (const Domain* D ,
 //
 // NNV = (\nu_0 + \nu_\inf (K|S|)^N)/ (1+(K|S|)^N), where
 //
-// |S| = sqrt [(S11)^2 + (S22)^2 + (S33)^2 + 2(S12)^2 + 2(S13)^2 + 2(S23)^2],
+// |S| = sqrt{2[(S11)^2 + (S22)^2 + (S33)^2 + 2(S12)^2 + 2(S13)^2 + 2(S23)^2]},
 //
 // \nu_0 = KINVIS from session file (i.e. REFVIS below), \nu_\inf is
 // the infinite shear rate viscosity and K and N are the cross model
