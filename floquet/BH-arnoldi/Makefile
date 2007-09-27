@@ -15,8 +15,11 @@ ifdef DEBUG
   DEFINES += -DDEBUG
 endif
 
+PROG = arnoldi-DB
+
 ifdef ARPACK
   DEFINES += -DARPACK
+  PROG = arnoldi-AR
 endif
 
 CPPFLAGS = -I. -I$(SEM)/include
@@ -26,8 +29,7 @@ CPPFLAGS = -I. -I$(SEM)/include
 
 OBJ = iohb.o dspmvc.o arnoldi.o
 
-
-arnoldi:	$(OBJ)
+$(PROG):	$(OBJ)
 	$(LD) -o $@ $(OBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
@@ -36,7 +38,7 @@ arnoldi:	$(OBJ)
 include $(VPATH)/Makefile
 
 ifdef ARPACK
-#  F77LIBS = -larpack -llapack -lfastblas -lg2c
-  F77LIBS = -larpack -llapack -lfastblas -lg95
+#  F77LIBS = -larpack -llapack -lfastblas -lgfortran
+  F77LIBS = -larpack -llapack -lfastblas -lgfortran
 endif
 
