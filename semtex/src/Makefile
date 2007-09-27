@@ -82,9 +82,7 @@ CFLAGS   = $(DEFINES) $(OPT)
 FFLAGS   = $(DEFINES) $(OPT)
 CXXFLAGS = $(DEFINES) $(OPT) -Wno-deprecated
 F77LIBS  = -llapack -lfastblas -lg2c
-#F77LIBS  = -llapack -lblas -lgfortran
-LIBDIR  += -L/usr/local/lib
-LDFLAGS  = $(OPT) $(LIBDIR)
+LDFLAGS  = $(OPT) $(LIBDIR) -static
 RANLIB   = ranlib
 ifdef MPI
   LDFLAGS += -lfem_mp -lvec $(F77LIBS) -lmpi -llam -lpthread
@@ -99,7 +97,8 @@ ifeq ($(ARCH),Darwin)               # -- Mac OSX.
 CXX      = g++
 LD       = g++
 CC       = gcc
-FC       = g95
+#FC      = g95
+FC	 = gfortran
 AR	 = libtool
 ARFLAGS  = -static -o
 RANLIB   = ranlib
@@ -111,9 +110,10 @@ endif
 CFLAGS   = $(DEFINES) $(OPT) -ansi
 CXXFLAGS = $(DEFINES) $(OPT) -ansi
 FFLAGS   = $(DEFINES) $(OPT)
-LIBDIR   += -L/sw/lib
+LIBDIR   += -L/sw/lib 
 LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
-F77LIBS  = -framework Accelerate -lg95
+#F77LIBS  = -lfastblas -framework Accelerate -lg95
+F77LIBS  = -framework Accelerate -lgfortran
 CLDFLAGS = $(LDFLAGS)
 ifdef MPI
   CPPFLAGS += -I/sw/include/lammpi
