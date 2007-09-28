@@ -122,7 +122,7 @@ int main (int    argc,
 // ---------------------------------------------------------------------------
 {
   int_t     kdim = 2, nvec = 2, nits = 2, verbose = 0, converged = 0;
-  real_t    norm, resnorm, evtol = 1.0e-6;
+  real_t    resnorm, evtol = 1.0e-6;
   int_t     i, j;
   char      buf[StrMax];
   ofstream  info;
@@ -153,19 +153,19 @@ int main (int    argc,
   // -- Allocate eigenproblem storage.
   
   const int_t ntot = preprocess (session, restart);
-  const int_t wdim = kdim + kdim + (kdim * kdim) + (2*ntot+1)*(kdim + 1);
+  const int_t wdim = kdim + kdim + kdim*kdim + (2*ntot + 1)*(kdim + 1);
 
   vector<real_t> work (wdim);
   Veclib::zero (wdim, &work[0], 1);
   
-  real_t* alpha = &work[0];	             // -- Scale factors.
-  real_t*  wr   = alpha + (kdim + 1);        // -- Eigenvalues (real part).
-  real_t*  wi   = wr   + kdim;	             //                (imag part).
-  real_t*  zvec = wi   + kdim;	             // -- Subspace eigenvectors.
-  real_t*  kvec = zvec + kdim * kdim;        // -- Krylov sequence (flat).
-  real_t*  tvec = kvec + ntot * (kdim + 1);  // -- Orthonormalised equivalent.
-  real_t** Kseq = new real_t* [kdim + 1];    // -- Handles for Krylov sequence.
-  real_t** Tseq = new real_t* [kdim + 1];    // -- Handles for ortho  sequence.
+  real_t*  alpha = &work[0];	             // -- Scale factors.
+  real_t*  wr    = alpha + (kdim + 1);       // -- Eigenvalues (real part).
+  real_t*  wi    = wr   + kdim;	             //                (imag part).
+  real_t*  zvec  = wi   + kdim;	             // -- Subspace eigenvectors.
+  real_t*  kvec  = zvec + kdim * kdim;       // -- Krylov sequence (flat).
+  real_t*  tvec  = kvec + ntot * (kdim + 1); // -- Orthonormalised equivalent.
+  real_t** Kseq  = new real_t* [kdim + 1];   // -- Handles for Krylov sequence.
+  real_t** Tseq  = new real_t* [kdim + 1];   // -- Handles for ortho  sequence.
 
   for (i = 0; i <= kdim; i++) {
     Kseq[i] = kvec + i * ntot;
@@ -189,15 +189,9 @@ int main (int    argc,
   Blas::scal (ntot, 1.0/alpha[0], Kseq[0], 1);
 
   // -- Fill initial Krylov sequence, during which convergence may occur.
-  //    Always normalise sequence so the next input vector has unity norm.
 
   for (i = 1; !converged && i <= kdim; i++) {
 
-#if 0
-    norm = sqrt (Blas::nrm2 (ntot, Kseq[i-1], 1));
-    for (j = 0; j < i; j++)
-      Blas::scal (ntot, 1.0/norm, Kseq[j], 1);
-#endif
     EV_update (task, Kseq[i - 1], Kseq[i]);
 
     alpha[i] = sqrt (Blas::nrm2 (ntot, Kseq[i], 1));
@@ -212,16 +206,6 @@ int main (int    argc,
   // -- Carry out iterative solution with a full sequence.
 
   for (i = kdim + 1; !converged && i <= nits; i++) {
-
-    // -- Normalise and update Krylov sequence.
-
-#if 0
-    norm = sqrt (Blas::nrm2 (ntot, Kseq[kdim], 1));
-    for (j = 1; j <= kdim; j++) {
-      Blas::scal   (ntot, 1.0/norm, Kseq[j], 1);
-      Veclib::copy (ntot, Kseq[j], 1, Kseq[j - 1], 1);
-    }
-#endif
 
     // -- Update Krylov sequence. 
 

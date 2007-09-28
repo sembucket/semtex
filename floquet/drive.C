@@ -78,13 +78,13 @@ static char RCS[] = "$Id$";
 #include <stab.h>
 
 #ifdef FLIP
-static char             prog[] = "dsa-H";
+static char             prog[] = "dog-H";
 static char             generator;
 static vector<int_t>    positive, negative;
 static void loadmap     (const char*);
 static void mirror      (real_t*);
 #else
-static char             prog[] = "dsa";
+static char             prog[] = "dog";
 #endif
 static char*            session;
 static Domain*          domain;
@@ -125,7 +125,7 @@ int main (int    argc,
   real_t    resnorm, evtol = 1.0e-6;
   int_t     i, j;
   char      buf[StrMax];
-  ofstream  info;
+  ofstream  runinfo;
   problem_t task = PRIMAL;
   bool      restart = false;
 
@@ -148,11 +148,98 @@ int main (int    argc,
   Femlib::value  ("KRYLOV_KTOL", evtol);
 
   strcat (strcpy (buf, session), ".evl");
-  info.open (buf, ios::out);
-  
-  // -- Allocate eigenproblem storage.
+  runinfo.open (buf, ios::out);
+
+  // -- Set up to run with semtex.
   
   const int_t ntot = preprocess (session, restart);
+
+#if defined (ARPACK)		// -- Eigensolution by ARPACK.
+
+  const int_t done = 99, lworkl = 3*kdim*kdim + 6*kdim;
+  int_t       ido, info, iparam[11], ipntr[14], select[kdim];
+
+  iparam [0] = 1;		// -- Shifting will be handled by ARPACK.
+  iparam [1] = 0; 		// -- Not used.
+  iparam [2] = nits;		// -- Input: maximum, output: number done.
+  iparam [3] = 1;		// -- Blocksize, ARPACK say = 1.
+  iparam [4] = 0;		// -- Output, number of converged values.
+  iparam [5] = 0;		// -- Not used.
+  iparam [6] = 1;		// -- Mode: solve A x = lambda x.
+  iparam [7] = 0; 		// -- For user shifts, not used here.
+  iparam [8] = 0;		// -- Output, number of Op x operations.
+  iparam [9] = 0;		// -- Output, not used here.
+  iparam[10] = 0;		// -- Output, number of re-orthog steps.
+
+  // -- Allocate storage.
+
+  vector<real_t> work (3*ntot+lworkl+ntot*kdim+ntot+2*(nvec+1)+3*kdim);
+  real_t*        workd  = &work[0];
+  real_t*        workl  = workd + 3*ntot;
+  real_t*        v      = workl + lworkl;
+  real_t*        resid  = v + ntot*kdim;
+  real_t*        dr     = resid + ntot;
+  real_t*        di     = dr + nvec + 1;
+  real_t*        workev = di + nvec + 1;
+
+  // -- Either read in a restart, or set random IC. 
+
+  EV_init (resid);
+
+  // -- Set up for reverse communication.
+
+  F77NAME(dnaupd) (ido=0, "I", ntot, "LM", nvec, evtol, resid, kdim, 
+		   v, ntot, iparam, ipntr, workd, workl, lworkl, info=1);
+
+  // -- IRAM iteration.
+
+  i = 0;
+  while (ido != done) {
+    EV_update (task, workd+ipntr[0]-1, workd+ipntr[1]-1);
+
+    F77NAME(dnaupd) (ido, "I", ntot, "LM", nvec, evtol, resid, kdim,
+		     v, ntot, iparam, ipntr, workd, workl, lworkl, info);
+
+    runinfo << "ARPACK iteration: " << ++i << endl;
+  }
+
+  if (info < 0) message (prog, "ARPACK error", ERROR);
+
+  runinfo << "Converged in " << iparam[8] << " iterations" << endl;
+
+  // -- Post-process to obtain eigenvalues.
+
+  F77NAME(dneupd) (0, "A", select, dr, di, 0, 1, 0, 0, workev,
+		   "I", ntot, "LM", nvec, evtol, resid, kdim,
+		   v, ntot, iparam, ipntr, workd, workl, lworkl, info);
+
+  real_t       re_ev, im_ev, abs_ev, ang_ev, re_Aev, im_Aev;
+  const real_t period = Femlib::value ("D_T * N_STEP");
+
+  runinfo.precision(4);
+  runinfo.setf(ios::scientific, ios::floatfield);
+
+  runinfo << "EV  Magnitude   Angle       Growth      Frequency" << endl;
+
+  for (i = nvec; i; i--) {
+    re_ev  = dr[i-1];
+    im_ev  = di[i-1];
+    abs_ev = hypot (re_ev, im_ev);
+    ang_ev = atan2 (im_ev, re_ev);
+    re_Aev = log (abs_ev) / period;
+    im_Aev = ang_ev       / period;
+    runinfo << setw(2)  << nvec - i
+         << setw(12) << abs_ev
+      	 << setw(12) << ang_ev
+	 << setw(12) << re_Aev
+	 << setw(12) << im_Aev
+	 << endl;
+  }
+
+#else                           // -- Eigensolution by DB algorithm.
+
+  // -- Allocate eigenproblem storage.
+
   const int_t wdim = kdim + kdim + kdim*kdim + (2*ntot + 1)*(kdim + 1);
 
   vector<real_t> work (wdim);
@@ -198,8 +285,8 @@ int main (int    argc,
     Blas::scal (ntot, 1.0/alpha[i], Kseq[i], 1);
 
     Veclib::copy (ntot * (i + 1), kvec, 1, tvec, 1);
-    EV_small (Tseq, ntot, alpha, i, zvec, wr, wi, resnorm, verbose, info);
-    converged = EV_test (i,i, zvec, wr,wi, resnorm, evtol, min(i, nvec), info);
+    EV_small (Tseq, ntot, alpha, i, zvec, wr, wi, resnorm, verbose, runinfo);
+    converged = EV_test (i,i, zvec, wr,wi, resnorm, evtol, min(i, nvec), runinfo);
     converged = max (converged, 0); // -- Only exit on evtol.
   }
 
@@ -224,14 +311,16 @@ int main (int    argc,
     // -- Get subspace eigenvalues, test for convergence.
 
     Veclib::copy (ntot * (kdim + 1), kvec, 1, tvec, 1);
-    EV_small (Tseq, ntot, alpha, kdim, zvec, wr, wi, resnorm, verbose, info); 
+    EV_small (Tseq, ntot, alpha, kdim, zvec, wr, wi, resnorm, verbose,runinfo);
 
-    converged = EV_test (i, kdim, zvec, wr, wi, resnorm, evtol, nvec, info);
+    converged = EV_test (i, kdim, zvec, wr, wi, resnorm, evtol, nvec, runinfo);
   }
 
-  EV_post (task,Tseq,Kseq,ntot,min(--i, kdim),nvec,zvec,wr,wi,converged,info);
+  EV_post(task,Tseq,Kseq,ntot,min(--i,kdim),nvec,zvec,wr,wi,converged,runinfo);
 
-  info.close();
+#endif
+
+  runinfo.close();
   Femlib::finalize();
   return (EXIT_SUCCESS);
 }
@@ -311,7 +400,7 @@ static void EV_small (real_t**      Kseq   ,
 		      real_t*       wi     ,
 		      real_t&       resnorm,
 		      const int_t   verbose,
-		      ofstream&     info   )
+		      ofstream&     runinfo   )
 // ---------------------------------------------------------------------------
 // Here we take as input the Krylov sequence Kseq =
 //          x,
@@ -364,11 +453,11 @@ static void EV_small (real_t**      Kseq   ,
   // -- QR decomposition completed.  Print up R as diagnostic.
 
   if (verbose) {
-    info << "R =" << endl;
+    runinfo << "R =" << endl;
     for (i = 0; i < kdim; i++) {
       for (j = 0; j < kdim; j++) 
-	info << setw (14) << R[Veclib::col_major (i, j, kdimp)];
-      info << endl;
+	runinfo << setw (14) << R[Veclib::col_major (i, j, kdimp)];
+      runinfo << endl;
     }
   }
 
@@ -388,11 +477,11 @@ static void EV_small (real_t**      Kseq   ,
   // -- Print up H as diagnostic.
 
   if (verbose) {
-    info << "H =" << endl;
+    runinfo << "H =" << endl;
     for (i = 0; i < kdim; i++) {
       for (j = 0; j < kdim; j++) 
-	info << setw (14) << H[Veclib::col_major (i, j, kdim)];
-      info << endl;
+	runinfo << setw (14) << H[Veclib::col_major (i, j, kdim)];
+      runinfo << endl;
     }
   }
 
@@ -408,14 +497,14 @@ static void EV_small (real_t**      Kseq   ,
   // -- Print up (unsorted) eigenvalues and eigenvectors as diagnostic.
 
   if (verbose) {
-    info << "eval =" << endl;
-    for (i = 0; i < kdim; i++) info << setw (14) << wr[i]; info << endl;
-    for (i = 0; i < kdim; i++) info << setw (14) << wi[i]; info << endl;
-    info << "zvec =" << endl;
+    runinfo << "eval =" << endl;
+    for (i = 0; i < kdim; i++) runinfo << setw (14) << wr[i]; runinfo << endl;
+    for (i = 0; i < kdim; i++) runinfo << setw (14) << wi[i]; runinfo << endl;
+    runinfo << "zvec =" << endl;
     for (i = 0; i < kdim; i++) {
       for (j = 0; j < kdim; j++) 
-	info << setw (14) << zvec[Veclib::col_major (i, j, kdim)];
-      info << endl;
+	runinfo << setw (14) << zvec[Veclib::col_major (i, j, kdim)];
+      runinfo << endl;
     }
   }
   
@@ -435,7 +524,7 @@ static int_t EV_test (const int_t  itrn   ,
 		      const real_t resnorm,
 		      const real_t evtol  ,
 		      const int_t  nvec   ,
-		      ofstream&    info   )
+		      ofstream&    runinfo   )
 // ---------------------------------------------------------------------------
 // Test convergence of eigenvalues and print up diagnostic information.
 //
@@ -478,12 +567,12 @@ static int_t EV_test (const int_t  itrn   ,
 
   // -- Print diagnostic information.
 
-  info << "-- Iteration = " << itrn << ", H(k+1, k) = " << resnorm << endl;
+  runinfo << "-- Iteration = " << itrn << ", H(k+1, k) = " << resnorm << endl;
 
-  info.precision(4);
-  info.setf(ios::scientific, ios::floatfield);
+  runinfo.precision(4);
+  runinfo.setf(ios::scientific, ios::floatfield);
 
-  info << "EV  Magnitude   Angle       Growth      Frequency   Residual"
+  runinfo << "EV  Magnitude   Angle       Growth      Frequency   Residual"
        << endl;
 
   for (i = 0; i < kdim; i++) {
@@ -493,7 +582,7 @@ static int_t EV_test (const int_t  itrn   ,
     ang_ev = atan2 (im_ev, re_ev);
     re_Aev = log (abs_ev) / period;
     im_Aev = ang_ev       / period;
-    info << setw(2)  << i
+    runinfo << setw(2)  << i
          << setw(12) << abs_ev
       	 << setw(12) << ang_ev
 	 << setw(12) << re_Aev
@@ -502,8 +591,8 @@ static int_t EV_test (const int_t  itrn   ,
 	 << endl;
   }
 
-  info.precision(6);
-  info.setf(ios::fixed);
+  runinfo.precision(6);
+  runinfo.setf(ios::fixed);
   
   return idone;
 }
@@ -554,7 +643,7 @@ static void EV_post (const problem_t task,
 		     const real_t*   wr  , 
 		     const real_t*   wi  , 
 		     const int_t     icon,
-		     ofstream&       info)
+		     ofstream&       runinfo)
 // ---------------------------------------------------------------------------
 // Carry out postprocessing of estimates, depending on value of icon
 // (as output by EV_test).
@@ -582,7 +671,7 @@ static void EV_post (const problem_t task,
 
   if (icon == 0) {
 
-    info << prog
+    runinfo << prog
 	 << ": not converged, writing final Krylov vector."
 	 << endl;
 
@@ -598,7 +687,7 @@ static void EV_post (const problem_t task,
 
   } else if (icon < 0) {
     
-    info << prog
+    runinfo << prog
 	 << ": minimum residual reached, writing initial Krylov vector."
 	 << endl;
     
@@ -611,13 +700,13 @@ static void EV_post (const problem_t task,
 
   } else if (icon == nvec) {
 
-    info << prog
+    runinfo << prog
 	 << ": converged, writing "
 	 << icon
 	 << " eigenvectors."
 	 << endl;
     
-    EV_big (task, Tseq, Kseq, ntot, kdim, icon, zvec, wr, wi, info);
+    EV_big (task, Tseq, Kseq, ntot, kdim, icon, zvec, wr, wi, runinfo);
     for (j = 0; j < icon; j++) {
       src = Kseq[j];
       for (i = 0; i < ND; i++)
@@ -644,7 +733,7 @@ static void EV_big (const problem_t task ,
 		    const real_t*   zvecs,
 		    const real_t*   wr   ,
 		    const real_t*   wi   ,
-		    ofstream&       info )
+		    ofstream&       runinfo )
 // ---------------------------------------------------------------------------
 // Compute the Ritz eigenvector estimates of the linear operator using
 // the eigenvalues and eigenvectors of H computed in the subspace.
@@ -718,7 +807,7 @@ static void EV_big (const problem_t task ,
 
       resid = Blas::nrm2 (ntot, bvecs[0], 1) / Blas::nrm2 (ntot, evecs[i], 1);
     
-      info << "Big-space residual of eigenvector " <<i<< ": " << resid << endl;
+      runinfo << "Big-space residual of eigenvector " <<i<< ": " << resid << endl;
     }
   }
 }
@@ -767,7 +856,7 @@ static void getargs (int        argc   ,
       task = SHRINK;
       break;
     case 'k':
-     if (*++argv[0]) kdim  = atoi (  *argv);
+      if (*++argv[0]) kdim  = atoi (  *argv);
       else { --argc;  kdim  = atoi (*++argv); }
       break;
     case 'm':

@@ -1,6 +1,6 @@
 ##############################################################################
 # Makefile for lns, spectral element solver for linearised unsteady
-# Navier--Stokes problems, and dsa, a Krylov-method solver for
+# Navier--Stokes problems, and dog, a Krylov-method solver for
 # stability problems (including Floquet and transient-growth problems).
 #
 # $Id$
@@ -10,15 +10,20 @@ SEM   = ../semtex
 VPATH = $(SEM)/src
 
 ifdef FLIP		# -- Use the "half-period-flip map".
-  KPROG = dsa-H
+  KPROG = dog-H
   DEFINES += -DFLIP
 else
-  KPROG = dsa
+  KPROG = dog
 endif
 
 ifdef TBCS		# -- Recompute mode 0 velocity BCs every time step.
   DEFINES += -DTBCS
   KPROG := $(KPROG)_tbcs
+endif
+
+ifdef ARPACK
+  DEFINES += -DARPACK
+  KPROG   := $(KPROG)-AR
 endif
 
 # ----------------------------------------------------------------------------
@@ -33,7 +38,7 @@ SEMHDR   = $(addsuffix .h,$(SEMFILES)) sem.h
 # ----------------------------------------------------------------------------
 # Build eigensolver code.
 
-FL_FILES = dsa integrate stabanalysis
+FL_FILES = drive integrate stabanalysis
 FL_OBJ   = $(addsuffix .o,$(FL_FILES))
 
 $(KPROG): sem $(FL_OBJ) $(SEMOBJ) stab.h
@@ -76,6 +81,10 @@ $(SEMOBJ): $(SEMHDR)
 # Standard rules and definitions.
 #
 include $(VPATH)/Makefile
+
+ifdef ARPACK
+  F77LIBS := -larpack $(F77LIBS)
+endif
 
 #-----------------------------------------------------------------------------
 # Machine-dependent compilations.
