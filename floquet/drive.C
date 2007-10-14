@@ -174,7 +174,7 @@ int main (int    argc,
   // -- Allocate storage.
 
   vector<real_t> work(3*ntot + lworkl + ntot*kdim + ntot +
-		      2*(nvec+1) + 3*kdim + ntot*nvec);
+		      2*(nvec+1) + 3*kdim + ntot*(nvec+1));
   real_t*        workd  = &work[0];
   real_t*        workl  = workd + 3*ntot;
   real_t*        v      = workl + lworkl;
