@@ -68,7 +68,7 @@ void StabAnalyser::analyse (AuxField** work0,
 
   register int_t    j, k;      
   const int_t       NBH = base_history.size();
-  const int_t       NBF = 2;  // number of base fields = 2 (UV)
+  const int_t       NBF = Geometry::nBase();
   HistoryPoint*     HB;
   vector<real_t>    tmp_B (NBF);
   vector<AuxField*> U     (NBF);

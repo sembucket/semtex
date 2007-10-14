@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// dsa.C: compute leading eigenvalues and eigenvectors for stability
+// drive.C: compute leading eigenvalues and eigenvectors for stability
 // analysis based on linearised (Navier--Stokes) operators.
 // Optionally compute the optimal transient growth initial
 // condition. The base flow can be either steady or periodic in time,
@@ -18,7 +18,7 @@
 //
 // USAGE
 // -----
-// dsa [options] session
+// dog [options] session
 //   session: specifies name of semtex session file.
 //   options:
 //   -h       ... print this message
@@ -31,8 +31,8 @@
 //
 #ifdef FLIP
 //
-// Floquet analysis for RT-symmetric base flows (which will be
-// Cartesian). The idea here is that the mapping of an instability
+// Floquet analysis for reflection/time translation (RT) symmetric
+// base flows.  The idea here is that the mapping of an instability
 // applied by RT-symmetric flows with period T is like the square of
 // two mappings of period T/2 (see [4]). Here we explicitly deal only
 // with the 1/2-period map, but have to apply a symmetry operation to
@@ -41,9 +41,9 @@
 // contains the rule for transforming the perturbation velocity field.
 //
 // The user has to ensure that the integration time in the session
-// file is T/2 (just as, for dsa, it must be T).
+// file is T/2 (just as, for dog, it must be T).
 //
-// Usage is the same as for dsa, except the code is called dsa-H.
+// Usage is the same as for dog, except the code is called dog-H.
 // (H is for "half-period".)
 //
 #endif
@@ -61,16 +61,16 @@
 //
 // REFERENCES
 // ----------
-// [1]  D. Barkley & R.D. Henderson (1996), "Three-dimensional Floquet
+// [1]  D Barkley & RD Henderson (1996), "Three-dimensional Floquet
 //      stability analysis of the wake of a circular cylinder",
-//      J. Fluid Mech V322, 215--241.
-// [2]  Y. Saad (1991), "Numerical methods for large eigenvalue problems"
+//      J Fluid Mech V322, 215--241.
+// [2]  Y Saad (1991), "Numerical methods for large eigenvalue problems"
 //      Wiley.
-// [3]  L.S. Tuckerman & D. Barkley (2000), "Bifurcation analysis for
+// [3]  LS Tuckerman & D Barkley (2000), "Bifurcation analysis for
 //      timesteppers", in Numerical Methods for Bifurcation Problems,
-//      ed E. Doedel & L.S. Tuckerman, Springer. 453--466.
-// [4]  J. W. Swift & K. Wiesenfeld (1984), "Suppression of period doubling
-//      in symmetric systems", Phys. Rev. Lett. 52(9), 705--708.
+//      ed E Doedel & LS Tuckerman, Springer. 453--466.
+// [4]  HM Blackburn, F Marques & JM Lopez (2005), "Symmetry breaking of 
+//      two-dimensional time-periodic wakes", J Fluid Mech V522, 395--411.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -123,7 +123,7 @@ int main (int    argc,
 {
   int_t     kdim = 2, nvec = 2, nits = 2, verbose = 0, converged = 0;
   real_t    resnorm, evtol = 1.0e-6;
-  int_t     i, j;
+  int_t     i, j, k;
   char      buf[StrMax];
   ofstream  runinfo;
   problem_t task = PRIMAL;
@@ -173,7 +173,8 @@ int main (int    argc,
 
   // -- Allocate storage.
 
-  vector<real_t> work (3*ntot+lworkl+ntot*kdim+ntot+2*(nvec+1)+3*kdim);
+  vector<real_t> work(3*ntot + lworkl + ntot*kdim + ntot +
+		      2*(nvec+1) + 3*kdim + ntot*nvec);
   real_t*        workd  = &work[0];
   real_t*        workl  = workd + 3*ntot;
   real_t*        v      = workl + lworkl;
@@ -181,6 +182,7 @@ int main (int    argc,
   real_t*        dr     = resid + ntot;
   real_t*        di     = dr + nvec + 1;
   real_t*        workev = di + nvec + 1;
+  real_t*        z      = workev + 3*kdim;
 
   // -- Either read in a restart, or set random IC. 
 
@@ -207,11 +209,13 @@ int main (int    argc,
 
   runinfo << "Converged in " << iparam[8] << " iterations" << endl;
 
-  // -- Post-process to obtain eigenvalues.
+  // -- Post-process to obtain eigenvalues and Ritz eigenvectors.
 
-  F77NAME(dneupd) (0, "A", select, dr, di, 0, 1, 0, 0, workev,
+  F77NAME(dneupd) (1, "A", select, dr, di, z, ntot, 0, 0, workev,
 		   "I", ntot, "LM", nvec, evtol, resid, kdim,
 		   v, ntot, iparam, ipntr, workd, workl, lworkl, info);
+
+  // -- Print up eigenvalues.
 
   real_t       re_ev, im_ev, abs_ev, ang_ev, re_Aev, im_Aev;
   const real_t period = Femlib::value ("D_T * N_STEP");
@@ -234,7 +238,24 @@ int main (int    argc,
 	 << setw(12) << re_Aev
 	 << setw(12) << im_Aev
 	 << endl;
+
   }
+
+  // -- Print up eigenvectors.
+
+  for (j = 0; j < nvec; j++) {
+    char     msg[StrMax], nom[StrMax];
+    real_t*  src = z + j * ntot;
+    ofstream file;
+    for (i = 0; i < Geometry::nPert(); i++)
+      for (k = 0; k < Geometry::nZ(); k++)
+	domain -> u[i] -> setPlane 
+	  (k, src + (i*Geometry::nZ() + k)*Geometry::planeSize());
+    sprintf   (msg, ".eig.%1d", j);
+    strcat    (strcpy (nom, domain -> name), msg);
+    file.open (nom, ios::out); file << *domain; file.close();
+  }
+
 
 #else                           // -- Eigensolution by DB algorithm.
 
@@ -286,7 +307,7 @@ int main (int    argc,
 
     Veclib::copy (ntot * (i + 1), kvec, 1, tvec, 1);
     EV_small (Tseq, ntot, alpha, i, zvec, wr, wi, resnorm, verbose, runinfo);
-    converged = EV_test (i,i, zvec, wr,wi, resnorm, evtol, min(i, nvec), runinfo);
+    converged = EV_test (i,i,zvec,wr,wi,resnorm,evtol,min(i, nvec), runinfo);
     converged = max (converged, 0); // -- Only exit on evtol.
   }
 

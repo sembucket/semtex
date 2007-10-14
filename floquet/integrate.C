@@ -1,14 +1,15 @@
 ///////////////////////////////////////////////////////////////////////////////
 // integrate.C: integrate unsteady linearised Navier--Stokes problem
-// forward in time.
+// forward in time (or its adjoint, backwards in time).
 //
 // Copyright (c) 2000 <--> $Date$, Hugh Blackburn
 //
-// This version implements linearised advection terms and evolves a
-// single Fourier mode.  Both the number of velocity components in the
-// perturbation velocity field (Geometry::nPert) and their complex
-// scalar structure is variable, partly dependent on the number of
-// velocity components used for the 2D base flow (Geometry::nBase).
+// This version implements linearised forward and adjoint advection
+// terms and evolves a single Fourier mode.  Both the number of
+// velocity components in the perturbation velocity field
+// (Geometry::nPert) and their complex scalar structure is variable,
+// partly dependent on the number of velocity components used for the
+// 2D base flow (Geometry::nBase).
 //
 // For cylindrical coordinates:
 //   u <==> axial     velocity,  x <==> axial     coordinate direction,
@@ -63,7 +64,7 @@ void integrate (void            (*Advection)(Domain*, AuxField**, AuxField**),
   static AuxField*** Uf;
   static Field*      Pressure = D -> u[NPERT];
 
-  if (!MS) {			// -- Initialise static data.
+  if (!MS) {	      // -- Initialise static data (enable call-back).
     
     // -- Create global matrix systems
 
@@ -116,13 +117,15 @@ void integrate (void            (*Advection)(Domain*, AuxField**, AuxField**),
 
   while (D -> step < nStep) {
 
+    // -- Reconstruct base velocity fields if appropriate.
+
+    D -> updateBase();
+
+    // -- Set the time to end of timestep.
+
     D -> step += 1; 
     D -> time += (forwards) ? dt : -dt;
     Femlib::value ("t", D -> time);
-
-    // -- Update base velocity fields if appropriate.
-
-    D -> updateBase();
 
     // -- Unconstrained forcing substep.
     
@@ -138,7 +141,7 @@ void integrate (void            (*Advection)(Domain*, AuxField**, AuxField**),
     if (Geometry::cylindrical()) { Us[0][0] -> mulY(); Us[0][1] -> mulY(); }
 
     waveProp (D, const_cast<const AuxField***>(Us),
-	      const_cast<const AuxField***>(Uf));
+	         const_cast<const AuxField***>(Uf));
 
     for (i = 0; i < NPERT; i++) AuxField::swapData (D -> u[i], Us[0][i]);
 

@@ -2,13 +2,12 @@
 	CYLINDRICAL=1
 	KINVIS    = 1/500
 	D_T       = 0.001
-	N_STEP    = 500
+	T_MAX     = 1
+	N_STEP    = int(T_MAX/D_T)
 	N_TIME    = 2
 	N_P       = 7
 	IO_CFL    = 25
 	IO_FLD    = 1000
-	AVERAGE   = 0
-	ITERATIVE = 0
         N_SLICE   = 1
         N_BASE    = 2
         N_Z       = 1
@@ -47,10 +46,10 @@ p = 0
 			<D>	w = 0.0	</D>
 			<H>	p = 0.0	</H>
 	3	o	4
-			<N>	u = 0.0	</N>
-			<N>	v = 0.0	</N>
-			<N>	w = 0.0	</N>
-			<D>	p = 0.0	</D>
+			<D>	u = 0.0	</D>
+			<D>	v = 0.0	</D>
+			<D>	w = 0.0	</D>
+			<H>	p = 0.0	</H>
         4       a       4
                         <A>     u = 0   </A>
                         <A>     v = 0   </A> 

@@ -12,7 +12,6 @@
 #  year = 2002
 # }
 
-
 <TOKENS>
 	Re       = 100
 	Wo       = 5
@@ -25,18 +24,11 @@
 	x12px22  = x1*x1+x2*x2
 
 	PERIOD   = TWOPI/omega
-	STEPS_P  = 8*1024
+	STEPS_P  = 6*1024
 	N_STEP   = 0.5*STEPS_P
 	D_T      = PERIOD/STEPS_P
 	
-	tREF     = 0
-	tPAR     = 0.75*PERIOD
-	
-	t        = tPAR-tREF
-
-	IO_HIS   = 20
-	IO_CFL   = 20
-	IO_FLD   = N_STEP
+	t        = 0 
 
 	N_TIME   = 2
 	N_P      = 11
@@ -46,6 +38,10 @@
 	N_SLICE  = 64
 	N_BASE   = 2
 	BASE_PERIOD = PERIOD
+
+	IO_HIS   = STEPS_P/N_SLICE
+	IO_CFL   = 20
+	IO_FLD   = STEPS_P/N_SLICE
 </TOKENS>
 
 <USER>
@@ -59,6 +55,10 @@
 	2	0.0	0.5	0.0
 	3	0.0	0.0	0.0
 </HISTORY>
+
+<BASE_HIST NUMBER=1>
+	1	0.0	0.0	0.0
+</BASE_HIST>
 
 <FIELDS NUMBER=3>
 	u v p

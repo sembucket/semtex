@@ -151,13 +151,14 @@ void Domain::report (ostream& file)
 
 bool Domain::restart()
 // ---------------------------------------------------------------------------
-// If a restart file "name".rst can be found, use it for input.  If
-// this fails, initialise all fields to random noise.
+// If a restart file "name".rst can be found, use it for input, and
+// return true.  If this fails, initialise all fields to random noise,
+// and return false.
 // ---------------------------------------------------------------------------
 {
-  int_t       i;
   const int_t nF   = nField();
   const int_t ntot = Geometry::nTotProc();
+  int_t       i;
   char        restartfile[StrMax];
   bool        restarted = false;
   
@@ -240,7 +241,7 @@ ofstream& operator << (ofstream& strm,
 // processor.
 // ---------------------------------------------------------------------------
 {
-  const int_t     N = D.u.size();
+  const int_t       N = D.u.size();
   vector<AuxField*> field (N);
 
   for (int_t i = 0; i < N; i++) field[i] = D.u[i];
@@ -394,13 +395,14 @@ void Domain::loadBase()
 
   ROOTONLY cout << "-- Base flow               : " << flush; 
 
-  i = 0;
-  while (file >> H) {
+  for (i = 0; file >> H; i++) {
+
     if (H.nr != nP || H.nel != nEl)
       message (routine, "base flow and perturbation do not conform", ERROR);
     if ((nBase == 2 && strcmp (H.flds, "uvp" )) ||
 	(nBase == 3 && strcmp (H.flds, "uvwp")))
       message (routine, "mismatch: No. of base components/declaration", ERROR);
+
     for (j = 0; j < nBase; j++) {
 
       // -- Note that we wrap around so that the last dump goes first:
@@ -422,7 +424,6 @@ void Domain::loadBase()
 
     if (i == 0) t0 = H.time;
     dt = H.time - t0;
-    i++;
   }
 
   file.close();
@@ -430,10 +431,12 @@ void Domain::loadBase()
   if (i != nSlice)
     message (routine, "mismatch: No. of base slices/declaration", ERROR);
 
-  if (nSlice > 1) {
+  if (nSlice > 1) {		// -- Prepare for Fourier reconstruction.
+
     period = Femlib::value ("BASE_PERIOD"); // -- Use this if installed.
     if (period < EPSDP)
       Femlib::value ("BASE_PERIOD", period = dt * i / (i - 1.0));
+
     // -- Fourier transform in time, scale for reconstruction.
     for (i = 0; i < nBase; i++) {
       Femlib::DFTr (baseFlow[i], nSlice, nTot, FORWARD);
@@ -454,13 +457,12 @@ void Domain::updateBase()
 // Update base velocity fields, using Fourier series reconstruction in time.
 // ---------------------------------------------------------------------------
 {
-  const int_t  nBase   = Geometry::nBase();
-  const int_t  nSlice  = Geometry::nSlice();
-  const real_t oldTime = Femlib::value ("t - D_T");
-  int_t        i;
+  const int_t nBase   = Geometry::nBase();
+  const int_t nSlice  = Geometry::nSlice();
+  int_t       i;
   
   if (nSlice < 2) return;
 
   for (i = 0; i < nBase; i++)
-    U[i] -> update (nSlice, baseFlow[i], oldTime, period);
+    U[i] -> update (nSlice, baseFlow[i], time, period);
 }
