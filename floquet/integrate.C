@@ -289,15 +289,15 @@ void linAdvectT (Domain*    D ,
     *N[i] = 0.0;
   }
 
-  // -- Transposed centrifugal, Coriolis terms for cylindrical coords.
+  // -- Centrifugal, Coriolis terms for cylindrical coords.
 
-  if (Geometry::cylindrical() && NBASE == 3) {
-    // -- If NBASE = 3 then also NPERT = 3.
-    T -> times (*u[1], *U[2]) . divY();
-    *T *= -2.0;
-    *N[2] += *T;
-    *N[2] *= T -> times (*u[2], *U[1]) . divY();
-    *N[1] *= T -> times (*u[2], *U[2]);
+  if (Geometry::cylindrical()) {
+    if (NPERT == 3)
+     *N[2] += T -> times (*u[2], *U[1]) . divY();
+    if (NBASE == 3) {    // -- If NBASE = 3 then also NPERT = 3.
+      *N[1] += T -> times (*u[2], *U[2]);
+      N[2] -> axpy (-2.0, T -> times (*u[1], *U[2]) . divY() );
+    }
   }
 
   // -- N_i -= U_j d(u_i) / dx_j.
@@ -315,7 +315,7 @@ void linAdvectT (Domain*    D ,
   for (i = 0; i < 2; i++)
     for (j = 0; j < NBASE; j++) {
       (*U[NBASE] = *U[j]) . gradient (i);
-      if (Geometry::cylindrical() && i < 2) U[NBASE] -> mulY();
+      if (Geometry::cylindrical()) U[NBASE] -> mulY();
       N[i] -> timesPlus (*u[j], *U[NBASE]);
     }
 
