@@ -8,7 +8,7 @@ export  FTP_PROXY=http://bburn:hb51hmb58@proxy.monash.edu.au:8080
 cvs export -Dnow semtex
 tar czvf semtex.tgz semtex
 cp /Users/hmb/develop/semtex-ug/userguide.pdf semtex-user.pdf
-cp /Users/hmb/doc/web/semtex-web.html semtex.html
+cp /Users/hmb/develop/webpage/semtex-web.html semtex.html
 
 curl -T "{semtex.tgz,semtex-user.pdf,semtex.html}" ftp://hugh.blackburn:hot4Texta@users.bigpond.net.au
 
