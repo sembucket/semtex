@@ -32,7 +32,7 @@
 // variable.  In the case where the number of space dimensions is also
 // 3, the number of boundary frames and numbering systems is set to 3,
 // for the 0th, 1st and 2nd (and higher) modes, irrespective of the
-// number of Fourier modes actually used.  See BCmgr.C.
+// number of Fourier modes actually used.  See bcmgr.C.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";

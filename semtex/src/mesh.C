@@ -974,15 +974,11 @@ void Mesh::printNek () const
 // Print out mesh information in NEKTON format.
 // ---------------------------------------------------------------------------
 {
-  const char routine[] = "Mesh::printNek";
-  char       buf[StrMax];
-#if 0
-  char       err [StrMax];
-  ostrstream os  (err, StrMax);
-#else
+  const char    routine[] = "Mesh::printNek";
+  char          buf[StrMax];
   string        err;
   ostringstream os(err);
-#endif
+
   int_t      i, j, ns, nel = nEl();
   float      vbc;
   Elmt       *E, *ME;
@@ -1096,11 +1092,7 @@ void Mesh::printNek () const
 	  os << "Elmt " << E -> ID + 1 << " side " << S -> ID + 1
 	     << " --- B.C. type "  << buf
 	     << " not implemented" << ends;
-#if 0
-	  message (routine, err, ERROR);
-#else	  
 	  message (routine, os.str().c_str(), ERROR);
-#endif
 	}
       }
     }
