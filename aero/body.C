@@ -4,7 +4,8 @@
 
 static char RCS[] = "$Id$";
 
-#include "aero.h"
+
+#include <aero.h>
 
 static AxisMotion* createAxis (char*);
 
@@ -62,8 +63,7 @@ Body::Body (const char* session)
       tok = strtok (0, "\0");
       axis[0] = createAxis (tok);
     } else {
-      ostrstream (err, StrMax) 
-	<< "expected x-axis specifier, got: " << s << ends;
+      sprintf (err, "expected x-axis specifier, got: %s", s);
       message (routine, err, ERROR);
     }
 
@@ -73,8 +73,7 @@ Body::Body (const char* session)
       tok = strtok (0, "\0");
       axis[1] = createAxis (tok);
     } else {
-      ostrstream (err, StrMax) 
-	<< "expected y-axis specifier, got: " << s << ends;
+      sprintf (err, "expected x-axis specifier, got: %s", s);
       message (routine, err, ERROR);
     }
   }
@@ -157,8 +156,8 @@ Vector Body::force (const Domain* D)
 {
   const int_t DIM = Geometry::nDim();
 
-  traction[0] = Field::normalTraction  (D->u[DIM]);
-  traction[1] = Field::tangentTraction (D->u[0], D->u[1]);
+  traction[0] = Field::normTraction (D -> u[DIM]);
+  traction[1] = Field::tangTraction (D -> u[0], D -> u[1]);
 
   traction[2].x = traction[0].x + traction[1].x;
   traction[2].y = traction[0].y + traction[1].y;
@@ -216,8 +215,7 @@ Cosine::Cosine (char* s)
   if (   (strlen (amplitude) == 0)
       || (strlen (frequency) == 0)
       || (strlen (phaseangl) == 0)) {
-    ostrstream (err, StrMax)
-      << "couldn't parse 3 real values from string: " << s << ends;
+    sprintf (err, "couldn't parse 3 real values from string: %s", s);
     message (routine, err, ERROR);
   }
   
@@ -245,15 +243,8 @@ void Cosine::describe (char* s)
 // Return description in s.
 // ---------------------------------------------------------------------------
 {
-  ostrstream (s, StrMax)
-    << "cosine: "
-      << amplitude 
-	<<" * cos (2PI * " 
-	  << frequency
-	    << " * t + " 
-	      << phaseangl
-		<< ")"
-		  << ends;
+  sprintf (s, "cosine: %g * cos (TWOPI * %g * t + %g)", 
+	   amplitude, frequency, phaseangl);
 }
 
 
@@ -275,8 +266,7 @@ Function::Function (char* s)
   if (   (strlen (position)     == 0)
       || (strlen (velocity)     == 0)
       || (strlen (acceleration) == 0)) {
-    ostrstream (err, StrMax)
-      << "couldn't parse 3 real values from string: " << s << ends;
+    sprintf (err, "couldn't parse 3 real values from string: %s", s);
     message (routine, err, ERROR);
   }
 
@@ -302,15 +292,8 @@ void Function::describe (char* s)
 // Return description in s.
 // ---------------------------------------------------------------------------
 {
-  ostrstream (s, StrMax)
-    << "function:"
-      << " pos: "
-	<< position
-	  << " vel: "
-	    << velocity
-	      << " acc: "
-		<< acceleration
-		  << ends;
+  sprintf (s, "function: pos: %g vel: %g: acc: %g",
+	   position, velocity, acceleration);
 }
 
 
@@ -330,8 +313,7 @@ SMD::SMD (char* s)
   tok = strtok (0, sep); strcpy (zeta, tok);
 
   if ((strlen (mass) == 0) || (strlen (natf) == 0) || (strlen (zeta) == 0)) {
-    ostrstream (err, StrMax)
-      << "couldn't parse 3 real values from string: " << s << ends;
+    sprintf (err, "couldn't parse 3 real values from string: %s", s);
     message (routine, err, ERROR);
   }
 
@@ -413,19 +395,8 @@ void SMD::describe (char* s)
 // Return description in s.
 // ---------------------------------------------------------------------------
 {
-  ostrstream (s, StrMax)
-    << "feedback:"
-      << " mass: "
-	<< mass
-	  << " freq: "
-	    << natf
-	      << " zeta: "
-		<< zeta
-		  << " pos: "
-		    << x[0]
-		      << " vel: "
-			<< xdot[0]
-			  << ends;
+  sprintf (s, "feedback: mass: %g freq: %g zeta: %g pos: %g vel: %g",
+	   mass, natf, zeta, x[0], xdot[0]);
 }
 
 
@@ -447,15 +418,12 @@ void SMD::setState (ifstream& file, const char* tag)
     head = strtok (s, sep);
     tail = strtok (0, "\0");
     if (head && strstr (head, tag)) {
-      istrstream t (tail, strlen (tail));
-      t >> x[0] >> xdot[0];
-      if (t.bad ()) {
-	ostrstream (err, StrMax)
-	  << "couldn't parse position & velocity for "
-	    << tag 
-	      << " from: " 
-		<< s 
-		  << ends;
+      string t(tail);
+      istringstream tt(t);
+      tt >> x[0] >> xdot[0];
+      if (tt.bad ()) {
+	sprintf (err, "couldn't parse position & velocity for %c from: %s",
+		 tag, s);
 	message (routine, err, ERROR);
       }
     }
@@ -493,8 +461,7 @@ AxisMotion* createAxis (char* s)
     base = new SMD (tail);
 
   else {
-    ostrstream (err, StrMax)
-      << "couldn't parse a known axis kind from string: " << s << ends;
+    sprintf (err, "couldn't parse a known axis kind from string: %s", s);
     message (routine, err, ERROR);
   }
 

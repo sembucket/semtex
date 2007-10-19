@@ -6,7 +6,7 @@
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include "sem.h"
+#include <sem.h>
 
 class Body;
 
@@ -18,7 +18,7 @@ class AeroAnalyser : public Analyser
 {
 public:
   AeroAnalyser (Domain*, FEML*, Body*);
-  void analyse (AuxField**);
+  void analyse (AuxField**, AuxField**);
 
 private:
   Body*    body;
