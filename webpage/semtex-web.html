@@ -25,16 +25,17 @@ height=498></center>
 
 <p>
 
-Semtex is a `classical' quadrilateral spectral element DNS code that
+Semtex is a 'classical' quadrilateral spectral element DNS code that
 uses the standard nodal GLL basis functions and (optionally) Fourier
 expansions in a homogeneous direction to provide three-dimensional
 solutions.  Its lineage can be traced back through Ron Henderson's
 Prism code to Nekton &mdash; in many ways the implementation is similar
 to Ron's code (see Henderson & Karniadakis (1995) <i>J Comput Phys</i>
-<b>122</b>: 191&ndash;217) but without mortar element patching or
-mesh adaptation.  One noteworthy difference is that Semtex supports
+<b>122</b>: 191&ndash;217) but without mortar element patching or mesh
+adaptation.  One noteworthy difference is that Semtex supports
 cylindrical coordinate systems, and with full spectral convergence in
-all directions: see Blackburn & Sherwin (2004) <i>J Comput Phys</i>
+all directions: see <a href="./index.html#bs04"> Blackburn & Sherwin
+(2004)</a> <i>J Comput Phys</i>
 <b>197</b>: 759&ndash;778 for a description of the method.  For
 three-dimensional solutions the code may be run in parallel using
 MPI. In addition to an incompressible Navier&ndash;Stokes solver,
@@ -43,7 +44,7 @@ Laplace, Poisson and Helmholtz problems.
 
 <p>
 
-Please note that Semtex is a `research code' and is provided `as-is'
+Please note that Semtex is a 'research code' and is provided 'as-is'
 with the understanding that it will be used mainly by other
 computer-literate researchers in computational fluid dynamics.  It is
 <b>not</b> guaranteed to work or to provide correct results, and
@@ -66,6 +67,7 @@ updated automatically every week from its CVS repository, however, the
 code is quite mature now and does not often change.
 
 <p>
+
 Here is the source code <a href="./semtex.tgz">tarball</a>.  Semtex
 has been compiled and run on a variety of Unix systems.  Consult the
 user guide for system requirements and compilation steps.  As a
@@ -77,5 +79,10 @@ starting point if you have difficulty compiling (after consulting the
 user guide) is src/Makefile &mdash; quite likely you will find a set
 of compiler flags for a machine similar to the one you have, and
 reading it may help you diagnose and fix the problem.
+
+<p>
+
+<a href="./index.html">Hugh Blackburn's home page</a> and
+<a href="./index.html#pubs">Semtex-related publications.</a>
 
 </body> </html>
