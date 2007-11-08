@@ -42,8 +42,7 @@ static void   Solve     (Domain*, const int_t, AuxField*, Msys*);
 
 
 void integrateNS (Domain*      D,
-		  DNSAnalyser* A,
-		  Flowrate*    F)
+		  DNSAnalyser* A)
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
 // constraint Field 'p'.
@@ -136,6 +135,7 @@ void integrateNS (Domain*      D,
     // -- Complete unconstrained advective substep and compute pressure.
 
     if (Geometry::cylindrical()) { Us[0][0] -> mulY(); Us[0][1] -> mulY(); }
+
     waveProp (D, const_cast<const AuxField***>(Us),
 	         const_cast<const AuxField***>(Uf));
     for (i = 0; i < NCOM; i++) AuxField::swapData (D -> u[i], Us[0][i]);
@@ -178,8 +178,6 @@ void integrateNS (Domain*      D,
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 
     // -- Process results of this step.
-
-    ROOTONLY if (F) cout << "Flowrate: " << F -> getQ() << endl;
 
     A -> analyse (Us[0], Uf[0]);
   }
