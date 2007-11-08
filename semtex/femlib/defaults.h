@@ -48,6 +48,9 @@ static struct {
   "FFY"         ,   0.0    ,	/* -- y component.                        */
   "FFZ"         ,   0.0    ,	/* -- z component.                        */
 
+  "X_SHIFT"     ,   0.0    ,    /* -- Optional shift to mesh in x.        */
+  "Y_SHIFT"     ,   0.0    ,    /* -- Optional shift to mesh in y.        */
+
   "X_SCALE"     ,   1.0    ,    /* -- Optional factor to scale mesh in x. */
   "Y_SCALE"     ,   1.0    ,    /* -- Optional factor to scale mesh in y. */
 

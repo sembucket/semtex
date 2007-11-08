@@ -1298,7 +1298,7 @@ AuxField& AuxField::mulY ()
 void AuxField::mulY (const int_t nZ ,
 		     real_t*     src) const
 // ---------------------------------------------------------------------------
-// Multiply data values by radius (i.e. y in cylindrical coords).
+// Multiply data values by radius (i.e. y in cylindrical coords), by plane.
 // ---------------------------------------------------------------------------
 {
   const int_t      nel  = Geometry::nElmt();

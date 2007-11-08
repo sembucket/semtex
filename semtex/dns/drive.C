@@ -51,7 +51,7 @@ static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, Domain*&);
 
-void integrateNS (Domain*, DNSAnalyser*, Flowrate*);
+void integrateNS (Domain*, DNSAnalyser*);
 
 
 int main (int    argc,
@@ -71,7 +71,6 @@ int main (int    argc,
   BCmgr*           bman;
   Domain*          domain;
   DNSAnalyser*     analyst;
-  Flowrate*        discharge = 0;
   
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session);
@@ -80,13 +79,11 @@ int main (int    argc,
 
   analyst = new DNSAnalyser (domain, bman, file);
   
-  if (file -> seek ("CUT")) discharge = new Flowrate (domain, file);
-
   domain -> restart();
 
   ROOTONLY domain -> report();
   
-  integrateNS (domain, analyst, discharge);
+  integrateNS (domain, analyst);
 
   Femlib::finalize();
 

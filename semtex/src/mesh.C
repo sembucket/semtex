@@ -753,12 +753,15 @@ void Mesh::meshElmt (const int_t   ID,
 // reverse the direction of the input spacings zr and zs on sides 2
 // and 3.
 //
-// Scale in x and y directions by X_SCALE and Y_SCALE TOKEN values.
+// Offset in x and y directions by X_SHIFT and Y_SHIFT TOKEN values.
+// Scale  in x and y directions by X_SCALE and Y_SCALE TOKEN values.
 // ---------------------------------------------------------------------------
 {
   const char     routine[] = "Mesh::meshElmt";
   const int_t    nm     = np - 1;
   const int_t    ns     = _elmtTable[ID] -> nNodes();
+  const real_t   x_shft = Femlib::value ("X_SHIFT");
+  const real_t   y_shft = Femlib::value ("Y_SHIFT");
   const real_t   x_scal = Femlib::value ("X_SCALE");
   const real_t   y_scal = Femlib::value ("Y_SCALE");
   register int_t i, j;
@@ -834,6 +837,11 @@ void Mesh::meshElmt (const int_t   ID,
 		    (1.0 - zs[i]) * (1.0 + zr[j]) * y[rma ( 0, nm, np)] +
 		    (1.0 + zs[i]) * (1.0 + zr[j]) * y[rma (nm, nm, np)] );
     }
+
+  // -- Carry out x--y shifting if required.
+
+  if (fabs (x_shft) > EPSDP) Veclib::sadd (np*np, x_shft, x, 1, x, 1);
+  if (fabs (y_shft) > EPSDP) Veclib::sadd (np*np, y_shft, y, 1, y, 1);
 
   // -- Carry out x--y scaling if required.
 
