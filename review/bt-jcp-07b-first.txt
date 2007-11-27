@@ -1,0 +1,53 @@
+TITLE:        Poloidal-toroidal decomposition in a finite cylinder.
+              II. Discretization, regularization and validation.
+
+AUTHORS:      P Boronski and LS Tuckerman
+
+SUBMITTED TO: Journal of Computational Physics
+
+REVIEW:	      First
+
+Obviously this review follows on from the review for Part I. Part II
+deals with application of the divergence-free method developed in Part
+I to the solution of incompressible flow in a finite cylinder with
+rotating end walls (but without MHD).  Again I think the manuscript is
+good and should ultimately be accepted, but I do have a question I
+would like the authors to respond to:
+
+Often, papers that deal with solving NS problems by spectral methods
+in cylindrical coordinates do not actually demonstrate spectral
+convergence of the method for flows that are non-axisymmetric at the
+axis (largely owing to lack of suitable analytical solutions). Here is
+a possible exception, because we are shown a method by which the
+elliptic solver is tested with polynomial forcings of various
+wavenumber, and for which analytical solutions have been obtained (one
+such is presented for the axisymmetric case). This does not however
+amount to a complete test for the flow solution in velocity variables,
+and the authors supplement that testing by comparing to other computed
+results for rotor-stator flows. However, these concentrate on temporal
+characterictics and bifurcation points, not spectral convergence, and
+also deal with flows that approach axisymmetry at the axis, so do not
+provide convincing evidence of spectral convergence for general
+non-axisymmetric flows.
+
+It is possible to construct tests based on analytic solutions
+(typically obtained in Cartesian coordinates) that are
+non-axisymmetric when expressed in cylindrical coordinates, see
+
+@Article{blsh04, author = {H. M. Blackburn and S. J. Sherwin}, title =
+{Formulation of a {Galerkin} Spectral Element--{Fourier} Method for
+Three-Dimensional Incompressible Flows in Cylindrical Geometries},
+journal = JCP, year = 2004, volume = 197, number = 2, pages =
+{759--778} }
+
+and I suggest the authors try such a test in order to confirm spectral
+convergence of their method for non-axisymmetric flows. In order to
+test cases like this, one must however be able to set arbitrary
+Dirichlet BCs on velocity all over the boundary of the domain. While
+it is not entirely clear to me if the authors' method can deal with
+this, I think that the influence matrix technique should be
+sufficiently general to do it. If so, this would be a convincing test.
+
+
+
+

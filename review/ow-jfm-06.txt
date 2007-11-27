@@ -1,0 +1,90 @@
+TITLE:        Flow and solute uptake in a twisting tube
+
+AUTHORS:      R O'Dea & SL Waters
+
+SUBMITTED TO: Journal of Fluid Mechanics
+
+REVIEW:	      First
+
+SUBJECT MATERIAL
+----------------
+
+The manuscript deals with a low-Reynolds-number analytical solution
+for the streaming flow that develops in a tube which has both
+oscillatory stretching and twist that increase in linear fashion from
+the origin, and which occur in phase. In addition, the solute uptake
+from a well-mixed zone at the open end of the tube is modelled. The
+methodology follows closely the form of previous results obtained by
+the second author (JFM V433, J Biomech V37); the present work contains
+the extension to the case where the twist is added to the stretching
+motion.
+
+The main concern I have about the content of the manuscript is that as
+noted above it represents an incremental addition to previous work by
+the second author. The novel feature is the streaming flow induced by
+oscillatory twisting motion, but this is shown combined with the
+(previously analysed) streaming flow produced by oscillatory
+stretching and dilatation. As one indication of this commonality,
+figure 2(a) is essentially the same as figure 2, JFM V433, while
+figure 4(a) is essentially the same as figure 3, JFM
+V433. Understandably perhaps, since the analysis is now sufficiently
+general to include both cases. Arguably, more attention should be
+focused on the novel streaming flow and its causes, rather than the
+combination with the stretching and dilation.  But in general, I
+support publication as a fast-track article; the article is well
+written, is brief enough, and does present an interesting new result.
+
+
+MAIN POINTS
+-----------
+
+1. It is stated that the flows which can arise from the twisting
+motion are "as significant" as those produced by the stretching, but
+in quantitative terms that depends on the relative magnitudes of the
+two motions, especially as the two sets of streaming flows essentially
+oppose one another. The relative importance is quantified by the
+parameter \beta, but I would like to see somewhere as simple statement
+to say how big \beta is for the azimuthal displacement at the end of
+the tube to be as large as the stretching displacement, say for
+A=B=1. Also, I think the statement in the abstract should be altered
+to read "potentially as significant".
+
+2. The nominal application of the work is stated to be transport
+within cardiac arterial vessels. In the cited publications by the
+second author, the application was stated to be the transport within
+small channels cut into cardiac muscle in a specialised surgical
+procedure. The distinction is perhaps not especially significant
+except that we are told in para 1, page 2, that the Womersley number
+\alpha \approx 0.6, with brief reference to the JFM V433 article. This
+is then used to justify the statement that \alpha = order(1) (where is
+this used in the analysis?). Some more care needs to be taken here
+since \alpha is typically significantly larger than unity in the top
+end of the arterial tree.
+
+3. It is not until the Discussion that we find an attempt at a brief
+physical description of the cause of the novel streaming flow. I would
+have liked to see some more space given to this aspect, and the
+physical reason why the two streaming flows are essentially opposed to
+one another.
+
+4. The stretching and twisting oscillations are in phase, and it would
+not hurt to state this plainly somewhere in the Introduction or
+Abstract.  Why has only this case been considered?  What might happen
+if the motions are not in phase?
+
+MINOR POINTS
+------------
+
+5. The diagram of the geometry in figure 1 suggests a low aspect
+ratio, but after (2.2) we are told we are considering a long, thin
+tube. I think this could be pointed out in the caption. Why is the
+domain shown as 2b long, whereas we are told in the text that the
+tube's length is b? What boundary conditions are applied in the axial
+direction at z=0?
+
+6. The coordinate \theta is used both to quantify azimuthal angle and
+dimensionless concentration in the surrounding medium. It would be
+easy to change one of these symbols and reduce the potential for
+confusion.
+
+7. There is an error in the title of the reference for Waters 2001.

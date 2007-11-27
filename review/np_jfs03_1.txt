@@ -1,0 +1,35 @@
+TITLE:        Prediction and measurement of flow induced forces
+              due to external surface icing
+
+              
+AUTHORS:      G.F. Naterer and N. Popplewell
+
+SUBMITTED TO: Journal of Fluids and Structures
+
+REVIEW:	      First
+
+The manuscript describes an investigation of time-average forces on
+nominally two-dimensional cylinders with (a) stranded and (b)
+ice-acretion type leading-edge build-up and (c) D-type
+cross-sections. Both experiments and 2D numerical simulations are
+employed. Reynolds numbers are of the order 10,000.
+
+Unfortunately, I do not believe there is sufficient new material here
+to justify publication. The most extensive set of data (Figure 10)
+gived Cd for the D-section cylinder, the forces on which surely have
+been adequately dealt with by now. The only other set of data which
+presents forces is shown in Figure 11. 
+
+Further, the grid resolutions quoted for the numerical simulations are
+extremely low (and the simulations are 2D). In order to justify the
+mesh resultion, mean coefficients of drag for a circular cylinder are
+compared with experimental values. Admittedly the agreement is good,
+but I suspect this agreement would not carry over to other
+coefficients such as Cl, Strouhal number, etc. Given the low
+resolution, these checks also need to be made.
+
+The manuscript is well written and gets the authors' points across
+clearly. However, it needs very substantial additions of new and
+adequately validated material before it could be considered for
+publication.
+

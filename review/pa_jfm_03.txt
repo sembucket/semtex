@@ -1,0 +1,71 @@
+TITLE:        Numerical experiments on vortex shedding 
+              from an oscillating cylinder.
+
+AUTHORS:      F. L. Ponta & H. Aref
+
+SUBMITTED TO: Journal of Fluid Mechanics
+
+REVIEW:	      First
+
+
+SUBJECT MATERIAL
+----------------
+
+This work addresses wake modes found in two-dimensional simulations of
+flow past oscillating cylinders, predominantly at Re=392, with further
+work at Re=140. Most of the findings and analysis are
+concerned with the 'P+S' wake mode first reported by Griffin & Ramberg
+in 1974 (but so-named in Williamson & Roshko 1988).
+
+MAIN POINTS
+-----------
+
+I'm afraid that do not believe that sufficient new or high-quality
+material is presented here to justify publication in JFM.
+
+The material that concerns the possible shift with Re of extent of the
+P+S regime on Williamson & Roshko's map, while of some interest, is
+very highly speculative, and rests to large extent on the veracity of
+that map, which is in any case a 2D projection (into A/D, lambda/D
+space) of what must be a 3D (A/D, lambda/D, Re) phase diagram. At
+Re=392, the wake flows in the physical case are surely 3D, not 2D, a
+point the authors give no attention to at all. The non-appearance of
+Williamson & Roshko's 2P regime here is more than likely associated
+with the absence of 3D mixing effects, rather than discrepancies in
+Reynolds number (see e.g. Blackburn, Govardhan & Williamson 2001).
+The information on downstream merger of vortices in the far wake is
+interesting but alone insufficient to justify publication.
+
+About 8 of 25 pages are devoted to the numerical method and its
+validation. This is far too large a number of pages, considering the
+topic and the journal which the authors address. I suggest that in
+such a study, we just want to know the basics of the method and that
+it is (demonstrated to be) spatially and temporally converged. The
+results here do not seem especially reliable, when one considers the
+large variability in Strouhal number, even at quite moderate Reynolds
+numbers (see figure 7), well below the upper limit of 392 used in this
+study. A study of numerical convergence of the method, say at Re=392,
+would be reassuring. (And the authors should probably have chosen the
+more recent measurements of Williamson 1989 or Hammache and Gharib
+1991 with which to compare their numerical results for St, rather than
+those of Roshko 1954.)
+
+Some of the results here on the existence of the P+S mode in 2D
+simulations, seem to reproduce findings already published by Blackburn
+& Henderson (1999, not referenced), in another study of 2D wake modes
+of a cylinder in forced oscillation, where the 'A2' solution branch is
+essentially for the P+S mode. Figures 9 and 10 here are predated by
+figures 6 and 7 of Blackburn & Henderson (1996).
+
+REFERENCES
+----------
+
+Blackburn & Henderson (1996), Exptl Thermal & Fluid Sci, V12N2.
+
+Blackburn & Henderson (1999), J Fluid Mech, V385.
+
+Blackburn, Govardhan & Williamson (2001), J Fluids & Struct V15N3/4.
+
+Hammache & Gharib (1991), J Fluid Mech, V232.
+
+Williamson (1999), J Fluid Mech, V206.

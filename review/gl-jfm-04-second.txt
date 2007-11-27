@@ -1,0 +1,81 @@
+TITLE: Receptivity of the circular cylinder's first instability
+
+AUTHORS:      F Gianetti and P Luchini
+
+SUBMITTED TO: Journal of Fluid Mechanics
+
+REVIEW:	      Second
+
+I am happy to see the revised version of this manuscript, as I feel
+this is an important work and certainly deserves to be published in
+JFM. The revised offering is easier to follow (and the reviewer
+confesses to a better appreciation of the subject matter than was the
+case for the initial version).
+
+To my mind there are still a number of points that need clearing up.
+I hope this could be done without too much effort, or much further
+delay. Mostly they are about theory and methodology so do not require
+more work/computing to be done.
+
+MAIN POINTS
+
+1. Philosophically, I cannot understand how the forcings \bm{f} and m
+can appear in the equations (2.6), since these are linearised about
+the base flow. Further, I don't really see that they are required,
+since the influence of initial conditions should be sufficient to
+drive the dynamics of the perturbation. That is, I think one could
+drop them from the remainder of the paper and still have the same
+outcomes. So, why are they included? (I am happy enough to be
+convinced, as long as their philsophical basis is made clear.) And, if
+they are necessary, why call them \bm{f} and m, since they are not
+directly related to the adjoint velocity and reduced pressure
+(respectively \bm{f}+ and m+) -- or are they?
+
+2. I think the authors could take some more care when they introduce
+the far-field condition (2.8b). As they state on the next page, this
+is only appropriate if in fact the base flow is such that the
+perturbation dies away in the far field (especially, at the
+outflow). Later on, they have also used outflow boundary conditions at
+the RH domain boundary. So why not just use them from the beginning?
+
+3. What of the BCs on pressure, and, perhaps more to the point, its
+adjoint? Perhaps they are required on the adjoint pressure field?
+
+4. Is indeed the left eigenvector of the direct problem the same as
+the corresponding right eigenvector of the adjoint problem? If so, I
+think it would be helpful to state this before describing the
+algorithm (4.10-15). Can the authors explain why the iteration
+converges to give both eigenvectors (maybe by referring us elsewhere)?
+In general, I would like to see more (perhaps, quite a bit more) space
+given to description of this algorithm. 
+
+5. Related: I found the statements regarding the vectors \xi and z on
+page 22 rather confusing. Why does one need z as well as \xi?
+
+6. In section 6.1 (and this comes back to one of the points in my
+first review) I think it would be helpful to some readers to point out
+again that the eigenmodes of this problem occur as complex-conjugate
+pairs. Also that there is spatial structure of the real and imaginary
+parts of the direct modes (visible in the 1987 paper by Jackson for
+example) that is related to discrete vortex shedding, and which
+disappears on taking the modulus. It would be interesting to see the
+structure of the real and imaginary parts of one of the adjoint modes
+compared to the corresponding direct mode.
+
+7. This may be exceedingly pedantic, but the receptivity being studied
+is that of the wake of a circular cylinder, not the cylinder itself. I
+suggest the title of the paper be changed to reflect this.
+
+VERY MINOR POINTS:
+
+a. The pressure in equation 2.1a is the reduced pressure p/rho.
+
+b. As far as I can determine, the term "versors" immediately following
+equation (2.4) should be "vectors".
+
+c. The publication date for the book by Ince differs in the text and in
+the References - and perhaps neither one is correct?
+
+d. At (3.9), define dS.
+
+e. The integral in the numerator of (8.7) lacks a differential.

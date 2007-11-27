@@ -1,0 +1,84 @@
+TITLE:        Asymmetry and transition to turbulence in a 
+              smooth axisymmetric constriction
+
+AUTHORS:      J Vetel, M-I Farinas, A Garon, D. Pelletier
+
+SUBMITTED TO: Journal of Fluid Mechanics
+
+REVIEW:	      First
+
+SUBJECT MATERIAL
+----------------
+
+An experimental study of transition to non-axisymmetry in steady flow
+through a smooth contraction (stenosis) in a straight pipe. Stenosis
+degree is 75% (50% on diameter), contraction 2D long overall - a
+geometry used by many other workers in this area. Reynolds numbers
+range from 116 to 1160. After examining symmetry breaking, the authors
+move on to look at flow structures in the transitional flow that
+occurs once symmetry breaks. I found the latter part of the work very
+nice, but have issues with the earlier parts.
+
+MAIN POINTS
+-----------
+
+1. Sherwin & Blackburn (2005) provided stability analysis and DNS for
+this flow. This much is acknowledged in the Introduction, but their
+critical Reynolds number for absolute instability was Re=722 (a fact
+that is mentioned here, but on page 59 of the manuscript). The
+bifurcation was subcritical, and asymmetry was maintained in DNS down
+to Re=688.  However, in the present work, the critical Reynolds number
+is said to be 400 (of order 50% of the numerical predictions), and
+asymmetry is quite visible in the flow immediately downstream of the
+stenosis at Re=209, and even at Re=116 (see figure 7).
+
+This raises the question: what is the state of symmetry in the flow
+upstream of the stenosis, at all Re? In figure 3, we see that the flow
+in one plane is close to parabolic over the range of Re, and for at
+Re=928 there is a paraboloid isosurface, but it is actually difficult
+to assess the symmetry of the inflow from these things (and e.g. one
+notes that in figure 7, the corresponding downstream contours also
+seem reasonably symmetric at Re=1160).
+
+In order to address the question, the authors should present contour
+plots, comparable to figure 7, but for the flow upstream of the
+contraction. And in general, they need to pay greater attention to the
+apparent discrepancy between their experiments, and the previous
+stability analysis and DNS: e.g. the linear absolute instability
+Re_c=722 should be mentioned in the Introduction. On the other hand,
+it is evident (as the authors note) that there is good qualitative
+agreement between the behaviour they find, and that predicted by
+Sherwin and Blackburn.
+
+If asymmetry is apparent in the upstream flow, that does not
+necessarily preclude eventual publication, but I should say the
+authors would at least consider re-performing this part of the work,
+with greater care given to upstream flow conditioning. Obviously,
+perfect symmetry in the upstream flow is impossible in a physical
+experiment, and one would expect any asymmetry to reduce the critical
+Re. However, at a minimum, we do need a clear indication of how
+asymmetric the upstream flow actually is over the full range of
+experimental Re.
+
+2. I found the manuscript over-long in places, while necessary detail
+was omitted in in others. The authors could give rather less space in
+the Introduction to describing symmetry breaking in 2D channels, and
+of expansion flows at much higher Re, and give a little more space to
+motivating their work - the motivation seems restricted to just a
+single sentence on page 11: 'To the author knowledge, this has not
+been done previously'. 
+
+In section 2, quite a lot of space is given to description of the data
+processing, but there is no statement on the geometric tolerances of
+the constriction, inflow conditioning, or even of the length of the
+inflow pipe: we need to have these details. Also: what is the
+(quantitative) turbulence intensity/degree of unsteadiness in the
+inflow to the stenosis?
+
+MINOR POINTS
+------------
+
+3. The stenosis degree and the range of Reynolds number should be
+stated in the Abstract.
+
+

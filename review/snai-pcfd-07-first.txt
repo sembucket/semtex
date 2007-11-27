@@ -1,0 +1,68 @@
+TITLE:        Two-dimensional numerical simulation of oscillating
+	      cylinder in a mean flow at low Keulegan-Carpenter and
+	      beta numbers
+
+AUTHORS:      H. Soufi, D. Nehari, H. Adjlout and O Imine
+
+SUBMITTED TO: Progress in Computational Fluid Dynamics
+
+REVIEW:	      First
+
+SUBJECT MATERIAL
+----------------
+
+This is a two-dimensional study of flow over an oscillating cylinder,
+essentially all for Keulegan-Carpenter number KC=6, frequency
+parameter beta=35. The novel factor is the introduction also of a
+steady current, whose value ranges from Ur=steady flow speed/peak
+cylinder speed=0--0.35. In the present study, the steady current is
+only aligned with the cylinder oscillation direction, although the
+orientation could be arbitrary (giving another dimensionless
+parameter). From an applications viewpoint, the potential influence of
+steady current on hydrodynamic forces (especially, hydrodynamic
+damping, given by Cd) is quite important.  It is interesting that the
+presence of a steady current here seems able to produce lockin for a
+state that is chaotic in the absence of a current.
+
+MAIN POINTS
+-----------
+
+1. While the methodology and so on seems adequate, and the central
+result is interesting, I do not believe enough new material is
+presented here to justify a journal paper -- the authors have used the
+numerical technique before, for example, and there is not enough
+attention paid to the flow physics. Obviously as there are now four
+dimensionless groups, even for 2D simulations, a full numerical study
+(even over a fairly restricted parameter space) could be prohibitively
+expensive, so it is reasonable to restrict at least the direction of
+the steady flow (but why to the inline case?). For example, a more
+interesting and complete study would, at this beta value, track up
+from regime A, through regime C, into E, examining how the presence of
+the current influences hydrodynamic damping. Another option would be
+to give a fuller examination, or even better, physical explanation, of
+how lockin is produced at this point in (KC, beta) space by adding a
+steady current. There is only a single paragraph that briefly
+addresses this phenomenon. What happens to the mean transversal force
+during lockin?
+
+MINOR POINTS
+------------
+
+2. Do we ever have complete lock-in (periodic flow) here? Even for
+Figure 7(b--d) there seem to be minor non-periodic fluctuations of
+force coefficients. The best way to tell definitively a 'phase-plane'
+plot of Fx vs Fy over a complete cycle, say at Nc=90: this is much
+more sensitive than spectral analysis.
+
+3. In the PDF version I have, some of the figures (4 and 11, although
+the caption for the latter says it is figure 8!) wrapped over the ends
+of the page and would not print out.  The caption to figure 10 seems
+to have a reminder note to the authors (in French) still included. In
+the caption to figure 5, I'm sure the solid lines should relate to the
+computations and the squares the experimental results. Were the
+experiments of Dutsch et al. displayed here at KC=4 (as used in the
+previous comparisons) or KC=5?
+
+4. In the abstract, the authors refer to their numerical method as
+pseudo-spectral, whereas it is a hybrid finite-difference/spectral (or
+finite difference/pseudo-spectral), method.

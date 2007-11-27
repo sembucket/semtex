@@ -1,0 +1,27 @@
+TITLE:        The relationship between stirring rate and Reynolds
+	      number in chaotically advected steady flow in a
+	      container with exactly counter-rotating lids
+
+AUTHORS:      TC Lackey and F Sotiropoulos
+
+SUBMITTED TO: Phys Fluids
+
+REVIEW:	      Second
+
+There are still some points to be cleared up.
+
+1. On page 9, para. 2, the authors state "... have shown that the AR=1
+case we study herein lies exactly at the interface ...".  It does not
+lie exactly at the interface, but close to it; the text should be
+changed.
+
+2. The authors apparently did not understand my point about a
+requirement for radial weighting of the measure expressed by equation
+(2). I should have put this better: as they stand, both measures (2)
+and (3) are biased estimates respectively of the variance and mean
+concentration because they do not account for the variation in control
+volumes from point to point in the mesh. Specifically it appears that
+as the mesh is uniform in (r,z), the size of control volumes varies
+linearly with radius. Either each measure should be recomputed to
+account for these non-uniform control volumes, or the text should
+state that the measures are biased estimates.

@@ -1,0 +1,28 @@
+TITLE:        Numerical simulations of vortex-induced vibration of a
+              circular cylinder with low mass-damping
+
+AUTHORS:      E. Guilmineau and P. Queutey
+
+
+SUBMITTED TO: Journal of Fluids and Structures
+
+REVIEW:	      First
+
+
+SUBJECT MATERIAL
+----------------
+
+The title adequately introduces the subject material. The simulations
+are two-dimensional, and employ a two-equation turbulence model
+(Menter's version of the k-w) model, in conjunction with a finite
+volume discretisation.
+
+MAIN POINTS
+-----------
+
+There are three main points which in my opinion the authors need to
+address in a possible revision.
+
+MINOR POINTS
+------------
+

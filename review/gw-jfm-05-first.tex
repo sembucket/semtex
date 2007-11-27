@@ -1,0 +1,186 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[a4paper,11pt]{article}
+\usepackage{graphicx}
+%\pagestyle{plain}
+
+\setlength{\textheight}			{245mm}
+\setlength{\textwidth}			{160mm}
+\setlength{\topmargin}			{-8mm}
+\setlength{\headsep}                    {0mm}
+\setlength{\oddsidemargin}              {0mm}
+\setlength{\parsep}                     {0mm}
+\setlength{\parindent}                  {2ex}
+
+
+\renewcommand{\baselinestretch}	{1.0}
+	
+\def\undertext#1{$\underline{\smash{\hbox{#1}}}$}
+
+\begin{document}
+\begin{center}
+\noindent
+\rule{\textwidth}{0.25mm}
+\end{center}
+
+\noindent
+\textbf{Authors:}
+Govardhan and Williamson
+
+\noindent
+\textbf{Title:}
+Defining the `modified Griffin plot' in vortex-induced vibration:
+Revealing the effect of Reynolds number using controlled positive
+and negative damping
+
+\begin{center}
+\noindent
+\rule{\textwidth}{0.25mm}
+\end{center}
+
+This is an interesting and well-written manuscript which makes a nice
+contribution to the study of relatively high-amplitude vortex-induced
+vibration of circular cylinders in a cross flow. Chiefly by examining
+Reynolds-number effects on vibration amplitudes in an experiment in
+which they were independently able to vary Reynolds number, density
+ratio and damping, they have been able to resolve a number of key
+points and unify many of the past results in this important
+applications area. I recommend publication in JFM after some
+revisions. I hope that the revisions I have to suggest will aid in the
+authors' work becoming established as a central point of reference in
+prediction of vortex-induced vibration.
+
+\subsubsection*{Major points}
+
+\begin{enumerate}
+
+\item
+I feel that the quadratic relationship fitted between mass-damping
+parameter and normalized motion amplitude is not the best choice, for a
+number of reasons, and I strongly suggest that the authors adopt the
+simpler linear relationship between the two variables as a major
+outcome of their work, concentrating on the higher motion
+amplitudes. Reasons:
+\begin{enumerate}
+\item
+The quadratic relationship they suggest has a turning point at
+moderate values of mass-damping and then predicts that amplitudes
+increase boundlessly with increased damping, which cannot be
+physically correct.  If the authors revise their major findings to
+adopt the linear relationship instead of the quadratic one they have a
+unified, simple and robust method for predicting response amplitudes
+at comparatively high amplitudes, say for $\alpha<0.75$.
+\item
+At higher values of mass-damping, or lower values of motion amplitude,
+cylinder motion will tend towards that of a lightly damped mode in
+random vibration. The authors' current treatment does not deal
+correctly with this end of the mass-damping spectrum. Quite a volume
+of work has been done in this area by wind engineers, Barry Vickery in
+particular.
+\item
+A linear fit has less parameters.
+\end{enumerate}
+
+\item
+Although the authors have referenced an early piece of work by
+Vickery, I feel they could profitably examine his later work and
+models which tried to address the cross-over between low and high
+motion amplitude regimes, in which the cylinder-velocity-correlated
+forces are characterized as a negative self-limiting aerodynamic
+damping. Two relevant papers (out of many) are: Vickery \& Basu
+(1983), `Across-wind vibration of structures of circular cross
+section. Part 1.' \textit{J Wind Eng Ind Aero} \textbf{12}: 49--73 and
+Vickery (1990), `Progress and problems in the prediction of the
+response of prototype structures to vortex-induced excitation'
+\textit{J Wind Eng Ind Aero} \textbf{33}: 181--196.
+
+
+While Vickery suggested, based mainly on analysis of experiments by
+Wooton, a quadratic relationship between negative aerodynamic damping
+and motion amplitude, in fact the present work would seem to provide
+extremely good support for a linear relationship at high motion
+amplitudes. There is also previous experimental support for this
+outcome at low motion amplitudes, as presented in Blackburn \&
+Melbourne (1993), `Cross flow response prediction of slender
+circular-cylindrical structures: prediction models and recent
+experimental results', \textit{J Wind Eng Ind Aero} \textbf{49}:
+167--176. If one substitutes this linear relationship into Vickery's
+response-amplitude equation, one gets a response-amplitude vs.\
+mass-damping curve as shown in figure~5 of that paper. In terms of the
+current authors' variables, with a linear relationship one has an
+equation like:
+\begin{equation}
+A^{\ast} = \lambda/[\alpha - \alpha_0(1-A^{\ast}/A^{\ast}_M)]^{1/2}
+\label{eq.amp}
+\end{equation}
+where $\lambda$ incorporates modal stiffness and cross-flow excitation
+in the low-amplitude limit, while the other variable $\alpha_0$
+expresses the negative aerodynamic damping in the low-amplitude limit,
+and can be simply obtained from the linear fit supplied by the
+authors. The outcome of fitting this equation to the authors' results
+is shown here in figure~\ref{fig.alpha}. This seems to me to be quite
+convincing, and has the benefit of predicting the correct form for the
+dependence of motion amplitudes on mass-damping in the high
+mass-damping limit. Of course, since modal stiffness and
+fixed-cylinder lift is subsumed in the parameter $\lambda$, this needs
+to be worked out for each individual structure, but suitable values
+for the fluid-mechanical parts are widely available, for example in
+ESDU data sheets.  This parameter has no effect in the high-amplitude
+limit.
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[bb=25 180 570 520,width=0.6\textwidth]
+{alpha.eps}
+\end{center}
+\caption{Form of response curve obtained from equation~(\ref{eq.amp}),
+  compared to the authors' normalized response amplitude data, with
+  fitted value $\lambda=0.065$. Parameter $\alpha_0=1/1.0514$ comes
+  from the authors' linear relationship.}
+\label{fig.alpha}
+\end{figure}
+
+\item
+The authors provide evidence for the dependence of response amplitudes
+on Reynolds number, but as far as could see, nowhere do they
+explicitly point out that at least this part of the parameterization
+is for subcritical Reynolds numbers only. One would expect substantial
+variations of the parameters once Reynolds numbers reach the drag
+crisis and above, and where one might also expect them to become
+sensitive to surface roughness, freestream turbulence, and the
+like. The authors need to issue caveats on this issue, and supply the
+likely range of Reynolds numbers for the validity of their
+characterization.
+
+\end{enumerate}
+
+\subsubsection*{Minor points}
+
+\begin{enumerate}
+
+\setcounter{enumi}{3}
+
+\item
+The manuscript seems a little over-long, and some of the figures
+(e.g.\ 11b, 15) seem redundant. I doubt we need to know the details of
+alternative curve fits and coefficients of variation, as I think a
+better justification for choosing between close alternatives is the
+physics of what they predict, say in asymptotic limits. I suggest the
+authors consider re-working the manuscript with a view to shortening
+it.
+
+\item
+In table~2 the details of mass-damping for the numerical simulations
+seem to have been omitted. Also, both 2D (laminar) and 3D (turbulent)
+DNS results from Blackburn, Govardhan and Williamson (2001) could have
+been included and also have appeared in the associated figure~11. Most
+likely the authors intended to do so, as the paper is included in the
+list of references but does not seem to be referred to in the
+manuscript.
+
+\end{enumerate}
+
+\end{document}
+
+

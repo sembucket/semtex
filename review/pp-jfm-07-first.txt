@@ -1,0 +1,159 @@
+TITLE:        On the influence of inlet velocity profile and secondary
+	      flow on pulsatile flow in a model artery with stenosis
+
+AUTHORS:      S Peterson and MW Plesniak
+
+SUBMITTED TO: Journal of Fluid Mechanics
+
+REVIEW:	      First
+
+SUBJECT MATERIAL
+----------------
+
+The manuscript describes an experimental investigation of pulsatile
+flow through a smooth constriction in a pipe of stenosis degree (area
+blockage) 75%. The pulsatile flow has a mean flow Reynolds number of
+364 and a Womersley number of 4.6. The inflow waveform is a model of
+flow in the human common carotid artery, with a peak:mean bulk flow
+ratio of 3.91, and no reverse bulk flow occurs during the cycle. Three
+inflow conditions are used: (i) nominally axisymmetric flow (ii) flow
+passes through a 180-degree bend, radius ratio 7:1 (iii) flow passes
+through a tapered porous plug that adds a velocity profile.
+
+Overall the work is interesting and timely, but the manuscript needs
+additional material, careful re-consideration (particularly in
+relation to the possibility of vortex ring instability and breakup,
+see below), and much more careful editing.
+
+MAIN POINTS
+-----------
+
+1. The results obtained with axisymmetric inflow should be considered
+more closely in the context of stability analysis and DNS provided by
+Blackburn & Sherwin (2007), JFM 573. The present case, with a
+physiological-type bulk flow waveform is more complicated, but there
+seem to be a number of things in that paper that are relevant to the
+present work. BS showed there can be (at least) two Floquet-type
+global/absolute vortex ring instability mechanisms: vortex tilting and
+wavy core (Widnall) instabilities. At large reduced velocity/low
+Womersley number, the tilting mechanism was the first to become
+unstable with increasing Re, and this would be the case for the
+Womersley number employed here. Also at large reduced velocity (or
+whenever shear layers that trail the main vortex rings become
+sufficiently significant), the shear layers can have large transient
+growth/local convective instability, and this can interact with and
+promote the global/absolute vortex ring instability. Finally, these
+instabilities can lead to a very rapid breakdown of vortex rings
+formed at the stenosis throat, to the extent that they propagate as
+identifiable rings for at most a few tube diameters downstream of the
+end of the stenosis (perhaps less far, as Reynolds numbers increase).
+
+2. So it would be helpful if we can have some more careful examination
+of what actually happens in the present flow downstream of the
+stenosis, particularly in the case of axisymmetric inflow, but also in
+the other cases. We are told (page 13) that the evidence of vortex
+ring existence and propagation is presented in the first author's
+thesis. I believe we need to see the evidence here; I am uncomfortable
+with references to material that most people could find hard to
+access. The claim becomes perhaps more difficult to accept once one
+realises that vortex rings, unlike bulk-flow average velocity pulses,
+may not survive very far downstream of the stenosis. Thus it becomes
+important to distinguish between the two, and the authors need to give
+careful consideration to this issue right through the
+manuscript. Often we are told about the passage of a "vortex ring",
+whereas no coherent ring may exist.
+
+3. To me, the irregular high-frequency events shown in the time traces
+of figure 8, say at t/T=0.2, are suggestive of a turbulent vortex ring
+breakdown. Whereas the oscillations at t/T approx 0.6, x/D<5 which
+seem to have a well-defined period, suggest shear-layer rollup. (Are
+the time traces presented in figure 8 really "raw"? Or have they had
+the phase average removed?)
+
+4. Is (convective) shear-layer rollup observed? Certainly the
+vorticity fields presented in figure 9 are suggestive of this, rather
+than of primary vortex rings which would tend to be at smaller radii,
+and spaced far apart axially. (At the reduced velocity used in the
+present work, 27, one expects the primary vortex ring spacing to be at
+least of order 27D.) My guess is that none of the concentrations of
+vorticity represented in figure 9 is a "primary" vortex ring, but
+rather, that they all result from shear-layer instability. This also
+leads one to doubt that the results in figure 10 actually represent
+primary vortex ring locations.
+
+5. The very large discrepancy between particular and phase-average
+centreline velocities that exists even for the undisturbed
+axisymmetric inflow case (compare say figures 16 and 17) again
+suggests to me that turbulent vortex ring breakdown is involved. And
+if there is such a large degree of variability, are the comparisons of
+particular instances (say in figures 16 and 25) worth including?
+
+6. Does the flow downstream of the tapered plug insert have secondary
+flow, and if so, how much, compared to what is produced by the bend?
+
+MINOR POINTS
+------------
+
+7. The Abstract apparently first states that there are two inflow
+cases, then that there are three.
+
+8. Either early in the Introduction, or in the Abstract, we should be
+told what dimensionless flow quantities are fixed (e.g. mean flow Re,
+Womersley number, flow waveform).
+
+9. In the Introduction, bottom of p.3, credit for the analytical
+solution of pulsatile flow in a straight, rigid tube is given to
+Womersley (1955) whereas my understanding is that this solution was
+actually presented much earlier by Sexl (1930). See White's "Viscous
+Fluid Flow". (Again as I understand it, Womersley has credit for
+extending the analysis to cases where the tube is distensible.)
+
+10. Where is the origin of the coordinate system used by the authors?
+According to figure 1 it seems to vary. There should be a clear
+statement as to its position, probably in association with equation
+(2.1).
+
+11. The authors need to take more care with the distinction between
+dimensional and non-dimensional quantities (for example on page 10).
+
+12. Also on page 10, the description of what was done by Holdsworth et
+al. and the present authors respectively needs to be untangled.  It
+would be helpful to others if the authors could tabulate the Fourier
+coefficients of flow waveform used.
+
+13. There needs to be more description of the flow measurement
+systems, and of flow measurement techniques.
+
+14. There needs to be more care taken with the labelling of figure 7
+and the associated description on page 10. I found the description on
+page 10 difficult to follow. In the text, we are told about "troughs",
+"peaks", "pulses" (one of which is said to be labelled on figure 7,
+but none are), and "ridges", whereas on the figure there appear only
+two labelled "ridges". How is "systole" defined?
+
+15. At the end of page 14, we are told about oscillations whose
+"frequency varies with Reynolds number". This is confusing because the
+mean flow Reynolds number is held fixed through the study. Why not say
+the frequency varies with bulk flow speed?
+
+16. What is the significance of the various vertical lines on figure
+8?  What are the units of the vertical scales, if any?
+
+17. On page 14 we are told that "As pointed out by Brasseur (1979),
+more energetic vortex rings are less impacted by the presence of the
+tube wall, which would explain the primary vortex ring propagating
+further than the tertiary ring." Again we are presented with material
+from a PhD thesis. As most people will not have access to it, I
+suggest the authors could briefly explain the physics behind the
+statement. Again there is a linkage made between a velocity peak and a
+vortex ring, but with little hard evidence. (And: is there a secondary
+ring?)
+
+18. What precisely is the orientation of the taper facet? In the text,
+the taper is said to be cut at 30 degrees relative to the r/theta
+plane, but when I checked the associated figure, the angle seemed to
+be more like 45 degrees. So I was doubly unsure: was it 30 or 45
+degrees, and if 30, which way was this oriented?
+
+19. Figure 17 shows time series, whereas the text says it shows
+profiles.

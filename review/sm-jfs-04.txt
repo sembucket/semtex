@@ -1,0 +1,42 @@
+TITLE:        Vortex induced oscillations at low Reynolds numbers:
+	      hysteresis and vortex shedding modes
+              
+AUTHORS:      SP Singh and S Mittal
+
+SUBMITTED TO: Journal of Fluids and Structures
+
+REVIEW:	      First
+
+SUBJECT MATERIAL
+
+This manuscript describes a 2D numerical study of VIV of a circular
+cylinder. There are two parts: (a) with Reynolds number held fixed at
+100, the reduced velocity is varied; (b) with reduced velocity held
+fixed at 4.92, the Reynolds number is varied. In the second part,
+periodic VIV is found with P+S mode (as well as a 2S mode). In
+general, the manuscript is very nicely written and easy to follow.
+
+The manuscript could be accepted for publication in JFS, subject to
+the following considerations being addressed.
+
+MAIN POINTS
+
+1. The authors are apparently unware of quite a similar published
+study to the material covered in part (a), that of Blackburn &
+Henderson, Experimental and Fluid Science V12,N2 (1996), who carried
+out their investigation for Re=250. I suggest that the present
+manuscript would be made stronger by some discussion of, comparison
+to, and contrast with those results.
+
+2. In (b), the occurrence of periodic VIV with a P+S wake mode is
+interesting, and as the authors state, has not been previously
+reported. However, again there is a previous relevant study, not
+discussed. In the 2D, Re=500 forced oscillation study by Blackburn &
+Henderson, JFM V385, (1999), a periodic `P+S' mode (which for reasons
+discussed in that paper, was there named as belonging to the `A1'
+solution branch) was found to provide time-average energy transfer to
+the cylinder, thus it was capable of supporting vortex-induced
+vibration. This would seem to support the authors' predictions, as
+they find the P+S VIV mode at the higher Reynolds number end of their
+computational range.
+

@@ -1,0 +1,67 @@
+TITLE:        Measurements of the steady steaming flow around
+	      oscillating spheres using 3D particle tracking velocimetry
+
+AUTHORS:      F Otto, EK Riegler & GA Voth
+
+SUBMITTED TO: Physics of Fluids
+
+REVIEW:	      First
+
+The manuscript describes PTV measurements of the 3D flow fields around
+oscillating spheres: isolated, in pairs, and for both cases, near a
+wall. When there are two spheres, they are of the same diameter, and
+they move in phase in the same direction but along axes that are
+radially separated. Oscillation amplitudes and Reynolds numbers are
+low. Generally this is a short but good piece of work and should be
+published. I have some suggested revisions, however:
+
+1. The Introduction is too brief and should explain some of the
+physics observed in previous work, perhaps with the aid of simple
+diagrams. It is not enough just to say of the previous work that
+"there remained puzzling questions...", since this is almost
+invariably the case. Better motivation is required: exactly what was
+unresolved, and how did the present work seek to address the questions
+raised?
+
+2. Generally, the figures, particularly their labels, symbols and
+titles, were rather too small. In some cases a legend could be used to
+indicate what symbols represent. The two lines in figure 1 should be
+explained in the caption in preference to the text.
+
+3. The authors talk about measurements of streaming flow but mostly
+they are just talking about the average flow at a single phase. To my
+mind, the streaming flow is the temporal average flow. Can the authors
+check this and change or revise their terminology?
+
+4. For the Riley line in figure 4, is it only the ordinate value that
+has been divided by 50?
+
+5. At the top of page 9, suggest remove the sentence about previous
+work by Voth et al. - it is distracting. Or move it, with some more
+explanation, into Discussion/Conclusions.
+
+6. Section IV.A.2. Despite the section heading, I suggest it's a good
+idea to use "equatorial stagnation point" through the text here and
+into the IV.B in order to remind the reader.  2nd-last senetence, page
+10: "... stagnation point should extend farther". Farther from what,
+and how can a point be extended?
+
+7. In figure 8, again we need to be reminded that the "streaming flow"
+shown is only for a single phase point in the motion cycle. A
+statement is needed to explain how representative the images are of
+the time-average streaming flow. Insufficient to refer the reader to
+an online animation.
+
+8. In figure 8 and more so for figure 9, it difficult to interpret the
+flow patterns. Suggestion: reflect figure 8 about oscillation axis
+(not needed for figure 9), draw in some separatrices, indicate
+circulation directions etc., in one half of each panel.
+
+9. I found section IV.C hard to follow. E.g.: "Now near the bottom
+wall, the respulsive region extends to r=4a and covers most of the
+attractive range." Perhaps some diagrams would help.
+
+10. More attention to hyphenation is suggested: e.g. in Conclusions,
+"two particle effects" should be "two-particle effects".
+
+

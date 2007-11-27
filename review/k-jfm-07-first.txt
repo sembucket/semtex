@@ -1,0 +1,127 @@
+TITLE:        Three-dimensional Floquet stability analysis of the
+              wake in cylinder arrays
+
+AUTHORS:      NK-R Kevlahan
+
+SUBMITTED TO: Journal of Fluid Mechanics
+
+REVIEW:	      First
+
+SUBJECT MATERIAL
+----------------
+
+This is a stability/DNS study of 3D flow instability in tube
+bundles. The tube bundle is taken to be represented by an equispaced
+periodic array, and two inflow angles are analysed: parallel with a
+generator of the array, and at 45 degrees to both. The main
+pitch/diameter ratio studied is 1.5:1.  Reynolds numbers are mainly
+below 200, but some DNS with a nominal Re of 1000 is also supplied.
+The main finding is that the flow is 3D unstable at Reynolds numbers
+below or comparable (depending on how the Reynolds number is computed)
+to those for an isolated cylinder. Also, the unlike the case for the
+isolated cylinder, there is no spectral gap in spanwise wavenumber
+space between the 2D and initial 3D instability.
+
+I feel the material is suitable for publication in JFM, and since this
+is essentially a comparison to existing studies of the isolated
+cylinder, it does not need to be especially long, so seems appropriate
+for fast-track publication. However the manuscript does need some
+changes, and more work. I think this can be accomplished within the
+10-page limit.
+
+MAIN POINTS
+-----------
+
+1. There is an assumption, never made explicit, that all the
+instabilities are spatially periodic. Even in the absence of 2D
+motion, the flow is spatially periodic, so one assumes it is also
+potentially susceptible to a 2D *spatial* Floquet instability (try
+searching for "spatial Floquet"). So once there is also 2D
+time-periodic shedding, a more complete analysis should really be of
+spatio-temporal Floquet type (as opposed to just temporal, as
+presented here). Some consideration suggests that the flow could only
+be further destabilized by the contribution of spatial Floquet
+instability. I feel these matters should be touched on in the
+manuscript.
+
+2. The symmetries of the 2D base flows and their instabilities should
+be supplied. For example, the symmetries for modes A and B were
+supplied in Barkley and Henderson 1996, and this was generalized to
+the symmetries of all possible instabilities of 2D
+time-periodic/symmetric wakes by Blackburn, Marques & Lopez JFM
+522. Supplying the symmetries in mathematical form should potentially
+be be both more precise and concise than lengthy prose and will aid
+comparison to the isolated cylinder's modes A and B.
+
+3. A related point is that most of the spatial information regarding
+3D instability is obtained and presented based on DNS. Why? I would
+have thought that the spatial information could be obtained and
+presented mainly from Floquet eigenmodes. I do feel that DNS is a good
+way of checking the stability analysis outcomes, but the emphasis on
+it could be reduced in such a short manuscript. (While it is a good
+check, one is wary that the spanwise length scale of structures
+obtained in such DNS is heavily influenced by the spanwise domain
+length.) I did not find the information presented in figures 7 and 8
+very informative. In the case of figure 8 especially I did not see a
+great deal of similarity between the Floquet mode results and those
+from the DNS. In the case of figure 7, the plots are so small that
+they are difficult to interpret.
+
+4. Some of the plots of Floquet multiplier, figures 4a and 5a, seem to
+show a number of response curves that really should be drawn so as to
+differentiate between them (e.g. there seem to be two separate curves
+in 4a and possibly three in 5a).  The numerical method used should be
+able to discriminate at least the first two leading modes - this will
+help to show the locii of the various curves in the regions where they
+cross. Please can we also be told: are the Floquet multipliers real on
+all these curves, or are there curves for which they are complex?
+
+5. I was concerned that the computations seemed rather
+inaccurate/noisy, for example the results shown in figures 4 and 5
+show distinct signs of this. A related point is that for beta=0, the
+Floquet multiplier should be exactly unity (e.g. figure 5b, where it
+is visibly different) - in fact the ability to reproduce this result,
+required by Floquet theory, is a good test of such a
+computation. These two things undermined my confidence in the author's
+claims that the results were spatially (and perhaps, temporally?)
+resolved. I suggest the author checks these points. Also, the Floquet
+mode shapes should be checked for their sensitivity to Krylov
+dimension (this typically affects the Ritz mode shapes more than the
+computed eigenvalue/Floquet multiplier).
+
+6. The results for Re=1000 could be cut - especially as the Reynolds
+number is high enough that one would like some detailed proof of
+spatio-temporal resolution. Why could not the results be drawn from
+the same Reynolds number ranges as used for the stability analysis?
+
+7. On page 5, the author makes an important point about the flows
+being 3D unstable to long-wavelength perturbations as soon as there is
+2D vortex shedding. This is different to what occurs for the isolated
+cylinder, but it should be explained that this difference in behaviour
+is related to the difference in curvatures in the mu--beta
+relationship at beta=0. For the isolated cylinder, the second
+derivative of the curve is negative, whereas here it is positive for
+both flow orientations (see e.g. figure 5b).
+
+MINOR POINTS
+------------
+
+8. In the abstract, the author talks about "rotated" and "inline"
+arrays. I suggest devising something else: an "inline" array suggests
+a linear (1D) array, whereas an array could be "rotated" in any number
+of ways.
+
+9. In figure 1, "theta" is so small as to be nearly indecipherable - I
+missed it on first inspection.
+
+10. In figure 2, the "alternating" nature of the shedding in (a) cannot
+be seen from a single snapshot, while in (b) what is presented does
+not appear "symmetric". The author needs to take more care with the
+descriptions here. This is a case where having the symmetries written
+down in the text might be useful.
+
+11. In table 1, the two Floquet results for the isolated cylinder need
+to be credited to Barkley and Henderson.
+
+12. For figures 3 and 6 we need some quantitative information about the
+contour levels employed.

@@ -1,0 +1,135 @@
+TITLE:        Vortex breakdown in a cylinder with a rotating
+              bottom and a free surface
+              
+AUTHORS:      E. Serre and P. Bontoux
+
+SUBMITTED TO: Physics of Fluids
+
+REVIEW:	      First
+
+SUMMARY
+-------
+
+I have to state at the outset that I reviewed a manuscript of the same
+title and by the same authors for another journal in 2002.  Obviously
+while the manuscript must ultimately have been rejected, the authors
+have taken into account some of the feedback they had at that point,
+as additional simulations have been performed, and work has been done
+to the manuscript.  I still believe (as I did then) that the
+manuscript could be published, but I still (as then) believe it needs
+further work.  However, there have been new papers in the intervening
+period.  The most relevant of these is that by Lopez at al., JFM 502,
+(2004), examining instability in a similar (different aspect ratio)
+free-surface system, and so the issue of relevance needs to be
+carefully examined, i.e., does the new manuscript provide us with
+sufficient new information to justify publication?
+
+The manuscript describes a DNS study of flow in a cylindrical cavity,
+which is driven by one rotating wall.  While flows in this geometry
+have by now received a great deal of study, the novel feature here is
+the addition of a simulated free surface.  The study is for a single
+cavity aspect ratio, \Lambda=H/R=4, and the varied parameter is the other
+dimensionless group, the Reynolds number, the range for which is
+2200-3150.  The two main points of focus in the results are the onset
+of axial vortex breakdown flows at the lower end of the Reynolds
+number range, and the onset of three-dimensional flows for
+Re>2950. The flow first becomes unstable to a k=3 rotating wave (RW)
+located towards the cylindrical outer wall, then additionally a k=1 RW
+associated with precession of the vortex core, followed with still
+further increase in Re by another k=2 RW in the core (all three are
+incommensurate).
+
+I feel the manuscript needs rework to make it shorter, to concentrate
+on and better characterise the RW instabilities, and needs to give
+more sophisticated treatment to the issue and effects of hidden
+symmetry that is implied by the adoption of a flat, free-slip upper
+boundary.
+
+MAIN POINTS
+-----------
+
+1. I have some difficulty understanding the basic simulation
+   methodology leading to the non-axisymmetric state at
+   Re=3000. Leading up to this, the simulation set starts at Re=2200
+   *from rest*.  Firstly it is stated (in VI.A) that after an
+   impulsive start, all non-axisymmetric modes decayed until their
+   energies, k.ne.0, reached machine noise levels. This seems
+   peculiar, since we have a fully spectral method with Fourier
+   expansions in azimuth: in such a method, if the initial condition
+   is axisymmetric (and a rest state is so), then solutions at all
+   time should remain axisymmetric since the BCs and the problem have
+   rotational symmetry (all the energy is in the k=0 mode), and there
+   is no mechanism in the nonlinear terms to generate or transfer
+   energy to the higher modes. This can be readily demonstrated with
+   the convolution theorem. So it doesn't make sense to me that there
+   was ever any energy in the k.ne.0 modes. Secondly, the same
+   considerations carry over to the investigation of the onset of
+   symmetry breaking. One should be able to increase the Reynolds
+   number indefinitely without loss of axisymmetry, provided modes
+   k.ne.0 are initialised with zero energy. An appropriate technique
+   to examine symmetry breaking is to put some small amount of energy
+   in say the k=1 mode and see if the solution returns to axisymmetry
+   or not.  So this makes me wonder how good their characterisation of
+   the onset of RWs "in the Re range [2950,3000]" actually is.  (And
+   certainly this aspect of the manuscript has changed already, as the
+   result of further work, compared to the 2002 offering.)  I would
+   have thought the appropriate way to proceed is to decrease Re from
+   3000 in small steps (say Re=10) and plot the energy level in the
+   k=3 mode vs Re (in the process establishing if the bifurcation is
+   sub- or supercritical).
+
+2. In VI.C, the primary bifurcation to a k=3 RW associated with
+   instability of the confined jet, followed by secondary k=1 RW
+   associated with the vortex core seems very similar to what was
+   reported for the fully enclosed case, \Lambda=3, by Lopez and
+   Marques, PF V13, (2001), which had k=4, then k=1.  The authors seem
+   to have missed this point.
+
+3. For the fully-enclosed case, the authors state in the Introduction
+   that the symmetry breaking to RWs was attributed by Blackburn &
+   Lopez (PF V12, 2000) and Lopez & Marques (PF 13, 2001) to "an
+   inflectional instability of the swirling jet produced by the the
+   turn of the Ekman layer on the stationary vertical sidewall. This
+   result looks to be confirm [sic] by a recent stability analysis
+   (ref 14) ...".  In fact, it is only in [14] that any direct
+   reference was made to an inflectional instability of the swirling
+   jet: there was no mention of mechanism in Blackburn & Lopez (2000),
+   and in Lopez & Marques (2001), the instability mechanism was
+   suggested to be centrifugal, not related to an inflectional
+   instability.
+
+4. The issue of hidden symmetry (produced by the reflection-symmetric
+   upper surface) needs to be more carefully dealt with, particularly
+   in light of the findings of Lopez et al. (2004).  They showed that
+   while at \Lambda=2 the primary bifurcations are not affected by
+   using constrained symmetry, some of the subsequent ones (k=1) are,
+   and are suppressed by using the kind of upper boundary condition
+   used in the present work.  So while it is probably reasonable to
+   assume (as the authors do) that here at \Lambda=4 the hidden
+   symmetry does not affect the primary bifurcation, either more care
+   has to be taken in warning the reader about the possible influence
+   on subsequent bifurcations, or, better, to actually check the
+   effect of relax the reflection symmetry free surface.  Naturally
+   the latter path implies rather more work, however, I feel that it
+   would strengthen the manuscript considerably.
+
+5. The manuscript is too long.  I would suggest removing some
+   material, principally that connected with the detailed
+   characterisation of vortex breakdown in the axisymmetric case
+   (which seems to agree well with previous work), and concentrating
+   focus on the symmetry breaking.  In this regard, much of the
+   discussion in the beginning of the Introduction concerning
+   Lagrangian "asymmetry" of the vortex breakdown flow before the
+   onset of symmetry breaking misses the points that (a) these
+   manifestations are extremely sensitive to initial conditions and
+   imperfections in the experimental examinations, and (b) the
+   numerical work in this area by Soritopoulos and Ventikos is flawed
+   by broken mesh symmetry.  I think also the material (VI.D) on the
+   flow when a free-slip cylinder wall is employed could also be
+   removed.
+
+MINOR POINTS
+------------
+
+6. Figure 9 needs axis labels and the numeric tags/labels are far too
+   small.

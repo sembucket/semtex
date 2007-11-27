@@ -1,0 +1,164 @@
+\documentclass[12pt,twoside]{letter}
+\usepackage{pstricks}
+\usepackage{graphicx}
+\usepackage{a4wide}
+%\setlength{\textheight}{235mm}
+%\setlength{\textwidth}{165mm}
+%\setlength{\topmargin}{-10mm} 
+%\setlength{\oddsidemargin}{-0.5cm}
+%\setlength{\evensidemargin}{-0.2cm}
+%\setlength{\unitlength}{1mm}
+%\renewcommand{\baselinestretch}{1.00}
+\def\undertext#1{$\underline{\smash{\hbox{#1}}}$}
+
+\pagestyle{empty}
+\thispagestyle{empty}
+\raggedbottom
+
+\date{}
+
+\begin{document}  
+
+\address{
+\mbox{ }\\
+\begin{tabular}{ll}
+phone:  &(+61 3) 9905 1828\\
+fax:    &(+61 3) 9905 3558\\
+mailto: &hugh.blackburn@eng.monash.edu.au\\
+& 1 May 2007
+\end{tabular}
+}
+
+\begin{letter}
+{
+To whom it may concern
+}
+\signature{\vspace*{-10mm}
+\includegraphics[scale=0.8]{hmbsig.ps}\\
+Dr Hugh M. Blackburn\\
+\undertext{Associate Professor, Dept of Mechanical Engineering}
+}
+
+\opening{
+\begin{pspicture}(0,0)(0,0)
+\rput(35mm,50mm){
+\includegraphics%
+[width=0.45\textwidth]{MonashEng3.eps}}
+\end{pspicture}
+\centerline{\undertext{\textbf{Re: PhD Thesis, A Comerford}}}
+}
+
+I have carried out a review of Andrew Comerford's thesis, as
+requested, and consider it should be passed as it stands.  Please find
+my detailed comments and assessment attached.
+
+\closing{Yours sincerely,}
+\encl{Assessment}
+\end{letter}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\vspace*{-10mm}
+\begin{center}
+\textbf{
+\undertext{PhD Thesis, A Comerford}\\[5pt]
+Computational Models of Endothelial and Nucleotide Function
+}
+\end{center}
+
+The thesis describes computational modelling of flow and scalar
+(nucleotide) transport in arterial geometries, and the coupling of
+boundary values of wall shear stress (WSS) and nucleotide (ATP/ADP)
+concentration to a cellular dynamics model of endothelial cell
+response. The goal of the work is to produce a workable computational
+model to allow prediction of regions of arterial wall where
+atherosclerotic lesions are likely to occur. 
+
+The computational fluid dynamics and scalar transport has been
+implemented with commercial concurrent software (Fluent), linked to
+custom-coded numerical solution of ordinary differential equations
+that describe the cellular dynamics model of endothelial response. The
+cellular dynamics model is based on previously published works by
+Wiesner, Berk and Neerem (1996, 1997), and Plank, Wall \& David (2006)
+and takes wall nucleotide concentrations and WSS as inputs to model
+cellular Ca$^{2+}$ activity and endothelial nitric oxide synthase
+(eNOS) production.  Ultimately, regions of depressed eNOS production
+(and hence by implication low levels of NO) are taken as sites at
+which atherogenesis is likely, although the mechanisms underlying this
+linkage are not yet completely clear.  The dynamics of each
+discretised cell-dynamics domain is linked to the fluid dynamics wall
+cell with which it is associated, but there is no interdomain
+communication.  Also, while it is possible for WSS to trigger
+endothelial cell ATP release, this release does not appear to be
+back-coupled to the flow solver (the coupling of scalar transport from
+the CFD model is one-way).
+
+The research work is of a high standard, also novel, and I believe
+that overall it well justifies the award of PhD. The characteristics
+and locations of depressed eNOS production suggested by the
+computational model are observed to be in good qualitative agreement
+with locations of atherosclerosis found in laboratory and clinical
+studies.  A point of interest was that the locations tended to be more
+closely linked to low WSS than to low mural nucleotide concentration,
+although it is unclear just how much this outcome is determined by the
+parameters adopted in the cellular dynamics model, also in the wall
+uptake model. Another interesting finding was that the addition of
+pulsatility did not greatly alter the time-average eNOS values from
+those predicted by steady flow of equivalent mean Reynolds numbers,
+although again it is not clear how general this result is, or how
+sensitive it is to the input parameters.  
+
+I suggest that this issue of sensitivity of the outcomes to input
+parameters could receive attention before the work is submitted for
+journal publication, but the level of treatment here is quite
+sufficient to convince me that the work is of PhD standard, and that
+the main goals of the research program have been met.
+
+I have to say that I felt that the writing and proofing of the thesis
+should have received more care, but finally I do not think that these
+considerations would justify a demand for the thesis to be re-written,
+and I will accept it as it stands.
+
+
+%\begin{enumerate}
+%\item
+%The cellular dynamics model is based on earlier work by Wiesner, Berk
+%\& Neerem (1996, 1997) and simplified by Plank, Wall \& David (2006).
+%The model is outlined in Chapter~5, but it has a large number of
+%coefficients (Table~5.1) that are accepted here without comment, and
+%with no apparent attempt to examine the sensitivity of the computed
+%results to variation in the coefficients.  I feel that some more
+%comment and analysis is required.
+%\item
+%Similarly, values used for wall mass transfer/reaction rates
+%(Table~6.1) are accepted without comment from earlier work. When in
+%Chapter~7 the characteristic stress for ATP release $\tau_0$,
+%equation~(4.21), is varied, no attempt is made to justify (or to
+%provide units) for the values used.  This would seem to be important,
+%since the inclusion of wall release of ATP can apparently have a large
+%effect on concentrations of ATP at the wall (compare for example
+%Figures~7.29\,a and 7.29\,b).
+%\item
+%In general, the fonts sizes used for labelling of line graphs was far
+%too small, to the point of near-unintelligibility in many
+%cases. However since the amount of work required to remedy this at the
+%present stage is far too large, I do not believe it is reasonable to
+%require that the plots be re-made.
+%\item
+%There were a number of spelling errors that could easily have been
+%found and corrected with a spell checker. Some of the errors (such as
+%the use of `tract' instead of `tracked' in the caption to
+%Figure~8.24), could not readily be identified without careful
+%proof-reading, however. There were also quite a number of sentences in
+%which words were missing, and again such problems are difficult to
+%identify without careful proof reading.
+%\item
+%The List of Abbreviations (actually a list of acronyms) on page~xxix
+%should really have been far more extensive, particularly in this field
+%of research, where acronyms are heavily used.
+%\end{enumerate}
+
+
+%\noindent\textbf{Recommended grade: A}\\[5pt]
+\end{document}
+

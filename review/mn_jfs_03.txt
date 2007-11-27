@@ -1,0 +1,92 @@
+TITLE:        Self-excited jet precesssion Strouhal number and its
+              influence on turbulent mixing characteristics
+
+AUTHORS:      J. Mi & G. J. Nathan
+
+
+SUBMITTED TO: Journal of Fluids and Structures
+
+REVIEW:	      First
+
+
+SUBJECT MATERIAL
+----------------
+
+This manuscript addresses the non-dimensionalization of cold-flow
+results from fluidic precessing jet (FPJ) nozzles, being mostly
+concerned with finding appropriate (length, velocity) scales with
+which to define jet Strouhal and Reynolds numbers.  The main thrust of
+the work appears to be directed at finding a definition of Strouhal
+number for the FPJ which is consistent with that for a mechanical
+precessing jet (MPJ).  By "consistent" is meant scaling such that the
+Strouhal number at which the combusting flows of gas from FPJ switch
+from blue to luminous is similar to that for the MPJ -- the "critical"
+Strouhal numbers, thus defined, will be comparable.
+
+While the subject material might not lie in what is usually considered
+the core area of interest for JFS, it is certainly a highly unsteady
+flow that involves interaction of fluids with walls, so could be
+considered to fall within its ambit.
+
+MAIN POINTS
+-----------
+
+To my mind, the main difficulty with the manuscript is this: why would
+one expect that it is the Strouhal number that is the prime
+determinant of whether a gas flame from a MPJ is critical, or
+sub-critical? Surely the angle which the nozzle makes with the
+rotation axis is another important variable? Thus I was at a loss to
+understand why the authors were interested in finding appropriate
+modified Strouhal numbers for the FPJ in the first place. Why not just
+accept that the flows are bound to be geometry-dependent, and go about
+parameterizing their Strouhal numbers, and whether the flames produced
+are "critical" or not, in terms of a Reynolds number (however defined)
+and geometric ratios? I suggest that the authors need to produce a
+convincing argument on this point before the manuscript could be
+accepted.
+
+On the other hand, the fact that the precession frequency increases
+with L/D is interesting. Is it the case though that it reaches an
+upper limit in the case of very long tubes (as in the work of Hill et
+al.)? Granted that there was scatter in Hill's data, but St=29.4*St1
+at L/D=infinity is derived for the present geometries: can this be
+included on a dimensionless equivalent of figure 1? Do the authors
+have any argument or suggestions as to why St1 should increase with
+L/D?
+
+MINOR POINTS
+------------
+
+The overall chamber length (L?) in figure 1 was missing a
+label. Likewise its biggest diameter (D?).
+
+On figure 4, it would appear that at constant L/D values, St1 for
+nozzles with an inserted centre-body is Re-dependent, while those
+without (but with sharp-lipped exits) are not. Is this likely to be
+linked to the fact that the centre-body is rounded (as shown in figure
+1)?  Does the Re-dependence dissappear if the insert is sharp-edged,
+or a thin disc?
+
+Most readers would probably be unaware of the flow produced by an
+FPJ. A schematic diagram ("cartoon") might be a helpful
+addition. Likewise a diagram of an MPJ might be useful.
+
+Refering to figure 5, and the accompanying text, I couldn't see why
+St2 was any more useful than St1: they both seem to have a definite
+(and equivalently good) relationship to L*. At the end of Section 5,
+it is stated that "St2 is at least an order of magnitude higher than
+... St1", and that this is demonstrated by figure 5. On the contrary,
+figure 5 shows there to be approximately a factor of two difference.
+
+It is not easy for the uninitiated to see structures (or be sure they
+see the structures the authors refer to) in figure 7. Again an
+accompanying sketch would be helpful.
+
+At the end of Section 6, it is first said that the flame for St2=0.24
+is longer and narrower. But in the next sentence it is stated that at
+St=0.24 the spreading rate is higher. These remarks seemed to be in
+conflict and I was left unsure what was meant.
+
+In Section 7, the authors state they have applied an "analytical
+approach" to understanding Strouhal number relationships. Do they mean
+a correlation-based approach?

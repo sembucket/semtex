@@ -1,0 +1,87 @@
+TITLE:        Numerical simulation of vortex-induced vibration of a
+              circular cylinder using RANS code with dynamic meshes
+
+AUTHORS:      Z Pan and W Cui
+
+SUBMITTED TO: J Fluids and Structures
+
+REVIEW:	      First
+
+SUBJECT MATERIAL
+----------------
+
+This is a finite volume 2D RANS study of vortex-induced vibration at a
+nominal Reynolds numbers in the range 2000-7000, in particular
+compared to the experimental parameters and results of Govardhan and
+Williamson (2000). A broadly similar approach was earlier adopted by
+Guilmineau and Querty (2004), but with results differing in
+detail. While (as for Guilmineau and Querty) the results differ
+somewhat to the experiments, they are close enough to be encouraging,
+and I believe the authors are probably correct that essentially 2D
+models of this kind will eventually form an important component of
+prediction of VIV. Therefore I feel the manuscript could be published
+in JFS, following some revision.
+
+MAIN POINTS
+-----------
+
+Regarding the numerical method and mesh. Firstly, the computational
+domain seems quite short in streamwise extent. What size is it in
+terms of cylinder diameters? Secondly, detail of the numerical method
+used to solve, and the formal spatial accuracy of the finite volume
+spatial discretisation is not discussed; it should be briefly
+described. Likewise for the time integration in the RANS solver. Is it
+fully implicit, or mixed explicit/implicit? How has the temporal, as
+well as spatial, convergence of the results been established?  It
+would seem that it is not necessary to use a dynamic mesh scheme for
+this problem, it would be simpler and cheaper to use use a fixed mesh,
+and solve in an accelerating reference frame. So adoption of a dynamic
+mesh needs to have some justification. Finally some brief details
+regarding the eddy-viscosity model of Wolfshtein (1969) could be
+included for completeness.
+
+The paper manuscript could be made shorter and more succinct, and some
+of the figures could be omitted or summarised. For example, I don't
+feel the time series results of figure 3 add much understanding
+compared to what could be given in a few sentences of text. Likewise,
+the time series of figure 2: it would be better to extract
+coefficients and present them in a single plot as a function of U*.
+
+While the authors are able to broadly reproduce the amplitude and
+frequency lockin envelope of the experimental results, the two (upper
+and lower) lockin branches do not appear, and instead they are
+replaced by a single branch. An important reason for this appears to
+be that the 2S (upper) and 2P (lower) wake modes are not
+reproduced. This needs to be clearly brought out in the manuscript
+although it is evident from examination of figure 7. The authors
+should make (textual) comparison to the experimental phase-averaged
+PIV results here. The wake structures shown in figure 7 seem to be
+very diffuse compared to what might be expected at these Reynolds
+number (as should also be brought out in this comparison); probably
+this is a significant contributing factor in the method's inability to
+distinguish the two experimentally observed branches.
+
+The authors do not mention or compare to the DNS results and matching
+experiments presented in Blackburn, Govardhan and Williamson (2001),
+JFS V15, 481-488. In particular, that paper showed that at U*
+corresponding to the lower-amplitude response branch, 2P mode shedding
+was reproduced by the DNS results.
+
+MINOR POINTS
+------------
+
+The numerical tags and text axis labels of all graphs (especially
+figures 2, 3, and 5) are too small.
+
+There is a number of spelling and grammatical errors. At end of
+section 2.2 "these parameters that are in charge of the results" ->
+"the parameters". "damping ration" -> "damping ratio". At start of
+section 2.3, "it is a crucial part to" -> "it is crucial to". Para 1,
+page 8, "conditions besides" -> "conditions including". "delayed. Such
+is the reason of hysteresis."  -> "delayed; i.e. hysteresis exists."
+Page 9: figure 2(b) is not a "frequency response" in the conventional
+sense, so I suggest this be reworded.
+
+
+
+

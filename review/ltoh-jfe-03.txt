@@ -1,0 +1,87 @@
+TITLE:        Spin-up from rest in a cylinder of an 
+              electrically-conducting fluid under a
+              magnetic field.
+
+AUTHORS:      C.H. Lee, T. Tagawa, H. Ozoe and J.M. Hyun
+
+SUBMITTED TO: Journal of Fluids Engineering
+
+REVIEW:	      First
+
+SUBJECT MATERIAL
+----------------
+
+This as an axisymmetric numerical study of the spin-up of conducting
+fluid in an axial magnetic field. This is a topic that would be
+difficult to attack experimentally, so the use of a numerical approach
+is welcome. I found this to be a well-written and interesting
+manuscript, and I found the fact that reversing the sense of the
+magnetic field has no effect on the results intriguing and well
+explained. My recommendation is that the manuscript be accepted,
+subject to the authors addressing a few points of detail.
+
+MAIN POINTS
+-----------
+
+1. As this is a purely numerical study, the paper needs more detailed
+treatment of numerical accuracy in order for the reader to be
+convinced of the adequacy of the resolution. The time-accuracy of the
+method is not mentioned. My suggestion is that the authors include
+some tabulated results that demonstrate the temporal and spatial
+convergence of one representative simulation, e.g. by employing
+different grid sizes and time steps, demonstrating that 51x51 is
+adequate in space and delta t=0.01 is adequate in time.
+
+2. The simulations are axisymmetric, while in practice systems such as
+these (with or without free surfaces) are subject to three-dimensional
+rotating wave instabilities. The authors need to discuss this and at
+least issue caveats to the reader. Here are a few relevant papers:
+
+@Article{gbys01,
+  author =  {A. Yu. Gelfgat and P. Z. Bar-Yoseph and A. Solan},
+  title =   {Three-Dimensional Instability of Axisymmetric Flow
+             in a Rotating Lid--Cylinder Enclosure},
+  journal = JFM,
+  year =    2001,
+  volume =  438,
+  pages =   {363--377}
+}
+
+@Article{hlm02,
+  author =  {A. H. Hirsa and J. M. Lopez and R. Miraghie},
+  title =   {Symmetry Breaking to a Rotating Wave in a Lid-Driven
+             Cylinder with a Free Surface: {Experimental} Observation},
+  journal = PoF,
+  year =    2002,
+  volume =  14,
+  number =  6,
+  pages =   {L29--L32}
+}
+
+MINOR POINTS
+------------
+
+3. In the first sentence of the abstract the authors say they studied
+spin up in a cylinder of aspect ratio O(1). In fact the aspect ratio
+used is exactly 1, and there is no discussion of how the effect of
+aspect ratio might change the results. It would be better to state
+that the aspect ratio studied was 1, and then give some discussion
+relating to the possible effect of aspect ratio. For example, at
+higher aspect ratios, one might expect axial vortex breakdowns to play
+a role in the dynamics.
+
+4. One of the the main motivations for the study is stated on page 6
+to be application to "Czochralski crystal growth techniques".  While
+there are (later) some references to other papers in that area, I
+still have no idea what these techniques are. While the work has its
+own intrinsic interest as a study of magneto-hydrodynamics, a sentence
+of two of explanation would be useful here, and help the reader to
+better understand the motivation.
+
+5. In the title, there should be no hyphen after "electrically". The
+word "an" prior to "electrically" is not required. I also suggest that
+"under" be changed to "in an axial".
+
+6. Section 3, "Results and discussion" could be split into "Results"
+and "Discussion". A suitable place could be after the end of the first
+paragraph on p.14.

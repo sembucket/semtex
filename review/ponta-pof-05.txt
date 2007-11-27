@@ -1,0 +1,56 @@
+TITLE:        Effect of wake width and shear-layer thickness on the
+              Strouhal--Reynolds number relationship for bluff-body wakes
+
+AUTHOR:       FL Ponta
+
+SUBMITTED TO: Physics of Fluids
+
+REVIEW:	      First
+
+SUBJECT MATERIAL
+----------------
+
+The manuscript promotes a physical rationale to explain some St-Re
+relationships for the circular cylinder wake at low Reynolds numbers,
+namely St=A+B*Re^(-1/2) (which, with different constant A and B
+provides good fits to experimental data for both the 2D regime and the
+mode-B dominated regime at Re>260 approx). This form of the
+relationship, and constants A and B for these two regimes, was
+provided by Williamson and Brown (1998).
+
+The manuscript contains just a small amount of new material.
+Essentially the whole argument, and accompanying figures, was used in
+the 2004 PRL paper (Ponta & Aref, PRL V93N8), but to justify instead
+the relationship St=C+D*Re(-1), proposed by Roshko in 1954. What has
+been changed here is more argument as to why the physics could explain
+the Re^(-1/2) form of the second term (which does provide a better fit
+to the data). A comparison of the manuscripts reveals that starting
+from equation (1) through equation (6) and beyond, the present
+manuscript is virtually a direct copy of material found from equation
+(1) through equation (4) in the PRL *except* that one of the length
+scales is now dependent on the boundary layer thickness, which should
+scale like Re^(-1/2).
+
+The last main paragraph (starting with "Another important issue")
+further proposes, but does not examine in any quantitative fashion,
+that one of the length scales (D) could better be replaced with L*, a
+measure of the wake width. It finishes with the statement "Adopting L*
+instead of l would make both constants in expression (6), ka and kd
+(and then St) inversely dependent on L*/D. This result is consistent
+with the aforementioned experimental evidence."
+
+1. I found the manuscript interesting and nicely argued (and support
+its eventual publication as a Letter), but essentially it is a minor
+update of the PRL. Given this incremental approach I would not be too
+surprised to later see yet another small article which gives some
+evidence in support of the last paragraph about the "other important
+issue". I recommend that the author revises the first part of the
+paper to considerably shorten it (the bulk of the work has appeared
+elsewhere), then supplies the quantitative evidence (of wake widths,
+etc) in support of the eventual use of L* instead of D, and restate
+the equations in this form.
+
+2. In the captions for figures 1 and 3 it should be made clear that
+not only the experimental data, but also the numeric parameters of
+the fits, stem from other works. In the caption for figure 2 (the same
+as figure 4 of the PRL), we shoud be given the Reynolds number.

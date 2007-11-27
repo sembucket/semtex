@@ -1,0 +1,60 @@
+TITLE:        A cut-cell solver of the Phi-omega equations for low
+              Reynolds number 2-D flow past stationary and moving bodies.
+
+AUTHORS:      TJ Stallard, AGL Borthwick and PH Taylor
+
+SUBMITTED TO: Journal of Fluids and Structures
+
+REVIEW:	      First
+
+SUBJECT MATERIAL
+----------------
+
+The manuscript describes a finite volume cut-cell/quadtree method for
+discretizing 2D flow past moving or fixed bodies, and then applies it
+to flow past moving/oscillating cylinders. i.e. flows that can be
+computed also with a fixed body, but with time-varying far-field
+conditions. One potential advantage of the method, when compared to
+alternative methods, is that in principle it could deal with an
+arbitrary number of bodies which could move relative to one
+another. Also, the method is possibly computationally cheaper than
+some alternative methods. (I would have to say though that the authors
+do not seem to have dealt with, or demonstrated, these possible
+advantages.)
+
+POINTS
+------
+
+1. Considering the results given at the resolutions presented, the
+method does not seem particularly accurate at higher Reynolds numbers,
+even for fixed cylinders (see e.g. Table 1 and Re=500 results in Table
+2), and accuracy falls off when cylinder motion is
+introduced. Consequently it is hard to see why one would wish to use
+the method, unless it was on the basis that it could be used to tackle
+a problem that would be difficult by more conventional means.
+
+2. The manuscript principally deals with the computational method and
+validation rather than with new flow physics or results related to
+fluid-structure interaction.
+
+3. Inspecting Figure 11 and also considering the remarks made on page
+26, one wonders if the degradation in solution accuracy in cases where
+the cylinder moves is related largely to the fact that "the mesh
+solely adapts due to boundary motion and solution based adaptation is
+not conducted". The authors do not seem to have considered this issue.
+
+4. As a very minor point, I feel sure that when the authors referred
+to a paper by Blackburn and Melbourne they in fact meant to refer to
+the 1999 paper by Blackburn & Henderson.
+
+ASSESSMENT
+----------
+
+While there are a number of less significant considerations, taken
+together the above points are sufficient for me to recommend that the
+manuscript not be accepted by JFS in its present form.  In order to
+gain acceptance the authors could demonstrate application of the
+method to a problem (such as a multi-body one) that would be difficult
+to compute in other ways, more convincingly show good convergence at
+moderate Reynolds numbers, or minimal degradation in accuracy when
+body motion is introduced.

@@ -1,0 +1,44 @@
+TITLE:        Flow separation and velocities in an axisymmetric rigid
+              stentotic vessel
+
+AUTHORS:      Li Yao
+
+SUBMITTED TO: Journal of Fluids Engineering
+
+REVIEW:	      First
+
+This manuscript develops a Karman-Polhausen BL model of steady flow of
+incompressible Newtonian fluid in a tube with a smooth stenotic
+contraction. The axial velocity profile at each axial station is
+assumed to be a cubic function of radius with coefficients that may
+vary along the axis, while the radial velocity is assumed to be a
+quartic function of radius (but with no constant term). Maximum
+Reynolds numbers based on the bulk flow speed and tube diameter range
+up to 900.
+
+The central problem with the work is that the approximate solutions do
+not seem to match well to available CFD solutions - and I not believe
+that the published CFD solutions are at fault here. The separation
+zones in these flows are typically (e.g. Siegel, Markou, Ku & Hanson,
+J Biomech Eng V114, 1994; Sherwin & Blackburn, J Fluid Mech V533,
+2005) very elongated in the axial direction downstream of separation
+point in the throat, and do not usually have flow separation upstream
+of the throat.  However the flow profiles presented in here in figures
+9 and 10 show very truncated separation downstream of the throat and
+also separation upstream of the throat (admittedly this latter feature
+may be associated with the particular form of stenotic profile used
+here, although it seems unlikely). Likewise, according to the author's
+solutions the region of flow reversal downstream of the throat can
+extend to much smaller radii than the throat itself, which is also not
+observed in the CFD (or experimental) results. Related to this is the
+way that the radial velocity profiles are predicted to very rapidly
+recover a near-parabolic profile close to termination of the stenosis,
+probably in turn related to the fact that the polynomial coefficients
+will very rapidly lose dependence on axial coordinate soon downstream
+of the throat, according to the parameters lambda and q at the top of
+page 7.
+
+This deficiency in the model is so major that I believe that the
+manuscript must be rejected. I think that the author's goal is worthy,
+but there is either a fundamental problem with the assumptions of the
+model, or a mistake in derivation.

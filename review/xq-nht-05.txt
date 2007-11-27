@@ -1,0 +1,76 @@
+TITLE:        Natural convection flows in air-filled differentially heated
+	      cavities with adiabatic horizontal walls
+
+AUTHORS:      S Xin and P le Quere
+
+SUBMITTED TO: Numerical Heat Transfer NHT05/3977
+
+REVIEW:	      First
+
+SUBJECT MATERIAL
+----------------
+
+The manuscript deals with application of numerical methods previously
+devised and applied by the present authors to similar problems in
+natural convection: stability of steady states in differentially
+heated rectangular cavities, and the effect of cavity aspect ratio
+thereon. The stability analysis here is all two-dimensional. The
+material is in the main well presented and described (apart from a
+fair number of spelling and other minor errors). The only real concern
+I had about the manuscript was on the grounds of novelty, given that
+this is well-travelled ground for these authors. For example, in the
+abstract we are told that the critical values of Rayleigh number agree
+well with those of 4 previous investigations, 3 of which are by the
+present authors (and the other is, incidentally,
+mis-referenced). However, I found the manuscript interesting, and I
+believe that the new material on the multiplicity of solution branches
+near A=3 is sufficient to address the aspect of novelty. So overall I
+recommend it be accepted, although I would like a number of points
+addressed.
+
+1. Given the above, I suggest the authors make some minor revisions to
+   slightly underline what is new about what they are presenting here.
+
+2. The analysis is all 2D: why? Is there some reason to believe that
+   2D states will be more critical for all the aspect ratios dealt
+   with?  Some explanation (and preferably, supporting calculations)
+   would be beneficial.
+
+3. The terms "centro-symmetric" and "anti-centro-symmetric" are used
+   without definition, but as far as I know they are not in common
+   use. Evidently these mean that (say for T) T(x,y)=-T(-x,-y) and
+   T(x,y)=T(-x,-y), respectively. Please could this be made explicit?
+   I guess it would also help to point out (although maybe this was
+   done?) which modes preserve, and which break, the symmetries of the
+   base states.
+
+4. About numerics: given the mixed explicit-implicit timestepping,
+   quite small stepsizes are likely to be used, anyway (based on CFL
+   stability limitations). These are also needed to preserve the
+   approximation to exponential behaviour of the linearized
+   equations. And so for example on page 8 they state that for the
+   Arnoldi method a large number of time *steps* may be needed to
+   separate eigenmodes. Now this is true, but on the other hand (and
+   this is also the case for the preconditioned Newton iteration) one
+   can take a lot of small time steps (giving accurate integration) to
+   build up a larger time *increment* for the Newton and Arnoldi
+   iterations. So I was not quite sure what in fact the authors had
+   done here; some more detail would be useful. On page 9, it is
+   stated that "we fix one ordinary complex component of x": does this
+   mean that they keep the entire real or imaginary part constant, or
+   do they keep its norm constant?
+
+5. At top of page 13 we are told that "no inclined structures are
+   observed in Figure 3", which is quite contrary to what one sees!
+   Some more care is needed here.
+
+6. The axis labels of many of the plots should be re-written in English.
+
+7. A selection of spelling/grammatical errors: rises concerns ->
+   raises concerns; laser system -> laser systems; delt -> dealt; with
+   continuation -> with a continuation; tree-dimensional ->
+   three-dimensional; resulted Helmholtz -> resulting Helmholtz; when
+   applied the same time scheme -> when the same time scheme is
+   applied; extrapolate them at a -> extrapolate them to; senarios ->
+   scenarios; Tukerman -> Tuckerman. But as one says, no doubt their
+   English is far better than my French!

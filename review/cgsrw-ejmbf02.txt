@@ -1,0 +1,53 @@
+TITLE:        Wake states and response branches of forced and
+	      freely oscillating cylinders
+
+AUTHORS:      Carberry, Govardhan, Sheridan, Rockwell & Williamson
+
+SUBMITTED TO: European J Mechanics B/Fluids
+
+REVIEW:	      First
+
+This manuscript presents comparisons of wake states for circular
+cylinders in forced oscillation and in vortex-induced vibration, at
+Reynolds numbers well below the drag crisis. Obviously the comparisons
+are of interest as one would hope that information sufficient to
+predict VIV amplitudes could be extracted from experiments conducted
+with forced oscillation. The forced motion and VIV experiments were
+each conducted at different experimental facilities. The motions in
+each case were constrained to be cross-flow only. We are not told here
+exactly what the aspect ratios and end conditions of the cylinders
+were, although no doubt this information can be found in the
+references.
+
+The main outcome is that while there are many observable similarities
+between the various (and variously named) wake modes across the two
+sets of results, one of the key parameters (the energy transferred to
+the cylinder each motion cycle) differs in sign between the two sets
+of experiments, for some of the modes.
+
+The material is interesting, sufficiently to justify publication,
+however I believe there are a few points which the authors could
+address in a revision.
+
+1. The main difficulty with the comparsion which the manuscript seeks
+to address is that the two sets of experiments do not seem to have
+been designed to match exactly any parameter: the Reynolds numbers are
+apparently always different when the motion amplitudes and frequencies
+could be regarded as comparable. For example, in the second-last
+paragraph, we are told that at motion amplitudes of 0.6 diameter, the
+forced oscillations and VIVs for a range of similar reduced
+frequencies give different signs of energy transfer when the forced
+oscillations are at Re=2300, while the VIVs are at Re=3700. The
+authors state that these are "similar" Reynolds numbers. On what
+basis? The numerical values differ by a factor of almost two.
+
+2. It would seem quite likely that the main points of difference could
+stem from the apparently uncoordinated design of the two
+experiments. Perhaps it would be better (if this is in fact true) to
+just state this (although perhaps in other words!) in the
+Introduction, as I do not believe that this would detract from the
+interest of the work. The authors state that in the Conclusions that
+"further work" is needed to reconcile the difference in sign of energy
+transfer. Surely that "further work" would in large part consist in
+matching all the dimensionless parameters more closely. Why not say as
+much?

@@ -1,0 +1,79 @@
+TITLE:        Transition phenomena in the wake of a square cylinder
+
+AUTHORS:      SC Luo, X Tong and BC Khoo
+
+SUBMITTED TO: Journal of Fluid Mechanics
+
+REVIEW:	      First
+
+SUBJECT MATERIAL
+----------------
+
+This is an experimental study of the 3D transition of the wake of a
+square cylinder.  It seems essentially to be a cleanup of an earlier
+closely-related study by Luo and other authors, published in Phys
+Fluids V15N9, 2003 entitled `Characteristics of square cylinder wake
+transition flows' (although the authors have not directly reproduced
+any figures from the earlier paper).  From what I can gauge, the main
+change in experimental technique was to more carefully control the
+cylinder end conditions, which was a well-known fix applied in other
+experimental wake studies.  The details of transition now seem closer
+to those already well-known for the circular cylinder, and the real
+amount of interesting new material here is not large.  There is some
+discussion of features observed in flow visualisation but I don't feel
+this really contributed towards resolving some of the controversies
+that exist in this area -- and much of it seems similar to what was in
+the earlier paper.
+
+On the whole the manuscript is well-written and easy to understand, but I
+found it far too long. The main question is whether the amount of new
+and interesting material justifies a full-length JFM paper, and I'm
+afraid that I feel it does not, although I would like to see the
+material published somewhere. My assessment is that it should be
+carefully edited to make it much shorter, emphasising the key new
+findings, and appear as a letter or a brief communication.
+
+In the event that the authors revise the manuscript for resubmission here
+or elsewhere, here are some points they might consider:
+
+1. It has recently been shown theoretically that for 2D flows with
+these symmetries (ignoring end effects) kind there are only two kinds
+of possible synchronous symmetry breaking bifurcations to 3D; either
+they have to have symmetry of mode A or of mode B.  See Marques, Lopez
+& Blackburn Physica D V189 (2004) and Blackburn, Marques & Lopez JFM
+V522 (2005).  Hence showing that these exist in a new geometry (but in
+a flow with the same symmetries) is not surprising -- even less
+surprising (especially since this has already been demonstrated for
+the square cylinder) is that modes A & B have exactly the same
+symmetries and order of onset Reynolds number as the cylinder wake.
+So there are two main ways in which the manuscript could be made
+stronger: (a) showing the dynamics are different to the cylinder wake
+or (b) by emphasising the similarities with the cylinder wake -- for
+example by showing that the scaling of e.g. mode A wavelength to wake
+width is the same (the ratio of lengths for A and B is apparently
+similar in the two systems, so the potential for a unification of this
+kind seems strong).  Since the dynamics appear almost identical to
+those of transition in the circular cylinder wake (although some of
+the detail after transition is different), the second of these two
+possibilities seems the more obvious route.
+
+2. Regarding the "subharmonic mode S" of the square cylinder wake, as
+proposed by Robichaux et al. (1999), the authors have missed the
+central point of the paper by Blackburn and Lopez (1999): the
+computation of a subharmonic mode by Robichaux et al. was in error.
+Further, subharmonic modes are virtually impossible to achieve in
+these systems, as a result of the spatio-temporal symmetry of the 2D
+base flows, see the papers cited in the last point.  This mode instead
+has complex-conjugate pair Floquet multipliers (in agreement with the
+intermediate-wavelength mode first noted for circular cylinder wakes
+by Barkley & Henderson 1996), and would result in a
+spanwise-travelling wave (perhaps modified by end constraints).  The
+related discussion by the present authors in the Introduction, page 5,
+and elsewhere in the manuscript (pages 6 and 31) needs to be modified
+to take account of these facts.
+
+3. I saw no mention of the fact that the onset of mode A for the
+circular cylinder was shown to be subcritical in numerical results of
+Henderson & Barkley, Phys Fluids V8, 1996, p. 1683. Very likely a
+similar nonlinear analysis would find the same thing for the square
+cylinder wake.

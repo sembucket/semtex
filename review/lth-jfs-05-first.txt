@@ -1,0 +1,64 @@
+TITLE:        The beginning of branching behaviour during
+              vortex-induced vibration at 2-D Reynolds numbers
+
+AUTHORS:      Leontini, Thompson & Hourigan
+
+SUBMITTED TO: J Fluids & Structures
+
+REVIEW:	      First
+
+The title is a reasonable summary of the paper which is in general
+suitable for publication in JFS. But the manuscript does require some
+revision before I could recommend it be accepted, specifically
+addressing the points below.
+
+1. Given the previous similar work in this area by Blackburn &
+Karniadakis (1993) and especially Blackburn & Henderson (1996, BH96),
+it is very surprising that their results are not compared in detail
+with the present results. Those earlier works are quite close-by in
+parameter space (in the latter case, the same mass ratio, same damping
+ratio, similar Re), and used very similar numerics and approach.
+Obviously the authors are aware of these works since they are
+referenced in the Introduction. Thereafter however, they are nowhere
+mentioned. For example, the trends revealed in the first, second and
+fourth panels of Figure 1 are very similar to those shown in Figure 2,
+BH96, although the axes of these two figures are non-dimensionalised
+in different fashion. BH96 also noted the presence of a synchronised,
+locked regime and a non-synchronised chaotic regime (lift coefficients
+are higher in the latter, but mean amplitudes are lower). These points
+of comparison need to be discussed, but also the authors should point
+out carefully what their new research contribution is, so
+differentiating their present work from the past one (for example, the
+information presented in figures 4 and 5).
+
+2. The crossflow response shown for the chaotic regime in figure 2
+here is very similar to that of figure 4, BH96.  BH96 demonstrated
+that the frequency content of the signal (their figure 5) showed two
+very distinct peaks, neither of which seemed related (or close) to the
+in vacuo natural frequency or the fixed-cylinder shedding
+frequency. Given this, it is surprising to see here in panel 4, figure
+1, that there is assigned a single distinct response frequency over
+the corresponding range of U*, and that it is quite close to the in
+vacuo natural frequency. So the authors need to explain how their
+frequency information was computed (if possible supplying a spectrum),
+and also compare and discuss the relevant results of BH96.
+
+3. Following from this point is the fact that the response is not then
+synchronised over the entire "high-amplitude" band from U*=4.2 to 6.3,
+as seems to be claimed in the final paragraph of section 4.2. It seems
+the situation could be rather more complicated than this, and the
+authors will need to revise the discussion here.
+
+4. Coming to the main thrust of the paper, now, it is an interesting
+suggestion that the double-branched (or even, triple-branched)
+behaviour observed at higher Reynolds number finds its roots in
+lower-Re 2D behaviour. On the other hand I feel it would make the
+manuscript stronger if the authors could find more linkages other than
+to show that two distinct types of 2D high-amplitude behaviour exist
+(this much was known from BH96). For example, the ordering and extent
+of the branches w.r.t. ranges of U*, the detailed behaviour of the
+vortex shedding: how do these relate to what is known of the 3D cases?
+
+5. The manuscript was well written and easy to follow. A very minor
+error I noticed in the Abstract, final sentence: "this is found" ->
+"this found".
