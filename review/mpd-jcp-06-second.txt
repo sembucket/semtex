@@ -1,0 +1,93 @@
+TITLE:        Verification of a fluid dynamics solver using
+              correlations with linear stability analysis results
+
+AUTHORS:      G Matheou, C Pantano & PE Dimotakis
+
+SUBMITTED TO: Journal of Computational Physics
+
+REVIEW:	      Second
+
+------------------------------------------------------------------------------
+
+TITLE:        Verification of fluid dynamics solvers using correlation
+              with linear stability analysis results
+
+AUTHORS:      G Matheou, C Pantano & PE Dimotakis
+
+SUBMITTED TO: Journal of Computational Physics
+
+REVIEW:	      First
+
+The manuscript presents a method for a correlation-based method for
+verification of simulation codes. I would have called it a
+projection-based method, that is, one assesses agreement with an
+analytical solution by computing the integral over the domain of the
+inner product of the computed and analytical solutions.  This is an
+interesting idea and as far as I know has not previously been
+described.  So I feel that publication will be justified after a
+number of problems are adequately addressed. As it stands the
+manuscript is rather confusing and difficult to follow. I found it
+hard to understand how the idea might be more generally applied.
+
+1. The manuscript seems to promise much more of the method than is
+ultimately delivered by the authors. E.g. in para 2, Introduction, we
+are told "A common difficulty with large codes, for example those
+involving several stacks of physical models, is that the complexity of
+the systems of equations being solved is often such that convergence,
+order of accuracy, etc, can rarely be established unequivocally.  In
+the work presented here, of concern is how the metric is constructed,
+and not the verification technique itself." A fair statement, except
+that the remainder of the manuscript seems to deal solely with an
+unsteady Euler solver, and comparing its performance with analytical
+results from stability analysis for 1D shear layers. In fact it is
+difficult to imagine how far one could go with the suggested method if
+one were indeed to tackle a system with "several stacks of physical
+models" because it would be very difficult to obtain an
+analytical/linearised solution with which to compare. I suggest that
+the description of the idea deals more directly with the actual
+situation to which it is applied, and then perhaps address how it
+could be extended in the Discussion.
+
+2. Because few direct comparisons are made with other methods of error
+assessment (say to show how this method does a good job where others
+may fail or give spurious results) it is not really clear how good the
+correlation metric is in comparative terms, or give a good example of
+where it clearly performs well where other methods fail.  For example,
+in motivating the use of their metric, the authors state in Section 2:
+"For unsteady, spatially evolving fields, common error metrics perform
+poorly in cases where some feature is growing fast in one, or more,
+spatial dimensions.". However, nowhere do they actually give a
+comparison to demonstrate where this is a real problem that is
+overcome by adopting their method.  In Section 4.2 they do show the
+performance of the L2 norm for one of their problems, and from
+examination of Figure 5 it seems to work as expected. Maybe I missed
+the point here: was it that one needed to know the phase of the
+solution in order to compute the L2 error?
+
+3. The correlation metrics were not employed to verify "order of
+accuracy and convergence", as I had expected from the Abstract.  Could
+the authors deploy the method on several grids (as they do for the L2
+norm in figure 6), so we can see how well it does on predicting order
+of accuracy?
+
+4. Section 3 does not seem complete and ends with the parenthetical
+remark "(need the order of accuracy and describe what we did with the
+boundary condition)".
+
+5. In para. 2, page 4, the authors state "... LSA [linear stability
+analysis] solutions are an exact solution subject to certain
+approximations.  One of the most restrictive is that the mean field is
+assumed to be independent of the streamwise coordinate." Fine, maybe,
+but then they immediately weaken this in a footnote: "This is the case
+for a shear layer. Other flows may have different mean fields." What
+was the point the authors were making?
+
+6. It seemed to me that Table 1 should be placed somewhere closely
+following equation (11), instead of a full page-and-a-half later.
+
+7. It it not until we get to page 7 that we see how the authors define
+their metric (equation 11).  Why can't the idea be given to us rather
+earlier in the manuscript?
+
+8. Most of the figure labels and keys are far too small.
+
