@@ -19,6 +19,7 @@ static  bool           C3D;
 
 static void   advection (Domain*, AuxField**, AuxField**, vector<real_t>&);
 static void   buoyancy  (Domain*, AuxField**, AuxField**, vector<real_t>&);
+static void   tempGrad  (AuxField**, AuxField**);
 static void   waveProp  (Domain*, const AuxField***, const AuxField***);
 static void   setPForce (const AuxField**, AuxField**);
 static void   project   (const Domain*, AuxField**, AuxField**);
@@ -103,10 +104,12 @@ void NavierStokes (Domain*       D,
     D -> time += dt;
     Femlib::value ("t", D -> time);
 
-    // -- Unconstrained forcing substep.
+    // -- Unconstrained forcing substeps.
 
     advection (D, Us[0], Uf[0], ff);
     buoyancy  (D, Us[0], Uf[0], g);
+
+    ROOTONLY tempGrad (Us[0], Uf[0]);
 
     // -- Update high-order pressure BC storage.
 
@@ -118,6 +121,7 @@ void NavierStokes (Domain*       D,
     // -- Complete unconstrained advective substep and compute pressure.
 
     if (Geometry::cylindrical()) { Us[0][0] -> mulY(); Us[0][1] -> mulY(); }
+
     waveProp  (D, const_cast<const AuxField***>(Us),
 	          const_cast<const AuxField***>(Uf));
     for (i = 0; i <= NCOM; i++) AuxField::swapData (D -> u[i], Us[0][i]);
@@ -414,6 +418,31 @@ static void buoyancy (Domain*         D ,
 	*work     *=  g[i];
 	*Uf[i] -= *work;
       }
+}
+
+
+static void tempGrad (AuxField** Us,
+		      AuxField** Uf)
+// ---------------------------------------------------------------------------
+// If there is heat input we take off a linear correction for bulk
+// temperature gradient DTBDX, only in defined for the first coordinate
+// direction. This procedure only drives mode 0, we work in Fourier.
+// ---------------------------------------------------------------------------
+{
+  const real_t dtbdx = Femlib::value ("DTBDX");
+
+  if (fabs (dtbdx < EPSDP)) return;
+
+  const int_t     nP = Geometry::planeSize();
+  AuxField*       U  = Us[0];
+  AuxField*       N  = Uf[NCOM]; // -- Advection term for scalar.
+  vector<real_t>  work(nP);
+  real_t*         u = &work[0];
+
+  U -> getPlane  (0, u);
+  Blas::scal     (nP, -dtbdx, u, 1);
+
+  N -> addToPlane (0, u);
 }
 
 
