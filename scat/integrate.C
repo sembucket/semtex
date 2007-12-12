@@ -431,7 +431,7 @@ static void tempGrad (AuxField** Us,
 {
   const real_t dtbdx = Femlib::value ("DTBDX");
 
-  if (fabs (dtbdx < EPSDP)) return;
+  if (fabs (dtbdx) < EPSDP) return;
 
   const int_t     nP = Geometry::planeSize();
   AuxField*       U  = Us[0];
