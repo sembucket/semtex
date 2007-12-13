@@ -24,7 +24,7 @@ ScatAnalyser::ScatAnalyser (Domain* D   ,
     flx_strm.open (strcat (strcpy (str, _src -> name), ".flx"));
     if (!flx_strm) message (routine, "can't open flux file",  ERROR);
 
-    flx_strm << "# Buoy state information file"          << endl;
+    flx_strm << "# Scat state information file"          << endl;
     flx_strm << "# Step Time Flux [Fpre Fvis Ftot]-axis" << endl;
     flx_strm << "# ------------------------------------" << endl;
   }
@@ -41,10 +41,10 @@ void ScatAnalyser::analyse (AuxField** wrk1, AuxField** wrk2)
   Analyser::analyse (wrk1, wrk2);
 
   ROOTONLY {
-    const int_t periodic = !(_src->step% Femlib::ivalue ("IO_HIS")) ||
-                           !(_src->step% Femlib::ivalue ("IO_FLD"));
-    const int_t final    =   _src->step==Femlib::ivalue ("N_STEP");
-    const int_t state    = periodic || final;
+    const bool periodic = !(_src->step  % Femlib::ivalue ("IO_HIS")) ||
+                          !(_src->step  % Femlib::ivalue ("IO_FLD"));
+    const bool final    =   _src->step == Femlib::ivalue ("N_STEP");
+    const bool state    = periodic || final;
 
     if (!state) return;
 
