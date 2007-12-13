@@ -49,7 +49,7 @@ $(SEMOBJ): $(SEMHDR)
 # Specialised version of rstress
 
 rstress: rstress.c
-	$(CC) -o $@ $@.c $(CFLAGS) $(CPPFLAGS) $(CLDFLAGS) -lm
+	$(CC) -o $@_s rstress.c $(CFLAGS) $(CPPFLAGS) $(CLDFLAGS) -lm
 
 # ----------------------------------------------------------------------------
 # Standard rules and definitions.
