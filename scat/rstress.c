@@ -1,6 +1,9 @@
 /*****************************************************************************
  * rstress.c:  Compute Reynolds stresses.
  *
+ * NB: This version is specialised for use with files made by scat. See
+ * chknames() below.
+ *
  * Copyright (c) 1997 <--> $Date$, Hugh Blackburn
  *
  * --
@@ -256,28 +259,29 @@ static void chknames (const char* field)
  * Check that the names of the enclosed fields make sense for Reynolds
  * stress computations.  Computations could be 2D or 3D.
  *
- * Average velocity fields are called: u, v    (& w);
- * Product average  fields are called: A, B, C (& D, E, F):
+ * Average "velocity" fields are called: u, v, c (& w);
+ * Product average    fields are called: A, B, C, D, E, F (& G, H, I, J)
  *
- *                   / uu uv uw \     /  A  B  D \
- *                   | .  vv vw |  =  |  .  C  E |
- *                   \ .  .  ww /     \  .  .  F /
+ *                   / uu uv uc uw \     /  A  B  D  G \
+ *                   | .  vv vc uv |  =  |  .  C  E  H |
+ *                   | .  .  cc cw |     |  .  .  F  I |
+ *                   \ .  .  .  ww /     \  .  .  .  J /
  * ------------------------------------------------------------------------- */
 {
   char err[STR_MAX];
 
-  if (!strstr (field, "uv")) {
-    sprintf (err, "field names (%s) should contain \"uv\"", field);
+  if (!strstr (field, "uv") || !strstr (field, "c")) {
+    sprintf (err, "field names (%s) should contain \"uv\" & \"c\"", field);
     message (prog, err, ERROR);
   }
   if (strstr (field, "w"))
-    if (!strstr (field, "ABCDEF")) {
-      sprintf (err, "field names (%s) should contain \"ABCDEF\"", field);
+    if (!strstr (field, "ABCDEFGHIJ")) {
+      sprintf (err, "field names (%s) should contain \"ABCDEFGHIJ\"", field);
       message (prog, err, ERROR);
     }
   else
-    if (!strstr (field, "ABC")) {
-      sprintf (err, "field names (%s) should contain \"ABC\"", field);
+    if (!strstr (field, "ABCDEF")) {
+      sprintf (err, "field names (%s) should contain \"ABCDEF\"", field);
       message (prog, err, ERROR);
     }
 }
@@ -306,33 +310,42 @@ static void covary (Dump* h)
  * in physical space and we don't dealias.
  * ------------------------------------------------------------------------- */
 {
-  int       i, j, k, m;
+  int       i, j, k, m, n;
   const int npts = h -> np * h -> np * h -> nz * h -> nel;
   
   /* -- 2D. */
 
   i = _index (h -> field, 'u');
   j = _index (h -> field, 'v');
+  k = _index (h -> field, 'c');
 
-  k = _index (h -> field, 'A');
-  dvvvtm (npts, h->data[k], 1, h->data[i], 1, h->data[i], 1, h->data[k], 1);
-  k = _index (h -> field, 'B');
-  dvvvtm (npts, h->data[k], 1, h->data[i], 1, h->data[j], 1, h->data[k], 1);
-  k = _index ( h -> field, 'C');
-  dvvvtm (npts, h->data[k], 1, h->data[j], 1, h->data[j], 1, h->data[k], 1);
-
-  if (!strstr (h -> field, "w")) return;
-
-  /* -- 3D. */
-  
-  k = _index (h -> field, 'w');
-
+  m = _index (h -> field, 'A');
+  dvvvtm (npts, h->data[m], 1, h->data[i], 1, h->data[i], 1, h->data[m], 1);
+  m = _index (h -> field, 'B');
+  dvvvtm (npts, h->data[m], 1, h->data[i], 1, h->data[j], 1, h->data[m], 1);
+  m = _index (h -> field, 'C');
+  dvvvtm (npts, h->data[m], 1, h->data[j], 1, h->data[j], 1, h->data[m], 1);
   m = _index (h -> field, 'D');
   dvvvtm (npts, h->data[m], 1, h->data[i], 1, h->data[k], 1, h->data[m], 1);
   m = _index (h -> field, 'E');
   dvvvtm (npts, h->data[m], 1, h->data[j], 1, h->data[k], 1, h->data[m], 1);
   m = _index (h -> field, 'F');
   dvvvtm (npts, h->data[m], 1, h->data[k], 1, h->data[k], 1, h->data[m], 1);
+
+  if (!strstr (h -> field, "w")) return;
+
+  /* -- 3D. */
+  
+  m = _index (h -> field, 'w');
+
+  n = _index (h -> field, 'G');
+  dvvvtm (npts, h->data[n], 1, h->data[i], 1, h->data[m], 1, h->data[n], 1);
+  n = _index (h -> field, 'H');
+  dvvvtm (npts, h->data[n], 1, h->data[j], 1, h->data[m], 1, h->data[n], 1);
+  n = _index (h -> field, 'I');
+  dvvvtm (npts, h->data[n], 1, h->data[k], 1, h->data[m], 1, h->data[n], 1);
+  n = _index (h -> field, 'J');
+  dvvvtm (npts, h->data[n], 1, h->data[m], 1, h->data[m], 1, h->data[n], 1);
 }
 
 
