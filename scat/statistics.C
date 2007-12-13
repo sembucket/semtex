@@ -61,7 +61,7 @@ Statistics::Statistics (Domain* D) :
   if ((_iavg  < 0) || (_iavg > 2))
     message ("Statistics::Statistics", "AVERAGE token out of [0,2]", ERROR);
 					 
-  int_t       i, j;
+  int_t       i;
   const int_t nz   = Geometry::nZProc();
   const int_t ntot = Geometry::nTotProc();
 
@@ -71,13 +71,13 @@ Statistics::Statistics (Domain* D) :
     _raw[_base -> u[i] -> name()] = (AuxField*) _base -> u[i];
 
   if (_iavg > 0) // -- Set up buffers for averages of raw variables.
-    for (j = 0, i = 0; i < _nraw; i++, j++)
+    for (i = 0; i < _nraw; i++)
       _avg[_base -> u[i] -> name()] =
-	new AuxField (new real_t[ntot],nz,_base->elmt,_base->u[i]->name());
+	new AuxField (new real_t[ntot], nz, _base->elmt, _base->u[i]->name());
 
   if (_iavg > 1) // -- Set up buffers for Reynolds stress correlations.
-    for (i = 0; i < _nrey; i++, j++)
-      _avg['A' + i] = new AuxField (new real_t[ntot],nz,_base->elmt,'A'+i);
+    for (i = 0; i < _nrey; i++)
+      _avg['A' + i] = new AuxField (new real_t[ntot], nz, _base->elmt, 'A'+i);
 }
 
 
@@ -127,7 +127,6 @@ void Statistics::update (AuxField** wrka,
 {
   if (_iavg < 1) return;
   
-  char   key;
   int_t  i, j;
   Field* master = _base -> u[0];
   map<char, AuxField*>::iterator k;
@@ -214,6 +213,9 @@ void Statistics::dump (const char* filename)
     _avg[k -> second -> name()] -> transform (INVERSE);
 
   output << *this;
+
+  for (k = _raw.begin(); k != _raw.end(); k++)
+    _avg[k -> second -> name()] -> transform (FORWARD);
 
   ROOTONLY output.close();
 }
