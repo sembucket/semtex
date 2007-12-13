@@ -46,6 +46,12 @@ $(PROG): sem $(SEMOBJ) $(NS_OBJ)
 $(SEMOBJ): $(SEMHDR)
 
 # ----------------------------------------------------------------------------
+# Specialised version of rstress
+
+rstress: rstress.c
+	$(CC) -o $@ $@.c $(CFLAGS) $(CPPFLAGS) $(CLDFLAGS) -lm
+
+# ----------------------------------------------------------------------------
 # Standard rules and definitions.
 #
 include $(VPATH)/Makefile

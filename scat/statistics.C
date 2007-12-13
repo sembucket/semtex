@@ -127,8 +127,6 @@ void Statistics::update (AuxField** wrka,
 {
   if (_iavg < 1) return;
   
-  cout << "update stats" << endl;
-
   char   key;
   int_t  i, j;
   Field* master = _base -> u[0];
@@ -195,8 +193,6 @@ void Statistics::dump (const char* filename)
   const bool  final    =   step == Femlib::ivalue ("N_STEP");
 
   if (!(periodic || final)) return;
-
-  cout<< "dumping stats" << endl;
 
   ofstream    output;
   int_t       i;
