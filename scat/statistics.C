@@ -289,15 +289,21 @@ ifstream& operator >> (ifstream&   strm,
     nfields++;
   }
   fields[nfields] = '\0';
+
+#if 0
   if (nfields != tgt._avg.size()) {
-    sprintf (err, "strm: %1d fields, avg: %1d", nfields, tgt._avg.size());
+    sprintf (err, "strm: %1d fields, avg: %1d", nfields, 
+	     static_cast<int_t>(tgt._avg.size()));
     message (routine, err, ERROR);
   }
+#endif
 
   for (i = 0, k = tgt._avg.begin(); k != tgt._avg.end(); k++, i++)
     if (!strchr (fields, k -> second -> name())) {
-      sprintf (err, "field %c not present in avg", fields[i]);
-      message (routine, err, ERROR);
+      sprintf (err, "field %c not present in avg, start with 0.0", 
+	       k -> second -> name());
+      message (routine, err, WARNING);
+      *k -> second = 0.0;
     }
 
   strm.getline (s, StrMax);
