@@ -3,6 +3,8 @@
  *
  * Copyright (c) 1997 <--> $Date$, Hugh Blackburn
  *
+ * --
+ *
  * This file is part of Semtex.
  * 
  * Semtex is free software; you can redistribute it and/or modify it
@@ -19,6 +21,8 @@
  * along with Semtex (see the file COPYING); if not, write to the Free
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
+ *
+ * --
  *
  * SYNOPSIS
  * --------

@@ -308,8 +308,9 @@ void Analyser::analyse (AuxField** work0,
     this -> modalEnergy();
 
   // -- Field and statistical dumps.
-  
+
   _src -> dump ();
+
   if (_stats) {
     char filename[StrMax];
     strcat (strcpy (filename, _src -> name), ".avg");

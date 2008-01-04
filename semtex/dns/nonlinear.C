@@ -39,8 +39,10 @@ void nonLinear (Domain*         D ,
 // Here N(u) represents the nonlinear advection terms in the N--S equations
 // transposed to the RHS and ff is a vector of body force per unit mass.
 //
-// Velocity field data areas of D and first level of Us are swapped, then
-// the next stage of nonlinear forcing terms N(u) - a are computed from
+// Velocity field data areas of D (which on entry contain velocity
+// data from the previous timestep) and first level of Us are swapped
+// (so that subsequently Us stores the old velocity data), then the
+// next stage of nonlinear forcing terms N(u) are computed from
 // velocity fields and left in the first level of Uf.
 //
 // Nonlinear terms N(u) in skew-symmetric form are
