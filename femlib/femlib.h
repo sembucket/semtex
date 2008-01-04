@@ -7,6 +7,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <cstdio>
+#include <cmath>
 
 #include "cfemdef.h"
 #include "polylib.h"
@@ -210,11 +211,11 @@ public:
   static void value (const char* s, const real_t p)
     { sprintf (buf, "%s = %.17g", s, p); yy_interpret (buf); }
   static void ivalue (const char* s, const int_t p)
-    { sprintf (buf, "%s = %1d", s, p); yy_interpret (buf); }
+    { sprintf (buf, "%s = %1d", s, p); rint (yy_interpret (buf)); }
   static real_t value (const char* s)
     { return yy_interpret (s); }
   static int_t ivalue (const char* s)
-    { return static_cast<int_t>(yy_interpret (s)); }
+    { return rint (yy_interpret (s)); }
   
   static void equispacedMesh (const int_t np, real_t* z)
     { uniknot (np, z); }

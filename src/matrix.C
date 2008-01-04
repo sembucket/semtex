@@ -69,9 +69,8 @@ ModalMatrixSys::ModalMatrixSys (const real_t            lambda2 ,
   }
 
   for (mode = baseMode; mode < baseMode + numModes; mode++) {
-    const int_t      modeIndex = mode * Geometry::kFund();
-    const NumberSys* N         = Bsys -> Nsys(modeIndex);
-    const real_t     betak2    = sqr(Field::modeConstant(name,modeIndex,beta));
+    const NumberSys* N         = Bsys -> Nsys(mode * Femlib::ivalue ("BETA"));
+    const real_t     betak2    = sqr (Field::modeConstant(name, mode, beta));
     const int_t      localMode = mode - baseMode;
 
     for (found = false, m = MS.begin(); !found && m != MS.end(); m++) {
@@ -83,7 +82,7 @@ ModalMatrixSys::ModalMatrixSys (const real_t            lambda2 ,
       if (method == DIRECT) { cout << '.'; cout.flush(); }
     } else {
       _Msys[localMode] =
-	new MatrixSys (lambda2, betak2, modeIndex, Elmt, Bsys, method);
+	new MatrixSys (lambda2, betak2, mode, Elmt, Bsys, method);
       MS.insert (MS.end(), _Msys[localMode]);
       if (method == DIRECT) { cout << '*'; cout.flush(); }
     }
@@ -135,8 +134,8 @@ MatrixSys::MatrixSys (const real_t            lambda2,
 // definition!:
   _HelmholtzConstant (lambda2),
   _FourierConstant   (betak2 ),
-  _BC                (bsys -> BCs  (mode)),
-  _NS                (bsys -> Nsys (mode)),
+  _BC                (bsys -> BCs  (mode * Femlib::ivalue ("BETA"))),
+  _NS                (bsys -> Nsys (mode * Femlib::ivalue ("BETA"))),
   _nel               (Geometry::nElmt()),
   _nglobal           (_NS -> nGlobal()),
   _singular          ((_HelmholtzConstant + _FourierConstant) < EPSSP &&

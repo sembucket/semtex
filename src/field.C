@@ -233,7 +233,6 @@ void Field::evaluateBoundaries (const int_t step   ,
   const int_t  nz    = Geometry::nZProc();
   const int_t  bmode = Geometry::baseMode();
   const int_t  nzb   = Geometry::basePlane();
-  const int_t  kfund = Geometry::kFund();
   const real_t dz    = Femlib::value ("TWOPI / BETA / N_Z");
   real_t*      p;
   int_t        i, k, mode;
@@ -241,7 +240,7 @@ void Field::evaluateBoundaries (const int_t step   ,
   if (Fourier) {
     for (k = 0; k < nz; k++) {
       mode = bmode + (k >> 1);
-      const vector<Boundary*>& BC = _bsys -> BCs (mode * kfund);
+      const vector<Boundary*>& BC = _bsys -> BCs (mode*Femlib::ivalue("BETA"));
       for (p = _line[k], i = 0; i < _nbound; i++, p += np)
 	BC[i] -> evaluate (k, step, p);
     }

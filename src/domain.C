@@ -221,8 +221,13 @@ void Domain::transform (const int_t sign)
 {
   int_t       i;
   const int_t N = this -> nField ();
-  
-  for (i = 0; i < N; i++) u[i] -> transform (sign);
+
+  for (i = 0; i < N; i++) {
+    if (sign == INVERSE) u[i] -> zeroNyquist(); 
+    u[i] -> transform (sign);
+    if (sign == FORWARD) u[i] -> zeroNyquist(); 
+  }
+
 }
 
 

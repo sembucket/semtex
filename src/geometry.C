@@ -43,7 +43,6 @@ int_t Geometry::_nz    = 0;
 int_t Geometry::_nzp   = 0;
 int_t Geometry::_nel   = 0;
 int_t Geometry::_psize = 0;
-int_t Geometry::_kfund = 0;
 Geometry::CoordSys Geometry::_csys  = Geometry::Cartesian;
 
 
@@ -66,22 +65,12 @@ void Geometry::set (const int_t    NP,
 // real--complex transform on some platforms.  The restriction to be
 // an int_t multiple of the number of processors is to simplify the
 // structure of memory exchanges required for Fourier transforms.
-//
-// With the introduction of Geometry::kFund(), the first non-zero
-// Fourier mode for 3D problems can have an assigned int_t
-// wavenumber K_FUND, in addition to its wavelength parameter BETA.
-// For cylindrical problems where axis BCs have a wavenumber
-// dependence, we can then obtain the correct set of BCs even if the
-// first represented non-zero mode does not have wavenumber=1.  In all
-// other cases (Cartesian, or cylindrical problems that do not include
-// the axis in the domain) K_FUND is irrelevant.
 // ---------------------------------------------------------------------------
 {
   static char routine[] = "Geometry::set", err[StrMax];
 
   _pid   = Femlib::ivalue ("I_PROC");
   _nproc = Femlib::ivalue ("N_PROC");
-  _kfund = Femlib::ivalue ("K_FUND");
 
   _np   = NP; _nz = NZ; _nel = NE; _csys = CS;
   _nzp  = _nz / _nproc;

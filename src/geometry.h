@@ -5,8 +5,9 @@
 
 class Geometry
 // ===========================================================================
-// Details of geometric representation used for scalar fields.  Static
-// functions make information globally accessible.
+// Details of the logical/storage (as opposed to geometric)
+// representation used for scalar fields.  Static functions make
+// information globally accessible.
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
@@ -39,7 +40,6 @@ public:
   static int_t  nExtElmt  () { return 4 * (_np - 1);         }
   static int_t  nIntElmt  () { return (_np - 2) * (_np - 2); }
   static int_t  nMode     () { return (_nz + 1) >> 1;        }
-  static int_t  kFund     () { return _kfund;                }
   static int_t  nDim      () { return _ndim;                 }
   static int_t  nPlane    () { return _nel * nTotElmt();     }
   static int_t  nBnode    () { return _nel * nExtElmt();     }
@@ -67,7 +67,6 @@ private:
   static int_t    _nzp   ;	// Number of planes per processor.
   static int_t    _nel   ;	// Number of elements.
   static int_t    _psize ;	// nPlane rounded up to suit restrictions.
-  static int_t    _kfund ;	// Wavenumber of first non-zero Fourier mode.
   static CoordSys _csys  ;	// Coordinate system (Cartesian/cylindrical).
 
 };

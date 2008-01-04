@@ -72,7 +72,7 @@ static struct {
   "IO_CFL"      ,   50  ,	/* -- Step interval for CFL + divergence.*/
   "IO_MDL"      ,   50  ,	/* -- Step interval for modal energy.    */
   "IO_WSS"      ,   0   ,       /* -- Step interval + toggle of WSS out. */
-  "K_FUND"      ,   1   ,	/* -- Wavenumber of Fourier mode 1.      */
+
   "N_P"         ,   5   ,	/* -- No. of points along element edge.  */
   "N_TIME"      ,   2   ,	/* -- Order of timestepping scheme.      */
   "N_STEP"      ,   1   ,	/* -- Number of timesteps to integrate.  */

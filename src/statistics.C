@@ -82,8 +82,9 @@
 //                      | .  yy yz |  =  |  .  I  K |
 //                      \ .  .  zz /     \  .  .  L /
 //
-// NB: The veracity of the energy equation terms has not been checked for
-// cylindrical coordinates.
+// NB: The veracity of the energy equation terms has not been checked
+// for cylindrical coordinates. They are probably OK provided the
+// domain is invariant in the axial direction (e.g. a straight tube).
 //
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -108,7 +109,7 @@ Statistics::Statistics (Domain* D) :
   if ((_iavg  < 0) || (_iavg > 3))
     message ("Statistics::Statistics", "AVERAGE token out of [0,3]", ERROR);
 					 
-  int_t       i, j;
+  int_t       i;
   const int_t nz   = Geometry::nZProc();
   const int_t ntot = Geometry::nTotProc();
 
@@ -118,12 +119,12 @@ Statistics::Statistics (Domain* D) :
     _raw[_base -> u[i] -> name()] = (AuxField*) _base -> u[i];
 
   if (_iavg > 0) // -- Set up buffers for averages of raw variables.
-    for (j = 0, i = 0; i < _nraw; i++, j++)
+    for (i = 0; i < _nraw; i++)
       _avg[_base -> u[i] -> name()] =
 	new AuxField (new real_t[ntot],nz,_base->elmt,_base->u[i]->name());
 
   if (_iavg > 1) // -- Set up buffers for Reynolds stress correlations.
-    for (i = 0; i < _nrey; i++, j++)
+    for (i = 0; i < _nrey; i++)
       _avg['A' + i] = new AuxField (new real_t[ntot],nz,_base->elmt,'A'+i);
 
   if (_iavg > 2) { // -- Set up addtional buffers for energy correlations.

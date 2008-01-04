@@ -17,8 +17,8 @@
 typedef integer int_t;
 typedef real    real_t;
 
-typedef struct { real x, y, z; } Point;
-typedef Point                    Vector;
+typedef struct { real_t x, y, z; } Point;
+typedef Point                      Vector;
 
 #define STR_MAX    2048
 #define F77NAME(x) x##_
