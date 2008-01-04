@@ -1,10 +1,12 @@
 SYNOPSIS
 --------
-sview: OpenGL/GLUT version of sview_2.  The code is made with C++ but
-does not employ any class definitions, just structs, to ease backward
-compatibility with C (NB: a recent exception is the use of STL classes
-for point data).  Sam Leffler's libtiff library is used for TIFF dumps
-of screen images.
+
+sview: OpenGL/GLUT 3D isosurface viewer for use with spectral element
+discretisations.  The code is made with C++ but does not employ any
+class definitions, just structs, to ease backward compatibility with C
+(NB: a recent exception is the use of STL classes for point data).
+Sam Leffler's libtiff library is used for TIFF dumps of screen images.
+Basic isosurfacing routine is an NCSA marching-cubes algorithm.
 
 USAGE
 -----
@@ -213,13 +215,13 @@ for python.
 
 TO DO
 -----
-Arbitary number of repetitions in the z-direction.
 PostScript output.
 Python bindings for GLUT.
 
 BUGS
 ----
 There are still some problems with isosurface normals, material
-colours and lighting.
+colours and lighting. One big difficulty is that no depth-sorting is
+employed. This gives some problems with translucent colours.
 
 $Id$

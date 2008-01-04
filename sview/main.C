@@ -206,7 +206,7 @@ static void getargs (int    argc ,
       message (prog, err, ERROR);
       break;
     }
-  cout <<argc<<endl;
+
   if (argc == 2) {
     mfile = argv[0];
     ffile = argv[1];
