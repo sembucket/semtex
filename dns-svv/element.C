@@ -402,8 +402,8 @@ void Element::project (const int_t   nsrc,
 {
   const real_t *IN, *IT;
 
-  Femlib::projection (0, &IT, nsrc, 'L', 0.0, 0.0, ntgt, 'L', 0.0, 0.0);
-  Femlib::projection (&IN, 0, nsrc, 'L', 0.0, 0.0, ntgt, 'L', 0.0, 0.0);
+  Femlib::projection (0, &IT, nsrc, GLJ, 0.0, 0.0, ntgt, GLJ, 0.0, 0.0);
+  Femlib::projection (&IN, 0, nsrc, GLJ, 0.0, 0.0, ntgt, GLJ, 0.0, 0.0);
   
   Blas::mxm (src, nsrc, IT,   nsrc, work, ntgt);
   Blas::mxm (IN,  ntgt, work, nsrc, tgt,  ntgt);
@@ -721,6 +721,54 @@ real_t Element::integral (const real_t* src,
 // ---------------------------------------------------------------------------
 {
   Veclib::vmul (_npnp, src, 1, _Q4,  1, tmp, 1);
+  return Veclib::sum (_npnp, tmp, 1);
+}
+
+
+real_t Element::momentX (const char* func,
+			 real_t*     tmp ) const
+// ---------------------------------------------------------------------------
+// The integral weighted by x location.
+// ---------------------------------------------------------------------------
+{
+  Femlib::prepVec    ("x y", func);
+  Femlib__parseVec   (_npnp, _xmesh, _ymesh, &tmp[0]);
+  Veclib::vvvtt      (_npnp, &tmp[0], 1, _Q4, 1, _xmesh, 1, &tmp[0], 1);
+  return Veclib::sum (_npnp, &tmp[0], 1);
+}
+
+
+real_t Element::momentY (const char* func,
+			 real_t*     tmp ) const
+// ---------------------------------------------------------------------------
+// The integral weighted by y location.
+// ---------------------------------------------------------------------------
+{
+  Femlib::prepVec    ("x y", func);
+  Femlib__parseVec   (_npnp, _xmesh, _ymesh, &tmp[0]);
+  Veclib::vvvtt      (_npnp, &tmp[0], 1, _Q4, 1, _ymesh, 1, &tmp[0], 1);
+  return Veclib::sum (_npnp, &tmp[0], 1);
+}
+
+
+real_t Element::momentX (const real_t* src,
+			 real_t*       tmp) const
+// ---------------------------------------------------------------------------
+// The integral weighted by x location.
+// ---------------------------------------------------------------------------
+{
+  Veclib::vvvtt (_npnp, src, 1, _Q4, 1, _xmesh, 1, tmp, 1);
+  return Veclib::sum (_npnp, tmp, 1);
+}
+
+
+real_t Element::momentY (const real_t* src,
+			 real_t*       tmp) const
+// ---------------------------------------------------------------------------
+// The integral weighted by y location.
+// ---------------------------------------------------------------------------
+{
+  Veclib::vvvtt (_npnp, src, 1, _Q4, 1, _ymesh, 1, tmp, 1);
   return Veclib::sum (_npnp, tmp, 1);
 }
 
