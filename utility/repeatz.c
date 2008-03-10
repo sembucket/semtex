@@ -5,7 +5,8 @@
  * Adust Nz and Beta in header as appropriate.
  *
  * NB: Nz must be adjusted so it has prime factors of 2,3,5 to ensure
- * the resulting field can be Fourier transformed in z.
+ * the resulting field can be Fourier transformed in z.  This 'feature'
+ * can be defeated with command-line flag -f.
  *
  * Copyright (c) 2002 <--> $Date$, Hugh Blackburn.
  *
@@ -28,7 +29,7 @@
  *
  * USAGE
  * -----
- * repeatz [-h] [-n <rep>] [input[.fld]
+ * repeatz [-h] [-n <rep>] [-f] [input[.fld]
  *****************************************************************************/
 
 static char RCS[] = "$Id$";
@@ -43,7 +44,7 @@ static char RCS[] = "$Id$";
 #include <cfemdef.h>
 #include <cveclib.h>
 
-static void getargs (int, char**, FILE**, int*);
+static void getargs (int, char**, FILE**, int*, int*);
 static int  roundup (const int);
 static void pack    (const double*, const int, double*,
 		     const int, const int, const int);
@@ -70,12 +71,12 @@ int main (int    argc,
  * ------------------------------------------------------------------------- */
 {
   char   buf[STR_MAX], fmt[STR_MAX];
-  int    i, j, n, np, nzin, nzout, nel, nrep = 1;
+  int    i, j, k, n, np, nzin, nzout, nel, nrep = 1, force = 0;
   int    nfields, nplane, nptin, nptout, ntot, swab;
   FILE   *fp_in = stdin, *fp_out = stdout;
   double *datain, *dataout, beta;
 
-  getargs (argc, argv, &fp_in, &nrep);
+  getargs (argc, argv, &fp_in, &nrep, &force);
   format  (fmt);
 
   while (fgets (buf, STR_MAX, fp_in)) { 
@@ -86,9 +87,12 @@ int main (int    argc,
     if (sscanf (buf, "%d%*s%d%d", &np, &nzin, &nel) != 3)
       message (prog, "unable to read the file size", ERROR);
 
-    if ((nzout = roundup (nzin)) != nzin)
-      message (prog, "input nz does not have 2, 3, 5 factors", ERROR);
-    nzout = roundup (nzin * nrep);
+    if (!force) {
+      if ((nzout = roundup (nzin)) != nzin)
+	message (prog, "input nz does not have 2, 3, 5 factors", ERROR);
+      nzout = roundup (nzin * nrep);
+    } else
+      nzout = nzin * nrep;
 
     fprintf (fp_out, hdr_fmt[2], np, np, nzout, nel);
 
@@ -132,13 +136,22 @@ int main (int    argc,
 	if (swab) dbrev (ntot, datain+j*ntot, 1, datain+j*ntot, 1);
       }
 
-      dDFTr (datain,  nzin,  ntot, FORWARD);
-      pack  (datain,  nzin,  dataout, nzout, nrep, ntot);
-      dDFTr (dataout, nzout, ntot, INVERSE);
+      if (force) { /* -- We can just copy in physical space. */
+	for (k = 0; k < nrep; k++) { 
+	  for (j = 0; j < nzin; j++) {
+	    if (fwrite (datain+j*ntot, sizeof (double), nplane, fp_out) != nplane)
+	      message (prog, "an error occured while writing", ERROR);
+	  }
+	}
+      } else {	   /* -- Have to go to Fourier space for padding. */
+	dDFTr (datain,  nzin,  ntot, FORWARD);
+	pack  (datain,  nzin,  dataout, nzout, nrep, ntot);
+	dDFTr (dataout, nzout, ntot, INVERSE);
 
-      for (j = 0; j < nzout; j++)
-	if (fwrite (dataout+j*ntot, sizeof (double), nplane, fp_out) != nplane)
-	  message (prog, "an error occured while writing", ERROR);
+	for (j = 0; j < nzout; j++)
+	  if (fwrite (dataout+j*ntot, sizeof (double), nplane, fp_out) != nplane)
+	    message (prog, "an error occured while writing", ERROR);
+      }
     }
   } 
 
@@ -152,19 +165,23 @@ int main (int    argc,
 static void getargs (int    argc ,
 		     char** argv ,
 		     FILE** fp_in,
-		     int*   nrep )
+		     int*   nrep ,
+		     int*   force)
 /* ------------------------------------------------------------------------- *
  * Parse command line arguments.
  * ------------------------------------------------------------------------- */
 {
   char c, fname[FILENAME_MAX];
-  char usage[] = "repeatz [-h] [-n <rep>] [input[.fld]\n";
+  char usage[] = "repeatz [-h] [-n <rep>] [-f] [input[.fld]\n";
 
   while (--argc && **++argv == '-')
     switch (c = *++argv[0]) {
     case 'h':
       fputs (usage, stderr);
       exit  (EXIT_SUCCESS);
+      break;
+    case 'f':
+      *force = 1;
       break;
     case 'n':
       if (*++argv[0]) *nrep = atoi (*argv);
