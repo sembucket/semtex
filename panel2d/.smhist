@@ -1,0 +1,80 @@
+ptype 3 0
+overplot test20
+erase
+macro read plotcp.sm
+plotcp test50
+ptype 3 0
+overplot test20
+ptype 20 1
+overplot test10
+plotcp test50
+ptype 3 0
+overplot test20
+ptype 20 1
+overplot test10
+!lpr plot1.eps
+erase
+macro read plotcp.sm
+mkplot
+macro read plotcp.sm
+erase
+mkplot
+erase
+macro read plotcp.sm
+mkplot
+erase
+macro read plotcp.sm
+mkplot
+erase
+macro read plotcp.sm
+mkplot
+macro read plotcp.sm
+erase
+mkplot
+erase
+macro read plotcp.sm
+mkplot
+macro read plotcp.sm
+mkplot
+erase
+macro read plotcp.sm
+mkplot
+erase
+macro read plotcp.sm
+mkplot
+erase
+macro read plotcp.sm
+mkplot
+erase
+macro read plotcp.sm
+mkplot
+!lpr plot1.eps
+quit
+data Cl
+read {a 1 c 2}
+limits a c
+box
+ptype 20 3
+points a c
+ltype 1
+relocate -10 -1.09662
+draw 20 2.19325
+ltype 2
+relocate -10 -1.09662
+draw 20 2.19325
+grid
+expand 1.4
+xlabel $\alpha$ (deg.)
+xlabel \alpha (deg.)
+ylabel C_l
+box
+grid
+points a c
+relocate -10 -1.09662
+draw 20 2.19325
+ltype 0
+xlabel \alpha (deg.)
+ylabel {\i C_l}
+!gv cl.eps
+!ghostview cl.eps &
+quit

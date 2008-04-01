@@ -1,0 +1,50 @@
+plotcp  1	# Plot panels and pressure coefficients
+		# $Id$
+
+		ERASE
+		EXPAND 1.6
+		LWEIGHT 1
+		LTYPE   0
+		PTYPE 4 0
+
+		DATA $1
+		READ {indx 1 px 2 pz 3 cox 4 coz 5 cp 6 cp 7 cp 8}
+
+		SET cpi = -cp
+		LIMITS px cpi
+		BOX
+		CONNECT px pz
+		POINTS cox cpi
+
+		XLABEL {\i x / c}
+		YLABEL {\i -C_{p}}
+
+
+overplot 1     	DATA $1
+		READ {indx 1 px 2 pz 3 cox 4 coz 5 cp 6 cp 7 cp 8}
+
+		SET cpi = -cp
+		POINTS cox cpi
+
+mkplot		plotcp test50
+		ptype  3 0
+		overplot test20
+		ptype  20 3
+		overplot test10
+		relocate 0.40 2.0
+		dot
+		relocate 0.40 1.8
+		ptype 3 0
+		dot
+		ptype 4 0
+		relocate 0.40 1.6
+		dot
+		expand 1.1
+		relocate 0.43 1.97
+		label 10 Panels
+		relocate 0.43 1.77
+		label 20 Panels
+		relocate 0.43 1.57
+		label 50 Panels
+		relocate 0.08 2.20
+	label Panel method solution for NACA 0012 profile, $\alpha = 6^\circ$.
