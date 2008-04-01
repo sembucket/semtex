@@ -360,10 +360,39 @@ AuxField& AuxField::gradient (const integer dir)
     }
     break;
 
-  case 2:
-    Blas::scal (nP, Femlib::value ("BETA"), _plane[0], 1);
-    break;
+  case 2: {
 
+#ifndef STABILITY
+
+    const integer nmodes = Geometry::nModeProc();
+    const integer base   = Geometry::baseMode();
+    const real    beta   = Femlib::value ("BETA");
+    integer       Re, Im, klo;
+
+    work.setSize (nP);
+    xr = work();
+
+    if (base == 0) { // -- We have real & Nyquist planes, to be set zero.
+      klo = 1; Veclib::zero (2 * nP, _data, 1);
+    } else
+      klo = 0;
+
+    for (k = klo; k < nmodes; k++) {
+      Re = k  + k;
+      Im = Re + 1;
+      Veclib::copy (nP,                     _plane[Re], 1, xr,         1);
+      Veclib::smul (nP, -beta * (k + base), _plane[Im], 1, _plane[Re], 1);
+      Veclib::smul (nP,  beta * (k + base), xr,         1, _plane[Im], 1);
+    }
+
+#else
+
+      const real    beta   = Femlib::value ("BETA");
+      Blas::scal (nP, beta, _plane[0], 1);
+
+#endif
+    break;
+  }
   default:
     message (routine, "nominated direction out of range [0--2]", ERROR);
     break;
@@ -1497,29 +1526,28 @@ AuxField& AuxField::buildMask (const char* function)
 }
 
 
-AuxField& AuxField::update (int   nPer_flds  ,
-			    real* FFT_data   ,
-			    real  time       ,
-			    real  Period_Time)
-// ---------------------------------------------------------------------------
-// for each point in 2D base field plane determine a new value based
-// on Fourier transformed periodic data given in ???
-//
-// Fourier transformed fields have been scaled on creation
-// ---------------------------------------------------------------------------
+AuxField& AuxField::update (int nPer_flds, real* FFT_data,
+			    real time, real Period_Time)
+  // ------------------------------------------------------------------------
+  // for each point in 2D base field plane determine a new value based
+  // on fourier transformed periodic data given in ???
+  //
+  // fourier transformed fields have been scaled on creation
+  // ------------------------------------------------------------------------
 {
   const integer PSize = Geometry::planeSize();
-  const integer Limit = nPer_flds;
-  const real    BetaT = TWOPI * fmod(time, Period_Time) / Period_Time;
+  const integer Limit    = nPer_flds;
   real          phase;
-  
-  // -- For each point in plane do Fourier interpolation in time.
 
+  // set time as (time modulus Period_Time)
+  real    BetaT = fmod( time, Period_Time )/ Period_Time * TWOPI;
+  
+  // for each point in auxfield plane do an inverse fourier transform
   Veclib::copy (PSize, FFT_data, 1, _data, 1);
   Blas::axpy (PSize, cos(0.5*Limit*BetaT), FFT_data + PSize, 1, _data, 1);
 
-  for(int j = 2; j < Limit; j += 2) {
-    phase = (j>>1) * BetaT;
+  for(int j = 2; j < Limit; j+=2) {
+    phase = (j>>1) *BetaT;
     Blas::axpy (PSize,  cos(phase), FFT_data +  j   *PSize, 1, _data, 1);
     Blas::axpy (PSize, -sin(phase), FFT_data + (j+1)*PSize, 1, _data, 1);
   }
@@ -1530,12 +1558,15 @@ AuxField& AuxField::update (int   nPer_flds  ,
 
 AuxField& AuxField::randomise ()
 // ---------------------------------------------------------------------------
-// Sets data area to Gaussian random noise, variance = 1.0;
+// Sets data area to random noise between -0.5 to 0.5
 // ---------------------------------------------------------------------------
 {
   const integer ntot = Geometry::nTotProc();
-
-  Veclib::vnormal (ntot, 0.0, 1.0, _data, 1); 
+  
+  // -- Generate random initial guess, this random is 0 - 1 !
+  Veclib::vrandom (ntot, _data, 1); 
+  // shift to range (-0.5 to 0.5)
+  Veclib::sadd (ntot, -0.5, _data, 1, _data, 1); 
 
   return *this;
 }

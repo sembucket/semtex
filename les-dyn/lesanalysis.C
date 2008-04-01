@@ -6,15 +6,18 @@
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
+ 
+static char
+RCSid[] = "$Id$";
+
 #include <les.h>
 
 
-LESAnalyser::LESAnalyser (Domain*        D   ,
-			  FEML*          feml) :
+LESAnalyser::LESAnalyser (Domain* D    ,
+			  FEML*   feml) : Analyser (D, feml)
 // ---------------------------------------------------------------------------
 // Extensions to Analyser class.
 // ---------------------------------------------------------------------------
-  Analyser (D, feml)
 {
   ROOTONLY {
     const char routine[] = "LESAnalyser::LESAnalyser";
@@ -22,17 +25,17 @@ LESAnalyser::LESAnalyser (Domain*        D   ,
 
     // -- Open state-variable file.
 
-    _flx_strm.open (strcat (strcpy (str, src -> name), ".flx"));
-    if (!_flx_strm) message (routine, "can't open flux file",  ERROR);
+    flx_strm.open (strcat (strcpy (str, src -> name), ".flx"));
+    if (!flx_strm) message (routine, "can't open flux file",  ERROR);
 
-    _flx_strm << "# LES state information file"      << endl;
-    _flx_strm << "# Step Time [Fpre Fvis Ftot]-axis" << endl;
-    _flx_strm << "# -------------------------------" << endl;
+    flx_strm << "# LES state information file"      << endl;
+    flx_strm << "# Step Time [Fpre Fvis Ftot]-axis" << endl;
+    flx_strm << "# -------------------------------" << endl;
   }
 }
 
 
-void LESAnalyser::analyse (AuxField** work)
+void LESAnalyser::analyse (AuxField*** work)
 // ---------------------------------------------------------------------------
 // Step-by-step processing.
 // ---------------------------------------------------------------------------
@@ -76,6 +79,6 @@ void LESAnalyser::analyse (AuxField** work)
 	     pfor.y,   vfor.y,   tfor.y,
 	     pfor.z,   vfor.z,   tfor.z);
 
-    _flx_strm << s << endl;
+    flx_strm << s << endl;
   }
 }

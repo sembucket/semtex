@@ -97,27 +97,34 @@ void PBCmgr::maintain (const integer    step   ,
 // No smoothing is done to high-order spatial derivatives computed here.
 // ---------------------------------------------------------------------------
 {
-  const real      nu    =           Femlib::value ("KINVIS");
-  const real      invDt = 1.0     / Femlib::value ("D_T");
-  const integer   nTime = (integer) Femlib::value ("N_TIME");
-  const integer   nEdge = P -> _nbound;
-  const integer   nZ    = P -> _nz;
-  const integer   nP    =  Geometry::nP();
+  const real         nu    =           Femlib::value ("KINVIS");
+  const real         invDt = 1.0     / Femlib::value ("D_T");
+  const integer      nTime = (integer) Femlib::value ("N_TIME");
+  const integer      nEdge = P -> _nbound;
+  const integer      nZ    = P -> _nz;
+  const integer      nP    =  Geometry::nP();
 
-  const AuxField* Ux = Us[0];
-  const AuxField* Uy = Us[1];
-  const AuxField* Uz = (NVEC == 3) ? Us[2] : 0;
-  real            *UxRe, *UyRe, *UzIm, *tmp;
-
-  const AuxField* Nx = Uf[0];
-  const AuxField* Ny = Uf[1];
+  const AuxField*    Ux = Us[0];
+  const AuxField*    Uy = Us[1];
+#ifdef STABILITY
+  const AuxField*    Uz = (NDIM == 3 ? Us[2] : 0);
+  real  *UxRe, *UyRe, *UzIm, *tmp;
+#else
+  const integer      base  =  Geometry::baseMode();
+  const integer      nMode =  Geometry::nModeProc();
+  const integer      mLo   = (Geometry::procID() == 0) ? 1 : 0;
+  const AuxField*    Uz = Geometry::nDim() == 3 ? Us[2] : 0;
+  real  *UxRe, *UxIm, *UyRe, *UyIm, *UzRe, *UzIm, *tmp;
+#endif
+  const AuxField*    Nx = Uf[0];
+  const AuxField*    Ny = Uf[1];
 
   const vector<Boundary*>& BC = P -> _bsys -> BCs (0);
   register Boundary*       B;
   register integer         i, k, q;
   integer                  offset, skip, Je;
 
-  vector<real> work (4 * nP + Integration::OrderMax + 1);
+  vector<real>       work (4 * nP + Integration::OrderMax + 1);
 
   // -- Roll grad P storage area up, load new level of nonlinear terms Uf.
 
@@ -130,6 +137,7 @@ void PBCmgr::maintain (const integer    step   ,
     skip   = B -> dSkip();
 
     for (k = 0; k < nZ; k++) {
+      ROOTONLY if (k == 1) continue;
       Veclib::copy (nP, Nx -> _plane[k] + offset, skip, Pnx[0][i][k], 1);
       Veclib::copy (nP, Ny -> _plane[k] + offset, skip, Pny[0][i][k], 1);
     }
@@ -148,17 +156,48 @@ void PBCmgr::maintain (const integer    step   ,
     offset = B -> dOff ();
     skip   = B -> dSkip();
 
+#ifndef STABILITY
+
+    ROOTONLY {			    // -- Deal with 2D/zero Fourier mode terms.
+      UxRe = Ux -> _plane[0];
+      UyRe = Uy -> _plane[0];
+      B -> curlCurl (0, UxRe, 0, UyRe, 0, 0, 0, xr, 0, yr, 0);
+      Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][0], 1);
+      Blas::axpy (nP, -nu, yr, 1, Pny[0][i][0], 1);
+    }
+
+    for (integer m = mLo; m < nMode; m++) { // -- Higher modes.
+      UxRe = Ux -> _plane[2 * m] ;
+      UxIm = Ux -> _plane[2 * m + 1];
+      UyRe = Uy -> _plane[2 * m];
+      UyIm = Uy -> _plane[2 * m + 1];
+      UzRe = Uz -> _plane[2 * m];
+      UzIm = Uz -> _plane[2 * m + 1];
+
+      B -> curlCurl (m + base, UxRe,UxIm, UyRe,UyIm, UzRe,UzIm, xr,xi, yr,yi);
+
+      Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][2 * m],     1);
+      Blas::axpy (nP, -nu, xi, 1, Pnx[0][i][2 * m + 1], 1);
+      Blas::axpy (nP, -nu, yr, 1, Pny[0][i][2 * m],     1);
+      Blas::axpy (nP, -nu, yi, 1, Pny[0][i][2 * m + 1], 1);
+    }
+
+#else
+
     UxRe = Ux -> _plane[0];
     UyRe = Uy -> _plane[0];
 
-    if (NVEC == 2) {
-      B -> curlCurl (0, UxRe, 0, UyRe, 0, 0, 0,    xr, 0, yr, 0);
+    if (NDIM == 2) {
+      B -> curlCurl (0, UxRe, 0, UyRe, 0, 0, 0, xr, 0, yr, 0);
     } else {
       UzIm = Uz -> _plane[0];
       B -> curlCurl (1, UxRe, 0, UyRe, 0, 0, UzIm, xr, 0, yr, 0);
     }
     Blas::axpy (nP, -nu, xr, 1, Pnx[0][i][0], 1);
     Blas::axpy (nP, -nu, yr, 1, Pny[0][i][0], 1);
+
+#endif
+
   }
 
   if (timedep) {
@@ -204,6 +243,7 @@ void PBCmgr::maintain (const integer    step   ,
       skip   = B -> dSkip();
     
       for (k = 0; k < nZ; k++) {
+	ROOTONLY if (k == 1) continue;
 	Veclib::copy (nP, Ux -> _plane[k] + offset, skip, Unx[0][i][k], 1);
 	Veclib::copy (nP, Uy -> _plane[k] + offset, skip, Uny[0][i][k], 1);
       }
@@ -233,6 +273,11 @@ void PBCmgr::evaluate (const integer id   ,
 // ---------------------------------------------------------------------------
 {
   if (step < 1) return;
+
+  ROOTONLY if (plane == 1) {
+    Veclib::zero (np, tgt, 1);
+    return;
+  }
 
   register integer q, Je = (integer) Femlib::value ("N_TIME");
   vector<real>     work (Integration::OrderMax + 2 * np);

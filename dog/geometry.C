@@ -16,23 +16,21 @@
 #include <Geometry.h>
 #include <Femlib.h>
 
-integer            Geometry::_pid   = 0;
-integer            Geometry::_nproc = 0;
-integer            Geometry::_ndim  = 0;
-integer            Geometry::_np    = 0;
-integer            Geometry::_nz    = 0;
-integer            Geometry::_nzp   = 0;
-integer            Geometry::_nel   = 0;
-integer            Geometry::_psize = 0;
-integer            Geometry::_nvec  = 0;
-Geometry::CoordSys Geometry::_csys  = Geometry::Cartesian;
+integer            Geometry::pid   = 0;
+integer            Geometry::nproc = 0;
+integer            Geometry::ndim  = 0;
+integer            Geometry::np    = 0;
+integer            Geometry::nz    = 0;
+integer            Geometry::nzp   = 0;
+integer            Geometry::nel   = 0;
+integer            Geometry::psize = 0;
+Geometry::CoordSys Geometry::csys  = Geometry::Cartesian;
 
 
-void Geometry::set (const int      NP,
-		    const int      NZ,
-		    const int      NE,
-		    const CoordSys CS,
-                    const int      NV)
+void Geometry::set (const integer  NP,
+		    const integer  NZ,
+		    const integer  NE,
+		    const CoordSys CS)
 // ---------------------------------------------------------------------------
 // Load values of static internal variables.
 //
@@ -52,42 +50,42 @@ void Geometry::set (const int      NP,
 {
   static char routine[] = "Geometry::set", err[StrMax];
 
-  _pid   = (integer) Femlib::value ("I_PROC");
-  _nproc = (integer) Femlib::value ("N_PROC");
+  pid   = (integer) Femlib::value ("I_PROC");
+  nproc = (integer) Femlib::value ("N_PROC");
 
-  _np   = NP; _nz = NZ; _nel = NE; _csys = CS;  _nvec = NV;
-  _nzp  = _nz / _nproc;
-  _ndim = (_nz > 1) ? 3 : 2;
+  np   = NP; nz = NZ; nel = NE; csys = CS;
+  nzp  = nz / nproc;
+  ndim = (nz > 1) ? 3 : 2;
 
-  if (_nz > 1 && _nz & 1) {	// -- 3D problems must have NZ even.
-    sprintf (err, "N_Z must be even (%1d)", _nz);
+  if (nz > 1 && nz & 1) {	// -- 3D problems must have NZ even.
+    sprintf (err, "N_Z must be even (%1d)", nz);
     message (routine, err, ERROR);
   }
 
-  if (_nproc > 1) {		// -- Concurrent execution restrictions.
-    if (_nproc & 1) {
+  if (nproc > 1) {		// -- Concurrent execution restrictions.
+    if (nproc & 1) {
       sprintf (err, "No. of processors must be even (%1d)",
-	       _nproc);
+	       nproc);
       message (routine, err, ERROR);
     }
 
-    if (_nproc << 1 > _nz) {
+    if (nproc << 1 > nz) {
       sprintf (err, "No. of processors (%1d) can at most be half N_Z (%1d)",
-	       _nproc, _nz);
+	       nproc, nz);
       message (routine, err, ERROR);
     }
 
-    if (_nz % (2 * _nproc)) {
+    if (nz % (2 * nproc)) {
       sprintf (err, "No. of planes (%1d) per processor (%1d) must be even",
-	       _nz, _nproc);
+	       nz, nproc);
       message (routine, err, ERROR);
     }
 
-    _psize  = nPlane();
-    _psize += 2 * _nproc - nPlane() % (2 * _nproc);
+    psize  = nPlane();
+    psize += 2 * nproc - nPlane() % (2 * nproc);
 
   } else {
 
-    _psize = nPlane() + (nPlane() % 2);
+    psize = nPlane() + (nPlane() % 2);
   }
 }
