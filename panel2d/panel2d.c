@@ -32,7 +32,7 @@
  * REFERENCES
  * ----------
  * 1. Katz & Plotkin 1991, Low-Speed Aerodynamics. McGraw-Hill.
- * 2. Keuthe & Chow 1986, Foundations of Aerodynamics. Wiley.
+ * 2. Kuethe & Chow 1986, Foundations of Aerodynamics. Wiley.
  *
  * VERIFICATION
  * ------------
