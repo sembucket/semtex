@@ -46,7 +46,7 @@ public:
   static int_t nIntElmt  () { return (_np - 2) * (_np - 2); }
   static int_t nMode     () { return (_nz + 1) >> 1;        }
   static int_t nDim      () { return _npert;                }
-  static int_t kFund     () { return _kfund;                }
+
   static int_t nPlane    () { return _nel * nTotElmt();     }
   static int_t nBnode    () { return _nel * nExtElmt();     }
   static int_t nInode    () { return _nel * nIntElmt();     }

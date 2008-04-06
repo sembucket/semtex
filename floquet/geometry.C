@@ -23,7 +23,7 @@ int_t Geometry::_nz     = 0;
 int_t Geometry::_nzp    = 0;
 int_t Geometry::_nel    = 0;
 int_t Geometry::_psize  = 0;
-int_t Geometry::_kfund  = 0;
+
 int_t Geometry::_npert  = 0;
 int_t Geometry::_nbase  = 0;
 int_t Geometry::_nslice = 0;
@@ -43,7 +43,7 @@ void Geometry::set (const int_t nel  ,
 
   _pid    = Femlib::ivalue ("I_PROC");
   _nproc  = Femlib::ivalue ("N_PROC");
-  _kfund  = Femlib::ivalue ("K_FUND");
+
   _np     = Femlib::ivalue ("N_P");
 
   _nbase  = Femlib::ivalue ("N_BASE");

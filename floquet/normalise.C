@@ -12,7 +12,8 @@
 // NB: The 2-norm is not the same as the L2-norm, as the 2-norm does
 // not account for the mass-matrix weighting of different nodal
 // values. Also, there is no radial weighting for energy, as there
-// should be if the problem is for cylindrical coordinates.
+// should be if the problem is for cylindrical coordinates. These
+// things should be fixed.
 //
 // NBB: The input field is assumed to contain velocities and pressure ONLY!
 ///////////////////////////////////////////////////////////////////////////////

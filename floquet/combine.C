@@ -39,20 +39,25 @@
 // for use by this program. In future this should be fixed, but for
 // now the workaround is OK.
 //
-// 3. Note also that the data files are assumed to only have
-// velocities and pressure data, in the standard ordering, i.e. uvp or
-// uvwp. The pressure of the outcome is set to zero, and is ignored in
-// doing the scaling.
+// 3. Data files are assumed to only have velocities and pressure
+// data, in the standard ordering, i.e. uvp or uvwp. The pressure of
+// the outcome is set to zero, and is ignored in doing the scaling.
 //
 // 4. When producing a 3D field file, the file is given minimal number
-// of modes required to contain it, subject to the 2, 3, 5 prime
-// factor requirement for FFT: the number of modes is rounded up to
-// suit this.
+// of Fourier modes required to contain it, subject to the 2, 3, 5
+// prime factor requirement for FFT: the number of modes is rounded up
+// to suit this.
 //
-// 5. The relative size of the perturbation is based on the 2-norms of
-// the respective fields, NB not the same as the L2-norms, as the
-// 2-norm does not account for the mass-matrix weighting of different
-// nodal values.
+// 5. NB: The relative size of the perturbation is based on the
+// 2-norms of the respective fields, not the same as the L2-norms,
+// since the 2-norm does not account for the mass-matrix weighting of
+// different nodal values.  This means that a perturbation of constant
+// energy will appear larger where the mesh density is lower. This
+// should really be fixed but it means that we will need the session
+// file as well.
+//
+// 6. With -r 0 the perturbation field is not scaled - it is output
+// with the same energy it had on input.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -394,6 +399,8 @@ static void readdata (hdr_info&        bhead,
 // into temporary storage first.  We may also have to pad the base
 // flow by adding an extra storage field ('w'); the storage area has
 // enough space to cope.
+//
+// If input scale eps=0 then the perturbation is not scaled.
 // ---------------------------------------------------------------------------
 {
   bool    swab;
@@ -448,23 +455,25 @@ static void readdata (hdr_info&        bhead,
     }
   }
 
-  // -- Compute the 2-norms of base and perturbation flows, scale perturbation.
-  //    If the base flow's energy is zero (i.e. we just want to look at the
-  //    perturbation field, have used a zero base field), reset it to be 1.0.
-  //    NB: ignore the pressure fields.
+  // -- If eps!=0, compute the 2-norms of base and perturbation flows,
+  // scale perturbation.  If the base flow's energy is zero (i.e. we
+  // just want to look at the perturbation field, have used a zero
+  // base field), reset it to be 1.0.  NB: ignore the pressure fields.
 
-  for (i = 0; i < nPfield-1; i++) {
-    U2 += Blas::nrm2 (ntotelmt, u[i], 1);
-    for (j = 0; j < nzP; j++) {
-      u2 += Blas::nrm2 (ntotelmt, &utmp[i][j*planesize], 1);
+  if (fabs (eps) > EPSDP) {
+    for (i = 0; i < nPfield-1; i++) {
+      U2 += Blas::nrm2 (ntotelmt, u[i], 1);
+      for (j = 0; j < nzP; j++) {
+	u2 += Blas::nrm2 (ntotelmt, &utmp[i][j*planesize], 1);
+      }
     }
-  }
-
-  U2 = (U2 < EPSDP) ? 1.0 : U2;
+    
+    U2 = (U2 < EPSDP) ? 1.0 : U2;
   
-  for (i = 0; i < nPfield; i++)
-    for (j = 0; j < nzP; j++)
-      Blas::scal (ntotelmt, eps*U2/u2, &utmp[i][j*planesize], 1);
+    for (i = 0; i < nPfield; i++)
+      for (j = 0; j < nzP; j++)
+	Blas::scal (ntotelmt, eps*U2/u2, &utmp[i][j*planesize], 1);
+  }
 
   // -- Add the scaled perturbation to the base flow.
 

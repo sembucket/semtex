@@ -185,7 +185,7 @@ void Field::evaluateBoundaries (const int_t step)
   int_t             i, k;
 
   if (Geometry::nPert() == 2) BC = _bsys -> BCs (0);
-  else                        BC = _bsys -> BCs (Femlib::ivalue ("K_FUND"));
+  else                        BC = _bsys -> BCs (Femlib::ivalue ("BETA"));
 
   for (k = 0; k < _nz; k++)
     for (p = _line[k], i = 0; i < _nbound; i++, p += np)
@@ -583,9 +583,8 @@ Field& Field::solve (AuxField*        f,
       vector<real_t> work (5*npts + 4*Geometry::nTotElmt());
 
       const int_t mode =
-	((Geometry::problem() == Geometry::O2_2D ||
-	  Geometry::problem() == Geometry::SO2_2D
-	  ) ? 0 : 1) * Geometry::kFund();
+	(Geometry::problem() == Geometry::O2_2D ||
+	 Geometry::problem() == Geometry::SO2_2D ) ? 0 : 1 ;
 
       real_t* r   = &work[0];
       real_t* p   = r + npts;
@@ -748,7 +747,7 @@ void Field::HelmholtzOperator (const real_t* x      ,
   const int_t      next    = Geometry::nExtElmt();
   const int_t      nint    = Geometry::nIntElmt();
   const int_t      ntot    = Geometry::nPlane();
-  const NumberSys* NS      = _bsys -> Nsys (mode);
+  const NumberSys* NS      = _bsys -> Nsys (mode * Femlib::ivalue ("BETA"));
   const int_t*     gid     = NS -> btog();
   const int_t      nglobal = NS -> nGlobal() + Geometry::nInode();
   const real_t*    xint    = x + NS -> nGlobal();

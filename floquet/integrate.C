@@ -418,8 +418,8 @@ static MatrixSys** preSolve (const Domain* D)
 {
   const int_t  mode  = (PROB == Geometry::O2_2D ||
 			PROB == Geometry::SO2_2D)  ? 0 : 1;
-  const int_t  bmode = mode * Geometry::kFund();
-  const real_t beta  = mode * Femlib::value ("BETA");
+  const int_t  bmode = mode * Femlib::ivalue ("BETA");
+  const real_t beta  = mode * Femlib::value  ("BETA");
   const int_t  itLev = Femlib::ivalue ("ITERATIVE");
 
   vector<real_t> alpha (Integration::OrderMax + 1);
@@ -517,8 +517,8 @@ static void Solve (Domain*     D,
 
     const int_t     mode  = (PROB == Geometry::O2_2D ||
 			     PROB == Geometry::SO2_2D ) ? 0 : 1;
-    const int_t     bmode = mode * Geometry::kFund();
-    const real_t    beta  = mode * Femlib::value ("BETA");
+    const int_t     bmode = mode * Femlib::ivalue ("BETA");
+    const real_t    beta  = mode * Femlib::value  ("BETA");
     const int_t     Je    = min (step, NORD);    
     vector<real_t>  alpha (Je + 1);
     Integration::StifflyStable (Je, &alpha[0]);
