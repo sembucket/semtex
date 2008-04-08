@@ -81,9 +81,9 @@ void initFilters ()
     FourierMask[1] = 0.0;
     for (i = 1; i < nm; i++) FourierMask[2*i] = FourierMask[2*i+1] = 1.0;
   } else {
-    work.setSize (nm + 1);
+    work.resize (nm + 1);
 
-    Femlib::erfcFilter (nm, order, lag * nm, atten, work());
+    Femlib::erfcFilter (nm, order, lag * nm, atten, &work[0]);
     FourierMask[0] = work[ 0];
     FourierMask[1] = work[nm];
     for (i = 1; i < nm; i++) FourierMask[2*i] = FourierMask[2*i+1] = work[i];
@@ -172,7 +172,7 @@ void lowpass (real* data)
 
   for (i = 0; i < nZP; i++) {
     dataplane = data + i*nP;
-    Femlib::tpr2d (dataplane, dataplane, tmp(), Iu, It, np, nel);
+    Femlib::tpr2d (dataplane, dataplane, &tmp[0], Iu, It, np, np, nel);
     Veclib::smul  (nP, FourierMask[i+pid*nZP], dataplane, 1, dataplane, 1);
   }
 
@@ -180,8 +180,8 @@ void lowpass (real* data)
 
   for (i = 0; i < nZP; i++) {
     dataplane = data + i*nP;
-    Femlib::tpr2d (dataplane, dataplane, tmp(), Du, Dt, np, nel);
-    Femlib::tpr2d (dataplane, dataplane, tmp(), Iu, It, np, nel);
+    Femlib::tpr2d (dataplane, dataplane, &tmp[0], Du, Dt, np, np, nel);
+    Femlib::tpr2d (dataplane, dataplane, &tmp[0], Iu, It, np, np, nel);
     Veclib::smul  (nP, FourierMask[i+pid*nZP], dataplane, 1, dataplane, 1);
   }
 

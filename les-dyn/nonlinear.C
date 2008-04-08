@@ -58,7 +58,7 @@ void nonLinear (Domain*        D ,
   // -- Create names for local computations.
 
   vector<real*> u (26);
-  real**        Sr  = u();	// -- Strain rate tensor, unfiltered velocity.
+  real**        Sr  = &u[0];	// -- Strain rate tensor, unfiltered velocity.
   real**        St  = Sr + 6;	// -- Strain rate tensor, filtered velocity.
   real**        Ua  = St + 6;	// -- Physical space velocities.
   real**        Sm  = Ua + 3;	// -- Strain rate magnitude.
@@ -69,14 +69,14 @@ void nonLinear (Domain*        D ,
 
   // -- Set pointers into supplied workspace, Ut.
 
-  for (i = 0; i < 6; i++) Sr [i] = Ut (     i);
-  for (i = 0; i < 6; i++) St [i] = Ut ( 6 + i);
-  for (i = 0; i < 3; i++) Ua [i] = Ut (12 + i);
-  for (i = 0; i < 2; i++) Sm [i] = Ut (15 + i);
-  for (i = 0; i < 3; i++) Us [i] = Ut (17 + i);
-  for (i = 0; i < 3; i++) Nl [i] = Ut (20 + i);
+  for (i = 0; i < 6; i++) Sr [i] = Ut[     i];
+  for (i = 0; i < 6; i++) St [i] = Ut[ 6 + i];
+  for (i = 0; i < 3; i++) Ua [i] = Ut[12 + i];
+  for (i = 0; i < 2; i++) Sm [i] = Ut[15 + i];
+  for (i = 0; i < 3; i++) Us [i] = Ut[17 + i];
+  for (i = 0; i < 3; i++) Nl [i] = Ut[20 + i];
 
-  for (i = 0; i < 3; i++) Ud [i] = D->udat (i);
+  for (i = 0; i < 3; i++) Ud [i] = D->udat [i];
 
   // -- Zero workspace areas.
 
@@ -146,16 +146,16 @@ void nonLinear (Domain*        D ,
     Veclib::vsub (nTot, Nl[0], 1, Sr[0], 1, Nl[0], 1);
 
     Veclib::copy (nTot, Sr[1], 1, tmp, 1);              // -- Tyy.
-    meta -> divR (nZP,  tmp);
+    meta -> divY (nZP,  tmp);
     realGradient (meta, Sr[1], 1);
     Veclib::vsub (nTot, Nl[1], 1, tmp,   1, Nl[1], 1);
     Veclib::vsub (nTot, Nl[1], 1, Sr[1], 1, Nl[1], 1);
 
     Veclib::copy (nTot, Sr[2], 1, tmp, 1);              // -- Tzz.
-    meta -> divR (nZP,  tmp);
+    meta -> divY (nZP,  tmp);
     Veclib::vadd (nTot, Nl[1], 1, tmp,   1, Nl[1], 1);
     realGradient (meta, Sr[2], 2);
-    meta -> divR (nZP,  Sr[2]);
+    meta -> divY (nZP,  Sr[2]);
     Veclib::vsub (nTot, Nl[2], 1, Sr[2], 1, Nl[2], 1);
 
     // -- Off-diagonal terms.
@@ -164,7 +164,7 @@ void nonLinear (Domain*        D ,
     Veclib::copy (nTot, Sr[3], 1, Sr[1], 1);
     realGradient (meta, Sr[0], 0);
     realGradient (meta, Sr[1], 1);
-    meta -> divR (nZP,  Sr[3]);
+    meta -> divY (nZP,  Sr[3]);
     Veclib::vsub (nTot, Nl[1], 1, Sr[0], 1, Nl[1], 1);
     Veclib::vsub (nTot, Nl[0], 1, Sr[1], 1, Nl[0], 1);
     Veclib::vsub (nTot, Nl[0], 1, Sr[3], 1, Nl[0], 1);
@@ -172,16 +172,16 @@ void nonLinear (Domain*        D ,
     Veclib::copy (nTot, Sr[4], 1, tmp, 1);              // -- Txz, Tzx.
     realGradient (meta, Sr[4], 2);
     realGradient (meta, tmp,   0);
-    meta -> divR (nZP,  Sr[4]);
+    meta -> divY (nZP,  Sr[4]);
     Veclib::vsub (nTot, Nl[0], 1, Sr[4], 1, Nl[0], 1);
     Veclib::vsub (nTot, Nl[2], 1, tmp,   1, Nl[2], 1);
 
     Veclib::copy (nTot, Sr[5], 1, Sr[0], 1);            // -- Tyz, Tzy.
     Veclib::copy (nTot, Sr[5], 1, Sr[1], 1);
     realGradient (meta, Sr[0], 2);
-    meta -> divR (nZP,  Sr[0]);
+    meta -> divY (nZP,  Sr[0]);
     realGradient (meta, Sr[1], 1);
-    meta -> divR (nZP,  Sr[5]);
+    meta -> divY (nZP,  Sr[5]);
     Veclib::vsub (nTot, Nl[1], 1, Sr[0], 1, Nl[1], 1);
     Veclib::vsub (nTot, Nl[2], 1, Sr[1], 1, Nl[2], 1);
     Blas::axpy   (nTot, -2.0,     Sr[5], 1, Nl[2], 1);
@@ -301,7 +301,7 @@ void dynamic (Domain*        D ,
   // -- Create names for local computations.
 
   vector<real*> u (26);
-  real**        Sr  = u();	// -- Strain rate tensor, unfiltered velocity.
+  real**        Sr  = &u[0];	// -- Strain rate tensor, unfiltered velocity.
   real**        St  = Sr + 6;	// -- Strain rate tensor, filtered velocity.
   real**        Ua  = St + 6;	// -- Physical space velocities.
   real**        Sm  = Ua + 3;	// -- Strain rate magnitude.
@@ -312,14 +312,14 @@ void dynamic (Domain*        D ,
 
   // -- Set pointers into supplied workspace, Ut.
 
-  for (i = 0; i < 6; i++) Sr [i] = Ut (     i);
-  for (i = 0; i < 6; i++) St [i] = Ut ( 6 + i);
-  for (i = 0; i < 3; i++) Ua [i] = Ut (12 + i);
-  for (i = 0; i < 2; i++) Sm [i] = Ut (15 + i);
-  for (i = 0; i < 3; i++) Us [i] = Ut (17 + i);
-  for (i = 0; i < 3; i++) Nl [i] = Ut (20 + i);
+  for (i = 0; i < 6; i++) Sr [i] = Ut [     i];
+  for (i = 0; i < 6; i++) St [i] = Ut [ 6 + i];
+  for (i = 0; i < 3; i++) Ua [i] = Ut [12 + i];
+  for (i = 0; i < 2; i++) Sm [i] = Ut [15 + i];
+  for (i = 0; i < 3; i++) Us [i] = Ut [17 + i];
+  for (i = 0; i < 3; i++) Nl [i] = Ut [20 + i];
 
-  for (i = 0; i < 3; i++) Ud [i] = D->udat (i);
+  for (i = 0; i < 3; i++) Ud [i] = D->udat [i];
 
   // -- Transform and filter velocities.
 
@@ -352,14 +352,14 @@ void dynamic (Domain*        D ,
 	  case 4:
 	    Veclib::vmul    (nTot, Ua[2], 1, Sr[4], 1, tmp, 1);
 	    Veclib::vvtvp   (nTot, Ua[0], 1, Ua[1], 1, tmp, 1, tmp, 1);
-	    meta -> divR    (nZP, tmp);
+	    meta -> divY    (nZP, tmp);
 	    Veclib::vadd    (nTot, Nl[0], 1, tmp, 1, Nl[0], 1);
 	    break;
 	  case 5:
 	    Veclib::vmul    (nTot, Ua[2], 1, Sr[5], 1,     Nl[1], 1);
 	    Veclib::vvtvp   (nTot, Ua[1], 1, Ua[1], 1,     Nl[1], 1, Nl[1], 1);
 	    Veclib::svvttvp (nTot, -2.0, Ua[2],1, Ua[2],1, Nl[1], 1, Nl[1], 1);
-	    meta -> divR    (nZP, Nl[1]);
+	    meta -> divY    (nZP, Nl[1]);
 	    break;
 	  }
 	} else {
@@ -372,8 +372,8 @@ void dynamic (Domain*        D ,
 	  Veclib::vsub (nTot, St[ij], 1, Ud[2], 1, St[ij], 1);
 	}  
 	if (ij > 3) {
-	  meta -> divR (nZP, Sr[ij]);
-	  meta -> divR (nZP, St[ij]);
+	  meta -> divY (nZP, Sr[ij]);
+	  meta -> divY (nZP, St[ij]);
 	}
       }
     }  
@@ -408,7 +408,7 @@ void dynamic (Domain*        D ,
       if (CYL && i == 2) {
 	Veclib::vmul    (nTot,      Ua[2], 1, Sr[2], 1, tmp, 1);
 	Veclib::svvttvp (nTot, 3.0, Ua[1], 1, Ua[2], 1, tmp, 1, tmp, 1);
-	meta -> divR    (nZP, tmp);
+	meta -> divY    (nZP, tmp);
 	Veclib::vadd    (nTot,      tmp, 1, Nl[2], 1, Nl[2], 1);
       } else
 	Veclib::vvtvp   (nTot, Ua[i], 1, Sr[i], 1, Nl[i], 1, Nl[i], 1);
@@ -416,8 +416,8 @@ void dynamic (Domain*        D ,
     if (CYL && i == 2) {
       Veclib::vadd (nTot, Ua[1], 1, Sr[2], 1, Sr[2], 1);
       Veclib::vadd (nTot, Ud[1], 1, St[2], 1, St[2], 1);
-      meta -> divR (nZP, Sr[2]);
-      meta -> divR (nZP, St[2]);
+      meta -> divY (nZP, Sr[2]);
+      meta -> divY (nZP, St[2]);
     }
   }
 
@@ -468,7 +468,7 @@ void dynamic (Domain*        D ,
     Veclib::copy   (nTot, tmp, 1, L, 1);
     if (NL) {
       realGradient (meta, tmp, i);
-      if (CYL && i == 2) meta -> divR (nZP, tmp);
+      if (CYL && i == 2) meta -> divY (nZP, tmp);
       Veclib::vadd (nTot, tmp, 1, Nl[i], 1, Nl[i], 1);
     }
     transform      (FORWARD, FULL, L);
@@ -497,7 +497,7 @@ void dynamic (Domain*        D ,
       if (NL) {
 	realGradient  (meta, M,   i);
 	realGradient  (meta, tmp, j);
-	if (CYL && j == 2) meta -> divR (nZP, tmp);
+	if (CYL && j == 2) meta -> divY (nZP, tmp);
 	Veclib::vadd  (nTot, M,   1, Nl[j], 1, Nl[j], 1);
 	Veclib::vadd  (nTot, tmp, 1, Nl[i], 1, Nl[i], 1);
       }

@@ -170,9 +170,20 @@ ifstream& operator >> (ifstream&      strm,
   
   strm.getline (s, StrMax) . getline (s, StrMax);
 
+#if 1
+  string ss(s);
+  istringstream sss (ss);
+  sss >> np >> np >> nz >> nel;
+ 
+  tgt._Lmix2 -> describe (f);
+  sss.clear ();
+  sss.str   (ss = f);
+  sss >> npchk >> npchk >> nzchk >> nelchk;
+#else
   tgt._Lmix2 -> describe (f);
   istrstream (s, strlen (s)) >> np    >> np    >> nz    >> nel;
   istrstream (f, strlen (f)) >> npchk >> npchk >> nzchk >> nelchk;
+#endif
   
   if (np  != npchk ) message (routine, "element size mismatch",       ERROR);
   if (nz  != nzchk ) message (routine, "number of z planes mismatch", ERROR);

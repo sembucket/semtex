@@ -90,8 +90,8 @@ void integrate (Domain*        D,
     Us[i] = new AuxField* [(size_t) 2 * NDIM];
     Uf[i] = Us[i] + NDIM;
     for (j = 0; j < NDIM; j++) {
-      *(Us[i][j] = new AuxField (Ut(17 +    2*i *NDIM+j), nZ, D->elmt)) = 0.0;
-      *(Uf[i][j] = new AuxField (Ut(17 + (1+2*i)*NDIM+j), nZ, D->elmt)) = 0.0;
+      *(Us[i][j] = new AuxField (Ut[17 +    2*i *NDIM+j], nZ, D->elmt)) = 0.0;
+      *(Uf[i][j] = new AuxField (Ut[17 + (1+2*i)*NDIM+j], nZ, D->elmt)) = 0.0;
     }
   }
 
@@ -182,7 +182,7 @@ void integrate (Domain*        D,
   Blas::scal (nTot, 1.0/Femlib::value("REFVIS"), Ut[15], 1);
   D -> u[0] -> smooth (Geometry::nZProc(), Ut[15]);
 
-  AuxField* EV = new AuxField (Ut(15), nZ, D->elmt, 'e');
+  AuxField* EV = new AuxField (Ut[15], nZ, D->elmt, 'e');
 
   ofstream          evfl;
   vector<AuxField*> visco (1);
@@ -220,9 +220,9 @@ static void waveProp (Domain*           D ,
   vector<real> alpha (Integration::OrderMax + 1);
   vector<real> beta  (Integration::OrderMax);
   
-  Integration::StifflyStable (Je, alpha());
-  Integration::Extrapolation (Je, beta ());
-  Blas::scal (Je, Femlib::value ("D_T"), beta(),  1);
+  Integration::StifflyStable (Je, &alpha[0]);
+  Integration::Extrapolation (Je, &beta [0]);
+  Blas::scal (Je, Femlib::value ("D_T"), &beta[0],  1);
 
   for (i = 0; i < NDIM; i++)
     for (q = 0; q < Je; q++) {
@@ -244,11 +244,11 @@ static void setPForce (const AuxField** Us,
 
   for (i = 0; i < NDIM; i++) (*Uf[i] = *Us[i]) . gradient (i);
 
-  if (CYL) Uf[2] -> divR();
+  if (CYL) Uf[2] -> divY();
 
   for (i = 1; i < NDIM; i++) *Uf[0] += *Uf[i];
 
-  if (CYL) *Uf[0] += (*Uf[1] = *Us[1]) . divR();
+  if (CYL) *Uf[0] += (*Uf[1] = *Us[1]) . divY();
 
   *Uf[0] /= dt;
 }
@@ -275,7 +275,7 @@ static void project (const Domain* D ,
 
     (*Uf[i] = *D -> u[NDIM]) . gradient (i);
 
-    if (CYL && i == 2) Uf[2] -> divR();
+    if (CYL && i == 2) Uf[2] -> divY();
 
     *Uf[i] *= -dt;
     *Uf[i] += *Us[i];
@@ -302,7 +302,7 @@ static Msys** preSolve (const Domain* D)
   Msys**                  M      = new Msys* [(size_t) (NDIM + 1)];
   integer                 i;
   vector<real>            alpha (Integration::OrderMax + 1);
-  Integration::StifflyStable (NORD, alpha());
+  Integration::StifflyStable (NORD, &alpha[0]);
   const real              lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
 
   // -- Velocity systems.
@@ -337,7 +337,7 @@ static void Solve (Domain*       D,
     const integer base    = Geometry::baseMode();
     const integer nmodes  = Geometry::nModeProc();
     vector<real>  alpha (Je + 1);
-    Integration::StifflyStable (Je, alpha());
+    Integration::StifflyStable (Je, &alpha[0]);
     const real    lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
     const real    beta    = Femlib::value ("BETA");
 
