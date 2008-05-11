@@ -36,7 +36,7 @@
 // Author
 // ------
 // Hugh Blackburn
-// Department of Mechanical Engineering
+// Department of Mechanical & Aerospace Engineering
 // Monash University
 // Vic 3800
 // Australia

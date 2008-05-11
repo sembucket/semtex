@@ -28,12 +28,12 @@ testing decribed below "gmake", in your path, should find GNUmake.
 You should also have RCS installed on your system.  SuperMongo and
 Amtec's TECPLOT would be nice to have but are not needed.  For
 concurrent execution MPI is required.  You will also need C, C++ and
-FORTRAN77 compilers.
+FORTRAN77 (or F90, F95) compilers.
 
 Author
 ------
 Hugh M. Blackburn
-Department of Mechanical Engineering
+Department of Mechanical & Aerospace Engineering
 Monash University
 Vic 3800
 Australia
