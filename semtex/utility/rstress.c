@@ -33,7 +33,9 @@
  * field file, the average values contained in the average file are
  * subtracted from the field file (i.e. the field file is assumed to
  * contain instantaneous values from which the average is to be
- * subtracted).  Note that this also allows rstress to be used to
+ * subtracted).
+ *
+ * Note that this also allows rstress to be used to
  * subtract (instantaneous) values in one field dump from another.
  *
  * Both average and field files are assumed to be in binary, double,
