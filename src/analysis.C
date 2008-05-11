@@ -362,9 +362,9 @@ void Analyser::modalEnergy ()
   } else 
     for (m = 0; m < N; m++)
       _mdl_strm << setw(10) << _src -> time 
-	       << setw( 5) << m 
-	       << setw(15) << ek[m]
-	       << endl;
+		<< setw( 5) << m 
+		<< setw(15) << ek[m]
+		<< endl;
 }
 
 

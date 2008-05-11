@@ -58,7 +58,7 @@ include $(SEMSRC)/Makefile
 # Install header files.
 #
 headers:
-	if test ! -d   $(SEM)/include	;	then    \
+	if test ! -d  $(SEM)/include	;	then    \
 		mkdir $(SEM)/include	;	fi
 
 	rm -f $(SEM)/include/cfemdef.h	;	\
@@ -75,7 +75,7 @@ headers:
 # Install library & associated header files.
 #
 install:
-	gmake headers
+	$(MAKE) headers
 
 	if test ! -d $(SEM)/lib 			;	then	\
 		mkdir $(SEM)/lib 			; 	fi;	\

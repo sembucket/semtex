@@ -182,7 +182,6 @@ void integrateNS (Domain*      D,
 
     A -> analyse (Us[0], Uf[0]);
   }
-
 }
 
 
