@@ -16,7 +16,7 @@ public:
   ~Data2DF () { delete [] _data; delete [] _plane; }
 
   char getName () { return _name; }
-  Data2DF& reverse    ();
+  Data2DF& reverse ();
 
   Data2DF& operator  = (const Data2DF&);
   Data2DF& operator  = (const real_t);
