@@ -12,7 +12,7 @@ public:
  ~Header() { delete [] sess; delete [] sesd; delete [] flds; delete [] frmt; }
 
   bool  swab    () const;
-  int_t nFields () { return strlen (flds); } const;
+  int_t nFields () const { return strlen (flds); }
 
   char*  sess;
   char*  sesd;
