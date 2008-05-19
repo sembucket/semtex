@@ -7,4 +7,4 @@ dns vb2_bse
 mv vb2_bse.fld vb2.bse
 
 enumerate -O3 vb2 > vb2.num
-../../arnoldi -k 13 -m 40 -n 1 vb2 > /dev/null
+../../dog -k 13 -m 40 -n 1 vb2 > /dev/null

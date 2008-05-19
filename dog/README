@@ -5,26 +5,31 @@ This version of semtex is specialised for linearised steady and
 Floquet stability analysis, which implies a number of restrictions not
 present in the basic semtex package.  The stability analysis solver
 derives from the Barkley/Henderson floK code [1], see also [3] and [4]
-for a description of the numerical techniques. 
+for a description of the numerical techniques.
 
 Copyright (c) 1999 <--> $Date$, Hugh Blackburn.
 
-There are two codes here: lns and arnoldi. Lns is equivalent to
-semtex/dns: it evolves the linearised Navier--Stokes equations.
-Arnoldi is the actual analysis code, which carries out eigensolution
-of the stability problem.  The time integration routines required to
-evolve the linearised Navier--Stokes equations are identical for the
-two codes.  One might use lns to evolve an initially random
-perturbation to an exponential growth or decay phase, then apply
-arnoldi to estimate the leading Ritz eigenvalues and vectors of the
-flow. Both codes are designed for serial execution only.
+There are two codes here: lns and dog. Lns is equivalent to
+semtex/dns: it evolves the linearised Navier--Stokes equations.  Dog
+is the actual analysis code, which carries out eigensolution of the
+stability problem.  The time integration routines required to evolve
+the linearised Navier--Stokes equations are identical for the two
+codes.  One might use lns to evolve an initially random perturbation
+to an exponential growth or decay phase, then apply dog to estimate
+the leading Ritz eigenvalues and vectors of the flow. Both codes are
+designed for serial execution only.
 
-Arnoldi-H is a variant of arnoldi that can (but does not have to) be
-applied if the base flow has a reflection in space, translation in
-time symmetry, see [5].  In this case, the code flipmap must be used
-to create a pair of mapping vectors from the session mesh file.  The
+Dog-H is a variant of dog that can (but does not have to) be applied
+if the base flow has a reflection in space, translation in time (RT)
+symmetry, see [5].  In this case, the code flipmap must be used to
+create a pair of mapping vectors from the session mesh file.  The
 integration period declared in the session file must be half that of
-the base flow.
+the base flow. Compile with "make FLIP=1".
+
+Dog-AR (compile with "make ARPACK=1") uses ARPACK to supply the
+eigensystem solution, an IRAM method. The method implemented in the
+standard code, an algorithm derived by Dwight Barkley, is not strictly
+an Arnoldi method.
 
 The session file referred to below relates to the perturbation
 velocity field: the session file for the base flow is naturally
@@ -120,7 +125,7 @@ In addition to standard semtex files (session, session.num,
 session.rst), a file containing the base flow (session.bse) is also
 required.  An additional information file called session.run,
 containing the machine name and run pid, is also produced. For
-arnoldi-H, the file session.map (produced by the flipmap utility) is
+dog-H, the file session.map (produced by the flipmap utility) is
 needed as well.
 
 References

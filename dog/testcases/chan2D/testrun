@@ -3,4 +3,4 @@
 ##############################################################################
 
 enumerate -O3 chan3 > chan3.num
-../../arnoldi -k 16 -n 1 -m 500 -t 1e-6 chan3 > /dev/null
+../../dog -k 16 -n 1 -m 500 -t 1e-6 chan3 > /dev/null

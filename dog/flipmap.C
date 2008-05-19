@@ -8,14 +8,14 @@
 // options:
 //   -h       ... print this message
 //   -x || -y ... reflection symmetry to be used to generate map
-//   -t <num> ... set positional tolerance to num
+//   -t <num> ... set positional tolerance to num, default 6e-7 = EPSSP
 //
 // FILES
 // Input file is a semtex/prism ASCII mesh file, generated e.g. by meshpr.
 // Output is ASCII, with three header lines followed by a list of index pairs:
 //   8 8 1 108 NR NS NZ NEL  # -- matches input file header
 //   x                       # -- reflection symmetry generator
-//   202                     # -- NFLIP, no. of pairs to follow < NR*NS*NEL/2
+//   6768                    # -- NFLIP, no. of pairs to follow < NR*NS*NEL
 //   11   4001
 //   12   4000
 //   13   3999
@@ -23,8 +23,24 @@
 //
 // The mapping between the mesh points may not be unique; we take the
 // first mapping found for each case (reflect positive->negative,
-// *and* negative->positive). This way a single gather will do the
-// reflection, and leave no holes.
+// *and* negative->positive).  This way a single gather will do the
+// reflection, and leave no holes.  The nmap does not correspond to a
+// global numberin scheme, it is simply the number of points in the
+// mesh which do not coincide with the y axis (for a -x reflection
+// symmetry) or the x axis (for -y).  The numbers in the two lists are
+// the correspondences between the indices of reflected points in a
+// flat element-by-element ordering of the mesh points.
+//
+// To carry out the exchange of data, say all the NTOT=NR*NR*NEL data
+// are first copied from array org to array tmp.  Exchange by
+// gather-scatter:
+//
+//   for (i = 0; i < NFLIP; i++) org[neg[i]] = tmp[pos[i]];
+//
+// where pos and neg are the indices in the two lists.  To complete a
+// symmetry operation may also require a negation (say if the data are
+// one component of a vector).  This has to be determined
+// independently.
 //
 // NB: -x means the reflection is in the x direction, i.e. the reflection
 // occurs about the y axis!
@@ -45,8 +61,8 @@ static int_t loadmesh (ifstream&, const int_t, const char,
 static void  findmap  (const char, const int_t, const real_t tol,
 		       const vector<real_t>&, const vector<real_t>&,
 		       const int_t, vector<int_t>&, vector<int_t>&);
-static void  printup (const char, const int_t,
-		      const vector<int_t>&, const vector<int_t>&);
+static void  printup  (const char, const int_t,
+		       const vector<int_t>&, const vector<int_t>&);
 
 
 int main (int    argc,

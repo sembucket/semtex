@@ -7,6 +7,6 @@ dns_tbcs cav01_bse > /dev/null
 mv cav01_bse.fld cav01.bse
 
 enumerate -O3 cav01 > cav01.num
-../../arnoldi -k 13 -m 40 -n 2 cav01 > /dev/null
+../../dog -k 13 -m 40 -n 2 cav01 > /dev/null
 
 

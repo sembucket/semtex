@@ -4,7 +4,7 @@ ARNOLDI TESTCASES
 =================
 
 The testcases in various subdirectories here exercise various
-different parts the stability analysis code arnoldi. For cases with
+different parts the stability analysis code dog. For cases with
 steady base flows, the full base flow file is provided, while for
 cases with time-periodic base flows, a restart file is provided with
 which to regenerate the base flow. Shell scripts are/will be provided
@@ -23,7 +23,7 @@ unsteady and 2C/2D also.
 
 These are the results of running
 
-arnoldi -k 16 -n 1 -m 500 -t 1e-6 chan3
+dog -k 16 -n 1 -m 500 -t 1e-6 chan3
 
 -- Iteration = 260, H(k+1, k) = 0.893587
 EV  Magnitude   Angle       Growth      Frequency   Residual
@@ -47,7 +47,7 @@ to be (page 16) 4000*0.007175=28.3.
 
 Here is the result of running
 
-arnoldi -k 8 -n 1 -m 200 vb2
+dog -k 8 -n 1 -m 200 vb2
 
 -- Iteration = 124, H(k+1, k) = 0.682631
 EV  Magnitude   Angle       Growth      Frequency   Residual
@@ -59,7 +59,7 @@ EV  Magnitude   Angle       Growth      Frequency   Residual
  5  1.0890e+00 -2.5309e+00  6.1746e-03 -1.8327e-01  2.3270e-03
  6  9.4068e-01  1.7243e+00 -4.4283e-03  1.2486e-01  4.4281e-01
  7  9.4068e-01 -1.7243e+00 -4.4283e-03 -1.2486e-01  4.4281e-01
-arnoldi: converged, writing 1 eigenvectors.
+dog: converged, writing 1 eigenvectors.
 
 The period of the leading mode is TWOPI/0.22185=23.322.
 
@@ -75,7 +75,7 @@ flow over a backward-facing step, JFM 473: 167-190.
 At a Re=750 the neutrally stable eigenvalue is real; here are the
 results of running
 
-arnoldi -k 25 -n 1 -m 500 -t 1e-6 back
+dog -k 25 -n 1 -m 500 -t 1e-6 back
 
 -- Iteration = 330, H(k+1, k) = 0.981132
 EV  Magnitude   Angle       Growth      Frequency   Residual
@@ -94,7 +94,7 @@ unstable 3D mode, k = 1.
 
 These are the results of running
 
-arnoldi -k 8 -n 1 -m 100 -t 1e-8 Sten50_Cyl
+dog -k 8 -n 1 -m 100 -t 1e-8 Sten50_Cyl
 
 -- Iteration = 72, H(k+1, k) = 0.393738
 EV  Magnitude   Angle       Growth      Frequency   Residual
@@ -106,7 +106,7 @@ EV  Magnitude   Angle       Growth      Frequency   Residual
  5  7.2626e-01  1.7028e+00 -6.3968e-01  3.4056e+00  5.1288e-02
  6  7.2626e-01 -1.7028e+00 -6.3968e-01 -3.4056e+00  5.1288e-02
  7  4.1267e-01  0.0000e+00 -1.7702e+00  0.0000e+00  8.3558e-02
-arnoldi: converged, writing 1 eigenvectors.
+dog: converged, writing 1 eigenvectors.
 
 
 PERIODIC FLOWS
@@ -123,7 +123,7 @@ analysis of the wake of a circular cylinder, JFM 322: 215-241.
 
 These are the results (after 16 cycles) of running
 
-arnoldi -k 12 -n 1 -m 40 -t 1e-6 m32
+dog -k 12 -n 1 -m 40 -t 1e-6 m32
 
 -- Iteration = 16, H(k+1, k) = 0.604031
 EV  Magnitude   Angle       Growth      Frequency   Residual
@@ -146,7 +146,7 @@ JFM 497.
 
 These are the results of running (for N_Z=1 or 2)
 
-arnoldi -k 13 -m 40 -n 2 -t 1e-6 cav01
+dog -k 13 -m 40 -n 2 -t 1e-6 cav01
 
 -- Iteration = 14, H(k+1, k) = 0.0653317
 EV  Magnitude   Angle       Growth      Frequency   Residual
@@ -170,7 +170,7 @@ an oscillatory axisymmetric swirling flow, Phys. Fluids V14N11:
 
 These are the results of running
 
-arnoldi -k 13 -m 40 -n 1 -t 1e-6 vb2
+dog -k 13 -m 40 -n 1 -t 1e-6 vb2
 
 -- Iteration = 12, H(k+1, k) = 0.224362
 EV  Magnitude   Angle       Growth      Frequency   Residual
@@ -186,7 +186,7 @@ EV  Magnitude   Angle       Growth      Frequency   Residual
  9  3.1172e-01 -3.2734e-01 -4.1215e-02 -1.1574e-02  6.2372e-02
 10  1.1103e-01  0.0000e+00 -7.7715e-02  0.0000e+00  1.0460e-01
 11  1.3551e-01  3.1416e+00 -7.0670e-02  1.1108e-01  1.5836e-01
-arnoldi: converged, writing 1 eigenvectors.
+dog: converged, writing 1 eigenvectors.
 
 TRANSIENT GROWTH
 ================
@@ -210,7 +210,7 @@ The analytical solution for the base flow is given by
 
 Running
 
-../../arnoldi -g -k 4 -n 1 -m 50 -t 1e-6 chan3 > /dev/null
+../../dog -g -k 4 -n 1 -m 50 -t 1e-6 chan3 > /dev/null
 
 converges to 
 
@@ -220,7 +220,7 @@ EV  Magnitude   Angle       Growth      Frequency   Residual
  1  8.4661e-02  0.0000e+00 -1.9649e-01  0.0000e+00  2.5166e-03
  2  6.4262e-02  0.0000e+00 -2.1842e-01  0.0000e+00  5.8113e-03
  3  3.4631e-02  0.0000e+00 -2.6762e-01  0.0000e+00  1.1108e-02
-arnoldi: converged, writing 1 eigenvectors.
+dog: converged, writing 1 eigenvectors.
 
 One can check the result by restarting lns using chan3.eig.0 as a
 restart file, then looking at the energies in the starting and final
