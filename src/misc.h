@@ -3,14 +3,16 @@
 
 class Header
 // ===========================================================================
-// Nekton/Prism/Semtex-compatible header struct + I/O routines.
+// Nekton/Prism/Semtex-compatible header struct + I/O routines +
+// public data descriptors.  No array data storage.
 // ===========================================================================
 {
 public:
   Header();
  ~Header() { delete [] sess; delete [] sesd; delete [] flds; delete [] frmt; }
 
-  bool swab() const;
+  bool  swab    () const;
+  int_t nFields () { return strlen (flds); } const;
 
   char*  sess;
   char*  sesd;

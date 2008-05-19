@@ -2,7 +2,7 @@
 
 startup2        # Macro executed whenever SM starts
 		ptype 1 0
-		define my_macros { sta ld }
+		define my_macros { sta ld modal }
 		define sm_home   "/home/hmb/lib/sm"
 		foreach v { $!!my_macros } { macro read "$!sm_home/$!v.sm" }
 		define prism_macros { his hspec meshbox meshnum meshplot }

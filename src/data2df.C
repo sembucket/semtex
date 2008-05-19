@@ -1,5 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
-// data2df.C: simple 2D x Fourier data class.
+// data2df.C: simple 2D x Fourier data class; an AuxField without
+// geometric information.
 //
 // Copyright (c) 2004 <--> $Date$, Hugh Blackburn
 //
@@ -97,8 +98,9 @@ Data2DF& Data2DF::DPT2D (const int_t sign,
 
 Data2DF& Data2DF::conjugate (const bool zero)
 // ---------------------------------------------------------------------------
-// Take complex conjugate. If zero is true, assume that mode zero is
-// complex instead of two real_t modes packed together.
+// Take complex conjugate in the Fourier coordinate direction. If zero
+// is true, assume that mode zero is complex instead of two real_t
+// modes packed together.
 // ---------------------------------------------------------------------------
 {
   int_t       i;
@@ -114,8 +116,9 @@ Data2DF& Data2DF::conjugate (const bool zero)
 
 Data2DF& Data2DF::symmetrize (const bool zero)
 // ---------------------------------------------------------------------------
-// Symmetrize velocity field component. This enforces a reflection
-// symmetry of the velocity and pressure fields, as follows.
+// Symmetrize velocity field component in Fourier coordinate
+// direction. This enforces a reflection symmetry of the velocity and
+// pressure fields, as follows.
 // 
 // 'u': mode_k.Im = 0, k > 0
 // 'v': mode_k.Im = 0, k > 0
@@ -147,8 +150,8 @@ Data2DF& Data2DF::shift (const real alpha,
 // ---------------------------------------------------------------------------
 // Use the shift-rotation duality of the Fourier transform to shift
 // the data a proportion alpha of the fundamental length in the
-// Fourier direction.  Data are assumed to be in Fourier-transformed
-// state on input.
+// Fourier coordinate direction.  Data are assumed to be in
+// Fourier-transformed state on input.
 // ---------------------------------------------------------------------------
 {
   const int_t    N = _nz >> 1;
