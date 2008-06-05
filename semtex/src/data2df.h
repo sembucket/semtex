@@ -1,6 +1,12 @@
 #ifndef DATA2DF_H
 #define DATA2DF_H
 
+///////////////////////////////////////////////////////////////////////////////
+// Define simple routines to handle quad spectral element x Fourier
+// data (class Data2DF), plus header data I/O (class Header).
+///////////////////////////////////////////////////////////////////////////////
+
+
 class Data2DF
 // ============================================================================
 // Canonical field class, each np X np element is defined on [-1,1] X [-1, 1].
@@ -40,5 +46,36 @@ protected:
   real_t*     _data;
   real_t**    _plane;
 };
+
+
+class Header
+// ===========================================================================
+// Nekton/Prism/Semtex-compatible header struct + I/O routines +
+// public data descriptors.  No array data storage.
+// ===========================================================================
+{
+public:
+  Header();
+ ~Header() { delete [] sess; delete [] sesd; delete [] flds; delete [] frmt; }
+
+  bool  swab    () const;
+  int_t nFields () const { return strlen (flds); }
+
+  char*  sess;
+  char*  sesd;
+  int_t  nr  ;
+  int_t  ns  ;
+  int_t  nz  ;
+  int_t  nel ;
+  int_t  step;
+  real_t time;
+  real_t dt  ;
+  real_t visc;
+  real_t beta;
+  char*  flds;
+  char*  frmt;
+};
+istream& operator >> (istream&, Header&);
+ostream& operator << (ostream&, Header&);
 
 #endif
