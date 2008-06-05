@@ -33,7 +33,7 @@ endif
 # Semtex standard sources.
 #
 SEMFILES = analysis auxfield bcmgr boundary bsys condition domain   \
-	   edge element family feml field flowrate geometry history \
+	   edge element family feml field geometry history \
            integration matrix mesh misc particle pressure statistics
 SEMOBJ   = $(addsuffix .o,$(SEMFILES))
 SEMHDR   = $(addsuffix .h,$(SEMFILES)) sem.h
