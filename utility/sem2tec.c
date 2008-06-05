@@ -320,7 +320,7 @@ static void read_data (FILE *fp)
 
     for (n = 0; n < nfields; n++) {
       if (fread (data[n], sizeof(double), nz * nplane, fp) != nz * nplane) {
- fputs("sem2tec: field file (binary) read error\n", stderr);
+	fputs("sem2tec: field file (binary) read error\n", stderr);
 	  exit (EXIT_FAILURE);
       }
       if (swab) dbrev (nz * nplane, data[n], 1, data[n], 1);
