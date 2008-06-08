@@ -680,7 +680,7 @@ Field& Field::solve (AuxField*             f  ,
       const real_t*  H     = const_cast<const real_t*>   (M -> _H);
       const real_t** hii   = const_cast<const real_t**>  (M -> _hii);
       const real_t** hbi   = const_cast<const real_t**>  (M -> _hbi);
-      const int_t*   b2g   = const_cast<const int_t*>(N -> btog());
+      const int_t*   b2g   = const_cast<const int_t*>    (N -> btog());
       int_t          nband = M -> _nband;
 
       vector<real_t> work (nglobal + 4*npnp);

@@ -3,7 +3,8 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 // Define simple routines to handle quad spectral element x Fourier
-// data (class Data2DF), plus header data I/O (class Header).
+// data (class Data2DF), plus simple header data I/O class (class
+// Header) with public data.
 ///////////////////////////////////////////////////////////////////////////////
 
 
@@ -24,20 +25,24 @@ public:
   char getName () { return _name; }
   Data2DF& reverse ();
 
-  Data2DF& operator  = (const Data2DF&);
-  Data2DF& operator  = (const real_t);
+  Data2DF& operator  =   (const real_t);
+  Data2DF& operator *=   (const real_t);
+  Data2DF& operator  =   (const Data2DF&);
+  Data2DF& operator +=   (const Data2DF&);
+  Data2DF& operator -=   (const Data2DF&);
+  Data2DF& operator *=   (const Data2DF&);
 
-  Data2DF& operator *= (const Data2DF&);
+  Data2DF& DFT1D         (const int_t);
+  Data2DF& DPT2D         (const int_t, const char);
 
-  Data2DF& DFT1D       (const int_t);
-  Data2DF& DPT2D       (const int_t, const char);
+  Data2DF& filter1D      (const real_t, const int_t);
+  Data2DF& filter2D      (const real_t, const int_t);
 
-  Data2DF& filter1D    (const real_t, const int_t);
-  Data2DF& filter2D    (const real_t, const int_t);
+  Data2DF& F_conjugate   (const bool);
+  Data2DF& F_symmetrize  (const bool);
+  Data2DF& F_shift       (const real alpha, const bool);
 
-  Data2DF& conjugate   (const bool);
-  Data2DF& symmetrize  (const bool);
-  Data2DF& shift       (const real alpha, const bool);
+  Data2DF& reflect2D     (vector<int_t>&, vector<int_t>&);
 
 protected:
   const char  _name;

@@ -69,9 +69,9 @@ int main (int    argc,
 
       // -- Here are the various possible actions:
 
-      if (fabs (alpha) > EPSDP) u[i] -> shift (alpha, zero);
-      if (conj)                 u[i] -> conjugate    (zero);
-      if (symm)                 u[i] -> symmetrize   (zero);
+      if (fabs (alpha) > EPSDP) u[i] -> F_shift (alpha, zero);
+      if (conj)                 u[i] -> F_conjugate    (zero);
+      if (symm)                 u[i] -> F_symmetrize   (zero);
 
       if (!cmplx|zero) u[i] -> DFT1D (INVERSE);
       cout << *u[i];

@@ -1,6 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // data2df.C: simple 2D x Fourier data class; an AuxField without
-// geometric information.
+// geometric information.  Also Header class definitions for IO &
+// maintenance of input file information.
 //
 // Copyright (c) 2004 <--> $Date$, Hugh Blackburn
 //
@@ -96,7 +97,7 @@ Data2DF& Data2DF::DPT2D (const int_t sign,
 }
 
 
-Data2DF& Data2DF::conjugate (const bool zero)
+Data2DF& Data2DF::F_conjugate (const bool zero)
 // ---------------------------------------------------------------------------
 // Take complex conjugate in the Fourier coordinate direction. If zero
 // is true, assume that mode zero is complex instead of two real_t
@@ -114,7 +115,7 @@ Data2DF& Data2DF::conjugate (const bool zero)
 } 
 
 
-Data2DF& Data2DF::symmetrize (const bool zero)
+Data2DF& Data2DF::F_symmetrize (const bool zero)
 // ---------------------------------------------------------------------------
 // Symmetrize velocity field component in Fourier coordinate
 // direction. This enforces a reflection symmetry of the velocity and
@@ -145,8 +146,8 @@ Data2DF& Data2DF::symmetrize (const bool zero)
 } 
 
 
-Data2DF& Data2DF::shift (const real alpha,
-			 const bool zero )
+Data2DF& Data2DF::F_shift (const real alpha,
+			   const bool zero )
 // ---------------------------------------------------------------------------
 // Use the shift-rotation duality of the Fourier transform to shift
 // the data a proportion alpha of the fundamental length in the
@@ -225,6 +226,48 @@ Data2DF& Data2DF::operator = (const Data2DF& rhs)
 }
 
 
+Data2DF& Data2DF::operator += (const Data2DF& rhs)
+// ---------------------------------------------------------------------------
+// If two fields conform, add rhs's data storage pointwise into lhs.
+// ---------------------------------------------------------------------------
+{
+  if (rhs._nel != _nel || rhs._np != _np || rhs._nz != _nz)
+    message ("Data2DF::operator +=", "fields don't conform", ERROR);
+
+  Veclib::vadd (_ntot, rhs._data, 1, _data, 1, _data, 1);
+
+  return *this;
+}
+
+
+Data2DF& Data2DF::operator -= (const Data2DF& rhs)
+// ---------------------------------------------------------------------------
+// If two fields conform, subtarct rhs's data storage pointwise from lhs.
+// ---------------------------------------------------------------------------
+{
+  if (rhs._nel != _nel || rhs._np != _np || rhs._nz != _nz)
+    message ("Data2DF::operator +=", "fields don't conform", ERROR);
+
+  Veclib::vsub (_ntot, rhs._data, 1, _data, 1, _data, 1);
+
+  return *this;
+}
+
+
+Data2DF& Data2DF::operator *= (const Data2DF& rhs)
+// ---------------------------------------------------------------------------
+// If two fields conform, multiply rhs's data storage pointwise into lhs.
+// ---------------------------------------------------------------------------
+{
+  if (rhs._nel != _nel || rhs._np != _np || rhs._nz != _nz)
+    message ("Data2DF::operator *=", "fields don't conform", ERROR);
+
+  Veclib::vmul (_ntot, rhs._data, 1, _data, 1, _data, 1);
+
+  return *this;
+}
+
+
 Data2DF& Data2DF::operator = (const real_t val)
 // ---------------------------------------------------------------------------
 // Set field storage area to val.
@@ -232,6 +275,17 @@ Data2DF& Data2DF::operator = (const real_t val)
 {
   if   (val == 0.0) Veclib::zero (_ntot,      _data, 1);
   else              Veclib::fill (_ntot, val, _data, 1);
+
+  return *this;
+}
+
+
+Data2DF& Data2DF::operator *= (const real_t val)
+// ---------------------------------------------------------------------------
+// Multiply field storage area by val.
+// ---------------------------------------------------------------------------
+{
+  Blas::scal (_ntot, val, _data, 1);
 
   return *this;
 }
@@ -355,6 +409,28 @@ Data2DF& Data2DF::filter2D (const real_t roll ,
 }
 
 
+Data2DF& Data2DF::reflect2D (vector<int_t>& pos,
+			     vector<int_t>& neg)
+// ---------------------------------------------------------------------------
+// Use gathr_scatr maps to carry out a 2D spatial reflection of data.
+// ---------------------------------------------------------------------------
+{
+  int_t          k;
+  vector<real_t> tmp (_nplane);
+
+  for (k = 0; k < _nz; k++) {
+    Veclib::copy (_nplane, _plane[k], 1, &tmp[0], 1);
+    Veclib::gathr_scatr (pos.size(), &tmp[0], &neg[0], &pos[0], _plane[k]);
+  }
+
+  return *this;
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Header class definitions are also in this file.
+//////////////////////////////////////////////////////////////////////////////
+
 
 Header::Header ()
 // ---------------------------------------------------------------------------
@@ -406,16 +482,16 @@ ostream& operator << (ostream& file,
 {
   const char routine [] = "operator: ofstream << Header";
   const char *hdr_fmt[] = { 
-    "%-25s "                "Session\n",
-    "%-25s "                "Created\n",
-    "%-5d %-5d %-5d %-5d "  "Nr, Ns, Nz, Elements\n",
-    "%-25d "                "Step\n",
-    "%-25.6g "              "Time\n",
-    "%-25.6g "              "Time step\n",
-    "%-25.6g "              "Kinvis\n",
-    "%-25.6g "              "Beta\n",
-    "%-25s "                "Fields written\n",
-    "%-25s "                "Format\n"
+    "%-25s "                  "Session\n",
+    "%-25s "                  "Created\n",
+    "%-5d %-5d %-5d %-5d   "  "Nr, Ns, Nz, Elements\n",
+    "%-25d "                  "Step\n",
+    "%-25.6g "                "Time\n",
+    "%-25.6g "                "Time step\n",
+    "%-25.6g "                "Kinvis\n",
+    "%-25.6g "                "Beta\n",
+    "%-25s "                  "Fields written\n",
+    "%-25s "                  "Format\n"
   };
 
   char   s1[StrMax], s2[StrMax];
