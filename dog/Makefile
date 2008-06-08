@@ -29,9 +29,9 @@ endif
 # ----------------------------------------------------------------------------
 # Semtex standard sources.
 #
-SEMFILES = analysis auxfield bcmgr boundary bsys condition domain	\
-	   edge element family feml field geometry history integration	\
-	   matrix mesh misc particle pressure
+SEMFILES = analysis auxfield bcmgr boundary bsys condition data2df	\
+	   domain edge element family feml field geometry history	\
+           integration matrix mesh misc particle pressure
 SEMOBJ   = $(addsuffix .o,$(SEMFILES))
 SEMHDR   = $(addsuffix .h,$(SEMFILES)) sem.h
 
@@ -71,6 +71,12 @@ normalise: normalise.o
 #
 flipmap: flipmap.C
 	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build symmetrise, a utility to enforce reflection symmstry of data.
+#
+symmetrise: symmetrise.C data2df.o 
+	$(CXX) $(CPPFLAGS) -o $@ data2df.o $@.C $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Header dependency.

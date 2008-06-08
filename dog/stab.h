@@ -8,6 +8,7 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include <sem.h>
+#include <data2df.h>
 
 typedef enum { PRIMAL, ADJOINT, GROWTH, SHRINK, EVD, SVD } problem_t;
 
