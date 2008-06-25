@@ -2,6 +2,26 @@
 // drive.C: control spectral element DNS for incompressible flows.
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// Kristina Koal
+//
+// --
+// This file is part of Semtex.
+// 
+// Semtex is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2 of the License, or (at your
+// option) any later version.
+// 
+// Semtex is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with Semtex (see the file COPYING); if not, write to the Free
+// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+// 02110-1301 USA.
+// --
 //
 // USAGE:
 // -----
@@ -15,7 +35,7 @@
 // AUTHOR:
 // ------
 // Hugh Blackburn
-// Department of Mechanical Engineering
+// Department of Mechanical & Engineering
 // Monash University
 // Vic 3800
 // Australia
@@ -24,14 +44,14 @@
 
 static char RCS[] = "$Id$";
 
-#include "dns.h"
+#include <dns.h>
 
 static char prog[] = "dns";
 static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
-			BCmgr*&, BoundarySys*&, Domain*&);
+			BCmgr*&, Domain*&);
 
-void integrateNS (Domain*, DNSAnalyser*, Flowrate*);
+void integrateNS (Domain*, DNSAnalyser*);
 
 
 int main (int    argc,
@@ -40,30 +60,30 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
+#ifdef __itanium__
+  feenableexcept (FE_OVERFLOW);    // -- Force SIG8 crash on FP overflow.
+#endif
+
   char*            session;
   vector<Element*> elmt;
   FEML*            file;
   Mesh*            mesh;
   BCmgr*           bman;
-  BoundarySys*     bsys;
   Domain*          domain;
   DNSAnalyser*     analyst;
-  Flowrate*        discharge = 0;
   
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session);
 
-  preprocess (session, file, mesh, elmt, bman, bsys, domain);
+  preprocess (session, file, mesh, elmt, bman, domain);
 
-  analyst = new DNSAnalyser (domain, file);
+  analyst = new DNSAnalyser (domain, bman, file);
   
-  if (file -> seek ("CUT")) discharge = new Flowrate (domain, file);
-
   domain -> restart();
 
   ROOTONLY domain -> report();
   
-  integrateNS (domain, analyst, discharge);
+  integrateNS (domain, analyst);
 
   Femlib::finalize();
 
@@ -106,12 +126,8 @@ static void getargs (int    argc   ,
       while (*++argv[0] == 'v');
       break;
     case 'c':
-      if (strstr ("chk", *argv)) {
-	Femlib::ivalue ("CHKPOINT", static_cast<int>(1));
-      } else {
-	fprintf (stdout, usage, prog);
-	exit (EXIT_FAILURE);	  
-      }
+      if (strstr ("chk", *argv)) Femlib::ivalue ("CHKPOINT", 1);
+      else { fprintf (stdout, usage, prog); exit (EXIT_FAILURE); }
       break;
     default:
       sprintf (buf, usage, prog);
@@ -122,6 +138,7 @@ static void getargs (int    argc   ,
   
   if   (argc != 1) message (routine, "no session definition file", ERROR);
   else             session = *argv;
+
 }
 
 
@@ -130,21 +147,25 @@ static void preprocess (const char*       session,
 			Mesh*&            mesh   ,
 			vector<Element*>& elmt   ,
 			BCmgr*&           bman   ,
-			BoundarySys*&     bsys   ,
 			Domain*&          domain )
 // ---------------------------------------------------------------------------
 // Create objects needed for execution, given the session file name.
 // They are listed in order of creation.
 // ---------------------------------------------------------------------------
 {
-  const integer      verbose = Femlib::ivalue ("VERBOSE");
+  const int_t        verbose = Femlib::ivalue ("VERBOSE");
   Geometry::CoordSys space;
-  integer            i, np, nz, nel;
+  int_t              i, np, nz, nel;;
 
   // -- Preset specialised tokens.
 
   Femlib::ivalue ("SVV_MN",   0);
   Femlib:: value ("SVV_EPSN", 0.0);
+  
+  Femlib::ivalue ("SVV_MZ",   0);
+  Femlib:: value ("SVV_EPSZ", 0.0);
+
+
 
   // -- Initialise problem and set up mesh geometry.
 

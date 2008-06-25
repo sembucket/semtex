@@ -23,12 +23,11 @@ namespace SVV {
 
 typedef struct { real_t* dv; real_t* dt; } vector_pair;
 
-const real_t* coeffs (const int_t np,
-		      const int_t mN)
+const real_t* coeffs (const int_t np)
 // ---------------------------------------------------------------------------
 // Return from internal storage a pointer to an array Q of SVV filter
-// weights.  We use the token SVV_MN and SVV_EPSN (see [1]) to define
-// this. Specifically, we create
+// weights for x and y direction.We use the token SVV_MN and SVV_EPSN 
+// (see [1]) to define this. Specifically, we create
 //
 //   S = 1 + eps_N/nu * Q.
 //
@@ -41,6 +40,7 @@ const real_t* coeffs (const int_t np,
 
   if (c == cmap.end()) {
     const real_t eps = Femlib:: value ("SVV_EPSN");
+    const int_t  mN  = Femlib:: value ("SVV_MN");
     const real_t nu  = Femlib:: value ("KINVIS");
 
     const int_t  N = np - 1;
@@ -56,6 +56,43 @@ const real_t* coeffs (const int_t np,
   return cmap[np];
 }
 
+const real_t* coeffs_z (const int_t numModes)
+// ---------------------------------------------------------------------------
+// Return from internal storage a pointer to an array Q of SVV filter
+// weights for the z direction. We use the token SVV_MZ and SVV_EPZ 
+// (see [1]) to define this. Specifically, we create
+//
+//   S = 1 + eps_N/nu * Q.
+//
+// If the relevant vector of weights doesn't exist, create it
+// first.
+// ---------------------------------------------------------------------------
+{
+  static map<int_t, real_t*>    czmap;
+  map<int_t, real_t*>::iterator c = czmap.find (numModes);
+
+  if (c == czmap.end()) {
+    const real_t eps  = Femlib:: value ("SVV_EPSZ");
+    const int_t  mN   = Femlib:: value ("SVV_MZ");
+    const real_t nu   = Femlib:: value ("KINVIS");
+
+    const int_t  N    = Geometry::nMode() - 1;
+    const int_t  base = Geometry::baseMode();
+
+    real_t*      svvcoeff = new real [numModes];
+    int_t        i;
+
+    czmap[numModes] = svvcoeff;
+    Veclib::zero (numModes, svvcoeff, 1);
+    for (i = base; i < base + numModes; i++) 
+        if (i > mN) 
+	   svvcoeff[i-base] = exp (-sqr ((N-i)/(1.0*mN -i))) ;
+    for (i = 0; i < numModes; i++)  svvcoeff[i] = 1.0 + eps/nu * svvcoeff[i];
+
+  }
+
+  return czmap[numModes];
+}
 
 void operators (const int_t    np ,
 		const real_t** SDV,
@@ -77,7 +114,7 @@ void operators (const int_t    np ,
   if (d == dmap.end()) {
     real_t*        dv = new real [sqr (np)];
     real_t*        dt = new real [sqr (np)];
-    const real_t*  S  = SVV::coeffs (np, Femlib::ivalue ("SVV_MN"));
+    const real_t*  S  = SVV::coeffs (np);
     vector<real_t> sqrtS (np);
     int_t          i, j;
     const real_t   *DV;  	// -- Lagrange interpolant operator matrix.
@@ -125,7 +162,7 @@ void operators (const int_t    np ,
 int main (int    argc,
 	  char** argv)
 {
-  const int     np = 5;
+  const int     np = 6;
   int_t         i, j;
   const real_t* c;
   const real_t* S;
@@ -140,7 +177,7 @@ int main (int    argc,
   for (i = 0; i < np; i++) cout << c[i] << "  ";
   cout << endl;
 
-  Femlib::quadrature (0, 0, &S, 0, np, LL, 0.0, 0.0);
+  Femlib::quadrature (0, 0, &S, 0, np, 'L', 0.0, 0.0);
 
   cout << "-- The original matrix D" << endl;
   for (i = 0; i < np; i++) {

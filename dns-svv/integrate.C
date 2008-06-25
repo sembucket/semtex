@@ -8,6 +8,25 @@
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
+// --
+// This file is part of Semtex.
+// 
+// Semtex is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2 of the License, or (at your
+// option) any later version.
+// 
+// Semtex is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with Semtex (see the file COPYING); if not, write to the Free
+// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+// 02110-1301 USA.
+// --
+//
 // References:
 // 1. Karniadakis, Israeli & Orszag (1991) "High-order splitting methods
 //    for the incompressible Navier--Stokes equations", JCP 9(2).
@@ -15,7 +34,7 @@
 //    incompressible flows", SIAM J Numer Anal 41(1).
 // 3. Blackburn & Sherwin (2004) "Formulation of a Galerkin spectral
 //    element--Fourier method for three-dimensional incompressible flows
-//    in cylindrical geometries", JCP.
+//    in cylindrical geometries", JCP 179(2).
 //
 // For cylindrical coordinates:
 //   u <==> axial     velocity,  x <==> axial     coordinate direction,
@@ -25,23 +44,22 @@
 
 static char RCS[] = "$Id$";
 
-#include "dns.h"
+#include <dns.h>
 
 typedef ModalMatrixSys Msys;
 
-static integer NDIM, NCOM, NORD;
-static bool    C3D;
+static int_t NDIM, NCOM, NORD;
+static bool  C3D;
 
 static void   waveProp  (Domain*, const AuxField***, const AuxField***);
 static void   setPForce (const AuxField**, AuxField**);
 static void   project   (const Domain*, AuxField**, AuxField**);
 static Msys** preSolve  (const Domain*);
-static void   Solve     (Domain*, const integer, AuxField*, Msys*);
+static void   Solve     (Domain*, const int_t, AuxField*, Msys*);
 
 
 void integrateNS (Domain*      D,
-		  DNSAnalyser* A,
-		  Flowrate*    F)
+		  DNSAnalyser* A)
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
 // constraint Field 'p'.
@@ -55,10 +73,10 @@ void integrateNS (Domain*      D,
   NORD = Femlib::ivalue ("N_TIME");
   C3D  = Geometry::cylindrical() && NCOM == 3;
 
-  integer            i, j, k;
-  const real         dt    = Femlib:: value ("D_T");
-  const integer      nStep = Femlib::ivalue ("N_STEP");
-  const integer      nZ    = Geometry::nZProc();
+  int_t              i, j, k;
+  const real_t       dt    = Femlib:: value ("D_T");
+  const int_t        nStep = Femlib::ivalue ("N_STEP");
+  const int_t        nZ    = Geometry::nZProc();
 
   static Msys**      MMS;
   static AuxField*** Us;
@@ -67,16 +85,12 @@ void integrateNS (Domain*      D,
 
   if (!MMS) {			// -- Initialise static storage.
 
-    // -- Create global matrix systems.
-
-    MMS = preSolve (D);
-
     // -- Create multi-level storage for velocities and forcing.
     
-    const integer ntot  = Geometry::nTotProc();
-    real*         alloc = new real [static_cast<size_t>(2*NCOM*NORD*ntot)];
-    Us                  = new AuxField** [static_cast<size_t>(2 * NORD)];
-    Uf                  = Us + NORD;
+    const int_t ntot  = Geometry::nTotProc();
+    real_t*     alloc = new real_t [static_cast<size_t>(2*NCOM*NORD*ntot)];
+    Us                = new AuxField** [static_cast<size_t>(2 * NORD)];
+    Uf                = Us + NORD;
 
     for (k = 0, i = 0; i < NORD; i++) {
       Us[i] = new AuxField* [static_cast<size_t>(2 * NCOM)];
@@ -86,6 +100,10 @@ void integrateNS (Domain*      D,
 	Uf[i][j] = new AuxField (alloc + k++ * ntot, nZ, D -> elmt);
       }
     }
+
+    // -- Create global matrix systems.
+
+    MMS = preSolve (D);
 
     // -- Create multi-level storage for pressure BCS.
 
@@ -106,7 +124,7 @@ void integrateNS (Domain*      D,
 
   // -- Create spatially-constant forcing terms.
 
-  vector<real> ff (3);
+  vector<real_t> ff (3);
 
   ff[0] = Femlib::value ("FFX");
   ff[1] = Femlib::value ("FFY");
@@ -133,16 +151,6 @@ void integrateNS (Domain*      D,
 
     // -- Complete unconstrained advective substep and compute pressure.
 
-#if defined (OLDCODE)
-    if (Geometry::cylindrical()) Us[0][0] -> mulY();
-    waveProp  (D, const_cast<const AuxField***>(Us),
-	          const_cast<const AuxField***>(Uf));
-    for (i = 0; i < NCOM; i++) AuxField::swapData (D -> u[i], Us[0][i]);
-    rollm     (Uf, NORD, NCOM);
-    setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);
-    Solve     (D, NCOM,  Uf[0][0], MMS[NCOM]); 
-    if (Geometry::cylindrical()) { Us[0][1] -> mulY(); }
-#else
     if (Geometry::cylindrical()) { Us[0][0] -> mulY(); Us[0][1] -> mulY(); }
     waveProp (D, const_cast<const AuxField***>(Us),
 	         const_cast<const AuxField***>(Uf));
@@ -150,7 +158,6 @@ void integrateNS (Domain*      D,
     rollm     (Uf, NORD, NCOM);
     setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);
     Solve     (D, NCOM,  Uf[0][0], MMS[NCOM]);
-#endif
     
     // -- Correct velocities for pressure.
 
@@ -178,8 +185,6 @@ void integrateNS (Domain*      D,
 
     // -- Process results of this step.
 
-    ROOTONLY if (F) cout << "Flowrate: " << F -> getQ() << endl;
-
     A -> analyse (Us[0], Uf[0]);
   }
 
@@ -200,7 +205,7 @@ static void waveProp (Domain*           D ,
 // level structure of Us & Uf.
 // ---------------------------------------------------------------------------
 {
-  integer           i, q;
+  int_t             i, q;
   vector<AuxField*> H (NCOM);	// -- Mnemonic for u^{Hat}.
 
   for (i = 0; i < NCOM; i++) {
@@ -208,9 +213,9 @@ static void waveProp (Domain*           D ,
     *H[i] = 0.0;
   }
 
-  const integer Je = min (D -> step, NORD);
-  vector<real>  alpha (Integration::OrderMax + 1);
-  vector<real>  beta  (Integration::OrderMax);
+  const int_t    Je = min (D -> step, NORD);
+  vector<real_t> alpha (Integration::OrderMax + 1);
+  vector<real_t> beta  (Integration::OrderMax);
   
   Integration::StifflyStable (Je, &alpha[0]);
   Integration::Extrapolation (Je, &beta [0]);
@@ -231,32 +236,14 @@ static void setPForce (const AuxField** Us,
 // in the first dimension of Uf as a forcing field for discrete PPE.
 // ---------------------------------------------------------------------------
 {
-  integer    i;
-  const real dt = Femlib::value ("D_T");
+  int_t        i;
+  const real_t dt = Femlib::value ("D_T");
 
-#if defined (OLDCODE)
-
-  if (Geometry::cylindrical()) {
-    (*Uf[0]  = *Us[1]).divY();
-    (*Uf[1]  = *Us[1]).gradient(1);
-    (*Uf[1] += *Uf[0]).mulY();
-    (*Uf[0]  = *Us[0]).gradient(0);
-    if (NDIM == 3) (*Uf[2]  = *Us[2]).gradient(2);
-    (*Uf[0] += *Uf[1]);
-    if (NDIM == 3) (*Uf[0] += *Uf[2]);
-  } else {
-    for (i = 0; i < NDIM; i++) (*Uf[i] = *Us[i]) . gradient (i);
-    for (i = 1; i < NDIM; i++) *Uf[0] += *Uf[i];
-  }
-
-  *Uf[0] /= dt;
-#else
   for (i = 0; i < NDIM; i++) (*Uf[i] = *Us[i]) . gradient (i);
 
   for (i = 1; i < NDIM; i++) *Uf[0] += *Uf[i];
 
   *Uf[0] /= dt;
-#endif
 }
 
 
@@ -274,20 +261,20 @@ static void project (const Domain* D ,
 // u^^ is left in Uf.
 // ---------------------------------------------------------------------------
 {
-  integer    i;
-  const real alpha = -1.0 / Femlib::value ("D_T * KINVIS");
-  const real beta  =  1.0 / Femlib::value ("KINVIS");
+  int_t        i;
+  const real_t alpha = -1.0 / Femlib::value ("D_T * KINVIS");
+  const real_t beta  =  1.0 / Femlib::value ("KINVIS");
 
   for (i = 0; i < NCOM; i++) {
     Field::swapData (Us[i], Uf[i]);
     if (Geometry::cylindrical() && i == 2) Uf[i] -> mulY();
-    *Uf[i] *= alpha;
+    Uf[i] -> scal_svv(alpha); 
   }
 
   for (i = 0; i < NDIM; i++) {
     (*Us[0] = *D -> u[NCOM]) . gradient (i);
     if (Geometry::cylindrical() && i <  2) Us[0] -> mulY();
-    Uf[i] -> axpy (beta, *Us[0]);
+    Uf[i] -> axpy_svv (beta, *Us[0]);
   }
 }
 
@@ -302,17 +289,17 @@ static Msys** preSolve (const Domain* D)
 // ITERATIVE == 2 adds iterative solver for pressure as well.
 // ---------------------------------------------------------------------------
 {
-  const integer           nmodes = Geometry::nModeProc();
-  const integer           base   = Geometry::baseMode();
-  const integer           itLev  = Femlib::ivalue ("ITERATIVE");
-  const real              beta   = Femlib::value ("BETA");
+  const int_t             nmodes = Geometry::nModeProc();
+  const int_t             base   = Geometry::baseMode();
+  const int_t             itLev  = Femlib::ivalue ("ITERATIVE");
+  const real_t            beta   = Femlib::value ("BETA");
   const vector<Element*>& E = D -> elmt;
   Msys**                  M = new Msys* [static_cast<size_t>(NCOM + 1)];
-  integer                 i;
+  int_t                   i;
 
-  vector<real> alpha (Integration::OrderMax + 1);
+  vector<real_t> alpha (Integration::OrderMax + 1);
   Integration::StifflyStable (NORD, &alpha[0]);
-  const real   lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
+  const real_t   lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
 
   // -- Velocity systems.
 
@@ -330,7 +317,7 @@ static Msys** preSolve (const Domain* D)
 
 
 static void Solve (Domain*       D,
-		   const integer i,
+		   const int_t i,
 		   AuxField*     F,
 		   Msys*         M)
 // ---------------------------------------------------------------------------
@@ -339,17 +326,17 @@ static void Solve (Domain*       D,
 // time order and command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  const integer step = D -> step;
+  const int_t step = D -> step;
 
   if (i < NCOM && step < NORD) { // -- We need a temporary matrix system.
-    const integer Je      = min (step, NORD);    
-    const integer base    = Geometry::baseMode();
-    const integer nmodes  = Geometry::nModeProc();
+    const int_t Je     = min (step, NORD);    
+    const int_t base   = Geometry::baseMode();
+    const int_t nmodes = Geometry::nModeProc();
 
-    vector<real>  alpha (Je + 1);
+    vector<real_t> alpha (Je + 1);
     Integration::StifflyStable (Je, &alpha[0]);
-    const real    lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
-    const real    beta    = Femlib::value ("BETA");
+    const real_t   lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
+    const real_t   beta    = Femlib::value ("BETA");
 
     Msys* tmp = new Msys
       (lambda2, beta, base, nmodes, D -> elmt, D -> b[i], JACPCG);

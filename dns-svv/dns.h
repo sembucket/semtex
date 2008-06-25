@@ -17,17 +17,28 @@ class DNSAnalyser : public Analyser
 // ===========================================================================
 {
 public:
-  DNSAnalyser  (Domain*, FEML*);
+  DNSAnalyser  (Domain*, BCmgr*, FEML*);
   void analyse (AuxField**, AuxField**);
 
 private:
-  ofstream flx_strm;
+  ofstream       _flx_strm;
+
+  bool           _wss; // -- Shorthand for Wall Shear Stress/traction.
+  ofstream       _wss_strm;
+  int_t          _nline;
+  int_t          _nwall;
+  int_t          _npad;
+  
+  vector<real_t> _work;
+
+  void extract_wall ();
 };
 
-void nonLinear (Domain*, AuxField**, AuxField**, vector<real>&);
+void nonLinear (Domain*, AuxField**, AuxField**, vector<real_t>&);
 
 namespace SVV {
-  const real_t* coeffs (const int_t, const int_t);
+  const real_t* coeffs   (const int_t);
+  const real_t* coeffs_z (const int_t);
   void operators (const int_t, const real_t**, const real_t**);
 }
 

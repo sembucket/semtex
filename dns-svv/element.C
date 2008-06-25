@@ -2,11 +2,30 @@
 // element.C: 2D quad spectral element class routines.
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+//
+// --
+// This file is part of Semtex.
+// 
+// Semtex is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2 of the License, or (at your
+// option) any later version.
+// 
+// Semtex is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with Semtex (see the file COPYING); if not, write to the Free
+// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+// 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
 
-#include "dns.h"
+#include <sem.h>
+#include <dns.h>
 
 Element::Element (const int_t id,
 		  const int_t np,
@@ -27,9 +46,9 @@ Element::Element (const int_t id,
 {
   const char routine[] = "Element::Element";
 
-  if (_np < 2) message (routine, "need >= 2 knots for element edges", ERROR);
+  if (_np < 2) message (routine, "need > 2 knots for element edges", ERROR);
 
-  Femlib::quadrature (&_zr, &_wr, &_DVr, &_DTr, _np, 'L', 0.0, 0.0);
+  Femlib::quadrature (&_zr, &_wr, &_DVr, &_DTr, _np, GLJ, 0.0, 0.0);
 
   // -- Make special SVV-modified differentiation matrices if required.
 
@@ -75,6 +94,7 @@ Element::Element (const int_t id,
   Family::adopt (_npnp, &_delta);
 
 #if defined (DAMPING)
+  // -- Compile-in hack for LES.
 #include "damping.C"
   // -- Van Driest damping.
   // An ad-hoc modification to mesh length scale to account for wall
@@ -694,23 +714,17 @@ void Element::evaluate (const char* func,
 }
 
 
-real_t Element::integral (const char* func) const
+real_t Element::integral (const char* func,
+			  real_t*     tmp ) const
 // ---------------------------------------------------------------------------
 // Return integral of func over element, using element quadrature
 // rule.
 // ---------------------------------------------------------------------------
 {
-  real_t         intgrl;
-  vector<real_t> tmp (_npnp);
-
-  Femlib::prepVec  ("x y", func);
-  Femlib__parseVec (_npnp, _xmesh, _ymesh, &tmp[0]);
-
-  Veclib::vmul (_npnp, &tmp[0], 1, _Q4, 1, &tmp[0], 1);
-
-  intgrl = Veclib::sum (_npnp, &tmp[0], 1);
-  
-  return intgrl;
+  Femlib::prepVec    ("x y", func);
+  Femlib__parseVec   (_npnp, _xmesh, _ymesh, &tmp[0]);
+  Veclib::vmul       (_npnp, &tmp[0], 1, _Q4, 1, &tmp[0], 1);
+  return Veclib::sum (_npnp, &tmp[0], 1);
 }
 
 
@@ -720,7 +734,7 @@ real_t Element::integral (const real_t* src,
 // Discrete approximation to the integral of element src vector.
 // ---------------------------------------------------------------------------
 {
-  Veclib::vmul (_npnp, src, 1, _Q4,  1, tmp, 1);
+  Veclib::vmul (_npnp, src, 1, _Q4, 1, tmp, 1);
   return Veclib::sum (_npnp, tmp, 1);
 }
 
@@ -775,7 +789,7 @@ real_t Element::momentY (const real_t* src,
 
 real_t Element::area () const
 // ---------------------------------------------------------------------------
-// Discrete approximation to area of element, using LLL quadrature.
+// Discrete approximation to area of element, using GLL quadrature.
 // ---------------------------------------------------------------------------
 { 
   return Veclib::sum (_npnp, _Q4, 1);
@@ -784,7 +798,7 @@ real_t Element::area () const
 
 void Element::weight (real_t* tgt) const
 // ---------------------------------------------------------------------------
-// Multiply tgt by elemental mass matrix.
+// Multiply tgt by elemental mass matrix. Not multiplied by radius.
 // ---------------------------------------------------------------------------
 {
   Veclib::vmul (_npnp, tgt, 1, _Q8, 1, tgt, 1);
@@ -1118,7 +1132,7 @@ bool Element::locate (const real_t x    ,
 
   i = 0;
   do {
-    Femlib::interpolation (ir,is,dr,ds,_np,'L',0.0,0.0,_np,'L',0.0,0.0,r,s);
+    Femlib::interpolation (ir,is,dr,ds,_np,GLJ,0.0,0.0,_np,GLJ,0.0,0.0,r,s);
 
                Blas::mxv (_xmesh, _np, ir, _np, tp);
     F[0] = x - Blas::dot (_np, is, 1, tp, 1);
@@ -1182,7 +1196,7 @@ real_t Element::probe (const real_t  r   ,
   real_t* is = ir + _np;
   real_t* tp = is + _np;
 
-  Femlib::interpolation (ir,is,0,0,_np,'L',0.0,0.0,_np,'L',0.0,0.0,r,s);
+  Femlib::interpolation (ir,is,0,0,_np,GLJ,0.0,0.0,_np,GLJ,0.0,0.0,r,s);
 
   Blas::mxv        (src, _np, ir, _np, tp);
   return Blas::dot (_np, is, 1, tp, 1);
@@ -1275,8 +1289,7 @@ void Element::mapping ()
 // premultiplication by this factor for cylindrical coords.
 //
 // The local length-scale, delta, is a measure of the size of the
-// local mesh length.  There are two options (selected in compilation
-// stage) below.
+// local mesh length.
 //
 // Null-mapping optimizations mentioned below occur when the element
 // geometry ensures that the entries of a vector are zero to within
@@ -1320,8 +1333,8 @@ void Element::mapping ()
 
   // -- Construct quadrature weights.
 
-  Veclib::zero (_npnp, WW, 1);
-  Blas::ger    (_np, _np, 1.0, _wr, 1, _ws, 1, WW, _np);
+  Veclib::zero  (_npnp, WW, 1);
+  Blas::ger     (_np, _np, 1.0, _wr, 1, _ws, 1, WW, _np);
 
   Veclib::vmul  (_npnp, dyds, 1, dyds, 1, tV,  1);
   Veclib::vvtvp (_npnp, dxds, 1, dxds, 1, tV,  1, _Q1, 1);
@@ -1426,8 +1439,8 @@ void Element::HelmholtzRow (const real_t lambda2,
 // and quadrature weights, and the matrices IN, IT are the Lagrangian
 // interpolation matrix (from the nodes to the quadrature points) and
 // its transpose, while DV, DT are the Lagrangian derivative matrix &
-// transpose.  (For Lobatto quadrature, the IN, IT matrices are
-// identities).
+// transpose.  (For Lobatto quadrature, the only variant now
+// implemented, the IN, IT matrices are identities).
 //
 // (The 1/r^2 factor in the mass matrix is only for cylindrical coordinates.)
 // ---------------------------------------------------------------------------
