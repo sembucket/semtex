@@ -1,10 +1,10 @@
 ///////////////////////////////////////////////////////////////////////////////
 // drive.C: compute leading eigenvalues and eigenvectors for stability
 // analysis based on linearised (Navier--Stokes) operators.
-// Optionally compute the optimal transient growth initial
-// condition. The base flow can be either steady or periodic in time,
-// two or three component, cylindrical or Cartesian, but must be
-// two-dimensional.
+// Optionally compute the optimal transient growth initial condition,
+// final condition, or the adjoint modes. The base flow can be either
+// steady or periodic in time, two or three component, cylindrical or
+// Cartesian, but must be two-dimensional.
 // 
 // Originally based on code "floK" by Dwight Barkley & Ron Henderson.
 //
@@ -71,6 +71,8 @@
 //      ed E Doedel & LS Tuckerman, Springer. 453--466.
 // [4]  HM Blackburn, F Marques & JM Lopez (2005), "Symmetry breaking of 
 //      two-dimensional time-periodic wakes", J Fluid Mech V522, 395--411.
+// [5]  D Barkley, HM Blackburn & SJ Sherwin (2008), "Direct optimal
+//      growth analysis for timesteppers", IJNMF V57, 1435--1458.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -171,10 +173,12 @@ int main (int    argc,
   iparam [9] = 0;		// -- Output, not used here.
   iparam[10] = 0;		// -- Output, number of re-orthog steps.
 
-  // -- Allocate storage.
+  // -- Allocate and zero storage.
 
   vector<real_t> work(3*ntot + lworkl + ntot*kdim + ntot +
 		      2*(nvec+1) + 3*kdim + ntot*(nvec+1));
+  work.clear();
+
   real_t*        workd  = &work[0];
   real_t*        workl  = workd + 3*ntot;
   real_t*        v      = workl + lworkl;
@@ -259,13 +263,13 @@ int main (int    argc,
 
 #else                           // -- Eigensolution by DB algorithm.
 
-  // -- Allocate eigenproblem storage.
+  // -- Allocate and zero eigenproblem storage.
 
   const int_t wdim = kdim + kdim + kdim*kdim + (2*ntot + 1)*(kdim + 1);
 
   vector<real_t> work (wdim);
-  Veclib::zero (wdim, &work[0], 1);
-  
+  work.clear();
+
   real_t*  alpha = &work[0];	             // -- Scale factors.
   real_t*  wr    = alpha + (kdim + 1);       // -- Eigenvalues (real part).
   real_t*  wi    = wr   + kdim;	             //                (imag part).
@@ -777,7 +781,9 @@ static void EV_big (const problem_t task ,
 //
 // Potentially, convergence has been achieved on nvec eigenpairs
 // before the nominated Krylov dimension has been filled, so the
-// computations are only done for the first nvec eigenvectors.
+// computations are only done for the first nvec eigenvectors, but use
+// all kdim vectors in the Krylov sequence.  If this is not yet full,
+// that's OK because the sequence was zeroed at allocation.
 // ---------------------------------------------------------------------------
 {
   real_t norm, resid, wgt;
@@ -787,7 +793,7 @@ static void EV_big (const problem_t task ,
 
   for (j = 0; j < nvec; j++) {
     Veclib::zero (ntot, evecs[j], 1);
-    for (i = 0; i < nvec; i++) {
+    for (i = 0; i < kdim; i++) {
       wgt = zvecs[Veclib::col_major (i, j, kdim)];
       Blas::axpy (ntot, wgt, bvecs[i], 1, evecs[j], 1);
     }
