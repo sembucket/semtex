@@ -20,6 +20,10 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
  *
+ * Reference: Rudman M & Blackburn HM (2006) Direct numerical
+ *  simulation of turbulent non-Newtonian flow using a spectral
+ *  element method, Appl Math Mod, V30N11: 1229-1248.
+ *
  * $Id$
  *****************************************************************************/
 
