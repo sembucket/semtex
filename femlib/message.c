@@ -134,10 +134,11 @@ void message_dexchange (double*       data,
  * all the z-information for a block onto each a single processor, which e.g.
  * can be followed by multiple 1D Fourier transformations over each block.
  *
- * First the data are exchanged within a single processor so that (in terms
- * of blocks) the block (rather than the z) indices vary slowest as memory 
- * is traversed.  Then a block-transpose of data across processors is
- * carried out using message passing.
+ * First the data are exchanged within a single processor so that (in
+ * terms of blocks) the block (rather than the z) indices vary slowest
+ * as memory is traversed.  This is the "in-place scatter".  Then a
+ * block-transpose of data across processors is carried out using
+ * message passing.
  *
  * NB: order of inter- and intra-processor exchanges must be reversed 
  * in order to invert the exchange with a second exchange: this is the use
