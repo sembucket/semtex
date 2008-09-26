@@ -485,7 +485,7 @@ END OF HEADER COMMENTS ....
 #define   NumChrsZoneName  32
 #define   MaxLineIndex     4023
 #define   MaxNumVars       100 
-#define   MaxNumZones      2000
+#define   MaxNumZones      5000
 #define   MaxGeometryPts   6000
 #define   MaxGeomSegments  25
 #define   MaxCustomLabels  30
