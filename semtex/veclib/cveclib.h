@@ -76,12 +76,12 @@ FILE*   efopen  (const char *file,    const char *mode);
 double  dclock  (void);
 float   sclock  (void);
 
-void    printegerDvector (FILE *fp,  integer width, integer prec,
-			   integer ntot,  integer inc,   integer nfield, ...);
-void    printegerIvector (FILE *fp,  integer width,           
-			   integer ntot,  integer inc,   integer nfield, ...);
-void    printegerSvector (FILE *fp,  integer width, integer prec,
-			   integer ntot,  integer inc,   integer nfield, ...);
+void    printDvector (FILE *fp,  integer width, integer prec,
+		      integer ntot,  integer inc,   integer nfield, ...);
+void    printIvector (FILE *fp,  integer width,           
+		      integer ntot,  integer inc,   integer nfield, ...);
+void    printSvector (FILE *fp,  integer width, integer prec,
+		       integer ntot,  integer inc,   integer nfield, ...);
 
 /* ------------------------------------------------------------------------- *
  * MEMORY MANAGEMENT:

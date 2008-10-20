@@ -64,6 +64,7 @@ static struct {
   "AVERAGE"     ,   0   ,	/* -- Select averaging of fields.         */
   "SPAWN"       ,   0   ,	/* -- Set respawning for particle tracks. */
   "N_PHASE"     ,   0   ,       /* -- Toggle phase averaging.             */
+  "SEED_RAND"   ,   0   ,       /* -- Set wall-clock random seeding.      */
   
   /* -- Default integer values. */
 
