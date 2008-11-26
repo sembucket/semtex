@@ -316,7 +316,7 @@ istream& operator >> (istream& strm,
   ROOTONLY {
     if (nfields != strlen (D.field)) {
       sprintf (err, ": file: %1d fields, Domain: %1d",
-	       nfields, strlen(D.field));
+	       nfields, static_cast<int_t>(strlen(D.field)));
       cerr << endl;
       message (routine, err, WARNING);
     }
