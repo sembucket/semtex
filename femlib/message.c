@@ -60,10 +60,6 @@ void message_init (int*    argc,
   sprintf       (s, "I_PROC = %1d", n);
   yy_interpret  (s);
 
-  if (rint(yy_interpret ("SEED_RAND")) > 0)
-    /* Seed random number with a unique value for this run and process. */
-    raninit (-((n+1) * (short)time (NULL)));
-
   MPI_Comm_size (MPI_COMM_WORLD,   &n);
   sprintf       (s, "N_PROC = %1d", n);
   yy_interpret  (s);
@@ -71,10 +67,6 @@ void message_init (int*    argc,
 #else
 
   yy_initialize ();
-
-  if (rint(yy_interpret ("SEED_RAND")) > 0)
-    /* Seed random number with a unique value for this run. */
-    raninit (-((short)time (NULL)));
 
 #endif
 }

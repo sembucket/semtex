@@ -72,7 +72,8 @@ static char* hdr_fmt[] = {	 /* -- Header output formatting. */
 typedef struct {		 /* -- Data information structure. */
   char     session [STR_MAX];
   char     creation[STR_MAX];
-  int      np               ;
+  int      nr               ;
+  int      ns               ;
   int      nz               ;
   int      nel              ;
   int      step             ;
@@ -111,7 +112,8 @@ int main (int    argc,
   getheader (oldfile, olddump);
   getheader (newfile, newdump);
 
-  if (olddump -> np  != newdump -> np  ||
+  if (olddump -> nr  != newdump -> nr  ||
+      olddump -> ns  != newdump -> ns  ||
       olddump -> nz  != newdump -> nz  ||
       olddump -> nel != newdump -> nel)
     message (prog, "structure of files don't match",           ERROR);
@@ -176,7 +178,7 @@ static void getheader (FILE* f,
 
   fgets  (h -> session,  STR_MAX, f);
   fgets  (h -> creation, STR_MAX, f);
-  fscanf (f, "%d %*s %d %d", &h -> np, &h -> nz, &h -> nel);
+  fscanf (f, "%d %d %d %d", &h -> nr, &h -> ns, &h -> nz, &h -> nel);
   fgets  (buf, STR_MAX, f);
   fscanf (f, "%d", &h -> step);
   fgets  (buf, STR_MAX, f);
@@ -207,7 +209,7 @@ static void getdata (FILE* f,
 {
   char      localfmt[STR_MAX];
   int       i, swab;
-  const int npts    = h -> np * h -> np * h -> nz * h -> nel;
+  const int npts    = h -> nr * h -> ns * h -> nz * h -> nel;
   const int nfields = strlen (h -> field);
   const int ntot    = npts * nfields;
 
@@ -236,7 +238,7 @@ static void runavg (Dump* a,
   int       i;
   double    fac;
   const int nfields = strlen (a -> field);
-  const int npts    = a -> np * a -> np * a -> nz * a -> nel;
+  const int npts    = a -> nr * a -> ns * a -> nz * a -> nel;
  
   if (init) {
     fac = 0.5;
@@ -262,7 +264,7 @@ static void printup (FILE* f,
  * ------------------------------------------------------------------------- */
 {
   int       i;
-  const int ntot = h -> np * h -> np * h -> nz * h -> nel;
+  const int ntot = h -> nr * h -> ns * h -> nz * h -> nel;
   const int nfields = strlen (h -> field);
   char      s1[STR_MAX], s2[STR_MAX];
   time_t    tp = time (0);
@@ -271,7 +273,7 @@ static void printup (FILE* f,
   strftime (s2, 25, "%a %b %d %H:%M:%S %Y", localtime (&tp));
   sprintf  (s1, hdr_fmt[1], s2);
   fprintf  (f, s1);
-  sprintf  (s1, hdr_fmt[2], h -> np, h -> np, h -> nz, h -> nel);
+  sprintf  (s1, hdr_fmt[2], h -> nr, h -> ns, h -> nz, h -> nel);
   fprintf  (f, s1);
   sprintf  (s1, hdr_fmt[3], h -> step);
   fprintf  (f, s1);

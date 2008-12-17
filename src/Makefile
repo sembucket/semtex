@@ -19,6 +19,7 @@ LIBDIR   = -L$(SEM)/lib/$(ARCH)
 #
 ARCH = $(shell uname -s)
 MACH = $(shell uname -m)
+HOST = $(shell uname -n)
 ifeq ($(ARCH),Linux)
   ifeq ($(MACH),alpha)
     ARCH = Linux-alpha
@@ -33,7 +34,11 @@ ifeq ($(ARCH),Linux)
     ARCH = Linux-x86_64
   endif
   ifeq ($(MACH),ia64)
-    ARCH = Linux-ia64
+    ifeq ($(HOST),ac)
+      ARCH = Linux-ia64-altix
+    else
+      ARCH = Linux-ia64
+    endif
   endif
 endif
 
@@ -111,14 +116,15 @@ endif
 CFLAGS   = $(DEFINES) $(OPT) -ansi
 CXXFLAGS = $(DEFINES) $(OPT) -ansi
 FFLAGS   = $(DEFINES) $(OPT)
-LIBDIR   += -L/sw/lib 
+LIBDIR   += -L/sw/lib
 LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
 #F77LIBS  = -lfastblas -framework Accelerate -lg95
+#F77LIBS  = -framework Accelerate -lgfortran
 F77LIBS  = -framework Accelerate -lgfortran
 CLDFLAGS = $(LDFLAGS)
 ifdef MPI
-  CPPFLAGS += -I/sw/include/lammpi
-  LIBDIR   += -L/sw/lib/lammpi
+  CPPFLAGS += -I/usr/local/include/lammpi
+  LIBDIR   += -L/usr/local/lib
   LDFLAGS   =  $(OPT) $(LIBDIR) -lfem_mp -lvec $(F77LIBS) -lmpi -llam
 else
   LDFLAGS   =  $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
