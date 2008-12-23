@@ -23,9 +23,11 @@
 static double  UD     (double, double);
 static double  GD     (double, double);
 static double  ran2   (long *);
+static double  ran3   (long *);
 static double  gasdev (long *);
 static long    iseed  = 0;
 
+#define _GENERATOR_ ran3
  
 double dranu (void)
 /* ------------------------------------------------------------------------- *
@@ -125,7 +127,7 @@ void raninit (integer flag)
 {
   iseed = (flag > 0) ? -time (NULL) : flag;
 
-  (void) ran2 (&iseed);
+  (void) _GENERATOR_ (&iseed);
 }
 
 
@@ -139,7 +141,7 @@ static double UD (double low, double high)
  * Return a random number UD on (low, high).
  * ------------------------------------------------------------------------- */
 {
-  return ran2 (&iseed) * (high - low) + low;
+  return _GENERATOR_ (&iseed) * (high - low) + low;
 }
 
 
@@ -150,6 +152,33 @@ static double GD (double mean, double sdev)
  * ------------------------------------------------------------------------- */
 {
   return gasdev (&iseed) * sdev + mean;
+}
+
+
+static double gasdev (long* idum)
+/* ------------------------------------------------------------------------- *
+ * Returns a normally distributed deviate with zero mean and unit variance,
+ * using ran2(idum) as the source of uniform deviates.
+ * ------------------------------------------------------------------------- */
+{
+  static integer iset = 0;
+  static double  gset;
+  double         fac, rsq, v1, v2;
+
+  if (iset == 0) {
+    do {
+      v1 = 2.0 * _GENERATOR_ (idum) - 1.0;
+      v2 = 2.0 * _GENERATOR_ (idum) - 1.0;
+      rsq = v1*v1 + v2*v2;
+    } while (rsq >= 1.0 || rsq == 0.0);
+    fac = sqrt(-2.0 * log (rsq) / rsq);
+    gset = v1 * fac;
+    iset = 1;
+    return v2 * fac;
+  } else {
+    iset = 0;
+    return gset;
+  }
 }
 
 
@@ -165,7 +194,7 @@ static double GD (double mean, double sdev)
 #define IR2   3791
 #define NTAB  32
 #define NDIV  (1+IMM1/NTAB)
-#define EPS   1.2e-13
+#define EPS   1.2e-7
 #define RNMX  (1.0-EPS)
 
 
@@ -179,12 +208,12 @@ static double ran2 (long* idum)
  * value that is less than 1.
  * ------------------------------------------------------------------------- */
 {
-  integer      j;
-  long         k;
-  static long  idum2=123456789;
-  static long  iy=0;
-  static long  iv[NTAB];
-  double       temp;
+  int         j;
+  long        k;
+  static long idum2=123456789;
+  static long iy=0;
+  static long iv[NTAB];
+  float       temp;
 
   if (*idum <= 0) {
     if (-(*idum) < 1) *idum = 1;
@@ -217,28 +246,72 @@ static double ran2 (long* idum)
 }
 
 
-static double gasdev (long* idum)
+#undef IM1
+#undef IM2
+#undef AM
+#undef IMM1
+#undef IA1
+#undef IA2
+#undef IQ1
+#undef IQ2
+#undef IR1
+#undef IR2
+#undef NTAB
+#undef NDIV
+#undef EPS
+#undef RNMX
+
+
+#define MBIG 1000000000
+#define MSEED 161803398
+#define MZ 0
+#define FAC (1.0/MBIG)
+
+
+double ran3 (long* idum)
 /* ------------------------------------------------------------------------- *
- * Returns a normally distributed deviate with zero mean and unit variance,
- * using ran2(idum) as the source of uniform deviates.
+ * Knuth's random number generator.
+ * Set idum to any negative value to initialize or re-initialize sequence.
  * ------------------------------------------------------------------------- */
 {
-  static integer iset = 0;
-  static double  gset;
-  double         fac, rsq, v1, v2;
+  static int  inext, inextp;
+  static long ma[56];
+  static int  iff = 0;
+  long        mj, mk;
+  int         i, ii, k;
 
-  if (iset == 0) {
-    do {
-      v1 = 2.0 * ran2 (idum) - 1.0;
-      v2 = 2.0 * ran2 (idum) - 1.0;
-      rsq = v1*v1 + v2*v2;
-    } while (rsq >= 1.0 || rsq == 0.0);
-    fac = sqrt(-2.0 * log (rsq) / rsq);
-    gset = v1 * fac;
-    iset = 1;
-    return v2 * fac;
-  } else {
-    iset = 0;
-    return gset;
+  if (*idum  < 0 || iff == 0) {
+    iff = 1;
+    mj = MSEED - (*idum < 0 ? -*idum : *idum);
+    mj %= MBIG;
+    ma[55] = mj;
+    mk = 1;
+    for (i = 1; i <= 54; i++) {
+      ii = (21*i) * 55;
+      ma[ii] = mk;
+      mk = mj - mk;
+      if (mk < MZ) mk += MBIG;
+      mj = ma[ii];
+    }
+    for (k = 1; k <= 4; k++) 
+      for (i = 1; i <= 55; i++) {
+	ma[i] -= ma[i + (i + 30) % 55];
+	if (ma[i] < MZ) ma[i] += MBIG;
+      }
+    inext = 0;
+    inextp = 31;
+    *idum = 1;
   }
+  if (++inext == 56) inext = 1;
+  if (++inextp == 56) inextp = 1;
+  mj = ma[inext] - ma[inextp];
+  if (mj < MZ) mj += MBIG;
+  ma[inext] = mj;
+  return mj * FAC;
 }
+
+
+#undef MBIG
+#undef MSEED
+#undef MZ
+#undef FAC
