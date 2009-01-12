@@ -295,7 +295,7 @@ double ran3 (long* idum)
     }
     for (k = 1; k <= 4; k++) 
       for (i = 1; i <= 55; i++) {
-	ma[i] -= ma[i + (i + 30) % 55];
+	ma[i] -= ma[1 + (i + 30) % 55];
 	if (ma[i] < MZ) ma[i] += MBIG;
       }
     inext = 0;
