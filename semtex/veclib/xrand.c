@@ -13,6 +13,7 @@
 
 #include <math.h>
 #include <time.h>
+#include <stdio.h>
 #include <cfemdef.h>
 
 #if defined(__uxp__)
@@ -22,12 +23,13 @@
 
 static double  UD     (double, double);
 static double  GD     (double, double);
+static double  ran1   (long *);
 static double  ran2   (long *);
 static double  ran3   (long *);
 static double  gasdev (long *);
 static long    iseed  = 0;
 
-#define _GENERATOR_ ran3
+#define _GENERATOR_ ran2
  
 double dranu (void)
 /* ------------------------------------------------------------------------- *
@@ -151,14 +153,14 @@ static double GD (double mean, double sdev)
  * standard deviation.
  * ------------------------------------------------------------------------- */
 {
-  return gasdev (&iseed) * sdev + mean;
+  return (mean + sdev * (gasdev (&iseed)));
 }
 
 
 static double gasdev (long* idum)
 /* ------------------------------------------------------------------------- *
  * Returns a normally distributed deviate with zero mean and unit variance,
- * using ran2(idum) as the source of uniform deviates.
+ * using _GENERATOR_(idum) as the source of uniform deviates.
  * ------------------------------------------------------------------------- */
 {
   static integer iset = 0;
@@ -182,6 +184,59 @@ static double gasdev (long* idum)
 }
 
 
+#define IA 16807
+#define IM 2147483647
+#define AM (1.0/IM)
+#define IQ 127773
+#define IR 2836
+#define NTAB 32
+#define NDIV (1+(IM-1)/NTAB)
+#define EPS 1.2e-7
+#define RNMX (1.0-EPS)
+
+static double ran1 (long* idum)
+/* ------------------------------------------------------------------------- *
+ * Ran1 from NR.
+ * ------------------------------------------------------------------------- */
+{
+  int    j;
+  long   k;
+  static long iy = 0;
+  static long iv[NTAB];
+  float  temp;
+
+  if (*idum <= 0 || !iy) {
+    if (-(*idum) < 1) *idum = 1;
+    else *idum = -(*idum);
+    for (j = NTAB+7; j >= 0; j--) {
+      k = (*idum)/IQ;
+      *idum = IA*(*idum - k*IQ) - IR*k;
+      if (*idum < 0) *idum += IM;
+      if (j < NTAB) iv[j] = *idum;
+    }
+    iy = iv[0];
+  }
+  k = (*idum)/IQ;
+  *idum = IA*(*idum - k*IQ) - IR*k;
+  if (*idum < 0) *idum += IM;
+  j = iy / NDIV;
+  iy = iv[j];
+  iv[j] = *idum;
+  if ((temp = AM*iy) > RNMX) return RNMX;
+  else return temp;
+}
+
+#undef IA
+#undef IM
+#undef AM
+#undef IQ
+#undef IR
+#undef NTAB
+#undef NDIV
+#undef EPS
+#undef RNMX
+
+
 #define IM1   2147483563
 #define IM2   2147483399
 #define AM    (1.0/IM1)
@@ -197,15 +252,13 @@ static double gasdev (long* idum)
 #define EPS   1.2e-7
 #define RNMX  (1.0-EPS)
 
-
 static double ran2 (long* idum)
 /* ------------------------------------------------------------------------- *
- * Long period (>2x10^18) random number generator of L'Ecuyer with Bays-
- * Durham shuffle and added safeguards.  Returns a uniform random deviate
- * between 0.0 & 1.0 (exclusive of endpoints).  Call with idum a negative
- * integer to initialize; thereafter, do not alter idum between successive
- * deviates in a sequence.  RNMX should approximate the largest floating
- * value that is less than 1.
+ * Ran2 from NR 2e.  Returns a uniform random deviate between 0.0 &
+ * 1.0 (exclusive of endpoints).  Call with idum a negative integer to
+ * initialize; thereafter, do not alter idum between successive
+ * deviates in a sequence.  RNMX should approximate the largest
+ * floating value that is less than 1.
  * ------------------------------------------------------------------------- */
 {
   int         j;
@@ -221,7 +274,7 @@ static double ran2 (long* idum)
     idum2 = (*idum);
     for (j=NTAB+7; j>=0; j--) {
       k = (*idum) / IQ1;
-      *idum = IA1 * (*idum - k*IQ1) -k*IR1;
+      *idum = IA1 * (*idum - k*IQ1) - k*IR1;
       if (*idum < 0) *idum += IM1;
       if (j < NTAB) iv[j] = *idum;
     }
@@ -245,7 +298,6 @@ static double ran2 (long* idum)
   else                     return temp;
 }
 
-
 #undef IM1
 #undef IM2
 #undef AM
@@ -267,7 +319,6 @@ static double ran2 (long* idum)
 #define MZ 0
 #define FAC (1.0/MBIG)
 
-
 double ran3 (long* idum)
 /* ------------------------------------------------------------------------- *
  * Knuth's random number generator.
@@ -280,14 +331,14 @@ double ran3 (long* idum)
   long        mj, mk;
   int         i, ii, k;
 
-  if (*idum  < 0 || iff == 0) {
+  if (*idum < 0 || iff == 0) {
     iff = 1;
     mj = MSEED - (*idum < 0 ? -*idum : *idum);
     mj %= MBIG;
     ma[55] = mj;
     mk = 1;
     for (i = 1; i <= 54; i++) {
-      ii = (21*i) * 55;
+      ii = (21*i) % 55;
       ma[ii] = mk;
       mk = mj - mk;
       if (mk < MZ) mk += MBIG;
@@ -298,18 +349,17 @@ double ran3 (long* idum)
 	ma[i] -= ma[1 + (i + 30) % 55];
 	if (ma[i] < MZ) ma[i] += MBIG;
       }
-    inext = 0;
+    inext  = 0;
     inextp = 31;
-    *idum = 1;
+    *idum  = 1;
   }
-  if (++inext == 56) inext = 1;
+  if (++inext  == 56) inext  = 1;
   if (++inextp == 56) inextp = 1;
   mj = ma[inext] - ma[inextp];
   if (mj < MZ) mj += MBIG;
   ma[inext] = mj;
   return mj * FAC;
 }
-
 
 #undef MBIG
 #undef MSEED
