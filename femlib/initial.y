@@ -549,7 +549,7 @@ static void *emalloc (const size_t n)
 }
 
 static double Heavi (double x) { return (x >= 0.0) ? 1.0 : 0.0; }
-static double White (double x) { return dnormal (0, x); }
+static double White (double x) { return dnormal (0.0, x); }
 static double Step  (double x, double a) { return (x >= a) ? 1.0 : 0.0; }
 
 static double Rad (double x, double y) { return hypot (x, y);  }

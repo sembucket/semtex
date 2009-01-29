@@ -917,7 +917,7 @@ AuxField& AuxField::zeroNyquist ()
 // ---------------------------------------------------------------------------
 // Set storage for highest frequency mode to zero.  This mode is
 // carried but never evolves, and is stored as the second data plane
-// on the lowest-numbered processor.
+// on the lowest-numbered process.
 // ---------------------------------------------------------------------------
 {
   ROOTONLY if (_nz > 1) Veclib::zero (Geometry::planeSize(), _plane[1], 1);
@@ -1168,7 +1168,7 @@ void AuxField::couple (AuxField*   v  ,
 		       AuxField*   w  ,
 		       const int_t dir)
 // ---------------------------------------------------------------------------
-// Couples/uncouple field data for the radial and azimuthal velocity
+// Couple/uncouple field data for the radial and azimuthal velocity
 // fields in cylindrical coordinates, depending on indicated
 // direction.  This action is required due to the coupling in the
 // viscous terms of the N--S equations in cylindrical coords.
@@ -1188,7 +1188,7 @@ void AuxField::couple (AuxField*   v  ,
 {
   if (Geometry::nDim() < 3) return;
 
-  const char     routine[] = "Field::couple";
+  const char     routine[] = "AuxField::couple";
   const int_t    nP    =  Geometry::planeSize();
   const int_t    nMode =  Geometry::nModeProc();
   const int_t    kLo   = (Geometry::procID() == 0) ? 1 : 0;
