@@ -50,6 +50,9 @@ CXX      = icc
 LD       = icc
 CC       = icc
 FC       = ifort
+ifdef NUMA
+  DEFINES += -DNUMA
+endif
 ifdef DEBUG
   OPT    = -g
 else
@@ -60,7 +63,6 @@ FFLAGS   = $(DEFINES) $(OPT)
 CXXFLAGS = $(DEFINES) $(OPT) -Wno-deprecated
 RANLIB   = ranlib
 
-#FCHOME   = /opt/intel-fc/9.0.025
 FCHOME   = /opt/intel-fc/9.1.051
 F77LIBS  = -L$(FCHOME)/lib -lmkl_lapack -lmkl -lmkl_ipf -lguide -lifcore -lstdc++ -lipr
 
