@@ -11,7 +11,7 @@ SEM  = ../..
 #
 % : %.c
 	$(CC) $(CFLAGS) -o $@ $@.c -I$(SEM)/include -I. \
-	-L$(SEM)/lib -lfem -lvec -lm
+	-L$(SEM)/lib/$(ARCH) -lfem -lvec -lm
 
 % : %.C
 	$(CXX) -o $@ $@.C $(CXXFLAGS) -I$(SEM)/include -I. \

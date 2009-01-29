@@ -10,9 +10,9 @@ class Field : public AuxField
 //
 // A Field holds global node numbers and solve masks for element
 // boundaries: where mesh value is given by an essential BC, solve
-// mask is 0, for all other nodes have value 1.
+// mask is 0, for all other nodes the value is 1.
 //
-// Helmholtz solution routines are also available.
+// Helmholtz solution routines are also provided here.
 // ===========================================================================
 {
 friend class PBCmgr;

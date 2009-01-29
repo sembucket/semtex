@@ -124,7 +124,7 @@ static void getargs (int    argc   ,
     case 't':
       do
 	Femlib::ivalue ("TBCS",      Femlib::ivalue ("TBCS")      + 1);
-      while (*++argv[0] == 'i');
+      while (*++argv[0] == 't');
       break;
     case 'v':
       do
@@ -186,19 +186,16 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "done" << endl;
 
-#if 1
   // -- If token RANSEED > 0 then initialize the random number
   //    generator based on wall clock time and process ID (i.e. a "truly"
-  //    random number).  NB: it is important to have done this before any
-  //    other possible call to random number routines.
+  //    pseudo-random number).  NB: it is important to have done this
+  //    before any other possible call to random number routines.
 
   if (Femlib::ivalue("RANSEED") > 0) {
     int_t procid = Geometry::procID();
     int_t seed   = -abs((procid + 1) * (char) time(NULL));
     Veclib::ranInit (seed);
   }
-#endif
-
 
   // -- Build all the elements.
 

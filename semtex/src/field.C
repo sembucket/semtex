@@ -174,9 +174,12 @@ void Field::bTransform (const int_t sign)
 // ---------------------------------------------------------------------------
 // Compute forward or backward 1D-DFT of boundary value storage areas.
 //
-// Normalization is carried out on forward transform, so that the zeroth
+// Normalization is carried out on forward transform, such that the zeroth
 // mode's real_t data are the average over the homogeneous direction of the
 // physical space values.  See also comments for AuxField::transform.
+//
+// The Nyquist data do not need to be zeroed as these planes are never
+// evolved regardless of BC.
 // ---------------------------------------------------------------------------
 {
   const int_t nZ  = Geometry::nZ();
@@ -226,7 +229,8 @@ void Field::evaluateBoundaries (const int_t step   ,
 //
 // This routine is mainly intended to be used for boundary conditions
 // that must be re-evaluated at every step, such as high-order
-// pressure BCs.
+// pressure BCs or velocity and scalar fields that explicitly vary in
+// time.
 // ---------------------------------------------------------------------------
 {
   const int_t  np    = Geometry::nP();
@@ -1131,7 +1135,7 @@ void Field::coupleBCs (Field*      v  ,
 		       Field*      w  ,
 		       const int_t dir)
 // ---------------------------------------------------------------------------
-// Couples/uncouple boundary condition values for the radial and
+// Couple/uncouple boundary condition values for the radial and
 // azimuthal velocity fields in cylindrical coordinates, depending on
 // indicated direction.  This action is required due to the coupling
 // in the viscous terms of the N--S equations in cylindrical coords.
@@ -1151,7 +1155,7 @@ void Field::coupleBCs (Field*      v  ,
 {
   if (Geometry::nDim() < 3) return;
 
-  const char     routine[] = "Field::couple";
+  const char     routine[] = "Field::coupleBCs";
   register int_t k, Re, Im;
   const int_t    nL    =  v -> _nline;
   const int_t    nMode =  Geometry::nModeProc();

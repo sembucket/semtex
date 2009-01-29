@@ -3,10 +3,10 @@
  *
  * The following set of routines provides several types of random number
  * generation.  The only routines provided as part of VECLIB generate a
- * set of numbers distributed uniformly on (0,1), but an extension to
+ * set of numbers distributed uniformly on (0,1), but here an extension to
  * normally-distributed RVs has been implemented.
  *
- * Source: Numerical Recipes.
+ * Source: Numerical Recipes 2nd edn.
  *
  * $Id$
  *****************************************************************************/
@@ -23,13 +23,28 @@
 
 static double  UD     (double, double);
 static double  GD     (double, double);
-static double  ran1   (long *);
-static double  ran2   (long *);
-static double  ran3   (long *);
+static double  ran1   (long *);	/* These are provided as alternatives */
+static double  ran2   (long *);	/* but rand2 is the default. Change   */
+static double  ran3   (long *);	/* _GENERATOR_ below to use another.  */
 static double  gasdev (long *);
 static long    iseed  = 0;
 
 #define _GENERATOR_ ran2
+
+
+void raninit (integer flag)
+/* ------------------------------------------------------------------------- *
+ * Initialise random number generator.  Non-positive numbers
+ * initialise the generator directly (with supplied value); if flag is
+ * positive, the seed is generated from the wall-clock time (the value
+ * of flag is irrelevant in this case).
+ * ------------------------------------------------------------------------- */
+{
+  iseed = (flag > 0) ? -time (NULL) : flag;
+
+  (void) _GENERATOR_ (&iseed);
+}
+
  
 double dranu (void)
 /* ------------------------------------------------------------------------- *
@@ -119,22 +134,8 @@ void svnormal (integer n, float mean, float sdev, float* x, integer incx)
 }
 
 
-void raninit (integer flag)
-/* ------------------------------------------------------------------------- *
- * Initialise random number generator.  Non-positive numbers
- * initialise the generator directly (with supplied value); if flag is
- * positive, the seed is generated from the wall-clock time (the value
- * of flag is irrelevant in this case).
- * ------------------------------------------------------------------------- */
-{
-  iseed = (flag > 0) ? -time (NULL) : flag;
-
-  (void) _GENERATOR_ (&iseed);
-}
-
-
 /*****************************************************************************
- * Remaining routines are only accessible internally.
+ * Remaining routines only have file scope.
  *****************************************************************************/
 
 
@@ -160,7 +161,7 @@ static double GD (double mean, double sdev)
 static double gasdev (long* idum)
 /* ------------------------------------------------------------------------- *
  * Returns a normally distributed deviate with zero mean and unit variance,
- * using _GENERATOR_(idum) as the source of uniform deviates.
+ * using _GENERATOR_(idum) as the source of uniform deviates. NR 2e.
  * ------------------------------------------------------------------------- */
 {
   static integer iset = 0;
@@ -197,6 +198,7 @@ static double gasdev (long* idum)
 static double ran1 (long* idum)
 /* ------------------------------------------------------------------------- *
  * Ran1 from NR.
+ * Set idum to any negative value to initialize or re-initialize sequence.
  * ------------------------------------------------------------------------- */
 {
   int    j;
