@@ -40,6 +40,15 @@
 #include <cfemlib.h>
 #include <cveclib.h>
 
+#if defined (NUMA)
+/* Need this forward declaration for SGI-specific routine. */
+extern void _fastbcopy(const void *src, void *dest, size_t n);
+    #define __MEMCPY(dest, src, n) _fastbcopy(src, dest, n)
+#else
+    #define __MEMCPY(dest, src, n) __MEMCPY(dest, src, n)
+#endif
+
+
 
 void message_init (int*    argc,
 		   char*** argv)
@@ -165,9 +174,9 @@ void message_dexchange (double*       data,
       for (i = 0; i < nZ; i++)
 	for (j = i; j < nZ; j++) {
 	  if (i != j) {
-	    memcpy (tmp,                data + (i*nZ+j)*nB, nB * dsize);
-	    memcpy (data + (i*nZ+j)*nB, data + (j*nZ+i)*nB, nB * dsize);
-	    memcpy (data + (j*nZ+i)*nB, tmp,                nB * dsize);
+	    __MEMCPY (tmp,                data + (i*nZ+j)*nB, nB * dsize);
+	    __MEMCPY (data + (i*nZ+j)*nB, data + (j*nZ+i)*nB, nB * dsize);
+	    __MEMCPY (data + (j*nZ+i)*nB, tmp,                nB * dsize);
 	  }
 	}
 
@@ -192,9 +201,9 @@ void message_dexchange (double*       data,
 
       while (k = first (nZ*NB, kmove)) {
 	knext = kconf = kpost[k];
-	memcpy (tmp, data + kconf * nB, nB * dsize);
+	__MEMCPY (tmp, data + kconf * nB, nB * dsize);
 	do {
-	  memcpy (data + knext * nB, data + k * nB, nB * dsize);
+	  __MEMCPY (data + knext * nB, data + k * nB, nB * dsize);
 	  kmove[k] = 0;
 	  for (i = 1; i < NBnZm; i++)
 	    if (kpost[i] == k) {
@@ -203,7 +212,7 @@ void message_dexchange (double*       data,
 	      break;
 	    }
 	} while (k != kconf);
-	memcpy (data + knext * nB, tmp, nB * dsize);
+	__MEMCPY (data + knext * nB, tmp, nB * dsize);
 	kmove[k] = 0;
       }
       
@@ -217,7 +226,7 @@ void message_dexchange (double*       data,
 	MPI_Isend   (data+i*NM, NM, MPI_DOUBLE, i,9,MPI_COMM_WORLD, request);
 	MPI_Irecv   (tmp,       NM, MPI_DOUBLE, i,9,MPI_COMM_WORLD, request+1);
 	MPI_Waitall (2, request, status);
-	memcpy      (data+i*NM, tmp, NM * dsize);
+	__MEMCPY      (data+i*NM, tmp, NM * dsize);
       }
 
   } else {			/* -- "Backwards" exchange. */
@@ -227,7 +236,7 @@ void message_dexchange (double*       data,
 	MPI_Isend   (data+i*NM, NM, MPI_DOUBLE, i,9,MPI_COMM_WORLD, request);
 	MPI_Irecv   (tmp,       NM, MPI_DOUBLE, i,9,MPI_COMM_WORLD, request+1);
 	MPI_Waitall (2, request, status);
-	memcpy      (data+i*NM, tmp, NM * dsize);
+	__MEMCPY      (data+i*NM, tmp, NM * dsize);
       }
 
     if (NB == nZ) {
@@ -235,9 +244,9 @@ void message_dexchange (double*       data,
       for (i = 0; i < nZ; i++)
 	for (j = i; j < nZ; j++) {
 	  if (i != j) {
-	    memcpy (tmp,                data + (i*nZ+j)*nB, nB * dsize);
-	    memcpy (data + (i*nZ+j)*nB, data + (j*nZ+i)*nB, nB * dsize);
-	    memcpy (data + (j*nZ+i)*nB, tmp,                nB * dsize);
+	    __MEMCPY (tmp,                data + (i*nZ+j)*nB, nB * dsize);
+	    __MEMCPY (data + (i*nZ+j)*nB, data + (j*nZ+i)*nB, nB * dsize);
+	    __MEMCPY (data + (j*nZ+i)*nB, tmp,                nB * dsize);
 	  }
 	}
 
@@ -258,9 +267,9 @@ void message_dexchange (double*       data,
 
       while (k = first (nZ*NB, kmove)) {
 	knext = kconf = kpost[k];
-	memcpy (tmp, data + kconf * nB, nB * dsize);
+	__MEMCPY (tmp, data + kconf * nB, nB * dsize);
 	do {
-	  memcpy (data + knext * nB, data + k * nB, nB * dsize);
+	  __MEMCPY (data + knext * nB, data + k * nB, nB * dsize);
 	  kmove[k] = 0;
 	  for (i = 1; i < NBnZm; i++)
 	    if (kpost[i] == k) {
@@ -269,7 +278,7 @@ void message_dexchange (double*       data,
 	      break;
 	    }
 	} while (k != kconf);
-	memcpy (data + knext * nB, tmp, nB * dsize);
+	__MEMCPY (data + knext * nB, tmp, nB * dsize);
 	kmove[k] = 0;
       }
       
@@ -317,9 +326,9 @@ void message_sexchange (float*        data,
       for (i = 0; i < nZ; i++)
 	for (j = i; j < nZ; j++) {
 	  if (i != j) {
-	    memcpy (tmp,                data + (i*nZ+j)*nB, nB * dsize);
-	    memcpy (data + (i*nZ+j)*nB, data + (j*nZ+i)*nB, nB * dsize);
-	    memcpy (data + (j*nZ+i)*nB, tmp,                nB * dsize);
+	    __MEMCPY (tmp,                data + (i*nZ+j)*nB, nB * dsize);
+	    __MEMCPY (data + (i*nZ+j)*nB, data + (j*nZ+i)*nB, nB * dsize);
+	    __MEMCPY (data + (j*nZ+i)*nB, tmp,                nB * dsize);
 	  }
 	}
 
@@ -343,9 +352,9 @@ void message_sexchange (float*        data,
 
       while (k = first (nZ*NB, kmove)) {
 	knext = kconf = kpost[k];
-	memcpy (tmp, data + kconf * nB, nB * dsize);
+	__MEMCPY (tmp, data + kconf * nB, nB * dsize);
 	do {
-	  memcpy (data + knext * nB, data + k * nB, nB * dsize);
+	  __MEMCPY (data + knext * nB, data + k * nB, nB * dsize);
 	  kmove[k] = 0;
 	  for (i = 1; i < NBnZm; i++)
 	    if (kpost[i] == k) {
@@ -354,7 +363,7 @@ void message_sexchange (float*        data,
 	      break;
 	    }
 	} while (k != kconf);
-	memcpy (data + knext * nB, tmp, nB * dsize);
+	__MEMCPY (data + knext * nB, tmp, nB * dsize);
 	kmove[k] = 0;
       }
       
@@ -366,7 +375,7 @@ void message_sexchange (float*        data,
 	MPI_Isend   (data+i*NM, NM, MPI_FLOAT, i, 9, MPI_COMM_WORLD,request);
 	MPI_Irecv   (tmp,       NM, MPI_FLOAT, i, 9, MPI_COMM_WORLD,request+1);
 	MPI_Waitall (2, request, status);
-	memcpy      (data+i*NM, tmp, NM * dsize);
+	__MEMCPY      (data+i*NM, tmp, NM * dsize);
       }
 
   } else {			/* -- "Backwards" exchange. */
@@ -376,16 +385,16 @@ void message_sexchange (float*        data,
 	MPI_Isend   (data+i*NM, NM, MPI_FLOAT, i, 9, MPI_COMM_WORLD,request);
 	MPI_Irecv   (tmp,       NM, MPI_FLOAT, i, 9, MPI_COMM_WORLD,request+1);
 	MPI_Waitall (2, request, status);
-	memcpy      (data+i*NM, tmp, NM * dsize);
+	__MEMCPY      (data+i*NM, tmp, NM * dsize);
       }
 
     if (NB == nZ) {
       for (i = 0; i < nZ; i++)
 	for (j = i; j < nZ; j++) {
 	  if (i != j) {
-	    memcpy (tmp,                data + (i*nZ+j)*nB, nB * dsize);
-	    memcpy (data + (i*nZ+j)*nB, data + (j*nZ+i)*nB, nB * dsize);
-	    memcpy (data + (j*nZ+i)*nB, tmp,                nB * dsize);
+	    __MEMCPY (tmp,                data + (i*nZ+j)*nB, nB * dsize);
+	    __MEMCPY (data + (i*nZ+j)*nB, data + (j*nZ+i)*nB, nB * dsize);
+	    __MEMCPY (data + (j*nZ+i)*nB, tmp,                nB * dsize);
 	  }
 	}
 
@@ -405,9 +414,9 @@ void message_sexchange (float*        data,
 
       while (k = first (nZ*NB, kmove)) {
 	knext = kconf = kpost[k];
-	memcpy (tmp, data + kconf * nB, nB * dsize);
+	__MEMCPY (tmp, data + kconf * nB, nB * dsize);
 	do {
-	  memcpy (data + knext * nB, data + k * nB, nB * dsize);
+	  __MEMCPY (data + knext * nB, data + k * nB, nB * dsize);
 	  kmove[k] = 0;
 	  for (i = 1; i < NBnZm; i++)
 	    if (kpost[i] == k) {
@@ -416,7 +425,7 @@ void message_sexchange (float*        data,
 	      break;
 	    }
 	} while (k != kconf);
-	memcpy (data + knext * nB, tmp, nB * dsize);
+	__MEMCPY (data + knext * nB, tmp, nB * dsize);
 	kmove[k] = 0;
       }
       
@@ -455,9 +464,9 @@ void message_iexchange (integer*      data,
       for (i = 0; i < nZ; i++)
 	for (j = i; j < nZ; j++) {
 	  if (i != j) {
-	    memcpy (tmp,                data + (i*nZ+j)*nB, nB * dsize);
-	    memcpy (data + (i*nZ+j)*nB, data + (j*nZ+i)*nB, nB * dsize);
-	    memcpy (data + (j*nZ+i)*nB, tmp,                nB * dsize);
+	    __MEMCPY (tmp,                data + (i*nZ+j)*nB, nB * dsize);
+	    __MEMCPY (data + (i*nZ+j)*nB, data + (j*nZ+i)*nB, nB * dsize);
+	    __MEMCPY (data + (j*nZ+i)*nB, tmp,                nB * dsize);
 	  }
 	}
     } else {
@@ -472,9 +481,9 @@ void message_iexchange (integer*      data,
       kmove[0] = kmove[NBnZm] = 0;
       while (k = first (nZ*NB, kmove)) {
 	knext = kconf = kpost[k];
-	memcpy (tmp, data + kconf * nB, nB * dsize);
+	__MEMCPY (tmp, data + kconf * nB, nB * dsize);
 	do {
-	  memcpy (data + knext * nB, data + k * nB, nB * dsize);
+	  __MEMCPY (data + knext * nB, data + k * nB, nB * dsize);
 	  kmove[k] = 0;
 	  for (i = 1; i < NBnZm; i++)
 	    if (kpost[i] == k) {
@@ -483,7 +492,7 @@ void message_iexchange (integer*      data,
 	      break;
 	    }
 	} while (k != kconf);
-	memcpy (data + knext * nB, tmp, nB * dsize);
+	__MEMCPY (data + knext * nB, tmp, nB * dsize);
 	kmove[k] = 0;
       }
       free (kmove);
@@ -494,7 +503,7 @@ void message_iexchange (integer*      data,
 	  MPI_Isend   (data+i*NM, NM, MPI_INT, i, 9, MPI_COMM_WORLD,request);
 	  MPI_Irecv   (tmp,       NM, MPI_INT, i, 9, MPI_COMM_WORLD,request+1);
 	  MPI_Waitall (2, request, status);
-	  memcpy      (data+i*NM, tmp, NM * dsize);
+	  __MEMCPY      (data+i*NM, tmp, NM * dsize);
 	}
     } else {
       for (i = 0; i < np; i++)
@@ -502,7 +511,7 @@ void message_iexchange (integer*      data,
 	  MPI_Isend   (data+i*NM, NM, MPI_LONG, i, 9,MPI_COMM_WORLD,request);
 	  MPI_Irecv   (tmp,       NM, MPI_LONG, i, 9,MPI_COMM_WORLD,request+1);
 	  MPI_Waitall (2, request, status);
-	  memcpy      (data+i*NM, tmp, NM * dsize);
+	  __MEMCPY      (data+i*NM, tmp, NM * dsize);
 	}
     }
   } else {
@@ -512,7 +521,7 @@ void message_iexchange (integer*      data,
 	  MPI_Isend   (data+i*NM, NM, MPI_INT, i, 9, MPI_COMM_WORLD,request);
 	  MPI_Irecv   (tmp,       NM, MPI_INT, i, 9, MPI_COMM_WORLD,request+1);
 	  MPI_Waitall (2, request, status);
-	  memcpy      (data+i*NM, tmp, NM * dsize);
+	  __MEMCPY      (data+i*NM, tmp, NM * dsize);
 	}
     } else {
       for (i = 0; i < np; i++)
@@ -520,16 +529,16 @@ void message_iexchange (integer*      data,
 	  MPI_Isend   (data+i*NM, NM, MPI_LONG, i, 9,MPI_COMM_WORLD,request);
 	  MPI_Irecv   (tmp,       NM, MPI_LONG, i, 9,MPI_COMM_WORLD,request+1);
 	  MPI_Waitall (2, request, status);
-	  memcpy      (data+i*NM, tmp, NM * dsize);
+	  __MEMCPY      (data+i*NM, tmp, NM * dsize);
 	}
     }
     if (NB == nZ) {
       for (i = 0; i < nZ; i++)
 	for (j = i; j < nZ; j++) {
 	  if (i != j) {
-	    memcpy (tmp,                data + (i*nZ+j)*nB, nB * dsize);
-	    memcpy (data + (i*nZ+j)*nB, data + (j*nZ+i)*nB, nB * dsize);
-	    memcpy (data + (j*nZ+i)*nB, tmp,                nB * dsize);
+	    __MEMCPY (tmp,                data + (i*nZ+j)*nB, nB * dsize);
+	    __MEMCPY (data + (i*nZ+j)*nB, data + (j*nZ+i)*nB, nB * dsize);
+	    __MEMCPY (data + (j*nZ+i)*nB, tmp,                nB * dsize);
 	  }
 	}
     } else {
@@ -544,9 +553,9 @@ void message_iexchange (integer*      data,
       kmove[0] = kmove[NBnZm] = 0;
       while (k = first (nZ*NB, kmove)) {
 	knext = kconf = kpost[k];
-	memcpy (tmp, data + kconf * nB, nB * dsize);
+	__MEMCPY (tmp, data + kconf * nB, nB * dsize);
 	do {
-	  memcpy (data + knext * nB, data + k * nB, nB * dsize);
+	  __MEMCPY (data + knext * nB, data + k * nB, nB * dsize);
 	  kmove[k] = 0;
 	  for (i = 1; i < NBnZm; i++)
 	    if (kpost[i] == k) {
@@ -555,7 +564,7 @@ void message_iexchange (integer*      data,
 	      break;
 	    }
 	} while (k != kconf);
-	memcpy (data + knext * nB, tmp, nB * dsize);
+	__MEMCPY (data + knext * nB, tmp, nB * dsize);
 	kmove[k] = 0;
       }
       free (kmove);
