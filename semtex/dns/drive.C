@@ -161,7 +161,7 @@ static void preprocess (const char*       session,
 {
   const int_t        verbose = Femlib::ivalue ("VERBOSE");
   Geometry::CoordSys space;
-  int_t              i, np, nz, nel;
+  int_t              i, np, nz, nel, procid, seed;
 
   // -- Initialise problem and set up mesh geometry.
 
@@ -192,10 +192,10 @@ static void preprocess (const char*       session,
   //    before any other possible call to random number routines.
 
   if (Femlib::ivalue("RANSEED") > 0) {
-    int_t procid = Geometry::procID();
-    int_t seed   = -abs((procid + 1) * (char) time(NULL));
-    Veclib::ranInit (seed);
-  }
+    procid = Geometry::procID();
+    seed   = -abs((procid + 1) * (char) time(NULL));
+  } else seed = -1;
+  Veclib::ranInit (seed);
 
   // -- Build all the elements.
 
