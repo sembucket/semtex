@@ -51,6 +51,18 @@
  * rstress [options] avg.file [field.file]
  * options:
  * -h ... print this message
+ *
+ * This version is spacialised to deal with averages that also contain
+ * the scalr field 'c'. Here are the names of the correlation
+ * variables:
+ *
+ * Average "velocity" fields are called: u, v, c (& w); Product
+ * average fields are called: A, B, C, D, E, F (& G, H, I, J)
+ *
+ *                   / uu uv uc uw \     /  A  B  D  G \
+ *                   | .  vv vc uv |  =  |  .  C  E  H |
+ *                   | .  .  cc cw |     |  .  .  F  I |
+ *                   \ .  .  .  ww /     \  .  .  .  J /
  *****************************************************************************/
 
 static char RCS[] = "$Id$";

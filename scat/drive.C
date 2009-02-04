@@ -20,7 +20,7 @@
 // AUTHOR:
 // ------
 // Hugh Blackburn
-// Department of Mechanical Engineering
+// Department of Mechanical & Aerospace Engineering
 // Monash University
 // Vic 3800
 // Australia
@@ -110,7 +110,7 @@ static void getargs (int    argc   ,
     case 't':
       do
 	Femlib::ivalue ("TBCS",      Femlib::ivalue ("TBCS")      + 1);
-      while (*++argv[0] == 'i');
+      while (*++argv[0] == 't');
       break;
     case 'v':
       do
@@ -174,6 +174,17 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "done" << endl;
 
+  // -- If token RANSEED > 0 then initialize the random number
+  //    generator based on wall clock time and process ID (i.e. a "truly"
+  //    pseudo-random number).  NB: it is important to have done this
+  //    before any other possible call to random number routines.
+
+  if (Femlib::ivalue("RANSEED") > 0) {
+    procid = Geometry::procID();
+    seed   = -abs((procid + 1) * (char) time(NULL));
+  } else seed = -1;
+  Veclib::ranInit (seed);
+
   // -- Build all the elements.
 
   VERBOSE cout << "Building elements ... ";
@@ -188,15 +199,6 @@ static void preprocess (const char*       session,
   VERBOSE cout << "Building boundary condition manager ..." << endl;
 
   bman = new BCmgr (file, elmt);
-  /*
-  if (Geometry::nDim() == 2) {
-    if (strcmp (bman -> field(), "uvcp"))
-      message (prog, "expected fields u v c p",   ERROR);
-  } else {
-    if (strcmp (bman -> field(), "uvwcp"))
-      message (prog, "expected fields u v w c p", ERROR);
-  }
-  */
 
   VERBOSE cout << "done" << endl;
 

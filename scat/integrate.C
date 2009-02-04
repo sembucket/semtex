@@ -140,11 +140,11 @@ void NavierStokes (Domain*       D,
 
     // -- Re-evaluate (time-dependent) BCs?
 
-    if (TBCS == 1)
+    if (TBCS == 1) {
       // -- 2D/mode0 base BCs (only).
       for (i = 0; i <= NCOM; i++)
 	ROOTONLY D -> u[i] -> evaluateM0Boundaries (D -> step);
-    else if (TBCS == 2) {
+    } else if (TBCS == 2) {
       // -- All modes.
       for (i = 0; i <= NCOM; i++) {
 	D -> u[i] -> evaluateBoundaries (0, false);
