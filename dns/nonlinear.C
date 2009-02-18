@@ -111,7 +111,7 @@ void nonLinear (Domain*         D ,
     ROOTONLY if (fabs (ff[i]) > EPSDP) {
       Veclib::fill (nP, -ff[i], tmp, 1);
       if (i < 2) master -> mulY (1, tmp);
-      N[i] -> addToPlane (0, tmp);
+      Uf[i] -> addToPlane (0, tmp);
     }
   }
 
