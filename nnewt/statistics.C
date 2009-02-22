@@ -692,6 +692,7 @@ void Statistics::phaseUpdate (const int_t j   ,
   this -> dump       (filename);
 
 #if 0
+  // -- not yet implemented for nnewt.
   ifstream ifile (s);
   
   VERBOSE cout << "-- Updating phase average " << j << ": ";

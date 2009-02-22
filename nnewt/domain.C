@@ -209,7 +209,11 @@ void Domain::transform (const int_t sign)
   int_t       i;
   const int_t N = this -> ua.size();
   
-  for (i = 0; i < N; i++) ua[i] -> transform (sign);
+  for (i = 0; i < N; i++) {
+    if (sign == INVERSE) ua[i] -> zeroNyquist();
+    ua[i] -> transform (sign);
+    if (sign == FORWARD) ua[i] -> zeroNyquist();
+  }
 }
 
 
@@ -276,6 +280,7 @@ istream& operator >> (istream& strm,
   strm.getline(s,StrMax);
   sss.clear();
   sss.str  (ss = s);
+  sss >> D.time;
   Femlib::value ("t", D.time);
 
   strm.getline(s,StrMax).getline(s,StrMax);
@@ -329,15 +334,6 @@ istream& operator >> (istream& strm,
     }
   }
 
-#if 0
-  for (j = 0; j < nfields; j++) {
-    for (i = 0; i < nfields; i++)
-      if (fields[j] == D.field[i]) {
-	strm >>  *D.u[i];
-	if (swap) D.u[i] -> reverse();
-	break;
-      }
-#else
   for (j = 0; j < nfields; j++) {
     for (found = false, i = 0; i < nfields; i++)
       if (fields[j] == D.field[i]) { found = true; break; }
@@ -348,7 +344,6 @@ istream& operator >> (istream& strm,
       strm.seekg (ntot*sizeof(real_t), ios_base::cur);
 
   }
-#endif
     
   ROOTONLY if (strm.bad())
     message (routine, "failed reading field file", ERROR);
