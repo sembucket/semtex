@@ -907,9 +907,16 @@ static void getargs (int        argc   ,
   if   (argc != 1) message (prog, "no session file",   ERROR);
   else             session = *argv;
 
-  // -- Here is a minor hack:
+  // -- Here is a minor hack, installs TASK in parser.
 
   Femlib::ivalue ("TASK", task);
+
+  // -- While Fourier temporal interpolation is the default for base
+  //    flow reconstruction, we can switch to 4-point (cubic) Lagrange
+  //    interpolation by setting token LAGRANGE_INT. Here we install
+  //    it in the parser table but set it to be disabled (0).
+
+  Femlib::ivalue ("LAGRANGE_INT", 0);
 }
 
 

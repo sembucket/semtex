@@ -856,31 +856,66 @@ real_t AuxField::CFL (const int_t dir) const
 
 
 AuxField& AuxField::update (const int_t   nSlice ,
-			    const real_t* FFTdata,
+			    const real_t* basedata,
 			    const real_t  time   ,
 			    const real_t  period )
 // ---------------------------------------------------------------------------
-// Fourier series reconstruction of base flow, if it is periodic in time.
-//
-// Fourier transformed fields have been pre-scaled.
+// If base flow is periodic in time, interpolate in stored slices to
+// reconstruct an estimate at the current phase point. 
+
+// The default is Fourier series reconstruction of base flow, in which
+// case the base flow slices have been pre-Fourier-transformed in
+// time (and scaled).
+
+// If Lagrange interpolation is requested, use 4-point Lagrange
+// interpolation (A&S 25.2.13). Base flow slices were not transformed.
 // ---------------------------------------------------------------------------
 {
   if (nSlice < 2) return *this;
 
   const int_t  nPlane = Geometry::planeSize();
-  const real_t BetaT  = TWOPI * fmod (time, period) / period;
-  real_t       phase;
   int_t        i;
+
+  if (Femlib::ivalue ("LAGRANGE_INT")) {
+
+    const real_t interval = period / nSlice;
+    const real_t p        = fmod (time, interval) / interval;
+    real_t       wm1, wp0, wp1, wp2;
+    int_t        im1, ip0, ip1, ip2;
+
+    i  = time / interval;
+    i %= nSlice;
+
+    im1 = (nSlice + i - 1) % nSlice;
+    ip0 = (nSlice + i    ) % nSlice;
+    ip1 = (nSlice + i + 1) % nSlice;
+    ip2 = (nSlice + i + 2) % nSlice;
+
+    wm1 = -p*(p - 1.)*(p - 2.) / 6.;
+    wp0 =  (p*p - 1.)*(p - 2.) / 2.;
+    wp1 = -p*(p + 1.)*(p - 2.) / 2.;
+    wp2 =  p*(p*p - 1.)        / 6.;
+
+    Veclib::smul (nPlane, wm1, basedata + im1 * nPlane , 1, _data, 1); 
+    Blas::axpy   (nPlane, wp0, basedata + ip0 * nPlane , 1, _data, 1);
+    Blas::axpy   (nPlane, wp1, basedata + ip1 * nPlane , 1, _data, 1);
+    Blas::axpy   (nPlane, wp2, basedata + ip2 * nPlane , 1, _data, 1);
+
+  } else { 			// -- Fourier, default.
+
+    const real_t BetaT  = TWOPI * fmod (time, period) / period;
+    real_t       phase;
   
-  // -- For each point in plane do Fourier interpolation in time.
+    // -- For each point in plane do Fourier interpolation in time.
 
-  Veclib::copy (nPlane, FFTdata, 1, _data, 1);
-  Blas::axpy   (nPlane, cos(0.5*nSlice*BetaT), FFTdata + nPlane, 1, _data, 1);
+    Veclib::copy (nPlane, basedata, 1, _data, 1);
+    Blas::axpy   (nPlane, cos(0.5*nSlice*BetaT), basedata+nPlane, 1, _data, 1);
 
-  for (i = 2; i < nSlice; i += 2) {
-    phase = (i>>1) * BetaT;
-    Blas::axpy (nPlane,  cos(phase), FFTdata +  i   *nPlane, 1, _data, 1);
-    Blas::axpy (nPlane, -sin(phase), FFTdata + (i+1)*nPlane, 1, _data, 1);
+    for (i = 2; i < nSlice; i += 2) {
+      phase = (i>>1) * BetaT;
+      Blas::axpy (nPlane,  cos(phase), basedata +  i   *nPlane, 1, _data, 1);
+      Blas::axpy (nPlane, -sin(phase), basedata + (i+1)*nPlane, 1, _data, 1);
+    }
   }
 
   return *this;

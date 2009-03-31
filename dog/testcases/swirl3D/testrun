@@ -3,7 +3,7 @@
 ###############################################################################
 
 enumerate -O3 vb2_bse > vb2_bse.num
-dns vb2_bse
+dns vb2_bse > /dev/null
 mv vb2_bse.fld vb2.bse
 
 enumerate -O3 vb2 > vb2.num

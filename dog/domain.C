@@ -431,17 +431,21 @@ void Domain::loadBase()
   if (i != nSlice)
     message (routine, "mismatch: No. of base slices/declaration", ERROR);
 
-  if (nSlice > 1) {		// -- Prepare for Fourier reconstruction.
+  if (nSlice > 1) {		// -- Prepare for base flow reconstruction.
+                                //    Default is Fourier.
 
     period = Femlib::value ("BASE_PERIOD"); // -- Use this if installed.
     if (period < EPSDP)
       Femlib::value ("BASE_PERIOD", period = dt * i / (i - 1.0));
 
-    // -- Fourier transform in time, scale for reconstruction.
-    for (i = 0; i < nBase; i++) {
-      Femlib::DFTr (baseFlow[i], nSlice, nTot, FORWARD);
-      Blas::scal   ((nSlice-2)*nTot, 2.0, baseFlow[i] + 2*nTot, 1);
-    }
+    if (! (Femlib::ivalue ("LAGRANGE_INT"))) {
+
+	// -- Fourier transform in time, scale for reconstruction.
+	for (i = 0; i < nBase; i++) {
+	  Femlib::DFTr (baseFlow[i], nSlice, nTot, FORWARD);
+	  Blas::scal   ((nSlice-2)*nTot, 2.0, baseFlow[i] + 2*nTot, 1);
+	}
+      }
   } else period = 0.0;
 
   ROOTONLY {
@@ -454,7 +458,7 @@ void Domain::loadBase()
 
 void Domain::updateBase()
 // ---------------------------------------------------------------------------
-// Update base velocity fields, using Fourier series reconstruction in time.
+// Update base velocity fields by interpolation.
 // ---------------------------------------------------------------------------
 {
   const int_t nBase   = Geometry::nBase();
