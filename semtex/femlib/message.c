@@ -45,7 +45,7 @@
 extern void _fastbcopy(const void *src, void *dest, size_t n);
     #define __MEMCPY(dest, src, n) _fastbcopy(src, dest, n)
 #else
-    #define __MEMCPY(dest, src, n) __MEMCPY(dest, src, n)
+    #define __MEMCPY(dest, src, n) memcpy(dest, src, n)
 #endif
 
 
