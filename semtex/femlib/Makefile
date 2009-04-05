@@ -50,6 +50,13 @@ ifeq ($(ARCH),Linux-iX86)
 endif
 
 # ----------------------------------------------------------------------------
+# Make and install parallel library version.
+parallel:
+	rm -f message.o
+	make MPI=1
+	make install MPI=1
+
+# ----------------------------------------------------------------------------
 # Standard rules and definitions.
 #
 include $(SEMSRC)/Makefile
