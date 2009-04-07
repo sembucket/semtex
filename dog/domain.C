@@ -431,8 +431,11 @@ void Domain::loadBase()
   if (i != nSlice)
     message (routine, "mismatch: No. of base slices/declaration", ERROR);
 
-  if (nSlice > 1) {		// -- Prepare for base flow reconstruction.
-                                //    Default is Fourier.
+  if (nSlice > 1) {		// -- Prepare for base flow
+                                //    reconstruction.  Default is
+                                //    Fourier, but now we can also
+                                //    slect 4-point (cubic) Lagrange
+                                //    interpolation.
 
     period = Femlib::value ("BASE_PERIOD"); // -- Use this if installed.
     if (period < EPSDP)

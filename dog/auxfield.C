@@ -391,7 +391,8 @@ ostream& operator << (ostream& strm,
 // For multiple-processor jobs, only the root processor does output,
 // receiving data from other processors.  This ensures that the data
 // are written out in the correct order, and that only one processor
-// needs access to the output stream.
+// needs access to the output stream. (Actually dog only has serial
+// execution.)
 // ---------------------------------------------------------------------------
 {
   const char     routine[] = "ostream<<AuxField";
@@ -855,17 +856,17 @@ real_t AuxField::CFL (const int_t dir) const
 }
 
 
-AuxField& AuxField::update (const int_t   nSlice ,
+AuxField& AuxField::update (const int_t   nSlice  ,
 			    const real_t* basedata,
-			    const real_t  time   ,
-			    const real_t  period )
+			    const real_t  time    ,
+			    const real_t  period  )
 // ---------------------------------------------------------------------------
 // If base flow is periodic in time, interpolate in stored slices to
 // reconstruct an estimate at the current phase point. 
 
 // The default is Fourier series reconstruction of base flow, in which
 // case the base flow slices have been pre-Fourier-transformed in
-// time (and scaled).
+// time (and scaled appropriately).
 
 // If Lagrange interpolation is requested, use 4-point Lagrange
 // interpolation (A&S 25.2.13). Base flow slices were not transformed.

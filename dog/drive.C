@@ -242,7 +242,6 @@ int main (int    argc,
 	 << setw(12) << re_Aev
 	 << setw(12) << im_Aev
 	 << endl;
-
   }
 
   // -- Print up eigenvectors.
@@ -549,7 +548,7 @@ static int_t EV_test (const int_t  itrn   ,
 		      const real_t resnorm,
 		      const real_t evtol  ,
 		      const int_t  nvec   ,
-		      ofstream&    runinfo   )
+		      ofstream&    runinfo)
 // ---------------------------------------------------------------------------
 // Test convergence of eigenvalues and print up diagnostic information.
 //
@@ -583,7 +582,7 @@ static int_t EV_test (const int_t  itrn   ,
 
   // -- Stopping test.
 
-  if      (resid[nvec - 1] < evtol)                              idone = nvec;
+  if      (resid[nvec - 1] < evtol * hypot (wr[0], wi[0]))       idone = nvec;
   else if (min_max1 < 0.01 && resid[nvec - 1] > 10.0 * min_max1) idone = -1;
   else if (min_max2 < 0.01 && resnorm         > 10.0 * min_max2) idone = -2;
 
