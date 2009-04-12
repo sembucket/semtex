@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// combine.C: add a perturbation mode to a base flow.
+// combine.C: add a perturbation mode to a base flow, output in physical space.
 //
 // Copyright (c) 2002 <--> $Date$, Hugh Blackburn
 //
@@ -16,48 +16,78 @@
 //
 // NOTES
 // -----
-// 1. Four cases of combinations of base and perturbation fields may
-// be identified based on the number of velocity field variables and
-// planes of data in the perturbation (see README file):
+// Some conventions are adopted regarding valid structures for base
+// and perturbation flow fields.
 //
-// N_BASE  N_PERT  N_Z    COMPLEXITY
-//  2       2       1     Real only:    u.Re v.Re      p.Re   (O2_2D)
-//  2       3       1     Half-complex: u.Re v.Re w.Im p.Re   (O2_3D_SYMM)
-//  2       3       2     Full-complex (not implemented yet). (O2_3D)
-//  3       3       2     Full-complex                        (SO2_3D)
+// 1. Meshes for the base and perturbation must conform at least in
+// the sense of having the same number of elements and element
+// interpolation orders.
 //
-// The structure of the output matches the above: whenever the
-// perturbation is real only, so is the combined field (it has N_Z=1
-// if N_BASE=2 and N_Z=2 if N_BASE=3); for all other cases the
-// combined field has N_Z>=4 (i.e. is fully 3D).  For the half- and
-// full-complex cases, the perturbation field is considered to be a
-// Fourier mode.  The output field is transformed to physical space.
+// 2. The base flow must be 2D, i.e. must have N_Z=1.  It may have
+// either two or three velocity components (2C/3C), but never more
+// than the perturbation.
 //
-// 2. Note that only the first data plane of the base flow is read in,
-// so N_Z=2 is effectively the same as N_Z=1 for the base flow: if all
-// we have is a N_Z=1 base flow it can safely be projected to N_Z=2
-// for use by this program. In future this should be fixed, but for
-// now the workaround is OK.
+// 3. The perturbation flow is input as a Fourier mode. If it is 2D+3C
+// (i.e. has N_Z=1 and velocities uvw) then it is taken as
+// "half-complex", meaning in terms of real and imaginary parts it is
+// either u.Re,v.Re,w.Im,p.Re (i.e. cos,cos,sin,cos) or
+// u.Im,v.Im,w.Re,p.Im (i.e. sin,sin,cos,sin, or in quadrature with
+// the previous case).  If it is 3D+3C (i.e. has N_Z=2 and u,v,w,p)
+// then the velocities and pressure are each taken to have full
+// complexity, i.e. both real and imaginary parts populated.  Below we
+// will introduce a special case (with command-line mode number -1) to
+// allow combination of two half-complex perturbations in quadrature,
+// i.e. to take two half-complex perturbation fields with N_Z=1 and
+// produce a single full-complex perturbation field with N_Z=2.
 //
-// 3. Data files are assumed to only have velocities and pressure
+// 4. The original rationale for this program was to produce a restart
+// file with physical space structure that added a small perturbation
+// to the base flow for subsequent evolution via DNS.  Often however,
+// one wants to take a perturbation field (only) and transform it from
+// a Fourier mode into physical space to study its structure without
+// reference to the base flow.  This could be achieved by creating a
+// base flow with zero velocities, but the present program also allows
+// the same outcome by setting the relative size of the perturbation
+// to zero, in which case the "base" flow can be the same as the
+// perturbation, i.e. the base flow is not required, but of course may
+// be used (and does not need to be zero).
+//
+// 5. Here are the cases dealt with. The outcomes always have the same
+// field names as the perturbation. As stated above the base flow
+// always has N_Z=1; N_Z in the table below refers to the perturbation.
+//
+// Base  Pert  N_Z  Mode  N_Z(out)
+//--------------------------------
+// uvp   uvp   1    0     1
+// uvp   uvwp  1    k>0   2*(k+1)  (or greater as required to suit 2-3-5 FFT)
+// uvp   uvwp  2    k>0   2*(k+1)  (or greater)
+// uvwp  uvwp  1    0     1
+// uvwp  uvwp  1    k>0   2*(k+1)  (or greater)
+// uvwp  uvwp  2    k>0   2*(k+1)  (or greater)
+// -------------------------------
+// uvwp  uvwp  1    -1    2         Special case: both inputs are half-complex.
+//
+//
+// 6. Data files are assumed to only have velocities and pressure
 // data, in the standard ordering, i.e. uvp or uvwp. The pressure of
 // the outcome is set to zero, and is ignored in doing the scaling.
 //
-// 4. When producing a 3D field file, the file is given minimal number
+// 7. When producing a 3D field file, the file is given minimal number
 // of Fourier modes required to contain it, subject to the 2, 3, 5
 // prime factor requirement for FFT: the number of modes is rounded up
 // to suit this.
 //
-// 5. NB: The relative size of the perturbation is based on the
+// 8. NB: The relative size of the perturbation is based on the
 // 2-norms of the respective fields, not the same as the L2-norms,
 // since the 2-norm does not account for the mass-matrix weighting of
 // different nodal values.  This means that a perturbation of constant
 // energy will appear larger where the mesh density is lower. This
-// should really be fixed but it means that we will need the session
+// should really be fixed but it means that we would need the session
 // file as well.
 //
-// 6. With -r 0 the perturbation field is not scaled - it is output
-// with the same energy it had on input.
+// 7. With -r 0 the perturbation field is not scaled - it is output
+// with the same energy it had on input, AND the base flow makes no
+// contribution, i.e. is set to zero.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -114,11 +144,11 @@ typedef struct hdr_data {
 static void  getargs   (int, char**, int_t&, real_t&, real_t&,
 			ifstream&, ifstream&);
 static void  gethead   (istream&, hdr_info&);
-static bool  conform   (const hdr_info&, const hdr_info&);
+static void  conform   (const hdr_info&, const hdr_info&);
 static int_t roundup   (int_t&, int_t&, const hdr_info&, const hdr_info&);
 static void  allocate  (hdr_info&, const int_t, vector<real_t*>&);
 static void  readdata  (hdr_info&, istream&, hdr_info&, istream&,
-			vector<real_t*>&, const real_t);
+			vector<real_t*>&, const real_t, const int_t);
 static void  packdata  (hdr_info&, const int_t, const int_t, vector<real_t*>&);
 static void  transform (hdr_info&, const int_t, vector<real_t*>&, const int_t);
 static void  writedata (hdr_info&, ostream&, const int_t,
@@ -148,10 +178,10 @@ int main (int    argc,
   roundup (mode, nz, bHead, pHead);
 
   allocate (pHead, nz, u);
-  readdata (bHead, bFile, pHead, pFile, u, wght);
+  readdata (bHead, bFile, pHead, pFile, u, wght, mode);
   bFile.close(); pFile.close();
 
-  if (nz > 1) {
+  if (nz > 2) {
     packdata  (pHead, mode, nz, u);
     transform (pHead, nz, u, INVERSE);
   }
@@ -225,13 +255,8 @@ static void getargs (int       argc ,
     exit (EXIT_FAILURE);
   }
 
-  if (mode < 1) {
-    cerr << prog << ": mode number must be a positive int" << endl;
-    exit (EXIT_FAILURE);
-  }
-
   if (wght < 0.0) {
-    cerr << prog << ": perturbation weight must be positive" << endl;
+    cerr << prog << ": perturbation weight must be non-negative" << endl;
     exit (EXIT_FAILURE);
   }
 }
@@ -277,7 +302,7 @@ static void gethead (istream&  file  ,
 }
 
 
-static bool conform (const hdr_info& bhead,
+static void conform (const hdr_info& bhead,
 		     const hdr_info& phead)
 // ---------------------------------------------------------------------------
 // Check that the base and perturbation field conform for combination.
@@ -286,45 +311,20 @@ static bool conform (const hdr_info& bhead,
 // except in case where base flow is 2D,nC and perturbation flow is
 // 3D,(n+1)C, where 'w' is the only allowed additional scalar field,
 // assumed to be the third.  Die if these requirements aren't
-// satisfied.  Return a flag to indicate if base field requires
-// padding for 'w'.
+// satisfied.
 // ---------------------------------------------------------------------------
 {
-  bool pad = false;
-  
   if (bhead.nr != phead.nr || bhead.ns != phead.ns || bhead.nel != phead.nel)
     message (prog, "base and perturbation sizes do not conform", ERROR);
 
-  if (!((bhead.nz == 1 && phead.nz == 1) || (bhead.nz == 2 && phead.nz == 2)))
-    message (prog, "3D structures of base and perturbation are bad", ERROR);
+  if (bhead.nz > 1)
+    message (prog, "base must have N_Z=1", ERROR);
 
-  if (strlen (bhead.fields) < 3 || strlen (phead.fields) < 3)
-    message (prog, "base or perturbation don't have enough components", ERROR);
+  if (strstr(phead.fields, "uvp") && !(strstr(bhead.fields, "uvp")))
+    message (prog, "where perturbation has fields uvp, so must base", ERROR);
 
-  if (bhead.nz == 1 && phead.nz == 1)
-    if (!strcmp (bhead.fields, phead.fields))
-      pad = false;
-    else if (strlen (bhead.fields) == (strlen (phead.fields) - 1)) {
-      int_t i, n = strlen (phead.fields);
-      char extend[32];
-      for (i = 0; i < 32; i++) extend[i] = '\0';
-      extend[0] = bhead.fields[0];
-      extend[1] = bhead.fields[1];
-      extend[2] = 'w';
-      for (i = 2; i < n; i++) extend[i+1] = bhead.fields[i];
-      if (!strcmp (extend, phead.fields))
-	pad = true;
-      else
-	message (prog, "can't extend base field list to perturbation", ERROR);
-    }
-
-  if (bhead.nz == 2 && phead.nz == 2)
-    if (!strcmp (bhead.fields, phead.fields))
-      pad = false;
-    else
-      message (prog, "base field list doesn't match perturbation", ERROR);
-
-  return pad;
+  if (strlen(bhead.fields) > strlen(phead.fields))
+    message (prog, "more base velocity components than perturbation", ERROR);
 }
 
 
@@ -341,11 +341,9 @@ static int_t roundup (int_t&          mode ,
 {
   int_t n, ip, iq, ir, ipqr2;
 
-  if (bhead.nz == 1        &&  phead.nz == 1        &&
-      strlen(phead.fields) == strlen(bhead.fields)) {
-    mode = 0;
-    nz   = 1;
-  } else {
+  if      (mode ==  0) nz = 1;
+  else if (mode == -1) nz = 2;
+  else {
     nz = 2 * (mode + 1);
     do {
       n = nz;
@@ -362,9 +360,9 @@ static void allocate (hdr_info&        header,
 		      const int_t      nz    ,
 		      vector<real_t*>& u     )
 // ---------------------------------------------------------------------------
-// Allocate enough storage to hold all the data fields (sem format).
-// Return the length of each scalar field (padded also so it's even).
-// Initialise all the storage to zero.
+// Allocate enough storage to hold all the data fields.  Return the
+// length of each scalar field (padded so it's even).  Initialize all
+// the storage to zero.
 // ---------------------------------------------------------------------------
 {
   const int_t nfield    = strlen (header.fields);
@@ -387,7 +385,8 @@ static void readdata (hdr_info&        bhead,
 		      hdr_info&        phead,
 		      istream&         pfile,
 		      vector<real_t*>& u    ,
-		      const real_t     eps  )
+		      const real_t     eps  ,
+		      const int_t      mode )
 // ---------------------------------------------------------------------------
 // Binary read of data areas, with byte-swapping if required.  The
 // initial storage of base and perturbation in u is the same as for
@@ -400,7 +399,10 @@ static void readdata (hdr_info&        bhead,
 // flow by adding an extra storage field ('w'); the storage area has
 // enough space to cope.
 //
-// If input scale eps=0 then the perturbation is not scaled.
+// If input scale (set with command-line flag -r) eps=0 then the base
+// flow is set to zero and the perturbation is not scaled.
+
+// Input mode lets us know the structure of the output.
 // ---------------------------------------------------------------------------
 {
   bool    swab;
@@ -430,9 +432,10 @@ static void readdata (hdr_info&        bhead,
     bfile.ignore ((nzB - 1) * ntotelmt * sizeof (real_t));
   }
 
-  // -- If required, move the 3rd and higher fields up by 1 to allow for 'w'.
-  //    After this, both the base and perturbation fields have same number
-  //    of components, nPfield.
+  // -- If required, move the 3rd and higher fields of base flow up by
+  //    one to allow for 'w', and set the vacant ('w') storage and the
+  //    pressure to zero.  After this, both the base and perturbation
+  //    fields have same number of components, nPfield.
 
   if (nPfield == nBfield + 1) {
     for (i = nBfield; i > 2; i--)
@@ -441,7 +444,8 @@ static void readdata (hdr_info&        bhead,
   }
   Veclib::zero (planesize, u[nPfield-1], 1); // -- Zero the pressure.
 
-  // -- Read perturbation flow into temporary storage.
+  // -- Read perturbation flow into temporary storage, following which
+  //    we have both the base and perturbation data loaded into memory.
  
   swab = doswap (phead.format);
   
@@ -456,9 +460,11 @@ static void readdata (hdr_info&        bhead,
   }
 
   // -- If eps!=0, compute the 2-norms of base and perturbation flows,
-  // scale perturbation.  If the base flow's energy is zero (i.e. we
-  // just want to look at the perturbation field, have used a zero
-  // base field), reset it to be 1.0.  NB: ignore the pressure fields.
+  //    scale perturbation.  If the base flow's energy is zero
+  //    (i.e. we just want to look at the perturbation field, have
+  //    used a zero base field), reset it to be 1.0.  NB: ignore the
+  //    pressure fields during the calculation.  Otherwise, take eps=0
+  //    as an instruction to zero the base flow.
 
   if (fabs (eps) > EPSDP) {
     for (i = 0; i < nPfield-1; i++) {
@@ -467,26 +473,36 @@ static void readdata (hdr_info&        bhead,
 	u2 += Blas::nrm2 (ntotelmt, &utmp[i][j*planesize], 1);
       }
     }
-    
+
     U2 = (U2 < EPSDP) ? 1.0 : U2;
   
     for (i = 0; i < nPfield; i++)
       for (j = 0; j < nzP; j++)
 	Blas::scal (ntotelmt, eps*U2/u2, &utmp[i][j*planesize], 1);
-  }
+  } else
+    for (i = 0; i < nPfield; i++) Veclib::zero (ntotelmt, u[i], 1);
 
-  // -- Add the scaled perturbation to the base flow.
+  // -- If mode == -1 then both base flow and perturbation are
+  //    half-complex and on output nz=2.  Load components into
+  //    appropriate full-complex locations.  Otherwise, add the scaled
+  //    perturbation to the base flow.
 
-  if (nPfield == nBfield && nzP == 1) {	// -- Everything has 1 plane of data.
+  if (mode == -1) {
+    Veclib::copy (planesize,     u[2],    1, u[2]+planesize, 1);
+    Veclib::copy (planesize, &utmp[0][0], 1, u[0]+planesize, 1);
+    Veclib::copy (planesize, &utmp[1][0], 1, u[1]+planesize, 1);
+    Veclib::copy (planesize, &utmp[2][0], 1, u[2],           1);
+    Veclib::copy (planesize, &utmp[3][0], 1, u[3]+planesize, 1);
+  } else if (mode == 0) { // -- Everything is 2D.
     for (i = 0; i < nPfield-1; i++)
       Veclib::vadd (ntotelmt, &utmp[i][0], 1, u[i], 1, u[i], 1);
-  } else if (nPfield == nBfield + 1 && nzP == 1) { // -- half-complex pert.
+  } else if (mode > 0 && nzP == 1) { // -- half-complex pert.
     for (i = 0; i < nPfield-1; i++)
       if (phead.fields[i] != 'w')
 	Veclib::copy (ntotelmt, &utmp[i][0], 1, u[i]+planesize, 1);
       else
 	Veclib::copy (ntotelmt, &utmp[i][0], 1, u[i]+2*planesize, 1);
-  } else if (nPfield == nBfield && nzP == 2) { // -- full-complex pert.
+  } else if (mode > 0 && nzP == 2) { // -- full-complex pert.
     for (i = 0; i < nPfield-1; i++) {
       Veclib::copy (ntotelmt, &utmp[i][0],         1, u[i]  +planesize, 1);
       Veclib::copy (ntotelmt, &utmp[i][planesize], 1, u[i]+2*planesize, 1);
@@ -500,17 +516,17 @@ static void packdata (hdr_info&        header,
 		      const int_t      nz    ,
 		      vector<real_t*>& u     )
 // ---------------------------------------------------------------------------
-// This is only called if nz > 1.  Data in u are considered to be in
-// Fourier-transformed state, and stored, dual-like, in the first 3
-// planes of u.  Move planes around to place them in required spots.
-// Zero other data.
+// This is only called if nz > 2.  On input, data in u are considered
+// to be in Fourier-transformed state, and stored, dual-like, in the
+// first 3 planes of u.  Move planes around to place them in required
+// modes.  Zero other data.
 // ---------------------------------------------------------------------------
 {
   const int_t    nfield    = strlen (header.fields);
   const int_t    ntotelmt  = header.nr * header.ns * header.nel;
   const int_t    planesize = ntotelmt + (ntotelmt % 2);
   const int_t    nblock    = 2 * planesize;
-  vector<real_t> tmp (2 * planesize);
+  vector<real_t> tmp (nblock);
   int_t          i;
 
   for (i = 0; i < nfield; i++) {
