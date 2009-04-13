@@ -318,7 +318,7 @@ static void conform (const hdr_info& bhead,
     message (prog, "base and perturbation sizes do not conform", ERROR);
 
   if (bhead.nz > 1)
-    message (prog, "base must have N_Z=1", ERROR);
+    message (prog, "base should have N_Z=1", WARNING);
 
   if (strstr(phead.fields, "uvp") && !(strstr(bhead.fields, "uvp")))
     message (prog, "where perturbation has fields uvp, so must base", ERROR);
