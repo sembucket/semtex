@@ -392,8 +392,9 @@ static void buoyancy (Domain*         D ,
 // Cylindrical coordinates: for simplicity, we only currently allow
 // axial buoyancy. To allow off-axis gravity would require the
 // buoyancy to be done pseudospectrally - not so hard.  Note that the
-// axial and radial terms need to be multiplied by y here to match
-// what we do with the formation of the nonlinear terms.
+// axial (and radial, if we computed them) terms need to be multiplied
+// by y here to match what we do with the formation of the nonlinear
+// terms.
 // ---------------------------------------------------------------------------
 {
   int_t     i;

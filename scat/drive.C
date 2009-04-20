@@ -149,7 +149,7 @@ static void preprocess (const char*       session,
   const int_t        verbose = Femlib::ivalue ("VERBOSE");
   Geometry::CoordSys space;
   const real_t*      z;
-  int_t              i, np, nz, nel;
+  int_t              i, np, nz, nel, procid, seed;
 
   // -- Initialise problem and set up mesh geometry.
 
