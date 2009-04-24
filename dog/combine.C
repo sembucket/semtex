@@ -9,7 +9,7 @@
 // options:
 // -h       ... print this message.
 // -b <num> ... set beta, wavenumber of base flow to <num> (3D) [Default: 1.0]
-// -r <num> ... relative size of perturbation is <num>.         [Default: 1.0]
+// -r <num> ... relative energy of perturbation is <num>.       [Default: 1.0]
 // -m <num> ... mode number for perturbation is <num> (3D only) [Default: 1]
 // 
 // Write to standard output.
@@ -208,7 +208,7 @@ static void getargs (int       argc ,
     "-h       ... print this message.\n"
     "-b <num> ... set beta, wavenumber of base flow to <num> (3D)"
     " [Default: 1.0]\n"
-    "-r <num> ... relative size of perturbation is <num>."
+    "-r <num> ... relative energy of perturbation is <num>.      "
     " [Default: 1.0]\n"
     "-m <num> ... mode number for perturbation is <num> (3D only)"
     " [Default: 1]\n";
@@ -468,9 +468,9 @@ static void readdata (hdr_info&        bhead,
 
   if (fabs (eps) > EPSDP) {
     for (i = 0; i < nPfield-1; i++) {
-      U2 += Blas::nrm2 (ntotelmt, u[i], 1);
+      U2 += sqr (Blas::nrm2 (ntotelmt, u[i], 1));
       for (j = 0; j < nzP; j++) {
-	u2 += Blas::nrm2 (ntotelmt, &utmp[i][j*planesize], 1);
+	u2 += sqr (Blas::nrm2 (ntotelmt, &utmp[i][j*planesize], 1));
       }
     }
 
@@ -478,7 +478,7 @@ static void readdata (hdr_info&        bhead,
   
     for (i = 0; i < nPfield; i++)
       for (j = 0; j < nzP; j++)
-	Blas::scal (ntotelmt, eps*U2/u2, &utmp[i][j*planesize], 1);
+	Blas::scal (ntotelmt, sqrt (eps*U2/u2), &utmp[i][j*planesize], 1);
   } else
     for (i = 0; i < nPfield; i++) Veclib::zero (ntotelmt, u[i], 1);
 
