@@ -4,7 +4,7 @@
 # B = upper wall coordinate 
 #
 # These are the results of running
-# arnoldi -k 16 -n 1 -m 500 -t 1e-6 chan3 > /dev/null
+# dog -k 16 -n 1 -m 500 -t 1e-6 chan3 > /dev/null
 #
 # -- Iteration = 260, H(k+1, k) = 0.893587
 # EV  Magnitude   Angle       Growth      Frequency   Residual

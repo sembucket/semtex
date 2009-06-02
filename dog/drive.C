@@ -203,7 +203,7 @@ int main (int    argc,
   while (ido != done) {
     EV_update (task, workd+ipntr[0]-1, workd+ipntr[1]-1);
 
-    F77NAME(dnaupd) (ido, "I", ntot, "LM", nvec, evtol, resid, kdim,
+    F77NAME(dnaupd) (ido, "I", ntot, "LR", nvec, evtol, resid, kdim,
 		     v, ntot, iparam, ipntr, workd, workl, lworkl, info);
 
     runinfo << "ARPACK iteration: " << ++i << endl;
@@ -216,7 +216,7 @@ int main (int    argc,
   // -- Post-process to obtain eigenvalues and Ritz eigenvectors.
 
   F77NAME(dneupd) (1, "A", select, dr, di, z, ntot, 0, 0, workev,
-		   "I", ntot, "LM", nvec, evtol, resid, kdim,
+		   "I", ntot, "LR", nvec, evtol, resid, kdim,
 		   v, ntot, iparam, ipntr, workd, workl, lworkl, info);
 
   // -- Print up eigenvalues.
