@@ -43,7 +43,7 @@ void keyboard (unsigned char key,
 // ---------------------------------------------------------------------------
 {
   switch (key) {
-  case 27:
+  case 27:			// -- ESC.
     glutIdleFunc     (commandLine);
     glutIconifyWindow();
     break;

@@ -177,16 +177,28 @@ Iso* makeSurf (int     nel  ,	// -- Number of spectral elements/blocks.
     free (first_poly);
     free (last_poly);
   }
+  
+  // -- Make a surface even if it's going to be empty.
+
+  S = (Iso*) malloc (sizeof (Iso));
+  S -> nvert = 0;
+  S -> npoly = 0;
+  S -> info  = (char*) calloc (StrMax, sizeof (char));
+  S -> pxyz  = NULL;
+  S -> nxyz  = NULL;
+  S -> plist = NULL;
 
   if (!NUM_POLYGONS)
     message (routine, "no polygons extracted --- bad iso-value", WARNING);
+
   else if (too_many_polys) {
     message (routine, "memory allocation failure, no surface made", WARNING);
-  } else {
-    S = (Iso*) malloc (sizeof (Iso));
+
+  } else {			// -- Populate the storage.
+
     S -> nvert = NUM_VERTICES;
     S -> npoly = NUM_POLYGONS;
-    S -> info  = (char*)  calloc (StrMax,            sizeof (char));
+
     S -> pxyz  = (float*) malloc (3 * NUM_VERTICES * sizeof (float));
     S -> nxyz  = (float*) calloc (3 * NUM_VERTICES,  sizeof (float));
     S -> plist = (int*)   malloc (3 * NUM_POLYGONS * sizeof (int));
@@ -214,16 +226,16 @@ Iso* makeSurf (int     nel  ,	// -- Number of spectral elements/blocks.
       vect[1] *= mag;
       vect[2] *= mag;
     }
-#if 1				/* -- OK, this *is* C++! */
+
     cout << "Isosurface has "
 	 << NUM_VERTICES << " vertices, "
 	 << NUM_POLYGONS << " triangles, "
 	 << nzero        << " zero length normals" << endl;
-#endif
-    sprintf (S -> info, 
-	     "Field = %c, isovalue = %g: %1d vertices, %1d triangles",
-	     name, iso, NUM_VERTICES, NUM_POLYGONS);
+
   }
+
+  sprintf (S -> info, "Field = %c, isovalue = %g: %1d vertices, %1d triangles",
+	   name, iso, NUM_VERTICES, NUM_POLYGONS);
   
   free (POLYGONS);
   free (ZVERTICES);
@@ -250,11 +262,14 @@ Iso* copySurf (Iso* src)
   S -> pxyz  = (float*) malloc (3 * nVert * sizeof (float));
   S -> nxyz  = (float*) calloc (3 * nVert,  sizeof (float));
   S -> plist = (int*)   malloc (3 * nPoly * sizeof (int));
-  
-  memcpy (S -> pxyz,  src -> pxyz,  3 * nVert * sizeof (float));
-  memcpy (S -> plist, src -> plist, 3 * nPoly * sizeof (int)  );
-  memcpy (S -> nxyz,  src -> nxyz,  3 * nVert * sizeof (float));
-  memcpy (S -> info,  src -> info,  StrMax *    sizeof (char) );
+
+  memcpy (S -> info,  src -> info,  StrMax * sizeof (char) );
+
+  if (nPoly) {			// -- Allowed to copy an empty surface.
+    memcpy (S -> pxyz,  src -> pxyz,  3 * nVert * sizeof (float));
+    memcpy (S -> plist, src -> plist, 3 * nPoly * sizeof (int)  );
+    memcpy (S -> nxyz,  src -> nxyz,  3 * nVert * sizeof (float));
+  }
 
   return S;
 }

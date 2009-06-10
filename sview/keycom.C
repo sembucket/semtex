@@ -111,13 +111,13 @@ void processCommand (const char  command,
   case 'm':
     istringstream (buf) >> value;
 
-    if (Surface[0]) {
+    if (Surface[0]) {		// -- Delete default surface if it exists.
       delete [] Surface[0] -> info;
       delete [] Surface[0] -> pxyz;
       delete [] Surface[0] -> nxyz;
       delete [] Surface[0] -> plist;
       delete    Surface[0];
-      Surface[0] = 0;
+      Surface[0] = NULL;
     }
 
     Surface[0] = makeSurf (Mesh   -> nel  ,
@@ -317,5 +317,3 @@ static int addSurf ()
 
   return i;
 }
-
-
