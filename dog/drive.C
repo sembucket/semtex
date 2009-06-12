@@ -229,7 +229,7 @@ int main (int    argc,
 
   runinfo << "EV  Magnitude   Angle       Growth      Frequency" << endl;
 
-  for (j = 0; j < nvec; i++) {
+  for (j = 0; j < nvec; j++) {
     re_ev  = dr[j];
     im_ev  = di[j];
     abs_ev = hypot (re_ev, im_ev);
