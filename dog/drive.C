@@ -203,7 +203,7 @@ int main (int    argc,
   while (ido != done) {
     EV_update (task, workd+ipntr[0]-1, workd+ipntr[1]-1);
 
-    F77NAME(dnaupd) (ido, "I", ntot, "LR", nvec, evtol, resid, kdim,
+    F77NAME(dnaupd) (ido, "I", ntot, "LM", nvec, evtol, resid, kdim,
 		     v, ntot, iparam, ipntr, workd, workl, lworkl, info);
 
     runinfo << "ARPACK iteration: " << ++i << endl;
@@ -216,7 +216,7 @@ int main (int    argc,
   // -- Post-process to obtain eigenvalues and Ritz eigenvectors.
 
   F77NAME(dneupd) (1, "A", select, dr, di, z, ntot, 0, 0, workev,
-		   "I", ntot, "LR", nvec, evtol, resid, kdim,
+		   "I", ntot, "LM", nvec, evtol, resid, kdim,
 		   v, ntot, iparam, ipntr, workd, workl, lworkl, info);
 
   // -- Print up eigenvalues.
@@ -229,14 +229,14 @@ int main (int    argc,
 
   runinfo << "EV  Magnitude   Angle       Growth      Frequency" << endl;
 
-  for (i = nvec; i; i--) {
-    re_ev  = dr[i-1];
-    im_ev  = di[i-1];
+  for (j = 0; j < nvec; i++) {
+    re_ev  = dr[j];
+    im_ev  = di[j];
     abs_ev = hypot (re_ev, im_ev);
     ang_ev = atan2 (im_ev, re_ev);
     re_Aev = log (abs_ev) / period;
     im_Aev = ang_ev       / period;
-    runinfo << setw(2)  << nvec - i
+    runinfo << setw(2)  << j
          << setw(12) << abs_ev
       	 << setw(12) << ang_ev
 	 << setw(12) << re_Aev
