@@ -450,92 +450,92 @@ void printup (const char*    F   ,
   cout << "# FIELDS         :  " << F << endl;
 
   cout << "# ----------------";
-  for (j = 0; j < nSys; j++) cout << "  ----------";
+  for (j = 0; j < nSys; j++) cout << "  -------------";
   cout << endl;
 
   cout << "# " << nSys << " NUMBER SETS  :";
   for (j = 0; j < nSys; j++) {
-    cout << setw (12);
+    cout << setw (15);
     cout << &S[j] -> fields[0];
   }
   cout << endl;
 
   cout << "# NEL            :";
   for (j = 0; j < nSys; j++) {
-    cout << setw (12);
+    cout << setw (15);
     cout << S[j] -> nel;
   }
   cout << endl;
   
   cout << "# NP_MAX         :";
   for (j = 0; j < nSys; j++) {
-    cout << setw (12);
+    cout << setw (15);
     cout << S[j] -> np_max;
   }
   cout << endl;
   
   cout << "# NEXT_MAX       :";
   for (j = 0; j < nSys; j++) {
-    cout << setw (12);
+    cout << setw (15);
     cout << S[j] -> next_max;
   }
   cout << endl;
   
   cout << "# NINT_MAX       :";
   for (j = 0; j < nSys; j++) {
-    cout << setw (12);
+    cout << setw (15);
     cout << S[j] -> nint_max;
   }
   cout << endl;
   
   cout << "# NTOTAL         :";
   for (j = 0; j < nSys; j++) {
-    cout << setw (12);
+    cout << setw (15);
     cout << S[j] -> ntotal;
   }
   cout << endl;
   
   cout << "# NBOUNDARY      :";
   for (j = 0; j < nSys; j++) {
-    cout << setw (12);
+    cout << setw (15);
     cout << S[j] -> nbndry;
   }
   cout << endl;
 
   cout << "# NGLOBAL        :";
   for (j = 0; j < nSys; j++) {
-    cout << setw (12);
+    cout << setw (15);
     cout << S[j] -> nglobal;
   }
   cout << endl;
 
   cout << "# NSOLVE         :";
   for (j = 0; j < nSys; j++) {
-    cout << setw (12);
+    cout << setw (15);
     cout << S[j] -> nsolve;
   }
   cout << endl;
 
   cout << "# OPTIMIZATION   :";
   for (j = 0; j < nSys; j++) {
-    cout << setw (12);
+    cout << setw (15);
     cout << S[j] -> optlev;
   }
   cout << endl;
 
   cout << "# BANDWIDTH      :";
   for (j = 0; j < nSys; j++) {
-    cout << setw (12);
+    cout << setw (15);
     cout << S[j] -> nbandw;
   }
   cout << endl;
 
   cout << "# ----------------";
-  for (j = 0; j < nSys; j++) cout << "  ----------";
+  for (j = 0; j < nSys; j++) cout << "  -------------";
   cout << endl;
 
   cout << "# elmt  side offst";
-  for (j = 0; j < nSys; j++) cout << "  bmap  mask";
+  for (j = 0; j < nSys; j++) cout << "     bmap  mask";
   cout << endl;
 
   for (i = 0, k = 1; k <= S[0] -> nel; k++)
@@ -544,7 +544,7 @@ void printup (const char*    F   ,
 	cout << setw (6) << k << setw (6) << side << setw (6) << soff;
 	for (j = 0; j < nSys; j++)
 	  cout 
-	    << setw (6) << S[j] -> bndmap[i]
+	    << setw (9) << S[j] -> bndmap[i]
 	      << setw (6) << S[j] -> bndmsk[i];
 	cout << endl;
       }

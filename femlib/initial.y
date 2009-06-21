@@ -635,7 +635,8 @@ static double Womersley (double A,
  * Calculate the Womersley solution at r for a pipe of radius R and
  * wave number wnum.  The solution is assumed to be set so that the
  * spatial mean of the flow satisfies
- *   u_avg(r) = A cos (wnum t) + B sin(wnum t) 
+ *   u_avg(r) = A cos (wnum t) + B sin(wnum t)
+ * Note that wnum is not the Womersley number but is circular frequency.
  * ------------------------------------------------------------------------- */
 {
   double x,y;
