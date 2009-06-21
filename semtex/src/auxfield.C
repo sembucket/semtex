@@ -1142,7 +1142,7 @@ AuxField& AuxField::setPlane (const int_t  k    ,
 void AuxField::swapData (AuxField* x,
 			 AuxField* y)
 // ---------------------------------------------------------------------------
-// Swap data areas of two fields.
+// (Static class member function.)  Swap data areas of two fields.
 // ---------------------------------------------------------------------------
 {
   const char       routine[] = "AuxField::swapData";
@@ -1168,10 +1168,11 @@ void AuxField::couple (AuxField*   v  ,
 		       AuxField*   w  ,
 		       const int_t dir)
 // ---------------------------------------------------------------------------
-// Couple/uncouple field data for the radial and azimuthal velocity
-// fields in cylindrical coordinates, depending on indicated
-// direction.  This action is required due to the coupling in the
-// viscous terms of the N--S equations in cylindrical coords.
+// (Static class member function.)  Couple/uncouple field data for the
+// radial and azimuthal velocity fields in cylindrical coordinates,
+// depending on indicated direction.  This action is required due to
+// the coupling in the viscous terms of the N--S equations in
+// cylindrical coords.
 //
 // dir == FORWARD
 // --------------

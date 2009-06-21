@@ -166,7 +166,7 @@ Analyser::Analyser (Domain* D   ,
   } else
     _ph_stats = 0;
 
-  // -- Set up for output of modal energies teps if toggled.
+  // -- Set up for output of modal energies if toggled.
 
   if (Femlib::ivalue ("IO_MDL")) {
     strcat (strcpy (str, _src -> name), ".mdl");

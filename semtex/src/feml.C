@@ -277,8 +277,8 @@ bool FEML::tokens ()
       if (strstr (buf, "TOKENS")) break;
     }
     
-    if (Femlib::value ("IO_FLD") > Femlib::ivalue ("N_STEP"))
-      Femlib::ivalue ("IO_FLD", Femlib::ivalue ("N_STEP"));
+    if (Femlib::ivalue ("IO_FLD") > Femlib::ivalue ("N_STEP"))
+        Femlib::ivalue ("IO_FLD",   Femlib::ivalue ("N_STEP"));
 
     if (Femlib::ivalue ("N_TIME") > 3) {
       message (routine, "N_TIME too large, reset to 3", WARNING);

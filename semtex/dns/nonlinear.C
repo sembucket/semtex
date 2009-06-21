@@ -109,8 +109,8 @@ void nonLinear (Domain*         D ,
     *Uf[i] = 0.0;
     AuxField::swapData (D -> u[i], Us[i]);
     ROOTONLY if (fabs (ff[i]) > EPSDP) {
-      Veclib::fill (nP, -ff[i], tmp, 1);
-      if (i < 2) master -> mulY (1, tmp);
+      Veclib::fill (nP, ff[i], tmp, 1);
+      if (i < 2 && Geometry::cylindrical()) master -> mulY (1, tmp);
       Uf[i] -> addToPlane (0, tmp);
     }
   }
