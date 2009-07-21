@@ -624,41 +624,40 @@ static double ImJn (double n, double x, double y)
   return imj;
 }
 
-static double Womersley (double A,
-			 double B,
-			 double r,
-			 double R, 
-			 double mu, 
-			 double wnum,
-			 double t)
-/* ------------------------------------------------------------------------- *
- * Calculate the Womersley solution at r for a pipe of radius R and
- * wave number wnum.  The solution is assumed to be set so that the
- * spatial mean of the flow satisfies
- *   u_avg(r) = A cos (wnum t) + B sin(wnum t)
- * Note that wnum is not the Womersley number but is circular frequency.
+static double Womersley (double A    ,
+			 double B    ,
+			 double r    ,
+			 double R    , 
+			 double mu   , 
+			 double omega,
+			 double t    )
+/* -------------------------------------------------------------------------
+ * Calculate the Womersley solution at r for a pipe of radius R and circular
+ * frequency omega.  The solution is set so that the area-average flow speed
+ *
+ *                u_avg = A cos(omega t) +  B sin(omega t)
  * ------------------------------------------------------------------------- */
 {
   double x,y;
 
   if (r > R) message ("Womersley", "r > R", ERROR);
 
-  if (wnum == 0) /* Return Poiseuille flow with mean of 1. */
+  if (omega == 0) /* Return Poiseuille flow with mean of 1. */
     return 2*(1-r*r/R/R);
   else {
-    int_t ierr,nz;
-    double  cr,ci,J0r,J0i,rej,imj,re,im,fac;
-    double  isqrt2 = 1.0/sqrt(2.0);
-    static  double R_str, wnum_str,mu_str;
-    static  double Jr,Ji,alpha,j0r,j0i, isqrt;
+    int_t  ierr,nz;
+    double cr,ci,J0r,J0i,rej,imj,re,im,fac;
+    double isqrt2 = 1.0/sqrt(2.0);
+    static double R_str, omega_str,mu_str;
+    static double Jr,Ji,alpha,j0r,j0i, isqrt;
 
-    /* For case of repeated calls with same parameters, 
-     * store those independent of r.
-     */
+    /* 
+       For repeated calls with same parameters, store those independent of r.
+    */
 
-    if ((R != R_str) || (wnum != wnum_str) || (mu != mu_str)) {
+    if ((R != R_str) || (omega != omega_str) || (mu != mu_str)) {
       double retmp[2],imtmp[2];
-      alpha = R*sqrt(wnum/mu);
+      alpha = R*sqrt(omega/mu);
 
       re  = -alpha*isqrt2;
       im  =  alpha*isqrt2;
@@ -670,7 +669,7 @@ static double Womersley (double A,
       Jr = 1+2*fac/alpha*((rej*j0r+imj*j0i)*isqrt2-(imj*j0r - rej*j0i)*isqrt2);
       Ji = 2*fac/alpha*((rej*j0r+imj*j0i)*isqrt2 + (imj*j0r - rej*j0i)*isqrt2);
 
-      R_str = R; wnum_str = wnum; mu_str = mu;
+      R_str = R; omega_str = omega; mu_str = mu;
     }
 
     /* setup cr, ci from pre-stored value of Jr & Ji */
@@ -688,18 +687,18 @@ static double Womersley (double A,
     J0r = 1-fac*(rej*j0r+imj*j0i);
     J0i = -fac*(imj*j0r-rej*j0i);
 
-    return (cr*J0r - ci*J0i)*cos(wnum*t) - (ci*J0r + cr*J0i)*sin(wnum*t);
+    return (cr*J0r - ci*J0i)*cos(omega*t) - (ci*J0r + cr*J0i)*sin(omega*t);
   }
 }
 
-static double Womsin (double r, double R, double mu, double wnum, double t) {
-  if (wnum == 0) return 0.0; /* No sin term for zeroth mode. */
+static double Womsin (double r, double R, double mu, double omega, double t) {
+  if (omega == 0) return 0.0; /* No sin term for zeroth mode. */
   
-  return Womersley (0.0, 1.0, r, R, mu, wnum, t);
+  return Womersley (0.0, 1.0, r, R, mu, omega, t);
 }
 
-static double Womcos (double r, double R, double mu, double wnum, double t) {
-  return Womersley (1.0, 0.0, r, R, mu, wnum, t);
+static double Womcos (double r, double R, double mu, double omega, double t) {
+  return Womersley (1.0, 0.0, r, R, mu, omega, t);
 }
 
 /* ------------------------------------------------------------------------- *
