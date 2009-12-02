@@ -1,0 +1,99 @@
+This thesis deals with a few distinct topics in the fluid mechanics of
+bluff bodies.
+
+The first topic is three-dimensional stability of two-dimensional
+flows past elongated flat plates with rounded leading edges, and in
+particular the effect of plate length:thickness ratio on the relative
+stability of the three types of modes that can arise in codimension-1
+bifurcations in this system. The novel feature of the results is that
+at high aspect ratios (greater than approx. 17.5:1) it is the
+quasiperiodic mode that loses stability first as Reynolds number is
+increased. This is in contrast to what has been found in previous
+studies for circular and square cylinders, and for rectangular plates
+with square leading edges, where synchronous modes are the first to
+become unstable. The numerical method employed by the candidate in
+stability analysis is unable to directly predict the Floquet
+multipliers in quasiperiodic cases, as it is essentially a
+one-dimensional method, similar to that used by Robichaux et
+al. (1999) -- other cues must be used to assess if the mode could be
+quasiperiodic. The candidate does not appear to fully appreciate that
+in bifurcations with complex-conjugate pair multipliers there are, in
+the nonlinear case, two possible distinct manifestations of
+quasiperiodic modes: standing and travelling waves, of which only one
+is stable. Within the context of the thesis, this is quite
+understandable, as this finding has only appeared in the literature
+quite recently, and the candidate has been working on other areas as
+well.
+
+The other parts of the thesis deal with two-dimensional simulations of
+flows past cylinders that can move, either lightly-sprung and free to
+move only in the cross-flow direction, or tethered but not sprung --
+the restoring force in the latter case being provided by tension in
+the tether.
+
+For the lightly sprung cylinder, it has already been established that
+at much higher Reynolds numbers, there is a critical cylinder mass
+ratio below which the lockin regime apparently extends to infinite
+reduced velocities. Also it appears from previous results that for the
+(low) Reynolds number of 100, such a critical mass ratio exists. The
+work in the thesis extends this analysis to a wider range of low
+Reynolds numbers, maximum 300. As can often be the case, things are
+not so simple, and it turns out that within this range there is a
+subset of Reynolds numbers [100 to 190, approx.] over which no
+critical mass ratio was found to exist. Thus it is difficult to make
+the generalisation that, except for this subset, a critical mass ratio
+exists for all Reynolds numbers above the onset of vortex shedding at
+Re=47.
+
+The work on the tethered cylinders is more complete, and forms the
+basis for the bulk of the work written up in the thesis (chapters 5, 6
+and 7). All these results are computed at a Reynolds number of 200.
+Reading chapter 5, it was not immediately apparent to me that the
+reduced velocity was varied by changing the buoyancy force, and I had
+to revisit chapter 2 to be reminded of this fact. The moment of
+inertia is initially defined only in approximate form in chapter 5, an
+error that is admittedly unimportant within the context of that
+chapter and also in the following one, and which is subsequently
+rectified in chapter 7.
+
+For the cases dealt with in chapter 5, there is a step change in
+oscillation frequency that occurs at a reduced velocity of
+approximately 5, from being dominated by the drag frequency to being
+dominated by the lift frequency (the drag period-doubles so that the
+lift and drag have the same fundamental frequency). Subsequently at
+larger reduced velocities, as the layover angle increases towards 90
+degrees, the dynamics become more like those of the lightly sprung
+cylinder, and the oscillation amplitudes fall.
+
+In chapter 6, the mass ratio is varied in order to establish its
+effect. It is found that if the mass ratio is less than approx. 0.4,
+there is a jump change in flow characteristics when the Froude number
+is increased above approx. 0.8. This jump change was characterised in
+terms of a number of different parameters, but after reading the
+chapter I did not come away with an understanding of the fluid
+mechanics underlying the phenomenon.
+
+In chapter 7, the final chapter of results, the mass ratio is
+initially fixed at 0.2, and the tether length is varied. Here the
+full, correct, form of the moment of inertia is used. It is said,
+following eq. (7.3), that the earlier simplification is valid if
+L*>>(1/64), whereas it seems that this should be L*>>(1/sqrt(8)) [as
+is later noted following eq. (7.12)]. Then the effect of tether length
+on critical mass ratio is examined, and it is found that the as the
+tether length increases, the critical mass ratio approaches that for
+the lightly sprung cylinder.
+
+As indicated above, the thesis contains a number of minor errors and
+inconsistencies, but on the whole I believe this is good original
+research which deserves to be accepted as satisfying the requirements
+for a PhD. The publishable bulk of the work comes from the final
+chapters. I would suggest that if possible the physical mechanisms
+responsible for the step changes noted in chapter 6 be established,
+although I do not regard this as a prerequisite for acceptance of the
+thesis.
+
+
+
+
+
+

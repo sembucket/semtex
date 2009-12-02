@@ -1,0 +1,49 @@
+TITLE:        Two-dimensional numerical simulation of oscillating
+	      cylinder in a mean flow at low Keulegan-Carpenter and
+	      beta numbers
+
+AUTHORS:      H. Soufi, D. Nehari, H. Adjlout and O Imine
+
+SUBMITTED TO: Progress in Computational Fluid Dynamics
+
+REVIEW:	      Second
+
+This version of the manuscript is better than the 2007 original in
+that more material has been included to the point the manuscript
+could be considered for publication, but it needs a lot of (mostly
+relatively minor) revisions to bring it to publishable quality.
+
+1. The standard of English used is not yet acceptable.  I suggest the
+authors do a very thorough job of raising the level in any subsequent
+submission.  While I do not wish to appear unsympathetic, I'm afraid I
+do not have time to act as their proof reader and do not intend to
+provide a sentence-by-sentence analysis.
+
+2. References: the authors have been inconsistent in their
+referencing.  Many of the new references are only referred to by the
+name of the first author, while the typical usage is: both authors'
+names if there are two, and Author et al. if there are three or more
+authors.  I suggest the present authors carefully read an issue of
+PCFD to pick up the house style, and adopt it.  In the very first (and
+many subsequent) references to Tatsuno & Bearman's 1990 paper, the
+date is omitted - then finally when it is supplied for the first time,
+it is wrong (Tatsuno & Bearman 1988, see page 6).
+
+3. There is no discussion of what Tatsuno & Bearman's map actually
+shows - the authors seem to assume that all the readers will know what
+it is.  At least a brief explanation is required in the Introduction.
+In relation to that map, the authors need now also to refer to Elston
+et al. JFM V550 2006 where the initial instability boundaries of
+Tatsuno & Bearman's map were shown to be explicable through linear
+analysis, and that that work also showed that when the flow breaks
+symmetry it is also almost invariably three-dimensional (while the
+present study is two-dimensional).
+
+4. In the Introduction, the authors tell us what the Stokes number
+does not depend on the amplitude of oscillation. They need to tell us
+however what it *does* depend on (that it represents the frequency of
+oscillation in dimensionless terms).  Also, Um is said to indicate the
+amplitude of cylinder motion whereas it represents the amplitude of
+cylinder oscillation velocity.
+
+5. Morison's coefficients are never defined; they need to be.

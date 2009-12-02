@@ -1,0 +1,134 @@
+\documentclass[12pt,a4paper]{letter}
+\usepackage{pstricks}
+\usepackage{graphicx}
+\setlength{\textheight}{235mm}
+\setlength{\textwidth}{165mm}
+\setlength{\topmargin}{-10mm} 
+\setlength{\oddsidemargin}{-0.5cm}
+\setlength{\evensidemargin}{-0.2cm}
+\setlength{\unitlength}{1mm}
+\renewcommand{\baselinestretch}{1.00}
+\def\undertext#1{$\underline{\smash{\hbox{#1}}}$}
+
+\pagestyle{empty}
+\thispagestyle{empty}
+\raggedbottom
+
+\date{}
+
+\begin{document}  
+
+\address{
+\mbox{ }\\
+\begin{tabular}{ll}
+phone:  &(+61 3) 9252 6330\\
+fax:    &(+61 3) 9252 6240\\
+mailto: &hugh.blackburn@csiro.au\\
+& 31 August 2004
+\end{tabular}
+}
+
+\begin{letter}
+{
+To whom it may concern
+}
+\signature{\vspace*{-10mm}
+\includegraphics[scale=0.8]{hmbsig.ps}\\
+Dr Hugh M. Blackburn\\
+\undertext{Principal Research Scientist}
+}
+
+\opening{
+\begin{pspicture}(0,0)(0,0)
+\rput(82mm,50mm){
+\includegraphics%
+[bb=0 655 594 842,clip,width=1.20\linewidth]{MIT_letter.ps}}
+\end{pspicture}
+\centerline{\undertext{\textbf{Re: Master's Thesis, R\,D Rusk}}}
+}
+
+I have carried out a review of Rueben Rusk's thesis, as requested. I
+consider it a fine example of a Master's thesis, and recommend the
+thesis be awarded with the grade of A. Please find my detailed
+comments and assessment attached.
+
+\closing{Yours sincerely,}
+\encl{Assessment}
+\end{letter}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\vspace*{-10mm}
+\begin{center}
+\textbf{
+\undertext{Master's Thesis, R\,D Rusk}\\[5pt]
+Large-Scale Oscillatory Stabilisation of the Boundary Layer
+}
+\end{center}
+
+\noindent\textbf{Subject material}\\[5pt] The work is concerned with
+stabilisation of the Blasius boundary layer solution via application
+of streamwise and cross-flow forcing. Numerical Floquet stability
+analysis of one-dimensional boundary layer solutions was carried out
+using special-purpose codes written in Matlab for the cases of
+streamwise and cross flow Lorenz-type (localised body force)
+forcing. For the case of travelling-wave type cross flow forcing, base
+flow fields were investigated via two-dimensional direct numerical
+simulation, apparently employing the FIDAP code with arbitrary
+Lagrangian--Eulerian formulation to accommodate wall motion, but
+stability analysis was not attempted.
+
+\noindent\textbf{Comments}\\[5pt] The whole thesis is very nicely
+written and presented, although there were a few minor errors and
+omissions that should have been caught during proof reading.
+
+The first six chapters provide a broad review of boundary layer
+instabilities, turbulence and stabilisation. This section is easy to
+follow and indicates that the author has a good grasp of the subject area.
+
+Chapter 7 describes with linear stability analysis of Orr--Sommerfeld
+type as applied to both spatial and temporal stability analysis of
+steady 1D boundary layer Navier--Stokes solutions, and extension to
+temporal Floquet problems. For the numerical implementation, mapped
+Chebyshev expansions are used in the wall-normal direction.
+
+In chapter 8, these methods are used first to verify the codes against
+available solutions for steady plane Couette, Poiseuille, and Blasius
+boundary layer flows, for both spatial and temporal type
+analyses. Following that, they are used to study the effect of
+streamwise and cross flow oscillatory forcing of Lorenz type. The
+emphasis is on streamwise forcing, though it appears less effective in
+stabilisation than cross flow, on the basis that the cost of the cross
+flow-forcing analysis is much higher. Given the development and
+emphasis on stability analysis that had come previously, I found the
+latter part of chapter~8 a little brief. Also, I didn't find (although
+it may have appeared somehere in the thesis) an explanation of how the
+shape of the Lorenz forcing was established or chosen. Likewise, there
+seemed to be no examination of forcing by direct wall oscillation,
+something that might have been expected after reading the introductory
+chapters. But on the other hand, the investigation could not be
+anything like exhaustive within the context of a Master's thesis, and
+as the author points out, the size of the possible parameter space is
+large.
+
+The final part of the thesis (chapters 9--11) deals with a
+computational investigation of flows induced by two-dimensional,
+two-component travelling-wave wall motions. Because the motion is
+spatially periodic, Floquet assumptions may be employed in deriving
+full and approximate (low-motion-amplitude) stream-function
+formulations, which are given in chapter~9. Ultimately however, a
+primitive-variable finite element formulation was used to examine the
+flow generated at moderate travelling wave amplitudes, and was
+validated against the approximate stream-function formulation at low
+wave amplitudes. The travelling wave wall motion generates a
+time-average secondary streaming flow, which is shown at the end of
+chapter~11.
+
+Overall, this is a fine example of a Master's thesis.
+
+\noindent\textbf{Recommended grade: A}\\[5pt]
+
+
+
+\end{document}
+

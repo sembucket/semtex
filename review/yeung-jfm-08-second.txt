@@ -1,0 +1,45 @@
+TITLE:        On pressure invariance, wake width and drag prediction of a
+	      bluff body in confined flow
+
+AUTHORS:      WWH Yeung
+
+SUBMITTED TO: Journal of Fluid Mechanics
+
+REVIEW:	      Second
+
+
+1. I still have difficulty with the issue of generality of the method,
+as the more general a method is the greater its appeal.  The author in
+some places (e.g. in the title) suggests that the method is general
+but on the other hand gives a listing of particular bluff bodies to
+which the method has been applied. This happens both in the Abstract
+and in the Discussion. Please state if the method is supposed to apply
+generally to confined bluff bodies and what inputs are required (for
+example, the separation pressure coefficient in the case of bodies
+with curved separation zones). If the method cannot be applied to
+general confined bluff bodies, provide guidance on which classes of
+bluff bodies it is likely to be applicable to, and why.
+
+2. Regarding the use of curve fitting, I do not find this
+objectionable. The point I was trying to make was that in various
+places empirical relations are introduced without their being stated
+as such, so that the reader is left to wonder if they have some
+theoretical basis. I think that this could mostly be cleared up by
+careful choice of wording. For example, prior to equation (24) one
+could state that the data "for a normal flat plate become
+*approximately* independent of blockage ratio ...". Then it would be
+clearer that the expression to be introduced is empirically based. Or
+this could be explicitly stated. 
+
+I would also be happier if the author were to include in the
+Discussion a version of this statement made in his rejoinder to the
+previous review:
+
+    "Continuity is first used to deduce the important parameter
+    (1-\epsilon) for blocked flow. Only its exponent is to be
+    introduced next. Interestingly the simple functional dependence
+    (1-\epsilon)^n, where n depends on the geometry, leads to
+    realistic results for the variety of bluff bodies considered."
+
+I think this would serve to clarify the issue for the reader.
+				   

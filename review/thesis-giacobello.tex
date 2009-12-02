@@ -1,0 +1,141 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Matteo Giacobello PhD
+%
+% $Id$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[a4paper,12pt]		{article}
+\usepackage{amsmath,amssymb,amsxtra,bm,natbib,graphicx,epic,eepic}
+%\usepackage[all,import]{xy}
+
+\setlength{\textheight}			{245mm}
+\setlength{\textwidth}			{155mm}
+\setlength{\topmargin}			{-5mm}
+\setlength{\headsep}			{0mm}
+\setlength{\oddsidemargin}		{0mm}
+\setlength{\parsep}                     {0mm}
+
+\renewcommand{\baselinestretch}		{1.00}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% General purpose macros, font selections.
+
+\newfont{\cmssLarge}{cmss10 scaled\magstep3}        % large sans-serif font
+\def\undertext#1{$\underline{\smash{\hbox{#1}}}$}   % underline running text
+\def\refitem{\noindent\hangindent=2em}              % hanging index for refs.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Mathematical operators
+
+\def\ol#1{\overline{#1}}
+\def\div{{\nabla\!\cdot}}
+\def\curl{{\nabla\times}}
+\def\divb#1{{\nabla\!\cdot\left( #1 \right)}}
+\def\grad{{\nabla}}
+\def\laplacian{{\nabla^2}}
+\def\gradb#1{{\nabla\left( #1 \right)}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Abbreviations.
+
+\newcommand\Rey{\mbox{\textit{Re}}}
+\newcommand\Sto{\mbox{\textit{St}}}
+\newcommand\Kc{\mbox{\textit{KC}}}
+
+\newcommand\NS{Neimark--Sacker}
+\newcommand\NavSto{Navier--Stokes}
+\newcommand\TC{Taylor--Couette}
+\newcommand\TG{Taylor--G{\"{o}}rtler}
+\newcommand\KH{Kelvin--Helmholtz}
+\newcommand{\KC}{Keulegan--Carpenter}
+\newcommand\Ka{K{\'{a}}rm{\'{a}}n}
+\newcommand\Po{Poincar{\'{e}}}
+
+\newcommand\oned{one-di\-men\-sion\-al}
+\newcommand\twod{two-di\-men\-sion\-al}
+\newcommand\threed{three-di\-men\-sion\-al}
+\newcommand\twoc{two-com\-po\-nent}
+\newcommand\threec{three-com\-po\-nent}
+\newcommand\qp{qua\-si-perio\-dic}
+\newcommand\cc{com\-plex-con\-ju\-gate}
+\newcommand\st{spa\-tio-tem\-po\-ral}
+\newcommand\hprm{half-pe\-riod-flip map}
+
+\newcommand{\ie}{i.e.\ }
+\newcommand{\eg}{e.g.\ }
+
+\newcommand\real{{\mbox{Re}}}
+\newcommand\imag{{\mbox{Im}}}
+\newcommand\ci{\mathrm{i}}
+\newcommand\ce{\mathrm{e}}
+\newcommand\cd{\mathrm{d}}
+
+\newcommand\Pm{\mathcal{P}}
+\newcommand\Hm{\mathcal{H}}
+\newcommand{\Fm}{\mathcal{F}}
+
+\newcommand\TW{{TW}}
+\newcommand\TWp{TW$_+$}
+\newcommand\TWm{TW$_-$}
+\newcommand\SW{{SW}}
+
+\newcommand{\Tone}{\hbox{$\mathbb{T}^1$}}
+\newcommand{\Ttwo}{\hbox{$\mathbb{T}^2$}}
+\newcommand{\Tthree}{\hbox{$\mathbb{T}^3$}}
+
+\newcommand\R{\mathbb{R}}
+\newcommand\C{\mathbb{C}}
+\newcommand\I{\mathbb{I}}
+\newcommand\Z{\mathbb{Z}}
+\newcommand\Poly{\mathbb{P}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+%=============================================================================
+\subsection*{Examiner's report, M. Giacobello PhD thesis}
+
+This thesis deals with a direct numerical simulation investigation of
+low Reynolds number incompressible flow past a sphere that rotates
+about an axis normal to the oncoming flow direction. The parameters
+varied for steady rotation are Reynolds number and rotation rate,
+while oscillatory rotation is investigated for one Reynolds number and
+rotation rate, with oscillation frequency as a parameter. The
+numerical method solves the flow in a spherical coordinate system,
+employs spectral expansions in all three coordinate directions, and is
+based on previous works by Mittal and Balachandar. While the
+methodology is described in some depth, the focus is mainly on fluid
+mechanics.
+
+\textbf{I have no hesitation in recommending that the thesis be
+accepted as it stands.} It presents a thorough, rigorous treatment of
+the topic, and is very well presented and written. Relevant existing
+work in the area is reviewed and where relevant compared to the
+results obtained in the investigation. Discrepancies and problems with
+some previous investigations are identified. New and interesting
+results are provided. There should be no problem in adapting the
+material for publication in premier international journals of the
+discipline.
+
+I did identify some topics that the candidate might consider when
+writing up the work for journal publication. The first is that the
+spatial convergence properties of the numerical method are not
+formally demonstrated\,---\,a fully spectral method if correctly
+conceived and implemented should provide solutions to the \NavSto\
+equations that converge exponentially with increasing basis function
+order. One approach here would be to take an analytical solution given
+in Cartesian coordinates, and demonstrate the convergence of the
+numerical solution in spherical coordinates. An example of this
+approach (but for cylindrical rather than spherical coordinates) is
+given in Blackburn \&~Sherwin, \textsl{J. Comput.\ Phys.}\/
+\textbf{197}, 759--778. The second concerns the nature of the novel
+wake mode found for the steadily rotating sphere at higher Reynolds
+numbers and rotation rates. It seems possible that because the mode
+appears to originate in the shear layer, it is a convective rather
+than absolute instability. If that is so then it could be sensitive to
+numerical noise and for example might reduce in amplitude with
+increasing mesh resolution, or change its characteristics when driven
+with low-amplitude forcing at a different frequency. I suggest it
+would be prudent to give this possibility some careful thought.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}

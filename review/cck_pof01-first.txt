@@ -1,0 +1,93 @@
+TITLE:        Characteristics of the flow over a rotationally
+              oscillating cylinder at low Reynolds numbers
+
+AUTHORS:      Sungho Choi and Haecheon Choi and Sangmo Kang
+
+SUBMITTED TO: Physics of Fluids
+
+REVIEW:	      First
+
+
+SUBJECT MATERIAL
+----------------
+
+This is a numerical simulation study of some of the phenomena of flow
+past a rotationally oscillating circular cylinder at Re=110.  Interest
+in the area stems mainly from two seminal papers by Taneda (1978) and
+Tokumaru and Dimotakis (1991); particularly as in the latter paper it
+was shown that the time-mean drag of the cylinder could be
+substantially altered by the influence of rotation.  It is quite well
+established that, like the case for a cylinder with forced cross-flow
+oscillation, there in an A'rnold tongue of frequency synchronization
+when the oscillation frequency is close to the vortex shedding
+frequency for the fixed cylinder.  The range of entrainment
+frequencies grows as the rotational oscillation amplitude (or peak
+cylinder surface speed) rises.
+
+SUMMARY
+-------
+
+The manuscript does not cover a substantial amount of new material,
+and as such is of marginal interest. Contrary to the claims made by
+the authors that "only a few studies have been performed on flow past
+a rotationally oscillating circular cylinder", I would say there have
+been quite a few, particularly since the work of Tokumaru and
+Dimotakis.
+
+Indeed there have already been five published numerical studies that I
+know of, of which the authors reference only three; two missing are
+those of Lu & Sato (J Fluids & Structures vol 10, 1996, pp. 829--849)
+and Chou (Computers & Fluids vol 26, 1997, pp. 755--774).  Also
+contrary to the claims of the authors, some of these studies have
+employed quite high rotational oscillation speeds, comparable to, or
+higher than, those studied here.  For example, my calculations put the
+peak rotational speed Omega examined by Lu & Sato (1996) at
+approximately 3, that of Chou (1997) at approximately 9, that of Baek
+& Sung (1998) at approximately 1.3 (not 0.05 as stated; that value
+applied only to their paper of 2000), and of Mafouz and Badr (2000) at
+approximately 2.  The maximum value for the studies in the present
+manuscript is 2.5.  Of course, the nominal Reynolds numbers for all
+these numerical studies are somewhat different, although they are all
+quite low (say of order 1000 maximum), and all are of two-dimensional
+flows.  At least, at Re=110, here, we can be fairly confident that the
+corresponding real flows would be two-dimensional as well.  On the
+other hand, some of the results observed in physical experiments
+(T&D's Re=15,000) are not reproduced by the simulations, and we can't
+really be sure if that results from a large disparity in Reynolds
+numbers, lack of wake three-dimensionality, or other factors.
+
+As far as I can see there are two main things that would differentiate
+the present work from the previous publications.  The first is that
+the authors seek to explain the modulation that occurs in e.g. lift
+and drag signals just outside the lock-on or frequency synchronization
+range in terms of physical events (vortex mergings).  This is perhaps
+not unexpected, but as far as I am aware no other paper treats this
+facet in detail.  I feel the authors' treatment here is not detailed
+enough; for example, the frequency ranges over which the modulation
+occurs are not represented on figures 3 and 14.  We are not sure if
+the results presented, and the mergings which are reported, reach an
+asymptotic repetitive state.  If, as the authors suggest, the
+modulation frequencies can be expressed as integer combinations of the
+fixed cylinder vortex shedding frequency and the forcing (oscillation)
+frequency, a cross-plot of lift and drag timeseries should form a
+(perhaps complicated) limit cycle.  Even if ths is not exactly true
+(i.e. the process is quasiperiodic or weakly chaotic), it would still
+help for example to show the correspondence between the vorticity
+contour plots shown in figures 9--12 and say lift force timeseries.
+Also, is there any trend in the integer values n and m with Stf or
+Omega?
+
+The other main avenue by which this manuscript could be differentiated
+from the previous papers is in the systematic investigation of the
+Stf/Omega control space near primary lock-on.  Unfortunately I again
+feel the level of detail in the treatment leaves something to be
+desired; the relative sparseness of the points in figures 3 and 14 is
+notable (although from figure 13 it would appear that more
+closely-spaced runs may have been performed).  Ideally there would be
+a dense enough coverage of the lock-on range at least to provide a
+contour plot of lift and drag coefficients, but that is asking a lot.
+
+OTHER ISSUES
+------------
+
+

@@ -1,0 +1,65 @@
+TITLE:        Flow control using bifrequency motion
+              
+AUTHORS:      Marzouk OA
+
+SUBMITTED TO: Theoret Comput Fluid Dyn
+
+REVIEW:       First
+
+SUBJECT MATERIAL
+
+2D numerical study of flow past a circular cylinder with imposed
+crossflow motion which has either one harmonic or two (first +
+third). Fundamental frequency motion amplitude is fixed at 0.3D.
+
+RECOMMENDATION
+
+The basic idea of the work, that small motion in the 3rd harmonic can
+exert a large influence on the flow and in particular the sign of
+power transfer between the cylinder and the flow, is interesting and
+as far as I know unreported.  However, I feel the manuscript needs
+revision, some of it rather major, before it could be accepted, as
+outlined in the points below.
+
+POINTS
+
+1. The author has not been careful to motivate the work for the more
+general reader. For example, it is not pointed out why one should be
+concerned if there is power transfer from the fluid to the cylinder,
+or vice versa. A related issue is that in free vibration, various
+conditions (for example, low mass ratio) could lead to a greater
+contribution of the third harmonic to the cylinder motion, and hence
+broaden the potential generality of the results presented here.  (I'm
+not sure if this definitely is the case but I think it's a possibility
+the author could argue, on the basis of evidence to this effect.)
+
+2. The text is too phenomenological ("changing X varied Y") and does
+little to try to explain or broaden interest in the findings, perhaps
+by discussing them in light of previous results. Other workers have in
+the past examined the influence of single frequency motion on power
+transfer, but these results (e.g. Blackburn & Henderson 1999) are not
+raised in discussion: they need to be. It could also be interesting to
+have discussion of the results in light of recent experiments on
+forced and free oscillation published by Morse & Williamson (2009). In
+any case the author needs to make a concerted effort to strengthen the
+interpretation of results before the manuscript could be accepted.
+
+3. It is rather remarkable that nowhere in the manuscript do we see
+any kind of flow visualisation or any attempt to explain findings in
+terms of flow physics.  This criticism relates back to point 2
+above. The manuscript would be much strengthened by inclusion of this
+kind of material.
+
+4. One has to get some way into the manuscript before discovering that
+it is a 2D numerical study (or indeed, a numerical study). This should
+be mentioned in the abstract or introduction.  There needs to be a
+convincing demonstration of spatial and temporal convergence of the
+results at the Reynolds number of interest (300), instead of just
+relying on a visual comparison made to computations of Zheng & Zhang
+at Re=200 (Figure 1). There is very little description of the
+numerical method to the extent that we have no idea if the method is
+first-order in time, second-order in space, etc. Justification of the
+use of 3D simulations at Re=300 is rather weak.  I don't believe that
+the previous numerical investigations cited in section 3 did actually
+demonstrate that cylinder motion promoted two-dimensionality of the
+flow, as the author seeks to imply.

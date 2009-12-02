@@ -1,0 +1,87 @@
+TITLE:        Flow past an oscillating circular cylinder in a channel
+              
+AUTHORS:      Celik, Akdag, Gunes & Beskok
+
+SUBMITTED TO: Phys Fluids
+
+REVIEW:	      First
+
+SUBJECT MATERIAL
+
+A numerical study of 2D flow in a channel with an upstream splitter
+plate, Reynolds number=100, blockage ratio=1/3. Fixed cylinder plus
+forced oscillation at amplitude 0.4D, various frequency ratios around
+primary synchronization.
+
+RECOMMENDATION
+
+I'm afraid I can't recommend publication in the present form. The main
+reason is that there is an upstream splitter plate (which is only
+mentioned in passing) that comes to within 2D upstream of the front of
+the cylinder, and has unknown influence on the flow dynamics -- the
+presence of the splitter seems to make this a rather specific study,
+and will certainly have significantly influenced the inflow velocity
+profile.  A primary cited motivation for the work is to study the
+effects of cylinder oscillation in the confined channel on mixing, and
+the presence of the splitter plate certainly indicates a future
+introduction of a scalar in one inlet stream -- in fact the final
+paragraph of the manuscript makes this explicit.  I believe that the
+manuscript would be much more interesting and acceptable if the
+authors were able to include material on scalar mixing/heat transfer,
+otherwise the motivation is insufficient to justify publication.
+There does not seem to be much novelty in the flow physics, other than
+the interaction with sidewall boundary layers and possibly also those
+from the upstream splitter.
+
+If the authors consider submitting a new version then they may also
+wish to take into account the points below.
+
+MAJOR POINTS
+
+1. The title and abstract need to mention the presence of the splitter
+   plate. Also, in the abstract, the blockage ratio and oscillation
+   amplitude should appear.  
+
+2. We need to be told the inlet velocity profile.
+
+3. S Mittal and co-workers have published numerical work on low-Re 2D
+   flows around vibrating cylinders with significant blockage (in JFM
+   and JFS at least) and this should be addressed in the
+   introduction/literature review.
+
+4. A related point is that while significant space in the introduction
+   is given to experimental studies of flows around oscillating
+   cylinders, only perfunctory treatment is given to the significant
+   body of numerical work on these flows.
+
+5. I was surprised to see the statement on page 11, end of para 2 that
+   the high blockage ratio here induces "completely different physics"
+   compared to the unconfined case, as the results are not so
+   different in nature to those for unconfined flows.  Likewise I do
+   not agree with the statement in the subsequent paragraph that "the
+   downstream vortex pattern does not exhibit Karman Vortex street" --
+   to me, the flow does not look too unlike comparable-Re unconfined
+   flows, other than for interaction with the sidewall boundary
+   layers.
+
+MINOR POINTS
+
+1. page 4, para 3. The review of forced oscillation results here does
+   not bring out the observed rapid change of phase of vortex shedding
+   in the midst of the primary synchronization regime.  Maybe this is
+   what is meant by the reference to a "change of sign" of shed
+   vortices, which seems unlikely.
+
+2. The writing style employed often omits definite articles such as
+   "a" and "the".
+
+3. While frequency spectra here do establish a lack of periodicity
+   outside lockin, they do not have good discrimination in general and
+   a phase-plane type plot indicating the presence or otherwise of a
+   limit cycle is a better tool.  (In fact a visual examination of the
+   flows shown in figures 3, 7 & 9 seems sufficient to determine which
+   are locked and which are not.)
+
+
+
+

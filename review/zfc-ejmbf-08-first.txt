@@ -1,0 +1,93 @@
+TITLE:        The optimal control of cylinder wake by electromagnetic
+              force based on the adjoint flow field
+              
+AUTHORS:      Zhang, Fan & Chen
+
+SUBMITTED TO: European J Mechanics B Fluids
+
+REVIEW:	      First
+
+SUBJECT MATERIAL
+
+The manuscript describes a method for suppression of vortex shedding
+in a 2D cylinder wake by application of Lorentz forcing, where the
+amount of forcing is computed via optimal control theory.
+
+RECOMMENDATION
+
+This was an interesting paper and I will support publication if the
+authors can address a number of fundamental concerns as set out below.
+
+MAJOR POINTS
+
+1. Originality. It seems quite possible that the present manuscript
+   could be quite similar to Reference 16 "Nonlinear optimal control
+   of cylinder wake for drag reduction via electro-magnetic force" by
+   Fan, Zheng, Chen & Dong. We need statements as to how the present
+   work differs from that one. Could the authors supply a copy of that
+   manuscript?
+
+2. I'm sorry to have to say that the standard of English usage,
+   grammar and spelling is not acceptable. I suggest the authors pay
+   more attention to this aspect before submitting a revision.
+
+3. In the Abstract it is first stated that "it is proved that the
+   globe [sic] enstrophy is equal to the total squared strain field"
+   and then in the last sentence "The globe [sic] enstrophy is kept to
+   be equal to the total squared strain field in the whole control
+   process". One finds a similar statement at the end of the
+   Conclusions. If the two things are by definition equal then surely
+   no special steps need to be taken to ensure they are kept
+   equal. Please either remove these statements or clarify the point
+   being made.
+
+4. If possible, please compare the amount of forcing required to
+   stabilize the flow to the predictions and stability boundaries
+   obtained by Weier, Gerbeth & Posdziedch.
+
+5. Doesn't the amount of forcing required for optimal control depend
+   on the parameter l^2 introduced in section 5? If l^2 were very
+   large then presumably total suppression of vortex shedding would not
+   necessarily be obtained for optimal control.  What was the value of
+   l^2 used? Could we see how the results vary with l^2?
+
+6. A related point: it is not clear that the amount of forcing is
+   indeed optimal. Perhaps the amount of forcing applied is much
+   larger than required to minimize the cost function. The authors
+   need to convince us that they have optimized the cost function.
+
+7. Please could the central theory and results be put into context in
+   relation to other work (such as that by Bewley et al.)?
+
+8. In figures 6 and 7 it is not clear what the ordinate of these plots
+   are or even what the plots represent. The plots are said to be
+   "proportion distributions". Is the ordinate a number of grid points
+   (perhaps weighted by cell area)? How are the authors able to
+   provide the spatial localization of the regions 1-4 in figure 6?
+   Should these labels also appear on figure 7?
+
+MINOR POINTS
+
+1. Fonts of symbols seem to change at various points through the
+   manuscript - this is rather confusing. For example the symbol N
+   appears in slanting and regular font, and for labelling both the NS
+   equations (with subscript (q)) and the magnitude of magnetic
+   forcing. The symbol F appears both in slanted bold font and in
+   upright "blackboard" bold font.
+
+2. I suggest that before the equation at the top of page 6 we be told
+   this is the dimensionless Lorentz force, rather than at the end of
+   the following paragraph.
+
+3. Why is the Frechet differential needed, for example near the end of
+   page 6? Why not just a standard differential (apologies for this
+   gap in my knowledge)? Also, four lines from the end of page 6, we
+   are told that we are being given the Frechet differential of
+   equation (9), which has not yet appeared. I think the authors mean
+   equation (7).
+
+4. Please make the background to figures 2, 3, 4 and 6 white instead
+   of grey, to improve contrast.
+
+
+

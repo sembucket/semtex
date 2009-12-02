@@ -1,0 +1,76 @@
+TITLE:        Numerical prediction of vortex-induced vibration
+              of marine risers
+              
+AUTHORS:      Agazuma NH, Kara F & Allwood RL
+
+SUBMITTED TO: J Fluids Structures
+
+REVIEW:       First
+
+SUBJECT MATERIAL
+
+A Fluent-based study of 2D flow past a circular cylinder with URANS
+and various turbulence models. The cylinder is either fixed or forced
+to oscillate cross-flow. Despite the title the results presented do
+not encompass vortex-induced vibration (VIV). The connection to marine
+risers is tenuous as it turns out the manuscript only deals with
+spanwise-averaged 2D flow past a circular section.
+
+
+RECOMMENDATION
+
+I'm afraid that I can only recommend the manuscript be rejected. I do
+not believe that the work can readily be brought to journal
+publication standard. The authors present a rather naive understanding
+of the VIV area and also of fluid mechanics and CFD.
+
+POINTS
+
+1. As stated above the authors do not actually present results for
+VIV, rather for flow past a fixed cylinder and one in forced
+cross-flow oscillation, and the connection to marine riser application
+is weak.
+
+2. The Introduction is over-long, laboured, and with too much space
+given to well-know historical material. There are a few howlers, such
+as "The vortex shedding mechanism enables an aircraft wing to produce
+lift that is essential for flight."
+
+3. When it comes to turbulence modelling the authors say they used RANS
+when in fact they adopt unsteady RANS or URANS. In section 2.1 they
+state that the RANS equations are obtained by time-averaging the
+Navier-Stokes equations but do not seem to appreciate that this
+removes any temporal variation. (The assumed process is instead
+ensemble averaging). The equation at the top of page 4 uses the
+variable p 4 times whereas it should be one instance of p and 3 of rho
+(density).  The same mistake recurs in the succeeding line that
+describes the Reynolds stress. No statements are made about the use of
+wall models, so we are left uncertain if these were employed
+(presumably not).
+
+4. The treatment of the numerical method in section 3 is also very
+naive. The size of the cylinder is supplied as a dimensional
+variable. We are never told the size of the computational domain and
+while a spatial convergence test is said to have been carried out, no
+quantitative data is provided to back this up, nor is it clear which
+Reynolds number it has been done for. There is a study of time-step
+size but the timesteps should be presented in dimensionless form so
+that we can get a clear ides of their size relative to the Strouhal
+period.
+
+5. In the remainder of the paper, results are presented for laminar
+and turbulent flow past the 2D cylinder both fixed and in forced
+oscillation. Presumably no turbulence model is used for the laminar
+flows. Results are presented for turbulent flow past a stationary
+cylinder at Re=500, which is rather low for URANS to be able to be
+considered valid. Results for various turbulence models are compared
+(Table 5) but the source of the experimental data that forms the basis
+of comparison is not stated. Similar problems occur through the
+remainder of the manuscript, and the overall effect is to undermine
+one's confidence in the results.
+
+6. The new contribution of the work is never made explicit.  I was
+left wondering what was learned that could not have been found before
+with similar (URANS) approaches, such as in the works by Guilmineau
+and Quetey.
+

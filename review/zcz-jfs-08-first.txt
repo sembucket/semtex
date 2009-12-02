@@ -1,0 +1,67 @@
+TITLE:        Direct numerical simulation of three-dimensional flow
+	      past a yawed cylinder of infinite length
+              
+AUTHORS:      Zhao, Cheng & Zhou
+
+SUBMITTED TO: J Fluids Structures
+
+REVIEW:	      First
+
+SUBJECT MATERIAL
+
+DNS of flow past a cylinder whose axis is yawed to the freestream at
+various angles up to 60 degrees, using a hexahedral/trilinear finite
+element method. The nominal and constant Re based on the freestream
+speed (not on the axis-normal speed) and cylinder diameter is 1000,
+although resolution may be somehwat marginal. Wake is 3D/turbulent.
+
+RECOMMENDATION
+
+As this information is relatively novel and potentially useful I
+recommend that the manuscript be accepted subject to the authors
+addressing the points below.
+
+MAJOR POINTS
+
+1. The authors should tell us if the pressure and velocity shape
+functions are of the same order (I believe they probably are).
+
+2. It seems that another way of tackling the problem would have been
+to keep the same mesh geometry throughout and modify the yaw angle of
+the inflow. The authors should tell us why they chose instead to shear
+the geometry.  And: why not use periodic boundaries in the axial
+direction?
+
+3. In general, I was rather disappointed that the authors did not
+present us with more information derived from their simulation
+database. For example, Reynolds stresses and cylinder-surface shear
+stress distributions should be shown (and from the latter they could
+show us y+ values of the first off-wall grid point, since it is
+typically recommended that this be less than unity in DNS).
+
+4. A related point: the duration and commencement of collection of
+statistics needs to be provided.  Judging from figures 4 and 13, it
+would have been reasonable to commence accumulation of statistics
+after the first 150 time units had elapsed.
+
+5. What was the initial condition for each simulation and was the flow
+perturbed in any way?
+
+6. What exactly were the details of the meshes used? Just before the
+start of section 3.2 we are told that the mesh densities employed in
+the present study "are comparable to that of the fine mesh in table
+1". Are they the same as the fine mesh, or different?
+
+MINOR POINTS
+
+1. Use of English needs closer attention by the authors since there
+are a fair number of spelling and grammatical errors, as well as
+inappropriate use of colloquialisms. A small selection: Global
+replacement: "circumstance" -> "circumference"; Conclusion point (2):
+"principle" -> "principal"; in section 3.2: "are in screwy shapes" ->
+"exhibit helical shapes" and "reversely" -> "conversely".
+
+2. Below equation (1): p is not the pressure but is the "kinematic" or
+"modified" pressure, i.e. pressure divided by density.
+
+3. The manuscript has no page numbers.

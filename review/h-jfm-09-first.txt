@@ -1,0 +1,79 @@
+TITLE:		Wave propagation in an elastic tube: a numerical study
+              
+AUTHORS:	He, F
+
+SUBMITTED TO: 	J Fluid Mech
+
+REVIEW:       	First
+
+SUBJECT MATERIAL
+
+An ALE-finite element method is used to solve incompressible
+three-dimensional (but axisymmetric) flow in a three-segment pipe of
+fixed length. The central pipe segment is linear elastic, or may be
+replaced with a segment with rigid wall. The effect of variation of
+elasticity in the central pipe segment on the bulk flow at various
+locations is examined, as is the effect of changing fluid density,
+viscosity.
+
+RECOMMENDATION
+
+I'm afraid I have to suggest that the manuscript be rejected. The main
+reasons being:
+
+1. Inadequate reference to past theoretical and numerical modelling in
+the area, particulaly the seminal works for elastic-walled tubes by
+Womersley in 1955 and 1957. Another key work not considered by the
+author is the 1D numerical modelling of flows in elastic tube networks
+presented by Sherwin et al. (2003).
+
+2. A related point is that since the flow and response here is
+axisymmetric, the whole problem could be tackled in 2D, or more to the
+point, (as in Sherwin et al.) 1D.  The use of full 3D methodology to
+tackle the problem considered is not justified.
+
+3. The combination of geometry and flow waveform considered is very
+specific and it is difficult to draw results or implications of
+general interest. A related weakness is that the outcomes are
+presented in phenomenological format without comparsion to relevant
+theory or drawing appropriate generalizations. This makes the
+manuscript as a whole lacking in general interest.
+
+4. Problem formulation and results are presented in dimensional as
+opposed to dimensionless form.
+
+5. The level and mode of treatment of the problem is inappropriate to
+the journal - the work could perhaps be considered in a journal that
+is more related to CFD.
+
+6. Inadequate attention is given to confirming that the results are
+mesh-independent. While we are told that there is a 5% difference in
+outcomes between the coarsest and finest meshes employed, this is
+quite a substantial difference, and it is still unclear if the fine
+mesh was indeed used to obtain the results presented.
+
+7. It seems that while a pulsatile inlet bulk flow was used, the inlet
+velocity profile could have been uniform/plug flow - no discussion is
+given to the radial structure. Inflow profiles should be the
+analytical solution given by Sexl (1930) for pulsatile flow in rigid
+tubes, re-presented and generalized to elastic tubes in Womersley
+(1955).
+
+References
+
+Sherwin, Franke, Piero & Parker (2003) One-dimensional modelling of a
+vascular network in space-time variables, J Eng Math 47:217-250.
+
+Sexl (1930) Z Phys 61:349-362,
+
+Womersley (1955) Method for the calculation of velocity, rate of flow
+and viscous drag in arteries when the pressure gradient is known, J
+Physiol, 127:553-563.
+
+Womersley (1957) An elastic tube theory of pulse transmission and
+oscillatory flow in mammalian arteries, Wright Air Devel Center TR
+56-614.
+
+
+
+

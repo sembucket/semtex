@@ -1,0 +1,34 @@
+TITLE:        Laminar flow past an oscillating cylinder in cross flow
+
+AUTHORS:      HS Yoon, JH Kim, HH Chun & AH Pham
+
+SUBMITTED TO: Ocean Engineering
+
+REVIEW:	      First
+
+The manuscript describes a 2D numerical investigation of flow past and
+forces on a cylinder forced to oscillate transversely to the flow at
+Re=185. The Reynolds number has been chosen to match the lowest in
+experiments of Gu et al. (1994). Two previous numerical papers have
+dealt with the flow at the same Reynolds number: Lu & Dalton (1996)
+and Guilmineau & Queutey (2002) (as the present authors point out).
+
+At the end of the Introduction the authors state: "As reviewed above,
+each effect of the amplitude and frequency of oscillation on the flow
+has been quite well established by numerous researches, resulting in
+greatly improving the understanding of the flow characteristics. Thus,
+this study aims at providing the detail quantitative information about
+the flow variables such as the lift and drag coefficients, shedding
+frequency, and wall vorticity distributions on the cylinder in the
+wide range of amplitude and frequency of the oscillation."
+
+In brief, the authors offer us only very limited motivation for their
+work and to interest the reader. When the frequency ratio of forcing
+leaves the lock-in range, the forces on the cylinder become
+quasiperiodic, a result that is now well known. The discussion of the
+results is almost purely descriptive of what can be observed in the
+figures and offers almost no insight into the flow physics. Finally,
+as the Reynolds number is so low, the flow is of little technological
+importance for the typical reader of Ocean Engineering.
+
+I'm afraid I have to recommend that the manuscript should be rejected.

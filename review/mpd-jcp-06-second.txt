@@ -7,6 +7,63 @@ SUBMITTED TO: Journal of Computational Physics
 
 REVIEW:	      Second
 
+1. Even with revision this still reads like a draft manuscript and
+needs more attention to detail. Please could the senior author make
+sure the manuscript is as correct and complete as possible before it
+is resubmitted?  I object to working as a proof reader.
+
+2. In the abstract, sentence 2, please change to say the problem is
+with solutions that grow exponentially in space, as that is the
+application addressed in the manuscript.
+
+3. Figure 1 seems redundant (as it is very similar to Figure 2) and
+could be deleted or replaced with something more illustrative of the
+flow structure, perhaps. The caption for figure 2 needs more detail:
+which case is it for?
+
+4. The statement at the top of p2 about the use of correlation
+techniques in fluid dynamics is irrelevant and should be omitted. The
+statements about Caltech's computer and codes that are used to open
+section 3 are also irrelevant and should be omitted.
+
+5. The authors should state more clearly that the LSA solution should
+be obtained independently of the code being tested, or pre-verified.
+
+6. Prior to eq (2), please change "normal-mode" to "eigen-mode".
+
+7. There seems to be an error in Table for case B, or my
+interpretation of what is presented. Starting with M1=2.133 abd
+U2/U1=0.25 I get Mc=1.333, not 0.8.
+
+8. In section 4.2 we find that the "behaviour of the error norms is
+substantially different in the two cases". Can the authors tell us why
+this is? Then in section 4.3 we find that in case A, the growth rate
+does not converge to the expected value whereas it does in case
+B. Again: why? I am concerned that in fact the code may be in error
+for case A.
+
+9. Please interpret the meaning of scatter plots 6 & 7. Why are we
+shown them?
+
+10. 2nd-last para, p11: Please change to say that the real part of the
+mode appears to converge to the correct result, rather than that the
+agreement is "excellent".
+
+11. In para 1, p12, I cannot see from figure 7 that the "computed
+solution for case B grows slightly faster than the LSA-predicted
+growth rate".
+
+12. Para 1, p17. Please be specific as to how one should proceed in
+the case that there is transient growth.
+
+13. In the very last sentence of the conclusions: please delete
+"the general problem of". The application and the method seem rather
+specific.
+
+14. Typos: p 11, para 3, "grow" --> "growth". 2nd-last line page 7,
+"where" --> "were".
+
+
 ------------------------------------------------------------------------------
 
 TITLE:        Verification of fluid dynamics solvers using correlation

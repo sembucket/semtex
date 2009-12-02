@@ -1,0 +1,68 @@
+TITLE:        Biglobal stability analysis in curvilinear coordinates of
+              massively separated lifting bodies
+              
+AUTHORS:      Kitsios, V, Rodriguez, D, Theofilis, V, Ooi, A & Soria J
+
+SUBMITTED TO: J Comput Phys
+
+REVIEW:       First
+
+SUBJECT MATERIAL
+
+A mapping method is used to convert the linearized Navier-Stokes
+equations for incompressible external flows around a single body
+(here, an airfoil) into a rectangular coordinate system where a
+spectral discretization is employed to provide a full (and
+potentially, huge) matrix of the linearized Navier-Stokes operator. A
+parallel Arnoldi method is then used to recover a large part of the
+operator's eigenspectrum.  Unfortunately it seems that at presently
+affordable resolutions the method is not especially accurate other
+than for the leading eigenvalues, where common iterative techniques
+such as the implicitly restarted Arnoldi method would also serve, and
+at a far lower computational expense.  It seems there is no
+theoretical reason that accuracy could not be improved as spatial
+resolution is increased, however this improved accuracy would come at
+the expense of what are presently very large memory requirements.  One
+suspects that the accuracy of the method must be degraded by the
+number of mappings (four, in total) required to arrive at the final
+rectangular grid system. The authors are themselves rather equivocal
+about the utility of the method (see e.g. the very last sentence of
+the manuscript prior to the acknowledgements).
+
+RECOMMENDATION
+
+Despite the fact that there are some difficulties with the accuracy of
+the method, I believe it is novel and interesting enough to justify
+publication in JCP, if only to show how difficult such full-spectrum
+calculations are in flows where the geometry is moderately complex. I
+do have some suggestions for minor changes, as outlined below.
+
+POINTS
+
+1. I suggest that figure 4 or some version of it should appear as the
+first figure of the manuscript in order to serve as orientation for the
+reader.
+
+2. Other workers have used mapping methods for full-spectrum
+calculations, admittedly in much simpler geometries and these works
+(e.g. Akervik et al. 2007, Ehrenstein & Gallaire 2008) are cited by
+the current authors in the Introduction.  Please add some more
+discussion that compares and contrasts the methodology and
+capabilities of the various methods.
+
+3. A 'shift and invert' eigensolution strategy is employed. But at the
+top of page 7, we are told that no shift is used. Why? Could one
+perhaps achieve greater accuracy by using a variable shift to cover
+different parts of the spectrum? Please comment.
+
+4. What IC is used to initialize the Arnoldi iterations? Some comment
+is also needed to explain why an iterative method must be adopted even
+though the full matrix of the operator is retained.
+
+5. The caption for what is now figure 2 should state that the mesh
+here is used only for computation of the base flow.
+
+6. Just following equation (40), what does 'and pass' mean? Last
+sentence of para 1, page 17, delete 'of the two options', add a comma
+after smoother. Following equation (28), 'there are no' --> 'there is
+no'. Page 7, para 2: 'employes' --> 'employs'.
