@@ -1,0 +1,96 @@
+TITLE:		Circular cylinder wake vortex synchronization control with
+		synthetic jet positioned at back stagnation point
+              
+AUTHORS:	Feng, LH and Wang JJ
+
+SUBMITTED TO: 	J Fluid Mech
+
+REVIEW:       	First
+
+The manuscript describes the application of a frequency-controlled 2D
+synthetic jet to influence vortex shedding from a circular cylinder.
+I believe the information is novel and interesting enough to justify
+publication, subject to the authors adequately responding on the
+points below.
+
+1.  Prior publication.  It seems likely that the listed publication by
+Feng, Wang & Xu (2008) could present much the same information as the
+present manuscript, but in Chinese. It is up to JFM editorial staff to
+decide how to deal with this issue on the basis of journal policy,
+after perhaps reviewing a copy of the original publication.
+
+2.  Efficiency/power consumption.  The authors claim, e.g. in the
+abstract, and at the bottom of page 5, that synthetic jet
+perturbations of the present kind provide "an efficient" means of drag
+reduction (perhaps they meant to say "an effective").  However, no
+attempt at all is made to assess efficiency, which for example could
+be the amount of energy saved by drag reduction compared to that
+consumed in control.  This is surprising since synthetic jet power
+consumption was monitored (apparently with very poor precision, see
+table 2).  The impact of the work would be substantially increased if
+some numerical estimates of control efficiency could be supplied.
+This may mean that more precise estimates of power consumption are
+required but these could in principle be quickly obtained, without
+re-running the rest of the experiment.
+
+3.  3D/spanwise extent of forcing and its effect.  The authors never
+in any substantive way address the issue that the length of the jet
+slot is only 1.67D, so that there are likely to have been substantial
+3D effects, whereas all the information provided is 2D at most.
+Ideally we would be given some information that allows assessment of
+spanwise dependence of the results (which presumably varies in the
+streamwise direction).  Failing this, the authors need to discuss the
+issue to a reasonable extent.
+
+4.  The information regarding Reynolds stresses in quadrants I-IV in
+section 6 could be deleted without loss.  It is fairly obvious that
+any isolated coherent vortex structure will produce the distributions
+of Reynolds stresses given in figure 10.  Therefore, the degree to
+which these distributions may not be obtained just reflects lack of
+structural coherence of phase-averaged vorticity distributions.
+
+5.  Table 1 could be deleted without significant loss. Likewise Table 4.
+
+6.  Units & normalisation.  The abscissae of figures 3a, 4a should be
+given in dimensionless form.  The normalisation of "power spectrum"
+ordinates for figures 3b, 4b, 5 needs to be detailed.
+
+7.  Filtering and time delay. No detail is supplied as to how the
+filtering used to obtain phase information for the unforced case
+(figure 2) is carried out. Presumably the filtering is acausal and
+does not induce a time delay, but this may not be the case. Please
+supply more detail.
+
+8.  Dimensionless stroke length of the synthetic jet (eq 2.2) should
+be interpreted as a ratio of readily comprehended physical quantities
+for the reader -- e.g. the maximum distance that a rigid extrusion
+representing the jet flux would travel, normalised by half the slot
+width.  Is an alternative interpretation that the value employed
+represents 99.5/30D correct?
+
+9.  The frequency (and dimensionless frequency) of vortex shedding in
+the unforced case should be introduced earlier, for example in the
+caption for table 3. Please also give the rationale for the choice of
+the frequencies used, and also why are they not integer multiples of
+the unforced frequency.
+
+10. I_1 and I_2 should be introduced in-line in equation (3.16).
+
+11. Figure 5 is difficult to interpret: spectral peaks (especially in
+figure 5a) are hard to distinguish, as are their numeric labels.  The
+use of logarithmic ordinates might help with the first issue.
+
+12. On page 10 we are told that the PIV technique delivers a maximum
+relative error "no more than 1%".  But 1% of what?  A local or global
+mean value?  And presumably this is for velocity component data --
+what is the likely error on vorticity estimates?
+
+13. Contour levels for figures 6 & 7: are these not $\pm 1$ but rather
+in increments of 1?  Likewise for figures 11, 12, 13, 14, 15 and 21.
+
+14. The manuscript is easy to follow, but there are numerous small
+irregularities of English usage and spelling errors, which I do not
+propose to list.  While most of these would be remedied by editorial
+attention at the proof stage, the authors should very carefully review
+the manuscript to reduce editorial workload (and inevitable delay) as
+much as possible.
