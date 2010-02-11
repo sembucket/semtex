@@ -226,7 +226,7 @@ void message_dexchange (double*       data,
 	MPI_Isend   (data+i*NM, NM, MPI_DOUBLE, i,9,MPI_COMM_WORLD, request);
 	MPI_Irecv   (tmp,       NM, MPI_DOUBLE, i,9,MPI_COMM_WORLD, request+1);
 	MPI_Waitall (2, request, status);
-	__MEMCPY      (data+i*NM, tmp, NM * dsize);
+	__MEMCPY    (data+i*NM, tmp, NM * dsize);
       }
 
   } else {			/* -- "Backwards" exchange. */
@@ -236,7 +236,7 @@ void message_dexchange (double*       data,
 	MPI_Isend   (data+i*NM, NM, MPI_DOUBLE, i,9,MPI_COMM_WORLD, request);
 	MPI_Irecv   (tmp,       NM, MPI_DOUBLE, i,9,MPI_COMM_WORLD, request+1);
 	MPI_Waitall (2, request, status);
-	__MEMCPY      (data+i*NM, tmp, NM * dsize);
+	__MEMCPY    (data+i*NM, tmp, NM * dsize);
       }
 
     if (NB == nZ) {
@@ -375,7 +375,7 @@ void message_sexchange (float*        data,
 	MPI_Isend   (data+i*NM, NM, MPI_FLOAT, i, 9, MPI_COMM_WORLD,request);
 	MPI_Irecv   (tmp,       NM, MPI_FLOAT, i, 9, MPI_COMM_WORLD,request+1);
 	MPI_Waitall (2, request, status);
-	__MEMCPY      (data+i*NM, tmp, NM * dsize);
+	__MEMCPY    (data+i*NM, tmp, NM * dsize);
       }
 
   } else {			/* -- "Backwards" exchange. */
@@ -385,7 +385,7 @@ void message_sexchange (float*        data,
 	MPI_Isend   (data+i*NM, NM, MPI_FLOAT, i, 9, MPI_COMM_WORLD,request);
 	MPI_Irecv   (tmp,       NM, MPI_FLOAT, i, 9, MPI_COMM_WORLD,request+1);
 	MPI_Waitall (2, request, status);
-	__MEMCPY      (data+i*NM, tmp, NM * dsize);
+	__MEMCPY    (data+i*NM, tmp, NM * dsize);
       }
 
     if (NB == nZ) {

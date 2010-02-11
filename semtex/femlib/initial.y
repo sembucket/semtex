@@ -635,7 +635,7 @@ static double Womersley (double A    ,
  * Calculate the Womersley solution at r for a pipe of radius R and circular
  * frequency omega.  The solution is set so that the area-average flow speed
  *
- *                u_avg = A cos(omega t) +  B sin(omega t)
+ *                u_avg(t) = A cos(omega t) +  B sin(omega t)
  * ------------------------------------------------------------------------- */
 {
   double x,y;

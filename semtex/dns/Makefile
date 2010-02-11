@@ -25,6 +25,11 @@ ifdef CONV		# -- Make convective nonlinear terms (not skew-symm).
   PROG    := $(PROG)_conv
 endif
 
+ifdef ASS		# -- Make alternating skew-symmetric nonlinear.
+  DEFINES += -DASS
+  PROG    := $(PROG)_ass
+endif
+
 ifdef MPI		# -- Make a parallel executable.
   PROG := $(PROG)_mp
 endif

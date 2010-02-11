@@ -117,7 +117,6 @@ void nonLinear (Domain*         D ,
 
 #else
 
-
   Veclib::zero ((2 * NCOM + 1) * nTot32, &work[0], 1); // -- Catch-all cleanup.
 
   for (i = 0; i < NCOM; i++) {
@@ -133,7 +132,8 @@ void nonLinear (Domain*         D ,
 
   // -- Now we are past the set-up stage, we have separate variants for
   //    (a) Convective form of the nonlinear terms;
-  //    (b) Skew-symmetric (the current default).
+  //    (b) Alternating skew-symmetric (convective/conservative)n
+  //    (c) Skew-symmetric (the current default)
 
 #if defined (CONV)		// -- Convective form.
 
@@ -216,9 +216,192 @@ void nonLinear (Domain*         D ,
       master -> smooth (N[i]);
 
       ROOTONLY if (fabs (ff[i]) > EPSDP) N[i] -> addToPlane (0, -ff[i]);
+
       *N[i] *= -1.0;
     }
   }
+
+#elif defined (ASS)  // -- Alternating skew-symmetric. AKA smart-Ass.
+
+  static int toggle = 1;
+
+  if (Geometry::cylindrical()) {
+
+    if (toggle) { // -- ASS/cylindrical: convective component.
+
+      for (i = 0; i < NCOM; i++) {
+
+	// -- Terms involving azimuthal derivatives and frame components.
+
+	if (NCOM == 3) {
+	  if (i == 1)
+	    Veclib::svvttvp (nTot32, -1.0, u32[2],1,u32[2],1,n32[1],1,n32[1], 1);
+	  if (i == 2)
+	    Veclib::vmul    (nTot32, u32[2], 1, u32[1], 1, n32[2], 1);
+
+	  if (nZ > 2) {
+	    Veclib::copy       (nTot32, u32[i], 1, tmp, 1);
+	    Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
+	    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
+	    Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
+	    master -> gradient (nZ, nPP, tmp, 2);
+	    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
+	    Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
+	    Veclib::vvtvp      (nTot32, u32[2], 1, tmp, 1, n32[i], 1, n32[i], 1);
+	  }
+	}
+
+	if (i == 2) master -> divY (nZ32, n32[i]);
+
+	// -- 2D convective derivatives.
+
+	for (j = 0; j < 2; j++) {
+	  Veclib::copy (nTot32, u32[i], 1, tmp, 1);
+	  master -> gradient (nZ32, nP, tmp, j);
+
+	  if (i <  2) master -> mulY (nZ32, tmp);
+
+	  Veclib::vvtvp (nTot32, u32[j], 1, tmp, 1, n32[i], 1, n32[i], 1);
+	}
+
+	// -- Transform to Fourier space, smooth, add forcing.
+
+	N[i] -> transform32 (FORWARD, n32[i]);
+	master -> smooth (N[i]);
+
+	ROOTONLY if (fabs (ff[i]) > EPSDP) {
+	  Veclib::fill (nP, -ff[i], tmp, 1);
+	  if (i < 2) master -> mulY (1, tmp);
+	  N[i] -> addToPlane (0, tmp);
+	}
+	*N[i] *= -1.0;
+      }
+
+    } else { // -- ASS/cylindrical: conservative component.
+
+      for (i = 0; i < NCOM; i++) {
+
+	// -- Terms involving azimuthal derivatives and frame components.
+
+	if (i == 0)
+	  Veclib::vmul (nTot32, u32[0], 1, u32[1], 1, n32[0], 1);
+	if (i == 1)
+	  Veclib::vmul (nTot32, u32[1], 1, u32[1], 1, n32[1], 1);
+
+	if (NCOM == 3) {
+
+	  if (i == 1)
+	    Veclib::svvttvp (nTot32, -1., u32[2],1,u32[2],1,n32[1],1,n32[1], 1);
+	  if (i == 2)
+	    Veclib::svvtt   (nTot32,  2., u32[2], 1, u32[1], 1,      n32[2], 1);
+
+	  if (nZ > 2) {
+	    Veclib::vmul       (nTot32, u32[i], 1, u32[2], 1, tmp, 1);
+	    Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
+	    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
+	    Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
+	    master -> gradient (nZ, nPP, tmp, 2);
+	    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
+	    Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
+	    Veclib::vadd       (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
+	  }
+	}
+
+	if (i == 2) master -> divY (nZ32, n32[i]);
+
+	// -- 2D conservative derivatives.
+     
+	for (j = 0; j < 2; j++) {
+	  Veclib::vmul (nTot32, u32[j], 1, u32[i], 1, tmp, 1);
+	  master -> gradient (nZ32, nP, tmp, j);
+
+	  if (i <  2) master -> mulY (nZ32, tmp);
+
+	  Veclib::vadd (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
+	}
+
+	// -- Transform to Fourier space, smooth, add forcing.
+
+	N[i] -> transform32 (FORWARD, n32[i]);
+	master -> smooth (N[i]);
+
+	ROOTONLY if (fabs (ff[i]) > EPSDP) {
+	  Veclib::fill (nP, -ff[i], tmp, 1);
+	  if (i < 2) master -> mulY (1, tmp);
+	  N[i] -> addToPlane (0, tmp);
+	}
+
+	*N[i] *= -1.0;
+      }
+    }
+
+  } else {			// -- Cartesian coordinates.
+
+    if (toggle) { // -- ASS/Cartesian: convective component.
+
+      for (i = 0; i < NCOM; i++) {
+	for (j = 0; j < NDIM; j++) {
+      
+	  // -- Perform n_i += u_j d(u_i) / dx_j.
+
+	  Veclib::copy (nTot32, u32[i], 1, tmp,  1);
+	  if (j == 2) {
+	    Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
+	    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
+	    Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
+	    master -> gradient (nZ,  nPP, tmp, j);
+	    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
+	    Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
+	  } else {
+	    master -> gradient (nZ32, nP, tmp, j);
+	  }
+	  Veclib::vvtvp (nTot32, u32[j], 1, tmp,  1, n32[i], 1, n32[i], 1);
+	    
+	}
+
+	// -- Transform to Fourier space, smooth, add forcing.
+	
+	N[i] -> transform32 (FORWARD, n32[i]);
+	master -> smooth (N[i]);
+	
+	ROOTONLY if (fabs (ff[i]) > EPSDP) N[i] -> addToPlane (0, -ff[i]);
+
+	*N[i] *= -1.0;
+      }
+
+    } else { // -- ASS/Cartesian: conservative component.
+
+      for (i = 0; i < NCOM; i++) {
+	for (j = 0; j < NDIM; j++) {
+
+	  // -- Perform n_i += d(u_i u_j) / dx_j.
+
+	  Veclib::vmul  (nTot32, u32[i], 1, u32[j], 1, tmp,  1);
+	  if (j == 2) {
+	    Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
+	    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
+	    Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
+	    master -> gradient (nZ,  nPP, tmp, j);
+	    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
+	    Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
+	  } else {
+	    master -> gradient (nZ32, nP, tmp, j);
+	  }
+	  Veclib::vadd (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
+	}
+
+	// -- Transform to Fourier space, smooth, add forcing.
+      
+	N[i] -> transform32 (FORWARD, n32[i]);
+	master -> smooth (N[i]);
+
+	ROOTONLY if (fabs (ff[i]) > EPSDP) N[i] -> addToPlane (0, -ff[i]);
+	*N[i] *= -1.0;
+      }
+    }
+  }
+ 
+  toggle = 1 - toggle;
 
 #else  // -- Skew-symmetric.
 
