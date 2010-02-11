@@ -506,26 +506,29 @@ static void write_vtk (FILE *fp)
   fprintf(fp, "POINT_DATA %i\n", nel*nzp*nrns);
 
   /* print out vector velocity values */
-  fprintf(fp, "VECTORS Velocity float\n");
-  for (m = 0; m < nzp; m++) {
-    for (k = 0; k < nel; k++) {
-      /* plane/element offset */
-      offset1 = (cylindrical) ? (m%nzp)*nplane : m*nplane;
-      offset1 += k*nrns;
-      for (i = 0; i < nrns; i++) {
-	/* u, v values are in 1st and 2nd data array */
-	fprintf(fp, "%#14.7g ", data[0][offset1 + i]);
-	fprintf(fp, "%#14.7g ", data[1][offset1 + i]);
-	if (z) fprintf(fp, "%14.7g ", data[2][offset1 + i]);
-	else fprintf(fp, "0.0 ");
-	fprintf(fp, "\n");
+  j = 0;
+  if (nfields > 1) {
+    fprintf(fp, "VECTORS Velocity float\n");
+    for (m = 0; m < nzp; m++) {
+      for (k = 0; k < nel; k++) {
+	/* plane/element offset */
+	offset1 = (cylindrical) ? (m%nzp)*nplane : m*nplane;
+	offset1 += k*nrns;
+	for (i = 0; i < nrns; i++) {
+	  /* u, v values are in 1st and 2nd data array */
+	  fprintf(fp, "%#14.7g ", data[0][offset1 + i]);
+	  fprintf(fp, "%#14.7g ", data[1][offset1 + i]);
+	  if (z) fprintf(fp, "%14.7g ", data[2][offset1 + i]);
+	  else fprintf(fp, "0.0 ");
+	  fprintf(fp, "\n");
+	}
       }
     }
+    if (z) j = 3; else j = 2;
   }
   
   /* print out scalar values */
-  if (z) j = 3;
-  else j = 2;
+
   for (; j < nfields; j++) {
     fprintf(fp, "SCALARS %c float\n", type[j]);
     fprintf(fp, "LOOKUP_TABLE default\n");
