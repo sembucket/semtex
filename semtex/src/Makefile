@@ -100,34 +100,28 @@ endif
 CLDFLAGS = $(LDFLAGS)
 endif
 
-ifeq ($(ARCH),Darwin)               # -- Mac OSX.
-#DEFINES += -D_VECTOR_ARCH
+ifeq ($(ARCH),Darwin)               # -- Mac OSX, 10.6 (has openmpi)
 CXX      = g++
 LD       = g++
 CC       = gcc
-#FC      = g95
 FC	 = gfortran
 AR	 = libtool
 ARFLAGS  = -static -o
 RANLIB   = ranlib
 ifdef DEBUG
-  OPT    = -gstabs+
+  OPT    = -m64 -gstabs+
 else
-  OPT    = -O3
+  OPT    = -m64 -O3
 endif
 CFLAGS   = $(DEFINES) $(OPT) -ansi
 CXXFLAGS = $(DEFINES) $(OPT) -ansi
 FFLAGS   = $(DEFINES) $(OPT)
-LIBDIR   += -L/sw/lib
+LIBDIR   += -L/sw/lib -L/sw/lib/gcc4.4/lib
 LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
-#F77LIBS  = -lfastblas -framework Accelerate -lg95
-#F77LIBS  = -framework Accelerate -lgfortran
 F77LIBS  = -framework Accelerate -lgfortran
 CLDFLAGS = $(LDFLAGS)
 ifdef MPI
-  CPPFLAGS += -I/usr/local/include/lammpi
-  LIBDIR   += -L/usr/local/lib
-  LDFLAGS   =  $(OPT) $(LIBDIR) -lfem_mp -lvec $(F77LIBS) -lmpi -llam
+  LDFLAGS   =  $(OPT) $(LIBDIR) -lfem_mp -lvec $(F77LIBS) -lmpi
 else
   LDFLAGS   =  $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
 endif
