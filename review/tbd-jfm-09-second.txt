@@ -1,0 +1,244 @@
+TITLE:        On the subcritical bifurcation at the onset of
+	      three-dimensionality in the cylinder wake.
+              
+AUTHORS:      Tanvir, Bouchet & Dusek
+
+SUBMITTED TO: Journal of Fluid Mechanics
+
+REVIEW:	      Second
+
+The authors have made various minor alterations to the manuscript in
+response to my previous review.  I am still unable to accept this
+manuscript, and as before, principally owing to difficulties with the
+numerical techniques employed. This is frustrating for me, and I am
+sure it will be for the authors as well, because I do not have much
+difficulty accepting the central thrust of its findings and think that
+they are reasonably interesting.  However, (as I said in the previous
+review) there is a fundamental formulation problem which remains
+unaltered, and I do not believe the quality of the work as it
+presently stands (or is liable to stand without root-and-branch change
+and a great deal of further revision besides) justifies publication in
+the Journal of Fluid Mechanics. I will lay out these issues more fully
+in point 1 below.
+
+Besides this there are a number of more minor matters which are more
+easily remedied, but are relevant to the matter of the overall quality
+of the work. These issues are dealt with in points 2-8 below.
+
+1. The most basic issue that brings me to the same recommendation I
+made in my previous review remains: that the authors have used a
+cylindrical coordinate discretization to investigate a problem that
+they have defined in a Cartesian geometry - instability of flow past a
+circular cylinder.  They have investigated the instability of flow
+past a ring, rather than past a straight circular cylinder.  
+
+While in the current version of the manuscript, the authors do now
+define the aspect ratio (as Ar=D/d), its numerical value is no longer
+supplied; no doubt this was an unintended omission.  Presumably its
+value is the same as in the previous iteration: Ar=500. Like the
+authors, I feel rather confident that this is sufficiently large that
+the results are liable to well represent the situation for the
+Cartesian case.  The difficulty is that they never conclusively
+demonstrate this to be the case, nor do they carefully enough address
+the issue in order to explain the difficulties to the reader, which
+are that the symmetry group of axisymmetric flow past a ring is
+different to that to 2D flow past an infinite straight cylinder, and
+that the quantitative (and some qualitative) effects of variation in
+ring aspect ratio on wake instability are not yet conclusively
+established. The statement that they attribute to Blackburn & Lopez
+(2003) on page 6 in fact comes from Blackburn, Marques & Lopez (2005)
+and is used out of context, since in that paper it was used to support
+an explanation as to why the subharmonic instability mode (mode C) is
+not observable in the infinite-aspect-ratio limit, and in effect was
+making a point in opposition to the authors' argument (see also point
+4 below).
+
+In their rejoinder to my previous review, the authors state that they
+were easily enough able to make code modifications to obtain a
+Cartesian-coordinate solver from their cylindrical-coordinate one and
+were able to spot-check instances of their nonlinear subspace
+calculations (at least, that is what I presume they mean since what
+they say is rather vague) and found no detectable difference to the
+Ar=500 case. In the manuscript however, they do not state that this
+testing was done, but rather have made statements at the top of page 7
+that may allow the reader to conclude that they have used a Cartesian
+coordinate formulation for the whole work, and then have not presented
+details of any cross checking alluded to in their rejoinder.
+
+I feel the attitude of the authors on the matter may be summed up by
+this phrase taken from the second sentence on page 7: "To avoid the
+necessity of discussing the approximation of a straight cylinder by a
+torus, ...".  While it may seem pedantic to the authors, I strongly
+believe that the logic of the whole study was severely compromised by
+the decision at the outset to use a cylindrical coordinate solver, and
+(I'm sorry to say that) it needs to be scrapped and done again.  As
+the aspect ratio is large I am moderately confident that detailed
+cross checks with the Cartesian coordinate formulation would show
+little detectable difference in behaviour from what is reported, but
+to enter into discussion of this comparison will very likely raise the
+following question in the mind of the reader: "why did not the authors
+use a Cartesian formulation from the outset for the entire study?".
+
+With careful explanation the authors could perhaps overcome the
+difficulty but I think the conception and quality of the overall work
+will remain below the standard required by the journal.  So as stated
+at the beginning, I believe (still) that the manuscript should be
+rejected by JFM.  Or that the work should be re-done with Cartesian
+formulation before any subsequent resubmission.
+
+2. On the issue of comparison to the work of Henderson (1997) I take
+the authors' point that his work was primarily directed to large-scale
+mixed modes at Reynolds numbers above the linear onset of mode A,
+rather than the subcritical nature of this initial bifurcation,
+although this did receive as much (or more) detailed treatment here
+than in Henderson & Barkley (1996), or Barkley & Henderson (1996).  On
+this issue the new feature that the authors have pointed out is that
+the Re-extent of the nonlinear hysteresis envelope of the mode-A
+bifurcation in a restricted subspace is apparently affected to a
+fairly large degree by the assumed spanwise wavelength of the
+subspace, and I agree that this is new and interesting. However, I
+think that the work in larger domain (10*pi*d) here reinforces one
+central finding of Henderson (1997): with enough active Fourier modes
+in the instability band of mode A, chaotic behaviour can be obtained.
+
+In this regard, an issue not satisfactorily dealt with in the
+manuscript concerns the authors' statement (in the abstract and
+elsewhere) that there is "no preferred wavelength" for mode A
+instability.  This relates to the apparent decrease without bound of
+the lower Re-limit of the nonlinear hysteresis envelope with
+increasing spanwise wavelength lambda for the subspace results shown
+in figure 2(b). Surely the lower-Re limit of the hysteresis band
+cannot keep falling as lambda increases: more work by the authors is
+needed to better define the shape of the nonlinear subspace Re-lambda
+hysteresis envelope, at least to the extent of finding its turning
+point with lambda.
+
+3. On the issue of numerical methods and spatial resolution, I am
+firstly still concerned that (even qualitative) aspects of the
+findings my be influenced by lack of spatial resolution, and the
+authors do insufficient to convince us of the adequacy of their
+resolution. This starts (figure 2a) with the clearly observable
+difference in the linear stability boundary found with their standard
+resolution (6 collocation points or polynomial order N=5 along each
+element edge) as opposed to that found by Barkley & Henderson (1996),
+where similar element sizes but 9 collocation points, polynomial order
+N=8, were used at comparable Reynolds number. Barkley & Henderson gave
+a very comprehensive (and hence, reassuring) study of mesh resolution
+effects on their analysis and their statement of a +/- 1 resolution of
+the key instability Reynolds numbers has proved reliable (and
+conservative) in subsequent studies.
+
+The present authors need to do more in order to convince us that their
+key findings (especially, the variation of the nonlinear stability
+envelope with spanwise wavelength) are insensitive to resolution
+effects. For example, they show us in figure 2 that this degree of
+variation exists in going from their standard resolution (N=5) to a
+resolution comparable with that of Barkley & Henderson (N=7) - and
+then adopt the lower resolution for computing their subsequent
+results. I would have thought this a good reason for adopting N=7 for
+the remainder, not N=5. The fact that their linear stability curve at
+the lower resolution agrees with that for the higher resolution to
+within the tolerance stated by Barkley and Henderson is not sufficient
+on its own (e.g. in Barkley & Henderson table 2 we see that key
+fluctuation quantities are typically converged to 4 figures at N=8 but
+only about 2 figures at N=4: confidence in their adoption of N=8 is
+well reinforced).
+
+My concern about resolution runs all the way through the manuscript
+and (as I said last time) this is not helped by the evident lack of
+resolution of the primitive variables visible in figures 7, 9, 10 and
+13; the authors' argument on this point in their rejoinder is not very
+convincing; the C1-type-discontinuities that we see would disappear
+with adequate element polynomial order, although I agree that the
+first-order concern is with boundary-layer resolution.  The point is
+that the informed reader should not continually be reminded of a
+concern about marginality of resolution.
+
+Second, the authors supply almost no detail of the numerical methods
+used other than to describe the spatial discretization. Is this a
+time-split method, what is the formal temporal accuracy of the
+method, etc? Please supply a reference to the method and its former use.
+
+Third, details of the number of Fourier modes and spatial resolution
+used in the spanwise direction are difficult to determine from the
+manuscript and in places seem confused. For example, on page 15 in
+discussing the larger-spanwise-extent simulations, I understand that
+they have used 32 complex Fourier modes (counting the axisymmetric
+mode 0) for these. Then they state that an FFT with 64 modes is
+used. Did they mean 64 planes of real data and a real-complex FFT of
+32 modes, or have they adopted a complex-complex FFT and packed their
+data somehow to do two real-complex transforms at once? I'm happy to
+consider that I may have misinterpreted the details here, but a
+similar question may arise for other readers.
+
+A related point is that in Henderson (1997) and other works
+(especially that of Barkley, Tuckerman & Golubitsky, PRE 61, 2000,
+which should be cited by the present authors) there is evidence that
+spatio-temporal chaos in this system is associated with nonlinear
+interaction between unstable A-type modes and linearly stable B-type
+modes, even at Reynolds numbers well below the linear onset of mode
+B. In the large-domain simulations, are there enough Fourier modes to
+allow small-wavelength B-type modes (wavelengths of order 0.8d) to be
+driven and resolved?
+
+Again, all these matters touch on the standard and quality of the present
+work and contribute to my assessment that it is not equal to the
+quality maintained by the journal.
+
+4. The authors perhaps do not appreciate the distinction between
+subharmonic and quasi-periodic instability modes of rings and circular
+cylinders, respectively (top of page 4). Indeed, a quasi-periodic mode
+does bifurcate from the basic state of the 2D cylinder wake, as first
+indicated by Barkley and Henderson (1996) and subsequently
+investigated in detail by Blackburn, Marques and Lopez (2005) where it
+was shown that Re_c=377 for this mode.  The quasi-periodic mode does
+not appear for ring wakes of sufficiently low aspect ratio, where it
+can morph into a subharmonic mode (apparently, up to at least Ar=40,
+as suggested by figure 11 of Sheard et al 2003). This is an example
+where finite curvature affects stability behaviour: the 2D wake of
+the circular cylinder has a greater degree of spatio-temporal symmetry
+than that for the ring, and a detailed investigation of this aspect
+and its influence remains to be performed. 
+
+5. A point the authors make a few times is that in the large-domain
+simulations, slantwise shedding is observed following a reduction in
+Reynolds number below the chaotic regime. Last time I pointed out that
+the slant angle found here is a function of the maximum spanwise
+extent of the the domain, and the authors agree with this.  Actually I
+do not have a problem with slantwise shedding here, since it is clear
+that this could be influenced by spanwise periodicity. My main concern
+is that the authors' wording (e.g. in the last sentence of the
+abstract) can be taken to suggest that slantwise shedding will always
+arise following a reduction in Reynolds number from the chaotic regime
+to a lower value. Surely this depends on the initial conditions?
+Another outcome is that parallel shedding resumes, and indeed
+slantwise shedding at the half-wavelength (a 2-start helical mode)
+could perhaps also arise. The authors need to make clear that the
+slantwise shedding is not an inevitable outcome (or, if indeed it is,
+demonstrate this with more careful investigation), and especially so
+in the abstract.
+
+6. Regarding the shift in shedding frequency shown in figure 4,
+Henderson (1997, figures 3 and 6) presents data on this shift at
+Re=195. This should be included and commented upon.  Also, in the
+caption to figure 4, we see two long-wavelength domain sizes given:
+31d and 31.4d. Is this correct, or should these both say 31.4d?
+
+7. The discussion about the blow-up of the Re=185 simulation in
+section 5.1 and the subsequent treatment and results of this
+simulation is (a) rather disturbing and (b) confusing. Three pages of
+manuscript and two figures are associated with this simulation. I
+think the blow-up might be associated with the rather large initial
+mode-A-type perturbation in Fourier mode 1. Surely a small random
+perturbation in this mode would have been adequate, as eventually all
+the modes would reach a statistical equilibrium? Much of the
+discussion here must relate to the period before the blow-up when the
+system was far from statistical equilibrium (since only four shedding
+periods were subsequently achieved with a more highly resolved
+mesh). Hence one wonders about its relevance. The simulations here
+should be re-made with a smaller initial perturbation in mode 1 (or,
+all modes), and we should be reassured the system reached a reasonable
+approximation to a statistically steady state.
+
+8. The title should have "circular" inserted before "cylinder".
+
