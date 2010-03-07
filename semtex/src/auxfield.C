@@ -729,7 +729,7 @@ real_t AuxField::mode_L2 (const int_t mode) const
     E      = _elmt[i];
     area  += E -> area();
     Ek    += sqr (E -> norm_L2 (Re));
-    if (_nz > 1 && mode) 
+    if (_nz > 1) 
       Ek  += sqr (E -> norm_L2 (Im));
   }
 
