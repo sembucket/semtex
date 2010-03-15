@@ -34,9 +34,9 @@ CXX      = g++
 LD       = g++
 CC       = gcc
 ifdef DEBUG
-  OPT    = -gstabs+
+  OPT    = -m64 -gstabs+
 else
-  OPT    = -O2
+  OPT    = -m64 -O2
 endif
 DEFINES += -DmacOSX		# This is for SM graphics
 CFLAGS   = $(DEFINES) $(OPT) -ansi

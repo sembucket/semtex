@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // graphics.C
 //
-// All drawing is done using Super Mongo graphics package.
+// All drawing is done using Super Mongo (SM) graphics package.
 // Contact: Robert Lupton, rhl@astro.princeton.edu
 //
 // GRAPHICS needs to be defined during compilation otherwise all calls
@@ -15,12 +15,33 @@
 
 
 #ifdef GRAPHICS
-//#include <sm_options.h>
-  #include <sm_declare.h>
+// -- (Unmangled) SM routine names, see shipped version of sm_declare:
+extern "C" {
+  void sm_alpha    (void);
+  void sm_box      (int, int, int, int);
+  void sm_conn     (real*, real*, int);
+  void sm_defvar   (const char*, const char*);
+  int  sm_device   (const char*);
+  void sm_draw     (real, real);
+  void sm_erase    (void);
+  void sm_expand   (real);
+  void sm_gflush   (void);
+  void sm_graphics (void);
+  void sm_hardcopy (void);
+  void sm_label    (const char*);
+  void sm_limits   (real, real, real, real);
+  void sm_location (int, int, int, int);
+  void sm_lweight  (real);
+  void sm_points   (real*, real*, int);
+  void sm_ptype    (real*, int);
+  void sm_redraw   (int);
+  void sm_relocate (real, real);
+  void sm_window   (int, int, int, int, int, int);
+}
 #endif
 
 
-int graphics = 1;
+int graphics = 1; // -- This is a global variable, I'm afraid. Used in main.
 
 
 void initGraphics (const char* device)

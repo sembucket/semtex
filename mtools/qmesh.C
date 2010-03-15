@@ -488,7 +488,7 @@ static void printMesh (ostream&     strm,
       strm << setw (5) << Q -> vertex[i] -> ID();
     strm << "  </Q>" << endl;
   }
-  strm << "</ELEMENTS>" << endl << endl;
+  strm << "</ELEMENTS>" << endl;
 }
 
 

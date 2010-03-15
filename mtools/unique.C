@@ -28,17 +28,17 @@
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include <stdlib.h>		// C headers.
-#include <limits.h>
-#include <stdio.h>
-#include <math.h>
-#include <string.h>
+#include <iostream>  // -- These are the same as for qmesh.h but
+#include <iomanip>   //    below we redefine the Point class.
+#include <fstream>   //    Hence do not include qmesh.h.
+#include <cstdlib>
+#include <cstring>
+#include <climits>
+#include <cstdio>
+#include <cctype>
+#include <cmath>
 
-#include <iostream.h>		// C++ headers.
-#include <iomanip.h>
-#include <fstream.h>
-
-//using namespace std;
+using namespace std;
 
 #include <Array.h>		// Semtex headers.
 #include <List.h>
