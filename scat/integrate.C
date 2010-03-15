@@ -425,9 +425,10 @@ static void buoyancy (Domain*         D ,
 static void tempGrad (AuxField** Us,
 		      AuxField** Uf)
 // ---------------------------------------------------------------------------
-// If there is heat input we take off a linear correction for bulk
-// temperature gradient DTBDX, only in defined for the first coordinate
-// direction. This procedure only drives mode 0, we work in Fourier.
+// If there is heat input we may wish to take off a linear correction
+// for bulk temperature gradient DTBDX, only in defined for the first
+// coordinate direction. This procedure only drives mode 0, we work in
+// Fourier. 
 // ---------------------------------------------------------------------------
 {
   const real_t dtbdx = Femlib::value ("DTBDX");
