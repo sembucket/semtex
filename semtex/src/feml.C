@@ -56,13 +56,13 @@ static char RCS[] = "$Id$";
 FEML::FEML (const char* session)
 // ---------------------------------------------------------------------------
 // Attempt to open session file, prescan to locate sections.  Set
-// pdf_root.  Load tokens.
+// feml_root.  Load tokens.
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "FEML::FEML";
   char       c, err[STR_MAX], key[STR_MAX], yek[STR_MAX];
   char*      u;
-  integer    i, N;
+  int_t      i, N;
   bool       OK, found;
 
   const char* reserved[] = {
@@ -79,7 +79,7 @@ FEML::FEML (const char* session)
     "CUT",
     0
   };
-  
+
   feml_file.open (session);
 
   if (!feml_file) {
@@ -189,35 +189,35 @@ FEML::FEML (const char* session)
 }
 
 
-integer FEML::seek (const char* keyword)
+bool FEML::seek (const char* keyword)
 // ---------------------------------------------------------------------------
 // Look for keyword in stored table.
-// If present, stream is positioned after keyword and 1 is returned.
-// If not, stream is rewound and 0 is returned.
+// If present, stream is positioned after keyword and true is returned.
+// If not, stream is rewound and false is returned.
 // ---------------------------------------------------------------------------
 {
-  register integer i;
-  bool     found = false;
+  register int_t i;
+  bool           found = false;
 
   for (i = 0; !found && keyWord[i]; i++)
-    found = (strstr (keyword, keyWord[i]) != 0 &&
-	     static_cast<integer>(keyPosn[i]) != 0);
+    found = (strstr   (keyword, keyWord[i]) != 0 &&
+	     static_cast<int_t>(keyPosn[i]) != 0);
 
   if (!found) {
     feml_file.clear ();  
     feml_file.seekg (0);
-    return 0;
+    return false;
   } else {
     feml_file.clear ();
     feml_file.seekg (keyPosn[i - 1]);
   }
 
-  return 1;
+  return true;
 }
 
 
-integer FEML::attribute (const char* tag ,
-			 const char* attr)
+int_t FEML::attribute (const char* tag ,
+		       const char* attr)
 // ---------------------------------------------------------------------------
 // Tag attributes are given as options in form <tag attr=int [attr=int ...]>
 // Return integer value following '='.  No whitespace allowed in attributes.
@@ -227,7 +227,7 @@ integer FEML::attribute (const char* tag ,
   const char routine[] = "FEML::attribute";
   char       buf[STR_MAX], err[STR_MAX];
   char*      v;
-  integer    n = 0;
+  int_t      n = 0;
 
   if (!seek (tag)) {
     sprintf (err, "couldn't locate tag %s in feml file", tag);

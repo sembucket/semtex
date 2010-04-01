@@ -730,7 +730,7 @@ real_t Element::integral (const real_t* src,
 real_t Element::momentX (const char* func,
 			 real_t*     tmp ) const
 // ---------------------------------------------------------------------------
-// The integral weighted by x location.
+// The integral of func weighted by x location.
 // ---------------------------------------------------------------------------
 {
   Femlib::prepVec    ("x y", func);
@@ -743,7 +743,7 @@ real_t Element::momentX (const char* func,
 real_t Element::momentY (const char* func,
 			 real_t*     tmp ) const
 // ---------------------------------------------------------------------------
-// The integral weighted by y location.
+// The integral of func weighted by y location.
 // ---------------------------------------------------------------------------
 {
   Femlib::prepVec    ("x y", func);

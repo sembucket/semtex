@@ -3,7 +3,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // feml: Finite Element markup Language (FEML) header file.
 //
-// Copyright (c) Hugh Blackburn 1997 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1997 <--> $Date$, Hugh Blackburn
 //
 // $Id$
 ///////////////////////////////////////////////////////////////////////////////
@@ -45,8 +45,8 @@ public:
   FEML  (const char*);
   ~FEML () { feml_file.close(); }
 
-  integer     seek      (const char*);
-  integer     attribute (const char*, const char*);
+  bool        seek      (const char*);
+  int_t       attribute (const char*, const char*);
   istream&    stream    ()       { return feml_file; }
   const char* root      () const { return feml_root; }  
   

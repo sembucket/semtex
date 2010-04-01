@@ -90,7 +90,7 @@ public:
   int_t globalBandwidth ()                                            const;
   bool  highAxis        ()                                            const;
   int_t bandwidthSC     (const int_t*, const int_t*, const int_t)     const;
-  void    rebuild       (FEML*, const int_t);
+  void  rebuild         (FEML*, const int_t);
 
 };
 

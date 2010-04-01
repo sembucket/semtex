@@ -201,7 +201,7 @@ public:
     { message_sync(); }
 
 #if 0
-  // -- Don't know why this won't compile OK but:
+  // -- This form seems to cause a problem, hence workaround:
   static void parseVec (const int_t n ... )
     { yy_vec_interp (n ... ); }
 #else

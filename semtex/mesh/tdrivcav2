@@ -8,7 +8,7 @@
 <USER>
 	u = 0.0
 	v = 0.0
-	T = T_MAX-x
+	c = T_MAX-x
 	p = 0.0
 </USER>
 
@@ -41,17 +41,17 @@
 	1	h	4
 			<D>	u = 0.0		</D>
 			<D>	v = 0.0		</D>
-			<D>	T = T_MAX	</D>
+			<D>	c = T_MAX	</D>
 			<H>	p = 0.0		</H>
 	2	c	4
 			<D>	u = 0.0		</D>
 			<D>	v = 0.0		</D>
-			<D>	T = T_MIN	</D>
+			<D>	c = T_MIN	</D>
 			<H>	p = 0.0		</H>
 	3	i	4
 			<D>	u = 0.0		</D>
 			<D>	v = 0.0		</D>
-			<N>	T = 0.0		</N>
+			<N>	c = 0.0		</N>
 			<H>	p = 0.0		</H>
 </BCS>
 
