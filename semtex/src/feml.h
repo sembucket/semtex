@@ -15,7 +15,7 @@ using namespace std;
 
 #include <cfemdef.h>
 
-#define KEYWORD_MAX 32
+#define FEML_KEYWORD_MAX 32
 
 
 class FEML
@@ -43,20 +43,24 @@ class FEML
 
 public:
   FEML  (const char*);
-  ~FEML () { feml_file.close(); }
+  ~FEML () { _feml_file.close(); }
 
   bool        seek      (const char*);
   int_t       attribute (const char*, const char*);
-  istream&    stream    ()       { return feml_file; }
-  const char* root      () const { return feml_root; }  
+  istream&    stream    ()       { return _feml_file; }
+  const char* root      () const { return _feml_root; }
+  int_t       sections  (vector <const char*>&);
+  bool        echo      (ostream&, const char*);
   
 private:
-  char*     feml_root;		  // Name of FEML file, suffix removed.
-  ifstream  feml_file;		  // Input stream.
-  streampos keyPosn[KEYWORD_MAX]; // Locations corresponding to keywords.
-  char*     keyWord[KEYWORD_MAX]; // Keywords used.
+  char*     _feml_root;		        // Name of FEML file, suffix removed.
+  ifstream  _feml_file;		        // Input stream.
+  streampos _keyPosn[FEML_KEYWORD_MAX]; // Locations corresponding to keywords.
+  char*     _keyWord[FEML_KEYWORD_MAX]; // Keywords used.
+  int_t     _nKey;                      // Number of keywords used.
 
   bool      tokens ();
 };
 
 #endif
+

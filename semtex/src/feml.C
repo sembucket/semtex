@@ -38,25 +38,39 @@
 // 3. There is a maximum number of keywords (KEYWORDS_MAX) set in feml.
 // 4. No restriction is placed on options, or on the contents of a section.
 // 5. After seeking, input stream is repositioned just following keyword.
+// 6. Because of the repositioning requirement, feml cannot work with a
+//    stream like standard input: input must come from a file.
+//
+// TO DO: move to XML.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
 
-#include <cstdlib>
+#include <cstdlib>		// -- C standard headers.
 #include <cstdio>
 #include <cstring>
 #include <cctype>
 
-#include <cfemdef.h>
+#include <vector>		// -- C++ STL.
+
+using namespace std;
+
+#include <cfemdef.h>		// -- Semtex headers.
 #include <utility.h>
 #include <feml.h>
 #include <femlib.h>
 
 
-FEML::FEML (const char* session)
+FEML::FEML (const char* session) :
+  _nKey (0)
 // ---------------------------------------------------------------------------
 // Attempt to open session file, prescan to locate sections.  Set
-// feml_root.  Load tokens.
+// _feml_root.  Load tokens.
+//
+// The array _keyWord is initially filled with all the reserved words,
+// but these are not necessarily present in the session file. If a
+// section is actually present in the file, that is flagged by a
+// non-NULL corresponding stream pointer in array _keyPosn.
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "FEML::FEML";
@@ -80,40 +94,39 @@ FEML::FEML (const char* session)
     0
   };
 
-  feml_file.open (session);
+  _feml_file.open (session);
 
-  if (!feml_file) {
+  if (!_feml_file) {
     sprintf (err, "couldn't open session file %s", session);
     message (routine, err, ERROR);
   }
 
-  strcpy ((feml_root = new char [strlen (session) + 1]), session);
+  strcpy ((_feml_root = new char [strlen (session) + 1]), session);
 
-  for (i = 0; reserved[i] && i < KEYWORD_MAX; i++) {
-    keyWord[i] = strcpy ((new char [strlen (reserved[i]) + 1]), reserved[i]);
-    keyPosn[i] = 0;
+  for (i = 0; reserved[i] && i < FEML_KEYWORD_MAX; i++) {
+    _keyWord[i] = strcpy ((new char [strlen (reserved[i]) + 1]), reserved[i]);
+    _keyPosn[i] = NULL;
   }
-  keyWord[i] = 0;
+  _keyWord[i] = NULL;
 
-  if (i == KEYWORD_MAX) {
+  if (i == FEML_KEYWORD_MAX) {
     sprintf (err, "Number of reserved keywords exceeds table size (%1d)", i);
     message (routine, err, ERROR);
   }
 
-  while (feml_file >> c) {
+  while (_feml_file >> c) {
 
     if (c == '<') {
 
       // -- Next word may be a keyword. 
       //    First massage it to get correct form.
       
-      feml_file >> key;
-
-
+      _feml_file >> key;
+      
       N = strlen (key);
       if (key[N - 1] == '>') {
 	c = '>';
-	feml_file.putback (c);
+	_feml_file.putback (c);
 	key[N - 1] = '\0';
 	N--;
       }
@@ -124,14 +137,14 @@ FEML::FEML (const char* session)
       //    1. install file position immediately following keyword in table;
       //    2. move on to find closing tag.
 
-      for (found = false, i = 0; !found && keyWord[i]; i++) {
+      for (found = false, i = 0; !found && _keyWord[i]; i++) {
 
-	if (strcmp (key, keyWord[i]) == 0) {
+	if (strcmp (key, _keyWord[i]) == 0) {
 
 	  // -- Locate closing '>'.
 
-	  keyPosn[i] = feml_file.tellg ();
-	  while (!found && feml_file >> c) found = c == '>';
+	  _keyPosn[i] = _feml_file.tellg ();
+	  while (!found && _feml_file >> c) found = c == '>';
 
 	  if (!found) {
 	    sprintf (err, "closing '>' not found for keyword %s", key);
@@ -142,17 +155,17 @@ FEML::FEML (const char* session)
 
 	  OK = false;
       
-	  while ((!OK) && (feml_file >> c)) {
+	  while ((!OK) && (_feml_file >> c)) {
 	    if (c == '<') {
-	      feml_file >> c;
+	      _feml_file >> c;
 	  
 	      if (c == '/') {
-		feml_file >> yek;
+		_feml_file >> yek;
 		
 		N = strlen (yek);
 		if (yek[N - 1] == '>') {
 		  c = '>';
-		  feml_file.putback (c);
+		  _feml_file.putback (c);
 		  yek[N - 1] = '\0';
 		  N--;
 		}
@@ -160,7 +173,7 @@ FEML::FEML (const char* session)
 		u = yek; while (*u = toupper (*u)) u++;
 	    
 		if (OK = strcmp (key, yek) == 0) {
-		  while (feml_file >> c) if (c == '>') break;
+		  while (_feml_file >> c) if (c == '>') break;
 
 		  if (c != '>') {
 		    sprintf (err, "closing '>' not found for /%s", key);
@@ -174,7 +187,7 @@ FEML::FEML (const char* session)
 	  if (!OK) {
 	    sprintf (err, "couldn't locate </%s> to match <%s>", key, key);
 	    message (routine, err, ERROR);
-	  }
+	  } else ++_nKey;
 	}
       }
     }
@@ -182,8 +195,8 @@ FEML::FEML (const char* session)
   
   if (!found) message (routine, "no keywords located", ERROR);
 
-  feml_file.clear ();		// -- Reset EOF error condition.
-  feml_file.seekg (0);		// -- And rewind.
+  _feml_file.clear ();		// -- Reset EOF error condition.
+  _feml_file.seekg (0);		// -- And rewind.
 
   tokens ();			// -- Initialize Femlib parser.
 }
@@ -196,20 +209,20 @@ bool FEML::seek (const char* keyword)
 // If not, stream is rewound and false is returned.
 // ---------------------------------------------------------------------------
 {
-  register int_t i;
-  bool           found = false;
+  int_t i;
+  bool  found = false;
 
-  for (i = 0; !found && keyWord[i]; i++)
-    found = (strstr   (keyword, keyWord[i]) != 0 &&
-	     static_cast<int_t>(keyPosn[i]) != 0);
+  for (i = 0; !found && _keyWord[i]; i++)
+    found = (strstr   (keyword, _keyWord[i]) != 0 &&
+	     static_cast<int_t>(_keyPosn[i]) != 0);
 
   if (!found) {
-    feml_file.clear ();  
-    feml_file.seekg (0);
+    _feml_file.clear ();  
+    _feml_file.seekg (0);
     return false;
   } else {
-    feml_file.clear ();
-    feml_file.seekg (keyPosn[i - 1]);
+    _feml_file.clear ();
+    _feml_file.seekg (_keyPosn[i - 1]);
   }
 
   return true;
@@ -234,7 +247,7 @@ int_t FEML::attribute (const char* tag ,
     message (routine, err, ERROR);
   }
 
-  while (feml_file >> buf)
+  while (_feml_file >> buf)
     if (strstr (buf, attr)) {
       if (buf[strlen (buf) - 1] == '>') buf[strlen (buf) - 1] = '\0';
       v = buf;
@@ -251,7 +264,7 @@ int_t FEML::attribute (const char* tag ,
       message (routine, err, ERROR);
     }
 
-  feml_file.ignore (STR_MAX, '\n');
+  _feml_file.ignore (STR_MAX, '\n');
 
   return n;
 }
@@ -262,6 +275,7 @@ bool FEML::tokens ()
 // Install token table.  Return false if no TOKEN section is found.
 // NUMBER attribute ignored if present.  Fix any inconsistent values.
 // Parser must have been initialized before entry.
+// Lines with '#' at the start are ignored.
 // ---------------------------------------------------------------------------
 {
   const char     routine[] = "FEML::tokens";
@@ -269,10 +283,10 @@ bool FEML::tokens ()
   register char* u;
 
   if (seek ("TOKENS")) {
-    feml_file.ignore (STR_MAX, '\n');
+    _feml_file.ignore (STR_MAX, '\n');
 
-    while (feml_file.getline (buf, STR_MAX)) {
-      if (strstr (buf, "=")) Femlib::value (buf);
+    while (_feml_file.getline (buf, STR_MAX)) {
+      if (strstr (buf, "=") && buf[0] != '#') Femlib::value (buf);
       u = buf; while (*u = toupper (*u)) u++;
       if (strstr (buf, "TOKENS")) break;
     }
@@ -289,4 +303,95 @@ bool FEML::tokens ()
   }
   
   return false;
+}
+
+
+int_t FEML::sections (vector <const char*>& present)
+// ---------------------------------------------------------------------------
+// Return a vector with pointers to the names of the sections that
+// were present in the session file.
+// ---------------------------------------------------------------------------
+{
+  int_t i = 0, j = 0;
+
+  present.resize (_nKey);
+
+  while (_keyWord[i]) { if (_keyPosn[i]) present[j++] = _keyWord[i]; i++; }
+
+  return _nKey;
+}
+
+bool FEML::echo (ostream&    stream,
+		 const char* key   )
+// ---------------------------------------------------------------------------
+// Print out the text of appropriate FEML file section on stream.
+// Do nothing if named section is not present.
+// ---------------------------------------------------------------------------
+{
+  const char routine[] = "FEML::echo";
+  int_t loc, N;
+  char  c, yek[128], err[128], *u;
+  bool  found = false;
+
+  for (loc = 0; !found && _keyWord[loc]; loc++)
+    found = (strstr       (key, _keyWord[loc]) != 0 &&
+	     static_cast<int_t>(_keyPosn[loc]) != 0);
+
+  if (!found) { _feml_file.clear (); _feml_file.seekg (0); return false; }
+    
+  --loc;
+  _feml_file.clear ();
+  _feml_file.seekg (_keyPosn[loc]);
+
+  stream << '<' << _keyWord[loc];
+
+  _feml_file >> noskipws;
+
+  _feml_file >> c; stream << c;
+
+  // -- We already know the structure of the file is valid and the
+  //    present section will be appropriately closed.  We now scan
+  //    forward and print up until that point is reached.
+ 
+  found = false;
+
+  while ((!found) && (_feml_file >> c)) {
+    stream << c;
+    if (c == '<') {
+      _feml_file >> c; stream << c;
+	  
+      if (c == '/') {
+	_feml_file >> yek;
+		
+	N = strlen (yek);
+	if (yek[N - 1] == '>') {
+	  c = '>';
+	  _feml_file.putback (c);
+	  yek[N - 1] = '\0';
+	  N--;
+	}
+
+	u = yek; while (*u = toupper (*u)) u++;
+
+	stream << yek;
+	    
+	if (found = strcmp (key, yek) == 0) {
+	  while (_feml_file >> c) { stream << c; if (c == '>') break; }
+
+	  if (c != '>') {
+	    sprintf (err, "closing '>' not found for /%s", key);
+	    message (routine, err, ERROR);
+	  }
+	}
+      }
+    }
+  }
+  stream << endl;
+  
+  if (!found) {
+    sprintf (err, "couldn't locate </%s> to match <%s>", key, key);
+    message (routine, err, ERROR);
+  }
+
+  _feml_file >> skipws;
 }
