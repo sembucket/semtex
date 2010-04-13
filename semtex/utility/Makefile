@@ -73,9 +73,9 @@ avgdump moden noiz rstress xplane sem2tec convert repeatz repeatxy : \
 # ----------------------------------------------------------------------------
 # Build meshpr, 2D mesh node computation utility.
 #
+
 meshpr:	feml.o mesh.o meshpr.o $(SEMHDR)
 	$(LD) -o $@ $@.o feml.o mesh.o $(LDFLAGS)
-
 
 # ----------------------------------------------------------------------------
 # Build wallmesh, 2D mesh filter utility for use with meshpr.
@@ -116,17 +116,6 @@ $(ADFOBJ): $(SEMHDR) tensorcalcs.h
 
 addfield: $(ADFOBJ)
 	$(LD) -o $@ $(ADFOBJ) $(LDFLAGS)
-
-# ----------------------------------------------------------------------------
-# Build variant of addfield that multiplies enstrophy by sign of another var.
-#
-SIGOBJ = signens.o auxfield.o bcmgr.o boundary.o bsys.o condition.o 	\
-	 domain.o edge.o element.o family.o feml.o field.o geometry.o	\
-	 integration.o mesh.o misc.o pressure.o
-$(SIGOBJ): $(SEMHDR)
-
-signens: $(SIGOBJ)
-	$(LD) -o $@ $(SIGOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build semtex --> NEKTON input file converter.
@@ -198,6 +187,14 @@ eneq: $(ENOBJ)
 #
 rectmesh: rectmesh.C
 	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build mapmesh, a utility that re-maps node locations according to strings
+# supplied on command line.
+#
+
+mapmesh: feml.o mapmesh.o $(SEMHDR)
+	$(LD) -o $@ $@.o feml.o $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Special machine-dependent compilations.
