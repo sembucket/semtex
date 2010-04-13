@@ -210,5 +210,5 @@ static void getargs (int     argc   ,
     }
 
   if   (argc == 1) session = *argv;
-  //  else             message (prog, "must provide session file", ERROR);
+  else             message (prog, "must provide session file", ERROR);
 }

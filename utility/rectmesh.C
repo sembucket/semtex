@@ -30,7 +30,7 @@
 // Files:
 // -----
 // Input consists of a list of x, followed by y, locations of element
-// boundaries, one per line.  A blank line separates x from y
+// boundaries, one per line.  A single blank line separates x from y
 // locations.  Output consists of a (2D) session file with an element
 // order of 7, and "wall" group boundaries around the domain border.
 ///////////////////////////////////////////////////////////////////////////////
@@ -137,7 +137,7 @@ int main (int    argc,
 	     << setw(5) << vOffset + j + (i + 1) * Nx + 1
 	     << "    </Q>" << endl;
 #else
-  for (k = e)ffset+1, i = 0; i < (Ny - 1); i++)
+  for (k = eOffset+1, i = 0; i < (Ny - 1); i++)
     for (j = 0; j < (Nx - 1); j++, k++)
       cout << setw(5) << k << "\t" << "<Q>"
 	   << setw(5) << vOffset + j +  i      * Nx + 1
@@ -220,7 +220,7 @@ static void getargs (int       argc ,
     "  -h       ... print this message\n"
     "  -b <num> ... output in <num> blocks, contiguous in x [Default: 1]\n"
     "  -e <num> ... offset first element number by <num>\n"
-      "  -v <num> ... offset first vertex number by <num>\n";
+    "  -v <num> ... offset first vertex number by <num>\n";
 
   while (--argc && **++argv == '-')
     switch (*++argv[0]) {
@@ -266,9 +266,9 @@ static void header ()
   cout << "\t\t\t<D>\tu = 0.0\t</D>"  << endl;
   cout << "\t\t\t<D>\tv = 0.0\t</D>"  << endl;
   cout << "\t\t\t<H>\tp = 0.0\t</H>"  << endl;
-  cout << "</BCS>" << endl << endl;
+  cout << "</BCS>"                    << endl << endl;
 
-  cout << "<TOKENS>" << endl;
+  cout << "<TOKENS>"                << endl;
   cout << "\tKINVIS    = 2e-6"      << endl;
   cout << "\tD_T       = 0.005"     << endl;
   cout << "\tN_STEP    = 100"       << endl;
@@ -279,5 +279,5 @@ static void header ()
   cout << "\tIO_CFL    = 50"        << endl;
   cout << "\tIO_FLD    = 1000"      << endl;
   cout << "\tCHKPOINT  = 1"         << endl;
-  cout << "</TOKENS>" << endl << endl;
+  cout << "</TOKENS>"               << endl << endl;
 }
