@@ -27,7 +27,7 @@ class Mesh
 // (2) Generation of element-boundary boundary-to-global mapping vector.
 // (3) Generation of element-boundary Essential BC mask vector.
 // (4) Generation of element mesh knot points.
-// (5) Print up NEKTON-style .rea information.
+// (5) Print up NEKTON-style .rea information (backwards compatibility).
 // (6) Return x--y extent of mesh, based on traverse of element vertices.
 // (7) Return true if an element touches the z axis (cylindrical coords).
 //

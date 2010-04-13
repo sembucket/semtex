@@ -63,7 +63,7 @@
  * Functions:  sin,  cos,  tan,  abs, floor, ceil, int, heav (Heaviside),
  *             asin, acos, atan, log, log10, exp,  sqrt,
  *             sinh, cosh, tanh, asinh, acosh, atanh,
- *             erf, erfc, lgamma,
+ *             erf, erfc, lgamma, sgn,
  *             j0, j1, y0, y1, jn.
  * Procedures: jn, yn, rad, ang, rejn, imjn, jacobi, womcos, womsin.
  *****************************************************************************/
@@ -100,6 +100,7 @@ typedef struct symbol {
 } Symbol;
 
 static double
+  Sgn    (double),
   Heavi  (double), 
   White  (double),
   Step   (double,double),
@@ -163,6 +164,7 @@ static struct {			    /* -- Built-in functions. */
   "y1"    ,  1, y1      ,
   "lgamma",  1, lgamma  ,
   "white",   1, White   ,
+  "sgn",     1, Sgn     ,
 
   "jn"    ,  2, Jn      ,
   "yn"    ,  2, Yn      ,
@@ -394,7 +396,7 @@ void yy_help (void)
      "            sinh, cosh, tanh, asinh, acosh, atanh,\n"
      "            abs, floor, ceil, int,   heav (Heaviside),\n"
      "            log, log10, exp,  sqrt,  white\n"
-     "            erf, erfc, lgamma,\n"
+     "            erf, erfc, lgamma, sgn,\n"
      "            j0, j1, y0, y1, jn\n"
      "Procedures: step, jn, yn, rad, ang, rejn,imjn, jacobi, womcos,womsin\n");
 }
@@ -548,6 +550,7 @@ static void *emalloc (const size_t n)
   return p;
 }
 
+static double Sgn   (double x) { return copysign (1.0, x) ; }
 static double Heavi (double x) { return (x >= 0.0) ? 1.0 : 0.0; }
 static double White (double x) { return dnormal (0.0, x); }
 static double Step  (double x, double a) { return (x >= a) ? 1.0 : 0.0; }
