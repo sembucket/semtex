@@ -210,6 +210,13 @@ static void advection (Domain*         D ,
   for (i = 0; i <= NCOM; i++) {
     *Uf[i] = 0.0;
     AuxField::swapData (D -> u[i], Us[i]);
+#if 0
+    ROOTONLY if (fabs (ff[i]) > EPSDP) {
+      Veclib::fill (nP, ff[i], tmp, 1);
+      if (i < 2 && Geometry::cylindrical()) master -> mulY (1, tmp);
+      Uf[i] -> addToPlane (0, tmp);
+    }
+#endif
   }
 
 #else
@@ -389,7 +396,7 @@ static void buoyancy (Domain*         D ,
 // We add an explicit estimate of this to the nonlinear terms in Uf.
 // The first level of Us has the last values of the data Fields, D is free.
 //
-// Cylindrical coordinates: for simplicity, we only currently allow
+// Cylindrical coordinates: for simplicity, we only presently allow
 // axial buoyancy. To allow off-axis gravity would require the
 // buoyancy to be done pseudospectrally - not so hard.  Note that the
 // axial (and radial, if we computed them) terms need to be multiplied

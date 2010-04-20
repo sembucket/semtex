@@ -12,6 +12,7 @@
 // scat [options] session
 //   options:
 //   -h       ... print usage prompt
+//   -f       ... freeze velocity field (scalar advection/diffusion only)
 //   -i[i]    ... use iterative solver for viscous [and pressure] steps
 //   -t[t]    ... select time-varying BCs for mode 0 [or all modes]
 //   -v[v...] ... increase verbosity level
@@ -32,11 +33,12 @@ static char RCS[] = "$Id$";
 #include <scat.h>
 
 static char prog[] = "scat";
-static void getargs    (int, char**, char*&);
+static void getargs    (int, char**, bool&, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, BoundarySys*&, Domain*&);
 
-void NavierStokes (Domain*, ScatAnalyser*);
+void NavierStokes  (Domain*, ScatAnalyser*);
+void AdvectDiffuse (Domain*, ScatAnalyser*);
 
 
 int main (int    argc,
@@ -50,6 +52,7 @@ int main (int    argc,
 #endif
 
   char*            session;
+  bool             freeze = false;
   vector<Element*> elmt;
   FEML*            file;
   Mesh*            mesh;
@@ -59,7 +62,7 @@ int main (int    argc,
   ScatAnalyser*    analyst;
   
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, session);
+  getargs (argc, argv, freeze, session);
 
   preprocess (session, file, mesh, elmt, bman, bsys, domain);
 
@@ -68,8 +71,9 @@ int main (int    argc,
   domain -> restart();
 
   ROOTONLY domain -> report();
-  
-  NavierStokes (domain, analyst);
+
+  if (freeze) AdvectDiffuse (domain, analyst);
+  else        NavierStokes  (domain, analyst);
 
   Femlib::finalize();
 
@@ -79,6 +83,7 @@ int main (int    argc,
 
 static void getargs (int    argc   ,
 		     char** argv   ,
+		     bool&  freeze ,
 		     char*& session)
 // ---------------------------------------------------------------------------
 // Install default parameters and options, parse command-line for optional
@@ -89,7 +94,8 @@ static void getargs (int    argc   ,
   char usage[]   =
     "Usage: %s [options] session-file\n"
     "  [options]:\n"
-    "  -h        ... print this message\n"
+    "  -h       ... print this message\n"
+    "  -f       ... freeze velocity field (scalar advection/diffusion only)\n"
     "  -i[i]    ... use iterative solver for viscous [& pressure] steps\n"
     "  -t[t]    ... select time-varying BCs for mode 0 [or all modes]\n"
     "  -v[v...] ... increase verbosity level\n"
@@ -101,6 +107,9 @@ static void getargs (int    argc   ,
       sprintf (buf, usage, prog);
       cout << buf;
       exit (EXIT_SUCCESS);
+      break;
+    case 'f':
+      freeze = true;
       break;
     case 'i':
       do
@@ -165,7 +174,7 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "Setting geometry ... ";
 
-  nel   = mesh -> nEl();
+  nel   =  mesh -> nEl();
   np    =  Femlib::ivalue ("N_P");
   nz    =  Femlib::ivalue ("N_Z");
   space = (Femlib::ivalue ("CYLINDRICAL")) ?

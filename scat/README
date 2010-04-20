@@ -1,3 +1,5 @@
+# $Id$
+
 Scat is closely related to semtex/dns, but adds a new scalar variable,
 'c'. This has to appear in the list of fields, in the boundary
 conditions etc, just as for the velocities and pressure.  The ordering
@@ -7,6 +9,11 @@ However, the ordering of these variables in .fld, .rst, and .avg files
 is not significant (so the order these variables could occur in the
 USER section could be arbitrary - but it's probably least confusing to
 retain the same ordering).
+
+When restarting (e.g. from session.rst), fields that are not present
+in the restart file are set to zero (this is standard semtex
+practise). This allows restart from previous solutions that just
+contain velocity data.
 
 The supplied makefile assumes that the scat directory resides at the
 same level as the semtex directory (not within it). This is easy to

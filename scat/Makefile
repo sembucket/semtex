@@ -18,10 +18,6 @@ ifdef STOKES
   DEFINES += -DSTOKES
 endif
 
-ifdef UNSTEADY
-  DEFINES += -DUNSTEADY
-endif
-
 ifdef ALIAS		# -- No dealiasing done.
   DEFINES += -DALIAS
 endif
@@ -37,7 +33,7 @@ SEMHDR    = sem.h
 # ----------------------------------------------------------------------------
 # Default build.
 
-NS_OBJ = scatanalysis.o drive.o integrate.o
+NS_OBJ = scatanalysis.o drive.o integrate.o integrates.o
 NS_HDR = scat.h
 
 $(PROG): sem $(SEMOBJ) $(NS_OBJ) 
