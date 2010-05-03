@@ -162,7 +162,11 @@ static struct {			    /* -- Built-in functions. */
   "j1"    ,  1, j1      ,
   "y0"    ,  1, y0      ,
   "y1"    ,  1, y1      ,
+#if defined (__APPLE__)    /* -- This may become standard usage. */
   "gamma" ,  1, tgamma  ,
+#else
+  "gamma" ,  1, gamma  ,
+#endif
   "lgamma",  1, lgamma  ,
   "white",   1, White   ,
   "sgn",     1, Sgn     ,
