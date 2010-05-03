@@ -90,10 +90,10 @@ CFLAGS   = $(DEFINES) $(OPT)
 FFLAGS   = $(DEFINES) $(OPT)
 CXXFLAGS = $(DEFINES) $(OPT) -Wno-deprecated
 F77LIBS  = -llapack -lfastblas -lg2c
-LDFLAGS  = $(OPT) $(LIBDIR) -static
+LDFLAGS  = $(OPT) $(LIBDIR)
 RANLIB   = ranlib
 ifdef MPI
-  LDFLAGS += -lfem_mp -lvec $(F77LIBS) -lmpi -llam -lpthread
+  LDFLAGS += -L/usr/lib64/openmpi/1.2.8-gcc/lib -lfem_mp -lvec $(F77LIBS) -lmpi -lpthread
 else
   LDFLAGS += -lfem -lvec $(F77LIBS)
 endif
