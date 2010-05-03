@@ -15,6 +15,7 @@ public:
   void  print     () const;
 
   void  evaluate  (const int_t,const int_t,real_t*)                      const;
+  void  extract   (const real_t*, real_t*)                               const;
 
   // -- Impose essential BCs:
   void  set       (const real_t*,const int_t*,real_t*)                   const;

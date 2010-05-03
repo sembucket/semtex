@@ -38,7 +38,19 @@
 // The HOPBC condition are a special case of natural conditions used
 // for the pressure Poisson equation: they are derived from the
 // momentum equations and computed using an extrapolative process
-// described in KIO91.
+// described in [1].
+//
+// A further general class of available condition is the mixed type,
+// of form dc/dn + K( c - C ) = 0. See [2]. The convective BC is a
+// variant of this, see [3].
+//
+// References:
+// 1. Karniadakis, Israeli & Orszag (1991) "High-order splitting methods
+//    for the incompressible Navier--Stokes equations", JCP 9(2).
+// 2. Blackburn (2001) "Dispersion and diffusion in coated tubes of 
+//    arbitrary cross-section", Comput Chem Eng 25(2/3).
+// 3. Orlanski (1976) "A simple boundary condition for unbounded 
+//    hyperbolic flows", JCP 21.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -182,7 +194,7 @@ void Natural::sum (const int_t   side  ,
 		   real_t*       work  ,
 		   real_t*       tgt   ) const
 // ---------------------------------------------------------------------------
-// Add boundary-integral terms into globally-numbered tgt.
+// Add boundary-integral terms (from src) into globally-numbered tgt.
 // Work vector must be np long.
 // ---------------------------------------------------------------------------
 { 
@@ -371,11 +383,12 @@ void Mixed::evaluate (const int_t    np  ,
 		      real_t*        tgt ) const
 // ---------------------------------------------------------------------------
 // Load external value storage area tgt with installed constants.
-// This does not actually play any part in the solution, but
-// potentially allows us to see the internal values. 
+// This takes no part in the solution 
 // ---------------------------------------------------------------------------
 {
-  //  Veclib::fill (np, _K_ * _C_, tgt, 1);
+#if defined (DEBUG)
+  Veclib::fill (np, _K_ * _C_, tgt, 1);
+#endif
 }
 
 
@@ -401,7 +414,7 @@ void Mixed::sum (const int_t   side  ,
   default: break;
   }
 
-  Veclib::smul (np, _K_ * _C_,  weight, 1, work, 1);
+  Veclib::smul (np, _K_ * _C_, weight, 1, work, 1);
 
   Veclib::scatr_sum (nm, work, start, tgt);
   if   (side == 3) tgt[bmap [ 0]] += work[nm];
@@ -510,4 +523,172 @@ void Mixed::describe (char* tgt) const
 // ---------------------------------------------------------------------------
 {
   sprintf (tgt, "mixed:\t%g\t%g", _K_, _C_);
+}
+
+
+Convective::Convective (const char* v)
+// ---------------------------------------------------------------------------
+// The format for a Convective BC is: "field = velocity", e.g. "u =
+// V".  But we store 1.0/(V*dt).
+// ---------------------------------------------------------------------------
+{
+  const char routine[] = "Convective::Convective";
+  char str[StrMax];
+
+  _K_ = (strtod (v, 0));
+  _K_ = 1.0 / (_K_ * Femlib::value ("D_T"));
+
+#if defined (DEBUG)
+  this -> describe (str);
+  cout << "1/(V*dt) for BC type " << str << endl;
+#endif
+}
+
+
+void Convective::sum (const int_t   side  ,
+		      const int_t*  bmap  ,
+		      const real_t* src   ,
+		      const real_t* weight,
+		      real_t*       work  ,
+		      real_t*       tgt   ) const
+// ---------------------------------------------------------------------------
+// Add boundary-integral terms into globally-numbered tgt.  This is
+// used to add K*c^{n} (where c^{n} is supplied as src) to RHS forcing.
+// ---------------------------------------------------------------------------
+{ 
+  const int_t  np    = Geometry::nP();
+  const int_t  nm    = np - 1;
+  const int_t* start = bmap;
+  
+  switch (side) {
+  case 1: start += nm;           break;
+  case 2: start += nm + nm;      break;
+  case 3: start += nm + nm + nm; break;
+  default: break;
+  }
+
+  Veclib::svvtt (np, _K_, src, 1, weight, 1, work, 1);
+
+  Veclib::scatr_sum (nm, work, start, tgt);
+  if   (side == 3) tgt[bmap [ 0]] += work[nm];
+  else             tgt[start[nm]] += work[nm];
+}
+
+
+void Convective::augmentSC (const int_t   side  ,
+			    const int_t   nband ,
+			    const int_t   nsolve,
+			    const int_t*  bmap  ,
+			    const real_t* area  ,
+			    real_t*       work  ,
+			    real_t*       tgt   )  const
+// ---------------------------------------------------------------------------
+// Add <K, w> terms to (banded LAPACK) matrix tgt.
+// ---------------------------------------------------------------------------
+{
+  const int_t    np    = Geometry::nP();
+  const int_t    nm    = np - 1;
+  const int_t*   start = bmap;
+  register int_t i, k;
+  
+  switch (side) {
+  case 1: start += nm;           break;
+  case 2: start += nm + nm;      break;
+  case 3: start += nm + nm + nm; break;
+  default: break;
+  }
+
+  Veclib::smul (np, _K_, area, 1, work, 1);
+
+  for (i = 0; i < nm; i++)
+    if ((k = start[i]) < nsolve)
+      tgt[Lapack::band_addr (k, k, nband)] += work[i];
+
+  i = (side == 3) ? bmap[0] : start[nm];
+  if (i < nsolve) tgt[Lapack::band_addr (i, i, nband)] += work[nm];
+}
+
+
+void Convective::augmentOp (const int_t   side, 
+			    const int_t*  bmap,
+			    const real_t* area,
+			    const real_t* src ,
+			    real_t*       tgt ) const
+// ---------------------------------------------------------------------------
+// This operation is used to augment the element-wise Helmholtz
+// operations where there are mixed BCs.  Add in diagonal terms
+// <K*src, w> to tgt.  Both src and tgt are globally-numbered vectors.
+// ---------------------------------------------------------------------------
+{
+  const int_t    np    = Geometry::nP();
+  const int_t    nm    = np - 1;
+  const int_t*   start = bmap;
+  register int_t i;
+  
+  switch (side) {
+  case 1: start += nm;           break;
+  case 2: start += nm + nm;      break;
+  case 3: start += nm + nm + nm; break;
+  default: break;
+  }
+
+  for (i = 0; i < nm; i++)
+    tgt[start[i]] += _K_ * area[i] * src[start[i]];
+
+  i = (side == 3) ? bmap[0] : start[nm];
+  tgt[i] += _K_ * area[nm] * src[i];
+}
+
+
+void Convective::augmentDg (const int_t   side, 
+			    const int_t*  bmap,
+			    const real_t* area,
+			    real_t*       tgt ) const
+// ---------------------------------------------------------------------------
+// This operation is used to augment the element-wise construction of
+// the diagonal of the global Helmholtz matrix where there are mixed
+// BCs.  Add in diagonal terms <K, w> to globally-numbered tgt.
+// ---------------------------------------------------------------------------
+{
+  const int_t    np    = Geometry::nP();
+  const int_t    nm    = np - 1;
+  const int_t*   start = bmap;
+  register int_t i;
+  
+  switch (side) {
+  case 1: start += nm;           break;
+  case 2: start += nm + nm;      break;
+  case 3: start += nm + nm + nm; break;
+  default: break;
+  }
+
+  for (i = 0; i < nm; i++)
+    tgt[start[i]] += _K_ * area[i];
+
+  i = (side == 3) ? bmap[0] : start[nm];
+  tgt[i] += _K_ * area[nm];
+}
+
+
+void Convective::extract (const int_t   np     ,
+			  const real_t* src    ,
+			  const int_t   doffset,
+			  const int_t   dskip  , 
+			  real_t*       tgt    ) const
+// ---------------------------------------------------------------------------
+// Load field data from appropriate edge into external BC storage tgt.
+// This is the same operation as Edge::get, but here will only happen for
+// convective BC edge.
+// ---------------------------------------------------------------------------
+{
+  Veclib::copy (np, src + doffset, dskip, tgt, 1);
+}
+
+
+void Convective::describe (char* tgt) const
+// ---------------------------------------------------------------------------
+// Load descriptive/diagnostic material into tgt.
+// ---------------------------------------------------------------------------
+{
+  sprintf (tgt, "convective:\t%g", _K_);
 }

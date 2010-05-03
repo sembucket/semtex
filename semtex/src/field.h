@@ -32,6 +32,7 @@ public:
   void evaluateBoundaries    (const int_t, const bool = true);
   void evaluateM0Boundaries  (const int_t);
   void addToM0Boundaries     (const real_t, const char*);
+  void selfExtractBoundaries ();
   void bTransform            (const int_t);
 
   static real_t scalarFlux    (const Field*);
