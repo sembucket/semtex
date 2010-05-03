@@ -98,7 +98,6 @@ static char        prog[] = "enumerate";
 static int_t       verb   = 0;
 static const int_t FldMax = 16;
 
-
 static void getargs   (int, char**, char*&, int_t&, int_t&, int_t&);
 static char axial     (FEML*);
 static void getfields (FEML*, char*, const bool);
@@ -144,20 +143,20 @@ int main (int    argc,
   if (axistag) checkABCs (file, axistag);
   if (cyl3D)   checkVBCs (file, field);
   
-  Mesh            M (file);
-  vector<Nsys*>   S (strlen (field));
+  Mesh          M (file);
+  vector<Nsys*> S (strlen (field));
 
-  int_t           i, j, k = 0;
-  bool            found;
-  const int_t     NEL      = M.nEl();
-  const int_t     NP_MAX   = np;
-  const int_t     NEXT_MAX = 4 * (NP_MAX - 1);
-  const int_t     NINT_MAX = sqr (NP_MAX - 2);
-  const int_t     NBNDRY   = NEL * NEXT_MAX;
-  const int_t     NTOTAL   = NEL * sqr (NP_MAX);
+  int_t         i, j, k = 0;
+  bool          found;
+  const int_t   NEL      = M.nEl();
+  const int_t   NP_MAX   = np;
+  const int_t   NEXT_MAX = 4 * (NP_MAX - 1);
+  const int_t   NINT_MAX = sqr (NP_MAX - 2);
+  const int_t   NBNDRY   = NEL * NEXT_MAX;
+  const int_t   NTOTAL   = NEL * sqr (NP_MAX);
 
-  vector<int_t>   btog (NBNDRY);
-  vector<int_t>   mask (NBNDRY);
+  vector<int_t> btog (NBNDRY);
+  vector<int_t> mask (NBNDRY);
 
   M.buildMask (np, field[0], &mask[0]);
   M.buildMap  (np, &btog[0]);

@@ -3,6 +3,19 @@
 //
 // Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 //
+// USAGE
+// -----
+// transform [options] [file]
+// options:
+// -h       ... print this message.
+// -i       ... invert transform.
+// -l       ... polynomial transform is Legendre       [Default: modal]
+// -P||F||B ... Carry out DPT (P), DFT (F) or both (B) [Default: both]
+// 
+// If file is not present, read from standard input.  Write to
+// standard output.
+//
+// --
 // This file is part of Semtex.
 // 
 // Semtex is free software; you can redistribute it and/or modify it
@@ -19,18 +32,6 @@
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 // 02110-1301 USA
-//
-// USAGE
-// -----
-// transform [options] [file]
-// options:
-// -h       ... print this message.
-// -i       ... invert transform.
-// -l       ... polynomial transform is Legendre       [Default: modal]
-// -P||F||B ... Carry out DPT (P), DFT (F) or both (B) [Default: both]
-// 
-// If file is not present, read from standard input.  Write to
-// standard output.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";

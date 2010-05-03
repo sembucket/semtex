@@ -3,6 +3,21 @@
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
+// For 2D problems, the data storage is organized by 2D Elements.
+//
+// For 3D problems, Fourier expansions are used in the 3rd direction,
+// and each Fourier mode can be thought of as a separate 2D problem
+// (with real and imaginary parts, or planes, of 2D data).  The data
+// are then organized plane-by-plane, with each plane being a 2D
+// AuxField; if in physical space there are nz planes of data, then
+// there are nz/2 Fourier modes.  Data for the Nyquist mode are stored
+// as the imaginary part of the zeroth Fourier mode, but are kept zero
+// and never evolve.  The planes always point to the same storage
+// locations within the data area.
+//
+// The data are transformed to physical space for storage in restart
+// files.
+//
 // --
 // This file is part of Semtex.
 // 
@@ -20,22 +35,6 @@
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 // 02110-1301 USA.
-// --
-//
-// For 2D problems, the data storage is organized by 2D Elements.
-//
-// For 3D problems, Fourier expansions are used in the 3rd direction,
-// and each Fourier mode can be thought of as a separate 2D problem
-// (with real and imaginary parts, or planes, of 2D data).  The data
-// are then organized plane-by-plane, with each plane being a 2D
-// AuxField; if in physical space there are nz planes of data, then
-// there are nz/2 Fourier modes.  Data for the Nyquist mode are stored
-// as the imaginary part of the zeroth Fourier mode, but are kept zero
-// and never evolve.  The planes always point to the same storage
-// locations within the data area.
-//
-// The data are transformed to physical space for storage in restart
-// files.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -178,6 +177,19 @@ AuxField& AuxField::operator *= (const AuxField& f)
 // ---------------------------------------------------------------------------
 {
   Veclib::vmul (_size, _data, 1, f._data, 1, _data, 1);
+
+  return *this;
+}
+
+
+AuxField& AuxField::operator /= (const AuxField& f)
+// ---------------------------------------------------------------------------
+// Divide *this storage vectorwise with f's.  You sort out which space
+// you're in!  Caveat emptor: there is no check that values of f are
+// non-zero.
+// ---------------------------------------------------------------------------
+{
+  Veclib::vdiv (_size, _data, 1, f._data, 1, _data, 1);
 
   return *this;
 }
@@ -932,19 +944,12 @@ void AuxField::describe (char* s)  const
 // NR NS NZ NEL.
 // ---------------------------------------------------------------------------
 {
-#if 1
   ostringstream sf;
   sf << Geometry::nP()    << " "
      << Geometry::nP()    << " "
      << Geometry::nZ()    << " "
      << Geometry::nElmt() << ends;
   strcpy (s, sf.str().c_str());
-#else
-  ostrstream (s, StrMax) << Geometry::nP()    << " "
-			 << Geometry::nP()    << " "
-			 << Geometry::nZ()    << " "
-			 << Geometry::nElmt() << ends;
-#endif
 }
 
 
@@ -1347,6 +1352,28 @@ void AuxField::mulX (const int_t nZ ,
   for (k = 0; k < nZ; k++)
     for (p = src + k * ntot, i = 0; i < nel; i++, p += npnp)
       _elmt[i] -> mulX (p);
+}
+
+
+AuxField& AuxField::exp ()
+// ---------------------------------------------------------------------------
+// Take exp() of data.
+// ---------------------------------------------------------------------------
+{
+  Veclib::vexp (_size, _data, 1, _data, 1);
+
+  return *this;
+}
+
+
+AuxField& AuxField::pow (const real_t expt)
+// ---------------------------------------------------------------------------
+// Raise data to power of expt.
+// ---------------------------------------------------------------------------
+{
+  Veclib::spow (_size, expt, _data, 1, _data, 1);
+
+  return *this;
 }
 
 

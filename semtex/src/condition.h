@@ -15,6 +15,19 @@ class Condition
 //
 // Note that for supplied-value BC types, the value is a physical-space
 // description of the BC, and is now set once at run-time (cannot be reset).
+// This is not true for those obtained by parsing a function: this can
+// be re-parsed every timestep (if so flagged by command-line option
+// -t or -tt).
+//
+// Also, each condition class derived from the base has to define all the
+// pure virtual functions listed below (except the destructor) but
+// some of these will just be stubs that do nothing for any particular
+// type.  Those stubs are indicated in the present header
+// file with the function body "{ };".
+// For essential/Dirichlet BCs, the method "set" must be defined;
+// for natural/Neumann BCs, the method "sum" must be defined, while
+// for mixed/Robin BCs, the three methods "augmentSC", "augmentOp", 
+// and "augmentDG" must be defined. See also boundary.h.
 // ===========================================================================
 {
 public:
@@ -193,9 +206,15 @@ public:
 
 class Mixed : public Condition
 // ===========================================================================
-// Boundary condition class for mixed type BCs of form dc/dn + K(c - C) = 0.
+// Boundary (a.k.a. Robin) condition class for mixed type BCs of form
+//     dc/dn + K(c - C) = 0.
 // Mixed BCs affect problem Helmholtz matrices, but only on the diagonal, 
-// and element-boundary, terms.
+// and element-boundary, terms. Syntax in session file is
+//     <M> c = K, C </M>  or 
+//     <M> c = K; C </M> 
+// where 'c' is a field name and K and C can be evaluated as constants
+// (perhaps using defined TOKENS). White space following the separators
+// above (',', ';') preceding C is optional.
 // ===========================================================================
 {
 public:

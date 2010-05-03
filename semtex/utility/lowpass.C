@@ -1,10 +1,25 @@
 ///////////////////////////////////////////////////////////////////////////////
 // lowpass.C: carry lowpass filtering of data in polynomial and or Fourier
-// space. 2D polynomial filtering is carried out in the tensor-product
+// space.  2D polynomial filtering is carried out in the tensor-product
 // modal polynomial space. 
 //
 // Copyright (c) 2004 <--> $Date$, Hugh Blackburn
 //
+// USAGE
+// -----
+// lowpass [options] [file]
+// options:
+// -h       ... print this message.
+// -P||F||B ... carry out DPT (P), DFT (F) or both (B) [Default: both]
+// -r <num> ... start of filter roll-off, real number in [0,1] [Default: 0.0]
+// -o <num> ... filter order, integer [Default: 2, the minimum permitted value]
+//
+// Filters in each space are Boyd--VanDeven (erfc) shapes.
+// 
+// If file is not present, read from standard input.  Write to
+// standard output.
+//
+// --
 // This file is part of Semtex.
 // 
 // Semtex is free software; you can redistribute it and/or modify it
@@ -21,20 +36,6 @@
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 // 02110-1301 USA
-//
-// USAGE
-// -----
-// lowpass [options] [file]
-// options:
-// -h       ... print this message.
-// -P||F||B ... carry out DPT (P), DFT (F) or both (B) [Default: both]
-// -r <num> ... start of filter roll-off, real number in [0,1] [Default: 0.0]
-// -o <num> ... filter order, integer [Default: 2, the minimum permitted value]
-//
-// Filters in each space are Boyd--VanDeven (erfc) shapes.
-// 
-// If file is not present, read from standard input.  Write to
-// standard output.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";

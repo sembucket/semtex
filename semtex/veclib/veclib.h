@@ -170,10 +170,14 @@ extern "C" {
   void    raninit  (int_t flag);
   double  dranu    (void);
   float   sranu    (void);
+  double  drang    (void);
+  float   srang    (void);
   double  dnormal  (double mean, double sdev);
   float   snormal  (float  mean, float  sdev);
   void    dvrandom (int_t  n, double* x, int_t incx);
   void    svrandom (int_t  n, float*  x, int_t incx);
+  void    dvgauss  (int_t  n, double* x, int_t incx);
+  void    svgauss  (int_t  n, float*  x, int_t incx);
   void    dvnormal (int_t  n, double mean, double sdev,
 		    double* x, int_t incx);
   void    svnormal (int_t  n, float  mean, float  sdev, 
@@ -803,6 +807,10 @@ class Veclib {
   { return dranu (); }
   static float  sranu ()         
   { return sranu (); }
+  static double drang ()         
+  { return drang (); }
+  static float  srang ()         
+  { return srang (); }
   static double normal (double mean, double sdev)
   { return dnormal (mean, sdev); }
   static float  normal (float  mean, float  sdev)
@@ -811,6 +819,10 @@ class Veclib {
   { dvrandom (n, x, incx); }
   static void  vrandom (int_t n, float*  x, int_t incx)
   { svrandom (n, x, incx); }
+  static void  vgauss  (int_t n, double* x, int_t incx)
+  { dvgauss (n, x, incx); }
+  static void  vgauss (int_t n, float*   x, int_t incx)
+  { svgauss (n, x, incx); }
   static void  vnormal (int_t n, double mean, double sdev,
 			double* x, int_t incx)
   { dvnormal (n, mean, sdev, x, incx); }

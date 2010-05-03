@@ -63,6 +63,24 @@ float sranu (void)
   return (float) UD (0.0, 1.0);
 }
 
+ 
+double drang (void)
+/* ------------------------------------------------------------------------- *
+ * Provide a single random number, Normal(0, 1). 
+ * ------------------------------------------------------------------------- */
+{
+  return gasdev (&iseed);
+}
+
+
+float srang (void)
+/* ------------------------------------------------------------------------- *
+ * Provide a single random number, Normal(0, 1). 
+ * ------------------------------------------------------------------------- */
+{
+  return (float) gasdev (&iseed);
+}
+
 
 double dnormal (double mean, double sdev)
 /* ------------------------------------------------------------------------- *
@@ -108,6 +126,32 @@ void svrandom (integer n, float* x, integer incx)
 }
 
 
+void dvgauss (integer n, double* x, integer incx)
+/* ------------------------------------------------------------------------- *
+ * Randomize vector x, Normal (0, 1).
+ * ------------------------------------------------------------------------- */
+{
+  register integer i;
+  
+  x += (incx<0) ? (-n+1)*incx : 0;
+
+  for (i = 0; i < n; i++) x[i*incx] = gasdev (&iseed);
+}
+
+
+void svaguss (integer n, float* x, integer incx)
+/* ------------------------------------------------------------------------- *
+ * Randomize vector x, Normal (0, 1).
+ * ------------------------------------------------------------------------- */
+{
+  register integer i;
+  
+  x += (incx<0) ? (-n+1)*incx : 0;
+
+  for (i = 0; i < n; i++) x[i*incx] = (float) gasdev (&iseed);
+}
+
+
 void dvnormal (integer n, double mean, double sdev, double* x, integer incx)
 /* ------------------------------------------------------------------------- *
  * Randomize vector x, Normal(mean, sdev).
@@ -118,6 +162,30 @@ void dvnormal (integer n, double mean, double sdev, double* x, integer incx)
   x += (incx<0) ? (-n+1)*incx : 0;
 
   for (i=0; i<n; i++) x[i*incx] = GD (mean, sdev);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
 

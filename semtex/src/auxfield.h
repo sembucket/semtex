@@ -34,6 +34,7 @@ public:
   AuxField& operator += (const AuxField&);
   AuxField& operator -= (const AuxField&);
   AuxField& operator *= (const AuxField&);
+  AuxField& operator /= (const AuxField&);
 
   AuxField& operator  = (const char*);
   AuxField& axpy        (const real_t, const AuxField&);
@@ -58,6 +59,8 @@ public:
   AuxField& divY     ();
   AuxField& mulX     ();
   AuxField& sgn      ();
+  AuxField& exp      ();
+  AuxField& pow      (const real_t);
   AuxField& clipUp   (const real_t = 0.0);
 
   void gradient (const int_t, const int_t, real_t*, const int_t) const;
@@ -93,7 +96,6 @@ protected:
   real_t**          _plane;	// Pointer into data for each 2D frame.
 
 private:
-  AuxField& operator /= (const AuxField&) { return *this; }
 
 };
 

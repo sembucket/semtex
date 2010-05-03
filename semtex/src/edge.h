@@ -13,14 +13,14 @@ public:
   int_t  dOff  () const { return _doffset; }
   int_t  dSkip () const { return _dskip; }
 
-  void   get       (const real_t*,real_t*)                               const;
-  void   geometry  (real_t*,real_t*,real_t* = 0,real_t* = 0,real_t* = 0) const;
-  void   curlCurl  (const int_t,
-		    const real_t*,const real_t*,const real_t*,
-		    const real_t*,const real_t*,const real_t*,
-		    real_t*,real_t*,real_t*,real_t*,real_t*)             const;
-  void   mulY      (real_t*)                                             const;
-  void   divY      (real_t*)                                             const;
+  void   get      (const real_t*,real_t*)                                const;
+  void   geometry (real_t*,real_t*,real_t* = 0,real_t* = 0,real_t* = 0)  const;
+  void   curlCurl (const int_t,
+		   const real_t*,const real_t*,const real_t*,
+		   const real_t*,const real_t*,const real_t*,
+		   real_t*,real_t*,real_t*,real_t*,real_t*)              const;
+  void   mulY     (real_t*)                                              const;
+  void   divY     (real_t*)                                              const;
 
   bool   inGroup     (const char* grp) const { return !(strcmp (grp,_group)); }
   void   addForGroup (const char*,const real_t,real_t*)                  const;

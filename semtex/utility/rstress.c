@@ -3,8 +3,43 @@
  *
  * Copyright (c) 1997 <--> $Date$, Hugh Blackburn
  *
- * --
+ * SYNOPSIS
+ * --------
+ * Rstress deals with field-average files.  If called with just an
+ * average file (e.g. session.avg) as input, it tries to compute
+ * Reynolds stress components using the correlations and average
+ * fields it is assumed to contain.  If called with an additional
+ * field file, the average values contained in the average file are
+ * subtracted from the field file (i.e. the field file is assumed to
+ * contain instantaneous values from which the average is to be
+ * subtracted).
  *
+ * Note that this also allows rstress to be used to subtract
+ * (instantaneous) values in one field dump from another.
+ * Alternatively we can also add, multiply or divide values, allowing
+ * rstress to provide a limited utility to manipulate fields.
+ *
+ * Both average and field files are assumed to be in binary, double,
+ * physical-space format.  The field files and average files (if both
+ * present) must have the same element/Fourier structure.  Only the
+ * first dump in each file is dealt with.
+ *
+ * Product terms are computed without dealiasing.
+ * 
+ * USAGE
+ * -----
+ * rstress [options] avg.file [field.file]
+ * options:
+ * -h         ... print this message
+ * -<s,a,m,d> ... file ops subtract, add, multiply, divide [Default: subtract]
+ *
+ * Binary arithmetic operations only have significance when two files
+ * are supplied.  For subtract and divide,
+ *    outcome = second op first.
+ * If more than one operation is supplied on the command line,
+ * take the last.
+ *
+ * --
  * This file is part of Semtex.
  * 
  * Semtex is free software; you can redistribute it and/or modify it
@@ -21,35 +56,6 @@
  * along with Semtex (see the file COPYING); if not, write to the Free
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- *
- * --
- *
- * SYNOPSIS
- * --------
- * Rstress deals with field-average files.  If called with just an
- * average file (e.g. session.avg) as input, it tries to compute
- * Reynolds stress components using the correlations and average
- * fields it is assumed to contain.  If called with an additional
- * field file, the average values contained in the average file are
- * subtracted from the field file (i.e. the field file is assumed to
- * contain instantaneous values from which the average is to be
- * subtracted).
- *
- * Note that this also allows rstress to be used to
- * subtract (instantaneous) values in one field dump from another.
- *
- * Both average and field files are assumed to be in binary, double,
- * physical-space format.  The field files and average files (if both
- * present) must have the same element/Fourier structure.  Only the
- * first dump in each file is dealt with.
- *
- * Product terms are computed without dealiasing.
- * 
- * USAGE
- * -----
- * rstress [options] avg.file [field.file]
- * options:
- * -h ... print this message
  *****************************************************************************/
 
 static char RCS[] = "$Id$";
@@ -92,14 +98,16 @@ typedef struct {		 /* -- Data information structure. */
   double** data             ;
 } Dump;
 
+typedef enum { SUBTRACT, ADD, MULTIPLY, DIVIDE } BINOP;
+
 
 static int  _index    (const char*, char);
-static void getargs   (int, char**, FILE**, FILE**);
+static void getargs   (int, char**, BINOP*, FILE**, FILE**);
 static void getheader (FILE*, Dump*);
 static void getdata   (FILE*, Dump*);
 static void chknames  (const char*);
 static void covary    (Dump*);
-static void demean    (Dump*, Dump*);
+static void binop     (Dump*, Dump*, BINOP);
 static void printup   (FILE*, Dump*);
 
 
@@ -109,11 +117,12 @@ int main (int    argc,
  * Driver routine.
  * ------------------------------------------------------------------------- */
 {
-  FILE *avgfile = 0, *fldfile = 0;
-  Dump *heada   = 0, *headf   = 0;
-  int  i, npts, ntot;
+  FILE  *avgfile = NULL, *fldfile = NULL;
+  Dump  *heada   = NULL, *headf   = NULL;
+  BINOP operation = SUBTRACT;
+  int   i, npts, ntot;
 
-  getargs (argc, argv, &avgfile, &fldfile);
+  getargs (argc, argv, &operation, &avgfile, &fldfile);
 
   /* -- Read in the average file. */
 
@@ -135,7 +144,7 @@ int main (int    argc,
 
     getdata   (avgfile, heada);
     getdata   (fldfile, headf);
-    demean    (heada,   headf);
+    binop     (heada,   headf, operation);
     printup   (stdout,  headf);
 
   } else {			 /* -- Reynolds stresses using avgfile. */
@@ -156,6 +165,7 @@ int main (int    argc,
 
 static void getargs (int    argc   ,
 		     char** argv   ,
+		     BINOP* operat ,
 		     FILE** avgfile,
 		     FILE** fldfile)
 /* ------------------------------------------------------------------------- *
@@ -163,14 +173,29 @@ static void getargs (int    argc   ,
  * ------------------------------------------------------------------------- */
 {
   char usage[] = "usage: rstress [options] avg.file [field.file]\n"
-                 "options:\n"
-                 "  -h ... display this message\n";
+    "options:\n"
+    "  -h         ... display this message\n"
+    "  -<s,a,m,d> ... binary op: subtract, add, multiply, divide"
+    " [Default: subtract]\n";
+
   char err[STR_MAX], c;
 
   while (--argc && **++argv == '-')
     switch (c = *++argv[0]) {
     case 'h':
       fprintf (stderr, usage); exit (EXIT_SUCCESS);
+      break;
+    case 's':
+      *operat = SUBTRACT;
+      break;
+    case 'a':
+      *operat = ADD;
+      break;
+    case 'm':
+      *operat = MULTIPLY;
+      break;
+    case 'd':
+      *operat = DIVIDE;
       break;
     default:
       sprintf (err, "illegal option: %c\n", c);
@@ -338,19 +363,46 @@ static void covary (Dump* h)
 }
 
 
-static void demean (Dump* a,
-		    Dump* f)
+static void binop (Dump* a       ,
+		   Dump* f       ,
+		   BINOP operator)
 /* ------------------------------------------------------------------------- *
- * Subtract mean values in "a" from field values in "f".
+ * Depending on flag operator:
+ *   SUBTRACT (default): f = f - a
+ *   ADD:                f = f + a
+ *   MULTIPLY:           f = f * a
+ *   DIVIDE:             f = f / a
  * ------------------------------------------------------------------------- */
 {
   int       i, j;
   const int nfields = strlen (f -> field);
   const int npts    = a -> np * a -> np * a -> nz * a -> nel;
 
-  for (i = 0; i < nfields; i++) {
-    j = _index (a -> field, f -> field[i]);
-    dvsub (npts, f -> data[i], 1, a -> data[j], 1, f -> data[i], 1);
+  switch (operator) {
+  case SUBTRACT:
+    for (i = 0; i < nfields; i++) {
+      j = _index (a -> field, f -> field[i]);
+      dvsub (npts, f -> data[i], 1, a -> data[j], 1, f -> data[i], 1);
+    }
+    break;
+  case ADD:
+    for (i = 0; i < nfields; i++) {
+      j = _index (a -> field, f -> field[i]);
+      dvadd (npts, f -> data[i], 1, a -> data[j], 1, f -> data[i], 1);
+    }
+    break;
+  case MULTIPLY:
+    for (i = 0; i < nfields; i++) {
+      j = _index (a -> field, f -> field[i]);
+      dvmul (npts, f -> data[i], 1, a -> data[j], 1, f -> data[i], 1);
+    }
+    break;
+  case DIVIDE:
+    for (i = 0; i < nfields; i++) {
+      j = _index (a -> field, f -> field[i]);
+      dvdiv (npts, f -> data[i], 1, a -> data[j], 1, f -> data[i], 1);
+    }
+    break;
   }
 }
 

@@ -1,27 +1,10 @@
 //////////////////////////////////////////////////////////////////////////////
-// addfield.C: process NEKTON-type field files, computing and adding
-// vorticity and divergence, rate of strain tensor, velocity gradient
-// invariants, etc.
+// addfield.C: process semtex/NEKTON-type field files, computing and
+// adding vorticity and divergence, rate of strain tensor, velocity
+// gradient invariants, etc.
 //
 // Copyright (c) 1998 <--> $Date$, 
 //   Hugh Blackburn, Murray Rudman
-//
-// This file is part of Semtex.
-// 
-// Semtex is free software; you can redistribute it and/or modify it
-// under the terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2 of the License, or (at your
-// option) any later version.
-// 
-// Semtex is distributed in the hope that it will be useful, but WITHOUT
-// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-// for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with Semtex (see the file COPYING); if not, write to the Free
-// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-// 02110-1301 USA
 //
 // NB: the input field file is assumed to contain only velocity and
 // pressure data.
@@ -92,6 +75,24 @@
 // greater number of planes (3/2 rule) before these terms are
 // calculated, otherwise the products can be quite different from what
 // would be expected (especially if N_Z is small, say 4).
+//
+// --
+// This file is part of Semtex.
+// 
+// Semtex is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2 of the License, or (at your
+// option) any later version.
+// 
+// Semtex is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with Semtex (see the file COPYING); if not, write to the Free
+// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+// 02110-1301 USA
 //////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";

@@ -44,7 +44,7 @@
 //      5       h       radiation
 // </GROUPS>
 // 
-// <BCS NUMBER=4>
+// <BCS NUMBER=6>
 // #	tag	group	number, followed by BCs.
 // 	1	v	4
 // 			<D>	u = 1.0-4.0*(y-0.5)^2.0 </D>
@@ -110,6 +110,7 @@
 //   <M> Mixed
 //   <H> Natural pressure BC (no value specified, since it gets computed).
 //   <A> Axis BCs for cylindrical coords.  Also, must belong to "axis" group.
+//   <C> Convective BC, a type of computed mixed BC.
 //
 // The character tags for variables as shown match those used
 // internally as Field names, so that the order in which the BCs are

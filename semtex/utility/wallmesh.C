@@ -3,6 +3,20 @@
 //
 // Copyright (c) 2004 <--> $Date$, Hugh Blackburn
 //
+// SYNOPSIS
+// --------
+// This is a filter for the mesh output of meshpr: reproduce on cout
+// only the points that are fall on "wall" surfaces, as defined in the
+// session file.  Read from stdin or optionally from a named file.
+// "Obviously" the session file used should match that used by meshpr.
+//
+// USAGE
+// -----
+// wallmesh [options] session [mesh.file]
+// options:
+// -h ... print this message
+//
+// --
 // This file is part of Semtex.
 // 
 // Semtex is free software; you can redistribute it and/or modify it
@@ -19,19 +33,6 @@
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 // 02110-1301 USA
-//
-// SYNOPSIS
-// --------
-// This is a filter for the mesh output of meshpr: reproduce on cout
-// only the points that are fall on "wall" surfaces, as defined in the
-// session file.  Read from stdin or optionally from a named file.
-// "Obviously" the session file used should match that used by meshpr.
-//
-// USAGE
-// -----
-// wallmesh [options] session [mesh.file]
-// options:
-// -h ... print this message
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -147,13 +148,9 @@ static void readMesh (istream&        file,
   if (!strstr (buf, "NR NS NZ NEL"))
     message (prog, "input not a mesh file", ERROR);
 
-#if 1
   string s (buf);
   istringstream ss (buf);
   ss  >> nr >> ns >> nz >> nel;
-#else
-  istrstream (buf, strlen (buf)) >> nr >> ns >> nz >> nel;
-#endif
 
   if (nr  != Femlib::ivalue ("N_P") ||
       nz  != Femlib::ivalue ("N_Z") ||

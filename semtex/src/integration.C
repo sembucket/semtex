@@ -103,6 +103,11 @@ void Integration::StifflyStable (const int_t n    ,
 // "Stiffly-stable" backwards differentiation coefficients of order n.
 // NB: vector coeff must be of length n + 1.  First coefficient in each
 // case applies to the new time level.  Gear, Table 11.1.
+// 
+// NB: Karniadakis, Israeli & Orszag JCP 97 (1991), KIO91, also use
+// these coefficients but their nomenclature differs. Their gamma_0 is
+// the same as coeff[0], and their alpha vector holds the *negatives*
+// of the remaining coefficients.
 // ---------------------------------------------------------------------------
 {
   char routine[] = "Integration::StifflyStable";
@@ -130,10 +135,12 @@ void Integration::StifflyStable (const int_t n    ,
 }
 
 
-void Integration::Extrapolation  (const int_t n    ,
-				  real_t*     coeff)
+void Integration::Extrapolation (const int_t n    ,
+				 real_t*     coeff)
 // ---------------------------------------------------------------------------
 // Coefficients of order n for explicit extrapolation to end of timestep.
+//
+// These are the coefficients beta in KIO91.
 // ---------------------------------------------------------------------------
 {
   char routine[] = "Integration::Extrapolation";
