@@ -48,8 +48,9 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
 // ---------------------------------------------------------------------------
   _field_name (name),
   _nbound     (bcmgr -> nBCedges()),
-  _mixed      (0)
+  _mixed      (false)
 {
+  const int_t                 verbose = Femlib::ivalue ("VERBOSE");
   const int_t                 np = Geometry::nP();
   vector<BCtriple*>::iterator edge;
   BCtriple*                   BCT;
@@ -81,7 +82,7 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
     C     = bcmgr -> getCondition (group, _field_name, 0);
     
     C -> describe (buf);
-    if (strstr (buf, "mixed")) _mixed = true;
+    if (strstr (buf, "mixed") || strstr (buf, "convective")) _mixed = true;
     
     _boundary[0][i] =
     _boundary[1][i] =

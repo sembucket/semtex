@@ -294,6 +294,27 @@ void Field::addToM0Boundaries (const real_t val,
 }
 
 
+void Field::selfExtractBoundaries ()
+// ---------------------------------------------------------------------------
+// Take the values in the field data area and use these to set the
+// boundary data area for this field, but the operation is done only
+// by convective BCs.  All Fourier modes.
+// ---------------------------------------------------------------------------
+{
+  const int_t              nz = Geometry::nZProc();
+  const int_t              np = Geometry::nP();
+  const vector<Boundary*>& BC = _bsys -> BCs (0); // -- Mode-invariant.
+  real_t                   *b, *p;
+  int_t                    i, k;
+
+  for (k = 0; k < nz; k++) {
+    p = _plane[k];
+    b = _line [k];
+    for (i = 0; i < _nbound; i++, b += np) BC[i] -> extract (p, b);
+  }
+}
+
+
 Field& Field::smooth (AuxField* slave)
 // ---------------------------------------------------------------------------
 // Smooth slave field along element boundaries using *this, with
@@ -626,6 +647,10 @@ Field& Field::solve (AuxField*             f  ,
 // Forcing field f's data area is overwritten/destroyed during
 // processing.
 //
+// Field data storage on input is assumed to be the existing
+// estimate. This is used for iterative solutions, and for
+// convective-type BCs.
+//
 // For DIRECT (Cholesky) solution:
 //
 //   The RHS vector is constructed with length of the number of
@@ -641,8 +666,7 @@ Field& Field::solve (AuxField*             f  ,
 //   boundary) nodes first, followed by all element-internal nodes.
 //   The zeroing operation which occurs after each application of the
 //   Helmholtz operator serves to apply the essential BCs, which are
-//   zero during the iteration (see file header).  Field data storage
-//   on input is used as an initial guess to the solution.
+//   zero during the iteration (see file header).
 //
 //   The notation follows that used in Fig 2.5 of Barrett et al.,
 //   "Templates for the Solution of Linear Systems", netlib.
@@ -656,6 +680,15 @@ Field& Field::solve (AuxField*             f  ,
   const int_t ntot  = Geometry::nPlane();
   const int_t bmode = Geometry::baseMode();
   int_t       i, k, pmode, mode;
+
+  // -- Load boundary data from field data, convective BC type only.
+
+  if (_bsys -> mixBC()) {
+#if defined (DEBUG)
+    cout << "extracting convective BCs" << endl;
+#endif
+    this -> selfExtractBoundaries ();
+  }
 
   for (k = 0; k < _nz; k++) {	// -- Loop over planes of data.
     
@@ -682,10 +715,10 @@ Field& Field::solve (AuxField*             f  ,
     switch (M -> _method) {
 
     case DIRECT: {
-      const real_t*  H     = const_cast<const real_t*>   (M -> _H);
-      const real_t** hii   = const_cast<const real_t**>  (M -> _hii);
-      const real_t** hbi   = const_cast<const real_t**>  (M -> _hbi);
-      const int_t*   b2g   = const_cast<const int_t*>    (N -> btog());
+      const real_t*  H     = const_cast<const real_t*>  (M -> _H);
+      const real_t** hii   = const_cast<const real_t**> (M -> _hii);
+      const real_t** hbi   = const_cast<const real_t**> (M -> _hbi);
+      const int_t*   b2g   = const_cast<const int_t*>   (N -> btog());
       int_t          nband = M -> _nband;
 
       vector<real_t> work (nglobal + 4*npnp);

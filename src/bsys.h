@@ -10,12 +10,12 @@ class BoundarySys
 // ===========================================================================
 {
 public:
-  BoundarySys (BCmgr*, const vector<Element*>&, const char);
+  BoundarySys  (BCmgr*, const vector<Element*>&, const char);
   ~BoundarySys () { };
 
   char                     field () const { return _field_name; }
   int_t                    nSurf () const { return _nbound; }
-  int_t                    mixBC () const { return _mixed; }
+  bool                     mixBC () const { return _mixed; }
   const vector<Boundary*>& BCs   (const int_t) const;
   const NumberSys*         Nsys  (const int_t) const;
   const real*              Imass (const int_t) const;
@@ -27,7 +27,7 @@ private:
   vector<Boundary*>* _boundary  ;  // Boundary*'s  for modes 0, 1, 2.
   NumberSys**        _number    ;  // NumberSys*'s for modes 0, 1, 2.
 
-  void buildbcs (const BCmgr*, const vector<Element*>&);
+  //  void buildbcs (const BCmgr*, const vector<Element*>&);
 };
 
 #endif

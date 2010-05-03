@@ -139,7 +139,7 @@ MatrixSys::MatrixSys (const real_t            lambda2,
   _nel               (Geometry::nElmt()),
   _nglobal           (_NS -> nGlobal()),
   _singular          ((_HelmholtzConstant + _FourierConstant) < EPSSP &&
-		     !_NS -> fmask() && !bsys -> mixBC()),
+		      !_NS -> fmask() && !bsys -> mixBC()),
   _nsolve            ((_singular) ? _NS -> nSolve() - 1 : _NS -> nSolve()),
   _method            (method),
   _nband             (_NS -> nBand()),

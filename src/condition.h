@@ -12,6 +12,7 @@ class Condition
 // 4. NaturalFunction   : natural BC, value obtained by parsing a function.
 // 5. NaturalHOPBC      : "high-order" pressure BC, natural, computed value.
 // 6. Mixed             : transfer coefficient type, 2 supplied values.
+// 7. Convective        : convective-type mixed BC with supplied velocity.
 //
 // Note that for supplied-value BC types, the value is a physical-space
 // description of the BC, and is now set once at run-time (cannot be reset).
@@ -24,10 +25,16 @@ class Condition
 // some of these will just be stubs that do nothing for any particular
 // type.  Those stubs are indicated in the present header
 // file with the function body "{ };".
+//
 // For essential/Dirichlet BCs, the method "set" must be defined;
-// for natural/Neumann BCs, the method "sum" must be defined, while
-// for mixed/Robin BCs, the three methods "augmentSC", "augmentOp", 
-// and "augmentDG" must be defined. See also boundary.h.
+// For natural/Neumann BCs, the method "sum" must be defined, while
+// For mixed/Robin BCs, the three methods "augmentSC", "augmentOp", 
+// and "augmentDG" must be defined.
+// For convective BCs, (a type of mixed BC), the method "extract"
+// which loads field data into field boundary storage, must also be
+// defined (in addition to the "augmentXx" methods).
+//
+// See also boundary.h, edge.h.
 // ===========================================================================
 {
 public:
@@ -44,6 +51,8 @@ public:
 			  const real_t*, const real_t*, real_t*)       const=0;
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                      const=0;
+  virtual void extract   (const int_t, const real_t*, const int_t,
+			  const int_t, real_t*)                        const=0;
   virtual void describe  (char* tgt)                                   const=0;
 
   virtual ~Condition()   { }
@@ -74,6 +83,9 @@ public:
     { };
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const
+    { };
+  virtual void extract   (const int_t, const real_t*, const int_t,
+			  const int_t, real_t*)                          const
     { };
   virtual void describe  (char*)                                         const;
 private:
@@ -106,6 +118,9 @@ public:
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const
     { };
+  virtual void extract   (const int_t, const real_t*, const int_t,
+			  const int_t, real_t*)                          const
+    { };
   virtual void describe  (char*)                                         const;
 private:
   char* _function;
@@ -136,6 +151,9 @@ public:
     { };
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const
+    { };
+  virtual void extract   (const int_t, const real_t*, const int_t,
+			  const int_t, real_t*)                          const
     { };
   virtual void describe  (char*)                                         const;
 private:
@@ -168,6 +186,9 @@ public:
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const
     { };
+  virtual void extract   (const int_t, const real_t*, const int_t,
+			  const int_t, real_t*)                          const
+    { };
   virtual void describe  (char*)                                         const;
 private:
   char* _function;
@@ -199,6 +220,9 @@ public:
     { };
   virtual void augmentOp (const int_t, const int_t*,
 			  const real_t*, const real_t*, real_t*)         const
+    { };
+  virtual void extract   (const int_t, const real_t*, const int_t,
+			  const int_t, real_t*)                          const
     { };
   virtual void describe  (char*)                                         const;
 };
@@ -233,10 +257,55 @@ public:
 			  const real_t*, const real_t*, real_t*)         const;
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const;
+  virtual void extract   (const int_t, const real_t*, const int_t,
+			  const int_t, real_t*)                          const
+    { };
   virtual void describe  (char*)                                         const;
 private:
   real_t _K_;		// -- This is "K" above.
   real_t _C_;		// -- This is "C" above.
+};
+
+
+class Convective : public Condition
+// ===========================================================================
+// Mixed-type boundary condition class for mixed type BCs of form
+//     dc/dt + V dc/dn   = 0, which is rearranged as
+//     dc/dn + 1/V dc/dt = 0 and then has dc/dt approximated by backwards
+// Euler: dc/dn^{n+1} + 1/(V D_T) (c^{n+1} - c^{n}) = 0.  This is a type of
+// mixed BC where c^{n} is taken from past timestep data and V is a supplied
+// convection speed.
+//
+// Syntax in session file is
+//     <C> c = V </C>  or 
+// where 'c' is a field name and V can be evaluated as a constant
+// (perhaps using defined TOKENS).
+//
+// Note that evaluate does nothing; its action is replaced by extract.
+// ===========================================================================
+{
+public:
+  Convective             (const char*);
+  virtual void evaluate  (const int_t, const int_t, const int_t,
+			  const Element*, const int_t, const int_t,
+			  const real_t*, const real_t*, real_t*)         const
+    { };
+  virtual void set       (const int_t, const int_t*,
+			  const real_t*, real_t*)                        const
+    { };
+  virtual void sum       (const int_t, const int_t*, const real_t*,
+			  const real_t*, real_t*, real_t*)               const;
+  virtual void augmentSC (const int_t, const int_t, const int_t,
+			  const int_t*, const real_t*, real_t*, real_t*) const;
+  virtual void augmentOp (const int_t, const int_t*,
+			  const real_t*, const real_t*, real_t*)         const;
+  virtual void augmentDg (const int_t, const int_t*, 
+			  const real_t*, real_t*)                        const;
+  virtual void extract   (const int_t, const real_t*, const int_t,
+			  const int_t, real_t*)                          const;
+  virtual void describe  (char*)                                         const;
+private:
+  real_t _K_;		// -- This is "1/(V * D_T)" above.
 };
 
 #endif

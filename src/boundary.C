@@ -46,6 +46,18 @@ void Boundary::evaluate (const int_t plane,
 }
 
 
+void Boundary::extract (const real_t* src, 
+			real_t*       tgt) const
+// ---------------------------------------------------------------------------
+// Take (planar field data) src and extract its values along appropriate
+// edge, placing them into (linear boundary data) tgt.
+// Only takes place for convective BCs.
+// ---------------------------------------------------------------------------
+{
+  _bcond -> extract (_np, src, _doffset, _dskip, tgt);
+}
+
+
 void Boundary::set (const real_t* src,
 		    const int_t*  b2g,
 		    real_t*       tgt) const

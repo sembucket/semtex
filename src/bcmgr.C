@@ -35,13 +35,14 @@
 // but it is possible they could be absent if all boundaries are
 // periodic.  The sections below are given as examples.
 //
-// <GROUPS NUMBER=5>
+// <GROUPS NUMBER=6>
 // #	tag	name	descriptor
 // 	1	v	velocity
 // 	2	w	wall
 // 	3	o	outflow
 //      4       a       axis
 //      5       h       radiation
+//      6       c       outflow
 // </GROUPS>
 // 
 // <BCS NUMBER=6>
@@ -71,6 +72,11 @@
 //                      <M>     v = 1.0,0.5             </M>
 //                      <M>     w = 0.5,2.0             </M>
 //                      <H>     p                       </H>
+//      6       c       4
+//                      <C>     u = 0.5                 </C>
+//                      <C>     v = 0.5                 </C>
+//                      <C>     w = 0.5                 </C>
+//                      <D>     p = 0.0                 </D>
 // </BCS>
 //
 // <SURFACES NUMBER=6>
@@ -78,7 +84,7 @@
 //         1       1       1       <P>     3       3       </P>
 //         2       2       1       <P>     4       3       </P>
 //         3       2       2       <B>     o       </B>
-//         4       4       2       <B>     o       </B>
+//         4       4       2       <B>     c       </B>
 //         5       3       4       <B>     v       </B>
 //         6       1       4       <B>     v       </B>
 // </SURFACES>
@@ -365,6 +371,15 @@ BCmgr::BCmgr (FEML*             file,
 	if   (*trailer != 0) C = new NaturalFunction (buf);
 	else                 C = new Natural         (buf);
 	break;
+
+      case 'C':			// -- Convective mixed BC.
+	if (testc != '=') {
+	  sprintf (err, "expected an '=' in setting field '%c' BC", fieldc);
+	  message (routine, err, ERROR);
+	}
+	C = new Convective (buf);
+	break;
+
 
       default:
 	sprintf (err, "unrecognized BC identifier: %c", tagc);
