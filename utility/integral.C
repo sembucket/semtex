@@ -3,6 +3,22 @@
 //
 // Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 //
+// Synopsis:
+// --------
+// integral [-h] [-v] [-c] session [file]
+//
+// Description: 
+// ----------- 
+// Read in file, print up area of domain.  If 3D perform Fourier
+// transform to get mean value into plane zero for each field.  Then
+// return integral (and centroidal x,y locations) for each scalar
+// field.  For 3D, values are multiplied by domain length, to produce
+// volume integrals.
+//
+// If the coordinate system is cylindrical, then the integrals are
+// weighted by the radius. Use -c switch to turn this off.
+//
+// --
 // This file is part of Semtex.
 // 
 // Semtex is free software; you can redistribute it and/or modify it
@@ -19,21 +35,6 @@
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 // 02110-1301 USA
-//
-// Synopsis:
-// --------
-// integral [-h] [-v] [-c] session [file]
-//
-// Description: 
-// ----------- 
-// Read in file, print up area of domain.  If 3D perform Fourier
-// transform to get mean value into plane zero for each field.  Then
-// return integral (and centroidal x,y locations) for each scalar
-// field.  For 3D, values are multiplied by domain length, to produce
-// volume integrals.
-//
-// If the coordinate system is cylindrical, then the integrals are
-// weighted by the radius. Use -c switch to turn this off.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";

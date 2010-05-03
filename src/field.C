@@ -641,7 +641,8 @@ Field& Field::solve (AuxField*             f  ,
 //   boundary) nodes first, followed by all element-internal nodes.
 //   The zeroing operation which occurs after each application of the
 //   Helmholtz operator serves to apply the essential BCs, which are
-//   zero during the iteration (see file header).
+//   zero during the iteration (see file header).  Field data storage
+//   on input is used as an initial guess to the solution.
 //
 //   The notation follows that used in Fig 2.5 of Barrett et al.,
 //   "Templates for the Solution of Linear Systems", netlib.
@@ -726,7 +727,7 @@ Field& Field::solve (AuxField*             f  ,
 #if defined (_VECTOR_ARCH)
       vector<real_t>  work (5 * npts + 3 * Geometry::nPlane());
 #else
-      vector<real_t>  work (5*npts+4*Geometry::nTotElmt());
+      vector<real_t>  work (5 * npts + 4 * Geometry::nTotElmt());
 #endif
       real_t* r   = &work[0];
       real_t* p   = r + npts;

@@ -4,9 +4,11 @@
 # $Id$
 ##############################################################################
 
-# -- MAKE supplies the path to GNU make.
+# -- $MAKE supplies the path to GNU make. Since it's typical that make
+#    *is* gmake on modern UNIX machines, we make no distinction (you may
+#    have to modify).
 
-MAKE = gmake
+MAKE = make
 
 tar:
 	tar cvf semtex.tar *

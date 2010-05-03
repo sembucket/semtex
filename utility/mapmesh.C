@@ -79,9 +79,6 @@ int main (int    argc,
 
   FEML F (session);
 
-  if (xmap) { cout << xmap << endl; }
-  if (ymap) { cout << ymap << endl; }
-
   nKey = F.sections (present);
 
   for (i = 0; i < nKey; i++)

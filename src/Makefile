@@ -109,9 +109,9 @@ AR	 = libtool
 ARFLAGS  = -static -o
 RANLIB   = ranlib
 ifdef DEBUG
-  OPT    = -m64 -gstabs+
+  OPT    = -m64 -O0 -ggdb
 else
-  OPT    = -m64 -O3
+  OPT    = -m64 -O2
 endif
 CFLAGS   = $(DEFINES) $(OPT) -ansi
 CXXFLAGS = $(DEFINES) $(OPT) -ansi

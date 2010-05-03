@@ -3,6 +3,14 @@
 //
 // Copyright (c) 2006 <--> $Date$, Hugh Blackburn
 //
+// USAGE:
+// -----
+// traction session [file]
+//
+// Essentially this carries out the same computation as is done during
+// execution of dns, but as a standalone utility.
+//
+// --
 // This file is part of Semtex.
 // 
 // Semtex is free software; you can redistribute it and/or modify it
@@ -19,13 +27,6 @@
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 // 02110-1301 USA
-//
-// USAGE:
-// -----
-// traction session [file]
-//
-// Essentially this carries out the same computation as is done during
-// execution of dns, but as a standalone utility.
 //////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";

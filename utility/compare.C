@@ -3,30 +3,13 @@
 //
 // Copyright (c) 1996 <--> $Date$, Hugh Blackburn
 //
-// This file is part of Semtex.
-// 
-// Semtex is free software; you can redistribute it and/or modify it
-// under the terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2 of the License, or (at your
-// option) any later version.
-// 
-// Semtex is distributed in the hope that it will be useful, but WITHOUT
-// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-// for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with Semtex (see the file COPYING); if not, write to the Free
-// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-// 02110-1301 USA
-//
 // SYNOPSIS
 // --------
 // Compute exact solution given in USER section of FEML file, subtract
 // numerical solution (if present), print up infinity norm (largest
 // error) and write field file of error field.  If no numerical
 // solution is given, output is exact solution.  Only designed for
-// serial execution. When evaluating the exact solution, use the time
+// serial execution.  When evaluating the exact solution, use the time
 // value found in the field file.
 //
 // USAGE
@@ -48,6 +31,24 @@
 //   w = 0.0
 //   p = (1.0-exp(lambda*x))/2.0
 // </USER>
+//
+// --
+// This file is part of Semtex.
+// 
+// Semtex is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2 of the License, or (at your
+// option) any later version.
+// 
+// Semtex is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with Semtex (see the file COPYING); if not, write to the Free
+// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+// 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";

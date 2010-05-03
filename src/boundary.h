@@ -9,7 +9,7 @@ class Boundary : public Edge
 public:
   Boundary (const int_t id, const char* group, const Condition* bcond,
 	    const Element* elmt, const int_t side):
-    Edge (group, elmt, side), _id (id), _bcond (bcond) { }
+  Edge (group, elmt, side), _id (id), _bcond (bcond) { }
 
   int_t ID        () const { return _id; }
   void  print     () const;

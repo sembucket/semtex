@@ -63,7 +63,7 @@
  * Functions:  sin,  cos,  tan,  abs, floor, ceil, int, heav (Heaviside),
  *             asin, acos, atan, log, log10, exp,  sqrt,
  *             sinh, cosh, tanh, asinh, acosh, atanh,
- *             erf, erfc, lgamma, sgn,
+ *             erf, erfc, gamma, lgamma, sgn,
  *             j0, j1, y0, y1, jn.
  * Procedures: jn, yn, rad, ang, rejn, imjn, jacobi, womcos, womsin.
  *****************************************************************************/
@@ -162,6 +162,7 @@ static struct {			    /* -- Built-in functions. */
   "j1"    ,  1, j1      ,
   "y0"    ,  1, y0      ,
   "y1"    ,  1, y1      ,
+  "gamma" ,  1, tgamma  ,
   "lgamma",  1, lgamma  ,
   "white",   1, White   ,
   "sgn",     1, Sgn     ,
@@ -396,7 +397,7 @@ void yy_help (void)
      "            sinh, cosh, tanh, asinh, acosh, atanh,\n"
      "            abs, floor, ceil, int,   heav (Heaviside),\n"
      "            log, log10, exp,  sqrt,  white\n"
-     "            erf, erfc, lgamma, sgn,\n"
+     "            erf, erfc, gamma, lgamma, sgn,\n"
      "            j0, j1, y0, y1, jn\n"
      "Procedures: step, jn, yn, rad, ang, rejn,imjn, jacobi, womcos,womsin\n");
 }

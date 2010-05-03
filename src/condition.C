@@ -337,8 +337,9 @@ void NaturalHOPBC::describe (char* tgt) const
 
 Mixed::Mixed (const char* v)
 // ---------------------------------------------------------------------------
-// The format for a Mixed BC is: "field = mulvalue, refvalue".
-// Each of these is expected to evaluate to a real_t constant.
+// The format for a Mixed BC is: "field = mulvalue, refvalue".  The
+// separator can be either ',' or ';'. Each of the two supplied values
+// is expected to evaluate to a real_t constant.
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "Mixed::Mixed";
@@ -370,9 +371,11 @@ void Mixed::evaluate (const int_t    np  ,
 		      real_t*        tgt ) const
 // ---------------------------------------------------------------------------
 // Load external value storage area tgt with installed constants.
+// This does not actually play any part in the solution, but
+// potentially allows us to see the internal values. 
 // ---------------------------------------------------------------------------
 {
-  Veclib::fill (np, _K_ * _C_, tgt, 1);
+  //  Veclib::fill (np, _K_ * _C_, tgt, 1);
 }
 
 
@@ -384,7 +387,7 @@ void Mixed::sum (const int_t   side  ,
 		 real_t*       tgt   ) const
 // ---------------------------------------------------------------------------
 // Add boundary-integral terms into globally-numbered tgt.  This is
-// used to add K*C (supplied as src) to RHS forcing.
+// used to add K*C to RHS forcing.
 // ---------------------------------------------------------------------------
 { 
   const int_t  np    = Geometry::nP();

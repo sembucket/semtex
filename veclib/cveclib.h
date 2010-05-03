@@ -291,10 +291,14 @@ void svsqrt (integer n, const float*  x, integer incx,
 void   raninit  (integer flag);
 double dranu    (void);
 float  sranu    (void);
+double drang    (void);
+float  srang    (void);
 double dnormal  (double mean, double sdev);
 float  snormal  (float  mean, float  sdev);
 void   dvrandom (integer n, double* x, integer incx);
 void   svrandom (integer n, float*  x, integer incx);
+void   dvgauss  (integer n, double* x, integer incx);
+void   dsgauss  (integer n, float*  x, integer incx);
 void   dvnormal (integer n, double mean, double sdev, double* x, integer incx);
 void   svnormal (integer n, float  mean, float  sdev, float*  x, integer incx);
 
