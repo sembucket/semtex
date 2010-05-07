@@ -1,10 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // integrates.C: (unsteady) linear scalar advection-diffusion in a
 // prescribed/fixed velocity field. Essentially the same as scat but
-// with no pressure field required, and no evolution of velocity. The
-// session file needs to have included fields and BCs for velocity but
-// not pressure. Obviously there is also no provision for Boussinesq
-// buoyancy.
+// with no evolution of velocity. Restart and session files need to
+// have velocity and pressure.  No provision for Boussinesq buoyancy.
 //
 // Copyright (C) 2010 <--> $Date$, Hugh Blackburn.
 ///////////////////////////////////////////////////////////////////////////////
