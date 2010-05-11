@@ -1080,7 +1080,7 @@ AuxField& AuxField::getPlane (const int_t k  ,
 {
   const char routine[] = "AuxField::getPlane";
 
-  if (k < 0 || k >= Geometry::nZProc())
+  if (k < 0 || k >= _nz)
     message (routine, "nominated plane doesn't exist", ERROR);
   else
     Veclib::copy (Geometry::nPlane(), _plane[k], 1, tgt, 1);

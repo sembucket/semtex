@@ -50,6 +50,7 @@ public:
 		     real_t*, real_t*) const;
   void  printNek    () const;
   void  extent      (Point&, Point&) const;
+  void  assemble    (const bool = false);
 
   static void showGlobalID (Mesh&);
   static void showAssembly (Mesh&);
@@ -104,7 +105,7 @@ private:
 
   void surfaces      ();
   void curves        ();
-  void assemble      ();
+
   void checkAssembly ();
   void chooseNode    (Node*, Node*);
   void fixPeriodic   ();
