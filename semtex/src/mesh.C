@@ -4,25 +4,6 @@
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
-// --
-// This file is part of Semtex.
-// 
-// Semtex is free software; you can redistribute it and/or modify it
-// under the terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2 of the License, or (at your
-// option) any later version.
-// 
-// Semtex is distributed in the hope that it will be useful, but WITHOUT
-// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-// for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with Semtex (see the file COPYING); if not, write to the Free
-// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-// 02110-1301 USA.
-// --
-//
 // Example/required parts of a FEML file:
 //
 // <NODES NUMBER=9>
@@ -94,6 +75,24 @@
 // 
 // NB: Node, Element and Side IDs are internally held as one less than
 // input value, i.e. commence at 0 instead of 1.
+//
+// --
+// This file is part of Semtex.
+// 
+// Semtex is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2 of the License, or (at your
+// option) any later version.
+// 
+// Semtex is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with Semtex (see the file COPYING); if not, write to the Free
+// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+// 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -261,11 +260,17 @@ Mesh::Mesh (FEML*      f    ,
 }
 
 
-void Mesh::assemble()
+void Mesh::assemble (const bool printVacancy)
 // ---------------------------------------------------------------------------
 // Traverse Elmts and fill in Side-based connectivity information.
 //
 // On exit, Sides that don't have mateElmt set should correspond to Surfaces.
+//
+// If printVacancy is true (default: false) then print to cout a
+// default set of surfaces with typical wall type BC indication, e.g.
+//     idtag elmt side <B> w </B>
+// which can be used as the basis of subsequent editing if desired, and/or
+// summarizes the elements that need surface information supplied.
 // ---------------------------------------------------------------------------
 {
   int_t       i, j, r, s, found;
@@ -312,6 +317,34 @@ void Mesh::assemble()
 	}
       }
     }
+  }
+
+  if (printVacancy) {
+ 
+   // -- Count/print the number of vacancies (number of surfaces needed).
+    for (r = 0, i = 0; i < Ne; i++) {
+      E = _elmtTable[i];
+      const int_t Nn = E -> nNodes();
+      for (j = 0; j < Nn; j++) {
+	S = E -> side[j];
+	if (! S -> mateElmt ) r++;
+      }
+    }
+    cout << "<SURFACES NUMBER=" << r << ">" << endl;
+
+    // -- Now the vacant surface information.
+    for (r = 0, i = 0; i < Ne; i++) {
+      E = _elmtTable[i];
+      const int_t Nn = E -> nNodes();
+      for (j = 0; j < Nn; j++) {
+	S = E -> side[j];
+	if (! S -> mateElmt )
+	  cout << ++r
+	       << " " << E -> ID+1 << " " << S -> ID+1 
+	       << " <B> w </B>" << endl;
+      }
+    }
+    cout << "</SURFACES>" << endl;
   }
 }
 
@@ -1100,7 +1133,7 @@ void Mesh::printNek () const
 	  os << "Elmt " << E -> ID + 1 << " side " << S -> ID + 1
 	     << " --- B.C. type "  << buf
 	     << " not implemented" << ends;
-	  message (routine, os.str().c_str(), ERROR);
+	  message (routine, os.str().c_str(), WARNING);
 	}
       }
     }

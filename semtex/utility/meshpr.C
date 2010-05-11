@@ -3,6 +3,27 @@
 //
 // Copyright (c) 1995 <--> $Date$, Hugh Blackburn
 //
+// Usage: meshpr [options] file
+//   options:
+//   -h       ... display this message
+//   -c       ... disable checking of mesh connectivity
+//   -s       ... list surfaces not determined by mesh connectivity (only)
+//   -v       ... set verbose output
+//   -u       ... set uniform spacing [Default: GLL]
+//   -3       ... produce 3D mesh output: Np*Np*Nz*Nel*(x y z)
+//   -n <num> ... override element order to be num
+//   -z <num> ... override number of planes to be num
+//   -b <num> ... override wavenumber beta to be <num> (3D)
+//
+// Prism-compatible output.  
+//
+// Note that option 's' does not print mesh node locations but instead
+// lists element sides that are free from internal element
+// connectivity. This option could be used to provide a default list
+// of surfaces as a starting point for editing if this information is
+// not yet determined. -s ==> -c.
+//
+// --
 // This file is part of Semtex.
 // 
 // Semtex is free software; you can redistribute it and/or modify it
@@ -19,19 +40,6 @@
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 // 02110-1301 USA
-//
-// Prism-compatible output.
-//
-// Usage: meshpr [options] file
-//   options:
-//   -h       ... display this message
-//   -c       ... disable checking of mesh connectivity
-//   -v       ... set verbose output
-//   -u       ... set uniform spacing [Default: GLL]
-//   -3       ... produce 3D mesh output: Np*Np*Nz*Nel*(x y z)
-//   -n <num> ... override element order to be num
-//   -z <num> ... override number of planes to be num
-//   -b <num> ... override wavenumber beta to be <num> (3D)
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -48,8 +56,8 @@ using namespace std;
 #include "mesh.h"
 
 static char prog[] = "meshpr";
-static void getargs (int_t, char**, char*&, int_t&, int_t&,
-		     int_t&, int_t&, int_t&, int_t&, real_t&);
+static void getargs (int_t, char**, char*&, int_t&, bool&, bool&,
+		     int_t&, int_t&, bool&, int_t&, real_t&);
 
 int main (int    argc,
 	  char** argv)
@@ -62,15 +70,14 @@ int main (int    argc,
 
   char*  session = 0;
   int_t  verb    = 0,
-         check   = 1,
-         threed  = 0,
          np      = 0,
          nz      = 0,
          basis   = GLJ;
   real_t beta    = -1.;
+  bool   check = true, surf = false, threed = false;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, session, verb, check, np, nz, threed, basis, beta);
+  getargs (argc, argv, session, verb, check, surf, np, nz, threed, basis, beta);
 
   // -- Set up to read from file, initialize Femlib parsing.
 
@@ -88,58 +95,62 @@ int main (int    argc,
 
   Mesh M (&feml, check);
 
-  // -- Generate mesh knots and print up.
+  if (surf) {		       // -- Generate listing of mesh-egde valency.
+    M . assemble (surf);
+  } else {		       // -- Standard functionality.
+    // -- Generate mesh knots and print up.
 
-  const int_t    NEL  = M.nEl();
-  const int_t    NTOT = np * np;
-  const real_t   dz   = Femlib::value ("TWOPI/BETA") / nz;
-  register int_t ID, j, k;
-  vector<real_t> x (np*np), y (np*np), unimesh (np);
-  real_t         *mesh_r, *mesh_s;
-  const real_t   *zero_r, *zero_s;
-  real_t         z;
+    const int_t    NEL  = M.nEl();
+    const int_t    NTOT = np * np;
+    const real_t   dz   = Femlib::value ("TWOPI/BETA") / nz;
+    register int_t ID, j, k;
+    vector<real_t> x (np*np), y (np*np), unimesh (np);
+    real_t         *mesh_r, *mesh_s;
+    const real_t   *zero_r, *zero_s;
+    real_t         z;
 
-  if (!threed) cout
-      << np  << " "
-      << np  << " "
-      << nz  << " "
-      << NEL << " NR NS NZ NEL"<< endl;
+    if (!threed) cout
+		   << np  << " "
+		   << np  << " "
+		   << nz  << " "
+		   << NEL << " NR NS NZ NEL"<< endl;
+    
+    if (basis == TRZ) {
+      Femlib::equispacedMesh (np, &unimesh[0]);
+      zero_r = zero_s = &unimesh[0];
+    } else {
+      Femlib::quadrature (&zero_r, 0, 0, 0, np, GLJ, 0.0, 0.0);
+      Femlib::quadrature (&zero_s, 0, 0, 0, np, GLJ, 0.0, 0.0);
+    }
 
-  if (basis == TRZ) {
-    Femlib::equispacedMesh (np, &unimesh[0]);
-    zero_r = zero_s = &unimesh[0];
-  } else {
-    Femlib::quadrature (&zero_r, 0, 0, 0, np, GLJ, 0.0, 0.0);
-    Femlib::quadrature (&zero_s, 0, 0, 0, np, GLJ, 0.0, 0.0);
-  }
+    if (threed) {
 
-  if (threed) {
+      // -- Print_t out x, y, z for every mesh location, in planes.
 
-    // -- Print_t out x, y, z for every mesh location, in planes.
+      nz = (nz > 1) ? nz : 0;
+      for (k = 0; k <= nz; k++) {
+	z = k * dz;
+	for (ID = 0; ID < NEL; ID++) {
+	  M.meshElmt (ID, np, zero_r, zero_r, &x[0], &y[0]);
+	  for (j = 0; j < NTOT; j++)
+	    cout << x[j] << '\t' << y[j] << '\t' << z << endl;
+	}
+      }
 
-    nz = (nz > 1) ? nz : 0;
-    for (k = 0; k <= nz; k++) {
-      z = k * dz;
+    } else {
+   
+      // -- Print_t out x-y mesh.
+
       for (ID = 0; ID < NEL; ID++) {
 	M.meshElmt (ID, np, zero_r, zero_r, &x[0], &y[0]);
 	for (j = 0; j < NTOT; j++)
-	  cout << x[j] << '\t' << y[j] << '\t' << z << endl;
+	  cout << setw(15) << x[j] << setw(15) << y[j] << endl;
       }
-    }
-
-  } else {
-   
-    // -- Print_t out x-y mesh.
-
-    for (ID = 0; ID < NEL; ID++) {
-      M.meshElmt (ID, np, zero_r, zero_r, &x[0], &y[0]);
-      for (j = 0; j < NTOT; j++)
-	cout << setw(15) << x[j] << setw(15) << y[j] << endl;
-    }
   
-    // -- Print_t out z-mesh.
+      // -- Print_t out z-mesh.
     
-    if (nz > 1) for (j = 0; j <= nz; j++) cout << setw(15) << j * dz << endl;
+      if (nz > 1) for (j = 0; j <= nz; j++) cout << setw(15) << j * dz << endl;
+    }
   }
 
   Femlib::finalize();
@@ -151,10 +162,11 @@ static void getargs (int     argc   ,
 		     char**  argv   ,
 		     char*&  session,
 		     int_t&  verb   ,
-		     int_t&  check  ,
+		     bool&   check  ,
+		     bool&   surf   ,
 		     int_t&  np     ,
 		     int_t&  nz     ,
-		     int_t&  threed ,
+		     bool&   threed ,
 		     int_t&  basis  ,
 		     real_t& beta   )
 // ---------------------------------------------------------------------------
@@ -165,6 +177,7 @@ static void getargs (int     argc   ,
     "options:\n"
     "  -h       ... display this message\n"
     "  -c       ... disable checking of mesh connectivity\n"
+    "  -s       ... list surfaces not determined by mesh connectivity (only)\n"
     "  -v       ... set verbose output\n"
     "  -u       ... set uniform spacing [Default: GLL]\n"
     "  -3       ... produce 3D mesh output: Np*Np*Nz*Nel*(x y z)\n"
@@ -187,13 +200,17 @@ static void getargs (int     argc   ,
       else { --argc;  beta = atof (*++argv); }
       break;
     case 'c':
-      check = 0;
+      check = false;
+      break;
+    case 's':
+      surf  = true;
+      check = false;
       break;
     case 'u':
       basis = TRZ;
       break;
     case '3':
-      threed = 1;
+      threed = true;
       break;
     case 'n':
       if (*++argv[0]) np = atoi (*argv);
