@@ -23,28 +23,36 @@ content="semtex spectral element fourier DNS CFD DNS MPI">
 <center><img src="./image/semtex.jpg" width=400
 height=498></center>
 
-<p>
+<h2>Summary</h2>
 
-Semtex is a 'classical' quadrilateral spectral element DNS code that
+<i>Semtex</i> is a 'classical' quadrilateral spectral element DNS code that
 uses the standard nodal GLL basis functions and (optionally) Fourier
 expansions in a homogeneous direction to provide three-dimensional
-solutions.  Its lineage can be traced back through Ron Henderson's
-Prism code to Nekton &mdash; in many ways the implementation is similar
-to Ron's code (see Henderson & Karniadakis (1995) <i>J Comput Phys</i>
+solutions. If your problem has a natural periodic coordinate direction
+in 3D (a cylindrical coordinate system is perhaps the most obvious
+example), <i>semtex</i> could be a good choice. 
+
+<p>
+
+The code's lineage can be traced back through Ron
+Henderson's <i>prism</i> code and ultimately to the original spectral
+element code <i>nekton</i> &mdash; in many ways the implementation is
+similar to <i>prism</i> (see Henderson & Karniadakis (1995) <i>J
+Comput Phys</i>
 <b>122</b>: 191&ndash;217) but without mortar element patching or mesh
-adaptation.  One noteworthy difference is that Semtex supports
-cylindrical coordinate systems, and with full spectral convergence in
-all directions: see <a href="./index.html#bs04"> Blackburn & Sherwin
-(2004)</a> <i>J Comput Phys</i>
-<b>197</b>: 759&ndash;778 for a description of the method.  For
-three-dimensional solutions the code may be run in parallel using
+adaptation.  One noteworthy difference is that <i>semtex</i> supports
+cylindrical as well as Cartesian coordinates, and with full spectral
+convergence in all directions: see <a href="./index.html#bs04">
+Blackburn & Sherwin (2004)</a> <i>J Comput Phys</i>
+<b>197</b>: 759&ndash;778 for a detailed description of the method.
+For three-dimensional solutions the code may be run in parallel using
 MPI. In addition to an incompressible Navier&ndash;Stokes solver,
 source is also provided for an elliptic solver that will deal with
 Laplace, Poisson and Helmholtz problems.
 
 <p>
 
-Please note that Semtex is a 'research code' and is provided 'as-is'
+Please note that <i>semtex</i> is a research code and is provided 'as-is'
 with the understanding that it will be used mainly by other
 computer-literate researchers in computational fluid dynamics.  It is
 <b>not</b> guaranteed to work or to provide correct results, and
@@ -57,22 +65,17 @@ using the code and your types of applications and results.
 
 <p>
 
-I'm afraid that I do not have much time to answer routine questions
-about making Semtex compile, running examples, etc. Please consult the
-<a href="./pdf/semtex-user.pdf">user guide (PDF)</a> for information
-on these matters. Of course, I will be happy to hear of bugs, and even
-better, suggestions about how to fix them, although I cannot promise
-to remedy problems on a timely basis (and a big <i>thank you</i> to
-those who have contributed fixes to some niggling bugs).  The source
-code distribution is occasionally updated, however, the code is quite
-mature now and does not often change.
+If through your use of the code you manage to obtain publishable
+results, I would be pleased if you could
+cite <a href="./index.html#bs04"> Blackburn & Sherwin (2004)</a>,
+where the numerical method is described in some depth, particular to
+the cylindrical-coordinate formulation.
 
-<p>
+<h2>Installation</h2>
 
-Here is the source code <a href="./src/semtex.tgz">tarball</a>.  Semtex
-has been compiled and run on a variety of Unix systems.  Consult the
-user guide for system requirements and compilation steps.  As a
-minimum, your system will need C++, C and F77 (or later FORTRAN)
+<i>Semtex</i> has been compiled and run on a variety of Unix systems.
+Consult the user guide for system requirements and compilation steps.
+As a minimum, your system will need C++, C and F77 (or later FORTRAN)
 compilers, the Gnu version of make, as well as BLAS and LAPACK
 libraries.  For parallel compilation you'll need MPI libraries.  Most
 of these things are readily available on modern Unix systems.  The
@@ -83,27 +86,65 @@ reading it may help you diagnose and fix the problem.
 
 <p>
 
-If through your use of the code you manage to obtain publishable
-results, I would be pleased if you could cite <a
-href="./index.html#bs04"> Blackburn & Sherwin (2004)</a> <i>J Comput
-Phys</i>
-<b>197</b>: 759&ndash;778, where the numerical method is described.
+I'm afraid that I do not have much time to answer routine questions
+about making <i>semtex</i> compile, running examples, etc. Please
+consult the user guide for information on these matters. I will be
+happy to hear of bugs, and even better, suggestions about how to fix
+them, although I cannot promise to remedy problems on a timely basis
+(and a big <i>thank you</i> to those who have contributed fixes to
+some niggling bugs).  The source code distribution is occasionally
+updated, however, the code is quite mature now and does not often
+change.
+
+<h2>Mesh generation</h2>
+
+Mesh generation can be a significant hurdle to new users. The source
+distribution provides two utilities that can be used as a starting
+point: <i>rectmesh</i> that generates <i>semtex</i> structured
+rectangular meshes and <i>mapmesh</i> which will map such a mesh (or
+any other semtex mesh) according to functions supplied on the command
+line. In addition there are a number of example meshes supplied in the
+'mesh' subdirectory of the source distribution (most of which were
+generated by hand).
+
+<p>
+
+More recently we supply two utilities that work with 3rd-party mesh generators.
+
+<p>
+
+<img src="./icon/New_icons_10.gif" width=35 height=15> (May 2010)
+<a href="./src/gmsh2sem.py">Python script</a> that will produce
+<i>semtex</i> session files from quad meshes generated by <i>gmsh</i>
+(open-source: see <a href="http://www.geuz.org/gmsh/">
+http://www.geuz.org/gmsh/</a>). This utility is included in the
+current source code distribution.
 
 <p>
 
 <img src="./icon/New_icons_10.gif" width=35 height=15> (December 2008)
-Converter from Fluent Inc's Gambit mesh generator to Semtex session
-file format.  Written by Erik Torres and <a
-href="http://www.tu-dresden.de/mw/ilr/mfd/">J&#246;rg Stiller</a> from
-the ILR group at <a
-href="http://tu-dresden.de/die_tu_dresden/fakultaeten/fakultaet_maschinenwesen/ilr/tfd">TU-Dresden</a>.
-With user guides in German and English. <a
-href="./src/gambit2semtex.tgz">Source code</a>.
+Converter from Fluent Inc's <i>gambit</i> mesh generator
+to <i>semtex</i> session file format.  Written by Erik Torres
+and <a href="http://www.tu-dresden.de/mw/ilr/mfd/">J&#246;rg
+Stiller</a> from the ILR group
+at <a href="http://tu-dresden.de/die_tu_dresden/fakultaeten/fakultaet_maschinenwesen/ilr/tfd">TU-Dresden</a>.
+With user guides in German and
+English. <a href="./src/gambit2semtex.tgz">Source code</a>.
 
+<h2>Downloads</h2>
 
+<a href="./src/semtex.tgz">Current release tarball  (2010)</a> which has some significant speedups available (contact me).
 <p>
+<a href="./src/semtex.2009.tgz">Previous release tarball (2009)</a>
+<p>
+<a href="./pdf/semtex-user.pdf">User guide (PDF)</a>
+<p>
+<a href="./src/gambit2semtex.tgz">Gambit2semtex tarball</a>
 
-<a href="./index.html">Hugh Blackburn's home page</a> and
-<a href="./index.html#hmbpubs">Semtex-related publications.</a>
+<h2>Links</h2>
+
+<a href="./index.html">Hugh Blackburn's home page</a> 
+<p>
+<a href="./index.html#hmbpubs"><i>Semtex</i>-related publications.</a>
 
 </body> </html>
