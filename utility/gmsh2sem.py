@@ -12,6 +12,7 @@
 # Usage: python gmsh2sem.py gmshfile.msh
 #
 # NB: use Mesh.SubdivisionAlgorithm=1; in gmsh in order to generate quads.
+# Standard semtex utility meshpr must be found in your shell's PATH variable.
 # 
 # $Id$
 ##############################################################################
@@ -21,7 +22,7 @@ import sys, os
 try:
     infilename = sys.argv[1]
 except:
-    print "Usage:", sys.argv[0], "infile.msh"; sys.exit(1)
+    print "Usage: gmesh2sem infile.msh"; sys.exit(1)
 
 ifile = open (infilename, 'r')
 t1    = open (".t1", 'w')
