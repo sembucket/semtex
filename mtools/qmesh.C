@@ -70,16 +70,16 @@ char prog[] = "qmesh";
 // -- Local routines.
 
 static void     getArgs      (int, char**, int&, int&, istream*&);
-static istream& operator >>  (istream&, List<Node*>&);
-static istream& operator >>  (istream&, List<Loop*>&);
+static istream& operator >>  (istream&, list<Node*>&);
+static istream& operator >>  (istream&, list<Loop*>&);
 static int      loopDeclared (istream& s);
-static void     connect      (List<Quad*>&);
-static void     renumber     (List<Node*>&);
-static void     deleteNodes  (List<Quad*>&);
-static void     deleteQuads  (List<Quad*>&);
-static void     smooth       (List<Node*>&);
-static void     printNodes   (ostream&, List<Node*>&, const int);
-static void     printMesh    (ostream&, List<Quad*>&);
+static void     connect      (list<Quad*>&);
+static void     renumber     (list<Node*>&);
+static void     deleteNodes  (list<Quad*>&);
+static void     deleteQuads  (list<Quad*>&);
+static void     smooth       (list<Node*>&);
+static void     printNodes   (ostream&, list<Node*>&, const int);
+static void     printMesh    (ostream&, list<Quad*>&);
 
 
 int main (int    argc,
@@ -90,8 +90,8 @@ int main (int    argc,
 {
   istream*    input;
   int         i, nsmooth = 0, merger = 0;
-  List<Loop*> initial;
-  List<Quad*> elements;
+  list<Loop*> initial;
+  list<Quad*> elements;
 
   getArgs (argc, argv, nsmooth, merger, input);
 
@@ -107,13 +107,13 @@ int main (int    argc,
     drawBox      ();
   }
 
-  ListIterator<Loop*> I (initial);
-  Loop*               L;
+  list<Loop*>::iterator I;
+  Loop*                 L;
 
   // -- Subdivide predeclared loops until all are quads.
 
-  for (I.reset(); I.more(); I.next()) {
-    L = I.current();
+  for (I = initial.begin(); I != initial.end(); I++) {
+    L = *I;
 
     if (graphics) drawLoop (L);
     L -> offset  ();
@@ -127,16 +127,17 @@ int main (int    argc,
   connect (elements);
 
   // -- Try to improve mesh by Node and Quad elimination, see Ref. [4].
-
+#if 1
   do {
-    i = Global::nodeList.length();
+    i = Global::nodeList.size();
 
     deleteNodes (elements);
     connect     (elements);
     deleteQuads (elements);
     connect     (elements);
 
-  } while (i != Global::nodeList.length());
+  } while (i != Global::nodeList.size());
+#endif
 
   renumber (Global::nodeList);
 
@@ -239,19 +240,28 @@ static void getArgs (int       argc   ,
 
 
 static istream& operator >> (istream&     s,
-			     List<Node*>& n)
+			     list<Node*>& n)
 // ---------------------------------------------------------------------------
 // Node information for all predeclared loops exists in the following
 // format:
 //
 // NN BOUNDARY NODES        { NN gives number of following nodes.
-// 1  0.3  B  0.0 0.0       { Tag, prefsize, kind, x, y.
-// 2  0.4  B  1.0 0.0       { Allowed kinds: B <==> fixed location boundary.
-// ..                       {                O <==> fixed, but create offset.
-// NN 0.1  B  0.0 0.1       {                I <==> interior (moveable).
+// 1  0.3  8  0.0 0.0       { Tag, prefsize, kind, x, y.
+// 2  0.4  8  1.0 0.0       { Allowed kinds: numbers, see below.
+// ..
+// NN 0.1  8  0.0 0.1
+//
+// kind = 0: INTERIOR
+// kind = 1: INTERIOR_FIXED
+// kind = 2: LOOP_OFFSET_FIXED
+// kind = 3: LOOP_OFFSET_MOBILE
+// kind = 4: LOOP_BOUNDARY_FIXED
+// kind = 5: LOOP_BOUNDARY_MOBILE
+// kind = 6: DOMAIN_OFFSET_FIXED
+// kind = 8: DOMAIN_BOUNDARY_FIXED
 //
 // Read all this into n.  The first line is all on one line but following
-// are free-format.  Kind information (B, O, I) upper or lower case.
+// are free-format.
 //
 // Node tags must be supplied in increasing order starting at 1,
 // increment 1.
@@ -304,7 +314,7 @@ static istream& operator >> (istream&     s,
     }
 
     if (!(Global::exist (N)))
-      n.add (N);
+      n.push_back (N);
     else {
       sprintf (err, "Node %1d already allocated, check input", N -> ID());
       message (routine, err, ERROR);
@@ -318,19 +328,19 @@ static istream& operator >> (istream&     s,
 
 
 static istream& operator >> (istream&     s,
-			     List<Loop*>& l)
+			     list<Loop*>& l)
 // ---------------------------------------------------------------------------
 // Administer reading all the loops.
 // ---------------------------------------------------------------------------
 {
-  char  routine[] = "operator >> (istream&, List<Loop*>&)";
+  char  routine[] = "operator >> (istream&, list<Loop*>&)";
   int   numnodes;
   Loop* L;
   
   while (numnodes = loopDeclared (s)) {
     L = new Loop (numnodes);
     s >> *L;
-    l.add (L);
+    l.push_back (L);
   }
   
   return s;
@@ -375,7 +385,7 @@ static int loopDeclared (istream& s)
 }
 
 
-static void connect (List<Quad*>& elements)
+static void connect (list<Quad*>& elements)
 // ---------------------------------------------------------------------------
 // Visit all quads and for each node, add information about the nodes it
 // is connected to.
@@ -383,8 +393,8 @@ static void connect (List<Quad*>& elements)
 {
   char routine[] = "connect";
 
-  ListIterator<Quad*> q (elements);
-  ListIterator<Node*> n (Global::nodeList);
+  list<Quad*>::iterator q;
+  list<Node*>::iterator n;
 
   register int        i, found1, found2;
   register Quad*      Q;
@@ -392,17 +402,18 @@ static void connect (List<Quad*>& elements)
   register Node*      N1;
   register Node*      N2;
   
-  for (; n.more(); n.next()) n.current() -> sever();
+  for (n = Global::nodeList.begin(); n != Global::nodeList.end(); n++)
+    (*n) -> sever(); // -- Existing connection info is deleted.
 
-  for (; q.more(); q.next()) {
-    Q = q.current();
+  for (q = elements.begin(); q != elements.end(); q++) {
+    Q = *q;
     for (i = 0; i < 4; i++) {
       N1 = Q -> vertex[i];
       N2 = Q -> vertex[(i + 1) % 4];
-      for (found1 = 0, found2 = 0, n.reset();
-	   !(found1 && found2) && n.more();
-	   n.next()) {
-	N = n.current();
+      for (found1 = 0, found2 = 0, n = Global::nodeList.begin();
+	   !(found1 && found2) && n != Global::nodeList.end();
+	   n++) {
+	N = *n;
 	if (!found1) if (found1 = (N == N1)) N -> xadd (N2);
 	if (!found2) if (found2 = (N == N2)) N -> xadd (N1);
       }
@@ -410,25 +421,25 @@ static void connect (List<Quad*>& elements)
   }
 
   if (Global::verbose)
-    for (n.reset(); n.more(); n.next()) {
-      N = n.current();
+    for (n = Global::nodeList.begin(); n != Global::nodeList.end(); n++) {
+      N = *n;
       cout << routine << ": node ID: " << N -> ID()
 	   << ", adjacency = " << N -> adjncy() << endl;
     }
 }
 
 
-static void smooth (List<Node*>& nodes)
+static void smooth (list<Node*>& nodes)
 // ---------------------------------------------------------------------------
 // Laplacian smoothing.  Visit each Node, move non-boundary nodes to
 // centroid of connected Nodes.
 // ---------------------------------------------------------------------------
 {
-  ListIterator<Node*> n (nodes);
-  register Node*      N;
-  Point               cen;
+  list<Node*>::iterator n;
+  register Node*        N;
+  Point                 cen;
 
-  for (; n.more(); n.next()) { N  = n.current();
+  for (n = nodes.begin(); n != nodes.end(); n++) { N  = *n;
     cen = N -> centroid ();
     N -> setPos (cen);
   }
@@ -436,7 +447,7 @@ static void smooth (List<Node*>& nodes)
 
 
 static void printNodes (ostream&     strm  ,
-			List<Node*>& nodes ,
+			list<Node*>& nodes ,
 			const int    merger)
 // ---------------------------------------------------------------------------
 // Print Node information in FEML format.  BUT, if merger != 0, add
@@ -445,13 +456,13 @@ static void printNodes (ostream&     strm  ,
 // subsequent merging and smoothing of output files.
 // ---------------------------------------------------------------------------
 {
-  int                 i = 0;
-  Node*               N;
-  ListIterator<Node*> n (nodes);
+  int                   i = 0;
+  Node*                 N;
+  list<Node*>::iterator n;
 
-  strm << "<NODES NUMBER=" << nodes.length() << ">" <<endl;
-  for (n.reset(); n.more(); n.next()) {
-    N = n.current ();
+  strm << "<NODES NUMBER=" << nodes.size() << ">" <<endl;
+  for (n = nodes.begin(); n != nodes.end(); n++) {
+    N = *n;
     strm << setw (5)  << ++i
 	 << setw (16) << N -> pos().x 
 	 << setw (16) << N -> pos().y
@@ -471,18 +482,18 @@ static void printNodes (ostream&     strm  ,
 
 
 static void printMesh (ostream&     strm,
-		       List<Quad*>& mesh)
+		       list<Quad*>& mesh)
 // ---------------------------------------------------------------------------
 // Print Quad information in FEML format.
 // ---------------------------------------------------------------------------
 {
-  int                 i, id = 0;
-  ListIterator<Quad*> q (mesh);
-  Quad*               Q;
+  int                   i, id = 0;
+  Quad*                 Q;
+  list<Quad*>::iterator q;
   
-  strm << "<ELEMENTS NUMBER=" << mesh.length() << ">" <<endl;
-  for (q.reset(); q.more(); q.next()) {
-    Q = q.current();
+  strm << "<ELEMENTS NUMBER=" << mesh.size() << ">" << endl;
+  for (q = mesh.begin(); q != mesh.end(); q++) {
+    Q = *q;
     strm << setw(5) << ++id << "  <Q>";
     for (i = 0; i < 4; i++) 
       strm << setw (5) << Q -> vertex[i] -> ID();
@@ -492,7 +503,7 @@ static void printMesh (ostream&     strm,
 }
 
 
-static void deleteNodes (List<Quad*>& mesh)
+static void deleteNodes (list<Quad*>& mesh)
 // ---------------------------------------------------------------------------
 // Improve mesh by node elimination.  See \S 3.1.1 in Ref [4].
 // ---------------------------------------------------------------------------
@@ -503,15 +514,17 @@ static void deleteNodes (List<Quad*>& mesh)
   Quad  *Q, *Q1, *Q2;
 
   do {
-    ListIterator<Node*> n (Global::nodeList);
-    ListIterator<Quad*> q (mesh);
+    list<Node*>::iterator n;
+    list<Quad*>::iterator q;
 
-    for (found = 0; !found && n.more(); n.next()) {
-      N = n.current();
+    for (found = 0, n = Global::nodeList.begin();
+	 !found && n != Global::nodeList.end(); n++) {
+      N = *n;
       found = N -> adjncy() == 2 && N -> interior();
       if (found) {
-	for (Q1 = 0, Q2 = 0; !(Q1 && Q2) && q.more(); q.next()) {
-	  Q = q.current();
+	for (Q1 = 0, Q2 = 0, q = mesh.begin(); 
+	     !(Q1 && Q2) && q != mesh.end(); q++) {
+	  Q = *q;
 	  for (i = 0; i < 4; i++)
 	    if (Q -> vertex[i] == N) {
 	      if   (!Q1) { Q1 = Q; i1 = i; }
@@ -535,7 +548,7 @@ static void deleteNodes (List<Quad*>& mesh)
 }
 
 
-static void deleteQuads (List<Quad*>& mesh)
+static void deleteQuads (list<Quad*>& mesh)
 // ---------------------------------------------------------------------------
 // Improve mesh by element elimination.  See \S 3.1.2 in Ref [4].
 // ---------------------------------------------------------------------------
@@ -546,11 +559,11 @@ static void deleteQuads (List<Quad*>& mesh)
   Quad  *Q, *P, *Q1, *Q2;
 
   do {
-    ListIterator<Quad*> q (mesh);
-    ListIterator<Quad*> p (mesh);
+    list<Quad*>::iterator q;
+    list<Quad*>::iterator p;
 
-    for (found = 0; !found && q.more(); q.next()) {
-      Q = q.current();
+    for (found = 0, q = mesh.begin(); !found && q != mesh.end(); q++) {
+      Q = *q;
       for (i = 0; !found && i < 2; i++) {
 	N1 = Q -> vertex [i];
 	N2 = Q -> vertex [(i + 2) % 4];
@@ -559,8 +572,8 @@ static void deleteQuads (List<Quad*>& mesh)
 		 (N2 -> adjncy() == 3) && N2 -> interior());
       }
       if (found) {
-	for (Q1 = 0, Q2 = 0; !(Q1 && Q2) && p.more(); p.next()) {
-	  P = p.current();
+	for (Q1=0, Q2=0, p = mesh.begin(); !(Q1 && Q2) && p != mesh.end(); p++) {
+	  P = *p;
 	  if (P != Q) {
 	    for (i = 0; i < 4; i++)
 	      if (P -> vertex[i] == N2) P -> vertex[i] = N1;
@@ -578,15 +591,15 @@ static void deleteQuads (List<Quad*>& mesh)
 }
 
 
-static void renumber (List<Node*>& nodes)
+static void renumber (list<Node*>& nodes)
 // ---------------------------------------------------------------------------
 // After "improving" mesh, there may be some holes in the Node ID numbers.
 // This routine fixes that.
 // ---------------------------------------------------------------------------
 {
-  register int        id;
-  ListIterator<Node*> n (nodes);
+  register int          id;
+  list<Node*>::iterator n;
   
-  for (id = 0; n.more(); n.next()) n.current() -> renumber (++id);
+  for (id = 0, n = nodes.begin(); n != nodes.end(); n++) (*n) -> renumber(++id);
 }
 

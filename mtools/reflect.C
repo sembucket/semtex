@@ -1,6 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
-// reflect.C:  read qmesh output and generate planar reflection about
-// either x or y axis, or generate rotation about named point.  Print on cout.
+// reflect.C: read qmesh output and generate planar reflection about
+// either x or y axis, or generate rotation about named point.
+// Combine the result.  Print on cout.
 //
 // reflect [-x || -y] [-r x0 y0 ang] [-h] [file]
 //
@@ -144,7 +145,7 @@ static int getVertices (istream&       S,
   if (!strstr (buf, "VERTICES"))
     error (routine, "problem reading number of vertices", ERROR);
 
-  V.setSize (num+num);
+  V.resize (num+num);
   for (i = 0; i < num; i++) {
 
     // -- Input unreflected Nodes.
@@ -164,7 +165,7 @@ static int getVertices (istream&       S,
     }
     V[i] = N;
    
-    // -- Generate reflected/rotated Nodes.
+    // -- Generate reflected/rotated Nodes (only if geometrically unique).
 
     switch (A) {
     case X:
@@ -206,7 +207,7 @@ static int getElements (istream&        S,
   char         routine[] = "getElements", buf[StrMax], *c;
   register int i, j;
   int          id, M, J;
-  const int    N = V.getSize() >> 1;
+  const int    N = V.size() >> 1;
 
   S >> M >> buf;
   
@@ -219,8 +220,8 @@ static int getElements (istream&        S,
   
   for (i = 0; i < M; i++) {
     S >> id >> J;
-    E[i    ].setSize (J);
-    E[i + M].setSize (J);
+    E[i    ].resize (J);
+    E[i + M].resize (J);
     for (j = 0; j < J; j++) {
       S >> id;
       E[i    ][j] = V[    id - 1];
@@ -242,21 +243,31 @@ static void printUp (ostream&              S  ,
 // can operate on its own output.
 // ---------------------------------------------------------------------------
 {
-  List<Node*>  U;
-  register int i, j;
-  const int    N = V.getSize() >> 1;
-  Node*        n;
-  int          J;
+  list<Node*>           U;
+  list<Node*>::iterator p;
+  register int          i, j;
+  const int             N = V.size() >> 1;
+  Node*                 n;
+  int                   J;
+  bool                  found;
 
   // -- Create & print up list of unique Nodes.
 
+#if 0
   for (i = 0; i < N + N; i++) U.xadd (V[i]);
+#endif
+
+  for (i = 0; i < N + N; i++) {
+    for (found = false, p = U.begin(); !found && p != U.end(); p++)
+      found = *p == V[i];
+    if (!found) U.push_back (V[i]);
+  }
 
   S << "Mesh {" << endl;
 
-  S << U.length() << "  Vertices" << endl;
-  for (ListIterator<Node*> u(U); u.more(); u.next()) {
-    n = u.current();
+  S << U.size() << "  Vertices" << endl;
+  for (p = U.begin(); p != U.end(); p++) {
+    n = (*p);
     S << *n << setw (10) << 0.0 << endl;
   }
 
@@ -267,7 +278,7 @@ static void printUp (ostream&              S  ,
   S << nEl + nEl << "  Elements" << endl;
   for (i = 0; i < nEl; i++) {
     S << i + 1;
-    J = E[i].getSize();
+    J = E[i].size();
     S << setw (5) << J;
     for (j = 0; j < J; j++) S << setw(5) << E[i][j] -> ID();
     S << endl;
@@ -277,7 +288,7 @@ static void printUp (ostream&              S  ,
 
   for (i = 0; i < nEl; i++) {
     S << nEl + i + 1;
-    J = E[i + nEl].getSize();
+    J = E[i + nEl].size();
     S << setw(5) << J;
     for (j = 0; j < J; j++)
       S << setw(5)

@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// unique.C: fix a list of nodes and elements produced by mesh
+// unique.C: fix a list of nodes and elements produced e.g. by mesh
 // digitisation (e.g. by digmesh, Murray's code), where the vertices
 // may lack uniqueness.
 //
@@ -37,11 +37,15 @@
 #include <cstdio>
 #include <cctype>
 #include <cmath>
+#include <vector>
+#include <list>
 
 using namespace std;
 
+#if 0
 #include <Array.h>		// Semtex headers.
 #include <List.h>
+#endif
 
 typedef  double real;
 enum lev {WARNING, ERROR, REMARK};
@@ -142,7 +146,7 @@ int main (int    argc,
   Point       P;
   Node*       N;
 
-  List<Node*>   uniq;
+  list<Node*>   uniq;
   vector<Node*> nodetab;
   vector<int>*  elmttab;
 
@@ -179,24 +183,24 @@ int main (int    argc,
   infile >> num >> buf;
   if (strcmp (buf, "Nodes"))
     error (prog, "Failed reading number of Nodes from file", ERROR);
-  nodetab.setSize (num);
+  nodetab.resize (num);
   
   // -- First Node *is* unique!
 
   infile >> P.x >> P.y; infile.getline (buf, StrMax);
-  uniq.add (N = new Node (++gid, P));
+  uniq.push_back (N = new Node (++gid, P));
   nodetab[0] = N;
 
   // -- Continue to end of Nodes.
 
-  ListIterator<Node*> u(uniq);
+  list<Node*>::iterator u;
 
   for (i = 1; i < num; i++) {
     infile >> P.x >> P.y; infile.getline (buf, StrMax);
-    for (found = 0, u.reset(); !found && u.more(); u.next())
-      found = u.current() -> pos().distance (P) < PosTol;
-    if  (found) nodetab[i] = u.current();
-    else        uniq.add (N = nodetab[i] = new Node (++gid, P));
+    for (found = 0, u = uniq.begin(); !found && u != uniq.end(); u++)
+      found = (*u) -> pos().distance (P) < PosTol;
+    if  (found) nodetab[i] = (*u);
+    else        uniq.push_back (N = nodetab[i] = new Node (++gid, P));
   }
 
   // -- Now read in Elements.
@@ -207,7 +211,7 @@ int main (int    argc,
   elmttab = new vector<int> [num];
 
   for (i = 0; i < num; i++) {
-    elmttab[i].setSize(4);
+    elmttab[i].resize(4);
     infile >> id1 >> id1 >> id1 >> id2 >> id3 >> id4;
     infile.getline (buf, StrMax);
     elmttab[i][0] = id1 - 1;
@@ -218,10 +222,10 @@ int main (int    argc,
  
   // -- Print up revised table of unique Nodes.
 
-  cout << uniq.length() << " Nodes" << endl;
+  cout << uniq.size() << " Nodes" << endl;
 
-  for (u.reset(); u.more(); u.next()) {
-    N = u.current();
+  for (u = uniq.begin(); u != uniq.end(); u++) {
+    N = (*u);
     cout << *N << setw(5) << 0.0 << endl;
   }
 

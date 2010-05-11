@@ -15,11 +15,15 @@
 #include <cstdio>
 #include <cctype>
 #include <cmath>
+#include <vector>
+#include <list>
 
 using namespace std;
 
-#include <Array.h>
-#include <List.h>
+#if 0
+  #include <Array.h>
+  #include <List.h>
+#endif
 
 typedef  double real;
 enum lev {WARNING, ERROR, REMARK};
@@ -145,14 +149,14 @@ public:
 	     kind == DOMAIN_BOUNDARY_FIXED) return 'U';
     return 'M';
   }
-  int   adjncy   () const { return contact.length(); }
+  int   adjncy   () const { return contact.size(); }
 
 private:
   int         id;
   Point       loc;
   real        ideal;
   nodekind    kind;
-  List<Node*> contact;
+  list<Node*> contact;
 };
 
 
@@ -176,8 +180,8 @@ public:
   static Node*       exist (const Node*);
   static int         nodeIdMax;
   static int         loopIdMax;
-  static List<Node*> nodeList;
-  static List<Quad*> quadList;
+  static list<Node*> nodeList;
+  static list<Quad*> quadList;
 
   static real        limits (Point&, Point&);
   static real        lengthScale () { return gblSize; }
@@ -216,7 +220,7 @@ public:
   void  limits   (Point&, Point&)                 const;
   int   points   (vector<real>&, vector<real>&) const;
   int   line     (vector<real>&, vector<real>&) const;
-  void  quads    (List<Quad*>&)                   const;
+  void  quads    (list<Quad*>&)                   const;
   void  drawQuad (const int& = 0)                 const;
 
   void  nodeLabel (const int&, char*)             const;
@@ -230,13 +234,13 @@ private:
   Loop*         left;
   Loop*         right;
 
-  Node* exist        (const Node*, List<Node*>&)                         const;
+  Node* exist        (const Node*, list<Node*>&)                         const;
   real  lengthScale  ()                                                  const;
   Point centroid     ()                                                  const;
 
-  void  visibleNodes (List<Node*>&, const int&)                          const;
-  void  bestSplit    (List<Node*>*, int&, int&, int&)                    const;
-  void  bestLine     (List<Node*>&, const real&,
+  void  visibleNodes (list<Node*>&, const int&)                          const;
+  void  bestSplit    (list<Node*>*, int&, int&, int&)                    const;
+  void  bestLine     (list<Node*>&, const real&,
 		      const int&, int&, int&, real&)                     const;
   real  spaceNodes   (const Node*, const Node*, const real&, const int&) const;
   void  insertNodes  (const Node*, const Node*, const int&);
@@ -258,8 +262,8 @@ void eraseGraphics ();
 void drawBox       ();
 void drawBox       (const Loop*);
 void drawLoop      (const Loop*, const int& = 0);
-void drawMesh      (List<Quad*>&, const int = 0);
-void hardCopy      (List<Quad*>&);
+void drawMesh      (list<Quad*>&, const int = 0);
+void hardCopy      (list<Quad*>&);
 void qpause        ();
 void message       (const char*, const char*, const lev&);
 

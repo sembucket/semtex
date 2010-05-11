@@ -51,7 +51,14 @@ void Node::xadd (Node* N)
 // Traverse list of contacting nodes.  Add in N if not already present.
 // ---------------------------------------------------------------------------
 {
+#if 0
   contact.xadd (N);
+#endif
+  list<Node*>::iterator p;
+  bool                  found;
+  for (found = false, p = contact.begin(); !found and p != contact.end(); p++)
+    found = (*p) == N;
+  if (!found) contact.push_back (N);
 }
 
 
@@ -60,12 +67,12 @@ Point Node::centroid () const
 // Return centroid of connected Nodes (weighted).
 // ---------------------------------------------------------------------------
 {
-  char      err[StrMax], routine[] = "Node::centroid";
-  const int M = contact.length ();
-
-  Point P, C, D;
-  Node* N;
-  real  w, den;
+  char                        err[StrMax], routine[] = "Node::centroid";
+  const int                   M = contact.size ();
+  Point                       P, C, D;
+  Node*                       N;
+  list<Node*>::const_iterator n;
+  real                        w, den;
   
   P   = 0.0;
   D   = 0.0;
@@ -78,8 +85,8 @@ Point Node::centroid () const
     return P;
   }
 
-  for (ListIterator<Node*> n (contact); n.more (); n.next ()) {
-    N = n.current ();
+  for (n = contact.begin(); n != contact.end(); n++) {
+    N = *n;
 
     P += N -> pos ();		                // -- Plain centroid.
     w += 1.0;

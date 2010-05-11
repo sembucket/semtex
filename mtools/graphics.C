@@ -159,14 +159,14 @@ void drawLoop (const Loop* L      ,
   
   npts = L -> points (x, y);
 
-  sm_conn (x(), y(), npts);
+  sm_conn (&x[0], &y[0], npts);
   sm_draw (x[0], y[0]);
 
   if (numbers) {
     register int i;
     char         label[StrMax];
 
-    sm_expand (0.3);
+    sm_expand (0.5);
     for (i = 0; i < npts; i++) {
       sm_relocate (x[i], y[i]);
       L -> nodeLabel (i, label);
@@ -174,28 +174,28 @@ void drawLoop (const Loop* L      ,
     }
     sm_expand (1.6);
   } else
-    sm_points (x(), y(), npts);
+    sm_points (&x[0], &y[0], npts);
 
   sm_gflush ();
 #endif
 }
 
 
-void drawMesh (List<Quad*>& mesh,
+void drawMesh (list<Quad*>& mesh,
 	       const int    nums)
 // ---------------------------------------------------------------------------
 // Draw the mesh (with replicated mating edges --- the easy option!).
 // ---------------------------------------------------------------------------
 {
 #ifdef GRAPHICS
-  register int        i;
-  real                x[4], y[4];
-  ListIterator<Quad*> q (mesh);
-  Quad*               Q;
-  char                label[StrMax];
+  register int          i;
+  real                  x[4], y[4];
+  list<Quad*>::iterator q;
+  Quad*                 Q;
+  char                  label[StrMax];
 
-  for (; q.more(); q.next()) {
-    Q = q.current();
+  for (q = mesh.begin(); q != mesh.end(); q++) {
+    Q = *q;
     for (i = 0; i < 4; i++) {
       x[i] = Q -> vertex[i] -> pos().x;
       y[i] = Q -> vertex[i] -> pos().y;
@@ -205,7 +205,7 @@ void drawMesh (List<Quad*>& mesh,
     sm_draw (x[0], y[0]);
 
     if (nums) {
-      sm_expand (0.3);
+      sm_expand (0.5);
       for (i = 0; i < 4; i++) {
 	sprintf     (label, "%1d", Q -> vertex[i] -> ID());
 	sm_relocate (x[i], y[i]);
@@ -220,9 +220,9 @@ void drawMesh (List<Quad*>& mesh,
 }
 
 
-void hardCopy (List<Quad*>& mesh)
+void hardCopy (list<Quad*>& mesh)
 // ---------------------------------------------------------------------------
-// Draw m in PostScript file.
+// Draw mesh in PostScript file.
 // ---------------------------------------------------------------------------
 {
 #ifdef GRAPHICS

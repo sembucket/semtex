@@ -14,8 +14,8 @@ real        Global::gblSize   = 1.0;
 int         Global::nodeIdMax = 0;
 int         Global::loopIdMax = 0;
 int         Global::verbose   = 0;
-List<Node*> Global::nodeList;
-List<Quad*> Global::quadList;
+list<Node*> Global::nodeList;
+list<Quad*> Global::quadList;
 
 
 real Global::limits (Point& Pmin,
@@ -24,15 +24,15 @@ real Global::limits (Point& Pmin,
 // Establish Pmin & Pmax that define bounding box for nodes, return hypotenuse.
 // ---------------------------------------------------------------------------
 {
-  ListIterator<Node*> n (nodeList);
-  Node*               N;
-  real                X, Y, xmin, ymin, xmax, ymax;
+  Node*                 N;
+  list<Node*>::iterator n;
+  real                  X, Y, xmin, ymin, xmax, ymax;
 
   xmin = ymin =  1.0e30;
   xmax = ymax = -1.0e30;
 
-  for (n.reset(); n.more(); n.next()) {
-    N = n.current();
+  for (n = nodeList.begin(); n != nodeList.end(); n++) {
+    N = *n;
     X = N -> pos () . x;
     Y = N -> pos () . y;
     if      (X < xmin) xmin = X;
@@ -50,7 +50,7 @@ real Global::limits (Point& Pmin,
 
 Node* Global::exist (const Node* N)
 // ---------------------------------------------------------------------------
-// Check if a Node corresponding to N has already been created.
+// Check if a Node corresponding in position to N has already been created.
 // Return pointer to the existing Node if it has, else zero.
 // ---------------------------------------------------------------------------
 {
@@ -61,10 +61,10 @@ Node* Global::exist (const Node* N)
   const real     size = lengthScale();
   const real     TOL  = 0.0001;
   
-  ListIterator<Node*> n (nodeList);
+  list<Node*>::iterator n;
 
-  for (n.reset(); !found && n.more(); n.next()) {
-    oldNode = n.current();
+  for (n = nodeList.begin(); !found && n != nodeList.end(); n++) {
+    oldNode = *n;
     found   = oldNode -> pos().distance (P) / size < TOL;
   }
 
