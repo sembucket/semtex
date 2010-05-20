@@ -73,7 +73,7 @@ Analyser::Analyser (Domain* D   ,
 
   _mdl_strm.open (strcat (strcpy (str, _src -> name), ".mdl"), ios::out); 
   _mdl_strm << "#     Time Mode         Energy" << endl
-	   << "# ----------------------------" << endl;
+	    << "# ----------------------------" << endl;
 
   // -- Dump run information to file.
 
@@ -108,7 +108,7 @@ void Analyser::analyse (AuxField** work,
 
   if (cflstep && !(_src -> step % cflstep)) {
     modalEnergy ();
-    estimateCFL ();
+    //    estimateCFL ();  // -- No real point in doing this.
     divergence  (work);
   }
 
@@ -207,7 +207,7 @@ void Analyser::estimateCFL () const
   int_t        percent;
 
   CFL_dt = max (_src -> u[0] -> CFL (0), _src -> u[1] -> CFL (1));
-  if (Geometry::nPert() == 3) CFL_dt = max (CFL_dt, _src -> u[2] -> CFL (2));
+  // if (Geometry::nPert() == 3) CFL_dt = max (CFL_dt, _src -> u[2] -> CFL (2));
 
   dt_max  = SAFETY * CFL_max / CFL_dt;
   percent = static_cast<int_t>(100.0 * dt / dt_max);

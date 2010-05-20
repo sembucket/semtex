@@ -38,13 +38,15 @@ From [3], the 15 dominant eigenvalues of matrix LOP163 are:
 6	0.962 477
 7	0.961 141
 8	0.960 235
-9	0.944 086
-10	0.944 086
+9	0.944 086  (should be + 0.015 508 i)
+10	0.944 086  (should be - 0.015 508 i)
 11	0.933 061
 12	0.933 042
 13	0.924 203 + 0.037 421 i
 14	0.924 203 - 0.037 421 i
 15	0.916 746
+
+Note the "obvious" error flagged above.
 
 The current method is able to compute about the first 3 or 4
 eigenvalues of LOP163, using double precision arithmetic.

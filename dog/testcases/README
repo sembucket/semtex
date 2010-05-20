@@ -63,6 +63,9 @@ dog: converged, writing 1 eigenvectors.
 
 The period of the leading mode is TWOPI/0.22185=23.322.
 
+(Which suggests their analysis may be in error, although the values
+are in the same ballpark.)
+
 backstep3D
 ----------
 

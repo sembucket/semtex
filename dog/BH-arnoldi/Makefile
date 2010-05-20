@@ -39,6 +39,6 @@ include $(VPATH)/Makefile
 
 ifdef ARPACK
 #  F77LIBS = -larpack -llapack -lfastblas -lgfortran
-  F77LIBS = -larpack -llapack -lfastblas -lgfortran
+  F77LIBS := -larpack $(F77LIBS)
 endif
 

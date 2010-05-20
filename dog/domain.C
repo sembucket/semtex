@@ -312,7 +312,7 @@ ifstream& operator >> (ifstream& strm,
   }
   fields[nfields] = '\0';
   if (nfields != strlen (D.field)) {
-    sprintf (err, "file: %1d fields, Domain: %1d", nfields, strlen(D.field));
+    sprintf (err,"file: %1d fields, Domain: %1d",nfields,(int)strlen(D.field));
     message (routine, err, ERROR);
   }
   for (i = 0; i < nfields; i++) 

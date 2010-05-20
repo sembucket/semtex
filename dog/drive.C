@@ -28,6 +28,7 @@
 //   -m <num> ... set maximum number of iterations         (m >= k)
 //   -n <num> ... compute num eigenvalue/eigenvector pairs (n <= k)
 //   -t <num> ... set eigenvalue tolerance to num [Default = 1e-6].
+//   -p       ... recompute the pressure eigenvector
 //
 #ifdef FLIP
 //
@@ -97,7 +98,7 @@ static Mesh*            mesh;
 static BCmgr*           bman;
 
 static void  getargs    (int, char**, problem_t&, int_t&, int_t&, int_t&,
-			 int_t&, real_t&, char*&);
+			 int_t&, real_t&, bool&, char*&);
 static int_t preprocess (const char*, bool&);
 
 static void  EV_init    (real_t*);
@@ -111,7 +112,7 @@ static void  EV_sort    (real_t*, real_t*, real_t*, real_t*, const int_t);
 static void  EV_post    (const problem_t, real_t**, real_t**,
 			 const int_t, const int_t, const int_t,
 			 const real_t*, const real_t*, 
-			 const real_t*, const int_t, ofstream&);
+			 const real_t*, const int_t, const bool, ofstream&);
 static void  EV_big     (const problem_t, real_t**, real_t**,
 			 const int_t, const int_t, const int_t,
 			 const real_t*, const real_t*,
@@ -129,11 +130,11 @@ int main (int    argc,
   char      buf[StrMax];
   ofstream  runinfo;
   problem_t task = PRIMAL;
-  bool      restart = false;
+  bool      restart = false, pEV = false;
 
   Femlib::initialize (&argc, &argv);
 
-  getargs (argc, argv, task, kdim, nits, nvec, verbose, evtol, session);
+  getargs (argc, argv, task, kdim, nits, nvec, verbose, evtol, pEV, session);
 
   // -- Check, echo parameter values.
 
@@ -254,6 +255,11 @@ int main (int    argc,
       for (k = 0; k < Geometry::nZ(); k++)
 	domain -> u[i] -> setPlane 
 	  (k, src + (i*Geometry::nZ() + k)*Geometry::planeSize());
+    if (pEV) // -- Generate the pressure by running LNSE.
+      switch (task) {
+      case PRIMAL: integrate  (linAdvect , domain, analyst); break;
+      case ADJOINT: integrate (linAdvectT, domain, analyst); break;
+      }
     sprintf   (msg, ".eig.%1d", j);
     strcat    (strcpy (nom, domain -> name), msg);
     file.open (nom, ios::out); file << *domain; file.close();
@@ -340,7 +346,8 @@ int main (int    argc,
     converged = EV_test (i, kdim, zvec, wr, wi, resnorm, evtol, nvec, runinfo);
   }
 
-  EV_post(task,Tseq,Kseq,ntot,min(--i,kdim),nvec,zvec,wr,wi,converged,runinfo);
+  EV_post (task, Tseq, Kseq, ntot, min(--i,kdim), nvec, zvec, wr, wi,
+	  converged, pEV, runinfo);
 
 #endif
 
@@ -667,6 +674,7 @@ static void EV_post (const problem_t task,
 		     const real_t*   wr  , 
 		     const real_t*   wi  , 
 		     const int_t     icon,
+		     const bool      pressEV,
 		     ofstream&       runinfo)
 // ---------------------------------------------------------------------------
 // Carry out postprocessing of estimates, depending on value of icon
@@ -736,6 +744,11 @@ static void EV_post (const problem_t task,
       for (i = 0; i < ND; i++)
 	for (k = 0; k < NZ; k++)
 	  domain -> u[i] -> setPlane (k, src + (i*NZ + k)*NP);
+      if (pressEV) // -- Generate the pressure by running LNSE.
+	switch (task) {
+	case PRIMAL: integrate  (linAdvect , domain, analyst); break;
+	case ADJOINT: integrate (linAdvectT, domain, analyst); break;
+	}
       sprintf   (msg, ".eig.%1d", j);
       strcat    (strcpy (nom, domain -> name), msg);
       file.open (nom, ios::out); file << *domain; file.close();
@@ -833,7 +846,7 @@ static void EV_big (const problem_t task ,
 
       resid = Blas::nrm2 (ntot, bvecs[0], 1) / Blas::nrm2 (ntot, evecs[i], 1);
     
-      runinfo << "Big-space residual of eigenvector " <<i<< ": " << resid << endl;
+      runinfo << "Big-space residual of eigenvector " <<i<< ": " <<resid<<endl;
     }
   }
 }
@@ -847,6 +860,7 @@ static void getargs (int        argc   ,
 		     int_t&     neval  ,
 		     int_t&     verbose,
 		     real_t&    evtol  ,
+		     bool&      pEV    ,
 		     char*&     session)
 // ---------------------------------------------------------------------------
 // Parse command-line arguments.
@@ -860,7 +874,8 @@ static void getargs (int        argc   ,
     "-k <num> ... set dimension of subspace (maximum number of pairs) to num\n"
     "-m <num> ... set maximum number of iterations         (m >= k)\n"
     "-n <num> ... compute num eigenvalue/eigenvector pairs (n <= k)\n"
-    "-t <num> ... set eigenvalue tolerance to num [Default 1e-6]\n";
+    "-t <num> ... set eigenvalue tolerance to num [Default 1e-6]\n"
+    "-p       ... compute pressure from converged velocity eigenvector\n";
 
   while (--argc && **++argv == '-')
     switch (*++argv[0]) {
@@ -880,6 +895,9 @@ static void getargs (int        argc   ,
       break;
     case 's':
       task = SHRINK;
+      break;
+    case 'p':
+      pEV = true;
       break;
     case 'k':
       if (*++argv[0]) kdim  = atoi (  *argv);
@@ -902,6 +920,9 @@ static void getargs (int        argc   ,
       exit (EXIT_FAILURE);
       break;
     }
+
+  if (pEV && (task == GROWTH) || (task == SHRINK))
+    message (prog, "can't request pressure eigenvector in SVD problem", ERROR);
 
   if   (argc != 1) message (prog, "no session file",   ERROR);
   else             session = *argv;

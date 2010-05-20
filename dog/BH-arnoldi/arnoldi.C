@@ -185,7 +185,8 @@ int main (int    argc,
   iparam [3] = 1;		// -- Blocksize, ARPACK say = 1.
   iparam [4] = 0;		// -- Output, number of converged values.
   iparam [5] = 0;		// -- Not used.
-  iparam [6] = 1;		// -- Mode: solve A x = lambda x.
+  //  iparam [6] = 1;		// -- Mode: solve A x = lambda x.
+  iparam [6] = 3;		// -- Mode: solve A x = lambda x by shift-invert.
   iparam [7] = 0; 		// -- For user shifts, not used here.
   iparam [8] = 0;		// -- Output, number of Op x operations.
   iparam [9] = 0;		// -- Output, not used here.
@@ -205,7 +206,7 @@ int main (int    argc,
   // -- Set up for reverse communication.
 
   F77name(dnaupd) (ido=0, "I", ntot, "LM", nvec, evtol, resid, kdim, 
-		   v, ntot, iparam, ipntr, workd, workl, lworkl, info);
+		   v, ntot, iparam, ipntr, workd, workl, lworkl, info=0);
 
   // -- IRAM iteration.
 
