@@ -197,6 +197,14 @@ mapmesh: feml.o mapmesh.o $(SEMHDR)
 	$(LD) -o $@ $@.o feml.o $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
+# Build repeatmesh, a utility that replicates node locations and builds new
+# elements based on reflections or rotations.
+#
+
+repmesh: feml.o repmesh.o $(SEMHDR)
+	$(LD) -o $@ $@.o feml.o $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
 # Special machine-dependent compilations.
 
 ifeq ($(ARCH),SUPER-UX)

@@ -4,6 +4,17 @@
  * 
  * Copyright (c) 1990 <--> $Date$, Hugh Blackburn
  *
+ * Usage: chop [-h] [-s startline] [-n number of lines] [-S skip] [file]
+ *
+ * The first two command line arguments specify the first line of the input
+ * file to reproduce, and the number of subsequent lines.  The third argument
+ * gives a skip between lines of output that are reproduced.
+ *
+ * Can be used as a filter.
+ * If number of lines not specified, read through until EOF.
+ * Lines are assumed to be BUFSIZ characters long at most.
+ *
+ * --
  * This file is part of Semtex.
  * 
  * Semtex is free software; you can redistribute it and/or modify it
@@ -20,16 +31,6 @@
  * along with Semtex (see the file COPYING); if not, write to the Free
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- *
- * Usage: chop [-h] [-s startline] [-n number of lines] [-S skip] [file]
- *
- * The first two command line arguments specify the first line of the input
- * file to reproduce, and the number of subsequent lines.  The third argument
- * gives a skip between lines of output that are reproduced.
- *
- * Can be used as a filter.
- * If number of lines not specified, read through until EOF.
- * Lines are assumed to be BUFSIZ characters long at most.
  *****************************************************************************/
 
 static char RCS[] = "$Id$";

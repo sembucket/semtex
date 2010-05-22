@@ -5,6 +5,15 @@
  *
  * Copyright (c) 2008 <--> $Date$, Hugh Blackburn
  *
+ * USAGE
+ * -----
+ * normal [-h] [-n num] [-m mean] [-d sdev] [-s seed]
+ *
+ * A positive value of seed causes the random number seed to be
+ * generated from wall-clock time (and the value is otherwise
+ * irrelevant). A negative value is used directly for the seed.
+ *
+ * --
  * This file is part of Semtex.
  * 
  * Semtex is free software; you can redistribute it and/or modify it
@@ -21,17 +30,6 @@
  * along with Semtex (see the file COPYING); if not, write to the Free
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- *
- * USAGE
- * -----
- * normal [-h] [-n num] [-m mean] [-d sdev] [-s seed]
- *
- * A positive value of seed causes the random number seed to be
- * generated from wall-clock time (and the value is otherwise
- * irrelevant). A negative value is used directly for the seed.
- *
- * SYNOPSIS
- * --------
  *****************************************************************************/
 
 static char RCS[] = "$Id$";
