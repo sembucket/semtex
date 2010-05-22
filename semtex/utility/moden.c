@@ -5,6 +5,13 @@
  *
  * Copyright (c) 1999 <--> $Date$, Hugh Blackburn
  *
+ * USAGE
+ * -----
+ * moden [-h] [-m <mode>] [-z] [input[.fld]
+ *
+ * -m nominates mode to select [Default: 0]
+ * -z forces mode zero to be dealt with as complex.
+ *
  * --
  * This file is part of Semtex.
  * 
@@ -22,14 +29,6 @@
  * along with Semtex (see the file COPYING); if not, write to the Free
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA.
- * --
- *
- * USAGE
- * -----
- * moden [-h] [-m <mode>] [-z] [input[.fld]
- *
- * -m nominates mode to select [Default: 0]
- * -z forces mode zero to be dealt with as complex.
  *****************************************************************************/
 
 static char RCS[] = "$Id$";

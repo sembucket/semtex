@@ -4,6 +4,9 @@
  * Copyright (c) 1990 <--> $Date$, 
  *   Ron Henderson, Hugh Blackburn
  *
+ * Usage: sem2tec [-h] [-o output] [-m mesh] [-n #] [-d #] [-w] input[.fld]
+ *
+ * --
  * This file is part of Semtex.
  * 
  * Semtex is free software; you can redistribute it and/or modify it
@@ -20,8 +23,6 @@
  * along with Semtex (see the file COPYING); if not, write to the Free
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- *
- * Usage: sem2tec [-h] [-o output] [-m mesh] [-n #] [-d #] [-w] input[.fld]
  *****************************************************************************/
 
 static char RCS[] = "$Id$";

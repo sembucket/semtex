@@ -1,8 +1,14 @@
+/* This is source code freely distributed by AMTEC Inc, suppliers of Tecplot.
+ *
+ * NB: it is *NOT* part of Semtex and is covered by different
+ * distribution restrictions. Please see the AMTEC website.
+ *
+ * This seems to work on many UNIX compilations:
+ *
+ * cc preplot.c -DIRIS -o preplot
+ */
+
 /*
-
-This seems to work on many UNIX compilations:
-
-cc preplot.c -DIRIS -o preplot
 
 
 USAGE:

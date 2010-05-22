@@ -2,7 +2,24 @@
  *                  3^i TENSOR & VECTOR CALCULATIONS
  *
  * Copyright (c) 1992 <--> $Date$, Hugh Blackburn
+
+ * NB: In all the following calculations, the 3x3 tensor which is used as
+ * input is supplied as a 1-D array of double. It is assumed that the tensor
+ * is supplied in column-major order (as it would be stored in FORTRAN):
  *
+ *           --          --               --         --
+ * TENSORij: | 11  12  13 |      STORAGE: | 0   3   6 |
+ * i=row     | 21  22  23 |               | 1   4   7 |
+ * j-col     | 31  32  33 |               | 2   5   8 |
+ *           --          --               --         --
+ *
+ * There is a code in the naming of the tensors used below: if the operation
+ * can be performed on a general tensor, then the tensor argument is T; if
+ * the tensor is assumed symmetric, it is called S, A if it is antisymmetric
+ * and if the operation has special significance for the velocity gradient
+ * tensor, it is called VG.
+ *
+ * --
  * This file is part of Semtex.
  * 
  * Semtex is free software; you can redistribute it and/or modify it
@@ -19,22 +36,6 @@
  * along with Semtex (see the file COPYING); if not, write to the Free
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- *
- * NB: In all the following calculations, the 3x3 tensor which is used as
- * input is supplied as a 1-D array of double. It is assumed that the tensor
- * is supplied in column-major order (as it would be stored in FORTRAN):
- *
- *           --          --               --         --
- * TENSORij: | 11  12  13 |      STORAGE: | 0   3   6 |
- * i=row     | 21  22  23 |               | 1   4   7 |
- * j-col     | 31  32  33 |               | 2   5   8 |
- *           --          --               --         --
- *
- * There is a code in the naming of the tensors used below: if the operation
- * can be performed on a general tensor, then the tensor argument is T; if
- * the tensor is assumed symmetric, it is called S, A if it is antisymmetric
- * and if the operation has special significance for the velocity gradient
- * tensor, it is called VG.
  *****************************************************************************/
 
 static char

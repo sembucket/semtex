@@ -4,6 +4,22 @@
  *
  * Copyright (c) 1996 <--> $Date$, Hugh Blackburn
  *
+ * USAGE
+ * -----
+ * noiz [-h] [-f] [-o output] [-p perturb] [-m mode] [-s seed] [input[.fld]
+ *
+ * SYNOPSIS
+ * --------
+ * Noiz reads a field file and adds a gaussian-distributed random variable
+ * of specified standard deviation to each velocity datum.  Fields may be in
+ * ASCII or binary format, output is in same format.  Optionally, noise
+ * is added just to a prescribed Fourier mode (mode numbers begin at zero).
+ *
+ * NOTES
+ * -----
+ * Default value of perturbation is 0.0.
+ *
+ * --
  * This file is part of Semtex.
  * 
  * Semtex is free software; you can redistribute it and/or modify it
@@ -20,21 +36,6 @@
  * along with Semtex (see the file COPYING); if not, write to the Free
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- *
- * USAGE
- * -----
- * noiz [-h] [-f] [-o output] [-p perturb] [-m mode] [-s seed] [input[.fld]
- *
- * SYNOPSIS
- * --------
- * Noiz reads a field file and adds a gaussian-distributed random variable
- * of specified standard deviation to each velocity datum.  Fields may be in
- * ASCII or binary format, output is in same format.  Optionally, noise
- * is added just to a prescribed Fourier mode (mode numbers begin at zero).
- *
- * NOTES
- * -----
- * Default value of perturbation is 0.0.
  *****************************************************************************/
 
 static char RCS[] = "$Id$";
