@@ -11,7 +11,7 @@ essential: sem compare enumerate
 
 all: essential plain preplot nosrc meshpr calc addfield sem2nek \
      convert project interp probe rectmesh transform wallmesh   \
-     phase lowpass eneq integral traction
+     phase lowpass eneq integral traction 
 
 distclean:
 	make clean
@@ -64,9 +64,9 @@ preplot: preplot.c
 # Standalone (bar semtex standard libs) C programs.
 #
 
-nosrc: avgdump moden noiz rstress xplane sem2tec convert repeatz repeatxy
-avgdump moden noiz rstress xplane sem2tec convert repeatz repeatxy : \
-	avgdump.c moden.c xplane.c noiz.c rstress.c sem2tec.c \
+nosrc: avgdump moden noiz rstress xplane sem2tec sem2vtk convert repeatz repeatxy
+avgdump moden noiz rstress xplane sem2tec sem2vtk convert repeatz repeatxy : \
+	avgdump.c moden.c xplane.c noiz.c rstress.c sem2tec.c sem2vtk \
         convert.c repeatz.c repeatxy.c
 	$(CC) -o $@ $@.c $(CFLAGS) $(CPPFLAGS) $(CLDFLAGS) -lm
 

@@ -10,7 +10,8 @@
  * moden [-h] [-m <mode>] [-z] [input[.fld]
  *
  * -m nominates mode to select [Default: 0]
- * -z forces mode zero to be dealt with as complex.
+ * -z forces mode zero to be dealt with as complex 
+ *    (to be used e.g. with a complex eigenmode).
  *
  * --
  * This file is part of Semtex.
