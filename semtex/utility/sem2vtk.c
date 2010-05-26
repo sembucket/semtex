@@ -1,5 +1,5 @@
 /*****************************************************************************
- * sem2vtk: convert a SEM field file to VTK format.
+ * sem2vtk: convert a semtex field file to VTK format.
  *
  * Usage:
  * sem2vtk [-h] [-c] [-o output] [-m mesh] [-n #] [-d #] [-w] input[.fld]
@@ -58,7 +58,7 @@ static FILE    *fp_fld = 0,          /* default input files */
 static char    *vtkfile;             /* output file name */
 
 static int     nr, ns, nz, nel, nfields;
-static int     nzp = 0, preplot_it = 1, np = 1, dump = 1, cylindrical=0;
+static int     nzp = 0, np = 1, dump = 1, cylindrical=0;
 static char    type[MAXFIELDS];
 static double  *data[MAXFIELDS], *x, *y, *z;
 
@@ -97,17 +97,11 @@ int main (int    argc,
   wrap        ();
   write_vtk   (fp);
 
-  if (preplot_it) {
-    sprintf (buf, "preplot %s %s > /dev/null", fname, vtkfile);
-    system  (buf);
-    remove  (fname);
-  } else {
-    rewind (fp);
-    fp_tec = fopen (vtkfile, "w");
-    while  (fgets(buf, STR_MAX, fp)) fputs(buf, fp_tec);
-    fclose (fp_tec);
-    fclose (fp);
-  }
+  rewind (fp);
+  fp_tec = fopen (vtkfile, "w");
+  while  (fgets(buf, STR_MAX, fp)) fputs(buf, fp_tec);
+  fclose (fp_tec);
+  fclose (fp);
 
   return EXIT_SUCCESS;
 }
@@ -141,7 +135,6 @@ static void parse_args (int    argc,
 	vtkfile = (char*) malloc(STR_MAX);
 	strcpy(vtkfile, *++argv);
 	argv[0] += strlen(*argv)-1; argc--;
-	preplot_it = 0;
 	break;
       case 'd':
 	if (*++argv[0])
@@ -182,7 +175,7 @@ static void parse_args (int    argc,
   if ((fp_fld = fopen(*argv, "r")) == (FILE*) NULL) {
     sprintf(fname, "%s.fld", *argv);
     if ((fp_fld = fopen(fname, "r")) == (FILE*) NULL) {
-      fprintf(stderr, "sem2tec: unable to open %s or %s\n", *argv, fname);
+      fprintf(stderr, "sem2vtk: unable to open %s or %s\n", *argv, fname);
       exit(EXIT_FAILURE);
     }
   }
@@ -194,7 +187,7 @@ static void parse_args (int    argc,
     vtkfile = (char*) calloc (STR_MAX, sizeof(int));
     if   (strcmp(*argv + len-4, ".fld") == 0) strncpy(vtkfile, *argv, len-4);
     else                                      strcpy (vtkfile, *argv);
-    strcat (vtkfile, ".plt");
+    strcat (vtkfile, ".vtk");
   }
 }
 

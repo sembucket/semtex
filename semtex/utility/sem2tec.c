@@ -1,5 +1,5 @@
 /*****************************************************************************
- * sem2tec: convert a SEM field file to AMTEC Tecplot format.
+ * sem2tec: convert a semtex field file to AMTEC Tecplot format.
  *
  * Copyright (c) 1990 <--> $Date$, 
  *   Ron Henderson, Hugh Blackburn
