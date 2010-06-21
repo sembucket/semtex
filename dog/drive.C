@@ -866,7 +866,7 @@ static void getargs (int        argc   ,
 // Parse command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  char usage[] = "dsa(-H) [options] session\n"
+  char usage[] = "dog(-H) [options] session\n"
     "options:\n"
     "-h       ... print this message\n"
     "-v       ... set verbose\n"
