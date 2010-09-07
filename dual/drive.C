@@ -22,11 +22,12 @@
 // AUTHOR:
 // ------
 // Hugh Blackburn
-// CSIRO Manufacturing and Infrastructure Technology
-// P.O. Box 56
-// Highett, Vic 3190
+// Department of Mechanical & Aerospace Engineering
+// Monash University
+// Vic 3800
 // Australia
-// hugh.blackburn@csiro.au
+// hugh.blackburn@monash.edu
+//
 //////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
