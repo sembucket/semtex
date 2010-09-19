@@ -62,6 +62,7 @@ public:
   AuxField& exp      ();
   AuxField& pow      (const real_t);
   AuxField& clipUp   (const real_t = 0.0);
+  AuxField& zeroNaN  ();
 
   void gradient (const int_t, const int_t, real_t*, const int_t) const;
   void mulY     (const int_t, real_t*)                           const;

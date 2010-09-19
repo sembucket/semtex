@@ -20,7 +20,7 @@
 // Monash University
 // Vic 3800
 // Australia
-// hugh.blackburn@eng.monash.edu.au
+// hugh.blackburn@monash.edu
 //
 // --
 // This file is part of Semtex.

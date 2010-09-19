@@ -38,9 +38,7 @@ static char RCS[] = "$Id$";
 #include <stdio.h>
 #include <stdlib.h>
 
-
 static void chop (FILE* fp, int s, int n, int S);
-
 
 int main (int argc, char *argv[])
 /* ------------------------------------------------------------------------- *

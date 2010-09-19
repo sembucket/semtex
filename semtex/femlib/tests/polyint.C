@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // polyint.C: given a table of N (x, y) pairs, compute the
 // coefficients of the interpolating polynomial of order N-1, and
-// print up the values of the interpolatin polynomial at I locations,
+// print up the values of the interpolation polynomial at I locations,
 // equispaced on the interval spanned by the x values. The x values do
 // not have to be in sorted order.
 //
