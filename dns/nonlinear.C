@@ -74,7 +74,9 @@ void nonLinear (Domain*         D ,
 // gradients in the Fourier direction however, the data must be transferred
 // back to Fourier space.
 //
-// Define ALIAS to force Fourier-aliased nonlinear terms (serial only).
+// Define ALIAS to force Fourier-aliased nonlinear terms (serial only
+// -- these are never dealiased in parallel execution).
+//
 // Define CONV  to get convective as opposed to default skew-symmetric form.
 // ---------------------------------------------------------------------------
 {
@@ -235,7 +237,7 @@ void nonLinear (Domain*         D ,
 
 	if (NCOM == 3) {
 	  if (i == 1)
-	    Veclib::svvttvp (nTot32, -1.0, u32[2],1,u32[2],1,n32[1],1,n32[1], 1);
+	    Veclib::svvttvp (nTot32, -1.0, u32[2],1,u32[2],1,n32[1],1,n32[1],1);
 	  if (i == 2)
 	    Veclib::vmul    (nTot32, u32[2], 1, u32[1], 1, n32[2], 1);
 
@@ -247,7 +249,7 @@ void nonLinear (Domain*         D ,
 	    master -> gradient (nZ, nPP, tmp, 2);
 	    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
 	    Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
-	    Veclib::vvtvp      (nTot32, u32[2], 1, tmp, 1, n32[i], 1, n32[i], 1);
+	    Veclib::vvtvp      (nTot32, u32[2], 1, tmp, 1, n32[i], 1, n32[i],1);
 	  }
 	}
 

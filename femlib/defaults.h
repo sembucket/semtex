@@ -47,6 +47,7 @@ static struct {
   "FFX"         ,   0.0    ,	/* -- Body force per unit mass (x).       */
   "FFY"         ,   0.0    ,	/* -- y component.                        */
   "FFZ"         ,   0.0    ,	/* -- z component.                        */
+  "FFC"         ,   0.0    ,    /* -- (Analogous) scalar production rate. */
 
   "X_SHIFT"     ,   0.0    ,    /* -- Optional shift to mesh in x.        */
   "Y_SHIFT"     ,   0.0    ,    /* -- Optional shift to mesh in y.        */

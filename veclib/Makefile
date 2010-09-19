@@ -20,7 +20,7 @@ MEMORY     = memory
 
 MATH       = xcopy   xfill   xneg    xvneg   xsadd   xvadd   xssub  \
              xvsub   xsmul   xvmul   xsdiv   xvrecp  xvdiv   xzero  \
-	     xspow   xvsgn
+	     xspow   xvsgn   xznan
 
 OTHER      = xvabs   xvamax  xvpow   xvexp   xvlg10  xvlog   xvatan \
              xvatn2  xvcos   xvsin   xvsqrt  xrand   xvhypot

@@ -735,7 +735,7 @@ real_t AuxField::mode_L2 (const int_t mode) const
   if (kr < 0  ) message (routine, "negative mode number",        ERROR);
   if (ki > _nz) message (routine, "mode number exceeds maximum", ERROR);
 
-  Re = _plane[kr]; Im = (_nz > 1) ? _plane[ki] : 0;
+  Re = _plane[kr]; Im = (_nz > 1) ? _plane[ki] : NULL;
 
   for (i = 0; i < nel; i++, Re += npnp, Im += npnp) {
     E      = _elmt[i];
@@ -964,9 +964,10 @@ AuxField& AuxField::transform (const int_t sign)
 // mode's real_t data are the average over the homogeneous direction of the
 // physical space values.
 //
-// For multiple-processor execution, data must be gathered across processors
-// prior to Fourier transform, then scattered back.
-// ---------------------------------------------------------------------------
+// For multiple-processor execution, data must be gathered across
+// processors prior to Fourier transform, then scattered back.  Each
+// DFT involves two exchanges.
+// --------------------------------------------------------------------------
 {
   const int_t nzt = Geometry::nZ();
   const int_t nP  = Geometry::planeSize();
@@ -1557,6 +1558,17 @@ AuxField& AuxField::sqroot()
 // ---------------------------------------------------------------------------
 {
   Veclib::vsqrt (_size, _data, 1, _data, 1);
+
+  return *this;
+}
+
+
+AuxField& AuxField::zeroNaN()
+// ---------------------------------------------------------------------------
+// Set any data that are NaN to zero. You could say this is a hack.
+// ---------------------------------------------------------------------------
+{
+  Veclib::znan (_size, _data, 1);
 
   return *this;
 }

@@ -3,6 +3,23 @@
 //
 // Copyright (c) 1995 <--> $Date$, Hugh Blackburn
 //
+// Usage: enumerate [options] file
+//   options:
+//   -h       ... display this message
+//   -v       ... set verbose output
+//   -n N     ... override element order to be N
+//   -O [0-3] ... set level of bandwidth optimization
+//
+// Special action may need to be taken to generate numbering schemes
+// for cylindrical coordinate flow problems.  See the discussion in
+// header for field.C, and for routine Mesh::buildMask in mesh.C.
+//
+// Divergence problems sometimes arise when the highest numbered
+// zero-mode pressure node occurs on the axis in 3D cylindrical
+// simulations.  The code attempts to fix this problem, and lets you
+// know if it can't.
+//
+// --
 // This file is part of Semtex.
 // 
 // Semtex is free software; you can redistribute it and/or modify it
@@ -19,22 +36,6 @@
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 // 02110-1301 USA
-//
-// Usage: enumerate [options] file
-//   options:
-//   -h       ... display this message
-//   -v       ... set verbose output
-//   -n N     ... override element order to be N
-//   -O [0-3] ... set level of bandwidth optimization
-//
-// Special action may need to be taken to generate numbering schemes
-// for cylindrical coordinate flow problems.  See the discussion in
-// header for field.C, and for routine Mesh::buildMask in mesh.C.
-//
-// Divergence problems sometimes arise when the highest numbered
-// zero-mode pressure node occurs on the axis in 3D cylindrical
-// simulations.  The code attempts to fix this problem, and lets you
-// know if it can't.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";

@@ -151,6 +151,9 @@ void dfill (integer n, double  alpha, double*  x, integer incx);
 void ifill (integer n, integer alpha, integer* x, integer incx);
 void sfill (integer n, float   alpha, float*   x, integer incx);
 
+void dznan (integer n, double*  x, integer incx);
+void sznan (integer n, float*   x, integer incx);
+
 void dneg (integer n, double*  x, integer incx);
 void ineg (integer n, integer* x, integer incx);
 void sneg (integer n, float*   x, integer incx);

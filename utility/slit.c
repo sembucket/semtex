@@ -34,9 +34,9 @@ static char RCS[] = "$Id$";
 #define	MAXSTR	256
 #define NUMDIG	8
 
-int  parse   (char *strin, char *strout, int *pos, char sep);
-void slit    (FILE *fp, int n, int *col);
-int  getline (FILE *fp, char coltext[][MAXSTR], int *nwords);
+int  parse    (char *strin, char *strout, int *pos, char sep);
+void slit     (FILE *fp, int n, int *col);
+int  get_line (FILE *fp, char coltext[][MAXSTR], int *nwords);
 
 
 main(int argc, char *argv[])
@@ -138,7 +138,7 @@ void slit(FILE *fp, int n, int *col)
 }
 
 
-int getline(FILE *fp, char coltext[][MAXSTR], int *nwords)
+int get_line(FILE *fp, char coltext[][MAXSTR], int *nwords)
 /* =========================================================================
  * The parsing of each input line is done here.
  * ========================================================================= */

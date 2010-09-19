@@ -41,7 +41,7 @@
 #include <cveclib.h>
 
 #if defined (NUMA)
-/* Need this forward declaration for SGI-specific routine. */
+/* Need this forward declaration for SGI/NUMA-specific routine. */
 extern void _fastbcopy(const void *src, void *dest, size_t n);
     #define __MEMCPY(dest, src, n) _fastbcopy(src, dest, n)
 #else
@@ -231,7 +231,7 @@ void message_dexchange (double*       data,
 
   } else {			/* -- "Backwards" exchange. */
 
-    MPI_Alltoall (data, NM, MPI_DOUBLE, tmp, NM, MPI_DOUBLE, MPI_COMM_WORLD);
+    Mpi_Alltoall (data, NM, MPI_DOUBLE, tmp, NM, MPI_DOUBLE, MPI_COMM_WORLD);
     __MEMCPY     (data, tmp, nP * nZ * dsize);
 
     if (NB == nZ) {

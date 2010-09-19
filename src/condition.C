@@ -1,4 +1,4 @@
-///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
 // condition.C: functions used to evaluate & apply BCs.
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
@@ -349,9 +349,9 @@ void NaturalHOPBC::describe (char* tgt) const
 
 Mixed::Mixed (const char* v)
 // ---------------------------------------------------------------------------
-// The format for a Mixed BC is: "field = mulvalue, refvalue".  The
-// separator can be either ',' or ';'. Each of the two supplied values
-// is expected to evaluate to a real_t constant.
+// The format for a Mixed BC is: "field = mulvalue;refvalue".  The
+// separator can be either ';' or ',' (no white space). Each of the
+// two supplied values is expected to evaluate to a real_t constant.
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "Mixed::Mixed";
@@ -359,16 +359,8 @@ Mixed::Mixed (const char* v)
   char       buf[StrMax], *tok;
 
   strcpy (buf, v);
-  tok = strtok (buf, sep);
-
-  _K_ = Femlib::value (tok);
-
-  if (_K_ <= EPSSP) {
-    sprintf (buf, "transfer coefficient K must be positive (%s)", tok);
-    message (routine, buf, ERROR);
-  }
-
-  _C_ = Femlib::value (tok = strtok (0, sep));
+  _K_ = Femlib::value (tok = strtok (buf,  sep));
+  _C_ = Femlib::value (tok = strtok (NULL, sep));
 }
 
 

@@ -25,6 +25,9 @@ extern "C" {
   void  ifill  (int_t n, int_t  alpha, int_t*  x, int_t incx);
   void  sfill  (int_t n, float  alpha, float*  x, int_t incx);
   
+  void  dznan  (int_t n, double* x, int_t incx);
+  void  sznan  (int_t n, float*  x, int_t incx);
+  
   void  dneg   (int_t n, double* x, int_t incx);
   void  ineg   (int_t n, int_t*  x, int_t incx);
   void  sneg   (int_t n, float*  x, int_t incx);
@@ -557,6 +560,11 @@ class Veclib {
   static void fill (int_t n, float  alpha, float*  x, int_t incx)
   { sfill (n, alpha, x, incx); }
 
+
+  static void znan (int_t n, double* x, int_t incx)
+  { dznan (n, x, incx); }
+  static void znan (int_t n, float*  x, int_t incx)
+  { sznan (n, x, incx); }
 
   static void neg (int_t n, double* x, int_t incx)
   { dneg (n, x, incx); }
