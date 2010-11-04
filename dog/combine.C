@@ -10,6 +10,7 @@
 // -h       ... print this message.
 // -b <num> ... set beta, wavenumber of base flow to <num> (3D) [Default: 1.0]
 // -r <num> ... relative energy of perturbation is <num>.       [Default: 1.0]
+// -s       ... simple scaling: scaling is pointwise rather than energy-based.
 // -m <num> ... mode number for perturbation is <num> (3D only) [Default: 1]
 // 
 // Write to standard output.
@@ -141,14 +142,14 @@ typedef struct hdr_data {
   char   format[StrMax];
 } hdr_info;
 
-static void  getargs   (int, char**, int_t&, real_t&, real_t&,
+static void  getargs   (int, char**, int_t&, real_t&, real_t&, bool&, 
 			ifstream&, ifstream&);
 static void  gethead   (istream&, hdr_info&);
 static void  conform   (const hdr_info&, const hdr_info&);
 static int_t roundup   (int_t&, int_t&, const hdr_info&, const hdr_info&);
 static void  allocate  (hdr_info&, const int_t, vector<real_t*>&);
 static void  readdata  (hdr_info&, istream&, hdr_info&, istream&,
-			vector<real_t*>&, const real_t, const int_t);
+			vector<real_t*>&, const real_t,const bool,const int_t);
 static void  packdata  (hdr_info&, const int_t, const int_t, vector<real_t*>&);
 static void  transform (hdr_info&, const int_t, vector<real_t*>&, const int_t);
 static void  writedata (hdr_info&, ostream&, const int_t,
@@ -168,9 +169,10 @@ int main (int    argc,
   int_t           mode = 1, nz;
   real_t          wght = 1.0, beta = 1.0;
   vector<real_t*> u;
+  bool            simplescale = false;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, mode, wght, beta, bFile, pFile);
+  getargs (argc, argv, mode, wght, beta, simplescale, bFile, pFile);
   gethead (bFile, bHead);
   gethead (pFile, pHead);
 
@@ -178,7 +180,7 @@ int main (int    argc,
   roundup (mode, nz, bHead, pHead);
 
   allocate (pHead, nz, u);
-  readdata (bHead, bFile, pHead, pFile, u, wght, mode);
+  readdata (bHead, bFile, pHead, pFile, u, wght, simplescale, mode);
   bFile.close(); pFile.close();
 
   if (nz > 2) {
@@ -197,6 +199,7 @@ static void getargs (int       argc ,
 		     int_t&    mode ,
 		     real_t&   wght ,
 		     real_t&   beta ,
+		     bool&     simpl,
 		     ifstream& bfile,
 		     ifstream& pfile)
 // ---------------------------------------------------------------------------
@@ -210,6 +213,8 @@ static void getargs (int       argc ,
     " [Default: 1.0]\n"
     "-r <num> ... relative energy of perturbation is <num>.      "
     " [Default: 1.0]\n"
+    "-s       ... simple scaling: scaling is pointwise rather than"
+    " energy-based\n"
     "-m <num> ... mode number for perturbation is <num> (3D only)"
     " [Default: 1]\n";
  
@@ -230,6 +235,9 @@ static void getargs (int       argc ,
     case 'r':
       if (*++argv[0])  wght = atof (*argv);
       else           { wght = atof (*++argv); argc--; }
+      break;
+    case 's':
+      simpl = true;
       break;
     default:
       cerr << usage;
@@ -386,6 +394,7 @@ static void readdata (hdr_info&        bhead,
 		      istream&         pfile,
 		      vector<real_t*>& u    ,
 		      const real_t     eps  ,
+		      const bool       simpl,
 		      const int_t      mode )
 // ---------------------------------------------------------------------------
 // Binary read of data areas, with byte-swapping if required.  The
@@ -400,7 +409,9 @@ static void readdata (hdr_info&        bhead,
 // enough space to cope.
 //
 // If input scale (set with command-line flag -r) eps=0 then the base
-// flow is set to zero and the perturbation is not scaled.
+// flow is set to zero and the perturbation is not scaled.  If simpl
+// == true then the perturbation data are simply multiplied by the
+// scale eps and added to the base flow.
 
 // Input mode lets us know the structure of the output.
 // ---------------------------------------------------------------------------
@@ -465,20 +476,29 @@ static void readdata (hdr_info&        bhead,
   //    used a zero base field), reset it to be 1.0.  NB: ignore the
   //    pressure fields during the calculation.  Otherwise, take eps=0
   //    as an instruction to zero the base flow.
+  //
+  //    If simpl == true, just scale the perturbation by eps.
 
   if (fabs (eps) > EPSDP) {
-    for (i = 0; i < nPfield-1; i++) {
-      U2 += sqr (Blas::nrm2 (ntotelmt, u[i], 1));
-      for (j = 0; j < nzP; j++) {
-	u2 += sqr (Blas::nrm2 (ntotelmt, &utmp[i][j*planesize], 1));
-      }
-    }
-
-    U2 = (U2 < EPSDP) ? 1.0 : U2;
-  
+    if (simpl) {
     for (i = 0; i < nPfield; i++)
-      for (j = 0; j < nzP; j++)
-	Blas::scal (ntotelmt, sqrt (eps*U2/u2), &utmp[i][j*planesize], 1);
+	for (j = 0; j < nzP; j++)
+	  Blas::scal (ntotelmt, eps, &utmp[i][j*planesize], 1);
+
+    } else {
+      for (i = 0; i < nPfield-1; i++) {
+	U2 += sqr (Blas::nrm2 (ntotelmt, u[i], 1));
+	for (j = 0; j < nzP; j++) {
+	  u2 += sqr (Blas::nrm2 (ntotelmt, &utmp[i][j*planesize], 1));
+	}
+      }
+
+      U2 = (U2 < EPSDP) ? 1.0 : U2;
+  
+      for (i = 0; i < nPfield; i++)
+	for (j = 0; j < nzP; j++)
+	  Blas::scal (ntotelmt, sqrt (eps*U2/u2), &utmp[i][j*planesize], 1);
+    }
   } else
     for (i = 0; i < nPfield; i++) Veclib::zero (ntotelmt, u[i], 1);
 

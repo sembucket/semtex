@@ -79,6 +79,13 @@ symmetrise: symmetrise.C data2df.o
 	$(CXX) $(CPPFLAGS) -o $@ data2df.o $@.C $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
+# Build reflect, a utility to generate a solution on a full mesh from
+# one on a half mesh by reflection.
+#
+reflect: reflect.C data2df.o 
+	$(CXX) $(CPPFLAGS) -o $@ data2df.o $@.C $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
 # Header dependency.
 
 $(SEMOBJ): $(SEMHDR)

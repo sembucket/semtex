@@ -25,7 +25,7 @@
 // first mapping found for each case (reflect positive->negative,
 // *and* negative->positive).  This way a single gather will do the
 // reflection, and leave no holes.  The nmap does not correspond to a
-// global numberin scheme, it is simply the number of points in the
+// global numbering scheme, it is simply the number of points in the
 // mesh which do not coincide with the y axis (for a -x reflection
 // symmetry) or the x axis (for -y).  The numbers in the two lists are
 // the correspondences between the indices of reflected points in a
