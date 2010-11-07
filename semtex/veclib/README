@@ -23,8 +23,8 @@ NOTES:
 No checks are made for length of vectors, negative lengths.
 	
 Negative increments are allowed; behaviour is the same as for the
-BLAS, i.e. if the vector increment is negative, the supplied vector
-address is the last item to be accessed, with vector traverse
+BLAS, q.v., i.e. if the vector increment is negative, the supplied
+vector address is the last item to be accessed, with vector traverse
 beginning at the supplied address + (n-1) * abs (inc), (further along
 the vector).
 
