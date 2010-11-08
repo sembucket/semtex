@@ -231,7 +231,7 @@ void message_dexchange (double*       data,
 
   } else {			/* -- "Backwards" exchange. */
 
-    Mpi_Alltoall (data, NM, MPI_DOUBLE, tmp, NM, MPI_DOUBLE, MPI_COMM_WORLD);
+    MPI_Alltoall (data, NM, MPI_DOUBLE, tmp, NM, MPI_DOUBLE, MPI_COMM_WORLD);
     __MEMCPY     (data, tmp, nP * nZ * dsize);
 
     if (NB == nZ) {
