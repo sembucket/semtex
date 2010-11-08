@@ -28,6 +28,7 @@
 static char RCS[] = "$Id$";
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 
 #define MAXCOL	256
@@ -127,7 +128,7 @@ void slit(FILE *fp, int n, int *col)
   int	i, nwords;
   char	coltext[MAXCOL][MAXSTR];
   
-  while (getline(fp, coltext, &nwords) != EOF) {
+  while (get_line(fp, coltext, &nwords) != EOF) {
     if (nwords > 0) {
       (void)printf("%s", coltext[col[0]]);
       for (i=1; i<n; i++) 
