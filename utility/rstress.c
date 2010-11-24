@@ -15,7 +15,7 @@
  * subtracted).
  *
  * Note that this also allows rstress to be used to subtract
- * (instantaneous) values in one field dump from another.
+ * (perhaps instantaneous) values in one field dump from another.
  * Alternatively we can also add, multiply or divide values, allowing
  * rstress to provide a limited utility to manipulate fields.
  *
