@@ -1,6 +1,6 @@
 /*****************************************************************************
  * xplane.c: from a 3D data file, extract a 2D plane of data on named
- * plane output 2D data file.  Field must be binary format.  By
+ * plane and output 2D data file.  Field must be binary format.  By
  * default, output plane 1.
  *
  * Copyright (c) 2000 <--> $Date$, Hugh Blackburn
