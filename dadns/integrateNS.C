@@ -8,11 +8,6 @@
 //
 // Copyright (C) 1994,2003 Hugh Blackburn
 //
-// References:
-// 1.  Karniadakis, Israeli & Orszag 1991.  "High-order splitting methods
-//     for the incompressible Navier--Stokes equations", JCP 9(2).
-// 2.  Tomboulides, Orszag & Karniadakis 1993.  "Direct and
-//     large-eddy simulation of axisymmetric wakes",  AIAA-93-0546.
 //
 // For cylindrical coordinates:
 //   u <==> axial     velocity,  x <==> axial     coordinate direction,
@@ -160,7 +155,7 @@ void integrateNS (Domain*      D,
 
     // -- Process results of this step.
 
-    A -> analyse (Us[0]);
+    A -> analyse (Us[0], Uf[0]);
   }
 
 }
@@ -306,7 +301,7 @@ static void nonLinear (Domain*       D ,
 	}
       }
 
-      master -> divR (nZ32, n32[i]);
+      master -> divY (nZ32, n32[i]);
 
       // -- 2D non-conservative derivatives.
 
@@ -389,7 +384,7 @@ static void nonLinear (Domain*       D ,
       
       N[i]   -> transform32 (FORWARD, n32[i]);
 //      master -> smooth (N[i]);
-#if 1 				// -- do projection-stabilization.
+#if 0 				// -- do projection-stabilization.
       N[i] -> projStab (0.05, *master); 
 #endif
 
@@ -457,11 +452,11 @@ static void setPForce (const AuxField** Us,
 
   for (i = 0; i < NDIM; i++) (*Uf[i] = *Us[i]) . gradient (i);
 
-  if (C3D) Uf[2] -> divR();
+  if (C3D) Uf[2] -> divY();
 
   for (i = 1; i < NDIM; i++) *Uf[0] += *Uf[i];
 
-  if (CYL) *Uf[0] += (*Uf[1] = *Us[1]) . divR();
+  if (CYL) *Uf[0] += (*Uf[1] = *Us[1]) . divY();
 
   *Uf[0] /= dt;
 }
@@ -492,7 +487,7 @@ static void project (const Domain* D ,
 
   for (i = 0; i < NDIM; i++) {
     (*Us[0] = *D -> u[NCOM]) . gradient (i);
-    if (C3D && i == 2) Us[0] -> divR();
+    if (C3D && i == 2) Us[0] -> divY();
     Uf[i] -> axpy (beta, *Us[0]);
   }
 }

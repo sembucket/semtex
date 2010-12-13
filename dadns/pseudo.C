@@ -61,21 +61,27 @@ void daprod (const int   nz,
   const int         nel = Geometry::nElmt();
   int               i, j;
   static real       *Fn, *Ft;
-  static const real **In, **It;
+  static const real *In, *It;
   
   if (!Fn) {			// -- Set up matrices that do the work.
 
     Fn = new real [Np * N];
     Ft = new real [N * Np];
 
-    const real   **Im, *B, *Bm;
+    const real   *Im, *B, *Bm;
     vector<real> L(Np), F1 (Np2), F2 (Np2);
 
     // -- Retrieve the interpolation and basis function matrices.
 
+#if 0 				// -- Old femlib.
     Femlib::mesh    (GLL, GLL, N, Np, 0, &In, &It, 0, 0);
     Femlib::mesh    (GLL, GLL, Np, N, 0, &Im, 0,   0, 0);
     Femlib::legTran (Np, &B, 0, &Bm, 0, 0, 0);
+#else
+    Femlib::projection (&In, &It, N,  GLJ, 0.0, 0.0, Np, GLJ, 0.0, 0.0);
+    Femlib::projection (&Im, 0  , Np, GLJ, 0.0, 0.0, N,  GLJ, 0.0, 0.0);
+    Femlib::legTran    (Np, &B, 0, &Bm, 0, 0, 0);    
+#endif
 
     // -- Create the filter vector.
     
@@ -88,8 +94,8 @@ void daprod (const int   nz,
     for (i = 0; i < Np; i++)
       Veclib::smul (Np, L[i], B + i*Np, 1, &F1[0] + i*Np, 1);
     
-    Blas::mxm (Bm,   Np, &F1[0], Np, &F2[0], Np);
-    Blas::mxm (Im[0], N, &F2[0], Np, &Fn[0], Np);
+    Blas::mxm (Bm, Np, &F1[0], Np, &F2[0], Np);
+    Blas::mxm (Im, N,  &F2[0], Np, &Fn[0], Np);
 
     // -- And its transpose, Ft.
 
@@ -124,10 +130,10 @@ void daprod (const int   nz,
       
       // -- Interpolate u & v.
 
-      Blas::mxm (In[0], Np, uel,   N, tp, N );
-      Blas::mxm (tp,    Np, It[0], N, up, Np);
-      Blas::mxm (In[0], Np, vel,   N, tp, N );
-      Blas::mxm (tp,    Np, It[0], N, vp, Np);
+      Blas::mxm (In, Np, uel, N, tp, N );
+      Blas::mxm (tp, Np, It,  N, up, Np);
+      Blas::mxm (In, Np, vel, N, tp, N );
+      Blas::mxm (tp, Np, It,  N, vp, Np);
 
       // -- Form product wp.
 
@@ -152,7 +158,6 @@ void daprod (const int   nz,
   wplus = vplus + npad;
   temp  = wplus + npad;
   
-
   for (i = 0; i < nz; i++) {
     uplane = u + i*nP;
     vplane = v + i*nP;

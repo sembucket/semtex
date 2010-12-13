@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // drive.C: control spectral element DNS for incompressible flows.
 //
-// Copyright (C) 1994,2003 Hugh Blackburn
+// Copyright (c) 1994 -- $Date$, Hugh Blackburn
 //
 // USAGE:
 // -----
@@ -15,14 +15,14 @@
 // AUTHOR:
 // ------
 // Hugh Blackburn
-// CSIRO
-// P.O. Box 56
-// Highett, Vic 3190
+// Department of Mechanical & Aerospace Engineering
+// Monash University
+// Vic 3800
 // Australia
-// hugh.blackburn@csiro.au
-//
-// $Id$
+// hugh.blackburn@eng.monash.edu.au
 //////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include <dns.h>
 
@@ -167,10 +167,8 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "Building elements ... ";
 
-  Femlib::mesh (GLL, GLL, np, np, &z, 0, 0, 0, 0);
-
   elmt.resize (nel);
-  for (i = 0; i < nel; i++) elmt[i] = new Element (i, mesh, z, np);
+  for (i = 0; i < nel; i++) elmt[i] = new Element (i, np, mesh);
 
   VERBOSE cout << "done" << endl;
 
