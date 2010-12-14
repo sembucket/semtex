@@ -5,12 +5,17 @@
 // routines provide: we only return pointers if the input pointers are
 // non-null.
 //
-// The tokens SVV_EPS and SVV_M (where 0<N_P<SVV_M) should be pre-defined.
+// The tokens SVV_EPSx and SVV_Mx (where 0 < N_P < SVV_MN and 0 _N_Z/2
+// < SVV_MZ) should be pre-defined for both x-y and z (Fourier)
+// directions, see routines coeffs and coeffs_z below.
 //
 // Copyright (c) 2004 <--> $Date$, Hugh Blackburn
 //
 // [1] C Xu & R Pasquetti (2004), 'Stabilized spectral element computations
 //     of high Reynolds number incompressible flows', JCP 196, 680-704.
+// [2] HM Blackburn & S Schmidt (2003), 'Spectral element filtering
+//     techniques for large eddy simulation with dynamic estimation',
+//     JCP 186, 610-629.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -25,14 +30,13 @@ typedef struct { real_t* dv; real_t* dt; } vector_pair;
 
 const real_t* coeffs (const int_t np)
 // ---------------------------------------------------------------------------
-// Return from internal storage a pointer to an array Q of SVV filter
-// weights for x and y direction.We use the token SVV_MN and SVV_EPSN 
-// (see [1]) to define this. Specifically, we create
+// Return from internal storage a pointer to an array S of SVV filter
+// weights for x and y direction.  We use the tokens SVV_MN and
+// SVV_EPSN (see [1]) to define this. Specifically, we create
 //
-//   S = 1 + eps_N/nu * Q.
+//   S = 1 + eps_N/nu * Q
 //
-// If the relevant vector of weights doesn't exist, create it
-// first.
+// If the relevant vector of weights doesn't exist, create it first.
 // ---------------------------------------------------------------------------
 {
   static map<int_t, real_t*>    cmap;
@@ -56,16 +60,16 @@ const real_t* coeffs (const int_t np)
   return cmap[np];
 }
 
+
 const real_t* coeffs_z (const int_t numModes)
 // ---------------------------------------------------------------------------
-// Return from internal storage a pointer to an array Q of SVV filter
-// weights for the z direction. We use the token SVV_MZ and SVV_EPZ 
-// (see [1]) to define this. Specifically, we create
+// Return from internal storage a pointer to an array S of SVV filter
+// weights for the z (Fourier) direction. We use the tokens SVV_MZ and
+// SVV_EPSZ (see [1]) to define this. Specifically, we create
 //
 //   S = 1 + eps_N/nu * Q.
 //
-// If the relevant vector of weights doesn't exist, create it
-// first.
+// If the relevant vector of weights doesn't exist, create it first.
 // ---------------------------------------------------------------------------
 {
   static map<int_t, real_t*>    czmap;
@@ -85,27 +89,32 @@ const real_t* coeffs_z (const int_t numModes)
     czmap[numModes] = svvcoeff;
     Veclib::zero (numModes, svvcoeff, 1);
     for (i = base; i < base + numModes; i++) 
-        if (i > mN) 
-	   svvcoeff[i-base] = exp (-sqr ((N-i)/(1.0*mN -i))) ;
+      if (i > mN) svvcoeff[i-base] = exp (-sqr ((N-i)/(1.0*mN -i))) ;
     for (i = 0; i < numModes; i++)  svvcoeff[i] = 1.0 + eps/nu * svvcoeff[i];
-
   }
 
   return czmap[numModes];
 }
+
 
 void operators (const int_t    np ,
 		const real_t** SDV,
 		const real_t** SDT)
 // ---------------------------------------------------------------------------
 // Return from internal storage pointers to (flat) arrays that provide
-// the SVV-stabilized derivative operator SDV and its transpose SDT.
-// Again, if the operators do not exist, we create them and leave on
-// internal static storage.
+// the SVV-stabilized derivative operator SDV and its transpose SDT
+// which will be used in computing Helmholtz matrices (or their
+// equivalent operators).  Again, if these derivative operators do not
+// pre-exist, we create them and leave on internal static storage.
 //
 //   SDV = [M^{-1}][diag(1+SVV_EPSN/KINVIS*Q)][M][DV],
 //
-// where [DV] is the standard operator, and  See [1].
+// where [DV] is the standard spectral element derivative
+// operator. [M] is the discrete polynomial transform matrix that
+// takes a set of nodal values into a polyomial space, see
+// e.g. Appendix A of [2].  Below we have compile-in support for
+// transforms either to Legendre polynomial space (default) or
+// modal/hp/Jacobi polynomial space.
 // ---------------------------------------------------------------------------
 {
   static map<int_t, vector_pair> dmap;
