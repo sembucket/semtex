@@ -11,14 +11,14 @@ essential: sem compare enumerate
 
 all: essential plain preplot nosrc meshpr calc addfield sem2nek \
      convert project interp probe rectmesh transform wallmesh   \
-     phase lowpass eneq integral traction 
+     phase lowpass eneq integral traction stressdiv
 
 distclean:
 	make clean
 	rm -f addfield avgdump calc chop compare convert eneq enumerate \
         integral interp lowpass meshpr moden noiz phase preplot probe   \
         probeline probeplane project rectmesh repeatxy repeatz rstress  \
-        sem2nek sem2tec slit transform wallmesh xplane
+        sem2nek sem2tec slit stressdiv transform wallmesh xplane
 
 # ----------------------------------------------------------------------------
 # Standard rules and definitions.
@@ -66,7 +66,7 @@ preplot: preplot.c
 
 nosrc: avgdump moden noiz rstress xplane sem2tec sem2vtk convert repeatz repeatxy
 avgdump moden noiz rstress xplane sem2tec sem2vtk convert repeatz repeatxy : \
-	avgdump.c moden.c xplane.c noiz.c rstress.c sem2tec.c sem2vtk \
+	avgdump.c moden.c xplane.c noiz.c rstress.c sem2tec.c sem2vtk.c \
         convert.c repeatz.c repeatxy.c
 	$(CC) -o $@ $@.c $(CFLAGS) $(CPPFLAGS) $(CLDFLAGS) -lm
 
@@ -181,6 +181,16 @@ $(ENOBJ): $(SEMHDR)
 
 eneq: $(ENOBJ)
 	$(CXX) $(CPPFLAGS) -o $@ $(ENOBJ) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build stressdiv, which computes divergence of Reynolds stresses.
+#
+DIVOBJ = stressdiv.o feml.o mesh.o element.o family.o auxfield.o geometry.o \
+	 misc.o
+$(DIVOBJ): $(SEMHDR)
+
+stressdiv: $(DIVOBJ)
+	$(CXX) $(CPPFLAGS) -o $@ $(DIVOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build rectmesh, rectangular mesh generator.

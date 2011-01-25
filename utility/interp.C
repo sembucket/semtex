@@ -31,6 +31,13 @@
 // that point location.  Points can either be supplied on standard input
 // or in a named file.
 //
+// (From src/element.C:)
+//
+// Point tolerances can be changed by setting token TOL_POS, but
+// usually it's better to increase NR_MAX above its default, since
+// TOL_POS is used both as a location test at end of iteration, and on
+// the N--R forcing term.
+//
 // --
 // This file is part of Semtex.
 // 
