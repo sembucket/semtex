@@ -67,12 +67,12 @@
 // terms to compute.  For Newtonian flow we only need six.  We will
 // use arabic numeric characters to name these terms.
 //
-// 1: Uj dq/dxj
-// 2: -d(q.uj)/dxj
-// 3: -d(1/rho p.uj)/dxj
-// 4: 2 kinvis d(sij.ui)/dxj
-// 7: -2 kinvis sij.sij
-// 0: -ui.uj.Sij
+// '1': Uj dq/dxj
+// '2': -d(q.uj)/dxj
+// '3': -d(1/rho p.uj)/dxj
+// '4': 2 kinvis d(sij.ui)/dxj
+// '7': -2 kinvis sij.sij
+// '0': -ui.uj.Sij
 //
 // Note: the "missing" names 5,6,8,9 are for non-Newtonian flow.  The
 // above terms should sum to zero for stationary turbulence, so we
@@ -114,6 +114,7 @@ static void covary  (map<char,AuxField*>&,map<char,AuxField*>&,
 		     vector<AuxField*>&);
 
 static const char* fieldNames(map<char, AuxField*>&);
+
 
 int main (int    argc,
 	  char** argv)
