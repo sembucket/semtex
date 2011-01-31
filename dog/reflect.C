@@ -1,7 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 // reflect.C: reflect a field dump defined on a half-mesh onto a full
-// mesh.  Apply sign change to appropriate velocity component.  Built
-// from semtex/utility/data2df_template.C.  See also dog/symmetrize.C
+// mesh.  Apply sign change to appropriate velocity component, unless
+// explicitly supressed.  Built from
+// semtex/utility/data2df_template.C.  See also dog/symmetrize.C
 //
 // Copyright (c) 2010 <--> $Date$, Hugh Blackburn
 //
@@ -9,7 +10,8 @@
 // -----
 // reflect [options] -m mapfile fieldfile
 // options:
-// -h       ... print this message.
+// -h ... print this message.
+// -r ... reverse parity
 //
 // If fieldfile is not present, read from standard input.  Write to
 // standard output.  Note that the size of the output file will be
@@ -25,8 +27,8 @@ static char RCS[] = "$Id$";
 #include <data2df.h>
 
 static char prog[] = "reflect";
-static void getargs  (int, char**, istream*&, istream*&);
-static void loadmap  (Header&, istream&, char&,vector<int_t>&,vector<int_t>&);
+static void getargs  (int, char**, bool&, istream*&, istream*&);
+static void loadmap  (Header&, istream&, char&, vector<int_t>&,vector<int_t>&);
 static void halfread (istream*, Data2DF*);
 
 
@@ -43,9 +45,10 @@ int main (int    argc,
   Data2DF*         tmp;
   char             generator = 'x';
   vector<int_t>    positive, negative;
+  bool             revpar = false;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, mapping, input);
+  getargs (argc, argv, revpar, mapping, input);
 
   *input >> h;
   h.nel += h.nel;		// -- Double the number of elements.
@@ -58,50 +61,131 @@ int main (int    argc,
 
   for (i = 0; i < h.nFields(); i++) {
 
-    const int_t ntot = u[i] -> _ntot;
-
     // - Create u[i].
 
     u[i] = new Data2DF (h.nr, h.nz, h.nel, h.flds[i]);
+
+    const int_t ntot = u[i] -> _ntot;
 
     // -- Read in u[i] and byte-swap if necessary.
 
     halfread (input, u[i]);	// -- Input file only has 1/2 the elements.
     if (h.swab()) u[i] -> reverse();
 
-    // -- Copy the refkection of the other half of the data field,
-    // -- negating appropriate velcity vector component.
+    // -- Create in tmp a spatial reflection of what was just read.
 
+    (*tmp = *u[i]) . reflect2D (positive, negative);
+
+    // -- Copy the reflection of the other half of the data field,
+    // -- negating appropriate velocity vector component.
+# if 0
     if (generator == 'y') {
       if (u[i] -> getName() == 'u' ||
 	  u[i] -> getName() == 'w' ||
-	  u[i] -> getName() == 'p') {
-	*tmp = *u[i];
-	u[i] -> reflect2D (positive, negative);
+	  u[i] -> getName() == 'p')
 	for (j = 0; j < ntot; j++)
-	  u[i]->_data[j] += (fabs(u[i]->_data[j] > EPSDP)) ? tmp->_data[j]:0.0;
-      } else if (u[i] -> getName() == 'v') {
-	*tmp = *u[i];
-	u[i] -> reflect2D (positive, negative);
-	for (j = 0; j < ntot; j++)
-	  u[i]->_data[j] -= (fabs(u[i]->_data[j]) > EPSDP) ? tmp->_data[j]:0.0;
-      }
+	  u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	    ? tmp -> _data[j] : 0.0;
+      else if (u[i] -> getName() == 'v')
+	if (vectors)
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] -= (fabs(u[i]->_data[j]) < EPSSP)
+	      ? tmp->_data[j] : 0.0;
+	else
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP)
+	      ? tmp->_data[j] : 0.0;
     } else if (generator == 'x') {
       if (u[i] -> getName() == 'v' ||
 	  u[i] -> getName() == 'w' ||
-	  u[i] -> getName() == 'p') {
-	*tmp = *u[i];
-	u[i] -> reflect2D (positive, negative);
+	  u[i] -> getName() == 'p')
 	for (j = 0; j < ntot; j++)
-	  u[i]->_data[j] += (fabs(u[i]->_data[j] > EPSDP)) ? tmp->_data[j]:0.0;
-      } else if (u[i] -> getName() == 'u') {
-	*tmp = *u[i];
-	u[i] -> reflect2D (positive, negative);
-	for (j = 0; j < ntot; j++)
-	  u[i]->_data[j] -= (fabs(u[i]->_data[j]) > EPSDP) ? tmp->_data[j]:0.0;
-      }
+	  u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	    ? tmp->_data[j] : 0.0;
+      else if (u[i] -> getName() == 'u')
+	if (vectors)
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] -= (fabs(u[i]->_data[j]) < EPSSP) 
+	      ? tmp -> _data[j] : 0.0;
+	else
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	      ? tmp -> _data[j] : 0.0;
     }
-
+#else
+    if (generator == 'y')
+      if (revpar) {
+	if      (u[i] -> getName() == 'u')
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] -= (fabs(u[i]->_data[j]) < EPSSP) 
+	      ? tmp->_data[j] : 0.0;
+	else if (u[i] -> getName() == 'v')
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	      ? tmp->_data[j] : 0.0;
+	else if (u[i] -> getName() == 'w')
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	      ? tmp->_data[j] : 0.0;
+	else if (u[i] -> getName() == 'p')
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	      ? tmp->_data[j] : 0.0;
+      }	else {
+	if      (u[i] -> getName() == 'u')
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	      ? tmp->_data[j] : 0.0;
+	else if (u[i] -> getName() == 'v')
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] -= (fabs(u[i]->_data[j]) < EPSSP) 
+	      ? tmp->_data[j] : 0.0;
+	else if (u[i] -> getName() == 'w')
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	      ? tmp->_data[j] : 0.0;
+	else if (u[i] -> getName() == 'p')
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	      ? tmp->_data[j] : 0.0;
+      }
+    else if (generator == 'x')
+      if (revpar) {
+	if      (u[i] -> getName() == 'u')
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	      ? tmp->_data[j] : 0.0;
+	else if (u[i] -> getName() == 'v')
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] -= (fabs(u[i]->_data[j]) < EPSSP) 
+	      ? tmp->_data[j] : 0.0;
+	else if (u[i] -> getName() == 'w')
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	      ? tmp->_data[j] : 0.0;
+	else if (u[i] -> getName() == 'p')
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	      ? tmp->_data[j] : 0.0;
+      }	else {
+	if      (u[i] -> getName() == 'u')
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] -= (fabs(u[i]->_data[j]) < EPSSP) 
+	      ? tmp->_data[j] : 0.0;
+	else if (u[i] -> getName() == 'v')
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	      ? tmp->_data[j] : 0.0;
+	else if (u[i] -> getName() == 'w')
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	      ? tmp->_data[j] : 0.0;
+	else if (u[i] -> getName() == 'p')
+	  for (j = 0; j < ntot; j++)
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	      ? tmp->_data[j] : 0.0;
+      }
+#endif    
     // -- Output u[i];
 
     cout << *u[i];
@@ -112,18 +196,20 @@ int main (int    argc,
 }
 
 
-static void getargs (int       argc ,
-		     char**    argv ,
-		     istream*& mapfl,
-		     istream*& input)
+static void getargs (int       argc  ,
+		     char**    argv  ,
+		     bool&     revpar,
+		     istream*& mapfl ,
+		     istream*& input )
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.  Based on dog/reflect.C.
 // ---------------------------------------------------------------------------
 {
   char usage[] = "Usage: reflect [options] -m mapfile [file]\n"
     "options:\n"
-    "-h       ... print this message\n";
-  
+    "-h ... print this message\n"
+    "-r ... reverse parity\n";
+
   if (argc < 3) {
     cerr << usage ;
     exit (EXIT_FAILURE);
@@ -139,6 +225,9 @@ static void getargs (int       argc ,
       --argc; ++argv;
       mapfl = new ifstream (*argv);
       if (mapfl -> bad()) message (prog, "unable to open map file", ERROR);
+      break;
+    case 'r':
+      revpar = true;
       break;
     default:
       cerr << usage;
@@ -190,7 +279,6 @@ static void loadmap (Header&        headr    ,
 
   if (!file)
     message (prog, "bad (premature end of?) map file", ERROR);
-
 }
 
 
@@ -204,8 +292,8 @@ static void halfread (istream* file,
 // ---------------------------------------------------------------------------
 {
   int_t       i;
-  const int_t ntot = dat -> _np * dat -> _np * (dat -> _nel >> 1);
-  
+  const int_t ntot = dat -> _np2 * dat -> _nel / 2;
+
   for (i = 0; i < dat -> _nz; i++)
     file -> read (reinterpret_cast<char*> (dat -> _plane[i]),
 		  ntot * sizeof (real_t));

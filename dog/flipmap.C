@@ -26,10 +26,9 @@
 // *and* negative->positive).  This way a single gather will do the
 // reflection, and leave no holes.  The nmap does not correspond to a
 // global numbering scheme, it is simply the number of points in the
-// mesh which do not coincide with the y axis (for a -x reflection
-// symmetry) or the x axis (for -y).  The numbers in the two lists are
-// the correspondences between the indices of reflected points in a
-// flat element-by-element ordering of the mesh points.
+// mesh.  The numbers in the two lists are the correspondences between
+// the indices of reflected points in a flat element-by-element
+// ordering of the mesh points.
 //
 // To carry out the exchange of data, say all the NTOT=NR*NR*NEL data
 // are first copied from array org to array tmp.  Exchange by
@@ -56,11 +55,11 @@ const real_t EPS = EPSSP;	// -- Default positional tolerance.
 
 static void  getargs  (int, char**, char&, real_t&, ifstream&);
 static int_t header   (ifstream&);
-static int_t loadmesh (ifstream&, const int_t, const char,
+static void  loadmesh (ifstream&, const int_t, const char,
 		       vector<real_t>&, vector<real_t>&);
 static void  findmap  (const char, const int_t, const real_t tol,
 		       const vector<real_t>&, const vector<real_t>&,
-		       const int_t, vector<int_t>&, vector<int_t>&);
+		       vector<int_t>&, vector<int_t>&);
 static void  printup  (const char, const int_t,
 		       const vector<int_t>&, const vector<int_t>&);
 
@@ -75,16 +74,17 @@ int main (int    argc,
   char           generator;
   vector<real_t> x, y;
   vector<int_t>  orig, flip;
-  int_t          npts, nmap;
+  int_t          npts;
   real_t         tol = EPS;
 
   getargs (argc, argv, generator, tol, file);
 
-  npts = header   (file);
-  nmap = loadmesh (file, npts, generator, x, y);
+  npts = header (file);
+
+  loadmesh (file, npts, generator, x, y);
   
-  findmap (generator, npts, tol, x, y, nmap, orig, flip);
-  printup (generator, nmap, orig, flip);
+  findmap  (generator, npts, tol, x, y, orig, flip);
+  printup  (generator, npts, orig, flip);
 
   return EXIT_SUCCESS;
 }
@@ -167,48 +167,21 @@ static int_t header (ifstream& file)
 }
 
 
-static int_t loadmesh (ifstream&       file,
-		       const int_t     npts,
-		       const char      gen ,
-		       vector<real_t>& x   ,
-		       vector<real_t>& y   )
+static void loadmesh (ifstream&       file,
+		      const int_t     npts,
+		      const char      gen ,
+		      vector<real_t>& x   ,
+		      vector<real_t>& y   )
 // ---------------------------------------------------------------------------
-// Load the vectors x and y. Return the number of points to be mapped
-// by symmetry.
+// Load the vectors x and y.
 // ---------------------------------------------------------------------------
 {
-  int_t i, nmap = 0;
+  int_t i;
 
   x.resize (npts);
   y.resize (npts);
 
   for (i = 0; file && i < npts; i++) file >> x[i] >> y[i];
-
-  if (!file) {
-    cerr << prog << ": premature end of input" << endl;
-    exit (EXIT_FAILURE);
-  }
-
-  if (gen == 'x') {
-    for (i = 0; i < npts; i++) if (x[i] > EPS) nmap++;
-  } else {
-    for (i = 0; i < npts; i++) if (y[i] > EPS) nmap++;
-  }
-
-  nmap *= 2;
-
-  if (nmap == 0) {
-    cerr << prog << ": no points to map" << endl;
-    exit (EXIT_FAILURE);
-  }
-
-  if (nmap > npts) {
-    cerr << prog << ": too many points to map: "
-	 << nmap << " vs. " << npts << endl;
-    exit (EXIT_FAILURE);
-  }
-
-  return nmap;
 }
 
 
@@ -217,7 +190,6 @@ static void findmap (const char            gen ,
 		     const real_t          tol ,
 		     const vector<real_t>& x   ,
 		     const vector<real_t>& y   ,
-		     const int_t           nmap,
 		     vector<int_t>&        orig,
 		     vector<int_t>&        flip)
 // ---------------------------------------------------------------------------
@@ -228,54 +200,44 @@ static void findmap (const char            gen ,
   int_t i, j, k = 0;
   bool  found;
 
-  orig.resize (nmap);
-  flip.resize (nmap);
+  orig.resize (npts);
+  flip.resize (npts);
 
-  if (gen == 'x') {
+  if (gen == 'x')
     for (i = 0; i < npts; i++) {
-      if (x[i] > tol || x[i] < -tol) {
-	for (found = false, j = 0; !found && j < npts; j++) {
-	  if (fabs(x[i] + x[j]) < tol && fabs(y[i] - y[j]) < tol) {
-	    orig[k]   = i;
-	    flip[k++] = j;
-	    found     = true;
-	  }
+      for (found = false, j = 0; !found && j < npts; j++)
+	if (fabs(x[i] + x[j]) < tol && fabs(y[i] - y[j]) < tol) {
+	  orig[k]   = i;
+	  flip[k++] = j;
+	  found     = true;
 	}
-	if (!found) {
-	  cerr << "Warning: mesh point "
-	       << x[i] << ",\t" << y[i] << "\tnot mirrored" << endl;
+      if (!found) cerr << "Warning: mesh point "
+		       << x[i] << ",\t" << y[i] << "\tnot mirrored" << endl;
+    }
+  else
+    for (i = 0; i < npts; i++) {
+      for (found = false, j = 0; !found && j < npts; j++) {
+	if (fabs(y[i] + y[j]) < tol && fabs(x[i] - x[j]) < tol) {
+	  orig[k]   = i;
+	  flip[k++] = j;
+	  found     = true;
 	}
       }
+      if (!found) cerr << "Warning: mesh point "
+		       << x[i] << ",\t" << y[i] << "\tnot mirrored" << endl;
     }
-  } else {
-    for (i = 0; i < npts; i++) {
-      if (y[i] > tol || y[i] < -tol) {
-	for (found = false, j = 0; !found && j < npts; j++) {
-	  if (fabs(y[i] + y[j]) < tol && fabs(x[i] - x[j]) < tol) {
-	    orig[k]   = i;
-	    flip[k++] = j;
-	    found     = true;
-	  }
-	}
-	if (!found) {
-	  cerr << "Warning: mesh point "
-	       << x[i] << ",\t" << y[i] << "\tnot mirrored" << endl;
-	}
-      } 
-    }
-  }
-
-  if (k != nmap) {
+  
+  if (k != npts) {
     cerr << prog
 	 << ": number of maps found, " << k
-	 << ", not equal to number needed, " << nmap << endl;
+	 << ", not equal to number needed, " << npts << endl;
     exit (EXIT_FAILURE);
   }
 }
 
 
 static void printup (const char           gen ,
-		     const int_t          nmap,
+		     const int_t          npts,
 		     const vector<int_t>& orig,
 		     const vector<int_t>& flip)
 // ---------------------------------------------------------------------------
@@ -285,9 +247,9 @@ static void printup (const char           gen ,
   int_t i;
 
   cout << gen  << endl;
-  cout << nmap << endl;
+  cout << npts << endl;
   
-  for (i = 0; i < nmap; i++)
+  for (i = 0; i < npts; i++)
     cout << orig[i] << '\t' << flip[i] << endl;
 }
 
