@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // data2df.C: simple 2D x Fourier data class; an AuxField without
-// geometric information.  Also Header class definitions for IO &
-// maintenance of input file information.
+// geometric information.  Also included in this file are Header class
+// definitions for IO & maintenance of input file information.
 //
 // Copyright (c) 2004 <--> $Date$, Hugh Blackburn
 //
@@ -413,6 +413,8 @@ Data2DF& Data2DF::reflect2D (vector<int_t>& pos,
 			     vector<int_t>& neg)
 // ---------------------------------------------------------------------------
 // Use gathr_scatr maps to carry out a 2D spatial reflection of data.
+// Note that no sign change occurs (data is scalar) -- if needed that
+// must be done separately.
 // ---------------------------------------------------------------------------
 {
   int_t          k;
@@ -477,7 +479,9 @@ istream& operator >> (istream& file,
 ostream& operator << (ostream& file,
 		      Header&  hdr )
 // ---------------------------------------------------------------------------
-// Put data from Header struct onto file. Use current time info.
+// Put data from Header struct onto file. Use current time info.  If
+// the data are in binary format, over-ride the stated input format
+// with whatever the current machine supports.
 // ---------------------------------------------------------------------------
 {
   const char routine [] = "operator: ofstream << Header";
@@ -508,7 +512,10 @@ ostream& operator << (ostream& file,
   sprintf  (s1, hdr_fmt[6], Femlib::value ("KINVIS"));        file << s1;
   sprintf  (s1, hdr_fmt[7], Femlib::value ("BETA"));          file << s1;
   sprintf  (s1, hdr_fmt[8], hdr.flds);                        file << s1;
-  sprintf  (s1, hdr_fmt[9], hdr.frmt);                        file << s1;
+
+  sprintf  (s2, "%s", "binary "); Veclib::describeFormat (s2 + strlen (s2));
+
+  sprintf  (s1, hdr_fmt[9], s2);                              file << s1;
 
   if (!file) message (routine, "failed writing field file header", ERROR);
   file << flush;

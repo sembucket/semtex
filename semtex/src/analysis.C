@@ -374,6 +374,7 @@ void Analyser::divergence (AuxField** Us) const
 // is used as work area.
 // ---------------------------------------------------------------------------
 {
+  const char routine[] = "Analyser::divergence";
   const Geometry::CoordSys space = Geometry::system();
 
   const int_t  DIM = Geometry::nDim();
@@ -402,6 +403,13 @@ void Analyser::divergence (AuxField** Us) const
   L2 /= Lz;
 
   cout << "-- Divergence Energy: " << L2 << endl;
+
+  // -- Crash stop.
+
+  // This looks like it should always be true, but it's false if L2 is a NaN.
+  // See http://www.johndcook.com/IEEE_exceptions_in_cpp.html
+
+  if (L2 != L2) message (routine, "forcing termination on NaN.", ERROR);
 }
 
 

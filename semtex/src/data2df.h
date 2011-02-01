@@ -4,7 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Define simple routines to handle quad spectral element x Fourier
 // data (class Data2DF), plus simple header data I/O class (class
-// Header) with public data.
+// Header) both with public data.
 ///////////////////////////////////////////////////////////////////////////////
 
 
@@ -44,7 +44,9 @@ public:
 
   Data2DF& reflect2D     (vector<int_t>&, vector<int_t>&);
 
+#if 0 // -- Sorry: wanted the convenience of public data.
 protected:
+#endif
   const char  _name;
   const int_t _np, _nz, _nel, _np2;
   int_t       _nplane, _ntot;

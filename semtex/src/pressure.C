@@ -3,6 +3,18 @@
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
+// Class variables _Pn & _Un provide storage for the mode equivalents of
+//   _Pn:  normal gradient of the pressure field,
+//   _Un: normal component of velocity,
+// and are used to construct explicit extrapolative estimates of the natural
+// BCs for the pressure field at the next time level.
+//
+// Reference: Karniadakis, Israeli & Orszag 1991.  "High-order splitting
+// methods for the incompressible Navier--Stokes equations", JCP 9(2).
+//
+// _Pn & _Un are indexed by time level, boundary, data plane, and location in
+// that order (e.g. _Pn[time][boundary][plane][i]).
+//
 // --
 // This file is part of Semtex.
 // 
@@ -20,19 +32,6 @@
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 // 02110-1301 USA.
-// --
-//
-// Class variables _Pn & _Un provide storage for the mode equivalents of
-//   _Pn:  normal gradient of the pressure field,
-//   _Un: normal component of velocity,
-// and are used to construct explicit extrapolative estimates of the natural
-// BCs for the pressure field at the next time level.
-//
-// Reference: Karniadakis, Israeli & Orszag 1991.  "High-order splitting
-// methods for the incompressible Navier--Stokes equations", JCP 9(2).
-//
-// _Pn & _Un are indexed by time level, boundary, data plane, and location in
-// that order (e.g. _Pn[time][boundary][plane][i]).
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";

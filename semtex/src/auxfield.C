@@ -723,14 +723,14 @@ real_t AuxField::mode_L2 (const int_t mode) const
 // Mode numbers run 0 -- n_z/2 - 1.
 // ---------------------------------------------------------------------------
 {
-  const char        routine[] = "AuxField::mode_L2";
-  const int_t       nel  = Geometry::nElmt();
-  const int_t       kr   = 2 * mode;
-  const int_t       ki   = kr + 1;
-  const int_t       npnp = Geometry::nTotElmt();
-  register real_t   area = 0.0, Ek = 0.0, *Re, *Im;
-  register int_t    i;
-  register Element* E;
+  const char  routine[] = "AuxField::mode_L2";
+  const int_t nel  = Geometry::nElmt();
+  const int_t kr   = 2 * mode;
+  const int_t ki   = kr + 1;
+  const int_t npnp = Geometry::nTotElmt();
+  real_t      area = 0.0, Ek = 0.0, *Re, *Im;
+  int_t       i;
+  Element*    E;
   
   if (kr < 0  ) message (routine, "negative mode number",        ERROR);
   if (ki > _nz) message (routine, "mode number exceeds maximum", ERROR);
