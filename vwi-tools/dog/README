@@ -1,0 +1,7 @@
+Synopsis
+--------
+
+This is a cut-down version of dog where the base flow is expected to
+have only the third velocity component non-zero.
+
+$Id$
