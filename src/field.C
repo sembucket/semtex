@@ -1,35 +1,22 @@
 ///////////////////////////////////////////////////////////////////////////////
-// field.C: derived from AuxField, Field adds boundary conditions,
-// global numbering, and the ability to solve Helmholtz problems.
+// field.C: 
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
-// --
-// This file is part of Semtex.
+/**
+// @class Field
 // 
-// Semtex is free software; you can redistribute it and/or modify it
-// under the terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2 of the License, or (at your
-// option) any later version.
+// Derived from AuxField, Field adds boundary conditions,
+// global numbering, and the ability to solve Helmholtz problems.
 // 
-// Semtex is distributed in the hope that it will be useful, but WITHOUT
-// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-// for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with Semtex (see the file COPYING); if not, write to the Free
-// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-// 02110-1301 USA.
-// --
+// Field solve routines provide solution to the discrete form of the
+// Helmholtz equation
+// \f[
+                     
+                       {\bf\nabla\cdot\nabla} u - \lambda^2 u = f,
+   \f]
 //
-// HELMHOLTZ PROBLEMS
-// ------------------
-// Solve routines provide solution to the discrete form of the Helmholtz eqn
-//                      
-//                       div grad u - \lambda^2 u = f,
-//
-// on domain \Omega, subject to essential BCs u = g on \Gamma_g and
+// on domain \f$\Omega\f$, subject to essential BCs u = g on \Gamma_g and
 // natural BCs \partial u / \partial n = h on \Gamma_h, where the
 // boundary \Gamma of \Omega is the union of (non-overlapping)
 // \Gamma_g and \Gamma_h and n is the unit outward normal vector on
@@ -120,6 +107,25 @@
 // w:  Third velocity component.            (Cylindrical: azimuthal velocity.)
 // p:  Pressure divided by density.
 // c:  Scalar for transport or elliptic problems.
+*/
+//
+// --
+// This file is part of Semtex.
+// 
+// Semtex is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2 of the License, or (at your
+// option) any later version.
+// 
+// Semtex is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with Semtex (see the file COPYING); if not, write to the Free
+// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+// 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
