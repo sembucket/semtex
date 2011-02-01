@@ -6,19 +6,14 @@
 # $Id$
 ##############################################################################
 
-SEM   = /Users/hmb/develop/semtex
+SEM   = /home/hmb/develop/semtex
 VPATH = $(SEM)/src
 
 ifdef FLIP		# -- Use the "half-period-flip map".
-  KPROG = dog-H
+  KPROG = dog-H-vwi
   DEFINES += -DFLIP
 else
-  KPROG = dog
-endif
-
-ifdef TBCS		# -- Recompute mode 0 velocity BCs every time step.
-  DEFINES += -DTBCS
-  KPROG := $(KPROG)_tbcs
+  KPROG = dog-vwi
 endif
 
 ifdef ARPACK
