@@ -407,7 +407,6 @@ void Analyser::divergence (AuxField** Us) const
   // -- Crash stop.
 
   // This looks like it should always be true, but it's false if L2 is a NaN.
-  // See http://www.johndcook.com/IEEE_exceptions_in_cpp.html
 
   if (L2 != L2) message (routine, "forcing termination on NaN.", ERROR);
 }
