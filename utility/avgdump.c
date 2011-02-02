@@ -20,12 +20,22 @@
  * A new binary file is written to stdout.  The step number is set to
  * reflect the number of averages that have been done to the data.
  *
+ * With a non-zero relaxation factor given on the command line (-r
+ * <eps>) do recursive relaxation using
+ *
+ * data_next = eps * data_new + (1 - eps) * data_old
+ *
+ * The amounts to first-order recursive filtering with a time constant
+ * -ln(1 - eps).  In this case the step number in the old file is not
+ * used although it gets updated and stored.
+ *
  * USAGE
  * -----
  * avgdump [options] old.file new.file
  * options:
- * -h ... print this message
- * -i ... initialise averaging
+ * -h       ... print this message
+ * -i       ... initialise averaging
+ * -r <eps> ... weight new file by eps and old file by (1-eps)
  *
  * --
  * This file is part of Semtex.
@@ -88,10 +98,10 @@ typedef struct {		 /* -- Data information structure. */
 } Dump;
 
 
-static void getargs   (int, char**, FILE**, FILE**, int*);
+static void getargs   (int, char**, FILE**, FILE**, int*, double*);
 static void getheader (FILE*, Dump*);
 static void getdata   (FILE*, Dump*);
-static void runavg    (Dump*, Dump*, int);
+static void runavg    (Dump*, Dump*, int, double);
 static void printup   (FILE*, Dump*);
 
 
@@ -101,11 +111,12 @@ int main (int    argc,
  * Driver routine.
  * ------------------------------------------------------------------------- */
 {
-  FILE *oldfile = 0, *newfile = 0;
-  Dump *olddump = 0, *newdump = 0;
-  int  init = 0;
+  FILE   *oldfile = 0, *newfile = 0;
+  Dump   *olddump = 0, *newdump = 0;
+  int    init     = 0;
+  double relax    = -1.0;	/* -- If positive we do relaxation. */
 
-  getargs (argc, argv, &oldfile, &newfile, &init);
+  getargs (argc, argv, &oldfile, &newfile, &init, &relax);
 
   olddump = (Dump*) calloc (1, sizeof (Dump));
   newdump = (Dump*) calloc (1, sizeof (Dump));
@@ -124,18 +135,19 @@ int main (int    argc,
 
   getdata (oldfile, olddump);
   getdata (newfile, newdump);
-  runavg  (olddump, newdump, init);
+  runavg  (olddump, newdump, init, relax);
   printup (stdout,  olddump);
 
   return (EXIT_SUCCESS);
 }
 
 
-static void getargs (int    argc   ,
-		     char** argv   ,
-		     FILE** oldfile,
-		     FILE** newfile,
-		     int*   init   )
+static void getargs (int     argc   ,
+		     char**  argv   ,
+		     FILE**  oldfile,
+		     FILE**  newfile,
+		     int*    init   ,
+		     double* relax  )
 /* ------------------------------------------------------------------------- *
  * Parse command-line arguments.
  * ------------------------------------------------------------------------- */
@@ -143,8 +155,9 @@ static void getargs (int    argc   ,
   char usage[] =
     "usage: avgdump [options] old.file new.file\n"
     "options:\n"
-    "  -h ... display this message\n"
-    "  -i ... initialise averaging\n";
+    "  -h       ... display this message\n"
+    "  -i       ... initialise averaging\n"
+    "  -r <eps> ... weight new file by eps and old file by (1-eps)\n";
     
   char err[STR_MAX], c;
 
@@ -154,6 +167,10 @@ static void getargs (int    argc   ,
       fprintf (stderr, usage); exit (EXIT_SUCCESS); break;
     case 'i':
       *init = 1; break;
+    case 'r': 
+      if (*++argv[0]) *relax = atof (*argv);
+      else {*relax = atof (*++argv); argc--;}
+      break;
     default:
       sprintf (err, "illegal option: %c\n", c);
       message (prog, err, ERROR);
@@ -229,30 +246,39 @@ static void getdata (FILE* f,
 }
 
 
-static void runavg (Dump* a,
-		    Dump* b,
-		    int   init)
+static void runavg (Dump*  a   ,
+		    Dump*  b   ,
+		    int    init,
+		    double eps )
 /* ------------------------------------------------------------------------- *
- * Running average of a & b, leave in a.  Optionally initialise.
+ * Running average of a & b, leave in a.  Optionally initialise, and if
+ * eps is positive, do recursive filtering as outlined in file header.
  * ------------------------------------------------------------------------- */
 {
   int       i;
   double    fac;
   const int nfields = strlen (a -> field);
   const int npts    = a -> nr * a -> ns * a -> nz * a -> nel;
- 
-  if (init) {
-    fac = 0.5;
-    a -> step = 2;
-    for (i = 0; i < nfields; i++)
-      dsvvpt (npts, fac, a -> data[i], 1, b -> data[i], 1, a -> data[i], 1);
 
-  } else {
-    fac = (double) a -> step;
-    a -> step++;
+  if (eps > EPSSP) {
+    if (init) a -> step = 2; else a -> step++;
     for (i = 0; i < nfields; i++) {
-      dsvtvp (npts, fac, a -> data[i], 1, b -> data[i], 1, a -> data[i], 1);
-      dsmul  (npts, 1.0 / (fac + 1.0),    a -> data[i], 1, a -> data[i], 1);
+      dsmul  (npts, 1.0 - eps, a -> data[i], 1, a -> data[i], 1);
+      dsvtvp (npts, eps, b -> data[i], 1, a -> data[i], 1, a -> data[i], 1);
+    }
+  } else {
+    if (init) {
+      fac = 0.5;
+      a -> step = 2;
+      for (i = 0; i < nfields; i++)
+	dsvvpt (npts, fac, a -> data[i], 1, b -> data[i], 1, a -> data[i], 1);
+    } else {
+      fac = (double) a -> step;
+      a -> step++;
+      for (i = 0; i < nfields; i++) {
+	dsvtvp (npts, fac, a -> data[i], 1, b -> data[i], 1, a -> data[i], 1);
+	dsmul  (npts, 1.0 / (fac + 1.0),    a -> data[i], 1, a -> data[i], 1);
+      }
     }
   }
 }
