@@ -59,8 +59,12 @@ static Msys** preSolve  (const Domain*);
 static void   Solve     (Domain*, const int_t, AuxField*, Msys*);
 
 
-void integrateNS (Domain*      D,
-		  DNSAnalyser* A)
+void integrate (void         (*advection) (Domain*, 
+					   AuxField**, 
+					   AuxField**,
+					   vector<real_t>&),
+		Domain*      D  ,
+		DNSAnalyser* A  )
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
 // constraint Field 'p'.
@@ -142,7 +146,7 @@ void integrateNS (Domain*      D,
 
     // -- Compute nonlinear terms from previous velocity field.
 
-    nonLinear (D, Us[0], Uf[0], ff);
+    advection (D, Us[0], Uf[0], ff);
 
     // -- Update high-order pressure BC storage.
 

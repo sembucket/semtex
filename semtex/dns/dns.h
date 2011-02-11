@@ -34,5 +34,9 @@ private:
   void extract_wall ();
 };
 
-void nonLinear (Domain*, AuxField**, AuxField**, vector<real_t>&);
+void skewSymmetric    (Domain*, AuxField**, AuxField**, vector<real_t>&);
+void altSkewSymmetric (Domain*, AuxField**, AuxField**, vector<real_t>&);
+void convective       (Domain*, AuxField**, AuxField**, vector<real_t>&);
+void Stokes           (Domain*, AuxField**, AuxField**, vector<real_t>&);
+
 #endif
