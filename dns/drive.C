@@ -12,6 +12,7 @@
 //   -t[t]    ... select time-varying BCs for mode 0 [or all modes]
 //   -v[v...] ... increase verbosity level
 //   -chk     ... turn off checkpoint field dumps [default: selected]
+//   -A|C|S   ... alternating skew-symm || convective || Stokes advection
 //
 // AUTHOR:
 // ------
@@ -50,8 +51,8 @@ static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, Domain*&);
 
-void integrateNS (Domain*, DNSAnalyser*);
-
+void integrate (void (*)(Domain*, AuxField**, AuxField**, vector<real_t>&),
+		Domain*, DNSAnalyser*);
 
 int main (int    argc,
 	  char** argv)
@@ -78,13 +79,18 @@ int main (int    argc,
 
   analyst = new DNSAnalyser (domain, bman, file);
   
-  domain -> restart();
+  domain -> restart ();
 
-  ROOTONLY domain -> report();
+  ROOTONLY domain -> report ();
   
-  integrateNS (domain, analyst);
+  switch (Femlib::ivalue ("ADVECTION")) {
+  case 0: integrate (   skewSymmetric, domain, analyst); break;
+  case 1: integrate (altSkewSymmetric, domain, analyst); break;
+  case 2: integrate (      convective, domain, analyst); break;
+  case 3: integrate (          Stokes, domain, analyst); break;
+  }
 
-  Femlib::finalize();
+  Femlib::finalize ();
 
   return EXIT_SUCCESS;
 }
@@ -106,7 +112,10 @@ static void getargs (int    argc   ,
     "  -i[i]    ... use iterative solver for viscous [& pressure] steps\n"
     "  -t[t]    ... select time-varying BCs for mode 0 [or all modes]\n"
     "  -v[v...] ... increase verbosity level\n"
-    "  -chk     ... turn off checkpoint field dumps [default: selected]\n";
+    "  -chk     ... turn off checkpoint field dumps [default: selected]\n"
+    "  -A|C|S   ... alternating skew-symm || convective || Stokes advection\n";
+
+  Femlib::ivalue ("ADVECTION", 0); // -- Default is skew symmetric.
 
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
@@ -115,6 +124,9 @@ static void getargs (int    argc   ,
       cout << buf;
       exit (EXIT_SUCCESS);
       break;
+    case 'A': Femlib::ivalue ("ADVECTION", 1); break;
+    case 'C': Femlib::ivalue ("ADVECTION", 2); break;
+    case 'S': Femlib::ivalue ("ADVECTION", 3); break;
     case 'i':
       do
 	Femlib::ivalue ("ITERATIVE", Femlib::ivalue ("ITERATIVE") + 1);
@@ -143,7 +155,6 @@ static void getargs (int    argc   ,
   
   if   (argc != 1) message (routine, "no session definition file", ERROR);
   else             session = *argv;
-
 }
 
 
@@ -155,7 +166,7 @@ static void preprocess (const char*       session,
 			Domain*&          domain )
 // ---------------------------------------------------------------------------
 // Create objects needed for execution, given the session file name.
-// They are listed in order of creation.
+// They are listed above in order of creation.
 // ---------------------------------------------------------------------------
 {
   const int_t        verbose = Femlib::ivalue ("VERBOSE");
