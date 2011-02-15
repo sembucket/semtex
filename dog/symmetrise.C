@@ -20,6 +20,8 @@
 //    u(-x,y) = -u(x,y),  v(-x,y) =  v(x,y),   w(-x,y) = w(x,y)
 // If generator == 'y' then we have a refection in the x axis, i.e.
 //    u(x,-y) =  u(x,y),  v(x,-y) = -v(x,-y),  w(-x,y) = w(x,y)
+// If generator == 'd' then we have refflections in both x and y axes, i.e.
+//    u(-x,-y) =  -u(x,y),  v(-x,-y) = -v(x,y),  w(-x,-y) = w(x,y)
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -29,7 +31,7 @@ static char RCS[] = "$Id$";
 
 static char prog[] = "symmetrise";
 static void getargs  (int, char**, istream*&, istream*&);
-static void loadmap  (Header&, istream&, char&,vector<int_t>&,vector<int_t>&);
+static void loadmap  (Header&, istream&, char&, vector<int_t>&,vector<int_t>&);
 
 
 int main (int    argc,
@@ -91,6 +93,23 @@ int main (int    argc,
 	*tmp = *u[i];
 	u[i] -> reflect2D (positive, negative);
 	*u[i] += *tmp;
+	*u[i] *= 0.5;
+      } else if (u[i] -> getName() == 'u') {
+	*tmp = *u[i];
+	u[i] -> reflect2D (positive, negative);
+	*u[i] -= *tmp;
+	*u[i] *= 0.5;
+      } else if (u[i] -> getName() == 'w') {
+	*tmp = *u[i];
+	u[i] -> reflect2D (positive, negative);
+	*u[i] += *tmp;
+	*u[i] *= 0.5;
+      }
+    } else if (generator == 'd') {
+      if (u[i] -> getName() == 'v') {
+	*tmp = *u[i];
+	u[i] -> reflect2D (positive, negative);
+	*u[i] -= *tmp;
 	*u[i] *= 0.5;
       } else if (u[i] -> getName() == 'u') {
 	*tmp = *u[i];

@@ -171,8 +171,10 @@ void Analyser::divergence (AuxField** Us) const
 // is used as work area.
 // ---------------------------------------------------------------------------
 {
+  const char routine[] = "Analyser::divergence";
   const int_t NC = Geometry::nPert();
   int_t       i;
+  real_t      L2;
 
   if (Geometry::system() == Geometry::Cartesian) {
     for (i = 0; i < NC; i++) {
@@ -191,7 +193,13 @@ void Analyser::divergence (AuxField** Us) const
 
   for (i = 1; i < NC; i++) *Us[0] += *Us[i];
 
-  cout << "-- Divergence Energy: " << Us[0] -> mode_L2 (0) << endl;
+  L2 = Us[0] -> mode_L2 (0);
+
+  cout << "-- Divergence Energy: " << L2 << endl;
+
+  // -- Crash stop.
+
+  if (L2 != L2) message (routine, "forcing termination on NaN.", ERROR);
 }
 
 

@@ -6,9 +6,9 @@
 // USAGE
 // flipmap [options] [file]
 // options:
-//   -h       ... print this message
-//   -x || -y ... reflection symmetry to be used to generate map
-//   -t <num> ... set positional tolerance to num, default 6e-7 = EPSSP
+//   -h             ... print this message
+//   -x || -y || -d ... reflection symmetry to be used to generate map
+//   -t <num>       ... set positional tolerance to num, default 6e-7 = EPSSP
 //
 // FILES
 // Input file is a semtex/prism ASCII mesh file, generated e.g. by meshpr.
@@ -43,6 +43,8 @@
 //
 // NB: -x means the reflection is in the x direction, i.e. the reflection
 // occurs about the y axis!
+//
+// Symmetry generator 'd' means a double reflection, i.e. in bith x and y.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -99,7 +101,7 @@ static void getargs (int       argc,
 // Deal with command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  char usage[] = "Usage: flipmap [-h] -x || -y [-t <num>] [meshfile]\n";
+  char usage[] = "Usage: flipmap [-h] -x || -y || -d [-t <num>] [meshfile]\n";
  
   while (--argc && **++argv == '-')
     switch (*++argv[0]) {
@@ -111,20 +113,17 @@ static void getargs (int       argc,
       if (*++argv[0]) tol = atof (  *argv);
       else { --argc;  tol = atof (*++argv); }
       break;
-    case 'x':
-      gen = 'x';
-      break;
-    case 'y':
-      gen = 'y';
-      break;
+    case 'x': gen = 'x'; break;
+    case 'y': gen = 'y'; break;
+    case 'd': gen = 'd'; break;
     default:
       cerr << usage;
       exit (EXIT_FAILURE);
       break;
     }
 
-  if (!(gen == 'x' || gen == 'y')) {
-    cerr << prog << ": must specify -x or -y" << endl;
+  if (!(gen == 'x' || gen == 'y' || gen == 'd')) {
+    cerr << prog << ": must specify -x, -y or -d" << endl;
     exit (EXIT_FAILURE);
   }
 
@@ -214,7 +213,7 @@ static void findmap (const char            gen ,
       if (!found) cerr << "Warning: mesh point "
 		       << x[i] << ",\t" << y[i] << "\tnot mirrored" << endl;
     }
-  else
+  else if (gen == 'y')
     for (i = 0; i < npts; i++) {
       for (found = false, j = 0; !found && j < npts; j++) {
 	if (fabs(y[i] + y[j]) < tol && fabs(x[i] - x[j]) < tol) {
@@ -226,7 +225,18 @@ static void findmap (const char            gen ,
       if (!found) cerr << "Warning: mesh point "
 		       << x[i] << ",\t" << y[i] << "\tnot mirrored" << endl;
     }
-  
+  else				// -- 'd'.
+    for (i = 0; i < npts; i++) {
+      for (found = false, j = 0; !found && j < npts; j++)
+	if (fabs(x[i] + x[j]) < tol && fabs(y[i] + y[j]) < tol) {
+	  orig[k]   = i;
+	  flip[k++] = j;
+	  found     = true;
+	}
+      if (!found) cerr << "Warning: mesh point "
+		       << x[i] << ",\t" << y[i] << "\tnot mirrored" << endl;
+    }
+
   if (k != npts) {
     cerr << prog
 	 << ": number of maps found, " << k
