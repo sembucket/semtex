@@ -200,8 +200,8 @@ static void loadmap (Header&        headr    ,
   if (NR != np || NS != np || NEL != nel)
     message (prog, "map file doesn't conform with session file", ERROR);
   file >> generator;
-  if (!(generator == 'x' || generator == 'y'))
-    message (prog, "symmetry generator must be either 'x' or 'y'", ERROR);
+  if (!(generator == 'x' || generator == 'y' || generator == 'd'))
+    message (prog, "symmetry generator must be either 'x', 'y', or 'd'", ERROR);
   
   file >> NMAP;
 
