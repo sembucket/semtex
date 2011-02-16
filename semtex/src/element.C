@@ -1132,7 +1132,7 @@ bool Element::locate (const real_t x    ,
     J[0] =     Blas::dot (_np, is, 1, tp, 1);
                Blas::mxv (_ymesh, _np, dr, _np, tp);
     J[1] =     Blas::dot (_np, is, 1, tp, 1);
-#if 0
+#if 1
     // -- General/robust matrix solution routine.
     int_t ipiv[2], info;
 
