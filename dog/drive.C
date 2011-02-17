@@ -730,6 +730,8 @@ static void EV_post (const problem_t task,
     strcat    (strcpy (nom, domain -> name), ".fld");
     file.open (nom, ios::out); file << *domain; file.close();
 
+    message (prog, "failed to converge", ERROR);
+
   } else if (icon == nvec) {
 
     runinfo << prog
