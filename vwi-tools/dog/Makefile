@@ -6,7 +6,7 @@
 # $Id$
 ##############################################################################
 
-SEM   = /home/hmb/develop/semtex
+SEM   = ../../semtex
 VPATH = $(SEM)/src
 
 ifdef FLIP		# -- Use the "half-period-flip map".
