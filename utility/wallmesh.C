@@ -203,4 +203,3 @@ static void printWalls (int_t             np  ,
       for (j = 0; j < np; j++) cout << xs[j] << "\t" << ys[j] << endl;
     }
 }
-
