@@ -17,11 +17,21 @@ SEMFILES = auxfield bcmgr boundary bsys condition domain edge		\
 SEMOBJ   = $(addsuffix .o,$(SEMFILES))
 SEMHDR   = sem.h
 
+ifdef NSPCG # -- Use NSPCG library for interative solver.
+  N_FILES = newton advect integrate
+  F77LIBS += -L. -lnspcg $(F77LIBS)
+  DEFINES += -DNSPCG
+else ifdef LST # -- Use Laurette Tuckerman's implementation of bcgstab.
+  N_FILES = newton advect integrate bcgstab
+  DEFINES += -DLST
+else # -- Default: Templates' bicgstab.
+  N_FILES = newton advect integrate bicgstab
+endif
+
+N_OBJ = $(addsuffix .o,$(N_FILES))
+
 # ----------------------------------------------------------------------------
 # Build linearised Navier-Stokes solver.
-
-N_FILES = newton advect integrate bicgstab
-N_OBJ   = $(addsuffix .o,$(N_FILES))
 
 newton: sem $(N_OBJ) $(SEMOBJ) newt.h
 	$(LD) -o $@ $(N_OBJ) $(SEMOBJ) $(LDFLAGS)
@@ -37,13 +47,8 @@ $(SEMOBJ): $(SEMHDR)
 
 include $(VPATH)/Makefile
 
-# ----------------------------------------------------------------------------
-# Change variables to use NSPCG library, assumed linked to local directory.
-#
-
 ifdef NSPCG
   F77LIBS := -L. -lnspcg $(F77LIBS)
-  DEFINES += -DNSPCG
 endif
 
 #-----------------------------------------------------------------------------

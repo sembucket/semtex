@@ -97,6 +97,11 @@ void matvec (const real_t*, const int_t*, const real_t*, const int_t*,
 	     const int_t&, const real_t*, real_t*);
 void ident  (const real_t*, const int_t*, const real_t*, const int_t*,
 	     const int_t&, const real_t*, real_t*);
+#elif defined (LST)
+void matvec (const real_t&, const real_t*, const real_t&, real_t*);
+void bcgstab (int&, int_t&, real_t&, 
+	      real_t*, real_t*, real_t*, real_t*, 
+	      real_t*, real_t*, real_t*, real_t*);
 #else  // -- TEMPLATES code, the default.
 void matvec (const real_t&, const real_t*, const real_t&, real_t*);
 void ident  (real_t*, const real_t*);
@@ -129,7 +134,7 @@ int main (int    argc,
 
   cout << "-- Newton convergence tol  : " << tolNewt  << endl;
   cout << "          iteration limit  : " << maxiNewt << endl;
-  cout << "-- BiCGS initial soln tol  : " << initol   << endl;
+  cout << "-- Inner initial soln tol  : " << initol   << endl;
   cout << "          final soln  tol  : " << tolLsys  << endl;
   cout << "          iteration limit  : " << maxiLsys << endl;
 
@@ -140,6 +145,8 @@ int main (int    argc,
 #if defined (NSPCG)
   int_t       nw   = 9 * ntot;
   const int_t wdim = 3 * ntot + nw;
+#elif defined (LST)
+  const int_t wdim = 9 * ntot;
 #else
   const int_t wdim = 10 * ntot;
 #endif
@@ -150,7 +157,13 @@ int main (int    argc,
   real_t* u    = &work[0];
   real_t* U    = u  + ntot;
   real_t* dU   = U  + ntot;
-  real_t* lwrk = dU + ntot; 
+  real_t* lwrk = dU + ntot;
+
+  real_t* p    = lwrk + ntot;
+  real_t* r    = p    + ntot;
+  real_t* s    = r    + ntot;
+  real_t* t    = s    + ntot;
+  real_t* x    = t    + ntot;
 
   cout.setf (ios::scientific, ios::floatfield); cout.precision (2);
 
@@ -176,7 +189,9 @@ int main (int    argc,
     F77NAME (bcgsw) (matvec, ident, ident, 0, 0, 0, 0,
 		     ntot, u, ubar, dU, lwrk, nw, iparm, rparm, ier);
 
-    itn = iparm[1]; tol = rparm[6];
+    itn = iparm[1]; tol = rparm[0];
+#elif defined (LST)
+    F77NAME (bcgstab) (ntot, itn, tol, x, u, dU, p, r, s, t, lwrk, matvec);
 #else
     F77NAME (bicgstab) (ntot, dU, u, lwrk, ntot, itn, tol, matvec, ident, ier);
 #endif
@@ -191,7 +206,7 @@ int main (int    argc,
 
     cout << "Iteration "     << setw(3) << i
 	 << ", tol: "        << pretol
-         << ", BiCGS itns: " << setw(3) << itn
+         << ", inner itns: " << setw(3) << itn
 	 << ", resid: "      << tol
 	 << ", Rnorm: "      << rnorm 
 	 << endl;

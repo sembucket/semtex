@@ -55,6 +55,24 @@ extern "C" {
   void F77NAME (dfault)		// -- NSPCG setup.
     (int_t*, real_t*);
 
+  void F77NAME (bcgstab) (
+			  const int_t&  n,
+			  const int_t&  itmax,
+			  const real_t& crit,
+			  real_t* x,
+			  real_t* ubar,
+			  real_t* b,
+			  real_t* p,
+			  real_t* r,
+			  real_t* s,
+			  real_t* t,
+			  real_t* v,
+			  void (*MATVEC)
+			  (const real_t&,
+			   const real_t*,
+			   const real_t&,
+			   real_t*));
+
 }
 
 #endif
