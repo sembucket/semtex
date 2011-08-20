@@ -1,10 +1,10 @@
 ##############################################################################
-# Makefile for spectral element solver utilities.
+# Makefile for VWI utilities.
 #
 # $Id$
 ##############################################################################
 
-SEM   = /home/hmb/develop/semtex
+SEM   = ../semtex
 VPATH = $(SEM)/src
 
 # ----------------------------------------------------------------------------
@@ -27,4 +27,11 @@ forc: forc.o $(FOBJ)
 #
 
 wavestress: wavestress.c
+	$(CC) $(CPPFLAGS) -o $@ $@.c $(LDFLAGS)
+
+# -----------------------------------------------------------------------------
+# deltaweight multiplies delta function weight approximation onto roll forcing.
+#
+
+deltaweight: deltaweight.c
 	$(CC) $(CPPFLAGS) -o $@ $@.c $(LDFLAGS)

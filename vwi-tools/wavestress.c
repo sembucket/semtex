@@ -7,7 +7,7 @@
  *
  * USAGE
  * -----
- * wavestress [-h] [input[.fld]
+ * wavestress [-h] [input[.fld]]
  *
  * INPUT FILE
  * ----------
@@ -172,7 +172,7 @@ static void getargs (int    argc ,
  * ------------------------------------------------------------------------- */
 {
   char c, fname[FILENAME_MAX];
-  char usage[] = "wavestress [-h] [input[.fld]\n";
+  char usage[] = "wavestress [-h] [input[.fld]]\n";
 
   while (--argc && (*++argv)[0] == '-')
     switch (c = *++argv[0]) {
