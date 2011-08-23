@@ -2,6 +2,19 @@
  * rstress.c:  Compute Reynolds stresses.
  *
  * Copyright (c) 1997 <--> $Date$, Hugh Blackburn
+ * 
+ * USAGE
+ * -----
+ * rstress [options] avg.file [field.file]
+ * options:
+ * -h         ... print this message
+ * -<s,a,m,d> ... file ops subtract, add, multiply, divide [Default: subtract]
+ *
+ * Binary arithmetic operations only have significance when two files
+ * are supplied.  For subtract and divide,
+ *    outcome = second op first.
+ * If more than one operation is supplied on the command line,
+ * take the last.
  *
  * SYNOPSIS
  * --------
@@ -25,19 +38,6 @@
  * first dump in each file is dealt with.
  *
  * Product terms are computed without dealiasing.
- * 
- * USAGE
- * -----
- * rstress [options] avg.file [field.file]
- * options:
- * -h         ... print this message
- * -<s,a,m,d> ... file ops subtract, add, multiply, divide [Default: subtract]
- *
- * Binary arithmetic operations only have significance when two files
- * are supplied.  For subtract and divide,
- *    outcome = second op first.
- * If more than one operation is supplied on the command line,
- * take the last.
  *
  * --
  * This file is part of Semtex.

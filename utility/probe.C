@@ -60,6 +60,7 @@
 // -swap             ... swap x <--> y in output file (rotate)
 // -tec              ... write TECPLOT-formatted ASCII output
 // -sm               ... write SM-formatted binary output
+// -0		     ... output zero if point is outside mesh (no warning)
 //
 // --
 // This file is part of Semtex.
@@ -147,6 +148,7 @@ int main (int    argc,
   Femlib::ivalue ("NX"     , NPTS);
   Femlib::ivalue ("NY"     , NPTS);
   Femlib::ivalue ("ORTHO"  , Z   );
+  Femlib::ivalue ("PRINT_OUTSIDE", 0 );
   Femlib:: value ("OFFSET" , 0.0 );
   Femlib:: value ("X_MIN"  , 0.0 );
   Femlib:: value ("Y_MIN"  , 0.0 );
@@ -374,7 +376,9 @@ static void getargs (int    argc     ,
       "-ny #             ... resolution along the y-axis\n"
       "-swap             ... swap output x <--> y (rotate)\n"
       "-tec              ... write TECPLOT-formatted ASCII output\n"
-      "-sm               ... write SM-formatted binary output\n";
+      "-sm               ... write SM-formatted binary output\n"
+      "-0	         ... output zero if point is outside mesh (instead of warning)\n";
+
     int_t nset = 0;
 
     while (--argc && **++argv == '-')
@@ -409,6 +413,9 @@ static void getargs (int    argc     ,
 	break;
       case 't':
 	strcpy (format, "tecplot");
+	break;
+      case '0':
+	Femlib::ivalue ("PRINT_OUTSIDE", 1);
 	break;
       case 'x':
 	switch (argv[0][1]) {
@@ -692,11 +699,12 @@ static void findPoints (vector<Point*>&   point,
       }
     }
 
-    if (!elmt[i])
+    if (!elmt[i] && Femlib::ivalue ("PRINT_OUTSIDE") == 0){
       cerr << "point ("
 	   << setw(15) << x << ","
 	   << setw(15) << y << ","
 	   << setw(15) << z << ") is not in the mesh" << endl;
+    }
   }
 }
 
@@ -880,7 +888,7 @@ static void putData (const char*              dump     ,
   if (strstr (format, "free")) {
     cout.precision (6);
     for (i = 0; i < ntot; i++) {
-      if (elmt[i]) {
+      if (elmt[i] || Femlib::value ("PRINT_OUTSIDE") == 1) {
 	cout << setw (5) << i + 1 << " " 
 	     << setw(12) << point[i] -> x << " " 
 	     << setw(12) << point[i] -> y << " " 
@@ -902,7 +910,7 @@ static void putData (const char*              dump     ,
     for (n = 0; n < nf; n++) {
       sprintf (fname, "%s.%c", base, u[n] -> name());
       out.open  (fname);
-      
+
       if (swap) {
 	out.write (reinterpret_cast<const char*>(&ny), sizeof (int_t));
 	out.write (reinterpret_cast<const char*>(&nx), sizeof (int_t));
@@ -916,7 +924,7 @@ static void putData (const char*              dump     ,
       } else {
 	out.write (reinterpret_cast<const char*>(&nx), sizeof (int_t));
 	out.write (reinterpret_cast<const char*>(&ny), sizeof (int_t));
-      
+
 	for (k = 0, j = 0; j < ny; j++) {
 	  for (i = 0; i < nx; i++, k++) {
 	    float tmp = static_cast<float>(data[k][n]);
@@ -926,6 +934,37 @@ static void putData (const char*              dump     ,
       }
       out.close();
     }
+  } else if (strstr (format, "tecplot") && strstr (interface, "probeplane")) {
 
+    char      fname[StrMax], *base = root (strdup (dump));
+    const int_t nx = Femlib::ivalue ("NX");
+    const int_t ny = Femlib::ivalue ("NY");
+
+    if (swap) {
+        cerr << "Option -swap not yet implemented for tecplot output." << endl;
+	return;
+    }
+
+    cout << "TITLE = \"" << base << "\"" << endl;
+    cout << "VARIABLES = \"x\", \"y\", \"z\"";
+    for (n = 0; n < nf; n++) cout << ", \"" << u[n] -> name() << "\"";
+    cout << endl;
+    cout << "ZONE I=" << nx << ", J=" << ny << ", F=Point, T=\"" << base << "\""<< endl;
+
+    for (k = 0, j = 0; j < ny; j++) {
+      for (i = 0; i < nx; i++, k++) {
+	cout << setw(12) << point[k] -> x << " "
+	     << setw(12) << point[k] -> y << " "
+	     << setw(12) << point[k] -> z;
+        for (n = 0; n < nf; n++) {
+	    cout << " " << setw(12) << data[k][n];
+	}
+	cout << endl;
+      }
+    }
+    return;
+
+  } else if (strstr (format, "tecplot")) {
+    cerr << "tecplot output only implemented for probeplane interface." << endl; 
   }
 }
