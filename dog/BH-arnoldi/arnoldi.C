@@ -155,6 +155,8 @@ int main (int    argc,
 
   getargs (argc, argv, kdim, nits, nvec, verbose, evtol, HBfile);
 
+
+
   // -- Check parameter values.
 
   if (kdim < 1)    message (prog, "param error: KDIM must be > 1",     ERROR);
@@ -165,11 +167,16 @@ int main (int    argc,
   // -- Open Harwell--Boeing file, extract data.
 
   readHB_info (HBfile, &HBnr, &HBnc, &HBnz, &HBtype, &HBnrhs);
+
+
+
   if (verbose) {
     cerr << "Matrix in file " << HBfile << "is " << HBnr << " x " << HBnc
 	 << " with " << HBnz << " nozero entries, type " << HBtype << endl;
     cerr << HBnrhs << " right-hand-sides available" << endl;
   }
+
+  cout << "before  readHB_newmat_double"  << endl;
   readHB_newmat_double (HBfile, &HBnr, &HBnc, &HBnz, &HBcptr, &HBrptr, &HBval);
 
   ntot = HBnr;

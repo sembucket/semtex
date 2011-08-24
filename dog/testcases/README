@@ -1,7 +1,7 @@
 $Id$
 
-ARNOLDI TESTCASES
-=================
+TESTCASES
+=========
 
 The testcases in various subdirectories here exercise various
 different parts the stability analysis code dog. For cases with

@@ -44,7 +44,7 @@
 // NB: -x means the reflection is in the x direction, i.e. the reflection
 // occurs about the y axis!
 //
-// Symmetry generator 'd' means a double reflection, i.e. in bith x and y.
+// Symmetry generator 'd' means a double reflection, i.e. in both x and y.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -262,4 +262,3 @@ static void printup (const char           gen ,
   for (i = 0; i < npts; i++)
     cout << orig[i] << '\t' << flip[i] << endl;
 }
-
