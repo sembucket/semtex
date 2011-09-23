@@ -12,7 +12,7 @@ bib:
 	mechanics.bib viv.bib flap.bib rotate.bib aero.bib spray.bib    \
 	compress.bib sphere.bib equip.bib combust.bib expttech.bib      \
 	bio.bib ring.bib fuelcell.bib mhd.bib tc.bib rough.bib 		\
-        bfs.bib control.bib > hmb.bib
+        bfs.bib control.bib pipe.bib jet.bib vwi.bib > hmb.bib
 
 clean:
 	rm -f *~
