@@ -3,7 +3,7 @@
 # Usage: roll+streak.py mesh_file roll.dat streak.dat Rey
 # 
 # Combine u, v, p in roll file with w in streak file in order to
-# generate a 2D/3C roll + streak flow.  The final argumant, scale, is
+# generate a 2D/3C roll + streak flow.  The final argument, scale, is
 # used to scale the roll variables relative to the steak variables;
 # typically this is 1/Re.  The (meshpr-type) mesh file is used to
 # generate structure information that gets used to make a semtex-style
