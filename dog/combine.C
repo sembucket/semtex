@@ -91,10 +91,14 @@
 // contribution, i.e. is set to zero.  This can be used to generate a
 // physical-space field from a Fourier-space mode.
 //
-// 10. NB: With simple scaling one should typically make the scale 2x
-// the relative amount that you think you want, since the Fourier mode
-// being combined is notionally only one of a complex-conjugate pair
-// of modes.
+// 10. NB: With simple scaling it may look like the eventual scaling
+// of the eigenmode componengt is twice what you expected. That is
+// because the outcome, finally produced in physical space, if created
+// by inverse DFT of the combination which is scaled in Fourier
+// space. Since the mode added is notionally one of a pair of
+// conjugate-symmetric modes, the value recovered in physical space
+// can be double the scaled wave size in Fourier space. This follows
+// the real-complex DFT conventions used throughout Semtex.
 //
 ///////////////////////////////////////////////////////////////////////////////
 
