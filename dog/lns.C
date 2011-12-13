@@ -17,11 +17,11 @@
 // AUTHOR:
 // ------
 // Hugh Blackburn
-// Department of Mechanical Engineering
+// Department of Mechanical and Aerospace Engineering
 // Monash University
 // Vic 3800
 // Australia
-// hugh.blackburn@eng.monash.edu.au
+// hugh.blackburn@monash.edu
 //////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";

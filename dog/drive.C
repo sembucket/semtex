@@ -74,6 +74,7 @@
 //      two-dimensional time-periodic wakes", J Fluid Mech V522, 395--411.
 // [5]  D Barkley, HM Blackburn & SJ Sherwin (2008), "Direct optimal
 //      growth analysis for timesteppers", IJNMF V57, 1435--1458.
+//
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
