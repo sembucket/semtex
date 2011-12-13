@@ -1,7 +1,7 @@
 /*****************************************************************************
  * wavestress.c: from a 2D/complex modal data file, compute 2D
  * distributions of streamwise-averaged Reynolds stresses.  Data must
- * be binary format and contain only fields u v p.
+ * be binary format and contain only fields u v w p.
  *
  * Copyright (c) 2011 <--> $Date$, Hugh Blackburn
  *
@@ -16,8 +16,11 @@
  * OUTPUT FILE
  * -----------
  * Is a standard 2D/real (N_Z = 1) Reynolds stress file containing
- * uvpABC, with uvp set to zero and
+ * uvpABC, with
  *
+ * u = 0.5 * sqrt (u.Re^2 + u.Im^2 + v.Re^2 + v.Im^2)
+ * v = 0.5 * sqrt (u.Re^2 + u.Im^2 + v.Re^2 + v.Im^2 + w.Re^2 + w.Im^2)
+ * p = sqrt (u.Re^2 + p.Im^2)
  * A = u.Re^2 + u.Im^2
  * B = u.Re*v.Re + u.im*v.Im
  * C = v.Re^2 + v.Im^2
@@ -149,6 +152,38 @@ int main (int    argc,
     vcmpt2 = idata[1] + nplane; /* -- Imag part of v. */
     dvvtvp (nplane, vcmpt1, 1, vcmpt1, 1, odata[5], 1, odata[5], 1);
     dvvtvp (nplane, vcmpt2, 1, vcmpt2, 1, odata[5], 1, odata[5], 1);
+
+    /* -- Compute p. */
+
+    vcmpt1 = idata[3];		/* -- Real part of p. */
+    vcmpt2 = idata[3] + nplane; /* -- Imag part of p. */
+    dvvtvp (nplane, vcmpt1, 1, vcmpt1, 1, odata[2], 1, odata[2], 1);
+    dvvtvp (nplane, vcmpt2, 1, vcmpt2, 1, odata[2], 1, odata[2], 1);
+    dvsqrt (nplane, odata[2], 1, odata[2], 1);
+
+    /* -- Compute u & v. */
+
+    vcmpt1 = idata[0];		/* -- Real part of u. */
+    vcmpt2 = idata[0] + nplane; /* -- Imag part of u. */
+    dvvtvp (nplane, vcmpt1, 1, vcmpt1, 1, odata[0], 1, odata[0], 1);
+    dvvtvp (nplane, vcmpt2, 1, vcmpt2, 1, odata[0], 1, odata[0], 1);
+    dvvtvp (nplane, vcmpt1, 1, vcmpt1, 1, odata[1], 1, odata[1], 1);
+    dvvtvp (nplane, vcmpt2, 1, vcmpt2, 1, odata[1], 1, odata[1], 1);
+    vcmpt1 = idata[1];		/* -- Real part of v. */
+    vcmpt2 = idata[1] + nplane; /* -- Imag part of v. */
+    dvvtvp (nplane, vcmpt1, 1, vcmpt1, 1, odata[0], 1, odata[0], 1);
+    dvvtvp (nplane, vcmpt2, 1, vcmpt2, 1, odata[0], 1, odata[0], 1);
+    dvvtvp (nplane, vcmpt1, 1, vcmpt1, 1, odata[1], 1, odata[1], 1);
+    dvvtvp (nplane, vcmpt2, 1, vcmpt2, 1, odata[1], 1, odata[1], 1);
+    vcmpt1 = idata[1];		/* -- Real part of w. */
+    vcmpt2 = idata[1] + nplane; /* -- Imag part of w. */
+    dvvtvp (nplane, vcmpt1, 1, vcmpt1, 1, odata[1], 1, odata[1], 1);
+    dvvtvp (nplane, vcmpt2, 1, vcmpt2, 1, odata[1], 1, odata[1], 1);
+
+    dvsqrt (nplane, odata[0], 1, odata[0], 1);
+    dsmul  (nplane, 0.5, odata[0], 1, odata[0], 1);
+    dvsqrt (nplane, odata[1], 1, odata[1], 1);
+    dsmul  (nplane, 0.5, odata[1], 1, odata[1], 1);
 
     /* -- Write out uvpABC in binary. */
     
