@@ -86,9 +86,16 @@
 // should really be fixed but it means that we would need the session
 // file as well.
 //
-// 7. With -r 0 the perturbation field is not scaled - it is output
+// 9. With -r 0 the perturbation field is not scaled - it is output
 // with the same energy it had on input, AND the base flow makes no
-// contribution, i.e. is set to zero.
+// contribution, i.e. is set to zero.  This can be used to generate a
+// physical-space field from a Fourier-space mode.
+//
+// 10. NB: With simple scaling one should typically make the scale 2x
+// the relative amount that you think you want, since the Fourier mode
+// being combined is notionally only one of a complex-conjugate pair
+// of modes.
+//
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
