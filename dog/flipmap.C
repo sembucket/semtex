@@ -11,11 +11,16 @@
 //   -t <num>       ... set positional tolerance to num, default 6e-7 = EPSSP
 //
 // FILES
-// Input file is a semtex/prism ASCII mesh file, generated e.g. by meshpr.
+//
+// Input file is a semtex/prism ASCII mesh file, generated e.g. by
+// meshpr.  This file is for the complete (double) mesh which is
+// expected to have an internal reflection symmetry (or two) in x or y
+// (or both).
+//
 // Output is ASCII, with three header lines followed by a list of index pairs:
 //   8 8 1 108 NR NS NZ NEL  # -- matches input file header
 //   x                       # -- reflection symmetry generator
-//   6768                    # -- NFLIP, no. of pairs to follow < NR*NS*NEL
+//   6912                    # -- NFLIP, no. of pairs to follow = NR*NS*NEL
 //   11   4001
 //   12   4000
 //   13   3999
@@ -25,10 +30,10 @@
 // first mapping found for each case (reflect positive->negative,
 // *and* negative->positive).  This way a single gather will do the
 // reflection, and leave no holes.  The nmap does not correspond to a
-// global numbering scheme, it is simply the number of points in the
-// mesh.  The numbers in the two lists are the correspondences between
-// the indices of reflected points in a flat element-by-element
-// ordering of the mesh points.
+// global numbering scheme, its length is simply the number of points
+// in the mesh.  The numbers in the two lists are the correspondences
+// between the indices of reflected points in a flat
+// element-by-element ordering of the mesh points.
 //
 // To carry out the exchange of data, say all the NTOT=NR*NR*NEL data
 // are first copied from array org to array tmp.  Exchange by

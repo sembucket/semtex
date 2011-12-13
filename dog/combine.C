@@ -10,7 +10,7 @@
 // -h       ... print this message.
 // -b <num> ... set beta, wavenumber of base flow to <num> (3D) [Default: 1.0]
 // -r <num> ... relative energy of perturbation is <num>.       [Default: 1.0]
-// -s       ... simple scaling: scaling is pointwise rather than energy-based.
+// -s       ... simple scaling: scalar multiple rather than energy-based.
 // -m <num> ... mode number for perturbation is <num> (3D only) [Default: 1]
 // 
 // Write to standard output.

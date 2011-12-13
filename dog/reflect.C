@@ -1,8 +1,10 @@
 ///////////////////////////////////////////////////////////////////////////////
 // reflect.C: reflect a field dump defined on a half-mesh onto a full
 // mesh.  Apply sign change to appropriate velocity component, unless
-// explicitly supressed.  Built from
-// semtex/utility/data2df_template.C.  See also dog/symmetrize.C
+// explicitly supressed by setting revpar == true (command line).
+//
+// Built from semtex/utility/data2df_template.C.  See also
+// dog/symmetrise.C and flipmap.C
 //
 // Copyright (c) 2010 <--> $Date$, Hugh Blackburn
 //
@@ -45,7 +47,7 @@ int main (int    argc,
   Data2DF*         tmp;
   char             generator = 'x';
   vector<int_t>    positive, negative;
-  bool             revpar = false;
+  bool             revpar = false;                       // -- Reverse parity.
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, revpar, mapping, input);
@@ -78,114 +80,80 @@ int main (int    argc,
 
     // -- Copy the reflection of the other half of the data field,
     // -- negating appropriate velocity vector component.
-# if 0
-    if (generator == 'y') {
-      if (u[i] -> getName() == 'u' ||
-	  u[i] -> getName() == 'w' ||
-	  u[i] -> getName() == 'p')
-	for (j = 0; j < ntot; j++)
-	  u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
-	    ? tmp -> _data[j] : 0.0;
-      else if (u[i] -> getName() == 'v')
-	if (vectors)
-	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] -= (fabs(u[i]->_data[j]) < EPSSP)
-	      ? tmp->_data[j] : 0.0;
-	else
-	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP)
-	      ? tmp->_data[j] : 0.0;
-    } else if (generator == 'x') {
-      if (u[i] -> getName() == 'v' ||
-	  u[i] -> getName() == 'w' ||
-	  u[i] -> getName() == 'p')
-	for (j = 0; j < ntot; j++)
-	  u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
-	    ? tmp->_data[j] : 0.0;
-      else if (u[i] -> getName() == 'u')
-	if (vectors)
-	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] -= (fabs(u[i]->_data[j]) < EPSSP) 
-	      ? tmp -> _data[j] : 0.0;
-	else
-	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
-	      ? tmp -> _data[j] : 0.0;
-    }
-#else
+
     if (generator == 'y')
       if (revpar) {
 	if      (u[i] -> getName() == 'u')
 	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] -= (fabs(u[i]->_data[j]) < EPSSP) 
+	    u[i]->_data[j] -= (fabs(u[i]->_data[j]) < EPSDP) 
 	      ? tmp->_data[j] : 0.0;
 	else if (u[i] -> getName() == 'v')
 	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSDP) 
 	      ? tmp->_data[j] : 0.0;
 	else if (u[i] -> getName() == 'w')
 	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSDP) 
 	      ? tmp->_data[j] : 0.0;
 	else if (u[i] -> getName() == 'p')
 	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSDP) 
 	      ? tmp->_data[j] : 0.0;
       }	else {
 	if      (u[i] -> getName() == 'u')
 	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSDP) 
 	      ? tmp->_data[j] : 0.0;
 	else if (u[i] -> getName() == 'v')
 	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] -= (fabs(u[i]->_data[j]) < EPSSP) 
+	    u[i]->_data[j] -= (fabs(u[i]->_data[j]) < EPSDP) 
 	      ? tmp->_data[j] : 0.0;
 	else if (u[i] -> getName() == 'w')
 	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSDP) 
 	      ? tmp->_data[j] : 0.0;
 	else if (u[i] -> getName() == 'p')
 	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSDP) 
 	      ? tmp->_data[j] : 0.0;
       }
     else if (generator == 'x')
       if (revpar) {
 	if      (u[i] -> getName() == 'u')
 	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSDP) 
 	      ? tmp->_data[j] : 0.0;
 	else if (u[i] -> getName() == 'v')
 	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] -= (fabs(u[i]->_data[j]) < EPSSP) 
+	    u[i]->_data[j] -= (fabs(u[i]->_data[j]) < EPSDP) 
 	      ? tmp->_data[j] : 0.0;
 	else if (u[i] -> getName() == 'w')
 	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSDP) 
 	      ? tmp->_data[j] : 0.0;
 	else if (u[i] -> getName() == 'p')
 	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSDP) 
 	      ? tmp->_data[j] : 0.0;
       }	else {
 	if      (u[i] -> getName() == 'u')
 	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] -= (fabs(u[i]->_data[j]) < EPSSP) 
+	    u[i]->_data[j] -= (fabs(u[i]->_data[j]) < EPSDP) 
 	      ? tmp->_data[j] : 0.0;
 	else if (u[i] -> getName() == 'v')
 	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSDP) 
 	      ? tmp->_data[j] : 0.0;
 	else if (u[i] -> getName() == 'w')
 	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSDP) 
 	      ? tmp->_data[j] : 0.0;
 	else if (u[i] -> getName() == 'p')
 	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSSP) 
+	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSDP) 
 	      ? tmp->_data[j] : 0.0;
       }
-#endif    
+
     // -- Output u[i];
 
     cout << *u[i];
@@ -288,7 +256,7 @@ static void halfread (istream* file,
 // This is like the input operator for Data2DF but we only read in the
 // first half of the data -- since the input data are defined for a
 // domain which is only half as big as the output. Leave zero
-// everything else (set by constructor).
+// everything else (as set by constructor).
 // ---------------------------------------------------------------------------
 {
   int_t       i;
