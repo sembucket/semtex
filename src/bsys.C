@@ -3,6 +3,18 @@
 //
 // Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 //
+// The information to be returned by class functions are the global
+// numbering scheme and vector of Boundary*'s for a given Field and
+// Fourier mode number.  There is one BoundarySys for each Field, but
+// a possible modal dependence for the appropriate BCs (in fact, only
+// for 3D cylindrical coordinate systems in which the axis appears).
+//
+// Use of cylindrical coordinates is flagged by the Geometry class
+// variable.  In the case where the number of space dimensions is also
+// 3, the number of boundary frames and numbering systems is set to 3,
+// for the 0th, 1st and 2nd (and higher) modes, irrespective of the
+// number of Fourier modes actually used.  See bcmgr.C.
+//
 // --
 // This file is part of Semtex.
 // 
@@ -20,19 +32,6 @@
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 // 02110-1301 USA.
-// --
-//
-// The information to be returned by class functions are the global
-// numbering scheme and vector of Boundary*'s for a given Field and
-// Fourier mode number.  There is one BoundarySys for each Field, but
-// a possible modal dependence for the appropriate BCs (in fact, only
-// for 3D cylindrical coordinate systems in which the axis appears).
-//
-// Use of cylindrical coordinates is flagged by the Geometry class
-// variable.  In the case where the number of space dimensions is also
-// 3, the number of boundary frames and numbering systems is set to 3,
-// for the 0th, 1st and 2nd (and higher) modes, irrespective of the
-// number of Fourier modes actually used.  See bcmgr.C.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";

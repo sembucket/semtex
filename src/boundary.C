@@ -3,6 +3,13 @@
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
+// SYNOPSIS
+// --------
+// Boundaries correspond to domain edges that have boundary conditions
+// applied (as opposed to periodic edges).  The ordering of internal
+// storage for condition values and geometric factors corresponds to
+// CCW traverse of 2D element edges.
+//
 // --
 // This file is part of Semtex.
 // 
@@ -20,14 +27,6 @@
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 // 02110-1301 USA.
-// --
-//
-// SYNOPSIS
-// --------
-// Boundaries correspond to domain edges that have boundary conditions
-// applied (as opposed to periodic edges).  The ordering of internal
-// storage for condition values and geometric factors corresponds to
-// CCW traverse of 2D element edges.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";

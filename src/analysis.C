@@ -3,6 +3,14 @@
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
+// This deals with output of runtime information such as step numbers,
+// CFL estimation, modal energies, etc. If set, also output history
+// point and particle track information, and adminster update of
+// standard and phase-averaged field statistics.
+//
+// It is assumed that the first 2 or 3 (for 3D) entries in the Domain
+// u vector are velocity fields.
+//
 // --
 // This file is part of Semtex.
 // 
@@ -20,15 +28,6 @@
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 // 02110-1301 USA.
-// --
-//
-// This deals with output of runtime information such as step numbers,
-// CFL estimation, modal energies, etc. If set, also output history
-// point and particle track information, and adminster update of
-// standard and phase-averaged field statistics.
-//
-// It is assumed that the first 2 or 3 (for 3D) entries in the Domain
-// u vector are velocity fields.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";

@@ -1,13 +1,16 @@
 /*****************************************************************************
  * xplane.c: from a 3D data file, extract a 2D plane of data on named
  * plane and output 2D data file.  Field must be binary format.  By
- * default, output plane 1.
+ * default, output plane 1. Optionally (-2) output two consecutive
+ * planes, i.e. a Fourier mode (presuming the input has first been
+ * Fourier transformed); in this case the requested plane number is
+ * the first of the two desired plane indices.
  *
  * Copyright (c) 2000 <--> $Date$, Hugh Blackburn
  *
  * USAGE
  * -----
- * xplane [-h] [-n plane] [input[.fld]
+ * xplane [-h] [-n plane] [-2] [input[.fld]
  *
  * --
  * This file is part of Semtex.
@@ -40,7 +43,7 @@ static char RCS[] = "$Id$";
 #include <cfemdef.h>
 #include <cveclib.h>
 
-static void getargs (int, char**, FILE**, int*);
+static void getargs (int, char**, FILE**, int*, int*);
 
 static char prog[] = "xplane";
 static const char *hdr_fmt[] = { 
@@ -66,12 +69,12 @@ int main (int    argc,
  * ------------------------------------------------------------------------- */
 {
   char   buf[STR_MAX], fields[STR_MAX], fmt[STR_MAX];
-  int    i, j, n, np, nz, nel, pindex = 0;
-  int    nfields, nplane, npts, ntot;
+  int    i, j, n, np, nz, nel, pindex = 0, twoplanes = 0;
+  int    nfields, nplane, npts, ntot, nreal;
   FILE   *fp_in = stdin, *fp_out = stdout;
   double **data;
 
-  getargs (argc, argv, &fp_in, &pindex);
+  getargs (argc, argv, &fp_in, &pindex, &twoplanes);
   format  (fmt);
 
   while (fgets (buf, STR_MAX, fp_in)) { 
@@ -87,7 +90,8 @@ int main (int    argc,
 	       pindex + 1, nz);
       message (prog, fields, ERROR);
     }
-    fprintf (fp_out, hdr_fmt[2], np, np, 1, nel);
+    
+    fprintf (fp_out, hdr_fmt[2], np, np, (twoplanes) ? 2 : 1, nel);
 
     n = 7;
     while (--n) {
@@ -106,6 +110,7 @@ int main (int    argc,
     /* -- Set sizes, allocate storage. */
 
     nplane = np * np * nel;
+    nreal  = (twoplanes) ? nplane + nplane : nplane;
     npts   = nz * nplane;
     ntot   = nfields * npts;
     data   = dmatrix (0, nfields - 1, 0, npts - 1);
@@ -119,12 +124,11 @@ int main (int    argc,
       }
     }
 
-    /* -- Write out nominated plane. */
+    /* -- Write out nominated plane(s). Note planes are consecutive. */
 
-    for (i = 0; i < nfields; i++) {
-      if (fwrite(data[i]+pindex*nplane,sizeof(double),nplane,fp_out) != nplane)
+    for (i = 0; i < nfields; i++)
+      if (fwrite(data[i]+pindex*nplane,sizeof(double),nreal,fp_out) != nreal)
 	message (prog, "an error occured while writing", ERROR);
-    }
     
     freeDmatrix (data,  0, 0);
   } 
@@ -133,16 +137,17 @@ int main (int    argc,
 }
 
 
-static void getargs (int    argc ,
-		     char** argv ,
-		     FILE** fp_in,
-		     int*   plane)
+static void getargs (int    argc     ,
+		     char** argv     ,
+		     FILE** fp_in    ,
+		     int*   plane    ,
+		     int*   twoplanes)
 /* ------------------------------------------------------------------------- *
  * Parse command line arguments.
  * ------------------------------------------------------------------------- */
 {
   char c, fname[FILENAME_MAX];
-  char usage[] = "xplane [-h] [-n plane] [input[.fld]\n";
+  char usage[] = "xplane [-h] [-n plane] [-2] [input[.fld]\n";
 
   while (--argc && (*++argv)[0] == '-')
     switch (c = *++argv[0]) {
@@ -154,6 +159,9 @@ static void getargs (int    argc ,
       if (*++argv[0]) *plane = atoi (*argv);
       else {*plane = atoi (*++argv); argc--;}
       (*plane)--;
+      break;
+    case '2':
+      *twoplanes = 1;
       break;
     default:
       fprintf (stderr, "%s: unknown option -- %c\n", prog, c);

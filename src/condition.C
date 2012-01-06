@@ -3,25 +3,6 @@
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
-// --
-// This file is part of Semtex.
-// 
-// Semtex is free software; you can redistribute it and/or modify it
-// under the terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2 of the License, or (at your
-// option) any later version.
-// 
-// Semtex is distributed in the hope that it will be useful, but WITHOUT
-// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-// for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with Semtex (see the file COPYING); if not, write to the Free
-// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-// 02110-1301 USA.
-// --
-//
 // All classes inherit the (semi-abstract) base class Condition.
 // Owing to the different behaviour of essential and natural BCs, a
 // number of routines take no action; due also to the generality of
@@ -40,9 +21,14 @@
 // momentum equations and computed using an extrapolative process
 // described in [1].
 //
-// A further general class of available condition is the mixed type,
-// of form dc/dn + K( c - C ) = 0. See [2]. The convective BC is a
-// variant of this, see [3].
+// A further general class of available condition is the Robin or
+// mixed type, of form dc/dn + K( c - C ) = 0. See [2]. The convective
+// BC is a variant of this, see [3].
+//
+// NB: if you invent a new BC which is of essential/Dirichlet type,
+// you also need to edit mesh.C/buildMask() so that enumerate sets the
+// global numbering mask to 1 for this type. Otherwise the BC won't be
+// correctly applied.
 //
 // References:
 // 1. Karniadakis, Israeli & Orszag (1991) "High-order splitting methods
@@ -51,6 +37,24 @@
 //    arbitrary cross-section", Comput Chem Eng 25(2/3).
 // 3. Orlanski (1976) "A simple boundary condition for unbounded 
 //    hyperbolic flows", JCP 21.
+//
+// --
+// This file is part of Semtex.
+// 
+// Semtex is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2 of the License, or (at your
+// option) any later version.
+// 
+// Semtex is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with Semtex (see the file COPYING); if not, write to the Free
+// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+// 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -529,11 +533,6 @@ Convective::Convective (const char* v)
 
   _K_ = (strtod (v, 0));
   _K_ = 1.0 / (_K_ * Femlib::value ("D_T"));
-
-#if defined (DEBUG)
-  this -> describe (str);
-  cout << "1/(V*dt) for BC type " << str << endl;
-#endif
 }
 
 

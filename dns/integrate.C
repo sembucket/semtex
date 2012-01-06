@@ -59,10 +59,10 @@ static Msys** preSolve  (const Domain*);
 static void   Solve     (Domain*, const int_t, AuxField*, Msys*);
 
 
-void integrate (void         (*advection) (Domain*, 
-					   AuxField**, 
-					   AuxField**,
-					   vector<real_t>&),
+void integrate (void (*advection) (Domain*, 
+				   AuxField**, 
+				   AuxField**,
+				   vector<real_t>&),
 		Domain*      D  ,
 		DNSAnalyser* A  )
 // ---------------------------------------------------------------------------

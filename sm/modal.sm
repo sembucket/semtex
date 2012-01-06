@@ -153,3 +153,14 @@ spectrum 4	# Compute the spectrum of second argument
 		foreach v { $!!i} { DEFINE $v DELETE }
 		define  i { _N _wss _tmin _tmax } 
 		foreach v { $!!i } { DELETE $v }
+asp	1	# Plot autospectrum
+		DATA $1
+		READ {f 1 a 2}
+		LIMITS 0 1 a
+		CONNECT f a
+lasp	1	# Plot autospectrum
+		DATA $1
+		READ {f 1 a 2}
+		SET la = ln(a)
+		LIMITS 0 1 la
+		CONNECT f la
