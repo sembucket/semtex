@@ -3,6 +3,21 @@
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
+// Routines to provide history point information at x, y, z locations.
+//
+// History points are nominated in the session file, e.g.
+// <HISTORY NUMBER=2>
+// #    tag   x     y    z
+//      1     0.0   0.0  0.0
+//      2     0.3  -0.1 -2
+// </HISTORY>
+//
+// The z locational information is ignored for 2D.  For 3D the periodic
+// assumption is used in the z-direction in case the z location does not
+// fall within the first spatial period.
+//
+// Output to a file called session.his.
+//
 // --
 // This file is part of Semtex.
 // 
@@ -20,22 +35,6 @@
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 // 02110-1301 USA.
-// --
-//
-// Routines to provide history point information at x, y, z locations.
-//
-// History points are nominated in the session file, e.g.
-// <HISTORY NUMBER=2>
-// #    tag   x     y    z
-//      1     0.0   0.0  0.0
-//      2     0.3  -0.1 -2
-// </HISTORY>
-//
-// The z locational information is ignored for 2D.  For 3D the periodic
-// assumption is used in the z-direction in case the z location does not
-// fall within the first spatial period.
-//
-// Output to a file called session.his.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";

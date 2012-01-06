@@ -34,7 +34,25 @@ class Condition
 // which loads field data into field boundary storage, must also be
 // defined (in addition to the "augmentXx" methods).
 //
-// See also boundary.h, edge.h.
+// See also boundary.h, edge.h, mesh.C.
+//
+// --
+// This file is part of Semtex.
+// 
+// Semtex is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2 of the License, or (at your
+// option) any later version.
+// 
+// Semtex is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with Semtex (see the file COPYING); if not, write to the Free
+// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+// 02110-1301 USA.
 // ===========================================================================
 {
 public:
@@ -230,7 +248,7 @@ public:
 
 class Mixed : public Condition
 // ===========================================================================
-// Boundary (a.k.a. Robin) condition class for mixed type BCs of form
+// Boundary condition class for mixed (a.k.a Robin) type BCs of form
 //     dc/dn + K(c - C) = 0.
 // Mixed BCs affect problem Helmholtz matrices, but only on the diagonal, 
 // and element-boundary, terms. Syntax in session file is

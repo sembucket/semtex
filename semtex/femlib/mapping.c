@@ -4,6 +4,7 @@
  *
  * Copyright (c) 1994 <--> $Date$, Hugh Blackburn
  *
+ * -- 
  * This file is part of Semtex.
  * 
  * Semtex is free software; you can redistribute it and/or modify it

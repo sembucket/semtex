@@ -271,15 +271,4 @@ eps2	1       # Set up to redirect Encapsulated PostScript to file
 		dev postfile600   :SY@: :OF@: $1
 cps	1       # Set up to redirect Encapulsted Color PostScript to file
 		dev postcolfile   :SY@: :OF@: $1
-asp	1	# Plot autospectrum
-		DATA $1
-		READ {f 1 a 2}
-		LIMITS 0 1 a
-		CONNECT f a
-lasp	1	# Plot autospectrum
-		DATA $1
-		READ {f 1 a 2}
-		SET la = ln(a)
-		LIMITS 0 1 la
-		CONNECT f la
 

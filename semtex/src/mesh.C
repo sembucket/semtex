@@ -1232,7 +1232,10 @@ void Mesh::buildMask (const int_t np  ,
 // This routine generates an int_t mask (0/1) vector for element-boundary
 // nodes.  For any location that corresponds to a domain boundary with an
 // essential boundary condition and for field name "fld", the corresponding
-// mask value will be 1.  All other locations will be zero.
+// mask value will be 1.  All other locations will be 0.
+//
+// NOTE that the default behaviour for any type of BC that is not <D>
+// or <A> is for the mask to be 0.
 //
 // For quads, mask is 4 * nel * (np - 1) long, same as input for buildMap.
 // Use is made of the fact that on BCs, there are no mating sides, hence

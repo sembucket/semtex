@@ -40,7 +40,7 @@ Data2DF::Data2DF (const int_t nP  ,
   _nel  (nEl ),
   _np2  (nP * nP)
 // ---------------------------------------------------------------------------
-// Data2DF constructor. 
+// Data2DF constructor. Storage area set to zero.
 // ---------------------------------------------------------------------------
 {
   int_t i;
