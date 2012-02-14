@@ -2,7 +2,6 @@
 // drive.C: control spectral element DNS for incompressible flows.
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
-// Kristina Koal
 //
 // USAGE:
 // -----
@@ -10,8 +9,9 @@
 //   options:
 //   -h       ... print usage prompt
 //   -i[i]    ... use iterative solver for viscous [and pressure] steps
+//   -t[t]    ... select time-varying BCs for mode 0 [or all modes]
 //   -v[v...] ... increase verbosity level
-//   -chk     ... checkpoint field dumps
+//   -chk     ... turn off checkpoint field dumps [default: selected]
 //
 // AUTHOR:
 // ------
@@ -21,6 +21,24 @@
 // Vic 3800
 // Australia
 // hugh.blackburn@eng.monash.edu.au
+//
+// --
+// This file is part of Semtex.
+// 
+// Semtex is free software; you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 2 of the License, or (at your
+// option) any later version.
+// 
+// Semtex is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+// for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with Semtex (see the file COPYING); if not, write to the Free
+// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+// 02110-1301 USA.
 //////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -41,7 +59,7 @@ int main (int    argc,
 // Driver.
 // ---------------------------------------------------------------------------
 {
-#ifdef __itanium__
+#ifdef _GNU_SOURCE
   feenableexcept (FE_OVERFLOW);    // -- Force SIG8 crash on FP overflow.
 #endif
 
@@ -86,8 +104,9 @@ static void getargs (int    argc   ,
     "  [options]:\n"
     "  -h       ... print this message\n"
     "  -i[i]    ... use iterative solver for viscous [& pressure] steps\n"
+    "  -t[t]    ... select time-varying BCs for mode 0 [or all modes]\n"
     "  -v[v...] ... increase verbosity level\n"
-    "  -chk     ... checkpoint field dumps\n";
+    "  -chk     ... turn off checkpoint field dumps [default: selected]\n";
 
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
@@ -101,13 +120,18 @@ static void getargs (int    argc   ,
 	Femlib::ivalue ("ITERATIVE", Femlib::ivalue ("ITERATIVE") + 1);
       while (*++argv[0] == 'i');
       break;
+    case 't':
+      do
+	Femlib::ivalue ("TBCS",      Femlib::ivalue ("TBCS")      + 1);
+      while (*++argv[0] == 't');
+      break;
     case 'v':
       do
-	Femlib::ivalue ("VERBOSE", Femlib::ivalue ("VERBOSE") + 1);
+	Femlib::ivalue ("VERBOSE",   Femlib::ivalue ("VERBOSE")   + 1);
       while (*++argv[0] == 'v');
       break;
     case 'c':
-      if (strstr ("chk", *argv)) Femlib::ivalue ("CHKPOINT", 1);
+      if (strstr ("chk", *argv))     Femlib::ivalue ("CHKPOINT",    0);
       else { fprintf (stdout, usage, prog); exit (EXIT_FAILURE); }
       break;
     default:
@@ -136,17 +160,17 @@ static void preprocess (const char*       session,
 {
   const int_t        verbose = Femlib::ivalue ("VERBOSE");
   Geometry::CoordSys space;
-  int_t              i, np, nz, nel;;
+  int_t              i, np, nz, nel, procid, seed;
 
-  // -- Preset specialised tokens.
+  // -- Preset specialised SVV tokens. 
+  //    This parameter set ensures, that SVV is not active as long as
+  //    the parameters are not explicitly declared in the session file 
 
-  Femlib::ivalue ("SVV_MN",   0);
+  Femlib::ivalue ("SVV_MN",   -1);
   Femlib:: value ("SVV_EPSN", 0.0);
   
-  Femlib::ivalue ("SVV_MZ",   0);
+  Femlib::ivalue ("SVV_MZ",   -1);
   Femlib:: value ("SVV_EPSZ", 0.0);
-
-
 
   // -- Initialise problem and set up mesh geometry.
 
@@ -170,6 +194,17 @@ static void preprocess (const char*       session,
   Geometry::set (np, nz, nel, space);
 
   VERBOSE cout << "done" << endl;
+
+  // -- If token RANSEED > 0 then initialize the random number
+  //    generator based on wall clock time and process ID (i.e. a "truly"
+  //    pseudo-random number).  NB: it is important to have done this
+  //    before any other possible call to random number routines.
+
+  if (Femlib::ivalue("RANSEED") > 0) {
+    procid = Geometry::procID();
+    seed   = -abs((procid + 1) * (char) time(NULL));
+  } else seed = -1;
+  Veclib::ranInit (seed);
 
   // -- Build all the elements.
 

@@ -1,11 +1,11 @@
 ##############################################################################
-# Makefile for dns-svv, spectral element solver for unsteady Navier--Stokes
-# problems, with spectral-vanishing viscosity stabilization.
+# Makefile for dns, spectral element solver for unsteady Navier--Stokes
+# problems.
 #
 # $Id$
 ##############################################################################
 
-PROG = dns-svv
+PROG = dns_svv
 
 SEM   = ../semtex
 VPATH = $(SEM)/src
@@ -25,14 +25,9 @@ ifdef CONV		# -- Make convective nonlinear terms (not skew-symm).
   PROG    := $(PROG)_conv
 endif
 
-ifdef TBCS		# -- Recompute mode 0 velocity BCs every time step.
-  DEFINES += -DTBCS
-  PROG    := $(PROG)_tbcs
-endif
-
-ifdef OLDCODE		# -- Make the old cylindrical code version.
-  DEFINES += -DOLDCODE
-  PROG    := $(PROG)_old
+ifdef ASS		# -- Make alternating skew-symmetric nonlinear.
+  DEFINES += -DASS
+  PROG    := $(PROG)_ass
 endif
 
 ifdef MPI		# -- Make a parallel executable.
@@ -63,6 +58,29 @@ $(SEMOBJ): $(SEMHDR)
 # Standard rules and definitions.
 #
 include $(VPATH)/Makefile
+
+# ----------------------------------------------------------------------------
+# Clean up executables and anything else
+#
+distclean:
+	$(MAKE) clean
+	rm -f dns_svv dns_svv_tbcs dns_svv_mp dns_svv_tbcs_mp
+
+# ----------------------------------------------------------------------------
+# Make codes for time-varying BCs
+#
+tbcs:
+	rm -f integrate.o
+	$(MAKE) TBCS=1
+	rm -f integrate.o
+
+# ----------------------------------------------------------------------------
+# Make unsteady Stokes solver:
+#
+stokes:
+	rm -f nonlinear.o
+	$(MAKE) STOKES=1
+	rm -f nonlinear.o
 
 #-----------------------------------------------------------------------------
 # Machine-dependent compilations.

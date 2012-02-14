@@ -161,9 +161,9 @@ void DNSAnalyser::analyse (AuxField** work0,
 	  else
 	    Femlib::DFTr (&_work[0], nZ, _npad, INVERSE);
       } else {
-	Femlib::exchange (&_work[0], nZP, nP,  FORWARD);
-	Femlib::DFTr     (&_work[0], nZ,  nPP, INVERSE);
-	Femlib::exchange (&_work[0], nZP, nP,  INVERSE);
+	Femlib::exchange (&_work[0], nZP, _npad, FORWARD);
+	Femlib::DFTr     (&_work[0], nZ,    nPP, INVERSE);
+	Femlib::exchange (&_work[0], nZP, _npad, INVERSE);
       }
 
       // -- Write to file.

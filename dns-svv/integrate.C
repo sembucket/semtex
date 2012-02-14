@@ -8,25 +8,6 @@
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
-// --
-// This file is part of Semtex.
-// 
-// Semtex is free software; you can redistribute it and/or modify it
-// under the terms of the GNU General Public License as published by the
-// Free Software Foundation; either version 2 of the License, or (at your
-// option) any later version.
-// 
-// Semtex is distributed in the hope that it will be useful, but WITHOUT
-// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-// FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-// for more details.
-// 
-// You should have received a copy of the GNU General Public License
-// along with Semtex (see the file COPYING); if not, write to the Free
-// Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-// 02110-1301 USA.
-// --
-//
 // References:
 // 1. Karniadakis, Israeli & Orszag (1991) "High-order splitting methods
 //    for the incompressible Navier--Stokes equations", JCP 9(2).
@@ -47,6 +28,8 @@ static char RCS[] = "$Id$";
 #include <dns.h>
 
 typedef ModalMatrixSys Msys;
+
+// -- File-scope constants and routines:
 
 static int_t NDIM, NCOM, NORD;
 static bool  C3D;
@@ -76,6 +59,7 @@ void integrateNS (Domain*      D,
   int_t              i, j, k;
   const real_t       dt    = Femlib:: value ("D_T");
   const int_t        nStep = Femlib::ivalue ("N_STEP");
+  const int_t        TBCS  = Femlib::ivalue ("TBCS");
   const int_t        nZ    = Geometry::nZProc();
 
   static Msys**      MMS;
@@ -152,6 +136,7 @@ void integrateNS (Domain*      D,
     // -- Complete unconstrained advective substep and compute pressure.
 
     if (Geometry::cylindrical()) { Us[0][0] -> mulY(); Us[0][1] -> mulY(); }
+
     waveProp (D, const_cast<const AuxField***>(Us),
 	         const_cast<const AuxField***>(Uf));
     for (i = 0; i < NCOM; i++) AuxField::swapData (D -> u[i], Us[0][i]);
@@ -168,18 +153,28 @@ void integrateNS (Domain*      D,
     for (i = 0; i < NCOM; i++) *Us[0][i] = *D -> u[i];
     rollm (Us, NORD, NCOM);
 
+    // -- Re-evaluate (time-dependent) BCs?
+
+    if (TBCS == 1) {
+      // -- 2D/mode0 base BCs (only).
+      for (i = 0; i < NCOM; i++)
+	ROOTONLY D -> u[i] -> evaluateM0Boundaries (D -> step);
+    } else if (TBCS == 2) {
+      // -- All modes.
+      for (i = 0; i < NCOM; i++) {
+	D -> u[i] -> evaluateBoundaries (0, false);
+	D -> u[i] -> bTransform (FORWARD);
+      }
+      if (C3D) Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
+    }
+
     // -- Viscous correction substep.
 
     if (C3D) {
       AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
       AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     }
-    for (i = 0; i < NCOM; i++) {
-#if defined (TBCS) // -- Re-evaluate the (time-varying) 2D base BCs (only).
-      ROOTONLY D -> u[i] -> evaluateM0Boundaries (D -> step);
-#endif
-      Solve (D, i, Uf[0][i], MMS[i]);
-    }
+    for (i = 0; i < NCOM; i++) Solve (D, i, Uf[0][i], MMS[i]);
     if (C3D)
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 
@@ -187,7 +182,6 @@ void integrateNS (Domain*      D,
 
     A -> analyse (Us[0], Uf[0]);
   }
-
 }
 
 
@@ -268,13 +262,13 @@ static void project (const Domain* D ,
   for (i = 0; i < NCOM; i++) {
     Field::swapData (Us[i], Uf[i]);
     if (Geometry::cylindrical() && i == 2) Uf[i] -> mulY();
-    Uf[i] -> scal_svv(alpha); 
+    *Uf[i] *= alpha;
   }
 
   for (i = 0; i < NDIM; i++) {
     (*Us[0] = *D -> u[NCOM]) . gradient (i);
     if (Geometry::cylindrical() && i <  2) Us[0] -> mulY();
-    Uf[i] -> axpy_svv (beta, *Us[0]);
+    Uf[i] -> axpy (beta, *Us[0]);
   }
 }
 
@@ -316,10 +310,10 @@ static Msys** preSolve (const Domain* D)
 }
 
 
-static void Solve (Domain*       D,
+static void Solve (Domain*     D,
 		   const int_t i,
-		   AuxField*     F,
-		   Msys*         M)
+		   AuxField*   F,
+		   Msys*       M)
 // ---------------------------------------------------------------------------
 // Solve Helmholtz problem for D->u[i], using F as a forcing Field.
 // Iterative or direct solver selected on basis of field type, step,

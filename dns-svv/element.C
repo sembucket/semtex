@@ -52,8 +52,7 @@ Element::Element (const int_t id,
 
   // -- Make special SVV-modified differentiation matrices if required.
 
-  if (Femlib::ivalue ("SVV_MN") > 1) SVV::operators (_np, &_SDVr, &_SDTr);
-  else { _SDVr = _DVr; _SDTr = _DTr; }
+  SVV::operators (_np, &_SDVr, &_SDTr);
     
   // -- Fill in aliases for equal-order elements.
 
@@ -742,7 +741,7 @@ real_t Element::integral (const real_t* src,
 real_t Element::momentX (const char* func,
 			 real_t*     tmp ) const
 // ---------------------------------------------------------------------------
-// The integral weighted by x location.
+// The integral of func weighted by x location.
 // ---------------------------------------------------------------------------
 {
   Femlib::prepVec    ("x y", func);
@@ -755,7 +754,7 @@ real_t Element::momentX (const char* func,
 real_t Element::momentY (const char* func,
 			 real_t*     tmp ) const
 // ---------------------------------------------------------------------------
-// The integral weighted by y location.
+// The integral of func weighted by y location.
 // ---------------------------------------------------------------------------
 {
   Femlib::prepVec    ("x y", func);
@@ -798,7 +797,7 @@ real_t Element::area () const
 
 void Element::weight (real_t* tgt) const
 // ---------------------------------------------------------------------------
-// Multiply tgt by elemental mass matrix. Not multiplied by radius.
+// Multiply tgt by elemental mass matrix. NB: not multiplied by radius.
 // ---------------------------------------------------------------------------
 {
   Veclib::vmul (_npnp, tgt, 1, _Q8, 1, tgt, 1);
@@ -1603,7 +1602,7 @@ void Element::HelmholtzOp (const real_t lambda2,
 // Input work must be 2*_npnp long.
 // ---------------------------------------------------------------------------
 {
-  real_t       *R = wrk, *S = wrk + _npnp;
+  real_t *R = wrk, *S = wrk + _npnp;
   const real_t *dtr, *dts, *dvr, *dvs;
 
   // -- If we are setting up a viscous matrix, use SVV-stabilised operators.
