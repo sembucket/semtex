@@ -6,7 +6,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "sem.h"
+#include <sem.h>
 
 
 Domain::Domain (FEML*             F,
@@ -215,17 +215,20 @@ ifstream& operator >> (ifstream& strm,
 {
   const char routine[] = "strm>>Domain";
   int_t      i, j, np, nz, nel, ntot, nfields;
-  int_t      npchk,  nzchk, nelchk;
-  int_t      swap = 0, verb = Femlib::ivalue ("VERBOSE");
+  int_t      npchk,  nzchk, nelchk, verb = Femlib::ivalue ("VERBOSE");
   char       s[StrMax], f[StrMax], err[StrMax], fields[StrMax];
+  bool       swap = false, found = false;
 
   if (strm.getline(s, StrMax).eof()) return strm;
 
-  strm.getline(s,StrMax).getline(s,StrMax);
-  
+  string ss(s);
+  istringstream sss (ss);
+  sss >> np >> np >> nz >> nel;
+
   D.u[0] -> describe (f);
-  istrstream (s, strlen (s)) >> np    >> np    >> nz    >> nel;
-  istrstream (f, strlen (f)) >> npchk >> npchk >> nzchk >> nelchk;
+  sss.clear();
+  sss.str (ss = f);
+  sss >> npchk >> npchk >> nzchk >> nelchk;
   
   if (np  != npchk ) message (routine, "element size mismatch",       ERROR);
   if (nz  != nzchk ) message (routine, "number of z planes mismatch", ERROR);
@@ -236,10 +239,14 @@ ifstream& operator >> (ifstream& strm,
     message (routine, "declared sizes mismatch", ERROR);
 
   strm.getline(s,StrMax);
-  istrstream (s, strlen (s)) >> D.step;
+  sss.clear();
+  sss.str  (ss = s);
+  sss >> D.step;
 
   strm.getline(s,StrMax);
-  istrstream (s, strlen (s)) >> D.time;
+  sss.clear();
+  sss.str  (ss = s);
+  sss >> D.time;
   Femlib::value ("t", D.time);
   
   strm.getline(s,StrMax).getline(s,StrMax);
@@ -252,12 +259,14 @@ ifstream& operator >> (ifstream& strm,
   }
   fields[nfields] = '\0';
   if (nfields != strlen (D.field)) {
-    sprintf (err, "file: %1d fields, Domain: %1d", nfields, strlen(D.field));
+    sprintf (err, "file: %1d fields, Domain: %1d", 
+	     (int) nfields, (int) strlen(D.field));
     message (routine, err, ERROR);
   }
   for (i = 0; i < nfields; i++) 
     if (!strchr (D.field, fields[i])) {
-      sprintf (err,"field %c not present in Domain (%s)",fields[i],D.field);
+      sprintf (err,"field %c not present in Domain (%s)",
+	       fields[i], D.field);
       message (routine, err, ERROR);
     }
 
@@ -279,14 +288,15 @@ ifstream& operator >> (ifstream& strm,
   }
 
   for (j = 0; j < nfields; j++) {
-    for (i = 0; i < nfields; i++)
-      if (fields[j] == D.field[i]) {
-	strm >>  *D.u[i];
-	if (swap) D.u[i] -> reverse();
-	break;
-      }
+    for (found = false, i = 0; i < nfields; i++)
+      if (fields[j] == D.field[i]) { found = true; break; }
+    if (found) {    // -- Read in a matching field variable.
+      strm >>  *D.u[i];
+      if (swap) D.u[i] -> reverse();
+    } else ROOTONLY // -- Skip over a field variable not in the domain.
+	strm.seekg (ntot*sizeof(real_t), ios::cur);
   }
-    
+
   ROOTONLY if (strm.bad())
     message (routine, "failed reading field file", ERROR);
     

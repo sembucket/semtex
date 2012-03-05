@@ -18,9 +18,9 @@ class DualAnalyser : public Analyser
 {
 public:
   DualAnalyser  (Domain*, FEML*);
-  void analyse (AuxField**);
+  void analyse (AuxField**, AuxField**);
 
 private:
-  ofstream flx_strm;
+  ofstream _flx_strm;
 };
 #endif

@@ -148,7 +148,7 @@ void NavierStokes (Domain*       D,
 
     // -- Process results of this step.
 
-    A -> analyse (Us[0]);
+    A -> analyse (Us[0], Uf[0]);
   }
 }
 

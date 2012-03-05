@@ -12,14 +12,12 @@
 static char RCS[] = "$Id$";
 
 #include <ctime>
-#include "sem.h"
+#include <sem.h>
 
 
-Statistics::Statistics (Domain*            D    ,
-			vector<AuxField*>& extra) : 
+Statistics::Statistics (Domain* D) :
 // ---------------------------------------------------------------------------
-// Store averages for all Domain Fields, and any extra AuxFields
-// supplied.
+// Store averages for all Domain Fields (no extra fields - Reynolds stress).
 //
 // Try to initialize from file session.avg, failing that set all
 // buffers to zero.  Number of fields in file should be same as
@@ -33,7 +31,7 @@ Statistics::Statistics (Domain*            D    ,
   int_t       i, j;
   const int_t ND    = Geometry::nDim();
   const int_t NF    = base -> u.size();
-  const int_t NE    = extra.size();
+  const int_t NE    = 0;
   const int_t NR    = 0;
   const int_t NT    = NF + NE + NR;
   const int_t nz    = Geometry::nZProc();

@@ -13,7 +13,7 @@
 
 static char RCS[] = "$Id$";
 
-#include "sem.h"
+#include <sem.h>
 
 
 Analyser::Analyser (Domain* D   ,
@@ -21,7 +21,7 @@ Analyser::Analyser (Domain* D   ,
 // ---------------------------------------------------------------------------
 // Set up.
 // ---------------------------------------------------------------------------
-  src (D)
+  _src (D)
 {
   char str[StrMax];
 
@@ -30,31 +30,31 @@ Analyser::Analyser (Domain* D   ,
   // -- Initialize averaging.
 
   if (Femlib::ivalue ("AVERAGE")) {
-    vector<AuxField*> extra (0);
-    stats = new Statistics (D, extra);
+    _stats = new Statistics (D);
   } else                              
-    stats = 0;
+    _stats = 0;
 
   // -- Set up for output of modal energies every IO_CFL steps if 3D.
 
   if (Geometry::nDim() == 3) {
-    strcat (strcpy (str, src -> name), ".mdl");
+    strcat (strcpy (str, _src -> name), ".mdl");
     ROOTONLY {
-      mdl_strm.open (str, ios::out); 
-      mdl_strm <<
+      _mdl_strm.open (str, ios::out); 
+      _mdl_strm <<
 "#         Time          Mode0          ModeC       ModeC.Re       ModeC.Im"
 << endl
 	       <<
 "# ------------------------------------------------------------------------" 
 << endl;
-      mdl_strm.setf (ios::scientific, ios::floatfield);
-      mdl_strm.precision (8);
+      _mdl_strm.setf (ios::scientific, ios::floatfield);
+      _mdl_strm.precision (8);
     }
   }
 }
 
 
-void Analyser::analyse (AuxField** work)
+void Analyser::analyse (AuxField** work0,
+			AuxField** work1)
 // ---------------------------------------------------------------------------
 // Step-by-step processing.  If SPAWN was set, add more particles at
 // original absolute positions.
@@ -65,34 +65,38 @@ void Analyser::analyse (AuxField** work)
 
   // -- Step-by-step updates.
 
-  cout << "Step: " << src -> step << "  Time: " << src -> time << endl;
+  cout << "Step: " << _src -> step << "  Time: " << _src -> time << endl;
 
   // -- CFL, energy, divergence information.
 
-  if (cflstep && !(src -> step % cflstep)) {
-    modalEnergy ();
-    estimateCFL ();
-    divergence  (work);
+  if (cflstep && !(_src -> step % cflstep)) {
+    this -> modalEnergy ();
+    this -> estimateCFL ();
+    this -> divergence  (work0);
   }
 
   // -- Periodic dumps and global information.
   
-  const bool periodic = !(src->step %  Femlib::ivalue("IO_HIS")) ||
-                        !(src->step %  Femlib::ivalue("IO_FLD"));
-  const bool final    =   src->step == Femlib::ivalue("N_STEP");
+  const bool periodic = !(_src->step %  Femlib::ivalue("IO_HIS")) ||
+                        !(_src->step %  Femlib::ivalue("IO_FLD"));
+  const bool final    =   _src->step == Femlib::ivalue("N_STEP");
   const bool state    = periodic || final;
 
   if (state) {
      
     // -- Statistical analysis.
 
-    if (stats) stats -> update (work);
+    if (_stats) _stats -> update (work0, work1);
   }
 
   // -- Field and statistical dumps.
 
-  src -> dump ();
-  if (stats) stats -> dump();
+  _src -> dump ();
+  if (_stats) {
+    char filename[StrMax];
+    strcat (strcpy (filename, _src -> name), ".avg");
+    _stats -> dump (filename);
+  }
 }
 
 
@@ -108,20 +112,20 @@ void Analyser::modalEnergy ()
   Veclib::zero (4, ek, 1);
 
   for (i = 0; i < DIM; i++) {
-    src -> u[i] -> mode_en (0, re, im);
+    _src -> u[i] -> mode_en (0, re, im);
     ek[0] += re;
-    src -> u[i] -> mode_en (1, re, im);
+    _src -> u[i] -> mode_en (1, re, im);
     ek[1] += re + im;
     ek[2] += re;
     ek[3] += im;
   }
 
-  mdl_strm << setw(10) << src -> time 
-	   << setw(15) << ek[0]
-	   << setw(15) << ek[1]
-	   << setw(15) << ek[2]
-	   << setw(15) << ek[3]
-	   << endl;
+  _mdl_strm << setw(10) << _src -> time 
+	    << setw(15) << ek[0]
+	    << setw(15) << ek[1]
+	    << setw(15) << ek[2]
+	    << setw(15) << ek[3]
+	    << endl;
 }
 
 
@@ -142,13 +146,13 @@ void Analyser::divergence (AuxField** Us) const
   if (space == Geometry::Cartesian) {
 
     for (i = 0; i < DIM; i++) {
-      *Us[i] = *src -> u[i];
+      *Us[i] = *_src -> u[i];
       Us[i] -> gradient (i);
     }
 
   } else {			// -- Cylindrical.
 
-    for (i = 0; i < DIM; i++) *Us[i] = *src -> u[i];
+    for (i = 0; i < DIM; i++) *Us[i] = *_src -> u[i];
     Us[1] -> mulY();
     for (i = 0; i < DIM; i++)  Us[i] -> gradient (i);
     Us[1] -> divY();
@@ -177,8 +181,8 @@ void Analyser::estimateCFL () const
   real_t       CFL_dt, dt_max;
   int_t        percent;
 
-  CFL_dt = max (src -> u[0] -> CFL (0), src -> u[1] -> CFL (1));
-  if (Geometry::nDim() == 3) CFL_dt = max (CFL_dt, src -> u[2] -> CFL (2));
+  CFL_dt = max (_src -> u[0] -> CFL (0), _src -> u[1] -> CFL (1));
+  if (Geometry::nDim() == 3) CFL_dt = max (CFL_dt, _src -> u[2] -> CFL (2));
 
   dt_max  = SAFETY * CFL_max / CFL_dt;
   percent = static_cast<int_t>(100.0 * dt / dt_max);

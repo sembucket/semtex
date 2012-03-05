@@ -300,8 +300,8 @@ AuxField& AuxField::gradient (const int_t dir)
   register int_t  i, k;
   const real_t    *DV, *DT;
 
-  Femlib::quadrature (0, 0, &DV, 0  , np, LL, 0.0, 0.0);
-  Femlib::quadrature (0, 0, 0  , &DT, np, LL, 0.0, 0.0);
+  Femlib::quadrature (0, 0, &DV, 0  , np, GLJ, 0.0, 0.0);
+  Femlib::quadrature (0, 0, 0  , &DT, np, GLJ, 0.0, 0.0);
 
   switch (dir) {
 
@@ -390,8 +390,8 @@ void AuxField::gradient (const int_t nP ,
   register real_t *plane, *xr, *xs, *Re, *Im;
   const real_t    *DV, *DT;
 
-  Femlib::quadrature (0, 0, &DV, 0  , np, LL, 0.0, 0.0);
-  Femlib::quadrature (0, 0, 0  , &DT, np, LL, 0.0, 0.0);
+  Femlib::quadrature (0, 0, &DV, 0  , np, GLJ, 0.0, 0.0);
+  Femlib::quadrature (0, 0, 0  , &DT, np, GLJ, 0.0, 0.0);
 
   switch (dir) {
 
@@ -628,10 +628,12 @@ void AuxField::describe (char* s)  const
 // NR NS NZ NEL.
 // ---------------------------------------------------------------------------
 {
-  ostrstream (s, StrMax) << Geometry::nP()    << " "
-                         << Geometry::nP()    << " "
-                         << Geometry::nZ()    << " "
-                         << Geometry::nElmt() << ends;
+  ostringstream sf;
+  sf << Geometry::nP()    << " "
+     << Geometry::nP()    << " "
+     << Geometry::nZ()    << " "
+     << Geometry::nElmt() << ends;
+  strcpy (s, sf.str().c_str());
 }
 
 
@@ -920,7 +922,7 @@ real_t AuxField::CFL (const int_t dir) const
   {
     const int_t   nP = Geometry::nP();
     const real_t* z;
-    Femlib::quadrature (&z, 0, 0, 0, nP, LL, 0.0, 0.0);
+    Femlib::quadrature (&z, 0, 0, 0, nP, GLJ, 0.0, 0.0);
     dxy = z[1] - z[0];
   }
 
