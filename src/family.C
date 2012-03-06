@@ -3,6 +3,15 @@
 //
 // Copyright (c) 2003 <--> $Date$, Hugh Blackburn
 //
+// This file maintains a family structure for vectors of real. Doing
+// it in C++ ensures that we can delete copies of arrays allocated
+// using new. See the equivalent family routines in Femlib.
+//
+// This would be templated if instantiation was more standard
+// across compilation regimes (or I could figure out how to make it
+// all work), but the minimum requirement is real arrays...so that's
+// all for now.
+//
 // --
 // This file is part of Semtex.
 // 
@@ -20,16 +29,6 @@
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 // 02110-1301 USA.
-// --
-//
-// This file maintains a family structure for vectors of real. Doing
-// it in C++ ensures that we can delete copies of arrays allocated
-// using new. See the equivalent family routines in Femlib.
-//
-// This would be templated if instantiation was more standard
-// across compilation regimes (or I could figure out how to make it
-// all work), but the minimum requirement is real arrays...so that's
-// all for now.
 //////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
