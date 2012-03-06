@@ -12,8 +12,8 @@ class AuxField
 // global numbering system, and no solution routines.
 // ===========================================================================
 {
-friend ifstream& operator >> (ifstream&, AuxField&);
-friend ofstream& operator << (ofstream&, AuxField&);
+friend istream& operator >> (istream&, AuxField&);
+friend ostream& operator << (ostream&, AuxField&);
 friend class     Field;
 friend class     PBCmgr;
 

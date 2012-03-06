@@ -39,7 +39,7 @@ ModalMatrixSys::ModalMatrixSys (const real_t            lambda2 ,
 // ---------------------------------------------------------------------------
 {
   const char                   name  = Bsys -> field();
-  const int_t                  kfund = Femlib::ivalue ("K_FUND");
+  const int_t                  kfund = Femlib::ivalue ("BETA");
   int_t                        index;
   bool                         found;
   MatrixSys*                   M;

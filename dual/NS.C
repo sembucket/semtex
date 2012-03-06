@@ -6,7 +6,7 @@
 // Copyright (c) 2000 <--> $Date$, Hugh Blackburn
 //
 // NB: Modified for use with dual.  Nonlinear terms are computed using
-// convolution sums.
+// convolution sums since fields are in Fourier space always.
 //
 // References:
 // 1.  Karniadakis, Israeli & Orszag 1991.  "High-order splitting methods

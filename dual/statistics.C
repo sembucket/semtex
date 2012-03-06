@@ -1,112 +1,178 @@
 ///////////////////////////////////////////////////////////////////////////////
-// statistics.C: routines for statistical analysis of AuxFields.
+// statistics.C: routines for statistical analysis of AuxFields,
+// specialised for use with dual -- so there are no Fourier transforms.
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
-// At present, this is limited to running averages of primitive
-// variables, regardless of value of AVERAGE.
+// The collection of statistics is controlled by the setting of the
+// AVERAGE token. Legal values are 0 (default), 1, 2. The routines
+// here do not control how often statistics are updated: that happens
+// in Analyser class methods.
 //
-// NB: Modified for use with dual: no computation of Reynolds stresses.
+// All collected statistics are given 1-character names. Potentially
+// these may clash with quantities derived/used by addfield utility
+// for example. Caveat emptor. In the longer term we should move to
+// CSV for field names.
+//
+// AVERAGE = 0.  No statistics.
+//
+// AVERAGE = 1.  Running averages of variables held by the Domain used
+// for initialisation. The data are held in semi-Fourier state.
+//
+// AVERAGE = 2.  Additionally, correlation terms for computation of
+// Reynolds stresses. (Correlations, based on products of variables,
+// are computed and held in physical space.)
+// 
+// Naming scheme for components of the symmetric "Reynolds stresses" tensor:
+//
+//                      / uu uv uw \     /  A  B  D \
+//                      | .  vv vw |  =  |  .  C  E |
+//                      \ .  .  ww /     \  .  .  F /
+//
+// What is computed are the running average of the products uu, uv,
+// etc, which are NOT the actual Reynolds stresses: they need to have
+// the products of the mean values UU, UV etc subtracted, assumed to
+// occur in postprocessing. If there are only two velocity components
+// present in the initialising Domain, only averages for A, B & C are
+// made.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
 
-#include <ctime>
 #include <sem.h>
 
 
 Statistics::Statistics (Domain* D) :
 // ---------------------------------------------------------------------------
-// Store averages for all Domain Fields (no extra fields - Reynolds stress).
-//
-// Try to initialize from file session.avg, failing that set all
-// buffers to zero.  Number of fields in file should be same as
-// Statistics::avg buffer.
-//
-// NR = Number of Reynolds stress averaging buffers, set if AVERAGE > 1.
+// Store averages for all Domain Fields, and correlations.
 // ---------------------------------------------------------------------------
-  name (D -> name),
-  base (D)
+  _name (D -> name),
+  _base (D),
+  _iavg (Femlib::ivalue ("AVERAGE")),
+  _nraw (_base -> nField()),
+  _nvel (_nraw - 1),
+  _nrey ((_iavg > 1) ? ((_nvel+1)*_nvel)/2 : 0),
+  _neng (0)
 {
-  int_t       i, j;
-  const int_t ND    = Geometry::nDim();
-  const int_t NF    = base -> u.size();
-  const int_t NE    = 0;
-  const int_t NR    = 0;
-  const int_t NT    = NF + NE + NR;
-  const int_t nz    = Geometry::nZProc();
-  const int_t ntot  = Geometry::nTotProc();
-  real_t*     alloc = new real_t [static_cast<size_t> (NT * ntot)];
-
-  ROOTONLY cout << "-- Initializing averaging  : ";  
+  if (_iavg == 0) return;
+  if ((_iavg  < 0) || (_iavg > 2))
+    message ("Statistics::Statistics", "AVERAGE token out of [0,2]", ERROR);
+					 
+  int_t       i;
+  const int_t nz   = Geometry::nZProc();
+  const int_t ntot = Geometry::nTotProc();
 
   // -- Set pointers, allocate storage.
 
-  src.resize (NF + NE);	// -- Straight running average of these.
-  avg.resize (NT);		// -- Additional are computed from src.
-  
-  for (i = 0; i < NF; i++) src[     i] = (AuxField*) base -> u[i];
-  for (i = 0; i < NE; i++) src[NF + i] = extra[i];
+  for (i = 0; i < _nraw; i++)	// -- Local pointers to raw variables.
+    _raw[_base -> u[i] -> name()] = (AuxField*) _base -> u[i];
 
-  for (j = 0, i = 0; i < NF + NE; i++, j++)
-    avg[i] = new AuxField (alloc+j*ntot, nz, base -> elmt, src[i] -> name());
-  for (i = 0; i < NT - NF - NE; i++, j++)
-    avg[i + NF + NE] = new AuxField (alloc+j*ntot, nz, base -> elmt, 'A' + i);
+  if (_iavg > 0) // -- Set up buffers for averages of raw variables.
+    for (i = 0; i < _nraw; i++)
+      _avg[_base -> u[i] -> name()] =
+	new AuxField (new real_t[ntot],nz,_base->elmt,_base->u[i]->name());
 
-  // -- Initialise averages, either from file or zero.
-  //    This is much the same as Domain input routine.
+  if (_iavg > 1) // -- Set up buffers for Reynolds stress correlations.
+    for (i = 0; i < _nrey; i++)
+      _avg['A' + i] = new AuxField (new real_t[ntot],nz,_base->elmt,'A'+i);
+}
 
-  char     s[StrMax];
-  ifstream file (strcat (strcpy (s, name), ".avg"));
+
+void Statistics::initialise (const char* filename)
+// ---------------------------------------------------------------------------
+// This is for standard running averages. Try to initialize from file
+// filename (e.g. "session.avg"), failing that set all buffers to
+// zero.  Number of fields in file should be same as Statistics::_avg
+// buffer.
+// ---------------------------------------------------------------------------
+{
+  cout << "-- Initialising averaging  : ";  
+
+  ifstream file (filename);
+  map<char, AuxField*>::iterator k;
 
   if (file) {
-    ROOTONLY {
-      cout << "read from file " << s;
-      cout.flush();
-    }
+    cout << "read from file " << filename;
+    cout.flush();
+
     file >> *this;
     file.close();
+  
   } else {			// -- No file, set to zero.
-    ROOTONLY cout << "set to zero";
-    for (i = 0; i < NT; i++) *avg[i] = 0.0;
-    navg = 0;
+    cout << "set to zero";
+    for (k = _avg.begin(); k != _avg.end(); k++) *(k -> second) = 0.0;
+    _navg = 0;
   }
 
-  ROOTONLY cout << endl;
+  cout << endl;
 }
 
 
-void Statistics::update (AuxField** work)
+void Statistics::update (AuxField** wrka,
+			 AuxField** wrkb)
 // ---------------------------------------------------------------------------
-// Update running averages, using zeroth time level of work as
-// workspace.  Reynolds stress terms are calculated without
-// dealiasing, and are held in physical space.
+// Update running averages, using arrays wrka & wrkb as workspace.
+// 
+// NB: Reynolds stress products are done by convolution in dual.
 // ---------------------------------------------------------------------------
 {
-  int_t       i;
-  const int_t NT = avg.size();
-  const int_t ND = Geometry::nDim();
-  const int_t NR = 0;
-  const int_t NA = NT - NR;
+  if (_iavg < 1) return;
+  
+  char   key;
+  int_t  i, j;
+  Field* master = _base -> u[0];
+  map<char, AuxField*>::iterator k;
 
-  // -- Running averages only.
+  // -- Weight old running averages.
 
-  for (i = 0; i < NA; i++) {
-    *avg[i] *= static_cast<real_t> (navg);
-    *avg[i] += *src[i];
-    *avg[i] /= static_cast<real_t> (navg + 1);
+  for (k = _avg.begin(); k != _avg.end(); k++)
+    *(k -> second) *= static_cast<real_t>(_navg);
+    
+  // -- Always do running averages of raw data.
+
+  for (k = _raw.begin(); k != _raw.end(); k++)
+    *_avg[k -> second-> name()] += *(k -> second);
+
+  // -- Reynolds stress correlations.
+
+  if (_iavg > 1) {
+    *wrka[0] = *_raw['u'];
+    *wrka[1] = *_raw['v'];
+    if (_nvel == 3) *wrka[2] = *_raw['w']; 
+
+    wrkb[0] -> convolve (*wrka[0], *wrka[0]); *_avg['A'] += *wrkb[0];
+    wrkb[0] -> convolve (*wrka[0], *wrka[1]); *_avg['B'] += *wrkb[0];
+    wrkb[0] -> convolve (*wrka[1], *wrka[1]); *_avg['C'] += *wrkb[0];
+    
+    if (_nvel == 3) {
+      wrkb[0] -> convolve (*wrka[0], *wrka[2]); *_avg['D'] += *wrkb[0];
+      wrkb[0] -> convolve (*wrka[1], *wrka[2]); *_avg['E'] += *wrkb[0];
+      wrkb[0] -> convolve (*wrka[2], *wrka[2]); *_avg['F'] += *wrkb[0];
+    }
   }
 
-  navg++;
+  // -- Normalise and smooth running averages.
+
+  for (k = _avg.begin(); k != _avg.end(); k++) {
+    master -> smooth (k -> second);
+    *(k -> second) /= static_cast<real_t>(_navg + 1);
+  }
+
+  _navg++;
 }
 
 
-void Statistics::dump ()
+void Statistics::dump (const char* filename)
 // ---------------------------------------------------------------------------
 // Similar to Domain::dump.
+//
+// As of 24/11/2004, we deleted the checkpointing that used to happen:
+// all dumping now happens to file named on input.
+//
+// We also smooth all the outputs with the mass matrix.
 // ---------------------------------------------------------------------------
 {
-  const int_t step     = base -> step;
+  const int_t step     = _base -> step;
   const bool  periodic = !(step %  Femlib::ivalue ("IO_FLD"));
   const bool  initial  =   step == Femlib::ivalue ("IO_FLD");
   const bool  final    =   step == Femlib::ivalue ("N_STEP");
@@ -114,41 +180,21 @@ void Statistics::dump ()
   if (!(periodic || final)) return;
 
   ofstream    output;
-  const int_t NT = avg.size();
-  const int_t ND = Geometry::nDim();
+  int_t       i;
+  map<char, AuxField*>::iterator k;
 
-  ROOTONLY {
-    const char routine[] = "Statistics::dump";
-    const bool verbose   = Femlib::ivalue ("VERBOSE");
-    const bool chkpoint  = Femlib::ivalue ("CHKPOINT");
-    char       dumpfl[StrMax], backup[StrMax], command[StrMax];
+  const char routine[] = "Statistics::dump";
+  const bool verbose   = static_cast<bool> (Femlib::ivalue ("VERBOSE"));
 
-    if (chkpoint) {
-      if (final) {
-	strcat (strcpy (dumpfl, name), ".avg");
-	output.open (dumpfl, ios::out);
-      } else {
-	strcat (strcpy (dumpfl, name), ".ave");
-	if (!initial) {
-	  strcat  (strcpy (backup, name), ".ave.bak");
-	  sprintf (command, "mv ./%s ./%s", dumpfl, backup);
-	  system  (command);
-	}
-	output.open (dumpfl, ios::out);
-      }
-    } else {
-      strcat (strcpy (dumpfl, name), ".avg");
-      if   (initial) output.open (dumpfl, ios::out);
-      else           output.open (dumpfl, ios::app);
-    }
-
-    if (!output) message (routine, "can't open dump file", ERROR);
-    if (verbose) message (routine, ": writing field dump", REMARK);
-  }
+  output.open (filename);
+  if (!output) message (routine, "can't open dump file", ERROR);
+  if (verbose) message (routine, ": writing field dump", REMARK);
+  
+  // -- All terms are written out in Fourier space.
 
   output << *this;
 
-  ROOTONLY output.close();
+  output.close();
 }
 
 
@@ -158,13 +204,14 @@ ofstream& operator << (ofstream&   strm,
 // Output Statistics class to file.  Like similar Domain routine.
 // ---------------------------------------------------------------------------
 {
-  int_t           i;
-  const int_t     N = src.avg.size();
+  int_t             i;
+  const int_t       N = src._avg.size();
   vector<AuxField*> field (N);
+  map<char, AuxField*>::iterator k;
 
-  for (i = 0; i < N; i++) field[i] = src.avg[i];
+  for (i = 0, k = src._avg.begin(); i < N; i++, k++) field[i] = k -> second;
 
-  writeField (strm, src.name, src.navg, src.base -> time, field);
+  writeField (strm, src._name, src._navg, src._base -> time, field);
 
   return strm;
 }
@@ -177,18 +224,25 @@ ifstream& operator >> (ifstream&   strm,
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "strm>>Statistics";
-  int_t      i, j, np, nz, nel, ntot, nfields;
-  int_t      npchk,  nzchk, nelchk, swap = 0;
-  char       s[StrMax], f[StrMax], err[StrMax], fields[StrMax];
+  int_t i, j, np, nz, nel, ntot, nfields;
+  int_t npchk,  nzchk, nelchk;
+  char  s[StrMax], f[StrMax], err[StrMax], fields[StrMax];
+  bool  swap = false;
+  map<char, AuxField*>::iterator k;
 
   if (strm.getline(s, StrMax).eof()) return strm;
   
   strm.getline (s, StrMax) . getline (s, StrMax);
 
-  tgt.avg[0] -> describe (f);
-  istrstream (s, strlen (s)) >> np    >> np    >> nz    >> nel;
-  istrstream (f, strlen (f)) >> npchk >> npchk >> nzchk >> nelchk;
-  
+  string ss(s);
+  istringstream sss (ss);
+  sss >> np >> np >> nz >> nel;
+ 
+  tgt._avg.begin()->second->describe (f);
+  sss.clear ();
+  sss.str   (ss = f);
+  sss >> npchk >> npchk >> nzchk >> nelchk;
+
   if (np  != npchk ) message (routine, "element size mismatch",       ERROR);
   if (nz  != nzchk ) message (routine, "number of z planes mismatch", ERROR);
   if (nel != nelchk) message (routine, "number of elements mismatch", ERROR);
@@ -197,8 +251,11 @@ ifstream& operator >> (ifstream&   strm,
   if (ntot != Geometry::nTot())
     message (routine, "declared sizes mismatch", ERROR);
 
-  strm.getline (s,StrMax);
-  istrstream (s, strlen (s)) >> tgt.navg;
+  strm.getline (s, StrMax);
+
+  sss.clear();
+  sss.str  (ss = s);
+  sss >> tgt._navg;
     
   strm.getline (s, StrMax) . getline (s, StrMax);
   strm.getline (s, StrMax) . getline (s, StrMax) . getline (s, StrMax);
@@ -209,12 +266,14 @@ ifstream& operator >> (ifstream&   strm,
     nfields++;
   }
   fields[nfields] = '\0';
-  if (nfields != tgt.avg.size()) {
-    sprintf (err, "strm: %1d fields, avg: %1d", nfields, tgt.avg.size());
+  if (nfields != tgt._avg.size()) {
+    sprintf (err, "strm: %1d fields, avg: %1d", 
+	     nfields, static_cast<int_t>(tgt._avg.size()));
     message (routine, err, ERROR);
   }
-  for (i = 0; i < nfields; i++) 
-    if (!strchr (fields, tgt.avg[i] -> name())) {
+
+  for (i = 0, k = tgt._avg.begin(); k != tgt._avg.end(); k++, i++)
+    if (!strchr (fields, k -> second -> name())) {
       sprintf (err, "field %c not present in avg", fields[i]);
       message (routine, err, ERROR);
     }
@@ -230,24 +289,44 @@ ifstream& operator >> (ifstream&   strm,
   else {
     swap = ((strstr (s, "big") && strstr (f, "little")) ||
 	    (strstr (f, "big") && strstr (s, "little")) );
-    ROOTONLY {
-      if (swap) cout << " (byte-swapping)";
-      cout.flush();
-    }
+    if (swap) cout << " (byte-swapping)";
+    cout.flush();
   }
-    
+
   for (j = 0; j < nfields; j++) {
-    for (i = 0; i < nfields; i++)
-      if (tgt.avg[i] -> name() == fields[j]) break;
-    strm >> *tgt.avg[i];
-    if (swap) tgt.avg[i] -> reverse();
+    strm >> *tgt._avg[fields[j]];
+    if (swap) tgt._avg[fields[j]] -> reverse();
   }
   
-  ROOTONLY if (strm.bad())
+  if (strm.bad())
     message (routine, "failed reading average file", ERROR);
 
   return strm;
 }
 
 
+void Statistics::phaseUpdate (const int_t j   ,
+			      AuxField**  wrka,
+			      AuxField**  wrkb)
+// ---------------------------------------------------------------------------
+// Phase updates are running updates, like those for standard
+// statistics, but they are only computed at (a presumed very limited)
+// number of instants per run. And so there would be a number of
+// averaging files, to be called e.g. session.0.phs, session.1.phs
+// ... session.(N-1).phs. Instead of reserving enough memory for all
+// these buffers, we just keep workspace reserved, and at every phase
+// point the appropriate file (number j) is read in, updated, and
+// written back out. If the file does not exist, it is created.
+//
+// NB: the number of averages computed (needed for the running
+// averaging) is only updated when j == 0, which will happen as the
+// last of a set of phase averages.
+// ---------------------------------------------------------------------------
+{
+  char filename[StrMax];
+  sprintf (filename, "%s.%1d.phs", _name, j);
 
+  this -> initialise (filename);
+  this -> update     (wrka, wrkb);
+  this -> dump       (filename);
+}

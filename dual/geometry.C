@@ -23,15 +23,15 @@ using namespace std;
 #include <geometry.h>
 #include <femlib.h>
 
-int_t              Geometry::pid   = 0;
-int_t              Geometry::nproc = 0;
-int_t              Geometry::ndim  = 0;
-int_t              Geometry::np    = 0;
-int_t              Geometry::nz    = 0;
-int_t              Geometry::nzp   = 0;
-int_t              Geometry::nel   = 0;
-int_t              Geometry::psize = 0;
-Geometry::CoordSys Geometry::csys  = Geometry::Cartesian;
+int_t              Geometry::_pid   = 0;
+int_t              Geometry::_nproc = 0;
+int_t              Geometry::_ndim  = 0;
+int_t              Geometry::_np    = 0;
+int_t              Geometry::_nz    = 0;
+int_t              Geometry::_nzp   = 0;
+int_t              Geometry::_nel   = 0;
+int_t              Geometry::_psize = 0;
+Geometry::CoordSys Geometry::_csys  = Geometry::Cartesian;
 
 
 void Geometry::set (const int_t  NP,
@@ -44,22 +44,22 @@ void Geometry::set (const int_t  NP,
 {
   static char routine[] = "Geometry::set", err[StrMax];
 
-  pid   = Femlib::ivalue ("I_PROC");
-  nproc = Femlib::ivalue ("N_PROC");
+  _pid   = Femlib::ivalue ("I_PROC");
+  _nproc = Femlib::ivalue ("N_PROC");
 
-  np   = NP; nz = NZ; nel = NE; csys = CS;
-  nzp  = nz;
-  ndim = 3;
+  _np   = NP; _nz = NZ; _nel = NE; _csys = CS;
+  _nzp  = _nz;
+  _ndim = 3;
 
-  if (nz != 3) {
-    sprintf (err, "dual needs N_Z == 3 (%1d)", nz);
+  if (_nz != 3) {
+    sprintf (err, "dual needs N_Z == 3 (%1d)", _nz);
     message (routine, err, ERROR);
   }
 
-  if (nproc != 1) {
-    sprintf (err, "This is a serial code (1 process, not %1d)", nproc);
+  if (_nproc != 1) {
+    sprintf (err, "This is a serial code (1 process, not %1d)", _nproc);
     message (routine, err, ERROR);
   }
 
-  psize = nPlane();
+  _psize = nPlane();
 }

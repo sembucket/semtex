@@ -148,42 +148,40 @@ void Domain::dump ()
   if (!(periodic || final)) return;
   ofstream output;
   
-  ROOTONLY {
-    const char    routine[] = "Domain::dump";
-    char          dumpfl[StrMax], backup[StrMax], command[StrMax];
-    const bool verbose   = Femlib::ivalue ("VERBOSE");
-    const bool chkpoint  = Femlib::ivalue ("CHKPOINT");
+  const char    routine[] = "Domain::dump";
+  char          dumpfl[StrMax], backup[StrMax], command[StrMax];
+  const bool verbose   = Femlib::ivalue ("VERBOSE");
+  const bool chkpoint  = Femlib::ivalue ("CHKPOINT");
 
-    if (chkpoint) {
-      if (final) {
-	strcat (strcpy (dumpfl, name), ".fld");
-	output.open (dumpfl, ios::out);
-      } else {
-	strcat (strcpy (dumpfl, name), ".chk");
-	if (!initial) {
-	  strcat  (strcpy (backup, name), ".chk.bak");
-	  sprintf (command, "mv ./%s ./%s", dumpfl, backup);
-	  system  (command);
-	}
-	output.open (dumpfl, ios::out);
-      }
-    } else {
+  if (chkpoint) {
+    if (final) {
       strcat (strcpy (dumpfl, name), ".fld");
-      if   (initial) output.open (dumpfl, ios::out);
-      else           output.open (dumpfl, ios::app);
+      output.open (dumpfl, ios::out);
+    } else {
+      strcat (strcpy (dumpfl, name), ".chk");
+      if (!initial) {
+	strcat  (strcpy (backup, name), ".chk.bak");
+	sprintf (command, "mv ./%s ./%s", dumpfl, backup);
+	system  (command);
+      }
+      output.open (dumpfl, ios::out);
     }
-    
-    if (!output) message (routine, "can't open dump file", ERROR);
-    if (verbose) message (routine, ": writing field dump", REMARK);
+  } else {
+    strcat (strcpy (dumpfl, name), ".fld");
+    if   (initial) output.open (dumpfl, ios::out);
+    else           output.open (dumpfl, ios::app);
   }
+  
+  if (!output) message (routine, "can't open dump file", ERROR);
+  if (verbose) message (routine, ": writing field dump", REMARK);
   
   output << *this;
   output.close();
 }
 
 
-ofstream& operator << (ofstream& strm,
-		       Domain&   D   )
+ostream& operator << (ostream& strm,
+		      Domain&  D   )
 // ---------------------------------------------------------------------------
 // Output all Domain field variables on ostream in prism-compatible
 // form.  Binary output only.  Note that output is only done on root
@@ -202,8 +200,8 @@ ofstream& operator << (ofstream& strm,
 }
 
 
-ifstream& operator >> (ifstream& strm,
-		       Domain&   D   )
+istream& operator >> (istream& strm,
+		      Domain&  D   )
 // ---------------------------------------------------------------------------
 // Input all Domain field variables from prism-compatible istream.
 //
@@ -220,6 +218,8 @@ ifstream& operator >> (ifstream& strm,
   bool       swap = false, found = false;
 
   if (strm.getline(s, StrMax).eof()) return strm;
+
+  strm.getline(s,StrMax).getline(s,StrMax);
 
   string ss(s);
   istringstream sss (ss);

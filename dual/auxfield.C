@@ -284,9 +284,6 @@ AuxField& AuxField::gradient (const int_t dir)
 // Operate on AuxField to produce the nominated index of the gradient.
 // dir == 0 ==> gradient in first direction, 1 ==> 2nd, 2 ==> 3rd.
 // AuxField is presumed to have been Fourier transformed in 3rd direction.
-//
-// NB: modfied for dual, only 1 non-zero mode, nominated as "K_FUND"
-// in session.
 // ---------------------------------------------------------------------------
 {
   const char      routine[] = "AuxField::gradient";
@@ -344,15 +341,15 @@ AuxField& AuxField::gradient (const int_t dir)
     break;
 
   case 2: {
-    const real_t betak = Femlib::value ("BETA * K_FUND");
+    const real_t beta = Femlib::value ("BETA");
 
     work.resize (nP);
     xr = &work[0];
 
     Veclib::zero (nP, _data, 1);
     Veclib::copy (nP,                       _plane[1], 1, xr, 1);
-    Veclib::smul (nP, -betak, _plane[2], 1, _plane[1], 1);
-    Veclib::smul (nP,  betak, xr,        1, _plane[2], 1);
+    Veclib::smul (nP, -beta, _plane[2], 1, _plane[1], 1);
+    Veclib::smul (nP,  beta, xr,        1, _plane[2], 1);
     break;
   }
   default:
@@ -432,7 +429,7 @@ void AuxField::gradient (const int_t nP ,
     break;
 
   case 2: {
-    const real_t betak = Femlib::value ("BETA * K_FUND");
+    const real_t beta = Femlib::value ("BETA");
 
     work.resize (nP);
     xr = &work[0];
@@ -442,8 +439,8 @@ void AuxField::gradient (const int_t nP ,
     Re = src + nP;
     Im = Re  + nP;
     Veclib::copy (nP,             Re, 1, xr, 1);
-    Veclib::smul (nP, -betak,  Im, 1, Re, 1);
-    Veclib::smul (nP,  betak,  xr, 1, Im, 1);
+    Veclib::smul (nP, -beta,  Im, 1, Re, 1);
+    Veclib::smul (nP,  beta,  xr, 1, Im, 1);
     break;
   }
   default:
@@ -578,8 +575,8 @@ real_t AuxField::integral (const int_t k) const
 }
 
 
-ofstream& operator << (ofstream& strm,
-		       AuxField& F  )
+ostream& operator << (ostream& strm,
+		      AuxField& F  )
 // ---------------------------------------------------------------------------
 // Binary write of F's data area.
 // ---------------------------------------------------------------------------
@@ -599,8 +596,8 @@ ofstream& operator << (ofstream& strm,
 }
 
 
-ifstream& operator >> (ifstream&  strm,
-		       AuxField&  F   )
+istream& operator >> (istream&  strm,
+		      AuxField&  F   )
 // ---------------------------------------------------------------------------
 // Binary read of F's data area.  Zero any unused storage areas.
 // ---------------------------------------------------------------------------

@@ -80,7 +80,7 @@ void Field::evaluateBoundaries (const int_t step   ,
 // ---------------------------------------------------------------------------
 {
   const int_t    np    = Geometry::nP();
-  const int_t    kfund = Femlib::ivalue ("K_FUND");
+  const int_t    kfund = Femlib::ivalue ("BETA");
   register int_t i, k;
   real_t*        p;
 
@@ -220,7 +220,7 @@ void Field::smooth (const int_t nZ ,
 }
 
 
-real_t Field::gradientFlux (const Field* C)
+real_t Field::scalarFlux (const Field* C)
 // ---------------------------------------------------------------------------
 // Static member function.
 //
@@ -235,13 +235,13 @@ real_t Field::gradientFlux (const Field* C)
   register int_t           i;
   
   for (i = 0; i < C -> _nbound; i++)
-    F += BC[i] -> gradientFlux ("wall", C -> _data, &work[0]);
+    F += BC[i] -> scalarFlux ("wall", C -> _data, &work[0]);
 
   return F;
 }
 
 
-Vector Field::normalTraction (const Field* P)
+Vector Field::normTraction (const Field* P)
 // ---------------------------------------------------------------------------
 // Static member function.
 //
@@ -258,7 +258,7 @@ Vector Field::normalTraction (const Field* P)
   register int_t           i;
   
   for (i = 0; i < nsurf; i++) {
-    secF = BC[i] -> normalTraction ("wall", P -> _data, &work[0]);
+    secF = BC[i] -> normTraction ("wall", P -> _data, &work[0]);
     F.x += secF.x;
     F.y += secF.y;
   }
@@ -267,9 +267,9 @@ Vector Field::normalTraction (const Field* P)
 }
 
 
-Vector Field::tangentTraction (const Field* U,
-			       const Field* V,
-			       const Field* W)
+Vector Field::tangTraction (const Field* U,
+			    const Field* V,
+			    const Field* W)
 // ---------------------------------------------------------------------------
 // Static member function.
 //
@@ -300,10 +300,10 @@ Vector Field::tangentTraction (const Field* U,
   register int_t           i;
 
   for (i = 0; i < _nbound; i++) {
-    secF = UBC[i] -> tangentTraction  ("wall", U->_data, V->_data, &work[0]);
+    secF = UBC[i] -> tangTraction  ("wall", U->_data, V->_data, &work[0]);
     F.x        -= mu * secF.x;
     F.y        -= mu * secF.y;
-    if (W) F.z -= mu * WBC[i] -> gradientFlux ("wall", W->_data, &work[0]);
+    if (W) F.z -= mu * WBC[i] -> scalarFlux ("wall", W->_data, &work[0]);
   }
 
   return F;
@@ -355,7 +355,7 @@ Field& Field::solve (AuxField*             f  ,
   const int_t next  = Geometry::nExtElmt();
   const int_t npnp  = Geometry::nTotElmt();
   const int_t ntot  = Geometry::nPlane();
-  const int_t kfund = Femlib::ivalue ("K_FUND");
+  const int_t kfund = Femlib::ivalue ("BETA");
   int_t       i, k, mode;
 
   for (k = 0; k < _nz; k++) {	// -- Loop over planes of data.
@@ -380,10 +380,10 @@ Field& Field::solve (AuxField*             f  ,
     switch (M -> _method) {
 
     case DIRECT: {
-      const real_t*  H       = const_cast<const real_t*>   (M -> _H);
-      const real_t** hii     = const_cast<const real_t**>  (M -> _hii);
-      const real_t** hbi     = const_cast<const real_t**>  (M -> _hbi);
-      const int_t*   b2g     = const_cast<const int_t*>(N -> btog());
+      const real_t*  H       = const_cast<const real_t*>  (M -> _H);
+      const real_t** hii     = const_cast<const real_t**> (M -> _hii);
+      const real_t** hbi     = const_cast<const real_t**> (M -> _hbi);
+      const int_t*   b2g     = const_cast<const int_t*>   (N -> btog());
       int_t          nband   = M -> _nband;
 
       vector<real_t> work (nglobal + 4*npnp);
@@ -597,8 +597,8 @@ void Field::HelmholtzOperator (const real_t* x      ,
 
   // -- Add in contributions from elemental Helmholtz operations.
 
-  Femlib::quadrature (0, 0, &DV, 0  , np, LL, 0.0, 0.0);
-  Femlib::quadrature (0, 0, 0  , &DT, np, LL, 0.0, 0.0);
+  Femlib::quadrature (0, 0, &DV, 0  , np, GLJ, 0.0, 0.0);
+  Femlib::quadrature (0, 0, 0  , &DT, np, GLJ, 0.0, 0.0);
 
   this -> global2local (x, P, NS);
 

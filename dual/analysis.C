@@ -135,6 +135,7 @@ void Analyser::divergence (AuxField** Us) const
 // is used as work area.
 // ---------------------------------------------------------------------------
 {
+  const char routine[] = "Analyser::divergence";
   const Geometry::CoordSys space = Geometry::system();
 
   const int_t    DIM = Geometry::nDim();
@@ -167,6 +168,10 @@ void Analyser::divergence (AuxField** Us) const
   L2 /= Lz;
 
   cout << "-- Divergence Energy: " << L2 << endl;
+
+  // -- Crash stop.
+
+  if (L2 != L2) message (routine, "forcing termination on NaN.", ERROR);
 }
 
 

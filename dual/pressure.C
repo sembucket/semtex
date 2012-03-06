@@ -102,7 +102,7 @@ void PBCmgr::maintain (const int_t      step   ,
   const real_t nu    =       Femlib::value ("KINVIS");
   const real_t invDt = 1.0 / Femlib::value ("D_T");
   const int_t  nTime = Femlib::ivalue ("N_TIME");
-  const int_t  kfund = Femlib::ivalue ("K_FUND");
+  const int_t  kfund = Femlib::ivalue ("BETA");
   const int_t  nEdge = P -> _nbound;
   const int_t  nZ    = P -> _nz;
   const int_t  nP    =  Geometry::nP();
