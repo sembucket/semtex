@@ -394,4 +394,6 @@ bool FEML::echo (ostream&    stream,
   }
 
   _feml_file >> skipws;
+
+  return true;
 }
