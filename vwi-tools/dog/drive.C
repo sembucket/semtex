@@ -659,6 +659,8 @@ static void EV_post (const problem_t task,
     strcat    (strcpy (nom, domain -> name), ".fld");
     file.open (nom, ios::out); file << *domain; file.close();
 
+    message (prog, "exceeded iteration limit", ERROR);
+
   } else if (icon < 0) {
     
     runinfo << prog
