@@ -8,6 +8,17 @@
 // using convolution sums in Fourier space.  The code is designed to
 // run on a single process, with N_Z = 3.
 //
+// NBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBN
+//
+// This version allows the user to freeze either the zeroth or first 
+// Fourier mode, according to token
+//
+// FREEZE = -1 (default) update both modes as per standard dual.
+// FREEZE = 0 Freeze velocity in mode 0 (and ignore its pressure field).
+// FREEZE = 1 Freeze velocity in mode 1 (and ignore its pressure field).
+// 
+// NBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBN
+//
 // Copyright (c) 1994 <--> $Date$,  Hugh Blackburn.
 //
 // USAGE:
@@ -18,6 +29,7 @@
 //   -i[i]    ... use iterative solver for viscous [and pressure] steps
 //   -v[v...] ... increase verbosity level
 //   -chk     ... checkpoint field dumps
+//   -f <0,1> ... freeze Fourier mode 0 or 1
 //
 // AUTHOR:
 // ------
@@ -85,13 +97,15 @@ static void getargs (int    argc   ,
 // ---------------------------------------------------------------------------
 {
   char       buf[StrMax];
+  int_t      freeze = -1;
   const char routine[] = "getargs";
   const char usage[]   = "Usage: %s [options] session-file\n"
     "  [options]:\n"
     "  -h        ... print this message\n"
     "  -i[i]     ... use iterative solver for viscous [& pressure] steps\n"
     "  -v[v...]  ... increase verbosity level\n"
-    "  -chk      ... checkpoint field dumps\n";
+    "  -chk      ... checkpoint field dumps\n"
+    "  -f <0,1>  ... freeze Fourier mode 0 or 1\n";
 
  
   while (--argc  && **++argv == '-')
@@ -119,6 +133,14 @@ static void getargs (int    argc   ,
 	exit (EXIT_FAILURE);	  
       }
       break;
+    case 'f':
+      if (*++argv[0])
+	freeze = atoi (*argv);
+      else {
+	--argc;
+	freeze = atoi (*++argv);
+      }
+    break;
     default:
       sprintf (buf, usage, prog);
       cout << buf;
@@ -128,6 +150,10 @@ static void getargs (int    argc   ,
   
   if   (argc != 1) message (routine, "no session definition file", ERROR);
   else             session = *argv;
+  
+  if      (freeze == 0) Femlib::ivalue ("FREEZE",  0);
+  else if (freeze == 1) Femlib::ivalue ("FREEZE",  1);
+  else                  Femlib::ivalue ("FREEZE", -1); // -- Default.
 }
 
 

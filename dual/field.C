@@ -4,7 +4,16 @@
 //
 // Copyright (C) 1994 <--> $Date$, Hugh Blackburn
 //
-// NB: modified for dual.
+// NBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBN
+//
+// This version allows the user to freeze either the zeroth or first 
+// Fourier mode, according to token
+//
+// FREEZE = -1 (default) update both modes as per standard dual.
+// FREEZE = 0 Freeze velocity in mode 0 (and ignore its pressure field).
+// FREEZE = 1 Freeze velocity in mode 1 (and ignore its pressure field).
+// 
+// NBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBN
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -355,7 +364,6 @@ Field& Field::solve (AuxField*             f  ,
   const int_t next  = Geometry::nExtElmt();
   const int_t npnp  = Geometry::nTotElmt();
   const int_t ntot  = Geometry::nPlane();
-  const int_t kfund = Femlib::ivalue ("BETA");
   int_t       i, k, mode;
 
   for (k = 0; k < _nz; k++) {	// -- Loop over planes of data.
@@ -363,7 +371,10 @@ Field& Field::solve (AuxField*             f  ,
     // -- Select Fourier mode, set local pointers and variables.
 
     if   (k == 0) mode = 0;
-    else          mode = kfund;
+    else mode = (Geometry::cylindrical()) ? Femlib::ivalue ("BETA") : 1;
+
+    if (Femlib::ivalue ("FREEZE") == 0 && mode == 0) return *this;
+    if (Femlib::ivalue ("FREEZE") == 1 && mode >  0) return *this;
 
     const MatrixSys*         M       = (*MMS)[(k != 0)];
     const vector<Boundary*>& B       = M -> _BC;

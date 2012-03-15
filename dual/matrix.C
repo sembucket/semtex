@@ -39,8 +39,7 @@ ModalMatrixSys::ModalMatrixSys (const real_t            lambda2 ,
 // ---------------------------------------------------------------------------
 {
   const char                   name  = Bsys -> field();
-  const int_t                  kfund = Femlib::ivalue ("BETA");
-  int_t                        index;
+  int_t                        mode;
   bool                         found;
   MatrixSys*                   M;
   vector<MatrixSys*>::iterator m;
@@ -55,9 +54,8 @@ ModalMatrixSys::ModalMatrixSys (const real_t            lambda2 ,
     Femlib::synchronize();
   }
 
-  for (index = 0; index < 2; index++) {
-    const int_t      mode   = index * kfund;
-    const NumberSys* N      = Bsys -> Nsys (mode);
+  for (mode = 0; mode < 1; mode++) {
+    const NumberSys* N      = Bsys -> Nsys (mode * Femlib::ivalue ("BETA"));
     const real_t     betak2 = sqr (Field::modeConstant (name, mode, beta));
 
     for (found = false, m = MS.begin(); !found && m != MS.end(); m++) {
@@ -65,12 +63,12 @@ ModalMatrixSys::ModalMatrixSys (const real_t            lambda2 ,
       found = M -> match (lambda2, betak2, N, method);
     }
     if (found) {
-      _Msys[index] = M;
+      _Msys[mode] = M;
       if (method == DIRECT) { cout << '.'; cout.flush(); }
     } else {
-      _Msys[index] =
+      _Msys[mode] =
 	new MatrixSys (lambda2, betak2, mode, Elmt, Bsys, method);
-      MS.insert (MS.end(), _Msys[index]);
+      MS.insert (MS.end(), _Msys[mode]);
       if (method == DIRECT) { cout << '*'; cout.flush(); }
     }
   }

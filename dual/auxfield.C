@@ -8,6 +8,17 @@
 // are 3 planes of data: the first corresponds to mode 0 (which is
 // real only), the second and third to the real an imaginary parts of
 // the selected Fourier mode.
+//
+// NBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBN
+//
+// This version allows the user to freeze either the zeroth or first 
+// Fourier mode, according to token
+//
+// FREEZE = -1 (default) update both modes as per standard dual.
+// FREEZE = 0 Freeze velocity in mode 0 (and ignore its pressure field).
+// FREEZE = 1 Freeze velocity in mode 1 (and ignore its pressure field).
+// 
+// NBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBN
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -237,16 +248,20 @@ AuxField& AuxField::convolve (const AuxField& x, const AuxField& y)
 {
   const int_t nP = Geometry::planeSize();
 
-  Veclib::vmul    (nP, x._plane[0], 1, y._plane[0], 1, _plane[0], 1);
-  Veclib::svvttvp (nP, 2.0, x._plane[1], 1, y._plane[1], 1,
-		   _plane[0], 1, _plane[0], 1);
-  Veclib::svvttvp (nP, 2.0, x._plane[2], 1, y._plane[2], 1,
-		   _plane[0], 1, _plane[0], 1);
+  if (Femlib::ivalue ("FREEZE") != 0) {
+    Veclib::vmul    (nP, x._plane[0], 1, y._plane[0], 1, _plane[0], 1);
+    Veclib::svvttvp (nP, 2.0, x._plane[1], 1, y._plane[1], 1,
+		     _plane[0], 1, _plane[0], 1);
+    Veclib::svvttvp (nP, 2.0, x._plane[2], 1, y._plane[2], 1,
+		     _plane[0], 1, _plane[0], 1);
+  }
 
-  Veclib::vvtvvtp (nP, x._plane[0], 1, y._plane[1], 1, 
-		   x._plane[1], 1, y._plane[0], 1, _plane[1], 1);
-  Veclib::vvtvvtp (nP, x._plane[0], 1, y._plane[2], 1, 
-		   x._plane[2], 1, y._plane[0], 1, _plane[2], 1);
+  if (Femlib::ivalue ("FREEZE") != 1) {
+    Veclib::vvtvvtp (nP, x._plane[0], 1, y._plane[1], 1, 
+		     x._plane[1], 1, y._plane[0], 1, _plane[1], 1);
+    Veclib::vvtvvtp (nP, x._plane[0], 1, y._plane[2], 1, 
+		     x._plane[2], 1, y._plane[0], 1, _plane[2], 1);
+  }
 
   return *this;
 }
