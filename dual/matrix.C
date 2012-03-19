@@ -54,7 +54,7 @@ ModalMatrixSys::ModalMatrixSys (const real_t            lambda2 ,
     Femlib::synchronize();
   }
 
-  for (mode = 0; mode < 1; mode++) {
+  for (mode = 0; mode < 2; mode++) {
     const NumberSys* N      = Bsys -> Nsys (mode * Femlib::ivalue ("BETA"));
     const real_t     betak2 = sqr (Field::modeConstant (name, mode, beta));
 
