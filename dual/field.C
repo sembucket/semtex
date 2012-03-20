@@ -373,8 +373,8 @@ Field& Field::solve (AuxField*             f  ,
     if   (k == 0) mode = 0;
     else mode = (Geometry::cylindrical()) ? Femlib::ivalue ("BETA") : 1;
 
-    if (Femlib::ivalue ("FREEZE") == 0 && mode == 0) return *this;
-    if (Femlib::ivalue ("FREEZE") == 1 && mode >  0) return *this;
+    if (Femlib::ivalue ("FREEZE") == 0 && mode == 0) continue;
+    if (Femlib::ivalue ("FREEZE") == 1 && mode >  0) continue;
 
     const MatrixSys*         M       = (*MMS)[(k != 0)];
     const vector<Boundary*>& B       = M -> _BC;
