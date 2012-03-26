@@ -1,7 +1,10 @@
 ///////////////////////////////////////////////////////////////////////////////
 // reflect.C: reflect a field dump defined on a half-mesh onto a full
-// mesh.  Apply sign change to appropriate velocity component, unless
+// mesh.  Apply sign change to appropriate velocity components, unless
 // explicitly supressed by setting revpar == true (command line).
+//
+// If negation is called for, the velocity component that would cross
+// the reflectoin boundary is not negated, but the other thwo are.
 //
 // Built from semtex/utility/data2df_template.C.  See also
 // dog/symmetrise.C and flipmap.C
@@ -79,7 +82,7 @@ int main (int    argc,
     (*tmp = *u[i]) . reflect2D (positive, negative);
 
     // -- Copy the reflection of the other half of the data field,
-    // -- negating appropriate velocity vector component.
+    // -- negating appropriate velocity vector components.
 
     if (generator == 'y')
       if (revpar) {
@@ -93,7 +96,7 @@ int main (int    argc,
 	      ? tmp->_data[j] : 0.0;
 	else if (u[i] -> getName() == 'w')
 	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSDP) 
+	    u[i]->_data[j] -= (fabs(u[i]->_data[j]) < EPSDP) 
 	      ? tmp->_data[j] : 0.0;
 	else if (u[i] -> getName() == 'p')
 	  for (j = 0; j < ntot; j++)
@@ -129,7 +132,7 @@ int main (int    argc,
 	      ? tmp->_data[j] : 0.0;
 	else if (u[i] -> getName() == 'w')
 	  for (j = 0; j < ntot; j++)
-	    u[i]->_data[j] += (fabs(u[i]->_data[j]) < EPSDP) 
+	    u[i]->_data[j] -= (fabs(u[i]->_data[j]) < EPSDP) 
 	      ? tmp->_data[j] : 0.0;
 	else if (u[i] -> getName() == 'p')
 	  for (j = 0; j < ntot; j++)
