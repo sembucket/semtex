@@ -8,6 +8,10 @@
 // using convolution sums in Fourier space.  The code is designed to
 // run on a single process, with N_Z = 3.
 //
+// The default as of March 2012 is that nonlinear terms are standard
+// convective form. Set SKEW=1 when making to get skew-symmetric form
+// (output code called dual_skew).
+//
 // NBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBNBN
 //
 // This version allows the user to freeze either the zeroth or first 
@@ -46,12 +50,12 @@ static char RCS[] = "$Id$";
 
 #include "dual.h"
 
-static char prog[] = "dual";
+static char prog[]     = "dual";
 static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, BoundarySys*&, Domain*&);
 
-void NavierStokes (Domain*, DualAnalyser*);
+void NavierStokes      (Domain*, DualAnalyser*);
 
 
 int main (int    argc,

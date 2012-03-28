@@ -186,19 +186,23 @@ static void nonLinear (Domain*         D ,
 //           Nz = -0.5 {ud(w)/dx + vd(w)/dy +  d(uw)/dx + d(vw)/dy +
 //                 1/y [wd(w)/dz + d(ww)/dz + 3wv     ]}
 //
+// As for current semtex version, in cylindrical coordinates we
+// actually compute y*Nx, y*Ny, Nz, as outlined in reference [3].   
+//
 // If STOKES is defined for compilation, the nonlinear terms are set to zero.
 //
 // For use with dual, velocity components are always held in the
 // Fourier-transformed state, and non-linear terms are computed using
 // convoultion sums.  There are only two modes (0 and the
 // "Fundamental").  The nonlinear terms are dealiased.  We can assume
-// that we are always operating in 3 space dimensions.
+// that we are always operating in 3 space dimensions (and have 3
+// velocity components).
 // ---------------------------------------------------------------------------
 {
   int_t        i, j;
   const real_t EPS = (sizeof(real_t) == sizeof(double)) ? EPSDP : EPSSP;
 
-#if defined(STOKES)
+#if defined (STOKES)
 
   for (i = 0; i < NDIM; i++) {
     *Uf[i] = 0.0;
@@ -220,6 +224,7 @@ static void nonLinear (Domain*         D ,
 
   if (Geometry::cylindrical()) {
 
+#if defined (SKEW)
      N[0] -> convolve (*U[0], *U[1]);
      N[1] -> convolve (*U[1], *U[1]);
      N[2] -> convolve (*U[1], *U[2]);
@@ -227,9 +232,16 @@ static void nonLinear (Domain*         D ,
     *N[2] *=  3.0;
     *T[0] *= -2.0;
     *N[1] += *T[0];
+#else
+    *N[0]  = 0.0;
+     N[1] -> convolve (*U[2], *U[2]);
+    *N[1] *= -1.0;
+     N[2] -> convolve (*U[1], *U[2]);
+#endif
 
     for (i = 0; i < NDIM; i++) {
 
+#if defined (SKEW)
       *T[0]  = *U[i];
        T[0] -> gradient (2);
        T[0] -> convolve (*U[2], *T[0]);
@@ -237,6 +249,12 @@ static void nonLinear (Domain*         D ,
        T[1] -> gradient (2);
       *N[i] += *T[0];
       *N[i] += *T[1];
+#else
+      *T[0]  = *U[i];
+       T[0] -> gradient (2);
+       T[0] -> convolve (*U[2], *T[0]);
+      *N[i] += *T[0];
+#endif
 
       if (i == 2) N[i] -> divY();
 
@@ -251,19 +269,24 @@ static void nonLinear (Domain*         D ,
 	*N[i] += *T[1];
 
 	// -- Perform n_i += d(u_i u_j) / dx_j.
-	
+#if defined (SKEW)	
 	 T[0] -> convolve (*U[i], *U[j]);
 	 T[0] -> gradient (j);
 	 if (i < 2) T[0] -> mulY();
 	*N[i] += *T[0];
-
+#endif
       }
 
       // -- Smooth, add forcing.
       
       master -> smooth (N[i]);
+#if defined (SKEW) 		//  -- Check forcing - does it need mult by Y?
       if (fabs (ff[i]) > EPS) N[i] -> addToPlane (0, -2.0*ff[i]);
       *N[i] *= -0.5;
+#else
+      if (fabs (ff[i]) > EPS) N[i] -> addToPlane (0, -ff[i]);
+      *N[i] *= -1.0;
+#endif
     }
   
   } else {			// -- Cartesian coordinates.
@@ -282,17 +305,23 @@ static void nonLinear (Domain*         D ,
 
 	// -- Perform n_i += d(u_i u_j) / dx_j.
 
+#if defined (SKEW)
 	 T[0] -> convolve (*U[i], *U[j]);
 	 T[0] -> gradient (j);
 	*N[i] += *T[0];
-
+#endif
       }
 
       // -- Smooth, add forcing.
       
       master -> smooth (N[i]);
+#if defined (SKEW)
       if (fabs (ff[i]) > EPS) N[i] -> addToPlane (0, -2.0*ff[i]);
       *N[i] *= -0.5;
+#else
+      if (fabs (ff[i]) > EPS) N[i] -> addToPlane (0, -ff[i]);
+      *N[i] *= -1.0;
+#endif
     }
   }
 

@@ -16,6 +16,11 @@ ifdef STOKES
   PROG    := $(PROG)_stokes
 endif
 
+ifdef SKEW
+  DEFINES += -DSKEW
+  PROG    := $(PROG)_skew
+endif
+
 #
 # ----------------------------------------------------------------------------
 #
