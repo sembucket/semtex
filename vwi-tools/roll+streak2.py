@@ -22,7 +22,7 @@ try:
     Rey = sys.argv[3]
     scale = 1.0/float(Rey)
 except:
-    print "Usage: roll+streak2.py roll.fld streak.fld Rey"
+    print "Usage: roll+streak2.py roll.asc streak.asc Rey"
     sys.exit(1)
 
 # -- Open the streak file, repeat header, check it's ASCII, etc.
