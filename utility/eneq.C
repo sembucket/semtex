@@ -62,7 +62,6 @@
 //
 // Names for (output) terms in the fluctutating energy equation:
 // -------------------------------------------------------------
-
 // In the case that we consider non-Newtonian flow, there are ten
 // terms to compute.  For Newtonian flow we only need six.  We will
 // use arabic numeric characters to name these terms.

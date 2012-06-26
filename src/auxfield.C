@@ -717,6 +717,21 @@ real_t AuxField::norm_inf () const
 }
 
 
+real_t AuxField::area () const
+// ---------------------------------------------------------------------------
+// Return area of AuxField's geometry.
+// ---------------------------------------------------------------------------
+{
+  const int_t nel = Geometry::nElmt();
+  real_t      area = 0.0;
+  int_t       i;
+
+  for (i = 0; i < nel; i++) area += _elmt[i] -> area();
+
+  return area;
+}
+
+
 real_t AuxField::mode_L2 (const int_t mode) const
 // ---------------------------------------------------------------------------
 // Return energy norm per unit area for indicated mode = 1/(2*A) \int u.u dA.

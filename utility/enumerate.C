@@ -942,8 +942,8 @@ int_t Nsys::globalBandwidth () const
 
 
 int_t Nsys::bandwidthSC (const int_t* bmap,
-			   const int_t* mask,
-			   const int_t  next) const
+			 const int_t* mask,
+			 const int_t  next) const
 // ---------------------------------------------------------------------------
 // Find the global equation bandwidth of this element, excluding
 // diagonal.
