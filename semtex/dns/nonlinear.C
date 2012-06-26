@@ -471,9 +471,9 @@ void altSkewSymmetric (Domain*         D ,
 
 
 void convective (Domain*         D ,
-		AuxField**      Us,
-		AuxField**      Uf,
-		vector<real_t>& ff)
+		 AuxField**      Us,
+		 AuxField**      Uf,
+		 vector<real_t>& ff)
 // ---------------------------------------------------------------------------
 // Nonlinear terms N(u) in convective form are
 //                 ~ ~
@@ -495,7 +495,7 @@ void convective (Domain*         D ,
 //           Nz = -{ud(w)/dx + vd(w)/dy + 1/y [wd(w)/dz + wv]}
 //
 // NB: for the cylindrical coordinate formulation we actually here 
-// compute y*Nx, y*Ny, Nz, as outlined in reference[3].
+// compute y*Nx, y*Ny, Nz, as outlined in reference [3].
 // ---------------------------------------------------------------------------
 {
   const int_t NDIM = Geometry::nDim();	// -- Number of space dimensions.

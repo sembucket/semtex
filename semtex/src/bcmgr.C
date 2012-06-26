@@ -590,10 +590,10 @@ void BCmgr::buildnum (const char*       session,
     }
   }
 
-  num >> buf >> buf;
+  num >> buf >> buf >> buf >> buf;
   j = strlen (buf);
   for (i = 0; i < j; i++)
-    if (!strchr (_fields, tolower (buf[j]))) {
+    if (!strchr (_fields, tolower (buf[i]))) {
       sprintf (err, "Fields nominated in %s.num (\"%s\") don't match \"%s\"",
 	       session, buf, _fields);
       message (routine, err, ERROR);

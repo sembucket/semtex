@@ -417,9 +417,10 @@ int main (int    argc,
       *work *= 6.75;
       *Disc += *work;
     }
-	
+
     if (need[DIVERGENCE])
       for (i = 0; i < nComponent; i++) *Div += *Vij[i][i];
+
     
     if (need[VORTICITY]) {
       if (nComponent == 2) {

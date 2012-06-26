@@ -2,8 +2,8 @@
 # Resolution chosen to closely approximate Eggels etal (1994).
 #   The mesh has 25 streamwise and 6 radial elements. The growth rate of
 # the elements is $r = 1.5783$. With these settings:
-# 		N_POLY = 10
-#		N_Z    = 96
+# 		N_P = 10
+#		N_Z = 96
 # the following resolutions are achieved:
 #		\Delta x^+ = 7.62
 #		(\frac{1}{2} D \Delta \Theta )^+ = 11.22
