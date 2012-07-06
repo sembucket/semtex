@@ -27,6 +27,8 @@
 //
 // Geometric singularities and vector divide operations can do nasty
 // things here.  Search the output and set any nan values to zero.
+//
+// Flag -p forces output to be pressure mode magnitude rather than forcing.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -57,10 +59,13 @@ int main (int    argc,
   real_t             Area = 0.0, integral;
   FEML*              F;
   Mesh*              M;
+  BCmgr*             B;
+  BoundarySys*       bsys;
   vector<Element*>   Esys;
+  Field              *u;        // -- Make 1 field so we can do smoothing.
   AuxField           *P;	// -- This is the only complex AuxField.
   AuxField           *dP2, *ddP2, *dPr, *dPi;
-  AuxField           *u, *u2, *u_z, *u_y, *u_yy, *u_zz, *u_yz;
+  AuxField           *u2, *u_z, *u_y, *u_yy, *u_zz, *u_yz;
   AuxField           *f_z, *f_zz, *tmp, *Delta, *Delta_z, *lambda, *a, *a_z;
   AuxField           *J, *K, *f1, *f2, *F1, *F2, *delta;
   real_t*            work;
@@ -73,8 +78,9 @@ int main (int    argc,
 
   // -- Set up 2D mesh information.
   
-  F = new FEML (session);
-  M = new Mesh (F);
+  F = new FEML  (session);
+  M = new Mesh  (F);
+
 
   const real_t n_0   = Femlib::value ("TWOPI*(2./3.)^(2./3.)*gamma(1.-2./3.)");
   const real_t alpha = Femlib::value ("BETA");
@@ -101,9 +107,13 @@ int main (int    argc,
   work = new real_t [ntot1D];
 
   // -- Create the initial storage to be pulled out of supplied files.
+  // -- u is set up as a Field (rather than AuxField) so we can smooth.
 
-  P = new AuxField (new real_t [ntot2D], nz = 2, Esys, 'P');
-  u = new AuxField (new real_t [ntot1D], nz = 1, Esys, 'u');
+  B    = new BCmgr       (F, Esys);
+  bsys = new BoundarySys (B, Esys, 'u');
+
+  P = new AuxField (      new real_t [ntot2D], nz = 2, Esys, 'P');
+  u = new Field    (bsys, new real_t [ntot1D], nz = 1, Esys, 'u');
 
   // -- Read in these data.
 
@@ -261,10 +271,13 @@ int main (int    argc,
   delta -> exp ();
   *delta /= Femlib::value ("sqrt(PI*CHI)");
 
-  // -- Ready to output. Note "reversed" ordering.
+  // -- Ready to output, but first smooth outcomes. Note "reversed" ordering.
   
   F1 -> times (*f1, *delta);
   F2 -> times (*f2, *delta);
+
+  u -> smooth (F1);
+  u -> smooth (F2);
 
   sprintf (hdr.flds, "uv");
   hdr.nz = 1;

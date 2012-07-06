@@ -17,7 +17,11 @@ SEMHDR = sem.h
 # forc makes 2D roll forcing from streak and wave solutions.
 #
 
-FOBJ = feml.o mesh.o element.o family.o auxfield.o geometry.o data2df.o
+# -- need the second line of files just so we can use smoothing!
+
+FOBJ = feml.o mesh.o element.o family.o auxfield.o geometry.o data2df.o \
+ bcmgr.o bsys.o boundary.o edge.o condition.o pressure.o integration.o misc.o \
+ field.o
 
 forc: forc.o $(FOBJ)
 	$(CXX) $(CPPFLAGS) -o $@ $@.o $(FOBJ) $(LDFLAGS)
