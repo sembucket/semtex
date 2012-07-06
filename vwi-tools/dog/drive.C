@@ -532,8 +532,8 @@ static int_t EV_test (const int_t  itrn   ,
   // -- Stopping test.
 
   if      (resid[nvec - 1] < evtol * hypot (wr[0], wi[0]))       idone = nvec;
-  else if (min_max1 < 0.01 && resid[nvec - 1] > 10.0 * min_max1) idone = -1;
-  else if (min_max2 < 0.01 && resnorm         > 10.0 * min_max2) idone = -2;
+  else if (min_max1 < 0.001 && resid[nvec - 1] > 100.0 * min_max1) idone = -1;
+  else if (min_max2 < 0.001 && resnorm         > 100.0 * min_max2) idone = -2;
 
   min_max1 = (itrn > kdim) ? min (min_max1, resid[nvec - 1]) : min_max1;
   min_max2 = (itrn > kdim) ? min (min_max2, resnorm)         : min_max2;

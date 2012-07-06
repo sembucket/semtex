@@ -21,9 +21,9 @@
  * u = 0.5 * sqrt (u.Re^2 + u.Im^2 + v.Re^2 + v.Im^2)
  * v = 0.5 * sqrt (u.Re^2 + u.Im^2 + v.Re^2 + v.Im^2 + w.Re^2 + w.Im^2)
  * p = sqrt (u.Re^2 + p.Im^2)
- * A = u.Re^2 + u.Im^2
- * B = u.Re*v.Re + u.Im*v.Im
- * C = v.Re^2 + v.Im^2
+ * A = 2*(u.Re^2 + u.Im^2)       -- revised March 2012
+ * B = 2*(u.Re*v.Re + u.im*v.Im) -- revised March 2012
+ * C = 2*(v.Re^2 + v.Im^2)       -- revised March 2012
  *****************************************************************************/
 
 static char RCS[] = "$Id$";
@@ -135,6 +135,7 @@ int main (int    argc,
     vcmpt2 = idata[0] + nplane; /* -- Imag part of u. */
     dvvtvp (nplane, vcmpt1, 1, vcmpt1, 1, odata[3], 1, odata[3], 1);
     dvvtvp (nplane, vcmpt2, 1, vcmpt2, 1, odata[3], 1, odata[3], 1);
+    dscal  (nplane, 2.0, odata[3], 1);
 
     /* -- Compute B . */
 
@@ -146,12 +147,15 @@ int main (int    argc,
     vcmpt2 = idata[1] + nplane;	/* -- Imag part of v. */
     dvvtvp (nplane, vcmpt1, 1, vcmpt2, 1, odata[4], 1, odata[4], 1);
 
+    dscal  (nplane, 2.0, odata[4], 1);
+
     /* -- Compute C. */
 
     vcmpt1 = idata[1];		/* -- Real part of v. */
     vcmpt2 = idata[1] + nplane; /* -- Imag part of v. */
     dvvtvp (nplane, vcmpt1, 1, vcmpt1, 1, odata[5], 1, odata[5], 1);
     dvvtvp (nplane, vcmpt2, 1, vcmpt2, 1, odata[5], 1, odata[5], 1);
+    dscal  (nplane, 2.0, odata[5], 1);
 
     /* -- Compute p. */
 
