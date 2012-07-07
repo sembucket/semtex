@@ -71,7 +71,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+
+#define __USE_MISC
 #include <math.h>
+
 #include <stdarg.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -103,6 +106,7 @@ static double
   Sgn    (double),
   Heavi  (double), 
   White  (double),
+  Gamma  (double),
   Step   (double,double),
   Jn     (double,double),
   Yn     (double,double),
@@ -162,7 +166,7 @@ static struct {			    /* -- Built-in functions. */
   "j1"    ,  1, j1      ,
   "y0"    ,  1, y0      ,
   "y1"    ,  1, y1      ,
-  "gamma" ,  1, tgamma  ,  /* -- "True" gamma function! */
+  "gamma" ,  1, Gamma   ,
   "lgamma",  1, lgamma  ,
   "white",   1, White   ,
   "sgn",     1, Sgn     ,
@@ -592,6 +596,12 @@ static double Jacobi (double z, double n, double alpha, double beta)
 
   return poly;
 }
+
+/* -- Gamma function, ex netlib: C "standard" routine not so standard. */
+
+double F77NAME(dgamma) (const double*);
+
+double Gamma(const double x) { double X = x; return F77NAME(dgamma) (&X); }
 
 /* -- Complex Bessel function, ex netlib, and functions that use it. */
 
