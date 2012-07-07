@@ -81,8 +81,14 @@ int main (int    argc,
   F = new FEML  (session);
   M = new Mesh  (F);
 
+  // -- Various flavours of UNIX may return different values for gamma!
+  //    So hard-wire in this constant.
 
+# if 0
   const real_t n_0   = Femlib::value ("TWOPI*(2./3.)^(2./3.)*gamma(1.-2./3.)");
+#else
+  const real_t n_0   = 12.845424029480757;
+#endif
   const real_t alpha = Femlib::value ("BETA");
   const real_t rho   = Femlib::value ("RHO");
   const real_t chi   = Femlib::value ("CHI");
