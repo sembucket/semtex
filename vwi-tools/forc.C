@@ -296,8 +296,8 @@ int main (int    argc,
     *dPi *= *dPi;
     *dPr += *dPi;
 
-    cout << *dPr;
-    cout << *dP2;
+    cout << *dPr; 		// -- |p|^2
+    cout << *dP2;               // -- |dP/dz|^2
   } else {
     cout << *F2;
     cout << *F1;
