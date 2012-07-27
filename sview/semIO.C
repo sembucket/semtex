@@ -165,7 +165,7 @@ Sem* loadMesh (const char* fname)
 
   State.xmin = xmin-xavg;
   State.xmax = xmax-xavg;
-  State.ymax = ymin-yavg;
+  State.ymin = ymin-yavg;
   State.ymax = ymax-yavg;
   State.zmin = zmin-zavg;
   State.zmax = zmax-zavg;

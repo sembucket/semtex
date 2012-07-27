@@ -52,6 +52,7 @@ int writetiff (char* filename   ,
   TIFFSetField (file, TIFFTAG_BITSPERSAMPLE,    8                  );
   TIFFSetField (file, TIFFTAG_COMPRESSION,      compression        );
   TIFFSetField (file, TIFFTAG_PHOTOMETRIC,      PHOTOMETRIC_RGB    );
+  TIFFSetField (file, TIFFTAG_ORIENTATION,      ORIENTATION_TOPLEFT);
   TIFFSetField (file, TIFFTAG_SAMPLESPERPIXEL,  3                  );
   TIFFSetField (file, TIFFTAG_PLANARCONFIG,     PLANARCONFIG_CONTIG);
   TIFFSetField (file, TIFFTAG_ROWSPERSTRIP,     1                  );
@@ -59,7 +60,8 @@ int writetiff (char* filename   ,
 
   p = image;
   for (i = vp[3] - 1; i >= 0; i--) {
-    if (TIFFWriteScanline (file, p, i, 0) < 0) {
+    //    if (TIFFWriteScanline (file, p, i, 0) < 0) {
+    if (TIFFWriteScanline (file, p, vp[3] - i - 1, 0) < 0) {
       free (vp); free (image); TIFFClose (file); return 1;
     }
     p += vp[2] * sizeof (GLubyte) * 3;

@@ -101,7 +101,8 @@ void keyboard (unsigned char key,
     }
     break;
   case 'd':
-    writetiff ("sview.tif", "Isosurface", COMPRESSION_PACKBITS);
+    //    writetiff ("sview.tif", "Isosurface", COMPRESSION_PACKBITS);
+    writetiff ("sview.tif", "Isosurface", COMPRESSION_LZW);
     cout << "Wrote file sview.tif" << endl;
     break;
   case 'f': 
