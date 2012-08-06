@@ -16,15 +16,15 @@ public:
 		 const vector<Element*>&, const BoundarySys*,
 		 const SolverKind, 
 		 const vector<AuxField*>&, bool);
-
-  void Contribution_toutflow     ( vector<AuxField*>&);
-  ~MatrixSys     ();
-  bool match    (const real_t, const real_t, const NumberSys*,
-		 const SolverKind) const;
-  const NumberSys* NS () const  { return _NS;}
+  
+  void Contribution_toutflow  ( vector<AuxField*>&);
+  ~MatrixSys ();
+  bool  match                 (const real_t, const real_t, const NumberSys*,
+		                           const SolverKind) const;
+  const NumberSys* NS             () const  { return _NS;}
   const vector<Boundary*>& BC () const  { return _BC;}
   int_t nglobal () const {return _nglobal;}
-  int_t nsolve () const {return _nsolve;}
+  int_t nsolve  () const {return _nsolve;}
 	
 private:
   real_t  _HelmholtzConstant;	// Same for all modes.
@@ -53,7 +53,7 @@ private:
 
   int_t    _npts;		// Total number of unique meshpoints.
   real_t*  _PC  ;		// Diagonal preconditioner matrix.
-	  real_t*  _PC_notoutflow  ;		// Diagonal preconditioner matrix, which is a part of _PC, excluding the contribution of mixed types.
+  real_t*  _PC_notoutflow  ;	// Diagonal preconditioner matrix excluding the contribution of mixed types.
 };
 
 ostream& operator << (ostream&, MatrixSys&);

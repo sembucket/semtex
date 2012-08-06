@@ -409,24 +409,24 @@ void Edge::divY (real_t* tgt) const
   }
 }
 
- void Edge::normal_gradient (real_t* gradu,real_t* gradv,real_t* gradn) const
- //get the normal gradient
- {
- Veclib::vvtvvtp(_np,gradu,1,_nx,1,gradv,1,_ny,1,gradn,1);
- }
- 
- void Edge::direction_pressure(real_t*  p, real_t*  nxp, real_t*  nyp) const
- // nxp=p*nx;nyp=p*ny.
- {
+void Edge::normal_gradient (real_t* gradu,real_t* gradv,real_t* gradn) const
+//get the normal gradient
+{
+  Veclib::vvtvvtp(_np,gradu,1,_nx,1,gradv,1,_ny,1,gradn,1);
+}
+
+void Edge::direction_pressure(real_t*  p, real_t*  nxp, real_t*  nyp) const
+// nxp=p*nx;nyp=p*ny.
+{
   Veclib::vmul (_np, _nx, 1, p, 1, nxp, 1);
   Veclib::vmul (_np, _ny, 1, p, 1, nyp, 1);
- }
+}
  
   void Edge::controlbcmesh(real_t* controlx, real_t*  controly) const
  // controlx=_nx;controly=_ny.
  {
   Veclib::copy (_np, _x, 1, controlx, 1);
-   Veclib::copy (_np, _y, 1, controly, 1);
+  Veclib::copy (_np, _y, 1, controly, 1);
  }
 
 void Edge::controlnxny(real_t* controlnx, real_t*  controlny) const

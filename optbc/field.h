@@ -30,11 +30,13 @@ public:
 
   Field& smooth (AuxField* = 0);
 
-  void smooth (const int_t, real_t*) const;
-  void evaluateBoundaries    (const int_t);
-  void evaluateControl    (const int_t , real_t*, ofstream&);
-  void evaluateM0Boundaries  (const int_t);
-  void addToM0Boundaries     (const real_t, const char*);
+  void smooth               (const int_t, real_t*) const;
+  void evaluateBoundaries   (const int_t);
+  void evaluateControl      (const int_t , real_t*);
+  void getControl           (real_t*);
+  void fixControl           ();
+  void evaluateM0Boundaries (const int_t);
+  void addToM0Boundaries    (const real_t, const char*);
    
   static real_t flux            (const Field*);
   static Vector normalTraction  (const Field*);
@@ -49,13 +51,14 @@ public:
 
   static void printBoundaries (const Field*);
   static void printConnect    (const Field*);
-  real_t normc(real_t*);
-  real_t normc_mixed(real_t*, real_t*);
-  int_t  size_controlbc();
-  void add_adjoint (real_t*, const int_t, const int_t);
-  void add_adjoint_pressure(real_t*, real_t*, const int_t, const int_t);
-  void controlmesh (real_t*,real_t*);
-	  void control_normal_direction (real_t* ,real_t*);
+  real_t      normc(real_t*);
+  real_t      normc_mixed(real_t*, real_t*);
+  int_t       size_controlbc();
+  void        add_adjoint (real_t*, const int_t, const int_t);
+  void        add_adjoint_pressure(real_t*, real_t*, const int_t, const int_t);
+  //  void        controlmesh (real_t*,real_t*);
+  void        control_normal_direction (real_t* ,real_t*);
+
 private:
   int_t        _nbound;		// Number of boundary edges.
   int_t        _nline ;		// Length of one boundary line.
@@ -64,6 +67,8 @@ private:
   BoundarySys* _bsys  ;		// Boundary system information.
 
   void getEssential      (const real_t*, real_t*,
+			  const vector<Boundary*>&, const NumberSys*)   const;
+  void giveEssential      (const real_t*, real_t*,
 			  const vector<Boundary*>&, const NumberSys*)   const;
   void setEssential      (const real_t*, real_t*, const NumberSys*);
   void local2global      (const real_t*, real_t*, const NumberSys*)     const;

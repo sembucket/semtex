@@ -195,7 +195,7 @@ int_t FEML::seek (const char* keyword)
 
 
 int_t FEML::attribute (const char* tag ,
-			 const char* attr)
+		       const char* attr)
 // ---------------------------------------------------------------------------
 // Tag attributes are given as options in form <tag attr=int [attr=int ...]>
 // Return integer value following '='.  No whitespace allowed in attributes.

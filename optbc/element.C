@@ -162,7 +162,7 @@ void Element::HelmholtzSC (const real_t lambda2,
 // iwrk:   nInt             vector.
 // ---------------------------------------------------------------------------
 {
-  const char     routine[] = "Element::HelmholtzSC";
+  const    char  routine[] = "Element::HelmholtzSC";
   register int_t i, j, eq, info, ij = 0;
 
   // -- Construct hbb, hbi, hii partitions of elemental Helmholtz matrix.
@@ -529,7 +529,7 @@ void Element::grad (real_t* tgtX,
 // ---------------------------------------------------------------------------
 // Operate partial derivative d(tgt)/dxi = d_dr*drdxi + d_ds*dsdxi,
 // where the appropriate component of gradient is selected by input
-// pointers.  Values are computed at node points.
+// pointers. Values are computed at node points.
 //
 // Work area must be 2*nTot() long.
 // ---------------------------------------------------------------------------

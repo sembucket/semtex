@@ -277,6 +277,8 @@ void Mesh::assemble()
 
   for (i = 0; i < Ne; i++) {
     E = _elmtTable[i];
+    //NOTES: nNodes() returns number of corner nodes. Since only quadrilaterals
+    //      can be defined this (should) always returns 4.
     const int_t Nn = E -> nNodes();
     for (j = 0; j < Nn; j++) {
       S = new Side (j, E -> node[j], E -> ccwNode(j));
@@ -722,8 +724,8 @@ void Mesh::meshSide (const int_t   np     ,
   const Side* S  = _elmtTable[elmt] -> side[side];
   const Point P1 = S -> startNode -> loc;
   const Point P2 = S -> endNode   -> loc;
-  const real_t  dx = P2.x - P1.x;
-  const real_t  dy = P2.y - P1.y;
+  const real_t dx = P2.x - P1.x;
+  const real_t dy = P2.y - P1.y;
 
   for (i = 0; i < np; i++) {
     knot[i].x = P1.x + dx * 0.5 * (spacing[i] + 1.0);
@@ -775,15 +777,15 @@ void Mesh::meshElmt (const int_t   ID,
     case 0:
       this -> meshSide (np, ID, j, zr, &P[0]);
       for (i = 0; i < nm; i++) {
-	x[rma (     0,      i, np)] = P[i].x;
-	y[rma (     0,      i, np)] = P[i].y;
+	x[rma (0, i, np)] = P[i].x;
+	y[rma (0, i, np)] = P[i].y;
       }
       break;
     case 1:
       this -> meshSide (np, ID, j, zs, &P[0]);
       for (i = 0; i < nm; i++) {
-	x[rma (     i,     nm, np)] = P[i].x;
-	y[rma (     i,     nm, np)] = P[i].y;
+	x[rma (i, nm, np)] = P[i].x;
+	y[rma (i, nm, np)] = P[i].y;
       }
       break;
     case 2:
@@ -792,8 +794,8 @@ void Mesh::meshElmt (const int_t   ID,
       Veclib::neg (np, &work[0], 1);
       this -> meshSide (np, ID, j, &work[0], &P[0]);
       for (i = 0; i < nm; i++) {
-	x[rma (    nm, nm - i, np)] = P[i].x;
-	y[rma (    nm, nm - i, np)] = P[i].y;
+	x[rma (nm, nm - i, np)] = P[i].x;
+	y[rma (nm, nm - i, np)] = P[i].y;
       }
       break;
     case 3:
@@ -802,8 +804,8 @@ void Mesh::meshElmt (const int_t   ID,
       Veclib::neg (np, &work[0], 1);
       this -> meshSide (np, ID, j, &work[0], &P[0]);
       for (i = 0; i < nm; i++) {
-	x[rma (nm - i,      0, np)] = P[i].x;
-	y[rma (nm - i,      0, np)] = P[i].y;
+	x[rma (nm - i, 0, np)] = P[i].x;
+	y[rma (nm - i, 0, np)] = P[i].y;
       }
       break;
     default:
@@ -1233,6 +1235,7 @@ void Mesh::buildMask (const int_t np  ,
     }
   }
 
+
   // -- Switch on gID in appropriate locations, for D, A <==> Dirichlet BCs.
 
   for (i = 0; i < nel; i++) {
@@ -1241,10 +1244,8 @@ void Mesh::buildMask (const int_t np  ,
     for (j = 0; j < ns; j++) {
       S = E -> side[j];
       if (!(S -> mateElmt)) {
-	if (matchBC (S -> group, tolower (fld), 'D') ||
-	matchBC (S -> group, tolower (fld), 'C') ||
-	    (axisE &&
-	     matchBC (S -> group, tolower (fld), 'A'))) {
+	if (matchBC (S -> group, tolower (fld), 'D') || matchBC (S -> group, tolower (fld), 'C') || matchBC (S -> group, tolower (fld), 'S') ||
+	    (axisE &&  matchBC (S -> group, tolower (fld), 'A'))) {
 	  S -> startNode -> gID = 1;
 	  S -> endNode   -> gID = 1;
 	  if (ni) Veclib::fill (ni, 1, &S -> gID[0], 1);

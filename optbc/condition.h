@@ -18,26 +18,27 @@ class Condition
 // ===========================================================================
 {
 public:
-  virtual void evaluate  (const int_t, const int_t, const int_t,
-			  const Element*, const int_t, const int_t,
-			  const real_t*, const real_t*, real_t*)       const=0;
-  virtual void set       (const int_t, const int_t*,
-			  const real_t*, real_t*)                      const=0;
-  virtual void sum       (const int_t, const int_t*,
-		          const real_t*,const real_t*,real_t*,real_t*) const=0;
-  virtual void augmentSC (const int_t,  const int_t, const int_t,
-			  const int_t*,const real_t*,real_t*,real_t*)  const=0;
-  virtual void augmentOp (const int_t, const int_t*,
-			  const real_t*, const real_t*, real_t*)       const=0;
-  virtual void augmentDg (const int_t, const int_t*, 
-			  const real_t*, real_t*)                      const=0;
-  virtual void describe  (char* tgt)                                   const=0;
-  virtual void      takeC (const int_t, const real_t*)               const=0;
-  virtual real_t      controlnorm (const real_t*, real_t*)                const=0;
-  virtual real_t      controllength (const real_t*)                       const=0;
-  virtual void switchK   (const int_t, const real_t*, const real_t*, const int_t,
-			  const int_t, const real_t*, const real_t*, const bool)                          const
-    { };
+  virtual void   evaluate      (const int_t, const int_t, const int_t,
+				const Element*, const int_t, const int_t,
+				const real_t*, const real_t*, real_t*)       const=0;
+  virtual void   set           (const int_t, const int_t*,
+				const real_t*, real_t*)                      const=0;
+  virtual void   get           (const int_t, const int_t*,
+				const real_t*, real_t*)                      const=0;
+  virtual void   sum           (const int_t, const int_t*,
+				const real_t*,const real_t*,real_t*,real_t*) const=0;
+  virtual void   augmentSC     (const int_t,  const int_t, const int_t,
+				const int_t*,const real_t*,real_t*,real_t*)  const=0;
+  virtual void   augmentOp     (const int_t, const int_t*,
+				const real_t*, const real_t*, real_t*)       const=0;
+  virtual void   augmentDg     (const int_t, const int_t*, 
+				const real_t*, real_t*)                      const=0;
+  virtual void   describe      (char* tgt)                                   const=0;
+  virtual void   takeC         (const int_t, const real_t*)               const=0;
+  virtual real_t controlnorm   (const real_t*, real_t*)                const=0;
+  virtual real_t controllength (const real_t*)                       const=0;
+  virtual void   switchK       (const int_t, const real_t*, const real_t*, const int_t,
+				const int_t, const real_t*, const real_t*, const bool) const{ };
   virtual ~Condition()   { }
 };
 
@@ -54,6 +55,8 @@ public:
 			  const Element*, const int_t, const int_t,
 			  const real_t*, const real_t*, real_t*)         const;
   virtual void set       (const int_t, const int_t*,
+			  const real_t*, real_t*)                        const;
+  virtual void get       (const int_t, const int_t*,
 			  const real_t*, real_t*)                        const;
   virtual void sum       (const int_t, const int_t*,
 			  const real_t*,const real_t*,real_t*,real_t*)   const
@@ -77,6 +80,7 @@ public:
   virtual void switchK   (const int_t, const real_t*, const real_t*, const int_t,
 			  const int_t, const real_t*, const real_t*, const bool)            const
     { };
+
 private:
   real_t _value;
 };
@@ -94,6 +98,8 @@ public:
 			  const Element*, const int_t, const int_t,
 			  const real_t*, const real_t*, real_t*)         const;
   virtual void set       (const int_t, const int_t*,
+			  const real_t*, real_t*)                        const;
+  virtual void get       (const int_t, const int_t*,
 			  const real_t*, real_t*)                        const;
   virtual void sum       (const int_t, const int_t*,
 			  const real_t*,const real_t*,real_t*,real_t*)   const
@@ -117,6 +123,7 @@ public:
    virtual void switchK   (const int_t, const real_t*, const real_t*, const int_t,
 			  const int_t, const real_t*, const real_t*, const bool)                          const
     { };
+   
 private:
   char* _function;
 };
@@ -128,36 +135,41 @@ class Natural : public Condition
 // Neumann/natural BCs.
 // ===========================================================================
 {
-public:
+ public:
   Natural                (const char* v) : _value (strtod (v, 0)) { }
-  virtual void evaluate  (const int_t, const int_t, const int_t,
-			  const Element*, const int_t, const int_t,
-			  const real_t*, const real_t*, real_t*)         const;
-  virtual void set       (const int_t, const int_t*,
-			  const real_t*, real_t*)                        const
-    { };
-  virtual void sum       (const int_t, const int_t*,
-			  const real_t*,const real_t*,real_t*,real_t*)   const;
-  virtual void augmentSC (const int_t, const int_t, const int_t,
-			  const int_t*, const real_t*, real_t*, real_t*) const
-    { };
-  virtual void augmentOp (const int_t, const int_t*,
-			  const real_t*, const real_t*, real_t*)         const
-    { };
-  virtual void augmentDg (const int_t, const int_t*, 
-			  const real_t*, real_t*)                        const
-    { };
-   virtual void      takeC (const int_t, const real_t*)                  const
-    { };
-   virtual real_t      controlnorm (const real_t*, real_t*)                const
-	{return 0;};
-   virtual real_t      controllength (const real_t*)                       const
-	{return 0;};
-   virtual void describe  (char*)                                         const;
-   virtual void switchK   (const int_t, const real_t*, const real_t*, const int_t,
-			  const int_t, const real_t*, const real_t*, const bool)                          const
-    { };
-private:
+  virtual void   evaluate  (const int_t, const int_t, const int_t,
+			    const Element*, const int_t, const int_t,
+			    const real_t*, const real_t*, real_t*)         const;
+  virtual void   set       (const int_t, const int_t*,
+			    const real_t*, real_t*)                        const
+  { };
+  virtual void   get       (const int_t, const int_t*,
+			    const real_t*, real_t*)                        const
+  { };
+  virtual void   sum       (const int_t, const int_t*,
+			    const real_t*,const real_t*,real_t*,real_t*)   const;
+  virtual void   augmentSC (const int_t, const int_t, const int_t,
+			    const int_t*, const real_t*, real_t*, real_t*) const
+  { };
+  virtual void   augmentOp (const int_t, const int_t*,
+			    const real_t*, const real_t*, real_t*)         const
+  { };
+  virtual void   augmentDg (const int_t, const int_t*, 
+			    const real_t*, real_t*)                        const
+  { };
+  virtual void   takeC (const int_t, const real_t*)                        const
+  { };
+  virtual real_t controlnorm (const real_t*, real_t*)                      const
+  {return 0;};
+  virtual real_t controllength (const real_t*)                             const
+  {return 0;};
+  virtual void   describe  (char*)                                         const;
+
+  virtual void   switchK   (const int_t, const real_t*, const real_t*, const int_t,
+	   		    const int_t, const real_t*, const real_t*, const bool)   const
+  { };
+
+ private:
   real_t _value;
 };
 
@@ -168,36 +180,41 @@ class NaturalFunction : public Condition
 // This uses parser to set the BC values. 
 // ===========================================================================
 {
-public:
+ public:
   NaturalFunction        (const char*);
-  virtual void evaluate  (const int_t, const int_t, const int_t,
-			  const Element*, const int_t, const int_t,
-			  const real_t*, const real_t*, real_t*)         const;
-  virtual void set       (const int_t, const int_t*,
-			  const real_t*, real_t*)                        const
-    { };
-  virtual void sum       (const int_t, const int_t*,
-			  const real_t*,const real_t*,real_t*,real_t*)   const;
-  virtual void augmentSC (const int_t, const int_t, const int_t,
-			  const int_t*, const real_t*, real_t*, real_t*) const
-    { };
-  virtual void augmentOp (const int_t, const int_t*,
-			  const real_t*, const real_t*, real_t*)         const
-    { };
-  virtual void augmentDg (const int_t, const int_t*, 
-			  const real_t*, real_t*)                        const
-    { };
-  virtual void      takeC (const int_t, const real_t*)                const
-    { };
-  virtual real_t      controlnorm (const real_t*, real_t*)              const
-	{return 0;};
-  virtual real_t      controllength (const real_t*)                     const
-	{return 0;};
-  virtual void describe  (char*)                                         const;
-  virtual void switchK   (const int_t, const real_t*, const real_t*, const int_t,
-			  const int_t, const real_t*, const real_t*, const bool)                          const
-    { };
-private:
+  virtual void   evaluate  (const int_t, const int_t, const int_t,
+			    const Element*, const int_t, const int_t,
+			    const real_t*, const real_t*, real_t*)         const;
+  virtual void   set       (const int_t, const int_t*,
+			    const real_t*, real_t*)                        const
+  { };
+  virtual void   get       (const int_t, const int_t*,
+			    const real_t*, real_t*)                        const
+  { };
+  virtual void   sum       (const int_t, const int_t*,
+			    const real_t*,const real_t*,real_t*,real_t*)   const;
+  virtual void   augmentSC (const int_t, const int_t, const int_t,
+			    const int_t*, const real_t*, real_t*, real_t*) const
+  { };
+  virtual void   augmentOp (const int_t, const int_t*,
+			    const real_t*, const real_t*, real_t*)         const
+  { };
+  virtual void   augmentDg (const int_t, const int_t*, 
+			    const real_t*, real_t*)                        const
+  { };
+  virtual void   takeC     (const int_t, const real_t*)                    const
+  { };
+  virtual real_t controlnorm (const real_t*, real_t*)                      const
+  {return 0;};
+  virtual real_t controllength (const real_t*)                             const
+  {return 0;};
+  virtual void   describe  (char*)                                         const;
+
+  virtual void   switchK   (const int_t, const real_t*, const real_t*, const int_t,
+			    const int_t, const real_t*, const real_t*, const bool)   const
+  { };
+
+ private:
   char* _function;
 };
 
@@ -209,35 +226,39 @@ class NaturalHOPBC : public Condition
 // is obtained from the N-S equations.
 // ===========================================================================
 {
-public:
+ public:
   NaturalHOPBC           () { }
   virtual void evaluate  (const int_t, const int_t, const int_t,
 			  const Element*, const int_t, const int_t,
 			  const real_t*, const real_t*, real_t*)         const;
   virtual void set       (const int_t, const int_t*,
 			  const real_t*, real_t*)                        const
-    { };
+  { };
+  virtual void get       (const int_t, const int_t*,
+			  const real_t*, real_t*)                        const
+  { };
   virtual void sum       (const int_t, const int_t*,
 			  const real_t*,const real_t*,real_t*,real_t*)   const;
   virtual void augmentSC (const int_t, const int_t, const int_t,
 			  const int_t*, const real_t*, real_t*, real_t*) const
-    { };
+  { };
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const
-    { };
+  { };
   virtual void augmentOp (const int_t, const int_t*,
 			  const real_t*, const real_t*, real_t*)         const
-	{ };
+  { };
   virtual void    takeC (const int_t, const real_t*)                                            const
-    { };
-   virtual real_t      controlnorm (const real_t*, real_t*)               const
-	{return 0;};
+  { };
+  virtual real_t      controlnorm (const real_t*, real_t*)               const
+  {return 0;};
   virtual real_t      controllength (const real_t*)                       const
-	{return 0;};
+  {return 0;};
   virtual void describe  (char*)                                         const;
   virtual void switchK   (const int_t, const real_t*, const real_t*, const int_t,
 			  const int_t, const real_t*, const real_t*, const bool)                          const
     { };
+
 };
 
 
@@ -248,14 +269,17 @@ class Mixed : public Condition
 // and element-boundary, terms.
 // ===========================================================================
 {
-public:
+ public:
   Mixed                  (const char*);
   virtual void evaluate  (const int_t, const int_t, const int_t,
 			  const Element*, const int_t, const int_t,
 			  const real_t*, const real_t*, real_t*)         const;
   virtual void set       (const int_t, const int_t*,
 			  const real_t*, real_t*)                        const
-    { };
+  { };
+  virtual void get       (const int_t, const int_t*,
+			  const real_t*, real_t*)                        const
+  { };
   virtual void sum       (const int_t, const int_t*, const real_t*,
 			  const real_t*, real_t*, real_t*)               const;
   virtual void augmentSC (const int_t, const int_t, const int_t,
@@ -265,15 +289,18 @@ public:
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const;
   virtual void describe  (char*)                                         const;
-  virtual real_t      controlnorm (const real_t*, real_t*)              const
-	{return 0;};
-  virtual real_t      controllength (const real_t*)                     const
-	{return 0;};
-  virtual void   takeC (const int_t,  const real_t*) const ;
-  virtual void switchK   (const int_t, const real_t*, const real_t*,
-   const int_t, const int_t, const real_t*, const real_t*, const bool)   const;
 
-private:
+  virtual real_t controlnorm   (const real_t*, real_t*)                  const
+  {return 0;};
+  virtual real_t controllength (const real_t*)                           const
+  {return 0;};
+  virtual void takeC (const int_t,  const real_t*)                       const;
+
+  virtual void switchK (const int_t, const real_t*, const real_t*,
+			const int_t, const int_t, const real_t*, 
+			const real_t*, const bool)                       const;
+
+ private:
   real_t* _K_;		// -- This is "K" above.
   real_t* _C_;		// -- This is "C" above.
 };
@@ -282,44 +309,44 @@ private:
 
 class Controlbc : public Condition
 // ===========================================================================
-// Essential BC applicator.  This one is for plain (constant value)
-// Dirichlet/essential BCs.
+// Control BC applicator.
 // ===========================================================================
 {
-public:
-  Controlbc              (const char* v)  {
-    _value  = new real_t [Geometry::nZ() * Geometry::nP()];
-	Veclib::zero (Geometry::nZ() * Geometry::nP(),     _value, 1);
-	//Veclib::fill (Geometry::nZ() * Geometry::nP(), 1 , _value, 1); //TESTING:::
-  }
+ public:
+  Controlbc (const char*) {};
+
   virtual void evaluate  (const int_t, const int_t, const int_t,
 			  const Element*, const int_t, const int_t,
 			  const real_t*, const real_t*, real_t*)         const;
   virtual void set       (const int_t, const int_t*,
 			  const real_t*, real_t*)                        const;
+  virtual void get       (const int_t, const int_t*,
+			  const real_t*, real_t*)                        const;
   virtual void sum       (const int_t, const int_t*,
 			  const real_t*,const real_t*,real_t*,real_t*)   const
-    { };
+  { };
   virtual void augmentSC (const int_t, const int_t, const int_t,
 			  const int_t*, const real_t*, real_t*, real_t*) const
-    { };
+  { };
   virtual void augmentOp (const int_t, const int_t*,
 			  const real_t*, const real_t*, real_t*)         const
-    { };
+  { };
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const
-    { };
-  virtual void   takeC (const int_t, const real_t*)                                    const
-    { };
-  virtual real_t      controlnorm (const real_t*, real_t*)                const;
-  virtual real_t      controllength (const real_t*)                       const;
+  { };
+  virtual void takeC     (const int_t, const real_t*)                    const
+  { };
+  virtual real_t controlnorm   (const real_t*, real_t*)                  const;
+  virtual real_t controllength (const real_t*)                           const;
 
-  virtual void describe  (char*)                             const;
+  virtual void describe  (char*)                                         const;
+
   virtual void switchK   (const int_t, const real_t*, const real_t*, const int_t,
-			  const int_t, const real_t*, const real_t*, const bool)                          const
-    { };
-private:
-  real_t* _value;
+			  const int_t, const real_t*, const real_t*, const bool) const
+  { };
+  
+ private:
+  real_t* _uc;
 };
 
 
@@ -330,17 +357,20 @@ class Toutflow : public Condition
 // and element-boundary, terms.
 // ===========================================================================
 {
-public:
-	Toutflow                  (const char*) { _K_  = new real_t [Geometry::nP()];}
+ public:
+  Toutflow               (const char*) { _K_  = new real_t [Geometry::nP()];}
   virtual void evaluate  (const int_t, const int_t, const int_t,
 			  const Element*, const int_t, const int_t,
 			  const real_t*, const real_t*, real_t*)         const;
   virtual void set       (const int_t, const int_t*,
 			  const real_t*, real_t*)                        const
-    { };
+  { };
+  virtual void get       (const int_t, const int_t*,
+			  const real_t*, real_t*)                        const
+  { };
   virtual void sum       (const int_t, const int_t*, const real_t*,
 			  const real_t*, real_t*, real_t*)     const
-	{ };
+  { };
   virtual void augmentSC (const int_t, const int_t, const int_t,
 			  const int_t*, const real_t*, real_t*, real_t*) const;
   virtual void augmentOp (const int_t, const int_t*,
@@ -348,16 +378,22 @@ public:
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const;
   virtual void describe  (char*)                                         const;
-  virtual real_t      controlnorm (const real_t*, real_t*)              const
-	{return 0;};
-  virtual real_t      controllength (const real_t*)                     const
-	{return 0;};
-  virtual void   takeC (const int_t, const real_t*)                                    const
-    { };
- virtual void switchK   (const int_t, const real_t*, const real_t*, const int_t,
-			  const int_t, const real_t*, const real_t*, const bool)                          const;
-private:
-  real_t* _K_;		// -- This is "K" above.
+
+  virtual real_t      controlnorm (const real_t*, real_t*)               const
+  {return 0;};
+
+  virtual real_t      controllength (const real_t*)                      const
+  {return 0;};
+
+  virtual void   takeC (const int_t, const real_t*)                      const
+  { };
+
+ virtual void switchK   (const int_t, const real_t*, const real_t*,
+			 const int_t, const int_t, const real_t*, 
+			 const real_t*, const bool)                      const;
+ 
+ private:
+ real_t* _K_;		// -- This is "K" above.
 };
 
 #endif

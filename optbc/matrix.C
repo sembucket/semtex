@@ -112,7 +112,7 @@ MatrixSys::MatrixSys (const real_t            lambda2,
     for (bmap = _NS -> btog(), j = 0; j < _nel; j++, bmap += next) {
       _bipack[j] = next * nint;
       _iipack[j] = nint * nint;
-
+      
       if (nint) {
 	_hbi[j] = new real_t [static_cast<size_t>(_bipack[j])];
 	_hii[j] = new real_t [static_cast<size_t>(_iipack[j])];
@@ -129,7 +129,7 @@ MatrixSys::MatrixSys (const real_t            lambda2,
 	  for (k = 0; k < next; k++)
 	    if ((n = bmap[k]) < _nsolve && n >= m)
 	      _H[Lapack::band_addr (m, n, _nband)] += // band_addr: return (n+1)*_nband-n+m-1;
-		hbb[Veclib::row_major (i, k, next)];      // row_major: return k+i*next;
+		hbb[Veclib::row_major (i, k, next)];  // row_major: return k+i*next;
     
       Family::adopt (_bipack[j], _hbi + j);
       Family::adopt (_iipack[j], _hii + j);
@@ -145,15 +145,15 @@ MatrixSys::MatrixSys (const real_t            lambda2,
 	  _BC[i] -> augmentSC (_nband, _nsolve, bmap, rwrk, _H);
       }
 
-  // -- Loop over BCs and add diagonal contribution from Toutflow BCs.
+      // -- Loop over BCs and add diagonal contribution from Toutflow BCs.
       if (bsys -> ToutflowBC()) {
-	    // if (Geometry::nSlice()>1) message (routine, "Sorry, The DIRECT solver is only for LNS based on steady base flow. This solver does not support time-dependent base flow or nonlinear works", ERROR); 
-	    const int_t  nbound = bsys -> nSurf();
-	    const int_t* bmap   = _NS  -> btog();
-	    for (i = 0; i < nbound; i++) {
-		   _BC[i] -> switchK (Baseflow[0]->plane(0), Baseflow[1]->plane(0), forwards);  
-	       _BC[i] -> augmentSC (_nband, _nsolve, bmap, rwrk, _H);
-		 }
+	// if (Geometry::nSlice()>1) message (routine, "Sorry, The DIRECT solver is only for LNS based on steady base flow. This solver does not support time-dependent base flow or nonlinear works", ERROR); 
+	const int_t  nbound = bsys -> nSurf();
+	const int_t* bmap   = _NS  -> btog();
+	for (i = 0; i < nbound; i++) {
+	  _BC[i] -> switchK (Baseflow[0]->plane(0), Baseflow[1]->plane(0), forwards);  
+	  _BC[i] -> augmentSC (_nband, _nsolve, bmap, rwrk, _H);
+	}
       }
 	  
 
@@ -177,22 +177,22 @@ MatrixSys::MatrixSys (const real_t            lambda2,
       }
     }
   } break;
-
+    
   case JACPCG: {
 
     const int_t    nbound = _BC.size();   
     real_t*        PCi;
     vector<real_t> work (2 * npnp + np);
     real_t         *ed = &work[0], *ewrk = &work[0] + npnp;
-
-      _PC = new real_t [static_cast<size_t>(_npts)];
-	  _PC_notoutflow = new real_t [static_cast<size_t>(_NS -> nGlobal())];
+    
+    _PC = new real_t [static_cast<size_t>(_npts)];
+    _PC_notoutflow = new real_t [static_cast<size_t>(_NS -> nGlobal())];
 
     Veclib::zero (_npts, _PC, 1);
-
+    
     PCi  = _PC + _NS -> nGlobal();
     bmap = _NS -> btog();
-
+    
     // -- Mixed BC contributions.
 
     if (bsys -> mixBC())
@@ -200,7 +200,7 @@ MatrixSys::MatrixSys (const real_t            lambda2,
 	_BC[i] -> augmentDg (bmap, _PC);
 
 
- // -- Toutflow BC contributions are moved out and calculated separately.
+    // -- Toutflow BC contributions are moved out and calculated separately.
 
   
     // -- Element contributions.
@@ -210,12 +210,12 @@ MatrixSys::MatrixSys (const real_t            lambda2,
       Veclib::scatr_sum (next, ed,  bmap,    _PC);
       Veclib::copy      (nint, ed + next, 1, PCi, 1);
     }
-
+    
     Veclib::copy      (_NS -> nGlobal(), _PC, 1, _PC_notoutflow, 1);
     Veclib::vrecp (_npts, _PC, 1, _PC, 1);
-
+    
   } break;
-
+    
   default:
     message (routine, "no solver of type requested -- never happen", ERROR);
     break;
@@ -281,28 +281,28 @@ void MatrixSys::Contribution_toutflow (  vector<AuxField*>&  Baseflow)
 // ---------------------------------------------------------------------------
 
 {  real_t*    PC_toutflow    = new  real_t [static_cast<size_t>(_NS -> nGlobal())];
-	Veclib::zero (_NS -> nGlobal(), PC_toutflow, 1);
-	
-	register int_t i;
-	const int_t    nbound = _BC.size();
-	const int_t* bmap   = _NS  -> btog();
-	const int_t    np        = Geometry::nP();	
+  Veclib::zero (_NS -> nGlobal(), PC_toutflow, 1);
+  
+  register int_t  i;
+  const    int_t  nbound = _BC.size();
+  const    int_t* bmap   = _NS  -> btog();
+  const    int_t  np     = Geometry::nP();	
 
 	
-	for (i = 0; i < nbound; i++) {
-        if (*_BC[i]->group() =='t') 
-			    _BC[i] -> switchK (Baseflow[0]->plane(0), Baseflow[1]->plane(0), 0);//the last parameter is forwards==0, since this function is called only for the backward integration.  
-       	_BC[i] -> augmentDg (bmap, PC_toutflow);	 
-	}
-	
-	
-	Veclib::vadd (_NS -> nGlobal(), PC_toutflow, 1, _PC_notoutflow, 1, PC_toutflow, 1);
-	
-	Veclib::vrecp (_NS -> nGlobal(), PC_toutflow, 1, PC_toutflow, 1);
-	
-	Veclib::copy      (_NS -> nGlobal(), PC_toutflow, 1, _PC, 1);
-	
-	delete [] PC_toutflow;
-	
-	
+  for (i = 0; i < nbound; i++) {
+    if (*_BC[i]->group() =='t') 
+      _BC[i] -> switchK (Baseflow[0]->plane(0), Baseflow[1]->plane(0), 0);//the last parameter is forwards==0, since this function is called only for the backward integration.  
+    _BC[i] -> augmentDg (bmap, PC_toutflow);	 
+  }
+  
+  
+  Veclib::vadd (_NS -> nGlobal(), PC_toutflow, 1, _PC_notoutflow, 1, PC_toutflow, 1);
+  
+  Veclib::vrecp (_NS -> nGlobal(), PC_toutflow, 1, PC_toutflow, 1);
+  
+  Veclib::copy      (_NS -> nGlobal(), PC_toutflow, 1, _PC, 1);
+  
+  delete [] PC_toutflow;
+  
+  
 }

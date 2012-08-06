@@ -63,7 +63,7 @@ public:
   static int_t baseMode  () { return _pid * nModeProc();    }
   static int_t basePlane () { return _pid * _nzp;           }
   static int_t nBlock    () { return _psize / _nproc;       }
-  static int_t  kFund     () { return 0;                }
+  static int_t kFund     () { return 0;                     }
   // -- These are specific to eigensystem analysis:
 
   static int_t nBase     () { return _nbase;                }

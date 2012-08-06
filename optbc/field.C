@@ -122,13 +122,13 @@ Field::Field (BoundarySys*      B,
   const int_t              np  = Geometry::nP();
   const int_t              npr = Geometry::nProc();
   const int_t              nzb = Geometry::basePlane();
-   vector<Boundary*> BC ;
+  vector<Boundary*>        BC ;
   register real_t*         p;
   register int_t           i, k;
   
 // Ask Hugh why the fundamental mode is used to initialize.
   if (!Geometry::nPert() == 2) BC = _bsys -> BCs (0);
-  else                        BC = _bsys -> BCs (Femlib::ivalue ("BETA"));
+  else                         BC = _bsys -> BCs (Femlib::ivalue ("BETA"));
   
   // -- Allocate storage for boundary data, round up for Fourier transform.
   
@@ -188,13 +188,14 @@ void Field::evaluateBoundaries (const int_t step)
 
   for (k = 0; k < _nz; k++)
     for (p = _line[k], i = 0; i < _nbound; i++, p += np)
-       if(!(*BC[i]->group() =='c' || *BC[i]->group() =='d') || _bsys -> field() == 'p') 	
-	      BC[i] -> evaluate (k, step, p);
+      if(!(*BC[i]->group()=='c' || *BC[i]->group()=='d') || _bsys -> field() == 'p'){
+	BC[i] -> evaluate (k, step, p);
+      }
 }
 
 
 
-void Field::evaluateControl (const int_t step, real_t* uci, ofstream& f_t)
+void Field::evaluateControl (const int_t step, real_t* uci)
 // ---------------------------------------------------------------------------
 // evaluate control bcs.
 // ---------------------------------------------------------------------------
@@ -203,65 +204,121 @@ void Field::evaluateControl (const int_t step, real_t* uci, ofstream& f_t)
   vector<Boundary*> BC;
   real_t*           p;
   int_t             i, k;
-  int_t             lengthcontrol= this -> size_controlbc ();
-  real_t            cowt, siwt, timenow;
-  timenow= Femlib::value  ("D_T") * step;
-  real_t            adjointtime =  Femlib::value  ("D_T")*(Femlib::ivalue ("N_STEP")-step); 
+  int_t             lengthcontrol= _bsys -> sizecontrolbc ();
+  real_t            cowt, timenow, dt, adjointtime;
   real_t            timedecay = (1-exp(-timenow*timenow))*(1-exp(-adjointtime*adjointtime));
   real_t	    shift=1.83/2*1.75; //testing:::
-
-  if (Femlib::ivalue  ("TIMEDECAY")==1) timedecay = exp(-3*(timenow-shift)*(timenow-shift)); //testing:::
-
-  if (Femlib::ivalue  ("TIMEDECAY")==2) timedecay = 1; 
-
-  if (Geometry::nPert() == 2) BC = _bsys -> BCs (0);
-  else                        BC = _bsys -> BCs (Femlib::ivalue ("BETA"));
   
-  if ( Femlib::ivalue ("controlbc_t_dependency")==0)   {
-    cowt=1; siwt=0;
+  dt          = Femlib::value ("D_T");
+  adjointtime = dt*(Femlib::ivalue ("N_STEP")-step);
+  timenow     = dt*step;
+
+    
+  // -- Compute f(t)
+
+  //To initialize uc set temporal dependence to 1.
+  if (step == 0){
+    timedecay = 1;
+    cowt      = 1;
+    if (Geometry::nPert() == 2) BC = _bsys -> BCs (0);
+    else                        BC = _bsys -> BCs (Femlib::ivalue ("BETA")); 
+  }
+  else{
+    if (Femlib::ivalue  ("TIMEDECAY")==1) timedecay = exp(-3*(timenow-shift)*(timenow-shift));
+    
+    if (Femlib::ivalue  ("TIMEDECAY")==2) timedecay = 1; 
+    
+    if (Geometry::nPert() == 2) BC = _bsys -> BCs (0);
+    else                        BC = _bsys -> BCs (Femlib::ivalue ("BETA"));
+    
+    if (Femlib::ivalue ("controlbc_t_dependency") == 0){
+      cowt=1;
+    }
+    else if (Femlib::ivalue ("controlbc_t_dependency") == 1) {
+      cowt=cos( Femlib::value ("frequency_controlbc") *timenow);
+    }      
   }
   
-  else if ( Femlib::ivalue ("controlbc_t_dependency")==1) {
-    cowt=cos( Femlib::value ("frequency_controlbc") *timenow);
-    siwt=sin( Femlib::value ("frequency_controlbc") *timenow);
-  }
+  cowt = cowt*timedecay;
   
-  cowt=cowt*timedecay;
-  siwt=siwt*timedecay;
-
-  f_t << timenow << setw(20) << cowt << setw(20);
-
- 	
-  for (k = 0; k < _nz; k++)
+  for (k = 0; k < _nz; k++){
     for (p = _line[k], i = 0; i < _nbound; i++, p += np)
       {
-	if(*BC[i]->group() =='c'){
+	if(*BC[i]->group() == 'c'){
 	  if (_nz==1){
-	    Veclib::smul (np, cowt, uci, 1, p, 1);   //Re{u_c+}=\hat{u}coswtf(t);Re{v_c}=\hat{v}coswtf(t);Im{w_c}=\hat{w}coswtf(t);
-	      for (int j = 0; j < np; j++){
-		f_t << p[j] << setw(20);
-	      }
+	    Veclib::smul (np, cowt, uci, 1, p, 1);   
+	    //Re{u_c+}=\hat{u}coswtf(t);Re{v_c}=\hat{v}coswtf(t);Im{w_c}=\hat{w}coswtf(t);
 	  }
-	  else  if (k==0){
-	    Veclib::smul (np, cowt, uci, 1, p, 1);
-	    Veclib::svtvp (np, -siwt, uci+lengthcontrol, 1, p, 1, p, 1); 
+	  else if (k==0){
+	    Veclib::smul  (np, cowt, uci, 1, p, 1);
+	    //Veclib::svtvp (np, -siwt, uci+lengthcontrol, 1, p, 1, p, 1); 
 	  }
 	
 	  else{
-	    Veclib::smul (np, cowt, uci, 1, p, 1);
-	    Veclib::svtvp (np, siwt, uci-lengthcontrol, 1, p, 1, p, 1); 
+	    Veclib::smul  (np, cowt, uci, 1, p, 1);
+	    //Veclib::svtvp (np, siwt, uci-lengthcontrol, 1, p, 1, p, 1); 
 	  }
-	
 	  uci+=np;
 	}	
       }
-  f_t << endl;
+  }
 }
 
 
+void Field::fixControl ()
+// ---------------------------------------------------------------------------
+// Update boundary storage to accommodate intersection of control boundaries
+// with other boundary types.
+// ---------------------------------------------------------------------------
+{
+  const NumberSys*  N;
+  const int_t       npert  = Geometry::nPert();
+  int_t             sizebc = _bsys -> sizecontrolbc();
+  int_t             np     = Geometry::nP();
 
+  vector<Boundary*> BC;
+  vector<real_t>    work;
+  real_t            *p, *gvector;
+  int_t             i, nglobal;
 
+  if (npert == 2){
+    BC = _bsys -> BCs  (0);
+    N  = _bsys -> Nsys (0);
+  }
+  else{
+    BC = _bsys -> BCs  (Femlib::ivalue("BETA")); 
+    N  = _bsys -> Nsys (Femlib::ivalue("BETA"));
+  }
 
+  nglobal = N -> nGlobal();
+  work.resize(nglobal);
+  gvector = &work[0];
+  Veclib::zero(nglobal, gvector, 1);
+
+  // -- Write from _line storage to globally numbered vector then back
+  //    to _line storage.                                           
+  for(i = 0; i < _nz; i++){
+    p = _line[i];
+    this -> getEssential(p, gvector, BC, N);
+    this -> giveEssential(gvector, p, BC, N);   
+  }
+}
+ 
+void Field::getControl(real_t* uci)
+// -----------------------------------------------------------------------
+// Update external control boundary storage from current _line data.
+// -----------------------------------------------------------------------
+{  
+  int_t sizebc = _bsys -> sizecontrolbc();
+
+  int_t  j;
+  real_t *p;
+  // -- Write from _line storage to external control boundary storage. 
+  for(j = 0; j < _nz; j++){
+    p = _line[j];
+    Veclib::copy(sizebc, p, 1, uci+j*sizebc, 1);
+  }  
+}
 
 void Field::evaluateM0Boundaries (const int_t step)
 // ---------------------------------------------------------------------------
@@ -1009,6 +1066,30 @@ void Field::getEssential (const real_t*            src,
 }
 
 
+void Field::giveEssential (const real_t*            src,
+			   real_t*                  tgt,
+			   const vector<Boundary*>& bnd,
+			   const NumberSys*         N  ) const
+// ---------------------------------------------------------------------------
+// On input, src is a globally numbered vector of boundary data for the
+// current data plane. Gather current values of essential BCs into non-
+// globally numbered vector tgt.
+// ---------------------------------------------------------------------------
+{
+  const int_t     np   = Geometry::nP();
+  const int_t*    btog = N -> btog();
+  const Boundary* B;
+  int_t           i, boff;
+  
+  for (i = 0; i < _nbound; i++, tgt += np) {
+    B    = bnd[i];
+    boff = B -> bOff();
+  
+    B -> get (src, btog + boff, tgt);
+  }
+}
+
+
 void Field::setEssential (const real_t*    src,
 			  real_t*          tgt,
 			  const NumberSys* N  )
@@ -1147,11 +1228,11 @@ real_t Field::modeConstant (const char   name,
 
 real_t Field::normc(real_t* uci)
 //get the norm of the control bc.
-{  const int_t  np  = Geometry::nP();
+{  const int_t      np  = Geometry::nP();
   vector<Boundary*> BC;
   int_t             i, k;
-  real_t norm = 0.0;
-  real_t length= 0.0;
+  real_t            norm = 0.0;
+  real_t            length= 0.0;
   if (Geometry::nPert() == 2) BC = _bsys -> BCs (0);
   else                        BC = _bsys -> BCs (Femlib::ivalue ("BETA"));
 
@@ -1167,26 +1248,23 @@ real_t Field::normc(real_t* uci)
 return norm;
 }
 
-
-
-
 real_t Field::normc_mixed(real_t* uci,real_t* lagi)
 //get the i conponent of [uc,lag].
-{  const int_t  np  = Geometry::nP();
-	vector<Boundary*> BC;
-	int_t             i, k;
-	real_t norm = 0.0;
-	if (Geometry::nPert() == 2) BC = _bsys -> BCs (0);
-	else                        BC = _bsys -> BCs (Femlib::ivalue ("BETA"));
-	
-	for (k = 0; k < _nz; k++)    
-		for ( i = 0; i < _nbound; i++)
-			if(*BC[i]->group()=='c'){
-				norm   += BC[i] -> controlnorm_mixed (uci,lagi);
-				uci +=np;
-				lagi+=np;
-			}
-	return norm;
+{ const int_t       np  = Geometry::nP();
+  vector<Boundary*> BC;
+  int_t             i, k;
+  real_t            norm = 0.0;
+  if (Geometry::nPert() == 2) BC = _bsys -> BCs (0);
+  else                        BC = _bsys -> BCs (Femlib::ivalue ("BETA"));
+  
+  for (k = 0; k < _nz; k++)    
+    for ( i = 0; i < _nbound; i++)
+      if(*BC[i]->group()=='c'){
+	norm += BC[i] -> controlnorm_mixed (uci,lagi);
+	uci  +=np;
+	lagi +=np;
+      }
+  return norm;
 }
 
 
@@ -1205,7 +1283,7 @@ int_t Field::size_controlbc ()
 }
 
 
-
+/*
 void Field::controlmesh(real_t* controlx,real_t* controly)
 // Install the control force in uci.
 { 
@@ -1223,183 +1301,194 @@ void Field::controlmesh(real_t* controlx,real_t* controly)
       controly += np;
     }
 }
-
+*/
 
 
 void Field::add_adjoint(real_t* adjoint_gradient, const int_t step, const int_t lengthcontrol)
 //add the gradient of the adjoint in the integration. direction gradient term.
 {  
- int_t i, j, k, id, side;
- const int_t      npnp    = Geometry::nTotElmt();
- const int_t       np     = Geometry::nP();
- vector<Boundary*> BC;
-  vector<real_t> work;
- work.resize (2 * npnp);
- real_t*  ux    = new  real_t [static_cast<size_t>(npnp)];
- real_t*  uy    = new  real_t [static_cast<size_t>(npnp)];
- real_t*  gradx = new  real_t [static_cast<size_t>(np)];
- real_t*  grady = new  real_t [static_cast<size_t>(np)];
- real_t*  gradn = new  real_t [static_cast<size_t>(np)];
- real_t   timenow   = Femlib::value  ("D_T") * (Femlib::ivalue ("N_STEP")-step);
- real_t adjointtime =  Femlib::value  ("D_T")*step; 
- real_t   timedecay = (1-exp(-timenow*timenow))*(1-exp(-adjointtime*adjointtime));
- real_t	shift=1.83/2*1.75; //tesing:::
-	if (Femlib::ivalue  ("TIMEDECAY")==1) timedecay = exp(-3*(timenow-shift)*(timenow-shift)); //testing:::
-	  if (Femlib::ivalue  ("TIMEDECAY")==2) timedecay = 1; 
-	
- real_t   cowt, siwt;
+  int_t             i, j, k, id, side;
+  const int_t       npnp = Geometry::nTotElmt();
+  const int_t       np   = Geometry::nP();
+  vector<Boundary*> BC;
+  vector<real_t>    work;
+  work.resize (2 * npnp);
+  real_t*  ux    = new  real_t [static_cast<size_t>(npnp)];
+  real_t*  uy    = new  real_t [static_cast<size_t>(npnp)];
+  real_t*  gradx = new  real_t [static_cast<size_t>(np)];
+  real_t*  grady = new  real_t [static_cast<size_t>(np)];
+  real_t*  gradn = new  real_t [static_cast<size_t>(np)];
+  real_t   timenow     = Femlib::value  ("D_T") * (Femlib::ivalue ("N_STEP")-step);
+  real_t   adjointtime = Femlib::value  ("D_T")*step; 
+  real_t   timedecay   = (1-exp(-timenow*timenow))*(1-exp(-adjointtime*adjointtime));
+  real_t   shift       = 1.83/2*1.75; //tesing:::
+ 
+  if (Femlib::ivalue  ("TIMEDECAY")==1) timedecay = exp(-3*(timenow-shift)*(timenow-shift)); //testing:::
+  if (Femlib::ivalue  ("TIMEDECAY")==2) timedecay = 1; 
+ 
+  real_t cowt, siwt;
 
  
- if   ( Femlib::ivalue ("controlbc_t_dependency")==0)   {
-   cowt=1; siwt=0;
- }
+  if ( Femlib::ivalue ("controlbc_t_dependency")==0)   {
+    cowt=1; siwt=0;
+  }
   
- else if ( Femlib::ivalue ("controlbc_t_dependency")==1) {
-   cowt=cos( -Femlib::value ("frequency_controlbc") * timenow);
-   siwt=sin( -Femlib::value ("frequency_controlbc") * timenow);
- }
+  else if ( Femlib::ivalue ("controlbc_t_dependency")==1) {
+    cowt=cos( -Femlib::value ("frequency_controlbc") * timenow);
+    siwt=sin( -Femlib::value ("frequency_controlbc") * timenow);
+  }
  	  
- cowt=cowt*timedecay;
- siwt=siwt*timedecay; 	  
+  cowt=cowt*timedecay;
+  siwt=siwt*timedecay; 	  
  
- if (Geometry::nPert() == 2) BC = _bsys -> BCs (0);
- else                        BC = _bsys -> BCs (Femlib::ivalue ("BETA"));
+  if (Geometry::nPert() == 2) BC = _bsys -> BCs (0);
+  else                        BC = _bsys -> BCs (Femlib::ivalue ("BETA"));
   
 
- for (k = 0; k < _nz; k++)      
-   for (i = 0; i < _nbound; i++ )
-     if(*BC[i]->group()=='c'||*BC[i]->group() =='d') {
-       id = BC[i]->element()->ID();
-       side = BC[i]->side();
-       Veclib::copy (npnp,_plane[k]+id*npnp, 1,ux, 1);
-       Veclib::copy (npnp,_plane[k]+id*npnp, 1,uy, 1);
-       BC[i] -> element() -> grad(ux,0,&work[0]);
-       BC[i] -> element() -> grad(0,uy,&work[0]);
- 
-       switch (side) {
-       case 0: for (j=0;j<np;j++)
-	   {*(gradx+j)=*(ux+j);  *(grady+j)=*(uy+j);}  
-	 break;
-       case 1: for (j=0;j<np;j++)
-	   {*(gradx+j)=*(ux+np*(j+1)-1);  *(grady+j)=*(uy+np*(j+1)-1);}
-	 break;
-       case 2: for (j=0;j<np;j++)
-	   {*(gradx+j)=*(ux+npnp-1-j);   *(grady+j)=*(uy+npnp-1-j);}
-	 break;
-       case 3: for (j=0;j<np;j++)
-	   {*(gradx+j)=*(ux+np*(np-1)-j*np); *(grady+j)=*(uy+np*(np-1)-j*np); }
-	 break;
-       default:     break;
-       }
-       
-       BC[i] -> normal_gradient(gradx,grady,gradn);
-       if (_nz==1)
-	 Veclib::svtvp (np, -Femlib::value("D_T * KINVIS")*cowt, gradn, 1, adjoint_gradient, 1, adjoint_gradient, 1);
-       else if (k==0){
-	 Veclib::svtvp (np, -Femlib::value("D_T * KINVIS")*cowt, gradn, 1, adjoint_gradient, 1, adjoint_gradient, 1);
-	 Veclib::svtvp (np, -Femlib::value("D_T * KINVIS")*siwt, gradn, 1, adjoint_gradient+lengthcontrol, 1, adjoint_gradient+lengthcontrol, 1);
-       }
-       else{
-	 Veclib::svtvp (np, -Femlib::value("D_T * KINVIS")*cowt, gradn, 1, adjoint_gradient, 1, adjoint_gradient, 1);
-	 Veclib::svtvp (np,  Femlib::value("D_T * KINVIS")*siwt, gradn, 1, adjoint_gradient-lengthcontrol, 1, adjoint_gradient-lengthcontrol, 1); 
-       }
-       
-       adjoint_gradient +=np;
-     }
+  for (k = 0; k < _nz; k++)      
+    for (i = 0; i < _nbound; i++ )
+      if(*BC[i]->group()=='c'||*BC[i]->group() =='d') {
+	id = BC[i]->element()->ID();
+	side = BC[i]->side();
 
- delete [] ux;
- delete [] uy;
- delete [] gradx;
- delete [] grady;
- delete [] gradn;
+	// Write field data for element into ux and uy.
+	Veclib::copy (npnp, _plane[k]+id*npnp, 1, ux, 1);
+	Veclib::copy (npnp, _plane[k]+id*npnp, 1, uy, 1);
+
+	// Compute partial derivative of current field u WRT x and y and store in ux and uy respectively. Note partial derivative wrt z is zero due to Fourier expansion.
+	BC[i] -> element() -> grad(ux, 0, &work[0]);
+	BC[i] -> element() -> grad(0, uy, &work[0]);
+	
+	// Write partial derivatives on control boundaries to vectors gradx and grady
+	switch (side) {
+	case 0: for (j=0;j<np;j++)
+	    {*(gradx+j)=*(ux+j);  *(grady+j)=*(uy+j);}  
+	  break;
+	case 1: for (j=0;j<np;j++)
+	    {*(gradx+j)=*(ux+np*(j+1)-1);  *(grady+j)=*(uy+np*(j+1)-1);}
+	  break;
+	case 2: for (j=0;j<np;j++)
+	    {*(gradx+j)=*(ux+npnp-1-j);   *(grady+j)=*(uy+npnp-1-j);}
+	  break;
+	case 3: for (j=0;j<np;j++)
+	    {*(gradx+j)=*(ux+np*(np-1)-j*np); *(grady+j)=*(uy+np*(np-1)-j*np); }
+	  break;
+	default:     break;
+	}
+       
+	//Compute n.gradu.
+	BC[i] -> normal_gradient(gradx,grady,gradn);
+	
+	// Multiply by f(t) and add to what was previously written to adjoint_gradient at earlier time steps. Note -ive signs included as the velocity gradient term is subtracted. See eqn. 3.9 Mao, Blackburn and Sherwin 2012.
+	if (_nz==1)
+	  Veclib::svtvp (np, -Femlib::value("D_T * KINVIS")*cowt, gradn, 1, adjoint_gradient, 1, adjoint_gradient, 1);
+	else if (k==0){
+	  Veclib::svtvp (np, -Femlib::value("D_T * KINVIS")*cowt, gradn, 1, adjoint_gradient, 1, adjoint_gradient, 1);
+	  Veclib::svtvp (np, -Femlib::value("D_T * KINVIS")*siwt, gradn, 1, adjoint_gradient+lengthcontrol, 1, adjoint_gradient+lengthcontrol, 1);
+	}
+	else{
+	  Veclib::svtvp (np, -Femlib::value("D_T * KINVIS")*cowt, gradn, 1, adjoint_gradient, 1, adjoint_gradient, 1);
+	  Veclib::svtvp (np,  Femlib::value("D_T * KINVIS")*siwt, gradn, 1, adjoint_gradient-lengthcontrol, 1, adjoint_gradient-lengthcontrol, 1); 
+	}
+       
+	adjoint_gradient +=np;
+      }
+
+  delete [] ux;
+  delete [] uy;
+  delete [] gradx;
+  delete [] grady;
+  delete [] gradn;
 }
 
 
 
 void Field::add_adjoint_pressure(real_t* adjoint_px, real_t* adjoint_py,const int_t step, const int_t lengthcontrol)
-//add the gradient of the adjoint in the integration, pressure term
+//add the gradient of the adjoint in the integration, pressure term.
 {  
- int_t i, j, k, id, side;
- const int_t      npnp    = Geometry::nTotElmt();
- const int_t       np     = Geometry::nP();
- vector<Boundary*> BC;
- real_t*  p_element = new  real_t [static_cast<size_t>(npnp)];
- real_t*  p_edge    = new  real_t [static_cast<size_t>(np)]; 
- real_t*  nxp       = new  real_t [static_cast<size_t>(np)]; 
- real_t*  nyp       = new  real_t [static_cast<size_t>(np)]; 
- real_t   timenow   = Femlib::value  ("D_T") * (Femlib::ivalue ("N_STEP")-step);
- real_t adjointtime =  Femlib::value  ("D_T")*step; 
- real_t   timedecay = (1-exp(-timenow*timenow))*(1-exp(-adjointtime*adjointtime));
- real_t	shift=1.83/2*1.75; //tesing:::
-	if (Femlib::ivalue  ("TIMEDECAY")==1) timedecay = exp(-3*(timenow-shift)*(timenow-shift)); //testing:::
-	  if (Femlib::ivalue  ("TIMEDECAY")==2) timedecay = 1; 
+  int_t i, j, k, id, side;
+  const int_t      npnp    = Geometry::nTotElmt();
+  const int_t       np     = Geometry::nP();
+  vector<Boundary*> BC;
+  real_t*  p_element = new  real_t [static_cast<size_t>(npnp)];
+  real_t*  p_edge    = new  real_t [static_cast<size_t>(np)]; 
+  real_t*  nxp       = new  real_t [static_cast<size_t>(np)]; 
+  real_t*  nyp       = new  real_t [static_cast<size_t>(np)]; 
+  real_t   timenow   = Femlib::value  ("D_T") * (Femlib::ivalue ("N_STEP")-step);
+  real_t adjointtime = Femlib::value  ("D_T")*step; 
+  real_t   timedecay = (1-exp(-timenow*timenow))*(1-exp(-adjointtime*adjointtime));
+  real_t	shift= 1.83/2*1.75; //testing:::
+  if (Femlib::ivalue  ("TIMEDECAY")==1) timedecay = exp(-3*(timenow-shift)*(timenow-shift)); //testing:::
+  if (Femlib::ivalue  ("TIMEDECAY")==2) timedecay = 1; 
 	
-	real_t   cowt, siwt;
+  real_t cowt, siwt;
  
- if   ( Femlib::ivalue ("controlbc_t_dependency")==0)   {
-   cowt=1; siwt=0;
-   }
- else if ( Femlib::ivalue ("controlbc_t_dependency")==1) {
-      cowt=cos( -Femlib::value ("frequency_controlbc") * timenow);
-	  siwt=sin( -Femlib::value ("frequency_controlbc") * timenow);
-	  }
- 
- cowt=cowt*timedecay;
- siwt=siwt*timedecay;
-
-if (Geometry::nPert() == 2) BC = _bsys -> BCs (0);
-else                        BC = _bsys -> BCs (Femlib::ivalue ("BETA"));
+  if ( Femlib::ivalue ("controlbc_t_dependency")==0)   {
+    cowt=1; siwt=0;
+  }
+  else if ( Femlib::ivalue ("controlbc_t_dependency")==1) {
+    cowt=cos( -Femlib::value ("frequency_controlbc") * timenow);
+    siwt=sin( -Femlib::value ("frequency_controlbc") * timenow);
+  }
   
-
-for (k = 0; k < _nz; k++)      
-	  for (i = 0; i < _nbound; i++ )
-	   if(*BC[i]->group()=='c') {
-		  	id =BC[i]->element()->ID();
-			side=BC[i]->side();
-			Veclib::copy (npnp, _plane[k]+id*npnp, 1, p_element , 1);
-   
-			switch (side) {
-			  case 0: for (j=0;j<np;j++)
-				  *( p_edge+j)=*(p_element+j); 
-					  break;
-              case 1: for (j=0;j<np;j++)
-	                  *( p_edge+j)=*(p_element+np*(j+1)-1);  
-					  break;
-              case 2: for (j=0;j<np;j++)
-					  *( p_edge+j)=*(p_element+npnp-1-j);   
-					  break;
-              case 3: for (j=0;j<np;j++)
-			          *( p_edge+j)=*(p_element+np*(np-1)-j*np);
-					 break;
-              default:     break;
-            }
-
-          BC[i] ->direction_pressure(p_edge,nxp,nyp);
-		  
-          if (_nz==1){
-     	    Veclib::svtvp (np, Femlib::value("D_T")*cowt, nxp, 1, adjoint_px, 1, adjoint_px, 1); 
-		    Veclib::svtvp (np, Femlib::value("D_T")*cowt, nyp, 1, adjoint_py, 1, adjoint_py, 1); 
-		  }
-		  else if (k==0){
-		    Veclib::svtvp (np, Femlib::value("D_T")*cowt, nxp, 1, adjoint_px, 1, adjoint_px, 1); 
-		    Veclib::svtvp (np, Femlib::value("D_T")*cowt, nyp, 1, adjoint_py, 1, adjoint_py, 1); 
-		    Veclib::svtvp (np, Femlib::value("D_T")*siwt, nxp, 1, adjoint_px+lengthcontrol, 1, adjoint_px+lengthcontrol, 1); 
-		    Veclib::svtvp (np, Femlib::value("D_T")*siwt, nyp, 1, adjoint_py+lengthcontrol, 1, adjoint_py+lengthcontrol, 1);
-		  }
-		   else{
-	        Veclib::svtvp (np, Femlib::value("D_T")*cowt, nxp, 1, adjoint_px, 1, adjoint_px, 1); 
-		    Veclib::svtvp (np, Femlib::value("D_T")*cowt, nyp, 1, adjoint_py, 1, adjoint_py, 1); 
-			Veclib::svtvp (np,-Femlib::value("D_T")*siwt, nxp, 1, adjoint_px-lengthcontrol, 1, adjoint_px-lengthcontrol, 1); 
-		    Veclib::svtvp (np,-Femlib::value("D_T")*siwt, nyp, 1, adjoint_py-lengthcontrol, 1, adjoint_py-lengthcontrol, 1); 
-		   }
-		  
-          adjoint_px +=np;
-		  adjoint_py +=np;
-	  }
-
-delete []  p_element;
-delete []  p_edge ;
-delete []  nxp;
-delete []  nyp;
+  cowt=cowt*timedecay;
+  siwt=siwt*timedecay;
+  
+  if (Geometry::nPert() == 2) BC = _bsys -> BCs (0);
+  else                        BC = _bsys -> BCs (Femlib::ivalue ("BETA"));
+  
+  
+  for (k = 0; k < _nz; k++)      
+    for (i = 0; i < _nbound; i++ )
+      if(*BC[i]->group()=='c') {
+	id =BC[i]->element()->ID();
+	side=BC[i]->side();
+	Veclib::copy (npnp, _plane[k]+id*npnp, 1, p_element , 1);
+	
+	switch (side) {
+	case 0: for (j=0;j<np;j++)
+	    *( p_edge+j)=*(p_element+j); 
+	  break;
+	case 1: for (j=0;j<np;j++)
+	    *( p_edge+j)=*(p_element+np*(j+1)-1);  
+	  break;
+	case 2: for (j=0;j<np;j++)
+	    *( p_edge+j)=*(p_element+npnp-1-j);   
+	  break;
+	case 3: for (j=0;j<np;j++)
+	    *( p_edge+j)=*(p_element+np*(np-1)-j*np);
+	  break;
+	default:     break;
+	}
+	
+	// Compute unit normal x p* on control boundary.
+	BC[i] ->direction_pressure(p_edge,nxp,nyp);
+	
+	// Multiply by f(t) and add to what has previously been written to adjoint_gradient. Note that the pressure term only applies to the u and v components of the perturbation.
+	if (_nz==1){
+	  Veclib::svtvp (np, Femlib::value("D_T")*cowt, nxp, 1, adjoint_px, 1, adjoint_px, 1); 
+	  Veclib::svtvp (np, Femlib::value("D_T")*cowt, nyp, 1, adjoint_py, 1, adjoint_py, 1); 
+	}
+	else if (k==0){
+	  Veclib::svtvp (np, Femlib::value("D_T")*cowt, nxp, 1, adjoint_px, 1, adjoint_px, 1); 
+	  Veclib::svtvp (np, Femlib::value("D_T")*cowt, nyp, 1, adjoint_py, 1, adjoint_py, 1); 
+	  Veclib::svtvp (np, Femlib::value("D_T")*siwt, nxp, 1, adjoint_px+lengthcontrol, 1, adjoint_px+lengthcontrol, 1); 
+	  Veclib::svtvp (np, Femlib::value("D_T")*siwt, nyp, 1, adjoint_py+lengthcontrol, 1, adjoint_py+lengthcontrol, 1);
+	}
+	else{
+	  Veclib::svtvp (np, Femlib::value("D_T")*cowt, nxp, 1, adjoint_px, 1, adjoint_px, 1); 
+	  Veclib::svtvp (np, Femlib::value("D_T")*cowt, nyp, 1, adjoint_py, 1, adjoint_py, 1); 
+	  Veclib::svtvp (np,-Femlib::value("D_T")*siwt, nxp, 1, adjoint_px-lengthcontrol, 1, adjoint_px-lengthcontrol, 1); 
+	  Veclib::svtvp (np,-Femlib::value("D_T")*siwt, nyp, 1, adjoint_py-lengthcontrol, 1, adjoint_py-lengthcontrol, 1); 
+	}
+	
+	adjoint_px +=np;
+	adjoint_py +=np;
+      }
+  
+  delete []  p_element;
+  delete []  p_edge ;
+  delete []  nxp;
+  delete []  nyp;
 }
 

@@ -21,6 +21,7 @@ public:
   vector<BCtriple*>& getBCedges   () { return _elmtbc; }
   int_t              nBCedges     () const { return _elmtbc.size(); }
   int_t              nWall        (); // Should be const: OSX compiler bug?
+  int_t              sizecontrolbc() { return _nc; }
 
   class CondRecd {
   public: 
@@ -38,6 +39,7 @@ private:
   vector<BCtriple*>  _elmtbc  ; // Group tags for each element-side BC.
   vector<NumberSys*> _numsys  ; // Numbering schemes in storage. (read from .num)
   bool               _axis    ; // Session file declared and axis BC group.
+  int_t              _nc      ; // Number of control boundary nodes in one plane.
 
   void buildnum  (const char*, vector<Element*>&);
   void buildsurf (FEML*, vector<Element*>&);

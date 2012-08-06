@@ -31,18 +31,18 @@ public:
 
   Vector normTraction (const char*,const real_t*,real_t*)                const;
   Vector tangTraction (const char*,const real_t*,const real_t*,real_t*)  const;
+  void   traction     (const int_t,const real_t,
+		       const real_t*,const real_t*,const real_t*,const real_t*,
+		       const real_t*,const real_t*,const real_t*,const real_t*,
+		       real_t*,real_t*,real_t*,real_t*,real_t*,real_t*,real_t*)const;
 
-  void traction (const int_t,const real_t,
-		 const real_t*,const real_t*,const real_t*,const real_t*,
-		 const real_t*,const real_t*,const real_t*,const real_t*,
-		 real_t*,real_t*,real_t*,real_t*,real_t*,real_t*,real_t*)const;
- int_t side () const {return _side; }
- char* group () const {return _group;}
- const Element* element () const { return _elmt;}
- void normal_gradient    (real_t*, real_t*, real_t* ) const;
- void direction_pressure (real_t*, real_t*, real_t*)  const;
- void controlbcmesh (real_t*, real_t*)  const;
- void controlnxny (real_t*, real_t*)  const;
+  int_t          side               () const {return _side; }
+  char*          group              () const {return _group;}
+  const Element* element            () const { return _elmt;}
+  void           normal_gradient    (real_t*, real_t*, real_t* ) const;
+  void           direction_pressure (real_t*, real_t*, real_t*)  const;
+  void           controlbcmesh      (real_t*, real_t*)  const;
+  void           controlnxny        (real_t*, real_t*)  const;
 
 
 protected:

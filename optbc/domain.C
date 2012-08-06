@@ -82,7 +82,7 @@ Domain::Domain (FEML*             F,
 
 
 // read the baseflow function
-  int_t       nexact=0;
+  int_t         nexact=0;
   char          buf[StrMax];
   char          *tok;
   char**        tmp;
@@ -90,32 +90,30 @@ Domain::Domain (FEML*             F,
   baseflowfunction= new char*[nfield];
   int_t j;
   for(j=0;j<nfield;j++){
-  baseflowfunction[j]= new char[StrMax];
-  tmp[j]= new char[StrMax];
+    baseflowfunction[j]= new char[StrMax];
+    tmp[j]= new char[StrMax];
   }
-    
- if (F -> seek ("USER")) {	// -- Search for lines of form "char = string".
+  
+  if (F -> seek ("USER")) {	// -- Search for lines of form "char = string".
     F -> stream().ignore (StrMax, '\n');
     while (F -> stream().getline (buf, StrMax)) {
       if (strstr (buf, "=")) {
-	    strcpy (tmp[nexact], buf);
-	    nexact++;
-	        }
+	strcpy (tmp[nexact], buf);
+	nexact++;
+      }
       tok = buf; while (*tok = toupper (*tok)) tok++;
       if (strstr (buf, "USER")) break;
     }
-  }
+ }
 
 
  for (j = 0; j < nfield; j++) {
-    tok    = strtok (tmp[j], "=");
-	   baseflowfunction[j]    = strtok (0, "\0");
-	 }
+   tok = strtok (tmp[j], "=");
+   baseflowfunction[j] = strtok (0, "\0");
+ }
 
 
-
-
-  VERBOSE cout << "done" << endl;
+ VERBOSE cout << "done" << endl;
 }
 
 
@@ -134,7 +132,7 @@ void Domain::report (ostream& file)
   const int_t  kdim = Femlib::ivalue ("KRYLOV_KDIM");
   const int_t  nits = Femlib::ivalue ("KRYLOV_NITS");
   const int_t  nvec = Femlib::ivalue ("KRYLOV_NVEC");
-  const real_t eps  = Femlib::value  ("KRYLOV_KTOL");
+  const int_t  eps  = Femlib::value  ("KRYLOV_KTOL");
   const int_t  task = Femlib::ivalue ("TASK");
 
   file << "-- Coordinate system       : ";

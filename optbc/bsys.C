@@ -49,7 +49,8 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
   _field_name (name),
   _nbound     (bcmgr -> nBCedges()),
   _mixed      (0),
-  _Toutflow   (0)
+  _Toutflow   (0),
+  _uc         (bcmgr -> sizecontrolbc())
 {
   const int_t                 np = Geometry::nP();
   vector<BCtriple*>::iterator edge;
@@ -78,22 +79,25 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
   for (offset = 0, i = 0; i < _nbound; i++, edge++, offset += np) {
     BCT   = *edge;
     group = BCT -> group;
-	j     = BCT -> elmt;
+    j     = BCT -> elmt;
     k     = BCT -> side;
     S     = bcmgr -> groupInfo    (group);
     C     = bcmgr -> getCondition (group, _field_name, 0, 1); 
     
     C -> describe (buf);
+
     if (strstr (buf, "mixed")) _mixed = true;
 //	if (strstr (buf, "control")) _mixed = true;  //testing:::
     if (strstr (buf, "toutflow")) _Toutflow = true; 
+    
     _boundary[0][i] =
-    _boundary[1][i] =
-	_boundary[2][i] =
-	_boundary[3][i] =
-	_boundary[4][i] =
-    _boundary[5][i] = new Boundary (i, S, C, elmt[j], k);
+      _boundary[1][i] =
+      _boundary[2][i] =
+      _boundary[3][i] =
+      _boundary[4][i] =
+      _boundary[5][i] = new Boundary (i, S, C, elmt[j], k);
   }
+  
   if (!(Geometry::system() == Geometry::Cylindrical && Geometry::nDim() == 3))
     return;
 
@@ -107,10 +111,10 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
     k     = BCT -> side;
     S     = bcmgr -> groupInfo    (group);
     C     = bcmgr -> getCondition (group, _field_name, 1, 1);  
-
+    
     if (strstr (S, "axis")) 
       _boundary[1][i] = 
-	  _boundary[4][i] = new Boundary (i, "axis", C, elmt[j], k);
+	_boundary[4][i] = new Boundary (i, "axis", C, elmt[j], k);
 	  
   }
 
@@ -127,11 +131,11 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
 
     if (strstr (bcmgr -> groupInfo (group), "axis"))
       _boundary[2][i] = 
-	  _boundary[5][i] = new Boundary (i, "axis", C, elmt[j], k);
+	_boundary[5][i] = new Boundary (i, "axis", C, elmt[j], k);
   }
   
   
-  // -- adjust on the controlbc. For adjoint simulation
+  // -- adjust controlbc's for adjoint simulation
   
   edge = bcmgr -> getBCedges().begin();
   for (offset = 0, i = 0; i < _nbound; i++, edge++, offset += np) {
@@ -143,11 +147,11 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
     C     = bcmgr -> getCondition (group, _field_name, 0, 0);
 
     if (strstr (bcmgr -> groupInfo (group), "control"))
-	{
-      _boundary[3][i] =
+      {
+	_boundary[3][i] =
 	  _boundary[4][i] = 
 	  _boundary[5][i] = new Boundary (i, "control", C, elmt[j], k);
-	  }
+      }
   }
   
   

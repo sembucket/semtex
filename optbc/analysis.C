@@ -101,7 +101,7 @@ void Analyser::analyse (AuxField** work,
   const int_t cflstep = Femlib::ivalue ("IO_CFL");
 
   // -- Run information update.
-cout << "Step: " << _src -> step << "  Time: " << _src -> time << endl; 
+  cout << "Step: " << _src -> step << "  Time: " << _src -> time << endl; 
 
 
   // -- CFL, energy, divergence information.

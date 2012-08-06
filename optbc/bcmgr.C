@@ -141,7 +141,7 @@
 // on (a) the field in question (u, v, [w], p, [c]) and (b) the index
 // of the Fourier mode.
 //
-// Fields u (axial velocity), p, & c are have the same treatment on
+// Fields u (axial velocity), p, & c have the same treatment on
 // the axis --- they have "scalar" type BCs there, due to the need for
 // the fields to be single-valued at the axis.
 //
@@ -201,7 +201,8 @@ BCmgr::BCmgr (FEML*             file,
 // In addition, it reads in prebuilt numbering schemes from file
 // session.num for later retrieval.
 // ---------------------------------------------------------------------------
-  _axis (false)
+  _axis (false),
+  _nc (0)
 {
   const char  routine[] = "BCmgr::BCmgr";
   char        buf[StrMax], err[StrMax], tag[StrMax], gat[StrMax];
@@ -303,7 +304,7 @@ BCmgr::BCmgr (FEML*             file,
 
       switch (tagc) {
 
-    case 'C':// -- control BC.
+      case 'C':// -- control BC.
  	
 	// -- Create 2 kinds to be retrieved later.
 	//    Ensure that the group name is "control" to aid retrieval.
@@ -314,19 +315,23 @@ BCmgr::BCmgr (FEML*             file,
 	  sprintf (err, "expected an '=' in setting field '%c' BC", fieldc);
 	  message (routine, err, ERROR);
 	}
-	 strcpy (buf, "0.0"); 
-	 C = new Controlbc          (buf); 
-	 _cond.insert (_cond.end(), R = new CondRecd);
+
+
+	strcpy (buf, "0.0"); 
+	C = new Controlbc          (buf); 
+	_cond.insert (_cond.end(), R = new CondRecd);
 	R -> grp    = groupc;
 	R -> fld    = fieldc;
 	R -> bcn    = C;
 	strcpy ((R -> value = new char [strlen (buf) + 1]), buf);
-
+	
+	//NOTE: This is added to _cond at the end of the switch loop.
+	//      I suspect this is created for the adjoint system
 	C = new Mixed (buf);
 	break;
-		
+	
       case 'A':			// -- Axis BC.
-
+	
 	if (Geometry::system() != Geometry::Cylindrical)
 	  message (routine, "axis BCs disallowed in Cartesian coords", ERROR);
 
@@ -384,12 +389,16 @@ BCmgr::BCmgr (FEML*             file,
 	else                 C = new Natural         (buf);
 	break;
   
-   case 'T':// -- transient outflow BC.
+      case 'T':// -- transient outflow BC.
 	if (testc != '=') {
 	  sprintf (err, "expected an '=' in setting field '%c' BC", fieldc);
 	  message (routine, err, ERROR);
 	}
 	 C = new Toutflow         (buf);
+	break;
+
+      case 'S':// -- Test boundary condition
+	cout << " 'S' type boundary condition recognized!" << endl;
 	break;
 		
       default:
@@ -415,7 +424,7 @@ BCmgr::BCmgr (FEML*             file,
 
       _cond.insert (_cond.end(), R = new CondRecd);
       R -> grp = groupc;
-	  R -> fld = fieldc;
+      R -> fld = fieldc;
       R -> bcn = C;
       strcpy ((R -> value = new char [strlen (buf) + 1]), buf);
 
@@ -548,12 +557,12 @@ NumberSys* BCmgr::getNumberSys (const char  name,
 }
 
 NumberSys* BCmgr::getNumberSys_adjoint (const char  name,
-				const int_t mode)
+					const int_t mode)
 // ---------------------------------------------------------------------------
-// adjoint counter part of getNumerSys
+// Adjoint counter part of getNumberSys
 // ---------------------------------------------------------------------------
 {
-  const char  routine[] = "BCmgr::getNumberSys";
+  const char  routine[] = "BCmgr::getNumberSys_adjoint";
   const int_t nsys  = _numsys.size();
   const int_t cmode = clamp (mode,static_cast<int_t>(0),static_cast<int_t>(2));
   char        err[StrMax], selectname = name;
@@ -569,6 +578,7 @@ NumberSys* BCmgr::getNumberSys_adjoint (const char  name,
 
 
   // -- Now search.
+  //NOTE: Why is this done in two parts?
   for (int_t i = 0; i < nsys/2; i++)
     if (strchr (_numsys[i] -> fields(), selectname)) { N = _numsys[i];   break; }
 	
@@ -606,12 +616,12 @@ void BCmgr::buildnum (const char*       session,
 // ---------------------------------------------------------------------------
 {
   const char     routine[] = "BCmgr::buildnum";
-  const int_t    np   = Geometry::nP();
-  const int_t    NP   = Geometry::nPlane();
-  const int_t    nel  = Geometry::nElmt();
-  const int_t    npnp = Geometry::nTotElmt();
-  const int_t    next = Geometry::nExtElmt();
-  const int_t    ntot = Geometry::nBnode();
+  const int_t    np    = Geometry::nP();
+  const int_t    NP    = Geometry::nPlane();
+  const int_t    nel   = Geometry::nElmt();
+  const int_t    npnp  = Geometry::nTotElmt();
+  const int_t    next  = Geometry::nExtElmt();
+  const int_t    ntot  = Geometry::nBnode();
   char           buf[StrMax], err[StrMax], file[StrMax];
   ifstream       num;
   vector<real_t> work (npnp);
@@ -643,10 +653,10 @@ void BCmgr::buildnum (const char*       session,
     }
   }
 
-  num >> buf >> buf;
+  num >> buf >> buf >> buf >> buf;
   j = strlen (buf);
   for (i = 0; i < j; i++)
-    if (!strchr (_fields, tolower (buf[j]))) {
+    if (!strchr (_fields, tolower (buf[i]))) {
       sprintf (err, "Fields nominated in %s.num (\"%s\") don't match \"%s\"",
 	       session, buf, _fields);
       message (routine, err, ERROR);
@@ -839,12 +849,113 @@ void BCmgr::buildsurf (FEML*             file,
 // all "axis" group BCs has y=0.
 // ---------------------------------------------------------------------------
 {
-  const char  routine[] = "BCmgr::buildsurf";
-  const int_t nsurf = file -> attribute ("SURFACES", "NUMBER");
-  char        err[StrMax], tag[StrMax], group;
-  int_t       i, t, elmt, side;
-  BCtriple*   BCT;
- 
+  const char        routine[] = "BCmgr::buildsurf";
+  const int_t       nsurf = file -> attribute ("SURFACES", "NUMBER");
+  const int_t       np = Geometry::nP();
+  char              err[StrMax], tag[StrMax], group;
+  int_t             i, j, t, elmt, side, ihole, itemindex;
+  real_t            a, b, item;
+  BCtriple          *BCT, *Tmp, *Elt;
+  real_t            *xp, *yp, *nxp, *nyp, *areap, *ymax;
+  int_t             *work, *c, *d;
+  vector<BCtriple*> contbc;
+
+  //-- Search SURFACES section for control BCs and process into correct order.
+  for (i=0; i < nsurf; i++){
+    while ((file->stream().peek()) == '#') file->stream().ignore(StrMax, '\n');
+
+    file -> stream() >> t >> elmt >> side >> tag;
+
+    if (strcmp (tag, "<B>") == 0){
+
+      file -> stream() >> group;
+
+      if(group == 'c'){
+
+	BCT = new BCtriple;
+	
+	BCT -> group = group;
+	BCT -> elmt  = --elmt;
+	BCT -> side  = --side;
+	
+	_elmtbc.insert (_elmtbc.end(), BCT);
+	contbc.insert (contbc.end(), BCT);
+	_nc += np;
+
+	file -> stream() >> tag;
+	
+	if (strcmp (tag, "</B>") != 0) {
+	  sprintf (err, "Surface %1d: couldn't close tag <B> with %s", t, tag);
+	  message (routine, err, ERROR);
+	}  
+      }
+      else
+	file -> stream().ignore(StrMax, '\n');
+    }
+  }
+
+  // Sort control BC's into descending y node order 
+  // Setup storage for x and y node information for one controlbc segment.
+  xp    = new real_t [static_cast<size_t>(5*np)];
+  yp    = xp  + np;
+  nxp   = yp  + np;
+  nyp   = nxp + np;
+  areap = nyp + np;
+  ymax  = new real_t [static_cast<size_t> (contbc.size())];
+  
+  // Retrieve location of ymax for each control boundary.
+  for(i = 0; i < contbc.size(); i++)
+    {
+      Elmt[contbc[i] -> elmt] -> sideGeom (contbc[i] -> side, xp, yp, nxp, nyp, areap);
+      a=yp[0];
+      for (j = 1; j < np; j++){
+	b = yp[j];
+	a = max(a,b);
+      }
+      ymax[i] = a;
+    }
+
+  // Setup storage for sorting routine
+  work  = new int_t [static_cast<size_t> (2*contbc.size())];
+  c = &work[0];
+  d = &work[contbc.size()];
+  for(i = 0; i < contbc.size(); i++)
+    {
+      c[i] = d[i] = i;
+    }
+
+
+  // Insertion sort routine to sort control boundaries by ymax.
+  for(i = 0; i < contbc.size(); i++)
+    {
+      item      = ymax[c[i]];
+      itemindex = c[i];
+      ihole     = i;
+      while(ihole > 0 && ymax[ihole-1] < item){
+	ymax[ihole] = ymax[ihole-1];
+	d[ihole]    = d[ihole-1];
+	ihole       = ihole-1;
+      }
+      ymax[ihole] = item;
+      d[ihole]    = itemindex;
+    }
+
+  // Write sorted BCT's to _elmt.
+  for (i = 0; i < contbc.size(); i++){
+    _elmtbc[i] = contbc[d[i]];
+  }
+  
+  // Deallocate memory.
+  delete [] work;
+  delete [] ymax;
+  delete [] xp;
+
+  // Reset FEML file to start of SURFACES section.
+  file -> stream().clear ();
+  file -> stream().seekg (0);
+  file -> seek ("SURFACES");
+  file -> stream().ignore (StrMax, '\n');
+
   for (i = 0; i < nsurf; i++) {
     while ((file->stream().peek()) == '#') file->stream().ignore(StrMax, '\n');
 
@@ -854,25 +965,31 @@ void BCmgr::buildsurf (FEML*             file,
       
       file -> stream() >> group;
 
-      BCT = new BCtriple;
+      if (group == 'c'){
+	file -> stream().ignore(StrMax, '\n');
+      }
 
-      BCT -> group = group;
-      BCT -> elmt  = --elmt;
-      BCT -> side  = --side;
+      else{
+	BCT = new BCtriple;
+	
+	BCT -> group = group;
+	BCT -> elmt  = --elmt;
+	BCT -> side  = --side;
+	
+	_elmtbc.insert (_elmtbc.end(), BCT);
 
-      _elmtbc.insert (_elmtbc.end(), BCT);
+	file -> stream() >> tag;
 
-      file -> stream() >> tag;
-      if (strcmp (tag, "</B>") != 0) {
-	sprintf (err, "Surface %1d: couldn't close tag <B> with %s", t, tag);
-	message (routine, err, ERROR);
+	if (strcmp (tag, "</B>") != 0) {
+	  sprintf (err, "Surface %1d: couldn't close tag <B> with %s", t, tag);
+	  message (routine, err, ERROR);
+	}
       }
     } else
       file -> stream().ignore (StrMax, '\n');
   }
 
   if (Geometry::cylindrical()) {
-    const int_t    np = Geometry::nP();
     vector<real_t> work (np);
     vector<BCtriple*>::iterator b;
 
@@ -912,3 +1029,4 @@ int_t BCmgr::nWall ()
 
   return count;
 }
+

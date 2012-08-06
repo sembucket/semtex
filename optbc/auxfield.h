@@ -66,14 +66,14 @@ public:
   real_t probe       (const Element*, const real_t,
 		      const real_t, const real_t)   const;
 
-  AuxField& reverse     ();
-  static void swapData  (AuxField*, AuxField*);
-  static void couple    (AuxField*, AuxField*, const int_t);
-  real_t*  plane(int_t k ) {return _plane[k];}
-  void       meshXY     (real_t*, real_t*, int_t&, int_t& );
-  real_t     EnergyK ( real_t, real_t*, real_t*, int_t, int_t, real_t*);
-  void weight (int_t);
-  void meshxymass (real_t*, real_t*);
+  AuxField& reverse      ();
+  static void swapData   (AuxField*, AuxField*);
+  static void couple     (AuxField*, AuxField*, const int_t);
+  real_t*     plane      (int_t k ) {return _plane[k];}
+  void        meshXY     (real_t*, real_t*, int_t&, int_t& );
+  real_t      EnergyK    ( real_t, real_t*, real_t*, int_t, int_t, real_t*);
+  void        weight     (int_t);
+  void        meshxymass (real_t*, real_t*);
 
   protected:
   char              _name ;	// Identification tag.  '\0' by default.

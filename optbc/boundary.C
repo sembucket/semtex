@@ -34,6 +34,24 @@ static char RCS[] = "$Id$";
 
 #include <sem.h>
 
+Boundary::Boundary (const int_t      id,
+		    const char*      group,
+		    const Condition* bcond,
+		    const Element*   elmt,
+		    const int_t      side):
+  Edge (group, elmt, side), _id(id), _bcond (bcond){
+
+  char  buf[StrMax];
+  int_t np = Geometry::nP();
+  int_t nz = Geometry::nZ();
+
+  bcond -> describe (buf);
+
+  if (strstr(buf, "control")){
+    uc = new real_t[nz*np];
+    Veclib::zero(np*nz, uc, 1);
+  }
+} 
 
 void Boundary::evaluate (const int_t plane,
 			 const int_t step ,
@@ -60,6 +78,18 @@ void Boundary::set (const real_t* src,
   _bcond -> set (_side, b2g, src, tgt);
 }
 
+void Boundary::get (const real_t* src,
+		    const int_t*  b2g,
+		    real_t*       tgt) const
+// ---------------------------------------------------------------------------
+// This will only take place on essential BCs.
+//
+// b2g is a pointer to the global node numbers for the appropriate
+// element's edge nodes.
+// ---------------------------------------------------------------------------
+{
+  _bcond -> get (_side, b2g, src, tgt);
+}
 
 void Boundary::sum (const real_t* src,
 		    const int_t*  b2g,
@@ -143,7 +173,7 @@ void Boundary::print () const
 
 
 real_t Boundary::controlnorm(real_t* uci) const 
-// integrate over the control bcs to get the norm of the control force
+//Integrate over the control bcs to get the norm of the control force
 {  
 return _bcond -> controlnorm(_area,uci);
 }
@@ -151,16 +181,16 @@ return _bcond -> controlnorm(_area,uci);
 real_t Boundary::controlnorm_mixed(real_t* uci, real_t* lagi) const 
 //Integrate over the control bc to get the norm.
 {
-	const int_t   np    = Geometry::nP();
-	int_t i;
-	real_t normc = 0.0;
-	for (i = 0; i < np; i++) normc +=  *(uci+i) * *(_area+i) * *(lagi+i);
-	return normc;
+  const int_t  np = Geometry::nP();
+  int_t        i;
+  real_t       normc = 0.0;
+  for (i = 0; i < np; i++) normc +=  *(uci+i) * *(_area+i) * *(lagi+i);
+  return normc;
 }
 
 
 real_t Boundary::controllength() const
-// length of the control bc.
+//Length of the control bc.
 {  
 return _bcond -> controllength(_area);
 }

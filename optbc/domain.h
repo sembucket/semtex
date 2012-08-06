@@ -30,8 +30,8 @@ public:
   void  report    (ostream& stream = cout);
   bool  restart   ();
   void  dump      ();
-  void  dumppersecond      ();
-  void  dumpperstep      ();
+  void  dumppersecond ();
+  void  dumpperstep   ();
   void  loadinstantu(vector<AuxField*>, int_t);
   // -- Required for base fields and stability analysis.
 
@@ -44,9 +44,9 @@ public:
   void updateBase();
 
 private:
-  char**           baseflowfunction;
-  char* field;	      // Lower-case single character perturbation  field names.
-  char* baseField;    // Upper-case single character base velocity field names.
+  char** baseflowfunction;
+  char*  field;	      // Lower-case single character perturbation  field names.
+  char*  baseField;    // Upper-case single character base velocity field names.
 };
 
 #endif

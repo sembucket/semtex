@@ -1,4 +1,4 @@
-///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
 // condition.C: functions used to evaluate & apply BCs.
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
@@ -83,10 +83,33 @@ void Essential::set (const int_t   side,
   }
 
   Veclib::scatr (nm, src, start, tgt);
+
   if   (side == 3) tgt[bmap [ 0]] = src[nm];
   else             tgt[start[nm]] = src[nm];  
 }
 
+
+void Essential::get (const int_t   side,
+		     const int_t*  bmap,
+		     const real_t* src ,
+		     real_t*       tgt ) const
+// ---------------------------------------------------------------------------
+// Scatter external value storage area src into globally-numbered tgt. 
+// ---------------------------------------------------------------------------
+{
+  const int_t  np    = Geometry::nP();
+  const int_t  nm    = np - 1;
+  const int_t* start = bmap;
+  
+  switch (side) {
+  case 1: start += nm;           break;
+  case 2: start += nm + nm;      break;
+  case 3: start += nm + nm + nm; break;
+  default: break;
+  }
+
+  Veclib::gathr (np, src, start, tgt);
+}
 
 void Essential::describe (char* tgt) const
 // ---------------------------------------------------------------------------
@@ -149,6 +172,27 @@ void EssentialFunction::set (const int_t   side,
   else             tgt[start[nm]] = src[nm];  
 }
 
+void EssentialFunction::get (const int_t   side,
+			     const int_t*  bmap,
+			     const real_t* src ,
+			     real_t*       tgt ) const
+// ---------------------------------------------------------------------------
+// Scatter external value storage area src into globally-numbered tgt. 
+// ---------------------------------------------------------------------------
+{
+  const int_t  np    = Geometry::nP();
+  const int_t  nm    = np - 1;
+  const int_t* start = bmap;
+  
+  switch (side) {
+  case 1: start += nm;           break;
+  case 2: start += nm + nm;      break;
+  case 3: start += nm + nm + nm; break;
+  default: break;
+  }
+
+  Veclib::gathr (np, src, start, tgt);
+}
 
 void EssentialFunction::describe (char* tgt) const
 // ---------------------------------------------------------------------------
@@ -501,35 +545,30 @@ void Mixed::augmentDg (const int_t   side,
 
 
 void Mixed::switchK (const int_t   np     ,
-			  const real_t* K_adjoint_timei    ,
-			  const real_t* K_adjoint_timej    , //useless
-			  const int_t   doffset,
-			  const int_t   dskip  ,
-			  const real_t* nx    ,
-			  const real_t* ny, 
-			  const bool forwards  ) const
+		     const real_t* K_adjoint_timei    ,
+		     const real_t* K_adjoint_timej    , //useless
+		     const int_t   doffset,
+		     const int_t   dskip  ,
+		     const real_t* nx    ,
+		     const real_t* ny, 
+		     const bool forwards  ) const
 // ---------------------------------------------------------------------------
 // Load field data from appropriate edge into _K_.
 // Only happen for Toutlfow BC edge.
 // ---------------------------------------------------------------------------
 {   
-   Veclib::copy (np, K_adjoint_timei, 1, _K_, 1);
- }
+  Veclib::copy (np, K_adjoint_timei, 1, _K_, 1);
+}
 
 
-void Mixed::takeC ( const int_t np, const real_t* p_adjoint ) const
+void Mixed::takeC ( const int_t np,
+		    const real_t* p_adjoint ) const
 // ---------------------------------------------------------------------------
 // update _C_
 // ---------------------------------------------------------------------------
 {   
-   Veclib::vdiv (np, p_adjoint, 1, _K_, 1, _C_, 1);
- }
- 
-
- 
- 
- 
- 
+  Veclib::vdiv (np, p_adjoint, 1, _K_, 1, _C_, 1);
+} 
 
 void Mixed::describe (char* tgt) const
 // ---------------------------------------------------------------------------
@@ -539,31 +578,31 @@ void Mixed::describe (char* tgt) const
   sprintf (tgt, "mixed:\t%g\t%g", _K_[0], _C_[0]);
 }
 
-
-
 void  Controlbc::evaluate (const int_t    np  ,
-			  const int_t    id  ,
-			  const int_t    nz  ,
-			  const Element* E   ,
-			  const int_t    side,
-			  const int_t    step,
-			  const real_t*  nx  ,
-			  const real_t*  ny  ,
-			  real_t*        tgt ) const
+			   const int_t    id  ,
+			   const int_t    nz  ,
+			   const Element* E   ,
+			   const int_t    side,
+			   const int_t    step,
+			   const real_t*  nx  ,
+			   const real_t*  ny  ,
+			   real_t*        tgt ) const
 // ---------------------------------------------------------------------------
 // Load external value storage area tgt with installed constant. 
 // which is covered, so useless
 // ---------------------------------------------------------------------------
 { 
-  Veclib::copy (np, _value, 1, tgt, 1);
 
+  if (step != 0){
+  Veclib::copy (np, _uc, 1, tgt, 1);
+  }
 }
 
 
 void  Controlbc::set (const int_t   side,
-		     const int_t*  bmap,
-		     const real_t* src ,
-		     real_t*       tgt ) const
+		      const int_t*  bmap,
+		      const real_t* src ,
+		      real_t*       tgt ) const
 // ---------------------------------------------------------------------------
 // Scatter external value storage area src into globally-numbered tgt. 
 // ---------------------------------------------------------------------------
@@ -583,17 +622,38 @@ void  Controlbc::set (const int_t   side,
   else             tgt[start[nm]] = src[nm];  
 }
 
+void Controlbc::get (const int_t   side,
+		     const int_t*  bmap,
+		     const real_t* src ,
+		     real_t*       tgt ) const
+// ---------------------------------------------------------------------------
+// Scatter external value storage area src into globally-numbered tgt. 
+// ---------------------------------------------------------------------------
+{
+  const int_t  np    = Geometry::nP();
+  const int_t  nm    = np - 1;
+  const int_t* start = bmap;
+  
+  switch (side) {
+  case 1: start += nm;           break;
+  case 2: start += nm + nm;      break;
+  case 3: start += nm + nm + nm; break;
+  default: break;
+  }
 
+  Veclib::gathr (np, src, start, tgt);
+}
 
-real_t Controlbc::controlnorm( const real_t* weight, real_t* uci) const
+real_t Controlbc::controlnorm( const real_t* weight,
+			       real_t*       uci   ) const
 //Integrate over the control bc to get the norm.
 {
-const int_t   np    = Geometry::nP();
-int_t i;
-real_t norm = 0.0;
-for (i = 0; i < np; i++) 
-  norm += *(uci+i) *    *(uci+i)    *    *(weight+i);
-return norm;
+  const int_t np = Geometry::nP();
+  int_t       i;
+  real_t      norm = 0.0;
+  for (i = 0; i < np; i++) 
+    norm += *(uci+i) * *(uci+i) * *(weight+i);
+  return norm;
 }
 
 
@@ -622,14 +682,14 @@ void Controlbc::describe (char* tgt) const
 
 
 void Toutflow::evaluate (const int_t    np  ,
-		      const int_t    id  ,
-		      const int_t    nz  ,
-		      const Element* E   ,
-		      const int_t    side,
-		      const int_t    step,
-		      const real_t*  nx  ,
-		      const real_t*  ny  ,
-		      real_t*        tgt ) const
+			 const int_t    id  ,
+			 const int_t    nz  ,
+			 const Element* E   ,
+			 const int_t    side,
+			 const int_t    step,
+			 const real_t*  nx  ,
+			 const real_t*  ny  ,
+			 real_t*        tgt ) const
 // ---------------------------------------------------------------------------
 // Load external value storage area tgt with installed constants.
 // ---------------------------------------------------------------------------
@@ -639,12 +699,12 @@ void Toutflow::evaluate (const int_t    np  ,
 
 
 void Toutflow::augmentSC (const int_t   side  ,
-		       const int_t   nband ,
-		       const int_t   nsolve,
-		       const int_t*  bmap  ,
-		       const real_t* area  ,
-		       real_t*       work  ,
-		       real_t*       tgt   )  const
+			  const int_t   nband ,
+			  const int_t   nsolve,
+			  const int_t*  bmap  ,
+			  const real_t* area  ,
+			  real_t*       work  ,
+			  real_t*       tgt   )  const
 // ---------------------------------------------------------------------------
 // Add <K, w> terms to (banded LAPACK) matrix tgt.
 // ---------------------------------------------------------------------------
@@ -673,10 +733,10 @@ void Toutflow::augmentSC (const int_t   side  ,
 
 
 void Toutflow::augmentOp (const int_t   side, 
-		       const int_t*  bmap,
-		       const real_t* area,
-		       const real_t* src ,
-		       real_t*       tgt ) const
+			  const int_t*  bmap,
+			  const real_t* area,
+			  const real_t* src ,
+			  real_t*       tgt ) const
 // ---------------------------------------------------------------------------
 // This operation is used to augment the element-wise Helmholtz
 // operations where there are Toutflow BCs.  Add in diagonal terms
@@ -704,9 +764,9 @@ void Toutflow::augmentOp (const int_t   side,
 
 
 void Toutflow::augmentDg (const int_t   side, 
-		       const int_t*  bmap,
-		       const real_t* area,
-		       real_t*       tgt ) const
+			  const int_t*  bmap,
+			  const real_t* area,
+			  real_t*       tgt ) const
 // ---------------------------------------------------------------------------
 // This operation is used to augment the element-wise construction of
 // the diagonal of the global Helmholtz matrix where there are Toutflow
@@ -737,13 +797,13 @@ void Toutflow::augmentDg (const int_t   side,
 
 
 void Toutflow::switchK (const int_t   np     ,
-			  const real_t* Ux    ,
-			  const real_t* Uy    ,
-			  const int_t   doffset,
-			  const int_t   dskip  ,
-			  const real_t* nx    ,
-			  const real_t* ny, 
-			  const bool forwards  ) const
+			const real_t* Ux    ,
+			const real_t* Uy    ,
+			const int_t   doffset,
+			const int_t   dskip  ,
+			const real_t* nx    ,
+			const real_t* ny, 
+			const bool forwards  ) const
 // ---------------------------------------------------------------------------
 // Load field data from appropriate edge into _K_.
 // Only happen for Toutlfow BC edge.

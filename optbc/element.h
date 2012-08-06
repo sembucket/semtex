@@ -27,10 +27,10 @@ public:
   Element (const int_t,const int_t,const Mesh*);
   ~Element();
   
-   int_t ID () const { return _id; }
-
+  int_t ID () const { return _id; }
+  
   // -- Elemental Helmholtz matrix constructor, operator.
-
+  
   void HelmholtzSC   (const real_t,const real_t,real_t*,real_t*,
 		      real_t*,real_t*,real_t*,int_t*)                    const;
   void HelmholtzDiag (const real_t,const real_t,real_t*,real_t*)         const;
@@ -57,7 +57,7 @@ public:
 
   void bndryDsSum  (const int_t*,const real_t*,real_t*)                  const;
   void bndryMask   (const int_t*,real_t*,const real_t*,const int_t*)     const;
-   void bndryMaskback   (const int_t*,real_t*,const real_t*,const int_t*)     const;
+  void bndryMaskback   (const int_t*,real_t*,const real_t*,const int_t*)     const;
   void bndryInsert (const int_t*,const real_t*,real_t*)                  const;
 
   // -- Element-side operators.
@@ -114,13 +114,13 @@ public:
   void printMatSC (const real_t*,const real_t*,const real_t*)            const;
   void Helmholtz  (const real_t,const real_t,real_t*,real_t*,real_t*)    const;
   
-    int_t* emap        () const { return _emap; }
-	int next () const { return _next;}
-	real_t* xmesh ()  {return _xmesh;}
-    real_t* ymesh ()  {return _ymesh;}
-	real_t* massmesh ()  {return _Q4;}
-	real_t* Peaks (real_t*) const;
-	real_t* Energycenter (real_t*) const;
+  int_t*  emap        () const { return _emap; }
+  int     next () const { return _next;}
+  real_t* xmesh ()  {return _xmesh;}
+  real_t* ymesh ()  {return _ymesh;}
+  real_t* massmesh ()  {return _Q4;}
+  real_t* Peaks (real_t*) const;
+  real_t* Energycenter (real_t*) const;
 	
 protected:
 
@@ -147,8 +147,8 @@ protected:
   real_t*       _ymesh;		// 2D row-major store.
 
   real_t*       _drdx ;		// Partial derivatives (r, s) --> (x, y),
-  real_t*       _dsdx ;		//   evaluated at quadrature points.
-  real_t*       _drdy ;		//   (2D row-major storage.)
+  real_t*       _dsdx ;		// evaluated at quadrature points.
+  real_t*       _drdy ;		// (2D row-major storage.)
   real_t*       _dsdy ;		//
 
   real_t*       _delta;		// Local length scale.
