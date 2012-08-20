@@ -1,0 +1,54 @@
+TITLE:        Sloshing and slamming oscillations in collapsible
+              channel flow
+
+AUTHORS:      Stewart, Heil, Waters and Jensen
+
+SUBMITTED TO: J Fluid Mech
+
+REVIEW:       First
+
+SUBJECT MATERIAL
+
+A 2D study of behaviours in an analogue of the Starling resistor using
+2D DNS and synthetic approximations to global modes.
+
+RECOMMENDATION
+
+The manuscript is well written and seems almost free of errors.  Its
+overlap with other recent publications by this group on other aspects
+of this same problem is minimal. I recommend the work be accepted
+for publication, but I would like to see the following points
+addressed.
+
+POINTS
+
+1. The geometry studied is fairly specific (it seems to match previous
+studies by various of the authors) and there didn't seem to be much
+comment about why the various relative lengths were chosen or how much
+influence that might have on the genericity of the results.
+
+2. The supplied animation was useful (though why was it nearly 40MB?) and
+(a) should have been mentioned earlier, e.g. in the abstract and (b)
+could usefully be accompanied by an animation of a sloshing
+oscillation, as well.
+
+3. Granted it is interesting to see the synthetic approach does a
+fairly reasonable job of modal analysis at moderate to high values of
+T, but why was this approach adopted? Why can't one just do a full
+global mode analysis? Please provide some commentary as to how good
+the method is at low values of T (e.g. T=21 used in section 5), -- I
+imagine it could have difficulties, given the results presented in
+table 1 for T=100.
+
+4. In section 4.2 in regard to figure 5(a) we are told "... the
+wavenumbers of three of the hydrodynamic modes form a triad that is
+almost symmetric about the axis Re(k) = 0 ...".  I didn't see
+this. Also in regard to figure 5 caption there should be some
+explanation of the various unlabelled lines.
+
+5. Caption to figure 7 should start "Evolution of the membrane midpoint
+..." rather than "Evolution of the channel midpoint ...".
+
+6. Under the conditions of large-amplitude slamming oscillations in
+figure 7, how reasonable is the model assumption of linearized
+curvature in (2.7)?

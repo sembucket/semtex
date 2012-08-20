@@ -1,0 +1,146 @@
+TITLE:        On the subcritical bifurcation at the onset of
+	      three-dimensionality in the circular cylinder wake
+              
+AUTHORS:      Tanvir, Bouchet & Dusek
+
+SUBMITTED TO: Journal of Fluid Mechanics
+
+REVIEW:	      Third
+
+The authors have made various minor alterations to the manuscript in
+response to my previous review.  I am still unable to accept this
+manuscript, and as before, principally owing to difficulties with the
+numerical techniques employed. I still believe the overall results are
+interesting but the detail needs careful attention and revision
+(including new large-domain DNS runs for Re=170 at higher spatial
+resolution) before the manuscript could be accepted.
+
+1. The new argument advanced by the authors in their rejoinder to the
+second round of review regarding resolution is not convincing, and in
+fact only made me less comfortable about the amount of in-plane
+(spectral element) resolution that had been used.  This new
+information adds to the concerns I had about resolution and raised in
+point 3 of my last review.  I agree that sufficient spanwise domain
+extent and resolution is required to examine the dynamics that the
+authors seek to address but I do not agree that this may done at the
+expense of planar resolution.
+
+In the rejoinder, we are supplied figures 1 and 2 which are analogous
+to to figures 8 and 11 of the manuscript (and restarted from the data
+at the high time end of figure 8), but where they have increased the
+1D elemental resolution from (I believe) polynomial order N=5 to N=7
+for their Re=170 DNS, which as they state in the rejoinder is "the
+main result of the paper".  We see in this new figure 1 that the
+energy in the leading 3D mode m=1 immediately starts increasing in the
+DNS with this higher level of planar resolution. By the largest time
+in new figure 1, it has increased almost two orders of magnitude and
+shows little sign of saturation (i.e. of reaching statistical
+equilibrium).  This is reflected in the fact that the spectral density
+of the first spanwise wavenumber of the spectrum presented in figure 2
+of the rejoinder is about one order of magnitude larger than the
+corresponding value in figure 11 of the manuscript.  Far from
+reassuring me that that their original resolution was sufficient, this
+very strongly suggests that the original simulations were
+under-resolved, and calls into question all the data of section 5, and
+especially of figures 6, 8 and 11.  I should say that more adequate
+checks of resolution and solution statistical equilibrium should have
+been carried out before the authors submitted the original manuscript.
+In order for me to consider the manuscript acceptable the authors need
+now to establish through further simulations that the statistical
+equilibrium state for section 5.2 (as represented by figures 8, 9, 10,
+11 and 12) is sensibly independent of planar and spanwise resolution,
+as evidently changing from N=5 to N=7 has had a substantial effect.
+
+2. By their remarks in the last rejoinder and by what is written in
+Section 2 of the manuscript, the authors have now managed to confuse
+me (and hence I believe would confuse another reader) as to whether or
+not they have, or have not, used a cylindrical numerical formulation
+to compute results presented in the paper.  What I believe to be the
+case is that they have used a cylindrical formulation with a large
+value of aspect ratio Ar = D/d (since they continue to mention the
+aspect ratio in section 2) but that this is large (most likely, as in
+the original version of the manuscript, Ar=500, but as far as I can
+see they no longer supply the numerical value anywhere, even though I
+explictly requested they do so in my last review).  They have verified
+(by the table presented in the last rejoinder - a cross-check on one
+result with a fully Cartesian formulation) that at Ar=500 the use of a
+cylindrical formulation has miniscule effect on the bifurcation
+properties for mode A, and I am happy to accept there is minimal
+effect for all their results if Ar=500 or thereabouts.
+
+I do however feel that the authors are still evading the issue about
+the potential difference between instabilities of ring and cylinder
+wakes, produced by the broken spatio-temporal symmetry of the ring
+wake as compared to that of the circular cylinder. These points were
+made in the paper by Blackburn et al. (2005) and more recently
+revisited by Blackburn & Sheard (2010), Physics of Fluids v22. The
+results in this latter paper help the present authors' case (if their
+aspect ratio is indeed uniformly large) since they show that a small
+amount of curvature does indeed produce only a negligble change to the
+bifurcation of the third set of modes to arise from the basic state
+(and presumably of the other modes too). A larger amount (of order
+that in the 2003 paper by Sheard et al.) does however produce a
+qualitatively different result, changing these modes from
+quasiperiodic to subharmonic at Ar=30. This confirms that the dynamics
+of the ring wake *are* different to that of a Cartesian circular
+cylinder, as the theory of Marques et al. (2004) predicts (and
+contrary to what the authors seem to me to be suggesting in para. 2,
+page 7 in relation to the results of Sheard et al. 2003), but that one
+may expect the influence of curvature on the dynamics to be small for
+large aspect ratios.
+
+In summary: the authors could overcome my objections to their use of
+toriodal geometry if (a) it is true that they have used a cylindrical
+coordinate formulation, the aspect ratio is indeed uniformly large
+(Ar=500 say) and they clearly state in the manuscript the value(s) of
+Ar used; (b) the discussion in para. 2, page 7 were revised and
+expanded to give a more complete explanation of the potential
+difficulty with using a toriodal geometry, together with evidence
+(e.g. their tabulated values from the rejoinder, discussion of
+Blackburn & Sheard's results) that any influence is likely to be
+negligible at high values of aspect ratio; (c) the text of section 2
+were revised so that the reader can not come away in any doubt as to
+the formulation (Cartesian/cylindrical) the authors have used.  These
+suggestions are in line with those I made in my last review.
+
+3. DNS studies are by definition "fully nonlinear" even though they
+may take place in a domain of restricted spanwise periodicity: this is
+nonlinear simulation in a subspace of the ideal system which has
+infinite span.  The authors seem to conflate these two issues.  All
+DNS studies of cylinder wakes to date (perhaps all possible numerical
+studies of that system) have this restriction, however the authors are
+quite correct to point out, as other have before, that the restriction
+can have significant consequences for the dynamics. Hence I suggest
+that the authors need to re-work the material on page 4 with regard to
+the above discussion, and instead of using "Fully non-linear numerical
+investigations are ..." at the start of para. 2, use "Nonlinear
+numerical investigations with a large spanwise extent are ..." or
+something similar.
+
+4. As a related point, it is untrue that the quasiperiodic mode has
+"never been observed in a fully nonlinear simulation of the circular
+cylinder wake" (page 4, end of para. 1).  Just as for the synchronous
+modes A and B of the circular cylinder wake, and as for the
+quasiperiodic mode of the square cylinder wake, it has indeed been
+reported (e.g. fig 6, Blackburn at al. 2005) as a pure state for fully
+nonlinear DNS of a circular cylinder wake carried out in a subspace of
+restricted spanwise periodicity.  It would be correct to say that the
+quasiperiodic mode has not yet been observed in DNS with large
+spanwise domain extent.  While the subharmonic mode of a ring wake has
+been studied by full-domain DNS and by experiment (Sheard et
+al. 2005), this work was conducted at low aspect ratio (Ar=5) where it
+is difficult to argue similarity to the infinite cylinder wake.  It is
+also the case that modes A and B are not observed as pure states one
+the spanwise domain extent is sufficiently large.
+
+5. I still find the information concerning the spanwise resolution and
+Fourier modes, now presented on page 9, confusing. Please can the
+authors clearly state how many real planes of data are represented in
+the spanwise direction. Is it 32 or 64?
+
+6. In the discussion of 14, the authors should follow up on the
+statements about spanwise subharmonics to point out that this means
+there is little reason to continue tracking the solid curve in figure
+2(b) to larger spanwise wavelengths.
+
+

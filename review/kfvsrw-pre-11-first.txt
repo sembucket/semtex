@@ -1,0 +1,29 @@
+TITLE:        Interia effects and stress accumulation in a constricted duct:
+	      A combined experimental and lattice Boltzmann study
+
+AUTHORS:      Kruger, Fallah, Varnik, Schneider, Raabe & Wixforth
+
+SUBMITTED TO: Phys Rev E
+
+REVIEW:       First
+
+SUBJECT MATERIAL
+
+A study of slow and steady flow through a symmetric 2D constriction in
+a channel. As the title states, both numerical (LBM) and experimental
+(particle tracking). The maximum Reynolds number is 100.
+
+RECOMMENDATION
+
+The methodology of the study seems appropriate and the work has been
+carried out with care. Experimental and numerical results are in good
+agreement. However, I could not recommend publication of this work as
+a stand-alone study in fluid mechanics, since no novel phenomena are
+uncovered, and the behaviour is much as one would expect for a highly
+viscous flow. One could predict the general behaviour after reading
+any good text in viscous fluid dynamics, while the details and
+numerical values (admittedly studied with care and in some depth) are
+particular to the geometry considered and hence lack generality.  The
+study could fit well within a larger body of work, say one that dealt
+with the physiology/biochemistry/cellular dynamics of blood clotting
+or atherogenesis, but is not viable on its own.

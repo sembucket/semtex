@@ -1,0 +1,111 @@
+TITLE:        An updated portrait of transition to turbulence in laminar pipe
+	      flows with periodic time dependence (a correlation study)
+
+AUTHORS:      Carpinlioglu & Ozahi
+
+SUBMITTED TO: Flow Turb Combust
+
+REVIEW:       First
+
+SUBJECT MATERIAL
+
+This manuscript seeks to review understanding of the parameters which
+characterise transition in time-periodic pipe flows.  A comprehensive
+review would certainly be welcome because our understanding of the
+state of play in this area is quite poor.  Partly no doubt this is
+because characterising the base flows involved requires more
+parameters than does Hagen-Poiseuille flow (which only requires
+Reynolds number - a dimensionless characterisation of flow speed).  To
+dimensionlessly describe ideal time-periodic flow requires two
+independent dimensionless parameters (one characterising flow speed,
+the other temporal frequency) as well as a dimensionless description
+of the volumetric flow temporal waveform.  Quite often the two
+fundamental dimensionless groups are taken as a Reynolds number and a
+Womersely (Stokes) number, although other choices are possible.  The
+two most-studied cases (those with the simplest waveforms) are simple
+oscillatory flow (single harmonic, zero mean) and simple pulsatile
+flow (single harmonic plus a non-zero mean); more complex cases add
+further temporal harmonics, supplied in terms of amplitudes and phases
+relative to the fundamental.  (Most if not all experimental studies of
+pulsatile flow are directed at simple pulsatile flow only.)  The
+nature of transition is further complicated since the periodic flow
+may seem to relaminarise over some portion of the cycle, though one
+expects, if the cycle of transition is recurrent, that this should
+imply that disturbances fall dramatically to an "experimentally
+undetectable" level over some portion of the cycle, rather than
+disappearing completely.
+
+RECOMMENDATION
+
+I would certainly like to see a comprehensive review made of this
+topic area, however it is very clear to me that this manuscript could
+not be accepted as it stands. The authors need to more carefully lay
+out the number and choices of dimensionless groups, and address the
+roles of relative amplitudes of mean and oscillatory components of
+simple pulsatile flows. The structure of the manuscript as well as
+many points of detail also needs revision, as does the construction of
+the arguments. I suggest the authors withdraw and completely revise
+the manuscript before resubmitting it.
+
+MAJOR POINTS
+
+1. Even for simple pulsatile flows there are three independent
+dimensionless groups (say, a Reynolds number, a Womersley number, and
+a ratio of peak to mean flow speed), whereas initially (say on figs 2a
+and 2b) the authors seem to seek to describe the available results for
+pulsatile flow only in terms of two (Reynolds and Womersley
+number). The authors do seem to recognise this point (e.g. eq 5c) but
+do not explain the idea very well, or to take it into full account
+when reviewing the results.  This could explain for example why some
+pulsatile flow experiments suggest that addition of oscillation is
+stabilizing, while others suggest it is destabilizing (see e.g. figure
+2b, or the attribution of different effects of oscillation to
+different ranges of Womersley number in the Abstract and elsewhere).
+Following the argument leading to eq. (5c) one could e.g. expect on
+fig. 2b to see different critical curves for various values of
+Re_os. Similar considerations apply to figs 3-5.
+
+2. The description and use of some parameters is confusing.  Re_m seems
+to characterise a time-varying (but area-averaged) flow speed in some
+places (say in eq. 1), but a specific (e.g. maximum) value/parameter
+in others (e.g. figs 3 and 4).  The same confusion arises in restating
+eq. (5c) as eq. (5d), since the authors now seem to imply that Re_ta
+and Re_m are the same.  This needs to be resolved.
+
+3. Quite a number of statements are made by the authors without adequate
+justification or direct reference to specific literature, as occurs
+for example throughout the opening paragraph of section 2.2.
+
+4. The structure of the manuscript needs careful attention and some
+revision.  In the Abstract, many symbols are used without prior
+definition.  Why are "Basic definitions and terminology", Subsection
+2.1, included within "Results and discussion", Section 2?
+
+5. I could not understand the purpose in this manuscript of section
+2.4. Please delete it.
+
+OTHER POINTS TO BE ADDRESSED
+
+6. The use of English is not very good and indeed some sentences do not
+make sense. At times it is far too difficult to understand or follow
+the argument the authors seek to present.
+
+7. It is surprising that no reference has been made to the theoretical
+stability analysis results of Yang & Yih, JFM vol 82 (1977), or of
+Fedele et al., Eur J Mech B vol 24 (2005).
+
+8. In Fourier expansions of waveforms (e.g. eq. 1) the largest
+harmonic is said to be 6, rather than, say, N (or infinity). Why?
+
+9. Are the "data points" on figs 3-5 all from experiments? If so they
+should be labelled so we can track them back to the original
+papers. (And I wondered if the very small values of deviations from
+these lines as quoted e.g. on page 8 just reflected the small number
+of data used to fit them.)  Otherwise please just use lines (perhaps
+of two types in figure 5b.)  And why not combine figs 3a+4a, 3b+4b and
+5a+5b?
+
+10. Why is the quotation from Reynolds (1883) on page 2 also given a
+secondary source (Schlichting 1979)?
+
+

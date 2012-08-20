@@ -1,0 +1,60 @@
+TITLE:        Wake modes of rotationally oscillating cylinders at low Re
+
+AUTHORS:      Sellappan, Pottebaum
+
+SUBMITTED TO: J Fluids Struct
+
+REVIEW:       First
+
+SUBJECT MATERIAL
+
+2D PIV study of wake modes of a rotationally oscillating cylinder in
+crossflow at Re=150.
+
+RECOMMENDATION
+
+The manuscript requires substantial revision, especially in relation
+to points 3 and 4  below.
+
+MAIN POINTS
+
+1. Abstract: What are the key new findings (other than the finding of
+some "previously unknown wake modes"), and what makes these
+significant?
+
+2. Introduction: Motivation for the work is poorly established. Why is it
+important to study this problem, especially as it has received a
+reasonable amount of previous study?
+
+3. In the Introduction the authors state "Both studies [Mafouz & Badr
+2000 and Lee & Lee 2006] focused on spectral analysis and did not
+include any pertinent information about the overall wake
+structure". This is false: Mafouz & Badr did indeed present quite a
+lot of information about wake structures -- FOUR figures in that paper
+show streamlines and vorticity contours of various 2D wake modes. It
+beggars belief that the present authors were unaware of this.  The
+authors need to revise this statement, and to provide adequate
+discussion of their flow structure results in relation to those of
+Mafouz & Badr, where they overlap.
+
+4. It seems to be assumed (on the basis of cross-flow Re) that the wake
+structures observed are all 2D.  This is not necessarily so, and the
+authors need to tell us how they have checked this point.
+
+
+OTHER POINTS TO BE ADDRESSED
+
+5. Since only a single Reynolds number is examined, change the title from
+"... low Re" to "Re=150".
+
+6. What are the end conditions for the cylinder?  How has nominal
+two-dimensionality of the near wake (as opposed to possible
+three-dimensionality of wake structure) been confirmed?
+
+7. What is the turbulence level in the water tunnel? The statement made
+about flow speed could apply either to the repeatability of the mean
+flow speed, or turbulence intensity.
+
+8. What is the peak ratio of cylinder peripheral speed to freestream speed?
+
+

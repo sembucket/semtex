@@ -1,0 +1,54 @@
+TITLE:		Circular cylinder wake vortex synchronization control with
+		synthetic jet positioned at back stagnation point
+              
+AUTHORS:	Feng, LH and Wang JJ
+
+SUBMITTED TO: 	J Fluid Mech
+
+REVIEW:       	Second
+
+Generally the manuscript is better now for its revision.  I agree that
+this manuscript is substantially different to the earlier Chinese
+publication. However there are still some points to be addressed:
+
+1. The authors have not responded satisfactorily to point 6 of my
+previous review.  The information supplied regarding the normalization
+of power spectral density (see para 2, section 4) is still
+unsatisfactory and needs revision. Since it is unclear what
+normalisation has been applied in the FFT it is unclear what the
+numerical values supplied on the ordinates of figures 3b, 4b, 5,
+represent.  One typical way of normalising such spectra is that the
+integral with respect to dimensionless frequency corresponds to the
+variance of the original signal, made dimensionless in suitable
+fashion. Another possibility (which does not allow comparison of the
+relative energy between different spectra, as wold be useful for
+example in figure 5) is simply to normalize the spectral density by
+its peak value - this at least allows one to readily see the frequency
+content. The authors need to non-dimensionalize the ordinates of these
+plots using a method where the significance of the numerical values is
+clear. It is not good enough simply to label the axes as "Power
+spectrum".
+
+2. The authors have also not responded satisfactorily to point 12 of my
+previous review. The authors state in the manuscript at the end of
+section 2.3, (and in their response to my previous review) that the
+relative error in the vorticity (as deduced via second-order finite
+differencing, see their response to the previous review) is liable to
+be less than 1% if the maximum relative error in velocity is no more
+than 1% (I presume this error is actually relative to the maximum
+velocity, although the authors' meaning is unclear).  Elementary
+statistical analysis of experimental error suggests that the error in
+the velocity difference will be of order 1.5% if the two velocity
+estimates have uncorrelated errors, and also there will be errors of
+estimation of position, so the error in vorticity estimate is liable
+to be larger again (and the local relative error in vorticity could be
+quite sizable). The authors need to provide more thorough
+justification, and more careful description, of their estimates of
+error in velocity and vorticity data.
+
+I suggest the authors review some standard texts on random data
+analysis, for example Bendat & Piersol's "Random Data: Analysis &
+Measurement Procedures" when preparing revisions in response to the
+above two points.
+
+3. More minor: the caption to table 2 needs to provide more information. 

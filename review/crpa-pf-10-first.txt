@@ -1,0 +1,119 @@
+TITLE:        The onset of three-dimensional centrifugal global modes
+              and their non-linear development in a recirculating
+              flow over a flat surface
+
+AUTHORS:      Cherubini, Robinet, De Palma, Alizard
+
+SUBMITTED TO: Phys Fluids
+
+REVIEW:       First
+
+SUBJECT MATERIAL
+
+3D global stability and DNS analysis of flow over a 2D separation
+bubble on a flat plat induced by transpiration on the surface
+opposite.  2D-restricted transient growth and global stability for
+this flow has already received attention by the same group of authors,
+e.g.:
+
+Alizard F, Cherubini S, Robinet J (2009) Sensitivity and optimal
+forcing response in separated boundary layer flows, Phys Fluids
+21. (This deals with 2D optimal transient growth.)
+
+Cherubini S, Robinet J, De Palma P (2010) The effects of non-normality
+and nonlinearity of the Navier–Stokes operator on the dynamics of a
+large laminar separation bubble, Phys Fluids 22. (This deals with 2D
+global mode dynamics.)
+
+RECOMMENDATION
+
+Do not accept until the authors respond satisfactorily on the
+following points:
+
+1. The main issue I can see here is that material on linear analysis
+of 3D optimal transient growth appears to be lacking from this
+manuscript, even though the present work relies on these results for
+initiation of its 3D nonlinear study of transient growth.  For example
+there are no figures that present the optimal linear transient growth
+initial perturbation flows and their outcomes under linear
+evolution. This makes me concerned that such material will appear in
+another closely-related publication that more properly should be
+combined with the present work. I don't feel I could instruct PF to
+accept the manuscript without getting a response from the authors
+about this concern; if this material is not to appear elsewhere then
+it should be included here.  On the other hand if it is to appear
+elsewhere then the editor and referees should be informed so they can
+assess if this is reasonable or not (and I believe it isn't, given the
+close connection to the nonlinear evolution).
+
+2. While this may seem to conflict with the remark above, in general the
+manuscript seems over-long. Some figures such as figure 21 receive
+little attention in the text and could be removed without loss.
+
+3. I'm also concerned that in various figures (e.g. the downstream end
+of figure 29, figure 31b, figure 35) the solution could be
+under-resolved. There are a lot of structures in these images whose
+axial length scale is small and possibly of the same order as the
+streamwise axial mesh scale.  Can the authors make a quantitative
+statement about the degree of mesh independence of these results
+(e.g. that they remain the same if the streamwise resolution is
+doubled)?
+
+OTHER POINTS TO BE ADDRESSED
+
+4. On page 2: "The transient growth of the disturbances is due to the
+non-normality of the differential operator AND MAY BE CONSIDERED
+RESPONSIBLE FOR THE SUB-CRITICAL TRANSITION".  As far as I know the
+last part of this sentence has not been established in the refereed
+literature and so it should either be removed or backed up with a
+reference.
+
+5. On page 3, direct adjoint methods were employed by the authors of [27]
+and of [9] to perform global transient growth analyses, although only
+[27] is cited here. Reference 9 appeared in print before [27], and as
+the point being made relates to the introduction of such methods, [9]
+should be cited here, as well.
+
+6. At the end of page 8 the M_S mode is a 3D steady mode said to be
+similar to that found by ref [39] in 3D separated flow induced by an
+adverse pressure gradient. Is it also similar to the steady mode for
+the BFS found by ref [5]?  Please comment.
+
+7. The start of para. 2, page 9, starts with "The less stable steady mode
+...". Should this not be "The less unstable steady mode ...", or "More
+stable steady mode ..."?
+
+8. At the end of page 10, modes are referred to as "highly non-normal"
+although the non-normality of the modes has not actually been
+established quantitatively. Please modify the statement.
+
+9. On figure 10, page 15, why not run the abscissa from 0 to -0.0005,
+also draw an axis line for \omega_i=0, and label the points directly
+on the figure as BF1, BF2 and BF3, rather than via the caption.
+
+10. To the end of sentence 1, para. 2, page 15, add " and hence
+have smaller separation bubbles" or similar.
+
+11. In relation to figure 11 and associated text, how sensitive are the
+outcomes to choice of streamline? Please comment.
+
+12. On page 20 there is mention of a 'flapping phenomenon', but this is
+not explained in any way other than by reference to two other
+papers. Please briefly explain.
+
+13. Further down page 20, an optimal wavenumber greater than zero was also
+recorded in [9] for the BFS flow, and again since this appeared before
+the two cited references [26, 27] it should be cited here.
+
+14. Figure 14, page 21. Please plot all curves on one graph - this would
+be clearer and would save some space.
+
+15. At the end of page 28, in figure 22a material on oscillatory behaviour
+is presented yet we are told it is an artefact of numerical
+error. Delete.
+
+16. Page 37. Supply reference for K-type transition scenario.
+
+17. Reference 8 is a repeat of [7]. Likewise [28] is a repeat of
+[27]. Reference 26 is to a publication which in fact appeared in 2009,
+not one "to appear" in 2008.

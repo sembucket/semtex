@@ -1,0 +1,102 @@
+TITLE:        Effect of base flow variation on non-modal stability
+
+AUTHORS:      Brandt, Pralits, Sipp, Marquet
+
+SUBMITTED TO: J Fluid Mech
+
+REVIEW:       First
+
+SUBJECT MATERIAL
+
+
+
+RECOMMENDATION
+
+The manuscript is important, topical and well written.  I enjoyed
+reading and learning from it.  While it deals mostly with sensitivity
+w.r.t. maximum gain of harmonic disturbances in boundary layer flows,
+the methodology is clearly more general, and novel.  I strongly
+recommend the work be accepted for publication in JFM.
+
+I would like the following minor points of clarification and
+correction addressed as the authors see fit, but do not need to
+examine the manuscript again.
+
+POINTS
+
+1. sp: "delt" --> "dealt".
+
+2. At the end of section 2.2, suggest authors point out that f_i is a
+right singular vector of R. (Question: what would the corresponding
+left singular vector correspond to physically?)
+
+3. Around (2.11), as orientation very briefly outline mathematical
+motivation for splitting the eigenproblem.
+
+4. Do the curly braces used to group variables following (2.11)
+(e.g. {f+,q+,a+}) have significance as an operator - do they define an
+ordered set? I ask this because of the use of the relationship
+"{q+,a+,f+} = {a,q,f}": what exactly does this mean?  Previously, in
+the definition of the Lagrangian, we see "{\sigma,f,q,a}". Is that
+something different?
+
+5. Suggest "= \delta\sigma^2 = " be inserted in (2.12).
+
+6. Related: just below (2.14) the authors refer to "Eq. (2.13)". Do
+they mean (2.12)?
+
+7. Last para, page 6. Surely "f=Ru" should be "u=Rf".
+
+8. Very last sentence of section 2.3: "effect insensitive" --> "effect
+becomes insensitive".
+
+9. Also with regard to section 2.3, I suggest that the authors
+consider supplying as an appendix the derivation which is "not
+detailed here", or supplying a reference to a related derivation.
+
+10. First sentence, page 8: delete "do"; "not anymore" --> "no
+longer". 2nd sentence: "structurally overlap" --> "overlap
+structurally".  "Sensitivity": of what, and to what?  I didn't
+understand the logic of the last sentence of this paragraph: why
+"Hence"? Please provide a little more explanation.
+
+11. Section 2.4. Essentially this (and/or closely related) methodology
+has been published and exploited in papers already referenced by the
+authors, so I suggest they also add those references to this section
+in order that the linkage between the present Lagrangian-based
+treatment and the previous ones can be more readily appreciated.
+
+12. In figures 1(a,b) consider adding labels to some of the contour
+lines for those of us still using B/W printers.
+
+13. Section 3.1: "decide" -- > "decided"; "to be able to" --> "in
+order to"; "conclusion" --> "conclusions"; "one wish" --> "one
+wishes".
+
+14. Figure 2 caption: "cross-stream velocity" --> "wall-normal
+velocity". In (b), I was unable to distinguish the dashed and
+dash-dotted lines: perhaps an inset or another subfigure could be
+used? Plus, it is confusing to also use a dash-dotted line in (c) to
+indicate the critical layer.
+
+15. Why is there a subheading 3.1 entitled "Parallel boundary layers"?
+I suggest this subhead could be dropped and section 3 be renamed so
+that it just deals with the parallel flow assumption, with a subheading
+of "Sensitivity to base flow modifications" between paras 1 and 2 of
+page 10, and then another section (4) begin in place of subsection
+3.4, "Global analysis", which deals with a nonparallel BL.  Overall,
+the present single results section is rather dense and could benefit
+the reader through more careful use of subheadings and explanation of
+the observed behaviour.  
+
+16. page 12, line 3: "indicates result" --> "indicates the result".
+
+17. I found the discussion related to figure 5 hard to follow -- I
+suggest that a little more guidance is needed than is provided by the
+statement "... one can notice that the base flow modifications
+...". Perhaps it would help to briefly state the (obvious?) point that
+the unmodified values of sigma^2 are obtained when Delta U_m=0
+(e.g. draw in thin solid vertical lines at Delta U_m=0 in 5a and 5b
+and explain their significance).
+
+18. Page 17 "Schlichiting" --> ...

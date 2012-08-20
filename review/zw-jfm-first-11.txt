@@ -1,0 +1,85 @@
+TITLE:        Primary growth of disturbances on a low-Reynolds number
+	      airfoil at incidences
+
+AUTHORS:      Zhou, Y & Wang, Z
+
+SUBMITTED TO: J Fluid Mech
+
+REVIEW:       First
+
+SUBJECT MATERIAL
+
+This is a numerical "implicit LES" i.e. marginally resolved DNS study
+of flow past a SD7003 airfoil at small angles of attack. The flow has
+an upper surface separation bubble and it becomes unstable through
+receptivity near the LE to acoustic signals which derive from TE
+shedding.  This much has been demonstrated previously, e.g. by Jones,
+Sandberg & Sandham JFM 648.  Basically the same process is observed
+here. There does seem also to be a much lower-frequency process at
+work near the LE and that appears to be the main new finding. It is
+not clear if this is an instability mechanism, or associated with
+receptivity. The actual mechanism for that process is not pinned down
+nor is a clear picture presented of the novel flow physics involved.
+
+RECOMMENDATION
+
+I do not believe this work addresses its main topic, novel physics of
+suction surface instability mechanisms, in sufficient depth to warrant
+publication in JFM.
+
+MAIN POINTS
+
+1. The main new findings are associated with low-frequency processes
+near the LE but the authors only seem able to say that these are not
+associated with known processes (TS waves or Lam-Rott
+disturbances). In order to make the manuscript acceptable much more
+effort would need to be put into identifying the physics and mechanics
+of this process. Spectra of time series, velocity profiles and the
+like, do not seem sufficient.
+
+2. Clear motivation and direction for the work is not established in
+the Introduction. While various points that remain unresolved in the
+literature are listed, the authors do not give clear indication which
+points they seek to resolve, and how.  This is the statement of
+motivation at the start of the last paragraph of the Introduction:
+"The current study focuses on the primary growth of disturbances on a
+low-Reynolds number airfoil at incidences, and aims at providing
+possible strategies of flow control abd improving the aerodynamic
+design of airfoils". While it does address the first of these aims, it
+does not do so in sufficient depth or novelty, and it completely fails
+to address the second in a substantive way.
+
+3. For the length of paper presented there is too much emphasis and
+space devoted to numerical methods as opposed to flow physics and
+interpretation. About one third of the paper is devoted to numerical
+methods and validation studies. This material should be briefly
+introduced, and the reader referred elsewhere for more detailed
+treatments where appropriate or possible.
+
+OTHER POINTS TO BE ADDRESSED
+
+4. I was surprised to find no reference made to the following recent
+conference paper "AIAA 2010-4626: Simulation of Transitional Flow over
+Airfoils using the Spectral Difference Method, by Castonguay, Liang
+and Jameson", which also addresses transitional flow over the SD7003
+airfoil at alpha=4 degrees, and also employs the spectral difference
+method with "implicit large eddy simulation" at Re=60,000. Many of the
+results and analyses presented in that work seem at least
+superficially similar to those presented here. Since the present
+authors had a related paper (AIAA-2010-4442) in what I assume to be
+the same conference it seems likely they already know of that work.
+
+5. Hunt and co-workers, not Dubeif and Delcayre, should be given
+credit for introduction of the Q-criterion (positive 2nd invariant of
+VG tensor) for coherent structure identification in vortical flows.
+
+6. Spectra is the plural of spectrum. In figure 9, we should be told
+of the averaging methodologies used to find these spectra, since they
+seem to exhibit a large degree of statistical variability. One would
+expect that enough averaging (either in time or frequency) be employed
+to make the spectra smooth and the statistical reliability large. I
+would not be at all surprised to learn that if better statistical
+reliability were obtained it would be found that omega_3=omega_4 for
+case-2 (alpha=2 degrees) in table 2 (which is precisely what is found
+for cases 4 and 6).  Quantities for spectral densities should be
+supplied for the vertical scales.
