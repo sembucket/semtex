@@ -200,9 +200,10 @@ static char RCS[] = "$Id$";
 BCmgr::BCmgr (FEML*             file,
 	      vector<Element*>& elmt) :
 // ---------------------------------------------------------------------------
-// This constructor deals with <GROUPS> and <BCS> sections of FEML
-// file, and loads internal tables for later use by BCmgr::descriptor
-// and BCmgr::getCondition, BCmgr::print & BCmgr::enscript;
+// This constructor deals with <GROUPS>, <BCS> and <SURFACES> sections
+// of FEML file, and loads internal tables for later use by
+// BCmgr::descriptor and BCmgr::getCondition, BCmgr::print &
+// BCmgr::enscript;
 //
 // In addition, it reads in prebuilt numbering schemes from file
 // session.num for later retrieval.
@@ -355,7 +356,7 @@ BCmgr::BCmgr (FEML*             file,
 	  sprintf (err, "expected an '=' in setting field '%c' BC", fieldc);
 	  message (routine, err, ERROR);
 	}
-	if (!strchr (buf, ';')) {
+	if (!(strchr (buf, ';') || strchr (buf, ',')))) {
 	  sprintf (buf,"can't find multiplier and reference value in: %s",buf);
 	  message (routine, buf, ERROR);
 	}
