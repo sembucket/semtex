@@ -83,19 +83,12 @@
 // i.e. n_global minus the number of global nodes situated on
 // essential-type boundaries.
 //
-// An alternative approach (USED HERE) to the constrained problem is to let
-//
-//                      u = v + g     (v = 0 on \Gamma_g)
-//
-// and solve instead
-//
-//                      H.v = - M.f - H.g + <h, w>
-//
-// (where only the partition Hp is needed for the matrix H in the
-// LHS), then afterwards compose u = v + g to get the full solution.
-// The advantage to this method is that the constraint partition Hc
-// does not need to be assembled or stored.  The operations M.f and
-// H.g can be performed on an element-by-element basis.
+// The action of Hc on u_g can be formed by a loop over the elements
+// which touch the essential boundaries and does not require storage
+// of the partition Hc.  M.f can also be formed on an
+// element-by-element basis and is cheap for nodal spectral elements
+// since M is diagnonal.  Both tasks are performed by the
+// Field::constrain routine below.
 //
 // FIELD NAMES
 // -----------

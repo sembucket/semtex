@@ -354,7 +354,7 @@ void NaturalHOPBC::describe (char* tgt) const
 Mixed::Mixed (const char* v)
 // ---------------------------------------------------------------------------
 // The format for a Mixed BC is: "field = mulvalue;refvalue".  The
-// separator can be either ';' or ',' (no white space). Each of the
+// separator must be ';' or ',' (and without white space). Each of the
 // two supplied values is expected to evaluate to a real_t constant.
 // ---------------------------------------------------------------------------
 {
