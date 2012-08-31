@@ -3,6 +3,9 @@
 //
 // Copyright (c) 2003 <--> $Date$, Hugh Blackburn
 //
+// Edges, like boundaries (to which they contribute) always belong to
+// a group -- regular element sides generally do not.
+//
 // --
 // This file is part of Semtex.
 // 
@@ -20,10 +23,6 @@
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 // 02110-1301 USA.
-// --
-//
-// Edges, like boundaries (to which they contribute) always belong to
-// a group -- regular element sides generally do not.
 //////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";

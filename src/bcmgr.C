@@ -356,7 +356,7 @@ BCmgr::BCmgr (FEML*             file,
 	  sprintf (err, "expected an '=' in setting field '%c' BC", fieldc);
 	  message (routine, err, ERROR);
 	}
-	if (!(strchr (buf, ';') || strchr (buf, ',')))) {
+	if (!(strchr (buf, ';') || strchr (buf, ','))) {
 	  sprintf (buf,"can't find multiplier and reference value in: %s",buf);
 	  message (routine, buf, ERROR);
 	}
