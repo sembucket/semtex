@@ -12,7 +12,7 @@
 //   -t[t]    ... select time-varying BCs for mode 0 [or all modes]
 //   -v[v...] ... increase verbosity level
 //   -chk     ... turn off checkpoint field dumps [default: selected]
-//   -A|C|S   ... alternating skew-symm || convective || Stokes advection
+//   -S|C|N   ... regular skew-symm || convective || Stokes advection
 //
 // AUTHOR:
 // ------
@@ -113,9 +113,9 @@ static void getargs (int    argc   ,
     "  -t[t]    ... select time-varying BCs for mode 0 [or all modes]\n"
     "  -v[v...] ... increase verbosity level\n"
     "  -chk     ... turn off checkpoint field dumps [default: selected]\n"
-    "  -A|C|S   ... alternating skew-symm || convective || Stokes advection\n";
+    "  -S|C|N   ... regular skew-symm || convective || Stokes advection\n";
 
-  Femlib::ivalue ("ADVECTION", 0); // -- Default is skew symmetric.
+  Femlib::ivalue ("ADVECTION", 1); // -- Default is alternating skew symmetric.
 
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
@@ -124,9 +124,9 @@ static void getargs (int    argc   ,
       cout << buf;
       exit (EXIT_SUCCESS);
       break;
-    case 'A': Femlib::ivalue ("ADVECTION", 1); break;
+    case 'S': Femlib::ivalue ("ADVECTION", 0); break;
     case 'C': Femlib::ivalue ("ADVECTION", 2); break;
-    case 'S': Femlib::ivalue ("ADVECTION", 3); break;
+    case 'N': Femlib::ivalue ("ADVECTION", 3); break;
     case 'i':
       do
 	Femlib::ivalue ("ITERATIVE", Femlib::ivalue ("ITERATIVE") + 1);
