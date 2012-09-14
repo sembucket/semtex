@@ -75,25 +75,33 @@ else
 endif
 endif
 
-ifeq ($(ARCH),Linux-x86_64)             # -- Linux Opteron or EM64T
-CXX      = g++
-LD       = g++
-CC       = gcc
-FC       = g77
-#FC       = gfortran (when g77 ceases to exist).
+ifeq ($(ARCH),Linux-x86_64)             # -- Linux for AMD Opteron
+CXX      = g++44
+LD       = g++44
+CC       = gcc44
+FC       = gcc44
+# -- use these with fastblas:
+#CXX      = g++
+#LD       = g++
+#CC       = gcc
+#FC       = gfortran
 ifdef DEBUG
   OPT    = -gstabs+
 else
-  OPT    = -O3 -w
+  OPT    = -m64 -O3 -w
 endif
 CFLAGS   = $(DEFINES) $(OPT)
 FFLAGS   = $(DEFINES) $(OPT)
 CXXFLAGS = $(DEFINES) $(OPT) -Wno-deprecated
-F77LIBS  = -llapack -lfastblas -lg2c
+F77LIBS  = -lacml -lacml_mv -lgfortran
+# -- fastblas = GotoBLAS2. Does not work on AMD 6200 series CPUs
+#F77LIBS  = -lfastblas -lgfortran
+# -- this works reliably with either compiler suite but is slow on AMD/Opteron
+#F77LIBS  = -llapack -lgfortran
 LDFLAGS  = $(OPT) $(LIBDIR)
 RANLIB   = ranlib
 ifdef MPI
-  LDFLAGS += -L/usr/lib64/openmpi/1.2.8-gcc/lib -lfem_mp -lvec $(F77LIBS) -lmpi -lpthread
+  LDFLAGS += -L/usr/lib64/openmpi/1.4-gcc/lib -lfem_mp -lvec $(F77LIBS) -lmpi -lpthread
 else
   LDFLAGS += -lfem -lvec $(F77LIBS)
 endif
