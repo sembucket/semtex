@@ -37,7 +37,7 @@ do
   fi
   enumerate -O3 $i > $i.num 2> /dev/null
   compare $i > $i.rst
-  $MPIRUN $CODE -chk $i > /dev/null
+  $MPIRUN $CODE -S -chk $i > /dev/null
   compare -n $i $i.fld > /dev/null 2> ../regress/MPI/$i.ok
   chmod 0444 ../regress/MPI/$i.ok
   rm $i*
