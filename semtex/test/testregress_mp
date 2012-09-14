@@ -26,7 +26,7 @@ do
   fi
   enumerate -O3 $i > $i.num 2> /dev/null
   compare $i > $i.rst
-  $MPIRUN $CODE -chk $i > /dev/null 2>&1
+  $MPIRUN $CODE -S -chk $i > /dev/null 2>&1
   compare -n $i $i.fld > /dev/null 2> $i.new
   cmp -s $i.new ../regress/MPI/$i.ok
   case $? in
