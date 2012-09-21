@@ -1,11 +1,11 @@
 /*****************************************************************************
- * sem2vtk: convert a semtex field file to VTK format.
+ * sem2vtk: convert a SEM field file to VTK format.
  *
  * Usage:
  * sem2vtk [-h] [-c] [-o output] [-m mesh] [-n #] [-d #] [-w] input[.fld]
  *
  * Based on code sem2tec by Ron Henderson.
- * Modified by Chris Cantwell 11/01/2008
+ * Modified by Stefan Schmidt, Chris Cantwell and Thomas Albrecht.
  *
  * --
  * This file is part of Semtex.
@@ -33,14 +33,14 @@ static char RCS[] = "$Id$";
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
-
+#include <fcntl.h>
 #include <cfemdef.h>
 #include <cveclib.h>
 #include <cfemlib.h>
 
 #define MAXFIELDS 32
 
-static char usage[] = 
+static char usage[] =
   "usage: sem2vtk [options] session[.fld]\n"
   "options:\n"
   "-h       ... print this message\n"
@@ -58,7 +58,7 @@ static FILE    *fp_fld = 0,          /* default input files */
 static char    *vtkfile;             /* output file name */
 
 static int     nr, ns, nz, nel, nfields;
-static int     nzp = 0, np = 1, dump = 1, cylindrical=0;
+static int     nzp = 0, preplot_it = 1, np = 1, dump = 1, cylindrical=0;
 static char    type[MAXFIELDS];
 static double  *data[MAXFIELDS], *x, *y, *z;
 
@@ -68,8 +68,9 @@ static void    read_mesh   (FILE*);
 static void    read_data   (FILE*);
 static void    interpolate (void);
 static void    wrap        (void);
-static double* do_interp   (const double*, const double*, 
+static double* do_interp   (const double*, const double*,
 			    const double*, const double*, double*);
+#include <errno.h>
 
 
 int main (int    argc,
@@ -81,10 +82,11 @@ int main (int    argc,
   char fname[STR_MAX];
   char buf  [STR_MAX];
   FILE *fp, *fp_tec;
-  
-  fp_msh = stdin;
 
-  if ((fp = fopen (tmpnam (fname),"w+")) == (FILE*) NULL) {
+  fp_msh = stdin;
+  strcpy(fname, "tmp.XXXXXX");
+
+  if ((fp = fdopen(mkstemp(fname), "w+")) == (FILE *) NULL) {
     fprintf (stderr, "sem2vtk: unable to open a temporary file\n");
     exit    (EXIT_FAILURE);
   }
@@ -97,11 +99,17 @@ int main (int    argc,
   wrap        ();
   write_vtk   (fp);
 
-  rewind (fp);
-  fp_tec = fopen (vtkfile, "w");
-  while  (fgets(buf, STR_MAX, fp)) fputs(buf, fp_tec);
-  fclose (fp_tec);
-  fclose (fp);
+  if (preplot_it) {
+    sprintf (buf, "preplot %s %s > /dev/null", fname, vtkfile);
+    system  (buf);
+    remove  (fname);
+  } else {
+    rewind (fp);
+    fp_tec = fopen (vtkfile, "w");
+    while  (fgets(buf, STR_MAX, fp)) fputs(buf, fp_tec);
+    fclose (fp_tec);
+    fclose (fp);
+  }
 
   return EXIT_SUCCESS;
 }
@@ -115,7 +123,7 @@ static void parse_args (int    argc,
 {
   char c, fname[FILENAME_MAX];
 
-  while (--argc && (*++argv)[0] == '-') 
+  while (--argc && (*++argv)[0] == '-')
     while (c = *++argv[0])
       switch (c) {
       case 'h':
@@ -125,7 +133,7 @@ static void parse_args (int    argc,
       case 'm':
 	sprintf(fname, "%s", *++argv);
 	if ((fp_msh = fopen(fname, "r")) == (FILE*) NULL) {
-	  fprintf(stderr, "sem2tec: unable to open the mesh file -- %s\n", 
+	  fprintf(stderr, "sem2vtk: unable to open the mesh file -- %s\n",
 		  fname);
 	  exit(EXIT_FAILURE);
 	}
@@ -135,6 +143,7 @@ static void parse_args (int    argc,
 	vtkfile = (char*) malloc(STR_MAX);
 	strcpy(vtkfile, *++argv);
 	argv[0] += strlen(*argv)-1; argc--;
+	preplot_it = 0;
 	break;
       case 'd':
 	if (*++argv[0])
@@ -161,7 +170,7 @@ static void parse_args (int    argc,
         cylindrical = 1;
         break;
       default:
-	fprintf(stderr, "sem2tec: unknown option -- %c\n", c);
+	fprintf(stderr, "sem2vtk: unknown option -- %c\n", c);
 	break;
       }
 
@@ -187,7 +196,7 @@ static void parse_args (int    argc,
     vtkfile = (char*) calloc (STR_MAX, sizeof(int));
     if   (strcmp(*argv + len-4, ".fld") == 0) strncpy(vtkfile, *argv, len-4);
     else                                      strcpy (vtkfile, *argv);
-    strcat (vtkfile, ".vtk");
+    strcat (vtkfile, ".plt");
   }
 }
 
@@ -219,8 +228,8 @@ static void read_mesh (FILE *fp)
       exit  (EXIT_FAILURE);
     }
   }
-  
-  if (z) 
+
+  if (z)
     for (i = 0; i <= nz; i++) {
       fgets (buf, STR_MAX, fp);
       if (sscanf (buf, "%lf", z+i) != 1) {
@@ -233,11 +242,12 @@ static void read_mesh (FILE *fp)
 
 static void read_data (FILE *fp)
 /* ------------------------------------------------------------------------- *
- * Read in data files.  If NZ > 1, it is assumed that data are in the file
- * in plane-by-plane order.  For each plane, the ordering of data varies
- * depending on whether the file is in ASCII or binary format: for ASCII, the
- * fields are in column order, element-by-element (row-major), whereas for
- * binary formats the fields are written in the file sequentially.
+ * Read in data files.  If NZ > 1, it is assumed that data are in the
+ * file in plane-by-plane order.  For each plane, the ordering of data
+ * varies depending on whether the file is in ASCII or binary format:
+ * for ASCII, the fields are in column order, element-by-element
+ * (row-major), whereas for binary formats the fields are written in
+ * the file sequentially.
  *
  * Automatic conversion between little- and big-endian binary formats.
  * ------------------------------------------------------------------------- */
@@ -245,7 +255,7 @@ static void read_data (FILE *fp)
   int  i, m, n, nplane;
   int  nr_chk, ns_chk, nz_chk, nel_chk;
   char buf[STR_MAX], *c;
-  
+
   /* -- Read the header down to the field list, check size of input. */
 
   for (n = 0; n < 3; n++) fgets(buf, STR_MAX, fp);
@@ -267,11 +277,11 @@ static void read_data (FILE *fp)
   n       = 0;
   c       = buf;
   nfields = 0;
-  while (n++ < 25 && nfields < MAXFIELDS) 
+  while (n++ < 25 && nfields < MAXFIELDS)
     if (isalnum(*c++)) type[nfields++] = *(c-1);
 
   if (nfields > MAXFIELDS) {
-    fprintf(stderr, "sem2tec: a maximum of %d fields may be converted.\n", 
+    fprintf(stderr, "sem2vtk: a maximum of %d fields may be converted.\n",
 	    MAXFIELDS);
     exit(EXIT_FAILURE);
   }
@@ -284,7 +294,7 @@ static void read_data (FILE *fp)
 
   /* -- Check the format. */
 
-  c = fgets(buf, STR_MAX, fp); 
+  c = fgets(buf, STR_MAX, fp);
   while (isspace(*c)) c++;
 
   switch (tolower(*c)) {                     /* ASCII or binary read? */
@@ -294,7 +304,7 @@ static void read_data (FILE *fp)
       for (i = 0; i < nplane; i++)
 	for (n = 0; n < nfields; n++)
 	  if (fscanf(fp, "%lf", data[n] + m * nplane + i) < 0) {
-	    fputs("sem2tec: field file (ASCII) read error\n", stderr);
+	    fputs("sem2vtk: field file (ASCII) read error\n", stderr);
 	    exit (EXIT_FAILURE);
 	  }
     break;
@@ -307,8 +317,8 @@ static void read_data (FILE *fp)
 
     for (n = 0; n < nfields; n++) {
       if (fread (data[n], sizeof(double), nz * nplane, fp) != nz * nplane) {
- fputs("sem2tec: field file (binary) read error\n", stderr);
-	  exit (EXIT_FAILURE);
+	fputs("sem2vtk: field file (binary) read error\n", stderr);
+	exit (EXIT_FAILURE);
       }
       if (swab) dbrev (nz * nplane, data[n], 1, data[n], 1);
     }
@@ -316,7 +326,7 @@ static void read_data (FILE *fp)
   }
 
   default:
-    fprintf (stderr, "sem2tec: unknown format flag: '%c'\n", *c);
+    fprintf (stderr, "sem2vtk: unknown format flag: '%c'\n", *c);
     exit    (EXIT_FAILURE);
     break;
   }
@@ -338,7 +348,7 @@ static void interpolate (void)
   case 0:              /* interpolation turned off */
     return;
     break;
-    
+
   case 1:              /* no size specified ... use (NR|NS) */
     np = MAX (nr, ns);
     break;
@@ -346,7 +356,7 @@ static void interpolate (void)
   default:             /* size specified on the command line */
     break;
   }
-  
+
   nplane_new = np * np * nel;
 
   /* -- Compute interpolation matrices. */
@@ -432,8 +442,8 @@ static void write_vtk (FILE *fp)
   /* write an extra plane of cells to link up last plane with first */
   const int    nzpc = (cylindrical) ? nzp : nzp-1;
   unsigned int offset1 = 0, offset2 = 0;
-    
-  /* write the VTK header-  could customise the descriptive string */
+
+  /* write the VTK header--  could customise the descriptive string */
 
   fprintf (fp, "# vtk DataFile Version 2.0\n");
   fprintf (fp, "Semtex output file\n");
@@ -442,19 +452,21 @@ static void write_vtk (FILE *fp)
   /* define grid */
   fprintf (fp, "DATASET UNSTRUCTURED_GRID\n");
   fprintf (fp, "POINTS %i float\n", nel*nzp*nrns);
-  for (m = 0; m < nzp; m++) {	/* go over z planes nzp=1 for 2D */
-    for (k = 0; k < nel; k++) {	/* go over elements */
+  for (m = 0; m < nzp; m++) {	   /* go over z planes nzp=1 for 2D      */
+    for (k = 0; k < nel; k++) {	   /* go over elements                   */
       for (i = 0; i < nrns; i++) { /* go over x-y points in each element */
-	
+
 	/* write out x,y coordinate, adjusting if cylindrical coords */
+
 	if (cylindrical)
-	  fprintf(fp, "%#14.7g %#14.7g ", x[k*nrns + i], 
+	  fprintf(fp, "%#14.7g %#14.7g ", x[k*nrns + i],
 		  y[k*nrns + i] * sin(z[m%nzp]));
 	else
-	  fprintf(fp, "%#14.7g %#14.7g ", x[k*nrns + i], 
+	  fprintf(fp, "%#14.7g %#14.7g ", x[k*nrns + i],
 		  y[k*nrns + i]);
 	/* write out z coordinate if we're in 3D, again adjusting
 	   for cylindrical coordinates if necessary */
+
 	if (z) {
 	  if (cylindrical)
 	    fprintf(fp, "%#14.7g ", y[k*nrns+i]*cos(z[m%nzp]));
@@ -469,10 +481,10 @@ static void write_vtk (FILE *fp)
     }
   }
   fprintf(fp, "\n");
-  
+
   /* define cells */
   if (z)
-    fprintf (fp, "CELLS %i %i\n", 
+    fprintf (fp, "CELLS %i %i\n",
 	     nzpc*nel*(nr-1)*(ns-1), nzpc*nel*(nr-1)*(ns-1)*9);
   else
     fprintf (fp, "CELLS %i %i\n", nel*(nr-1)*(ns-1), nel*(nr-1)*(ns-1)*5);
@@ -498,13 +510,13 @@ static void write_vtk (FILE *fp)
 	    fprintf(fp, "%i ", offset2 + (j+1)*ns + i + 1);
 	    fprintf(fp, "%i ", offset2 + (j+1)*ns + i);
 	  }
-	  fprintf(fp, "\n");	
+	  fprintf(fp, "\n");
 	}
       }
     }
   }
   fprintf(fp, "\n");
-  
+
   /* define cell types */
   fprintf (fp, "CELL_TYPES %i\n", nzp*nel*(nr-1)*(ns-1));
   for (i = 0; i < nzp*nel*(nr-1)*(ns-1); i++) {
@@ -512,7 +524,7 @@ static void write_vtk (FILE *fp)
     else fprintf( fp, "9\n");
   }
   fprintf(fp, "\n");
-	
+
   /* now write out the data for each point */
   fprintf(fp, "POINT_DATA %i\n", nel*nzp*nrns);
 
@@ -529,15 +541,15 @@ static void write_vtk (FILE *fp)
 	  /* u, v values are in 1st and 2nd data array */
 	  fprintf(fp, "%#14.7g ", data[0][offset1 + i]);
 	  fprintf(fp, "%#14.7g ", data[1][offset1 + i]);
-	  if (z) fprintf(fp, "%14.7g ", data[2][offset1 + i]);
+	  if (type[2] == 'w') fprintf(fp, "%14.7g ", data[2][offset1 + i]);
 	  else fprintf(fp, "0.0 ");
 	  fprintf(fp, "\n");
 	}
       }
     }
-    if (z) j = 3; else j = 2;
+    if (type[2] == 'w') j = 3; else j = 2;
   }
-  
+
   /* print out scalar values */
 
   for (; j < nfields; j++) {
@@ -556,8 +568,8 @@ static void write_vtk (FILE *fp)
     }
     fprintf(fp, "\n");
   }
-  
-  for (i = 0; i < nfields; i++) 
+
+  for (i = 0; i < nfields; i++)
     free (data[i]);
   fflush (fp);
 }
