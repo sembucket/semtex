@@ -34,25 +34,6 @@ static char RCS[] = "$Id$";
 
 #include <sem.h>
 
-Boundary::Boundary (const int_t      id,
-		    const char*      group,
-		    const Condition* bcond,
-		    const Element*   elmt,
-		    const int_t      side):
-  Edge (group, elmt, side), _id(id), _bcond (bcond){
-
-  char  buf[StrMax];
-  int_t np = Geometry::nP();
-  int_t nz = Geometry::nZ();
-
-  bcond -> describe (buf);
-
-  if (strstr(buf, "control")){
-    uc = new real_t[nz*np];
-    Veclib::zero(np*nz, uc, 1);
-  }
-} 
-
 void Boundary::evaluate (const int_t plane,
 			 const int_t step ,
 			 real_t*     tgt  ) const
@@ -204,6 +185,15 @@ void Boundary::switchK (const real_t* Ux, const real_t*  Uy, const bool forwards
 // ---------------------------------------------------------------------------
 {
   _bcond -> switchK (_np, Ux, Uy, _doffset, _dskip, _nx, _ny, forwards);
+}
+
+
+void Boundary::switchK(int_t num) const
+// ---------------------------------------------------------------------------
+// Update spatially varying _K_ for current boundary object.
+// ---------------------------------------------------------------------------
+{
+  _bcond -> switchK(num);
 }
 
 void Boundary::takeC (const real_t* p_adjoint) const

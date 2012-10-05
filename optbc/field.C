@@ -212,7 +212,6 @@ void Field::evaluateControl (const int_t step, real_t* uci)
   dt          = Femlib::value ("D_T");
   adjointtime = dt*(Femlib::ivalue ("N_STEP")-step);
   timenow     = dt*step;
-
     
   // -- Compute f(t)
 
@@ -264,7 +263,6 @@ void Field::evaluateControl (const int_t step, real_t* uci)
   }
 }
 
-
 void Field::fixControl ()
 // ---------------------------------------------------------------------------
 // Update boundary storage to accommodate intersection of control boundaries
@@ -313,6 +311,7 @@ void Field::getControl(real_t* uci)
 
   int_t  j;
   real_t *p;
+
   // -- Write from _line storage to external control boundary storage. 
   for(j = 0; j < _nz; j++){
     p = _line[j];
@@ -685,7 +684,6 @@ Field& Field::solve (Domain* D,
       this -> constrain    (forcing, lambda2,betak2,RHS,N,tmp);
       this -> buildRHS     (forcing, bc,RHS,0,hbi,nsolve,nzero,B,N,tmp);
 
-
       // -- Solve for unknown global-node values (if any).
       //      cout << "nsolve: " << nsolve << "nglobal: " << nglobal << endl;
       if (nsolve) Lapack::pbtrs("U",nsolve,nband-1,1,H,nband,RHS,nglobal,info);
@@ -698,9 +696,7 @@ Field& Field::solve (Domain* D,
       unknown -= ntot;
     
       // -- Scatter-gather essential BC values into plane.
-
       Veclib::zero (nglobal, RHS, 1);
-    
       this -> getEssential (bc, RHS, B,   N);
       this -> setEssential (RHS, unknown, N);
 
@@ -725,23 +721,22 @@ Field& Field::solve (Domain* D,
       real_t* wrk = z + npts;
 
       Veclib::zero (nglobal, x, 1);
-
+ 
       this -> getEssential (bc, x, B, N);  
       this -> constrain    (forcing, lambda2,betak2,x,N,wrk);
       this -> buildRHS     (forcing, bc,r,r+nglobal,0,nsolve,nzero,B,N,wrk);
-
+ 
       epsb2  = Femlib::value ("TOL_REL") * sqrt (Blas::dot (npts, r, 1, r, 1));
       epsb2 *= epsb2;
 
       // -- Build globally-numbered x from element store.
-
       this -> local2global (unknown, x, N);
-  
+ 
       // -- Compute first residual using initial guess: r = b - Ax.
       //    And mask to get residual for the zero-BC problem.
 
       Veclib::zero (nzero, x + nsolve, 1);   
-      Veclib::copy (npts,  x, 1, q, 1);
+      Veclib::copy (npts, x, 1, q, 1);
     
       this -> HelmholtzOperator (q, p, lambda2, betak2, mode, wrk, Baseflow, forwards);
 
@@ -765,7 +760,7 @@ Field& Field::solve (Domain* D,
 	// -- Update search direction.
 
 	if (i == 1)
-	  Veclib::copy  (npts,             z, 1, p, 1); // -- p = z.
+	  Veclib::copy  (npts, z, 1, p, 1); // -- p = z.
 	else {
 	  beta = rho1 / rho2;	
 	  Veclib::svtvp (npts, beta, p, 1, z, 1, p, 1); // -- p = z + beta p.
@@ -790,12 +785,11 @@ Field& Field::solve (Domain* D,
       if (i == StepMax) message (routine, "step limit exceeded", WARNING);
     
       // -- Unpack converged vector x, impose current essential BCs.
-
       this -> global2local (x, unknown, N);
-      
+ 
       this -> getEssential (bc, x, B,   N);
       this -> setEssential (x, unknown, N);
-  
+ 
       if (Femlib::ivalue ("VERBOSE") > 1) {
 	char s[StrMax];
 	sprintf (s, ":%3d iterations, field '%c'", i, _name);
@@ -862,8 +856,8 @@ void Field::HelmholtzOperator (const real_t* x      ,
 			       const real_t  betak2 ,
 			       const int_t   mode   ,
 			       real_t*       work   ,
-				   const vector<AuxField*>&  Baseflow, 
-				   bool      forwards) const
+			       const vector<AuxField*>&  Baseflow, 
+			       bool          forwards) const
 // ---------------------------------------------------------------------------
 // Discrete 2D global Helmholtz operator which takes the vector x into
 // vector y, including direct stiffness summation.  Vectors x & y have 
@@ -873,18 +867,19 @@ void Field::HelmholtzOperator (const real_t* x      ,
 //
 // Vector work must have length 4*Geometry::nTotElmt().
 // ---------------------------------------------------------------------------
-{const char     routine[] = "Field::HelmholtzOperator";
-  const int_t      np      = Geometry::nP();
-  const int_t      nel     = Geometry::nElmt();
-  const int_t      npnp    = Geometry::nTotElmt();
-  const int_t      next    = Geometry::nExtElmt();
-  const int_t      nint    = Geometry::nIntElmt();
-  const int_t      ntot    = Geometry::nPlane();
-  const NumberSys* NS      = _bsys -> Nsys (mode * Femlib::ivalue ("BETA"));
-  const int_t*     gid     = NS -> btog();
-  const int_t      nglobal = NS -> nGlobal() + Geometry::nInode();
-  const real_t*    xint    = x + NS -> nGlobal();
-  real_t*          yint    = y + NS -> nGlobal();
+{
+  const char       routine[] = "Field::HelmholtzOperator";
+  const int_t      np        = Geometry::nP();
+  const int_t      nel       = Geometry::nElmt();
+  const int_t      npnp      = Geometry::nTotElmt();
+  const int_t      next      = Geometry::nExtElmt();
+  const int_t      nint      = Geometry::nIntElmt();
+  const int_t      ntot      = Geometry::nPlane();
+  const NumberSys* NS        = _bsys -> Nsys (mode * Femlib::ivalue ("BETA"));
+  const int_t*     gid       = NS -> btog();
+  const int_t      nglobal   = NS -> nGlobal() + Geometry::nInode();
+  const real_t*    xint      = x + NS -> nGlobal();
+  real_t*          yint      = y + NS -> nGlobal();
   real_t           *P = work, *tmp = work + npnp;
   int_t            i;
   Element*         E;
@@ -895,27 +890,31 @@ void Field::HelmholtzOperator (const real_t* x      ,
 
   if (_bsys -> mixBC()) {
     const vector<Boundary*>& BC   = _bsys -> BCs (0);
-    const int_t*           bmap = NS    -> btog();
+    const int_t*             bmap = NS    -> btog();
+    int_t                    num  = 0;
 
-    for (i = 0; i < _nbound; i++)
+    for (i = 0; i < _nbound; i++){
+      if(*BC[i] -> group() =='c'){
+	BC[i] -> switchK(num);
+	num += 1;
+      }
       BC[i] -> augmentOp (bmap, x, y);
+    }
   }
 
   // -- Add in contributions from Toutflow BCs while x & y are global vectors.
-      if (_bsys -> ToutflowBC()) {
-         if (Geometry::nSlice()>1) message (routine, "Sorry, cannot support time-dependent base flow now", ERROR);
-         const vector<Boundary*>& BC   = _bsys -> BCs (0);
-         const int_t*           bmap = NS    -> btog();
-	     for (i = 0; i < _nbound; i++){
-	       BC[i] -> switchK (Baseflow[0]->plane(0), Baseflow[1]->plane(0), forwards);  
-           BC[i] -> augmentOp (bmap, x, y);
-		}
-      }
-
-
-
+  if (_bsys -> ToutflowBC()) {
+    if (Geometry::nSlice()>1) message (routine, "Sorry, cannot support time-dependent base flow now", ERROR);
+    const vector<Boundary*>& BC   = _bsys -> BCs (0);
+    const int_t*           bmap = NS    -> btog();
+    for (i = 0; i < _nbound; i++){
+      BC[i] -> switchK (Baseflow[0]->plane(0), Baseflow[1]->plane(0), forwards);  
+      BC[i] -> augmentOp (bmap, x, y);
+    }
+  }
+  
   // -- Add in contributions from elemental Helmholtz operations.
-
+  
   for (i = 0; i < nel; i++, gid += next, xint += nint, yint += nint) {
     E = _elmt[i];
     E -> global2local    (P, gid, x, xint);
@@ -1249,8 +1248,9 @@ return norm;
 }
 
 real_t Field::normc_mixed(real_t* uci,real_t* lagi)
-//get the i conponent of [uc,lag].
-{ const int_t       np  = Geometry::nP();
+// Get the ith conponent of [uc,lag].
+{ 
+  const int_t       np  = Geometry::nP();
   vector<Boundary*> BC;
   int_t             i, k;
   real_t            norm = 0.0;
@@ -1267,45 +1267,10 @@ real_t Field::normc_mixed(real_t* uci,real_t* lagi)
   return norm;
 }
 
-
-int_t Field::size_controlbc ()
-//return the size of control bcs at one plane.
-{
-  const int_t  np  = Geometry::nP(); 
-        int_t  k, i, size=0;
-	vector<Boundary*> BC;
- if (Geometry::nPert() == 2) BC = _bsys -> BCs (0);
- else                        BC = _bsys -> BCs (Femlib::ivalue ("BETA"));
-    
- for (i = 0; i < _nbound; i++)
- if(*BC[i]->group()=='c') size+=np;
- return size;
-}
-
-
-/*
-void Field::controlmesh(real_t* controlx,real_t* controly)
-// Install the control force in uci.
-{ 
-  int_t i,k;
-  const int_t       np = Geometry::nP();
-  vector<Boundary*> BC;
-
-  if (Geometry::nPert() == 2) BC = _bsys -> BCs (0);
-  else                        BC = _bsys -> BCs (Femlib::ivalue ("BETA"));
-  
-  for (i = 0; i < _nbound; i++ )
-    if(*BC[i] -> group()=='c') {
-      BC[i] -> controlbcmesh(controlx, controly);
-      controlx += np;
-      controly += np;
-    }
-}
-*/
-
-
-void Field::add_adjoint(real_t* adjoint_gradient, const int_t step, const int_t lengthcontrol)
-//add the gradient of the adjoint in the integration. direction gradient term.
+void Field::add_adjoint(real_t* adjoint_gradient,
+			const int_t step, 
+			const int_t lengthcontrol)
+// Add the gradient of the adjoint in the integration. direction gradient term.
 {  
   int_t             i, j, k, id, side;
   const int_t       npnp = Geometry::nTotElmt();
@@ -1343,7 +1308,6 @@ void Field::add_adjoint(real_t* adjoint_gradient, const int_t step, const int_t 
  
   if (Geometry::nPert() == 2) BC = _bsys -> BCs (0);
   else                        BC = _bsys -> BCs (Femlib::ivalue ("BETA"));
-  
 
   for (k = 0; k < _nz; k++)      
     for (i = 0; i < _nbound; i++ )
@@ -1355,7 +1319,7 @@ void Field::add_adjoint(real_t* adjoint_gradient, const int_t step, const int_t 
 	Veclib::copy (npnp, _plane[k]+id*npnp, 1, ux, 1);
 	Veclib::copy (npnp, _plane[k]+id*npnp, 1, uy, 1);
 
-	// Compute partial derivative of current field u WRT x and y and store in ux and uy respectively. Note partial derivative wrt z is zero due to Fourier expansion.
+	// Compute partial derivative of current field u WRT x and y and store in ux and uy respectively.
 	BC[i] -> element() -> grad(ux, 0, &work[0]);
 	BC[i] -> element() -> grad(0, uy, &work[0]);
 	
@@ -1401,28 +1365,110 @@ void Field::add_adjoint(real_t* adjoint_gradient, const int_t step, const int_t 
   delete [] gradn;
 }
 
+void Field::add_adjoint_mixed(real_t*                  adjoint_gradient,
+			      const int_t              step, 
+			      const int_t              lengthcontrol,
+			      const vector<AuxField*>& U)
+// Compute integral term, g(u*, omega), in gradient of Lagrangian for
+// mixed BC applied on adjoint "outflow" boundary.
+{  
+  const int_t npnp    = Geometry::nTotElmt();
+  const int_t np      = Geometry::nP();
 
+  real_t  timenow     = Femlib::value  ("D_T") * (Femlib::ivalue ("N_STEP")-step);
+  real_t  adjointtime = Femlib::value  ("D_T")*step;
+  real_t  timedecay   = (1-exp(-timenow*timenow))*(1-exp(-adjointtime*adjointtime));
+  real_t  shift       = 1.83/2*1.75;
 
-void Field::add_adjoint_pressure(real_t* adjoint_px, real_t* adjoint_py,const int_t step, const int_t lengthcontrol)
+  vector<Boundary*> BC;
+  real_t            *u, *Ux, *Uy, *p, *src, *nx, *ny, *tmp1, *tmp2;
+  real_t            cowt;
+  int_t             i, j, k, id, side, dOffset, dSkip;
+
+  u  = new real_t[np];
+  nx = new real_t[np];
+  ny = new real_t[np];
+  tmp1 = new real_t[np];
+  tmp2 = new real_t[np];
+
+  Ux = U[0] -> plane(0);
+  Uy = U[1] -> plane(0);
+
+  if (Femlib::ivalue  ("TIMEDECAY")==1) timedecay = exp(-3*(timenow-shift)*(timenow-shift));
+  if (Femlib::ivalue  ("TIMEDECAY")==2) timedecay = 1;
+
+  if ( Femlib::ivalue ("controlbc_t_dependency")==0){
+    cowt=1;
+  }
+  else if ( Femlib::ivalue ("controlbc_t_dependency")==1){
+    cowt=cos( Femlib::value ("frequency_controlbc") * timenow);
+  }
+
+  cowt=cowt*timedecay;
+
+  if (Geometry::nPert() == 2) BC = _bsys -> BCs (0);
+  else                        BC = _bsys -> BCs (Femlib::ivalue ("BETA"));
+
+  for(k = 0; k < _nz; k++){
+    p = _plane[k];
+    for(i = 0; i < _nbound; i++){
+      if(*BC[i] -> group() == 'c'){
+	id      = BC[i] -> element() -> ID();
+	side    = BC[i] -> side();
+	dOffset = BC[i] -> dOff();
+	dSkip   = BC[i] -> dSkip();
+	src     = p + id*npnp;
+
+	BC[i] -> element() -> sideGet(side, src, u);
+	BC[i] -> controlnxny(nx, ny);
+
+	Veclib::smul(np, -1, nx, 1, nx, 1);
+	Veclib::smul(np, -1, ny, 1, ny, 1);
+	Veclib::copy(np, Ux + dOffset, dSkip, tmp1, 1);
+	Veclib::copy(np, Uy + dOffset, dSkip, tmp2, 1);
+	Veclib::vvtvvtp(np, tmp1, 1, nx, 1, tmp2, 1, ny, 1, tmp1, 1);
+
+	Veclib::vmul(np, u, 1, tmp1, 1, u, 1);
+
+	Veclib::svtvp(np, cowt, u, 1, adjoint_gradient, 1, adjoint_gradient, 1);
+
+	adjoint_gradient += np;
+      }
+    }
+  }
+
+  delete [] u;
+  delete [] nx;
+  delete [] ny;
+  delete [] tmp1;
+  delete [] tmp2;
+}
+
+void Field::add_adjoint_pressure(real_t* adjoint_px,
+				 real_t* adjoint_py,
+				 const int_t step,
+				 const int_t lengthcontrol)
 //add the gradient of the adjoint in the integration, pressure term.
 {  
-  int_t i, j, k, id, side;
-  const int_t      npnp    = Geometry::nTotElmt();
-  const int_t       np     = Geometry::nP();
+  const int_t npnp        = Geometry::nTotElmt();
+  const int_t np          = Geometry::nP();
+  real_t*     p_element   = new  real_t [static_cast<size_t>(npnp)];
+  real_t*     p_edge      = new  real_t [static_cast<size_t>(np)]; 
+  real_t*     nxp         = new  real_t [static_cast<size_t>(np)]; 
+  real_t*     nyp         = new  real_t [static_cast<size_t>(np)]; 
+  real_t      timenow     = Femlib::value  ("D_T") * (Femlib::ivalue ("N_STEP")-step);
+  real_t      adjointtime = Femlib::value  ("D_T")*step; 
+  real_t      timedecay   = (1-exp(-timenow*timenow))*(1-exp(-adjointtime*adjointtime));
+  real_t      shift       = 1.83/2*1.75; //testing:::
+
   vector<Boundary*> BC;
-  real_t*  p_element = new  real_t [static_cast<size_t>(npnp)];
-  real_t*  p_edge    = new  real_t [static_cast<size_t>(np)]; 
-  real_t*  nxp       = new  real_t [static_cast<size_t>(np)]; 
-  real_t*  nyp       = new  real_t [static_cast<size_t>(np)]; 
-  real_t   timenow   = Femlib::value  ("D_T") * (Femlib::ivalue ("N_STEP")-step);
-  real_t adjointtime = Femlib::value  ("D_T")*step; 
-  real_t   timedecay = (1-exp(-timenow*timenow))*(1-exp(-adjointtime*adjointtime));
-  real_t	shift= 1.83/2*1.75; //testing:::
+  real_t            cowt, siwt;
+  int_t             i, j, k, id, side;
+
+
   if (Femlib::ivalue  ("TIMEDECAY")==1) timedecay = exp(-3*(timenow-shift)*(timenow-shift)); //testing:::
   if (Femlib::ivalue  ("TIMEDECAY")==2) timedecay = 1; 
-	
-  real_t cowt, siwt;
- 
+  
   if ( Femlib::ivalue ("controlbc_t_dependency")==0)   {
     cowt=1; siwt=0;
   }
@@ -1437,12 +1483,12 @@ void Field::add_adjoint_pressure(real_t* adjoint_px, real_t* adjoint_py,const in
   if (Geometry::nPert() == 2) BC = _bsys -> BCs (0);
   else                        BC = _bsys -> BCs (Femlib::ivalue ("BETA"));
   
-  
   for (k = 0; k < _nz; k++)      
     for (i = 0; i < _nbound; i++ )
       if(*BC[i]->group()=='c') {
 	id =BC[i]->element()->ID();
 	side=BC[i]->side();
+
 	Veclib::copy (npnp, _plane[k]+id*npnp, 1, p_element , 1);
 	
 	switch (side) {
@@ -1462,7 +1508,7 @@ void Field::add_adjoint_pressure(real_t* adjoint_px, real_t* adjoint_py,const in
 	}
 	
 	// Compute unit normal x p* on control boundary.
-	BC[i] ->direction_pressure(p_edge,nxp,nyp);
+	BC[i] -> direction_pressure(p_edge,nxp,nyp);
 	
 	// Multiply by f(t) and add to what has previously been written to adjoint_gradient. Note that the pressure term only applies to the u and v components of the perturbation.
 	if (_nz==1){
@@ -1492,3 +1538,299 @@ void Field::add_adjoint_pressure(real_t* adjoint_px, real_t* adjoint_py,const in
   delete []  nyp;
 }
 
+void Field::getInfK(real_t* ki, int_t step)
+// -----------------------------------------------------------------
+// Retrieve and store inflow velocity information for later use by 
+// mixed BCs in the adjoint system.
+// -----------------------------------------------------------------
+{
+  const int_t np   = Geometry::nP();
+  const int_t nz   = Geometry::nZ();
+  const int_t npnp = Geometry::nTotElmt();
+  const int_t nc   = _bsys -> sizecontrolbc();
+
+  vector<Boundary*> BC;
+  vector<real_t>    work(2*npnp);
+  real_t            *p, *src, *ux, *uy, *uxc, *uyc, *tmp;
+  int_t             side, id, dOffset, dSkip, i, j, k, m;
+
+  ux  = new real_t[npnp];
+  uy  = new real_t[npnp];
+  uxc = new real_t[np];
+  uyc = new real_t[np];
+  tmp = new real_t[np];
+
+  if (Geometry::nPert() == 2) BC = _bsys -> BCs (0);
+  else                        BC = _bsys -> BCs (Femlib::ivalue ("BETA"));
+
+  for (k = 0; k < nz; k++){
+    p = _plane[k];
+    for (j = 0; j < _nbound; j++){
+      if (*BC[j] -> group() == 'c'){
+	side = BC[j] -> side();
+	id   = BC[j] -> element() -> ID();
+	src  = p + id*npnp;
+
+	BC[j] -> element() -> sideGet(side, src, ki);
+	/*	cout << "Inflow Velocity Data: " << endl;
+	for (m = 0; m < np; m++){
+	  cout << "Surface No: " << j << " "
+	       << "Element ID: " << id << " "
+	       << "Side: " << side << " "
+	       << "Node: " << m << " "
+	       << "ui: " << ki[m] << endl;
+	       }*/
+	
+
+	Veclib::copy(npnp, src, 1, ux, 1);
+	Veclib::copy(npnp, src, 1, uy, 1);
+
+	BC[j] -> element() -> grad(ux, 0, &work[0]);
+	BC[j] -> element() -> grad(0, uy, &work[0]);
+
+	switch(side){
+	case 0: for (i = 0; i < np; i++){
+	    *(uxc+i) = *(ux+i);
+	    *(uyc+i) = *(uy+i);
+	  }
+	  break;
+	case 1: for (i = 0; i < np; i++){
+	    *(uxc+i) = *(ux+np*(i+1)-1);
+	    *(uyc+i) = *(uy+np*(i+1)-1);
+	  }
+	  break;
+	case 2: for (i = 0; i < np; i++){
+	    *(uxc+i) = *(ux+npnp-1-i);
+	    *(uyc+i) = *(uy+npnp-1-i);
+	  }
+	  break;
+	case 3: for (i = 0; i < np; i++){
+	    *(uxc+i) = *(ux+np*(np-1)-i*np);
+	    *(uyc+i) = *(uy+np*(np-1)-i*np);
+	  }
+	  break;
+	default: break;
+	}
+
+	BC[j] -> normal_gradient(uxc, uyc, tmp);
+	/*	cout << "Normal Gradient Data: " << endl;
+	for (m = 0; m < np; m++){
+	  cout << "Surface No: " << j << " "
+	       << "Element ID: " << id << " "
+	       << "Side: " << side << " "
+	       << "Node: " << m << " "
+	       << "ui: " << tmp[m] << endl;
+	       }*/
+      
+	// Effectively Veclib::vdiv with check for divisor = 0.
+	for(i = 0; i < np; i++){
+	  if(ki[i] != 0){
+	    ki[i] = tmp[i]/ki[i];
+	  }
+	  else {
+	    ki[i] = 0;
+	  }
+	}
+
+	//Veclib::smul(np, -1, ki, 1, ki, 1);
+
+	//Veclib::vdiv(np, tmp, 1, ki, 1, ki, 1);
+
+	// Print routine for testing.
+	/*	cout << "K Data: " << endl;
+	for (m = 0; m < np; m++){
+	  cout << "Surface No: " << j << " "
+	       << "Element ID: " << id << " "
+	       << "Side: " << side << " "
+	       << "Node: " << m << " "
+	       << "ui: " << ki[m] << endl;
+	       }*/
+
+	//	Veclib::fill(np, 1.0, ki, 1); // Remove after testing.
+	
+	ki += np;
+      }
+    }
+  }
+
+  delete [] ux;
+  delete [] uy;
+  delete [] uxc;
+  delete [] uyc;
+  delete [] tmp;
+}
+
+void Field::updateK(real_t* ki)
+// -------------------------------------------------------------------
+// Write K data in domain storage to condition object storage.
+// -------------------------------------------------------------------
+{
+  const int_t nc   = _bsys -> sizecontrolbc();
+
+  vector<Boundary*> BC;
+  real_t*           K;
+  int_t             i;
+
+  if (Geometry::nPert() == 2) BC = _bsys -> BCs (0);
+  else                        BC = _bsys -> BCs (Femlib::ivalue ("BETA"));
+  
+  for (i = 0; i < _nbound; i++){
+    if (*BC[i] -> group() == 'c'){
+      K = BC[i] -> bcond() -> kfunc();
+      Veclib::copy(nc, ki, 1, K, 1);
+      break;
+    }
+  }
+}
+
+void Field::infBoundaryData(bool forwards, int_t step)
+// --------------------------------------------------------------------
+// Function to output fluid velocity component and normal gradient on 
+// the control boundary.
+// --------------------------------------------------------------------
+{
+  const int_t np   = Geometry::nP();
+  const int_t nz   = Geometry::nZ();
+  const int_t npnp = Geometry::nTotElmt();
+  const int_t nc   = _bsys -> sizecontrolbc();
+
+  vector<Boundary*> BC;
+  vector<real_t>    work(2*npnp);
+  real_t            *uinf, *guinf, *tmp, *p, *src, *x, *y,
+                    *ux, *uy, *uxc, *uyc, *K, *kay, *Ku, *res;
+  int_t             side, id, i, j, k, m, num;
+  char              forward[StrMax], adjoint[StrMax];
+  char              *n;
+
+  n = new char[2];
+  n[0] = _name;
+  n[1] = '\0';
+
+  sprintf(forward, "forward.dat.%d.", step);
+  strcat(forward, n);
+  sprintf(adjoint, "adjoint.dat.%d.", step);
+  strcat(adjoint, n);
+
+  m   = 0;
+  num = 0;
+
+  x     = new real_t[nc];
+  y     = new real_t[nc];
+  K     = new real_t[nc];
+  Ku    = new real_t[nc];
+  uinf  = new real_t[nc];
+  guinf = new real_t[nc];
+  res   = new real_t[nc];
+  ux    = new real_t[npnp];
+  uy    = new real_t[npnp];
+  uxc   = new real_t[np];
+  uyc   = new real_t[np];
+
+  if (Geometry::nPert() == 2) BC = _bsys -> BCs(0);
+  else                        BC = _bsys -> BCs(Femlib::ivalue("BETA"));
+
+  for(k = 0; k < nz ; k++){
+    p = _plane[k];
+    for(i = 0; i < _nbound; i++){
+      if(*BC[i] -> group() == 'c'){
+	BC[i] -> switchK(num);
+	side = BC[i] -> side();
+	id   = BC[i] -> element() -> ID();
+	src  = p + id*npnp;
+	kay  = BC[i] -> bcond() -> getK();
+	
+	Veclib::copy(npnp, src, 1, ux, 1);
+	Veclib::copy(npnp, src, 1, uy, 1);
+
+        BC[i] -> element() -> grad(ux, 0, &work[0]);
+        BC[i] -> element() -> grad(0, uy, &work[0]);
+
+        switch(side){
+        case 0: for (j = 0; j < np; j++){
+            *(uxc+j) = *(ux+j);
+            *(uyc+j) = *(uy+j);
+          }
+          break;
+        case 1: for (j = 0; j < np; j++){
+            *(uxc+j) = *(ux+np*(j+1)-1);
+            *(uyc+j) = *(uy+np*(j+1)-1);
+          }
+          break;
+        case 2: for (j = 0; j < np; j++){
+            *(uxc+j) = *(ux+npnp-1-j);
+            *(uyc+j) = *(uy+npnp-1-j);
+          }
+          break;
+        case 3: for (j = 0; j < np; j++){
+            *(uxc+j) = *(ux+np*(np-1)-j*np);
+            *(uyc+j) = *(uy+np*(np-1)-j*np);
+          }
+          break;
+        default: break;
+        }
+
+	BC[i] -> controlbcmesh(x+m*np, y+m*np);
+	BC[i] -> element() -> sideGet(side, src, uinf+m*np);
+        BC[i] -> normal_gradient(uxc, uyc, guinf+m*np);
+
+	Veclib::copy(np, kay, 1, K+m*np, 1);
+	Veclib::vmul(np, K+m*np, 1, uinf+m*np, 1, Ku+m*np, 1);
+
+	Veclib::vadd(np, guinf+m*np, 1, Ku+m*np, 1, res+m*np, 1);
+	Veclib::vdiv(np, res+m*np, 1, Ku+m*np, 1, res+m*np, 1);
+	Veclib::smul(np, 100.0, res+m*np, 1, res+m*np, 1);
+
+	num += 1;
+	m += 1;
+      }
+    }
+  }
+  if(forwards){
+    ofstream file(forward); 
+    file << "x" << setw(15)
+	 << "y" << setw(15)
+	 << "u" << setw(15)
+	 << "grad u" << endl;
+    for(i = 0; i < nc; i++){
+      file << x[i]     << setw(15)
+	   << y[i]     << setw(15)
+	   << uinf[i]  << setw(15)
+	   << guinf[i] << endl;
+    }
+    file.close();
+  }
+  else{
+    ofstream file1(adjoint);
+    file1 << "Mixed BC Data: Grad u* + K x u* = 0" << endl;
+    file1 << "x"       << setw(15)
+	  << "y"       << setw(15)
+	  << "u*"      << setw(15)
+	  << "Grad u*" << setw(15)
+	  << "K"       << setw(15)
+	  << "K x u*"  << setw(15)
+	  << "% Error"   << endl;
+    for(i = 0; i < nc; i++){
+      file1 << x[i]        << setw(15)
+	    << y[i]        << setw(15)
+	    << uinf[i]     << setw(15)
+	    << guinf[i]    << setw(15)
+	    << K[i]        << setw(15)
+	    << Ku[i]       << setw(15)
+	    << abs(res[i]) <<endl;
+    }
+    file1.close();
+  }
+  
+  delete [] x;
+  delete [] y;
+  delete [] K;
+  delete [] Ku;
+  delete [] uinf;
+  delete [] guinf;
+  delete [] res;
+  delete [] ux;
+  delete [] uy;
+  delete [] uxc;
+  delete [] uyc;
+  delete [] n;
+}

@@ -94,7 +94,7 @@ void Essential::get (const int_t   side,
 		     const real_t* src ,
 		     real_t*       tgt ) const
 // ---------------------------------------------------------------------------
-// Scatter external value storage area src into globally-numbered tgt. 
+// Gather globally-numbered src into external value storage area tgt. 
 // ---------------------------------------------------------------------------
 {
   const int_t  np    = Geometry::nP();
@@ -176,9 +176,9 @@ void EssentialFunction::get (const int_t   side,
 			     const int_t*  bmap,
 			     const real_t* src ,
 			     real_t*       tgt ) const
-// ---------------------------------------------------------------------------
-// Scatter external value storage area src into globally-numbered tgt. 
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Gather globally-numbered src into external value storage area tgt. 
+// -----------------------------------------------------------------------------
 {
   const int_t  np    = Geometry::nP();
   const int_t  nm    = np - 1;
@@ -385,14 +385,17 @@ Mixed::Mixed (const char* v)
 // v is not used here. _K_ and _C_ are zeroed and will be updated later
 // ---------------------------------------------------------------------------
 {
-  const char routine[] = "Mixed::Mixed";
-  const char sep[] = ";,";
-  const int_t              np  = Geometry::nP();
+  const char  routine[] = "Mixed::Mixed";
+  const char  sep[] = ";,";
+  const int_t np  = Geometry::nP();
+  const int_t nb  = Geometry::nBnode();
    
   _K_  = new real_t [static_cast<size_t>(np)];
   _C_  = new real_t [static_cast<size_t>(np)];
+  k_func = new real_t [static_cast<size_t>(nb)];
   Veclib::zero (np, _C_, 1);
-  Veclib::fill (np,  strtod (v, 0), _K_, 1); 
+  Veclib::zero (np, _K_, 1); 
+
   // TESTING::: Veclib::zero (np, _K_, 1);
 }
 
@@ -410,7 +413,7 @@ void Mixed::evaluate (const int_t    np  ,
 // Load external value storage area tgt with installed constants.
 // ---------------------------------------------------------------------------
 {
-Veclib::vmul(np, _K_, 1,  _C_, 1, tgt, 1);
+  Veclib::vmul(np, _K_, 1,  _C_, 1, tgt, 1);
 }
 
 
@@ -505,10 +508,10 @@ void Mixed::augmentOp (const int_t   side,
 
   for (i = 0; i < nm; i++)
     tgt[start[i]] += _K_[i] * area[i] * src[start[i]];
-
+  
   i = (side == 3) ? bmap[0] : start[nm];
   tgt[i] += _K_[nm] * area[nm] * src[i];
-	//	printf(								"%f         \n", *( _K_+1));
+  //	printf(								"%f         \n", *( _K_+1));
 }
 
 
@@ -520,7 +523,7 @@ void Mixed::augmentDg (const int_t   side,
 // ---------------------------------------------------------------------------
 // This operation is used to augment the element-wise construction of
 // the diagonal of the global Helmholtz matrix where there are mixed
-// BCs.  Add in diagonal terms <K, w> to globally-numbered tgt.
+// BCs. Add in diagonal terms <K, w> to globally-numbered tgt.
 // ---------------------------------------------------------------------------
 {
   const int_t    np    = Geometry::nP();
@@ -557,10 +560,21 @@ void Mixed::switchK (const int_t   np     ,
 // Only happen for Toutlfow BC edge.
 // ---------------------------------------------------------------------------
 {   
-  Veclib::copy (np, K_adjoint_timei, 1, _K_, 1);
+
+  Veclib::copy(np, k_func+doffset*np, 1, _K_, 1);
 }
 
+void Mixed::switchK (const int_t num) const
+// ---------------------------------------------------------------------------
+// Change _K_ based on position of current Boundary object. Used if _K_ is a
+// spatially varying function.
+// ---------------------------------------------------------------------------
+{
+  const int_t np = Geometry::nP();
 
+  Veclib::copy(np, k_func+num*np, 1, _K_, 1);
+
+}
 void Mixed::takeC ( const int_t np,
 		    const real_t* p_adjoint ) const
 // ---------------------------------------------------------------------------
@@ -577,27 +591,6 @@ void Mixed::describe (char* tgt) const
 {
   sprintf (tgt, "mixed:\t%g\t%g", _K_[0], _C_[0]);
 }
-
-void  Controlbc::evaluate (const int_t    np  ,
-			   const int_t    id  ,
-			   const int_t    nz  ,
-			   const Element* E   ,
-			   const int_t    side,
-			   const int_t    step,
-			   const real_t*  nx  ,
-			   const real_t*  ny  ,
-			   real_t*        tgt ) const
-// ---------------------------------------------------------------------------
-// Load external value storage area tgt with installed constant. 
-// which is covered, so useless
-// ---------------------------------------------------------------------------
-{ 
-
-  if (step != 0){
-  Veclib::copy (np, _uc, 1, tgt, 1);
-  }
-}
-
 
 void  Controlbc::set (const int_t   side,
 		      const int_t*  bmap,
@@ -627,7 +620,7 @@ void Controlbc::get (const int_t   side,
 		     const real_t* src ,
 		     real_t*       tgt ) const
 // ---------------------------------------------------------------------------
-// Scatter external value storage area src into globally-numbered tgt. 
+// Gather globally-numbered src into external value storage area tgt. 
 // ---------------------------------------------------------------------------
 {
   const int_t  np    = Geometry::nP();

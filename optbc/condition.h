@@ -34,12 +34,17 @@ public:
   virtual void   augmentDg     (const int_t, const int_t*, 
 				const real_t*, real_t*)                      const=0;
   virtual void   describe      (char* tgt)                                   const=0;
-  virtual void   takeC         (const int_t, const real_t*)               const=0;
-  virtual real_t controlnorm   (const real_t*, real_t*)                const=0;
-  virtual real_t controllength (const real_t*)                       const=0;
+  virtual void   takeC         (const int_t, const real_t*)                  const=0;
+  virtual real_t controlnorm   (const real_t*, real_t*)                      const=0;
+  virtual real_t controllength (const real_t*)                               const=0;
   virtual void   switchK       (const int_t, const real_t*, const real_t*, const int_t,
 				const int_t, const real_t*, const real_t*, const bool) const{ };
+  virtual void   switchK       (const int_t) const=0;
+
+  virtual real_t* getK()       const=0;
+  virtual real_t* kfunc()     const=0;
   virtual ~Condition()   { }
+
 };
 
 
@@ -70,17 +75,19 @@ public:
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const
     { };
-  virtual void      takeC(const int_t, const real_t*)                     const
+  virtual void takeC     (const int_t, const real_t*)                    const
     { };
-  virtual real_t      controlnorm (const real_t*, real_t*)                const
+  virtual real_t controlnorm (const real_t*, real_t*)                    const
 	{return 0;};
-  virtual real_t      controllength (const real_t*)                       const
+  virtual real_t controllength (const real_t*)                           const
 	{return 0;};
-  virtual void describe  (char*)                             const;
+  virtual void describe  (char*)                                         const;
   virtual void switchK   (const int_t, const real_t*, const real_t*, const int_t,
 			  const int_t, const real_t*, const real_t*, const bool)            const
     { };
-
+  virtual void    switchK (const int_t) const {};
+  virtual real_t* getK() const{};
+  virtual real_t* kfunc() const{};
 private:
   real_t _value;
 };
@@ -113,16 +120,19 @@ public:
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const
     { };
-   virtual void      takeC(const int_t, const real_t*)                  const
+   virtual void takeC    (const int_t, const real_t*)                  const
     { };
-   virtual real_t      controlnorm (const real_t*, real_t*)                const
+   virtual real_t controlnorm (const real_t*, real_t*)                const
 	{return 0;};
-   virtual real_t      controllength (const real_t*)                       const
+   virtual real_t controllength (const real_t*)                       const
 	{return 0;};
    virtual void describe  (char*)                                         const;
    virtual void switchK   (const int_t, const real_t*, const real_t*, const int_t,
-			  const int_t, const real_t*, const real_t*, const bool)                          const
+			   const int_t, const real_t*, const real_t*, const bool)                          const
     { };
+   virtual void    switchK (const int_t) const {};
+   virtual real_t* getK()const{};
+   virtual real_t* kfunc() const{};
    
 private:
   char* _function;
@@ -168,6 +178,9 @@ class Natural : public Condition
   virtual void   switchK   (const int_t, const real_t*, const real_t*, const int_t,
 	   		    const int_t, const real_t*, const real_t*, const bool)   const
   { };
+  virtual void    switchK (const int_t) const {};
+  virtual real_t* getK()const{};
+  virtual real_t* kfunc() const{};
 
  private:
   real_t _value;
@@ -213,6 +226,9 @@ class NaturalFunction : public Condition
   virtual void   switchK   (const int_t, const real_t*, const real_t*, const int_t,
 			    const int_t, const real_t*, const real_t*, const bool)   const
   { };
+  virtual void    switchK (const int_t) const {};
+  virtual real_t* getK()const{};
+  virtual real_t* kfunc() const{};
 
  private:
   char* _function;
@@ -258,6 +274,9 @@ class NaturalHOPBC : public Condition
   virtual void switchK   (const int_t, const real_t*, const real_t*, const int_t,
 			  const int_t, const real_t*, const real_t*, const bool)                          const
     { };
+  virtual void    switchK (const int_t) const {};
+  virtual real_t* getK()const{};
+  virtual real_t* kfunc() const{};
 
 };
 
@@ -300,6 +319,12 @@ class Mixed : public Condition
 			const int_t, const int_t, const real_t*, 
 			const real_t*, const bool)                       const;
 
+  virtual void    switchK (const int_t) const;
+  virtual real_t* getK() const {return _K_;};
+  virtual real_t* kfunc() const{return k_func;};
+
+  real_t* k_func;       // -- Storage for spatially varying _K_.
+
  private:
   real_t* _K_;		// -- This is "K" above.
   real_t* _C_;		// -- This is "C" above.
@@ -317,7 +342,8 @@ class Controlbc : public Condition
 
   virtual void evaluate  (const int_t, const int_t, const int_t,
 			  const Element*, const int_t, const int_t,
-			  const real_t*, const real_t*, real_t*)         const;
+			  const real_t*, const real_t*, real_t*)         const
+  { };
   virtual void set       (const int_t, const int_t*,
 			  const real_t*, real_t*)                        const;
   virtual void get       (const int_t, const int_t*,
@@ -343,10 +369,11 @@ class Controlbc : public Condition
 
   virtual void switchK   (const int_t, const real_t*, const real_t*, const int_t,
 			  const int_t, const real_t*, const real_t*, const bool) const
-  { };
-  
- private:
-  real_t* _uc;
+  { };  
+  virtual void    switchK (const int_t) const {};
+  virtual real_t* getK()const{};
+  virtual real_t* kfunc() const{};
+
 };
 
 
@@ -387,13 +414,16 @@ class Toutflow : public Condition
 
   virtual void   takeC (const int_t, const real_t*)                      const
   { };
-
- virtual void switchK   (const int_t, const real_t*, const real_t*,
-			 const int_t, const int_t, const real_t*, 
-			 const real_t*, const bool)                      const;
+  
+  virtual void switchK   (const int_t, const real_t*, const real_t*,
+			  const int_t, const int_t, const real_t*, 
+			  const real_t*, const bool)                      const;
+  virtual void    switchK (const int_t) const {};
+  virtual real_t* getK ()const{};
+  virtual real_t* kfunc() const{};
  
  private:
- real_t* _K_;		// -- This is "K" above.
+  real_t* _K_;		// -- This is "K" above.
 };
 
 #endif

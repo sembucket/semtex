@@ -25,6 +25,7 @@ public:
   const vector<Boundary*>& BC () const  { return _BC;}
   int_t nglobal () const {return _nglobal;}
   int_t nsolve  () const {return _nsolve;}
+  SolverKind solver() {return _method;}
 	
 private:
   real_t  _HelmholtzConstant;	// Same for all modes.

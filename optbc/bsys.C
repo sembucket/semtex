@@ -60,18 +60,16 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
   char                        buf[StrMax], group;
   int_t                       i, j, k, offset;
 
-  _number = new NumberSys* [6];
+  _number = new NumberSys* [3];
   for (i = 0; i < 3; i++) _number[i] = bcmgr -> getNumberSys (_field_name, i);
-//adjoint counter part
-  for (i = 3; i < 6; i++) _number[i] = bcmgr -> getNumberSys_adjoint (_field_name, i-3);
   
-  _boundary = new vector<Boundary*> [6];
+  _boundary = new vector<Boundary*> [3];
 
-  if (!_nbound) { for (i = 0; i < 6; i++) _boundary[i].resize (0); return; }
+  if (!_nbound) { for (i = 0; i < 3; i++) _boundary[i].resize (0); return; }
 
   // -- Construct vectors of Boundary pointers using bcmgr.
 
-  for (i = 0; i < 6; i++) _boundary[i].resize (_nbound);
+  for (i = 0; i < 3; i++) _boundary[i].resize (_nbound);
  
   // -- Mode 0 boundaries, and default settings for other modes.
 
@@ -87,15 +85,11 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
     C -> describe (buf);
 
     if (strstr (buf, "mixed")) _mixed = true;
-//	if (strstr (buf, "control")) _mixed = true;  //testing:::
     if (strstr (buf, "toutflow")) _Toutflow = true; 
     
     _boundary[0][i] =
       _boundary[1][i] =
-      _boundary[2][i] =
-      _boundary[3][i] =
-      _boundary[4][i] =
-      _boundary[5][i] = new Boundary (i, S, C, elmt[j], k);
+      _boundary[2][i] = new Boundary (i, S, C, elmt[j], k);
   }
   
   if (!(Geometry::system() == Geometry::Cylindrical && Geometry::nDim() == 3))
@@ -113,9 +107,7 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
     C     = bcmgr -> getCondition (group, _field_name, 1, 1);  
     
     if (strstr (S, "axis")) 
-      _boundary[1][i] = 
-	_boundary[4][i] = new Boundary (i, "axis", C, elmt[j], k);
-	  
+      _boundary[1][i] = new Boundary (i, "axis", C, elmt[j], k);          	  
   }
 
   // -- Mode 2 boundaries,adjusted on axis.
@@ -130,34 +122,9 @@ BoundarySys::BoundarySys (BCmgr*                  bcmgr,
     C     = bcmgr -> getCondition (group, _field_name, 2, 1); 
 
     if (strstr (bcmgr -> groupInfo (group), "axis"))
-      _boundary[2][i] = 
-	_boundary[5][i] = new Boundary (i, "axis", C, elmt[j], k);
+      _boundary[2][i] = new Boundary (i, "axis", C, elmt[j], k);
   }
-  
-  
-  // -- adjust controlbc's for adjoint simulation
-  
-  edge = bcmgr -> getBCedges().begin();
-  for (offset = 0, i = 0; i < _nbound; i++, edge++, offset += np) {
-    BCT   = *edge;
-    group = BCT -> group;
-    j     = BCT -> elmt;
-    k     = BCT -> side;
-    S     = bcmgr -> groupInfo    (group);
-    C     = bcmgr -> getCondition (group, _field_name, 0, 0);
-
-    if (strstr (bcmgr -> groupInfo (group), "control"))
-      {
-	_boundary[3][i] =
-	  _boundary[4][i] = 
-	  _boundary[5][i] = new Boundary (i, "control", C, elmt[j], k);
-      }
-  }
-  
-  
 }
-
-
 
 const vector<Boundary*>& BoundarySys::BCs (const int_t mode) const
 // ---------------------------------------------------------------------------
@@ -170,17 +137,6 @@ const vector<Boundary*>& BoundarySys::BCs (const int_t mode) const
     _boundary [clamp (mode,static_cast<int_t>(0),static_cast<int_t>(2))];
 }
 
-
-const vector<Boundary*>& BoundarySys::BCs_adjoint (const int_t mode) const
-// ---------------------------------------------------------------------------
-// adjoint counterpart of BCs
-// ---------------------------------------------------------------------------
-{
-  return
-    _boundary [clamp (mode,static_cast<int_t>(0),static_cast<int_t>(2))+3];
-}
-
-
 const NumberSys* BoundarySys::Nsys (const int_t mode) const
 // ---------------------------------------------------------------------------
 // Return appropriate NumberSystem* for field name, according to
@@ -191,16 +147,6 @@ const NumberSys* BoundarySys::Nsys (const int_t mode) const
     _number [clamp(mode,static_cast<int_t>(0),static_cast<int_t>(2))];
 }
 
-
-const NumberSys* BoundarySys::Nsys_adjoint (const int_t mode) const
-// ---------------------------------------------------------------------------
-// adjoint counter part of Nsys
-// ---------------------------------------------------------------------------
-{
-  return
-    _number [clamp(mode,static_cast<int_t>(0),static_cast<int_t>(2))+3];
-}
-
 const real_t* BoundarySys::Imass (const int_t mode) const
 // ---------------------------------------------------------------------------
 // Return appropriate inverse mass matrix for field name, according to
@@ -209,14 +155,5 @@ const real_t* BoundarySys::Imass (const int_t mode) const
 {
   return 
     _number [clamp(mode,static_cast<int_t>(0),static_cast<int_t>(2))]->imass();
-}
-
-const real_t* BoundarySys::Imass_adjoint (const int_t mode) const
-// ---------------------------------------------------------------------------
-// ajdoint counterpart of Imass
-// ---------------------------------------------------------------------------
-{
-  return 
-    _number [clamp(mode,static_cast<int_t>(0),static_cast<int_t>(2))+3]->imass();
 }
 

@@ -19,11 +19,8 @@ public:
   int_t                    mixBC () const { return _mixed; }
   int_t                    ToutflowBC () const { return _Toutflow; }
   const vector<Boundary*>& BCs   (const int_t) const;
-  const vector<Boundary*>& BCs_adjoint   (const int_t) const;
   const NumberSys*         Nsys  (const int_t) const;
-  const NumberSys*         Nsys_adjoint  (const int_t) const;
   const real*              Imass (const int_t) const;
-  const real*              Imass_adjoint (const int_t) const;
 
 private:
   char               _field_name;

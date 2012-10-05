@@ -17,7 +17,6 @@ public:
   const char*        groupInfo    (const char) const;
   Condition*         getCondition (const char, const char, const int_t = 0, bool=1);
   NumberSys*         getNumberSys (const char, const int_t = 0);
-  NumberSys*         getNumberSys_adjoint (const char, const int_t = 0);
   vector<BCtriple*>& getBCedges   () { return _elmtbc; }
   int_t              nBCedges     () const { return _elmtbc.size(); }
   int_t              nWall        (); // Should be const: OSX compiler bug?

@@ -1765,31 +1765,33 @@ void Element::sideGeom (const int_t side,
 
 real_t* Element::Peaks (real_t* u) const
 // return peaks values of the velocity;
-{register int_t   i;
- real_t*  peakvalues; //peakvalues[0]=xmesh, peakvalues[1]=ymesh;peakvalues[2]=energy.
- peakvalues    = new real_t [static_cast<size_t> (3)]; 
- Veclib::zero (3,      peakvalues, 1); 
+{
+  register int_t   i;
+  real_t*  peakvalues; //peakvalues[0]=xmesh, peakvalues[1]=ymesh;peakvalues[2]=energy.
+  peakvalues    = new real_t [static_cast<size_t> (3)]; 
+  Veclib::zero (3,      peakvalues, 1); 
  
   for (i = 0; i < _npnp; i++){
-		if (abs(*(u+i)) > peakvalues[2]) {peakvalues[0]=*(_xmesh+i); peakvalues[1]=*(_ymesh+i); peakvalues[2]=abs(*(u+i));}
+    if (abs(*(u+i)) > peakvalues[2]) {peakvalues[0]=*(_xmesh+i); peakvalues[1]=*(_ymesh+i); peakvalues[2]=abs(*(u+i));}
   }
   return peakvalues;
 }
 
 real_t* Element::Energycenter (real_t* u) const
 // return u^2*ds*x in energycenter[0],u^2*ds*y in energycenter[1],u^2*ds in energycenter[2];
-{register int_t   i;
- register real_t* dA = _Q4;
- real_t radius;
-// real_t*  energycenter; //energycenter[0] for int x*u; energycenter[1] for int y*u; energycenter[2] for int u; energycenter[4] for int r*u;.
- real_t energycenter[4]={0,0,0,0};
- 
+{
+  register int_t   i;
+  register real_t* dA = _Q4;
+  real_t radius;
+  // real_t*  energycenter; //energycenter[0] for int x*u; energycenter[1] for int y*u; energycenter[2] for int u; energycenter[4] for int r*u;.
+  real_t energycenter[4]={0,0,0,0};
+  
   for (i = 0; i < _npnp; i++){
- energycenter[0] +=	*(_xmesh+i) * dA[i] * *(u+i) * *(u+i);	
- energycenter[1] +=	*(_ymesh+i) * dA[i] * *(u+i) * *(u+i);	
- energycenter[2] +=               dA[i] * *(u+i) * *(u+i);
- radius= sqrt(*(_xmesh+i) * *(_xmesh+i) +*(_ymesh+i) * *(_ymesh+i));
- energycenter[3] +=	radius      * dA[i] * *(u+i) * *(u+i);
+    energycenter[0] +=	*(_xmesh+i) * dA[i] * *(u+i) * *(u+i);	
+    energycenter[1] +=	*(_ymesh+i) * dA[i] * *(u+i) * *(u+i);	
+    energycenter[2] +=               dA[i] * *(u+i) * *(u+i);
+    radius= sqrt(*(_xmesh+i) * *(_xmesh+i) +*(_ymesh+i) * *(_ymesh+i));
+    energycenter[3] +=	radius      * dA[i] * *(u+i) * *(u+i);
   }
   return energycenter;
 }

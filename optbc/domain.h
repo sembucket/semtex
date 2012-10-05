@@ -33,12 +33,15 @@ public:
   void  dumppersecond ();
   void  dumpperstep   ();
   void  loadinstantu(vector<AuxField*>, int_t);
-  // -- Required for base fields and stability analysis.
 
+  // -- Required for base fields and stability analysis.
   vector<AuxField*> U       ; // -- Base velocity fields - no BCs.
   vector<real_t*>   Udat    ; // -- Data storage area for base auxfields.
   vector<real_t*>   baseFlow; // -- Fourier transformed base velocities.
+  vector<real_t*>   ki      ; // -- Storage for inflow data needed for mixed BCs.
+
   real_t            period  ; // -- total time for one period of base flow.
+  bool              mixBCs  ; // -- Flag indicates mixed BCs in adjoint system.
 	
   void loadBase  ();
   void updateBase();

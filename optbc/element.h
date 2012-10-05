@@ -166,14 +166,14 @@ protected:
 		     const int_t,real_t*,real_t*) const;
 
   // -- BLAS-conforming edge offsets & skips for element-edge traverses.
-
+  
   void terminal (const int_t side,int_t& start,int_t& skip) const
   { switch (side) {
-  case 0: start = 0;             skip  = 1;    break;
-  case 1: start = _np - 1;       skip  = _np;  break;
-  case 2: start = _np*(_np - 1); skip  = -1;   break;
-  case 3: start = 0;             skip  = -_np; break;
-  } }
+    case 0: start = 0;             skip  = 1;    break;
+    case 1: start = _np - 1;       skip  = _np;  break;
+    case 2: start = _np*(_np - 1); skip  = -1;   break;
+    case 3: start = 0;             skip  = -_np; break;
+    } }
 };
 
 #endif

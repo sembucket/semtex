@@ -93,77 +93,77 @@ int main (int    argc,
 
   
  //controlbc always zero.	
-   Veclib::zero (sizecontrolbc*NZ*NPERT,  uc[0], 1);  
-	getu(u0);
-	
-	for (j = 0; !converged && j < iterations; j++) {
-  	if (j>0){
-	    Veclib::copy (NZ*NP*NPERT, lagrangian_gradient[0], 1, direction[0], 1);
-
-		//use duc as uc. first get the direction There are only gradient and conjugate methods here.
-		if (j==1 || Femlib::ivalue  ("gradient_method")==0)
-            Veclib::copy (NZ*NP*NPERT, lagrangian_gradient[0], 1, direction[0], 1);
-		else if (Femlib::ivalue  ("gradient_method")==1)
-			Veclib::svtvp (NZ*NP*NPERT, norml[j-1]/norml[j-2], direction[0], 1, lagrangian_gradient[0], 1, direction[0], 1); 
-		
-		installdomainu(direction);
-		
-	
-		integrate (linAdvect, domain, analyst, adjoint_integration,uc);
-	    getu(udu0);
-		//steplength is determined here.
-		choose_step_length(uu0,udu0,u0, direction, normu0[j-1],normutau[j-1],steplength);
-		
-       
-		 Veclib::svtvp (NZ*NP*NPERT, steplength, direction[0], 1,u0[0], 1, u0[0], 1); 
-		installdomainu(u0);
-		normu0[j]=L2norm();		
-
-		Veclib::svtvp (NZ*NP*NPERT, steplength,  udu0[0], 1,uu0[0], 1, uu0[0], 1); 
-		installdomainu(uu0);
-	    normutau[j]=L2norm();	
-		
-		energygrowth[j]=normutau[j]/normu0[j];	
+  Veclib::zero (sizecontrolbc*NZ*NPERT,  uc[0], 1);  
+  getu(u0);
+  
+  for (j = 0; !converged && j < iterations; j++) {
+    if (j>0){
+      Veclib::copy (NZ*NP*NPERT, lagrangian_gradient[0], 1, direction[0], 1);
+      
+      //use duc as uc. first get the direction There are only gradient and conjugate methods here.
+      if (j==1 || Femlib::ivalue  ("gradient_method")==0)
+	Veclib::copy (NZ*NP*NPERT, lagrangian_gradient[0], 1, direction[0], 1);
+      else if (Femlib::ivalue  ("gradient_method")==1)
+	Veclib::svtvp (NZ*NP*NPERT, norml[j-1]/norml[j-2], direction[0], 1, lagrangian_gradient[0], 1, direction[0], 1); 
+      
+      installdomainu(direction);
+      
+      
+      integrate (linAdvect, domain, analyst, adjoint_integration,uc);
+      getu(udu0);
+      //steplength is determined here.
+      choose_step_length(uu0,udu0,u0, direction, normu0[j-1],normutau[j-1],steplength);
+      
+      
+      Veclib::svtvp (NZ*NP*NPERT, steplength, direction[0], 1,u0[0], 1, u0[0], 1); 
+      installdomainu(u0);
+      normu0[j]=L2norm();		
+      
+      Veclib::svtvp (NZ*NP*NPERT, steplength,  udu0[0], 1,uu0[0], 1, uu0[0], 1); 
+      installdomainu(uu0);
+      normutau[j]=L2norm();	
+      
+      energygrowth[j]=normutau[j]/normu0[j];	
     } else {
-
-	normu0[0]=L2norm();	
-	integrate (linAdvect, domain, analyst, adjoint_integration,uc);
-	normutau[0]=L2norm();
-	getu(uu0);
-	energygrowth[0]=normutau[0]/normu0[0];
-
-	
-	}
-	//Scale u(T) as input of backward integration.
-	for (i = 0; i < NPERT; i++)  	 *(domain -> u[i]) *=2/normu0[j];
-
-	//backward integration to obtain the adjoint gradient term.
-	integrate (linAdvectT, domain, analyst,adjoint_integration,uc); 
-	norma[j]=L2norm();
+      
+      normu0[0]=L2norm();	
+      integrate (linAdvect, domain, analyst, adjoint_integration,uc);
+      normutau[0]=L2norm();
+      getu(uu0);
+      energygrowth[0]=normutau[0]/normu0[0];
+      
+      
+    }
+    //Scale u(T) as input of backward integration.
+    for (i = 0; i < NPERT; i++)  	 *(domain -> u[i]) *=2/normu0[j];
+    
+    //backward integration to obtain the adjoint gradient term.
+    integrate (linAdvectT, domain, analyst,adjoint_integration,uc); 
+    norma[j]=L2norm();
     normu0_mixed[j]=L2norm_mixed(u0);
-	getu(lagrangian_gradient);
-   
-		//Obtain the gradient of Lagrangian function with respect to the control force.
- 	 Veclib::svtvp (NZ*NP*NPERT,  -2 * normutau[j] / normu0[j] / normu0[j], u0[0], 1, lagrangian_gradient[0], 1, lagrangian_gradient[0], 1); 
-	
-		
-	// convergence criterions.
-	installdomainu(lagrangian_gradient);
-	norml[j]= L2norm();
-		
-	growthfile<< j<<setw(15)<<setprecision(8)<<steplength<< setw(15)<<energygrowth[j]<<setw(15)<<normu0_mixed[j]/sqrt(normu0[j]*norma[j])<<endl;
-		if (steplength<EPSDP*EPSDP*EPSDP*EPSDP && j>0) {converged=1; printf("converged !\n"); growthfile<<"converged!"<<endl;} 
-	installdomainu(u0);
-  char          msg[StrMax], nom[StrMax];
-		ofstream      file;
-		sprintf   (msg, ".eig.%d", j);
-		strcat    (strcpy (nom, domain -> name), msg);
-		//scale u0 so that (u0,u0)=1.
-		printf("%e     a\n", normu0[j]);
-	    for (i = 0; i < NPERT; i++)  	 *(domain -> u[i]) /=sqrt(normu0[j]);
-		file.open (nom, ios::out); file << *domain; file.close();
+    getu(lagrangian_gradient);
+    
+    //Obtain the gradient of Lagrangian function with respect to the control force.
+    Veclib::svtvp (NZ*NP*NPERT,  -2 * normutau[j] / normu0[j] / normu0[j], u0[0], 1, lagrangian_gradient[0], 1, lagrangian_gradient[0], 1); 
+    
+    
+    // convergence criterions.
+    installdomainu(lagrangian_gradient);
+    norml[j]= L2norm();
+    
+    growthfile<< j<<setw(15)<<setprecision(8)<<steplength<< setw(15)<<energygrowth[j]<<setw(15)<<normu0_mixed[j]/sqrt(normu0[j]*norma[j])<<endl;
+    if (steplength<EPSDP*EPSDP*EPSDP*EPSDP && j>0) {converged=1; printf("converged !\n"); growthfile<<"converged!"<<endl;} 
+    installdomainu(u0);
+    char          msg[StrMax], nom[StrMax];
+    ofstream      file;
+    sprintf   (msg, ".eig.%d", j);
+    strcat    (strcpy (nom, domain -> name), msg);
+    //scale u0 so that (u0,u0)=1.
+    printf("%e     a\n", normu0[j]);
+    for (i = 0; i < NPERT; i++)  	 *(domain -> u[i]) /=sqrt(normu0[j]);
+    file.open (nom, ios::out); file << *domain; file.close();
   }
-
+  
   growthfile.close();
   Femlib::finalize();
   return (EXIT_SUCCESS);

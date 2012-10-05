@@ -21,8 +21,7 @@ static char RCS[] = "$Id$";
 
 #include <stab.h>
 
-static int_t              NORD, NPERT, NBASE, NZ, CYL, PROB;
-static vector<MatrixSys*> MS;
+static int_t       NORD, NPERT, NBASE, NZ, CYL, PROB;
 
 static void        waveProp   (Domain*, const AuxField***, const AuxField***);
 static void        setPForce  (const AuxField**, AuxField**);
@@ -58,7 +57,6 @@ void integrate (void            (*Advection)(Domain*, AuxField**, AuxField**),
   PROB  = Geometry::problem();
   NORD  = Femlib::ivalue ("N_TIME");
 
-  int_t        i, j, k;
   const real_t dt       = Femlib::value  ("D_T");
   const real_t period   = Femlib::value  ("BASE_PERIOD");
   const real_t tstart   = Femlib::value  ("T_OFFSET");
@@ -66,11 +64,15 @@ void integrate (void            (*Advection)(Domain*, AuxField**, AuxField**),
   const bool   forwards = (Advection == linAdvect) ? true : false;
  
   
-  static MatrixSys** MS;
+  static MatrixSys** MSF;
+  static MatrixSys** MSA;
   static AuxField*** Us;             //Storage for linear velocity terms
   static AuxField*** Uf;
   static Field*      Pressure = D -> u[NPERT];
   const  int_t       controllength = D -> b[0] -> sizecontrolbc();
+  MatrixSys**        MS;
+  real_t             *Kinf;
+  int_t              i, j, k;
  
   // note the base flow must be installed before the install of matrix owing to the U component in Toutflow.  
   // -- Timestepping loop.
@@ -78,20 +80,21 @@ void integrate (void            (*Advection)(Domain*, AuxField**, AuxField**),
   D -> time = (forwards) ? 0 :  dt*nStep;
   //install the base flow
   D -> updateBase();
-	
-  
-  if (!MS) {	      // -- Initialise static data (enable call-back).
-    MS = preSolve (D, forwards); 
-    // -- Create global matrix systems
 
-    // -- Create multi-level storage for velocities and forcing.
+  // -- Initialise static data (enable call-back).
 
+  // Create global matrix systems.
+  if (!MSF && forwards) { MSF = preSolve (D, forwards);}	  
+  if (!MSA && !forwards){ MSA = preSolve (D, forwards);}
+
+  // Create multi-level storage for velocities and forcing.
+  if (!Us && !Uf){
     const int_t ntot  = Geometry::nTotProc();
     real_t*     alloc = new real_t [static_cast<size_t>(2*NPERT*NORD*ntot)];
-
+    
     Us = new AuxField** [static_cast<size_t>(NORD)];
     Uf = new AuxField** [static_cast<size_t>(NORD)];
-	
+    
     for (k = 0, i = 0; i < NORD; i++) {
       Us[i] = new AuxField* [static_cast<size_t>(NPERT)];
       Uf[i] = new AuxField* [static_cast<size_t>(NPERT)];
@@ -100,23 +103,15 @@ void integrate (void            (*Advection)(Domain*, AuxField**, AuxField**),
 	Uf[i][j] = new AuxField (alloc + k++ * ntot, NZ, D -> elmt);
       }
     }
-    // -- Create multi-level storage for pressure BCS.
-
+    
+    // Create multi-level storage for pressure BCS.
     PBCmgr::build (Pressure);
   }
-  else     {
-    delete  MS[0];
-    for (i = 1; i < NPERT+1; i++)	{ 
-      bool index=0;
-      for (j=0;j<i;j++)
-	if (MS[j] == MS[i]) index = 1; 
-      if (!index)     	delete  MS[i];
-    }
-    delete[]  MS;
-    MS = preSolve (D, forwards); 
-  }
-  // -- Because we have to restart from scratch on each call, zero these:
+
+  if (forwards) {MS = MSF;}
+  else          {MS = MSA;}
   
+  // -- Because we have to restart from scratch on each call, zero these:  
   for (i = 0; i < NORD; i++)
     for (j = 0; j < NPERT; j++) {
       *Us[i][j] = 0.0;
@@ -124,7 +119,23 @@ void integrate (void            (*Advection)(Domain*, AuxField**, AuxField**),
     }
 
   while (D -> step < nStep) {
+    // -- Use velocity fields on inflow and outflow boundaries to write
+    //    mixed BC K data to domain storage.
+    if (forwards && D -> mixBCs){
+      for(i = 0; i < NPERT; i++){
+	Kinf = D -> ki[i]+controllength*(D -> step);
 
+	D -> u[i] -> getInfK(Kinf, D -> step);
+      }
+    }
+    // -- On backward integration update mixed boundary conditions from domain storage.
+    else if(!forwards && D -> mixBCs){
+      for (i = 0; i < NPERT; i++){
+	Kinf = D -> ki[i]+controllength*(nStep - ((D -> step)+1));
+	
+	D -> u[i] -> updateK(Kinf);
+      }
+    }
     // -- Reconstruct base velocity fields if appropriate.
     // -- Set the time to end of timestep.
     D -> step += 1; 
@@ -133,11 +144,13 @@ void integrate (void            (*Advection)(Domain*, AuxField**, AuxField**),
 	
     for (i = 0; i < NPERT; i++) {
       //ask Hugh why the fundamental mode is evaluated rather than beta.
+      if(forwards){
       ROOTONLY D -> u[i] -> evaluateControl (D -> step, uc[i]);
+      }
       ROOTONLY D -> u[i] -> evaluateBoundaries (D -> step);
       //  ROOTONLY D -> u[i] -> evaluateM0Boundaries (D -> step);
     }
-	
+
     if (Geometry::cylindrical() && 
 	(PROB != Geometry::O2_2D || PROB != Geometry::SO2_2D))
       Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
@@ -154,14 +167,14 @@ void integrate (void            (*Advection)(Domain*, AuxField**, AuxField**),
 		      const_cast<const AuxField**>(Uf[0]));
     Pressure -> evaluateBoundaries (D -> step);
 	
-   // -- Complete unconstrained advective substep and compute pressure.
+    // -- Complete unconstrained advective substep and compute pressure.
     if (Geometry::cylindrical()) { Us[0][0] -> mulY(); Us[0][1] -> mulY(); }//Us[0]:(ur,vr,w);
     // Compute v^.
     waveProp (D, const_cast<const AuxField***>(Us),
 	      const_cast<const AuxField***>(Uf)); // D: (u^*r,v^*r,w^);
-
+    
     for (i = 0; i < NPERT; i++) AuxField::swapData (D -> u[i], Us[0][i]);//Us[0]: (u^*r,v^*r,w^); D:(ur,vr,w); 
-
+    
     rollm     (Uf, NORD, NPERT);
     setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);// Uf[0]=f*r (f=div*div P)
     Solve     (D, NPERT,  Uf[0][0], MS[NPERT], forwards);
@@ -179,27 +192,40 @@ void integrate (void            (*Advection)(Domain*, AuxField**, AuxField**),
       AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
       AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     }
-	
-    for (i = 0; i < NPERT; i++) 
-      Solve (D, i, Uf[0][i], MS[i],forwards);  
     
+    for (i = 0; i < NPERT; i++) {
+      Solve (D, i, Uf[0][i], MS[i],forwards);  
+    }
+
     if (Geometry::cylindrical() &&
 	(PROB != Geometry::O2_2D || PROB != Geometry::SO2_2D))
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
+    
+    if(D -> step%(500)==0){
+      for (i = 0; i < NPERT; i++) {
+	D -> u[i] -> infBoundaryData(forwards, D -> step);  
+      }
+    }
 
     // add adjoint gradient term.  
     if (!forwards){
-      for (i = 0; i < NPERT; i++)
-	D -> u[i] -> add_adjoint(adjoint_integration[i], D -> step, controllength); 
-      
-      D -> u[NPERT] -> add_adjoint_pressure(adjoint_integration[0],adjoint_integration[1], D -> step, controllength); 	  
+      if (!(D -> b[0] -> mixBC())){
+	for (i = 0; i < NPERT; i++){
+	  D -> u[i] -> add_adjoint(adjoint_integration[i], D -> step, controllength); 
+	}
+	
+	//	D -> u[NPERT] -> add_adjoint_pressure(adjoint_integration[0],adjoint_integration[1], D -> step, controllength); 	  
+      }
+      else if (D -> b[0] -> mixBC()){
+	for (i = 0; i < NPERT; i++){
+	  D -> u[i] -> add_adjoint_mixed(adjoint_integration[i], D -> step, controllength, D -> U);
+	}
+      }
     }	  
+    
     // -- Process results of this step.
-    //if (forwards){
-
     A -> analyse (Us[0]);
-    if(D->step%(100)==0) D->dumppersecond();
-    //	}
+    if(D->step%(100)==0) D -> dumppersecond();
   }
 }
 
@@ -448,9 +474,14 @@ static MatrixSys** preSolve (const Domain* D, bool forwards)
 			PROB == Geometry::SO2_2D)  ? 0 : 1;
   const int_t  bmode = mode * Femlib::ivalue ("BETA");
   const real_t beta  = mode * Femlib::value  ("BETA");
-  const int_t  itLev = Femlib::ivalue ("ITERATIVE");
 
-  vector<real_t> alpha (Integration::OrderMax + 1);
+  //  const int_t  itLev = Femlib::ivalue ("ITERATIVE");
+  // This is a hard code to manually force the code to do what i want.
+  // Probably want to develop an automatic method for handling this.
+  const int_t itLev = (forwards) ? 0 : 1;
+
+  vector<real_t>     alpha (Integration::OrderMax + 1);
+  vector<MatrixSys*> MSS;
   Integration::StifflyStable (NORD, &alpha[0]);
 
   const real_t   lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
@@ -458,7 +489,7 @@ static MatrixSys** preSolve (const Domain* D, bool forwards)
   MatrixSys**      system = new MatrixSys* [static_cast<size_t>(NPERT + 1)];
   MatrixSys*       M;
   bool             found;
-  solver_kind      method;
+  solver_kind      method, method1;
   real_t           betak2;
   const NumberSys* N;
 
@@ -471,7 +502,7 @@ static MatrixSys** preSolve (const Domain* D, bool forwards)
   N      = D -> b[0] -> Nsys (bmode);
   betak2 = sqr (Field::modeConstant (D -> u[0] -> name(), mode, beta));
   M = new MatrixSys (lambda2, betak2, bmode, D -> elmt, D -> b[0], method, D -> U, forwards);
-  MS.insert (MS.end(), M);
+  MSS.insert (MSS.end(), M);
   system[0] = M;
   cout << ((method == DIRECT) ? '*' : '&') << flush;
 
@@ -482,7 +513,7 @@ static MatrixSys** preSolve (const Domain* D, bool forwards)
   N      = D -> b[1] -> Nsys (bmode);
   betak2 = sqr (Field::modeConstant (D -> u[1] -> name(), mode, beta));
 
-  for (found = false, m = MS.begin(); !found && m != MS.end(); m++) {
+  for (found = false, m = MSS.begin(); !found && m != MSS.end(); m++) {
     M = *m; found = M -> match (lambda2, betak2, N, method);
   }
   if (found) {
@@ -490,7 +521,7 @@ static MatrixSys** preSolve (const Domain* D, bool forwards)
     cout << "." << flush;
   } else {
     M = new MatrixSys (lambda2, betak2, bmode, D -> elmt, D -> b[1], method, D -> U, forwards);
-    MS.insert (MS.end(), M);
+    MSS.insert (MSS.end(), M);
     system[1] = M;
     cout << ((method == DIRECT) ? '*' : '&') << flush;
   }
@@ -501,7 +532,7 @@ static MatrixSys** preSolve (const Domain* D, bool forwards)
     N      = D -> b[2] -> Nsys (bmode);
     betak2 = sqr (Field::modeConstant (D -> u[2] -> name(), mode, beta));
 
-    for (found = false, m = MS.begin(); !found && m != MS.end(); m++) {
+    for (found = false, m = MSS.begin(); !found && m != MSS.end(); m++) {
       M = *m; found = M -> match (lambda2, betak2, N, method);
     }
     if (found) {
@@ -509,7 +540,7 @@ static MatrixSys** preSolve (const Domain* D, bool forwards)
       cout << "." << flush;
     } else {
       M = new MatrixSys (lambda2, betak2, bmode, D -> elmt, D -> b[2], method, D -> U, forwards);
-      MS.insert (MS.end(), M);
+      MSS.insert (MSS.end(), M);
       system[2] = M;
       cout <<  ((method == DIRECT) ? '*' : '&') << flush;
     }
@@ -521,14 +552,13 @@ static MatrixSys** preSolve (const Domain* D, bool forwards)
 
   betak2 = sqr (Field::modeConstant (D -> u[NPERT] -> name(), mode, beta));
   M      = new MatrixSys (0.0, betak2,bmode, D -> elmt, D -> b[NPERT], method, D -> U, forwards);
-  MS.insert (MS.end(), M);
+  MSS.insert (MSS.end(), M);
   system[NPERT] = M;
   cout << ((method == DIRECT) ? '*' : '&') << endl;
   return system;
 }
 
-
-static void Solve (Domain*     D,
+static void Solve(Domain*     D,
 		   const int_t i,
 		   AuxField*   F,
 		   MatrixSys*  M,
@@ -554,11 +584,10 @@ static void Solve (Domain*     D,
     const real_t lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
     MatrixSys*   tmp =
       new MatrixSys (lambda2, betak2, bmode, D -> elmt, D -> b[i], JACPCG, D -> U, forwards);
-    
+
     D -> u[i] -> solve (D, F, tmp, D -> U, forwards);
     delete tmp;
     
-  } else D -> u[i] -> solve (D, F, M, D -> U, forwards);
-    
+  }
+  else  D -> u[i] -> solve (D, F, M, D -> U, forwards); 
 }
-

@@ -27,10 +27,12 @@ Domain::Domain (FEML*             F,
   elmt (E)
 {
   const int_t verbose = Femlib::ivalue ("VERBOSE");
+  const int_t nStep   = Femlib::ivalue ("N_STEP");
   const int_t nbase   = Geometry::nBase();
   const int_t nz      = Geometry::nZProc();
   const int_t ntot    = Geometry::nTotProc();
   const int_t nplane  = Geometry::planeSize();
+  const int_t nc      = B -> sizecontrolbc();
   int_t       i, nfield;
   real_t*     alloc;
 
@@ -46,9 +48,16 @@ Domain::Domain (FEML*             F,
   // -- Build boundary system and field for each variable.
   
   VERBOSE cout << "  Building domain boundary systems ... ";
-
+  
+  ki.resize(nfield-1);
   b.resize (nfield);
-  for (i = 0; i < nfield; i++) b[i] = new BoundarySys (B, E, field[i]);
+
+  for (i = 0; i < nfield; i++){
+    b[i]  = new BoundarySys (B, E, field[i]);
+    ki[i] = new real_t[nc*nStep];
+    Veclib::zero(nc, ki[i], 1);
+  }
+
 
   VERBOSE cout << "done" << endl;
 
@@ -497,17 +506,16 @@ void Domain::dumppersecond ()
 // ---------------------------------------------------------------------------
 // dump .fld file per second to generate avi
 // ---------------------------------------------------------------------------
-{char        dumpfl[StrMax],msg[StrMax];
+{
+  char     dumpfl[StrMax],msg[StrMax];
   ofstream output;
- 
- 
-
+    
   Femlib::synchronize();
 
   ROOTONLY {
-sprintf   (msg, ".fld.%d", step);
-	 strcat (strcpy (dumpfl, name), msg);
-      output.open (dumpfl, ios::out);
+    sprintf (msg, ".fld.%d", step);
+    strcat (strcpy (dumpfl, name), msg);
+    output.open (dumpfl, ios::out);
   }
   output << *this;
   ROOTONLY output.close();
@@ -540,59 +548,60 @@ void Domain::updateBase()
 // ---------------------------------------------------------------------------
 { 
 //update the base flow using Fourier interpolation from multiple base flows ( example: time periodic base flow)
-int_t nfield=this->nField(),j;
-  const int_t nBase   = Geometry::nBase();
-  const int_t nSlice  = Geometry::nSlice();
-  const int_t  nPlane = Geometry::planeSize();
+  int_t nfield = this -> nField(), j;
+  const int_t nBase  = Geometry::nBase();
+  const int_t nSlice = Geometry::nSlice();
+  const int_t nPlane = Geometry::planeSize();
   int_t       i;
+
   if (nSlice < 2)  return;
   // fourier interpolation
   if (Femlib::ivalue ("FLinterpolation")==0)
-  	for (i = 0; i < nBase; i++)  
-	 U[i] -> update (nSlice, baseFlow[i], time, period);
+    for (i = 0; i < nBase; i++)  
+      U[i] -> update (nSlice, baseFlow[i], time, period);
   //Lagrange interpolation.
   if (Femlib::ivalue ("FLinterpolation")==1)	
     for (i = 0; i < nBase; i++)
-	 U[i] -> updatelagrangeinterpolation (nSlice, baseFlow[i], time, period);
-	// non_periodic Lagrange interpolation, start from linear and end to linear but Lagrange in the middle
-	  if (Femlib::ivalue ("FLinterpolation")==2)	
+      U[i] -> updatelagrangeinterpolation (nSlice, baseFlow[i], time, period);
+  // non_periodic Lagrange interpolation, start from linear and end to linear but Lagrange in the middle
+  if (Femlib::ivalue ("FLinterpolation")==2)	
     for (i = 0; i < nBase; i++)
-	 U[i] -> updatelagrangeinterpolation_nonperiodic (nSlice, baseFlow[i], time, period);	    
-	 
-// update the base flow using equations in session files (example:diffusion effects). 	 
-	   if (Femlib::ivalue("UPDATEBASEFLOWFROMEQUATION")==1){
-       real_t x1, x2, y1, y2, radius, theta;
-	   radius=Femlib::value("Radius");
-	   theta=Femlib::value("THETA");
-	   
-	   x1=-radius*cos(theta*Femlib::value("t"));
-	   x2= radius*cos(theta*Femlib::value("t"));
-	   
-	   y1=-radius*sin(theta*Femlib::value("t"));
-	   y2= radius*sin(theta*Femlib::value("t"));
-	   
-	    Femlib::value ("X1", x1);
-	    Femlib::value ("X2", x2);
-	    Femlib::value ("Y1", y1);
-        Femlib::value ("Y2", y2);	   
-	   
-	   for (j = 0; j < nfield; j++) 
-	     *(this->U[j]) = (const char*) baseflowfunction[j]; 
+      U[i] -> updatelagrangeinterpolation_nonperiodic (nSlice, baseFlow[i], time, period);	    
+  
+  // update the base flow using equations in session files (example:diffusion effects). 	 
+  if (Femlib::ivalue("UPDATEBASEFLOWFROMEQUATION")==1){
+    real_t x1, x2, y1, y2, radius, theta;
+    radius=Femlib::value("Radius");
+    theta=Femlib::value("THETA");
+    
+    x1=-radius*cos(theta*Femlib::value("t"));
+    x2= radius*cos(theta*Femlib::value("t"));
+    
+    y1=-radius*sin(theta*Femlib::value("t"));
+    y2= radius*sin(theta*Femlib::value("t"));
+    
+    Femlib::value ("X1", x1);
+    Femlib::value ("X2", x2);
+    Femlib::value ("Y1", y1);
+    Femlib::value ("Y2", y2);	   
+    
+    for (j = 0; j < nfield; j++) 
+      *(this->U[j]) = (const char*) baseflowfunction[j]; 
   }
   else  if (Femlib::ivalue("UPDATEBASEFLOWFROMEQUATION")==2){
-       real_t x1, x2, y1, y2, radius, vbase;
-	   radius=Femlib::value("Radius");
-	   vbase=Femlib::value("VBASE");
-	   
-		   
-	   y1=vbase*Femlib::value("t");
-	   y2= y1;
-	   
-		Femlib::value ("Y1", y1);
-        Femlib::value ("Y2", y2);	   
-	   
-	   for (j = 0; j < nfield; j++) 
-	     *(this->U[j]) = (const char*) baseflowfunction[j]; 
+    real_t x1, x2, y1, y2, radius, vbase;
+    radius=Femlib::value("Radius");
+    vbase=Femlib::value("VBASE");
+    
+    
+    y1=vbase*Femlib::value("t");
+    y2= y1;
+    
+    Femlib::value ("Y1", y1);
+    Femlib::value ("Y2", y2);	   
+    
+    for (j = 0; j < nfield; j++) 
+      *(this->U[j]) = (const char*) baseflowfunction[j]; 
   }
 }
 

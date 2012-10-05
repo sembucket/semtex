@@ -35,6 +35,9 @@ public:
   void evaluateControl      (const int_t , real_t*);
   void getControl           (real_t*);
   void fixControl           ();
+  void getInfK              (real_t*, int_t);
+  void updateK              (real_t*);
+  void infBoundaryData      (bool, int_t);
   void evaluateM0Boundaries (const int_t);
   void addToM0Boundaries    (const real_t, const char*);
    
@@ -53,10 +56,9 @@ public:
   static void printConnect    (const Field*);
   real_t      normc(real_t*);
   real_t      normc_mixed(real_t*, real_t*);
-  int_t       size_controlbc();
   void        add_adjoint (real_t*, const int_t, const int_t);
+  void        add_adjoint_mixed (real_t*, const int_t, const int_t, const vector<AuxField*>&);
   void        add_adjoint_pressure(real_t*, real_t*, const int_t, const int_t);
-  //  void        controlmesh (real_t*,real_t*);
   void        control_normal_direction (real_t* ,real_t*);
 
 private:

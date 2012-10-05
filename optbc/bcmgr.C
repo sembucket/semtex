@@ -325,9 +325,6 @@ BCmgr::BCmgr (FEML*             file,
 	R -> bcn    = C;
 	strcpy ((R -> value = new char [strlen (buf) + 1]), buf);
 	
-	//NOTE: This is added to _cond at the end of the switch loop.
-	//      I suspect this is created for the adjoint system
-	C = new Mixed (buf);
 	break;
 	
       case 'A':			// -- Axis BC.
@@ -395,10 +392,6 @@ BCmgr::BCmgr (FEML*             file,
 	  message (routine, err, ERROR);
 	}
 	 C = new Toutflow         (buf);
-	break;
-
-      case 'S':// -- Test boundary condition
-	cout << " 'S' type boundary condition recognized!" << endl;
 	break;
 		
       default:
@@ -505,17 +498,14 @@ Condition* BCmgr::getCondition (const char  group,
 	  sprintf (err, "unrecognised field '%c' on axis", field);
 	  message (routine, err, ERROR);
 	  break;
-	 }
-
-    } else if (currgrp == 'c' && field != 'p' && (strstr (buf, "controlbc") || strstr (buf, "mixed") )) {  // for control boundary
-	 if (forwards && strstr (buf, "controlbc")) return C -> bcn; 
-	 if (!forwards && strstr (buf, "mixed")) return C -> bcn;  
-	} else 
-	return C -> bcn;
-    
 	}
+	
+      } 
+      else 
+	return C -> bcn;   
+    }
   }
-
+  
   sprintf (err, "can't find record for group '%c', field '%c' ", group, field);
   message (routine, err, ERROR);
   return 0;
@@ -555,44 +545,6 @@ NumberSys* BCmgr::getNumberSys (const char  name,
   
   return N;
 }
-
-NumberSys* BCmgr::getNumberSys_adjoint (const char  name,
-					const int_t mode)
-// ---------------------------------------------------------------------------
-// Adjoint counter part of getNumberSys
-// ---------------------------------------------------------------------------
-{
-  const char  routine[] = "BCmgr::getNumberSys_adjoint";
-  const int_t nsys  = _numsys.size();
-  const int_t cmode = clamp (mode,static_cast<int_t>(0),static_cast<int_t>(2));
-  char        err[StrMax], selectname = name;
-  NumberSys*  N = 0;
-
-  // -- Switch the name for selected cylindrical coordinate modes.
-
-  if (Geometry::cylindrical() && Geometry::nDim() == 3 && _axis)
-    if      (name == 'u' && (cmode == 1 || cmode == 2)) selectname = 'U';
-    else if (name == 'w' && (cmode == 1))               selectname = 'W';
-    else if (name == 'p' && (cmode == 1 || cmode == 2)) selectname = 'P';
-    else if (name == 'c' && (cmode == 1 || cmode == 2)) selectname = 'C';
-
-
-  // -- Now search.
-  //NOTE: Why is this done in two parts?
-  for (int_t i = 0; i < nsys/2; i++)
-    if (strchr (_numsys[i] -> fields(), selectname)) { N = _numsys[i];   break; }
-	
-  for (int_t i = nsys/2; i < nsys; i++)
-    if (strchr (_numsys[i] -> fields(), selectname)) { N = _numsys[i];   break; }
-
-  if (!N) {
-    sprintf (err, "can't find scheme for field %c, mode =%1d", name, mode);
-    message (routine, err, ERROR);
-  }
-  
-  return N;
-}
-
 
 void BCmgr::buildnum (const char*       session,
 		      vector<Element*>& elmt   )
@@ -830,7 +782,6 @@ void BCmgr::buildnum (const char*       session,
     }
 
     // -- Invert.
-
     for (i = 0; i < nglobal; i++) mass[i] = 1.0 / mass[i];
   }
 }
@@ -841,12 +792,24 @@ void BCmgr::buildsurf (FEML*             file,
 // ---------------------------------------------------------------------------
 // Private member function.
 //
-// Assemble list of element sides that have boundary conditions
-// attached.  Element and side numbers are decremented by one, i.e are
-// zero indexed in internal storage.
+// Assemble list of element sides that have boundary conditions attached.
+// Element and side numbers are decremented by one, i.e are zero indexed in
+// internal storage.
 //
-// As a part of internal checking, we want to ensure that the mesh for
-// all "axis" group BCs has y=0.
+// As a part of internal checking, we want to ensure that the mesh for all
+// "axis" group BCs has y=0.
+// 
+// We also need to ensure control boundaries are sorted into the correct 
+// order and process them into the _elmtbc table before any other boundary 
+// conditions listed in the SURFACES section.
+//
+// Sorting is required as other functions assume control boundary velocity
+// profiles are given to them in a particular order.
+//
+// Control BCs must be processed first so essential BCs that intersect with
+// the control boundary overwrite control boundary data when writing to 
+// globally-numbered storage. This is required for correct initialization of
+// the control boundary in external storage.
 // ---------------------------------------------------------------------------
 {
   const char        routine[] = "BCmgr::buildsurf";
@@ -856,11 +819,11 @@ void BCmgr::buildsurf (FEML*             file,
   int_t             i, j, t, elmt, side, ihole, itemindex;
   real_t            a, b, item;
   BCtriple          *BCT, *Tmp, *Elt;
-  real_t            *xp, *yp, *nxp, *nyp, *areap, *ymax;
+  real_t            *yp, *ymax;
   int_t             *work, *c, *d;
   vector<BCtriple*> contbc;
 
-  //-- Search SURFACES section for control BCs and process into correct order.
+  // -- Find control boundaries in SURFACES list.
   for (i=0; i < nsurf; i++){
     while ((file->stream().peek()) == '#') file->stream().ignore(StrMax, '\n');
 
@@ -879,7 +842,7 @@ void BCmgr::buildsurf (FEML*             file,
 	BCT -> side  = --side;
 	
 	_elmtbc.insert (_elmtbc.end(), BCT);
-	contbc.insert (contbc.end(), BCT);
+	contbc.insert  (contbc.end(), BCT);
 	_nc += np;
 
 	file -> stream() >> tag;
@@ -894,19 +857,16 @@ void BCmgr::buildsurf (FEML*             file,
     }
   }
 
-  // Sort control BC's into descending y node order 
+  // -- Sort control BC's into descending y node order.
+
   // Setup storage for x and y node information for one controlbc segment.
-  xp    = new real_t [static_cast<size_t>(5*np)];
-  yp    = xp  + np;
-  nxp   = yp  + np;
-  nyp   = nxp + np;
-  areap = nyp + np;
+  yp    = new real_t [static_cast<size_t>(np)];
   ymax  = new real_t [static_cast<size_t> (contbc.size())];
   
   // Retrieve location of ymax for each control boundary.
   for(i = 0; i < contbc.size(); i++)
     {
-      Elmt[contbc[i] -> elmt] -> sideGeom (contbc[i] -> side, xp, yp, nxp, nyp, areap);
+      Elmt[contbc[i] -> elmt] -> sideGetY (contbc[i] -> side, yp);
       a=yp[0];
       for (j = 1; j < np; j++){
 	b = yp[j];
@@ -924,7 +884,6 @@ void BCmgr::buildsurf (FEML*             file,
       c[i] = d[i] = i;
     }
 
-
   // Insertion sort routine to sort control boundaries by ymax.
   for(i = 0; i < contbc.size(); i++)
     {
@@ -940,7 +899,7 @@ void BCmgr::buildsurf (FEML*             file,
       d[ihole]    = itemindex;
     }
 
-  // Write sorted BCT's to _elmt.
+  // Write sorted control BCT's to _elmtbc table.
   for (i = 0; i < contbc.size(); i++){
     _elmtbc[i] = contbc[d[i]];
   }
@@ -948,7 +907,7 @@ void BCmgr::buildsurf (FEML*             file,
   // Deallocate memory.
   delete [] work;
   delete [] ymax;
-  delete [] xp;
+  delete [] yp;
 
   // Reset FEML file to start of SURFACES section.
   file -> stream().clear ();
@@ -956,6 +915,7 @@ void BCmgr::buildsurf (FEML*             file,
   file -> seek ("SURFACES");
   file -> stream().ignore (StrMax, '\n');
 
+  // -- Process non-control boundaries in SURFACES list.
   for (i = 0; i < nsurf; i++) {
     while ((file->stream().peek()) == '#') file->stream().ignore(StrMax, '\n');
 
@@ -989,6 +949,7 @@ void BCmgr::buildsurf (FEML*             file,
       file -> stream().ignore (StrMax, '\n');
   }
 
+  // -- Check that axis BCs are on edges with y = 0.
   if (Geometry::cylindrical()) {
     vector<real_t> work (np);
     vector<BCtriple*>::iterator b;

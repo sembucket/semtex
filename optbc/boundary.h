@@ -7,8 +7,9 @@ class Boundary : public Edge
 // ===========================================================================
 {
 public:
-  Boundary (const int_t, const char*, const Condition*,
-	    const Element*, const int_t);
+  Boundary (const int_t id, const char* group, const Condition* bcond,
+	    const Element* elmt, const int_t side):
+  Edge (group, elmt, side), _id (id), _bcond (bcond) { }
 
   int_t ID        () const { return _id; }
   void  print     () const;
@@ -34,10 +35,9 @@ public:
   real_t  controlnorm (real_t*)                                      const;
   real_t  controlnorm_mixed (real_t*, real_t*)                       const;
   real_t  controllength ()                                           const;
-  void    switchK   (const real_t*,const real_t*, const bool)        const; 
+  void    switchK   (const real_t*,const real_t*, const bool)        const;
+  void    switchK   (int_t)                                          const; 
   void    takeC     (const real_t* ) const;
-  
-  real_t* uc;
 
 private:
   int_t            _id   ;	// Ident number.

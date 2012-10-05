@@ -141,10 +141,15 @@ MatrixSys::MatrixSys (const real_t            lambda2,
       if (bsys -> mixBC()) {
 	const int_t  nbound = bsys -> nSurf();
 	const int_t* bmap   = _NS  -> btog();
-	for (i = 0; i < nbound; i++)
+	int_t        num    = 0;
+	for (i = 0; i < nbound; i++){
+	  if(*_BC[i] -> group() =='c'){
+	    _BC[i] -> switchK(num);
+	    num += 1;
+	  }
 	  _BC[i] -> augmentSC (_nband, _nsolve, bmap, rwrk, _H);
+	}
       }
-
       // -- Loop over BCs and add diagonal contribution from Toutflow BCs.
       if (bsys -> ToutflowBC()) {
 	// if (Geometry::nSlice()>1) message (routine, "Sorry, The DIRECT solver is only for LNS based on steady base flow. This solver does not support time-dependent base flow or nonlinear works", ERROR); 
@@ -184,7 +189,7 @@ MatrixSys::MatrixSys (const real_t            lambda2,
     real_t*        PCi;
     vector<real_t> work (2 * npnp + np);
     real_t         *ed = &work[0], *ewrk = &work[0] + npnp;
-    
+
     _PC = new real_t [static_cast<size_t>(_npts)];
     _PC_notoutflow = new real_t [static_cast<size_t>(_NS -> nGlobal())];
 
@@ -195,11 +200,16 @@ MatrixSys::MatrixSys (const real_t            lambda2,
     
     // -- Mixed BC contributions.
 
-    if (bsys -> mixBC())
-      for (i = 0; i < nbound; i++)
+    if (bsys -> mixBC()){
+      int_t num = 0;
+      for (i = 0; i < nbound; i++){
+	if(*_BC[i] -> group() =='c'){
+	  _BC[i] -> switchK(num);
+	  num += 1;
+	}
 	_BC[i] -> augmentDg (bmap, _PC);
-
-
+      }
+    }
     // -- Toutflow BC contributions are moved out and calculated separately.
 
   
@@ -211,7 +221,7 @@ MatrixSys::MatrixSys (const real_t            lambda2,
       Veclib::copy      (nint, ed + next, 1, PCi, 1);
     }
     
-    Veclib::copy      (_NS -> nGlobal(), _PC, 1, _PC_notoutflow, 1);
+    Veclib::copy  (_NS -> nGlobal(), _PC, 1, _PC_notoutflow, 1);
     Veclib::vrecp (_npts, _PC, 1, _PC, 1);
     
   } break;
