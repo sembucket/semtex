@@ -22,8 +22,30 @@
 // described in [1].
 //
 // A further general class of available condition is the Robin or
-// mixed type, of form dc/dn + K( c - C ) = 0. See [2]. The convective
-// BC is a variant of this, see [3].
+// mixed type, of form dc/dn + K( c - C ) = 0. See [2]. 
+
+// The convective BC is a variant of this, see [3]. The wave equation
+//
+// u_t + V u_x = 0
+//
+// becomes in discrete form with backwards Euler for temporal
+// derivative
+//
+// [u^(n+1) - u^(n)]*DT^{-1} + V u_x^(n+1) = 0
+//
+// which is rearranged as a Robin BC:
+//
+// u_x^(n+1) + (a*DT)^{-1} [ u^(n+1) - u^(n) ] = 0
+//
+// So in the typical Robin form
+//
+// u_n + K ( u - C ) = 0
+//
+// K = a*DT and C = u^(n)
+//
+// Convective BCs are good at containing blowups related to inflow
+// across the inflow boundary.  Guess V to be the mean convection
+// velocity.
 //
 // NB: if you invent a new BC which is of essential/Dirichlet type,
 // you also need to edit mesh.C/buildMask() so that enumerate sets the
@@ -353,7 +375,8 @@ void NaturalHOPBC::describe (char* tgt) const
 
 Mixed::Mixed (const char* v)
 // ---------------------------------------------------------------------------
-// The format for a Mixed BC is: "field = mulvalue;refvalue".  The
+// The format for a Mixed BC is: "field = mulvalue;refvalue", where in
+// dc/dn + K( c - C ) = 0, K is mulvalue and C is refvalue.  The
 // separator must be ';' or ',' (and without white space). Each of the
 // two supplied values is expected to evaluate to a real_t constant.
 // ---------------------------------------------------------------------------
@@ -525,7 +548,7 @@ void Mixed::describe (char* tgt) const
 Convective::Convective (const char* v)
 // ---------------------------------------------------------------------------
 // The format for a Convective BC is: "field = velocity", e.g. "u =
-// V".  But we store 1.0/(V*dt).
+// V".  But we store K = 1.0/(V*dt).  The reference value C = 0.
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "Convective::Convective";
