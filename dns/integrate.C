@@ -52,6 +52,7 @@ typedef ModalMatrixSys Msys;
 static int_t NDIM, NCOM, NORD;
 static bool  C3D;
 
+void          nonlinear (Domain*, AuxField**, AuxField**, vector<real_t>&);
 static void   waveProp  (Domain*, const AuxField***, const AuxField***);
 static void   setPForce (const AuxField**, AuxField**);
 static void   project   (const Domain*, AuxField**, AuxField**);
@@ -59,12 +60,8 @@ static Msys** preSolve  (const Domain*);
 static void   Solve     (Domain*, const int_t, AuxField*, Msys*);
 
 
-void integrate (void         (*advection) (Domain*, 
-					   AuxField**, 
-					   AuxField**,
-					   vector<real_t>&),
-		Domain*      D  ,
-		DNSAnalyser* A  )
+void integrate (Domain*      D,
+		DNSAnalyser* A)
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
 // constraint Field 'p'.
@@ -146,7 +143,7 @@ void integrate (void         (*advection) (Domain*,
 
     // -- Compute nonlinear terms from previous velocity field.
 
-    advection (D, Us[0], Uf[0], ff);
+    nonlinear (D, Us[0], Uf[0], ff);
 
     // -- Update high-order pressure BC storage.
 
