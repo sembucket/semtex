@@ -128,7 +128,7 @@ void Boundary::augmentDg (const int_t* b2g,
 }
 
 
-void Bounbdary::print () const
+void Boundary::print () const
 // ---------------------------------------------------------------------------
 // (Debugging) utility to print internal information.
 // ---------------------------------------------------------------------------
