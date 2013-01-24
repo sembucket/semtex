@@ -12,7 +12,6 @@
 //   -t[t]    ... select time-varying BCs for mode 0 [or all modes]
 //   -v[v...] ... increase verbosity level
 //   -chk     ... turn off checkpoint field dumps [default: selected]
-//   -S|C|N   ... regular skew-symm || convective || Stokes advection
 //
 // AUTHOR:
 // ------
@@ -51,8 +50,7 @@ static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, Domain*&);
 
-void integrate (void (*)(Domain*, AuxField**, AuxField**, vector<real_t>&),
-		Domain*, DNSAnalyser*);
+void integrate (Domain*, DNSAnalyser*);
 
 int main (int    argc,
 	  char** argv)
@@ -82,14 +80,9 @@ int main (int    argc,
   domain -> restart ();
 
   ROOTONLY domain -> report ();
-  
-  switch (Femlib::ivalue ("ADVECTION")) {
-  case 0: integrate (   skewSymmetric, domain, analyst); break;
-  case 1: integrate (altSkewSymmetric, domain, analyst); break;
-  case 2: integrate (      convective, domain, analyst); break;
-  case 3: integrate (          Stokes, domain, analyst); break;
-  }
 
+  integrate (domain, analyst);
+  
   Femlib::finalize ();
 
   return EXIT_SUCCESS;
@@ -112,10 +105,7 @@ static void getargs (int    argc   ,
     "  -i[i]    ... use iterative solver for viscous [& pressure] steps\n"
     "  -t[t]    ... select time-varying BCs for mode 0 [or all modes]\n"
     "  -v[v...] ... increase verbosity level\n"
-    "  -chk     ... turn off checkpoint field dumps [default: selected]\n"
-    "  -S|C|N   ... regular skew-symm || convective || Stokes advection\n";
-
-  Femlib::ivalue ("ADVECTION", 1); // -- Default is alternating skew symmetric.
+    "  -chk     ... turn off checkpoint field dumps [default: selected]\n";
 
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
@@ -124,9 +114,6 @@ static void getargs (int    argc   ,
       cout << buf;
       exit (EXIT_SUCCESS);
       break;
-    case 'S': Femlib::ivalue ("ADVECTION", 0); break;
-    case 'C': Femlib::ivalue ("ADVECTION", 2); break;
-    case 'N': Femlib::ivalue ("ADVECTION", 3); break;
     case 'i':
       do
 	Femlib::ivalue ("ITERATIVE", Femlib::ivalue ("ITERATIVE") + 1);

@@ -29,7 +29,7 @@ do
   fi
   compare $i > $i.rst
   enumerate -O3 $i > $i.num
-  $CODE -S -chk $i > /dev/null
+  $CODE -chk $i > /dev/null
   if test -f ../regress/$i.ok
   then
     chmod 0644 ../regress/$i.ok
