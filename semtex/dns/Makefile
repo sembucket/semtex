@@ -10,11 +10,6 @@ PROG = dns
 SEM   = ..
 VPATH = $(SEM)/src
 
-ifdef DEALIAS		# -- Dealias Fourier operation (works for serial only).
-  DEFINES += -DDEALIAS
-  PROG    := $(PROG)_dealias_z
-endif
-
 ifdef MPI		# -- Make a parallel executable.
   PROG := $(PROG)_mp
 endif
