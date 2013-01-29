@@ -10,24 +10,9 @@ PROG = dns
 SEM   = ..
 VPATH = $(SEM)/src
 
-ifdef STOKES		# -- Turn off nonlinear terms; create Stokes solver.
-  DEFINES += -DSTOKES
-  PROG    := $(PROG)_stokes
-endif
-
-ifdef ALIAS		# -- No dealiasing (parallel is never dealiased).
-  DEFINES += -DALIAS
-  PROG    := $(PROG)_alias
-endif
-
-ifdef CONV		# -- Make convective nonlinear terms (not skew-symm).
-  DEFINES += -DCONV
-  PROG    := $(PROG)_conv
-endif
-
-ifdef ASS		# -- Make alternating skew-symmetric nonlinear.
-  DEFINES += -DASS
-  PROG    := $(PROG)_ass
+ifdef DEALIAS		# -- Dealias Fourier operation (works for serial only).
+  DEFINES += -DDEALIAS
+  PROG    := $(PROG)_dealias_z
 endif
 
 ifdef MPI		# -- Make a parallel executable.

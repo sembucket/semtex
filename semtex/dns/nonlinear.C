@@ -72,15 +72,15 @@ void nonlinear (Domain*         D ,
 // which uses the non-conservative and conservative forms of the
 // nonlinear terms on alternating timesteps. This has shown in testing
 // to be as robust as the full skew symmetric method but costs half as
-// much. For simplicity it is now (as of early 2013) the only form used
-// by the code.
+// much. For simplicity it is now (as of early 2013) the only form
+// implemented.
 //
 // Data are transformed to physical space for most of the operations, with
 // the Fourier transform extended using zero padding for dealiasing.  For
 // gradients in the Fourier direction however, the data must be transferred
 // back to Fourier space.
 //
-// Define ALIAS to force Fourier-aliased nonlinear terms (serial only
+// Define DEALIAS to force Fourier-dealiased of nonlinear terms (serial only
 // -- these are never dealiased in parallel execution).
 // ---------------------------------------------------------------------------
 {
@@ -88,10 +88,10 @@ void nonlinear (Domain*         D ,
   const int_t NCOM = D -> nField() - 1;	// -- Number of velocity components.
   const int_t nP   = Geometry::planeSize();
 
-#if defined (ALIAS)
-  const int_t       nZ32   = Geometry::nZProc();
-#else
+#if defined (DEALIAS)
   const int_t       nZ32   = Geometry::nZ32();
+#else
+  const int_t       nZ32   = Geometry::nZProc();
 #endif 
   const int_t       nZ     = Geometry::nZ();
   const int_t       nZP    = Geometry::nZProc();
