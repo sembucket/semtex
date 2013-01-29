@@ -1024,10 +1024,10 @@ AuxField& AuxField::transform32 (const int_t sign,
 {
   const int_t nZ   = Geometry::nZ();
   const int_t nP   = Geometry::planeSize();
-#if defined (ALIAS)
-  const int_t nZ32 = Geometry::nZProc();
-#else
+#if defined (DEALIAS)
   const int_t nZ32 = Geometry::nZ32();
+#else
+  const int_t nZ32 = Geometry::nZProc();
 #endif
 
   if (Geometry::nProc() == 1) {	 // -- Single processor.
