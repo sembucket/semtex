@@ -80,48 +80,41 @@ void nonlinear (Domain*         D ,
 // gradients in the Fourier direction however, the data must be transferred
 // back to Fourier space.
 //
-// Define DEALIAS to force Fourier-dealiased of nonlinear terms (serial only
-// -- these are never dealiased in parallel execution).
+// As of January 2013, dealiasing in Z of serial 3D computations has
+// been removed in the interests of simplicity and maintainability.
+// (The idea is that more Z planes could be used, with parallel
+// operation if needs be.)
 // ---------------------------------------------------------------------------
 {
   const int_t NDIM = Geometry::nDim();	// -- Number of space dimensions.
   const int_t NCOM = D -> nField() - 1;	// -- Number of velocity components.
   const int_t nP   = Geometry::planeSize();
+  const int_t nZ   = Geometry::nZ();
+  const int_t nZP  = Geometry::nZProc();
+  const int_t nTot = Geometry::nTotProc();
 
-#if defined (DEALIAS)
-  const int_t       nZ32   = Geometry::nZ32();
-#else
-  const int_t       nZ32   = Geometry::nZProc();
-#endif 
-  const int_t       nZ     = Geometry::nZ();
-  const int_t       nZP    = Geometry::nZProc();
-
-  const int_t       nPP    = Geometry::nBlock();
-  const int_t       nPR    = Geometry::nProc();
-  const int_t       nTot   = Geometry::nTotProc();
-  const int_t       nTot32 = nZ32 * nP;
-
-  vector<real_t*>   u32 (NCOM), n32 (NCOM);
-  vector<AuxField*> U   (NCOM), N   (NCOM);
+  vector<AuxField*> U (NCOM), N (NCOM); 
   Field*            master = D -> u[0];
+  int_t             i, j;
 
-  vector<real_t> work ((2 * NCOM + 1) * nTot32);
-  real_t*        tmp  = &work[0] + 2 * NCOM * nTot32;
-  int_t          i, j;
+  static int               toggle = 1; // -- Switch u.grad(u) or div(uu).
+  static real_t*           work;
+  static vector<AuxField*> Uphys (NCOM);
+  static AuxField*         tmp;
 
-  static int     toggle = 1; 	// -- Switch between u.grad(u) and div(uu).
-
-  Veclib::zero ((2 * NCOM + 1) * nTot32, &work[0], 1); // -- Catch-all cleanup.
+  if (!work) { 			// -- First time through.
+    work = new real_t [static_cast<size_t>((NCOM + 1) * nTot)];
+    for (i = 0; i < NCOM; i++)
+      Uphys[i] = new AuxField (work + i * nTot, nZP, D -> elmt);
+    tmp = new AuxField (work + NCOM * nTot, nZP, D -> elmt);
+  }
 
   for (i = 0; i < NCOM; i++) {
-    u32[i] = &work[0] +  i         * nTot32;
-    n32[i] = &work[0] + (i + NCOM) * nTot32;
-
     AuxField::swapData (D -> u[i], Us[i]);
-
     U[i] = Us[i];
-    U[i] -> transform32 (INVERSE, u32[i]);
     N[i] = Uf[i];
+    *N[i] = 0.0;
+    (*Uphys[i] = *U[i]) . transform (INVERSE);
   }
 
   if (Geometry::cylindrical()) {
@@ -133,47 +126,35 @@ void nonlinear (Domain*         D ,
 	// -- Terms involving azimuthal derivatives and frame components.
 
 	if (NCOM == 3) {
-	  if (i == 1)
-	    Veclib::svvttvp (nTot32, -1.0, u32[2],1,u32[2],1,n32[1],1,n32[1],1);
-	  if (i == 2)
-	    Veclib::vmul    (nTot32, u32[2], 1, u32[1], 1, n32[2], 1);
+	  if (i == 1) N[1] -> times      (*Uphys[2], *Uphys[2]);
+	  if (i == 2) N[2] -> timesMinus (*Uphys[2], *Uphys[1]);
 
 	  if (nZ > 2) {
-	    Veclib::copy       (nTot32, u32[i], 1, tmp, 1);
-	    Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
-	    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
-	    Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
-	    master -> gradient (nZ, nPP, tmp, 2);
-	    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
-	    Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
-	    Veclib::vvtvp      (nTot32, u32[2], 1, tmp, 1, n32[i], 1, n32[i],1);
+	    (*tmp = *U[i]) . gradient (2) . transform (INVERSE);
+	    N[i] -> timesMinus (*Uphys[2], *tmp);
 	  }
 	}
 
-	if (i == 2) master -> divY (nZ32, n32[i]);
+	if (i == 2) N[i] -> divY ();
 
 	// -- 2D convective derivatives.
 
 	for (j = 0; j < 2; j++) {
-	  Veclib::copy (nTot32, u32[i], 1, tmp, 1);
-	  master -> gradient (nZ32, nP, tmp, j);
-
-	  if (i <  2) master -> mulY (nZ32, tmp);
-
-	  Veclib::vvtvp (nTot32, u32[j], 1, tmp, 1, n32[i], 1, n32[i], 1);
+	  (*tmp = *Uphys[i]) . gradient (j);
+	  if (i <  2) tmp -> mulY ();
+	  N[i] -> timesMinus (*Uphys[j], *tmp);
 	}
 
 	// -- Transform to Fourier space, smooth, add forcing.
 
-	N[i] -> transform32 (FORWARD, n32[i]);
+	N[i] -> transform (FORWARD);
 	master -> smooth (N[i]);
 
 	ROOTONLY if (fabs (ff[i]) > EPSDP) {
-	  Veclib::fill (nP, -ff[i], tmp, 1);
-	  if (i < 2) master -> mulY (1, tmp);
-	  N[i] -> addToPlane (0, tmp);
+	  Veclib::fill (nP, ff[i], work + NCOM * nTot, 1);
+	  if (i < 2) master -> mulY (1, work + NCOM * nTot);
+	  N[i] -> addToPlane (0, work + NCOM * nTot);
 	}
-	*N[i] *= -1.0;
       }
 
     } else { // -- Conservative component div(uu).
@@ -182,55 +163,44 @@ void nonlinear (Domain*         D ,
 
 	// -- Terms involving azimuthal derivatives and frame components.
 
-	if (i == 0)
-	  Veclib::vmul (nTot32, u32[0], 1, u32[1], 1, n32[0], 1);
-	if (i == 1)
-	  Veclib::vmul (nTot32, u32[1], 1, u32[1], 1, n32[1], 1);
+	if (i == 0) N[0] -> timesMinus (*Uphys[0], *Uphys[1]);
+	if (i == 1) N[1] -> timesMinus (*Uphys[1], *Uphys[1]);
 
 	if (NCOM == 3) {
 
-	  if (i == 1)
-	    Veclib::svvttvp (nTot32, -1., u32[2],1,u32[2],1,n32[1],1,n32[1], 1);
-	  if (i == 2)
-	    Veclib::svvtt   (nTot32,  2., u32[2], 1, u32[1], 1,      n32[2], 1);
+	  if (i == 1) N[1] -> timesPlus (*Uphys[2], *Uphys[2]);
+	  if (i == 2) {
+	    tmp -> times (*Uphys[2], *Uphys[1]);
+	    N[2] -> axpy (-2., *tmp);
+	  }
 
 	  if (nZ > 2) {
-	    Veclib::vmul       (nTot32, u32[i], 1, u32[2], 1, tmp, 1);
-	    Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
-	    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
-	    Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
-	    master -> gradient (nZ, nPP, tmp, 2);
-	    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
-	    Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
-	    Veclib::vadd       (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
+	    tmp -> times (*Uphys[i], *Uphys[2]);
+	    (*tmp) . transform (FORWARD). gradient (2). transform (INVERSE);
+	    *N[i] -= *tmp;
 	  }
 	}
 
-	if (i == 2) master -> divY (nZ32, n32[i]);
+	if (i == 2) N[i] -> divY ();
 
 	// -- 2D conservative derivatives.
      
 	for (j = 0; j < 2; j++) {
-	  Veclib::vmul (nTot32, u32[j], 1, u32[i], 1, tmp, 1);
-	  master -> gradient (nZ32, nP, tmp, j);
-
-	  if (i <  2) master -> mulY (nZ32, tmp);
-
-	  Veclib::vadd (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
+	  (*tmp). times (*Uphys[j], *Uphys[i]) . gradient (j);
+	  if (i <  2) tmp -> mulY ();
+	  *N[i] -= *tmp;
 	}
 
 	// -- Transform to Fourier space, smooth, add forcing.
 
-	N[i] -> transform32 (FORWARD, n32[i]);
+	N[i] -> transform (FORWARD);
 	master -> smooth (N[i]);
 
 	ROOTONLY if (fabs (ff[i]) > EPSDP) {
-	  Veclib::fill (nP, -ff[i], tmp, 1);
-	  if (i < 2) master -> mulY (1, tmp);
-	  N[i] -> addToPlane (0, tmp);
+	  Veclib::fill (nP, ff[i], work + NCOM * nTot, 1);
+	  if (i < 2) master -> mulY (1, work + NCOM * nTot);
+	  N[i] -> addToPlane (0, work + NCOM * nTot);
 	}
-
-	*N[i] *= -1.0;
       }
     }
 
@@ -241,31 +211,16 @@ void nonlinear (Domain*         D ,
       for (i = 0; i < NCOM; i++) {
 	for (j = 0; j < NDIM; j++) {
       
-	  // -- Perform n_i += u_j d(u_i) / dx_j.
+	  // -- Perform n_i -= u_j d(u_i) / dx_j.
 
-	  Veclib::copy (nTot32, u32[i], 1, tmp,  1);
-	  if (j == 2) {
-	    Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
-	    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
-	    Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
-	    master -> gradient (nZ,  nPP, tmp, j);
-	    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
-	    Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
-	  } else {
-	    master -> gradient (nZ32, nP, tmp, j);
-	  }
-	  Veclib::vvtvp (nTot32, u32[j], 1, tmp,  1, n32[i], 1, n32[i], 1);
-	    
+	  if (j == 2) (*tmp = *U[i]) . gradient (j) . transform (INVERSE);
+	  else    (*tmp = *Uphys[i]) . gradient (j);
+	  N[i] -> timesMinus (*Uphys[j], *tmp);
 	}
 
-	// -- Transform to Fourier space, smooth, add forcing.
-	
-	N[i] -> transform32 (FORWARD, n32[i]);
 	master -> smooth (N[i]);
-	
-	ROOTONLY if (fabs (ff[i]) > EPSDP) N[i] -> addToPlane (0, -ff[i]);
-
-	*N[i] *= -1.0;
+	N[i] -> transform (FORWARD);
+	ROOTONLY if (fabs (ff[i]) > EPSDP) N[i] -> addToPlane (0, ff[i]);
       }
 
     } else { // -- Conservative component div(uu).
@@ -273,30 +228,20 @@ void nonlinear (Domain*         D ,
       for (i = 0; i < NCOM; i++) {
 	for (j = 0; j < NDIM; j++) {
 
-	  // -- Perform n_i += d(u_i u_j) / dx_j.
+	  // -- Perform n_i -= d(u_i u_j) / dx_j.
 
-	  Veclib::vmul  (nTot32, u32[i], 1, u32[j], 1, tmp,  1);
-	  if (j == 2) {
-	    Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
-	    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
-	    Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
-	    master -> gradient (nZ,  nPP, tmp, j);
-	    Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
-	    Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
-	  } else {
-	    master -> gradient (nZ32, nP, tmp, j);
-	  }
-	  Veclib::vadd (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
+	  tmp -> times (*Uphys[i], *Uphys[j]);
+	  if (j == 2) tmp -> transform (FORWARD);
+	  tmp -> gradient (j);
+	  if (j == 2) tmp -> transform (INVERSE);
+	  *N[i] -= *tmp;
 	}
 
-	// -- Transform to Fourier space, smooth, add forcing.
-      
-	N[i] -> transform32 (FORWARD, n32[i]);
 	master -> smooth (N[i]);
-
-	ROOTONLY if (fabs (ff[i]) > EPSDP) N[i] -> addToPlane (0, -ff[i]);
-	*N[i] *= -1.0;
+	N[i] -> transform (FORWARD);
+	ROOTONLY if (fabs (ff[i]) > EPSDP) N[i] -> addToPlane (0, ff[i]);
       }
+
     }
   }
  
