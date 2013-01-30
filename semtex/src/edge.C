@@ -432,7 +432,7 @@ void Edge::traction (const int_t   k   , // Fourier mode index
     Veclib::svtvp (_np,  2.0, wrk, 1, tr, 1, tr, 1);
     Veclib::vvvtt (_np, ux, 1, _ny, 1, _ny, 1, wrk, 1);
     Veclib::vsub  (_np, tr, 1, wrk, 1, tr, 1);
-    Veclib::vvvtt (_np, ux, 1, _ny, 1, _ny, 1, wrk, 1);
+    Veclib::vvvtt (_np, ux, 1, _nx, 1, _nx, 1, wrk, 1);
     Veclib::vadd  (_np, tr, 1, wrk, 1, tr, 1);
 
     if (Wr) {
@@ -477,7 +477,7 @@ void Edge::traction (const int_t   k   , // Fourier mode index
     Veclib::svtvp (_np,  2.0, wrk, 1, tr, 1, tr, 1);
     Veclib::vvvtt (_np, ux, 1, _ny, 1, _ny, 1, wrk, 1);
     Veclib::vsub  (_np, tr, 1, wrk, 1, tr, 1);
-    Veclib::vvvtt (_np, ux, 1, _ny, 1, _ny, 1, wrk, 1);
+    Veclib::vvvtt (_np, ux, 1, _nx, 1, _nx, 1, wrk, 1);
     Veclib::vadd  (_np, tr, 1, wrk, 1, tr, 1);
 
     _elmt -> sideGrad (_side, Ui+_eoffset, ux, uy, wrk);
@@ -495,7 +495,7 @@ void Edge::traction (const int_t   k   , // Fourier mode index
     Veclib::svtvp (_np,  2.0, wrk, 1, ti, 1, ti, 1);
     Veclib::vvvtt (_np, ux, 1, _ny, 1, _ny, 1, wrk, 1);
     Veclib::vsub  (_np, ti, 1, wrk, 1, ti, 1);
-    Veclib::vvvtt (_np, ux, 1, _ny, 1, _ny, 1, wrk, 1);
+    Veclib::vvvtt (_np, ux, 1, _nx, 1, _nx, 1, wrk, 1);
     Veclib::vadd  (_np, ti, 1, wrk, 1, ti, 1);
 
     // -- Now the out-of-plane component.

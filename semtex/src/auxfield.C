@@ -333,7 +333,8 @@ AuxField& AuxField::axpy (const real_t    alpha,
 
 AuxField& AuxField::reverse ()
 // ---------------------------------------------------------------------------
-// Reverse order of bytes within each word of data.
+// Reverse order of bytes within each word of data (for translating
+// data between IEEE little- or big-endian machines).
 // ---------------------------------------------------------------------------
 {
   Veclib::brev (_size, _data, 1, _data, 1);
