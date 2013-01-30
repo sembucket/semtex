@@ -8,7 +8,7 @@ class AuxField
 // An AuxField has a storage area for data, physical space mesh, and a
 // matching list of elements which can access this storage area on an
 // element-wise basis if required.  Functions to operate on fields as
-// a whole are included.  AuxFields have no boundary conditions, no
+// a whole are provided.  AuxFields have no boundary conditions, no
 // global numbering system, and no solution routines.
 // ===========================================================================
 {
