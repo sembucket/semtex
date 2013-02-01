@@ -101,7 +101,7 @@ F77LIBS  = -lacml -lacml_mv -lgfortran
 LDFLAGS  = $(OPT) $(LIBDIR)
 RANLIB   = ranlib
 ifdef MPI
-  LDFLAGS += -L/usr/lib64/openmpi/1.4-gcc/lib -lfem_mp -lvec $(F77LIBS) -lmpi -lpthread
+  LDFLAGS += -L/usr/lib64/openmpi/1.4-gcc/lib -lfem_mp -lvec $(F77LIBS) -lmpi
 else
   LDFLAGS += -lfem -lvec $(F77LIBS)
 endif

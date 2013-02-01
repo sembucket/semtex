@@ -44,7 +44,7 @@
 // K = a*DT and C = u^(n)
 //
 // Convective BCs are good at containing blowups related to inflow
-// across the inflow boundary.  Guess V to be the mean convection
+// across the outflow boundary.  Guess V to be the mean convection
 // velocity.
 //
 // NB: if you invent a new BC which is of essential/Dirichlet type,
