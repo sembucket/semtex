@@ -17,13 +17,23 @@
 // AUTHOR:
 // ------
 // Hugh Blackburn, Murray Rudman
-// CSIRO
-// P.O. Box 56
-// Highett, Vic 3190
+// Department of Mechanical and Aerospace Engineering
+// Monash University
+// Vic 3800
 // Australia
-// mailto:hugh.blackburn@csiro.au
+// mailto:hugh.blackburn@monash.edu
 //
 // NB: in the <FIELDS> section, define new field 'l' to contain the viscosity.
+//
+// References 
+
+// [1] Rudman M & Blackburn HM (2006) Direct numerical simulation of
+// turbulent non-Newtonian flow using a spectral element method. Appl
+// Math Mod 30:1229--48.
+//
+// [2] Rudman M, Blackburn HM, Graham LJW and Pullum L (2004)
+// Turbulent pipe flow of shear-thinning fluids. J Non-Newt Fluid Mech
+// 118:33--48.
 //////////////////////////////////////////////////////////////////////////////
 
 const char RCS[] = "$Id$";

@@ -9,10 +9,11 @@ static char RCS[] = "$Id$";
 
 #include <nnewt.h>
 
-static int_t DIM;
+static int_t NCOM, NDIM;
 
 static void strainRate  (const Domain*, AuxField**, AuxField**);
 static void viscoModel  (const Domain*, AuxField**, AuxField**, AuxField*);
+
 
 void viscosity (const Domain* D  ,
 		AuxField**    Us ,
@@ -32,7 +33,8 @@ void viscosity (const Domain* D  ,
 //                ~     \    .       .  Us[2] /
 // ---------------------------------------------------------------------------
 {
-  DIM = Geometry::nDim();
+  NDIM = Geometry::nDim();
+  NCOM = (D -> u) . size() - 1;
 
   strainRate  (D, Us, Uf);
   viscoModel  (D, Us, Uf, NNV);
@@ -52,8 +54,7 @@ static void strainRate (const Domain* D ,
 // ---------------------------------------------------------------------------
 // On entry D contains the velocity fields Ui and the first-level
 // areas of Us and Uf are free.  Construct the symmetric strain-rate
-// tensor terms, leave the diagonal terms Sii (unsummed) in Us and the
-// off-diagonal terms Sij (i != j) in Uf.
+// tensor terms.
 // 
 // For Cartesian coordinates
 //           
@@ -61,11 +62,36 @@ static void strainRate (const Domain* D ,
 //       S =   |    .           dv/dy       1/2(dv/dz + dw/dy) |,
 //       ~     \    .             .                 dw/dz      /
 //
+// Cartesian is straightforward: leave the diagonal terms in Us and
+// the off-diagonal terms in Uf.  This works fine for 2D/2C, 2D/3C, 3D/3C.
+// I.e. stored in (3D/3C shown, other cases are obvious restrictions):
+//
+//             / Us[0]  Uf[0]  Uf[1] \
+//       S =   |    .   Us[1]  Uf[2] |,
+//       ~     \    .    .     Us[2] /
+//
 // while for cylindrical coordinates
 //           
 //         / du/dx  1/2(du/dy + dv/dx)  1/2(1/y*du/dz +    dw/dx)    \
 //   S =   |    .           dv/dy       1/2(1/y*dv/dz + dw/dy - w/y) |.
-//   ~     \    .             .             1/y*dw/dz +     1/y*v    /
+//   ~     \    .             .             1/y*dw/dz +     v/y      /
+//
+//
+// Cylindrical is more complicated owing to the cross-coupling terms,
+// especially v/y.  Always there is enough total storage in Us and Uf,
+// we just have to pack it in different ways.
+//
+// 2D/2C stored like:
+//             / Us[0]  Uf[0]   0    \
+//       S =   |    .   Us[1]   0    |,
+//       ~     \    .    .     Uf[1] /
+//
+// 2D/3C stored like:
+//             / Us[0]  Uf[0]  Uf[1] \
+//       S =   |    .   Us[1]  Uf[2] |,
+//       ~     \    .    .     Us[2] /
+//
+// 3D/3C as for Cartesian.
 // ---------------------------------------------------------------------------
 {
   int_t i, j;
@@ -74,29 +100,61 @@ static void strainRate (const Domain* D ,
 
     AuxField* tp1 = Us[0];
     AuxField* tp2 = Us[1];
-  
-    for (i = 0; i < DIM; i++)
-      for (j = 0; j < DIM; j++) {
-	if (j == i) continue;
-	if (i == 2 && j == 1) {
-	  (*tp1 = *D -> u[2]) . gradient (1);
-	  (*tp2 = *D -> u[2]) . divY();
-	  *tp1 -= *tp2;
-	} else {
-	  (*tp1 = *D -> u[i]) . gradient (j);
-	  if (j == 2) tp1 -> divY();
-	}
-	if   (j > i) *Uf[i + j - 1]  = *tp1;
-	else         *Uf[i + j - 1] += *tp1;
-      }
-  
-    for (i = 0; i < DIM; i++) *Uf[i] *= 0.5;
-  
-    // -- Diagonal.
 
-    for (i = 0; i < DIM; i++) {
-      (*Us[i] = *D -> u[i]) . gradient (i);
-      if (i == 2) (*Us[2] += *D -> u[1]) . divY();
+    if (NDIM == 2 && NCOM == 2) {
+
+      (*Uf[0] = *D -> u[0]) . gradient (1);
+      (*tp1   = *D -> u[1]) . gradient (0);
+      (*Uf[0] += *tp1) *= 0.5;
+
+      (*Uf[1] = *D -> u[1]) . divY(); // -- "Diagonal" term placed into Uf.
+
+      (*Us[0] = *D -> u[0]) . gradient (0);
+      (*Us[1] = *D -> u[1]) . gradient (1);
+
+    } else if (NDIM == 2 && NCOM == 3) {
+
+      (*Uf[0] = *D -> u[0]) . gradient (1);
+      (*tp1   = *D -> u[1]) . gradient (0);
+      (*Uf[0] += *tp1) *= 0.5;
+      
+      (*Uf[1] = *D -> u[2]) . gradient (0) *= 0.5;
+
+      (*Uf[2] = *D -> u[2]) . gradient (1);
+      (*tp1 = *D -> u[2]) . divY ();
+      (*Uf[2] -= *tp1) *= 0.5;	// -- Note Us gets an "off-diagonal" term.
+
+      (*Us[0] = *D -> u[0]) . gradient (0);
+      (*Us[1] = *D -> u[1]) . gradient (1);
+      (*Us[2] = *D -> u[1]) . divY ();
+
+    } else {
+      
+      // -- The "standard" 3D/3C case.
+
+      for (i = 0; i < NCOM; i++)
+	for (j = 0; j < NDIM; j++) {
+	  if (j == i) continue;
+	  if (i == 2 && j == 1) {
+	    (*tp1 = *D -> u[2]) . gradient (1);
+	    (*tp2 = *D -> u[2]) . divY();
+	    *tp1 -= *tp2;
+	  } else {
+	    (*tp1 = *D -> u[i]) . gradient (j);
+	    if (j == 2) tp1 -> divY();
+	  }
+	  if   (j > i) *Uf[i + j - 1]  = *tp1;
+	  else         *Uf[i + j - 1] += *tp1;
+	}
+  
+      for (i = 0; i < NCOM; i++) *Uf[i] *= 0.5;
+  
+      // -- Diagonal.
+
+      for (i = 0; i < NDIM; i++) {
+	(*Us[i] = *D -> u[i]) . gradient (i);
+	if (i == 2) (*Us[2] += *D -> u[1]) . divY();
+      }
     }
 
   } else {			// -- Cartesian geometry.
@@ -105,20 +163,21 @@ static void strainRate (const Domain* D ,
 
     AuxField* tmp = Us[0];
 
-    for (i = 0; i < DIM; i++)
-      for (j = 0; j < DIM; j++) {
-	if (j == i) continue;
-	(*tmp = *D -> u[i]) . gradient (j);
-	if   (j > i) *Uf[i + j - 1]  = *tmp;
-	else         *Uf[i + j - 1] += *tmp;
+    for (i = 0; i < NCOM; i++) {
+      *Uf[i] = 0.0;
+      for (j = 0; j < NDIM; j++) {
+	if (i == j) continue;
+	if (j > i) (*tmp = *D -> u[j]) . gradient (i);
+	else       (*tmp = *D -> u[i]) . gradient (j);
+	*Uf[i + j - 1] += *tmp;
       }
+    }
       
-    for (i = 0; i < DIM; i++) *Uf[i] *= 0.5;
+    for (i = 0; i < NCOM; i++) *Uf[i] *= 0.5;
 
     // -- Diagonal.
 
-    for (i = 0; i < DIM; i++)
-      (*Us[i] = *D -> u[i]) . gradient (i);
+    for (i = 0; i < NDIM; i++) (*Us[i] = *D -> u[i]) . gradient (i);
   }
 }
 
@@ -132,7 +191,7 @@ static void viscoModel (const Domain* D ,
 // the strain-rate tensor S and NNV contains the old values of
 // non-Newtonian viscosity.  On exit, by default NNV contains the
 // Cross model non-Newtonian viscosity field (unless other model is
-// specified)
+// specified).
 //
 // NNV = (\nu_0 + \nu_\inf (K|S|)^N)/ (1+(K|S|)^N), where
 //
@@ -152,34 +211,79 @@ static void viscoModel (const Domain* D ,
   const int_t    NP     = Geometry::planeSize();
   const int_t    nPR    = Geometry::nProc();
   const int_t    nZ     = Geometry::nZProc();
-  const int_t    nZ32   = (nPR > 1) ? nZ : (3 * nZ) >> 1;
+  const int_t    nZ32   = Geometry::nZ32();
   const int_t    nTot32 = nZ32 * NP;
   const real_t   RefVis = Femlib::value ("KINVIS");
 
-  int_t          i, j;
-  vector<real_t> work (2 * nTot32 + nP);
-  real_t*        tmp    = &work[0];
-  real_t*        sum    = tmp + nTot32;
+  static vector<real_t> work (2 * nTot32);
+
+  int_t   i, j;
+  real_t* tmp = &work[0];
+  real_t* sum = tmp + nTot32;
 
   Veclib::zero (nTot32, sum, 1);
-  
-  for (i = 0; i < DIM; i++) {
-    Uf[i] -> transform32 (INVERSE, tmp);
-    Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
-  }
-  Blas::scal (nTot32, 2.0, sum, 1);
 
-  for (i = 0; i < DIM; i++) {
-    Us[i] -> transform32 (INVERSE, tmp);
-    Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
+  if (Geometry::cylindrical()) {
+
+    if (NDIM == 2 && NCOM == 2) {
+
+      Uf[0] -> transform32 (INVERSE, tmp);
+      Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
+      Blas::scal (nTot32, 2.0, sum, 1);
+
+      Uf[1] -> transform32 (INVERSE, tmp);
+      Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
+      Us[0] -> transform32 (INVERSE, tmp);
+      Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
+      Us[1] -> transform32 (INVERSE, tmp);
+      Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
+      Blas::scal (nTot32, 2.0, sum, 1);
+
+    } else {			// -- Other two cases (2D/3C and 3D/3C).
+      
+      for (i = 0; i < NCOM; i++) {
+	Uf[i] -> transform32 (INVERSE, tmp);
+	Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
+      }
+      Blas::scal (nTot32, 2.0, sum, 1);
+
+      for (i = 0; i < NCOM; i++) {
+	Us[i] -> transform32 (INVERSE, tmp);
+	Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
+      }
+      Blas::scal (nTot32, 2.0, sum, 1);
+
+    }
+
+  } else {			// -- Cartesian.
+
+    if (NCOM == 2) {
+      Uf[0] -> transform32 (INVERSE, tmp);
+      Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
+    } else {
+      for (i = 0; i < NCOM; i++) {
+	Uf[i] -> transform32 (INVERSE, tmp);
+	Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
+      }
+    }
+    Blas::scal (nTot32, 2.0, sum, 1);
+
+    for (i = 0; i < NDIM; i++) {
+      Us[i] -> transform32 (INVERSE, tmp);
+      Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
+    }
+    Blas::scal (nTot32, 2.0, sum, 1);      
   }
-  Blas::scal (nTot32, 2.0, sum, 1);
 
   Veclib::vsqrt (nTot32, sum, 1, sum, 1);
 
+#if 0 // -- Dump strain rate in pressure for debugging (and return).
+  D -> u[NCOM] -> transform32 (FORWARD, sum);
+  //  *D -> u[NCOM] = 1.; // -- Test.
+#else
   // -- Smooth shear rate.
 
-  // D -> u[0] -> smooth (nZ32, sum);
+  //  D -> u[0] -> smooth (nZ32, sum);
   
   // -- At this point we have |S| in physical space (in sum).
 
@@ -212,7 +316,7 @@ static void viscoModel (const Domain* D ,
 
   } else if (Femlib::value ("CAR_YAS")) {
 
-    // -- Carreau-Yasuda model - visc = nu_inf + (nu_0-nu_inf)/(1+(K*S^N))^A.
+    // -- Carreau-Yasuda model - visc = nu_inf + (nu_0-nu_inf)/(1+(K*S)^N)^A.
 
     const real_t K      = Femlib::value ("CY_K");
     const real_t N      = Femlib::value ("CY_N");
@@ -257,7 +361,7 @@ static void viscoModel (const Domain* D ,
   // -- Transform back to Fourier space.
   
   NNV -> transform32 (FORWARD, tmp);
-
+#endif
 }
 
 

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
-//This version of analysis.C is specialized so that it computes and
-//prints out forces exerted on "wall" boundary group in non-Newtonian
-//flows.  The viscosity is a function of space and time.
+// This version of analysis.C is specialized so that it computes and
+// prints out forces exerted on "wall" boundary group in non-Newtonian
+// flows.  The viscosity is a function of space and time.
 //
 // Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 ///////////////////////////////////////////////////////////////////////////////
@@ -32,11 +32,14 @@ nnewtAnalyser::nnewtAnalyser (Domain* D   ,
 }
 
 
-void nnewtAnalyser::analyse (AuxField** work, AuxField** temp, AuxField* NNV)
+void nnewtAnalyser::analyse (AuxField** work,
+			     AuxField** temp,
+			     AuxField*  NNV )
 // ---------------------------------------------------------------------------
 // Step-by-step processing.
 // ---------------------------------------------------------------------------
 {
+  const char routine[] = "nnewtAnalyser::analyse";
   const int_t DIM = Geometry::nDim();
   int_t       i;
 
@@ -50,10 +53,8 @@ void nnewtAnalyser::analyse (AuxField** work, AuxField** temp, AuxField* NNV)
   
   if (state) {
 
-    if (Geometry::cylindrical()) {
-      flx_strm << "*** Cylindrical Analysis Not Yet Coded" << endl;
-      return;
-    }
+    if (Geometry::cylindrical())
+      flx_strm << "Cylindrical analysis for tractions not implemented" << endl;
 
     // -- We are going to work out loads on walls:
 
@@ -110,7 +111,7 @@ void nnewtAnalyser::analyse (AuxField** work, AuxField** temp, AuxField* NNV)
   
     ROOTONLY {
       sprintf (s,
-	       "%#6d %#10.6g "
+	       "%6d %#10.6g "
 	       "%#10.6g %#10.6g %#10.6g "
 	       "%#10.6g %#10.6g %#10.6g "
 	       "%#10.6g %#10.6g %#10.6g",

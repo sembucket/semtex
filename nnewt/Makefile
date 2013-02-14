@@ -5,13 +5,18 @@
 # $Id$
 ##############################################################################
 
+PROG = nnewt
+
 SEM   = ../semtex
 VPATH = $(SEM)/src
 
 ifdef MPI
-  PROG = nnewt_mp
-else
-  PROG = nnewt
+  PROG := $(PROG)_mp
+endif
+
+ifdef NOMODEL
+  DEFINES += -DNOMODEL
+  PROG    := $(PROG)_nomodel
 endif
 
 # ----------------------------------------------------------------------------
