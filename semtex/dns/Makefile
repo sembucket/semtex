@@ -44,23 +44,7 @@ include $(VPATH)/Makefile
 #
 distclean:
 	$(MAKE) clean
-	rm -f dns dns_tbcs dns_mp dns_tbcs_mp
-
-# ----------------------------------------------------------------------------
-# Make codes for time-varying BCs
-#
-tbcs:
-	rm -f integrate.o
-	$(MAKE) TBCS=1
-	rm -f integrate.o
-
-# ----------------------------------------------------------------------------
-# Make unsteady Stokes solver:
-#
-stokes:
-	rm -f nonlinear.o
-	$(MAKE) STOKES=1
-	rm -f nonlinear.o
+	rm -f dns dns_mp
 
 #-----------------------------------------------------------------------------
 # Machine-dependent compilations.

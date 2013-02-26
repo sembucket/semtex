@@ -136,14 +136,16 @@ void integrate (Domain*      D,
   // -- Timestepping loop.
 
   while (D -> step < nStep) {
- 
-    D -> step += 1; 
-    D -> time += dt;
-    Femlib::value ("t", D -> time);
 
     // -- Compute nonlinear terms from previous velocity field.
 
     nonlinear (D, Us[0], Uf[0], ff);
+    
+    // -- Now update the time.
+ 
+    D -> step += 1; 
+    D -> time += dt;
+    Femlib::value ("t", D -> time);
 
     // -- Update high-order pressure BC storage.
 
