@@ -1267,3 +1267,4 @@ real_t Field::modeConstant (const char   name,
 
   return -1.0;			// -- Never happen.
 }
+   
