@@ -1,12 +1,12 @@
 //////////////////////////////////////////////////////////////////////////////
 // addfield.C: process semtex/NEKTON-type field files, computing and
-// adding vorticity and divergence, rate of strain tensor, velocity
-// gradient invariants, etc.
+// adding vorticity and divergence, rate of strain magnitude, velocity
+// gradient discriminant, etc.
 //
 // Copyright (c) 1998 <--> $Date$, 
 //   Hugh Blackburn, Murray Rudman
 //
-// NB: the input field file is assumed to contain only velocity and
+// NB: the input field file is assumed to contain ONLY velocity and
 // pressure data.
 //
 // Usage:
@@ -14,19 +14,18 @@
 // addfield [options] -s session session.fld
 //   options:
 //   -h        ... print this message
-//   -q        ... add kinetic energy per unit mass (default)
-//   -v        ... add vorticity
-//   -e        ... add enstrophy
-//   -B        ... add elliptic instability growth rate
-//   -b        ... add ellipticity
-//   -h        ... add helicity (3D only)
-//   -d        ... add divergence
-//   -t        ... add components of rate of strain tensor Sij
-//   -g        ... add strain rate magnitude sqrt(2SijSij)
-//   -i        ... add discriminant of velocity gradient tensor, 3D only
-//   -l        ... add Lamb vector (vorticityxu) and its divergence, 3D only
-//   -a        ... add all fields derived from velocity
-//   -f <func> ... add a computed function (of x, y, z, t, etc.)
+//   -q        ... add kinetic energy per unit mass 0.5(u.u) (default)
+//   -d        ... add divergence div(u)
+//   -v        ... add vorticity w=curl(u)
+//   -e        ... add enstrophy 0.5(w.w)
+//   -H        ... add helicity 0.5(u.w) (3D only)
+//   -L        ... add divergence of Lamb vector div(uxw) (3D only)
+//   -g        ... add strain rate magnitude sqrt(2SijSji)
+//   -D        ... add discriminant of velocity gradient tensor
+//                 NB: divergence is assumed to be zero. (3D only)
+//   -J        ... add vortex core measure of Jeong & Hussain. (3D only)
+//   -a        ... add all fields derived from velocity (above)
+//   -f <func> ... add a computed function <func> of x, y, z, t, etc.
 //
 // Reserved field names used/assumed:
 // ---------------------------------
@@ -37,8 +36,8 @@
 // p -- pressure/density
 // c -- scalar
 //
-// The following are reserved names, not used:
-// ------------------------------------------
+// The following are reserved names, not used by addfield.
+// ------------------------------------------------------
 //
 // A -- uu covariance
 // B -- uv covariance
@@ -50,31 +49,41 @@
 // Computed variables:
 // ------------------
 //
-// a -- elliptic instability growth rate
-// b -- ellipticity parameter \gamma/\omega = 0.5*G/sqrt(e)
 // d -- divergence
-// e -- enstrophy 0.5*(r^2 + s^2 + t^2)
+// e -- enstrophy 0.5*(r^2 + s^2 + t^2) = 0.5 (omega . omega)
 // f -- a computed function of spatial variables
 // g -- strain rate magnitude sqrt(2SijSij)
-// h -- helicity  0.5*(u*r + v*s + w*t)
-// J -- the vortex core identification measure of Jeong and Hussain, JFM 285.
-// L -- discriminant of velocity gradient tensor 27/4 R^2 + Q^3
-// m -- x component Lamb vector
-// n -- y component Lamb vector
-// o -- z component Lamb vector
-// Q -- divergence  Lamb vector
-// q -- kinetic energy per unit mass 0.5*(u^2 + v^2 + w^2)
+// q -- kinetic energy per unit mass 0.5*(u^2 + v^2 + w^2) = 0.5 (u . u)
 // r -- x component vorticity
 // s -- y component vorticity
 // t -- z component vorticity
+// H -- helicity  0.5*(u*r + v*s + w*t) = 0.5 (u . omega) 3D only.
+// J -- vortex core identification measure, see [2]. 3D only.
+// D -- discriminant of velocity gradient tensor, see [1]. 3D only.
+// L -- divergence of Lamb vector = div (omega x u), see [3] 3D only.
 //
 // NB: product terms -- such as are used to calculate enstrophy,
 // helicity, the invariants and discriminant of the velocity gradient
-// tensor, and the strain rate magnitude -- are not dealiased.
-// Therefore it is advisable to project the original field to a
-// greater number of planes (3/2 rule) before these terms are
-// calculated, otherwise the products can be quite different from what
-// would be expected (especially if N_Z is small, say 4).
+// tensor, and the strain rate magnitude, all computed in physical
+// space -- are not dealiased.  Therefore it is advisable to project
+// the original field to a greater number of planes (3/2 rule) before
+// these terms are calculated, otherwise the products can be quite
+// different from what would be expected (especially if N_Z is small,
+// say 4). If this is done you need to edit a matching session file
+// with the appropriate value of N_Z.
+//
+// References
+//-----------
+//
+// [1] Chong, Perry & Cantwell (1990) A general classification of
+// three-dimensional flow fields, PF(A) 2:765--777; see also Blackburn
+// et al. (1996) JFM 310:269--292
+//
+// [2] Jeong & Hussain (1995) On the identification of a vortex, JFM
+// 285:69--94
+//
+// [3] Hamman, Klewicki & Kirby (2008) On the Lamb vector divergence
+// in Navier--Stokes flows JFM 610:261--284
 //
 // --
 // This file is part of Semtex.
@@ -101,19 +110,16 @@ static char RCS[] = "$Id$";
 #include <tensorcalcs.h>
 
 #define FLDS_MAX 64 // -- More than we'll ever want.
-#define FLAG_MAX 13 // -- NB: FLAG_MAX should tally with the following enum:
+#define FLAG_MAX 10 // -- NB: FLAG_MAX should tally with the following enum:
 enum {
   ENERGY      ,     // -- NB: the placing of ENERGY and FUNCTION in the first
   FUNCTION    ,	    //    two positions is significant: don't break this.
-  EGROWTH     ,
-  ELLIPTICITY ,
+  DIVERGENCE  ,
   ENSTROPHY   ,
   DISCRIMINANT,
-  DIVERGENCE  ,
   HELICITY    ,
-  LAMBVECTOR  ,
+  DIVLAMB  ,
   STRAINRATE  ,
-  STRAINTENSOR,
   VORTICITY   ,
   VORTEXCORE
 };
@@ -133,7 +139,7 @@ int main (int    argc,
   Geometry::CoordSys         system;
   char                       *session, *dump, *func, fields[StrMax];
   int_t                      i, j, k, p, q;
-  int_t                      np, nz, nel, allocSize, nComponent;
+  int_t                      np, nz, nel, allocSize, NCOM, NDIM;
   int_t                      iAdd = 0;
   bool                       add[FLAG_MAX], need[FLAG_MAX], gradient;
   ifstream                   file;
@@ -142,14 +148,17 @@ int main (int    argc,
   BCmgr*                     B;
   Domain*                    D;
   vector<Element*>           elmt;
-  AuxField                   *Ens, *Hel, *Div, *InvQ, *InvR, *Disc, *Strain;
-  AuxField                   *Func, *Ell, *Egr, *Vtx, *work, *DivL, *Nrg;
-  vector<AuxField*>          lamb, velocity, vorticity, addField(FLDS_MAX);
-  vector<vector<AuxField*> > Sij;
+  AuxField                   *Ens, *Hel, *Div, *Disc, *Strain;
+  AuxField                   *Func, *Vtx, *DivL, *Nrg, *work;
+  vector<AuxField*>          velocity, vorticity, lamb, addField(FLDS_MAX);
   vector<vector<AuxField*> > Vij;     // -- Usually computed, for internal use.
-  vector<vector<real_t*> >   VijData; // -- For pointwise access.
-  real_t                     *egrow, *VtxData; // -- Ditto.
-  real_t                     tensor[9];
+  vector<vector<real_t*> >   VijData; // -- For pointwise access in Vij.
+
+  vector<real_t*> VorData; // -- Ditto in vorticity.
+  vector<real_t*> LamData; // -- Ditto in Lamb vector.
+
+  real_t          *DisData, *DivData, *StrData, *VtxData, *HelData, *EnsData;
+  real_t          vel[3], vort[3], tensor[9];
 
   Femlib::initialize (&argc, &argv);
   for (i = 0; i < FLAG_MAX; i++) add [i] = need [i] = false;
@@ -171,10 +180,8 @@ int main (int    argc,
   system = (Femlib::ivalue ("CYLINDRICAL") ) ?
                        Geometry::Cylindrical : Geometry::Cartesian;
   Geometry::set (np, nz, nel, system);
-  if   (nz > 1) strcpy (fields, "uvwp");
-  else          strcpy (fields, "uvp");
-  nComponent = Geometry::nDim();
-  allocSize  = Geometry::nTotal();
+
+  allocSize = Geometry::nTotal();
 
   elmt.resize (nel);
   for (i = 0; i < nel; i++) elmt[i] = new Element (i, np, M);
@@ -182,71 +189,61 @@ int main (int    argc,
   B = new BCmgr  (F, elmt);
   D = new Domain (F, elmt, B);
 
-  velocity.resize   (nComponent);
-  vorticity.resize ((nComponent == 2) ? 1 : 3);
-  for (i = 0; i < nComponent; i++) velocity[i] = D -> u[i];
+  if      (strstr (D -> field, "uvw")) NCOM = 3;
+  else if (strstr (D -> field, "uv"))  NCOM = 2;
+  else message (prog, "lacking velocity components: is session valid?", ERROR);
+  NDIM = Geometry::nDim();
+
+  velocity.resize   (NCOM);
+  vorticity.resize ((NDIM == 2) ? 1 : 3);
+  for (i = 0; i < NCOM; i++) velocity[i] = D -> u[i];
 
   // -- From the requested fields, flag dependencies.
 
-  if  (nComponent < 3)
-    add[HELICITY] = add[DISCRIMINANT] = add[VORTEXCORE] = false;
+  // -- First, only allow the "coherent structures" measures for flows
+  //    that are 3D.
+
+  if  (NDIM == 2)
+    add[HELICITY]=add[DISCRIMINANT]=add[VORTEXCORE]=add[DIVLAMB] = false;
 
   for (p = 0, i = 0; i < FLAG_MAX; i++) p += (add[i]) ? 1 : 0;
   if  (p == 0) message (prog, "nothing to be done", ERROR);
 
-  for (p = 0, i = 0; i < FLAG_MAX; i++)
-    p += (add[i]) ? (i + 1) : 0;
+  // -- Check if we just have the (first two) cases not requiring derivatives.
+
+  for (p = 0, i = 0; i < FLAG_MAX; i++) p += (add[i]) ? (i + 1) : 0;
   if (p <= 3) gradient = false; else gradient = true;
 
   for (i = 0; i < FLAG_MAX; i++) need[i] = add[i];
 
-  if (add[ENSTROPHY]) {
-    need[VORTICITY]    = true;
-    need[ENSTROPHY]    = true;
-  }
-  if (add[HELICITY]) {
-    need[VORTICITY]    = true;
-  }
-  if (add[ELLIPTICITY]) {
-    need[VORTICITY]    = true;
-    need[ENSTROPHY]    = true;
-    need[STRAINRATE]   = true;
-    need[STRAINTENSOR] = true;
-  }
-  if (add[STRAINRATE]) {
-    need[STRAINTENSOR] = true;
-  }
-  if (add[EGROWTH]) {
-    need[VORTICITY]    = true;
-    need[ENSTROPHY]    = true;
-    need[STRAINRATE]   = true;
-    need[STRAINTENSOR] = true;
-    need[ELLIPTICITY]  = true;
-  }
-  if (add[LAMBVECTOR]) {
-    need[VORTICITY]    = true;
-    need[LAMBVECTOR]   = true;
-  }
-
   // -- If any gradients need to be computed, we make all of them.
+  //    Vij = du_j/dx_i.  So j labels velocity component and i labels
+  //    spatial dimension.
+
+  // -- Despite the fact that it's overkill we will take the
+  //    simple-minded approach and always make Vij as a 3x3 tensor.
+  //    That's a wasteful for anything which is 2D but presumably for
+  //    those cases the memory can be afforded.
+
+  // -- The velocity gradient tensor is initially just a naive matrix
+  //    of derivatives.  In cylindrical coordinates we need to make
+  //    modifications.
   
   if (gradient) {
-    Vij    .resize (nComponent);
-    VijData.resize (nComponent);
-    for (i = 0; i < nComponent; i++) {
-      Vij    [i].resize (nComponent);
-      VijData[i].resize (nComponent);
-      for (j = 0; j < nComponent; j++) {
+    Vij    .resize (3);
+    VijData.resize (3);
+    for (i = 0; i < 3; i++) {
+      Vij    [i].resize (3);
+      VijData[i].resize (3);
+      for (j = 0; j < 3; j++) {
 	VijData[i][j] = new real_t [allocSize];
-	Vij   [i][j] = new AuxField (VijData[i][j], nz, elmt);
-	*Vij  [i][j] = 0.0;
+	Vij    [i][j] = new AuxField (VijData[i][j], nz, elmt);
+	*Vij   [i][j] = 0.0;
       }
     }
   }
   
   // -- Fields without dependants.
-
-  work = new AuxField (new real_t[allocSize], nz, elmt);
 
   if (need[ENERGY]) {
     Nrg = new AuxField (new real_t[allocSize], nz, elmt, 'q');
@@ -259,16 +256,21 @@ int main (int    argc,
   }
 
   if (need[DIVERGENCE]) {
-    Div  =  new AuxField (new real_t[allocSize], nz, elmt, 'd');
-    *Div = 0.0;
+    DivData = new real_t [allocSize];
+    *(Div  =  new AuxField (DivData, nz, elmt, 'd')) = 0.0;
     addField[iAdd++] = Div;
   }
 
   if (need[DISCRIMINANT]) {
-    *(InvQ = new AuxField (new real_t[allocSize], nz, elmt, 'Q')) = 0.0;
-    *(InvR = new AuxField (new real_t[allocSize], nz, elmt, 'R')) = 0.0;
-    *(Disc = new AuxField (new real_t[allocSize], nz, elmt, 'L')) = 0.0;
+    DisData = new real_t [allocSize];
+    *(Disc = new AuxField (DisData, nz, elmt, 'D')) = 0.0;
     addField[iAdd++] = Disc;
+  }
+
+  if (need[STRAINRATE]) {
+    StrData = new real_t [allocSize];
+    Strain  = new AuxField (StrData, nz, elmt, 'g');
+    addField[iAdd++] = Strain;
   }
 
   if (need[VORTEXCORE]) {
@@ -277,240 +279,255 @@ int main (int    argc,
     addField[iAdd++] = Vtx;
   }
 
-  // -- Vorticity and its dependants.
-
   if (need[VORTICITY])
-    if (nComponent == 2) {
-      vorticity[0] = new AuxField (new real_t[allocSize], nz, elmt, 't');
-      if (add[VORTICITY])
-	addField[iAdd++] = vorticity[0];
+    if (NDIM == 2) {
+      vorticity.resize (1);
+      VorData  .resize (1);
+      VorData[0]       = new real_t [allocSize];
+      vorticity[0]     = new AuxField (VorData[0], nz, elmt, 't');
+      addField[iAdd++] = vorticity[0];
     } else {
-      for (i = 0; i < nComponent; i++)
-	vorticity[i] = new AuxField (new real_t[allocSize], nz, elmt, 'r' + i);
-      if (add[VORTICITY])
-	for (i = 0; i < 3; i++) addField[iAdd++] = vorticity[i];
+      vorticity.resize (3);
+      VorData  .resize (3);
+      for (i = 0; i < 3; i++) {
+	VorData[i]       = new real_t [allocSize];
+	vorticity[i]     = new AuxField (VorData[i], nz, elmt, 'r' + i);
+	addField[iAdd++] = vorticity[i];
+      }
     }
 
-  if (add[LAMBVECTOR]) {
-    if (nComponent == 2) {
-      lamb.resize(2);
-      for (i = 0; i < nComponent; i++)
-	lamb[i] = new AuxField (new real_t[allocSize], nz, elmt, 'm' + i);
-      for (i = 0; i < 2; i++) addField[iAdd++] = lamb[i];
-    } else {
-      lamb.resize(3);
-      for (i = 0; i < nComponent; i++)
-	lamb[i] = new AuxField (new real_t[allocSize], nz, elmt, 'm' + i);
-      for (i = 0; i < 3; i++) addField[iAdd++] = lamb[i];
+  if (add[DIVLAMB]) { 		// -- Know also NDIM == 3.
+    lamb   .resize (3);
+    LamData.resize (3);
+    for (i = 0; i < 3; i++) {
+      LamData[i] = new real_t [allocSize];
+      lamb[i]    = new AuxField (LamData[i], nz, elmt, 'L');
     }
-    DivL = new AuxField (new real_t[allocSize], nz, elmt, 'Q');
-    addField[iAdd++] = DivL;
+    addField[iAdd++] = lamb[0];	// -- Where divergence will get stored.
   }
 
   if (need[ENSTROPHY]) {
-    Ens = new AuxField (new real_t[allocSize], nz, elmt, 'e');
+    EnsData = new real_t[allocSize];
+    Ens = new AuxField (EnsData, nz, elmt, 'e');
     if (add[ENSTROPHY]) addField[iAdd++] = Ens;
   }
   
   if (need[HELICITY]) {
-    Hel = new AuxField (new real_t[allocSize], nz, elmt, 'h');
+    HelData = new real_t [allocSize];
+    Hel = new AuxField (HelData, nz, elmt, 'H');
     if (add[HELICITY]) addField[iAdd++] = Hel;
   }
 
-  if (need[ELLIPTICITY]) {
-    Ell = new AuxField (new real_t[allocSize], nz, elmt, 'b');
-    if (add[ELLIPTICITY]) addField[iAdd++] = Ell;
-  }
-
-  // -- Rate of strain tensor and its dependants.
-
-  if (need[STRAINTENSOR]) {
-    Sij.resize (nComponent);
-    for (k = 0, i = 0; i < nComponent; i++) {
-      Sij[i].resize (nComponent);
-      for (j = 0; j < nComponent; j++) {
-	if (j >= i) {
-	  Sij[i][j] = new AuxField (new real_t[allocSize], nz, elmt, 'i'+k++);
-	} else
-	  Sij[i][j] = Sij[j][i];
-      }
-    }
-  }
-
-  if (need[STRAINRATE]) {
-    *(Strain = new AuxField (new real_t[allocSize], nz, elmt, 'g')) = 0.0;
-    if (add[STRAINRATE]) addField[iAdd++] = Strain;
-  }
-
-  if (need[EGROWTH]) {
-    egrow = new real_t[allocSize]; // -- A handle for direct access to data.
-    Egr = new AuxField (egrow, nz, elmt, 'a');
-    if (add[EGROWTH]) addField[iAdd++] = Egr;
-  }
-  
-  // -- Cycle through field dump, first computing the velocity
-  //    gradient tensor and then the needed quantities -- vorticity
-  //    etc.  The order of computation is determined by dependencies.
-  //    Then write requested output, listed in addField.
+  // -- Cycle through field dump, first (if required) making the only
+  //    two things which just need the velocity and no gradients, then
+  //    if needed computing the full VG tensor and work forward from
+  //    there.  The order of computation is determined by
+  //    dependencies.  Then write requested output, listed in
+  //    addField.
   
   while (getDump (D, file)) {
         
     if (need[FUNCTION]) *Func = func;
 
-    // -- Velocity gradient tensor; transform required for z (2) gradient.  
+    if (need[ENERGY]) ((*Nrg) . innerProduct (velocity, velocity)) *= 0.5;
 
-    if (nComponent > 2) D -> transform (FORWARD);
+    if (gradient) {		// -- All other things.
 
-    if (gradient)
-      for (i = 0; i < nComponent ; i++)
-	for (j = 0; j < nComponent ; j++) {
-	  (*Vij[i][j] = *velocity[i]) . gradient (j);
-	  Vij[i][j] -> transform (INVERSE);
+      // -- First make all VG components.
+
+      for (i = 0; i < NDIM ; i++)
+	for (j = 0; j < NCOM ; j++) {
+	  *Vij[i][j] = *velocity[j];
+	  if (i == 2) Vij[i][j] -> transform (FORWARD);
+	  Vij[i][j] -> gradient (i);
+	  if (i == 2) Vij[i][j] -> transform (INVERSE);
 	}
 
-    if (need[ENERGY]) {
-      *Nrg = 0.0;
-      for (i = 0; i < nComponent ; i++)
-	Nrg -> timesPlus (*D -> u[i], *D -> u[i]);
-      *Nrg *= 0.5;
-    }
-
-    if (nComponent > 2) D -> transform (INVERSE);
-
-    if (gradient && Geometry::cylindrical() && nComponent == 3) {
-      for (i = 0; i < nComponent; i++) Vij[i][2] -> divY();
-      (*work = *D -> u[2]) . divY();  *Vij[1][2] -= *work;
-      (*work = *D -> u[1]) . divY();  *Vij[2][2] += *work;
-    }
-    
-    if (need[DISCRIMINANT]) {
-
-      // -- 2nd invariant (Q from Chong et al.).
-
-      InvQ -> times      (*Vij[0][0], *Vij[1][1]);
-      InvQ -> timesMinus (*Vij[0][1], *Vij[1][0]);
-      InvQ -> timesPlus  (*Vij[0][0], *Vij[2][2]);
-      InvQ -> timesMinus (*Vij[0][2], *Vij[2][0]);
-      InvQ -> timesPlus  (*Vij[1][1], *Vij[2][2]);
-      InvQ -> timesMinus (*Vij[1][2], *Vij[2][1]);
-
-      // -- 3rd invariant: determinant of Vij (R from Chong et al.).
-
-      work -> times      (*Vij[1][1], *Vij[2][2]);
-      work -> timesMinus (*Vij[2][1], *Vij[1][2]);
-      InvR -> times      (*work,      *Vij[0][0]);
-
-      work -> times      (*Vij[1][2], *Vij[2][0]);
-      work -> timesMinus (*Vij[2][2], *Vij[1][0]);
-      InvR -> timesPlus  (*work,      *Vij[0][1]);
-
-      work -> times      (*Vij[2][1], *Vij[1][0]);
-      work -> timesMinus (*Vij[1][1], *Vij[2][0]);
-      InvR -> timesPlus  (*work,      *Vij[0][2]);
-
-      // -- Discriminant L of Vij.
-      //    NB: DIVERGENCE (P from Chong et al.) ASSUMED = 0.
-
-      work -> times (*InvQ, *InvQ);
-      Disc -> times (*work, *InvQ);
-      work -> times (*InvR, *InvR);
-      *work *= 6.75;
-      *Disc += *work;
-    }
-
-    if (need[DIVERGENCE])
-      for (i = 0; i < nComponent; i++) *Div += *Vij[i][i];
-
-    
-    if (need[VORTICITY]) {
-      if (nComponent == 2) {
-	*vorticity[0]  = *Vij[1][0];
-	*vorticity[0] -= *Vij[0][1];
-      } else {
-	*vorticity[0]  = *Vij[2][1];
-	*vorticity[0] -= *Vij[1][2];
-	*vorticity[1]  = *Vij[0][2];
-	*vorticity[1] -= *Vij[2][0];
-	*vorticity[2]  = *Vij[1][0];
- 	*vorticity[2] -= *Vij[0][1];
+      if (Geometry::cylindrical()) {
+	work = new AuxField (new real_t[allocSize],  nz, elmt);
+	if (NDIM == 3) for (j = 0; j < NCOM; j++) Vij[2][j] -> divY();
+	(*work = *velocity[1]) . divY(); *Vij[2][2] += *work;
+	if (NCOM == 3) { (*work = *velocity[2]) . divY(); *Vij[1][2] -= *work; }
       }
-    }
 
-    if (need[LAMBVECTOR]) {
-      if (nComponent == 2) {
-	*lamb[0] = 0.0;
-	lamb[0] -> timesMinus (*D -> u[1], *vorticity[0]);
-	lamb[1] -> times      (*D -> u[0], *vorticity[0]);
-	*DivL  = (*work = *lamb[0]) . gradient (0);
-	*DivL += (*work = *lamb[1]) . gradient (1);
-	if (Geometry::cylindrical())
-	  *DivL += (*work = *lamb[1]) . divY();
-      } else {
-	lamb[0] -> times      (*D -> u[2], *vorticity[1]);
-	lamb[0] -> timesMinus (*D -> u[1], *vorticity[2]);
-	lamb[1] -> times      (*D -> u[0], *vorticity[2]);
-	lamb[1] -> timesMinus (*D -> u[2], *vorticity[0]);
-	lamb[2] -> times      (*D -> u[1], *vorticity[0]);
-	lamb[2] -> timesMinus (*D -> u[0], *vorticity[1]);
-	*DivL  = (*work = *lamb[0]) . gradient (0);
-	*DivL += (*work = *lamb[1]) . gradient (1);
-	(*work = *lamb[2]).transform(FORWARD).gradient(2).transform(INVERSE);
-	if (Geometry::cylindrical()) {
-	  *DivL += work -> divY();
-	  *DivL += (*work = *lamb[1]) . divY();
-	} else
-	  *DivL += *work;
-      }
-    }
-    
-    if (need[ENSTROPHY])
-      Ens -> innerProduct (vorticity, vorticity) *= 0.5;
+#if 1
+      // -- Loop over every point in the mesh and compute everything
+      //    from Vij.  Quite likely this could be made more efficient
+      //    but for now simplicity is the aim.
 
-    if (need[HELICITY])
-      Hel -> innerProduct (vorticity, velocity)  *= 0.5;
+      for (i = 0; i < allocSize; i++) {
 
-    if (need[STRAINTENSOR]) {
-      for (i = 0; i < nComponent; i++)
-	for (j = i; j < nComponent; j++) {
-	  *Sij[i][j]  = *Vij[i][j];
-	  *Sij[i][j] += *Vij[j][i];
-	  *Sij[i][j] *= 0.5;
+	for (k = 0, p = 0; p < 3; p++) {
+	  for (q = 0; q < 3; q++, k++)
+	    tensor [k] = VijData [p][q][i];
 	}
-    }
 
-    if (need[STRAINRATE]) {
-      *Strain = 0.0;
-      for (i = 0; i < nComponent; i++)
-	for (j = 0; j < nComponent; j++)
-	  Strain -> timesPlus (*Sij[i][j], *Sij[j][i]);
-      (*Strain *= 2.0) . sqroot();
-    }
+	// -- These operations produce a simple scalar result from Vij.
 
-    if (need[ELLIPTICITY]) {
-      ((*work = *Ens) . sqroot() *= 2.0) += 1.0e-1;
-      Ell -> divide (*Strain, *work);
-    }
+	if (need[DIVERGENCE])   DivData[i] = tensor3::trace      (tensor);
+	if (need[ENSTROPHY])    EnsData[i] = tensor3::enstrophy  (tensor);
+	if (need[DISCRIMINANT]) DisData[i] = tensor3::discrimi   (tensor);
+	if (need[STRAINRATE])   StrData[i] = tensor3::strainrate (tensor);
+	if (need[VORTEXCORE])   VtxData[i] = tensor3::lambda2    (tensor);
 
-    if (need[EGROWTH]) {
-      *Egr = *Ell;
-      Veclib::clip (allocSize, 0.0, 1.0, egrow, 1, egrow, 1);
-      Veclib::spow (allocSize, 2.811,    egrow, 1, egrow, 1);
-      Veclib::vneg (allocSize,           egrow, 1, egrow, 1);
-      Veclib::sadd (allocSize, 1.0,      egrow, 1, egrow, 1);
-      Veclib::spow (allocSize, 0.3914,   egrow, 1, egrow, 1);
-      Veclib::smul (allocSize, 9.0/16.0, egrow, 1, egrow, 1);
-      (*work = *Strain) *= sqrt (1.0/8.0);
-      Egr -> times (*Egr, *work);
-    }
+	// -- Vorticity could be considered scalar in 2D.
 
-    if (need[VORTEXCORE])	// -- Only done for 3-component fields.
-      for (i = 0; i < allocSize; i++)
-	for (k = 0, p = 0; p < 3; p++)
-	  for (q = 0; q < 3; q++, k++) {
-	    tensor [k] = VijData[p][q][i];
-	    VtxData[i] = lambda2 (tensor);
+	if (need[VORTICITY]) {
+	  tensor3::vorticity (tensor, vort);
+	  if (NDIM == 2) 
+	    VorData[0][i] = vort[2];
+	  else { 
+	    VorData[0][i] = vort[0]; 
+	    VorData[1][i] = vort[1]; 
+	    VorData[2][i] = vort[2];
 	  }
+	}
 
+	if (!(need[HELICITY] || need[DIVLAMB])) continue;
+
+	// -- Last two measures need velocity too, only made for NDIM = 3.
+
+	vel[0] = velocity[0] -> data()[i];
+	vel[1] = velocity[1] -> data()[i];
+	vel[2] = velocity[2] -> data()[i];
+
+	if (need[HELICITY]) HelData[i] = tensor3::helicity (tensor, vel);
+
+
+	if (need[DIVLAMB]) {
+	  tensor3::lambvector (tensor, vel, vort); // -- vort is a dummy.
+	  LamData[0][i] = vort[0]; 
+	  LamData[1][i] = vort[1]; 
+	  LamData[2][i] = vort[2];
+	}
+      }
+
+      // -- For this case, we still need to compute a divergence:
+      
+      if (need[DIVLAMB]) {
+	lamb[0] -> gradient (0);
+	(*lamb[2]) . transform (FORWARD) . gradient (2) . transform(INVERSE);
+	if (Geometry::cylindrical()) lamb[2] -> divY();
+	*lamb[0] += *lamb[2];
+	if (Geometry::cylindrical()) *lamb[0] += (*lamb[2] = *lamb[1]) . divY();
+	*lamb[0] += (*lamb[1]) . gradient (1);
+      }
+    }
+#else
+
+      if (need[DISCRIMINANT]) {
+
+	// -- 2nd invariant (Q from Chong et al.).
+	
+	InvQ -> times      (*Vij[0][0], *Vij[1][1]);
+	InvQ -> timesMinus (*Vij[0][1], *Vij[1][0]);
+	InvQ -> timesPlus  (*Vij[0][0], *Vij[2][2]);
+
+	InvQ -> timesMinus (*Vij[0][2], *Vij[2][0]);
+	InvQ -> timesPlus  (*Vij[1][1], *Vij[2][2]);
+	InvQ -> timesMinus (*Vij[1][2], *Vij[2][1]);
+
+	// -- 3rd invariant: determinant of Vij (R from Chong et al.).
+
+	work -> times      (*Vij[1][1], *Vij[2][2]);
+	work -> timesMinus (*Vij[2][1], *Vij[1][2]);
+	InvR -> times      (*work,      *Vij[0][0]);
+
+	work -> times      (*Vij[1][2], *Vij[2][0]);
+	work -> timesMinus (*Vij[2][2], *Vij[1][0]);
+	InvR -> timesPlus  (*work,      *Vij[0][1]);
+
+	work -> times      (*Vij[2][1], *Vij[1][0]);
+	work -> timesMinus (*Vij[1][1], *Vij[2][0]);
+	InvR -> timesPlus  (*work,      *Vij[0][2]);
+
+	// -- Discriminant L of Vij.
+	//    NB: DIVERGENCE (P from Chong et al.) ASSUMED = 0.
+
+	work -> times (*InvQ, *InvQ);
+	Disc -> times (*work, *InvQ);
+	work -> times (*InvR, *InvR);
+	*work *= 6.75;
+	*Disc += *work;
+      }
+
+      if (need[DIVERGENCE])
+	for (i = 0; i < nComponent; i++) *Div += *Vij[i][i];
+
+    
+      if (need[VORTICITY]) {
+	if (nComponent == 2) {
+	  *vorticity[0]  = *Vij[1][0];
+	  *vorticity[0] -= *Vij[0][1];
+	} else {
+	  *vorticity[0]  = *Vij[2][1];
+	  *vorticity[0] -= *Vij[1][2];
+	  *vorticity[1]  = *Vij[0][2];
+	  *vorticity[1] -= *Vij[2][0];
+	  *vorticity[2]  = *Vij[1][0];
+	  *vorticity[2] -= *Vij[0][1];
+	}
+      }
+
+      if (need[DIVLAMB]) {
+	if (nComponent == 2) {
+	  *lamb[0] = 0.0;
+	  lamb[0] -> timesMinus (*D -> u[1], *vorticity[0]);
+	  lamb[1] -> times      (*D -> u[0], *vorticity[0]);
+	  *DivL  = (*work = *lamb[0]) . gradient (0);
+	  *DivL += (*work = *lamb[1]) . gradient (1);
+	  if (Geometry::cylindrical())
+	    *DivL += (*work = *lamb[1]) . divY();
+	} else {
+	  lamb[0] -> times      (*D -> u[2], *vorticity[1]);
+	  lamb[0] -> timesMinus (*D -> u[1], *vorticity[2]);
+	  lamb[1] -> times      (*D -> u[0], *vorticity[2]);
+	  lamb[1] -> timesMinus (*D -> u[2], *vorticity[0]);
+	  lamb[2] -> times      (*D -> u[1], *vorticity[0]);
+	  lamb[2] -> timesMinus (*D -> u[0], *vorticity[1]);
+	  *DivL  = (*work = *lamb[0]) . gradient (0);
+	  *DivL += (*work = *lamb[1]) . gradient (1);
+	  (*work = *lamb[2]).transform(FORWARD).gradient(2).transform(INVERSE);
+	  if (Geometry::cylindrical()) {
+	    *DivL += work -> divY();
+	    *DivL += (*work = *lamb[1]) . divY();
+	  } else
+	    *DivL += *work;
+	}
+      }
+    
+      if (need[ENSTROPHY])
+	Ens -> innerProduct (vorticity, vorticity) *= 0.5;
+
+      if (need[HELICITY])
+	Hel -> innerProduct (vorticity, velocity)  *= 0.5;
+
+      if (need[STRAINTENSOR]) {
+	for (i = 0; i < nComponent; i++)
+	  for (j = i; j < nComponent; j++) {
+	    *Sij[i][j]  = *Vij[i][j];
+	    *Sij[i][j] += *Vij[j][i];
+	    *Sij[i][j] *= 0.5;
+	  }
+      }
+
+      if (need[STRAINRATE]) {
+	*Strain = 0.0;
+	for (i = 0; i < nComponent; i++)
+	  for (j = 0; j < nComponent; j++)
+	    Strain -> timesPlus (*Sij[i][j], *Sij[j][i]);
+	(*Strain *= 2.0) . sqroot();
+      }
+
+      if (need[VORTEXCORE])	// -- Only done for 3-component fields.
+	for (i = 0; i < allocSize; i++) {
+	  for (k = 0, p = 0; p < 3; p++)
+	    for (q = 0; q < 3; q++, k++)
+	      tensor [k] = VijData[p][q][i];
+	  VtxData[i] = lambda2 (tensor);
+	}
+    }
+#endif
     // -- Finally, add mass-projection smoothing on everything.
 
     for (i = 0; i < iAdd; i++) D -> u[0] -> smooth (addField[i]);
@@ -538,18 +555,16 @@ static void getargs (int    argc   ,
     "Usage: %s [options] -s session dump.fld\n"
     "options:\n"
     "  -h        ... print this message \n"
-    "  -q        ... add kinetic energy per unit mass (default)\n"
-    "  -v        ... add vorticity\n"
-    "  -e        ... add enstrophy\n"
-    "  -H        ... add helicity (3D only)\n"
-    "  -b        ... add ellipticity\n"
-    "  -B        ... add elliptic instability growth rate\n"
-    "  -d        ... add divergence\n"
-    "  -l        ... add Lamb vector (uxw) and its divergence\n"
-    "  -g        ... add strain rate magnitude sqrt(2SijSij)\n"
-    "  -i        ... add discriminant of velocity gradient tensor\n"
+    "  -q        ... add kinetic energy per unit mass 0.5(u.u) (default)\n"
+    "  -d        ... add divergence div(u)\n"
+    "  -v        ... add vorticity w=curl(u)\n"
+    "  -e        ... add enstrophy 0.5(w.w)\n"
+    "  -H        ... add helicity 0.5(u.w) (3D only)\n"
+    "  -L        ... add divergence of Lamb vector, div(uxw)\n"
+    "  -g        ... add strain rate magnitude sqrt(2SijSji)\n"
+    "  -D        ... add discriminant of velocity gradient tensor\n"
     "                NB: divergence is assumed to be zero. (3D only)\n"
-    "  -j        ... add vortex core measure of Jeong & Hussain\n"
+    "  -J        ... add vortex core measure of Jeong & Hussain (3D only)\n"
     "  -a        ... add all fields derived from velocity (above)\n"
     "  -f <func> ... add a computed function <func> of x, y, z, t, etc.\n";
               
@@ -569,15 +584,13 @@ static void getargs (int    argc   ,
     case 'v': flag[VORTICITY]    = true; break;
     case 'e': flag[ENSTROPHY]    = true; break;
     case 'H': flag[HELICITY]     = true; break;
-    case 'B': flag[EGROWTH]      = true; break;
-    case 'b': flag[ELLIPTICITY]  = true; break;
     case 'd': flag[DIVERGENCE]   = true; break;
     case 'g': flag[STRAINRATE]   = true; break;
-    case 'i': flag[DISCRIMINANT] = true; break;
-    case 'j': flag[VORTEXCORE]   = true; break;
-    case 'l': flag[LAMBVECTOR]   = true; break;
+    case 'D': flag[DISCRIMINANT] = true; break;
+    case 'J': flag[VORTEXCORE]   = true; break;
+    case 'L': flag[DIVLAMB]      = true; break;
     case 'q': flag[ENERGY]       = true; break;
-    case 'a': for (i = 0; i < FLAG_MAX; i++) flag[i] = true; break;
+    case 'a': flag[0]=true; for (i = 2; i < FLAG_MAX ; i++) flag[i]=true; break;
     case 'f':
       if (*++argv[0]) func = *argv; else { --argc; func = *++argv; }
       flag[FUNCTION] = true; break;

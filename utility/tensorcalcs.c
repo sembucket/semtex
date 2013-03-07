@@ -150,7 +150,7 @@ double enstrophy(const double VG[9])
   double A[9];
 
   anti_symmetric_part(VG, A);
-  return(2.0*(A[3]*A[1] + A[6]*A[2] + A[7]*A[5]));
+  return(-2.0*(A[3]*A[1] + A[6]*A[2] + A[7]*A[5]));
 }
 
 
@@ -163,6 +163,18 @@ double dissipation(const double VG[9])
 
   symmetric_part(VG, S);
   return(contracted_product(S));
+}
+
+
+double strainrate(const double VG[9])
+/* ------------------------------------------------------------------------- *
+ * Calculate strain rate magnitude sqrt(2SijSji) from vel grad.
+ * ------------------------------------------------------------------------- */
+{
+  double S[9];
+
+  symmetric_part(VG, S);
+  return(sqrt(2.0*contracted_product(S)));
 }
 
 
@@ -294,7 +306,7 @@ void scale_vect(double v[3], double s)
 }
 
 
-void vort(const double A[9], double w[3])
+void vorticity (const double A[9], double w[3])
 /* ------------------------------------------------------------------------- *
  * From A, antisymmetric part of VG, return the vorticity vector.
  * ------------------------------------------------------------------------- */
@@ -388,4 +400,51 @@ double lambda2(const double VG[9])
   real_eigenvalues(I, II, III, &e1, &e2, &e3);
 
   return(e2);
+}
+
+
+double discrimi(const double VG[9])
+/* ------------------------------------------------------------------------- *
+ * Return the discriminant of VG, assuming the velocity field incompressible.
+ * See Blackburn et at, JFM 310.
+ * ------------------------------------------------------------------------- */
+{
+  double I, II, III, D;
+
+  invariants(VG, &I, &II, &III);
+
+  /* Assume (don't check) that I = 0. */
+
+  D = 6.75*SQR(II) + CUBE(III);
+
+  return(D);
+}
+
+
+void lambvector(const double VG[9], const double vel[3], double lamb[3])
+/* ------------------------------------------------------------------------- *
+ * Return the Lamb vector vorticity x velocity.
+ * See Hamman et al, JFM 610.
+ * ------------------------------------------------------------------------- */
+{
+  double vort[3];
+
+  vorticity (VG, vort);
+  
+  lamb[0] = vort[1]*vel[2] - vort[2]*vel[1];
+  lamb[1] = vort[2]*vel[0] - vort[0]*vel[2];
+  lamb[2] = vort[0]*vel[1] - vort[1]*vel[0];
+}
+
+
+double helicity(const double VG[9], const double vel[3])
+/* ------------------------------------------------------------------------- *
+ * Return helicity 0.5*(vorticity . velocity).
+ * ------------------------------------------------------------------------- */
+{
+  double vort[3];
+
+  vorticity (VG, vort);
+  
+  return(0.5*(vort[0]*vel[0] + vort[1]*vel[1] + vort[2]*vel[2]));
 }

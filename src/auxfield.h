@@ -20,8 +20,9 @@ friend class    PBCmgr;
 public:
   AuxField (real_t*, const int_t, vector<Element*>&, const char = 0);
 
-  char name     ()      const { return _name; }
-  void describe (char*) const;
+  char          name     ()      const { return _name; }
+  void          describe (char*) const;
+  const real_t* data     ()      const { return _data; } // -- Hack alert!
 
   AuxField& operator  = (const real_t);
   AuxField& operator += (const real_t);
