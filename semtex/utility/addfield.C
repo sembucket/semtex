@@ -625,7 +625,7 @@ static void putDump  (Domain*            D       ,
 // This is a version of the normal Domain dump that adds extra AuxFields.
 // ---------------------------------------------------------------------------
 {
-  char *hdr_fmt[] = { 
+  const char *hdr_fmt[] = { 
     "%-25s "    "Session\n",
     "%-25s "    "Created\n",
     "%-25s "    "Nr, Ns, Nz, Elements\n",
