@@ -11,7 +11,7 @@ essential: sem compare enumerate
 
 all: essential plain preplot nosrc meshpr calc addfield sem2nek \
      convert project interp probe rectmesh transform wallmesh   \
-     phase lowpass eneq integral traction stressdiv
+     phase lowpass eneq integral traction stressdiv mapmesh
 
 distclean:
 	make clean
