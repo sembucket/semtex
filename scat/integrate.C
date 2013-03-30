@@ -412,7 +412,7 @@ static void buoyancy (Domain*         D ,
   if (Geometry::cylindrical()) {
     if (fabs (g[0]) > EPSDP) {
       *work      = *T;
-      *work     -=  Femlib::value ("T_REF" );
+      ROOTONLY work -> addToPlane (0, -Femlib::value ("T_REF"));
       *work     *=  Femlib::value ("BETA_T");
       *work     *=  g[0];
        work     -> mulY();
@@ -422,7 +422,7 @@ static void buoyancy (Domain*         D ,
     for (i = 0; i < NCOM; i++)
       if (fabs (g[i]) > EPSDP) {
 	*work      = *T;
-	*work     -=  Femlib::value ("T_REF" );
+	ROOTONLY work -> addToPlane (0, -Femlib::value ("T_REF"));
 	*work     *=  Femlib::value ("BETA_T");
 	*work     *=  g[i];
 	*Uf[i] -= *work;
