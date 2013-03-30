@@ -1,10 +1,26 @@
 //////////////////////////////////////////////////////////////////////////////
 // drive.C: control spectral element solver for unsteady
-// incompressible flow with scalar transport.
+// incompressible flow with scalar transport (which adds a extra
+// advection--diffusion equation for concentration 'c').
 //
-// Optional Boussinesq buoyancy. NB: for cylindrical coordinates, only
-// axial gravity is currently implemented.
+// Define token PRANDTL = (kinematic viscosity)/( scalar diffusivity).
+// Default value 0.720.
 //
+// Optional Boussinesq buoyancy. The Boussinesq buoyancy term in the
+// momentum equation is
+//                      - BETA_T * (T - T_REF) g.
+// Tokens used for buoyancy:
+//
+// GRAVITY:       magnitude of gravity vector.
+// g_1, g_2, g_3: direction cosines of the gravity vector (normalised to 1).
+// FFC:           (optional) uniform forcing term for scalar equation.
+// T_REF:         reference temperature.
+// BETA_T:        coefficient of (thermal) expansion = T_REF^(-1) for a gas.
+
+//
+// NB: for cylindrical coordinates, only axial gravity is currently
+// implemented.
+
 // Copyright (C) 1997 <--> $Date$, Hugh Blackburn
 //
 // USAGE:

@@ -79,11 +79,12 @@ void NavierStokes (Domain*       D,
 
   // -- Create spatially-constant forcing terms.
 
-  vector<real_t> ff (3);
+  vector<real_t> ff (4);
 
   ff[0] = Femlib::value ("FFX");
   ff[1] = Femlib::value ("FFY");
-  ff[2] = Femlib::value ("FFZ");
+  ff[2] = (NCOM == 3) ? Femlib::value ("FFZ") : Femlib::value ("FFC");
+  ff[3] = (NCOM == 3) ? Femlib::value ("FFC") : 0.0;
   
   // -- Set up gravity vector.  Note directional components g_1, g_2, g_3.
   
