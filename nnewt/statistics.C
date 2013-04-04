@@ -626,7 +626,7 @@ ifstream& operator >> (ifstream&   strm,
   }
   fields[nfields] = '\0';
   if (nfields != tgt._avg.size()) {
-    sprintf (err, "strm: %1d fields, avg: %1d", nfields, tgt._avg.size());
+    sprintf (err, "strm: %1d fields, avg: %1d", nfields, (int)tgt._avg.size());
     message (routine, err, ERROR);
   }
 

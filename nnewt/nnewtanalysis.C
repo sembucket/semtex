@@ -122,6 +122,8 @@ void nnewtAnalyser::analyse (AuxField** work,
     
       flx_strm << s << endl;
     }
+
+    NNV -> transform (FORWARD);
   }
 
   // -- This is done after all the wall computations in nnewt because for
