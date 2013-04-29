@@ -1,7 +1,8 @@
 ///////////////////////////////////////////////////////////////////////////////
-// reflect.C: read qmesh output and generate planar reflection about
-// either x or y axis, or generate rotation about named point.
-// Combine the result.  Print on cout.
+// reflect.C: read qmesh output (or semtex session file): NODES and
+// ELEMENTS, and generate planar reflection about either x or y axis,
+// or generate rotation about named point.  Combine the result and
+// print new mesh cout.
 //
 // reflect [-x || -y] [-r x0 y0 ang] [-h] [file]
 //
