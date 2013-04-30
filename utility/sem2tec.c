@@ -36,7 +36,7 @@ static char RCS[] = "$Id$";
 #include "cveclib.h"
 #include "cfemlib.h"
 
-#define MAXFIELDS 32
+#define MAXFIELDS 50
 
 static char usage[] = 
   "usage: sem2tec [options] session[.fld]\n"
@@ -281,8 +281,7 @@ static void read_data (FILE *fp)
   n       = 0;
   c       = buf;
   nfields = 0;
-  while (n++ < 25 && nfields < MAXFIELDS) 
-    if (isalnum(*c++)) type[nfields++] = *(c-1);
+  while (isalpha(*c) && nfields < MAXFIELDS) type[nfields++] = (*c++);
 
   if (nfields > MAXFIELDS) {
     fprintf(stderr, "sem2tec: a maximum of %d fields may be converted.\n", 
