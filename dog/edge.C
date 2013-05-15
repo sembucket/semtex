@@ -252,7 +252,7 @@ Vector Edge::normTraction (const char*   grp,
 
   if (strcmp (grp, _group) == 0) {
 
-    _elmt -> sideGet (_side, p, wrk);
+    _elmt -> sideGet (_side, p + _eoffset, wrk);
 
     for (i = 0; i < _np; i++) {
       Force.x += _nx[i] * wrk[i] * _area[i];

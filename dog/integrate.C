@@ -21,8 +21,7 @@ static char RCS[] = "$Id$";
 
 #include <stab.h>
 
-static int_t              NORD, NPERT, NBASE, NZ, CYL, PROB;
-static vector<MatrixSys*> MS;
+static int_t       NORD, NPERT, NBASE, NZ, CYL, PROB;
 
 static void        waveProp   (Domain*, const AuxField***, const AuxField***);
 static void        setPForce  (const AuxField**, AuxField**);
@@ -416,6 +415,8 @@ static MatrixSys** preSolve (const Domain* D)
 // Set up ModalMatrixSystems for system with only 1 Fourier mode.
 // ---------------------------------------------------------------------------
 {
+  vector<MatrixSys*> MSS;
+
   const int_t  mode  = (PROB == Geometry::O2_2D ||
 			PROB == Geometry::SO2_2D)  ? 0 : 1;
   const int_t  bmode = mode * Femlib::ivalue ("BETA");
@@ -442,7 +443,7 @@ static MatrixSys** preSolve (const Domain* D)
   N      = D -> b[0] -> Nsys (bmode);
   betak2 = sqr (Field::modeConstant (D -> u[0] -> name(), mode, beta));
   M = new MatrixSys (lambda2, betak2, bmode, D -> elmt, D -> b[0], method);
-  MS.insert (MS.end(), M);
+  MSS.insert (MSS.end(), M);
   system[0] = M;
   cout << ((method == DIRECT) ? '*' : '&') << flush;
 
@@ -453,7 +454,7 @@ static MatrixSys** preSolve (const Domain* D)
   N      = D -> b[1] -> Nsys (bmode);
   betak2 = sqr (Field::modeConstant (D -> u[1] -> name(), mode, beta));
 
-  for (found = false, m = MS.begin(); !found && m != MS.end(); m++) {
+  for (found = false, m = MSS.begin(); !found && m != MSS.end(); m++) {
     M = *m; found = M -> match (lambda2, betak2, N, method);
   }
   if (found) {
@@ -461,7 +462,7 @@ static MatrixSys** preSolve (const Domain* D)
     cout << "." << flush;
   } else {
     M = new MatrixSys (lambda2, betak2, bmode, D -> elmt, D -> b[1], method);
-    MS.insert (MS.end(), M);
+    MSS.insert (MSS.end(), M);
     system[1] = M;
     cout << ((method == DIRECT) ? '*' : '&') << flush;
   }
@@ -472,7 +473,7 @@ static MatrixSys** preSolve (const Domain* D)
     N      = D -> b[2] -> Nsys (bmode);
     betak2 = sqr (Field::modeConstant (D -> u[2] -> name(), mode, beta));
 
-    for (found = false, m = MS.begin(); !found && m != MS.end(); m++) {
+    for (found = false, m = MSS.begin(); !found && m != MSS.end(); m++) {
       M = *m; found = M -> match (lambda2, betak2, N, method);
     }
     if (found) {
@@ -480,7 +481,7 @@ static MatrixSys** preSolve (const Domain* D)
       cout << "." << flush;
     } else {
       M = new MatrixSys (lambda2, betak2, bmode, D -> elmt, D -> b[2], method);
-      MS.insert (MS.end(), M);
+      MSS.insert (MSS.end(), M);
       system[2] = M;
       cout <<  ((method == DIRECT) ? '*' : '&') << flush;
     }
@@ -492,7 +493,7 @@ static MatrixSys** preSolve (const Domain* D)
 
   betak2 = sqr (Field::modeConstant (D -> u[NPERT] -> name(), mode, beta));
   M      = new MatrixSys (0.0, betak2,bmode, D -> elmt, D -> b[NPERT], method);
-  MS.insert (MS.end(), M);
+  MSS.insert (MSS.end(), M);
   system[NPERT] = M;
   cout << ((method == DIRECT) ? '*' : '&') << endl;
   
