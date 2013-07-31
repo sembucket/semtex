@@ -49,6 +49,8 @@ extern "C" {
 			  integer*, double&);
   void   F77NAME(lubksb) (const double*, const integer&, const integer&,
 			  const integer*, double*);
+  void   F77NAME(correl) (const double*, const double*,
+			  const integer&, double*);
 }
 
 
@@ -121,6 +123,10 @@ public:
   static void lubksb (const double* a, const integer& n, const integer& np,
 		      const integer* indx, double* b) {
     F77NAME(lubksb) (a, n, np, indx, b);
+  }
+  static void correl (const double* data1, const double* data2,
+		      const integer& n, double* ans) {
+    F77NAME(correl) (data1, data2, n, ans);
   }
 };
 

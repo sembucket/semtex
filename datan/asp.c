@@ -72,7 +72,6 @@ int main (int argc, char *argv[])
   int       npts, navg, blocksize, blocksize_4, blocksize_2;
   real      mean, meanhat, samprate, Wss, variance;
   int       demean, overlap, verbose, starter;
-  const int DP = (sizeof (real) == sizeof (double) ) ? 1 : 0;
 
   blocksize  = 512;
   samprate   = 1.0;
@@ -106,7 +105,7 @@ int main (int argc, char *argv[])
 
   if (overlap)		/* -- Do a startup half-read for overlap averaging. */
     for (i = 0; i < blocksize_4; i++)
-      if (fscanf (fp_in, (DP) ? "%lf %lf" : "%f %f",
+      if (fscanf (fp_in, "%lf %lf ",
 		  &inbuf[i].Re, &inbuf[i].Im) != 2)
 	message ("asp", "insufficient data to half-fill buffer", ERROR);
 
@@ -115,18 +114,19 @@ int main (int argc, char *argv[])
       for (i = 0, mean = 0.0; i < blocksize_4; i++) {
 	k = i + blocksize_4;
 	workspace[i] = inbuf[i];
-	if (fscanf (fp_in, (DP) ? "%lf %lf" : "%f %f",
+	if (fscanf (fp_in, "%lf %lf ",
 		    &workspace[k].Re, &workspace[k].Im) != 2) break;
 	mean += workspace[i].Re + workspace[i].Im +
 	        workspace[k].Re + workspace[k].Im;
 	npts += 4;
+	inbuf[i] = workspace[k];
       }
       if ((i != blocksize_4) && starter)
 	message ("asp", "insufficient data to fill buffer", ERROR);
-    } else {
+    } else {			/* -- No overlap. */
       for (i = 0, mean = 0.0; i < blocksize_2; i++) {
-	if (fscanf (fp_in, (DP) ? "%lf %lf" : "%f %f",
-		    &workspace[k].Re, &workspace[k].Im) != 2) break;
+	if (fscanf (fp_in, "%lf %lf ",
+		    &workspace[i].Re, &workspace[i].Im) != 2) break;
 	mean += workspace[i].Re + workspace[i].Im;
 	npts += 2;
       }
@@ -159,20 +159,20 @@ int main (int argc, char *argv[])
 }
 
 
-static void getargs (int     argc      ,
-		     char*   argv[]    ,
-		     char**  session   ,
-		     int*    blocksize ,
-		     real*   samprate  ,
-		     char*   window    ,
-		     int*    removemean,
-		     int*    overlap   ,
-		     int*    verbose   )
+static void getargs (int    argc      ,
+		     char*  argv[]    ,
+		     char** session   ,
+		     int*   blocksize ,
+		     real*  samprate  ,
+		     char*  window    ,
+		     int*   removemean,
+		     int*   overlap   ,
+		     int*   verbose   )
 /* ------------------------------------------------------------------------- *
  * Process command-line arguments.
  * ------------------------------------------------------------------------- */
 {
-  char c;
+  char   c;
   static char *usage = 
     "Usage: asp [options] [file]\n"
     "  options are:\n"
@@ -239,21 +239,22 @@ static void getargs (int     argc      ,
 }
 
 
-static real setmask (real *mask, char *window, int block)
+static real setmask (real* mask  ,
+		     char* window,
+		     int   block )
 /* ------------------------------------------------------------------------- *
  * Set up a mask for data-windowing.
  * ------------------------------------------------------------------------- */
 {
-  int   j, block_2, tenpercent;
-  real  twopi_block, Wss;
-
+  int  j, block_2, tenpercent;
+  real twopi_block, Wss;
 
   Wss     = 0.0;
   block_2 = block >> 1;
 
   if (strstr(window, "hann")) {
     twopi_block = (M_PI + M_PI) / block;
-    for (j=0; j<block; j++) {
+    for (j = 0; j < block; j++) {
       mask[j] = 0.5 * (1.0 - cos(twopi_block*j));
       Wss += SQR(mask[j]);
     }
@@ -266,12 +267,12 @@ static real setmask (real *mask, char *window, int block)
     }
     Wss = block * (Wss + block - 2 * tenpercent);
   } else if (strstr(window, "gauss")) {
-    for (j=0; j<block; j++) {
+    for (j = 0; j < block; j++) {
       mask[j] = exp( -0.5 * SQR(6.0*(j - block_2)/block) );
       Wss += SQR(mask[j]);
     }
     Wss *= block;
-  } else 
+  } else /* -- No window, uniform weighting, masking non carried out. */
     Wss = block;
 
   return Wss;
@@ -324,37 +325,39 @@ static void datawindow (complex*  work   ,
 }
 
 
-static void sum (complex *work, real *autobuf, int nyquist)
+static void sum (complex* work   ,
+		 real*    autobuf,
+		 int      nyquist)
 /* ------------------------------------------------------------------------- *
  * Add contribution to averaging buffer.
  * ------------------------------------------------------------------------- */
 {
   register int i;
 
-  autobuf[0]       += SQR(work[0].Re);
-  autobuf[nyquist] += SQR(work[0].Im);
-  for (i=1; i<nyquist; i++)
+  autobuf[0]       +=       SQR(work[0].Re);
+  autobuf[nyquist] += 2.0 * SQR(work[0].Im);
+  for (i = 1; i < nyquist; i++)
     autobuf[i] += 2.0 * (SQR(work[i].Re) + SQR(work[i].Im));
 }
 
 
 
-static real norm (real*  autobuf,
-		  real   Wss    , 
-		  real   rate   ,
-		  int    nyquist,
-		  int    navg   )
+static real norm (real* autobuf,
+		  real  Wss    , 
+		  real  rate   ,
+		  int   nyquist,
+		  int   navg   )
 /* ------------------------------------------------------------------------- *
  * Normalize spectrum, return variance.  Power scaling (see Press et al.).
  * ------------------------------------------------------------------------- */
 {
-  real    variance = 0.0, scale, deltaF;
-  register  i;
+  real     variance = 0.0, scale, deltaF;
+  register i;
 
   deltaF   = 0.5 *  rate / nyquist;
   scale    = 1.0 / (Wss * navg * deltaF);
 
-  for (i=0; i<=nyquist; i++) {
+  for (i = 0; i <= nyquist; i++) {
     autobuf[i] *= scale;
     variance   += autobuf[i];
   }
@@ -363,18 +366,18 @@ static real norm (real*  autobuf,
 }
 
 
-static void printup (FILE*  fp       ,
-		    real*   autobuf  ,
-		    char*   window   ,
-		    int     blocksize, 
-		    int     navg     ,
-		    int     npts     ,
-		    real    samprate ,
-		    real    meanhat  ,
-		    real    variance ,
-		    int     demean   ,
-		    int     overlap  ,
-		    int     verbose  )
+static void printup (FILE* fp       ,
+		     real* autobuf  ,
+		     char* window   ,
+		     int   blocksize, 
+		     int   navg     ,
+		     int   npts     ,
+		     real  samprate ,
+		     real  meanhat  ,
+		     real  variance ,
+		     int   demean   ,
+		     int   overlap  ,
+		     int   verbose  )
 /* ------------------------------------------------------------------------- *
  * Print up results.
  * ------------------------------------------------------------------------- */

@@ -18,6 +18,7 @@ static char prog[]  = "correlate";
 static int  DP      = 0;	/* Global precision flag. */
 static int  verbose = 0;
 
+#if 1
 #define NVREG 8
 
 int    _alpIreg[NVREG];		/* For FORTRAN linkage. */
@@ -27,7 +28,7 @@ double _alpDreg[NVREG];
 
 void    correl_ (real*, real*, int*, real*);
 #define correl(a, b, n, c) (_alpIreg[0]=n, correl_(a, b, _alpIreg, c))
-
+#endif
 
 static void  getargs   (int, char**, char**, int*, int*, real*, int*);
 static int   moreinput (FILE*);

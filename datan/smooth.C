@@ -28,12 +28,12 @@
 #include <cmath>
 #include <iostream>
 #include <fstream>
+#include <vector>
 
 using namespace std;
 
 #include <utility.h>
 #include <veclib.h>
-#include <Array.h>
 #include "nr77.h"
 
 typedef double real;
@@ -66,8 +66,8 @@ int main (int    argc,
   } else
     nwid = (npol + 1) >> 1;
 
-  c.setSize (2 * nwid + 1);
-  Recipes::savgol (c(), c.getSize(), nwid, nwid, nder, npol);
+  c.resize (2 * nwid + 1);
+  Recipes::savgol (&c[0], c.size(), nwid, nwid, nder, npol);
   
   filter (*file, cout, c, nwid, 1.0 / pow (h, nder));
 
@@ -159,7 +159,7 @@ static void filter (istream&      ifile,
   const    int buflen = 2*N + 1;
   vector<real> buf (buflen);
 
-  Veclib::zero (buflen, buf(), 1);
+  Veclib::zero (buflen, &buf[0], 1);
   
   // -- Read ahead to half-fill buf.
 

@@ -129,8 +129,7 @@ int roundpow2 (int k)
  * Return the power of two greater than or equal k.
  * ------------------------------------------------------------------------- */
 {
-  if (k > 1)
-    while (!ispow2 (k)) k++;
+  if (k > 1) while (!ispow2 (k)) k++;
 
   return k;
 }

@@ -31,8 +31,8 @@ asp: FFTutil.o asp.o $(INCLUDE)
 acor: FFTutil.o acor.o $(INCLUDE)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.o FFTutil.o -lm
 
-correlate: FFTutil.o correlate.o $(INCLUDE)
-	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.o FFTutil.o $(RECIPES) -lm
+correlate: FFTutil.o correlate.o recipes.o $(INCLUDE)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.o -lm
 
 chop: chop.c
 	$(CC) $(CFLAGS) -o chop chop.c
@@ -67,7 +67,7 @@ cycle: cycle.C
 ratfit: ratfit.C
 	$(CXX) -o $@ $@.C $(CXXFLAGS) $(SEMHDR) $(VECLIB) $(RECIPES) $(F77LIBS)
 
-smooth: smooth.C
+smooth: smooth.C recipes.o
 	$(CXX) -o $@ $@.C $(CXXFLAGS) $(SEMHDR) $(VECLIB) $(RECIPES) $(F77LIBS)
 
 embed: embed.C
@@ -84,5 +84,6 @@ zeros: zeros.C
 #
 include $(SEMHOME)/src/Makefile
 ifeq ($(ARCH),Darwin)
-F77LIBS += -L/sw/lib -lg2c
+F77LIBS += -L/sw/lib  -L/sw/lib/gcc4.7/lib
+CXXFLAGS += -Wno-deprecated
 endif
