@@ -843,34 +843,6 @@ CU    USES realft,twofft
       END
 C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
 
-      SUBROUTINE twofft(data1,data2,fft1,fft2,n)
-      INTEGER n
-      DOUBLE PRECISION data1(n),data2(n)
-      COMPLEX fft1(n),fft2(n)
-CU    USES four1
-      INTEGER j,n2
-      COMPLEX h1,h2,c1,c2
-      c1=cmplx(0.5,0.0)
-      c2=cmplx(0.0,-0.5)
-      do 11 j=1,n
-        fft1(j)=cmplx(data1(j),data2(j))
-11    continue
-      call four1(fft1,n,1)
-      fft2(1)=cmplx(aimag(fft1(1)),0.0)
-      fft1(1)=cmplx(real(fft1(1)),0.0)
-      n2=n+2
-      do 12 j=2,n/2+1
-        h1=c1*(fft1(j)+conjg(fft1(n2-j)))
-        h2=c2*(fft1(j)-conjg(fft1(n2-j)))
-        fft1(j)=h1
-        fft1(n2-j)=conjg(h1)
-        fft2(j)=h2
-        fft2(n2-j)=conjg(h2)
-12    continue
-      return
-      END
-C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
-
       SUBROUTINE realft(data,n,isign)
       INTEGER isign,n
       DOUBLE PRECISION data(n)
@@ -897,8 +869,8 @@ CU    USES four1
         i2=i1+1
         i3=n2p3-i2
         i4=i3+1
-        wrs=sngl(wr)
-        wis=sngl(wi)
+        wrs=wr
+        wis=wi
         h1r=c1*(data(i1)+data(i3))
         h1i=c1*(data(i2)-data(i4))
         h2r=-c2*(data(i2)+data(i4))
@@ -921,6 +893,34 @@ CU    USES four1
         data(2)=c1*(h1r-data(2))
         call four1(data,n/2,-1)
       endif
+      return
+      END
+C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
+
+      SUBROUTINE twofft(data1,data2,fft1,fft2,n)
+      INTEGER n
+      DOUBLE PRECISION data1(n),data2(n)
+      COMPLEX fft1(n),fft2(n)
+CU    USES four1
+      INTEGER j,n2
+      COMPLEX h1,h2,c1,c2
+      c1=cmplx(0.5,0.0)
+      c2=cmplx(0.0,-0.5)
+      do 11 j=1,n
+        fft1(j)=cmplx(data1(j),data2(j))
+11    continue
+      call four1(fft1,n,1)
+      fft2(1)=cmplx(aimag(fft1(1)),0.0)
+      fft1(1)=cmplx(real(fft1(1)),0.0)
+      n2=n+2
+      do 12 j=2,n/2+1
+        h1=c1*(fft1(j)+conjg(fft1(n2-j)))
+        h2=c2*(fft1(j)-conjg(fft1(n2-j)))
+        fft1(j)=h1
+        fft1(n2-j)=conjg(h1)
+        fft2(j)=h2
+        fft2(n2-j)=conjg(h2)
+12    continue
       return
       END
 C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
@@ -961,8 +961,8 @@ C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
         do 13 m=1,mmax,2
           do 12 i=m,n,istep
             j=i+mmax
-            tempr=sngl(wr)*data(j)-sngl(wi)*data(j+1)
-            tempi=sngl(wr)*data(j+1)+sngl(wi)*data(j)
+            tempr=wr*data(j)-wi*data(j+1)
+            tempi=wr*data(j+1)+wi*data(j)
             data(j)=data(i)-tempr
             data(j+1)=data(i+1)-tempi
             data(i)=data(i)+tempr

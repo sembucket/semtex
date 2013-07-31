@@ -28,10 +28,10 @@ asp: FFTutil.o asp.o $(INCLUDE)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.o FFTutil.o -lm
 
 acor: FFTutil.o acor.o $(INCLUDE)
-	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.o FFTutil.o -lm
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.o FFTutil.o $(F77LIBS) -lm
 
-correlate: FFTutil.o correlate.o $(INCLUDE)
-	$(CC) -o $@ $@.o FFTutil.o $(RECIPES) $(F77LIBS) -lm
+correlate: FFTutil.o correlate.o recipes.o $(INCLUDE)
+	$(CC) -o $@ $@.o FFTutil.o recipes.o $(F77LIBS) -lm
 
 chop: chop.c
 	$(CC) $(CFLAGS) -o chop chop.c
@@ -51,29 +51,29 @@ dft_chk: FFTutil.o dft_chk.o $(INCLUDE)
 pcor: pcor.c
 	$(CC) $(CFLAGS) -o $@ $@.c
 
-upxf: upxf.C
-	$(CXX) -o $@ $@.C $(CXXFLAGS) $(SEMHDR) $(VECLIB) $(RECIPES) $(F77LIBS)
+upxf: upxf.o recipes.o
+	$(CXX) -o $@ $@.o recipes.o $(VECLIB) $(F77LIBS) -lm
 
 peaks: peaks.C
 	$(CXX) -o $@ $@.C
 
-cycint: cycint.C
-	$(CXX) -o $@ $@.C $(CXXFLAGS) $(SEMHDR) $(VECLIB) $(RECIPES) $(F77LIBS)
+cycint: cycint.o recipes.o
+	$(CXX) -o $@ $@.o recipes.o $(VECLIB) $(F77LIBS) -lm
 
-cycle: cycle.C
-	$(CXX) -o $@ $@.C $(CXXFLAGS) $(SEMHDR) $(VECLIB) $(RECIPES) $(F77LIBS)
+cycle: cycle.o recipes.o
+	$(CXX) -o $@ $@.o recipes.o $(VECLIB) $(F77LIBS) -lm
 
-ratfit: ratfit.C
-	$(CXX) -o $@ $@.C $(CXXFLAGS) $(SEMHDR) $(VECLIB) $(RECIPES) $(F77LIBS)
+ratfit: ratfit.o recipes.o
+	$(CXX) -o $@ $@.o recipes.o $(VECLIB) $(F77LIBS) -lm
 
-smooth: smooth.C recipes.o
-	$(CXX) -o $@ $@.C $(CXXFLAGS) $(SEMHDR) $(VECLIB) $(RECIPES) $(F77LIBS)
+smooth: smooth.o recipes.o
+	$(CXX) -o $@ $@.o recipes.o $(VECLIB) $(F77LIBS) -lm
 
-embed: embed.C
-	$(CXX) -o $@ $@.C $(CXXFLAGS) $(SEMHDR) $(VECLIB) $(RECIPES) $(F77LIBS)
+embed: embed.o recipes.o
+	$(CXX) -o $@ $@.o recipes.o $(VECLIB) $(F77LIBS) -lm
 
-odeint: odeint.C
-	$(CXX) -o $@ $@.C $(CXXFLAGS) $(SEMHDR) $(VECLIB) $(RECIPES)
+odeint: odeint.o recipes.o
+	$(CXX) -o $@ $@.o recipes.o $(VECLIB) $(F77LIBS) -lm
 
 zeros: zeros.C
 	$(CXX) -o $@ $@.C $(CXXFLAGS)
@@ -83,6 +83,7 @@ zeros: zeros.C
 #
 include $(SEMHOME)/src/Makefile
 ifeq ($(ARCH),Darwin)
+FFLAGS  = -m64 -O2 -ffixed-line-length-none -fno-range-check -fno-align-commons
 F77LIBS += -L/sw/lib  -L/sw/lib/gcc4.8/lib
-CXXFLAGS += -Wno-deprecated
+CXXFLAGS += $(SEMHDR) -Wno-deprecated
 endif
