@@ -1,6 +1,6 @@
 /*****************************************************************************
  * ACOR: produce autocorrelation function from columnar format input.
- *                                                                           *
+ *
  * Synopsis:
  * ---------
  * Read ASCII data from stdin or named file, place in temporary scratch file
@@ -116,8 +116,8 @@ static void getargs (int    argc,    char**  argv,
  * Parse command line.
  * ------------------------------------------------------------------------- */
 {
-  char c;
-  char line[FILENAME_MAX];
+  char        c;
+  char        line[FILENAME_MAX];
   static char usage[] = 
     "usage: acor [options] [input]\n"
     "[options]:\n"
@@ -128,7 +128,6 @@ static void getargs (int    argc,    char**  argv,
     "-o <output> ... write output to named file           [Default: stdout]\n"
     "-r <rate>   ... Sampling rate [Hz]                   [Default: 1 Hz]\n"
     "-v          ... set verbose (add header to output)\n";
-
 
   while (--argc && (*++argv)[0] == '-') {
     switch (c = *++argv[0]) {
@@ -183,8 +182,10 @@ static void getargs (int    argc,    char**  argv,
 }
 
 
-static void refile (FILE*  fp_in, FILE*  fp_tmp,
-		    int*   npts,  real*  Mean  )
+static void refile (FILE*  fp_in ,
+		    FILE*  fp_tmp,
+		    int*   npts  ,
+		    real*  Mean  )
 /* ------------------------------------------------------------------------- *
  * Fill temp file with data.
  * ------------------------------------------------------------------------- */
@@ -193,7 +194,7 @@ static void refile (FILE*  fp_in, FILE*  fp_tmp,
   char  line[FILENAME_MAX];
 
   while (fgets (line, FILENAME_MAX, fp_in)) {  	
-    sscanf (line, "%f", &datum);
+    sscanf (line, "%lf", &datum);
     *Mean += datum;
     ++*npts;
     fwrite (&datum, sizeof(real), 1, fp_tmp);
@@ -203,8 +204,12 @@ static void refile (FILE*  fp_in, FILE*  fp_tmp,
 }
 
 
-static void pad (real*  Data,   FILE* fp,
-		 int    DeMean, real  Mean, int NData, int NPad)
+static void pad (real* Data  ,   
+		 FILE* fp    ,
+		 int   DeMean,
+		 real  Mean  ,
+		 int   NData , 
+		 int   NPad  )
 /* ------------------------------------------------------------------------- *
  * Recall data from temporary file, remove mean if applicable, zero pad.
  * ------------------------------------------------------------------------- */
@@ -220,7 +225,8 @@ static void pad (real*  Data,   FILE* fp,
 }
 
 
-static void nondimen (real*  Data,  int  N)
+static void nondimen (real* Data,
+		      int   N   )
 /* ------------------------------------------------------------------------- *
  * Scale to make first (zero lag) value = 1.
  * ------------------------------------------------------------------------- */
@@ -232,7 +238,9 @@ static void nondimen (real*  Data,  int  N)
 }
 
 
-static void normalize (real* Data, int N, int NData)
+static void normalize (real* Data ,
+		       int   N    ,
+		       int   NData)
 /* ------------------------------------------------------------------------- *
  * Scale to make first (zero lag) value = mean squared value.
  * ------------------------------------------------------------------------- */

@@ -17,11 +17,10 @@ ifeq ($(ARCH),Linux)
 endif
 
 #RECIPES = -L$(HOME)/lib/$(ARCH) -L/usr/local/lib -lrecipesDP
-RECIPES = -L$(HOME)/lib/ -lrecipesDP
+RECIPES =  -L/sw/lib -L/sw/lib/gcc4.8/lib -lrecipesDP
 SEMHOME = ../semtex
 SEMHDR  = -I$(SEMHOME)/include
 VECLIB  = -L$(SEMHOME)/lib/$(ARCH)/ -lvec
-
 
 ###############################################################################
 
@@ -31,8 +30,8 @@ asp: FFTutil.o asp.o $(INCLUDE)
 acor: FFTutil.o acor.o $(INCLUDE)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.o FFTutil.o -lm
 
-correlate: FFTutil.o correlate.o recipes.o $(INCLUDE)
-	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.o -lm
+correlate: FFTutil.o correlate.o $(INCLUDE)
+	$(CC) -o $@ $@.o FFTutil.o $(RECIPES) $(F77LIBS) -lm
 
 chop: chop.c
 	$(CC) $(CFLAGS) -o chop chop.c
@@ -84,6 +83,6 @@ zeros: zeros.C
 #
 include $(SEMHOME)/src/Makefile
 ifeq ($(ARCH),Darwin)
-F77LIBS += -L/sw/lib  -L/sw/lib/gcc4.7/lib
+F77LIBS += -L/sw/lib  -L/sw/lib/gcc4.8/lib
 CXXFLAGS += -Wno-deprecated
 endif

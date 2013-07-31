@@ -58,7 +58,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
       goto 1
       endif
       h=xa(khi)-xa(klo)
-      if (h.eq.0.0d0) pause 'bad xa input in splint'
+      if (h.eq.0.0d0) stop 'bad xa input in splint'
       a=(xa(khi)-x)/h
       b=(x-xa(klo))/h
       y=a*ya(klo)+b*ya(khi)+((a**3-a)*y2a(klo)+(b**3-b)*y2a(khi))*(h**
@@ -94,7 +94,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
         f=func(rtsec)
         if(abs(dx).lt.xacc.or.f.eq.0.)return
 11    continue
-      pause 'rtsec exceed maximum iterations'
+      stop 'rtsec exceed maximum iterations'
       END
 C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
 
@@ -150,7 +150,7 @@ CU    USES lubksb,ludcmp
       DOUBLE PRECISION d,fac,sum,a(MMAX+1,MMAX+1),b(MMAX+1)
       if(np.lt.nl+nr+
      *1.or.nl.lt.0.or.nr.lt.0.or.ld.gt.m.or.m.gt.MMAX.or.nl+nr.lt.m) 
-     *pause 'bad args in savgol'
+     *stop 'bad args in savgol'
       do 14 ipj=0,2*m
         sum=0.
         if(ipj.eq.0)sum=1.
@@ -213,7 +213,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
           hp=xa(i+m)-x
           w=c(i+1)-d(i)
           den=ho-hp
-          if(den.eq.0.0d0)pause 'failure in polint'
+          if(den.eq.0.0d0)stop 'failure in polint'
           den=w/den
           d(i)=hp*den
           c(i)=ho*den
@@ -462,7 +462,7 @@ CU    USES pythag
             endif
             goto 3
           endif
-          if(its.eq.30) pause 'no convergence in svdcmp'
+          if(its.eq.30) stop 'no convergence in svdcmp'
           x=w(l)
           nm=k-1
           y=w(nm)
@@ -644,7 +644,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
           endif
         endif
 11    continue
-      pause 'brent exceed maximum iterations'
+      stop 'brent exceed maximum iterations'
 3     xmin=x
       brent=fx
       return
@@ -748,7 +748,7 @@ C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
         do 11 j=1,n
           if (abs(a(i,j)).gt.aamax) aamax=abs(a(i,j))
 11      continue
-        if (aamax.eq.0.0d0) pause 'singular matrix in ludcmp'
+        if (aamax.eq.0.0d0) stop 'singular matrix in ludcmp'
         vv(i)=1.0d0/aamax
 12    continue
       do 19 j=1,n
@@ -839,6 +839,142 @@ CU    USES realft,twofft
 11    continue
       ans(1)=cmplx(real(ans(1)),real(ans(no2+1)))
       call realft(ans,n,-1)
+      return
+      END
+C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
+
+      SUBROUTINE twofft(data1,data2,fft1,fft2,n)
+      INTEGER n
+      DOUBLE PRECISION data1(n),data2(n)
+      COMPLEX fft1(n),fft2(n)
+CU    USES four1
+      INTEGER j,n2
+      COMPLEX h1,h2,c1,c2
+      c1=cmplx(0.5,0.0)
+      c2=cmplx(0.0,-0.5)
+      do 11 j=1,n
+        fft1(j)=cmplx(data1(j),data2(j))
+11    continue
+      call four1(fft1,n,1)
+      fft2(1)=cmplx(aimag(fft1(1)),0.0)
+      fft1(1)=cmplx(real(fft1(1)),0.0)
+      n2=n+2
+      do 12 j=2,n/2+1
+        h1=c1*(fft1(j)+conjg(fft1(n2-j)))
+        h2=c2*(fft1(j)-conjg(fft1(n2-j)))
+        fft1(j)=h1
+        fft1(n2-j)=conjg(h1)
+        fft2(j)=h2
+        fft2(n2-j)=conjg(h2)
+12    continue
+      return
+      END
+C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
+
+      SUBROUTINE realft(data,n,isign)
+      INTEGER isign,n
+      DOUBLE PRECISION data(n)
+CU    USES four1
+      INTEGER i,i1,i2,i3,i4,n2p3
+      DOUBLE PRECISION c1,c2,h1i,h1r,h2i,h2r,wis,wrs
+      DOUBLE PRECISION theta,wi,wpi,wpr,wr,wtemp
+      theta=3.141592653589793d0/dble(n/2)
+      c1=0.5
+      if (isign.eq.1) then
+        c2=-0.5
+        call four1(data,n/2,+1)
+      else
+        c2=0.5
+        theta=-theta
+      endif
+      wpr=-2.0d0*sin(0.5d0*theta)**2
+      wpi=sin(theta)
+      wr=1.0d0+wpr
+      wi=wpi
+      n2p3=n+3
+      do 11 i=2,n/4
+        i1=2*i-1
+        i2=i1+1
+        i3=n2p3-i2
+        i4=i3+1
+        wrs=sngl(wr)
+        wis=sngl(wi)
+        h1r=c1*(data(i1)+data(i3))
+        h1i=c1*(data(i2)-data(i4))
+        h2r=-c2*(data(i2)+data(i4))
+        h2i=c2*(data(i1)-data(i3))
+        data(i1)=h1r+wrs*h2r-wis*h2i
+        data(i2)=h1i+wrs*h2i+wis*h2r
+        data(i3)=h1r-wrs*h2r+wis*h2i
+        data(i4)=-h1i+wrs*h2i+wis*h2r
+        wtemp=wr
+        wr=wr*wpr-wi*wpi+wr
+        wi=wi*wpr+wtemp*wpi+wi
+11    continue
+      if (isign.eq.1) then
+        h1r=data(1)
+        data(1)=h1r+data(2)
+        data(2)=h1r-data(2)
+      else
+        h1r=data(1)
+        data(1)=c1*(h1r+data(2))
+        data(2)=c1*(h1r-data(2))
+        call four1(data,n/2,-1)
+      endif
+      return
+      END
+C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
+
+      SUBROUTINE four1(data,nn,isign)
+      INTEGER isign,nn
+      DOUBLE PRECISION data(2*nn)
+      INTEGER i,istep,j,m,mmax,n
+      DOUBLE PRECISION tempi,tempr
+      DOUBLE PRECISION theta,wi,wpi,wpr,wr,wtemp
+      n=2*nn
+      j=1
+      do 11 i=1,n,2
+        if(j.gt.i)then
+          tempr=data(j)
+          tempi=data(j+1)
+          data(j)=data(i)
+          data(j+1)=data(i+1)
+          data(i)=tempr
+          data(i+1)=tempi
+        endif
+        m=n/2
+1       if ((m.ge.2).and.(j.gt.m)) then
+          j=j-m
+          m=m/2
+        goto 1
+        endif
+        j=j+m
+11    continue
+      mmax=2
+2     if (n.gt.mmax) then
+        istep=2*mmax
+        theta=6.28318530717959d0/(isign*mmax)
+        wpr=-2.d0*sin(0.5d0*theta)**2
+        wpi=sin(theta)
+        wr=1.d0
+        wi=0.d0
+        do 13 m=1,mmax,2
+          do 12 i=m,n,istep
+            j=i+mmax
+            tempr=sngl(wr)*data(j)-sngl(wi)*data(j+1)
+            tempi=sngl(wr)*data(j+1)+sngl(wi)*data(j)
+            data(j)=data(i)-tempr
+            data(j+1)=data(i+1)-tempi
+            data(i)=data(i)+tempr
+            data(i+1)=data(i+1)+tempi
+12        continue
+          wtemp=wr
+          wr=wr*wpr-wi*wpi+wr
+          wi=wi*wpr+wtemp*wpi+wi
+13      continue
+        mmax=istep
+      goto 2
+      endif
       return
       END
 C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
