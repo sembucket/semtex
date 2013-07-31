@@ -1033,14 +1033,16 @@ void jacobd (integer np   ,
 
 
 /** 
- \brief Calculate the Gamma function , \f$ \Gamma(n)\f$, for integer
- values and halves.
 
- Determine the value of \f$\Gamma(n)\f$ using:
+    \brief Calculate the Gamma function , \f$ \Gamma(n)\f$, for integer
+    values and halves.
 
- \f$ \Gamma(n) = (n-1)!  \mbox{ or  }  \Gamma(n+1/2) = (n-1/2)\Gamma(n-1/2)\f$
+    Determine the value of \f$\Gamma(n)\f$ using:
 
- where \f$ \Gamma(1/2) = \sqrt(\pi)\f$
+    \f$ \Gamma(n) = (n-1)!  \mbox{or}  \Gamma(n+1/2) = (n-1/2)\Gamma(n-1/2)\f$
+
+    where \f$ \Gamma(1/2) = \sqrt(\pi)\f$
+
  */
 
 static double gammaF (double x)

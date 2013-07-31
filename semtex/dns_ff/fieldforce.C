@@ -1,21 +1,31 @@
 #include <sem.h>
 #include <fieldforce.h>
 #include <feml.h>
-// ---------------------------------------------------------------------------
-// This implements a somewhat generic body forcing interface. Basically, there
-// are two (types of) classes involved here:
-// 1. the 'FieldForce' class, which provides an interface to nonlinear.C
-// 2. several forcing subclasses, which actually compute a specific type of
-//    forcing. Those subclasses are derived from the base class 'VirtualForce'.
+//////////////////////////////////////////////////////////////////////////////
+// This code was originally contributed by Thomas Albrecht.
+//
+// This implements a somewhat generic body forcing
+// interface. Basically, there are two (types of) classes involved
+// here:
+//
+// 1. the 'FieldForce' class, which provides an interface to nonlinear.C;
+//
+// 2. several forcing subclasses, which actually compute a specific
+//    type of forcing. Those subclasses are derived from the base
+//    class 'VirtualForce'.
+//
+// The FieldForce instance holds the storage for the final force that
+// is eventually added to the nonlinear term. To compute the final
+// force, FieldForce calls all forcing subclasses and sums up their
+// contribution to the final force.
+//
+// There are actually two storages, one for physical, and one for
+// Fourier space.  A specific forcing subclass implements whichever
+// suits best.
+//////////////////////////////////////////////////////////////////////////////
 
-// The FieldForce instance holds the storage for the final force that is
-// eventually added to the nonlinear term. To compute the final force,
-// FieldForce calls all forcing subclasses and sums up their contribution to
-// the final force.
+static char RCS[] = "$Id$";
 
-// There are actually two storages, one for physical, and one for fourier space.
-// A specific forcing subclass implements whichever suits best.
-// ---------------------------------------------------------------------------
 /*
   TODO
 
@@ -37,7 +47,7 @@
 
 */
 
-FieldForce::FieldForce (Domain* D,
+FieldForce::FieldForce (Domain* D   ,
                         FEML*   file)
 // ---------------------------------------------------------------------------
 // This constructor deals with <FORCING> section of FEML file
@@ -48,13 +58,13 @@ FieldForce::FieldForce (Domain* D,
 // the session file.
 // ---------------------------------------------------------------------------
 {
-  const char routine[]   = "FieldForce::FieldForce";
-  const      int_t nTotP = Geometry::nTotProc();
-  const      int_t nzP   = Geometry::nZProc();
-  const      int_t NCOM = D -> nField() - 1;	// -- Number of vel. components.
-  char       s[StrMax];
-  const      int_t verbose = Femlib::ivalue ("VERBOSE");
-  int_t      i;
+  const char  routine[] = "FieldForce::FieldForce";
+  const int_t nTotP     = Geometry::nTotProc();
+  const int_t nzP       = Geometry::nZProc();
+  const int_t NCOM      = D -> nField() - 1;	// -- Number of vel. components.
+  char        s[StrMax];
+  const       int_t verbose = Femlib::ivalue ("VERBOSE");
+  int_t       i;
 
   _D = D;
 
@@ -80,10 +90,10 @@ FieldForce::FieldForce (Domain* D,
 }
 
 
-void FieldForce::addPhysical (AuxField* Ni,
-                              AuxField *tmp,
-                              const int com,
-                              vector<AuxField*> U)
+void FieldForce::addPhysical (AuxField*         Ni ,
+                              AuxField*         tmp,
+                              const int         com,
+                              vector<AuxField*> U  )
 // ---------------------------------------------------------------------------
 // When called from nonlinear() to apply forcing, each subclass' update method
 // is called subsequently to sum up the force, which is then applied to the
@@ -92,20 +102,22 @@ void FieldForce::addPhysical (AuxField* Ni,
 // NB: we get called [xyz] component-wise!
 // ---------------------------------------------------------------------------
 {
-  const char routine[]  = "FieldForce::computePhysical";
-  const      int_t NCOM = _D -> nField() - 1;	// -- Number of vel. components.
+  const char  routine[] = "FieldForce::computePhysical";
+  const int_t NCOM      = _D -> nField() - 1;	// -- Number of vel. components.
 
   if (!_enabled) return;
 
   // -- clear internal storage --
   //    FIXME: should not be neccessary since SpongeForce overwrites
   //           check here if sponge is enabled
+  
   *tmp = 0.;
 
   // -- iterate classes, add up forcing to internal storage
+
   vector<VirtualForce*>::iterator p;
   for (p = _classes.begin(); p != _classes.end(); p++)
-    (*p)->physical(tmp, com, U);
+    (*p) -> physical (tmp, com, U);
 
   // -- add the physical space part to the nonlinear term. Also take care
   //    of the correct scaling in case of cylindrical coordinates.
@@ -121,15 +133,16 @@ void FieldForce::addPhysical (AuxField* Ni,
 }
 
 
-void FieldForce::addFourier (AuxField* Ni,
-                             AuxField* tmp,
-                             const int com,                             vector<AuxField*> U)
+void FieldForce::addFourier (AuxField*         Ni ,
+                             AuxField*         tmp,
+                             const int         com,
+                             vector<AuxField*> U  )
 // ---------------------------------------------------------------------------
 // As above, Fourier space.
 // ---------------------------------------------------------------------------
 {
-  const char routine[]   = "FieldForce::addFourier";
-  const      int_t NCOM = _D -> nField() - 1;	// -- Number of vel. components
+  const char  routine[] = "FieldForce::addFourier";
+  const int_t NCOM      = _D -> nField() - 1;	// -- Number of vel. components
   if (!_enabled) return;
 
   // -- clear internal storage
@@ -138,7 +151,7 @@ void FieldForce::addFourier (AuxField* Ni,
   // -- iterate classes, add up forcing to internal storage
   vector<VirtualForce*>::iterator p;
   for (p = _classes.begin(); p != _classes.end(); p++)
-    (*p)->fourier(tmp, com, U);
+    (*p) -> fourier(tmp, com, U);
 
   // -- add the Fourier part to the nonlinear term. This also takes care
   //    of the correct scaling in case of cylindrical coordinates.
@@ -179,7 +192,9 @@ void FieldForce::writeAux (vector<AuxField *> N)
 
 
 void FieldForce::dump()
-// -- dump internal physical and/or Fourier space storage to file
+// ----------------------------------------------------------------------------
+// Dump internal physical and/or Fourier space storage to file.
+// ----------------------------------------------------------------------------
 {
   const char routine[]  = "FieldForce::dump";
   const      int_t NCOM = _D -> nField() - 1;	// -- Number of velocity components.
@@ -214,8 +229,9 @@ void FieldForce::dump()
 // ---------------------------------------------------------------------------
 // VirtualForce is the virtual base class for different types of forcing
 // subclasses, providing a uniform interface (e.~g., init, update in physical
-// and fourier space).
+// and Fourier space).
 // ---------------------------------------------------------------------------
+
 void VirtualForce::allocStorage (Domain *D)
 {
   const char routine[]   = "VirtualForce::allocStorage";
@@ -259,13 +275,15 @@ void VirtualForce::readSteadyFromFile(char *fname, vector<AuxField*> a)
 }
 
 
-// ---------------------------------------------------------------------------
+// ===========================================================================
 // Concrete forcing subclasses follow.
-// ---------------------------------------------------------------------------
+// ===========================================================================
+
 
 ConstForce::ConstForce (Domain* D,  FEML*   file)
 // ---------------------------------------------------------------------------
-// A force constant in both space in time, applied in Fourier space.
+// Constructor.  A force constant in both space in time, applied in
+// Fourier space.
 // ---------------------------------------------------------------------------
 {
   const char routine[]   = "ConstForce::ConstForce";
@@ -295,16 +313,20 @@ ConstForce::ConstForce (Domain* D,  FEML*   file)
 
 
 void ConstForce::fourier (AuxField* ff, const int com, vector<AuxField*> U)
+// ---------------------------------------------------------------------------
+// Applicator.
+// ---------------------------------------------------------------------------
 {
   ROOTONLY if (fabs (_v[com]) > EPSDP) ff -> addToPlane (0, _v[com]);
 }
 
 
-// ---------------------------------------------------------------------------
-// A steady, spatially varying force, computed during pre-processing.
-// Applied in physical space.
-// ---------------------------------------------------------------------------
+
 SteadyForce::SteadyForce (Domain* D,  FEML*   file)
+// ---------------------------------------------------------------------------
+// Constructor.  A steady, spatially varying force, computed during
+// pre-processing.  Applied in physical space.
+// ---------------------------------------------------------------------------
 {
   const char routine[]    = "SteadyForce::SteadyForce";
   const     int_t nTotP   = Geometry::nTotProc();
@@ -348,6 +370,9 @@ SteadyForce::SteadyForce (Domain* D,  FEML*   file)
 
 
 void SteadyForce::physical (AuxField* ff, const int com, vector<AuxField*> U)
+// ---------------------------------------------------------------------------
+// Applicator.
+// ---------------------------------------------------------------------------
 {
   const char routine[]    = "SteadyForce::physical";
   const     int_t verbose = Femlib::ivalue ("VERBOSE");
@@ -356,11 +381,11 @@ void SteadyForce::physical (AuxField* ff, const int com, vector<AuxField*> U)
 }
 
 
-// ---------------------------------------------------------------------------
-// WhiteNoiseForce adds white noise in given direction(s), to all or
-// a given mode, every _apply_step'th step
-// ---------------------------------------------------------------------------
 WhiteNoiseForce::WhiteNoiseForce (Domain* D,  FEML*   file)
+// ---------------------------------------------------------------------------
+// Constructor. WhiteNoiseForce adds white noise in given
+// direction(s), to all or a given mode, every _apply_step'th step
+// ---------------------------------------------------------------------------
 {
   const char routine[]         = "WhiteNoiseForce::WhiteNoiseForce";
   const char tok[3][StrMax]    = {"WHITE_EPS_X", "WHITE_EPS_Y", "WHITE_EPS_Z"};
@@ -391,16 +416,19 @@ WhiteNoiseForce::WhiteNoiseForce (Domain* D,  FEML*   file)
 
 
 void WhiteNoiseForce::fourier (AuxField* ff, const int com, vector<AuxField*> U)
+// ---------------------------------------------------------------------------
+// Applicator.
+// ---------------------------------------------------------------------------
 {
   if ((fabs(_eps[com]) > EPSDP) && (_D->step % _apply_step == 0))
     ff -> perturb(_mode, _eps[com]);
 }
 
 
-// ---------------------------------------------------------------------------
-// ModulatedForce
-// ---------------------------------------------------------------------------
 ModulatedForce::ModulatedForce (Domain* D,  FEML*   file)
+// ---------------------------------------------------------------------------
+// Constructor.
+// ---------------------------------------------------------------------------
 {
   const char routine[]     = "ModulatedForce::ModulatedForce";
   const      int_t NCOM    = D -> nField() - 1;	// -- Number of velocity components.
@@ -459,6 +487,9 @@ ModulatedForce::ModulatedForce (Domain* D,  FEML*   file)
 
 
 void ModulatedForce::physical (AuxField* ff, const int com, vector<AuxField*> U)
+// ---------------------------------------------------------------------------
+// Applicator.
+// ---------------------------------------------------------------------------
 {
   const char routine[]   = "ModulatedForce::physical";
   real_t alpha = Femlib::value (_alpha[com]);
@@ -468,12 +499,12 @@ void ModulatedForce::physical (AuxField* ff, const int com, vector<AuxField*> U)
   if (_a[com] && fabs(alpha) > EPSDP) ff -> axpy (alpha, *_a[com]);
 }
 
-// ---------------------------------------------------------------------------
-// SpatioTemporalForce -- f = alpha(x, t)
-// WARNING! We evaluate alpha on full field EACH TIME STEP.
-//          This severly degrades performance!
-// ---------------------------------------------------------------------------
 SpatioTemporalForce::SpatioTemporalForce (Domain* D,  FEML*   file)
+// ---------------------------------------------------------------------------
+// Constructor.  SpatioTemporalForce -- f = alpha(x, t) WARNING! We
+// evaluate alpha on full field EACH TIME STEP.  This severly degrades
+// performance!
+// ---------------------------------------------------------------------------
 {
   const char routine[]     = "SpatioTemporalForce::SpatioTemporalForce";
   const      int_t NCOM    = D -> nField() - 1;	// -- Number of velocity components.
@@ -504,6 +535,9 @@ SpatioTemporalForce::SpatioTemporalForce (Domain* D,  FEML*   file)
 
 
 void SpatioTemporalForce::physical (AuxField* ff, const int com, vector<AuxField*> U)
+// ---------------------------------------------------------------------------
+// Applicator.
+// ---------------------------------------------------------------------------
 {
   const char routine[]   = "SpatioTemporalForce::physical";
 
@@ -515,6 +549,9 @@ void SpatioTemporalForce::physical (AuxField* ff, const int com, vector<AuxField
 
 
 SpongeForce::SpongeForce (Domain* D,  FEML*   file)
+// ---------------------------------------------------------------------------
+// Constructor.
+// ---------------------------------------------------------------------------
 {
   const char routine[]     = "SpongeForce::SpongeForce";
   const      int_t NCOM    = D -> nField() - 1;	// -- Number of velocity components.
@@ -561,6 +598,9 @@ SpongeForce::SpongeForce (Domain* D,  FEML*   file)
 
 
 void SpongeForce::physical (AuxField* ff, const int com, vector<AuxField*> U)
+// ---------------------------------------------------------------------------
+// Applicator.
+// ---------------------------------------------------------------------------
 {
   const char  routine[]   = "SpongeForce::physical";
   const     int_t verbose = Femlib::ivalue ("VERBOSE");
@@ -574,7 +614,11 @@ void SpongeForce::physical (AuxField* ff, const int com, vector<AuxField*> U)
 }
 
 
+
+DragForce::DragForce (Domain* D,  FEML*   file)
 // ---------------------------------------------------------------------------
+// Constructor.
+//
 // Drag force: |F| = - m(X) * U/|U| * |U|^2 (i.e., F and U are coplanar)
 // componentwise, this reads:
 //   Fx = -m(X) |U| u
@@ -582,7 +626,6 @@ void SpongeForce::physical (AuxField* ff, const int com, vector<AuxField*> U)
 //   Fz = -m(X) |U| w
 // m(X) is a shape function.
 // ---------------------------------------------------------------------------
-DragForce::DragForce (Domain* D,  FEML*   file)
 {
   const char routine[]     = "DragForce::DragForce";
   const      int_t NCOM    = D -> nField() - 1;	// -- Number of velocity components.
@@ -608,6 +651,9 @@ DragForce::DragForce (Domain* D,  FEML*   file)
 
 
 void DragForce::physical (AuxField* ff, const int com, vector<AuxField*> U)
+// ---------------------------------------------------------------------------
+// Applicator.
+// ---------------------------------------------------------------------------
 {
   const char routine[]   = "DragForce::physical";
   const      int_t verbose = Femlib::ivalue ("VERBOSE");
@@ -625,10 +671,11 @@ void DragForce::physical (AuxField* ff, const int com, vector<AuxField*> U)
 }
 
 
+CoriolisForce::CoriolisForce (Domain* D   ,
+			      FEML*   file)
 // ---------------------------------------------------------------------------
-// Adds a force f = Omega(t) x U
+// Constructor.
 // ---------------------------------------------------------------------------
-CoriolisForce::CoriolisForce (Domain* D,  FEML*   file)
 {
   const char routine[]     = "CoriolisForce::CoriolisForce";
   const      int_t NCOM    = D -> nField() - 1;	// -- Number of velocity components.
@@ -685,7 +732,13 @@ CoriolisForce::CoriolisForce (Domain* D,  FEML*   file)
   if (_unsteady) allocStorage (D);
 }
 
-void CoriolisForce::physical (AuxField* ff, const int com, const vector<AuxField*> U)
+
+void CoriolisForce::physical (AuxField*               ff ,
+			      const int               com,
+			      const vector<AuxField*> U  )
+// ---------------------------------------------------------------------------
+// Applicator.
+// ---------------------------------------------------------------------------
 {
   const char routine[]   = "CoriolisForce::physical";
   const      int_t verbose = Femlib::ivalue ("VERBOSE");
@@ -697,23 +750,26 @@ void CoriolisForce::physical (AuxField* ff, const int com, const vector<AuxField
     message (routine, "2-D, cylindrical not implemented yet.", ERROR);
 
   if (_unsteady) {
-    if (com == 0) for (int i = 0; i < 3; i++) {
-      if (NCOM == 2) i = 2;
-      _o[i]        =   Femlib::value (_omega[i]);
+    if (com == 0) 
+      for (int i = 0; i < 3; i++) {
+	if (NCOM == 2) i = 2;
+	_o[i]        =   Femlib::value (_omega[i]);
 
       // -- we'll need several negative values later on
-      _minus_o[i]  = - _o[i];
-      _minus_2o[i] = - 2. * _o[i];
-      _DoDt[i]     = - Femlib::value (_DomegaDt[i]);
-    }
+	_minus_o[i]  = - _o[i];
+	_minus_2o[i] = - 2. * _o[i];
+	_DoDt[i]     = - Femlib::value (_DomegaDt[i]);
+      }
 
     ff -> crossXPlus (com, _DoDt);            // - DOmega/Dt x X
 
     // - Omega x Omega x X  (actually, we compute  + Omega x ((- Omega) x X))
-    if (com == 0) for (int i = 0; i < NCOM; i++) {
-      *_a[i] = 0.;
-      _a[i] -> crossXPlus (i, _minus_o);
-    }
+
+    if (com == 0)
+      for (int i = 0; i < NCOM; i++) {
+	*_a[i] = 0.;
+	_a[i] -> crossXPlus (i, _minus_o);
+      }
     ff -> crossProductPlus (com, _o, _a);
   }
 
