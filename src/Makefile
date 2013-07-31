@@ -124,7 +124,7 @@ endif
 CFLAGS   = $(DEFINES) $(OPT) -ansi
 CXXFLAGS = $(DEFINES) $(OPT) -ansi
 FFLAGS   = $(DEFINES) $(OPT)
-LIBDIR   += -L/sw/lib -L/sw/lib/gcc4.7/lib
+LIBDIR   += -L/sw/lib -L/sw/lib/gcc4.8/lib
 LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
 F77LIBS  = -framework Accelerate -lgfortran
 CLDFLAGS = $(LDFLAGS)

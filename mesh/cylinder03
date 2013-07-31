@@ -3,15 +3,16 @@
 <TOKENS>
 	N_TIME	= 2
 	N_P	= 8
-	N_STEP	= 500000
-	IO_FLD	= 500
+	T_FINAL = 100
 	D_T	= 0.01
+	N_STEP  = int(T_FINAL/D_T)
 	Re	= 200.0
 	KINVIS	= 1.0/Re
-	N_Z     = 8
-	Lz      = 4.0
-	BETA    = TWOPI/Lz
 </TOKENS>
+
+<FIELDS>
+	u	v	p
+</FIELDS>
 
 <GROUPS NUMBER=3>
 	1	v	value
@@ -20,20 +21,17 @@
 </GROUPS>
 
 <BCS NUMBER=3>
-	1	v	4
+	1	v	3
 			<D>	u = 1.0		</D>
 			<D>	v = 0.0		</D>
-			<D>	w = 0.0		</D>
 			<H>	p = 0.0		</H>
-	2	w	4
+	2	w	3
 			<D>	u = 0.0		</D>
 			<D>	v = 0.0		</D>
-			<D>	w = 0.0		</D>
 			<H>	p = 0.0		</H>
-	3	o	4
+	3	o	3
 			<N>	u = 0.0		</N>
 			<N>	v = 0.0		</N>
-			<N>	w = 0.0		</N>
 			<D>	p = 0.0		</D>
 </BCS>
 
