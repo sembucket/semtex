@@ -27,7 +27,7 @@ enum err_lev {WARNING, ERROR, REMARK};
 
 static int  parse   (char *strin, char *strout, int *pos, char sep);
 static void slit    (FILE *fp, int n, int *col);
-static int  getline (FILE *fp, char coltext[][MAXSTR], int *nwords);
+static int  getLine (FILE *fp, char coltext[][MAXSTR], int *nwords);
 static void message (const char *routine, const char *text, int level);
 
 int main (int argc, char *argv[])
@@ -135,7 +135,7 @@ static void slit (FILE *fp, int n, int *col)
   int	i, nwords;
   char	coltext[MAXCOL][MAXSTR];
   
-  while (getline (fp, coltext, &nwords) != EOF) {
+  while (getLine (fp, coltext, &nwords) != EOF) {
     if (nwords > 0) {
       printf ("%s", coltext[col[0]]);
       for (i = 1; i < n; i++) 
@@ -146,7 +146,7 @@ static void slit (FILE *fp, int n, int *col)
 }
 
 
-static int getline (FILE *fp, char coltext[][MAXSTR], int *nwords)
+static int getLine (FILE *fp, char coltext[][MAXSTR], int *nwords)
 /* ------------------------------------------------------------------------- *
  * The parsing of each input line is done here.
  * ------------------------------------------------------------------------- */

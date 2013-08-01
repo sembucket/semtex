@@ -17,10 +17,15 @@ ifeq ($(ARCH),Linux)
 endif
 
 #RECIPES = -L$(HOME)/lib/$(ARCH) -L/usr/local/lib -lrecipesDP
-RECIPES =  -L/sw/lib -L/sw/lib/gcc4.8/lib -lrecipesDP
+#RECIPES =  -L/sw/lib -L/sw/lib/gcc4.8/lib -lrecipesDP
 SEMHOME = ../semtex
 SEMHDR  = -I$(SEMHOME)/include
 VECLIB  = -L$(SEMHOME)/lib/$(ARCH)/ -lvec
+
+###############################################################################
+
+all: asp acor correlate chop slit pdf memspec dft_chk pcor demean \
+	mdlrat upxf peaks cycint cycle ratfit smooth embed odeint zeros
 
 ###############################################################################
 
@@ -49,6 +54,12 @@ dft_chk: FFTutil.o dft_chk.o $(INCLUDE)
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $@.o FFTutil.o -lm
 
 pcor: pcor.c
+	$(CC) $(CFLAGS) -o $@ $@.c
+
+demean: demean.c
+	$(CC) $(CFLAGS) -o $@ $@.c
+
+mdlrat: mdlrat.c
 	$(CC) $(CFLAGS) -o $@ $@.c
 
 upxf: upxf.o recipes.o
@@ -86,4 +97,11 @@ ifeq ($(ARCH),Darwin)
 FFLAGS  = -m64 -O2 -ffixed-line-length-none -fno-range-check -fno-align-commons
 F77LIBS += -L/sw/lib  -L/sw/lib/gcc4.8/lib
 CXXFLAGS += $(SEMHDR) -Wno-deprecated
+else
+CXXFLAGS += $(SEMHDR) -Wno-deprecated
 endif
+
+clean: 
+	rm -f *.o 
+	rm -f asp acor correlate chop slit pdf memspec dft_chk pcor demean \
+	mdlrat upxf peaks cycint cycle ratfit smooth embed odeint zeros
