@@ -2,25 +2,7 @@
 #define FIELDFORCE_H
 
 const char secForce[] = "FORCE";
-const char forcename = 'u';		// forcing fields are uvw
-
-class FieldForce
-// ---------------------------------------------------------------------------
-// Provides external access for applications. See e.g. calls in nonlinear.C.
-// ---------------------------------------------------------------------------
-{
-public:
-  FieldForce            (Domain*, FEML*);
-  void addPhysical      (AuxField*, AuxField*, const int, vector<AuxField*>);
-  void addFourier       (AuxField*, AuxField*, const int, vector<AuxField*>);
-  void dump             ();
-  void writeAux		(vector<AuxField*>);
-protected:
-  bool			_enabled;
-  vector<VirtualForce*> _classes;   // -- vector of concrete forcing classes
-  Domain*		_D;
-  vector<AuxField*>	_u;         // -- storage for physical space velocity
-};
+const char forcename  = 'u';		// forcing fields are uvw
 
 class VirtualForce
 // ---------------------------------------------------------------------------
@@ -40,6 +22,24 @@ public:
 protected:
   Domain* _D;
   bool    _enabled;
+};
+
+class FieldForce
+// ---------------------------------------------------------------------------
+// Provides external access for applications. See e.g. calls in nonlinear.C.
+// ---------------------------------------------------------------------------
+{
+public:
+  FieldForce            (Domain*, FEML*);
+  void addPhysical      (AuxField*, AuxField*, const int, vector<AuxField*>);
+  void addFourier       (AuxField*, AuxField*, const int, vector<AuxField*>);
+  void dump             ();
+  void writeAux		(vector<AuxField*>);
+protected:
+  bool			_enabled;
+  vector<VirtualForce*> _classes;   // -- vector of concrete forcing classes
+  Domain*		_D;
+  vector<AuxField*>	_u;         // -- storage for physical space velocity
 };
 
 class ConstForce : public VirtualForce
