@@ -817,10 +817,15 @@ void SFDForce::physical (AuxField*         ff ,
   const char   routine[] = "SFDForce::physical";
   const int_t  verbose   = Femlib::ivalue ("VERBOSE");
   const real_t dt        = Femlib::value  ("D_T");
+  static int   step      = 0;  // -- Flag restart.
 
   if (!_enabled) return;
 
-  // -- Subtract CHI*(u-ubar) from -nonlinear terms. 
+  // -- Restart qbar from previous velocity field.
+  
+  if (step < NCOM) *_a[com] = *U[com];
+
+  // -- Subtract CHI*(u-ubar) from -nonlinear terms.
 
   ff -> axpy (-_SFD_CHI, * U[com]);
   ff -> axpy (+_SFD_CHI, *_a[com]);
@@ -829,4 +834,6 @@ void SFDForce::physical (AuxField*         ff ,
 
   *_a[com] *= 1.0 - dt / _SFD_DELTA;
   _a[com]  -> axpy (dt / _SFD_DELTA, *U[com]);
+
+  step++;
 }
