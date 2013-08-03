@@ -154,12 +154,8 @@ void nonlinear (Domain*         D ,
 	// -- Transform to Fourier space, smooth, add forcing.
 
 	N[i] -> transform (FORWARD);
-      master -> smooth (N[i]);
-/*	ROOTONLY if (fabs (ff[i]) > EPSDP) {
-	  Veclib::fill (nP, ff[i], work + NCOM * nTot, 1);
-	  if (i < 2) master -> mulY (1, work + NCOM * nTot);
-	  N[i] -> addToPlane (0, work + NCOM * nTot);
-	}*/
+	master -> smooth (N[i]);
+
         FF -> addFourier (N[i], tmp, i, U);
       }
 
@@ -203,12 +199,8 @@ void nonlinear (Domain*         D ,
 	// -- Transform to Fourier space, smooth, add forcing.
 
 	N[i] -> transform (FORWARD);
-      master -> smooth (N[i]);
-/*	ROOTONLY if (fabs (ff[i]) > EPSDP) {
-	  Veclib::fill (nP, ff[i], work + NCOM * nTot, 1);
-	  if (i < 2) master -> mulY (1, work + NCOM * nTot);
-	  N[i] -> addToPlane (0, work + NCOM * nTot);
-	}*/
+	master -> smooth (N[i]);
+
         FF -> addFourier (N[i], tmp, i, U);
       }
     }
@@ -230,9 +222,9 @@ void nonlinear (Domain*         D ,
         // -- Add physical space forcing
         FF -> addPhysical (N[i], tmp, i, Uphys);
 
-      master -> smooth (N[i]);
+	master -> smooth (N[i]);
 	N[i] -> transform (FORWARD);
-// 	ROOTONLY if (fabs (ff[i]) > EPSDP) N[i] -> addToPlane (0, ff[i]);
+
         FF -> addFourier (N[i], tmp, i, U);
       }
 
@@ -252,9 +244,9 @@ void nonlinear (Domain*         D ,
         // -- Add physical space forcing
         FF -> addPhysical (N[i], tmp, i, Uphys);
 
-      master -> smooth (N[i]);
+	master -> smooth (N[i]);
 	N[i] -> transform (FORWARD);
-        // 	ROOTONLY if (fabs (ff[i]) > EPSDP) N[i] -> addToPlane (0, ff[i]);
+
         FF -> addFourier (N[i], tmp, i, U);
       }
 

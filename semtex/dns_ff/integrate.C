@@ -2,7 +2,7 @@
 // integrate.C: Unsteady Navier--Stokes solver, using "stiffly-stable"
 // time integration.  Geometries may be 2- or 3-dimensional, Cartesian
 // or cylindrical.  Fourier expansions are used in the homogeneous
-// direction.  This file now provides integrateNS as a call-back
+// direction.  This file now provides integrate as a call-back
 // routine; after initialisation, integrate may be called repeatedly
 // without reinitialising internal storage.
 //
