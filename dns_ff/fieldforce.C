@@ -1,6 +1,7 @@
 #include <sem.h>
 #include <fieldforce.h>
 #include <feml.h>
+
 //////////////////////////////////////////////////////////////////////////////
 // This code was originally contributed by Thomas Albrecht.
 //
@@ -47,7 +48,7 @@ FieldForce::FieldForce (Domain* D   ,
 
   _D = D;
 
-  // -- check for FORCE section
+  // -- Check for FORCE section.
 
   if (!file -> seek (secForce)) {
     VERBOSE cout << "FORCE section not found. Disabling forcing." << endl;
@@ -88,28 +89,20 @@ void FieldForce::addPhysical (AuxField*         Ni ,
 
   if (!_enabled) return;
 
-  // -- clear internal storage --
+  // -- clear workspace.
   //    FIXME: should not be neccessary since SpongeForce overwrites
   //           check here if sponge is enabled
-  
-  *wrk = 0.;
 
-  // -- iterate classes, add up forcing to internal storage
+  *wrk = 0.;
 
   vector<VirtualForce*>::iterator p;
   for (p = _classes.begin(); p != _classes.end(); p++)
     (*p) -> physical (wrk, com, U);
 
-  // -- add the physical space part to the nonlinear term. Also take care
-  //    of the correct scaling in case of cylindrical coordinates.
-
-  if (Geometry::cylindrical())
-    if (com <  2) wrk -> mulY ();
+  if (Geometry::cylindrical() && (com <  2)) wrk -> mulY ();
   *Ni += *wrk;
 
 #if 0
-  // -- write physical space forcing to file (at IO_FLD) -- debugging code.
-  //    NB: if cylindrical, first two components will be scaled, see above.
   if (com == NCOM - 1) dump();
 #endif
 }
@@ -128,23 +121,18 @@ void FieldForce::addFourier (AuxField*         Ni ,
 
   if (!_enabled) return;
 
-  // -- clear internal storage
   *wrk = 0.;
 
-  // -- iterate classes, add up forcing to internal storage
   vector<VirtualForce*>::iterator p;
   for (p = _classes.begin(); p != _classes.end(); p++)
     (*p) -> fourier(wrk, com, U);
 
-  // -- add the Fourier part to the nonlinear term. This also takes care
-  //    of the correct scaling in case of cylindrical coordinates.
   if (Geometry::cylindrical() && (com <  2)) wrk -> mulY ();
   *Ni += *wrk;
 
-  #if 0
-  // -- write Fourier space forcing to file (at IO_FLD) -- debugging code.
+#if 0
   if (com == NCOM - 1) dump();
-  #endif
+#endif
 }
 
 
@@ -210,11 +198,12 @@ void FieldForce::dump()
 
 
 // ---------------------------------------------------------------------------
-// VirtualForce is the virtual base class for different types of forcing
-// subclasses, providing a uniform interface (e.~g., init, update in physical
-// and Fourier space).
+// VirtualForce is the virtual base class for different types of
+// forcing subclasses, providing a uniform interface (e. g., init,
+// update in physical and Fourier space).
 // ---------------------------------------------------------------------------
 
+/*  -- This routine apparently redundant.
 void VirtualForce::allocStorage (Domain *D)
 {
   const char  routine[] = "VirtualForce::allocStorage";
@@ -226,6 +215,7 @@ void VirtualForce::allocStorage (Domain *D)
   for (int i = 0; i  < NCOM; i++)
     _a[i] = new AuxField (new real [(size_t)nTotP], nzP, D->elmt, forcename+i);
 }
+*/
 
 
 AuxField* VirtualForce::allocAuxField (Domain *D   ,
@@ -305,7 +295,6 @@ void ConstForce::fourier (AuxField*         ff ,
 }
 
 
-
 SteadyForce::SteadyForce (Domain* D   ,
 			  FEML*   file)
 // ---------------------------------------------------------------------------
@@ -319,7 +308,9 @@ SteadyForce::SteadyForce (Domain* D   ,
   const int_t NCOM      = D -> nField() - 1;	// -- No. vel. components.
   const int_t verbose   = Femlib::ivalue ("VERBOSE");
 
-  const char tok[3][StrMax] = {"STEADY_X", "STEADY_Y", "STEADY_Z"};
+  const char tok[3][StrMax] = {"STEADY_X", 
+			       "STEADY_Y", 
+			       "STEADY_Z"};
   const char tok_file[]     = "STEADY_FILE";
   char       fname[StrMax];
   int        i;
@@ -373,11 +364,13 @@ WhiteNoiseForce::WhiteNoiseForce (Domain* D   ,
 // ---------------------------------------------------------------------------
 {
   const char  routine[]         = "WhiteNoiseForce::WhiteNoiseForce";
-  const char  tok[3][StrMax]    = {"WHITE_EPS_X", "WHITE_EPS_Y", "WHITE_EPS_Z"};
-  const int_t verbose           = Femlib::ivalue ("VERBOSE");
-  const int_t NCOM              = D -> nField() - 1; // -- No. vel. components.
+  const char  tok[3][StrMax]    = {"WHITE_EPS_X", 
+				   "WHITE_EPS_Y", 
+				   "WHITE_EPS_Z"};
   const char  tok_mode[StrMax]  = "WHITE_MODE";
   const char  tok_apply[StrMax] = "WHITE_APPLY_STEP";
+  const int_t verbose           = Femlib::ivalue ("VERBOSE");
+  const int_t NCOM              = D -> nField() - 1; // -- No. vel. components.
 
   VERBOSE cout << "  " << routine << endl;
 
@@ -550,12 +543,15 @@ SpongeForce::SpongeForce (Domain* D   ,
   const int_t NCOM      = D -> nField() - 1;	// -- No. vel. components.
   const int_t verbose   = Femlib::ivalue ("VERBOSE");
   char        s[StrMax];
-  const char  tok_ref[3][StrMax] = {"SPONGE_U", "SPONGE_V", "SPONGE_W"};
+  const char  tok_ref[3][StrMax] = {"SPONGE_U", 
+				    "SPONGE_V", 
+				    "SPONGE_W"};
   _enabled = false;
   _D = D;
   _update = 0;
 
   // -- setup and read sponge mask from session file
+
   _mask = allocAuxField(D, forcename);
   if (!(file -> valueFromSection (s, secForce, "SPONGE_M"))) {
     VERBOSE cout <<  "  SPONGE_M not found. Disabling sponge layer." << endl;
@@ -563,17 +559,20 @@ SpongeForce::SpongeForce (Domain* D   ,
   }
 
   _enabled = true;
+
   VERBOSE cout << "    SPONGE_M = " << s << endl;
 
   // -- time-depended mask?
+
   if ((file -> valueFromSection (&_update, secForce, "SPONGE_UPDATE"))) {
     VERBOSE cout <<  "  Updating every " << _update << ". step." << endl;
     strcpy(_mask_func, s);
   }
   else
-      *_mask = s;
+    *_mask = s;
 
   // -- read reference velocity from session file
+
   _Uref.resize(3);
   for (int i = 0; i < NCOM; i++) {
     char s[StrMax];
@@ -591,6 +590,7 @@ void SpongeForce::physical (AuxField*         ff ,
 			    vector<AuxField*> U  )
 // ---------------------------------------------------------------------------
 // Applicator.
+// -- Since this overwrites ff, SpongeForce must be first in list!!
 // ---------------------------------------------------------------------------
 {
   const char   routine[] = "SpongeForce::physical";
@@ -600,7 +600,6 @@ void SpongeForce::physical (AuxField*         ff ,
 
   if (_update && ((_D->step % _update) == 0)) *_mask = _mask_func;
 
-  // -- Since this overwrites ff, SpongeForce must be first in list!!
   ff -> vvmvt (*_Uref[com], *U[com], *_mask);   // ff = (uref - u) * mask
 }
 
@@ -621,7 +620,7 @@ DragForce::DragForce (Domain* D   ,
 {
   const char  routine[] = "DragForce::DragForce";
   const int_t NCOM      = D -> nField() - 1;	// -- No. vel. components.
-  const int_t verbose = Femlib::ivalue ("VERBOSE");
+  const int_t verbose   = Femlib::ivalue ("VERBOSE");
   char        s[StrMax];
 
   _enabled = false;
@@ -632,8 +631,8 @@ DragForce::DragForce (Domain* D   ,
     return;
   }
   _D = D;
-  _mask = allocAuxField(_D, 0);
-  _umag = allocAuxField(_D, 0);
+  _mask = allocAuxField (_D, 0);
+  _umag = allocAuxField (_D, 0);
 
   _enabled = true;
   VERBOSE cout << "  DRAG_M = " << s << endl;
@@ -682,6 +681,7 @@ CoriolisForce::CoriolisForce (Domain* D   ,
   char        s[StrMax];
 
   VERBOSE cout << "  " << routine << endl;
+
   _enabled = false;
   _unsteady = 0; // int_t, bec. there's no bool version of valueFromSection()
   _D = D;
@@ -725,7 +725,11 @@ CoriolisForce::CoriolisForce (Domain* D   ,
   if (!_unsteady)
     for (int i = 0; i < 3; i++) _minus_2o[i] = -2. * Femlib::value (_omega[i]);
 
-  if (_unsteady) allocStorage (D);
+  _a.resize (NCOM);
+  for (int i = 0; i < NCOM; i++)
+    _a[i]  = allocAuxField(D, forcename + i);
+
+  //  if (_unsteady) allocStorage (D);  -- Replaced by code in loop above.
 }
 
 
@@ -744,12 +748,11 @@ void CoriolisForce::physical (AuxField*               ff ,
 
   if (NCOM == 2 && Geometry::cylindrical())
     message (routine, "2-D, cylindrical not implemented yet.", ERROR);
-
   if (_unsteady) {
     if (com == 0) 
       for (int i = 0; i < 3; i++) {
 	if (NCOM == 2) i = 2;
-	_o[i]        =   Femlib::value (_omega[i]);
+	_o[i] = Femlib::value (_omega[i]);
 
         // -- we'll need several negative values later on.
 
