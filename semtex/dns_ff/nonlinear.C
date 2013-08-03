@@ -147,16 +147,13 @@ void nonlinear (Domain*         D ,
 	  N[i] -> timesMinus (*Uphys[j], *tmp);
 	}
 
-        // -- Add physical space forcing
-
-	FF -> addPhysical (N[i], tmp, i, Uphys);
-
-	// -- Transform to Fourier space, smooth, add forcing.
+	FF   -> addPhysical (N[i], tmp, i, Uphys);
 
 	N[i] -> transform (FORWARD);
-	master -> smooth (N[i]);
 
-        FF -> addFourier (N[i], tmp, i, U);
+        FF   -> addFourier (N[i], tmp, i, U);
+
+	master -> smooth (N[i]);
       }
 
     } else { // -- Conservative component div(uu).
@@ -193,15 +190,13 @@ void nonlinear (Domain*         D ,
 	  *N[i] -= *tmp;
 	}
 
-	// -- Add physical space forcing
-	FF -> addPhysical (N[i], tmp, i, Uphys);
-
-	// -- Transform to Fourier space, smooth, add forcing.
+	FF   -> addPhysical (N[i], tmp, i, Uphys);
 
 	N[i] -> transform (FORWARD);
-	master -> smooth (N[i]);
 
-        FF -> addFourier (N[i], tmp, i, U);
+        FF   -> addFourier (N[i], tmp, i, U);
+
+	master -> smooth (N[i]);
       }
     }
 
@@ -219,13 +214,13 @@ void nonlinear (Domain*         D ,
 	  N[i] -> timesMinus (*Uphys[j], *tmp);
 	}
 
-        // -- Add physical space forcing
-        FF -> addPhysical (N[i], tmp, i, Uphys);
+        FF   -> addPhysical (N[i], tmp, i, Uphys);
 
-	master -> smooth (N[i]);
 	N[i] -> transform (FORWARD);
 
-        FF -> addFourier (N[i], tmp, i, U);
+        FF   -> addFourier (N[i], tmp, i, U);
+
+	master -> smooth (N[i]);
       }
 
     } else { // -- Conservative component div(uu).
@@ -241,13 +236,14 @@ void nonlinear (Domain*         D ,
 	  if (j == 2) tmp -> transform (INVERSE);
 	  *N[i] -= *tmp;
         }
-        // -- Add physical space forcing
-        FF -> addPhysical (N[i], tmp, i, Uphys);
 
-	master -> smooth (N[i]);
+        FF   -> addPhysical (N[i], tmp, i, Uphys);
+
 	N[i] -> transform (FORWARD);
 
-        FF -> addFourier (N[i], tmp, i, U);
+        FF   -> addFourier (N[i], tmp, i, U);
+
+	master -> smooth (N[i]);
       }
 
     }

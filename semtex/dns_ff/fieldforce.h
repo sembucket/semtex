@@ -4,6 +4,7 @@
 const char secForce[] = "FORCE";
 const char forcename  = 'u';		// forcing fields are uvw
 
+
 class VirtualForce
 // ---------------------------------------------------------------------------
 // Virtual base class for various types of forcing.
