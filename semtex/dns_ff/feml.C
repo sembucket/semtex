@@ -401,8 +401,10 @@ bool FEML::echo (ostream&    stream,
 
 // added by Thomas Albrecht for evaluate force section
 
-bool FEML::valueFromSection (real_t *value, const char *section,
-                             const char *token)
+
+bool FEML::valueFromSection (real_t     *value  ,
+			     const char *section,
+                             const char *token  )
 // ---------------------------------------------------------------------------
 // Search for 'token' in 'section' of input file. If found, copy to 'value',
 // otherwise, 'value' is unchanged.
@@ -445,7 +447,10 @@ bool FEML::valueFromSection (real_t *value, const char *section,
   return false;
 }
 
-bool FEML::valueFromSection (int_t *value, const char *section, const char *token)
+
+bool FEML::valueFromSection (int_t      *value  ,
+			     const char *section,
+			     const char *token  )
 // ---------------------------------------------------------------------------
 // as above, integer version
 // ---------------------------------------------------------------------------
@@ -486,7 +491,10 @@ bool FEML::valueFromSection (int_t *value, const char *section, const char *toke
   return false;
 }
 
-bool FEML::valueFromSection (char *buf, const char *section, const char *token)
+
+bool FEML::valueFromSection (char       *buf    ,
+			     const char *section,
+			     const char *token  )
 // ---------------------------------------------------------------------------
 // as above, string version
 // ---------------------------------------------------------------------------
