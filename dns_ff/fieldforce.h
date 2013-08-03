@@ -25,6 +25,7 @@ protected:
   bool    _enabled;
 };
 
+
 class FieldForce
 // ---------------------------------------------------------------------------
 // Provides external access for applications. See e.g. calls in nonlinear.C.
@@ -43,6 +44,7 @@ protected:
   vector<AuxField*>	_u;         // -- storage for physical space velocity
 };
 
+
 class ConstForce : public VirtualForce
 // ---------------------------------------------------------------------------
 // A force constant in both space in time, applied in Fourier space.
@@ -55,6 +57,7 @@ protected:
   real_t                _v[3];	// Force components
 };
 
+
 class SteadyForce : public VirtualForce
 // ---------------------------------------------------------------------------
 // Constant in time but a function of space, applied in physical space.
@@ -65,6 +68,7 @@ public:
   void physical         (AuxField*, const int, vector<AuxField*>);
 protected:
 };
+
 
 class WhiteNoiseForce : virtual public VirtualForce
 // ---------------------------------------------------------------------------
@@ -80,6 +84,7 @@ protected:
   int_t                 _apply_step; // apply force every _apply_step'th step.
 };
 
+
 class ModulatedForce : virtual public VirtualForce
 // ---------------------------------------------------------------------------
 // Forcing which is a constant function of space (may be read from
@@ -93,6 +98,7 @@ protected:
   char                  _alpha[3][StrMax]; // -- temporally varying part.
 };
 
+
 class SpatioTemporalForce : virtual public VirtualForce
 // ---------------------------------------------------------------------------
 // Forcing that is an arbitrary function of space-time. Physical space.
@@ -104,6 +110,7 @@ public:
 protected:
   char                  _alpha[3][StrMax]; // -- spatio-temporal-varying part.
 };
+
 
 class SpongeForce : virtual public VirtualForce
 // ---------------------------------------------------------------------------
@@ -121,6 +128,7 @@ protected:
   int                   _update; // mask update frequency
 };
 
+
 class DragForce : virtual public VirtualForce
 // ---------------------------------------------------------------------------
 // Forcing acts against velocity field according to its magnitude. Physical.
@@ -133,6 +141,7 @@ protected:
   AuxField		*_mask;
   AuxField		*_umag;
 };
+
 
 class CoriolisForce : virtual public VirtualForce
 // ---------------------------------------------------------------------------
@@ -151,6 +160,24 @@ protected:
   vector<real_t>        _minus_2o;	      // -- - 2 * omega
   vector<real_t>        _DoDt;		      // -- evaluated at current time
   int_t                 _unsteady;            // -- 1 if omega is unsteady
+};
+
+
+class SFDForce : virtual public VirtualForce
+// ---------------------------------------------------------------------------
+// Selective frequency damping: add forcing designed to achieve steady
+// solution to NSE.  Physical space.  Parameters SFD_DELTA and SFD_CHI.
+//
+// Reference: Akervik et al., (2006), Steady solutions to the
+// Navier--Stokes equations by selective frequency damping, Phys
+// Fluids 18: 068102.
+// ---------------------------------------------------------------------------
+{
+public:
+  SFDForce              (Domain*, FEML*);
+  void physical         (AuxField*, const int, vector<AuxField*>);
+protected:
+  real_t                _SFD_DELTA, _SFD_CHI;
 };
 
 
