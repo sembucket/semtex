@@ -4,9 +4,8 @@
 //////////////////////////////////////////////////////////////////////////////
 // This code was originally contributed by Thomas Albrecht.
 //
-// This implements a somewhat generic body forcing
-// interface. Basically, there are two (types of) classes involved
-// here:
+// This implements a somewhat generic body forcing interface. Basically,
+// there are two (types of) classes involved here:
 //
 // 1. the 'FieldForce' class, which provides an interface to nonlinear.C;
 //
@@ -69,6 +68,7 @@ FieldForce::FieldForce (Domain* D   ,
   _D = D;
 
   // -- check for FORCE section
+
   if (!file -> seek (secForce)) {
     VERBOSE cout << "FORCE section not found. Disabling forcing." << endl;
     _enabled = false;
@@ -77,16 +77,16 @@ FieldForce::FieldForce (Domain* D   ,
   _enabled = true;
 
   // -- init classes
-  //    !! Sponge must be first in list !!
-  _classes.push_back(new SpongeForce     (_D, file));
-  _classes.push_back(new CoriolisForce   (_D, file));
-  _classes.push_back(new ConstForce      (_D, file));
-  _classes.push_back(new WhiteNoiseForce (_D, file));
-  _classes.push_back(new SteadyForce     (_D, file));
-  _classes.push_back(new ModulatedForce  (_D, file));
-  _classes.push_back(new SpatioTemporalForce  (_D, file));
-  _classes.push_back(new DragForce       (_D, file));
+  //    NB: Sponge must be first in list.
 
+  _classes.push_back(new SpongeForce         (_D, file));
+  _classes.push_back(new CoriolisForce       (_D, file));
+  _classes.push_back(new ConstForce          (_D, file));
+  _classes.push_back(new WhiteNoiseForce     (_D, file));
+  _classes.push_back(new SteadyForce         (_D, file));
+  _classes.push_back(new ModulatedForce      (_D, file));
+  _classes.push_back(new SpatioTemporalForce (_D, file));
+  _classes.push_back(new DragForce           (_D, file));
 }
 
 
@@ -121,6 +121,7 @@ void FieldForce::addPhysical (AuxField*         Ni ,
 
   // -- add the physical space part to the nonlinear term. Also take care
   //    of the correct scaling in case of cylindrical coordinates.
+
   if (Geometry::cylindrical())
     if (com <  2) tmp -> mulY ();
   *Ni += *tmp;
@@ -502,7 +503,7 @@ void ModulatedForce::physical (AuxField* ff, const int com, vector<AuxField*> U)
 SpatioTemporalForce::SpatioTemporalForce (Domain* D,  FEML*   file)
 // ---------------------------------------------------------------------------
 // Constructor.  SpatioTemporalForce -- f = alpha(x, t) WARNING! We
-// evaluate alpha on full field EACH TIME STEP.  This severly degrades
+// evaluate alpha on full field EACH TIME STEP.  This severely degrades
 // performance!
 // ---------------------------------------------------------------------------
 {
@@ -534,7 +535,9 @@ SpatioTemporalForce::SpatioTemporalForce (Domain* D,  FEML*   file)
 }
 
 
-void SpatioTemporalForce::physical (AuxField* ff, const int com, vector<AuxField*> U)
+void SpatioTemporalForce::physical (AuxField*         ffn,
+				    const int         com,
+				    vector<AuxField*> U  )
 // ---------------------------------------------------------------------------
 // Applicator.
 // ---------------------------------------------------------------------------
@@ -548,7 +551,8 @@ void SpatioTemporalForce::physical (AuxField* ff, const int com, vector<AuxField
 }
 
 
-SpongeForce::SpongeForce (Domain* D,  FEML*   file)
+SpongeForce::SpongeForce (Domain* D   ,
+			  FEML*   file)
 // ---------------------------------------------------------------------------
 // Constructor.
 // ---------------------------------------------------------------------------
