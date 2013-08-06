@@ -64,7 +64,8 @@ preplot: preplot.c
 # Standalone (bar semtex standard libs) C programs.
 #
 
-nosrc: avgdump moden noiz rstress xplane sem2tec sem2vtk convert repeatz repeatxy
+nosrc: avgdump moden noiz rstress xplane sem2tec sem2vtk convert \
+	repeatz repeatxy
 avgdump moden noiz rstress xplane sem2tec sem2vtk convert repeatz repeatxy : \
 	avgdump.c moden.c xplane.c noiz.c rstress.c sem2tec.c sem2vtk.c \
         convert.c repeatz.c repeatxy.c
@@ -161,6 +162,14 @@ interp: interp.o $(INTOBJ)
 #
 integral: integral.o  $(INTOBJ)
 	$(CXX) $(CPPFLAGS) -o $@ $@.o $(INTOBJ) $(LDFLAGS)
+
+
+# ----------------------------------------------------------------------------
+# Build massmat, utility to printup system matrix.
+#
+MASOBJ = element.o family.o feml.o geometry.o massmat.o mesh.o
+massmat: $(MASOBJ)
+	$(CXX) $(CPPFLAGS) -o $@ $(MASOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build probe, field dump data extraction.
