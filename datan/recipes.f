@@ -827,11 +827,11 @@ C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
       SUBROUTINE correl(data1,data2,n,ans)
       INTEGER n,NMAX
       DOUBLE PRECISION data1(n),data2(n)
-      COMPLEX ans(n)
-      PARAMETER (NMAX=4096)
+      DOUBLE COMPLEX ans(n)
+      PARAMETER (NMAX=65536)
 CU    USES realft,twofft
       INTEGER i,no2
-      COMPLEX fft(NMAX)
+      DOUBLE COMPLEX fft(NMAX)
       call twofft(data1,data2,fft,ans,n)
       no2=n/2
       do 11 i=1,no2+1
@@ -900,18 +900,18 @@ C  (C) Copr. 1986-92 Numerical Recipes Software #p21$"B.
       SUBROUTINE twofft(data1,data2,fft1,fft2,n)
       INTEGER n
       DOUBLE PRECISION data1(n),data2(n)
-      COMPLEX fft1(n),fft2(n)
+      DOUBLE COMPLEX fft1(n),fft2(n)
 CU    USES four1
       INTEGER j,n2
-      COMPLEX h1,h2,c1,c2
-      c1=cmplx(0.5,0.0)
-      c2=cmplx(0.0,-0.5)
+      DOUBLE COMPLEX h1,h2,c1,c2
+      c1=dcmplx(0.5D0,0.0D0)
+      c2=dcmplx(0.0D0,-0.5D0)
       do 11 j=1,n
         fft1(j)=cmplx(data1(j),data2(j))
 11    continue
       call four1(fft1,n,1)
-      fft2(1)=cmplx(aimag(fft1(1)),0.0)
-      fft1(1)=cmplx(real(fft1(1)),0.0)
+      fft2(1)=dcmplx(aimag(fft1(1)),0.0D0)
+      fft1(1)=dcmplx(real(fft1(1)),0.0D0)
       n2=n+2
       do 12 j=2,n/2+1
         h1=c1*(fft1(j)+conjg(fft1(n2-j)))

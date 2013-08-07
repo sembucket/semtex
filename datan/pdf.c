@@ -54,15 +54,15 @@ int main(int argc, char *argv[])
          NBins = DEFBIN;
 
   real  BinWidth,
-         Min      = 0.0,
-         Max      = 0.0,
-         PeakVal  = 0.0,
-         Mean     = 0.0,
-         SDev     = 0.0,
-         AbsDev   = 0.0,
-         Variance = 0.0,
-         Skewness = 0.0,
-         Kurtosis = 0.0;
+        Min      = 0.0,
+        Max      = 0.0,
+        PeakVal  = 0.0,
+        Mean     = 0.0,
+        SDev     = 0.0,
+        AbsDev   = 0.0,
+        Variance = 0.0,
+        Skewness = 0.0,
+        Kurtosis = 0.0;
 
 
   getargs (argc, argv, &NBins, &Verbose, &fp_in, &fp_out);
@@ -183,10 +183,12 @@ static void refile (FILE *fp_in, FILE *fp_tmp,
 
 
 
-static void accum(FILE  *fp,
+static void accum(FILE *fp,
 		  real *pdf,
-		  real  min,  real binwidth,
-		  int    npts, int nbins, 
+		  real  min,
+		  real  binwidth,
+		  int   npts, 
+		  int   nbins, 
 		  real  mean,
 		  real *AbsDev,
 		  real *Sdev,

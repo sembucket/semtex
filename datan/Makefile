@@ -101,7 +101,7 @@ else
 CXXFLAGS += $(SEMHDR) -Wno-deprecated
 endif
 
-clean: 
+clean:
 	rm -f *.o 
 	rm -f asp acor correlate chop slit pdf memspec dft_chk pcor demean \
 	mdlrat upxf peaks cycint cycle ratfit smooth embed odeint zeros

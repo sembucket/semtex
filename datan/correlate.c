@@ -1,7 +1,14 @@
 /*****************************************************************************
  * correlate.c: compute cross-correlation of two columns of input data.
  *
- * Use routine correl_() from Numerical Recipes 2e.
+ * Use routine correl_() from Numerical Recipes 2e, but compute the
+ * "true" (dimensionless) cross correlation
+ *
+ *   R[u(t),v(t+lag)] = E[(u-E(u))*(v-E(v))]/[sdev(u)*sdev(v)]
+ *
+ * NBNBNBNB: Owing to a limitation in correl_() the maximum FFT size
+ * allowed is 2^16 i.e. 65536 (as originally published this value was
+ * 4096).
  *
  * $Id$
  *****************************************************************************/
@@ -19,7 +26,8 @@ static int  DP      = 0;	/* Global precision flag. */
 static int  verbose = 0;
 
 #if 1
-#define NVREG 8
+#define NVREG  8
+#define BLKMAX 65536
 
 int    _alpIreg[NVREG];		/* For FORTRAN linkage. */
 char   _alpCreg[NVREG];
@@ -32,12 +40,13 @@ void    correl_ (real*, real*, int*, real*);
 
 static void  getargs   (int, char**, char**, int*, int*, real*, int*);
 static int   moreinput (FILE*);
+static void  preproc   (real*, real*, int);
 static void  printup   (FILE*, char*, real*, int, int, int, real, int);
 
 
 int main (int    argc,
 	  char** argv)
-/* ------------------------------------------------------------------------- *
+/* ------------------------------------------------------------------------ *
  * Produce cross-correlation from 2 columns of ASCII input.  Input is
  * read in chuncks of blocksize points until exhausted.  If the final
  * read is not a full one it is thrown away.  If not even one full
@@ -48,13 +57,8 @@ int main (int    argc,
  *  -k <lag>: Number of lags (+/-) over which to compute correlation.
  *  -v: Verbose output (with 8-line header).
  *  -o: Switch off segment averaging.
- *  -r <rate>:  Data sampling rate of.  Default rate is 1 Hz.
- *  -w <window>:    Specify a data window for leakage reduction.
- *      hann:  Von Hann window (cosine bell) Default.
- *      cost:  Cosine tip taper over 10% at each end of data.
- *      gauss: Gaussian shape.  Possible advantage for sine-wave spectra.
- *      none:  No window (Boxcar).
- * ------------------------------------------------------------------------- */
+ *  -r <rate>:  Data sampling rate.  Default rate is 1 (Hz).
+  * ------------------------------------------------------------------------ */
 {
   char         *session = 0;
   FILE         *fp_in, *fp_out=stdout;
@@ -80,6 +84,9 @@ int main (int    argc,
   blocksize_2 = blocksize >> 1;
   bufflen     = roundpow2 (blocksize + nlag);
   npad        = bufflen - blocksize; 
+
+  if (bufflen > BLKMAX)
+    message (prog, "exceeded the maximum allowed buffer length", ERROR);
 
   work        = rvector (0, 6 * bufflen - 1);
   buffa       = work;
@@ -118,13 +125,15 @@ int main (int    argc,
 
     for (i = 0; i < npad; i++) buffa[blocksize+i] = buffb[blocksize+i] = 0.0;
 
+    preproc (buffa, buffb, blocksize);
+
     correl (buffa, buffb, bufflen, buffc);
 
     for (i = 0; i < bufflen; i++) average[i] += buffc[i];
     navg++;
   }
 
-  norm = 1.0 / navg;
+  norm = 1.0 / (navg * (blocksize - 1));
   for (i = 0; i < bufflen; i++) average[i] *= norm;
 
   printup (fp_out, session, average, bufflen, nlag, navg, samprate, overlap);
@@ -245,3 +254,41 @@ static void printup (FILE* fp      ,
   for (i = 0; i <= nlag; i++)
     fprintf (fp, "%-16g %-16g\n", i *  deltaT, average[i]);
 }
+
+
+static void  preproc (real* a,
+		      real* b,
+		      int   N)
+/* ------------------------------------------------------------------------- *
+ * Subtract mean from each process and normalise by its standard deviation.
+ * ------------------------------------------------------------------------- */
+{
+  int  i;
+  real varia = 0.0, varib = 0.0, meana = 0.0, meanb = 0.0;
+
+  for (i = 0; i < N; i++) {
+    meana = meana + a[i];
+    meanb = meanb + b[i];
+  }
+  meana = meana / N;
+  meanb = meanb / N;
+
+  for (i = 0; i < N; i++) {
+    a[i]  -= meana;
+    b[i]  -= meanb;
+    varia += a[i] * a[i];
+    varib += b[i] * b[i];
+  }
+  varia = varia / (N-1);	/* -- Unbiased estimates of variance. */
+  varib = varib / (N-1);
+
+  varia = 1.0 / sqrt(varia);    /* -- (Inverse) standard deviations. */
+  varib = 1.0 / sqrt(varib);
+
+  for (i = 0; i < N; i++) {
+    a[i] *= varia;
+    b[i] *= varib;
+  }
+}
+
+
