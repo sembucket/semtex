@@ -33,7 +33,7 @@ SEMHDR    = sem.h
 # ----------------------------------------------------------------------------
 # Default build.
 
-NS_OBJ = scatanalysis.o drive.o integrate.o integrates.o
+NS_OBJ = scatanalysis.o drive.o integrate.o nonlinear.o integrates.o
 NS_HDR = scat.h
 
 $(PROG): sem $(SEMOBJ) $(NS_OBJ) 

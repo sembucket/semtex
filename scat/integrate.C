@@ -17,7 +17,8 @@ typedef ModalMatrixSys Msys;
 static  int_t          NCOM, NDIM, NORD;
 static  bool           C3D;
 
-static void   advection (Domain*, AuxField**, AuxField**, vector<real_t>&);
+void          nonlinear (Domain*, AuxField**, AuxField**, vector<real_t>&);
+//static void   advection (Domain*, AuxField**, AuxField**, vector<real_t>&);
 static void   buoyancy  (Domain*, AuxField**, AuxField**, vector<real_t>&);
 static void   tempGrad  (AuxField**, AuxField**);
 static void   waveProp  (Domain*, const AuxField***, const AuxField***);
@@ -107,7 +108,7 @@ void NavierStokes (Domain*       D,
 
     // -- Unconstrained forcing substeps.
 
-    advection (D, Us[0], Uf[0], ff);
+    nonlinear (D, Us[0], Uf[0], ff);
     buoyancy  (D, Us[0], Uf[0], g);
 
     ROOTONLY tempGrad (Us[0], Uf[0]);
