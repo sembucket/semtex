@@ -785,10 +785,13 @@ SFDForce::SFDForce (Domain* D   ,
 
   _enabled = false;
 
+  if (!(file -> valueFromSection (&_SFD_DELTA, secForce, "SFD_DELTA") ||
+	file -> valueFromSection (&_SFD_CHI,   secForce, "SFD_CHI"))) return;
+
+
   if (!(file -> valueFromSection (&_SFD_DELTA, secForce, "SFD_DELTA") &&
 	file -> valueFromSection (&_SFD_CHI,   secForce, "SFD_CHI"))) {
     message (routine, "SFD_DELTA and SFD_CHI must be paired.", ERROR);
-    return;
   }
 
   _D = D;
