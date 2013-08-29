@@ -34,4 +34,9 @@ private:
   void extract_wall ();
 };
 
+void skewSymmetric    (Domain*, AuxField**, AuxField**, FieldForce*);
+void altSkewSymmetric (Domain*, AuxField**, AuxField**, FieldForce*);
+void convective       (Domain*, AuxField**, AuxField**, FieldForce*);
+void Stokes           (Domain*, AuxField**, AuxField**, FieldForce*);
+
 #endif

@@ -248,7 +248,7 @@ public:
 
 class Mixed : public Condition
 // ===========================================================================
-// Boundary condition class for mixed (a.k.a Robin) type BCs of form
+// Boundary condition class for mixed (a.k.a. Robin) type BCs of form
 //     dc/dn + K(c - C) = 0.
 // Mixed BCs affect problem Helmholtz matrices, but only on the diagonal, 
 // and element-boundary, terms. Syntax in session file is

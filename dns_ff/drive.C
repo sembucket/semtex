@@ -8,10 +8,11 @@
 // dns [options] session
 //   options:
 //   -h       ... print usage prompt
-//   -i[i]    ... use iterative solver for viscous [and pressure] steps
+//   -i       ... use iterative solver for viscous [and pressure] steps
 //   -t[t]    ... select time-varying BCs for mode 0 [or all modes]
 //   -v[v...] ... increase verbosity level
 //   -chk     ... turn off checkpoint field dumps [default: selected]
+//   -S|C|N   ... regular skew-symm || convective || Stokes advection
 //
 // AUTHOR:
 // ------
@@ -45,12 +46,14 @@ static char RCS[] = "$Id$";
 
 #include <dns.h>
 
-static char prog[] = "dns";
+static char prog[] = "dns_ff";
 static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, Domain*&, FieldForce*&);
 
-void integrate (Domain*, DNSAnalyser*, FieldForce*);
+void integrate (void (*)(Domain*, AuxField**, AuxField**, FieldForce*),
+		Domain*, DNSAnalyser*, FieldForce*);
+
 
 int main (int    argc,
 	  char** argv)
@@ -81,8 +84,13 @@ int main (int    argc,
   domain -> restart ();
 
   ROOTONLY domain -> report ();
-
-  integrate (domain, analyst, FF);
+  
+  switch (Femlib::ivalue ("ADVECTION")) {
+  case 0: integrate (   skewSymmetric, domain, analyst, FF); break;
+  case 1: integrate (altSkewSymmetric, domain, analyst, FF); break;
+  case 2: integrate (      convective, domain, analyst, FF); break;
+  case 3: integrate (          Stokes, domain, analyst, FF); break;
+  }
 
   Femlib::finalize ();
 
@@ -103,10 +111,11 @@ static void getargs (int    argc   ,
   const char usage[]   = "Usage: %s [options] session-file\n"
     "  [options]:\n"
     "  -h       ... print this message\n"
-    "  -i[i]    ... use iterative solver for viscous [& pressure] steps\n"
+    "  -i      ... use iterative solver for viscous steps\n"
     "  -t[t]    ... select time-varying BCs for mode 0 [or all modes]\n"
     "  -v[v...] ... increase verbosity level\n"
-    "  -chk     ... turn off checkpoint field dumps [default: selected]\n";
+    "  -chk     ... turn off checkpoint field dumps [default: selected]\n"
+    "  -S|C|N   ... regular skew-symm || convective || Stokes advection\n";
 
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
@@ -115,9 +124,12 @@ static void getargs (int    argc   ,
       cout << buf;
       exit (EXIT_SUCCESS);
       break;
+    case 'S': Femlib::ivalue ("ADVECTION", 0); break;
+    case 'C': Femlib::ivalue ("ADVECTION", 2); break;
+    case 'N': Femlib::ivalue ("ADVECTION", 3); break;
     case 'i':
-      do
-	Femlib::ivalue ("ITERATIVE", Femlib::ivalue ("ITERATIVE") + 1);
+      do			// -- Only allowing ITERATIVE=1 (Viscous).
+	Femlib::ivalue ("ITERATIVE", 1);
       while (*++argv[0] == 'i');
       break;
     case 't':

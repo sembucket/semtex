@@ -60,7 +60,11 @@ static Msys** preSolve  (const Domain*);
 static void   Solve     (Domain*, const int_t, AuxField*, Msys*);
 
 
-void integrate (Domain*      D,
+void integrate (void (*advection) (Domain*, 
+				   AuxField**, 
+				   AuxField**,
+				   FieldForce*),
+		Domain*      D,
                 DNSAnalyser* A,
                 FieldForce*  FF)
 // ---------------------------------------------------------------------------
@@ -131,7 +135,7 @@ void integrate (Domain*      D,
     // -- Compute nonlinear terms from previous velocity field.
     //    Add physical space forcing, again at old time level.
 
-    nonlinear (D, Us[0], Uf[0], FF);
+    advection (D, Us[0], Uf[0], FF);
 
     // -- Now update the time.
 
