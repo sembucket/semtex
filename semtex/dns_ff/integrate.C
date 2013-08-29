@@ -296,8 +296,7 @@ static Msys** preSolve (const Domain* D)
 // is selected for any Field, the corresponding ModalMatrixSystem pointer
 // is set to zero.
 //
-// ITERATIVE == 1 selects iterative solvers for velocity components,
-// ITERATIVE == 2 adds iterative solver for pressure as well.
+// ITERATIVE == 1 selects iterative solvers for velocity components.
 // ---------------------------------------------------------------------------
 {
   const int_t             nmodes = Geometry::nModeProc();
@@ -316,12 +315,12 @@ static Msys** preSolve (const Domain* D)
 
   for (i = 0; i < NCOM; i++)
     M[i] = new Msys
-      (lambda2, beta, base, nmodes, E, D -> b[i],    (itLev<1)?DIRECT:JACPCG);
+      (lambda2, beta, base, nmodes, E, D -> b[i], (itLev) ? JACPCG : DIRECT);
 
   // -- Pressure system.
 
   M[NCOM] = new Msys
-      (0.0,     beta, base, nmodes, E, D -> b[NCOM], (itLev<2)?DIRECT:JACPCG);
+      (0.0, beta, base, nmodes, E, D -> b[NCOM], DIRECT);
 
   return M;
 }
