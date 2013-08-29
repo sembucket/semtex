@@ -88,7 +88,7 @@ Monash University
 
 \today
 
-\Semtex\ version 7.0
+\Semtex\ version 7.1
 
 \vspace*{\fill}
 
@@ -1405,37 +1405,30 @@ over-ridden by whatever is set in the \verb+session+ file.
 \label{sec.iterative}
 
 Two matrix solution methods are implemented for Helmholtz problems
-associated with the pressure and viscous substeps of the time
-splitting.  By default, direct Schur-complement solutions are used.
-The associated global matrices can consume quite large amounts of
-memory, typically much more than is required for storage of the
-associated field variable.  Iterative (PCG) solution can also be
-selected, and this has the advantage that since it is matrix-free, no
-global matrices are required, however, solution may be slower than for
-the direct solver (depending on the condition number of the global
-matrix problem).
+associated with the viscous substep of the time splitting.  By
+default, direct Schur-complement solutions are used.  The associated
+global matrices can consume quite large amounts of memory, typically
+much more than is required for storage of the associated field
+variable.  Iterative (PCG) solution can also be selected, and this has
+the advantage that since it is matrix-free, no global matrices are
+required, however, solution may be slower than for the direct solver
+(depending on the condition number of the global matrix problem).
 
-The token that controls the selection of solution method is
+The token that controls the selection of matrix solution method is
 \verb+ITERATIVE+.  For \verb+dns+, PCG solution can be selected for
-the viscous substep of the solution (\verb+ITERATIVE = 1+), or for
-both viscous and pressure substeps (\verb+ITERATIVE = 2+).  The same
-functions can be selected by command-line options (\verb+dns -i+
-$\equiv$ \verb+ITERATIVE = 1+, while \verb+dns -ii+ $\equiv$
-\verb+ITERATIVE = 2+), but note that these options are overridden by
-whatever tokens are set in the \verb+session+ file (the default value
-is \verb+ITERATIVE = 0+).
+the viscous substep of the solution (\verb+ITERATIVE = 1+).  This can
+also be selected via a command-line option (\verb+dns -i+), but note
+that this overridden by tokens set in the \verb+session+ file (the
+default value is \verb+ITERATIVE = 0+).
 
-Iterative solution is most useful for the viscous substep,
-particularly when the Reynolds number is high, since this decreases
-the condition number of the associated global matrices.  In fact,
-iterative solutions for the viscous substep can execute faster than
-direct solutions at high Reynolds number, although this is platform
-dependent.  Since the global pressure matrices have higher condition
-numbers, particularly for low Fourier modes, iterative solution for
-the pressure substep is only of any practical use when memory at a
-premium.  In summary, you should always consider trying
-\verb+ITERATIVE = 1+ as an option for simulations where the Reynolds
-number is more than a few hundred.
+Iterative solution can be useful for the viscous substep, particularly
+when the Reynolds number is high, since this decreases the condition
+number of the associated global matrices.  In fact, iterative
+solutions for the viscous substep can execute faster than direct
+solutions at high Reynolds number, although this is platform
+dependent. You should always consider trying \verb+ITERATIVE = 1+ as
+an option for simulations where the Reynolds number is more than a few
+hundred.
 
 %=============================================================================
 \section{Time-varying boundary conditions}
@@ -1943,12 +1936,18 @@ applicators and the ability to solve elliptic problems.  The
 \verb|Domain| class holds an array of \verb|Field| pointers and most
 of its internal storage is publicly accessible.
 \item
-Nodal elements.
+Nodal elements: the shape functions used in the code correspond to the
+classical `nodal', rather than the `modal' scheme. This means that the
+shape functions are tensor products of 1D Lagrange interpolants that
+are zero at one mesh node and zero at the others.
 \item
-Timestepping algorithm and the code loop. What is stored where, and when.
+\textsl{Timestepping algorithm and the code loop} The scheme is the `stiffly
+stable' scheme, based on backward differencing in time, and uses
+time-splitting, see \citet{kio91}. What is stored where, and when ---
+see figure~\ref{fig.storage}.
 \item
-Boundary conditions, use of inheritance. Distinction between the way
-BCs are dealt with. Periodicity not a boundary condition.
+\textsl{Boundary conditions, use of inheritance} Distinction between
+the way BCs are dealt with. Periodicity not a boundary condition.
 \item
 Support libraries and static member functions. BLAS-conformant increments.
 \item
@@ -1956,7 +1955,10 @@ The parser and what things can be parsed.
 \item
 What is done in the driver routine and the basic idea of code layout.
 \item
-Implications of Fourier transform in one direction.
+\textsl{Implications of Fourier transform in one direction} For 3D
+computations, note that for all of the timestepping loop, other than
+during computation of the nonlinear terms, field variables are help in
+the Fourier-transformed state.
 \item
 Tensor-product derivative operations.
 \item
@@ -1966,6 +1968,35 @@ Static condensation.
 \item
 Message passing and data exchange.
 \end{enumerate}
+
+\begin{figure}
+\begin{center}
+\includegraphics[viewport=72 130 770 492,width=\textwidth,clip=true]
+{timeSchemeStorage.eps}
+\end{center}
+\caption{Arrangement of internal storage during timestepping loop (see
+  \texttt{dns/integrate.C}) for a three-velocity-component,
+  second-order-time, stepping scheme. Presence of a '-' indicates that
+  the relevant storage is free for over-writing if desired.  Diagonal
+  lines divide the upper- and lower-order storage so that e.g.\ the
+  first entry under column labelled \texttt{Us[.][0]} corresponds
+  (above diagonal) to \texttt{Us[0][0]} and (below) to
+  \texttt{Us[1][0]}.
+%
+  The number of levels corresponds to
+  \texttt{N\_TIME}; i.e.\ what is shown here corresponds to
+  \texttt{N\_TIME=2}.  For \texttt{N\_TIME=1} the entries below the
+  diagonals do not exist, while for \texttt{N\_TIME=3}, there would be
+  an additional level for $n-2$-type entries.
+%
+  If the problem is three-dimensional (\texttt{N\_Z>1}), field
+  variables are held in the Fourier-transformed state except during
+  computation of nonlinear terms (where products are computed in
+  physical space). }
+\label{fig.storage}
+\end{figure}
+
+
 
 %============================================================================
 \section{Altering the code}
@@ -1994,7 +2025,7 @@ Testing.  Typically when adding code features you want to be sure that
 you haven't broken existing functionality.  The easy way to check is
 to use the \verb|testregress| script in the \verb|test| directory. It
 will tell you if the code passes or fails standard regression tests
-which excercise most code feauttures.
+which exercise most code features.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
