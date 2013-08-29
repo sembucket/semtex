@@ -60,7 +60,11 @@ static Msys** preSolve  (const Domain*);
 static void   Solve     (Domain*, const int_t, AuxField*, Msys*);
 
 
-void integrate (Domain*      D,
+void integrate (void (*advection) (Domain*, 
+				   AuxField**, 
+				   AuxField**,
+				   vector<real_t>&),
+		Domain*      D,
 		DNSAnalyser* A)
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
@@ -139,7 +143,7 @@ void integrate (Domain*      D,
 
     // -- Compute nonlinear terms from previous velocity field.
 
-    nonlinear (D, Us[0], Uf[0], ff);
+    advection (D, Us[0], Uf[0], ff);
     
     // -- Now update the time.
  
@@ -320,12 +324,12 @@ static Msys** preSolve (const Domain* D)
 
   for (i = 0; i < NCOM; i++)
     M[i] = new Msys
-      (lambda2, beta, base, nmodes, E, D -> b[i],    (itLev<1)?DIRECT:JACPCG);
+      (lambda2, beta, base, nmodes, E, D -> b[i], (itLev == 1) ? JACPCG:DIRECT);
 
   // -- Pressure system.
 
   M[NCOM] = new Msys
-      (0.0,     beta, base, nmodes, E, D -> b[NCOM], (itLev<2)?DIRECT:JACPCG);
+      (0.0,     beta, base, nmodes, E, D -> b[NCOM], DIRECT);
 
   return M;
 }
