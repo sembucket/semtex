@@ -107,10 +107,16 @@ static void strainRate (const Domain* D ,
       (*tp1   = *D -> u[1]) . gradient (0);
       (*Uf[0] += *tp1) *= 0.5;
 
-      (*Uf[1] = *D -> u[1]) . divY(); // -- "Diagonal" term placed into Uf.
-
       (*Us[0] = *D -> u[0]) . gradient (0);
       (*Us[1] = *D -> u[1]) . gradient (1);
+
+      // -- "Diagonal" hoop-stress term v/y placed into Uf.
+
+      (*Uf[1] = *D -> u[1]) . divY();
+
+      // -- Then any on-axis terms are replaced using l'Hopital's rule.
+
+      D -> u[0] -> overwriteForGroup ("axis", Us[1], Uf[1]);
 
     } else if (NDIM == 2 && NCOM == 3) {
 
@@ -181,16 +187,15 @@ static void strainRate (const Domain* D ,
 }
 
 
-static void viscoModel (const Domain* D ,
-			AuxField**    Us,
-			AuxField**    Uf,
+static void viscoModel (const Domain* D  ,
+			AuxField**    Us ,
+			AuxField**    Uf ,
 			AuxField*     NNV)
 // ---------------------------------------------------------------------------
 // On entry the first-level areas of Us & Uf contain the components of
 // the strain-rate tensor S and NNV contains the old values of
-// non-Newtonian viscosity.  On exit, by default NNV contains the
-// Cross model non-Newtonian viscosity field (unless other model is
-// specified).
+// non-Newtonian viscosity.  On exit, by default NNV contains (for
+// example) the Cross model non-Newtonian viscosity field:
 //
 // NNV = (\nu_0 + \nu_\inf (K|S|)^N)/ (1+(K|S|)^N), where
 //
@@ -222,12 +227,21 @@ static void viscoModel (const Domain* D ,
 
   Veclib::zero (nTot32, sum, 1);
 
+#if 0
+  *D -> ua[0] = *Us[0];
+  *D -> ua[1] = *Us[1];
+  *D -> ua[2] = *Uf[0];
+  *D -> ua[3] = *Uf[1];
+  return;
+#endif
+
   if (Geometry::cylindrical()) {
 
     if (NDIM == 2 && NCOM == 2) {
 
       Uf[0] -> transform32 (INVERSE, tmp);
       Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
+
       Blas::scal (nTot32, 2.0, sum, 1);
 
       Uf[1] -> transform32 (INVERSE, tmp);
@@ -236,6 +250,7 @@ static void viscoModel (const Domain* D ,
       Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
       Us[1] -> transform32 (INVERSE, tmp);
       Veclib::vvtvp (nTot32, tmp, 1, tmp, 1, sum, 1, sum, 1);
+
       Blas::scal (nTot32, 2.0, sum, 1);
 
     } else {			// -- Other two cases (2D/3C and 3D/3C).
@@ -278,8 +293,9 @@ static void viscoModel (const Domain* D ,
 
 #if 0 // -- Dump strain rate in pressure for debugging (and return).
   D -> u[NCOM] -> transform32 (FORWARD, sum);
-  //  *D -> u[NCOM] = 1.; // -- Test.
+  // *D -> u[NCOM] = 1.; // -- Test.
 #else
+
   // -- Smooth shear rate.
 
   //  D -> u[0] -> smooth (nZ32, sum);
@@ -355,7 +371,7 @@ static void viscoModel (const Domain* D ,
 
   // -- Smooth non-Newtonian viscosity.
 
-  D -> u[0] -> smooth (nZ32, tmp);
+  //  D -> u[0] -> smooth (nZ32, tmp);
   
   // -- Transform back to Fourier space.
   
