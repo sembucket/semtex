@@ -150,8 +150,8 @@ static void strainRate (const Domain* D ,
 
     for (i = 0; i < DIM; i++)
       for (j = 0; j < DIM; j++) {
-	if (j == i) continue;
-	(*tmp = *D -> u[i]) . gradient (j);
+	if (i == j) continue;
+	(*tmp = *D -> u[j]) . gradient (i);
 	if   (j > i) *Uf[i + j - 1]  = *tmp;
 	else         *Uf[i + j - 1] += *tmp;
       }

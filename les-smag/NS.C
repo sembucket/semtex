@@ -178,7 +178,6 @@ void NavierStokes (Domain*      D,
 
       EV -> projStab (Femlib::value("PS_ALPHA"), *Pressure);
 
-
     // -- Unconstrained forcing substep.
 
     nonLinear (D, Us[0], Uf[0], EV, ff);
