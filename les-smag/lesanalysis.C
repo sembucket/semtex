@@ -69,7 +69,7 @@ void LESAnalyser::analyse (AuxField** work0,
     }
 
     sprintf (s,
-	     "%#6d %#10.6g "
+	     "%6d %#10.6g "
 	     "%#10.6g %#10.6g %#10.6g "
 	     "%#10.6g %#10.6g %#10.6g "
 	     "%#10.6g %#10.6g %#10.6g",

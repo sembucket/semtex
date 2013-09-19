@@ -15,6 +15,17 @@
 //
 // The splitting technique has been discussed by
 //
+// @Article{lega88,
+// author = 	 {D. C. Leslie and S. Gao},
+// title = 	 {The Stability of Spectral Schemes for the 
+//                 Large Eddy Simulation of Channel Flows},
+// journal = 	 IJNMF,
+// year = 	 1988,
+// volume =	 8,
+// number =	 9,
+// pages =	 {1107--1116}
+// }
+//
 //  @InCollection{koy93,
 //  author = 	 "George E. Karnidakis and Steven A. Orszag and Victor Yakhot",
 //  title = 	 "Renormalization Group Theory Simulation of Transitional
@@ -32,8 +43,8 @@
 // kinematic viscosity equal to twice the input value and formulate
 // the SGS stresses as those supplied by the product of the strain
 // rate tensor with a spatially-constant NEGATIVE viscosity -KINVIS:
-// the results should be the same as for a DNS with total viscosity
-// KINVIS.
+// the results should be "the same" as for a DNS with total viscosity
+// KINVIS, provided the flow is well-resolved.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
@@ -161,6 +172,13 @@ void NavierStokes (Domain*      D,
 
     eddyViscosity (D, Us[0], Uf[0], EV);
 
+    if (Femlib::value ("PS_ALPHA") > EPSSP)
+
+      // -- Filter/stabilise viscosity field.
+
+      EV -> projStab (Femlib::value("PS_ALPHA"), *Pressure);
+
+
     // -- Unconstrained forcing substep.
 
     nonLinear (D, Us[0], Uf[0], EV, ff);
@@ -259,13 +277,12 @@ static void nonLinear (Domain*         D ,
 //
 // On entry, D contains the old velocity (and pressure) fields, the
 // lowest levels of Us & Uf contain the components of the old
-// strain-rate tensor and vV contains the spatially-varying viscosity.
-// On exit, the velocity field storage areas of D are free, the zeroth
-// level of Us contains the old velocities and the zeroth level of Uf
-// contains the most recent explicit forcing terms.  Velocity field
-// data areas of D and first level of Us are swapped, then the next
-// stage of nonlinear forcing terms N(u) - a are computed from
-// velocity fields and left in the first level of Uf.
+// strain-rate tensor and EV contains the spatially-varying viscosity.
+// On exit, the velocity field storage areas of D are free, Us
+// contains the old velocities and Uf contains the most recent
+// explicit forcing terms.  Velocity field data areas of D and Us are
+// swapped, then the next stage of nonlinear forcing terms N(u) - a
+// are computed from velocity fields and left in Uf.
 //
 // Nonlinear terms N(u) are computed in skew-symmetric form (Zang 1991)
 //                 ~ ~

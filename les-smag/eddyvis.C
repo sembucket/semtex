@@ -81,6 +81,8 @@ static void strainRate (const Domain* D ,
 
     AuxField* tp1 = Us[0];
     AuxField* tp2 = Us[1];
+
+#if 0				// -- Original version.
   
     for (i = 0; i < DIM; i++)
       for (j = 0; j < DIM; j++) {
@@ -105,6 +107,40 @@ static void strainRate (const Domain* D ,
       (*Us[i] = *D -> u[i]) . gradient (i);
       if (i == 2) (*Us[2] += *D -> u[1]) . divY();
     }
+
+#else  // -- With l'Hopital's rule on axis.
+
+    for (i = 0; i < DIM; i++)
+      for (j = 0; j < DIM; j++) {
+	if (j == i) continue;
+	if (i == 2 && j == 1) {
+	  (*tp1 = *D -> u[2]) . gradient (1);
+	  (*tp2 = *D -> u[2]) . divY();
+	  D -> u[0] -> overwriteForGroup ("axis", tp1, tp2);
+	  *tp1 -= *tp2;
+	} else {
+	  (*tp1 = *D -> u[i]) . gradient (j);
+	  if (j == 2) tp1 -> divY();
+	}
+	if   (j > i) *Uf[i + j - 1]  = *tp1;
+	else         *Uf[i + j - 1] += *tp1;
+      }
+  
+    for (i = 0; i < DIM; i++) *Uf[i] *= 0.5;
+  
+    // -- Diagonal.
+
+    for (i = 0; i < DIM; i++) {
+      (*Us[i] = *D -> u[i]) . gradient (i);
+      if (i == 2) {
+	Us[2] -> divY();
+	(*tp1 = *D -> u[1]) . divY();
+	D -> u[0] -> overwriteForGroup ("axis", Us[1], tp1);
+	*Us[2] += *tp1;
+      }
+    }
+
+#endif
 
   } else {			// -- Cartesian geometry.
 
@@ -238,7 +274,7 @@ static real_t RNG_quartic (const real_t x0,
 			   const real_t a1,
 			   const real_t a0)
 // ---------------------------------------------------------------------------
-// Solve quartic equation x^4 + a1 x + a0 = 0 by Newton-Raphson.
+// Solve quartic equation x^4 + a1 x + a0 = 0 by Newton--Raphson.
 // Input value x0 is an initial guess for the ratio of the turbulent and
 // molecular viscosities.  Minimum returned value for x is 1.0.
 // ---------------------------------------------------------------------------

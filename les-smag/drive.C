@@ -1,12 +1,15 @@
 //////////////////////////////////////////////////////////////////////////////
-// drive.C: control spectral element mixing-length LES
-// for incompressible flows.
+// drive.C: control spectral element mixing-length LES for
+// incompressible flows.
+
+// This version has the full-spectral cylindrical coordinate update of
+// Blackburn & Sherwin 2004.
 //
 // Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 //
 // USAGE:
 // -----
-// les [options] session
+// les-smag [options] session
 //   options:
 //   -h       ... print usage prompt
 //   -i[i]    ... use iterative solver for viscous [and pressure] steps
@@ -16,18 +19,18 @@
 // AUTHOR:
 // ------
 // Hugh Blackburn
-// CSIRO
-// P.O. Box 56
-// Highett, Vic 3190
+// Department of Mechanical & Aerospace Engineering
+// Monash University
+// Vic 3800
 // Australia
-// hugh.blackburn@csiro.au
+// hugh.blackburn@eng.monash.edu.au
 //////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
 
 #include <les.h>
 
-static char prog[] = "les";
+static char prog[] = "les-smag";
 static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, BoundarySys*&, Domain*&);
@@ -87,6 +90,10 @@ static void getargs (int    argc   ,
     "  -i[i]     ... use iterative solver for viscous [& pressure] steps\n"
     "  -v[v...]  ... increase verbosity level\n"
     "  -chk      ... checkpoint field dumps\n";
+
+  // -- Pre-install any default values.
+  
+  Femlib::value  ("PS_ALPHA", 0.0);
  
   while (--argc && **++argv == '-')
     switch (*++argv[0]) {
