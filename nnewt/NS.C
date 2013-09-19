@@ -134,6 +134,13 @@ void NavierStokes (Domain*        D,
     // -- Compute spatially-varying kinematic eddy viscosity.
 
     viscosity (D, Us[0], Uf[0], NNV);
+
+    if (Femlib::value ("PS_ALPHA") > EPSSP)
+
+      // -- Filter/stabilise viscosity field.
+
+      NNV -> projStab (Femlib::value("PS_ALPHA"), *Pressure);
+
 #if 1
     // -- Unconstrained forcing substep.
 
@@ -186,6 +193,13 @@ void NavierStokes (Domain*        D,
     // -- Process results of this step.
 #endif
     A -> analyse (Us[0], Uf[0], NNV);
+
+    if (Femlib::value ("PS_ALPHA") > EPSSP) 
+
+      // -- Filter velocity fields.
+
+      for (i = 0; i < NCOM; i++)
+	D -> u[i] -> projStab (Femlib::value("PS_ALPHA"), *Us[0][0]);
   }
 }
 

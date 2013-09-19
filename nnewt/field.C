@@ -1248,7 +1248,6 @@ void Field::overwriteForGroup (const char*     name,
       if (BC[i] -> inGroup (name)) {
 	offset = BC[i] -> dOff();
 	skip   = BC[i] -> dSkip();
-//	cout << i << ": "<< name << ", " << offset << ", "  << skip << endl;
 	Veclib::copy (np, a + offset, skip, b + offset, skip);
       }
   }  

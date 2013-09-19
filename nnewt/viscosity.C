@@ -110,7 +110,7 @@ static void strainRate (const Domain* D ,
       (*Us[0] = *D -> u[0]) . gradient (0);
       (*Us[1] = *D -> u[1]) . gradient (1);
 
-      // -- "Diagonal" hoop-stress term v/y placed into Uf.
+      // -- "Diagonal" hoop-stress term v/y placed into Uf[1].
 
       (*Uf[1] = *D -> u[1]) . divY();
 
@@ -128,11 +128,15 @@ static void strainRate (const Domain* D ,
 
       (*Uf[2] = *D -> u[2]) . gradient (1);
       (*tp1 = *D -> u[2]) . divY ();
-      (*Uf[2] -= *tp1) *= 0.5;	// -- Note Us gets an "off-diagonal" term.
+      D -> u[0] -> overwriteForGroup ("axis", Uf[2], tp1);
+      (*Uf[2] -= *tp1) *= 0.5;	
+
+      // -- Note Us gets an "off-diagonal" term.
 
       (*Us[0] = *D -> u[0]) . gradient (0);
       (*Us[1] = *D -> u[1]) . gradient (1);
       (*Us[2] = *D -> u[1]) . divY ();
+      D -> u[0] -> overwriteForGroup ("axis", Us[1], Us[2]);
 
     } else {
       
@@ -144,6 +148,7 @@ static void strainRate (const Domain* D ,
 	  if (i == 2 && j == 1) {
 	    (*tp1 = *D -> u[2]) . gradient (1);
 	    (*tp2 = *D -> u[2]) . divY();
+	    D -> u[0] -> overwriteForGroup ("axis", tp1, tp2);
 	    *tp1 -= *tp2;
 	  } else {
 	    (*tp1 = *D -> u[i]) . gradient (j);
@@ -159,7 +164,12 @@ static void strainRate (const Domain* D ,
 
       for (i = 0; i < NDIM; i++) {
 	(*Us[i] = *D -> u[i]) . gradient (i);
-	if (i == 2) (*Us[2] += *D -> u[1]) . divY();
+	if (i == 2) {
+	  Us[2] -> divY();
+	  (*tp1 = *D -> u[1]) . divY();
+	  D -> u[0] -> overwriteForGroup ("axis", Us[1], tp1);
+	  *Us[2] += *tp1;
+	}
       }
     }
 
@@ -227,7 +237,8 @@ static void viscoModel (const Domain* D  ,
 
   Veclib::zero (nTot32, sum, 1);
 
-#if 0
+#if 0 // -- Dump 2x2 strain rate tensor components for examination.
+
   *D -> ua[0] = *Us[0];
   *D -> ua[1] = *Us[1];
   *D -> ua[2] = *Uf[0];
@@ -298,7 +309,7 @@ static void viscoModel (const Domain* D  ,
 
   // -- Smooth shear rate.
 
-  //  D -> u[0] -> smooth (nZ32, sum);
+  D -> u[0] -> smooth (nZ32, sum);
   
   // -- At this point we have |S| in physical space (in sum).
 
@@ -329,7 +340,7 @@ static void viscoModel (const Domain* D  ,
     Veclib::sdiv   (nTot32, Tau_Y, sum, 1, sum, 1);
     Veclib::vadd   (nTot32, sum, 1, tmp, 1, tmp, 1);
 
-  } else if (Femlib::value ("CAR_YAS")) {
+  } else if (Femlib::ivalue ("CAR_YAS")) {
 
     // -- Carreau-Yasuda model - visc = nu_inf + (nu_0-nu_inf)/(1+(K*S)^N)^A.
 

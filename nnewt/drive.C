@@ -98,7 +98,16 @@ static void getargs (int    argc   ,
     "  -i[i]     ... use iterative solver for viscous [& pressure] steps\n"
     "  -v[v...]  ... increase verbosity level\n"
     "  -chk      ... checkpoint field dumps\n";
- 
+
+  // -- Install nnewt default flags.
+
+  Femlib::ivalue ("PowerLaw", 1);
+  Femlib::ivalue ("HB",       0);
+  Femlib::ivalue ("CAR_YAS",  0);
+  Femlib::ivalue ("Cross",    0);
+  
+  Femlib::value  ("PS_ALPHA", 0.0);
+
   while (--argc && **++argv == '-')
     switch (*++argv[0]) {
     case 'h':
