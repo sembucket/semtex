@@ -35,6 +35,8 @@ public:
   void selfExtractBoundaries ();
   void bTransform            (const int_t);
 
+  void overwriteForGroup      (const char*, const AuxField*, AuxField*);
+
   static real_t scalarFlux    (const Field*);
   static Vector normTraction  (const Field*);
   static Vector tangTraction  (const Field*, const Field*, const Field* = 0);

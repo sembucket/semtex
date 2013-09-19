@@ -1267,4 +1267,32 @@ real_t Field::modeConstant (const char   name,
 
   return -1.0;			// -- Never happen.
 }
+
    
+void Field::overwriteForGroup (const char*     name,
+			       const AuxField* src ,
+			       AuxField*       tgt )
+// ---------------------------------------------------------------------------
+// On a named boundary group (e.g. "axis"), insert field data from src
+// into field data of tgt.  Could use this for inserting values
+// obtained in src via l'Hopital's rule into those in tgt (e.g. on
+// axis!).
+// ---------------------------------------------------------------------------
+{
+  const int_t              nz = Geometry::nZProc();
+  const int_t              np = Geometry::nP();
+  const vector<Boundary*>& BC = _bsys -> BCs (0); // -- Mode-invariant.
+  real_t                   *a, *b;
+  int_t                    i, k, offset, skip;
+
+  for (k = 0; k < nz; k++) {
+    a = src -> _plane [k];
+    b = tgt -> _plane [k];
+    for (i = 0; i < _nbound; i++)
+      if (BC[i] -> inGroup (name)) {
+	offset = BC[i] -> dOff();
+	skip   = BC[i] -> dSkip();
+	Veclib::copy (np, a + offset, skip, b + offset, skip);
+      }
+  }  
+}

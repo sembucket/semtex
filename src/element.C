@@ -868,7 +868,11 @@ void Element::divY (real_t* src) const
 
   for (i = 0; i < loopcnt; i++) {
     rad     = y[i];
+#if 0
+    rinv    = (rad > EPSDP) ? 1.0 / rad : 1.0;
+#else
     rinv    = (rad > EPSDP) ? 1.0 / rad : 0.0;
+#endif
     src[i] *= rinv;
   }
 }
