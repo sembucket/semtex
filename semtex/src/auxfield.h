@@ -86,6 +86,8 @@ public:
   AuxField& reverse     ();
   AuxField& zeroNyquist ();
 
+  AuxField& projStab    (const real_t, AuxField&);
+
   static void swapData  (AuxField*, AuxField*);
   static void couple    (AuxField*, AuxField*, const int_t);
 

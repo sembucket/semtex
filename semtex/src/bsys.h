@@ -44,8 +44,6 @@ private:
   bool               _mixed     ;  // Flags presence of mixed BC type.
   vector<Boundary*>* _boundary  ;  // Boundary*'s  for modes 0, 1, 2.
   NumberSys**        _number    ;  // NumberSys*'s for modes 0, 1, 2.
-
-  //  void buildbcs (const BCmgr*, const vector<Element*>&);
 };
 
 #endif

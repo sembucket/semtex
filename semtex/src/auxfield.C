@@ -1588,3 +1588,51 @@ AuxField& AuxField::zeroNaN()
 
   return *this;
 }
+
+
+AuxField& AuxField::projStab (const real_t alpha,
+			      AuxField&    work )
+// ---------------------------------------------------------------------------
+// Carry out a "projection stabilisation" operation, as described by
+// Fischer & Mullen (2001, C R Acad Sci Paris, Ser I, V332:265).  This
+// replaces the current data area by a weighted sum of itself and a
+// projection onto a one-order lower GLL Lagrange interpolant.
+//
+// u <-- (1-alpha) u + alpha u_(-1).
+//
+// Typically 0 <= alpha <= 1 (Fischer & Mullen use 0.05--0.3), but
+// this is not enforced.
+//
+// Work is overwritten during processing.
+// ---------------------------------------------------------------------------
+{
+  const int_t nel  = Geometry::nElmt();
+  const int_t np   = Geometry::nP();
+  const int_t nm   = np - 1;
+  const int_t npnp = np * np;
+  const int_t nP   = Geometry::planeSize();
+  int_t       k;
+  real_t         *A, *B, *scr;
+  const real_t   *PF, *PT, *IB, *IT;
+  static vector<real_t> tmp (nP + 2 * npnp);
+  
+  scr = &tmp[0]; A = scr + nP; B = A + npnp;
+
+#if 0
+  Femlib::mesh (GLL, GLL, np, nm, 0, &PF, &PT, 0, 0);
+  Femlib::mesh (GLL, GLL, nm, np, 0, &IB, &IT, 0, 0);
+#else
+  Femlib::projection (&PF, &PT, np, GLJ, 0.0, 0.0, nm, GLJ, 0.0, 0.0);
+  Femlib::projection (&IB, &IT, nm, GLJ, 0.0, 0.0, np, GLJ, 0.0, 0.0);
+#endif
+  Blas::mxm    (IB, np, PF, nm, A, np);
+  Blas::mxm    (PT, np, IT, nm, B, np);
+
+  for (k = 0; k < _nz; k++)
+    Femlib::tpr2d (_plane[k], work._plane[k], scr, A, B, np, np, nel);
+  
+  Blas::axpy (_size, alpha/(1.0-alpha), work._data, 1, _data, 1);
+  Blas::scal (_size, (1.0-alpha), _data, 1);
+
+  return *this;
+}
