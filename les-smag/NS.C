@@ -241,6 +241,14 @@ void NavierStokes (Domain*      D,
     A -> analyse (Us[0], Uf[0]);
   }
 
+
+    if (Femlib::value ("PS_ALPHA") > EPSSP) 
+
+      // -- Filter velocity fields.
+
+      for (i = 0; i < NCOM; i++)
+	D -> u[i] -> projStab (Femlib::value("PS_ALPHA"), *Us[0][0]);
+
   // -- Dump ratio eddy/molecular viscosity to file visco.fld.
 
   ofstream          evfl;
