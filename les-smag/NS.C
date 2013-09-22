@@ -182,6 +182,15 @@ void NavierStokes (Domain*      D,
 
     nonLinear (D, Us[0], Uf[0], EV, ff);
 
+#if 1
+    if (Femlib::value ("PS_ALPHA") > EPSSP) 
+
+      // -- Filter velocity fields.
+
+      for (i = 0; i < NCOM; i++)
+	Uf[0][i] -> projStab (Femlib::value("PS_ALPHA"), *Pressure);
+#endif
+
     // -- Apply masking.
 
     if (mask) for (i = 0; i < NCOM; i++) *Uf[0][i] *= *mask;
@@ -241,14 +250,14 @@ void NavierStokes (Domain*      D,
     A -> analyse (Us[0], Uf[0]);
   }
 
-
+#if 0
     if (Femlib::value ("PS_ALPHA") > EPSSP) 
 
       // -- Filter velocity fields.
 
       for (i = 0; i < NCOM; i++)
 	D -> u[i] -> projStab (Femlib::value("PS_ALPHA"), *Us[0][0]);
-
+#endif
   // -- Dump ratio eddy/molecular viscosity to file visco.fld.
 
   ofstream          evfl;
