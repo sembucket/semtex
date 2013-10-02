@@ -158,6 +158,15 @@ interp: interp.o $(INTOBJ)
 	$(CXX) $(CPPFLAGS) -o $@ $@.o $(INTOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
+# Build modep, field dump modal projection.
+#
+MDPOBJ = feml.o mesh.o element.o family.o auxfield.o geometry.o
+$(MDPOBJ): $(SEMHDR)
+
+modep: modep.o $(INTOBJ)
+	$(CXX) $(CPPFLAGS) -o $@ $@.o $(INTOBJ) $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
 # Build integral, field dump scalar integral evaluator.
 #
 integral: integral.o  $(INTOBJ)
