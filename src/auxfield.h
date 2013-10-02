@@ -40,6 +40,7 @@ public:
   AuxField& operator  = (const char*);
   AuxField& axpy        (const real_t, const AuxField&);
 
+  AuxField& extractMode  (const AuxField&, const int_t);
   AuxField& innerProduct (const vector<AuxField*>&, const vector<AuxField*>&);
   AuxField& times        (const AuxField&, const AuxField&);
   AuxField& timesPlus    (const AuxField&, const AuxField&);

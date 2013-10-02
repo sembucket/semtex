@@ -15,7 +15,7 @@ Available vector operations complement the BLAS.
 Not all the VECLIB routines are implemented: for example those which
 are already in the BLAS are omitted and there are some additions,
 notably those for memory management.  (The BLAS are given a C-compatible
-call interface by macros in alplib.h.)
+call interface by macros in cveclib.h.)
 
 NOTES:
 ------
@@ -55,7 +55,6 @@ MEMORY MANAGEMENT:
 
 MATHEMATICAL PRIMITIVES:
 %		swap
-%		copy
                 copy................................... x   x           x
 		fill................................... x   x           x
 		neg.................................... x   x           x

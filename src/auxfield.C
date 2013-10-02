@@ -220,6 +220,29 @@ AuxField& AuxField::operator = (const char* function)
 }
 
 
+AuxField& AuxField::extractMode (const AuxField& src ,
+				 const int_t     mode)
+// ---------------------------------------------------------------------------
+// Place nominated Fourier mode of src into *this. 
+// ---------------------------------------------------------------------------
+{
+  const char  routine[] = "AuxField::extractMode";
+  const int_t kb        = Geometry::basePlane();
+  const int_t nP        = Geometry::planeSize();
+
+  if (_size != src._size || _nz != src._nz)
+    message (routine, "non-congruent inputs", ERROR);
+  if (mode > Geometry::nModeProc())
+    message (routine, "non enough Fourier modes", ERROR);
+
+  Veclib::copy (nP, src._plane[2*mode], 1, _plane[0], 1);
+  if (src._nz > 1)
+    Veclib::copy (nP, src._plane[2*mode+1], 1, _plane[1], 1);
+
+  return *this;
+}
+
+
 AuxField& AuxField::innerProduct (const vector <AuxField*>& a,
                                   const vector <AuxField*>& b)
 // ---------------------------------------------------------------------------
