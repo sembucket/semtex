@@ -230,7 +230,8 @@ AuxField& AuxField::extractMode (const AuxField& src ,
   const int_t kb        = Geometry::basePlane();
   const int_t nP        = Geometry::planeSize();
 
-  if (_size != src._size || _nz != src._nz)
+
+  if ((src._size / (src._nz / _nz)) != _size)
     message (routine, "non-congruent inputs", ERROR);
   if (mode > Geometry::nModeProc())
     message (routine, "non enough Fourier modes", ERROR);
