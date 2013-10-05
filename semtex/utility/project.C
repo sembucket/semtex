@@ -68,7 +68,7 @@ static int_t _index (const char* s, char c)
 
 class Field2DF
 // ============================================================================
-// Canonical field class, each np X np element is defined on [-1,1] X [-1, 1].
+// Canonical field class, each nr * ns element is defined on [-1,1] X [-1, 1].
 // Data are arranged element-ordered in 2D planes to create a 3D scalar field.
 // ============================================================================
 {
@@ -76,7 +76,7 @@ friend istream& operator >> (istream&, Field2DF&);
 friend ostream& operator << (ostream&, Field2DF&);
 
 public:
-  Field2DF  (const int_t nP, const int_t nZ, const int_t nEl,
+  Field2DF  (const int_t nr, const int_t ns, const int_t nZ, const int_t nEl,
 	     const char Name='\0');
   ~Field2DF () { delete data; delete plane; }
 
@@ -90,30 +90,32 @@ public:
   
 private:
   const char  name;
-  const int_t np, nz, nel, np2;
+  const int_t nr, ns, nz, nel, nrns;
   int_t       nplane, ntot;
   real_t*     data;
   real_t**    plane;
 };
 
 
-Field2DF::Field2DF (const int_t nP  ,
+Field2DF::Field2DF (const int_t nR  ,
+		    const int_t nS  ,
 		    const int_t nZ  ,
 		    const int_t nEl ,
 		    const char  Name) :
 
 		    name       (Name),
-                    np         (nP  ),
+                    nr         (nR  ),
+                    ns         (nS  ),
 		    nz         (nZ  ),
 		    nel        (nEl ),
-		    np2        (np * np)
+		    nrns       (nr * ns)
 // ---------------------------------------------------------------------------
 // Field2DF constructor. 
 // ---------------------------------------------------------------------------
 {
   register int_t i;
   
-  nplane = np * np * nel;
+  nplane = nrns * nel;
   if (nplane & 1) nplane++;
   ntot   = nplane * nz;
 
@@ -149,7 +151,7 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
   if (rhs.nel != nel)
     message ("Field2DF::operator =", "fields can't conform", ERROR);
 
-  if (rhs.np == np && rhs.nz == nz)
+  if (rhs.nr == nr && rhs.nz == nz)
     Veclib::copy (ntot, rhs.data, 1, data, 1);
 
   else {			// -- Perform projection.
@@ -158,25 +160,25 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
     register real_t *LHS, *RHS;
     const real_t    *IN,  *IT;
     const int_t     nzm = min (rhs.nz, nz);
-    vector<real_t>  work (rhs.np * np);
+    vector<real_t>  work (rhs.nr * nr);
     real_t*         tmp = &work[0];
 
     if      (uniform == +1)
-      Femlib::projection (&IN, &IT, rhs.np, GLJ, 0.0, 0.0, np, TRZ, 0.0, 0.0);
+      Femlib::projection (&IN, &IT, rhs.nr, GLJ, 0.0, 0.0, nr, TRZ, 0.0, 0.0);
     else if (uniform == -1) 
-      Femlib::projection (&IN, &IT, rhs.np, TRZ, 0.0, 0.0, np, GLJ, 0.0, 0.0);
+      Femlib::projection (&IN, &IT, rhs.nr, TRZ, 0.0, 0.0, nr, GLJ, 0.0, 0.0);
     else
-      Femlib::projection (&IN, &IT, rhs.np, GLJ, 0.0, 0.0, np, GLJ, 0.0, 0.0);
+      Femlib::projection (&IN, &IT, rhs.nr, GLJ, 0.0, 0.0, nr, GLJ, 0.0, 0.0);
     for (k = 0; k < nzm; k++) {	// -- 2D planar projections.
       LHS = plane[k];
       RHS = rhs.plane[k];
 
-      if (rhs.np == np)
+      if (rhs.nr == nr)
 	Veclib::copy (nplane, RHS, 1, LHS, 1);
       else
-	for (i = 0; i < nel; i++, LHS += np2, RHS += rhs.np2) {
-	  Blas::mxm (IN, np, RHS, rhs.np, tmp, rhs.np);
-	  Blas::mxm (tmp, np, IT, rhs.np, LHS,     np);
+	for (i = 0; i < nel; i++, LHS += nrns, RHS += rhs.nrns) {
+	  Blas::mxm (IN, nr, RHS, rhs.nr, tmp, rhs.nr);
+	  Blas::mxm (tmp, nr, IT, rhs.nr, LHS,     nr);
 	}
     }
 
@@ -220,7 +222,7 @@ ostream& operator << (ostream&  strm,
   int_t i;
   
   for (i = 0; i < F.nz; i++)
-    strm.write ((char*) F.plane[i], F.np * F.np * F.nel * sizeof (real_t));
+    strm.write ((char*) F.plane[i], F.nrns * F.nel * sizeof (real_t));
 
   return strm;
 }
@@ -235,7 +237,7 @@ istream& operator >> (istream&  strm,
   int_t i;
   
   for (i = 0; i < F.nz; i++)
-    strm.read ((char*) F.plane[i], F.np * F.np * F.nel * sizeof (real_t));
+    strm.read ((char*) F.plane[i], F.nrns * F.nel * sizeof (real_t));
 
   return strm;
 }
