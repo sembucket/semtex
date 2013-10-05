@@ -11,14 +11,14 @@ essential: sem compare enumerate
 
 all: essential plain preplot nosrc meshpr calc addfield sem2nek \
      convert project interp probe rectmesh transform wallmesh   \
-     phase lowpass eneq integral traction stressdiv mapmesh
+     phase lowpass eneq integral traction stressdiv mapmesh modep
 
 distclean:
 	make clean
 	rm -f addfield avgdump calc chop compare convert eneq enumerate \
         integral interp lowpass meshpr moden noiz phase preplot probe   \
         probeline probeplane project rectmesh repeatxy repeatz rstress  \
-        sem2nek sem2tec slit stressdiv transform wallmesh xplane
+        sem2nek sem2tec slit stressdiv transform wallmesh xplane modep
 
 # ----------------------------------------------------------------------------
 # Standard rules and definitions.
