@@ -116,13 +116,13 @@ Field2DF::Field2DF (const int_t nR  ,
   register int_t i;
   
   nplane = nrns * nel;
-  if (nplane & 1) nplane++;
+  if (nplane > 1 && nplane & 1) nplane++;
   ntot   = nplane * nz;
 
   data  = new real_t  [ntot];
   plane = new real_t* [nz];
 
-  for (i = 0; i < nz; i++) plane [i] = data + i * nplane;
+  for (i = 0; i < nz; i++) plane[i] = data + i * nplane;
   Veclib::zero (ntot, data, 1);
 }
 
@@ -132,7 +132,7 @@ Field2DF& Field2DF::transform (const int_t sign)
 // Carry out Fourier transformation in z direction.
 // ---------------------------------------------------------------------------
 {
-  if (nz  > 2) Femlib::DFTr (data, nz, nplane, sign);
+  if (nz > 2) Femlib::DFTr (data, nz, nplane, sign);
 
   return *this;
 }
@@ -151,7 +151,7 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
   if (rhs.nel != nel)
     message ("Field2DF::operator =", "fields can't conform", ERROR);
 
-  if (rhs.nr == nr && rhs.nz == nz)
+  if (rhs.nr == nr && rhs.ns == ns && rhs.nz == nz) // -- No project, just copy.
     Veclib::copy (ntot, rhs.data, 1, data, 1);
 
   else {			// -- Perform projection.
@@ -169,11 +169,12 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
       Femlib::projection (&IN, &IT, rhs.nr, TRZ, 0.0, 0.0, nr, GLJ, 0.0, 0.0);
     else
       Femlib::projection (&IN, &IT, rhs.nr, GLJ, 0.0, 0.0, nr, GLJ, 0.0, 0.0);
+
     for (k = 0; k < nzm; k++) {	// -- 2D planar projections.
       LHS = plane[k];
       RHS = rhs.plane[k];
 
-      if (rhs.nr == nr)
+      if (rhs.nr == nr && rhs.ns == ns)
 	Veclib::copy (nplane, RHS, 1, LHS, 1);
       else
 	for (i = 0; i < nel; i++, LHS += nrns, RHS += rhs.nrns) {
@@ -222,7 +223,7 @@ ostream& operator << (ostream&  strm,
   int_t i;
   
   for (i = 0; i < F.nz; i++)
-    strm.write ((char*) F.plane[i], F.nrns * F.nel * sizeof (real_t));
+    strm.write ((char*) F.plane[i], F.nplane * sizeof (real_t));
 
   return strm;
 }
@@ -237,7 +238,7 @@ istream& operator >> (istream&  strm,
   int_t i;
   
   for (i = 0; i < F.nz; i++)
-    strm.read ((char*) F.plane[i], F.nrns * F.nel * sizeof (real_t));
+    strm.read ((char*) F.plane[i], F.nplane * sizeof (real_t));
 
   return strm;
 }
@@ -246,7 +247,7 @@ istream& operator >> (istream&  strm,
 static char prog[] = "project";
 static void getargs  (int, char**, int_t&, int_t&, int_t&, istream*&);
 static bool getDump  (istream&, ostream&, vector<Field2DF*>&,
-		      int_t&, int_t&, int_t&, int_t&, int_t&, char*);
+		      int_t&, int_t&, int_t&, int_t&, int_t&, int_t&, char*);
 static bool doSwap   (const char*);
 
 
@@ -258,14 +259,21 @@ int main (int    argc,
 {
   char              fields[StrMax];
   int_t             i, j, nEl, fInc;
-  int_t             nPnew = 0, nZnew = 0, keepW = 0;
+  int_t             nRnew = 0, nSnew = 0, nZnew = 0, keepW = 0;
   istream*          input;
   vector<Field2DF*> Uold, Unew;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, nPnew, nZnew, keepW, input);
+
+  getargs (argc, argv, nRnew, nZnew, keepW, input);
+
+  // -- If a 2D projection is requested, enforce equal order in each direction.
+  //    Otherwise, elemental structure (perhaps non-square) is left unchanged.
+  //    This allows z-projection of non-square elements.
+
+  nSnew = nRnew;
   
-  while (getDump (*input, cout, Uold, nPnew, nZnew, nEl, keepW, fInc, fields)){
+  while (getDump (*input,cout,Uold,nRnew,nSnew,nZnew,nEl,keepW,fInc,fields)) {
 
     Unew.resize (Uold.size() + fInc);
 
@@ -273,7 +281,7 @@ int main (int    argc,
 
     case 0:			// -- Same number of fields out as in.
       for (i = 0; i < Uold.size(); i++) {
-	Unew[i] = new Field2DF (nPnew, nZnew, nEl, Uold[i] -> getName());
+	Unew[i] = new Field2DF (nRnew, nSnew, nZnew, nEl, Uold[i] -> getName());
        *Unew[i] = *Uold[i];
       }
       break;
@@ -281,18 +289,18 @@ int main (int    argc,
     case 1:			// -- Add a new blank field called 'w'.
       for (i = 0; i < Uold.size(); i++) {
 	j = _index (fields, Uold[i] -> getName());
-	 Unew[j] = new Field2DF (nPnew, nZnew, nEl, Uold[i] -> getName());
+	Unew[j] = new Field2DF (nRnew, nSnew, nZnew, nEl, Uold[i] -> getName());
 	*Unew[j] = *Uold[i];
       }
       j = _index (fields, 'w');
-       Unew[j] = new Field2DF (nPnew, nZnew, nEl, 'w');
+      Unew[j] = new Field2DF (nRnew, nSnew, nZnew, nEl, 'w');
       *Unew[j] = 0.0;
       break;
 
     case -1:			// -- Delete field called 'w'.
       for (j = 0, i = 0; i < Uold.size(); i++) {
 	if (Uold[i] -> getName() == 'w') continue;
-	 Unew[j] = new Field2DF (nPnew, nZnew, nEl, Uold[i] -> getName());
+	Unew[j] = new Field2DF (nRnew, nSnew, nZnew, nEl, Uold[i] -> getName());
 	*Unew[j] = *Uold[i];
 	j++;
       }
@@ -316,9 +324,9 @@ int main (int    argc,
 
 static void getargs (int       argc ,
 		     char**    argv ,
-		     int_t&      np   ,
-		     int_t&      nz   ,
-		     int_t&      keepW,
+		     int_t&    np   ,
+		     int_t&    nz   ,
+		     int_t&    keepW,
 		     istream*& input)
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.
@@ -340,20 +348,12 @@ static void getargs (int       argc ,
       exit (EXIT_SUCCESS);
       break;
     case 'n':
-      if (*++argv[0])
-	np = atoi (*argv);
-      else {
-	--argc;
-	np = atoi (*++argv);
-      }
+      if (*++argv[0]) np = atoi (*argv);
+      else { --argc;  np = atoi (*++argv); }
       break;
     case 'z':
-      if (*++argv[0])
-	nz = atoi (*argv);
-      else {
-	--argc;
-	nz = atoi (*++argv);
-      }
+      if (*++argv[0]) nz = atoi (*argv);
+      else { --argc; nz = atoi (*++argv); }
       break;
     case 'u':
       uniform =  1;
@@ -399,7 +399,8 @@ static bool doSwap (const char* ffmt)
 static bool getDump (istream&           ifile ,
 		     ostream&           ofile ,
 		     vector<Field2DF*>& u     ,
-		     int_t&             npnew ,
+		     int_t&             nrnew ,
+		     int_t&             nsnew ,
 		     int_t&             nznew ,
 		     int_t&             nel   ,
 		     int_t&             keepW ,
@@ -424,7 +425,7 @@ static bool getDump (istream&           ifile ,
     "%-25s "    "Format\n"
   };
   char  buf[StrMax], fmt[StrMax], oldfields[StrMax];
-  int_t i, j, swab, nf, np, nz;
+  int_t i, j, swab, nf, nr, ns, nz;
 
   if (ifile.getline(buf, StrMax).eof()) return 0;
   
@@ -435,13 +436,13 @@ static bool getDump (istream&           ifile ,
 
   // -- I/O Numerical description of field sizes.
 
-  ifile >> np >> nz >> nz >> nel;
+  ifile >> nr >> ns >> nz >> nel;
   ifile.getline (buf, StrMax);
   
-  if (!npnew) npnew = np;
+  if (!nrnew) { nrnew = nr; nsnew = ns; }
   if (!nznew) nznew = nz;
 
-  sprintf (fmt, "%1d %1d %1d %1d", npnew, npnew, nznew, nel);
+  sprintf (fmt, "%1d %1d %1d %1d", nrnew, nsnew, nznew, nel);
   sprintf (buf, hdr_fmt[2], fmt);
   cout << buf;
 
@@ -458,7 +459,8 @@ static bool getDump (istream&           ifile ,
 
   ifile >> oldfields;
   nf = strlen (oldfields);
-  if (finc == 1 && strchr (oldfields, 'w')) finc = 0;
+  if (finc == +1 &&  strchr (oldfields, 'w')) finc = 0;
+  if (finc == -1 && !strchr (oldfields, 'w')) finc = 0;
   for (j = 0, i = 0; i < nf; i++) {
     if (finc == -1 && oldfields[i] == 'w') continue;
     if (finc == +1 && oldfields[i] == 'v') {
@@ -485,7 +487,7 @@ static bool getDump (istream&           ifile ,
 
   if (u.size() != nf) {
     u.resize (nf);
-    for (i = 0; i < nf; i++) u[i] = new Field2DF (np, nz, nel, oldfields[i]);
+    for (i = 0; i < nf; i++) u[i] = new Field2DF (nr,ns,nz,nel,oldfields[i]);
   }
 
   for (i = 0; i < nf; i++) {
