@@ -30,7 +30,7 @@ void   real_eigenvalues    (double a2, double a1, double a0,
 void   eigenvector         (const double  T[9], double z, double e[3]);
 void   vec                 (const double  A[9], double V[3]);
 void   scale_vect          (double  v[3], double s);
-void   vorticity           (const double  A[9], double w[3]);
+void   vorticity           (const double  T[9], double w[3]);
 double dot                 (const double  a[3], const double b[3]);
 void   cross               (const double  a[3], const double b[3], double c[3]);
 void   normalize           (double  a[3]);

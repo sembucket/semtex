@@ -306,11 +306,14 @@ void scale_vect(double v[3], double s)
 }
 
 
-void vorticity (const double A[9], double w[3])
+void vorticity (const double VG[9], double w[3])
 /* ------------------------------------------------------------------------- *
  * From A, antisymmetric part of VG, return the vorticity vector.
  * ------------------------------------------------------------------------- */
 {
+  double A[9];
+
+  anti_symmetric_part(VG, A);
   vec(A, w);
   scale_vect(w, -2.0);
 }
