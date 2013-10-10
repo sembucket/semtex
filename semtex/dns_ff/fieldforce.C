@@ -682,6 +682,7 @@ CoriolisForce::CoriolisForce (Domain* D   ,
   _D = D;
   _o.resize(3);
   _minus_2o.resize(3);
+
   _minus_o.resize(3);
   _DoDt.resize(3);
 

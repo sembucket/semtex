@@ -35,13 +35,13 @@
 //
 // which is rearranged as a Robin BC:
 //
-// u_x^(n+1) + (a*DT)^{-1} [ u^(n+1) - u^(n) ] = 0
+// u_x^(n+1) + (V*DT)^{-1} [ u^(n+1) - u^(n) ] = 0
 //
 // So in the typical Robin form
 //
 // u_n + K ( u - C ) = 0
 //
-// K = a*DT and C = u^(n)
+// K = V*DT and C = u^(n)
 //
 // Convective BCs are good at containing blowups related to inflow
 // across the outflow boundary.  Guess V to be the mean convection
