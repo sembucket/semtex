@@ -12,10 +12,11 @@
 </FIELDS>
 
 <TOKENS>
-	D_T       = 0.000625
-	N_STEP    = 2400
+	T_FINAL   = 10.0
+	D_T       = 0.0001
+	N_STEP    = int(T_FINAL/D_T)
 	N_TIME    = 2
-	N_P    = 9
+	N_P       = 16
 	N_Z       = 1
 	CHKPOINT  = 1
 	ITERATIVE = 1

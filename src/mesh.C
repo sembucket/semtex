@@ -1331,7 +1331,7 @@ bool Mesh::matchBC (const char grp,
 //   H <==> "High-order" (computed, natural) Pressure BC.  See KIO91.
 //   A <==> "Axis" (selected, natural/essential) BC.       See TOK93.
 //   M <==> Mixed/Robin BC.
-//   C <==> Convective (a type of mixed) BC.
+//   V <==> Convective (a type of mixed) BC.
 // ---------------------------------------------------------------------------
 {
   const int_t N = _feml.attribute ("BCS", "NUMBER");

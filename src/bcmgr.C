@@ -97,7 +97,7 @@
 //   <M> Mixed
 //   <H> Natural pressure BC (no value specified, since it gets computed).
 //   <A> Axis BCs for cylindrical coords.  Also, must belong to "axis" group.
-//   <C> Convective BC, a type of computed mixed BC.
+//   <V> Convective BC, a type of computed mixed BC.
 //
 // The character tags for variables as shown match those used
 // internally as Field names, so that the order in which the BCs are
@@ -372,7 +372,7 @@ BCmgr::BCmgr (FEML*             file,
 	else                 C = new Natural         (buf);
 	break;
 
-      case 'C':			// -- Convective mixed BC.
+      case 'V':			// -- Convective mixed BC.
 	if (testc != '=') {
 	  sprintf (err, "expected an '=' in setting field '%c' BC", fieldc);
 	  message (routine, err, ERROR);
