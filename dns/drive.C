@@ -23,6 +23,16 @@
 // Australia
 // hugh.blackburn@monash.edu
 //
+// REFERENCES:
+// ----------
+// 1.  Blackburn & Sherwin (2004) 'Formulation of a Galerkin spectral
+//     element--Fourier method for three-dimensional incompressible
+//     flows in cylindrical geometries', J Comput Phys 179(2).
+//
+// 2.  Koal, Stiller & Blackburn (2013), 'Adapting the spectral
+//     vanishing viscosity method for large-eddy simulations in
+//     cylindrical configurations', J Comput Phys 231.
+//
 // --
 // This file is part of Semtex.
 // 
@@ -169,6 +179,7 @@ static void preprocess (const char*       session,
 // They are listed above in order of creation.
 // ---------------------------------------------------------------------------
 {
+  const char routine[] = "preprocess";
   const int_t        verbose = Femlib::ivalue ("VERBOSE");
   Geometry::CoordSys space;
   int_t              i, np, nz, nel, procid, seed;
@@ -231,4 +242,11 @@ static void preprocess (const char*       session,
   domain = new Domain (file, elmt, bman);
 
   VERBOSE cout << "done" << endl;
+
+  // -- Sanity checks on installed tokens.
+
+  if (Femlib::ivalue ("SVV_MN") > Geometry::nP())
+    message (routine, "SVV_MN exceeds N_P", ERROR);
+  if (Femlib::ivalue ("SVV_MZ") > Geometry::nMode())
+    message (routine, "SVV_MZ exceeds N_Z/2", ERROR);
 }

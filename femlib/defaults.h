@@ -28,7 +28,7 @@ static struct {
 
   "TOL_REL"     ,   1.0e-8 ,	/* -- Relative tolerance (PCG)            */
   "TOL_ABS"     ,   1.0e-8 ,	/* -- Absolute tolerance.                 */
-  "TOL_POS"     ,   1.0e-8 ,    /* -- Positional tolerance.               */
+  "TOL_POS"     ,   1.0e-5 ,    /* -- Positional tolerance.               */
 
   "z"           ,   0.0    ,	/* -- z-plane location.                   */
   "BETA"        ,   1.0    ,	/* -- TWOPI / Lz (Fourier constant).      */
@@ -54,6 +54,12 @@ static struct {
 
   "X_SCALE"     ,   1.0    ,    /* -- Optional factor to scale mesh in x. */
   "Y_SCALE"     ,   1.0    ,    /* -- Optional factor to scale mesh in y. */
+
+  "SVV_MN"      ,  -1      ,    /* -- SVV SEM Mode num (-1 is off) < N_P. */
+  "SVV_EPSN"    ,   0.0    ,    /* -- SVV SEM Eps, usually propto KINVIS. */
+
+  "SVV_MZ"      ,  -1      ,    /* -- SVV Fourier mode start, < (N_Z/2).  */
+  "SVV_EPSZ"    ,   0.0    ,    /* -- SVV Fourier Eps, as for SEM.        */
 
   /* -- Option switches. */
 

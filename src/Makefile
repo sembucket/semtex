@@ -347,6 +347,7 @@ default:
 	condition.h data2df.h domain.h edge.h element.h family.h feml.h	\
 	field.h flowrate.h geometry.h history.h integration.h matrix.h 	\
 	mesh.h misc.h numbersys.h particle.h pressure.h statistics.h 	\
+	svv.h								\
 	../include
 
 #-----------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-//////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 // element.C: 2D quad spectral element class routines.
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
@@ -26,6 +26,7 @@ static char RCS[] = "$Id$";
 
 #include <sem.h>
 
+
 Element::Element (const int_t id,
 		  const int_t np,
 		  const Mesh* M ) :
@@ -48,7 +49,17 @@ Element::Element (const int_t id,
   if (_np < 2) message (routine, "need > 2 knots for element edges", ERROR);
 
   Femlib::quadrature (&_zr, &_wr, &_DVr, &_DTr, _np, GLJ, 0.0, 0.0);
-  Femlib::quadrature (&_zs, &_ws, &_DVs, &_DTs, _np, GLJ, 0.0, 0.0);
+
+  // -- Make special SVV-modified differentiation matrices if required.
+
+  SVV::operators (_np, &_SDVr, &_SDTr);
+    
+  // -- Fill in aliases for equal-order elements.
+
+  _zs = _zr; _ws = _wr; _DVs = _DVr; _DTs = _DTr; _SDVs = _SDVr; _SDTs = _SDTr;
+
+  // -- Build edge-mapping permutation vectors.
+
   Femlib::buildMaps  (_np, 2, &_emap, &_pmap);
   
   _xmesh = new real_t [static_cast<size_t> (_npnp)];
@@ -868,11 +879,7 @@ void Element::divY (real_t* src) const
 
   for (i = 0; i < loopcnt; i++) {
     rad     = y[i];
-#if 0
-    rinv    = (rad > EPSDP) ? 1.0 / rad : 1.0;
-#else
     rinv    = (rad > EPSDP) ? 1.0 / rad : 0.0;
-#endif
     src[i] *= rinv;
   }
 }
@@ -1064,10 +1071,10 @@ bool Element::locate (const real_t x    ,
 // s) value that corresponds to the closest point in the Element mesh
 // to (x, y) is used.
 //
-// Point tolerances can be changed by setting token TOL_POS, but
-// usually it's better to increase NR_MAX above its default, since
-// TOL_POS is used both as a location test at end of iteration, and on
-// the N--R forcing term.
+// Point tolerances can be changed by setting token TOL_POS, but as a
+// first option it's better to increase NR_MAX above its default,
+// since TOL_POS is used both as a location test at end of iteration,
+// and on the N--R forcing term.
 // ---------------------------------------------------------------------------
 {
   static real_t EPS    = 0.0;
@@ -1136,7 +1143,7 @@ bool Element::locate (const real_t x    ,
     J[0] =     Blas::dot (_np, is, 1, tp, 1);
                Blas::mxv (_ymesh, _np, dr, _np, tp);
     J[1] =     Blas::dot (_np, is, 1, tp, 1);
-#if 1
+#if 0
     // -- General/robust matrix solution routine.
     int_t ipiv[2], info;
 
@@ -1439,27 +1446,33 @@ void Element::HelmholtzRow (const real_t lambda2,
 {
   const real_t   r2   = sqr (_ymesh[Veclib::row_major(i,j,_np)]);
   const real_t   hCon = (_cyl && r2>EPSDP)?(betak2/r2+lambda2):betak2+lambda2;
+  const real_t   *dtr, *dts, *dvr, *dvs;
   register int_t m, n;
+
+  // -- If we are setting up a viscous matrix, use SVV-stabilised operators.
+
+  if (lambda2 > EPSDP) { dvr = _SDVr; dtr = _SDTr; dvs = _SDVs; dts = _SDTs; }
+  else                 { dvr =  _DVr; dtr =  _DTr; dvs =  _DVs; dts =  _DTs; }
 
   Veclib::zero (_npnp, hij, 1);
 
   for (n = 0; n < _np; n++) {
-    Veclib::vmul (_np, _DTr+j*_np, 1, _DTr+n*_np, 1, work, 1);
+    Veclib::vmul (_np, dtr+j*_np, 1, dtr+n*_np, 1, work, 1);
     hij[Veclib::row_major(i,n,_np)]  = Blas::dot(_np,_Q1+i*_np,1,work,1);
   }
 
   for (m = 0; m < _np; m++) {
-    Veclib::vmul (_np, _DTs+i*_np, 1, _DTs+m*_np, 1, work, 1);
+    Veclib::vmul (_np, dts+i*_np, 1, dts+m*_np, 1, work, 1);
     hij[Veclib::row_major(m,j,_np)] += Blas::dot (_np,_Q2+j,_np,work,1);
   }
 
   if (_Q3)
     for (m = 0; m < _np; m++)
       for (n = 0; n < _np; n++) {
-	hij [Veclib::row_major(m,n,_np)] += _Q3 [Veclib::row_major(i,n,_np)] *
-	_DVr[Veclib::row_major(n,j,_np)] *  _DVs[Veclib::row_major(i,m,_np)] ;
-	hij [Veclib::row_major(m,n,_np)] += _Q3 [Veclib::row_major(m,j,_np)] *
-	_DVr[Veclib::row_major(j,n,_np)] *  _DVs[Veclib::row_major(m,i,_np)] ;
+	hij[Veclib::row_major(m,n,_np)] += _Q3[Veclib::row_major(i,n,_np)] *
+	dvr[Veclib::row_major(n,j,_np)] *  dvs[Veclib::row_major(i,m,_np)] ;
+	hij[Veclib::row_major(m,n,_np)] += _Q3[Veclib::row_major(m,j,_np)] *
+	dvr[Veclib::row_major(j,n,_np)] *  dvs[Veclib::row_major(m,i,_np)] ;
       }
 
   hij[Veclib::row_major(i,j,_np)] += _Q4[Veclib::row_major(i,j,_np)] * hCon;
@@ -1481,29 +1494,35 @@ void Element::HelmholtzDiag (const real_t lambda2,
 {
   register int_t  i, j, ij;
   register real_t *dg = work, *tmp = work + _npnp;
+  const real_t    *dtr, *dts, *dvr, *dvs;
   real_t          r2, HCon;
+
+  // -- If we are setting up a viscous matrix, use SVV-stabilised operators.
+
+  if (lambda2 > EPSDP) { dvr = _SDVr; dtr = _SDTr; dvs = _SDVs; dts = _SDTs; }
+  else                 { dvr =  _DVr; dtr =  _DTr; dvs =  _DVs; dts =  _DTs; }
 
   if (_cyl) {
     for (ij = 0, i = 0; i < _np; i++)
       for (j = 0; j < _np; j++, ij++) {
 	r2   = sqr (_ymesh[ij]);
 	HCon = (r2 > EPSDP) ? (betak2 / r2 + lambda2) : 0.0;
-	Veclib::vmul (_np, _DTr+j*_np, 1, _DTr+j*_np, 1, tmp, 1);
+	Veclib::vmul (_np, dtr+j*_np, 1, dtr+j*_np, 1, tmp, 1);
 	dg[ij] = Blas::dot (_np, _Q1 + i*_np, 1, tmp, 1);
-	Veclib::vmul (_np, _DTs+i*_np, 1, _DTs+i*_np, 1, tmp, 1);
+	Veclib::vmul (_np, dts+i*_np, 1, dts+i*_np, 1, tmp, 1);
 	dg[ij] += Blas::dot (_np, _Q2+j, _np, tmp, 1);
-	if (_Q3) dg[ij] += 2.0 * _Q3[ij] * _DVr[j*j] * _DVs[i*i];
+	if (_Q3) dg[ij] += 2.0 * _Q3[ij] * dvr[j*j] * dvs[i*i];
 	dg[ij] += HCon * _Q4[ij];
       }
   } else {
     HCon = lambda2 + betak2;
     for (ij = 0, i = 0; i < _np; i++)
       for (j = 0; j < _np; j++, ij++) {
-	Veclib::vmul (_np, _DTr+j*_np, 1, _DTr+j*_np, 1, tmp, 1);
+	Veclib::vmul (_np, dtr+j*_np, 1, dtr+j*_np, 1, tmp, 1);
 	dg[ij]  = Blas::dot (_np, _Q1+i*_np, 1, tmp, 1);
-	Veclib::vmul (_np, _DTs+i*_np, 1, _DTs+i*_np, 1, tmp, 1);
+	Veclib::vmul (_np, dts+i*_np, 1, dts+i*_np, 1, tmp, 1);
 	dg[ij] += Blas::dot (_np, _Q2+j, _np, tmp, 1);
-	if (_Q3) dg[ij] += 2.0 * _Q3[ij] * _DVr[j*j] * _DVs[i*i];
+	if (_Q3) dg[ij] += 2.0 * _Q3[ij] * dvr[j*j] * dvs[i*i];
 	dg[ij] += HCon * _Q4[ij];
       }
   }
@@ -1584,14 +1603,20 @@ void Element::HelmholtzOp (const real_t lambda2,
 // ---------------------------------------------------------------------------
 {
   real_t *R = wrk, *S = wrk + _npnp;
+  const real_t *dtr, *dts, *dvr, *dvs;
+
+  // -- If we are setting up a viscous matrix, use SVV-stabilised operators.
+
+  if (lambda2 > EPSDP) { dvr = _SDVr; dtr = _SDTr; dvs = _SDVs; dts = _SDTs; }
+  else                 { dvr =  _DVr; dtr =  _DTr; dvs =  _DVs; dts =  _DTs; }
   
-  Blas::mxm (src,  _np, _DTr, _np, R, _np);
-  Blas::mxm (_DVs, _np, src,  _np, S, _np);
+  Blas::mxm (src, _np, dtr, _np, R, _np);
+  Blas::mxm (dvs, _np, src, _np, S, _np);
 
   this -> HelmholtzKern (lambda2, betak2, R, S, src, tgt);
 
-  Blas::mxma (_DTs, _np, S,    _np, tgt, _np);
-  Blas::mxma (R,    _np, _DVr, _np, tgt, _np);
+  Blas::mxma (dts, _np, S,   _np, tgt, _np);
+  Blas::mxma (R,   _np, dvr, _np, tgt, _np);
 }
 
 
