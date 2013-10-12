@@ -692,7 +692,7 @@ void Convective::extract (const int_t   np     ,
 // ---------------------------------------------------------------------------
 // Load field data from appropriate edge into external BC storage tgt.
 // This is the same operation as Edge::get, but here will only happen for
-// convective BC edge.
+// a convective BC edge.
 // ---------------------------------------------------------------------------
 {
   Veclib::copy (np, src + doffset, dskip, tgt, 1);

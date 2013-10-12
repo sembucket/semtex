@@ -25,6 +25,8 @@
 static char RCS[] = "$Id$";
 
 #include <sem.h>
+#include <dns.h>
+
 
 static vector<MatrixSys*> MS;
 
@@ -73,16 +75,23 @@ ModalMatrixSys::ModalMatrixSys (const real_t            lambda2 ,
     const real_t     betak2    = sqr (Field::modeConstant(name, mode, beta));
     const int_t      localMode = mode - baseMode;
 
+ // Multiply Helmholtz constant with SVV-specific weight:  
+ //      betak2_svv = betak2 * (1 + eps_N/nu * Q)  for modes k > SVV_MZ and
+ //      lambda2 > 0 (i.e. only for the velocity components)
+ 
+    const real_t*  S  = SVV::coeffs_z (numModes);
+    const real_t   betak2_svv = (lambda2 > EPSDP)?(betak2 * S[localMode]):betak2 ; 
+
     for (found = false, m = MS.begin(); !found && m != MS.end(); m++) {
       M     = *m;
-      found = M -> match (lambda2, betak2, N, method);
+      found = M -> match (lambda2, betak2_svv, N, method);
     }
     if (found) {
       _Msys[localMode] = M;
       if (method == DIRECT) { cout << '.'; cout.flush(); }
     } else {
       _Msys[localMode] =
-	new MatrixSys (lambda2, betak2, mode, Elmt, Bsys, method);
+	new MatrixSys (lambda2, betak2_svv, mode, Elmt, Bsys, method);
       MS.insert (MS.end(), _Msys[localMode]);
       if (method == DIRECT) { cout << '*'; cout.flush(); }
     }

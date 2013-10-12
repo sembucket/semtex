@@ -295,7 +295,7 @@ class Convective : public Condition
 // convection speed.
 //
 // Syntax in session file is
-//     <C> c = V </C>  or 
+//     <V> c = V </V>  or 
 // where 'c' is a field name and V can be evaluated as a constant
 // (perhaps using defined TOKENS).
 //

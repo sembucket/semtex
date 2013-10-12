@@ -128,6 +128,10 @@ protected:
   const real_t* _DTr  ;		// Transpose.
   const real_t* _DVs  ;		// Master element derivative operator, s.
   const real_t* _DTs  ;		// Transpose.
+  const real_t* _SDVr ;		// As above, but with SVV modifications.
+  const real_t* _SDTr ;
+  const real_t* _SDVs ;
+  const real_t* _SDTs ;
 
   int_t*        _emap ;		// Indices of edges in nodal matrices.
   int_t*        _pmap ;		// Inversion of emap (pmap[emap[i]] = i).

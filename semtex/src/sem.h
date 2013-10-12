@@ -55,6 +55,8 @@ using namespace std;
 #include <mesh.h>
 #include <element.h>
 
+#include <svv.h>
+
 class Boundary;
 class BoundarySys;
 class AuxField;
