@@ -14,6 +14,8 @@
 //   -chk     ... turn off checkpoint field dumps [default: selected]
 //   -S|C|N   ... regular skew-symm || convective || Stokes advection
 //
+//   (default advection scheme is "alternating" skew symmetric)
+//
 // AUTHOR:
 // ------
 // Hugh Blackburn
@@ -29,7 +31,7 @@
 //     element--Fourier method for three-dimensional incompressible
 //     flows in cylindrical geometries', J Comput Phys 179(2).
 //
-// 2.  Koal, Stiller & Blackburn (2013), 'Adapting the spectral
+// 2.  Koal, Stiller & Blackburn (2012), 'Adapting the spectral
 //     vanishing viscosity method for large-eddy simulations in
 //     cylindrical configurations', J Comput Phys 231.
 //
