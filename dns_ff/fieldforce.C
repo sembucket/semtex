@@ -689,7 +689,9 @@ CoriolisForce::CoriolisForce (Domain* D   ,
   file -> valueFromSection (&_unsteady, secForce, tokUnsteady);
 
   // -- try and read omega's components from session file
+
   for (int i = 0; i < 3; i++) {
+
     sprintf(_omega[i], "0");	// -- default
     sprintf(_DomegaDt[i], "0");
     if (NCOM == 3 || i == 2) {
@@ -714,18 +716,15 @@ CoriolisForce::CoriolisForce (Domain* D   ,
     //        then add it to SteadyForce somehow?
   }
 
-  if (NCOM == 2) 
-    VERBOSE cout << "    2-D: ignoring possible CORIOLIS_[D]OMEGA_[XY][_DT]."
-		 << endl;
+  //  if (NCOM == 2) 
+  //    VERBOSE cout << "    2-D: ignoring possible CORIOLIS_[D]OMEGA_[XY][_DT]."
+  //		 << endl;
 
   if (!_unsteady)
     for (int i = 0; i < 3; i++) _minus_2o[i] = -2. * Femlib::value (_omega[i]);
 
   _a.resize (NCOM);
-  for (int i = 0; i < NCOM; i++)
-    _a[i]  = allocAuxField(D, forcename + i);
-
-  //  if (_unsteady) allocStorage (D);  -- Replaced by code in loop above.
+  for (int i = 0; i < NCOM; i++) _a[i] = allocAuxField(D, forcename + i);
 }
 
 

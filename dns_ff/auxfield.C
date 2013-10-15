@@ -242,47 +242,69 @@ AuxField& AuxField::innerProduct (const vector <AuxField*>& a,
   return *this;
 }
 
-AuxField& AuxField::crossProductPlus (const int com, const vector<real_t>& a,
-                                      const vector<AuxField*>& b)
+AuxField& AuxField::crossProductPlus (const int                com, 
+				      const vector<real_t>&    a  ,
+                                      const vector<AuxField*>& b  )
 // ---------------------------------------------------------------------------
 // Add the com'th component of the cross product of a & b to this AuxField
-// in physical space, where vector a is given in Cartesian coordinates and
-// b is an Auxfield.
+// in physical space, where vector a is given in Cartesian coordinates.
+//
+// Vector a is guaranteed to have 3 components whereas b could have 2 or 3.
+// If b has two components then it only has one z plane.
 // In case of cylindrical coordinates, we project components of a accordingly.
 // ---------------------------------------------------------------------------
 {
-  const int_t  c0[] = {1, 2, 0},  // -- lookup table for 3-D vector product
-             c1[] = {2, 0, 1};
-  const int_t  bP = Geometry::basePlane ();
-  const int_t  nz = Geometry::nZ();
-  const int_t  nPlane = Geometry::nPlane ();
-  vector<real_t> alocal = a;
-  real_t theta;
+  const int_t nPlane = Geometry::nPlane();
 
-  real_t **base =             _plane;
-  real_t **b1   = b[c1[com]]->_plane;
-  real_t **b0   = b[c0[com]]->_plane;
+  if (b.size() == 2) {
+    
+    if      (com == 0)
+      Blas::axpy (nPlane, -2.0*a[2], b[1] -> _data, 1, _data, 1);
+    else if (com == 1) 
+      Blas::axpy (nPlane, +2.0*a[2], b[0] -> _data, 1, _data, 1);
 
-  // -- loop zplanes of current process
-  for (int_t z = bP; z < bP + _nz; base++, b0++, b1++, z++) {
-    if (Geometry::cylindrical()) {
-      // -- vector a is given in Cartesian coordinates.
-    //    Project components to cylindrical.
-      theta = z * TWOPI / nz;
-      alocal[1] =  cos(theta) * a[1] + sin(theta) * a[2];
-      alocal[2] = -sin(theta) * a[1] + cos(theta) * a[2];
+  } else {
+
+    const int_t    c0[]   = {1, 2, 0}, c1[] = {2, 0, 1}; // -- X prod LUTs.
+    const int_t    bP     = Geometry::basePlane();
+    const int_t    nz     = Geometry::nZ();
+
+    vector<real_t> alocal = a;
+    real_t         theta;
+
+    real_t **base =             _plane;
+    real_t **b1   = b[c1[com]]->_plane;
+    real_t **b0   = b[c0[com]]->_plane;
+
+    // -- Loop z-planes of current process.
+
+    for (int_t k = bP; k < bP + _nz; base++, b0++, b1++, k++) {
+
+      if (Geometry::cylindrical()) {
+
+	// -- Vector a is given in Cartesian coordinates.
+	//    Project to cylindrical.
+
+	theta = k * TWOPI / nz;
+	alocal[1] =  cos(theta) * a[1] + sin(theta) * a[2];
+	alocal[2] = -sin(theta) * a[1] + cos(theta) * a[2];
+      }
+
+      // FIXME: could use veclib xvvtvvtm.c
+
+      if (alocal[c0[com]] != 0.)
+	Blas::axpy (nPlane,  alocal[c0[com]], *b1, 1, *base, 1);
+
+      if (alocal[c1[com]] != 0.)
+	Blas::axpy (nPlane, -alocal[c1[com]], *b0, 1, *base, 1);
     }
-
-    // FIXME: use veclib xvvtvvtm.c
-    if (alocal[c0[com]] != 0.)
-    Blas::axpy (nPlane,  alocal[c0[com]], *b1, 1, *base, 1);
-    if (alocal[c1[com]] != 0.)
-    Blas::axpy (nPlane, -alocal[c1[com]], *b0, 1, *base, 1);
   }
+
   return *this;
 }
 
-AuxField& AuxField::crossXPlus (const int com, const vector<real_t>& a)
+AuxField& AuxField::crossXPlus (const int             com, 
+				const vector<real_t>& a  )
 // ---------------------------------------------------------------------------
 // Add com'th component of cross product of a & x to this auxfield, where
 // vector a is given in Cartesian coordinates and x is the position vector.

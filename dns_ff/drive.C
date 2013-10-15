@@ -117,6 +117,8 @@ static void getargs (int    argc   ,
     "  -chk     ... turn off checkpoint field dumps [default: selected]\n"
     "  -S|C|N   ... regular skew-symm || convective || Stokes advection\n";
 
+  Femlib::ivalue ("ADVECTION", 1); // -- Default is alternating skew symmetric.
+
   while (--argc  && **++argv == '-')
     switch (*++argv[0]) {
     case 'h':
@@ -170,6 +172,8 @@ static void preprocess (const char*       session,
 // They are listed above in order of creation.
 // ---------------------------------------------------------------------------
 {
+
+  const char routine[] = "preprocess";
   const int_t        verbose = Femlib::ivalue ("VERBOSE");
   Geometry::CoordSys space;
   int_t              i, np, nz, nel, procid, seed;
@@ -240,4 +244,11 @@ static void preprocess (const char*       session,
   FF = new FieldForce (domain, file);
 
   VERBOSE cout << "done" << endl;
+
+  // -- Sanity checks on installed tokens.
+
+  if (Femlib::ivalue ("SVV_MN") > Geometry::nP())
+    message (routine, "SVV_MN exceeds N_P", ERROR);
+  if (Femlib::ivalue ("SVV_MZ") > Geometry::nMode())
+    message (routine, "SVV_MZ exceeds N_Z/2", ERROR);
 }

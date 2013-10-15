@@ -7,7 +7,7 @@
 //
 // Tokens SVV_EPSN and SVV_MN (where 0<SVV_MN<N_P)    (SEM directions) and
 //        SVV_EPSZ and SVV_MZ (where 0<SVV_MZ<N_Z/2)  (Fourier direction)
-// shold be predefined (the default values of -1 for the SVV_M* parameters
+// shold be predefined: the default values of -1 for the SVV_M* parameters
 // leaves SVV switched off. Typically SVV_EPS* is defined as a multiple of
 // KINVIS (say 5*KINVIS).
 //
@@ -22,7 +22,7 @@
 //     computations of high Reynolds number incompressible flows', JCP
 //     196, 680-704.
 //
-// 2.  K Koal, J Stiller & HM Blackburn (2013),
+// 2.  K Koal, J Stiller & HM Blackburn (2012),
 //     'Adapting the spectral vanishing viscosity method for
 //     large-eddy simulations in cylindrical configurations', JCP 231,
 //     3389--3405.

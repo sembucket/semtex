@@ -110,7 +110,7 @@ void PBCmgr::maintain (const int_t      step   ,
 // also that since grad P is dotted with n, the unit outward normal,
 // at a later stage, timedep only needs to be set if there are
 // wall-normal accelerative terms.  NB: The default value of timedep
-// is 1.
+// is true.
 //
 // Field* master gives a list of pressure boundary conditions with
 // which to traverse storage areas (note this assumes equal-order
