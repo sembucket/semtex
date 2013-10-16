@@ -150,7 +150,7 @@ int main (int    argc,
     /* -- Compute K.E.: start by adding in real part. */
 
     for (i = 0; i < nfields - 1; i++) {
-      vcmpt = data[_index (fields, 'u' + i)] + 2 * mode * nplane;
+      vcmpt = data[_index (fields, 'u' + i)] + 2 * mode * nplaneEven;
       dvvtvp (nplane, vcmpt, 1, vcmpt, 1, plane, 1, plane, 1);
     }
 
@@ -158,7 +158,7 @@ int main (int    argc,
 
     if (mode || cmplx) {
       for (i = 0; i < nfields - 1; i++) {
-	vcmpt = data[_index (fields, 'u' + i)] + (2 * mode + 1) * nplane;
+	vcmpt = data[_index (fields, 'u' + i)] + (2 * mode + 1) * nplaneEven;
 	dvvtvp (nplane, vcmpt, 1, vcmpt, 1, plane, 1, plane, 1);
       }
     }
