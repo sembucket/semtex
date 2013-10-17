@@ -403,7 +403,7 @@ void yy_help (void)
      "            abs, floor, ceil, int,   heav (Heaviside),\n"
      "            log, log10, exp,  sqrt,  white\n"
      "            erf, erfc, gamma, lgamma, sgn,\n"
-     "            j0, j1, y0, y1, jn\n"
+     "            j0, j1, y0, y1,\n"
      "Procedures: step, jn, yn, rad, ang, rejn,imjn, jacobi, womcos,womsin\n");
 }
 

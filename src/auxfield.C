@@ -1460,9 +1460,11 @@ real_t AuxField::probe (const Element* E,
 			const real_t   s,
 			const real_t   z) const
 // ---------------------------------------------------------------------------
-// Return the value of data, in Element E, location r, s, z.
+// Return the physical-space value of data, in Element E, location r,
+// s, z.
 //
-// NB: interpolation assumes that AuxField is Fourier transformed.
+// NB: interpolation assumes that AuxField is in the Fourier
+// transformed state.
 //
 // For multiprocessor operation, the Fourier interpolation is done on
 // the root processor, and the return value is only valid on that
@@ -1509,7 +1511,15 @@ real_t AuxField::probe (const Element* E,
     }
   }
 
+  // -- 3D: Now we have extracted the data from each mode we do a
+  //    Fourier series interpolation to get to physical space.  Note
+  //    sign convention.
+
   ROOTONLY {
+
+    // -- We only hold the positive half of the spectrum, hence factor
+    //    non-zero-mode data by 2.0.
+
     Blas::scal (nZ - 2, 2.0, fbuf + 2, 1);
     
     value  = fbuf[0];
