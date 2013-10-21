@@ -13,6 +13,20 @@
 //   -h       ... print usage prompt
 //   -v[v...] ... increase verbosity level
 //
+// REFS:
+// ----
+//
+// @Article{blsc03,
+// author = 	 {H. M. Blackburn and S. Schmidt},
+// title = 	 {Spectral Element Filtering Techniques for Large Eddy
+//                 Simulation with Dynamic Estimation},
+// journal = 	 JCP,
+// year = 	 2003,
+// volume =       186,
+// number =       2,
+// pages =        {610--629}
+// }
+//
 // AUTHOR:
 // ------
 // Hugh Blackburn
@@ -21,9 +35,9 @@
 // Vic 3800
 // Australia
 // hugh.blackburn@eng.monash.edu.au
-//
-// $Id$
 //////////////////////////////////////////////////////////////////////////////
+
+static char RCS[] = "$Id$";
 
 #include "les.h"
 
