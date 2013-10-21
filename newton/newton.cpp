@@ -7,9 +7,10 @@
 // [1] & [2], and is based on time-stepping with both linearised and
 // full Navier--Stokes integrators.  The matrix-free linear systems
 // are here solved using the Bi-Conjugate-Gradients-Stabilized
-// algorithm, with code from the Templates package, Ref [3], or
-// the Bi-Conjugate-Gradients-Squared algorithm, with code from the
-// NSPCG package, Ref [4] (both codes available through netlib).
+// algorithm (the default), with code from the Templates package, Ref
+// [3], or the Bi-Conjugate-Gradients-Squared algorithm, with code
+// from the NSPCG package, Ref [4] (both codes available through
+// netlib).
 //
 // USAGE
 // -----
@@ -182,7 +183,7 @@ int main (int    argc,
 
     Veclib::zero (ntot, u, 1);
 
-#if defined (NSPCG)
+#if defined (NSPCG)		// -- NSPCG Bi-CG-Squared.
     F77NAME (dfault) (iparm, rparm);
     iparm[1] = itn; iparm[2] = 0; rparm[0] = pretol;
 
@@ -190,9 +191,9 @@ int main (int    argc,
 		     ntot, u, ubar, dU, lwrk, nw, iparm, rparm, ier);
 
     itn = iparm[1]; tol = rparm[0];
-#elif defined (LST)
+#elif defined (LST)		// -- Laurette Tuckerman's Bi-CG-Stab.
     F77NAME (bcgstab) (ntot, itn, tol, x, u, dU, p, r, s, t, lwrk, matvec);
-#else
+#else                           // -- NETLIB/Templates Bi-CG-Stab (default).
     F77NAME (bicgstab) (ntot, dU, u, lwrk, ntot, itn, tol, matvec, ident, ier);
 #endif
 
