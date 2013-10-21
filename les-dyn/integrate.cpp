@@ -177,7 +177,7 @@ void integrate (Domain*        D,
 #if 1
   // -- Dump ratio eddy/molecular viscosity to file visco.fld.
 
-  dynamic (D, Ut, 0);
+  dynamic (D, Ut, false);
 
   Blas::scal (nTot, 1.0/Femlib::value("REFVIS"), Ut[15], 1);
   D -> u[0] -> smooth (Geometry::nZProc(), Ut[15]);
