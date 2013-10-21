@@ -30,7 +30,7 @@ SEMHDR = sem.h
 # Build compare, exact solution comparison/restart utility.
 #
 COMOBJ = compare.o bsys.o bcmgr.o boundary.o condition.o edge.o		\
-	 family.o feml.o mesh.o element.o auxfield.o geometry.o		\
+	 family.o feml.o mesh.o element.o svv.o auxfield.o geometry.o	\
          pressure.o integration.o misc.o
 $(COMOBJ): $(SEMHDR)
 
@@ -82,8 +82,8 @@ meshpr:	feml.o mesh.o meshpr.o $(SEMHDR)
 # Build wallmesh, 2D mesh filter utility for use with meshpr.
 #
 WALOBJ = wallmesh.o bsys.o bcmgr.o condition.o pressure.o edge.o	\
-	 family.o feml.o mesh.o element.o geometry.o integration.o
-         
+	 family.o feml.o mesh.o element.o svv.o geometry.o integration.o
+
 $(WALOBJ): $(SEMHDR)
 
 wallmesh: $(WALOBJ)
@@ -92,10 +92,10 @@ wallmesh: $(WALOBJ)
 # ----------------------------------------------------------------------------
 # Build traction, utility to compute normal & tangential tractions on walls
 #
-TRCOBJ = traction.o feml.o auxfield.o bcmgr.o element.o geometry.o	\
-         domain.o condition.o family.o mesh.o bsys.o field.o edge.o	\
-         boundary.o pressure.o misc.o integration.o
-         
+TRCOBJ = traction.o feml.o auxfield.o bcmgr.o element.o svv.o		\
+	geometry.o domain.o condition.o family.o mesh.o bsys.o field.o	\
+	 edge.o boundary.o pressure.o misc.o integration.o
+
 $(TRCOBJ): $(SEMHDR)
 
 traction: $(TRCOBJ)
@@ -105,14 +105,14 @@ traction: $(TRCOBJ)
 # Build calc, an interactive interface to the femlib function parser.
 #
 calc: calc.o
-	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
+	$(CXX) $(CPPFLAGS) -o $@ $@.o $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build addfield, field postprocessing utility.
 #
 ADFOBJ = addfield.o auxfield.o bcmgr.o boundary.o bsys.o condition.o 	\
-	 domain.o edge.o element.o family.o feml.o field.o geometry.o	\
-	 integration.o mesh.o misc.o pressure.o tensorcalcs.o
+	 domain.o edge.o element.o svv.o family.o feml.o field.o	\
+	 geometry.o integration.o mesh.o misc.o pressure.o tensorcalcs.o
 $(ADFOBJ): $(SEMHDR) tensorcalcs.h
 
 addfield: $(ADFOBJ)
@@ -127,8 +127,8 @@ sem2nek: sem2nek.o feml.o mesh.o $(SEMHDR)
 # ----------------------------------------------------------------------------
 # Build project, field dump projection to higher/lower orders.
 #
-project: project.C
-	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
+project: project.o
+	$(CXX) $(CPPFLAGS) -o $@ $@.o $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build transform, which does forward/inverse Fourier/Legendre transforms.
@@ -151,7 +151,7 @@ lowpass: lowpass.o data2df.o data2df.h $(SEMHDR)
 # ----------------------------------------------------------------------------
 # Build interp, field dump interpolator.
 #
-INTOBJ = feml.o mesh.o element.o family.o auxfield.o geometry.o
+INTOBJ = feml.o mesh.o element.o svv.o family.o auxfield.o geometry.o
 $(INTOBJ): $(SEMHDR)
 
 interp: interp.o $(INTOBJ)
@@ -160,7 +160,7 @@ interp: interp.o $(INTOBJ)
 # ----------------------------------------------------------------------------
 # Build modep, field dump modal projection.
 #
-MDPOBJ = feml.o mesh.o element.o family.o auxfield.o geometry.o
+MDPOBJ = feml.o mesh.o element.o svv.o family.o auxfield.o geometry.o
 $(MDPOBJ): $(SEMHDR)
 
 modep: modep.o $(INTOBJ)
@@ -176,14 +176,14 @@ integral: integral.o  $(INTOBJ)
 # ----------------------------------------------------------------------------
 # Build massmat, utility to printup system matrix.
 #
-MASOBJ = element.o family.o feml.o geometry.o massmat.o mesh.o
+MASOBJ = element.o svv.o family.o feml.o geometry.o massmat.o mesh.o
 massmat: $(MASOBJ)
 	$(CXX) $(CPPFLAGS) -o $@ $(MASOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build probe, field dump data extraction.
 #
-PRBOBJ = probe.o feml.o mesh.o element.o family.o auxfield.o geometry.o
+PRBOBJ = probe.o feml.o mesh.o element.o svv.o family.o auxfield.o geometry.o
 $(PRBOBJ): $(SEMHDR)
 
 probe: $(PRBOBJ)
@@ -194,7 +194,8 @@ probe: $(PRBOBJ)
 # ----------------------------------------------------------------------------
 # Build eneq, which computes terms in the fluctuating flow energy equations.
 #
-ENOBJ = eneq.o feml.o mesh.o element.o family.o auxfield.o geometry.o misc.o
+ENOBJ = eneq.o feml.o mesh.o element.o svv.o family.o auxfield.o 	\
+	geometry.o misc.o
 $(ENOBJ): $(SEMHDR)
 
 eneq: $(ENOBJ)
@@ -203,8 +204,8 @@ eneq: $(ENOBJ)
 # ----------------------------------------------------------------------------
 # Build stressdiv, which computes divergence of Reynolds stresses.
 #
-DIVOBJ = stressdiv.o feml.o mesh.o element.o family.o auxfield.o geometry.o \
-	 misc.o
+DIVOBJ = stressdiv.o feml.o mesh.o element.o svv.o family.o auxfield.o 	\
+	geometry.o misc.o
 $(DIVOBJ): $(SEMHDR)
 
 stressdiv: $(DIVOBJ)
@@ -213,8 +214,8 @@ stressdiv: $(DIVOBJ)
 # ----------------------------------------------------------------------------
 # Build rectmesh, rectangular mesh generator.
 #
-rectmesh: rectmesh.C
-	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
+rectmesh: rectmesh.o
+	$(CXX) $(CPPFLAGS) -o $@ $@.o $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build mapmesh, a utility that re-maps node locations according to strings
@@ -236,6 +237,6 @@ repmesh: feml.o repmesh.o $(SEMHDR)
 # Special machine-dependent compilations.
 
 ifeq ($(ARCH),SUPER-UX)
-mesh.o: $(VPATH)/mesh.C
-	$(CXX) $(CPPFLAGS) $(NOVEC) $(VPATH)/mesh.C
+mesh.o: $(VPATH)/mesh.cpp
+	$(CXX) $(CPPFLAGS) $(NOVEC) $(VPATH)/mesh.cpp
 endif
