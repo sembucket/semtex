@@ -10,7 +10,7 @@
 //
 // In order to return the Smagorinsky length scale instead of the
 // dynamic estimate (i.e. so that the Smagorinsky non-dynamic SGSS
-// model is used), deine SMAG during compilation. The dynamic estimate
+// model is used), define SMAG during compilation. The dynamic estimate
 // is still computed, but overridden.
 //
 // $Id$
@@ -229,7 +229,7 @@ void nonLinear (Domain*        D ,
 
 void dynamic (Domain*        D ,
 	      vector<real*>& Ut,
-	      const int      NL)
+	      const bool     NL)
 // ---------------------------------------------------------------------------
 // Compute nonlinear and SGSS terms: N(u) and eddy viscosity.
 //
