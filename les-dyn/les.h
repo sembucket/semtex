@@ -62,5 +62,5 @@ void integrate (Domain*, LESAnalyser*, SumIntegrator*);
 // -- nonlinear.C:
 
 void nonLinear (Domain*, SumIntegrator*, vector<real*>&, vector<real>&);
-void dynamic   (Domain*, vector<real*>&, const int = 1);
+void dynamic   (Domain*, vector<real*>&, const bool = true);
 #endif

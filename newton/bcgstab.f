@@ -1,5 +1,8 @@
       subroutine bcgstab(n,itmax,crit,x,ubar,b,p,r,s,t,v,suba)
       implicit real*8(a-h,o-z)
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c  Code supplied by Laurette Tuckerman, July 2011.
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c
 c  solves Ax=b by the biconjugate gradient stabilized algorithm (van der Vorst)
 c  requires a subroutine suba(x,y) which has x as input and y=Ax as output

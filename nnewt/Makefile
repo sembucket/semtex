@@ -22,7 +22,7 @@ endif
 # ----------------------------------------------------------------------------
 #
 SEMFILES  = analysis auxfield bcmgr boundary bsys condition domain   \
-	    edge element family feml field geometry history \
+	    edge element svv family feml field geometry history \
 	    integration matrix mesh misc particle pressure statistics
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
 SEMHDR    = sem.h
