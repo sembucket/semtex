@@ -60,7 +60,7 @@ const real_t* coeffs (const int_t np)
     const real_t nu  = Femlib:: value ("KINVIS");
 
     const int_t  N = np - 1;
-    real_t*      svvcoeff = new real [np];
+    real_t*      svvcoeff = new real_t [np];
     int_t        i;
 
     cmap[np] = svvcoeff;
@@ -102,7 +102,7 @@ const real_t* coeffs_z (const int_t numModes)
     const int_t  N    = Geometry::nMode() - 1;
     const int_t  base = Geometry::baseMode();
 
-    real_t*      svvcoeff = new real [numModes];
+    real_t*      svvcoeff = new real_t [numModes];
     int_t        i;
 
     czmap[numModes] = svvcoeff;
@@ -140,8 +140,8 @@ void operators (const int_t    np ,
   map <int_t, vector_pair>::iterator d = dmap.find (np);
 
   if (d == dmap.end()) {
-    real_t*        dv = new real [sqr (np)];
-    real_t*        dt = new real [sqr (np)];
+    real_t*        dv = new real_t [sqr (np)];
+    real_t*        dt = new real_t [sqr (np)];
     const real_t*  S  = SVV::coeffs (np);
     vector<real_t> sqrtS (np);
     int_t          i, j;

@@ -118,17 +118,17 @@ static int first (int n, const int* x)
 }
 
 
-void message_dexchange (double*       data,
-			const integer nZ  ,
-			const integer nP  ,
-			const integer sign)
+void message_dexchange (double*     data,
+			const int_t nZ  ,
+			const int_t nP  ,
+			const int_t sign)
 /* ------------------------------------------------------------------------- *
  * Transpose blocks of data across processors.  Data is a double-precision 
  * vector, total length nP*nZ on each processor.
  *
  * The amount of data held by each processor is nP*nZ.  Each nP-sized plane
  * can be split into nB = nP/nProc sized blocks (it is assumed that nP is an
- * integer multiple of nProc, i.e. that nB is a whole number).  Initially
+ * int_t multiple of nProc, i.e. that nB is a whole number).  Initially
  * the data are ordered by as nZ nP-sized planes, with memory traversed 
  * fastest moving over the planes, and the block indices vary more rapidly
  * than the z-indices.
@@ -286,10 +286,10 @@ void message_dexchange (double*       data,
 }
 
 
-void message_sexchange (float*        data,
-			const integer nZ  ,
-			const integer nP  ,
-			const integer sign)
+void message_sexchange (float*      data,
+			const int_t nZ  ,
+			const int_t nP  ,
+			const int_t sign)
 /* ------------------------------------------------------------------------- *
  * Single-precision version of message_dexchange.
  *
@@ -432,10 +432,10 @@ void message_sexchange (float*        data,
 }
 
 
-void message_iexchange (integer*      data,
-			const integer nZ  ,
-			const integer nP  ,
-			const integer sign)
+void message_iexchange (int_t*      data,
+			const int_t nZ  ,
+			const int_t nP  ,
+			const int_t sign)
 /* ------------------------------------------------------------------------- *
  * Integer exchange.
  * ------------------------------------------------------------------------- */
@@ -576,9 +576,9 @@ void message_iexchange (integer*      data,
 }
 
 
-void message_dsend (double*       data,
-		    const integer N   ,
-		    const integer tgt )
+void message_dsend (double*     data,
+		    const int_t N   ,
+		    const int_t tgt )
 /* ------------------------------------------------------------------------- *
  * Send data to processor number tgt.
  * ------------------------------------------------------------------------- */
@@ -591,9 +591,9 @@ void message_dsend (double*       data,
 }
 
 
-void message_drecv (double*       data,
-		    const integer N   ,
-		    const integer src )
+void message_drecv (double*     data,
+		    const int_t N   ,
+		    const int_t src )
 /* ------------------------------------------------------------------------- *
  * Receive data from processor number src.
  * ------------------------------------------------------------------------- */
@@ -608,9 +608,9 @@ void message_drecv (double*       data,
 }
 
 
-void message_ssend (float*        data,
-		    const integer N   ,
-		    const integer tgt )
+void message_ssend (float*      data,
+		    const int_t N   ,
+		    const int_t tgt )
 /* ------------------------------------------------------------------------- *
  * Send data to processor number tgt.
  * ------------------------------------------------------------------------- */
@@ -623,9 +623,9 @@ void message_ssend (float*        data,
 }
 
 
-void message_srecv (float*        data,
-		    const integer N   ,
-		    const integer src )
+void message_srecv (float*      data,
+		    const int_t N   ,
+		    const int_t src )
 /* ------------------------------------------------------------------------- *
  * Receive data from processor number src.
  * ------------------------------------------------------------------------- */
@@ -640,16 +640,16 @@ void message_srecv (float*        data,
 }
 
 
-void message_isend (integer*      data,
-		    const integer N   ,
-		    const integer tgt )
+void message_isend (int_t*      data,
+		    const int_t N   ,
+		    const int_t tgt )
 /* ------------------------------------------------------------------------- *
  * Send data to processor number tgt.
  * ------------------------------------------------------------------------- */
 {
 #if defined(MPI)
 
-  if (sizeof (integer) == sizeof (int))
+  if (sizeof (int_t) == sizeof (int))
     MPI_Send (data, (int) N, MPI_INT,  (int) tgt, 0, MPI_COMM_WORLD);
   else
     MPI_Send (data, (int) N, MPI_LONG, (int) tgt, 0, MPI_COMM_WORLD);
@@ -658,9 +658,9 @@ void message_isend (integer*      data,
 }
 
 
-void message_irecv (integer*      data,
-		    const integer N   ,
-		    const integer src )
+void message_irecv (int_t*      data,
+		    const int_t N   ,
+		    const int_t src )
 /* ------------------------------------------------------------------------- *
  * Receive data from processor number src.
  * ------------------------------------------------------------------------- */
@@ -669,7 +669,7 @@ void message_irecv (integer*      data,
 
   MPI_Status status;
 
-  if (sizeof (integer) == sizeof (int))
+  if (sizeof (int_t) == sizeof (int))
     MPI_Recv (data, (int) N, MPI_INT,  (int) src, 0, MPI_COMM_WORLD, &status);
   else
     MPI_Recv (data, (int) N, MPI_LONG, (int) src, 0, MPI_COMM_WORLD, &status);

@@ -123,7 +123,7 @@ static void getargs (int    argc   ,
       exit (EXIT_SUCCESS);
       break;
     case 'i':
-      Femlib::ivalue ("ITERATIVE", static_cast<integer>(1));
+      Femlib::ivalue ("ITERATIVE", static_cast<int_t>(1));
       break;
     case 'v':
       do
@@ -211,7 +211,7 @@ static void preprocess (const char*       session,
 
   VERBOSE cout << "Building forcing ...";
 
-  forcing = new AuxField (new real [(size_t)Geometry::nTotProc()],nz,elmt,'f');
+  forcing = new AuxField(new real_t[(size_t)Geometry::nTotProc()],nz,elmt,'f');
 
   VERBOSE cout << "done" << endl;
 }

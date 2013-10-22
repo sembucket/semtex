@@ -9,10 +9,10 @@ class Integration
 public:
   static const int_t OrderMax;
 
-  static void AdamsBashforth (const int_t, real*);
-  static void AdamsMoulton   (const int_t, real*);
-  static void StifflyStable  (const int_t, real*);
-  static void Extrapolation  (const int_t, real*);
+  static void AdamsBashforth (const int_t, real_t*);
+  static void AdamsMoulton   (const int_t, real_t*);
+  static void StifflyStable  (const int_t, real_t*);
+  static void Extrapolation  (const int_t, real_t*);
 };
 
 #endif

@@ -185,9 +185,9 @@ namespace polylib {
 
 /* local functions */
 
-static void   Jacobz   (integer n, double *z, double alpha, double beta);
-static void   JacZeros (integer n, double *a, double alpha, double beta);
-static void   TriQL    (integer n, double *d, double *e);
+static void   Jacobz   (int_t n, double *z, double alpha, double beta);
+static void   JacZeros (int_t n, double *a, double alpha, double beta);
+static void   TriQL    (int_t n, double *d, double *e);
 
 static double gammaF (double);
 
@@ -203,11 +203,11 @@ static double gammaF (double);
 
 void zwgj (double* z    ,
 	   double* w    ,
-	   integer np   ,
+	   int_t np   ,
 	   double  alpha,
 	   double  beta )
 {
-  register integer i;
+  register int_t i;
   double           fac;
   const double     one = 1.0, two = 2.0, apb = alpha + beta;
 
@@ -235,7 +235,7 @@ void zwgj (double* z    ,
 
 void zwgrjm (double* z    ,
 	     double* w    ,
-	     integer np   ,
+	     int_t np   ,
 	     double  alpha,
 	     double  beta )
 {
@@ -243,7 +243,7 @@ void zwgrjm (double* z    ,
     z[0] = 0.0;
     w[0] = 2.0;
   } else {
-    register integer i;
+    register int_t i;
     double           fac;
     const double     one = 1.0, two = 2.0, apb = alpha + beta;
     
@@ -275,7 +275,7 @@ void zwgrjm (double* z    ,
 
 void zwgrjp (double* z    ,
 	     double* w    ,
-	     integer np   ,
+	     int_t np   ,
 	     double  alpha,
 	     double  beta )
 {
@@ -283,7 +283,7 @@ void zwgrjp (double* z    ,
     z[0] = 0.0;
     w[0] = 2.0;
   } else {
-    register integer i;
+    register int_t i;
     double fac, one = 1.0, two = 2.0, apb = alpha + beta;
     
     jacobz  (np-1,z,alpha+1,beta);
@@ -311,7 +311,7 @@ void zwgrjp (double* z    ,
 
 void zwglj (double* z    ,
 	    double* w    ,
-	    integer np   ,
+	    int_t np   ,
 	    double  alpha,
 	    double  beta )
 {
@@ -319,7 +319,7 @@ void zwglj (double* z    ,
     z[0] = 0.0;
     w[0] = 2.0;
   } else {
-    register integer i;
+    register int_t i;
     double           fac;
     const double     one = 1.0, apb = alpha + beta, two = 2.0;
   
@@ -355,7 +355,7 @@ void zwglj (double* z    ,
 void Dgj (double* D    ,
 	  double* Dt   ,
 	  double* z    ,
-	  integer np   ,
+	  int_t np   ,
 	  double  alpha,
 	  double  beta )
 {
@@ -364,7 +364,7 @@ void Dgj (double* D    ,
   if (np <= 0) {
     D[0] = Dt[0] = 0.0;
   } else {
-    register integer i,j; 
+    register int_t i,j; 
     double*          pd;
     
     pd = (double *)malloc(np*sizeof(double));
@@ -403,14 +403,14 @@ void Dgj (double* D    ,
 void Dgrjm(double* D    ,
 	   double* Dt   ,
 	   double* z    ,
-	   integer np   ,
+	   int_t np   ,
 	   double  alpha,
 	   double  beta )
 {
   if (np <= 0) {
     D[0] = Dt[0] = 0.0;
   } else {
-    register integer i, j; 
+    register int_t i, j; 
     const double     one = 1.0, two = 2.0;
     double*          pd;
 
@@ -458,14 +458,14 @@ void Dgrjm(double* D    ,
 void Dgrjp (double* D    ,
 	    double* Dt   ,
 	    double* z    ,
-	    integer np   ,
+	    int_t np   ,
 	    double  alpha,
 	    double  beta )
 {
   if (np <= 0) {
     D[0] = Dt[0] = 0.0;
   } else {
-    register integer i, j; 
+    register int_t i, j; 
     const double     one = 1.0, two = 2.0;
     double*          pd;
 
@@ -513,14 +513,14 @@ void Dgrjp (double* D    ,
 void Dglj (double* D    ,
 	   double* Dt   ,
 	   double* z    ,
-	   integer np   ,
+	   int_t np   ,
 	   double  alpha,
 	   double  beta )
 {
   if (np <= 0) {
     D[0] = Dt[0] = 0.0;
   } else {
-    register integer i, j; 
+    register int_t i, j; 
     const double     one = 1.0, two = 2.0;
     double*          pd;
 
@@ -576,10 +576,10 @@ void Dglj (double* D    ,
     \end{array}   \f$ 
 */
 
-double hgj (integer i    ,
+double hgj (int_t i    ,
 	    double  z    ,
 	    double* zgj  ,
-	    integer np   ,
+	    int_t np   ,
 	    double  alpha,
 	    double  beta )
 {
@@ -617,10 +617,10 @@ double hgj (integer i    ,
     \end{array}   \f$ 
 */
 
-double hgrjm (integer i    ,
+double hgrjm (int_t i    ,
 	      double  z    , 
 	      double* zgrj ,
-	      integer np   ,
+	      int_t np   ,
 	      double  alpha,
 	      double  beta )
 {
@@ -662,10 +662,10 @@ double hgrjm (integer i    ,
     \end{array}   \f$ 
 */
 
-double hgrjp (integer i    ,
+double hgrjp (int_t i    ,
 	      double  z    ,
 	      double* zgrj ,
-	      integer np   ,
+	      int_t np   ,
 	      double  alpha,
 	      double  beta )
 {
@@ -707,10 +707,10 @@ double hgrjp (integer i    ,
     \end{array}   \f$ 
 */
 
-double hglj (integer i    , 
+double hglj (int_t i    , 
 	     double  z    ,
 	     double* zglj ,
-	     integer np   ,
+	     int_t np   ,
 	     double  alpha,
 	     double  beta )
 {
@@ -748,13 +748,13 @@ double hglj (integer i    ,
 void Imgj (double* im   ,
 	   double* zgj  ,
 	   double* zm   ,
-	   integer nz   ,
-	   integer mz   ,
+	   int_t nz   ,
+	   int_t mz   ,
 	   double  alpha,
 	   double  beta )
 {
   double           zp;
-  register integer i, j;
+  register int_t i, j;
 
   for (i = 0; i < mz; ++i) {
     zp = zm[i];
@@ -781,13 +781,13 @@ void Imgj (double* im   ,
 void Imgrjm (double* im   ,
 	     double* zgrj ,
 	     double* zm   ,
-	     integer nz   ,
-	     integer mz   ,
+	     int_t nz   ,
+	     int_t mz   ,
 	     double  alpha,
 	     double  beta )
 {
   double           zp;
-  register integer i, j;
+  register int_t i, j;
 
   for (i = 0; i < mz; i++) {
     zp = zm[i];
@@ -814,13 +814,13 @@ void Imgrjm (double* im   ,
 void Imgrjp (double* im   ,
 	     double* zgrj ,
 	     double* zm   ,
-	     integer nz   ,
-	     integer mz   ,
+	     int_t nz   ,
+	     int_t mz   ,
 	     double  alpha,
 	     double  beta )
 {
   double           zp;
-  register integer i, j;
+  register int_t i, j;
 
   for (i = 0; i < mz; i++) {
     zp = zm[i];
@@ -848,13 +848,13 @@ void Imgrjp (double* im   ,
 void Imglj (double* im  ,
 	    double* zglj,
 	    double* zm  ,
-	    integer nz  ,
-	    integer mz  ,
+	    int_t nz  ,
+	    int_t mz  ,
 	    double  alpha,
 	    double  beta )
 {
   double           zp;
-  register integer i, j;
+  register int_t i, j;
   
   for (i = 0; i < mz; i++) {
     zp = zm[i];
@@ -906,15 +906,15 @@ void Imglj (double* im  ,
     - Note the derivative from this routine is only valid for -1 < \a z < 1.
 */
 
-void jacobfd (integer np     ,
+void jacobfd (int_t np     ,
 	      double* z      ,
 	      double* poly_in,
 	      double* polyd  ,
-	      integer n      , 
+	      int_t n      , 
 	      double alpha   ,
 	      double beta    )
 {
-  register integer i;
+  register int_t i;
   const double     zero = 0.0, one = 1.0, two = 2.0;
 
   if(!np)
@@ -937,7 +937,7 @@ void jacobfd (integer np     ,
 	polyd[i] = 0.5*(alpha + beta + two);
   }
   else{
-    register integer k;
+    register int_t k;
     double           a1,a2,a3,a4;
     const double     two = 2.0, apb = alpha + beta;
     double           *poly, *polyn1,*polyn2;
@@ -1012,14 +1012,14 @@ void jacobfd (integer np     ,
 
 */
 
-void jacobd (integer np   ,
+void jacobd (int_t np   ,
 	     double* z    ,
 	     double* polyd,
-	     integer n    ,
+	     int_t n    ,
 	     double  alpha,
 	     double  beta )
 {
-  register integer i;
+  register int_t i;
 
   if(n == 0)
     for(i = 0; i < np; ++i) polyd[i] = 0.0;
@@ -1034,7 +1034,7 @@ void jacobd (integer np   ,
 
 /** 
 
-    \brief Calculate the Gamma function , \f$ \Gamma(n)\f$, for integer
+    \brief Calculate the Gamma function , \f$ \Gamma(n)\f$, for int_t
     values and halves.
 
     Determine the value of \f$\Gamma(n)\f$ using:
@@ -1051,8 +1051,8 @@ static double gammaF (double x)
   
   if     (x == -0.5) gamma = -2.0*sqrt(M_PI);
   else if (!x) return gamma;
-  else if ((x-(integer)x) == 0.5){ 
-    integer n = (integer) x;
+  else if ((x-(int_t)x) == 0.5){ 
+    int_t n = (int_t) x;
     double tmp = x;
 
     gamma = sqrt(M_PI);
@@ -1061,8 +1061,8 @@ static double gammaF (double x)
       gamma *= tmp;
     }
   }
-  else if ((x-(integer)x) == 0.0){
-    integer n = (integer) x;
+  else if ((x-(int_t)x) == 0.0){
+    int_t n = (int_t) x;
     double tmp = x;
 
     while(--n){
@@ -1071,7 +1071,7 @@ static double gammaF (double x)
     }
   }  
   else
-    fprintf(stderr,"%lf is not of integer or half order\n",x);
+    fprintf(stderr,"%lf is not of int_t or half order\n",x);
   return gamma;
 }
     
@@ -1083,12 +1083,12 @@ static double gammaF (double x)
     and uses polynomial deflation in a Newton iteration 
 */
 
-static void Jacobz (integer n,
+static void Jacobz (int_t n,
 		    double* z,
 		    double  alpha,
 		    double  beta )
 {
-  register integer i,j,k;
+  register int_t i,j,k;
   double   dth = M_PI/(2.0*(double)n);
   double   poly,pder,rlast=0.0;
   double   sum,delr,r;
@@ -1135,18 +1135,18 @@ static void Jacobz (integer n,
    \f$  b_j p_j(z) = (z - a_j ) p_{j-1}(z) - b_{j-1}   p_{j-2}(z) \f$
    
    where \f$ j=n+1\f$ and \f$p_j(z)\f$ are the Jacobi (normalized)
-   orthogonal polynomials \f$ \alpha,\beta > -1\f$( integer values and
+   orthogonal polynomials \f$ \alpha,\beta > -1\f$( int_t values and
    halves). Since the polynomials are orthonormalized, the tridiagonal
    matrix is guaranteed to be symmetric. The eigenvalues of this
    matrix are the zeros of the Jacobi polynomial.
 */
 
-static void JacZeros (integer n,
+static void JacZeros (int_t n,
 		      double* a,
 		      double  alpha,
 		      double beta  )
 {
-  integer i;
+  int_t i;
   double  apb, apbi,a2b2;
   double* b;
 
@@ -1204,11 +1204,11 @@ static void JacZeros (integer n,
     - e has been destroyed;
 */
 
-static void TriQL (integer n,
+static void TriQL (int_t n,
 		   double *d,
 		   double *e)
 {
-  integer m,l,iter,i,k;
+  int_t m,l,iter,i,k;
   double  s,r,p,g,f,dd,c,b;
   
   for (l=0;l<n;l++) {

@@ -12,15 +12,15 @@ public:
   Flowrate (Domain*, FEML*);
   ~Flowrate () { }
 
-  real getQ () const;
-  real setQ (AuxField*, AuxField*) const;
+  real_t getQ () const;
+  real_t setQ (AuxField*, AuxField*) const;
 
 protected:
   Domain*           _src;
   vector<Edge*>     _curve;
   vector<AuxField*> _green;
-  real              _gamma;
-  real              _refQ ;
+  real_t            _gamma;
+  real_t            _refQ ;
 
 };
 

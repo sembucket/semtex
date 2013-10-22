@@ -36,12 +36,12 @@ void Helmholtz (Domain*   D,
 // subject to BCs.
 // ---------------------------------------------------------------------------
 {
-  const real    lambda2 = Femlib::value ("LAMBDA2");
-  const real    beta    = Femlib::value ("BETA");
-  const integer nmodes  = Geometry::nModeProc();
-  const integer base    = Geometry::baseMode();
-  const integer nz      = Geometry::nZProc();
-  SolverKind    method  = (Femlib::ivalue("ITERATIVE")) ? JACPCG : DIRECT;
+  const real_t lambda2 = Femlib::value ("LAMBDA2");
+  const real_t beta    = Femlib::value ("BETA");
+  const int_t  nmodes  = Geometry::nModeProc();
+  const int_t  base    = Geometry::baseMode();
+  const int_t  nz      = Geometry::nZProc();
+  SolverKind   method  = (Femlib::ivalue("ITERATIVE")) ? JACPCG : DIRECT;
 
   ModalMatrixSys* M = new ModalMatrixSys
     (lambda2, beta, base, nmodes, D -> elmt, D -> b[0], method);

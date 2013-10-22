@@ -32,11 +32,11 @@
 #include <cveclib.h>
 
 
-void bvdFilter (const integer N     ,
-		const real    order ,
-		const real    lag   ,
-		const real    attn  ,
-		real*         filter)
+void bvdFilter (const int_t  N     ,
+		const real_t order ,
+		const real_t lag   ,
+		const real_t attn  ,
+		real_t*      filter)
 /* ------------------------------------------------------------------------- *
  * Load filter with the Boyd--Vandeven (i.e. erfc) filter [0, N] of given
  * order (p) and lag (s).
@@ -56,9 +56,9 @@ void bvdFilter (const integer N     ,
  * element ocean model, JCP V137, 130--154.
  * ------------------------------------------------------------------------- */
 {
-  integer    i;
-  real       arg, theta, chi, omega;
-  const real shift = N * lag, EPS = EPSSP;
+  int_t        i;
+  real_t       arg, theta, chi, omega;
+  const real_t shift = N * lag, EPS = EPSSP;
 
   for (i = 0; i <= N; i++) {
     if (i < shift) 

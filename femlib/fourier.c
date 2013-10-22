@@ -36,10 +36,10 @@
 #include <cveclib.h>
 #include <cfemlib.h>
 
-void dDFTr (double*       data,
-	    const integer tlen,
-	    const integer ntrn,
-	    const integer sign)
+void dDFTr (double*     data,
+	    const int_t tlen,
+	    const int_t ntrn,
+	    const int_t sign)
 /* ------------------------------------------------------------------------- *
  * Carry out multiple 1D single--complex Fourier transforms of data.
  * Data is to be Fourier transformed in the direction normal to the most
@@ -62,12 +62,12 @@ void dDFTr (double*       data,
  *     after which the real and imaginary parts for each mode alternate.
  * ------------------------------------------------------------------------- */
 {
-  const char       routine[] = "dDFTr";
-  char             err[STR_MAX];
-  const integer    ntot = tlen * ntrn;
-  register integer i;
-  integer          dum, ip, iq, ir, ipqr2, *ifax;
-  register double  *work, *Wtab, *ptr;
+  const char      routine[] = "dDFTr";
+  char            err[STR_MAX];
+  const int_t     ntot = tlen * ntrn;
+  register int_t  i;
+  int_t           dum, ip, iq, ir, ipqr2, *ifax;
+  register double *work, *Wtab, *ptr;
 
   if (tlen < 2 || !ntrn) return;
 

@@ -33,20 +33,20 @@
 #include <cfemlib.h>
 
 typedef struct mapping {
-  integer         np   ;
-  integer         dim  ;
-  integer*        emap ;
-  integer*        pmap ;
+  int_t         np   ;
+  int_t         dim  ;
+  int_t*        emap ;
+  int_t*        pmap ;
   struct mapping* next ;
 } Mapping;
 
 static Mapping* mHead = 0;
 
 
-void edgemaps (const integer nk ,
-	       const integer dim,
-	       integer**     map,
-	       integer**     inv)
+void edgemaps (const int_t nk ,
+	       const int_t dim,
+	       int_t**     map,
+	       int_t**     inv)
 /* ------------------------------------------------------------------------- *
  * An (e)map is an edge-major permutation of indices, going CCW around the
  * element edges and then traversing the interior in row-major form. 
@@ -65,8 +65,8 @@ void edgemaps (const integer nk ,
  * ------------------------------------------------------------------------- */
 {
   char              routine[] = "edgemaps";
-  const integer     len = (dim == 2) ? nk * nk : nk;
-  register integer  found = 0;
+  const int_t     len = (dim == 2) ? nk * nk : nk;
+  register int_t  found = 0;
   register Mapping* p;
 
   if (nk < 2)
@@ -79,9 +79,9 @@ void edgemaps (const integer nk ,
     if (found = nk == p -> np && dim == p -> dim) break;
 
   if (!found) {
-    register integer i, j, k, n;
-    const    integer nm = nk - 1;
-    register integer *em, *pm;
+    register int_t i, j, k, n;
+    const    int_t nm = nk - 1;
+    register int_t *em, *pm;
 
     p = (Mapping *) calloc (1, sizeof (Mapping));
     if (mHead) p -> next = mHead;
