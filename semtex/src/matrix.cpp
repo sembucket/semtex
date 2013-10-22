@@ -25,7 +25,6 @@
 static char RCS[] = "$Id$";
 
 #include <sem.h>
-#include <dns.h>
 
 
 static vector<MatrixSys*> MS;
