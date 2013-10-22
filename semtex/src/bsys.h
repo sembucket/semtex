@@ -36,7 +36,7 @@ public:
   bool                     mixBC () const { return _mixed; }
   const vector<Boundary*>& BCs   (const int_t) const;
   const NumberSys*         Nsys  (const int_t) const;
-  const real*              Imass (const int_t) const;
+  const real_t*            Imass (const int_t) const;
 
 private:
   char               _field_name;

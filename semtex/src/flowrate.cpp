@@ -71,7 +71,7 @@ Flowrate::Flowrate (Domain* D,
 
   const char routine[] = "Flowrate::Flowrate";
   char       buf[StrMax];
-  integer    i, id, elmt, side, Nedge;
+  int_t      i, id, elmt, side, Nedge;
 
   // -- Get the information for data extraction surface.
 

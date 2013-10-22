@@ -9,8 +9,8 @@
 #include <les.h>
 
 
-LESAnalyser::LESAnalyser (Domain*        D   ,
-			  FEML*          feml) :
+LESAnalyser::LESAnalyser (Domain* D   ,
+			  FEML*   feml) :
 // ---------------------------------------------------------------------------
 // Extensions to Analyser class.
 // ---------------------------------------------------------------------------
@@ -37,15 +37,15 @@ void LESAnalyser::analyse (AuxField** work0, AuxField** work1)
 // Step-by-step processing.
 // ---------------------------------------------------------------------------
 {
-  const integer DIM = Geometry::nDim();
+  const int_t DIM = Geometry::nDim();
 
   Analyser::analyse (work0, work1);
 
   ROOTONLY {
-    const integer periodic = !(_src->step % (integer)Femlib::value("IO_HIS")) ||
-                             !(_src->step % (integer)Femlib::value("IO_FLD"));
-    const integer final    =   _src->step ==(integer)Femlib::value("N_STEP");
-    const integer state    = periodic || final;
+    const int_t periodic = !(_src->step %   Femlib::ivalue("IO_HIS")) ||
+                           !(_src->step % Femlib::ivalue("IO_FLD"));
+    const int_t final    = _src->step == Femlib::ivalue("N_STEP");
+    const int_t state    = periodic || final;
 
     if (!state) return;
 
@@ -67,7 +67,7 @@ void LESAnalyser::analyse (AuxField** work0, AuxField** work1)
     }
 
     sprintf (s,
-	     "%#6d %#10.6g "
+	     "%6d %#10.6g "
 	     "%#10.6g %#10.6g %#10.6g "
 	     "%#10.6g %#10.6g %#10.6g "
 	     "%#10.6g %#10.6g %#10.6g",

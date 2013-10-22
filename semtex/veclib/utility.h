@@ -51,32 +51,32 @@ extern "C" {
   double     dclock  ();
   float      sclock  ();
 
-  double   *dvector  (integer nl, integer nh);
-  double  **dmatrix  (integer rl, integer rh, integer cl, integer ch);
-  double ***d3matrix (integer rl, integer rh, integer cl, integer ch,
-		      integer dl, integer dh);
+  double   *dvector  (int_t nl, int_t nh);
+  double  **dmatrix  (int_t rl, int_t rh, int_t cl, int_t ch);
+  double ***d3matrix (int_t rl, int_t rh, int_t cl, int_t ch,
+		      int_t dl, int_t dh);
 
-  float    *svector  (integer nl, integer nh);
-  float   **smatrix  (integer rl, integer rh, integer cl, integer ch);
-  float  ***s3matrix (integer rl, integer rh, integer cl, integer ch,
-		      integer dl, integer dh);
+  float    *svector  (int_t nl, int_t nh);
+  float   **smatrix  (int_t rl, int_t rh, int_t cl, int_t ch);
+  float  ***s3matrix (int_t rl, int_t rh, int_t cl, int_t ch,
+		      int_t dl, int_t dh);
 
-  integer   *ivector  (integer nl, integer nh);
-  integer  **imatrix  (integer rl, integer rh, integer cl, integer ch);
-  integer ***i3matrix (integer rl, integer rh, integer cl, integer ch,
-		       integer dl, integer dh);
+  int_t   *ivector  (int_t nl, int_t nh);
+  int_t  **imatrix  (int_t rl, int_t rh, int_t cl, int_t ch);
+  int_t ***i3matrix (int_t rl, int_t rh, int_t cl, int_t ch,
+		     int_t dl, int_t dh);
+  
+  void freeDvector  (double    *v, int_t nl);
+  void freeDmatrix  (double   **m, int_t nrl, int_t ncl);
+  void freeD3matrix (double  ***t, int_t nrl, int_t ncl, int_t ndl);
 
-  void freeDvector  (double    *v, integer nl);
-  void freeDmatrix  (double   **m, integer nrl, integer ncl);
-  void freeD3matrix (double  ***t, integer nrl, integer ncl, integer ndl);
+  void freeSvector  (float     *v, int_t nl);
+  void freeSmatrix  (float    **m, int_t nrl, int_t ncl);
+  void freeS3matrix (float   ***t, int_t nrl, int_t ncl, int_t ndl);
 
-  void freeSvector  (float     *v, integer nl);
-  void freeSmatrix  (float    **m, integer nrl, integer ncl);
-  void freeS3matrix (float   ***t, integer nrl, integer ncl, integer ndl);
-
-  void freeIvector  (integer   *v, integer nl);
-  void freeImatrix  (integer  **m, integer nrl, integer ncl);
-  void freeI3matrix (integer ***t, integer nrl, integer ncl, integer ndl);
+  void freeIvector  (int_t   *v, int_t nl);
+  void freeImatrix  (int_t  **m, int_t nrl, int_t ncl);
+  void freeI3matrix (int_t ***t, int_t nrl, int_t ncl, int_t ndl);
 }
 
 #endif

@@ -103,17 +103,17 @@ static void getargs (int    argc   ,
       break;
     case 'i':
       do
-	Femlib::value ("ITERATIVE", (integer) Femlib::value ("ITERATIVE") + 1);
+	Femlib::value ("ITERATIVE", (int_t) Femlib::value ("ITERATIVE") + 1);
       while (*++argv[0] == 'i');
       break;
     case 'v':
       do
-	Femlib::value ("VERBOSE",   (integer) Femlib::value ("VERBOSE")   + 1);
+	Femlib::value ("VERBOSE",   (int_t) Femlib::value ("VERBOSE")   + 1);
       while (*++argv[0] == 'v');
       break;
     case 'c':
       if (strstr ("chk", *argv)) {
-	Femlib::value ("CHKPOINT",  (integer) 1);
+	Femlib::value ("CHKPOINT",  (int_t) 1);
       } else {
 	fprintf (stdout, usage, prog);
 	exit (EXIT_FAILURE);	  
@@ -143,10 +143,10 @@ static void preprocess (const char*       session,
 // They are listed in order of creation.
 // ---------------------------------------------------------------------------
 {
-  const integer      verbose = (integer) Femlib::value ("VERBOSE");
+  const int_t        verbose = Femlib::ivalue ("VERBOSE");
   Geometry::CoordSys space;
-  const real*        z;
-  integer            i, np, nz, nel;
+  const real_t*      z;
+  int_t              i, np, nz, nel;
 
   // -- Initialise problem and set up mesh geometry.
 

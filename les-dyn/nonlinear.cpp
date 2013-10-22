@@ -18,15 +18,15 @@
 
 #include "les.h"
 
-static void transform       (const TransformKind, const ExchangeKind, real*);
-static void realGradient    (const AuxField*, real*, const int);
-static void complexGradient (const AuxField*, real*, const int);
+static void transform       (const TransformKind, const ExchangeKind, real_t*);
+static void realGradient    (const AuxField*, real_t*, const int_t);
+static void complexGradient (const AuxField*, real_t*, const int_t);
 
 
 void nonLinear (Domain*        D ,
 		SumIntegrator* S ,
-		vector<real*>& Ut,
-		vector<real>&  ff)
+		vector<real_t*>& Ut,
+		vector<real_t>&  ff)
 // ---------------------------------------------------------------------------
 // Compute nonlinear and SGSS terms, N(u) and \tau_ij.
 //
@@ -44,28 +44,28 @@ void nonLinear (Domain*        D ,
 // NB: no dealiasing.
 // ---------------------------------------------------------------------------
 {
-  const integer nZ   = Geometry::nZ();
-  const integer nZP  = Geometry::nZProc();
-  const integer nP   = Geometry::planeSize();
-  const integer nPP  = Geometry::nBlock();
-  const integer nPR  = Geometry::nProc();
-  const integer nTot = Geometry::nTotProc();
-  const integer CYL  = Geometry::system() == Geometry::Cylindrical;
+  const int_t nZ   = Geometry::nZ();
+  const int_t nZP  = Geometry::nZProc();
+  const int_t nP   = Geometry::planeSize();
+  const int_t nPP  = Geometry::nBlock();
+  const int_t nPR  = Geometry::nProc();
+  const int_t nTot = Geometry::nTotProc();
+  const int_t CYL  = Geometry::system() == Geometry::Cylindrical;
 
-  Field*        meta = D -> u[0]; // -- A handle to use for Field operations.
-  integer       i, j, ij;
+  Field*      meta = D -> u[0]; // -- A handle to use for Field operations.
+  int_t       i, j, ij;
 
   // -- Create names for local computations.
 
-  vector<real*> u (26);
-  real**        Sr  = &u[0];	// -- Strain rate tensor, unfiltered velocity.
-  real**        St  = Sr + 6;	// -- Strain rate tensor, filtered velocity.
-  real**        Ua  = St + 6;	// -- Physical space velocities.
-  real**        Sm  = Ua + 3;	// -- Strain rate magnitude.
-  real**        Us  = Sm + 2;	// -- Top level of velocity storage.
-  real**        Nl  = Us + 3;	// -- Top level of nonlinear/forcing storage.
-  real**        Ud  = Nl + 3;	// -- Domain velocity field, filtered.
-  real*         tmp = D -> udat[3]; // -- NB: pressure field gets destroyed.
+  vector<real_t*> u (26);
+  real_t**        Sr  = &u[0];	// -- Strain rate tensor, unfiltered velocity.
+  real_t**        St  = Sr + 6;	// -- Strain rate tensor, filtered velocity.
+  real_t**        Ua  = St + 6;	// -- Physical space velocities.
+  real_t**        Sm  = Ua + 3;	// -- Strain rate magnitude.
+  real_t**        Us  = Sm + 2;	// -- Top level of velocity storage.
+  real_t**        Nl  = Us + 3;	// -- Top level of nonlinear/forcing storage.
+  real_t**        Ud  = Nl + 3;	// -- Domain velocity field, filtered.
+  real_t*         tmp = D -> udat[3]; // -- NB: pressure field gets destroyed.
 
   // -- Set pointers into supplied workspace, Ut.
 
@@ -89,11 +89,11 @@ void nonLinear (Domain*        D ,
 
   dynamic (D, Ut);
 
-  real* Lmix2 = Sm[0];
-  real* RoS   = Sm[1];
+  real_t* Lmix2 = Sm[0];
+  real_t* RoS   = Sm[1];
 
-  const real refvis = Femlib::value ("KINVIS");
-  const real molvis = Femlib::value ("REFVIS");
+  const real_t refvis = Femlib::value ("KINVIS");
+  const real_t molvis = Femlib::value ("REFVIS");
 
 #if !defined(SMAG)
   // -- Temporal filtering of L_mix^2.
@@ -103,7 +103,7 @@ void nonLinear (Domain*        D ,
 
   // -- Compose the turbulent eddy viscosity in Sm[0]: nut = L_mix^2 |S|.
 
-  real* nut = Sm[0];
+  real_t* nut = Sm[0];
 
   Veclib::vmul(nTot, Lmix2, 1, RoS, 1, nut, 1);
 
@@ -227,9 +227,9 @@ void nonLinear (Domain*        D ,
 }
 
 
-void dynamic (Domain*        D ,
-	      vector<real*>& Ut,
-	      const bool     NL)
+void dynamic (Domain*          D ,
+	      vector<real_t*>& Ut,
+	      const bool       NL)
 // ---------------------------------------------------------------------------
 // Compute nonlinear and SGSS terms: N(u) and eddy viscosity.
 //
@@ -287,28 +287,28 @@ void dynamic (Domain*        D ,
 // calculations: they should return the same values.
 // ---------------------------------------------------------------------------
 {
-  const integer    nZ   = Geometry::nZ();
-  const integer    nZP  = Geometry::nZProc();
-  const integer    nP   = Geometry::planeSize();
-  const integer    nPP  = Geometry::nBlock();
-  const integer    nPR  = Geometry::nProc();
-  const integer    nTot = Geometry::nTotProc();
-  const integer    CYL  = Geometry::system() == Geometry::Cylindrical;
+  const int_t    nZ   = Geometry::nZ();
+  const int_t    nZP  = Geometry::nZProc();
+  const int_t    nP   = Geometry::planeSize();
+  const int_t    nPP  = Geometry::nBlock();
+  const int_t    nPR  = Geometry::nProc();
+  const int_t    nTot = Geometry::nTotProc();
+  const int_t    CYL  = Geometry::system() == Geometry::Cylindrical;
 
-  Field*           meta = D -> u[0]; // -- A handle for Field operations.
-  register integer i, j, ij;
+  Field*         meta = D -> u[0]; // -- A handle for Field operations.
+  register int_t i, j, ij;
 
   // -- Create names for local computations.
 
-  vector<real*> u (26);
-  real**        Sr  = &u[0];	// -- Strain rate tensor, unfiltered velocity.
-  real**        St  = Sr + 6;	// -- Strain rate tensor, filtered velocity.
-  real**        Ua  = St + 6;	// -- Physical space velocities.
-  real**        Sm  = Ua + 3;	// -- Strain rate magnitude.
-  real**        Us  = Sm + 2;	// -- Top level of velocity storage.
-  real**        Nl  = Us + 3;	// -- Top level of nonlinear/forcing storage.
-  real**        Ud  = Nl + 3;	// -- Domain velocity field, filtered.
-  real*         tmp = D -> udat[3];
+  vector<real_t*> u (26);
+  real_t**        Sr  = &u[0];	// -- Strain rate tensor, unfiltered velocity.
+  real_t**        St  = Sr + 6;	// -- Strain rate tensor, filtered velocity.
+  real_t**        Ua  = St + 6;	// -- Physical space velocities.
+  real_t**        Sm  = Ua + 3;	// -- Strain rate magnitude.
+  real_t**        Us  = Sm + 2;	// -- Top level of velocity storage.
+  real_t**        Nl  = Us + 3;	// -- Top level of nonlinear/forcing storage.
+  real_t**        Ud  = Nl + 3;	// -- Domain velocity field, filtered.
+  real_t*         tmp = D -> udat[3];
 
   // -- Set pointers into supplied workspace, Ut.
 
@@ -452,11 +452,11 @@ void dynamic (Domain*        D ,
     Veclib::svvtt
       (nTot, Femlib::value ("LAMBDA_M^2"), Sm[1], 1, St[i], 1, St[i], 1);
 
-  real* RoS = Us[2];
+  real_t* RoS = Us[2];
   Veclib::copy (nTot, Sm[0], 1, RoS, 1);
 
-  real* L   = Sm[0]; real* M   = Sm[1];
-  real* Num = Us[0]; real* Den = Us[1];
+  real_t* L   = Sm[0]; real_t* M   = Sm[1];
+  real_t* Num = Us[0]; real_t* Den = Us[1];
 
   Veclib::zero (nTot, Num, 1);
   Veclib::zero (nTot, Den, 1);
@@ -538,8 +538,8 @@ void dynamic (Domain*        D ,
 
 #if 0 // -- Elemental average.
 
-  const integer nEl = Geometry::nElmt();
-  const integer nP2 = Geometry::nTotElmt();
+  const int_t nEl = Geometry::nElmt();
+  const int_t nP2 = Geometry::nTotElmt();
 
   for (i = 0; i < nEl; i++) {
     Num[ij] = Veclib::sum (nP2, Num + i * nP2, 1) / nP2;
@@ -603,16 +603,16 @@ void dynamic (Domain*        D ,
 
 static void transform (const TransformKind SIGN,
 		       const ExchangeKind  EXCH,
-		       real*               data)
+		       real_t*             data)
 // ---------------------------------------------------------------------------
 // Fourier transform a block of data in place with half or full
 // exchange, according to flags.  No dealiasing.
 // ---------------------------------------------------------------------------
 {
-  const integer nZ  = Geometry::nZ();
-  const integer nZP = Geometry::nZProc();
-  const integer nP  = Geometry::planeSize();
-  const integer nPP = Geometry::nBlock();
+  const int_t nZ  = Geometry::nZ();
+  const int_t nZP = Geometry::nZProc();
+  const int_t nP  = Geometry::planeSize();
+  const int_t nPP = Geometry::nBlock();
 
   if (SIGN == FORWARD) {
     Femlib::exchange   (data, nZP, nP,  FORWARD);
@@ -629,17 +629,17 @@ static void transform (const TransformKind SIGN,
 
 
 static void realGradient (const AuxField* meta, 
-			  real*           ui  ,
-			  const int       xj  )
+			  real_t*         ui  ,
+			  const int_t     xj  )
 // ---------------------------------------------------------------------------
 // Carry out gradient operation on data, special case for homogeneous
 // direction.
 // ---------------------------------------------------------------------------
 {
-  const integer nZ  = Geometry::nZ();
-  const integer nZP = Geometry::nZProc();
-  const integer nP  = Geometry::planeSize();
-  const integer nPP = Geometry::nBlock();
+  const int_t nZ  = Geometry::nZ();
+  const int_t nZP = Geometry::nZProc();
+  const int_t nP  = Geometry::planeSize();
+  const int_t nPP = Geometry::nBlock();
       
   if (xj == 2) {
     transform        (FORWARD, HALF, ui);
@@ -651,17 +651,17 @@ static void realGradient (const AuxField* meta,
 
 
 static void complexGradient (const AuxField* meta, 
-			     real*           ui  ,
-			     const int       xj  )
+			     real_t*         ui  ,
+			     const int_t     xj  )
 // ---------------------------------------------------------------------------
 // Carry out gradient operation on data, special case for homogeneous
 // direction.
 // ---------------------------------------------------------------------------
 {
-  const integer nZ  = Geometry::nZ();
-  const integer nZP = Geometry::nZProc();
-  const integer nP  = Geometry::planeSize();
-  const integer nPP = Geometry::nBlock();
+  const int_t nZ  = Geometry::nZ();
+  const int_t nZP = Geometry::nZProc();
+  const int_t nP  = Geometry::planeSize();
+  const int_t nPP = Geometry::nBlock();
       
   if (xj == 2) {
     Femlib::exchange (ui, nZP, nP, FORWARD);

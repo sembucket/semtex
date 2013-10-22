@@ -40,7 +40,7 @@ static char RCS[] = "$Id$";
 #include <sem.h>
 
 static char prog[] = "rectmesh";
-static void getargs (int, char**, int&, int&, int&, istream*&);
+static void getargs (int, char**, int_t&, int_t&, int_t&, istream*&);
 static void header  ();
 
 
@@ -52,12 +52,12 @@ int main (int    argc,
 {
   char                    line[STR_MAX];
   istream*                input;
-  real                    x, y;
-  stack <real>            X, Y;
+  real_t                  x, y;
+  stack <real_t>          X, Y;
   vector<vector<Point*> > vertex;
-  int                     Nx = 0, Ny = 0, Nb = 1, NelB;
-  int                     eOffset = 0, vOffset = 0;
-  int                     i, j, k, b;
+  int_t                   Nx = 0, Ny = 0, Nb = 1, NelB;
+  int_t                   eOffset = 0, vOffset = 0;
+  int_t                   i, j, k, b;
   string                  s;
 
   getargs (argc, argv, Nb, eOffset, vOffset, input);
@@ -207,9 +207,9 @@ int main (int    argc,
 
 static void getargs (int       argc ,
 		     char**    argv ,
-		     int&      Nb   ,
-		     int&      eOff ,
-                     int&      vOff ,
+		     int_t&    Nb   ,
+		     int_t&    eOff ,
+                     int_t&    vOff ,
 		     istream*& input)
 // ---------------------------------------------------------------------------
 // Deal with command-line arguments.

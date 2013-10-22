@@ -8,9 +8,9 @@
 
 #include "les.h"
 
-static real       *FourierMask = 0, *PolyMask = 0;
-static const real *Du = 0, *Dt = 0;
-static real       *Iu = 0, *It = 0;
+static real_t       *FourierMask = 0, *PolyMask = 0;
+static const real_t *Du = 0, *Dt = 0;
+static real_t       *Iu = 0, *It = 0;
 
 
 void initFilters ()
@@ -58,10 +58,10 @@ void initFilters ()
 // ---------------------------------------------------------------------------
 {
   static char routine[]= "initFilters";
-  integer      i, j, n, nm, order;
-  real         lag, atten;
-  const real*  dpt;
-  vector<real> work;
+  int_t          i, j, n, nm, order;
+  real_t         lag, atten;
+  const real_t*  dpt;
+  vector<real_t> work;
 
   if (FourierMask) return;	// -- Already initialised.
 
@@ -69,11 +69,11 @@ void initFilters ()
 
   n     = Geometry::nZ();
   nm    = Geometry::nMode();
-  order = (integer) Femlib::value ("F_ORDER");
-  lag   =           Femlib::value ("F_ROLL" );
-  atten =           Femlib::value ("F_ATTEN");
+  order = Femlib::ivalue ("F_ORDER");
+  lag   = Femlib:: value ("F_ROLL" );
+  atten = Femlib:: value ("F_ATTEN");
 
-  FourierMask = new real [n];
+  FourierMask = new real_t [n];
 
   if (order < 1) {
     message (routine, "Filter properties not defined", WARNING);
@@ -93,11 +93,11 @@ void initFilters ()
 
 #if defined (PROJ) // -- Projection to half-order Lagrange interpolants.
 
-  const real **PF, **PT, **IB, **IT;
+  const real_t **PF, **PT, **IB, **IT;
 
   n  = Geometry::nP();
   nm = (n + 1) / 2;
-  Iu = new real [(size_t) (2 * n*n)];
+  Iu = new real_t [(size_t) (2 * n*n)];
   It = Iu + n*n;
   
   Femlib::mesh (GLL, GLL, n,  nm, 0, &PF, &PT, 0, 0);
@@ -111,11 +111,11 @@ void initFilters ()
 
   n     = Geometry::nP();
   nm    = n - 1;
-  order = (integer) Femlib::value ("P_ORDER");
-  lag   =           Femlib::value ("P_ROLL" );
-  atten =           Femlib::value ("P_ATTEN");
+  order = Femlib::ivalue ("P_ORDER");
+  lag   = Femlib:: value ("P_ROLL" );
+  atten = Femlib:: value ("P_ATTEN");
 
-  PolyMask = new real [n];
+  PolyMask = new real_t [n];
 
   if (order < 1) {
     message (routine, "Filter properties not defined", WARNING);
@@ -125,7 +125,7 @@ void initFilters ()
 
   // -- polynomial transform+filter (Du, Dt) and inversion (Iu, It) matrices.
 
-  Iu = new real [(size_t) (2 * n*n)];
+  Iu = new real_t [(size_t) (2 * n*n)];
   It = Iu + n*n;
 
 #if 1
@@ -150,21 +150,21 @@ void initFilters ()
 }
 
 
-void lowpass (real* data)
+void lowpass (real_t* data)
 // ---------------------------------------------------------------------------
 // Carry out lowpass filtering of data, which is assumed to be
 // supplied in Fourier-transformed state, and to have usual AuxField
 // structure.
 // ---------------------------------------------------------------------------
 {
-  integer       i;
-  const integer pid = Geometry::procID();
-  const integer np  = Geometry::nP();
-  const integer nP  = Geometry::planeSize();
-  const integer nZP = Geometry::nZProc();
-  const integer nel = Geometry::nElmt();
-  vector<real>  tmp (nP);
-  real*         dataplane;
+  int_t           i;
+  const int_t     pid = Geometry::procID();
+  const int_t     np  = Geometry::nP();
+  const int_t     nP  = Geometry::planeSize();
+  const int_t     nZP = Geometry::nZProc();
+  const int_t     nel = Geometry::nElmt();
+  vector<real_t> tmp (nP);
+  real_t*        dataplane;
 
   if (!FourierMask) initFilters();
 

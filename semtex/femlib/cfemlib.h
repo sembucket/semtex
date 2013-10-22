@@ -181,8 +181,8 @@ void dgrad2_ (real_t*,real_t*,real_t*,real_t*,real_t*,real_t*,int_t*,int_t*);
 
 /* -- Routines from NEC FFT library: floating precision depends on library. */
 
-void rftfax_ (int_t*,int_t*,real*);
-void rfft_   (real*,real*,real*,int_t*,int_t*,int_t*,real*);
+void rftfax_ (int_t*,int_t*,real_t*);
+void rfft_   (real_t*,real_t*,real_t*,int_t*,int_t*,int_t*,real_t*);
 
 #define rftfax(n,ifax,trigs)                        \
 (_vecIreg[0]=n,rftfax_(_vecIreg,ifax,trigs))
@@ -198,7 +198,7 @@ void dDFTr (real_t*, const int_t, const int_t, const int_t);
 
 /* -- Routines from filter.c */
 
-void bvdFilter (const int_t,const int_t,const int_t, const real, real*);
+void bvdFilter (const int_t,const int_t,const int_t, const real_t, real_t*);
 
 /* -- Routines from message.c: */
 

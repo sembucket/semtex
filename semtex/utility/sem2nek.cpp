@@ -115,9 +115,9 @@ static void printHead ()
 // Print the beginning of a NEKTON .rea file.  May need editing.
 // ---------------------------------------------------------------------------
 {
-  int  np = (int) Femlib::value ("N_P");
-  int  nz = (int) Femlib::value ("N_Z");
-  real dt =       Femlib::value ("D_T");
+  int_t  np = Femlib::ivalue ("N_P");
+  int_t  nz = Femlib::ivalue ("N_Z");
+  real_t dt = Femlib:: value ("D_T");
 
   cout << "****** PARAMETERS *****"                                  << endl;
   cout << "6 PRISM VERSION"                                          << endl;

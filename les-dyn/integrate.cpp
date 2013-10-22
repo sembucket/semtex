@@ -28,14 +28,14 @@
 #include "les.h"
 
 typedef ModalMatrixSys  Msys;
-static  integer         NORD, NDIM, CYL;
+static  int_t         NORD, NDIM, CYL;
    
 static void   waveProp  (Domain*, const AuxField***, const AuxField***);
 static void   setPForce (const AuxField**, AuxField**);
 static void   project   (const Domain*, AuxField**, AuxField**);
 static Msys** preSolve  (const Domain*);
-static void   Solve     (Domain*, const integer, AuxField*, Msys*);
-static void   pushdown  (AuxField***, const integer, const integer);
+static void   Solve     (Domain*, const int_t, AuxField*, Msys*);
+static void   pushdown  (AuxField***, const int_t, const int_t);
 
 
 void integrate (Domain*        D,
@@ -50,21 +50,21 @@ void integrate (Domain*        D,
 // ---------------------------------------------------------------------------
 {
   NDIM = 3;			// -- Guaranteed if we got this far.
-  NORD = (integer) Femlib::value ("N_TIME");
+  NORD = Femlib::ivalue ("N_TIME");
   CYL  = Geometry::system() == Geometry::Cylindrical;
 
-  integer       i, j;
-  const real    dt    =           Femlib::value ("D_T"   );
-  const integer nStep = (integer) Femlib::value ("N_STEP");
-  const integer nZ    = Geometry::nZProc();
-  const integer nTot  = Geometry::nTotProc();
+  int_t        i, j;
+  const real_t dt    =           Femlib::value ("D_T"   );
+  const int_t  nStep = (int_t) Femlib::value ("N_STEP");
+  const int_t  nZ    = Geometry::nZProc();
+  const int_t  nTot  = Geometry::nTotProc();
 
   // -- Create global matrix systems: rename viscosities beforehand.
 
 #if !defined (NOMODEL)
   if (Femlib::value ("REFVIS") > 0.0) {
-    real kinVis = Femlib::value ("REFVIS");
-    real refVis = Femlib::value ("KINVIS");
+    real_t kinVis = Femlib::value ("REFVIS");
+    real_t refVis = Femlib::value ("KINVIS");
     Femlib::value ("KINVIS", kinVis);
     Femlib::value ("REFVIS", refVis);
   } 
@@ -76,9 +76,9 @@ void integrate (Domain*        D,
   //    terms.  Last 2*NDIM*NORD of these are used for Us & Uf, first 17
   //    are used for SGSS modelling work.
 
-  const integer nwork = 17 + 2 * NDIM * NORD;
-  vector<real*> Ut   (nwork);
-  vector<real>  work (nwork * nTot);
+  const int_t     nwork = 17 + 2 * NDIM * NORD;
+  vector<real_t*> Ut   (nwork);
+  vector<real_t>  work (nwork * nTot);
   for (i = 0; i < nwork; i++) Ut[i] = &work[0] + i * nTot;
   
   // -- Create & initialise multi-level storage for velocities and forcing.
@@ -102,7 +102,7 @@ void integrate (Domain*        D,
 
   // -- Create spatially constant forcing terms.
 
-  vector<real> ff (3);
+  vector<real_t> ff (3);
 
   ff[0] = Femlib::value ("FFX");
   ff[1] = Femlib::value ("FFY");
@@ -208,7 +208,7 @@ static void waveProp (Domain*           D ,
 // computed and left in D's velocity areas. 
 // ---------------------------------------------------------------------------
 {
-  integer           i, q;
+  int_t             i, q;
   vector<AuxField*> H (NDIM);	// -- Mnemonic for u^{Hat}.
 
   for (i = 0; i < NDIM; i++) {
@@ -216,9 +216,9 @@ static void waveProp (Domain*           D ,
     *H[i] = 0.0;
   }
 
-  const integer Je = min (D -> step, NORD);
-  vector<real> alpha (Integration::OrderMax + 1);
-  vector<real> beta  (Integration::OrderMax);
+  const int_t    Je = min (D -> step, NORD);
+  vector<real_t> alpha (Integration::OrderMax + 1);
+  vector<real_t> beta  (Integration::OrderMax);
   
   Integration::StifflyStable (Je, &alpha[0]);
   Integration::Extrapolation (Je, &beta [0]);
@@ -239,8 +239,8 @@ static void setPForce (const AuxField** Us,
 // in the first dimension of Uf as a forcing field for discrete PPE.
 // ---------------------------------------------------------------------------
 {
-  integer    i;
-  const real dt = Femlib::value ("D_T");
+  int_t        i;
+  const real_t dt = Femlib::value ("D_T");
 
   for (i = 0; i < NDIM; i++) (*Uf[i] = *Us[i]) . gradient (i);
 
@@ -267,9 +267,9 @@ static void project (const Domain* D ,
 // create forcing for viscous step.
 // ---------------------------------------------------------------------------
 {
-  integer    i;
-  const real dt    = Femlib::value ("D_T");
-  const real alpha = -1.0 / Femlib::value ("D_T * KINVIS");
+  int_t        i;
+  const real_t dt    = Femlib::value ("D_T");
+  const real_t alpha = -1.0 / Femlib::value ("D_T * KINVIS");
 
   for (i = 0; i < NDIM; i++) {
 
@@ -294,16 +294,16 @@ static Msys** preSolve (const Domain* D)
 // ITERATIVE == 2 adds iterative solver for pressure as well.
 // ---------------------------------------------------------------------------
 {
-  const integer           nmodes = Geometry::nModeProc();
-  const integer           base   = Geometry::baseMode();
-  const integer           itLev  = (integer) Femlib::value ("ITERATIVE");
-  const real              beta   = Femlib::value ("BETA");
+  const int_t             nmodes = Geometry::nModeProc();
+  const int_t             base   = Geometry::baseMode();
+  const int_t             itLev  = Femlib::ivalue ("ITERATIVE");
+ const real_t             beta   = Femlib:: value ("BETA");
   const vector<Element*>& E      = D -> elmt;
   Msys**                  M      = new Msys* [(size_t) (NDIM + 1)];
-  integer                 i;
-  vector<real>            alpha (Integration::OrderMax + 1);
+  int_t                   i;
+  vector<real_t>            alpha (Integration::OrderMax + 1);
   Integration::StifflyStable (NORD, &alpha[0]);
-  const real              lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
+  const real_t               lambda2 = alpha[0] / Femlib::value ("D_T*KINVIS");
 
   // -- Velocity systems.
 
@@ -320,26 +320,27 @@ static Msys** preSolve (const Domain* D)
 }
 
 
-static void Solve (Domain*       D,
-		   const integer i,
-		   AuxField*     F,
-		   Msys*         M)
+static void Solve (Domain*     D,
+		   const int_t i,
+		   AuxField*   F,
+		   Msys*       M)
 // ---------------------------------------------------------------------------
 // Solve Helmholtz problem for D->u[i], using F as a forcing Field.
 // Iterative or direct solver selected on basis of field type, step,
 // time order and command-line arguments.
 // ---------------------------------------------------------------------------
 {
-  const integer step = D -> step;
+  const int_t step = D -> step;
 
   if (i < NDIM && step < NORD) { // -- We need a temporary matrix system.
-    const integer Je      = min (step, NORD);    
-    const integer base    = Geometry::baseMode();
-    const integer nmodes  = Geometry::nModeProc();
-    vector<real>  alpha (Je + 1);
+    const int_t Je      = min (step, NORD);    
+    const int_t base    = Geometry::baseMode();
+    const int_t nmodes  = Geometry::nModeProc();
+
+    vector<real_t>  alpha (Je + 1);
     Integration::StifflyStable (Je, &alpha[0]);
-    const real    lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
-    const real    beta    = Femlib::value ("BETA");
+    const real_t    lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
+    const real_t    beta    = Femlib::value ("BETA");
 
     Msys* tmp = new Msys
       (lambda2, beta, base, nmodes, D -> elmt, D -> b[i], JACPCG);
@@ -350,15 +351,15 @@ static void Solve (Domain*       D,
 }
 
 
-static void pushdown (AuxField***   U ,
-		      const integer nr,
-		      const integer nc)
+static void pushdown (AuxField*** U ,
+		      const int_t nr,
+		      const int_t nc)
 // ---------------------------------------------------------------------------
 // Pushdown time-level stacks of velocity, forcing storage, without
 // changing pointers (i.e. by copying data).
 // ---------------------------------------------------------------------------
 {
-  integer i, j;
+  int_t i, j;
 
   for (i = nr - 1; i; i--)
     for (j = 0; j < nc; j++)

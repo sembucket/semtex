@@ -146,8 +146,8 @@ Data2DF& Data2DF::F_symmetrize (const bool zero)
 } 
 
 
-Data2DF& Data2DF::F_shift (const real alpha,
-			   const bool zero )
+Data2DF& Data2DF::F_shift (const real_t alpha,
+			   const bool   zero )
 // ---------------------------------------------------------------------------
 // Use the shift-rotation duality of the Fourier transform to shift
 // the data a proportion alpha of the fundamental length in the

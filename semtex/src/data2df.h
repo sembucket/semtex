@@ -40,7 +40,7 @@ public:
 
   Data2DF& F_conjugate   (const bool);
   Data2DF& F_symmetrize  (const bool);
-  Data2DF& F_shift       (const real alpha, const bool);
+  Data2DF& F_shift       (const real_t alpha, const bool);
 
   Data2DF& reflect2D     (vector<int_t>&, vector<int_t>&);
 

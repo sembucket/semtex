@@ -7,15 +7,12 @@
  *****************************************************************************/
 
 #if defined(_SX)		/* NEC SX-4.        */
-  typedef long int integer;
-  typedef double   real;
+  typedef long int int_t;
+  typedef double   real_t;
 #else                           /* Everything else. */
-  typedef int     integer;
-  typedef double  real;
+  typedef int     int_t;
+  typedef double  real_t;
 #endif
-
-typedef integer int_t;
-typedef real    real_t;
 
 typedef struct { real_t x, y, z; } Point;
 typedef Point                      Vector;

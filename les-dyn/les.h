@@ -8,7 +8,7 @@
 // $Id$
 //////////////////////////////////////////////////////////////////////////////
 
-#include <Sem.h>
+#include <sem.h>
 
 
 class LESAnalyser : public Analyser
@@ -36,24 +36,24 @@ public:
   SumIntegrator  (Domain*);
   ~SumIntegrator () { delete [] _work; }
 
-  void update (real*);
+  void update (real_t*);
   void dump   ();
 
 private:
   const Domain* _domain;
   AuxField*     _Lmix2 ;
-  real*         _work  ;
-  real          _BB    ;
-  real          _AA    ;
-  integer       _ntot  ;
-  integer       _nz    ;
+  real_t*       _work  ;
+  real_t        _BB    ;
+  real_t        _AA    ;
+  int_t         _ntot  ;
+  int_t         _nz    ;
 };
 
 
 // -- filter.C:
 
 void initFilters ();
-void lowpass     (real*);
+void lowpass     (real_t*);
 
 // -- integrate.C:
 
@@ -61,6 +61,6 @@ void integrate (Domain*, LESAnalyser*, SumIntegrator*);
 
 // -- nonlinear.C:
 
-void nonLinear (Domain*, SumIntegrator*, vector<real*>&, vector<real>&);
-void dynamic   (Domain*, vector<real*>&, const bool = true);
+void nonLinear (Domain*, SumIntegrator*, vector<real_t*>&, vector<real_t>&);
+void dynamic   (Domain*, vector<real_t*>&, const bool = true);
 #endif

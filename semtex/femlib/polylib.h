@@ -17,36 +17,36 @@ namespace polylib {
 
 /* Points and weights */
 
-void   zwgj    (double *, double *, integer, double , double);
-void   zwgrjm  (double *, double *, integer, double , double);
-void   zwgrjp  (double *, double *, integer, double , double);
-void   zwglj   (double *, double *, integer, double , double);
+void   zwgj    (double *, double *, int_t, double , double);
+void   zwgrjm  (double *, double *, int_t, double , double);
+void   zwgrjp  (double *, double *, int_t, double , double);
+void   zwglj   (double *, double *, int_t, double , double);
 
 /* Derivative operators */
 
-void   Dgj     (double *, double *, double *, integer, double, double);
-void   Dgrjm   (double *, double *, double *, integer, double, double);
-void   Dgrjp   (double *, double *, double *, integer, double, double);
-void   Dglj    (double *, double *, double *, integer, double, double);
+void   Dgj     (double *, double *, double *, int_t, double, double);
+void   Dgrjm   (double *, double *, double *, int_t, double, double);
+void   Dgrjp   (double *, double *, double *, int_t, double, double);
+void   Dglj    (double *, double *, double *, int_t, double, double);
 
 /* Lagrangian interpolants */
 
-double hgj     (integer, double, double *, integer, double, double);
-double hgrjm   (integer, double, double *, integer, double, double);
-double hgrjp   (integer, double, double *, integer, double, double);
-double hglj    (integer, double, double *, integer, double, double);
+double hgj     (int_t, double, double *, int_t, double, double);
+double hgrjm   (int_t, double, double *, int_t, double, double);
+double hgrjp   (int_t, double, double *, int_t, double, double);
+double hglj    (int_t, double, double *, int_t, double, double);
 
 /* Interpolation operators */
 
-void  Imgj  (double*, double*, double*, integer, integer, double, double);
-void  Imgrjm(double*, double*, double*, integer, integer, double, double);
-void  Imgrjp(double*, double*, double*, integer, integer, double, double);
-void  Imglj (double*, double*, double*, integer, integer, double, double);
+void  Imgj  (double*, double*, double*, int_t, int_t, double, double);
+void  Imgrjm(double*, double*, double*, int_t, int_t, double, double);
+void  Imgrjp(double*, double*, double*, int_t, int_t, double, double);
+void  Imglj (double*, double*, double*, int_t, int_t, double, double);
 
 /* Polynomial functions */
 
-void jacobfd (integer, double *, double *, double *, integer , double, double);
-void jacobd  (integer, double *, double *,  integer , double, double);
+void jacobfd (int_t, double *, double *, double *, int_t , double, double);
+void jacobd  (int_t, double *, double *,  int_t , double, double);
 
 /*-----------------------------------------------------------------------
                          M A C R O S

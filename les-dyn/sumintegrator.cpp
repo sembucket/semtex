@@ -43,7 +43,7 @@ SumIntegrator::SumIntegrator (Domain* info) :
   _ntot   (Geometry::nTotProc()),
   _nz     (Geometry::nZProc())
 {
-  _work  = new real [(size_t) _ntot];
+  _work  = new real_t [(size_t) _ntot];
   _Lmix2 = new AuxField (_work, _nz, _domain -> elmt, 'x');
 
   ROOTONLY cout << "-- Initialising mixing length : ";
@@ -57,9 +57,9 @@ SumIntegrator::SumIntegrator (Domain* info) :
     file.close();
 
   } else {
-    const integer nP  = Geometry::planeSize();
-    const integer nZP = Geometry::nZProc();
-    integer       i;
+    const int_t nP  = Geometry::planeSize();
+    const int_t nZP = Geometry::nZProc();
+    int_t       i;
 
     _Lmix2 -> lengthScale (_work);
     Blas::scal   (nP, Femlib::value ("C_SMAG"), _work, 1);
@@ -75,7 +75,7 @@ SumIntegrator::SumIntegrator (Domain* info) :
 }
 
 
-void SumIntegrator::update (real* src)
+void SumIntegrator::update (real_t* src)
 // ---------------------------------------------------------------------------
 // Take the new dynamic estimate and do a relaxation update.
 //
@@ -93,10 +93,10 @@ void SumIntegrator::dump ()
 // Dump out internal storage to file.
 // ---------------------------------------------------------------------------
 {
-  const integer step     = _domain -> step;
-  const integer periodic = !(step %  (integer) Femlib::value ("IO_FLD"));
-  const integer initial  =   step == (integer) Femlib::value ("IO_FLD");
-  const integer final    =   step == (integer) Femlib::value ("N_STEP");
+  const int_t step     = _domain -> step;
+  const int_t periodic = !(step %  Femlib::ivalue ("IO_FLD"));
+  const int_t initial  =   step == Femlib::ivalue ("IO_FLD");
+  const int_t final    =   step == Femlib::ivalue ("N_STEP");
 
   if (!(periodic || final)) return;
 
@@ -105,10 +105,10 @@ void SumIntegrator::dump ()
   Femlib::synchronize();
 
   ROOTONLY {
-    const char    routine[] = "SumIntegrator::dump";
-    const integer verbose   = (integer) Femlib::value ("VERBOSE");
-    const integer chkpoint  = (integer) Femlib::value ("CHKPOINT");
-    char          dumpfl[StrMax], backup[StrMax], command[StrMax];
+    const char  routine[] = "SumIntegrator::dump";
+    const int_t verbose   = (int_t) Femlib::value ("VERBOSE");
+    const int_t chkpoint  = (int_t) Femlib::value ("CHKPOINT");
+    char        dumpfl[StrMax], backup[StrMax], command[StrMax];
 
     if (chkpoint) {
       if (final) {
@@ -162,8 +162,8 @@ ifstream& operator >> (ifstream&      strm,
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "strm>>SumIntegrator";
-  integer    np, nz, nel, ntot;
-  integer    npchk,  nzchk, nelchk, swap = 0;
+  int_t      np, nz, nel, ntot;
+  int_t      npchk,  nzchk, nelchk, swap = 0;
   char       s[StrMax], f[StrMax];
 
   if (strm.getline(s, StrMax).eof()) return strm;
