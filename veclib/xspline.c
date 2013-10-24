@@ -35,10 +35,10 @@
 #pragma global noalias
 #endif
 
-void dspline (integer n, double yp1, double ypn,
+void dspline (int_t n, double yp1, double ypn,
 	      const double* x, const double* y, double* y2)
 {
-  register integer i, k;
+  register int_t i, k;
   double           h  = x[1] - x[0], 
                    *u = dvector (0, n-2);
   double           p, qn, sig, un, hh;
@@ -74,12 +74,12 @@ void dspline (integer n, double yp1, double ypn,
 }
 
 
-double dsplint (integer n, double x, const double* xa, const double* ya,
+double dsplint (int_t n, double x, const double* xa, const double* ya,
 	                                               const double* y2a)
 {
-  register integer k;
+  register int_t k;
   register double  h, b, a;
-  static   integer klo = -1, khi = -1;
+  static   int_t klo = -1, khi = -1;
 
   /* check the results of the previous search */
 
@@ -105,10 +105,10 @@ double dsplint (integer n, double x, const double* xa, const double* ya,
 }			  
 
 
-void sspline (integer n, float yp1, float ypn, const float* x, const float* y,
+void sspline (int_t n, float yp1, float ypn, const float* x, const float* y,
                                                                      float* y2)
 {
-  register integer i, k;
+  register int_t i, k;
   float            h  = x[1] - x[0], 
                    *u = svector(0, n-2);
   float            p, qn, sig, un, hh;
@@ -144,12 +144,12 @@ void sspline (integer n, float yp1, float ypn, const float* x, const float* y,
 }
 
 
-float ssplint (integer n, float x, const float* xa, const float* ya,
+float ssplint (int_t n, float x, const float* xa, const float* ya,
 	                                            const float* y2a)
 {
-  register integer k;
+  register int_t k;
   register float   h, b, a;
-  static   integer klo = -1, khi = -1;
+  static   int_t klo = -1, khi = -1;
 
   /* check the results of the previous search */
 

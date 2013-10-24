@@ -29,13 +29,13 @@
 #pragma global noalias
 #endif
 
-void dmxva(double* A, integer iac, integer iar, double* B, integer ib,
-	   double* C, integer ic,  integer nra, integer nca)
+void dmxva(double* A, int_t iac, int_t iar, double* B, int_t ib,
+	   double* C, int_t ic,  int_t nra, int_t nca)
 {
   register double  *a, *b,
                    *c = C;
   register double  sum;
-  register integer i, j;
+  register int_t i, j;
 
 
   for (i = 0; i < nra; ++i) {
@@ -55,13 +55,13 @@ void dmxva(double* A, integer iac, integer iar, double* B, integer ib,
 }
 
 
-void smxva (float* A, integer iac, integer iar, float* B, integer ib,
-	    float* C, integer ic,  integer nra, integer nca)
+void smxva (float* A, int_t iac, int_t iar, float* B, int_t ib,
+	    float* C, int_t ic,  int_t nra, int_t nca)
 {
   register float   *a, *b,
                    *c = C;
   register float   sum;
-  register integer i, j;
+  register int_t i, j;
 
   for (i = 0; i < nra; ++i) {
     sum = 0.0F;

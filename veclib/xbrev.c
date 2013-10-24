@@ -13,7 +13,7 @@
 #pragma global noalias
 #endif
 
-integer iformat (void)
+int_t iformat (void)
 /* ------------------------------------------------------------------------- *
  * Return 1 if machine floating-point format is IEEE little-endian,
  * 0 if IEEE big-endian, -1 for unrecognized format.
@@ -21,7 +21,7 @@ integer iformat (void)
 {
   union { float  f; int i;    unsigned char c[4]; } v;
   union { double d; int i[2]; unsigned char c[8]; } u;
-  integer reverse = (-1);
+  int_t reverse = (-1);
   u.d = 3;
   v.i = 3;
   if      (u.c[0] == 64 && u.c[1] == 8 && v.c[3] == 3) reverse = 0;
@@ -50,12 +50,12 @@ void format (char* s)
 }
 
 
-void dbrev (integer n,
-	    const double* x, integer incx,
-	          double* y, integer incy)
+void dbrev (int_t n,
+	    const double* x, int_t incx,
+	          double* y, int_t incy)
 {
   register char    *cx, *cy, d;
-  register integer i, j;
+  register int_t i, j;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -72,12 +72,12 @@ void dbrev (integer n,
 }
 
 
-void ibrev (integer n,
-	    const integer* x, integer incx,
-	          integer* y, integer incy)
+void ibrev (int_t n,
+	    const int_t* x, int_t incx,
+	          int_t* y, int_t incy)
 {
   register char    *cx, *cy, d;
-  register integer i, j;
+  register int_t i, j;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -94,12 +94,12 @@ void ibrev (integer n,
 }
 
 
-void sbrev (integer n,
-	    const float* x, integer incx,
-	          float* y, integer incy)
+void sbrev (int_t n,
+	    const float* x, int_t incx,
+	          float* y, int_t incy)
 {
   register char    *cx, *cy, d;
-  register integer i, j;
+  register int_t i, j;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;

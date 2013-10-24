@@ -12,9 +12,9 @@
 #pragma global noalias
 #endif
 
-void dneg (integer n, double* x, integer incx)
+void dneg (int_t n, double* x, int_t incx)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 
@@ -26,9 +26,9 @@ void dneg (integer n, double* x, integer incx)
 }
 
 
-void ineg (integer n, integer* x, integer incx)
+void ineg (int_t n, int_t* x, int_t incx)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 
@@ -40,9 +40,9 @@ void ineg (integer n, integer* x, integer incx)
 }
 
 
-void sneg (integer n, float* x, integer incx)
+void sneg (int_t n, float* x, int_t incx)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 

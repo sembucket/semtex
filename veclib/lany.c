@@ -7,9 +7,9 @@
 #include <cfemdef.h>
 
 
-integer lany (integer n, const integer* x, integer incx)
+int_t lany (int_t n, const int_t* x, int_t incx)
 { 
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 

@@ -14,25 +14,25 @@
 #pragma global noalias
 #endif
   
-void dscatr (integer n, const double* x, const integer* y, double* z)
+void dscatr (int_t n, const double* x, const int_t* y, double* z)
 {
-  register integer i;
+  register int_t i;
 
   for (i = 0; i < n; i++) z[y[i]] = x[i];
 }
 
 
-void iscatr (integer n, const integer* x, const integer* y, integer* z)
+void iscatr (int_t n, const int_t* x, const int_t* y, int_t* z)
 {
-  register integer i;
+  register int_t i;
 
   for (i = 0; i < n; i++) z[y[i]] = x[i];
 }
 
 
-void sscatr (integer n, const float* x, const integer* y, float* z)
+void sscatr (int_t n, const float* x, const int_t* y, float* z)
 {
-  register integer i;
+  register int_t i;
 
   for (i = 0; i < n; i++) z[y[i]] = x[i];
 }

@@ -14,7 +14,7 @@
 #define FREE_ARG  void*
 
   
-complex* cvector (integer nl, integer nh)
+complex* cvector (int_t nl, int_t nh)
 /* ------------------------------------------------------------------------- *
  * Allocates a complex vector with subscript range [nl..nh].
  * ------------------------------------------------------------------------- */
@@ -29,7 +29,7 @@ complex* cvector (integer nl, integer nh)
 }
 
 
-double* dvector (integer nl, integer nh)
+double* dvector (int_t nl, int_t nh)
 /* ------------------------------------------------------------------------- *
  * Allocates a double vector with subscript range [nl..nh].
  * ------------------------------------------------------------------------- */
@@ -44,7 +44,7 @@ double* dvector (integer nl, integer nh)
 }
 
 
-float* svector (integer nl, integer nh)
+float* svector (int_t nl, int_t nh)
 /* ------------------------------------------------------------------------- *
  * Allocates a float vector with range [nl..nh].
  * ------------------------------------------------------------------------- */
@@ -59,14 +59,14 @@ float* svector (integer nl, integer nh)
 }
 
 
-integer* ivector (integer nl, integer nh)
+int_t* ivector (int_t nl, int_t nh)
 /* ------------------------------------------------------------------------- *
  * Allocates an int vector with subscript range [nl..nh].
  * ------------------------------------------------------------------------- */
 {
-  integer* v;
+  int_t* v;
   
-  v = (integer*) malloc((size_t) ((nh-nl+1)*sizeof(integer)));
+  v = (int_t*) malloc((size_t) ((nh-nl+1)*sizeof(int_t)));
   if (v) return v-nl;
 
   message("ivector()", "allocation failure", WARNING);
@@ -74,7 +74,7 @@ integer* ivector (integer nl, integer nh)
 }
 
 
-zomplex* zvector(integer nl, integer nh)
+zomplex* zvector(int_t nl, int_t nh)
 /* ------------------------------------------------------------------------- *
  * Allocates a zomplex vector with subscript range [nl..nh].
  * ------------------------------------------------------------------------- */
@@ -89,13 +89,13 @@ zomplex* zvector(integer nl, integer nh)
 }
 
 
-complex **cmatrix (integer nrl, integer nrh,
-		   integer ncl, integer nch)
+complex **cmatrix (int_t nrl, int_t nrh,
+		   int_t ncl, int_t nch)
 /* ------------------------------------------------------------------------- *
  * Allocate a complex matrix with subscript ranges [nrl..nrh][ncl..nch].
  * ------------------------------------------------------------------------- */
 {
-  integer i, nrow = nrh-nrl+1, ncol = nch-ncl+1;
+  int_t i, nrow = nrh-nrl+1, ncol = nch-ncl+1;
   complex **m;
 
   m = (complex**) malloc((size_t) (nrow*sizeof(complex*)));
@@ -118,13 +118,13 @@ complex **cmatrix (integer nrl, integer nrh,
 }
 
 
-double **dmatrix (integer nrl, integer nrh,
-		  integer ncl, integer nch)
+double **dmatrix (int_t nrl, int_t nrh,
+		  int_t ncl, int_t nch)
 /* ------------------------------------------------------------------------- *
  * Allocate a double  matrix with subscript ranges [nrl..nrh][ncl..nch].
  * ------------------------------------------------------------------------- */
 {
-  integer i, nrow = nrh-nrl+1, ncol = nch-ncl+1;
+  int_t i, nrow = nrh-nrl+1, ncol = nch-ncl+1;
   double  **m;
 
   m = (double**) malloc((size_t) (nrow*sizeof(double*)));
@@ -147,13 +147,13 @@ double **dmatrix (integer nrl, integer nrh,
 }
 
 
-float **smatrix (integer nrl, integer nrh,
-		 integer ncl, integer nch)
+float **smatrix (int_t nrl, int_t nrh,
+		 int_t ncl, int_t nch)
 /* ------------------------------------------------------------------------- *
  * Allocate a float matrix with subscript ranges [nrl..nrh][ncl..nch].
  * ------------------------------------------------------------------------- */
 {
-  integer i, nrow = nrh-nrl+1, ncol = nch-ncl+1;
+  int_t i, nrow = nrh-nrl+1, ncol = nch-ncl+1;
   float   **m;
 
   m = (float**) malloc((size_t) (nrow*sizeof(float*)));
@@ -176,23 +176,23 @@ float **smatrix (integer nrl, integer nrh,
 }
 
 
-integer **imatrix (integer nrl, integer nrh,
-		   integer ncl, integer nch)
+int_t **imatrix (int_t nrl, int_t nrh,
+		   int_t ncl, int_t nch)
 /* ------------------------------------------------------------------------- *
  * Allocate an int matrix with subscript ranges [nrl..nrh][ncl..nch].
  * ------------------------------------------------------------------------- */
 {
-  integer i, nrow = nrh-nrl+1, ncol = nch-ncl+1;
-  integer **m;
+  int_t i, nrow = nrh-nrl+1, ncol = nch-ncl+1;
+  int_t **m;
 
-  m = (integer**) malloc((size_t) (nrow*sizeof(integer*)));
+  m = (int_t**) malloc((size_t) (nrow*sizeof(int_t*)));
   if (!m) {
     message("imatrix()", "allocation failure 1", WARNING);
     return NULL;
   }
   m -= nrl;
 
-  m[nrl] = (integer*) malloc((size_t) (nrow*ncol*sizeof(integer)));
+  m[nrl] = (int_t*) malloc((size_t) (nrow*ncol*sizeof(int_t)));
   if (!m[nrl]) {
     message("imatrix()", "allocation failure 2", WARNING);
     return NULL;
@@ -205,13 +205,13 @@ integer **imatrix (integer nrl, integer nrh,
 }
 
 
-zomplex **zmatrix (integer nrl, integer nrh,
-		   integer ncl, integer nch)
+zomplex **zmatrix (int_t nrl, int_t nrh,
+		   int_t ncl, int_t nch)
 /* ------------------------------------------------------------------------- *
  * Allocate a zomplex matrix with subscript ranges [nrl..nrh][ncl..nch].
  * ------------------------------------------------------------------------- */
 {
-  integer i, nrow = nrh-nrl+1, ncol = nch-ncl+1;
+  int_t i, nrow = nrh-nrl+1, ncol = nch-ncl+1;
   zomplex **m;
 
   m = (zomplex**) malloc((size_t) (nrow*sizeof(zomplex*)));
@@ -234,14 +234,14 @@ zomplex **zmatrix (integer nrl, integer nrh,
 }
 
 
-complex ***c3matrix (integer nrl, integer nrh,
-		     integer ncl, integer nch,
-		     integer ndl, integer ndh)
+complex ***c3matrix (int_t nrl, int_t nrh,
+		     int_t ncl, int_t nch,
+		     int_t ndl, int_t ndh)
 /* ------------------------------------------------------------------------- *
  * Allocate a complex 3-matrix with ranges [nrl..nrh][ncl..nch][ndl..ndh].
  * ------------------------------------------------------------------------- */
 {
-  integer i, j, nrow = nrh-nrl+1, ncol = nch-ncl+1, ndep = ndh-ndl+1;
+  int_t i, j, nrow = nrh-nrl+1, ncol = nch-ncl+1, ndep = ndh-ndl+1;
   complex ***t;
 
   t = (complex***) malloc((size_t) (nrow*sizeof(complex**)));
@@ -277,14 +277,14 @@ complex ***c3matrix (integer nrl, integer nrh,
   return t;
 }
 
-double ***d3matrix (integer nrl, integer nrh,
-		    integer ncl, integer nch,
-		    integer ndl, integer ndh)
+double ***d3matrix (int_t nrl, int_t nrh,
+		    int_t ncl, int_t nch,
+		    int_t ndl, int_t ndh)
 /* ------------------------------------------------------------------------- *
  * Allocate a double 3-matrix with ranges [nrl..nrh][ncl..nch][ndl..ndh].
  * ------------------------------------------------------------------------- */
 {
-  integer i, j, nrow = nrh-nrl+1, ncol = nch-ncl+1, ndep = ndh-ndl+1;
+  int_t i, j, nrow = nrh-nrl+1, ncol = nch-ncl+1, ndep = ndh-ndl+1;
   double  ***t;
 
   t = (double***) malloc((size_t) (nrow*sizeof(double**)));
@@ -321,14 +321,14 @@ double ***d3matrix (integer nrl, integer nrh,
 }
 
 
-float ***s3matrix (integer nrl, integer nrh,
-		   integer ncl, integer nch,
-		   integer ndl, integer ndh)
+float ***s3matrix (int_t nrl, int_t nrh,
+		   int_t ncl, int_t nch,
+		   int_t ndl, int_t ndh)
 /* ------------------------------------------------------------------------- *
  * Allocate a float 3-matrix with ranges [nrl..nrh][ncl..nch][ndl..ndh].
  * ------------------------------------------------------------------------- */
 {
-  integer i, j, nrow = nrh-nrl+1, ncol = nch-ncl+1, ndep = ndh-ndl+1;
+  int_t i, j, nrow = nrh-nrl+1, ncol = nch-ncl+1, ndep = ndh-ndl+1;
   float   ***t;
 
   t = (float***) malloc((size_t) (nrow*sizeof(float**)));
@@ -365,31 +365,31 @@ float ***s3matrix (integer nrl, integer nrh,
 }
 
 
-integer ***i3matrix (integer nrl, integer nrh,
-		     integer ncl, integer nch,
-		     integer ndl, integer ndh)
+int_t ***i3matrix (int_t nrl, int_t nrh,
+		     int_t ncl, int_t nch,
+		     int_t ndl, int_t ndh)
 /* ------------------------------------------------------------------------- *
  * Allocate an int 3-matrix with ranges [nrl..nrh][ncl..nch][ndl..ndh].
  * ------------------------------------------------------------------------- */
 {
-  integer i, j, nrow = nrh-nrl+1, ncol = nch-ncl+1, ndep = ndh-ndl+1;
-  integer ***t;
+  int_t i, j, nrow = nrh-nrl+1, ncol = nch-ncl+1, ndep = ndh-ndl+1;
+  int_t ***t;
 
-  t = (integer***) malloc((size_t) (nrow*sizeof(integer**)));
+  t = (int_t***) malloc((size_t) (nrow*sizeof(int_t**)));
   if (!t) {
     message("i3matrix()", "allocation failure 1", WARNING);
     return NULL;
   }
   t -= nrl;
 
-  t[nrl] = (integer**) malloc((size_t) (nrow*ncol*sizeof(integer*)));
+  t[nrl] = (int_t**) malloc((size_t) (nrow*ncol*sizeof(int_t*)));
   if (!t[nrl]) {
     message("i3matrix()", "allocation failure 2", WARNING);
     return NULL;
   }
   t[nrl] -= ncl;
 
-  t[nrl][ncl] = (integer*) malloc((size_t) (nrow*ncol*ndep*sizeof(integer)));
+  t[nrl][ncl] = (int_t*) malloc((size_t) (nrow*ncol*ndep*sizeof(int_t)));
   if (!t[nrl][ncl]) {
     message("i3matrix()", "allocation failure 3", WARNING);
     return NULL;
@@ -409,14 +409,14 @@ integer ***i3matrix (integer nrl, integer nrh,
 }
 
 
-zomplex ***z3matrix (integer nrl, integer nrh,
-		     integer ncl, integer nch,
-		     integer ndl, integer ndh)
+zomplex ***z3matrix (int_t nrl, int_t nrh,
+		     int_t ncl, int_t nch,
+		     int_t ndl, int_t ndh)
 /* ------------------------------------------------------------------------- *
  * Allocate a zomplex 3-matrix with ranges [nrl..nrh][ncl..nch][ndl..ndh].
  * ------------------------------------------------------------------------- */
 {
-  integer i, j, nrow = nrh-nrl+1, ncol = nch-ncl+1, ndep = ndh-ndl+1;
+  int_t i, j, nrow = nrh-nrl+1, ncol = nch-ncl+1, ndep = ndh-ndl+1;
   zomplex ***t;
 
   t = (zomplex***) malloc((size_t) (nrow*sizeof(zomplex**)));
@@ -453,7 +453,7 @@ zomplex ***z3matrix (integer nrl, integer nrh,
 }
 
 
-void freeCvector (complex *v, integer nl)
+void freeCvector (complex *v, int_t nl)
 /* ------------------------------------------------------------------------- *
  * Frees a complex vector allocated by cvector().
  * ------------------------------------------------------------------------- */
@@ -462,7 +462,7 @@ void freeCvector (complex *v, integer nl)
 }
 
 
-void freeDvector (double *v, integer nl)
+void freeDvector (double *v, int_t nl)
 /* ------------------------------------------------------------------------- *
  * Frees a double vector allocated by dvector().
  * ------------------------------------------------------------------------- */
@@ -471,7 +471,7 @@ void freeDvector (double *v, integer nl)
 }
 
 
-void freeSvector (float *v, integer nl)
+void freeSvector (float *v, int_t nl)
 /* ------------------------------------------------------------------------- *
  * Frees a float vector allocated by svector().
  * ------------------------------------------------------------------------- */
@@ -480,7 +480,7 @@ void freeSvector (float *v, integer nl)
 }
 
 
-void freeIvector (integer *v, integer nl)
+void freeIvector (int_t *v, int_t nl)
 /* ------------------------------------------------------------------------- *
  * Frees an int vector allocated by ivector().
  * ------------------------------------------------------------------------- */
@@ -489,7 +489,7 @@ void freeIvector (integer *v, integer nl)
 }
 
 
-void freeZvector (zomplex *v, integer nl)
+void freeZvector (zomplex *v, int_t nl)
 /* ------------------------------------------------------------------------- *
  * Frees a complex vector allocated by zvector().
  * ------------------------------------------------------------------------- */
@@ -498,7 +498,7 @@ void freeZvector (zomplex *v, integer nl)
 }
 
 
-void freeCmatrix (complex **m, integer nrl, integer ncl)
+void freeCmatrix (complex **m, int_t nrl, int_t ncl)
 /* ------------------------------------------------------------------------- *
  * Frees a complex matrix allocated with cmatrix().
  * ------------------------------------------------------------------------- */
@@ -508,7 +508,7 @@ void freeCmatrix (complex **m, integer nrl, integer ncl)
 }
 
 
-void freeDmatrix (double **m, integer nrl, integer ncl)
+void freeDmatrix (double **m, int_t nrl, int_t ncl)
 /* ------------------------------------------------------------------------- *
  * Frees a double matrix allocated with dmatrix().
  * ------------------------------------------------------------------------- */
@@ -518,7 +518,7 @@ void freeDmatrix (double **m, integer nrl, integer ncl)
 }
 
 
-void freeSmatrix (float **m, integer nrl, integer ncl)
+void freeSmatrix (float **m, int_t nrl, int_t ncl)
 /* ------------------------------------------------------------------------- *
  * Frees a float matrix allocated with smatrix().
  * ------------------------------------------------------------------------- */
@@ -528,7 +528,7 @@ void freeSmatrix (float **m, integer nrl, integer ncl)
 }
 
 
-void freeImatrix (integer **m, integer nrl, integer ncl)
+void freeImatrix (int_t **m, int_t nrl, int_t ncl)
 /* ------------------------------------------------------------------------- *
  * Frees an int matrix allocated with imatrix().
  * ------------------------------------------------------------------------- */
@@ -538,7 +538,7 @@ void freeImatrix (integer **m, integer nrl, integer ncl)
 }
 
 
-void freeZmatrix (zomplex **m, integer nrl, integer ncl)
+void freeZmatrix (zomplex **m, int_t nrl, int_t ncl)
 /* ------------------------------------------------------------------------- *
  * Frees a zomplex matrix allocated with zmatrix().
  * ------------------------------------------------------------------------- */
@@ -548,7 +548,7 @@ void freeZmatrix (zomplex **m, integer nrl, integer ncl)
 }
 
 
-void freeC3matrix (complex ***t, integer nrl, integer ncl, integer ndl)
+void freeC3matrix (complex ***t, int_t nrl, int_t ncl, int_t ndl)
 /* ------------------------------------------------------------------------- *
  * Frees a complex 3-matrix allocated with c3matrix().
  * ------------------------------------------------------------------------- */
@@ -559,7 +559,7 @@ void freeC3matrix (complex ***t, integer nrl, integer ncl, integer ndl)
 }
 
 
-void freeD3matrix (double ***t, integer nrl, integer ncl, integer ndl)
+void freeD3matrix (double ***t, int_t nrl, int_t ncl, int_t ndl)
 /* ------------------------------------------------------------------------- *
  * Frees a double 3-matrix allocated with d3matrix().
  * ------------------------------------------------------------------------- */
@@ -570,7 +570,7 @@ void freeD3matrix (double ***t, integer nrl, integer ncl, integer ndl)
 }
 
 
-void freeS3matrix (float ***t, integer nrl, integer ncl, integer ndl)
+void freeS3matrix (float ***t, int_t nrl, int_t ncl, int_t ndl)
 /* ------------------------------------------------------------------------- *
  * Frees a float 3-matrix allocated with s3matrix().
  * ------------------------------------------------------------------------- */
@@ -581,7 +581,7 @@ void freeS3matrix (float ***t, integer nrl, integer ncl, integer ndl)
 }
 
 
-void freeI3matrix (integer ***t, integer nrl, integer ncl, integer ndl)
+void freeI3matrix (int_t ***t, int_t nrl, int_t ncl, int_t ndl)
 /* ------------------------------------------------------------------------- *
  * Frees an int 3-matrix allocated with i3matrix().
  * ------------------------------------------------------------------------- */
@@ -592,7 +592,7 @@ void freeI3matrix (integer ***t, integer nrl, integer ncl, integer ndl)
 }
 
 
-void freeZ3matrix (zomplex ***t, integer nrl, integer ncl, integer ndl)
+void freeZ3matrix (zomplex ***t, int_t nrl, int_t ncl, int_t ndl)
 /* ------------------------------------------------------------------------- *
  * Frees a zomplex 3-matrix allocated with z3matrix().
  * ------------------------------------------------------------------------- */

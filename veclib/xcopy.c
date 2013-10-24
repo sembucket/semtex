@@ -15,10 +15,10 @@
 #pragma global noalias
 #endif
 
-void dcopy (integer n, const double* x, integer incx,
-                             double* y, integer incy)
+void dcopy (int_t n, const double* x, int_t incx,
+                             double* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   if (incx == 1 && incy == 1)
     memcpy (y, x, n * sizeof (double));
@@ -32,13 +32,13 @@ void dcopy (integer n, const double* x, integer incx,
 }
 
 
-void icopy (integer n, const integer* x, integer incx,
-                             integer* y, integer incy)
+void icopy (int_t n, const int_t* x, int_t incx,
+                             int_t* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   if (incx == 1 && incy == 1)
-    memcpy (y, x, n * sizeof (integer));
+    memcpy (y, x, n * sizeof (int_t));
 
   else {
     x += (incx < 0) ? (-n + 1)*incx : 0;
@@ -49,10 +49,10 @@ void icopy (integer n, const integer* x, integer incx,
 }
 
 
-void scopy (integer n, const float* x, integer incx,
-                             float* y, integer incy)
+void scopy (int_t n, const float* x, int_t incx,
+                             float* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   if (incx == 1 && incy == 1)
     memcpy (y, x, n * sizeof (float));

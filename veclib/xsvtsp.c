@@ -11,11 +11,11 @@
 #pragma global noalias
 #endif
 
-void dsvtsp (integer n, double alpha, double beta,
-	     const double* x, integer incx,
-	           double* y, integer incy)
+void dsvtsp (int_t n, double alpha, double beta,
+	     const double* x, int_t incx,
+	           double* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
   
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -24,11 +24,11 @@ void dsvtsp (integer n, double alpha, double beta,
 }
 
 
-void svtsp (integer n, float alpha, float beta,
-	    const float* x, integer incx,
-	          float* y, integer incy)
+void svtsp (int_t n, float alpha, float beta,
+	    const float* x, int_t incx,
+	          float* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
   
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;

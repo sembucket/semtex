@@ -11,9 +11,9 @@
 #pragma global noalias
 #endif
 
-void dramp (integer n, double alpha, double beta, double* x, integer incx)
+void dramp (int_t n, double alpha, double beta, double* x, int_t incx)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 
@@ -21,9 +21,9 @@ void dramp (integer n, double alpha, double beta, double* x, integer incx)
 }
 
 
-void iramp (integer n, integer alpha, integer beta, integer* x, integer incx)
+void iramp (int_t n, int_t alpha, int_t beta, int_t* x, int_t incx)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 
@@ -31,9 +31,9 @@ void iramp (integer n, integer alpha, integer beta, integer* x, integer incx)
 }
 
 
-void sramp (integer n, float alpha, float beta, float* x, integer incx)
+void sramp (int_t n, float alpha, float beta, float* x, int_t incx)
 {
-  register integer i;
+  register int_t i;
   
   x += (incx<0) ? (-n+1)*incx : 0;
 

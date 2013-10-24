@@ -13,7 +13,7 @@
 #include <cveclib.h>
 
 
-integer _vecIreg[NVREG];	/* For FORTRAN linkage. */
+int_t _vecIreg[NVREG];	/* For FORTRAN linkage. */
 char    _vecCreg[NVREG];
 float   _vecSreg[NVREG];
 double  _vecDreg[NVREG];
@@ -88,17 +88,17 @@ float sclock (void)
 
 
 void printDvector (FILE  *fp     ,
-		   integer    width  ,
-		   integer    prec   ,
-		   integer    ntot   ,
-		   integer    inc    ,
-		   integer    nfield , ...)
+		   int_t    width  ,
+		   int_t    prec   ,
+		   int_t    ntot   ,
+		   int_t    inc    ,
+		   int_t    nfield , ...)
 /* ------------------------------------------------------------------------- *
  * Print up a variable number of dvectors on fp, in columns.
  * ------------------------------------------------------------------------- */
 {
   char    routine[] = "printDvector";
-  integer i, j, k;
+  int_t i, j, k;
   double  **u;
   va_list ap;
 
@@ -122,22 +122,22 @@ void printDvector (FILE  *fp     ,
 
 
 void printIvector (FILE  *fp     ,
-		   integer    width  ,
-		   integer    ntot   ,
-		   integer    inc    ,
-		   integer    nfield , ...)
+		   int_t    width  ,
+		   int_t    ntot   ,
+		   int_t    inc    ,
+		   int_t    nfield , ...)
 /* ------------------------------------------------------------------------- *
  * Print up a variable number of ivectors on fp, in columns.
  * ------------------------------------------------------------------------- */
 {
   char    routine[] = "printIvector";
-  integer i, j, k;
-  integer **u;
+  int_t i, j, k;
+  int_t **u;
   va_list ap;
 
-  u = (integer **) calloc (nfield, sizeof (integer*));
+  u = (int_t **) calloc (nfield, sizeof (int_t*));
   va_start (ap, nfield);
-  for (i = 0; i < nfield; i++) u[i] = va_arg (ap, integer*); 
+  for (i = 0; i < nfield; i++) u[i] = va_arg (ap, int_t*); 
   va_end (ap);
 
   k = (inc < 0) ? (-ntot + 1)*inc : 0;
@@ -155,17 +155,17 @@ void printIvector (FILE  *fp     ,
 
 
 void printSvector (FILE  *fp     ,
-		   integer    width  ,
-		   integer    prec   ,
-		   integer    ntot   ,
-		   integer    inc    ,
-		   integer    nfield , ...)
+		   int_t width  ,
+		   int_t prec   ,
+		   int_t ntot   ,
+		   int_t inc    ,
+		   int_t nfield , ...)
 /* ------------------------------------------------------------------------- *
  * Write (ASCII) a variable number of svectors on fp, in columns.
  * ------------------------------------------------------------------------- */
 {
   char    routine[] = "printSvector";
-  integer i, j, k;
+  int_t   i, j, k;
   float   **u;
   va_list ap;
 

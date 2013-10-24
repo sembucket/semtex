@@ -11,12 +11,12 @@
 #pragma global noalias
 #endif
 
-void dsvtvm (integer n, double alpha,
-	     const double* x, integer incx,
-	     const double* y, integer incy,
-	           double* z, integer incz)
+void dsvtvm (int_t n, double alpha,
+	     const double* x, int_t incx,
+	     const double* y, int_t incy,
+	           double* z, int_t incz)
 {
-  register integer  i;
+  register int_t  i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -26,12 +26,12 @@ void dsvtvm (integer n, double alpha,
 }
 
 
-void ssvtvm (integer n, float alpha, 
-	     const float* x, integer incx,
-	     const float* y, integer incy,
-	           float* z, integer incz)
+void ssvtvm (int_t n, float alpha, 
+	     const float* x, int_t incx,
+	     const float* y, int_t incy,
+	           float* z, int_t incz)
 {
-  register integer  i;
+  register int_t  i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;

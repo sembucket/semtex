@@ -12,12 +12,12 @@
 #pragma global noalias
 #endif
 
-void dvadd (integer n,
-	    const double* x, integer incx,
-	    const double* y, integer incy,
-	          double* z, integer incz)
+void dvadd (int_t n,
+	    const double* x, int_t incx,
+	    const double* y, int_t incy,
+	          double* z, int_t incz)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -27,12 +27,12 @@ void dvadd (integer n,
 }
 
 
-void ivadd (integer n,
-	    const integer* x, integer incx,
-	    const integer* y, integer incy,
-	          integer* z, integer incz)
+void ivadd (int_t n,
+	    const int_t* x, int_t incx,
+	    const int_t* y, int_t incy,
+	          int_t* z, int_t incz)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -42,12 +42,12 @@ void ivadd (integer n,
 }
 
 
-void svadd (integer n,
-	    const float* x, integer incx,
-	    const float* y, integer incy,
-	          float* z, integer incz)
+void svadd (int_t n,
+	    const float* x, int_t incx,
+	    const float* y, int_t incy,
+	          float* z, int_t incz)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;

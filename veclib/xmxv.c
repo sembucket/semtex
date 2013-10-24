@@ -24,12 +24,12 @@
 #pragma global noalias
 #endif
 
-void dmxv (double* A, integer nra, double* B, integer nca, double* C)
+void dmxv (double* A, int_t nra, double* B, int_t nca, double* C)
 {
   register double  *a = A,
                    *c = C;
   register double  sum;
-  register integer i, j;
+  register int_t i, j;
 
   for (i = 0; i < nra; i++) {
     sum  = 0.0;
@@ -39,12 +39,12 @@ void dmxv (double* A, integer nra, double* B, integer nca, double* C)
 }
 
 
-void smxv (float* A, integer nra, float* B, integer nca, float* C)
+void smxv (float* A, int_t nra, float* B, int_t nca, float* C)
 {
   register float   *a = A,
                    *c = C;
   register float   sum;
-  register integer i, j;
+  register int_t i, j;
 
   for (i = 0; i < nra; i++) {
     sum  = 0.0F;

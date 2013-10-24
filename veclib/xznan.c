@@ -13,9 +13,9 @@
 #pragma global noalias
 #endif
 
-void dznan (integer n, double* x, integer incx)
+void dznan (int_t n, double* x, int_t incx)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 
@@ -27,9 +27,9 @@ void dznan (integer n, double* x, integer incx)
 }
 
 
-void sznan (integer n, float* x, integer incx)
+void sznan (int_t n, float* x, int_t incx)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 

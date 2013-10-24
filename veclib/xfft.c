@@ -11,7 +11,7 @@
 
 int ispow2(int k)
 /* ========================================================================= *
- * Is k a strictly positive integer power of two?                            *
+ * Is k a strictly positive int_t power of two?                            *
  * ========================================================================= */
 {
   while ((k%2) == 0 && k>2) k >>= 1;

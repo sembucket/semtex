@@ -11,11 +11,11 @@
 #pragma global noalias
 #endif
 
-void iseq (integer n, integer alpha,
-	   const integer* x, integer incx,
-	         integer* y, integer incy)
+void iseq (int_t n, int_t alpha,
+	   const int_t* x, int_t incx,
+	         int_t* y, int_t incy)
 {
-  register integer  i;
+  register int_t  i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;

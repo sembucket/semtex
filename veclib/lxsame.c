@@ -18,11 +18,11 @@
 #endif
 
 
-integer lisame (integer n,
-		const integer* x, integer incx,
-		const integer* y, integer incy)
+int_t lisame (int_t n,
+		const int_t* x, int_t incx,
+		const int_t* y, int_t incy)
 { 
-  register integer i;
+  register int_t i;
 
   x += (incx < 0) ? (-n + 1) * incx : 0;
   y += (incy < 0) ? (-n + 1) * incy : 0;
@@ -33,11 +33,11 @@ integer lisame (integer n,
 }
 
 
-integer ldsame (integer n,
-		const double* x, integer incx,
-		const double* y, integer incy)
+int_t ldsame (int_t n,
+		const double* x, int_t incx,
+		const double* y, int_t incy)
 { 
-  register integer i;
+  register int_t i;
 
   x += (incx < 0) ? (-n + 1) * incx : 0;
   y += (incy < 0) ? (-n + 1) * incy : 0;
@@ -48,11 +48,11 @@ integer ldsame (integer n,
 }
 
 
-integer lssame (integer n,
-		const float* x, integer incx,
-		const float* y, integer incy)
+int_t lssame (int_t n,
+		const float* x, int_t incx,
+		const float* y, int_t incy)
 { 
-  register integer i;
+  register int_t i;
 
   x += (incx < 0) ? (-n + 1) * incx : 0;
   y += (incy < 0) ? (-n + 1) * incy : 0;

@@ -15,11 +15,11 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-void diclip (integer n, const double alpha, const double beta,
-	     const double* x, integer incx,
-	           double* y, integer incy)
+void diclip (int_t n, const double alpha, const double beta,
+	     const double* x, int_t incx,
+	           double* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
   register double  xtmp;
   const double     mval = 0.5*(alpha + beta);
 
@@ -33,12 +33,12 @@ void diclip (integer n, const double alpha, const double beta,
 }
 
 
-void iiclip (integer n, const integer alpha, const integer beta,
-	     const integer* x, integer incx,
-	           integer* y, integer incy)
+void iiclip (int_t n, const int_t alpha, const int_t beta,
+	     const int_t* x, int_t incx,
+	           int_t* y, int_t incy)
 {
-  register integer i, xtmp;
-  const integer    mval = (alpha + beta)/2;
+  register int_t i, xtmp;
+  const int_t    mval = (alpha + beta)/2;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -50,11 +50,11 @@ void iiclip (integer n, const integer alpha, const integer beta,
 }
 
 
-void siclip (integer n, const float alpha, const float beta,
-	     const float* x, integer incx,
-	           float* y, integer incy)
+void siclip (int_t n, const float alpha, const float beta,
+	     const float* x, int_t incx,
+	           float* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
   register float   xtmp;
   const float      mval=0.5*(alpha + beta);
 

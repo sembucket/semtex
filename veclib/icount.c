@@ -7,9 +7,9 @@
 #include <cfemdef.h>
 
 
-integer icount (integer n, const integer* x, integer incx)
+int_t icount (int_t n, const int_t* x, int_t incx)
 {
-  register integer i, sum = 0;
+  register int_t i, sum = 0;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 

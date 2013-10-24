@@ -11,13 +11,13 @@
 #pragma global noalias
 #endif
 
-void dmask (integer n,
-	    const double*  w, integer incw,
-	    const double*  x, integer incx,
-	    const integer* y, integer incy,
-	          double*  z, integer incz)
+void dmask (int_t n,
+	    const double*  w, int_t incw,
+	    const double*  x, int_t incx,
+	    const int_t* y, int_t incy,
+	          double*  z, int_t incz)
 {
-  register integer i;
+  register int_t i;
 
   w += (incw < 0) ? (-n + 1) * incw : 0;
   x += (incx < 0) ? (-n + 1) * incx : 0;
@@ -28,13 +28,13 @@ void dmask (integer n,
 }
 
 
-void imask (integer n,
-	    const integer* w, integer incw,
-	    const integer* x, integer incx,
-	    const integer* y, integer incy,
-	          integer* z, integer incz)
+void imask (int_t n,
+	    const int_t* w, int_t incw,
+	    const int_t* x, int_t incx,
+	    const int_t* y, int_t incy,
+	          int_t* z, int_t incz)
 {
-  register integer i;
+  register int_t i;
 
   w += (incw < 0) ? (-n + 1) * incw : 0;
   x += (incx < 0) ? (-n + 1) * incx : 0;
@@ -45,13 +45,13 @@ void imask (integer n,
 }
 
 
-void smask (integer n,
-	    const float*   w, integer incw,
-	    const float*   x, integer incx,
-	    const integer* y, integer incy,
-	          float*   z, integer incz)
+void smask (int_t n,
+	    const float*   w, int_t incw,
+	    const float*   x, int_t incx,
+	    const int_t* y, int_t incy,
+	          float*   z, int_t incz)
 {
-  register integer i;
+  register int_t i;
 
   w += (incw < 0) ? (-n + 1) * incw : 0;
   x += (incx < 0) ? (-n + 1) * incx : 0;

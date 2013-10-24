@@ -11,14 +11,14 @@
 #pragma global noalias
 #endif
 
-void dvvtvvtm (integer n,
-	       const double* v, integer incv,
-	       const double* w, integer incw,
-	       const double* x, integer incx,
-	       const double* y, integer incy,
-	             double* z, integer incz)
+void dvvtvvtm (int_t n,
+	       const double* v, int_t incv,
+	       const double* w, int_t incw,
+	       const double* x, int_t incx,
+	       const double* y, int_t incy,
+	             double* z, int_t incz)
 {
-  register integer i;
+  register int_t i;
 
   if (incv == 1 && incw == 1 && incx == 1 && incy == 1 && incz == 1) 
    for (i = 0; i < n; i++) 
@@ -37,14 +37,14 @@ void dvvtvvtm (integer n,
 }
 
 
-void svvtvvtm (integer n,
-	       const float* v, integer incv,
-	       const float* w, integer incw,
-	       const float* x, integer incx,
-	       const float* y, integer incy,
-	             float* z, integer incz)
+void svvtvvtm (int_t n,
+	       const float* v, int_t incv,
+	       const float* w, int_t incw,
+	       const float* x, int_t incx,
+	       const float* y, int_t incy,
+	             float* z, int_t incz)
 {
-  register integer i;
+  register int_t i;
 
   if (incv == 1 && incw == 1 && incx == 1 && incy == 1 && incz == 1) 
    for (i = 0; i < n; i++) 
