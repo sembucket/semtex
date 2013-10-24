@@ -7,9 +7,9 @@
 #include <cfemdef.h>
 
 
-double dsum (integer n, const double* x, integer incx)
+double dsum (int_t n, const double* x, int_t incx)
 {
-  register integer i;
+  register int_t i;
   register double  sum = 0.0;
 
   x += (incx<0) ? (-n+1)*incx : 0;
@@ -20,9 +20,9 @@ double dsum (integer n, const double* x, integer incx)
 }
 
 
-integer isum (integer n, const integer* x, integer incx)
+int_t isum (int_t n, const int_t* x, int_t incx)
 {
-  register integer i, sum = 0;
+  register int_t i, sum = 0;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 
@@ -32,9 +32,9 @@ integer isum (integer n, const integer* x, integer incx)
 }
 
 
-float ssum (integer n, const float* x, integer incx)
+float ssum (int_t n, const float* x, int_t incx)
 {
-  register integer i;
+  register int_t i;
   register float   sum = 0.0F;
 
   x += (incx<0) ? (-n+1)*incx : 0;

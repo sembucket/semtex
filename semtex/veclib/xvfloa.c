@@ -1,5 +1,5 @@
 /*****************************************************************************
- * Cast integer vector to floating point.
+ * Cast int_t vector to floating point.
  *
  * $Id$
  *****************************************************************************/
@@ -11,11 +11,11 @@
 #pragma global noalias
 #endif
 
-void dvfloa (integer n,
-	     const integer* x, integer incx,
-	           double*  y, integer incy)
+void dvfloa (int_t n,
+	     const int_t* x, int_t incx,
+	           double*  y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -24,11 +24,11 @@ void dvfloa (integer n,
 }
 
 
-void svfloa (integer n,
-	     const integer* x, integer incx,
-	           float*   y, integer incy)
+void svfloa (int_t n,
+	     const int_t* x, int_t incx,
+	           float*   y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;

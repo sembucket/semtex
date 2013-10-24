@@ -12,11 +12,11 @@
 #pragma global noalias
 #endif
 
-void dspow (const integer n, const double alpha,
-	    const double* x, integer incx,
-	          double* y, integer incy)
+void dspow (const int_t n, const double alpha,
+	    const double* x, int_t incx,
+	          double* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -25,11 +25,11 @@ void dspow (const integer n, const double alpha,
 }
 
 
-void sspow (const integer n, const float alpha,
-	    const float* x, integer incx, 
-	          float* y, integer incy)
+void sspow (const int_t n, const float alpha,
+	    const float* x, int_t incx, 
+	          float* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;

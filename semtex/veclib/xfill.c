@@ -12,9 +12,9 @@
 #endif
 
 
-void dfill (integer n, double alpha, double* x, integer incx)
+void dfill (int_t n, double alpha, double* x, int_t incx)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 
@@ -22,9 +22,9 @@ void dfill (integer n, double alpha, double* x, integer incx)
 }
 
 
-void ifill (integer n, integer alpha, integer* x, integer incx)
+void ifill (int_t n, int_t alpha, int_t* x, int_t incx)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 
@@ -32,9 +32,9 @@ void ifill (integer n, integer alpha, integer* x, integer incx)
 }
 
 
-void sfill (integer n, float alpha, float* x, integer incx)
+void sfill (int_t n, float alpha, float* x, int_t incx)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
 

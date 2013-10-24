@@ -18,12 +18,12 @@
 #pragma global noalias
 #endif
 
-void dvhypot (integer n,
-	      const double* x, integer incx,
-	      const double* y, integer incy,
-	            double* z, integer incz)
+void dvhypot (int_t n,
+	      const double* x, int_t incx,
+	      const double* y, int_t incy,
+	            double* z, int_t incz)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -33,12 +33,12 @@ void dvhypot (integer n,
 }
 
 
-void svhypot (integer n,
-	      const float* x, integer incx,
-	      const float* y, integer incy,
-	            float* z, integer incz)
+void svhypot (int_t n,
+	      const float* x, int_t incx,
+	      const float* y, int_t incy,
+	            float* z, int_t incz)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -53,10 +53,10 @@ void svhypot (integer n,
 
 
 void dvmag (int_t n,
-	    const double* w, integer incw,
-	    const double* x, integer incx,
-	    const double* y, integer incy,
-	          double* z, integer incz)
+	    const double* w, int_t incw,
+	    const double* x, int_t incx,
+	    const double* y, int_t incy,
+	          double* z, int_t incz)
 {
   register int_t i;
 
@@ -71,10 +71,10 @@ void dvmag (int_t n,
 
 
 void svmag (int_t n,
-	    const float* w, integer incw,
-	    const float* x, integer incx,
-	    const float* y, integer incy,
-	          float* z, integer incz)
+	    const float* w, int_t incw,
+	    const float* x, int_t incx,
+	    const float* y, int_t incy,
+	          float* z, int_t incz)
 {
   register int_t i;
 

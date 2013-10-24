@@ -12,10 +12,10 @@
 #pragma global noalias
 #endif
 
-void dzero (integer n, double* x, integer incx)
+void dzero (int_t n, double* x, int_t incx)
 {
 #if defined(DEBUG)
-  register integer i;
+  register int_t i;
 
   x += (incx < 0) ? (-n+1)*incx : 0;
 
@@ -25,7 +25,7 @@ void dzero (integer n, double* x, integer incx)
     memset (x, '\0', n * sizeof (double));
 
   else {
-    register integer i;
+    register int_t i;
 
     x += (incx < 0) ? (-n+1)*incx : 0;
 
@@ -35,13 +35,13 @@ void dzero (integer n, double* x, integer incx)
 }
 
 
-void izero (integer n, integer* x, integer incx)
+void izero (int_t n, int_t* x, int_t incx)
 {
   if (incx == 1)
-    memset(x, '\0', n * sizeof (integer));
+    memset(x, '\0', n * sizeof (int_t));
 
   else {
-    register integer i;
+    register int_t i;
 
     x += (incx < 0) ? (-n+1)*incx : 0;
 
@@ -50,13 +50,13 @@ void izero (integer n, integer* x, integer incx)
 }
 
 
-void szero (integer n, float* x, integer incx)
+void szero (int_t n, float* x, int_t incx)
 {
   if (incx == 1)
     memset(x, '\0', n * sizeof (float));
 
   else {
-    register integer i;
+    register int_t i;
 
     x += (incx < 0) ? (-n+1)*incx : 0;
 

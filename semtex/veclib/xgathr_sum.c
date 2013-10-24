@@ -11,25 +11,25 @@
 #pragma global noalias
 #endif
 
-void dgathr_sum (integer n, const double* x, const integer* y, double* z)
+void dgathr_sum (int_t n, const double* x, const int_t* y, double* z)
 {
-  register integer i;
+  register int_t i;
 
   for (i = 0; i < n; i++) z[i] += x[y[i]];
 }
 
 
-void igathr_sum (integer n, const integer* x, const integer* y, integer* z)
+void igathr_sum (int_t n, const int_t* x, const int_t* y, int_t* z)
 {
-  register integer i;
+  register int_t i;
 
   for (i = 0; i < n; i++) z[i] += x[y[i]];
 }
 
 
-void sgathr_sum (integer n, const float* x, const integer* y, float* z)
+void sgathr_sum (int_t n, const float* x, const int_t* y, float* z)
 {
-  register integer i;
+  register int_t i;
 
   for (i = 0; i < n; i++) z[i] += x[y[i]];
 }

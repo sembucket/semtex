@@ -309,8 +309,8 @@ void Mesh::assemble (const bool printVacancy)
 	for (s = 0; !found && s < Nm; s++) {
 	  MS = ME -> side[s];
 
-	  if (found = ( S -> startNode == MS -> endNode &&
-		       MS -> startNode ==  S -> endNode )) {
+	  if ((found = ( S -> startNode == MS -> endNode &&
+			 MS -> startNode ==  S -> endNode ))) {
 	    S -> mateElmt = ME;
 	    S -> mateSide = MS;
 	  }
@@ -1157,7 +1157,7 @@ void Mesh::describeGrp (char  G,
     while (_feml.stream().peek() == '#') // -- Skip comments.
       _feml.stream().ignore (StrMax, '\n');
     _feml.stream() >> id >> groupc >> buf;
-    if (found = (groupc == G)) strcpy (S, buf);
+    if ((found = (groupc == G))) strcpy (S, buf);
   }
 
   if (!found) {
@@ -1198,7 +1198,7 @@ void Mesh::describeBC (char  grp,
 
       _feml.stream() >> fieldc;
 
-      if (found = (groupc == grp) && (fieldc == fld)) {
+      if ((found = (groupc == grp) && (fieldc == fld))) {
 	_feml.stream() >> eql;
 	if (eql == '=') {
 	  tgt[0] = fld;

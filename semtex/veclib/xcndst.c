@@ -11,12 +11,12 @@
 #pragma global noalias
 #endif
 
-void dcndst (integer n,
-	     const double*  x, integer incx,
-	     const integer* y, integer incy,
-	           double*  z, integer incz)
+void dcndst (int_t n,
+	     const double*  x, int_t incx,
+	     const int_t* y, int_t incy,
+	           double*  z, int_t incz)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -26,12 +26,12 @@ void dcndst (integer n,
 }
 
 
-void icndst (integer n,
-	     const integer* x, integer incx,
-	     const integer* y, integer incy,
-	           integer* z, integer incz)
+void icndst (int_t n,
+	     const int_t* x, int_t incx,
+	     const int_t* y, int_t incy,
+	           int_t* z, int_t incz)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -41,12 +41,12 @@ void icndst (integer n,
 }
 
 
-void scndst (integer n,
-	     const float*   x, integer incx,
-	     const integer* y, integer incy,
-	           float*   z, integer incz)
+void scndst (int_t n,
+	     const float*   x, int_t incx,
+	     const int_t* y, int_t incy,
+	           float*   z, int_t incz)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;

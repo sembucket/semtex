@@ -17,11 +17,11 @@
 #define MIN(a, b)  ((a) < (b) ?     (a) : (b))
 #define MAX(a, b)  ((a) > (b) ?     (a) : (b))
 
-void dclip (integer n, const double alpha, const double beta,
-	    const double* x, integer incx,
-	          double* y, integer incy)
+void dclip (int_t n, const double alpha, const double beta,
+	    const double* x, int_t incx,
+	          double* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -30,11 +30,11 @@ void dclip (integer n, const double alpha, const double beta,
 }
 
 
-void iclip (integer n, const integer alpha, const integer beta,
-	    const integer* x, integer incx,
-	          integer* y, integer incy)
+void iclip (int_t n, const int_t alpha, const int_t beta,
+	    const int_t* x, int_t incx,
+	          int_t* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -43,11 +43,11 @@ void iclip (integer n, const integer alpha, const integer beta,
 }
 
 
-void sclip (integer n, const float alpha, const float beta,
-	    const float* x, integer incx,
-	          float* y, integer incy)
+void sclip (int_t n, const float alpha, const float beta,
+	    const float* x, int_t incx,
+	          float* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -56,11 +56,11 @@ void sclip (integer n, const float alpha, const float beta,
 }
 
 
-void dclipup (integer n, const double alpha,
-	      const double* x, integer incx,
-	            double* y, integer incy)
+void dclipup (int_t n, const double alpha,
+	      const double* x, int_t incx,
+	            double* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -69,11 +69,11 @@ void dclipup (integer n, const double alpha,
 }
 
 
-void iclipup (integer n, const integer alpha,
-	      const integer* x, integer incx,
-	            integer* y, integer incy)
+void iclipup (int_t n, const int_t alpha,
+	      const int_t* x, int_t incx,
+	            int_t* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -82,11 +82,11 @@ void iclipup (integer n, const integer alpha,
 }
 
 
-void sclipup (integer n, const float alpha,
-	      const float* x, integer incx,
-	            float* y, integer incy)
+void sclipup (int_t n, const float alpha,
+	      const float* x, int_t incx,
+	            float* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -95,11 +95,11 @@ void sclipup (integer n, const float alpha,
 }
 
 
-void dclipdn (integer n, const double alpha,
-	      const double* x, integer incx,
-	            double* y, integer incy)
+void dclipdn (int_t n, const double alpha,
+	      const double* x, int_t incx,
+	            double* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -108,11 +108,11 @@ void dclipdn (integer n, const double alpha,
 }
 
 
-void iclipdn (integer n, const integer alpha,
-	      const integer* x, integer incx,
-	            integer* y, integer incy)
+void iclipdn (int_t n, const int_t alpha,
+	      const int_t* x, int_t incx,
+	            int_t* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -121,11 +121,11 @@ void iclipdn (integer n, const integer alpha,
 }
 
 
-void sclipdn (integer n, const float alpha,
-	      const float* x, integer incx,
-	            float* y, integer incy)
+void sclipdn (int_t n, const float alpha,
+	      const float* x, int_t incx,
+	            float* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;

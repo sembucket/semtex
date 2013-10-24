@@ -32,7 +32,7 @@ static long    iseed  = 0;
 #define _GENERATOR_ ran2
 
 
-void raninit (integer flag)
+void raninit (int_t flag)
 /* ------------------------------------------------------------------------- *
  * Initialise random number generator.  Non-positive numbers
  * initialise the generator directly (with supplied value); if flag is
@@ -100,12 +100,12 @@ float snormal (float mean, float sdev)
 }
 
 
-void dvrandom (integer n, double* x, integer incx)
+void dvrandom (int_t n, double* x, int_t incx)
 /* ------------------------------------------------------------------------- *
  * Randomize vector x, UD on (0, 1).
  * ------------------------------------------------------------------------- */
 {
-  register integer i;
+  register int_t i;
   
   x += (incx<0) ? (-n+1)*incx : 0;
 
@@ -113,12 +113,12 @@ void dvrandom (integer n, double* x, integer incx)
 }
 
 
-void svrandom (integer n, float* x, integer incx)
+void svrandom (int_t n, float* x, int_t incx)
 /* ------------------------------------------------------------------------- *
  * Randomize vector x, UD on (0, 1).
  * ------------------------------------------------------------------------- */
 {
-  register integer i;
+  register int_t i;
   
   x += (incx<0) ? (-n+1)*incx : 0;
 
@@ -126,12 +126,12 @@ void svrandom (integer n, float* x, integer incx)
 }
 
 
-void dvgauss (integer n, double* x, integer incx)
+void dvgauss (int_t n, double* x, int_t incx)
 /* ------------------------------------------------------------------------- *
  * Randomize vector x, Normal (0, 1).
  * ------------------------------------------------------------------------- */
 {
-  register integer i;
+  register int_t i;
   
   x += (incx<0) ? (-n+1)*incx : 0;
 
@@ -139,12 +139,12 @@ void dvgauss (integer n, double* x, integer incx)
 }
 
 
-void svaguss (integer n, float* x, integer incx)
+void svaguss (int_t n, float* x, int_t incx)
 /* ------------------------------------------------------------------------- *
  * Randomize vector x, Normal (0, 1).
  * ------------------------------------------------------------------------- */
 {
-  register integer i;
+  register int_t i;
   
   x += (incx<0) ? (-n+1)*incx : 0;
 
@@ -152,12 +152,12 @@ void svaguss (integer n, float* x, integer incx)
 }
 
 
-void dvnormal (integer n, double mean, double sdev, double* x, integer incx)
+void dvnormal (int_t n, double mean, double sdev, double* x, int_t incx)
 /* ------------------------------------------------------------------------- *
  * Randomize vector x, Normal(mean, sdev).
  * ------------------------------------------------------------------------- */
 {
-  register integer i;
+  register int_t i;
   
   x += (incx<0) ? (-n+1)*incx : 0;
 
@@ -189,12 +189,12 @@ void dvnormal (integer n, double mean, double sdev, double* x, integer incx)
 }
 
 
-void svnormal (integer n, float mean, float sdev, float* x, integer incx)
+void svnormal (int_t n, float mean, float sdev, float* x, int_t incx)
 /* ------------------------------------------------------------------------- *
  * Randomize vector x, Normal(mean, sdev).
  * ------------------------------------------------------------------------- */
 {
-  register integer i;
+  register int_t i;
   
   x += (incx<0) ? (-n+1)*incx : 0;
 
@@ -232,7 +232,7 @@ static double gasdev (long* idum)
  * using _GENERATOR_(idum) as the source of uniform deviates. NR 2e.
  * ------------------------------------------------------------------------- */
 {
-  static integer iset = 0;
+  static int_t iset = 0;
   static double  gset;
   double         fac, rsq, v1, v2;
 
@@ -325,7 +325,7 @@ static double ran1 (long* idum)
 static double ran2 (long* idum)
 /* ------------------------------------------------------------------------- *
  * Ran2 from NR 2e.  Returns a uniform random deviate between 0.0 &
- * 1.0 (exclusive of endpoints).  Call with idum a negative integer to
+ * 1.0 (exclusive of endpoints).  Call with idum a negative int_t to
  * initialize; thereafter, do not alter idum between successive
  * deviates in a sequence.  RNMX should approximate the largest
  * floating value that is less than 1.

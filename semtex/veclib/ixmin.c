@@ -7,9 +7,9 @@
 #include <cfemdef.h>
 
 
-integer idmin (integer n, const double* x, integer incx)
+int_t idmin (int_t n, const double* x, int_t incx)
 {
-  register integer i, imin;
+  register int_t i, imin;
   register double  xmin;
 
   x += (incx<0) ? (-n+1)*incx : 0;
@@ -26,9 +26,9 @@ integer idmin (integer n, const double* x, integer incx)
 }
 
 
-integer iimin (integer n, const integer* x, integer incx)
+int_t iimin (int_t n, const int_t* x, int_t incx)
 {
-  register integer i, xmin, imin;
+  register int_t i, xmin, imin;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   xmin = x[0];
@@ -44,9 +44,9 @@ integer iimin (integer n, const integer* x, integer incx)
 }
 
 
-integer ismin (integer n, const float* x, integer incx)
+int_t ismin (int_t n, const float* x, int_t incx)
 {
-  register integer i, imin;
+  register int_t i, imin;
   register float   xmin;
 
   x += (incx<0) ? (-n+1)*incx : 0;

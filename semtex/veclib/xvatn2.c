@@ -12,12 +12,12 @@
 #pragma global noalias
 #endif
 
-void dvatn2 (integer n, 
-	     const double* x, integer incx,
-	     const double* y, integer incy,
-	           double* z, integer incz)
+void dvatn2 (int_t n, 
+	     const double* x, int_t incx,
+	     const double* y, int_t incy,
+	           double* z, int_t incz)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -27,12 +27,12 @@ void dvatn2 (integer n,
 }
 
 
-void svatn2 (integer n,
-	     const float* x, integer incx,
-	     const float* y, integer incy,
-	           float* z, integer incz)
+void svatn2 (int_t n,
+	     const float* x, int_t incx,
+	     const float* y, int_t incy,
+	           float* z, int_t incz)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;

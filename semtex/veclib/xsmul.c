@@ -11,10 +11,10 @@
 #pragma global noalias
 #endif
 
-void dsmul (integer n, double alpha, const double* x, integer incx,
-                                           double* y, integer incy)
+void dsmul (int_t n, double alpha, const double* x, int_t incx,
+                                           double* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -23,10 +23,10 @@ void dsmul (integer n, double alpha, const double* x, integer incx,
 }
 
 
-void ismul (integer n, float alpha, const float* x, integer incx,
-                                          float* y, integer incy)
+void ismul (int_t n, float alpha, const float* x, int_t incx,
+                                          float* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -35,10 +35,10 @@ void ismul (integer n, float alpha, const float* x, integer incx,
 }
 
 
-void ssmul (integer n, float alpha, const float* x, integer incx,
-                                          float* y, integer incy)
+void ssmul (int_t n, float alpha, const float* x, int_t incx,
+                                          float* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;

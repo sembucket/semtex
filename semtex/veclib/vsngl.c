@@ -6,9 +6,9 @@
 
 #include <cfemdef.h>
 
-void vsngl (integer n, const double *x, integer incx, float *y, integer incy)
+void vsngl (int_t n, const double *x, int_t incx, float *y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;

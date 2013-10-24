@@ -20,15 +20,15 @@
 #include <cfemdef.h>
 
 
-void dmxm (double* A, integer nra,
-	   double* B, integer nca,
-	   double* C, integer ncb)
+void dmxm (double* A, int_t nra,
+	   double* B, int_t nca,
+	   double* C, int_t ncb)
 {
   register double  *a = A,
                    *b = B,
                    *c = C;
   register double  sum;
-  register integer i, j, k;
+  register int_t i, j, k;
 
   for (i = 0; i < nra; i++) {
     for (j = 0; j < ncb; j++) {
@@ -46,15 +46,15 @@ void dmxm (double* A, integer nra,
 }
 
 
-void smxm (float* A, integer nra,
-	   float* B, integer nca,
-	   float* C, integer ncb)
+void smxm (float* A, int_t nra,
+	   float* B, int_t nca,
+	   float* C, int_t ncb)
 {
   register float   *a = A,
                    *b = B,
                    *c = C;
   register float   sum;
-  register integer i, j, k;
+  register int_t i, j, k;
 
   for (i = 0; i < nra; i++) {
     for (j = 0; j < ncb; j++) {

@@ -12,10 +12,10 @@
 #pragma global noalias
 #endif
 
-void dvexp (integer n, const double* x, integer incx,
-                             double* y, integer incy)
+void dvexp (int_t n, const double* x, int_t incx,
+                             double* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -24,10 +24,10 @@ void dvexp (integer n, const double* x, integer incx,
 }
 
 
-void svexp (integer n, const float* x, integer incx,
-                             float* y, integer incy)
+void svexp (int_t n, const float* x, int_t incx,
+                             float* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;

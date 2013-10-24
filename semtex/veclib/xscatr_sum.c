@@ -14,9 +14,9 @@
 #pragma global noalias
 #endif
   
-void dscatr_sum (integer n, const double* x, const integer* y, double* z)
+void dscatr_sum (int_t n, const double* x, const int_t* y, double* z)
 {
-  register integer i;
+  register int_t i;
 
 #if defined(__uxp__)
 #pragma loop novrec z
@@ -28,9 +28,9 @@ void dscatr_sum (integer n, const double* x, const integer* y, double* z)
 }
 
 
-void iscatr_sum (integer n, const integer* x, const integer* y, integer* z)
+void iscatr_sum (int_t n, const int_t* x, const int_t* y, int_t* z)
 {
-  register integer i;
+  register int_t i;
 
 #if defined(__uxp__)
 #pragma loop novrec z
@@ -42,9 +42,9 @@ void iscatr_sum (integer n, const integer* x, const integer* y, integer* z)
 }
 
 
-void sscatr_sum (integer n, const float* x, const integer* y, float* z)
+void sscatr_sum (int_t n, const float* x, const int_t* y, float* z)
 {
-  register integer i;
+  register int_t i;
 
 #if defined(__uxp__)
 #pragma loop novrec z

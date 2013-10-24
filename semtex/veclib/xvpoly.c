@@ -14,12 +14,12 @@
 #pragma global noalias
 #endif
 
-void dvpoly (integer n,
-	     const double* x, integer incx, integer m,
-	     const double* c, integer incc, 
-	           double* y, integer incy)
+void dvpoly (int_t n,
+	     const double* x, int_t incx, int_t m,
+	     const double* c, int_t incc, 
+	           double* y, int_t incy)
 {
-  register integer i, j;
+  register int_t i, j;
   register double  sum, xval;
   const    double  *csave, *cp;
 
@@ -38,12 +38,12 @@ void dvpoly (integer n,
 }
 
 
-void svpoly (integer n,
-	     const float* x, integer incx, integer m,
-	     const float* c, integer incc, 
-	           float* y, integer incy)
+void svpoly (int_t n,
+	     const float* x, int_t incx, int_t m,
+	     const float* c, int_t incc, 
+	           float* y, int_t incy)
 {
-  register integer i, j;
+  register int_t i, j;
   register float   sum, xval;
   const    float   *csave, *cp;
 

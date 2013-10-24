@@ -11,10 +11,10 @@
 #pragma global noalias
 #endif
 
-void dvneg (integer n, const double* x, integer incx,
-                             double* y, integer incy)
+void dvneg (int_t n, const double* x, int_t incx,
+                             double* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -23,10 +23,10 @@ void dvneg (integer n, const double* x, integer incx,
 }
 
 
-void ivneg (integer n, const integer* x, integer incx,
-                             integer* y, integer incy)
+void ivneg (int_t n, const int_t* x, int_t incx,
+                             int_t* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
@@ -35,10 +35,10 @@ void ivneg (integer n, const integer* x, integer incx,
 }
 
 
-void svneg (integer n, const float* x, integer incx,
-                             float* y, integer incy)
+void svneg (int_t n, const float* x, int_t incx,
+                             float* y, int_t incy)
 {
-  register integer i;
+  register int_t i;
   
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;

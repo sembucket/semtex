@@ -11,12 +11,12 @@
 #pragma global noalias
 #endif
 
-void dvmul (integer n,
-	    const double* x, integer incx,
-	    const double* y, integer incy,
-	          double* z, integer incz)
+void dvmul (int_t n,
+	    const double* x, int_t incx,
+	    const double* y, int_t incy,
+	          double* z, int_t incz)
 {
-  register integer i;
+  register int_t i;
   
   if (incx == 1 && incy == 1 && incz == 1)
     for (i = 0; i < n; i++) z[i] = x[i] * y[i];
@@ -31,12 +31,12 @@ void dvmul (integer n,
 }
 
 
-void ivmul (integer n,
-	    const integer* x, integer incx,
-	    const integer* y, integer incy,
-	          integer* z, integer incz)
+void ivmul (int_t n,
+	    const int_t* x, int_t incx,
+	    const int_t* y, int_t incy,
+	          int_t* z, int_t incz)
 {
-  register integer i;
+  register int_t i;
   
   if (incx == 1 && incy == 1 && incz == 1)
     for (i = 0; i < n; i++) z[i] = x[i] * y[i];
@@ -51,12 +51,12 @@ void ivmul (integer n,
 }
 
 
-void svmul (integer n,
-	    const float* x, integer incx,
-	    const float* y, integer incy,
-	          float* z, integer incz)
+void svmul (int_t n,
+	    const float* x, int_t incx,
+	    const float* y, int_t incy,
+	          float* z, int_t incz)
 {
-  register integer i;
+  register int_t i;
 
   if (incx == 1 && incy == 1 && incz == 1)
     for (i = 0; i < n; i++) z[i] = x[i] * y[i];

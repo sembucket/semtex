@@ -11,13 +11,13 @@
 #pragma global noalias
 #endif
 
-void dsvvttvp (integer n, const double  alpha,
-	       const double* w, integer incw,
-	       const double* x, integer incx,
-	       const double* y, integer incy,
-	             double* z, integer incz)
+void dsvvttvp (int_t n, const double  alpha,
+	       const double* w, int_t incw,
+	       const double* x, int_t incx,
+	       const double* y, int_t incy,
+	             double* z, int_t incz)
 {
-  register integer i;
+  register int_t i;
 
   if (incw == 1 && incx == 1 && incy == 1 && incz == 1) 
    for (i = 0; i < n; i++) 
@@ -36,13 +36,13 @@ void dsvvttvp (integer n, const double  alpha,
 }
 
 
-void ssvvttvp (integer n, const float  alpha,
-	       const float* w, integer incw,
-	       const float* x, integer incx,
-	       const float* y, integer incy,
-	             float* z, integer incz)
+void ssvvttvp (int_t n, const float  alpha,
+	       const float* w, int_t incw,
+	       const float* x, int_t incx,
+	       const float* y, int_t incy,
+	             float* z, int_t incz)
 {
-  register integer i;
+  register int_t i;
 
   if (incw == 1 && incx == 1 && incy == 1 && incz == 1) 
    for (i = 0; i < n; i++) 
