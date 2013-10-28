@@ -110,8 +110,8 @@ Summary of additional TOKENS and session file requirements
 N_BASE:  number of velocity components in base flow (2 or 3)
 N_SLICE: number of time slices in session.bse (1 for steady base flow)
 
-N_PERT is set according to the number of velocity fields nominated in
-the session file (i.e. <FIELDS NUMBER=npert+1>).
+N_PERT is computed by dog according to the number of velocity fields
+nominated in the session file (i.e. <FIELDS NUMBER=npert+1>).
 
 Optional: for a time-periodic base flow, the BASE_PERIOD can be set as
 a token. Otherwise, it s calculated from based on the interval between

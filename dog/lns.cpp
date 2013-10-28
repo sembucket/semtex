@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// lns.C: control spectral element DNS for incompressible flows.
+// lns.cpp: control spectral element DNS for incompressible flows.
 // This version drives linear evolution of a single Fourier mode.
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn

@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
-// drive.C: compute leading eigenvalues and eigenvectors for stability
-// analysis based on linearised (Navier--Stokes) operators.
+// drive.cpp: compute leading eigenvalues and eigenvectors for
+// stability analysis based on linearised (Navier--Stokes) operators.
 // Optionally compute the optimal transient growth initial condition,
 // final condition, or the adjoint modes. The base flow can be either
 // steady or periodic in time, two or three component, cylindrical or
