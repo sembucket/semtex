@@ -77,6 +77,7 @@ class NumberSys;
 #include <boundary.h>
 #include <bsys.h>
 #include <bcmgr.h>
+#include <data2df.h>
 #include <family.h>
 #include <matrix.h>
 #include <field.h>
