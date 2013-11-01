@@ -15,6 +15,8 @@ public:
 
   void   get      (const real_t*,real_t*)                                const;
   void   geometry (real_t*,real_t*,real_t* = 0,real_t* = 0,real_t* = 0)  const;
+  bool   isCurved () const { return _curved; }
+
   void   curlCurl (const int_t,
 		   const real_t*,const real_t*,const real_t*,
 		   const real_t*,const real_t*,const real_t*,
@@ -53,6 +55,8 @@ protected:
   real_t*        _nx     ;	// Unit outward normal components at nodes.
   real_t*        _ny     ;	// 
   real_t*        _area   ;	// Weighted multiplier for parametric mapping.
+
+  bool           _curved ;      // True if the edge is curved.
 };
 
 #endif
