@@ -52,7 +52,6 @@ typedef ModalMatrixSys Msys;
 static int_t NDIM, NCOM, NORD;
 static bool  C3D;
 
-void          nonlinear (Domain*, AuxField**, AuxField**, vector<real_t>&);
 static void   waveProp  (Domain*, const AuxField***, const AuxField***);
 static void   setPForce (const AuxField**, AuxField**);
 static void   project   (const Domain*, AuxField**, AuxField**);

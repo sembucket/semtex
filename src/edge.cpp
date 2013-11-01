@@ -3,8 +3,11 @@
 //
 // Copyright (c) 2003 <--> $Date$, Hugh Blackburn
 //
-// Edges, like boundaries (to which they contribute) always belong to
-// a group -- regular element sides generally do not.
+// Edges, like boundaries (to which they contribute) typicall belong
+// to a named group -- regular element sides generally do not.  This
+// is not quite the same as saying that an edge lies along a domain
+// boundary, since in fact the constructor just needs a string as the
+// first argument.
 //
 // --
 // This file is part of Semtex.
@@ -70,6 +73,8 @@ Edge::Edge (const char*    grp ,
   _elmt -> sideGeom (_side, _x, _y, _nx, _ny, _area);
 
   if (Geometry::cylindrical()) Veclib::vmul (_np, _area, 1, _y, 1, _area, 1);
+
+  _curved = (fabs (Veclib::sum (_np, _nx, 1) - _np * _nx[0]) > EPSDP);
 }
 
 
