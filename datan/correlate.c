@@ -1,6 +1,22 @@
 /*****************************************************************************
  * correlate.c: compute cross-correlation of two columns of input data.
  *
+ * Synopsis
+ * --------
+ * Produce cross-correlation from 2 columns of ASCII input.  Input is
+ * read in chuncks of blocksize points until exhausted.  If the final
+ * read is not a full one it is thrown away.  If not even one full
+ * read can be done, program halts.
+ *
+ * Usage
+ * -----
+ * correlate [options] [file]
+ *  -b <blocksize>: Segment averaging blocksize.  Default is 512, must be even.
+ *  -k <lag>: Number of lags (+/-) over which to compute correlation.
+ *  -v: Verbose output (with 8-line header).
+ *  -o: Switch off segment averaging.
+ *  -r <rate>:  Data sampling rate.  Default rate is 1 (Hz).
+ *
  * Use routine correl_() from Numerical Recipes 2e, but compute the
  * "true" (dimensionless) cross correlation
  *
@@ -46,19 +62,9 @@ static void  printup   (FILE*, char*, real*, int, int, int, real, int);
 
 int main (int    argc,
 	  char** argv)
-/* ------------------------------------------------------------------------ *
- * Produce cross-correlation from 2 columns of ASCII input.  Input is
- * read in chuncks of blocksize points until exhausted.  If the final
- * read is not a full one it is thrown away.  If not even one full
- * read can be done, program halts.
- *
- *  Command-line arguments: These are all optional.
- *  -b <blocksize>: Segment averaging blocksize.  Default is 512, must be even.
- *  -k <lag>: Number of lags (+/-) over which to compute correlation.
- *  -v: Verbose output (with 8-line header).
- *  -o: Switch off segment averaging.
- *  -r <rate>:  Data sampling rate.  Default rate is 1 (Hz).
-  * ------------------------------------------------------------------------ */
+/* ------------------------------------------------------------------------- *
+ * Driver.
+ * ------------------------------------------------------------------------- */
 {
   char         *session = 0;
   FILE         *fp_in, *fp_out=stdout;
