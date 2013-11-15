@@ -223,7 +223,7 @@ ostream& operator << (ostream&  strm,
   int_t i;
   
   for (i = 0; i < F.nz; i++)
-    strm.write ((char*) F.plane[i], F.nplane * sizeof (real_t));
+    strm.write ((char*) F.plane[i], F.nrns * F.nel * sizeof (real_t));
 
   return strm;
 }
