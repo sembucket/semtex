@@ -69,7 +69,7 @@ normalise: normalise.o
 # Build normalize, a utility to normalise eigenvectors (L2-norm based).
 #
 
-NRMSRC = normalize data2df element auxfield geometry family mesh feml
+NRMSRC = normalize data2df element svv auxfield geometry family mesh feml
 NRMOBJ   = $(addsuffix .o,$(NRMSRC))
 
 normalize: $(NRMOBJ)
