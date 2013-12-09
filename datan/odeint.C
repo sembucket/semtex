@@ -47,13 +47,13 @@ int main (int    argc,
 // Carry manage the integration and I/O.
 // ---------------------------------------------------------------------------
 {
-  const int    Ns = 50000;
-  const int    Nv = 3;
-  const double dt = 0.003;
-  vector<real> y    (Nv);
-  vector<real> dydx (Nv);
-  int          i;
-  double       t;
+  const int      Ns = 50000;
+  const int      Nv = 3;
+  const double   dt = 0.003;
+  vector<double> y    (Nv);
+  vector<double> dydx (Nv);
+  int            i;
+  double         t;
 
   // -- set ICs.
   
@@ -63,8 +63,8 @@ int main (int    argc,
   y[2] = 0.1;
 
   for (i = 0; i < Ns; i++) {
-    (*ODEsys)    (t, y(), dydx());
-    Recipes::rk4 (y(), dydx(), Nv, t, dt, y(), ODEsys);
+    (*ODEsys)    (t, &y[0], &dydx[0]);
+    Recipes::rk4 (&y[0], &dydx[0], Nv, t, dt, &y[0], ODEsys);
     t += dt;
     cout << t << '\t' << y[0] << '\t' << y[1] << '\t' << y[2] << endl;
   }
