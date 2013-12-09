@@ -213,7 +213,7 @@ void VirtualForce::allocStorage (Domain *D)
 
   _a.resize (NCOM);
   for (int i = 0; i  < NCOM; i++)
-    _a[i] = new AuxField (new real [(size_t)nTotP], nzP, D->elmt, forcename+i);
+    _a[i] = new AuxField (new real_t [(size_t)nTotP],nzP,D->elmt,forcename+i);
 }
 */
 
@@ -225,7 +225,7 @@ AuxField* VirtualForce::allocAuxField (Domain *D   ,
   const int_t nTotP     = Geometry::nTotProc();
   const int_t nzP       = Geometry::nZProc();
 
-  return new AuxField (new real [(size_t)nTotP], nzP, D->elmt, type);
+  return new AuxField (new real_t [(size_t)nTotP], nzP, D->elmt, type);
 }
 
 
