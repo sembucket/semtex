@@ -78,8 +78,8 @@ ModalMatrixSys::ModalMatrixSys (const real_t            lambda2 ,
  //      betak2_svv = betak2 * (1 + eps_N/nu * Q)  for modes k > SVV_MZ and
  //      lambda2 > 0 (i.e. only for the velocity components)
  
-    const real_t*  S  = SVV::coeffs_z (numModes);
-    const real_t   betak2_svv = (lambda2 > EPSDP)?(betak2 * S[localMode]):betak2 ; 
+    const real_t* S = SVV::coeffs_z (numModes);
+    const real_t  betak2_svv = (lambda2>EPSDP)?(betak2*S[localMode]) : betak2; 
 
     for (found = false, m = MS.begin(); !found && m != MS.end(); m++) {
       M     = *m;
@@ -240,9 +240,9 @@ MatrixSys::MatrixSys (const real_t            lambda2,
     
       Lapack::pbtrf ("U",_nsolve,_nband-1,_H,_nband,info);
 
-      Family::adopt (_npack, &_H);
-
       if (info) message (routine, "failed to factor Helmholtz matrix", ERROR);
+
+      Family::adopt (_npack, &_H);
 
       if (verbose) {
 	real_t cond;
@@ -250,7 +250,7 @@ MatrixSys::MatrixSys (const real_t            lambda2,
 	work.resize (3 * _nsolve);  rwrk = &work[0];
 
 	Lapack::pbcon ("U",_nsolve,_nband-1,_H,_nband,1.0,cond,rwrk,ipiv,info);
-	cout << ", condition number: " << cond << endl;
+	cout << ", (inverse) condition number: " << cond << endl;
       }
     }
   } break;

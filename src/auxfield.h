@@ -42,6 +42,8 @@ public:
 
   AuxField& extractMode  (const AuxField&, const int_t);
   AuxField& innerProduct (const vector<AuxField*>&, const vector<AuxField*>&);
+  AuxField& innerProductMode (const vector<AuxField*>&,
+			      const vector<AuxField*>&);
   AuxField& times        (const AuxField&, const AuxField&);
   AuxField& timesPlus    (const AuxField&, const AuxField&);
   AuxField& timesMinus   (const AuxField&, const AuxField&);

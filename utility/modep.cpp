@@ -135,9 +135,9 @@ int main (int    argc,
     extract[i] -> extractMode (*u[i], modeNum);
   }
 
-  energy -> innerProduct (modeShape, extract);
+  energy -> innerProductMode (modeShape, extract);
 
-  cout << energy -> mode_L2(0) << endl;
+  cout << energy -> integral(0) << "  " << energy -> integral(1) << endl;
 
   Femlib::finalize();
   return EXIT_SUCCESS;
