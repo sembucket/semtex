@@ -267,6 +267,41 @@ AuxField& AuxField::innerProduct (const vector <AuxField*>& a,
 }
 
 
+AuxField& AuxField::innerProductMode (const vector <AuxField*>& a,
+				      const vector <AuxField*>& b)
+// ---------------------------------------------------------------------------
+// Set this AuxField's value as the inner product of a & b in Fourier
+// space --- but where both a and b are assumed to each be a complex
+// Fourier mode with just 2 data planes.
+// ---------------------------------------------------------------------------
+{
+  const char  routine[] = "AuxField::innerProduct";
+  const int_t ndim      = a.size();
+  const int_t nP        = Geometry::nPlane();
+  int_t       i, k;
+
+  if (_size != a[0]->_size || _size != b[0]->_size)
+    message (routine, "non-congruent inputs", ERROR);
+  if (_nz != 2 || a[0]->_nz != 2 || b[0]->_nz != 2)
+      message (routine, "number of z planes must be 2 here", ERROR);
+
+  Veclib::zero (_size, _data, 1);
+
+  for (i = 0; i < ndim; i++) {
+    Veclib::vvtvp (nP, a[i]->_plane[0], 1, b[i]->_plane[0], 1,
+		     _plane[0], 1, _plane[0], 1);
+    Veclib::vvtvp (nP, a[i]->_plane[1], 1, b[i]->_plane[1], 1,
+		   _plane[0], 1, _plane[0], 1);
+
+    Veclib::vvtvp (nP, a[i]->_plane[1], 1, b[i]->_plane[0], 1,
+		   _plane[1], 1, _plane[1], 1);
+    Veclib::vvvtm (nP, _plane[1], 1, a[i]->_plane[0], 1, b[i]->_plane[1], 1,
+		   _plane[1], 1);
+  }
+  return *this;
+}
+
+
 AuxField& AuxField::times (const AuxField& a,
 			   const AuxField& b)
 // ---------------------------------------------------------------------------

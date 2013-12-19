@@ -212,7 +212,7 @@ void integrate (void (*advection) (Domain*,
 static void waveProp (Domain*           D ,
 		      const AuxField*** Us,
 		      const AuxField*** Uf)
-// ---------------------------------------------------------------------------
+// ------------------------------------xc---------------------------------------
 // Compute the first substep of stiffly-stable timestepping scheme.
 //
 // On entry, the most recent velocity fields are in Us, and the most
