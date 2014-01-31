@@ -36,6 +36,34 @@ velocity field: the session file for the base flow is naturally
 assumed to supply the same 2D geometric information, but is not
 directly referred to.
 
+Usage (of dog)
+--------------
+
+dog(-H) [options] session
+options:
+-h       ... print this message
+-v       ... set verbose
+-a||g||s ... solve adjoint or optimal growth or optimal shrink, problem
+-k <num> ... set dimension of subspace (maximum number of pairs) to num
+-m <num> ... set maximum number of iterations         (m >= k)
+-n <num> ... compute num eigenvalue/eigenvector pairs (n <= k)
+-t <num> ... set eigenvalue tolerance to num [Default 1e-6]
+-p       ... compute pressure from converged velocity eigenvector
+
+The default operation mode of dog is global stability analysis for the
+linearised Navier--Stokes equations.  Other modes of operation are set
+using -a, -g, -s.  The eigenvalues obtained with -a should be the same
+as for default operation, but the adjoint rather than forward modes
+are returned as eigenvectors (timestepping is carried out using the
+adjoint Navier--Stokes equations). Optimal transient growth is
+computed using the -g flag: in this case the transient energy growth
+is returned, and the eigenvectors are corresponding optimal initial
+conditions (the right singular vectors of the state transition
+operator). For -s, the transpose of the optimal growth problem is
+solved: energy growth values are again returned, but the eigenvectors
+are the outcomes of the optimal initial conditions (left singular
+vectors).  Refer to [8] for more detail, as well as "Output" below.
+
 Description
 -----------
 
@@ -88,7 +116,6 @@ N_BASE  N_PERT  N_Z    COMPLEXITY
  3       3       1     Real only:     u.Re v.Re w.Re p.Re
  3       3       2     Full-complex
 
-
 OR, categorizing by symmetries of base flow and dimensionality and
 symmetry of perturbation (and cases that have been checked):
 
@@ -110,6 +137,8 @@ Summary of additional TOKENS and session file requirements
 N_BASE:  number of velocity components in base flow (2 or 3)
 N_SLICE: number of time slices in session.bse (1 for steady base flow)
 
+(The two parameters above must be supplied as TOKENS in the session file.)
+
 N_PERT is computed by dog according to the number of velocity fields
 nominated in the session file (i.e. <FIELDS NUMBER=npert+1>).
 
@@ -127,6 +156,39 @@ required.  An additional information file called session.run,
 containing the machine name and run pid, is also produced. For
 dog-H, the file session.map (produced by the flipmap utility) is
 needed as well.
+
+Output
+------
+
+Eigenvalue information is written to session.evl - this is the key
+file to monitor during execution.  Here is a typical segment of
+session.evl:
+
+-- Iteration = 260, H(k+1, k) = 0.893587
+EV  Magnitude   Angle       Growth      Frequency   Residual
+ 0  1.0022e+00  2.4989e-01  2.2356e-03  2.4989e-01  9.4531e-07
+ 1  1.0022e+00 -2.4989e-01  2.2356e-03 -2.4989e-01  9.4531e-07
+
+In the above, iteration number is the number of passes made through
+the temporal integration loop.  There is a one-to-one mapping between
+the (Magnitude,Angle) and (Growth,Frequency) pairs.  If T is the time
+over which the disturbance is evolved (N_STEP*D_T in session file)
+then (in the case of a stability analysis) Magnitude=exp(Growth*T) and
+Angle=(Frequency*T).  So if the stability analysis is of Floquet type
+the Magnitude is that of the Floquet multiplier, Angle is the angle in
+radians in the complex plane.  If the analysis is for a steady base
+flow then Growth is the real part of the corresponding eigenvalue,
+while Frequency is the imaginary part.  In the case of a transient
+growth analysis then Magnitude=G=Energy(T)/Energy(0) and
+Angle=0. Converegence is obtained when the residual<Magnitude*Tol
+where Tol is the convergence tolerance specifed on the command line
+(or the default value, 1e-6).
+
+Eigenvector information is written to session.eig.N where N is the
+index of the eigenvetor (direct correspondence to ordering in
+session.evl).  These .eig files have the structure of semtex .fld files:
+since they represent Fourier modes, they have either one or two data
+planes, corresponding to real or complex modes.
 
 References
 ----------
@@ -150,5 +212,7 @@ References
 [7]  HM Blackburn & JM Lopez (2003), "The onset of three-dimensional
      standing and modulated travelling waves in a periodically driven
      cavity flow", J Fluid Mech V497, 289--317.
+[8]  D Barkley and HM Blackburn and SJ Sherwin (2008), "Direct optimal
+     growth for timesteppers", Int J Num Meth Fluids V57:1435--1458.
 
 $Id$
