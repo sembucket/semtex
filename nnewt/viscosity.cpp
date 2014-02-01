@@ -179,8 +179,8 @@ static void strainRate (const Domain* D ,
 
     AuxField* tmp = Us[0];
 
-    for (i = 0; i < NCOM; i++) {
-      for (j = 0; j < NDIM; j++) {
+    for (i = 0; i < NDIM; i++) {
+      for (j = 0; j < NCOM; j++) {
 	if (i == j) continue;
 	(*tmp = *D -> u[j]) . gradient (i);
 	if (j > i) *Uf[i + j - 1]  = *tmp;

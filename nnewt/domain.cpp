@@ -220,7 +220,7 @@ void Domain::transform (const int_t sign)
 ostream& operator << (ostream& strm,
 		      Domain&  D   )
 // ---------------------------------------------------------------------------
-// Output all Domain field variables on ostream in prism-compatible
+// Output all Domain (aux)field variables on ostream in prism-compatible
 // form.  Binary output only.  Note that output is only done on root
 // processor.
 //
