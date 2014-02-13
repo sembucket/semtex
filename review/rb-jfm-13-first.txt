@@ -1,0 +1,42 @@
+TITLE:	      Kinematics of vorticity transport and sources of the
+	      total pressure gradient
+
+AUTHORS:      Rutten & Bohme
+
+SUBMITTED TO: J Fluid Mech
+
+REVIEW:       First
+
+SUBJECT MATERIAL
+
+Theoretical treatment of non-trivial flow kinematics.
+
+
+RECOMMENDATION
+
+The manuscript is heavy on theoretical concepts and rather too light
+on explicatory diagrams and examples.  Having said that, the text is
+well written, not hard to follow, and is interesting enough to read,
+as far as it goes.  Essentially we are guided through a sequence of
+theoretical manipulations of various quantities derived from
+kinematics of velocity fields but without enough guidance on why these
+concepts are useful --- how they may be used to say something useful
+about general flows. The material is certainly suitable for JFM and I
+would support publication if the manuscript could be extended to cover
+motivational aspects to a greater degree, however as it stands I could
+not do so.
+
+SUGGESTIONS/QUESTIONS
+
+1. The authors need to highlight their original contribution and what
+their work enables one to deduce about fluid flows and that previous
+offerings do not.
+
+2. The work on dynamics of Lamb vector divergence by Hamman et
+al. (2008) focusses much more strongly on applications, and it is that
+kind of emphasis that I would like to see given here.  For example,
+the illustration here in section 9 concentrates on what one can
+observe about the quantities considered in the manuscript in a rather
+specialised flow, but would not help to motivate me to examine another
+flow using the concepts advanced by the authors.
+
