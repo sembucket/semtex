@@ -1,4 +1,4 @@
-##############################################################################
+#############################################################################
 # Makefile for lns, spectral element solver for linearised unsteady
 # Navier--Stokes problems, and dog, a Krylov-method solver for
 # stability problems (including Floquet and transient-growth problems).
@@ -57,13 +57,13 @@ lns: sem $(ST_OBJ) $(SEMOBJ) stab.h
 # Build combine, a utility to combine a base and a perturbation field.
 #
 combine: combine.o
-	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
+	$(CXX) $(CPPFLAGS) -o $@ $@.cpp $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build normalise, a utility to normalise eigenvectors (2-norm based).
 #
 normalise: normalise.o
-	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
+	$(CXX) $(CPPFLAGS) -o $@ $@.cpp $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build normalize, a utility to normalise eigenvectors (L2-norm based).
@@ -78,21 +78,21 @@ normalize: $(NRMOBJ)
 # ----------------------------------------------------------------------------
 # Build flipmap, a utility to find a symmetry-related mapping of the mesh.
 #
-flipmap: flipmap.C
-	$(CXX) $(CPPFLAGS) -o $@ $@.C $(LDFLAGS)
+flipmap: flipmap.cpp
+	$(CXX) $(CPPFLAGS) -o $@ $@.cpp $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build symmetrise, a utility to enforce reflection symmstry of data.
 #
-symmetrise: symmetrise.C data2df.o 
-	$(CXX) $(CPPFLAGS) -o $@ data2df.o $@.C $(LDFLAGS)
+symmetrise: symmetrise.cpp data2df.o 
+	$(CXX) $(CPPFLAGS) -o $@ data2df.o $@.cpp $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build reflect, a utility to generate a solution on a full mesh from
 # one on a half mesh by reflection.
 #
-reflect: reflect.C data2df.o 
-	$(CXX) $(CPPFLAGS) -o $@ data2df.o $@.C $(LDFLAGS)
+reflect: reflect.cpp data2df.o 
+	$(CXX) $(CPPFLAGS) -o $@ data2df.o $@.cpp $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Header dependency.
@@ -112,6 +112,6 @@ endif
 # Machine-dependent compilations.
 
 ifeq ($(ARCH),SUPER-UX)
-mesh.o: $(VPATH)/mesh.C
-	$(CXX) $(CPPFLAGS) $(NOVEC) $(VPATH)/mesh.C
+mesh.o: $(VPATH)/mesh.cpp
+	$(CXX) $(CPPFLAGS) $(NOVEC) $(VPATH)/mesh.cpp
 endif
