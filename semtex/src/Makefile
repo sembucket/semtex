@@ -30,8 +30,8 @@ ifeq ($(ARCH),Linux)
   ifeq ($(MACH),i686)
     ARCH = Linux-iX86
   endif
-  ifeq ($(MACH),x86_64)
-    ARCH = Linux-x86_64
+  ifeq ($(HOST),raijin2)
+    ARCH = raijin
   endif
   ifeq ($(MACH),ia64)
     ifeq ($(HOST),ac)
@@ -46,34 +46,32 @@ endif
 # Compiler options for specific machines.
 #
 
-ifeq ($(ARCH),Darwin)               # -- Mac OSX, 10.6+ (has openmpi)
-CXX      = g++
-LD       = g++
-CC       = gcc
-FC	 = gfortran
-AR	 = libtool
-ARFLAGS  = -static -o
-RANLIB   = ranlib
+ifeq ($(ARCH),raijin)             # -- NCI host.
+CXX      = icc
+LD       = icc
+CC       = icc
+FC       = ifort
 ifdef DEBUG
-  OPT    = -m64 -O0 -ggdb
-else 
-  OPT    = -m64 -O2 -w
-endif
-CFLAGS   = $(DEFINES) $(OPT) -ansi
-CXXFLAGS = $(DEFINES) $(OPT) -ansi
-FFLAGS   = $(DEFINES) $(OPT)
-LIBDIR   += -L/sw/lib -L/sw/lib/gcc4.8/lib
-LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
-F77LIBS  = -framework Accelerate -lgfortran
-CLDFLAGS = $(LDFLAGS)
-ifdef MPI
-  LDFLAGS   =  $(OPT) $(LIBDIR) -lfem_mp -lvec $(F77LIBS) -lmpi
+  OPT    = -gstabs+
 else
-  LDFLAGS   =  $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
+  OPT    = -O3 -w
 endif
+CFLAGS   = $(DEFINES) $(OPT)
+FFLAGS   = $(DEFINES) $(OPT)
+CXXFLAGS = $(DEFINES) $(OPT) -Wno-deprecated
+#F77LIBS  = -L$(FCHOME)/lib -lmkl_lapack -lmkl -lmkl_ipf -lguide -lifcore -lstdc++ -lipr
+F77LIBS  = -L$(FCHOME)/lib -lmkl_rt -lifcore -lstdc++
+LDFLAGS  = $(OPT) $(LIBDIR)
+RANLIB   = ranlib
+ifdef MPI
+  LDFLAGS += -lfem_mp -lvec $(F77LIBS) -lmpi -limf
+else
+  LDFLAGS += -lfem -lvec $(F77LIBS)
+endif
+CLDFLAGS = $(LDFLAGS)
 endif
 
-ifeq ($(ARCH),Linux-ia64)               # -- Itanium-2, Intel compilers.
+ifeq ($(ARCH),Linux-ia64)               # -- Itanium-2, Intel compilers (vayu)
 CXX      = icc
 LD       = icc
 CC       = icc
@@ -92,12 +90,12 @@ CXXFLAGS = $(DEFINES) $(OPT) -Wno-deprecated
 RANLIB   = ranlib
 
 FCHOME   = /opt/intel-fc/9.1.051
-F77LIBS  = -L$(FCHOME)/lib -lmkl_lapack -lmkl -lmkl_ipf -lguide -lifcore -lstdc++ -lipr
+F77LIBS  = -lmkl_rt
 
 LDFLAGS  = $(OPT)  $(LIBDIR)
 CLDFLAGS = $(LDFLAGS)
 ifdef MPI
-  LDFLAGS  += -lfem_mp -lvec $(F77LIBS) -L/opt/mpt-1.11.1/lib -lmpi -limf
+  LDFLAGS  += -lfem_mp -lvec $(F77LIBS) -lmpi -limf
 else
   LDFLAGS += -lfem -lvec $(F77LIBS) -limf
 endif
