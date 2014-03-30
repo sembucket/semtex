@@ -290,7 +290,7 @@ void Analyser::analyse (AuxField** work0,
 		  << _src->time
 		  << setprecision(6);
 	for (j = 0; j < NF-1; j++) _his_strm << setw(14) << tmp[j];
-	_his_strm<< setprecision(11)<< setw(19)<< tmp[NF-1]<< setprecision(6);
+	_his_strm<< setprecision(11) << setw(19)<< tmp[NF-1]<< setprecision(6);
 	_his_strm << endl;
       }
     }

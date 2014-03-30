@@ -123,7 +123,7 @@ void Integration::StifflyStable (const int_t n    ,
     coeff[2] =  0.5;
     break;
   case 3:
-    coeff[0] = 11.0 / 6.0;
+    coeff[0] =  11.0 / 6.0;
     coeff[1] = -3.0;
     coeff[2] =  1.5;
     coeff[3] = -1.0 / 3.0;
