@@ -599,7 +599,7 @@ static int_t EV_test (const int_t  itrn   ,
 
   // -- Print diagnostic information.
 
-  runinfo << "-- Iteration = " << itrn << ", H(k+1, k) = " << resnorm << endl;
+  runinfo << "-- Iteration = " << itrn << ", H(k+1, k) = " << static_cast<double>(resnorm) << endl;
 
   runinfo.precision(4);
   runinfo.setf(ios::scientific, ios::floatfield);
