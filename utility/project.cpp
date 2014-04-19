@@ -238,7 +238,7 @@ istream& operator >> (istream&  strm,
   int_t i;
   
   for (i = 0; i < F.nz; i++)
-    strm.read ((char*) F.plane[i], F.nplane * sizeof (real_t));
+    strm.read ((char*) F.plane[i], F.nrns * F.nel * sizeof (real_t));
 
   return strm;
 }
@@ -408,6 +408,9 @@ static bool getDump (istream&           ifile ,
 		     char*              fields)
 // ---------------------------------------------------------------------------
 // Read next set of field dumps from ifile, put headers on ofile.
+// Note that the output header matches the requested values of N_P and
+// N_Z, but the input is done according to the values found in the
+// original field dump.
 //
 // Convert to Fourier space.
 // ---------------------------------------------------------------------------
@@ -434,7 +437,7 @@ static bool getDump (istream&           ifile ,
   ifile.getline (buf, StrMax);
   ofile << buf << endl;
 
-  // -- I/O Numerical description of field sizes.
+  // -- I/O numerical description of field sizes.
 
   ifile >> nr >> ns >> nz >> nel;
   ifile.getline (buf, StrMax);
