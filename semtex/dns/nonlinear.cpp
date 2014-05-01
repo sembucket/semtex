@@ -370,6 +370,7 @@ void altSkewSymmetric (Domain*         D ,
   }
  
   toggle = 1 - toggle;
+
 }
 
 

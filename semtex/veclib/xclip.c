@@ -17,7 +17,7 @@
 #define MIN(a, b)  ((a) < (b) ?     (a) : (b))
 #define MAX(a, b)  ((a) > (b) ?     (a) : (b))
 
-void dclip (int_t n, const double alpha, const double beta,
+void dclip (int_t n,  const double alpha, const double beta,
 	    const double* x, int_t incx,
 	          double* y, int_t incy)
 {
@@ -30,7 +30,7 @@ void dclip (int_t n, const double alpha, const double beta,
 }
 
 
-void iclip (int_t n, const int_t alpha, const int_t beta,
+void iclip (int_t n,  const int_t alpha, const int_t beta,
 	    const int_t* x, int_t incx,
 	          int_t* y, int_t incy)
 {
@@ -43,7 +43,7 @@ void iclip (int_t n, const int_t alpha, const int_t beta,
 }
 
 
-void sclip (int_t n, const float alpha, const float beta,
+void sclip (int_t n,  const float alpha, const float beta,
 	    const float* x, int_t incx,
 	          float* y, int_t incy)
 {
@@ -56,7 +56,7 @@ void sclip (int_t n, const float alpha, const float beta,
 }
 
 
-void dclipup (int_t n, const double alpha,
+void dclipup (int_t n,  const double alpha,
 	      const double* x, int_t incx,
 	            double* y, int_t incy)
 {
@@ -69,7 +69,7 @@ void dclipup (int_t n, const double alpha,
 }
 
 
-void iclipup (int_t n, const int_t alpha,
+void iclipup (int_t n,  const int_t alpha,
 	      const int_t* x, int_t incx,
 	            int_t* y, int_t incy)
 {
@@ -82,7 +82,7 @@ void iclipup (int_t n, const int_t alpha,
 }
 
 
-void sclipup (int_t n, const float alpha,
+void sclipup (int_t n,  const float alpha,
 	      const float* x, int_t incx,
 	            float* y, int_t incy)
 {
@@ -95,7 +95,7 @@ void sclipup (int_t n, const float alpha,
 }
 
 
-void dclipdn (int_t n, const double alpha,
+void dclipdn (int_t n,  const double alpha,
 	      const double* x, int_t incx,
 	            double* y, int_t incy)
 {
@@ -108,7 +108,7 @@ void dclipdn (int_t n, const double alpha,
 }
 
 
-void iclipdn (int_t n, const int_t alpha,
+void iclipdn (int_t n,  const int_t alpha,
 	      const int_t* x, int_t incx,
 	            int_t* y, int_t incy)
 {
@@ -121,7 +121,7 @@ void iclipdn (int_t n, const int_t alpha,
 }
 
 
-void sclipdn (int_t n, const float alpha,
+void sclipdn (int_t n,  const float alpha,
 	      const float* x, int_t incx,
 	            float* y, int_t incy)
 {

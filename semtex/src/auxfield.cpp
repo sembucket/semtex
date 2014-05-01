@@ -271,7 +271,7 @@ AuxField& AuxField::innerProductMode (const vector <AuxField*>& a,
 				      const vector <AuxField*>& b)
 // ---------------------------------------------------------------------------
 // Set this AuxField's value as the inner product of a & b in Fourier
-// space --- but where both a and b are assumed to each be a complex
+// space -- but where both a and b are assumed to each be a complex
 // Fourier mode with just 2 data planes.
 // ---------------------------------------------------------------------------
 {
@@ -287,6 +287,7 @@ AuxField& AuxField::innerProductMode (const vector <AuxField*>& a,
 
   Veclib::zero (_size, _data, 1);
 
+#if 0 // -- old version.
   for (i = 0; i < ndim; i++) {
     Veclib::vvtvp (nP, a[i]->_plane[0], 1, b[i]->_plane[0], 1,
 		     _plane[0], 1, _plane[0], 1);
@@ -298,6 +299,24 @@ AuxField& AuxField::innerProductMode (const vector <AuxField*>& a,
     Veclib::vvvtm (nP, _plane[1], 1, a[i]->_plane[0], 1, b[i]->_plane[1], 1,
 		   _plane[1], 1);
   }
+#else
+  for (i = 0; i < ndim; i++) {
+
+    // -- Project onto the supplied mode.
+    //    Re(this) = Re(a)*Re(b) + Im(a)*Im(b).
+    Veclib::vvtvp (nP, a[i]->_plane[0], 1, b[i]->_plane[0], 1,
+		     _plane[0], 1, _plane[0], 1);
+    Veclib::vvtvp (nP, a[i]->_plane[1], 1, b[i]->_plane[1], 1,
+		   _plane[0], 1, _plane[0], 1);
+
+    // -- Project onto the 1/4-period phase shift of the supplied mode.
+    //    Im(this) = Re(a)*Im(b) + Im(a)*Re(b).
+    Veclib::vvtvp (nP, a[i]->_plane[0], 1, b[i]->_plane[1], 1,
+		   _plane[1], 1, _plane[1], 1);
+    Veclib::vvtvp (nP, a[i]->_plane[1], 1, b[i]->_plane[0], 1,
+		   _plane[1], 1, _plane[1], 1);
+  }
+#endif
   return *this;
 }
 
@@ -1080,6 +1099,8 @@ AuxField& AuxField::transform32 (const int_t sign,
 //
 // NB: dealiasing does not occur in multiple-processor execution, so phys
 // has the same number of data as *this.
+//
+// NB: input data phys is overwritten.
 // ---------------------------------------------------------------------------
 {
   const int_t nZ   = Geometry::nZ();

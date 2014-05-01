@@ -49,7 +49,7 @@ typedef ModalMatrixSys Msys;
 
 // -- File-scope constants and routines:
 
-static int_t NDIM, NCOM, NORD;
+static int_t NDIM, NCOM, NTIM;
 static bool  C3D;
 
 static void   waveProp  (Domain*, const AuxField***, const AuxField***);
@@ -75,7 +75,7 @@ void integrate (void (*advection) (Domain*,
 {
   NDIM = Geometry::nDim();	// -- Number of space dimensions.
   NCOM = D -> nField() - 1;	// -- Number of velocity components.
-  NORD = Femlib::ivalue ("N_TIME");
+  NTIM = Femlib::ivalue ("N_TIME");
   C3D  = Geometry::cylindrical() && NCOM == 3;
 
   int_t              i, j, k;
@@ -94,11 +94,11 @@ void integrate (void (*advection) (Domain*,
     // -- Create multi-level storage for velocities and forcing.
     
     const int_t ntot  = Geometry::nTotProc();
-    real_t*     alloc = new real_t [static_cast<size_t>(2*NCOM*NORD*ntot)];
-    Us                = new AuxField** [static_cast<size_t>(2 * NORD)];
-    Uf                = Us + NORD;
+    real_t*     alloc = new real_t [static_cast<size_t>(2*NCOM*NTIM*ntot)];
+    Us                = new AuxField** [static_cast<size_t>(2 * NTIM)];
+    Uf                = Us + NTIM;
 
-    for (k = 0, i = 0; i < NORD; i++) {
+    for (k = 0, i = 0; i < NTIM; i++) {
       Us[i] = new AuxField* [static_cast<size_t>(2 * NCOM)];
       Uf[i] = Us[i] + NCOM;
       for (j = 0; j < NCOM; j++) {
@@ -122,7 +122,7 @@ void integrate (void (*advection) (Domain*,
     
   // -- Because we may restart from scratch on each call, zero these:
 
-  for (i = 0; i < NORD; i++)
+  for (i = 0; i < NTIM; i++)
     for (j = 0; j < NCOM; j++) {
       *Us[i][j] = 0.0;
       *Uf[i][j] = 0.0;
@@ -143,7 +143,7 @@ void integrate (void (*advection) (Domain*,
     // -- Compute nonlinear terms from previous velocity field.
 
     advection (D, Us[0], Uf[0], ff);
-    
+
     // -- Now update the time.
  
     D -> step += 1; 
@@ -163,11 +163,13 @@ void integrate (void (*advection) (Domain*,
 
     waveProp (D, const_cast<const AuxField***>(Us),
 	         const_cast<const AuxField***>(Uf));
+
     for (i = 0; i < NCOM; i++) AuxField::swapData (D -> u[i], Us[0][i]);
-    rollm     (Uf, NORD, NCOM);
+    rollm     (Uf, NTIM, NCOM);
+
     setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);
     Solve     (D, NCOM,  Uf[0][0], MMS[NCOM]);
-    
+
     // -- Correct velocities for pressure.
 
     project   (D, Us[0], Uf[0]);
@@ -175,7 +177,7 @@ void integrate (void (*advection) (Domain*,
     // -- Update multilevel velocity storage.
 
     for (i = 0; i < NCOM; i++) *Us[0][i] = *D -> u[i];
-    rollm (Us, NORD, NCOM);
+    rollm (Us, NTIM, NCOM);
 
     // -- Re-evaluate (time-dependent) BCs?
 
@@ -198,6 +200,7 @@ void integrate (void (*advection) (Domain*,
       AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
       AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     }
+
     for (i = 0; i < NCOM; i++) Solve (D, i, Uf[0][i], MMS[i]);
     if (C3D)
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
@@ -231,7 +234,7 @@ static void waveProp (Domain*           D ,
     *H[i] = 0.0;
   }
 
-  const int_t    Je = min (D -> step, NORD);
+  const int_t    Je = min (D -> step, NTIM);
   vector<real_t> alpha (Integration::OrderMax + 1);
   vector<real_t> beta  (Integration::OrderMax);
   
@@ -303,8 +306,11 @@ static Msys** preSolve (const Domain* D)
 // is selected for any Field, the corresponding ModalMatrixSystem pointer
 // is set to zero.
 //
-// ITERATIVE == 1 selects iterative solvers for velocity components,
-// ITERATIVE == 2 adds iterative solver for pressure as well.
+// Note that this routine sets up for the long-time run time order
+// (N_TIME), whereas at early steps, lower-order cases may be
+// temporarily created and destroyed in Solve.
+//
+// ITERATIVE > 0 selects iterative solvers for velocity components.
 // ---------------------------------------------------------------------------
 {
   const int_t             nmodes = Geometry::nModeProc();
@@ -316,14 +322,14 @@ static Msys** preSolve (const Domain* D)
   int_t                   i;
 
   vector<real_t> alpha (Integration::OrderMax + 1);
-  Integration::StifflyStable (NORD, &alpha[0]);
+  Integration::StifflyStable (NTIM, &alpha[0]);
   const real_t   lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS");
 
   // -- Velocity systems.
 
   for (i = 0; i < NCOM; i++)
     M[i] = new Msys
-      (lambda2, beta, base, nmodes, E, D -> b[i], (itLev == 1) ? JACPCG:DIRECT);
+      (lambda2, beta, base, nmodes, E, D -> b[i], (itLev > 0) ? JACPCG:DIRECT);
 
   // -- Pressure system.
 
@@ -346,8 +352,8 @@ static void Solve (Domain*     D,
 {
   const int_t step = D -> step;
 
-  if (i < NCOM && step < NORD) { // -- We need a temporary matrix system.
-    const int_t Je     = min (step, NORD);    
+  if (i < NCOM && step < NTIM) { // -- We need a temporary matrix system.
+    const int_t Je     = min (step, NTIM);    
     const int_t base   = Geometry::baseMode();
     const int_t nmodes = Geometry::nModeProc();
 
