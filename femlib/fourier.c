@@ -3,6 +3,13 @@
  *
  * Copyright (c) 1999<-->$Date$, Hugh Blackburn
  *
+ * 1D Fourier transform routines for real data fields based on FFTPACK
+ * or Temperton FFT routines, or vendor-supplied alternatives.
+ * NB: different restrictions may apply to input args depending on
+ * selected routine. 
+ *
+ * --
+ *
  * This file is part of Semtex.
  * 
  * Semtex is free software; you can redistribute it and/or modify it
@@ -19,15 +26,9 @@
  * along with Semtex (see the file COPYING); if not, write to the Free
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
- *
- *
- * 1D Fourier transform routines for real data fields based on FFTPACK
- * or Temperton FFT routines, or vendor-supplied alternatives.
- * NB: different restrictions may apply to input args depending on
- * selected routine. 
- *
- * $Id$
  *****************************************************************************/
+
+/* $Id$ */
 
 #include <stdio.h>
 #include <stdlib.h>

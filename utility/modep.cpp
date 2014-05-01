@@ -137,6 +137,10 @@ int main (int    argc,
 
   energy -> innerProductMode (modeShape, extract);
 
+  // -- Print out the KE-norm projection of the data onto the supplied
+  //    mode shape followed by its projection onto the 1/4-wavelength
+  //    rotation of the mode shape (each real numbers).
+
   cout << energy -> integral(0) << "  " << energy -> integral(1) << endl;
 
   Femlib::finalize();
