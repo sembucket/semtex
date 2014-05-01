@@ -46,6 +46,33 @@ endif
 # Compiler options for specific machines.
 #
 
+ifeq ($(ARCH),Darwin)               # -- Mac OSX, 10.6+ (has openmpi)
+CXX      = g++
+LD       = g++
+CC       = gcc
+FC	 = gfortran
+AR	 = libtool
+ARFLAGS  = -static -o
+RANLIB   = ranlib
+ifdef DEBUG
+  OPT    = -m64 -O0 -ggdb
+else
+  OPT    = -m64 -O2
+endif
+CFLAGS   = $(DEFINES) $(OPT) -ansi
+CXXFLAGS = $(DEFINES) $(OPT) -ansi
+FFLAGS   = $(DEFINES) $(OPT)
+LIBDIR   += -L/sw/lib -L/sw/lib/gcc4.8/lib
+LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
+F77LIBS  = -framework Accelerate -lgfortran
+CLDFLAGS = $(LDFLAGS)
+ifdef MPI
+  LDFLAGS   =  $(OPT) $(LIBDIR) -lfem_mp -lvec $(F77LIBS) -lmpi
+else
+  LDFLAGS   =  $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
+endif
+endif
+
 ifeq ($(ARCH),raijin)             # -- NCI host.
 CXX      = icc
 LD       = icc
