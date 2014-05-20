@@ -7,7 +7,8 @@
 // NB: the input field file is assumed to contain only velocity and
 // appropriate correlation data. The naming conventions employed for
 // example in addfield.C are broken (names are here used for different
-// variables).
+// variables).  The appropriate averages/correlations are collected by
+// setting token AVERAGE=3.
 //
 // Also: the reduction has only been confirmed to work for Cartesian,
 // not cylindrical, cordinate systems.
@@ -66,18 +67,20 @@
 // terms to compute.  For Newtonian flow we only need six.  We will
 // use arabic numeric characters to name these terms.
 //
-// '1': Uj dq/dxj
-// '2': -d(q.uj)/dxj
-// '3': -d(1/rho p.uj)/dxj
-// '4': 2 kinvis d(sij.ui)/dxj
-// '7': -2 kinvis sij.sij
-// '0': -ui.uj.Sij
+// '1': Uj dq/dxj                 Mean flow transport
+// '2': -d(q.uj)/dxj              Turbulent transport
+// '3': -d(1/rho p.uj)/dxj        Pressure work
+// '4': 2 kinvis d(sij.ui)/dxj    Viscous transport
+// '7': -2 kinvis sij.sij         Dissipation
+// '0': -ui.uj.Sij                Production
 //
-// Note: the "missing" names 5,6,8,9 are for non-Newtonian flow.  The
-// above terms should sum to zero for stationary turbulence, so we
-// also write out
+// Note: the "missing" names 5,6,8,9 are present for non-Newtonian
+// flow.  The sum of terms 2,3,4,7,0 should equal 1 for stationary
+// turbulence, so we also write out
 //
-// S: sum of above terms.
+// S: -1 + 2 + 3 + 4 + 7 + 0
+//
+// which should approach zero pointwise.
 //
 // --
 // This file is part of Semtex.
@@ -545,11 +548,11 @@ static void covary  (map<char, AuxField*>& in  ,
 
   // -- Finally, compute the sum, 'S' (should converge to zero):
 
-  *out['S']  = *out['1'];
-  *out['S'] += *out['2'];
-  *out['S'] += *out['3'];
-  *out['S'] += *out['4'];
-  *out['S'] += *out['7'];
-  *out['S'] += *out['0'];
+ (*out['S']  = *out['1']) *= -1.0;
+  *out['S'] -= *out['2'];
+  *out['S'] -= *out['3'];
+  *out['S'] -= *out['4'];
+  *out['S'] -= *out['7'];
+  *out['S'] -= *out['0'];
 }
 
