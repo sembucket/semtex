@@ -290,7 +290,7 @@ AuxField& AuxField::innerProductMode (const vector <AuxField*>& a,
 #if 0 // -- old version.
   for (i = 0; i < ndim; i++) {
     Veclib::vvtvp (nP, a[i]->_plane[0], 1, b[i]->_plane[0], 1,
-		     _plane[0], 1, _plane[0], 1);
+		   _plane[0], 1, _plane[0], 1);
     Veclib::vvtvp (nP, a[i]->_plane[1], 1, b[i]->_plane[1], 1,
 		   _plane[0], 1, _plane[0], 1);
 
@@ -304,13 +304,15 @@ AuxField& AuxField::innerProductMode (const vector <AuxField*>& a,
 
     // -- Project onto the supplied mode.
     //    Re(this) = Re(a)*Re(b) + Im(a)*Im(b).
+
     Veclib::vvtvp (nP, a[i]->_plane[0], 1, b[i]->_plane[0], 1,
-		     _plane[0], 1, _plane[0], 1);
+		   _plane[0], 1, _plane[0], 1);
     Veclib::vvtvp (nP, a[i]->_plane[1], 1, b[i]->_plane[1], 1,
 		   _plane[0], 1, _plane[0], 1);
 
     // -- Project onto the 1/4-period phase shift of the supplied mode.
     //    Im(this) = Re(a)*Im(b) + Im(a)*Re(b).
+
     Veclib::vvtvp (nP, a[i]->_plane[0], 1, b[i]->_plane[1], 1,
 		   _plane[1], 1, _plane[1], 1);
     Veclib::vvtvp (nP, a[i]->_plane[1], 1, b[i]->_plane[0], 1,
