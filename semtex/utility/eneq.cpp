@@ -255,8 +255,6 @@ static const char* fieldNames (map<char, AuxField*>& u)
   return buf;
 }
 
-
-
 static bool getDump (ifstream&             file,
 		     map<char, AuxField*>& u   ,
 		     vector<Element*>&     elmt)
@@ -549,10 +547,10 @@ static void covary  (map<char, AuxField*>& in  ,
   // -- Finally, compute the sum, 'S' (should converge to zero):
 
  (*out['S']  = *out['1']) *= -1.0;
-  *out['S'] -= *out['2'];
-  *out['S'] -= *out['3'];
-  *out['S'] -= *out['4'];
-  *out['S'] -= *out['7'];
-  *out['S'] -= *out['0'];
+  *out['S'] += *out['2'];
+  *out['S'] += *out['3'];
+  *out['S'] += *out['4'];
+  *out['S'] += *out['7'];
+  *out['S'] += *out['0'];
 }
 
