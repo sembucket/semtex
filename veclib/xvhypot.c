@@ -44,7 +44,7 @@ void svhypot (int_t n,
   y += (incy<0) ? (-n+1)*incy : 0;
   z += (incz<0) ? (-n+1)*incz : 0;
 
-#if defined(__GNUC__) || defined (__uxp__) || defined(_SX)
+#if  defined (__uxp__) || defined(_SX)
   for (i = 0; i < n; i++) z[i*incz] = (float) hypot  (x[i*incx], y[i*incy]);
 #else
   for (i = 0; i < n; i++) z[i*incz] =         hypotf (x[i*incx], y[i*incy]);
@@ -83,7 +83,7 @@ void svmag (int_t n,
   y += (incy<0) ? (-n+1)*incy : 0;
   z += (incz<0) ? (-n+1)*incz : 0;
 
-#if defined(__GNUC__) || defined (__uxp__) || defined(_SX)
+#if  defined (__uxp__) || defined(_SX)
   for (i = 0; i < n; i++)
     z[i*incz] = (float) sqrt  (SQR(w[i*incw])+SQR(x[i*incx])+SQR(y[i*incy]));
 #else

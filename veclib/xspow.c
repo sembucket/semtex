@@ -35,7 +35,7 @@ void sspow (const int_t n, const float alpha,
   y += (incy<0) ? (-n+1)*incy : 0;
   
   for (i = 0; i < n; i++)
-#if defined(__GNUC__) || defined(__uxp__) || defined(_SX)
+#if  defined(__uxp__) || defined(_SX)
     y[i*incy] = (float) pow  (x[i*incx], alpha);
 #else
     y[i*incy] =         powf (x[i*incx], alpha);

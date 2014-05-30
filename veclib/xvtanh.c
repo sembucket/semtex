@@ -1,5 +1,5 @@
 /*****************************************************************************
- * xvsqrt:  y[i] = sqrt(x[i]).
+ * xvsin:  y[i] = tanh(x[i]).
  *
  * $Id$
  *****************************************************************************/
@@ -12,29 +12,29 @@
 #pragma global noalias
 #endif
 
-void dvsqrt (int_t n, const double* x, int_t incx,
-                              double* y, int_t incy)
+void dvtanh (int_t n, const double* x, int_t incx,
+	                    double* y, int_t incy)
 {
   register int_t i;
 
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
 
-  for (i = 0; i < n; i++) y[i*incy] = sqrt (x[i*incx]);
+  for (i = 0; i < n; i++) y[i*incy] = tanh (x[i*incx]);
 }
 
 
-void svsqrt (int_t n, const float* x, int_t incx,
-                              float* y, int_t incy)
+void svtanh (int_t n, const float* x, int_t incx,
+                            float* y, int_t incy)
 {
   register int_t i;
-  
+
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
 
-#if  defined(__uxp__) || defined(_SX)
-  for (i = 0; i < n; i++) y[i*incy] = (float) sqrt  (x[i*incx]);
+#if defined(__uxp__) || defined(_SX)
+  for (i = 0; i < n; i++) y[i*incy] = (float) tanh  (x[i*incx]);
 #else
-  for (i = 0; i < n; i++) y[i*incy] =         sqrtf (x[i*incx]);
+  for (i = 0; i < n; i++) y[i*incy] =         tanhf (x[i*incx]);
 #endif
 }

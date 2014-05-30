@@ -38,7 +38,7 @@ void svpow (int_t n,
   y += (incy<0) ? (-n+1)*incy : 0;
   z += (incz<0) ? (-n+1)*incz : 0;
 
-#if defined(__GNUC__) || defined(__uxp__) || defined(_SX)
+#if  defined(__uxp__) || defined(_SX)
   for (i = 0; i < n; i++) z[i*incz] = (float) pow  (x[i*incx], y[i*incy]);
 #else
   for (i = 0; i < n; i++) z[i*incz] =         powf (x[i*incx], y[i*incy]);

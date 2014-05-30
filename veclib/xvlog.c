@@ -32,7 +32,7 @@ void svlog (int_t n, const float* x, int_t incx,
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
 
-#if defined(__GNUC__) || defined(__uxp__) || defined(_SX_)
+#if  defined(__uxp__) || defined(_SX_)
   for (i = 0; i < n; i++) y[i*incy] = (float) log  (x[i*incx]);
 #else
   for (i = 0; i < n; i++) y[i*incy] =         logf (x[i*incx]);

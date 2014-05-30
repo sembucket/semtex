@@ -170,6 +170,11 @@ extern "C" {
   void    svsqrt   (int_t n,
 		    const float*  x, int_t incx, float*  y, int_t incy);
   
+  void    dvtanh   (int_t n,
+		    const double* x, int_t incx, double* y, int_t incy);
+  void    svtanh   (int_t n,
+		    const float*  x, int_t incx, float*  y, int_t incy);
+  
   void    raninit  (int_t flag);
   double  dranu    (void);
   float   sranu    (void);
@@ -807,6 +812,14 @@ class Veclib {
   static void vsqrt (int_t n, const float*  x, int_t incx,
 		                    float*  y, int_t incy)
   { svsqrt (n, x, incx, y, incy); }
+
+
+  static void vtanh (int_t n, const double* x, int_t incx,
+		                    double* y, int_t incy)
+  { dvtanh (n, x, incx, y, incy); }
+  static void vtanh (int_t n, const float*  x, int_t incx,
+		                    float*  y, int_t incy)
+  { svtanh (n, x, incx, y, incy); }
 
 
   static void ranInit (int_t flag)
