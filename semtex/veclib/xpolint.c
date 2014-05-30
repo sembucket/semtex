@@ -81,7 +81,7 @@ void spolint (const float *xa, const float *ya, int_t n,
 	            float x,         float *y,  float *dy)
 {
   register int_t ns  = 1;
-#if defined(__GNUC__) || defined(__uxp__) || defined(_SX)
+#if  defined(__uxp__) || defined(_SX)
   float            dif = (float) fabs (x - xa[1]),
 #else
   float            dif = fabsf(x - xa[1]),
@@ -92,7 +92,7 @@ void spolint (const float *xa, const float *ya, int_t n,
   float            den, dift, ho, hp, w;
 
   for (i = 1; i <= n; i++) {
-#if defined(__GNUC__) || defined(__uxp__) || defined(_SX)
+#if  defined(__uxp__) || defined(_SX)
     if ((dift = (float) fabs  (x - xa[1])) < dif) {
 #else
     if ((dift =         fabsf (x - xa[i])) < dif) {

@@ -287,9 +287,14 @@ void dvsin (int_t n, const double* x, int_t incx, double* y, int_t incy);
 void svsin (int_t n, const float*  x, int_t incx, float*  y, int_t incy);
 
 void dvsqrt (int_t n, const double* x, int_t incx,
-	                      double* y, int_t incy);
+	                    double* y, int_t incy);
 void svsqrt (int_t n, const float*  x, int_t incx,
-	                      float*  y, int_t incy);
+	                    float*  y, int_t incy);
+
+void dvtanh (int_t n, const double* x, int_t incx,
+	                    double* y, int_t incy);
+void svtanh (int_t n, const float*  x, int_t incx,
+	                    float*  y, int_t incy);
 
 void   raninit  (int_t flag);
 double dranu    (void);
@@ -344,18 +349,18 @@ void svpow (int_t n, const float*  x, int_t incx,
  * ------------------------------------------------------------------------- */
 
 void dsvmvt (int_t n, double alpha, const double* x, int_t incx,
-                                      const double* y, int_t incy,
-	                                    double* z, int_t incz);
+                                    const double* y, int_t incy,
+	                                  double* z, int_t incz);
 void ssvmvt (int_t n, float  alpha, const float*  x, int_t incx,
-                                      const float*  y, int_t incy,
-	                                    float*  z, int_t incz);
+                                    const float*  y, int_t incy,
+	                                  float*  z, int_t incz);
 
 void dsvpvt (int_t n, double alpha, const double* x, int_t incx,
-                                      const double* y, int_t incy,
-	                                    double* z, int_t incz);
+                                    const double* y, int_t incy,
+	                                  double* z, int_t incz);
 void ssvpvt (int_t n, float  alpha, const float*  x, int_t incx,
-                                      const float*  y, int_t incy,
-	                                    float*  z, int_t incz);
+                                    const float*  y, int_t incy,
+	                                  float*  z, int_t incz);
 
 void dsvtsp (int_t n, double alpha, double beta,
 	     const double* x, int_t incx, double* y, int_t incy);
@@ -363,116 +368,116 @@ void ssvtsp (int_t n, float  alpha, float  beta,
 	     const float*  x, int_t incx, float*  y, int_t incy);
 
 void dsvtvm (int_t n, double alpha, const double* x, int_t incx,
-                                      const double* y, int_t incy,
-	                                    double* z, int_t incz);
+                                    const double* y, int_t incy,
+	                                  double* z, int_t incz);
 void ssvtvm (int_t n, float  alpha, const float*  x, int_t incx,
-                                      const float*  y, int_t incy,
-	                                    float*  z, int_t incz);
+                                    const float*  y, int_t incy,
+	                                  float*  z, int_t incz);
 
 void dsvtvp (int_t n, double alpha, const double* x, int_t incx,
-                                      const double* y, int_t incy,
-	                                    double* z, int_t incz);
+                                    const double* y, int_t incy,
+	                                  double* z, int_t incz);
 void ssvtvp (int_t n, float  alpha, const float*  x, int_t incx,
-                                      const float*  y, int_t incy,
-	                                    float*  z, int_t incz);
+                                    const float*  y, int_t incy,
+	                                  float*  z, int_t incz);
 
 void dsvvmt (int_t n, double alpha, const double* x, int_t incx,
-                                      const double* y, int_t incy,
-	                                    double* z, int_t incz);
+                                    const double* y, int_t incy,
+	                                  double* z, int_t incz);
 void ssvvmt (int_t n, float  alpha, const float*  x, int_t incx,
-                                      const float*  y, int_t incy,
-	                                    float*  z, int_t incz);
+                                    const float*  y, int_t incy,
+	                                  float*  z, int_t incz);
 
 void dsvvpt (int_t n, double alpha, const double* x, int_t incx,
-                                      const double* y, int_t incy,
-	                                    double* z, int_t incz);
+                                    const double* y, int_t incy,
+	                                  double* z, int_t incz);
 void ssvvpt (int_t n, float  alpha, const float*  x, int_t incx,
-                                      const float*  y, int_t incy,
-	                                    float*  z, int_t incz);
+                                    const float*  y, int_t incy,
+	                                  float*  z, int_t incz);
 
 void dsvvtm (int_t n, double alpha, const double* x, int_t incx,
-                                      const double* y, int_t incy,
-	                                    double* z, int_t incz);
+                                    const double* y, int_t incy,
+	                                  double* z, int_t incz);
 void ssvvtm (int_t n, float  alpha, const float*  x, int_t incx,
-                                      const float*  y, int_t incy,
-	                                    float*  z, int_t incz);
+                                    const float*  y, int_t incy,
+	                                  float*  z, int_t incz);
 
 void dsvvtp (int_t n, double alpha, const double* x, int_t incx,
-                                      const double* y, int_t incy,
-	                                    double* z, int_t incz);
+                                    const double* y, int_t incy,
+	                                  double* z, int_t incz);
 void ssvvtp (int_t n, float  alpha, const float*  x, int_t incx,
-                                      const float*  y, int_t incy,
-	                                    float*  z, int_t incz);
+                                    const float*  y, int_t incy,
+	                                  float*  z, int_t incz);
 
 void dsvvtt (int_t n, double alpha, const double* x, int_t incx,
-                                      const double* y, int_t incy,
-	                                    double* z, int_t incz);
+                                    const double* y, int_t incy,
+	                                  double* z, int_t incz);
 void ssvvtt (int_t n, float  alpha, const float*  x, int_t incx,
-                                      const float*  y, int_t incy,
-	                                    float*  z, int_t incz);
+                                    const float*  y, int_t incy,
+	                                  float*  z, int_t incz);
 
 void dvvmvt (int_t n, const double* w, int_t incw, 
-	                const double* x, int_t incx,
-	                const double* y, int_t incy,
-	                      double* z, int_t incz);
+	              const double* x, int_t incx,
+	              const double* y, int_t incy,
+	                    double* z, int_t incz);
 void svvmvt (int_t n, const float*  w, int_t incw,
-                        const float*  x, int_t incx,
-                        const float*  y, int_t incy,
-	                      float*  z, int_t incz);
+                      const float*  x, int_t incx,
+                      const float*  y, int_t incy,
+	                    float*  z, int_t incz);
 
 void dvvpvt (int_t n, const double* w, int_t incw,
-	                const double* x, int_t incx,
-                        const double* y, int_t incy,
-	                      double* z, int_t incz);
+	              const double* x, int_t incx,
+                      const double* y, int_t incy,
+	                    double* z, int_t incz);
 void svvpvt (int_t n, const float*  w, int_t incw,
-	                const float*  x, int_t incx,
-                        const float*  y, int_t incy,
-	                      float*  z, int_t incz);
+	              const float*  x, int_t incx,
+                      const float*  y, int_t incy,
+	                    float*  z, int_t incz);
 
 void dvvpvt (int_t n, const double* w, int_t incw,
-	                const double* x, int_t incx,
-                        const double* y, int_t incy,
+	              const double* x, int_t incx,
+                      const double* y, int_t incy,
 	                      double* z, int_t incz);
 void svvpvt (int_t n, const float*  w, int_t incw,
-	                const float*  x, int_t incx,
-                        const float*  y, int_t incy,
-	                      float*  z, int_t incz);
+	              const float*  x, int_t incx,
+                      const float*  y, int_t incy,
+	                    float*  z, int_t incz);
 
 void dvvtvp (int_t n, const double* w, int_t incw,
-	                const double* x, int_t incx,
-                        const double* y, int_t incy,
-	                      double* z, int_t incz);
+	              const double* x, int_t incx,
+                      const double* y, int_t incy,
+	                    double* z, int_t incz);
 void svvtvp (int_t n, const float*  w, int_t incw,
-	                const float*  x, int_t incx,
-                        const float*  y, int_t incy,
-	                      float*  z, int_t incz);
+	              const float*  x, int_t incx,
+                      const float*  y, int_t incy,
+	                    float*  z, int_t incz);
 
 void dvvtvm (int_t n, const double* w, int_t incw,
-	                const double* x, int_t incx,
-                        const double* y, int_t incy,
-	                      double* z, int_t incz);
+	              const double* x, int_t incx,
+                      const double* y, int_t incy,
+	                    double* z, int_t incz);
 void svvtvm (int_t n, const float*  w, int_t incw,
-	                const float*  x, int_t incx,
-                        const float*  y, int_t incy,
-	                      float*  z, int_t incz);
+	              const float*  x, int_t incx,
+                      const float*  y, int_t incy,
+	                    float*  z, int_t incz);
 
 void dvvvtm (int_t n, const double* w, int_t incw,
-	                const double* x, int_t incx,
-                        const double* y, int_t incy,
-	                      double* z, int_t incz);
+	              const double* x, int_t incx,
+                      const double* y, int_t incy,
+	                    double* z, int_t incz);
 void svvvtm (int_t n, const float*  w, int_t incw,
-	                const float*  x, int_t incx,
-                        const float*  y, int_t incy,
-	                      float*  z, int_t incz);
+	              const float*  x, int_t incx,
+                      const float*  y, int_t incy,
+	                    float*  z, int_t incz);
 
 void dvvvtt (int_t n, const double* w, int_t incw,
-	                const double* x, int_t incx,
-                        const double* y, int_t incy,
-	                      double* z, int_t incz);
+	              const double* x, int_t incx,
+                      const double* y, int_t incy,
+	                    double* z, int_t incz);
 void svvvtt (int_t n, const float*  w, int_t incw,
-	                const float*  x, int_t incx,
-                        const float*  y, int_t incy,
-	                      float*  z, int_t incz);
+	              const float*  x, int_t incx,
+                      const float*  y, int_t incy,
+	                    float*  z, int_t incz);
 
 
 /* ------------------------------------------------------------------------- *
@@ -511,24 +516,24 @@ void ssne (int_t n, float   alpha,
  * REDUCTION FUNCTIONS:
  * ------------------------------------------------------------------------- */
 
-double  dsum   (int_t n, const double*  x, int_t incx);
-int_t isum   (int_t n, const int_t* x, int_t incx);
-float   ssum   (int_t n, const float*   x, int_t incx);
-int_t idmax  (int_t n, const double*  x, int_t incx);
-int_t iimax  (int_t n, const int_t* x, int_t incx);
-int_t ismax  (int_t n, const float*   x, int_t incx);
-int_t idmin  (int_t n, const double*  x, int_t incx);
-int_t iimin  (int_t n, const int_t* x, int_t incx);
-int_t ismin  (int_t n, const float*   x, int_t incx);
-int_t icount (int_t n, const int_t* x, int_t incx);
-int_t ifirst (int_t n, const int_t* x, int_t incx);
-int_t lany   (int_t n, const int_t* x, int_t incx);
-int_t lisame (int_t n, const int_t* x, int_t incx,
-		           const int_t* y, int_t incy);
-int_t ldsame (int_t n, const double*  x, int_t incx,
-		           const double*  y, int_t incy);
-int_t lssame (int_t n, const float*   x, int_t incx,
-		           const float*   y, int_t incy);
+double dsum   (int_t n, const double*  x, int_t incx);
+int_t  isum   (int_t n, const int_t* x, int_t incx);
+float  ssum   (int_t n, const float*   x, int_t incx);
+int_t  idmax  (int_t n, const double*  x, int_t incx);
+int_t  iimax  (int_t n, const int_t* x, int_t incx);
+int_t  ismax  (int_t n, const float*   x, int_t incx);
+int_t  idmin  (int_t n, const double*  x, int_t incx);
+int_t  iimin  (int_t n, const int_t* x, int_t incx);
+int_t  ismin  (int_t n, const float*   x, int_t incx);
+int_t  icount (int_t n, const int_t* x, int_t incx);
+int_t  ifirst (int_t n, const int_t* x, int_t incx);
+int_t  lany   (int_t n, const int_t* x, int_t incx);
+int_t  lisame (int_t n, const int_t* x, int_t incx,
+  	                const int_t* y, int_t incy);
+int_t  ldsame (int_t n, const double*  x, int_t incx,
+		        const double*  y, int_t incy);
+int_t lssame (int_t n,  const float*   x, int_t incx,
+		        const float*   y, int_t incy);
 
 /* ------------------------------------------------------------------------- *
  * CONVERSION PRIMITIVES:

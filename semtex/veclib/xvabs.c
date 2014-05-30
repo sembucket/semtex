@@ -44,7 +44,7 @@ void svabs (int_t n, const float* x, int_t incx,
   x += (incx<0) ? (-n+1)*incx : 0;
   y += (incy<0) ? (-n+1)*incy : 0;
 
-#if defined(__GNUC__) || defined(__uxp__) || defined(_SX)
+#if  defined(__uxp__) || defined(_SX)
   for (i = 0; i < n; i++) y[i*incy] = (float) fabs  (x[i*incx]);
 #else
   for (i = 0; i < n; i++) y[i*incy] =         fabsf (x[i*incx]);

@@ -68,7 +68,7 @@ void svamax (int_t n,
   z += (incz<0) ? (-n+1)*incz : 0;
 
   for (i = 0; i < n; i++) {
-#if defined(__GNUC__) || defined(__uxp__) || defined(_SX)
+#if  defined(__uxp__) || defined(_SX)
     absx = (float) fabs (x[i*incx]);
     absy = (float) fabs (y[i*incy]);
 #else

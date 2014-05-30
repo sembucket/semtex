@@ -58,7 +58,7 @@ int_t lssame (int_t n,
   x += (incx < 0) ? (-n + 1) * incx : 0;
   y += (incy < 0) ? (-n + 1) * incy : 0;
 
-#if defined(__GNUC__) || defined(__uxp__) || defined(_SX)
+#if  defined(__uxp__) || defined(_SX)
   for (i = 0; i < n; i++) if (fabs  (x[i*incx] - y[i*incy]) > EPSSP) return 0;
 #else
   for (i = 0; i < n; i++) if (fabsf (x[i*incx] - y[i*incy]) > EPSSP) return 0;

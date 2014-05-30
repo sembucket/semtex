@@ -23,7 +23,7 @@ MATH       = xcopy   xfill   xneg    xvneg   xsadd   xvadd   xssub  \
 	     xspow   xvsgn   xznan
 
 OTHER      = xvabs   xvamax  xvpow   xvexp   xvlg10  xvlog   xvatan \
-             xvatn2  xvcos   xvsin   xvsqrt  xrand   xvhypot
+             xvatn2  xvcos   xvsin   xvsqrt  xrand   xvhypot xvtanh
 
 TRIAD      = xsvmvt  xsvpvt  xsvtsp  xsvtvm  xsvtvp  xsvvmt  xsvvpt \
 	     xsvvtm  xsvvtp  xvvmvt  xvvpvt  xvvtvm  xvvtvp  xvvvtm \

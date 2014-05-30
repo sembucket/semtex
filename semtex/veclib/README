@@ -94,6 +94,7 @@ OTHER MATHEMATICAL FUNCTIONS:
 *		vnormal................................ x   x
 *		fft.................................... x   x   x   x
 *               vhypot................................. x   x
+*               vtanh.................................. x   x
 
 TRIAD OPERATIONS:
 %		axpy
