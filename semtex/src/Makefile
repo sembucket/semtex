@@ -30,8 +30,8 @@ ifeq ($(ARCH),Linux)
   ifeq ($(MACH),i686)
     ARCH = Linux-iX86
   endif
-  ifeq ($(HOST),raijin2)
-    ARCH = raijin
+  ifeq ($(MACH),x86_64)
+    ARCH = Linux-x86_64
   endif
   ifeq ($(MACH),ia64)
     ifeq ($(HOST),ac)
@@ -56,8 +56,8 @@ ARFLAGS  = -static -o
 RANLIB   = ranlib
 ifdef DEBUG
   OPT    = -m64 -O0 -ggdb
-else
-  OPT    = -m64 -O2
+else 
+  OPT    = -m64 -O2 -w
 endif
 CFLAGS   = $(DEFINES) $(OPT) -ansi
 CXXFLAGS = $(DEFINES) $(OPT) -ansi
@@ -73,32 +73,7 @@ else
 endif
 endif
 
-ifeq ($(ARCH),raijin)             # -- NCI host.
-CXX      = icc
-LD       = icc
-CC       = icc
-FC       = ifort
-ifdef DEBUG
-  OPT    = -gstabs+
-else
-  OPT    = -O3 -w
-endif
-CFLAGS   = $(DEFINES) $(OPT)
-FFLAGS   = $(DEFINES) $(OPT)
-CXXFLAGS = $(DEFINES) $(OPT) -Wno-deprecated
-#F77LIBS  = -L$(FCHOME)/lib -lmkl_lapack -lmkl -lmkl_ipf -lguide -lifcore -lstdc++ -lipr
-F77LIBS  = -L$(FCHOME)/lib -lmkl_rt -lifcore -lstdc++
-LDFLAGS  = $(OPT) $(LIBDIR)
-RANLIB   = ranlib
-ifdef MPI
-  LDFLAGS += -lfem_mp -lvec $(F77LIBS) -lmpi -limf
-else
-  LDFLAGS += -lfem -lvec $(F77LIBS)
-endif
-CLDFLAGS = $(LDFLAGS)
-endif
-
-ifeq ($(ARCH),Linux-ia64)               # -- Itanium-2, Intel compilers (vayu)
+ifeq ($(ARCH),Linux-ia64)               # -- Itanium-2, Intel compilers.
 CXX      = icc
 LD       = icc
 CC       = icc
@@ -117,12 +92,12 @@ CXXFLAGS = $(DEFINES) $(OPT) -Wno-deprecated
 RANLIB   = ranlib
 
 FCHOME   = /opt/intel-fc/9.1.051
-F77LIBS  = -lmkl_rt
+F77LIBS  = -L$(FCHOME)/lib -lmkl_lapack -lmkl -lmkl_ipf -lguide -lifcore -lstdc++ -lipr
 
 LDFLAGS  = $(OPT)  $(LIBDIR)
 CLDFLAGS = $(LDFLAGS)
 ifdef MPI
-  LDFLAGS  += -lfem_mp -lvec $(F77LIBS) -lmpi -limf
+  LDFLAGS  += -lfem_mp -lvec $(F77LIBS) -L/opt/mpt-1.11.1/lib -lmpi -limf
 else
   LDFLAGS += -lfem -lvec $(F77LIBS) -limf
 endif
