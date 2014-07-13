@@ -17,7 +17,7 @@
 
 <GROUPS NUMBER=4>
 	1	i	inflow
-	2	o	outflow
+	2	o	exit
 	3	w	wall
 	4	a	axis
 </GROUPS>

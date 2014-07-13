@@ -34,7 +34,7 @@
 <GROUPS NUMBER=4>
         1       w       wall
         2       v       velocity
-        3       o       outflow
+        3       o       exit
         4       a       axis
 </GROUPS>
 

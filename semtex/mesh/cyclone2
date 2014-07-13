@@ -89,7 +89,7 @@
 <GROUPS NUMBER=4>
 	1	a	axis
 	2	i	inflow
-	3	o	outflow
+	3	o	exit
 	4	w	wall
 </GROUPS>
 
