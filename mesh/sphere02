@@ -31,7 +31,7 @@ u v p
         1       v       velocity
         2       a       axis
         3       w       wall
-        4       o       outflow
+        4       o       exit
 	5	s	symmetry
 </GROUPS>
 

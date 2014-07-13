@@ -38,7 +38,7 @@
 <GROUPS NUMBER=3>
 	1	w	wall
 	2	v	velocity
-	3	o	outflow
+	3	o	exit
 </GROUPS>
 
 <BCS NUMBER=3>

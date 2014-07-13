@@ -32,7 +32,7 @@
 <GROUPS NUMBER=4>
 	1	v	velocity
 	2	w	wall
-	3	o	outflow
+	3	o	exit
 	4	s	symmetry
 </GROUPS>
 

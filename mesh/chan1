@@ -15,7 +15,7 @@
 <GROUPS NUMBER=3>
 	1	v	value
 	2	w	wall
-	3	o	outflow
+	3	o	exit
 </GROUPS>
 
 <BCS NUMBER=3>

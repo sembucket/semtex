@@ -23,7 +23,7 @@
 	1	a	axis
 	2	w	wall
 	3	i	inlet
-	4	o	outflow
+	4	o	exit
 	5	f	free
 </GROUPS>
 
