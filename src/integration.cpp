@@ -3,6 +3,10 @@
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
+// Maximum time order supported is 3 (4 for implicit Adams--Moulton methods).
+// Coefficients for all schemes can be found in Gear's book, "Numerical
+// Initial Value Problems in Ordinary Differential Equations", 1971.
+//
 // --
 // This file is part of Semtex.
 // 
@@ -20,11 +24,6 @@
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 // 02110-1301 USA.
-// --
-//
-// Maximum time order supported is 3 (4 for implicit Adams--Moulton methods).
-// Coefficients for all schemes can be found in Gear's book, "Numerical
-// Initial Value Problems in Ordinary Differential Equations", 1971.
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
