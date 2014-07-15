@@ -502,7 +502,7 @@ AuxField& AuxField::gradient (const int_t dir)
 
     for (k = klo; k < nmodes; k++) {
       Re = k  + k;
-      Im = Re + 1;
+
       Veclib::copy (nP,                     _plane[Re], 1, xr,         1);
       Veclib::smul (nP, -beta * (k + base), _plane[Im], 1, _plane[Re], 1);
       Veclib::smul (nP,  beta * (k + base), xr,         1, _plane[Im], 1);

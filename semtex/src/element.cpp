@@ -1403,7 +1403,7 @@ void Element::mapping ()
   if (Blas::nrm2 (_npnp, _dsdx, 1) < EPS) { delete [] _dsdx; _dsdx = 0; }
   if (Blas::nrm2 (_npnp, _dsdy, 1) < EPS) { delete [] _dsdy; _dsdy = 0; }
   if (Blas::nrm2 (_npnp, _Q3,   1) < EPS) { delete [] _Q3;   _Q3   = 0; }
-}
+  }
 
 
 void Element::HelmholtzRow (const real_t lambda2,

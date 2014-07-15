@@ -4,7 +4,7 @@
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
 // Class variables _Pn & _Un provide storage for the mode equivalents of
-//   _Pn:  normal gradient of the pressure field,
+//   _Pn: normal gradient of the pressure field,
 //   _Un: normal component of velocity,
 // and are used to construct explicit extrapolative estimates of the natural
 // BCs for the pressure field at the next time level.
@@ -38,10 +38,10 @@ static char RCS[] = "$Id$";
 
 #include <sem.h>
 
-real_t**** PBCmgr::_Pnx = 0;
-real_t**** PBCmgr::_Pny = 0;
-real_t**** PBCmgr::_Unx = 0;
-real_t**** PBCmgr::_Uny = 0;
+real_t**** PBCmgr::_Pnx = 0;	// -- Time level n for x components of grad P
+real_t**** PBCmgr::_Pny = 0;	// -- Time level n for y components of grad P
+real_t**** PBCmgr::_Unx = 0;	// -- Time level n for x velocity component
+real_t**** PBCmgr::_Uny = 0;	// -- Time level n for y velocity component
 
 
 void PBCmgr::build (const Field* P)

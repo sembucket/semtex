@@ -144,7 +144,7 @@ void integrate (void (*advection) (Domain*,
 
     advection (D, Us[0], Uf[0], ff);
 
-    // -- Now update the time.
+    // -- Update the time to end-of-step value.
  
     D -> step += 1; 
     D -> time += dt;

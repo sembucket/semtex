@@ -60,9 +60,9 @@ static Msys** preSolve  (const Domain*);
 static void   Solve     (Domain*, const int_t, AuxField*, Msys*);
 
 
-void integrate (void (*advection) (Domain*, 
-				   AuxField**, 
-				   AuxField**,
+void integrate (void (*advection) (Domain*    , 
+				   AuxField** , 
+				   AuxField** ,
 				   FieldForce*),
 		Domain*      D,
                 DNSAnalyser* A,
