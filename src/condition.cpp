@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////////////////////////////
-// condition.C: functions used to evaluate & apply BCs.
+// condition.cpp: functions used to evaluate & apply BCs.
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
@@ -9,12 +9,12 @@
 // the base class function calls, many routines do not use all
 // parameters.
 //
-// The two basic kinds of conditions are essential and natural.
-// Essential conditions are set/imposed directly, while natural
-// conditions are applied by summation of integral terms, owing to the
-// fact that they derive from integration by parts.  So function "set"
-// is only used by essential-type conditions while function "sum" is
-// only used by natural-type conditions.
+// The two basic kinds of conditions are essential (Dirichlet) and
+// natural (Neumann).  Essential conditions are set/imposed directly,
+// while natural conditions are applied by summation of integral
+// terms, owing to the fact that they derive from integration by
+// parts.  So function "set" is only used by essential-type conditions
+// while function "sum" is only used by natural-type conditions.
 //
 // The HOPBC condition are a special case of natural conditions used
 // for the pressure Poisson equation: they are derived from the
@@ -24,41 +24,17 @@
 // A further general class of available condition is the Robin or
 // mixed type, of form dc/dn + K( c - C ) = 0. See [2]. 
 
-// The convective BC is a variant of this, see [3]. The wave equation
-//
-// u_t + V u_x = 0
-//
-// becomes in discrete form with backwards Euler for temporal
-// derivative
-//
-// [u^(n+1) - u^(n)]*DT^{-1} + V u_x^(n+1) = 0
-//
-// which is rearranged as a Robin BC:
-//
-// u_x^(n+1) + (V*DT)^{-1} [ u^(n+1) - u^(n) ] = 0
-//
-// So in the typical Robin form
-//
-// u_n + K ( u - C ) = 0
-//
-// K = V*DT and C = u^(n)
-//
-// Convective BCs are good at containing blowups related to inflow
-// across the outflow boundary.  Guess V to be the mean convection
-// velocity.
-//
 // NB: if you invent a new BC which is of essential/Dirichlet type,
-// you also need to edit mesh.C/buildMask() so that enumerate sets the
+// you also need to edit mesh.cpp/buildMask() so that enumerate sets the
 // global numbering mask to 1 for this type. Otherwise the BC won't be
-// correctly applied.
+// correctly applied.  In this, Robin/mixed count as natural/Neumann.
 //
-// References:
-// 1. Karniadakis, Israeli & Orszag (1991) "High-order splitting methods
-//    for the incompressible Navier--Stokes equations", JCP 9(2).
-// 2. Blackburn (2001) "Dispersion and diffusion in coated tubes of 
-//    arbitrary cross-section", Comput Chem Eng 25(2/3).
-// 3. Orlanski (1976) "A simple boundary condition for unbounded 
-//    hyperbolic flows", JCP 21.
+// REFERENCES
+// ----------
+// [1] Karniadakis, Israeli & Orszag (1991) "High-order splitting methods
+//     for the incompressible Navier--Stokes equations", JCP 91(2).
+// [2] Blackburn (2001) "Dispersion and diffusion in coated tubes of 
+//     arbitrary cross-section", Comput Chem Eng 25(2/3).
 //
 // --
 // This file is part of Semtex.
@@ -84,20 +60,20 @@ static char RCS[] = "$Id$";
 #include <sem.h>
 
 
-void Essential::evaluate (const int_t    np  ,
-			  const int_t    id  ,
-			  const int_t    nz  ,
-			  const Element* E   ,
-			  const int_t    side,
-			  const int_t    step,
-			  const real_t*  nx  ,
-			  const real_t*  ny  ,
-			  real_t*        tgt ) const
+void Essential::evaluate (const Field*   src    ,
+			  const int_t    id     , 
+			  const int_t    plane  , 
+			  const Element* elmt   ,
+			  const int_t    side   , 
+			  const int_t    step   ,
+			  const bool     Fourier,
+			  real_t*        tgt    ) const
 // ---------------------------------------------------------------------------
 // Load external value storage area tgt with installed constant.
+// Physical space.
 // ---------------------------------------------------------------------------
 {
-  Veclib::fill (np, _value, tgt, 1);
+  if (!Fourier) Veclib::fill (Geometry::nP(), _value, tgt, 1);
 }
 
 
@@ -136,8 +112,7 @@ void Essential::describe (char* tgt) const
 
 EssentialFunction::EssentialFunction (const char* f)
 // ---------------------------------------------------------------------------
-// Essential condition that sets value by interpreting function string,
-// which can be an explicit function of x, y, z & t as well as any
+// Essential condition that sets value by interpreting function string,// which can be an explicit function of x, y, z & t as well as any
 // installed token values.  Otherwise the same as Essential class.
 // ---------------------------------------------------------------------------
 {
@@ -145,20 +120,20 @@ EssentialFunction::EssentialFunction (const char* f)
 }
 
 
-void EssentialFunction:: evaluate (const int_t    np  ,
-				   const int_t    id  ,
-				   const int_t    nz  ,
-				   const Element* E   ,
-				   const int_t    side,
-				   const int_t    step,
-				   const real_t*  nx  ,
-				   const real_t*  ny  ,
-				   real_t*        tgt ) const
+void EssentialFunction::evaluate (const Field*   src    ,
+				  const int_t    id     , 
+				  const int_t    plane  , 
+				  const Element* elmt   ,
+				  const int_t    side   , 
+				  const int_t    step   ,
+				  const bool     Fourier,
+				  real_t*        tgt    ) const
 // ---------------------------------------------------------------------------
 // Load external tgt by interpreting function.
+// Physical space.
 // ---------------------------------------------------------------------------
 {
-  E -> sideEval (side, tgt, _function);
+  if (!Fourier) elmt -> sideEval (side, tgt, _function);
 }
 
 
@@ -196,20 +171,20 @@ void EssentialFunction::describe (char* tgt) const
 }
 
 
-void Natural::evaluate (const int_t    np  ,
-			const int_t    id  ,
-			const int_t    nz  ,
-			const Element* E   ,
-			const int_t    side,
-			const int_t    step,
-			const real_t*  nx  ,
-			const real_t*  ny  ,
-			real_t*        tgt ) const
+void Natural::evaluate (const Field*   src    ,
+			const int_t    id     , 
+			const int_t    plane  , 
+			const Element* elmt   ,
+			const int_t    side   , 
+			const int_t    step   ,
+			const bool     Fourier,
+			real_t*        tgt    ) const
 // ---------------------------------------------------------------------------
 // Load external value storage area tgt with installed constant.
+// Physical space.
 // ---------------------------------------------------------------------------
 {
-  Veclib::fill (np, _value, tgt, 1);
+  if (!Fourier) Veclib::fill (Geometry::nP(), _value, tgt, 1);
 }
 
 
@@ -263,20 +238,20 @@ NaturalFunction::NaturalFunction (const char* f)
 }
 
 
-void NaturalFunction::evaluate (const int_t    np  ,
-				const int_t    id  ,
-				const int_t    nz  ,
-				const Element* E   ,
-				const int_t    side,
-				const int_t    step,
-				const real_t*  nx  ,
-				const real_t*  ny  ,
-				real_t*        tgt ) const
+void NaturalFunction::evaluate (const Field*   src    ,
+				const int_t    id     , 
+				const int_t    plane  , 
+				const Element* elmt   ,
+				const int_t    side   , 
+				const int_t    step   ,
+				const bool     Fourier,
+				real_t*        tgt    ) const
 // ---------------------------------------------------------------------------
 // Load external tgt by interpreting function.
+// Physical space.
 // ---------------------------------------------------------------------------
 {
-  E -> sideEval (side, tgt, _function);
+  if (!Fourier) elmt -> sideEval (side, tgt, _function);
 }
 
 
@@ -318,61 +293,6 @@ void NaturalFunction::describe (char* tgt) const
 }
 
 
-void NaturalHOPBC::evaluate (const int_t    np  ,
-			     const int_t    id  ,
-			     const int_t    nz  ,
-			     const Element* E   ,
-			     const int_t    side,
-			     const int_t    step,
-			     const real_t*  nx  ,
-			     const real_t*  ny  ,
-			     real_t*        tgt ) const
-// ---------------------------------------------------------------------------
-// Load external via a call to PBCmgr to compute terms.
-// ---------------------------------------------------------------------------
-{
-  PBCmgr::evaluate (id, np, nz, step, nx, ny, tgt); 
-}
-
-
-void NaturalHOPBC::sum (const int_t   side  ,
-			const int_t*  bmap  ,
-			const real_t* src   ,
-			const real_t* weight,
-			real_t*       work  ,
-			real_t*       tgt   ) const
-// ---------------------------------------------------------------------------
-// Add boundary-integral terms into globally-numbered tgt.
-// ---------------------------------------------------------------------------
-{ 
-  const int_t  np    = Geometry::nP();
-  const int_t  nm    = np - 1;
-  const int_t* start = bmap;
-  
-  switch (side) {
-  case 1: start += nm;           break;
-  case 2: start += nm + nm;      break;
-  case 3: start += nm + nm + nm; break;
-  default: break;
-  }
-
-  Veclib::vmul (np, src, 1, weight, 1, work, 1);
-
-  Veclib::scatr_sum (nm, work, start, tgt);
-  if   (side == 3) tgt[bmap [ 0]] += work[nm];
-  else             tgt[start[nm]] += work[nm];  
-}
-
-
-void NaturalHOPBC::describe (char* tgt) const
-// ---------------------------------------------------------------------------
-// Load descriptive/diagnostic material into tgt.
-// ---------------------------------------------------------------------------
-{
-  sprintf (tgt, "high-order-pressure");
-}
-
-
 Mixed::Mixed (const char* v)
 // ---------------------------------------------------------------------------
 // The format for a Mixed BC is: "field = mulvalue;refvalue", where in
@@ -388,26 +308,6 @@ Mixed::Mixed (const char* v)
   strcpy (buf, v);
   _K_ = Femlib::value (tok = strtok (buf,  sep));
   _C_ = Femlib::value (tok = strtok (NULL, sep));
-}
-
-
-void Mixed::evaluate (const int_t    np  ,
-		      const int_t    id  ,
-		      const int_t    nz  ,
-		      const Element* E   ,
-		      const int_t    side,
-		      const int_t    step,
-		      const real_t*  nx  ,
-		      const real_t*  ny  ,
-		      real_t*        tgt ) const
-// ---------------------------------------------------------------------------
-// Load external value storage area tgt with installed constants.
-// This takes no part in the solution 
-// ---------------------------------------------------------------------------
-{
-#if defined (DEBUG)
-  Veclib::fill (np, _K_ * _C_, tgt, 1);
-#endif
 }
 
 
@@ -544,30 +444,36 @@ void Mixed::describe (char* tgt) const
   sprintf (tgt, "mixed:\t%g\t%g", _K_, _C_);
 }
 
+//////////////////////////////////////////////////////////////////////////////
+// Internally computed BC types follow.
+//
+// These are all evaluated in Fourier space.
+//////////////////////////////////////////////////////////////////////////////
 
-Convective::Convective (const char* v)
+void NaturalCBCp::evaluate (const Field*   src    ,
+			    const int_t    id     , 
+			    const int_t    plane  , 
+			    const Element* elmt   ,
+			    const int_t    side   , 
+			    const int_t    step   ,
+			    const bool     Fourier,
+			    real_t*        tgt    ) const
 // ---------------------------------------------------------------------------
-// The format for a Convective BC is: "field = velocity", e.g. "u =
-// V".  But we store K = 1.0/(V*dt).  The reference value C = 0.
+// Load external via a call to CBCmgr to compute terms.
 // ---------------------------------------------------------------------------
 {
-  const char routine[] = "Convective::Convective";
-  char str[StrMax];
-
-  _K_ = (strtod (v, 0));
-  _K_ = 1.0 / (_K_ * Femlib::value ("D_T"));
+  if (Fourier) _BCmgr -> evaluateCNBCp (id, plane, step, tgt); 
 }
 
 
-void Convective::sum (const int_t   side  ,
-		      const int_t*  bmap  ,
-		      const real_t* src   ,
-		      const real_t* weight,
-		      real_t*       work  ,
-		      real_t*       tgt   ) const
+void NaturalCBCp::sum (const int_t   side  ,
+		       const int_t*  bmap  ,
+		       const real_t* src   ,
+		       const real_t* weight,
+		       real_t*       work  ,
+		       real_t*       tgt   ) const
 // ---------------------------------------------------------------------------
-// Add boundary-integral terms into globally-numbered tgt.  This is
-// used to add K*c^{n} (where c^{n} is supplied as src) to RHS forcing.
+// Add boundary-integral terms into globally-numbered tgt.
 // ---------------------------------------------------------------------------
 { 
   const int_t  np    = Geometry::nP();
@@ -581,128 +487,175 @@ void Convective::sum (const int_t   side  ,
   default: break;
   }
 
-  Veclib::svvtt (np, _K_, src, 1, weight, 1, work, 1);
+  Veclib::vmul (np, src, 1, weight, 1, work, 1);
 
   Veclib::scatr_sum (nm, work, start, tgt);
   if   (side == 3) tgt[bmap [ 0]] += work[nm];
-  else             tgt[start[nm]] += work[nm];
+  else             tgt[start[nm]] += work[nm];  
 }
 
 
-void Convective::augmentSC (const int_t   side  ,
-			    const int_t   nband ,
-			    const int_t   nsolve,
-			    const int_t*  bmap  ,
-			    const real_t* area  ,
-			    real_t*       work  ,
-			    real_t*       tgt   )  const
-// ---------------------------------------------------------------------------
-// Add <K, w> terms to (banded LAPACK) matrix tgt.
-// ---------------------------------------------------------------------------
-{
-  const int_t    np    = Geometry::nP();
-  const int_t    nm    = np - 1;
-  const int_t*   start = bmap;
-  register int_t i, k;
-  
-  switch (side) {
-  case 1: start += nm;           break;
-  case 2: start += nm + nm;      break;
-  case 3: start += nm + nm + nm; break;
-  default: break;
-  }
-
-  Veclib::smul (np, _K_, area, 1, work, 1);
-
-  for (i = 0; i < nm; i++)
-    if ((k = start[i]) < nsolve)
-      tgt[Lapack::band_addr (k, k, nband)] += work[i];
-
-  i = (side == 3) ? bmap[0] : start[nm];
-  if (i < nsolve) tgt[Lapack::band_addr (i, i, nband)] += work[nm];
-}
-
-
-void Convective::augmentOp (const int_t   side, 
-			    const int_t*  bmap,
-			    const real_t* area,
-			    const real_t* src ,
-			    real_t*       tgt ) const
-// ---------------------------------------------------------------------------
-// This operation is used to augment the element-wise Helmholtz
-// operations where there are mixed BCs.  Add in diagonal terms
-// <K*src, w> to tgt.  Both src and tgt are globally-numbered vectors.
-// ---------------------------------------------------------------------------
-{
-  const int_t    np    = Geometry::nP();
-  const int_t    nm    = np - 1;
-  const int_t*   start = bmap;
-  register int_t i;
-  
-  switch (side) {
-  case 1: start += nm;           break;
-  case 2: start += nm + nm;      break;
-  case 3: start += nm + nm + nm; break;
-  default: break;
-  }
-
-  for (i = 0; i < nm; i++)
-    tgt[start[i]] += _K_ * area[i] * src[start[i]];
-
-  i = (side == 3) ? bmap[0] : start[nm];
-  tgt[i] += _K_ * area[nm] * src[i];
-}
-
-
-void Convective::augmentDg (const int_t   side, 
-			    const int_t*  bmap,
-			    const real_t* area,
-			    real_t*       tgt ) const
-// ---------------------------------------------------------------------------
-// This operation is used to augment the element-wise construction of
-// the diagonal of the global Helmholtz matrix where there are mixed
-// BCs.  Add in diagonal terms <K, w> to globally-numbered tgt.
-// ---------------------------------------------------------------------------
-{
-  const int_t    np    = Geometry::nP();
-  const int_t    nm    = np - 1;
-  const int_t*   start = bmap;
-  register int_t i;
-  
-  switch (side) {
-  case 1: start += nm;           break;
-  case 2: start += nm + nm;      break;
-  case 3: start += nm + nm + nm; break;
-  default: break;
-  }
-
-  for (i = 0; i < nm; i++)
-    tgt[start[i]] += _K_ * area[i];
-
-  i = (side == 3) ? bmap[0] : start[nm];
-  tgt[i] += _K_ * area[nm];
-}
-
-
-void Convective::extract (const int_t   np     ,
-			  const real_t* src    ,
-			  const int_t   doffset,
-			  const int_t   dskip  , 
-			  real_t*       tgt    ) const
-// ---------------------------------------------------------------------------
-// Load field data from appropriate edge into external BC storage tgt.
-// This is the same operation as Edge::get, but here will only happen for
-// a convective BC edge.
-// ---------------------------------------------------------------------------
-{
-  Veclib::copy (np, src + doffset, dskip, tgt, 1);
-}
-
-
-void Convective::describe (char* tgt) const
+void NaturalCBCp::describe (char* tgt) const
 // ---------------------------------------------------------------------------
 // Load descriptive/diagnostic material into tgt.
 // ---------------------------------------------------------------------------
 {
-  sprintf (tgt, "convective:\t%g", _K_);
+  sprintf (tgt, "computed-natural-pressure, see KIO91");
+}
+
+
+void EssentialCBCp::evaluate (const Field*   src    ,
+			      const int_t    id     , 
+			      const int_t    plane  , 
+			      const Element* elmt   ,
+			      const int_t    side   , 
+			      const int_t    step   ,
+			      const bool     Fourier,
+			      real_t*        tgt    ) const
+// ---------------------------------------------------------------------------
+// Load external via a call to CBCmgr to compute terms.
+// ---------------------------------------------------------------------------
+{
+  if (Fourier) _BCmgr -> evaluateCEBCp (src, id, plane, step, tgt); 
+}
+
+
+void EssentialCBCp::set (const int_t   side,
+			 const int_t*  bmap,
+			 const real_t* src ,
+			 real_t*       tgt ) const
+// ---------------------------------------------------------------------------
+// Scatter external value storage area src into globally-numbered tgt. 
+// ---------------------------------------------------------------------------
+{
+  const int_t  nm    = Geometry::nP() - 1;
+  const int_t* start = bmap;
+  
+  switch (side) {
+  case 1: start += nm;           break;
+  case 2: start += nm + nm;      break;
+  case 3: start += nm + nm + nm; break;
+  default: break;
+  }
+
+  Veclib::scatr (nm, src, start, tgt);
+  if   (side == 3) tgt[bmap [ 0]] = src[nm];
+  else             tgt[start[nm]] = src[nm];  
+}
+
+
+void EssentialCBCp::describe (char* tgt) const
+// ---------------------------------------------------------------------------
+// Load descriptive/diagnostic material into tgt.
+// ---------------------------------------------------------------------------
+{
+  sprintf (tgt, "computed-essential-pressure, see DKC14");
+}
+
+
+void NaturalCBCu::evaluate (const Field*   src    ,
+			    const int_t    id     , 
+			    const int_t    plane  , 
+			    const Element* elmt   ,
+			    const int_t    side   , 
+			    const int_t    step   ,
+			    const bool     Fourier,
+			    real_t*        tgt    ) const
+// ---------------------------------------------------------------------------
+// Load external via a call to CBCmgr to compute terms.
+// ---------------------------------------------------------------------------
+{
+  if (Fourier) _BCmgr -> evaluateCNBCu (src, id, plane, step, 'u', tgt); 
+}
+
+
+void NaturalCBCu::sum (const int_t   side  ,
+		       const int_t*  bmap  ,
+		       const real_t* src   ,
+		       const real_t* weight,
+		       real_t*       work  ,
+		       real_t*       tgt   ) const
+// ---------------------------------------------------------------------------
+// Add boundary-integral terms into globally-numbered tgt.
+// ---------------------------------------------------------------------------
+{ 
+  const int_t  np    = Geometry::nP();
+  const int_t  nm    = np - 1;
+  const int_t* start = bmap;
+  
+  switch (side) {
+  case 1: start += nm;           break;
+  case 2: start += nm + nm;      break;
+  case 3: start += nm + nm + nm; break;
+  default: break;
+  }
+
+  Veclib::vmul (np, src, 1, weight, 1, work, 1);
+
+  Veclib::scatr_sum (nm, work, start, tgt);
+  if   (side == 3) tgt[bmap [ 0]] += work[nm];
+  else             tgt[start[nm]] += work[nm];  
+}
+
+
+void NaturalCBCu::describe (char* tgt) const
+// ---------------------------------------------------------------------------
+// Load descriptive/diagnostic material into tgt.
+// ---------------------------------------------------------------------------
+{
+  sprintf (tgt, "computed-natural-velocity (u component) see DKC14 (8c)");
+}
+
+
+void NaturalCBCv::evaluate (const Field*   src    ,
+			    const int_t    id     , 
+			    const int_t    plane  , 
+			    const Element* elmt   ,
+			    const int_t    side   , 
+			    const int_t    step   ,
+			    const bool     Fourier,
+			    real_t*        tgt    ) const
+// ---------------------------------------------------------------------------
+// Load external via a call to CBCmgr to compute terms.
+// ---------------------------------------------------------------------------
+{
+  if (Fourier) _BCmgr -> evaluateCNBCu (src, id, plane, step, 'v', tgt); 
+}
+
+
+void NaturalCBCv::sum (const int_t   side  ,
+		       const int_t*  bmap  ,
+		       const real_t* src   ,
+		       const real_t* weight,
+		       real_t*       work  ,
+		       real_t*       tgt   ) const
+// ---------------------------------------------------------------------------
+// Add boundary-integral terms into globally-numbered tgt.
+// ---------------------------------------------------------------------------
+{ 
+  const int_t  np    = Geometry::nP();
+  const int_t  nm    = np - 1;
+  const int_t* start = bmap;
+  
+  switch (side) {
+  case 1: start += nm;           break;
+  case 2: start += nm + nm;      break;
+  case 3: start += nm + nm + nm; break;
+  default: break;
+  }
+
+  Veclib::vmul (np, src, 1, weight, 1, work, 1);
+
+  Veclib::scatr_sum (nm, work, start, tgt);
+  if   (side == 3) tgt[bmap [ 0]] += work[nm];
+  else             tgt[start[nm]] += work[nm];  
+}
+
+
+void NaturalCBCv::describe (char* tgt) const
+// ---------------------------------------------------------------------------
+// Load descriptive/diagnostic material into tgt.
+// ---------------------------------------------------------------------------
+{
+  sprintf (tgt, "computed-natural-velocity (v component) see DKC14 (8c)");
 }

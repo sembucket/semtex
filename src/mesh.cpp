@@ -51,7 +51,7 @@
 // #	tag	name	descriptor
 // 	1	v	value
 // 	2	w	wall
-// 	3	o	outflow
+// 	3	o	exit
 // </GROUPS>
 // 
 // <BCS NUMBER=3>
@@ -1229,20 +1229,27 @@ void Mesh::buildMask (const int_t np  ,
 		      const char  fld ,
 		      int_t*      mask)
 // ---------------------------------------------------------------------------
-// This routine generates an int_t mask (0/1) vector for element-boundary
-// nodes.  For any location that corresponds to a domain boundary with an
-// essential boundary condition and for field name "fld", the corresponding
-// mask value will be 1.  All other locations will be 0.
-//
-// NOTE that the default behaviour for any type of BC that is not <D>
-// or <A> is for the mask to be 0.
+// This routine generates an int_t mask (0/1) vector for
+// element-boundary nodes.  For any location that corresponds to a
+// domain boundary with an essential boundary condition and for field
+// name "fld", the corresponding mask value will be 1 -- this tags the
+// corresponding node for lifting out of the field solution, since the
+// field value will be set, rather than solved as part of the system
+// of equations (i.e. it forms part of the RHS of a matrix system
+// equation, rather than the LHS).  All other locations will be 0
+// (i.e., unmasked).
 //
 // For quads, mask is 4 * nel * (np - 1) long, same as input for buildMap.
 // Use is made of the fact that on BCs, there are no mating sides, hence
 // no need to set mask on mating sides.
 //
+// NOTE that the default behaviour for any type of BC that is not <D>
+// or <A> is for the mask to be 0.
+//
 // If fld is 'U', 'v, 'w', 'P' or 'C', set mask for essential BCs on
 // symmetry axis.
+//
+// If fld is 'p' or 'P', set mask for BC of type <O> (outflow).
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "Mesh::buildMask";
@@ -1277,9 +1284,12 @@ void Mesh::buildMask (const int_t np  ,
     for (j = 0; j < ns; j++) {
       S = E -> side[j];
       if (!(S -> mateElmt)) {
-	if (matchBC (S -> group, tolower (fld), 'D') ||
-	    (axisE &&
-	     matchBC (S -> group, tolower (fld), 'A'))) {
+	if (
+	                   matchBC (S -> group, tolower (fld), 'D')  ||
+	    (axisE      && matchBC (S -> group, tolower (fld), 'A')) ||
+ 	    ((fld == 'p' || fld == 'P') 
+                        && matchBC (S -> group, tolower (fld), 'O'))
+	    ) {
 	  S -> startNode -> gID = 1;
 	  S -> endNode   -> gID = 1;
 	  if (ni) Veclib::fill (ni, 1, &S -> gID[0], 1);
@@ -1324,21 +1334,25 @@ bool Mesh::matchBC (const char grp,
 // ---------------------------------------------------------------------------
 // From FEML BC information, return true if the boundary condition
 // kind shown for group 'grp' and field 'fld' is of type 'bcd'.
+//
+// Input parameter grp is the group character set in the SURFACES
+// section for a mesh side.  Input parameter 'fld' is the name of the
+// field for which we are currently setting up a mask vector.
 // 
-// Presently allowed values for bcd (these correspond to FEML BC tag names):
-//   D <==> Dirichlet, Essential
-//   N <==> Neumann, Natural
-//   H <==> "High-order" (computed, natural) Pressure BC.  See KIO91.
-//   A <==> "Axis" (selected, natural/essential) BC.       See TOK93.
+// Presently allowed types for bcd (these correspond to FEML BC tag names):
+//   D <==> Dirichlet/Essential.
+//   N <==> Neumann/Natural.
 //   M <==> Mixed/Robin BC.
-//   V <==> Convective (a type of mixed) BC.
+//   H <==> "High-order" (computed, natural) pressure BC.        See KIO91.
+//   A <==> "Axis" (selected, natural/essential) BC.             See BS04.
+//   O <==> "Outflow": computed essential BC for pressure only.  See DKC14.
 // ---------------------------------------------------------------------------
 {
   const int_t N = _feml.attribute ("BCS", "NUMBER");
   char        groupc, fieldc, buf[StrMax];
   int_t       i, j, id, nbcs;
 
-  for (i = 0; i < N; i++) {
+  for (i = 0; i < N; i++) {		 // -- Read through <BC> section.
     while (_feml.stream().peek() == '#') // -- Skip comments.
       _feml.stream().ignore (StrMax, '\n');
 
@@ -1348,7 +1362,7 @@ bool Mesh::matchBC (const char grp,
       _feml.stream().ignore (StrMax, '\n');
       for (j = 0; j < nbcs; j++)
 	_feml.stream().getline (buf, StrMax);
-    } else {
+    } else {			// -- Deal only with set of BCs for "grp".
       for (j = 0; j < nbcs; j++) {
 	_feml.stream() >> buf >> fieldc;
 	if (buf[1] == bcd && fieldc == fld)

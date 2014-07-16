@@ -34,26 +34,16 @@ static char RCS[] = "$Id$";
 #include <sem.h>
 
 
-void Boundary::evaluate (const int_t plane,
-			 const int_t step ,
-			 real_t*     tgt  ) const
+void Boundary::evaluate (const Field* P      ,
+			 const int_t  plane  ,
+			 const int_t  step   ,
+			 const bool   Fourier,
+			 real_t*      tgt    ) const
 // ---------------------------------------------------------------------------
 // Load boundary condition storage area with numeric values.
 // ---------------------------------------------------------------------------
 {
-  _bcond -> evaluate (_np, _id, plane, _elmt, _side, step, _nx, _ny, tgt);
-}
-
-
-void Boundary::extract (const real_t* src, 
-			real_t*       tgt) const
-// ---------------------------------------------------------------------------
-// Take (planar field data) src and extract its values along appropriate
-// edge, placing them into (linear boundary data) tgt.
-// Only takes place for convective BCs.
-// ---------------------------------------------------------------------------
-{
-  _bcond -> extract (_np, src, _doffset, _dskip, tgt);
+  _bcond -> evaluate (P, _id, plane, _elmt, _side, step, Fourier, tgt);
 }
 
 

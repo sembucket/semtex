@@ -9,7 +9,7 @@
 //////////////////////////////////////////////////////////////////////////////
 
 #include <sem.h>
-
+#include <fieldforce.h>
 
 class DNSAnalyser : public Analyser
 // ===========================================================================
@@ -28,15 +28,15 @@ private:
   int_t          _nline;
   int_t          _nwall;
   int_t          _npad;
-  
+
   vector<real_t> _work;
 
   void extract_wall ();
 };
 
-void skewSymmetric    (Domain*, AuxField**, AuxField**, vector<real_t>&);
-void altSkewSymmetric (Domain*, AuxField**, AuxField**, vector<real_t>&);
-void convective       (Domain*, AuxField**, AuxField**, vector<real_t>&);
-void Stokes           (Domain*, AuxField**, AuxField**, vector<real_t>&);
+void skewSymmetric    (Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*);
+void altSkewSymmetric (Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*);
+void convective       (Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*);
+void Stokes           (Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*);
 
 #endif

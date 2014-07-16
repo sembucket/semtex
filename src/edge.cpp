@@ -3,7 +3,7 @@
 //
 // Copyright (c) 2003 <--> $Date$, Hugh Blackburn
 //
-// Edges, like boundaries (to which they contribute) typicall belong
+// Edges, like boundaries (to which they contribute) typically belong
 // to a named group -- regular element sides generally do not.  This
 // is not quite the same as saying that an edge lies along a domain
 // boundary, since in fact the constructor just needs a string as the
@@ -598,11 +598,23 @@ void Edge::divY (real_t* tgt) const
 // Divide tgt by y (typically, radius) along this edge.
 // ---------------------------------------------------------------------------
 {
-  register int_t i;
-  real_t         invr;
+  int_t  i;
+  real_t invr;
 
   for (i = 0; i < _np; i++) {
     invr = (_y[i] > EPSDP) ? 1.0/_y[i] : 0.0;
     tgt[i] *= invr;
   }
+}
+
+
+void Edge::sideEvaluate (const char* func,
+			 real_t*     tgt ) const
+// ---------------------------------------------------------------------------
+// Evaluate function over mesh points, store in tgt.  Function can
+// explicitly use "x" and "y", for which mesh values are used.
+// ---------------------------------------------------------------------------
+{
+  Femlib::prepVec  ("x y", func);
+  Femlib__parseVec (_np, _x, _y, tgt);
 }

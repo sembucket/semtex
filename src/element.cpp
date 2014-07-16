@@ -523,8 +523,8 @@ void Element::grad (real_t* tgtX,
 		    real_t* work) const
 // ---------------------------------------------------------------------------
 // Operate partial derivative d(tgt)/dxi = d_dr*drdxi + d_ds*dsdxi,
-// where the appropriate component of gradient is selected by input
-// pointers.  Values are computed at node points.
+// where the appropriate component of gradient (x or y) is selected by
+// input pointers.  Values are computed at node points.
 //
 // Work area must be 2*nTot() long.
 // ---------------------------------------------------------------------------
@@ -1403,7 +1403,7 @@ void Element::mapping ()
   if (Blas::nrm2 (_npnp, _dsdx, 1) < EPS) { delete [] _dsdx; _dsdx = 0; }
   if (Blas::nrm2 (_npnp, _dsdy, 1) < EPS) { delete [] _dsdy; _dsdy = 0; }
   if (Blas::nrm2 (_npnp, _Q3,   1) < EPS) { delete [] _Q3;   _Q3   = 0; }
-  }
+}
 
 
 void Element::HelmholtzRow (const real_t lambda2,
@@ -1744,4 +1744,40 @@ void Element::sideGeom (const int_t side,
   Veclib::vhypot (_np, nx, 1, ny,  1, len, 1);
   Veclib::vdiv   (_np, nx, 1, len, 1, nx,  1);
   Veclib::vdiv   (_np, ny, 1, len, 1, ny,  1);
+}
+
+
+void Element::crossXPlus (const int com, const real_t z, 
+                          const vector<real_t>& a, real_t* tgt) const
+// ---------------------------------------------------------------------------
+// Add the com'th component of the cross product of a and X to tgt
+// ---------------------------------------------------------------------------
+{
+  const int  c0[] = {1, 2, 0},	// -- lookup tables for 3-D vector product
+             c1[] = {2, 0, 1};
+  const real_t* mesh[] = {_xmesh, _ymesh};
+  const int  bP = Geometry::basePlane ();
+  const int  nz = Geometry::nZ();
+  const int  nPlane = Geometry::nPlane ();
+  double alpha;
+
+  // Cartesian: z is constant, must be given
+  // Cylindrical: since everything (vector a and the result) is in local
+  //              coordinates, z is always zero
+
+  if (com == 0) {
+    if ((alpha = a[1] * z) != 0)
+      Veclib::sadd (_npnp, alpha, tgt, 1, tgt, 1);
+  } else {
+    if (a[c0[com]] != 0)
+      Blas::axpy (_npnp,  a[c0[com]], mesh[c1[com]], 1, tgt, 1);
+  }
+  if (com == 1) {
+    if ((alpha = a[0] * z) != 0)
+      Veclib::sadd (_npnp, -alpha, tgt, 1, tgt, 1);
+    //
+  } else {
+    if (a[c1[com]] != 0)
+      Blas::axpy (_npnp, -a[c1[com]], mesh[c0[com]], 1, tgt, 1);
+  }
 }

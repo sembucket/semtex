@@ -63,7 +63,6 @@ class AuxField;
 class Field;
 class Domain;
 class BCmgr;
-class PBCmgr;
 class Statistics;
 class HistoryPoint;
 class FluidParticle;
@@ -87,7 +86,6 @@ class NumberSys;
 #include <misc.h>
 #include <numbersys.h>
 #include <particle.h>
-#include <pressure.h>
 #include <statistics.h>
 
 
