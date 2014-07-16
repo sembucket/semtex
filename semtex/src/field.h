@@ -15,7 +15,7 @@ class Field : public AuxField
 // Helmholtz solution routines are also provided here.
 // ===========================================================================
 {
-friend class PBCmgr;
+friend class BCmgr;
 public:
   Field  (BoundarySys*, real_t*, const int_t, vector<Element*>&, const char);
  ~Field  () { }
@@ -29,10 +29,9 @@ public:
   Field& smooth (AuxField* = 0);
   void   smooth (const int_t, real_t*) const;
 
-  void evaluateBoundaries    (const int_t, const bool = true);
-  void evaluateM0Boundaries  (const int_t);
+  void evaluateBoundaries    (const Field*, const int_t, const bool = true);
+  void evaluateM0Boundaries  (const Field*, const int_t);
   void addToM0Boundaries     (const real_t, const char*);
-  void selfExtractBoundaries ();
   void bTransform            (const int_t);
 
   void overwriteForGroup      (const char*, const AuxField*, AuxField*);

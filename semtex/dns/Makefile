@@ -1,6 +1,6 @@
 ##############################################################################
-# Makefile for dns, spectral element solver for unsteady Navier--Stokes
-# problems.
+# Makefile for dns_ff, spectral element solver for unsteady
+# Navier--Stokes problems, with generalised body forcing added.
 #
 # $Id$
 ##############################################################################
@@ -18,18 +18,19 @@ endif
 # Semtex standard sources.
 #
 SEMFILES = analysis auxfield bcmgr boundary bsys condition domain   \
-	   edge element family feml field geometry history \
-           integration matrix mesh misc particle pressure statistics svv
+	   edge element family feml field geometry history  \
+           integration matrix mesh misc particle statistics \
+           fieldforce data2df svv
 SEMOBJ   = $(addsuffix .o,$(SEMFILES))
 SEMHDR   = $(addsuffix .h,$(SEMFILES)) sem.h
 
 # ----------------------------------------------------------------------------
-# Default build for Navier-Stokes solver.
+# Default build for Navier--Stokes solver.
 #
 NS_FILES = drive integrate nonlinear dnsanalysis
 NS_OBJ   = $(addsuffix .o,$(NS_FILES))
 
-$(PROG): sem $(SEMOBJ) $(NS_OBJ) 
+$(PROG): sem $(SEMOBJ) $(NS_OBJ)
 	$(LD) -o $@ $(NS_OBJ) $(SEMOBJ) $(LDFLAGS)
 
 $(SEMOBJ): $(SEMHDR)
@@ -50,6 +51,6 @@ distclean:
 # Machine-dependent compilations.
 
 ifeq ($(ARCH),SUPER-UX)
-mesh.o: $(VPATH)/mesh.C
-	$(CXX) $(CPPFLAGS) $(NOVEC) $(VPATH)/mesh.C
+mesh.o: $(VPATH)/mesh.cpp
+	$(CXX) $(CPPFLAGS) $(NOVEC) $(VPATH)/mesh.cpp
 endif

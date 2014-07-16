@@ -61,6 +61,8 @@ static struct {
   "SVV_MZ"      ,  -1      ,    /* -- SVV Fourier mode start, < (N_Z/2).  */
   "SVV_EPSZ"    ,   0.0    ,    /* -- SVV Fourier Eps, as for SEM.        */
 
+  "UODelta"     ,   0.05   ,    /* -- Outflow boundary velocity scale.    */
+
   /* -- Option switches. */
 
   "ITERATIVE"   ,   0   ,	/* -- Select PCG solver for velocities.   */

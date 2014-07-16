@@ -8,13 +8,11 @@
 // dns [options] session
 //   options:
 //   -h       ... print usage prompt
-//   -i       ... use iterative solver for viscous step
+//   -i       ... use iterative solver for viscous [and pressure] steps
 //   -t[t]    ... select time-varying BCs for mode 0 [or all modes]
 //   -v[v...] ... increase verbosity level
 //   -chk     ... turn off checkpoint field dumps [default: selected]
 //   -S|C|N   ... regular skew-symm || convective || Stokes advection
-//
-//   (default advection scheme is "alternating" skew symmetric)
 //
 // AUTHOR:
 // ------
@@ -25,29 +23,19 @@
 // Australia
 // hugh.blackburn@monash.edu
 //
-// REFERENCES:
-// ----------
-// 1.  Blackburn & Sherwin (2004) 'Formulation of a Galerkin spectral
-//     element--Fourier method for three-dimensional incompressible
-//     flows in cylindrical geometries', J Comput Phys 179(2).
-//
-// 2.  Koal, Stiller & Blackburn (2012), 'Adapting the spectral
-//     vanishing viscosity method for large-eddy simulations in
-//     cylindrical configurations', J Comput Phys 231.
-//
 // --
 // This file is part of Semtex.
-// 
+//
 // Semtex is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the
 // Free Software Foundation; either version 2 of the License, or (at your
 // option) any later version.
-// 
+//
 // Semtex is distributed in the hope that it will be useful, but WITHOUT
 // ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 // FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 // for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
@@ -61,10 +49,11 @@ static char RCS[] = "$Id$";
 static char prog[] = "dns";
 static void getargs    (int, char**, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
-			BCmgr*&, Domain*&);
+			BCmgr*&, Domain*&, FieldForce*&);
 
-void integrate (void (*)(Domain*, AuxField**, AuxField**, vector<real_t>&),
-		Domain*, DNSAnalyser*);
+void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
+		Domain*, BCmgr*, DNSAnalyser*, FieldForce*);
+
 
 int main (int    argc,
 	  char** argv)
@@ -83,23 +72,24 @@ int main (int    argc,
   BCmgr*           bman;
   Domain*          domain;
   DNSAnalyser*     analyst;
-  
+  FieldForce*      FF;
+
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session);
 
-  preprocess (session, file, mesh, elmt, bman, domain);
+  preprocess (session, file, mesh, elmt, bman, domain, FF);
 
   analyst = new DNSAnalyser (domain, bman, file);
-  
+
   domain -> restart ();
 
   ROOTONLY domain -> report ();
   
   switch (Femlib::ivalue ("ADVECTION")) {
-  case 0: integrate (   skewSymmetric, domain, analyst); break;
-  case 1: integrate (altSkewSymmetric, domain, analyst); break;
-  case 2: integrate (      convective, domain, analyst); break;
-  case 3: integrate (          Stokes, domain, analyst); break;
+  case 0: integrate (   skewSymmetric, domain, bman, analyst, FF); break;
+  case 1: integrate (altSkewSymmetric, domain, bman, analyst, FF); break;
+  case 2: integrate (      convective, domain, bman, analyst, FF); break;
+  case 3: integrate (          Stokes, domain, bman, analyst, FF); break;
   }
 
   Femlib::finalize ();
@@ -121,8 +111,7 @@ static void getargs (int    argc   ,
   const char usage[]   = "Usage: %s [options] session-file\n"
     "  [options]:\n"
     "  -h       ... print this message\n"
-    "  -i       ... use iterative solver for viscous step\n"
-    "  -t[t]    ... select time-varying BCs for mode 0 [or all modes]\n"
+    "  -i      ... use iterative solver for viscous steps\n"
     "  -v[v...] ... increase verbosity level\n"
     "  -chk     ... turn off checkpoint field dumps [default: selected]\n"
     "  -S|C|N   ... regular skew-symm || convective || Stokes advection\n";
@@ -144,11 +133,6 @@ static void getargs (int    argc   ,
 	Femlib::ivalue ("ITERATIVE", 1);
       while (*++argv[0] == 'i');
       break;
-    case 't':
-      do
-	Femlib::ivalue ("TBCS",      Femlib::ivalue ("TBCS")      + 1);
-      while (*++argv[0] == 't');
-      break;
     case 'v':
       do
 	Femlib::ivalue ("VERBOSE",   Femlib::ivalue ("VERBOSE")   + 1);
@@ -164,7 +148,7 @@ static void getargs (int    argc   ,
       exit (EXIT_FAILURE);
       break;
     }
-  
+
   if   (argc != 1) message (routine, "no session definition file", ERROR);
   else             session = *argv;
 }
@@ -175,12 +159,14 @@ static void preprocess (const char*       session,
 			Mesh*&            mesh   ,
 			vector<Element*>& elmt   ,
 			BCmgr*&           bman   ,
-			Domain*&          domain )
+			Domain*&          domain ,
+			FieldForce*&      FF     )
 // ---------------------------------------------------------------------------
 // Create objects needed for execution, given the session file name.
 // They are listed above in order of creation.
 // ---------------------------------------------------------------------------
 {
+
   const char routine[] = "preprocess";
   const int_t        verbose = Femlib::ivalue ("VERBOSE");
   Geometry::CoordSys space;
@@ -204,7 +190,7 @@ static void preprocess (const char*       session,
   nz    =  Femlib::ivalue ("N_Z");
   space = (Femlib::ivalue ("CYLINDRICAL")) ?
     Geometry::Cylindrical : Geometry::Cartesian;
-  
+
   Geometry::set (np, nz, nel, space);
 
   VERBOSE cout << "done" << endl;
@@ -242,6 +228,14 @@ static void preprocess (const char*       session,
   VERBOSE cout << "Building domain ..." << endl;
 
   domain = new Domain (file, elmt, bman);
+
+  VERBOSE cout << "done" << endl;
+
+  // -- Build field force.
+
+  VERBOSE cout << "Building field force ..." << endl;
+
+  FF = new FieldForce (domain, file);
 
   VERBOSE cout << "done" << endl;
 

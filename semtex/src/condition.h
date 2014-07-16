@@ -10,14 +10,16 @@ class Condition
 // 2. EssentialFunction : essential BC, value obtained by parsing a function.
 // 3. Natural           : natural BC with constant, supplied, value.
 // 4. NaturalFunction   : natural BC, value obtained by parsing a function.
-// 5. NaturalHOPBC      : "high-order" pressure BC, natural, computed value.
-// 6. Mixed             : transfer coefficient type, 2 supplied values.
-// 7. Convective        : convective-type mixed BC with supplied velocity.
+// 5. Mixed             : transfer coefficient type, 2 supplied values.
+// 6. NaturalCBCp       : "high-order" pressure BC, natural, computed value.
+// 7. EssentialCBCp     : Outflow-specific pressure BC, essential, computed.
+// 8. NaturalCBCu       : Outflow-specific u velocity BC, natural, computed.
+// 9. NaturalCBCv       : Outflow-specific v velocity BC, natural, computed.
 //
 // Note that for supplied-value BC types, the value is a physical-space
 // description of the BC, and is now set once at run-time (cannot be reset).
 // This is not true for those obtained by parsing a function: this can
-// be re-parsed every timestep (if so flagged by command-line option
+// be re-parsed every timestep (if so flagged by dns command-line option
 // -t or -tt).
 //
 // Also, each condition class derived from the base has to define all the
@@ -30,11 +32,8 @@ class Condition
 // For natural/Neumann BCs, the method "sum" must be defined, while
 // For mixed/Robin BCs, the three methods "augmentSC", "augmentOp", 
 // and "augmentDG" must be defined.
-// For convective BCs, (a type of mixed BC), the method "extract"
-// which loads field data into field boundary storage, must also be
-// defined (in addition to the "augmentXx" methods).
 //
-// See also boundary.h, edge.h, mesh.C.
+// See also boundary.h, edge.h, bcmgr.cpp mesh.cpp.
 //
 // --
 // This file is part of Semtex.
@@ -56,9 +55,14 @@ class Condition
 // ===========================================================================
 {
 public:
-  virtual void evaluate  (const int_t, const int_t, const int_t,
-			  const Element*, const int_t, const int_t,
-			  const real_t*, const real_t*, real_t*)       const=0;
+  virtual void evaluate  (const Field*   src    ,
+			  const int_t    id     , 
+			  const int_t    plane  , 
+			  const Element* elmt   ,
+			  const int_t    side   , 
+			  const int_t    step   ,
+			  const bool     Fourier,
+			  real_t*        tgt    )                      const=0;
   virtual void set       (const int_t, const int_t*,
 			  const real_t*, real_t*)                      const=0;
   virtual void sum       (const int_t, const int_t*,
@@ -69,8 +73,6 @@ public:
 			  const real_t*, const real_t*, real_t*)       const=0;
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                      const=0;
-  virtual void extract   (const int_t, const real_t*, const int_t,
-			  const int_t, real_t*)                        const=0;
   virtual void describe  (char* tgt)                                   const=0;
 
   virtual ~Condition()   { }
@@ -85,9 +87,9 @@ class Essential : public Condition
 {
 public:
   Essential              (const char* v) : _value (strtod (v, 0)) { }
-  virtual void evaluate  (const int_t, const int_t, const int_t,
-			  const Element*, const int_t, const int_t,
-			  const real_t*, const real_t*, real_t*)         const;
+  virtual void evaluate  (const Field*, const int_t, const int_t,
+                          const Element*, const int_t, const int_t,
+			  const bool, real_t*)                           const;
   virtual void set       (const int_t, const int_t*,
 			  const real_t*, real_t*)                        const;
   virtual void sum       (const int_t, const int_t*,
@@ -101,9 +103,6 @@ public:
     { };
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const
-    { };
-  virtual void extract   (const int_t, const real_t*, const int_t,
-			  const int_t, real_t*)                          const
     { };
   virtual void describe  (char*)                                         const;
 private:
@@ -119,9 +118,9 @@ class EssentialFunction : public Condition
 {
 public:
   EssentialFunction      (const char*);
-  virtual void evaluate  (const int_t, const int_t, const int_t,
-			  const Element*, const int_t, const int_t,
-			  const real_t*, const real_t*, real_t*)         const;
+  virtual void evaluate  (const Field*,   const int_t, const int_t,
+                          const Element*, const int_t, const int_t,
+			  const bool, real_t*)                           const;
   virtual void set       (const int_t, const int_t*,
 			  const real_t*, real_t*)                        const;
   virtual void sum       (const int_t, const int_t*,
@@ -135,9 +134,6 @@ public:
     { };
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const
-    { };
-  virtual void extract   (const int_t, const real_t*, const int_t,
-			  const int_t, real_t*)                          const
     { };
   virtual void describe  (char*)                                         const;
 private:
@@ -153,9 +149,9 @@ class Natural : public Condition
 {
 public:
   Natural                (const char* v) : _value (strtod (v, 0)) { }
-  virtual void evaluate  (const int_t, const int_t, const int_t,
-			  const Element*, const int_t, const int_t,
-			  const real_t*, const real_t*, real_t*)         const;
+  virtual void evaluate  (const Field*,   const int_t, const int_t,
+                          const Element*, const int_t, const int_t,
+			  const bool, real_t*)                           const;
   virtual void set       (const int_t, const int_t*,
 			  const real_t*, real_t*)                        const
     { };
@@ -169,9 +165,6 @@ public:
     { };
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const
-    { };
-  virtual void extract   (const int_t, const real_t*, const int_t,
-			  const int_t, real_t*)                          const
     { };
   virtual void describe  (char*)                                         const;
 private:
@@ -187,9 +180,9 @@ class NaturalFunction : public Condition
 {
 public:
   NaturalFunction        (const char*);
-  virtual void evaluate  (const int_t, const int_t, const int_t,
-			  const Element*, const int_t, const int_t,
-			  const real_t*, const real_t*, real_t*)         const;
+  virtual void evaluate  (const Field*,   const int_t, const int_t,
+                          const Element*, const int_t, const int_t,
+			  const bool, real_t*)                           const;
   virtual void set       (const int_t, const int_t*,
 			  const real_t*, real_t*)                        const
     { };
@@ -203,46 +196,10 @@ public:
     { };
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const
-    { };
-  virtual void extract   (const int_t, const real_t*, const int_t,
-			  const int_t, real_t*)                          const
     { };
   virtual void describe  (char*)                                         const;
 private:
   char* _function;
-};
-
-
-class NaturalHOPBC : public Condition
-// ===========================================================================
-// High-order pressure BC.  This is a natural BC, which has its value
-// set at each timestep by an extrapolative process.  The value of dP/dn
-// is obtained from the N-S equations.
-// ===========================================================================
-{
-public:
-  NaturalHOPBC           () { }
-  virtual void evaluate  (const int_t, const int_t, const int_t,
-			  const Element*, const int_t, const int_t,
-			  const real_t*, const real_t*, real_t*)         const;
-  virtual void set       (const int_t, const int_t*,
-			  const real_t*, real_t*)                        const
-    { };
-  virtual void sum       (const int_t, const int_t*,
-			  const real_t*,const real_t*,real_t*,real_t*)   const;
-  virtual void augmentSC (const int_t, const int_t, const int_t,
-			  const int_t*, const real_t*, real_t*, real_t*) const
-    { };
-  virtual void augmentDg (const int_t, const int_t*, 
-			  const real_t*, real_t*)                        const
-    { };
-  virtual void augmentOp (const int_t, const int_t*,
-			  const real_t*, const real_t*, real_t*)         const
-    { };
-  virtual void extract   (const int_t, const real_t*, const int_t,
-			  const int_t, real_t*)                          const
-    { };
-  virtual void describe  (char*)                                         const;
 };
 
 
@@ -261,9 +218,10 @@ class Mixed : public Condition
 {
 public:
   Mixed                  (const char*);
-  virtual void evaluate  (const int_t, const int_t, const int_t,
-			  const Element*, const int_t, const int_t,
-			  const real_t*, const real_t*, real_t*)         const;
+  virtual void evaluate  (const Field*,   const int_t, const int_t,
+                          const Element*, const int_t, const int_t,
+			  const bool, real_t*)                           const
+    { };
   virtual void set       (const int_t, const int_t*,
 			  const real_t*, real_t*)                        const
     { };
@@ -275,9 +233,6 @@ public:
 			  const real_t*, const real_t*, real_t*)         const;
   virtual void augmentDg (const int_t, const int_t*, 
 			  const real_t*, real_t*)                        const;
-  virtual void extract   (const int_t, const real_t*, const int_t,
-			  const int_t, real_t*)                          const
-    { };
   virtual void describe  (char*)                                         const;
 private:
   real_t _K_;		// -- This is "K" above.
@@ -285,45 +240,136 @@ private:
 };
 
 
-class Convective : public Condition
+// -- Classes with internally computed BC ("CBC") types follow.
+//    Evaluate (and other) functions dealt with in bcmgr.cpp.
+
+
+class NaturalCBCp : public Condition
 // ===========================================================================
-// Mixed-type boundary condition class for mixed type BCs of form
-//     dc/dt + V dc/dn   = 0, which is rearranged as
-//     dc/dn + 1/V dc/dt = 0 and then has dc/dt approximated by backwards
-// Euler: dc/dn^{n+1} + 1/(V D_T) (c^{n+1} - c^{n}) = 0.  This is a type of
-// mixed BC where c^{n} is taken from past timestep data and V is a supplied
-// convection speed.
+// Computed Neumann BC for pressure, typical of wall boundaries.
 //
-// Syntax in session file is
-//     <V> c = V </V>  or 
-// where 'c' is a field name and V can be evaluated as a constant
-// (perhaps using defined TOKENS).
-//
-// Note that evaluate does nothing; its action is replaced by extract.
+// Karniadakis, Israeli & Orszag JCP 97, (1991).
 // ===========================================================================
 {
 public:
-  Convective             (const char*);
-  virtual void evaluate  (const int_t, const int_t, const int_t,
-			  const Element*, const int_t, const int_t,
-			  const real_t*, const real_t*, real_t*)         const
-    { };
+  NaturalCBCp            (BCmgr* B) : _BCmgr (B) { }
+  virtual void evaluate  (const Field*,   const int_t, const int_t,
+                          const Element*, const int_t, const int_t,
+			  const bool, real_t*)                           const;
   virtual void set       (const int_t, const int_t*,
 			  const real_t*, real_t*)                        const
     { };
-  virtual void sum       (const int_t, const int_t*, const real_t*,
-			  const real_t*, real_t*, real_t*)               const;
+  virtual void sum       (const int_t, const int_t*,
+			  const real_t*,const real_t*,real_t*,real_t*)   const;
   virtual void augmentSC (const int_t, const int_t, const int_t,
-			  const int_t*, const real_t*, real_t*, real_t*) const;
-  virtual void augmentOp (const int_t, const int_t*,
-			  const real_t*, const real_t*, real_t*)         const;
+			  const int_t*, const real_t*, real_t*, real_t*) const
+    { };
   virtual void augmentDg (const int_t, const int_t*, 
-			  const real_t*, real_t*)                        const;
-  virtual void extract   (const int_t, const real_t*, const int_t,
-			  const int_t, real_t*)                          const;
+			  const real_t*, real_t*)                        const
+    { };
+  virtual void augmentOp (const int_t, const int_t*,
+			  const real_t*, const real_t*, real_t*)         const
+    { };
   virtual void describe  (char*)                                         const;
 private:
-  real_t _K_;		// -- This is "1/(V * D_T)" above.
+  BCmgr* _BCmgr; 
+};
+
+
+class EssentialCBCp : public Condition
+// ===========================================================================
+// Computed Dirichlet BC for pressure on outflow boundaries.
+//
+// Dong, Karniadakis & Chryssostomides, JCP 261 (2014, DKC14).
+// ===========================================================================
+{
+public:
+  EssentialCBCp          (BCmgr* B) : _BCmgr (B) { }
+  virtual void evaluate  (const Field*,   const int_t, const int_t,
+                          const Element*, const int_t, const int_t,
+			  const bool, real_t*)                           const;
+  virtual void set       (const int_t, const int_t*,
+			  const real_t*, real_t*)                        const;
+  virtual void sum       (const int_t, const int_t*,
+			  const real_t*,const real_t*,real_t*,real_t*)   const
+    { };
+  virtual void augmentSC (const int_t, const int_t, const int_t,
+			  const int_t*, const real_t*, real_t*, real_t*) const
+    { };
+  virtual void augmentDg (const int_t, const int_t*, 
+			  const real_t*, real_t*)                        const
+    { };
+  virtual void augmentOp (const int_t, const int_t*,
+			  const real_t*, const real_t*, real_t*)         const
+    { };
+  virtual void describe  (char*)                                         const;
+private:
+  BCmgr* _BCmgr; 
+};
+
+
+class NaturalCBCu : public Condition
+// ===========================================================================
+// Computed Neumann BC for velocity component 'u' on outflow boundaries.
+//
+// Dong, Karniadakis & Chryssostomides, JCP 261 (2014, DCK14).
+// ===========================================================================
+{
+public:
+  NaturalCBCu            (BCmgr* B) : _BCmgr (B) { }
+  virtual void evaluate  (const Field*,   const int_t, const int_t,
+                          const Element*, const int_t, const int_t,
+			  const bool, real_t*)                           const;
+  virtual void set       (const int_t, const int_t*,
+			  const real_t*, real_t*)                        const
+    { };
+  virtual void sum       (const int_t, const int_t*,
+			  const real_t*,const real_t*,real_t*,real_t*)   const;
+  virtual void augmentSC (const int_t, const int_t, const int_t,
+			  const int_t*, const real_t*, real_t*, real_t*) const
+    { };
+  virtual void augmentDg (const int_t, const int_t*, 
+			  const real_t*, real_t*)                        const
+    { };
+  virtual void augmentOp (const int_t, const int_t*,
+			  const real_t*, const real_t*, real_t*)         const
+    { };
+  virtual void describe  (char*)                                         const;
+private:
+  BCmgr* _BCmgr; 
+};
+
+
+class NaturalCBCv : public Condition
+// ===========================================================================
+// Computed Neumann BC for velocity component 'v' on outflow boundaries.
+// Evaluated in Fourier space.
+//
+// Dong, Karniadakis & Chryssostomides, JCP 261 (2014, DKC14).
+// ===========================================================================
+{
+public:
+  NaturalCBCv            (BCmgr* B) : _BCmgr (B) { }
+  virtual void evaluate  (const Field*,   const int_t, const int_t,
+                          const Element*, const int_t, const int_t,
+			  const bool, real_t*)                           const;
+  virtual void set       (const int_t, const int_t*,
+			  const real_t*, real_t*)                        const
+    { };
+  virtual void sum       (const int_t, const int_t*,
+			  const real_t*,const real_t*,real_t*,real_t*)   const;
+  virtual void augmentSC (const int_t, const int_t, const int_t,
+			  const int_t*, const real_t*, real_t*, real_t*) const
+    { };
+  virtual void augmentDg (const int_t, const int_t*, 
+			  const real_t*, real_t*)                        const
+    { };
+  virtual void augmentOp (const int_t, const int_t*,
+			  const real_t*, const real_t*, real_t*)         const
+    { };
+  virtual void describe  (char*)                                         const;
+private:
+  BCmgr* _BCmgr; 
 };
 
 #endif

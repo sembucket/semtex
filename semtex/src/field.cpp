@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-// field.C: 
+// field.cpp: 
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
@@ -161,7 +161,7 @@ Field::Field (BoundarySys*      B,
 
   // -- Set values for boundary data (in physical space).
 
-  this -> evaluateBoundaries (0, false);
+  this -> evaluateBoundaries (0, 0, false);
 
   // -- Fourier transform boundary data.
 
@@ -219,8 +219,9 @@ void Field::printBoundaries (const Field* F)
 }
 
 
-void Field::evaluateBoundaries (const int_t step   ,
-				const bool  Fourier)
+void Field::evaluateBoundaries (const Field* P      ,
+				const int_t  step   ,
+				const bool   Fourier)
 // ---------------------------------------------------------------------------
 // Traverse Boundaries and evaluate according to kind.  Note that for
 // 3D this evaluation is done in Fourier-transformed space if Fourier
@@ -245,20 +246,21 @@ void Field::evaluateBoundaries (const int_t step   ,
       mode = bmode + (k >> 1);
       const vector<Boundary*>& BC = _bsys -> BCs (mode*Femlib::ivalue("BETA"));
       for (p = _line[k], i = 0; i < _nbound; i++, p += np)
-	BC[i] -> evaluate (k, step, p);
+	BC[i] -> evaluate (P, k, step, true, p);
     }
   } else {
     for (k = 0; k < _nz; k++) {
       Femlib::value ("z", (nzb + k) * dz);
       const vector<Boundary*>& BC = _bsys -> BCs (0);
       for (p = _line[k], i = 0; i < _nbound; i++, p += np)
-	BC[i] -> evaluate (k, step, p);
+	BC[i] -> evaluate (P, k, step, false, p);
     }
   }
 }
 
 
-void Field::evaluateM0Boundaries (const int_t step)
+void Field::evaluateM0Boundaries (const Field* P   ,
+				  const int_t  step)
 // ---------------------------------------------------------------------------
 // Traverse Boundaries and evaluate according to kind, but only for Mode 0.
 // ---------------------------------------------------------------------------
@@ -270,7 +272,7 @@ void Field::evaluateM0Boundaries (const int_t step)
     register int_t           i;
 
     for (p = _line[0], i = 0; i < _nbound; i++, p += np)
-      BC[i] -> evaluate (0, step, p);
+      BC[i] -> evaluate (P, 0, step, false, p);
   }
 }
 
@@ -289,27 +291,6 @@ void Field::addToM0Boundaries (const real_t val,
 
     for (p = _line[0], i = 0; i < _nbound; i++, p += np)
       BC[i] -> addForGroup (grp, val, p);
-  }
-}
-
-
-void Field::selfExtractBoundaries ()
-// ---------------------------------------------------------------------------
-// Take the values in the field data area and use these to set the
-// boundary data area for this field, but the operation is done only
-// by convective BCs.  All Fourier modes.
-// ---------------------------------------------------------------------------
-{
-  const int_t              nz = Geometry::nZProc();
-  const int_t              np = Geometry::nP();
-  const vector<Boundary*>& BC = _bsys -> BCs (0); // -- Mode-invariant.
-  real_t                   *b, *p;
-  int_t                    i, k;
-
-  for (k = 0; k < nz; k++) {
-    p = _plane[k];
-    b = _line [k];
-    for (i = 0; i < _nbound; i++, b += np) BC[i] -> extract (p, b);
   }
 }
 
@@ -679,15 +660,6 @@ Field& Field::solve (AuxField*             f  ,
   const int_t ntot  = Geometry::nPlane();
   const int_t bmode = Geometry::baseMode();
   int_t       i, k, pmode, mode;
-
-  // -- Load boundary data from field data, convective BC type only.
-
-  if (_bsys -> mixBC()) {
-#if defined (DEBUG)
-    cout << "extracting convective BCs" << endl;
-#endif
-    this -> selfExtractBoundaries ();
-  }
 
   for (k = 0; k < _nz; k++) {	// -- Loop over planes of data.
     

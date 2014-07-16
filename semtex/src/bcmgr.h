@@ -7,7 +7,8 @@ class BCmgr
 // ===========================================================================
 // This is a factory / retrieval service for classes derived from
 // Condition, and maintains GROUP descriptors.  In addition, it reads
-// and returns NumberSys objects from session.num.
+// and returns NumberSys objects from session.num.  Also, it contains
+// code for maintenance and evaluation of computed BC types.
 //
 // --
 // This file is part of Semtex.
@@ -46,7 +47,24 @@ public:
     Condition* bcn  ;
     char*      value;
   };
-    
+
+  // -- Routines for maintaining and evaluating computed BCs.
+
+  // -- Chicken & egg: build can't be in class constructor 
+  //    because we need a Field to do it.  Right?
+
+  void buildComputedBCs (const Field*);
+
+  void maintainFourier  (const int_t, const Field*, const AuxField**,
+			 const AuxField**, const bool = true);  
+  void maintainPhysical (const Field*, const vector<AuxField*>&, const int_t);
+  void evaluateCNBCp    (const int_t, const int_t, const int_t, real_t*);
+  void evaluateCEBCp    (const Field*, const int_t, const int_t, 
+			 const int_t, real_t*);
+  void evaluateCNBCu    (const Field*, const int_t, const int_t, 
+			 const int_t, const char, real_t*);
+  void accelerate       (const Vector&, const Field*);
+
 private:
   char*              _fields  ; // String containing field names.
   vector<char>       _group   ; // Single-character group tags.
@@ -54,10 +72,34 @@ private:
   vector<CondRecd*>  _cond    ; // Conditions in storage.
   vector<BCtriple*>  _elmtbc  ; // Group tags for each element-side BC.
   vector<NumberSys*> _numsys  ; // Numbering schemes in storage.
-  bool               _axis    ; // Session file declared and axis BC group.
+  bool               _axis    ; // Session file declared an axis BC group.
+  bool               _outflow ; // Session file declared an outflow BC group.
 
   void buildnum  (const char*, vector<Element*>&);
   void buildsurf (FEML*, vector<Element*>&);
+
+  // -- Storage of past-time values needed for computed BCs:
+
+  int_t     _nLine;	// Same as for Field storage.
+  int_t     _nZ;        // Ditto.
+  int_t     _nP;
+  int_t     _nTime;
+
+  real_t*** _u;          // (Physical) x velocity component.
+  real_t*** _v;          // (Physical) y velocity component.
+  real_t*** _w;          // (Physical) z velocity component.
+
+  real_t*** _un;	// (Fourier)  normal velocity u . n
+  real_t*** _divu;	// (Fourier)  KINVIS * div(u)
+  real_t*** _gradu;	// (Fourier)  KINVIS * normal gradient of velocity 
+  real_t*** _hopbc;	// (Fourier)  normal component of [N(u)+f+curlCurl(u)]
+
+  real_t*   _work;      // Computational workspace (scratch).
+  real_t*   _fbuf;      // Fourier transform buffer for KE terms.
+  real_t*   _ke;	// (Physical) kinetic energy 0.5*(u^2+v^2+w^2)*.
+  real_t*   _unp;       // (Physical) u*.n.
+
+  bool      _toggle;    // Toggle switch for Fourier transform of KE.
 };
 
 #endif
