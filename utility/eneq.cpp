@@ -1,6 +1,10 @@
 //////////////////////////////////////////////////////////////////////////////
-// eneq.C: from a field file containing correlations, compute terms of 
-// the fluctuating flow energy equation, Tennekes & Lumley (3.2.1).
+// eneq.C: from a field file containing correlations, compute terms of
+// either the fluctuating flow energy equation, Tennekes & Lumley
+// (3.2.1) which is the default action, or the mean flow energy
+// equation, T&L (3.1.11). Output values have dimensions of kinetic
+// energy per unit mass per unit time, i.e. power per unit mass.
+
 //
 // Copyright (c) 2004 <--> $Date$, Hugh Blackburn
 //
@@ -10,13 +14,16 @@
 // variables).  The appropriate averages/correlations are collected by
 // setting token AVERAGE=3.
 //
+// The program works for both 2C (uvp) 3C (uvwp) input files.
+//
 // Also: the reduction has only been confirmed to work for Cartesian,
-// not cylindrical, cordinate systems.
+// not cylindrical, coordinate systems.
 //
 // Usage:
 // -----
 // eneq [options] session session.avg
 //   options:
+//   -s        ... output terms for steady flow energy equation instead.
 //   -h        ... print this message
 //
 // Output to standard output.
@@ -61,26 +68,44 @@
 //                      | .  yy yz |  =  |  .  I  K |
 //                      \ .  .  zz /     \  .  .  L /
 //
-// Names for (output) terms in the fluctutating energy equation:
-// -------------------------------------------------------------
+// Names for (output) terms in the fluctutating energy equation (TKE):
+// -------------------------------------------------------------------
 // In the case that we consider non-Newtonian flow, there are ten
 // terms to compute.  For Newtonian flow we only need six.  We will
 // use arabic numeric characters to name these terms.
 //
-// '1': Uj dq/dxj                 Mean flow transport
-// '2': -d(q.uj)/dxj              Turbulent transport
-// '3': -d(1/rho p.uj)/dxj        Pressure work
-// '4': 2 kinvis d(sij.ui)/dxj    Viscous transport
-// '7': -2 kinvis sij.sij         Dissipation
-// '0': -ui.uj.Sij                Production
+// '1': Uj dq/dxj                Mean flow transport
+// '2': d(q.uj)/dxj              Turbulent transport
+// '3': d(1/rho p.uj)/dxj        Pressure work
+// '4': -2 kinvis d(sij.ui)/dxj  Viscous transport
+// '7': 2 kinvis sij.sij         Dissipation
+// '0': ui.uj.Sij                (turbulent) Production
 //
 // Note: the "missing" names 5,6,8,9 are present for non-Newtonian
-// flow.  The sum of terms 2,3,4,7,0 should equal 1 for stationary
+// flow.  The sum of terms 1,2,3,4,7,0 should be 0 for stationary
 // turbulence, so we also write out
 //
-// S: -1 + 2 + 3 + 4 + 7 + 0
+// S: 1 + 2 + 3 + 4 + 7 + 0
 //
-// which should approach zero pointwise.
+// which should approach zero pointwise, and when integrated over domain.
+//
+// Names for (output) terms in the MEAN energy equation (MKE):
+// -----------------------------------------------------------
+//
+// '1': Uj dQ/dxj                 Mean flow transport, Q = 0.5*UiUi
+// '2': d(ui.uj.Ui)/dxj           Reynolds stress transport                  
+// '3': 1/rho*d(P.Uj)/dxj         Pressure work
+// '4': -2 kinvis d(Sij.Ui)/dxj   Viscous transport
+// '7': 2 kinvis Sij.Sij          Mean flow dissipation
+// '0': -ui.uj.Sij                (turbulent) Production
+//
+// Again, the sum of terms 1,2,3,4,7,0 should equal 0 for stationary
+// turbulence, so we also write out
+//
+// S: 1 + 2 + 3 + 4 + 7 + 0
+//
+// which should approach zero pointwise, and when integrated over
+// domain. For steady flow, terms 2 and 0 are also zero.
 //
 // --
 // This file is part of Semtex.
@@ -425,8 +450,6 @@ static void covary  (map<char, AuxField*>& in  ,
     *out['2'] += *in['t'];
   }
 
-  *out['2'] *= -1.0;
-
   // -- Term '3' (pressure work), destroying 'm', 'n', 'o' as we go:
 
   in['m'] -> gradient (0); *out['3']  = *in['m'];
@@ -435,8 +458,6 @@ static void covary  (map<char, AuxField*>& in  ,
     (in['o'] ->  transform (FORWARD)) . gradient (2) . transform (INVERSE);
     *out['3'] += *in['o'];
   }
-
-  *out['3'] *= -1.0;
 
   // -- Next we build the mean rate-of-strain tensor for further work.
   //    The '2d' components get stored in 'm', 'n', 'o' while 
@@ -502,7 +523,7 @@ static void covary  (map<char, AuxField*>& in  ,
     *out['4'] += *in['c'];
   }
   
-  *out['4'] *= 2.0 * kinvis;
+  *out['4'] *= -2.0 * kinvis;
   
   // -- Compute term '7' (dissipation):
 
@@ -523,8 +544,6 @@ static void covary  (map<char, AuxField*>& in  ,
   }
   *out['7'] *= 2.0 * kinvis;
 
-  *out['7'] *= -1.0;
-
   // -- Compute term '0' (production):
 
   *in['n'] *= sqrt (2.0);
@@ -542,11 +561,9 @@ static void covary  (map<char, AuxField*>& in  ,
     out['0'] -> timesPlus (*in['F'], *in['t']);
   }
 
-  *out['0'] *= -1.0;
-
   // -- Finally, compute the sum, 'S' (should converge to zero):
 
- (*out['S']  = *out['1']) *= -1.0;
+ (*out['S']  = *out['1']);
   *out['S'] += *out['2'];
   *out['S'] += *out['3'];
   *out['S'] += *out['4'];

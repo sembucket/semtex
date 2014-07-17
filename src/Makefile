@@ -30,6 +30,9 @@ ifeq ($(ARCH),Linux)
   ifeq ($(MACH),i686)
     ARCH = Linux-iX86
   endif
+  ifeq ($(MACH),x86_64)
+    ARCH = Linux-x86_64
+  endif
   ifeq ($(HOST),raijin2)
     ARCH = raijin
   endif
