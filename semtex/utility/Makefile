@@ -31,7 +31,7 @@ SEMHDR = sem.h
 #
 COMOBJ = compare.o bsys.o bcmgr.o boundary.o condition.o edge.o		\
 	 family.o feml.o mesh.o element.o svv.o auxfield.o geometry.o	\
-         pressure.o integration.o misc.o
+         integration.o misc.o
 $(COMOBJ): $(SEMHDR)
 
 compare: $(COMOBJ)
@@ -81,7 +81,7 @@ meshpr:	feml.o mesh.o meshpr.o $(SEMHDR)
 # ----------------------------------------------------------------------------
 # Build wallmesh, 2D mesh filter utility for use with meshpr.
 #
-WALOBJ = wallmesh.o bsys.o bcmgr.o condition.o pressure.o edge.o	\
+WALOBJ = wallmesh.o bsys.o bcmgr.o condition.o edge.o	\
 	 family.o feml.o mesh.o element.o svv.o geometry.o integration.o
 
 $(WALOBJ): $(SEMHDR)
@@ -94,7 +94,7 @@ wallmesh: $(WALOBJ)
 #
 TRCOBJ = traction.o feml.o auxfield.o bcmgr.o element.o svv.o		\
 	geometry.o domain.o condition.o family.o mesh.o bsys.o field.o	\
-	 edge.o boundary.o pressure.o misc.o integration.o
+	 edge.o boundary.o misc.o integration.o
 
 $(TRCOBJ): $(SEMHDR)
 
@@ -112,7 +112,7 @@ calc: calc.o
 #
 ADFOBJ = addfield.o auxfield.o bcmgr.o boundary.o bsys.o condition.o 	\
 	 domain.o edge.o element.o svv.o family.o feml.o field.o	\
-	 geometry.o integration.o mesh.o misc.o pressure.o tensorcalcs.o
+	 geometry.o integration.o mesh.o misc.o tensorcalcs.o
 $(ADFOBJ): $(SEMHDR) tensorcalcs.h
 
 addfield: $(ADFOBJ)
