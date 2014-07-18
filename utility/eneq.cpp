@@ -23,8 +23,8 @@
 // -----
 // eneq [options] session session.avg
 //   options:
-//   -s        ... output terms for steady flow energy equation instead.
 //   -h        ... print this message
+//   -m        ... output terms for mean flow energy instead of TKE
 //
 // Output to standard output.
 //
@@ -38,8 +38,8 @@
 //
 // Names for components of the symmetric "Reynolds stress" correlations:
 //
-//                      / uu uv uw \     /  A  B  D \
-//                      | .  vv vw |  =  |  .  C  E |
+//                      / uu uv uw \     /  A  B  D \     /  A  B \
+//                      | .  vv vw |  =  |  .  C  E |  =  \  .  C /  -- if 2C
 //                      \ .  .  ww /     \  .  .  F /
 //
 // Names for correlations specific to the energy equation:
@@ -50,22 +50,22 @@
 //
 // b) Vector:
 //    i) p u_i
-//                      / pu \   / m \
-//                      | pv | = | n |
+//                      / pu \   / m \     / m \
+//                      | pv | = | n |  =  \ n /  -- if 2C
 //                      \ pw /   \ o /
 //   ii) q u_i
-//                      / qu \   / r \
-//                      | qv | = | s |
+//                      / qu \   / r \     / r \
+//                      | qv | = | s |  =  \ s /  -- if 2C
 //                      \ qw /   \ t /
 //
-//   iii) Sij u_j       / SxxU + SxyV + SxzW \   / a \
-//                      | SyxU + SyyV + SxzW | = | b |
-//                      \ SzxU + SzyV + SzzW /   \ c / 
+//   iii) Sij u_j       / SxxU + SxyV + SxzW \   / a \   / a \
+//                      | SyxU + SyyV + SxzW | = | b | = \ b /  -- if 2C
+//                      \ SzxU + SzyV + SzzW /   \ c /
 // 
 // c) Tensor: symmetric rate-of-strain tensor sij:
 //
-//                      / xx xy xz \     /  G  H  J \
-//                      | .  yy yz |  =  |  .  I  K |
+//                      / xx xy xz \     /  G  H  J \     /  G  H \
+//                      | .  yy yz |  =  |  .  I  K |  =  \  .  I /  -- if 2C
 //                      \ .  .  zz /     \  .  .  L /
 //
 // Names for (output) terms in the fluctutating energy equation (TKE):
@@ -131,13 +131,15 @@ static char RCS[] = "$Id$";
 #include <sem.h>
 
 static char prog[] = "eneq";
-static void getargs (int,char**,const char*&,const char*&);
+static void getargs (int,char**, bool&, const char*&, const char*&);
 static void getMesh (const char*,vector<Element*>&);
 static void makeBuf (map<char,AuxField*>&,vector<AuxField*>&,
 		     vector<Element*>&);
 static bool getDump (ifstream&,map<char, AuxField*>&,vector<Element*>&);
 static bool doSwap  (const char*);
 static void covary  (map<char,AuxField*>&,map<char,AuxField*>&,
+		     vector<AuxField*>&);
+static void meanflo (map<char,AuxField*>&,map<char,AuxField*>&,
 		     vector<AuxField*>&);
 
 static const char* fieldNames(map<char, AuxField*>&);
@@ -154,9 +156,10 @@ int main (int    argc,
   vector<Element*>     elmt;
   map<char, AuxField*> input, output;
   vector<AuxField*>    work,  outbuf;
+  bool                 MKE = false;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, session, dump);
+  getargs (argc, argv, MKE, session, dump);
 
   avgfile.open (dump, ios::in);
   if (!avgfile) message (prog, "no field file", ERROR);
@@ -172,7 +175,8 @@ int main (int    argc,
        k != output.end(); k++, i++) outbuf[i] = k -> second;
   
   while (getDump (avgfile, input, elmt)) {
-    covary     (input, output, work);
+    if (MKE) meanflo (input, output, work);
+    else     covary  (input, output, work);
     writeField (cout, session, 0, 0.0, outbuf);
   }
   
@@ -183,6 +187,7 @@ int main (int    argc,
 
 static void getargs (int          argc   ,
 		     char**       argv   ,
+		     bool&        MKE    ,
 		     const char*& session,
 		     const char*& dump   )
 // ---------------------------------------------------------------------------
@@ -192,7 +197,8 @@ static void getargs (int          argc   ,
   char usage[] =
     "Usage: %s [options] session dump.avg\n"
     "options:\n"
-    "  -h ... print this message \n";
+    "  -h ... print this message \n"
+    "  -m ... output terms for mean flow energy instead of TKE\n";
               
   char buf[StrMax];
  
@@ -200,6 +206,9 @@ static void getargs (int          argc   ,
     switch (*++argv[0]) {
     case 'h':
       sprintf (buf, usage, prog); cerr << buf; exit (EXIT_SUCCESS);
+      break;
+    case 'm':
+      MKE = true;
       break;
     default:
       sprintf (buf, usage, prog); cerr << buf; exit (EXIT_FAILURE);
@@ -245,6 +254,9 @@ static void makeBuf (map<char, AuxField*>& output,
 // ---------------------------------------------------------------------------
 // Note that we only set up the output and work buffers here. The
 // input buffers get created in getDump.
+// 
+// NB: the numeric term names seem to give Tecplot some problems.  Fix?
+// Or maybe it's preplot?
 // ---------------------------------------------------------------------------
 {
   const int_t nz   = Geometry::nZ();
@@ -362,11 +374,201 @@ static bool doSwap (const char* ffmt)
 }
 
 
+static void meanflo (map<char, AuxField*>& in  ,
+		     map<char, AuxField*>& out ,
+		     vector<AuxField*>&    work)
+// ---------------------------------------------------------------------------
+// This does the actual work of building MKE equation terms.
+// ---------------------------------------------------------------------------
+{
+  const char   list2d[] = "ABCGHIabdmnpqrsuv";
+  const char   list3d[] = "ABCDEFGHIJKLabcdmnopqrstuvw";
+  const char*  names    = fieldNames (in);
+  const int_t  nvel     = (strchr (names, 'w')) ? 3 : 2;
+  const real_t kinvis   = Femlib::value ("KINVIS");
+  char         err[StrMax];
+
+  if (nvel == 2) {
+    if (strcmp (names, list2d) != 0) {
+      sprintf (err,"list of names should match %s: have %s", list2d, names);
+      message (prog, err, ERROR);
+    } 
+  } else if (strcmp (names, list3d) != 0) {
+    sprintf (err,"list of names should match %s: have %s", list3d, names);
+    message (prog, err, ERROR);
+  }
+
+  // -- Turn ABC... into Reynolds stresses.
+
+  in['A'] -> timesMinus (*in['u'], *in['u']);
+  in['B'] -> timesMinus (*in['u'], *in['v']);
+  in['C'] -> timesMinus (*in['v'], *in['v']);
+  if (nvel == 3) {
+    in['D'] -> timesMinus (*in['u'], *in['w']);
+    in['E'] -> timesMinus (*in['v'], *in['w']);
+    in['F'] -> timesMinus (*in['w'], *in['w']);
+  }
+
+  // -- At this stage, in['q'] still holds the total kinetic energy.
+  //    Replace it with the mean flow kinetic energy.
+ 
+  in['q'] -> times     (*in['u'], *in['u']);
+  in['q'] -> timesPlus (*in['v'], *in['v']);
+  if (nvel == 3)
+    in['q'] -> timesPlus (*in['w'], *in['w']);
+  *in['q'] *= 0.5;
+
+  // -- Next we build the mean rate-of-strain tensor for further work.
+  //    The '2d' components get stored in 'm', 'n', 'r' while 
+  //    the '3d' ones, if needed,   go in 'o', 's', 't'.
+
+  (*in['m']  = *in['u']) . gradient (0);
+  (*in['r']  = *in['v']) . gradient (1);
+  (*in['n']  = *in['u']) . gradient (1);
+  (*work[0]  = *in['v']) . gradient (0);
+  (*in['n'] += *work[0]) *= 0.5;
+
+  if (nvel == 3) {
+    (*in['o']  = *in['u']).transform(FORWARD).gradient(2).transform(INVERSE);
+    (*work[0]  = *in['w']).gradient(0);
+    (*in['o'] += *work[0]) *= 0.5;
+    (*in['s']  = *in['v']).transform(FORWARD).gradient(2).transform(INVERSE);
+    (*work[0]  = *in['w']).gradient(1);
+    (*in['s'] += *work[0]) *= 0.5;
+    (*in['t']  = *in['w']).transform(FORWARD).gradient(2).transform(INVERSE);
+  }
+
+  // -- So let's get started by making term '1' (advection):
+
+  *work[0]  = *in['q']; work[0]   -> gradient (0);
+  *work[0] *= *in['u']; *out['1']  = *work[0];
+  *work[0]  = *in['q']; work[0]   -> gradient (1);
+  *work[0] *= *in['v']; *out['1'] += *work[0];
+  if (nvel == 3) {
+   (*work[0]  = *in['q']).transform(FORWARD).gradient(2).transform(INVERSE);
+    *work[0] *= *in['w']; *out['1'] += *work[0];
+  }
+
+  // -- Term '2' (turbulent transport, zero for steady flow). 
+  //    Destroy 'a', 'b', 'c' along the way:
+
+  in['a'] -> times     (*in['A'], *in['u']);
+  in['a'] -> timesPlus (*in['B'], *in['v']);
+  in['b'] -> times     (*in['B'], *in['u']);
+  in['b'] -> timesPlus (*in['C'], *in['v']);
+  if (nvel == 3) {
+    in['a'] -> timesPlus (*in['D'], *in['w']);
+    in['b'] -> timesPlus (*in['E'], *in['w']);
+    in['c'] -> times     (*in['D'], *in['u']);
+    in['c'] -> timesPlus (*in['E'], *in['v']);
+    in['c'] -> timesPlus (*in['F'], *in['w']);
+  }
+
+  in['a'] -> gradient (0); *out['2']  = *in['a'];
+  in['b'] -> gradient (1); *out['2'] += *in['b'];
+  if (nvel == 3) {
+    (in['c']  -> transform (FORWARD)) . gradient (2) . transform (INVERSE);
+    *out['2'] += *in['c'];
+  }
+
+#if 0
+  *out['0'] = *in['A'];
+  *out['1'] = *in['B'];
+  *out['2'] = *in['C'];
+  *out['3'] = *in['a'];
+  *out['4'] = *in['b'];
+#else
+
+  // -- Term '3' (pressure work).
+
+  out['3'] -> times (*in['p'], *in['u']);
+  out['3'] -> gradient (0);
+  work[0]  -> times (*in['p'], *in['v']);
+  work[0]  -> gradient (1); *out['3'] += *work[0];
+  if (nvel == 3) {
+    work[0]  -> times (*in['p'], *in['w']);
+    (work[0] ->  transform (FORWARD)) . gradient (2) . transform (INVERSE);
+    *out['3'] += *work[0];
+  }
+
+  // -- Compute term '4' (viscous transport), somewhat like term '2'.
+
+  in['a'] -> times     (*in['m'], *in['u']);
+  in['a'] -> timesPlus (*in['n'], *in['v']);
+  in['b'] -> times     (*in['n'], *in['u']);
+  in['b'] -> timesPlus (*in['r'], *in['v']);
+  if (nvel == 3) {
+    in['a'] -> timesPlus (*in['o'], *in['w']);
+    in['b'] -> timesPlus (*in['s'], *in['w']);
+    in['c'] -> times     (*in['o'], *in['u']);
+    in['c'] -> timesPlus (*in['s'], *in['v']);
+    in['c'] -> timesPlus (*in['t'], *in['w']);
+  }
+
+  in['a'] -> gradient (0); *out['4']  = *in['a'];
+  in['b'] -> gradient (1); *out['4'] += *in['b'];
+  if (nvel == 3) {
+    (in['c']  -> transform (FORWARD)) . gradient (2) . transform (INVERSE);
+    *out['4'] += *in['c'];
+  }
+  
+  *out['4'] *= -2.0 * kinvis;
+  
+  // -- Compute term '7' (mean flow dissipation):
+
+  *in['n'] *= sqrt (2.0);
+  if (nvel == 3) {
+    *in['o'] *= sqrt (2.0);
+    *in['s'] *= sqrt (2.0);
+  }
+
+  out['7'] -> times     (*in['m'], *in['m']);
+  out['7'] -> timesPlus (*in['n'], *in['n']);
+  out['7'] -> timesPlus (*in['r'], *in['r']);
+  if (nvel == 3) {
+    out['7'] -> timesPlus (*in['o'], *in['o']);
+    out['7'] -> timesPlus (*in['s'], *in['s']);
+    out['7'] -> timesPlus (*in['t'], *in['t']);
+  }
+  
+  *out['7'] *= 2.0 * kinvis;
+
+  // -- Compute term '0' (turbulence production, zero for steady flow):
+
+  *in['n'] *= sqrt (2.0);
+  if (nvel == 3) {
+    *in['r'] *= sqrt (2.0);
+    *in['s'] *= sqrt (2.0);
+  }
+ 
+  out['0'] -> times     (*in['A'], *in['m']);
+  out['0'] -> timesPlus (*in['B'], *in['n']);
+  out['0'] -> timesPlus (*in['C'], *in['r']);
+  if (nvel == 3) {
+    out['0'] -> timesPlus (*in['D'], *in['o']);
+    out['0'] -> timesPlus (*in['E'], *in['s']);
+    out['0'] -> timesPlus (*in['F'], *in['t']);
+  }
+
+  *out['0'] *= -1.0;
+
+  // -- Finally, compute the sum, 'S' (should converge to zero):
+
+ (*out['S']  = *out['1']);
+  *out['S'] += *out['2'];
+  *out['S'] += *out['3'];
+  *out['S'] += *out['4'];
+  *out['S'] += *out['7'];
+  *out['S'] += *out['0'];
+#endif
+}
+
+
 static void covary  (map<char, AuxField*>& in  ,
 		     map<char, AuxField*>& out ,
 		     vector<AuxField*>&    work)
 // ---------------------------------------------------------------------------
-// This does the actual work of building energy equation terms.
+// Build TKE equation terms.
 // ---------------------------------------------------------------------------
 {
   const char   list2d[] = "ABCGHIabdmnpqrsuv";
@@ -460,19 +662,19 @@ static void covary  (map<char, AuxField*>& in  ,
   }
 
   // -- Next we build the mean rate-of-strain tensor for further work.
-  //    The '2d' components get stored in 'm', 'n', 'o' while 
-  //    the '3d' ones, if needed,   go in 'r', 's', 't'.
+  //    The '2d' components get stored in 'm', 'n', 'r' while 
+  //    the '3d' ones, if needed,   go in 'o', 's', 't'.
 
   (*in['m']  = *in['u']) . gradient (0);
-  (*in['o']  = *in['v']) . gradient (1);
+  (*in['r']  = *in['v']) . gradient (1);
   (*in['n']  = *in['u']) . gradient (1);
   (*work[0]  = *in['v']) . gradient (0);
   (*in['n'] += *work[0]) *= 0.5;
 
   if (nvel == 3) {
-    (*in['r']  = *in['u']).transform(FORWARD).gradient(2).transform(INVERSE);
+    (*in['o']  = *in['u']).transform(FORWARD).gradient(2).transform(INVERSE);
     (*work[0]  = *in['w']).gradient(0);
-    (*in['r'] += *work[0]) *= 0.5;
+    (*in['o'] += *work[0]) *= 0.5;
     (*in['s']  = *in['v']).transform(FORWARD).gradient(2).transform(INVERSE);
     (*work[0]  = *in['w']).gradient(1);
     (*in['s'] += *work[0]) *= 0.5;
@@ -483,10 +685,10 @@ static void covary  (map<char, AuxField*>& in  ,
 
   *in['G'] -= *in['m'];
   *in['H'] -= *in['n'];
-  *in['I'] -= *in['o'];
+  *in['I'] -= *in['r'];
 
   if (nvel == 3) {
-    *in['J'] -= *in['r'];
+    *in['J'] -= *in['o'];
     *in['K'] -= *in['s'];
     *in['L'] -= *in['t'];
   }
@@ -497,14 +699,14 @@ static void covary  (map<char, AuxField*>& in  ,
   work[1] -> times (*in['n'], *in['v']);
   *work[0] += *work[1];
   if (nvel == 3) {
-    work[1] -> times (*in['r'], *in['w']);
+    work[1] -> times (*in['o'], *in['w']);
     *work[0] += *work[1];
   }
   (*in['a'] -= *work[0]) . gradient (0);
   *out['4']  = *in['a'];
 
   work[0] -> times (*in['n'], *in['u']);
-  work[1] -> times (*in['o'], *in['v']);
+  work[1] -> times (*in['r'], *in['v']);
   *work[0] += *work[1];
   if (nvel == 3) {
     work[1] -> times (*in['s'], *in['w']);
@@ -514,7 +716,7 @@ static void covary  (map<char, AuxField*>& in  ,
   *out['4'] += *in['b'];
 
   if (nvel == 3) {
-    work[0] -> times (*in['r'], *in['u']);
+    work[0] -> times (*in['o'], *in['u']);
     work[1] -> times (*in['s'], *in['v']);
     *work[0] += *work[1];
     work[1] -> times (*in['t'], *in['w']);
@@ -529,16 +731,16 @@ static void covary  (map<char, AuxField*>& in  ,
 
   *in['n'] *= sqrt (2.0);
   if (nvel == 3) {
-    *in['r'] *= sqrt (2.0);
+    *in['o'] *= sqrt (2.0);
     *in['s'] *= sqrt (2.0);
   }
 
   *out['7'] = *in['d'];
   out['7'] -> timesMinus (*in['m'], *in['m']);
   out['7'] -> timesMinus (*in['n'], *in['n']);
-  out['7'] -> timesMinus (*in['o'], *in['o']);
+  out['7'] -> timesMinus (*in['r'], *in['r']);
   if (nvel == 3) {
-    out['7'] -> timesMinus (*in['r'], *in['r']);
+    out['7'] -> timesMinus (*in['o'], *in['o']);
     out['7'] -> timesMinus (*in['s'], *in['s']);
     out['7'] -> timesMinus (*in['t'], *in['t']);
   }
@@ -554,9 +756,9 @@ static void covary  (map<char, AuxField*>& in  ,
  
   out['0'] -> times     (*in['A'], *in['m']);
   out['0'] -> timesPlus (*in['B'], *in['n']);
-  out['0'] -> timesPlus (*in['C'], *in['o']);
+  out['0'] -> timesPlus (*in['C'], *in['r']);
   if (nvel == 3) {
-    out['0'] -> timesPlus (*in['D'], *in['r']);
+    out['0'] -> timesPlus (*in['D'], *in['o']);
     out['0'] -> timesPlus (*in['E'], *in['s']);
     out['0'] -> timesPlus (*in['F'], *in['t']);
   }
@@ -570,4 +772,3 @@ static void covary  (map<char, AuxField*>& in  ,
   *out['S'] += *out['7'];
   *out['S'] += *out['0'];
 }
-
