@@ -10,8 +10,8 @@
 //
 // All collected statistics are given 1-character names. Potentially
 // these may clash with quantities derived/used by addfield utility
-// for example. Caveat emptor. In the longer term we should move to
-// CSV for field names.
+// for example. Caveat emptor. In the longer term we could move to
+// strings for field names.
 //
 // AVERAGE = 0.  No statistics.
 //
@@ -24,8 +24,8 @@
 // 
 // Naming scheme for components of the symmetric "Reynolds stresses" tensor:
 //
-//                      / uu uv uw \     /  A  B  D \
-//                      | .  vv vw |  =  |  .  C  E |
+//                      / uu uv uw \     /  A  B  D \     /  A  B \
+//                      | .  vv vw |  =  |  .  C  E |  =  \  .  C /  -- if 2C
 //                      \ .  .  ww /     \  .  .  F /
 //
 // What is computed are the running average of the products uu, uv,
@@ -45,22 +45,22 @@
 //
 // b) Vector: Naming:
 //    i) p u_i
-//                      / pu \   / m \
-//                      | pv | = | n |
+//                      / pu \   / m \   / m \
+//                      | pv | = | n | = \ n /  -- if 2C
 //                      \ pw /   \ o /
 //   ii) q u_i
-//                      / qu \   / r \
-//                      | qv | = | s |
+//                      / qu \   / r \   / r \
+//                      | qv | = | s | = \ s /  -- if 2C
 //                      \ qw /   \ t /
 //
-//   iii) Sij u_j       / SxxU + SxyV + SxzW \   / a \
-//                      | SyxU + SyyV + SxzW | = | b |
-//                      \ SzxU + SzyV + SzzW /   \ c / 
+//   iii) Sij u_j       / SxxU + SxyV + SxzW \   / a \   / a \
+//                      | SyxU + SyyV + SyzW | = | b | = \ b /  -- if 2C
+//                      \ SzxU + SzyV + SzzW /   \ c /
 // 
 // c) Tensor: symmetric rate-of-strain tensor S_ij. Naming:
 //
-//                      / xx xy xz \     /  G  H  J \
-//                      | .  yy yz |  =  |  .  I  K |
+//                      / xx xy xz \     /  G  H  J \     /  G  H \
+//                      | .  yy yz |  =  |  .  I  K |  =  \  .  I /  -- if 2C
 //                      \ .  .  zz /     \  .  .  L /
 //
 // NB: The veracity of the energy equation terms has not been checked
@@ -368,10 +368,11 @@ void Statistics::update (AuxField** wrka,
     if (_nvel == 3)
       _avg['b'] -> timesPlus (*wrkb[2], *_raw['w']);
 
-    _avg['c'] -> timesPlus (*wrkb[1], *_raw['u']);
-    _avg['c'] -> timesPlus (*wrkb[2], *_raw['v']);
-    if (_nvel == 3)
+    if (_nvel == 3) {
+      _avg['c'] -> timesPlus (*wrkb[1], *_raw['u']);
+      _avg['c'] -> timesPlus (*wrkb[2], *_raw['v']);
       _avg['c'] -> timesPlus (*wrka[2], *_raw['w']);
+    }
 
     _raw['u'] -> transform (FORWARD);
     _raw['v'] -> transform (FORWARD);
