@@ -29,8 +29,8 @@ SEMHDR = sem.h
 # ----------------------------------------------------------------------------
 # Build compare, exact solution comparison/restart utility.
 #
-COMOBJ = compare.o bsys.o bcmgr.o boundary.o condition.o edge.o		\
-	 family.o feml.o mesh.o element.o svv.o auxfield.o geometry.o	\
+COMOBJ = compare.o bsys.o bcmgr.o boundary.o condition.o edge.o	data2df.o \
+	 family.o feml.o mesh.o element.o svv.o auxfield.o geometry.o	  \
          integration.o misc.o
 $(COMOBJ): $(SEMHDR)
 
@@ -92,8 +92,8 @@ wallmesh: $(WALOBJ)
 # ----------------------------------------------------------------------------
 # Build traction, utility to compute normal & tangential tractions on walls
 #
-TRCOBJ = traction.o feml.o auxfield.o bcmgr.o element.o svv.o		\
-	geometry.o domain.o condition.o family.o mesh.o bsys.o field.o	\
+TRCOBJ = traction.o feml.o auxfield.o bcmgr.o element.o svv.o data2df.o	\
+	 geometry.o domain.o condition.o family.o mesh.o bsys.o field.o	\
 	 edge.o boundary.o misc.o integration.o
 
 $(TRCOBJ): $(SEMHDR)
@@ -110,8 +110,8 @@ calc: calc.o
 # ----------------------------------------------------------------------------
 # Build addfield, field postprocessing utility.
 #
-ADFOBJ = addfield.o auxfield.o bcmgr.o boundary.o bsys.o condition.o 	\
-	 domain.o edge.o element.o svv.o family.o feml.o field.o	\
+ADFOBJ = addfield.o auxfield.o bcmgr.o boundary.o bsys.o condition.o       \
+	 data2df.o domain.o edge.o element.o svv.o family.o feml.o field.o \
 	 geometry.o integration.o mesh.o misc.o tensorcalcs.o
 $(ADFOBJ): $(SEMHDR) tensorcalcs.h
 
@@ -195,7 +195,7 @@ probe: $(PRBOBJ)
 # Build eneq, which computes terms in the fluctuating flow energy equations.
 #
 ENOBJ = eneq.o feml.o mesh.o element.o svv.o family.o auxfield.o 	\
-	geometry.o misc.o
+	geometry.o misc.o data2df.o
 $(ENOBJ): $(SEMHDR)
 
 eneq: $(ENOBJ)
@@ -205,7 +205,7 @@ eneq: $(ENOBJ)
 # Build stressdiv, which computes divergence of Reynolds stresses.
 #
 DIVOBJ = stressdiv.o feml.o mesh.o element.o svv.o family.o auxfield.o 	\
-	geometry.o misc.o
+	geometry.o misc.o data2df.o
 $(DIVOBJ): $(SEMHDR)
 
 stressdiv: $(DIVOBJ)

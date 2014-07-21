@@ -238,7 +238,7 @@ int main (int    argc,
 
   } else {			// -- Create new data.
 
-    char *hdr_fmt[] = { 
+    const char *hdr_fmt[] = { 
       "%-25s "             "Session\n",
       "%-25s "             "Created\n",
       "%-5d%-5d%-5d%-10d " "Nr, Ns, Nz, Elements\n",

@@ -421,7 +421,7 @@ static void putHeader (const char*              session,
 // Write header information for semtex/prism/nekton compatible file on cout.
 // ---------------------------------------------------------------------------
 {
-  static char* hdr_fmt[] = { 
+  static const char* hdr_fmt[] = { 
     "%-25s "    "Session\n",
     "%-25s "    "Created\n",
     "%-25s "    "Nr, Ns, Nz, Elements\n",
