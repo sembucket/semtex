@@ -26,6 +26,7 @@
 static char RCS[] = "$Id$";
 
 #include <sem.h>
+#include <data2df.h>
 
 
 ostream& printVector (ostream&    strm,
@@ -175,5 +176,47 @@ void writeField (ostream&           file   ,
   ROOTONLY {
     if (!file) message (routine, "failed writing field file", ERROR);
     file << flush;
+  }
+}
+
+void readField (istream&           file ,
+                vector<AuxField*>& field)
+// ---------------------------------------------------------------------------
+// Read fields from an opened file, binary nekton format.
+// ---------------------------------------------------------------------------
+{
+  const char routine [] = "readField";
+  const int_t N = field.size();
+  int_t i;
+
+  if (N < 1) return;
+
+  // -- read header, check sizes
+  Header *hdr = new Header;
+  file >> *hdr;
+
+  ROOTONLY {
+    if (hdr->nr != Geometry::nP() || hdr->ns != Geometry::nP())
+      message(routine, "element size mismatch", ERROR);
+    if (hdr->nz != Geometry::nZ())
+      message (routine, "number of z planes mismatch", ERROR);
+    if (hdr->nel != Geometry::nElmt())
+      message (routine, "number of elements mismatch", ERROR);
+  }
+
+  // -- walk through fields, read appropriate
+  char *type = hdr->flds;
+  while (*type != 0)
+  {
+    bool skip = true;
+    ROOTONLY cout << " type: " << *type;
+    for (i = 0; i < N; i++) if (*type == field[i]->name())
+    {
+      file >> *field[i];
+      ROOTONLY cout << "(reading)" << endl;
+      skip = false;
+    }
+    if (skip) file.seekg (Geometry::nTot() * sizeof (real_t), ios::cur);
+    type++;
   }
 }

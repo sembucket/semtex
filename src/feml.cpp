@@ -5,17 +5,17 @@
 //
 // --
 // This file is part of Semtex.
-// 
+//
 // Semtex is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the
 // Free Software Foundation; either version 2 of the License, or (at your
 // option) any later version.
-// 
+//
 // Semtex is distributed in the hope that it will be useful, but WITHOUT
 // ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 // FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 // for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
@@ -91,6 +91,7 @@ FEML::FEML (const char* session) :
     "USER",
     "HISTORY",
     "CUT",
+    "FORCE",
     0
   };
 
@@ -118,11 +119,11 @@ FEML::FEML (const char* session) :
 
     if (c == '<') {
 
-      // -- Next word may be a keyword. 
+      // -- Next word may be a keyword.
       //    First massage it to get correct form.
-      
+
       _feml_file >> key;
-      
+
       N = strlen (key);
       if (key[N - 1] == '>') {
 	c = '>';
@@ -154,14 +155,14 @@ FEML::FEML (const char* session) :
 	  // -- Locate closing "</key>".
 
 	  OK = false;
-      
+
 	  while ((!OK) && (_feml_file >> c)) {
 	    if (c == '<') {
 	      _feml_file >> c;
-	  
+
 	      if (c == '/') {
 		_feml_file >> yek;
-		
+
 		N = strlen (yek);
 		if (yek[N - 1] == '>') {
 		  c = '>';
@@ -171,7 +172,7 @@ FEML::FEML (const char* session) :
 		}
 
 		u = yek; while (*u = toupper (*u)) u++;
-	    
+
 		if (OK = strcmp (key, yek) == 0) {
 		  while (_feml_file >> c) if (c == '>') break;
 
@@ -192,7 +193,7 @@ FEML::FEML (const char* session) :
       }
     }
   }
-  
+
   if (!found) message (routine, "no keywords located", ERROR);
 
   _feml_file.clear ();		// -- Reset EOF error condition.
@@ -217,7 +218,7 @@ bool FEML::seek (const char* keyword)
 	     static_cast<int_t>(_keyPosn[i]) != 0);
 
   if (!found) {
-    _feml_file.clear ();  
+    _feml_file.clear ();
     _feml_file.seekg (0);
     return false;
   } else {
@@ -290,7 +291,7 @@ bool FEML::tokens ()
       u = buf; while (*u = toupper (*u)) u++;
       if (strstr (buf, "TOKENS")) break;
     }
-    
+
     if (Femlib::ivalue ("IO_FLD") > Femlib::ivalue ("N_STEP"))
         Femlib::ivalue ("IO_FLD",   Femlib::ivalue ("N_STEP"));
 
@@ -298,10 +299,10 @@ bool FEML::tokens ()
       message (routine, "N_TIME too large, reset to 3", WARNING);
       Femlib::ivalue ("N_TIME", 3);
     }
-    
+
     return true;
   }
-  
+
   return false;
 }
 
@@ -338,7 +339,7 @@ bool FEML::echo (ostream&    stream,
 	     static_cast<int_t>(_keyPosn[loc]) != 0);
 
   if (!found) { _feml_file.clear (); _feml_file.seekg (0); return false; }
-    
+
   --loc;
   _feml_file.clear ();
   _feml_file.seekg (_keyPosn[loc]);
@@ -352,17 +353,17 @@ bool FEML::echo (ostream&    stream,
   // -- We already know the structure of the file is valid and the
   //    present section will be appropriately closed.  We now scan
   //    forward and print up until that point is reached.
- 
+
   found = false;
 
   while ((!found) && (_feml_file >> c)) {
     stream << c;
     if (c == '<') {
       _feml_file >> c; stream << c;
-	  
+
       if (c == '/') {
 	_feml_file >> yek;
-		
+
 	N = strlen (yek);
 	if (yek[N - 1] == '>') {
 	  c = '>';
@@ -374,7 +375,7 @@ bool FEML::echo (ostream&    stream,
 	u = yek; while (*u = toupper (*u)) u++;
 
 	stream << yek;
-	    
+
 	if (found = strcmp (key, yek) == 0) {
 	  while (_feml_file >> c) { stream << c; if (c == '>') break; }
 
@@ -387,7 +388,7 @@ bool FEML::echo (ostream&    stream,
     }
   }
   stream << endl;
-  
+
   if (!found) {
     sprintf (err, "couldn't locate </%s> to match <%s>", key, key);
     message (routine, err, ERROR);
@@ -395,5 +396,141 @@ bool FEML::echo (ostream&    stream,
 
   _feml_file >> skipws;
 
-  return true;
+        return true;
+}
+
+// added by Thomas Albrecht for evaluate force section
+
+
+bool FEML::valueFromSection (real_t     *value  ,
+			     const char *section,
+                             const char *token  )
+// ---------------------------------------------------------------------------
+// Search for 'token' in 'section' of input file. If found, copy to 'value',
+// otherwise, 'value' is unchanged.
+// Returns TRUE on sucess, FALSE if section or token not found.
+// ---------------------------------------------------------------------------
+{
+  char routine[]   = "FEML::valueFromSection";
+  char endsection[StrMax], s[StrMax];
+
+  sprintf(endsection, "</%s>", section);
+
+  if (seek (section)) {
+    stream().ignore (StrMax, '\n');
+
+    while (!stream().eof())
+    {
+      stream().getline(s, StrMax);
+      if (s[0] == '#')
+      {
+        stream().ignore (StrMax, '\n');
+        continue;
+      }
+      if (strcmp (s, endsection) == 0) break;
+      char *tok;
+      if ((tok = strtok (s, "\t= ")) == NULL) continue;
+
+      if (strcmp (tok, token) == 0) {
+        tok = strtok (NULL, "\t= \n");
+        *value = Femlib::value(tok);
+        return true;
+      }
+    }
+    return false; // token not found
+  }  else {
+    char msg[StrMax];
+    sprintf(msg, "%s section not found", section);
+    message (routine, msg,  ERROR);
+  }
+
+  return false;
+}
+
+
+bool FEML::valueFromSection (int_t      *value  ,
+			     const char *section,
+			     const char *token  )
+// ---------------------------------------------------------------------------
+// as above, integer version
+// ---------------------------------------------------------------------------
+{
+  char routine[]   = "FEML::valueFromSection";
+  char endsection[StrMax], s[StrMax];
+
+  sprintf(endsection, "</%s>", section);
+
+  if (seek (section)) {
+    stream().ignore (StrMax, '\n');
+
+    while (!stream().eof())
+    {
+      stream().getline(s, StrMax);
+      if (s[0] == '#')
+      {
+        stream().ignore (StrMax, '\n');
+        continue;
+      }
+      if (strcmp (s, endsection) == 0) break;
+      char *tok;
+      if ((tok = strtok (s, "\t= ")) == NULL) continue;
+
+      if (strcmp (tok, token) == 0) {
+        tok = strtok (NULL, "\t= \n");
+        *value = Femlib::ivalue(tok);
+        return true;
+      }
+    }
+    return false; // token not found
+  }  else {
+    char msg[StrMax];
+    sprintf(msg, "%s section not found", section);
+    message (routine, msg,  ERROR);
+  }
+
+  return false;
+}
+
+
+bool FEML::valueFromSection (char       *buf    ,
+			     const char *section,
+			     const char *token  )
+// ---------------------------------------------------------------------------
+// as above, string version
+// ---------------------------------------------------------------------------
+{
+  char routine[]   = "FEML::valueFromSection";
+  char endsection[StrMax], s[StrMax];
+
+  sprintf(endsection, "</%s>", section);
+
+  if (seek (section)) {
+    stream().ignore (StrMax, '\n');
+
+    while (!stream().eof())
+    {
+      stream().getline(s, StrMax);
+      if (s[0] == '#')
+      {
+        stream().ignore (StrMax, '\n');
+        continue;
+      }
+      if (strcmp (s, endsection) == 0) break;
+      char *tok;
+      if ((tok = strtok (s, "\t= ")) == NULL) continue;
+
+      if (strcmp (tok, token) == 0) {
+        tok = strtok (NULL, "\t= \n");
+        strcpy(buf, tok);
+        return true;
+      }
+    }
+    return false; // token not found
+  }  else {
+    char msg[StrMax];
+    sprintf(msg, "%s section not found", section);
+    message (routine, msg,  ERROR);
+  }
+
+  return false;
 }
