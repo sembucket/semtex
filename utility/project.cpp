@@ -415,7 +415,7 @@ static bool getDump (istream&           ifile ,
 // Convert to Fourier space.
 // ---------------------------------------------------------------------------
 {
-  static char* hdr_fmt[] = { 
+  static const char* hdr_fmt[] = { 
     "%-25s "    "Session\n",
     "%-25s "    "Created\n",
     "%-25s "    "Nr, Ns, Nz, Elements\n",

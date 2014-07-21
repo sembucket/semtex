@@ -68,7 +68,7 @@ static char RCS[] = "$Id$";
 #include <cveclib.h>
 
 static char  prog[]    = "avgdump";
-static char* hdr_fmt[] = {	 /* -- Header output formatting. */
+static const char* hdr_fmt[] = {	 /* -- Header output formatting. */
   "%-25s "             "Session\n",
   "%-25s "             "Created\n",
   "%-5d%-5d%-5d%-10d " "Nr, Ns, Nz, Elements\n",
@@ -152,7 +152,7 @@ static void getargs (int     argc   ,
  * Parse command-line arguments.
  * ------------------------------------------------------------------------- */
 {
-  char usage[] =
+  const char usage[] =
     "usage: avgdump [options] old.file new.file\n"
     "options:\n"
     "  -h       ... display this message\n"

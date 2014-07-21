@@ -16,8 +16,9 @@ endif
 # ----------------------------------------------------------------------------
 #
 
-SEMFILES  = auxfield bcmgr boundary bsys condition domain edge element svv \
-            family feml field geometry integration matrix mesh misc pressure
+SEMFILES  = auxfield bcmgr boundary bsys condition data2df domain edge \
+	    element family feml field geometry integration matrix mesh \
+	    misc svv
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
 SEMHDR    = sem.h
 

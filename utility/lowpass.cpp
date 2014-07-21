@@ -175,7 +175,7 @@ static bool getDump (istream&          ifile,
 // Read next set of field dumps from ifile, put headers on ofile.
 // ---------------------------------------------------------------------------
 {
-  static char* hdr_fmt[] = { 
+  static const char* hdr_fmt[] = { 
     "%-25s "    "Session\n",
     "%-25s "    "Created\n",
     "%-25s "    "Nr, Ns, Nz, Elements\n",
