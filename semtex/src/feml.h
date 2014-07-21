@@ -35,6 +35,7 @@ class FEML
 //   USER
 //   HISTORY
 //   CUT
+//   FORCE
 // Keywords are stored upper case, input is case-insensitive.
 // The FEML class does not require that any of the above sections are actually
 // used in an input file, it just treats them as reserved section tag-names.
@@ -45,13 +46,17 @@ public:
   FEML  (const char*);
   ~FEML () { _feml_file.close(); }
 
+  bool valueFromSection (real_t *, const char *, const char *);
+  bool valueFromSection (int_t  *, const char *, const char *);
+  bool valueFromSection (char   *, const char *, const char *);
+
   bool        seek      (const char*);
   int_t       attribute (const char*, const char*);
   istream&    stream    ()       { return _feml_file; }
   const char* root      () const { return _feml_root; }
   int_t       sections  (vector <const char*>&);
   bool        echo      (ostream&, const char*);
-  
+
 private:
   char*     _feml_root;		        // Name of FEML file, suffix removed.
   ifstream  _feml_file;		        // Input stream.
