@@ -918,8 +918,10 @@ real_t AuxField::area () const
 
 real_t AuxField::mode_L2 (const int_t mode) const
 // ---------------------------------------------------------------------------
-// Return energy norm per unit area for indicated mode = 1/(2*A) \int u.u dA.
-// Mode numbers run 0 -- n_z/2 - 1.
+// Return energy norm per unit volume for indicated mode = 1/(2*A)
+// \int u.u dA.  Mode numbers run 0 -- n_z/2 - 1.  Multiply values by
+// area reported by utility function "integral", then by TWOPI/BETA in
+// order to get total integrated over volume.
 // ---------------------------------------------------------------------------
 {
   const char  routine[] = "AuxField::mode_L2";

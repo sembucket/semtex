@@ -13,10 +13,12 @@
 // transform to get mean value into plane zero for each field.  Then
 // return integral (and centroidal x,y locations) for each scalar
 // field.  For 3D, values are multiplied by domain length, to produce
-// volume integrals.
+// volume integrals of each scalar.
 //
-// If the coordinate system is cylindrical, then the integrals are
-// weighted by the radius. Use -c switch to turn this off.
+// If the coordinate system is cylindrical, then the integrals
+// (including the area) are weighted by the radius (hence domain
+// volume = "area" * TWOPI/BETA: "area" is the true area * centroidal
+// radius). Use -c switch to turn this off.
 //
 // --
 // This file is part of Semtex.
