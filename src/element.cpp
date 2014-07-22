@@ -717,7 +717,7 @@ real_t Element::integral (const char* func,
 			  real_t*     tmp ) const
 // ---------------------------------------------------------------------------
 // Return integral of func over element, using element quadrature
-// rule.
+// rule.  In cylindrical space this includes weighting by radius.
 // ---------------------------------------------------------------------------
 {
   Femlib::prepVec    ("x y", func);
@@ -789,6 +789,8 @@ real_t Element::momentY (const real_t* src,
 real_t Element::area () const
 // ---------------------------------------------------------------------------
 // Discrete approximation to area of element, using GLL quadrature.
+//
+// In cylindrical coords, it's integral(area * y).
 // ---------------------------------------------------------------------------
 { 
   return Veclib::sum (_npnp, _Q4, 1);
