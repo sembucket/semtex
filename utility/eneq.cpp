@@ -74,35 +74,43 @@
 // terms to compute.  For Newtonian flow we only need six.  We will
 // use arabic numeric characters to name these terms.
 //
+// '0': ui.uj.Sij                (turbulent) Production
 // '1': Uj dq/dxj                Mean flow transport
 // '2': d(q.uj)/dxj              Turbulent transport
 // '3': d(1/rho p.uj)/dxj        Pressure work
 // '4': -2 kinvis d(sij.ui)/dxj  Viscous transport
 // '7': 2 kinvis sij.sij         Dissipation
-// '0': ui.uj.Sij                (turbulent) Production
 //
 // Note: the "missing" names 5,6,8,9 are present for non-Newtonian
 // flow.  The sum of terms 1,2,3,4,7,0 should be 0 for stationary
 // turbulence, so we also write out
 //
-// S: 1 + 2 + 3 + 4 + 7 + 0
+// S: 0 + 1 + 2 + 3 + 4 + 7
+//
+// NEW OUTPUT NAMES (to get around tecplot's problems with numeric names);
+//
+// S: a + b + c + d + e + h
 //
 // which should approach zero pointwise, and when integrated over domain.
 //
 // Names for (output) terms in the MEAN energy equation (MKE):
 // -----------------------------------------------------------
 //
+// '0': -ui.uj.Sij                (turbulent) Production
 // '1': Uj dQ/dxj                 Mean flow transport, Q = 0.5*UiUi
 // '2': d(ui.uj.Ui)/dxj           Reynolds stress transport                  
 // '3': 1/rho*d(P.Uj)/dxj         Pressure work
 // '4': -2 kinvis d(Sij.Ui)/dxj   Viscous transport
 // '7': 2 kinvis Sij.Sij          Mean flow dissipation
-// '0': -ui.uj.Sij                (turbulent) Production
 //
 // Again, the sum of terms 1,2,3,4,7,0 should equal 0 for stationary
 // turbulence, so we also write out
 //
-// S: 1 + 2 + 3 + 4 + 7 + 0
+// S: 0 + 1 + 2 + 3 + 4 + 7
+//
+// NEW OUTPUT NAMES (to get around tecplot's problems with numeric names);
+//
+// S: a + b + c + d + e + h
 //
 // which should approach zero pointwise, and when integrated over
 // domain. For steady flow, terms 2 and 0 are also zero.
@@ -264,12 +272,12 @@ static void makeBuf (map<char, AuxField*>& output,
 
   work.resize (2);
 
-  output['0'] = new AuxField (new real_t[ntot], nz, elmt, '0');
-  output['1'] = new AuxField (new real_t[ntot], nz, elmt, '1');
-  output['2'] = new AuxField (new real_t[ntot], nz, elmt, '2');
-  output['3'] = new AuxField (new real_t[ntot], nz, elmt, '3');
-  output['4'] = new AuxField (new real_t[ntot], nz, elmt, '4');
-  output['7'] = new AuxField (new real_t[ntot], nz, elmt, '7');
+  output['0'] = new AuxField (new real_t[ntot], nz, elmt, 'a');
+  output['1'] = new AuxField (new real_t[ntot], nz, elmt, 'b');
+  output['2'] = new AuxField (new real_t[ntot], nz, elmt, 'c');
+  output['3'] = new AuxField (new real_t[ntot], nz, elmt, 'd');
+  output['4'] = new AuxField (new real_t[ntot], nz, elmt, 'e');
+  output['7'] = new AuxField (new real_t[ntot], nz, elmt, 'h');
   output['S'] = new AuxField (new real_t[ntot], nz, elmt, 'S');
 
   work[0]     = new AuxField (new real_t[ntot], nz, elmt, '\0');
