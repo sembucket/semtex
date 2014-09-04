@@ -9,7 +9,7 @@
 //
 // Description: 
 // ----------- 
-// Read in file, print up area of domain.  If 3D perform Fourier
+// Read in file, first print up area of domain.  If 3D perform Fourier
 // transform to get mean value into plane zero for each field.  Then
 // return integral (and centroidal x,y locations) for each scalar
 // field.  For 3D, values are multiplied by domain length, to produce

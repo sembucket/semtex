@@ -10,7 +10,7 @@
 //
 // NB: the input field file is assumed to contain only velocity and
 // appropriate correlation data. The naming conventions employed for
-// example in addfield.C are broken (names are here used for different
+// example in addfield.cpp are broken (names are here used for different
 // variables).  The appropriate averages/correlations are collected by
 // setting token AVERAGE=3.
 //
