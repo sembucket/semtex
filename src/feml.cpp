@@ -399,7 +399,7 @@ bool FEML::echo (ostream&    stream,
         return true;
 }
 
-// added by Thomas Albrecht for evaluate force section
+// -- added by Thomas Albrecht for evaluate force section
 
 
 bool FEML::valueFromSection (real_t     *value  ,

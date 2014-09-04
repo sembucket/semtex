@@ -13,17 +13,17 @@
 //
 // --
 // This file is part of Semtex.
-// 
+//
 // Semtex is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the
 // Free Software Foundation; either version 2 of the License, or (at your
 // option) any later version.
-// 
+//
 // Semtex is distributed in the hope that it will be useful, but WITHOUT
 // ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 // FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 // for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
@@ -58,18 +58,22 @@ Analyser::Analyser (Domain* D   ,
 // ---------------------------------------------------------------------------
   _src (D)
 {
-  const char routine[] = "Analyser::Analyser";
-  char       str[StrMax];
+  const char   routine[] = "Analyser::Analyser";
+  char         str[StrMax];
+  const real_t x_shft = Femlib::value ("X_SHIFT");
+  const real_t y_shft = Femlib::value ("Y_SHIFT");
+  const real_t x_scal = Femlib::value ("X_SCALE");
+  const real_t y_scal = Femlib::value ("Y_SCALE");
 
   cout << setprecision (6);
 
   // -- Set up for particle tracking.
 
   ROOTONLY {
-    
+
     // -- Open particle track file, create particles.
 
-    ifstream pfile (strcat (strcpy (str, _src -> name), ".par"));  
+    ifstream pfile (strcat (strcpy (str, _src -> name), ".par"));
 
     if (!pfile.fail()) {
       const int_t    add = Femlib::ivalue ("SPAWN");
@@ -82,6 +86,8 @@ Analyser::Analyser (Domain* D   ,
       _par_strm.precision (6);
 
       while (pfile >> id >> P.x >> P.x >> P.x >> P.y >> P.z) {
+        P.x = (P.x + x_shft) * x_scal;  // -- shft and scal default to 0 and 1
+        P.y = (P.y + y_shft) * y_scal;
 	F = new FluidParticle (_src, ++i, P);
 	if (!(F -> inMesh())) {
 	  sprintf (str, "Particle at (%f, %f, %f) not in mesh", P.x, P.y, P.z);
@@ -105,9 +111,11 @@ Analyser::Analyser (Domain* D   ,
     const Element* E;
     HistoryPoint*  H;
     real_t         r, s, x, y, z;
-    
+
     for (i = 0; i < NH; i++) {
       file -> stream() >> id >> x >> y >> z;
+      x = (x + x_shft) * x_scal;  // -- shft and scal default to 0 and 1
+      y = (y + y_shft) * y_scal;
       if (E = HistoryPoint::locate (x, y, D -> elmt, r, s)) {
 	H = new HistoryPoint (id, E, r, s, x, y, z);
 	_history.insert (_history.end(), H);
@@ -148,9 +156,9 @@ Analyser::Analyser (Domain* D   ,
     //    and N_STEP  modulo N_PHASE must be 0
     //    and IO_FLD = STEPS_P / N_PHASE.
 
-    if (!Femlib::ivalue ("STEPS_P")) 
+    if (!Femlib::ivalue ("STEPS_P"))
       message (routine, "phase averaging is on but STEPS_P not set", ERROR);
-    
+
     if ( Femlib::ivalue ("STEPS_P") % Femlib::ivalue ("N_PHASE") )
       message (routine, "STEPS_P / N_PHASE non-integer", ERROR);
 
@@ -170,7 +178,7 @@ Analyser::Analyser (Domain* D   ,
   if (Femlib::ivalue ("IO_MDL")) {
     strcat (strcpy (str, _src -> name), ".mdl");
     ROOTONLY {
-      _mdl_strm.open (str, ios::out); 
+      _mdl_strm.open (str, ios::out);
       _mdl_strm << "#     Time Mode         Energy" << endl
 		<< "# ----------------------------" << endl;
     }
@@ -240,7 +248,7 @@ void Analyser::analyse (AuxField** work0,
   //    to be available whenever a field dump is written as well as every
   //    IO_HIS steps. But note you may thereby end up with more history
   //    data than expected.
-  
+
   const bool periodic = !(_src -> step %  Femlib::ivalue ("IO_HIS")) ||
                         !(_src -> step %  Femlib::ivalue ("IO_FLD")) ;
   const bool final    =   _src -> step == Femlib::ivalue ("N_STEP");
@@ -269,7 +277,7 @@ void Analyser::analyse (AuxField** work0,
     }
 
     // -- Output history point data.
-      
+
     int_t             i, j;
     const int_t       NH = _history.size();
     const int_t       NF = _src-> u.size();
@@ -290,7 +298,7 @@ void Analyser::analyse (AuxField** work0,
 		  << _src->time
 		  << setprecision(6);
 	for (j = 0; j < NF-1; j++) _his_strm << setw(14) << tmp[j];
-	_his_strm<< setprecision(11) << setw(19)<< tmp[NF-1]<< setprecision(6);
+	_his_strm<< setprecision(11)<< setw(19)<< tmp[NF-1]<< setprecision(6);
 	_his_strm << endl;
       }
     }
@@ -339,29 +347,29 @@ void Analyser::modalEnergy ()
 
     ROOTONLY {
       for (m = 0; m < N; m++)
-	_mdl_strm << setw(10) << _src -> time 
-		  << setw( 5) << m 
+	_mdl_strm << setw(10) << _src -> time
+		  << setw( 5) << m
 		  << setw(15) << ek[m]
 		  << endl;
-      
+
       for (i = 1; i < nProc; i++) {
 	Femlib::recv (&ek[0], N, i);
 	for (m = 0; m < N; m++)
-	  _mdl_strm << setw(10) << _src -> time 
+	  _mdl_strm << setw(10) << _src -> time
 		    << setw( 5) << m + i * N
 		    << setw(15) << ek[m]
 		    << endl;
       }
-      
+
       _mdl_strm.flush();
 
     } else
       Femlib::send (&ek[0], N, 0);
 
-  } else 
+  } else
     for (m = 0; m < N; m++)
-      _mdl_strm << setw(10) << _src -> time 
-		<< setw( 5) << m 
+      _mdl_strm << setw(10) << _src -> time
+		<< setw( 5) << m
 		<< setw(15) << ek[m]
 		<< endl;
 }
@@ -388,7 +396,7 @@ void Analyser::divergence (AuxField** Us) const
     for (i = 0; i < DIM; i++)  Us[i] -> gradient (i);
     Us[1] -> divY();
     if (DIM == 3) Us[2] -> divY();
-  } else {  
+  } else {
     for (i = 0; i < DIM; i++) {
       *Us[i] = *_src -> u[i];
       Us[i] -> gradient (i);
@@ -401,7 +409,7 @@ void Analyser::divergence (AuxField** Us) const
 
   L2 /= Lz;
 
-  cout << "-- Divergence Energy: " << L2 << endl;
+  cout << "------- Divergence Energy: " << L2 << endl;
 
   // -- Crash stop.
 
