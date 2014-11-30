@@ -11,7 +11,7 @@
  *
  * -m nominates mode to select [Default: 0]
  * -z forces mode zero to be dealt with as complex 
- *    (to be used e.g. with a complex eigenmode).
+ *    (to be used e.g. with a complex eigenmode).  In which case N_Z=2.
  *
  * --
  * This file is part of Semtex.
@@ -89,6 +89,11 @@ int main (int    argc,
       sprintf (fields, "too many modes (%1d) for input (nz = %1d)", mode, nz);
       message (prog, fields, ERROR);
     }
+    if (cmplx && nz != 2) {
+      sprintf (fields, "need nz = 2 with full-complex single mode (%1d)", nz);
+      message (prog, fields, ERROR);
+    } 
+
     fprintf (fp_out, hdr_fmt[2], np, np, 1, nel);
 
     n = 6;
@@ -97,8 +102,8 @@ int main (int    argc,
       fputs (buf, fp_out);   
     }
 
-    fgets(fields, STR_MAX, fp_in);
-    memset(fields+25, '\0', STR_MAX-25);
+    fgets  (fields, STR_MAX, fp_in);
+    memset (fields+25, '\0', STR_MAX-25);
     for (nfields = 0, i = 0; i < 25; i++) if (isalpha(fields[i])) nfields++;
     if (nfields < 4) {
       if (!(strchr(fields, 'u') && strchr(fields, 'v')))
@@ -143,8 +148,8 @@ int main (int    argc,
 	    != nplane)
 	  message (prog, "an error occured while reading", ERROR);
       }
-      if (swab) dbrev (nptsEven, data[i], 1, data[i], 1);
-      dDFTr (data[i], nz, nplaneEven, +1);
+      if (swab)   dbrev (nptsEven, data[i], 1, data[i], 1);
+      if (!cmplx) dDFTr (data[i], nz, nplaneEven, +1);
     }
     
     /* -- Compute K.E.: start by adding in real part. */
@@ -163,7 +168,7 @@ int main (int    argc,
       }
     }
 
-    /*  -- Normalise to make q = 0.5*UiUi. */
+    /*  -- Normalize to make q = 0.5*UiUi. */
 
     dsmul (nplane, 0.5, plane, 1, plane, 1);
     
