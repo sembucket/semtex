@@ -41,8 +41,9 @@ typedef struct { real_t* dv; real_t* dt; } vector_pair;
 const real_t* coeffs (const int_t np)
 // ---------------------------------------------------------------------------
 // Return from internal storage a pointer to an array Q of SVV filter
-// weights for x and y direction. We use the token SVV_MN and SVV_EPSN 
-// (see [1]) to define this. Specifically, we create
+// weights for the x and y (non-Fourier) directions. We use the tokens
+// SVV_MN and SVV_EPSN (see [1]) to define this. Specifically, we
+// create
 //
 //   S = 1 + eps_N/nu * Q.
 //
@@ -81,8 +82,8 @@ const real_t* coeffs (const int_t np)
 const real_t* coeffs_z (const int_t numModes)
 // ---------------------------------------------------------------------------
 // Return from internal storage a pointer to an array Q of SVV filter
-// weights for the z direction. We use the token SVV_MZ and SVV_EPZ 
-// (see [1]) to define this. Specifically, we create
+// weights for the z (Fourier) direction. We use tokens SVV_MZ and
+// SVV_EPZ (see [1]) to define this. Specifically, we create
 //
 //   S = 1 + eps_N/nu * Q.
 //

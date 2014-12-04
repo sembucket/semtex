@@ -159,9 +159,11 @@ Field::Field (BoundarySys*      B,
 
   Veclib::zero (_nz * _nline, _sheet, 1);
 
-  // -- Set values for boundary data (in physical space).
+  // -- Set values for boundary data (in physical space, so no Field
+  //    is needed and first argument is void in line with false final
+  //    one).
 
-  this -> evaluateBoundaries (0, 0, false);
+  this -> evaluateBoundaries (NULL, 0, false);
 
   // -- Fourier transform boundary data.
 
@@ -197,24 +199,6 @@ void Field::bTransform (const int_t sign)
     Femlib::exchange (_sheet, _nz, nP, FORWARD);
     Femlib::DFTr     (_sheet, nZ, nPP, sign   );
     Femlib::exchange (_sheet, _nz, nP, INVERSE);
-  }
-}
-
-
-void Field::printBoundaries (const Field* F)
-// ---------------------------------------------------------------------------
-// Static member function.
-//
-// (Debugging) Utility to print information contained in a Boundary list.
-// ---------------------------------------------------------------------------
-{
-  ROOTONLY {
-    const vector<Boundary*>& BC = F -> _bsys -> BCs (0);
-    int_t                  i;
-  
-    cout << "# -- Field '" << F -> name() << "' Boundary Information:" << endl;
-    if (!F -> _nbound) cout << "No BCs for this Field" << endl;
-    for (i = 0; i < F -> _nbound; i++) BC[i] -> print();
   }
 }
 
@@ -269,7 +253,7 @@ void Field::evaluateM0Boundaries (const Field* P   ,
     const vector<Boundary*>& BC = _bsys -> BCs (0);
     const int_t              np = Geometry::nP();
     real_t*                  p;
-    register int_t           i;
+    int_t                    i;
 
     for (p = _line[0], i = 0; i < _nbound; i++, p += np)
       BC[i] -> evaluate (P, 0, step, false, p);

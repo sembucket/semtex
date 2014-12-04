@@ -112,8 +112,9 @@ void Essential::describe (char* tgt) const
 
 EssentialFunction::EssentialFunction (const char* f)
 // ---------------------------------------------------------------------------
-// Essential condition that sets value by interpreting function string,// which can be an explicit function of x, y, z & t as well as any
-// installed token values.  Otherwise the same as Essential class.
+// Essential condition that sets value by interpreting function
+// string, which can be an explicit function of x, y, z & t as well as
+// any installed token values.  Otherwise the same as Essential class.
 // ---------------------------------------------------------------------------
 {
   strcpy ((_function = new char [strlen (f) + 1]), f);
