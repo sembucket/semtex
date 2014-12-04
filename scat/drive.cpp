@@ -53,8 +53,8 @@ static void getargs    (int, char**, bool&, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, BoundarySys*&, Domain*&);
 
-void NavierStokes  (Domain*, ScatAnalyser*);
-void AdvectDiffuse (Domain*, ScatAnalyser*);
+void NavierStokes  (Domain*, BCmgr*, ScatAnalyser*);
+void AdvectDiffuse (Domain*, BCmgr*, ScatAnalyser*);
 
 
 int main (int    argc,
@@ -88,8 +88,8 @@ int main (int    argc,
 
   ROOTONLY domain -> report();
 
-  if (freeze) AdvectDiffuse (domain, analyst);
-  else        NavierStokes  (domain, analyst);
+  if (freeze) AdvectDiffuse (domain, bman, analyst);
+  else        NavierStokes  (domain, bman, analyst);
 
   Femlib::finalize();
 
@@ -112,8 +112,7 @@ static void getargs (int    argc   ,
     "  [options]:\n"
     "  -h       ... print this message\n"
     "  -f       ... freeze velocity field (scalar advection/diffusion only)\n"
-    "  -i[i]    ... use iterative solver for viscous [& pressure] steps\n"
-    "  -t[t]    ... select time-varying BCs for mode 0 [or all modes]\n"
+    "  -i       ... use iterative solver for viscous step\n"
     "  -v[v...] ... increase verbosity level\n"
     "  -chk     ... turn off checkpoint field dumps [default: selected]\n";
  
@@ -129,13 +128,8 @@ static void getargs (int    argc   ,
       break;
     case 'i':
       do
-	Femlib::ivalue ("ITERATIVE", Femlib::ivalue ("ITERATIVE") + 1);
+	Femlib::ivalue ("ITERATIVE", 1);
       while (*++argv[0] == 'i');
-      break;
-    case 't':
-      do
-	Femlib::ivalue ("TBCS",      Femlib::ivalue ("TBCS")      + 1);
-      while (*++argv[0] == 't');
       break;
     case 'v':
       do
@@ -172,6 +166,7 @@ static void preprocess (const char*       session,
 // They are listed in order of creation.
 // ---------------------------------------------------------------------------
 {
+  const char routine[] = "preprocess";
   const int_t        verbose = Femlib::ivalue ("VERBOSE");
   Geometry::CoordSys space;
   const real_t*      z;
@@ -235,4 +230,11 @@ static void preprocess (const char*       session,
   domain = new Domain (file, elmt, bman);
 
   VERBOSE cout << "done" << endl;
+
+  // -- Sanity checks on installed tokens.
+
+  if (Femlib::ivalue ("SVV_MN") > Geometry::nP())
+    message (routine, "SVV_MN exceeds N_P", ERROR);
+  if (Femlib::ivalue ("SVV_MZ") > Geometry::nMode())
+    message (routine, "SVV_MZ exceeds N_Z/2", ERROR);
 }

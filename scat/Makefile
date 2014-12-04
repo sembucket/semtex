@@ -11,7 +11,8 @@ else
   PROG = scat
 endif
 
-SEM   = ../semtex
+#SEM   = ../semtex
+SEM   = /Users/hmb/develop/semtex
 VPATH = $(SEM)/src
 
 ifdef STOKES
@@ -26,7 +27,7 @@ endif
 #
 SEMFILES  = analysis auxfield bcmgr boundary bsys condition domain	\
 	    edge element family feml field geometry history integration \
-	    matrix mesh misc particle pressure statistics svv
+	    matrix mesh misc particle statistics data2df svv
 SEMOBJ    = $(addsuffix .o,$(SEMFILES))
 SEMHDR    = sem.h
 

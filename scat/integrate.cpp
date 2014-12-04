@@ -17,8 +17,8 @@ typedef ModalMatrixSys Msys;
 static  int_t          NCOM, NDIM, NORD;
 static  bool           C3D;
 
-void          nonlinear (Domain*, AuxField**, AuxField**, vector<real_t>&);
-//static void   advection (Domain*, AuxField**, AuxField**, vector<real_t>&);
+void   nonlinear (Domain*, BCmgr*, AuxField**, AuxField**, vector<real_t>&);
+
 static void   buoyancy  (Domain*, AuxField**, AuxField**, vector<real_t>&);
 static void   tempGrad  (AuxField**, AuxField**);
 static void   waveProp  (Domain*, const AuxField***, const AuxField***);
@@ -29,6 +29,7 @@ static void   Solve     (Domain*, const int_t, AuxField*, Msys*);
 
 
 void NavierStokes (Domain*       D,
+		   BCmgr*        B,
 		   ScatAnalyser* A)
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
@@ -72,7 +73,7 @@ void NavierStokes (Domain*       D,
   // -- Set up multi-level storage for pressure BCS.
 
   Field* Pressure = D -> u[NCOM + 1];
-  PBCmgr::build (Pressure);
+  B -> buildComputedBCs (Pressure);
 
   // -- Apply coupling to radial & azimuthal velocity BCs.
 
@@ -108,17 +109,18 @@ void NavierStokes (Domain*       D,
 
     // -- Unconstrained forcing substeps.
 
-    nonlinear (D, Us[0], Uf[0], ff);
+    nonlinear (D, B, Us[0], Uf[0], ff);
+
     buoyancy  (D, Us[0], Uf[0], g);
 
     ROOTONLY tempGrad (Us[0], Uf[0]);
 
     // -- Update high-order pressure BC storage.
 
-    PBCmgr::maintain (D -> step, Pressure, 
-		      const_cast<const AuxField**>(Us[0]),
-		      const_cast<const AuxField**>(Uf[0]));
-    Pressure -> evaluateBoundaries (D -> step);
+    B -> maintainFourier (D -> step, Pressure, 
+			  const_cast<const AuxField**>(Us[0]),
+			  const_cast<const AuxField**>(Uf[0]));
+    Pressure -> evaluateBoundaries (Pressure, D -> step);
 
     // -- Complete unconstrained advective substep and compute pressure.
 
@@ -140,20 +142,14 @@ void NavierStokes (Domain*       D,
     for (i = 0; i <= NCOM; i++) *Us[0][i] = *D -> u[i];
     rollm (Us, NORD, NCOM+1);
 
-    // -- Re-evaluate (time-dependent) BCs?
+    // -- Re-evaluate (possibly time-dependent) BCs.
 
-    if (TBCS == 1) {
-      // -- 2D/mode0 base BCs (only).
-      for (i = 0; i <= NCOM; i++)
-	ROOTONLY D -> u[i] -> evaluateM0Boundaries (D -> step);
-    } else if (TBCS == 2) {
-      // -- All modes.
-      for (i = 0; i <= NCOM; i++) {
-	D -> u[i] -> evaluateBoundaries (0, false);
-	D -> u[i] -> bTransform (FORWARD);
-      }
-      if (C3D) Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
+    for (i = 0; i < NCOM; i++)  {
+      D -> u[i] -> evaluateBoundaries (0, D -> step, false);
+      D -> u[i] -> bTransform         (FORWARD);
+      D -> u[i] -> evaluateBoundaries (Pressure, D -> step, true);
     }
+    if (C3D) Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
 
     // -- Viscous and thermal diffusion substep.
 
@@ -169,220 +165,6 @@ void NavierStokes (Domain*       D,
 
     A -> analyse (Us[0], Uf[0]);
   }
-}
-
-
-static void advection (Domain*         D ,
-		       AuxField**      Us,
-		       AuxField**      Uf,
-		       vector<real_t>& ff)
-// ---------------------------------------------------------------------------
-// Compute advection terms in Navier--Stokes equations: N(u).
-//
-// Velocity field data areas of D and first level of Us are swapped, then
-// the next stage of nonlinear forcing terms N(u) are computed from
-// velocity fields and left in the first level of Uf.
-//
-// Nonlinear terms N(u) are computed in skew-symmetric form (Zang 1991)
-//                 ~ ~
-//                   N = -0.5 ( u . grad u + div uu )
-//                   ~          ~        ~       ~~
-//
-// i.e., in Cartesian component form
-//
-//              N  = -0.5 ( u  d(u ) / dx  + d(u u ) / dx ).
-//               i           j    i      j      i j      j
-//
-// If STOKES is defined for compilation, the nonlinear terms are set
-// to zero.  This means that the Navier--Stokes equations become the
-// Stokes equations.  Also, the convective terms in the scalar
-// equation are zero, so that the transient diffusion equation is
-// solved in place of the convection/diffusion equation (i.e. scalar
-// is uncoupled from the velocity field).
-//
-// The temperature transport term u . grad c is also built this way here.
-//
-// NB: no dealiasing for concurrent execution (or if ALIAS is defined).
-// ---------------------------------------------------------------------------
-{
-  int_t i, j;
-
-#if defined(STOKES)
-
-  for (i = 0; i <= NCOM; i++) {
-    *Uf[i] = 0.0;
-    AuxField::swapData (D -> u[i], Us[i]);
-#if 0
-    ROOTONLY if (fabs (ff[i]) > EPSDP) {
-      Veclib::fill (nP, ff[i], tmp, 1);
-      if (i < 2 && Geometry::cylindrical()) master -> mulY (1, tmp);
-      Uf[i] -> addToPlane (0, tmp);
-    }
-#endif
-  }
-
-#else
-
-  const int_t       nZ     = Geometry::nZ();
-  const int_t       nZP    = Geometry::nZProc();
-  const int_t       nP     = Geometry::planeSize();
-  const int_t       nPP    = Geometry::nBlock();
-  const int_t       nPR    = Geometry::nProc();
-  const int_t       nTot   = Geometry::nTotProc();
-#if defined (ALIAS)
-  const int_t       nZ32   = Geometry::nZProc();
-#else
-  const int_t       nZ32   = Geometry::nZ32();
-#endif 
-  const int_t       nTot32 = nZ32 * nP;
-  vector<real_t>    work ((2 * (NCOM+1) + 1) * nTot32);
-  vector<real_t*>   u32 (NCOM+1);
-  vector<real_t*>   n32 (NCOM+1);
-  vector<AuxField*> U   (NCOM+1);
-  vector<AuxField*> N   (NCOM+1);
-  Field*            master = D -> u[0];
-  real_t*           tmp    = &work[0] + 2 * (NCOM+1) * nTot32;
-
-  Veclib::zero ((2*(NCOM+1)+1) * nTot32, &work[0], 1); // -- Catch-all cleanup.
-
-  for (i = 0; i <= NCOM; i++) {
-    u32[i] = &work[0] +  i             * nTot32;
-    n32[i] = &work[0] + (i + NCOM + 1) * nTot32;
-
-    AuxField::swapData (D -> u[i], Us[i]);
-
-    U[i] = Us[i];
-    U[i] -> transform32 (INVERSE, u32[i]);
-    N[i] = Uf[i];
-  }
-
-  if (Geometry::cylindrical()) {		// -- Cylindrical coordinates.
-
-    for (i = 0; i <= NCOM; i++) {
-
-      // -- Terms involving azimuthal derivatives and frame components.
-
-      if (i == 0)
-	Veclib::vmul (nTot32, u32[0], 1, u32[1], 1, n32[0], 1);
-      if (i == 1)
-	Veclib::vmul (nTot32, u32[1], 1, u32[1], 1, n32[1], 1);
-
-      if (NCOM > 2) {
-	if (i == 1)		// -- radial compt.
-	  Veclib::svvttvp (nTot32, -2.0, u32[2],1,u32[2],1,n32[1],1,n32[1], 1);
-	if (i == 2)		// -- azimuthal compt.
-	  Veclib::svvtt   (nTot32,  3.0, u32[2], 1, u32[1], 1,      n32[2], 1);
-	if (i == 3)		// -- scalar.
-	  Veclib::vmul    (nTot32,       u32[3], 1, u32[1], 1,      n32[3], 1);
-
-	if (nZ > 2) {
-	  Veclib::copy       (nTot32, u32[i], 1, tmp, 1);
-	  Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
-	  Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
-	  master -> gradient (nZ, nPP, tmp, 2);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
-	  Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
-	  Veclib::vvtvp      (nTot32, u32[2], 1, tmp, 1, n32[i], 1, n32[i], 1);
-	
-	  Veclib::vmul       (nTot32, u32[i], 1, u32[2], 1, tmp, 1);
-	  Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
-	  Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
-	  master -> gradient (nZ, nPP, tmp, 2);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
-	  Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
-	  Veclib::vadd       (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
-	}
-      }
-
-      if (i >= 2) master -> divY (nZ32, n32[i]);
-
-      // -- 2D non-conservative derivatives.
-
-      for (j = 0; j < 2; j++) {
-	Veclib::copy       (nTot32, u32[i], 1, tmp, 1);
-	master -> gradient (nZ32, nP, tmp, j);
-
-	if (i < 2) master -> mulY (nZ32, tmp);
-
-	Veclib::vvtvp (nTot32, u32[j], 1, tmp, 1, n32[i], 1, n32[i], 1);
-      }
-
-      // -- 2D conservative derivatives.
-     
-      for (j = 0; j < 2; j++) {
-	Veclib::vmul       (nTot32, u32[j], 1, u32[i], 1, tmp, 1);
-	master -> gradient (nZ32, nP, tmp, j);
-
-	if (i < 2) master -> mulY (nZ32, tmp);
-
-	Veclib::vadd (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
-      }
-
-      // -- Transform to Fourier space, smooth, add forcing.
-
-      N[i]   -> transform32 (FORWARD, n32[i]);
-      master -> smooth (N[i]);
-
-      ROOTONLY if (fabs (ff[i]) > EPSDP) {
-	Veclib::fill (nP, -2.0*ff[i], tmp, 1);
-	if (i < 2) master -> mulY (1, tmp);
-	N[i] -> addToPlane (0, tmp);
-      }
-
-      *N[i] *= -0.5;		// -- Skew-symmetric NL.
-    }
-  
-  } else {			// -- Cartesian coordinates.
-
-    for (i = 0; i <= NCOM; i++) {
-      for (j = 0; j < NDIM; j++) {
-      
-	// -- Perform n_i += u_j d(u_i) / dx_j.
-
-	Veclib::copy (nTot32, u32[i], 1, tmp,  1);
-	if (j == 2) {
-	  Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
-	  Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
-	  master -> gradient (nZ,  nPP, tmp, j);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
-	  Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
-	} else {
-	  master -> gradient (nZ32, nP, tmp, j);
-	}
-	Veclib::vvtvp (nTot32, u32[j], 1, tmp,  1, n32[i], 1, n32[i], 1);
-
-	// -- Perform n_i += d(u_i u_j) / dx_j.
-
-	Veclib::vmul  (nTot32, u32[i], 1, u32[j], 1, tmp,  1);
-	if (j == 2) {
-	  Femlib::exchange   (tmp, nZ32,        nP, FORWARD);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, FORWARD);
-	  Veclib::zero       (nTot32 - nTot, tmp + nTot, 1);
-	  master -> gradient (nZ,  nPP, tmp, j);
-	  Femlib::DFTr       (tmp, nZ32 * nPR, nPP, INVERSE);
-	  Femlib::exchange   (tmp, nZ32,        nP, INVERSE);
-	} else {
-	  master -> gradient (nZ32, nP, tmp, j);
-	}
-	Veclib::vadd (nTot32, tmp, 1, n32[i], 1, n32[i], 1);
-	
-      }
-
-      // -- Transform to Fourier space, smooth, add forcing.
-      
-      N[i]   -> transform32 (FORWARD, n32[i]);
-      master -> smooth (N[i]);
-
-      ROOTONLY if (fabs (ff[i]) > EPSDP) N[i] -> addToPlane (0, -2.0*ff[i]);
-
-      *N[i] *= -0.5;
-    }
-  }
-
-#endif
 }
 
 

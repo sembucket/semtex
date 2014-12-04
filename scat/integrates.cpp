@@ -26,6 +26,7 @@ static void  Solve    (Domain*, AuxField*, Msys*);
 
 
 void AdvectDiffuse (Domain*       D,
+		    BCmgr*        B,
 		    ScatAnalyser* A)
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w'),
@@ -87,12 +88,9 @@ void AdvectDiffuse (Domain*       D,
 
     // -- Re-evaluate (time-dependent) BCs?
 
-    if (TBCS == 1)        // -- 2D/mode0 BCs (only).
-      ROOTONLY scalar -> evaluateM0Boundaries (D -> step);
-    else if (TBCS == 2) { // -- All modes.
-      scalar -> evaluateBoundaries (0, false);
-      scalar -> bTransform (FORWARD);
-    }
+    scalar -> evaluateBoundaries (scalar, 0, false);
+    scalar -> bTransform (FORWARD);
+    D -> u[i] -> evaluateBoundaries (scalar, D -> step, true);
 
     // -- Diffusion substep.
 

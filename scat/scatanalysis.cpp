@@ -59,7 +59,7 @@ void ScatAnalyser::analyse (AuxField** wrk1, AuxField** wrk2)
     tfor.y = pfor.y + vfor.y;
 
     sprintf (s,
-	     "%#6d %#10.6g %#10.6g "
+	     "%6d %#10.6g %#10.6g "
 	     "%#10.6g %#10.6g %#10.6g %#10.6g %#10.6g %#10.6g",
 	     _src -> step, _src -> time, flux  ,
 	     pfor.x,   vfor.x,   tfor.x,
