@@ -177,27 +177,12 @@ void integrate (void (*advection) (Domain*,
 
     // -- Re-evaluate velocity (possibly time-dependent) BCs.
 
-#if 1
     for (i = 0; i < NCOM; i++)  {
       D -> u[i] -> evaluateBoundaries (Pressure, D -> step, false);
       D -> u[i] -> bTransform         (FORWARD);
       D -> u[i] -> evaluateBoundaries (Pressure, D -> step, true);
     }
     if (C3D) Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
-#else  // -- Old code version.
-    if (TBCS == 1) {
-      // -- 2D/mode0 base BCs (only).
-      for (i = 0; i < NCOM; i++)
-	ROOTONLY D -> u[i] -> evaluateM0Boundaries (0, D -> step);
-    } else if (TBCS == 2) {
-      // -- All modes.
-      for (i = 0; i < NCOM; i++) {
-	D -> u[i] -> evaluateBoundaries (0, 0, false);
-	D -> u[i] -> bTransform (FORWARD);
-      }
-      if (C3D) Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
-    }
-#endif
 
     // -- Viscous correction substep.
 

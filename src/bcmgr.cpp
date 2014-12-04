@@ -1363,7 +1363,6 @@ void BCmgr::evaluateCEBCp (const Field* master,
 // (tgt) with values obtained from multi-level storage. Evaluation is
 // confined to a single element edge: parameter id tells us which this
 // corresponds to in our internal storage.
-//
 // ---------------------------------------------------------------------------
 {
   const int_t Je = min (step, _nTime);

@@ -26,7 +26,7 @@ public:
 
   Field& solve  (AuxField*, const ModalMatrixSys*);
 
-  Field& smooth (AuxField* = 0);
+  Field& smooth (AuxField* = NULL);
   void   smooth (const int_t, real_t*) const;
 
   void evaluateBoundaries    (const Field*, const int_t, const bool = true);
@@ -47,9 +47,6 @@ public:
 			       const Field*, const Field*, const Field* = 0);
   static void   coupleBCs     (Field*, Field*, const int_t);
   static real_t modeConstant  (const char, const int_t, const real_t);
-
-  static void printBoundaries (const Field*);
-  static void printConnect    (const Field*);
 
 private:
   int_t        _nbound;		// Number of boundary edges.
