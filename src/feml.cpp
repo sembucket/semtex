@@ -399,7 +399,7 @@ bool FEML::echo (ostream&    stream,
         return true;
 }
 
-// -- added by Thomas Albrecht for evaluate force section
+// added by Thomas Albrecht for evaluate force section
 
 
 bool FEML::valueFromSection (real_t     *value  ,
@@ -432,7 +432,7 @@ bool FEML::valueFromSection (real_t     *value  ,
       if ((tok = strtok (s, "\t= ")) == NULL) continue;
 
       if (strcmp (tok, token) == 0) {
-        tok = strtok (NULL, "\t= \n");
+        tok = strtok (NULL, "=\n");
         *value = Femlib::value(tok);
         return true;
       }
@@ -476,7 +476,7 @@ bool FEML::valueFromSection (int_t      *value  ,
       if ((tok = strtok (s, "\t= ")) == NULL) continue;
 
       if (strcmp (tok, token) == 0) {
-        tok = strtok (NULL, "\t= \n");
+        tok = strtok (NULL, "=\n");
         *value = Femlib::ivalue(tok);
         return true;
       }
@@ -520,7 +520,7 @@ bool FEML::valueFromSection (char       *buf    ,
       if ((tok = strtok (s, "\t= ")) == NULL) continue;
 
       if (strcmp (tok, token) == 0) {
-        tok = strtok (NULL, "\t= \n");
+        tok = strtok (NULL, "=\n");
         strcpy(buf, tok);
         return true;
       }
