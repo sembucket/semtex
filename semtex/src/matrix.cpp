@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// matrix.C: routines for direct solution of Helmholtz problems.
+// matrix.C: routines that generate solvers for Helmholtz problems.
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
@@ -70,13 +70,14 @@ ModalMatrixSys::ModalMatrixSys (const real_t            lambda2 ,
   }
 
   for (mode = baseMode; mode < baseMode + numModes; mode++) {
-    const NumberSys* N         = Bsys -> Nsys(mode * Femlib::ivalue ("BETA"));
-    const real_t     betak2    = sqr (Field::modeConstant(name, mode, beta));
+    const int_t      modeIndex = mode * Femlib::ivalue ("BETA");
+    const NumberSys* N         = Bsys -> Nsys(modeIndex);
+    const real_t     betak2    = sqr (Field::modeConstant(name,mode,beta));
     const int_t      localMode = mode - baseMode;
 
- // Multiply Helmholtz constant with SVV-specific weight:  
- //      betak2_svv = betak2 * (1 + eps_N/nu * Q)  for modes k > SVV_MZ and
- //      lambda2 > 0 (i.e. only for the velocity components)
+    // Multiply Helmholtz constant with SVV-specific weight:
+    //   betak2_svv = betak2 * (1 + eps_N/nu * Q) for modes k > SVV_MZ
+    //   and lambda2 > 0 (i.e. only for the velocity components)
  
     const real_t* S = SVV::coeffs_z (numModes);
     const real_t  betak2_svv = (lambda2>EPSDP)?(betak2*S[localMode]) : betak2; 
@@ -90,7 +91,7 @@ ModalMatrixSys::ModalMatrixSys (const real_t            lambda2 ,
       if (method == DIRECT) { cout << '.'; cout.flush(); }
     } else {
       _Msys[localMode] =
-	new MatrixSys (lambda2, betak2_svv, mode, Elmt, Bsys, method);
+	new MatrixSys (lambda2, betak2_svv, modeIndex, Elmt, Bsys, method);
       MS.insert (MS.end(), _Msys[localMode]);
       if (method == DIRECT) { cout << '*'; cout.flush(); }
     }
@@ -122,6 +123,12 @@ ModalMatrixSys::~ModalMatrixSys ()
 }
 
 
+// ===========================================================================
+// The routines above deal with vectors of MatrixSys class elements.
+// The routines below deal with these elements themselves.
+// ===========================================================================
+
+
 MatrixSys::MatrixSys (const real_t            lambda2,
 		      const real_t            betak2 ,
 		      const int_t             mode   ,
@@ -137,13 +144,17 @@ MatrixSys::MatrixSys (const real_t            lambda2,
 //   Helmholtz matrices (hii & hbi) use column-major formats.
 // For method == JACPCG:
 //   Build and invert diagonal preconditioner matrix.
-// ---------------------------------------------------------------------------
+//
+// The Fourier-modal dependence of BCs and numbering is only really
+// relevant for cylindrical systems (and at the axis); for Cartesian
+// systems there is only a single (though replicated) set.
+// --------------------------------------------------------------------------
 // NB: these get evaluated in the order they appear in the class
 // definition!:
   _HelmholtzConstant (lambda2),
   _FourierConstant   (betak2 ),
-  _BC                (bsys -> BCs  (mode * Femlib::ivalue ("BETA"))),
-  _NS                (bsys -> Nsys (mode * Femlib::ivalue ("BETA"))),
+  _BC                (bsys -> BCs  (mode)),
+  _NS                (bsys -> Nsys (mode)),
   _nel               (Geometry::nElmt()),
   _nglobal           (_NS -> nGlobal()),
   _singular          ((_HelmholtzConstant + _FourierConstant) < EPSSP &&
@@ -260,6 +271,12 @@ MatrixSys::MatrixSys (const real_t            lambda2,
     real_t*        PCi;
     vector<real_t> work (2 * npnp + np);
     real_t         *ed = &work[0], *ewrk = &work[0] + npnp;
+
+    if (verbose > 1)
+      cout << "PCG "
+	   << "Helmholtz const (lambda2): " << setw(10) << lambda2
+	   << ", Fourier const (betak2): "  << setw(10) << betak2 << endl;
+
 
     _PC = new real_t [static_cast<size_t>(_npts)];
 

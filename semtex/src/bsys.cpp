@@ -142,7 +142,7 @@ const NumberSys* BoundarySys::Nsys (const int_t mode) const
 // ---------------------------------------------------------------------------
 {
   return
-    _number [clamp(mode,static_cast<int_t>(0),static_cast<int_t>(2))];
+    _number [clamp (mode,static_cast<int_t>(0),static_cast<int_t>(2))];
 }
 
 

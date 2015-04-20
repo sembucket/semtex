@@ -711,6 +711,7 @@ Field& Field::solve (AuxField*             f  ,
     case JACPCG: {
       const int_t     StepMax =  Femlib::ivalue ("STEP_MAX");
       const int_t     npts    = M -> _npts;
+      const int_t     BCmode  = mode * Femlib::ivalue ("BETA");
       real_t          alpha, beta, dotp, epsb2, r2, rho1, rho2;
 #if defined (_VECTOR_ARCH)
       vector<real_t>  work (5 * npts + 3 * Geometry::nPlane());
@@ -742,8 +743,7 @@ Field& Field::solve (AuxField*             f  ,
 
       Veclib::zero (nzero, x + nsolve, 1);   
       Veclib::copy (npts,  x, 1, q, 1);
-
-      this -> HelmholtzOperator (q, p, lambda2, betak2, mode, wrk);
+      this -> HelmholtzOperator (q, p, lambda2, betak2, BCmode, wrk);
 
       Veclib::zero (nzero, p + nsolve, 1);
       Veclib::zero (nzero, r + nsolve, 1);
@@ -773,7 +773,8 @@ Field& Field::solve (AuxField*             f  ,
 
 	// -- Matrix-vector product.
 
-	this -> HelmholtzOperator (p, q, lambda2, betak2, mode, wrk);
+	this -> HelmholtzOperator (p, q, lambda2, betak2, BCmode, wrk);
+
 	Veclib::zero (nzero, q + nsolve, 1);
 
 	// -- Move in conjugate direction.
