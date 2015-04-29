@@ -2,7 +2,7 @@
 	CYLINDRICAL=1
 	KINVIS    = 1/500
 	D_T       = 0.001
-	T_MAX     = 1
+	T_MAX     = 0.5
 	N_STEP    = int(T_MAX/D_T)
 	N_TIME    = 2
 	N_P       = 7
@@ -39,22 +39,22 @@ p = 0
 			<D>	u = 0.0	</D>
 			<D>	v = 0.0	</D>
 			<D>	w = 0.0	</D>
-			<H>	p = 0.0	</H>
+			<H>	p       </H>
 	2	v	4
 			<D>	u = 0.0 </D>
 			<D>	v = 0.0	</D>
 			<D>	w = 0.0	</D>
-			<H>	p = 0.0	</H>
+			<H>	p       </H>
 	3	o	4
-			<D>	u = 0.0	</D>
-			<D>	v = 0.0	</D>
-			<D>	w = 0.0	</D>
-			<H>	p = 0.0	</H>
+			<N>	u = 0.0	</N>
+			<N>	v = 0.0	</N>
+			<N>	w = 0.0	</N>
+			<D>	p = 0.0	</D>
         4       a       4
-                        <A>     u = 0   </A>
-                        <A>     v = 0   </A> 
-                        <A>     w = 0   </A> 
-                        <A>     p = 0   </A>
+                        <A>     u       </A>
+                        <A>     v       </A> 
+                        <A>     w       </A> 
+                        <A>     p       </A>
 </BCS>
 
 <NODES NUMBER=184>

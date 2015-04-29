@@ -30,8 +30,9 @@ static MatrixSys** preSolve   (const Domain*);
 static void        Solve      (Domain*, const int_t, AuxField*, MatrixSys*);
 
 
-void integrate (void            (*Advection)(Domain*, AuxField**, AuxField**),
+void integrate (void      (*Advection)(Domain*, BCmgr*, AuxField**, AuxField**),
 		Domain*         D   ,
+		BCmgr*          B   ,
 		StabAnalyser*   A   )
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
@@ -88,7 +89,7 @@ void integrate (void            (*Advection)(Domain*, AuxField**, AuxField**),
 
     // -- Create multi-level storage for pressure BCS.
 
-    PBCmgr::build (Pressure);
+    B -> buildComputedBCs (Pressure);
 
     // -- Apply coupling to radial & azimuthal velocity BCs.
 
@@ -128,14 +129,14 @@ void integrate (void            (*Advection)(Domain*, AuxField**, AuxField**),
 
     // -- Unconstrained forcing substep.
     
-    Advection (D, Us[0], Uf[0]);
+    Advection (D, B, Us[0], Uf[0]);
 
     // -- Pressure substep.
 
-    PBCmgr::maintain (D -> step, Pressure, 
-		      const_cast<const AuxField**>(Us[0]),
-		      const_cast<const AuxField**>(Uf[0]));
-    Pressure -> evaluateBoundaries (D -> step);
+    B -> maintainFourier (D -> step, Pressure, 
+			  const_cast<const AuxField**>(Us[0]),
+			  const_cast<const AuxField**>(Uf[0]));
+    Pressure -> evaluateBoundaries (Pressure, D -> step);
 
     if (Geometry::cylindrical()) { Us[0][0] -> mulY(); Us[0][1] -> mulY(); }
 
@@ -162,7 +163,7 @@ void integrate (void            (*Advection)(Domain*, AuxField**, AuxField**),
       AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     }
     for (i = 0; i < NPERT; i++) {
-      ROOTONLY D -> u[i] -> evaluateM0Boundaries (D -> step);
+      D -> u[i] -> evaluateM0Boundaries (Pressure, D -> step);
       Solve (D, i, Uf[0][i], MS[i]);
     }
     if (Geometry::cylindrical() &&
@@ -177,6 +178,7 @@ void integrate (void            (*Advection)(Domain*, AuxField**, AuxField**),
 
 
 void linAdvect (Domain*    D ,
+		BCmgr*     B ,
 		AuxField** Us,
 		AuxField** Uf)
 // ---------------------------------------------------------------------------
@@ -205,6 +207,12 @@ void linAdvect (Domain*    D ,
 // as the second operand.  Assignment and Gradient operators are also
 // modified. And this difference in structure is the reason behind
 // using two lots of temporary storage, T, and U[NBASE].
+//
+// Finally, note that by virtue of compatibility of structure with the
+// DNS code, the first two components of N are premultiplied by radius
+// (y) if we are working in cylindrical coordinates, though this is
+// not strictly necessary for a linear problem.  Same applies to
+// linAdvectT, following.
 // ---------------------------------------------------------------------------
 {
   int_t             i, j;
@@ -261,6 +269,7 @@ void linAdvect (Domain*    D ,
 
 
 void linAdvectT (Domain*    D ,
+		 BCmgr*     B ,
 		 AuxField** Us,
 		 AuxField** Uf)
 // ---------------------------------------------------------------------------

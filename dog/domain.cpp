@@ -26,6 +26,7 @@ Domain::Domain (FEML*             F,
 // ---------------------------------------------------------------------------
   elmt (E)
 {
+  const char  routine[] = "Domain::Domain";
   const int_t verbose = Femlib::ivalue ("VERBOSE");
   const int_t nbase   = Geometry::nBase();
   const int_t nz      = Geometry::nZProc();
@@ -41,7 +42,7 @@ Domain::Domain (FEML*             F,
   strcpy ((field = new char [strlen (B -> field()) + 1]), B -> field());
   nfield = strlen (field);
   
-  VERBOSE cout << "  Domain will contain fields: " << field << endl;
+  VERBOSE cout << routine << ": Domain will contain fields: " << field << endl;
 
   // -- Build boundary system and field for each variable.
   

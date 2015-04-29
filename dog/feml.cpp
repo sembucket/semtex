@@ -60,6 +60,8 @@ using namespace std;
 #include <feml.h>
 #include <femlib.h>
 
+#define VERBOSE if (verbose)
+
 
 FEML::FEML (const char* session) :
   _nKey (0)
@@ -73,11 +75,12 @@ FEML::FEML (const char* session) :
 // non-NULL corresponding stream pointer in array _keyPosn.
 // ---------------------------------------------------------------------------
 {
-  const char routine[] = "FEML::FEML";
-  char       c, err[STR_MAX], key[STR_MAX], yek[STR_MAX];
-  char*      u;
-  int_t      i, N;
-  bool       OK, found;
+  const char  routine[] = "FEML::FEML";
+  const int_t verbose = Femlib::ivalue ("VERBOSE");
+  char        c, err[STR_MAX], key[STR_MAX], yek[STR_MAX];
+  char*       u;
+  int_t       i, N;
+  bool        OK, found;
 
   const char* reserved[] = {
     "TOKENS",
@@ -94,6 +97,8 @@ FEML::FEML (const char* session) :
     "BASE_HIST",
     0
   };
+
+  VERBOSE cout << routine << ": Parsing session file ... " ;
 
   _feml_file.open (session);
 
@@ -200,6 +205,8 @@ FEML::FEML (const char* session) :
   _feml_file.seekg (0);		// -- And rewind.
 
   tokens ();			// -- Initialize Femlib parser.
+  
+  VERBOSE cout << "done" << endl;
 }
 
 
@@ -396,3 +403,5 @@ bool FEML::echo (ostream&    stream,
 
   _feml_file >> skipws;
 }
+
+#undef VERBOSE

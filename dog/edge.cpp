@@ -375,6 +375,20 @@ void Edge::setForGroup (const char*  grp,
 }
 
 
+void Edge::dotInForGroup (const char*   grp,
+			  const Vector& val,
+			  real_t*       tgt) const
+// ---------------------------------------------------------------------------
+// Add val dot n to tgt if this Edge falls in group.
+// ---------------------------------------------------------------------------
+{
+  if (strcmp (grp, _group) == 0) {
+    Blas::axpy (_np, val.x, _nx, 1, tgt, 1);
+    Blas::axpy (_np, val.y, _ny, 1, tgt, 1);
+  }
+}
+
+
 void Edge::get (const real_t* src,
 		real_t*       tgt) const
 // ---------------------------------------------------------------------------

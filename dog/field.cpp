@@ -126,7 +126,9 @@ Field::Field (BoundarySys*      B,
   register real_t*         p;
   register int_t           i, k;
 
-  // -- Allocate storage for boundary data, round up for Fourier transform.
+  // -- Allocate storage for boundary data, round up for Fourier
+  //    transform, which is never actually done, but we leave it this
+  //    way to conform with the basis code, semtex.
   
   _nbound = _bsys -> nSurf();
   _nline  = _nbound * np;
@@ -140,37 +142,22 @@ Field::Field (BoundarySys*      B,
 
   Veclib::zero (_nz * _nline, _sheet, 1);
 
-  // -- Set values for boundary data, but enforce z = 0.
+  // -- Set values for boundary data (in Fourier space), and enforce z = 0
+  //    (only because we potentially need to give z a value).
 
   for (k = 0; k < _nz; k++) {
     Femlib::value ("z", 0.0);
     for (p = _line[k], i = 0; i < _nbound; i++, p += np)
-      BC[i] -> evaluate (k, 0, p);
+      BC[i] -> evaluate (NULL, k, 0, false, p);
   }
 
   // -- Do NOT Fourier transform boundary data; already in Fourier space.
 }
 
 
-void Field::printBoundaries (const Field* F)
-// ---------------------------------------------------------------------------
-// Static member function.
-//
-// (Debugging) Utility to print information contained in a Boundary list.
-// ---------------------------------------------------------------------------
-{
-  ROOTONLY {
-    const vector<Boundary*>& BC = F -> _bsys -> BCs (0);
-    int_t                    i;
-  
-    cout << "# -- Field '" << F -> name() << "' Boundary Information:" << endl;
-    if (!F -> _nbound) cout << "No BCs for this Field" << endl;
-    for (i = 0; i < F -> _nbound; i++) BC[i] -> print();
-  }
-}
-
-
-void Field::evaluateBoundaries (const int_t step)
+void Field::evaluateBoundaries (const Field* P      ,
+				const int_t  step   ,
+				const bool   Fourier)
 // ---------------------------------------------------------------------------
 // Traverse Boundaries and evaluate according to kind.
 // Note that for 3D this evaluation is done in Fourier-transformed space.
@@ -189,42 +176,23 @@ void Field::evaluateBoundaries (const int_t step)
 
   for (k = 0; k < _nz; k++)
     for (p = _line[k], i = 0; i < _nbound; i++, p += np)
-      BC[i] -> evaluate (k, step, p);
+      BC[i] -> evaluate (P, k, step, Fourier, p);
 }
 
 
-void Field::evaluateM0Boundaries (const int_t step)
+void Field::evaluateM0Boundaries (const Field* P   ,
+				  const int_t  step)
 // ---------------------------------------------------------------------------
 // Traverse Boundaries and evaluate according to kind, but only for Mode 0.
 // ---------------------------------------------------------------------------
 {
-  ROOTONLY {
-    const vector<Boundary*>& BC = _bsys -> BCs (0);
-    const int_t              np = Geometry::nP();
-    real_t*                  p;
-    int_t                    i;
+  const vector<Boundary*>& BC = _bsys -> BCs (0);
+  const int_t              np = Geometry::nP();
+  real_t*                  p;
+  int_t                    i;
 
-    for (p = _line[0], i = 0; i < _nbound; i++, p += np)
-      BC[i] -> evaluate (0, step, p);
-  }
-}
-
-
-void Field::addToM0Boundaries (const real_t  val,
-			       const char* grp)
-// ---------------------------------------------------------------------------
-// Add val to zeroth Fourier mode's bc storage area on BC group "grp".
-// ---------------------------------------------------------------------------
-{
-  ROOTONLY {
-    const vector<Boundary*>& BC = _bsys -> BCs (0);
-    const int_t              np = Geometry::nP();
-    real_t*                  p;
-    int_t                    i;
-
-    for (p = _line[0], i = 0; i < _nbound; i++, p += np)
-      BC[i] -> addForGroup (grp, val, p);
-  }
+  for (p = _line[0], i = 0; i < _nbound; i++, p += np)
+    BC[i] -> evaluate (P, 0, step, false, p);
 }
 
 
@@ -312,168 +280,6 @@ void Field::smooth (const int_t nZ ,
 
     for (i = 0; i < nel; i++, src += npnp, gid += next)
       _elmt[i] -> bndryInsert (gid, dssum, src);
-  }
-}
-
-
-real_t Field::flux (const Field* C)
-// ---------------------------------------------------------------------------
-// Static member function.
-//
-// Compute gradient flux of field C on all "wall" group boundaries.
-//
-// This only has to be done on the zero (mean) Fourier mode.
-// ---------------------------------------------------------------------------
-{
-  const vector<Boundary*>& BC = C -> _bsys -> BCs (0);
-  vector<real_t>           work(4 * Geometry::nP());
-  real_t                   F = 0.0;
-  int_t                    i;
-  
-  for (i = 0; i < C -> _nbound; i++)
-    F += BC[i] -> scalarFlux ("wall", C -> _data, &work[0]);
-
-  return F;
-}
-
-
-Vector Field::normalTraction (const Field* P)
-// ---------------------------------------------------------------------------
-// Static member function.
-//
-// Compute normal tractive forces on all WALL boundaries, taking P to be
-// the pressure field.
-//
-// This only has to be done on the zero (mean) Fourier mode.
-// ---------------------------------------------------------------------------
-{
-  const vector<Boundary*>& BC = P -> _bsys -> BCs (0);
-  const int_t              nsurf = P -> _nbound;
-  Vector                   secF, F = {0.0, 0.0, 0.0};
-  vector<real_t>           work(Geometry::nP());
-  int_t                    i;
-  
-  for (i = 0; i < nsurf; i++) {
-    secF = BC[i] -> normTraction ("wall", P -> _data, &work[0]);
-    F.x += secF.x;
-    F.y += secF.y;
-  }
-
-  return F;
-}
-
-
-Vector Field::tangentTraction (const Field* U,
-			       const Field* V,
-			       const Field* W)
-// ---------------------------------------------------------------------------
-// Static member function.
-//
-// Compute (2D) tangential viscous tractive forces on all WALL boundaries,
-// treating U & V as first and second velocity components, respectively.
-//
-// Compute viscous tractive forces on wall from
-//
-//  t_i  = - T_ij * n_j       (minus sign for force exerted BY fluid ON wall),
-//
-// where
-//
-//  T_ij = viscous stress tensor (here in Cartesian coords)
-//                          dU_i    dU_j
-//       = RHO * KINVIS * ( ----  + ---- ) .
-//                          dx_j    dx_i
-//
-// This only has to be done on the zero (mean) Fourier mode.
-// ---------------------------------------------------------------------------
-{
-  const vector<Boundary*>& UBC =       U->_bsys->BCs(0);
-  const vector<Boundary*>& WBC = (W) ? W->_bsys->BCs(0) : (vector<Boundary*>)0;
-  const int_t              np      = Geometry::nP();
-  const int_t              nbound  = U -> _nbound;
-  const real_t             mu      = Femlib::value ("RHO * KINVIS");
-  Vector                   secF, F = {0.0, 0.0, 0.0};
-  vector<real_t>           work(4 * np);
-  int_t                    i;
-
-  for (i = 0; i < nbound; i++) {
-    secF = UBC[i] -> tangTraction  ("wall", U->_data, V->_data, &work[0]);
-    F.x        -= mu * secF.x;
-    F.y        -= mu * secF.y;
-    if (W) F.z -= mu * WBC[i] -> scalarFlux ("wall", W->_data, &work[0]);
-  }
-
-  return F;
-}
-
-
-void Field::normTractionV (real_t*      fx,
-			   real_t*      fy,
-			   const Field* P )
-// ---------------------------------------------------------------------------
-// Static member function.
-//
-// Compute normal tractive forces at each z location on wall
-// boundaries.  Fx & Fy are assumed to contain sufficient (nZProc)
-// storage and to be zero on entry.  P could be in physical space or
-// Fourier transformed.
-// ---------------------------------------------------------------------------
-{
-  const vector<Boundary*>& BC    = P -> _bsys -> BCs (0);
-  const int_t              np    = Geometry::nP();
-  const int_t              nz    = Geometry::nZProc();
-  const int_t              nsurf = P -> _nbound;
-  Vector                   secF;
-  vector<real_t>           work(np);
-  real_t                   *p;
-  int_t                    i, j;
-  
-  for (j = 0; j < nz; j++) {
-    p = P -> _plane[j];
-    for (i = 0; i < nsurf; i++) {
-      secF = BC[i] -> normTraction ("wall", p, &work[0]);
-      fx[j] += secF.x;
-      fy[j] += secF.y;
-    }
-  }
-}
-
-
-void Field::tangTractionV (real_t*      fx,
-			   real_t*      fy,
-			   real_t*      fz,
-			   const Field* U ,
-			   const Field* V ,
-			   const Field* W )
-// ---------------------------------------------------------------------------
-// Static member function.
-//
-// Compute tangential tractive forces at each z location on wall
-// boundaries.  Fx, fy, fz assumed to contain sufficient storage and
-// be zero on entry.  U, V, W could be in physical space or Fourier
-// transformed.
-// ---------------------------------------------------------------------------
-{
-  const vector<Boundary*>& UBC =       U->_bsys->BCs(0);
-  const vector<Boundary*>& WBC = (W) ? W->_bsys->BCs(0) : (vector<Boundary*>)0;
-  const int_t              np      = Geometry::nP();
-  const int_t              nz      = Geometry::nZProc();
-  const int_t              nbound = U -> _nbound;
-  const real_t             mu      = Femlib::value ("RHO * KINVIS");
-  Vector                   secF;
-  vector<real_t>           work(4 * np);
-  real_t                   *u, *v, *w;
-  int_t                    i, j;
-
-  for (j = 0; j < nz; j++) {
-    u = U -> _plane[j];
-    v = V -> _plane[j];
-    w = (W) ? W -> _plane[j] : 0;
-    for (i = 0; i < nbound; i++) {
-      secF = UBC[i] -> tangTraction ("wall", u, v, &work[0]);
-             fx[j] -= mu * secF.x;
-             fy[j] -= mu * secF.y;
-      if (W) fz[j] -= mu * WBC[i] -> scalarFlux ("wall", w, &work[0]);
-    }
   }
 }
 

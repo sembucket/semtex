@@ -129,6 +129,9 @@ N_BASE  N_PERT  N_Z    CATEGORY         CARTESIAN     CYLINDRICAL
 
 (?? cases most likely are OK.)
 
+See also enums in geometry.h:
+enum Category { O2_2D, O2_3D, O2_3D_SYMM, SO2_2D, SO2_3D }
+
 Note that N_PERT >= N_BASE always.
 
 Summary of additional TOKENS and session file requirements

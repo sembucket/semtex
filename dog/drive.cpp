@@ -30,6 +30,15 @@
 //   -t <num> ... set eigenvalue tolerance to num [Default = 1e-6].
 //   -p       ... recompute the pressure eigenvector
 //
+// AUTHOR:
+// ------
+// Hugh Blackburn
+// Department of Mechanical & Aerospace Engineering
+// Monash University
+// Vic 3800
+// Australia
+// hugh.blackburn@monash.edu
+//
 #ifdef FLIP
 //
 // Floquet analysis for reflection/time translation (RT) symmetric
@@ -258,8 +267,8 @@ int main (int    argc,
 	  (k, src + (i*Geometry::nZ() + k)*Geometry::planeSize());
     if (pEV) // -- Generate the pressure by running LNSE.
       switch (task) {
-      case PRIMAL: integrate  (linAdvect , domain, analyst); break;
-      case ADJOINT: integrate (linAdvectT, domain, analyst); break;
+      case PRIMAL:  integrate (linAdvect , domain, bman, analyst); break;
+      case ADJOINT: integrate (linAdvectT, domain, bman, analyst); break;
       }
     sprintf   (msg, ".eig.%1d", j);
     strcat    (strcpy (nom, domain -> name), msg);
@@ -396,18 +405,18 @@ static void EV_update  (const problem_t task,
 
   switch (task) {
   case PRIMAL:			// -- Forward in time.
-    integrate (linAdvect , domain, analyst); break;
+    integrate (linAdvect , domain, bman, analyst); break;
 
   case ADJOINT:			// -- Backward in time.
-    integrate (linAdvectT, domain, analyst); break;
+    integrate (linAdvectT, domain, bman, analyst); break;
 
   case GROWTH:			// -- Forward, then backward.
-    integrate (linAdvect , domain, analyst);
-    integrate (linAdvectT, domain, analyst); break;
+    integrate (linAdvect , domain, bman, analyst);
+    integrate (linAdvectT, domain, bman, analyst); break;
 
   case SHRINK:			// -- Backward, then forward.
-    integrate (linAdvectT, domain, analyst);
-    integrate (linAdvect , domain, analyst); break;
+    integrate (linAdvectT, domain, bman, analyst);
+    integrate (linAdvect , domain, bman, analyst); break;
 
   default:
     message ("EV_update", "Impossible task", ERROR); break;
@@ -599,7 +608,11 @@ static int_t EV_test (const int_t  itrn   ,
 
   // -- Print diagnostic information.
 
-  runinfo << "-- Iteration = " << itrn << ", H(k+1, k) = " << static_cast<double>(resnorm) << endl;
+#if 1
+  runinfo << "-- Iteration = " << itrn << ", H(k+1, k) = " << resnorm << endl;
+#else
+  runinfo << resnorm << endl;
+#endif
 
   runinfo.precision(4);
   runinfo.setf(ios::scientific, ios::floatfield);
@@ -749,8 +762,8 @@ static void EV_post (const problem_t task,
 	  domain -> u[i] -> setPlane (k, src + (i*NZ + k)*NP);
       if (pressEV) // -- Generate the pressure by running LNSE.
 	switch (task) {
-	case PRIMAL: integrate  (linAdvect , domain, analyst); break;
-	case ADJOINT: integrate (linAdvectT, domain, analyst); break;
+	case PRIMAL: integrate  (linAdvect , domain, bman, analyst); break;
+	case ADJOINT: integrate (linAdvectT, domain, bman, analyst); break;
 	}
       sprintf   (msg, ".eig.%1d", j);
       strcat    (strcpy (nom, domain -> name), msg);

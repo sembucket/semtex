@@ -16,7 +16,7 @@ class Field : public AuxField
 // Helmholtz solution routines are also available.
 // ===========================================================================
 {
-friend class PBCmgr;
+friend class BCmgr;
 
 public:
   Field  (BoundarySys*, real_t*, const int_t, vector<Element*>&, const char);
@@ -29,26 +29,14 @@ public:
   Field& solve  (AuxField*, const ModalMatrixSys*);
   Field& solve  (AuxField*, const MatrixSys*);
 
-  Field& smooth (AuxField* = 0);
+  Field& smooth (AuxField* = NULL);
   void   smooth (const int_t, real_t*) const;
 
-  void evaluateBoundaries    (const int_t);
-  void evaluateM0Boundaries  (const int_t);
-  void addToM0Boundaries     (const real_t, const char*);
-
-  static real_t flux            (const Field*);
-  static Vector normalTraction  (const Field*);
-  static Vector moment          (const Field*, const Field*, const Field*);
-  static Vector tangentTraction (const Field*, const Field*, const Field* = 0);
-  static void   normTractionV   (real_t*, real_t*, const Field*);
-  static void   tangTractionV   (real_t*, real_t*, real_t*, const Field*,
-				 const Field*, const Field* = 0);
+  void evaluateBoundaries    (const Field*, const int_t, const bool = true);
+  void evaluateM0Boundaries  (const Field*, const int_t);
 
   static void   coupleBCs    (Field*, Field*, const int_t);
   static real_t modeConstant (const char, const int_t, const real_t);
-
-  static void printBoundaries (const Field*);
-  static void printConnect    (const Field*);
 
 private:
   int_t        _nbound;		// Number of boundary edges.

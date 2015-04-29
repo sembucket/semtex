@@ -29,10 +29,10 @@ private:
   ofstream              bhs_strm;     // -- File for base history points.
 };
 
-void integrate  (void (*)(Domain*, AuxField**, AuxField**),
-		 Domain*, StabAnalyser*);
-void linAdvect  (Domain*, AuxField**, AuxField**);
-void linAdvectT (Domain*, AuxField**, AuxField**);
+void integrate  (void (*)(Domain*, BCmgr*, AuxField**, AuxField**),
+		 Domain*, BCmgr*, StabAnalyser*);
+void linAdvect  (Domain*, BCmgr*, AuxField**, AuxField**);
+void linAdvectT (Domain*, BCmgr*, AuxField**, AuxField**);
 
 // -- Fortran interfaces to things not included in semtex.
 

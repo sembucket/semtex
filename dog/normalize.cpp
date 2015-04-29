@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// normalize.C: normalize/rescale an eigenmode, either on the basis of
+// normalize.cpp: normalize/rescale an eigenmode, either on the basis of
 // kinetic energy or pressure.
 //
 // Copyright (c) 2011 <--> $Date$, Hugh Blackburn
@@ -98,7 +98,7 @@ int main (int    argc,
     norm = sqrt (2.0 * u[NCMP] -> mode_L2 (0));
   else {
     for (norm = 0.0, i = 0; i < NCMP; i++) norm += u[i] -> mode_L2 (0);
-    norm = sqrt (2 * norm);
+    norm = sqrt (2.0 * norm);
   }
 
  // -- Normalisation + scaling.

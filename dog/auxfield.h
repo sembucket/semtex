@@ -16,7 +16,7 @@ class AuxField
 friend istream& operator >> (istream&, AuxField&);
 friend ostream& operator << (ostream&, AuxField&);
 friend class    Field;
-friend class    PBCmgr;
+friend class    BCmgr;
 
 public:
   AuxField (real_t*, const int_t, vector<Element*>&, const char = 0);
