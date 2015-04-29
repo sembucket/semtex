@@ -257,7 +257,7 @@ BCmgr::BCmgr (FEML*             file,
 
   strcpy ((_fields = new char [strlen (buf) + 1]), buf);
 
-  VERBOSE cout << "  Installing numbering systems ... ";
+  VERBOSE cout << routine << ": Installing numbering systems ... ";
 
   buildnum (file -> root(), elmt);
 
@@ -925,6 +925,7 @@ void BCmgr::buildComputedBCs (const Field* master)
   int_t i, j;
 
   _nLine = master -> _nline;
+  _nEdge = master -> _nbound;
   _nZ    = master -> _nz;
   _nP    = Geometry::nP();
   _nTime = Femlib::ivalue ("N_TIME");
@@ -940,14 +941,17 @@ void BCmgr::buildComputedBCs (const Field* master)
   //    a pointer to _nline real_t storage.  Thus _xx[0] is an
   //    equivalent pointer to Field->_line.
 
-  _u     = new real_t** [static_cast<size_t>(_nTime)];
+  // -- Consult references [1] and [3] in particular regarding the uses
+  //    of the following storage used for computed BCs.
+
+  _u     = new real_t** [static_cast<size_t>(_nTime)]; // -- Velocity component.
   _v     = new real_t** [static_cast<size_t>(_nTime)];
   _w     = new real_t** [static_cast<size_t>(_nTime)];
 
-  _un    = new real_t** [static_cast<size_t>(_nTime)];
-  _divu  = new real_t** [static_cast<size_t>(_nTime)];
-  _gradu = new real_t** [static_cast<size_t>(_nTime)];
-  _hopbc = new real_t** [static_cast<size_t>(_nTime)];
+  _un    = new real_t** [static_cast<size_t>(_nTime)]; // -- u dot n.
+  _divu  = new real_t** [static_cast<size_t>(_nTime)]; // -- div(u).
+  _gradu = new real_t** [static_cast<size_t>(_nTime)]; // -- grad(u) dot n.
+  _hopbc = new real_t** [static_cast<size_t>(_nTime)]; // -- grad(p) dot n.
 
   for (i = 0; i < _nTime; i++) {
     _u    [i] = new real_t* [static_cast<size_t>(_nZ)];
@@ -995,8 +999,7 @@ void BCmgr::maintainPhysical (const Field*             master,
 // must be computed from data which are currently in physical space.
 // ---------------------------------------------------------------------------
 {
-  const int_t              nEdge = master -> _nbound;
-  const vector<Boundary*>& BC    = master -> _bsys -> BCs (0);
+  const vector<Boundary*>& BC = master -> _bsys -> BCs (0);
   Boundary*                B;
   int_t                    i, j, k, offset, skip;
 
@@ -1011,7 +1014,7 @@ void BCmgr::maintainPhysical (const Field*             master,
   // -- Save domain-edge velocity components for later extrapolation.
 
   for (k = 0; k < _nZ; k++) {
-    for (i = 0; i < nEdge; i++) {
+    for (i = 0; i < _nEdge; i++) {
       B      = BC[i];
       offset = B -> dOff ();
       skip   = B -> dSkip();
@@ -1033,9 +1036,9 @@ void BCmgr::maintainFourier (const int_t      step   ,
 			     const AuxField** Uf     ,
 			     const bool       timedep)
 // ---------------------------------------------------------------------------
-// Update storage for evaluation of internally computed pressure boundary
-// conditions.  Storage order for each edge represents a CCW traverse
-// of element boundaries.
+// Update storage for evaluation of internally computed pressure
+// boundary conditions, see ref [1].  Storage order for each edge
+// represents a CCW traverse of element boundaries.
 //
 // If the velocity field varies in time on HOPB field boundaries
 // (e.g. due to time-varying BCs) the local fluid acceleration will be
@@ -1043,12 +1046,11 @@ void BCmgr::maintainFourier (const int_t      step   ,
 // timedep is true.  This correction cannot be carried out at the
 // first timestep, since the required extrapolation cannot be done.
 // If the acceleration is known, (for example, a known reference frame
-// acceleration) it is probably better to leave timedep unset, and to
-// use BCmgr::accelerate() to add in the accelerative term.  Note
-// also that since grad P is dotted with n, the unit outward normal,
-// at a later stage, timedep only needs to be set if there are
-// wall-normal accelerative terms.  NB: The default value of timedep
-// is true.
+// acceleration) it is better to leave timedep false, and to use
+// BCmgr::accelerate() to add in the accelerative term.  Note also
+// that since grad P is dotted with n, the unit outward normal, at a
+// later stage, timedep only needs to be set if there are wall-normal
+// accelerative terms.  NB: The default value of timedep is true.
 //
 // Field* master gives a list of egdes with which to traverse storage
 // areas (note this assumes equal-order interpolations).
@@ -1056,7 +1058,6 @@ void BCmgr::maintainFourier (const int_t      step   ,
 // No smoothing is done to high-order spatial derivatives computed here.
 // ---------------------------------------------------------------------------
 {
-  const int_t              nEdge = master -> _nbound;
   const int_t              base  = Geometry::baseMode();
   const int_t              nMode = Geometry::nModeProc();
   const int_t              mLo   = (Geometry::procID() == 0) ? 1 : 0;
@@ -1105,7 +1106,7 @@ void BCmgr::maintainFourier (const int_t      step   ,
   //    pressure BCs.  We use the top level of _divu as temporary
   //    storage of u.n.  Also add in the n.[N+f] terms to _hopbc.
 
-  for (i = 0; i < nEdge; i++) {
+  for (i = 0; i < _nEdge; i++) {
     B      = BC[i];
     offset = B -> dOff ();
     skip   = B -> dSkip();
@@ -1156,7 +1157,7 @@ void BCmgr::maintainFourier (const int_t      step   ,
   //    gradients will be element-edge-only, hence cheap.  And the
   //    Edge:curlCurl() method is well tested.
 
-  for (i = 0; i < nEdge; i++) {
+  for (i = 0; i < _nEdge; i++) {
     B  = BC[i];
     j  = i * _nP;
 
@@ -1196,7 +1197,7 @@ void BCmgr::maintainFourier (const int_t      step   ,
 
   // -- Remaining gradient-based terms (ones from ref [3]).
 
-  for (i = 0; i < nEdge; i++) {
+  for (i = 0; i < _nEdge; i++) {
     B      = BC[i];
     offset = B -> dOff ();
     skip   = B -> dSkip();
@@ -1348,7 +1349,7 @@ void BCmgr::accelerate (const Vector& a,
 
   for (i = 0; i < u->_nbound; i++) {
     B = BC[i];
-    B -> addForGroup ("velocity", a.x, _hopbc[0][0] + i*_nP);
+    B -> dotInForGroup ("velocity", a, _hopbc[0][0] + i*_nP);
   }
 }
 
@@ -1370,7 +1371,6 @@ void BCmgr::evaluateCEBCp (const Field* master,
   if (Je < 1) return;		// -- No evaluation during Field creation.
 
   const vector<Boundary*>& BC     = master -> _bsys -> BCs (0);
-  const int_t              nEdge  = master -> _nbound;
   const real_t             iUZD   = 1.0 / Femlib::value ("U0Delta");
   const int_t              offset = id * _nP;
   const Boundary*          B;
@@ -1400,7 +1400,7 @@ void BCmgr::evaluateCEBCp (const Field* master,
       Blas::axpy (nTot, beta[q], _v[q][0], 1, _fbuf, 1); // -- v*.
     }
 
-    for (i = 0; i < nEdge; i++) { // -- Make u*.n, leave in _unp.
+    for (i = 0; i < _nEdge; i++) { // -- Make u*.n, leave in _unp.
       B = BC[i];
       j = i * _nP;
       for (k = 0; k < _nZ; k++) {

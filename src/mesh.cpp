@@ -120,13 +120,11 @@ using namespace std;
 #include <blas.h>
 #include <mesh.h>
 
-
-#define VERBOSE if (verbose)
-
 static inline int_t rma (int_t i, int_t j, int_t n)
 // -- Row-major offsetting for 2D arrays with 0-based indexing.
 { return j + i * n; }
 
+#define VERBOSE if (verbose)
 
 Mesh::Mesh (FEML*      f    ,
 	    const bool check) :
@@ -160,7 +158,7 @@ Mesh::Mesh (FEML*      f    ,
     message (routine, err, ERROR);
   }
 
-  VERBOSE cout << "  Reading vertices ... ";
+  VERBOSE cout << routine << ": Reading vertices ... ";
 
   for (i = 0; i < Nn; i++) {
 

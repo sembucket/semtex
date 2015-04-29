@@ -711,7 +711,6 @@ Field& Field::solve (AuxField*             f  ,
     case JACPCG: {
       const int_t     StepMax =  Femlib::ivalue ("STEP_MAX");
       const int_t     npts    = M -> _npts;
-      const int_t     BCmode  = mode * Femlib::ivalue ("BETA");
       real_t          alpha, beta, dotp, epsb2, r2, rho1, rho2;
 #if defined (_VECTOR_ARCH)
       vector<real_t>  work (5 * npts + 3 * Geometry::nPlane());
@@ -743,7 +742,7 @@ Field& Field::solve (AuxField*             f  ,
 
       Veclib::zero (nzero, x + nsolve, 1);   
       Veclib::copy (npts,  x, 1, q, 1);
-      this -> HelmholtzOperator (q, p, lambda2, betak2, BCmode, wrk);
+      this -> HelmholtzOperator (q, p, lambda2, betak2, mode, wrk);
 
       Veclib::zero (nzero, p + nsolve, 1);
       Veclib::zero (nzero, r + nsolve, 1);
@@ -773,7 +772,7 @@ Field& Field::solve (AuxField*             f  ,
 
 	// -- Matrix-vector product.
 
-	this -> HelmholtzOperator (p, q, lambda2, betak2, BCmode, wrk);
+	this -> HelmholtzOperator (p, q, lambda2, betak2, mode, wrk);
 
 	Veclib::zero (nzero, q + nsolve, 1);
 
@@ -871,6 +870,10 @@ void Field::HelmholtzOperator (const real_t* x      ,
 #else
 // Vector work must have length 4 * Geometry::nTotElmt().
 #endif
+//
+// Note that we multiply the input value of mode by BETA in order to
+// pick up the correct mode-dependent set of (axis) BCs for
+// cylindrical-coordinate problems.
 // ---------------------------------------------------------------------------
 {
   const int_t      np      = Geometry::nP();
@@ -879,7 +882,7 @@ void Field::HelmholtzOperator (const real_t* x      ,
   const int_t      next    = Geometry::nExtElmt();
   const int_t      nint    = Geometry::nIntElmt();
   const int_t      ntot    = Geometry::nPlane();
-  const NumberSys* NS      = _bsys -> Nsys (mode);
+  const NumberSys* NS      = _bsys -> Nsys (mode * Femlib::ivalue ("BETA"));
   const int_t*     gid     = NS -> btog();
   const int_t      nglobal = NS -> nGlobal() + Geometry::nInode();
   register int_t   i;
