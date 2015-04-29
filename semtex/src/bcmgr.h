@@ -81,7 +81,8 @@ private:
   // -- Storage of past-time values needed for computed BCs:
 
   int_t     _nLine;	// Same as for Field storage.
-  int_t     _nZ;        // Ditto.
+  int_t     _nEdge;     // Number of edges with BCs attached.
+  int_t     _nZ;        // Same as for Field storage.
   int_t     _nP;
   int_t     _nTime;
 

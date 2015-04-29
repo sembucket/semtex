@@ -31,9 +31,10 @@ public:
   void   divY     (real_t*)                                              const;
   void   sideEvaluate (const char*, real_t*)                             const;
 
-  bool   inGroup     (const char* grp) const { return !(strcmp (grp,_group)); }
-  void   addForGroup (const char*,const real_t,real_t*)                  const;
-  void   setForGroup (const char*,const real_t,real_t*)                  const;
+  bool   inGroup      (const char* grp) const { return !(strcmp (grp,_group)); }
+  void   addForGroup  (const char*, const real_t,  real_t*)              const;
+  void   setForGroup  (const char*, const real_t,  real_t*)              const;
+  void   dotInForGroup(const char*, const Vector&, real_t*)              const;
 
   real_t vectorFlux (const char*,const real_t*,const real_t*,real_t*)    const;
   real_t scalarFlux (const char*,const real_t*,real_t*)                  const;
