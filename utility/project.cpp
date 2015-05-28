@@ -449,9 +449,11 @@ static bool getDump (istream&           ifile ,
   sprintf (buf, hdr_fmt[2], fmt);
   cout << buf;
 
+#if 0
   if      (nz >  1 && nznew == 1 && !keepW) finc = -1;
   else if (nz == 1 && nznew >  1)           finc = +1;
   else                                      finc =  0;
+#endif
 
   for (i = 0; i < 5; i++) {
    ifile.getline (buf, StrMax);
@@ -462,8 +464,20 @@ static bool getDump (istream&           ifile ,
 
   ifile >> oldfields;
   nf = strlen (oldfields);
+
+#if 1
+  finc = 0; 			  // -- Default: fields out = fields in.
+  if (strstr (oldfields, "uv")) { // -- Velocity vectors present.
+    // 2D2C --> 3D3C.
+    if (nz == 1 && nznew > 1 && !strchr (oldfields, 'w')) finc =  1;
+    // 3D3C --> 2D2C.
+    else if (nz > 1 && nznew == 1 && !keepW)              finc = -1;
+  }
+#else
   if (finc == +1 &&  strchr (oldfields, 'w')) finc = 0;
   if (finc == -1 && !strchr (oldfields, 'w')) finc = 0;
+#endif
+
   for (j = 0, i = 0; i < nf; i++) {
     if (finc == -1 && oldfields[i] == 'w') continue;
     if (finc == +1 && oldfields[i] == 'v') {
