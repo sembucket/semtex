@@ -451,7 +451,6 @@ static void stress  (map<char, AuxField*>& in  ,
       *out['v'] *= -1.0;
 
     } else {			// -- 3D TODO!
-    }
-  }
+ 
 }
 

@@ -1,10 +1,10 @@
 ///////////////////////////////////////////////////////////////////////////////
-// repeatmesh.C: read semtex session file: NODES and ELEMENTS, and
+// repmesh.cpp: read semtex session file: NODES and ELEMENTS, and
 // generate planar reflection about either x or y axis, or generate
 // rotation about named point.  Combine the result, deleting
 // non-unique NODES.  Print on cout.
 //
-// repeatmesh [-x || -y] [-r x0 y0 ang nrep] [-h] session
+// repmesh [-x || -y] [-r x0 y0 ang nrep] [-h] session
 //
 // Either X or Y reflections change the sense of rotation around
 // elements.  Angular rotations are taken CCW, measured in degrees.
