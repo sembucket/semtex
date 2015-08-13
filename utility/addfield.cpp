@@ -212,7 +212,7 @@ int main (int    argc,
   // -- Check if we just have the (first two) cases not requiring derivatives.
 
   for (p = 0, i = 0; i < FLAG_MAX; i++) p += (add[i]) ? (i + 1) : 0;
-  if (p <= 3) gradient = false; else gradient = true;
+  if (p <= 2) gradient = false; else gradient = true;
 
   for (i = 0; i < FLAG_MAX; i++) need[i] = add[i];
 
