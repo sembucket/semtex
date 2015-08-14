@@ -15,7 +15,7 @@
 //   -z <num> ... override number of planes to be num
 //   -b <num> ... override wavenumber beta to be <num> (3D)
 //
-// Prism-compatible output.  
+// Prism-compatible output.
 //
 // Note that option 's' does not print mesh node locations but instead
 // lists element sides that are free from internal element
@@ -25,17 +25,17 @@
 //
 // --
 // This file is part of Semtex.
-// 
+//
 // Semtex is free software; you can redistribute it and/or modify it
 // under the terms of the GNU General Public License as published by the
 // Free Software Foundation; either version 2 of the License, or (at your
 // option) any later version.
-// 
+//
 // Semtex is distributed in the hope that it will be useful, but WITHOUT
 // ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 // FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 // for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Semtex (see the file COPYING); if not, write to the Free
 // Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
@@ -114,7 +114,7 @@ int main (int    argc,
 		   << np  << " "
 		   << nz  << " "
 		   << NEL << " NR NS NZ NEL"<< endl;
-    
+
     if (basis == TRZ) {
       Femlib::equispacedMesh (np, &unimesh[0]);
       zero_r = zero_s = &unimesh[0];
@@ -138,18 +138,17 @@ int main (int    argc,
       }
 
     } else {
-   
-      // -- Print_t out x-y mesh.
 
+      // -- Print_t out x-y mesh.
+      std::cout.precision(16);
       for (ID = 0; ID < NEL; ID++) {
 	M.meshElmt (ID, np, zero_r, zero_r, &x[0], &y[0]);
 	for (j = 0; j < NTOT; j++)
-	  cout << setw(15) << x[j] << setw(15) << y[j] << endl;
+	  cout << setw(20) << x[j] << setw(22) << y[j] << endl;
       }
-  
+
       // -- Print_t out z-mesh.
-    
-      if (nz > 1) for (j = 0; j <= nz; j++) cout << setw(15) << j * dz << endl;
+      if (nz > 1) for (j = 0; j <= nz; j++) cout << setw(19) << j * dz << endl;
     }
   }
 
@@ -158,7 +157,7 @@ int main (int    argc,
 }
 
 
-static void getargs (int     argc   , 
+static void getargs (int     argc   ,
 		     char**  argv   ,
 		     char*&  session,
 		     int_t&  verb   ,

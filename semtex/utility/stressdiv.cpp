@@ -101,12 +101,12 @@ static char RCS[] = "$Id$";
 
 static char  prog[] = "stressdiv";
 static void  getargs (int,char**,const char*&,const char*&);
-static int_t preScan (ifstream&);
+static int_t preScan (ifstream&, int_t&);
 static void  getMesh (const char*,vector<Element*>&, const int_t);
-static void  makeBuf (map<char,AuxField*>&, AuxField*&, vector<Element*>&);
+static void  makeBuf (map<char,AuxField*>&, AuxField*&, vector<Element*>&, const int_t);
 static bool  getDump (ifstream&,map<char, AuxField*>&,vector<Element*>&);
 static bool  doSwap  (const char*);
-static void  stress  (map<char,AuxField*>&,map<char,AuxField*>&, AuxField*);
+static void  stress  (map<char,AuxField*>&,map<char,AuxField*>&, AuxField*, const int);
 static const char* fieldNames(map<char, AuxField*>&);
 
 
@@ -123,16 +123,17 @@ int main (int    argc,
   vector<AuxField*>    outbuf;
   AuxField*            work;
   int_t                NDIM;
+  int_t                NCOM;
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, session, dump);
 
   avgfile.open (dump, ios::in);
   if (!avgfile) message (prog, "no field file", ERROR);
-  NDIM = preScan (avgfile);
+  NDIM = preScan (avgfile, NCOM);
   
   getMesh (session, elmt, NDIM);
-  makeBuf (output, work, elmt);
+  makeBuf (output, work, elmt, NCOM);
 
   // -- Need to link outbuf to output so we can use writeField.
   //    Maybe in the longer term we should overload writeField.
@@ -142,7 +143,7 @@ int main (int    argc,
        k != output.end(); k++, i++) outbuf[i] = k -> second;
   
   while (getDump (avgfile, input, elmt)) {
-    stress     (input, output, work);
+    stress     (input, output, work, NCOM);
     writeField (cout, session, 0, 0.0, outbuf);
   }
   
@@ -185,7 +186,7 @@ static void getargs (int          argc   ,
 }
 
 
-static int_t preScan (ifstream& file)
+static int_t preScan (ifstream& file, int_t& ncom)
 // ---------------------------------------------------------------------------
 // Read ahead in the avg file and find the dimensionality of the
 // stress (2 if nz = 1 or 3 if nz > 1).  Also check that the file
@@ -221,11 +222,12 @@ static int_t preScan (ifstream& file)
   file >> fields;
   file.getline (buf, StrMax);
 
-  if (ndim == 2 && !(strstr (fields, "ABC")))
-    message (prog,  "stress file must contain fields ABC",    ERROR);
-  else if (ndim == 3 && !(strstr (fields, "ABCDEF")))
+  if (strstr(fields, "ABCDEF")) ncom = 3;
+  else if (strstr(fields, "ABC")) ncom = 2;
+  
+  if (ndim == 3 and ncom != 3)
     message (prog,  "stress file must contain fields ABCDEF", ERROR);
-
+    
   // -- All clear: rewind & return.
 
   file.seekg (0);
@@ -263,7 +265,8 @@ static void getMesh (const char*       session,
 
 static void makeBuf (map<char, AuxField*>& output,
 		     AuxField*&            work  ,
-		     vector<Element*>&     elmt  )
+		     vector<Element*>&     elmt,
+		     const int             ncom)
 // ---------------------------------------------------------------------------
 // Note that we only set up the output and work buffers here. The
 // input buffers get created in getDump.
@@ -272,7 +275,7 @@ static void makeBuf (map<char, AuxField*>& output,
   const int_t nz   = Geometry::nZ();
   const int_t ntot = Geometry::nTotal();
 
-  if (nz == 1) {			// -- Set by stress file info.
+  if (ncom == 2) {			// -- Set by stress file info.
     output['u'] = new AuxField (new real_t[ntot], nz, elmt, 'u');
     output['v'] = new AuxField (new real_t[ntot], nz, elmt, 'v');
   } else {
@@ -386,7 +389,8 @@ static bool doSwap (const char* ffmt)
 
 static void stress  (map<char, AuxField*>& in  ,
 		     map<char, AuxField*>& out ,
-		     AuxField*             work)
+		     AuxField*             work,
+		     const int             ncom)
 // ---------------------------------------------------------------------------
 // This does the actual work of building stress divergence terms.
 //
@@ -415,42 +419,103 @@ static void stress  (map<char, AuxField*>& in  ,
 //   = -[d(B)/dx + d(C)/dy + C/y + 1/y*d(E)/dz - F/y]
 // w = -[d(D)/dx + d(E)/dy       + 1/y*d(F)/dz + 2*E/y]
 //
+// TA: double checked second lines
+//
 // Cylindrical coordinates/2D:
 // ---------------------------
 //
-// u = -[d(A)/dx + 1/y*d(y*B)/dy = d(A)/dx + d(B)/dy + B/y]
-// v = -[d(B)/dx + 1/y*d(y*C)/dy = d(B)/dx + d(C)/dy + C/y]
-//
-// NB: 3D is not yet implemented!
+// u = -[d(A)/dx + 1/y*d(y*B)/dy] = -[d(A)/dx + d(B)/dy + B/y]
+// v = -[d(B)/dx + 1/y*d(y*C)/dy] = -[d(B)/dx + d(C)/dy + C/y]
+// if 2D3C:
+// w = -[d(D)/dx + d(E)/dy + 2*E/y]
+
+// NB: Cylindrical/3D is implemented but yet to be validated!
 // ---------------------------------------------------------------------------
 {
   if (Geometry::cylindrical()) {
-    if (Geometry::nZ() == 1) {	// -- 2D.
+    if (Geometry::nZ() == 1) {
+                                // -- 2D2C
       (*out['u']  = *in['A']) . gradient(0);
-       *out['u'] += (*work = *in['B']) . gradient(1);
+      *out['u'] += (*work = *in['B']) . gradient(1);
       (*out['v']  = *in['B']) . gradient(0);
-       *out['v'] += (*work = *in['C']) . gradient(1);
+      *out['v'] += (*work = *in['C']) . gradient(1);
 
       *out['u'] += (*work = *in['B']) . divY();
       *out['v'] += (*work = *in['C']) . divY();
+      *out['v'] -= (*work = *in['F']) . divY();
 
       *out['u'] *= -1.0;
       *out['v'] *= -1.0;
-      
-    } else {			// -- 3D TODO!
+
+      if (ncom == 3) {          // -- 2D3C
+        (*out['w']  = *in['D']) . gradient(0);
+        *out['w'] += (*work = *in['E']) . gradient(1);
+        *work = (*in['E']) . divY();
+        *out['w'] += (*work *= 2.);
+        *out['w'] *= -1.0;
+      }
+    } else {			// -- 3D not validated
+
+       // u  = -[d(A)/dx + d(B)/dy + B/y + 1/y*d(D)/dz]
+      (*out['u'] = *in['D']).transform(FORWARD).gradient(2).transform(INVERSE);
+      *out['u'] += *in['B'];
+      out['u'] -> divY();
+      *out['u'] += (*work = *in['B']) . gradient(1);
+      *out['u'] += (*work = *in['A']) . gradient(0);
+      *out['u'] *= -1.0;
+
+      // v  = -[d(B)/dx + d(C)/dy + C/y + 1/y*d(E)/dz - F/y]
+      (*out['v'] = *in['E']).transform(FORWARD).gradient(2).transform(INVERSE);
+      *out['v'] += *in['F'];
+      *out['v'] += *in['C'];
+      out['v'] -> divY();
+      *out['v'] += (*work = *in['C']) . gradient(1);
+      *out['v'] += (*work = *in['B']) . gradient(0);
+      *out['v'] *= -1.0;
+
+        // w = -[d(D)/dx + d(E)/dy       + 1/y*d(F)/dz + 2*E/y]
+      (*out['w'] = *in['F']).transform(FORWARD).gradient(2).transform(INVERSE);
+      *out['w'] += *in['E'];
+      *out['w'] += *in['E'];
+      out['w'] -> divY();
+      *out['w'] += (*work = *in['E']) . gradient(1);
+      *out['w'] += (*work = *in['D']) . gradient(0);
+      *out['w'] *= -1.0;
+
     }
   } else {			// -- Cartesian.
-    if (Geometry::nZ() == 1) {	// -- 2D.
+    if (Geometry::nZ() == 1) {
+                                // -- 2D2C
       (*out['u']  = *in['A']) . gradient(0);
-       *out['u'] += (*work = *in['B']) . gradient(1);
+      *out['u'] += (*work = *in['B']) . gradient(1);
 
       (*out['v']  = *in['B']) . gradient(0);
-       *out['v'] += (*work = *in['C']) . gradient(1);
+      *out['v'] += (*work = *in['C']) . gradient(1);
 
       *out['u'] *= -1.0;
       *out['v'] *= -1.0;
+      if (ncom == 3) {          // -- 2D3C
+        (*out['w']  = *in['D']) . gradient(0);
+        *out['w'] += (*work = *in['E']) . gradient(1);
+        *out['w'] *= -1.0;
+      }
+    } else {			// -- 3D
+      (*out['u']  = *in['A']) . gradient(0);
+      *out['u'] += (*work = *in['B']) . gradient(1);
+      *out['u'] += (*work = *in['D']) . transform(FORWARD).gradient(2).transform(INVERSE);
 
-    } else {			// -- 3D TODO!
- 
+      (*out['v']  = *in['B']) . gradient(0);
+      *out['v'] += (*work = *in['C']) . gradient(1);
+      *out['v'] += (*work = *in['E']) . transform(FORWARD).gradient(2).transform(INVERSE);
+
+      (*out['w']  = *in['D']) . gradient(0);
+      *out['w'] += (*work = *in['E']) . gradient(1);
+      *out['w'] += (*work = *in['F']) . transform(FORWARD).gradient(2).transform(INVERSE);
+
+      *out['u'] *= -1.0;
+      *out['v'] *= -1.0;
+      *out['w'] *= -1.0;
+    }
+  }
 }
 
