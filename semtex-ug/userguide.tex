@@ -88,7 +88,7 @@ Monash University
 
 \today
 
-\Semtex\ version 7.1
+\Semtex\ version 8.1
 
 \vspace*{\fill}
 
@@ -173,11 +173,16 @@ velocity-correction method by \citet{gush03}. One can select first,
 second, or third-order time integration, but second order is usually a
 reasonable compromise, and is the default scheme. Equal-order
 interpolation is used for velocity and pressure
-\citep[see][]{gms06}. As of \Semtex\ V7, only the `alternating skew
-symmetric' form \citep{zan91b} is available for construction of
+\citep[see][]{gms06}. As of \Semtex~V8, the `alternating skew
+symmetric' form \citep{zan91b} is the default for construction of
 nonlinear terms in the \NavSto\ equations (faster and just as robust
-as full skew symmetric), and no dealiasing of product terms is carried
-out.
+as full skew symmetric, which is still an option), and no dealiasing
+of product terms is carried out.  
+
+A significant novelty of \Semtex~V8 is the option of robust outflow
+boundary conditions \citep{dkc14}, which alleviate much of the
+numerical stability problem associated with inflows that occur at the
+outflow boundary.
 
 %-----------------------------------------------------------------------------
 \section{Implementation}
@@ -1621,28 +1626,33 @@ may want to try altering the parameter \texttt{LVR} in
 \textsl{This extension developed by Thomas Albrecht.}\\
 
 \noindent
-An extended DNS code can be found in the \verb+dns_ff+ directory. It
-adds various classes of distributed body forces to the capabilities of
-the basic \verb+dns+ version.  It is our intention that this
-eventually becomes the standard DNS version.
+%An extended DNS code can be found in the \verb+dns_ff+ directory. It
+%adds various classes of distributed body forces to the capabilities of
+%the basic \verb+dns+ version.  It is our intention that this
+%eventually becomes the standard DNS version.
 
 If found, the \verb+FORCE+ section of the session file allows you to
 declare various types of body forcing, \ie add a source term
 to the RHS of the \NavSto\ equation. The currently implemented types
 include (any combination allowed):\\[1em]
 \begin{tabular}{rll}
- $ \bm{f} =$ & $\bm{f}_{const}$                           &  constant force \\
-           $+$ & $\bm{a_1}(\bm{x})$                       &
-steady, but spatially varying force\\
-           $+$ & $\bm{a_2}(\bm{x}) \, \bm{\alpha}(t) $ &  modulated
-force\\
-           $+$ & $m_1(\bm{x}) \, (\bm{u} - \bm{u}_0)$  &  sponge region
-\\
-           $-$ & $m_2(\bm{x}) \, \frac{\bm{u}}{|\bm{u}|} \,
-|\bm{u}(\bm{x}, t)|^2$  &  'drag' force  \\
+ $ \bm{f} =$ & $\bm{f}_{const}$                           
+  & constant force \\
+           $+$ & $\bm{a_1}(\bm{x})$                       
+  & steady, but spatially varying force\\
+           $+$ & $\bm{a_2}(\bm{x}) \, \bm{\alpha}(t) $ 
+  & modulated force\\
+           $-$ & $m_1(\bm{x})\,(\bm{u} - \bm{u}_0)$  
+  &  sponge region\\
+           $-$ & $m_2(\bm{x})\,\frac{\bm{u}}{|\bm{u}|}\,|\bm{u}(\bm{x}, t)|^2$  
+  &  `drag' force  \\
 %            + & $\bm{d} \, c$                         &  bouyancy \\
-           $+$ & $\bm{\epsilon} G$                        &  white noise    \\
-           $-$ & 2 $\bm{\Omega} \times \bm{u} - \frac{d\bm{\Omega}}{dt} \times \bm{x} -\bm{\Omega} \times \bm{\Omega} \times \bm{x}$  &  coriolis force. \\
+           $+$ & $\bm{\epsilon} G$                        
+  &  white noise    \\
+           $-$ & 2 $\bm{\Omega} \times \bm{u} - 
+                    \frac{d\bm{\Omega}}{dt} \times \bm{x} -
+                    \bm{\Omega} \times \bm{\Omega} \times \bm{x}$  
+  &  Coriolis force. \\
 \end{tabular}\\[1em]
 %----------------------------------------------------------------------------
 % \subsection{Constant force}
@@ -1939,7 +1949,7 @@ of its internal storage is publicly accessible.
 Nodal elements: the shape functions used in the code correspond to the
 classical `nodal', rather than the `modal' scheme. This means that the
 shape functions are tensor products of 1D Lagrange interpolants that
-are zero at one mesh node and zero at the others.
+have value unity at one mesh node and zero at the others.
 \item
 \textsl{Timestepping algorithm and the code loop} The scheme is the `stiffly
 stable' scheme, based on backward differencing in time, and uses
