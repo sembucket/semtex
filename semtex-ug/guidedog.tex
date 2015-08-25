@@ -26,6 +26,11 @@ amsfonts
 \setlength{\bibsep}                  {\parskip}
 
 \renewcommand{\baselinestretch}      {1.0}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.85}
+\renewcommand{\textfraction}{0.15}
+\renewcommand{\floatpagefraction}{0.7}
+
 \renewcommand{\familydefault}{cmss}
 
 \newcommand\Rey{\mbox{\textit{Re}}}
@@ -157,10 +162,12 @@ Monash University
 \chapter{Introduction}
 
 \Dog\ is a tool to compute solutions to stability analysis and/or
-optimal transient growth problems in steady or time-periodic viscous
-flows with moderate \twod\ geometric complexity.  The name is an
-acronym of '\undertext{d}irect \undertext{o}ptimal
-\undertext{g}rowth'.
+optimal transient growth problems in steady or time-periodic
+incompressible viscous flows with moderate \twod\ geometric
+complexity.  Such stability analyses are sometimes referred to as
+`global' ones in order to distinguish them from `local' or sectional
+analyses which were the previous norm.  The name \Dog\ is an acronym
+of '\undertext{d}irect \undertext{o}ptimal \undertext{g}rowth'.
 %
 In effect \Dog\ provides an iterative eigensystem solution wrapper
 around routines which timestep the linearised \NavSto\ equations and
@@ -184,7 +191,19 @@ prototype for \Dog\ and who, together with Spencer Sherwin, helped
 develop the optimal growth tools in \Dog), Ron Henderson (whose DNS
 code \texttt{prism} was the underlying basis for \texttt{flok} and
 which was also the progenitor of \Semtex), Spencer Sherwin and Xuerui
-Mao.  It's been a great experience to work with all of you.
+Mao. I should add that Laurette Tuckerman has also long been a
+champion of flow analysis methods based on integration of the
+\NavSto\ equations, which is the methodology used by \Dog.  It's been
+a great experience to work with all of you.
+
+It seems worth remarking at the outset that global flow stability
+analysis, like most iterative solution of large eigensystems, is
+somewhat of an art.  Experience, judgement and determination seem to
+play a greater role here than is the case for DNS.  If you do succeed
+in obtaining converged solutions, it pays not to trust them at first;
+examine convergence, find ways to check outcomes.  If you do not
+obtain converged eigenvalue estimates at first try, be prepared to
+make changes and persist. 
 
 %=============================================================================
 \section{\Dog\ and its kin}
@@ -256,11 +275,8 @@ directory.  Other files have standard extensions:
         Global node numbers, produced by enumerate utility.\\
 \texttt{session.rst}  \>
         Restart file. Read in to initialize solution if present.\\
-\texttt{session.avg} \> Averaged results. Read back in for
-        continuation (over-written).\\
 \texttt{session.his} \> History point data.\\
-\texttt{session.mdl} \> Time series of kinetic energies in the Fourier
-        modes (only for 3D execution).\\
+\texttt{session.mdl} \> Time series of kinetic energy of the perturbation.
 \end{tabbing}
 The primary focus when running \Dog\ is usually the \verb+session.evl+
 file. It is good practice to use \verb+tail -f session.evl+ in order
@@ -270,13 +286,124 @@ to monitor progress of convergence.
 %============================================================================
 \subsection{Usage}
 
+{\small
+\begin{verbatim}
+[mec-aquila]$ dog -h
+dog(-H) [options] session
+options:
+-h       ... print this message
+-v       ... set verbose
+-a||g||s ... solve adjoint or optimal growth or optimal shrink, problem
+-k <num> ... set dimension of subspace (maximum number of pairs) to num
+-m <num> ... set maximum number of iterations         (m >= k)
+-n <num> ... compute num eigenvalue/eigenvector pairs (n <= k)
+-t <num> ... set eigenvalue tolerance to num [Default 1e-6]
+-p       ... compute pressure from converged velocity eigenvector
+\end{verbatim}
+}
+
+{\small
+\begin{verbatim}
+[mec-aquila]$  lns -h
+Usage: lns [options] session-file
+[options]:
+-h        ... print this message
+-a        ... use adjoint LNSE instead of primal LNSE
+-i[i]     ... use iterative solver for viscous [& pressure] steps
+-v[v...]  ... increase verbosity level
+-chk      ... checkpoint field dumps
+\end{verbatim}
+}
+
+{\small
+\begin{verbatim}
+[mec-aquila]$ normalize
+ERROR: normalize: Usage: normalize [options] session [session.fld]
+options:
+-h       ... print this message
+-p       ... mode normalization on pressure rather than velocity
+-s scale ... multiplicative scale applied after normalization
+\end{verbatim}
+}
+
+{\small
+\begin{verbatim}
+[mec-aquila]$ combine -h
+Usage: combine [options] base pert
+options:
+-h       ... print this message.
+-b <num> ... set beta, wavenumber of base flow to <num> (3D) [Default: 1.0]
+-r <num> ... relative energy of perturbation is <num>.       [Default: 1.0]
+-s       ... simple scaling: scaling is pointwise rather than energy-based
+-m <num> ... mode number for perturbation is <num> (3D only) [Default: 1]
+\end{verbatim}
+}
+
+{\small
+\begin{verbatim}
+[mec-aquila]$ circulate -h
+usage: circulate n file
+\end{verbatim}
+}
+
+{\small
+\begin{verbatim}
+[mec-aquila]$ flipmap -h
+Usage: flipmap [-h] -x || -y || -d [-t <num>] [meshfile]
+\end{verbatim}
+}
+
+{\small
+\begin{verbatim}
+[mec-aquila]$ symmetrise
+Usage: symmetrise [options] -m mapfile [file]
+options:
+-h       ... print this message
+\end{verbatim}
+}
+
+%============================================================================
+\subsection{Dimensionality and componentality}
+
+By `dimensionality' we mean the number of dimensions required to
+describe a flow's variation in space whereas by `componentality' we
+mean the number of velocity components required to represent it.  We
+can use a convenient set of acronyms such as 2D2C, 2D3C, 3D3C.  A very
+typical combination is that the base flow will be 2D2C while the
+linear stability modes are 3D3C.  The combinations \Dog\ can accept
+(base/stability) are: 1D2C/2D2C, 1D2C/2D3C, 2D2C/2D2C, 2D2C/2D3C,
+2D3C/2D3C, but is presently not capable of dealing with 3D3C/3D3C.
+The coordinate systems available (as for \Semtex) are Cartesian and
+cylindrical.  \citep[One might anticipate that 1D2C/2D3C analyses are
+  not very useful owing to Squire's theorem for stability of `parallel
+  shear flows', see][ but it seems Squire's theorem does not apply in
+  cylindrical coordinates.]{schmid01}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Theory}
 \label{ch.theory}
 
-Two good general references for the methods advanced in this chapter
-are \citet{tuba00} and \citet{bbs08b}.
+This chapter contains sufficient depth to be able to understand and
+use \Dog, but is by no means a full treatment of the theory on which
+flow stability analysis is based.  It is assumed that the reader has
+previously taken a course that deals with eigensystem analysis of
+linear systems.
+%
+The standard text in the general area of flow stability analysis is
+\citet{schmid01} although it tends to concentrate on analysis of
+\oned\ flows via the \Orrsom\ equations.
+%
+A good introductory reference for the timestepper-based methods
+advanced in this chapter is \citet{tuba00}.
+%
+For stability analysis of \twod\ steady flow, \citet{bgh02} is a good
+starting point; for stability analysis of time-periodic flow,
+\cite{bah96} is required reading; a good introduction to transient
+growth analysis is provided by \citet{bbs08a}, while \citet{bbs08b}
+provides a more detailed explanation of the underlying mathematics of
+transient growth analysis and includes a description of the
+eigensystem solution method that is standard in \Dog.
 
 %=============================================================================
 \section{The \LNSE\ in operator form}
@@ -366,6 +493,17 @@ does not imply that the pressure is not computed.  However, it is
 typically only the velocity components which are considered as part of
 the numerical eigensystem analysis of incompressible flows.
 
+\textbf{3D modes and Fourier transformed \LNS\ equations}
+
+Before proceding to consider stability analysis, it should be noted
+that since the base flow $\Ubase$ is required as input, one must pay
+considerable attention to obtaining a good estimate for it.  In fact,
+this precursor requirement often consumes a substantial part of the
+overall effort in performing a stability analysis.  Fortunately
+however, one can very often re-use the session files used for
+computing the base flow as a basis for those employed in stability
+anlysis.
+
 %=============================================================================
 \section{Timestepping, the exponential mapping, and eigensystems}
 
@@ -418,10 +556,10 @@ its eigenvalues and eigenvectors
 \label{eq.sep}
 \end{equation}
 where we will consider that the eigenvalues may be complex
-($\lambda=\omega_r\pm\ci\omega_i$) but the eigenvectors are real. The
+($\lambda=\lambda_r\pm\ci\lambda_i$) but the eigenvectors are real. The
 set of all the eigenvalues of an operator is called its spectrum. We
-note that (as is sometimes reversed in textbooks) $\omega_r$ is a
-growth rate and $\omega_i$ is a (circular) frequency.  We also note
+note that (as is sometimes reversed in textbooks) $\lambda_r$ is a
+growth rate and $\lambda_i$ is a (circular) frequency.  We also note
 that \eqref{eq.eig} is generated directly by substituting the
 separation-of-variables form \eqref{eq.sep} into \eqref{eq.lns}. A
 linear stability analysis of a \NavSto\ problem amounts to finding the
@@ -493,13 +631,14 @@ their polar magnitudes and angles in the complex plane are given by
 can work back to find the real and imaginary parts of the eigenvalues
 $\lambda_j$ of $\Lop$:
 \begin{equation}
-\omega_{r,j}=\ln(|\mu_j|)/\tau,\qquad
-\omega_{i,j}=(\angle\mu_j)/\tau.
+\lambda_{r,j}=\ln(|\mu_j|)/\tau,\qquad
+\lambda_{i,j}=(\angle\mu_j)/\tau.
+\label{eq.convert}
 \end{equation}
 
 The base flow is (linearly) neutrally stable when the largest
 $|u_j|=1$ or equivalently when the least stable mode has
-$\omega_{r,j}=0$.  Finding the parameter(s) which results in neutral
+$\lambda_{r,j}=0$.  Finding the parameter(s) which results in neutral
 stability is usually the primary focus of a flow stability
 analysis. This value is typically referred to as the `critical' value,
 \eg critical Reynolds number.
@@ -509,13 +648,14 @@ analysis. This value is typically referred to as the `critical' value,
 
 If $\Ubase$ is time-periodic, then so is the operator $\Lop$ and we
 carry out temporal Floquet stability analysis \citep[analysis of a
-  linear system of ODEs/PDEs where the coefficients are time-periodic,
+  linear system of ODE/PDE where the coefficients are time-periodic,
   see e.g.][]{iooss90}. In this case, we are typically interested in
 how much a disturbance grows from one period of the base flow to the
 next.  The method of analysis is in fact very similar to that
 described above for steady base flows, but now the time integration
-period $\tau$ is fixed to match the period of the base flow, and the
-eigenmodes are also time-dependent (and time-periodic).  In this case
+period $\tau$, essentially a choice of the analyst in steady flows, is
+fixed to match the period of the base flow, while the eigenmodes are
+also time-dependent (and time-periodic).  In this case
 \begin{equation}
 \upert(\xvec, t+\tau) = \sum_{j=0}^\infty
 \mu_j\wt{\bm{u}}_j(\xvec,t\,\textrm{mod}\,\tau) +\text{c.c.}
@@ -597,27 +737,25 @@ $\Omega\times[0,\tau]$.
 \label{fig.domain}
 \end{figure}
 
-The energy inner product of two modes on domain $\Omega$ can be
+The energy inner product of two real modes on domain $\Omega$ can be
 written as
 \begin{equation}
 E=(\wt{\bm{u}}_i, \wt{\bm{u}}_j) = \int_\Omega \wt{\bm{u}}_i
-  (\xvec)\bm{\cdot} \wt{\bm{u}}_j^\ast(\xvec)\,\cd V,
+  (\xvec)\bm{\cdot} \wt{\bm{u}}_j(\xvec)\,\cd V.
+\label{eq.inner}
 \end{equation}
-where the superscript $\ast$ denotes complex conjugate.  If the modes
-are orthogonal (and suitably normalised) then $(\wt{\bm{u}}_i,
-\wt{\bm{u}}_j)=\delta_{i,j}$ where $\delta_{i,j}$ is the Kronecker
-delta, in which case
+If the modes are orthogonal (and suitably normalised) then
+$(\wt{\bm{u}}_i, \wt{\bm{u}}_j)=\delta_{i,j}$ where $\delta_{i,j}$ is
+the Kronecker delta, in which case
 \begin{align}
-\nonumber
-(\upert,\upert)(t)&=
+\nonumber (\upert,\upert)(t)&=
 \int_\Omega\left(\sum_{i=1}^N\exp(\lambda_i t)
-\wt{\uvec}_i\right)\bm{\cdot}
-\left(\sum_{j=1}^N\exp(\lambda_j^\ast t)\wt{\uvec}_j^\ast\right)\,\cd V\\
-\nonumber
-& =\sum_{i=1}^N\sum_{j=1}^N
-\exp(\lambda_i t)\exp(\lambda_j^\ast t)
-\int_\Omega\wt{\uvec}_i\bm{\cdot}\wt{\uvec}_j^\ast\,\cd V\\
-&=\sum_{i=1}^N\exp(2\,\text{Re}(\lambda_i)\, t),
+\wt{\uvec}_i\right)\bm{\cdot} \left(\sum_{j=1}^N\exp(\lambda_j^\ast
+t)\wt{\uvec}_j\right)\,\cd V\\ \nonumber &
+=\sum_{i=1}^N\sum_{j=1}^N \exp(\lambda_i t)\exp(\lambda_j^\ast t)
+\int_\Omega\wt{\uvec}_i\bm{\cdot}\wt{\uvec}_j\,\cd
+V\\ &=\sum_{i=1}^N\exp(2\,\text{Re}(\lambda_i)\,
+t),=\sum_{i=1}^N\exp(2\lambda_{r,_i}t),
 \end{align}
 leading to the result that if all modes are stable then the kinetic
 energy of a linear perturbation has to decay exponentially in time.
@@ -626,7 +764,11 @@ a linear perturbation composed of stable modes may grow in the short
 term, perhaps very considerably, before eventual decay.
 \citet{schmid01} give a particularly simple geometric illustration of
 how this can occur in their figure~4.1, reproduced here as
-figure~\ref{fig.tg}.
+figure~\ref{fig.tg}.  While the initial transient growth indicated in
+the figure is comparatively modest, it is not uncommon that it may be
+many orders of magnitude or more \citep[\eg an energy growth factor of
+  $O(10^{25})$ was recorded in][such large linear growths would make
+  transition basically inevitable in reality]{msb11}.
 
 \begin{figure}
 \begin{center}
@@ -637,10 +779,11 @@ figure~\ref{fig.tg}.
 \includegraphics[width=0.3\textwidth]{nn0080.png}\\
 \includegraphics[width=0.3\textwidth]{nn0100.png}
 \end{center}
-\caption{Transient growth resulting from the sum (blue) of two
-  non-orthogonal eigenvectors (black), each of which decays.  Adapted
-  from figure~4.1, \cite{schmid01}. The asymptotic state is decay
-  dominated by the least stable eigenvector. }
+\caption{Initial transient growth followed by ultimate decay resulting
+  from the sum (blue) of two non-orthogonal eigenvectors (black), each
+  of which decays monotonically.  Adapted from figure~4.1,
+  \cite{schmid01}. The asymptotic state is decay dominated by the
+  least stable eigenvector. }
 \label{fig.tg}
 \end{figure}
 
@@ -656,7 +799,36 @@ where the last equality exploits \eqref{eq.STO}.  Our goal is to find
 the `most dangerous', or optimal, initial disturbance $\uvec'_0$; the
 one that generates the greatest amount of growth $G$ for time interval
 $\tau$.  Various routes exist for the computation of such an optimum
-\citep{mbs13}; here we will examine the `eigenvalue approach'.
+\citep{bms12,mbs13}; here we will examine the `eigenvalue approach'.
+For now let us state without proof that an adjoint operator,
+$\Madj(\tau)$ exists for $\Mop(\tau)$.  This adjoint operator has the
+property of commuting with the inner product \eqref{eq.inner} such
+that
+\begin{equation}
+(\Mop(\tau)\uvec,\uvec)=(\uvec,\Madj(\tau)\uvec),
+\end{equation}
+which makes
+\begin{equation}
+G(\tau) = \frac{(\bm{u}'_0,\Madj(\tau)\Mop(\tau)\bm{u}'_0)}
+{(\bm{u}'_0,\bm{u}'_0)},
+\end{equation}
+where the joint operator $\Madj(\tau)\Mop(\tau)$ is symmetric.  By
+rerrangement we find the eigensystem
+\begin{equation}
+\Madj(\tau)\Mop(\tau)\bm{u}'_0 = G(\tau)\uvec'_0,
+\end{equation}
+which implies that the optimal growth $G(\tau)$ is the largest
+eigenvalue of $\Madj(\tau)\Mop(\tau)$ and $\uvec'_0$, the
+corresponding eigenvector, is the optimal initial disturbance.
+
+\textbf{Need something here about how we apply the joint operator.}
+
+For a transient analysis the base flow's temporal behaviour is not
+restricted: it may be steady, periodic, or take any form provided it
+can be adequately represented/reconstructed in the solver. If the base
+flow is not steady then we also logically need to consider the
+temporal phase relative to the base flow at which the disturbance is
+initiated \citep[see e.g.][]{bsb08}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Stability analysis of steady flows}
@@ -668,14 +840,19 @@ base flows on which analysis is performed.
 
 
 %=============================================================================
-\section{Two-dimensional stability of Poiseuille channel flow}
+\section{Two-dimensional stability of Poiseuille channel flow
+\protect\footnote{Input files for this problem are supplied in
+\texttt{dog/testcases/channel2D}.}
+}
+\label{sec.chan2d}
 
-The two-dimensional parabolic-profile flow in a parallel channel
-becomes linearly unstable to Tollmein--Schlichting waves at
-$\Rey=5772$ \citep{ors71}.  For $\Rey=7500$ and at streamwise
-wavenumber $\alpha=1$ (\ie a wavelength of $2\pi$) based on the
+The \twod\ parabolic-profile flow in a parallel channel becomes
+linearly unstable to Tollmein--Schlichting waves at $\Rey=5772$
+\citep{ors71}.  This is a 1D2C base flow that has 2D2C instability
+modes. For $\Rey=7500$ and at streamwise wavenumber $\alpha=1$ (\ie a
+wavelength of $2\pi$) based on the centreline velocity and
 semi-channel width, \citet[\S\,1.4]{chqz88} supply estimates of the
-eigenvalue $\omega=0.00223497+\ci 0.24989154$ (the temporal growth
+eigenvalue $\lambda=0.00223497+\ci 0.24989154$ (the temporal growth
 rate is the first of these values and the second is the temporal
 circular frequency).  This is a rather simple problem because the
 domain is rectangular, the base flow is analytic, and also the
@@ -689,8 +866,8 @@ session file that we can edit to create a workable session file for
 our problem.  Below is the rectmesh input file (made with a text
 editor) that we'll call \verb+channel.rect+.  The format is: list of
 $x$-locations; blank line; list of $y$-locations.  Don't worry that
-the length is $\Delta x=2$ rather than $2\pi$; we will fix that by
-editing the session file that we produce.
+the length is initially $\Delta x=2$ rather than $2\pi$; we will fix
+that by editing the session file that we produce.
 
 {\small
 \begin{verbatim}
@@ -813,7 +990,17 @@ Edit the resulting session file to produce:
 }
 \noindent
 (Note that various repetitious lines have been deleted from the above
-listing.)
+listing.)  The spectral element mesh (as obtained from the session
+file using the \verb+meshpr+ utility) is shown in
+figure~\ref{fig.chanmesh}.
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.6\textwidth]{channel_mesh}
+\end{center}
+\caption{Spectral element mesh for Poiseuille flow in a channel.}
+\label{fig.chanmesh}
+\end{figure}
 
 %-----------------------------------------------------------------------------
 \subsection{\texttt{TOKENS} section}
@@ -839,7 +1026,7 @@ will be tensor products of 10th-order GLL-Lagrange interpolants.
 \verb+N_STEP=200+ and \verb+D_T=0.005+ together mean that the
 time-step is $\Delta t=0.005$ and 200 steps are taken for each
 integration of the linearised \NavSto\ equations over an interval
-$\delta t=1$ between Arnoldi updates.  Both these values (time step
+$\tau=1$ between Arnoldi updates.  Both these values (time step
 and interval between updates) ultimately need to be chosen on the
 basis of trial and error\,---\,at least, that is the case for a steady
 flow stability analysis: for a time-periodic base flow the interval is
@@ -883,7 +1070,9 @@ the string \verb+u = 1-y*y+ and that coordinate \verb+y+ (along with
 \subsection{\texttt{NODES}, \texttt{ELEMENTS} and \texttt{SURFACES} sections}
 
 Standard \Semtex.  However, note the use of \verb+<P>+ in the
-\verb+SURFACES+ section to declare periodic edges.
+\verb+SURFACES+ section to declare periodic edges.  This is typically
+appropriate for problems which have a homogeneous direction (and which
+could just as well be tackled by a non-global approach).
 
 %-----------------------------------------------------------------------------
 \subsection{Base flow generation}
@@ -915,7 +1104,6 @@ optimisation level (3) is obtained.
 \end{verbatim}
 }
 
-
 %-----------------------------------------------------------------------------
 \subsection{Running \texttt{dog}}
 
@@ -927,9 +1115,9 @@ Now we are ready. I'll assume commands from \Dog\ (like all the
 [mec-aquila]$ dog -k 16 -n 1 -m 500 -t 1e-6 channel > /dev/null &
 \end{verbatim}
 }The command line arguments above have the following sigificance:
-\verb+-k 16+, set the Krylov dimension to 16; \verb+-n 1+, stop after
-one eigenvalue is convereged to the requested tolerance;
-\verb+-m 500+, iterate for a mximum of 500 iterations; \verb+-t 1e-6+,
+\verb+-k 16+; set the Krylov dimension to 16, \verb+-n 1+; stop after
+one eigenvalue is convereged to the requested tolerance,
+\verb+-m 500+; iterate for a mximum of 500 iterations, \verb+-t 1e-6+;
 carry on converging until the residual for the higest-numbered
 eigenvalue requested (here just one) falls below this tolerance value
 (multiplied by the growth magnitude.
@@ -938,7 +1126,7 @@ The first time you run \verb+dog+ you might not want to suppress the
 standard output as we have done here in order to ensure everything is
 running correctly. However, the usage above is generally standard
 since it alllows the user to monitor convergence of the eigensystem
-solver by running tail on the \verb+session.evl+ file.  {\small
+solver by running \verb+tail+ on the \verb+session.evl+ file.  {\small
 \begin{verbatim}
 [mec-aquila]$ tail -f -18 channel.evl
 \end{verbatim}
@@ -965,21 +1153,734 @@ EV  Magnitude   Angle       Growth      Frequency   Residual
 15  2.8354e-01  3.1416e+00 -1.2604e+00  3.1416e+00  8.3424e-01
 dog: converged, writing 1 eigenvectors.
 \end{verbatim}
-} You should find that file \verb+channel.eig.0+ now exists: this is
-the leading eigenvector (not written out unless convergence is
-obtained): we only get one because only one was requested
-(\verb+-n 1+).  In fact since the leading eigenvalue is complex, we
-could have converged both the leading eigenvector and its `complex
-conjugate' which in this case will be real-valued, just like the
- leading eigenvector, but phase-shifted a quarter-period in time, \ie
- translated along the channel. We will return to that point below.
+} 
 
-Let us examine the significance of the listing above.  The first point
-is that 265 iterations were required for convergence, largely
-reflecting the fact that there is not a great deal of separation of
-the magnitudes of the leading eigenvalues, as an inspection of the
-less-converged values indicates.
+%-----------------------------------------------------------------------------
+\subsection{Examining the outputs}
 
+You should find that file \verb+channel.eig.0+ now exists: this is the
+leading eigenvector (not written out unless convergence is obtained):
+we only get one because only one was requested (\verb+-n 1+).  In fact
+since the leading eigenvalue is complex, we could have converged both
+the leading eigenvector and its `complex conjugate' which in this case
+will be real-valued, just like the leading eigenvector, but
+phase-shifted a quarter-period in time, \ie translated along the
+channel. We will return to that point below.
+
+Let us examine the significance of the listing above from
+\verb+channel.evl+.  The first point is that 265 iterations were
+required for convergence, largely reflecting the fact that there is
+not a great deal of separation of the magnitudes of the leading
+eigenvalues, as an inspection of the less-converged values indicates.
+The \verb+EV+ column refers to the eigenvalue index (starting at 0),
+of which there are 16 reported values corresponding to the Krylov
+dimension requested on the command line (\verb+-k 16+).  The
+\verb+Magnitude+ and \verb+Angle+ columns are for the (estimated)
+eigenvalues $\mu_j$ of the state transition operator $\Mop(\tau)$ (see
+\ref{eq.map}), while the \verb+Growth+ and \verb+Frequency+ columns
+are the real and imaginary parts of the eigenvalues $\lambda_j$ of
+$\Lop$ as derived from $\mu_j$ via \eqref{eq.convert}.  We note that
+(since $\tau=1$) the \verb+Angle+ and \verb+Frequency+ values are
+indentical, while the \verb+Growth+ and \verb+Magnitude+ values are
+related by $\lambda_{r,j}=\ln(|\mu_j|)/\tau$ (in fact, owing to
+rounding, it is better here to confirm that $|\mu_j| =
+\exp(\tau\lambda_{r,j})$).  Finally, the \verb+Residual+ column.  The
+value reported is the Arnoldi-method residual value $\varepsilon$ as
+described on page 1449 of \citet{bbs08b}, but there is a slight change
+to the methodology: convergence is deemed to have occurred when
+$\varepsilon_j\mu_j<\textrm{tol.}$ for all the eigenvalue estimates
+requested, where $\textrm{tol.}$ is the value specified on the command
+line via the \verb+-t+ argument (default value
+$\textrm{tol.}=1\times10^{-6}$). In the present case that means
+convergence would have been obtained on the first eigenvalue estimate
+once the residual was below $1.0022\times10^{-6}$.
+
+Now we have explained the significance of these values, we may remark
+on the satisfactory agreement between the leading eigenvalue reported
+in \citet{chqz88} ($\lambda=0.00223497+\ci 0.24989154$) and what we
+computed ($\lambda=0.0022358+\ci 0.24989$). Without some (advisable)
+further checking on convergence of our results it is difficult to
+conclude which is more accurate, but we can accept that the values are
+the same to `plotting' accuracy, at least.
+
+Before going on, let us re-run the previous analysis but ask for the
+two leading eigenvectors (\verb+-n 2+).  Little changes, except that
+at the end of \verb+channel.evl+ \Dog\ will report `\texttt{writing 2
+  eigenvectors}' and now we will have \verb+channel.eig.0+ and
+\verb+channel.eig.1+. The $x$- and $y$-component velocities ($u$ and
+$v$) of the two eigenmodes are shown in figure~\ref{fig.chanmodes}.
+Note their periodicity in the streamwise ($x$) direction.
+
+\begin{figure}
+\begin{center}
+\raisebox{27ex}{(a)}
+\includegraphics[width=0.45\textwidth]{export0.pdf}
+\raisebox{27ex}{(b)}
+\includegraphics[width=0.45\textwidth]{export1.pdf}
+\end{center}
+\caption{Contour plots of (upper) $u'$ velocity component and (lower)
+  $v'$ velocity component of leading eigenmodes (a) 0 and (b) 1 of
+  Poiseuille channel flow, $\Rey=7500$.}
+\label{fig.chanmodes}
+\end{figure}
+
+The eigenmodes have a wavy structure which is appropriate since they
+represent a Tollmein--Schlichting type instability; the mode shapes
+are representative of an array of counter-rotating rolls which
+propagate streamwise.  It is worth pointing out that, like all
+eigenmodes, the choice of sign is arbitrary (the sign affects both
+velocity components at once), so one could swap red and blue contours
+and still have valid eigenmodes.  Also the scaling of the modes is
+arbitrary.  We observe that a definite spatial phase relationship
+exists between modes 0 and 1: the antinodes of mode~1 interleave those
+of mode~0, or equivalently there is a quarter-wavelength phase shift
+between them (much like the relationship between sine and cosine
+functions).  Since the corresponding eigenvalues were a
+complex-conjugate pair, the (real) eigenmodes have to have this
+relationship in order to ensure that the propagating wave
+corresponding to the mode could be reconstructed with an arbitrary
+phase/spatial location.
+
+We can say how fast the waves propagate down the channel.  Since the
+wavelength is (the length of the domain) $2\pi$ and the oscillation
+period at every point in the flow is $T=2\pi/0.22489=25.1438$, we
+conclude that the propagation speed of the waves is 0.22489.  Hence if
+we take one of the eigenmodes as an initial condition and evolve it
+using the \LNSE\ for $T/2$ we should find it has increased slightly in
+magnitude and travelled half the length of the domain.  We could check
+this using the \verb+lns+ utility.  First we edit the \verb+TOKENS+ as
+follows:
+{\small
+\begin{verbatim}
+<TOKENS>
+        ..
+        ..
+        ..
+        N_STEP   = 200
+        D_T      = 0.005
+omega = 0.24989
+period = TWOPI/omega
+tevolv = 0.5 * period
+N_STEP = 2500
+D_T    = tevolv/N_STEP
+        Re_D     = 7500
+        KINVIS   = 1/Re_D
+
+        ..
+        ..
+        ..
+</TOKENS>
+\end{verbatim}
+} \noindent (Note that the last definition of the tokens \verb+N_STEP+
+and \verb+D_T+ over-ride earlier ones. We chose \verb+N_STEP+ such
+that the value of \verb+D_T+ is quite similar to what we earlier used,
+\verb+0.005+.)  Next we link the first eigenmodes to serve as a
+restart file {\small
+\begin{verbatim}
+[mec-aquila]$ ln -s channel.eig.0 channel.rst
+\end{verbatim}
+}
+\noindent
+run \verb+lns+:
+{\small
+\begin{verbatim}
+[mec-aquila]$ lns channel > /dev/null
+\end{verbatim}
+}
+\noindent and finally we can examine the output (\verb+channel.fld+)
+to verify that it looks much the same as the initial condition, but,
+as we expect, translated a length $\pi$ in the $x$ direction (same
+shapes, signs inverted). We leave this as `an exercise for the
+reader'.
+
+%=============================================================================
+\section{Steady \twod\ flow past a circular cylinder
+\protect\footnote{Input files for this problem are supplied in
+  \texttt{dog/testcases/semicylinder2D}.}  }
+\label{sec.cyl2d}
+
+This section deals with the onset of \twod\ vortex shedding in flow
+past a circular cylinder.  The base flow is 2D2C, as are the
+eigenmodes.  Unlike the channel flow of the last section, this is a
+case where a global stability analysis is effectively the only option,
+and now we have to compute the base flow prior to stability analysis,
+since it is not available as an analytical function.  We will attempt
+to estimate the critical Reynolds and Strouhal numbers.  The first
+creditable numerical study of the problem was by \citet{jack87}; more
+recently, \citet{kumi06} detailed blockage dependence of critical
+values.  From those studies (and numerous experiments), we expect
+$\Rey_c=UD/\nu\approx46$ and $\Str_c=fD/U\approx0.125$ where $U$ is
+the background base-flow speed, $D$ is cylinder diameter,
+$f=\omega/2\pi$ is frequency, $\nu$ is kinematic viscosity.
+
+Another new consideration is that, very typical of flow stability
+analyses, the instability breaks a symmetry of the base flow, which
+here is a reflection symmetry in the $x$-axis:
+\begin{equation}
+(u,v)(x,y)=(u,-v)(x,-y).
+\end{equation}
+This gives us a problem, because we will be computing the base flow
+using time-integration of the unsteady \NavSto\ equations.  Above
+$\Rey_c$, the flow is unstable, and so unless we take special action,
+the base flows computed on a full domain will become time-periodic.
+There are a few ways to circumvent this problem: use a Newton (or
+other) method to solve the steady \NavSto\ equations
+\citep{tuba00,hmb02a}, use selective frequency damping (SFD) approach
+to force a steady state \citep{abhhms06}; or control symmetry by using
+appropiate boundary conditions with a semi-domain.  All of these
+approaches will work and have been used with \Semtex, but the
+semi-domain approach is simplest and fastest.  The spectral element
+mesh we will use for this study is shown in
+figure~\ref{fig.semicylmesh}; lengths are given in terms of the
+cylinder diameter $D$.
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.65\textwidth]{semicyl02mesh.pdf}
+\end{center}
+\caption{A semi-domain spectral element mesh for flow past a circular
+  cylinder, with 268 elements.}
+\label{fig.semicylmesh}
+\end{figure}
+
+%=============================================================================
+\subsection{Base flow}
+
+A session file for computing the base flow is supplied as
+\verb+semicyl02-base+. We will discuss the following sections from
+that file: {\small
+\begin{verbatim}
+<TOKENS>
+        Re        = 50.0
+        KINVIS    = 1.0/Re
+        U         = 1.0
+        T_FINAL   = 500
+        D_T       = 0.01
+        N_STEP    = int(T_FINAL/D_T)
+        N_P       = 6
+</TOKENS>
+
+<FIELDS NUMBER=3>
+        u v p
+</FIELDS>
+
+<GROUPS NUMBER=4>
+        1       v       velocity
+        2       w       wall
+        3       o       exit
+        4       s       symmetry
+</GROUPS>
+
+<BCS NUMBER=4>
+        1       v       3
+                        <D>     u = U           </D>
+                        <D>     v = 0.0         </D>
+                        <H>     p               </H>
+        2       w       3
+                        <D>     u = 0.0         </D>
+                        <D>     v = 0.0         </D>
+                        <H>     p               </H>
+        3       o       3
+                        <N>     u = 0.0         </N>
+                        <N>     v = 0.0         </N>
+                        <D>     p = 0.0         </D>
+        3       s       3
+                        <N>     u = 0.0         </N>
+                        <D>     v = 0.0         </D>
+                        <N>     p = 0.0         </N>
+</BCS>
+\end{verbatim}
+} In the \verb+TOKENS+ section we set the kinematic viscosity to give
+a Reynolds number of 50 (we plan to bracket the critical Reynolds
+number and will carry our analyses at both $\Rey=40$ and $\Rey=50$).
+The base flow speed is set as \verb+U=1+; this value will be used to
+set the inflow boundary velocity.  We will timestep the base flow for
+50 time units from a zero IC (the default) and consider it to be
+steady, but in a rigorous study we should be checking that it
+\emph{really is} steady (\eg\ by examining history point data). We
+have set \verb+N_P=6+; again, this is a reasonable guess but really
+demands a resolution check.
+
+The selection of boundary conditions mostly follows standard
+\Semtex\ usage; a prescribed far-field velocity $(u,v)=(U,0)$ with a
+`high-order' computed Neumann condition on pressure, a zero-slip wall
+boundary, an `approximate zero stress' outflow boundary with $\partial
+u/\partial n=\partial v/\partial n = p = 0$.  The `symmetry' (or
+free-slip/zero-penetration) boundary used on the $x$-axis has
+$\partial u/\partial n=v=\partial p/\partial n=0$ to ensure that the
+base flows have reflection symmetry $(U,V)(x,y)=(U,-V)(x,-y)$.  Note
+that we will later change this boundary condition in the session file
+for the stability analysis in order to ensure that the eigenmodes do
+break symmetry (and are antisymmetric).
+
+We run \verb+dns+ to generate the base flow for $\Rey=50$:
+\begin{verbatim}
+[mec-aquila]$ enumerate -O3 semicyl02-base > semicyl02-base.num; \
+ dns semicyl02-base > /dev/null
+\end{verbatim}
+\noindent
+The resulting contours of $U$ are shown in figure~\ref{fig.semibase}.
+While we will not go into detail, we also compute the base flow for
+$\Rey=40$ (make a copy of the base flow output \verb+.fld+ file, say
+to \verb+Re50.bse+, edit \verb+semicyl02-base+ to set \verb+Re=40+;
+re-run, copy the new \verb+.fld+ file to \verb+Re40.bse+).  Now we are
+in a position to carry out our stability analysis.
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.65\textwidth]{Re50_base_u.pdf}
+\end{center}
+\caption{Base flow past a circular cylinder computed on a
+  semi-domain. Contours of $U$ at $\Rey=50$.}
+\label{fig.semibase}
+\end{figure}
+
+
+%=============================================================================
+\subsection{Stability analysis}
+
+First we will look at the section from the stability analysis session
+file that differ from the base flow session file. That basically
+amounts to adding/changing some \verb+TOKENS+ and altering the BCs.
+
+{\small
+\begin{verbatim}
+<TOKENS>
+        Re        = 50.0
+        KINVIS    = 1.0/Re
+        U         = 0.0
+        N_BASE    = 2
+        N_SLICE   = 1
+        D_T       = 0.01
+        T_FINAL   = 2.0
+        N_STEP    = int(T_FINAL/D_T)
+        N_P       = 6
+</TOKENS>
+
+<FIELDS NUMBER=3>
+        u v p
+</FIELDS>
+
+<GROUPS NUMBER=4>
+        1       v       velocity
+        2       w       wall
+        3       o       exit
+        4       s       symmetry
+</GROUPS>
+
+<BCS NUMBER=4>
+        1       v       3
+                        <D>     u = U           </D>
+                        <D>     v = 0.0         </D>
+                        <H>     p               </H>
+        2       w       3
+                        <D>     u = 0.0         </D>
+                        <D>     v = 0.0         </D>
+                        <H>     p               </H>
+        3       o       3
+                        <N>     u = 0.0         </N>
+                        <N>     v = 0.0         </N>
+                        <D>     p = 0.0         </D>
+        3       s       3
+                        <D>     u = 0.0         </D>
+                        <N>     v = 0.0         </N>
+                        <D>     p = 0.0         </D>
+</BCS>
+\end{verbatim}
+}
+\noindent
+In the \verb+TOKENS+ section, note that the Reynolds number (or
+\verb+KINVIS+ must be set to match the value used to compute the base
+flow\,---\,this seems obvious but it is easy to overlook. Also note
+that the farfield velocity is now set (via \verb+U = 0+) to
+$(u',v')=(0,0)$, which is appropropriate since we expect the domain to
+be large enough to contain the perturbation at the far-field
+boundaries. Again it is easy to overlook making this change, since the
+stability analysis session file is typically based on that for the
+base flow.  As for the channel flow example of \S\,\ref{sec.chan2d} we
+declare that the base flow is steady and has two velocity componnts
+with \verb+N_BASE=2+ and \verb+N_SLICE=1+. It is typical (although
+not mandatory) to use the same time step, \verb+D_T+, for the
+stability analysis as was used for computing the base flow. Choosing
+\verb+T_FINAL=2.0+ effectively sets $\tau=2$, a value that is large
+enough to allow a reasonable amount of evolution to occur between
+Arnoldi eigensystem estimates; very often for steady flows, this seems
+to be a few hundred time steps (if a few hundred does not produce
+converged values, this is one of the solution parameters you can try
+adjusting).  Note that \verb+T_FINAL+ is not significant to the
+solver: we use it here as a convenient intermediate value for
+computing \verb+N_STEP+ (which is).  Unsurprisingly, \verb+N_P=6+
+matches what was used for the base flow computation.
+
+The only other significant modification is to the \verb+BCS+ section,
+where we have inverted the choice of boundary conditions on the
+`symmetry' axis: $u'=\partial v'/\partial n=p'=0$ (which is an
+anti-symmetry boundary condition set\,---\,we have been lazy and
+re-used the string \verb+symmetry+ for the associated \verb+GROUP+;
+this name is not significant to the solver).  This choice ensures that
+the eigenmodes will break the symmetry of the base flow so that we
+would have $(u'v')(x,y)=(-u,v)(x,-y)$.
+
+Now we are ready to run our analysis. We know that the leading
+eigenmode will be oscillatory in time, so we will ask for a pair of
+eigenmodes to be converged:
+\begin{verbatim}
+[mec-aquila]$ ln -sf Re50.bse semicyl02.bse; \
+enumerate -O3 semicyl02 > semicyl02.num; \
+dog -k 10 -n 2 -m 100 semicyl02 > /dev/null &
+tail -f -n 14 semicyl02.evl
+\end{verbatim}
+which should terminate with
+{\small
+\begin{verbatim}
+-- Iteration = 40, H(k+1, k) = 0.372848
+EV  Magnitude   Angle       Growth      Frequency   Residual
+ 0  1.0363e+00  1.5723e+00  1.7829e-02  7.8615e-01  8.0960e-07
+ 1  1.0363e+00 -1.5723e+00  1.7829e-02 -7.8615e-01  8.0960e-07
+ 2  7.7719e-01  1.6160e+00 -1.2603e-01  8.0802e-01  2.8681e-03
+ 3  7.7719e-01 -1.6160e+00 -1.2603e-01 -8.0802e-01  2.8681e-03
+ 4  7.2392e-01  1.3032e+00 -1.6154e-01  6.5161e-01  4.4083e-03
+ 5  7.2392e-01 -1.3032e+00 -1.6154e-01 -6.5161e-01  4.4083e-03
+ 6  5.6536e-01  1.6974e+00 -2.8514e-01  8.4869e-01  1.7239e-02
+ 7  5.6536e-01 -1.6974e+00 -2.8514e-01 -8.4869e-01  1.7239e-02
+ 8  4.8698e-01  9.3618e-01 -3.5976e-01  4.6809e-01  5.0381e-02
+ 9  4.8698e-01 -9.3618e-01 -3.5976e-01 -4.6809e-01  5.0381e-02
+dog: converged, writing 2 eigenvectors.
+\end{verbatim}
+}
+\noindent
+As we expected at $\Rey=50$, the base flow is unstable since the
+growth rate of the leading eigenmode is positive, and it occurs with a
+\cc\ pair eigenvalue and associated (real) eigenmode.  The velocity
+components of this pair of leading eigenmodes is shown in
+figure~\ref{fig.semimodes}.  Observe that the velocity components
+satisfy the boundary conditions requested along the $x$-axis, and that
+(as was the case for channel flow) these first two eigenmodes
+interleave one another in space, allowing us to reconstruct a
+perturbation at any phase we require by linearly combining the two
+modes with appropriate (sine/cosine) weighting.
+
+\begin{figure}
+\begin{center}
+\begin{tabular}{llll}
+(a) &
+\includegraphics[width=0.425\textwidth]{Re50_eig0_u_mesh.pdf} &
+(b) &
+\includegraphics[width=0.425\textwidth]{Re50_eig1_u.pdf} \\
+&
+\includegraphics[width=0.425\textwidth]{Re50_eig0_v.pdf} &
+&
+\includegraphics[width=0.425\textwidth]{Re50_eig1_v.pdf}
+\end{tabular}
+\end{center}
+\caption{Contour plots of (upper) $u'$ velocity component and (lower)
+  $v'$ velocity component of leading eigemodes (a) 0 and (b) 1 of
+  \twod\ flow past a circular cylinder at $\Rey=50$.}
+\label{fig.semimodes}
+\end{figure}
+
+We go ahead and re-run the analysis for $\Rey=40$ (remembering to edit
+the session file appropriately), resulting in
+{\small
+\begin{verbatim}
+-- Iteration = 46, H(k+1, k) = 0.55706
+EV  Magnitude   Angle       Growth      Frequency   Residual
+ 0  9.4477e-01  1.5391e+00 -2.8406e-02  7.6953e-01  6.5654e-07
+ 1  9.4477e-01 -1.5391e+00 -2.8406e-02 -7.6953e-01  6.5654e-07
+ 2  7.2675e-01  1.6334e+00 -1.5959e-01  8.1669e-01  2.9849e-03
+ 3  7.2675e-01 -1.6334e+00 -1.5959e-01 -8.1669e-01  2.9849e-03
+ 4  7.4011e-01  1.3563e+00 -1.5048e-01  6.7816e-01  4.0655e-03
+ 5  7.4011e-01 -1.3563e+00 -1.5048e-01 -6.7816e-01  4.0655e-03
+ 6  6.6511e-01  1.1237e+00 -2.0390e-01  5.6186e-01  1.6093e-02
+ 7  6.6511e-01 -1.1237e+00 -2.0390e-01 -5.6186e-01  1.6093e-02
+ 8  6.1827e-01  4.0307e-01 -2.4041e-01  2.0153e-01  3.0627e-01
+ 9  6.1827e-01 -4.0307e-01 -2.4041e-01 -2.0153e-01  3.0627e-01
+dog: converged, writing 2 eigenvectors.
+\end{verbatim}
+}
+\noindent
+We see that the flow at $\Rey=40$ is stable, as expected.
+
+By linear interpolation (which is probably less than adequate given
+the large spread in $\Rey$) we can estimate $\Rey_c=46.144$, at which
+value the interpolated circular frequency is $\omega=0.77974$, so that
+the critical Strouhal number estimate is
+$\Str_c=(2\pi)^{-1}0.77974=0.12410$.  These values are in quite good
+agreement with those provided by \citet{jack87} ($\Rey_c=46.184$,
+$\Str_c=0.1384$) and \citet{kumi06} ($\Rey_c=47.786$, $\Str_c=0.12441$
+at the present blockage ratio of 1/20).  Possible sources of
+discrepancy: effect of coarse linear interpolation for critical values
+(try another solution closer to critical $\Rey$); comparatively large
+blockage ratio of our domain \citep[see][regarding
+  sensitivity]{kumi06}; base flows not converged to steady state (run
+them longer); lack of resolution; small errors in the cited studies.
+
+%=============================================================================
+\section{Steady \twod\ flow in a stenosed tube
+\protect\footnote{Input files for this problem are supplied in
+  \texttt{dog/testcases/stenosis3D}.}  }
+\label{sec.sten3D}
+
+A stenosis is a partial blockage or localised contraction in an
+otherwise parallel walled geometry.  The basic geometry is tubular and
+so we solve this problem using cylindrical coordinates.  The base flow
+is 2D2C, steady in time in this case, and the least stable eigenmodes
+are 3D3C, occuring in aziumuthal wavenumber $k=1$, see
+\citet{shbl05}. This mode shape promotes attachment of the jet which
+issues from the stenosis throat to the wall of the tube
+downstream. With the contraction geometry we will consider,
+$\Rey_c=722$ (based on upstream pipe diameter $D$ and area-averaged
+flow speed $\bar{u}_m$), but we will here study a stable case at
+$\Rey=500$, for which resolution and domain extent requirements are
+less, speeding up our analysis.  According to the inset of figure~5,
+\citet{shbl05}, the leading eigenvalue is real and negative,
+$\lambda\approx0.053$.
+
+%-----------------------------------------------------------------------------
+\subsection{Geometry and base flow}
+
+The solution domain geometry is shown in figure~\ref{fig.sten}.  As is
+standard for cylindrical coordinate system solutions, the geometry is
+represented in the `meridional semiplane' and in this case the lower
+bound is the axis of the coordinate system.
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=\textwidth]{stenosismesh}
+\end{center}
+\caption{Spectral element mesh of the meridional semiplane for flow in
+  a stenosed tube.}
+\label{fig.sten}
+\end{figure}
+
+The session file for the base flow, \verb+stenosis-base+, is given
+below. Note that the outer boundary near the stenosis is a smooth
+curve which is represented as a spline through points given in a
+separate file, specified in the \verb+CURVES+ section (see \S\,3.2.1
+of the \Semtex\ user guide).
+
+{\small
+\begin{verbatim}
+<TOKENS>
+  CYLINDRICAL = 1
+  KINVIS      = 1/500
+  D_T         = 0.001
+  T_MAX       = 500
+  N_STEP      = int(T_MAX/D_T)
+  N_P         = 7
+  BETA        = 1
+</TOKENS>
+
+<FIELDS NUMBER=3>
+  u  v  p
+</FIELDS>
+
+<GROUPS NUMBER=4>
+  1  w  wall
+  2  v  velocity
+  3  o  exit
+  4  a  axis
+</GROUPS>
+
+<BCS NUMBER=4>
+1  w  3
+  <D> u = 0.0 </D>
+  <D> v = 0.0 </D>
+  <H> p       </H>
+2  v  3
+  <D> u = 2*(1-4*y^2) </D>
+  <D> v = 0.0         </D>
+  <H> p               </H>
+3  o  3
+  <N> u = 0.0 </N>
+  <N> v = 0.0 </N>
+  <D> p = 0.0 </D>
+4  a  3
+  <A> u </A>
+  <A> v </A> 
+  <A> p </A>
+</BCS>
+
+<HISTORY NUMBER=3>
+	 1	6	0.45	0
+	 2	10	0.45	0
+	 3	19	0.45	0
+</HISTORY>
+
+<NODES NUMBER=184>
+ 1 0.000000 0.000000 0.000000 
+ 2 1.000000 0.000000 0.000000 
+ 3 2.000000 0.000000 0.000000 
+ ..
+ ..
+ ..
+ 184 20.000000 0.500000 0.000000 
+</NODES>
+
+<ELEMENTS NUMBER=135>
+    1	<Q>    1    2   48   47    </Q>
+    2	<Q>    2    3   49   48    </Q>
+    3	<Q>    3    4   50   49    </Q>
+    ..
+    ..
+    ..
+  135	<Q>  137  138  184  183    </Q>
+</ELEMENTS>
+
+<SURFACES NUMBER=96>
+    1    1    1    <B> a </B>
+    2    2    1    <B> a </B>
+    3    3    1    <B> a </B>
+    ..
+    ..
+    ..
+   45   45    1    <B> a </B>
+
+   46   45    2    <B> o </B>
+   47   90    2    <B> o </B>
+   48  135    2    <B> o </B>
+
+   49  135    3    <B> w </B>
+   50  134    3    <B> w </B>
+   51  133    3    <B> w </B>
+   ..
+   ..
+   ..
+   93   91    3    <B> w </B>
+
+   94   91    4    <B> v </B>
+   95   46    4    <B> v </B>
+   96    1    4    <B> v </B>
+</SURFACES>
+
+<CURVES NUMBER=8>
+ 1	 96	3	<SPLINE> stenosis-upper.geom </SPLINE>	
+ 2	 97	3	<SPLINE> stenosis-upper.geom </SPLINE>	
+ 3	 98	3	<SPLINE> stenosis-upper.geom </SPLINE>
+ ..
+ ..
+ ..	
+ 8	 103	3	<SPLINE> stenosis-upper.geom </SPLINE>	
+</CURVES>
+\end{verbatim}
+}
+
+We have chosen to run the base flow for 500 time units, and have made
+a set of history points located near the recirculation zone to check
+that the base flow is steady.  The timeseries from these points,
+available in \verb+stenosis-base.his+ after running \verb+dns+, are
+shown in figure~\ref{fig.stenhis}.  While a finer-scale examination is
+advisable, we'll accept that the base flow is likely to be close to
+the asymptotic steady state at the end of this simulation.
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.55\textwidth]{StenBaseHis}
+\end{center}
+\caption{Time series from three base flow history points in the
+  simulation of the steady flow in a stenotic geometry. We note that
+  two of the points are within the recirculation zone, and one is
+  outside.  There seem to be no significant dynamics after
+  $t\approx10$ and we will accept the final flow as being close to its
+  steady state outcome.}
+\label{fig.stenhis}
+\end{figure}
+
+%-----------------------------------------------------------------------------
+\subsection{Stability analysis}
+
+Again we modify the base flow session file in order to produce one for
+stability analysis, which we will call \verb+stenosis+.  The
+significant differences between this and the base flow session file
+are shown below.  
+{\small
+\begin{verbatim}
+<TOKENS>
+  N_BASE      = 2
+  N_SLICE     = 1
+  CYLINDRICAL = 1
+  N_Z         = 1
+  BETA        = 1
+  KINVIS      = 1/500
+  D_T         = 0.001
+  T_MAX       = 0.5
+  N_STEP      = int(T_MAX/D_T)
+  N_P         = 7
+</TOKENS>
+
+<FIELDS NUMBER=4>
+  u  v  w  p
+</FIELDS>
+
+<BCS NUMBER=4>
+1  w  4
+  <D> u = 0.0 </D>
+  <D> v = 0.0 </D>
+  <D> w = 0.0 </D>
+  <H> p       </H>
+2  v  4
+  <D> u = 0.0 </D>
+  <D> v = 0.0 </D>
+  <D> w = 0.0 </D>
+  <H> p       </H>
+3  o  4
+  <N> u = 0.0 </N>
+  <N> v = 0.0 </N>
+  <N> w = 0.0 </N>
+  <D> p = 0.0 </D>
+4  a  4
+  <A> u </A>
+  <A> v </A> 
+  <A> w </A> 
+  <A> p </A>
+</BCS>
+\end{verbatim}
+}
+\noindent
+In the \verb+TOKENS+ section we have added \verb+N_BASE=2+ and
+\verb+N_SLICE=1+ as befits a steady, \twoc\ base flow.  We are
+carrying out the analysis in azimuthal wavenumber $k\equiv\beta=1$ and
+have set this with \verb+BETA=1+. The instability mode is of
+`half-complex' type, with the restricted symmetry
+$u'=\hat{u}'\cos(k\theta), v'=\hat{v}'\cos(k\theta),
+w'=\hat{u}'\sin(k\theta), p'=\hat{p}'\cos(k\theta)$, so that we only
+need \verb+N_Z=1+.  The integration time $\tau=0.5$ is set with
+\verb+T_MAX=0.5+ and \verb+N_STEP=int(T_MAX/D_T)+.
+
+In the \verb+FIELDS+ section there are now a total of four fields
+(recall that there were only three for the base flow), the first three
+of which are velocity components.  Since we have set \verb+BETA=1+ as
+well, we will have 3D3C eigenmodes.
+
+In the \verb+BCS+ section, first note that we have to add a condition
+to each subsection for the new velocity component, $w$, that was not
+present in the base flow. Second, observe that at the inflow (the
+second, \verb+v+-tagged subsection, we have set the perturbation field
+to zero.
+
+Now we are ready to run the stability analysis:
+\begin{verbatim}
+[mec-aquila]$ ln -sf stenosis-base.fld stenosis.bse; \
+enumerate -O3 stenosis > stenosis.num; \
+dog -k 8 -n 1 -m 100 -t 1e-8 stenosis > /dev/null &
+tail -f stenosis.evl
+\end{verbatim}
+which should terminate with
+{\small
+\begin{verbatim}
+-- Iteration = 71, H(k+1, k) = 0.345441
+EV  Magnitude   Angle       Growth      Frequency   Residual
+ 0  9.7370e-01  0.0000e+00 -5.3306e-02  0.0000e+00  8.6888e-09
+ 1  7.6511e-01  1.6542e-01 -5.3546e-01  3.3083e-01  8.1313e-04
+ 2  7.6511e-01 -1.6542e-01 -5.3546e-01 -3.3083e-01  8.1313e-04
+ 3  5.3337e-01  7.0926e-01 -1.2571e+00  1.4185e+00  2.0783e-02
+ 4  5.3337e-01 -7.0926e-01 -1.2571e+00 -1.4185e+00  2.0783e-02
+ 5  7.4996e-01  1.7543e+00 -5.7548e-01  3.5086e+00  6.7510e-02
+ 6  7.4996e-01 -1.7543e+00 -5.7548e-01 -3.5086e+00  6.7510e-02
+ 7  5.9257e-01  0.0000e+00 -1.0466e+00  0.0000e+00  1.3208e-01
+dog: converged, writing 1 eigenvectors.
+\end{verbatim}
+}\noindent We see that the leading eigenvalue is real and stable;
+$\lambda_0=-5.3306\times10^{-2}$, close the value we had expected.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -993,8 +1894,7 @@ less-converged values indicates.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\bibliographystyle{dcu}
-\bibliography{userguide}
+\bibliographystyle{dcu} \bibliography{userguide}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \end{document}
