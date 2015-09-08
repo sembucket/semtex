@@ -87,12 +87,11 @@
 // with a character tag, so that user routines can gain additional
 // information about the tag.  Descriptions cannot contain whitespace.
 //
-// Typical (recognized) strings are "velocity" and "outflow".  An
-// example of another useful string would be "wall", which denotes
-// that all velocity components are zero: this means e.g. that one
-// Condition can gain information about behaviour of another Condition
-// which shares the character tag (i.e. that it is also a zero-valued
-// essential boundary).
+// Typical (recognized) strings are "wall", "axis" and "outflow".
+// Type "wall" denotes that all velocity components are zero: this
+// means e.g. that one Condition can gain information about behaviour
+// of another Condition which shares the character tag (i.e. that it
+// is also a zero-valued essential boundary).
 //
 // Each group which is used for specification of boundary conditions
 // should have an associated descriptor set in the GROUPS section.
@@ -415,6 +414,11 @@ BCmgr::BCmgr (FEML*             file,
 	break;
 
       case 'O':			// -- Outflow BC.
+
+	if (!strstr (groupInfo (groupc), "outflow"))
+	  message(routine,"type 'O' BC must belong to group \"outflow\"",ERROR);
+
+
 	if      (fieldc == 'u') C = new NaturalCBCu   (this);
 	else if (fieldc == 'v') C = new NaturalCBCv   (this);
         else if (fieldc == 'p') C = new EssentialCBCp (this);

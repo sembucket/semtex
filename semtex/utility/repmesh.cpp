@@ -4,6 +4,9 @@
 // rotation about named point.  Combine the result, deleting
 // non-unique NODES.  Print on cout.
 //
+// Hand-editing will still be required to make valid SURFACES and
+// CURVES sections.
+//
 // repmesh [-x || -y] [-r x0 y0 ang nrep] [-h] session
 //
 // Either X or Y reflections change the sense of rotation around
