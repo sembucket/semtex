@@ -140,15 +140,17 @@ int main (int    argc,
     } else {
 
       // -- Print_t out x-y mesh.
+
       std::cout.precision(16);
       for (ID = 0; ID < NEL; ID++) {
 	M.meshElmt (ID, np, zero_r, zero_r, &x[0], &y[0]);
 	for (j = 0; j < NTOT; j++)
-	  cout << setw(20) << x[j] << setw(22) << y[j] << endl;
+	  cout << setw(20) << x[j] << setw(24) << y[j] << endl;
       }
 
       // -- Print_t out z-mesh.
-      if (nz > 1) for (j = 0; j <= nz; j++) cout << setw(19) << j * dz << endl;
+
+      if (nz > 1) for (j = 0; j <= nz; j++) cout << setw(20) << j * dz << endl;
     }
   }
 

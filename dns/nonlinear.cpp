@@ -97,7 +97,7 @@ void skewSymmetric (Domain*     D ,
     Uphys[i] -> transform (INVERSE);
   }
 
-  B -> maintainPhysical(master, Uphys, NCOM);
+  B -> maintainPhysical (master, Uphys, NCOM);
 
   if (Geometry::cylindrical()) {
 

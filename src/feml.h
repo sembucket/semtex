@@ -65,6 +65,7 @@ private:
   int_t     _nKey;                      // Number of keywords used.
 
   bool      tokens ();
+  void      check_ASCII();
 };
 
 #endif
