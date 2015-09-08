@@ -1,4 +1,4 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % A user guide for semtex spectral element code.
 %
 % $Id$
@@ -11,7 +11,8 @@ natbib,
 amsmath,
 bm,
 cancel,
-subfigure
+subfigure,
+color
 }
 
 \graphicspath{{./Figs/}}
@@ -35,7 +36,9 @@ subfigure
 \def\refitem{\noindent\hangindent=2em}              % hanging indent
 
 \newcommand{\Semtex}{\emph{Semtex}}
+\newcommand{\Dog}{\emph{Dog}}
 \newcommand{\SM}{\emph{SuperMongo}}
+\newcommand{\Tecplot}{\emph{Tecplot}}
 \newcommand\qp{qua\-si-per\-io\-dic}
 \newcommand\cc{complex-conjugate}
 \newcommand\oned{one-di\-men\-sion\-al}
@@ -173,14 +176,19 @@ velocity-correction method by \citet{gush03}. One can select first,
 second, or third-order time integration, but second order is usually a
 reasonable compromise, and is the default scheme. Equal-order
 interpolation is used for velocity and pressure
-\citep[see][]{gms06}. As of \Semtex~V8, the `alternating skew
-symmetric' form \citep{zan91b} is the default for construction of
-nonlinear terms in the \NavSto\ equations (faster and just as robust
-as full skew symmetric, which is still an option), and no dealiasing
-of product terms is carried out.  
+\citep[see][]{gms06}. 
 
-A significant novelty of \Semtex~V8 is the option of robust outflow
-boundary conditions \citep{dkc14}, which alleviate much of the
+As of \Semtex~V8, the `alternating skew symmetric' form \citep{zan91b}
+is the default for construction of nonlinear terms in the
+\NavSto\ equations (faster and just as robust as full skew symmetric,
+which is still an option), and no dealiasing of product terms is
+carried out for either serial or parallel operations.  As an aid to
+robust operation at high Reynolds numbers, `spectral vanishing
+viscosity' \citep{xupa04} can easily be enabled by setting appropriate
+control tokens.
+%
+A significant additional novelty of \Semtex~V8 is the option of robust
+outflow boundary conditions \citep{dkc14}, which alleviate much of the
 numerical stability problem associated with inflows that occur at the
 outflow boundary.
 
@@ -188,7 +196,7 @@ outflow boundary.
 \section{Implementation}
 
 The top level of the code is written in C++, with calls to C and
-FORTRAN library routines, e.g.\ BLAS and LAPACK. The original
+FORTRAN library routines, \eg BLAS and LAPACK. The original
 implementation for two-dimensional Cartesian geometries was extended
 to three dimensions using Fourier expansion functions for
 spatially-periodic directions in Cartesian and cylindrical spaces.
@@ -204,10 +212,13 @@ distribution. These include dynamic and non-dynamic LES
 \citep{rb06}, scalar transport \citep{hmb01a,hmb02b}, buoyancy via the
 Boussinesq approximation, accelerating frame of reference coupling for
 aeroelasticity \citep{bh96a,bh99,bgw01,hmb03}, solution of
-steady-state flows via Newton-Raphson iteration \citep{hmb02a}, linear
-stability analysis
-\citep{hmb02a,bllo03b,bllo03a,bml04,shbl04,ebs06,blsh07} and optimal
-transient growth analysis \citet{bbs08a}.
+steady-state flows via Newton--Raphson iteration \citep{hmb02a}
+
+However, linear stability analysis
+\citep{hmb02a,bllo03b,bllo03a,bml05,shbl05,ebs06,blsh07} and optimal
+transient growth analysis \citep{bbs08a} are released as an additional
+code base (called \Dog), see the accompanying user guide called
+`Working \Dog'.
 
 %-----------------------------------------------------------------------------
 \section{Further reading}
@@ -244,10 +255,10 @@ a \texttt{-h} command line option which provides a usage prompt.
 Application programs/Makefiles can be found in top and upper-level
 directories:
 \begin{tabbing}
-\texttt{elliptic} \= Solve elliptic (Laplace, Poisson, Helmholtz)
+\texttt{ellipticxx} \= \kill
+\texttt{elliptic} \> Solve elliptic (Laplace, Poisson, Helmholtz)
 problems.\\ \texttt{dns} \> Solve time-varying incompressible
-\NavSto\ problems, Cartesian/cylindrical.\\ \texttt{dns\_ff} \> As for
-\verb|dns| with various extensions for distributed body forces.\\
+\NavSto\ problems, Cartesian/cylindrical.
 \end{tabbing}
 
 %============================================================================
@@ -328,7 +339,8 @@ we have called FEML (for Finite Element Markup Language).  There are a
 number of example session files in the mesh directory.  Other files
 have standard extensions:
 \begin{tabbing}
-\texttt{session.num}  \=
+\texttt{session.numxx} \= \kill
+\texttt{session.num}  \>
         Global node numbers, produced by enumerate utility.\\
 \texttt{session.fld}  \>
         Solution/field file.  Binary format by default.\\
@@ -356,7 +368,7 @@ Source code for these is found in the \texttt{utility} directory. You
 will need to make most of these by hand (using the supplied
 \texttt{Makefile}, and \texttt{make all}).  Here is a summary:
 \begin{tabbing}
-\texttt{enumerate}  \= \kill
+\texttt{enumeratexx}  \= \kill
 \texttt{addfield} \>   
         Add vorticity vector components, divergence, etc., to a field
 	file.\\
@@ -391,11 +403,16 @@ will need to make most of these by hand (using the supplied
         Generate a template session file for a rectangular domain.\\
 \texttt{resubmit} \> Shell utility for automatic job resubmission.\\
 \texttt{rstress} \>
-	Postprocess to compute Reyolds stresses from a file of
+	Postprocess to compute Reynolds stresses from a file of
         time-averaged variables.\\
-\texttt{save} \> Shell utility for automatic job resubmssion.\\
+\texttt{save} \> Shell utility for automatic job resubmission.\\
 \texttt{sem2tec} \>   
         Convert field files to Amtec \emph{Tecplot} format.\\
+        \> Note that by default, \verb|sem2tec| interpolates the original GLL-        mesh-based data onto \\
+        \> a (isoparametrically mapped) uniform mesh for improved visual 
+        appearance.  Sometimes\\ \>  it is useful to see the original data 
+        (and mesh); for this use the \verb+-n 0+ command-line \\ 
+         \> argument to \verb+sem2tec+.\\
 \texttt{sem2vtk} \>   
         Convert field files to VTK format (\emph{VisIt, ParaView}).\\
 \texttt{transform} \>      
@@ -753,6 +770,7 @@ grid of the same order (use \verb|-n 0| to disable this feature).
 
 %============================================================================
 \section{2D Laplace problem}
+\label{sec.laplace}
 
 In this section we illustrate the use of the elliptic solver for a 2D
 Laplace problem, $\nabla^2 c = 0$.  In this case the function
@@ -890,13 +908,14 @@ check the mesh that is produced: use \texttt{meshpr} to do this.
 The other new sections introduced in the session file for this example
 (\texttt{GROUPS}, \texttt{BCS}) are used to impose boundary conditions
 on the problem.  The \texttt{GROUPS} section associates a character
-group tag (e.g. \verb+d+) with a string (e.g. \verb+value+), but note
+group tag (\eg \verb+d+) with a string (\eg \verb+value+), but note
 that different groups can be associated with the same
 string\footnote{This allows actions to be taken over a set of BCs
-which share the same string.}.  Groups \verb+a+, \verb+b+ and \verb+c+
-will be used to set natural (i.e. slope or Neumann), boundary
-conditions, while group \verb+a+ will be used to impose an essential
-or Dirichlet condition.
+  which share the same string.}.  Groups \verb+a+, \verb+b+ and
+\verb+c+ will be used to set natural (\ie slope or Neumann), boundary
+conditions ($\partial c/\partial n=\textrm{value}$), while group
+\verb+a+ will be used to impose an essential or Dirichlet condition
+($c=\textrm{value}$).
 
 The \texttt{BCS} section is used to define the boundary conditions
 which will be applied for each group.  For each group, after the
@@ -904,26 +923,28 @@ numeric tag (ignored) appears the character for that group, then the
 number of BCs that will be applied: this corresponds to the number of
 fields in the problem, in this case~1 (\verb+c+).  BCs are typically
 of Dirichlet, Neumann, or mixed type (note that domain periodicity can
-be employed by that this does not consititute a boundary condition).
+be employed but that this does not constitute a boundary condition).
 So in this case we will declare the BC types to be \verb+D+ ({\texttt
   D}irichlet) for group \verb+d+ and \verb+N+ ({\texttt N}eumann) for
 groups \verb+a+, \verb+b+ and \verb+c+.  On Neumann boundaries, the
 value which must be supplied is the slope of the solution along the
 outward normal to the solution domain.  Note the fact that the BCs can
 be set using the function parser, using the built-in functions and
-variables, also any symbols defined in the \texttt{TOKENS} section.
-The BCs can be functions of time, \verb+t+, but in time-varying
-problems the BCs are only set at the initial time, and not
-subsequently re-parsed.
+variables, also any symbols defined in the \texttt{TOKENS} section, as
+well as the spatial variables \verb+x+, \verb+y+ and \verb+z+.  The
+BCs can also be functions of time, \verb+t+, and for time-varying
+problems the boundary conditions are re-evaluated every time step.
 
 The BC groups are associated with element edges in the \texttt{SURFACES}
 section, in a similar way to the use of periodic boundaries for the
 \texttt{taylor2} problem, although the edges are set to be \verb+B+ (BC)
 rather than \verb+P+ (periodic).
 
-Periodic, Dirichlet and Neumann boundary conditions can be arbitrarily
-mixed in a problem.  Dirichlet conditions over-ride Neumann ones where
-they meet (say at the corner node of an element).
+Periodic edges, Dirichlet, Neumann and mixed boundary conditions can
+be arbitrarily combined in a problem.  Dirichlet conditions over-ride
+Neumann ones where they meet (say at the corner node of an
+element). See further discussion on boundary conditions in
+\S\,\ref{sec.bcs} below.
 
 %----------------------------------------------------------------------------
 \subsection{Running the codes}
@@ -964,12 +985,14 @@ Field 'c': norm_inf: 3.10862e-15
 \end{verbatim}
 }
 \noindent
-In this case the direct solver is more accurate, but this could be changed
-by decreasing \verb+TOL_REL+ in the \texttt{TOKENS} section (and further
-increasing \verb+STEP_MAX+, which has a default value of 500).
+In this case the direct solver is more accurate, but comparable
+accuracy with the iterative solver could be obtained by decreasing
+\verb+TOL_REL+ in the \texttt{TOKENS} section (and further increasing
+\verb+STEP_MAX+, which has a default value of 500).
 
 %============================================================================
 \section{3D Kovasznay flow}
+\label{sec.kovas}
 
 Here we will solve another viscous flow for which an analytical
 solution exists, the Kovasznay flow (we will call the session file
@@ -1122,6 +1145,7 @@ karman[27] meshpr kovas3 | sem2tec -n20 kovas3.fld
 
 %============================================================================
 \section{Vortex breakdown\,---\,a cylindrical-coordinate problem}
+\label{sec.vb}
 
 Here we will examine a problem which uses the cylindrical coordinate
 option of \verb+dns+.  The physical situation is a cylindrical cavity,
@@ -1284,6 +1308,161 @@ one-third the number of azimuthal planes that would be required for
 \verb+BETA=1+.
 
 %=============================================================================
+\section{Boundary condition roundup}
+\label{sec.bcs}
+
+The basic types of boundary conditions the code can deal with are
+Dirichlet type (value of variable is set, a.k.a.\ an \emph{essential}
+boundary condition in the finite element community) and Neumann type
+(boundary-normal gradient of value is approximated, a.k.a.\ a
+\emph{natural} type boundary condition in the finite-element
+community). The code can also deal with boundary conditions of mixed
+type (a linear combination of Dirichlet and Neumann). We note that
+periodic domain boundary surfaces (\verb|<P>|) are allowed, but
+strictly speaking, periodicity does not constitute a boundary
+condition as such.  Also we remark that for our code(s), boundary
+conditions may only be set for variables involved in elliptic
+sub-problems where, owing to the MWR treatment, Neumann boundary
+conditions are implemented as integral approximations (which converge
+to the given value pointwise as resolution is increased), while
+Dirichlet conditions are `lifted' out of the problem and imposed
+exactly to the values which are set by the user.
+
+Standard Dirichlet and Neumann boundary conditions may be supplied as
+a string that can be parsed by the solver to obtain a real value,
+based on predefined and user-declared \verb|TOKENS|, and also the
+space/time variables \verb|x|, \verb|y|, \verb|z| and \verb|t|.  These
+strings are re-parsed at each time step, so time-varying boundary
+conditions are allowed. We have already seen examples of these BC
+declarations in \S\S\,\ref{sec.laplace}, \ref{sec.kovas}
+and~\ref{sec.vb}.  Note that the strings involved should not contain
+white space.  
+
+We have not yet described mixed boundary conditions.  These are of
+type $\partial c/\partial n+K(c-C)=0$ where $C$ and $K$ are constants.
+Here, $n$ signifies the unit outward normal direction: $\partial
+c/\partial n=\bm{n\cdot\nabla c}$.  Mixed boundary conditions are
+specified in the form \verb|<M> field = mulval;refval </M>| where
+\verb|mulval| is (a string that evaluates to) the real value $K$ and
+\verb+refval+ is (a string that evaluates to) the real value $C$.  At
+present for mixed BCs, unlike Dirichlet and Neumann boundary
+conditions, $C$ and $K$ are fixed at the values they initially
+evaluate to (not time-varying).
+
+In \NavSto\ type problems, various of the above boundary conditions
+for the velocity and pressure variables are typically combined in set
+ways.  In some cases, the user does not provide values or choose the
+combination since the boundary conditions are computed internally.
+Below we supply as examples various typical boundary condition sets
+which would be located in the \verb+BCS+ section of a session file.
+As written, they are for \twoc\ \NavSto\ problems but the
+generalisation to \threec\ problems should be obvious.
+
+See also \S\,3.2 of the \Dog\ user guide for a discussion of sets of
+boundary condtions appropriate for symmetry and anti-symmetry
+boundaries.
+
+%-----------------------------------------------------------------------------
+\subsection{No-slip wall}
+
+{\small
+\begin{verbatim}
+  <D> u = 0.0 </D>
+  <D> v = 0.0 </D>
+  <H> p       </H>
+\end{verbatim}
+}
+\noindent The tag \verb+H+ for pressure (\verb+p+) denotes an
+internally computed 'high-order' Neumann condition, as originally
+described by \citet{kio91}.  If the associated \verb|GROUP| string is
+\verb|wall| then tractions will contribute to the integrated values
+found in \verb+session.flx+ file, see \S\,\ref{sec.flux}.
+
+%-----------------------------------------------------------------------------
+\subsection{Inflow or prescribed-velocity boundary}
+
+{\small
+\begin{verbatim}
+  <D> u = 1.0 </D>
+  <D> v = 0.0 </D>
+  <H> p       </H>
+\end{verbatim}
+}
+\noindent Note that either of the supplied values can be a string to
+be evaluated by the parser at each timestep.
+
+%-----------------------------------------------------------------------------
+\subsection{Slip (no-penetration) boundary}
+
+{\small
+\begin{verbatim}
+  <N> u = 0.0 </N>
+  <D> v = 0.0 </D>
+  <H> p       </H>
+\end{verbatim}
+}
+\noindent Note that in this case, the boundary needs to be aligned
+with the $x$ axis.  At present there is no way to set a slip boundary
+which is inclined or curved; it must be parallel to either the $x$ or
+$y$ axis.
+
+%-----------------------------------------------------------------------------
+\subsection{`Stress-free' outflow boundary}
+\label{sec.stressfree}
+
+{\small
+\begin{verbatim}
+  <N> u = 0.0 </N>
+  <N> v = 0.0 </N>
+  <D> p = 0.0 </D>
+\end{verbatim}
+}
+\noindent This is a restricted approximation to a true stress-free
+boundary where the tractions are zero. This boundary is also
+stress-free but achieves the condition by ensuring that the viscous
+and pressure tractions are individually zero, rather than their sum.
+
+%-----------------------------------------------------------------------------
+\subsection{`Robust' outflow boundary}
+\label{sec.robust}
+
+{\small
+\begin{verbatim}
+  <O> u </O>
+  <O> v </O>
+  <O> p </O>
+\end{verbatim}
+}
+\noindent This is a set of computed boundary conditions (computed
+Neumann for velocity and computed Dirichlet for pressure).  (In fact
+if \verb+w+ is included, its boundary condition is set as $\partial
+w/\partial n=0$ rather than being computed.) This boundary condition
+was originally described in \citet{dkc14}, and is based on maintaining
+boundedness of kinetic energy within the domain.  It is excellent for
+maintaining stability for flows in short open domains, where the use
+of the 'stress-free' condition described in \S\,\ref{sec.stressfree}
+can lead to catastrophe if significant inflow occurs over an outflow
+boundary.  Type \verb|O| boundaries must set the string \verb|outflow|
+in their associated \verb|GROUP|.
+
+%-----------------------------------------------------------------------------
+\subsection{Axis boundary}
+
+{\small
+\begin{verbatim}
+  <A> u </A>
+  <A> v </A>
+  <A> p </A>
+\end{verbatim}
+}
+\noindent
+This is a set of Fourier-mode dependent homogeneous Dirichlet and
+Neumann boundary conditions to be used when the boundary coincides
+with the $x$ axis of a cylindrical coordinate system as described in
+\citet{blsh04}. Type \verb|A| boundaries must set the string
+\verb|axis| in their associated \verb|GROUP|.
+
+%=============================================================================
 \section{Fixing problems}
 \label{sec.fix}
 
@@ -1324,16 +1503,20 @@ cause, you could put some history points near the outflow (see
 \S\,\ref{sec.history}), but the best method of diagnosis is to run the
 solution up to a time when divergence starts to increase markedly,
 then use \emph{Tecplot} or some other postprocessor to examine the
-solution near the outflow. Fixing the problem will generally require
-the mesh to be altered: sometimes the mesh is badly structured near
-the outflow (e.g.\ element sizes have been varied too rapidly);
-sometimes the problem can be overcome by extending the domain
-downstream; sometimes the domain needs to be reshaped (e.g.\ by
-contracting it in the cross-flow direction) so that there will be no
-outflow over the inflow boundary. But unfortunately, sometimes one
-will conclude that no matter how the problem is tackled, there will be
-inflow somewhere over the outflow boundary: try a different problem,
-and/or read \S\,\ref{sec.dns_ff} below.
+solution near the outflow.  This problem has been largely circumvented
+in \Semtex~V8 using the robust outflow BC set described by
+\citet{dkc14}, see \S\,\ref{sec.robust} above, though it cannot
+overcome all problems (\eg an `outflow' boundary with completely
+dominant inflow).  In pathological cases of this sort, fixing the
+problem will generally require the mesh to be altered: sometimes the
+mesh is badly structured near the outflow (\eg element sizes have been
+varied too rapidly); sometimes the problem can be overcome by
+extending the domain downstream; sometimes the domain needs to be
+reshaped (\eg by contracting it in the cross-flow direction) so that
+there will be no outflow over the inflow boundary. If all else fails,
+consider the methods of \S\,\ref{sec.sponge} to force the velocity
+near the outflow to be something more computationally tractable (if
+unphysical).
 
 Any time you change the element polynomial order by changing
 \verb+N_P+, or alter the structure of the boundary conditions, you
@@ -1347,7 +1530,7 @@ to \verb+1+ along a Dirichlet-type boundary) may no longer match what
 is implied by \texttt{session}.
 
 %=============================================================================
-\section{Speed}
+\section{Execution speed}
 \label{sec.speed}
 
 \Semtex\ relies heavily on the BLAS, so it can be worth seeking fast
@@ -1391,19 +1574,21 @@ conditions). The second is to examine the file
 \section{Checkpointing}
 \label{sec.check}
 
-By default, intermediate solutions are appended to \verb+session.fld+
-every \verb+IO_FLD+ steps (default value \verb+IO_FLD = 500+).  For
-lengthy or 3D simulations, \verb+session.fld+ can quickly grow to an
-unreasonable size.  Controlling this by setting \verb+IO_FLD = N_STEPS+
-can be risky, as the simulation could become unstable or be terminated
-before ending as expected.  A better approach (unless the intermediate
-fields are desired for postprocessing) is to use checkpointing.  With
-\verb+CHKPOINT = 1+, intermediate field dumps are written to
-\verb+session.chk+, rotating to \verb+session.chk.bak+ every
-\verb+IO_FLD+ steps, until the end of the simulation, when
-\verb+session.fld+ is written.  A command line option (\verb+dns -chk+)
-can also be used to select checkpointing, but this is
-over-ridden by whatever is set in the \verb+session+ file.
+By default, intermediate solutions are written out as checkpoint dumps
+in file \verb+session.chk+ every \verb+IO_FLD+ steps (default value
+\verb+IO_FLD = 500+), rotating this to \verb+session.chk.bak+ so there
+are usually two checkpoint files available for restarting if execution
+stops prematurely (\eg if terminated by a queuing system or by a
+floating point error).  Once the final time (\verb+N_STEP+) is
+reached, the outcome (the termimal solution field) is written to
+\verb+session.fld+.
+
+Sometimes however, one wants a sequence of field dumps to be written
+to \verb+session.fld+.  One can toggle this behaviour on the command
+line using \verb+dns -chk+, or alternatively set the \verb+TOKEN+
+\verb+CHKPOINT=0+ (the default being \verb+CHKPOINT=1+).  Note that
+turning off checkpointing can result in the generation of extremely
+large \verb+session.fld+ files.
 
 %=============================================================================
 \section{Iterative solution}
@@ -1436,21 +1621,6 @@ an option for simulations where the Reynolds number is more than a few
 hundred.
 
 %=============================================================================
-\section{Time-varying boundary conditions}
-\label{sec.tbcs}
-
-By default, the velocity boundary conditions are frozen for the time
-corresponding to the initial conditions. However, you can also use
-boundary conditions that vary with time if they are written as a
-function of \texttt{t}. In addition you need to set command-line flags
-to \texttt{dns}, or set the token \texttt{TBCS}. If you run
-\verb+dns -t+ or set \texttt{TOKEN} \verb+TBCS=1+ then the
-\emph{zeroth Fourier mode's} (2D) velocity boundary conditions are
-re-evaluated every time step.  However, if you run \verb+dns -tt+ or
-set \texttt{TOKEN} \verb+TBCS=2+ then the then the complete set of
-(3D) velocity boundary conditions are re-evaluated every time step.
-
-%=============================================================================
 \section{Wall fluxes}
 \label{sec.flux}
 
@@ -1481,7 +1651,7 @@ along the walls.
 \section{Modal energies}
 \label{sec.modal}
 
-For 3D simulations (\verb+N_Z > 2+), a file of modal energies,
+For \threed\ simulations (\verb+N_Z > 2+), a file of modal energies,
 \verb+session.mdl+, is produced.  This provides valuable diagnostic
 information for turbulent flow simulations.  For each active Fourier
 mode $k$ in the simulation, the value output every \verb+IO_HIS+ steps
@@ -1494,6 +1664,11 @@ E_k =
 where $A$ is the area of the 2D domain~$\Omega$.  (In cylindrical
 coordinate problems, the integrand is multiplied by radius.) Each line
 of the file contains the time $t$, mode number $k$ and $E_k$.
+
+We note that the energies are output only for non-negative Fourier
+modes.  To get the correct estimates for the one-sided spectrum (and
+to satisfy Parseval's relation), the energies for non-zero modes
+should be doubled.
 
 %=============================================================================
 \section{History points}
@@ -1529,7 +1704,7 @@ variables left in files \verb+session.ave+ and \verb+session.avg+
 every \verb+IO_HIS+ steps, and dumped every \verb+IO_FLD+ steps.
 Restarts are made by reading \verb+session.avg+ if it exists.
 
-Setting \verb+AVERAGE = 2+ will accumlate averages for Reynolds
+Setting \verb+AVERAGE = 2+ will accumulate averages for Reynolds
 stresses as well, with reserved names \verb+ABCDEF+, corresponding to
 products
 \begin{verbatim}
@@ -1537,7 +1712,7 @@ uu uv uw     A  B  D
    vv vw  =     C  E
       ww           F
 \end{verbatim}
-The hierarchy is named this way to allow accumlation of products in 2D
+The hierarchy is named this way to allow accumulation of products in 2D
 as well as 3D (for 2D you get only \verb+ABC+).  In order to actually
 compute the Reynolds stresses from the accumulated products you need
 to run the \verb+rstress+ utility, which subtracts the products of the
@@ -1551,12 +1726,37 @@ file from another:
 rstress good.fld test.fld | convert | diff
 \end{verbatim}
 
-Setting \verb+AVERAGE = 3+ will accumlate sums of additional products
+Setting \verb+AVERAGE = 3+ will accumulate sums of additional products
 for computation of terms in the energy transport equation. You will
 then need to use the \verb+eneq+ utility to actually compute the
 terms. Presently this part of the code is only written for Cartesian
 coordinates.
 
+%=============================================================================
+\section{Phase averaging}
+\label{sec.phase}
+
+Phase averaging is useful for turbulent flows with a dominant (and
+known) underlying temporal period.  We can collect statistics (with
+\verb|AVERAGE=1|, \verb|2| or \verb|3|)\,---\,much as for the case
+without phase averaging enabled\,---\,conditional on phase in the
+cycle of the underlying period, see \citet{rehu72}.  Turning
+on phase averaging does not preclude or stop collection of standard
+statistics.  The enabling token is \verb|N_PHASE|, which must be a
+positive integer; in addition one needs token \verb|STEPS_P| (steps
+per period) which must be chosen such that \verb|STEPS_P| modulo
+\verb|N_PHASE| is zero, and also \verb|N_STEP| modulo \verb|N_PHASE|
+must be zero \emph{and} \verb|IO_FLD=STEPS_P/N_PHASE|.  Statistics are
+written to files \verb|session.0.phs| \ldots \verb|session.X.phs|
+where \verb|X=N_PHASE-1|.  The Reynolds stresses computed from these
+files will represent fluctuations around the conditional average flow
+at each phase point (the so-called `triple decomposition').
+
+The slight difficulty is that if the period is not very well-defined
+or we have a poor estimate of it, our sampling phase will slowly drift
+unless we take corrective action.  However if the underlying period is
+very well defined (\eg the flow is periodically forced) the method has
+great potential.
 
 %=============================================================================
 \section{Particle tracking}
@@ -1586,51 +1786,53 @@ Setting \verb+SPAWN = 1+, re-initiates extra particles at the original
 positions every timestep.  With spawning, particle tracking can
 quickly grow to become the most time-consuming part of execution.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\chapter{Specialised executables}
-
-The special compilations below can be combined.
-
 %=============================================================================
-\section{Concurrent execution}
-\label{sec.parallel}
+\section{Spectral vanishing viscosity}
+\label{sec.svv}
 
-The code supports concurrent execution for 3D simulations, with MPI
-used as the message-passing kernel. Compile using \verb+make MPI=1+ to
-produce \verb+dns_mp+. (You will also need to compile in the
-appropriate message-passing routines in compiling \verb+femlib+, for
-which change to the \verb+femlib+ directory, then do
-\verb+make clean; make MPI=1; make install MPI=1+.)  Nonlinear terms
-are not dealiased when running in parallel, but are dealiased in the
-Fourier direction when running on one process, or running the serial
-code. To get a serial code that does not perform dealiasing on Fourier
-terms (e.g.\ for cross-checking), compile the serial code using
-\verb+make ALIAS=1+ to produce \verb+dns_alias+ (in which case make
-sure you delete \verb+nonlinear.o+ first).
+Spectral vanishing viscosity (SVV) amounts to implementing larger
+viscosity at higher wavenumbers either in Fourier space or in spectral
+element polynomial space.  The idea is that as resolution is increased
+via $p$-refinement, the effect `vanishes' \citep{tadmor89,mot93}.  One
+may regard SVV either as a type of implicit large-eddy simulation
+methodology \citep{pasquetti06} or as a means of stabilizing spectral
+element solutions especially at high Reynolds numbers
+\citep{xupa04,kish06}. Neither of these ideas has firm theoretical
+underpinning at this stage, yet the method does appear quite effective
+in reducing resolution requirements for turbulent flow simulations
+\citep{ksb12,cnbmo15}.  Our implementation and nomenclature follows
+the `standard method' described in \citet{ksb12}.  One can turn on SVV
+separately and with different parameters for ($x$,\,$y$) spectral
+elements and in the Fourier ($z$) direction.  These are all declared
+in the \verb+TOKENS+ section.
 
-%=============================================================================
-\section{Vector architectures}
-\label{sec.vector}
+\begin{tabbing}
+XXXXXXX \= \kill
+\texttt{SVV\_MN} \> Corresponds to cut-in mode $M_{zr}$ in 
+spectral elements. Must be less than \texttt{N\_P}.\\ 
+%
+\texttt{SVV\_MZ} \> Corresponds to cut-in mode $M_\varphi$ in 
+Fourier direction. Must be less than \texttt{N\_Z/2}.\\
+%
+\texttt{SVV\_EPSN} \> Corresponds to $\varepsilon_{zr}$. 
+Should be a value larger than \texttt{KINVIS}, \eg \texttt{5*KINVIS}.\\
+%
+\texttt{SVV\_EPSZ} \> Corresponds to $\varepsilon_\varphi$. 
+A value larger than \texttt{KINVIS}.
+\end{tabbing}
 
-The code has a fair amount of low-level optimisation built in for
-vector computer architectures, but it's not compiled in by default. To
-get vector-optimised routines, add \verb+-D_VECTOR_ARCH+ to the
-section of \texttt{src/Makefile} appropriate to your machine. Also you
-may want to try altering the parameter \texttt{LVR} in
-\texttt{src/temfftd.F} if your job makes heavy use of FFTs.
+The default polynomial transform in to place spectral element
+expansions into a discrete hierarchical space is the discrete Legendre
+transform \citep[see e.g.][]{blsc03}. This can be changed in
+\verb|src/svv.cpp|.
 
 %=============================================================================
 \section{General body forcing}
 \label{sec.dns_ff}
 
-\textsl{This extension developed by Thomas Albrecht.}\\
+\textsl{This extension was developed by Thomas Albrecht.}\\
 
 \noindent
-%An extended DNS code can be found in the \verb+dns_ff+ directory. It
-%adds various classes of distributed body forces to the capabilities of
-%the basic \verb+dns+ version.  It is our intention that this
-%eventually becomes the standard DNS version.
-
 If found, the \verb+FORCE+ section of the session file allows you to
 declare various types of body forcing, \ie add a source term
 to the RHS of the \NavSto\ equation. The currently implemented types
@@ -1644,13 +1846,13 @@ include (any combination allowed):\\[1em]
   & modulated force\\
            $-$ & $m_1(\bm{x})\,(\bm{u} - \bm{u}_0)$  
   &  sponge region\\
-           $-$ & $m_2(\bm{x})\,\frac{\bm{u}}{|\bm{u}|}\,|\bm{u}(\bm{x}, t)|^2$  
+           $-$ & $m_2(\bm{x})\,(\bm{u}/|\bm{u}|)\,|\bm{u}(\bm{x}, t)|^2$  
   &  `drag' force  \\
 %            + & $\bm{d} \, c$                         &  bouyancy \\
            $+$ & $\bm{\epsilon} G$                        
   &  white noise    \\
            $-$ & 2 $\bm{\Omega} \times \bm{u} - 
-                    \frac{d\bm{\Omega}}{dt} \times \bm{x} -
+                    (\cd\bm{\Omega}/\cd t) \times \bm{x} -
                     \bm{\Omega} \times \bm{\Omega} \times \bm{x}$  
   &  Coriolis force. \\
 \end{tabular}\\[1em]
@@ -1728,16 +1930,17 @@ the complete example session.
 
 %----------------------------------------------------------------------------
 \subsection{Sponge region}
+\label{sec.sponge}
 
 This implements a so-called `sponge region' defined by the shape
 function $m(x)$ in which a (physically meaningless) penalty term
 $\bm{f} = m(\bm{x}) \, (\bm{u} - \bm{u}_0)$ forces the flow towards a
 given solution $\bm{u}_0$.  It is especially useful for
 inflow--outflow simulations of vortex shedding or turbulence: if the
-velocity fluctions hit the outflow boundary condition, they cause
+velocity fluctuations hit the outflow boundary condition, they cause
 unphysical reflections back into the domain which distort the upstream
 flow. A sponge region placed just upstream the outflow boundary helps
-to reduce the velocity fluctions to (near) zero and thereby prevents
+to reduce the velocity fluctuations to (near) zero and thereby prevents
 those reflections. The following section would apply the penalty term
 for $20 \le x \le 24$, and within that region forces the velocity to
 approach~$(1, 0, 0).$ That given solution may be a function of space,
@@ -1756,7 +1959,7 @@ See \verb|cylinder17-sponge| for a more advanced example session.
 \subsection{'Drag' force}
 
 An approximate drag force
-$\bm{f} = - m(\bm{x}) \, \frac{\bm{u}}{|\bm{u}|} \, |\bm{u}(\bm{x},
+$\bm{f} = - m(\bm{x}) \, (\bm{u}/|\bm{u}|)\, |\bm{u}(\bm{x},
 t)|^2$.
 Be aware that we use the previous time step's velocity $\bm{u}^{n}$ here.
 \begin{verbatim}
@@ -1794,6 +1997,9 @@ about 10\%. See \verb+channel-FX-noiz+ for an example session.
 %----------------------------------------------------------------------------
 \subsection{Rotating frame of reference: Coriolis and centrifugal force}
 
+See \citet{ablmm15} for an example of DNS carried out in a rotating
+frame of reference.
+
 % @book{batchelor2000,
 %   title={An introduction to fluid dynamics},
 %   author={Batchelor, G.K.},
@@ -1803,7 +2009,7 @@ about 10\%. See \verb+channel-FX-noiz+ for an example session.
 
 If the flow is to be computed in a rotating frame of reference,
 additional acceleration terms appear, namely $\bm{f} = -2\,\bm{\Omega}
-\times \bm{u} - \frac{d\bm{\Omega}}{dt} \times \bm{x} -\bm{\Omega}
+\times \bm{u} - (\cd\bm{\Omega}/\cd t) \times \bm{x} -\bm{\Omega}
 \times (\bm{\Omega} \times \bm{x})$ \citep{bat67}. The vector
 of rotation $\bm{\Omega}$ is \emph{always} given in Cartesian
 co-ordinates, even if \verb|CYLINDRICAL = 1|. Its magnitude and/or
@@ -1811,8 +2017,9 @@ orientation can change with time. However, the axis of rotation it is
 always assumed to go through the origin. Depending on whether
 $\bm{\Omega}$ is steady or not, usage slightly differs.
 
+
 For unsteady $\bm{\Omega}$, set the flag \verb|CORIOLIS_UNSTEADY = 1|
-and give $\bm{\Omega}$ and $\frac{d\bm{\Omega}}{dt}$. All terms are
+and give $\bm{\Omega}$ and $\cd\bm{\Omega}/\d t$. All terms are
 re-evaluated each time step.
 \begin{verbatim}
 <TOKENS>
@@ -1835,7 +2042,7 @@ re-evaluated each time step.
 
 \noindent 
 For constant $\bm{\Omega}\neq f(t)$, the term
-$-\frac{d\bm{\Omega}}{dt}\times\bm{x}$ vanishes, and the centrifugal
+$-(\cd\bm{\Omega}/\cd t)\times\bm{x}$ vanishes, and the centrifugal
 force $-\bm{\Omega} \times (\bm{\Omega} \times \bm{x})$ can be
 computed during pre-processing.
 %
@@ -1846,7 +2053,7 @@ force manually using a steady force as it is no longer computed automatically%
   \texttt{CORIOLIS\_DOMEGA\_[XYZ]\_DT} to have the centrifugal term
   computed automatically. Note, however, that this degrades
   performance as it is done each time step.}.  A temporal derivative
-$\frac{d\bm{\Omega}}{dt}$, if given, is ignored.
+$\cd\bm{\Omega}/\cd t$, if given, is ignored.
 
 \begin{verbatim}
 <FORCE>
@@ -1867,10 +2074,40 @@ $\frac{d\bm{\Omega}}{dt}$, if given, is ignored.
 % A sample session \verb+box-coriolis+ makes use of steady forcing to let
 % the flow approach a given (divergence-free) solution, taking into
 % account this coriolis term.
-\noindent See \verb|cylkovrot| for an example session.
+%\noindent See \verb|cylkovrot| for an example session.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Specialised executables}
 
+The special compilations below can be combined.
 
+%=============================================================================
+\section{Concurrent execution}
+\label{sec.parallel}
+
+The code supports concurrent execution for 3D simulations, with MPI
+used as the message-passing kernel. Compile using \verb+make MPI=1+ to
+produce \verb+dns_mp+. (You will also need to compile in the
+appropriate message-passing routines in compiling \verb+femlib+, for
+which change to the \verb+femlib+ directory, then do
+\verb+make clean; make MPI=1; make install MPI=1+.)  Nonlinear terms
+are not dealiased when running in parallel, but are dealiased in the
+Fourier direction when running on one process, or running the serial
+code. To get a serial code that does not perform dealiasing on Fourier
+terms (e.g.\ for cross-checking), compile the serial code using
+\verb+make ALIAS=1+ to produce \verb+dns_alias+ (in which case make
+sure you delete \verb+nonlinear.o+ first).
+
+%=============================================================================
+\section{Vector architectures}
+\label{sec.vector}
+
+The code has a fair amount of low-level optimisation built in for
+vector computer architectures, but it's not compiled in by default. To
+get vector-optimised routines, add \verb+-D_VECTOR_ARCH+ to the
+section of \texttt{src/Makefile} appropriate to your machine. Also you
+may want to try altering the parameter \texttt{LVR} in
+\texttt{src/temfftd.F} if your job makes heavy use of FFTs.
 
 
 
@@ -1932,8 +2169,8 @@ computations, differentiation matrix construction) and FFTs, all
 written in either C or FORTRAN77; \verb|utility| routines for pre and
 post-processing; \verb|test| which has code validity regression tests,
 with the `right answers' stored in \verb|regress|; \verb|mesh| holds a
-selection of session files.  The three main application code
-directories are \verb|elliptic|, \verb|dns| and \verb|dns_ff| which
+selection of session files.  The two main application code
+directories are \verb|elliptic| and \verb|dns| which
 have been described in earlier chapters.  The \verb|sm| directory
 contains useful \SM\ macros.
 \item
@@ -2054,7 +2291,7 @@ test case for direct numerical simulation (DNS) codes.  While
 \Semtex\ will of course deal with more complicated problems, we'll use
 this as an example to illustrate techniques of mesh design, and of
 obtaining transition and extracting turbulence statistics.  Our basis
-for comparsion will be the DNS results of \citet*{kmm87}, obtained
+for comparison will be the DNS results of \citet*{kmm87}, obtained
 with a Fourier--Fourier--Chebyshev code.
 
 A schematic of the configuration is shown with figure
@@ -2408,7 +2645,7 @@ level, or restricting the time step.
 In order to monitor transition, a very useful diagnostic is to monitor
 the evolution of kinetic energies in all Fourier modes.  Transition
 should be easy to see as a moderately rapid increase in turbulent
-energy within small scales that are reprEsented by higher wave
+energy within small scales that are represented by higher wave
 numbers. Figure~\ref{pic:modal_en}(a) shows the transition for the
 mentioned channel flow. Figure~\ref{pic:modal_en}(b) indicates that
 the resolution is adequate due to a separation of about three and a
@@ -2444,7 +2681,7 @@ the energy in mode~0 here increases a little over time, partly because
 the initial condition here actually had a lower volumetric flow rate
 than the equilibrium turbulent flow. At $t\approx70$ the flow makes a
 transition to a turbulent state, typically signalled by the higher
-modes gaining energy fairly rapidly until a quasi-equlibrium is
+modes gaining energy fairly rapidly until a quasi-equilibrium is
 reached. Eventually the flow settles to a statistical equilibrium at
 $t\approx140$.  Figure~\ref{pic:modal_en}(b) shows the temporal
 average values of energies in the various Fourier modes.  (The

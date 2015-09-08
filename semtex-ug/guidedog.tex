@@ -163,11 +163,12 @@ Monash University
 
 \Dog\ is a tool to compute solutions to stability analysis and/or
 optimal transient growth problems in steady or time-periodic
-incompressible viscous flows with moderate \twod\ geometric
-complexity.  Such stability analyses are sometimes referred to as
-`global' ones in order to distinguish them from `local' or sectional
-analyses which were the previous norm.  The name \Dog\ is an acronym
-of '\undertext{d}irect \undertext{o}ptimal \undertext{g}rowth'.
+incompressible viscous flows with moderate \twod\ geometric complexity
+in either Cartesian or cylindrical coordinates.  Such stability
+analyses are sometimes referred to of `global' type in order to
+distinguish them from `local' or sectional analyses which were the
+previous norm.  The name \Dog\ is an acronym of '\undertext{d}irect
+\undertext{o}ptimal \undertext{g}rowth'.
 %
 In effect \Dog\ provides an iterative eigensystem solution wrapper
 around routines which timestep the linearised \NavSto\ equations and
@@ -175,7 +176,7 @@ their adjoint.
 
 \Dog\ is built on top of the author's \Semtex\ DNS application, and so
 employs quadrilateral nodal spectral elements as the underlying
-discretization. It is highly recommended that you have some
+spatial discretization. It is highly recommended that you have some
 familiarity with setting up and running problems in \Semtex\ before
 attempting to use \Dog. If you are planning to compile \Dog\ you need
 to have a working \Semtex\ installation first\,---\,please see the
@@ -233,7 +234,8 @@ subsequent evolution using \texttt{dns}, part of \Semtex).\\
 %
 \texttt{circulate} 
 \> `Rotate' a sequence of base flows to generate a different starting phase\\ 
-\> for Floquet or transient analysis.\\
+\> for Floquet or transient analysis. 
+   Made redundant by \verb+T_OFFSET+ token.\\
 %
 \texttt{flipmap} 
 \> Generate a set of mapping indices for a `half-period flip'.\\
@@ -247,7 +249,14 @@ built: \texttt{dog-H} \citep[for computing stability with a
   half-period flip, see e.g.][]{bml05} and \texttt{dog-AR} which uses
 \texttt{ARPACK} \citep{lehoucq98} as the Arnoldi eigensystem solver as
 opposed to the (default) `Barkley' method documented in
-\citet{bbs08b}.
+\citet{bbs08b}.  To make \texttt{dog-AR} after building \texttt{dog}
+use these commands: \verb+rm drive.o; make ARPACK=1+.  While it is
+useful to be able to use the \texttt{ARPACK} version in some
+situations (\eg it can perform better at converging a siginficant
+number of eigenvalues), we generally use the default eigensystem
+solver as it provides better diagnostic information.  I suggest you
+only try \texttt{dog-AR} on a problem once a converged solution can be
+obtained with the default sover.
 
 %============================================================================
 \subsection{Files}
@@ -255,11 +264,11 @@ opposed to the (default) `Barkley' method documented in
 Just like \Semtex, \Dog\ needs a starting input file which describes
 the mesh, boundary conditions, and sets up tokens used by the solver.
 We call this a \verb+session+ file and typically it has no root
-extension.  It is written in a format patterned on HTML, which we
-have called FEML (for Finite Element Markup Language). An extra input
-file required by \Dog\ is \verb+session.bse+ which contains the base
-flow. There are a number of example session files in the mesh
-directory.  Other files have standard extensions:
+extension.  It is written in a format patterned on HTML, which we have
+called FEML (for Finite Element Markup Language). An extra input file
+required by \Dog\ is \verb+session.bse+ which contains the base
+flow. There are a number of example session files in the
+\verb+semtex/mesh+ directory.  Other files have standard extensions:
 \begin{tabbing}
 \texttt{session.bsexxxx} \= \kill 
 %
@@ -276,6 +285,7 @@ directory.  Other files have standard extensions:
 \texttt{session.rst}  \>
         Restart file. Read in to initialize solution if present.\\
 \texttt{session.his} \> History point data.\\
+\texttt{session.bhs} \> (Reconstructed) base flow history point data.\\
 \texttt{session.mdl} \> Time series of kinetic energy of the perturbation.
 \end{tabbing}
 The primary focus when running \Dog\ is usually the \verb+session.evl+
@@ -363,7 +373,7 @@ options:
 }
 
 %============================================================================
-\subsection{Dimensionality and componentality}
+\subsection{Dimensionality vs componentality}
 
 By `dimensionality' we mean the number of dimensions required to
 describe a flow's variation in space whereas by `componentality' we
@@ -376,8 +386,45 @@ linear stability modes are 3D3C.  The combinations \Dog\ can accept
 The coordinate systems available (as for \Semtex) are Cartesian and
 cylindrical.  \citep[One might anticipate that 1D2C/2D3C analyses are
   not very useful owing to Squire's theorem for stability of `parallel
-  shear flows', see][ but it seems Squire's theorem does not apply in
+  shear flows', see e.g.][but Squire's theorem does not hold in
   cylindrical coordinates.]{schmid01}
+
+%============================================================================
+\subsection{\Dog-specific \texttt{TOKENS} and session file sections}
+
+\begin{tabbing}
+\texttt{XXXXXXXXXXXXXX} \= \kill 
+%
+\texttt{N\_BASE}  \>
+  Number of velocity components in 2D base flow file.  Either 2 or 3.\\
+\texttt{N\_SLICE}  \>
+  Number of `time slices' in base flow file. \verb+N_SLICE=1+ for 
+  steady base flow.\\
+  \> For periodic base flow, a number with prime factors 2, 3, 5 for FFT.\\
+\texttt{BASE\_PERIOD}  \>
+  Optional value to declare period of a periodic base flow;\\
+  \>  otherwise this value is computed from \verb+session.bse+.\\
+\texttt{T\_OFFSET}  \>
+  Optional value to declare a time offset for reconstruction of base flow;\\
+  \>  used to vary phase of Floquet analysis, or initiation time for
+      transient growth.\\
+\texttt{LAGRANGE\_INT} \>
+  Set \verb+LAGRANGE_INT=1+ for cubic Lagrange interpolation of base flow.\\
+  \> Leave unset/0 for default Fourier interpolation.\\
+\texttt{BIG\_RESIDS} \>
+  Set \verb+BIG_RESIDS=1+ to force direct computation of 
+  eigenvector residuals.
+\end{tabbing}
+
+An optional section of the session file is \verb+BASE_HIST+, which may
+be used to check the temporal regeneration of a base flow from a
+limited number of time slices.  This is similar in concept and
+structure to a \verb+HISTORY+ section in a standard \Semtex\ session
+file. It calls up output of history point data from the
+periodic/unsteady base flow reconstruction into file
+\verb+session.bhs+, with contents similar to those in
+\verb+session.his+, but lacking pressure history.  Output generated
+every \verb+IO_HIS+ steps.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -458,7 +505,7 @@ govern the evolution of infinitesimal perturbations, as
 \partial_t\upert
 =-[\bm{U \cdot\nabla}+(\bm{\nabla U})^T\bm{\cdot}] \upert 
 -\bm{\nabla} \ppert+\Rey^{-1}\nabla^2 \upert.
-\label{eqn.LNS} 				
+\label{eq.LNS} 				
 \end{equation}
 
 We note that the base flow $\Ubase$ does not have to be steady in
@@ -467,7 +514,7 @@ time: it may also be time-periodic, or have more general structure.
 Considering that in incompressible flow the pressure may be considered
 a constraint field whose gradient keeps the flow divergence-free and
 which is obtained from the advection terms as the solution of a
-Poisson equation, we can say that
+Poisson equation, we can symbolically state that
 \begin{equation}
 \ppert\equiv
 \nabla^{-2}\bm{\nabla\cdot}\left[\Ubase\bm{\cdot\nabla}
@@ -493,8 +540,6 @@ does not imply that the pressure is not computed.  However, it is
 typically only the velocity components which are considered as part of
 the numerical eigensystem analysis of incompressible flows.
 
-\textbf{3D modes and Fourier transformed \LNS\ equations}
-
 Before proceding to consider stability analysis, it should be noted
 that since the base flow $\Ubase$ is required as input, one must pay
 considerable attention to obtaining a good estimate for it.  In fact,
@@ -502,10 +547,27 @@ this precursor requirement often consumes a substantial part of the
 overall effort in performing a stability analysis.  Fortunately
 however, one can very often re-use the session files used for
 computing the base flow as a basis for those employed in stability
-anlysis.
+analysis.
+
+As a side-note, \citet{wikl01} showed that for the $P_N$--$P_{N-2}$
+spectral element formulation of the discretized incompressible
+\NavSto\ equations, both the conservative ($\bm{\nabla\cdot uu}$) and
+skew-symmetric ($(\bm{\nabla\cdot uu}+\bm{u\cdot\nabla u})/2)$ forms
+of the nonlinear terms possess a linear instability, while the
+non-conservative form $\bm{u\cdot\nabla u}$ does not.  While it is
+standard/default for \Semtex/\verb+dns+ (which is $P_N$--$P_N$) to
+employ the (alternating) skew-symmetric form of the nonlinear terms
+for robustness, we have found that carrying this form over to the
+discretized \LNS\ equations causes spurious predictions of
+instability, in apparent agreement with \citeauthor{wikl01}'s
+finding. Hence the implementation of the linearized advection terms
+used by \verb+dog+ and \verb+lns+ uses the non-conservative form, just
+as written in \eqref{eq.LNS}.\footnote{`If you don't know what all
+  this means, don't worry.'}
 
 %=============================================================================
 \section{Timestepping, the exponential mapping, and eigensystems}
+\label{sec.timestep}
 
 So now let us consider the effect of evolving (time-integrating,
 timestepping) a perturbation $\upert$ from an initial state at (let's
@@ -530,6 +592,7 @@ time steps $\Delta t$.
 
 %-----------------------------------------------------------------------------
 \subsection{Linear stability analysis of steady flows}
+\label{sec.steady}
 
 If $\Ubase$ is steady in time, then so is $\Lop$, in which case $\Mop$
 has a particularly simple written form
@@ -641,10 +704,68 @@ $|u_j|=1$ or equivalently when the least stable mode has
 $\lambda_{r,j}=0$.  Finding the parameter(s) which results in neutral
 stability is usually the primary focus of a flow stability
 analysis. This value is typically referred to as the `critical' value,
-\eg critical Reynolds number.
+\eg critical Reynolds number $\Rey_c$.
+
+So far we have not touched on the spatial structure of the linear
+perturbations $\upert$ or the eigenmodes $\wt{\upert}$. Since the
+analysis is linear, we can apply other linear operators to the
+methodology without breaking its validity. As the domains we can
+consider with \Semtex\ are \twod\ it is natural (if both the geometry
+and base flow are \twod) to use a \oned\ Fourier transform in the
+out-of-plane/spanwise/homogeneous ($z$) direction to be able to tackle
+\threed\ analyses.  Owing to the linearity of both the Fourier
+transform and the \LNS\ equations, we can consider the stability of
+each \threed\ Fourier mode individually.  While the base flows must be
+\twod\, they can be either \twoc\ or \threec.
+
+The definition of the (\oned) Fourier transform employed in
+\Semtex\ and \Dog\ is
+\begin{align}
+\wh{\bm{u}}_k(x,y,t) &=
+L_z^{-1}\int_0^{L_z}\bm{u}(x,y,z,t)\ce^{-\ci(2\pi/L_z)kz}\,\cd z,\\
+\bm{u}(x,y,z,t) &= 
+\sum_{k=-\infty}^\infty\wh{\bm{u}}_k(x,y,t)\ce^{\ci(2\pi/L_z)kz},
+\end{align}
+where $k$ is an integer mode index and $L_z$ is an assumed periodic
+length of the domain in the $z$ direction.  Interchangably we can take
+the spanwise wavenumber $\beta=2\pi/L_z$ (and this is the meaning of
+the token \verb+BETA+).  Since for \Dog\ we restrict the base flows to
+be \twod\, we can just consider the Fourier transform of the
+\LNS\ equations to be taken, and $\upert$ to be a \twod\ complex
+mode\,---\,and since we then deal with modes one at a time we can
+assume $k=1$ without loss of generality.  The form of the
+\LNS\ equations in coordinate-free notation (as we have used above) is
+unaltered, but with the understanding that $\Ubase(x,y)$ is \twod\ and
+real, while $\upert(x,y)$ is a \twod\ complex mode when $\beta\ne0$.
+Within \Dog, any time where we would have a $\partial(\,)/\partial_z$
+operation in physical space it is replaced with an $\ci\beta(\,)$
+operation on a complex mode, while $\partial^2(\,)/\partial_z^2$ is
+replaced with $-\beta^2(\,)$ ($x$ and $y$ derivatives are unaltered
+since we only transformed in $z$).
+
+As pointed out by \citet{bah96} a very useful simplification in the
+structure of the \twod\ complex Fourier mode $\wh{\uvec}$ occurs if
+$\Ubase$ is 2D2C.  In that case, a mode of the form
+\begin{align}
+(u', v', w') & =
+  (\hat{u}\cos\beta z, \hat{v}\cos\beta z, -\hat{w}\sin\beta z),\\
+p'         & = 
+   \hat{p}\cos\beta z
+\end{align}
+will pass through the \LNS\ equations with the same form, thus
+satisfying essential conditions for an eigenmode.  The form
+corresponds to a `half complex' mode, where only the real parts of
+$\hat{u}, \hat{v}, \hat{p}$ and the imaginary part of $\hat{w}$ need
+be populated.  Time integration requires only half the computational
+work of a fully-populated complex mode.  The form embodies a fixed
+spatial phase relationship along the $z$ axis, but any arbitrary phase
+shift (rotation) is equally valid, too.  If however, the base flow is
+2D3C, then a fully complex mode is required for $\wh{\uvec}$ (and
+again any phase shift in the $z$ direction is a valid mode shape).
 
 %-----------------------------------------------------------------------------
 \subsection{Linear stability analysis of time-periodic flows}
+\label{sec.floquet}
 
 If $\Ubase$ is time-periodic, then so is the operator $\Lop$ and we
 carry out temporal Floquet stability analysis \citep[analysis of a
@@ -676,19 +797,19 @@ instability is of period-doubling or subharmonic type; if it has
 non-zero imaginary part (occurs in complex conjugate pairs) the
 instability is \qp\ \citep{bllo03b}.
 
-The base flow for Floquet analysis is usually provided as a set of
-time-slices equispaced over $\tau$, and Fourier reconstruction is the
-typical means of re-estimating the base flow at any point in its
-period.  We note that if the base flow has features which are very
-sharp in time (as observable in velocity time-history plots), a
-considerable number of time-slices may be needed for accurate
-reconstruction, and then Fourier reconstruction may become very
-costly; in this case a local cubic spline reconstruction may be used
-instead, since the interpolation cost is lower \citep{msb11}.
-%
-(It is also possible to carry along computation of the base flow as a
+The base flow for Floquet analysis is provided as a set of time-slices
+equispaced over $\tau$, and Fourier reconstruction is the typical
+means of re-estimating the base flow at any point in its period.  We
+note that if the base flow has features which are very sharp in time
+(as observable in velocity time-history plots), a considerable number
+of time-slices may be needed for accurate reconstruction, and then
+Fourier reconstruction may become very costly; in this case a local
+cubic spline reconstruction may be used instead, since the
+interpolation cost is lower \citep[][set \texttt{LAGRANGE\_INT=1} to
+  obtain this functionality]{msb11}.
+\footnote{It is also possible to carry along computation of the base flow as a
 separate operation in parallel, an approach sometimes adopted in other
-codes.)
+codes.}
 
 As mentioned above, the Floquet modes are time-periodic, although the
 multiplier associated with each mode is a fixed scalar.  A single
@@ -696,8 +817,22 @@ Floquet analysis generally only returns the mode (or modes, if more
 than one is requested) at one particular phase, the starting phase of
 the base flow. If one requires the modes at another phase point, one
 can either rotate the order of the base flows (using \Dog's
-\verb+circulate+ utility), or ask for a time-shift (as a command-line
-argument to \verb+dog+).
+\verb+circulate+ utility), or ask for a time-shift (use token
+\verb+T_OFFSET+).
+
+If the time-perodic base flow occurs as an autonomous limit-cycle
+oscillation, then a Floquet analysis in the same subspace as the
+original flow (\eg both base flow and Floquet modes are 2D2C) should
+have a leading multiplier $\mu=1$.  This corresponds to a neutrally
+stable mode that is `tangent' to the limit cycle at each point in its
+orbit \citep{iooss90}.  At each point in the cycle, the corresponding
+Floquet mode shape should appear the same as the local acceleration
+field of the base flow, $\partial \Ubase/\partial t$.  This fact can
+sometimes be useful in checking numerical Floquet analysis \citep[see
+  e.g.][who approached 2D2C in the limit as $\beta\to0$ and found
+  $\mu\to1$ over a range of $\Rey$]{bah96}.  Such a mode only exists
+if the base flow is an autonomous limit cycle; it should not exist if
+the base flow is driven by time-periodic boundary conditions.
 
 %==============================================================================
 \section{Optimal growth of perturbations}
@@ -772,12 +907,12 @@ many orders of magnitude or more \citep[\eg an energy growth factor of
 
 \begin{figure}
 \begin{center}
-\includegraphics[width=0.3\textwidth]{nn0000.png}\\
-\includegraphics[width=0.3\textwidth]{nn0025.png}\\
-\includegraphics[width=0.3\textwidth]{nn0040.png}\\
-\includegraphics[width=0.3\textwidth]{nn0070.png}\\
-\includegraphics[width=0.3\textwidth]{nn0080.png}\\
-\includegraphics[width=0.3\textwidth]{nn0100.png}
+\includegraphics[height=0.055\textwidth]{nn0000.png}
+\includegraphics[height=0.055\textwidth]{nn0025.png}
+\includegraphics[height=0.055\textwidth]{nn0040.png}
+\includegraphics[height=0.055\textwidth]{nn0070.png}
+\includegraphics[height=0.055\textwidth]{nn0080.png}
+\includegraphics[height=0.055\textwidth]{nn0100.png}
 \end{center}
 \caption{Initial transient growth followed by ultimate decay resulting
   from the sum (blue) of two non-orthogonal eigenvectors (black), each
@@ -841,8 +976,8 @@ base flows on which analysis is performed.
 
 %=============================================================================
 \section{Two-dimensional stability of Poiseuille channel flow
-\protect\footnote{Input files for this problem are supplied in
-\texttt{dog/testcases/channel2D}.}
+\protect\footnote{Input files for this example are supplied in
+\texttt{dog/testcases/Steady/channel}.}
 }
 \label{sec.chan2d}
 
@@ -944,7 +1079,6 @@ Edit the resulting session file to produce:
     1	             -1             -1              0
     2	          -0.75             -1              0
     ..
-    ,,
     ..
     62	           0.75              1              0
     63	              1              1              0
@@ -955,35 +1089,24 @@ Edit the resulting session file to produce:
     2	<Q>    2    3   12   11    </Q>
     ..
     ..
-    ,,
     47	<Q>   52   53   62   61    </Q>
     48	<Q>   53   54   63   62    </Q>
 </ELEMENTS>
 
 <SURFACES NUMBER=22>
          1   1  1  <B>  w  </B>
-         2   2  1  <B>  w  </B>
-         3   3  1  <B>  w  </B>
-         4   4  1  <B>  w  </B>
-         5   5 	1  <B>  w  </B>
-         6   6  1  <B>  w  </B>
-         7   7  1  <B>  w  </B>
+        ..
+        ..
          8   8  1  <B>  w  </B>
 
          9  41  3  <B>  w  </B>
-        10  42  3  <B>  w  </B>
-        11  43  3  <B>  w  </B>
-        12  44  3  <B>  w  </B>
-        13  45  3  <B>  w  </B>
-        14  46  3  <B>  w  </B>
-        15  47  3  <B>  w  </B>
+        ..
+        ..
         16  48  3  <B>  w  </B>
 
         17   8  2  <P>   1  4  </P>
-        18  16  2  <P>   9  4  </P>
-        19  24  2  <P>  17  4  </P>
-        20  32  2  <P>  25  4  </P>
-        21  40  2  <P>  33  4  </P>
+        ..
+        ..
         22  48  2  <P>  41  4  </P>
 </SURFACES>
 \end{verbatim}
@@ -1079,7 +1202,7 @@ could just as well be tackled by a non-global approach).
 
 Normally we would have to use \texttt{dns} to generate a steady base
 flow (typically by integrating to reach the asymptotically steady
-state, a task which might well reqire its own session file and time
+state, a task which might well require its own session file and time
 stepping).  In the present case, though, have an analytic base flow
 declared in our session file and can use the \verb+compare+ utility to
 parse the strings in the \verb+USER+ section.
@@ -1093,12 +1216,11 @@ pressure is not used and could in fact be omitted).
 %-----------------------------------------------------------------------------
 \subsection{Make an enumeration file}
 
-We have retained standard \Semtex\ requirement that a
+We have retained the standard \Semtex\ requirement that a
 \verb+session.num+ file must be produced. If not explicitly created,
 one will be generated on the fly, but it is usually better to make one
 `by hand' in order to ensure that the highest-level RCM numbering
-optimisation level (3) is obtained.
-{\small
+optimisation level (3) is obtained.  {\small
 \begin{verbatim}
 [mec-aquila]$ enumerate -O3 channel > channel.num
 \end{verbatim}
@@ -1116,7 +1238,7 @@ Now we are ready. I'll assume commands from \Dog\ (like all the
 \end{verbatim}
 }The command line arguments above have the following sigificance:
 \verb+-k 16+; set the Krylov dimension to 16, \verb+-n 1+; stop after
-one eigenvalue is convereged to the requested tolerance,
+one eigenvalue is converged to the requested tolerance,
 \verb+-m 500+; iterate for a mximum of 500 iterations, \verb+-t 1e-6+;
 carry on converging until the residual for the higest-numbered
 eigenvalue requested (here just one) falls below this tolerance value
@@ -1128,7 +1250,7 @@ running correctly. However, the usage above is generally standard
 since it alllows the user to monitor convergence of the eigensystem
 solver by running \verb+tail+ on the \verb+session.evl+ file.  {\small
 \begin{verbatim}
-[mec-aquila]$ tail -f -18 channel.evl
+[mec-aquila]$ tail -f channel.evl
 \end{verbatim}
 } This will show us updates to the end of the eigenvalue file.  After
 a number of iterations the solution terminates with {\small
@@ -1204,7 +1326,7 @@ conclude which is more accurate, but we can accept that the values are
 the same to `plotting' accuracy, at least.
 
 Before going on, let us re-run the previous analysis but ask for the
-two leading eigenvectors (\verb+-n 2+).  Little changes, except that
+two leading eigenvectors (\verb+-n 2+).  Nothing much changes, except that
 at the end of \verb+channel.evl+ \Dog\ will report `\texttt{writing 2
   eigenvectors}' and now we will have \verb+channel.eig.0+ and
 \verb+channel.eig.1+. The $x$- and $y$-component velocities ($u$ and
@@ -1255,7 +1377,6 @@ follows:
 <TOKENS>
         ..
         ..
-        ..
         N_STEP   = 200
         D_T      = 0.005
 omega = 0.24989
@@ -1265,13 +1386,11 @@ N_STEP = 2500
 D_T    = tevolv/N_STEP
         Re_D     = 7500
         KINVIS   = 1/Re_D
-
-        ..
         ..
         ..
 </TOKENS>
 \end{verbatim}
-} \noindent (Note that the last definition of the tokens \verb+N_STEP+
+} \noindent (Note that the final definitions of tokens \verb+N_STEP+
 and \verb+D_T+ over-ride earlier ones. We chose \verb+N_STEP+ such
 that the value of \verb+D_T+ is quite similar to what we earlier used,
 \verb+0.005+.)  Next we link the first eigenmodes to serve as a
@@ -1295,8 +1414,8 @@ reader'.
 
 %=============================================================================
 \section{Steady \twod\ flow past a circular cylinder
-\protect\footnote{Input files for this problem are supplied in
-  \texttt{dog/testcases/semicylinder2D}.}  }
+\protect\footnote{Input files for this example are supplied in
+  \texttt{dog/testcases/Steady/cylinder}.}  }
 \label{sec.cyl2d}
 
 This section deals with the onset of \twod\ vortex shedding in flow
@@ -1306,7 +1425,7 @@ case where a global stability analysis is effectively the only option,
 and now we have to compute the base flow prior to stability analysis,
 since it is not available as an analytical function.  We will attempt
 to estimate the critical Reynolds and Strouhal numbers.  The first
-creditable numerical study of the problem was by \citet{jack87}; more
+credible numerical study of the problem was by \citet{jack87}; more
 recently, \citet{kumi06} detailed blockage dependence of critical
 values.  From those studies (and numerous experiments), we expect
 $\Rey_c=UD/\nu\approx46$ and $\Str_c=fD/U\approx0.125$ where $U$ is
@@ -1489,10 +1608,10 @@ amounts to adding/changing some \verb+TOKENS+ and altering the BCs.
 }
 \noindent
 In the \verb+TOKENS+ section, note that the Reynolds number (or
-\verb+KINVIS+ must be set to match the value used to compute the base
+\verb+KINVIS+) must be set to match the value used to compute the base
 flow\,---\,this seems obvious but it is easy to overlook. Also note
 that the farfield velocity is now set (via \verb+U = 0+) to
-$(u',v')=(0,0)$, which is appropropriate since we expect the domain to
+$(u',v')=(0,0)$, which is appropriate since we expect the domain to
 be large enough to contain the perturbation at the far-field
 boundaries. Again it is easy to overlook making this change, since the
 stability analysis session file is typically based on that for the
@@ -1527,7 +1646,7 @@ eigenmodes to be converged:
 [mec-aquila]$ ln -sf Re50.bse semicyl02.bse; \
 enumerate -O3 semicyl02 > semicyl02.num; \
 dog -k 10 -n 2 -m 100 semicyl02 > /dev/null &
-tail -f -n 14 semicyl02.evl
+tail -f semicyl02.evl
 \end{verbatim}
 which should terminate with
 {\small
@@ -1616,8 +1735,8 @@ them longer); lack of resolution; small errors in the cited studies.
 
 %=============================================================================
 \section{Steady \twod\ flow in a stenosed tube
-\protect\footnote{Input files for this problem are supplied in
-  \texttt{dog/testcases/stenosis3D}.}  }
+\protect\footnote{Input files for this example are supplied in
+  \texttt{dog/testcases/Steady/stenosis}.}  }
 \label{sec.sten3D}
 
 A stenosis is a partial blockage or localised contraction in an
@@ -1712,7 +1831,6 @@ of the \Semtex\ user guide).
  3 2.000000 0.000000 0.000000 
  ..
  ..
- ..
  184 20.000000 0.500000 0.000000 
 </NODES>
 
@@ -1722,7 +1840,6 @@ of the \Semtex\ user guide).
     3	<Q>    3    4   50   49    </Q>
     ..
     ..
-    ..
   135	<Q>  137  138  184  183    </Q>
 </ELEMENTS>
 
@@ -1730,7 +1847,6 @@ of the \Semtex\ user guide).
     1    1    1    <B> a </B>
     2    2    1    <B> a </B>
     3    3    1    <B> a </B>
-    ..
     ..
     ..
    45   45    1    <B> a </B>
@@ -1744,7 +1860,6 @@ of the \Semtex\ user guide).
    51  133    3    <B> w </B>
    ..
    ..
-   ..
    93   91    3    <B> w </B>
 
    94   91    4    <B> v </B>
@@ -1756,7 +1871,6 @@ of the \Semtex\ user guide).
  1	 96	3	<SPLINE> stenosis-upper.geom </SPLINE>	
  2	 97	3	<SPLINE> stenosis-upper.geom </SPLINE>	
  3	 98	3	<SPLINE> stenosis-upper.geom </SPLINE>
- ..
  ..
  ..	
  8	 103	3	<SPLINE> stenosis-upper.geom </SPLINE>	
@@ -1842,7 +1956,7 @@ carrying out the analysis in azimuthal wavenumber $k\equiv\beta=1$ and
 have set this with \verb+BETA=1+. The instability mode is of
 `half-complex' type, with the restricted symmetry
 $u'=\hat{u}'\cos(k\theta), v'=\hat{v}'\cos(k\theta),
-w'=\hat{u}'\sin(k\theta), p'=\hat{p}'\cos(k\theta)$, so that we only
+w'=-\hat{u}'\sin(k\theta), p'=\hat{p}'\cos(k\theta)$, so that we only
 need \verb+N_Z=1+.  The integration time $\tau=0.5$ is set with
 \verb+T_MAX=0.5+ and \verb+N_STEP=int(T_MAX/D_T)+.
 
@@ -1885,10 +1999,637 @@ $\lambda_0=-5.3306\times10^{-2}$, close the value we had expected.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Stability analysis of time-periodic flows}
+\label{ch.floquet}
+
+A few new issues arise in dealing with temporal Floquet analysis: (a)
+the base flow must be periodic and (b) we must provide enough
+time-slices of it for an adequate reconstruction to be possible.  In
+order to check periodicity, one can examine phase-space plots of
+velocity components in order to ensure they have closed to make limit
+cycles, but also it is advisable to check that the frequency of
+oscillation has in fact converged to the same value at different
+history points.  We note that DFT-based Fourier analysis is generally
+NOT a good choice for checking the base flow frequency at different
+points and that tools based in the time domain \citep[\eg
+  zero-crossing analysis, see chapter~8 of][]{newland93} are to be
+preferred. As to the number of time-slices required for accurate
+reconstruction, a convergence analysis is really the only option.
+Also I suggest you read the caveats issued in \S\,4.1 of
+\citet{bbs08b}.
+
+%=============================================================================
+\section{Time-periodic flow past a circular cylinder
+\protect\footnote{Input files for this example are supplied in
+  \texttt{dog/testcases/Floquet/cylinder}.}  }
+\label{sec.cyl2d}
+
+Here we deal with Floquet analysis of a \twod\ time-periodic flow past
+a circular cylinder, studied in detail by \citet{bah96}.  We will
+examine near-critical behaviour for Mode~A, which \citeauthor{bah96}
+report has $\Rey_c=188.5$ at $\beta_c=1.585$.  They used 32
+time-slices per base flow period for their Fourier-based
+reconstruction of the base flow.
+
+%-----------------------------------------------------------------------------
+\subsection{Geometry and base flow}
+
+The mesh developed for the problem is shown in
+figure~\ref{fig.cylinder}.  It has 218 elements, an inflow length
+$L_i=15D$, outflow length $L_o=25D$ and semi-width $L_h=20$, all of
+which are comparable to the production geometry $M_2$ used by
+\citet{bah96}, though their cross-flow blockage was somewhat lower
+since they had $L_h=22D$.
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.6\textwidth]{m32_2D_mesh}
+\end{center}
+\caption{Spectral element mesh for Floquet analysis of flow past a
+  circular cylinder.}
+\label{fig.cylinder}
+\end{figure}
+
+The session file (\verb+m32-base+) used to compute the base flow is
+shown below.  Some of the \verb+TOKENS+ correspond to our initial
+guesses, a point we will return to below.
+
+{\small
+\begin{verbatim}
+<TOKENS>
+  PERIOD    = 5.0
+  STEP_PER  = 1024
+
+  N_STEP    = 200*STEP_PER
+  D_T       = (PERIOD/STEP_PER)
+  IO_FLD    = STEP_PER/32
+  CHKPOINT  = 1
+
+  N_P       = 8
+  Re        = 188.5
+  KINVIS    = 1/Re
+</TOKENS>
+
+<HISTORY NUMBER=3>
+  1  2.0   0.0  0.0
+  2  10.0  0.0  0.0
+  3  20.0  0.0  0.0
+</HISTORY>
+
+<FIELDS NUMBER=3>
+  u  v  p
+</FIELDS>
+
+<GROUPS NUMBER=3>
+  1  v  velocity
+  2  w  wall
+  3  o  exit
+</GROUPS>
+
+<BCS NUMBER=3>
+  1  v  3
+    <D>  u = 1.0  </D>
+    <D>  v = 0.0  </D>
+    <H>  p        </H>
+  2  w  3
+    <D>  u = 0.0  </D>
+    <D>  v = 0.0  </D>
+    <H>  p        </H>
+  3  o  3
+    <N>  u = 0.0  </N>
+    <N>  v = 0.0  </N>
+    <D>  p = 0.0  </D>
+</BCS>
+
+<NODES NUMBER=286>
+    1        0.5           0         0
+    2    0.44721     0.22361         0
+    3    0.32139     0.38302         0
+   ..
+   ..
+  286         25         -20         0
+</NODES>
+
+<ELEMENTS NUMBER=218>
+ 1	<Q>  1	11	12	2	</Q>
+ 2	<Q>  2	12	13	3	</Q>
+ 3	<Q>  3	13	14	4	</Q>
+ ..
+ ..
+218	<Q>  278	279	49	277	</Q>
+</ELEMENTS>
+
+<SURFACES NUMBER=44>
+	1	199	3	<B>	v	</B>
+	2	201	3	<B>	v	</B>
+	3	203	3	<B>	v	</B>
+        ..
+        ..
+	22	212	1	<B>	v	</B>
+
+	23	199	2	<B>	o	</B>
+	24	183	2	<B>	o	</B>
+	25	151	2	<B>	o	</B>
+        ..
+        ..
+	34	200	2	<B>	o	</B>
+
+	35	1	4	<B>	w	</B>
+	36	2	4	<B>	w	</B>
+	37	3	4	<B>	w	</B>
+        ..
+        ..
+	44	10	4	<B>	w	</B>
+</SURFACES>
+
+<CURVES NUMBER=50>
+ 1	 1	4	<ARC>	-0.5	</ARC>
+ 2	 2	4	<ARC>	-0.5	</ARC>
+ 3	 3	4	<ARC>	-0.5	</ARC>
+..
+..
+50	30	4	<ARC>	-0.9	</ARC>
+</CURVES>
+\end{verbatim}
+}
+
+Now we set about running and checking the base flow.  In the
+\verb+TOKENS+ section we have guessed the final oscillation period to
+be of order 5 time units (based on a Strouhal number of order 0.2,
+typical for circular cylinders) and run for 200 periods (total time of
+1000 units), hoping the base flow to become established and periodic
+in this time span.  Note that we have included three history points at
+various locations inside the wake.
+
+\begin{verbatim}
+[mec-aquila]$ enumerate -O3 m32-base > m32-base.num ; \
+dns m32-base > /dev/null ; \
+save m32-base
+\end{verbatim}
+\noindent
+(\verb+save+ is a standard \Semtex\ shell script.) Next we visually
+examine the base flow history time series for $(U,V,P)$ and as a
+phase-plane plot, as shown in figure~\ref{fig.shedding}.  Based on
+this inspection, it is tempting to believe that the flow has reached
+an asymptotic limit-cycle state and is suitable for use as a base
+flow.  However, let us also check the periods associated with each of
+the history points (for which we will use an up-crossing analysis
+tool, not supplied).
+
+\begin{figure}
+\begin{center}
+\begin{tabular}{cccc}
+\raisebox{40ex}{(a)} &
+\includegraphics[width=0.45\textwidth]{base_his} &
+\raisebox{40ex}{(b)} &
+\raisebox{5ex}{\includegraphics[width=0.4\textwidth]{limcyc}}
+\end{tabular}
+\end{center}
+\caption{(a) History point time series for the first 1000 time units
+  of simulation for circular cylinder base flow. (b) phase-plane plot
+  of $U$ vs $V$ for final few shedding cycles.}
+\label{fig.shedding}
+\end{figure}
+
+Analysis for $V$ velocity component, history point 1:
+\begin{verbatim}
+[mec-aquila]$ chop -s 1 -S 3 m32-base.his | slit -c 2,4 | upxf -v | tail -4 
+9.8745e+02 1.9563e-01 1.8661e-01 -8.5490e-01 -7.6585e-01 8.5490e-01 7.6343e-01
+9.9256e+02 1.9561e-01 1.8666e-01 -8.5491e-01 -7.6634e-01 8.5487e-01 7.6394e-01
+9.9767e+02 1.9559e-01 1.8671e-01 -8.5488e-01 -7.6684e-01 8.5489e-01 7.6444e-01
+averages:  frequency  1.8671e-01,        min -7.6684e-01,       max 7.6444e-01
+\end{verbatim}
+
+For history point 2:
+\begin{verbatim}
+[mec-aquila]$ chop -s 2 -S 3 m32-base.his | slit -c 2,4 | upxf -v | tail -4 
+9.8679e+02 1.9557e-01 1.8657e-01 -6.0652e-01 -5.5939e-01 6.0653e-01 5.5733e-01
+9.9190e+02 1.9557e-01 1.8662e-01 -6.0653e-01 -5.5966e-01 6.0653e-01 5.5760e-01
+9.9701e+02 1.9559e-01 1.8667e-01 -6.0653e-01 -5.5992e-01 6.0652e-01 5.5788e-01
+averages:  frequency  1.8667e-01,        min -5.5992e-01,       max 5.5788e-01
+\end{verbatim}
+
+For history point 3:
+\begin{verbatim}
+[mec-aquila]$ chop -s 3 -S 3 m32-base.his | slit -c 2,4 | upxf -v | tail -4 
+9.8803e+02 1.9558e-01 1.9196e-01 -4.6848e-01 -4.2681e-01 4.6849e-01 4.2543e-01
+9.9315e+02 1.9558e-01 1.9198e-01 -4.6849e-01 -4.2704e-01 4.6849e-01 4.2567e-01
+9.9826e+02 1.9559e-01 1.9200e-01 -4.6849e-01 -4.2727e-01 4.6848e-01 4.2591e-01
+averages:  frequency  1.9200e-01,        min -4.2727e-01,       max 4.2591e-01
+\end{verbatim}
+
+The relevant features in the above listings are the second columns,
+which give the frequency (inverse period) for the final three cycles
+found at each history point.  We can see that despite the fact that
+the phase-plane plots in figure~\ref{fig.shedding} seem converged, the
+frequencies are still slowly evolving\,---\,even though the final
+values happen to be the same (0.19559).  So we will resubmit the base
+flow for another 1000 time units.\footnote{This might seem like
+  overkill, but it turns out that a Floquet analysis employing the
+  base flow at this stage of evolution would be moderately in error.
+  (Try it out for yourself.)}
+
+After re-running \verb+dns+ we re-make our crossing analysis and find
+(only reproducing data for the first point, since the other two are
+identical):
+\begin{verbatim}
+[mec-aquila]$ dns m32-base > /dev/null; save m32-base
+[mec-aquila]$ chop -s 1 -S 3 m32-base.his | slit -c 2,4 | upxf -v | tail -4 
+2.0099e+03 1.9560e-01 1.9560e-01 -8.5487e-01 -8.5487e-01 8.5487e-01 8.5487e-01
+2.0151e+03 1.9560e-01 1.9560e-01 -8.5487e-01 -8.5487e-01 8.5487e-01 8.5487e-01
+2.0202e+03 1.9560e-01 1.9560e-01 -8.5487e-01 -8.5487e-01 8.5487e-01 8.5487e-01
+averages:  frequency  1.9560e-01,        min -8.5487e-01,       max 8.5487e-01
+\end{verbatim}
+\noindent We find that the frequency has now converged to a value of
+0.19560, the same for all history points.  Now we are in a position to
+compute the time-slices required for the base flow and alter the
+\verb+TOKENS+ section accordingly:
+{\small
+\begin{verbatim}
+<TOKENS>
+  FREQ        = 0.19560
+  BASE_PERIOD = 1.0/FREQ
+  STEP_PER    = 1024
+  N_STEP      = 1*STEP_PER
+  D_T         = (BASE_PERIOD/STEP_PER)
+  IO_FLD      = STEP_PER/32
+  CHKPOINT    = 0
+  N_P         = 8
+  Re          = 188.5
+  KINVIS      = 1/Re
+  IO_CFL      = 32
+  IO_HIS      = 8
+</TOKENS>
+\end{verbatim}
+}
+\noindent
+The most significant modifications here are used to (a) set the total
+integration time to one base flow period (b) ensure that all 32
+field dumps are written to the output file (via \verb+CHKPOINT=0+).
+Our time step is very similar to what was chosen for the set-up
+phases.  While we have used the token \verb+BASE_PERIOD+ here, the
+name is not significant to \verb+dns+. The same is true for these
+other tokens: \verb+FREQ+, \verb+STEP_PER+, \verb+Re+.
+\begin{verbatim}
+[mec-aquila]$ dns m32-base > /dev/null; ln -s m32-base.fld m32.bse
+\end{verbatim}
+\noindent Here we have linked the outcome so that it will serve as a
+base flow file for Floquet analysis with session file \verb+m32+.  We
+can easily (and should) check the number of field dumps in
+\verb+m32.bse+:
+\begin{verbatim}
+[mec-aquila]$ convert m32.bse | grep -c Session
+32
+\end{verbatim}
+
+%-----------------------------------------------------------------------------
+\subsection{Floquet analysis}
+
+Below we see an extract from the listing for our \Dog\ session file,
+\verb+m32+, showing the parts that differ from the base flow's session
+file.  Note that since the base flow is 2D2C and the Floquet modes are
+3D3C, we need to add in boundary conditions for the $w$ velocity
+component. And that since the conditions are satisfied for a
+`half-complex' mode, we only need to set \verb+N_Z=1+.
+
+{\small
+\begin{verbatim}
+<FIELDS NUMBER=4>
+  u  v  w  p
+</FIELDS>
+
+<TOKENS>
+  FREQ        = 0.19560
+  BASE_PERIOD = 1.0/FREQ
+
+  STEPS_P     = 1024
+  N_STEP      = STEPS_P
+  D_T         = BASE_PERIOD/STEPS_P
+
+  N_P         = 8
+  N_Z         = 1
+
+  N_SLICE     = 32
+  N_BASE      = 2
+
+  IO_FLD      = STEPS_P
+  IO_HIS      = 16
+  IO_CFL      = 20
+
+  BETA        = 1.585
+  Re          = 188.5
+  KINVIS      = 1.0/Re
+</TOKENS>
+
+<BASE_HIST NUMBER=3>
+  1  2.0   0.0  0.0
+  2  10.0  0.0  0.0
+  3  20.0  0.0  0.0
+</BASE_HIST>
+
+<FIELDS NUMBER=4>
+  u  v  w  p
+</FIELDS>
+
+<GROUPS NUMBER=3>
+  1  v  velocity
+  2  w  wall
+  3  o  exit
+</GROUPS>
+
+<BCS NUMBER=3>
+  1  v  4
+    <D>  u = 0.0  </D>
+    <D>  v = 0.0  </D>
+    <D>  w = 0.0  </D>
+    <H>  p        </H>
+  2  w  4
+    <D>  u = 0.0  </D>
+    <D>  v = 0.0  </D>
+    <D>  w = 0.0  </D>
+    <H>  p        </H>
+  3  o  4
+    <N>  u = 0.0  </N>
+    <N>  v = 0.0  </N>
+    <N>  w = 0.0  </N>
+    <D>  p = 0.0  </D>
+</BCS>
+\end{verbatim}
+}
+\noindent
+The only substantive difference to our usage for steady flows is
+setting \verb+N_SLICE=32+, which should be the number of time slices
+present in the base flow (pre-declaring it allows us to allocate
+storage prior to parsing the base flow file, but the correspondence is
+subsequently checked within the code). Declaration of the base flow
+period using the token \verb+BASE_PERIOD+ is optional (since this
+would otherwise be computed from the base flow file), but including it
+here enables us to set the time step \verb+D_T+ such that an integer
+number of time steps occur each period.
+
+So now we are ready to carry out the analysis.
+\begin{verbatim}
+[mec-aquila]$ enumerate -O3 m32 > m32.num ;\
+dog -k 21 -n 1 -m 200 m32 > /dev/null &
+tail -f m32.evl
+\end{verbatim}
+\noindent producing
+{\small
+\begin{verbatim}
+-- Iteration = 31, H(k+1, k) = 0.493569
+EV  Magnitude   Angle       Growth      Frequency   Residual
+ 0  9.9525e-01  0.0000e+00 -9.3136e-04  0.0000e+00  5.4271e-07
+ 1  6.7921e-01  1.5110e+00 -7.5663e-02  2.9555e-01  1.1243e-01
+ 2  6.7921e-01 -1.5110e+00 -7.5663e-02 -2.9555e-01  1.1243e-01
+ 3  6.5767e-01  2.6597e+00 -8.1967e-02  5.2025e-01  1.1926e-01
+ 4  6.5767e-01 -2.6597e+00 -8.1967e-02 -5.2025e-01  1.1926e-01
+..
+..
+19  5.1720e-01  2.6095e+00 -1.2896e-01  5.1043e-01  3.5197e-01
+20  5.1720e-01 -2.6095e+00 -1.2896e-01 -5.1043e-01  3.5197e-01
+dog: converged, writing 1 eigenvectors.
+\end{verbatim}
+}
+\noindent
+Our leading Floquet multiplier estimate is $\mu_0=0.99525$, slightly
+lower than $\mu=1$ predicted by \cite{bah96}, but we have employed a
+slightly different cross-flow domain extent, and our results may also
+change slightly as we increase resolution. As they also found, it
+seems the next eigenvalue is of complex-conjugate type, giving rise to
+a \qp\ mode \citep{bllo03b}.
+
+%-----------------------------------------------------------------------------
+\subsection{Cross-check: neutral stability of the autonomous limit cycle}
+
+A good cross-check in this case (where the base flow arises as an
+autonomous non-linear oscillation) is that in the 2D2C limit, we also
+obtain a Floquet multiplier $\mu=1$, as discussed in
+\S\,\ref{sec.floquet}.  We could either remake the analysis above with
+a very small value of $\beta$, or make a new \Dog\ session file where
+the perturbation is 2D2C, like the base flow.  Using the second
+approach (session file not detailed), we get this outcome (again based
+on a Krylov dimension of 21): {\small
+\begin{verbatim}
+-- Iteration = 33, H(k+1, k) = 0.713053
+EV  Magnitude   Angle       Growth      Frequency   Residual
+ 0  9.9649e-01  0.0000e+00 -6.8832e-04  0.0000e+00  9.7717e-07
+ 1  6.3821e-01  0.0000e+00 -8.7842e-02  0.0000e+00  4.2658e-02
+..
+..
+20  1.4306e-01  0.0000e+00 -3.8035e-01  0.0000e+00  6.3940e-01
+dog: converged, writing 1 eigenvectors.
+\end{verbatim}
+}\noindent Again, our estimate is slightly too low, but lies within
+0.4\% of the required value.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Optimal growth analysis}
+
+
+%=============================================================================
+\section{Steady flow in a backward-facing step geometry
+\protect\footnote{Input files for this example are supplied in
+  \texttt{dog/testcases/Transient/backstep}.}  }
+\label{sec.bfsTG}
+
+We will examine optimal transient growth for flow in a backward-facing
+step geometry.  Our mesh (shown in figure~\ref{fig.bfsmesh} is the
+same as the production mesh $M_1$ used by \citet{bbs08a}.  We will
+consider optimal transient growth of 2D2C perturbations at
+$\Rey=U_{\max}h/\nu=500$ and with time horizon $\tau=60$, see results
+in Table~2 of that reference.  For polynomial order $N=6$,
+corresponding to \verb+N_P=7+, they found optimal growth value
+$G=62\,661$.
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=\textwidth]{bfs12mesh}
+\end{center}
+\caption{Spectral element mesh for the backward-facing step.}
+\label{fig.bfsmesh}
+\end{figure}
+
+The base flow file is supplied as \verb+bfs12-base+. Below we see a
+partial listing.
+{\small
+\begin{verbatim}
+# Backward-facing step
+# Li = 10
+# Lo = 50
+# 563 elements
+
+<FIELDS>
+  u  v  p
+</FIELDS>
+
+<TOKENS>
+  N_TIME  = 2
+  N_P     = 7
+  T_FINAL = 1450
+  D_T     = 0.005
+  N_STEP  = int(T_FINAL/D_T)
+  Re      = 500
+  KINVIS  = 1.0/Re
+  IO_CFL  = 25
+  IO_HIS  = 10
+  IO_FLD  = 1000
+</TOKENS>
+
+<HISTORY NUMBER=3>
+   1  5	 -0.5  0
+   2  15  0    0
+   3  30  0    0
+</HISTORY>
+
+<GROUPS NUMBER=3>
+  1  v  value
+  2  w  wall
+  3  o  exit
+</GROUPS>
+
+<BCS NUMBER=3>
+  1  v  3
+    <D>  u = 4.0*y*(1-y)  </D>
+    <D>  v = 0.0          </D>
+    <H>  p                </H>
+  2  w  3
+    <D>  u = 0.0  </D>
+    <D>  v = 0.0  </D>
+    <H>  p        </H>
+  3  o  3
+    <N>  u = 0.0  </N>
+    <N>  v = 0.0  </N>
+    <D>  p = 0.0  </D>
+</BCS>
+\end{verbatim}
+}
+\noindent We will run the base flow for 1450 time units, which is (we
+trust) sufficient.
+
+%-----------------------------------------------------------------------------
+\subsection{Optimal initial condition}
+
+First, examine the parts of the base flow file that we modify for the
+transient growth analysis (this is supplied as file \verb+bfs12+).
+{\small
+\begin{verbatim}
+<FIELDS NUMBER=3>
+  u  v  p
+</FIELDS>
+
+<TOKENS>
+  N_BASE    = 2
+  N_SLICE   = 1
+  N_TIME    = 2
+  N_P       = 7
+  T_FINAL   = 60
+  D_T       = 0.005
+  N_STEP    = int(T_FINAL/D_T)
+  Re        = 500
+  KINVIS    = 1.0/Re
+  IO_CFL    = 25
+  IO_HIS    = 10
+  IO_FLD    = 1000
+</TOKENS>
+
+<SURFACES NUMBER=228>
+    1  297  3  <B>  w  </B>
+    2  2    2  <B>  w  </B>
+   ..
+   ..
+  228  563  2  <B>  w  </B>
+</SURFACES>
+\end{verbatim}
+}\noindent Note that we have set the time horizon at $\tau=60$ (the
+optimal initial condition and growth value we arrive at are dependent
+on this parameter).  We have set the boundary conditions to be of wall
+type on all \verb+SURFACES+ by the simple expedient of placing them
+all in the \verb+w+ (wall) group.
+\begin{verbatim}
+[mec-aquila]$ ln -s bfs12-base.fld bfs12.bse
+[mec-aquila]$ enumerate -O3 bfs12 > bfs12.num
+[mec-aquila]$ dog -g -k 4 -n 2 -m 20 -t1e-5 bfs12 > /dev/null &
+[mec-aquila]$ tail -f bfs12.evl
+\end{verbatim}
+which terminates with
+{\small
+\begin{verbatim}
+-- Iteration = 6, H(k+1, k) = 1025.59
+EV  Magnitude   Angle       Growth      Frequency   Residual
+ 0  6.2661e+04  0.0000e+00  1.8409e-01  0.0000e+00  1.4969e-02
+ 1  4.7445e+04  0.0000e+00  1.7946e-01  0.0000e+00  2.1796e-02
+ 2  5.7560e+03  0.0000e+00  1.4430e-01  0.0000e+00  5.1699e+02
+ 3  5.0410e+03  0.0000e+00  1.4209e-01  0.0000e+00  8.3171e+02
+dog: converged, writing 2 eigenvectors.
+\end{verbatim}
+}\noindent So our value for $G=62\,661$, exactly as expected.  
+
+Note the use of a new command line flag: \verb+dog -g+, requesting a
+`growth' computation, and which gives as output the spatial
+distribution of optimal initial disturbance.  In fact, we have asked
+for two initial disturbances, which are the optimal and first
+sub-optimal disturbance \citep[see \S\,4.2.1 and table~5
+  of][]{bbs08a}.  If we want the optimal disturbances at the final
+time $t=\tau=60$, we would use \verb+dog -s+ (\verb+s+ for `shrink')
+instead.  We would get the same results (same $G$ values) in the
+\verb+bfs12.evl+ file, but the spatial distributions would be quite
+different.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Troubleshooting}
+
+It is quite common not to be able converge an eigensystem estimate
+when first tackling a problem.  Here are some things to consider in
+this case:
+
+\begin{enumerate}
+\item
+Is your base flow up to the job?  Is it (a) well enough resolved
+spatially (check vorticity contours) (b) in an asymptotic state,
+either steady or periodic (try running it longer)? If the base flow is
+meant to be unsteady (\eg periodic) it can be worth making an
+animation to check behaviour over a whole cycle, as mesh-related
+artifacts can sometimes introduce spurious dynamics \citep[see \eg
+  \S\,4.1 of][]{bbs08b}.
+\item
+Have you used the correct boundary conditions for the base flow and
+stability analysis (they are different)?  If you have changed the
+boundary conditions while testing, did you re-run \texttt{enumerate}?
+\item
+Have you used the same Reynolds number (\verb+KINVIS+) for the base
+flow and stability analysis?
+\item
+If the base flow is periodic, do you have enough time-slices for
+adequate reconstruction?  Consider using the \verb+BASE_HIST+ section
+to output base flow reconstruction history, compare to the equivalent
+values achieved in simulating the base flow with \verb+dns+.
+\item
+Do you have enough spatial resolution? It is easy to change
+interpolation order via \verb+N_P+ ($p$-refinement), though often a
+better spectral element mesh ($h$-refinement) can be a better solution
+at lower computation cost.
+\item
+Related: are you able to converge an eigenvalue for this problem/mesh
+but at a lower Reynolds number?
+\item
+In a steady stability analysis, the integration time $\tau$ is a
+choice made by the analyst.  If it is very different from the
+characteristic time ($\lambda^{-1}$) of the problem you're studying,
+convergence is unlikely to be achieved.  Consider changing
+\verb+N_STEP+: typically it is of the order of a few tens to a few
+hundred times \verb+D_T+. It is worth noting that the same value of
+\verb+D_T+ is typically appropriate to both the base flow simulation
+and the linear analysis.
+\item
+Examine the convergence history in the \verb+session.evl+ file.  Was
+convergence nearly achieved (leading residual came down to of order
+say $1\times10^{-4}$ times \verb+MAGNITUDE+ before rising again and
+failing)?  Consider relaxing the convergence tolerance to this minimum
+level so you can deliver a converged outcome, and examine the flow
+structure in \verb+session.eig.0+ to see if that gives any clues (\eg
+evidence of under-resolution in a particular location).
+\end{enumerate}
 
 
 
