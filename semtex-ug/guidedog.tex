@@ -101,8 +101,8 @@ amsfonts
 \newcommand\Aadj{{\cal A^*}}
 \newcommand\Hop{{\cal H}}
 \newcommand\Hadj{{\cal H^*}}
-\newcommand\Lop{{\cal L}}
-\newcommand\Ladj{{\cal L^*}}
+\newcommand\Lop{{L}}
+\newcommand\Ladj{{L^*}}
 \newcommand\Mop{{\cal M}}
 \newcommand\Madj{{\cal M^*}}
 
@@ -118,6 +118,74 @@ amsfonts
 \newcommand{\Semtex}{\emph{Semtex}}
 \newcommand{\Dog}{\emph{Dog}}
 \newcommand\undertext[1]{\underline{\smash{\hbox{#1}}}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Condensed lists.
+%
+
+% -- Bullet.
+
+\newenvironment{conlist}
+  {\vspace*{0ex}
+    \begin{list}{$\bullet$}%
+      {\setlength{\itemsep}{0pt}%
+       \setlength{\parsep}{0pt}%
+       \setlength{\topsep}{0pt}%
+       \setlength{\leftmargin}{12pt}%
+      }%
+  }%
+  {\end{list}}
+
+% -- Open dot.
+
+\newenvironment{conlistd}
+  {\vspace*{0ex}
+    \begin{list}{$\circ$}%
+      {\setlength{\itemsep}{0pt}%
+       \setlength{\parsep}{0pt}%
+       \setlength{\topsep}{0pt}%
+       \setlength{\leftmargin}{12pt}%
+      }%
+  }%
+  {\end{list}}
+
+% -- Numbered.
+
+\newcounter{beann}
+\newenvironment{conlistn}
+  {\vspace*{0ex}
+    \begin{list}{\arabic{beann}.}{%
+      \usecounter{beann}%
+      \setlength{\parsep}{0pt}%
+      \setlength{\itemsep}{0pt}%
+      \setlength{\parsep}{0pt}%
+      \setlength{\topsep}{3pt}%
+      \setlength{\leftmargin}{28pt}%
+      \setlength{\labelwidth}{12pt}%
+      \setlength{\topskip}{0pt}%
+      }%
+  }%
+  {\end{list}}
+
+% -- Alpha (a) (b) (c)...
+
+\newcounter{beanna}
+\newenvironment{conlista}
+  {\vspace*{0ex}
+    \begin{list}{(\alph{beanna})}{%
+      \usecounter{beanna}%
+      \setlength{\parsep}{0pt}%
+      \setlength{\itemsep}{0pt}%
+      \setlength{\parsep}{0pt}%
+      \setlength{\topsep}{3pt}%
+      \setlength{\leftmargin}{28pt}%
+      \setlength{\labelwidth}{12pt}%
+      \setlength{\topskip}{0pt}%
+      }%
+  }%
+  {\end{list}}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
@@ -546,8 +614,9 @@ considerable attention to obtaining a good estimate for it.  In fact,
 this precursor requirement often consumes a substantial part of the
 overall effort in performing a stability analysis.  Fortunately
 however, one can very often re-use the session files used for
-computing the base flow as a basis for those employed in stability
-analysis.
+computing the base flow as a starting point for those employed in
+stability analysis (typically one must change the boundary conditions
+and a few other minor things).
 
 As a side-note, \citet{wikl01} showed that for the $P_N$--$P_{N-2}$
 spectral element formulation of the discretized incompressible
@@ -580,15 +649,24 @@ where
 \begin{equation}
 \Mop(\tau) = \exp \int_{t=0}^{t=\tau}\Lop(t)\,\cd t
 \end{equation}
-is the state transition operator of the \LNSE. We note
-that \eqref{eq.STO} is symbolic shorthand for `apply the
-\LNS\ equations to an initial condition by time-integration over
-interval $\tau$' and is what we approximate when running a simulation
-code that evolves our numerical approximation to the \LNSE.  It is
-also important to note that in carrying out this numerical integration
-the time interval $\tau$ is typically broken into a large number of
-time steps $\Delta t$.
+is the state transition operator of the \LNSE. We note that
+\eqref{eq.STO} is symbolic shorthand for `apply the \LNS\ equations to
+an initial condition by time-integration over interval $\tau$' and is
+what we approximate when running a simulation code that evolves our
+numerical approximation to the \LNSE. Conceptually this is a
+forwards-in-time mapping which we illustrate in
+figure~\ref{fig.forwards}. It is also important to note that in
+carrying out this numerical integration the time interval $\tau$ is
+typically broken into a large number of time steps $\Delta t$.
 %
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.4\textwidth]{forwards}
+\end{center}
+\caption{Applying the timestepping operator $\Mop(\tau)$ to evolve an
+  initial condition to a later time.}
+\label{fig.forwards}
+\end{figure}
 
 %-----------------------------------------------------------------------------
 \subsection{Linear stability analysis of steady flows}
@@ -764,7 +842,19 @@ shift (rotation) is equally valid, too.  If however, the base flow is
 again any phase shift in the $z$ direction is a valid mode shape).
 
 %-----------------------------------------------------------------------------
-\subsection{Linear stability analysis of time-periodic flows}
+\subsection{Boundary conditions for stability analysis}
+\label{sec.bcs}
+
+Our boundary conditions should be what we expect for a perturbation
+field at the boundaries of our solution domain.  Typically this means
+applying boundary condition sets appropriate to no-slip walls at all
+domain boundaries except at outflow boundaries in open flows, where a
+stress-free type is normally used.  We will consider examples in
+chapter~\ref{ch.stab}.
+
+%-----------------------------------------------------------------------------
+\subsection{Linear stability analysis of time-periodic 
+flows\,---\,Floquet analysis}
 \label{sec.floquet}
 
 If $\Ubase$ is time-periodic, then so is the operator $\Lop$ and we
@@ -807,9 +897,9 @@ Fourier reconstruction may become very costly; in this case a local
 cubic spline reconstruction may be used instead, since the
 interpolation cost is lower \citep[][set \texttt{LAGRANGE\_INT=1} to
   obtain this functionality]{msb11}.
-\footnote{It is also possible to carry along computation of the base flow as a
-separate operation in parallel, an approach sometimes adopted in other
-codes.}
+\footnote{It is also possible to carry along computation of the base
+  flow as a separate operation in parallel, an approach sometimes
+  adopted in other codes.}
 
 As mentioned above, the Floquet modes are time-periodic, although the
 multiplier associated with each mode is a fixed scalar.  A single
@@ -843,7 +933,9 @@ non-linear mechanisms may take over and produce a transition to
 turbulence even if the flow is linearly stable in the long term
 \citep[see e.g.][]{srk02}.
 %
-The standard introductory text of this area is \citet{schmid01}.
+The standard introductory text of this area is \citet{schmid01}. As
+far as the application of the concepts to general flows is concerned,
+we recommend the article by \citet{bbs08b}.
 
 Since the \LNSE\ are non-symmetric (the operator written in on a
 comp\-on\-ent-by-component matrix form is non-symmetric about the
@@ -852,7 +944,10 @@ that the energy inner products of distinct modes may be non-zero (\ie
 the modes are non-orthogonal or non-normal).  This is different from,
 say, the eigenmodes of a spring--mass system, which does have this
 property, leading to the ability to examine energetics on a
-mode-by-mode basis which is a considerable simplification.  
+mode-by-mode basis which is a considerable simplification.  In simple
+terms, non-normality of the eigenmodes manifests as their being
+visually rather similar or having significant spatial overlap
+\citep[see e.g.][]{kibe07}.
 
 In order to examine these issues and to consider the growth of
 perturbations, we need to introduce energy-type integrals.
@@ -941,6 +1036,7 @@ property of commuting with the inner product \eqref{eq.inner} such
 that
 \begin{equation}
 (\Mop(\tau)\uvec,\uvec)=(\uvec,\Madj(\tau)\uvec),
+\label{eq.commute1}
 \end{equation}
 which makes
 \begin{equation}
@@ -951,12 +1047,130 @@ where the joint operator $\Madj(\tau)\Mop(\tau)$ is symmetric.  By
 rerrangement we find the eigensystem
 \begin{equation}
 \Madj(\tau)\Mop(\tau)\bm{u}'_0 = G(\tau)\uvec'_0,
+\label{eq.growevp}
 \end{equation}
 which implies that the optimal growth $G(\tau)$ is the largest
 eigenvalue of $\Madj(\tau)\Mop(\tau)$ and $\uvec'_0$, the
-corresponding eigenvector, is the optimal initial disturbance.
+corresponding eigenvector, is the optimal (or 'most dangerous')
+initial disturbance.  We note that the eigenvectors of the symmetric
+joint operator $\Madj(\tau)\Mop(\tau)$ are (when normalised such that
+$(\upert_0,\upert_0)=1$) precisely the same as the right singular
+vectors of the state transition operator $\Mop(\tau)$, and the growth
+$G$ is the square of the corresponding singular value.  The terminal
+outcome, $\upert_\tau$, is the corresponding left singular vector
+\citep[see \S\,1.2,][]{bbs08b}.  We note that we can either compute
+$\upert_\tau$ by evolving $\upert_0$ with the \LNS\ equations over
+interval $\tau$, or by finding the corresponding eigenmode of the
+transposed joint operator $\Mop(\tau)\Madj(\tau)$.
 
-\textbf{Need something here about how we apply the joint operator.}
+%=============================================================================
+\subsection{The adjoint \NavSto\ equations}
+\label{sec.adjoint}
+
+In the previous section we introduced the adjoint state transition
+operator for the \NavSto\ equations, $\Madj$.  To go into a full
+exposition on adjoints would take us very far afield; the interested
+reader is advised to consult \citet{lubo14}, but the brief outline in
+\citet{bbs08b} is more in line with our present discussion.  The basic
+idea is to use integration by parts in order to find an operator which
+commutes with the original under an inner product.  Typically in text
+books the inner product is purely spatial, \eg \eqref{eq.inner}, but
+in our case the integrals concerned must be over both space and time.
+If we define
+\begin{equation}
+\langle\bm{a},\bm{b}\rangle=\int_0^\tau\int_\Omega \bm{a}(t)\bm{\cdot
+  b}(t)\,\cd V\cd t,
+\label{eq.inner2}
+\end{equation}
+then the adjoint velocity variable $\uadj$ commutes with the
+\LNS\ operator so that
+\begin{equation}
+\langle\uadj,\partial_t\upert-L\upert\rangle =
+\langle\upert,\partial_t\uadj+L^*\uadj\rangle
+\label{eq.commute2}
+\end{equation}
+in which $\partial_t\uadj+L^*\uadj=0$ represents the adjoint
+\NavSto\ equations.  Note that we have skipped over some details here:
+first, that the construction of the operator just requires the
+commutation holds with compact support (so that boundary conditions
+need not be considered initially, whereas more properly they do) and
+second that a full treatment requires consideration of the pressure
+and incompressibility.  Refer to \citet{bbs08b} and \citet{mbs13} for
+more explanation.  For now we quote the result that the incompressible
+adjoint \NavSto\ equations may be written (semi-symbollically)
+\begin{equation}
+\partial_t\uadj =
+-\left[\bm{I}-\bm{\nabla}\nabla^{-2}\bm{\nabla\cdot}\right]
+\left[-\Ubase\bm{\cdot\nabla}
+  +\bm{\nabla\Ubase}\bm{\cdot}\right]\uadj
+- \Rey^{-1}\nabla^2\uadj.
+\end{equation}
+
+Owing to the negative sign on the viscous diffusion operator in the
+above, these equations must be integrated backward in time.  This
+means that timetstepping the equations evolves a terminal condition
+$\uadj(\tau)$ backwards in time, as suggested in
+figure~\ref{fig.backwards}.  Analogously to the forwards-in-time state
+transition operator $\Mop$ we now have the backwards-in-time adjoint
+operator $\Madj$ where
+\begin{equation}
+\uadj(0) = \Madj(\tau)\uadj(\tau).
+\end{equation}
+In order to apply the joint operator $\Madj(\tau)\Mop(\tau)$ we have
+to first evolve the initial condition $\upert_0$ forwards over
+interval $\tau$ with $\Mop$ to arrive at $\upert_\tau$, then use the
+adjoint operator $\Madj$ to evolve the outcome backwards to $t=0$, as
+sketched in figure~\ref{fig.toandfro}.  This amounts to the
+left-hand-side of \eqref{eq.growevp}.
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.4\textwidth]{backwards}
+\end{center}
+\caption{Applying the adjoint operator $\Madj(\tau)$ to evolve a final
+  condition backwards in time.}
+\label{fig.backwards}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.525\textwidth]{forwardsbackwards}
+\end{center}
+\caption{Applying the joint operator $\Mop(\tau)\Madj(\tau)$ to evolve
+  an intial condition.}
+\label{fig.toandfro}
+\end{figure}
+
+Finally we note that more consideration is merited of the argument by
+which commutation under the space-time inner product
+\eqref{eq.commute2} also allows that in the purely spatial one of
+\eqref{eq.commute1}, and that eigensystem approaches are not the only
+alternative for computing optimal initial conditions using
+timestepping; optimisation-based approaches are also common. Please
+consult \citet{schmid07}, \cite{bbs08b} and \citet{mbs13}.
+
+%-----------------------------------------------------------------------------
+\subsection{Boundary conditions for transient analysis}
+\label{sec.tgbcs}
+
+In simplifying the commutation \eqref{eq.commute2}, which involves
+integration by parts, we assume that the perturbation velocity field
+(and its adjoint) are zero on all boundaries, and we will need to set
+this requirement via wall-type boundary condition specifications on
+all domain boundaries in our session files (see
+\S\,\ref{sec.bfstg}). This is also convenient as we can use the same
+boundary condition set for both the forwards and backwards
+integrations. However, for our analysis to be accurate in open flows,
+we need to ensure that the domain is of large enough extent both
+upstream and downstream in order to contain the perturbation field in
+both forwards and backwards integrations.  In practice this means
+checking that the optimal initial and terminal conditions $\upert_0$
+and $\upert_\tau$ are well contained inside the domain. See \S\,2.1 of
+\citet{bbs08a}.
+
+%-----------------------------------------------------------------------------
+\subsection{Base flows for transient analysis}
+\label{sec.tgbase}
 
 For a transient analysis the base flow's temporal behaviour is not
 restricted: it may be steady, periodic, or take any form provided it
@@ -965,8 +1179,84 @@ flow is not steady then we also logically need to consider the
 temporal phase relative to the base flow at which the disturbance is
 initiated \citep[see e.g.][]{bsb08}.
 
+%=============================================================================
+\section{Eigensystem solution methods}
+\label{sec.outer}
+
+Our timestepper approach to computing eigenmodes for asymptotic
+stability or optimal disturbances for finite-time energy growth in the
+\LNS\ system in both cases depend on iterative Krylov-based methods
+which rely on being able to apply an operator repeatedly to an initial
+condition. (The simplest algorithm of this kind is the standard `power
+method' for finding eigenvalues and eigenvectors.)  The great
+advantage of these techniques is that we do not explicitly need to
+construct a matrix which represents the operator\,---\,rather
+difficult in the case of unsteady base flows\,---\,instead, we just
+have to be able to apply it repeatedly to an initial condition.  So we
+can use a common 'outer loop' iterative eigensystem solver, with the
+'inner loop' replaced by one of $\Mop(\tau)$, $\Madj(\tau)$,
+$\Madj(\tau)\Mop(\tau)$ or $\Mop(\tau)\Madj(\tau)$ depending on the
+problem of interest.\footnote{Respectively these inner loop operators
+  are applied by issuing the following calls to \Dog:
+  $\Mop(\tau)\Longleftrightarrow\texttt{dog}$ (default mode of
+  operation); $\Madj(\tau)\Longleftrightarrow\texttt{dog~-a}$;
+  $\Madj(\tau)\Mop(\tau)\Longleftrightarrow\texttt{dog~-g}$;
+  $\Mop(\tau)\Madj(\tau)\Longleftrightarrow\texttt{dog~-s}$.}
+
+A diagram of the simple Arnoldi-type method described in
+\citet{bbs08b} is presented in figure~\ref{fig.DBA}; this represents
+the default outer-level operation of \verb+dog+.  Alternatively, one
+may use the implicitly restarted Arnoldi method supplied in
+\verb+ARPACK+ \citep{lehoucq98} by compling and running \verb+dog-AR+.
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.9\textwidth]{DBAlgorithm}
+\end{center}
+\caption{Outer-level iteration for solving an eigenvalue problem via
+  timestepping. See \S\,3.2 of \citet{bbs08b} for more detail.}
+\label{fig.DBA}
+\end{figure}
+
+%=============================================================================
+\section{Pros and cons of time-stepper methods for eigensystems}
+\label{sec.procon}
+
+Timestepper based methods are not the only answer for these
+eigensystem type problems. The other main option would be to first
+explicitly construct a matrix representing the operator in question
+and then find its eigensystem, something which is not always easy, or
+affordable.  Please see \citet{tuba00} for more background and other
+applications.
+
+%-----------------------------------------------------------------------------
+\subsection{Strengths}
+\begin{conlista}
+\item
+Easy to develop codes starting from unsteady \NavSto\ solvers.
+\item
+Not memory intensive.
+\item
+Works even when it is not conceptually simple to create a matrix
+representing the operator in question (\eg Floquet problems).
+\end{conlista}
+
+%-----------------------------------------------------------------------------
+\subsection{Weaknesses}
+\begin{conlista}
+\item
+Typically can only solve for a comparatively limited number of modes.
+\item
+For optimal growth, each time horizon $\tau$ requires a new solution
+from scratch.
+\item
+Not simple to apply when shifting is required.  See \citet{gpbt15}
+for further discussion.
+\end{conlista}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Stability analysis of steady flows}
+\label{ch.stab}
 
 It is assumed that you already have some familiarity with \Semtex.
 The DNS tool from \Semtex, \texttt{dns}, is typically (though as you
@@ -1447,8 +1737,9 @@ other) method to solve the steady \NavSto\ equations
 \citep{tuba00,hmb02a}, use selective frequency damping (SFD) approach
 to force a steady state \citep{abhhms06}; or control symmetry by using
 appropiate boundary conditions with a semi-domain.  All of these
-approaches will work and have been used with \Semtex, but the
-semi-domain approach is simplest and fastest.  The spectral element
+approaches will work and have been used with \Semtex\ (though Newton
+and SFD require non-standard code extensions), but the semi-domain
+approach is simplest and arguably fastest.  The spectral element
 mesh we will use for this study is shown in
 figure~\ref{fig.semicylmesh}; lengths are given in terms of the
 cylinder diameter $D$.
@@ -2424,6 +2715,7 @@ dog: converged, writing 1 eigenvectors.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Optimal growth analysis}
+\label{ch.tg}
 
 
 %=============================================================================
@@ -2508,6 +2800,7 @@ trust) sufficient.
 
 %-----------------------------------------------------------------------------
 \subsection{Optimal initial condition}
+\label{sec.bfstg}
 
 First, examine the parts of the base flow file that we modify for the
 transient growth analysis (this is supplied as file \verb+bfs12+).
@@ -2578,6 +2871,7 @@ different.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Troubleshooting}
+\label{sec.trouble}
 
 It is quite common not to be able converge an eigensystem estimate
 when first tackling a problem.  Here are some things to consider in

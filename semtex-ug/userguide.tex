@@ -1911,8 +1911,8 @@ the force is taken from the \verb+uvw+ fields of that file and
 A spatially varying force, which is modulated in time, $\bm{f} =
 \bm{a}(\bm{x}) \, \bm{\alpha(t)} $. The steady part $\bm{a}(\bm{x})$ is
 computed (or read from a file) during pre-processing, while
-$\bm{\alpha(t)}$ is evaluated each time step. See \verb|box-mod| for
-the complete example session.
+$\bm{\alpha(t)}$ is evaluated each time step.
+%See \verb|box-mod| for the complete example session.
 \begin{verbatim}
 <FORCE>
         # -- spatially varying part
@@ -1953,7 +1953,7 @@ but must be steady.
         SPONGE_W = 0
 </FORCE>
 \end{verbatim}
-See \verb|cylinder17-sponge| for a more advanced example session.
+%See \verb|cylinder17-sponge| for a more advanced example session.
 
 %----------------------------------------------------------------------------
 \subsection{'Drag' force}
@@ -1967,9 +1967,9 @@ Be aware that we use the previous time step's velocity $\bm{u}^{n}$ here.
         DRAG_M = heav((x-2)^2 + y^2, 0.25)
 </FORCE>
 \end{verbatim}
-See \verb+channel-FX-drag+ for an example session, where the drag
-force is applied in a circular region centered around (2, 0.5) in a
-laminar channel flow.
+%See \verb+channel-FX-drag+ for an example session, where the drag
+%force is applied in a circular region centered around (2, 0.5) in a
+%laminar channel flow.
 
 %----------------------------------------------------------------------------
 \subsection{White noise force}
@@ -1992,13 +1992,11 @@ The following example applies white noise in $x-$direction to mode 0:
 </FORCE>
 \end{verbatim}
 Adding white noise in all three directions degrades performance by
-about 10\%. See \verb+channel-FX-noiz+ for an example session.
+about 10\%. 
+%See \verb+channel-FX-noiz+ for an example session.
 
 %----------------------------------------------------------------------------
 \subsection{Rotating frame of reference: Coriolis and centrifugal force}
-
-See \citet{ablmm15} for an example of DNS carried out in a rotating
-frame of reference.
 
 % @book{batchelor2000,
 %   title={An introduction to fluid dynamics},
@@ -2019,7 +2017,7 @@ $\bm{\Omega}$ is steady or not, usage slightly differs.
 
 
 For unsteady $\bm{\Omega}$, set the flag \verb|CORIOLIS_UNSTEADY = 1|
-and give $\bm{\Omega}$ and $\cd\bm{\Omega}/\d t$. All terms are
+and give $\bm{\Omega}$ and $\cd\bm{\Omega}/\cd t$. All terms are
 re-evaluated each time step.
 \begin{verbatim}
 <TOKENS>
@@ -2075,6 +2073,9 @@ $\cd\bm{\Omega}/\cd t$, if given, is ignored.
 % the flow approach a given (divergence-free) solution, taking into
 % account this coriolis term.
 %\noindent See \verb|cylkovrot| for an example session.
+
+See \citet{ablmm15} for an example of DNS carried out in a rotating
+frame of reference.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Specialised executables}
