@@ -320,11 +320,11 @@ opposed to the (default) `Barkley' method documented in
 \citet{bbs08b}.  To make \texttt{dog-AR} after building \texttt{dog}
 use these commands: \verb+rm drive.o; make ARPACK=1+.  While it is
 useful to be able to use the \texttt{ARPACK} version in some
-situations (\eg it can perform better at converging a siginficant
+situations (\eg it can perform better at converging a significant
 number of eigenvalues), we generally use the default eigensystem
 solver as it provides better diagnostic information.  I suggest you
 only try \texttt{dog-AR} on a problem once a converged solution can be
-obtained with the default sover.
+obtained with the default solver.
 
 %============================================================================
 \subsection{Files}
@@ -608,7 +608,7 @@ does not imply that the pressure is not computed.  However, it is
 typically only the velocity components which are considered as part of
 the numerical eigensystem analysis of incompressible flows.
 
-Before proceding to consider stability analysis, it should be noted
+Before proceeding to consider stability analysis, it should be noted
 that since the base flow $\Ubase$ is required as input, one must pay
 considerable attention to obtaining a good estimate for it.  In fact,
 this precursor requirement often consumes a substantial part of the
@@ -717,7 +717,7 @@ solution may be very expensive computationally (in both time and
 memory) and we typically have to resort to iterative methods.
 Iterative eigensystem solvers of the Arnoldi type \citep{saad92} rely
 on repeatedly applying an operator (matrix) to a vector, as in
-\eqref{eq.STO}, without necessarily explicitly contructing the
+\eqref{eq.STO}, without necessarily explicitly constructing the
 operator itself. Such methods are typically best at converging those
 eigenpairs which have eigenvalues of largest magnitude, \ie the part
 of the spectrum furthest from the origin in the complex plane.  Also,
@@ -805,7 +805,7 @@ L_z^{-1}\int_0^{L_z}\bm{u}(x,y,z,t)\ce^{-\ci(2\pi/L_z)kz}\,\cd z,\\
 \sum_{k=-\infty}^\infty\wh{\bm{u}}_k(x,y,t)\ce^{\ci(2\pi/L_z)kz},
 \end{align}
 where $k$ is an integer mode index and $L_z$ is an assumed periodic
-length of the domain in the $z$ direction.  Interchangably we can take
+length of the domain in the $z$ direction.  Interchangeably we can take
 the spanwise wavenumber $\beta=2\pi/L_z$ (and this is the meaning of
 the token \verb+BETA+).  Since for \Dog\ we restrict the base flows to
 be \twod\, we can just consider the Fourier transform of the
@@ -888,7 +888,7 @@ non-zero imaginary part (occurs in complex conjugate pairs) the
 instability is \qp\ \citep{bllo03b}.
 
 The base flow for Floquet analysis is provided as a set of time-slices
-equispaced over $\tau$, and Fourier reconstruction is the typical
+equi-spaced over $\tau$, and Fourier reconstruction is the typical
 means of re-estimating the base flow at any point in its period.  We
 note that if the base flow has features which are very sharp in time
 (as observable in velocity time-history plots), a considerable number
@@ -910,7 +910,7 @@ can either rotate the order of the base flows (using \Dog's
 \verb+circulate+ utility), or ask for a time-shift (use token
 \verb+T_OFFSET+).
 
-If the time-perodic base flow occurs as an autonomous limit-cycle
+If the time-periodic base flow occurs as an autonomous limit-cycle
 oscillation, then a Floquet analysis in the same subspace as the
 original flow (\eg both base flow and Floquet modes are 2D2C) should
 have a leading multiplier $\mu=1$.  This corresponds to a neutrally
@@ -1044,7 +1044,7 @@ G(\tau) = \frac{(\bm{u}'_0,\Madj(\tau)\Mop(\tau)\bm{u}'_0)}
 {(\bm{u}'_0,\bm{u}'_0)},
 \end{equation}
 where the joint operator $\Madj(\tau)\Mop(\tau)$ is symmetric.  By
-rerrangement we find the eigensystem
+re-arrangement we find the eigensystem
 \begin{equation}
 \Madj(\tau)\Mop(\tau)\bm{u}'_0 = G(\tau)\uvec'_0,
 \label{eq.growevp}
@@ -1097,7 +1097,7 @@ need not be considered initially, whereas more properly they do) and
 second that a full treatment requires consideration of the pressure
 and incompressibility.  Refer to \citet{bbs08b} and \citet{mbs13} for
 more explanation.  For now we quote the result that the incompressible
-adjoint \NavSto\ equations may be written (semi-symbollically)
+adjoint \NavSto\ equations may be written (semi-symbolically)
 \begin{equation}
 \partial_t\uadj =
 -\left[\bm{I}-\bm{\nabla}\nabla^{-2}\bm{\nabla\cdot}\right]
@@ -1108,7 +1108,7 @@ adjoint \NavSto\ equations may be written (semi-symbollically)
 
 Owing to the negative sign on the viscous diffusion operator in the
 above, these equations must be integrated backward in time.  This
-means that timetstepping the equations evolves a terminal condition
+means that timestepping the equations evolves a terminal condition
 $\uadj(\tau)$ backwards in time, as suggested in
 figure~\ref{fig.backwards}.  Analogously to the forwards-in-time state
 transition operator $\Mop$ we now have the backwards-in-time adjoint
@@ -1137,7 +1137,7 @@ left-hand-side of \eqref{eq.growevp}.
 \includegraphics[width=0.525\textwidth]{forwardsbackwards}
 \end{center}
 \caption{Applying the joint operator $\Mop(\tau)\Madj(\tau)$ to evolve
-  an intial condition.}
+  an initial condition.}
 \label{fig.toandfro}
 \end{figure}
 
@@ -1207,7 +1207,7 @@ A diagram of the simple Arnoldi-type method described in
 \citet{bbs08b} is presented in figure~\ref{fig.DBA}; this represents
 the default outer-level operation of \verb+dog+.  Alternatively, one
 may use the implicitly restarted Arnoldi method supplied in
-\verb+ARPACK+ \citep{lehoucq98} by compling and running \verb+dog-AR+.
+\verb+ARPACK+ \citep{lehoucq98} by compiling and running \verb+dog-AR+.
 
 \begin{figure}
 \begin{center}
@@ -1286,7 +1286,7 @@ analysis is overkill for this problem, it certainly is
 straightforward.)
 
 First, we'll make a session file. Since the domain is rectangular, we
-can use the \Semtex\ \verb+rectmesh+ utility, which makes a startup
+can use the \Semtex\ \verb+rectmesh+ utility, which makes a start-up
 session file that we can edit to create a workable session file for
 our problem.  Below is the rectmesh input file (made with a text
 editor) that we'll call \verb+channel.rect+.  The format is: list of
@@ -1526,18 +1526,18 @@ Now we are ready. I'll assume commands from \Dog\ (like all the
 \begin{verbatim}
 [mec-aquila]$ dog -k 16 -n 1 -m 500 -t 1e-6 channel > /dev/null &
 \end{verbatim}
-}The command line arguments above have the following sigificance:
+}The command line arguments above have the following significance:
 \verb+-k 16+; set the Krylov dimension to 16, \verb+-n 1+; stop after
 one eigenvalue is converged to the requested tolerance,
-\verb+-m 500+; iterate for a mximum of 500 iterations, \verb+-t 1e-6+;
-carry on converging until the residual for the higest-numbered
+\verb+-m 500+; iterate for a maximum of 500 iterations, \verb+-t 1e-6+;
+carry on converging until the residual for the highest-numbered
 eigenvalue requested (here just one) falls below this tolerance value
 (multiplied by the growth magnitude.
 
 The first time you run \verb+dog+ you might not want to suppress the
 standard output as we have done here in order to ensure everything is
 running correctly. However, the usage above is generally standard
-since it alllows the user to monitor convergence of the eigensystem
+since it allows the user to monitor convergence of the eigensystem
 solver by running \verb+tail+ on the \verb+session.evl+ file.  {\small
 \begin{verbatim}
 [mec-aquila]$ tail -f channel.evl
@@ -1593,7 +1593,7 @@ eigenvalues $\mu_j$ of the state transition operator $\Mop(\tau)$ (see
 are the real and imaginary parts of the eigenvalues $\lambda_j$ of
 $\Lop$ as derived from $\mu_j$ via \eqref{eq.convert}.  We note that
 (since $\tau=1$) the \verb+Angle+ and \verb+Frequency+ values are
-indentical, while the \verb+Growth+ and \verb+Magnitude+ values are
+identical, while the \verb+Growth+ and \verb+Magnitude+ values are
 related by $\lambda_{r,j}=\ln(|\mu_j|)/\tau$ (in fact, owing to
 rounding, it is better here to confirm that $|\mu_j| =
 \exp(\tau\lambda_{r,j})$).  Finally, the \verb+Residual+ column.  The
@@ -1644,7 +1644,7 @@ eigenmodes, the choice of sign is arbitrary (the sign affects both
 velocity components at once), so one could swap red and blue contours
 and still have valid eigenmodes.  Also the scaling of the modes is
 arbitrary.  We observe that a definite spatial phase relationship
-exists between modes 0 and 1: the antinodes of mode~1 interleave those
+exists between modes 0 and 1: the anti-nodes of mode~1 interleave those
 of mode~0, or equivalently there is a quarter-wavelength phase shift
 between them (much like the relationship between sine and cosine
 functions).  Since the corresponding eigenvalues were a
@@ -1736,7 +1736,7 @@ There are a few ways to circumvent this problem: use a Newton (or
 other) method to solve the steady \NavSto\ equations
 \citep{tuba00,hmb02a}, use selective frequency damping (SFD) approach
 to force a steady state \citep{abhhms06}; or control symmetry by using
-appropiate boundary conditions with a semi-domain.  All of these
+appropriate boundary conditions with a semi-domain.  All of these
 approaches will work and have been used with \Semtex\ (though Newton
 and SFD require non-standard code extensions), but the semi-domain
 approach is simplest and arguably fastest.  The spectral element
@@ -1821,7 +1821,7 @@ $\partial u/\partial n=v=\partial p/\partial n=0$ to ensure that the
 base flows have reflection symmetry $(U,V)(x,y)=(U,-V)(x,-y)$.  Note
 that we will later change this boundary condition in the session file
 for the stability analysis in order to ensure that the eigenmodes do
-break symmetry (and are antisymmetric).
+break symmetry (and are anti-symmetric).
 
 We run \verb+dns+ to generate the base flow for $\Rey=50$:
 \begin{verbatim}
@@ -1901,13 +1901,13 @@ amounts to adding/changing some \verb+TOKENS+ and altering the BCs.
 In the \verb+TOKENS+ section, note that the Reynolds number (or
 \verb+KINVIS+) must be set to match the value used to compute the base
 flow\,---\,this seems obvious but it is easy to overlook. Also note
-that the farfield velocity is now set (via \verb+U = 0+) to
+that the far-field velocity is now set (via \verb+U = 0+) to
 $(u',v')=(0,0)$, which is appropriate since we expect the domain to
 be large enough to contain the perturbation at the far-field
 boundaries. Again it is easy to overlook making this change, since the
 stability analysis session file is typically based on that for the
 base flow.  As for the channel flow example of \S\,\ref{sec.chan2d} we
-declare that the base flow is steady and has two velocity componnts
+declare that the base flow is steady and has two velocity components
 with \verb+N_BASE=2+ and \verb+N_SLICE=1+. It is typical (although
 not mandatory) to use the same time step, \verb+D_T+, for the
 stability analysis as was used for computing the base flow. Choosing
@@ -1983,7 +1983,7 @@ modes with appropriate (sine/cosine) weighting.
 \end{tabular}
 \end{center}
 \caption{Contour plots of (upper) $u'$ velocity component and (lower)
-  $v'$ velocity component of leading eigemodes (a) 0 and (b) 1 of
+  $v'$ velocity component of leading eigenmodes (a) 0 and (b) 1 of
   \twod\ flow past a circular cylinder at $\Rey=50$.}
 \label{fig.semimodes}
 \end{figure}
@@ -2034,7 +2034,7 @@ A stenosis is a partial blockage or localised contraction in an
 otherwise parallel walled geometry.  The basic geometry is tubular and
 so we solve this problem using cylindrical coordinates.  The base flow
 is 2D2C, steady in time in this case, and the least stable eigenmodes
-are 3D3C, occuring in aziumuthal wavenumber $k=1$, see
+are 3D3C, occurring in aziumuthal wavenumber $k=1$, see
 \citet{shbl05}. This mode shape promotes attachment of the jet which
 issues from the stenosis throat to the wall of the tube
 downstream. With the contraction geometry we will consider,
