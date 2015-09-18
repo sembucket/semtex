@@ -107,6 +107,8 @@ FEML::FEML (const char* session) :
     message (routine, err, ERROR);
   }
 
+  check_ASCII();
+
   strcpy ((_feml_root = new char [strlen (session) + 1]), session);
 
   for (i = 0; reserved[i] && i < FEML_KEYWORD_MAX; i++) {
@@ -207,6 +209,29 @@ FEML::FEML (const char* session) :
   tokens ();			// -- Initialize Femlib parser.
   
   VERBOSE cout << "done" << endl;
+}
+
+
+void FEML::check_ASCII()
+// ---------------------------------------------------------------------------
+// Check for non-ASCII characters in session file.
+// ---------------------------------------------------------------------------
+{
+  const char routine[] = "FEML::check_ASCII";
+  int col, line = 0;
+  char the_line[STR_MAX], err[STR_MAX];
+  
+  while (_feml_file.getline (the_line, STR_MAX)) {
+    line ++;
+    if (the_line[0] == '#') continue;
+    for (col = 0; col < strlen(the_line); col++)
+      if (!isascii(the_line[col])) {
+        sprintf (err, "Non-ASCII character on line %i, col %i", line, col+1);
+        message(routine, err, ERROR);
+      }
+  }
+  _feml_file.clear ();          // -- Reset EOF error condition.
+  _feml_file.seekg (0);         // -- And rewind.
 }
 
 

@@ -1,5 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////
-// flipmap.C: generate a list of index pairs for a symmetry-related transform.
+// flipmap.cpp: generate a list of index pairs for a symmetry-related
+// transform.
 //
 // Copyright (c) 2002 <--> $Date$, Hugh Blackburn
 //

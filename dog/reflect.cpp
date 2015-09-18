@@ -1,13 +1,13 @@
 ///////////////////////////////////////////////////////////////////////////////
-// reflect.C: reflect a field dump defined on a half-mesh onto a full
+// reflect.cpp: reflect a field dump defined on a half-mesh onto a full
 // mesh.  Apply sign change to appropriate velocity components, unless
 // explicitly supressed by setting revpar == true (command line).
 //
 // If negation is called for, the velocity component that would cross
 // the reflectoin boundary is not negated, but the other thwo are.
 //
-// Built from semtex/utility/data2df_template.C.  See also
-// dog/symmetrise.C and flipmap.C
+// Built from semtex/utility/data2df_template.cpp.  See also
+// dog/symmetrise.cpp and flipmap.cpp
 //
 // Copyright (c) 2010 <--> $Date$, Hugh Blackburn
 //
@@ -23,7 +23,7 @@
 // about twice as large as the input file and the associated fields
 // will have twice as many elements.  It is assumed that the mapfile
 // has a structure appropriate to the task of the reflection mapping
-// on the full domain.
+// on the full domain (mapfile produced by dog/flipmap).
 ///////////////////////////////////////////////////////////////////////////////
 
 static char RCS[] = "$Id$";
