@@ -1,7 +1,15 @@
 $Id$
 
-TESTCASES
-=========
+EXAMPLES (userguide)
+====================
+
+The following subdirectories contain material referred to in the Dog
+user guide (as of September 2015 - check out the semtex web page):
+Steady, Floquet, Transient.
+
+
+TESTCASES (additional)
+======================
 
 The testcases in various subdirectories here exercise various
 different parts the stability analysis code dog. For cases with
@@ -13,7 +21,7 @@ for re-running the test cases.
 STEADY FLOWS
 ============
 
-chan2D 
+chan2D
 ------
 
 Steady 2D Poiseuille channel flow at Re=7500 is 2D unstable to (2D)
@@ -45,6 +53,8 @@ swirling flow, JFM 439: 109-129.
 At Re=4000, the period of the leading mode is predicted by Lopez et al
 to be (page 16) 4000*0.007175=28.3.
 
+The steady base flow for this example was pre-computed using a Newton method, as described in Blackburn (2002) Three-dimensional instability and state selection in an oscillatory axisymmetric swirling flow, PF 14: 3983–3996.
+
 Here is the result of running
 
 dog -k 8 -n 1 -m 200 vb2
@@ -63,8 +73,8 @@ dog: converged, writing 1 eigenvectors.
 
 The period of the leading mode is TWOPI/0.22185=23.322.
 
-(Which suggests their analysis may be in error, although the values
-are in the same ballpark.)
+(Which suggests their analysis may possibly be in error, although the values
+are in the same ballpark.  Another possibility is that our estimate for the steady base flow is not sufficiently resolved/converged.)
 
 backstep3D
 ----------
@@ -92,10 +102,10 @@ dog: converged, writing 1 eigenvectors.
 stenosis3D
 ----------
 
-Steady axisymmetric flow in a cylindrical stenosis has a (nearly)
-unstable 3D mode, k = 1.
+Steady axisymmetric flow in a cylindrical stenosis has an
+unstable 3D mode, k = 1, which becomes unstable at Re=722 (Sherwin & Blackburn, JFM 533).
 
-These are the results of running
+For Re=500 these are the results of running
 
 dog -k 8 -n 1 -m 100 -t 1e-8 Sten50_Cyl
 
@@ -110,6 +120,8 @@ EV  Magnitude   Angle       Growth      Frequency   Residual
  6  7.2613e-01 -1.7025e+00 -6.4005e-01 -3.4051e+00  5.0946e-02
  7  4.1284e-01  0.0000e+00 -1.7694e+00  0.0000e+00  8.3031e-02
 dog: converged, writing 1 eigenvectors.
+
+The domain size and resolution used in this example are both smaller and lower than that in the article cited above.  The growth rate is however very close to the value for Re=500 and k=1 seen in (inset to) figure 5 there.
 
 PERIODIC FLOWS
 ==============
