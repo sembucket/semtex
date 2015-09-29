@@ -24,19 +24,28 @@ the kinematic viscosity by the PRANDTL token: alpha = KINVIS/PRANDTL.
 So PRANDTL should be defined in the TOKENS section. Its default value
 is 0.72, the diffusivity of heat/temperature in air.
 
+BUOYANCY
+--------
+
 The code allows Boussinesq buoyancy.  For this, the
 concentration-dependent coefficient of expansion, BETA_T, must also be
 defined, as well as GRAVITY (magnitude) and its direction (specified
 by components g_1, g_2, g_3 -- these vector components are re-scaled
 within the code to provide a unit vector).  For a cylindrical
 coordinate system, the gravity vector has to point along the
-cylindrical/x axis (this restriction will be removed in future).  If
+cylindrical/x axis (this restriction could be removed in future).  If
 g_i are all zero (the default) no buoyancy is applied.
+
+EXAMPLES
+--------
 
 Three example session files for scat ("tdrivcav1", a thermally driven
 cavity flow, "tdrivcav2", which essentially is a more highly resolved
 version of the same thing, and "thouse", copied from the front of
 Funaro's monograph) are provided in the semtex/mesh directory.
+
+AVERAGING
+---------
 
 The AVERAGE token works as for dns, except that averages and
 correlations are extended to include 'c' as well, and AVERAGE=3
@@ -49,3 +58,11 @@ session .avg when AVERAGE=2:
                       | .  vv vc vw |  =  |  .  C  E  H |
                       | .  .  cc cw |     |  .  .  F  I |
                       \ .  .  .  ww /     \  .  .  .  J /
+
+BCS
+---
+
+The robust outflow BC of Dong et al., implemented in Semtex V8, is an
+option in scat.  Just include an extra specification for scalar, like
+this: <O> c </O>.  Likewise, one can use axis BCs in scat, and the
+treatment for scalr is similar: <A> c </A>.
