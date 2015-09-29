@@ -1,7 +1,0 @@
-#
-# Make flags for solaris
-#
-# $Id$
-
-set opt = "-O"
-
