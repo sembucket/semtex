@@ -63,13 +63,15 @@ else
   OPT    = -m64 -O2
 endif
 CFLAGS   = $(DEFINES) $(OPT) -ansi
+CPPFLAGS += -I/sw/include
 CXXFLAGS = $(DEFINES) $(OPT) -ansi
 FFLAGS   = $(DEFINES) $(OPT)
-LIBDIR   += -L/sw/lib -L/sw/lib/gcc4.9/lib
+LIBDIR   += -L/sw/lib -L/sw/lib/gcc5/lib
 LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
 F77LIBS  = -framework Accelerate -lgfortran
 CLDFLAGS = $(LDFLAGS)
 ifdef MPI
+  LIBDIR   += -L/sw/lib/openmpi
   LDFLAGS   =  $(OPT) $(LIBDIR) -lfem_mp -lvec $(F77LIBS) -lmpi
 else
   LDFLAGS   =  $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)

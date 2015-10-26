@@ -331,16 +331,16 @@ void Analyser::modalEnergy ()
 // Print out modal energies per unit area, output by root processor.
 // ---------------------------------------------------------------------------
 {
-  const int_t    DIM   = Geometry::nDim();
   const int_t    N     = Geometry::nModeProc();
   const int_t    base  = Geometry::baseMode();
   const int_t    nProc = Geometry::nProc();
+  const int_t    NCOM  = _src -> nField() - 1;
   register int_t i, m;
   vector<real_t> ek (N);
 
   for (m = 0; m < N; m++) {
     ek[m] = 0.0;
-    for (i = 0; i < DIM; i++) ek[m] += _src -> u[i] -> mode_L2 (m);
+    for (i = 0; i < NCOM; i++) ek[m] += _src -> u[i] -> mode_L2 (m);
   }
 
   if (nProc > 1) {
@@ -349,7 +349,7 @@ void Analyser::modalEnergy ()
       for (m = 0; m < N; m++)
 	_mdl_strm << setw(10) << _src -> time
 		  << setw( 5) << m
-		  << setw(15) << ek[m]
+		  << setw(16) << ek[m]
 		  << endl;
 
       for (i = 1; i < nProc; i++) {
@@ -357,7 +357,7 @@ void Analyser::modalEnergy ()
 	for (m = 0; m < N; m++)
 	  _mdl_strm << setw(10) << _src -> time
 		    << setw( 5) << m + i * N
-		    << setw(15) << ek[m]
+		    << setw(16) << ek[m]
 		    << endl;
       }
 
@@ -370,7 +370,7 @@ void Analyser::modalEnergy ()
     for (m = 0; m < N; m++)
       _mdl_strm << setw(10) << _src -> time
 		<< setw( 5) << m
-		<< setw(15) << ek[m]
+		<< setw(16) << ek[m]
 		<< endl;
 }
 
