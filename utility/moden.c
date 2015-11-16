@@ -70,7 +70,7 @@ int main (int    argc,
 {
   char   buf[STR_MAX], fields[STR_MAX], fmt[STR_MAX];
   int    i, j, n, np, nz, nel, mode = 0, swab = 0, cmplx = 0;
-  int    nfields, nplane, nplaneEven, nptsEven, ntot;
+  int    nfields, ncom, nplane, nplaneEven, nptsEven, ntot;
   FILE   *fp_in = stdin, *fp_out = stdout;
   double **data, *plane, *vcmpt;
 
@@ -105,13 +105,16 @@ int main (int    argc,
     fgets  (fields, STR_MAX, fp_in);
     memset (fields+25, '\0', STR_MAX-25);
     for (nfields = 0, i = 0; i < 25; i++) if (isalpha(fields[i])) nfields++;
-    if (nfields < 4) {
-      if (!(strchr(fields, 'u') && strchr(fields, 'v')))
-	message (prog, "need fields u, v to compute K.E.", ERROR);
-    } else {
-      if (!(strchr(fields, 'u') && strchr(fields, 'v') && strchr(fields, 'w')))
-	message (prog, "need fields u, v, w to compute K.E.", ERROR);
-    }
+    
+    /* -- Check which fields we've got, and set ncom accordingly */
+
+    ncom = 2;
+    if (!(strchr(fields, 'u') && strchr(fields, 'v')))
+      message (prog, "need fields u, v to compute K.E.", ERROR);
+    
+    if (strchr(fields, 'w'))
+      ncom = 3;
+    
     fprintf (fp_out, hdr_fmt[8], "q");
 
     fgets (buf, STR_MAX, fp_in);
@@ -134,6 +137,7 @@ int main (int    argc,
     nptsEven   = nz * nplaneEven;
     ntot       = nfields * nptsEven;
 
+     // -1 because dmatix allocates an additional element
     data  = dmatrix (0, nfields - 1, 0, nptsEven - 1);
     plane = dvector (0, nplane  - 1);
     
@@ -154,7 +158,7 @@ int main (int    argc,
     
     /* -- Compute K.E.: start by adding in real part. */
 
-    for (i = 0; i < nfields - 1; i++) {
+    for (i = 0; i < ncom; i++) {
       vcmpt = data[_index (fields, 'u' + i)] + 2 * mode * nplaneEven;
       dvvtvp (nplane, vcmpt, 1, vcmpt, 1, plane, 1, plane, 1);
     }
@@ -162,7 +166,7 @@ int main (int    argc,
     /* -- Add in imaginary part if not mode zero. */
 
     if (mode || cmplx) {
-      for (i = 0; i < nfields - 1; i++) {
+      for (i = 0; i < ncom; i++) {
 	vcmpt = data[_index (fields, 'u' + i)] + (2 * mode + 1) * nplaneEven;
 	dvvtvp (nplane, vcmpt, 1, vcmpt, 1, plane, 1, plane, 1);
       }

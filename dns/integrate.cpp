@@ -301,7 +301,7 @@ static Msys** preSolve (const Domain* D)
   const int_t             nmodes = Geometry::nModeProc();
   const int_t             base   = Geometry::baseMode();
   const int_t             itLev  = Femlib::ivalue ("ITERATIVE");
-  const real_t            beta   = Femlib::value ("BETA");
+  const real_t            beta   = Femlib:: value ("BETA");
   const vector<Element*>& E = D -> elmt;
   Msys**                  M = new Msys* [static_cast<size_t>(NCOM + 1)];
   int_t                   i;
@@ -318,7 +318,11 @@ static Msys** preSolve (const Domain* D)
 
   // -- Pressure system.
 
-  M[NCOM] = new Msys
+  if (itLev > 1) {
+    M[NCOM] = new Msys
+      (0.0, beta, base, nmodes, E, D -> b[NCOM], MIXED);
+  } else
+    M[NCOM] = new Msys
       (0.0, beta, base, nmodes, E, D -> b[NCOM], DIRECT);
 
   return M;

@@ -75,7 +75,7 @@ ModalMatrixSys::ModalMatrixSys (const real_t            lambda2 ,
     const real_t     betak2    = sqr (Field::modeConstant(name,mode,beta));
     const int_t      localMode = mode - baseMode;
 
-    // Multiply Helmholtz constant with SVV-specific weight:
+    // -- Multiply Helmholtz constant with SVV-specific weight:
     //   betak2_svv = betak2 * (1 + eps_N/nu * Q) for modes k > SVV_MZ
     //   and lambda2 > 0 (i.e. only for the velocity components)
  
@@ -90,8 +90,13 @@ ModalMatrixSys::ModalMatrixSys (const real_t            lambda2 ,
       _Msys[localMode] = M;
       if (method == DIRECT) { cout << '.'; cout.flush(); }
     } else {
-      _Msys[localMode] =
-	new MatrixSys (lambda2, betak2_svv, modeIndex, Elmt, Bsys, method);
+      if (method == MIXED)
+	_Msys[localMode] =
+	  new MatrixSys (lambda2, betak2_svv, modeIndex, Elmt, Bsys, 
+			 (mode == 0) ? DIRECT : JACPCG);
+      else 
+	_Msys[localMode] =
+	  new MatrixSys (lambda2, betak2_svv, modeIndex, Elmt, Bsys, method);
       MS.insert (MS.end(), _Msys[localMode]);
       if (method == DIRECT) { cout << '*'; cout.flush(); }
     }

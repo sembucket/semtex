@@ -443,7 +443,7 @@ void Statistics::dump (const char* filename)
 
   for (k = _raw.begin(); k != _raw.end(); k++)
     _avg[k -> second -> name()] -> transform (INVERSE);
-
+#if 0
   if (_neng) {
     _avg['G'] -> transform (INVERSE);
     _avg['H'] -> transform (INVERSE);
@@ -454,7 +454,7 @@ void Statistics::dump (const char* filename)
       _avg['L'] -> transform (INVERSE);
     }
   }
-
+#endif
   output << *this;
 
   for (k = _raw.begin(); k != _raw.end(); k++)

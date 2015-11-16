@@ -20,15 +20,21 @@ utility   Various utility programs.
 
 The code has been tested with (and makefiles support) the following
 operating systems: SGI IRIX6.5 (32 & 64-bit), DEC OSF1/Digital Unix,
-GNU/Linux (iX86 & alpha), Fujitsu VPP300, NEC SX-4/5, Mac OSX 10.3,
+GNU/Linux (iX86 & alpha), Fujitsu VPP300, NEC SX-4/5, Mac OSX 10.10,
 Linux-AMD Opteron x86_64 and Linix-Intel Itanium-2 ia64.
 
-Makefiles assume GNUmake: for purposes of automated compilation and
-testing decribed below "gmake", in your path, should find GNUmake.
-You should also have RCS installed on your system.  SuperMongo and
-Amtec's TECPLOT would be nice to have but are not needed.  For
-concurrent execution MPI is required.  You will also need C, C++ and
-FORTRAN77 (or F90, F95) compilers.
+Required
+--------
+(Gnu) make
+C++, C, FORTRAN compilers
+bison or yacc
+LAPACK and BLAS libraries
+(Open) MPI and associated header files
+
+Optional/useful
+---------------
+Tecplot and/or Paraview
+Supermongo
 
 Author
 ------
@@ -37,7 +43,7 @@ Department of Mechanical & Aerospace Engineering
 Monash University
 Vic 3800
 Australia
-mailto:hugh.blackburn@eng.monash.edu.au
+mailto:hugh.blackburn@monash.edu
 
 Starting out
 ------------
@@ -137,11 +143,6 @@ Log of major revisions
 Notes for specific systems
 --------------------------
 
-1.  Linux: the GNU FORTRAN library may be called f2c or g2c,
-apparently depending on the release of g77 installed.  Makefiles
-assume g2c, but you may have to change that to f2c or make a symbolic
-link from /usr/lib/libf2c.a to /usr/lib/libg2c.a if you have trouble
-in the link stages of compilation.
 
 --
 $Id$

@@ -30,6 +30,7 @@ typedef enum quadrature_kind {
 typedef enum solver_kind {
   DIRECT,	/* Cholesky back-substitution.                           */
   JACPCG,	/* Conjugate gradient, Jacobi (diagonal) preconditioner. */
+  MIXED,        /* Direct for mode 0, iterative for all others.          */
   BLJPCG	/* Conjugate gradient, block Jacobi      preconditioner. */
 } SolverKind;
 
