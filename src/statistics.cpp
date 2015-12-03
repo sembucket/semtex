@@ -443,33 +443,11 @@ void Statistics::dump (const char* filename)
 
   for (k = _raw.begin(); k != _raw.end(); k++)
     _avg[k -> second -> name()] -> transform (INVERSE);
-#if 0
-  if (_neng) {
-    _avg['G'] -> transform (INVERSE);
-    _avg['H'] -> transform (INVERSE);
-    _avg['I'] -> transform (INVERSE);
-    if (_nvel == 3) {
-      _avg['J'] -> transform (INVERSE);
-      _avg['K'] -> transform (INVERSE);
-      _avg['L'] -> transform (INVERSE);
-    }
-  }
-#endif
+
   output << *this;
 
   for (k = _raw.begin(); k != _raw.end(); k++)
     _avg[k -> second -> name()] -> transform (FORWARD);
-
-  if (_neng) {
-    _avg['G'] -> transform (FORWARD);
-    _avg['H'] -> transform (FORWARD);
-    _avg['I'] -> transform (FORWARD);
-    if (_nvel == 3) {
-      _avg['J'] -> transform (FORWARD);
-      _avg['K'] -> transform (FORWARD);
-      _avg['L'] -> transform (FORWARD);
-    }
-  }
 
   ROOTONLY output.close();
 }
