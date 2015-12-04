@@ -287,7 +287,7 @@ AuxField& AuxField::innerProductMode (const vector <AuxField*>& a,
 
   Veclib::zero (_size, _data, 1);
 
-#if 0 // -- old version.
+#if 1 // -- old version.
   for (i = 0; i < ndim; i++) {
     Veclib::vvtvp (nP, a[i]->_plane[0], 1, b[i]->_plane[0], 1,
 		   _plane[0], 1, _plane[0], 1);

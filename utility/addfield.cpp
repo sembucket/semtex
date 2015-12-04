@@ -211,8 +211,8 @@ int main (int    argc,
 
   // -- Check if we just have the (first two) cases not requiring derivatives.
 
-  for (p = 0, i = 0; i < FLAG_MAX; i++) p += (add[i]) ? (i + 1) : 0;
-  if (p <= 2) gradient = false; else gradient = true;
+  for (p = 0, i = 0; i < FLAG_MAX; i++) p += (add[i]) ? (1 << i) : 0;
+  if (p <= 3) gradient = false; else gradient = true;
 
   for (i = 0; i < FLAG_MAX; i++) need[i] = add[i];
 
@@ -324,7 +324,8 @@ int main (int    argc,
   //    there.  The order of computation is determined by
   //    dependencies.  Then write requested output, listed in
   //    addField.
-  
+
+
   while (getDump (D, file)) {
         
     if (need[FUNCTION]) *Func = func;
