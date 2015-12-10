@@ -23,7 +23,13 @@
 // Monash University
 // Vic 3800
 // Australia
-// hugh.blackburn@eng.monash.edu.au
+// hugh.blackburn@monash.edu
+//
+// References
+// ----------
+// [1] Blackburn & Sherwin (2004) "Formulation of a Galerkin spectral
+//     element--Fourier method for three-dimensional incompressible flows
+//     in cylindrical geometries", JCP 179:759-778
 //
 // --
 // This file is part of Semtex.
@@ -52,7 +58,7 @@ static char prog[] = "elliptic";
 static void getargs    (int, char**, char*&);
 static void getoptions (FEML*, char*&, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
-			BCmgr*&, BoundarySys*&, Domain*&, AuxField*&);
+			BCmgr*&, Domain*&, AuxField*&);
 static void getforcing (const char*, const char*, AuxField*);
 
 void Helmholtz (Domain*, AuxField*);
@@ -69,7 +75,6 @@ int main (int    argc,
   FEML*            file;
   Mesh*            mesh;
   BCmgr*           bman;
-  BoundarySys*     bsys;
   Domain*          domain;
   AuxField*        forcefld;
 
@@ -77,7 +82,7 @@ int main (int    argc,
 
   getargs (argc, argv, session);
 
-  preprocess (session, file, mesh, elmt, bman, bsys, domain, forcefld);
+  preprocess (session, file, mesh, elmt, bman, domain, forcefld);
 
   getoptions (file, forcefunc, exact);
   getforcing (session, forcefunc, forcefld);
@@ -147,7 +152,6 @@ static void preprocess (const char*       session,
 			Mesh*&            mesh   ,
 			vector<Element*>& elmt   ,
 			BCmgr*&           bman   ,
-			BoundarySys*&     bsys   ,
 			Domain*&          domain ,
 			AuxField*&        forcing)
 // ---------------------------------------------------------------------------
