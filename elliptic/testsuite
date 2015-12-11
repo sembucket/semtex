@@ -32,6 +32,7 @@ if (!(-e laplace7))   cp $MESHDIR/laplace7   .
 if (!(-e laplace3))   cp $MESHDIR/laplace3   .
 if (!(-e laplace8))   cp $MESHDIR/laplace8   .
 if (!(-e poisson1))   cp $MESHDIR/poisson1   .
+if (!(-e poisson2))   cp $MESHDIR/poisson2   .
 if (!(-e helmholtz1)) cp $MESHDIR/helmholtz1 .
 if (!(-e mixed1))     cp $MESHDIR/mixed1     .
 
@@ -96,11 +97,16 @@ $CODE poisson1
 rm poisson1*
 
 echo ""
-echo "13. -- 2D Helmholtz problem, Dirichlet BCS"
+echo "13. -- 2D Poisson problem in cylindrical coords, Dirichlet BCS"
+$CODE poisson2
+rm poisson2*
+
+echo ""
+echo "14. -- 2D Helmholtz problem, Dirichlet BCS"
 $CODE helmholtz1
 rm helmholtz1*
 
 echo ""
-echo "14. -- 2D Poisson problem, 1 mixed BC"
+echo "15. -- 2D Poisson problem, 1 mixed BC"
 $CODE mixed1
 rm mixed1*
