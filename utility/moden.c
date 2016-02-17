@@ -137,7 +137,6 @@ int main (int    argc,
     nptsEven   = nz * nplaneEven;
     ntot       = nfields * nptsEven;
 
-     // -1 because dmatix allocates an additional element
     data  = dmatrix (0, nfields - 1, 0, nptsEven - 1);
     plane = dvector (0, nplane  - 1);
     
