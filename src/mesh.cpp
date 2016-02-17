@@ -320,6 +320,7 @@ void Mesh::assemble (const bool printVacancy)
   if (printVacancy) {
  
    // -- Count/print the number of vacancies (number of surfaces needed).
+
     for (r = 0, i = 0; i < Ne; i++) {
       E = _elmtTable[i];
       const int_t Nn = E -> nNodes();
@@ -442,7 +443,11 @@ void Mesh::surfaces ()
 		 _elmtTable[me - 1] -> side[ms - 1] -> group    ) {
 	sprintf (err, "Surface %1d, mating elmt %1d, side %1d already set",
 		 t, me, ms);
+#if 0
 	message (routine, err, ERROR);
+#else
+	message (routine, err, WARNING);
+#endif
       }
 
       me--; ms--;
@@ -1783,17 +1788,11 @@ real_t Spline::arcCoord ()
 
   s0 = gs->arclen[i];
   s1 = gs->arclen[ip];
-#if 0  
-  Recipes::mnbrak (s0, s1, s2, f0, f1, f2, ::getAngl);
-  if (fabs (f1) > TOL) {
-    Recipes::brent (s0, s1, s2, ::getAngl, TOL, f1);
-    s1 = f1;
-  }
-#else
+
   Femlib::bracket (s0, s1, s2, f0, f1, f2, ::getAngl);
   if (fabs (f1) > TOL) {
     s1 = Femlib::brent (s0, s2, ::getAngl, TOL);
   }
-#endif
+
   return s1;
 }

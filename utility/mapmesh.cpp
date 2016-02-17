@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// mapmesh.C: a filter to map the NODES in a session file according to
+// mapmesh.cpp: a filter to map the NODES in a session file according to
 // formulae supplied on the command line. Can be used e.g. to map a
 // rectangular domain to a boundary-fitted shape.  It is the user's
 // responsiblity to ensure that the mapping does not produce Jacobians

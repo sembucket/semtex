@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// phase.C: do operations on 3D data file in phase/Fourier space.
+// phase.cpp: do operations on 3D data file in phase/Fourier space.
 //
 // Copyright (c) 2002 <--> $Date$, Hugh Blackburn
 //

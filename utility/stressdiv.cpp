@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////
-// stressdiv.C: from a field file containing Reynolds stresses, compute
-// their divergence to give mean-flow forcing terms.
+// stressdiv.cpp: from a field file containing Reynolds stresses,
+// compute their divergence to give mean-flow forcing terms.
 //
 // Copyright (c) 2010 <--> $Date$, Hugh Blackburn
 //
@@ -113,7 +113,7 @@ static const char* fieldNames(map<char, AuxField*>&);
 int main (int    argc,
 	  char** argv)
 // ---------------------------------------------------------------------------
-// Driver -- adapted from eneq.C.
+// Driver -- adapted from eneq.cpp.
 // ---------------------------------------------------------------------------
 {
   const char           *session, *dump;

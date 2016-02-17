@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// misc.C: miscellaneous routines for I/O, memory management, service
+// misc.cpp: miscellaneous routines for I/O, memory management, service
 // routines that don't fit class structures.
 //
 // Copyright (c) 1994 <--> $Date$ Hugh Blackburn
@@ -109,7 +109,7 @@ void writeField (ostream&           file   ,
 		 const real_t       runtime,
 		 vector<AuxField*>& field  )
 // ---------------------------------------------------------------------------
-// Write fields out to an opened file, binary nekton format.  Output is
+// Write fields out to an opened file, binary Nekton format.  Output is
 // only done by the root processor.
 // ---------------------------------------------------------------------------
 {

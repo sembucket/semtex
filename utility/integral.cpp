@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// integral.C: return the domain integral of all fields in dump file.
+// integral.cpp: return the domain integral of all fields in dump file.
 //
 // Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 //

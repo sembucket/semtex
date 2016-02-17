@@ -12,14 +12,15 @@ essential: sem compare enumerate
 all: essential plain preplot nosrc meshpr calc addfield sem2nek \
      convert project interp probe rectmesh transform wallmesh   \
      phase lowpass eneq integral traction stressdiv mapmesh     \
-     wavestress
+     wavestress nonlin
 
 distclean:
 	make clean
 	rm -f addfield avgdump calc chop compare convert eneq enumerate \
         integral interp lowpass meshpr moden noiz phase preplot probe   \
         probeline probeplane project rectmesh repeatxy repeatz rstress  \
-        sem2nek sem2tec slit stressdiv transform wallmesh xplane modep
+        sem2nek sem2tec slit stressdiv transform wallmesh xplane modep  \\
+	nonlin
 
 # ----------------------------------------------------------------------------
 # Standard rules and definitions.
@@ -233,6 +234,16 @@ mapmesh: feml.o mapmesh.o $(SEMHDR)
 
 repmesh: feml.o repmesh.o $(SEMHDR)
 	$(LD) -o $@ $@.o feml.o $(LDFLAGS)
+
+# ----------------------------------------------------------------------------
+# Build nonlin, which computes nonlinear terms from velocity file data.
+#
+NLOBJ = nonlin.o feml.o mesh.o element.o svv.o family.o auxfield.o 	\
+	geometry.o misc.o data2df.o
+$(NLOBJ): $(SEMHDR)
+
+nonlin: $(NLOBJ)
+	$(CXX) $(CPPFLAGS) -o $@ $(NLOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Special machine-dependent compilations.

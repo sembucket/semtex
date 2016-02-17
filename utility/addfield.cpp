@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////////////////////////////
-// addfield.C: process semtex/NEKTON-type field files, computing and
+// addfield.cpp: process semtex/NEKTON-type field files, computing and
 // adding vorticity and divergence, rate of strain magnitude, velocity
 // gradient discriminant, etc.
 //

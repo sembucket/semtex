@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// transform.C: carry out Fourier and/or 2D polynomial transform of data.
+// transform.cpp: carry out Fourier and/or 2D polynomial transform of data.
 //
 // Copyright (c) 1999 <--> $Date$, Hugh Blackburn
 //

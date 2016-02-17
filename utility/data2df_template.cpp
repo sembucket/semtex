@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// data2df_template.C: Read in a data file header and its data (no
+// data2df_template.cpp: Read in a data file header and its data (no
 // geometric information) and output.  This is a template file that
 // can be a starting point for further data processing.
 //

@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// lowpass.C: carry lowpass filtering of data in polynomial and or Fourier
+// lowpass.cpp: carry lowpass filtering of data in polynomial and or Fourier
 // space.  2D polynomial filtering is carried out in the tensor-product
 // modal polynomial space. 
 //

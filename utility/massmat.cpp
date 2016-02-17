@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// massmat.C: print out the system mass matrix value for all (2D)
+// massmat.cpp: print out the system mass matrix value for all (2D)
 // points in the mesh, element-by-element.  Ordering is the same as
 // the mesh locations printed out by meshpr. If CYLINDRICAL = 1 in
 // session file, mass matrix values include weighting by radius

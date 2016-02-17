@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////////////////////////////
-// eneq.C: from a field file containing correlations, compute terms of
+// eneq.cpp: from a field file containing correlations, compute terms of
 // either the fluctuating flow energy equation, Tennekes & Lumley
 // (3.2.1) which is the default action, or the mean flow energy
 // equation, T&L (3.1.11). Output values have dimensions of kinetic

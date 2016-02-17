@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////////////////////////////
-// traction.C: Compute tractions on wall boundaries from field file.
+// traction.cpp: Compute tractions on wall boundaries from field file.
 //
 // Copyright (c) 2006 <--> $Date$, Hugh Blackburn
 //

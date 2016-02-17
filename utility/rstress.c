@@ -16,6 +16,11 @@
  * If more than one operation is supplied on the command line,
  * take the last.
  *
+ * For binary operations, there can be more fields in the first
+ * (typically the average field file) than in the second (typically an
+ * instantaneous file).  The operation is only performed on the
+ * variables present in both files.
+ *
  * SYNOPSIS
  * --------
  * Rstress deals with field-average files.  If called with just an

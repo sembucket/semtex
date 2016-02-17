@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// calc: a basic calculator using the function parser.
+// calc.cpp: a basic calculator using the function parser.
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //

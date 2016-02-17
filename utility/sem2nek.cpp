@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// sem2nek.C: read a semtex input file, print a NEKTON-style input file.
+// sem2nek.cpp: read a semtex input file, print a NEKTON-style input file.
 //
 // Copyright (c) 1997 <--> $Date$,  Hugh Blackburn
 //

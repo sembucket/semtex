@@ -64,7 +64,7 @@ else
 endif
 CFLAGS   = $(DEFINES) $(OPT) -ansi
 CPPFLAGS += -I/sw/include
-CXXFLAGS = $(DEFINES) $(OPT) -ansi
+CXXFLAGS = $(DEFINES) $(OPT) -ansi -Wno-unused-value  -Wno-parentheses
 FFLAGS   = $(DEFINES) $(OPT)
 LIBDIR   += -L/sw/lib -L/sw/lib/gcc5/lib
 LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)

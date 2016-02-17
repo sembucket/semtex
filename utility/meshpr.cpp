@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// meshpr.C: utility to generate mesh nodes from mesh description file.
+// meshpr.cpp: utility to generate mesh nodes from mesh description file.
 //
 // Copyright (c) 1995 <--> $Date$, Hugh Blackburn
 //

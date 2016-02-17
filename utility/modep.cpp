@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// modep.C: project velocity data in a nominated Fourier mode onto a
+// modep.cpp: project velocity data in a nominated Fourier mode onto a
 // spatial mode shape supplied in a file, return scalar value of integral.
 //
 // Copyright (c) 1999 <--> $Date$, Hugh Blackburn

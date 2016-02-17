@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// interp.C: interpolate results from a field file onto a set of 2D points.
+// interp.cpp: interpolate results from a field file onto a set of 2D points.
 //
 // Copyright (c) 1997 <--> $Date$, Hugh Blackburn
 //

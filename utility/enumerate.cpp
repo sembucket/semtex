@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////////////////////////////
-// enumerate.C:  utility to generate mesh numbering from session file.
+// enumerate.cpp:  utility to generate mesh numbering from session file.
 //
 // Copyright (c) 1995 <--> $Date$, Hugh Blackburn
 //

@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// rectmesh.C: create a session file for a rectangular mesh of elements.
+// rectmesh.cpp: create a session file for a rectangular mesh of elements.
 //
 // Copyright (c) 2000 <--> $Date$, Hugh Blackburn
 //

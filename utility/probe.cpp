@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// probe.C: extract results from a field file at a set of 3D points.
+// probe.cpp: extract results from a field file at a set of 3D points.
 //
 // Copyright (c) 1997 <--> $Date$, Hugh Blackburn
 //
