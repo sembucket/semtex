@@ -1646,7 +1646,6 @@ spline2D* Spline::getGeom (const char* fname)
 
     c = new spline2D;
     strcpy ((c->name = new char [strlen(fname) + 1]), fname);
-    //    c->name = fname;
     c->pos  = 0;
 
     while (file.peek() == '#') file.ignore (StrMax, '\n');
@@ -1670,6 +1669,9 @@ spline2D* Spline::getGeom (const char* fname)
     Veclib::spline (N, FLT_MAX, FLT_MAX, &tmp[0], &c->x[0], &c->sx[0]);
     Veclib::spline (N, FLT_MAX, FLT_MAX, &tmp[0], &c->y[0], &c->sy[0]);
 
+    // -- Estimate the arclength at each knot by summing SECTOR_MAX 
+    //    linear contributions over each interval
+
     for (c -> arclen[0] = 0.0, j = 0; j < N - 1; j++) {
 
       c -> arclen[j+1] = c -> arclen[j];
@@ -1681,7 +1683,7 @@ spline2D* Spline::getGeom (const char* fname)
 	  p0x = c->x[j];
 	  p0y = c->y[j];
 	  p1x = Veclib::splint (N, j+(i+1.0)/SECTOR_MAX,
-			       &tmp[0],&c->x[0],&c->sx[0]);
+				&tmp[0], &c->x[0], &c->sx[0]);
 	  p1y = Veclib::splint (N, j+(i+1.0)/SECTOR_MAX,
 				&tmp[0], &c->y[0], &c->sy[0]);
 
