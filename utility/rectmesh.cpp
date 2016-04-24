@@ -67,6 +67,8 @@ int main (int    argc,
   while (input -> getline(line, STR_MAX).gcount() > 1) {
     istringstream ss (s = line);
     ss >> x;
+    if (!X.empty() && X.top() >= x)
+      message (prog, "X locations must be strictly ascending.", ERROR);
     X.push (x);
     Nx++;
   }
@@ -79,6 +81,9 @@ int main (int    argc,
   while (input -> getline(line, STR_MAX)) {
     istringstream ss (s = line);
     ss >> y;
+    if (!Y.empty() && Y.top() >= y)
+      message (prog, "Y locations must be strictly ascending\n"
+        "(and no more than one blank line allowed).", ERROR);
     Y.push (y);
     Ny++;
   }
