@@ -103,12 +103,10 @@ static char  prog[] = "stressdiv";
 static void  getargs (int,char**,const char*&,const char*&);
 static int_t preScan (ifstream&, int_t&);
 static void  getMesh (const char*,vector<Element*>&, const int_t);
-static void  makeBuf (map<char,AuxField*>&, AuxField*&, 
-		      vector<Element*>&, const int_t);
+static void  makeBuf (map<char,AuxField*>&, AuxField*&, vector<Element*>&, const int_t);
 static bool  getDump (ifstream&,map<char, AuxField*>&,vector<Element*>&);
 static bool  doSwap  (const char*);
-static void  stress  (map<char,AuxField*>&,map<char,AuxField*>&, 
-		      AuxField*, const int);
+static void  stress  (map<char,AuxField*>&,map<char,AuxField*>&, AuxField*, const int);
 static const char* fieldNames(map<char, AuxField*>&);
 
 
@@ -456,9 +454,10 @@ static void stress  (map<char, AuxField*>& in  ,
         *out['w'] += (*work *= 2.);
         *out['w'] *= -1.0;
       }
-    } else {			// -- 3D not validated
+    } else {			// -- 3D
+      // TA: checked that stressdiv and project -w -z1 commute.
 
-       // u  = -[d(A)/dx + d(B)/dy + B/y + 1/y*d(D)/dz]
+      // u  = -[d(A)/dx + d(B)/dy + B/y + 1/y*d(D)/dz]
       (*out['u'] = *in['D']).transform(FORWARD).gradient(2).transform(INVERSE);
       *out['u'] += *in['B'];
       out['u'] -> divY();
@@ -468,14 +467,14 @@ static void stress  (map<char, AuxField*>& in  ,
 
       // v  = -[d(B)/dx + d(C)/dy + C/y + 1/y*d(E)/dz - F/y]
       (*out['v'] = *in['E']).transform(FORWARD).gradient(2).transform(INVERSE);
-      *out['v'] += *in['F'];
+      *out['v'] -= *in['F'];
       *out['v'] += *in['C'];
       out['v'] -> divY();
       *out['v'] += (*work = *in['C']) . gradient(1);
       *out['v'] += (*work = *in['B']) . gradient(0);
       *out['v'] *= -1.0;
 
-        // w = -[d(D)/dx + d(E)/dy       + 1/y*d(F)/dz + 2*E/y]
+      // w = -[d(D)/dx + d(E)/dy       + 1/y*d(F)/dz + 2*E/y]
       (*out['w'] = *in['F']).transform(FORWARD).gradient(2).transform(INVERSE);
       *out['w'] += *in['E'];
       *out['w'] += *in['E'];
@@ -483,7 +482,6 @@ static void stress  (map<char, AuxField*>& in  ,
       *out['w'] += (*work = *in['E']) . gradient(1);
       *out['w'] += (*work = *in['D']) . gradient(0);
       *out['w'] *= -1.0;
-
     }
   } else {			// -- Cartesian.
     if (Geometry::nZ() == 1) {
