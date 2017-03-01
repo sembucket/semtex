@@ -47,7 +47,6 @@ static struct {
   "FFX"         ,   0.0    ,	/* -- Body force per unit mass (x).       */
   "FFY"         ,   0.0    ,	/* -- y component.                        */
   "FFZ"         ,   0.0    ,	/* -- z component.                        */
-  "FFC"         ,   0.0    ,    /* -- (Analogous) scalar production rate. */
 
   "X_SHIFT"     ,   0.0    ,    /* -- Optional shift to mesh in x.        */
   "Y_SHIFT"     ,   0.0    ,    /* -- Optional shift to mesh in y.        */
@@ -60,6 +59,8 @@ static struct {
 
   "SVV_MZ"      ,  -1      ,    /* -- SVV Fourier mode start, < (N_Z/2).  */
   "SVV_EPSZ"    ,   0.0    ,    /* -- SVV Fourier Eps, as for SEM.        */
+  
+  "PROJ_STAB"   ,   0.0    ,    /* -- Paul Fischer "stabilisation" alpha  */
 
   "UODelta"     ,   0.05   ,    /* -- Outflow boundary velocity scale.    */
 
@@ -74,6 +75,8 @@ static struct {
   "SPAWN"       ,   0   ,	/* -- Set respawning for particle tracks. */
   "N_PHASE"     ,   0   ,       /* -- Toggle phase averaging.             */
   "RANSEED"     ,   0   ,       /* -- Set wall-clock random seeding.      */
+  "CENT_BUOY"   ,   0   ,       /* -- Set centrifugal buoyancy on/off.    */
+
   
   /* -- Default integer values. */
 
