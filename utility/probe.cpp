@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// probe.cpp: extract results from a field file at a set of 3D points.
+// probe.C: extract results from a field file at a set of 3D points.
 //
 // Copyright (c) 1997 <--> $Date$, Hugh Blackburn
 //
@@ -84,6 +84,7 @@
 static char RCS[] = "$Id$";
 
 #include <sem.h>
+#include <libgen.h>
 
 static const int_t NPTS = 64;	// -- Default number of points for line/plane.
 
@@ -243,7 +244,8 @@ static void getargs (int    argc     ,
 {
   format = new char [16];
   strcpy (format, "free");	// -- Default output format.
-  interface = *argv;
+  interface = basename(argv[0]);
+
   char err[StrMax];
 
   if (strcmp (interface, "probe") == 0) {

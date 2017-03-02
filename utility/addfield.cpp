@@ -85,6 +85,10 @@
 // [3] Hamman, Klewicki & Kirby (2008) On the Lamb vector divergence
 // in Navier--Stokes flows JFM 610:261--284
 //
+// [4] Pierce, Moin & Sayadi (2013) Application of vortex
+// identification schemes to direct numerical simulation data of a
+// transitional boundary layer PF 25:015102
+//
 // --
 // This file is part of Semtex.
 // 
@@ -454,6 +458,13 @@ int main (int    argc,
 	work -> times (*InvR, *InvR);
 	*work *= 6.75;
 	*Disc += *work;
+#if 1
+	// -- Take the 1/3 power of discriminant, thus making it
+	//    dimensionally consistent with the lambda2 criterion (see
+	//    ref [4]), after first clipping to positive values.
+	Disc -> clipUp ();
+	Disc -> pow (1./3.);
+#endif
       }
 
       if (need[DIVERGENCE])

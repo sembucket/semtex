@@ -103,10 +103,12 @@ static char  prog[] = "stressdiv";
 static void  getargs (int,char**,const char*&,const char*&);
 static int_t preScan (ifstream&, int_t&);
 static void  getMesh (const char*,vector<Element*>&, const int_t);
-static void  makeBuf (map<char,AuxField*>&, AuxField*&, vector<Element*>&, const int_t);
+static void  makeBuf (map<char,AuxField*>&, AuxField*&, vector<Element*>&, 
+		      const int_t);
 static bool  getDump (ifstream&,map<char, AuxField*>&,vector<Element*>&);
 static bool  doSwap  (const char*);
-static void  stress  (map<char,AuxField*>&,map<char,AuxField*>&, AuxField*, const int);
+static void  stress  (map<char,AuxField*>&,map<char,AuxField*>&, AuxField*, 
+		      const int);
 static const char* fieldNames(map<char, AuxField*>&);
 
 
