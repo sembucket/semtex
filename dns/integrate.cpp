@@ -194,6 +194,14 @@ void integrate (void (*advection) (Domain*,
     if (C3D)
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 
+#if 0
+    // -- Optional Fischer-type "projection stabilisation" of velocity.
+
+    if (Femlib::value ("PROJ_STAB") > EPSSP)
+      for (i = 0; i < NCOM; i++)
+	D -> u[i] -> projStab (Femlib::value ("PROJ_STAB"), *Us[0][0]);
+#endif
+
     // -- Process results of this step.
 
     A -> analyse (Us[0], Uf[0]);

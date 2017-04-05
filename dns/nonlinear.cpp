@@ -515,6 +515,8 @@ void Stokes (Domain*     D ,
     Uphys[i] -> transform (INVERSE);
   }
 
+  B -> maintainPhysical(master, Uphys, NCOM);
+  
   for (i = 0; i < NCOM; i++) {
     FF     -> addPhysical (N[i], tmp, i, Uphys);
     N[i]   -> transform   (FORWARD);
