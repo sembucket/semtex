@@ -307,7 +307,7 @@ void Mesh::assemble (const bool printVacancy)
 	for (s = 0; !found && s < Nm; s++) {
 	  MS = ME -> side[s];
 
-	  if ((found = ( S -> startNode == MS -> endNode &&
+	  if ((found = ( S  -> startNode == MS -> endNode &&
 			 MS -> startNode ==  S -> endNode ))) {
 	    S -> mateElmt = ME;
 	    S -> mateSide = MS;
@@ -891,13 +891,17 @@ int_t Mesh::buildMap (const int_t np ,
 // ---------------------------------------------------------------------------
 // Generate connectivity (i.e. global knot numbers) for a mesh with np
 // knot points (i.e. Lagrange knots) along each element side, ignoring
-// internal points (i.e. generate connectivity for static-condensation form).
+// internal element points (i.e. generate connectivity for
+// static-condensation form).  The numbering methodology is naive in
+// that no attempt is made here to optimise the numbering in any way:
+// it is built up on an element by element traverse.  The global
+// numbers commence at 0, not 1.
 //
 // Fill map (element-by-element storage of these global numbers) for whole
 // mesh: for a mesh of quad elements, map must hold 4*(np-1)*nEl int_ts.
 // Return the number of global knots (maximum global knot number + 1). 
 //
-// NB: np >= 2, also global numbers generated here start at 0.
+// NB: np >= 2 is required.
 // NB: this connectivity information is generated without reference to BCs.
 // ---------------------------------------------------------------------------
 {
