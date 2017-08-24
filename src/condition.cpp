@@ -299,7 +299,9 @@ Mixed::Mixed (const char* v)
 // The format for a Mixed BC is: "field = mulvalue;refvalue", where in
 // dc/dn + K( c - C ) = 0, K is mulvalue and C is refvalue.  The
 // separator must be ';' or ',' (and without white space). Each of the
-// two supplied values is expected to evaluate to a real_t constant.
+// two supplied values is expected to evaluate to a real_t constant
+// (NB: K and C could possibly be functions of time and/or space, but
+// are only evaluated *once* at the beginning of execution).
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "Mixed::Mixed";

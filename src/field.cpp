@@ -3,20 +3,17 @@
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //
-/**
-// @class Field
+// class Field
 // 
 // Derived from AuxField, Field adds boundary conditions,
 // global numbering, and the ability to solve Helmholtz problems.
 // 
 // Field solve routines provide solution to the discrete form of the
 // Helmholtz equation
-// \f[
-                     
-                       {\bf\nabla\cdot\nabla} u - \lambda^2 u = f,
-   \f]
+//                      
+//                  div (grad (u)) - \lambda^2 u = f,
 //
-// on domain \f$\Omega\f$, subject to essential BCs u = g on \Gamma_g and
+// on domain \Omega, subject to essential BCs u = g on \Gamma_g and
 // natural BCs \partial u / \partial n = h on \Gamma_h, where the
 // boundary \Gamma of \Omega is the union of (non-overlapping)
 // \Gamma_g and \Gamma_h and n is the unit outward normal vector on
@@ -87,7 +84,7 @@
 // which touch the essential boundaries and does not require storage
 // of the partition Hc.  M.f can also be formed on an
 // element-by-element basis and is cheap for nodal spectral elements
-// since M is diagnonal.  Both tasks are performed by the
+// since M is diagonal.  Both tasks are performed by the
 // Field::constrain routine below.
 //
 // FIELD NAMES
@@ -100,7 +97,6 @@
 // w:  Third velocity component.            (Cylindrical: azimuthal velocity.)
 // p:  Pressure divided by density.
 // c:  Scalar for transport or elliptic problems.
-*/
 //
 // --
 // This file is part of Semtex.
@@ -264,7 +260,7 @@ void Field::evaluateM0Boundaries (const Field* P   ,
 void Field::addToM0Boundaries (const real_t val,
 			       const char*  grp)
 // ---------------------------------------------------------------------------
-// Add val to zeroth Fourier mode's bc storage area on BC group "grp".
+// Add val to 0th Fourier mode's bc storage area on BC group "grp".
 // ---------------------------------------------------------------------------
 {
   ROOTONLY {
@@ -598,6 +594,8 @@ void Field::traction (real_t*      n, // Normal/pressure
 Field& Field::solve (AuxField*             f  ,
 		     const ModalMatrixSys* MMS)
 // ---------------------------------------------------------------------------
+// This is the central routine for which the Field class was created.
+//
 // Problem for solution is
 //                                          
 //                      div grad u - lambda^2 u = f,
@@ -605,6 +603,7 @@ Field& Field::solve (AuxField*             f  ,
 // which is set up in discrete form as
 //
 //                       H v = - M f - H g + <h, w>.
+//                                      c
 //
 // This routine creates the RHS vector from the input forcing field f
 // and the Field's boundary conditions g (essential) & h (natural).
@@ -630,11 +629,11 @@ Field& Field::solve (AuxField*             f  ,
 //   boundary) nodes first, followed by all element-internal nodes.
 //   The zeroing operation which occurs after each application of the
 //   Helmholtz operator serves to apply the essential BCs, which are
-//   zero during the iteration (see file header).
+//   zero during the iteration (see this file's header).
 //
-//   The notation follows that used in Fig 2.5 of Barrett et al.,
-//   "Templates for the Solution of Linear Systems", netlib.
-// ---------------------------------------------------------------------------
+//   The notation under JACPCG follows that used in Fig 2.5 of Barrett
+//   et al., "Templates for the Solution of Linear Systems", netlib.
+//   ---------------------------------------------------------------------------
 {
   const char  routine[] = "Field::solve";
   const int_t np    = Geometry::nP();
@@ -1053,12 +1052,12 @@ void Field::global2local (const real_t*    src,
 }
 
 
-void Field::local2globalSum (const real_t*   src,
-			     real_t*         tgt,
+void Field::local2globalSum (const real_t*    src,
+			     real_t*          tgt,
 			     const NumberSys* N  ) const
 // ---------------------------------------------------------------------------
 // Direct stiffness sum a plane of data (src) into globally-numbered
-// tgt, with element- boundary values in the first N -> nGlobal()
+// tgt, with element-boundary values in the first N -> nGlobal()
 // places, followed by element-internal locations in emap ordering.
 // ---------------------------------------------------------------------------
 {

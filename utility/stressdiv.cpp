@@ -7,7 +7,7 @@
 // NB: the input field file is assumed to contain only velocity and
 // appropriate Reynolds stress data (and so is an AVERAGE=2 .avg file
 // that has already been passed through rstress).  The naming
-// conventions employed for example in addfield.C are broken (names
+// conventions employed for example in addfield.cpp are broken (names
 // are here used for different variables).
 //
 // Usage:

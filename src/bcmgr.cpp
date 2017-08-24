@@ -590,7 +590,7 @@ void BCmgr::buildnum (const char*       session,
 //
 // Retrieve numbering schemes (btog and bmsk values) from file
 // "session.num": this is created by running the "enumerate" utility
-// on root processor.
+// on root processor, if session.num does not already exist.
 //
 // The names of fields and their numbering schemes are significant.
 // The convention employed is that the fields have lower-case

@@ -348,7 +348,7 @@ bool MatrixSys::match (const real_t     lambda2,
 MatrixSys::~MatrixSys()
 // ---------------------------------------------------------------------------
 // Destructor.  Because there may be aliases to the internal vector
-// storage we use the family class routines.
+// storage we use the Family class routines.
 // ---------------------------------------------------------------------------
 {
   switch (_method) {

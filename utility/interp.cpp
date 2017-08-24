@@ -5,7 +5,7 @@
 //
 // Synopsis:
 // --------
-// interp [-h] [-v] [-m file] -s session dump
+// interp [-h] [-v] [-q] [-m file] -s session dump
 //
 // Description:
 // -----------
@@ -65,10 +65,11 @@ static char RCS[] = "$Id$";
 static char  prog[]  = "interp";
 static int_t verbose = 0;
 static int_t nreport = 100;
-static void  getargs    (int, char**, char*&, char*&, char*&);
+static void  getargs    (int, char**, bool&, char*&, char*&, char*&);
 static void  loadPoints (istream&, int_t&, int_t&, int_t&, vector<Point*>&);
 static void  findPoints (vector<Point*>&, vector<Element*>&,
-			 vector<Element*>&, vector<real_t>&, vector<real_t>&);
+			 vector<Element*>&, vector<real_t>&, vector<real_t>&,
+			 bool);
 static int_t getDump    (ifstream&, vector<AuxField*>&, vector<Element*>&,
 			 const int_t, const int_t, const int_t,
 			 int_t&, real_t&, real_t&, real_t&, real_t&);
@@ -99,11 +100,12 @@ int main (int    argc,
   vector<Element*>  elmt;
   vector<Element*>  Esys;
   vector<AuxField*> u;
+  bool              quiet = false;
 
   // -- Initialize.
 
   Femlib::initialize (&argc, &argv);
-  getargs            (argc, argv, session, dump, points);
+  getargs            (argc, argv, quiet, session, dump, points);
 
   fldfile.open (dump, ios::in);
   if (!fldfile) message (prog, "no field file", ERROR);
@@ -134,7 +136,7 @@ int main (int    argc,
   np = nel = ntot = 0;
 
   loadPoints (*pntfile, np, nel, ntot, point);
-  findPoints (point, Esys, elmt, r, s);
+  findPoints (point, Esys, elmt, r, s, quiet);
 
   // -- Load field file, interpolate within it.
 
@@ -168,6 +170,7 @@ int main (int    argc,
 
 static void getargs (int    argc   ,
 		     char** argv   ,
+		     bool&  quiet  ,
 		     char*& session,
 		     char*& dump   ,
 		     char*& points )
@@ -178,6 +181,7 @@ static void getargs (int    argc   ,
   char usage[] = "Usage: interp [options] -s session dump\n"
     "  options:\n"
     "  -h      ... print this message\n"
+    "  -q      ... run quietly: omit warnings about unlocated points\n"
     "  -m file ... name file of point data [Default: stdin]\n"
     "  -v      ... verbose output\n";
  
@@ -186,6 +190,9 @@ static void getargs (int    argc   ,
     case 'h':
       cout << usage;
       exit (EXIT_SUCCESS);
+      break;
+    case 'q':
+      quiet = true;
       break;
     case 'm':
       if (*++argv[0])
@@ -275,7 +282,8 @@ static void findPoints (vector<Point*>&   point,
 			vector<Element*>& Esys ,
 			vector<Element*>& elmt ,
 			vector<real_t>&   rloc ,
-			vector<real_t>&   sloc )
+			vector<real_t>&   sloc ,
+			bool              quiet)
 // ---------------------------------------------------------------------------
 // Locate points within elements, set Element pointer & r--s locations.
 // ---------------------------------------------------------------------------
@@ -317,7 +325,7 @@ static void findPoints (vector<Point*>&   point,
       }
     }
 
-    if (!elmt[i])
+    if (!elmt[i] && !quiet)
       cerr << "interp: point (" << setw(15) << x << ","
 	   << setw(15) << y << ") is not in the mesh" << endl;
     if (verbose && !((i + 1)% nreport))

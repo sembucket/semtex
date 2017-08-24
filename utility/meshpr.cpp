@@ -77,7 +77,7 @@ int main (int    argc,
   bool   check = true, surf = false, threed = false;
 
   Femlib::initialize (&argc, &argv);
-  getargs (argc, argv, session, verb, check, surf, np, nz, threed, basis, beta);
+  getargs (argc,argv, session, verb, check, surf, np, nz, threed, basis, beta);
 
   // -- Set up to read from file, initialize Femlib parsing.
 

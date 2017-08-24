@@ -39,7 +39,7 @@ extern "C" {
   void    F77NAME(daxpy) (const int_t& n, const double& alpha,
 			  const double* x, const int_t& incx, 
 			  double* y, const int_t& incy);
-  int_t F77NAME(idamax)(const int_t& n, const double* x,
+  int_t   F77NAME(idamax)(const int_t& n, const double* x,
 			  const int_t& incx);
   float   F77NAME(sdot)  (const int_t& n,
 			  const float* x, const int_t& incx,
@@ -59,7 +59,7 @@ extern "C" {
   void    F77NAME(saxpy) (const int_t& n, const float& alpha,
 			  const float* x, const int_t& incx, 
 			  float* y, const int_t& incy);
-  int_t F77NAME(isamax)(const int_t& n,
+  int_t   F77NAME(isamax)(const int_t& n,
 			  const float* x, const int_t& incx);
   void    F77NAME(dgemv) (const char* trans, const int_t& m,
 			  const int_t& n, const double& alpha,
@@ -95,7 +95,7 @@ extern "C" {
 			  const double* a, const int_t& lda,
 			  const double* b, const int_t& ldb,
 			  const double& beta, double* c, const int_t& ldc);
-  void   F77NAME(sgemm)  (const char* ta, const char* tb, 
+  void    F77NAME(sgemm) (const char* ta, const char* tb, 
 			  const int_t& m, const int_t& n,
 			  const int_t& k, const float& alpha,
 			  const float* a, const int_t& lda,

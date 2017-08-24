@@ -73,6 +73,7 @@ public:
   AuxField& mulX     ();
   AuxField& sgn      ();
   AuxField& exp      ();
+  AuxField& abs      ();
   AuxField& pow      (const real_t);
   AuxField& clipUp   (const real_t = 0.0);
   AuxField& zeroNaN  ();

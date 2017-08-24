@@ -108,7 +108,7 @@ Element::Element (const int_t id,
 
 Element::~Element ()
 // ---------------------------------------------------------------------------
-// Clean up internal storage using Femlib family routines.
+// Clean up internal storage using Family class routines.
 // ---------------------------------------------------------------------------
 {
   Family::abandon (&_xmesh);
@@ -301,7 +301,7 @@ void Element::local2globalSum (const real_t* src     ,
 			       real_t*       internal) const
 // ---------------------------------------------------------------------------
 // Sum values from element storage src into (globally-numbered)
-// external & internal partitions of vector.
+// external & internal partitions of vector (used for Assembly operations).
 // ---------------------------------------------------------------------------
 {
   Veclib::gathr_scatr_sum (_next, src, _emap,  btog, external);
@@ -389,9 +389,10 @@ void Element::global2localSC (const real_t* RHS ,
 // ----------------------------------------------------------------------------
 {
   // -- Load globally-numbered RHS into element-boundary storage.
-
+  //    NB: this is *not* the same as Veclib::gathr_scatr!
+  
   Veclib::gathr (_next, RHS,  btog, work);
-  Veclib::scatr (_next, work, _emap, tgt );
+  Veclib::scatr (_next, work, _emap, tgt);
 
   // -- Complete static-condensation solution for element-internal storage.
 
