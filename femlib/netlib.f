@@ -1,4 +1,5 @@
 C12345678901234567890123456789012345678901234567890123456789012345678901
+      
 C
 C     This file contains standard FORTRAN 77 routines from Netlib.
 C     All double precision.
@@ -1497,12 +1498,20 @@ C
       END
 C
 C     ##################################################################
-C     3. SPARSPAK
+C     3. SPARSPAK.
+C     SPARSPAK is no longer (circa 2010) available through netlib.
+C      
+C     See original descriptions in George & Liu (1981),
+C     Computer Solution of Large Sparse Positive-Definite Systems.
+C     or (available as PDF) George, Lui & Ng (1994),
+C     Computer Solution of Sparse Linear Systems.      
 C     ##################################################################
 C
-C     Routines from SPARSPAK that carry out Reverse Cuthill--McKee 
-C     node ordering.  Main routine is GENRCM
-
+C     Here we supply routines from SPARSPAK that:
+C     A. Carry out Reverse Cuthill--McKee node ordering (Ch 4 of book).
+C        Main routine is GENRCM
+C     B. Carry out nested dissection ordering           (Ch 8 of book).
+C        Main routine is GENND
 
 C----- SUBROUTINE ROOTLS
 C***************************************************************        
@@ -1958,7 +1967,179 @@ C              -----------------------------------------
                IF (NUM .GT. NEQNS) RETURN                               
   200    CONTINUE                                                       
          RETURN                                                         
-      END                                                               
+         END
+
+
+C----- SUBROUTINE GENND
+C***************************************************************
+C***************************************************************
+C*********    GENND ..... GENERAL NESTED DISSECTION     ********
+C***************************************************************
+C***************************************************************
+C     
+C     PURPOSE - SUBROUTINE GENND FINDS A NESTED DISSECTION
+C     ORDERING FOR A GENERAL GRAPH.
+C     
+C     
+C     INPUT PARAMETERS -
+C     NEQNS - NUMBER OF EQUATIONS.
+C     (XADJ, ADJNCY) - ADJACENCY STRUCTURE PAIR.
+C     
+C     OUTPUT PARAMETERS -
+C     PERM - THE NESTED DISSECTION ORDERING.
+C     
+C     WORKING PARAMETERS -
+C     MASK - IS USED TO MASK OFF VARIABLES THAT HAVE
+C     BEEN NUMBERED DURING THE ORDERNG PROCESS.
+C     (XLS, LS) - THIS LEVEL STRUCTURE PAIR IS USED AS
+C     TEMPORARY STORAGE BY FNROOT.
+C     
+C     PROGRAM SUBROUTINES -
+C     FNDSEP, REVRSE.
+C     
+C***************************************************************
+C     
+      SUBROUTINE GENND ( NEQNS, XADJ, ADJNCY, MASK,
+     1                   PERM, XLS, LS )
+C     
+C***************************************************************
+C     
+      INTEGER ADJNCY(1), MASK(1), LS(1), PERM(1),
+     1        XLS(1)
+      INTEGER XADJ(1), I, NEQNS, NSEP, NUM, ROOT
+C     
+C***************************************************************
+C     
+      DO 100 I = 1, NEQNS
+         MASK(I) = 1
+ 100  CONTINUE
+      NUM = 0
+      DO 300 I = 1, NEQNS
+C        -----------------------------
+C        FOR EACH MASKED COMPONENT ...
+C        -----------------------------
+ 200     IF ( MASK(I) .EQ. 0 ) GO TO 300
+         ROOT = I
+C        -------------------------------------------
+C        FIND A SEPARATOR AND NUMBER THE NODES NEXT.
+C        -------------------------------------------
+         CALL FNDSEP ( ROOT, XADJ, ADJNCY, MASK,
+     1                 NSEP, PERM(NUM+1), XLS, LS )
+         NUM  = NUM + NSEP
+         IF ( NUM .GE. NEQNS ) GO TO 400
+         GO TO 200
+ 300  CONTINUE
+C     ----------------------------------------------
+C     SINCE SEPARATORS FOUND FIRST SHOULD BE ORDERED
+C     LAST, ROUTINE REVRSE IS CALLED TO ADJUST THE
+C     ORDERING VECTOR
+C     ----------------------------------------------
+ 400  CALL REVRSE ( NEQNS, PERM )
+      RETURN
+      END
+
+
+C----- SUBROUTINE FNDSEP      
+C***************************************************************
+C***************************************************************
+C************      FNDSEP ..... FIND SEPARATOR      ************
+C***************************************************************
+C***************************************************************
+C     
+C     PURPOSE - THIS ROUTINE IS USED TO FIND A SMALL
+C     SEPARATOR FOR A CONNECTED COMPONENT SPECIFIED
+C     BY MASK IN THE GIVEN GRAPH.
+C     
+C     INPUT PARAMETERS -
+C     ROOT - IS THE NODE THAT DETERMINES THE MASKED
+C     COMPONENT.
+C     (XADJ, ADJNCY) - THE ADJACENCY STRUCTURE PAIR.
+C     
+C     OUTPUT PARAMETERS -
+C     NSEP - NUMBER OF VARIABLES IN THE SEPARATOR.
+C     SEP - VECTOR CONTAINING THE SEPARATOR NODES.
+C     
+C     UPDATED PARAMETER -
+C     MASK - NODES IN THE SEPARATOR HAVE THEIR MASK
+C     VALUES SET TO ZERO.
+C     
+C     WORKING PARAMETERS -
+C     (XLS, LS) - LEVEL STRUCTURE PAIR FOR LEVEL STRUCTURE
+C     FOUND BY FNROOT.
+C     
+C     PROGRAM SUBROUTINES -
+C     FNROOT.
+C     
+C***************************************************************
+C     
+      SUBROUTINE FNDSEP ( ROOT, XADJ, ADJNCY, MASK,
+     1                    NSEP, SEP, XLS , LS )
+C     
+C***************************************************************
+C     
+      INTEGER ADJNCY(1), LS(1), MASK(1), SEP(1), XLS(1)
+      INTEGER XADJ(1), I, J, JSTOP, JSTRT, MIDBEG,
+     1        MIDEND, MIDLVL, MP1BEG, MP1END,
+     1        NBR, NLVL, NODE, NSEP, ROOT
+C     
+C***************************************************************
+C     
+      CALL FNROOT ( ROOT, XADJ, ADJNCY, MASK,
+     1              NLVL, XLS, LS )
+C     ----------------------------------------------
+C     IF THE NUMBER OF LEVELS IS LESS THAN 3, RETURN
+C     THE WHOLE COMPONENT AS THE SEPARATOR.
+C     ----------------------------------------------
+      IF ( NLVL .GE. 3 ) GO TO 200
+      NSEP = XLS(NLVL+1) - 1
+      DO 100 I = 1, NSEP
+         NODE = LS(I)
+         SEP(I) = NODE
+         MASK(NODE) = 0
+ 100  CONTINUE
+      RETURN
+C     ----------------------------------------------------
+C     FIND THE MIDDLE LEVEL OF THE ROOTED LEVEL STRUCTURE.
+C     ----------------------------------------------------
+ 200  MIDLVL = (NLVL + 2)/2
+      MIDBEG = XLS(MIDLVL)
+      MPIBEG = XLS(MIDLVL + 1) 
+      MIDEND = MP1BEG - 1
+      MPIEND = XLS(MIDLVL+2) - 1
+C     -------------------------------------------------
+C     THE SEPARATOR IS OBTAINED BY INCLUDING ONLY THOSE
+C     MIDDLE-LEVEL NODES WITH NEIGHBORS IN THE MIDDLE+1
+C     LEVEL. XADJ IS USED TEMPORARILY TO MARK THOSE
+C     NODES IN THE MIDDLE+1 LEVEL.
+C     -------------------------------------------------
+      DO 300 I = MPIBEG, MP1END
+         NODE = LS(I)
+         XADJ(NODE) = - XADJ(NODE)
+ 300  CONTINUE
+      NSEP  = 0
+      DO 500 I = MIDBEG, MIDEND
+         NODE = LS(I)
+         JSTRT = XADJ(NODE)
+         JSTOP = IABS(XADJ(NODE+1)) - 1
+         DO 400 J = JSTRT, JSTOP
+            NBR = ADJNCY(J)
+            IF ( XADJ(NBR) .GT. 0 ) GO TO 400
+            NSEP = NSEP + 1
+            SEP(NSEP) = NODE
+            MASK(NODE) = 0
+            GO TO 500
+ 400     CONTINUE
+ 500  CONTINUE
+C     -------------------------------
+C     RESET XADJ TO ITS CORRECT SIGN.
+C     -------------------------------
+      DO 600 I = MP1BEG, MP1END
+         NODE = LS(I)
+         XADJ(NODE) = - XADJ(NODE)
+ 600  CONTINUE
+      RETURN
+      END
+      
 C
 C     ##################################################################
 C     4. Special functions.
