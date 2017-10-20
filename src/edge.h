@@ -49,7 +49,7 @@ public:
 
 protected:
   int_t          _np     ;	// Matches Geometry::nP().
-  char*          _group  ;	// Group string.
+  char*          _group  ;	// Group string (if any).
 
   const Element* _elmt   ;	// Corresponding element.
   int_t          _side   ;	// Corresponding side.

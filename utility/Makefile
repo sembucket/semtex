@@ -19,8 +19,8 @@ distclean:
 	rm -f addfield avgdump calc chop compare convert eneq enumerate \
         integral interp lowpass meshpr moden noiz phase preplot probe   \
         probeline probeplane project rectmesh repeatxy repeatz rstress  \
-        sem2nek sem2tec slit stressdiv transform wallmesh xplane modep  \\
-	nonlin
+        sem2nek sem2tec slit stressdiv transform wallmesh xplane modep  \
+	wavestress nonlin
 
 # ----------------------------------------------------------------------------
 # Standard rules and definitions.
@@ -67,10 +67,10 @@ preplot: preplot.c
 #
 
 nosrc: avgdump moden noiz rstress xplane sem2tec sem2vtk convert \
-	repeatz repeatxy
+	repeatz repeatxy wavestress
 avgdump moden noiz rstress xplane sem2tec sem2vtk convert repeatz repeatxy : \
 	avgdump.c moden.c xplane.c noiz.c rstress.c sem2tec.c sem2vtk.c \
-        convert.c repeatz.c repeatxy.c
+        convert.c repeatz.c repeatxy.c wavestress.c
 	$(CC) -o $@ $@.c $(CFLAGS) $(CPPFLAGS) $(CLDFLAGS) -lm
 
 # ----------------------------------------------------------------------------

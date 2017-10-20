@@ -57,8 +57,8 @@ FC	 = gfortran
 AR	 = libtool
 ARFLAGS  = -static -o
 RANLIB   = ranlib
-ifdef DEBUG
-  OPT    = -m64 -O0 -ggdb
+ifdef DEBUG			# -- gcc is really clang, use -g for debug
+  OPT    = -m64 -O0 -g
 else
   OPT    = -m64 -O2
 endif
@@ -66,7 +66,7 @@ CFLAGS   = $(DEFINES) $(OPT) -ansi
 CPPFLAGS += -I/sw/include
 CXXFLAGS = $(DEFINES) $(OPT) -ansi -Wno-unused-value  -Wno-parentheses
 FFLAGS   = $(DEFINES) $(OPT)
-LIBDIR   += -L/sw/lib -L/sw/lib/gcc5/lib
+LIBDIR   += -L/sw/lib -L/sw/lib/gcc7/lib
 LDFLAGS  = $(OPT) $(LIBDIR) -lfem -lvec $(F77LIBS)
 F77LIBS  = -framework Accelerate -lgfortran
 CLDFLAGS = $(LDFLAGS)

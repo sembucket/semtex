@@ -229,7 +229,7 @@ MatrixSys::MatrixSys (const real_t            lambda2,
 	_hbi[j] = _hii[j] = 0;
       
 
-      elmt[j]->HelmholtzSC(lambda2,betak2,hbb,_hbi[j],_hii[j],rmat,rwrk,ipiv);
+      elmt[j]->HelmholtzSC (lambda2,betak2,hbb,_hbi[j],_hii[j],rmat,rwrk,ipiv);
 
       for (i = 0; i < next; i++)
 	if ((m = bmap[i]) < _nsolve)

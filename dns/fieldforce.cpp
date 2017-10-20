@@ -8,7 +8,7 @@
 // This implements a somewhat generic body forcing interface. Basically,
 // there are two (types of) classes involved here:
 //
-// 1. the 'FieldForce' class, which provides an interface to nonlinear.C;
+// 1. the 'FieldForce' class, which provides an interface to nonlinear.cpp;
 //
 // 2. several forcing subclasses, which actually compute a specific
 //    type of forcing. Those subclasses are derived from the base

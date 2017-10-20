@@ -248,7 +248,7 @@ Data2DF& Data2DF::operator -= (const Data2DF& rhs)
   if (rhs._nel != _nel || rhs._np != _np || rhs._nz != _nz)
     message ("Data2DF::operator +=", "fields don't conform", ERROR);
 
-  Veclib::vsub (_ntot, rhs._data, 1, _data, 1, _data, 1);
+  Veclib::vsub (_ntot, _data, 1, rhs._data, 1, _data, 1);
 
   return *this;
 }

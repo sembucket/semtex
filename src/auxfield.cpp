@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////////////////////////////////
-// auxfield.C: routines for AuxField class, including Fourier expansions.
+// auxfield.cpp: routines for AuxField class, including Fourier expansions.
 //
 // Copyright (c) 1994 <--> $Date$, Hugh Blackburn
 //

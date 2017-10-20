@@ -145,7 +145,7 @@ protected:
 
 class CoriolisForce : virtual public VirtualForce
 // ---------------------------------------------------------------------------
-// Forcing appopriate to solution in a rotating frame of reference.
+// Forcing appropriate to solution in a rotating frame of reference.
 // ---------------------------------------------------------------------------
 {
 public:
