@@ -107,7 +107,7 @@ traction: $(TRCOBJ)
 # Build calc, an interactive interface to the femlib function parser.
 #
 calc: calc.o
-	$(CXX) $(CPPFLAGS) -o $@ $@.o $(LDFLAGS)
+	$(LD) $(CPPFLAGS) -o $@ $@.o $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build addfield, field postprocessing utility.
@@ -130,25 +130,25 @@ sem2nek: sem2nek.o feml.o mesh.o $(SEMHDR)
 # Build project, field dump projection to higher/lower orders.
 #
 project: project.o
-	$(CXX) $(CPPFLAGS) -o $@ $@.o $(LDFLAGS)
+	$(LD) $(CPPFLAGS) -o $@ $@.o $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build transform, which does forward/inverse Fourier/Legendre transforms.
 #
 transform: transform.o data2df.o data2df.h $(SEMHDR)
-	$(CXX) $(CPPFLAGS) -o $@ $@.o data2df.o $(LDFLAGS)
+	$(LD) $(CPPFLAGS) -o $@ $@.o data2df.o $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build phase, which performs operations on 3D data in phase/Fourier space.
 #
 phase: phase.o data2df.o data2df.h $(SEMHDR)
-	$(CXX) $(CPPFLAGS) -o $@ $@.o data2df.o $(LDFLAGS)
+	$(LD) $(CPPFLAGS) -o $@ $@.o data2df.o $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build lowpass, which filters data.
 #
 lowpass: lowpass.o data2df.o data2df.h $(SEMHDR)
-	$(CXX) $(CPPFLAGS) -o $@ $@.o data2df.o $(LDFLAGS)
+	$(LD) $(CPPFLAGS) -o $@ $@.o data2df.o $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build interp, field dump interpolator.
@@ -157,7 +157,7 @@ INTOBJ = feml.o mesh.o element.o svv.o family.o auxfield.o geometry.o
 $(INTOBJ): $(SEMHDR)
 
 interp: interp.o $(INTOBJ)
-	$(CXX) $(CPPFLAGS) -o $@ $@.o $(INTOBJ) $(LDFLAGS)
+	$(LD) $(CPPFLAGS) -o $@ $@.o $(INTOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build modep, field dump modal projection.
@@ -166,13 +166,13 @@ MDPOBJ = feml.o mesh.o element.o svv.o family.o auxfield.o geometry.o
 $(MDPOBJ): $(SEMHDR)
 
 modep: modep.o $(INTOBJ)
-	$(CXX) $(CPPFLAGS) -o $@ $@.o $(INTOBJ) $(LDFLAGS)
+	$(LD) $(CPPFLAGS) -o $@ $@.o $(INTOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build integral, field dump scalar integral evaluator.
 #
 integral: integral.o  $(INTOBJ)
-	$(CXX) $(CPPFLAGS) -o $@ $@.o $(INTOBJ) $(LDFLAGS)
+	$(LD) $(CPPFLAGS) -o $@ $@.o $(INTOBJ) $(LDFLAGS)
 
 
 # ----------------------------------------------------------------------------
@@ -180,7 +180,7 @@ integral: integral.o  $(INTOBJ)
 #
 MASOBJ = element.o svv.o family.o feml.o geometry.o massmat.o mesh.o
 massmat: $(MASOBJ)
-	$(CXX) $(CPPFLAGS) -o $@ $(MASOBJ) $(LDFLAGS)
+	$(LD) $(CPPFLAGS) -o $@ $(MASOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build probe, field dump data extraction.
@@ -189,7 +189,7 @@ PRBOBJ = probe.o feml.o mesh.o element.o svv.o family.o auxfield.o geometry.o
 $(PRBOBJ): $(SEMHDR)
 
 probe: $(PRBOBJ)
-	$(CXX) $(CPPFLAGS) -o $@ $(PRBOBJ) $(LDFLAGS)
+	$(LD) $(CPPFLAGS) -o $@ $(PRBOBJ) $(LDFLAGS)
 	ln -s -f probe probeline
 	ln -s -f probe probeplane
 
@@ -201,7 +201,7 @@ ENOBJ = eneq.o feml.o mesh.o element.o svv.o family.o auxfield.o 	\
 $(ENOBJ): $(SEMHDR)
 
 eneq: $(ENOBJ)
-	$(CXX) $(CPPFLAGS) -o $@ $(ENOBJ) $(LDFLAGS)
+	$(LD) $(CPPFLAGS) -o $@ $(ENOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build stressdiv, which computes divergence of Reynolds stresses.
@@ -211,13 +211,13 @@ DIVOBJ = stressdiv.o feml.o mesh.o element.o svv.o family.o auxfield.o 	\
 $(DIVOBJ): $(SEMHDR)
 
 stressdiv: $(DIVOBJ)
-	$(CXX) $(CPPFLAGS) -o $@ $(DIVOBJ) $(LDFLAGS)
+	$(LD) $(CPPFLAGS) -o $@ $(DIVOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build rectmesh, rectangular mesh generator.
 #
 rectmesh: rectmesh.o
-	$(CXX) $(CPPFLAGS) -o $@ $@.o $(LDFLAGS)
+	$(LD) $(CPPFLAGS) -o $@ $@.o $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Build mapmesh, a utility that re-maps node locations according to strings
@@ -243,7 +243,7 @@ NLOBJ = nonlin.o feml.o mesh.o element.o svv.o family.o auxfield.o 	\
 $(NLOBJ): $(SEMHDR)
 
 nonlin: $(NLOBJ)
-	$(CXX) $(CPPFLAGS) -o $@ $(NLOBJ) $(LDFLAGS)
+	$(LD) $(CPPFLAGS) -o $@ $(NLOBJ) $(LDFLAGS)
 
 # ----------------------------------------------------------------------------
 # Special machine-dependent compilations.
