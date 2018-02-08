@@ -140,7 +140,8 @@ int main (int    argc,
 
   // -- Load field file, interpolate within it.
 
-  cout.precision (8);
+  //  cout.precision (8);
+  cout.precision (13);
   while (getDump (fldfile, u, Esys, NP, NZ, NEL,
 		  step, time, timestep, kinvis, beta)) {
 
@@ -153,7 +154,8 @@ int main (int    argc,
 	for (j = 0; j < nf; j++) {
 	  if   (elmt[i]) c = u[j] -> probe (elmt[i], r[i], s[i], k);
 	  else           c = 0.0;
-	  cout << setw(15) <<  c;
+//	  cout << setw(15) <<  c;
+	  cout << setw(20) <<  c;
 	}
 	if (verbose && !((i + 1)% nreport))
 	  cerr 

@@ -12,7 +12,7 @@
 #endif
 
 void dsadd (int_t n, double alpha, const double* x, int_t incx,
-	                                   double* y, int_t incy)
+                                         double* y, int_t incy)
 {
   register int_t i;
 

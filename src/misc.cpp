@@ -179,6 +179,7 @@ void writeField (ostream&           file   ,
   }
 }
 
+
 void readField (istream&           file ,
                 vector<AuxField*>& field)
 // ---------------------------------------------------------------------------
@@ -191,7 +192,8 @@ void readField (istream&           file ,
 
   if (N < 1) return;
 
-  // -- read header, check sizes
+  // -- Read header, check sizes.
+  
   Header *hdr = new Header;
   file >> *hdr;
 
@@ -204,18 +206,18 @@ void readField (istream&           file ,
       message (routine, "number of elements mismatch", ERROR);
   }
 
-  // -- walk through fields, read appropriate
+  // -- Walk through fields, read appropriate one.
+  
   char *type = hdr->flds;
-  while (*type != 0)
-  {
+  while (*type != 0) {
     bool skip = true;
     ROOTONLY cout << " type: " << *type;
-    for (i = 0; i < N; i++) if (*type == field[i]->name())
-    {
-      file >> *field[i];
-      ROOTONLY cout << "(reading)" << endl;
-      skip = false;
-    }
+    for (i = 0; i < N; i++)
+      if (*type == field[i]->name()) {
+	file >> *field[i];
+	ROOTONLY cout << "(reading)" << endl;
+	skip = false;
+      }
     if (skip) file.seekg (Geometry::nTot() * sizeof (real_t), ios::cur);
     type++;
   }
