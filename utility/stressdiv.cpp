@@ -76,6 +76,8 @@
 // this case, the value of BETA in the session file is used in
 // computing z-derivatives.
 //
+// NB. The output fields are smoothed (made C_0 across element boundaries).
+//
 // --
 // This file is part of Semtex.
 // 
@@ -102,12 +104,12 @@ static char RCS[] = "$Id$";
 static char  prog[] = "stressdiv";
 static void  getargs (int,char**,const char*&,const char*&);
 static int_t preScan (ifstream&, int_t&);
-static void  getMesh (const char*,vector<Element*>&, const int_t);
-static void  makeBuf (map<char,AuxField*>&, AuxField*&, vector<Element*>&, 
-		      const int_t);
+static void  getMesh (const char*,vector<Element*>&,BoundarySys*&,const int_t);
+static void  makeBuf (map<char,AuxField*>&, Field*&, vector<Element*>&, 
+		      BoundarySys*&, const int_t);
 static bool  getDump (ifstream&,map<char, AuxField*>&,vector<Element*>&);
 static bool  doSwap  (const char*);
-static void  stress  (map<char,AuxField*>&,map<char,AuxField*>&, AuxField*, 
+static void  stress  (map<char,AuxField*>&,map<char,AuxField*>&, Field*, 
 		      const int);
 static const char* fieldNames(map<char, AuxField*>&);
 
@@ -123,7 +125,8 @@ int main (int    argc,
   vector<Element*>     elmt;
   map<char, AuxField*> input, output;
   vector<AuxField*>    outbuf;
-  AuxField*            work;
+  Field*               work;	// -- Needs to be a Field to allow smoothing.
+  BoundarySys*         bsys;	// -- Arbitrary choice can contruct work.
   int_t                NDIM;
   int_t                NCOM;
 
@@ -134,8 +137,8 @@ int main (int    argc,
   if (!avgfile) message (prog, "no field file", ERROR);
   NDIM = preScan (avgfile, NCOM);
   
-  getMesh (session, elmt, NDIM);
-  makeBuf (output, work, elmt, NCOM);
+  getMesh (session,      elmt, bsys, NDIM);
+  makeBuf (output, work, elmt, bsys, NCOM);
 
   // -- Need to link outbuf to output so we can use writeField.
   //    Maybe in the longer term we should overload writeField.
@@ -240,6 +243,7 @@ static int_t preScan (ifstream& file, int_t& ncom)
 
 static void getMesh (const char*       session,
 		     vector<Element*>& elmt   ,
+		     BoundarySys*&     bsys   ,
 		     const int_t       ndim   )
 // ---------------------------------------------------------------------------
 // Set up 2D mesh information. Note that parser tokens and Geometry
@@ -262,13 +266,17 @@ static void getMesh (const char*       session,
   elmt.resize   (nel);
 
   for (int_t k = 0; k < nel; k++) elmt[k] = new Element (k, np, M);
+
+  BCmgr* B = new BCmgr       (F, elmt);
+  bsys     = new BoundarySys (B, elmt, 'u'); // -- This Field should exist!
 }
 
 
 static void makeBuf (map<char, AuxField*>& output,
-		     AuxField*&            work  ,
-		     vector<Element*>&     elmt,
-		     const int             ncom)
+		     Field*&               work  ,
+		     vector<Element*>&     elmt  ,
+		     BoundarySys*&         bsys  ,
+		     const int             ncom  )
 // ---------------------------------------------------------------------------
 // Note that we only set up the output and work buffers here. The
 // input buffers get created in getDump.
@@ -286,7 +294,7 @@ static void makeBuf (map<char, AuxField*>& output,
     output['w'] = new AuxField (new real_t[ntot], nz, elmt, 'w');
   }
 
-  work = new AuxField (new real_t[ntot], nz, elmt, '\0');
+  work = new Field (bsys, new real_t[ntot], nz, elmt, '\0');
 }
 
 
@@ -391,7 +399,7 @@ static bool doSwap (const char* ffmt)
 
 static void stress  (map<char, AuxField*>& in  ,
 		     map<char, AuxField*>& out ,
-		     AuxField*             work,
+		     Field*                work,
 		     const int             ncom)
 // ---------------------------------------------------------------------------
 // This does the actual work of building stress divergence terms.
@@ -457,7 +465,8 @@ static void stress  (map<char, AuxField*>& in  ,
         *out['w'] *= -1.0;
       }
     } else {			// -- 3D
-      // TA: checked that stressdiv and project -w -z1 commute.
+
+      // -- TA: checked that stressdiv and project -w -z1 commute.
 
       // u  = -[d(A)/dx + d(B)/dy + B/y + 1/y*d(D)/dz]
       (*out['u'] = *in['D']).transform(FORWARD).gradient(2).transform(INVERSE);
@@ -504,20 +513,27 @@ static void stress  (map<char, AuxField*>& in  ,
     } else {			// -- 3D
       (*out['u']  = *in['A']) . gradient(0);
       *out['u'] += (*work = *in['B']) . gradient(1);
-      *out['u'] += (*work = *in['D']) . transform(FORWARD).gradient(2).transform(INVERSE);
+      *out['u'] += (*work = *in['D']) .
+	transform(FORWARD).gradient(2).transform(INVERSE);
 
       (*out['v']  = *in['B']) . gradient(0);
       *out['v'] += (*work = *in['C']) . gradient(1);
-      *out['v'] += (*work = *in['E']) . transform(FORWARD).gradient(2).transform(INVERSE);
+      *out['v'] += (*work = *in['E'])
+	. transform(FORWARD).gradient(2).transform(INVERSE);
 
       (*out['w']  = *in['D']) . gradient(0);
       *out['w'] += (*work = *in['E']) . gradient(1);
-      *out['w'] += (*work = *in['F']) . transform(FORWARD).gradient(2).transform(INVERSE);
+      *out['w'] += (*work = *in['F'])
+	. transform(FORWARD).gradient(2).transform(INVERSE);
 
       *out['u'] *= -1.0;
       *out['v'] *= -1.0;
       *out['w'] *= -1.0;
     }
   }
+
+  work -> smooth (out['u']);
+  work -> smooth (out['v']);
+  if (ncom == 3) work -> smooth (out['w']);
 }
 

@@ -54,17 +54,25 @@ Analyser::Analyser (Domain* D   ,
 //
 // History points are also set up here.  They are nominated in the
 // optional HISTORY section of the session file.  Output is to
-// session.his.
+// session.his.  History points output works on multiprocessor runs.
+//
+// Note that while meshes can be shifted and scaled using TOKENS
+// X_SHIFT, X_SCALE (compared to the declared NODE locations), history
+// point and particle locations are declared in the shifted/scaled
+// coordinate system.  Undo the various #if 0 sections below to get
+// them declared in the unshifted/unscaled coordinates.
+//  
 // ---------------------------------------------------------------------------
   _src (D)
 {
   const char   routine[] = "Analyser::Analyser";
   char         str[StrMax];
+#if 0
   const real_t x_shft = Femlib::value ("X_SHIFT");
   const real_t y_shft = Femlib::value ("Y_SHIFT");
   const real_t x_scal = Femlib::value ("X_SCALE");
   const real_t y_scal = Femlib::value ("Y_SCALE");
-
+#endif
   cout << setprecision (6);
 
   // -- Set up for particle tracking.
@@ -86,8 +94,10 @@ Analyser::Analyser (Domain* D   ,
       _par_strm.precision (6);
 
       while (pfile >> id >> P.x >> P.x >> P.x >> P.y >> P.z) {
+#if 0
         P.x = (P.x + x_shft) * x_scal;  // -- shft and scal default to 0 and 1
         P.y = (P.y + y_shft) * y_scal;
+#endif
 	F = new FluidParticle (_src, ++i, P);
 	if (!(F -> inMesh())) {
 	  sprintf (str, "Particle at (%f, %f, %f) not in mesh", P.x, P.y, P.z);
@@ -114,8 +124,10 @@ Analyser::Analyser (Domain* D   ,
 
     for (i = 0; i < NH; i++) {
       file -> stream() >> id >> x >> y >> z;
+#if 0
       x = (x + x_shft) * x_scal;  // -- shft and scal default to 0 and 1
       y = (y + y_shft) * y_scal;
+#endif
       if (E = HistoryPoint::locate (x, y, D -> elmt, r, s)) {
 	H = new HistoryPoint (id, E, r, s, x, y, z);
 	_history.insert (_history.end(), H);

@@ -206,7 +206,8 @@ eneq: $(ENOBJ)
 # ----------------------------------------------------------------------------
 # Build stressdiv, which computes divergence of Reynolds stresses.
 #
-DIVOBJ = stressdiv.o feml.o mesh.o element.o svv.o family.o auxfield.o 	\
+DIVOBJ = stressdiv.o boundary.o bcmgr.o bsys.o condition.o edge.o feml.o \
+	field.o integration.o mesh.o element.o svv.o family.o auxfield.o \
 	geometry.o misc.o data2df.o
 $(DIVOBJ): $(SEMHDR)
 
