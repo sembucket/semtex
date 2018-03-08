@@ -354,6 +354,7 @@ WhiteNoiseForce::WhiteNoiseForce (Domain* D   ,
   const int_t verbose           = Femlib::ivalue ("VERBOSE");
 
   VERBOSE cout << "  " << routine << endl;
+  _D = D;
 
   for (int i = 0; i < NCOM; i++) {
     _eps[i] = 0.;	// -- default

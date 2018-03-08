@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// data2df.C: simple 2D x Fourier data class; an AuxField without
+// data2df.cpp: simple 2D x Fourier data class; an AuxField without
 // geometric information.  Also included in this file are Header class
 // definitions for IO & maintenance of input file information.
 //
