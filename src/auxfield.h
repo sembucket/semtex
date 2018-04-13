@@ -27,7 +27,6 @@ public:
   void          describe (char*) const;
   const real_t* data     ()      const { return _data; } // -- Hack alert!
 
-
   AuxField& operator  = (const real_t);
   AuxField& operator += (const real_t);
   AuxField& operator -= (const real_t);

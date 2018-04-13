@@ -1,6 +1,6 @@
 ##############################################################################
-# Makefile for dns_ff, spectral element solver for unsteady
-# Navier--Stokes problems, with generalised body forcing added.
+# Makefile for dns, spectral element solver for unsteady
+# Navier--Stokes problems with generalised body forcing.
 #
 # $Id$
 ##############################################################################

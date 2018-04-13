@@ -88,13 +88,12 @@ void integrate (void (*advection) (Domain*,
   int_t              i, j, k;
   const real_t       dt    = Femlib:: value ("D_T");
   const int_t        nStep = Femlib::ivalue ("N_STEP");
-  const int_t        TBCS  = Femlib::ivalue ("TBCS");
   const int_t        nZ    = Geometry::nZProc();
 
   static Msys**      MMS;
   static AuxField*** Us;
   static AuxField*** Uf;
-  static Field*      Pressure = D -> u[NCOM];
+  Field*             Pressure = D -> u[NCOM];
 
   if (!MMS) {			// -- Initialise static storage.
 
@@ -128,6 +127,8 @@ void integrate (void (*advection) (Domain*,
   }
 
   // -- Because we may restart from scratch on each call, zero these:
+
+  *Pressure = 0.0;
 
   for (i = 0; i < NORD; i++)
     for (j = 0; j < NCOM; j++) {
@@ -193,14 +194,6 @@ void integrate (void (*advection) (Domain*,
     for (i = 0; i < NCOM; i++) Solve (D, i, Uf[0][i], MMS[i]);
     if (C3D)
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
-
-#if 0
-    // -- Optional Fischer-type "projection stabilisation" of velocity.
-
-    if (Femlib::value ("PROJ_STAB") > EPSSP)
-      for (i = 0; i < NCOM; i++)
-	D -> u[i] -> projStab (Femlib::value ("PROJ_STAB"), *Us[0][0]);
-#endif
 
     // -- Process results of this step.
 
@@ -303,7 +296,8 @@ static Msys** preSolve (const Domain* D)
 // is selected for any Field, the corresponding ModalMatrixSystem pointer
 // is set to zero.
 //
-// ITERATIVE == 1 selects iterative solvers for velocity components.
+// ITERATIVE >= 1 selects iterative solver for velocity components,
+// ITERATIVE >= 2 selects iterative solver for non-zero pressure Fourier modes.
 // ---------------------------------------------------------------------------
 {
   const int_t             nmodes = Geometry::nModeProc();
@@ -326,10 +320,10 @@ static Msys** preSolve (const Domain* D)
 
   // -- Pressure system.
 
-  if (itLev > 1) {
+  if (itLev > 1)
     M[NCOM] = new Msys
       (0.0, beta, base, nmodes, E, D -> b[NCOM], MIXED);
-  } else
+  else
     M[NCOM] = new Msys
       (0.0, beta, base, nmodes, E, D -> b[NCOM], DIRECT);
 

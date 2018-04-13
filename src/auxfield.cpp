@@ -172,8 +172,7 @@ AuxField& AuxField::operator -= (const AuxField& f)
 
 AuxField& AuxField::operator *= (const AuxField& f)
 // ---------------------------------------------------------------------------
-// Multiply *this storage vectorwise with f's.  You sort out which
-// space you're in!
+// Multiply storage of *this with f's.  Simple point-by-point multiplication.
 // ---------------------------------------------------------------------------
 {
   Veclib::vmul (_size, _data, 1, f._data, 1, _data, 1);
@@ -1696,8 +1695,7 @@ real_t AuxField::probe (const Element* E,
 
     Blas::scal (nZ - 2, 2.0, fbuf + 2, 1);
     
-    value  = fbuf[0];
-    value += fbuf[1] * cos (NZH * betaZ);
+    value  = fbuf[0];		// -- NB: the Nyquist data are not used.
     for (k = 1; k <= NHM; k++) {
       Re     = k  + k;
       Im     = Re + 1;
@@ -1834,7 +1832,8 @@ AuxField& AuxField::mag(const vector <AuxField*>& a)
 
 AuxField& AuxField::perturb (const int mode, const double pert)
 // -------------------------------------------------------------------------
-// Add perturbation. Auxfield data is assumed be in Fourier space!
+// Add Guassian noise perturbation of standard deviation
+// pert. Auxfield data are assumed be in Fourier space.
 // -------------------------------------------------------------------------
 {
   register int j;
