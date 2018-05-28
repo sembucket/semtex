@@ -128,7 +128,7 @@ int main (int    argc,
 
   if (points) {
     pntfile = new ifstream (points);
-    if (pntfile -> bad())
+    if (pntfile -> fail())
       message (prog, "unable to open point file", ERROR);
   } else 
     pntfile = &cin;

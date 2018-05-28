@@ -79,7 +79,7 @@ int main (int    argc,
 
   if (dump) {
     fldfile = new ifstream (dump);
-    if (fldfile -> bad()) message (prog, "no field file", ERROR);
+    if (fldfile -> fail()) message (prog, "no field file", ERROR);
   } else fldfile = &cin;
 
   // -- Set up 2D mesh information.

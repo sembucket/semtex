@@ -122,7 +122,7 @@ static void getargs (int       argc,
   case 2:
     sess = argv[0];
     mesh = new ifstream (argv[1]);
-    if (mesh -> bad()) message (prog, "couldn't open mesh file", ERROR);
+    if (mesh -> fail()) message (prog, "couldn't open mesh file", ERROR);
     break;
   default:
     cerr << usage;

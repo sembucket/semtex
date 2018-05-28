@@ -185,7 +185,7 @@ static void getargs (int        argc   ,
   case 2:
     session = argv[0];
     file = new ifstream (argv[1]);
-    if (file -> bad()) {
+    if (file -> fail()) {
       cerr << usage;
       sprintf (buf, "unable to open field file: %s", argv[1]);
       message (prog, buf, ERROR);

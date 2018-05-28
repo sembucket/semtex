@@ -131,7 +131,7 @@ static void getargs (int       argc ,
 
   if (argc == 1) {
     input = new ifstream (*argv);
-    if (input -> bad()) message (prog, "unable to open input file", ERROR);
+    if (input -> fail()) message (prog, "unable to open input file", ERROR);
   } else input = &cin;
 }
 

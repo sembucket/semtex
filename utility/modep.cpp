@@ -85,11 +85,11 @@ int main (int    argc,
   nzMode = (modeNum > 0) ? 2 : 1;
 
   shapefile = new ifstream (shape);
-  if (shapefile -> bad()) message (prog, "no mode shape file", ERROR);
+  if (shapefile -> fail()) message (prog, "no mode shape file", ERROR);
  
   if (dump) {
     fldfile = new ifstream (dump);
-    if (fldfile -> bad()) message (prog, "no field file", ERROR);
+    if (fldfile -> fail()) message (prog, "no field file", ERROR);
   } else fldfile = &cin;
 
   // -- Set up 2D mesh information.

@@ -94,7 +94,7 @@ static void getargs (int       argc ,
 
   if (argc == 1) {
     input = new ifstream (*argv);
-    if (input -> bad()) {
+    if (input -> fail()) {
       cerr << usage;
       sprintf (buf, "unable to open file: %s", *argv);
       message (prog, buf, ERROR);
