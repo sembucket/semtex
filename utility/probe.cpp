@@ -21,7 +21,7 @@
 // Interface 1: Extract data at set of points
 // -----------
 //
-// Usage: probe [-h] [-p file] -s session dump [file]
+// Usage: probe [-h] [-m] [-p file] -s session dump [file]
 //
 // This is the most general form.  Extract data at a specified set
 // of 3D points, given either on standard input or in a named file.
@@ -33,9 +33,12 @@
 //
 // Points can either be supplied on standard input or in a named file.
 //
-// Output is always ASCII format.  Each line of output contains the values
-// for the fields in the file in columns, in the order they were written
-// to the field file.
+// Output is always ASCII format.  Each line of output contains the
+// values for the fields in the file in columns, in the order they
+// were written to the field file.  Using the "-m" option creates
+// minimal output - just the probed field values, separated by spaces,
+// one point per line.  Otherwise, we also get info about index and
+// position.
 //
 // Interface 2: Extract data along a straight line
 // -----------
@@ -96,7 +99,7 @@ typedef enum {			// -- Flags for coordinate axes.
 } AXIS;
 
 static char  *prog;
-static void  getargs     (int, char**, char*&, char*&, int_t&,
+static void  getargs     (int, char**, char*&, char*&, bool&, int_t&,
 			  char*&, char*&, char*&);
 static int_t loadPoints  (istream&, vector<Point*>&);
 static int_t linePoints  (vector<Point*>&);
@@ -106,7 +109,7 @@ static void  findPoints  (vector<Point*>&, vector<Element*>&,
 static int_t getDump     (ifstream&, vector<AuxField*>&, vector<Element*>&,
 			  const int_t, const int_t, const int_t);
 static void  putData     (const char*, const char*, const char*, int_t,
-			  int_t, vector<AuxField*>&, vector<Element*>&,
+			  bool, int_t, vector<AuxField*>&, vector<Element*>&,
 			  vector<Point*>&, vector<vector<real_t> >&);
 static void  Finterp     (vector<AuxField*>&, const Point*, const Element*,
 			  const real_t, const real_t, const int_t,
@@ -129,6 +132,7 @@ int main (int    argc,
   istream*                pntfile;
   FEML*                   F;
   Mesh*                   M;
+  bool                    minimal = false;
   const real_t*           knot;
   vector<int_t>           iwork(15);
   vector<real_t>          rwork, r, s, datum;
@@ -160,7 +164,8 @@ int main (int    argc,
 
   // -- Parse command line.
 
-  getargs (argc, argv, interface, format, rotswap, session, dump, points);
+  getargs (argc, argv,
+	   interface, format, minimal, rotswap, session, dump, points);
 
   // -- Check presence of field file before proceeding.
 
@@ -223,7 +228,8 @@ int main (int    argc,
 
   // -- Output collected data.
 
-  putData (dump, interface, format, ntot, rotswap, u, elmt, point, data);
+  putData (dump, interface, format, ntot,
+	   minimal, rotswap, u, elmt, point, data);
   
   Femlib::finalize();
   return EXIT_SUCCESS;
@@ -234,6 +240,7 @@ static void getargs (int    argc     ,
 		     char** argv     ,
 		     char*& interface,
 		     char*& format   ,
+		     bool&  minimal  ,
 		     int_t& swap     ,
 		     char*& session  ,
 		     char*& dump     ,
@@ -254,6 +261,7 @@ static void getargs (int    argc     ,
       "Usage: probe [options] -s session dump\n"
       "  options:\n"
       "  -h      ... print this message\n"
+      "  -m      ... minimal output\n"
       "  -p file ... name file of point data [Default: stdin]\n";
 
     while (--argc  && **++argv == '-')
@@ -261,6 +269,9 @@ static void getargs (int    argc     ,
       case 'h':
 	cout << usage;
 	exit (EXIT_SUCCESS);
+	break;
+      case 'm':
+	minimal = true;
 	break;
       case 'p':
 	if (*++argv[0])
@@ -366,7 +377,7 @@ static void getargs (int    argc     ,
 
   } else if (strcmp (interface, "probeplane") == 0) {
 
-    char *tok, *pspec, *usage =
+    char usage[] =
       "Usage: probeplane [options] -s session dump\n"
       "options:\n"
       "-h                ... print this message\n"
@@ -380,7 +391,7 @@ static void getargs (int    argc     ,
       "-tec              ... write TECPLOT-formatted ASCII output\n"
       "-sm               ... write SM-formatted binary output\n"
       "-0	         ... output zero if point is outside mesh (instead of warning)\n";
-
+    char *tok, *pspec;
     int_t nset = 0;
 
     while (--argc && **++argv == '-')
@@ -876,6 +887,7 @@ static void putData (const char*              dump     ,
 		     const char*              interface,
 		     const char*              format   ,
 		     int_t                    ntot     ,
+		     bool                     minimal  ,
 		     int_t                    swap     ,
 		     vector<AuxField*>&       u        ,
 		     vector<Element*>&        elmt     ,
@@ -891,10 +903,11 @@ static void putData (const char*              dump     ,
     cout.precision (6);
     for (i = 0; i < ntot; i++) {
       if (elmt[i] || Femlib::value ("PRINT_OUTSIDE") == 1) {
-	cout << setw (5) << i + 1 << " " 
-	     << setw(12) << point[i] -> x << " " 
-	     << setw(12) << point[i] -> y << " " 
-	     << setw(12) << point[i] -> z;
+	if (!minimal) 
+	  cout << setw (5) << i + 1 << " " 
+	       << setw(12) << point[i] -> x << " " 
+	       << setw(12) << point[i] -> y << " " 
+	       << setw(12) << point[i] -> z;
 	for (j = 0; j < nf; j++)
 	  cout << setw(15) << data[i][j];
 	cout << endl;
