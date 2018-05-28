@@ -900,7 +900,7 @@ static void putData (const char*              dump     ,
   int_t i, j, k, n, nf = u.size();
 
   if (strstr (format, "free")) {
-    cout.precision (6);
+    cout.precision (8);
     for (i = 0; i < ntot; i++) {
       if (elmt[i] || Femlib::value ("PRINT_OUTSIDE") == 1) {
 	if (!minimal) 
@@ -909,7 +909,7 @@ static void putData (const char*              dump     ,
 	       << setw(12) << point[i] -> y << " " 
 	       << setw(12) << point[i] -> z;
 	for (j = 0; j < nf; j++)
-	  cout << setw(15) << data[i][j];
+	  cout << setw(17) << data[i][j];
 	cout << endl;
       }
     }
@@ -964,7 +964,8 @@ static void putData (const char*              dump     ,
     cout << "VARIABLES = \"x\", \"y\", \"z\"";
     for (n = 0; n < nf; n++) cout << ", \"" << u[n] -> name() << "\"";
     cout << endl;
-    cout << "ZONE I=" << nx << ", J=" << ny << ", F=Point, T=\"" << base << "\""<< endl;
+    cout << "ZONE I=" << nx << ", J=" << ny
+	 << ", F=Point, T=\"" << base << "\""<< endl;
 
     for (k = 0, j = 0; j < ny; j++) {
       for (i = 0; i < nx; i++, k++) {

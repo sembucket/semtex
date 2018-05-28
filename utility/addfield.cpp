@@ -169,7 +169,7 @@ int main (int    argc,
 
   // -- Read command line.
 
-  getargs (argc, argv, session, dump, func, add);
+ getargs (argc, argv, session, dump, func, add);
 
   file.open (dump);
   if (!file) message (prog, "can't open input field file", ERROR);
