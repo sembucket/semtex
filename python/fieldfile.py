@@ -9,8 +9,6 @@
 import string
 import numpy as np
 import sys
-import string
-
 
 # ----------------------------------------------------------
 class Geometry:
@@ -203,7 +201,7 @@ def element_wise():
     #    - of first z-plane
     #    - of second field (in this case, v)
     print elmt_wise[:,:,10,0,1]
-    bla
+#   -- HMB suspects the ordering is the reverse of what is stated!
 
 if __name__ == "__main__":
     element_wise()

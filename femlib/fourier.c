@@ -6,7 +6,14 @@
  * 1D Fourier transform routines for real data fields based on FFTPACK
  * or Temperton FFT routines, or vendor-supplied alternatives.
  * NB: different restrictions may apply to input args depending on
- * selected routine. 
+ * selected routine.
+ *
+ * See the FFT codes themselves for the definition of a discrete
+ * Fourier transform.  If input parameter sign = 1 then a positive
+ * sign is used in the complex exponential employed for the Fourier
+ * coefficients and a 1/2PI normalizing factor is used in IDFT.  In
+ * general: the signs and scaling definitions match those adopted in
+ * Numerical Recipes.
  *
  * --
  *

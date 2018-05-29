@@ -424,19 +424,20 @@ bool FEML::echo (ostream&    stream,
         return true;
 }
 
-// added by Thomas Albrecht for evaluate force section
+// -- Added by Thomas Albrecht for evaluation of FORCE section.
 
 
 bool FEML::valueFromSection (real_t     *value  ,
 			     const char *section,
                              const char *token  )
 // ---------------------------------------------------------------------------
-// Search for 'token' in 'section' of input file. If found, copy to 'value',
-// otherwise, 'value' is unchanged.
+// Search for 'token' in 'section' of input file. If found, copy to
+// 'value', otherwise, 'value' is unchanged.
+//
 // Returns TRUE on sucess, FALSE if section or token not found.
 // ---------------------------------------------------------------------------
 {
-  char routine[]   = "FEML::valueFromSection";
+  char routine[] = "FEML::valueFromSection";
   char endsection[StrMax], s[StrMax];
 
   sprintf(endsection, "</%s>", section);
@@ -447,8 +448,7 @@ bool FEML::valueFromSection (real_t     *value  ,
     while (!stream().eof())
     {
       stream().getline(s, StrMax);
-      if (s[0] == '#')
-      {
+      if (s[0] == '#') {
         stream().ignore (StrMax, '\n');
         continue;
       }

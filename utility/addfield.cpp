@@ -169,7 +169,7 @@ int main (int    argc,
 
   // -- Read command line.
 
- getargs (argc, argv, session, dump, func, add);
+  getargs (argc, argv, session, dump, func, add);
 
   file.open (dump);
   if (!file) message (prog, "can't open input field file", ERROR);
@@ -352,11 +352,7 @@ int main (int    argc,
 	work = new AuxField (new real_t[allocSize],  nz, elmt);
 	if (NDIM == 3) for (j = 0; j < NCOM; j++) Vij[2][j] -> divY();
 	(*work = *velocity[1]) . divY(); *Vij[2][2] += *work;
-#if 1
 	if (NCOM == 3) { (*work = *velocity[2]) . divY(); *Vij[1][2] += *work; }
-#else
-	if (NCOM == 3) { (*work = *velocity[2]) . divY(); *Vij[1][2] -= *work; }
-#endif
       }
 
 #if 1

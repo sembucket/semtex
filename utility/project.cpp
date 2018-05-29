@@ -146,6 +146,11 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
 // Interpolation ASSUMES THAT FOURIER TRANSFORMATION HAS ALREADY OCCURRED
 // in z direction if rhs is 3D.  Truncation of Fourier modes occurs if this
 // Field2DF has less modes than rhs (to avoid aliasing).
+//
+// Note that we may have to pay some special attention to Fourier Nyquist data:
+// (a) if the projection is to a lower  number of modes - delete it.
+// (b) if the projection is to a higher number of modes - relocate it.
+// (c) if the projection is to the same number of modes - copy it in place.
 // ---------------------------------------------------------------------------
 {
   if (rhs.nel != nel)
@@ -183,8 +188,19 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
 	}
     }
 
-    if ((i = nz - rhs.nz) > 0) // -- Zero pad for Fourier projections.
+    if ((i = nz - rhs.nz) > 0) {
+      // -- The new area has more Fourier modes than the old one.
+      // -- Zero pad for Fourier projections.
       Veclib::zero (i * nplane, data + rhs.ntot, 1);
+      // -- Copy the Nyquist data to its new location,
+      Veclib::copy (nplane, data + nplane, 1, data + rhs.ntot, 1);
+      // -- Zero the present Nyquist location.
+      Veclib::zero (nplane, data + nplane, 1);
+    } else if ((nz - rhs.nz) < 0) {
+      // -- Zero the new Nyquist location.
+      Veclib::zero (nplane, data + nplane, 1);
+    }
+
   }
 
   return *this;

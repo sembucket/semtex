@@ -26,10 +26,10 @@
 using namespace std;
 
 #include <Array.h>
-#include <veclib_h>
-#include <femlib_h>
-#include <blas_h>
-#include <utility_h>
+#include <veclib.h>
+#include <femlib.h>
+#include <blas.h>
+#include <utility.h>
 
 
 int main ()
