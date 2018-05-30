@@ -231,7 +231,7 @@ Data2DF& Data2DF::operator = (const Data2DF& rhs)
       Veclib::copy (_nplane, _data + _nplane, 1, _data + rhs._ntot, 1);
       // -- Zero the present Nyquist location.
       Veclib::zero (_nplane, _data + _nplane, 1);
-    } else if ((_nz - rhs._nz) < 0) {
+    } else if ((_nz - rhs._nz) < 0 && _nz > 1) {
       // -- Zero the new Nyquist location.
       Veclib::zero (_nplane, _data + _nplane, 1);
     }

@@ -196,7 +196,7 @@ Field2DF& Field2DF::operator = (const Field2DF& rhs)
       Veclib::copy (nplane, data + nplane, 1, data + rhs.ntot, 1);
       // -- Zero the present Nyquist location.
       Veclib::zero (nplane, data + nplane, 1);
-    } else if ((nz - rhs.nz) < 0) {
+    } else if ((nz - rhs.nz) < 0 && nz > 1) {
       // -- Zero the new Nyquist location.
       Veclib::zero (nplane, data + nplane, 1);
     }
