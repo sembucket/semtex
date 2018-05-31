@@ -200,8 +200,7 @@ def element_wise():
     #    - of 11th element
     #    - of first z-plane
     #    - of second field (in this case, v)
-    print elmt_wise[:,:,10,0,1]
-#   -- HMB suspects the ordering is the reverse of what is stated!
+    print elmt_wise[1,0,10,:,:]
 
 if __name__ == "__main__":
     element_wise()
