@@ -27,6 +27,7 @@
 static char RCS[] = "$Id$";
 
 static int_t NCOM;
+static int_t NADV;
 
 FieldForce::FieldForce (Domain* D   ,
                         FEML*   file)
@@ -45,8 +46,10 @@ FieldForce::FieldForce (Domain* D   ,
   char        s[StrMax];
   const       int_t verbose = Femlib::ivalue ("VERBOSE");
   int_t       i;
+  bool        do_scat   = strchr(D -> field, 'c');
   
-  NCOM = D -> nField() - 1;	// -- Number of velocity components.
+  NCOM = (do_scat) ? D -> nField() - 2 : D -> nField() - 1;	// -- Number of velocity components.
+  NADV = (do_scat) ? NCOM + 1 : NCOM;                       // -- Number of advected fields.
 
   _D = D;
 
@@ -71,6 +74,7 @@ FieldForce::FieldForce (Domain* D   ,
   _classes.push_back(new SpatioTemporalForce (_D, file));
   _classes.push_back(new DragForce           (_D, file));
   _classes.push_back(new SFDForce            (_D, file));
+  _classes.push_back(new BuoyancyForce       (_D, file));
 }
 
 
@@ -119,7 +123,8 @@ void FieldForce::addFourier (AuxField*         Ni ,
 // ---------------------------------------------------------------------------
 {
   const char  routine[] = "FieldForce::addFourier";
-  const int_t NCOM      = _D -> nField() - 1;	// -- Number of vel. components
+  bool        do_scat   = strchr(_D -> field, 'c');                             // -- Do scalar transport
+  const int_t NCOM      = (do_scat) ? _D -> nField() - 2 : _D -> nField() - 1;	// -- Number of velocity components.
 
   if (!_enabled) return;
 
@@ -720,6 +725,7 @@ void CoriolisForce::physical (AuxField*               ff ,
   const int_t verbose   = Femlib::ivalue ("VERBOSE");
 
   if (!_enabled) return;
+  if (com >= NCOM) return; // -- no coriolis force applied to the scalar field
 
   if (NCOM == 2 && Geometry::cylindrical())
     message (routine, "2-D, cylindrical not implemented yet.", ERROR);
@@ -820,4 +826,90 @@ void SFDForce::physical (AuxField*         ff ,
   _a[com]  -> axpy (dt / _SFD_DELTA, *U[com]);
 
   step++;
+}
+
+BuoyancyForce::BuoyancyForce (Domain* D   ,
+			      FEML*   file)
+// ---------------------------------------------------------------------------
+// Constructor.
+// ---------------------------------------------------------------------------
+{
+  const char routine[] = "BuoyancyForce::BuoyancyForce";
+  const int_t verbose = Femlib::ivalue ("VERBOSE");
+  char buoy_str[StrMax];    
+
+
+  VERBOSE cout << "  " << routine << endl;
+
+  _enabled = false;
+  if (file -> valueFromSection (buoy_str, secForce, "BUOY_BETA_T") && NADV > NCOM ) _enabled = true;
+
+  _D = D;
+
+  _a.resize (NCOM);
+  for (int i = 0; i < NCOM; i++) _a[i] = allocAuxField(D, forcename + i);
+
+  file -> valueFromSection (tempRef, secForce, "BUOY_T_REF" );
+  file -> valueFromSection (betaT,   secForce, "BUOY_BETA_T");
+  file -> valueFromSection (cent,    secForce, "BUOY_CENT"  );
+}
+
+
+void BuoyancyForce::physical (AuxField*               ff ,
+			      const int               com,
+			      const vector<AuxField*> U  )
+// ---------------------------------------------------------------------------
+// Applicator.
+// ---------------------------------------------------------------------------
+{
+  const char  routine[] = "BuoyancyForce::physical";
+  const int_t verbose   = Femlib::ivalue ("VERBOSE");
+  vector<real_t> g(3);
+  const int_t nZP  = Geometry::nZProc();
+  const int_t nTot = Geometry::nTotProc();
+  const real_t norm = Femlib::value ("sqrt (g_1*g_1 + g_2*g_2 + g_3*g_3)");
+
+  if (!_enabled) return;
+
+  g[0] = Femlib::value ("g_1 * GRAVITY") / norm;
+  g[1] = Femlib::value ("g_2 * GRAVITY") / norm;
+  g[2] = Femlib::value ("g_3 * GRAVITY") / norm;
+
+cout << "buoyancy term: " << Femlib::value(betaT) << endl;
+
+  if (Geometry::cylindrical()) {
+    if (Femlib::ivalue (cent)) { // -- Centrifugal buoyancy.
+      *_a[com]  = *U[NCOM];
+      *_a[com] -=  Femlib::value (tempRef);
+      *_a[com] *= -Femlib::value (betaT);
+      *_a[com] += 1.0;
+
+      *ff -= *_a[com];
+    }
+
+    if (fabs (g[com]) > EPSDP) {        // -- Gravitational buoyancy (axial only).
+      *_a[com] = *U[NCOM];
+      *_a[com] -=  Femlib::value (tempRef);
+      *_a[com] *= -Femlib::value (betaT) * g[com];
+
+      *ff += *_a[com];
+    }
+  } else {
+    if (Femlib::ivalue (cent)) { // -- Centrifugal buoyancy.
+      *_a[com]  = *U[NCOM];
+      *_a[com] -=  Femlib::value (tempRef);
+      *_a[com] *= -Femlib::value (betaT);
+      *_a[com] += 1.0;
+
+      *ff -= *_a[com];
+    }
+
+    if (fabs (g[com]) > EPSDP) {
+      *_a[com] = *U[NCOM];
+      *_a[com] -= Femlib::value (tempRef);
+      *_a[com] *= Femlib::value (betaT) * g[com];
+
+      *ff -= *_a[com];
+    }
+  }
 }

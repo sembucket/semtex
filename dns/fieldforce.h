@@ -180,5 +180,18 @@ protected:
   real_t                _SFD_DELTA, _SFD_CHI;
 };
 
+class BuoyancyForce : virtual public VirtualForce
+// ---------------------------------------------------------------------------
+// Thermally driven buoyancy force as derived from the passive scalar field
+// ---------------------------------------------------------------------------
+{
+public:
+  BuoyancyForce         (Domain*, FEML*);
+  void physical         (AuxField*, const int, vector<AuxField*>);
+protected:
+  char                  cent[StrMax];
+  char                  tempRef[StrMax];
+  char                  betaT[StrMax];
+};
 
 #endif
