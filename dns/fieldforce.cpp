@@ -725,6 +725,7 @@ void CoriolisForce::physical (AuxField*               ff ,
   const int_t verbose   = Femlib::ivalue ("VERBOSE");
 
   if (!_enabled) return;
+
   if (com >= NCOM) return; // -- no coriolis force applied to the scalar field
 
   if (NCOM == 2 && Geometry::cylindrical())
@@ -874,8 +875,6 @@ void BuoyancyForce::physical (AuxField*               ff ,
   g[0] = Femlib::value ("g_1 * GRAVITY") / norm;
   g[1] = Femlib::value ("g_2 * GRAVITY") / norm;
   g[2] = Femlib::value ("g_3 * GRAVITY") / norm;
-
-cout << "buoyancy term: " << Femlib::value(betaT) << endl;
 
   if (Geometry::cylindrical()) {
     if (Femlib::ivalue (cent)) { // -- Centrifugal buoyancy.
