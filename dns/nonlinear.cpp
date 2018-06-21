@@ -32,8 +32,27 @@ static char RCS[] = "$Id$";
 
 #include <dns.h>
 
+void CentrifugalBuoyancy(Domain* D, AuxField* Uphys, vector<AuxField*> N, int_t NCOM, bool do_scat) {
+  int_t            i;
+  const int_t      nZP  = Geometry::nZProc();
+  const int_t      nTot = Geometry::nTotProc();
+  static real_t*   work;
+  static AuxField* tmp;
 
+  if (!Femlib::ivalue ("CENT_BUOY") || !do_scat) return;
 
+  if (!work) {          // -- First time through.
+    work = new real_t [static_cast<size_t>((NCOM + 2) * nTot)];
+    tmp = new AuxField (work + (NCOM + 1) * nTot, nZP, D -> elmt);
+  }
+
+  *tmp  = *Uphys;
+  *tmp -=  Femlib::value ("T_REF");
+  *tmp *= -Femlib::value ("BETA_T");
+  *tmp += 1.0;
+
+  for (i = 0; i < NCOM; i++) *N[i] *= *tmp;
+}
 
 void skewSymmetric (Domain*     D ,
 		    BCmgr*      B ,
@@ -197,6 +216,9 @@ void skewSymmetric (Domain*     D ,
       }
     }
   }
+
+  // -- Apply the centrifugal buoyancy forcing to the rhs operator
+  CentrifugalBuoyancy(D, Uphys[NCOM], N, NCOM, do_scat);
 }
 
 
@@ -405,6 +427,9 @@ void altSkewSymmetric (Domain*     D ,
     }
   }
 
+  // -- Apply the centrifugal buoyancy forcing to the rhs operator
+  CentrifugalBuoyancy(D, Uphys[NCOM], N, NCOM, do_scat);
+
   toggle = 1 - toggle;
 }
 
@@ -521,6 +546,9 @@ void convective (Domain*     D ,
       }
     }
   }
+
+  // -- Apply the centrifugal buoyancy forcing to the rhs operator
+  CentrifugalBuoyancy(D, Uphys[NCOM], N, NCOM, do_scat);
 }
 
 
@@ -569,4 +597,7 @@ void Stokes (Domain*     D ,
     N[NCOM]-> transform   (FORWARD);
     master -> smooth      (N[NCOM]);
   }
+
+  // -- Apply the centrifugal buoyancy forcing to the rhs operator
+  CentrifugalBuoyancy(D, Uphys[NCOM], N, NCOM, do_scat);
 }
