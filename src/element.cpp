@@ -1235,8 +1235,7 @@ real_t Element::probe (const real_t  r   ,
 }
 
 
-real_t Element::CFL (const real_t  d   ,
-		     const real_t* u   ,
+real_t Element::CFL (const real_t* u   ,
 		     const real_t* v   ,
 		     real_t*       work) const
 // ---------------------------------------------------------------------------
@@ -1267,13 +1266,11 @@ real_t Element::CFL (const real_t  d   ,
   Veclib::zero (loopcnt, work, 1);
 
   if        (u) {
-    if (_drdx) for (i = 0; i < loopcnt; i++) work[i] += d * fabs (_drdx[i]);
-    if (_dsdx) for (i = 0; i < loopcnt; i++) work[i] += d * fabs (_dsdx[i]);
-    Veclib::vdiv (loopcnt, u, 1, work, 1, work, 1);
+    if (_drdx) for (i = 0; i < loopcnt; i++) work[i] += u[i] * fabs (_drdx[i]);
+    if (_dsdx) for (i = 0; i < loopcnt; i++) work[i] += u[i] * fabs (_dsdx[i]);
   } else if (v) {
-    if (_drdy) for (i = 0; i < loopcnt; i++) work[i] += d * fabs (_drdy[i]);
-    if (_dsdy) for (i = 0; i < loopcnt; i++) work[i] += d * fabs (_dsdy[i]);
-    Veclib::vdiv (loopcnt, v, 1, work, 1, work, 1);
+    if (_drdy) for (i = 0; i < loopcnt; i++) work[i] += v[i] * fabs (_drdy[i]);
+    if (_dsdy) for (i = 0; i < loopcnt; i++) work[i] += v[i] * fabs (_dsdy[i]);
   }
 
   i = Blas::iamax (loopcnt, work, 1);

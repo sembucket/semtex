@@ -240,8 +240,8 @@ void Analyser::analyse (AuxField** work0,
 
   // -- CFL, divergence information.
 
-  if (cflstep && !(_src -> step % cflstep))
-    ROOTONLY { this -> estimateCFL(); this -> divergence (work0); }
+  if (cflstep && !(_src -> step % cflstep)) this -> estimateCFL();
+  if (cflstep && !(_src -> step % cflstep)) ROOTONLY this -> divergence(work0);
 
   // -- Phase averaging.
 
@@ -434,22 +434,61 @@ void Analyser::divergence (AuxField** Us) const
 void Analyser::estimateCFL () const
 // ---------------------------------------------------------------------------
 // Estimate and print the peak CFL number, based on zero-mode velocities.
+// References:
+//      SEM:     Karniadakis and Sherwin (2005), section 6.3.1
+//      Fourier: Canuto, Hussaini, Quarteroni and Zhang, vol. 1 (2006), 
+//               appendix D.2.2
 // ---------------------------------------------------------------------------
 {
   const real_t CFL_max = 0.7;	// -- Approximate maximum for scheme.
-  const real_t SAFETY  = 0.9;	// -- Saftey factor.
   const real_t dt      = Femlib::value ("D_T");
   real_t       CFL_dt, dt_max;
   int_t        percent;
+  int_t        maxDim, i;
+  int_t        nProc   = Geometry::nProc();
+  int_t        pid     = Geometry::procID();
+  real_t*      maxProc = new real_t[nProc];
+  real_t       CFL_i[3];
 
-  CFL_dt = max (_src -> u[0] -> CFL (0), _src -> u[1] -> CFL (1));
-  if (_src -> nField() > 3) CFL_dt = max (CFL_dt, _src -> u[2] -> CFL (2));
+  _src -> u[0] -> transform(INVERSE);
+  CFL_i[0] = _src -> u[0] -> CFL(0);
+  _src -> u[0] -> transform(FORWARD);
 
-  dt_max  = SAFETY * CFL_max / CFL_dt;
-  percent = static_cast<int_t>(100.0 * dt / dt_max);
+  _src -> u[1] -> transform(INVERSE);
+  CFL_i[1] = _src -> u[1] -> CFL(1);
+  _src -> u[1] -> transform(FORWARD);
 
-  cout << "-- CFL: "     << CFL_dt * dt;
-  cout << ", dt (max): " << dt_max;
-  cout << ", dt (set): " << dt;
-  cout << " ("           << percent << "%)" << endl;
+  CFL_dt = max(CFL_i[0], CFL_i[1]);
+
+  maxDim = (CFL_i[0] > CFL_i[1]) ? 0 : 1;
+
+  if (_src -> nField() > 3) {
+    _src -> u[2] -> transform(INVERSE);
+    CFL_i[2] = _src -> u[2] -> CFL(2);
+    _src -> u[2] -> transform(FORWARD);
+    if(CFL_i[2] > CFL_dt) maxDim = 2;
+    CFL_dt = max(CFL_dt, CFL_i[2]);
+  }
+
+  // Send the maximum CFL number from each processor back to the root processor.
+  maxProc[pid] = CFL_dt;
+  Femlib::send(&maxProc[pid], 1, 0);
+  if(pid == 0) {
+    for(i = 0; i < nProc; i++) {
+      Femlib::recv(&maxProc[i], 1, i);
+    }
+    for(i = 0; i < nProc; i++) {
+      CFL_dt = max(CFL_dt, maxProc[i]);
+    }
+
+    dt_max  = 1.0 / CFL_dt;
+    percent = static_cast<int_t>(100.0 * dt / dt_max);
+
+    cout << "-- CFL: "     << CFL_dt * dt;
+    cout << ", dt (max): " << dt_max;
+    cout << ", dt (set): " << dt;
+    cout << " ("           << percent << "%), dim: " << maxDim << endl;
+  }
+
+  delete[] maxProc;
 }

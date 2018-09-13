@@ -1735,35 +1735,40 @@ real_t AuxField::CFL (const int_t dir) const
 // ---------------------------------------------------------------------------
 {
   const char       routine[] = "AuxField::CFL";
-  const int_t      nel  = Geometry::nElmt();
-  const int_t      npnp = Geometry::nTotElmt();
-  register int_t   i;
+  const int_t      nel      = Geometry::nElmt();
+  const int_t      npnp     = Geometry::nTotElmt();
+  const int_t      nP       = Geometry::nPlane();
+  const int_t      nZ       = Geometry::nZProc();
+  const int_t      nt       = Femlib::ivalue("N_TIME");
+  const real_t     dz       = Femlib::value ("TWOPI / BETA / N_Z");
+  real_t           alpha    = 1.0;	// -- Max imaginary eigenvalue.
+  real_t           c_lambda = 0.2;
+  int_t            P        = Geometry::nP() - 1;	// -- Polynomial order is one less than the number of points along an edge.
+  register int_t   i, k;
   register real_t* p;
+  register real_t* pk;
   vector<real_t>   work (npnp);
-  real_t           dxy, CFL = 0.0;
+  real_t           CFL = 0.0;
  
-  {
-    const int_t   nP = Geometry::nP();
-    const real_t* z;
-    Femlib::quadrature (&z, 0, 0, 0, nP, GLJ, 0.0, 0.0);
-    dxy = z[1] - z[0];
-  }
-
   switch (dir) {
   case 0:
-    for (p = _data, i = 0; i < nel; i++, p += npnp)
-      CFL = max (CFL, _elmt[i] -> CFL (dxy, p, 0, &work[0]));
+    for(k = 0; k < nZ; k++)
+      for (p = _plane[k], i = 0; i < nel; i++, p += npnp)
+        CFL = max (CFL, _elmt[i] -> CFL (p, 0, &work[0]));
+    CFL *= (c_lambda * P * P) / alpha;
     break;
   case 1:
-    for (p = _data, i = 0; i < nel; i++, p += npnp)
-      CFL = max (CFL, _elmt[i] -> CFL (dxy, 0, p, &work[0]));
+    for(k = 0; k < nZ; k++)
+      for (p = _plane[k], i = 0; i < nel; i++, p += npnp)
+        CFL = max (CFL, _elmt[i] -> CFL (0, p, &work[0]));
+    CFL *= (c_lambda * P * P) / alpha;
     break;
   case 2: {
-    const int_t  nP = Geometry::nPlane();
-    const real_t dz = Femlib::value ("TWOPI / BETA / N_Z");
-    for (i = 0; i < nP; i++)
-      CFL = max (CFL, fabs (_data[i]));
-    CFL /= dz;
+    for(k = 0; k < nZ; k++)
+      for (i = 0; i < nP; i++)
+        CFL = max (CFL, fabs (_plane[k][i]));
+    alpha = (nt == 3) ? 0.723 : 0.430; // -- Max imaginary eigenvalues for Adams Bashforth 3 and 2.
+    CFL *= M_PI / alpha / dz;
     break;
   }
   default:
