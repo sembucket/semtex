@@ -90,8 +90,8 @@ struct Context {
 #define XMAX 10.0
 #define YMIN 0.0
 #define YMAX 20.0
-#define NELS_X 64
-#define NELS_Y 128
+#define NELS_X 10
+#define NELS_Y 12
 
 static Msys** preSolve (const Domain* D)
 // ---------------------------------------------------------------------------
@@ -452,9 +452,9 @@ void Fourier_to_SEM(int plane_k, Context* context, AuxField* us, real_t* data_f)
   int pt_r;
   double dx, xr, theta;
   real_t* data = new real_t[nNodesX];
-  const real_t *DV;
+  const real_t *qx;
 
-  Femlib::quadrature(0, 0, &DV, 0  , elOrd+1, GLJ, 0.0, 0.0);
+  Femlib::quadrature(&qx, 0, 0, 0  , elOrd+1, GLJ, 0.0, 0.0);
 
   dx = (XMAX - XMIN)/NELS_X;
 
@@ -465,7 +465,7 @@ void Fourier_to_SEM(int plane_k, Context* context, AuxField* us, real_t* data_f)
     // fourier interpolation to GLL grid
     for(int pt_x = 0; pt_x < nModesX; pt_x++) {
       // coordinate in real space
-      xr = XMIN + (pt_x/elOrd)*dx + (1.0 + DV[pt_x%(elOrd+1)])*dx;
+      xr = XMIN + (pt_x/elOrd)*dx + (1.0 + qx[pt_x%(elOrd+1)])*dx;
       // coordinate in fourier space
       theta = 2.0*M_PI*xr/(XMAX - XMIN);
 
@@ -620,7 +620,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   BoundarySys* bsys;
   const NumberSys* nsys;
   real_t dx, dy, er, es;
-  const real_t* DV;
+  const real_t* qx;
   int_t pt_x, pt_y;
   const bool guess = true;
   vector<real_t> work(static_cast<size_t>(max (2*Geometry::nTotElmt(), 5*Geometry::nP()+6)));
@@ -663,13 +663,13 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   dx = (XMAX - XMIN)/(NELS_X*elOrd);
   dy = (YMAX - YMIN)/(NELS_Y*elOrd);
 
-  Femlib::quadrature(0, 0, &DV, 0  , elOrd+1, GLJ, 0.0, 0.0);
+  Femlib::quadrature(&qx, 0, 0, 0  , elOrd+1, GLJ, 0.0, 0.0);
 
   for(int pt_i = 0; pt_i < NELS_X*elOrd*NELS_Y*elOrd; pt_i++) {
     pt_x = pt_i%(NELS_X*elOrd);
     pt_y = pt_i/(NELS_X*elOrd);
     context->x[pt_i] = XMIN + pt_x*dx;
-    context->y[pt_i] = YMIN + 0.5*dy*(DV[pt_y] + 1.0); // y coordinates are still on the GLL grid
+    context->y[pt_i] = YMIN + 0.5*dy*(qx[pt_y] + 1.0); // y coordinates are still on the GLL grid
     for(int el_i = 0; el_i < mesh->nEl(); el_i++) {
       // pass er and es by reference?
       if(elmt[el_i]->locate(context->x[pt_i], context->y[pt_i], er, es, &work[0], guess)) {
