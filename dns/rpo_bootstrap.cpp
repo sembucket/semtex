@@ -64,8 +64,9 @@ static bool  C3D;
 
 struct Context {
     int              nSlice;
-    int              nDofs;
+    int              nDofsSlice;
     int              nDofsPlane;
+    int              it;
     Mesh*            mesh;
     vector<Element*> elmt;
     Domain*          domain;
@@ -553,15 +554,61 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* tau
 }
 
 PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
-  cout << "jacobian assembly function - shouldn't be here... aborting.\n";
+  Context* context = (Context*)ctx;
+  int index = 0;
+  int nZ = Geometry::nZ();
+  int elOrd = Geometry::nP() - 1;
+  int nNodesX = NELS_X*elOrd;
+  int nModesX = nNodesX/2 + 2;
+  int el_j, pt_j;
+  const real_t *qw, *DV, *DT;
+  real_t waveNum, val, det;
+  real_t *drdx, *dsdx, *drdy, *dsdy;
 
   MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY);
 
+  if(context->it) return 0;
+
+  MatZeroEntries(P);
+
+  Femlib::quadrature(0, &qw, &DV, &DT, elOrd+1, GLJ, 0.0, 0.0);
+
+  // assemble the schur complement preconditioner
+  // TODO: assemble contributions from both elements for nodes on element boundaries
+  for(int slice_i = 0; slice_i < context->nSlice; slice_i++) {
+    for(int kk = 0; kk < nZ; kk++) {
+      index = slice_i*context->nDofsSlice + kk;
+      for(int jj = 0; jj < NELS_Y*elOrd; jj++) {
+        el_j = jj/elOrd;
+        pt_j = (jj%elOrd)*(elOrd+1);
+        context->elmt[el_j]->lTog(drdx, dsdx, drdy, dsdy);
+        det = 1.0/(drdx[pt_j]*dsdy[pt_j] - drdy[pt_j]*dsdx[pt_j]);
+        for(int ii = 0; ii < nModesX; ii++) {
+          waveNum = (2.0*M_PI*ii)/(XMAX - XMIN);
+          val  = -1.0*waveNum*waveNum;
+          val *= dsdy[pt_j]*dsdy[pt_j]*DV[pt_j]*DT[pt_j]*qw[pt_j];
+          val *= det;
+          MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
+          index++;
+        }
+      }
+    }
+    val = 1.0;
+    index++;
+    MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
+    index++;
+    MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
+  }
+
   MatAssemblyBegin(P, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(P, MAT_FINAL_ASSEMBLY);
 
-  abort();
+  context->it++;
+
+  //cout << "jacobian assembly function - shouldn't be here... aborting.\n";
+  //abort();
+
   return 0;
 }
 
@@ -595,7 +642,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
       data_r = context->domain->u[DOF]->plane(2*mode_i+0);
       data_c = context->domain->u[DOF]->plane(2*mode_i+1);
 
-      for(dof_i = 0; dof_i < context->nDofs; dof_i++) {
+      for(dof_i = 0; dof_i < context->nDofsSlice; dof_i++) {
         rTmp = ckt*data_r[dof_i] - skt*data_c[dof_i];
         cTmp = skt*data_r[dof_i] + ckt*data_c[dof_i];
         data_r[dof_i] = rTmp;
@@ -619,9 +666,10 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   int elOrd = Geometry::nP() - 1;
   BoundarySys* bsys;
   const NumberSys* nsys;
-  real_t dx, dy, er, es;
+  real_t dx, er, es;
+  real_t *xcoords, *ycoords;
   const real_t* qx;
-  int_t pt_x, pt_y;
+  int_t pt_x, pt_y, el_x, el_y, el_i;
   const bool guess = true;
   vector<real_t> work(static_cast<size_t>(max (2*Geometry::nTotElmt(), 5*Geometry::nP()+6)));
   Vec x, f;
@@ -642,7 +690,8 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   //context->nDofsPlane = nsys->nGlobal() + Geometry::nInode();
   context->nDofsPlane = (((NELS_X*elOrd)/2 + 2)*NELS_Y*elOrd);
   // add dofs for theta and tau for each time slice
-  context->nDofs = Geometry::nZ() * context->nDofsPlane + 2;
+  context->nDofsSlice = Geometry::nZ() * context->nDofsPlane + 2;
+  context->it = 0;
 
   context->theta_i = new real_t[nSlice];
   context->phi_i   = new real_t[nSlice];
@@ -661,37 +710,44 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->s  = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
 
   dx = (XMAX - XMIN)/(NELS_X*elOrd);
-  dy = (YMAX - YMIN)/(NELS_Y*elOrd);
-
   Femlib::quadrature(&qx, 0, 0, 0  , elOrd+1, GLJ, 0.0, 0.0);
 
   for(int pt_i = 0; pt_i < NELS_X*elOrd*NELS_Y*elOrd; pt_i++) {
     pt_x = pt_i%(NELS_X*elOrd);
     pt_y = pt_i/(NELS_X*elOrd);
+    el_x = pt_i%NELS_X;
+    el_y = pt_i/NELS_X;
+    el_i = el_y*NELS_X + el_x;
+    elmt[el_i]->gCoords(xcoords, ycoords);
     context->x[pt_i] = XMIN + pt_x*dx;
-    context->y[pt_i] = YMIN + 0.5*dy*(qx[pt_y] + 1.0); // y coordinates are still on the GLL grid
-    for(int el_i = 0; el_i < mesh->nEl(); el_i++) {
-      // pass er and es by reference?
-      if(elmt[el_i]->locate(context->x[pt_i], context->y[pt_i], er, es, &work[0], guess)) {
-        context->el[pt_i] = el_i;
-        context->r[pt_i] = er;
-        context->s[pt_i] = es;
-        break;
-      }
+    // element y size increases with distance from the boundary
+    context->y[pt_i] = ycoords[pt_y%elOrd];
+    
+    //for(el_i = 0; el_i < mesh->nEl(); el_i++) {
+    // pass er and es by reference?
+    if(elmt[el_i]->locate(context->x[pt_i], context->y[pt_i], er, es, &work[0], guess)) {
+      context->el[pt_i] = el_i;
+      context->r[pt_i] = er;
+      context->s[pt_i] = es;
+      //break;
+    } else {
+      cout << "ERROR! element does not contain point" << endl;
+      abort();
     }
+    //}
   }
 
-  VecCreateMPI(MPI_COMM_WORLD, PETSC_DECIDE, nSlice*context->nDofs, &x);
-  VecCreateMPI(MPI_COMM_WORLD, PETSC_DECIDE, nSlice*context->nDofs, &f);
+  VecCreateMPI(MPI_COMM_WORLD, PETSC_DECIDE, nSlice*context->nDofsSlice, &x);
+  VecCreateMPI(MPI_COMM_WORLD, PETSC_DECIDE, nSlice*context->nDofsSlice, &f);
 
   MatCreate(MPI_COMM_WORLD, &J);
   MatSetType(J, MATMPIAIJ);
-  MatSetSizes(J, PETSC_DECIDE, PETSC_DECIDE, nSlice*context->nDofs, nSlice*context->nDofs);
+  MatSetSizes(J, PETSC_DECIDE, PETSC_DECIDE, nSlice*context->nDofsSlice, nSlice*context->nDofsSlice);
   MatMPIAIJSetPreallocation(J, 4*nSlice, PETSC_NULL, 4*nSlice, PETSC_NULL);
 
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
-  MatSetSizes(P, PETSC_DECIDE, PETSC_DECIDE, nSlice*context->nDofs, nSlice*context->nDofs);
+  MatSetSizes(P, PETSC_DECIDE, PETSC_DECIDE, nSlice*context->nDofsSlice, nSlice*context->nDofsSlice);
   MatMPIAIJSetPreallocation(P, 4*nSlice, PETSC_NULL, 4*nSlice, PETSC_NULL);
 
   SNESCreate(MPI_COMM_WORLD, &snes);
