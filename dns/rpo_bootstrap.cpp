@@ -575,7 +575,6 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
   Femlib::quadrature(0, &qw, &DV, &DT, elOrd+1, GLJ, 0.0, 0.0);
 
   // assemble the schur complement preconditioner
-  // TODO: assemble contributions from both elements for nodes on element boundaries
   for(int slice_i = 0; slice_i < context->nSlice; slice_i++) {
     for(int kk = 0; kk < nZ; kk++) {
       index = slice_i*context->nDofsSlice + kk;
@@ -589,6 +588,8 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
           val  = -1.0*waveNum*waveNum;
           val *= dsdy[pt_j]*dsdy[pt_j]*DV[pt_j]*DT[pt_j]*qw[pt_j];
           val *= det;
+          // assume contributions from both elements are the same for nodes on element boundaries
+          if(pt_j == 0) val *= 2.0;
           MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
           index++;
         }
