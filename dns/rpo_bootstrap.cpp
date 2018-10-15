@@ -485,8 +485,10 @@ void Fourier_to_SEM(int plane_k, Context* context, AuxField* us, real_t* data_f)
 
 void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* tau, Vec x) {
   int elOrd = Geometry::nP() - 1;
-  int ii, kk, slice_i, index;
+  int ii, jj, kk, slice_i, index;
   int nZ = Geometry::nZ();
+  int nNodesX = NELS_X*elOrd;
+  int nModesX = nNodesX/2 + 2;
   AuxField* field;
   PetscScalar *xArray;
   real_t* data = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
@@ -500,9 +502,11 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* tau
     for(kk = 0; kk < nZ; kk++) {
       SEM_to_Fourier(kk, context, field, data);
 
-      // TODO: skip over redundant real dofs
-      for(ii = 0; ii < context->nDofsPlane; ii++) {
-        xArray[index++] = data[ii];
+      // skip over redundant real dofs
+      for(jj = 0; jj < NELS_Y*elOrd; jj++) {
+        for(ii = 0; ii < nModesX; ii++) {
+          xArray[index++] = data[jj*nNodesX + ii];
+        }
       }
     }
     theta[slice_i] = xArray[index++];
@@ -516,8 +520,10 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* tau
 
 void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* tau, Vec x) {
   int elOrd = Geometry::nP() - 1;
-  int ii, kk, slice_i, index;
+  int ii, jj, kk, slice_i, index;
   int nZ = Geometry::nZ();
+  int nNodesX = NELS_X*elOrd;
+  int nModesX = nNodesX/2 + 2;
   AuxField* field;
   PetscScalar *xArray;
   real_t* data = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
@@ -528,9 +534,11 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* tau
     field = fields[slice_i * context->domain->nField() + DOF];
 
     for(kk = 0; kk < nZ; kk++) {
-      // TODO: skip over redundant real dofs
-      for(ii = 0; ii < context->nDofsPlane; ii++) {
-        data[ii] = xArray[index++];
+      // skip over redundant real dofs
+      for(jj = 0; jj < NELS_Y*elOrd; jj++) {
+        for(ii = 0; ii < nModesX; ii++) {
+          data[jj*nNodesX + ii] = xArray[index++];
+        }
       }
 
       Fourier_to_SEM(kk, context, field, data);
@@ -612,6 +620,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   BoundarySys* bsys;
   const NumberSys* nsys;
   real_t dx, dy, er, es;
+  const real_t* DV;
   int_t pt_x, pt_y;
   const bool guess = true;
   vector<real_t> work(static_cast<size_t>(max (2*Geometry::nTotElmt(), 5*Geometry::nP()+6)));
@@ -650,13 +659,17 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->y  = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
   context->r  = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
   context->s  = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
+
   dx = (XMAX - XMIN)/(NELS_X*elOrd);
   dy = (YMAX - YMIN)/(NELS_Y*elOrd);
+
+  Femlib::quadrature(0, 0, &DV, 0  , elOrd+1, GLJ, 0.0, 0.0);
+
   for(int pt_i = 0; pt_i < NELS_X*elOrd*NELS_Y*elOrd; pt_i++) {
     pt_x = pt_i%(NELS_X*elOrd);
     pt_y = pt_i/(NELS_X*elOrd);
     context->x[pt_i] = XMIN + pt_x*dx;
-    context->y[pt_i] = YMIN + pt_y*dy;//TODO: these should just be the element GLL points in y.
+    context->y[pt_i] = YMIN + 0.5*dy*(DV[pt_y] + 1.0); // y coordinates are still on the GLL grid
     for(int el_i = 0; el_i < mesh->nEl(); el_i++) {
       // pass er and es by reference?
       if(elmt[el_i]->locate(context->x[pt_i], context->y[pt_i], er, es, &work[0], guess)) {
