@@ -6,7 +6,7 @@ project(semtex C CXX Fortran)
 option(WITH_MPI    "Build with MPI"                 OFF)
 option(WITH_FLIP   "Build dog with half-period map" OFF)
 option(WITH_ARPACK "Build dog with ARPACK"          OFF)
-option(WITH_PETSC  "Build dog with PETSc"           OFF)
+option(WITH_PETSC  "Build rpo with PETSc"           OFF)
 
 # dependencies
 find_package(BISON)
