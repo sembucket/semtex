@@ -620,9 +620,13 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   const real_t dt = Femlib::value ("D_T");
   int nField = context->domain->nField();
   int slice_i, field_i, mode_i, dof_i, nStep;
-  real_t ckt, skt, ckp, skp, rTmp1, cTmp1, rTmp2, cTmp2;
+  int elOrd = Geometry::nP() - 1;
+  int nNodesX = NELS_X*elOrd;
+  int nModesX = nNodesX/2 + 2;
+  real_t ckt, skt, rTmp, cTmp;
   register real_t* data_r;
   register real_t* data_c;
+  real_t* data_f = new real_t[NELS_Y*elOrd*nModesX];
 
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
@@ -633,27 +637,39 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
         *context->domain->u[field_i] = *context->fi[slice_i * nField + field_i];
     }
 
-    // solve the flow map (single step)
+    // solve the flow map for time tau_i
     nStep = (int)(context->tau_i[slice_i]/dt);
     integrate(skewSymmetric, context->domain, context->bman, context->ff, nStep);
 
-    // phase shift
+    // phase shift in theta (axial direction)
     for(mode_i = 1; mode_i < Geometry::nZ()/2; mode_i++) {
-      ckt = cos(mode_i*context->theta_i[mode_i]);
-      skt = sin(mode_i*context->theta_i[mode_i]);
-      ckp = cos(mode_i*context->phi_i[mode_i]);
-      skp = sin(mode_i*context->phi_i[mode_i]);
+      SEM_to_Fourier(mode_i, context, context->domain->u[DOF], data_f);
+      for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
+        for(int mode_k = 1; mode_k < nModesX/2; mode_k++) {
+          ckt = cos(mode_k*context->theta_i[slice_i]);
+          skt = sin(mode_k*context->theta_i[slice_i]);
+          rTmp = ckt*data_f[pt_y*nModesX+2*mode_k+0] - skt*data_f[pt_y*nModesX+2*mode_k+1];
+          cTmp = skt*data_f[pt_y*nModesX+2*mode_k+0] + ckt*data_f[pt_y*nModesX+2*mode_k+1];
+          data_f[pt_y*nModesX+2*mode_k+0] = rTmp;
+          data_f[pt_y*nModesX+2*mode_k+1] = cTmp;
+        }
+      }
+      Fourier_to_SEM(mode_i, context, context->domain->u[DOF], data_f);
+    }
+
+    // phase shift in phi (azimuthal direction)
+    for(mode_i = 1; mode_i < Geometry::nZ()/2; mode_i++) {
+      ckt = cos(mode_i*context->phi_i[slice_i]);
+      skt = sin(mode_i*context->phi_i[slice_i]);
 
       data_r = context->domain->u[DOF]->plane(2*mode_i+0);
       data_c = context->domain->u[DOF]->plane(2*mode_i+1);
 
       for(dof_i = 0; dof_i < context->nDofsSlice; dof_i++) {
-        rTmp1 = ckt*data_r[dof_i] - skt*data_c[dof_i];
-        cTmp1 = skt*data_r[dof_i] + ckt*data_c[dof_i];
-        rTmp2 = rTmp1;//TODO!!
-        cTmp2 = cTmp1;
-        data_r[dof_i] = rTmp2;
-        data_c[dof_i] = cTmp2;
+        rTmp = ckt*data_r[dof_i] - skt*data_c[dof_i];
+        cTmp = skt*data_r[dof_i] + ckt*data_c[dof_i];
+        data_r[dof_i] = rTmp;
+        data_c[dof_i] = cTmp;
       }
     }
 
@@ -664,6 +680,8 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   }
 
   RepackX(context, context->fi, context->theta_i, context->phi_i, context->tau_i, f);
+
+  delete[] data_f;
 
   return 0;
 }
