@@ -26,6 +26,7 @@ public:
   void          setName  (const char name) { _name = name; }
   void          describe (char*) const;
   const real_t* data     ()      const { return _data; } // -- Hack alert!
+  real_t* plane    (int k) const { return _plane[k]; } // -- Hack alert (x 2)!
 
   AuxField& operator  = (const real_t);
   AuxField& operator += (const real_t);
