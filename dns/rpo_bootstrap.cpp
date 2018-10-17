@@ -484,7 +484,7 @@ void Fourier_to_SEM(int plane_k, Context* context, AuxField* us, real_t* data_f)
   delete[] data;
 }
 
-void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* tau, Vec x) {
+void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
   int elOrd = Geometry::nP() - 1;
   int ii, jj, kk, slice_i, index;
   int nZ = Geometry::nZ();
@@ -511,6 +511,7 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* tau
       }
     }
     theta[slice_i] = xArray[index++];
+    phi[slice_i]   = xArray[index++];
     tau[slice_i]   = xArray[index++];
   }
 
@@ -519,7 +520,7 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* tau
   delete[] data;
 }
 
-void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* tau, Vec x) {
+void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
   int elOrd = Geometry::nP() - 1;
   int ii, jj, kk, slice_i, index;
   int nZ = Geometry::nZ();
@@ -545,6 +546,7 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* tau
       Fourier_to_SEM(kk, context, field, data);
     }
     xArray[index++] = theta[slice_i];
+    xArray[index++] = phi[slice_i];
     xArray[index++] = tau[slice_i];
   }
 
@@ -618,11 +620,11 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   const real_t dt = Femlib::value ("D_T");
   int nField = context->domain->nField();
   int slice_i, field_i, mode_i, dof_i, nStep;
-  real_t ckt, skt, rTmp, cTmp;
+  real_t ckt, skt, ckp, skp, rTmp1, cTmp1, rTmp2, cTmp2;
   register real_t* data_r;
   register real_t* data_c;
 
-  UnpackX(context, context->ui, context->theta_i, context->tau_i, x);
+  UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
   for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
     // initialise the flow map fields with the solution fields
@@ -639,15 +641,19 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     for(mode_i = 1; mode_i < Geometry::nZ()/2; mode_i++) {
       ckt = cos(mode_i*context->theta_i[mode_i]);
       skt = sin(mode_i*context->theta_i[mode_i]);
+      ckp = cos(mode_i*context->phi_i[mode_i]);
+      skp = sin(mode_i*context->phi_i[mode_i]);
 
       data_r = context->domain->u[DOF]->plane(2*mode_i+0);
       data_c = context->domain->u[DOF]->plane(2*mode_i+1);
 
       for(dof_i = 0; dof_i < context->nDofsSlice; dof_i++) {
-        rTmp = ckt*data_r[dof_i] - skt*data_c[dof_i];
-        cTmp = skt*data_r[dof_i] + ckt*data_c[dof_i];
-        data_r[dof_i] = rTmp;
-        data_c[dof_i] = cTmp;
+        rTmp1 = ckt*data_r[dof_i] - skt*data_c[dof_i];
+        cTmp1 = skt*data_r[dof_i] + ckt*data_c[dof_i];
+        rTmp2 = rTmp1;//TODO!!
+        cTmp2 = cTmp1;
+        data_r[dof_i] = rTmp2;
+        data_c[dof_i] = cTmp2;
       }
     }
 
@@ -657,7 +663,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     *context->fi[slice_i * nField + DOF] += *context->ui[slice_i * nField + DOF];
   }
 
-  RepackX(context, context->fi, context->theta_i, context->tau_i, f);
+  RepackX(context, context->fi, context->theta_i, context->phi_i, context->tau_i, f);
 
   return 0;
 }
@@ -691,7 +697,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   //context->nDofsPlane = nsys->nGlobal() + Geometry::nInode();
   context->nDofsPlane = (((NELS_X*elOrd)/2 + 2)*NELS_Y*elOrd);
   // add dofs for theta and tau for each time slice
-  context->nDofsSlice = Geometry::nZ() * context->nDofsPlane + 2;
+  context->nDofsSlice = Geometry::nZ() * context->nDofsPlane + 3;
   context->it = 0;
 
   context->theta_i = new real_t[nSlice];
@@ -756,9 +762,9 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   SNESSetJacobian(snes, J, P, _snes_jacobian, (void*)context);
   SNESSetFromOptions(snes);
 
-  RepackX(context, context->ui, context->theta_i, context->tau_i, x);
+  RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
   SNESSolve(snes, NULL, x);
-  RepackX(context, context->ui, context->theta_i, context->tau_i, x);
+  RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
   VecDestroy(&x);
   VecDestroy(&f);
