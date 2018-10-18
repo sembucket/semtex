@@ -81,7 +81,6 @@ struct Context {
     real_t*          s;
 };
 
-#define DOF 1
 #define SLICE_DT 10.0
 #define XMIN 0.0
 #define XMAX 10.0
@@ -200,7 +199,7 @@ void Fourier_to_SEM(int plane_k, Context* context, AuxField* us, real_t* data_f)
 
 void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
   int elOrd = Geometry::nP() - 1;
-  int ii, jj, kk, slice_i, index;
+  int ii, jj, kk, slice_i, field_i, index;
   int nZ = Geometry::nZ();
   int nNodesX = NELS_X*elOrd;
   int nModesX = nNodesX/2 + 2;
@@ -212,15 +211,17 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
 
   index = 0;
   for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
-    field = fields[slice_i * context->domain->nField() + DOF];
+    for(field_i = 0; field_i < context->domain->nField(); field_i++) {
+      field = fields[slice_i * context->domain->nField() + field_i];
 
-    for(kk = 0; kk < nZ; kk++) {
-      SEM_to_Fourier(kk, context, field, data);
+      for(kk = 0; kk < nZ; kk++) {
+        SEM_to_Fourier(kk, context, field, data);
 
-      // skip over redundant real dofs
-      for(jj = 0; jj < NELS_Y*elOrd; jj++) {
-        for(ii = 0; ii < nModesX; ii++) {
-          xArray[index++] = data[jj*nNodesX + ii];
+        // skip over redundant real dofs
+        for(jj = 0; jj < NELS_Y*elOrd; jj++) {
+          for(ii = 0; ii < nModesX; ii++) {
+            xArray[index++] = data[jj*nNodesX + ii];
+          }
         }
       }
     }
@@ -236,7 +237,7 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
 
 void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
   int elOrd = Geometry::nP() - 1;
-  int ii, jj, kk, slice_i, index;
+  int ii, jj, kk, slice_i, field_i, index;
   int nZ = Geometry::nZ();
   int nNodesX = NELS_X*elOrd;
   int nModesX = nNodesX/2 + 2;
@@ -247,17 +248,19 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   index = 0;
   VecGetArray(x, &xArray);
   for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
-    field = fields[slice_i * context->domain->nField() + DOF];
+    for(field_i = 0; field_i < context->domain->nField(); field_i++) {
+      field = fields[slice_i * context->domain->nField() + field_i];
 
-    for(kk = 0; kk < nZ; kk++) {
-      // skip over redundant real dofs
-      for(jj = 0; jj < NELS_Y*elOrd; jj++) {
-        for(ii = 0; ii < nModesX; ii++) {
-          data[jj*nNodesX + ii] = xArray[index++];
+      for(kk = 0; kk < nZ; kk++) {
+        // skip over redundant real dofs
+        for(jj = 0; jj < NELS_Y*elOrd; jj++) {
+          for(ii = 0; ii < nModesX; ii++) {
+            data[jj*nNodesX + ii] = xArray[index++];
+          }
         }
-      }
 
-      Fourier_to_SEM(kk, context, field, data);
+        Fourier_to_SEM(kk, context, field, data);
+      }
     }
     xArray[index++] = theta[slice_i];
     xArray[index++] = phi[slice_i];
@@ -294,24 +297,29 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
   for(int slice_i = 0; slice_i < context->nSlice; slice_i++) {
     for(int kk = 0; kk < nZ; kk++) {
       index = slice_i*context->nDofsSlice + kk;
-      for(int jj = 0; jj < NELS_Y*elOrd; jj++) {
-        el_j = jj/elOrd;
-        pt_j = (jj%elOrd)*(elOrd+1);
-        context->elmt[el_j]->lTog(drdx, dsdx, drdy, dsdy);
-        det = 1.0/(drdx[pt_j]*dsdy[pt_j] - drdy[pt_j]*dsdx[pt_j]);
-        for(int ii = 0; ii < nModesX; ii++) {
-          waveNum = (2.0*M_PI*ii)/(XMAX - XMIN);
-          val  = -1.0*waveNum*waveNum;
-          val *= dsdy[pt_j]*dsdy[pt_j]*DV[pt_j]*DT[pt_j]*qw[pt_j];
-          val *= det;
-          // assume contributions from both elements are the same for nodes on element boundaries
-          if(pt_j == 0) val *= 2.0;
-          MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
-          index++;
+      for(int field_i = 0; field_i < context->domain->nField(); field_i++) {
+        for(int jj = 0; jj < NELS_Y*elOrd; jj++) {
+          el_j = jj/elOrd;
+          pt_j = (jj%elOrd)*(elOrd+1);
+          context->elmt[el_j]->lTog(drdx, dsdx, drdy, dsdy);
+          det = 1.0/(drdx[pt_j]*dsdy[pt_j] - drdy[pt_j]*dsdx[pt_j]);
+          for(int ii = 0; ii < nModesX; ii++) {
+            waveNum = (2.0*M_PI*ii)/(XMAX - XMIN);
+            val  = -1.0*waveNum*waveNum;
+            val *= dsdy[pt_j]*dsdy[pt_j]*DV[pt_j]*DT[pt_j]*qw[pt_j];
+            val *= det;
+            // assume contributions from both elements are the same for nodes on element boundaries
+            if(pt_j == 0) val *= 2.0;
+            MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
+            index++;
+          }
         }
       }
     }
+    // set preconditioner values for the theta, phi and tau phase shifts
     val = 1.0;
+    index++;
+    MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
     index++;
     MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
     index++;
@@ -354,18 +362,20 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 
     // phase shift in theta (axial direction)
     for(mode_i = 1; mode_i < Geometry::nZ()/2; mode_i++) {
-      SEM_to_Fourier(mode_i, context, context->domain->u[DOF], data_f);
-      for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
-        for(int mode_k = 1; mode_k < nModesX/2; mode_k++) {
-          ckt = cos(mode_k*context->theta_i[slice_i]);
-          skt = sin(mode_k*context->theta_i[slice_i]);
-          rTmp = ckt*data_f[pt_y*nModesX+2*mode_k+0] - skt*data_f[pt_y*nModesX+2*mode_k+1];
-          cTmp = skt*data_f[pt_y*nModesX+2*mode_k+0] + ckt*data_f[pt_y*nModesX+2*mode_k+1];
-          data_f[pt_y*nModesX+2*mode_k+0] = rTmp;
-          data_f[pt_y*nModesX+2*mode_k+1] = cTmp;
+      for(field_i = 0; field_i < nField; field_i++) {
+        SEM_to_Fourier(mode_i, context, context->domain->u[field_i], data_f);
+        for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
+          for(int mode_k = 1; mode_k < nModesX/2; mode_k++) {
+            ckt = cos(mode_k*context->theta_i[slice_i]);
+            skt = sin(mode_k*context->theta_i[slice_i]);
+            rTmp = ckt*data_f[pt_y*nModesX+2*mode_k+0] - skt*data_f[pt_y*nModesX+2*mode_k+1];
+            cTmp = skt*data_f[pt_y*nModesX+2*mode_k+0] + ckt*data_f[pt_y*nModesX+2*mode_k+1];
+            data_f[pt_y*nModesX+2*mode_k+0] = rTmp;
+            data_f[pt_y*nModesX+2*mode_k+1] = cTmp;
+          }
         }
+        Fourier_to_SEM(mode_i, context, context->domain->u[field_i], data_f);
       }
-      Fourier_to_SEM(mode_i, context, context->domain->u[DOF], data_f);
     }
 
     // phase shift in phi (azimuthal direction)
@@ -373,21 +383,25 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
       ckt = cos(mode_i*context->phi_i[slice_i]);
       skt = sin(mode_i*context->phi_i[slice_i]);
 
-      data_r = context->domain->u[DOF]->plane(2*mode_i+0);
-      data_c = context->domain->u[DOF]->plane(2*mode_i+1);
+      for(field_i = 0; field_i < nField; field_i++) {
+        data_r = context->domain->u[field_i]->plane(2*mode_i+0);
+        data_c = context->domain->u[field_i]->plane(2*mode_i+1);
 
-      for(dof_i = 0; dof_i < context->nDofsSlice; dof_i++) {
-        rTmp = ckt*data_r[dof_i] - skt*data_c[dof_i];
-        cTmp = skt*data_r[dof_i] + ckt*data_c[dof_i];
-        data_r[dof_i] = rTmp;
-        data_c[dof_i] = cTmp;
+        for(dof_i = 0; dof_i < NELS_Y*elOrd*nModesX; dof_i++) {
+          rTmp = ckt*data_r[dof_i] - skt*data_c[dof_i];
+          cTmp = skt*data_r[dof_i] + ckt*data_c[dof_i];
+          data_r[dof_i] = rTmp;
+          data_c[dof_i] = cTmp;
+        }
       }
     }
 
     // set f
-    *context->fi[slice_i * nField + DOF]  = *context->domain->u[DOF];
-    *context->fi[slice_i * nField + DOF] *= -1.0;
-    *context->fi[slice_i * nField + DOF] += *context->ui[slice_i * nField + DOF];
+    for(field_i = 0; field_i < nField; field_i++) {
+      *context->fi[slice_i * nField + field_i]  = *context->domain->u[field_i];
+      *context->fi[slice_i * nField + field_i] *= -1.0;
+      *context->fi[slice_i * nField + field_i] += *context->ui[slice_i * nField + field_i];
+    }
   }
 
   RepackX(context, context->fi, context->theta_i, context->phi_i, context->tau_i, f);
@@ -400,8 +414,8 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domain* domain, FieldForce* FF, vector<Field*> ui, vector<Field*> fi) {
   Context* context = new Context;
   int elOrd = Geometry::nP() - 1;
-  BoundarySys* bsys;
-  const NumberSys* nsys;
+  //BoundarySys* bsys;
+  //const NumberSys* nsys;
   real_t dx, er, es;
   real_t *xcoords, *ycoords;
   const real_t* qx;
@@ -421,12 +435,12 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->ui     = ui;
   context->fi     = fi;
 
-  bsys = ui[DOF]->bsys();
-  nsys = bsys->Nsys(0);
+  //bsys = ui[DOF]->bsys();
+  //nsys = bsys->Nsys(0);
   //context->nDofsPlane = nsys->nGlobal() + Geometry::nInode();
   context->nDofsPlane = (((NELS_X*elOrd)/2 + 2)*NELS_Y*elOrd);
   // add dofs for theta and tau for each time slice
-  context->nDofsSlice = Geometry::nZ() * context->nDofsPlane + 3;
+  context->nDofsSlice = context->domain->nField() * Geometry::nZ() * context->nDofsPlane + 3;
   context->it = 0;
 
   context->theta_i = new real_t[nSlice];
