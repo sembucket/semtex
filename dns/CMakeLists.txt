@@ -12,5 +12,5 @@ target_sources(rpo PRIVATE
   "${CMAKE_CURRENT_LIST_DIR}/fieldforce.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/nonlinear.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/rpo_integrate.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/rpo_bootstrap.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/rpo_driver.cpp"
 )
