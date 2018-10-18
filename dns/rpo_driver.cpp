@@ -45,7 +45,7 @@
 static char RCS[] = "$Id$";
 
 #include <dns.h>
-#include "rpo_integrate.h"
+//#include "rpo_integrate.h"
 #include <petsc.h>
 #include <petscvec.h>
 #include <petscmat.h>
@@ -57,6 +57,8 @@ static char prog[] = "dns";
 static void getargs    (int, char**, bool&, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, Domain*&, FieldForce*&);
+void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
+		Domain*, BCmgr*, DNSAnalyser*, FieldForce*);
 
 struct Context {
     int              nSlice;
@@ -67,6 +69,7 @@ struct Context {
     vector<Element*> elmt;
     Domain*          domain;
     BCmgr*           bman;
+    DNSAnalyser*     analyst;
     FieldForce*      ff;
     vector<Field*>   ui;
     vector<Field*>   fi;
@@ -358,7 +361,10 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 
     // solve the flow map for time tau_i
     nStep = (int)(context->tau_i[slice_i]/dt);
-    integrate(skewSymmetric, context->domain, context->bman, context->ff, nStep);
+    // don't really want to call the dns analysis, use custom integrate routine instead?
+    //integrate(skewSymmetric, context->domain, context->bman, context->ff, nStep);
+    Femlib::ivalue("N_STEP", nStep);
+    integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
 
     // phase shift in theta (axial direction)
     for(mode_i = 1; mode_i < Geometry::nZ()/2; mode_i++) {
@@ -411,7 +417,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   return 0;
 }
 
-void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domain* domain, FieldForce* FF, vector<Field*> ui, vector<Field*> fi) {
+void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domain* domain, DNSAnalyser* analyst, FieldForce* FF, vector<Field*> ui, vector<Field*> fi) {
   Context* context = new Context;
   int elOrd = Geometry::nP() - 1;
   //BoundarySys* bsys;
@@ -426,14 +432,15 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   Mat J, P;
   SNES snes;
 
-  context->nSlice = nSlice;
-  context->mesh   = mesh;
-  context->elmt   = elmt;
-  context->domain = domain;
-  context->bman   = bman;
-  context->ff     = FF;
-  context->ui     = ui;
-  context->fi     = fi;
+  context->nSlice  = nSlice;
+  context->mesh    = mesh;
+  context->elmt    = elmt;
+  context->domain  = domain;
+  context->bman    = bman;
+  context->analyst = analyst;
+  context->ff      = FF;
+  context->ui      = ui;
+  context->fi      = fi;
 
   //bsys = ui[DOF]->bsys();
   //nsys = bsys->Nsys(0);
@@ -537,6 +544,7 @@ int main (int    argc,
   Mesh*            mesh;
   BCmgr*           bman;
   Domain*          domain;
+  DNSAnalyser*     analyst;
   FieldForce*      FF;
   static char      help[] = "petsc";
   int              nSlice = 8;
@@ -552,6 +560,7 @@ int main (int    argc,
 
   preprocess (session, file, mesh, elmt, bman, domain, FF);
 
+  analyst = new DNSAnalyser (domain, bman, file);
   //domain -> restart ();
   //ROOTONLY domain -> report ();
   
@@ -573,7 +582,7 @@ int main (int    argc,
   domain->u = uTmp;
 
   // solve the newton-rapheson problem
-  rpo_solve(nSlice, mesh, elmt, bman, domain, FF, ui, fi);
+  rpo_solve(nSlice, mesh, elmt, bman, domain, analyst, FF, ui, fi);
 
   // dump the output
 
