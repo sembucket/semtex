@@ -47,6 +47,7 @@ static char RCS[] = "$Id$";
 #include <dns.h>
 //#include "rpo_integrate.h"
 #include <petsc.h>
+#include <petscis.h>
 #include <petscvec.h>
 #include <petscmat.h>
 #include <petscpc.h>
@@ -59,6 +60,8 @@ static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, Domain*&, FieldForce*&);
 void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 		Domain*, BCmgr*, DNSAnalyser*, FieldForce*);
+
+static int myRank;
 
 struct Context {
     int              nSlice;
@@ -82,13 +85,18 @@ struct Context {
     real_t*          y;
     real_t*          r;
     real_t*          s;
+    // parallel vector scattering data
+    int              localSize;
+    int              localShift;
+    IS               isl;
+    IS               isg;
+    VecScatter       ltog;
 };
 
-#define SLICE_DT 10.0
 #define XMIN 0.0
-#define XMAX 10.0
+#define XMAX (2.0*M_PI)
 #define YMIN 0.0
-#define YMAX 20.0
+#define YMAX 0.5
 #define NELS_X 10
 #define NELS_Y 12
 
@@ -203,14 +211,18 @@ void Fourier_to_SEM(int plane_k, Context* context, AuxField* us, real_t* data_f)
 void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
   int elOrd = Geometry::nP() - 1;
   int ii, jj, kk, slice_i, field_i, index;
-  int nZ = Geometry::nZ();
+  int nZ = Geometry::nZProc();
   int nNodesX = NELS_X*elOrd;
   int nModesX = nNodesX/2 + 2;
   AuxField* field;
   PetscScalar *xArray;
   real_t* data = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
+  Vec xl;
 
-  VecGetArray(x, &xArray);
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
+  VecScatterBegin(context->ltog, x, xl, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterEnd(  context->ltog, x, xl, INSERT_VALUES, SCATTER_FORWARD);
+  VecGetArray(xl, &xArray);
 
   index = 0;
   for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
@@ -223,17 +235,20 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
         // skip over redundant real dofs
         for(jj = 0; jj < NELS_Y*elOrd; jj++) {
           for(ii = 0; ii < nModesX; ii++) {
-            xArray[index++] = data[jj*nNodesX + ii];
+            data[jj*nNodesX + ii] = xArray[index++];
           }
         }
       }
     }
-    theta[slice_i] = xArray[index++];
-    phi[slice_i]   = xArray[index++];
-    tau[slice_i]   = xArray[index++];
+    // phase shift data lives on the 0th processors part of the vector
+    if(!myRank) {
+      theta[slice_i] = xArray[index++];
+      phi[slice_i]   = xArray[index++];
+      tau[slice_i]   = xArray[index++];
+    }
   }
-
-  VecRestoreArray(x, &xArray);
+  VecRestoreArray(xl, &xArray);
+  VecDestroy(&xl);
 
   delete[] data;
 }
@@ -241,15 +256,18 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
 void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
   int elOrd = Geometry::nP() - 1;
   int ii, jj, kk, slice_i, field_i, index;
-  int nZ = Geometry::nZ();
+  int nZ = Geometry::nZProc();
   int nNodesX = NELS_X*elOrd;
   int nModesX = nNodesX/2 + 2;
   AuxField* field;
   PetscScalar *xArray;
   real_t* data = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
+  Vec xl;
+
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
+  VecGetArray(xl, &xArray);
 
   index = 0;
-  VecGetArray(x, &xArray);
   for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
     for(field_i = 0; field_i < context->domain->nField(); field_i++) {
       field = fields[slice_i * context->domain->nField() + field_i];
@@ -258,19 +276,24 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
         // skip over redundant real dofs
         for(jj = 0; jj < NELS_Y*elOrd; jj++) {
           for(ii = 0; ii < nModesX; ii++) {
-            data[jj*nNodesX + ii] = xArray[index++];
+            xArray[index++] = data[jj*nNodesX + ii];
           }
         }
 
         Fourier_to_SEM(kk, context, field, data);
       }
     }
-    xArray[index++] = theta[slice_i];
-    xArray[index++] = phi[slice_i];
-    xArray[index++] = tau[slice_i];
+    // phase shift data lives on the 0th processors part of the vector
+    if(!myRank) {
+      xArray[index++] = theta[slice_i];
+      xArray[index++] = phi[slice_i];
+      xArray[index++] = tau[slice_i];
+    }
   }
-
-  VecRestoreArray(x, &xArray);
+  VecRestoreArray(xl, &xArray);
+  VecScatterBegin(context->ltog, xl, x, INSERT_VALUES, SCATTER_REVERSE);
+  VecScatterEnd(  context->ltog, xl, x, INSERT_VALUES, SCATTER_REVERSE);
+  VecDestroy(&xl);
 
   delete[] data;
 }
@@ -278,11 +301,12 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
 PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
   Context* context = (Context*)ctx;
   int index = 0;
-  int nZ = Geometry::nZ();
+  int nZ = Geometry::nZProc();
   int elOrd = Geometry::nP() - 1;
   int nNodesX = NELS_X*elOrd;
   int nModesX = nNodesX/2 + 2;
   int el_j, pt_j;
+  int shift_proc;
   const real_t *qw, *DV, *DT;
   real_t waveNum, val, det;
   real_t *drdx, *dsdx, *drdy, *dsdy;
@@ -299,7 +323,10 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
   // assemble the schur complement preconditioner
   for(int slice_i = 0; slice_i < context->nSlice; slice_i++) {
     for(int kk = 0; kk < nZ; kk++) {
-      index = slice_i*context->nDofsSlice + kk;
+      index  = slice_i*context->nDofsSlice + kk;
+      // global shift
+      index += context->localShift;
+
       for(int field_i = 0; field_i < context->domain->nField(); field_i++) {
         for(int jj = 0; jj < NELS_Y*elOrd; jj++) {
           el_j = jj/elOrd;
@@ -320,15 +347,16 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
       }
     }
     // set preconditioner values for the theta, phi and tau phase shifts
-    val = 1.0;
-    index++;
-    MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
-    index++;
-    MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
-    index++;
-    MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
+    if(!myRank) {
+      val = 1.0;
+      MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
+      index++;
+      MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
+      index++;
+      MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
+      index++;
+    }
   }
-
   MatAssemblyBegin(P, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(P, MAT_FINAL_ASSEMBLY);
 
@@ -417,7 +445,9 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   return 0;
 }
 
-void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domain* domain, DNSAnalyser* analyst, FieldForce* FF, vector<Field*> ui, vector<Field*> fi) {
+void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domain* domain, DNSAnalyser* analyst, FieldForce* FF, 
+               vector<Field*> ui, vector<Field*> fi) 
+{
   Context* context = new Context;
   int elOrd = Geometry::nP() - 1;
   //BoundarySys* bsys;
@@ -428,7 +458,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   int_t pt_x, pt_y, el_x, el_y, el_i;
   const bool guess = true;
   vector<real_t> work(static_cast<size_t>(max (2*Geometry::nTotElmt(), 5*Geometry::nP()+6)));
-  Vec x, f;
+  Vec x, f, xl;
   Mat J, P;
   SNES snes;
 
@@ -456,7 +486,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   for(int slice_i = 0; slice_i < nSlice; slice_i++) {
     context->theta_i[slice_i] = 0.0;
     context->phi_i[slice_i] = 0.0;
-    context->tau_i[slice_i] = SLICE_DT;
+    context->tau_i[slice_i] = Femlib::ivalue("D_T");
   }
 
   // setup the fourier mapping data
@@ -494,17 +524,31 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
     //}
   }
 
-  VecCreateMPI(MPI_COMM_WORLD, PETSC_DECIDE, nSlice*context->nDofsSlice, &x);
-  VecCreateMPI(MPI_COMM_WORLD, PETSC_DECIDE, nSlice*context->nDofsSlice, &f);
+  context->localSize = context->domain->nField() * Geometry::nZProc() * context->nDofsPlane;
+  // store phase shifts on the 0th processor
+  if(!myRank) context->localSize += 3;
+
+  context->localShift = myRank * context->localSize;
+  if(!myRank) context->localShift += 3;
+
+  VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice*context->nDofsSlice, &x);
+  VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice*context->nDofsSlice, &f);
+
+  // create the local to global scatter object
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
+  ISCreateStride(MPI_COMM_SELF, context->localSize, 0, 1, &context->isl);
+  ISCreateStride(MPI_COMM_WORLD, context->localSize, context->localShift, 1, &context->isg);
+  VecScatterCreate(x, context->isg, xl, context->isl, &context->ltog);
+  VecDestroy(&xl);
 
   MatCreate(MPI_COMM_WORLD, &J);
   MatSetType(J, MATMPIAIJ);
-  MatSetSizes(J, PETSC_DECIDE, PETSC_DECIDE, nSlice*context->nDofsSlice, nSlice*context->nDofsSlice);
+  MatSetSizes(J, context->localSize, context->localSize, nSlice*context->nDofsSlice, nSlice*context->nDofsSlice);
   MatMPIAIJSetPreallocation(J, 4*nSlice, PETSC_NULL, 4*nSlice, PETSC_NULL);
 
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
-  MatSetSizes(P, PETSC_DECIDE, PETSC_DECIDE, nSlice*context->nDofsSlice, nSlice*context->nDofsSlice);
+  MatSetSizes(P, context->localSize, context->localSize, nSlice*context->nDofsSlice, nSlice*context->nDofsSlice);
   MatMPIAIJSetPreallocation(P, 4*nSlice, PETSC_NULL, 4*nSlice, PETSC_NULL);
 
   SNESCreate(MPI_COMM_WORLD, &snes);
@@ -520,6 +564,9 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   VecDestroy(&f);
   MatDestroy(&J);
   MatDestroy(&P);
+  VecScatterDestroy(&context->ltog);
+  ISDestroy(&context->isl);
+  ISDestroy(&context->isg);
   delete[] context->el;
   delete[] context->x;
   delete[] context->y;
@@ -527,12 +574,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   delete[] context->s;
 }
 
-int main (int    argc,
-	  char** argv)
-// ---------------------------------------------------------------------------
-// Driver.
-// ---------------------------------------------------------------------------
-{
+int main (int argc, char** argv) {
 #ifdef _GNU_SOURCE
   feenableexcept (FE_OVERFLOW);    // -- Force SIG8 crash on FP overflow.
 #endif
@@ -554,6 +596,8 @@ int main (int    argc,
   char             session_i[100];
 
   PetscInitialize(&argc, &argv, (char*)0, help);
+
+  MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, freeze, session);
