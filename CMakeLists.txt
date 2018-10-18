@@ -53,7 +53,7 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/stab")
   add_executable(dog  "${CMAKE_SOURCE_DIR}/stab/integrate.cpp" "${CMAKE_SOURCE_DIR}/stab/stabanalysis.cpp" "${CMAKE_SOURCE_DIR}/stab/drive.cpp")
 endif()
 if(WITH_PETSC)
-  add_executable(rpo  "")
+  add_executable(rpo  "${CMAKE_SOURCE_DIR}/dns/rpo_integrate.cpp")
 endif(WITH_PETSC)
 
 # setting pre-processor compiler directives based on cmake flags (with defaults)
