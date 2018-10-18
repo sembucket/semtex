@@ -65,7 +65,7 @@ static int myRank;
 
 struct Context {
     int              nSlice;
-    int              nDofsSlice;
+    int              nDofsSlice; //for this processor
     int              nDofsPlane;
     int              it;
     Mesh*            mesh;
@@ -395,7 +395,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
 
     // phase shift in theta (axial direction)
-    for(mode_i = 1; mode_i < Geometry::nZ()/2; mode_i++) {
+    for(mode_i = 1; mode_i < Geometry::nZProc()/2; mode_i++) {
       for(field_i = 0; field_i < nField; field_i++) {
         SEM_to_Fourier(mode_i, context, context->domain->u[field_i], data_f);
         for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
@@ -413,7 +413,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     }
 
     // phase shift in phi (azimuthal direction)
-    for(mode_i = 1; mode_i < Geometry::nZ()/2; mode_i++) {
+    for(mode_i = 1; mode_i < Geometry::nZProc()/2; mode_i++) {
       ckt = cos(mode_i*context->phi_i[slice_i]);
       skt = sin(mode_i*context->phi_i[slice_i]);
 
@@ -477,7 +477,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   //context->nDofsPlane = nsys->nGlobal() + Geometry::nInode();
   context->nDofsPlane = (((NELS_X*elOrd)/2 + 2)*NELS_Y*elOrd);
   // add dofs for theta and tau for each time slice
-  context->nDofsSlice = context->domain->nField() * Geometry::nZ() * context->nDofsPlane + 3;
+  context->nDofsSlice = context->domain->nField() * Geometry::nZProc() * context->nDofsPlane + 3;
   context->it = 0;
 
   context->theta_i = new real_t[nSlice];
@@ -531,8 +531,8 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->localShift = myRank * context->localSize;
   if(!myRank) context->localShift += 3;
 
-  VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice*context->nDofsSlice, &x);
-  VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice*context->nDofsSlice, &f);
+  VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice*context->nDofsSlice*Geometry::nProc(), &x);
+  VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice*context->nDofsSlice*Geometry::nProc(), &f);
 
   // create the local to global scatter object
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
@@ -543,12 +543,12 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
 
   MatCreate(MPI_COMM_WORLD, &J);
   MatSetType(J, MATMPIAIJ);
-  MatSetSizes(J, context->localSize, context->localSize, nSlice*context->nDofsSlice, nSlice*context->nDofsSlice);
+  MatSetSizes(J, context->localSize, context->localSize, nSlice*context->nDofsSlice*Geometry::nProc(), nSlice*context->nDofsSlice*Geometry::nProc());
   MatMPIAIJSetPreallocation(J, 4*nSlice, PETSC_NULL, 4*nSlice, PETSC_NULL);
 
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
-  MatSetSizes(P, context->localSize, context->localSize, nSlice*context->nDofsSlice, nSlice*context->nDofsSlice);
+  MatSetSizes(P, context->localSize, context->localSize, nSlice*context->nDofsSlice*Geometry::nProc(), nSlice*context->nDofsSlice*Geometry::nProc());
   MatMPIAIJSetPreallocation(P, 4*nSlice, PETSC_NULL, 4*nSlice, PETSC_NULL);
 
   SNESCreate(MPI_COMM_WORLD, &snes);
