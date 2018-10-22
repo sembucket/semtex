@@ -498,7 +498,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->s  = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
 
   dx = (XMAX - XMIN)/(NELS_X*elOrd);
-  Femlib::quadrature(&qx, 0, 0, 0  , elOrd+1, GLJ, 0.0, 0.0);
+  Femlib::quadrature(&qx, 0, 0, 0, elOrd+1, GLJ, 0.0, 0.0);
 
   for(int pt_i = 0; pt_i < NELS_X*elOrd*NELS_Y*elOrd; pt_i++) {
     pt_x = pt_i%(NELS_X*elOrd);
@@ -524,6 +524,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
     }
     if(!found) {
       cout << "ERROR! element does not contain point: " << pt_i << "\tx: " << context->x[pt_i] << "\ty: " << context->y[pt_i] << endl;
+      cout << "       pt x: " << pt_x << "\tpt y: " << pt_y << endl;
       abort();
     }
   }
@@ -531,6 +532,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->localSize = context->domain->nField() * Geometry::nZProc() * context->nDofsPlane;
   // store phase shifts on the 0th processor
   if(!myRank) context->localSize += 3;
+  context->localSize *= nSlice;
 
   context->localShift = myRank * context->localSize;
   if(!myRank) context->localShift += 3;
