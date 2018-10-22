@@ -230,14 +230,14 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
       field = fields[slice_i * context->domain->nField() + field_i];
 
       for(kk = 0; kk < nZ; kk++) {
-        SEM_to_Fourier(kk, context, field, data);
-
         // skip over redundant real dofs
         for(jj = 0; jj < NELS_Y*elOrd; jj++) {
           for(ii = 0; ii < nModesX; ii++) {
             data[jj*nNodesX + ii] = xArray[index++];
           }
         }
+
+        Fourier_to_SEM(kk, context, field, data);
       }
     }
     // phase shift data lives on the 0th processors part of the vector
@@ -273,14 +273,14 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
       field = fields[slice_i * context->domain->nField() + field_i];
 
       for(kk = 0; kk < nZ; kk++) {
+        SEM_to_Fourier(kk, context, field, data);
+
         // skip over redundant real dofs
         for(jj = 0; jj < NELS_Y*elOrd; jj++) {
           for(ii = 0; ii < nModesX; ii++) {
             xArray[index++] = data[jj*nNodesX + ii];
           }
         }
-
-        Fourier_to_SEM(kk, context, field, data);
       }
     }
     // phase shift data lives on the 0th processors part of the vector
@@ -565,7 +565,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
 
   RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
   SNESSolve(snes, NULL, x);
-  RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
+  UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
   VecDestroy(&x);
   VecDestroy(&f);
