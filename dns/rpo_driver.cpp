@@ -215,14 +215,14 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   int nNodesX = NELS_X*elOrd;
   int nModesX = nNodesX/2 + 2;
   AuxField* field;
-  PetscScalar *xArray;
+  const PetscScalar *xArray;
   real_t* data = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
   Vec xl;
 
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
   VecScatterBegin(context->ltog, x, xl, INSERT_VALUES, SCATTER_FORWARD);
   VecScatterEnd(  context->ltog, x, xl, INSERT_VALUES, SCATTER_FORWARD);
-  VecGetArray(xl, &xArray);
+  VecGetArrayRead(xl, &xArray);
 
   index = 0;
   for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
@@ -247,7 +247,7 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
       tau[slice_i]   = xArray[index++];
     }
   }
-  VecRestoreArray(xl, &xArray);
+  VecRestoreArrayRead(xl, &xArray);
   VecDestroy(&xl);
 
   delete[] data;
@@ -560,6 +560,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   SNESCreate(MPI_COMM_WORLD, &snes);
   SNESSetFunction(snes, f, _snes_function, (void*)context);
   SNESSetJacobian(snes, J, P, _snes_jacobian, (void*)context);
+  SNESSetType(snes, SNESNEWTONTR);
   SNESSetFromOptions(snes);
 
   RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
