@@ -97,8 +97,8 @@ struct Context {
 #define XMAX (2.0*M_PI)
 #define YMIN 0.0
 #define YMAX 0.5
-#define NELS_X 10
-#define NELS_Y 12
+#define NELS_X 30
+#define NELS_Y 7
 
 void elements_to_logical(real_t* data_els, real_t* data_log) {
   int elOrd = Geometry::nP() - 1;
@@ -457,6 +457,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   const real_t* qx;
   int_t pt_x, pt_y, el_x, el_y, el_i;
   const bool guess = true;
+  bool found;
   vector<real_t> work(static_cast<size_t>(max (2*Geometry::nTotElmt(), 5*Geometry::nP()+6)));
   Vec x, f, xl;
   Mat J, P;
@@ -502,26 +503,29 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   for(int pt_i = 0; pt_i < NELS_X*elOrd*NELS_Y*elOrd; pt_i++) {
     pt_x = pt_i%(NELS_X*elOrd);
     pt_y = pt_i/(NELS_X*elOrd);
-    el_x = pt_i%NELS_X;
-    el_y = pt_i/NELS_X;
+    el_x = pt_x%elOrd;
+    el_y = pt_y/elOrd;
     el_i = el_y*NELS_X + el_x;
     elmt[el_i]->gCoords(xcoords, ycoords);
     context->x[pt_i] = XMIN + pt_x*dx;
     // element y size increases with distance from the boundary
     context->y[pt_i] = ycoords[pt_y%elOrd];
-    
-    //for(el_i = 0; el_i < mesh->nEl(); el_i++) {
-    // pass er and es by reference?
-    if(elmt[el_i]->locate(context->x[pt_i], context->y[pt_i], er, es, &work[0], guess)) {
-      context->el[pt_i] = el_i;
-      context->r[pt_i] = er;
-      context->s[pt_i] = es;
-      //break;
-    } else {
-      cout << "ERROR! element does not contain point" << endl;
+  
+    found = false;  
+    for(el_i = 0; el_i < mesh->nEl(); el_i++) {
+      // pass er and es by reference?
+      if(elmt[el_i]->locate(context->x[pt_i], context->y[pt_i], er, es, &work[0], guess)) {
+        context->el[pt_i] = el_i;
+        context->r[pt_i] = er;
+        context->s[pt_i] = es;
+        found = true;
+        break;
+      }
+    }
+    if(!found) {
+      cout << "ERROR! element does not contain point: " << pt_i << "\tx: " << context->x[pt_i] << "\ty: " << context->y[pt_i] << endl;
       abort();
     }
-    //}
   }
 
   context->localSize = context->domain->nField() * Geometry::nZProc() * context->nDofsPlane;
@@ -612,23 +616,39 @@ int main (int argc, char** argv) {
   ui.resize(nSlice * domain->nField());
   fi.resize(nSlice * domain->nField());
   uTmp = domain->u;
+  delete file;
+  delete domain;
   for(int slice_i = 0; slice_i < nSlice; slice_i++) {
-    sprintf(session_i, "%s_%.4u", session, slice_i);
+    sprintf(session_i, "%s.%u", session, slice_i + 1);
     FEML* file_i = new FEML(session_i);
-    delete domain;
-    domain = new Domain (file_i, elmt, bman);
+    domain = new Domain(file_i, elmt, bman);
     for(int field_i = 0; field_i < domain->nField(); field_i++) {
-        ui[slice_i*domain->nField()+field_i] = domain->u[field_i];
+      ui[slice_i*domain->nField()+field_i] = domain->u[field_i];
     }
     domain->restart();
     delete file_i;
+    delete domain;
   }
+
+  file = new FEML(session_i);
+  domain = new Domain(file, elmt, bman);
   domain->u = uTmp;
 
   // solve the newton-rapheson problem
   rpo_solve(nSlice, mesh, elmt, bman, domain, analyst, FF, ui, fi);
 
   // dump the output
+  for(int slice_i = 0; slice_i < nSlice; slice_i++) {
+    sprintf(session_i, "%s_rpo_%u", session, slice_i + 1);
+    FEML* file_i = new FEML(session_i);
+    domain = new Domain(file_i, elmt, bman);
+    for(int field_i = 0; field_i < domain->nField(); field_i++) {
+      domain->u[field_i] = ui[slice_i*domain->nField()+field_i];
+    }
+    domain->dump();
+    delete file_i;
+    delete domain;
+  } 
 
   Femlib::finalize ();
 
