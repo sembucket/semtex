@@ -100,6 +100,21 @@ struct Context {
 #define NELS_X 30
 #define NELS_Y 7
 
+void data_transpose(real_t* data, int nx, int ny) {
+  real_t* temp = new real_t[nx*ny];
+
+  for(int iy = 0; iy < ny; iy++) {
+    for(int ix = 0; ix < nx; ix++) {
+      temp[ix*ny + iy] = data[iy*nx + ix];
+    }
+  }
+  for(int ii = 0; ii < nx*ny; ii++) {
+    data[ii] = temp[ii];
+  }
+
+  delete[] temp;
+}
+
 void elements_to_logical(real_t* data_els, real_t* data_log) {
   int elOrd = Geometry::nP() - 1;
   int nodes_per_el = (elOrd + 1)*(elOrd + 1);
@@ -161,7 +176,13 @@ void SEM_to_Fourier(int plane_k, Context* context, AuxField* us, real_t* data_f)
       elmt = context->elmt[context->el[pt_i]];
       data[pt_x] = us->probe(elmt, context->r[pt_i], context->s[pt_i], plane_k);
     }
-    dDFTr(data, nNodesX, 1, +1);
+  }
+  // semtex fft works on strided data, so transpose the plane before applying
+  data_transpose(data, nNodesX, NELS_Y*elOrd);
+  dDFTr(data, nNodesX, NELS_Y*elOrd, +1);
+  data_transpose(data, NELS_Y*elOrd, nNodesX);
+
+  for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
     for(int pt_x = 0; pt_x < nModesX; pt_x++) {
       data_f[pt_y*nModesX + pt_x] = data[pt_x];
     }
