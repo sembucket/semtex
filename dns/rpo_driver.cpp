@@ -65,7 +65,7 @@ static int myRank;
 
 struct Context {
     int              nSlice;
-    int              nDofsSlice; //for this processor
+    int              nDofsSlice;
     int              nDofsPlane;
     int              it;
     Mesh*            mesh;
@@ -331,6 +331,7 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
   int index = 0;
   int nZ = Geometry::nZProc();
   int elOrd = Geometry::nP() - 1;
+  int nField = context->domain->nField();
   int nNodesX = NELS_X*elOrd;
   int nModesX = nNodesX/2 + 2;
   int el_j, pt_j;
@@ -350,12 +351,9 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
 
   // assemble the schur complement preconditioner
   for(int slice_i = 0; slice_i < context->nSlice; slice_i++) {
-    for(int kk = 0; kk < nZ; kk++) {
-      index  = slice_i*context->nDofsSlice + kk;
-      // global shift
-      index += context->localShift;
-
-      for(int field_i = 0; field_i < context->domain->nField(); field_i++) {
+    index = slice_i*context->nDofsSlice + context->localShift;
+    for(int field_i = 0; field_i < nField; field_i++) {
+      for(int kk = 0; kk < nZ; kk++) {
         for(int jj = 0; jj < NELS_Y*elOrd; jj++) {
           el_j = jj/elOrd;
           pt_j = (jj%elOrd)*(elOrd+1);
@@ -506,7 +504,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   //context->nDofsPlane = nsys->nGlobal() + Geometry::nInode();
   context->nDofsPlane = ((NELS_X*elOrd)/2 + 2)*NELS_Y*elOrd;
   // add dofs for theta and tau for each time slice
-  context->nDofsSlice = context->domain->nField() * Geometry::nZ() * context->nDofsPlane + 3;
+  context->nDofsSlice = Geometry::nProc() * context->domain->nField() * Geometry::nZ() * context->nDofsPlane + 3;
   context->it = 0;
 
   context->theta_i = new real_t[nSlice];
