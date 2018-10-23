@@ -155,6 +155,8 @@ void logical_to_elements(real_t* data_log, real_t* data_els) {
         pt_y = el_y*elOrd + pt_s;
         // asseume periodic in x
         if(pt_x == NELS_X*elOrd) pt_x = 0;
+        // don't do axis for now
+        if(pt_y == NELS_Y*elOrd) continue;
 
         data_els[shift_els+pt_i] = data_log[pt_y*NELS_X*elOrd + pt_x];
       }
@@ -402,7 +404,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   real_t ckt, skt, rTmp, cTmp;
   register real_t* data_r;
   register real_t* data_c;
-  real_t* data_f = new real_t[NELS_Y*elOrd*nModesX];
+  real_t* data_f = new real_t[NELS_Y*elOrd*nNodesX];
 
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
@@ -535,7 +537,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
     elmt[el_i]->gCoords(xcoords, ycoords);
     context->x[pt_i] = XMIN + pt_x*dx;
     // element y size increases with distance from the boundary
-    context->y[pt_i] = ycoords[pt_y%elOrd];
+    context->y[pt_i] = ycoords[(pt_y%elOrd)*(elOrd+1)];
   
     found = false;  
     for(el_i = 0; el_i < mesh->nEl(); el_i++) {
@@ -561,7 +563,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->localSize *= nSlice;
 
   context->localShift = myRank * context->localSize;
-  if(!myRank) context->localShift += 3;
+  if(myRank) context->localShift += 3;
 
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &x);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &f);
