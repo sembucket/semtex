@@ -656,6 +656,16 @@ int main (int argc, char** argv) {
     domain->restart();
     for(int field_i = 0; field_i < domain->nField(); field_i++) {
       ui[slice_i*domain->nField()+field_i] = domain->u[field_i];
+      {
+        char* field;
+        real_t* data;
+        BoundarySys* bndry;
+
+        strcpy ((field = new char [strlen (bman -> field()) + 1]), bman -> field());
+        data = new real_t[static_cast<size_t>(Geometry::nTotProc())];
+        bndry = new BoundarySys(bman, elmt, field[0]);
+        fi[slice_i*domain->nField()+field_i] = new Field(bndry, data, Geometry::nZProc(), elmt, field[0]);
+      }
     }
     delete file_i;
     delete domain;
