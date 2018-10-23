@@ -168,13 +168,13 @@ void SEM_to_Fourier(int plane_k, Context* context, AuxField* us, real_t* data_f)
   int nModesX = nNodesX/2 + 2;
   int pt_i;
   Element* elmt;
-  real_t* data = new real_t[NELS_X*elOrd];
+  real_t* data = new real_t[NELS_Y*elOrd*nNodesX];
 
   for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
     for(int pt_x = 0; pt_x < nNodesX; pt_x++) {
       pt_i = pt_y*nNodesX + pt_x;
       elmt = context->elmt[context->el[pt_i]];
-      data[pt_x] = us->probe(elmt, context->r[pt_i], context->s[pt_i], plane_k);
+      data[pt_y*nNodesX+pt_x] = us->probe(elmt, context->r[pt_i], context->s[pt_i], plane_k);
     }
   }
   // semtex fft works on strided data, so transpose the plane before applying
@@ -184,7 +184,7 @@ void SEM_to_Fourier(int plane_k, Context* context, AuxField* us, real_t* data_f)
 
   for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
     for(int pt_x = 0; pt_x < nModesX; pt_x++) {
-      data_f[pt_y*nModesX + pt_x] = data[pt_x];
+      data_f[pt_y*nModesX + pt_x] = data[pt_y*nNodesX+pt_x];
     }
   }
 
@@ -737,8 +737,9 @@ static void getargs (int    argc   ,
       break;
     }
 
-  if   (argc != 1) message (routine, "no session definition file", ERROR);
-  else             session = *argv;
+  //if   (argc != 1) message (routine, "no session definition file", ERROR);
+  //else             session = *argv;
+  session = *argv;
 
   Femlib::value ("DTBDX", 0.0);
 }
