@@ -299,18 +299,23 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
         // skip over redundant real dofs
         for(jj = 0; jj < NELS_Y*elOrd; jj++) {
           for(ii = 0; ii < nModesX; ii++) {
-            xArray[index++] = data[jj*nNodesX + ii];
+            xArray[index] = data[jj*nNodesX + ii];
+            index++;
           }
         }
       }
     }
     // phase shift data lives on the 0th processors part of the vector
     if(!myRank) {
-      xArray[index++] = theta[slice_i];
-      xArray[index++] = phi[slice_i];
-      xArray[index++] = tau[slice_i];
+      xArray[index] = theta[slice_i];
+      index++;
+      xArray[index] = phi[slice_i];
+      index++;
+      xArray[index] = tau[slice_i];
+      index++;
     }
   }
+
   VecRestoreArray(xl, &xArray);
   VecScatterBegin(context->ltog, xl, x, INSERT_VALUES, SCATTER_REVERSE);
   VecScatterEnd(  context->ltog, xl, x, INSERT_VALUES, SCATTER_REVERSE);
@@ -497,9 +502,9 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   //bsys = ui[DOF]->bsys();
   //nsys = bsys->Nsys(0);
   //context->nDofsPlane = nsys->nGlobal() + Geometry::nInode();
-  context->nDofsPlane = (((NELS_X*elOrd)/2 + 2)*NELS_Y*elOrd);
+  context->nDofsPlane = ((NELS_X*elOrd)/2 + 2)*NELS_Y*elOrd;
   // add dofs for theta and tau for each time slice
-  context->nDofsSlice = context->domain->nField() * Geometry::nZProc() * context->nDofsPlane + 3;
+  context->nDofsSlice = context->domain->nField() * Geometry::nZ() * context->nDofsPlane + 3;
   context->it = 0;
 
   context->theta_i = new real_t[nSlice];
@@ -558,8 +563,8 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->localShift = myRank * context->localSize;
   if(!myRank) context->localShift += 3;
 
-  VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice*context->nDofsSlice*Geometry::nProc(), &x);
-  VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice*context->nDofsSlice*Geometry::nProc(), &f);
+  VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &x);
+  VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &f);
 
   // create the local to global scatter object
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
@@ -570,16 +575,16 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
 
   MatCreate(MPI_COMM_WORLD, &J);
   MatSetType(J, MATMPIAIJ);
-  MatSetSizes(J, context->localSize, context->localSize, nSlice*context->nDofsSlice*Geometry::nProc(), nSlice*context->nDofsSlice*Geometry::nProc());
+  MatSetSizes(J, context->localSize, context->localSize, nSlice * context->nDofsSlice, nSlice * context->nDofsSlice);
   MatMPIAIJSetPreallocation(J, 4*nSlice, PETSC_NULL, 4*nSlice, PETSC_NULL);
 
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
-  MatSetSizes(P, context->localSize, context->localSize, nSlice*context->nDofsSlice*Geometry::nProc(), nSlice*context->nDofsSlice*Geometry::nProc());
+  MatSetSizes(P, context->localSize, context->localSize, nSlice * context->nDofsSlice, nSlice * context->nDofsSlice);
   MatMPIAIJSetPreallocation(P, 4*nSlice, PETSC_NULL, 4*nSlice, PETSC_NULL);
 
   SNESCreate(MPI_COMM_WORLD, &snes);
-  SNESSetFunction(snes, f, _snes_function, (void*)context);
+  SNESSetFunction(snes, f,    _snes_function, (void*)context);
   SNESSetJacobian(snes, J, P, _snes_jacobian, (void*)context);
   SNESSetType(snes, SNESNEWTONTR);
   SNESSetFromOptions(snes);
@@ -646,10 +651,10 @@ int main (int argc, char** argv) {
     sprintf(session_i, "%s.%u", session, slice_i + 1);
     FEML* file_i = new FEML(session_i);
     domain = new Domain(file_i, elmt, bman);
+    domain->restart();
     for(int field_i = 0; field_i < domain->nField(); field_i++) {
       ui[slice_i*domain->nField()+field_i] = domain->u[field_i];
     }
-    domain->restart();
     delete file_i;
     delete domain;
   }
