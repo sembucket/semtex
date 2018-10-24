@@ -357,8 +357,11 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
         for(int jj = 0; jj < NELS_Y*elOrd; jj++) {
           el_j = (jj/elOrd)*NELS_X;
           pt_j = (jj%elOrd)*(elOrd+1);
-          context->elmt[el_j]->lTog(drdx, dsdx, drdy, dsdy);
-          det = 1.0/(drdx[pt_j]*dsdy[pt_j] - drdy[pt_j]*dsdx[pt_j]);//TODO: invalid read here
+          drdx = context->elmt[el_j]->_drdx;
+          drdy = context->elmt[el_j]->_drdy;
+          dsdx = context->elmt[el_j]->_dsdx;
+          dsdy = context->elmt[el_j]->_dsdy;
+          det = 1.0/(drdx[pt_j]*dsdy[pt_j] - drdy[pt_j]*dsdx[pt_j]);
           for(int ii = 0; ii < nModesX; ii++) {
             waveNum = (2.0*M_PI*ii)/(XMAX - XMIN);
             val  = -1.0*waveNum*waveNum;
@@ -476,10 +479,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
 {
   Context* context = new Context;
   int elOrd = Geometry::nP() - 1;
-  //BoundarySys* bsys;
-  //const NumberSys* nsys;
   real_t dx, er, es;
-  real_t *xcoords, *ycoords;
   const real_t* qx;
   int_t pt_x, pt_y, el_x, el_y, el_i;
   const bool guess = true;
@@ -499,9 +499,6 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->ui      = ui;
   context->fi      = fi;
 
-  //bsys = ui[DOF]->bsys();
-  //nsys = bsys->Nsys(0);
-  //context->nDofsPlane = nsys->nGlobal() + Geometry::nInode();
   context->nDofsPlane = ((NELS_X*elOrd)/2 + 2)*NELS_Y*elOrd;
   // add dofs for theta and tau for each time slice
   context->nDofsSlice = context->domain->nField() * Geometry::nZ() * context->nDofsPlane + 3;
@@ -532,10 +529,9 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
     el_x = pt_x/elOrd;
     el_y = pt_y/elOrd;
     el_i = el_y*NELS_X + el_x;
-    elmt[el_i]->gCoords(xcoords, ycoords);
     context->x[pt_i] = XMIN + pt_x*dx;
     // element y size increases with distance from the boundary
-    context->y[pt_i] = ycoords[(pt_y%elOrd)*(elOrd+1)];//TODO: invalid read here
+    context->y[pt_i] = elmt[el_i]->_ymesh[(pt_y%elOrd)*(elOrd+1)];
   
     found = false;  
     for(el_i = 0; el_i < mesh->nEl(); el_i++) {

@@ -112,9 +112,12 @@ public:
   void printMatSC (const real_t*,const real_t*,const real_t*)            const;
   void Helmholtz  (const real_t,const real_t,real_t*,real_t*,real_t*)    const;
 
-  void gCoords(real_t* xmesh, real_t* ymesh) {xmesh = _xmesh; ymesh = _ymesh;}
-  void lTog(real_t* drdx, real_t* dsdx, real_t* drdy, real_t* dsdy)
-       {drdx = _drdx; dsdx = _dsdx; drdy = _drdy; dsdy = _dsdy;}
+  real_t*       _xmesh;		// Physical space mesh.
+  real_t*       _ymesh;		// 2D row-major store.
+  real_t*       _drdx ;		// Partial derivatives (r, s) --> (x, y),
+  real_t*       _dsdx ;		//   evaluated at quadrature points.
+  real_t*       _drdy ;		//   (2D row-major storage.)
+  real_t*       _dsdy ;		//
 
 protected:
 
@@ -141,13 +144,13 @@ protected:
   int_t*        _emap ;		// Indices of edges in nodal matrices.
   int_t*        _pmap ;		// Inversion of emap (pmap[emap[i]] = i).
 
-  real_t*       _xmesh;		// Physical space mesh.
-  real_t*       _ymesh;		// 2D row-major store.
+  //real_t*       _xmesh;		// Physical space mesh.
+  //real_t*       _ymesh;		// 2D row-major store.
 
-  real_t*       _drdx ;		// Partial derivatives (r, s) --> (x, y),
-  real_t*       _dsdx ;		//   evaluated at quadrature points.
-  real_t*       _drdy ;		//   (2D row-major storage.)
-  real_t*       _dsdy ;		//
+  //real_t*       _drdx ;		// Partial derivatives (r, s) --> (x, y),
+  //real_t*       _dsdx ;		//   evaluated at quadrature points.
+  //real_t*       _drdy ;		//   (2D row-major storage.)
+  //real_t*       _dsdy ;		//
 
   real_t*       _delta;		// Local length scale.
 
