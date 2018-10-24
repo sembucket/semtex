@@ -355,14 +355,14 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
     for(int field_i = 0; field_i < nField; field_i++) {
       for(int kk = 0; kk < nZ; kk++) {
         for(int jj = 0; jj < NELS_Y*elOrd; jj++) {
-          el_j = jj/elOrd;
+          el_j = (jj/elOrd)*NELS_X;
           pt_j = (jj%elOrd)*(elOrd+1);
           context->elmt[el_j]->lTog(drdx, dsdx, drdy, dsdy);
           det = 1.0/(drdx[pt_j]*dsdy[pt_j] - drdy[pt_j]*dsdx[pt_j]);
           for(int ii = 0; ii < nModesX; ii++) {
             waveNum = (2.0*M_PI*ii)/(XMAX - XMIN);
             val  = -1.0*waveNum*waveNum;
-            val *= dsdy[pt_j]*dsdy[pt_j]*DV[pt_j]*DT[pt_j]*qw[pt_j];
+            val *= dsdy[pt_j]*dsdy[pt_j]*DV[pt_j]*DT[pt_j]*qw[jj%elOrd];
             val *= det;
             // assume contributions from both elements are the same for nodes on element boundaries
             if(pt_j == 0) val *= 2.0;
@@ -504,7 +504,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   //context->nDofsPlane = nsys->nGlobal() + Geometry::nInode();
   context->nDofsPlane = ((NELS_X*elOrd)/2 + 2)*NELS_Y*elOrd;
   // add dofs for theta and tau for each time slice
-  context->nDofsSlice = Geometry::nProc() * context->domain->nField() * Geometry::nZ() * context->nDofsPlane + 3;
+  context->nDofsSlice = context->domain->nField() * Geometry::nZ() * context->nDofsPlane + 3;
   context->it = 0;
 
   context->theta_i = new real_t[nSlice];
@@ -576,12 +576,12 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   MatCreate(MPI_COMM_WORLD, &J);
   MatSetType(J, MATMPIAIJ);
   MatSetSizes(J, context->localSize, context->localSize, nSlice * context->nDofsSlice, nSlice * context->nDofsSlice);
-  MatMPIAIJSetPreallocation(J, 4*nSlice, PETSC_NULL, 4*nSlice, PETSC_NULL);
+  MatMPIAIJSetPreallocation(J, 16*nSlice, PETSC_NULL, 16*nSlice, PETSC_NULL);
 
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
   MatSetSizes(P, context->localSize, context->localSize, nSlice * context->nDofsSlice, nSlice * context->nDofsSlice);
-  MatMPIAIJSetPreallocation(P, 4*nSlice, PETSC_NULL, 4*nSlice, PETSC_NULL);
+  MatMPIAIJSetPreallocation(P, 16*nSlice, PETSC_NULL, 16*nSlice, PETSC_NULL);
 
   SNESCreate(MPI_COMM_WORLD, &snes);
   SNESSetFunction(snes, f,    _snes_function, (void*)context);
