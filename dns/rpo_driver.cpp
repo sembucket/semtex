@@ -358,7 +358,7 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
           el_j = (jj/elOrd)*NELS_X;
           pt_j = (jj%elOrd)*(elOrd+1);
           context->elmt[el_j]->lTog(drdx, dsdx, drdy, dsdy);
-          det = 1.0/(drdx[pt_j]*dsdy[pt_j] - drdy[pt_j]*dsdx[pt_j]);
+          det = 1.0/(drdx[pt_j]*dsdy[pt_j] - drdy[pt_j]*dsdx[pt_j]);//TODO: invalid read here
           for(int ii = 0; ii < nModesX; ii++) {
             waveNum = (2.0*M_PI*ii)/(XMAX - XMIN);
             val  = -1.0*waveNum*waveNum;
@@ -529,13 +529,13 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   for(int pt_i = 0; pt_i < NELS_X*elOrd*NELS_Y*elOrd; pt_i++) {
     pt_x = pt_i%(NELS_X*elOrd);
     pt_y = pt_i/(NELS_X*elOrd);
-    el_x = pt_x%elOrd;
+    el_x = pt_x/elOrd;
     el_y = pt_y/elOrd;
     el_i = el_y*NELS_X + el_x;
     elmt[el_i]->gCoords(xcoords, ycoords);
     context->x[pt_i] = XMIN + pt_x*dx;
     // element y size increases with distance from the boundary
-    context->y[pt_i] = ycoords[(pt_y%elOrd)*(elOrd+1)];
+    context->y[pt_i] = ycoords[(pt_y%elOrd)*(elOrd+1)];//TODO: invalid read here
   
     found = false;  
     for(el_i = 0; el_i < mesh->nEl(); el_i++) {
