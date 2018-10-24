@@ -365,7 +365,7 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
           for(int ii = 0; ii < nModesX; ii++) {
             waveNum = (2.0*M_PI*ii)/(XMAX - XMIN);
             val  = -1.0*waveNum*waveNum;
-            val *= dsdy[pt_j]*dsdy[pt_j]*DV[pt_j]*DT[pt_j]*qw[jj%elOrd];
+            val *= dsdy[pt_j]*dsdy[pt_j]*DV[pt_j]*DT[pt_j]*qw[jj%(elOrd+1)];
             val *= det;
             // assume contributions from both elements are the same for nodes on element boundaries
             if(pt_j == 0) val *= 2.0;
