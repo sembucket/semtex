@@ -45,7 +45,6 @@
 static char RCS[] = "$Id$";
 
 #include <dns.h>
-//#include "rpo_integrate.h"
 #include <petsc.h>
 #include <petscis.h>
 #include <petscvec.h>
@@ -53,6 +52,8 @@ static char RCS[] = "$Id$";
 #include <petscpc.h>
 #include <petscksp.h>
 #include <petscsnes.h>
+
+//#define X_FOURIER
 
 static char prog[] = "dns";
 static void getargs    (int, char**, bool&, char*&);
@@ -81,8 +82,6 @@ struct Context {
     real_t*          tau_i;
     // regular grid points in elements
     int_t*           el;
-    real_t*          x;
-    real_t*          y;
     real_t*          r;
     real_t*          s;
     // parallel vector scattering data
@@ -255,18 +254,28 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
       for(kk = 0; kk < nZ; kk++) {
         // skip over redundant real dofs
         for(jj = 0; jj < NELS_Y*elOrd; jj++) {
+#ifdef X_FOURIER
           for(ii = 0; ii < nModesX; ii++) {
+#else
+          for(ii = 0; ii < nNodesX; ii++) {
+#endif
             data[jj*nNodesX + ii] = xArray[index++];
           }
         }
 
+#ifdef X_FOURIER
         Fourier_to_SEM(kk, context, field, data);
+#else
+        logical_to_elements(data, field->plane(kk));
+#endif
       }
     }
     // phase shift data lives on the 0th processors part of the vector
     if(!myRank) {
       theta[slice_i] = xArray[index++];
+#ifdef X_FOURIER
       phi[slice_i]   = xArray[index++];
+#endif
       tau[slice_i]   = xArray[index++];
     }
   }
@@ -300,7 +309,11 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
 
         // skip over redundant real dofs
         for(jj = 0; jj < NELS_Y*elOrd; jj++) {
+#ifdef X_FOURIER
           for(ii = 0; ii < nModesX; ii++) {
+#else
+          for(ii = 0; ii < nNodesX; ii++) {
+#endif
             xArray[index] = data[jj*nNodesX + ii];
             index++;
           }
@@ -309,12 +322,11 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
     }
     // phase shift data lives on the 0th processors part of the vector
     if(!myRank) {
-      xArray[index] = theta[slice_i];
-      index++;
-      xArray[index] = phi[slice_i];
-      index++;
-      xArray[index] = tau[slice_i];
-      index++;
+      xArray[index++] = theta[slice_i];
+#ifdef X_FOURIER
+      xArray[index++] = phi[slice_i];
+#endif
+      xArray[index++] = tau[slice_i];
     }
   }
 
@@ -362,9 +374,14 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
           dsdx = context->elmt[el_j]->_dsdx;
           dsdy = context->elmt[el_j]->_dsdy;
           det = 1.0/(drdx[pt_j]*dsdy[pt_j] - drdy[pt_j]*dsdx[pt_j]);
+#ifdef X_FOURIER
           for(int ii = 0; ii < nModesX; ii++) {
             waveNum = (2.0*M_PI*ii)/(XMAX - XMIN);
             val  = -1.0*waveNum*waveNum;
+#else
+          for(int ii = 0; ii < nNodesX; ii++) {
+            val  = drdx[pt_j]*drdx[pt_j]*qw[ii%(elOrd+1)];
+#endif
             val *= dsdy[pt_j]*dsdy[pt_j]*DV[pt_j]*DT[pt_j]*qw[jj%(elOrd+1)];
             val *= det;
             // assume contributions from both elements are the same for nodes on element boundaries
@@ -380,8 +397,10 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
       val = 1.0;
       MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
       index++;
+#ifdef X_FOURIER
       MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
       index++;
+#endif
       MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
       index++;
     }
@@ -424,6 +443,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
 
     // phase shift in theta (axial direction)
+#ifdef X_FOURIER
     for(mode_i = 1; mode_i < Geometry::nZProc()/2; mode_i++) {
       for(field_i = 0; field_i < nField; field_i++) {
         SEM_to_Fourier(mode_i, context, context->domain->u[field_i], data_f);
@@ -440,6 +460,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
         Fourier_to_SEM(mode_i, context, context->domain->u[field_i], data_f);
       }
     }
+#endif
 
     // phase shift in phi (azimuthal direction)
     for(mode_i = 1; mode_i < Geometry::nZProc()/2; mode_i++) {
@@ -479,7 +500,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
 {
   Context* context = new Context;
   int elOrd = Geometry::nP() - 1;
-  real_t dx, er, es;
+  real_t dx, er, es, ex, ey;
   const real_t* qx;
   int_t pt_x, pt_y, el_x, el_y, el_i;
   const bool guess = true;
@@ -499,9 +520,14 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->ui      = ui;
   context->fi      = fi;
 
-  context->nDofsPlane = ((NELS_X*elOrd)/2 + 2)*NELS_Y*elOrd;
   // add dofs for theta and tau for each time slice
+#ifdef X_FOURIER
+  context->nDofsPlane = ((NELS_X*elOrd)/2 + 2)*NELS_Y*elOrd;
   context->nDofsSlice = context->domain->nField() * Geometry::nZ() * context->nDofsPlane + 3;
+#else
+  context->nDofsPlane = NELS_X*elOrd*NELS_Y*elOrd;
+  context->nDofsSlice = context->domain->nField() * Geometry::nZ() * context->nDofsPlane + 2;
+#endif
   context->it = 0;
 
   context->theta_i = new real_t[nSlice];
@@ -515,8 +541,6 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
 
   // setup the fourier mapping data
   context->el = new int_t[NELS_X*elOrd*NELS_Y*elOrd];
-  context->x  = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
-  context->y  = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
   context->r  = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
   context->s  = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
 
@@ -529,14 +553,14 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
     el_x = pt_x/elOrd;
     el_y = pt_y/elOrd;
     el_i = el_y*NELS_X + el_x;
-    context->x[pt_i] = XMIN + pt_x*dx;
+    ex = XMIN + pt_x*dx;
     // element y size increases with distance from the boundary
-    context->y[pt_i] = elmt[el_i]->_ymesh[(pt_y%elOrd)*(elOrd+1)];
+    ey = elmt[el_i]->_ymesh[(pt_y%elOrd)*(elOrd+1)];
   
     found = false;  
     for(el_i = 0; el_i < mesh->nEl(); el_i++) {
       // pass er and es by reference?
-      if(elmt[el_i]->locate(context->x[pt_i], context->y[pt_i], er, es, &work[0], guess)) {
+      if(elmt[el_i]->locate(ex, ey, er, es, &work[0], guess)) {
         context->el[pt_i] = el_i;
         context->r[pt_i] = er;
         context->s[pt_i] = es;
@@ -545,7 +569,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
       }
     }
     if(!found) {
-      cout << "ERROR! element does not contain point: " << pt_i << "\tx: " << context->x[pt_i] << "\ty: " << context->y[pt_i] << endl;
+      cout << "ERROR! element does not contain point: " << pt_i << "\tx: " << ex << "\ty: " << ey << endl;
       cout << "       pt x: " << pt_x << "\tpt y: " << pt_y << endl;
       abort();
     }
@@ -553,11 +577,19 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
 
   context->localSize = context->domain->nField() * Geometry::nZProc() * context->nDofsPlane;
   // store phase shifts on the 0th processor
+#ifdef X_FOURIER
   if(!myRank) context->localSize += 3;
+#else
+  if(!myRank) context->localSize += 2;
+#endif
   context->localSize *= nSlice;
 
   context->localShift = myRank * context->localSize;
+#ifdef X_FOURIER
   if(myRank) context->localShift += 3;
+#else
+  if(myRank) context->localShift += 2;
+#endif
 
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &x);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &f);
@@ -572,12 +604,12 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   MatCreate(MPI_COMM_WORLD, &J);
   MatSetType(J, MATMPIAIJ);
   MatSetSizes(J, context->localSize, context->localSize, nSlice * context->nDofsSlice, nSlice * context->nDofsSlice);
-  MatMPIAIJSetPreallocation(J, 16*nSlice, PETSC_NULL, 16*nSlice, PETSC_NULL);
+  MatMPIAIJSetPreallocation(J, 8*nSlice, PETSC_NULL, 8*nSlice, PETSC_NULL);
 
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
   MatSetSizes(P, context->localSize, context->localSize, nSlice * context->nDofsSlice, nSlice * context->nDofsSlice);
-  MatMPIAIJSetPreallocation(P, 16*nSlice, PETSC_NULL, 16*nSlice, PETSC_NULL);
+  MatMPIAIJSetPreallocation(P, 8*nSlice, PETSC_NULL, 8*nSlice, PETSC_NULL);
 
   SNESCreate(MPI_COMM_WORLD, &snes);
   SNESSetFunction(snes, f,    _snes_function, (void*)context);
@@ -597,8 +629,6 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   ISDestroy(&context->isl);
   ISDestroy(&context->isg);
   delete[] context->el;
-  delete[] context->x;
-  delete[] context->y;
   delete[] context->r;
   delete[] context->s;
 }
