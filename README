@@ -48,22 +48,22 @@ mailto:hugh.blackburn@monash.edu
 Starting out
 ------------
 
-Say "make test" at the top level of the directory tree. All tests
-should report as "passed".
+Dependencies: cmake, yacc or bison, mpi (optional)
 
-The long-hand way to do the above is:
+Serial build:
+  %> mkdir <build_dir>
+  %> cd <build_dir>
+  %> cmake ..
+  %> ctest
 
-1.  Run uname -s.  Check there is a matching directory under the lib
-    directory and that it contains libalp.a and libfem.a.  If not, run
-    "make libs".
+Parallel build:
+  %> mkdir <build_dir>
+  %> cd <build_dir>
+  %> cmake .. -DWITH_MPI=ON
+  %> ctest
 
-2.  Change directory to utility.  Make "enumerate", and "compare" at least,
-    or just make to create all the utilities.  You will need to put
-    enumerate and compare in your path as other codes will try to run
-    them.
-
-3.  Change directory to dns; make; cd ../test; testregress
-    ../dns/dns.
+With user specificed MPI installation:
+  %> cmake .. -DWITH_MPI=ON -DMPI_C_COMPILER=/my/mpi/c/compiler -DMPI_CXX_COMPILER/my/mpi/c++/compiler
 
 Files
 -----
