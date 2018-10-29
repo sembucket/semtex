@@ -68,7 +68,6 @@ struct Context {
     int              nSlice;
     int              nDofsSlice;
     int              nDofsPlane;
-    int              it;
     Mesh*            mesh;
     vector<Element*> elmt;
     Domain*          domain;
@@ -349,15 +348,16 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
   int el_j, pt_j;
   int shift_proc;
   const real_t *qw, *DV, *DT;
-  real_t waveNum, val, det;
+  int waveNumY;
+  real_t waveNumX, val, det;
   real_t *drdx, *dsdx, *drdy, *dsdy;
+  const PetscScalar* xArray;
 
   MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY);
 
-  if(context->it) return 0;
-
   MatZeroEntries(P);
+  VecGetArrayRead(x, &xArray);
 
   Femlib::quadrature(0, &qw, &DV, &DT, elOrd+1, GLJ, 0.0, 0.0);
 
@@ -366,6 +366,7 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
     index = slice_i*context->nDofsSlice + context->localShift;
     for(int field_i = 0; field_i < nField; field_i++) {
       for(int kk = 0; kk < nZ; kk++) {
+        waveNumY = kk/2;
         for(int jj = 0; jj < NELS_Y*elOrd; jj++) {
           el_j = (jj/elOrd)*NELS_X;
           pt_j = (jj%elOrd)*(elOrd+1);
@@ -376,12 +377,14 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
           det = 1.0/(drdx[pt_j]*dsdy[pt_j] - drdy[pt_j]*dsdx[pt_j]);
 #ifdef X_FOURIER
           for(int ii = 0; ii < nModesX; ii++) {
-            waveNum = (2.0*M_PI*ii)/(XMAX - XMIN);
+            waveNumX = (2.0*M_PI*ii)/(XMAX - XMIN);
             val  = -1.0*waveNum*waveNum;
 #else
           for(int ii = 0; ii < nNodesX; ii++) {
             val  = drdx[pt_j]*drdx[pt_j]*qw[ii%(elOrd+1)];
 #endif
+            if(waveNumY) val *= -1.0*waveNumY*waveNumY;
+
             val *= dsdy[pt_j]*dsdy[pt_j]*DV[pt_j]*DT[pt_j]*qw[jj%(elOrd+1)];
             val *= det;
             // assume contributions from both elements are the same for nodes on element boundaries
@@ -407,8 +410,7 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
   }
   MatAssemblyBegin(P, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(P, MAT_FINAL_ASSEMBLY);
-
-  context->it++;
+  VecRestoreArrayRead(x, &xArray);
 
   return 0;
 }
@@ -490,6 +492,13 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 
   RepackX(context, context->fi, context->theta_i, context->phi_i, context->tau_i, f);
 
+{
+real_t f_norm, x_norm;
+VecNorm(x, NORM_2, &x_norm);
+VecNorm(f, NORM_2, &f_norm);
+cout << "evaluating function, |x|: " << x_norm << "\t|f|: " << f_norm << endl;
+}
+
   delete[] data_f;
 
   return 0;
@@ -528,7 +537,6 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->nDofsPlane = NELS_X*elOrd*NELS_Y*elOrd;
   context->nDofsSlice = context->domain->nField() * Geometry::nZ() * context->nDofsPlane + 2;
 #endif
-  context->it = 0;
 
   context->theta_i = new real_t[nSlice];
   context->phi_i   = new real_t[nSlice];
