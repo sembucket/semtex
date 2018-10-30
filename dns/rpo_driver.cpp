@@ -304,7 +304,11 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
       field = fields[slice_i * context->domain->nField() + field_i];
 
       for(kk = 0; kk < nZ; kk++) {
+#ifdef X_FOURIER
         SEM_to_Fourier(kk, context, field, data);
+#else
+        elements_to_logical(field->plane(kk), data);
+#endif
 
         // skip over redundant real dofs
         for(jj = 0; jj < NELS_Y*elOrd; jj++) {
@@ -483,24 +487,22 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 
     // set f
     for(field_i = 0; field_i < nField; field_i++) {
-      // TODO: context->fi should also be set for slice_j, but this causes blow up in the solver
-      // for some reason
       slice_j = (slice_i + 1)%context->nSlice;
 
-      *context->fi[slice_i * nField + field_i]  = *context->domain->u[field_i];
-      *context->fi[slice_i * nField + field_i] *= -1.0;
-      *context->fi[slice_i * nField + field_i] += *context->ui[slice_j * nField + field_i];
+      *context->fi[slice_j * nField + field_i]  = *context->domain->u[field_i];
+      *context->fi[slice_j * nField + field_i] *= -1.0;
+      *context->fi[slice_j * nField + field_i] += *context->ui[slice_j * nField + field_i];
     }
   }
 
   RepackX(context, context->fi, context->theta_i, context->phi_i, context->tau_i, f);
 
-{
-real_t f_norm, x_norm;
-VecNorm(x, NORM_2, &x_norm);
-VecNorm(f, NORM_2, &f_norm);
-cout << "evaluating function, |x|: " << x_norm << "\t|f|: " << f_norm << endl;
-}
+  {
+    real_t f_norm, x_norm;
+    VecNorm(x, NORM_2, &x_norm);
+    VecNorm(f, NORM_2, &f_norm);
+    cout << "evaluating function, |x|: " << x_norm << "\t|f|: " << f_norm << endl;
+  }
 
   delete[] data_f;
 
@@ -511,6 +513,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
                vector<Field*> ui, vector<Field*> fi) 
 {
   Context* context = new Context;
+  int nIts;
   int elOrd = Geometry::nP() - 1;
   real_t dx, er, es, ex, ey;
   const real_t* qx;
@@ -521,6 +524,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   Vec x, f, xl;
   Mat J, P;
   SNES snes;
+  SNESConvergedReason reason;
 
   context->nSlice  = nSlice;
   context->mesh    = mesh;
@@ -631,6 +635,10 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
   SNESSolve(snes, NULL, x);
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
+
+  SNESGetNumberFunctionEvals(snes, &nIts);
+  SNESGetConvergedReason(snes, &reason);
+  cout << "SNES converged as " << SNESConvergedReasons[reason] << "\titeration: " << nIts << endl;
 
   VecDestroy(&x);
   VecDestroy(&f);
