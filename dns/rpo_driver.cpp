@@ -184,7 +184,7 @@ void SEM_to_Fourier(int plane_k, Context* context, AuxField* us, real_t* data_f)
 
   for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
     for(int pt_x = 0; pt_x < nModesX; pt_x++) {
-      data_f[pt_y*nModesX + pt_x] = data[pt_y*nNodesX+pt_x];
+      data_f[pt_y*nNodesX + pt_x] = data[pt_y*nNodesX+pt_x];
     }
   }
 
