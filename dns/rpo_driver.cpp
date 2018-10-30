@@ -419,7 +419,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   Context* context = (Context*)ctx;
   const real_t dt = Femlib::value ("D_T");
   int nField = context->domain->nField();
-  int slice_i, field_i, mode_i, dof_i, nStep;
+  int slice_i, slice_j, field_i, mode_i, dof_i, nStep;
   int elOrd = Geometry::nP() - 1;
   int nNodesX = NELS_X*elOrd;
   int nModesX = nNodesX/2 + 2;
@@ -433,8 +433,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
     // initialise the flow map fields with the solution fields
     for(field_i = 0; field_i < nField; field_i++) {
-        *context->fi[slice_i * nField + field_i] = *context->ui[slice_i * nField + field_i];
-        *context->domain->u[field_i] = *context->fi[slice_i * nField + field_i];
+        *context->domain->u[field_i] = *context->ui[slice_i * nField + field_i];
     }
 
     // solve the flow map for time tau_i
@@ -484,9 +483,13 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 
     // set f
     for(field_i = 0; field_i < nField; field_i++) {
+      // TODO: context->fi should also be set for slice_j, but this causes blow up in the solver
+      // for some reason
+      slice_j = (slice_i + 1)%context->nSlice;
+
       *context->fi[slice_i * nField + field_i]  = *context->domain->u[field_i];
       *context->fi[slice_i * nField + field_i] *= -1.0;
-      *context->fi[slice_i * nField + field_i] += *context->ui[slice_i * nField + field_i];
+      *context->fi[slice_i * nField + field_i] += *context->ui[slice_j * nField + field_i];
     }
   }
 
@@ -659,7 +662,6 @@ int main (int argc, char** argv) {
   int              nSlice = 8;
   vector<Field*>   ui; // Solution fields for velocities, pressure at the i time slices
   vector<Field*>   fi; // Solution fields for flow maps at the i time slices
-  vector<Field*>   uTmp;
   char             session_i[100];
 
   PetscInitialize(&argc, &argv, (char*)0, help);
@@ -678,7 +680,6 @@ int main (int argc, char** argv) {
   // load in the time slices
   ui.resize(nSlice * domain->nField());
   fi.resize(nSlice * domain->nField());
-  uTmp = domain->u;
   delete file;
   delete domain;
   for(int slice_i = 0; slice_i < nSlice; slice_i++) {
@@ -705,7 +706,6 @@ int main (int argc, char** argv) {
 
   file = new FEML(session_i);
   domain = new Domain(file, elmt, bman);
-  domain->u = uTmp;
 
   // solve the newton-rapheson problem
   rpo_solve(nSlice, mesh, elmt, bman, domain, analyst, FF, ui, fi);
