@@ -211,8 +211,7 @@ void Fourier_to_SEM(int plane_k, Context* context, AuxField* us, real_t* data_f)
     // fourier interpolation to GLL grid
     for(int pt_x = 0; pt_x < nNodesX; pt_x++) {
       // coordinate in real space
-      //xr = XMIN + (pt_x/elOrd)*dx + (1.0 + qx[pt_x%(elOrd+1)])*dx;
-      xr = XMIN + (pt_x/elOrd)*dx + (1.0 + qx[pt_x%elOrd])*dx;
+      xr = XMIN + (pt_x/elOrd)*dx + 0.5*(1.0 + qx[pt_x%elOrd])*dx;
       // coordinate in fourier space
       theta = 2.0*M_PI*xr/(XMAX - XMIN);
 
