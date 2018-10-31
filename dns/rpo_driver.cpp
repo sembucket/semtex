@@ -217,9 +217,10 @@ void Fourier_to_SEM(int plane_k, Context* context, AuxField* us, real_t* data_f)
 
       data_f[pt_y*nNodesX + pt_x] = data[0];
       // ignore the nyquist frequency (entry [1])
+      // all modes are scaled by 2.0, except the mean
       for(int mode_k = 1; mode_k < nModesX/2; mode_k++) {
-        data_f[pt_y*nNodesX + pt_x] += data[2*mode_k+0]*cos(mode_k*theta);
-        data_f[pt_y*nNodesX + pt_x] += data[2*mode_k+1]*sin(mode_k*theta);
+        data_f[pt_y*nNodesX + pt_x] += 2.0*data[2*mode_k+0]*cos(mode_k*theta);
+        data_f[pt_y*nNodesX + pt_x] -= 2.0*data[2*mode_k+1]*sin(mode_k*theta);
       }
     }
   }
