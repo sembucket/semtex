@@ -517,8 +517,8 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   int elOrd = Geometry::nP() - 1;
   real_t dx, er, es, ex, ey;
   const real_t* qx;
-  int_t pt_x, pt_y, el_x, el_y, el_i;
-  const bool guess = true;
+  int_t pt_x, pt_y, el_x, el_y, el_i, el_j;
+  const bool guess = false;
   bool found;
   vector<real_t> work(static_cast<size_t>(max (2*Geometry::nTotElmt(), 5*Geometry::nP()+6)));
   Vec x, f, xl;
@@ -573,10 +573,10 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
     ey = elmt[el_i]->_ymesh[(pt_y%elOrd)*(elOrd+1)];
   
     found = false;  
-    for(el_i = 0; el_i < mesh->nEl(); el_i++) {
+    for(el_j = 0; el_j < mesh->nEl(); el_j++) {
       // pass er and es by reference?
-      if(elmt[el_i]->locate(ex, ey, er, es, &work[0], guess)) {
-        context->el[pt_i] = el_i;
+      if(elmt[el_j]->locate(ex, ey, er, es, &work[0], guess)) {
+        context->el[pt_i] = el_j;
         context->r[pt_i] = er;
         context->s[pt_i] = es;
         found = true;
