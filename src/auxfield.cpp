@@ -1777,10 +1777,14 @@ real_t AuxField::CFL (const int_t dir, int_t* el) const
     CFL *= (c_lambda * P * P) / alpha;
     break;
   case 2: {
-    *el = -1; // -- Not scanning for element with highest CFL
     for(k = 0; k < nZ; k++)
-      for (i = 0; i < nP; i++)
-        CFL = max (CFL, fabs (_plane[k][i]));
+      for (i = 0; i < nP; i++) {
+        cfl = fabs (_plane[k][i]);
+        if(cfl > CFL) {
+          *el = i%npnp;
+          CFL = cfl;
+        }
+      }
     CFL *= M_PI / alpha / dz;
     break;
   }
