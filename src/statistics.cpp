@@ -24,9 +24,10 @@
 // 
 // Naming scheme for components of the symmetric "Reynolds stresses" tensor:
 //
-//                      / uu uv uw \     /  A  B  D \     /  A  B \
-//                      | .  vv vw |  =  |  .  C  E |  =  \  .  C /  -- if 2C
-//                      \ .  .  ww /     \  .  .  F /
+//                 / uu uv uw uc \     /  A  B  D  G \     /  A  B \
+//                 | .  vv vw vu |  =  |  .  C  E  H |  =  \  .  C /  -- if 2C
+//                 | .  .  ww wc |     |  .  .  F  I |
+//                 \ .  .  .  cc /     \  .  .  .  J /
 //
 // What is computed are the running average of the products uu, uv,
 // etc, which are NOT the actual Reynolds stresses: they need to have
@@ -45,23 +46,23 @@
 //
 // b) Vector: Naming:
 //    i) p u_i
-//                      / pu \   / m \   / m \
-//                      | pv | = | n | = \ n /  -- if 2C
-//                      \ pw /   \ o /
+//                 / pu \   / m \   / m \
+//                 | pv | = | n | = \ n /  -- if 2C
+//                 \ pw /   \ o /
 //   ii) q u_i
-//                      / qu \   / r \   / r \
-//                      | qv | = | s | = \ s /  -- if 2C
-//                      \ qw /   \ t /
+//                 / qu \   / r \   / r \
+//                 | qv | = | s | = \ s /  -- if 2C
+//                 \ qw /   \ t /
 //
-//   iii) Sij u_j       / SxxU + SxyV + SxzW \   / a \   / a \
-//                      | SyxU + SyyV + SyzW | = | b | = \ b /  -- if 2C
-//                      \ SzxU + SzyV + SzzW /   \ c /
+//   iii) Sij u_j  / SxxU + SxyV + SxzW \   / a \   / a \
+//                 | SyxU + SyyV + SyzW | = | b | = \ b /  -- if 2C
+//                 \ SzxU + SzyV + SzzW /   \ c /
 // 
 // c) Tensor: symmetric rate-of-strain tensor S_ij. Naming:
 //
-//                      / xx xy xz \     /  G  H  J \     /  G  H \
-//                      | .  yy yz |  =  |  .  I  K |  =  \  .  I /  -- if 2C
-//                      \ .  .  zz /     \  .  .  L /
+//                 / xx xy xz \     /  K  L  N \     /  K  L \
+//                 | .  yy yz |  =  |  .  M  O |  =  \  .  M /  -- if 2C
+//                 \ .  .  zz /     \  .  .  P /
 //
 // NB: The veracity of the energy equation terms has not been checked
 // for cylindrical coordinates. They are probably OK provided the
@@ -95,6 +96,7 @@ Statistics::Statistics (Domain* D) :
 // ---------------------------------------------------------------------------
 // Store averages for all Domain Fields, and correlations.
 // ---------------------------------------------------------------------------
+  _do_scat (strchr(D -> field, 'c')), // -- Do scalar transport.
   _name (D -> name),
   _base (D),
   _iavg (Femlib::ivalue ("AVERAGE")),
@@ -110,6 +112,9 @@ Statistics::Statistics (Domain* D) :
   int_t       i;
   const int_t nz   = Geometry::nZProc();
   const int_t ntot = Geometry::nTotProc();
+
+  if(_do_scat) _nvel--; // -- One of the components is the temperature.
+  // -- No need to update the number of Reynolds stress tensor components (nrey).
 
   // -- Set pointers, allocate storage.
 
@@ -145,23 +150,29 @@ Statistics::Statistics (Domain* D) :
     if (_nvel == 3) {
       _avg['t'] = new AuxField (new real_t[ntot],nz,_base->elmt,'t'); ++_neng;
     }
+    if (_do_scat) {
+      _avg['u'] = new AuxField (new real_t[ntot],nz,_base->elmt,'u'); ++_neng;
+    }
 
     _avg['a'] = new AuxField (new real_t[ntot],nz,_base->elmt,'a'); ++_neng;
     _avg['b'] = new AuxField (new real_t[ntot],nz,_base->elmt,'b'); ++_neng;
     if (_nvel == 3) {
       _avg['c'] = new AuxField (new real_t[ntot],nz,_base->elmt,'c'); ++_neng;
     }
+    if (_do_scat) {
+      _avg['d'] = new AuxField (new real_t[ntot],nz,_base->elmt,'d'); ++_neng;
+    }
       
     // -- Tensor.
     
-    _avg['G'] = new AuxField (new real_t[ntot],nz,_base->elmt,'G'); ++_neng;
-    _avg['H'] = new AuxField (new real_t[ntot],nz,_base->elmt,'H'); ++_neng;
-    _avg['I'] = new AuxField (new real_t[ntot],nz,_base->elmt,'I'); ++_neng;
+    _avg['K'] = new AuxField (new real_t[ntot],nz,_base->elmt,'K'); ++_neng;
+    _avg['L'] = new AuxField (new real_t[ntot],nz,_base->elmt,'L'); ++_neng;
+    _avg['M'] = new AuxField (new real_t[ntot],nz,_base->elmt,'M'); ++_neng;
 
     if (_nvel == 3) {
-      _avg['J'] = new AuxField (new real_t[ntot],nz,_base->elmt,'J'); ++_neng;
-      _avg['K'] = new AuxField (new real_t[ntot],nz,_base->elmt,'K'); ++_neng;
-      _avg['L'] = new AuxField (new real_t[ntot],nz,_base->elmt,'L'); ++_neng;
+      _avg['N'] = new AuxField (new real_t[ntot],nz,_base->elmt,'N'); ++_neng;
+      _avg['O'] = new AuxField (new real_t[ntot],nz,_base->elmt,'O'); ++_neng;
+      _avg['P'] = new AuxField (new real_t[ntot],nz,_base->elmt,'P'); ++_neng;
     }
   }
 }
@@ -234,16 +245,30 @@ void Statistics::update (AuxField** wrka,
   if (_iavg > 1) {
     (*wrka[0] = *_raw['u']) . transform (INVERSE);
     (*wrka[1] = *_raw['v']) . transform (INVERSE);
-    if (_nvel == 3) (*wrka[2] = *_raw['w']) . transform (INVERSE);
+    if (_nvel == 3 && _do_scat) {
+      (*wrka[2] = *_raw['w']) . transform (INVERSE);
+      (*wrka[3] = *_raw['c']) . transform (INVERSE);
+    } else if (_nvel == 3) {
+      (*wrka[2] = *_raw['w']) . transform (INVERSE);
+    } else if (_do_scat) {
+      (*wrka[2] = *_raw['c']) . transform (INVERSE);
+    }
 
     _avg['A'] -> timesPlus (*wrka[0], *wrka[0]);
     _avg['B'] -> timesPlus (*wrka[0], *wrka[1]);
     _avg['C'] -> timesPlus (*wrka[1], *wrka[1]);
     
-    if (_nvel == 3) {
+    if (_nvel == 3 || _do_scat) {
       _avg['D'] -> timesPlus (*wrka[0], *wrka[2]);
       _avg['E'] -> timesPlus (*wrka[1], *wrka[2]);
       _avg['F'] -> timesPlus (*wrka[2], *wrka[2]);
+    }
+
+    if(_nvel == 3 && _do_scat) {
+      _avg['G'] -> timesPlus (*wrka[0], *wrka[3]);
+      _avg['H'] -> timesPlus (*wrka[1], *wrka[3]);
+      _avg['I'] -> timesPlus (*wrka[2], *wrka[3]);
+      _avg['J'] -> timesPlus (*wrka[3], *wrka[3]);
     }
   }
 
@@ -342,13 +367,13 @@ void Statistics::update (AuxField** wrka,
 
     // -- Add strain rate tensor components into running averages.
 
-    *_avg['G'] += *wrka[0];
-    *_avg['H'] += *wrkb[0];
-    *_avg['I'] += *wrka[1];
+    *_avg['K'] += *wrka[0];
+    *_avg['L'] += *wrkb[0];
+    *_avg['M'] += *wrka[1];
     if (_nvel == 3) {
-      *_avg['J'] += *wrkb[1];
-      *_avg['K'] += *wrkb[2];
-      *_avg['L'] += *wrka[2];
+      *_avg['N'] += *wrkb[1];
+      *_avg['O'] += *wrkb[2];
+      *_avg['P'] += *wrka[2];
     }
 
     // -- Compute the strain-velocity correlation.
