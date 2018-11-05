@@ -1725,13 +1725,15 @@ void AuxField::lengthScale (real_t* tgt) const
 }
 
 
-real_t AuxField::CFL (const int_t dir) const
+real_t AuxField::CFL (const int_t dir, int_t* el) const
 // ---------------------------------------------------------------------------
 // Return the inverse CFL timescale using this AuxField as a velocity 
 // component in the nominated direction.  Computations only occur on the
 // zeroth Fourier mode.
 // dir == 0 ==> CFL estimate in first direction, 1 ==> 2nd, 2 ==> 3rd.
 // AuxField is presumed to have been Fourier transformed in 3rd direction.
+//
+// Reference: Karniadakis & Sherwin 2e, section 6.3.
 // ---------------------------------------------------------------------------
 {
   const char       routine[] = "AuxField::CFL";
@@ -1739,35 +1741,46 @@ real_t AuxField::CFL (const int_t dir) const
   const int_t      npnp     = Geometry::nTotElmt();
   const int_t      nP       = Geometry::nPlane();
   const int_t      nZ       = Geometry::nZProc();
-  const int_t      nt       = Femlib::ivalue("N_TIME");
+  const int_t      nT       = Femlib::ivalue("N_TIME");
   const real_t     dz       = Femlib::value ("TWOPI / BETA / N_Z");
-  real_t           alpha    = 1.0;	// -- Max imaginary eigenvalue.
-  real_t           c_lambda = 0.2;
-  int_t            P        = Geometry::nP() - 1;	// -- Polynomial order is one less than the number of points along an edge.
+  const real_t     alpha    = 0.723;		  // -- Indicative max eigval.
+  const real_t     c_lambda = 0.2;                // -- See reference.
+  const int_t      P        = Geometry::nP() - 1; // -- Polynomial order.
   register int_t   i, k;
   register real_t* p;
   register real_t* pk;
   vector<real_t>   work (npnp);
-  real_t           CFL = 0.0;
+  real_t           CFL = -999999.9;
+  real_t           cfl;
  
   switch (dir) {
   case 0:
     for(k = 0; k < nZ; k++)
-      for (p = _plane[k], i = 0; i < nel; i++, p += npnp)
-        CFL = max (CFL, _elmt[i] -> CFL (p, 0, &work[0]));
+      for (p = _plane[k], i = 0; i < nel; i++, p += npnp) {
+        cfl = _elmt[i] -> CFL (p, 0, &work[0]);
+        if(cfl > CFL) {
+           *el = i;
+           CFL = cfl;
+        }
+      }
     CFL *= (c_lambda * P * P) / alpha;
     break;
   case 1:
     for(k = 0; k < nZ; k++)
-      for (p = _plane[k], i = 0; i < nel; i++, p += npnp)
-        CFL = max (CFL, _elmt[i] -> CFL (0, p, &work[0]));
+      for (p = _plane[k], i = 0; i < nel; i++, p += npnp) {
+        cfl = _elmt[i] -> CFL (0, p, &work[0]);
+        if(cfl > CFL) {
+           *el = i;
+           CFL = cfl;
+        }
+      }
     CFL *= (c_lambda * P * P) / alpha;
     break;
   case 2: {
+    *el = -1; // -- Not scanning for element with highest CFL
     for(k = 0; k < nZ; k++)
       for (i = 0; i < nP; i++)
         CFL = max (CFL, fabs (_plane[k][i]));
-    alpha = (nt == 3) ? 0.723 : 0.430; // -- Max imaginary eigenvalues for Adams Bashforth 3 and 2.
     CFL *= M_PI / alpha / dz;
     break;
   }
@@ -1816,18 +1829,18 @@ AuxField& AuxField::mag(const vector <AuxField*>& a)
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "AuxField::vmag(a)";
-  const int_t ndim      = a.size();
-  if (ndim == 2)
+  const int_t ncom     = a.size();
+  if (ncom == 2)
   {
     if (_size != a[0]->_size || _size != a[1]->_size)
       message (routine, "non-congruent inputs", ERROR);
     Veclib::vhypot (_size, a[0]->_data, 1, a[1]->_data, 1, _data, 1);
   }
-  else if (ndim == 3)
+  else if (ncom == 3)
   {
     if (_size != a[2]->_size || _size != a[0]->_size || _size != a[1]->_size)
       message (routine, "non-congruent inputs", ERROR);
-    Veclib::vmag (_size, a[2]->_data, 1, a[0]->_data, 1, a[1]->_data, 1, _data, 1);
+    Veclib::vmag (_size,a[2]->_data,1, a[0]->_data,1, a[1]->_data,1, _data,1);
   }
   else
     message (routine, "need 2D or 3D vector", ERROR);

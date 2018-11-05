@@ -216,6 +216,8 @@ void Analyser::analyse (AuxField** work0,
 
   ROOTONLY {
 
+    cout << setprecision (8);
+    
     // -- Run information update.
 
     cout << "Step: " << _src -> step << "  Time: " << _src -> time << endl;
@@ -421,7 +423,7 @@ void Analyser::divergence (AuxField** Us) const
 
   L2 /= Lz;
 
-  cout << "------- Divergence Energy: " << L2 << endl;
+  cout << setprecision (3) << "-- Divergence Energy:    " << L2 << endl;
 
   // -- Crash stop.
 
@@ -440,55 +442,82 @@ void Analyser::estimateCFL () const
 //               appendix D.2.2
 // ---------------------------------------------------------------------------
 {
-  const real_t CFL_max = 0.7;	// -- Approximate maximum for scheme.
-  const real_t dt      = Femlib::value ("D_T");
-  real_t       CFL_dt, dt_max;
-  int_t        percent;
-  int_t        maxDim, i;
-  int_t        nProc   = Geometry::nProc();
-  int_t        pid     = Geometry::procID();
-  real_t*      maxProc = new real_t[nProc];
-  real_t       CFL_i[3];
+  const int_t    pid     = Geometry::procID();
+  const int_t    nProc   = Geometry::nProc();
+  const real_t   dt      = Femlib::value ("D_T");
+  vector<real_t> maxProc (nProc);
+  vector<real_t> maxElmt (nProc);
+  vector<real_t> maxCmpt (nProc);
+  real_t         CFL_dt, dt_max;
+  int_t          i, percent;
+  char           vcmpt;
+  real_t         CFL_i[3];
+  real_t         cmpt_i;
+  int_t          elmt_i, elmt_j, elmt_k;
 
   _src -> u[0] -> transform(INVERSE);
-  CFL_i[0] = _src -> u[0] -> CFL(0);
+  CFL_i[0] = _src -> u[0] -> CFL(0, &elmt_i);
   _src -> u[0] -> transform(FORWARD);
 
   _src -> u[1] -> transform(INVERSE);
-  CFL_i[1] = _src -> u[1] -> CFL(1);
+  CFL_i[1] = _src -> u[1] -> CFL(1, &elmt_j);
   _src -> u[1] -> transform(FORWARD);
 
   CFL_dt = max(CFL_i[0], CFL_i[1]);
-
-  maxDim = (CFL_i[0] > CFL_i[1]) ? 0 : 1;
+  cmpt_i = (CFL_i[0] > CFL_i[1]) ? 0.0 : 1.0;
+  elmt_i = (CFL_i[0] > CFL_i[1]) ? elmt_i : elmt_j;
 
   if (_src -> nField() > 3) {
     _src -> u[2] -> transform(INVERSE);
-    CFL_i[2] = _src -> u[2] -> CFL(2);
+    CFL_i[2] = _src -> u[2] -> CFL(2, &elmt_k);
     _src -> u[2] -> transform(FORWARD);
-    if(CFL_i[2] > CFL_dt) maxDim = 2;
-    CFL_dt = max(CFL_dt, CFL_i[2]);
+
+    if (CFL_i[2] > CFL_dt) {
+      CFL_dt = CFL_i[2];
+      cmpt_i = 2.0;
+      elmt_i = elmt_k;
+    }
   }
 
-  // Send the maximum CFL number from each processor back to the root processor.
+  // -- Send maximum CFL number from each process back to root process.
+  
   maxProc[pid] = CFL_dt;
-  Femlib::send(&maxProc[pid], 1, 0);
-  if(pid == 0) {
-    for(i = 0; i < nProc; i++) {
+  maxElmt[pid] = elmt_i;
+  maxCmpt[pid] = cmpt_i;
+  Femlib::send (&maxProc[pid], 1, 0);
+  Femlib::send (&maxElmt[pid], 1, 0);
+  Femlib::send (&maxCmpt[pid], 1, 0);
+  ROOTONLY {
+    for (i = 0; i < nProc; i++) {
       Femlib::recv(&maxProc[i], 1, i);
+      Femlib::recv(&maxElmt[i], 1, i);
+      Femlib::recv(&maxCmpt[i], 1, i);
     }
-    for(i = 0; i < nProc; i++) {
-      CFL_dt = max(CFL_dt, maxProc[i]);
+    CFL_dt = -999999.9;
+    for (i = 0; i < nProc; i++) {
+      if(maxProc[i] > CFL_dt) {
+        CFL_dt = maxProc[i];
+        elmt_i = maxElmt[i];
+        cmpt_i = maxCmpt[i];
+      }
     }
 
     dt_max  = 1.0 / CFL_dt;
     percent = static_cast<int_t>(100.0 * dt / dt_max);
+    if(cmpt_i > 1.5) {
+      vcmpt = 'w';
+    } else if(cmpt_i > 0.5) {
+      vcmpt = 'v';
+    } else {
+      vcmpt = 'u';
+    }
 
-    cout << "-- CFL: "     << CFL_dt * dt;
-    cout << ", dt (max): " << dt_max;
-    cout << ", dt (set): " << dt;
-    cout << " ("           << percent << "%), dim: " << maxDim << endl;
+    cout << setprecision (3)
+	 << "-- CFL: "             << CFL_dt * dt
+	 << ", dt (max): "         << dt_max
+	 << ", dt (set): "         << dt
+	 << " ("                   << percent
+	 << "%), velocity field: " << vcmpt 
+         << ", element: "          << elmt_i << endl;
   }
-
-  delete[] maxProc;
 }
