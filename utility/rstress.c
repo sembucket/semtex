@@ -288,12 +288,17 @@ static void chknames (const char* field)
  * Check that the names of the enclosed fields make sense for Reynolds
  * stress computations.  Computations could be 2D or 3D.
  *
- * Average velocity fields are called: u, v    (& w);
- * Product average  fields are called: A, B, C (& D, E, F):
+ * Average velocity fields are called: u, v    (& w/c)     (& w, c)   
+ * Product average  fields are called: A, B, C (& D, E, F) (& G, H, I, J):
  *
  *                   / uu uv uw \     /  A  B  D \
  *                   | .  vv vw |  =  |  .  C  E |
  *                   \ .  .  ww /     \  .  .  F /
+ *
+ *                / uu uv uw uc \     /  A  B  D  G \
+ *                | .  vv vw vc |  =  |  .  C  E  H |
+ *                | .  .  ww wc |     |  .  .  F  I |
+ *                \ .  .  .  cc /     \  .  .  .  J /
  * ------------------------------------------------------------------------- */
 {
   char err[STR_MAX];
@@ -302,9 +307,14 @@ static void chknames (const char* field)
     sprintf (err, "field names (%s) should contain \"uv\"", field);
     message (prog, err, ERROR);
   }
-  if (strstr (field, "w"))
+  if (strstr (field, "w") || strstr (field, "c"))
     if (!strstr (field, "ABCDEF")) {
       sprintf (err, "field names (%s) should contain \"ABCDEF\"", field);
+      message (prog, err, ERROR);
+    }
+  if (strstr (field, "w") && strstr (field, "c"))
+    if (!strstr (field, "ABCDEFGHIJ")) {
+      sprintf (err, "field names (%s) should contain \"ABCDEFGHIJ\"", field);
       message (prog, err, ERROR);
     }
   else
@@ -338,7 +348,7 @@ static void covary (Dump* h)
  * in physical space and we don't dealias.
  * ------------------------------------------------------------------------- */
 {
-  int       i, j, k, m;
+  int       i, j, k, l, m;
   const int npts = h -> np * h -> np * h -> nz * h -> nel;
   
   /* -- 2D. */
@@ -353,11 +363,30 @@ static void covary (Dump* h)
   k = _index ( h -> field, 'C');
   dvvvtm (npts, h->data[k], 1, h->data[j], 1, h->data[j], 1, h->data[k], 1);
 
-  if (!strstr (h -> field, "w")) return;
+  if (!strstr (h -> field, "w") && !strstr (h -> field, "c")) return;
 
   /* -- 3D. */
-  
+
+  if (!strstr (h -> field, "w") || !strstr (h -> field, "c")) {  
+    if (strstr (h -> field, "w")) {
+      k = _index (h -> field, 'w');
+    } else {
+      k = _index (h -> field, 'c');
+    }
+
+    m = _index (h -> field, 'D');
+    dvvvtm (npts, h->data[m], 1, h->data[i], 1, h->data[k], 1, h->data[m], 1);
+    m = _index (h -> field, 'E');
+    dvvvtm (npts, h->data[m], 1, h->data[j], 1, h->data[k], 1, h->data[m], 1);
+    m = _index (h -> field, 'F');
+    dvvvtm (npts, h->data[m], 1, h->data[k], 1, h->data[k], 1, h->data[m], 1);
+
+    return;
+  }
+
+  /* -- 4D. */
   k = _index (h -> field, 'w');
+  l = _index (h -> field, 'c');
 
   m = _index (h -> field, 'D');
   dvvvtm (npts, h->data[m], 1, h->data[i], 1, h->data[k], 1, h->data[m], 1);
@@ -365,6 +394,16 @@ static void covary (Dump* h)
   dvvvtm (npts, h->data[m], 1, h->data[j], 1, h->data[k], 1, h->data[m], 1);
   m = _index (h -> field, 'F');
   dvvvtm (npts, h->data[m], 1, h->data[k], 1, h->data[k], 1, h->data[m], 1);
+
+  m = _index (h -> field, 'G');
+  dvvvtm (npts, h->data[m], 1, h->data[i], 1, h->data[l], 1, h->data[m], 1);
+  m = _index (h -> field, 'H');
+  dvvvtm (npts, h->data[m], 1, h->data[j], 1, h->data[l], 1, h->data[m], 1);
+  m = _index (h -> field, 'I');
+  dvvvtm (npts, h->data[m], 1, h->data[k], 1, h->data[l], 1, h->data[m], 1);
+  m = _index (h -> field, 'J');
+  dvvvtm (npts, h->data[m], 1, h->data[l], 1, h->data[l], 1, h->data[m], 1);
+
 }
 
 
