@@ -1,0 +1,6 @@
+#!/bin/bash
+# $Id: testrun,v 1.3 2007/10/14 11:17:50 hmb Exp $
+##############################################################################
+
+enumerate -O3 Sten50_Cyl > Sten50_Cyl.num
+../../dog -k 8 -n 1 -m 100 -t 1e-8 Sten50_Cyl > /dev/null

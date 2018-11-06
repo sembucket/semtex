@@ -1,0 +1,10 @@
+#!/bin/bash
+# $Id: testrun,v 1.6 2015/10/10 02:01:22 hmb Exp $
+##############################################################################
+
+enumerate -O3 m32_2D > m32_2D.num
+dns m32_2D > /dev/null
+mv  m32_2D.fld m32.bse
+
+enumerate -O3 m32 > m32.num
+../../dog -k 12 -n 1 -m 40 -t 1e-6 m32 > /dev/null

@@ -1,0 +1,69 @@
+# copy these files over from ../src/ so that they can be compiled into the libstab.a library
+# along with additional source files located in this directory (some of which share common 
+# names with other files in the ../src/ directory that are purposefully not copied over
+file(COPY
+"${CMAKE_SOURCE_DIR}/src/boundary.cpp"
+"${CMAKE_SOURCE_DIR}/src/boundary.h"
+"${CMAKE_SOURCE_DIR}/src/bsys.cpp" 
+"${CMAKE_SOURCE_DIR}/src/bsys.h" 
+"${CMAKE_SOURCE_DIR}/src/condition.cpp" 
+"${CMAKE_SOURCE_DIR}/src/condition.h" 
+"${CMAKE_SOURCE_DIR}/src/data2df.cpp" 
+"${CMAKE_SOURCE_DIR}/src/data2df.h" 
+"${CMAKE_SOURCE_DIR}/src/element.cpp" 
+"${CMAKE_SOURCE_DIR}/src/element.h" 
+"${CMAKE_SOURCE_DIR}/src/family.cpp" 
+"${CMAKE_SOURCE_DIR}/src/family.h" 
+"${CMAKE_SOURCE_DIR}/src/history.cpp" 
+"${CMAKE_SOURCE_DIR}/src/history.h" 
+"${CMAKE_SOURCE_DIR}/src/integration.cpp" 
+"${CMAKE_SOURCE_DIR}/src/integration.h" 
+"${CMAKE_SOURCE_DIR}/src/matrix.cpp" 
+"${CMAKE_SOURCE_DIR}/src/matrix.h" 
+"${CMAKE_SOURCE_DIR}/src/mesh.cpp" 
+"${CMAKE_SOURCE_DIR}/src/mesh.h" 
+"${CMAKE_SOURCE_DIR}/src/misc.cpp" 
+"${CMAKE_SOURCE_DIR}/src/misc.h" 
+"${CMAKE_SOURCE_DIR}/src/particle.cpp" 
+"${CMAKE_SOURCE_DIR}/src/particle.h" 
+"${CMAKE_SOURCE_DIR}/src/svv.cpp" 
+"${CMAKE_SOURCE_DIR}/src/svv.h" 
+"${CMAKE_SOURCE_DIR}/src/sem.h" 
+"${CMAKE_SOURCE_DIR}/src/feml.h" 
+"${CMAKE_SOURCE_DIR}/src/analysis.h" 
+"${CMAKE_SOURCE_DIR}/src/edge.h" 
+"${CMAKE_SOURCE_DIR}/src/bcmgr.h" 
+"${CMAKE_SOURCE_DIR}/src/numbersys.h" 
+"${CMAKE_SOURCE_DIR}/src/statistics.h" DESTINATION ${CMAKE_SOURCE_DIR}/stab)
+
+set(stab_src
+  analysis auxfield bcmgr boundary bsys condition data2df
+  domain edge element family feml field geometry history
+  integration matrix mesh misc particle svv)
+
+add_library(stab STATIC ${stab_src})
+target_include_directories(stab PUBLIC "${CMAKE_SOURCE_DIR}/veclib" "${CMAKE_SOURCE_DIR}/femlib" "${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/stab" ${MPI_INCLUDE_PATH})
+
+# need this to ensure that the executables below are built in the correct directory
+set(EXECUTABLE_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/build")
+
+add_executable(lns        "${CMAKE_SOURCE_DIR}/stab/integrate.cpp" "${CMAKE_SOURCE_DIR}/stab/stabanalysis.cpp" "${CMAKE_SOURCE_DIR}/stab/lns.cpp")
+add_executable(combine    "${CMAKE_SOURCE_DIR}/stab/combine.cpp"   )
+add_executable(normalize  "${CMAKE_SOURCE_DIR}/stab/normalize.cpp" )
+add_executable(flipmap    "${CMAKE_SOURCE_DIR}/stab/flipmap.cpp"   )
+add_executable(symmetrise "${CMAKE_SOURCE_DIR}/stab/symmetrise.cpp")
+add_executable(reflect    "${CMAKE_SOURCE_DIR}/stab/reflect.cpp"   )
+
+target_link_libraries(lns        stab fem vec ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES} ${MPI_LIBRARIES})
+target_link_libraries(combine         fem vec ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES} ${MPI_LIBRARIES})
+target_link_libraries(normalize  stab fem vec ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES} ${MPI_LIBRARIES})
+target_link_libraries(flipmap    stab fem vec ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES} ${MPI_LIBRARIES})
+target_link_libraries(symmetrise stab fem vec ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES} ${MPI_LIBRARIES})
+target_link_libraries(reflect    stab fem vec ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES} ${MPI_LIBRARIES})
+
+target_include_directories(lns        PUBLIC veclib femlib stab include ${MPI_INCLUDE_PATH})
+target_include_directories(combine    PUBLIC veclib femlib      include ${MPI_INCLUDE_PATH})
+target_include_directories(normalize  PUBLIC veclib femlib stab include ${MPI_INCLUDE_PATH})
+target_include_directories(flipmap    PUBLIC veclib femlib stab include ${MPI_INCLUDE_PATH})
+target_include_directories(symmetrise PUBLIC veclib femlib stab include ${MPI_INCLUDE_PATH})
+target_include_directories(reflect    PUBLIC veclib femlib stab include ${MPI_INCLUDE_PATH})

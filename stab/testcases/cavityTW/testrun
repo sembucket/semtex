@@ -1,0 +1,12 @@
+#!/bin/bash
+# $Id: testrun,v 1.3 2008/05/19 13:05:21 hmb Exp $
+##############################################################################
+
+enumerate -O3 cav01_bse > cav01_bse.num
+dns_tbcs cav01_bse > /dev/null
+mv cav01_bse.fld cav01.bse
+
+enumerate -O3 cav01 > cav01.num
+../../dog -k 13 -m 40 -n 2 cav01 > /dev/null
+
+
