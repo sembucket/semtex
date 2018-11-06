@@ -14,6 +14,8 @@ file(COPY
 "${CMAKE_SOURCE_DIR}/src/element.h" 
 "${CMAKE_SOURCE_DIR}/src/family.cpp" 
 "${CMAKE_SOURCE_DIR}/src/family.h" 
+"${CMAKE_SOURCE_DIR}/src/flowrate.cpp"
+"${CMAKE_SOURCE_DIR}/src/flowrate.h"
 "${CMAKE_SOURCE_DIR}/src/history.cpp" 
 "${CMAKE_SOURCE_DIR}/src/history.h" 
 "${CMAKE_SOURCE_DIR}/src/integration.cpp" 
