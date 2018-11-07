@@ -54,12 +54,14 @@ Serial build:
   %> mkdir <build_dir>
   %> cd <build_dir>
   %> cmake ..
+  %> make
   %> ctest
 
 Parallel build:
   %> mkdir <build_dir>
   %> cd <build_dir>
   %> cmake .. -DWITH_MPI=ON
+  %> make
   %> ctest
 
 With user specificed MPI installation:

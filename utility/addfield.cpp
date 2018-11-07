@@ -3,7 +3,7 @@
 // adding vorticity and divergence, rate of strain magnitude, velocity
 // gradient discriminant, etc.
 //
-// Copyright (c) 1998 <--> $Date$, 
+// Copyright (c) 1998 <--> $Date: 2016/02/17 03:46:35 $, 
 //   Hugh Blackburn, Murray Rudman
 //
 // NB: the input field file is assumed to contain ONLY velocity and
@@ -85,10 +85,6 @@
 // [3] Hamman, Klewicki & Kirby (2008) On the Lamb vector divergence
 // in Navier--Stokes flows JFM 610:261--284
 //
-// [4] Pierce, Moin & Sayadi (2013) Application of vortex
-// identification schemes to direct numerical simulation data of a
-// transitional boundary layer PF 25:015102
-//
 // --
 // This file is part of Semtex.
 // 
@@ -108,7 +104,7 @@
 // 02110-1301 USA
 //////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: addfield.cpp,v 8.4 2016/02/17 03:46:35 hmb Exp $";
 
 #include <sem.h>
 #include <tensorcalcs.h>
@@ -145,6 +141,7 @@ int main (int    argc,
   int_t                      i, j, k, p, q;
   int_t                      np, nz, nel, allocSize, NCOM, NDIM;
   int_t                      iAdd = 0;
+  int_t                      INDEX_U, INDEX_V, INDEX_W;
   bool                       add[FLAG_MAX], need[FLAG_MAX], gradient;
   ifstream                   file;
   FEML*                      F;
@@ -200,7 +197,20 @@ int main (int    argc,
 
   velocity.resize   (NCOM);
   vorticity.resize ((NDIM == 2) ? 1 : 3);
-  for (i = 0; i < NCOM; i++) velocity[i] = D -> u[i];
+  for (i = 0; i < D -> nField(); i++) {
+    if (D -> u[i] -> name() == 'u') {
+      INDEX_U = i;
+      velocity[0] = D -> u[i];
+    }
+    if (D -> u[i] -> name() == 'v') {
+      INDEX_V = i;
+      velocity[1] = D -> u[i];
+    }
+    if (NCOM == 3 && D -> u[i] -> name() == 'w') {
+      INDEX_W = i;
+      velocity[2] = D -> u[i];
+    }
+  }
 
   // -- From the requested fields, flag dependencies.
 
@@ -284,7 +294,7 @@ int main (int    argc,
   }
 
   if (need[VORTICITY])
-    if (NDIM == 2) {
+    if (NCOM == 2) {
       vorticity.resize (1);
       VorData  .resize (1);
       VorData[0]       = new real_t [allocSize];
@@ -352,7 +362,11 @@ int main (int    argc,
 	work = new AuxField (new real_t[allocSize],  nz, elmt);
 	if (NDIM == 3) for (j = 0; j < NCOM; j++) Vij[2][j] -> divY();
 	(*work = *velocity[1]) . divY(); *Vij[2][2] += *work;
+#if 1
 	if (NCOM == 3) { (*work = *velocity[2]) . divY(); *Vij[1][2] += *work; }
+#else
+	if (NCOM == 3) { (*work = *velocity[2]) . divY(); *Vij[1][2] -= *work; }
+#endif
       }
 
 #if 1
@@ -379,7 +393,7 @@ int main (int    argc,
 
 	if (need[VORTICITY]) {
 	  tensor3::vorticity (tensor, vort);
-	  if (NDIM == 2) 
+	  if (NCOM == 2) 
 	    VorData[0][i] = vort[2];
 	  else { 
 	    VorData[0][i] = vort[0]; 
@@ -454,13 +468,6 @@ int main (int    argc,
 	work -> times (*InvR, *InvR);
 	*work *= 6.75;
 	*Disc += *work;
-#if 1
-	// -- Take the 1/3 power of discriminant, thus making it
-	//    dimensionally consistent with the lambda2 criterion (see
-	//    ref [4]), after first clipping to positive values.
-	Disc -> clipUp ();
-	Disc -> pow (1./3.);
-#endif
       }
 
       if (need[DIVERGENCE])
@@ -484,19 +491,19 @@ int main (int    argc,
       if (need[DIVLAMB]) {
 	if (nComponent == 2) {
 	  *lamb[0] = 0.0;
-	  lamb[0] -> timesMinus (*D -> u[1], *vorticity[0]);
-	  lamb[1] -> times      (*D -> u[0], *vorticity[0]);
+	  lamb[0] -> timesMinus (*D -> u[INDEX_V], *vorticity[0]);
+	  lamb[1] -> times      (*D -> u[INDEX_U], *vorticity[0]);
 	  *DivL  = (*work = *lamb[0]) . gradient (0);
 	  *DivL += (*work = *lamb[1]) . gradient (1);
 	  if (Geometry::cylindrical())
 	    *DivL += (*work = *lamb[1]) . divY();
 	} else {
-	  lamb[0] -> times      (*D -> u[2], *vorticity[1]);
-	  lamb[0] -> timesMinus (*D -> u[1], *vorticity[2]);
-	  lamb[1] -> times      (*D -> u[0], *vorticity[2]);
-	  lamb[1] -> timesMinus (*D -> u[2], *vorticity[0]);
-	  lamb[2] -> times      (*D -> u[1], *vorticity[0]);
-	  lamb[2] -> timesMinus (*D -> u[0], *vorticity[1]);
+	  lamb[0] -> times      (*D -> u[INDEX_W], *vorticity[1]);
+	  lamb[0] -> timesMinus (*D -> u[INDEX_V], *vorticity[2]);
+	  lamb[1] -> times      (*D -> u[INDEX_U], *vorticity[2]);
+	  lamb[1] -> timesMinus (*D -> u[INDEX_W], *vorticity[0]);
+	  lamb[2] -> times      (*D -> u[INDEX_V], *vorticity[0]);
+	  lamb[2] -> timesMinus (*D -> u[INDEX_U], *vorticity[1]);
 	  *DivL  = (*work = *lamb[0]) . gradient (0);
 	  *DivL += (*work = *lamb[1]) . gradient (1);
 	  (*work = *lamb[2]).transform(FORWARD).gradient(2).transform(INVERSE);
