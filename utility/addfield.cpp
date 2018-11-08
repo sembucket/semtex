@@ -260,34 +260,52 @@ int main (int    argc,
   // -- Fields without dependants.
 
   if (need[ENERGY]) {
+    for (i = 0; i < D -> nField(); i++)
+      if (D -> u[i] -> name() == 'q')
+        cout << "WARNING: energy field 'q' already present in restart file...\n";
     Nrg = new AuxField (new real_t[allocSize], nz, elmt, 'q');
     addField[iAdd++] = Nrg;
   }
 
   if (need[FUNCTION]) {
+    for (i = 0; i < D -> nField(); i++)
+      if (D -> u[i] -> name() == 'f')
+        cout << "WARNING: function field 'f' already present in restart file...\n";
     Func = new AuxField (new real_t[allocSize], nz, elmt, 'f');
     addField[iAdd++] = Func;
   }
 
   if (need[DIVERGENCE]) {
+    for (i = 0; i < D -> nField(); i++)
+      if (D -> u[i] -> name() == 'd')
+        cout << "WARNING: divergence field 'd' already present in restart file...\n";
     DivData = new real_t [allocSize];
     *(Div  =  new AuxField (DivData, nz, elmt, 'd')) = 0.0;
     addField[iAdd++] = Div;
   }
 
   if (need[DISCRIMINANT]) {
+    for (i = 0; i < D -> nField(); i++)
+      if (D -> u[i] -> name() == 'D')
+        cout << "WARNING: discriminant field 'D' already present in restart file...\n";
     DisData = new real_t [allocSize];
     *(Disc = new AuxField (DisData, nz, elmt, 'D')) = 0.0;
     addField[iAdd++] = Disc;
   }
 
   if (need[STRAINRATE]) {
+    for (i = 0; i < D -> nField(); i++)
+      if (D -> u[i] -> name() == 'g')
+        cout << "WARNING: strainrate field 'g' already present in restart file...\n";
     StrData = new real_t [allocSize];
     Strain  = new AuxField (StrData, nz, elmt, 'g');
     addField[iAdd++] = Strain;
   }
 
   if (need[VORTEXCORE]) {
+    for (i = 0; i < D -> nField(); i++)
+      if (D -> u[i] -> name() == 'J')
+        cout << "WARNING: vortex core field 'J' already present in restart file...\n";
     VtxData = new real_t [allocSize];
     Vtx = new AuxField (VtxData, nz, elmt, 'J');
     addField[iAdd++] = Vtx;
@@ -295,12 +313,23 @@ int main (int    argc,
 
   if (need[VORTICITY])
     if (NCOM == 2) {
+      for (i = 0; i < D -> nField(); i++)
+        if (D -> u[i] -> name() == 't')
+          cout << "WARNING: vorticity component field 't' already present in restart file...\n";
       vorticity.resize (1);
       VorData  .resize (1);
       VorData[0]       = new real_t [allocSize];
       vorticity[0]     = new AuxField (VorData[0], nz, elmt, 't');
       addField[iAdd++] = vorticity[0];
     } else {
+      for (i = 0; i < D -> nField(); i++) {
+        if (D -> u[i] -> name() == 'r')
+          cout << "WARNING: vorticity component field 'r' already present in restart file...\n";
+        if (D -> u[i] -> name() == 's')
+          cout << "WARNING: vorticity component field 's' already present in restart file...\n";
+        if (D -> u[i] -> name() == 't')
+          cout << "WARNING: vorticity component field 't' already present in restart file...\n";
+      }
       vorticity.resize (3);
       VorData  .resize (3);
       for (i = 0; i < 3; i++) {
@@ -311,6 +340,9 @@ int main (int    argc,
     }
 
   if (add[DIVLAMB]) { 		// -- Know also NDIM == 3.
+    for (i = 0; i < D -> nField(); i++)
+      if (D -> u[i] -> name() == 'L')
+        cout << "WARNING: Lamb vector divergence field 'L' already present in restart file...\n";
     lamb   .resize (3);
     LamData.resize (3);
     for (i = 0; i < 3; i++) {
@@ -321,12 +353,18 @@ int main (int    argc,
   }
 
   if (need[ENSTROPHY]) {
+    for (i = 0; i < D -> nField(); i++)
+      if (D -> u[i] -> name() == 'e')
+        cout << "WARNING: enstrophy field 'e' already present in restart file...\n";
     EnsData = new real_t[allocSize];
     Ens = new AuxField (EnsData, nz, elmt, 'e');
     if (add[ENSTROPHY]) addField[iAdd++] = Ens;
   }
   
   if (need[HELICITY]) {
+    for (i = 0; i < D -> nField(); i++)
+      if (D -> u[i] -> name() == 'H')
+        cout << "WARNING: enstrophy field 'H' already present in restart file...\n";
     HelData = new real_t [allocSize];
     Hel = new AuxField (HelData, nz, elmt, 'H');
     if (add[HELICITY]) addField[iAdd++] = Hel;
