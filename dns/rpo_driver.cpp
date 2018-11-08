@@ -53,7 +53,7 @@ static char RCS[] = "$Id$";
 #include <petscksp.h>
 #include <petscsnes.h>
 
-//#define X_FOURIER
+#define X_FOURIER
 
 static char prog[] = "dns";
 static void getargs    (int, char**, bool&, char*&);
@@ -383,7 +383,7 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
 #ifdef X_FOURIER
           for(int ii = 0; ii < nModesX; ii++) {
             waveNumX = (2.0*M_PI*ii)/(XMAX - XMIN);
-            val  = -1.0*waveNum*waveNum;
+            val  = -1.0*waveNumX*waveNumX;
 #else
           for(int ii = 0; ii < nNodesX; ii++) {
             val  = drdx[pt_j]*drdx[pt_j]*qw[ii%(elOrd+1)];
