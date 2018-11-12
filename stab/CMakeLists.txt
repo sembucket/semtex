@@ -1,42 +1,41 @@
-# copy these files over from ../src/ so that they can be compiled into the libstab.a library
+# soft linking these files from ../src/ so that they can be compiled into the libstab.a library
 # along with additional source files located in this directory (some of which share common 
 # names with other files in the ../src/ directory that are purposefully not copied over
-file(COPY
-"${CMAKE_SOURCE_DIR}/src/boundary.cpp"
-"${CMAKE_SOURCE_DIR}/src/boundary.h"
-"${CMAKE_SOURCE_DIR}/src/bsys.cpp" 
-"${CMAKE_SOURCE_DIR}/src/bsys.h" 
-"${CMAKE_SOURCE_DIR}/src/condition.cpp" 
-"${CMAKE_SOURCE_DIR}/src/condition.h" 
-"${CMAKE_SOURCE_DIR}/src/data2df.cpp" 
-"${CMAKE_SOURCE_DIR}/src/data2df.h" 
-"${CMAKE_SOURCE_DIR}/src/element.cpp" 
-"${CMAKE_SOURCE_DIR}/src/element.h" 
-"${CMAKE_SOURCE_DIR}/src/family.cpp" 
-"${CMAKE_SOURCE_DIR}/src/family.h" 
-"${CMAKE_SOURCE_DIR}/src/flowrate.cpp"
-"${CMAKE_SOURCE_DIR}/src/flowrate.h"
-"${CMAKE_SOURCE_DIR}/src/history.cpp" 
-"${CMAKE_SOURCE_DIR}/src/history.h" 
-"${CMAKE_SOURCE_DIR}/src/integration.cpp" 
-"${CMAKE_SOURCE_DIR}/src/integration.h" 
-"${CMAKE_SOURCE_DIR}/src/matrix.cpp" 
-"${CMAKE_SOURCE_DIR}/src/matrix.h" 
-"${CMAKE_SOURCE_DIR}/src/mesh.cpp" 
-"${CMAKE_SOURCE_DIR}/src/mesh.h" 
-"${CMAKE_SOURCE_DIR}/src/misc.cpp" 
-"${CMAKE_SOURCE_DIR}/src/misc.h" 
-"${CMAKE_SOURCE_DIR}/src/particle.cpp" 
-"${CMAKE_SOURCE_DIR}/src/particle.h" 
-"${CMAKE_SOURCE_DIR}/src/svv.cpp" 
-"${CMAKE_SOURCE_DIR}/src/svv.h" 
-"${CMAKE_SOURCE_DIR}/src/sem.h" 
-"${CMAKE_SOURCE_DIR}/src/feml.h" 
-"${CMAKE_SOURCE_DIR}/src/analysis.h" 
-"${CMAKE_SOURCE_DIR}/src/edge.h" 
-"${CMAKE_SOURCE_DIR}/src/bcmgr.h" 
-"${CMAKE_SOURCE_DIR}/src/numbersys.h" 
-"${CMAKE_SOURCE_DIR}/src/statistics.h" DESTINATION ${CMAKE_SOURCE_DIR}/stab)
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/boundary.cpp"    ${CMAKE_SOURCE_DIR}/stab/boundary.cpp   )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/boundary.h"      ${CMAKE_SOURCE_DIR}/stab/boundary.h     )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/bsys.cpp"        ${CMAKE_SOURCE_DIR}/stab/bsys.cpp       )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/bsys.h"          ${CMAKE_SOURCE_DIR}/stab/bsys.h         )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/condition.cpp"   ${CMAKE_SOURCE_DIR}/stab/condition.cpp  )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/condition.h"     ${CMAKE_SOURCE_DIR}/stab/condition.h    )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/data2df.cpp"     ${CMAKE_SOURCE_DIR}/stab/data2df.cpp    )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/data2df.h"       ${CMAKE_SOURCE_DIR}/stab/data2df.h      )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/element.cpp"     ${CMAKE_SOURCE_DIR}/stab/element.cpp    )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/element.h"       ${CMAKE_SOURCE_DIR}/stab/element.h      )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/family.cpp"      ${CMAKE_SOURCE_DIR}/stab/family.cpp     )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/family.h"        ${CMAKE_SOURCE_DIR}/stab/family.h       )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/flowrate.cpp"    ${CMAKE_SOURCE_DIR}/stab/flowrate.cpp   )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/flowrate.h"      ${CMAKE_SOURCE_DIR}/stab/flowrate.h     )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/history.cpp"     ${CMAKE_SOURCE_DIR}/stab/history.cpp    )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/history.h"       ${CMAKE_SOURCE_DIR}/stab/history.h      )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/integration.cpp" ${CMAKE_SOURCE_DIR}/stab/integration.cpp)
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/integration.h"   ${CMAKE_SOURCE_DIR}/stab/integration.h  )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/matrix.cpp"      ${CMAKE_SOURCE_DIR}/stab/matrix.cpp     )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/matrix.h"        ${CMAKE_SOURCE_DIR}/stab/matrix.h       )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/mesh.cpp"        ${CMAKE_SOURCE_DIR}/stab/mesh.cpp       )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/mesh.h"          ${CMAKE_SOURCE_DIR}/stab/mesh.h         )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/misc.cpp"        ${CMAKE_SOURCE_DIR}/stab/misc.cpp       )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/misc.h"          ${CMAKE_SOURCE_DIR}/stab/misc.h         )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/particle.cpp"    ${CMAKE_SOURCE_DIR}/stab/particle.cpp   )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/particle.h"      ${CMAKE_SOURCE_DIR}/stab/particle.h     )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/svv.cpp"         ${CMAKE_SOURCE_DIR}/stab/svv.cpp        )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/svv.h"           ${CMAKE_SOURCE_DIR}/stab/svv.h          )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/sem.h"           ${CMAKE_SOURCE_DIR}/stab/sem.h          )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/feml.h"          ${CMAKE_SOURCE_DIR}/stab/feml.h         )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/analysis.h"      ${CMAKE_SOURCE_DIR}/stab/analysis.h     )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/edge.h"          ${CMAKE_SOURCE_DIR}/stab/edge.h         )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/bcmgr.h"         ${CMAKE_SOURCE_DIR}/stab/bcmgr.h        )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/numbersys.h"     ${CMAKE_SOURCE_DIR}/stab/numbersys.h    )
+execute_process(COMMAND cmake -E create_symlink "${CMAKE_SOURCE_DIR}/src/statistics.h"    ${CMAKE_SOURCE_DIR}/stab/statistics.h   )
 
 set(stab_src
   analysis auxfield bcmgr boundary bsys condition data2df
