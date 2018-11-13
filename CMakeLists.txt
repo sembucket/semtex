@@ -8,9 +8,9 @@ option(WITH_FLIP   "Build dog with half-period map" OFF)
 option(WITH_ARPACK "Build dog with ARPACK"          OFF)
 
 # dependencies
-find_package(BISON)
-find_package(BLAS)
-find_package(LAPACK)
+find_package(BISON REQUIRED)
+find_package(BLAS REQUIRED)
+find_package(LAPACK REQUIRED)
 if(WITH_MPI)
   find_package(MPI)
 endif(WITH_MPI)
