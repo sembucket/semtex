@@ -65,7 +65,7 @@ Parallel build:
   %> ctest
 
 With user specificed MPI installation:
-  %> cmake .. -DWITH_MPI=ON -DMPI_C_COMPILER=/my/mpi/c/compiler -DMPI_CXX_COMPILER/my/mpi/c++/compiler
+  %> cmake .. -DWITH_MPI=ON -DMPI_C_COMPILER=/my/mpi/c/compiler -DMPI_CXX_COMPILER=/my/mpi/c++/compiler
 
 Files
 -----
