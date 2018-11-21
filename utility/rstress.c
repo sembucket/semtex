@@ -305,22 +305,22 @@ static void chknames (const char* field)
 
   if (!strstr (field, "uv")) {
     sprintf (err, "field names (%s) should contain \"uv\"", field);
-    message (prog, err, ERROR);
+    message (prog, err, WARNING);
   }
   if (strstr (field, "w") || strstr (field, "c"))
     if (!strstr (field, "ABCDEF")) {
       sprintf (err, "field names (%s) should contain \"ABCDEF\"", field);
-      message (prog, err, ERROR);
+      message (prog, err, WARNING);
     }
   if (strstr (field, "w") && strstr (field, "c"))
     if (!strstr (field, "ABCDEFGHIJ")) {
       sprintf (err, "field names (%s) should contain \"ABCDEFGHIJ\"", field);
-      message (prog, err, ERROR);
+      message (prog, err, WARNING);
     }
   else
     if (!strstr (field, "ABC")) {
       sprintf (err, "field names (%s) should contain \"ABC\"", field);
-      message (prog, err, ERROR);
+      message (prog, err, WARNING);
     }
 }
 
