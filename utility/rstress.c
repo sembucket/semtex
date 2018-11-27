@@ -295,6 +295,10 @@ static void chknames (const char* field)
  *                   | .  vv vw |  =  |  .  C  E |
  *                   \ .  .  ww /     \  .  .  F /
  *
+ *                   / uu uv uc \     /  A  B  G \
+ *                   | .  vv vc |  =  |  .  C  H |
+ *                   \ .  .  cc /     \  .  .  J /
+ *
  *                / uu uv uw uc \     /  A  B  D  G \
  *                | .  vv vw vc |  =  |  .  C  E  H |
  *                | .  .  ww wc |     |  .  .  F  I |
@@ -307,14 +311,19 @@ static void chknames (const char* field)
     sprintf (err, "field names (%s) should contain \"uv\"", field);
     message (prog, err, WARNING);
   }
-  if (strstr (field, "w") || strstr (field, "c"))
+  if (strstr (field, "w") && strstr (field, "c"))
+    if (!strstr (field, "ABCDEFGHIJ")) {
+      sprintf (err, "field names (%s) should contain \"ABCDEFGHIJ\"", field);
+      message (prog, err, WARNING);
+    }
+  else if (strstr (field, "w"))
     if (!strstr (field, "ABCDEF")) {
       sprintf (err, "field names (%s) should contain \"ABCDEF\"", field);
       message (prog, err, WARNING);
     }
-  if (strstr (field, "w") && strstr (field, "c"))
-    if (!strstr (field, "ABCDEFGHIJ")) {
-      sprintf (err, "field names (%s) should contain \"ABCDEFGHIJ\"", field);
+  else if (strstr (field, "c"))
+    if (!strstr (field, "ABCGHJ")) {
+      sprintf (err, "field names (%s) should contain \"ABCGHJ\"", field);
       message (prog, err, WARNING);
     }
   else
@@ -360,19 +369,14 @@ static void covary (Dump* h)
   dvvvtm (npts, h->data[k], 1, h->data[i], 1, h->data[i], 1, h->data[k], 1);
   k = _index (h -> field, 'B');
   dvvvtm (npts, h->data[k], 1, h->data[i], 1, h->data[j], 1, h->data[k], 1);
-  k = _index ( h -> field, 'C');
+  k = _index (h -> field, 'C');
   dvvvtm (npts, h->data[k], 1, h->data[j], 1, h->data[j], 1, h->data[k], 1);
 
   if (!strstr (h -> field, "w") && !strstr (h -> field, "c")) return;
 
   /* -- 3D. */
-
-  if (!strstr (h -> field, "w") || !strstr (h -> field, "c")) {  
-    if (strstr (h -> field, "w")) {
-      k = _index (h -> field, 'w');
-    } else {
-      k = _index (h -> field, 'c');
-    }
+  if (strstr (h -> field, "w")) {
+    k = _index (h -> field, 'w');
 
     m = _index (h -> field, 'D');
     dvvvtm (npts, h->data[m], 1, h->data[i], 1, h->data[k], 1, h->data[m], 1);
@@ -380,30 +384,25 @@ static void covary (Dump* h)
     dvvvtm (npts, h->data[m], 1, h->data[j], 1, h->data[k], 1, h->data[m], 1);
     m = _index (h -> field, 'F');
     dvvvtm (npts, h->data[m], 1, h->data[k], 1, h->data[k], 1, h->data[m], 1);
-
-    return;
   }
 
-  /* -- 4D. */
-  k = _index (h -> field, 'w');
-  l = _index (h -> field, 'c');
+  /* -- C.  */
+  if (strstr (h -> field, "c")) {
+    l = _index (h -> field, 'c');
 
-  m = _index (h -> field, 'D');
-  dvvvtm (npts, h->data[m], 1, h->data[i], 1, h->data[k], 1, h->data[m], 1);
-  m = _index (h -> field, 'E');
-  dvvvtm (npts, h->data[m], 1, h->data[j], 1, h->data[k], 1, h->data[m], 1);
-  m = _index (h -> field, 'F');
-  dvvvtm (npts, h->data[m], 1, h->data[k], 1, h->data[k], 1, h->data[m], 1);
+    m = _index (h -> field, 'G');
+    dvvvtm (npts, h->data[m], 1, h->data[i], 1, h->data[l], 1, h->data[m], 1);
+    m = _index (h -> field, 'H');
+    dvvvtm (npts, h->data[m], 1, h->data[j], 1, h->data[l], 1, h->data[m], 1);
+    m = _index (h -> field, 'J');
+    dvvvtm (npts, h->data[m], 1, h->data[l], 1, h->data[l], 1, h->data[m], 1);
+  }
 
-  m = _index (h -> field, 'G');
-  dvvvtm (npts, h->data[m], 1, h->data[i], 1, h->data[l], 1, h->data[m], 1);
-  m = _index (h -> field, 'H');
-  dvvvtm (npts, h->data[m], 1, h->data[j], 1, h->data[l], 1, h->data[m], 1);
-  m = _index (h -> field, 'I');
-  dvvvtm (npts, h->data[m], 1, h->data[k], 1, h->data[l], 1, h->data[m], 1);
-  m = _index (h -> field, 'J');
-  dvvvtm (npts, h->data[m], 1, h->data[l], 1, h->data[l], 1, h->data[m], 1);
-
+  /* -- 3D & C. */
+  if (strstr (h -> field, "w") && strstr (h -> field, "c")) {
+    m = _index (h -> field, 'I');
+    dvvvtm (npts, h->data[m], 1, h->data[k], 1, h->data[l], 1, h->data[m], 1);
+  }
 }
 
 
