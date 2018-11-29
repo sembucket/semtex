@@ -97,6 +97,8 @@ struct Context {
 #define YMAX 0.5
 #define NELS_X 30
 #define NELS_Y 7
+#define NSLICE 16
+#define NSTEPS 3200
 
 void data_transpose(real_t* data, int nx, int ny) {
   real_t* temp = new real_t[nx*ny];
@@ -422,7 +424,7 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
 
 PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   Context* context = (Context*)ctx;
-  const real_t dt = Femlib::value ("D_T");
+  real_t dt;
   int nField = context->domain->nField();
   int slice_i, slice_j, field_i, mode_i, dof_i, nStep;
   int elOrd = Geometry::nP() - 1;
@@ -432,10 +434,18 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   register real_t* data_r;
   register real_t* data_c;
   real_t* data_f = new real_t[NELS_Y*elOrd*nNodesX];
+  real_t time;
 
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
+  dt = Femlib::value ("D_T");
+
   for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
+    // update the starting time for this slice
+    context->domain->time = time;
+    Femlib::value("t", time);
+    time += context->tau_i[slice_i];
+
     // initialise the flow map fields with the solution fields
     for(field_i = 0; field_i < nField; field_i++) {
         *context->domain->u[field_i] = *context->ui[slice_i * nField + field_i];
@@ -446,6 +456,8 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     // don't really want to call the dns analysis, use custom integrate routine instead?
     //integrate(skewSymmetric, context->domain, context->bman, context->ff, nStep);
     Femlib::ivalue("N_STEP", nStep);
+    context->domain->step = 0;
+    if(!myRank) cout << "\tslice: " << slice_i << "\ttau: " << context->tau_i[slice_i] << "\tnum steps: " << nStep << endl;
     integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
 
     // phase shift in theta (axial direction)
@@ -502,7 +514,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     real_t f_norm, x_norm;
     VecNorm(x, NORM_2, &x_norm);
     VecNorm(f, NORM_2, &f_norm);
-    cout << "evaluating function, |x|: " << x_norm << "\t|f|: " << f_norm << endl;
+    if(!myRank) cout << "evaluating function, |x|: " << x_norm << "\t|f|: " << f_norm << endl;
   }
 
   delete[] data_f;
@@ -526,6 +538,8 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   Mat J, P;
   SNES snes;
   SNESConvergedReason reason;
+
+  if(!myRank)cout<<"time step: "<<Femlib::value("D_T")<<endl;
 
   context->nSlice  = nSlice;
   context->mesh    = mesh;
@@ -552,7 +566,8 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   for(int slice_i = 0; slice_i < nSlice; slice_i++) {
     context->theta_i[slice_i] = 0.0;
     context->phi_i[slice_i] = 0.0;
-    context->tau_i[slice_i] = Femlib::ivalue("D_T");
+    context->tau_i[slice_i] = NSTEPS*Femlib::value("D_T");
+    if(!myRank) cout << "slice: " << slice_i << "\ttau: " << context->tau_i[slice_i] << endl;
   }
 
   // setup the fourier mapping data
@@ -668,7 +683,6 @@ int main (int argc, char** argv) {
   DNSAnalyser*     analyst;
   FieldForce*      FF;
   static char      help[] = "petsc";
-  int              nSlice = 8;
   vector<Field*>   ui; // Solution fields for velocities, pressure at the i time slices
   vector<Field*>   fi; // Solution fields for flow maps at the i time slices
   char             session_i[100];
@@ -687,12 +701,13 @@ int main (int argc, char** argv) {
   //ROOTONLY domain -> report ();
   
   // load in the time slices
-  ui.resize(nSlice * domain->nField());
-  fi.resize(nSlice * domain->nField());
+  ui.resize(NSLICE * domain->nField());
+  fi.resize(NSLICE * domain->nField());
   delete file;
   delete domain;
-  for(int slice_i = 0; slice_i < nSlice; slice_i++) {
-    sprintf(session_i, "%s.%u", session, slice_i + 1);
+  for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
+    //sprintf(session_i, "%s.%u", session, slice_i + 1);
+    sprintf(session_i, "%s.%u", session, 4*slice_i);
     FEML* file_i = new FEML(session_i);
     domain = new Domain(file_i, elmt, bman);
     domain->restart();
@@ -713,14 +728,15 @@ int main (int argc, char** argv) {
     delete domain;
   }
 
+  Femlib::initialize (&argc, &argv);
   file = new FEML(session_i);
   domain = new Domain(file, elmt, bman);
 
   // solve the newton-rapheson problem
-  rpo_solve(nSlice, mesh, elmt, bman, domain, analyst, FF, ui, fi);
+  rpo_solve(NSLICE, mesh, elmt, bman, domain, analyst, FF, ui, fi);
 
   // dump the output
-  for(int slice_i = 0; slice_i < nSlice; slice_i++) {
+  for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
     sprintf(session_i, "%s_rpo_%u", session, slice_i + 1);
     FEML* file_i = new FEML(session_i);
     domain = new Domain(file_i, elmt, bman);

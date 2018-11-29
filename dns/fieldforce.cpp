@@ -868,10 +868,11 @@ void BuoyancyForce::physical (AuxField*               ff ,
   vector<real_t> g(3);
   const int_t nZP  = Geometry::nZProc();
   const int_t nTot = Geometry::nTotProc();
-  const real_t norm = Femlib::value ("sqrt (g_1*g_1 + g_2*g_2 + g_3*g_3)");
+  real_t norm;
 
   if (!_enabled) return;
 
+  norm = Femlib::value ("sqrt (g_1*g_1 + g_2*g_2 + g_3*g_3)");
   g[0] = Femlib::value ("g_1 * GRAVITY") / norm;
   g[1] = Femlib::value ("g_2 * GRAVITY") / norm;
   g[2] = Femlib::value ("g_3 * GRAVITY") / norm;
