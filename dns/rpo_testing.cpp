@@ -55,7 +55,7 @@ static char RCS[] = "$Id$";
 
 #define X_FOURIER
 
-static char prog[] = "dns";
+static char prog[] = "rpo_test";
 static void getargs    (int, char**, bool&, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, Domain*&, FieldForce*&);
@@ -94,7 +94,7 @@ struct Context {
 #define XMIN 0.0
 #define XMAX (2.0*M_PI)
 #define YMIN 0.0
-#define YMAX 0.5
+#define YMAX 1.0
 #define NELS_X 30
 #define NELS_Y 7
 
@@ -478,7 +478,7 @@ int main (int argc, char** argv) {
   DNSAnalyser*     analyst;
   FieldForce*      FF;
   static char      help[] = "petsc";
-  int              nSlice = 8;
+  int              nSlice = 16;
   vector<Field*>   ui; // Solution fields for velocities, pressure at the i time slices
   vector<Field*>   fi; // Solution fields for flow maps at the i time slices
   char             session_i[100];
@@ -502,7 +502,8 @@ int main (int argc, char** argv) {
   delete file;
   delete domain;
   for(int slice_i = 0; slice_i < nSlice; slice_i++) {
-    sprintf(session_i, "%s.%u", session, slice_i + 1);
+    //sprintf(session_i, "%s.%u", session, slice_i + 1);
+    sprintf(session_i, "%s.%u", session, 4*slice_i);
     FEML* file_i = new FEML(session_i);
     domain = new Domain(file_i, elmt, bman);
     domain->restart();
@@ -542,8 +543,7 @@ int main (int argc, char** argv) {
     delete domain;
   } 
 
-  Femlib::finalize();
-
+  //Femlib::finalize();
   PetscFinalize();
 
   return EXIT_SUCCESS;

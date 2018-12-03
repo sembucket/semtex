@@ -55,7 +55,7 @@ static char RCS[] = "$Id$";
 
 #define X_FOURIER
 
-static char prog[] = "dns";
+static char prog[] = "rpo";
 static void getargs    (int, char**, bool&, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, Domain*&, FieldForce*&);
@@ -98,7 +98,8 @@ struct Context {
 #define NELS_X 30
 #define NELS_Y 7
 #define NSLICE 16
-#define NSTEPS 3200
+//#define NSTEPS 3200
+#define NSTEPS 400
 
 void data_transpose(real_t* data, int nx, int ny) {
   real_t* temp = new real_t[nx*ny];
@@ -434,17 +435,18 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   register real_t* data_r;
   register real_t* data_c;
   real_t* data_f = new real_t[NELS_Y*elOrd*nNodesX];
-  real_t time;
+  real_t time = 0.0;
 
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
+Femlib::value("D_T", 0.002); // 8x simulation value
   dt = Femlib::value ("D_T");
 
   for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
     // update the starting time for this slice
     context->domain->time = time;
     Femlib::value("t", time);
-    time += context->tau_i[slice_i];
+if(!myRank)cout<<"start time: "<<time<<endl;
 
     // initialise the flow map fields with the solution fields
     for(field_i = 0; field_i < nField; field_i++) {
@@ -506,8 +508,9 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
       *context->fi[slice_j * nField + field_i] *= -1.0;
       *context->fi[slice_j * nField + field_i] += *context->ui[slice_j * nField + field_i];
     }
-  }
 
+    time += context->tau_i[slice_i];
+  }
   RepackX(context, context->fi, context->theta_i, context->phi_i, context->tau_i, f);
 
   {
@@ -563,6 +566,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->theta_i = new real_t[nSlice];
   context->phi_i   = new real_t[nSlice];
   context->tau_i   = new real_t[nSlice];
+Femlib::value("D_T", 0.002); // 8x simulation value
   for(int slice_i = 0; slice_i < nSlice; slice_i++) {
     context->theta_i[slice_i] = 0.0;
     context->phi_i[slice_i] = 0.0;
@@ -617,9 +621,9 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
 
   context->localShift = myRank * context->localSize;
 #ifdef X_FOURIER
-  if(myRank) context->localShift += 3;
+  if(myRank) context->localShift += (3*nSlice);
 #else
-  if(myRank) context->localShift += 2;
+  if(myRank) context->localShift += (2*nSlice);
 #endif
 
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &x);
@@ -661,8 +665,8 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   MatDestroy(&J);
   MatDestroy(&P);
   VecScatterDestroy(&context->ltog);
-  ISDestroy(&context->isl);
-  ISDestroy(&context->isg);
+  //ISDestroy(&context->isl);
+  //ISDestroy(&context->isg);
   delete[] context->el;
   delete[] context->r;
   delete[] context->s;
@@ -748,8 +752,7 @@ int main (int argc, char** argv) {
     delete domain;
   } 
 
-  Femlib::finalize ();
-
+  //Femlib::finalize ();
   PetscFinalize();
 
   return EXIT_SUCCESS;
