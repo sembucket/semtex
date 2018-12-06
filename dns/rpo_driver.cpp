@@ -76,6 +76,7 @@ struct Context {
     FieldForce*      ff;
     vector<Field*>   ui;
     vector<Field*>   fi;
+    vector<Field*>   tmp;
     real_t*          theta_i;
     real_t*          phi_i;
     real_t*          tau_i;
@@ -99,7 +100,7 @@ struct Context {
 #define NELS_Y 7
 #define NSLICE 16
 //#define NSTEPS 3200
-#define NSTEPS 400
+#define NSTEPS 40
 
 void data_transpose(real_t* data, int nx, int ny) {
   real_t* temp = new real_t[nx*ny];
@@ -437,29 +438,43 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   real_t* data_f = new real_t[NELS_Y*elOrd*nNodesX];
   real_t time = 0.0;
 
+if(!myRank)cout<<"into user function..."<<endl;
+
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
-Femlib::value("D_T", 0.002); // 8x simulation value
+Femlib::value("D_T", 0.02); // 80x simulation value
   dt = Femlib::value ("D_T");
 
   for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
     // update the starting time for this slice
     context->domain->time = time;
     Femlib::value("t", time);
-if(!myRank)cout<<"start time: "<<time<<endl;
+    if(!myRank)cout<<"start time: "<<time<<endl;
 
     // initialise the flow map fields with the solution fields
     for(field_i = 0; field_i < nField; field_i++) {
-        *context->domain->u[field_i] = *context->ui[slice_i * nField + field_i];
+      *context->domain->u[field_i] = *context->ui[slice_i * nField + field_i];
+    }
+
+    // assign the temporary fields (used for the construction of F
+    slice_j = (slice_i+1)%context->nSlice;
+    for(field_i = 0; field_i < nField; field_i++) {
+      *context->tmp[field_i] = *context->ui[slice_j * nField + field_i];
     }
 
     // solve the flow map for time tau_i
+    MPI_Bcast(&context->tau_i[slice_i]  , 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&context->theta_i[slice_i], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&context->phi_i[slice_i]  , 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
     nStep = (int)(context->tau_i[slice_i]/dt);
     // don't really want to call the dns analysis, use custom integrate routine instead?
     //integrate(skewSymmetric, context->domain, context->bman, context->ff, nStep);
     Femlib::ivalue("N_STEP", nStep);
+    Femlib::value("D_T", context->tau_i[slice_i]/nStep);
     context->domain->step = 0;
-    if(!myRank) cout << "\tslice: " << slice_i << "\ttau: " << context->tau_i[slice_i] << "\tnum steps: " << nStep << endl;
+    if(!myRank) cout << "\tslice: " << slice_i << "\ttau:   " << context->tau_i[slice_i]   << "\tnstep: " << Femlib::ivalue("N_STEP") << endl;
+    if(!myRank) cout << "\t       " << slice_i << "\ttheta: " << context->theta_i[slice_i] << "\tphi:   " << context->phi_i[slice_i] << endl;
     integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
 
     // phase shift in theta (axial direction)
@@ -506,13 +521,30 @@ if(!myRank)cout<<"start time: "<<time<<endl;
 
       *context->fi[slice_j * nField + field_i]  = *context->domain->u[field_i];
       *context->fi[slice_j * nField + field_i] *= -1.0;
-      *context->fi[slice_j * nField + field_i] += *context->ui[slice_j * nField + field_i];
+      //*context->fi[slice_j * nField + field_i] += *context->ui[slice_j * nField + field_i];
+      *context->fi[slice_j * nField + field_i] += *context->tmp[field_i];
     }
 
     time += context->tau_i[slice_i];
   }
   RepackX(context, context->fi, context->theta_i, context->phi_i, context->tau_i, f);
+  Femlib::value("D_T", dt);
 
+{
+char session_i[100];
+for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
+sprintf(session_i, "tube8_tw_rpo_%u", slice_i + 1);
+FEML* file_i = new FEML(session_i);
+Domain* dom = new Domain(file_i, context->elmt, context->bman);
+for(field_i = 0; field_i < nField; field_i++) {
+dom->u[field_i] = context->ui[slice_i*nField+field_i];
+}
+dom->dump();
+delete file_i;
+delete dom;
+}
+}
+ 
   {
     real_t f_norm, x_norm;
     VecNorm(x, NORM_2, &x_norm);
@@ -526,7 +558,7 @@ if(!myRank)cout<<"start time: "<<time<<endl;
 }
 
 void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domain* domain, DNSAnalyser* analyst, FieldForce* FF, 
-               vector<Field*> ui, vector<Field*> fi) 
+               vector<Field*> ui, vector<Field*> fi, vector<Field*> tmp) 
 {
   Context* context = new Context;
   int nIts;
@@ -553,6 +585,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->ff      = FF;
   context->ui      = ui;
   context->fi      = fi;
+  context->tmp     = tmp;
 
   // add dofs for theta and tau for each time slice
 #ifdef X_FOURIER
@@ -566,7 +599,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->theta_i = new real_t[nSlice];
   context->phi_i   = new real_t[nSlice];
   context->tau_i   = new real_t[nSlice];
-Femlib::value("D_T", 0.002); // 8x simulation value
+Femlib::value("D_T", 0.02); // 80x simulation value
   for(int slice_i = 0; slice_i < nSlice; slice_i++) {
     context->theta_i[slice_i] = 0.0;
     context->phi_i[slice_i] = 0.0;
@@ -665,8 +698,8 @@ Femlib::value("D_T", 0.002); // 8x simulation value
   MatDestroy(&J);
   MatDestroy(&P);
   VecScatterDestroy(&context->ltog);
-  //ISDestroy(&context->isl);
-  //ISDestroy(&context->isg);
+  ISDestroy(&context->isl);
+  ISDestroy(&context->isg);
   delete[] context->el;
   delete[] context->r;
   delete[] context->s;
@@ -676,7 +709,6 @@ int main (int argc, char** argv) {
 #ifdef _GNU_SOURCE
   feenableexcept (FE_OVERFLOW);    // -- Force SIG8 crash on FP overflow.
 #endif
-
   char*            session;
   bool             freeze = false;
   vector<Element*> elmt;
@@ -687,8 +719,9 @@ int main (int argc, char** argv) {
   DNSAnalyser*     analyst;
   FieldForce*      FF;
   static char      help[] = "petsc";
-  vector<Field*>   ui; // Solution fields for velocities, pressure at the i time slices
-  vector<Field*>   fi; // Solution fields for flow maps at the i time slices
+  vector<Field*>   ui;  // Solution fields for velocities, pressure at the i time slices
+  vector<Field*>   fi;  // Solution fields for flow maps at the i time slices
+  vector<Field*>   tmp; // Temporary solution fields for use in the rpo solver
   char             session_i[100];
 
   PetscInitialize(&argc, &argv, (char*)0, help);
@@ -707,6 +740,7 @@ int main (int argc, char** argv) {
   // load in the time slices
   ui.resize(NSLICE * domain->nField());
   fi.resize(NSLICE * domain->nField());
+  tmp.resize(domain->nField());
   delete file;
   delete domain;
   for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
@@ -732,12 +766,25 @@ int main (int argc, char** argv) {
     delete domain;
   }
 
-  Femlib::initialize (&argc, &argv);
+  // allocate the temporary fields
+  {
+    sprintf(session_i, "%s.0", session);
+    FEML* file_i = new FEML(session_i);
+    domain = new Domain(file_i, elmt, bman);
+    domain->restart();
+    for(int field_i = 0; field_i < domain->nField(); field_i++) {
+      tmp[field_i] = domain->u[field_i];
+    }
+    delete file_i;
+    delete domain;
+  }
+
+  //Femlib::initialize (&argc, &argv);
   file = new FEML(session_i);
   domain = new Domain(file, elmt, bman);
 
   // solve the newton-rapheson problem
-  rpo_solve(NSLICE, mesh, elmt, bman, domain, analyst, FF, ui, fi);
+  rpo_solve(NSLICE, mesh, elmt, bman, domain, analyst, FF, ui, fi, tmp);
 
   // dump the output
   for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
@@ -752,7 +799,6 @@ int main (int argc, char** argv) {
     delete domain;
   } 
 
-  //Femlib::finalize ();
   PetscFinalize();
 
   return EXIT_SUCCESS;
