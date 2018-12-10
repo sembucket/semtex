@@ -340,11 +340,10 @@ void dmd_solve(int nSlice, Domain* domain, vector<Field*> ui) {
 
   // write to file
   for(slice_i = 0; slice_i < nSlice; slice_i++) {
-    EPSGetEigenpair(eps, ii, &lambda_r, &lambda_i, vr, vi);
+    EPSGetEigenpair(eps, slice_i, &lambda_r, &lambda_i, vr, vi);
     freq = log(fabs(lambda_r))/1.0;
 
-    if(!myRank) cout << slice_i << "\tlambda:   " << lambda_r << " + " << lambda_i << endl;
-    if(!myRank) cout << slice_i << "\tfreqency: " << freq << endl;
+    if(!myRank) cout << slice_i << "\tlambda:   " << lambda_r << " + " << lambda_i << "i\tfreqency: " << freq << endl;
 
     MatMult(XTVSI, vr, x[slice_i]);
     UnpackX(context, context->ui, slice_i, x[slice_i]);
