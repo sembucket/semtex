@@ -62,7 +62,7 @@ void message_init (int*    argc,
   int  n;
   char s[STR_MAX];
 
-  MPI_Init      (argc, argv);
+  //MPI_Init      (argc, argv);
   yy_initialize ();
 
   MPI_Comm_rank (MPI_COMM_WORLD,   &n);

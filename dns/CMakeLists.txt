@@ -23,8 +23,8 @@ target_sources(rpo_test PRIVATE
   "${CMAKE_CURRENT_LIST_DIR}/rpo_testing.cpp"
 )
 
-target_sources(dmd PRIVATE
-  "${CMAKE_CURRENT_LIST_DIR}/dnsanalysis.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/fieldforce.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/dmd_driver.cpp"
-)
+#target_sources(dmd PRIVATE
+#  "${CMAKE_CURRENT_LIST_DIR}/dnsanalysis.cpp"
+#  "${CMAKE_CURRENT_LIST_DIR}/fieldforce.cpp"
+#  "${CMAKE_CURRENT_LIST_DIR}/dmd_driver.cpp"
+#)
