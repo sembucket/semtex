@@ -114,6 +114,7 @@ void build_preconditioner(vector<Element*> elmt, Mat P) {
   double qx[] = {-1.0, +1.0, +1.0, -1.0};
   double qy[] = {-1.0, -1.0, +1.0, +1.0};
   double dx[4];
+  double delta_x, delta_y;
   double kinvis = Femlib::value("KINVIS");
   double dt = Femlib::value("D_T");
   Mat G, K, S;
@@ -148,7 +149,9 @@ void build_preconditioner(vector<Element*> elmt, Mat P) {
       yi[2] = elmt[se]->_ymesh[(fe_y+1)*(elOrd+1)+fe_x+1];
       yi[3] = elmt[se]->_ymesh[(fe_y+1)*(elOrd+1)+fe_x+0];
 
-      det = 0.25*fabs(xi[2]-xi[0])*fabs(yi[2]-yi[0]);
+      delta_x = 0.5 * fabs(xi[1] - xi[0]);
+      delta_y = 0.5 * fabs(yi[3] - yi[0]);
+      det = delta_x * delta_y;
 
       // grad matrix (weak form)
       for(int row = 0; row < 4; row++) {
@@ -179,8 +182,8 @@ void build_preconditioner(vector<Element*> elmt, Mat P) {
           col_k[0] = col_j*nx + col_i;
 
           for(int pnt = 0; pnt < 4; pnt++) {
-            dx[0] = -dt * dNidx(pnt, qx[pnt], qy[pnt]) * Ni(pnt, qx[pnt], qy[pnt]);
-            dx[1] = -dt * dNidy(pnt, qx[pnt], qy[pnt]) * Ni(pnt, qx[pnt], qy[pnt]);
+            dx[0] = -dt * delta_x * dNidx(pnt, qx[pnt], qy[pnt]) * Ni(pnt, qx[pnt], qy[pnt]);
+            dx[1] = -dt * delta_y * dNidy(pnt, qx[pnt], qy[pnt]) * Ni(pnt, qx[pnt], qy[pnt]);
 
             MatSetValues(G, 2, row_k, 1, col_k, dx, ADD_VALUES);
           }
@@ -217,10 +220,10 @@ void build_preconditioner(vector<Element*> elmt, Mat P) {
           col_k[1] = 2*(col_j*nx + col_i) + 1;
 
           for(int pnt = 0; pnt < 4; pnt++) {
-            dx[0]  = -dt * kinvis * det * dNidx(pnt, qx[pnt], qy[pnt]) * dNidx(pnt, qx[pnt], qy[pnt]);
-            dx[1]  = -dt * kinvis * det * dNidx(pnt, qx[pnt], qy[pnt]) * dNidy(pnt, qx[pnt], qy[pnt]);
-            dx[2]  = -dt * kinvis * det * dNidy(pnt, qx[pnt], qy[pnt]) * dNidx(pnt, qx[pnt], qy[pnt]);
-            dx[3]  = -dt * kinvis * det * dNidy(pnt, qx[pnt], qy[pnt]) * dNidy(pnt, qx[pnt], qy[pnt]);
+            dx[0]  = -dt * kinvis * det * delta_x * dNidx(pnt, qx[pnt], qy[pnt]) * delta_x * dNidx(pnt, qx[pnt], qy[pnt]);
+            dx[1]  = -dt * kinvis * det * delta_x * dNidx(pnt, qx[pnt], qy[pnt]) * delta_y * dNidy(pnt, qx[pnt], qy[pnt]);
+            dx[2]  = -dt * kinvis * det * delta_y * dNidy(pnt, qx[pnt], qy[pnt]) * delta_x * dNidx(pnt, qx[pnt], qy[pnt]);
+            dx[3]  = -dt * kinvis * det * delta_y * dNidy(pnt, qx[pnt], qy[pnt]) * delta_y * dNidy(pnt, qx[pnt], qy[pnt]);
 
             MatSetValues(K, 2, row_k, 2, col_k, dx, ADD_VALUES);
 
