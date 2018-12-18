@@ -98,7 +98,7 @@ double dNidy(int i, double x, double y) {
 // Reference:
 //   Griffith (2009) "An accurate and efficient method for the incompressible Navier-Stokes
 //   equations using the projection method as a preconditioner" J. Comp. Phys. 228, 7565-7595
-void build_preconditioner(vector<Element*> elmt, Mat P) {
+void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localShift, vector<Element*> elmt, Mat P) {
   int elOrd = Geometry::nP() - 1;
   int nx = elOrd*NELS_X;
   int ny = elOrd*NELS_Y;
@@ -107,6 +107,7 @@ void build_preconditioner(vector<Element*> elmt, Mat P) {
   int row_x, row_y, col_x, col_y;
   int row_k[2], col_k[2];
   int nCols;
+  int offset;
   const int* cols;
   const double* vals;
   int pRow, pCols[99];
@@ -255,34 +256,44 @@ void build_preconditioner(vector<Element*> elmt, Mat P) {
   // assemble operators into the preconditioner
   MatZeroEntries(P);
 
-  // [u,u] block
-  for(int row_i = 0; row_i < 2*nx*ny; row_i++) {
-    MatGetRow(K, row_i, &nCols, &cols, &vals);
-    MatSetValues(P, 1, &row_i, nCols, cols, vals, INSERT_VALUES);
-    MatRestoreRow(K, row_i, &nCols, &cols, &vals);
-  }
+  for(int slice_i = 0; slice_i < nSlice; slice_i++) {
+    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
+      offset = slice_i * nDofsSlice + plane_i * nDofsPlane + localShift;
 
-  // [u,p] block
-  for(int row_i = 0; row_i < 2*nx*ny; row_i++) {
-    MatGetRow(G, row_i, &nCols, &cols, &vals);
-    for(int col_i = 0; col_i < nCols; col_i++) {
-      pCols[col_i] = cols[col_i] + 2*nx*ny;
+      // [u,u] block
+      for(int row_i = 0; row_i < 2*nx*ny; row_i++) {
+        MatGetRow(K, row_i, &nCols, &cols, &vals);
+        pRow = row_i + offset;
+        for(int col_i = 0; col_i < nCols; col_i++) {
+          pCols[col_i] = cols[col_i] + offset;
+        }
+        MatSetValues(P, 1, &pRow, nCols, pCols, vals, INSERT_VALUES);
+        MatRestoreRow(K, row_i, &nCols, &cols, &vals);
+      }
+
+      // [u,p] block
+      for(int row_i = 0; row_i < 2*nx*ny; row_i++) {
+        MatGetRow(G, row_i, &nCols, &cols, &vals);
+        pRow = row_i + offset;
+        for(int col_i = 0; col_i < nCols; col_i++) {
+          pCols[col_i] = cols[col_i] + 2*nx*ny + offset;
+        }
+        MatSetValues(P, 1, &pRow, nCols, pCols, vals, INSERT_VALUES);
+        MatRestoreRow(G, row_i, &nCols, &cols, &vals);
+      }
+
+      // [p,p] block
+      for(int row_i = 0; row_i < nx*ny; row_i++) {
+        MatGetRow(S, row_i, &nCols, &cols, &vals);
+        pRow = row_i + 2*nx*ny + offset;
+        for(int col_i = 0; col_i < nCols; col_i++) {
+          pCols[col_i] = cols[col_i] + 2*nx*ny + offset;
+        }
+        MatSetValues(P, 1, &pRow, nCols, pCols, vals, INSERT_VALUES);
+        MatRestoreRow(S, row_i, &nCols, &cols, &vals);
+      }
     }
-    MatSetValues(P, 1, &row_i, nCols, pCols, vals, INSERT_VALUES);
-    MatRestoreRow(G, row_i, &nCols, &cols, &vals);
   }
-
-  // [p,p] block
-  for(int row_i = 0; row_i < nx*ny; row_i++) {
-    MatGetRow(S, row_i, &nCols, &cols, &vals);
-    pRow = row_i + 2*nx*ny;
-    for(int col_i = 0; col_i < nCols; col_i++) {
-      pCols[col_i] = cols[col_i] + 2*nx*ny;
-    }
-    MatSetValues(P, 1, &pRow, nCols, pCols, vals, INSERT_VALUES);
-    MatRestoreRow(S, row_i, &nCols, &cols, &vals);
-  }
-
   MatAssemblyBegin(P, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(  P, MAT_FINAL_ASSEMBLY);
 

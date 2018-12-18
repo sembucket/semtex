@@ -2,4 +2,4 @@
 #include <petscvec.h>
 #include <petscmat.h>
 
-void build_preconditioner(vector<Element*> elmt, Mat P);
+void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localShift, vector<Element*> elmt, Mat P);
