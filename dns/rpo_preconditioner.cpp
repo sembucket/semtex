@@ -98,7 +98,7 @@ double dNidy(int i, double x, double y) {
 // Reference:
 //   Griffith (2009) "An accurate and efficient method for the incompressible Navier-Stokes
 //   equations using the projection method as a preconditioner" J. Comp. Phys. 228, 7565-7595
-void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localShift, vector<Element*> elmt, Mat P) {
+void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localSize, int localShift, vector<Element*> elmt, Mat P) {
   int elOrd = Geometry::nP() - 1;
   int nx = elOrd*NELS_X;
   int ny = elOrd*NELS_Y;
@@ -122,7 +122,7 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
   Mat Kii_inv, D, LK, LKR, DKinv;
 
   MatCreateSeqAIJ(MPI_COMM_SELF, 2*nx*ny, 1*nx*ny, 16, NULL, &G);
-  MatCreateSeqAIJ(MPI_COMM_SELF, 2*nx*ny, 2*nx*ny, 16, NULL, &K);
+  MatCreateSeqAIJ(MPI_COMM_SELF, 2*nx*ny, 2*nx*ny, 64, NULL, &K);
   MatCreateSeqAIJ(MPI_COMM_SELF, 2*nx*ny, 2*nx*ny,  1, NULL, &Kii_inv);
 
   MatZeroEntries(G);
@@ -136,8 +136,8 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
 
     // loop over FINITE elements within the given SPECTRAL element
     for(int fe = 0; fe < elOrd*elOrd; fe++) {
-      int fe_x = fe%(elOrd+1);
-      int fe_y = fe/(elOrd+1);
+      int fe_x = fe%elOrd;
+      int fe_y = fe/elOrd;
 
       // global coordinates (counter clockwise)
       xi[0] = elmt[se]->_xmesh[(fe_y+0)*(elOrd+1)+fe_x+0];
@@ -162,6 +162,9 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
         row_i = se_x*elOrd + fe_x + row_x;
         row_j = se_y*elOrd + fe_y + row_y;
 
+        // periodic in z
+        if(row_i == elOrd*NELS_X) continue;
+
         // skip the first row of nodes (these are dirichlet bcs)
         if(!row_j) continue;
         row_j--;
@@ -175,6 +178,9 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
 
           col_i = se_x*elOrd + fe_x + col_x;
           col_j = se_y*elOrd + fe_y + col_y;
+
+          // periodic in z
+          if(col_i == elOrd*NELS_X) continue;
 
           // skip the first row of nodes (these are dirichlet bcs)
           if(!col_j) continue;
@@ -199,6 +205,9 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
         row_i = se_x*elOrd + fe_x + row_x;
         row_j = se_y*elOrd + fe_y + row_y;
 
+        // periodic in z
+        if(row_i == elOrd*NELS_X) continue;
+
         // skip the first row of nodes (these are dirichlet bcs)
         if(!row_j) continue;
         row_j--;
@@ -213,6 +222,9 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
           col_i = se_x*elOrd + fe_x + col_x;
           col_j = se_y*elOrd + fe_y + col_y;
 
+          // periodic in z
+          if(col_i == elOrd*NELS_X) continue;
+
           // skip the first row of nodes (these are dirichlet bcs)
           if(!col_j) continue;
           col_j--;
@@ -221,18 +233,18 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
           col_k[1] = 2*(col_j*nx + col_i) + 1;
 
           for(int pnt = 0; pnt < 4; pnt++) {
-            dx[0]  = -dt * kinvis * det * delta_x * dNidx(pnt, qx[pnt], qy[pnt]) * delta_x * dNidx(pnt, qx[pnt], qy[pnt]);
-            dx[1]  = -dt * kinvis * det * delta_x * dNidx(pnt, qx[pnt], qy[pnt]) * delta_y * dNidy(pnt, qx[pnt], qy[pnt]);
-            dx[2]  = -dt * kinvis * det * delta_y * dNidy(pnt, qx[pnt], qy[pnt]) * delta_x * dNidx(pnt, qx[pnt], qy[pnt]);
-            dx[3]  = -dt * kinvis * det * delta_y * dNidy(pnt, qx[pnt], qy[pnt]) * delta_y * dNidy(pnt, qx[pnt], qy[pnt]);
+            dx[0]  = -(dt / kinvis) * det * delta_x * dNidx(pnt, qx[pnt], qy[pnt]) * delta_x * dNidx(pnt, qx[pnt], qy[pnt]);
+            dx[1]  = -(dt / kinvis) * det * delta_x * dNidx(pnt, qx[pnt], qy[pnt]) * delta_y * dNidy(pnt, qx[pnt], qy[pnt]);
+            dx[2]  = -(dt / kinvis) * det * delta_y * dNidy(pnt, qx[pnt], qy[pnt]) * delta_x * dNidx(pnt, qx[pnt], qy[pnt]);
+            dx[3]  = -(dt / kinvis) * det * delta_y * dNidy(pnt, qx[pnt], qy[pnt]) * delta_y * dNidy(pnt, qx[pnt], qy[pnt]);
 
             MatSetValues(K, 2, row_k, 2, col_k, dx, ADD_VALUES);
 
-            MatSetValue(Kii_inv, row_k[0], row_k[0], 1.0/(det+dx[0]), ADD_VALUES);
-            MatSetValue(Kii_inv, col_k[1], col_k[1], 1.0/(det+dx[3]), ADD_VALUES);
-
             MatSetValue(K, row_k[0], row_k[0], det, ADD_VALUES);
             MatSetValue(K, col_k[1], col_k[1], det, ADD_VALUES);
+
+            MatSetValue(Kii_inv, row_k[0], row_k[0], 1.0/(det+dx[0]), ADD_VALUES);
+            MatSetValue(Kii_inv, col_k[1], col_k[1], 1.0/(det+dx[3]), ADD_VALUES);
           }
         }
       }
@@ -255,6 +267,15 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
 
   // assemble operators into the preconditioner
   MatZeroEntries(P);
+  {
+    int m, n;
+    Vec v;
+    MatGetSize(P, &m, &n);
+    VecCreateMPI(MPI_COMM_WORLD, localSize, m, &v);
+    VecSet(v, 1.0);
+    MatDiagonalSet(P, v, INSERT_VALUES);
+    VecDestroy(&v);
+  }
 
   for(int slice_i = 0; slice_i < nSlice; slice_i++) {
     for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
@@ -298,10 +319,10 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
   MatAssemblyEnd(  P, MAT_FINAL_ASSEMBLY);
 
   MatDestroy(&G);
-  MatDestroy(&K);
-  MatDestroy(&S);
-  MatDestroy(&Kii_inv);
   MatDestroy(&D);
+  MatDestroy(&K);
+  MatDestroy(&Kii_inv);
+  MatDestroy(&S);
   MatDestroy(&LK);
   MatDestroy(&LKR);
   MatDestroy(&DKinv);

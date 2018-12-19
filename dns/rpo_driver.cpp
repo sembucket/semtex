@@ -45,6 +45,9 @@
 static char RCS[] = "$Id$";
 
 #include <dns.h>
+
+#include "rpo_preconditioner.h"
+
 #include <petsc.h>
 #include <petscis.h>
 #include <petscvec.h>
@@ -89,6 +92,7 @@ struct Context {
     IS               isl;
     IS               isg;
     VecScatter       ltog;
+    bool             build_PC;
 };
 
 #define XMIN 0.0
@@ -347,6 +351,21 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
 
 PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
   Context* context = (Context*)ctx;
+
+  MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(  J, MAT_FINAL_ASSEMBLY);
+
+  if(context->build_PC) {
+    build_preconditioner(context->nSlice, 
+                         context->nDofsSlice, 
+                         context->nDofsPlane, 
+                         context->localSize, 
+                         context->localShift, 
+                         context->elmt, P);
+
+    context->build_PC = false;
+  }
+/*
   int index = 0;
   int nZ = Geometry::nZProc();
   int elOrd = Geometry::nP() - 1;
@@ -419,6 +438,7 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
   MatAssemblyBegin(P, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(P, MAT_FINAL_ASSEMBLY);
   VecRestoreArrayRead(x, &xArray);
+*/
 
   return 0;
 }
@@ -463,11 +483,11 @@ Femlib::value("D_T", 0.02); // 80x simulation value
     Femlib::value("D_T", context->tau_i[slice_i]/nStep);
     context->domain->step = 0;
 
-    if(!myRank) cout << "start time: " << time << "\tslice: " << slice_i 
-                                               << "\ttau:   " << context->tau_i[slice_i]   
-                                               << "\tnstep: " << Femlib::ivalue("N_STEP")
-                                               << "\ttheta: " << context->theta_i[slice_i] 
-                                               << "\tphi:   " << context->phi_i[slice_i] << endl;
+    if(!myRank) cout << "time: " << time << "\tslice: " << slice_i 
+                                         << "\ttau:   " << context->tau_i[slice_i]   
+                                         << "\tnstep: " << Femlib::ivalue("N_STEP")
+                                         << "\ttheta: " << context->theta_i[slice_i] 
+                                         << "\tphi:   " << context->phi_i[slice_i] << endl;
     // don't want to call the dns analysis, use custom integrate routine instead
     integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
 
@@ -564,15 +584,16 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
 
   if(!myRank) cout << "time step: " << Femlib::value("D_T") << endl;
 
-  context->nSlice  = nSlice;
-  context->mesh    = mesh;
-  context->elmt    = elmt;
-  context->domain  = domain;
-  context->bman    = bman;
-  context->analyst = analyst;
-  context->ff      = FF;
-  context->ui      = ui;
-  context->fi      = fi;
+  context->nSlice   = nSlice;
+  context->mesh     = mesh;
+  context->elmt     = elmt;
+  context->domain   = domain;
+  context->bman     = bman;
+  context->analyst  = analyst;
+  context->ff       = FF;
+  context->ui       = ui;
+  context->fi       = fi;
+  context->build_PC = true;
 
   // add dofs for theta and tau for each time slice
 #ifdef X_FOURIER
