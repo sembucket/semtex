@@ -141,6 +141,9 @@ void skewSymmetric (Domain*     D ,
           N[2] -> axpy (-3.0, *tmp);
         }
 
+        if (i == 3)
+          N[3] -> timesMinus (*Uphys[3], *Uphys[1]);
+
         if (nZ > 2) {
           (*tmp = *U[i]) . gradient (2) . transform (INVERSE);
           N[i] -> timesMinus (*Uphys[2], *tmp);
@@ -349,6 +352,8 @@ void altSkewSymmetric (Domain*     D ,
             tmp -> times (*Uphys[2], *Uphys[1]);
             N[2] -> axpy (-2., *tmp);
           }
+
+          if (i == 3) N[3] -> timesMinus (*Uphys[3], *Uphys[1]);
 
           if (nZ > 2) {
             tmp -> times (*Uphys[i], *Uphys[2]);
