@@ -100,6 +100,7 @@ double dNidy(int i, double x, double y) {
 //   equations using the projection method as a preconditioner" J. Comp. Phys. 228, 7565-7595
 void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localSize, int localShift, vector<Element*> elmt, Mat P) {
   int elOrd = Geometry::nP() - 1;
+  int nZloc = Geometry::nZProc();
   int nx = elOrd*NELS_X;
   int ny = elOrd*NELS_Y;
   int ii, jj, kk;
@@ -107,10 +108,11 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
   int row_x, row_y, col_x, col_y;
   int row_k[2], col_k[2];
   int nCols;
-  int offset;
+  int offset_u, offset_v, offset_w, offset_p;
   const int* cols;
   const double* vals;
   int pRow, pCols[99];
+  int nProws, nPcols, rank;
   double xi[4], yi[4], det;
   double qx[] = {-1.0, +1.0, +1.0, -1.0};
   double qy[] = {-1.0, -1.0, +1.0, +1.0};
@@ -267,26 +269,28 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
 
   // assemble operators into the preconditioner
   MatZeroEntries(P);
+  MatGetSize(P, &nProws, &nPcols);
   {
-    int m, n;
     Vec v;
-    MatGetSize(P, &m, &n);
-    VecCreateMPI(MPI_COMM_WORLD, localSize, m, &v);
+    VecCreateMPI(MPI_COMM_WORLD, localSize, nProws, &v);
     VecSet(v, 1.0);
     MatDiagonalSet(P, v, INSERT_VALUES);
     VecDestroy(&v);
   }
 
   for(int slice_i = 0; slice_i < nSlice; slice_i++) {
-    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
-      offset = slice_i * nDofsSlice + plane_i * nDofsPlane + localShift;
+    for(int plane_i = 0; plane_i < nZloc; plane_i++) {
+      offset_u = localShift + slice_i*4*nZloc*nx*ny + 0*nZloc*nx*ny + plane_i*nx*ny;
+      offset_v = localShift + slice_i*4*nZloc*nx*ny + 1*nZloc*nx*ny + plane_i*nx*ny;
+      offset_w = localShift + slice_i*4*nZloc*nx*ny + 2*nZloc*nx*ny + plane_i*nx*ny;
+      offset_p = localShift + slice_i*4*nZloc*nx*ny + 3*nZloc*nx*ny + plane_i*nx*ny;
 
       // [u,u] block
       for(int row_i = 0; row_i < 2*nx*ny; row_i++) {
         MatGetRow(K, row_i, &nCols, &cols, &vals);
-        pRow = row_i + offset;
+        pRow = (row_i%2==0) ? row_i/2 + offset_u : row_i/2 + offset_v;
         for(int col_i = 0; col_i < nCols; col_i++) {
-          pCols[col_i] = cols[col_i] + offset;
+          pCols[col_i] = (cols[col_i]%2==0) ? cols[col_i]/2 + offset_u : cols[col_i]/2 + offset_v;
         }
         MatSetValues(P, 1, &pRow, nCols, pCols, vals, INSERT_VALUES);
         MatRestoreRow(K, row_i, &nCols, &cols, &vals);
@@ -295,9 +299,9 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
       // [u,p] block
       for(int row_i = 0; row_i < 2*nx*ny; row_i++) {
         MatGetRow(G, row_i, &nCols, &cols, &vals);
-        pRow = row_i + offset;
+        pRow = (row_i%2==0) ? row_i/2 + offset_u : row_i/2 + offset_v;
         for(int col_i = 0; col_i < nCols; col_i++) {
-          pCols[col_i] = cols[col_i] + 2*nx*ny + offset;
+          pCols[col_i] = cols[col_i] + offset_p;
         }
         MatSetValues(P, 1, &pRow, nCols, pCols, vals, INSERT_VALUES);
         MatRestoreRow(G, row_i, &nCols, &cols, &vals);
@@ -306,9 +310,9 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
       // [p,p] block
       for(int row_i = 0; row_i < nx*ny; row_i++) {
         MatGetRow(S, row_i, &nCols, &cols, &vals);
-        pRow = row_i + 2*nx*ny + offset;
+        pRow = row_i + offset_p;
         for(int col_i = 0; col_i < nCols; col_i++) {
-          pCols[col_i] = cols[col_i] + 2*nx*ny + offset;
+          pCols[col_i] = cols[col_i] + offset_p;
         }
         MatSetValues(P, 1, &pRow, nCols, pCols, vals, INSERT_VALUES);
         MatRestoreRow(S, row_i, &nCols, &cols, &vals);
