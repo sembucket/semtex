@@ -113,170 +113,33 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
   const double* vals;
   int pRow, pCols[99];
   int nProws, nPcols, rank;
+  double pVals[99];
   double xi[4], yi[4], det;
   double qx[] = {-1.0, +1.0, +1.0, -1.0};
   double qy[] = {-1.0, -1.0, +1.0, +1.0};
-  double dx[4];
   double delta_x, delta_y;
   double kinvis = Femlib::value("KINVIS");
   double dt = Femlib::value("D_T");
+  double beta = Femlib::value("BETA");
+  double k_z;
+  Vec v;
   Mat G, K, S;
   Mat Kii_inv, D, LK, LKR, DKinv;
 
-  MatCreateSeqAIJ(MPI_COMM_SELF, 2*nx*ny, 1*nx*ny, 16, NULL, &G);
-  MatCreateSeqAIJ(MPI_COMM_SELF, 2*nx*ny, 2*nx*ny, 64, NULL, &K);
-  MatCreateSeqAIJ(MPI_COMM_SELF, 2*nx*ny, 2*nx*ny,  1, NULL, &Kii_inv);
+  MatCreateSeqAIJ(MPI_COMM_SELF, 3*nx*ny, 1*nx*ny, 16, NULL, &G);
+  MatCreateSeqAIJ(MPI_COMM_SELF, 3*nx*ny, 3*nx*ny, 64, NULL, &K);
+  MatCreateSeqAIJ(MPI_COMM_SELF, 3*nx*ny, 3*nx*ny,  1, NULL, &Kii_inv);
 
   MatZeroEntries(G);
   MatZeroEntries(K);
   MatZeroEntries(Kii_inv);
 
-  // loop over the SPECTRAL elements
-  for(int se = 0; se < NELS_X*NELS_Y; se++) {
-    int se_x = se%NELS_X;
-    int se_y = se/NELS_X;
-
-    // loop over FINITE elements within the given SPECTRAL element
-    for(int fe = 0; fe < elOrd*elOrd; fe++) {
-      int fe_x = fe%elOrd;
-      int fe_y = fe/elOrd;
-
-      // global coordinates (counter clockwise)
-      xi[0] = elmt[se]->_xmesh[(fe_y+0)*(elOrd+1)+fe_x+0];
-      xi[1] = elmt[se]->_xmesh[(fe_y+0)*(elOrd+1)+fe_x+1];
-      xi[2] = elmt[se]->_xmesh[(fe_y+1)*(elOrd+1)+fe_x+1];
-      xi[3] = elmt[se]->_xmesh[(fe_y+1)*(elOrd+1)+fe_x+0];
-
-      yi[0] = elmt[se]->_ymesh[(fe_y+0)*(elOrd+1)+fe_x+0];
-      yi[1] = elmt[se]->_ymesh[(fe_y+0)*(elOrd+1)+fe_x+1];
-      yi[2] = elmt[se]->_ymesh[(fe_y+1)*(elOrd+1)+fe_x+1];
-      yi[3] = elmt[se]->_ymesh[(fe_y+1)*(elOrd+1)+fe_x+0];
-
-      delta_x = 0.5 * fabs(xi[1] - xi[0]);
-      delta_y = 0.5 * fabs(yi[3] - yi[0]);
-      det = delta_x * delta_y;
-
-      // grad matrix (weak form)
-      for(int row = 0; row < 4; row++) {
-        row_x = row%2;
-        row_y = row/2;
-
-        row_i = se_x*elOrd + fe_x + row_x;
-        row_j = se_y*elOrd + fe_y + row_y;
-
-        // periodic in z
-        if(row_i == elOrd*NELS_X) continue;
-
-        // skip the first row of nodes (these are dirichlet bcs)
-        if(!row_j) continue;
-        row_j--;
-
-        row_k[0] = 2*(row_j*nx + row_i) + 0;
-        row_k[1] = 2*(row_j*nx + row_i) + 1;
-
-        for(int col = 0; col < 4; col++) {
-          col_x = col%2;
-          col_y = col/2;
-
-          col_i = se_x*elOrd + fe_x + col_x;
-          col_j = se_y*elOrd + fe_y + col_y;
-
-          // periodic in z
-          if(col_i == elOrd*NELS_X) continue;
-
-          // skip the first row of nodes (these are dirichlet bcs)
-          if(!col_j) continue;
-          col_j--;
-
-          col_k[0] = col_j*nx + col_i;
-
-          for(int pnt = 0; pnt < 4; pnt++) {
-            dx[0] = -dt * delta_x * dNidx(pnt, qx[pnt], qy[pnt]) * Ni(pnt, qx[pnt], qy[pnt]);
-            dx[1] = -dt * delta_y * dNidy(pnt, qx[pnt], qy[pnt]) * Ni(pnt, qx[pnt], qy[pnt]);
-
-            MatSetValues(G, 2, row_k, 1, col_k, dx, ADD_VALUES);
-          }
-        }
-      }
-
-      // vector laplacian matrix
-      for(int row = 0; row < 4; row++) {
-        row_x = row%2;
-        row_y = row/2;
-
-        row_i = se_x*elOrd + fe_x + row_x;
-        row_j = se_y*elOrd + fe_y + row_y;
-
-        // periodic in z
-        if(row_i == elOrd*NELS_X) continue;
-
-        // skip the first row of nodes (these are dirichlet bcs)
-        if(!row_j) continue;
-        row_j--;
-
-        row_k[0] = 2*(row_j*nx + row_i) + 0;
-        row_k[1] = 2*(row_j*nx + row_i) + 1;
-
-        for(int col = 0; col < 4; col++) {
-          col_x = col%2;
-          col_y = col/2;
-
-          col_i = se_x*elOrd + fe_x + col_x;
-          col_j = se_y*elOrd + fe_y + col_y;
-
-          // periodic in z
-          if(col_i == elOrd*NELS_X) continue;
-
-          // skip the first row of nodes (these are dirichlet bcs)
-          if(!col_j) continue;
-          col_j--;
-
-          col_k[0] = 2*(col_j*nx + col_i) + 0;
-          col_k[1] = 2*(col_j*nx + col_i) + 1;
-
-          for(int pnt = 0; pnt < 4; pnt++) {
-            dx[0]  = -(dt / kinvis) * det * delta_x * dNidx(pnt, qx[pnt], qy[pnt]) * delta_x * dNidx(pnt, qx[pnt], qy[pnt]);
-            dx[1]  = -(dt / kinvis) * det * delta_x * dNidx(pnt, qx[pnt], qy[pnt]) * delta_y * dNidy(pnt, qx[pnt], qy[pnt]);
-            dx[2]  = -(dt / kinvis) * det * delta_y * dNidy(pnt, qx[pnt], qy[pnt]) * delta_x * dNidx(pnt, qx[pnt], qy[pnt]);
-            dx[3]  = -(dt / kinvis) * det * delta_y * dNidy(pnt, qx[pnt], qy[pnt]) * delta_y * dNidy(pnt, qx[pnt], qy[pnt]);
-
-            MatSetValues(K, 2, row_k, 2, col_k, dx, ADD_VALUES);
-
-            MatSetValue(K, row_k[0], row_k[0], det, ADD_VALUES);
-            MatSetValue(K, col_k[1], col_k[1], det, ADD_VALUES);
-
-            MatSetValue(Kii_inv, row_k[0], row_k[0], 1.0/(det+dx[0]), ADD_VALUES);
-            MatSetValue(Kii_inv, col_k[1], col_k[1], 1.0/(det+dx[3]), ADD_VALUES);
-          }
-        }
-      }
-    }
-  }
-  MatAssemblyBegin(G, MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(  G, MAT_FINAL_ASSEMBLY);
-  MatAssemblyBegin(K, MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(  K, MAT_FINAL_ASSEMBLY);
-  MatAssemblyBegin(Kii_inv, MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(  Kii_inv, MAT_FINAL_ASSEMBLY);
-
-  // create the Schur complement operator
-  MatTranspose(G, MAT_INITIAL_MATRIX, &D);
-  MatMatMult(Kii_inv, K, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &LK);
-  MatMatMult(LK, Kii_inv, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &LKR);
-  MatMatMult(D, LKR, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &DKinv);
-  MatMatMult(DKinv, G, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &S);
-  MatScale(S, -1.0);
-
-  // assemble operators into the preconditioner
   MatZeroEntries(P);
   MatGetSize(P, &nProws, &nPcols);
-  {
-    Vec v;
-    VecCreateMPI(MPI_COMM_WORLD, localSize, nProws, &v);
-    VecSet(v, 1.0);
-    MatDiagonalSet(P, v, INSERT_VALUES);
-    VecDestroy(&v);
-  }
+  VecCreateMPI(MPI_COMM_WORLD, localSize, nProws, &v);
+  VecSet(v, 1.0);
+  MatDiagonalSet(P, v, INSERT_VALUES);
+  VecDestroy(&v);
 
   for(int slice_i = 0; slice_i < nSlice; slice_i++) {
     for(int plane_i = 0; plane_i < nZloc; plane_i++) {
@@ -285,25 +148,193 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
       offset_w = localShift + slice_i*4*nZloc*nx*ny + 2*nZloc*nx*ny + plane_i*nx*ny;
       offset_p = localShift + slice_i*4*nZloc*nx*ny + 3*nZloc*nx*ny + plane_i*nx*ny;
 
+      k_z = beta * (plane_i / 2);
+
+      // loop over the SPECTRAL elements
+      for(int se = 0; se < NELS_X*NELS_Y; se++) {
+        int se_x = se%NELS_X;
+        int se_y = se/NELS_X;
+
+        // loop over FINITE elements within the given SPECTRAL element
+        for(int fe = 0; fe < elOrd*elOrd; fe++) {
+          int fe_x = fe%elOrd;
+          int fe_y = fe/elOrd;
+
+          // global coordinates (counter clockwise)
+          xi[0] = elmt[se]->_xmesh[(fe_y+0)*(elOrd+1)+fe_x+0];
+          xi[1] = elmt[se]->_xmesh[(fe_y+0)*(elOrd+1)+fe_x+1];
+          xi[2] = elmt[se]->_xmesh[(fe_y+1)*(elOrd+1)+fe_x+1];
+          xi[3] = elmt[se]->_xmesh[(fe_y+1)*(elOrd+1)+fe_x+0];
+
+          yi[0] = elmt[se]->_ymesh[(fe_y+0)*(elOrd+1)+fe_x+0];
+          yi[1] = elmt[se]->_ymesh[(fe_y+0)*(elOrd+1)+fe_x+1];
+          yi[2] = elmt[se]->_ymesh[(fe_y+1)*(elOrd+1)+fe_x+1];
+          yi[3] = elmt[se]->_ymesh[(fe_y+1)*(elOrd+1)+fe_x+0];
+
+          delta_x = 0.5 * fabs(xi[1] - xi[0]);
+          delta_y = 0.5 * fabs(yi[3] - yi[0]);
+          det  = delta_x * delta_y;
+          //det *= beta;
+
+          // grad matrix (weak form)
+          for(int row = 0; row < 4; row++) {
+            row_x = row%2;
+            row_y = row/2;
+
+            row_i = se_x*elOrd + fe_x + row_x;
+            row_j = se_y*elOrd + fe_y + row_y;
+
+            // periodic in z
+            if(row_i == elOrd*NELS_X) continue;
+
+            // skip the first row of nodes (these are dirichlet bcs)
+            if(!row_j) continue;
+            row_j--;
+
+            row_k[0] = row_j*nx + row_i;
+            row_k[1] = row_k[0] + nZloc*nx*ny;
+            row_k[2] = row_k[1] + nZloc*nx*ny;
+
+            for(int col = 0; col < 4; col++) {
+              col_x = col%2;
+              col_y = col/2;
+
+              col_i = se_x*elOrd + fe_x + col_x;
+              col_j = se_y*elOrd + fe_y + col_y;
+
+              // periodic in z
+              if(col_i == elOrd*NELS_X) continue;
+
+              // skip the first row of nodes (these are dirichlet bcs)
+              if(!col_j) continue;
+              col_j--;
+
+              col_k[0] = col_j*nx + col_i;
+
+              for(int val_i = 0; val_i < 3; val_i++) pVals[val_i] = 0.0;
+
+              for(int pnt = 0; pnt < 4; pnt++) {
+                pVals[0] = -dt * det * delta_x * dNidx(pnt, qx[pnt], qy[pnt]) * Ni(pnt, qx[pnt], qy[pnt]);
+                pVals[1] = -dt * det * delta_y * dNidy(pnt, qx[pnt], qy[pnt]) * Ni(pnt, qx[pnt], qy[pnt]);
+                pVals[2] =  dt * det * k_z;
+
+                MatSetValues(G, 3, row_k, 1, col_k, pVals, ADD_VALUES);
+              }
+            }
+          }
+
+          // vector laplacian matrix
+          for(int row = 0; row < 4; row++) {
+            row_x = row%2;
+            row_y = row/2;
+
+            row_i = se_x*elOrd + fe_x + row_x;
+            row_j = se_y*elOrd + fe_y + row_y;
+
+            // periodic in z
+            if(row_i == elOrd*NELS_X) continue;
+
+            // skip the first row of nodes (these are dirichlet bcs)
+            if(!row_j) continue;
+            row_j--;
+
+            row_k[0] = row_j*nx + row_i;
+            row_k[1] = row_k[0] + nZloc*nx*ny;
+            row_k[2] = row_k[1] + nZloc*nx*ny;
+
+            for(int col = 0; col < 4; col++) {
+              col_x = col%2;
+              col_y = col/2;
+
+              col_i = se_x*elOrd + fe_x + col_x;
+              col_j = se_y*elOrd + fe_y + col_y;
+
+              // periodic in z
+              if(col_i == elOrd*NELS_X) continue;
+
+              // skip the first row of nodes (these are dirichlet bcs)
+              if(!col_j) continue;
+              col_j--;
+
+              col_k[0] = col_j*nx + col_i;
+              col_k[1] = col_k[0] + nZloc*nx*ny;
+              col_k[2] = col_k[1] + nZloc*nx*ny;
+
+              for(int val_i = 0; val_i < 9; val_i++) pVals[val_i] = 0.0;
+
+              for(int pnt = 0; pnt < 4; pnt++) {
+                pVals[0] = -(dt / kinvis) * det * delta_x * dNidx(pnt, qx[pnt], qy[pnt]) * delta_x * dNidx(pnt, qx[pnt], qy[pnt]);
+                pVals[1] = -(dt / kinvis) * det * delta_x * dNidx(pnt, qx[pnt], qy[pnt]) * delta_y * dNidy(pnt, qx[pnt], qy[pnt]);
+                pVals[3] = -(dt / kinvis) * det * delta_y * dNidy(pnt, qx[pnt], qy[pnt]) * delta_x * dNidx(pnt, qx[pnt], qy[pnt]);
+                pVals[4] = -(dt / kinvis) * det * delta_y * dNidy(pnt, qx[pnt], qy[pnt]) * delta_y * dNidy(pnt, qx[pnt], qy[pnt]);
+                pVals[8] = -(dt / kinvis) * det * k_z * k_z;
+
+                MatSetValues(K, 3, row_k, 3, col_k, pVals, ADD_VALUES);
+                MatSetValue(K, row_k[0], row_k[0], det, ADD_VALUES);
+                MatSetValue(K, row_k[1], row_k[1], det, ADD_VALUES);
+                MatSetValue(K, row_k[2], row_k[2], det, ADD_VALUES);
+
+                MatSetValue(Kii_inv, row_k[0], row_k[0], 1.0/(det+pVals[0]), ADD_VALUES);
+                MatSetValue(Kii_inv, row_k[1], row_k[1], 1.0/(det+pVals[4]), ADD_VALUES);
+                MatSetValue(Kii_inv, row_k[2], row_k[2], 1.0/(det+pVals[8]), ADD_VALUES);
+              }
+            }
+          }
+        }
+      }
+      MatAssemblyBegin(G, MAT_FINAL_ASSEMBLY);
+      MatAssemblyEnd(  G, MAT_FINAL_ASSEMBLY);
+      MatAssemblyBegin(K, MAT_FINAL_ASSEMBLY);
+      MatAssemblyEnd(  K, MAT_FINAL_ASSEMBLY);
+      MatAssemblyBegin(Kii_inv, MAT_FINAL_ASSEMBLY);
+      MatAssemblyEnd(  Kii_inv, MAT_FINAL_ASSEMBLY);
+
+      // create the Schur complement operator
+      MatTranspose(G, MAT_INITIAL_MATRIX, &D);
+      MatMatMult(Kii_inv, K, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &LK);
+      MatMatMult(LK, Kii_inv, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &LKR);
+      MatMatMult(D, LKR, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &DKinv);
+      MatMatMult(DKinv, G, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &S);
+      // schur complement should be scaled by -1, however this is ommitted in 
+      // order to account for the G^{T}G term in the azimutal direction (-kz^2)
+      MatScale(S, -1.0);
+      MatScale(S, -1.0*k_z*k_z);
+
       // [u,u] block
-      for(int row_i = 0; row_i < 2*nx*ny; row_i++) {
+      for(int row_i = 0; row_i < 3*nx*ny; row_i++) {
         MatGetRow(K, row_i, &nCols, &cols, &vals);
-        pRow = (row_i%2==0) ? row_i/2 + offset_u : row_i/2 + offset_v;
+        pRow = row_i + localShift + slice_i*4*nZloc*nx*ny;
         for(int col_i = 0; col_i < nCols; col_i++) {
-          pCols[col_i] = (cols[col_i]%2==0) ? cols[col_i]/2 + offset_u : cols[col_i]/2 + offset_v;
+          pCols[col_i] = cols[col_i] + localShift + slice_i*4*nZloc*nx*ny;
         }
         MatSetValues(P, 1, &pRow, nCols, pCols, vals, INSERT_VALUES);
         MatRestoreRow(K, row_i, &nCols, &cols, &vals);
       }
 
       // [u,p] block
-      for(int row_i = 0; row_i < 2*nx*ny; row_i++) {
+      for(int row_i = 0; row_i < 3*nx*ny; row_i++) {
         MatGetRow(G, row_i, &nCols, &cols, &vals);
-        pRow = (row_i%2==0) ? row_i/2 + offset_u : row_i/2 + offset_v;
+
+        pRow = row_i + localShift + slice_i*4*nZloc*nx*ny;
         for(int col_i = 0; col_i < nCols; col_i++) {
           pCols[col_i] = cols[col_i] + offset_p;
+          pVals[col_i] = vals[col_i];
         }
-        MatSetValues(P, 1, &pRow, nCols, pCols, vals, INSERT_VALUES);
+
+        // multiplying by ik_z in the azimuthal direction implies that we have
+        // to add contributions to real and imaginary planes separately here
+        if(row_i >= 2*nx*ny && plane_i%2==0) {
+          for(int col_i = 0; col_i < nCols; col_i++) {
+            pCols[col_i] += nx*ny; // imaginary plane for this mode
+            pVals[col_i] *= -1.0; 
+          }
+        } else if(row_i >= 2*nx*ny && plane_i%2==1) {
+          for(int col_i = 0; col_i < nCols; col_i++) {
+            pCols[col_i] -= nx*ny; // real plane for this mode
+          }
+        }
+
+        MatSetValues(P, 1, &pRow, nCols, pCols, pVals, INSERT_VALUES);
         MatRestoreRow(G, row_i, &nCols, &cols, &vals);
       }
 
@@ -330,4 +361,13 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
   MatDestroy(&LK);
   MatDestroy(&LKR);
   MatDestroy(&DKinv);
+}
+
+// as above, but for a fourier-fourier-sem discretisation
+//
+// fourier modes in the axial and azimuthal dimensions, and 
+// spectral elements in the radial dimension
+//
+// only use basis functions N_1(1,y) and N_2(1,y) as defined above
+void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int localSize, int localShift, int* els, vector<Element*> elmt, Mat P) {
 }
