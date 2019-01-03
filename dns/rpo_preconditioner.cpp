@@ -101,6 +101,7 @@ double dNidy(int i, double x, double y) {
 void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localSize, int localShift, vector<Element*> elmt, Mat P) {
   int elOrd = Geometry::nP() - 1;
   int nZloc = Geometry::nZProc();
+  int rank = Geometry::procID();
   int nx = elOrd*NELS_X;
   int ny = elOrd*NELS_Y;
   int row_i, row_j, col_i, col_j;
@@ -111,7 +112,7 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
   const int* cols;
   const double* vals;
   int pRow, pCols[99];
-  int nProws, nPcols, rank;
+  int nProws, nPcols;
   double pVals[9] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
   double xi[4], yi[4], det;
   double qx[] = {-1.0, +1.0, +1.0, -1.0};
@@ -147,7 +148,7 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
       offset_w = localShift + slice_i*4*nZloc*nx*ny + 2*nZloc*nx*ny + plane_i*nx*ny;
       offset_p = localShift + slice_i*4*nZloc*nx*ny + 3*nZloc*nx*ny + plane_i*nx*ny;
 
-      k_z = (plane_i / 2) / beta;
+      k_z = ((rank * nZloc + plane_i) / 2) / beta;
 
       // loop over the SPECTRAL elements
       for(int se = 0; se < NELS_X*NELS_Y; se++) {
@@ -317,12 +318,12 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
 
         // multiplying by ik_z in the azimuthal direction implies that we have
         // to add contributions to real and imaginary planes separately here
-        if(row_i >= 2*nx*ny && plane_i%2==0) {
+        if(row_i >= 2*nZloc*nx*ny && plane_i%2==0) {
           for(int col_i = 0; col_i < nCols; col_i++) {
             pCols[col_i] += nx*ny; // imaginary plane for this mode
             pVals[col_i] *= -1.0; 
           }
-        } else if(row_i >= 2*nx*ny && plane_i%2==1) {
+        } else if(row_i >= 2*nZloc*nx*ny && plane_i%2==1) {
           for(int col_i = 0; col_i < nCols; col_i++) {
             pCols[col_i] -= nx*ny; // real plane for this mode
           }
@@ -366,6 +367,7 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
 void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int localSize, int localShift, int* els, vector<Element*> elmt, Mat P) {
   int elOrd = Geometry::nP() - 1;
   int nZloc = Geometry::nZProc();
+  int rank = Geometry::procID();
   int nNodesX = NELS_X*elOrd;
   int nModesX = nNodesX/2 + 2;
   int row_i, row_j, col_i, col_j;
@@ -377,7 +379,7 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
   const int* cols;
   const double* vals;
   int pRow, pCols[99];
-  int nProws, nPcols, rank;
+  int nProws, nPcols;
   double pVals[9] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
   double yi[2], delta_y, det;
   double qx[] = {+1.0, +1.0};
@@ -408,12 +410,7 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
 
   for(int slice_i = 0; slice_i < nSlice; slice_i++) {
     for(int plane_i = 0; plane_i < nZloc; plane_i++) {
-      offset_u = localShift + slice_i*4*nZloc*nDofsPlane + 0*nZloc*nDofsPlane + plane_i*nDofsPlane;
-      offset_v = localShift + slice_i*4*nZloc*nDofsPlane + 1*nZloc*nDofsPlane + plane_i*nDofsPlane;
-      offset_w = localShift + slice_i*4*nZloc*nDofsPlane + 2*nZloc*nDofsPlane + plane_i*nDofsPlane;
-      offset_p = localShift + slice_i*4*nZloc*nDofsPlane + 3*nZloc*nDofsPlane + plane_i*nDofsPlane;
-
-      k_z = (plane_i / 2) / beta;
+      k_z = ((rank * nZloc + plane_i) / 2) / beta;
 
       for(int elmt_y = 0; elmt_y < elOrd*NELS_Y; elmt_y++) {
         el_i = (elmt_y / elOrd) * (elOrd * NELS_X);
@@ -457,8 +454,6 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
               col_k[1] = col_k[0] + nDofsPlane;
               col_k[2] = col_k[1] + nDofsPlane;
 
-              for(int val_i = 0; val_i < 9; val_i++) { pVals[val_i] = 0.0; }
-
               for(int pnt = 0; pnt < 2; pnt++) {
                 pVals[0] = -(dt / kinvis) * det * k_x * k_x;
                 pVals[4] = -(dt / kinvis) * det / delta_y * dNidy(pnt+1, qx[pnt], qy[pnt]) / delta_y * dNidy(pnt+1, qx[pnt], qy[pnt]);
@@ -477,7 +472,6 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
           }
         }
       }
-
       MatAssemblyBegin(G, MAT_FINAL_ASSEMBLY);
       MatAssemblyEnd(  G, MAT_FINAL_ASSEMBLY);
       MatAssemblyBegin(K, MAT_FINAL_ASSEMBLY);
@@ -494,6 +488,11 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
       // schur complement should be scaled by -1, however this is ommitted in 
       // order to account for the G^{T}G term in the azimutal direction (-kz^2)
       //MatScale(S, -1.0);
+
+      offset_u = localShift + slice_i*4*nZloc*nDofsPlane + 0*nZloc*nDofsPlane + plane_i*nDofsPlane;
+      offset_v = localShift + slice_i*4*nZloc*nDofsPlane + 1*nZloc*nDofsPlane + plane_i*nDofsPlane;
+      offset_w = localShift + slice_i*4*nZloc*nDofsPlane + 2*nZloc*nDofsPlane + plane_i*nDofsPlane;
+      offset_p = localShift + slice_i*4*nZloc*nDofsPlane + 3*nZloc*nDofsPlane + plane_i*nDofsPlane;
 
       // [u,u] block
       for(int row_i = 0; row_i < 3*nDofsPlane; row_i++) {
@@ -518,12 +517,12 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
 
         // multiplying by ik_z in the azimuthal direction implies that we have
         // to add contributions to real and imaginary planes separately here
-        if(row_i >= 2*nDofsPlane && plane_i%2==0) {
+        if(row_i >= 2*nZloc*nDofsPlane && plane_i%2==0) {
           for(int col_i = 0; col_i < nCols; col_i++) {
             pCols[col_i] += nDofsPlane; // imaginary plane for this mode
             pVals[col_i] *= -1.0; 
           }
-        } else if(row_i >= 2*nDofsPlane && plane_i%2==1) {
+        } else if(row_i >= 2*nZloc*nDofsPlane && plane_i%2==1) {
           for(int col_i = 0; col_i < nCols; col_i++) {
             pCols[col_i] -= nDofsPlane; // real plane for this mode
           }
