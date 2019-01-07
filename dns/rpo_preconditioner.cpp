@@ -56,7 +56,7 @@ static char RCS[] = "$Id$";
 #define XMIN 0.0
 #define XMAX (2.0*M_PI)
 #define YMIN 0.0
-#define YMAX 0.5
+#define YMAX 1.0
 #define NELS_X 30
 #define NELS_Y 7
 
@@ -374,12 +374,13 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
   int row_x, row_y, col_x, col_y;
   int row_k[3], col_k[3];
   int nCols;
-  int offset_u, offset_v, offset_w, offset_p;
+  int offset_u[3], offset_p;
   int el_i;
   const int* cols;
   const double* vals;
   int pRow, pCols[99];
   int nProws, nPcols;
+  int row_dof, col_dof;
   double pVals[9] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
   double yi[2], delta_y, det;
   double qx[] = {+1.0, +1.0};
@@ -394,7 +395,8 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
   Mat Kii_inv, D, LK, LKR, DKinv;
 
   MatCreateSeqAIJ(MPI_COMM_SELF, 3*nDofsPlane, 1*nDofsPlane, 16, NULL, &G);
-  MatCreateSeqAIJ(MPI_COMM_SELF, 3*nDofsPlane, 3*nDofsPlane, 64, NULL, &K);
+  //MatCreateSeqAIJ(MPI_COMM_SELF, 3*nDofsPlane, 3*nDofsPlane, 64, NULL, &K);
+  MatCreateSeqAIJ(MPI_COMM_SELF, 3*nDofsPlane, 3*nDofsPlane, 16, NULL, &K);
   MatCreateSeqAIJ(MPI_COMM_SELF, 3*nDofsPlane, 3*nDofsPlane,  1, NULL, &Kii_inv);
 
   MatZeroEntries(G);
@@ -413,7 +415,7 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
       k_z = ((rank * nZloc + plane_i) / 2) / beta;
 
       for(int elmt_y = 0; elmt_y < elOrd*NELS_Y; elmt_y++) {
-        el_i = (elmt_y / elOrd) * (elOrd * NELS_X);
+        el_i = (elmt_y / elOrd) * NELS_X;
 
         yi[0] = elmt[el_i]->_ymesh[(elmt_y%elOrd+0)*(elOrd+1)];
         yi[1] = elmt[el_i]->_ymesh[(elmt_y%elOrd+1)*(elOrd+1)];
@@ -426,12 +428,16 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
 
           // grad matrix
           for(int row = 0; row < 2; row++) {
-            row_k[0] = (elmt_y+row)*nModesX + mode_x;
+            row_k[0] = (elmt_y+row-1)*nModesX + mode_x; // elmt_y=0 along dirichlet boundary
             row_k[1] = row_k[0] + nDofsPlane;
             row_k[2] = row_k[1] + nDofsPlane;
 
+            if(row_k[0] < 0) continue;
+
             for(int col = 0; col < 2; col++) {
-              col_k[0] = (elmt_y+col)*nModesX + mode_x;
+              col_k[0] = (elmt_y+col-1)*nModesX + mode_x; // elmt_y=0 along dirichlet boundary
+
+              if(col_k[0] < 0) continue;
 
               for(int pnt = 0; pnt < 2; pnt++) {
                 pVals[0] = +dt * det * k_x;
@@ -445,14 +451,18 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
 
           // vector laplacian matrix
           for(int row = 0; row < 2; row++) {
-            row_k[0] = (elmt_y+row)*nModesX + mode_x;
+            row_k[0] = (elmt_y+row-1)*nModesX + mode_x; // elmt_y=0 along dirichlet boundary
             row_k[1] = row_k[0] + nDofsPlane;
             row_k[2] = row_k[1] + nDofsPlane;
 
+            if(row_k[0] < 0) continue;
+
             for(int col = 0; col < 2; col++) {
-              col_k[0] = (elmt_y+col)*nModesX + mode_x;
+              col_k[0] = (elmt_y+col-1)*nModesX + mode_x; // elmt_y=0 along dirichlet boundary
               col_k[1] = col_k[0] + nDofsPlane;
               col_k[2] = col_k[1] + nDofsPlane;
+
+              if(col_k[0] < 0) continue;
 
               for(int pnt = 0; pnt < 2; pnt++) {
                 pVals[0] = -(dt / kinvis) * det * k_x * k_x;
@@ -489,17 +499,21 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
       // order to account for the G^{T}G term in the azimutal direction (-kz^2)
       //MatScale(S, -1.0);
 
-      offset_u = localShift + slice_i*4*nZloc*nDofsPlane + 0*nZloc*nDofsPlane + plane_i*nDofsPlane;
-      offset_v = localShift + slice_i*4*nZloc*nDofsPlane + 1*nZloc*nDofsPlane + plane_i*nDofsPlane;
-      offset_w = localShift + slice_i*4*nZloc*nDofsPlane + 2*nZloc*nDofsPlane + plane_i*nDofsPlane;
-      offset_p = localShift + slice_i*4*nZloc*nDofsPlane + 3*nZloc*nDofsPlane + plane_i*nDofsPlane;
+      offset_u[0] = localShift + slice_i*4*nZloc*nDofsPlane + 0*nZloc*nDofsPlane + plane_i*nDofsPlane;
+      offset_u[1] = localShift + slice_i*4*nZloc*nDofsPlane + 1*nZloc*nDofsPlane + plane_i*nDofsPlane;
+      offset_u[2] = localShift + slice_i*4*nZloc*nDofsPlane + 2*nZloc*nDofsPlane + plane_i*nDofsPlane;
+      offset_p    = localShift + slice_i*4*nZloc*nDofsPlane + 3*nZloc*nDofsPlane + plane_i*nDofsPlane;
 
       // [u,u] block
       for(int row_i = 0; row_i < 3*nDofsPlane; row_i++) {
+        row_dof = row_i/nDofsPlane;
+
         MatGetRow(K, row_i, &nCols, &cols, &vals);
-        pRow = row_i + localShift + slice_i*4*nZloc*nDofsPlane;
+        pRow = row_i%nDofsPlane + offset_u[row_dof];
         for(int col_i = 0; col_i < nCols; col_i++) {
-          pCols[col_i] = cols[col_i] + localShift + slice_i*4*nZloc*nDofsPlane;
+          col_dof = cols[col_i]/nDofsPlane;
+
+          pCols[col_i] = cols[col_i]%nDofsPlane + offset_u[col_dof];
         }
         MatSetValues(P, 1, &pRow, nCols, pCols, vals, INSERT_VALUES);
         MatRestoreRow(K, row_i, &nCols, &cols, &vals);
@@ -507,9 +521,11 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
 
       // [u,p] block
       for(int row_i = 0; row_i < 3*nDofsPlane; row_i++) {
+        row_dof = row_i/nDofsPlane;
+
         MatGetRow(G, row_i, &nCols, &cols, &vals);
 
-        pRow = row_i + localShift + slice_i*4*nZloc*nDofsPlane;
+        pRow = row_i%nDofsPlane + offset_u[row_dof];
         for(int col_i = 0; col_i < nCols; col_i++) {
           pCols[col_i] = cols[col_i] + offset_p;
           pVals[col_i] = vals[col_i];
