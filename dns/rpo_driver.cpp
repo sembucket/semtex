@@ -65,8 +65,6 @@ static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 		Domain*, BCmgr*, DNSAnalyser*, FieldForce*);
 
-static int myRank;
-
 struct Context {
     int              nSlice;
     int              nDofsSlice;
@@ -98,7 +96,7 @@ struct Context {
 #define XMIN 0.0
 #define XMAX (2.0*M_PI)
 #define YMIN 0.0
-#define YMAX 0.5
+#define YMAX 1.0
 #define NELS_X 30
 #define NELS_Y 7
 #define NSLICE 16
@@ -278,7 +276,7 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
       }
     }
     // phase shift data lives on the 0th processors part of the vector
-    if(!myRank) {
+    if(!Geometry::procID()) {
       theta[slice_i] = xArray[index++];
 #ifdef X_FOURIER
       phi[slice_i]   = xArray[index++];
@@ -332,7 +330,7 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
       }
     }
     // phase shift data lives on the 0th processors part of the vector
-    if(!myRank) {
+    if(!Geometry::procID()) {
       xArray[index++] = theta[slice_i];
 #ifdef X_FOURIER
       xArray[index++] = phi[slice_i];
@@ -356,90 +354,16 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
   MatAssemblyEnd(  J, MAT_FINAL_ASSEMBLY);
 
   if(context->build_PC) {
-    build_preconditioner(context->nSlice, 
-                         context->nDofsSlice, 
-                         context->nDofsPlane, 
-                         context->localSize, 
-                         context->localShift, 
-                         context->elmt, P);
+    build_preconditioner_ffs(context->nSlice, 
+                             context->nDofsSlice, 
+                             context->nDofsPlane, 
+                             context->localSize, 
+                             context->localShift,
+                             context->el,
+                             context->elmt, P);
 
     context->build_PC = false;
   }
-/*
-  int index = 0;
-  int nZ = Geometry::nZProc();
-  int elOrd = Geometry::nP() - 1;
-  int nField = context->domain->nField();
-  int nNodesX = NELS_X*elOrd;
-  int nModesX = nNodesX/2 + 2;
-  int el_j, pt_j;
-  int shift_proc;
-  const real_t *qw, *DV, *DT;
-  int waveNumY;
-  real_t waveNumX, val, det;
-  real_t *drdx, *dsdx, *drdy, *dsdy;
-  const PetscScalar* xArray;
-
-  MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY);
-
-  MatZeroEntries(P);
-  VecGetArrayRead(x, &xArray);
-
-  Femlib::quadrature(0, &qw, &DV, &DT, elOrd+1, GLJ, 0.0, 0.0);
-
-  // assemble the schur complement preconditioner
-  for(int slice_i = 0; slice_i < context->nSlice; slice_i++) {
-    index = slice_i*context->nDofsSlice + context->localShift;
-    for(int field_i = 0; field_i < nField; field_i++) {
-      for(int kk = 0; kk < nZ; kk++) {
-        waveNumY = kk/2;
-        for(int jj = 0; jj < NELS_Y*elOrd; jj++) {
-          el_j = (jj/elOrd)*NELS_X;
-          pt_j = (jj%elOrd)*(elOrd+1);
-          drdx = context->elmt[el_j]->_drdx;
-          drdy = context->elmt[el_j]->_drdy;
-          dsdx = context->elmt[el_j]->_dsdx;
-          dsdy = context->elmt[el_j]->_dsdy;
-          det = 1.0/(drdx[pt_j]*dsdy[pt_j] - drdy[pt_j]*dsdx[pt_j]);
-#ifdef X_FOURIER
-          for(int ii = 0; ii < nModesX; ii++) {
-            waveNumX = (2.0*M_PI*ii)/(XMAX - XMIN);
-            val  = -1.0*waveNumX*waveNumX;
-#else
-          for(int ii = 0; ii < nNodesX; ii++) {
-            val  = drdx[pt_j]*drdx[pt_j]*qw[ii%(elOrd+1)];
-#endif
-            if(waveNumY) val *= -1.0*waveNumY*waveNumY;
-
-            val *= dsdy[pt_j]*dsdy[pt_j]*DV[pt_j]*DT[pt_j]*qw[jj%(elOrd+1)];
-            val *= det;
-            // assume contributions from both elements are the same for nodes on element boundaries
-            if(pt_j == 0) val *= 2.0;
-            MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
-            index++;
-          }
-        }
-      }
-    }
-    // set preconditioner values for the theta, phi and tau phase shifts
-    if(!myRank) {
-      val = 1.0;
-      MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
-      index++;
-#ifdef X_FOURIER
-      MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
-      index++;
-#endif
-      MatSetValues(P, 1, &index, 1, &index, &val, ADD_VALUES);
-      index++;
-    }
-  }
-  MatAssemblyBegin(P, MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(P, MAT_FINAL_ASSEMBLY);
-  VecRestoreArrayRead(x, &xArray);
-*/
-
   return 0;
 }
 
@@ -483,7 +407,7 @@ Femlib::value("D_T", 0.02); // 80x simulation value
     Femlib::value("D_T", context->tau_i[slice_i]/nStep);
     context->domain->step = 0;
 
-    if(!myRank) cout << "time: " << time << "\tslice: " << slice_i 
+    if(!Geometry::procID()) cout << "time: " << time << "\tslice: " << slice_i 
                                          << "\ttau:   " << context->tau_i[slice_i]   
                                          << "\tnstep: " << Femlib::ivalue("N_STEP")
                                          << "\ttheta: " << context->theta_i[slice_i] 
@@ -558,7 +482,7 @@ delete dom;
  
   VecNorm(x, NORM_2, &x_norm);
   VecNorm(f, NORM_2, &f_norm);
-  if(!myRank) cout << "evaluating function, |x|: " << x_norm << "\t|f|: " << f_norm << endl;
+  if(!Geometry::procID()) cout << "evaluating function, |x|: " << x_norm << "\t|f|: " << f_norm << endl;
 
   delete[] data_f;
 
@@ -571,6 +495,8 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   Context* context = new Context;
   int nIts;
   int elOrd = Geometry::nP() - 1;
+  int nNodesX = NELS_X*elOrd;
+  int nModesX = nNodesX/2 + 2;
   real_t dx, er, es, ex, ey;
   const real_t* qx;
   int_t pt_x, pt_y, el_x, el_y, el_i, el_j;
@@ -582,7 +508,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   SNES snes;
   SNESConvergedReason reason;
 
-  if(!myRank) cout << "time step: " << Femlib::value("D_T") << endl;
+  if(!Geometry::procID()) cout << "time step: " << Femlib::value("D_T") << endl;
 
   context->nSlice   = nSlice;
   context->mesh     = mesh;
@@ -597,7 +523,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
 
   // add dofs for theta and tau for each time slice
 #ifdef X_FOURIER
-  context->nDofsPlane = ((NELS_X*elOrd)/2 + 2)*NELS_Y*elOrd;
+  context->nDofsPlane = nModesX*NELS_Y*elOrd;
   context->nDofsSlice = context->domain->nField() * Geometry::nZ() * context->nDofsPlane + 3;
 #else
   context->nDofsPlane = NELS_X*elOrd*NELS_Y*elOrd;
@@ -612,7 +538,7 @@ Femlib::value("D_T", 0.02); // 80x simulation value
     context->theta_i[slice_i] = 0.0;
     context->phi_i[slice_i] = 0.0;
     context->tau_i[slice_i] = NSTEPS*Femlib::value("D_T");
-    if(!myRank) cout << "slice: " << slice_i << "\ttau: " << context->tau_i[slice_i] << endl;
+    if(!Geometry::procID()) cout << "slice: " << slice_i << "\ttau: " << context->tau_i[slice_i] << endl;
   }
 
   // setup the fourier mapping data
@@ -620,7 +546,7 @@ Femlib::value("D_T", 0.02); // 80x simulation value
   context->r  = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
   context->s  = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
 
-  dx = (XMAX - XMIN)/(NELS_X*elOrd);
+  dx = (XMAX - XMIN)/nNodesX;
   Femlib::quadrature(&qx, 0, 0, 0, elOrd+1, GLJ, 0.0, 0.0);
 
   for(int pt_i = 0; pt_i < NELS_X*elOrd*NELS_Y*elOrd; pt_i++) {
@@ -632,12 +558,23 @@ Femlib::value("D_T", 0.02); // 80x simulation value
     ex = XMIN + pt_x*dx;
     // element y size increases with distance from the boundary
     ey = elmt[el_i]->_ymesh[(pt_y%elOrd)*(elOrd+1)];
+
+//if(!Geometry::procID() && (ex < XMIN || ex > XMAX || ey < YMIN || ey > YMAX)) {
+//cout << "ERROR: global element coordinate [" << ex << ", " << ey << "]\n";
+//}
   
     found = false;  
     for(el_j = 0; el_j < mesh->nEl(); el_j++) {
       // pass er and es by reference?
       if(elmt[el_j]->locate(ex, ey, er, es, &work[0], guess)) {
         context->el[pt_i] = el_j;
+if(er > +0.99999999) er = +0.99999999;
+if(er < -0.99999999) er = -0.99999999;
+if(es > +0.99999999) es = +0.99999999;
+if(es < -0.99999999) es = -0.99999999;
+//if(!Geometry::procID() && (fabs(er) > 1.00000001 || fabs(es) > 1.00000001)) {
+//cout << "ERROR: local element coordinate [" << er << ", " << es << "]\n";
+//}
         context->r[pt_i] = er;
         context->s[pt_i] = es;
         found = true;
@@ -654,17 +591,17 @@ Femlib::value("D_T", 0.02); // 80x simulation value
   context->localSize = context->domain->nField() * Geometry::nZProc() * context->nDofsPlane;
   // store phase shifts on the 0th processor
 #ifdef X_FOURIER
-  if(!myRank) context->localSize += 3;
+  if(!Geometry::procID()) context->localSize += 3;
 #else
-  if(!myRank) context->localSize += 2;
+  if(!Geometry::procID()) context->localSize += 2;
 #endif
   context->localSize *= nSlice;
 
-  context->localShift = myRank * context->localSize;
+  context->localShift = Geometry::procID() * context->localSize;
 #ifdef X_FOURIER
-  if(myRank) context->localShift += (3*nSlice);
+  if(Geometry::procID()) context->localShift += (3*nSlice);
 #else
-  if(myRank) context->localShift += (2*nSlice);
+  if(Geometry::procID()) context->localShift += (2*nSlice);
 #endif
 
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &x);
@@ -680,12 +617,12 @@ Femlib::value("D_T", 0.02); // 80x simulation value
   MatCreate(MPI_COMM_WORLD, &J);
   MatSetType(J, MATMPIAIJ);
   MatSetSizes(J, context->localSize, context->localSize, nSlice * context->nDofsSlice, nSlice * context->nDofsSlice);
-  MatMPIAIJSetPreallocation(J, 8*nSlice, PETSC_NULL, 8*nSlice, PETSC_NULL);
+  MatMPIAIJSetPreallocation(J, 1, PETSC_NULL, 1, PETSC_NULL);
 
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
   MatSetSizes(P, context->localSize, context->localSize, nSlice * context->nDofsSlice, nSlice * context->nDofsSlice);
-  MatMPIAIJSetPreallocation(P, 8*nSlice, PETSC_NULL, 8*nSlice, PETSC_NULL);
+  MatMPIAIJSetPreallocation(P, 16*nSlice, PETSC_NULL, 16*nSlice, PETSC_NULL);
 
   SNESCreate(MPI_COMM_WORLD, &snes);
   SNESSetFunction(snes, f,    _snes_function, (void*)context);
@@ -699,7 +636,7 @@ Femlib::value("D_T", 0.02); // 80x simulation value
 
   SNESGetNumberFunctionEvals(snes, &nIts);
   SNESGetConvergedReason(snes, &reason);
-  if(!myRank) cout << "SNES converged as " << SNESConvergedReasons[reason] << "\titeration: " << nIts << endl;
+  if(!Geometry::procID()) cout << "SNES converged as " << SNESConvergedReasons[reason] << "\titeration: " << nIts << endl;
 
   VecDestroy(&x);
   VecDestroy(&f);
@@ -733,8 +670,6 @@ int main (int argc, char** argv) {
   FEML* file_i;
 
   PetscInitialize(&argc, &argv, (char*)0, help);
-
-  MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, freeze, session);
