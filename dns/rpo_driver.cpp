@@ -87,6 +87,7 @@ struct Context {
     // parallel vector scattering data
     int              localSize;
     int              localShift;
+    int**            lShift;
     IS               isl;
     IS               isg;
     VecScatter       ltog;
@@ -358,7 +359,7 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
                              context->nDofsSlice, 
                              context->nDofsPlane, 
                              context->localSize, 
-                             context->localShift,
+                             context->lShift,
                              context->el,
                              context->elmt, P);
 
@@ -521,15 +522,6 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->fi       = fi;
   context->build_PC = true;
 
-  // add dofs for theta and tau for each time slice
-#ifdef X_FOURIER
-  context->nDofsPlane = nModesX*NELS_Y*elOrd;
-  context->nDofsSlice = context->domain->nField() * Geometry::nZ() * context->nDofsPlane + 3;
-#else
-  context->nDofsPlane = NELS_X*elOrd*NELS_Y*elOrd;
-  context->nDofsSlice = context->domain->nField() * Geometry::nZ() * context->nDofsPlane + 2;
-#endif
-
   context->theta_i = new real_t[nSlice];
   context->phi_i   = new real_t[nSlice];
   context->tau_i   = new real_t[nSlice];
@@ -588,6 +580,15 @@ if(es < -0.99999999) es = -0.99999999;
     }
   }
 
+  // add dofs for theta and tau for each time slice
+#ifdef X_FOURIER
+  context->nDofsPlane = nModesX*NELS_Y*elOrd;
+  context->nDofsSlice = context->domain->nField() * Geometry::nZ() * context->nDofsPlane + 3;
+#else
+  context->nDofsPlane = NELS_X*elOrd*NELS_Y*elOrd;
+  context->nDofsSlice = context->domain->nField() * Geometry::nZ() * context->nDofsPlane + 2;
+#endif
+
   context->localSize = context->domain->nField() * Geometry::nZProc() * context->nDofsPlane;
   // store phase shifts on the 0th processor
 #ifdef X_FOURIER
@@ -607,10 +608,52 @@ if(es < -0.99999999) es = -0.99999999;
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &x);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &f);
 
+  {
+    int nPntsDom_l = Geometry::nZProc() * context->nDofsPlane;
+    int nPntsDom_g = Geometry::nZ()     * context->nDofsPlane;
+
+    context->lShift = new int*[nSlice];
+    for(int slice_i = 0; slice_i < nSlice; slice_i++) {
+      context->lShift[slice_i] = new int[context->domain->nField()];
+
+      for(int field_i = 0; field_i < context->domain->nField(); field_i++) {
+        context->lShift[slice_i][field_i]  = slice_i * context->nDofsSlice;
+        context->lShift[slice_i][field_i] += field_i * nPntsDom_g;
+        context->lShift[slice_i][field_i] += Geometry::procID() * nPntsDom_l;
+      }
+    }
+  }
+
   // create the local to global scatter object
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
   ISCreateStride(MPI_COMM_SELF, context->localSize, 0, 1, &context->isl);
-  ISCreateStride(MPI_COMM_WORLD, context->localSize, context->localShift, 1, &context->isg);
+  //ISCreateStride(MPI_COMM_WORLD, context->localSize, context->localShift, 1, &context->isg);
+  {
+    int ind_i = 0;
+    int* inds = new int[context->localSize];
+    for(int slice_i = 0; slice_i < nSlice; slice_i++) {
+      for(int field_i = 0; field_i < context->domain->nField(); field_i++) {
+        for(int ind_j = 0; ind_j < Geometry::nZProc() * context->nDofsPlane; ind_j++) {
+          inds[ind_i] = context->lShift[slice_i][field_i] + ind_j;
+          ind_i++;
+        }
+      }
+      // phase shift dofs
+      if(!Geometry::procID()) {
+        inds[ind_i] = context->lShift[slice_i][context->domain->nField()-1] + 
+                      Geometry::nZ() * context->nDofsPlane + 0;
+        ind_i++;
+        inds[ind_i] = context->lShift[slice_i][context->domain->nField()-1] + 
+                      Geometry::nZ() * context->nDofsPlane + 1;
+        ind_i++;
+        inds[ind_i] = context->lShift[slice_i][context->domain->nField()-1] + 
+                      Geometry::nZ() * context->nDofsPlane + 2;
+        ind_i++;
+      }
+    }
+    ISCreateGeneral(MPI_COMM_WORLD, context->localSize, inds, PETSC_COPY_VALUES, &context->isg);
+    delete[] inds;
+  }
   VecScatterCreate(x, context->isg, xl, context->isl, &context->ltog);
   VecDestroy(&xl);
 
@@ -622,7 +665,8 @@ if(es < -0.99999999) es = -0.99999999;
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
   MatSetSizes(P, context->localSize, context->localSize, nSlice * context->nDofsSlice, nSlice * context->nDofsSlice);
-  MatMPIAIJSetPreallocation(P, 16*nSlice, PETSC_NULL, 16*nSlice, PETSC_NULL);
+  MatMPIAIJSetPreallocation(P, 16, PETSC_NULL, 16, PETSC_NULL);
+MatSetOption(P, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
 
   SNESCreate(MPI_COMM_WORLD, &snes);
   SNESSetFunction(snes, f,    _snes_function, (void*)context);
