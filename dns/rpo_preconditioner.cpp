@@ -95,9 +95,14 @@ double dNidy(int i, double x, double y) {
 }
 
 // Schur complement preconditioning for incompressible Navier-Stokes
-// Reference:
+// References:
+//
 //   Griffith (2009) "An accurate and efficient method for the incompressible Navier-Stokes
 //   equations using the projection method as a preconditioner" J. Comp. Phys. 228, 7565-7595
+//
+//   Elman, Howle, Shadid, Shuttleworth, Tuminaro (2008) "A taxonomy and comparison of parallel 
+//   block multi-level preconditioners  for the incompressible Navier-Stokes equations" J. Comp.
+//   Phys. 227 1790-1808
 void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localSize, int localShift, vector<Element*> elmt, Mat P) {
   int elOrd = Geometry::nP() - 1;
   int nZloc = Geometry::nZProc();
@@ -364,6 +369,20 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
 // spectral elements in the radial dimension
 //
 // only use basis functions N_1(1,y) and N_2(1,y) as defined above
+//
+// References:
+//
+//   Griffith (2009) "An accurate and efficient method for the incompressible Navier-Stokes
+//   equations using the projection method as a preconditioner" J. Comp. Phys. 228, 7565-7595
+//
+//   Elman, Howle, Shadid, Shuttleworth, Tuminaro (2008) "A taxonomy and comparison of parallel 
+//   block multi-level preconditioners  for the incompressible Navier-Stokes equations" J. Comp.
+//   Phys. 227 1790-1808
+//
+//   formulated as
+//
+//   [ K      0    ][ I  K^{-1}G ] = [ K  G ]
+//   [ D -DK^{-1}G ][ 0     I    ]   [ D  0 ]
 void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int localSize, int** lShift, int* els, vector<Element*> elmt, Mat P) {
   int elOrd = Geometry::nP() - 1;
   int nZloc = Geometry::nZProc();
@@ -537,7 +556,9 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
           }
         }
 
-        MatSetValues(P, 1, &pRow, nCols, pCols, pVals, INSERT_VALUES);
+        // transpose this to get the [p,u] block
+        //MatSetValues(P, 1, &pRow, nCols, pCols, pVals, INSERT_VALUES);
+        MatSetValues(P, nCols, pCols, 1, &pRow, pVals, INSERT_VALUES);
         MatRestoreRow(G, row_i, &nCols, &cols, &vals);
       }
 
