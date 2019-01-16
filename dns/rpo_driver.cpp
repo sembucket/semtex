@@ -551,29 +551,37 @@ Femlib::value("D_T", 0.02); // 80x simulation value
     // element y size increases with distance from the boundary
     ey = elmt[el_i]->_ymesh[(pt_y%elOrd)*(elOrd+1)];
 
-//if(!Geometry::procID() && (ex < XMIN || ex > XMAX || ey < YMIN || ey > YMAX)) {
-//cout << "ERROR: global element coordinate [" << ex << ", " << ey << "]\n";
-//}
+if(!Geometry::procID() && (ex < XMIN || ex > XMAX || ey < YMIN || ey > YMAX)) {
+cout << "ERROR: global element coordinate [" << ex << ", " << ey << "]\n";
+}
   
     found = false;  
     for(el_j = 0; el_j < mesh->nEl(); el_j++) {
       // pass er and es by reference?
-      if(elmt[el_j]->locate(ex, ey, er, es, &work[0], guess)) {
-        context->el[pt_i] = el_j;
+      if(elmt[el_j]->locate(ex, ey, er, es, &work[0], guess) && !found) {
+        if(fabs(er) < 1.0000000001) {
+          context->el[pt_i] = el_j;
+
+if(!Geometry::procID() && fabs(er) > 1.0000000001) {
+cout << "ERROR: local element coordinate (x) [" << er << ", " << es << "]\n";
+}
+if(!Geometry::procID() && fabs(es) > 1.0000000001) {
+cout << "ERROR: local element coordinate (y) [" << er << ", " << es << "]\n";
+}
 if(er > +0.99999999) er = +0.99999999;
 if(er < -0.99999999) er = -0.99999999;
 if(es > +0.99999999) es = +0.99999999;
 if(es < -0.99999999) es = -0.99999999;
-//if(!Geometry::procID() && (fabs(er) > 1.00000001 || fabs(es) > 1.00000001)) {
-//cout << "ERROR: local element coordinate [" << er << ", " << es << "]\n";
-//}
-        context->r[pt_i] = er;
-        context->s[pt_i] = es;
-        found = true;
-        break;
+
+          context->r[pt_i] = er;
+          context->s[pt_i] = es;
+          found = true;
+          //break;
+        }
       }
+      if(found) break;
     }
-    if(!found) {
+    if(!found || el_j==mesh->nEl()) {
       cout << "ERROR! element does not contain point: " << pt_i << "\tx: " << ex << "\ty: " << ey << endl;
       cout << "       pt x: " << pt_x << "\tpt y: " << pt_y << endl;
       abort();
@@ -665,7 +673,7 @@ if(es < -0.99999999) es = -0.99999999;
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
   MatSetSizes(P, context->localSize, context->localSize, nSlice * context->nDofsSlice, nSlice * context->nDofsSlice);
-  MatMPIAIJSetPreallocation(P, 16, PETSC_NULL, 16, PETSC_NULL);
+  MatMPIAIJSetPreallocation(P, 18, PETSC_NULL, 18, PETSC_NULL);
 MatSetOption(P, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
 
   SNESCreate(MPI_COMM_WORLD, &snes);
