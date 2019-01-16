@@ -389,7 +389,7 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
   int rank = Geometry::procID();
   int nNodesX = NELS_X*elOrd;
   int nModesX = nNodesX/2 + 2;
-  int row_i, row_j, col_i, col_j;
+  int row_j, col_j;
   int row_x, row_y, col_x, col_y;
   int row_k[3], col_k[3];
   int nCols;
@@ -525,14 +525,14 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
 
         for(int col_i = 0; col_i < nCols; col_i++) {
           col_dof = cols[col_i]/nDofsPlane;
-
           pCols[col_i] = cols[col_i]%nDofsPlane + plane_i*nDofsPlane + lShift[slice_i][col_dof];
         }
         MatSetValues(P, 1, &pRow, nCols, pCols, vals, INSERT_VALUES);
         MatRestoreRow(K, row_i, &nCols, &cols, &vals);
       }
 
-      // [u,p] block
+      // [p,u] block
+/*
       for(int row_i = 0; row_i < 3*nDofsPlane; row_i++) {
         row_dof = row_i/nDofsPlane;
         MatGetRow(G, row_i, &nCols, &cols, &vals);
@@ -561,6 +561,26 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
         MatSetValues(P, nCols, pCols, 1, &pRow, pVals, INSERT_VALUES);
         MatRestoreRow(G, row_i, &nCols, &cols, &vals);
       }
+*/
+      for(int row_i = 0; row_i < nDofsPlane; row_i++) {
+        MatGetRow(G, row_i, &nCols, &cols, &vals);
+        pRow = row_i + plane_i*nDofsPlane + lShift[slice_i][3];
+        for(int col_i = 0; col_i < nCols; col_i++) {
+          col_j = cols[col_i]%nDofsPlane;
+          col_dof = cols[col_i]/nDofsPlane;
+          pCols[col_i] = col_j + plane_i*nDofsPlane + lShift[slice_i][col_dof];
+        }
+        if(plane_i%2 == 0) {
+          pRow += nDofsPlane; // imaginary plane for this mode
+          for(int col_i = 0; col_i < nCols; col_i++) {
+            pVals[col_i] *= -1.0;
+          }
+        } else {
+          pRow -= nDofsPlane; // real plane for this mode
+        }
+        MatSetValues(P, 1, &pRow, nCols, pCols, pVals, INSERT_VALUES);
+        MatRestoreRow(G, row_i, &nCols, &cols, &vals);
+      }
 
       // [p,p] block
       for(int row_i = 0; row_i < nDofsPlane; row_i++) {
@@ -576,6 +596,21 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
   }
   MatAssemblyBegin(P, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(  P, MAT_FINAL_ASSEMBLY);
+
+  {
+    int ri, rf;
+    int maxCols = -1;
+
+    MatGetOwnershipRange(P, &ri, &rf);
+    for(int row_i = ri; row_i < rf; row_i++) {
+       MatGetRow(P, row_i, &nCols, &cols, &vals);
+       if(nCols > maxCols) maxCols = nCols;
+       MatRestoreRow(P, row_i, &nCols, &cols, &vals);
+    }
+    for(int proc_i = 0; proc_i < Geometry::nProc(); proc_i++)
+      if(proc_i == Geometry::procID())
+        cout << Geometry::procID() << "\t[P] rows: " << ri << "\t->\t" << rf << "\t max cols: " << maxCols << endl;
+  }
 
   MatDestroy(&G);
   MatDestroy(&D);
