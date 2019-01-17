@@ -297,7 +297,7 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
       MatMatMult(D, LKR, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &DKinv);
       MatMatMult(DKinv, G, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &S);
       // schur complement should be scaled by -1, however this is ommitted in 
-      // order to account for the G^{T}G term in the azimutal direction (-kz^2)
+      // order to account for the G^{T}G term in the azimutal direction (-k_z^2)
       //MatScale(S, -1.0);
 
       // [u,u] block
@@ -383,6 +383,7 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
 //
 //   [ K      0    ][ I  K^{-1}G ] = [ K  G ]
 //   [ D -DK^{-1}G ][ 0     I    ]   [ D  0 ]
+//
 void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int localSize, int** lShift, int* els, vector<Element*> elmt, Mat P) {
   int elOrd = Geometry::nP() - 1;
   int nZloc = Geometry::nZProc();
@@ -514,8 +515,8 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
       MatMatMult(D, LKR, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &DKinv);
       MatMatMult(DKinv, G, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &S);
       // schur complement should be scaled by -1, however this is ommitted in 
-      // order to account for the G^{T}G term in the azimutal direction (-kz^2)
-      //MatScale(S, -1.0);
+      // order to account for the G^{T}G term in the azimutal direction (-k_z^2)
+      MatScale(S, -1.0);
 
       // [u,u] block
       for(int row_i = 0; row_i < 3*nDofsPlane; row_i++) {
@@ -532,36 +533,6 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
       }
 
       // [p,u] block
-/*
-      for(int row_i = 0; row_i < 3*nDofsPlane; row_i++) {
-        row_dof = row_i/nDofsPlane;
-        MatGetRow(G, row_i, &nCols, &cols, &vals);
-        pRow = row_i%nDofsPlane + plane_i*nDofsPlane + lShift[slice_i][row_dof];
-
-        for(int col_i = 0; col_i < nCols; col_i++) {
-          pCols[col_i] = cols[col_i] + plane_i*nDofsPlane + lShift[slice_i][3];
-          pVals[col_i] = vals[col_i];
-        }
-
-        // multiplying by ik_z in the azimuthal direction implies that we have
-        // to add contributions to real and imaginary planes separately here
-        if(row_i >= 2*nZloc*nDofsPlane && plane_i%2==0) {
-          for(int col_i = 0; col_i < nCols; col_i++) {
-            pCols[col_i] += nDofsPlane; // imaginary plane for this mode
-            pVals[col_i] *= -1.0; 
-          }
-        } else if(row_i >= 2*nZloc*nDofsPlane && plane_i%2==1) {
-          for(int col_i = 0; col_i < nCols; col_i++) {
-            pCols[col_i] -= nDofsPlane; // real plane for this mode
-          }
-        }
-
-        // transpose this to get the [p,u] block
-        //MatSetValues(P, 1, &pRow, nCols, pCols, pVals, INSERT_VALUES);
-        MatSetValues(P, nCols, pCols, 1, &pRow, pVals, INSERT_VALUES);
-        MatRestoreRow(G, row_i, &nCols, &cols, &vals);
-      }
-*/
       for(int row_i = 0; row_i < nDofsPlane; row_i++) {
         MatGetRow(G, row_i, &nCols, &cols, &vals);
         pRow = row_i + plane_i*nDofsPlane + lShift[slice_i][3];
@@ -579,7 +550,7 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
           pRow -= nDofsPlane; // real plane for this mode
         }
         MatSetValues(P, 1, &pRow, nCols, pCols, pVals, INSERT_VALUES);
-        MatRestoreRow(G, row_i, &nCols, &cols, &vals);
+        MatRestoreRow(D, row_i, &nCols, &cols, &vals);
       }
 
       // [p,p] block
