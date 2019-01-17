@@ -81,6 +81,7 @@ double dNidx(int i, double x, double y) {
   else if(i==1) return dN1dx(x, y);
   else if(i==2) return dN2dx(x, y);
   else if(i==3) return dN3dx(x, y);
+  return 0.0;
 }
 
 double dN0dy(double x, double y) { return -0.25*(1.0-x); }
@@ -92,6 +93,7 @@ double dNidy(int i, double x, double y) {
   else if(i==1) return dN1dy(x, y);
   else if(i==2) return dN2dy(x, y);
   else if(i==3) return dN3dy(x, y);
+  return 0.0;
 }
 
 // Schur complement preconditioning for incompressible Navier-Stokes
@@ -414,6 +416,7 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
   Mat Kii_inv, D, LK, LKR, DKinv;
 
   MatCreateSeqAIJ(MPI_COMM_SELF, 3*nDofsPlane, 1*nDofsPlane, 16, NULL, &G);
+  MatCreateSeqAIJ(MPI_COMM_SELF, 1*nDofsPlane, 3*nDofsPlane, 16, NULL, &D);
   MatCreateSeqAIJ(MPI_COMM_SELF, 3*nDofsPlane, 3*nDofsPlane, 16, NULL, &K);
   MatCreateSeqAIJ(MPI_COMM_SELF, 3*nDofsPlane, 3*nDofsPlane,  1, NULL, &Kii_inv);
 
@@ -445,7 +448,7 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
         for(int mode_x = 0; mode_x < nModesX; mode_x++) {
           k_x = (mode_x / 2) / alpha;
 
-          // grad matrix
+          // grad and div matrices
           for(int row = 0; row < 2; row++) {
             row_k[0] = (elmt_y+row-1)*nModesX + mode_x; // elmt_y=0 along dirichlet boundary
             row_k[1] = row_k[0] + nDofsPlane;
@@ -459,11 +462,16 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
               if(col_k[0] < 0) continue;
 
               for(int pnt = 0; pnt < 2; pnt++) {
+                // grad
                 pVals[0] = +dt * det * k_x;
                 pVals[1] = -dt * det / delta_y * dNidy(pnt+1, qx[pnt], qy[pnt]) * Ni(pnt+1, qx[pnt], qy[pnt]);
                 pVals[2] = +dt * det * k_z;
-
                 MatSetValues(G, 3, row_k, 1, col_k, pVals, ADD_VALUES);
+
+                // div
+                pVals[0] *= -1.0;
+                pVals[2] *= -1.0;
+                MatSetValues(D, 1, col_k, 3, row_k, pVals, ADD_VALUES);
               }
             }
           }
@@ -509,7 +517,8 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
       MatAssemblyEnd(  Kii_inv, MAT_FINAL_ASSEMBLY);
 
       // create the Schur complement operator
-      MatTranspose(G, MAT_INITIAL_MATRIX, &D);
+      //MatTranspose(G, MAT_INITIAL_MATRIX, &D);
+      MatScale(D, -1.0);
       MatMatMult(Kii_inv, K, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &LK);
       MatMatMult(LK, Kii_inv, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &LKR);
       MatMatMult(D, LKR, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &DKinv);
