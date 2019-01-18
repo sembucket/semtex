@@ -105,6 +105,7 @@ double dNidy(int i, double x, double y) {
 //   Elman, Howle, Shadid, Shuttleworth, Tuminaro (2008) "A taxonomy and comparison of parallel 
 //   block multi-level preconditioners  for the incompressible Navier-Stokes equations" J. Comp.
 //   Phys. 227 1790-1808
+//
 void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localSize, int localShift, vector<Element*> elmt, Mat P) {
   int elOrd = Geometry::nP() - 1;
   int nZloc = Geometry::nZProc();
@@ -129,7 +130,6 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
   double dt = Femlib::value("D_T");
   double beta = Femlib::value("BETA"); // L/(2\pi)
   double k_z;
-  Vec v;
   Mat G, K, S;
   Mat Kii_inv, D, LK, LKR, DKinv;
 
@@ -142,11 +142,6 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
   MatZeroEntries(Kii_inv);
 
   MatZeroEntries(P);
-  MatGetSize(P, &nProws, &nPcols);
-  VecCreateMPI(MPI_COMM_WORLD, localSize, nProws, &v);
-  VecSet(v, 1.0);
-  MatDiagonalSet(P, v, INSERT_VALUES);
-  VecDestroy(&v);
 
   for(int slice_i = 0; slice_i < nSlice; slice_i++) {
     for(int plane_i = 0; plane_i < nZloc; plane_i++) {
@@ -411,7 +406,6 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
   double beta = Femlib::value("BETA");
   double alpha = (XMAX - XMIN)/(2.0*M_PI);
   double k_x, k_z;
-  Vec v;
   Mat G, K, S;
   Mat Kii_inv, D, LK, LKR, DKinv;
 
@@ -425,11 +419,6 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
   MatZeroEntries(Kii_inv);
 
   MatZeroEntries(P);
-  MatGetSize(P, &nProws, &nPcols);
-  VecCreateMPI(MPI_COMM_WORLD, localSize, nProws, &v);
-  VecSet(v, 1.0);
-  MatDiagonalSet(P, v, INSERT_VALUES);
-  VecDestroy(&v);
 
   for(int slice_i = 0; slice_i < nSlice; slice_i++) {
     for(int plane_i = 0; plane_i < nZloc; plane_i++) {
@@ -509,6 +498,8 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
           }
         }
       }
+      MatAssemblyBegin(D, MAT_FINAL_ASSEMBLY);
+      MatAssemblyEnd(  D, MAT_FINAL_ASSEMBLY);
       MatAssemblyBegin(G, MAT_FINAL_ASSEMBLY);
       MatAssemblyEnd(  G, MAT_FINAL_ASSEMBLY);
       MatAssemblyBegin(K, MAT_FINAL_ASSEMBLY);
