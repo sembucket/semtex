@@ -505,7 +505,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   bool found;
   vector<real_t> work(static_cast<size_t>(max (2*Geometry::nTotElmt(), 5*Geometry::nP()+6)));
   Vec x, f, xl;
-  Mat J, P;
+  Mat P;
   SNES snes;
   SNESConvergedReason reason;
 
@@ -665,21 +665,16 @@ if(es < -0.99999999) es = -0.99999999;
   VecScatterCreate(x, context->isg, xl, context->isl, &context->ltog);
   VecDestroy(&xl);
 
-  MatCreate(MPI_COMM_WORLD, &J);
-  MatSetType(J, MATMPIAIJ);
-  MatSetSizes(J, context->localSize, context->localSize, nSlice * context->nDofsSlice, nSlice * context->nDofsSlice);
-  MatMPIAIJSetPreallocation(J, 1, PETSC_NULL, 1, PETSC_NULL);
-
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
   MatSetSizes(P, context->localSize, context->localSize, nSlice * context->nDofsSlice, nSlice * context->nDofsSlice);
   MatMPIAIJSetPreallocation(P, 18, PETSC_NULL, 18, PETSC_NULL);
-MatSetOption(P, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
 
   SNESCreate(MPI_COMM_WORLD, &snes);
   SNESSetFunction(snes, f,    _snes_function, (void*)context);
-  SNESSetJacobian(snes, J, P, _snes_jacobian, (void*)context);
+  SNESSetJacobian(snes, P, P, _snes_jacobian, (void*)context);
   SNESSetType(snes, SNESNEWTONTR);
+  SNESSetNPCSide(snes, PC_LEFT);
   SNESSetFromOptions(snes);
 
   RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
@@ -692,7 +687,6 @@ MatSetOption(P, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
 
   VecDestroy(&x);
   VecDestroy(&f);
-  MatDestroy(&J);
   MatDestroy(&P);
   VecScatterDestroy(&context->ltog);
   ISDestroy(&context->isl);
