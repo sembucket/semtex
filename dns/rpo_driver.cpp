@@ -632,6 +632,23 @@ if(es < -0.99999999) es = -0.99999999;
     }
   }
 
+if(!Geometry::procID()) cout << "Element order: " << elOrd << endl;
+if(!Geometry::procID()) cout << "n dofs plane:  " << context->nDofsPlane << endl;
+if(!Geometry::procID()) cout << "n dofs slice:  " << context->nDofsSlice << endl;
+for(int proc_i = 0; proc_i < Geometry::nProc(); proc_i++) {
+  if(proc_i==Geometry::procID()) {
+    for(int slice_i = 0; slice_i < nSlice; slice_i++) {
+      cout << "[" << Geometry::procID() << "]\t";
+      for(int field_i = 0; field_i < context->domain->nField(); field_i++) {
+        cout << context->lShift[slice_i][field_i] << "\t";
+      }
+      cout << endl;
+    }
+    cout << endl;
+  }
+  MPI_Barrier(MPI_COMM_WORLD);
+}
+
   // create the local to global scatter object
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
   ISCreateStride(MPI_COMM_SELF, context->localSize, 0, 1, &context->isl);
@@ -650,12 +667,15 @@ if(es < -0.99999999) es = -0.99999999;
       if(!Geometry::procID()) {
         inds[ind_i] = context->lShift[slice_i][context->domain->nField()-1] + 
                       Geometry::nZ() * context->nDofsPlane + 0;
+cout << "slice: " << slice_i << "\tlocal index: " << ind_i << "\tglobal index: " << inds[ind_i] << endl;
         ind_i++;
         inds[ind_i] = context->lShift[slice_i][context->domain->nField()-1] + 
                       Geometry::nZ() * context->nDofsPlane + 1;
+cout << "slice: " << slice_i << "\tlocal index: " << ind_i << "\tglobal index: " << inds[ind_i] << endl;
         ind_i++;
         inds[ind_i] = context->lShift[slice_i][context->domain->nField()-1] + 
                       Geometry::nZ() * context->nDofsPlane + 2;
+cout << "slice: " << slice_i << "\tlocal index: " << ind_i << "\tglobal index: " << inds[ind_i] << endl;
         ind_i++;
       }
     }
@@ -669,6 +689,7 @@ if(es < -0.99999999) es = -0.99999999;
   MatSetType(P, MATMPIAIJ);
   MatSetSizes(P, context->localSize, context->localSize, nSlice * context->nDofsSlice, nSlice * context->nDofsSlice);
   MatMPIAIJSetPreallocation(P, 18, PETSC_NULL, 18, PETSC_NULL);
+MatSetOption(P, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
 
   SNESCreate(MPI_COMM_WORLD, &snes);
   SNESSetFunction(snes, f,    _snes_function, (void*)context);

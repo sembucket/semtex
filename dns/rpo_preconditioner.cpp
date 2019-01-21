@@ -392,6 +392,7 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
   int row_k[3], col_k[3];
   int nCols;
   int el_i, plane_j;
+  int ri, rf;
   const int* cols;
   const double* vals;
   int pRow, pCols[99];
@@ -406,6 +407,8 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
   double beta = Femlib::value("BETA");
   double alpha = (XMAX - XMIN)/(2.0*M_PI);
   double k_x, k_z;
+  double one = 1.0;
+  bool add_diag;
   Mat G, K, S;
   Mat Kii_inv, D, LK, LKR, DKinv;
 
@@ -568,8 +571,23 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
   MatAssemblyBegin(P, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(  P, MAT_FINAL_ASSEMBLY);
 
+  // add diagonal entries where required
+  MatGetOwnershipRange(P, &ri, &rf);
+  for(int row_i = ri; row_i < rf; row_i++) {
+    MatGetRow(P, row_i, &nCols, &cols, &vals);
+    add_diag = true;
+    for(int col_i = 0; col_i < nCols; col_i++) {
+      if(cols[col_i] == row_i) add_diag = false;
+    }
+    if(add_diag) {
+      MatSetValues(P, 1, &row_i, 1, &row_i, &one, INSERT_VALUES);
+    }
+    MatRestoreRow(P, row_i, &nCols, &cols, &vals);
+    MatAssemblyBegin(P, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(  P, MAT_FINAL_ASSEMBLY);
+  }
+
   {
-    int ri, rf;
     int maxCols = -1;
 
     MatGetOwnershipRange(P, &ri, &rf);
