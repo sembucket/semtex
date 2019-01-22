@@ -408,7 +408,6 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
   double alpha = (XMAX - XMIN)/(2.0*M_PI);
   double k_x, k_z;
   double one = 1.0;
-  bool add_diag;
   Mat G, K, S;
   Mat Kii_inv, D, LK, LKR, DKinv;
 
@@ -511,11 +510,12 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
       MatAssemblyEnd(  Kii_inv, MAT_FINAL_ASSEMBLY);
 
       // create the Schur complement operator
-      //MatTranspose(G, MAT_INITIAL_MATRIX, &D);
       MatScale(D, -1.0);
+      //MatTranspose(D, MAT_INITIAL_MATRIX, &G);
       MatMatMult(Kii_inv, K, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &LK);
       MatMatMult(LK, Kii_inv, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &LKR);
-      MatMatMult(D, LKR, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &DKinv);
+      //MatMatMult(D, LKR, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &DKinv);
+      MatMatMult(D, Kii_inv, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &DKinv);
       MatMatMult(DKinv, G, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &S);
       // schur complement should be scaled by -1, however this is ommitted in 
       // order to account for the G^{T}G term in the azimutal direction (-k_z^2)
@@ -564,42 +564,19 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
           pCols[col_i] = cols[col_i] + plane_i*nDofsPlane + lShift[slice_i][3];
         }
         MatSetValues(P, 1, &pRow, nCols, pCols, vals, INSERT_VALUES);
+        //MatSetValues(P, 1, &pRow, 1, &pRow, &one, INSERT_VALUES);
         MatRestoreRow(S, row_i, &nCols, &cols, &vals);
       }
+    }
+
+    // add diagonal entries where required
+    for(int row_i = 0; row_i < 3; row_i++) {
+      pRow = slice_i * nDofsSlice + 4 * nDofsPlane * Geometry::nZ() + row_i;
+      MatSetValues(P, 1, &pRow, 1, &pRow, &one, INSERT_VALUES);
     }
   }
   MatAssemblyBegin(P, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(  P, MAT_FINAL_ASSEMBLY);
-
-  // add diagonal entries where required
-  MatGetOwnershipRange(P, &ri, &rf);
-  for(int row_i = ri; row_i < rf; row_i++) {
-    MatGetRow(P, row_i, &nCols, &cols, &vals);
-    add_diag = true;
-    for(int col_i = 0; col_i < nCols; col_i++) {
-      if(cols[col_i] == row_i) add_diag = false;
-    }
-    if(add_diag) {
-      MatSetValues(P, 1, &row_i, 1, &row_i, &one, INSERT_VALUES);
-    }
-    MatRestoreRow(P, row_i, &nCols, &cols, &vals);
-    MatAssemblyBegin(P, MAT_FINAL_ASSEMBLY);
-    MatAssemblyEnd(  P, MAT_FINAL_ASSEMBLY);
-  }
-
-  {
-    int maxCols = -1;
-
-    MatGetOwnershipRange(P, &ri, &rf);
-    for(int row_i = ri; row_i < rf; row_i++) {
-       MatGetRow(P, row_i, &nCols, &cols, &vals);
-       if(nCols > maxCols) maxCols = nCols;
-       MatRestoreRow(P, row_i, &nCols, &cols, &vals);
-    }
-    for(int proc_i = 0; proc_i < Geometry::nProc(); proc_i++)
-      if(proc_i == Geometry::procID())
-        cout << Geometry::procID() << "\t[P] rows: " << ri << "\t->\t" << rf << "\t max cols: " << maxCols << endl;
-  }
 
   MatDestroy(&G);
   MatDestroy(&D);

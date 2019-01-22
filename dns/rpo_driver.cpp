@@ -494,7 +494,6 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
                vector<Field*> ui, vector<Field*> fi) 
 {
   Context* context = new Context;
-  int nIts;
   int elOrd = Geometry::nP() - 1;
   int nNodesX = NELS_X*elOrd;
   int nModesX = nNodesX/2 + 2;
@@ -507,7 +506,6 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   Vec x, f, xl;
   Mat P;
   SNES snes;
-  SNESConvergedReason reason;
 
   if(!Geometry::procID()) cout << "time step: " << Femlib::value("D_T") << endl;
 
@@ -632,9 +630,6 @@ if(es < -0.99999999) es = -0.99999999;
     }
   }
 
-if(!Geometry::procID()) cout << "Element order: " << elOrd << endl;
-if(!Geometry::procID()) cout << "n dofs plane:  " << context->nDofsPlane << endl;
-if(!Geometry::procID()) cout << "n dofs slice:  " << context->nDofsSlice << endl;
 for(int proc_i = 0; proc_i < Geometry::nProc(); proc_i++) {
   if(proc_i==Geometry::procID()) {
     for(int slice_i = 0; slice_i < nSlice; slice_i++) {
@@ -667,15 +662,15 @@ for(int proc_i = 0; proc_i < Geometry::nProc(); proc_i++) {
       if(!Geometry::procID()) {
         inds[ind_i] = context->lShift[slice_i][context->domain->nField()-1] + 
                       Geometry::nZ() * context->nDofsPlane + 0;
-cout << "slice: " << slice_i << "\tlocal index: " << ind_i << "\tglobal index: " << inds[ind_i] << endl;
+//cout << "slice: " << slice_i << "\tlocal index: " << ind_i << "\tglobal index: " << inds[ind_i] << endl;
         ind_i++;
         inds[ind_i] = context->lShift[slice_i][context->domain->nField()-1] + 
                       Geometry::nZ() * context->nDofsPlane + 1;
-cout << "slice: " << slice_i << "\tlocal index: " << ind_i << "\tglobal index: " << inds[ind_i] << endl;
+//cout << "slice: " << slice_i << "\tlocal index: " << ind_i << "\tglobal index: " << inds[ind_i] << endl;
         ind_i++;
         inds[ind_i] = context->lShift[slice_i][context->domain->nField()-1] + 
                       Geometry::nZ() * context->nDofsPlane + 2;
-cout << "slice: " << slice_i << "\tlocal index: " << ind_i << "\tglobal index: " << inds[ind_i] << endl;
+//cout << "slice: " << slice_i << "\tlocal index: " << ind_i << "\tglobal index: " << inds[ind_i] << endl;
         ind_i++;
       }
     }
@@ -689,7 +684,6 @@ cout << "slice: " << slice_i << "\tlocal index: " << ind_i << "\tglobal index: "
   MatSetType(P, MATMPIAIJ);
   MatSetSizes(P, context->localSize, context->localSize, nSlice * context->nDofsSlice, nSlice * context->nDofsSlice);
   MatMPIAIJSetPreallocation(P, 18, PETSC_NULL, 18, PETSC_NULL);
-MatSetOption(P, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
 
   SNESCreate(MPI_COMM_WORLD, &snes);
   SNESSetFunction(snes, f,    _snes_function, (void*)context);
@@ -701,10 +695,6 @@ MatSetOption(P, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
   RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
   SNESSolve(snes, NULL, x);
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
-
-  SNESGetNumberFunctionEvals(snes, &nIts);
-  SNESGetConvergedReason(snes, &reason);
-  if(!Geometry::procID()) cout << "SNES converged as " << SNESConvergedReasons[reason] << "\titeration: " << nIts << endl;
 
   VecDestroy(&x);
   VecDestroy(&f);
