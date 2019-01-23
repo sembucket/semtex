@@ -86,7 +86,6 @@ struct Context {
     real_t*          s;
     // parallel vector scattering data
     int              localSize;
-    int              localShift;
     int**            lShift;
     IS               isl;
     IS               isg;
@@ -239,7 +238,6 @@ void Fourier_to_SEM(int plane_k, Context* context, AuxField* us, real_t* data_f)
 void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
   int elOrd = Geometry::nP() - 1;
   int ii, jj, kk, slice_i, field_i, index;
-  int nZ = Geometry::nZProc();
   int nNodesX = NELS_X*elOrd;
   int nModesX = nNodesX/2 + 2;
   AuxField* field;
@@ -257,7 +255,7 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
     for(field_i = 0; field_i < context->domain->nField(); field_i++) {
       field = fields[slice_i * context->domain->nField() + field_i];
 
-      for(kk = 0; kk < nZ; kk++) {
+      for(kk = 0; kk < Geometry::nZProc(); kk++) {
         // skip over redundant real dofs
         for(jj = 0; jj < NELS_Y*elOrd; jj++) {
 #ifdef X_FOURIER
@@ -294,7 +292,6 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
 void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
   int elOrd = Geometry::nP() - 1;
   int ii, jj, kk, slice_i, field_i, index;
-  int nZ = Geometry::nZProc();
   int nNodesX = NELS_X*elOrd;
   int nModesX = nNodesX/2 + 2;
   AuxField* field;
@@ -310,7 +307,7 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
     for(field_i = 0; field_i < context->domain->nField(); field_i++) {
       field = fields[slice_i * context->domain->nField() + field_i];
 
-      for(kk = 0; kk < nZ; kk++) {
+      for(kk = 0; kk < Geometry::nZProc(); kk++) {
 #ifdef X_FOURIER
         SEM_to_Fourier(kk, context, field, data);
 #else
@@ -372,7 +369,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   Context* context = (Context*)ctx;
   real_t dt;
   int nField = context->domain->nField();
-  int slice_i, slice_j, field_i, mode_i, dof_i, nStep;
+  int slice_i, slice_j, field_i, mode_i, mode_j, dof_i, nStep;
   int elOrd = Geometry::nP() - 1;
   int nNodesX = NELS_X*elOrd;
   int nModesX = nNodesX/2 + 2;
@@ -385,7 +382,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
-Femlib::value("D_T", 0.02); // 80x simulation value
+  Femlib::value("D_T", 0.02); // 80x simulation value
   dt = Femlib::value ("D_T");
 
   for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
@@ -418,7 +415,7 @@ Femlib::value("D_T", 0.02); // 80x simulation value
 
     // phase shift in theta (axial direction)
 #ifdef X_FOURIER
-    for(mode_i = 1; mode_i < Geometry::nZProc()/2; mode_i++) {
+    for(mode_i = 0; mode_i < Geometry::nZProc(); mode_i++) {
       for(field_i = 0; field_i < nField; field_i++) {
         SEM_to_Fourier(mode_i, context, context->domain->u[field_i], data_f);
         for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
@@ -437,9 +434,12 @@ Femlib::value("D_T", 0.02); // 80x simulation value
 #endif
 
     // phase shift in phi (azimuthal direction)
-    for(mode_i = 1; mode_i < Geometry::nZProc()/2; mode_i++) {
-      ckt = cos(mode_i*context->phi_i[slice_i]);
-      skt = sin(mode_i*context->phi_i[slice_i]);
+    for(mode_i = 0; mode_i < Geometry::nZProc()/2; mode_i++) {
+      mode_j = Geometry::procID() * (Geometry::nZProc()/2) + mode_i;
+      if(!mode_j) continue;
+
+      ckt = cos(mode_j*context->phi_i[slice_i]);
+      skt = sin(mode_j*context->phi_i[slice_i]);
 
       for(field_i = 0; field_i < nField; field_i++) {
         data_r = context->domain->u[field_i]->plane(2*mode_i+0);
@@ -523,7 +523,8 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->theta_i = new real_t[nSlice];
   context->phi_i   = new real_t[nSlice];
   context->tau_i   = new real_t[nSlice];
-Femlib::value("D_T", 0.02); // 80x simulation value
+
+  Femlib::value("D_T", 0.02); // 80x simulation value
   for(int slice_i = 0; slice_i < nSlice; slice_i++) {
     context->theta_i[slice_i] = 0.0;
     context->phi_i[slice_i] = 0.0;
@@ -549,10 +550,6 @@ Femlib::value("D_T", 0.02); // 80x simulation value
     // element y size increases with distance from the boundary
     ey = elmt[el_i]->_ymesh[(pt_y%elOrd)*(elOrd+1)];
 
-if(!Geometry::procID() && (ex < XMIN || ex > XMAX || ey < YMIN || ey > YMAX)) {
-cout << "ERROR: global element coordinate [" << ex << ", " << ey << "]\n";
-}
-  
     found = false;  
     for(el_j = 0; el_j < mesh->nEl(); el_j++) {
       // pass er and es by reference?
@@ -560,16 +557,10 @@ cout << "ERROR: global element coordinate [" << ex << ", " << ey << "]\n";
         if(fabs(er) < 1.0000000001) {
           context->el[pt_i] = el_j;
 
-if(!Geometry::procID() && fabs(er) > 1.0000000001) {
-cout << "ERROR: local element coordinate (x) [" << er << ", " << es << "]\n";
-}
-if(!Geometry::procID() && fabs(es) > 1.0000000001) {
-cout << "ERROR: local element coordinate (y) [" << er << ", " << es << "]\n";
-}
-if(er > +0.99999999) er = +0.99999999;
-if(er < -0.99999999) er = -0.99999999;
-if(es > +0.99999999) es = +0.99999999;
-if(es < -0.99999999) es = -0.99999999;
+          if(er > +0.99999999) er = +0.99999999;
+          if(er < -0.99999999) er = -0.99999999;
+          if(es > +0.99999999) es = +0.99999999;
+          if(es < -0.99999999) es = -0.99999999;
 
           context->r[pt_i] = er;
           context->s[pt_i] = es;
@@ -603,13 +594,6 @@ if(es < -0.99999999) es = -0.99999999;
   if(!Geometry::procID()) context->localSize += 2;
 #endif
   context->localSize *= nSlice;
-
-  context->localShift = Geometry::procID() * context->localSize;
-#ifdef X_FOURIER
-  if(Geometry::procID()) context->localShift += (3*nSlice);
-#else
-  if(Geometry::procID()) context->localShift += (2*nSlice);
-#endif
 
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &x);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &f);
@@ -647,7 +631,6 @@ for(int proc_i = 0; proc_i < Geometry::nProc(); proc_i++) {
   // create the local to global scatter object
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
   ISCreateStride(MPI_COMM_SELF, context->localSize, 0, 1, &context->isl);
-  //ISCreateStride(MPI_COMM_WORLD, context->localSize, context->localShift, 1, &context->isg);
   {
     int ind_i = 0;
     int* inds = new int[context->localSize];
@@ -662,15 +645,12 @@ for(int proc_i = 0; proc_i < Geometry::nProc(); proc_i++) {
       if(!Geometry::procID()) {
         inds[ind_i] = context->lShift[slice_i][context->domain->nField()-1] + 
                       Geometry::nZ() * context->nDofsPlane + 0;
-//cout << "slice: " << slice_i << "\tlocal index: " << ind_i << "\tglobal index: " << inds[ind_i] << endl;
         ind_i++;
         inds[ind_i] = context->lShift[slice_i][context->domain->nField()-1] + 
                       Geometry::nZ() * context->nDofsPlane + 1;
-//cout << "slice: " << slice_i << "\tlocal index: " << ind_i << "\tglobal index: " << inds[ind_i] << endl;
         ind_i++;
         inds[ind_i] = context->lShift[slice_i][context->domain->nField()-1] + 
                       Geometry::nZ() * context->nDofsPlane + 2;
-//cout << "slice: " << slice_i << "\tlocal index: " << ind_i << "\tglobal index: " << inds[ind_i] << endl;
         ind_i++;
       }
     }
