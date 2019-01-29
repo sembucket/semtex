@@ -511,7 +511,6 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
 
       // create the Schur complement operator
       MatScale(D, -1.0);
-      //MatTranspose(D, MAT_INITIAL_MATRIX, &G);
       MatMatMult(Kii_inv, K, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &LK);
       MatMatMult(LK, Kii_inv, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &LKR);
       //MatMatMult(D, LKR, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &DKinv);
@@ -537,7 +536,7 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
 
       // [p,u] block
       for(int row_i = 0; row_i < nDofsPlane; row_i++) {
-        MatGetRow(G, row_i, &nCols, &cols, &vals);
+        MatGetRow(D, row_i, &nCols, &cols, &vals);
         pRow = row_i + plane_i*nDofsPlane + lShift[slice_i][3];
         for(int col_i = 0; col_i < nCols; col_i++) {
           col_j = cols[col_i]%nDofsPlane;
@@ -552,7 +551,7 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
         } else {
           pRow -= nDofsPlane; // real plane for this mode
         }
-        MatSetValues(P, 1, &pRow, nCols, pCols, pVals, INSERT_VALUES);
+        //MatSetValues(P, 1, &pRow, nCols, pCols, pVals, INSERT_VALUES);
         MatRestoreRow(D, row_i, &nCols, &cols, &vals);
       }
 
@@ -586,4 +585,101 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
   MatDestroy(&LK);
   MatDestroy(&LKR);
   MatDestroy(&DKinv);
+}
+
+void rpo_set_fieldsplits(SNES snes, IS* is_s, IS* is_u, IS* is_p, int nSlice, int nDofsSlice, int nDofsPlane, int** lShift) {
+  PC pc, pc_i, pc_j;
+  KSP ksp, *ksp_i, *ksp_j;
+  int n_split, ii, nDofs_p;
+  int* inds;
+  int*** gShifts;
+
+  is_s = new IS[nSlice];
+  is_u = new IS[nSlice];
+  is_p = new IS[nSlice];
+
+  SNESGetKSP(snes, &ksp);
+  KSPGetPC(ksp, &pc);
+
+  PCSetType(pc, PCFIELDSPLIT);
+  PCFieldSplitSetType(pc, PC_COMPOSITE_MULTIPLICATIVE);
+  for(int slice_i = 0; slice_i < nSlice; slice_i++) {
+    ISCreateStride(MPI_COMM_WORLD, nDofsSlice, slice_i * nDofsSlice, 1, &is_s[slice_i]);
+    PCFieldSplitSetIS(pc, NULL, is_s[slice_i]);
+  }
+  PCSetUp(pc);
+
+  // broadcast local shifts to global arrays
+  gShifts = new int**[nSlice];
+  for(int slice_i = 0; slice_i < nSlice; slice_i++) {
+    gShifts[slice_i] = new int*[4];
+    for(int field_i = 0; field_i < 4; field_i++) {
+      gShifts[slice_i][field_i] = new int[Geometry::nProc()];
+      gShifts[slice_i][field_i][Geometry::procID()] = lShift[slice_i][field_i];
+      MPI_Barrier(MPI_COMM_WORLD);
+      for(int proc_i = 0; proc_i < Geometry::nProc(); proc_i++) {
+        MPI_Bcast(&gShifts[slice_i][field_i][proc_i], 1, MPI_INT, proc_i, MPI_COMM_WORLD);
+      }
+    }
+  }
+
+  // set the fieldsplit preconditioner for each slice
+  PCFieldSplitGetSubKSP(pc, &n_split, &ksp_i);
+  for(int slice_i = 0; slice_i < nSlice; slice_i++) {
+    KSPGetPC(ksp_i[slice_i], &pc_i);
+    PCSetType(pc_i, PCFIELDSPLIT);
+
+    // set the index set for the velocity for this slice (on this processor)
+    inds = new int[3 * Geometry::nZProc() * nDofsPlane];
+    ii = 0;
+    for(int field_i = 0; field_i < 3; field_i++) {
+      for(int dof_i = 0; dof_i < Geometry::nZProc() * nDofsPlane; dof_i++) {
+        inds[ii] = lShift[slice_i][field_i] + dof_i;
+        ii++;
+      }
+    }
+    ISCreateGeneral(MPI_COMM_WORLD, 3 * Geometry::nZProc() * nDofsPlane, inds, PETSC_COPY_VALUES, &is_u[slice_i]);
+    PCFieldSplitSetIS(pc_i, "u", is_u[slice_i]);
+    delete[] inds;
+
+    // set the index set for the velocity for this slice (on this processor)
+    nDofs_p = (!Geometry::procID()) ? Geometry::nZProc() * nDofsPlane + 3 : Geometry::nZProc() * nDofsPlane;
+    inds = new int[nDofs_p];
+    ii = 0;
+    for(int dof_i = 0; dof_i < Geometry::nZProc() * nDofsPlane; dof_i++) {
+      inds[ii] = lShift[slice_i][3] + dof_i;
+      ii++;
+    }
+    // phase shifts on the 0th processor
+    if(!Geometry::procID()) {
+      inds[ii] = lShift[slice_i][3] + Geometry::nZ() * nDofsPlane + 0;
+      ii++;
+      inds[ii] = lShift[slice_i][3] + Geometry::nZ() * nDofsPlane + 1;
+      ii++;
+      inds[ii] = lShift[slice_i][3] + Geometry::nZ() * nDofsPlane + 2;
+      ii++;
+    }
+    ISCreateGeneral(MPI_COMM_WORLD, nDofs_p, inds, PETSC_COPY_VALUES, &is_p[slice_i]);
+    PCFieldSplitSetIS(pc_i, "p", is_p[slice_i]);
+    delete[] inds;
+
+    PCFieldSplitSetType(pc_i, PC_COMPOSITE_SCHUR);
+    PCSetUp(pc_i);
+
+    PCFieldSplitGetSubKSP(pc_i, &n_split, &ksp_j);
+    KSPSetType(ksp_j[0], KSPGMRES);
+    KSPSetType(ksp_j[1], KSPGMRES);
+    KSPGetPC(ksp_j[0], &pc_j);
+    PCSetType(pc_j, PCILU);
+    KSPGetPC(ksp_j[1], &pc_j);
+    PCSetType(pc_j, PCJACOBI);
+  }
+
+  for(int slice_i = 0; slice_i < nSlice; slice_i++) {
+    for(int field_i = 0; field_i < 4; field_i++) {
+      delete[] gShifts[slice_i][field_i];
+    }
+    delete[] gShifts[slice_i];
+  }
+  delete[] gShifts;
 }
