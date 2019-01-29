@@ -53,6 +53,8 @@ static char RCS[] = "$Id$";
 #include <petscksp.h>
 #include <petscsnes.h>
 
+#include "rpo_preconditioner.h"
+
 #define XMIN 0.0
 #define XMAX (2.0*M_PI)
 #define YMIN 0.0
@@ -381,7 +383,8 @@ void build_preconditioner(int nSlice, int nDofsSlice, int nDofsPlane, int localS
 //   [ K      0    ][ I  K^{-1}G ] = [ K  G ]
 //   [ D -DK^{-1}G ][ 0     I    ]   [ D  0 ]
 //
-void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int localSize, int** lShift, int* els, vector<Element*> elmt, Mat P) {
+void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int localSize, int** lShift, int* els, vector<Element*> elmt, Mat P,
+                              SNES snes, IS* is_s, IS* is_u, IS* is_p) {
   int elOrd = Geometry::nP() - 1;
   int nZloc = Geometry::nZProc();
   int rank = Geometry::procID();
@@ -426,6 +429,7 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
     for(int plane_i = 0; plane_i < nZloc; plane_i++) {
       plane_j = rank * nZloc + plane_i;
       k_z = (plane_j / 2) / beta;
+      if(plane_j < 2) k_z = 1.0;
 
       for(int elmt_y = 0; elmt_y < elOrd*NELS_Y; elmt_y++) {
         el_i = (elmt_y / elOrd) * NELS_X;
@@ -438,6 +442,7 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
 
         for(int mode_x = 0; mode_x < nModesX; mode_x++) {
           k_x = (mode_x / 2) / alpha;
+          if(mode_x < 2) k_x = 1.0;
 
           // grad and div matrices
           for(int row = 0; row < 2; row++) {
@@ -551,7 +556,7 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
         } else {
           pRow -= nDofsPlane; // real plane for this mode
         }
-        //MatSetValues(P, 1, &pRow, nCols, pCols, pVals, INSERT_VALUES);
+        MatSetValues(P, 1, &pRow, nCols, pCols, pVals, INSERT_VALUES);
         MatRestoreRow(D, row_i, &nCols, &cols, &vals);
       }
 
@@ -577,6 +582,8 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
   MatAssemblyBegin(P, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(  P, MAT_FINAL_ASSEMBLY);
 
+  rpo_set_fieldsplits(snes, is_s, is_u, is_p, nSlice, nDofsPlane, lShift);
+
   MatDestroy(&G);
   MatDestroy(&D);
   MatDestroy(&K);
@@ -587,12 +594,14 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
   MatDestroy(&DKinv);
 }
 
-void rpo_set_fieldsplits(SNES snes, IS* is_s, IS* is_u, IS* is_p, int nSlice, int nDofsSlice, int nDofsPlane, int** lShift) {
+void rpo_set_fieldsplits(SNES snes, IS* is_s, IS* is_u, IS* is_p, int nSlice, int nDofsPlane, int** lShift) {
   PC pc, pc_i, pc_j;
   KSP ksp, *ksp_i, *ksp_j;
-  int n_split, ii, nDofs_p;
+  int n_split, ii, nDofs_p, nDofs_s;
   int* inds;
   int*** gShifts;
+
+  if(is_s) return;
 
   is_s = new IS[nSlice];
   is_u = new IS[nSlice];
@@ -603,12 +612,32 @@ void rpo_set_fieldsplits(SNES snes, IS* is_s, IS* is_u, IS* is_p, int nSlice, in
 
   PCSetType(pc, PCFIELDSPLIT);
   PCFieldSplitSetType(pc, PC_COMPOSITE_MULTIPLICATIVE);
+  nDofs_s = 4 * Geometry::nZProc() * nDofsPlane;
+  if(!Geometry::procID()) nDofs_s += 3;
+  inds = new int[nDofs_s];
   for(int slice_i = 0; slice_i < nSlice; slice_i++) {
-    ISCreateStride(MPI_COMM_WORLD, nDofsSlice, slice_i * nDofsSlice, 1, &is_s[slice_i]);
+    ii = 0;
+    for(int field_i = 0; field_i < 4; field_i++) {
+      for(int dof_i = 0; dof_i < Geometry::nZProc() * nDofsPlane; dof_i++) {
+        inds[ii] = lShift[slice_i][field_i] + dof_i;
+        ii++;
+      }
+    }
+    if(!Geometry::procID()) {
+      inds[ii] = lShift[slice_i][3] + Geometry::nZ() * nDofsPlane + 0;
+      ii++;
+      inds[ii] = lShift[slice_i][3] + Geometry::nZ() * nDofsPlane + 1;
+      ii++;
+      inds[ii] = lShift[slice_i][3] + Geometry::nZ() * nDofsPlane + 2;
+      ii++;
+    }
+    ISCreateGeneral(MPI_COMM_WORLD, nDofs_s, inds, PETSC_COPY_VALUES, &is_s[slice_i]);
     PCFieldSplitSetIS(pc, NULL, is_s[slice_i]);
   }
   PCSetUp(pc);
+  delete[] inds;
 
+/*
   // broadcast local shifts to global arrays
   gShifts = new int**[nSlice];
   for(int slice_i = 0; slice_i < nSlice; slice_i++) {
@@ -682,4 +711,5 @@ void rpo_set_fieldsplits(SNES snes, IS* is_s, IS* is_u, IS* is_p, int nSlice, in
     delete[] gShifts[slice_i];
   }
   delete[] gShifts;
+*/
 }
