@@ -87,10 +87,15 @@ struct Context {
     // parallel vector scattering data
     int              localSize;
     int**            lShift;
-    IS               isl;
-    IS               isg;
-    VecScatter       ltog;
+    IS               isl;  // local index set
+    IS               isg;  // global index set
+    VecScatter       ltog; // local to global vec scatter
     bool             build_PC;
+    // for the fieldsplit preconditioning
+    IS*              is_s;
+    IS*              is_u;
+    IS*              is_p;
+    SNES             snes;
 };
 
 #define XMIN 0.0
@@ -248,9 +253,9 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
   VecScatterBegin(context->ltog, x, xl, INSERT_VALUES, SCATTER_FORWARD);
   VecScatterEnd(  context->ltog, x, xl, INSERT_VALUES, SCATTER_FORWARD);
-  VecGetArrayRead(xl, &xArray);
 
   index = 0;
+  VecGetArrayRead(xl, &xArray);
   for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
     for(field_i = 0; field_i < context->domain->nField(); field_i++) {
       field = fields[slice_i * context->domain->nField() + field_i];
@@ -275,7 +280,8 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
       }
     }
     // phase shift data lives on the 0th processors part of the vector
-    if(!Geometry::procID()) {
+    //if(!Geometry::procID()) {
+    if(Geometry::procID() == slice_i) {
       theta[slice_i] = xArray[index++];
 #ifdef X_FOURIER
       phi[slice_i]   = xArray[index++];
@@ -284,8 +290,8 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
     }
   }
   VecRestoreArrayRead(xl, &xArray);
-  VecDestroy(&xl);
 
+  VecDestroy(&xl);
   delete[] data;
 }
 
@@ -328,7 +334,8 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
       }
     }
     // phase shift data lives on the 0th processors part of the vector
-    if(!Geometry::procID()) {
+    //if(!Geometry::procID()) {
+    if(Geometry::procID() == slice_i) {
       xArray[index++] = theta[slice_i];
 #ifdef X_FOURIER
       xArray[index++] = phi[slice_i];
@@ -336,12 +343,12 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
       xArray[index++] = tau[slice_i];
     }
   }
-
   VecRestoreArray(xl, &xArray);
+
   VecScatterBegin(context->ltog, xl, x, INSERT_VALUES, SCATTER_REVERSE);
   VecScatterEnd(  context->ltog, xl, x, INSERT_VALUES, SCATTER_REVERSE);
-  VecDestroy(&xl);
 
+  VecDestroy(&xl);
   delete[] data;
 }
 
@@ -358,7 +365,8 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
                              context->localSize, 
                              context->lShift,
                              context->el,
-                             context->elmt, P);
+                             context->elmt, P,
+                             context->snes, context->is_s, context->is_u, context->is_p);
 
     context->build_PC = false;
   }
@@ -466,20 +474,20 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   RepackX(context, context->fi, context->theta_i, context->phi_i, context->tau_i, f);
   Femlib::value("D_T", dt);
 
-/*{
-char session_i[100];
-for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
-sprintf(session_i, "tube8_tw_rpo_%u", slice_i + 1);
-FEML* file_i = new FEML(session_i);
-Domain* dom = new Domain(file_i, context->elmt, context->bman);
-for(field_i = 0; field_i < nField; field_i++) {
-dom->u[field_i] = context->ui[slice_i*nField+field_i];
-}
-dom->dump();
-delete file_i;
-delete dom;
-}
-}*/
+#ifdef TESTING
+  char session_i[100];
+  for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
+    sprintf(session_i, "tube8_tw_rpo_%u", slice_i + 1);
+    FEML* file_i = new FEML(session_i);
+    Domain* dom = new Domain(file_i, context->elmt, context->bman);
+    for(field_i = 0; field_i < nField; field_i++) {
+      dom->u[field_i] = context->ui[slice_i*nField+field_i];
+    }
+    dom->dump();
+    delete file_i;
+    delete dom;
+  }
+#endif
  
   VecNorm(x, NORM_2, &x_norm);
   VecNorm(f, NORM_2, &f_norm);
@@ -506,6 +514,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   Vec x, f, xl;
   Mat P;
   SNES snes;
+  IS *is_s, *is_u, *is_p;
 
   if(!Geometry::procID()) cout << "time step: " << Femlib::value("D_T") << endl;
 
@@ -519,6 +528,9 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->ui       = ui;
   context->fi       = fi;
   context->build_PC = true;
+  context->is_s     = NULL;
+  context->is_u     = NULL;
+  context->is_p     = NULL;
 
   context->theta_i = new real_t[nSlice];
   context->phi_i   = new real_t[nSlice];
@@ -586,6 +598,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->nDofsSlice = context->domain->nField() * Geometry::nZ() * context->nDofsPlane + 2;
 #endif
 
+/*
   context->localSize = context->domain->nField() * Geometry::nZProc() * context->nDofsPlane;
   // store phase shifts on the 0th processor
 #ifdef X_FOURIER
@@ -594,6 +607,13 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   if(!Geometry::procID()) context->localSize += 2;
 #endif
   context->localSize *= nSlice;
+*/
+  context->localSize = context->domain->nField() * Geometry::nZ() * context->nDofsPlane;
+#ifdef X_FOURIER
+  context->localSize += 3;
+#else
+  context->localSize += 2;
+#endif
 
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &x);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &f);
@@ -614,19 +634,21 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
     }
   }
 
-for(int proc_i = 0; proc_i < Geometry::nProc(); proc_i++) {
-  if(proc_i==Geometry::procID()) {
-    for(int slice_i = 0; slice_i < nSlice; slice_i++) {
-      cout << "[" << Geometry::procID() << "]\t";
-      for(int field_i = 0; field_i < context->domain->nField(); field_i++) {
-        cout << context->lShift[slice_i][field_i] << "\t";
+#ifdef TESTING
+  for(int proc_i = 0; proc_i < Geometry::nProc(); proc_i++) {
+    if(proc_i==Geometry::procID()) {
+      for(int slice_i = 0; slice_i < nSlice; slice_i++) {
+        cout << "[" << Geometry::procID() << "]\t";
+        for(int field_i = 0; field_i < context->domain->nField(); field_i++) {
+          cout << context->lShift[slice_i][field_i] << "\t";
+        }
+        cout << endl;
       }
       cout << endl;
     }
-    cout << endl;
+    MPI_Barrier(MPI_COMM_WORLD);
   }
-  MPI_Barrier(MPI_COMM_WORLD);
-}
+#endif
 
   // create the local to global scatter object
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
@@ -642,6 +664,7 @@ for(int proc_i = 0; proc_i < Geometry::nProc(); proc_i++) {
         }
       }
       // phase shift dofs
+/*
       if(!Geometry::procID()) {
         inds[ind_i] = context->lShift[slice_i][context->domain->nField()-1] + 
                       Geometry::nZ() * context->nDofsPlane + 0;
@@ -652,6 +675,13 @@ for(int proc_i = 0; proc_i < Geometry::nProc(); proc_i++) {
         inds[ind_i] = context->lShift[slice_i][context->domain->nField()-1] + 
                       Geometry::nZ() * context->nDofsPlane + 2;
         ind_i++;
+      }
+*/
+      if(Geometry::procID() == slice_i) {
+        for(int shift_i = 0; shift_i < 3; shift_i++) {
+          inds[ind_i] = (slice_i + 1) * context->domain->nField() * Geometry::nZ() * context->nDofsPlane + shift_i;
+          ind_i++;
+        }
       }
     }
     ISCreateGeneral(MPI_COMM_WORLD, context->localSize, inds, PETSC_COPY_VALUES, &context->isg);
@@ -672,6 +702,7 @@ for(int proc_i = 0; proc_i < Geometry::nProc(); proc_i++) {
   SNESSetNPCSide(snes, PC_LEFT);
   SNESSetFromOptions(snes);
 
+  context->snes = snes;
   RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
   SNESSolve(snes, NULL, x);
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
