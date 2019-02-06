@@ -99,8 +99,7 @@ double dNidy(int i, double x, double y) {
   return 0.0;
 }
 
-double** f2r_transform(double lx, int nf) {
-  int nr = nf - 2; // nf is number of real + number of imaginary components of the fourier expansion
+double** f2r_transform(double lx, int nr, int nf) {
   double kj, xi;
   double** A = new double*[nr];
 
@@ -113,13 +112,10 @@ double** f2r_transform(double lx, int nf) {
       A[ii][jj] = (jj%2==0) ? cos(+kj * xi) : sin(+kj * xi);
     }
   }
-
   return A;
 }
 
-/*
-double** r2f_transform(double lx, int nr) {
-  int nf = nr + 2;
+double** r2f_transform(double lx, int nr, int nf) {
   double ki, xj;
   double** A = new double*[nf];
 
@@ -129,13 +125,65 @@ double** r2f_transform(double lx, int nr) {
     A[ii] = new double[nr];
     for(int jj = 0; jj < nr; jj++) {
       xj = jj * (lx / nr);
-      A[ii][jj] = 
+      A[ii][jj] = (ii%2==0) ? cos(-ki * xj) : sin(-ki * xj);
+    }
+  }
+  return A;
+}
+
+double** mat_mat_mult(double** A, double** B, int ni, int nj, int nk) {
+  double** C = new double*[ni];
+
+  for(int ii = 0; ii < ni; ii++) {
+    C[ii] = new double[nj];
+
+    for(int jj = 0; jj < nj; jj++) {
+      C[ii][jj] = 0.0;
+
+      for(int kk = 0; kk < nk; kk++) {
+        C[ii][jj] += A[ii][kk] * B[kk][jj];
+      }
+    }
+  }
+  return C;
+}
+
+double** real_space_pc(double lx, int nr, int nf) {
+  int jl, jr;
+  double dx = lx / nr;
+  double** F2R = f2r_transform(lx, nr, nf);
+  double** R2F = r2f_transform(lx, nr, nf);
+  double** LAP;
+  double** R2F_LAP;
+  double** PRECON;
+
+  // assemble the real space finite difference gradient operator
+  LAP = new double*[nr];
+  for(int ii = 0; ii < nr; ii++) {
+    LAP[ii] = new double[nr];
+
+    for(int jj = 0; jj < nr; jj++) LAP[ii][jj] = 0.0;
+
+    for(int jj = 0; jj < nr; jj++) {
+      jl = (jj-1+nr)%nr;
+      jr = (jj+1)%nr;
+      LAP[ii][jl] -= 1.0/dx;
+      LAP[ii][jj] += 2.0/dx;
+      LAP[ii][jr] -= 1.0/dx;
     }
   }
 
-  return A;
+  // assemble the preconditioner
+  R2F_LAP = mat_mat_mult(R2F, LAP, nf, nr, nr);
+  PRECON  = mat_mat_mult(R2F_LAP, F2R, nf, nf, nr);
+
+  for(int ii = 0; ii < nf; ii++) { delete[] R2F[ii]; }     delete[] R2F;
+  for(int ii = 0; ii < nr; ii++) { delete[] F2R[ii]; }     delete[] F2R;
+  for(int ii = 0; ii < nr; ii++) { delete[] LAP[ii]; }     delete[] LAP;
+  for(int ii = 0; ii < nf; ii++) { delete[] R2F_LAP[ii]; } delete[] R2F_LAP;
+
+  return PRECON;
 }
-*/
 
 // Schur complement preconditioning for incompressible Navier-Stokes
 // References:
@@ -453,6 +501,7 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
   Mat G, K, S;
   Mat Kii_inv, D, LK, LKR, DKinv;
   int nDofsCube = Geometry::nZ() * nDofsSlice;
+  double** PCX = real_space_pc(2.0*M_PI, nNodesX, nModesX);
 
   MatCreateSeqAIJ(MPI_COMM_SELF, 3*nDofsPlane, 1*nDofsPlane, 16, NULL, &G);
   MatCreateSeqAIJ(MPI_COMM_SELF, 1*nDofsPlane, 3*nDofsPlane, 16, NULL, &D);
@@ -528,9 +577,12 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
               if(col_k[0] < 0) continue;
 
               for(int pnt = 0; pnt < 2; pnt++) {
-                pVals[0] = -(dt / kinvis) * det * k_x * k_x;
-                pVals[4] = -(dt / kinvis) * det / delta_y * dNidy(pnt+1, qx[pnt], qy[pnt]) / delta_y * dNidy(pnt+1, qx[pnt], qy[pnt]);
-                pVals[8] = -(dt / kinvis) * det * k_z * k_z;
+                //pVals[0] = -(dt / kinvis) * det * k_x * k_x;
+                //pVals[4] = -(dt / kinvis) * det / delta_y * dNidy(pnt+1, qx[pnt], qy[pnt]) / delta_y * dNidy(pnt+1, qx[pnt], qy[pnt]);
+                //pVals[8] = -(dt / kinvis) * det * k_z * k_z;
+                pVals[0] = (dt / kinvis) * PCX[mode_x][mode_x];
+                pVals[4] = 0.0;
+                pVals[8] = 0.0;
 
                 MatSetValues(K, 3, row_k, 3, col_k, pVals, ADD_VALUES);
                 MatSetValue(K, row_k[0], row_k[0], det, ADD_VALUES);
@@ -645,6 +697,8 @@ pVals[2] = 1.0;
   MatDestroy(&LK);
   MatDestroy(&LKR);
   MatDestroy(&DKinv);
+  for(int ii = 0; ii < nModesX; ii++) { delete[] PCX[ii]; }
+  delete[] PCX;
 }
 
 void rpo_set_fieldsplits(SNES snes, IS* is_s, IS* is_u, IS* is_p, int nSlice, int nDofsPlane, int nDofsSlice, int** lShift) {
