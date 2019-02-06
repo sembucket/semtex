@@ -56,8 +56,6 @@ static char RCS[] = "$Id$";
 #include <petscksp.h>
 #include <petscsnes.h>
 
-#define X_FOURIER
-
 static char prog[] = "rpo";
 static void getargs    (int, char**, bool&, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
@@ -98,6 +96,9 @@ struct Context {
     SNES             snes;
 };
 
+#define X_FOURIER
+//#define NFIELD 4
+#define NFIELD 3
 #define XMIN 0.0
 #define XMAX (2.0*M_PI)
 #define YMIN 0.0
@@ -257,8 +258,8 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   index = 0;
   VecGetArrayRead(xl, &xArray);
   for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
-    for(field_i = 0; field_i < context->domain->nField(); field_i++) {
-      field = fields[slice_i * context->domain->nField() + field_i];
+    for(field_i = 0; field_i < NFIELD; field_i++) {
+      field = fields[slice_i * NFIELD + field_i];
 
       for(kk = 0; kk < Geometry::nZProc(); kk++) {
         // skip over redundant real dofs
@@ -310,8 +311,8 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
 
   index = 0;
   for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
-    for(field_i = 0; field_i < context->domain->nField(); field_i++) {
-      field = fields[slice_i * context->domain->nField() + field_i];
+    for(field_i = 0; field_i < NFIELD; field_i++) {
+      field = fields[slice_i * NFIELD + field_i];
 
       for(kk = 0; kk < Geometry::nZProc(); kk++) {
 #ifdef X_FOURIER
@@ -376,7 +377,6 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
 PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   Context* context = (Context*)ctx;
   real_t dt;
-  int nField = context->domain->nField();
   int slice_i, slice_j, field_i, mode_i, mode_j, dof_i, nStep;
   int elOrd = Geometry::nP() - 1;
   int nNodesX = NELS_X*elOrd;
@@ -399,8 +399,8 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     Femlib::value("t", time);
 
     // initialise the flow map fields with the solution fields
-    for(field_i = 0; field_i < nField; field_i++) {
-      *context->domain->u[field_i] = *context->ui[slice_i * nField + field_i];
+    for(field_i = 0; field_i < NFIELD; field_i++) {
+      *context->domain->u[field_i] = *context->ui[slice_i * NFIELD + field_i];
     }
 
     // solve the flow map for time tau_i
@@ -424,7 +424,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     // phase shift in theta (axial direction)
 #ifdef X_FOURIER
     for(mode_i = 0; mode_i < Geometry::nZProc(); mode_i++) {
-      for(field_i = 0; field_i < nField; field_i++) {
+      for(field_i = 0; field_i < context->domain->nField(); field_i++) {
         SEM_to_Fourier(mode_i, context, context->domain->u[field_i], data_f);
         for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
           for(int mode_k = 1; mode_k < nModesX/2; mode_k++) {
@@ -449,7 +449,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
       ckt = cos(mode_j*context->phi_i[slice_i]);
       skt = sin(mode_j*context->phi_i[slice_i]);
 
-      for(field_i = 0; field_i < nField; field_i++) {
+      for(field_i = 0; field_i < context->domain->nField(); field_i++) {
         data_r = context->domain->u[field_i]->plane(2*mode_i+0);
         data_c = context->domain->u[field_i]->plane(2*mode_i+1);
 
@@ -463,10 +463,10 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     }
 
     // set f
-    for(field_i = 0; field_i < nField; field_i++) {
+    for(field_i = 0; field_i < NFIELD; field_i++) {
       slice_j = (slice_i + 1)%context->nSlice;
-      *context->fi[slice_i * nField + field_i]  = *context->domain->u[field_i];
-      *context->fi[slice_i * nField + field_i] -= *context->ui[slice_j * nField + field_i];
+      *context->fi[slice_i * NFIELD + field_i]  = *context->domain->u[field_i];
+      *context->fi[slice_i * NFIELD + field_i] -= *context->ui[slice_j * NFIELD + field_i];
     }
 
     time += context->tau_i[slice_i];
@@ -480,8 +480,8 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     sprintf(session_i, "tube8_tw_rpo_%u", slice_i + 1);
     FEML* file_i = new FEML(session_i);
     Domain* dom = new Domain(file_i, context->elmt, context->bman);
-    for(field_i = 0; field_i < nField; field_i++) {
-      dom->u[field_i] = context->ui[slice_i*nField+field_i];
+    for(field_i = 0; field_i < NFIELD; field_i++) {
+      dom->u[field_i] = context->ui[slice_i*NFIELD+field_i];
     }
     dom->dump();
     delete file_i;
@@ -592,23 +592,13 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   // add dofs for theta and tau for each time slice
 #ifdef X_FOURIER
   context->nDofsPlane = nModesX*NELS_Y*elOrd;
-  context->nDofsSlice = context->domain->nField() * Geometry::nZ() * context->nDofsPlane + 3;
+  context->nDofsSlice = NFIELD * Geometry::nZ() * context->nDofsPlane + 3;
 #else
   context->nDofsPlane = NELS_X*elOrd*NELS_Y*elOrd;
-  context->nDofsSlice = context->domain->nField() * Geometry::nZ() * context->nDofsPlane + 2;
+  context->nDofsSlice = NFIELD * Geometry::nZ() * context->nDofsPlane + 2;
 #endif
 
-/*
-  context->localSize = context->domain->nField() * Geometry::nZProc() * context->nDofsPlane;
-  // store phase shifts on the 0th processor
-#ifdef X_FOURIER
-  if(!Geometry::procID()) context->localSize += 3;
-#else
-  if(!Geometry::procID()) context->localSize += 2;
-#endif
-  context->localSize *= nSlice;
-*/
-  context->localSize = context->domain->nField() * Geometry::nZ() * context->nDofsPlane;
+  context->localSize = NFIELD * Geometry::nZ() * context->nDofsPlane;
 #ifdef X_FOURIER
   context->localSize += 3;
 #else
@@ -624,9 +614,9 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
 
     context->lShift = new int*[nSlice];
     for(int slice_i = 0; slice_i < nSlice; slice_i++) {
-      context->lShift[slice_i] = new int[context->domain->nField()];
+      context->lShift[slice_i] = new int[NFIELD];
 
-      for(int field_i = 0; field_i < context->domain->nField(); field_i++) {
+      for(int field_i = 0; field_i < NFIELD; field_i++) {
         context->lShift[slice_i][field_i]  = slice_i * context->nDofsSlice;
         context->lShift[slice_i][field_i] += field_i * nPntsDom_g;
         context->lShift[slice_i][field_i] += Geometry::procID() * nPntsDom_l;
@@ -639,7 +629,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
     if(proc_i==Geometry::procID()) {
       for(int slice_i = 0; slice_i < nSlice; slice_i++) {
         cout << "[" << Geometry::procID() << "]\t";
-        for(int field_i = 0; field_i < context->domain->nField(); field_i++) {
+        for(int field_i = 0; field_i < NFIELD; field_i++) {
           cout << context->lShift[slice_i][field_i] << "\t";
         }
         cout << endl;
@@ -657,29 +647,16 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
     int ind_i = 0;
     int* inds = new int[context->localSize];
     for(int slice_i = 0; slice_i < nSlice; slice_i++) {
-      for(int field_i = 0; field_i < context->domain->nField(); field_i++) {
+      for(int field_i = 0; field_i < NFIELD; field_i++) {
         for(int ind_j = 0; ind_j < Geometry::nZProc() * context->nDofsPlane; ind_j++) {
           inds[ind_i] = context->lShift[slice_i][field_i] + ind_j;
           ind_i++;
         }
       }
       // phase shift dofs
-/*
-      if(!Geometry::procID()) {
-        inds[ind_i] = context->lShift[slice_i][context->domain->nField()-1] + 
-                      Geometry::nZ() * context->nDofsPlane + 0;
-        ind_i++;
-        inds[ind_i] = context->lShift[slice_i][context->domain->nField()-1] + 
-                      Geometry::nZ() * context->nDofsPlane + 1;
-        ind_i++;
-        inds[ind_i] = context->lShift[slice_i][context->domain->nField()-1] + 
-                      Geometry::nZ() * context->nDofsPlane + 2;
-        ind_i++;
-      }
-*/
       if(Geometry::procID() == slice_i) {
         for(int shift_i = 0; shift_i < 3; shift_i++) {
-          inds[ind_i] = (slice_i + 1) * context->domain->nField() * Geometry::nZ() * context->nDofsPlane + shift_i;
+          inds[ind_i] = (slice_i + 1) * NFIELD * Geometry::nZ() * context->nDofsPlane + shift_i;
           ind_i++;
         }
       }
@@ -749,8 +726,8 @@ int main (int argc, char** argv) {
   //ROOTONLY domain -> report ();
   
   // load in the time slices
-  ui.resize(NSLICE * domain->nField());
-  fi.resize(NSLICE * domain->nField());
+  ui.resize(NSLICE * NFIELD);
+  fi.resize(NSLICE * NFIELD);
   delete file;
   delete domain;
   for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
@@ -759,8 +736,8 @@ int main (int argc, char** argv) {
     file_i = new FEML(session_i);
     domain = new Domain(file_i, elmt, bman);
     domain->restart();
-    for(int field_i = 0; field_i < domain->nField(); field_i++) {
-      ui[slice_i*domain->nField()+field_i] = domain->u[field_i];
+    for(int field_i = 0; field_i < NFIELD; field_i++) {
+      ui[slice_i*NFIELD+field_i] = domain->u[field_i];
       {
         char* field;
         real_t* data;
@@ -769,7 +746,7 @@ int main (int argc, char** argv) {
         strcpy ((field = new char [strlen (bman -> field()) + 1]), bman -> field());
         data = new real_t[static_cast<size_t>(Geometry::nTotProc())];
         bndry = new BoundarySys(bman, elmt, field[0]);
-        fi[slice_i*domain->nField()+field_i] = new Field(bndry, data, Geometry::nZProc(), elmt, field[0]);
+        fi[slice_i*NFIELD+field_i] = new Field(bndry, data, Geometry::nZProc(), elmt, field[0]);
       }
     }
     delete file_i;
@@ -792,8 +769,8 @@ int main (int argc, char** argv) {
     sprintf(session_i, "%s_rpo_%u", session, slice_i + 1);
     file_i = new FEML(session_i);
     domain = new Domain(file_i, elmt, bman);
-    for(int field_i = 0; field_i < domain->nField(); field_i++) {
-      domain->u[field_i] = ui[slice_i*domain->nField()+field_i];
+    for(int field_i = 0; field_i < NFIELD; field_i++) {
+      domain->u[field_i] = ui[slice_i*NFIELD+field_i];
     }
     domain->dump();
     delete file_i;
