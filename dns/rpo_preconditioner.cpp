@@ -149,12 +149,10 @@ double** mat_mat_mult(double** A, double** B, int ni, int nj, int nk) {
 }
 
 double** real_space_pc(double lx, int nr, int nf) {
-  int jl, jr;
+  int il, ir;
   double dx = lx / nr;
   double** F2R = f2r_transform(lx, nr, nf);
-  double** R2F = r2f_transform(lx, nr, nf);
   double** LAP;
-  double** R2F_LAP;
   double** PRECON;
 
   // assemble the real space finite difference gradient operator
@@ -164,23 +162,26 @@ double** real_space_pc(double lx, int nr, int nf) {
 
     for(int jj = 0; jj < nr; jj++) LAP[ii][jj] = 0.0;
 
-    for(int jj = 0; jj < nr; jj++) {
-      jl = (jj-1+nr)%nr;
-      jr = (jj+1)%nr;
-      LAP[ii][jl] -= 1.0/dx;
-      LAP[ii][jj] += 2.0/dx;
-      LAP[ii][jr] -= 1.0/dx;
-    }
+    il = (ii-1+nr)%nr;
+    ir = (ii+1)%nr;
+    LAP[ii][il] = 1.0/dx;
+    LAP[ii][ii] = 2.0/dx;
+    LAP[ii][ir] = 1.0/dx;
   }
 
   // assemble the preconditioner
-  R2F_LAP = mat_mat_mult(R2F, LAP, nf, nr, nr);
-  PRECON  = mat_mat_mult(R2F_LAP, F2R, nf, nf, nr);
+  PRECON = mat_mat_mult(LAP, F2R, nr, nf, nr);
 
-  for(int ii = 0; ii < nf; ii++) { delete[] R2F[ii]; }     delete[] R2F;
+  // x modes along the axis - return the identity
+  if(lx < 1.0e-6) {
+    for(int ii = 0; ii < nf; ii++) { 
+      for(int jj = 0; jj < nr; jj++) PRECON[ii][jj] = 0.0;
+      PRECON[ii][ii] = 1.0; 
+    }
+  }
+
   for(int ii = 0; ii < nr; ii++) { delete[] F2R[ii]; }     delete[] F2R;
   for(int ii = 0; ii < nr; ii++) { delete[] LAP[ii]; }     delete[] LAP;
-  for(int ii = 0; ii < nf; ii++) { delete[] R2F_LAP[ii]; } delete[] R2F_LAP;
 
   return PRECON;
 }
@@ -237,7 +238,7 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
   Mat G, K, S;
   Mat Kii_inv, D, LK, LKR, DKinv;
   int nDofsCube = Geometry::nZ() * nDofsSlice;
-  double** PCX = real_space_pc(2.0*M_PI, nNodesX, nModesX);
+  double** PCX = real_space_pc(2.0*M_PI, nModesX, nModesX);
   double **PCZ1, **PCZ2;
 
   MatCreateSeqAIJ(MPI_COMM_SELF, 3*nDofsPlane, 1*nDofsPlane, 16, NULL, &G);
@@ -320,13 +321,13 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
                 //pVals[0] = -(dt * kinvis) * det * k_x * k_x;
                 //pVals[4] = -(dt * kinvis) * det / delta_y * dNidy(pnt+1, qx[pnt], qy[pnt]) / delta_y * dNidy(pnt+1, qx[pnt], qy[pnt]);
                 //pVals[8] = -(dt * kinvis) * det * k_z * k_z;
-                pVals[0] = 0.0;//(dt * kinvis) * PCX[mode_x][mode_x];
+                pVals[0] = (dt * kinvis) * PCX[mode_x][mode_x];
                 pVals[4] = 0.0;
-                //if(row == 0 && col == 0)
-                //  pVals[8] = (dt * kinvis) * PCZ1[plane_j][plane_j];
-                //if(row == 1 && col == 1)
-                //  pVals[8] = (dt * kinvis) * PCZ2[plane_j][plane_j];
-                pVals[8] = 0.0;
+                if(row == 0 && col == 0)
+                  pVals[8] = (dt * kinvis) * PCZ1[plane_j][plane_j];
+                if(row == 1 && col == 1)
+                  pVals[8] = (dt * kinvis) * PCZ2[plane_j][plane_j];
+                //pVals[8] = 0.0;
 
                 MatSetValues(K, 3, row_k, 3, col_k, pVals, ADD_VALUES);
                 MatSetValue(K, row_k[0], row_k[0], det, ADD_VALUES);
