@@ -46,6 +46,7 @@ static char RCS[] = "$Id$";
 
 #include <dns.h>
 
+#include "rpo_utils.h"
 #include "rpo_preconditioner.h"
 
 #include <petsc.h>
@@ -63,39 +64,6 @@ static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 		Domain*, BCmgr*, DNSAnalyser*, FieldForce*);
 
-struct Context {
-    int              nSlice;
-    int              nDofsSlice;
-    int              nDofsPlane;
-    Mesh*            mesh;
-    vector<Element*> elmt;
-    Domain*          domain;
-    BCmgr*           bman;
-    DNSAnalyser*     analyst;
-    FieldForce*      ff;
-    vector<Field*>   ui;
-    vector<Field*>   fi;
-    real_t*          theta_i;
-    real_t*          phi_i;
-    real_t*          tau_i;
-    // regular grid points in elements
-    int_t*           el;
-    real_t*          r;
-    real_t*          s;
-    // parallel vector scattering data
-    int              localSize;
-    int**            lShift;
-    IS               isl;  // local index set
-    IS               isg;  // global index set
-    VecScatter       ltog; // local to global vec scatter
-    bool             build_PC;
-    // for the fieldsplit preconditioning
-    IS*              is_s;
-    IS*              is_u;
-    IS*              is_p;
-    SNES             snes;
-};
-
 #define X_FOURIER
 //#define NFIELD 4
 #define NFIELD 3
@@ -108,250 +76,7 @@ struct Context {
 #define NSLICE 16
 //#define NSTEPS 3200
 #define NSTEPS 40
-
-void data_transpose(real_t* data, int nx, int ny) {
-  real_t* temp = new real_t[nx*ny];
-
-  for(int iy = 0; iy < ny; iy++) {
-    for(int ix = 0; ix < nx; ix++) {
-      temp[ix*ny + iy] = data[iy*nx + ix];
-    }
-  }
-  for(int ii = 0; ii < nx*ny; ii++) {
-    data[ii] = temp[ii];
-  }
-
-  delete[] temp;
-}
-
-void elements_to_logical(real_t* data_els, real_t* data_log) {
-  int elOrd = Geometry::nP() - 1;
-  int nodes_per_el = (elOrd + 1)*(elOrd + 1);
-  int pt_x, pt_y;
-  int index = -1;
-
-  for(int el_y = 0; el_y < NELS_Y; el_y++) {
-    for(int el_x = 0; el_x < NELS_X; el_x++) {
-      for(int pt_i = 0; pt_i < nodes_per_el; pt_i++) {
-        index++;
-
-        // skip over right and top edges for each element, as these are redundant
-        if(pt_i%(elOrd+1) == elOrd || pt_i/(elOrd+1) == elOrd) continue;
-
-        pt_x = el_x*elOrd + pt_i%(elOrd+1);
-        pt_y = el_y*elOrd + pt_i/(elOrd+1);
-
-        data_log[pt_y*NELS_X*elOrd + pt_x] = data_els[index];
-      }
-    }
-  }
-}
-
-void logical_to_elements(real_t* data_log, real_t* data_els) {
-  int elOrd = Geometry::nP() - 1;
-  int nodes_per_el = (elOrd + 1)*(elOrd + 1);
-  int shift_els, pt_r, pt_s, pt_x, pt_y;
-  
-  for(int el_y = 0; el_y < NELS_Y; el_y++) {
-    for(int el_x = 0; el_x < NELS_X; el_x++) {
-      shift_els = (el_y*NELS_X + el_x)*nodes_per_el;
-
-      for(int pt_i = 0; pt_i < nodes_per_el; pt_i++) {
-        pt_r = pt_i%(elOrd+1);
-        pt_s = pt_i/(elOrd+1);
-
-        pt_x = el_x*elOrd + pt_r;
-        pt_y = el_y*elOrd + pt_s;
-        // asseume periodic in x
-        if(pt_x == NELS_X*elOrd) pt_x = 0;
-        // don't do axis for now
-        if(pt_y == NELS_Y*elOrd) continue;
-
-        data_els[shift_els+pt_i] = data_log[pt_y*NELS_X*elOrd + pt_x];
-      }
-    }
-  }
-}
-
-void SEM_to_Fourier(int plane_k, Context* context, AuxField* us, real_t* data_f) {
-  int elOrd = Geometry::nP() - 1;
-  int nNodesX = NELS_X*elOrd;
-  int nModesX = nNodesX/2 + 2;
-  int pt_i;
-  Element* elmt;
-  real_t* data = new real_t[NELS_Y*elOrd*nNodesX];
-
-  for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
-    for(int pt_x = 0; pt_x < nNodesX; pt_x++) {
-      pt_i = pt_y*nNodesX + pt_x;
-      elmt = context->elmt[context->el[pt_i]];
-      data[pt_y*nNodesX+pt_x] = us->probe(elmt, context->r[pt_i], context->s[pt_i], plane_k);
-    }
-  }
-  // semtex fft works on strided data, so transpose the plane before applying
-  data_transpose(data, nNodesX, NELS_Y*elOrd);
-  dDFTr(data, nNodesX, NELS_Y*elOrd, +1);
-  data_transpose(data, NELS_Y*elOrd, nNodesX);
-
-  for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
-    for(int pt_x = 0; pt_x < nModesX; pt_x++) {
-      data_f[pt_y*nNodesX + pt_x] = data[pt_y*nNodesX+pt_x];
-    }
-  }
-
-  delete[] data;
-}
-
-void Fourier_to_SEM(int plane_k, Context* context, AuxField* us, real_t* data_f) {
-  int elOrd = Geometry::nP() - 1;
-  int nNodesX = NELS_X*elOrd;
-  int nModesX = nNodesX/2 + 2;
-  int pt_r;
-  double dx, xr, theta;
-  real_t* data = new real_t[nNodesX];
-  const real_t *qx;
-
-  Femlib::quadrature(&qx, 0, 0, 0  , elOrd+1, GLJ, 0.0, 0.0);
-
-  dx = (XMAX - XMIN)/NELS_X;
-
-  for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
-    for(int pt_x = 0; pt_x < nModesX; pt_x++) {
-      data[pt_x] = data_f[pt_y*nNodesX + pt_x];
-    }
-    // fourier interpolation to GLL grid
-    for(int pt_x = 0; pt_x < nNodesX; pt_x++) {
-      // coordinate in real space
-      xr = XMIN + (pt_x/elOrd)*dx + 0.5*(1.0 + qx[pt_x%elOrd])*dx;
-      // coordinate in fourier space
-      theta = 2.0*M_PI*xr/(XMAX - XMIN);
-
-      data_f[pt_y*nNodesX + pt_x] = data[0];
-      // ignore the nyquist frequency (entry [1])
-      // all modes are scaled by 2.0, except the mean
-      for(int mode_k = 1; mode_k < nModesX/2; mode_k++) {
-        data_f[pt_y*nNodesX + pt_x] += 2.0*data[2*mode_k+0]*cos(mode_k*theta);
-        data_f[pt_y*nNodesX + pt_x] -= 2.0*data[2*mode_k+1]*sin(mode_k*theta);
-      }
-    }
-  }
-
-  logical_to_elements(data_f, us->plane(plane_k));
-
-  delete[] data;
-}
-
-void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
-  int elOrd = Geometry::nP() - 1;
-  int ii, jj, kk, slice_i, field_i, index;
-  int nNodesX = NELS_X*elOrd;
-  int nModesX = nNodesX/2 + 2;
-  AuxField* field;
-  const PetscScalar *xArray;
-  real_t* data = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
-  Vec xl;
-
-  VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
-  VecScatterBegin(context->ltog, x, xl, INSERT_VALUES, SCATTER_FORWARD);
-  VecScatterEnd(  context->ltog, x, xl, INSERT_VALUES, SCATTER_FORWARD);
-
-  index = 0;
-  VecGetArrayRead(xl, &xArray);
-  for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
-    for(field_i = 0; field_i < NFIELD; field_i++) {
-      field = fields[slice_i * NFIELD + field_i];
-
-      for(kk = 0; kk < Geometry::nZProc(); kk++) {
-        // skip over redundant real dofs
-        for(jj = 0; jj < NELS_Y*elOrd; jj++) {
-#ifdef X_FOURIER
-          for(ii = 0; ii < nModesX; ii++) {
-#else
-          for(ii = 0; ii < nNodesX; ii++) {
-#endif
-            data[jj*nNodesX + ii] = xArray[index++];
-          }
-        }
-
-#ifdef X_FOURIER
-        Fourier_to_SEM(kk, context, field, data);
-#else
-        logical_to_elements(data, field->plane(kk));
-#endif
-      }
-    }
-    // phase shift data lives on the 0th processors part of the vector
-    //if(!Geometry::procID()) {
-    if(Geometry::procID() == slice_i) {
-      theta[slice_i] = xArray[index++];
-#ifdef X_FOURIER
-      phi[slice_i]   = xArray[index++];
-#endif
-      tau[slice_i]   = xArray[index++];
-    }
-  }
-  VecRestoreArrayRead(xl, &xArray);
-
-  VecDestroy(&xl);
-  delete[] data;
-}
-
-void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
-  int elOrd = Geometry::nP() - 1;
-  int ii, jj, kk, slice_i, field_i, index;
-  int nNodesX = NELS_X*elOrd;
-  int nModesX = nNodesX/2 + 2;
-  AuxField* field;
-  PetscScalar *xArray;
-  real_t* data = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
-  Vec xl;
-
-  VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
-  VecGetArray(xl, &xArray);
-
-  index = 0;
-  for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
-    for(field_i = 0; field_i < NFIELD; field_i++) {
-      field = fields[slice_i * NFIELD + field_i];
-
-      for(kk = 0; kk < Geometry::nZProc(); kk++) {
-#ifdef X_FOURIER
-        SEM_to_Fourier(kk, context, field, data);
-#else
-        elements_to_logical(field->plane(kk), data);
-#endif
-
-        // skip over redundant real dofs
-        for(jj = 0; jj < NELS_Y*elOrd; jj++) {
-#ifdef X_FOURIER
-          for(ii = 0; ii < nModesX; ii++) {
-#else
-          for(ii = 0; ii < nNodesX; ii++) {
-#endif
-            xArray[index] = data[jj*nNodesX + ii];
-            index++;
-          }
-        }
-      }
-    }
-    // phase shift data lives on the 0th processors part of the vector
-    //if(!Geometry::procID()) {
-    if(Geometry::procID() == slice_i) {
-      xArray[index++] = theta[slice_i];
-#ifdef X_FOURIER
-      xArray[index++] = phi[slice_i];
-#endif
-      xArray[index++] = tau[slice_i];
-    }
-  }
-  VecRestoreArray(xl, &xArray);
-
-  VecScatterBegin(context->ltog, xl, x, INSERT_VALUES, SCATTER_REVERSE);
-  VecScatterEnd(  context->ltog, xl, x, INSERT_VALUES, SCATTER_REVERSE);
-
-  VecDestroy(&xl);
-  delete[] data;
-}
+#define UPDATE_U
 
 PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
   Context* context = (Context*)ctx;
@@ -360,16 +85,8 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
   MatAssemblyEnd(  J, MAT_FINAL_ASSEMBLY);
 
   if(context->build_PC) {
-    build_preconditioner_ffs(context->nSlice, 
-                             context->nDofsSlice, 
-                             context->nDofsPlane, 
-                             context->localSize, 
-                             context->lShift,
-                             context->el,
-                             context->elmt, P,
-                             context->snes, context->is_s, context->is_u, context->is_p);
-
-    context->build_PC = false;
+    build_preconditioner_ffs(context, P);
+    //context->build_PC = false;
   }
   return 0;
 }
@@ -380,7 +97,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   int slice_i, slice_j, field_i, mode_i, mode_j, dof_i, nStep;
   int elOrd = Geometry::nP() - 1;
   int nNodesX = NELS_X*elOrd;
-  int nModesX = nNodesX/2 + 2;
+  int nModesX = 32;//nNodesX/2 + 2;
   real_t ckt, skt, rTmp, cTmp;
   register real_t* data_r;
   register real_t* data_c;
@@ -418,14 +135,15 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
                                          << "\tnstep: " << Femlib::ivalue("N_STEP")
                                          << "\ttheta: " << context->theta_i[slice_i] 
                                          << "\tphi:   " << context->phi_i[slice_i] << endl;
+
     // don't want to call the dns analysis, use custom integrate routine instead
-    integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
+    //integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
 
     // phase shift in theta (axial direction)
 #ifdef X_FOURIER
     for(mode_i = 0; mode_i < Geometry::nZProc(); mode_i++) {
       for(field_i = 0; field_i < context->domain->nField(); field_i++) {
-        SEM_to_Fourier(mode_i, context, context->domain->u[field_i], data_f);
+        SEM_to_Fourier(mode_i, context, context->domain->u[field_i], data_f, nNodesX, nModesX);
         for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
           for(int mode_k = 1; mode_k < nModesX/2; mode_k++) {
             ckt = cos(mode_k*context->theta_i[slice_i]);
@@ -436,7 +154,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
             data_f[pt_y*nModesX+2*mode_k+1] = cTmp;
           }
         }
-        Fourier_to_SEM(mode_i, context, context->domain->u[field_i], data_f);
+        Fourier_to_SEM(mode_i, context, context->domain->u[field_i], data_f, nNodesX, nModesX);
       }
     }
 #endif
@@ -461,6 +179,9 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
         }
       }
     }
+
+    // don't want to call the dns analysis, use custom integrate routine instead
+    integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
 
     // set f
     for(field_i = 0; field_i < NFIELD; field_i++) {
@@ -499,12 +220,12 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 }
 
 void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domain* domain, DNSAnalyser* analyst, FieldForce* FF, 
-               vector<Field*> ui, vector<Field*> fi) 
+               vector<Field*> ui, vector<Field*> fi, vector<Field*> uj)
 {
   Context* context = new Context;
   int elOrd = Geometry::nP() - 1;
   int nNodesX = NELS_X*elOrd;
-  int nModesX = nNodesX/2 + 2;
+  int nModesX = 32;//nNodesX/2 + 2;
   real_t dx, er, es, ex, ey;
   const real_t* qx;
   int_t pt_x, pt_y, el_x, el_y, el_i, el_j;
@@ -527,6 +248,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->ff       = FF;
   context->ui       = ui;
   context->fi       = fi;
+  context->uj       = uj;
   context->build_PC = true;
   context->is_s     = NULL;
   context->is_u     = NULL;
@@ -711,14 +433,16 @@ int main (int argc, char** argv) {
   static char      help[] = "petsc";
   vector<Field*>   ui;  // Solution fields for velocities, pressure at the i time slices
   vector<Field*>   fi;  // Solution fields for flow maps at the i time slices
+  vector<Field*>   uj;  // Dummy fields for updating the solution fields within the rpo solver
   char             session_i[100];
-  FEML* file_i;
+  FEML*            file_i;
+  char*            fname;
+  BoundarySys*     bndry;
 
   PetscInitialize(&argc, &argv, (char*)0, help);
 
   Femlib::initialize (&argc, &argv);
   getargs (argc, argv, freeze, session);
-
   preprocess (session, file, mesh, elmt, bman, domain, FF);
 
   analyst = new DNSAnalyser (domain, bman, file);
@@ -728,6 +452,7 @@ int main (int argc, char** argv) {
   // load in the time slices
   ui.resize(NSLICE * NFIELD);
   fi.resize(NSLICE * NFIELD);
+  uj.resize(NSLICE * NFIELD);
   delete file;
   delete domain;
   for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
@@ -738,16 +463,14 @@ int main (int argc, char** argv) {
     domain->restart();
     for(int field_i = 0; field_i < NFIELD; field_i++) {
       ui[slice_i*NFIELD+field_i] = domain->u[field_i];
-      {
-        char* field;
-        real_t* data;
-        BoundarySys* bndry;
 
-        strcpy ((field = new char [strlen (bman -> field()) + 1]), bman -> field());
-        data = new real_t[static_cast<size_t>(Geometry::nTotProc())];
-        bndry = new BoundarySys(bman, elmt, field[0]);
-        fi[slice_i*NFIELD+field_i] = new Field(bndry, data, Geometry::nZProc(), elmt, field[0]);
-      }
+      strcpy ((fname = new char [strlen (bman -> field()) + 1]), bman -> field());
+
+      bndry = new BoundarySys(bman, elmt, fname[0]);
+      fi[slice_i*NFIELD+field_i] = new Field(bndry, new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, fname[0]);
+
+      bndry = new BoundarySys(bman, elmt, fname[0]);
+      uj[slice_i*NFIELD+field_i] = new Field(bndry, new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, fname[0]);
     }
     delete file_i;
     delete domain;
@@ -760,7 +483,7 @@ int main (int argc, char** argv) {
   domain->restart();
 
   // solve the newton-rapheson problem
-  rpo_solve(NSLICE, mesh, elmt, bman, domain, analyst, FF, ui, fi);
+  rpo_solve(NSLICE, mesh, elmt, bman, domain, analyst, FF, ui, fi, uj);
   delete file_i;
   delete domain;
 

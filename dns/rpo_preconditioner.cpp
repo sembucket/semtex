@@ -53,6 +53,7 @@ static char RCS[] = "$Id$";
 #include <petscksp.h>
 #include <petscsnes.h>
 
+#include "rpo_utils.h"
 #include "rpo_preconditioner.h"
 
 #define XMIN 0.0
@@ -148,7 +149,7 @@ double** mat_mat_mult(double** A, double** B, int ni, int nj, int nk) {
   return C;
 }
 
-double** real_space_pc(double lx, int nr, int nf) {
+double** real_space_pc(double lx, int nr, int nf, double* data_x, double* data_y, double* data_z) {
   int il, ir;
   double dx = lx / nr;
   double** F2R = f2r_transform(lx, nr, nf);
@@ -167,6 +168,11 @@ double** real_space_pc(double lx, int nr, int nf) {
     LAP[ii][il] = 1.0/dx;
     LAP[ii][ii] = 2.0/dx;
     LAP[ii][ir] = 1.0/dx;
+
+    // preconditioned convective terms
+    if(data_x) LAP[ii][ii] += (data_x[ir]*data_x[ir] - data_x[il]*data_x[il])/(2.0*dx);
+    if(data_y) LAP[ii][ii] += (data_y[ir]*data_y[ir] - data_y[il]*data_y[il])/(2.0*dx);
+    if(data_z) LAP[ii][ii] += (data_z[ir]*data_z[ir] - data_z[il]*data_z[il])/(2.0*dx);
   }
 
   // assemble the preconditioner
@@ -207,19 +213,15 @@ double** real_space_pc(double lx, int nr, int nf) {
 //   [ K      0    ][ I  K^{-1}G ] = [ K  G ]
 //   [ D -DK^{-1}G ][ 0     I    ]   [ D  0 ]
 //
-void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int localSize, int** lShift, int* els, vector<Element*> elmt, Mat P,
-                              SNES snes, IS* is_s, IS* is_u, IS* is_p) {
+void build_preconditioner_ffs(Context* context, Mat P) {
   int elOrd = Geometry::nP() - 1;
   int nZloc = Geometry::nZProc();
   int rank = Geometry::procID();
   int nNodesX = NELS_X*elOrd;
-  int nModesX = nNodesX/2 + 2;
-  int row_j, col_j;
-  int row_x, row_y, col_x, col_y;
-  int row_k[3], col_k[3];
-  int nCols;
+  int nModesX = 32;//nNodesX/2 + 2;
+  int row_j, col_j, row_x, row_y, col_x, col_y;
+  int row_k[3], col_k[3], nCols;
   int el_i, plane_j;
-  int ri, rf;
   const int* cols;
   const double* vals;
   int pRow, pCols[99];
@@ -235,40 +237,48 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
   double alpha = (XMAX - XMIN)/(2.0*M_PI);
   double k_x, k_z;
   double one = 1.0;
-  Mat G, K, S;
+  Mat G, Ku, Kv, Kw, S;
   Mat Kii_inv, D, LK, LKR, DKinv;
-  int nDofsCube = Geometry::nZ() * nDofsSlice;
-  double** PCX = real_space_pc(2.0*M_PI, nModesX, nModesX);
-  double **PCZ1, **PCZ2;
+  int nDofsCube = Geometry::nZ() * context->nDofsSlice;
+  double **PCX, **PCZ1, **PCZ2;
+  double* data_f = new double[NELS_Y*elOrd*nModesX];
 
-  MatCreateSeqAIJ(MPI_COMM_SELF, 3*nDofsPlane, 1*nDofsPlane, 16, NULL, &G);
-  MatCreateSeqAIJ(MPI_COMM_SELF, 1*nDofsPlane, 3*nDofsPlane, 16, NULL, &D);
-  MatCreateSeqAIJ(MPI_COMM_SELF, 3*nDofsPlane, 3*nDofsPlane, 16, NULL, &K);
-  MatCreateSeqAIJ(MPI_COMM_SELF, 3*nDofsPlane, 3*nDofsPlane,  1, NULL, &Kii_inv);
+  MatCreateSeqAIJ(MPI_COMM_SELF, 3*context->nDofsPlane, 1*context->nDofsPlane, 16, NULL, &G);
+  MatCreateSeqAIJ(MPI_COMM_SELF, 1*context->nDofsPlane, 3*context->nDofsPlane, 16, NULL, &D);
+  MatCreateSeqAIJ(MPI_COMM_SELF, 3*context->nDofsPlane, 3*context->nDofsPlane, 16, NULL, &Ku);
+  MatCreateSeqAIJ(MPI_COMM_SELF, 3*context->nDofsPlane, 3*context->nDofsPlane, 16, NULL, &Kv);
+  MatCreateSeqAIJ(MPI_COMM_SELF, 3*context->nDofsPlane, 3*context->nDofsPlane, 16, NULL, &Kw);
+  MatCreateSeqAIJ(MPI_COMM_SELF, 3*context->nDofsPlane, 3*context->nDofsPlane,  1, NULL, &Kii_inv);
 
   MatZeroEntries(G);
-  MatZeroEntries(K);
+  MatZeroEntries(Ku);
+  MatZeroEntries(Kv);
+  MatZeroEntries(Kw);
   MatZeroEntries(Kii_inv);
 
   MatZeroEntries(P);
 
-  for(int slice_i = 0; slice_i < nSlice; slice_i++) {
+  for(int slice_i = 0; slice_i < context->nSlice; slice_i++) {
     for(int plane_i = 0; plane_i < nZloc; plane_i++) {
       plane_j = rank * nZloc + plane_i;
       k_z = (plane_j / 2) / beta;
       if(plane_j < 2) k_z = 1.0;
 
+      // same number of nodes as modes in x 
+      SEM_to_Fourier(plane_i, context, context->ui[slice_i*NFIELD+0], data_f, nModesX, nModesX);
+
       for(int elmt_y = 0; elmt_y < elOrd*NELS_Y; elmt_y++) {
         el_i = (elmt_y / elOrd) * NELS_X;
 
-        yi[0] = elmt[el_i]->_ymesh[(elmt_y%elOrd+0)*(elOrd+1)];
-        yi[1] = elmt[el_i]->_ymesh[(elmt_y%elOrd+1)*(elOrd+1)];
+        yi[0] = context->elmt[el_i]->_ymesh[(elmt_y%elOrd+0)*(elOrd+1)];
+        yi[1] = context->elmt[el_i]->_ymesh[(elmt_y%elOrd+1)*(elOrd+1)];
     
         delta_y = 0.5 * fabs(yi[1] - yi[0]);
         det = alpha * delta_y * beta;
 
-        PCZ1 = real_space_pc(2.0*M_PI*yi[0], Geometry::nZ(), Geometry::nZ());
-        PCZ2 = real_space_pc(2.0*M_PI*yi[1], Geometry::nZ(), Geometry::nZ());
+        PCX  = real_space_pc(2.0*M_PI,       nModesX,        nModesX,        &data_f[elmt_y*nModesX], NULL, NULL);
+        PCZ1 = real_space_pc(2.0*M_PI*yi[0], Geometry::nZ(), Geometry::nZ(), &data_f[elmt_y*nModesX], NULL, NULL);
+        PCZ2 = real_space_pc(2.0*M_PI*yi[1], Geometry::nZ(), Geometry::nZ(), &data_f[elmt_y*nModesX], NULL, NULL);
 
         for(int mode_x = 0; mode_x < nModesX; mode_x++) {
           k_x = (mode_x / 2) / alpha;
@@ -277,8 +287,8 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
           // grad and div matrices
           for(int row = 0; row < 2; row++) {
             row_k[0] = (elmt_y+row)*nModesX + mode_x;
-            row_k[1] = row_k[0] + nDofsPlane;
-            row_k[2] = row_k[1] + nDofsPlane;
+            row_k[1] = row_k[0] + context->nDofsPlane;
+            row_k[2] = row_k[1] + context->nDofsPlane;
 
             if(row_k[0] == elOrd*NELS_Y) continue; // outer boundary (dirichlet bcs)
 
@@ -305,15 +315,15 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
           // vector laplacian matrix
           for(int row = 0; row < 2; row++) {
             row_k[0] = (elmt_y+row)*nModesX + mode_x; // elmt_y=0 along dirichlet boundary
-            row_k[1] = row_k[0] + nDofsPlane;
-            row_k[2] = row_k[1] + nDofsPlane;
+            row_k[1] = row_k[0] + context->nDofsPlane;
+            row_k[2] = row_k[1] + context->nDofsPlane;
 
             if(elmt_y+row == elOrd*NELS_Y) continue; // outer boundary (dirichlet bcs)
 
             for(int col = 0; col < 2; col++) {
               col_k[0] = (elmt_y+col)*nModesX + mode_x; // elmt_y=0 along dirichlet boundary
-              col_k[1] = col_k[0] + nDofsPlane;
-              col_k[2] = col_k[1] + nDofsPlane;
+              col_k[1] = col_k[0] + context->nDofsPlane;
+              col_k[2] = col_k[1] + context->nDofsPlane;
 
               if(elmt_y+col == elOrd*NELS_Y) continue; // outer boundary (dirichlet bcs)
 
@@ -329,10 +339,10 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
                   pVals[8] = (dt * kinvis) * PCZ2[plane_j][plane_j];
                 //pVals[8] = 0.0;
 
-                MatSetValues(K, 3, row_k, 3, col_k, pVals, ADD_VALUES);
-                MatSetValue(K, row_k[0], row_k[0], det, ADD_VALUES);
-                MatSetValue(K, row_k[1], row_k[1], det, ADD_VALUES);
-                MatSetValue(K, row_k[2], row_k[2], det, ADD_VALUES);
+                MatSetValues(Ku, 3, row_k, 3, col_k, pVals, ADD_VALUES);
+                MatSetValue(Ku, row_k[0], row_k[0], det, ADD_VALUES);
+                MatSetValue(Ku, row_k[1], row_k[1], det, ADD_VALUES);
+                MatSetValue(Ku, row_k[2], row_k[2], det, ADD_VALUES);
 
                 MatSetValue(Kii_inv, row_k[0], row_k[0], 1.0/(det+pVals[0]), ADD_VALUES);
                 MatSetValue(Kii_inv, row_k[1], row_k[1], 1.0/(det+pVals[4]), ADD_VALUES);
@@ -353,59 +363,63 @@ void build_preconditioner_ffs(int nSlice, int nDofsSlice, int nDofsPlane, int lo
       MatAssemblyEnd(  D, MAT_FINAL_ASSEMBLY);
       MatAssemblyBegin(G, MAT_FINAL_ASSEMBLY);
       MatAssemblyEnd(  G, MAT_FINAL_ASSEMBLY);
-      MatAssemblyBegin(K, MAT_FINAL_ASSEMBLY);
-      MatAssemblyEnd(  K, MAT_FINAL_ASSEMBLY);
+      MatAssemblyBegin(Ku, MAT_FINAL_ASSEMBLY);
+      MatAssemblyEnd(  Ku, MAT_FINAL_ASSEMBLY);
+      MatAssemblyBegin(Kv, MAT_FINAL_ASSEMBLY);
+      MatAssemblyEnd(  Kv, MAT_FINAL_ASSEMBLY);
+      MatAssemblyBegin(Kw, MAT_FINAL_ASSEMBLY);
+      MatAssemblyEnd(  Kw, MAT_FINAL_ASSEMBLY);
       MatAssemblyBegin(Kii_inv, MAT_FINAL_ASSEMBLY);
       MatAssemblyEnd(  Kii_inv, MAT_FINAL_ASSEMBLY);
 
-      // create the Schur complement operator
-      MatScale(D, -1.0);
-      MatMatMult(Kii_inv, K, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &LK);
-      MatMatMult(LK, Kii_inv, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &LKR);
-      //MatMatMult(D, LKR, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &DKinv);
-      MatMatMult(D, Kii_inv, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &DKinv);
-      MatMatMult(DKinv, G, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &S);
-      // schur complement should be scaled by -1, however this is ommitted in 
-      // order to account for the G^{T}G term in the azimutal direction (-k_z^2)
-      MatScale(S, -1.0);
-
       // [u,u] block
-      for(int row_i = 0; row_i < 3*nDofsPlane; row_i++) {
-        row_dof = row_i/nDofsPlane;
-        MatGetRow(K, row_i, &nCols, &cols, &vals);
-        pRow = row_i%nDofsPlane + plane_i*nDofsPlane + lShift[slice_i][row_dof];
+      for(int row_i = 0; row_i < 3*context->nDofsPlane; row_i++) {
+        row_dof = row_i/context->nDofsPlane;
+        MatGetRow(Ku, row_i, &nCols, &cols, &vals);
+        pRow = row_i%context->nDofsPlane + plane_i*context->nDofsPlane + context->lShift[slice_i][row_dof];
 
         for(int col_i = 0; col_i < nCols; col_i++) {
-          col_dof = cols[col_i]/nDofsPlane;
-          pCols[col_i] = cols[col_i]%nDofsPlane + plane_i*nDofsPlane + lShift[slice_i][col_dof];
+          col_dof = cols[col_i]/context->nDofsPlane;
+          pCols[col_i] = cols[col_i]%context->nDofsPlane + plane_i*context->nDofsPlane + context->lShift[slice_i][col_dof];
         }
         MatSetValues(P, 1, &pRow, nCols, pCols, vals, INSERT_VALUES);
 //MatSetValues(P, 1, &pRow, 1, &pRow, &one, INSERT_VALUES);
-        MatRestoreRow(K, row_i, &nCols, &cols, &vals);
+        MatRestoreRow(Ku, row_i, &nCols, &cols, &vals);
       }
 
       if(NFIELD == 4) {
+        // create the Schur complement operator
+        MatScale(D, -1.0);
+        MatMatMult(Kii_inv, Ku, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &LK);
+        MatMatMult(LK, Kii_inv, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &LKR);
+        //MatMatMult(D, LKR, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &DKinv);
+        MatMatMult(D, Kii_inv, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &DKinv);
+        MatMatMult(DKinv, G, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &S);
+        // schur complement should be scaled by -1, however this is ommitted in 
+        // order to account for the G^{T}G term in the azimutal direction (-k_z^2)
+        MatScale(S, -1.0);
+
         // [p,u] block
-        for(int row_i = 0; row_i < nDofsPlane; row_i++) {
+        for(int row_i = 0; row_i < context->nDofsPlane; row_i++) {
           MatGetRow(D, row_i, &nCols, &cols, &vals);
-          pRow = row_i + plane_i*nDofsPlane + lShift[slice_i][3];
+          pRow = row_i + plane_i*context->nDofsPlane + context->lShift[slice_i][3];
           for(int col_i = 0; col_i < nCols; col_i++) {
-            col_j = cols[col_i]%nDofsPlane;
-            col_dof = cols[col_i]/nDofsPlane;
-            pCols[col_i] = col_j + plane_i*nDofsPlane + lShift[slice_i][col_dof];
+            col_j = cols[col_i]%context->nDofsPlane;
+            col_dof = cols[col_i]/context->nDofsPlane;
+            pCols[col_i] = col_j + plane_i*context->nDofsPlane + context->lShift[slice_i][col_dof];
           }
           if(plane_i%2 == 0) {
-            pRow += nDofsPlane; // imaginary plane for this mode
+            pRow += context->nDofsPlane; // imaginary plane for this mode
             for(int col_i = 0; col_i < nCols; col_i++) {
               pVals[col_i] *= -1.0;
             }
           } else {
-            pRow -= nDofsPlane; // real plane for this mode
+            pRow -= context->nDofsPlane; // real plane for this mode
           }
           //MatSetValues(P, 1, &pRow, nCols, pCols, pVals, INSERT_VALUES);
-pCols[0] = row_i + plane_i*nDofsPlane + lShift[slice_i][0];
-pCols[1] = row_i + plane_i*nDofsPlane + lShift[slice_i][1];
-pCols[2] = row_i + plane_i*nDofsPlane + lShift[slice_i][2];
+pCols[0] = row_i + plane_i*context->nDofsPlane + context->lShift[slice_i][0];
+pCols[1] = row_i + plane_i*context->nDofsPlane + context->lShift[slice_i][1];
+pCols[2] = row_i + plane_i*context->nDofsPlane + context->lShift[slice_i][2];
 pVals[0] = 1.0;
 pVals[1] = 1.0;
 pVals[2] = 1.0;
@@ -414,11 +428,11 @@ pVals[2] = 1.0;
         }
 
         // [p,p] block
-        for(int row_i = 0; row_i < nDofsPlane; row_i++) {
+        for(int row_i = 0; row_i < context->nDofsPlane; row_i++) {
           MatGetRow(S, row_i, &nCols, &cols, &vals);
-          pRow = row_i + plane_i*nDofsPlane + lShift[slice_i][3];
+          pRow = row_i + plane_i*context->nDofsPlane + context->lShift[slice_i][3];
           for(int col_i = 0; col_i < nCols; col_i++) {
-            pCols[col_i] = cols[col_i] + plane_i*nDofsPlane + lShift[slice_i][3];
+            pCols[col_i] = cols[col_i] + plane_i*context->nDofsPlane + context->lShift[slice_i][3];
           }
           //MatSetValues(P, 1, &pRow, nCols, pCols, vals, INSERT_VALUES);
 //        MatSetValues(P, 1, &pRow, 1, &pRow, &one, INSERT_VALUES);
@@ -430,7 +444,7 @@ pVals[2] = 1.0;
     // add diagonal entries where required
     if(!Geometry::procID()) {
       for(int row_i = 0; row_i < 3; row_i++) {
-        pRow = slice_i * nDofsSlice + NFIELD * nDofsPlane * Geometry::nZ() + row_i;
+        pRow = slice_i * context->nDofsSlice + NFIELD * context->nDofsPlane * Geometry::nZ() + row_i;
         MatSetValues(P, 1, &pRow, 1, &pRow, &one, INSERT_VALUES);
       }
     }
@@ -439,76 +453,81 @@ pVals[2] = 1.0;
   MatAssemblyBegin(P, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(  P, MAT_FINAL_ASSEMBLY);
 
-  rpo_set_fieldsplits(snes, is_s, is_u, is_p, nSlice, nDofsPlane, nDofsSlice, lShift);
+  rpo_set_fieldsplits(context);
 
   MatDestroy(&G);
   MatDestroy(&D);
-  MatDestroy(&K);
+  MatDestroy(&Ku);
+  MatDestroy(&Kv);
+  MatDestroy(&Kw);
   MatDestroy(&Kii_inv);
-  MatDestroy(&S);
-  MatDestroy(&LK);
-  MatDestroy(&LKR);
-  MatDestroy(&DKinv);
+  if(NFIELD == 4) {
+    MatDestroy(&S);
+    MatDestroy(&LK);
+    MatDestroy(&LKR);
+    MatDestroy(&DKinv);
+  }
   for(int ii = 0; ii < nModesX; ii++) { delete[] PCX[ii]; }
   delete[] PCX;
+  delete[] data_f;
 }
 
-void rpo_set_fieldsplits(SNES snes, IS* is_s, IS* is_u, IS* is_p, int nSlice, int nDofsPlane, int nDofsSlice, int** lShift) {
+void rpo_set_fieldsplits(Context* context) {
   PC pc, pc_i, pc_j;
   KSP ksp, *ksp_i, *ksp_j;
   int n_split, m_split, is, iu, ip, nDofs_u, nDofs_p, nSliceProc, startSlice;
   int *inds_s, *inds_u, *inds_p;
 
-  if(is_s) return;
+  if(context->is_s) return;
 
-  is_s = new IS[nSlice];
-  is_u = new IS[nSlice];
-  is_p = new IS[nSlice];
+  context->is_s = new IS[context->nSlice];
+  context->is_u = new IS[context->nSlice];
+  context->is_p = new IS[context->nSlice];
 
-  SNESGetKSP(snes, &ksp);
+  SNESGetKSP(context->snes, &ksp);
   KSPGetPC(ksp, &pc);
   PCSetType(pc, PCFIELDSPLIT);
   PCFieldSplitSetType(pc, PC_COMPOSITE_MULTIPLICATIVE);
 
-  nDofs_u = 3 * Geometry::nZ() * nDofsPlane;
+  nDofs_u = 3 * Geometry::nZ() * context->nDofsPlane;
   nDofs_p = 3;
-  if(NFIELD == 4) nDofs_p += Geometry::nZ() * nDofsPlane;
-  nSliceProc = nSlice / Geometry::nProc();
+  if(NFIELD == 4) nDofs_p += Geometry::nZ() * context->nDofsPlane;
+  nSliceProc = context->nSlice / Geometry::nProc();
   startSlice = nSliceProc * Geometry::procID();
 
-  for(int slice_i = 0; slice_i < nSlice; slice_i++) {
+  for(int slice_i = 0; slice_i < context->nSlice; slice_i++) {
     if(Geometry::procID() == slice_i) {
-      ISCreateStride(MPI_COMM_SELF, nDofsSlice, slice_i * nDofsSlice, 1, &is_s[slice_i]);
+      ISCreateStride(MPI_COMM_SELF, context->nDofsSlice, slice_i * context->nDofsSlice, 1, &context->is_s[slice_i]);
     } else {
-      ISCreateStride(MPI_COMM_SELF, 0, 0, 1, &is_s[slice_i]);
+      ISCreateStride(MPI_COMM_SELF, 0, 0, 1, &context->is_s[slice_i]);
     }
     MPI_Barrier(MPI_COMM_WORLD);
-    PCFieldSplitSetIS(pc, NULL, is_s[slice_i]);
+    PCFieldSplitSetIS(pc, NULL, context->is_s[slice_i]);
   }
   PCSetUp(pc);
 
   // setup a schur complement between the velocity dofs and the phase shift dofs
   PCFieldSplitGetSubKSP(pc, &n_split, &ksp_i);
-  for(int slice_i = 0; slice_i < nSlice; slice_i++) {
+  for(int slice_i = 0; slice_i < context->nSlice; slice_i++) {
     KSPGetPC(ksp_i[slice_i], &pc_i);
     PCSetType(pc_i, PCFIELDSPLIT);
 
     if(Geometry::procID() == slice_i) {
-      ISCreateStride(MPI_COMM_SELF, nDofs_u, 0, 1, &is_u[slice_i]);
-      ISCreateStride(MPI_COMM_SELF, nDofs_p, nDofs_u, 1, &is_p[slice_i]);
+      ISCreateStride(MPI_COMM_SELF, nDofs_u, 0,       1, &context->is_u[slice_i]);
+      ISCreateStride(MPI_COMM_SELF, nDofs_p, nDofs_u, 1, &context->is_p[slice_i]);
     } else {
-      ISCreateStride(MPI_COMM_SELF, 0, 0, 1, &is_u[slice_i]);
-      ISCreateStride(MPI_COMM_SELF, 0, 0, 1, &is_p[slice_i]);
+      ISCreateStride(MPI_COMM_SELF, 0, 0, 1, &context->is_u[slice_i]);
+      ISCreateStride(MPI_COMM_SELF, 0, 0, 1, &context->is_p[slice_i]);
     }
     MPI_Barrier(MPI_COMM_WORLD);
-    PCFieldSplitSetIS(pc_i, "u", is_u[slice_i]);
-    PCFieldSplitSetIS(pc_i, "p", is_p[slice_i]);
+    PCFieldSplitSetIS(pc_i, "u", context->is_u[slice_i]);
+    PCFieldSplitSetIS(pc_i, "p", context->is_p[slice_i]);
 
     PCFieldSplitSetType(pc_i, PC_COMPOSITE_SCHUR);
     PCSetUp(pc_i);
   }
 
-  for(int slice_i = 0; slice_i < nSlice; slice_i++) {
+  for(int slice_i = 0; slice_i < context->nSlice; slice_i++) {
     KSPGetPC(ksp_i[slice_i], &pc_i);
     PCFieldSplitGetSubKSP(pc_i, &m_split, &ksp_j);
     KSPSetType(ksp_j[0], KSPGMRES);
