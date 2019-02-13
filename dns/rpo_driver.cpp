@@ -97,11 +97,11 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   int slice_i, slice_j, field_i, mode_i, mode_j, dof_i, nStep;
   int elOrd = Geometry::nP() - 1;
   int nNodesX = NELS_X*elOrd;
-  int nModesX = 32;//nNodesX/2 + 2;
+  int nModesX = nNodesX/2;// + 2;
   real_t ckt, skt, rTmp, cTmp;
   register real_t* data_r;
   register real_t* data_c;
-  real_t* data_f = new real_t[NELS_Y*elOrd*nNodesX];
+  real_t* data_f = new real_t[NELS_Y*elOrd*nModesX];
   real_t time = 0.0;
   real_t f_norm, x_norm;
 
@@ -143,7 +143,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 #ifdef X_FOURIER
     for(mode_i = 0; mode_i < Geometry::nZProc(); mode_i++) {
       for(field_i = 0; field_i < context->domain->nField(); field_i++) {
-        SEM_to_Fourier(mode_i, context, context->domain->u[field_i], data_f, nNodesX, nModesX);
+        SEM_to_Fourier(mode_i, context, context->domain->u[field_i], data_f, nModesX);
         for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
           for(int mode_k = 1; mode_k < nModesX/2; mode_k++) {
             ckt = cos(mode_k*context->theta_i[slice_i]);
@@ -154,7 +154,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
             data_f[pt_y*nModesX+2*mode_k+1] = cTmp;
           }
         }
-        Fourier_to_SEM(mode_i, context, context->domain->u[field_i], data_f, nNodesX, nModesX);
+        Fourier_to_SEM(mode_i, context, context->domain->u[field_i], data_f, nModesX);
       }
     }
 #endif
@@ -181,6 +181,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     }
 
     // don't want to call the dns analysis, use custom integrate routine instead
+    // apply the phase shifts to the solution fields BEFORE forwards integrating
     integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
 
     // set f
@@ -225,7 +226,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   Context* context = new Context;
   int elOrd = Geometry::nP() - 1;
   int nNodesX = NELS_X*elOrd;
-  int nModesX = 32;//nNodesX/2 + 2;
+  int nModesX = nNodesX/2;// + 2;
   real_t dx, er, es, ex, ey;
   const real_t* qx;
   int_t pt_x, pt_y, el_x, el_y, el_i, el_j;

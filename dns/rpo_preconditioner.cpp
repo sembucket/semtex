@@ -186,8 +186,8 @@ double** real_space_pc(double lx, int nr, int nf, double* data_x, double* data_y
     }
   }
 
-  for(int ii = 0; ii < nr; ii++) { delete[] F2R[ii]; }     delete[] F2R;
-  for(int ii = 0; ii < nr; ii++) { delete[] LAP[ii]; }     delete[] LAP;
+  for(int ii = 0; ii < nr; ii++) { delete[] F2R[ii]; } delete[] F2R;
+  for(int ii = 0; ii < nr; ii++) { delete[] LAP[ii]; } delete[] LAP;
 
   return PRECON;
 }
@@ -218,7 +218,7 @@ void build_preconditioner_ffs(Context* context, Mat P) {
   int nZloc = Geometry::nZProc();
   int rank = Geometry::procID();
   int nNodesX = NELS_X*elOrd;
-  int nModesX = 32;//nNodesX/2 + 2;
+  int nModesX = nNodesX/2;// + 2;
   int row_j, col_j, row_x, row_y, col_x, col_y;
   int row_k[3], col_k[3], nCols;
   int el_i, plane_j;
@@ -237,23 +237,18 @@ void build_preconditioner_ffs(Context* context, Mat P) {
   double alpha = (XMAX - XMIN)/(2.0*M_PI);
   double k_x, k_z;
   double one = 1.0;
-  Mat G, Ku, Kv, Kw, S;
+  Mat G, K, S;
   Mat Kii_inv, D, LK, LKR, DKinv;
-  int nDofsCube = Geometry::nZ() * context->nDofsSlice;
   double **PCX, **PCZ1, **PCZ2;
   double* data_f = new double[NELS_Y*elOrd*nModesX];
 
   MatCreateSeqAIJ(MPI_COMM_SELF, 3*context->nDofsPlane, 1*context->nDofsPlane, 16, NULL, &G);
   MatCreateSeqAIJ(MPI_COMM_SELF, 1*context->nDofsPlane, 3*context->nDofsPlane, 16, NULL, &D);
-  MatCreateSeqAIJ(MPI_COMM_SELF, 3*context->nDofsPlane, 3*context->nDofsPlane, 16, NULL, &Ku);
-  MatCreateSeqAIJ(MPI_COMM_SELF, 3*context->nDofsPlane, 3*context->nDofsPlane, 16, NULL, &Kv);
-  MatCreateSeqAIJ(MPI_COMM_SELF, 3*context->nDofsPlane, 3*context->nDofsPlane, 16, NULL, &Kw);
+  MatCreateSeqAIJ(MPI_COMM_SELF, 3*context->nDofsPlane, 3*context->nDofsPlane, 16, NULL, &K);
   MatCreateSeqAIJ(MPI_COMM_SELF, 3*context->nDofsPlane, 3*context->nDofsPlane,  1, NULL, &Kii_inv);
 
   MatZeroEntries(G);
-  MatZeroEntries(Ku);
-  MatZeroEntries(Kv);
-  MatZeroEntries(Kw);
+  MatZeroEntries(K);
   MatZeroEntries(Kii_inv);
 
   MatZeroEntries(P);
@@ -265,7 +260,7 @@ void build_preconditioner_ffs(Context* context, Mat P) {
       if(plane_j < 2) k_z = 1.0;
 
       // same number of nodes as modes in x 
-      SEM_to_Fourier(plane_i, context, context->ui[slice_i*NFIELD+0], data_f, nModesX, nModesX);
+      SEM_to_Fourier(plane_i, context, context->ui[slice_i*NFIELD+0], data_f, nModesX);
 
       for(int elmt_y = 0; elmt_y < elOrd*NELS_Y; elmt_y++) {
         el_i = (elmt_y / elOrd) * NELS_X;
@@ -276,38 +271,40 @@ void build_preconditioner_ffs(Context* context, Mat P) {
         delta_y = 0.5 * fabs(yi[1] - yi[0]);
         det = alpha * delta_y * beta;
 
-        PCX  = real_space_pc(2.0*M_PI,       nModesX,        nModesX,        &data_f[elmt_y*nModesX], NULL, NULL);
-        PCZ1 = real_space_pc(2.0*M_PI*yi[0], Geometry::nZ(), Geometry::nZ(), &data_f[elmt_y*nModesX], NULL, NULL);
-        PCZ2 = real_space_pc(2.0*M_PI*yi[1], Geometry::nZ(), Geometry::nZ(), &data_f[elmt_y*nModesX], NULL, NULL);
+        PCX  = real_space_pc(2.0*M_PI, nModesX, nModesX, &data_f[elmt_y*nModesX], NULL, NULL);
+        PCZ1 = real_space_pc(2.0*M_PI*yi[0], Geometry::nZ(), Geometry::nZ(), NULL, NULL, NULL);
+        PCZ2 = real_space_pc(2.0*M_PI*yi[1], Geometry::nZ(), Geometry::nZ(), NULL, NULL, NULL);
 
         for(int mode_x = 0; mode_x < nModesX; mode_x++) {
           k_x = (mode_x / 2) / alpha;
           if(mode_x < 2) k_x = 1.0;
 
           // grad and div matrices
-          for(int row = 0; row < 2; row++) {
-            row_k[0] = (elmt_y+row)*nModesX + mode_x;
-            row_k[1] = row_k[0] + context->nDofsPlane;
-            row_k[2] = row_k[1] + context->nDofsPlane;
+          if(NFIELD==4) {
+            for(int row = 0; row < 2; row++) {
+              row_k[0] = (elmt_y+row)*nModesX + mode_x;
+              row_k[1] = row_k[0] + context->nDofsPlane;
+              row_k[2] = row_k[1] + context->nDofsPlane;
 
-            if(row_k[0] == elOrd*NELS_Y) continue; // outer boundary (dirichlet bcs)
+              if(row_k[0] == elOrd*NELS_Y) continue; // outer boundary (dirichlet bcs)
 
-            for(int col = 0; col < 2; col++) {
-              col_k[0] = (elmt_y+col)*nModesX + mode_x;
+              for(int col = 0; col < 2; col++) {
+                col_k[0] = (elmt_y+col)*nModesX + mode_x;
 
-              if(col_k[0] == elOrd*NELS_Y) continue; // outer boundary (dirichlet bcs)
+                if(col_k[0] == elOrd*NELS_Y) continue; // outer boundary (dirichlet bcs)
 
-              for(int pnt = 0; pnt < 2; pnt++) {
-                // grad
-                pVals[0] = +dt * det * k_x;
-                pVals[1] = -dt * det / delta_y * dNidy(pnt+1, qx[pnt], qy[pnt]) * Ni(pnt+1, qx[pnt], qy[pnt]);
-                pVals[2] = +dt * det * k_z;
-                MatSetValues(G, 3, row_k, 1, col_k, pVals, ADD_VALUES);
+                for(int pnt = 0; pnt < 2; pnt++) {
+                  // grad
+                  pVals[0] = +dt * det * k_x;
+                  pVals[1] = -dt * det / delta_y * dNidy(pnt+1, qx[pnt], qy[pnt]) * Ni(pnt+1, qx[pnt], qy[pnt]);
+                  pVals[2] = +dt * det * k_z;
+                  MatSetValues(G, 3, row_k, 1, col_k, pVals, ADD_VALUES);
 
-                // div
-                pVals[0] *= -1.0;
-                pVals[2] *= -1.0;
-                MatSetValues(D, 1, col_k, 3, row_k, pVals, ADD_VALUES);
+                  // div
+                  pVals[0] *= -1.0;
+                  pVals[2] *= -1.0;
+                  MatSetValues(D, 1, col_k, 3, row_k, pVals, ADD_VALUES);
+                }
               }
             }
           }
@@ -339,14 +336,14 @@ void build_preconditioner_ffs(Context* context, Mat P) {
                   pVals[8] = (dt * kinvis) * PCZ2[plane_j][plane_j];
                 //pVals[8] = 0.0;
 
-                MatSetValues(Ku, 3, row_k, 3, col_k, pVals, ADD_VALUES);
-                MatSetValue(Ku, row_k[0], row_k[0], det, ADD_VALUES);
-                MatSetValue(Ku, row_k[1], row_k[1], det, ADD_VALUES);
-                MatSetValue(Ku, row_k[2], row_k[2], det, ADD_VALUES);
+                MatSetValues(K, 3, row_k, 3, col_k, pVals, ADD_VALUES);
+                MatSetValue(K, row_k[0], row_k[0], det, ADD_VALUES);
+                MatSetValue(K, row_k[1], row_k[1], det, ADD_VALUES);
+                MatSetValue(K, row_k[2], row_k[2], det, ADD_VALUES);
 
-                MatSetValue(Kii_inv, row_k[0], row_k[0], 1.0/(det+pVals[0]), ADD_VALUES);
-                MatSetValue(Kii_inv, row_k[1], row_k[1], 1.0/(det+pVals[4]), ADD_VALUES);
-                MatSetValue(Kii_inv, row_k[2], row_k[2], 1.0/(det+pVals[8]), ADD_VALUES);
+                //MatSetValue(Kii_inv, row_k[0], row_k[0], 1.0/(det+pVals[0]), ADD_VALUES);
+                //MatSetValue(Kii_inv, row_k[1], row_k[1], 1.0/(det+pVals[4]), ADD_VALUES);
+                //MatSetValue(Kii_inv, row_k[2], row_k[2], 1.0/(det+pVals[8]), ADD_VALUES);
               } // pnt
             } // col
           } // row
@@ -363,19 +360,15 @@ void build_preconditioner_ffs(Context* context, Mat P) {
       MatAssemblyEnd(  D, MAT_FINAL_ASSEMBLY);
       MatAssemblyBegin(G, MAT_FINAL_ASSEMBLY);
       MatAssemblyEnd(  G, MAT_FINAL_ASSEMBLY);
-      MatAssemblyBegin(Ku, MAT_FINAL_ASSEMBLY);
-      MatAssemblyEnd(  Ku, MAT_FINAL_ASSEMBLY);
-      MatAssemblyBegin(Kv, MAT_FINAL_ASSEMBLY);
-      MatAssemblyEnd(  Kv, MAT_FINAL_ASSEMBLY);
-      MatAssemblyBegin(Kw, MAT_FINAL_ASSEMBLY);
-      MatAssemblyEnd(  Kw, MAT_FINAL_ASSEMBLY);
+      MatAssemblyBegin(K, MAT_FINAL_ASSEMBLY);
+      MatAssemblyEnd(  K, MAT_FINAL_ASSEMBLY);
       MatAssemblyBegin(Kii_inv, MAT_FINAL_ASSEMBLY);
       MatAssemblyEnd(  Kii_inv, MAT_FINAL_ASSEMBLY);
 
       // [u,u] block
       for(int row_i = 0; row_i < 3*context->nDofsPlane; row_i++) {
         row_dof = row_i/context->nDofsPlane;
-        MatGetRow(Ku, row_i, &nCols, &cols, &vals);
+        MatGetRow(K, row_i, &nCols, &cols, &vals);
         pRow = row_i%context->nDofsPlane + plane_i*context->nDofsPlane + context->lShift[slice_i][row_dof];
 
         for(int col_i = 0; col_i < nCols; col_i++) {
@@ -384,13 +377,13 @@ void build_preconditioner_ffs(Context* context, Mat P) {
         }
         MatSetValues(P, 1, &pRow, nCols, pCols, vals, INSERT_VALUES);
 //MatSetValues(P, 1, &pRow, 1, &pRow, &one, INSERT_VALUES);
-        MatRestoreRow(Ku, row_i, &nCols, &cols, &vals);
+        MatRestoreRow(K, row_i, &nCols, &cols, &vals);
       }
 
       if(NFIELD == 4) {
         // create the Schur complement operator
         MatScale(D, -1.0);
-        MatMatMult(Kii_inv, Ku, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &LK);
+        MatMatMult(Kii_inv, K, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &LK);
         MatMatMult(LK, Kii_inv, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &LKR);
         //MatMatMult(D, LKR, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &DKinv);
         MatMatMult(D, Kii_inv, MAT_INITIAL_MATRIX, PETSC_DEFAULT, &DKinv);
@@ -457,9 +450,7 @@ pVals[2] = 1.0;
 
   MatDestroy(&G);
   MatDestroy(&D);
-  MatDestroy(&Ku);
-  MatDestroy(&Kv);
-  MatDestroy(&Kw);
+  MatDestroy(&K);
   MatDestroy(&Kii_inv);
   if(NFIELD == 4) {
     MatDestroy(&S);
