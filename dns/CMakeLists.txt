@@ -22,7 +22,8 @@ target_sources(rpo_test PRIVATE
   "${CMAKE_CURRENT_LIST_DIR}/fieldforce.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/integrate.cpp"
   "${CMAKE_CURRENT_LIST_DIR}/nonlinear.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/rpo_testing.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/rpo_utils.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/rpo_test_shift.cpp"
 )
 
 #target_sources(dmd PRIVATE
