@@ -31,7 +31,7 @@ struct Context {
     int**            lShift;
     IS               isl;  // local index set
     IS               isg;  // global index set
-    VecScatter       ltog; // local to global vec scatter
+    VecScatter       global_to_semtex; // scatter from global data to semtex fields
     bool             build_PC;
     // for the fieldsplit preconditioning
     IS*              is_s;
@@ -47,3 +47,4 @@ void SEM_to_Fourier(int plane_k, Context* context, Field* us, real_t* data_f, in
 void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_f, int nModes);
 void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x);
 void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x);
+int assign_scatter_semtex(int nSlice, int nField, int nDofsSlice, VecScatter* gtos);

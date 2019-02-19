@@ -213,7 +213,7 @@ void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_f, in
 
 void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
   int elOrd = Geometry::nP() - 1;
-  int ii, jj, kk, slice_i, field_i, index;
+  int ii, jj, kk, ll, slice_i, field_i, index;
   int nNodesX = NELS_X*elOrd;
   int nModesX = nNodesX/2;// + 2;
   Field* field;
@@ -222,8 +222,8 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   Vec xl;
 
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
-  VecScatterBegin(context->ltog, x, xl, INSERT_VALUES, SCATTER_FORWARD);
-  VecScatterEnd(  context->ltog, x, xl, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterBegin(context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterEnd(  context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
 
   index = 0;
   VecGetArrayRead(xl, &xArray);
@@ -232,6 +232,12 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
       field = fields[slice_i * NFIELD + field_i];
 
       for(kk = 0; kk < Geometry::nZProc(); kk++) {
+      //for(kk = 0; kk < Geometry::nZ(); kk++) {
+        //ll = kk % Geometry::nZProc();
+
+        //slice_i = kk / Geometry::nZProc();
+        //field = fields[slice_i * NFIELD + field_i];
+
         // skip over redundant real dofs
         for(jj = 0; jj < NELS_Y*elOrd; jj++) {
 #ifdef X_FOURIER
@@ -246,14 +252,16 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
 
 #ifdef X_FOURIER
         Fourier_to_SEM(kk, context, field, data, nModesX);
+        //Fourier_to_SEM(ll, context, field, data, nModesX);
 #else
         logical_to_elements(data, field->plane(kk));
+        //logical_to_elements(data, field->plane(ll));
 #endif
       }
     }
     // phase shift data lives on the 0th processors part of the vector
-    //if(!Geometry::procID()) {
-    if(Geometry::procID() == slice_i) {
+    if(!Geometry::procID()) {
+    //if(Geometry::procID() == slice_i) {
       theta[slice_i] = xArray[index++];
 #ifdef X_FOURIER
       phi[slice_i]   = xArray[index++];
@@ -307,8 +315,8 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
       }
     }
     // phase shift data lives on the 0th processors part of the vector
-    //if(!Geometry::procID()) {
-    if(Geometry::procID() == slice_i) {
+    if(!Geometry::procID()) {
+    //if(Geometry::procID() == slice_i) {
       xArray[index++] = theta[slice_i];
 #ifdef X_FOURIER
       xArray[index++] = phi[slice_i];
@@ -318,9 +326,75 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   }
   VecRestoreArray(xl, &xArray);
 
-  VecScatterBegin(context->ltog, xl, x, INSERT_VALUES, SCATTER_REVERSE);
-  VecScatterEnd(  context->ltog, xl, x, INSERT_VALUES, SCATTER_REVERSE);
+  VecScatterBegin(context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
+  VecScatterEnd(  context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
 
   VecDestroy(&xl);
   delete[] data;
+}
+
+// define a vec scatter object for mapping from parallel global vectors to semtex data
+int assign_scatter_semtex(int nSlice, int nField, int nDofsPlane, VecScatter* gtos) {
+  int** lShift;
+  int   nDofsCube_l = Geometry::nZProc() * nDofsPlane;
+  int   nDofsCube_g = Geometry::nZ()     * nDofsPlane;
+#ifdef X_FOURIER
+  int   nShifts     = 3;
+#else
+  int   nShifts     = 2;
+#endif
+  int   lSize       = nSlice * nField * nDofsCube_l;
+  int   nDofsSlice  = nField * Geometry::nZ() * nDofsPlane + nShifts;
+  int   ind_i       = 0;
+  int*  inds;
+  IS    isl, isg;
+  Vec   vl, vg;
+
+  if(!Geometry::procID()) lSize += (nSlice * nShifts);
+
+  inds = new int[lSize];
+
+  lShift = new int*[nSlice];
+  for(int slice_i = 0; slice_i < nSlice; slice_i++) {
+    lShift[slice_i] = new int[nField];
+
+    for(int field_i = 0; field_i < nField; field_i++) {
+      lShift[slice_i][field_i] = slice_i * nDofsSlice + 
+                                 field_i * nDofsCube_g + 
+                                 Geometry::procID() * nDofsCube_l;
+
+      for(int ind_j = 0; ind_j < nDofsCube_l; ind_j++) {
+        inds[ind_i] = lShift[slice_i][field_i] + ind_j;
+        ind_i++;
+      }
+    }
+
+    // assign the phase shifts from the 0th processor
+    if(!Geometry::procID()) {
+      for(int ind_j = 0; ind_j < nShifts; ind_j++) {
+        inds[ind_i] = slice_i * nDofsSlice + nField * nDofsCube_g + ind_j;
+        ind_i++;
+      }
+    }
+  }
+
+  VecCreateSeq(MPI_COMM_SELF, lSize, &vl);
+  VecCreateMPI(MPI_COMM_WORLD, lSize, nSlice * nDofsSlice, &vg);
+
+  ISCreateStride(MPI_COMM_SELF, lSize, 0, 1, &isl);
+  ISCreateGeneral(MPI_COMM_WORLD, lSize, inds, PETSC_COPY_VALUES, &isg);
+
+  VecScatterCreate(vg, isg, vl, isl, gtos);
+  
+  VecDestroy(&vl);
+  VecDestroy(&vg);
+  ISDestroy(&isl);
+  ISDestroy(&isg);
+  for(int slice_i = 0; slice_i < nSlice; slice_i++) {
+    delete[] lShift[slice_i];
+  }
+  delete[] lShift;
+  delete[] inds;
+
+  return lSize;
 }

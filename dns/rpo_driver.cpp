@@ -321,74 +321,9 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->nDofsSlice = NFIELD * Geometry::nZ() * context->nDofsPlane + 2;
 #endif
 
-  context->localSize = NFIELD * Geometry::nZ() * context->nDofsPlane;
-#ifdef X_FOURIER
-  context->localSize += 3;
-#else
-  context->localSize += 2;
-#endif
-
+  context->localSize = assign_scatter_semtex(nSlice, NFIELD, context->nDofsPlane, &context->global_to_semtex);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &x);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &f);
-
-  {
-    int nPntsDom_l = Geometry::nZProc() * context->nDofsPlane;
-    int nPntsDom_g = Geometry::nZ()     * context->nDofsPlane;
-
-    context->lShift = new int*[nSlice];
-    for(int slice_i = 0; slice_i < nSlice; slice_i++) {
-      context->lShift[slice_i] = new int[NFIELD];
-
-      for(int field_i = 0; field_i < NFIELD; field_i++) {
-        context->lShift[slice_i][field_i]  = slice_i * context->nDofsSlice;
-        context->lShift[slice_i][field_i] += field_i * nPntsDom_g;
-        context->lShift[slice_i][field_i] += Geometry::procID() * nPntsDom_l;
-      }
-    }
-  }
-
-#ifdef TESTING
-  for(int proc_i = 0; proc_i < Geometry::nProc(); proc_i++) {
-    if(proc_i==Geometry::procID()) {
-      for(int slice_i = 0; slice_i < nSlice; slice_i++) {
-        cout << "[" << Geometry::procID() << "]\t";
-        for(int field_i = 0; field_i < NFIELD; field_i++) {
-          cout << context->lShift[slice_i][field_i] << "\t";
-        }
-        cout << endl;
-      }
-      cout << endl;
-    }
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
-#endif
-
-  // create the local to global scatter object
-  VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
-  ISCreateStride(MPI_COMM_SELF, context->localSize, 0, 1, &context->isl);
-  {
-    int ind_i = 0;
-    int* inds = new int[context->localSize];
-    for(int slice_i = 0; slice_i < nSlice; slice_i++) {
-      for(int field_i = 0; field_i < NFIELD; field_i++) {
-        for(int ind_j = 0; ind_j < Geometry::nZProc() * context->nDofsPlane; ind_j++) {
-          inds[ind_i] = context->lShift[slice_i][field_i] + ind_j;
-          ind_i++;
-        }
-      }
-      // phase shift dofs
-      if(Geometry::procID() == slice_i) {
-        for(int shift_i = 0; shift_i < 3; shift_i++) {
-          inds[ind_i] = (slice_i + 1) * NFIELD * Geometry::nZ() * context->nDofsPlane + shift_i;
-          ind_i++;
-        }
-      }
-    }
-    ISCreateGeneral(MPI_COMM_WORLD, context->localSize, inds, PETSC_COPY_VALUES, &context->isg);
-    delete[] inds;
-  }
-  VecScatterCreate(x, context->isg, xl, context->isl, &context->ltog);
-  VecDestroy(&xl);
 
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
@@ -410,9 +345,6 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   VecDestroy(&x);
   VecDestroy(&f);
   MatDestroy(&P);
-  VecScatterDestroy(&context->ltog);
-  ISDestroy(&context->isl);
-  ISDestroy(&context->isg);
   delete[] context->el;
   delete[] context->r;
   delete[] context->s;
