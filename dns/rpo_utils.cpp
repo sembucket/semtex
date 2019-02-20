@@ -334,37 +334,32 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
 }
 
 // define a vec scatter object for mapping from parallel global vectors to semtex data
-int assign_scatter_semtex(int nSlice, int nField, int nDofsPlane, VecScatter* gtos) {
-  int** lShift;
-  int   nDofsCube_l = Geometry::nZProc() * nDofsPlane;
-  int   nDofsCube_g = Geometry::nZ()     * nDofsPlane;
+void assign_scatter_semtex(Context* context) {
+  int   nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
+  int   nDofsCube_g = Geometry::nZ()     * context->nDofsPlane;
 #ifdef X_FOURIER
   int   nShifts     = 3;
 #else
   int   nShifts     = 2;
 #endif
-  int   lSize       = nSlice * nField * nDofsCube_l;
-  int   nDofsSlice  = nField * Geometry::nZ() * nDofsPlane + nShifts;
   int   ind_i       = 0;
   int*  inds;
   IS    isl, isg;
   Vec   vl, vg;
 
-  if(!Geometry::procID()) lSize += (nSlice * nShifts);
+  inds = new int[context->localSize];
 
-  inds = new int[lSize];
+  context->lShift = new int*[context->nSlice];
+  for(int slice_i = 0; slice_i < context->nSlice; slice_i++) {
+    context->lShift[slice_i] = new int[context->nField];
 
-  lShift = new int*[nSlice];
-  for(int slice_i = 0; slice_i < nSlice; slice_i++) {
-    lShift[slice_i] = new int[nField];
-
-    for(int field_i = 0; field_i < nField; field_i++) {
-      lShift[slice_i][field_i] = slice_i * nDofsSlice + 
-                                 field_i * nDofsCube_g + 
-                                 Geometry::procID() * nDofsCube_l;
+    for(int field_i = 0; field_i < context->nField; field_i++) {
+      context->lShift[slice_i][field_i] = slice_i * context->nDofsSlice + 
+                                          field_i * nDofsCube_g + 
+                                          Geometry::procID() * nDofsCube_l;
 
       for(int ind_j = 0; ind_j < nDofsCube_l; ind_j++) {
-        inds[ind_i] = lShift[slice_i][field_i] + ind_j;
+        inds[ind_i] = context->lShift[slice_i][field_i] + ind_j;
         ind_i++;
       }
     }
@@ -372,29 +367,23 @@ int assign_scatter_semtex(int nSlice, int nField, int nDofsPlane, VecScatter* gt
     // assign the phase shifts from the 0th processor
     if(!Geometry::procID()) {
       for(int ind_j = 0; ind_j < nShifts; ind_j++) {
-        inds[ind_i] = slice_i * nDofsSlice + nField * nDofsCube_g + ind_j;
+        inds[ind_i] = slice_i * context->nDofsSlice + context->nField * nDofsCube_g + ind_j;
         ind_i++;
       }
     }
   }
 
-  VecCreateSeq(MPI_COMM_SELF, lSize, &vl);
-  VecCreateMPI(MPI_COMM_WORLD, lSize, nSlice * nDofsSlice, &vg);
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &vl);
+  VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nSlice * context->nDofsSlice, &vg);
 
-  ISCreateStride(MPI_COMM_SELF, lSize, 0, 1, &isl);
-  ISCreateGeneral(MPI_COMM_WORLD, lSize, inds, PETSC_COPY_VALUES, &isg);
+  ISCreateStride(MPI_COMM_SELF, context->localSize, 0, 1, &isl);
+  ISCreateGeneral(MPI_COMM_WORLD, context->localSize, inds, PETSC_COPY_VALUES, &isg);
 
-  VecScatterCreate(vg, isg, vl, isl, gtos);
+  VecScatterCreate(vg, isg, vl, isl, &context->global_to_semtex);
   
   VecDestroy(&vl);
   VecDestroy(&vg);
   ISDestroy(&isl);
   ISDestroy(&isg);
-  for(int slice_i = 0; slice_i < nSlice; slice_i++) {
-    delete[] lShift[slice_i];
-  }
-  delete[] lShift;
   delete[] inds;
-
-  return lSize;
 }

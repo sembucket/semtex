@@ -164,10 +164,13 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   }
 
   // add dofs for theta and tau for each time slice
+  context->nField     = NFIELD;
   context->nDofsPlane = nModesX*NELS_Y*elOrd;
   context->nDofsSlice = NFIELD * Geometry::nZ() * context->nDofsPlane + 3;
+  context->localSize  = nSlice * NFIELD * Geometry::nZProc() * context->nDofsPlane;
+  if(!Geometry::procID()) context->localSize += (nSlice * 3);
 
-  context->localSize = assign_scatter_semtex(nSlice, NFIELD, context->nDofsPlane, &context->global_to_semtex);
+  assign_scatter_semtex(context);
 
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &x);
@@ -180,7 +183,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   for(int field_i = 0; field_i < NFIELD; field_i++) {
     for(int mode_i = 0; mode_i < Geometry::nZ(); mode_i++) {
       for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
-        for(int mode_k = 1; mode_k < nModesX/2; mode_k++) {
+        for(int mode_k = 0; mode_k < nModesX/2; mode_k++) {
           io = field_i * Geometry::nZ() * context->nDofsPlane + 
                mode_i * context->nDofsPlane + 
                pt_y * nModesX;

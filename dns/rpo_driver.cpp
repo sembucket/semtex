@@ -65,7 +65,6 @@ void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 		Domain*, BCmgr*, DNSAnalyser*, FieldForce*);
 
 #define X_FOURIER
-//#define NFIELD 4
 #define NFIELD 3
 #define XMIN 0.0
 #define XMAX (2.0*M_PI)
@@ -73,10 +72,10 @@ void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 #define YMAX 1.0
 #define NELS_X 30
 #define NELS_Y 7
-#define NSLICE 16
+//#define NSLICE 16
+#define NSLICE 1
 //#define NSTEPS 3200
-#define NSTEPS 40
-#define UPDATE_U
+#define NSTEPS ((40*16)/NSLICE)
 
 PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
   Context* context = (Context*)ctx;
@@ -116,8 +115,8 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     Femlib::value("t", time);
 
     // initialise the flow map fields with the solution fields
-    for(field_i = 0; field_i < NFIELD; field_i++) {
-      *context->domain->u[field_i] = *context->ui[slice_i * NFIELD + field_i];
+    for(field_i = 0; field_i < context->nField; field_i++) {
+      *context->domain->u[field_i] = *context->ui[slice_i * context->nField + field_i];
     }
 
     // solve the flow map for time tau_i
@@ -135,9 +134,6 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
                                          << "\tnstep: " << Femlib::ivalue("N_STEP")
                                          << "\ttheta: " << context->theta_i[slice_i] 
                                          << "\tphi:   " << context->phi_i[slice_i] << endl;
-
-    // don't want to call the dns analysis, use custom integrate routine instead
-    //integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
 
     // phase shift in theta (axial direction)
 #ifdef X_FOURIER
@@ -185,10 +181,10 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
 
     // set f
-    for(field_i = 0; field_i < NFIELD; field_i++) {
+    for(field_i = 0; field_i < context->nField; field_i++) {
       slice_j = (slice_i + 1)%context->nSlice;
-      *context->fi[slice_i * NFIELD + field_i]  = *context->domain->u[field_i];
-      *context->fi[slice_i * NFIELD + field_i] -= *context->ui[slice_j * NFIELD + field_i];
+      *context->fi[slice_i * context->nField + field_i]  = *context->domain->u[field_i];
+      *context->fi[slice_i * context->nField + field_i] -= *context->ui[slice_j * context->nField + field_i];
     }
 
     time += context->tau_i[slice_i];
@@ -202,8 +198,8 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     sprintf(session_i, "tube8_tw_rpo_%u", slice_i + 1);
     FEML* file_i = new FEML(session_i);
     Domain* dom = new Domain(file_i, context->elmt, context->bman);
-    for(field_i = 0; field_i < NFIELD; field_i++) {
-      dom->u[field_i] = context->ui[slice_i*NFIELD+field_i];
+    for(field_i = 0; field_i < context->nField; field_i++) {
+      dom->u[field_i] = context->ui[slice_i*context->nField+field_i];
     }
     dom->dump();
     delete file_i;
@@ -241,6 +237,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   if(!Geometry::procID()) cout << "time step: " << Femlib::value("D_T") << endl;
 
   context->nSlice   = nSlice;
+  context->nField   = NFIELD;
   context->mesh     = mesh;
   context->elmt     = elmt;
   context->domain   = domain;
@@ -315,20 +312,27 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   // add dofs for theta and tau for each time slice
 #ifdef X_FOURIER
   context->nDofsPlane = nModesX*NELS_Y*elOrd;
-  context->nDofsSlice = NFIELD * Geometry::nZ() * context->nDofsPlane + 3;
+  context->nDofsSlice = context->nField * Geometry::nZ() * context->nDofsPlane + 3;
+  context->localSize  = nSlice * NFIELD * Geometry::nZProc() * context->nDofsPlane;
+  if(!Geometry::procID()) context->localSize += (nSlice * 3);
 #else
   context->nDofsPlane = NELS_X*elOrd*NELS_Y*elOrd;
-  context->nDofsSlice = NFIELD * Geometry::nZ() * context->nDofsPlane + 2;
+  context->nDofsSlice = context->nField * Geometry::nZ() * context->nDofsPlane + 2;
+  context->localSize  = nSlice * NFIELD * Geometry::nZProc() * context->nDofsPlane;
+  if(!Geometry::procID()) context->localSize += (nSlice * 2);
 #endif
 
-  context->localSize = assign_scatter_semtex(nSlice, NFIELD, context->nDofsPlane, &context->global_to_semtex);
+  assign_scatter_semtex(context);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &x);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &f);
+  //VecCreateMPI(MPI_COMM_WORLD, context->nDofsSlice, nSlice * context->nDofsSlice, &x);
+  //VecCreateMPI(MPI_COMM_WORLD, context->nDofsSlice, nSlice * context->nDofsSlice, &f);
 
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
   MatSetSizes(P, context->localSize, context->localSize, nSlice * context->nDofsSlice, nSlice * context->nDofsSlice);
-  MatMPIAIJSetPreallocation(P, 18, PETSC_NULL, 18, PETSC_NULL);
+  //MatSetSizes(P, context->nDofsSlice, context->nDofsSlice, nSlice * context->nDofsSlice, nSlice * context->nDofsSlice);
+  MatMPIAIJSetPreallocation(P, 2*nModesX, PETSC_NULL, 2*nModesX, PETSC_NULL);
 
   SNESCreate(MPI_COMM_WORLD, &snes);
   SNESSetFunction(snes, f,    _snes_function, (void*)context);
@@ -422,7 +426,7 @@ int main (int argc, char** argv) {
 
   // dump the output
   for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
-    sprintf(session_i, "%s_rpo_%u", session, slice_i + 1);
+    sprintf(session_i, "%s_rpo_%u", session, 4*slice_i);
     file_i = new FEML(session_i);
     domain = new Domain(file_i, elmt, bman);
     for(int field_i = 0; field_i < NFIELD; field_i++) {
