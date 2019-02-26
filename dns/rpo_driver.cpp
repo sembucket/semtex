@@ -77,6 +77,94 @@ void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 //#define NSTEPS 3200
 #define NSTEPS ((40*16)/NSLICE)
 
+void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f_phi, double* f_tau) {
+  int          elOrd       = Geometry::nP() - 1;
+  int          nNodesX     = NELS_X*elOrd;
+  int          nModesX     = nNodesX/2;// + 2;
+  int          slice_i     = 0;
+  int          index;
+  int          nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
+  int          nl          = context->nField * nDofsCube_l;
+  int          plane_j;
+  double       k_x, k_z;
+  double*      rx          = new double[nl];
+  double*      rz          = new double[nl];
+  double*      rt          = new double[nl];
+  double*      data_r      = new double[context->nDofsPlane];
+  double*      data_i      = new double[context->nDofsPlane];
+  PetscScalar* xArray;
+  Vec          xl;
+
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
+  VecScatterBegin(context->global_to_semtex, x_delta, xl, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterEnd(  context->global_to_semtex, x_delta, xl, INSERT_VALUES, SCATTER_FORWARD);
+  VecGetArray(xl, &xArray);
+
+  for(int field_i = 0; field_i < context->nField; field_i++) {
+    *context->domain->u[field_i] = *context->ui[slice_i * context->nField + field_i];
+  }
+  Femlib::ivalue("N_STEP", 1);
+  integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
+  for(int field_i = 0; field_i < context->nField; field_i++) {
+    *context->domain->u[field_i] -= *context->ui[slice_i * context->nField + field_i];
+    *context->domain->u[field_i] *= 1.0 / Femlib::value("D_T");
+  } 
+
+  for(int dof_i = 0; dof_i < nl; dof_i++) { rx[dof_i] = rz[dof_i] = rt[dof_i] = 0.0; }
+
+  for(int field_i = 0; field_i < context->nField; field_i++) {
+    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
+      SEM_to_Fourier(plane_i, context, context->ui[slice_i*context->nField+field_i], data_r, nModesX);
+      for(int node_j = 0; node_j < NELS_Y * elOrd; node_j++) {
+        for(int mode_i = 0; mode_i < nModesX; mode_i++) {
+          index = field_i * nDofsCube_l + plane_i * context->nDofsPlane + node_j * nModesX + mode_i;
+          k_x = context->theta_i[slice_i] * (mode_i / 2);
+          if(mode_i % 2 == 0) {
+            rx[index] = -k_x * data_r[node_j * nModesX + mode_i + 1];
+          } else {
+            rx[index] = +k_x * data_r[node_j * nModesX + mode_i - 1];
+          }
+        }
+      }
+    }
+    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i+=2) {
+      plane_j = Geometry::procID() * Geometry::nZProc() + plane_i;
+      k_z = context->phi_i[slice_i] * (plane_j / 2);
+      SEM_to_Fourier(plane_i+0, context, context->ui[slice_i*context->nField+field_i], data_r, nModesX);
+      SEM_to_Fourier(plane_i+1, context, context->ui[slice_i*context->nField+field_i], data_i, nModesX);
+      for(int dof_i = 0; dof_i < NELS_Y * elOrd * nModesX; dof_i++) {
+        index = field_i * nDofsCube_l + (plane_i+0) * context->nDofsPlane + dof_i;
+        rz[index] = -k_z * data_i[dof_i];
+        index = field_i * nDofsCube_l + (plane_i+1) * context->nDofsPlane + dof_i;
+        rz[index] = +k_z * data_r[dof_i];
+      }
+    }
+    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
+      SEM_to_Fourier(plane_i, context, context->domain->u[field_i], data_r, nModesX);
+      for(int dof_i = 0; dof_i < context->nDofsPlane; dof_i++) {
+        index = field_i * nDofsCube_l + plane_i * context->nDofsPlane + dof_i;
+        rt[index] = data_r[dof_i];
+      }
+    }
+  }
+
+  *f_theta = *f_phi = *f_tau = 0.0;
+  for(int dof_i = 0; dof_i < nl; dof_i++) {
+    *f_theta += rx[dof_i] * xArray[dof_i];
+    *f_phi   += rz[dof_i] * xArray[dof_i];
+    *f_tau   += rt[dof_i] * xArray[dof_i];
+  }
+
+  VecRestoreArray(xl, &xArray);
+
+  delete[] rx;
+  delete[] rz;
+  delete[] rt;
+  delete[] data_r;
+  delete[] data_i;
+  VecDestroy(&xl);
+}
+
 PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
   Context* context = (Context*)ctx;
 
@@ -97,12 +185,22 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   int elOrd = Geometry::nP() - 1;
   int nNodesX = NELS_X*elOrd;
   int nModesX = nNodesX/2;// + 2;
-  real_t ckt, skt, rTmp, cTmp;
-  register real_t* data_r;
-  register real_t* data_c;
-  real_t* data_f = new real_t[NELS_Y*elOrd*nModesX];
   real_t time = 0.0;
   real_t f_norm, x_norm;
+  double f_theta[1], f_phi[1], f_tau[1];
+  Vec x_delta;
+  PetscScalar *xArray;
+
+  // create the \delta x vector for use in the assembly of the constraints into the residual vector
+  VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nSlice * context->nDofsSlice, &x_delta);
+  VecCopy(x, x_delta);
+  VecAXPY(x_delta, -1.0, context->x_prev);
+  {
+    double delta_x_norm;
+    VecNorm(x_delta, NORM_2, &delta_x_norm);
+    if(!Geometry::procID()) cout << "|delta x|: " << delta_x_norm << endl;
+  }
+  VecCopy(x, context->x_prev);
 
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
@@ -135,50 +233,15 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
                                          << "\ttheta: " << context->theta_i[slice_i] 
                                          << "\tphi:   " << context->phi_i[slice_i] << endl;
 
-    // phase shift in theta (axial direction)
-#ifdef X_FOURIER
-    for(mode_i = 0; mode_i < Geometry::nZProc(); mode_i++) {
-      for(field_i = 0; field_i < context->domain->nField(); field_i++) {
-        SEM_to_Fourier(mode_i, context, context->domain->u[field_i], data_f, nModesX);
-        for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
-          for(int mode_k = 1; mode_k < nModesX/2; mode_k++) {
-            ckt = cos(mode_k*context->theta_i[slice_i]);
-            skt = sin(mode_k*context->theta_i[slice_i]);
-            rTmp = ckt*data_f[pt_y*nModesX+2*mode_k+0] - skt*data_f[pt_y*nModesX+2*mode_k+1];
-            cTmp = skt*data_f[pt_y*nModesX+2*mode_k+0] + ckt*data_f[pt_y*nModesX+2*mode_k+1];
-            data_f[pt_y*nModesX+2*mode_k+0] = rTmp;
-            data_f[pt_y*nModesX+2*mode_k+1] = cTmp;
-          }
-        }
-        Fourier_to_SEM(mode_i, context, context->domain->u[field_i], data_f, nModesX);
-      }
-    }
-#endif
-
-    // phase shift in phi (azimuthal direction)
-    for(mode_i = 0; mode_i < Geometry::nZProc()/2; mode_i++) {
-      mode_j = Geometry::procID() * (Geometry::nZProc()/2) + mode_i;
-      if(!mode_j) continue;
-
-      ckt = cos(mode_j*context->phi_i[slice_i]);
-      skt = sin(mode_j*context->phi_i[slice_i]);
-
-      for(field_i = 0; field_i < context->domain->nField(); field_i++) {
-        data_r = context->domain->u[field_i]->plane(2*mode_i+0);
-        data_c = context->domain->u[field_i]->plane(2*mode_i+1);
-
-        for(dof_i = 0; dof_i < NELS_Y*elOrd*nModesX; dof_i++) {
-          rTmp = ckt*data_r[dof_i] - skt*data_c[dof_i];
-          cTmp = skt*data_r[dof_i] + ckt*data_c[dof_i];
-          data_r[dof_i] = rTmp;
-          data_c[dof_i] = cTmp;
-        }
-      }
-    }
-
     // don't want to call the dns analysis, use custom integrate routine instead
-    // apply the phase shifts to the solution fields BEFORE forwards integrating
     integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
+
+#ifdef X_FOURIER
+    // phase shift in theta (axial direction)
+    phase_shift_x(context, context->theta_i[slice_i], -1.0, context->domain->u);
+#endif
+    // phase shift in phi (azimuthal direction)
+    phase_shift_z(context, context->phi_i[slice_i],   -1.0, context->domain->u);
 
     // set f
     for(field_i = 0; field_i < context->nField; field_i++) {
@@ -189,7 +252,10 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 
     time += context->tau_i[slice_i];
   }
-  RepackX(context, context->fi, context->theta_i, context->phi_i, context->tau_i, f);
+
+  build_constraints(context, x_delta, f_theta, f_phi, f_tau);
+
+  RepackX(context, context->fi, f_theta, f_phi, f_tau, f);
   Femlib::value("D_T", dt);
 
 #ifdef TESTING
@@ -211,7 +277,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   VecNorm(f, NORM_2, &f_norm);
   if(!Geometry::procID()) cout << "evaluating function, |x|: " << x_norm << "\t|f|: " << f_norm << endl;
 
-  delete[] data_f;
+  VecDestroy(&x_delta);
 
   return 0;
 }
@@ -229,7 +295,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   const bool guess = false;
   bool found;
   vector<real_t> work(static_cast<size_t>(max (2*Geometry::nTotElmt(), 5*Geometry::nP()+6)));
-  Vec x, f, xl;
+  Vec x, f;
   Mat P;
   SNES snes;
   IS *is_s, *is_u, *is_p;
@@ -325,13 +391,11 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   assign_scatter_semtex(context);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &x);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &f);
-  //VecCreateMPI(MPI_COMM_WORLD, context->nDofsSlice, nSlice * context->nDofsSlice, &x);
-  //VecCreateMPI(MPI_COMM_WORLD, context->nDofsSlice, nSlice * context->nDofsSlice, &f);
+  VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &context->x_prev);
 
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
   MatSetSizes(P, context->localSize, context->localSize, nSlice * context->nDofsSlice, nSlice * context->nDofsSlice);
-  //MatSetSizes(P, context->nDofsSlice, context->nDofsSlice, nSlice * context->nDofsSlice, nSlice * context->nDofsSlice);
   MatMPIAIJSetPreallocation(P, 2*nModesX, PETSC_NULL, 2*nModesX, PETSC_NULL);
 
   SNESCreate(MPI_COMM_WORLD, &snes);
@@ -343,12 +407,15 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
 
   context->snes = snes;
   RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
+  VecNorm(x, NORM_2, &context->x_norm);
+  VecCopy(x, context->x_prev);
   SNESSolve(snes, NULL, x);
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
   VecDestroy(&x);
   VecDestroy(&f);
   MatDestroy(&P);
+  VecDestroy(&context->x_prev);
   delete[] context->el;
   delete[] context->r;
   delete[] context->s;
