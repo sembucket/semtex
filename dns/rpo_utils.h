@@ -49,3 +49,5 @@ void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_f, in
 void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x);
 void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x);
 void assign_scatter_semtex(Context* context);
+void phase_shift_x(Context* context, double theta, double sign, vector<Field*> fields);
+void phase_shift_z(Context* context, double phi,   double sign, vector<Field*> fields);

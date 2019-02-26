@@ -387,3 +387,60 @@ void assign_scatter_semtex(Context* context) {
   ISDestroy(&isg);
   delete[] inds;
 }
+
+void phase_shift_x(Context* context, double theta, double sign, vector<Field*> fields) {
+  int elOrd = Geometry::nP() - 1;
+  int nNodesX = NELS_X*elOrd;
+  int nModesX = nNodesX/2;// + 2;
+  int mode_i, field_i, pt_y, mode_k;
+  double ckt, skt, rTmp, cTmp;
+  real_t* data_f = new real_t[NELS_Y*elOrd*nModesX];
+
+  for(mode_i = 0; mode_i < Geometry::nZProc(); mode_i++) {
+    for(field_i = 0; field_i < context->domain->nField(); field_i++) {
+      SEM_to_Fourier(mode_i, context, fields[field_i], data_f, nModesX);
+      for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
+        for(int mode_k = 1; mode_k < nModesX/2; mode_k++) {
+          ckt = cos(sign * mode_k * theta);
+          skt = sin(sign * mode_k * theta);
+          rTmp = ckt*data_f[pt_y*nModesX+2*mode_k+0] - skt*data_f[pt_y*nModesX+2*mode_k+1];
+          cTmp = skt*data_f[pt_y*nModesX+2*mode_k+0] + ckt*data_f[pt_y*nModesX+2*mode_k+1];
+          data_f[pt_y*nModesX+2*mode_k+0] = rTmp;
+          data_f[pt_y*nModesX+2*mode_k+1] = cTmp;
+        }
+      }
+      Fourier_to_SEM(mode_i, context, fields[field_i], data_f, nModesX);
+    }
+  }
+  delete[] data_f;
+}
+
+void phase_shift_z(Context* context, double phi,   double sign, vector<Field*> fields) {
+  int elOrd = Geometry::nP() - 1;
+  int nNodesX = NELS_X*elOrd;
+  int nModesX = nNodesX/2;// + 2;
+  int mode_i, mode_j, field_i, dof_i;
+  double ckt, skt, rTmp, cTmp;
+  register real_t* data_r;
+  register real_t* data_c;
+
+  for(mode_i = 0; mode_i < Geometry::nZProc()/2; mode_i++) {
+    mode_j = Geometry::procID() * (Geometry::nZProc()/2) + mode_i;
+    if(!mode_j) continue;
+
+    ckt = cos(sign * mode_j * phi);
+    skt = sin(sign * mode_j * phi);
+
+    for(field_i = 0; field_i < context->domain->nField(); field_i++) {
+      data_r = fields[field_i]->plane(2*mode_i+0);
+      data_c = fields[field_i]->plane(2*mode_i+1);
+
+      for(dof_i = 0; dof_i < NELS_Y*elOrd*nModesX; dof_i++) {
+        rTmp = ckt*data_r[dof_i] - skt*data_c[dof_i];
+        cTmp = skt*data_r[dof_i] + ckt*data_c[dof_i];
+        data_r[dof_i] = rTmp;
+        data_c[dof_i] = cTmp;
+      }
+    }
+  }
+}
