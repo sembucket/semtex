@@ -39,6 +39,8 @@ struct Context {
     IS*              is_u;
     IS*              is_p;
     SNES             snes;
+    double           x_norm; // for scaling the phase shifts
+    Vec              x_prev; // for determining \delta x
 };
 
 void data_transpose(real_t* data, int nx, int ny);

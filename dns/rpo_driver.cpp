@@ -87,6 +87,7 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
   int          nl          = context->nField * nDofsCube_l;
   int          plane_j;
   double       k_x, k_z;
+  double       f_theta_l, f_phi_l, f_tau_l;
   double*      rx          = new double[nl];
   double*      rz          = new double[nl];
   double*      rt          = new double[nl];
@@ -148,12 +149,15 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
     }
   }
 
-  *f_theta = *f_phi = *f_tau = 0.0;
+  f_theta_l = f_phi_l = f_tau_l = 0.0;
   for(int dof_i = 0; dof_i < nl; dof_i++) {
-    *f_theta += rx[dof_i] * xArray[dof_i];
-    *f_phi   += rz[dof_i] * xArray[dof_i];
-    *f_tau   += rt[dof_i] * xArray[dof_i];
+    f_theta_l += rx[dof_i] * xArray[dof_i];
+    f_phi_l   += rz[dof_i] * xArray[dof_i];
+    f_tau_l   += rt[dof_i] * xArray[dof_i];
   }
+  MPI_Allreduce(&f_theta_l, f_theta, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&f_phi_l,   f_phi,   1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&f_tau_l,   f_tau,   1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
   VecRestoreArray(xl, &xArray);
 
@@ -227,11 +231,12 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     Femlib::value("D_T", context->tau_i[slice_i]/nStep);
     context->domain->step = 0;
 
-    if(!Geometry::procID()) cout << "time: " << time << "\tslice: " << slice_i 
-                                         << "\ttau:   " << context->tau_i[slice_i]   
-                                         << "\tnstep: " << Femlib::ivalue("N_STEP")
-                                         << "\ttheta: " << context->theta_i[slice_i] 
-                                         << "\tphi:   " << context->phi_i[slice_i] << endl;
+    if(!Geometry::procID()) {
+      cout << "time: " << time << "\tslice: " << slice_i << "\tnstep: " << Femlib::ivalue("N_STEP") << endl;
+      cout << scientific << "\ttau:   " << context->tau_i[slice_i]   
+                         << "\ttheta: " << context->theta_i[slice_i] 
+                         << "\tphi:   " << context->phi_i[slice_i] << endl;
+    }
 
     // don't want to call the dns analysis, use custom integrate routine instead
     integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
@@ -406,8 +411,10 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   SNESSetFromOptions(snes);
 
   context->snes = snes;
+  context->x_norm = 100.0;
   RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
-  VecNorm(x, NORM_2, &context->x_norm);
+  //VecNorm(x, NORM_2, &context->x_norm);
+  //if(!Geometry::procID()) cout << "|x_0|: " << context->x_norm << endl;
   VecCopy(x, context->x_prev);
   SNESSolve(snes, NULL, x);
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);

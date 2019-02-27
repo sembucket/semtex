@@ -262,11 +262,11 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
     // phase shift data lives on the 0th processors part of the vector
     if(!Geometry::procID()) {
     //if(Geometry::procID() == slice_i) {
-      theta[slice_i] = xArray[index++];
+      theta[slice_i] = xArray[index++] / context->x_norm;
 #ifdef X_FOURIER
-      phi[slice_i]   = xArray[index++];
+      phi[slice_i]   = xArray[index++] / context->x_norm;
 #endif
-      tau[slice_i]   = xArray[index++];
+      tau[slice_i]   = xArray[index++] / context->x_norm;
     }
   }
   VecRestoreArrayRead(xl, &xArray);
@@ -286,6 +286,7 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   Vec xl;
 
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
+  VecZeroEntries(xl);
   VecGetArray(xl, &xArray);
 
   index = 0;
@@ -317,11 +318,11 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
     // phase shift data lives on the 0th processors part of the vector
     if(!Geometry::procID()) {
     //if(Geometry::procID() == slice_i) {
-      xArray[index++] = theta[slice_i];
+      xArray[index++] = theta[slice_i] * context->x_norm;
 #ifdef X_FOURIER
-      xArray[index++] = phi[slice_i];
+      xArray[index++] = phi[slice_i]   * context->x_norm;
 #endif
-      xArray[index++] = tau[slice_i];
+      xArray[index++] = tau[slice_i]   * context->x_norm;
     }
   }
   VecRestoreArray(xl, &xArray);
