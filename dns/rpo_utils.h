@@ -15,6 +15,7 @@ struct Context {
     vector<Element*> elmt;
     Domain*          domain;
     BCmgr*           bman;
+    FEML*            file;
     DNSAnalyser*     analyst;
     FieldForce*      ff;
     vector<Field*>   ui;

@@ -105,6 +105,9 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
     *context->domain->u[field_i] = *context->ui[slice_i * context->nField + field_i];
   }
   Femlib::ivalue("N_STEP", 1);
+
+  delete context->analyst;
+  context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
   integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
   for(int field_i = 0; field_i < context->nField; field_i++) {
     *context->domain->u[field_i] -= *context->ui[slice_i * context->nField + field_i];
@@ -239,6 +242,8 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     }
 
     // don't want to call the dns analysis, use custom integrate routine instead
+    delete context->analyst;
+    context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
     integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
 
 #ifdef X_FOURIER
@@ -287,7 +292,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   return 0;
 }
 
-void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domain* domain, DNSAnalyser* analyst, FieldForce* FF, 
+void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domain* domain, DNSAnalyser* analyst, FieldForce* FF, 
                vector<Field*> ui, vector<Field*> fi, vector<Field*> uj)
 {
   Context* context = new Context;
@@ -313,6 +318,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->elmt     = elmt;
   context->domain   = domain;
   context->bman     = bman;
+  context->file     = file;
   context->analyst  = analyst;
   context->ff       = FF;
   context->ui       = ui;
@@ -494,7 +500,7 @@ int main (int argc, char** argv) {
   domain->restart();
 
   // solve the newton-rapheson problem
-  rpo_solve(NSLICE, mesh, elmt, bman, domain, analyst, FF, ui, fi, uj);
+  rpo_solve(NSLICE, mesh, elmt, bman, file, domain, analyst, FF, ui, fi, uj);
   delete file_i;
   delete domain;
 
