@@ -56,8 +56,6 @@ static char RCS[] = "$Id$";
 #include "rpo_utils.h"
 #include "rpo_preconditioner.h"
 
-#define XMIN 0.0
-#define XMAX (2.0*M_PI)
 #define YMIN 0.0
 #define YMAX 1.0
 #define NELS_X 30
@@ -196,6 +194,328 @@ double** real_space_pc(double lx, int nr, int nf, double* data_x, double* data_y
   return PRECON;
 }
 
+void schur_complement_constraints(Context* context, double* schur) {
+  int     elOrd           = Geometry::nP() - 1;
+  int     nNodesX         = NELS_X*elOrd;
+  int     nModesX         = context->nModesX;
+  double  schur_local[3];
+  double  k_x, k_z;
+  int     plane_j;
+  int     pt_j, el_j;
+  double  p_y;
+  int     index;
+  int     pRow, pCols[99999];
+  int     nDofsCube_l     = Geometry::nZProc() * context->nDofsPlane;
+  int     nl              = context->nField * nDofsCube_l;
+  double* rxl             = new double[nl];
+  double* rzl             = new double[nl];
+  double* rtl             = new double[nl];
+  double* cxl             = new double[nl];
+  double* czl             = new double[nl];
+  double* ctl             = new double[nl];
+  double* data_r          = new double[NELS_Y*elOrd*nModesX];
+  double* data_i          = new double[NELS_Y*elOrd*nModesX];
+
+  // integrate the state and phase shifted state forwards
+  for(int field_i = 0; field_i < context->nField; field_i++) {
+    *context->domain->u[field_i] = *context->ui[field_i];
+  }
+  Femlib::ivalue("N_STEP", 1);
+  delete context->analyst;
+  context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
+  integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
+  for(int field_i = 0; field_i < context->nField; field_i++) {
+    *context->domain->u[field_i] -= *context->ui[field_i];
+    *context->domain->u[field_i] *= 1.0 / Femlib::value("D_T");
+  } 
+
+  // set the constraints as a schur complement (rows)
+  for(int dof_i = 0; dof_i < nl; dof_i++) { 
+    rxl[dof_i] = rzl[dof_i] = rtl[dof_i] = 0.0;
+    cxl[dof_i] = czl[dof_i] = ctl[dof_i] = 0.0; 
+  }
+
+  for(int field_i = 0; field_i < context->nField; field_i++) {
+    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
+      SEM_to_Fourier(plane_i, context, context->ui[field_i], data_r);
+      for(int node_j = 0; node_j < NELS_Y * elOrd; node_j++) {
+        for(int mode_i = 0; mode_i < nModesX; mode_i++) {
+          index = field_i * nDofsCube_l + plane_i * context->nDofsPlane + node_j * nModesX + mode_i;
+          k_x = context->theta_i[0] * (mode_i / 2);
+
+          if(mode_i % 2 == 0) {
+            rxl[index] = -k_x * data_r[node_j * nModesX + mode_i + 1];
+          } else {
+            rxl[index] = +k_x * data_r[node_j * nModesX + mode_i - 1];
+          }
+        }
+      }
+    }
+    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i+=2) {
+      plane_j = Geometry::procID() * Geometry::nZProc() + plane_i;
+      SEM_to_Fourier(plane_i+0, context, context->ui[field_i], data_r);
+      SEM_to_Fourier(plane_i+1, context, context->ui[field_i], data_i);
+      for(int dof_i = 0; dof_i < NELS_Y * elOrd * nModesX; dof_i++) {
+        el_j = dof_i / (nModesX * elOrd);
+        pt_j = (dof_i / nModesX) % elOrd;
+        p_y  = context->elmt[el_j]->_ymesh[pt_j*(elOrd+1)];
+        if(fabs(p_y) < 1.0e-6) p_y = 1.0;
+        // assume a radius of 1, so scale by (2*pi) / (2*pi*r)
+        k_z  = (1.0 / p_y) * context->phi_i[0] * (plane_j / 2);
+
+        index = field_i * nDofsCube_l + (plane_i+0) * context->nDofsPlane + dof_i;
+        rzl[index] = -k_z * data_i[dof_i];
+        index = field_i * nDofsCube_l + (plane_i+1) * context->nDofsPlane + dof_i;
+        rzl[index] = +k_z * data_r[dof_i];
+      }
+    }
+    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
+      SEM_to_Fourier(plane_i, context, context->domain->u[field_i], data_r);
+      for(int dof_i = 0; dof_i < NELS_Y * elOrd * nModesX; dof_i++) {
+        index = field_i * nDofsCube_l + plane_i * context->nDofsPlane + dof_i;
+        rtl[index] = data_r[dof_i];
+      }
+    }
+  }
+
+  // phase shifted state vector
+  for(int field_i = 0; field_i < context->nField; field_i++) {
+    *context->domain->u[field_i] = *context->ui[field_i];
+    phase_shift_x(context, context->theta_i[0], -1.0, context->domain->u);
+    phase_shift_z(context, context->phi_i[0],   -1.0, context->domain->u);
+    *context->uj[field_i] = *context->domain->u[field_i];
+  }
+  Femlib::ivalue("N_STEP", 1);
+  delete context->analyst;
+  context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
+  integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
+  for(int field_i = 0; field_i < context->nField; field_i++) {
+    *context->domain->u[field_i] -= *context->uj[field_i];
+    *context->domain->u[field_i] *= 1.0 / Femlib::value("D_T");
+  } 
+
+  // set the constraints as a schur complement (columns)
+  for(int field_i = 0; field_i < context->nField; field_i++) {
+    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
+      SEM_to_Fourier(plane_i, context, context->uj[field_i], data_r);
+      for(int node_j = 0; node_j < NELS_Y * elOrd; node_j++) {
+        for(int mode_i = 0; mode_i < nModesX; mode_i++) {
+          index = field_i * nDofsCube_l + plane_i * context->nDofsPlane + node_j * nModesX + mode_i;
+          k_x = context->theta_i[0] * (mode_i / 2);
+
+          if(mode_i % 2 == 0) {
+            cxl[index] = +k_x * data_r[node_j * nModesX + mode_i + 1];
+          } else {
+            cxl[index] = -k_x * data_r[node_j * nModesX + mode_i - 1];
+          }
+        }
+      }
+    }
+    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
+      plane_j = Geometry::procID() * Geometry::nZProc() + plane_i;
+      SEM_to_Fourier(plane_i+0, context, context->uj[field_i], data_r);
+      SEM_to_Fourier(plane_i+1, context, context->uj[field_i], data_i);
+      for(int dof_i = 0; dof_i < NELS_Y * elOrd * nModesX; dof_i++) {
+        el_j = dof_i / (nModesX * elOrd);
+        pt_j = (dof_i / nModesX) % elOrd;
+        p_y  = context->elmt[el_j]->_ymesh[pt_j*(elOrd+1)];
+        if(fabs(p_y) < 1.0e-6) p_y = 1.0;
+        // assume a radius of 1, so scale by (2*pi) / (2*pi*r)
+        k_z  = (1.0 / p_y) * context->phi_i[0] * (plane_j / 2);
+
+        index = field_i * nDofsCube_l + (plane_i+0) * context->nDofsPlane + dof_i;
+        czl[index] = +k_z * data_i[dof_i];
+        index = field_i * nDofsCube_l + (plane_i+1) * context->nDofsPlane + dof_i;
+        czl[index] = -k_z * data_r[dof_i];
+      }
+    }
+    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
+      SEM_to_Fourier(plane_i, context, context->domain->u[field_i], data_r);
+      for(int dof_i = 0; dof_i < NELS_Y * elOrd * nModesX; dof_i++) {
+        index = field_i * nDofsCube_l + plane_i * context->nDofsPlane + dof_i;
+        ctl[index] = data_r[dof_i];
+      }
+    }
+  }
+
+  // add the constraints to the preconditioner
+  /*for(int field_i = 0; field_i < context->nField; field_i++) {
+    pRow = context->nField * Geometry::nZ() * context->nDofsPlane;
+    for(int dof_i = 0; dof_i < nDofsCube_l; dof_i++) {
+      pCols[dof_i] = context->lShift[0][field_i] + dof_i;
+    }
+    MatSetValues(P, 1, &pRow, nDofsCube_l, pCols, &rxl[field_i * nDofsCube_l], INSERT_VALUES);
+    MatSetValues(P, nDofsCube_l, pCols, 1, &pRow, &cxl[field_i * nDofsCube_l], INSERT_VALUES);
+
+    pRow++;
+    MatSetValues(P, 1, &pRow, nDofsCube_l, pCols, &rzl[field_i * nDofsCube_l], INSERT_VALUES);
+    MatSetValues(P, nDofsCube_l, pCols, 1, &pRow, &czl[field_i * nDofsCube_l], INSERT_VALUES);
+
+    pRow++;
+    MatSetValues(P, 1, &pRow, nDofsCube_l, pCols, &rtl[field_i * nDofsCube_l], INSERT_VALUES);
+    MatSetValues(P, nDofsCube_l, pCols, 1, &pRow, &ctl[field_i * nDofsCube_l], INSERT_VALUES);
+  }*/
+
+  // add diagonal entries where required
+  schur_local[0] = schur_local[1] = schur_local[2] = 0.0;
+  for(int dof_i = 0; dof_i < nl; dof_i++) {
+    schur_local[0] += rxl[dof_i] * cxl[dof_i];
+    schur_local[1] += rzl[dof_i] * czl[dof_i];
+    schur_local[2] += rtl[dof_i] * ctl[dof_i];
+//cout << "rxl: " << rxl[dof_i] << 
+//      "\trzl: " << rzl[dof_i] << 
+//      "\trtl: " << rtl[dof_i] << 
+//      "\tczl: " << cxl[dof_i] << 
+//      "\tczl: " << czl[dof_i] << 
+//      "\tctl: " << ctl[dof_i] << endl;
+  }
+  MPI_Allreduce(schur_local, schur, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+  delete[] rxl;
+  delete[] rzl;
+  delete[] rtl;
+  delete[] cxl;
+  delete[] czl;
+  delete[] ctl;
+  delete[] data_r;
+  delete[] data_i;
+}
+
+void assemble_K(Context* context, int plane_i, Mat K, Mat P) {
+  int     elOrd         = Geometry::nP() - 1;
+  int     nNodesX       = NELS_X*elOrd;
+  int     nModesX       = context->nModesX;
+  int     row_k[3], col_k[3], nCols;
+  int     el_i;
+  int     plane_j;
+  int     row_dof, col_dof;
+  const int* cols;
+  const double* vals;
+  int     pRow, pCols[99999];
+  double  pVals[99999];
+  double  k_x, k_z;
+  double  yi[2], delta_y, det;
+  double  qx[]          = {+1.0, +1.0};
+  double  qy[]          = {-1.0, +1.0};
+  double  kinvis        = Femlib::value("KINVIS");
+  double  beta          = Femlib::value("BETA");
+  double  alpha         = context->xmax * beta / (2.0*M_PI) / (context->nModesX / 2);
+  double  dt            = Femlib::value("D_T");
+  double  **PCX, **PCZ;
+  double* data_f        = new double[NELS_Y*elOrd*nModesX];
+
+  plane_j = Geometry::procID() * Geometry::nZProc() + plane_i;
+  k_z = (plane_j / 2) / beta;
+  if(plane_j < 2) k_z = 1.0;
+
+  // same number of nodes as modes in x 
+  SEM_to_Fourier(plane_i, context, context->ui[0], data_f);
+
+  for(int elmt_y = 0; elmt_y < elOrd*NELS_Y; elmt_y++) {
+    el_i = (elmt_y / elOrd) * NELS_X;
+
+    yi[0] = context->elmt[el_i]->_ymesh[(elmt_y%elOrd+0)*(elOrd+1)];
+    yi[1] = context->elmt[el_i]->_ymesh[(elmt_y%elOrd+1)*(elOrd+1)];
+    
+    delta_y = 0.5 * fabs(yi[1] - yi[0]);
+
+    PCX = real_space_pc(2.0*M_PI, nModesX, nModesX, NULL, NULL, NULL);
+    PCZ = real_space_pc(2.0*M_PI*yi[0], Geometry::nZ(), Geometry::nZ(), &data_f[elmt_y*nModesX], NULL, NULL);
+
+    for(int mode_x = 0; mode_x < nModesX; mode_x++) {
+      k_x = (mode_x / 2) / alpha;
+      if(mode_x < 2) k_x = 1.0;
+
+      pVals[0] = pVals[1] = pVals[2] = pVals[3] = 0;
+      for(int row = 0; row < 2; row++) {
+        row_k[0] = (elmt_y+row)*nModesX + mode_x; // elmt_y=0 along dirichlet boundary
+        row_k[1] = row_k[0] + context->nDofsPlane;
+        row_k[2] = row_k[1] + context->nDofsPlane;
+
+        if(elmt_y+row == elOrd*NELS_Y) continue; // outer boundary (dirichlet bcs)
+
+        for(int col = 0; col < 2; col++) {
+          col_k[0] = (elmt_y+col)*nModesX + mode_x; // elmt_y=0 along dirichlet boundary
+          col_k[1] = col_k[0] + context->nDofsPlane;
+          col_k[2] = col_k[1] + context->nDofsPlane;
+
+          if(elmt_y+col == elOrd*NELS_Y) continue; // outer boundary (dirichlet bcs)
+
+          // radial direction terms
+          for(int pnt = 0; pnt < 2; pnt++) {
+            if(!elmt_y && !pnt) { // center axis
+              det = alpha * delta_y * beta * (2.0*M_PI/yi[1]);
+            } else {
+              det = alpha * delta_y * beta * (2.0*M_PI/yi[pnt]);
+            }
+
+            // mass matrix terms
+            MatSetValue(K, row_k[0], row_k[0], det, ADD_VALUES);
+            MatSetValue(K, row_k[1], row_k[1], det, ADD_VALUES);
+            MatSetValue(K, row_k[2], row_k[2], det, ADD_VALUES);
+
+            pVals[2*row+col] += -(dt * kinvis) * det * dNidy(row+1, qx[pnt], qy[pnt]) / delta_y * 
+                                                       dNidy(col+1, qx[pnt], qy[pnt]) / delta_y;
+          } //pnt
+        } // col
+      } // row
+
+      if(!elmt_y) { // center axis
+        det = alpha * delta_y * beta * (2.0*M_PI/yi[1]);
+      } else {
+        det = alpha * delta_y * beta * (2.0*M_PI/yi[0]);
+      }
+
+      // set the radial (finite element) laplacian for this (1d) element
+      row_k[0] = row_k[1];
+      row_k[1] = row_k[0] + nModesX;
+      MatSetValues(K, 2, row_k, 2, row_k, pVals, ADD_VALUES);
+
+      // set the axial terms
+      pRow = elmt_y*nModesX + mode_x;
+      for(int col = 0; col < nModesX; col++) {
+        pCols[col] = elmt_y*nModesX + col;
+        pVals[col] = (dt * kinvis) * det * PCX[mode_x][col];
+      }
+      MatSetValues(K, 1, &pRow, nModesX, pCols, pVals, ADD_VALUES);
+
+      // set the azimuthal terms
+      // TODO: do this outside of the plane_i loop so that this may be applied to all modes
+      pRow = elmt_y*nModesX + mode_x + 2*context->nDofsPlane;
+      pVals[0] = (dt * kinvis) * det * PCZ[plane_j][plane_j];
+      MatSetValue(K, pRow, pRow, pVals[0], ADD_VALUES);
+    } // mode_x
+
+    for(int ii = 0; ii < nModesX;        ii++) { delete[] PCX[ii]; } delete[] PCX;
+    for(int ii = 0; ii < Geometry::nZ(); ii++) { delete[] PCZ[ii]; } delete[] PCZ;
+  } // elmt_y
+  MatAssemblyBegin(K, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(  K, MAT_FINAL_ASSEMBLY);
+
+  // [u,u] block
+  for(int row_i = 0; row_i < 3*context->nDofsPlane; row_i++) {
+    row_dof = row_i/context->nDofsPlane;
+    MatGetRow(K, row_i, &nCols, &cols, &vals);
+    pRow = row_i%context->nDofsPlane + plane_i*context->nDofsPlane + context->lShift[0][row_dof];
+
+    for(int col_i = 0; col_i < nCols; col_i++) {
+      col_dof = cols[col_i]/context->nDofsPlane;
+      pCols[col_i] = cols[col_i]%context->nDofsPlane + plane_i*context->nDofsPlane + context->lShift[0][col_dof];
+    }
+    MatSetValues(P, 1, &pRow, nCols, pCols, vals, INSERT_VALUES);
+    MatRestoreRow(K, row_i, &nCols, &cols, &vals);
+  //}
+
+  // add in the -ve identity for the flow map to the next slice   
+  //for(int row_i = 0; row_i < 3*context->nDofsPlane; row_i++) {
+    //row_dof = row_i/context->nDofsPlane;
+    //pRow = row_i%context->nDofsPlane + plane_i*context->nDofsPlane + context->lShift[0][row_dof];
+    //MatSetValue(P, pRow, pRow, -1.0, ADD_VALUES);
+  }
+
+  delete[] data_f;
+}
+
 // as above, but for a fourier-fourier-sem discretisation
 //
 // fourier modes in the axial and azimuthal dimensions, and 
@@ -219,295 +539,34 @@ double** real_space_pc(double lx, int nr, int nf, double* data_x, double* data_y
 //
 void build_preconditioner_ffs(Context* context, Mat P) {
   int elOrd = Geometry::nP() - 1;
-  int nZloc = Geometry::nZProc();
-  int rank = Geometry::procID();
   int nNodesX = NELS_X*elOrd;
-  int nModesX = nNodesX/2;// + 2;
-  int row_j, col_j, row_x, row_y, col_x, col_y;
-  int row_k[3], col_k[3], nCols;
-  int el_i, plane_j, slice_j;
+  int nModesX = context->nModesX;
+  int nCols, pRow;
+  int nProws, nPcols;
   const int* cols;
   const double* vals;
-  int pRow, pCols[99999];
-  int nProws, nPcols;
-  int row_dof, col_dof;
-  double pVals[99999];
-  double yi[2], delta_y, det;
-  double qx[] = {+1.0, +1.0};
-  double qy[] = {-1.0, +1.0};
-  double kinvis = Femlib::value("KINVIS");
-  double dt = Femlib::value("D_T");
-  double beta = Femlib::value("BETA");
-  double alpha = (XMAX - XMIN)/(2.0*M_PI);
-  double k_x, k_z;
   Mat K;
-  double **PCX, **PCZ;
-  double* data_f = new double[NELS_Y*elOrd*nModesX];
-  double* data_r = new double[NELS_Y*elOrd*nModesX];
-  double* data_i = new double[NELS_Y*elOrd*nModesX];
-  int index;
-  int nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
-  int nl = context->nField * nDofsCube_l;
-  double schur[3], schur_global[3];
-  double* rxl = new double[nl];
-  double* rzl = new double[nl];
-  double* rtl = new double[nl];
-  double* cxl = new double[nl];
-  double* czl = new double[nl];
-  double* ctl = new double[nl];
+  double schur[3];
 
   MatCreateSeqAIJ(MPI_COMM_SELF, 3*context->nDofsPlane, 3*context->nDofsPlane, nModesX + 4, NULL, &K);
+  MatSetOptionsPrefix(K, "K_");
+  MatSetFromOptions(K);
   MatZeroEntries(K);
   MatZeroEntries(P);
 
-  for(int slice_i = 0; slice_i < context->nSlice; slice_i++) {
-    for(int plane_i = 0; plane_i < nZloc; plane_i++) {
-      plane_j = rank * nZloc + plane_i;
-      k_z = (plane_j / 2) / beta;
-      if(plane_j < 2) k_z = 1.0;
+  for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
+    assemble_K(context, plane_i, K, P);
+  } // plane_i
 
-      // same number of nodes as modes in x 
-      SEM_to_Fourier(plane_i, context, context->ui[slice_i*NFIELD+0], data_f, nModesX);
+  schur_complement_constraints(context, schur);
 
-      for(int elmt_y = 0; elmt_y < elOrd*NELS_Y; elmt_y++) {
-        el_i = (elmt_y / elOrd) * NELS_X;
-
-        yi[0] = context->elmt[el_i]->_ymesh[(elmt_y%elOrd+0)*(elOrd+1)];
-        yi[1] = context->elmt[el_i]->_ymesh[(elmt_y%elOrd+1)*(elOrd+1)];
-    
-        delta_y = 0.5 * fabs(yi[1] - yi[0]);
-        det = alpha * delta_y * beta;
-
-        PCX = real_space_pc(2.0*M_PI, nModesX, nModesX, NULL, NULL, NULL);
-        PCZ = real_space_pc(2.0*M_PI*yi[0], Geometry::nZ(), Geometry::nZ(), &data_f[elmt_y*nModesX], NULL, NULL);
-
-        for(int mode_x = 0; mode_x < nModesX; mode_x++) {
-          k_x = (mode_x / 2) / alpha;
-          if(mode_x < 2) k_x = 1.0;
-
-          pVals[0] = pVals[1] = pVals[2] = pVals[3] = 0;
-          for(int row = 0; row < 2; row++) {
-            row_k[0] = (elmt_y+row)*nModesX + mode_x; // elmt_y=0 along dirichlet boundary
-            row_k[1] = row_k[0] + context->nDofsPlane;
-            row_k[2] = row_k[1] + context->nDofsPlane;
-
-            if(elmt_y+row == elOrd*NELS_Y) continue; // outer boundary (dirichlet bcs)
-
-            for(int col = 0; col < 2; col++) {
-              col_k[0] = (elmt_y+col)*nModesX + mode_x; // elmt_y=0 along dirichlet boundary
-              col_k[1] = col_k[0] + context->nDofsPlane;
-              col_k[2] = col_k[1] + context->nDofsPlane;
-
-              if(elmt_y+col == elOrd*NELS_Y) continue; // outer boundary (dirichlet bcs)
-
-              // mass matrix terms
-              // rescale the determinant by the radius at this element in y
-              MatSetValue(K, row_k[0], row_k[0], 1.0/*det * yi[row]*/, ADD_VALUES);
-              MatSetValue(K, row_k[1], row_k[1], 1.0/*det * yi[row]*/, ADD_VALUES);
-              MatSetValue(K, row_k[2], row_k[2], 1.0/*det * yi[row]*/, ADD_VALUES);
-
-              // radial direction terms
-              for(int pnt = 0; pnt < 2; pnt++) {
-                pVals[2*row+col] += -(dt * kinvis) * det * yi[pnt] * dNidy(row+1, qx[pnt], qy[pnt]) / delta_y * 
-                                                                     dNidy(col+1, qx[pnt], qy[pnt]) / delta_y;
-              } //pnt
-            } // col
-          } // row
-
-          // set the radial (finite element) laplacian for this (1d) element
-          row_k[0] = row_k[1];
-          row_k[1] = row_k[0] + nModesX;
-          //MatSetValues(K, 2, row_k, 2, row_k, pVals, ADD_VALUES);
-
-          // set the axial terms
-          pRow = elmt_y*nModesX + mode_x;
-          for(int col = 0; col < nModesX; col++) {
-            pCols[col] = elmt_y*nModesX + col;
-            pVals[col] = /*(dt * kinvis) * det */ PCX[mode_x][col];
-          }
-          //MatSetValues(K, 1, &pRow, nModesX, pCols, pVals, ADD_VALUES);
-
-          // set the azimuthal terms
-          // TODO: do this outside of the plane_i loop so that this may be applied to all modes
-          pRow = elmt_y*nModesX + mode_x + 2*context->nDofsPlane;
-          pVals[0] = /*(dt * kinvis) * det */ PCZ[plane_j][plane_j];
-          //MatSetValue(K, pRow, pRow, pVals[0], ADD_VALUES);
-        } // mode_x
-
-        for(int ii = 0; ii < nModesX;        ii++) { delete[] PCX[ii]; } delete[] PCX;
-        for(int ii = 0; ii < Geometry::nZ(); ii++) { delete[] PCZ[ii]; } delete[] PCZ;
-      } // elmt_y
-      MatAssemblyBegin(K, MAT_FINAL_ASSEMBLY);
-      MatAssemblyEnd(  K, MAT_FINAL_ASSEMBLY);
-
-      // [u,u] block
-      for(int row_i = 0; row_i < 3*context->nDofsPlane; row_i++) {
-        row_dof = row_i/context->nDofsPlane;
-        MatGetRow(K, row_i, &nCols, &cols, &vals);
-        pRow = row_i%context->nDofsPlane + plane_i*context->nDofsPlane + context->lShift[slice_i][row_dof];
-
-        for(int col_i = 0; col_i < nCols; col_i++) {
-          col_dof = cols[col_i]/context->nDofsPlane;
-          pCols[col_i] = cols[col_i]%context->nDofsPlane + plane_i*context->nDofsPlane + context->lShift[slice_i][col_dof];
-        }
-        MatSetValues(P, 1, &pRow, nCols, pCols, vals, INSERT_VALUES);
-        MatRestoreRow(K, row_i, &nCols, &cols, &vals);
-
-        // add in the -ve identity for the flow map to the next slice   
-        slice_j = (slice_i+1)%context->nSlice;
-        pCols[0] = row_i%context->nDofsPlane + plane_i*context->nDofsPlane + context->lShift[slice_j][row_dof];
-        //MatSetValue(P, pRow, pCols[0], -1.0, ADD_VALUES);
-      }
-    } // plane_i
-
-    // integrate the state and phase shifted state forwards
-    // TODO make sure this is consistent with the slice index for multiple slices
-    for(int field_i = 0; field_i < context->nField; field_i++) {
-      *context->domain->u[field_i] = *context->ui[slice_i * context->nField + field_i];
+  if(!Geometry::procID()) {
+    for(int row_i = 0; row_i < 3; row_i++) {
+      pRow = context->nField * context->nDofsPlane * Geometry::nZ() + row_i;
+cout << "schur: " << schur[row_i] << endl;
+      if(fabs(schur[row_i]) < 1.0e-6) schur[row_i] = 1.0;
+      MatSetValue(P, pRow, pRow, schur[row_i], INSERT_VALUES);
     }
-    Femlib::ivalue("N_STEP", 1);
-    integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
-    for(int field_i = 0; field_i < context->nField; field_i++) {
-      *context->domain->u[field_i] -= *context->ui[slice_i * context->nField + field_i];
-      *context->domain->u[field_i] *= 1.0 / Femlib::value("D_T");
-    } 
-
-    // set the constraints as a schur complement (rows)
-    // assumes single slice (for now)
-    for(int dof_i = 0; dof_i < nl; dof_i++) { rxl[dof_i] = rzl[dof_i] = rtl[dof_i] = cxl[dof_i] = czl[dof_i] = ctl[dof_i] = 0.0; }
-
-    for(int field_i = 0; field_i < context->nField; field_i++) {
-      for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
-        SEM_to_Fourier(plane_i, context, context->ui[slice_i*context->nField+field_i], data_f, nModesX);
-        for(int node_j = 0; node_j < NELS_Y * elOrd; node_j++) {
-          for(int mode_i = 0; mode_i < nModesX; mode_i++) {
-            index = field_i * nDofsCube_l + plane_i * context->nDofsPlane + node_j * nModesX + mode_i;
-            k_x = context->theta_i[slice_i] * (mode_i / 2);
-
-            // TODO: increment over previous slices here
-            if(mode_i % 2 == 0) {
-              rxl[index] = -k_x * data_f[node_j * nModesX + mode_i + 1];
-            } else {
-              rxl[index] = +k_x * data_f[node_j * nModesX + mode_i - 1];
-            }
-          }
-        }
-      }
-      for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i+=2) {
-        plane_j = Geometry::procID() * Geometry::nZProc() + plane_i;
-        k_z = context->phi_i[slice_i] * (plane_j / 2);
-        SEM_to_Fourier(plane_i+0, context, context->ui[slice_i*context->nField+field_i], data_r, nModesX);
-        SEM_to_Fourier(plane_i+1, context, context->ui[slice_i*context->nField+field_i], data_i, nModesX);
-        for(int dof_i = 0; dof_i < NELS_Y * elOrd * nModesX; dof_i++) {
-          // TODO: increment over previous slices here
-          index = field_i * nDofsCube_l + (plane_i+0) * context->nDofsPlane + dof_i;
-          rzl[index] = -k_z * data_i[dof_i];
-          index = field_i * nDofsCube_l + (plane_i+1) * context->nDofsPlane + dof_i;
-          rzl[index] = +k_z * data_r[dof_i];
-        }
-      }
-      for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
-        SEM_to_Fourier(plane_i, context, context->domain->u[field_i], data_f, nModesX);
-        for(int dof_i = 0; dof_i < NELS_Y * elOrd * nModesX; dof_i++) {
-          index = field_i * nDofsCube_l + plane_i * context->nDofsPlane + dof_i;
-          rtl[index] = data_r[dof_i];
-        }
-      }
-    }
-
-    // phase shifted state vector
-    for(int field_i = 0; field_i < context->nField; field_i++) {
-      *context->domain->u[field_i] = *context->ui[slice_i * context->nField + field_i];
-      phase_shift_x(context, context->theta_i[slice_i], -1.0, context->domain->u);
-      phase_shift_z(context, context->phi_i[slice_i],   -1.0, context->domain->u);
-      *context->uj[slice_i * context->nField + field_i] = *context->domain->u[field_i];
-
-    }
-    Femlib::ivalue("N_STEP", 1);
-    integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
-    for(int field_i = 0; field_i < context->nField; field_i++) {
-      *context->domain->u[field_i] -= *context->uj[slice_i * context->nField + field_i];
-      *context->domain->u[field_i] *= 1.0 / Femlib::value("D_T");
-    } 
-
-    // set the constraints as a schur complement (columns)
-    // assumes single slice (for now)
-    for(int field_i = 0; field_i < context->nField; field_i++) {
-      for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
-        SEM_to_Fourier(plane_i, context, context->uj[slice_i * context->nField + field_i], data_f, nModesX);
-        for(int node_j = 0; node_j < NELS_Y * elOrd; node_j++) {
-          for(int mode_i = 0; mode_i < nModesX; mode_i++) {
-            index = field_i * nDofsCube_l + 
-                    plane_i * context->nDofsPlane + 
-                    node_j * nModesX + mode_i;
-            k_x = context->theta_i[slice_i] * (mode_i / 2);
-
-            // TODO: increment over previous slices here
-            if(mode_i % 2 == 0) {
-              cxl[index] = +k_x * data_f[node_j * nModesX + mode_i + 1];
-            } else {
-              cxl[index] = -k_x * data_f[node_j * nModesX + mode_i - 1];
-            }
-          }
-        }
-      }
-      for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i+=2) {
-        plane_j = Geometry::procID() * Geometry::nZProc() + plane_i;
-        k_z = context->phi_i[slice_i] * (plane_j / 2);
-        SEM_to_Fourier(plane_i+0, context, context->uj[slice_i * context->nField + field_i], data_r, nModesX);
-        SEM_to_Fourier(plane_i+1, context, context->uj[slice_i * context->nField + field_i], data_i, nModesX);
-        for(int dof_i = 0; dof_i < NELS_Y * elOrd * nModesX; dof_i++) {
-          // TODO: increment over previous slices here
-          index = field_i * nDofsCube_l + (plane_i+0) * context->nDofsPlane + dof_i;
-          czl[index] = +k_z * data_i[dof_i];
-          index = field_i * nDofsCube_l + (plane_i+1) * context->nDofsPlane + dof_i;
-          czl[index] = -k_z * data_r[dof_i];
-        }
-      }
-      for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
-        SEM_to_Fourier(plane_i, context, context->domain->u[field_i], data_f, nModesX);
-        for(int dof_i = 0; dof_i < NELS_Y * elOrd * nModesX; dof_i++) {
-          index = field_i * nDofsCube_l + plane_i * context->nDofsPlane + dof_i;
-          ctl[index] = data_r[dof_i];
-        }
-      }
-    }
-
-    // add the constraints to the preconditioner
-    for(int field_i = 0; field_i < context->nField; field_i++) {
-      pRow = slice_i * context->nDofsSlice + context->nField * Geometry::nZ() * context->nDofsPlane;
-      for(int dof_i = 0; dof_i < nDofsCube_l; dof_i++) {
-        pCols[dof_i] = context->lShift[slice_i][field_i] + dof_i;
-      }
-      //MatSetValues(P, 1, &pRow, nDofsCube_l, pCols, &rxl[field_i * nDofsCube_l], INSERT_VALUES);
-      //MatSetValues(P, nDofsCube_l, pCols, 1, &pRow, &cxl[field_i * nDofsCube_l], INSERT_VALUES);
-
-      pRow++;
-      //MatSetValues(P, 1, &pRow, nDofsCube_l, pCols, &rzl[field_i * nDofsCube_l], INSERT_VALUES);
-      //MatSetValues(P, nDofsCube_l, pCols, 1, &pRow, &czl[field_i * nDofsCube_l], INSERT_VALUES);
-
-      pRow++;
-      //MatSetValues(P, 1, &pRow, nDofsCube_l, pCols, &rtl[field_i * nDofsCube_l], INSERT_VALUES);
-      //MatSetValues(P, nDofsCube_l, pCols, 1, &pRow, &ctl[field_i * nDofsCube_l], INSERT_VALUES);
-    }
-
-    // add diagonal entries where required
-    schur[0] = schur[1] = schur[2] = 0.0;
-    for(int dof_i = 0; dof_i < nl; dof_i++) {
-      schur[0] += rxl[dof_i] * cxl[dof_i];
-      schur[1] += rzl[dof_i] * czl[dof_i];
-      schur[2] += rtl[dof_i] * ctl[dof_i];
-    }
-    MPI_Allreduce(schur, schur_global, 3, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
-    if(!Geometry::procID()) {
-      for(int row_i = 0; row_i < 3; row_i++) {
-        pRow = slice_i * context->nDofsSlice + context->nField * context->nDofsPlane * Geometry::nZ() + row_i;
-        MatSetValue(P, pRow, pRow, schur_global[row_i], INSERT_VALUES);
-        //MatSetValue(P, pRow, pRow, 1.0, INSERT_VALUES);
-      }
-    }
-    MPI_Barrier(MPI_COMM_WORLD);
   }
   MatAssemblyBegin(P, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(  P, MAT_FINAL_ASSEMBLY);
@@ -519,13 +578,14 @@ void build_preconditioner_ffs(Context* context, Mat P) {
     cout << "[" << Geometry::procID() << "]\t ownership range: "<< mi << "\t->\t" << mf << endl;
     for(int mm = mi; mm < mf; mm++) {
       MatGetRow(P, mm, &nCols, &cols, &vals);
-      if(nCols != 1) {
-        cout << "[" << Geometry::procID() << "]\t incorrect no. cols in row:   " << mm << "\t, nCols: " << nCols   << endl;
-      }
-      if(cols[0] != mm) {
-        cout << "[" << Geometry::procID() << "]\t row and column do not match: " << mm << "\t, col:   " << cols[0] << endl;
-      }
+      //if(nCols != 1) {
+      //  cout << "[" << Geometry::procID() << "]\t incorrect no. cols in row:   " << mm << "\t, nCols: " << nCols   << endl;
+      //}
+      //if(cols[0] != mm) {
+      //  cout << "[" << Geometry::procID() << "]\t row and column do not match: " << mm << "\t, col:   " << cols[0] << endl;
+      //}
       //if(fabs(vals[0] - 1.0) > 1.0e-6) {
+      //if(fabs(vals[0]) < 1.0e-6) {
       //  cout << "[" << Geometry::procID() << "]\t incorrect diagonal entry:    " << mm << "\t, val:   " << vals[0] << endl;
       //}
       MatRestoreRow(P, mm, &nCols, &cols, &vals);
@@ -535,15 +595,17 @@ void build_preconditioner_ffs(Context* context, Mat P) {
   //rpo_set_fieldsplits(context);
 
   MatDestroy(&K);
-  delete[] rxl;
-  delete[] rzl;
-  delete[] rtl;
-  delete[] cxl;
-  delete[] czl;
-  delete[] ctl;
-  delete[] data_f;
-  delete[] data_r;
-  delete[] data_i;
+}
+
+void build_preconditioner_I(Context* context, Mat P) {
+  Vec d;
+
+  VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nDofsSlice, &d);
+  VecSet(d, 1.0);
+  MatDiagonalSet(P, d, INSERT_VALUES);
+  MatAssemblyBegin(P, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(  P, MAT_FINAL_ASSEMBLY);
+  VecDestroy(&d);
 }
 
 // NOTE this implementation assumes that each slice fits exactly
