@@ -60,10 +60,6 @@ static char RCS[] = "$Id$";
 #define X_FOURIER
 //#define NFIELD 4
 #define NFIELD 3
-#define XMIN 0.0
-#define XMAX (2.0*M_PI)
-#define YMIN 0.0
-#define YMAX 1.0
 #define NELS_X 30
 #define NELS_Y 7
 #define NSLICE 16
@@ -137,10 +133,9 @@ void logical_to_elements(real_t* data_log, real_t* data_els) {
 data_f = data_f[num_nodes_y][num_modes_x],
 where num_modes_x is equation to the number of imaginary + the number of real components
 */
-void SEM_to_Fourier(int plane_k, Context* context, Field* us, real_t* data_f, int nModesX) {
+void SEM_to_Fourier(int plane_k, Context* context, Field* us, real_t* data_f) {
   int elOrd = Geometry::nP() - 1;
   int nNodesX = NELS_X*elOrd;
-  //int nModesX = nNodesX/2 + 2;
   int pt_i;
   Element* elmt;
   real_t* data_r = new real_t[NELS_Y*elOrd*nNodesX];
@@ -158,8 +153,8 @@ void SEM_to_Fourier(int plane_k, Context* context, Field* us, real_t* data_f, in
   data_transpose(data_r, NELS_Y*elOrd, nNodesX);
 
   for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
-    for(int pt_x = 0; pt_x < nModesX; pt_x++) {
-      data_f[pt_y*nModesX + pt_x] = data_r[pt_y*nNodesX+pt_x];
+    for(int pt_x = 0; pt_x < context->nModesX; pt_x++) {
+      data_f[pt_y*context->nModesX + pt_x] = data_r[pt_y*nNodesX+pt_x];
     }
   }
 
@@ -170,35 +165,34 @@ void SEM_to_Fourier(int plane_k, Context* context, Field* us, real_t* data_f, in
 data_f = data_f[num_nodes_y][num_modes_x],
 where num_modes_x is equation to the number of imaginary + the number of real components
 */
-void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_f, int nModesX) {
+void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_f) {
   int elOrd = Geometry::nP() - 1;
   int nNodesX = NELS_X*elOrd;
-  //int nModesX = nNodesX/2 + 2;
   int pt_r;
   double dx, xr, theta;
-  real_t* temp = new real_t[nModesX];
-  real_t* data_r = (nNodesX > nModesX) ? new real_t[NELS_Y*elOrd*nNodesX] : new real_t[NELS_Y*elOrd*nModesX];
+  real_t* temp = new real_t[context->nModesX];
+  real_t* data_r = (nNodesX > context->nModesX) ? new real_t[NELS_Y*elOrd*nNodesX] : new real_t[NELS_Y*elOrd*context->nModesX];
   const real_t *qx;
 
   Femlib::quadrature(&qx, 0, 0, 0  , elOrd+1, GLJ, 0.0, 0.0);
 
-  dx = (XMAX - XMIN)/NELS_X;
+  dx = (context->xmax)/NELS_X;
 
   for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
-    for(int pt_x = 0; pt_x < nModesX; pt_x++) {
-      temp[pt_x] = data_f[pt_y*nModesX + pt_x];
+    for(int pt_x = 0; pt_x < context->nModesX; pt_x++) {
+      temp[pt_x] = data_f[pt_y*context->nModesX + pt_x];
     }
     // fourier interpolation to GLL grid
     for(int pt_x = 0; pt_x < nNodesX; pt_x++) {
       // coordinate in real space
-      xr = XMIN + (pt_x/elOrd)*dx + 0.5*(1.0 + qx[pt_x%elOrd])*dx;
+      xr = /*XMIN +*/ (pt_x/elOrd)*dx + 0.5*(1.0 + qx[pt_x%elOrd])*dx;
       // coordinate in fourier space
-      theta = 2.0*M_PI*xr/(XMAX - XMIN);
+      theta = 2.0*M_PI*xr/(context->xmax);
 
       data_r[pt_y*nNodesX + pt_x] = temp[0];
       // ignore the nyquist frequency (entry [1])
       // all modes are scaled by 2.0, except the mean
-      for(int mode_k = 1; mode_k < nModesX/2; mode_k++) {
+      for(int mode_k = 1; mode_k < context->nModesX/2; mode_k++) {
         data_r[pt_y*nNodesX + pt_x] += 2.0*temp[2*mode_k+0]*cos(mode_k*theta);
         data_r[pt_y*nNodesX + pt_x] -= 2.0*temp[2*mode_k+1]*sin(mode_k*theta);
       }
@@ -215,10 +209,9 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   int elOrd = Geometry::nP() - 1;
   int ii, jj, kk, ll, slice_i, field_i, index;
   int nNodesX = NELS_X*elOrd;
-  int nModesX = nNodesX/2;// + 2;
   Field* field;
   const PetscScalar *xArray;
-  real_t* data = (nNodesX > nModesX) ? new real_t[NELS_Y*elOrd*nNodesX] : new real_t[NELS_Y*elOrd*nModesX];
+  real_t* data = (nNodesX > context->nModesX) ? new real_t[NELS_Y*elOrd*nNodesX] : new real_t[NELS_Y*elOrd*context->nModesX];
   Vec xl;
 
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
@@ -241,8 +234,8 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
         // skip over redundant real dofs
         for(jj = 0; jj < NELS_Y*elOrd; jj++) {
 #ifdef X_FOURIER
-          for(ii = 0; ii < nModesX; ii++) {
-            data[jj*nModesX + ii] = xArray[index++];
+          for(ii = 0; ii < context->nModesX; ii++) {
+            data[jj*context->nModesX + ii] = xArray[index++];
 #else
           for(ii = 0; ii < nNodesX; ii++) {
             data[jj*nNodesX + ii] = xArray[index++];
@@ -251,8 +244,8 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
         }
 
 #ifdef X_FOURIER
-        Fourier_to_SEM(kk, context, field, data, nModesX);
-        //Fourier_to_SEM(ll, context, field, data, nModesX);
+        Fourier_to_SEM(kk, context, field, data);
+        //Fourier_to_SEM(ll, context, field, data);
 #else
         logical_to_elements(data, field->plane(kk));
         //logical_to_elements(data, field->plane(ll));
@@ -279,10 +272,9 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   int elOrd = Geometry::nP() - 1;
   int ii, jj, kk, slice_i, field_i, index;
   int nNodesX = NELS_X*elOrd;
-  int nModesX = nNodesX/2;// + 2;
   Field* field;
   PetscScalar *xArray;
-  real_t* data = (nNodesX > nModesX) ? new real_t[NELS_Y*elOrd*nNodesX] : new real_t[NELS_Y*elOrd*nModesX];
+  real_t* data = (nNodesX > context->nModesX) ? new real_t[NELS_Y*elOrd*nNodesX] : new real_t[NELS_Y*elOrd*context->nModesX];
   Vec xl;
 
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
@@ -296,7 +288,7 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
 
       for(kk = 0; kk < Geometry::nZProc(); kk++) {
 #ifdef X_FOURIER
-        SEM_to_Fourier(kk, context, field, data, nModesX);
+        SEM_to_Fourier(kk, context, field, data);
 #else
         elements_to_logical(field->plane(kk), data);
 #endif
@@ -304,8 +296,8 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
         // skip over redundant real dofs
         for(jj = 0; jj < NELS_Y*elOrd; jj++) {
 #ifdef X_FOURIER
-          for(ii = 0; ii < nModesX; ii++) {
-            xArray[index] = data[jj*nModesX + ii];
+          for(ii = 0; ii < context->nModesX; ii++) {
+            xArray[index] = data[jj*context->nModesX + ii];
 #else
           for(ii = 0; ii < nNodesX; ii++) {
             xArray[index] = data[jj*nNodesX + ii];
@@ -392,14 +384,14 @@ void assign_scatter_semtex(Context* context) {
 void phase_shift_x(Context* context, double theta, double sign, vector<Field*> fields) {
   int elOrd = Geometry::nP() - 1;
   int nNodesX = NELS_X*elOrd;
-  int nModesX = nNodesX/2;// + 2;
+  int nModesX = context->nModesX;
   int mode_i, field_i, pt_y, mode_k;
   double ckt, skt, rTmp, cTmp;
   real_t* data_f = new real_t[NELS_Y*elOrd*nModesX];
 
   for(mode_i = 0; mode_i < Geometry::nZProc(); mode_i++) {
     for(field_i = 0; field_i < context->domain->nField(); field_i++) {
-      SEM_to_Fourier(mode_i, context, fields[field_i], data_f, nModesX);
+      SEM_to_Fourier(mode_i, context, fields[field_i], data_f);
       for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
         for(int mode_k = 1; mode_k < nModesX/2; mode_k++) {
           ckt = cos(sign * mode_k * theta);
@@ -410,7 +402,7 @@ void phase_shift_x(Context* context, double theta, double sign, vector<Field*> f
           data_f[pt_y*nModesX+2*mode_k+1] = cTmp;
         }
       }
-      Fourier_to_SEM(mode_i, context, fields[field_i], data_f, nModesX);
+      Fourier_to_SEM(mode_i, context, fields[field_i], data_f);
     }
   }
   delete[] data_f;
@@ -419,7 +411,7 @@ void phase_shift_x(Context* context, double theta, double sign, vector<Field*> f
 void phase_shift_z(Context* context, double phi,   double sign, vector<Field*> fields) {
   int elOrd = Geometry::nP() - 1;
   int nNodesX = NELS_X*elOrd;
-  int nModesX = nNodesX/2;// + 2;
+  int nModesX = context->nModesX;
   int mode_i, mode_j, field_i, dof_i;
   double ckt, skt, rTmp, cTmp;
   register real_t* data_r;

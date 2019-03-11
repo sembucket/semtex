@@ -42,13 +42,15 @@ struct Context {
     SNES             snes;
     double           x_norm; // for scaling the phase shifts
     Vec              x_prev; // for determining \delta x
+    int              nModesX;
+    double           xmax;
 };
 
 void data_transpose(real_t* data, int nx, int ny);
 void elements_to_logical(real_t* data_els, real_t* data_log);
 void logical_to_elements(real_t* data_log, real_t* data_els);
-void SEM_to_Fourier(int plane_k, Context* context, Field* us, real_t* data_f, int nModes);
-void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_f, int nModes);
+void SEM_to_Fourier(int plane_k, Context* context, Field* us, real_t* data_f);
+void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_f);
 void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x);
 void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x);
 void assign_scatter_semtex(Context* context);

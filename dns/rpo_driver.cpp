@@ -68,24 +68,27 @@ void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 #define NFIELD 3
 #define XMIN 0.0
 #define XMAX (2.0*M_PI)
+//#define XMAX 4.053667940115862
 #define YMIN 0.0
 #define YMAX 1.0
 #define NELS_X 30
 #define NELS_Y 7
 //#define NSLICE 16
 #define NSLICE 1
-//#define NSTEPS 3200
 #define NSTEPS ((40*16)/NSLICE)
+//#define NSTEPS ((4*40*16)/NSLICE)
 
 void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f_phi, double* f_tau) {
   int          elOrd       = Geometry::nP() - 1;
   int          nNodesX     = NELS_X*elOrd;
-  int          nModesX     = nNodesX/2;// + 2;
+  int          nModesX     = context->nModesX;
   int          slice_i     = 0;
   int          index;
   int          nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
   int          nl          = context->nField * nDofsCube_l;
   int          plane_j;
+  int          pt_j, el_j;
+  double       p_y;
   double       k_x, k_z;
   double       f_theta_l, f_phi_l, f_tau_l;
   double*      rx          = new double[nl];
@@ -105,9 +108,9 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
     *context->domain->u[field_i] = *context->ui[slice_i * context->nField + field_i];
   }
   Femlib::ivalue("N_STEP", 1);
-
-  delete context->analyst;
-  context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
+  if(!Geometry::procID()) cout << "time step in constraints evaluation: " << scientific << Femlib::value("D_T") << endl;
+  //delete context->analyst;
+  //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
   integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
   for(int field_i = 0; field_i < context->nField; field_i++) {
     *context->domain->u[field_i] -= *context->ui[slice_i * context->nField + field_i];
@@ -118,7 +121,7 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
 
   for(int field_i = 0; field_i < context->nField; field_i++) {
     for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
-      SEM_to_Fourier(plane_i, context, context->ui[slice_i*context->nField+field_i], data_r, nModesX);
+      SEM_to_Fourier(plane_i, context, context->ui[slice_i*context->nField+field_i], data_r);
       for(int node_j = 0; node_j < NELS_Y * elOrd; node_j++) {
         for(int mode_i = 0; mode_i < nModesX; mode_i++) {
           index = field_i * nDofsCube_l + plane_i * context->nDofsPlane + node_j * nModesX + mode_i;
@@ -131,12 +134,18 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
         }
       }
     }
-    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i+=2) {
+    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
       plane_j = Geometry::procID() * Geometry::nZProc() + plane_i;
-      k_z = context->phi_i[slice_i] * (plane_j / 2);
-      SEM_to_Fourier(plane_i+0, context, context->ui[slice_i*context->nField+field_i], data_r, nModesX);
-      SEM_to_Fourier(plane_i+1, context, context->ui[slice_i*context->nField+field_i], data_i, nModesX);
+      SEM_to_Fourier(plane_i+0, context, context->ui[slice_i*context->nField+field_i], data_r);
+      SEM_to_Fourier(plane_i+1, context, context->ui[slice_i*context->nField+field_i], data_i);
       for(int dof_i = 0; dof_i < NELS_Y * elOrd * nModesX; dof_i++) {
+        el_j = dof_i / (nModesX * elOrd);
+        pt_j = (dof_i / nModesX) % elOrd;
+        p_y  = context->elmt[el_j]->_ymesh[pt_j*(elOrd+1)];
+        if(fabs(p_y) < 1.0e-6) p_y = 1.0;
+        // assume a radius of 1, so scale by (2*pi) / (2*pi*r)
+        k_z  = (1.0 / p_y) * context->phi_i[slice_i] * (plane_j / 2);
+
         index = field_i * nDofsCube_l + (plane_i+0) * context->nDofsPlane + dof_i;
         rz[index] = -k_z * data_i[dof_i];
         index = field_i * nDofsCube_l + (plane_i+1) * context->nDofsPlane + dof_i;
@@ -144,7 +153,7 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
       }
     }
     for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
-      SEM_to_Fourier(plane_i, context, context->domain->u[field_i], data_r, nModesX);
+      SEM_to_Fourier(plane_i, context, context->domain->u[field_i], data_r);
       for(int dof_i = 0; dof_i < context->nDofsPlane; dof_i++) {
         index = field_i * nDofsCube_l + plane_i * context->nDofsPlane + dof_i;
         rt[index] = data_r[dof_i];
@@ -191,7 +200,6 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   int slice_i, slice_j, field_i, mode_i, mode_j, dof_i, nStep;
   int elOrd = Geometry::nP() - 1;
   int nNodesX = NELS_X*elOrd;
-  int nModesX = nNodesX/2;// + 2;
   real_t time = 0.0;
   real_t f_norm, x_norm;
   double f_theta[1], f_phi[1], f_tau[1];
@@ -211,7 +219,8 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
-  Femlib::value("D_T", 0.02); // 80x simulation value
+  // for analytic travelling wave test only...
+  //Femlib::value("D_T", 0.02); // 80x simulation value
   dt = Femlib::value ("D_T");
 
   for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
@@ -242,8 +251,8 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     }
 
     // don't want to call the dns analysis, use custom integrate routine instead
-    delete context->analyst;
-    context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
+    //delete context->analyst;
+    //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
     integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
 
 #ifdef X_FOURIER
@@ -298,7 +307,6 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML*
   Context* context = new Context;
   int elOrd = Geometry::nP() - 1;
   int nNodesX = NELS_X*elOrd;
-  int nModesX = nNodesX/2;// + 2;
   real_t dx, er, es, ex, ey;
   const real_t* qx;
   int_t pt_x, pt_y, el_x, el_y, el_i, el_j;
@@ -333,7 +341,12 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML*
   context->phi_i   = new real_t[nSlice];
   context->tau_i   = new real_t[nSlice];
 
-  Femlib::value("D_T", 0.02); // 80x simulation value
+  //context->nModesX = nNodesX/2;
+  context->nModesX = nNodesX;
+  context->xmax    = XMAX;
+
+  // For the balaned travelling wave test case only
+  //Femlib::value("D_T", 0.02); // 80x simulation value
   for(int slice_i = 0; slice_i < nSlice; slice_i++) {
     context->theta_i[slice_i] = 0.0;
     context->phi_i[slice_i] = 0.0;
@@ -388,7 +401,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML*
 
   // add dofs for theta and tau for each time slice
 #ifdef X_FOURIER
-  context->nDofsPlane = nModesX*NELS_Y*elOrd;
+  context->nDofsPlane = context->nModesX*NELS_Y*elOrd;
   context->nDofsSlice = context->nField * Geometry::nZ() * context->nDofsPlane + 3;
   context->localSize  = nSlice * NFIELD * Geometry::nZProc() * context->nDofsPlane;
   if(!Geometry::procID()) context->localSize += (nSlice * 3);
@@ -407,7 +420,9 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML*
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
   MatSetSizes(P, context->localSize, context->localSize, nSlice * context->nDofsSlice, nSlice * context->nDofsSlice);
-  MatMPIAIJSetPreallocation(P, 2*nModesX, PETSC_NULL, 2*nModesX, PETSC_NULL);
+  MatMPIAIJSetPreallocation(P, 2*context->nModesX, PETSC_NULL, 2*context->nModesX, PETSC_NULL);
+  MatSetOptionsPrefix(P, "P_");
+  MatSetFromOptions(P);
 
   SNESCreate(MPI_COMM_WORLD, &snes);
   SNESSetFunction(snes, f,    _snes_function, (void*)context);
