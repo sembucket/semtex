@@ -62,7 +62,7 @@
 	CORIOLIS_DOMEGA_Z_DT =  OMEGA2*DTH_DT*(1.0-heav(t-T_RISE))*cos(DTH_DT*t*(1-heav(t-T_RISE)))
 
         SFD_DELTA = SFD_PERIOD/TWOPI
-        SFD_CHI = 0.1
+        SFD_CHI = (1-heav(t-SFD_T1))*0.1
 </FORCE>
 
 <USER>
