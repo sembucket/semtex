@@ -22,7 +22,7 @@
 	D_T	 = 0.001
 	Re       = 12000
 	KINVIS	 = 1.0/Re 
-	FFZ      = 1.1654609E-02
+	FFZ      = 0.015116 
 	AVERAGE   =0 
 	CHKPOINT  = 1 
 	ITERATIVE = 1

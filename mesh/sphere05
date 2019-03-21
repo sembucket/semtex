@@ -1,4 +1,4 @@
-# Flow (+ scalar convection) past a sphere: mesh is symmetrical about y axis.
+# Flow (+ scalar convection) past a sphere: mesh is symmetrical abexit y axis.
 
 <USER>
 u = 0.0
@@ -41,15 +41,14 @@ u v c p
         3 2.00 0.0 0.0
 </HISTORY>
 
-<GROUPS NUMBER=4>
+<GROUPS NUMBER=3>
         1       v       velocity
         2       a       axis
         3       w       wall
-	4	s	symmetry
 </GROUPS>
 
 <BCS NUMBER=3>
-1       v       4
+1       f       4
         <D>     u = UMAX*cos(OMEGA*t) </D>
         <D>     v = 0.0 </D>
         <D>     c = 0.0 </D>
@@ -587,36 +586,36 @@ u v c p
 	35	97	1	<B>	a	</B>
 	36	98	1	<B>	a	</B>
 
-	37	98	2	<B>	v	</B>
-	38	102	2	<B>	v	</B>
-	39	106	2	<B>	v	</B>
-	40	110	2	<B>	v	</B>
-	41	128	2	<B>	v	</B>
-	42	146	2	<B>	v	</B>
-	43	146	3	<B>	v	</B>
-	44	145	3	<B>	v	</B>
-	45	144	3	<B>	v	</B>
-	46	143	3	<B>	v	</B>
-	47	142	3	<B>	v	</B>
-	48	141	3	<B>	v	</B>
-	49	140	3	<B>	v	</B>
-	50	139	3	<B>	v	</B>
-	51	138	3	<B>	v	</B>
-	52	137	3	<B>	v	</B>
-	53	136	3	<B>	v	</B>
-	54	135	3	<B>	v	</B>
-	55	134	3	<B>	v	</B>
-	56	133	3	<B>	v	</B>
-	57	132	3	<B>	v	</B>
-	58	131	3	<B>	v	</B>
-	59	130	3	<B>	v	</B>
-	60	129	3	<B>	v	</B>
-	61	129	4	<B>	v	</B>
-	62	111	4	<B>	v	</B>
-	63	107	4	<B>	v	</B>
-	64	103	4	<B>	v	</B>
-	65	99	4	<B>	v	</B>
-	66	95	4	<B>	v	</B>
+	37	98	2	<B>	f	</B>
+	38	102	2	<B>	f	</B>
+	39	106	2	<B>	f	</B>
+	40	110	2	<B>	f	</B>
+	41	128	2	<B>	f	</B>
+	42	146	2	<B>	f	</B>
+	43	146	3	<B>	f	</B>
+	44	145	3	<B>	f	</B>
+	45	144	3	<B>	f	</B>
+	46	143	3	<B>	f	</B>
+	47	142	3	<B>	f	</B>
+	48	141	3	<B>	f	</B>
+	49	140	3	<B>	f	</B>
+	50	139	3	<B>	f	</B>
+	51	138	3	<B>	f	</B>
+	52	137	3	<B>	f	</B>
+	53	136	3	<B>	f	</B>
+	54	135	3	<B>	f	</B>
+	55	134	3	<B>	f	</B>
+	56	133	3	<B>	f	</B>
+	57	132	3	<B>	f	</B>
+	58	131	3	<B>	f	</B>
+	59	130	3	<B>	f	</B>
+	60	129	3	<B>	f	</B>
+	61	129	4	<B>	f	</B>
+	62	111	4	<B>	f	</B>
+	63	107	4	<B>	f	</B>
+	64	103	4	<B>	f	</B>
+	65	99	4	<B>	f	</B>
+	66	95	4	<B>	f	</B>
 </SURFACES>
 
 <CURVES NUMBER=42>
