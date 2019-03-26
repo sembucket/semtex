@@ -64,16 +64,17 @@ void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 		Domain*, BCmgr*, DNSAnalyser*, FieldForce*);
 
 #define TESTING
+//#define PIPE
 
 #define NFIELD 3
 #define XMIN 0.0
 #define YMIN 0.0
 #define YMAX 1.0
+#define ZMAX 1.0
 #define NELS_X 30
 #define NELS_Y 7
 
 #define XMAX (2.0*M_PI)
-#define NSTEPS (40*16)
 
 void build_constraints(Context* context, Vec x_delta, double* f_phi, double* f_tau) {
   int          elOrd       = Geometry::nP() - 1;
@@ -119,12 +120,16 @@ void build_constraints(Context* context, Vec x_delta, double* f_phi, double* f_t
       elements_to_logical(context->ui[field_i]->plane(plane_i+0), data_r);
       elements_to_logical(context->ui[field_i]->plane(plane_i+1), data_i);
       for(int dof_i = 0; dof_i < NELS_Y * elOrd * nNodesX; dof_i++) {
+#ifdef PIPE
         el_j = dof_i / (nNodesX * elOrd);
         pt_j = (dof_i / nNodesX) % elOrd;
         p_y  = context->elmt[el_j]->_ymesh[pt_j*(elOrd+1)];
         if(fabs(p_y) < 1.0e-6) p_y = 1.0;
         // assume a radius of 1, so scale by (2*pi) / (2*pi*r)
         k_z  = (1.0 / p_y) * context->phi_i * (plane_j / 2);
+#else
+        k_z  = (2.0 * M_PI / ZMAX) * context->phi_i * (plane_j / 2);
+#endif
 
         index = field_i * nDofsCube_l + (plane_i+0) * context->nDofsPlane + dof_i;
         rz[index] = -k_z * data_i[dof_i];
@@ -173,7 +178,6 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   int field_i, mode_i, mode_j, dof_i, nStep;
   int elOrd = Geometry::nP() - 1;
   int nNodesX = NELS_X*elOrd;
-  real_t time = 0.0;
   real_t f_norm, x_norm;
   double f_phi, f_tau;
   Vec x_delta;
@@ -196,8 +200,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   dt = Femlib::value ("D_T");
 
   // update the starting time
-  context->domain->time = time;
-  Femlib::value("t", time);
+  Femlib::value("t", 0.0);
 
   // initialise the flow map fields with the solution fields
   for(field_i = 0; field_i < 3; field_i++) {
@@ -232,24 +235,13 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     *context->fi[field_i] -= *context->domain->u[field_i];
   }
 
-  time += context->tau_i;
-
   build_constraints(context, x_delta, &f_phi, &f_tau);
 
   RepackX(context, context->fi, f_phi, f_tau, f);
   Femlib::value("D_T", dt);
 
 #ifdef TESTING
-  char session_i[100];
-  sprintf(session_i, "tube8_tw_rpo_0");
-  FEML* file_i = new FEML(session_i);
-  Domain* dom = new Domain(file_i, context->elmt, context->bman);
-  for(field_i = 0; field_i < 3; field_i++) {
-    dom->u[field_i] = context->ui[field_i];
-  }
-  dom->dump();
-  delete file_i;
-  delete dom;
+  context->domain->dump();
 #endif
  
   VecNorm(x, NORM_2, &x_norm);
@@ -267,12 +259,6 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   Context* context = new Context;
   int elOrd = Geometry::nP() - 1;
   int nNodesX = NELS_X*elOrd;
-  real_t dx, er, es, ex, ey;
-  const real_t* qx;
-  int_t pt_x, pt_y, el_x, el_y, el_i, el_j;
-  const bool guess = false;
-  bool found;
-  vector<real_t> work(static_cast<size_t>(max (2*Geometry::nTotElmt(), 5*Geometry::nP()+6)));
   Vec x, f;
   Mat P;
   SNES snes;
@@ -291,10 +277,10 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   context->uj       = uj;
   context->xmax     = XMAX;
   context->phi_i    = 0.0;
-  context->tau_i    = NSTEPS*Femlib::value("D_T");
+  context->tau_i    = Femlib::ivalue("N_STEP") * Femlib::value("D_T");
   if(!Geometry::procID()) cout << "\ttau: " << context->tau_i << endl;
 
-  // add dofs for theta and tau for each time slice
+  // add dofs for phi and tau for each time slice
   context->nDofsPlane = NELS_X*elOrd*NELS_Y*elOrd;
   context->nDofsSlice = 3 * Geometry::nZ() * context->nDofsPlane + 2;
   context->localSize  = 3 * Geometry::nZProc() * context->nDofsPlane;
