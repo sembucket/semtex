@@ -58,12 +58,9 @@ static char RCS[] = "$Id$";
 #include "rpo_preconditioner.h"
 
 #define X_FOURIER
-//#define NFIELD 4
 #define NFIELD 3
 #define NELS_X 30
 #define NELS_Y 7
-#define NSLICE 16
-#define NSTEPS 40
 
 void data_transpose(real_t* data, int nx, int ny) {
   real_t* temp = new real_t[nx*ny];
@@ -255,10 +252,10 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
     // phase shift data lives on the 0th processors part of the vector
     if(!Geometry::procID()) {
     //if(Geometry::procID() == slice_i) {
-      theta[slice_i] = xArray[index++] / context->x_norm;
 #ifdef X_FOURIER
-      phi[slice_i]   = xArray[index++] / context->x_norm;
+      theta[slice_i] = xArray[index++] / context->x_norm;
 #endif
+      phi[slice_i]   = xArray[index++] / context->x_norm;
       tau[slice_i]   = xArray[index++] / context->x_norm;
     }
   }
@@ -310,10 +307,10 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
     // phase shift data lives on the 0th processors part of the vector
     if(!Geometry::procID()) {
     //if(Geometry::procID() == slice_i) {
-      xArray[index++] = theta[slice_i] * context->x_norm;
 #ifdef X_FOURIER
-      xArray[index++] = phi[slice_i]   * context->x_norm;
+      xArray[index++] = theta[slice_i] * context->x_norm;
 #endif
+      xArray[index++] = phi[slice_i]   * context->x_norm;
       xArray[index++] = tau[slice_i]   * context->x_norm;
     }
   }
@@ -428,7 +425,8 @@ void phase_shift_z(Context* context, double phi,   double sign, vector<Field*> f
       data_r = fields[field_i]->plane(2*mode_i+0);
       data_c = fields[field_i]->plane(2*mode_i+1);
 
-      for(dof_i = 0; dof_i < NELS_Y*elOrd*nModesX; dof_i++) {
+      //for(dof_i = 0; dof_i < NELS_Y*elOrd*nModesX; dof_i++) {
+      for(dof_i = 0; dof_i < NELS_X *NELS_Y*(elOrd+1)*(elOrd+1); dof_i++) {
         rTmp = ckt*data_r[dof_i] - skt*data_c[dof_i];
         cTmp = skt*data_r[dof_i] + ckt*data_c[dof_i];
         data_r[dof_i] = rTmp;

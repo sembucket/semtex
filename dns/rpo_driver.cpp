@@ -64,19 +64,25 @@ static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 		Domain*, BCmgr*, DNSAnalyser*, FieldForce*);
 
+//#define TESTING
+//#define ANALYTICALLY_FORCED
+
 #define X_FOURIER
 #define NFIELD 3
 #define XMIN 0.0
-#define XMAX (2.0*M_PI)
-//#define XMAX 4.053667940115862
 #define YMIN 0.0
 #define YMAX 1.0
 #define NELS_X 30
 #define NELS_Y 7
-//#define NSLICE 16
 #define NSLICE 1
+
+#ifdef ANALYTICALLY_FORCED
+#define XMAX (2.0*M_PI)
 #define NSTEPS ((40*16)/NSLICE)
-//#define NSTEPS ((4*40*16)/NSLICE)
+#else
+#define XMAX 4.053667940115862
+#define NSTEPS ((20*16)/NSLICE)
+#endif
 
 void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f_phi, double* f_tau) {
   int          elOrd       = Geometry::nP() - 1;
@@ -125,7 +131,7 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
       for(int node_j = 0; node_j < NELS_Y * elOrd; node_j++) {
         for(int mode_i = 0; mode_i < nModesX; mode_i++) {
           index = field_i * nDofsCube_l + plane_i * context->nDofsPlane + node_j * nModesX + mode_i;
-          k_x = context->theta_i[slice_i] * (mode_i / 2);
+          k_x = (XMAX / 2.0 / M_PI) * context->theta_i[slice_i] * (mode_i / 2); //TODO!!
           if(mode_i % 2 == 0) {
             rx[index] = -k_x * data_r[node_j * nModesX + mode_i + 1];
           } else {
@@ -163,9 +169,12 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
 
   f_theta_l = f_phi_l = f_tau_l = 0.0;
   for(int dof_i = 0; dof_i < nl; dof_i++) {
-    f_theta_l += rx[dof_i] * xArray[dof_i];
-    f_phi_l   += rz[dof_i] * xArray[dof_i];
-    f_tau_l   += rt[dof_i] * xArray[dof_i];
+    //f_theta_l += rx[dof_i] * xArray[dof_i];
+    //f_phi_l   += rz[dof_i] * xArray[dof_i];
+    //f_tau_l   += rt[dof_i] * xArray[dof_i];
+    f_theta_l -= rx[dof_i] * xArray[dof_i];
+    f_phi_l   -= rz[dof_i] * xArray[dof_i];
+    f_tau_l   -= rt[dof_i] * xArray[dof_i];
   }
   MPI_Allreduce(&f_theta_l, f_theta, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&f_phi_l,   f_phi,   1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -220,7 +229,9 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
   // for analytic travelling wave test only...
-  //Femlib::value("D_T", 0.02); // 80x simulation value
+#ifdef ANALYTICALLY_FORCED
+  Femlib::value("D_T", 0.02); // 80x simulation value
+#endif
   dt = Femlib::value ("D_T");
 
   for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
@@ -264,9 +275,11 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 
     // set f
     for(field_i = 0; field_i < context->nField; field_i++) {
-      slice_j = (slice_i + 1)%context->nSlice;
-      *context->fi[slice_i * context->nField + field_i]  = *context->domain->u[field_i];
-      *context->fi[slice_i * context->nField + field_i] -= *context->ui[slice_j * context->nField + field_i];
+      //slice_j = (slice_i + 1)%context->nSlice;
+      //*context->fi[slice_i * context->nField + field_i]  = *context->domain->u[field_i];
+      //*context->fi[slice_i * context->nField + field_i] -= *context->ui[slice_j * context->nField + field_i];
+      *context->fi[slice_i * context->nField + field_i]  = *context->ui[field_i];
+      *context->fi[slice_i * context->nField + field_i] -= *context->domain->u[field_i];
     }
 
     time += context->tau_i[slice_i];
@@ -346,7 +359,9 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML*
   context->xmax    = XMAX;
 
   // For the balaned travelling wave test case only
-  //Femlib::value("D_T", 0.02); // 80x simulation value
+#ifdef ANALYTICALLY_FORCED
+  Femlib::value("D_T", 0.02); // 80x simulation value
+#endif
   for(int slice_i = 0; slice_i < nSlice; slice_i++) {
     context->theta_i[slice_i] = 0.0;
     context->phi_i[slice_i] = 0.0;

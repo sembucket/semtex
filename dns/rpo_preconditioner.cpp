@@ -56,8 +56,6 @@ static char RCS[] = "$Id$";
 #include "rpo_utils.h"
 #include "rpo_preconditioner.h"
 
-#define YMIN 0.0
-#define YMAX 1.0
 #define NELS_X 30
 #define NELS_Y 7
 #define NFIELD 3
@@ -221,8 +219,8 @@ void schur_complement_constraints(Context* context, double* schur) {
     *context->domain->u[field_i] = *context->ui[field_i];
   }
   Femlib::ivalue("N_STEP", 1);
-  delete context->analyst;
-  context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
+  //delete context->analyst;
+  //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
   integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
   for(int field_i = 0; field_i < context->nField; field_i++) {
     *context->domain->u[field_i] -= *context->ui[field_i];
@@ -241,7 +239,7 @@ void schur_complement_constraints(Context* context, double* schur) {
       for(int node_j = 0; node_j < NELS_Y * elOrd; node_j++) {
         for(int mode_i = 0; mode_i < nModesX; mode_i++) {
           index = field_i * nDofsCube_l + plane_i * context->nDofsPlane + node_j * nModesX + mode_i;
-          k_x = context->theta_i[0] * (mode_i / 2);
+          k_x = (context->xmax / 2.0 / M_PI) * context->theta_i[0] * (mode_i / 2);
 
           if(mode_i % 2 == 0) {
             rxl[index] = -k_x * data_r[node_j * nModesX + mode_i + 1];
@@ -286,8 +284,8 @@ void schur_complement_constraints(Context* context, double* schur) {
     *context->uj[field_i] = *context->domain->u[field_i];
   }
   Femlib::ivalue("N_STEP", 1);
-  delete context->analyst;
-  context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
+  //delete context->analyst;
+  //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
   integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
   for(int field_i = 0; field_i < context->nField; field_i++) {
     *context->domain->u[field_i] -= *context->uj[field_i];
@@ -301,7 +299,7 @@ void schur_complement_constraints(Context* context, double* schur) {
       for(int node_j = 0; node_j < NELS_Y * elOrd; node_j++) {
         for(int mode_i = 0; mode_i < nModesX; mode_i++) {
           index = field_i * nDofsCube_l + plane_i * context->nDofsPlane + node_j * nModesX + mode_i;
-          k_x = context->theta_i[0] * (mode_i / 2);
+          k_x = (context->xmax / 2.0 / M_PI) * context->theta_i[0] * (mode_i / 2);
 
           if(mode_i % 2 == 0) {
             cxl[index] = +k_x * data_r[node_j * nModesX + mode_i + 1];
@@ -423,8 +421,9 @@ void assemble_K(Context* context, int plane_i, Mat K, Mat P) {
     PCZ = real_space_pc(2.0*M_PI*yi[0], Geometry::nZ(), Geometry::nZ(), &data_f[elmt_y*nModesX], NULL, NULL);
 
     for(int mode_x = 0; mode_x < nModesX; mode_x++) {
-      k_x = (mode_x / 2) / alpha;
-      if(mode_x < 2) k_x = 1.0;
+      //k_x = (mode_x / 2) / alpha;
+      //if(mode_x < 2) k_x = 1.0;
+      k_x = (mode_x / 2) * beta;
 
       pVals[0] = pVals[1] = pVals[2] = pVals[3] = 0;
       for(int row = 0; row < 2; row++) {
@@ -563,7 +562,7 @@ void build_preconditioner_ffs(Context* context, Mat P) {
   if(!Geometry::procID()) {
     for(int row_i = 0; row_i < 3; row_i++) {
       pRow = context->nField * context->nDofsPlane * Geometry::nZ() + row_i;
-cout << "schur: " << schur[row_i] << endl;
+//cout << "schur: " << schur[row_i] << endl;
       if(fabs(schur[row_i]) < 1.0e-6) schur[row_i] = 1.0;
       MatSetValue(P, pRow, pRow, schur[row_i], INSERT_VALUES);
     }
