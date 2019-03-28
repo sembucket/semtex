@@ -56,8 +56,8 @@ static char RCS[] = "$Id$";
 
 #include "rpo_cart_utils.h"
 
-#define NELS_X 30
-#define NELS_Y 7
+#define NELS_X 12
+#define NELS_Y 9
 
 void elements_to_logical(real_t* data_els, real_t* data_log) {
   int elOrd = Geometry::nP() - 1;

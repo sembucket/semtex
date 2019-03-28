@@ -30,6 +30,7 @@ struct Context {
     SNES             snes;
     double           x_norm; // for scaling the phase shifts
     Vec              x_prev; // for determining \delta x
+    double           xmin;
     double           xmax;
 };
 

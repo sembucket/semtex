@@ -67,14 +67,14 @@ void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 //#define PIPE
 
 #define NFIELD 3
-#define XMIN 0.0
-#define YMIN 0.0
-#define YMAX 1.0
-#define ZMAX 1.0
-#define NELS_X 30
-#define NELS_Y 7
+#define YMIN (0.0)
+#define YMAX (1.0)
+#define ZMAX (0.7391982714328925) // L = 2.pi/beta
+#define NELS_X 12
+#define NELS_Y 9
 
-#define XMAX (2.0*M_PI)
+#define XMIN (-1.0)
+#define XMAX (+1.0)
 
 void build_constraints(Context* context, Vec x_delta, double* f_phi, double* f_tau) {
   int          elOrd       = Geometry::nP() - 1;
@@ -275,6 +275,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   context->ui       = ui;
   context->fi       = fi;
   context->uj       = uj;
+  context->xmin     = XMIN;
   context->xmax     = XMAX;
   context->phi_i    = 0.0;
   context->tau_i    = Femlib::ivalue("N_STEP") * Femlib::value("D_T");
@@ -306,10 +307,16 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   SNESSetFromOptions(snes);
 
   context->snes = snes;
-  context->x_norm = 100.0;
+  context->x_norm = 1000.0;
   RepackX(context, context->ui, context->phi_i, context->tau_i, x);
-  //VecNorm(x, NORM_2, &context->x_norm);
-  //if(!Geometry::procID()) cout << "|x_0|: " << context->x_norm << endl;
+  VecNorm(x, NORM_2, &context->x_norm);
+  if(!Geometry::procID()) cout << "|x_0|: " << context->x_norm << endl;
+  if(context->x_norm < 1.0e-4) {
+    if(!Geometry::procID()) cout << "ERROR: initial state vector norm is SMALL! "
+                                 << "Are you sure you loaded the initial condition correctly??\n";
+    abort();
+  }
+  context->x_norm = 1000.0;
   VecCopy(x, context->x_prev);
   SNESSolve(snes, NULL, x);
   UnpackX(context, context->ui, &context->phi_i, &context->tau_i, x);
@@ -358,7 +365,7 @@ int main (int argc, char** argv) {
   uj.resize(3);
   delete file;
   delete domain;
-  sprintf(session_i, "%s.%u", session, 1);
+  sprintf(session_i, "%s", session);
   file_i = new FEML(session_i);
   domain = new Domain(file_i, elmt, bman);
   domain->restart();
@@ -377,7 +384,7 @@ int main (int argc, char** argv) {
   delete domain;
 
   // allocate the temporary fields
-  sprintf(session_i, "%s.0", session);
+  sprintf(session_i, "%s_0", session);
   file_i = new FEML(session_i);
   domain = new Domain(file_i, elmt, bman);
   domain->restart();
@@ -388,7 +395,7 @@ int main (int argc, char** argv) {
   delete domain;
 
   // dump the output
-  sprintf(session_i, "%s_rpo_%u", session, 0);
+  sprintf(session_i, "%s_rpo", session);
   file_i = new FEML(session_i);
   domain = new Domain(file_i, elmt, bman);
   for(int field_i = 0; field_i < 3; field_i++) {
