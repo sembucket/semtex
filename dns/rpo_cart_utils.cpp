@@ -156,6 +156,7 @@ void RepackX(Context* context, vector<Field*> fields, real_t  phi, real_t  tau, 
   PetscScalar *xArray;
   real_t* data = new real_t[NELS_Y*elOrd*nNodesX];
   Vec xl;
+  double norm_l = 0.0, norm_g;
 
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
   VecZeroEntries(xl);
@@ -172,10 +173,13 @@ void RepackX(Context* context, vector<Field*> fields, real_t  phi, real_t  tau, 
       for(jj = 0; jj < NELS_Y*elOrd; jj++) {
         for(ii = 0; ii < nNodesX; ii++) {
           xArray[index] = data[jj*nNodesX + ii];
+          norm_l += xArray[index]*xArray[index];
           index++;
         }
       }
     }
+    MPI_Allreduce(&norm_l, &norm_g, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    if(!Geometry::procID()) cout << field_i << " |x|: " << sqrt(norm_g) << endl;
   }
   // phase shift data lives on the 0th processors part of the vector
   if(!Geometry::procID()) {

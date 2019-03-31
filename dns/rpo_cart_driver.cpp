@@ -93,6 +93,7 @@ void build_constraints(Context* context, Vec x_delta, double* f_phi, double* f_t
   double*      data_i      = new double[context->nDofsPlane];
   PetscScalar* xArray;
   Vec          xl;
+  int          nStep;
 
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
   VecScatterBegin(context->global_to_semtex, x_delta, xl, INSERT_VALUES, SCATTER_FORWARD);
@@ -102,11 +103,16 @@ void build_constraints(Context* context, Vec x_delta, double* f_phi, double* f_t
   for(int field_i = 0; field_i < 3; field_i++) {
     *context->domain->u[field_i] = *context->ui[field_i];
   }
-  Femlib::ivalue("N_STEP", 1);
   if(!Geometry::procID()) cout << "time step in constraints evaluation: " << scientific << Femlib::value("D_T") << endl;
-  //delete context->analyst;
-  //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
+
+  delete context->analyst;
+  context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
+
+  nStep = Femlib::ivalue("N_STEP");
+  Femlib::ivalue("N_STEP", 1);
   integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
+  Femlib::ivalue("N_STEP", nStep);
+
   for(int field_i = 0; field_i < 3; field_i++) {
     *context->domain->u[field_i] -= *context->ui[field_i];
     *context->domain->u[field_i] *= 1.0 / Femlib::value("D_T");
@@ -126,9 +132,11 @@ void build_constraints(Context* context, Vec x_delta, double* f_phi, double* f_t
         p_y  = context->elmt[el_j]->_ymesh[pt_j*(elOrd+1)];
         if(fabs(p_y) < 1.0e-6) p_y = 1.0;
         // assume a radius of 1, so scale by (2*pi) / (2*pi*r)
-        k_z  = (1.0 / p_y) * context->phi_i * (plane_j / 2);
+        //k_z  = (1.0 / p_y) * context->phi_i * (plane_j / 2);
+        k_z  = 1.0 * (plane_j / 2);
 #else
-        k_z  = (2.0 * M_PI / ZMAX) * context->phi_i * (plane_j / 2);
+        //k_z  = (2.0 * M_PI / ZMAX) * context->phi_i * (plane_j / 2);
+        k_z  = (1.0 / ZMAX) * (plane_j / 2);
 #endif
 
         index = field_i * nDofsCube_l + (plane_i+0) * context->nDofsPlane + dof_i;
@@ -182,6 +190,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   double f_phi, f_tau;
   Vec x_delta;
   PetscScalar *xArray;
+  double runTime;
 
   // create the \delta x vector for use in the assembly of the constraints into the residual vector
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nDofsSlice, &x_delta);
@@ -196,9 +205,6 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 
   UnpackX(context, context->ui, &context->phi_i, &context->tau_i, x);
 
-  // for analytic travelling wave test only...
-  dt = Femlib::value ("D_T");
-
   // update the starting time
   Femlib::value("t", 0.0);
 
@@ -211,19 +217,25 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   MPI_Bcast(&context->tau_i, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
   MPI_Bcast(&context->phi_i, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-  nStep = (int)(context->tau_i/dt);
-  Femlib::ivalue("N_STEP", nStep);
-  Femlib::value("D_T", context->tau_i/nStep);
+  //nStep = (int)(context->tau_i/dt);
+  //Femlib::ivalue("N_STEP", nStep);
+  //Femlib::value("D_T", context->tau_i/nStep);
+
+  dt = Femlib::value ("D_T");
+  runTime = Femlib::ivalue("N_STEP")*dt + context->tau_i;
+  dt = runTime / Femlib::ivalue("N_STEP");
+  Femlib::value("D_T", dt);
+
   context->domain->step = 0;
 
   if(!Geometry::procID()) {
-    cout << "time: " << time << "\tnstep: " << Femlib::ivalue("N_STEP") << endl;
+    cout << "run time: " << runTime << "\tnstep: " << Femlib::ivalue("N_STEP") << "\tdt: " << Femlib::value("D_T") << endl;
     cout << scientific << "\ttau:   " << context->tau_i << "\tphi:   " << context->phi_i << endl;
   }
 
   // don't want to call the dns analysis, use custom integrate routine instead
-  //delete context->analyst;
-  //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
+  delete context->analyst;
+  context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
   integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
 
   // phase shift in phi (azimuthal direction)
@@ -278,8 +290,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   context->xmin     = XMIN;
   context->xmax     = XMAX;
   context->phi_i    = 0.0;
-  context->tau_i    = Femlib::ivalue("N_STEP") * Femlib::value("D_T");
-  if(!Geometry::procID()) cout << "\ttau: " << context->tau_i << endl;
+  context->tau_i    = 0.0;//Femlib::ivalue("N_STEP") * Femlib::value("D_T");
 
   // add dofs for phi and tau for each time slice
   context->nDofsPlane = NELS_X*elOrd*NELS_Y*elOrd;
