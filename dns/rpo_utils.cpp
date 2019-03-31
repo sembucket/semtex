@@ -57,10 +57,10 @@ static char RCS[] = "$Id$";
 #include "rpo_utils.h"
 #include "rpo_preconditioner.h"
 
-#define X_FOURIER
 #define NFIELD 3
 #define NELS_X 30
-#define NELS_Y 7
+//#define NELS_Y 7
+#define NELS_Y 8
 
 void data_transpose(real_t* data, int nx, int ny) {
   real_t* temp = new real_t[nx*ny];
@@ -168,12 +168,12 @@ void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_f) {
   int pt_r;
   double dx, xr, theta;
   real_t* temp = new real_t[context->nModesX];
-  real_t* data_r = (nNodesX > context->nModesX) ? new real_t[NELS_Y*elOrd*nNodesX] : new real_t[NELS_Y*elOrd*context->nModesX];
+  real_t* data_r = new real_t[NELS_Y*elOrd*nNodesX];
   const real_t *qx;
 
   Femlib::quadrature(&qx, 0, 0, 0  , elOrd+1, GLJ, 0.0, 0.0);
 
-  dx = (context->xmax)/NELS_X;
+  dx = (context->xmax /*- XMIN*/)/NELS_X;
 
   for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
     for(int pt_x = 0; pt_x < context->nModesX; pt_x++) {
@@ -184,7 +184,7 @@ void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_f) {
       // coordinate in real space
       xr = /*XMIN +*/ (pt_x/elOrd)*dx + 0.5*(1.0 + qx[pt_x%elOrd])*dx;
       // coordinate in fourier space
-      theta = 2.0*M_PI*xr/(context->xmax);
+      theta = 2.0*M_PI*xr/(context->xmax /*- XMIN*/);
 
       data_r[pt_y*nNodesX + pt_x] = temp[0];
       // ignore the nyquist frequency (entry [1])
@@ -222,41 +222,39 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
       field = fields[slice_i * NFIELD + field_i];
 
       for(kk = 0; kk < Geometry::nZProc(); kk++) {
-      //for(kk = 0; kk < Geometry::nZ(); kk++) {
-        //ll = kk % Geometry::nZProc();
-
-        //slice_i = kk / Geometry::nZProc();
-        //field = fields[slice_i * NFIELD + field_i];
-
-        // skip over redundant real dofs
         for(jj = 0; jj < NELS_Y*elOrd; jj++) {
-#ifdef X_FOURIER
-          for(ii = 0; ii < context->nModesX; ii++) {
-            data[jj*context->nModesX + ii] = xArray[index++];
-#else
-          for(ii = 0; ii < nNodesX; ii++) {
-            data[jj*nNodesX + ii] = xArray[index++];
-#endif
+          if(context->x_fourier) {
+            for(ii = 0; ii < context->nModesX; ii++) {
+              data[jj*context->nModesX + ii] = xArray[index];
+              index++;
+            }
+          } else {
+            for(ii = 0; ii < nNodesX; ii++) {
+              data[jj*nNodesX + ii] = xArray[index];
+              index++;
+            }
           }
         }
 
-#ifdef X_FOURIER
-        Fourier_to_SEM(kk, context, field, data);
-        //Fourier_to_SEM(ll, context, field, data);
-#else
-        logical_to_elements(data, field->plane(kk));
-        //logical_to_elements(data, field->plane(ll));
-#endif
+        if(context->x_fourier) {
+          Fourier_to_SEM(kk, context, field, data);
+        } else {
+          logical_to_elements(data, field->plane(kk));
+        }
       }
     }
     // phase shift data lives on the 0th processors part of the vector
     if(!Geometry::procID()) {
-    //if(Geometry::procID() == slice_i) {
-#ifdef X_FOURIER
-      theta[slice_i] = xArray[index++] / context->x_norm;
-#endif
-      phi[slice_i]   = xArray[index++] / context->x_norm;
-      tau[slice_i]   = xArray[index++] / context->x_norm;
+      if(context->x_fourier) {
+        theta[slice_i] = xArray[index] / context->x_norm;
+        index++;
+      }
+      phi[slice_i]     = xArray[index] / context->x_norm;
+      index++;
+      if(!context->travelling_wave) {
+        tau[slice_i]   = xArray[index] / context->x_norm;
+        index++;
+      }
     }
   }
   VecRestoreArrayRead(xl, &xArray);
@@ -273,6 +271,7 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   PetscScalar *xArray;
   real_t* data = (nNodesX > context->nModesX) ? new real_t[NELS_Y*elOrd*nNodesX] : new real_t[NELS_Y*elOrd*context->nModesX];
   Vec xl;
+  double norm_l = 0.0, norm_g;
 
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
   VecZeroEntries(xl);
@@ -284,34 +283,44 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
       field = fields[slice_i * NFIELD + field_i];
 
       for(kk = 0; kk < Geometry::nZProc(); kk++) {
-#ifdef X_FOURIER
-        SEM_to_Fourier(kk, context, field, data);
-#else
-        elements_to_logical(field->plane(kk), data);
-#endif
+        if(context->x_fourier) {
+          SEM_to_Fourier(kk, context, field, data);
+        } else {
+          elements_to_logical(field->plane(kk), data);
+        }
 
         // skip over redundant real dofs
         for(jj = 0; jj < NELS_Y*elOrd; jj++) {
-#ifdef X_FOURIER
-          for(ii = 0; ii < context->nModesX; ii++) {
-            xArray[index] = data[jj*context->nModesX + ii];
-#else
-          for(ii = 0; ii < nNodesX; ii++) {
-            xArray[index] = data[jj*nNodesX + ii];
-#endif
-            index++;
+          if(context->x_fourier) {
+            for(ii = 0; ii < context->nModesX; ii++) {
+              xArray[index] = data[jj*context->nModesX + ii];
+              norm_l += xArray[index]*xArray[index];
+              index++;
+            }
+          } else {
+            for(ii = 0; ii < nNodesX; ii++) {
+              xArray[index] = data[jj*nNodesX + ii];
+              norm_l += xArray[index]*xArray[index];
+              index++;
+            }
           }
         }
       }
+      MPI_Allreduce(&norm_l, &norm_g, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+      if(!Geometry::procID()) cout << field_i << " |x|: " << sqrt(norm_g) << endl;
     }
     // phase shift data lives on the 0th processors part of the vector
     if(!Geometry::procID()) {
-    //if(Geometry::procID() == slice_i) {
-#ifdef X_FOURIER
-      xArray[index++] = theta[slice_i] * context->x_norm;
-#endif
-      xArray[index++] = phi[slice_i]   * context->x_norm;
-      xArray[index++] = tau[slice_i]   * context->x_norm;
+      if(context->x_fourier) {
+        xArray[index] = theta[slice_i] * context->x_norm;
+        index++;
+      }
+      xArray[index]   = phi[slice_i]   * context->x_norm;
+      index++;
+      if(!context->travelling_wave) {
+        xArray[index] = tau[slice_i] * context->x_norm;
+        index++;
+      }
     }
   }
   VecRestoreArray(xl, &xArray);
@@ -327,15 +336,14 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
 void assign_scatter_semtex(Context* context) {
   int   nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
   int   nDofsCube_g = Geometry::nZ()     * context->nDofsPlane;
-#ifdef X_FOURIER
-  int   nShifts     = 3;
-#else
-  int   nShifts     = 2;
-#endif
+  int   nShifts     = 1;
   int   ind_i       = 0;
   int*  inds;
   IS    isl, isg;
   Vec   vl, vg;
+
+  if(context->x_fourier)        nShifts++;
+  if(!context->travelling_wave) nShifts++;
 
   inds = new int[context->localSize];
 

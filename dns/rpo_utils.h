@@ -44,6 +44,8 @@ struct Context {
     Vec              x_prev; // for determining \delta x
     int              nModesX;
     double           xmax;
+    bool             x_fourier;
+    bool             travelling_wave;
 };
 
 void data_transpose(real_t* data, int nx, int ny);
