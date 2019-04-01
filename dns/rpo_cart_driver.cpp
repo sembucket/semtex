@@ -136,7 +136,8 @@ void build_constraints(Context* context, Vec x_delta, double* f_phi, double* f_t
         k_z  = 1.0 * (plane_j / 2);
 #else
         //k_z  = (2.0 * M_PI / ZMAX) * context->phi_i * (plane_j / 2);
-        k_z  = (1.0 / ZMAX) * (plane_j / 2);
+        //k_z  = (1.0 / ZMAX) * (plane_j / 2);
+        k_z  = (2.0 * M_PI / ZMAX) * (plane_j / 2);
 #endif
 
         index = field_i * nDofsCube_l + (plane_i+0) * context->nDofsPlane + dof_i;

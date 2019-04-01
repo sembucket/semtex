@@ -59,7 +59,6 @@ static char RCS[] = "$Id$";
 
 #define NFIELD 3
 #define NELS_X 30
-//#define NELS_Y 7
 #define NELS_Y 8
 
 void data_transpose(real_t* data, int nx, int ny) {

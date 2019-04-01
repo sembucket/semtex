@@ -65,7 +65,7 @@ void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 		Domain*, BCmgr*, DNSAnalyser*, FieldForce*);
 
 #define TESTING
-#define ANALYTICALLY_FORCED
+//#define ANALYTICALLY_FORCED
 #define X_FOURIER
 #define TRAVELLING_WAVE // constant phase speed, ct, so shifting for z and t leads to over determined system! 
 
@@ -74,17 +74,13 @@ void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 #define YMIN 0.0
 #define YMAX 1.0
 #define NELS_X 30
-//#define NELS_Y 7
 #define NELS_Y 8
 #define NSLICE 1
 
 #ifdef ANALYTICALLY_FORCED
 #define XMAX (2.0*M_PI)
-#define NSTEPS (1000)
 #else
 #define XMAX 4.053667940115862
-//#define NSTEPS ((20*16)/NSLICE)
-#define NSTEPS (5000)
 #endif
 
 double fieldnorm(Field* field) {
@@ -154,7 +150,9 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
         for(int mode_i = 0; mode_i < nModesX; mode_i++) {
           index = field_i * nDofsCube_l + plane_i * context->nDofsPlane + node_j * nModesX + mode_i;
           //k_x = (XMAX / 2.0 / M_PI) * context->theta_i[slice_i] * (mode_i / 2);
-          k_x = (1.0 / (context->xmax /*- XMIN*/)) * (mode_i / 2);
+          //k_x = (1.0 / (context->xmax /*- XMIN*/)) * (mode_i / 2);
+          k_x = (2.0 * M_PI / (context->xmax /*- XMIN*/)) * (mode_i / 2);
+
           if(mode_i % 2 == 0) {
             rx[index] = -k_x * data_r[node_j * nModesX + mode_i + 1];
           } else {
@@ -168,13 +166,16 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
       SEM_to_Fourier(plane_i+0, context, context->ui[slice_i*context->nField+field_i], data_r);
       SEM_to_Fourier(plane_i+1, context, context->ui[slice_i*context->nField+field_i], data_i);
       for(int dof_i = 0; dof_i < NELS_Y * elOrd * nModesX; dof_i++) {
-        //el_j = dof_i / (nModesX * elOrd);
-        //pt_j = (dof_i / nModesX) % elOrd;
-        //p_y  = context->elmt[el_j]->_ymesh[pt_j*(elOrd+1)];
+        el_j = dof_i / (nModesX * elOrd);
+        pt_j = (dof_i / nModesX) % elOrd;
+        p_y  = context->elmt[el_j]->_ymesh[pt_j*(elOrd+1)];
         //if(fabs(p_y) < 1.0e-6) p_y = 1.0;
-        // assume a radius of 1, so scale by (2*pi) / (2*pi*r)
-        //k_z  = (1.0 / p_y) * context->phi_i[slice_i] * (plane_j / 2);
-        k_z = 1.0 * (plane_j / 2);
+        if(fabs(p_y) < 1.0e-6) {
+          k_z = 0.0;
+        } else {
+          k_z  = (1.0 / p_y) * context->phi_i[slice_i] * (plane_j / 2);
+        }
+        //k_z = 1.0 * (plane_j / 2);
 
         index = field_i * nDofsCube_l + (plane_i+0) * context->nDofsPlane + dof_i;
         rz[index] = -k_z * data_i[dof_i];
@@ -397,7 +398,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
     context->theta_i[slice_i] = 0.0;
     context->phi_i[slice_i] = 0.0;
-    context->tau_i[slice_i] = 0.0;//NSTEPS*Femlib::value("D_T");
+    context->tau_i[slice_i] = 0.0;
   }
 
   // setup the fourier mapping data
@@ -450,8 +451,6 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
       abort();
     }
   }
-
-  if(!Geometry::procID()) cout << "done assigning regular coords to elements...\n";
 
   // add dofs for theta and tau for each time slice
 #ifdef X_FOURIER
