@@ -59,7 +59,7 @@ static char RCS[] = "$Id$";
 
 #define NELS_X 30
 #define NELS_Y 8
-#define VEL_MAJOR
+//#define VEL_MAJOR
 
 void data_transpose(real_t* data, int nx, int ny) {
   real_t* temp = new real_t[nx*ny];
@@ -535,10 +535,8 @@ void assign_scatter_semtex(Context* context) {
 
   inds = new int[context->localSize];
 
-  for(int ind_j = 0; ind_j < nDofsCube_l; ind_j++) {
-    for(int field_i = 0; field_i < context->nField; field_i++) {
-      inds[ind_i++] = start + field_i * nDofsCube_l + ind_j;
-    }
+  for(int ind_j = 0; ind_j < context->nField * nDofsCube_l; ind_j++) {
+    inds[ind_i++] = start + ind_j;
   }
 
   // assign the phase shifts from the 0th processor

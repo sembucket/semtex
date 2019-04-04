@@ -56,6 +56,8 @@ static char RCS[] = "$Id$";
 
 #include "rpo_cart_utils.h"
 
+#define VEL_MAJOR
+
 #define NELS_X 12
 #define NELS_Y 9
 
@@ -108,6 +110,7 @@ void logical_to_elements(real_t* data_log, real_t* data_els) {
   }
 }
 
+#ifdef VEL_MAJOR
 void UnpackX(Context* context, vector<Field*> fields, real_t* phi, real_t* tau, Vec x) {
   int elOrd = Geometry::nP() - 1;
   int ii, jj, kk, ll, field_i, index;
@@ -147,7 +150,52 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* phi, real_t* tau, 
   VecDestroy(&xl);
   delete[] data;
 }
+#else
+void UnpackX(Context* context, vector<Field*> fields, real_t* phi, real_t* tau, Vec x) {
+  int elOrd = Geometry::nP() - 1;
+  int ii, jj, kk, ll, index;
+  int nNodesX = NELS_X*elOrd;
+  const PetscScalar *xArray;
+  real_t* data_u = new real_t[NELS_Y*elOrd*nNodesX];
+  real_t* data_v = new real_t[NELS_Y*elOrd*nNodesX];
+  real_t* data_w = new real_t[NELS_Y*elOrd*nNodesX];
+  Vec xl;
 
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
+  VecScatterBegin(context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterEnd(  context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
+
+  index = 0;
+  VecGetArrayRead(xl, &xArray);
+  for(kk = 0; kk < Geometry::nZProc(); kk++) {
+    // skip over redundant real dofs
+    for(jj = 0; jj < NELS_Y*elOrd; jj++) {
+      for(ii = 0; ii < nNodesX; ii++) {
+        data_u[jj*nNodesX + ii] = xArray[index++];
+        data_v[jj*nNodesX + ii] = xArray[index++];
+        data_w[jj*nNodesX + ii] = xArray[index++];
+      }
+    }
+
+    logical_to_elements(data_u, fields[0]->plane(kk));
+    logical_to_elements(data_v, fields[1]->plane(kk));
+    logical_to_elements(data_w, fields[2]->plane(kk));
+  }
+  // phase shift data lives on the 0th processors part of the vector
+  if(!Geometry::procID()) {
+    *phi = xArray[index++] / context->x_norm;
+    *tau = xArray[index++] / context->x_norm;
+  }
+  VecRestoreArrayRead(xl, &xArray);
+
+  VecDestroy(&xl);
+  delete[] data_u;
+  delete[] data_v;
+  delete[] data_w;
+}
+#endif
+
+#ifdef VEL_MAJOR
 void RepackX(Context* context, vector<Field*> fields, real_t  phi, real_t  tau, Vec x) {
   int elOrd = Geometry::nP() - 1;
   int ii, jj, kk, field_i, index;
@@ -194,8 +242,69 @@ void RepackX(Context* context, vector<Field*> fields, real_t  phi, real_t  tau, 
   VecDestroy(&xl);
   delete[] data;
 }
+#else
+void RepackX(Context* context, vector<Field*> fields, real_t  phi, real_t  tau, Vec x) {
+  int elOrd = Geometry::nP() - 1;
+  int ii, jj, kk, index;
+  int nNodesX = NELS_X*elOrd;
+  PetscScalar *xArray;
+  real_t* data_u = new real_t[NELS_Y*elOrd*nNodesX];
+  real_t* data_v = new real_t[NELS_Y*elOrd*nNodesX];
+  real_t* data_w = new real_t[NELS_Y*elOrd*nNodesX];
+  Vec xl;
+  double norm_l_u = 0.0, norm_g_u;
+  double norm_l_v = 0.0, norm_g_v;
+  double norm_l_w = 0.0, norm_g_w;
+
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
+  VecZeroEntries(xl);
+  VecGetArray(xl, &xArray);
+
+  index = 0;
+
+  for(kk = 0; kk < Geometry::nZProc(); kk++) {
+    elements_to_logical(fields[0]->plane(kk), data_u);
+    elements_to_logical(fields[1]->plane(kk), data_v);
+    elements_to_logical(fields[2]->plane(kk), data_w);
+
+    // skip over redundant real dofs
+    for(jj = 0; jj < NELS_Y*elOrd; jj++) {
+      for(ii = 0; ii < nNodesX; ii++) {
+        xArray[index++] = data_u[jj*nNodesX + ii];
+        xArray[index++] = data_v[jj*nNodesX + ii];
+        xArray[index++] = data_w[jj*nNodesX + ii];
+        norm_l_u += data_u[jj*nNodesX + ii] * data_u[jj*nNodesX + ii];
+        norm_l_v += data_v[jj*nNodesX + ii] * data_v[jj*nNodesX + ii];
+        norm_l_w += data_w[jj*nNodesX + ii] * data_w[jj*nNodesX + ii];
+      }
+    }
+  }
+  MPI_Allreduce(&norm_l_u, &norm_g_u, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&norm_l_v, &norm_g_v, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&norm_l_w, &norm_g_w, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  if(!Geometry::procID()) cout << " |u|: " << sqrt(norm_g_u) << endl;
+  if(!Geometry::procID()) cout << " |v|: " << sqrt(norm_g_v) << endl;
+  if(!Geometry::procID()) cout << " |w|: " << sqrt(norm_g_w) << endl;
+
+  // phase shift data lives on the 0th processors part of the vector
+  if(!Geometry::procID()) {
+    xArray[index++] = phi * context->x_norm;
+    xArray[index++] = tau * context->x_norm;
+  }
+  VecRestoreArray(xl, &xArray);
+
+  VecScatterBegin(context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
+  VecScatterEnd(  context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
+
+  VecDestroy(&xl);
+  delete[] data_u;
+  delete[] data_v;
+  delete[] data_w;
+}
+#endif
 
 // define a vec scatter object for mapping from parallel global vectors to semtex data
+#ifdef VEL_MAJOR
 void assign_scatter_semtex(Context* context) {
   int   nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
   int   nDofsCube_g = Geometry::nZ()     * context->nDofsPlane;
@@ -238,6 +347,45 @@ void assign_scatter_semtex(Context* context) {
   ISDestroy(&isg);
   delete[] inds;
 }
+#else
+void assign_scatter_semtex(Context* context) {
+  int   nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
+  int   nDofsCube_g = Geometry::nZ()     * context->nDofsPlane;
+  int   nShifts     = 2;
+  int   ind_i       = 0;
+  int   start       = Geometry::procID() * nDofsCube_l * context->nField;
+  int*  inds        = new int[context->localSize];
+  IS    isl, isg;
+  Vec   vl, vg;
+
+  context->lShift = new int[3];
+
+  for(int ind_j = 0; ind_j < context->nField * nDofsCube_l; ind_j++) {
+    inds[ind_i++] = start + ind_j;
+  }
+
+  // assign the phase shifts from the 0th processor
+  if(!Geometry::procID()) {
+    for(int ind_j = 0; ind_j < nShifts; ind_j++) {
+      inds[ind_i++] = 3 * nDofsCube_g + ind_j;
+    }
+  }
+
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &vl);
+  VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nDofsSlice, &vg);
+
+  ISCreateStride(MPI_COMM_SELF, context->localSize, 0, 1, &isl);
+  ISCreateGeneral(MPI_COMM_WORLD, context->localSize, inds, PETSC_COPY_VALUES, &isg);
+
+  VecScatterCreate(vg, isg, vl, isl, &context->global_to_semtex);
+  
+  VecDestroy(&vl);
+  VecDestroy(&vg);
+  ISDestroy(&isl);
+  ISDestroy(&isg);
+  delete[] inds;
+}
+#endif
 
 void phase_shift_z(Context* context, double phi, double sign, vector<Field*> fields) {
   int elOrd = Geometry::nP() - 1;
