@@ -61,22 +61,19 @@ static char prog[] = "rpo";
 static void getargs    (int, char**, bool&, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, Domain*&, FieldForce*&);
-void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
-		Domain*, BCmgr*, DNSAnalyser*, FieldForce*);
 
 #define X_FOURIER
 //#define NFIELD 4
 #define NFIELD 3
 #define XMIN 0.0
-#define XMAX (2.0*M_PI)
+//#define XMAX (2.0*M_PI)
+#define XMAX 4.053667940115862
 #define YMIN 0.0
 #define YMAX 1.0
 #define NELS_X 30
-#define NELS_Y 7
-#define NSLICE 16
-//#define NSTEPS 3200
-#define NSTEPS 40
-#define UPDATE_U
+#define NELS_Y 8
+#define NSLICE 1
+//#define VEL_MAJOR 1
 
 void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domain* domain, DNSAnalyser* analyst, vector<Field*> ui)
 {
@@ -88,33 +85,37 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   real_t ckt, skt, cTmp, rTmp;
   const real_t* qx;
   int_t pt_x, pt_y, el_x, el_y, el_i, el_j, io;
-  const bool guess = false;
   bool found;
   vector<real_t> work(static_cast<size_t>(max (2*Geometry::nTotElmt(), 5*Geometry::nP()+6)));
   PetscScalar* xArray;
   Vec x, xl;
-  IS *is_s, *is_u, *is_p;
 
   if(!Geometry::procID()) cout << "time step: " << Femlib::value("D_T") << endl;
 
-  context->nSlice   = nSlice;
+  context->nSlice   = NSLICE;
+  context->nField   = NFIELD;
   context->mesh     = mesh;
   context->elmt     = elmt;
   context->domain   = domain;
   context->bman     = bman;
   context->analyst  = analyst;
   context->ui       = ui;
+  context->build_PC = true;
+  context->x_fourier = true;
+  context->travelling_wave = false;
 
-  context->theta_i = new real_t[nSlice];
-  context->phi_i   = new real_t[nSlice];
-  context->tau_i   = new real_t[nSlice];
+  context->theta_i = new real_t[NSLICE];
+  context->phi_i   = new real_t[NSLICE];
+  context->tau_i   = new real_t[NSLICE];
 
-  Femlib::value("D_T", 0.02); // 80x simulation value
-  for(int slice_i = 0; slice_i < nSlice; slice_i++) {
+  context->nModesX = nNodesX/2;
+  //context->nModesX = nNodesX;
+  context->xmax    = XMAX;
+
+  for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
     context->theta_i[slice_i] = 0.0;
     context->phi_i[slice_i] = 0.0;
-    context->tau_i[slice_i] = NSTEPS*Femlib::value("D_T");
-    if(!Geometry::procID()) cout << "slice: " << slice_i << "\ttau: " << context->tau_i[slice_i] << endl;
+    context->tau_i[slice_i] = 0.0;
   }
   context->domain->step++;
 
@@ -138,8 +139,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
 
     found = false;  
     for(el_j = 0; el_j < mesh->nEl(); el_j++) {
-      // pass er and es by reference?
-      if(elmt[el_j]->locate(ex, ey, er, es, &work[0], guess) && !found) {
+      if(elmt[el_j]->locate(ex, ey, er, es, &work[0], true) && !found) {
         if(fabs(er) < 1.0000000001) {
           context->el[pt_i] = el_j;
 
@@ -177,6 +177,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
 
   RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
+#ifdef VEL_MAJOR
   VecScatterBegin(context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
   VecScatterEnd(  context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
   VecGetArray(xl, &xArray);
@@ -203,6 +204,11 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   VecRestoreArray(xl, &xArray);
   VecScatterBegin(context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
   VecScatterEnd(  context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
+#else
+  UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
+  phase_shift_x(context, 0.5*M_PI, -1.0, context->ui);
+  RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
+#endif
 
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
@@ -249,7 +255,7 @@ int main (int argc, char** argv) {
   delete file;
   delete domain;
   for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
-    sprintf(session_i, "%s.%u", session, 4*slice_i);
+    sprintf(session_i, "%s_0", session, slice_i);
     file_i = new FEML(session_i);
     domain = new Domain(file_i, elmt, bman);
     domain->restart();
@@ -261,9 +267,10 @@ int main (int argc, char** argv) {
   }
 
   // allocate the temporary fields
-  sprintf(session_i, "%s.0", session);
+  sprintf(session_i, "%s_tmp", session);
   file_i = new FEML(session_i);
   domain = new Domain(file_i, elmt, bman);
+  domain->restart();
 
   // solve the newton-rapheson problem
   rpo_solve(NSLICE, mesh, elmt, bman, domain, analyst, ui);
@@ -272,7 +279,7 @@ int main (int argc, char** argv) {
 
   // dump the output
   for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
-    sprintf(session_i, "%s_rpo_%u", session, 4*slice_i);
+    sprintf(session_i, "%s_rpo_%u", session, slice_i);
     file_i = new FEML(session_i);
     domain = new Domain(file_i, elmt, bman);
     for(int field_i = 0; field_i < NFIELD; field_i++) {
