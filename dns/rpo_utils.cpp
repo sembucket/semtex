@@ -59,7 +59,8 @@ static char RCS[] = "$Id$";
 
 #define NELS_X 30
 #define NELS_Y 8
-//#define VEL_MAJOR
+//#define VEL_MAJOR 1
+#define THREE 3
 
 void data_transpose(real_t* data, int nx, int ny) {
   real_t* temp = new real_t[nx*ny];
@@ -218,7 +219,10 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   index = 0;
   VecGetArrayRead(xl, &xArray);
   for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
-    for(field_i = 0; field_i < context->nField; field_i++) {
+    for(field_i = 0; field_i < THREE; field_i++) {
+      // omit the radial velocity
+      if(context->nField < 3 && field_i == 1) continue; 
+
       field = fields[slice_i * context->nField + field_i];
 
       for(kk = 0; kk < Geometry::nZProc(); kk++) {
@@ -272,6 +276,7 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   real_t* data_u = new real_t[NELS_Y*elOrd*nNodesX];
   real_t* data_v = new real_t[NELS_Y*elOrd*nNodesX];
   real_t* data_w = new real_t[NELS_Y*elOrd*nNodesX];
+  real_t* data_p = new real_t[NELS_Y*elOrd*nNodesX];
   Vec xl;
 
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
@@ -285,19 +290,22 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
     for(jj = 0; jj < NELS_Y*elOrd; jj++) {
       for(ii = 0; ii < nx; ii++) {
         data_u[jj*nx + ii] = xArray[index++];
-        data_v[jj*nx + ii] = xArray[index++];
+        if(context->nField >  2) data_v[jj*nx + ii] = xArray[index++];
         data_w[jj*nx + ii] = xArray[index++];
+        if(context->nField == 4) data_p[jj*nx + ii] = xArray[index++];
       }
     }
 
     if(context->x_fourier) {
       Fourier_to_SEM(kk, context, fields[0], data_u);
-      Fourier_to_SEM(kk, context, fields[1], data_v);
+      if(context->nField >  2) Fourier_to_SEM(kk, context, fields[1], data_v);
       Fourier_to_SEM(kk, context, fields[2], data_w);
+      if(context->nField == 4) Fourier_to_SEM(kk, context, fields[3], data_p);
     } else {
       logical_to_elements(data_u, fields[0]->plane(kk));
-      logical_to_elements(data_v, fields[1]->plane(kk));
+      if(context->nField >  2) logical_to_elements(data_v, fields[1]->plane(kk));
       logical_to_elements(data_w, fields[2]->plane(kk));
+      if(context->nField == 4) logical_to_elements(data_p, fields[3]->plane(kk));
     }
   }
 
@@ -318,6 +326,7 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   delete[] data_u;
   delete[] data_v;
   delete[] data_w;
+  delete[] data_p;
 }
 #endif
 
@@ -338,7 +347,10 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
 
   index = 0;
   for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
-    for(field_i = 0; field_i < context->nField; field_i++) {
+    for(field_i = 0; field_i < THREE; field_i++) {
+      // omit the radial velocity
+      if(context->nField < 3 && field_i == 1) continue; 
+
       field = fields[slice_i * context->nField + field_i];
 
       for(kk = 0; kk < Geometry::nZProc(); kk++) {
@@ -400,10 +412,12 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   real_t* data_u = new real_t[NELS_Y*elOrd*nNodesX];
   real_t* data_v = new real_t[NELS_Y*elOrd*nNodesX];
   real_t* data_w = new real_t[NELS_Y*elOrd*nNodesX];
+  real_t* data_p = new real_t[NELS_Y*elOrd*nNodesX];
   Vec xl;
   double norm_l_u = 0.0, norm_g_u;
   double norm_l_v = 0.0, norm_g_v;
   double norm_l_w = 0.0, norm_g_w;
+  double norm_l_p = 0.0, norm_g_p;
 
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
   VecZeroEntries(xl);
@@ -414,12 +428,14 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   for(kk = 0; kk < Geometry::nZProc(); kk++) {
     if(context->x_fourier) {
       SEM_to_Fourier(kk, context, fields[0], data_u);
-      SEM_to_Fourier(kk, context, fields[1], data_v);
+      if(context->nField >  2) SEM_to_Fourier(kk, context, fields[1], data_v);
       SEM_to_Fourier(kk, context, fields[2], data_w);
+      if(context->nField == 4) SEM_to_Fourier(kk, context, fields[3], data_p);
     } else {
       elements_to_logical(fields[0]->plane(kk), data_u);
-      elements_to_logical(fields[1]->plane(kk), data_v);
+      if(context->nField >  2) elements_to_logical(fields[1]->plane(kk), data_v);
       elements_to_logical(fields[2]->plane(kk), data_w);
+      if(context->nField == 4) elements_to_logical(fields[3]->plane(kk), data_p);
     }
 
     // skip over redundant real dofs
@@ -428,20 +444,29 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
         xArray[index++] = data_u[jj*nx + ii];
         norm_l_u += data_u[jj*nx + ii] * data_u[jj*nx + ii];
 
-        xArray[index++] = data_v[jj*nx + ii];
-        norm_l_v += data_v[jj*nx + ii] * data_v[jj*nx + ii];
+        if(context->nField >  2) {
+          xArray[index++] = data_v[jj*nx + ii];
+          norm_l_v += data_v[jj*nx + ii] * data_v[jj*nx + ii];
+        }
 
         xArray[index++] = data_w[jj*nx + ii];
         norm_l_w += data_w[jj*nx + ii] * data_w[jj*nx + ii];
+
+        if(context->nField == 4) {
+          xArray[index++] = data_p[jj*nx + ii];
+          norm_l_p += data_p[jj*nx + ii] * data_p[jj*nx + ii];
+        }
       }
     }
   }
   MPI_Allreduce(&norm_l_u, &norm_g_u, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&norm_l_v, &norm_g_v, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&norm_l_w, &norm_g_w, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&norm_l_p, &norm_g_p, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   if(!Geometry::procID()) cout << " |u|: " << sqrt(norm_g_u) << endl;
   if(!Geometry::procID()) cout << " |v|: " << sqrt(norm_g_v) << endl;
   if(!Geometry::procID()) cout << " |w|: " << sqrt(norm_g_w) << endl;
+  if(!Geometry::procID()) cout << " |p|: " << sqrt(norm_g_p) << endl;
 
   // phase shift data lives on the 0th processors part of the vector
   if(!Geometry::procID()) {
@@ -462,6 +487,7 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   delete[] data_u;
   delete[] data_v;
   delete[] data_w;
+  delete[] data_p;
 }
 #endif
 
@@ -571,7 +597,8 @@ void phase_shift_x(Context* context, double theta, double sign, vector<Field*> f
   real_t* data_f = new real_t[NELS_Y*elOrd*nModesX];
 
   for(mode_i = 0; mode_i < Geometry::nZProc(); mode_i++) {
-    for(field_i = 0; field_i < context->domain->nField(); field_i++) {
+    //for(field_i = 0; field_i < context->domain->nField(); field_i++) {
+    for(field_i = 0; field_i < THREE; field_i++) {
       SEM_to_Fourier(mode_i, context, fields[field_i], data_f);
       for(int pt_y = 0; pt_y < NELS_Y*elOrd; pt_y++) {
         for(int mode_k = 1; mode_k < nModesX/2; mode_k++) {
@@ -605,7 +632,8 @@ void phase_shift_z(Context* context, double phi,   double sign, vector<Field*> f
     ckt = cos(sign * mode_j * phi);
     skt = sin(sign * mode_j * phi);
 
-    for(field_i = 0; field_i < context->domain->nField(); field_i++) {
+    //for(field_i = 0; field_i < context->domain->nField(); field_i++) {
+    for(field_i = 0; field_i < THREE; field_i++) {
       data_r = fields[field_i]->plane(2*mode_i+0);
       data_c = fields[field_i]->plane(2*mode_i+1);
 

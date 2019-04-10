@@ -206,7 +206,8 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   VecScatterEnd(  context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
 #else
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
-  phase_shift_x(context, 0.5*M_PI, -1.0, context->ui);
+  //phase_shift_x(context, 0.5*M_PI, -1.0, context->ui);
+  phase_shift_z(context, 0.25*M_PI, -1.0, context->ui);
   RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 #endif
 

@@ -70,12 +70,16 @@ void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 #define TRAVELLING_WAVE // constant phase speed, ct, so shifting for z and t leads to over determined system! 
 
 #define NFIELD 3
+//#define NFIELD 4
+//#define NFIELD 2
 #define XMIN 0.0
 #define YMIN 0.0
 #define YMAX 1.0
 #define NELS_X 30
 #define NELS_Y 8
 #define NSLICE 1
+#define THREE 3
+//#define VEL_MAJOR 1
 
 #ifdef ANALYTICALLY_FORCED
 #define XMAX (2.0*M_PI)
@@ -101,11 +105,10 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
   int          elOrd       = Geometry::nP() - 1;
   int          nNodesX     = NELS_X*elOrd;
   int          nModesX     = context->nModesX;
-  int          slice_i     = 0;
   int          index;
   int          nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
   int          nl          = context->nField * nDofsCube_l;
-  int          plane_j;
+  int          plane_j, field_j;
   int          pt_j, el_j;
   double       p_y;
   double       k_x, k_z;
@@ -124,32 +127,38 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
   VecScatterEnd(  context->global_to_semtex, x_delta, xl, INSERT_VALUES, SCATTER_FORWARD);
   VecGetArray(xl, &xArray);
 
-#ifndef TRAVELLING_WAVE
-  for(int field_i = 0; field_i < context->nField; field_i++) {
-    *context->domain->u[field_i] = *context->ui[slice_i * context->nField + field_i];
+  if(!context->travelling_wave) {
+    for(int field_i = 0; field_i < context->nField; field_i++) {
+      *context->domain->u[field_i] = *context->ui[field_i];
+    }
+    nStep = Femlib::ivalue("N_STEP");
+    Femlib::ivalue("N_STEP", 1);
+    if(!Geometry::procID()) cout << "time step in constraints evaluation: " << scientific << Femlib::value("D_T") << endl;
+    //delete context->analyst;
+    //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
+    integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
+    //integrate(convective, context->domain, context->bman, context->analyst, context->ff);
+    for(int field_i = 0; field_i < context->nField; field_i++) {
+      *context->domain->u[field_i] -= *context->ui[field_i];
+      *context->domain->u[field_i] *= 1.0 / Femlib::value("D_T");
+    } 
+    Femlib::ivalue("N_STEP", nStep);
   }
-  nStep = Femlib::ivalue("N_STEP");
-  Femlib::ivalue("N_STEP", 1);
-  if(!Geometry::procID()) cout << "time step in constraints evaluation: " << scientific << Femlib::value("D_T") << endl;
-  //delete context->analyst;
-  //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
-  integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
-  for(int field_i = 0; field_i < context->nField; field_i++) {
-    *context->domain->u[field_i] -= *context->ui[slice_i * context->nField + field_i];
-    *context->domain->u[field_i] *= 1.0 / Femlib::value("D_T");
-  } 
-  Femlib::ivalue("N_STEP", nStep);
-#endif
 
   for(int dof_i = 0; dof_i < nl; dof_i++) { rx[dof_i] = rz[dof_i] = rt[dof_i] = 0.0; }
 
-  for(int field_i = 0; field_i < context->nField; field_i++) {
+  field_j = 0;
+#ifdef VEL_MAJOR
+  for(int field_i = 0; field_i < THREE; field_i++) {
+    // omit the radial velocity
+    if(context->nField < 3 && field_i == 1) continue;
+
     for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
-      SEM_to_Fourier(plane_i, context, context->ui[slice_i*context->nField+field_i], data_r);
+      SEM_to_Fourier(plane_i, context, context->ui[field_i], data_r);
       for(int node_j = 0; node_j < NELS_Y * elOrd; node_j++) {
         for(int mode_i = 0; mode_i < nModesX; mode_i++) {
-          index = field_i * nDofsCube_l + plane_i * context->nDofsPlane + node_j * nModesX + mode_i;
-          //k_x = (XMAX / 2.0 / M_PI) * context->theta_i[slice_i] * (mode_i / 2);
+          index = field_j * nDofsCube_l + plane_i * context->nDofsPlane + node_j * nModesX + mode_i;
+          //k_x = (XMAX / 2.0 / M_PI) * context->theta_i[0] * (mode_i / 2);
           //k_x = (1.0 / (context->xmax /*- XMIN*/)) * (mode_i / 2);
           k_x = (2.0 * M_PI / (context->xmax /*- XMIN*/)) * (mode_i / 2);
 
@@ -163,8 +172,8 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
     }
     for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
       plane_j = Geometry::procID() * Geometry::nZProc() + plane_i;
-      SEM_to_Fourier(plane_i+0, context, context->ui[slice_i*context->nField+field_i], data_r);
-      SEM_to_Fourier(plane_i+1, context, context->ui[slice_i*context->nField+field_i], data_i);
+      SEM_to_Fourier(plane_i+0, context, context->ui[field_i], data_r);
+      SEM_to_Fourier(plane_i+1, context, context->ui[field_i], data_i);
       for(int dof_i = 0; dof_i < NELS_Y * elOrd * nModesX; dof_i++) {
         el_j = dof_i / (nModesX * elOrd);
         pt_j = (dof_i / nModesX) % elOrd;
@@ -173,37 +182,121 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
         if(fabs(p_y) < 1.0e-6) {
           k_z = 0.0;
         } else {
-          k_z  = (1.0 / p_y) * context->phi_i[slice_i] * (plane_j / 2);
+          k_z  = (1.0 / p_y) * context->phi_i[0] * (plane_j / 2);
         }
         //k_z = 1.0 * (plane_j / 2);
 
-        index = field_i * nDofsCube_l + (plane_i+0) * context->nDofsPlane + dof_i;
+        index = field_j * nDofsCube_l + (plane_i+0) * context->nDofsPlane + dof_i;
         rz[index] = -k_z * data_i[dof_i];
-        index = field_i * nDofsCube_l + (plane_i+1) * context->nDofsPlane + dof_i;
+        index = field_j * nDofsCube_l + (plane_i+1) * context->nDofsPlane + dof_i;
         rz[index] = +k_z * data_r[dof_i];
       }
     }
-#ifndef TRAVELLING_WAVE
-    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
-      SEM_to_Fourier(plane_i, context, context->domain->u[field_i], data_r);
-      for(int dof_i = 0; dof_i < context->nDofsPlane; dof_i++) {
-        index = field_i * nDofsCube_l + plane_i * context->nDofsPlane + dof_i;
-        rt[index] = data_r[dof_i];
+
+    if(!context->travelling_wave) {
+      for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
+        SEM_to_Fourier(plane_i, context, context->domain->u[field_i], data_r);
+        for(int dof_i = 0; dof_i < context->nDofsPlane; dof_i++) {
+          index = field_j * nDofsCube_l + plane_i * context->nDofsPlane + dof_i;
+          rt[index] = data_r[dof_i];
+        }
       }
     }
-#endif
+
+    field_j++;
   }
+#else
+  double* data_u_r = new double[context->nDofsPlane];
+  double* data_v_r = new double[context->nDofsPlane];
+  double* data_w_r = new double[context->nDofsPlane];
+  double* data_u_i = new double[context->nDofsPlane];
+  double* data_v_i = new double[context->nDofsPlane];
+  double* data_w_i = new double[context->nDofsPlane];
+
+  for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
+    SEM_to_Fourier(plane_i, context, context->ui[0], data_u_r);
+    SEM_to_Fourier(plane_i, context, context->ui[1], data_v_r);
+    SEM_to_Fourier(plane_i, context, context->ui[2], data_w_r);
+
+    for(int node_j = 0; node_j < NELS_Y * elOrd; node_j++) {
+      for(int mode_i = 0; mode_i < nModesX; mode_i++) {
+        index = THREE * ( plane_i * context->nDofsPlane + node_j * nModesX + mode_i );
+        k_x = (2.0 * M_PI / (context->xmax /*- XMIN*/)) * (mode_i / 2);
+
+        if(mode_i % 2 == 0) {
+          rx[index+0] = -k_x * data_u_r[node_j * nModesX + mode_i + 1];
+          rx[index+1] = -k_x * data_v_r[node_j * nModesX + mode_i + 1];
+          rx[index+2] = -k_x * data_w_r[node_j * nModesX + mode_i + 1];
+        } else {
+          rx[index+0] = +k_x * data_u_r[node_j * nModesX + mode_i - 1];
+          rx[index+1] = +k_x * data_v_r[node_j * nModesX + mode_i - 1];
+          rx[index+2] = +k_x * data_w_r[node_j * nModesX + mode_i - 1];
+        }
+      }
+    }
+  }
+  for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
+    plane_j = Geometry::procID() * Geometry::nZProc() + plane_i;
+
+    SEM_to_Fourier(plane_i+0, context, context->ui[0], data_u_r);
+    SEM_to_Fourier(plane_i+1, context, context->ui[0], data_u_i);
+    SEM_to_Fourier(plane_i+0, context, context->ui[1], data_v_r);
+    SEM_to_Fourier(plane_i+1, context, context->ui[1], data_v_i);
+    SEM_to_Fourier(plane_i+0, context, context->ui[2], data_w_r);
+    SEM_to_Fourier(plane_i+1, context, context->ui[2], data_w_i);
+
+    for(int dof_i = 0; dof_i < NELS_Y * elOrd * nModesX; dof_i++) {
+      el_j = dof_i / (nModesX * elOrd);
+      pt_j = (dof_i / nModesX) % elOrd;
+      p_y  = context->elmt[el_j]->_ymesh[pt_j*(elOrd+1)];
+      if(fabs(p_y) < 1.0e-6) {
+        k_z = 0.0;
+      } else {
+        k_z  = (1.0 / p_y) * context->phi_i[0] * (plane_j / 2);
+      }
+
+      index = THREE * ( (plane_i+0) * context->nDofsPlane + dof_i ) + 0;
+      rz[index] = -k_z * data_u_i[dof_i];
+      index = THREE * ( (plane_i+1) * context->nDofsPlane + dof_i ) + 0;
+      rz[index] = +k_z * data_u_r[dof_i];
+
+      index = THREE * ( (plane_i+0) * context->nDofsPlane + dof_i ) + 1;
+      rz[index] = -k_z * data_v_i[dof_i];
+      index = THREE * ( (plane_i+1) * context->nDofsPlane + dof_i ) + 1;
+      rz[index] = +k_z * data_v_r[dof_i];
+
+      index = THREE * ( (plane_i+0) * context->nDofsPlane + dof_i ) + 2;
+      rz[index] = -k_z * data_w_i[dof_i];
+      index = THREE * ( (plane_i+1) * context->nDofsPlane + dof_i ) + 2;
+      rz[index] = +k_z * data_w_r[dof_i];
+    }
+  }
+
+  if(!context->travelling_wave) {
+    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
+      SEM_to_Fourier(plane_i, context, context->domain->u[0], data_u_r);
+      SEM_to_Fourier(plane_i, context, context->domain->u[1], data_v_r);
+      SEM_to_Fourier(plane_i, context, context->domain->u[2], data_w_r);
+
+      for(int dof_i = 0; dof_i < context->nDofsPlane; dof_i++) {
+        index = THREE * ( plane_i * context->nDofsPlane + dof_i );
+        rt[index++] = data_u_r[dof_i];
+        rt[index++] = data_v_r[dof_i];
+        rt[index++] = data_w_r[dof_i];
+      }
+    }
+  }
+
+  delete[] data_u_r; delete[] data_u_i;
+  delete[] data_v_r; delete[] data_v_i;
+  delete[] data_w_r; delete[] data_w_i;
+#endif
 
   f_theta_l = f_phi_l = f_tau_l = 0.0;
   for(int dof_i = 0; dof_i < nl; dof_i++) {
-    //f_theta_l += rx[dof_i] * xArray[dof_i];
-    //f_phi_l   += rz[dof_i] * xArray[dof_i];
-    //f_tau_l   += rt[dof_i] * xArray[dof_i];
     f_theta_l -= rx[dof_i] * xArray[dof_i];
     f_phi_l   -= rz[dof_i] * xArray[dof_i];
-#ifndef TRAVELLING_WAVE
-    f_tau_l   -= rt[dof_i] * xArray[dof_i];
-#endif
+    if(!context->travelling_wave) f_tau_l -= rt[dof_i] * xArray[dof_i];
   }
   MPI_Allreduce(&f_theta_l, f_theta, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&f_phi_l,   f_phi,   1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -257,11 +350,6 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
-  // for analytic travelling wave test only...
-//#ifdef ANALYTICALLY_FORCED
-//  Femlib::value("D_T", 0.02); // 80x simulation value
-//#endif
-
   // update the starting time for this slice
   context->domain->time = 0.0;
   Femlib::value("t", 0.0);
@@ -296,7 +384,8 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   // don't want to call the dns analysis, use custom integrate routine instead
   //delete context->analyst;
   //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
-  integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
+  //integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
+  integrate(convective, context->domain, context->bman, context->analyst, context->ff);
   if(!Geometry::procID()) cout << "done with integration...\n";
 
 #ifdef X_FOURIER
@@ -315,6 +404,13 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   build_constraints(context, x_delta, f_theta, f_phi, f_tau);
 
   RepackX(context, context->fi, f_theta, f_phi, f_tau, f);
+
+  // if not assembling the radial velocity into the rpo solver, then 
+  // updating this from the DNS at the end of the simulation time
+  if(context->nField < 3) {
+    *context->ui[1] = *context->domain->u[1];
+  }
+
   Femlib::value("D_T", dt);
 
 #ifdef TESTING
@@ -322,7 +418,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   sprintf(session_i, "tube8_tw_rpo_1");
   FEML* file_i = new FEML(session_i);
   Domain* dom = new Domain(file_i, context->elmt, context->bman);
-  for(field_i = 0; field_i < context->nField; field_i++) {
+  for(field_i = 0; field_i < THREE; field_i++) {
     dom->u[field_i] = context->ui[field_i];
   }
   dom->dump();
@@ -391,10 +487,6 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   //context->nModesX = nNodesX;
   context->xmax    = XMAX;
 
-  // For the balaned travelling wave test case only
-//#ifdef ANALYTICALLY_FORCED
-//  Femlib::value("D_T", 0.02); // 80x simulation value
-//#endif
   for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
     context->theta_i[slice_i] = 0.0;
     context->phi_i[slice_i] = 0.0;
@@ -482,7 +574,8 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
   MatSetSizes(P, context->localSize, context->localSize, NSLICE * context->nDofsSlice, NSLICE * context->nDofsSlice);
-  MatMPIAIJSetPreallocation(P, 2*context->nModesX, PETSC_NULL, 2*context->nModesX, PETSC_NULL);
+  //MatMPIAIJSetPreallocation(P, 2*context->nModesX, PETSC_NULL, 2*context->nModesX, PETSC_NULL);
+  MatMPIAIJSetPreallocation(P, 1, PETSC_NULL, 1, PETSC_NULL);
   MatSetOptionsPrefix(P, "P_");
   MatSetFromOptions(P);
 
@@ -548,19 +641,32 @@ int main (int argc, char** argv) {
   analyst = new DNSAnalyser (domain, bman, file);
   //domain -> restart ();
   //ROOTONLY domain -> report ();
+
+#ifdef TRAVELLING_WAVE
+  if(!Geometry::procID()) cout << "travelling wave solution\n";
+#else
+  if(!Geometry::procID()) cout << "NOT a travelling wave solution\n";
+#endif
+
+#ifdef VEL_MAJOR
+  if(!Geometry::procID()) cout << "velocity component major indexing\n";
+#else
+  if(!Geometry::procID()) cout << "velocity component minor indexing\n";
+#endif
   
   // load in the time slices
-  ui.resize(NSLICE * NFIELD);
-  fi.resize(NSLICE * NFIELD);
-  uj.resize(NSLICE * NFIELD);
+  ui.resize(NSLICE * THREE);
+  fi.resize(NSLICE * THREE);
+  uj.resize(NSLICE * THREE);
   delete file;
   delete domain;
   for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
-    sprintf(session_i, "%s_%u", session, slice_i);
+    //sprintf(session_i, "%s_%u", session, slice_i);
+    sprintf(session_i, "%s", session);
     file_i = new FEML(session_i);
     domain = new Domain(file_i, elmt, bman);
     domain->restart();
-    for(int field_i = 0; field_i < NFIELD; field_i++) {
+    for(int field_i = 0; field_i < 3/*NFIELD*/; field_i++) {
       // this is the array of fields that contains the initial condition!!!
       ui[slice_i*NFIELD+field_i] = domain->u[field_i];
 
@@ -583,7 +689,8 @@ if(!Geometry::procID()) cout << "\t|u|: " << norm_u << "\t|v|: " << norm_v << "\
   }
 
   // allocate the temporary fields
-  sprintf(session_i, "%s_tmp", session);
+  //sprintf(session_i, "%s_tmp", session);
+  sprintf(session_i, "%s", session);
   file_i = new FEML(session_i);
   domain = new Domain(file_i, elmt, bman);
   domain->restart();
@@ -594,17 +701,16 @@ if(!Geometry::procID()) cout << "\t|u|: " << norm_u << "\t|v|: " << norm_v << "\
   delete domain;
 
   // dump the output
-  for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
-    sprintf(session_i, "%s_rpo_%u", session, slice_i);
-    file_i = new FEML(session_i);
-    domain = new Domain(file_i, elmt, bman);
-    for(int field_i = 0; field_i < NFIELD; field_i++) {
-      domain->u[field_i] = ui[slice_i*NFIELD+field_i];
-    }
-    domain->dump();
-    delete file_i;
-    delete domain;
-  } 
+  //sprintf(session_i, "%s_rpo_0", session);
+  sprintf(session_i, "%s", session);
+  file_i = new FEML(session_i);
+  domain = new Domain(file_i, elmt, bman);
+  for(int field_i = 0; field_i < THREE; field_i++) {
+    domain->u[field_i] = ui[field_i];
+  }
+  domain->dump();
+  delete file_i;
+  delete domain;
 
   PetscFinalize();
 
