@@ -103,6 +103,8 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->build_PC = true;
   context->x_fourier = true;
   context->travelling_wave = false;
+  context->nElsX    = NELS_X;
+  context->nElsY    = NELS_Y;
 
   context->theta_i = new real_t[NSLICE];
   context->phi_i   = new real_t[NSLICE];
@@ -206,8 +208,8 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   VecScatterEnd(  context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
 #else
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
-  //phase_shift_x(context, 0.5*M_PI, -1.0, context->ui);
-  phase_shift_z(context, 0.25*M_PI, -1.0, context->ui);
+  phase_shift_x(context, 0.5*M_PI, -1.0, context->ui);
+  //phase_shift_z(context, 0.25*M_PI, -1.0, context->ui);
   RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 #endif
 
@@ -256,7 +258,8 @@ int main (int argc, char** argv) {
   delete file;
   delete domain;
   for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
-    sprintf(session_i, "%s_0", session, slice_i);
+    //sprintf(session_i, "%s_0", session, slice_i);
+    sprintf(session_i, "%s", session, slice_i);
     file_i = new FEML(session_i);
     domain = new Domain(file_i, elmt, bman);
     domain->restart();
@@ -268,7 +271,8 @@ int main (int argc, char** argv) {
   }
 
   // allocate the temporary fields
-  sprintf(session_i, "%s_tmp", session);
+  //sprintf(session_i, "%s_tmp", session);
+  sprintf(session_i, "%s", session);
   file_i = new FEML(session_i);
   domain = new Domain(file_i, elmt, bman);
   domain->restart();
