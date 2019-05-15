@@ -80,7 +80,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   Context* context = new Context;
   int elOrd = Geometry::nP() - 1;
   int nNodesX = NELS_X*elOrd;
-  int nModesX = nNodesX/2;// + 2;
+  int nModesX;
   real_t dx, er, es, ex, ey;
   real_t ckt, skt, cTmp, rTmp;
   const real_t* qx;
@@ -110,9 +110,11 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->phi_i   = new real_t[NSLICE];
   context->tau_i   = new real_t[NSLICE];
 
-  context->nModesX = nNodesX/2;
-  //context->nModesX = nNodesX;
+  //context->nModesX = nNodesX/2;
+  context->nModesX = nNodesX;
   context->xmax    = XMAX;
+
+  nModesX = context->nModesX;
 
   for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
     context->theta_i[slice_i] = 0.0;
@@ -208,7 +210,8 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   VecScatterEnd(  context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
 #else
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
-  phase_shift_x(context, 0.5*M_PI, -1.0, context->ui);
+  phase_shift_x(context, -0.5*M_PI, -1.0, context->ui);
+  //phase_shift_x(context, 2.0*M_PI, -1.0, context->ui);
   //phase_shift_z(context, 0.25*M_PI, -1.0, context->ui);
   RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 #endif
@@ -257,21 +260,17 @@ int main (int argc, char** argv) {
   ui.resize(NSLICE * NFIELD);
   delete file;
   delete domain;
-  for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
-    //sprintf(session_i, "%s_0", session, slice_i);
-    sprintf(session_i, "%s", session, slice_i);
-    file_i = new FEML(session_i);
-    domain = new Domain(file_i, elmt, bman);
-    domain->restart();
-    for(int field_i = 0; field_i < NFIELD; field_i++) {
-      ui[slice_i*NFIELD+field_i] = domain->u[field_i];
-    }
-    delete file_i;
-    delete domain;
+  sprintf(session_i, "%s", session);
+  file_i = new FEML(session_i);
+  domain = new Domain(file_i, elmt, bman);
+  domain->restart();
+  for(int field_i = 0; field_i < NFIELD; field_i++) {
+    ui[field_i] = domain->u[field_i];
   }
+  delete file_i;
+  delete domain;
 
   // allocate the temporary fields
-  //sprintf(session_i, "%s_tmp", session);
   sprintf(session_i, "%s", session);
   file_i = new FEML(session_i);
   domain = new Domain(file_i, elmt, bman);
@@ -283,17 +282,15 @@ int main (int argc, char** argv) {
   delete domain;
 
   // dump the output
-  for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
-    sprintf(session_i, "%s_rpo_%u", session, slice_i);
-    file_i = new FEML(session_i);
-    domain = new Domain(file_i, elmt, bman);
-    for(int field_i = 0; field_i < NFIELD; field_i++) {
-      domain->u[field_i] = ui[slice_i*NFIELD+field_i];
-    }
-    domain->dump();
-    delete file_i;
-    delete domain;
-  } 
+  sprintf(session_i, "%s_shift", session);
+  file_i = new FEML(session_i);
+  domain = new Domain(file_i, elmt, bman);
+  for(int field_i = 0; field_i < NFIELD; field_i++) {
+    domain->u[field_i] = ui[field_i];
+  }
+  domain->dump();
+  delete file_i;
+  delete domain;
 
   if(!Geometry::procID()) cout << "...done.\n";
 
