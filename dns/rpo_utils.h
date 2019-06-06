@@ -20,7 +20,7 @@ struct Context {
     FieldForce*      ff;
     vector<Field*>   ui;
     vector<Field*>   fi;
-    vector<Field*>   uj;
+    vector<Field*>   u0;
     real_t*          theta_i;
     real_t*          phi_i;
     real_t*          tau_i;
@@ -40,14 +40,19 @@ struct Context {
     IS*              is_u;
     IS*              is_p;
     SNES             snes;
-    double           x_norm; // for scaling the phase shifts
-    Vec              x_prev; // for determining \delta x
+    double           shift_scale; // for scaling the phase shifts
+    double           dx_norm_prev;
+    Vec              x_prev;
+    Vec              x_delta;
     int              nModesX;
     double           xmax;
     bool             x_fourier;
     bool             travelling_wave;
     int              nElsX;
     int              nElsY;
+    int              iteration;
+    Domain*          write_i; // additional fields for file writing (ui)
+    Domain*          write_f; // additioanl fields for file writing (fi)
 };
 
 void data_transpose(real_t* data, int nx, int ny);
@@ -55,8 +60,10 @@ void elements_to_logical(int nex, int ney, real_t* data_els, real_t* data_log);
 void logical_to_elements(int nex, int ney, real_t* data_log, real_t* data_els);
 void SEM_to_Fourier(int plane_k, Context* context, Field* us, real_t* data_f);
 void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_f);
-void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x);
-void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x);
+void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale);
+void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale);
+void UnpackConstraints(Context* context, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale);
+void RepackConstraints(Context* context, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale);
 void assign_scatter_semtex(Context* context);
 void phase_shift_x(Context* context, double theta, double sign, vector<Field*> fields);
 void phase_shift_z(Context* context, double phi,   double sign, vector<Field*> fields);

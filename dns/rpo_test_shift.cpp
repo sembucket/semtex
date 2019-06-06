@@ -179,7 +179,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, nSlice * context->nDofsSlice, &x);
 
-  RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
+  RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x, 1.0);
 
 #ifdef VEL_MAJOR
   VecScatterBegin(context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
@@ -209,14 +209,16 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   VecScatterBegin(context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
   VecScatterEnd(  context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
 #else
-  UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
-  phase_shift_x(context, -0.5*M_PI, -1.0, context->ui);
+  if(!Geometry::procID()) cout << "applying phase shifts...\n";
+  UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x, 1.0);
+  //phase_shift_x(context, -0.5*M_PI, -1.0, context->ui);
+  phase_shift_x(context, -0.5*M_PI, +1.0, context->ui);
   //phase_shift_x(context, 2.0*M_PI, -1.0, context->ui);
   //phase_shift_z(context, 0.25*M_PI, -1.0, context->ui);
-  RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
+  RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x, 1.0);
 #endif
 
-  UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
+  UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x, 1.0);
 
   VecDestroy(&x);
   VecDestroy(&xl);

@@ -205,7 +205,7 @@ void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_f) {
 }
 
 #ifdef VEL_MAJOR
-void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
+void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale) {
   int nex = context->nElsX;
   int ney = context->nElsY;
   int elOrd = Geometry::nP() - 1;
@@ -254,13 +254,13 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
     // phase shift data lives on the 0th processors part of the vector
     if(!Geometry::procID()) {
       if(context->x_fourier) {
-        theta[slice_i] = xArray[index] / context->x_norm;
+        theta[slice_i] = xArray[index] / shift_scale;
         index++;
       }
-      phi[slice_i]     = xArray[index] / context->x_norm;
+      phi[slice_i]     = xArray[index] / shift_scale;
       index++;
       if(!context->travelling_wave) {
-        tau[slice_i]   = xArray[index] / context->x_norm;
+        tau[slice_i]   = xArray[index] / shift_scale;
         index++;
       }
     }
@@ -271,7 +271,7 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   delete[] data;
 }
 #else
-void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
+void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale) {
   int nex = context->nElsX;
   int ney = context->nElsY;
   int elOrd = Geometry::nP() - 1;
@@ -318,11 +318,11 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   // phase shift data lives on the 0th processors part of the vector
   if(!Geometry::procID()) {
     if(context->x_fourier) {
-      theta[0] = xArray[index++] / context->x_norm;
+      theta[0] = xArray[index++] / shift_scale;
     }
-    phi[0]     = xArray[index++] / context->x_norm;
+    phi[0]     = xArray[index++] / shift_scale;
     if(!context->travelling_wave) {
-      tau[0]   = xArray[index++] / context->x_norm;
+      tau[0]   = xArray[index++] / shift_scale;
     }
   }
 
@@ -336,8 +336,39 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
 }
 #endif
 
+void UnpackConstraints(Context* context, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale) {
+  int ii, jj, kk, ll, slice_i, field_i, index;
+  const PetscScalar *xArray;
+  Vec xl;
+
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
+  VecScatterBegin(context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterEnd(  context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
+
+  VecGetArrayRead(xl, &xArray);
+  for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
+    index = context->nField * Geometry::nZProc() * context->nDofsPlane;
+    // phase shift data lives on the 0th processors part of the vector
+    if(!Geometry::procID()) {
+      if(context->x_fourier) {
+        theta[slice_i] = xArray[index] / shift_scale;
+        index++;
+      }
+      phi[slice_i]     = xArray[index] / shift_scale;
+      index++;
+      if(!context->travelling_wave) {
+        tau[slice_i]   = xArray[index] / shift_scale;
+        index++;
+      }
+    }
+  }
+  VecRestoreArrayRead(xl, &xArray);
+
+  VecDestroy(&xl);
+}
+
 #ifdef VEL_MAJOR
-void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
+void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale) {
   int nex = context->nElsX;
   int ney = context->nElsY;
   int elOrd = Geometry::nP() - 1;
@@ -356,6 +387,8 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   index = 0;
   for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
     for(field_i = 0; field_i < THREE; field_i++) {
+      norm_l = 0.0;
+
       // omit the radial velocity
       if(context->nField < 3 && field_i == 1) continue; 
 
@@ -386,18 +419,18 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
         }
       }
       MPI_Allreduce(&norm_l, &norm_g, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-      if(!Geometry::procID()) cout << field_i << " |x|: " << sqrt(norm_g) << endl;
+      if(!Geometry::procID()) cout << "\t" << field_i << " |u|: " << sqrt(norm_g);
     }
     // phase shift data lives on the 0th processors part of the vector
     if(!Geometry::procID()) {
       if(context->x_fourier) {
-        xArray[index] = theta[slice_i] * context->x_norm;
+        xArray[index] = theta[slice_i] * shift_scale;
         index++;
       }
-      xArray[index]   = phi[slice_i]   * context->x_norm;
+      xArray[index]   = phi[slice_i]   * shift_scale;
       index++;
       if(!context->travelling_wave) {
-        xArray[index] = tau[slice_i] * context->x_norm;
+        xArray[index] = tau[slice_i]   * shift_scale;
         index++;
       }
     }
@@ -406,12 +439,14 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
 
   VecScatterBegin(context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
   VecScatterEnd(  context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
+  VecNorm(x, NORM_2, &norm_g);
+  if(!Geometry::procID()) cout << "\t|x|: " << scientific << norm_g << endl;
 
   VecDestroy(&xl);
   delete[] data;
 }
 #else
-void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
+void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale) {
   int nex = context->nElsX;
   int ney = context->nElsY;
   int elOrd = Geometry::nP() - 1;
@@ -481,11 +516,11 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   // phase shift data lives on the 0th processors part of the vector
   if(!Geometry::procID()) {
     if(context->x_fourier) {
-      xArray[index++] = theta[0] * context->x_norm;
+      xArray[index++] = theta[0] * shift_scale;
     }
-    xArray[index++]   = phi[0]   * context->x_norm;
+    xArray[index++]   = phi[0]   * shift_scale;
     if(!context->travelling_wave) {
-      xArray[index++] = tau[0] * context->x_norm;
+      xArray[index++] = tau[0]   * shift_scale;
     }
   }
   VecRestoreArray(xl, &xArray);
@@ -500,6 +535,41 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   delete[] data_p;
 }
 #endif
+
+void RepackConstraints(Context* context, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale) {
+  int ii, jj, kk, slice_i, field_i, index;
+  PetscScalar *xArray;
+  Vec xl;
+
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
+  VecScatterBegin(context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterEnd(  context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
+
+  VecGetArray(xl, &xArray);
+  for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
+    index = context->nField * Geometry::nZProc() * context->nDofsPlane;
+
+    // phase shift data lives on the 0th processors part of the vector
+    if(!Geometry::procID()) {
+      if(context->x_fourier) {
+        xArray[index] = theta[slice_i] * shift_scale;
+        index++;
+      }
+      xArray[index]   = phi[slice_i]   * shift_scale;
+      index++;
+      if(!context->travelling_wave) {
+        xArray[index] = tau[slice_i]   * shift_scale;
+        index++;
+      }
+    }
+  }
+  VecRestoreArray(xl, &xArray);
+
+  VecScatterBegin(context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
+  VecScatterEnd(  context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
+
+  VecDestroy(&xl);
+}
 
 // define a vec scatter object for mapping from parallel global vectors to semtex data
 #ifdef VEL_MAJOR
@@ -606,7 +676,11 @@ void phase_shift_x(Context* context, double theta, double sign, vector<Field*> f
   int nModesX = context->nModesX;
   int mode_i, field_i, pt_y, mode_k;
   double ckt, skt, rTmp, cTmp;
-  real_t* data_f = new real_t[ney*elOrd*nModesX];
+  real_t* data_f;
+
+  if(!context->x_fourier) return;
+
+  data_f = new real_t[ney*elOrd*nModesX];
 
   for(mode_i = 0; mode_i < Geometry::nZProc(); mode_i++) {
     //for(field_i = 0; field_i < context->domain->nField(); field_i++) {
