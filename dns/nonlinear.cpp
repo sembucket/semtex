@@ -218,7 +218,7 @@ void skewSymmetric (Domain*     D ,
   }
 
   // -- Apply the centrifugal buoyancy forcing to the rhs operator
-  CentrifugalBuoyancy(D, Uphys[NCOM], N, NCOM, do_scat);
+  //CentrifugalBuoyancy(D, Uphys[NCOM], N, NCOM, do_scat);
 }
 
 

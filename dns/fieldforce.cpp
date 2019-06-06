@@ -123,8 +123,8 @@ void FieldForce::addFourier (AuxField*         Ni ,
 // ---------------------------------------------------------------------------
 {
   const char  routine[] = "FieldForce::addFourier";
-  bool        do_scat   = strchr(_D -> field, 'c');                             // -- Do scalar transport
-  const int_t NCOM      = (do_scat) ? _D -> nField() - 2 : _D -> nField() - 1;	// -- Number of velocity components.
+  //bool        do_scat   = strchr(_D -> field, 'c');                             // -- Do scalar transport
+  //const int_t NCOM      = (do_scat) ? _D -> nField() - 2 : _D -> nField() - 1;	// -- Number of velocity components.
 
   if (!_enabled) return;
 
