@@ -143,7 +143,7 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* phi, real_t* tau, 
   // phase shift data lives on the 0th processors part of the vector
   if(!Geometry::procID()) {
     *phi = xArray[index++] / context->x_norm;
-    *tau = xArray[index++] / context->x_norm;
+    if(!context->travelling_wave) *tau = xArray[index++] / context->x_norm;
   }
   VecRestoreArrayRead(xl, &xArray);
 
@@ -184,7 +184,7 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* phi, real_t* tau, 
   // phase shift data lives on the 0th processors part of the vector
   if(!Geometry::procID()) {
     *phi = xArray[index++] / context->x_norm;
-    *tau = xArray[index++] / context->x_norm;
+    if(!context->travelling_wave) *tau = xArray[index++] / context->x_norm;
   }
   VecRestoreArrayRead(xl, &xArray);
 
@@ -232,7 +232,7 @@ void RepackX(Context* context, vector<Field*> fields, real_t  phi, real_t  tau, 
   // phase shift data lives on the 0th processors part of the vector
   if(!Geometry::procID()) {
     xArray[index++] = phi * context->x_norm;
-    xArray[index++] = tau * context->x_norm;
+    if(!context->travelling_wave) xArray[index++] = tau * context->x_norm;
   }
   VecRestoreArray(xl, &xArray);
 
@@ -289,7 +289,7 @@ void RepackX(Context* context, vector<Field*> fields, real_t  phi, real_t  tau, 
   // phase shift data lives on the 0th processors part of the vector
   if(!Geometry::procID()) {
     xArray[index++] = phi * context->x_norm;
-    xArray[index++] = tau * context->x_norm;
+    if(!context->travelling_wave) xArray[index++] = tau * context->x_norm;
   }
   VecRestoreArray(xl, &xArray);
 
@@ -308,7 +308,7 @@ void RepackX(Context* context, vector<Field*> fields, real_t  phi, real_t  tau, 
 void assign_scatter_semtex(Context* context) {
   int   nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
   int   nDofsCube_g = Geometry::nZ()     * context->nDofsPlane;
-  int   nShifts     = 2;
+  int   nShifts     = (!context->travelling_wave) ? 2 : 1;
   int   ind_i       = 0;
   int*  inds        = new int[context->localSize];
   IS    isl, isg;
@@ -351,7 +351,7 @@ void assign_scatter_semtex(Context* context) {
 void assign_scatter_semtex(Context* context) {
   int   nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
   int   nDofsCube_g = Geometry::nZ()     * context->nDofsPlane;
-  int   nShifts     = 2;
+  int   nShifts     = (!context->travelling_wave) ? 2 : 1;
   int   ind_i       = 0;
   int   start       = Geometry::procID() * nDofsCube_l * context->nField;
   int*  inds        = new int[context->localSize];
@@ -407,8 +407,8 @@ void phase_shift_z(Context* context, double phi, double sign, vector<Field*> fie
       data_c = fields[field_i]->plane(2*mode_i+1);
 
       for(dof_i = 0; dof_i < NELS_X*NELS_Y*(elOrd+1)*(elOrd+1); dof_i++) {
-        rTmp = ckt*data_r[dof_i] - skt*data_c[dof_i];
-        cTmp = skt*data_r[dof_i] + ckt*data_c[dof_i];
+        rTmp = +ckt*data_r[dof_i] + skt*data_c[dof_i];
+        cTmp = -skt*data_r[dof_i] + ckt*data_c[dof_i];
         data_r[dof_i] = rTmp;
         data_c[dof_i] = cTmp;
       }

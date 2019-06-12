@@ -18,7 +18,7 @@ struct Context {
     FieldForce*      ff;
     vector<Field*>   ui;
     vector<Field*>   fi;
-    vector<Field*>   uj;
+    vector<Field*>   u0;
     real_t           phi_i;
     real_t           tau_i;
     // parallel vector scattering data
@@ -28,10 +28,14 @@ struct Context {
     IS               isg;  // global index set
     VecScatter       global_to_semtex; // scatter from global data to semtex fields
     SNES             snes;
-    double           x_norm; // for scaling the phase shifts
-    Vec              x_prev; // for determining \delta x
+    double           x_norm;  // for scaling the phase shifts
+    Vec              x_prev;  // for determining \delta x
+    Vec              x_delta; // for determining \delta x
     double           xmin;
     double           xmax;
+    int              iteration;
+    bool             travelling_wave;
+    Domain*          write;   // additional fields for dumping at run time
 };
 
 void elements_to_logical(real_t* data_els, real_t* data_log);
