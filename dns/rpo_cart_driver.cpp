@@ -342,6 +342,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nDofsSlice, &x);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nDofsSlice, &f);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nDofsSlice, &context->x_prev);
+  VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nDofsSlice, &context->x_delta);
 
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
@@ -364,6 +365,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   context->x_norm = 1.0;//1000.0;
   RepackX(context, context->ui, context->phi_i, context->tau_i, x);
   VecNorm(x, NORM_2, &context->x_norm);
+  VecZeroEntries(context->x_delta);
   if(!Geometry::procID()) cout << "|x_0|: " << context->x_norm << endl;
   if(context->x_norm < 1.0e-4) {
     if(!Geometry::procID()) cout << "ERROR: initial state vector norm is SMALL! "
@@ -383,6 +385,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   VecDestroy(&f);
   MatDestroy(&P);
   VecDestroy(&context->x_prev);
+  VecDestroy(&context->x_delta);
 }
 
 int main (int argc, char** argv) {
