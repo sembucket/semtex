@@ -291,7 +291,7 @@ void schur_complement_constraints(Context* context, double* schur) {
       *context->domain->u[field_i] = *context->ui[field_i];
       phase_shift_x(context, context->theta_i[0], -1.0, context->domain->u);
       phase_shift_z(context, context->phi_i[0],   -1.0, context->domain->u);
-      *context->uj[field_i] = *context->domain->u[field_i];
+      *context->fi[field_i] = *context->domain->u[field_i];
     }
     nStep = Femlib::ivalue("N_STEP");
     Femlib::ivalue("N_STEP", 1);
@@ -299,7 +299,7 @@ void schur_complement_constraints(Context* context, double* schur) {
     //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
     integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
     for(int field_i = 0; field_i < context->nField; field_i++) {
-      *context->domain->u[field_i] -= *context->uj[field_i];
+      *context->domain->u[field_i] -= *context->fi[field_i];
       *context->domain->u[field_i] *= 1.0 / Femlib::value("D_T");
     } 
     Femlib::ivalue("N_STEP", nStep);
@@ -308,7 +308,7 @@ void schur_complement_constraints(Context* context, double* schur) {
   // set the constraints as a schur complement (columns)
   for(int field_i = 0; field_i < context->nField; field_i++) {
     for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
-      SEM_to_Fourier(plane_i, context, context->uj[field_i], data_r);
+      SEM_to_Fourier(plane_i, context, context->fi[field_i], data_r);
       for(int node_j = 0; node_j < NELS_Y * elOrd; node_j++) {
         for(int mode_i = 0; mode_i < nModesX; mode_i++) {
           index = field_i * nDofsCube_l + plane_i * context->nDofsPlane + node_j * nModesX + mode_i;
@@ -324,8 +324,8 @@ void schur_complement_constraints(Context* context, double* schur) {
     }
     for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
       plane_j = Geometry::procID() * Geometry::nZProc() + plane_i;
-      SEM_to_Fourier(plane_i+0, context, context->uj[field_i], data_r);
-      SEM_to_Fourier(plane_i+1, context, context->uj[field_i], data_i);
+      SEM_to_Fourier(plane_i+0, context, context->fi[field_i], data_r);
+      SEM_to_Fourier(plane_i+1, context, context->fi[field_i], data_i);
       for(int dof_i = 0; dof_i < NELS_Y * elOrd * nModesX; dof_i++) {
         el_j = dof_i / (nModesX * elOrd);
         pt_j = (dof_i / nModesX) % elOrd;

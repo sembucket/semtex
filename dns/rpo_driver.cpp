@@ -162,10 +162,8 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
           k_x = (2.0 * M_PI / (context->xmax /*- XMIN*/)) * (mode_i / 2);
 
           if(mode_i % 2 == 0) { // real part
-            //rx[index] = +k_x * data_r[node_j * nModesX + mode_i + 1];
             rx[index] = -k_x * data_r[node_j * nModesX + mode_i + 1];
           } else {              // imag part
-            //rx[index] = -k_x * data_r[node_j * nModesX + mode_i - 1];
             rx[index] = +k_x * data_r[node_j * nModesX + mode_i - 1];
           }
         }
@@ -188,10 +186,8 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
         //k_z = 1.0 * (plane_j / 2);
 
         index = field_j * nDofsCube_l + (plane_i+0) * context->nDofsPlane + dof_i;
-        //rz[index] = +k_z * data_i[dof_i];
         rz[index] = -k_z * data_i[dof_i];
         index = field_j * nDofsCube_l + (plane_i+1) * context->nDofsPlane + dof_i;
-        //rz[index] = -k_z * data_r[dof_i];
         rz[index] = +k_z * data_r[dof_i];
       }
     }
@@ -227,16 +223,10 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
         k_x = (2.0 * M_PI / (context->xmax /*- XMIN*/)) * (mode_i / 2);
 
         if(mode_i % 2 == 0) {
-          //rx[index+0] = +k_x * data_u_r[node_j * nModesX + mode_i + 1];
-          //rx[index+1] = +k_x * data_v_r[node_j * nModesX + mode_i + 1];
-          //rx[index+2] = +k_x * data_w_r[node_j * nModesX + mode_i + 1];
           rx[index+0] = -k_x * data_u_r[node_j * nModesX + mode_i + 1];
           rx[index+1] = -k_x * data_v_r[node_j * nModesX + mode_i + 1];
           rx[index+2] = -k_x * data_w_r[node_j * nModesX + mode_i + 1];
         } else {
-          //rx[index+0] = -k_x * data_u_r[node_j * nModesX + mode_i - 1];
-          //rx[index+1] = -k_x * data_v_r[node_j * nModesX + mode_i - 1];
-          //rx[index+2] = -k_x * data_w_r[node_j * nModesX + mode_i - 1];
           rx[index+0] = +k_x * data_u_r[node_j * nModesX + mode_i - 1];
           rx[index+1] = +k_x * data_v_r[node_j * nModesX + mode_i - 1];
           rx[index+2] = +k_x * data_w_r[node_j * nModesX + mode_i - 1];
@@ -303,9 +293,6 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
 
   f_theta_l = f_phi_l = f_tau_l = 0.0;
   for(int dof_i = 0; dof_i < nl; dof_i++) {
-    //f_theta_l += rx[dof_i] * xArray[dof_i];
-    //f_phi_l   += rz[dof_i] * xArray[dof_i];
-    //if(!context->travelling_wave) f_tau_l += rt[dof_i] * xArray[dof_i];
     f_theta_l -= rx[dof_i] * xArray[dof_i];
     f_phi_l   -= rz[dof_i] * xArray[dof_i];
     if(!context->travelling_wave) f_tau_l -= rt[dof_i] * xArray[dof_i];
@@ -348,6 +335,8 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   Vec dx_test;
   bool update = false;
   double shift_scale = (!context->iteration) ? 1.0 : context->shift_scale;
+  char filename[100];
+  PetscViewer viewer;
 
   // create the \delta x vector for use in the assembly of the constraints into the residual vector
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, NSLICE * context->nDofsSlice, &dx_test);
@@ -367,10 +356,19 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     if(!Geometry::procID()) cout << "\tunpacking solution vector" << endl;
     VecCopy(dx_test, context->x_delta);
 
-    //UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x, 1.0);
-    //UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x, shift_scale);
+    //UnpackX(context, context->u0, &dummy[0], &dummy[1], &dummy[2], context->x_prev, 1.0);
+    UnpackX(context, context->u0, &dummy[0], &dummy[1], &dummy[2], x, 1.0);
 
-    UnpackX(context, context->u0, &dummy[0], &dummy[1], &dummy[2], context->x_prev, 1.0);
+    // write the current state vector
+    sprintf(filename, "x_curr_%.4u.vec", context->iteration);
+    PetscViewerBinaryOpen(MPI_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
+    VecView(x, viewer);
+    PetscViewerDestroy(&viewer);
+    // write the previous state vector
+    sprintf(filename, "x_prev_%.4u.vec", context->iteration);
+    PetscViewerBinaryOpen(MPI_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
+    VecView(context->x_prev, viewer);
+    PetscViewerDestroy(&viewer);
   } else {
     if(!Geometry::procID()) cout << "\t existing solution vector" << endl;
   }
@@ -407,36 +405,18 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
   integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
 #ifdef TESTING
-  // initial
   for(field_i = 0; field_i < THREE; field_i++) *context->write_i->u[field_i] = *context->ui[field_i];
   *context->write_i->u[THREE] = *context->domain->u[THREE]; //dump the pressure as a sanity check
   context->write_i->dump();
-  // final
-  for(field_i = 0; field_i < THREE; field_i++) *context->write_f->u[field_i] = *context->domain->u[field_i];
-  *context->write_f->u[THREE] = *context->domain->u[THREE]; // dump the pressure as a sanity check
-  context->write_f->dump();
 #endif
 
-  // temporart fields prior to residual assembly (1)
-/*
-  for(field_i = 0; field_i < context->nField; field_i++) {
-    *context->write_i->u[field_i] = *context->domain->u[field_i];
-  }
-*/
-
   // phase shift in theta (axial direction)
-  //phase_shift_x(context, context->theta_i[0] * (2.0 * M_PI / context->xmax), -1.0, context->domain->u);
   phase_shift_x(context, context->theta_i[0] * (2.0 * M_PI / context->xmax), +1.0, context->domain->u);
   // phase shift in phi (azimuthal direction)
-  //phase_shift_z(context, context->phi_i[0], -1.0, context->domain->u);
   phase_shift_z(context, context->phi_i[0], +1.0, context->domain->u);
 
   // set the residual vector
   for(field_i = 0; field_i < context->nField; field_i++) {
-/*
-    *context->fi[field_i]  = *context->ui[field_i];
-    *context->fi[field_i] -= *context->domain->u[field_i];
-*/
     *context->fi[field_i]  = *context->domain->u[field_i];
     *context->fi[field_i] -= *context->ui[field_i];
   }
@@ -449,13 +429,6 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   // if not assembling the radial velocity into the rpo solver, then 
   // updating this from the DNS at the end of the simulation time
   //if(context->nField < 3) *context->ui[1] = *context->domain->u[1];
-
-  // temporart fields prior to residual assembly (2)
-/*
-  for(field_i = 0; field_i < context->nField; field_i++) {
-    *context->ui[field_i] = *context->write_i->u[field_i];
-  }
-*/
 
   VecNorm(x, NORM_2, &x_norm);
   VecNorm(f, NORM_2, &f_norm);
