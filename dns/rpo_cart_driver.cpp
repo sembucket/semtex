@@ -106,8 +106,8 @@ void build_constraints(Context* context, Vec x_delta, double* f_phi, double* f_t
     }
     if(!Geometry::procID()) cout << "time step in constraints evaluation: " << scientific << Femlib::value("D_T") << endl;
 
-    delete context->analyst;
-    context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
+    //delete context->analyst;
+    //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
 
     nStep = Femlib::ivalue("N_STEP");
     Femlib::ivalue("N_STEP", 1);
@@ -258,8 +258,8 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   }
 
   // don't want to call the dns analysis, use custom integrate routine instead
-  delete context->analyst;
-  context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
+  //delete context->analyst;
+  //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
   integrate(convective, context->domain, context->bman, context->analyst, context->ff);
 
   // phase shift in fourier direction
