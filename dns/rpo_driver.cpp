@@ -89,20 +89,6 @@ void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 #define XMAX 4.053667940115862
 #endif
 
-double fieldnorm(Field* field) {
-  double norm_l = 0.0;
-  double norm_g = 0.0;
-
-  for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
-    real_t* plane = field->plane(plane_i);
-    for(int dof_i = 0; dof_i < Geometry::planeSize(); dof_i++) {
-      norm_l += plane[dof_i]*plane[dof_i];
-    }
-  }
-  MPI_Allreduce(&norm_l, &norm_g, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  return sqrt(norm_g);
-}
-
 void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f_phi, double* f_tau) {
   int          elOrd       = Geometry::nP() - 1;
   int          nNodesX     = NELS_X*elOrd;
@@ -138,7 +124,7 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
     if(!Geometry::procID()) cout << "time step in constraints evaluation: " << scientific << Femlib::value("D_T") << endl;
     //delete context->analyst;
     //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
-    integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
+    integrate(convective, context->domain, context->bman, context->analyst, context->ff);
     for(int field_i = 0; field_i < context->nField; field_i++) {
       *context->domain->u[field_i] -= *context->u0[field_i];
       *context->domain->u[field_i] *= 1.0 / Femlib::value("D_T");
@@ -174,16 +160,7 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
       SEM_to_Fourier(plane_i+0, context, context->u0[field_i], data_r);
       SEM_to_Fourier(plane_i+1, context, context->u0[field_i], data_i);
       for(int dof_i = 0; dof_i < context->nElsY * elOrd * nModesX; dof_i++) {
-        el_j = dof_i / (nModesX * elOrd);
-        pt_j = (dof_i / nModesX) % elOrd;
-        p_y  = context->elmt[el_j]->_ymesh[pt_j*(elOrd+1)];
-        //if(fabs(p_y) < 1.0e-6) p_y = 1.0;
-        if(fabs(p_y) < 1.0e-6) {
-          k_z = 0.0;
-        } else {
-          k_z  = (1.0 / p_y) * context->phi_i[0] * (plane_j / 2);
-        }
-        //k_z = 1.0 * (plane_j / 2);
+        k_z = 1.0 * (plane_j / 2);
 
         index = field_j * nDofsCube_l + (plane_i+0) * context->nDofsPlane + dof_i;
         rz[index] = -k_z * data_i[dof_i];
@@ -245,14 +222,7 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
     SEM_to_Fourier(plane_i+1, context, context->u0[2], data_w_i);
 
     for(int dof_i = 0; dof_i < context->nElsY * elOrd * nModesX; dof_i++) {
-      el_j = dof_i / (nModesX * elOrd);
-      pt_j = (dof_i / nModesX) % elOrd;
-      p_y  = context->elmt[el_j]->_ymesh[pt_j*(elOrd+1)];
-      if(fabs(p_y) < 1.0e-6) {
-        k_z = 0.0;
-      } else {
-        k_z  = (1.0 / p_y) * context->phi_i[0] * (plane_j / 2);
-      }
+      k_z = 1.0 * (plane_j / 2);
 
       index = THREE * ( (plane_i+0) * context->nDofsPlane + dof_i ) + 0;
       rz[index] = +k_z * data_u_i[dof_i];
@@ -329,49 +299,55 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
 PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   Context* context = (Context*)ctx;
   real_t dt;
-  int field_i, mode_i, mode_j, dof_i, nStep;
-  double f_norm, x_norm, dx_norm_2, dx_norm, u_norm;
-  double f_theta[1], f_phi[1], f_tau[1], runTime, dummy[3];
-  Vec dx_test;
+  int field_i, mode_i, mode_j, dof_i, nStep, newton_it;
+  double f_norm, x_norm, dx_norm_2, dx_norm, u_norm, runTime, dummy[3], zero = 0.0;
   bool update = false;
-  double shift_scale = (!context->iteration) ? 1.0 : context->shift_scale;
   char filename[100];
   PetscViewer viewer;
+  Vec x_snes;
+  KSP ksp;
+  KSPConvergedReason reason;
 
-  // create the \delta x vector for use in the assembly of the constraints into the residual vector
-  VecCreateMPI(MPI_COMM_WORLD, context->localSize, NSLICE * context->nDofsSlice, &dx_test);
-  VecZeroEntries(dx_test);
-  VecAXPY(dx_test, +1.0, x);
-  VecAXPY(dx_test, -1.0, context->x_prev);
-  VecNorm(dx_test, NORM_2, &dx_norm);
-  VecNorm(x, NORM_2, &x_norm);
+  SNESGetKSP(snes, &ksp);
+  KSPGetConvergedReason(ksp, &reason); // if reason != 0 then gmres solve has completed
+  if(reason || context->prev_newton_it < 0) {
+    update = true;
+    context->prev_newton_it++;
+  }
+  if(!Geometry::procID()) cout << "update? " << update << ", ksp converged reason: " << reason << endl;
 
-  if(context->iteration == 0) update = true;
-  if(dx_norm/x_norm > 1.0e-6) update = true;
-
-  if(!Geometry::procID()) cout << "\tupdate test; |dx|: " << dx_norm << "\t|x|: " << x_norm << "\t|dx|/|x|: " << dx_norm/x_norm << endl;
-  VecNorm(context->x_delta, NORM_2, &dx_norm_2);
-  if(!Geometry::procID()) cout << "\tactual |dx|: " << dx_norm_2 << endl;
   if(update) {
     if(!Geometry::procID()) cout << "\tunpacking solution vector" << endl;
-    VecCopy(dx_test, context->x_delta);
-
-    //UnpackX(context, context->u0, &dummy[0], &dummy[1], &dummy[2], context->x_prev, 1.0);
-    UnpackX(context, context->u0, &dummy[0], &dummy[1], &dummy[2], x, 1.0);
+    //VecCopy(context->dx_test, context->x_delta);
+    //UnpackX(context, context->u0, &dummy[0], &dummy[1], &dummy[2], x, 1.0);
 
     // write the current state vector
     sprintf(filename, "x_curr_%.4u.vec", context->iteration);
     PetscViewerBinaryOpen(MPI_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
     VecView(x, viewer);
     PetscViewerDestroy(&viewer);
-    // write the previous state vector
-    sprintf(filename, "x_prev_%.4u.vec", context->iteration);
-    PetscViewerBinaryOpen(MPI_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
-    VecView(context->x_prev, viewer);
-    PetscViewerDestroy(&viewer);
-  } else {
-    if(!Geometry::procID()) cout << "\t existing solution vector" << endl;
+  } 
+
+  // unpack the velocity field for use in the constraints assembly from the most recent acceptable guess
+  SNESGetSolution(snes, &x_snes);
+  VecNorm(x_snes, NORM_2, &x_norm);
+  if(!Geometry::procID()) cout << "x_snes: " << x_snes << ", |x_snes|: " << x_norm << endl;
+  if(!reason) {
+    if(!Geometry::procID()) cout << "unpacking constraints velocity from new_x\n";
+    UnpackX(context, context->u0, &dummy[0], &dummy[1], &dummy[2], x_snes, 1.0);
   }
+
+  if(!reason && context->build_dx/*context->iteration > 0*/) {
+    // get the current estimate of dx
+    KSPBuildSolution(ksp, context->x_delta, NULL);
+  }
+  context->build_dx = true;
+  //VecCopy(x, context->dx_test);
+  //VecAXPY(context->dx_test, -1.0, context->x_prev);
+  VecNorm(context->x_delta, NORM_2, &dx_norm);
+  VecNorm(x, NORM_2, &x_norm);
+  if(!Geometry::procID()) cout << "\t|dx|: " << dx_norm << "\t|x|: " << x_norm << "\t|dx|/|x|: " << dx_norm/x_norm << endl;
+
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x, 1.0);
 
   // update the starting time for this slice
@@ -396,14 +372,14 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   if(!Geometry::procID()) {
     cout << "\trun time: " << runTime << "\tnstep: " << Femlib::ivalue("N_STEP") << "\tdt: " << Femlib::value("D_T") << endl;
     cout << scientific << "\ttau:   " << context->tau_i[0] 
-                       << "\ttheta: " << context->theta_i[0] * (2.0*M_PI/context->xmax) 
+                       << "\ttheta: " << context->theta_i[0] * (2.0*M_PI/context->xmax)
                        << "\tphi:   " << context->phi_i[0] << endl;
   }
 
   // don't want to call the dns analysis, use custom integrate routine instead
   //delete context->analyst;
   //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
-  integrate(skewSymmetric, context->domain, context->bman, context->analyst, context->ff);
+  integrate(convective, context->domain, context->bman, context->analyst, context->ff);
 #ifdef TESTING
   for(field_i = 0; field_i < THREE; field_i++) *context->write_i->u[field_i] = *context->ui[field_i];
   *context->write_i->u[THREE] = *context->domain->u[THREE]; //dump the pressure as a sanity check
@@ -421,9 +397,19 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     *context->fi[field_i] -= *context->ui[field_i];
   }
 
-  build_constraints(context, context->x_delta, f_theta, f_phi, f_tau);
+  //build_constraints(context, context->x_delta, f_theta, f_phi, f_tau);
+  if(!reason) { // within  fgmres
+    build_constraints(context, context->x_delta, &context->f_theta, &context->f_phi, &context->f_tau);
 
-  RepackX(context, context->fi, f_theta, f_phi, f_tau, f, 1.0);
+    if(!Geometry::procID()) cout << "\trepacking constraints as f_theta: " << context->f_theta 
+                                                          << ", f_phi: "   << context->f_phi 
+                                                          << ", f_tau: "   << context->f_tau << endl;
+    RepackX(context, context->fi, &context->f_theta, &context->f_phi, &context->f_tau, f, 1.0);
+  } else {      // outside fgmres
+    if(!Geometry::procID()) cout << "\trepacking with zero constraints " << zero << endl;
+    //RepackX(context, context->fi, &zero, &zero, &zero, f, 1.0); // ??
+    RepackX(context, context->fi, &context->f_theta, &context->f_phi, &context->f_tau, f, 1.0);
+  }
   //RepackX(context, context->fi, f_theta, f_phi, f_tau, f, context->shift_scale);
 
   // if not assembling the radial velocity into the rpo solver, then 
@@ -436,7 +422,6 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   if(!Geometry::procID()) cout << "\t" << context->iteration << ":\tevaluating function, |x|: " << x_norm << "\t|f|: " << f_norm << endl;
 
   VecCopy(x, context->x_prev);
-  VecDestroy(&dx_test);
 
   return 0;
 }
@@ -450,6 +435,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   const real_t* qx;
   int_t pt_x, pt_y, el_x, el_y, el_i, el_j;
   bool found;
+  PetscBool is_fgmres;
   vector<real_t> work(static_cast<size_t>(max (2*Geometry::nTotElmt(), 5*Geometry::nP()+6)));
   Vec x, f;
   Mat P;
@@ -486,6 +472,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
 #else
   context->travelling_wave = false;
 #endif
+  context->build_dx = false;
   context->nElsX   = NELS_X;
   context->nElsY   = NELS_Y;
 
@@ -493,10 +480,6 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   sprintf(session_i, "tube8_tw_rpo_1");
   file_i = new FEML(session_i);
   context->write_i = new Domain(file_i, context->elmt, context->bman);
-  delete file_i;
-  sprintf(session_i, "tube8_tw_rpo_2");
-  file_i = new FEML(session_i);
-  context->write_f = new Domain(file_i, context->elmt, context->bman);
   delete file_i;
 #endif
 
@@ -507,13 +490,14 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   //context->nModesX = nNodesX/2;
   context->nModesX = nNodesX;
   context->xmax    = XMAX;
+  context->prev_newton_it = -1;
   context->iteration = 0;
   context->dx_norm_prev = 0.0;
 
   for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
-    context->theta_i[slice_i] = 0.0;//-0.1;
-    context->phi_i[slice_i] = 0.0;
-    context->tau_i[slice_i] = Femlib::ivalue("N_STEP") * Femlib::value("D_T");
+    context->theta_i[slice_i] = 0.0;
+    context->phi_i[slice_i]   = 0.0;
+    context->tau_i[slice_i]   = Femlib::ivalue("N_STEP") * Femlib::value("D_T");
   }
 
   // setup the fourier mapping data
@@ -590,6 +574,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, NSLICE * context->nDofsSlice, &f);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, NSLICE * context->nDofsSlice, &context->x_prev);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, NSLICE * context->nDofsSlice, &context->x_delta);
+  VecCreateMPI(MPI_COMM_WORLD, context->localSize, NSLICE * context->nDofsSlice, &context->dx_test);
 
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
@@ -603,7 +588,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   SNESSetFunction(snes, f,    _snes_function, (void*)context);
   SNESSetJacobian(snes, P, P, _snes_jacobian, (void*)context);
   SNESGetKSP(snes, &ksp);
-  KSPSetType(ksp, KSPGMRES);
+  KSPSetType(ksp, KSPFGMRES);
   SNESSetType(snes, SNESNEWTONTR);
   SNESSetNPCSide(snes, PC_LEFT);
   SNESSetFromOptions(snes);
@@ -617,10 +602,36 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   if(norm < 1.0e-4) {
     if(!Geometry::procID()) cout << "ERROR: initial state vector norm is SMALL! "
                                  << "Are you sure you loaded the initial condition correctly??\n";
-    MPI_Barrier(MPI_COMM_WORLD);
     abort();
   }
   context->shift_scale = 1.0;//1.0e+4;
+  VecZeroEntries(context->dx_test);
+  VecZeroEntries(context->x_delta);
+
+  PetscObjectTypeCompare((PetscObject)ksp, KSPFGMRES, &is_fgmres);
+  if(!is_fgmres) {
+    if(!Geometry::procID()) cout << "ERROR: KSP type must be FGMRES for hookstep\n";
+    abort();
+  }
+
+  // load state from petsc vectors
+  /*{
+    char filename[100];
+    PetscViewer viewer;
+
+    context->iteration = 17;
+    if(!Geometry::procID()) cout << "loading vectors at iteration: " << context->iteration << endl;
+
+    sprintf(filename, "x_curr_%.4u.vec", context->iteration);
+    PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_READ, &viewer);
+    VecZeroEntries(x);
+    VecLoad(x, viewer);
+    PetscViewerDestroy(&viewer);
+    
+    VecCopy(x, context->x_delta);
+    VecAXPY(context->x_delta, -1.0, context->x_prev);
+  }*/
+
   SNESSolve(snes, NULL, x);
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x, 1.0);
   //UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x, context->shift_scale);
@@ -645,6 +656,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   MatDestroy(&P);
   VecDestroy(&context->x_prev);
   VecDestroy(&context->x_delta);
+  VecDestroy(&context->dx_test);
   delete[] context->el;
   delete[] context->r;
   delete[] context->s;

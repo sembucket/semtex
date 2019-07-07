@@ -24,6 +24,9 @@ struct Context {
     real_t*          theta_i;
     real_t*          phi_i;
     real_t*          tau_i;
+    real_t           f_theta;
+    real_t           f_phi;
+    real_t           f_tau;
     // regular grid points in elements
     int_t*           el;
     real_t*          r;
@@ -44,15 +47,17 @@ struct Context {
     double           dx_norm_prev;
     Vec              x_prev;
     Vec              x_delta;
+    Vec              dx_test;
     int              nModesX;
     double           xmax;
     bool             x_fourier;
     bool             travelling_wave;
     int              nElsX;
     int              nElsY;
+    int              prev_newton_it;
     int              iteration;
     Domain*          write_i; // additional fields for file writing (ui)
-    Domain*          write_f; // additioanl fields for file writing (fi)
+    bool             build_dx;
 };
 
 void data_transpose(real_t* data, int nx, int ny);
