@@ -314,7 +314,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     update = true;
     context->prev_newton_it++;
   }
-  if(!Geometry::procID()) cout << "update? " << update << ", ksp converged reason: " << reason << endl;
+  if(!Geometry::procID()) cout << "\tupdate? " << update << ", ksp converged reason: " << reason << endl;
 
   if(update) {
     if(!Geometry::procID()) cout << "\tunpacking solution vector" << endl;
@@ -331,15 +331,16 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   // unpack the velocity field for use in the constraints assembly from the most recent acceptable guess
   SNESGetSolution(snes, &x_snes);
   VecNorm(x_snes, NORM_2, &x_norm);
-  if(!Geometry::procID()) cout << "x_snes: " << x_snes << ", |x_snes|: " << x_norm << endl;
+  if(!Geometry::procID()) cout << "\tx_snes: " << x_snes << ", |x_snes|: " << x_norm << endl;
   if(!reason) {
-    if(!Geometry::procID()) cout << "unpacking constraints velocity from new_x\n";
+    if(!Geometry::procID()) cout << "\tunpacking constraints velocity from new_x\n";
     UnpackX(context, context->u0, &dummy[0], &dummy[1], &dummy[2], x_snes, 1.0);
   }
 
   if(!reason && context->build_dx/*context->iteration > 0*/) {
     // get the current estimate of dx
-    KSPBuildSolution(ksp, context->x_delta, NULL);
+    //KSPBuildSolution(ksp, context->x_delta, NULL); if(!Geometry::procID()) cout << "\tusing ksp solution as dx\n"; 
+    SNESGetLastOrthoVec(snes, context->x_delta); if(!Geometry::procID()) cout << "\tusing last orthonormal vec as dx\n";
   }
   context->build_dx = true;
   //VecCopy(x, context->dx_test);
@@ -406,9 +407,8 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
                                                           << ", f_tau: "   << context->f_tau << endl;
     RepackX(context, context->fi, &context->f_theta, &context->f_phi, &context->f_tau, f, 1.0);
   } else {      // outside fgmres
-    if(!Geometry::procID()) cout << "\trepacking with zero constraints " << zero << endl;
-    //RepackX(context, context->fi, &zero, &zero, &zero, f, 1.0); // ??
-    RepackX(context, context->fi, &context->f_theta, &context->f_phi, &context->f_tau, f, 1.0);
+    RepackX(context, context->fi, &zero, &zero, &zero, f, 1.0); if(!Geometry::procID()) cout << "\trepacking with zero constraints " << zero << endl;
+    //RepackX(context, context->fi, &context->f_theta, &context->f_phi, &context->f_tau, f, 1.0); if(!Geometry::procID()) cout << "\trepacking with non-zero constraints " << zero << endl;
   }
   //RepackX(context, context->fi, f_theta, f_phi, f_tau, f, context->shift_scale);
 
