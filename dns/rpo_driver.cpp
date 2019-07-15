@@ -121,7 +121,12 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
     }
     nStep = Femlib::ivalue("N_STEP");
     Femlib::ivalue("N_STEP", 1);
-    if(!Geometry::procID()) cout << "time step in constraints evaluation: " << scientific << Femlib::value("D_T") << endl;
+    if(!Geometry::procID()) cout << "\ttime step in constraints evaluation: " << scientific << Femlib::value("D_T") << endl;
+
+    context->domain->time = 0.0;
+    context->domain->step = 0;
+    Femlib::value("t", 0.0);
+
     //delete context->analyst;
     //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
     integrate(convective, context->domain, context->bman, context->analyst, context->ff);

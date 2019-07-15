@@ -58,7 +58,7 @@ static char RCS[] = "$Id$";
 #include "rpo_preconditioner.h"
 
 #define THREE 3
-//#define REMOVE_REFLECTION_SYMMETRIES
+#define REMOVE_REFLECTION_SYMMETRIES
 
 void data_transpose(real_t* data, int nx, int ny) {
   real_t* temp = new real_t[nx*ny];

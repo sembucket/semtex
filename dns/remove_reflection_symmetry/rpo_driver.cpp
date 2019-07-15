@@ -67,19 +67,17 @@ void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 #define TESTING
 //#define ANALYTICALLY_FORCED
 #define X_FOURIER
-#define TRAVELLING_WAVE // constant phase speed, ct, so shifting for z and t leads to over determined system! 
-//#define REMOVE_REFLECTION_SYMMETRIES
+//#define TRAVELLING_WAVE // constant phase speed, ct, so shifting for z and t leads to over determined system! 
+#define REMOVE_REFLECTION_SYMMETRIES
 
 #define NFIELD 3
-//#define NFIELD 4
-//#define NFIELD 2
 #define XMIN 0.0
 #define YMIN 0.0
 #define YMAX 1.0
 #define NELS_X 30
 #define NELS_Y 8
-//#define NELS_X 40
-//#define NELS_Y 16
+//#define NELS_X 24
+//#define NELS_Y 11
 #define NSLICE 1
 #define THREE 3
 
@@ -87,6 +85,7 @@ void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 #define XMAX (2.0*M_PI)
 #else
 #define XMAX 4.053667940115862
+//#define XMAX 5.0265482457
 #endif
 
 void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f_phi, double* f_tau) {
@@ -123,9 +122,15 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
     for(int field_i = 0; field_i < context->nField; field_i++) {
       *context->domain->u[field_i] = *context->u0[field_i];
     }
+
     nStep = Femlib::ivalue("N_STEP");
     Femlib::ivalue("N_STEP", 1);
-    if(!Geometry::procID()) cout << "time step in constraints evaluation: " << scientific << Femlib::value("D_T") << endl;
+    if(!Geometry::procID()) cout << "\ttime step in constraints evaluation: " << scientific << Femlib::value("D_T") << endl;
+
+    context->domain->time = 0.0;
+    context->domain->step = 0;
+    Femlib::value("t", 0.0);
+
     //delete context->analyst;
     //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
     integrate(convective, context->domain, context->bman, context->analyst, context->ff);
