@@ -65,9 +65,8 @@ void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 		Domain*, BCmgr*, DNSAnalyser*, FieldForce*);
 
 #define TESTING
-//#define ANALYTICALLY_FORCED
 #define X_FOURIER
-//#define TRAVELLING_WAVE // constant phase speed, ct, so shifting for z and t leads to over determined system! 
+#define TRAVELLING_WAVE // constant phase speed, ct, so shifting for z and t leads to over determined system! 
 #define REMOVE_REFLECTION_SYMMETRIES
 
 #define NFIELD 3
@@ -81,12 +80,27 @@ void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 #define NSLICE 1
 #define THREE 3
 
-#ifdef ANALYTICALLY_FORCED
-#define XMAX (2.0*M_PI)
-#else
+//#define XMAX (2.0*M_PI)
 #define XMAX 4.053667940115862
 //#define XMAX 5.0265482457
-#endif
+
+void zero_reflection_dofs(Context* context, Domain* domain, vector<Field*> u) {
+  int field_i, mode_i, mode_j, dof_i;
+  int nex = context->nElsX;
+  int ney = context->nElsY;
+  int elOrd = Geometry::nP() - 1;
+  register real_t* data;
+
+  for(field_i = 0; field_i < THREE; field_i++) {
+    for(mode_i = 0; mode_i < Geometry::nZProc()/2; mode_i++) {
+      mode_j = (field_i < 2) ? 2*mode_i + 1 : 2*mode_i + 0;
+      data = u[field_i]->plane(mode_j);
+      for(dof_i = 0; dof_i < nex*ney*(elOrd+1)*(elOrd+1); dof_i++) {
+        data[dof_i] = 0.0;
+      }
+    }
+  }
+}
 
 void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f_phi, double* f_tau) {
   int          elOrd       = Geometry::nP() - 1;
@@ -130,6 +144,10 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
     context->domain->time = 0.0;
     context->domain->step = 0;
     Femlib::value("t", 0.0);
+
+#ifdef REMOVE_REFLECTION_SYMMETRIES
+    zero_reflection_dofs(context, context->domain, context->domain->u);
+#endif
 
     //delete context->analyst;
     //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
@@ -358,6 +376,10 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
                        << "\tphi:   " << context->phi_i[0] << endl;
   }
 
+#ifdef REMOVE_REFLECTION_SYMMETRIES
+  zero_reflection_dofs(context, context->domain, context->domain->u);
+#endif
+
   // don't want to call the dns analysis, use custom integrate routine instead
   //delete context->analyst;
   //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
@@ -554,6 +576,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
 #else
   context->localSize  = NSLICE * NFIELD * Geometry::nZProc() * context->nDofsPlane;
 #endif
+  if(!Geometry::procID()) cout << "XMAX: " << XMAX << endl;
   if(!Geometry::procID()) context->localSize += NSLICE; // azimuthal phase shift dof
 
 #ifdef X_FOURIER
