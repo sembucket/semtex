@@ -43,7 +43,6 @@ struct Context {
     IS*              is_u;
     IS*              is_p;
     SNES             snes;
-    double           shift_scale; // for scaling the phase shifts
     double           dx_norm_prev;
     Vec              x_prev;
     Vec              x_delta;
@@ -65,8 +64,8 @@ void elements_to_logical(int nex, int ney, real_t* data_els, real_t* data_log);
 void logical_to_elements(int nex, int ney, real_t* data_log, real_t* data_els);
 void SEM_to_Fourier(int plane_k, Context* context, Field* us, real_t* data_f);
 void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_f);
-void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale);
-void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale);
+void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x);
+void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x);
 void UnpackConstraints(Context* context, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale);
 void RepackConstraints(Context* context, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale);
 void assign_scatter_semtex(Context* context);

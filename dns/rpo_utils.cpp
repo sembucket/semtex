@@ -57,8 +57,8 @@ static char RCS[] = "$Id$";
 #include "rpo_utils.h"
 #include "rpo_preconditioner.h"
 
-#define VEL_MAJOR 1
 #define THREE 3
+//#define REMOVE_REFLECTION_SYMMETRIES
 
 void data_transpose(real_t* data, int nx, int ny) {
   real_t* temp = new real_t[nx*ny];
@@ -151,7 +151,9 @@ void SEM_to_Fourier(int plane_k, Context* context, Field* us, real_t* data_f) {
 
   for(int pt_y = 0; pt_y < ney*elOrd; pt_y++) {
     for(int pt_x = 0; pt_x < context->nModesX; pt_x++) {
-      data_f[pt_y*context->nModesX + pt_x] = data_r[pt_y*nNodesX+pt_x];
+      //data_f[pt_y*context->nModesX + pt_x] = data_r[pt_y*nNodesX+pt_x];
+      // rescale data and map to output array
+      data_f[pt_y*context->nModesX + pt_x] = nNodesX*data_r[pt_y*nNodesX+pt_x];
     }
   }
 
@@ -188,12 +190,16 @@ void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_f) {
       // coordinate in fourier space
       theta = 2.0*M_PI*xr/(context->xmax /*- XMIN*/);
 
-      data_r[pt_y*nNodesX + pt_x] = temp[0];
+      // don't forget to rescale!!
+      //data_r[pt_y*nNodesX + pt_x] = temp[0];
+      data_r[pt_y*nNodesX + pt_x] = temp[0]/nNodesX;
       // ignore the nyquist frequency (entry [1])
       // all modes are scaled by 2.0, except the mean
       for(int mode_k = 1; mode_k < context->nModesX/2; mode_k++) {
-        data_r[pt_y*nNodesX + pt_x] += 2.0*temp[2*mode_k+0]*cos(mode_k*theta);
-        data_r[pt_y*nNodesX + pt_x] -= 2.0*temp[2*mode_k+1]*sin(mode_k*theta);
+        //data_r[pt_y*nNodesX + pt_x] += 2.0*temp[2*mode_k+0]*cos(mode_k*theta);
+        //data_r[pt_y*nNodesX + pt_x] -= 2.0*temp[2*mode_k+1]*sin(mode_k*theta);
+        data_r[pt_y*nNodesX + pt_x] += (2.0/nNodesX)*temp[2*mode_k+0]*cos(mode_k*theta);
+        data_r[pt_y*nNodesX + pt_x] -= (2.0/nNodesX)*temp[2*mode_k+1]*sin(mode_k*theta);
       }
     }
   }
@@ -204,8 +210,7 @@ void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_f) {
   delete[] data_r;
 }
 
-#ifdef VEL_MAJOR
-void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale) {
+void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
   int nex = context->nElsX;
   int ney = context->nElsY;
   int elOrd = Geometry::nP() - 1;
@@ -229,7 +234,11 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
 
       field = fields[slice_i * context->nField + field_i];
 
+#ifdef REMOVE_REFLECTION_SYMMETRIES
+      for(kk = 0; kk < Geometry::nZProc()/2; kk++) {
+#else
       for(kk = 0; kk < Geometry::nZProc(); kk++) {
+#endif
         for(jj = 0; jj < ney*elOrd; jj++) {
           if(context->x_fourier) {
             for(ii = 0; ii < context->nModesX; ii++) {
@@ -244,23 +253,32 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
           }
         }
 
+#ifdef REMOVE_REFLECTION_SYMMETRIES
+        ll = (field_i < 2) ? 2*kk+0 : 2*kk+1;
+        if(context->x_fourier) {
+          Fourier_to_SEM(ll, context, field, data);
+        } else {
+          logical_to_elements(nex, ney, data, field->plane(ll));
+        }
+#else
         if(context->x_fourier) {
           Fourier_to_SEM(kk, context, field, data);
         } else {
           logical_to_elements(nex, ney, data, field->plane(kk));
         }
+#endif
       }
     }
     // phase shift data lives on the 0th processors part of the vector
     if(!Geometry::procID()) {
       if(context->x_fourier) {
-        theta[slice_i] = xArray[index] / shift_scale;
+        theta[slice_i] = xArray[index];
         index++;
       }
-      phi[slice_i]     = xArray[index] / shift_scale;
+      phi[slice_i]     = xArray[index];
       index++;
       if(!context->travelling_wave) {
-        tau[slice_i]   = xArray[index] / shift_scale;
+        tau[slice_i]   = xArray[index];
         index++;
       }
     }
@@ -270,71 +288,6 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   VecDestroy(&xl);
   delete[] data;
 }
-#else
-void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale) {
-  int nex = context->nElsX;
-  int ney = context->nElsY;
-  int elOrd = Geometry::nP() - 1;
-  int ii, jj, kk, ll, field_i, index;
-  int nNodesX = nex*elOrd;
-  int nx = (context->x_fourier) ? context->nModesX : nNodesX;
-  const PetscScalar *xArray;
-  real_t* data_u = new real_t[ney*elOrd*nNodesX];
-  real_t* data_v = new real_t[ney*elOrd*nNodesX];
-  real_t* data_w = new real_t[ney*elOrd*nNodesX];
-  real_t* data_p = new real_t[ney*elOrd*nNodesX];
-  Vec xl;
-
-  VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
-  VecScatterBegin(context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
-  VecScatterEnd(  context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
-
-  index = 0;
-  VecGetArrayRead(xl, &xArray);
-
-  for(kk = 0; kk < Geometry::nZProc(); kk++) {
-    for(jj = 0; jj < ney*elOrd; jj++) {
-      for(ii = 0; ii < nx; ii++) {
-        data_u[jj*nx + ii] = xArray[index++];
-        if(context->nField >  2) data_v[jj*nx + ii] = xArray[index++];
-        data_w[jj*nx + ii] = xArray[index++];
-        if(context->nField == 4) data_p[jj*nx + ii] = xArray[index++];
-      }
-    }
-
-    if(context->x_fourier) {
-      Fourier_to_SEM(kk, context, fields[0], data_u);
-      if(context->nField >  2) Fourier_to_SEM(kk, context, fields[1], data_v);
-      Fourier_to_SEM(kk, context, fields[2], data_w);
-      if(context->nField == 4) Fourier_to_SEM(kk, context, fields[3], data_p);
-    } else {
-      logical_to_elements(nex, ney, data_u, fields[0]->plane(kk));
-      if(context->nField >  2) logical_to_elements(nex, ney, data_v, fields[1]->plane(kk));
-      logical_to_elements(nex, ney, data_w, fields[2]->plane(kk));
-      if(context->nField == 4) logical_to_elements(nex, ney, data_p, fields[3]->plane(kk));
-    }
-  }
-
-  // phase shift data lives on the 0th processors part of the vector
-  if(!Geometry::procID()) {
-    if(context->x_fourier) {
-      theta[0] = xArray[index++] / shift_scale;
-    }
-    phi[0]     = xArray[index++] / shift_scale;
-    if(!context->travelling_wave) {
-      tau[0]   = xArray[index++] / shift_scale;
-    }
-  }
-
-  VecRestoreArrayRead(xl, &xArray);
-
-  VecDestroy(&xl);
-  delete[] data_u;
-  delete[] data_v;
-  delete[] data_w;
-  delete[] data_p;
-}
-#endif
 
 void UnpackConstraints(Context* context, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale) {
   int ii, jj, kk, ll, slice_i, field_i, index;
@@ -367,12 +320,11 @@ void UnpackConstraints(Context* context, real_t* theta, real_t* phi, real_t* tau
   VecDestroy(&xl);
 }
 
-#ifdef VEL_MAJOR
-void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale) {
+void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
   int nex = context->nElsX;
   int ney = context->nElsY;
   int elOrd = Geometry::nP() - 1;
-  int ii, jj, kk, slice_i, field_i, index;
+  int ii, jj, kk, ll, slice_i, field_i, index;
   int nNodesX = nex*elOrd;
   Field* field;
   PetscScalar *xArray;
@@ -394,12 +346,22 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
 
       field = fields[slice_i * context->nField + field_i];
 
+#ifdef REMOVE_REFLECTION_SYMMETRIES
+      for(kk = 0; kk < Geometry::nZProc()/2; kk++) {
+        ll = (field_i < 2) ? 2*kk+0 : 2*kk+1;
+        if(context->x_fourier) {
+          SEM_to_Fourier(ll, context, field, data);
+        } else {
+          elements_to_logical(nex, ney, field->plane(ll), data);
+        }
+#else
       for(kk = 0; kk < Geometry::nZProc(); kk++) {
         if(context->x_fourier) {
           SEM_to_Fourier(kk, context, field, data);
         } else {
           elements_to_logical(nex, ney, field->plane(kk), data);
         }
+#endif
 
         // skip over redundant real dofs
         for(jj = 0; jj < ney*elOrd; jj++) {
@@ -424,13 +386,13 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
     // phase shift data lives on the 0th processors part of the vector
     if(!Geometry::procID()) {
       if(context->x_fourier) {
-        xArray[index] = theta[slice_i] * shift_scale;
+        xArray[index] = theta[slice_i];
         index++;
       }
-      xArray[index]   = phi[slice_i]   * shift_scale;
+      xArray[index]   = phi[slice_i];
       index++;
       if(!context->travelling_wave) {
-        xArray[index] = tau[slice_i]   * shift_scale;
+        xArray[index] = tau[slice_i];
         index++;
       }
     }
@@ -445,96 +407,6 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   VecDestroy(&xl);
   delete[] data;
 }
-#else
-void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale) {
-  int nex = context->nElsX;
-  int ney = context->nElsY;
-  int elOrd = Geometry::nP() - 1;
-  int ii, jj, kk, field_i, index;
-  int nNodesX = nex*elOrd;
-  int nx = (context->x_fourier) ? context->nModesX : nNodesX;
-  PetscScalar *xArray;
-  real_t* data_u = new real_t[ney*elOrd*nNodesX];
-  real_t* data_v = new real_t[ney*elOrd*nNodesX];
-  real_t* data_w = new real_t[ney*elOrd*nNodesX];
-  real_t* data_p = new real_t[ney*elOrd*nNodesX];
-  Vec xl;
-  double norm_l_u = 0.0, norm_g_u;
-  double norm_l_v = 0.0, norm_g_v;
-  double norm_l_w = 0.0, norm_g_w;
-  double norm_l_p = 0.0, norm_g_p;
-
-  VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
-  VecZeroEntries(xl);
-  VecGetArray(xl, &xArray);
-
-  index = 0;
-
-  for(kk = 0; kk < Geometry::nZProc(); kk++) {
-    if(context->x_fourier) {
-      SEM_to_Fourier(kk, context, fields[0], data_u);
-      if(context->nField >  2) SEM_to_Fourier(kk, context, fields[1], data_v);
-      SEM_to_Fourier(kk, context, fields[2], data_w);
-      if(context->nField == 4) SEM_to_Fourier(kk, context, fields[3], data_p);
-    } else {
-      elements_to_logical(nex, ney, fields[0]->plane(kk), data_u);
-      if(context->nField >  2) elements_to_logical(nex, ney, fields[1]->plane(kk), data_v);
-      elements_to_logical(nex, ney, fields[2]->plane(kk), data_w);
-      if(context->nField == 4) elements_to_logical(nex, ney, fields[3]->plane(kk), data_p);
-    }
-
-    // skip over redundant real dofs
-    for(jj = 0; jj < ney*elOrd; jj++) {
-      for(ii = 0; ii < nx; ii++) {
-        xArray[index++] = data_u[jj*nx + ii];
-        norm_l_u += data_u[jj*nx + ii] * data_u[jj*nx + ii];
-
-        if(context->nField >  2) {
-          xArray[index++] = data_v[jj*nx + ii];
-          norm_l_v += data_v[jj*nx + ii] * data_v[jj*nx + ii];
-        }
-
-        xArray[index++] = data_w[jj*nx + ii];
-        norm_l_w += data_w[jj*nx + ii] * data_w[jj*nx + ii];
-
-        if(context->nField == 4) {
-          xArray[index++] = data_p[jj*nx + ii];
-          norm_l_p += data_p[jj*nx + ii] * data_p[jj*nx + ii];
-        }
-      }
-    }
-  }
-  MPI_Allreduce(&norm_l_u, &norm_g_u, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(&norm_l_v, &norm_g_v, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(&norm_l_w, &norm_g_w, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(&norm_l_p, &norm_g_p, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  if(!Geometry::procID()) cout << " |u|: " << sqrt(norm_g_u) << endl;
-  if(!Geometry::procID()) cout << " |v|: " << sqrt(norm_g_v) << endl;
-  if(!Geometry::procID()) cout << " |w|: " << sqrt(norm_g_w) << endl;
-  if(!Geometry::procID()) cout << " |p|: " << sqrt(norm_g_p) << endl;
-
-  // phase shift data lives on the 0th processors part of the vector
-  if(!Geometry::procID()) {
-    if(context->x_fourier) {
-      xArray[index++] = theta[0] * shift_scale;
-    }
-    xArray[index++]   = phi[0]   * shift_scale;
-    if(!context->travelling_wave) {
-      xArray[index++] = tau[0]   * shift_scale;
-    }
-  }
-  VecRestoreArray(xl, &xArray);
-
-  VecScatterBegin(context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
-  VecScatterEnd(  context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
-
-  VecDestroy(&xl);
-  delete[] data_u;
-  delete[] data_v;
-  delete[] data_w;
-  delete[] data_p;
-}
-#endif
 
 void RepackConstraints(Context* context, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale) {
   int ii, jj, kk, slice_i, field_i, index;
@@ -572,10 +444,14 @@ void RepackConstraints(Context* context, real_t* theta, real_t* phi, real_t* tau
 }
 
 // define a vec scatter object for mapping from parallel global vectors to semtex data
-#ifdef VEL_MAJOR
 void assign_scatter_semtex(Context* context) {
+#ifdef REMOVE_REFLECTION_SYMMETRIES
+  int   nDofsCube_l = (Geometry::nZProc()/2) * context->nDofsPlane;
+  int   nDofsCube_g = (Geometry::nZ()    /2) * context->nDofsPlane;
+#else
   int   nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
   int   nDofsCube_g = Geometry::nZ()     * context->nDofsPlane;
+#endif
   int   nShifts     = 1;
   int   ind_i       = 0;
   int*  inds;
@@ -625,48 +501,6 @@ void assign_scatter_semtex(Context* context) {
   ISDestroy(&isg);
   delete[] inds;
 }
-#else
-void assign_scatter_semtex(Context* context) {
-  int   nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
-  int   nDofsCube_g = Geometry::nZ()     * context->nDofsPlane;
-  int   nShifts     = 1;
-  int   ind_i       = 0;
-  int   start       = Geometry::procID() * nDofsCube_l * context->nField;
-  int*  inds;
-  IS    isl, isg;
-  Vec   vl, vg;
-
-  if(context->x_fourier)        nShifts++;
-  if(!context->travelling_wave) nShifts++;
-
-  inds = new int[context->localSize];
-
-  for(int ind_j = 0; ind_j < context->nField * nDofsCube_l; ind_j++) {
-    inds[ind_i++] = start + ind_j;
-  }
-
-  // assign the phase shifts from the 0th processor
-  if(!Geometry::procID()) {
-    for(int ind_j = 0; ind_j < nShifts; ind_j++) {
-      inds[ind_i++] = context->nField * nDofsCube_g + ind_j;
-    }
-  }
-
-  VecCreateSeq(MPI_COMM_SELF, context->localSize, &vl);
-  VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nDofsSlice, &vg);
-
-  ISCreateStride(MPI_COMM_SELF, context->localSize, 0, 1, &isl);
-  ISCreateGeneral(MPI_COMM_WORLD, context->localSize, inds, PETSC_COPY_VALUES, &isg);
-
-  VecScatterCreate(vg, isg, vl, isl, &context->global_to_semtex);
-  
-  VecDestroy(&vl);
-  VecDestroy(&vg);
-  ISDestroy(&isl);
-  ISDestroy(&isg);
-  delete[] inds;
-}
-#endif
 
 void phase_shift_x(Context* context, double theta, double sign, vector<Field*> fields) {
   int nex = context->nElsX;
