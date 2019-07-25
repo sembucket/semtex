@@ -317,7 +317,8 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
           scale = 4.0/(4.0 + (2.0*M_PI/context->xmax)*fabs(mode_l) + fabs(mode_i));
           //scale *= context->rad_weights[point_y];
           rh = 0.5*(context->rad_coords[point_y+1] + context->rad_coords[point_y]);
-          dr =     (context->rad_coords[point_y+1] - context->rad_coords[point_y]);
+          //dr =     (context->rad_coords[point_y+1] - context->rad_coords[point_y]);
+          dr = context->rad_weights[point_y];
           scale *= sqrt(2.0 * M_PI * rh * dr);
 
           index = field_i*nDofsCube_l + (plane_i+0)*context->nDofsPlane + point_y*context->nModesX+point_x;
@@ -382,7 +383,8 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
           scale = 4.0/(4.0 + (2.0*M_PI/context->xmax)*fabs(mode_l) + fabs(mode_i));
           //scale *= context->rad_weights[point_y];
           rh = 0.5*(context->rad_coords[point_y+1] + context->rad_coords[point_y]);
-          dr =     (context->rad_coords[point_y+1] - context->rad_coords[point_y]);
+          //dr =     (context->rad_coords[point_y+1] - context->rad_coords[point_y]);
+          dr = context->rad_weights[point_y];
           scale *= sqrt(2.0 * M_PI * rh * dr);
 
           index = field_i*nDofsCube_l + (plane_i+0)*context->nDofsPlane + point_y*context->nModesX+point_x;
