@@ -21,6 +21,8 @@ struct Context {
     vector<Field*>   u0;
     real_t           phi_i;
     real_t           tau_i;
+    real_t           f_phi;
+    real_t           f_tau;
     // parallel vector scattering data
     int              localSize;
     int*             lShift;
@@ -28,13 +30,12 @@ struct Context {
     IS               isg;  // global index set
     VecScatter       global_to_semtex; // scatter from global data to semtex fields
     SNES             snes;
-    double           x_norm;  // for scaling the phase shifts
-    Vec              x_prev;  // for determining \delta x
     Vec              x_delta; // for determining \delta x
     double           xmin;
     double           xmax;
     int              iteration;
     bool             travelling_wave;
+    bool             build_dx;
     Domain*          write;   // additional fields for dumping at run time
 };
 
