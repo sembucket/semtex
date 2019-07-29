@@ -44,11 +44,6 @@
 
 static char RCS[] = "$Id$";
 
-#include <dns.h>
-
-#include "rpo_utils.h"
-#include "rpo_preconditioner.h"
-
 #include <petsc.h>
 #include <petscis.h>
 #include <petscvec.h>
@@ -56,6 +51,12 @@ static char RCS[] = "$Id$";
 #include <petscpc.h>
 #include <petscksp.h>
 #include <petscsnes.h>
+
+#include <fftw3.h>
+
+#include <dns.h>
+#include "rpo_utils.h"
+#include "rpo_preconditioner.h"
 
 static char prog[] = "rpo";
 static void getargs    (int, char**, bool&, char*&);
@@ -66,22 +67,20 @@ void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 
 #define TESTING
 #define X_FOURIER
-//#define TRAVELLING_WAVE // constant phase speed, ct, so shifting for z and t leads to over determined system! 
 //#define REMOVE_REFLECTION_SYMMETRIES
 
 #define NFIELD 3
-#define XMIN 0.0
-#define YMIN 0.0
-#define YMAX 1.0
-#define NELS_X 30
-#define NELS_Y 8
+//#define XMIN 0.0
+///#define YMIN 0.0
+//#define YMAX 1.0
+//#define NELS_X 30
+//#define NELS_Y 8
 //#define NELS_X 24
 //#define NELS_Y 11
 #define NSLICE 1
 #define THREE 3
 
-//#define XMAX (2.0*M_PI)
-#define XMAX 4.053667940115862
+//#define XMAX 4.053667940115862
 //#define XMAX 5.0265482457
 
 void zero_reflection_dofs(Context* context, Domain* domain, vector<Field*> u) {
@@ -180,7 +179,7 @@ static PetscErrorCode RPOVecDot_Hookstep(void* ctx,Vec v1,Vec v2,PetscScalar* do
 
 void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f_phi, double* f_tau) {
   int          elOrd       = Geometry::nP() - 1;
-  int          nNodesX     = NELS_X*elOrd;
+  int          nNodesX     = context->nElsX * elOrd;
   int          nModesX     = context->nModesX;
   int          index;
 #ifdef REMOVE_REFLECTION_SYMMETRIES
@@ -189,7 +188,7 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
   int          nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
 #endif
   int          nl          = context->nField * nDofsCube_l;
-  int          plane_j, field_j;
+  int          plane_j, field_j, mode_j;
   int          pt_j, el_j;
   double       p_y;
   double       k_x, k_z;
@@ -295,12 +294,14 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
       }
     }
 #else
+/*
     for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
       SEM_to_Fourier(plane_i, context, context->u0[field_i], data_r);
       for(int node_j = 0; node_j < context->nElsY * elOrd; node_j++) {
         for(int mode_i = 0; mode_i < nModesX; mode_i++) {
           index = field_j * nDofsCube_l + plane_i * context->nDofsPlane + node_j * nModesX + mode_i;
-          k_x = (2.0 * M_PI / (context->xmax /*- XMIN*/)) * (mode_i / 2);
+          //k_x = (2.0 * M_PI / (context->xmax - XMIN)) * (mode_i / 2);
+          k_x = (2.0 * M_PI / (context->xmax)) * (mode_i / 2);
 
           if(mode_i % 2 == 0) { // real part
             rx[index] = -k_x * data_r[node_j * nModesX + mode_i + 1];
@@ -310,10 +311,29 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
         }
       }
     }
+*/
+    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
+      SEM_to_Fourier(plane_i, context, context->u0[field_i], data_r, data_i);
+      for(int node_j = 0; node_j < context->nElsY * elOrd; node_j++) {
+        for(int mode_i = 0; mode_i < nModesX; mode_i++) {
+          mode_j = (mode_i <= nModesX/2) ? mode_i : mode_i - nModesX; // fftw ordering of complex data
+
+          k_x = (2.0 * M_PI / (context->xmax /*-XMIN*/)) * (mode_j);
+
+          index = field_j * nDofsCube_l + (plane_i+0) * context->nDofsPlane + node_j * nModesX + mode_i;
+          rx[index] = -k_x * data_i[node_j * nModesX + mode_i];
+
+          index = field_j * nDofsCube_l + (plane_i+1) * context->nDofsPlane + node_j * nModesX + mode_i;
+          rx[index] = +k_x * data_r[node_j * nModesX + mode_i];
+        }
+      }
+    }
+
     for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
       plane_j = Geometry::procID() * Geometry::nZProc() + plane_i;
-      SEM_to_Fourier(plane_i+0, context, context->u0[field_i], data_r);
-      SEM_to_Fourier(plane_i+1, context, context->u0[field_i], data_i);
+      //SEM_to_Fourier(plane_i+0, context, context->u0[field_i], data_r);
+      //SEM_to_Fourier(plane_i+1, context, context->u0[field_i], data_i);
+      SEM_to_Fourier(plane_i, context, context->u0[field_i], data_r, data_i);
       for(int dof_i = 0; dof_i < context->nElsY * elOrd * nModesX; dof_i++) {
         k_z = 1.0 * (plane_j / 2);
 
@@ -325,11 +345,17 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
     }
 
     if(!context->travelling_wave) {
-      for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
-        SEM_to_Fourier(plane_i, context, context->domain->u[field_i], data_r);
+      //for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
+      //  SEM_to_Fourier(plane_i, context, context->domain->u[field_i], data_r);
+      for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
+        SEM_to_Fourier(plane_i, context, context->domain->u[field_i], data_r, data_i);
+
         for(int dof_i = 0; dof_i < context->nDofsPlane; dof_i++) {
-          index = field_j * nDofsCube_l + plane_i * context->nDofsPlane + dof_i;
+          index = field_j * nDofsCube_l + (plane_i+0) * context->nDofsPlane + dof_i;
           rt[index] = data_r[dof_i];
+
+          index = field_j * nDofsCube_l + (plane_i+1) * context->nDofsPlane + dof_i;
+          rt[index] = data_i[dof_i];
         }
       }
     }
@@ -364,10 +390,10 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
   MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(  J, MAT_FINAL_ASSEMBLY);
 
-  if(context->build_PC) {
-    build_preconditioner_ffs(context, P);
+  //if(context->build_PC) {
+  //  build_preconditioner_ffs(context, P);
     //context->build_PC = false;
-  }
+  //}
   return 0;
 }
 
@@ -376,7 +402,6 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   real_t dt;
   int field_i, mode_i, mode_j, dof_i, nStep, newton_it;
   double f_norm, x_norm, dx_norm_2, dx_norm, u_norm, runTime, dummy[3], zero = 0.0;
-  bool update = false;
   char filename[100];
   PetscViewer viewer;
   Vec x_snes;
@@ -386,16 +411,11 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   SNESGetKSP(snes, &ksp);
   KSPGetConvergedReason(ksp, &reason); // if reason != 0 then gmres solve has completed
   if(reason || context->prev_newton_it < 0) {
-    update = true;
     context->prev_newton_it++;
   }
-  if(!Geometry::procID()) cout << "\tupdate? " << update << ", ksp converged reason: " << reason << endl;
+  if(!Geometry::procID()) cout << "\tksp converged reason: " << reason << endl;
 
-  if(update) {
-    if(!Geometry::procID()) cout << "\tunpacking solution vector" << endl;
-    //VecCopy(context->dx_test, context->x_delta);
-    //UnpackX(context, context->u0, &dummy[0], &dummy[1], &dummy[2], x);
-
+  if(reason) {
     // write the current state vector
     sprintf(filename, "x_curr_%.4u.vec", context->iteration);
     PetscViewerBinaryOpen(MPI_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
@@ -412,16 +432,16 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     UnpackX(context, context->u0, &dummy[0], &dummy[1], &dummy[2], x_snes);
   }
 
-  if(!reason && context->build_dx/*context->iteration > 0*/) {
+  //if(!reason && context->build_dx/*context->iteration > 0*/) {
+  if(!reason) {
     // get the current estimate of dx
-    //KSPBuildSolution(ksp, context->x_delta, NULL); if(!Geometry::procID()) cout << "\tusing ksp solution as dx\n"; 
-    SNESGetLastOrthoVec(snes, context->x_delta); if(!Geometry::procID()) cout << "\tusing last orthonormal vec as dx\n";
+    if(context->build_dx)
+      SNESGetLastOrthoVec(snes, context->x_delta);
+      //KSPBuildSolution(ksp, context->x_delta, NULL); if(!Geometry::procID())cout<<"\tusing ksp solution as dx\n";
   }
   context->build_dx = true;
-  //VecCopy(x, context->dx_test);
-  //VecAXPY(context->dx_test, -1.0, context->x_prev);
-  VecNorm(context->x_delta, NORM_2, &dx_norm);
-  VecNorm(x, NORM_2, &x_norm);
+  RPOVecNormL2_Hookstep(context, context->x_delta, &dx_norm);
+  RPOVecNormL2_Hookstep(context, x, &x_norm);
   if(!Geometry::procID()) cout << "\t|dx|: " << dx_norm << "\t|x|: " << x_norm << "\t|dx|/|x|: " << dx_norm/x_norm << endl;
 
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
@@ -488,10 +508,9 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
                                                           << ", f_tau: "   << context->f_tau << endl;
     RepackX(context, context->fi, &context->f_theta, &context->f_phi, &context->f_tau, f);
   } else {      // outside fgmres
-    RepackX(context, context->fi, &zero, &zero, &zero, f); if(!Geometry::procID()) cout << "\trepacking with zero constraints " << zero << endl;
-    //RepackX(context, context->fi, &context->f_theta, &context->f_phi, &context->f_tau, f); if(!Geometry::procID()) cout << "\trepacking with non-zero constraints " << zero << endl;
+    RepackX(context, context->fi, &zero, &zero, &zero, f); if(!Geometry::procID())cout<<"\trepacking with zero constraints "<<zero<<endl;
+    //RepackX(context, context->fi, &context->f_theta, &context->f_phi, &context->f_tau, f); if(!Geometry::procID())cout<<"\trepacking with non-zero constraints"<<endl;
   }
-  //RepackX(context, context->fi, f_theta, f_phi, f_tau, f);
 
   // if not assembling the radial velocity into the rpo solver, then 
   // updating this from the DNS at the end of the simulation time
@@ -507,13 +526,14 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   return 0;
 }
 
-void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domain* domain, DNSAnalyser* analyst, FieldForce* FF, vector<Field*> ui, vector<Field*> fi, vector<Field*> u0) {
+void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domain* domain, DNSAnalyser* analyst, FieldForce* FF, vector<Field*> ui, vector<Field*> fi, vector<Field*> u0, char* session) {
   Context* context = new Context;
   int elOrd = Geometry::nP() - 1;
-  int nNodesX = NELS_X*elOrd;
-  real_t dx, er, es, ex, ey;
+  //int nNodesX = NELS_X*elOrd;
+  int nNodesX = Femlib::ivalue("NELS_X") * elOrd;
+  real_t dx, dy, dy_sum, er, es, ex, ey;
   double norm;
-  const real_t* qx;
+  const real_t *qx, *wx;
   int_t pt_x, pt_y, el_x, el_y, el_i, el_j;
   bool found;
   PetscBool is_fgmres;
@@ -548,17 +568,14 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
 #else
   context->x_fourier = false;
 #endif
-#ifdef TRAVELLING_WAVE
-  context->travelling_wave = true;
-#else
-  context->travelling_wave = false;
-#endif
+  context->travelling_wave = Femlib::ivalue("TRAV_WAVE");
   context->build_dx = false;
-  context->nElsX   = NELS_X;
-  context->nElsY   = NELS_Y;
+  context->nElsX    = Femlib::ivalue("NELS_X");
+  context->nElsY    = Femlib::ivalue("NELS_Y");
+  context->session  = session;
 
 #ifdef TESTING
-  sprintf(session_i, "tube8_tw_rpo_1");
+  sprintf(session_i, "%s_rpo_1", context->session);
   file_i = new FEML(session_i);
   context->write_i = new Domain(file_i, context->elmt, context->bman);
   delete file_i;
@@ -568,34 +585,39 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   context->phi_i   = new real_t[NSLICE];
   context->tau_i   = new real_t[NSLICE];
 
-  //context->nModesX = nNodesX/2;
   context->nModesX = nNodesX;
-  context->xmax    = XMAX;
+  context->xmax    = Femlib::value("XMAX");
+  if(!Geometry::procID())cout<<"NELS_X: "<<context->nElsX<<", NELS_Y: "<<context->nElsY<<", XMAX: "<<context->xmax<<endl;
+  if( context->travelling_wave && !Geometry::procID()) cout << "      travelling wave solution\n";
+  if(!context->travelling_wave && !Geometry::procID()) cout << "NOT a travelling wave solution\n";
   context->prev_newton_it = -1;
   context->iteration = 0;
   context->dx_norm_prev = 0.0;
 
   for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
-    context->theta_i[slice_i] = 0.0;//0.1;
+    context->theta_i[slice_i] = 0.0;
     context->phi_i[slice_i]   = 0.0;
     context->tau_i[slice_i]   = Femlib::ivalue("N_STEP") * Femlib::value("D_T");
   }
 
   // setup the fourier mapping data
-  context->el = new int_t[NELS_X*elOrd*NELS_Y*elOrd];
-  context->r  = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
-  context->s  = new real_t[NELS_X*elOrd*NELS_Y*elOrd];
+  context->el = new int_t[context->nElsX*elOrd*context->nElsY*elOrd];
+  context->r  = new real_t[context->nElsX*elOrd*context->nElsY*elOrd];
+  context->s  = new real_t[context->nElsX*elOrd*context->nElsY*elOrd];
 
-  dx = (XMAX - XMIN)/nNodesX;
-  Femlib::quadrature(&qx, 0, 0, 0, elOrd+1, GLJ, 0.0, 0.0);
+  context->rad_weights = new double[context->nElsY*elOrd+1];
+  context->rad_coords  = new double[context->nElsY*elOrd+1];
 
-  for(int pt_i = 0; pt_i < NELS_X*elOrd*NELS_Y*elOrd; pt_i++) {
-    pt_x = pt_i%(NELS_X*elOrd);
-    pt_y = pt_i/(NELS_X*elOrd);
+  dx = (context->xmax/* - XMIN*/)/nNodesX;
+  Femlib::quadrature(&qx, &wx, 0, 0, elOrd+1, GLJ, 0.0, 0.0);
+
+  for(int pt_i = 0; pt_i < context->nElsX*elOrd*context->nElsY*elOrd; pt_i++) {
+    pt_x = pt_i%(context->nElsX*elOrd);
+    pt_y = pt_i/(context->nElsX*elOrd);
     el_x = pt_x/elOrd;
     el_y = pt_y/elOrd;
-    el_i = el_y*NELS_X + el_x;
-    ex = XMIN + pt_x*dx;
+    el_i = el_y*context->nElsX + el_x;
+    ex = /*XMIN +*/ pt_x*dx;
     // element y size increases with distance from the boundary
     ey = elmt[el_i]->_ymesh[(pt_y%elOrd)*(elOrd+1)];
 
@@ -628,11 +650,32 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
     }
   }
 
+  // compute the radial weights
+  for(int pt_i = 0; pt_i <= context->nElsY*elOrd; pt_i++) context->rad_weights[pt_i] = 0.0;
+
+  dy_sum = 0.0;
+  for(int el_y = 0; el_y < context->nElsY; el_y++) {
+    el_i = el_y*context->nElsX;
+    dy = fabs(elmt[el_i]->_ymesh[elOrd*(elOrd+1)] - elmt[el_i]->_ymesh[0]);
+    if(!Geometry::procID())printf("%d\tdy: %g\n",el_y,dy);
+    for(int qp_i = 0; qp_i <= elOrd; qp_i++) {
+      pt_y = el_y*elOrd + qp_i;
+      context->rad_weights[pt_y] += 0.5 * dy * wx[qp_i];
+      context->rad_coords[pt_y]   = dy_sum + 0.5 * dy * (qx[qp_i]+1.0);
+    }
+    dy_sum += dy;
+  }
+  // test
+  dy = 0.0;
+  for(int pt_i = 0; pt_i <= context->nElsY*elOrd; pt_i++) dy += context->rad_weights[pt_i];
+  if(!Geometry::procID())printf("sum_dy: %g\n",dy);
+  if(!Geometry::procID()){for(int pt_i = 0; pt_i <= context->nElsY*elOrd; pt_i++)printf("%g, ",context->rad_coords[pt_i]);printf("\n");}
+
   // add dofs for theta and tau for each time slice
 #ifdef X_FOURIER
-  context->nDofsPlane = context->nModesX*NELS_Y*elOrd;
+  context->nDofsPlane = context->nModesX*context->nElsY*elOrd;
 #else
-  context->nDofsPlane = NELS_X*elOrd*NELS_Y*elOrd;
+  context->nDofsPlane = context->nElsX*elOrd*context->nElsY*elOrd;
 #endif
 
 #ifdef REMOVE_REFLECTION_SYMMETRIES
@@ -645,25 +688,19 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   context->nDofsSlice++; // add axial phase shift dof
 #endif
 
-#ifndef TRAVELLING_WAVE
-  context->nDofsSlice++; // add temporal phase shift dof
-#endif
+  if(!context->travelling_wave) context->nDofsSlice++; // add temporal phase shift dof
 
 #ifdef REMOVE_REFLECTION_SYMMETRIES
   context->localSize  = NSLICE * NFIELD * (Geometry::nZProc()/2) * context->nDofsPlane;
 #else
   context->localSize  = NSLICE * NFIELD * Geometry::nZProc() * context->nDofsPlane;
 #endif
-  if(!Geometry::procID()) cout << "XMAX: " << XMAX << endl;
-  if(!Geometry::procID()) context->localSize += NSLICE; // azimuthal phase shift dof
 
+  if(!Geometry::procID()) context->localSize += NSLICE; // azimuthal phase shift dof
 #ifdef X_FOURIER
   if(!Geometry::procID()) context->localSize += NSLICE; // axial phase shift dof
 #endif
-
-#ifndef TRAVELLING_WAVE
-  if(!Geometry::procID()) context->localSize += NSLICE; // temporal phase shift dof
-#endif
+  if(!context->travelling_wave && !Geometry::procID()) context->localSize += NSLICE; // temporal phase shift dof
 
   assign_scatter_semtex(context);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, NSLICE * context->nDofsSlice, &x);
@@ -681,15 +718,22 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   MatSetFromOptions(P);
 
   SNESCreate(MPI_COMM_WORLD, &snes);
+  SNESGetKSP(snes, &ksp);
   SNESSetFunction(snes, f,    _snes_function, (void*)context);
   SNESSetJacobian(snes, P, P, _snes_jacobian, (void*)context);
-  SNESGetKSP(snes, &ksp);
   KSPSetType(ksp, KSPFGMRES);
   SNESSetType(snes, SNESNEWTONTR);
-  SNESSetNPCSide(snes, PC_LEFT);
+  //SNESSetNPCSide(snes, PC_LEFT);
   SNESSetFromOptions(snes);
-KSPSetNorm_Hookstep(ksp,(void*)context,RPOVecNormL2_Hookstep);
-KSPSetDot_Hookstep(ksp,(void*)context,RPOVecDot_Hookstep);
+
+  KSPSetNorm_Hookstep(ksp,(void*)context,RPOVecNormL2_Hookstep);
+  KSPSetDot_Hookstep(ksp,(void*)context,RPOVecDot_Hookstep);
+
+  // setup the complex fft in the axial direction
+  context->data_s = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(context->nModesX));
+  context->data_f = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(context->nModesX));
+  context->trans_fwd = fftw_plan_dft_1d(context->nModesX, context->data_s, context->data_f, FFTW_FORWARD,  FFTW_ESTIMATE);
+  context->trans_bck = fftw_plan_dft_1d(context->nModesX, context->data_f, context->data_s, FFTW_BACKWARD, FFTW_ESTIMATE);
 
   context->snes = snes;
   RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
@@ -715,7 +759,7 @@ KSPSetDot_Hookstep(ksp,(void*)context,RPOVecDot_Hookstep);
     char filename[100];
     PetscViewer viewer;
 
-    context->iteration = 17;
+    context->iteration = 19;
     if(!Geometry::procID()) cout << "loading vectors at iteration: " << context->iteration << endl;
 
     sprintf(filename, "x_curr_%.4u.vec", context->iteration);
@@ -723,9 +767,6 @@ KSPSetDot_Hookstep(ksp,(void*)context,RPOVecDot_Hookstep);
     VecZeroEntries(x);
     VecLoad(x, viewer);
     PetscViewerDestroy(&viewer);
-    
-    VecCopy(x, context->x_delta);
-    VecAXPY(context->x_delta, -1.0, context->x_prev);
   }*/
 
   SNESSolve(snes, NULL, x);
@@ -736,16 +777,6 @@ KSPSetDot_Hookstep(ksp,(void*)context,RPOVecDot_Hookstep);
   if(!Geometry::procID()) cout << "\tshift phi:   " << context->phi_i[0] << endl;
   if(!Geometry::procID()) cout << "\tshift tau:   " << context->tau_i[0] << endl;
 
-  // write out the phase shifted solution to the dns solve at time tau (phase shift already applied
-  // at the end of the residual assembly routine
-  sprintf(session_i, "tube8_tw_shift");
-  file_i = new FEML(session_i);
-  Domain* dom = new Domain(file_i, context->elmt, context->bman);
-  for(int field_i = 0; field_i < THREE; field_i++) dom->u[field_i] = context->domain->u[field_i];
-  dom->dump();
-  delete file_i;
-  delete dom;
-
   VecDestroy(&x);
   VecDestroy(&f);
   MatDestroy(&P);
@@ -755,6 +786,8 @@ KSPSetDot_Hookstep(ksp,(void*)context,RPOVecDot_Hookstep);
   delete[] context->el;
   delete[] context->r;
   delete[] context->s;
+  delete[] context->rad_weights;
+  delete[] context->rad_coords;
 }
 
 int main (int argc, char** argv) {
@@ -789,12 +822,6 @@ int main (int argc, char** argv) {
   //domain -> restart ();
   //ROOTONLY domain -> report ();
 
-#ifdef TRAVELLING_WAVE
-  if(!Geometry::procID()) cout << "travelling wave solution\n";
-#else
-  if(!Geometry::procID()) cout << "NOT a travelling wave solution\n";
-#endif
-
   // load in the time slices
   ui.resize(NSLICE * THREE);
   fi.resize(NSLICE * THREE);
@@ -827,7 +854,7 @@ int main (int argc, char** argv) {
   domain->restart();
 
   // solve the newton-rapheson problem
-  rpo_solve(mesh, elmt, bman, file, domain, analyst, FF, ui, fi, u0);
+  rpo_solve(mesh, elmt, bman, file, domain, analyst, FF, ui, fi, u0, session);
   delete file_i;
   delete domain;
 

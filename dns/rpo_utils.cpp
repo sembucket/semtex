@@ -54,6 +54,8 @@ static char RCS[] = "$Id$";
 #include <petscksp.h>
 #include <petscsnes.h>
 
+#include <fftw3.h>
+
 #include "rpo_utils.h"
 #include "rpo_preconditioner.h"
 
@@ -124,10 +126,79 @@ void logical_to_elements(int nex, int ney, real_t* data_log, real_t* data_els) {
   }
 }
 
+void SEM_to_Fourier(int plane_k, Context* context, Field* us, real_t* data_r, real_t* data_i) {
+  int nex = context->nElsX;
+  int ney = context->nElsY;
+  int elOrd = Geometry::nP() - 1;
+  int nModes = context->nModesX;
+  int pt_i;
+  Element* elmt;
+
+  for(int pt_y = 0; pt_y < ney*elOrd; pt_y++) {
+    for(int pt_x = 0; pt_x < nModes; pt_x++) {
+      pt_i = pt_y*nModes + pt_x;
+      elmt = context->elmt[context->el[pt_i]];
+
+      context->data_s[pt_x][0] = us->probe(elmt, context->r[pt_i], context->s[pt_i], plane_k+0);
+      context->data_s[pt_x][1] = us->probe(elmt, context->r[pt_i], context->s[pt_i], plane_k+1);
+
+      context->data_f[pt_x][0] = context->data_f[pt_x][1] = 0.0;
+    }
+
+    fftw_execute(context->trans_fwd);
+
+    for(int pt_x = 0; pt_x < nModes; pt_x++) {
+      //data_r[pt_y*nModes+pt_x] = context->data_f[pt_x][0] / nModes; // rescale!!
+      //data_i[pt_y*nModes+pt_x] = context->data_f[pt_x][1] / nModes; // rescale!!
+      data_r[pt_y*nModes+pt_x] = context->data_f[pt_x][0];
+      data_i[pt_y*nModes+pt_x] = context->data_f[pt_x][1];
+    }
+  }
+}
+
+void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_r, real_t* data_i) {
+  int nex = context->nElsX;
+  int ney = context->nElsY;
+  int elOrd = Geometry::nP() - 1;
+  int nModes = context->nModesX;
+  int mode_l;
+  const real_t *qx;
+  double dx = (context->xmax)/nex; // assume constant
+  double xr, theta;
+  real_t* temp_r = new real_t[ney*elOrd*nModes];
+  real_t* temp_i = new real_t[ney*elOrd*nModes];
+
+  Femlib::quadrature(&qx, 0, 0, 0  , elOrd+1, GLJ, 0.0, 0.0);
+
+  for(int pt_y = 0; pt_y < ney*elOrd; pt_y++) {
+    for(int pt_x = 0; pt_x < nModes; pt_x++) {
+      // coordinate in real space
+      xr = (pt_x/elOrd)*dx + 0.5*(1.0 + qx[pt_x%elOrd])*dx; // + XMIN
+      theta = 2.0*M_PI*xr/(context->xmax /*-XMIN*/);
+
+      temp_r[pt_y*nModes + pt_x] = data_r[pt_y*nModes];
+      temp_i[pt_y*nModes + pt_x] = 0.0; // nyquist frequency
+      for(int mode_k = 1; mode_k < nModes; mode_k++) {
+        mode_l = (mode_k <= nModes/2) ? mode_k : mode_k - nModes; // fftw ordering of complex data
+
+        temp_r[pt_y*nModes + pt_x] += (data_r[pt_y*nModes + mode_k]*cos(mode_l*theta) - data_i[pt_y*nModes + mode_k]*sin(mode_l*theta));
+        temp_i[pt_y*nModes + pt_x] += (data_r[pt_y*nModes + mode_k]*sin(mode_l*theta) + data_i[pt_y*nModes + mode_k]*cos(mode_l*theta));
+      }
+      temp_r[pt_y*nModes + pt_x] /= nModes; // rescale!!
+      temp_i[pt_y*nModes + pt_x] /= nModes; // rescale!!
+    }
+  }
+
+  logical_to_elements(nex, ney, temp_r, us->plane(plane_k+0));
+  logical_to_elements(nex, ney, temp_i, us->plane(plane_k+1));
+
+  delete[] temp_r;
+  delete[] temp_i;
+}
+
 /*
-data_f = data_f[num_nodes_y][num_modes_x],
-where num_modes_x is equation to the number of imaginary + the number of real components
-*/
+// data_f = data_f[num_nodes_y][num_modes_x],
+// where num_modes_x is equation to the number of imaginary + the number of real components
 void SEM_to_Fourier(int plane_k, Context* context, Field* us, real_t* data_f) {
   int nex = context->nElsX;
   int ney = context->nElsY;
@@ -144,6 +215,7 @@ void SEM_to_Fourier(int plane_k, Context* context, Field* us, real_t* data_f) {
       data_r[pt_y*nNodesX+pt_x] = us->probe(elmt, context->r[pt_i], context->s[pt_i], plane_k);
     }
   }
+
   // semtex fft works on strided data, so transpose the plane before applying
   data_transpose(data_r, nNodesX, ney*elOrd);
   dDFTr(data_r, nNodesX, ney*elOrd, +1);
@@ -160,10 +232,8 @@ void SEM_to_Fourier(int plane_k, Context* context, Field* us, real_t* data_f) {
   delete[] data_r;
 }
 
-/*
-data_f = data_f[num_nodes_y][num_modes_x],
-where num_modes_x is equation to the number of imaginary + the number of real components
-*/
+// data_f = data_f[num_nodes_y][num_modes_x],
+// where num_modes_x is equation to the number of imaginary + the number of real components
 void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_f) {
   int nex = context->nElsX;
   int ney = context->nElsY;
@@ -177,7 +247,8 @@ void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_f) {
 
   Femlib::quadrature(&qx, 0, 0, 0  , elOrd+1, GLJ, 0.0, 0.0);
 
-  dx = (context->xmax /*- XMIN*/)/nex;
+  //dx = (context->xmax - XMIN)/nex;
+  dx = (context->xmax)/nex;
 
   for(int pt_y = 0; pt_y < ney*elOrd; pt_y++) {
     for(int pt_x = 0; pt_x < context->nModesX; pt_x++) {
@@ -186,9 +257,11 @@ void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_f) {
     // fourier interpolation to GLL grid
     for(int pt_x = 0; pt_x < nNodesX; pt_x++) {
       // coordinate in real space
-      xr = /*XMIN +*/ (pt_x/elOrd)*dx + 0.5*(1.0 + qx[pt_x%elOrd])*dx;
+      //xr = XMIN + (pt_x/elOrd)*dx + 0.5*(1.0 + qx[pt_x%elOrd])*dx;
+      xr = (pt_x/elOrd)*dx + 0.5*(1.0 + qx[pt_x%elOrd])*dx;
       // coordinate in fourier space
-      theta = 2.0*M_PI*xr/(context->xmax /*- XMIN*/);
+      //theta = 2.0*M_PI*xr/(context->xmax - XMIN);
+      theta = 2.0*M_PI*xr/(context->xmax);
 
       // don't forget to rescale!!
       //data_r[pt_y*nNodesX + pt_x] = temp[0];
@@ -209,7 +282,143 @@ void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_f) {
   delete[] temp;
   delete[] data_r;
 }
+*/
 
+void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
+  int nex = context->nElsX;
+  int ney = context->nElsY;
+  int elOrd = Geometry::nP() - 1;
+  int nNodesX = nex*elOrd;
+  int nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
+  int mode_i, mode_l;
+  real_t* data_r = (nNodesX > context->nModesX) ? new real_t[ney*elOrd*nNodesX] : new real_t[ney*elOrd*context->nModesX];
+  real_t* data_i = (nNodesX > context->nModesX) ? new real_t[ney*elOrd*nNodesX] : new real_t[ney*elOrd*context->nModesX];
+  Field* field;
+  const PetscScalar *xArray;
+  Vec xl;
+  int index;
+  double scale, rh, dr;
+
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
+  VecZeroEntries(xl);
+
+  VecScatterBegin(context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterEnd(  context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
+
+  VecGetArrayRead(xl, &xArray);
+  for(int field_i = 0; field_i < THREE; field_i++) {
+    field = fields[field_i];
+
+    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
+      for(int point_y = 0; point_y < ney*elOrd; point_y++) {
+        for(int point_x = 0; point_x < context->nModesX; point_x++) {
+          mode_i = (Geometry::procID()*Geometry::nZProc() + plane_i)/2;
+          mode_l = (point_x <= context->nModesX/2) ? point_x : point_x - context->nModesX; // fftw ordering of complex data
+          scale = 4.0/(4.0 + (2.0*M_PI/context->xmax)*fabs(mode_l) + fabs(mode_i));
+          //scale *= context->rad_weights[point_y];
+          rh = 0.5*(context->rad_coords[point_y+1] + context->rad_coords[point_y]);
+          //dr =     (context->rad_coords[point_y+1] - context->rad_coords[point_y]);
+          dr = context->rad_weights[point_y];
+          scale *= sqrt(2.0 * M_PI * rh * dr);
+
+          index = field_i*nDofsCube_l + (plane_i+0)*context->nDofsPlane + point_y*context->nModesX+point_x;
+          data_r[point_y*context->nModesX+point_x] = xArray[index] / scale;
+
+          index = field_i*nDofsCube_l + (plane_i+1)*context->nDofsPlane + point_y*context->nModesX+point_x;
+          data_i[point_y*context->nModesX+point_x] = xArray[index] / scale;
+        }
+      }
+
+      Fourier_to_SEM(plane_i, context, field, data_r, data_i);
+    }
+  }
+
+  // phase shift data lives on the 0th processors part of the vector
+  if(!Geometry::procID()) {
+    index = THREE * nDofsCube_l;
+
+    theta[0] = xArray[index++];
+    phi[0]   = xArray[index++];
+    if(!context->travelling_wave) {
+      tau[0] = xArray[index++];
+    }
+  }
+
+  VecRestoreArrayRead(xl, &xArray);
+
+  VecDestroy(&xl);
+  delete[] data_r;
+  delete[] data_i;
+}
+
+void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
+  int nex = context->nElsX;
+  int ney = context->nElsY;
+  int elOrd = Geometry::nP() - 1;
+  int nNodesX = nex*elOrd;
+  int nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
+  int mode_i, mode_l;
+  real_t* data_r = (nNodesX > context->nModesX) ? new real_t[ney*elOrd*nNodesX] : new real_t[ney*elOrd*context->nModesX];
+  real_t* data_i = (nNodesX > context->nModesX) ? new real_t[ney*elOrd*nNodesX] : new real_t[ney*elOrd*context->nModesX];
+  Field* field;
+  PetscScalar *xArray;
+  Vec xl;
+  int index = 0;
+  double scale, dr, rh;
+
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
+  VecZeroEntries(xl);
+
+  VecGetArray(xl, &xArray);
+  for(int field_i = 0; field_i < THREE; field_i++) {
+    field = fields[field_i];
+
+    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
+      SEM_to_Fourier(plane_i, context, field, data_r, data_i);
+
+      for(int point_y = 0; point_y < ney*elOrd; point_y++) {
+        for(int point_x = 0; point_x < context->nModesX; point_x++) {
+          mode_i = (Geometry::procID()*Geometry::nZProc() + plane_i)/2;
+          mode_l = (point_x <= context->nModesX/2) ? point_x : point_x - context->nModesX; // fftw ordering of complex data
+          scale = 4.0/(4.0 + (2.0*M_PI/context->xmax)*fabs(mode_l) + fabs(mode_i));
+          //scale *= context->rad_weights[point_y];
+          rh = 0.5*(context->rad_coords[point_y+1] + context->rad_coords[point_y]);
+          //dr =     (context->rad_coords[point_y+1] - context->rad_coords[point_y]);
+          dr = context->rad_weights[point_y];
+          scale *= sqrt(2.0 * M_PI * rh * dr);
+
+          index = field_i*nDofsCube_l + (plane_i+0)*context->nDofsPlane + point_y*context->nModesX+point_x;
+          xArray[index] = data_r[point_y*context->nModesX+point_x] * scale;
+
+          index = field_i*nDofsCube_l + (plane_i+1)*context->nDofsPlane + point_y*context->nModesX+point_x;
+          xArray[index] = data_i[point_y*context->nModesX+point_x] * scale;
+        }
+      }
+    }
+  }
+
+  // phase shift data lives on the 0th processors part of the vector
+  if(!Geometry::procID()) {
+    index = THREE * nDofsCube_l;
+
+    xArray[index++]   = theta[0];
+    xArray[index++]   = phi[0];
+    if(!context->travelling_wave) {
+      xArray[index++] = tau[0];
+    }
+  }
+
+  VecRestoreArray(xl, &xArray);
+
+  VecScatterBegin(context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
+  VecScatterEnd(  context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
+
+  VecDestroy(&xl);
+  delete[] data_r;
+  delete[] data_i;
+}
+
+/*
 void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
   int nex = context->nElsX;
   int ney = context->nElsY;
@@ -287,37 +496,6 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
 
   VecDestroy(&xl);
   delete[] data;
-}
-
-void UnpackConstraints(Context* context, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale) {
-  int ii, jj, kk, ll, slice_i, field_i, index;
-  const PetscScalar *xArray;
-  Vec xl;
-
-  VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
-  VecScatterBegin(context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
-  VecScatterEnd(  context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
-
-  VecGetArrayRead(xl, &xArray);
-  for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
-    index = context->nField * Geometry::nZProc() * context->nDofsPlane;
-    // phase shift data lives on the 0th processors part of the vector
-    if(!Geometry::procID()) {
-      if(context->x_fourier) {
-        theta[slice_i] = xArray[index] / shift_scale;
-        index++;
-      }
-      phi[slice_i]     = xArray[index] / shift_scale;
-      index++;
-      if(!context->travelling_wave) {
-        tau[slice_i]   = xArray[index] / shift_scale;
-        index++;
-      }
-    }
-  }
-  VecRestoreArrayRead(xl, &xArray);
-
-  VecDestroy(&xl);
 }
 
 void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
@@ -407,41 +585,7 @@ void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi
   VecDestroy(&xl);
   delete[] data;
 }
-
-void RepackConstraints(Context* context, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale) {
-  int ii, jj, kk, slice_i, field_i, index;
-  PetscScalar *xArray;
-  Vec xl;
-
-  VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
-  VecScatterBegin(context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
-  VecScatterEnd(  context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
-
-  VecGetArray(xl, &xArray);
-  for(slice_i = 0; slice_i < context->nSlice; slice_i++) {
-    index = context->nField * Geometry::nZProc() * context->nDofsPlane;
-
-    // phase shift data lives on the 0th processors part of the vector
-    if(!Geometry::procID()) {
-      if(context->x_fourier) {
-        xArray[index] = theta[slice_i] * shift_scale;
-        index++;
-      }
-      xArray[index]   = phi[slice_i]   * shift_scale;
-      index++;
-      if(!context->travelling_wave) {
-        xArray[index] = tau[slice_i]   * shift_scale;
-        index++;
-      }
-    }
-  }
-  VecRestoreArray(xl, &xArray);
-
-  VecScatterBegin(context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
-  VecScatterEnd(  context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
-
-  VecDestroy(&xl);
-}
+*/
 
 // define a vec scatter object for mapping from parallel global vectors to semtex data
 void assign_scatter_semtex(Context* context) {
@@ -508,24 +652,64 @@ void phase_shift_x(Context* context, double theta, double sign, vector<Field*> f
   int elOrd = Geometry::nP() - 1;
   int nNodesX = nex*elOrd;
   int nModesX = context->nModesX;
+  int mode_i, field_i, pt_y, mode_k, mode_l;
+  double ckt, skt, rTmp, cTmp;
+  real_t *data_r, *data_i;
+
+  data_r = new real_t[ney*elOrd*nModesX];
+  data_i = new real_t[ney*elOrd*nModesX];
+
+  for(mode_i = 0; mode_i < Geometry::nZProc(); mode_i += 2) {
+    for(field_i = 0; field_i < THREE; field_i++) {
+      SEM_to_Fourier(mode_i, context, fields[field_i], data_r, data_i);
+
+      for(int pt_y = 0; pt_y < ney*elOrd; pt_y++) {
+        for(int mode_k = 0; mode_k < nModesX; mode_k++) {
+          mode_l = (mode_k <= nModesX/2) ? mode_k : mode_k - nModesX; // fftw ordering of complex data
+
+          ckt = cos(sign * mode_l * theta);
+          skt = sin(sign * mode_l * theta);
+
+          rTmp = +ckt*data_r[pt_y*nModesX+mode_k] + skt*data_i[pt_y*nModesX+mode_k];
+          cTmp = -skt*data_r[pt_y*nModesX+mode_k] + ckt*data_i[pt_y*nModesX+mode_k];
+          data_r[pt_y*nModesX+mode_k] = rTmp;
+          data_i[pt_y*nModesX+mode_k] = cTmp;
+        }
+      }
+      Fourier_to_SEM(mode_i, context, fields[field_i], data_r, data_i);
+    }
+  }
+  delete[] data_r;
+  delete[] data_i;
+}
+
+/*
+void phase_shift_x(Context* context, double theta, double sign, vector<Field*> fields) {
+  int nex = context->nElsX;
+  int ney = context->nElsY;
+  int elOrd = Geometry::nP() - 1;
+  int nNodesX = nex*elOrd;
+  int nModesX = context->nModesX;
   int mode_i, field_i, pt_y, mode_k;
   double ckt, skt, rTmp, cTmp;
-  real_t* data_f;
+  real_t *data_f;
 
   if(!context->x_fourier) return;
 
   data_f = new real_t[ney*elOrd*nModesX];
 
   for(mode_i = 0; mode_i < Geometry::nZProc(); mode_i++) {
-    //for(field_i = 0; field_i < context->domain->nField(); field_i++) {
     for(field_i = 0; field_i < THREE; field_i++) {
       SEM_to_Fourier(mode_i, context, fields[field_i], data_f);
+
       for(int pt_y = 0; pt_y < ney*elOrd; pt_y++) {
-        for(int mode_k = 1; mode_k < nModesX/2; mode_k++) {
+        //for(int mode_k = 1; mode_k < nModesX/2; mode_k++) {
+        for(int mode_k = 0; mode_k < nModesX/2; mode_k++) {
           ckt = cos(sign * mode_k * theta);
           skt = sin(sign * mode_k * theta);
-          rTmp = +ckt*data_f[pt_y*nModesX+2*mode_k+0] + skt*data_f[pt_y*nModesX+2*mode_k+1];
-          cTmp = -skt*data_f[pt_y*nModesX+2*mode_k+0] + ckt*data_f[pt_y*nModesX+2*mode_k+1];
+
+          rTmp = +ckt*data_r[pt_y*nModesX+2*mode_k+0] + skt*data_r[pt_y*nModesX+2*mode_k+1];
+          cTmp = -skt*data_r[pt_y*nModesX+2*mode_k+0] + ckt*data_r[pt_y*nModesX+2*mode_k+1];
           data_f[pt_y*nModesX+2*mode_k+0] = rTmp;
           data_f[pt_y*nModesX+2*mode_k+1] = cTmp;
         }
@@ -535,6 +719,7 @@ void phase_shift_x(Context* context, double theta, double sign, vector<Field*> f
   }
   delete[] data_f;
 }
+*/
 
 void phase_shift_z(Context* context, double phi,   double sign, vector<Field*> fields) {
   int nex = context->nElsX;
@@ -554,13 +739,11 @@ void phase_shift_z(Context* context, double phi,   double sign, vector<Field*> f
     ckt = cos(sign * mode_j * phi);
     skt = sin(sign * mode_j * phi);
 
-    //for(field_i = 0; field_i < context->domain->nField(); field_i++) {
     for(field_i = 0; field_i < THREE; field_i++) {
       data_r = fields[field_i]->plane(2*mode_i+0);
       data_c = fields[field_i]->plane(2*mode_i+1);
 
-      //for(dof_i = 0; dof_i < ney*elOrd*nModesX; dof_i++) {
-      for(dof_i = 0; dof_i < nex *ney*(elOrd+1)*(elOrd+1); dof_i++) {
+      for(dof_i = 0; dof_i < nex*ney*(elOrd+1)*(elOrd+1); dof_i++) {
         rTmp = +ckt*data_r[dof_i] + skt*data_c[dof_i];
         cTmp = -skt*data_r[dof_i] + ckt*data_c[dof_i];
         data_r[dof_i] = rTmp;

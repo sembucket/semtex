@@ -6,6 +6,8 @@
 #include <petscksp.h>
 #include <petscsnes.h>
 
+#include <fftw3.h>
+
 struct Context {
     int              nSlice;
     int              nField;
@@ -50,24 +52,29 @@ struct Context {
     int              nModesX;
     double           xmax;
     bool             x_fourier;
-    bool             travelling_wave;
+    int              travelling_wave;
     int              nElsX;
     int              nElsY;
     int              prev_newton_it;
     int              iteration;
     Domain*          write_i; // additional fields for file writing (ui)
     bool             build_dx;
+    char*            session;
+    fftw_complex*    data_s;
+    fftw_complex*    data_f;
+    fftw_plan        trans_fwd;
+    fftw_plan        trans_bck;
+    double*          rad_weights;
+    double*          rad_coords;
 };
 
 void data_transpose(real_t* data, int nx, int ny);
 void elements_to_logical(int nex, int ney, real_t* data_els, real_t* data_log);
 void logical_to_elements(int nex, int ney, real_t* data_log, real_t* data_els);
-void SEM_to_Fourier(int plane_k, Context* context, Field* us, real_t* data_f);
-void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_f);
+void SEM_to_Fourier(int plane_k, Context* context, Field* us, real_t* data_r, real_t* data_i);
+void Fourier_to_SEM(int plane_k, Context* context, Field* us, real_t* data_r, real_t* data_i);
 void UnpackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x);
 void RepackX(Context* context, vector<Field*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x);
-void UnpackConstraints(Context* context, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale);
-void RepackConstraints(Context* context, real_t* theta, real_t* phi, real_t* tau, Vec x, double shift_scale);
 void assign_scatter_semtex(Context* context);
 void phase_shift_x(Context* context, double theta, double sign, vector<Field*> fields);
 void phase_shift_z(Context* context, double phi,   double sign, vector<Field*> fields);
