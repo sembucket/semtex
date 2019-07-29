@@ -29,7 +29,6 @@ struct Context {
     IS               isl;  // local index set
     IS               isg;  // global index set
     VecScatter       global_to_semtex; // scatter from global data to semtex fields
-    SNES             snes;
     Vec              x_delta; // for determining \delta x
     double           xmin;
     double           xmax;
@@ -37,6 +36,7 @@ struct Context {
     bool             travelling_wave;
     bool             build_dx;
     Domain*          write;   // additional fields for dumping at run time
+    double*          coord_weights;
 };
 
 void elements_to_logical(real_t* data_els, real_t* data_log);

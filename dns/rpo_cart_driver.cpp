@@ -73,6 +73,104 @@ void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 //#define XMIN (-1.0)
 //#define XMAX (+1.0)
 
+static PetscErrorCode RPOVecNormL2_Hookstep(void* ctx,Vec v,PetscScalar* norm) {
+  Context* context = (Context*)ctx;
+  PetscInt nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
+  PetscInt ind_i;
+  double norm_sq, norm_l_sq, norm_orig;
+  PetscScalar* vArray;
+  Vec vl;
+
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &vl);
+
+  VecScatterBegin(context->global_to_semtex, v, vl, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterEnd  (context->global_to_semtex, v, vl, INSERT_VALUES, SCATTER_FORWARD);
+
+  norm_l_sq = 0.0;
+  VecGetArray(vl, &vArray);
+  for(ind_i=0; ind_i<3*nDofsCube_l; ind_i++) {
+    norm_l_sq += vArray[ind_i]*vArray[ind_i];
+  }
+  VecRestoreArray(vl, &vArray);
+
+  norm_sq = 0.0;
+  MPI_Allreduce(&norm_l_sq, &norm_sq, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  *norm = sqrt(norm_sq);
+
+  VecNorm(v,NORM_2,&norm_orig);
+  if(!Geometry::procID())printf("\tSNES TR - modified norm - |x|: %g, |x_orig|: %g\n",*norm,norm_orig);
+
+  VecDestroy(&vl);
+
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode RPOVecDot_Hookstep(void* ctx,Vec v1,Vec v2,PetscScalar* dot) {
+  Context* context = (Context*)ctx;
+  PetscInt nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
+  PetscInt ind_i;
+  double dot_l;
+  PetscScalar *v1Array, *v2Array;
+  Vec vl1, vl2;
+
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &vl1);
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &vl2);
+
+  VecScatterBegin(context->global_to_semtex, v1, vl1, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterEnd  (context->global_to_semtex, v1, vl1, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterBegin(context->global_to_semtex, v2, vl2, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterEnd  (context->global_to_semtex, v2, vl2, INSERT_VALUES, SCATTER_FORWARD);
+
+  dot_l = 0.0;
+  VecGetArray(vl1, &v1Array);
+  VecGetArray(vl2, &v2Array);
+  for(ind_i=0; ind_i<3*nDofsCube_l; ind_i++) {
+    dot_l += v1Array[ind_i]*v2Array[ind_i];
+  }
+  VecRestoreArray(vl1, &v1Array);
+  VecRestoreArray(vl2, &v2Array);
+
+  *dot = 0.0;
+  MPI_Allreduce(&dot_l, dot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+  VecDestroy(&vl1);
+  VecDestroy(&vl2);
+
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode RPOVecDiff_Hookstep(void* ctx,Vec y,Vec F,PetscScalar h) {
+  Context* context = (Context*)ctx;
+  PetscInt nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
+  PetscInt ind_i;
+  PetscScalar *yArray, *FArray;
+  Vec yl, Fl;
+
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &yl);
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &Fl);
+
+  VecScatterBegin(context->global_to_semtex, y, yl, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterEnd  (context->global_to_semtex, y, yl, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterBegin(context->global_to_semtex, F, Fl, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterEnd  (context->global_to_semtex, F, Fl, INSERT_VALUES, SCATTER_FORWARD);
+
+  VecGetArray(yl, &yArray);
+  VecGetArray(Fl, &FArray);
+  for(ind_i=0; ind_i<3*nDofsCube_l; ind_i++) {
+    yArray[ind_i] = (yArray[ind_i] - FArray[ind_i])/h;
+  }
+  VecRestoreArray(yl, &yArray);
+  VecRestoreArray(Fl, &FArray);
+
+  VecScatterBegin(context->global_to_semtex, yl, y, INSERT_VALUES, SCATTER_REVERSE);
+  VecScatterEnd  (context->global_to_semtex, yl, y, INSERT_VALUES, SCATTER_REVERSE);
+
+  VecDestroy(&yl);
+  VecDestroy(&Fl);
+
+  PetscFunctionReturn(0);
+}
+
 void build_constraints(Context* context, Vec x_delta, double* f_phi, double* f_tau) {
   int          elOrd       = Geometry::nP() - 1;
   int          nNodesX     = Femlib::ivalue("NELS_X")*elOrd;
@@ -80,14 +178,14 @@ void build_constraints(Context* context, Vec x_delta, double* f_phi, double* f_t
   int          nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
   int          nl          = 3 * nDofsCube_l;
   int          plane_j;
-  int          pt_j, el_j;
+  int          pt_j, el_j, dof_j;
   double       p_y;
   double       k_z;
   double       f_phi_l, f_tau_l;
   double*      rz          = new double[nl];
   double*      rt          = new double[nl];
-  double*      data_r      = new double[context->nDofsPlane];
-  double*      data_i      = new double[context->nDofsPlane];
+  double*      data_r      = new double[nNodesX * Femlib::ivalue("NELS_Y")*elOrd];
+  double*      data_i      = new double[nNodesX * Femlib::ivalue("NELS_Y")*elOrd];
   PetscScalar* xArray;
   Vec          xl;
   int          nStep;
@@ -129,21 +227,31 @@ void build_constraints(Context* context, Vec x_delta, double* f_phi, double* f_t
       plane_j = Geometry::procID() * Geometry::nZProc() + plane_i;
       elements_to_logical(context->u0[field_i]->plane(plane_i+0), data_r);
       elements_to_logical(context->u0[field_i]->plane(plane_i+1), data_i);
+      dof_j = 0;
       for(int dof_i = 0; dof_i < Femlib::ivalue("NELS_Y") * elOrd * nNodesX; dof_i++) {
+        // omit the boundaries
+        if(dof_i % nNodesX == 0 || dof_i / nNodesX == 0) continue;
+
         k_z  = (2.0 * M_PI / Femlib::value("ZMAX")) * (plane_j / 2);
 
-        index = field_i * nDofsCube_l + (plane_i+0) * context->nDofsPlane + dof_i;
+        index = field_i * nDofsCube_l + (plane_i+0) * context->nDofsPlane + dof_j;
         rz[index] = -k_z * data_i[dof_i];
-        index = field_i * nDofsCube_l + (plane_i+1) * context->nDofsPlane + dof_i;
+        index = field_i * nDofsCube_l + (plane_i+1) * context->nDofsPlane + dof_j;
         rz[index] = +k_z * data_r[dof_i];
+
+        dof_j++;
       }
     }
     if(!context->travelling_wave) {
+      index = field_i * nDofsCube_l;
+
       for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
         elements_to_logical(context->domain->u[field_i]->plane(plane_i), data_r);
-        for(int dof_i = 0; dof_i < context->nDofsPlane; dof_i++) {
-          index = field_i * nDofsCube_l + plane_i * context->nDofsPlane + dof_i;
-          rt[index] = data_r[dof_i];
+        for(int dof_i = 0; dof_i < Femlib::ivalue("NELS_Y") * elOrd * nNodesX; dof_i++) {
+          // omit the boundaries
+          if(dof_i % nNodesX == 0 || dof_i / nNodesX == 0) continue;
+
+          rt[index++] = data_r[dof_i];
         }
       }
     }
@@ -287,6 +395,8 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   SNES snes;
   FEML* file_i;
   char session_i[100];
+  const real_t* q4;
+  int pt_x, pt_y;
 
   if(!Geometry::procID()) cout << "time step: " << Femlib::value("D_T") << endl;
 
@@ -314,10 +424,30 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   delete file_i;
 
   // add dofs for phi and tau for each time slice
-  context->nDofsPlane = Femlib::ivalue("NELS_X")*elOrd*Femlib::ivalue("NELS_Y")*elOrd;
-  context->nDofsSlice = 3 * Geometry::nZ() * context->nDofsPlane + 2;
+  context->nDofsPlane = (Femlib::ivalue("NELS_X")*elOrd - 1) * (Femlib::ivalue("NELS_Y")*elOrd - 1);
+  context->nDofsSlice = 3 * Geometry::nZ() * context->nDofsPlane + 1;
+  if(!Femlib::ivalue("TRAV_WAVE")) context->nDofsSlice++;
   context->localSize  = 3 * Geometry::nZProc() * context->nDofsPlane;
-  if(!Geometry::procID()) context->localSize += 2;
+  if(!Geometry::procID()) {
+    context->localSize++;
+    if(!Femlib::ivalue("TRAV_WAVE")) context->localSize++;
+  }
+
+  // assign the coordinate weights
+  context->coord_weights = new double[Femlib::ivalue("NELS_X")*elOrd*Femlib::ivalue("NELS_Y")*elOrd];
+  for(int dof_i = 0; dof_i < Femlib::ivalue("NELS_X")*elOrd*Femlib::ivalue("NELS_Y")*elOrd; dof_i++) context->coord_weights[dof_i] = 0.0;
+
+  for(int el_y = 0; el_y < Femlib::ivalue("NELS_Y"); el_y++) {
+    for(int el_x = 0; el_x < Femlib::ivalue("NELS_X"); el_x++) {
+      q4 = elmt[el_y*Femlib::ivalue("NELS_X")+el_x]->GetQ4();
+      for(int pt_i = 0; pt_i < (elOrd+1)*(elOrd+1); pt_i++) {
+        pt_x = el_x*elOrd + pt_i%(elOrd+1);
+        pt_y = el_y*elOrd + pt_i/(elOrd+1);
+
+        context->coord_weights[pt_y*Femlib::ivalue("NELS_X")*elOrd + pt_x] += q4[pt_i];
+      }
+    }
+  }
 
   assign_scatter_semtex(context);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nDofsSlice, &x);
@@ -327,7 +457,6 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
   MatSetSizes(P, context->localSize, context->localSize, context->nDofsSlice, context->nDofsSlice);
-  //MatMPIAIJSetPreallocation(P, 2*nNodesX, PETSC_NULL, 2*nNodesX, PETSC_NULL);
   MatMPIAIJSetPreallocation(P, 1, PETSC_NULL, 1, PETSC_NULL);
   MatSetOptionsPrefix(P, "P_");
   MatSetFromOptions(P);
@@ -338,10 +467,13 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   SNESGetKSP(snes, &ksp);
   KSPSetType(ksp, KSPGMRES);
   SNESSetType(snes, SNESNEWTONTR);
-  SNESSetNPCSide(snes, PC_LEFT);
   SNESSetFromOptions(snes);
 
-  context->snes = snes;
+  // set the custom operators to discount the constraint dofs
+  KSPSetNorm_Hookstep(ksp,(void*)context,RPOVecNormL2_Hookstep);
+  KSPSetDot_Hookstep(ksp,(void*)context,RPOVecDot_Hookstep);
+  KSPSetDiff_Hookstep(ksp,(void*)context,RPOVecDiff_Hookstep);
+
   RepackX(context, context->ui, context->phi_i, context->tau_i, x);
   VecZeroEntries(context->x_delta);
   SNESSolve(snes, NULL, x);

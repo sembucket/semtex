@@ -69,7 +69,7 @@ void elements_to_logical(real_t* data_els, real_t* data_log) {
       for(int pt_i = 0; pt_i < nodes_per_el; pt_i++) {
         index++;
 
-        // skip over right and top edges for each element, as these are redundant
+        // skip over right and top edges for each element
         if(pt_i%(elOrd+1) == elOrd || pt_i/(elOrd+1) == elOrd) continue;
 
         pt_x = el_x*elOrd + pt_i%(elOrd+1);
@@ -96,10 +96,8 @@ void logical_to_elements(real_t* data_log, real_t* data_els) {
 
         pt_x = el_x*elOrd + pt_r;
         pt_y = el_y*elOrd + pt_s;
-        // asseume periodic in x
-        if(pt_x == Femlib::ivalue("NELS_X")*elOrd) pt_x = 0;
-        // don't do axis for now
-        if(pt_y == Femlib::ivalue("NELS_Y")*elOrd) continue;
+        // omit boundaries (bottom left)
+        if(pt_x == 0 || pt_y == 0) continue;
 
         data_els[shift_els+pt_i] = data_log[pt_y*Femlib::ivalue("NELS_X")*elOrd + pt_x];
       }
@@ -116,6 +114,7 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* phi, real_t* tau, 
   const PetscScalar *xArray;
   real_t* data = new real_t[Femlib::ivalue("NELS_Y")*elOrd*nNodesX];
   Vec xl;
+  double scale;
 
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
   VecScatterBegin(context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
@@ -127,10 +126,15 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* phi, real_t* tau, 
     field = fields[field_i];
 
     for(kk = 0; kk < Geometry::nZProc(); kk++) {
-      // skip over redundant real dofs
+      ll = ( Geometry::procID() * Geometry::nZProc() + kk ) / 2;
       for(jj = 0; jj < Femlib::ivalue("NELS_Y")*elOrd; jj++) {
         for(ii = 0; ii < nNodesX; ii++) {
-          data[jj*nNodesX + ii] = xArray[index++];
+          // omit boundaries
+          if(ii == 0 || jj == 0) continue;
+
+          scale = 2.0/(2.0 + fabs(ll)) * context->coord_weights[jj*nNodesX + ii];
+
+          data[jj*nNodesX + ii] = xArray[index++] / scale;
         }
       }
 
@@ -165,6 +169,7 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* phi, real_t* tau, 
   index = 0;
   VecGetArrayRead(xl, &xArray);
   for(kk = 0; kk < Geometry::nZProc(); kk++) {
+    ll = ( Geometry::procID() * Geometry::nZProc() + kk ) / 2;
     // skip over redundant real dofs
     for(jj = 0; jj < Femlib::ivalue("NELS_Y")*elOrd; jj++) {
       for(ii = 0; ii < nNodesX; ii++) {
@@ -195,13 +200,14 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* phi, real_t* tau, 
 #ifdef VEL_MAJOR
 void RepackX(Context* context, vector<Field*> fields, real_t  phi, real_t  tau, Vec x) {
   int elOrd = Geometry::nP() - 1;
-  int ii, jj, kk, field_i, index;
+  int ii, jj, kk, ll, field_i, index;
   int nNodesX = Femlib::ivalue("NELS_X")*elOrd;
   Field* field;
   PetscScalar *xArray;
   real_t* data = new real_t[Femlib::ivalue("NELS_Y")*elOrd*nNodesX];
   Vec xl;
   double norm_l = 0.0, norm_g;
+  double scale;
 
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
   VecZeroEntries(xl);
@@ -212,12 +218,18 @@ void RepackX(Context* context, vector<Field*> fields, real_t  phi, real_t  tau, 
     field = fields[field_i];
 
     for(kk = 0; kk < Geometry::nZProc(); kk++) {
+      ll = ( Geometry::procID() * Geometry::nZProc() + kk ) / 2;
+
       elements_to_logical(field->plane(kk), data);
 
-      // skip over redundant real dofs
       for(jj = 0; jj < Femlib::ivalue("NELS_Y")*elOrd; jj++) {
         for(ii = 0; ii < nNodesX; ii++) {
-          xArray[index] = data[jj*nNodesX + ii];
+          // omit boundaries
+          if(ii == 0 || jj == 0) continue;
+
+          scale = 2.0/(2.0 + fabs(ll)) * context->coord_weights[jj*nNodesX + ii];
+
+          xArray[index] = data[jj*nNodesX + ii] * scale;
           norm_l += xArray[index]*xArray[index];
           index++;
         }
@@ -242,7 +254,7 @@ void RepackX(Context* context, vector<Field*> fields, real_t  phi, real_t  tau, 
 #else
 void RepackX(Context* context, vector<Field*> fields, real_t  phi, real_t  tau, Vec x) {
   int elOrd = Geometry::nP() - 1;
-  int ii, jj, kk, index;
+  int ii, jj, kk, ll, index;
   int nNodesX = Femlib::ivalue("NELS_X")*elOrd;
   PetscScalar *xArray;
   real_t* data_u = new real_t[Femlib::ivalue("NELS_Y")*elOrd*nNodesX];
@@ -260,6 +272,8 @@ void RepackX(Context* context, vector<Field*> fields, real_t  phi, real_t  tau, 
   index = 0;
 
   for(kk = 0; kk < Geometry::nZProc(); kk++) {
+    ll = ( Geometry::procID() * Geometry::nZProc() + kk ) / 2;
+
     elements_to_logical(fields[0]->plane(kk), data_u);
     elements_to_logical(fields[1]->plane(kk), data_v);
     elements_to_logical(fields[2]->plane(kk), data_w);
@@ -389,8 +403,8 @@ void phase_shift_z(Context* context, double phi, double sign, vector<Field*> fie
   int nNodesX = Femlib::ivalue("NELS_X")*elOrd;
   int mode_i, mode_j, field_i, dof_i;
   double ckt, skt, rTmp, cTmp;
-  register real_t* data_r;
-  register real_t* data_c;
+  double* data_r = new double[nNodesX*Femlib::ivalue("NELS_Y")*elOrd];
+  double* data_c = new double[nNodesX*Femlib::ivalue("NELS_Y")*elOrd];
 
   for(mode_i = 0; mode_i < Geometry::nZProc()/2; mode_i++) {
     mode_j = Geometry::procID() * (Geometry::nZProc()/2) + mode_i;
@@ -400,15 +414,19 @@ void phase_shift_z(Context* context, double phi, double sign, vector<Field*> fie
     skt = sin(sign * mode_j * phi);
 
     for(field_i = 0; field_i < context->domain->nField(); field_i++) {
-      data_r = fields[field_i]->plane(2*mode_i+0);
-      data_c = fields[field_i]->plane(2*mode_i+1);
+      elements_to_logical(fields[field_i]->plane(2*mode_i+0), data_r);
+      elements_to_logical(fields[field_i]->plane(2*mode_i+1), data_c);
 
-      for(dof_i = 0; dof_i < Femlib::ivalue("NELS_X")*Femlib::ivalue("NELS_Y")*(elOrd+1)*(elOrd+1); dof_i++) {
+      for(dof_i = 0; dof_i < Femlib::ivalue("NELS_X")*Femlib::ivalue("NELS_Y")*elOrd*elOrd; dof_i++) {
         rTmp = +ckt*data_r[dof_i] + skt*data_c[dof_i];
         cTmp = -skt*data_r[dof_i] + ckt*data_c[dof_i];
         data_r[dof_i] = rTmp;
         data_c[dof_i] = cTmp;
       }
     }
+    logical_to_elements(data_r, fields[field_i]->plane(2*mode_i+0));
+    logical_to_elements(data_c, fields[field_i]->plane(2*mode_i+1));
   }
+  delete[] data_r;
+  delete[] data_c;
 }
