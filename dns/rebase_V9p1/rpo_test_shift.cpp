@@ -175,7 +175,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->u0       = u0;
   context->build_PC = true;
   context->x_fourier = true;
-  context->travelling_wave = false;
+  context->travelling_wave = Femlib::ivalue("TRAV_WAVE");
   context->nElsX    = Femlib::ivalue("NELS_X");
   context->nElsY    = Femlib::ivalue("NELS_Y");
 
@@ -267,7 +267,16 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->nDofsPlane = nModesX*Femlib::ivalue("NELS_Y")*elOrd;
   context->nDofsSlice = NFIELD * Geometry::nZ() * context->nDofsPlane + 3;
   context->localSize  = nSlice * NFIELD * Geometry::nZProc() * context->nDofsPlane;
-  if(!Geometry::procID()) context->localSize += (nSlice * 3);
+  if(!Geometry::procID()) {
+    context->localSize += nSlice;
+    if(context->x_fourier)       context->localSize += nSlice;
+    if(context->travelling_wave) context->localSize += nSlice;
+  }
+
+#ifdef RM_2FOLD_SYM
+  if(Geometry::procID()%2==1) context->localSize = 0;
+  MPI_Allreduce(&context->localSize, &context->nDofsSlice, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+#endif
 
   assign_scatter_semtex(context);
 

@@ -428,7 +428,11 @@ void RepackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
 // define a vec scatter object for mapping from parallel global vectors to semtex data
 void assign_scatter_semtex(Context* context) {
   int   nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
+#ifdef RM_2FOLD_SYM
+  int   nDofsCube_g = (Geometry::nZ()/2) * context->nDofsPlane;
+#else
   int   nDofsCube_g = Geometry::nZ()     * context->nDofsPlane;
+#endif
   int   nShifts     = 1;
   int   ind_i       = 0;
   int*  inds;
@@ -438,7 +442,32 @@ void assign_scatter_semtex(Context* context) {
   if(context->x_fourier)        nShifts++;
   if(!context->travelling_wave) nShifts++;
 
-#ifndef RM_2FOLD_SYM
+#ifdef RM_2FOLD_SYM
+  if(Geometry::procID()%2==0) {
+    inds = new int[context->localSize];
+
+    context->lShift = new int*[context->nSlice];
+    context->lShift[0] = new int[context->nField];
+
+    for(int field_i = 0; field_i < context->nField; field_i++) {
+      context->lShift[0][field_i] = field_i * nDofsCube_g + (Geometry::procID()/2) * nDofsCube_l;
+
+      for(int ind_j = 0; ind_j < nDofsCube_l; ind_j++) {
+        inds[ind_i++] = context->lShift[0][field_i] + ind_j;
+      }
+    }
+
+    // assign the phase shifts from the 0th processor
+    if(!Geometry::procID()) {
+      for(int ind_j = 0; ind_j < nShifts; ind_j++) {
+        inds[ind_i++] = context->nField * nDofsCube_g + ind_j;
+      }
+    }
+  } else {
+    inds = new int[1];
+    inds[0] = -1;
+  }
+#else
   inds = new int[context->localSize];
 
   context->lShift = new int*[context->nSlice];
@@ -470,11 +499,7 @@ void assign_scatter_semtex(Context* context) {
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nSlice * context->nDofsSlice, &vg);
 
   ISCreateStride(MPI_COMM_SELF, context->localSize, 0, 1, &isl);
-#ifdef RM_2FOLD_SYM
-  ISCreateStride(MPI_COMM_WORLD, context->localSize, 0, 1, &isg);
-#else
   ISCreateGeneral(MPI_COMM_WORLD, context->localSize, inds, PETSC_COPY_VALUES, &isg);
-#endif
 
   VecScatterCreate(vg, isg, vl, isl, &context->global_to_semtex);
   
@@ -482,9 +507,7 @@ void assign_scatter_semtex(Context* context) {
   VecDestroy(&vg);
   ISDestroy(&isl);
   ISDestroy(&isg);
-#ifndef RM_2FOLD_SYM
   delete[] inds;
-#endif
 }
 
 void phase_shift_x(Context* context, double theta, double sign, vector<Field*> fields) {
