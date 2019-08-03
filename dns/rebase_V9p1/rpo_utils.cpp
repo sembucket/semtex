@@ -60,7 +60,7 @@ static char RCS[] = "$Id$";
 #include "rpo_preconditioner.h"
 
 #define THREE 3
-#define RM_2FOLD_SYM
+//#define RM_2FOLD_SYM
 
 void velocity_scales(Context* context) {
   double Ku[3], Ku_bar;

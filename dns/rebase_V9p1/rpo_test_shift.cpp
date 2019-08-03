@@ -61,11 +61,13 @@ static char prog[] = "rpo";
 static void getargs    (int, char**, bool&, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, Domain*&, FieldForce*&);
+void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
+		Domain*, BCmgr*, DNSAnalyser*, FieldForce*);
 
 #define X_FOURIER
 #define NFIELD 3
 #define NSLICE 1
-#define RM_2FOLD_SYM
+//#define RM_2FOLD_SYM
 
 void int_base_flow_ke(Context* context, AuxField* ux) {
   int elOrd = Geometry::nP() - 1;
@@ -257,17 +259,14 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
     dy_sum += dy;
   }
 
+  context->u_scale[0] = context->u_scale[1] = context->u_scale[2] = 1.0;
+
   // add dofs for theta and tau for each time slice
   context->nSlice     = NSLICE;
   context->nField     = NFIELD;
   context->nDofsPlane = nModesX*Femlib::ivalue("NELS_Y")*elOrd;
-#ifdef REMOVE_REFLECTION_SYMMETRIES
-  context->nDofsSlice = NFIELD * (Geometry::nZ()/2) * context->nDofsPlane + 3;
-  context->localSize  = nSlice * NFIELD * (Geometry::nZProc()/2) * context->nDofsPlane;
-#else
   context->nDofsSlice = NFIELD * Geometry::nZ() * context->nDofsPlane + 3;
   context->localSize  = nSlice * NFIELD * Geometry::nZProc() * context->nDofsPlane;
-#endif
   if(!Geometry::procID()) context->localSize += (nSlice * 3);
 
   assign_scatter_semtex(context);
@@ -281,54 +280,23 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->trans_fwd = fftw_plan_dft_1d(context->nModesX, context->data_s, context->data_f, FFTW_FORWARD,  FFTW_ESTIMATE);
   context->trans_bck = fftw_plan_dft_1d(context->nModesX, context->data_f, context->data_s, FFTW_BACKWARD, FFTW_ESTIMATE);
 
-  //int_base_flow_ke(context, context->ui[0]);
-  //velocity_scales(context);
   RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
-#ifdef VEL_MAJOR
-  VecScatterBegin(context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
-  VecScatterEnd(  context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
-  VecGetArray(xl, &xArray);
-  for(int field_i = 0; field_i < NFIELD; field_i++) {
-    for(int mode_i = 0; mode_i < Geometry::nZ(); mode_i++) {
-      for(int pt_y = 0; pt_y < Femlib::ivalue("NELS_Y")*elOrd; pt_y++) {
-        for(int mode_k = 0; mode_k < nModesX/2; mode_k++) {
-          io = field_i * Geometry::nZ() * context->nDofsPlane + 
-               mode_i * context->nDofsPlane + 
-               pt_y * nModesX;
-
-          ckt = cos(0.25*M_PI*mode_k);
-          skt = sin(0.25*M_PI*mode_k);
-
-          rTmp = ckt*xArray[io+2*mode_k+0] - skt*xArray[io+2*mode_k+1];
-          cTmp = skt*xArray[io+2*mode_k+0] + ckt*xArray[io+2*mode_k+1];
-
-          xArray[io+2*mode_k+0] = rTmp;
-          xArray[io+2*mode_k+1] = cTmp;
-        }
-      }
-    }
-  }
-  VecRestoreArray(xl, &xArray);
-  VecScatterBegin(context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
-  VecScatterEnd(  context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
-#else
-  if(!Geometry::procID()) cout << "applying phase shifts...\n";
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
   for(int field_i = 0; field_i < NFIELD; field_i++) *context->domain->u[field_i] = *context->ui[field_i];
+  if(!Geometry::procID()) cout << "applying phase shifts...\n";
   phase_shift_x(context, +0.3*M_PI, +1.0, context->domain->u);
   for(int field_i = 0; field_i < NFIELD; field_i++) *context->ui[field_i] = *context->domain->u[field_i];
 
   RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
-#endif
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
-  VecDestroy(&x);
-  VecDestroy(&xl);
-  VecScatterDestroy(&context->global_to_semtex);
-  delete[] context->el;
-  delete[] context->r;
-  delete[] context->s;
+  //VecDestroy(&x);
+  //VecDestroy(&xl);
+  //VecScatterDestroy(&context->global_to_semtex);
+  //delete[] context->el;
+  //delete[] context->r;
+  //delete[] context->s;
 }
 
 int main (int argc, char** argv) {
@@ -367,11 +335,6 @@ int main (int argc, char** argv) {
   ui.resize(NSLICE * NFIELD);
   fi.resize(NSLICE * NFIELD);
   u0.resize(NSLICE * NFIELD);
-  delete file;
-  delete domain;
-  sprintf(session_i, "%s", session);
-  file_i = new FEML(session_i);
-  domain = new Domain(file_i, elmt, bman);
   domain->restart();
   for(int field_i = 0; field_i < NFIELD; field_i++) {
     ui[field_i] = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, 'U'+field_i);
@@ -389,8 +352,8 @@ int main (int argc, char** argv) {
     *domain->u[field_i] = *ui[field_i];
   }
   domain->dump();
-  delete file_i;
-  delete domain;
+  //delete file_i;
+  //delete domain;
 
   if(!Geometry::procID()) cout << "...done.\n";
 
