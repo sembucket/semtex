@@ -61,15 +61,16 @@ static char prog[] = "rpo";
 static void getargs    (int, char**, bool&, char*&);
 static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 			BCmgr*&, Domain*&, FieldForce*&);
-void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
-		Domain*, BCmgr*, DNSAnalyser*, FieldForce*);
 
 #define X_FOURIER
 #define NFIELD 3
+#define XMIN 0.0
+#define YMIN 0.0
+#define YMAX 1.0
 #define NSLICE 1
 //#define RM_2FOLD_SYM
 
-void int_base_flow_ke(Context* context, AuxField* ux) {
+void int_base_flow_ke(Context* context, Field* ux) {
   int elOrd = Geometry::nP() - 1;
   int nModesX = Femlib::ivalue("NELS_X")*elOrd;
   double rh, dr, vol_k, u_bar, ke = 0.0, vol = 0.0;
@@ -96,24 +97,6 @@ void int_base_flow_ke(Context* context, AuxField* ux) {
 
   delete[] data_r;
   delete[] data_i;
-}
-
-void zero_reflection_dofs(Context* context, Domain* domain, vector<Field*> u) {
-  int field_i, mode_i, mode_j, dof_i;
-  int nex = context->nElsX;
-  int ney = context->nElsY;
-  int elOrd = Geometry::nP() - 1;
-  register real_t* data;
-
-  for(field_i = 0; field_i < NFIELD; field_i++) {
-    for(mode_i = 0; mode_i < Geometry::nZProc()/2; mode_i++) {
-      mode_j = (field_i < 2) ? 2*mode_i + 1 : 2*mode_i + 0;
-      data = u[field_i]->plane(mode_j);
-      for(dof_i = 0; dof_i < nex*ney*(elOrd+1)*(elOrd+1); dof_i++) {
-        data[dof_i] = 0.0;
-      }
-    }
-  }
 }
 
 void plane_norms(vector<Field*> ui) {
@@ -146,8 +129,8 @@ void plane_norms(vector<Field*> ui) {
   delete[] data;
 }
 
-void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domain* domain, DNSAnalyser* analyst, 
-               vector<AuxField*> ui, vector<AuxField*> fi, vector<AuxField*> u0) {
+void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domain* domain, DNSAnalyser* analyst, vector<AuxField*> ui, vector<AuxField*> fi, vector<AuxField*> u0)
+{
   Context* context = new Context;
   int elOrd = Geometry::nP() - 1;
   int nNodesX = Femlib::ivalue("NELS_X")*elOrd;
@@ -213,7 +196,7 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
     el_x = pt_x/elOrd;
     el_y = pt_y/elOrd;
     el_i = el_y*Femlib::ivalue("NELS_X") + el_x;
-    ex = /*XMIN +*/ pt_x*dx;
+    ex = XMIN + pt_x*dx;
     // element y size increases with distance from the boundary
     ey = elmt[el_i]->_ymesh[(pt_y%elOrd)*(elOrd+1)];
 
@@ -258,21 +241,19 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
     }
     dy_sum += dy;
   }
-
   context->u_scale[0] = context->u_scale[1] = context->u_scale[2] = 1.0;
 
   // add dofs for theta and tau for each time slice
   context->nSlice     = NSLICE;
   context->nField     = NFIELD;
   context->nDofsPlane = nModesX*Femlib::ivalue("NELS_Y")*elOrd;
-  context->nDofsSlice = NFIELD * Geometry::nZ() * context->nDofsPlane + 3;
+  context->nDofsSlice = NFIELD * Geometry::nZ() * context->nDofsPlane + 2;
   context->localSize  = nSlice * NFIELD * Geometry::nZProc() * context->nDofsPlane;
+  if(!Femlib::ivalue("TRAV_WAVE")) context->nDofsSlice++;
   if(!Geometry::procID()) {
-    context->localSize += nSlice;
-    if(context->x_fourier)       context->localSize += nSlice;
-    if(context->travelling_wave) context->localSize += nSlice;
+    context->localSize += (nSlice*2);
+    if(!Femlib::ivalue("TRAV_WAVE")) context->localSize += nSlice;
   }
-
 #ifdef RM_2FOLD_SYM
   if(Geometry::procID()%2==1) context->localSize = 0;
   MPI_Allreduce(&context->localSize, &context->nDofsSlice, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -294,18 +275,18 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
 
   for(int field_i = 0; field_i < NFIELD; field_i++) *context->domain->u[field_i] = *context->ui[field_i];
   if(!Geometry::procID()) cout << "applying phase shifts...\n";
-  phase_shift_x(context, +0.3*M_PI, +1.0, context->domain->u);
+  phase_shift_x(context, -0.3*M_PI, +1.0, context->domain->u);
   for(int field_i = 0; field_i < NFIELD; field_i++) *context->ui[field_i] = *context->domain->u[field_i];
 
   RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
-  //VecDestroy(&x);
-  //VecDestroy(&xl);
-  //VecScatterDestroy(&context->global_to_semtex);
-  //delete[] context->el;
-  //delete[] context->r;
-  //delete[] context->s;
+  VecDestroy(&x);
+  VecDestroy(&xl);
+  VecScatterDestroy(&context->global_to_semtex);
+  delete[] context->el;
+  delete[] context->r;
+  delete[] context->s;
 }
 
 int main (int argc, char** argv) {
@@ -344,7 +325,13 @@ int main (int argc, char** argv) {
   ui.resize(NSLICE * NFIELD);
   fi.resize(NSLICE * NFIELD);
   u0.resize(NSLICE * NFIELD);
+  delete file;
+  delete domain;
+  sprintf(session_i, "%s", session);
+  file_i = new FEML(session_i);
+  domain = new Domain(file_i, elmt, bman);
   domain->restart();
+
   for(int field_i = 0; field_i < NFIELD; field_i++) {
     ui[field_i] = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, 'U'+field_i);
     fi[field_i] = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, 'F'+field_i);
@@ -355,14 +342,19 @@ int main (int argc, char** argv) {
 
   // solve the newton-rapheson problem
   rpo_solve(NSLICE, mesh, elmt, bman, domain, analyst, ui, fi, u0);
+  delete file_i;
+  delete domain;
 
   // dump the output
+  sprintf(session_i, "%s_shift", session);
+  file_i = new FEML(session_i);
+  domain = new Domain(file_i, elmt, bman);
   for(int field_i = 0; field_i < NFIELD; field_i++) {
     *domain->u[field_i] = *ui[field_i];
   }
   domain->dump();
-  //delete file_i;
-  //delete domain;
+  delete file_i;
+  delete domain;
 
   if(!Geometry::procID()) cout << "...done.\n";
 

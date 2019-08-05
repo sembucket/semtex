@@ -369,11 +369,6 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   //delete context->analyst;
   //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
   integrate(convective, context->domain, context->bman, context->analyst, context->ff);
-//#ifdef TESTING
-//  for(field_i = 0; field_i < THREE; field_i++) *context->write_i->u[field_i] = *context->ui[field_i];
-//  *context->write_i->u[THREE] = *context->domain->u[THREE]; //dump the pressure as a sanity check
-//  context->write_i->dump();
-//#endif
 
   // phase shift in theta (axial direction)
   phase_shift_x(context, context->theta_i[0] * (2.0 * M_PI / context->xmax), -1.0, context->domain->u);
@@ -449,14 +444,6 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   context->build_dx = false;
   context->nElsX    = Femlib::ivalue("NELS_X");
   context->nElsY    = Femlib::ivalue("NELS_Y");
-  context->session  = session;
-
-//#ifdef TESTING
-//  sprintf(session_i, "%s_rpo_1", context->session);
-//  file_i = new FEML(session_i);
-//  context->write_i = new Domain(file_i, context->elmt, context->bman);
-//  delete file_i;
-//#endif
 
   context->theta_i = new real_t[NSLICE];
   context->phi_i   = new real_t[NSLICE];
@@ -546,12 +533,13 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   //context->u_scale[0] = 4.8721670664372931;
   //context->u_scale[1] = 37.842234715773266;
   //context->u_scale[2] = 42.182138079742955;
-  //context->u_scale[0] = 0.30937660;
-  //context->u_scale[1] = 5.7519965;
-  //context->u_scale[2] = 3.7164474;
-  context->u_scale[0] = 1.0;
-  context->u_scale[1] = 3.0;
-  context->u_scale[2] = 3.0;
+  context->u_scale[0] = 0.30937660;
+  context->u_scale[1] = 5.7519965;
+  context->u_scale[2] = 3.7164474;
+  //context->u_scale[0] = 1.0;
+  //context->u_scale[1] = 3.0;
+  //context->u_scale[2] = 3.0;
+  if(!Geometry::procID()) printf("u scales: %g, %g, %g\n", context->u_scale[0], context->u_scale[1], context->u_scale[2]);
 
   // add dofs for theta and tau for each time slice
 #ifdef X_FOURIER
@@ -577,7 +565,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   if(!context->travelling_wave && !Geometry::procID()) context->localSize += NSLICE; // temporal phase shift dof
 
 #ifdef RM_2FOLD_SYM
-  if(Geometry::procID()%2==1) context->localSize = 0.0;
+  if(Geometry::procID()%2==1) context->localSize = 0;
   MPI_Allreduce(&context->localSize, &context->nDofsSlice, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 #endif
 

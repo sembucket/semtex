@@ -8,6 +8,8 @@
 
 #include <fftw3.h>
 
+enum Modes {NONE, REAL, IMAG, BOTH};
+
 struct Context {
     int              nSlice;
     int              nField;

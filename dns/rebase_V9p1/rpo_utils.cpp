@@ -186,6 +186,19 @@ void logical_to_elements(int nex, int ney, real_t* data_log, real_t* data_els, i
         //if(pt_y == 0 && field_i == 0 && plane_i >= 2) continue;
         //if(pt_y == 0 && field_i >= 1 && plane_i <= 1) continue;
 
+        //if(pt_y == 0 && plane_i >= 4) continue;
+/*
+        if(pt_y == 0 && plane_i >= 2 && field_i == 0) continue;
+
+        //if(pt_y == 0 && plane_i <= 1 && field_i == 1) continue; // not ok!
+        if(pt_y == 0 && plane_i <= 1 && field_i == 2) continue;
+
+        //if(pt_y == 0 && plane_i <= 1 && field_i == 0) continue; // not ok!
+        //if(pt_y == 0 && plane_i >= 2 && field_i == 1) continue; // not ok!
+        if(pt_y == 0 && plane_i >= 2 && field_i == 2) continue;
+*/
+        if(pt_y == 0 && field_i == 2) continue;
+
         data_els[shift_els+pt_i] = data_log[pt_y*nex*elOrd + pt_x];
       }
     }
@@ -569,6 +582,7 @@ void phase_shift_z(Context* context, double phi,   double sign, vector<Field*> f
       data_r = fields[field_i]->plane(2*mode_i+0);
       data_c = fields[field_i]->plane(2*mode_i+1);
 
+      // its ok to rotate all the dofs, as only the non-zero bcs will be packed into the vector
       for(dof_i = 0; dof_i < nex*ney*(elOrd+1)*(elOrd+1); dof_i++) {
         rTmp = +ckt*data_r[dof_i] + skt*data_c[dof_i];
         cTmp = -skt*data_r[dof_i] + ckt*data_c[dof_i];
