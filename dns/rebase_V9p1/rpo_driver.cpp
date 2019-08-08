@@ -77,7 +77,7 @@ static PetscErrorCode RPOVecNormL2_Hookstep(void* ctx,Vec v,PetscScalar* norm) {
   Context* context = (Context*)ctx;
   PetscInt nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
   PetscInt ind_i;
-  double norm_sq, norm_l_sq, norm_orig;
+  double norm_orig, norm_sq, norm_l_sq = 0.0;
   PetscScalar* vArray;
   Vec vl;
 
@@ -86,12 +86,20 @@ static PetscErrorCode RPOVecNormL2_Hookstep(void* ctx,Vec v,PetscScalar* norm) {
   VecScatterBegin(context->global_to_semtex, v, vl, INSERT_VALUES, SCATTER_FORWARD);
   VecScatterEnd  (context->global_to_semtex, v, vl, INSERT_VALUES, SCATTER_FORWARD);
 
-  norm_l_sq = 0.0;
+#ifdef RM_2FOLD_SYM
+  if(Geometry::procID()%2==0) {
+#endif
+
+  //norm_l_sq = 0.0;
   VecGetArray(vl, &vArray);
   for(ind_i=0; ind_i<3*nDofsCube_l; ind_i++) {
     norm_l_sq += vArray[ind_i]*vArray[ind_i];
   }
   VecRestoreArray(vl, &vArray);
+
+#ifdef RM_2FOLD_SYM
+  }
+#endif
 
   norm_sq = 0.0;
   MPI_Allreduce(&norm_l_sq, &norm_sq, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -109,7 +117,7 @@ static PetscErrorCode RPOVecDot_Hookstep(void* ctx,Vec v1,Vec v2,PetscScalar* do
   Context* context = (Context*)ctx;
   PetscInt nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
   PetscInt ind_i;
-  double dot_l;
+  double dot_l = 0.0;
   PetscScalar *v1Array, *v2Array;
   Vec vl1, vl2;
 
@@ -121,7 +129,11 @@ static PetscErrorCode RPOVecDot_Hookstep(void* ctx,Vec v1,Vec v2,PetscScalar* do
   VecScatterBegin(context->global_to_semtex, v2, vl2, INSERT_VALUES, SCATTER_FORWARD);
   VecScatterEnd  (context->global_to_semtex, v2, vl2, INSERT_VALUES, SCATTER_FORWARD);
 
-  dot_l = 0.0;
+#ifdef RM_2FOLD_SYM
+  if(Geometry::procID()%2==0) {
+#endif
+
+  //dot_l = 0.0;
   VecGetArray(vl1, &v1Array);
   VecGetArray(vl2, &v2Array);
   for(ind_i=0; ind_i<3*nDofsCube_l; ind_i++) {
@@ -129,6 +141,10 @@ static PetscErrorCode RPOVecDot_Hookstep(void* ctx,Vec v1,Vec v2,PetscScalar* do
   }
   VecRestoreArray(vl1, &v1Array);
   VecRestoreArray(vl2, &v2Array);
+
+#ifdef RM_2FOLD_SYM
+  }
+#endif
 
   *dot = 0.0;
   MPI_Allreduce(&dot_l, dot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -154,6 +170,10 @@ static PetscErrorCode RPOVecDiff_Hookstep(void* ctx,Vec y,Vec F,PetscScalar h) {
   VecScatterBegin(context->global_to_semtex, F, Fl, INSERT_VALUES, SCATTER_FORWARD);
   VecScatterEnd  (context->global_to_semtex, F, Fl, INSERT_VALUES, SCATTER_FORWARD);
 
+#ifdef RM_2FOLD_SYM
+  if(Geometry::procID()%2==0) {
+#endif
+
   VecGetArray(yl, &yArray);
   VecGetArray(Fl, &FArray);
   for(ind_i=0; ind_i<3*nDofsCube_l; ind_i++) {
@@ -161,6 +181,10 @@ static PetscErrorCode RPOVecDiff_Hookstep(void* ctx,Vec y,Vec F,PetscScalar h) {
   }
   VecRestoreArray(yl, &yArray);
   VecRestoreArray(Fl, &FArray);
+
+#ifdef RM_2FOLD_SYM
+  }
+#endif
 
   VecScatterBegin(context->global_to_semtex, yl, y, INSERT_VALUES, SCATTER_REVERSE);
   VecScatterEnd  (context->global_to_semtex, yl, y, INSERT_VALUES, SCATTER_REVERSE);
@@ -191,9 +215,16 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
   Vec          xl;
   int          nStep;
 
+  f_theta_l = f_phi_l = f_tau_l = 0.0;
+  
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
   VecScatterBegin(context->global_to_semtex, x_delta, xl, INSERT_VALUES, SCATTER_FORWARD);
   VecScatterEnd(  context->global_to_semtex, x_delta, xl, INSERT_VALUES, SCATTER_FORWARD);
+
+#ifdef RM_2FOLD_SYM
+  if(Geometry::procID()%2==0) {
+#endif
+
   VecGetArray(xl, &xArray);
 
   if(!context->travelling_wave) {
@@ -267,17 +298,26 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
     }
   }
 
-  f_theta_l = f_phi_l = f_tau_l = 0.0;
+  //f_theta_l = f_phi_l = f_tau_l = 0.0;
   for(int dof_i = 0; dof_i < nl; dof_i++) {
     f_theta_l -= rx[dof_i] * xArray[dof_i];
     f_phi_l   -= rz[dof_i] * xArray[dof_i];
     if(!context->travelling_wave) f_tau_l -= rt[dof_i] * xArray[dof_i];
   }
+
+  VecRestoreArray(xl, &xArray);
+
+#ifdef RM_2FOLD_SYM
+  }
+#endif
+
   MPI_Allreduce(&f_theta_l, f_theta, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&f_phi_l,   f_phi,   1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&f_tau_l,   f_tau,   1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-  VecRestoreArray(xl, &xArray);
+  (*f_theta) *= context->c_scale;
+  (*f_phi  ) *= context->c_scale;
+  (*f_tau  ) *= context->c_scale;
 
   delete[] rx;
   delete[] rz;
@@ -533,13 +573,17 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   //context->u_scale[0] = 4.8721670664372931;
   //context->u_scale[1] = 37.842234715773266;
   //context->u_scale[2] = 42.182138079742955;
-  context->u_scale[0] = 0.30937660;
-  context->u_scale[1] = 5.7519965;
-  context->u_scale[2] = 3.7164474;
+  //context->u_scale[0] = 0.30937660;
+  //context->u_scale[1] = 5.7519965;
+  //context->u_scale[2] = 3.7164474;
   //context->u_scale[0] = 1.0;
   //context->u_scale[1] = 3.0;
   //context->u_scale[2] = 3.0;
-  if(!Geometry::procID()) printf("u scales: %g, %g, %g\n", context->u_scale[0], context->u_scale[1], context->u_scale[2]);
+  context->u_scale[0] = Femlib::value("U_SCALE");
+  context->u_scale[1] = Femlib::value("V_SCALE");
+  context->u_scale[2] = Femlib::value("W_SCALE");
+  context->c_scale    = Femlib::value("C_SCALE");
+  if(!Geometry::procID()) printf("u scales: %g, %g, %g, %g\n", context->u_scale[0], context->u_scale[1], context->u_scale[2], context->c_scale);
 
   // add dofs for theta and tau for each time slice
 #ifdef X_FOURIER

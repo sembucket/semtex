@@ -227,8 +227,10 @@ void SEM_to_Fourier(int plane_k, Context* context, AuxField* us, real_t* data_r,
     fftw_execute(context->trans_fwd);
 
     for(int pt_x = 0; pt_x < nModes; pt_x++) {
-      data_r[pt_y*nModes+pt_x] = context->data_f[pt_x][0];
-      data_i[pt_y*nModes+pt_x] = context->data_f[pt_x][1];
+      //data_r[pt_y*nModes+pt_x] = context->data_f[pt_x][0];
+      //data_i[pt_y*nModes+pt_x] = context->data_f[pt_x][1];
+      data_r[pt_y*nModes+pt_x] = context->data_f[pt_x][0] / nModes;
+      data_i[pt_y*nModes+pt_x] = context->data_f[pt_x][1] / nModes;
     }
   }
 }
@@ -261,8 +263,8 @@ void Fourier_to_SEM(int plane_k, Context* context, AuxField* us, real_t* data_r,
         temp_r[pt_y*nModes + pt_x] += (data_r[pt_y*nModes + mode_k]*cos(mode_l*theta) - data_i[pt_y*nModes + mode_k]*sin(mode_l*theta));
         temp_i[pt_y*nModes + pt_x] += (data_r[pt_y*nModes + mode_k]*sin(mode_l*theta) + data_i[pt_y*nModes + mode_k]*cos(mode_l*theta));
       }
-      temp_r[pt_y*nModes + pt_x] /= nModes; // rescale!!
-      temp_i[pt_y*nModes + pt_x] /= nModes; // rescale!!
+      //temp_r[pt_y*nModes + pt_x] /= nModes; // rescale!!
+      //temp_i[pt_y*nModes + pt_x] /= nModes; // rescale!!
     }
   }
 

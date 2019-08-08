@@ -8,8 +8,6 @@
 
 #include <fftw3.h>
 
-enum Modes {NONE, REAL, IMAG, BOTH};
-
 struct Context {
     int              nSlice;
     int              nField;
@@ -58,6 +56,7 @@ struct Context {
     double*          rad_weights;
     double*          rad_coords;
     double           u_scale[3];
+    double           c_scale;
 };
 
 void data_transpose(real_t* data, int nx, int ny);
