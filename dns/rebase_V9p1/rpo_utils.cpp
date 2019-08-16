@@ -197,6 +197,7 @@ void logical_to_elements(int nex, int ney, real_t* data_log, real_t* data_els, i
         //if(pt_y == 0 && plane_i >= 2 && field_i == 1) continue; // not ok!
         if(pt_y == 0 && plane_i >= 2 && field_i == 2) continue;
 */
+
         if(pt_y == 0 && field_i == 2) continue;
 
         data_els[shift_els+pt_i] = data_log[pt_y*nex*elOrd + pt_x];
@@ -223,12 +224,9 @@ void SEM_to_Fourier(int plane_k, Context* context, AuxField* us, real_t* data_r,
 
       context->data_f[pt_x][0] = context->data_f[pt_x][1] = 0.0;
     }
-
     fftw_execute(context->trans_fwd);
 
     for(int pt_x = 0; pt_x < nModes; pt_x++) {
-      //data_r[pt_y*nModes+pt_x] = context->data_f[pt_x][0];
-      //data_i[pt_y*nModes+pt_x] = context->data_f[pt_x][1];
       data_r[pt_y*nModes+pt_x] = context->data_f[pt_x][0] / nModes;
       data_i[pt_y*nModes+pt_x] = context->data_f[pt_x][1] / nModes;
     }
@@ -248,7 +246,6 @@ void Fourier_to_SEM(int plane_k, Context* context, AuxField* us, real_t* data_r,
   real_t* temp_i = new real_t[ney*elOrd*nModes];
 
   Femlib::quadrature(&qx, 0, 0, 0  , elOrd+1, GLJ, 0.0, 0.0);
-
   for(int pt_y = 0; pt_y < ney*elOrd; pt_y++) {
     for(int pt_x = 0; pt_x < nModes; pt_x++) {
       // coordinate in real space
@@ -256,15 +253,14 @@ void Fourier_to_SEM(int plane_k, Context* context, AuxField* us, real_t* data_r,
       theta = 2.0*M_PI*xr/(context->xmax /*-XMIN*/);
 
       temp_r[pt_y*nModes + pt_x] = data_r[pt_y*nModes];
-      temp_i[pt_y*nModes + pt_x] = 0.0; // nyquist frequency
+      temp_i[pt_y*nModes + pt_x] = data_i[pt_y*nModes];
+      if(Geometry::procID()*Geometry::nZProc()+plane_k == 0) temp_i[pt_y*nModes + pt_x] = 0.0; // nyquist frequency
       for(int mode_k = 1; mode_k < nModes; mode_k++) {
         mode_l = (mode_k <= nModes/2) ? mode_k : mode_k - nModes; // fftw ordering of complex data
 
         temp_r[pt_y*nModes + pt_x] += (data_r[pt_y*nModes + mode_k]*cos(mode_l*theta) - data_i[pt_y*nModes + mode_k]*sin(mode_l*theta));
         temp_i[pt_y*nModes + pt_x] += (data_r[pt_y*nModes + mode_k]*sin(mode_l*theta) + data_i[pt_y*nModes + mode_k]*cos(mode_l*theta));
       }
-      //temp_r[pt_y*nModes + pt_x] /= nModes; // rescale!!
-      //temp_i[pt_y*nModes + pt_x] /= nModes; // rescale!!
     }
   }
 
@@ -330,8 +326,14 @@ void UnpackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
           scale *= sqrt(2.0 * M_PI * rh * dr);
           scale *= context->u_scale[field_i];
 
+          // divergence free: mean component of radial velocity is 0
+          //if(field_i == 2 && Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) continue;
+
           index = LocalIndex(context, field_i, plane_i+0, point_x, point_y);
           data_r[point_y*context->nModesX+point_x] = xArray[index] / scale;
+
+          // don't include the nyquist frequency
+          if(Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) continue;
 
           index = LocalIndex(context, field_i, plane_i+1, point_x, point_y);
           data_i[point_y*context->nModesX+point_x] = xArray[index] / scale;
@@ -405,8 +407,14 @@ void RepackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
           scale *= sqrt(2.0 * M_PI * rh * dr);
           scale *= context->u_scale[field_i];
 
+          // divergence free: mean component of radial velocity is 0
+          //if(field_i == 2 && Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) continue;
+
           index = LocalIndex(context, field_i, plane_i+0, point_x, point_y);
           xArray[index] = data_r[point_y*context->nModesX+point_x] * scale;
+
+          // don't include the nyquist frequency
+          if(Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) continue;
 
           index = LocalIndex(context, field_i, plane_i+1, point_x, point_y);
           xArray[index] = data_i[point_y*context->nModesX+point_x] * scale;

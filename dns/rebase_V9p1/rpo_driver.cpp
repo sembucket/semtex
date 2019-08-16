@@ -403,12 +403,15 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   }
 
 #ifdef TESTING
-  context->domain->dump();
+  if(!reason) context->domain->dump();
 #endif
   // don't want to call the dns analysis, use custom integrate routine instead
   //delete context->analyst;
   //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
   integrate(convective, context->domain, context->bman, context->analyst, context->ff);
+#ifdef TESTING
+  if(!reason) context->domain->dump();
+#endif
 
   // phase shift in theta (axial direction)
   phase_shift_x(context, context->theta_i[0] * (2.0 * M_PI / context->xmax), -1.0, context->domain->u);
@@ -570,15 +573,8 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   if(!Geometry::procID())printf("\tdy_sum: %g\n",dy_sum);
 
   // set the velocity scales
-  //context->u_scale[0] = 4.8721670664372931;
-  //context->u_scale[1] = 37.842234715773266;
-  //context->u_scale[2] = 42.182138079742955;
-  //context->u_scale[0] = 0.30937660;
-  //context->u_scale[1] = 5.7519965;
-  //context->u_scale[2] = 3.7164474;
-  //context->u_scale[0] = 1.0;
-  //context->u_scale[1] = 3.0;
-  //context->u_scale[2] = 3.0;
+  //context->u_scale[0] = 4.8721670664372931; context->u_scale[1] = 37.842234715773266; context->u_scale[2] = 42.182138079742955;
+  //context->u_scale[0] = 0.30937660; context->u_scale[1] = 5.7519965; context->u_scale[2] = 3.7164474;
   context->u_scale[0] = Femlib::value("U_SCALE");
   context->u_scale[1] = Femlib::value("V_SCALE");
   context->u_scale[2] = Femlib::value("W_SCALE");
