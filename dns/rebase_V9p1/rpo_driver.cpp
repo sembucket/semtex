@@ -315,10 +315,6 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
   MPI_Allreduce(&f_phi_l,   f_phi,   1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&f_tau_l,   f_tau,   1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-  (*f_theta) *= context->c_scale;
-  (*f_phi  ) *= context->c_scale;
-  (*f_tau  ) *= context->c_scale;
-
   delete[] rx;
   delete[] rz;
   delete[] rt;
@@ -398,8 +394,8 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   if(!Geometry::procID()) {
     cout << "\trun time: " << runTime << "\tnstep: " << Femlib::ivalue("N_STEP") << "\tdt: " << Femlib::value("D_T") << endl;
     cout << scientific << "\ttau:   " << context->tau_i[0] 
-                       << "\ttheta: " << context->theta_i[0] * (2.0*M_PI/context->xmax)
-                       << "\tphi:   " << context->phi_i[0] << endl;
+                       << "\ttheta: " << context->c_scale * context->theta_i[0] * (2.0*M_PI/context->xmax)
+                       << "\tphi:   " << context->c_scale * context->phi_i[0] << endl;
   }
 
 #ifdef TESTING
@@ -414,14 +410,16 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 #endif
 
   // phase shift in theta (axial direction)
-  phase_shift_x(context, context->theta_i[0] * (2.0 * M_PI / context->xmax), -1.0, context->domain->u);
+  //phase_shift_x(context, context->theta_i[0] * (2.0 * M_PI / context->xmax), -1.0, context->domain->u);
+  phase_shift_x(context, context->c_scale * context->theta_i[0] * (2.0 * M_PI / context->xmax), -1.0, context->domain->u);
   // phase shift in phi (azimuthal direction)
-  phase_shift_z(context, context->phi_i[0], -1.0, context->domain->u);
+  //phase_shift_z(context, context->phi_i[0], -1.0, context->domain->u);
+  phase_shift_z(context, context->c_scale * context->phi_i[0], -1.0, context->domain->u);
 
   // set the residual vector
   for(field_i = 0; field_i < context->nField; field_i++) {
     *context->fi[field_i]  = *context->domain->u[field_i];
-    *context->fi[field_i] -= *context->ui[field_i];
+    //*context->fi[field_i] -= *context->ui[field_i];
     //*context->fi[field_i] -= *context->u0[field_i];
   }
 
@@ -578,8 +576,8 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   context->u_scale[0] = Femlib::value("U_SCALE");
   context->u_scale[1] = Femlib::value("V_SCALE");
   context->u_scale[2] = Femlib::value("W_SCALE");
-  context->c_scale    = Femlib::value("C_SCALE");
-  if(!Geometry::procID()) printf("u scales: %g, %g, %g, %g\n", context->u_scale[0], context->u_scale[1], context->u_scale[2], context->c_scale);
+  //context->c_scale    = Femlib::value("C_SCALE");
+  if(!Geometry::procID()) printf("u scales: %g, %g, %g\n", context->u_scale[0], context->u_scale[1], context->u_scale[2]);
 
   // add dofs for theta and tau for each time slice
 #ifdef X_FOURIER
@@ -649,6 +647,15 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
     abort();
   }
   VecZeroEntries(context->x_delta);
+  // set the shift scale
+#ifdef RM_2FOLD_SYM
+  context->c_scale = context->tau_i[0] / norm;
+  //context->c_scale *= 100.0;
+  context->c_scale *= 55.37123711636364;
+#else
+  context->c_scale = 5179.3037;
+#endif
+  if(!Geometry::procID()) printf("c scale: %g\n", context->c_scale);
 
   PetscObjectTypeCompare((PetscObject)ksp, KSPFGMRES, &is_fgmres);
   if(!is_fgmres) {

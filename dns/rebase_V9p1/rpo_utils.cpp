@@ -198,7 +198,11 @@ void logical_to_elements(int nex, int ney, real_t* data_log, real_t* data_els, i
         if(pt_y == 0 && plane_i >= 2 && field_i == 2) continue;
 */
 
-        if(pt_y == 0 && field_i == 2) continue;
+        //if(pt_y == 0 && field_i == 2) continue;
+        // assumes we are using \tilde{} fields
+        if(pt_y == 0 &&                 plane_i >= 4) continue; // k > 1
+        if(pt_y == 0 && field_i <= 1 && plane_i >= 2) continue; // k = 1
+        if(pt_y == 0 && field_i >= 1 && plane_i <= 1) continue; // k = 0
 
         data_els[shift_els+pt_i] = data_log[pt_y*nex*elOrd + pt_x];
       }
@@ -357,6 +361,8 @@ void UnpackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
 
   VecRestoreArrayRead(xl, &xArray);
 
+  AuxField::couple(fields[1], fields[2], INVERSE);
+
 #ifdef RM_2FOLD_SYM
   }
 #endif
@@ -389,6 +395,8 @@ void RepackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
 #ifdef RM_2FOLD_SYM
   if(Geometry::procID()%2==0) {
 #endif
+
+  AuxField::couple(fields[1], fields[2], FORWARD);
 
   VecGetArray(xl, &xArray);
   for(int field_i = 0; field_i < THREE; field_i++) {
