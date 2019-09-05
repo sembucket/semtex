@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // element.C: 2D quad spectral element class routines.
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:11 $, Hugh Blackburn
 //
 // --
 // This file is part of Semtex.
@@ -22,7 +22,7 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: element.cpp,v 9.1 2019/05/30 06:36:11 hmb Exp $";
 
 #include <sem.h>
 
@@ -1383,7 +1383,7 @@ void Element::mapping ()
   
   Veclib::vmul  (_npnp, jac,  1, WW,   1, _Q4, 1);
 
-  // -- Construct partials for derivative operations.
+  // -- Construct forward partials for derivative operations.
 
   Veclib::copy  (_npnp, dyds, 1, _drdx, 1);
   Veclib::vneg  (_npnp, dxds, 1, _drdy, 1);
@@ -1507,7 +1507,6 @@ void Element::HelmholtzRow (const real_t lambda2,
 
   hij[Veclib::row_major(i,j,_np)] += _Q4[Veclib::row_major(i,j,_np)] * hCon;
 }
-
 
 void Element::HelmholtzDiag (const real_t lambda2,
 			     const real_t betak2 ,

@@ -79,7 +79,7 @@ public:
   void divY (real_t*) const;
   void mulY (real_t*) const;
   void mulX (real_t*) const;
-  void crossXPlus (const int, const real_t,const vector<real_t>&,real_t*) const;
+  void crossXPlus (const int,const real_t,const vector<real_t>&,real_t*) const;
   
   void evaluate (const char*,real_t*) const;
 
@@ -112,12 +112,14 @@ public:
   void printMatSC (const real_t*,const real_t*,const real_t*)            const;
   void Helmholtz  (const real_t,const real_t,real_t*,real_t*,real_t*)    const;
 
-  real_t*       _xmesh;		// Physical space mesh.
-  real_t*       _ymesh;		// 2D row-major store.
-  real_t*       _drdx ;		// Partial derivatives (r, s) --> (x, y),
-  real_t*       _dsdx ;		//   evaluated at quadrature points.
-  real_t*       _drdy ;		//   (2D row-major storage.)
-  real_t*       _dsdy ;		//
+  real_t*       _xmesh;         // Physical space mesh.
+  real_t*       _ymesh;         // 2D row-major store.
+  real_t*       _drdx ;         // Partial derivatives (r, s) --> (x, y),
+  real_t*       _dsdx ;         //   evaluated at quadrature points.
+  real_t*       _drdy ;         //   (2D row-major storage.)
+  real_t*       _dsdy ;         //
+
+  const real_t* GetQ4() {return _Q4;} // DRL
 
 protected:
 

@@ -1,7 +1,7 @@
-///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
 // matrix.C: routines that generate solvers for Helmholtz problems.
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/06/22 08:43:26 $, Hugh Blackburn
 //
 // --
 // This file is part of Semtex.
@@ -22,7 +22,7 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: matrix.cpp,v 9.2 2019/06/22 08:43:26 hmb Exp $";
 
 #include <sem.h>
 
@@ -254,7 +254,7 @@ MatrixSys::MatrixSys (const real_t            lambda2,
 
       // -- Cholesky factor global banded-symmetric Helmholtz matrix.
     
-      Lapack::pbtrf ("U",_nsolve,_nband-1,_H,_nband,info);
+      Lapack::pbtrf ("U", _nsolve, _nband-1, _H, _nband, info);
 
       if (info) message (routine, "failed to factor Helmholtz matrix", ERROR);
 

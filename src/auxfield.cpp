@@ -1,7 +1,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // auxfield.cpp: routines for AuxField class, including Fourier expansions.
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:10 $, Hugh Blackburn
 //
 // For 2D problems, the data storage is organized by 2D Elements.
 //
@@ -37,7 +37,7 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: auxfield.cpp,v 9.1 2019/05/30 06:36:10 hmb Exp $";
 
 #include <sem.h>
 
@@ -55,9 +55,9 @@ AuxField::AuxField (real_t*           alloc,
   _size (nz * Geometry::planeSize()),
   _data (alloc)
 {
-  const char     routine[] = "AuxField::AuxField";
-  const int_t    nP = Geometry::planeSize();
-  register int_t k;
+  const char  routine[] = "AuxField::AuxField";
+  const int_t nP = Geometry::planeSize();
+  int_t       k;
 
   if (Geometry::nElmt() != _elmt.size())
     message (routine, "conflicting number of elements in input data", ERROR);
@@ -199,14 +199,14 @@ AuxField& AuxField::operator = (const char* function)
 // Set AuxField's value to temporo-spatially varying function.  Physical space.
 // ---------------------------------------------------------------------------
 {
-  const int_t    nel = Geometry::nElmt();
-  const int_t    np2 = Geometry::nTotElmt();
-  const int_t    kb  = Geometry::basePlane();
-  const int_t    nP  = Geometry::nPlane();
-  const int_t    NP  = Geometry::planeSize();
-  const real_t   dz  = Femlib::value ("TWOPI / BETA / N_Z");
-  register int_t i, k;
-  real_t*        p;
+  const int_t  nel = Geometry::nElmt();
+  const int_t  np2 = Geometry::nTotElmt();
+  const int_t  kb  = Geometry::basePlane();
+  const int_t  nP  = Geometry::nPlane();
+  const int_t  NP  = Geometry::planeSize();
+  const real_t dz  = Femlib::value ("TWOPI / BETA / N_Z");
+  int_t        i, k;
+  real_t*      p;
 
   for (k = 0; k < _nz; k++) {
     Femlib::value ("z", (kb + k) * dz);
@@ -321,6 +321,7 @@ AuxField& AuxField::innerProductMode (const vector <AuxField*>& a,
   return *this;
 }
 
+
 AuxField& AuxField::crossProductPlus (const int                com, 
 				      const vector<real_t>&    a  ,
                                       const vector<AuxField*>& b  )
@@ -389,24 +390,24 @@ AuxField& AuxField::crossXPlus (const int             com,
 // vector a is given in Cartesian coordinates and x is the position vector.
 // ---------------------------------------------------------------------------
 {
-  const int_t      nel  = Geometry::nElmt();
-  const int_t      npnp = Geometry::nTotElmt();
-  const int_t  nz = Geometry::nZ();
-  const int_t  bP = Geometry::basePlane ();
-  const int_t  procID = Geometry::procID();
-  register int_t   i, k;
-  register real_t* p;
+  const int_t    nel  = Geometry::nElmt();
+  const int_t    npnp = Geometry::nTotElmt();
+  const int_t    nz = Geometry::nZ();
+  const int_t    bP = Geometry::basePlane ();
+  const int_t    procID = Geometry::procID();
+  int_t          i, k, z;
+  real_t*        p;
   vector<real_t> alocal = a;
-  real_t theta;
-  real_t zp;	// z position
-  const real_t beta = Femlib::value ("BETA");
+  real_t         theta;
+  real_t         zp;	// z position
+  const real_t   beta = Femlib::value ("BETA");
 
   // WATCH OUT:  nz == total number of z-planes
   //            _nz == number of z-planes per process
 
   // -- loop zplanes of current process
-  for (int_t k = 0; k < _nz; k++) {
-    int_t z = procID * _nz + k;		// absolute z-plane
+  for (k = 0; k < _nz; k++) {
+    z = procID * _nz + k;		// absolute z-plane
     if (Geometry::cylindrical()) {
       // -- Omega vector is given in Cartesian coordinates.
       //    Project components to cylindrical/local.
@@ -873,21 +874,12 @@ void AuxField::errors (const Mesh* mesh    ,
   L2 /= area;
   H1 /= area;
 
-#if 1
   ostringstream sf;
-  sf << "AuxField '"
+  sf << "'"
      << name()
      << "' error norms (inf, L2, H1): "
      << Li << "  " << L2 << "  " << H1;
-  message ("", sf.str().c_str(), REMARK);
-#else
-  char  s[StrMax];
-  ostrstream (s, StrMax) << "AuxField '"
-			 << name()
-			 << "' error norms (inf, L2, H1): "
-			 << Li << "  " << L2 << "  " << H1 << ends;
-  message ("", s, REMARK);
-#endif
+  message ("Field", sf.str().c_str(), REMARK);
 }
 
 
@@ -1353,9 +1345,9 @@ void AuxField::swapData (AuxField* x,
 // (Static class member function.)  Swap data areas of two fields.
 // ---------------------------------------------------------------------------
 {
-  const char       routine[] = "AuxField::swapData";
-  register int_t k;
-  register real_t*   tmp;
+  const char routine[] = "AuxField::swapData";
+  int_t      k;
+  real_t*    tmp;
 
   if (x -> _size != y -> _size)
     message (routine, "non-congruent inputs", ERROR);
@@ -1725,13 +1717,15 @@ void AuxField::lengthScale (real_t* tgt) const
 }
 
 
-real_t AuxField::CFL (const int_t dir) const
+real_t AuxField::CFL (const int_t dir, int_t& el) const
 // ---------------------------------------------------------------------------
 // Return the inverse CFL timescale using this AuxField as a velocity 
 // component in the nominated direction.  Computations only occur on the
 // zeroth Fourier mode.
 // dir == 0 ==> CFL estimate in first direction, 1 ==> 2nd, 2 ==> 3rd.
 // AuxField is presumed to have been Fourier transformed in 3rd direction.
+//
+// Reference: Karniadakis & Sherwin 2e, section 6.3.
 // ---------------------------------------------------------------------------
 {
   const char       routine[] = "AuxField::CFL";
@@ -1739,35 +1733,48 @@ real_t AuxField::CFL (const int_t dir) const
   const int_t      npnp     = Geometry::nTotElmt();
   const int_t      nP       = Geometry::nPlane();
   const int_t      nZ       = Geometry::nZProc();
-  const int_t      nt       = Femlib::ivalue("N_TIME");
   const real_t     dz       = Femlib::value ("TWOPI / BETA / N_Z");
-  real_t           alpha    = 1.0;	// -- Max imaginary eigenvalue.
-  real_t           c_lambda = 0.2;
-  int_t            P        = Geometry::nP() - 1;	// -- Polynomial order is one less than the number of points along an edge.
+  const real_t     alpha    = 0.723;		  // -- Indicative max eigval.
+  const real_t     c_lambda = 0.2;                // -- See reference.
+  const int_t      P        = Geometry::nP() - 1; // -- Polynomial order.
   register int_t   i, k;
   register real_t* p;
-  register real_t* pk;
   vector<real_t>   work (npnp);
-  real_t           CFL = 0.0;
+  real_t           CFL = -FLT_MAX;
+  real_t           cfl;
  
   switch (dir) {
   case 0:
-    for(k = 0; k < nZ; k++)
-      for (p = _plane[k], i = 0; i < nel; i++, p += npnp)
-        CFL = max (CFL, _elmt[i] -> CFL (p, 0, &work[0]));
+    for (k = 0; k < nZ; k++)
+      for (p = _plane[k], i = 0; i < nel; i++, p += npnp) {
+        cfl = _elmt[i] -> CFL (p, 0, &work[0]);
+        if (cfl > CFL) {
+           el = i;
+           CFL = cfl;
+        }
+      }
     CFL *= (c_lambda * P * P) / alpha;
     break;
   case 1:
-    for(k = 0; k < nZ; k++)
-      for (p = _plane[k], i = 0; i < nel; i++, p += npnp)
-        CFL = max (CFL, _elmt[i] -> CFL (0, p, &work[0]));
+    for (k = 0; k < nZ; k++)
+      for (p = _plane[k], i = 0; i < nel; i++, p += npnp) {
+        cfl = _elmt[i] -> CFL (0, p, &work[0]);
+        if (cfl > CFL) {
+           el = i;
+           CFL = cfl;
+        }
+      }
     CFL *= (c_lambda * P * P) / alpha;
     break;
   case 2: {
-    for(k = 0; k < nZ; k++)
-      for (i = 0; i < nP; i++)
-        CFL = max (CFL, fabs (_plane[k][i]));
-    alpha = (nt == 3) ? 0.723 : 0.430; // -- Max imaginary eigenvalues for Adams Bashforth 3 and 2.
+    for (k = 0; k < nZ; k++)
+      for (i = 0; i < nP; i++) {
+        cfl = fabs (_plane[k][i]);
+        if (cfl > CFL) {
+          el  = i % npnp;
+          CFL = cfl;
+        }
+      }
     CFL *= M_PI / alpha / dz;
     break;
   }
@@ -1775,6 +1782,7 @@ real_t AuxField::CFL (const int_t dir) const
     message (routine, "nominated direction out of range [0--2]", ERROR);
     break;
   }
+  
   return CFL;
 }
 
@@ -1808,7 +1816,7 @@ AuxField& AuxField::vvmvt    (const AuxField& w,
 }
 
 
-AuxField& AuxField::mag(const vector <AuxField*>& a)
+AuxField& AuxField::mag (const vector <AuxField*>& a)
 // ---------------------------------------------------------------------------
 // compute magnitude of given vector a.
 // in 2D: wrapper for xvhypot:  z[i] = sqrt(SQR(x[i]) + SQR(y[i]))
@@ -1816,20 +1824,16 @@ AuxField& AuxField::mag(const vector <AuxField*>& a)
 // ---------------------------------------------------------------------------
 {
   const char routine[] = "AuxField::vmag(a)";
-  const int_t ndim      = a.size();
-  if (ndim == 2)
-  {
+  const int_t ncom     = a.size();
+  if (ncom == 2) {
     if (_size != a[0]->_size || _size != a[1]->_size)
       message (routine, "non-congruent inputs", ERROR);
     Veclib::vhypot (_size, a[0]->_data, 1, a[1]->_data, 1, _data, 1);
-  }
-  else if (ndim == 3)
-  {
+  } else if (ncom == 3) {
     if (_size != a[2]->_size || _size != a[0]->_size || _size != a[1]->_size)
       message (routine, "non-congruent inputs", ERROR);
-    Veclib::vmag (_size, a[2]->_data, 1, a[0]->_data, 1, a[1]->_data, 1, _data, 1);
-  }
-  else
+    Veclib::vmag (_size,a[2]->_data,1, a[0]->_data,1, a[1]->_data,1, _data,1);
+  } else
     message (routine, "need 2D or 3D vector", ERROR);
   return *this;
 }
@@ -1900,6 +1904,9 @@ AuxField& AuxField::projStab (const real_t alpha,
 // this is not enforced.
 //
 // Work is overwritten during processing.
+//
+// NB: I have never found this stabilisation to work in semtex!
+// Perhaps because it is P_N--P_N rather than P_N--P_N-2?
 // ---------------------------------------------------------------------------
 {
   const int_t nel  = Geometry::nElmt();

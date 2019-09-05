@@ -3,9 +3,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 // feml: Finite Element markup Language (FEML) header file.
 //
-// Copyright (c) 1997 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1997 <--> $Date: 2019/05/30 06:36:11 $, Hugh Blackburn
 //
-// $Id$
+// $Id: feml.h,v 9.1 2019/05/30 06:36:11 hmb Exp $
 ///////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>

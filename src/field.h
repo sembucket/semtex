@@ -48,8 +48,6 @@ public:
   static void   coupleBCs     (Field*, Field*, const int_t);
   static real_t modeConstant  (const char, const int_t, const real_t);
 
-  BoundarySys* bsys() {return _bsys;} // hack alert++!!
-
 private:
   int_t        _nbound;		// Number of boundary edges.
   int_t        _nline ;		// Length of one boundary line.
