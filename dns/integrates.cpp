@@ -1,17 +1,13 @@
 ///////////////////////////////////////////////////////////////////////////////
-// integrates.C: (unsteady) linear scalar advection-diffusion in a
-// prescribed/fixed velocity field. Essentially the same as scat but
-// with no evolution of velocity. Restart and session files need to
-// have velocity and pressure (and optionally, scalar).
+// integrates.cpp: (unsteady) linear scalar advection-diffusion in a
+// prescribed/fixed velocity field: No evolution of velocity. Restart
+// and session files need to have velocity and pressure (and
+// optionally, scalar).
 //
-// No provision for Boussinesq buoyancy.
-//
-// A single forcing term, FFC, is allowed to drive the scalar equation.
-//
-// Copyright (C) 2010 <--> $Date: 2014/12/04 05:36:35 $, Hugh Blackburn.
+// Copyright (C) 2010 <--> $Date: 2019/05/30 06:36:03 $, Hugh Blackburn.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id: integrates.cpp,v 1.2 2014/12/04 05:36:35 hmb Exp $";
+static char RCS[] = "$Id: integrates.cpp,v 9.1 2019/05/30 06:36:03 hmb Exp $";
 
 #include <dns.h>
 
@@ -25,8 +21,8 @@ static Msys* preSolve (const Domain*);
 static void  Solve    (Domain*, AuxField*, Msys*);
 
 
-void AdvectDiffuse (Domain*       D,
-		    BCmgr*        B,
+void AdvectDiffuse (Domain*      D,
+		    BCmgr*       B,
 		    DNSAnalyser* A)
 // ---------------------------------------------------------------------------
 // On entry, D contains storage for velocity Fields 'u', 'v' ('w'),
@@ -45,7 +41,6 @@ void AdvectDiffuse (Domain*       D,
   int_t        i;
   const real_t dt      = Femlib:: value ("D_T");
   const int_t  nStep   = Femlib::ivalue ("N_STEP");
-  const int_t  TBCS    = Femlib::ivalue ("TBCS");
   const int_t  nZ      = Geometry::nZProc();
   const int_t  ntot    = Geometry::nTotProc();
   real_t*      alloc   = new real_t [static_cast<size_t>(2*NORD*ntot)];
@@ -122,9 +117,6 @@ static void advect (Domain*   D ,
 //                                                      ~
 // This seems to be efficient and about as robust as full skew-symmetric.
 //
-// If constant FFC is declared, this is taken as a constant production
-// rate term on RHS of scalar equation.
-//
 // Scalar field data area of D Us are swapped, then the next stage of
 // nonlinear forcing terms N(u) are computed from velocity and scalar
 // fields and left in Uf.
@@ -138,11 +130,10 @@ static void advect (Domain*   D ,
 // ---------------------------------------------------------------------------
 {
   int_t        i, j;
-  const real_t forcing = Femlib::value ("FFC");
 
 #if defined(STOKES)
 
-  *Uf = (fabs(forcing) > EPSDP) ? -forcing : 0.0;
+  *Uf = 0.0;
   AuxField::swapData (D -> u[NCOM], Us);
 
 #else
@@ -278,7 +269,6 @@ static void advect (Domain*   D ,
       
   N -> transform32 (FORWARD, n32);
   master -> smooth (N);
-  if (fabs (forcing) > EPSDP) *N -= forcing;
 
   toggle = 1 - toggle;
 

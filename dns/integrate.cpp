@@ -1,12 +1,28 @@
 ///////////////////////////////////////////////////////////////////////////////
 // integrate.cpp: Unsteady Navier--Stokes solver, using
-// "stiffly-stable" time integration [1-4].  Geometries may be 2- or
+// "stiffly-stable" time integration [1,2].  Geometries may be 2- or
 // 3-dimensional, Cartesian or cylindrical [3].  Fourier expansions
 // are used in the homogeneous (z) direction.  This file provides
 // integrate as a call-back routine; after initialisation, integrate
 // may be called repeatedly without reinitialising internal storage.
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// For cylindrical coordinates (Fourier in azimuth):
+//   u <==> axial     velocity,  x <==> axial     coordinate direction,
+//   v <==> radial    velocity,  y <==> radial    coordinate direction,
+//   w <==> azimuthal velocity,  z <==> azimuthal coordinate direction.
+//
+// For Cartesian coordinates (Fourier in z):
+//   u <==> x-component  velocity
+//   v <==> y-component  velocity
+//   w <==> z-component  velocity
+//
+// In either system, the w velocity component is optional for 2D
+// (N_Z=1) (i.e. can have 2D2C or 2D3C).  If 3D (N_Z > 1), w should
+// appear in session.
+//
+// Optionally integrate concentration of advected scalar field c.
+//
+// Copyright (c) 1994 <--> $Date: 2019/06/21 13:22:31 $, Hugh Blackburn
 //
 // REFERENCES
 // ----------
@@ -20,12 +36,9 @@
 // [4] Dong, Karniakadis & Chryssostomides (2014) "A robust and
 //     accurate outflow boundary condition for incompressible flow
 //     simulations on severely-truncated unbounded domains", JCP 261:83-105.
-//
-// For cylindrical coordinates:
-//   u <==> axial     velocity,  x <==> axial     coordinate direction,
-//   v <==> radial    velocity,  y <==> radial    coordinate direction,
-//   w <==> azimuthal velocity,  z <==> azimuthal coordinate direction.
-//
+// [5] Blackburn, Lee, Albrecht & Singh (2019) "Semtex: a spectral
+//     element–Fourier solver for the incompressible Navier–Stokes
+//     equations in cylindrical or Cartesian coordinates", CPC.
 // --
 // This file is part of Semtex.
 //
@@ -45,9 +58,10 @@
 // 02110-1301 USA.
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: integrate.cpp,v 9.2 2019/06/21 13:22:31 hmb Exp $";
 
 #include <dns.h>
+#include <mpi.h>
 
 typedef ModalMatrixSys Msys;
 
@@ -62,62 +76,36 @@ static void   project   (const Domain*, AuxField**, AuxField**);
 static Msys** preSolve  (const Domain*);
 static void   Solve     (Domain*, const int_t, AuxField*, Msys*);
 
-static void tempGrad (AuxField** Us,
-              AuxField** Uf)
-// ---------------------------------------------------------------------------
-// If there is heat input we may wish to take off a linear correction
-// for bulk temperature gradient DTBDX, only in defined for the first
-// coordinate direction. This procedure only drives mode 0, we work in
-// Fourier. 
-// ---------------------------------------------------------------------------
-{
-  const real_t dtbdx = Femlib::value ("DTBDX");
 
-  if (fabs (dtbdx) < EPSDP) return;
-
-  const int_t     nP = Geometry::planeSize();
-  AuxField*       U  = Us[0];
-  AuxField*       N  = Uf[NCOM]; // -- Advection term for scalar.
-  vector<real_t>  work(nP);
-  real_t*         u = &work[0];
-
-  U -> getPlane  (0, u);
-  Blas::scal     (nP, -dtbdx, u, 1);
-
-  N -> addToPlane (0, u);
-}
-
-void integrate (void (*advection) (Domain*, 
-                                   BCmgr*,
-                                   AuxField**, 
-                                   AuxField**,
+void integrate (void (*advection) (Domain*    , 
+                                   BCmgr*     ,
+                                   AuxField** , 
+                                   AuxField** ,
                                    FieldForce*),
                 Domain*      D ,
                 BCmgr*       B ,
                 DNSAnalyser* A ,
                 FieldForce*  FF)
 // ---------------------------------------------------------------------------
-// On entry, D contains storage for velocity Fields 'u', 'v' ('w') and
-// constraint Field 'p'.
+// On entry, D contains storage (in the following order!) for:
+// -- velocity Fields 'u', 'v' (and 'w' if 2D3C or 3D),
+// -- optional scalar Field 'c',
+// -- constraint Field 'p'.
 //
 // Us is multi-level auxillary Field storage for velocities and
 // Uf is multi-level auxillary Field storage for nonlinear forcing terms.
 // ---------------------------------------------------------------------------
 {
-  bool do_scat = strchr(D -> field, 'c'); // -- Do scalar transport.
-
-  NDIM = Geometry::nDim();	// -- Number of space dimensions.
-  NCOM = (do_scat) ? D -> nField() - 2 : D -> nField() - 1;	// -- Number of velocity components.
-  NORD = Femlib::ivalue ("N_TIME");
+  NCOM = D -> nVelCmpt();              // -- Number of velocity components.
+  NADV = D -> nAdvect();               // -- Number of advected fields.
+  NDIM = Geometry::nDim();	       // -- Number of space dimensions.
+  NORD = Femlib::ivalue ("N_TIME");    // -- Time integration order.
   C3D  = Geometry::cylindrical() && NDIM == 3;
-  NADV = D -> nField() - 1; // -- Number of advected fields.
-
+  
   int_t              i, j, k;
   const real_t       dt    = Femlib:: value ("D_T");
   const int_t        nStep = Femlib::ivalue ("N_STEP");
-  const int_t        TBCS  = Femlib::ivalue ("TBCS");
   const int_t        nZ    = Geometry::nZProc();
-
   static Msys**      MMS;
   static AuxField*** Us;
   static AuxField*** Uf;
@@ -128,7 +116,7 @@ void integrate (void (*advection) (Domain*,
     // -- Create multi-level storage for velocities and forcing.
 
     const int_t ntot  = Geometry::nTotProc();
-    real_t*     alloc = new real_t [static_cast<size_t>(2*NADV*NORD*ntot)];
+    real_t*     alloc = new real_t [static_cast<size_t>(2 * NADV*NORD * ntot)];
     Us                = new AuxField** [static_cast<size_t>(2 * NORD)];
     Uf                = Us + NORD;
 
@@ -164,18 +152,114 @@ void integrate (void (*advection) (Domain*,
       *Uf[i][j] = 0.0;
     }
 
+  // -- Solve the Stokes flow problem with unit forcing
+  if(!D->grn[0] && fabs(Femlib::value("Q_BAR")) > 1.0e-6) {
+    real_t            L_x   = Femlib::value("XMAX");
+    vector<AuxField*> tmp;
+    tmp.resize(4);
+
+    for (i = 0; i < 4; i++) {
+      D->grn[i] = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), D->elmt, 'g'+i);
+      tmp[i] = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), D->elmt, 'k'+i);
+      *tmp[i] = *D->u[i];
+      *D->u[i] = 0.0;
+    }
+
+    // -- Set the constant forcing
+    for (i = 0; i < NCOM; i++) *Uf[0][i] = 0.0;
+    ROOTONLY {
+      Uf[0][0] -> addToPlane (0, 1.0);
+      if (Geometry::cylindrical()) Uf[0][0] -> mulY ();
+    }
+
+    D->step += 1;
+
+    // -- Update high-order pressure BC storage.
+    B -> maintainFourier (D -> step, Pressure, const_cast<const AuxField**>(Us[0]), const_cast<const AuxField**>(Uf[0]));
+    Pressure -> evaluateBoundaries (Pressure, D -> step);
+
+    // -- Complete unconstrained advective substep and compute pressure.
+    if (Geometry::cylindrical()) { Us[0][0] -> mulY(); Us[0][1] -> mulY(); }
+
+    waveProp (D, const_cast<const AuxField***>(Us), const_cast<const AuxField***>(Uf));
+    for (i = 0; i < NADV; i++) AuxField::swapData (D -> u[i], Us[0][i]);
+
+    rollm     (Uf, NORD, NADV);
+    setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);
+    Solve     (D, NADV,  Uf[0][0], MMS[NADV]);
+
+    // -- Correct velocities for pressure.
+    project   (D, Us[0], Uf[0]);
+
+    // -- Update multilevel velocity storage.
+    for (i = 0; i < NADV; i++) *Us[0][i] = *D -> u[i];
+    rollm (Us, NORD, NADV);
+
+    // -- Re-evaluate velocity (possibly time-dependent) BCs.
+    for (i = 0; i < NADV; i++)  {
+      D -> u[i] -> evaluateBoundaries (NULL,     D -> step, false);
+      D -> u[i] -> bTransform         (FORWARD);
+      D -> u[i] -> evaluateBoundaries (Pressure, D -> step, true);
+    }
+    if (C3D) Field::coupleBCs (D -> u[1], D -> u[2], FORWARD);
+
+    // -- Viscous correction substep.
+    if (C3D) {
+      AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
+      AuxField::couple (D -> u[1], D -> u[2], FORWARD);
+    }
+    for (i = 0; i < NADV; i++) Solve (D, i, Uf[0][i], MMS[i]);
+    if (C3D) AuxField::couple (D -> u[1], D -> u[2], INVERSE);
+
+    D->step -= 1;
+
+
+/*
+    // read in constant forcing stokes solution from file
+    char       buf[StrMax], file[StrMax];
+    ifstream   grnfunc (strcat (strcpy (file, D -> name), ".grn"));
+    Header     header;
+    grnfunc >> header;
+    for (i = 0; i < 4; i++) {
+      grnfunc >> *D->u[i];
+      if (header.swab()) D->u[i] -> reverse();
+    }
+    for (i = 0; i < 4; i++) D->u[i] -> transform (FORWARD);
+*/
+
+    // this will be broadcast to the other procs when applied
+    D->Qg  = 2.0 * M_PI * D->u[0]->integral(0);
+    D->Qg /= (M_PI * 1.0 * 1.0 * L_x);
+    if(!Geometry::procID()) cout << "Stokes + unit forcing volumetric flux: " << D->Qg << endl;
+    if(!Geometry::procID()) cout << "                          ux integral: " << 2.0 * M_PI * D->u[0]->integral(0) << endl;
+    if(!Geometry::procID()) cout << "                          pipe length: " << L_x << endl;
+
+    // -- Resetting fields
+    for (i = 0; i < 4; i++) {
+      *D->grn[i] = *D->u[i];
+      *D->u[i]   = *tmp[i];
+    }
+
+    *Pressure = 0.0;
+    for (i = 0; i < NORD; i++)
+      for (j = 0; j < NADV; j++) {
+        *Us[i][j] = 0.0;
+        *Uf[i][j] = 0.0;
+      }
+    // do we really need to do this again??
+    //B -> buildComputedBCs (Pressure);
+  }
+
+  // -- The following timestepping loop implements equations (15--18) in [5].
+  
   while (D -> step < nStep) {
 
     // -- Compute nonlinear terms from previous velocity field.
     //    Add physical space forcing, again at old time level.
 
     advection (D, B, Us[0], Uf[0], FF);
-
-    if(do_scat) {
-      ROOTONLY tempGrad (Us[0], Uf[0]);
-    }
-
-    // -- Now update the time.
+    
+    // -- Now update the time (remainder including BCs at new time level).
 
     D -> step += 1;
     D -> time += dt;
@@ -195,6 +279,7 @@ void integrate (void (*advection) (Domain*,
     waveProp (D, const_cast<const AuxField***>(Us),
 	         const_cast<const AuxField***>(Uf));
     for (i = 0; i < NADV; i++) AuxField::swapData (D -> u[i], Us[0][i]);
+
     rollm     (Uf, NORD, NADV);
     setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);
     Solve     (D, NADV,  Uf[0][0], MMS[NADV]);
@@ -211,7 +296,7 @@ void integrate (void (*advection) (Domain*,
     // -- Re-evaluate velocity (possibly time-dependent) BCs.
 
     for (i = 0; i < NADV; i++)  {
-      D -> u[i] -> evaluateBoundaries (Pressure, D -> step, false);
+      D -> u[i] -> evaluateBoundaries (NULL,     D -> step, false);
       D -> u[i] -> bTransform         (FORWARD);
       D -> u[i] -> evaluateBoundaries (Pressure, D -> step, true);
     }
@@ -223,12 +308,46 @@ void integrate (void (*advection) (Domain*,
       AuxField::couple (Uf [0][1], Uf [0][2], FORWARD);
       AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     }
+
     for (i = 0; i < NADV; i++) Solve (D, i, Uf[0][i], MMS[i]);
     if (C3D)
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 
-    // -- Process results of this step.
+    // constant flow rate
+    if(fabs(Femlib::value("Q_BAR")) > 1.0e-6) {
+      real_t L_x       = Femlib::value("XMAX");
+      real_t _refQ     = Femlib::value("Q_BAR");
+      real_t getQ, dP;
 
+      
+/*
+      getQ  = 2.0 * M_PI * D->u[0]->integral(0);
+      getQ /= (M_PI * 1.0 * 1.0 * L_x);
+
+      ROOTONLY {
+        dP = (_refQ - getQ) / D->Qg;
+
+        //cout << "mass flux forcing: " << _refQ << "\t" << D->Qg << "\t" << getQ << "\t" << dP << endl;
+
+        for(i = 0; i < Geometry::nProc(); i++) Femlib::send(&dP, 1, i);
+      } else {
+        Femlib::recv(&dP, 1, 0);
+      }
+      Femlib::synchronize();
+*/
+      if(!Geometry::procID()) {
+        getQ  = 2.0 * M_PI * D->u[0]->integral(0);
+        getQ /= (M_PI * 1.0 * 1.0 * L_x);
+        dP    = (_refQ - getQ) / D->Qg;
+      }
+      //if(!Geometry::procID()) cout << D->step << ":\tmass flux forcing: " << _refQ << "\t" << D->Qg << "\t" << getQ << "\t" << dP << endl;
+      MPI_Bcast(&dP, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+      for(i = 0; i < NADV; i++) D->u[i]->axpy(dP, *D->grn[i]);
+    }
+
+    // -- Process results of this step.
+    
     //A -> analyse (Us[0], Uf[0]);
   }
 }
@@ -299,7 +418,8 @@ static void project (const Domain* D ,
 //
 //                    u^^ = u^ - D_T * grad P,
 //
-// then scale by -1.0 / (D_T * KINVIS) to create forcing for viscous step.
+// then scale by -1.0 / (D_T * KINVIS) to create forcing for viscous step
+// (this is -1.0 / (D_T  * diffusivity) in the case of a scalar field).
 //
 // u^^ is left in Uf.
 // ---------------------------------------------------------------------------
@@ -314,9 +434,9 @@ static void project (const Domain* D ,
     if (Geometry::cylindrical() && i >= 2) Uf[i] -> mulY();
     *Uf[i] *= alpha;
   }
-  if(NADV>NCOM) { // -- Rescale the temperature equation by the Prandtl number.
-    *Uf[NCOM] *= Pr;
-  }
+
+  // -- For scalar, use diffusivity instead of viscosity.
+  if (NADV > NCOM) *Uf[NCOM] *= Pr;
 
   for (i = 0; i < NDIM; i++) {
     (*Us[0] = *D -> u[NADV]) . gradient (i);
@@ -337,8 +457,7 @@ static Msys** preSolve (const Domain* D)
 // ---------------------------------------------------------------------------
 {
   const int_t             nmodes = Geometry::nModeProc();
-  const int_t             base   = Geometry::baseMode();
-  const int_t             itLev  = Femlib::ivalue ("ITERATIVE");
+  const int_t             base   = Geometry::baseMode(); const int_t             itLev  = Femlib::ivalue ("ITERATIVE");
   const real_t            beta   = Femlib:: value ("BETA");
   const vector<Element*>& E = D -> elmt;
   Msys**                  M = new Msys* [static_cast<size_t>(NADV + 1)];
@@ -350,16 +469,17 @@ static Msys** preSolve (const Domain* D)
 
   // -- Velocity systems.
 
-  for (i = 0; i < NCOM; i++)
+  for (i = 0; i < NCOM; i++) {
     M[i] = new Msys
       (lambda2, beta, base, nmodes, E, D -> b[i], (itLev) ? JACPCG : DIRECT);
+  }
 
   // -- Scalar system.
 
-  if(NADV != NCOM) {
+  if (NADV != NCOM) {
     lambda2 = alpha[0] / Femlib::value ("D_T * KINVIS / PRANDTL");
     M[NCOM] = new Msys
-      (lambda2, beta, base, nmodes, E, D -> b[NCOM],    (itLev<1)?DIRECT:JACPCG);
+      (lambda2, beta, base, nmodes, E, D -> b[NCOM],(itLev < 1)?DIRECT:JACPCG);
   }
 
   // -- Pressure system.
@@ -394,8 +514,9 @@ static void Solve (Domain*     D,
 
     vector<real_t> alpha (Je + 1);
     Integration::StifflyStable (Je, &alpha[0]);
-    const real_t   lambda2 = (i==NCOM) ? alpha[0] / Femlib::value("D_T * KINVIS / PRANDTL") :
-                                         alpha[0] / Femlib::value("D_T * KINVIS");
+    const real_t   lambda2 = (i == NCOM) ? // -- True for scalar diffusion.
+      alpha[0] / Femlib::value ("D_T * KINVIS / PRANDTL") :
+      alpha[0] / Femlib::value ("D_T * KINVIS");
     const real_t   beta    = Femlib::value ("BETA");
 
     Msys* tmp = new Msys

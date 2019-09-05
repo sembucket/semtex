@@ -3,9 +3,9 @@
 //////////////////////////////////////////////////////////////////////////////
 // dns.h: header file for direct numerical simulation solver.
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:03 $, Hugh Blackburn
 //
-// $Id$
+// $Id: dns.h,v 9.1 2019/05/30 06:36:03 hmb Exp $
 //////////////////////////////////////////////////////////////////////////////
 
 #include <sem.h>
@@ -34,9 +34,9 @@ private:
   void extract_wall ();
 };
 
-void skewSymmetric    (Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*);
-void altSkewSymmetric (Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*);
-void convective       (Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*);
-void Stokes           (Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*);
+void skewSymmetric    (Domain*,BCmgr*,AuxField**,AuxField**,FieldForce*);
+void altSkewSymmetric (Domain*,BCmgr*,AuxField**,AuxField**,FieldForce*);
+void convective       (Domain*,BCmgr*,AuxField**,AuxField**,FieldForce*);
+void Stokes           (Domain*,BCmgr*,AuxField**,AuxField**,FieldForce*);
 
 #endif

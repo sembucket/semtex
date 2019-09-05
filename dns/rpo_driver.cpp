@@ -67,49 +67,17 @@ void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 
 #define TESTING
 #define X_FOURIER
-//#define REMOVE_REFLECTION_SYMMETRIES
 
 #define NFIELD 3
-//#define XMIN 0.0
-///#define YMIN 0.0
-//#define YMAX 1.0
-//#define NELS_X 30
-//#define NELS_Y 8
-//#define NELS_X 24
-//#define NELS_Y 11
 #define NSLICE 1
 #define THREE 3
-
-//#define XMAX 4.053667940115862
-//#define XMAX 5.0265482457
-
-void zero_reflection_dofs(Context* context, Domain* domain, vector<Field*> u) {
-  int field_i, mode_i, mode_j, dof_i;
-  int nex = context->nElsX;
-  int ney = context->nElsY;
-  int elOrd = Geometry::nP() - 1;
-  register real_t* data;
-
-  for(field_i = 0; field_i < THREE; field_i++) {
-    for(mode_i = 0; mode_i < Geometry::nZProc()/2; mode_i++) {
-      mode_j = (field_i < 2) ? 2*mode_i + 1 : 2*mode_i + 0;
-      data = u[field_i]->plane(mode_j);
-      for(dof_i = 0; dof_i < nex*ney*(elOrd+1)*(elOrd+1); dof_i++) {
-        data[dof_i] = 0.0;
-      }
-    }
-  }
-}
+//#define RM_2FOLD_SYM
 
 static PetscErrorCode RPOVecNormL2_Hookstep(void* ctx,Vec v,PetscScalar* norm) {
   Context* context = (Context*)ctx;
-#ifdef REMOVE_REFLECTION_SYMMETRIES
-  PetscInt nDofsCube_l = (Geometry::nZProc() / 2) * context->nDofsPlane;
-#else
   PetscInt nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
-#endif
   PetscInt ind_i;
-  double norm_sq, norm_l_sq, norm_orig;
+  double norm_orig, norm_sq, norm_l_sq = 0.0;
   PetscScalar* vArray;
   Vec vl;
 
@@ -118,12 +86,20 @@ static PetscErrorCode RPOVecNormL2_Hookstep(void* ctx,Vec v,PetscScalar* norm) {
   VecScatterBegin(context->global_to_semtex, v, vl, INSERT_VALUES, SCATTER_FORWARD);
   VecScatterEnd  (context->global_to_semtex, v, vl, INSERT_VALUES, SCATTER_FORWARD);
 
-  norm_l_sq = 0.0;
+#ifdef RM_2FOLD_SYM
+  if(Geometry::procID()%2==0) {
+#endif
+
+  //norm_l_sq = 0.0;
   VecGetArray(vl, &vArray);
   for(ind_i=0; ind_i<3*nDofsCube_l; ind_i++) {
     norm_l_sq += vArray[ind_i]*vArray[ind_i];
   }
   VecRestoreArray(vl, &vArray);
+
+#ifdef RM_2FOLD_SYM
+  }
+#endif
 
   norm_sq = 0.0;
   MPI_Allreduce(&norm_l_sq, &norm_sq, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -139,13 +115,9 @@ static PetscErrorCode RPOVecNormL2_Hookstep(void* ctx,Vec v,PetscScalar* norm) {
 
 static PetscErrorCode RPOVecDot_Hookstep(void* ctx,Vec v1,Vec v2,PetscScalar* dot) {
   Context* context = (Context*)ctx;
-#ifdef REMOVE_REFLECTION_SYMMETRIES
-  PetscInt nDofsCube_l = (Geometry::nZProc() / 2) * context->nDofsPlane;
-#else
   PetscInt nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
-#endif
   PetscInt ind_i;
-  double dot_l;
+  double dot_l = 0.0;
   PetscScalar *v1Array, *v2Array;
   Vec vl1, vl2;
 
@@ -157,7 +129,11 @@ static PetscErrorCode RPOVecDot_Hookstep(void* ctx,Vec v1,Vec v2,PetscScalar* do
   VecScatterBegin(context->global_to_semtex, v2, vl2, INSERT_VALUES, SCATTER_FORWARD);
   VecScatterEnd  (context->global_to_semtex, v2, vl2, INSERT_VALUES, SCATTER_FORWARD);
 
-  dot_l = 0.0;
+#ifdef RM_2FOLD_SYM
+  if(Geometry::procID()%2==0) {
+#endif
+
+  //dot_l = 0.0;
   VecGetArray(vl1, &v1Array);
   VecGetArray(vl2, &v2Array);
   for(ind_i=0; ind_i<3*nDofsCube_l; ind_i++) {
@@ -166,13 +142,55 @@ static PetscErrorCode RPOVecDot_Hookstep(void* ctx,Vec v1,Vec v2,PetscScalar* do
   VecRestoreArray(vl1, &v1Array);
   VecRestoreArray(vl2, &v2Array);
 
+#ifdef RM_2FOLD_SYM
+  }
+#endif
+
   *dot = 0.0;
   MPI_Allreduce(&dot_l, dot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  //VecDot(v1,v2,&dot_orig);
-  //if(!rank)printf("\tFGMRES - modified dot, <v1,v2>: %g, (orig): %g\n",*dot,dot_orig);
 
   VecDestroy(&vl1);
   VecDestroy(&vl2);
+
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode RPOVecDiff_Hookstep(void* ctx,Vec y,Vec F,PetscScalar h) {
+  Context* context = (Context*)ctx;
+  PetscInt nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
+  PetscInt ind_i;
+  PetscScalar *yArray, *FArray;
+  Vec yl, Fl;
+
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &yl);
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &Fl);
+
+  VecScatterBegin(context->global_to_semtex, y, yl, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterEnd  (context->global_to_semtex, y, yl, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterBegin(context->global_to_semtex, F, Fl, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterEnd  (context->global_to_semtex, F, Fl, INSERT_VALUES, SCATTER_FORWARD);
+
+#ifdef RM_2FOLD_SYM
+  if(Geometry::procID()%2==0) {
+#endif
+
+  VecGetArray(yl, &yArray);
+  VecGetArray(Fl, &FArray);
+  for(ind_i=0; ind_i<3*nDofsCube_l; ind_i++) {
+    yArray[ind_i] = (yArray[ind_i] - FArray[ind_i])/h;
+  }
+  VecRestoreArray(yl, &yArray);
+  VecRestoreArray(Fl, &FArray);
+
+#ifdef RM_2FOLD_SYM
+  }
+#endif
+
+  VecScatterBegin(context->global_to_semtex, yl, y, INSERT_VALUES, SCATTER_REVERSE);
+  VecScatterEnd  (context->global_to_semtex, yl, y, INSERT_VALUES, SCATTER_REVERSE);
+
+  VecDestroy(&yl);
+  VecDestroy(&Fl);
 
   PetscFunctionReturn(0);
 }
@@ -182,15 +200,10 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
   int          nNodesX     = context->nElsX * elOrd;
   int          nModesX     = context->nModesX;
   int          index;
-#ifdef REMOVE_REFLECTION_SYMMETRIES
-  int          nDofsCube_l = (Geometry::nZProc()/2) * context->nDofsPlane;
-#else
   int          nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
-#endif
   int          nl          = context->nField * nDofsCube_l;
-  int          plane_j, field_j, mode_j;
+  int          plane_j, mode_j;
   int          pt_j, el_j;
-  double       p_y;
   double       k_x, k_z;
   double       f_theta_l, f_phi_l, f_tau_l;
   double*      rx          = new double[nl];
@@ -202,9 +215,16 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
   Vec          xl;
   int          nStep;
 
+  f_theta_l = f_phi_l = f_tau_l = 0.0;
+  
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
   VecScatterBegin(context->global_to_semtex, x_delta, xl, INSERT_VALUES, SCATTER_FORWARD);
   VecScatterEnd(  context->global_to_semtex, x_delta, xl, INSERT_VALUES, SCATTER_FORWARD);
+
+#ifdef RM_2FOLD_SYM
+  if(Geometry::procID()%2==0) {
+#endif
+
   VecGetArray(xl, &xArray);
 
   if(!context->travelling_wave) {
@@ -220,13 +240,11 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
     context->domain->step = 0;
     Femlib::value("t", 0.0);
 
-#ifdef REMOVE_REFLECTION_SYMMETRIES
-    zero_reflection_dofs(context, context->domain, context->domain->u);
-#endif
-
     //delete context->analyst;
     //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
+    AuxField::couple(context->domain->u[1], context->domain->u[2], INVERSE);
     integrate(convective, context->domain, context->bman, context->analyst, context->ff);
+    AuxField::couple(context->domain->u[1], context->domain->u[2], FORWARD);
     for(int field_i = 0; field_i < context->nField; field_i++) {
       *context->domain->u[field_i] -= *context->u0[field_i];
       *context->domain->u[field_i] *= 1.0 / Femlib::value("D_T");
@@ -236,82 +254,7 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
 
   for(int dof_i = 0; dof_i < nl; dof_i++) { rx[dof_i] = rz[dof_i] = rt[dof_i] = 0.0; }
 
-  field_j = 0;
   for(int field_i = 0; field_i < THREE; field_i++) {
-    // omit the radial velocity
-    if(context->nField < 3 && field_i == 1) continue;
-
-#ifdef REMOVE_REFLECTION_SYMMETRIES
-    for(int plane_i = 0; plane_i < Geometry::nZProc()/2; plane_i++) {
-      if(field_i < 2) {
-        SEM_to_Fourier(2*plane_i+0, context, context->u0[field_i], data_r);
-      } else {
-        SEM_to_Fourier(2*plane_i+1, context, context->u0[field_i], data_r);
-      }
-      for(int node_j = 0; node_j < context->nElsY * elOrd; node_j++) {
-        for(int mode_i = 0; mode_i < nModesX; mode_i++) {
-          index = field_j * nDofsCube_l + plane_i * context->nDofsPlane + node_j * nModesX + mode_i;
-          k_x = (2.0 * M_PI / (context->xmax /*- XMIN*/)) * (mode_i / 2);
-
-          if(mode_i % 2 == 0) { // real part
-            rx[index] = -k_x * data_r[node_j * nModesX + mode_i + 1];
-          } else {              // imag part
-            rx[index] = +k_x * data_r[node_j * nModesX + mode_i - 1];
-          }
-        }
-      }
-    }
-    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
-      plane_j = Geometry::procID() * Geometry::nZProc() + plane_i;
-      if(field_i < 2) {
-        SEM_to_Fourier(plane_i+1, context, context->u0[field_i], data_i);
-      } else {
-        SEM_to_Fourier(plane_i+0, context, context->u0[field_i], data_r);
-      }
-      for(int dof_i = 0; dof_i < context->nElsY * elOrd * nModesX; dof_i++) {
-        k_z = 1.0 * (plane_j / 2);
-
-        index = field_j * nDofsCube_l + (plane_i/2) * context->nDofsPlane + dof_i;
-        if(field_i < 2) {
-          rz[index] = -k_z * data_i[dof_i];
-        } else {
-          rz[index] = +k_z * data_r[dof_i];
-        }
-      }
-    }
-
-    if(!context->travelling_wave) {
-      for(int plane_i = 0; plane_i < Geometry::nZProc()/2; plane_i++) {
-        if(field_i < 2) {
-          SEM_to_Fourier(2*plane_i+0, context, context->domain->u[field_i], data_r);
-        } else {
-          SEM_to_Fourier(2*plane_i+1, context, context->domain->u[field_i], data_r);
-        }
-        for(int dof_i = 0; dof_i < context->nDofsPlane; dof_i++) {
-          index = field_j * nDofsCube_l + plane_i * context->nDofsPlane + dof_i;
-          rt[index] = data_r[dof_i];
-        }
-      }
-    }
-#else
-/*
-    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
-      SEM_to_Fourier(plane_i, context, context->u0[field_i], data_r);
-      for(int node_j = 0; node_j < context->nElsY * elOrd; node_j++) {
-        for(int mode_i = 0; mode_i < nModesX; mode_i++) {
-          index = field_j * nDofsCube_l + plane_i * context->nDofsPlane + node_j * nModesX + mode_i;
-          //k_x = (2.0 * M_PI / (context->xmax - XMIN)) * (mode_i / 2);
-          k_x = (2.0 * M_PI / (context->xmax)) * (mode_i / 2);
-
-          if(mode_i % 2 == 0) { // real part
-            rx[index] = -k_x * data_r[node_j * nModesX + mode_i + 1];
-          } else {              // imag part
-            rx[index] = +k_x * data_r[node_j * nModesX + mode_i - 1];
-          }
-        }
-      }
-    }
-*/
     for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
       SEM_to_Fourier(plane_i, context, context->u0[field_i], data_r, data_i);
       for(int node_j = 0; node_j < context->nElsY * elOrd; node_j++) {
@@ -320,10 +263,10 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
 
           k_x = (2.0 * M_PI / (context->xmax /*-XMIN*/)) * (mode_j);
 
-          index = field_j * nDofsCube_l + (plane_i+0) * context->nDofsPlane + node_j * nModesX + mode_i;
+          index = LocalIndex(context, field_i, plane_i+0, mode_i, node_j);
           rx[index] = -k_x * data_i[node_j * nModesX + mode_i];
 
-          index = field_j * nDofsCube_l + (plane_i+1) * context->nDofsPlane + node_j * nModesX + mode_i;
+          index = LocalIndex(context, field_i, plane_i+1, mode_i, node_j);
           rx[index] = +k_x * data_r[node_j * nModesX + mode_i];
         }
       }
@@ -331,50 +274,47 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
 
     for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
       plane_j = Geometry::procID() * Geometry::nZProc() + plane_i;
-      //SEM_to_Fourier(plane_i+0, context, context->u0[field_i], data_r);
-      //SEM_to_Fourier(plane_i+1, context, context->u0[field_i], data_i);
       SEM_to_Fourier(plane_i, context, context->u0[field_i], data_r, data_i);
       for(int dof_i = 0; dof_i < context->nElsY * elOrd * nModesX; dof_i++) {
         k_z = 1.0 * (plane_j / 2);
 
-        index = field_j * nDofsCube_l + (plane_i+0) * context->nDofsPlane + dof_i;
+        index = LocalIndex(context, field_i, plane_i+0, dof_i%nModesX, dof_i/nModesX);
         rz[index] = -k_z * data_i[dof_i];
-        index = field_j * nDofsCube_l + (plane_i+1) * context->nDofsPlane + dof_i;
+        index = LocalIndex(context, field_i, plane_i+1, dof_i%nModesX, dof_i/nModesX);
         rz[index] = +k_z * data_r[dof_i];
       }
     }
 
     if(!context->travelling_wave) {
-      //for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
-      //  SEM_to_Fourier(plane_i, context, context->domain->u[field_i], data_r);
       for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
         SEM_to_Fourier(plane_i, context, context->domain->u[field_i], data_r, data_i);
 
         for(int dof_i = 0; dof_i < context->nDofsPlane; dof_i++) {
-          index = field_j * nDofsCube_l + (plane_i+0) * context->nDofsPlane + dof_i;
+          index = LocalIndex(context, field_i, plane_i+0, dof_i%nModesX, dof_i/nModesX);
           rt[index] = data_r[dof_i];
 
-          index = field_j * nDofsCube_l + (plane_i+1) * context->nDofsPlane + dof_i;
+          index = LocalIndex(context, field_i, plane_i+1, dof_i%nModesX, dof_i/nModesX);
           rt[index] = data_i[dof_i];
         }
       }
     }
-#endif
-
-    field_j++;
   }
 
-  f_theta_l = f_phi_l = f_tau_l = 0.0;
   for(int dof_i = 0; dof_i < nl; dof_i++) {
     f_theta_l -= rx[dof_i] * xArray[dof_i];
     f_phi_l   -= rz[dof_i] * xArray[dof_i];
     if(!context->travelling_wave) f_tau_l -= rt[dof_i] * xArray[dof_i];
   }
+
+  VecRestoreArray(xl, &xArray);
+
+#ifdef RM_2FOLD_SYM
+  }
+#endif
+
   MPI_Allreduce(&f_theta_l, f_theta, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&f_phi_l,   f_phi,   1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(&f_tau_l,   f_tau,   1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
-  VecRestoreArray(xl, &xArray);
 
   delete[] rx;
   delete[] rz;
@@ -390,18 +330,14 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
   MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(  J, MAT_FINAL_ASSEMBLY);
 
-  //if(context->build_PC) {
-  //  build_preconditioner_ffs(context, P);
-    //context->build_PC = false;
-  //}
   return 0;
 }
 
 PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   Context* context = (Context*)ctx;
   real_t dt;
-  int field_i, mode_i, mode_j, dof_i, nStep, newton_it;
-  double f_norm, x_norm, dx_norm_2, dx_norm, u_norm, runTime, dummy[3], zero = 0.0;
+  int field_i;
+  double f_norm, x_norm, dx_norm, runTime, dummy[3], zero = 0.0;
   char filename[100];
   PetscViewer viewer;
   Vec x_snes;
@@ -410,18 +346,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 
   SNESGetKSP(snes, &ksp);
   KSPGetConvergedReason(ksp, &reason); // if reason != 0 then gmres solve has completed
-  if(reason || context->prev_newton_it < 0) {
-    context->prev_newton_it++;
-  }
   if(!Geometry::procID()) cout << "\tksp converged reason: " << reason << endl;
-
-  if(reason) {
-    // write the current state vector
-    sprintf(filename, "x_curr_%.4u.vec", context->iteration);
-    PetscViewerBinaryOpen(MPI_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
-    VecView(x, viewer);
-    PetscViewerDestroy(&viewer);
-  } 
 
   // unpack the velocity field for use in the constraints assembly from the most recent acceptable guess
   SNESGetSolution(snes, &x_snes);
@@ -430,15 +355,17 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   if(!reason) {
     if(!Geometry::procID()) cout << "\tunpacking constraints velocity from new_x\n";
     UnpackX(context, context->u0, &dummy[0], &dummy[1], &dummy[2], x_snes);
+    // get the current estimate of dx
+    if(context->build_dx) SNESGetLastOrthoVec(snes, context->x_delta);
+    //if(context->build_dx) KSPBuildSolution(ksp, context->x_delta, NULL); if(!Geometry::procID())cout<<"\tusing ksp solution as dx\n";
+  } else {
+    // write the current state vector
+    sprintf(filename, "x_curr_%.4u.vec", context->iteration);
+    PetscViewerBinaryOpen(MPI_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
+    VecView(x, viewer);
+    PetscViewerDestroy(&viewer);
   }
 
-  //if(!reason && context->build_dx/*context->iteration > 0*/) {
-  if(!reason) {
-    // get the current estimate of dx
-    if(context->build_dx)
-      SNESGetLastOrthoVec(snes, context->x_delta);
-      //KSPBuildSolution(ksp, context->x_delta, NULL); if(!Geometry::procID())cout<<"\tusing ksp solution as dx\n";
-  }
   context->build_dx = true;
   RPOVecNormL2_Hookstep(context, context->x_delta, &dx_norm);
   RPOVecNormL2_Hookstep(context, x, &x_norm);
@@ -468,38 +395,45 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   if(!Geometry::procID()) {
     cout << "\trun time: " << runTime << "\tnstep: " << Femlib::ivalue("N_STEP") << "\tdt: " << Femlib::value("D_T") << endl;
     cout << scientific << "\ttau:   " << context->tau_i[0] 
-                       << "\ttheta: " << context->theta_i[0] * (2.0*M_PI/context->xmax)
-                       << "\tphi:   " << context->phi_i[0] << endl;
+                       << "\ttheta: " << context->c_scale * context->theta_i[0] * (2.0*M_PI/context->xmax)
+                       << "\tphi:   " << context->c_scale * context->phi_i[0] << endl;
   }
 
-#ifdef REMOVE_REFLECTION_SYMMETRIES
-  zero_reflection_dofs(context, context->domain, context->domain->u);
+#ifdef TESTING
+  if(!reason) {
+    AuxField::couple(context->domain->u[1], context->domain->u[2], INVERSE);
+    context->domain->dump();
+    AuxField::couple(context->domain->u[1], context->domain->u[2], FORWARD);
+  }
 #endif
-
   // don't want to call the dns analysis, use custom integrate routine instead
   //delete context->analyst;
   //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
+  AuxField::couple(context->domain->u[1], context->domain->u[2], INVERSE);
   integrate(convective, context->domain, context->bman, context->analyst, context->ff);
+  AuxField::couple(context->domain->u[1], context->domain->u[2], FORWARD);
 #ifdef TESTING
-  for(field_i = 0; field_i < THREE; field_i++) *context->write_i->u[field_i] = *context->ui[field_i];
-  *context->write_i->u[THREE] = *context->domain->u[THREE]; //dump the pressure as a sanity check
-  context->write_i->dump();
+  if(!reason) {
+    AuxField::couple(context->domain->u[1], context->domain->u[2], INVERSE);
+    context->domain->dump();
+    AuxField::couple(context->domain->u[1], context->domain->u[2], FORWARD);
+  }
 #endif
 
   // phase shift in theta (axial direction)
-  //phase_shift_x(context, context->theta_i[0] * (2.0 * M_PI / context->xmax), +1.0, context->domain->u);
-  phase_shift_x(context, context->theta_i[0] * (2.0 * M_PI / context->xmax), -1.0, context->domain->u);
+  phase_shift_x(context, context->c_scale * context->theta_i[0] * (2.0 * M_PI / context->xmax), -1.0, context->domain->u);
   // phase shift in phi (azimuthal direction)
-  //phase_shift_z(context, context->phi_i[0], +1.0, context->domain->u);
-  phase_shift_z(context, context->phi_i[0], -1.0, context->domain->u);
+#ifndef RM_2FOLD_SYM
+  phase_shift_z(context, context->c_scale * context->phi_i[0], -1.0, context->domain->u);
+#endif
 
   // set the residual vector
   for(field_i = 0; field_i < context->nField; field_i++) {
     *context->fi[field_i]  = *context->domain->u[field_i];
     *context->fi[field_i] -= *context->ui[field_i];
+    //*context->fi[field_i] -= *context->u0[field_i];
   }
 
-  //build_constraints(context, context->x_delta, f_theta, f_phi, f_tau);
   if(!reason) { // within  fgmres
     build_constraints(context, context->x_delta, &context->f_theta, &context->f_phi, &context->f_tau);
 
@@ -509,27 +443,20 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     RepackX(context, context->fi, &context->f_theta, &context->f_phi, &context->f_tau, f);
   } else {      // outside fgmres
     RepackX(context, context->fi, &zero, &zero, &zero, f); if(!Geometry::procID())cout<<"\trepacking with zero constraints "<<zero<<endl;
-    //RepackX(context, context->fi, &context->f_theta, &context->f_phi, &context->f_tau, f); if(!Geometry::procID())cout<<"\trepacking with non-zero constraints"<<endl;
   }
-
-  // if not assembling the radial velocity into the rpo solver, then 
-  // updating this from the DNS at the end of the simulation time
-  //if(context->nField < 3) *context->ui[1] = *context->domain->u[1];
 
   VecNorm(x, NORM_2, &x_norm);
   VecNorm(f, NORM_2, &f_norm);
   context->iteration++;
   if(!Geometry::procID()) cout << "\t" << context->iteration << ":\tevaluating function, |x|: " << x_norm << "\t|f|: " << f_norm << endl;
 
-  VecCopy(x, context->x_prev);
-
   return 0;
 }
 
-void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domain* domain, DNSAnalyser* analyst, FieldForce* FF, vector<Field*> ui, vector<Field*> fi, vector<Field*> u0, char* session) {
+void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domain* domain, DNSAnalyser* analyst, FieldForce* FF, 
+               vector<AuxField*> ui, vector<AuxField*> fi, vector<AuxField*> u0, char* session) {
   Context* context = new Context;
   int elOrd = Geometry::nP() - 1;
-  //int nNodesX = NELS_X*elOrd;
   int nNodesX = Femlib::ivalue("NELS_X") * elOrd;
   real_t dx, dy, dy_sum, er, es, ex, ey;
   double norm;
@@ -560,9 +487,6 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   context->fi       = fi;
   context->u0       = u0;
   context->build_PC = true;
-  context->is_s     = NULL;
-  context->is_u     = NULL;
-  context->is_p     = NULL;
 #ifdef X_FOURIER
   context->x_fourier = true;
 #else
@@ -572,14 +496,6 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   context->build_dx = false;
   context->nElsX    = Femlib::ivalue("NELS_X");
   context->nElsY    = Femlib::ivalue("NELS_Y");
-  context->session  = session;
-
-#ifdef TESTING
-  sprintf(session_i, "%s_rpo_1", context->session);
-  file_i = new FEML(session_i);
-  context->write_i = new Domain(file_i, context->elmt, context->bman);
-  delete file_i;
-#endif
 
   context->theta_i = new real_t[NSLICE];
   context->phi_i   = new real_t[NSLICE];
@@ -590,9 +506,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   if(!Geometry::procID())cout<<"NELS_X: "<<context->nElsX<<", NELS_Y: "<<context->nElsY<<", XMAX: "<<context->xmax<<endl;
   if( context->travelling_wave && !Geometry::procID()) cout << "      travelling wave solution\n";
   if(!context->travelling_wave && !Geometry::procID()) cout << "NOT a travelling wave solution\n";
-  context->prev_newton_it = -1;
   context->iteration = 0;
-  context->dx_norm_prev = 0.0;
 
   for(int slice_i = 0; slice_i < NSLICE; slice_i++) {
     context->theta_i[slice_i] = 0.0;
@@ -665,11 +579,43 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
     }
     dy_sum += dy;
   }
-  // test
-  dy = 0.0;
-  for(int pt_i = 0; pt_i <= context->nElsY*elOrd; pt_i++) dy += context->rad_weights[pt_i];
-  if(!Geometry::procID())printf("sum_dy: %g\n",dy);
-  if(!Geometry::procID()){for(int pt_i = 0; pt_i <= context->nElsY*elOrd; pt_i++)printf("%g, ",context->rad_coords[pt_i]);printf("\n");}
+  if(!Geometry::procID())printf("\tdy_sum: %g\n",dy_sum);
+
+/*
+  context->rdr = Int_rdr(context);
+  for(int ii = 0; ii < context->nElsY*elOrd; ii++) context->rdr[ii] = 0.0;
+  for(int el_y = 0; el_y < context->nElsY; el_y++) {
+    double ir[99], is[99];
+    double dr[99], ds[99];
+    double drg, rad;
+
+    el_i = el_y*context->nElsX;
+    dy = fabs(elmt[el_i]->_ymesh[elOrd*(elOrd+1)] - elmt[el_i]->_ymesh[0]);
+
+    for(int qp_i = 0; qp_i <= elOrd; qp_i++) {
+      Femlib::interpolation (ir,is,dr,ds,elOrd+1,GLJ,0.0,0.0,elOrd+1,GLJ,0.0,0.0,qx[0],qx[qp_i]);
+      pt_y = el_y*elOrd + qp_i;
+      if(pt_y == context->nElsY*elOrd) continue;
+
+      //drg = 0.0;
+      //for(int qp_j = 0; qp_j <= elOrd; qp_j++) drg += context->rad_coords[el_y*elOrd+qp_j]*ds[qp_j];
+      drg = 1.0/(elmt[el_i]->_dsdy[qp_i*(elOrd+1)]);
+
+      rad = 0.5*(context->rad_coords[pt_y] + context->rad_coords[pt_y+1]);
+      context->rdr[pt_y] += 0.5 * dy * wx[qp_i] * rad * drg;
+    }
+  }
+  if(!Geometry::procID()) {for(int ii = 0; ii < context->nElsY*elOrd; ii++)cout << "\t" << context->rdr[ii]; cout << endl;}
+*/
+
+  // set the velocity scales
+  //context->u_scale[0] = 4.8721670664372931; context->u_scale[1] = 37.842234715773266; context->u_scale[2] = 42.182138079742955;
+  //context->u_scale[0] = 0.30937660; context->u_scale[1] = 5.7519965; context->u_scale[2] = 3.7164474;
+  context->u_scale[0] = Femlib::value("U_SCALE");
+  context->u_scale[1] = Femlib::value("V_SCALE");
+  context->u_scale[2] = Femlib::value("W_SCALE");
+  //context->c_scale    = Femlib::value("C_SCALE");
+  if(!Geometry::procID()) printf("u scales: %g, %g, %g\n", context->u_scale[0], context->u_scale[1], context->u_scale[2]);
 
   // add dofs for theta and tau for each time slice
 #ifdef X_FOURIER
@@ -678,11 +624,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   context->nDofsPlane = context->nElsX*elOrd*context->nElsY*elOrd;
 #endif
 
-#ifdef REMOVE_REFLECTION_SYMMETRIES
-  context->nDofsSlice = context->nField * (Geometry::nZ()/2) * context->nDofsPlane + 1; // add azimuthal phase shift dof
-#else
   context->nDofsSlice = context->nField * Geometry::nZ() * context->nDofsPlane + 1; // add azimuthal phase shift dof
-#endif
 
 #ifdef X_FOURIER
   context->nDofsSlice++; // add axial phase shift dof
@@ -690,11 +632,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
 
   if(!context->travelling_wave) context->nDofsSlice++; // add temporal phase shift dof
 
-#ifdef REMOVE_REFLECTION_SYMMETRIES
-  context->localSize  = NSLICE * NFIELD * (Geometry::nZProc()/2) * context->nDofsPlane;
-#else
   context->localSize  = NSLICE * NFIELD * Geometry::nZProc() * context->nDofsPlane;
-#endif
 
   if(!Geometry::procID()) context->localSize += NSLICE; // azimuthal phase shift dof
 #ifdef X_FOURIER
@@ -702,17 +640,19 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
 #endif
   if(!context->travelling_wave && !Geometry::procID()) context->localSize += NSLICE; // temporal phase shift dof
 
+#ifdef RM_2FOLD_SYM
+  if(Geometry::procID()%2==1) context->localSize = 0;
+  MPI_Allreduce(&context->localSize, &context->nDofsSlice, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+#endif
+
   assign_scatter_semtex(context);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, NSLICE * context->nDofsSlice, &x);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, NSLICE * context->nDofsSlice, &f);
-  VecCreateMPI(MPI_COMM_WORLD, context->localSize, NSLICE * context->nDofsSlice, &context->x_prev);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, NSLICE * context->nDofsSlice, &context->x_delta);
-  VecCreateMPI(MPI_COMM_WORLD, context->localSize, NSLICE * context->nDofsSlice, &context->dx_test);
 
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
   MatSetSizes(P, context->localSize, context->localSize, NSLICE * context->nDofsSlice, NSLICE * context->nDofsSlice);
-  //MatMPIAIJSetPreallocation(P, 2*context->nModesX, PETSC_NULL, 2*context->nModesX, PETSC_NULL);
   MatMPIAIJSetPreallocation(P, 1, PETSC_NULL, 1, PETSC_NULL);
   MatSetOptionsPrefix(P, "P_");
   MatSetFromOptions(P);
@@ -728,6 +668,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
 
   KSPSetNorm_Hookstep(ksp,(void*)context,RPOVecNormL2_Hookstep);
   KSPSetDot_Hookstep(ksp,(void*)context,RPOVecDot_Hookstep);
+  KSPSetDiff_Hookstep(ksp,(void*)context,RPOVecDiff_Hookstep);
 
   // setup the complex fft in the axial direction
   context->data_s = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(context->nModesX));
@@ -735,9 +676,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   context->trans_fwd = fftw_plan_dft_1d(context->nModesX, context->data_s, context->data_f, FFTW_FORWARD,  FFTW_ESTIMATE);
   context->trans_bck = fftw_plan_dft_1d(context->nModesX, context->data_f, context->data_s, FFTW_BACKWARD, FFTW_ESTIMATE);
 
-  context->snes = snes;
   RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
-  VecCopy(x, context->x_prev);
   VecNorm(x, NORM_2, &norm);
   if(!Geometry::procID()) cout << "|x_0|: " << norm << endl;
   if(norm < 1.0e-4) {
@@ -745,8 +684,18 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
                                  << "Are you sure you loaded the initial condition correctly??\n";
     abort();
   }
-  VecZeroEntries(context->dx_test);
   VecZeroEntries(context->x_delta);
+  // set the shift scale
+#ifdef RM_2FOLD_SYM
+  context->c_scale = context->tau_i[0] / norm;
+  //context->c_scale *= 100.0;
+  //context->c_scale *= 55.37123711636364;
+  //context->c_scale *= 71.2397215178109;
+  context->c_scale *= 21.0;
+#else
+  context->c_scale = 5179.3037;
+#endif
+  if(!Geometry::procID()) printf("c scale: %g\n", context->c_scale);
 
   PetscObjectTypeCompare((PetscObject)ksp, KSPFGMRES, &is_fgmres);
   if(!is_fgmres) {
@@ -755,11 +704,11 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   }
 
   // load state from petsc vectors
-  /*{
+  if(Femlib::ivalue("RPO_LOAD_VEC")) {
     char filename[100];
     PetscViewer viewer;
 
-    context->iteration = 19;
+    context->iteration = Femlib::ivalue("RPO_LOAD_VEC");
     if(!Geometry::procID()) cout << "loading vectors at iteration: " << context->iteration << endl;
 
     sprintf(filename, "x_curr_%.4u.vec", context->iteration);
@@ -767,7 +716,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
     VecZeroEntries(x);
     VecLoad(x, viewer);
     PetscViewerDestroy(&viewer);
-  }*/
+  }
 
   SNESSolve(snes, NULL, x);
   UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
@@ -780,9 +729,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   VecDestroy(&x);
   VecDestroy(&f);
   MatDestroy(&P);
-  VecDestroy(&context->x_prev);
   VecDestroy(&context->x_delta);
-  VecDestroy(&context->dx_test);
   delete[] context->el;
   delete[] context->r;
   delete[] context->s;
@@ -804,9 +751,9 @@ int main (int argc, char** argv) {
   DNSAnalyser*     analyst;
   FieldForce*      FF;
   static char      help[] = "petsc";
-  vector<Field*>   ui;  // Solution fields for velocities, pressure at the i time slices
-  vector<Field*>   fi;  // Solution fields for flow maps at the i time slices
-  vector<Field*>   u0;  // Initial guess for the solution velocities
+  vector<AuxField*>   ui;  // Solution fields for velocities, pressure at the i time slices
+  vector<AuxField*>   fi;  // Solution fields for flow maps at the i time slices
+  vector<AuxField*>   u0;  // Initial guess for the solution velocities
   char             session_i[100];
   FEML*            file_i;
   char*            fname;
@@ -832,18 +779,17 @@ int main (int argc, char** argv) {
   file_i = new FEML(session_i);
   domain = new Domain(file_i, elmt, bman);
   domain->restart();
+
+  AuxField::couple(domain->u[1], domain->u[2], FORWARD);
+
   for(int field_i = 0; field_i < THREE/*NFIELD*/; field_i++) {
-    // this is the array of fields that contains the initial condition!!!
-    ui[field_i] = domain->u[field_i];
+    ui[field_i] = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, 'U'+field_i);
+    fi[field_i] = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, 'F'+field_i);
+    u0[field_i] = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, 'A'+field_i);
 
-    strcpy ((fname = new char [strlen (bman -> field()) + 1]), bman -> field());
-    bndry = new BoundarySys(bman, elmt, fname[0]);
-    fi[field_i] = new Field(bndry, new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, fname[0]);
-
-    strcpy ((fname = new char [strlen (bman -> field()) + 1]), bman -> field());
-    bndry = new BoundarySys(bman, elmt, fname[0]);
-    u0[field_i] = new Field(bndry, new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, fname[0]);
+    *ui[field_i] = *domain->u[field_i];
   }
+/*
   delete file_i;
   delete domain;
 
@@ -852,9 +798,11 @@ int main (int argc, char** argv) {
   file_i = new FEML(session_i);
   domain = new Domain(file_i, elmt, bman);
   domain->restart();
+*/
 
   // solve the newton-rapheson problem
   rpo_solve(mesh, elmt, bman, file, domain, analyst, FF, ui, fi, u0, session);
+/*
   delete file_i;
   delete domain;
 
@@ -865,6 +813,9 @@ int main (int argc, char** argv) {
   for(int field_i = 0; field_i < THREE; field_i++) {
     *domain->u[field_i] = *ui[field_i];
   }
+*/
+  AuxField::couple(domain->u[1], domain->u[2], INVERSE);
+
   domain->dump();
   delete file_i;
   delete domain;

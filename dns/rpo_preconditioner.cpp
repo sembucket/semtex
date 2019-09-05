@@ -53,6 +53,8 @@ static char RCS[] = "$Id$";
 #include <petscksp.h>
 #include <petscsnes.h>
 
+#include <fftw3.h>
+
 #include "rpo_utils.h"
 #include "rpo_preconditioner.h"
 
@@ -193,6 +195,7 @@ double** real_space_pc(double lx, int nr, int nf, double* data_x, double* data_y
 }
 
 void schur_complement_constraints(Context* context, double* schur) {
+#if 0
   int     elOrd           = Geometry::nP() - 1;
   int     nNodesX         = NELS_X*elOrd;
   int     nModesX         = context->nModesX;
@@ -397,9 +400,11 @@ void schur_complement_constraints(Context* context, double* schur) {
   delete[] ctl;
   delete[] data_r;
   delete[] data_i;
+#endif
 }
 
 void assemble_K(Context* context, int plane_i, Mat K, Mat P) {
+#if 0
   int     elOrd         = Geometry::nP() - 1;
   int     nNodesX       = NELS_X*elOrd;
   int     nModesX       = context->nModesX;
@@ -619,6 +624,7 @@ void build_preconditioner_ffs(Context* context, Mat P) {
   //rpo_set_fieldsplits(context);
 
   MatDestroy(&K);
+#endif
 }
 
 void build_preconditioner_I(Context* context, Mat P) {
@@ -635,6 +641,7 @@ void build_preconditioner_I(Context* context, Mat P) {
 // NOTE this implementation assumes that each slice fits exactly
 // onto one processor!
 void rpo_set_fieldsplits(Context* context) {
+/*
   KSP ksp;
   PC  pc;
   int uSize = context->nField * Geometry::nZ() * context->nDofsPlane;
@@ -658,6 +665,7 @@ void rpo_set_fieldsplits(Context* context) {
   PCFieldSplitSetIS(pc, "p", context->is_p[0]);
   PCFieldSplitSetType(pc, PC_COMPOSITE_SCHUR);
   PCSetUp(pc);
+*/
 }
 
 /*

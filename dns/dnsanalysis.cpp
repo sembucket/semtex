@@ -2,7 +2,7 @@
 // This version of analysis.C is specialized so that it computes and
 // prints out forces exerted on "wall" boundary group.
 //
-// Copyright (c) 1994 <--> $Date$, Hugh Blackburn
+// Copyright (c) 1994 <--> $Date: 2019/05/30 06:36:03 $, Hugh Blackburn
 //
 // --
 // This file is part of Semtex.
@@ -23,7 +23,7 @@
 // 02110-1301 USA
 ///////////////////////////////////////////////////////////////////////////////
 
-static char RCS[] = "$Id$";
+static char RCS[] = "$Id: dnsanalysis.cpp,v 9.1 2019/05/30 06:36:03 hmb Exp $";
  
 #include <dns.h>
 
@@ -94,32 +94,24 @@ void DNSAnalyser::analyse (AuxField** work0,
   bool        final    =   _src->step == Femlib::ivalue ("N_STEP");
   bool        state    = periodic || final;
 
-  bool        do_scat  = strchr(_src -> field, 'c'); //drl
-  int         i_pres   = (do_scat) ? DIM + 1 : DIM;  //drl
-
   Analyser::analyse (work0, work1);
 
   if (state) ROOTONLY {
-    real_t flux;
     Vector pfor, vfor, tfor;
     char   s[StrMax];
 
     if (DIM == 3) {
-      pfor   = Field::normTraction (_src -> u[i_pres]);
+      pfor   = Field::normTraction (_src -> u[3]);
       vfor   = Field::tangTraction (_src -> u[0], _src -> u[1], _src->u[2]);
       tfor.x = pfor.x + vfor.x;
       tfor.y = pfor.y + vfor.y;
       tfor.z = pfor.z + vfor.z;
     } else {
-      pfor   = Field::normTraction (_src -> u[i_pres]);
+      pfor   = Field::normTraction (_src -> u[2]);
       vfor   = Field::tangTraction (_src -> u[0], _src -> u[1]);
       tfor.x = pfor.x + vfor.x;
       tfor.y = pfor.y + vfor.y;
       tfor.z = pfor.z = vfor.z = 0.0;
-    }
-    // TODO: write scalar flux to file
-    if(do_scat) {
-      flux   = Field::scalarFlux   (_src -> u[DIM]);
     }
 
     sprintf (s,
@@ -155,24 +147,24 @@ void DNSAnalyser::analyse (AuxField** work0,
       Veclib::zero (_work.size(), &_work[0], 1);
 
       if (DIM == 3 || _src -> nField() == 4)
-        Field::traction (&_work[0], &_work[_nline], &_work[2*_nline], _nwall,
+	Field::traction (&_work[0], &_work[_nline], &_work[2*_nline], _nwall,
 			 _npad, _src->u[3],_src->u[0],_src->u[1],_src->u[2]);
       else
-        Field::traction (&_work[0], &_work[_nline], &_work[2*_nline], _nwall,
+	Field::traction (&_work[0], &_work[_nline], &_work[2*_nline], _nwall,
 			 _npad, _src->u[2],_src->u[0],_src->u[1]);
 
       // -- Inverse Fourier transform (like Field::bTransform).
 
       if (nPR == 1) {
-        if (nZ > 1)
-          if (nZ == 2)
-            Veclib::copy (_npad, &_work[0], 1, &_work[_npad], 1);
-          else
-            Femlib::DFTr (&_work[0], nZ, _npad, INVERSE);
+	if (nZ > 1)
+	  if (nZ == 2)
+	    Veclib::copy (_npad, &_work[0], 1, &_work[_npad], 1);
+	  else
+	    Femlib::DFTr (&_work[0], nZ, _npad, INVERSE);
       } else {
-        Femlib::exchange (&_work[0], nZP, _npad, FORWARD);
-        Femlib::DFTr     (&_work[0], nZ,    nPP, INVERSE);
-        Femlib::exchange (&_work[0], nZP, _npad, INVERSE);
+	Femlib::exchange (&_work[0], nZP, _npad, FORWARD);
+	Femlib::DFTr     (&_work[0], nZ,    nPP, INVERSE);
+	Femlib::exchange (&_work[0], nZP, _npad, INVERSE);
       }
 
       // -- Write to file.

@@ -1,9 +1,6 @@
 #ifndef FIELDFORCE_H
 #define FIELDFORCE_H
 
-const char secForce[] = "FORCE";
-const char forcename  = 'u';		// forcing fields are uvw
-
 
 class VirtualForce
 // ---------------------------------------------------------------------------
@@ -41,7 +38,6 @@ protected:
   bool			_enabled;
   vector<VirtualForce*> _classes;   // -- vector of concrete forcing classes
   Domain*		_D;
-  vector<AuxField*>	_u;         // -- storage for physical space velocity
 };
 
 
@@ -180,18 +176,32 @@ protected:
   real_t                _SFD_DELTA, _SFD_CHI;
 };
 
+
 class BuoyancyForce : virtual public VirtualForce
 // ---------------------------------------------------------------------------
-// Thermally driven buoyancy force as derived from the passive scalar field
+// Thermally driven buoyancy force as derived from the passive scalar field.
 // ---------------------------------------------------------------------------
 {
 public:
   BuoyancyForce         (Domain*, FEML*);
   void physical         (AuxField*, const int, vector<AuxField*>);
 protected:
-  char                  cent[StrMax];
-  char                  tempRef[StrMax];
-  char                  betaT[StrMax];
+  real_t                _TREF, _BETAT, _g[3];
+  
 };
+
+/*
+class ConstMassFluxForce : public VirtualForce
+// ---------------------------------------------------------------------------
+// , applied in Fourier space.
+// ---------------------------------------------------------------------------
+{
+public:
+  ConstMassFluxForce    (Domain*, FEML*);
+  void fourier          (AuxField*, const int, vector<AuxField*>);
+protected:
+  real_t                _Q_bar, _Q_v_1, _v[3];	// Force components
+};
+*/
 
 #endif
