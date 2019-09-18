@@ -65,26 +65,20 @@ static char RCS[] = "$Id$";
 void velocity_scales(Context* context) {
   double Ku[3], Ku_bar;
   double fac[3] = {0.5, 0.2, 0.2};
-  vector<AuxField*> vel;
   int elOrd = Geometry::nP() - 1;
   int nModesX = Femlib::ivalue("NELS_X")*elOrd;
   real_t* data_r = new real_t[context->nDofsPlane];
   real_t* data_i = new real_t[context->nDofsPlane];
 
-  vel.resize(3);
-  for(int field_i = 0; field_i < 3; field_i++) {
-    vel[field_i] = context->u0[field_i];
-  }
-
   // integrate the energy in each component separately
   for(int field_i = 0; field_i < 3; field_i++) {
-    *vel[0] = 0.0;
-    *vel[1] = 0.0;
-    *vel[2] = 0.0;
-    *vel[field_i] = *context->ui[field_i];
-    vel[field_i]->transform(INVERSE);
-    context->fi[0]->innerProduct(vel, vel);
-    vel[field_i]->transform(FORWARD);
+    *context->u0[0] = 0.0;
+    *context->u0[1] = 0.0;
+    *context->u0[2] = 0.0;
+    *context->u0[field_i] = *context->ui[field_i];
+    context->u0[field_i]->transform(INVERSE);
+    context->fi[0]->innerProduct(context->u0, context->u0);
+    context->u0[field_i]->transform(FORWARD);
     context->fi[0]->transform(FORWARD);
     *context->fi[0] *= 0.5;
     Ku[field_i] = 2.0 * M_PI * context->fi[0]->integral(0);
@@ -104,21 +98,86 @@ void velocity_scales(Context* context) {
     data_i[dof_i] = 0.0;
   }
   Fourier_to_SEM(0, context, context->u0[0], data_r, data_i, 0);
-  vel[0]->transform(INVERSE);
-  context->fi[0]->innerProduct(vel, vel);
-  vel[0]->transform(FORWARD);
+  context->u0[0]->transform(INVERSE);
+  context->fi[0]->innerProduct(context->u0, context->u0);
+  context->u0[0]->transform(FORWARD);
   context->fi[0]->transform(FORWARD);
   *context->fi[0] *= 0.5;
   Ku_bar = 2.0 * M_PI * context->fi[0]->integral(0);
   MPI_Bcast(&Ku_bar, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
   if(!Geometry::procID()) cout << "Ku_bar:   " << Ku_bar << endl;
-
   Ku[0] -= Ku_bar;
+  if(!Geometry::procID()) cout << "Ku_prime: " << Ku[0]  << endl;
+
   for(int field_i = 0; field_i < THREE; field_i++) {
     context->u_scale[field_i] = sqrt(fac[field_i] * Ku_bar / Ku[field_i]);
     if(!Geometry::procID()) cout << field_i << " velocity scale: " << context->u_scale[field_i] << endl;
   }
+
+  delete[] data_r;
+  delete[] data_i;
+}
+
+void base_profile(Context* context, AuxField* ux, real_t scale, AuxField* uBar) {
+  int elOrd = Geometry::nP() - 1;
+  int nModesX = Femlib::ivalue("NELS_X")*elOrd;
+  real_t energy;
+  real_t* data_r = new real_t[context->nDofsPlane];
+  real_t* data_i = new real_t[context->nDofsPlane];
+
+  if(!Geometry::procID()) cout << "computing base profile for scale: " << scale << endl;
+
+  *uBar = *ux;
+  SEM_to_Fourier(0, context, uBar, data_r, data_i);
+  for(int dof_i = 0; dof_i < context->nDofsPlane; dof_i++) {
+    if(Geometry::procID() == 0 && dof_i%nModesX == 0) {
+      data_r[dof_i] *= scale;
+    } else {
+      data_r[dof_i]  = 0.0;
+    }
+    data_i[dof_i]    = 0.0;
+  }
+  Fourier_to_SEM(0, context, uBar, data_r, data_i, 0);
+
+  // check the energies
+/*
+  energy = 2.0*M_PI*ux->integral(0);
+  if(!Geometry::procID()) cout << "Ku:       " << energy << endl;
+  energy = 2.0*M_PI*uBar->integral(0);
+  if(!Geometry::procID()) cout << "Ku_bar:   " << energy << endl;
+  *ux -= *uBar;
+  energy = 2.0*M_PI*ux->integral(0);
+  if(!Geometry::procID()) cout << "Ku_prime: " << energy << endl;
+  *ux += *uBar;
+*/
+  *context->u0[0] = *ux;
+  *context->u0[1] = 0.0;
+  *context->u0[2] = 0.0;
+  context->u0[0]->transform(INVERSE);
+  context->fi[0]->innerProduct(context->u0, context->u0);
+  context->fi[0]->transform(FORWARD);
+  *context->fi[0] *= 0.5;
+  energy = 2.0 * M_PI * context->fi[0]->integral(0);
+  if(!Geometry::procID()) cout << "Ku:       " << energy << endl;
+
+  *context->u0[0] = *uBar;
+  context->u0[0]->transform(INVERSE);
+  context->fi[0]->innerProduct(context->u0, context->u0);
+  context->fi[0]->transform(FORWARD);
+  *context->fi[0] *= 0.5;
+  energy = 2.0 * M_PI * context->fi[0]->integral(0);
+  if(!Geometry::procID()) cout << "Ku_bar:   " << energy << endl;
+
+  *context->u0[0] = *ux;
+  *context->u0[0] -= *uBar;
+  context->u0[0]->transform(INVERSE);
+  context->fi[0]->innerProduct(context->u0, context->u0);
+  context->fi[0]->transform(FORWARD);
+  *context->fi[0] *= 0.5;
+  energy = 2.0 * M_PI * context->fi[0]->integral(0);
+  if(!Geometry::procID()) cout << "Ku_prime: " << energy << endl;
+  *context->u0[0] += *uBar;
 
   delete[] data_r;
   delete[] data_i;
@@ -181,27 +240,11 @@ void logical_to_elements(int nex, int ney, real_t* data_log, real_t* data_els, i
         if(pt_x == nex*elOrd) pt_x = 0;
         // assume dirichlet bcs on the outer boundary
         if(pt_y == ney*elOrd) continue;
-        // homogeneous dirichlet bcs along the axis
-        //if(pt_y == 0 &&                 plane_i >= 4) continue;
-        //if(pt_y == 0 && field_i == 0 && plane_i >= 2) continue;
-        //if(pt_y == 0 && field_i >= 1 && plane_i <= 1) continue;
 
-        //if(pt_y == 0 && plane_i >= 4) continue;
-/*
-        if(pt_y == 0 && plane_i >= 2 && field_i == 0) continue;
-
-        //if(pt_y == 0 && plane_i <= 1 && field_i == 1) continue; // not ok!
-        if(pt_y == 0 && plane_i <= 1 && field_i == 2) continue;
-
-        //if(pt_y == 0 && plane_i <= 1 && field_i == 0) continue; // not ok!
-        //if(pt_y == 0 && plane_i >= 2 && field_i == 1) continue; // not ok!
-        if(pt_y == 0 && plane_i >= 2 && field_i == 2) continue;
-*/
-        //if(pt_y == 0 && field_i == 2) continue;
-
+        // homogeneous dirichlet bcs along the axis (assumes we are in \tilde{} variables)
         if(pt_y == 0 &&                 plane_i >= 4) continue; // k > 1
         if(pt_y == 0 && field_i == 0 && plane_i >= 2) continue; // k = 1
-        if(pt_y == 0 && field_i == 1 && plane_i >= 2) continue; // k = 1; this one causes issues, (because we are not in \tilde{} variables)
+        if(pt_y == 0 && field_i == 1 && plane_i >= 2) continue; // k = 1
         if(pt_y == 0 && field_i == 1 && plane_i <= 1) continue; // k = 0
         if(pt_y == 0 && field_i == 2 && plane_i <= 1) continue; // k = 0
 
@@ -259,7 +302,7 @@ void Fourier_to_SEM(int plane_k, Context* context, AuxField* us, real_t* data_r,
 
       temp_r[pt_y*nModes + pt_x] = data_r[pt_y*nModes];
       temp_i[pt_y*nModes + pt_x] = data_i[pt_y*nModes];
-      if(Geometry::procID()*Geometry::nZProc()+plane_k == 0) temp_i[pt_y*nModes + pt_x] = 0.0; // nyquist frequency
+      //if(Geometry::procID()*Geometry::nZProc()+plane_k == 0) temp_i[pt_y*nModes + pt_x] = 0.0; // nyquist frequency
       for(int mode_k = 1; mode_k < nModes; mode_k++) {
         mode_l = (mode_k <= nModes/2) ? mode_k : mode_k - nModes; // fftw ordering of complex data
 
@@ -297,14 +340,13 @@ double GetScale(Context* context, int field_i, int plane_i, int point_x, int poi
 
   //scale *= sqrt(2.0 * M_PI * rh * dr);
   scale *= sqrt(rh * dr);
-  //scale *= sqrt(context->rdr[point_y]);
 
   if(mode_i == 0 && mode_l == 0) return scale;
 
   return scale * context->u_scale[field_i];
 }
 
-void UnpackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
+void UnpackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x, bool add_ubar) {
   int nex = context->nElsX;
   int ney = context->nElsY;
   int elOrd = Geometry::nP() - 1;
@@ -342,17 +384,16 @@ void UnpackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
           mode_l = (point_x <= context->nModesX/2) ? point_x : point_x - context->nModesX; // fftw ordering of complex data
           scale  = GetScale(context, field_i, plane_i, point_x, point_y);
 
-          // divergence free: mean component of radial velocity is 0
-          //if(field_i == 2 && Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) continue;
-
           index = LocalIndex(context, field_i, plane_i+0, point_x, point_y);
           data_r[point_y*context->nModesX+point_x] = xArray[index] / scale;
-
-          // don't include the nyquist frequency
-          if(Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) continue;
+          // divergence free: mean component of radial velocity is 0
+          // note that we are in \tilde{} variables, and the nyquist frequency is also 0
+          if(field_i  > 0 && Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) data_r[point_y*context->nModesX+point_x] = 0.0;
 
           index = LocalIndex(context, field_i, plane_i+1, point_x, point_y);
           data_i[point_y*context->nModesX+point_x] = xArray[index] / scale;
+          // don't include the nyquist frequency
+          if(field_i == 0 && Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) data_i[point_y*context->nModesX+point_x] = 0.0;
         }
       }
 
@@ -373,7 +414,7 @@ void UnpackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
 
   VecRestoreArrayRead(xl, &xArray);
 
-  //AuxField::couple(fields[1], fields[2], INVERSE);
+  if(add_ubar) *fields[0] += *context->uBar;
 
 #ifdef RM_2FOLD_SYM
   }
@@ -384,7 +425,7 @@ void UnpackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
   delete[] data_i;
 }
 
-void RepackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x) {
+void RepackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* phi, real_t* tau, Vec x, bool rmv_ubar) {
   int nex = context->nElsX;
   int ney = context->nElsY;
   int elOrd = Geometry::nP() - 1;
@@ -408,7 +449,7 @@ void RepackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
   if(Geometry::procID()%2==0) {
 #endif
 
-  //AuxField::couple(fields[1], fields[2], FORWARD);
+  if(rmv_ubar) *fields[0] -= *context->uBar;
 
   VecGetArray(xl, &xArray);
   for(int field_i = 0; field_i < THREE; field_i++) {
@@ -422,17 +463,16 @@ void RepackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
           mode_l = (point_x <= context->nModesX/2) ? point_x : point_x - context->nModesX; // fftw ordering of complex data
           scale  = GetScale(context, field_i, plane_i, point_x, point_y);
 
-          // divergence free: mean component of radial velocity is 0
-          //if(field_i == 2 && Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) continue;
-
           index = LocalIndex(context, field_i, plane_i+0, point_x, point_y);
           xArray[index] = data_r[point_y*context->nModesX+point_x] * scale;
-
-          // don't include the nyquist frequency
-          if(Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) continue;
+          // divergence free: mean component of radial velocity is 0
+          // note that we are in \tilde{} variables, and the nyquist frequency is also 0
+          if(field_i  > 0 && Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) xArray[index] = 0.0;
 
           index = LocalIndex(context, field_i, plane_i+1, point_x, point_y);
           xArray[index] = data_i[point_y*context->nModesX+point_x] * scale;
+          // don't include the nyquist frequency
+          if(field_i == 0 && Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) xArray[index] = 0.0;
         }
       }
     }
@@ -450,6 +490,8 @@ void RepackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
   }
 
   VecRestoreArray(xl, &xArray);
+
+  if(rmv_ubar) *fields[0] += *context->uBar;
 
 #ifdef RM_2FOLD_SYM
   }
@@ -616,117 +658,4 @@ void phase_shift_z(Context* context, double phi,   double sign, vector<Field*> f
       }
     }
   }
-}
-
-int Inv( double* A, double* Ainv, int n ) {
-    int error = 0;
-    int *indxc, *indxr, *ipiv;
-    int i, j, k, l, irow = 0, icol = 0, ll;
-    double big, dum, pivinv, temp;
-
-    indxc = new int[n]; indxr = new int[n]; ipiv  = new int[n];
-
-    for( i = 0; i < n*n; i++ ) { Ainv[(i/n)*n+(i%n)] = A[(i/n)*n+(i%n)]; }
-    for( j = 0; j< n; j++ ) { ipiv[j] = 0; }
-    for( i = 0; i < n; i++ ) {
-        big = 0.0;
-        for( j = 0; j < n; j++ ) {
-            if( ipiv[j] != 1 ) {
-                for( k = 0; k < n; k++ ) {
-                    if( ipiv[k] == 0 ) {
-                        if( fabs(Ainv[j*n+k]) >= big ) {
-                            big = fabs(Ainv[j*n+k]);
-                            irow = j;
-                            icol = k;
-                        }
-                    }
-                    else if( ipiv[k] > 1 ) { error = 1; }
-                }
-            }
-        }
-        ++(ipiv[icol]);
-        if( irow != icol ) {
-            for( l = 0; l < n; l++ ) {
-                temp = Ainv[irow*n+l];
-                Ainv[irow*n+l] = Ainv[icol*n+l];
-                Ainv[icol*n+l] = temp;
-            }
-        }
-        indxr[i] = irow;
-        indxc[i] = icol;
-        if( fabs(Ainv[icol*n+icol]) < 1.0e-12 ) { error = 2; }
-        pivinv = 1.0/Ainv[icol*n+icol];
-        Ainv[icol*n+icol] = 1.0;
-        for( l = 0; l < n; l++ ) { Ainv[icol*n+l] *= pivinv; }
-        for( ll = 0; ll < n; ll++ ) {
-            if( ll != icol ) {
-                dum = Ainv[ll*n+icol];
-                Ainv[ll*n+icol] = 0.0;
-                for( l = 0; l < n; l++ ) { Ainv[ll*n+l] -= Ainv[icol*n+l]*dum; }
-            }
-        }
-    }
-
-    for( l = n-1; l >= 0; l-- ) {
-        if( indxr[l] != indxc[l] ) {
-            for( k = 0; k < n; k++ ) {
-                temp = Ainv[k*n+indxr[l]];
-                Ainv[k*n+indxr[l]] = Ainv[k*n+indxc[l]];
-                Ainv[k*n+indxc[l]] = temp;
-            }
-        }
-    }
-    delete[] indxc; delete[] indxr; delete[] ipiv;
-
-    return error;
-}
-
-double* Int_rdr(Context* context) {
-  double* rdr;
-  double* r = context->rad_coords;
-  double ri, c, e;
-  int nr = context->nElsY*(Geometry::nP()-1);
-  int il, ir, ni, jl, jr;
-  double A[99], Ainv[99], W[10][10];
-
-  rdr = new double[nr];
-  for(int i = 0; i < nr; i++) rdr[i] = 0.0;
-
-  for(int i = 0; i < nr; i++) {
-    ri = r[i];
-
-    il = (i - 3 <  0 ) ? 0      : i - 3;
-    ir = (i + 3 >= nr) ? nr - 1 : i + 3;
-    ni = ir - il + 1;
-
-    // compute the taylor series weights
-    for(int a = 0; a < ni; a++) {
-      for(int j = 0; j < ni; j++) {
-        A[j*ni+0] = 1.0;
-        for(int k = 1; k < ni; k++) {
-          A[j*ni+k] = A[j*ni+k-1] * (r[il+j] - ri) / k;
-        }
-      }
-      Inv(A, Ainv, ni);
-
-      for(int j = 0; j < ni; j++) W[a][j] = Ainv[a*ni+j];
-    }
-
-    c = e = 1.0;
-    for(int j = 0; j < ni; j++) {
-      jl = (il + j - 1 <  0 ) ? 0      : il + j - 1;
-      jr = (il + j + 1 >= nr) ? nr - 1 : il + j + 1;
-
-      c *= (r[jr]-ri) / (j+1);
-      e *= (r[jl]-ri) / (j+1);
-
-      for(int k = 0; k < ni; k++) rdr[il+k] += 0.5 * (c-e) * W[j][k] * ri;
-    }
-  }
-
-  for(int i = 0; i < nr; i++) rdr[i] = rdr[i];
-
-  if(!Geometry::procID()) {for(int i = 0; i < nr; i++) cout << "\t" << rdr[i]; cout << endl;}
-
-  return rdr;
 }
