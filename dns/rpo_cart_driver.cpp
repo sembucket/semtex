@@ -77,7 +77,7 @@ static PetscErrorCode RPOVecNormL2_Hookstep(void* ctx,Vec v,PetscScalar* norm) {
   Context* context = (Context*)ctx;
   PetscInt nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
   PetscInt ind_i;
-  double norm_sq, norm_l_sq, norm_orig;
+  double norm_sq, norm_l_sq;
   PetscScalar* vArray;
   Vec vl;
 
@@ -96,9 +96,6 @@ static PetscErrorCode RPOVecNormL2_Hookstep(void* ctx,Vec v,PetscScalar* norm) {
   norm_sq = 0.0;
   MPI_Allreduce(&norm_l_sq, &norm_sq, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   *norm = sqrt(norm_sq);
-
-  VecNorm(v,NORM_2,&norm_orig);
-  if(!Geometry::procID())printf("\tSNES TR - modified norm - |x|: %g, |x_orig|: %g\n",*norm,norm_orig);
 
   VecDestroy(&vl);
 
@@ -274,6 +271,104 @@ void build_constraints(Context* context, Vec x_delta, double* f_phi, double* f_t
   VecDestroy(&xl);
 }
 
+void _build_constraints(Context* context, Vec x_delta, double* f_phi, double* f_tau) {
+  int          elOrd       = Geometry::nP() - 1;
+  int          nNodesX     = Femlib::ivalue("NELS_X")*elOrd;
+  int          index;
+  int          nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
+  int          nl          = 3 * nDofsCube_l;
+  int          plane_j;
+  int          pt_j, el_j, dof_j;
+  double       p_y;
+  double       k_z;
+  double       f_phi_l, f_tau_l;
+  double*      rz          = new double[nl];
+  double*      rt          = new double[nl];
+  double*      data_r      = new double[context->n_mesh[0]];
+  double*      data_i      = new double[context->n_mesh[0]];
+  PetscScalar* xArray;
+  Vec          xl;
+  int          nStep;
+
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
+  VecScatterBegin(context->global_to_semtex, x_delta, xl, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterEnd(  context->global_to_semtex, x_delta, xl, INSERT_VALUES, SCATTER_FORWARD);
+  VecGetArray(xl, &xArray);
+
+  if(!context->travelling_wave) {
+    for(int field_i = 0; field_i < 3; field_i++) {
+      *context->domain->u[field_i] = *context->u0[field_i];
+    }
+    if(!Geometry::procID()) cout << "time step in constraints evaluation: " << scientific << Femlib::value("D_T") << endl;
+
+    //delete context->analyst;
+    //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
+
+    nStep = Femlib::ivalue("N_STEP");
+    Femlib::ivalue("N_STEP", 1);
+
+    context->domain->time = 0.0;
+    context->domain->step = 0;
+    Femlib::value("t", 0.0);
+
+    integrate(convective, context->domain, context->bman, context->analyst, context->ff);
+    Femlib::ivalue("N_STEP", nStep);
+
+    for(int field_i = 0; field_i < 3; field_i++) {
+      *context->domain->u[field_i] -= *context->u0[field_i];
+      *context->domain->u[field_i] *= 1.0 / Femlib::value("D_T");
+    }
+  } 
+
+  for(int dof_i = 0; dof_i < nl; dof_i++) { rz[dof_i] = rt[dof_i] = 0.0; }
+
+  for(int field_i = 0; field_i < 3; field_i++) {
+    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
+      plane_j = Geometry::procID() * Geometry::nZProc() + plane_i;
+
+      elements_to_vector(context, field_i, context->u0[field_i]->plane(plane_i+0), data_r, true);
+      elements_to_vector(context, field_i, context->u0[field_i]->plane(plane_i+1), data_i, true);
+
+      dof_j = 0;
+      for(int dof_i = 0; dof_i < context->n_mesh[0]; dof_i++) {
+        k_z  = (2.0 * M_PI / Femlib::value("ZMAX")) * (plane_j / 2);
+
+        index = LocalIndex(context, field_i, plane_i+0, dof_i);
+        rz[index] = -k_z * data_i[dof_i];
+        index = LocalIndex(context, field_i, plane_i+1, dof_i);
+        rz[index] = +k_z * data_r[dof_i];
+
+        dof_j++;
+      }
+    }
+    if(!context->travelling_wave) {
+      for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i++) {
+        elements_to_vector(context, field_i, context->u0[field_i]->plane(plane_i), data_r, true);
+        for(int dof_i = 0; dof_i < context->n_mesh[0]; dof_i++) {
+          index = LocalIndex(context, field_i, plane_i, dof_i);
+          rt[index] = data_r[dof_i];
+        }
+      }
+    }
+  }
+
+  f_phi_l = f_tau_l = 0.0;
+  for(int dof_i = 0; dof_i < nl; dof_i++) {
+    f_phi_l -= rz[dof_i] * xArray[dof_i];
+    if(!context->travelling_wave) f_tau_l -= rt[dof_i] * xArray[dof_i];
+  }
+  MPI_Allreduce(&f_phi_l, f_phi, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&f_tau_l, f_tau, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+  VecRestoreArray(xl, &xArray);
+
+  delete[] rz;
+  delete[] rt;
+  delete[] data_r;
+  delete[] data_i;
+  VecDestroy(&xl);
+}
+
 PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
   Context* context = (Context*)ctx;
 
@@ -308,7 +403,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   if(!Geometry::procID()) cout << "\tx_snes: " << x_snes << ", |x_snes|: " << x_norm << endl;
   if(!reason) {
     if(!Geometry::procID()) cout << "\tunpacking constraints velocity from new_x\n";
-    UnpackX(context, context->u0, &dummy[0], &dummy[1], x_snes);
+    _UnpackX(context, context->u0, &dummy[0], &dummy[1], x_snes);
   } else {
     // write the current state vector
     sprintf(filename, "x_curr_%.4u.vec", context->iteration);
@@ -323,7 +418,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   }
   context->build_dx = true;
 
-  UnpackX(context, context->ui, &context->phi_i, &context->tau_i, x);
+  _UnpackX(context, context->ui, &context->phi_i, &context->tau_i, x);
 
   // update the starting time for this slice
   context->domain->time = 0.0;
@@ -344,35 +439,35 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   runTime = Femlib::ivalue("N_STEP") * dt;
   if(!Geometry::procID()) {
     cout << "\trun time: " << runTime << "\tnstep: " << Femlib::ivalue("N_STEP") << "\tdt: " << Femlib::value("D_T") << endl;
-    cout << scientific << "\ttau:   " << context->tau_i << "\tphi:   " << context->phi_i * (2.0*M_PI/Femlib::value("ZMAX")) << endl;
+    cout << scientific << "\ttau:   " << context->tau_i << "\tphi:   " << context->c_scale * context->phi_i * (2.0*M_PI/Femlib::value("ZMAX")) << endl;
   }
 
   // don't want to call the dns analysis, use custom integrate routine instead
   //delete context->analyst;
   //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
+#ifdef TESTING
+  if(!reason) context->domain->dump();
+#endif
   integrate(convective, context->domain, context->bman, context->analyst, context->ff);
 #ifdef TESTING
-  for(field_i = 0; field_i < NFIELD; field_i++) *context->write->u[field_i] = *context->ui[field_i];
-  *context->write->u[NFIELD] = *context->domain->u[NFIELD]; //dump the pressure as a sanity check
-  context->write->dump();
+  if(!reason) context->domain->dump();
 #endif
 
-  phase_shift_z(context, context->phi_i * (2.0 * M_PI / Femlib::value("ZMAX")), -1.0, context->domain->u);
+  _phase_shift_z(context, context->c_scale * context->phi_i * (2.0 * M_PI / Femlib::value("ZMAX")), -1.0, context->domain->u);
 
   // set the residual vector
   for(field_i = 0; field_i < NFIELD; field_i++) {
     *context->fi[field_i]  = *context->domain->u[field_i];
-    *context->fi[field_i] -= *context->ui[field_i];
+    if(!context->travelling_wave) *context->fi[field_i] -= *context->ui[field_i];
+    //*context->fi[field_i] -= *context->ui[field_i];
   }
 
   if(!reason) { // within  fgmres
-    build_constraints(context, context->x_delta, &context->f_phi, &context->f_tau);
-
-    if(!Geometry::procID()) cout << "\trepacking constrain as f_phi: "   << context->f_phi 
-                                                        << ", f_tau: "   << context->f_tau << endl;
-    RepackX(context, context->fi, context->f_phi, context->f_tau, f);
+    _build_constraints(context, context->x_delta, &context->f_phi, &context->f_tau);
+    _RepackX(context, context->fi, context->f_phi, context->f_tau, f);
+    if(!Geometry::procID()) cout << "\trepacking constrain as f_phi: "   << context->f_phi << ", f_tau: "   << context->f_tau << endl;
   } else {      // outside fgmres
-    RepackX(context, context->fi, zero, zero, f); if(!Geometry::procID()) cout << "\trepacking with zero constraints " << zero << endl;
+    _RepackX(context, context->fi, zero, zero, f); if(!Geometry::procID()) cout << "\trepacking with zero constraints " << zero << endl;
   }
 
   VecNorm(x, NORM_2, &x_norm);
@@ -384,7 +479,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 }
 
 void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domain* domain, DNSAnalyser* analyst, FieldForce* FF, 
-               vector<Field*> ui, vector<Field*> fi, vector<Field*> u0, char* session)
+               vector<AuxField*> ui, vector<AuxField*> fi, vector<AuxField*> u0, char* session)
 {
   Context* context = new Context;
   int elOrd = Geometry::nP() - 1;
@@ -393,10 +488,11 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   Mat P;
   KSP ksp;
   SNES snes;
-  FEML* file_i;
   char session_i[100];
   const real_t* q4;
   int pt_x, pt_y;
+  double norm;
+  PetscBool is_fgmres;
 
   if(!Geometry::procID()) cout << "time step: " << Femlib::value("D_T") << endl;
 
@@ -410,21 +506,18 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   context->ui       = ui;
   context->fi       = fi;
   context->u0       = u0;
-  context->xmin     = Femlib::value("XMIN");
-  context->xmax     = Femlib::value("XMAX");
   context->phi_i    = 0.0;
   context->tau_i    = Femlib::ivalue("N_STEP") * Femlib::value("D_T");
-  context->iteration = 0;
+  context->iteration = Femlib::ivalue("RPO_LOAD_VEC");
   context->travelling_wave = Femlib::ivalue("TRAV_WAVE");
   context->build_dx = false;
 
   sprintf(session_i, "%s_rpo_1", session);
-  file_i = new FEML(session_i);
-  context->write = new Domain(file_i, context->elmt, context->bman);
-  delete file_i;
 
   // add dofs for phi and tau for each time slice
-  context->nDofsPlane = (Femlib::ivalue("NELS_X")*elOrd - 1) * (Femlib::ivalue("NELS_Y")*elOrd - 1);
+  build_addToVector(context, context->domain->u);
+  context->nDofsPlane = context->n_mesh[0];
+  //context->nDofsPlane = (Femlib::ivalue("NELS_X")*elOrd - 1) * (Femlib::ivalue("NELS_Y")*elOrd - 1);
   context->nDofsSlice = 3 * Geometry::nZ() * context->nDofsPlane + 1;
   if(!Femlib::ivalue("TRAV_WAVE")) context->nDofsSlice++;
   context->localSize  = 3 * Geometry::nZProc() * context->nDofsPlane;
@@ -432,8 +525,9 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
     context->localSize++;
     if(!Femlib::ivalue("TRAV_WAVE")) context->localSize++;
   }
-
+  
   // assign the coordinate weights
+/*
   context->coord_weights = new double[Femlib::ivalue("NELS_X")*elOrd*Femlib::ivalue("NELS_Y")*elOrd];
   for(int dof_i = 0; dof_i < Femlib::ivalue("NELS_X")*elOrd*Femlib::ivalue("NELS_Y")*elOrd; dof_i++) context->coord_weights[dof_i] = 0.0;
 
@@ -448,11 +542,14 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
       }
     }
   }
+*/
+  build_coordWeights(context);
 
   assign_scatter_semtex(context);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nDofsSlice, &x);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nDofsSlice, &f);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nDofsSlice, &context->x_delta);
+  VecZeroEntries(context->x_delta);
 
   MatCreate(MPI_COMM_WORLD, &P);
   MatSetType(P, MATMPIAIJ);
@@ -469,18 +566,53 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   SNESSetType(snes, SNESNEWTONTR);
   SNESSetFromOptions(snes);
 
+  PetscObjectTypeCompare((PetscObject)ksp, KSPFGMRES, &is_fgmres);
+  if(!is_fgmres) {
+    if(!Geometry::procID()) cout << "ERROR: KSP type must be FGMRES for hookstep\n";
+    abort();
+  }
+
   // set the custom operators to discount the constraint dofs
   KSPSetNorm_Hookstep(ksp,(void*)context,RPOVecNormL2_Hookstep);
   KSPSetDot_Hookstep(ksp,(void*)context,RPOVecDot_Hookstep);
   KSPSetDiff_Hookstep(ksp,(void*)context,RPOVecDiff_Hookstep);
 
-  RepackX(context, context->ui, context->phi_i, context->tau_i, x);
-  VecZeroEntries(context->x_delta);
+  context->uBar = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, 'b');
+  base_profile(context, context->domain->u[0], Femlib::value("BASE_PROFILE_SCALE"), context->uBar);
+  *context->ui[0] -= *context->uBar;
+  velocity_scales(context);
+  *context->ui[0] += *context->uBar;
+
+  _RepackX(context, context->ui, context->phi_i, context->tau_i, x);
+
+  RPOVecNormL2_Hookstep(context, x, &norm);
+  if(!Geometry::procID()) cout << "|x_0|: " << norm << endl;
+  if(norm < 1.0e-6) {
+    if(!Geometry::procID()) cout << "ERROR: initial state vector norm is SMALL! "
+                                 << "Are you sure you loaded the initial condition correctly??\n";
+    abort();
+  }
+
+  context->c_scale = context->tau_i / norm;
+  if(!Geometry::procID()) printf("c scale: %g\n", context->c_scale);
+
+  // load state from petsc vectors
+  if(Femlib::ivalue("RPO_LOAD_VEC")) {
+    char filename[100];
+    PetscViewer viewer;
+
+    if(!Geometry::procID()) cout << "loading vectors at iteration: " << context->iteration << endl;
+      sprintf(filename, "x_curr_%.4u.vec", context->iteration);
+      PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_READ, &viewer);
+      VecZeroEntries(x);
+      VecLoad(x, viewer);
+      PetscViewerDestroy(&viewer);
+  }
   SNESSolve(snes, NULL, x);
-  UnpackX(context, context->ui, &context->phi_i, &context->tau_i, x);
+  _UnpackX(context, context->ui, &context->phi_i, &context->tau_i, x);
 
   if(!Geometry::procID()) cout << "rpo solve complete.\n";
-  if(!Geometry::procID()) cout << "\tshift phi:   " << context->phi_i * (2.0*M_PI/Femlib::value("ZMAX")) << endl;
+  if(!Geometry::procID()) cout << "\tshift phi:   " << context->c_scale * context->phi_i * (2.0*M_PI/Femlib::value("ZMAX")) << endl;
   if(!Geometry::procID()) cout << "\tshift tau:   " << context->tau_i << endl;
 
   VecDestroy(&x);
@@ -503,11 +635,10 @@ int main (int argc, char** argv) {
   DNSAnalyser*     analyst;
   FieldForce*      FF;
   static char      help[] = "petsc";
-  vector<Field*>   ui;  // Solution fields for velocities, pressure at the i time slices
-  vector<Field*>   fi;  // Solution fields for flow maps at the i time slices
-  vector<Field*>   u0;  // Additional fields for building the constraints
+  vector<AuxField*>   ui;  // Solution fields for velocities, pressure at the i time slices
+  vector<AuxField*>   fi;  // Solution fields for flow maps at the i time slices
+  vector<AuxField*>   u0;  // Additional fields for building the constraints
   char             session_i[100];
-  FEML*            file_i;
   char*            fname;
   BoundarySys*     bndry;
 
@@ -518,54 +649,25 @@ int main (int argc, char** argv) {
   preprocess (session, file, mesh, elmt, bman, domain, FF);
 
   analyst = new DNSAnalyser (domain, bman, file);
-  //domain -> restart ();
+  domain -> restart ();
   //ROOTONLY domain -> report ();
   
   // load in the time slices
   ui.resize(3);
   fi.resize(3);
   u0.resize(3);
-  delete file;
-  delete domain;
-  sprintf(session_i, "%s", session);
-  file_i = new FEML(session_i);
-  domain = new Domain(file_i, elmt, bman);
-  domain->restart();
   for(int field_i = 0; field_i < NFIELD; field_i++) {
-    ui[field_i] = domain->u[field_i];
+    ui[field_i] = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, 'U'+field_i);
+    fi[field_i] = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, 'F'+field_i);
+    u0[field_i] = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, 'A'+field_i);
 
-    strcpy ((fname = new char [strlen (bman -> field()) + 1]), bman -> field());
-
-    bndry = new BoundarySys(bman, elmt, fname[0]);
-    fi[field_i] = new Field(bndry, new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, fname[0]);
-
-    bndry = new BoundarySys(bman, elmt, fname[0]);
-    u0[field_i] = new Field(bndry, new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, fname[0]);
+    *ui[field_i] = *domain->u[field_i];
   }
-  delete file_i;
-  delete domain;
-
-  // allocate the temporary fields
-  sprintf(session_i, "%s", session);
-  file_i = new FEML(session_i);
-  domain = new Domain(file_i, elmt, bman);
-  domain->restart();
 
   // solve the newton-rapheson problem
   rpo_solve(mesh, elmt, bman, file, domain, analyst, FF, ui, fi, u0, session);
-  delete file_i;
-  delete domain;
 
-  // dump the output
-  sprintf(session_i, "%s", session);
-  file_i = new FEML(session_i);
-  domain = new Domain(file_i, elmt, bman);
-  for(int field_i = 0; field_i < 3; field_i++) {
-    *domain->u[field_i] = *ui[field_i];
-  }
   domain->dump();
-  delete file_i;
-  delete domain;
 
   PetscFinalize();
 
