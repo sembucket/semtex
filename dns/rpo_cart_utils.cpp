@@ -132,7 +132,7 @@ void UnpackX(Context* context, vector<Field*> fields, real_t* phi, real_t* tau, 
           // omit boundaries
           if(ii == 0 || jj == 0) continue;
 
-          scale = 2.0/(2.0 + fabs(ll)) * context->coord_weights[jj*nNodesX + ii];
+          scale = 2.0/(2.0 + fabs(ll)) * context->coord_weights[0][jj*nNodesX + ii];
 
           data[jj*nNodesX + ii] = xArray[index++] / scale;
         }
@@ -227,7 +227,7 @@ void RepackX(Context* context, vector<Field*> fields, real_t  phi, real_t  tau, 
           // omit boundaries
           if(ii == 0 || jj == 0) continue;
 
-          scale = 2.0/(2.0 + fabs(ll)) * context->coord_weights[jj*nNodesX + ii];
+          scale = 2.0/(2.0 + fabs(ll)) * context->coord_weights[0][jj*nNodesX + ii];
 
           xArray[index] = data[jj*nNodesX + ii] * scale;
           norm_l += xArray[index]*xArray[index];
@@ -458,6 +458,8 @@ void build_addToVector(Context* context, vector<Field*> fields) {
   int index;
   int n_bndry[3];
 
+  context->n_mesh_sum = context->n_mesh_max = 0;
+
   context->addToVector = new int*[3];
 
   for(int fd_i = 0; fd_i < 3; fd_i++) {
@@ -501,26 +503,32 @@ void build_addToVector(Context* context, vector<Field*> fields) {
     }
     // number of unique non bc dofs for this field in the spectral element mesh
     context->n_mesh[fd_i] = index;
+    context->n_mesh_sum += index;
+    if(index > context->n_mesh_max) context->n_mesh_max = index;
+    if(!Geometry::procID()) cout << "number of non-bc mesh dofs for field: " << fd_i << ": " << context->n_mesh[fd_i] << endl;
 
     delete[] inserted;
   }
 }
 
 // NOTE: assumes addToVector has already been built
-// NOTE: assumes all fields have the same essential bcs
 void build_coordWeights(Context* context) {
   int index;
   int np2 = Geometry::nP() * Geometry::nP();
   const real_t* q4;
-  context->coord_weights = new double[context->n_mesh[0]];
+  context->coord_weights = new double*[3];
 
-  for(int dof_i = 0; dof_i < context->n_mesh[0]; dof_i++) context->coord_weights[dof_i] = 0.0;
+  for(int fd_i = 0; fd_i < 3; fd_i++) {
+    context->coord_weights[fd_i] = new double[context->n_mesh[fd_i]];
 
-  for(int el_i = 0; el_i < Geometry::nElmt(); el_i++) {
-    q4 = context->domain->elmt[el_i]->GetQ4();
-    for(int pt_i = 0; pt_i < np2; pt_i++) {
-      index = context->addToVector[0][el_i*np2+pt_i];
-      context->coord_weights[index] += q4[pt_i];
+    for(int dof_i = 0; dof_i < context->n_mesh[fd_i]; dof_i++) context->coord_weights[fd_i][dof_i] = 0.0;
+
+    for(int el_i = 0; el_i < Geometry::nElmt(); el_i++) {
+      q4 = context->domain->elmt[el_i]->GetQ4();
+      for(int pt_i = 0; pt_i < np2; pt_i++) {
+        index = context->addToVector[fd_i][el_i*np2+pt_i];
+        context->coord_weights[fd_i][index] += q4[pt_i];
+      }
     }
   }
 }
@@ -541,117 +549,101 @@ void elements_to_vector(Context* context, int field_i, real_t* data_els, real_t*
 }
 
 int LocalIndex(Context* context, int field_i, int plane_i, int point_i) {
+/*
   int shift_1 = (plane_i/2) * 3 * 2 * context->nDofsPlane;
   int shift_2 =  point_i    * 3 * 2;
 
   return shift_1 + shift_2 + 2*field_i + plane_i%2;
+*/
+  int index = 0;
+
+  for(int shift_i = 0; shift_i < field_i; shift_i++) index += Geometry::nZProc() * context->n_mesh[shift_i];
+  index += (plane_i * context->n_mesh[field_i] + point_i);
+
+  return index;
 }
 
 void _UnpackX(Context* context, vector<AuxField*> fields, real_t* phi, real_t* tau, Vec x) {
   int elOrd = Geometry::nP() - 1;
-  int ii, kk, ll, index;
+  int ii, kk, ll, fd_i, index;
   const PetscScalar *xArray;
   double scale;
-  real_t* data_u = new real_t[context->n_mesh[0]];
-  real_t* data_v = new real_t[context->n_mesh[1]];
-  real_t* data_w = new real_t[context->n_mesh[2]];
+  real_t* data_u = new double[context->n_mesh_max];
   Vec xl;
 
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
   VecScatterBegin(context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
   VecScatterEnd(  context->global_to_semtex, x, xl, INSERT_VALUES, SCATTER_FORWARD);
 
-  // assume no slip bcs (all fields have the same number of dofs)
-  if(context->n_mesh[0] != context->n_mesh[1] || context->n_mesh[0] != context->n_mesh[2]) {
-    ROOTONLY cout << "ERROR: number of active mesh dofs differ between velocity components: " << 
-             context->n_mesh[0] << "\t" << context->n_mesh[1] << "\t" << context->n_mesh[2] << endl;
-    abort();
-  }
-
   VecGetArrayRead(xl, &xArray);
   for(kk = 0; kk < Geometry::nZProc(); kk++) {
     ll = ( Geometry::procID() * Geometry::nZProc() + kk ) / 2;
 
-    for(ii = 0; ii < context->n_mesh[0]; ii++) {
-      scale = 2.0/(2.0 + fabs(ll)) * context->coord_weights[ii];
+    for(fd_i = 0; fd_i < 3; fd_i++) {
+      for(ii = 0; ii < context->n_mesh_max; ii++) data_u[ii] = 0.0;
 
-      index = LocalIndex(context, 0, kk, ii);
-      data_u[ii] = xArray[index] / scale / context->u_scale[0];
+      for(ii = 0; ii < context->n_mesh[fd_i]; ii++) {
+        scale  = 2.0/(2.0 + fabs(ll)) * context->coord_weights[fd_i][ii];
+        scale *= context->u_scale[fd_i];
 
-      index = LocalIndex(context, 1, kk, ii);
-      data_v[ii] = xArray[index] / scale / context->u_scale[1];
+        index = LocalIndex(context, fd_i, kk, ii);
+        data_u[ii] = xArray[index] / scale;
 
-      index = LocalIndex(context, 1, kk, ii);
-      data_w[ii] = xArray[index] / scale / context->u_scale[2];
+        elements_to_vector(context, fd_i, fields[fd_i]->plane(kk), data_u, false);
+      }
     }
-
-    elements_to_vector(context, 0, fields[0]->plane(kk), data_u, false);
-    elements_to_vector(context, 1, fields[1]->plane(kk), data_v, false);
-    elements_to_vector(context, 2, fields[2]->plane(kk), data_w, false);
   }
 
   // phase shift data lives on the 0th processors part of the vector
   if(!Geometry::procID()) {
-    index = 3 * Geometry::nZProc() * context->n_mesh[0];
+    index = Geometry::nZProc() * context->n_mesh_sum;
 
     *phi = xArray[index++];
     if(!context->travelling_wave) *tau = xArray[index++];
   }
   VecRestoreArrayRead(xl, &xArray);
 
+  *fields[2] += *context->uBar;
+
   VecDestroy(&xl);
   delete[] data_u;
-  delete[] data_v;
-  delete[] data_w;
 }
 
 void _RepackX(Context* context, vector<AuxField*> fields, real_t phi, real_t tau, Vec x) {
   int elOrd = Geometry::nP() - 1;
-  int ii, kk, ll, index;
+  int ii, kk, ll, fd_i, index;
   PetscScalar *xArray;
   double scale;
-  real_t* data_u = new real_t[context->n_mesh[0]];
-  real_t* data_v = new real_t[context->n_mesh[1]];
-  real_t* data_w = new real_t[context->n_mesh[2]];
+  real_t* data_u = new real_t[context->n_mesh_max];
   Vec xl;
+
+  *fields[2] -= *context->uBar;
 
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
   VecZeroEntries(xl);
   VecGetArray(xl, &xArray);
 
-  index = 0;
-
-  // assume no slip bcs (all fields have the same number of dofs)
-  if(context->n_mesh[0] != context->n_mesh[1] || context->n_mesh[0] != context->n_mesh[2]) {
-    ROOTONLY cout << "ERROR: number of active mesh dofs differ between velocity components: " << 
-             context->n_mesh[0] << "\t" << context->n_mesh[1] << "\t" << context->n_mesh[2] << endl;
-    abort();
-  }
-
   for(kk = 0; kk < Geometry::nZProc(); kk++) {
     ll = ( Geometry::procID() * Geometry::nZProc() + kk ) / 2;
 
-    elements_to_vector(context, 0, fields[0]->plane(kk), data_u, true);
-    elements_to_vector(context, 1, fields[1]->plane(kk), data_v, true);
-    elements_to_vector(context, 2, fields[2]->plane(kk), data_w, true);
+    for(fd_i = 0; fd_i < 3; fd_i++) {
+      for(ii = 0; ii < context->n_mesh_max; ii++) data_u[ii] = 0.0;
 
-    for(ii = 0; ii < context->n_mesh[0]; ii++) {
-      scale = 2.0/(2.0 + fabs(ll)) * context->coord_weights[ii];
+      elements_to_vector(context, fd_i, fields[fd_i]->plane(kk), data_u, true);
 
-      index = LocalIndex(context, 0, kk, ii);
-      xArray[index] = data_u[ii] * scale * context->u_scale[0];
+      for(ii = 0; ii < context->n_mesh[fd_i]; ii++) {
+        scale  = 2.0/(2.0 + fabs(ll)) * context->coord_weights[fd_i][ii];
+        scale *= context->u_scale[fd_i];
 
-      index = LocalIndex(context, 1, kk, ii);
-      xArray[index] = data_v[ii] * scale * context->u_scale[1];
-
-      index = LocalIndex(context, 2, kk, ii);
-      xArray[index] = data_w[ii] * scale * context->u_scale[2];
+        index = LocalIndex(context, fd_i, kk, ii);
+        xArray[index] = data_u[ii] * scale;
+      }
     }
   }
 
   // phase shift data lives on the 0th processors part of the vector
   if(!Geometry::procID()) {
-    index = 3 * Geometry::nZProc() * context->n_mesh[0];
+    index = Geometry::nZProc() * context->n_mesh_sum;
 
     xArray[index++] = phi;
     if(!context->travelling_wave) xArray[index++] = tau;
@@ -661,25 +653,18 @@ void _RepackX(Context* context, vector<AuxField*> fields, real_t phi, real_t tau
   VecScatterBegin(context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
   VecScatterEnd(  context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
 
+  *fields[2] += *context->uBar;
+
   VecDestroy(&xl);
   delete[] data_u;
-  delete[] data_v;
-  delete[] data_w;
 }
 
 void _phase_shift_z(Context* context, double phi, double sign, vector<Field*> fields) {
   int elOrd = Geometry::nP() - 1;
   int mode_i, mode_j, field_i, dof_i;
   double ckt, skt, rTmp, cTmp;
-  double* data_r = new double[context->n_mesh[0]];
-  double* data_c = new double[context->n_mesh[0]];
-
-  // assume no slip bcs (all fields have the same number of dofs)
-  if(context->n_mesh[0] != context->n_mesh[1] || context->n_mesh[0] != context->n_mesh[2]) {
-    ROOTONLY cout << "ERROR: number of active mesh dofs differ between velocity components: " << 
-             context->n_mesh[0] << "\t" << context->n_mesh[1] << "\t" << context->n_mesh[2] << endl;
-    abort();
-  }
+  double* data_r = new double[context->n_mesh_max];
+  double* data_c = new double[context->n_mesh_max];
 
   for(mode_i = 0; mode_i < Geometry::nZProc()/2; mode_i++) {
     mode_j = Geometry::procID() * (Geometry::nZProc()/2) + mode_i;
@@ -688,7 +673,9 @@ void _phase_shift_z(Context* context, double phi, double sign, vector<Field*> fi
     ckt = cos(sign * mode_j * phi);
     skt = sin(sign * mode_j * phi);
 
-    for(field_i = 0; field_i < context->domain->nField(); field_i++) {
+    for(field_i = 0; field_i < 3; field_i++) {
+      for(dof_i = 0; dof_i < context->n_mesh_max; dof_i++) { data_r[dof_i] = data_c[dof_i] = 0.0; }
+
       elements_to_vector(context, field_i, fields[field_i]->plane(2*mode_i+0), data_r, true);
       elements_to_vector(context, field_i, fields[field_i]->plane(2*mode_i+1), data_c, true);
 
@@ -729,67 +716,104 @@ void velocity_scales(Context* context) {
   }
 
   // now integrate the mean flow
-  *context->u0[0] = *context->ui[0];
+  *context->u0[0] = 0.0;
   *context->u0[1] = 0.0;
   *context->u0[2] = 0.0;
   if(!Geometry::procID()) {
-    for(int dof_i = 0; dof_i < context->nDofsPlane; dof_i++) {
-      context->u0[0]->plane(0)[dof_i] = context->ui[0]->plane(0)[dof_i];
+    for(int dof_i = 0; dof_i < context->n_mesh[2]; dof_i++) {
+      context->u0[2]->plane(0)[dof_i] = context->ui[2]->plane(0)[dof_i];
     }
   }
-  context->u0[0]->transform(INVERSE);
-  context->fi[0]->innerProduct(context->u0, context->u0);
-  context->u0[0]->transform(FORWARD);
-  context->fi[0]->transform(FORWARD);
-  *context->fi[0] *= 0.5;
-  Ku_bar = Lz * context->fi[0]->integral(0);
+  context->u0[2]->transform(INVERSE);
+  context->fi[2]->innerProduct(context->u0, context->u0);
+  context->u0[2]->transform(FORWARD);
+  context->fi[2]->transform(FORWARD);
+  *context->fi[2] *= 0.5;
+  Ku_bar = Lz * context->fi[2]->integral(0);
   MPI_Bcast(&Ku_bar, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
   if(!Geometry::procID()) cout << "Ku_bar:   " << Ku_bar << endl;
-  Ku[0] -= Ku_bar;
-  if(!Geometry::procID()) cout << "Ku_prime: " << Ku[0]  << endl;
+  Ku[2] -= Ku_bar;
+  if(!Geometry::procID()) cout << "Ku_prime: " << Ku[2]  << endl;
 
+  if(Ku_bar < 1.0e-6) Ku_bar = 1.0;
   for(int field_i = 0; field_i < 3; field_i++) {
     context->u_scale[field_i] = sqrt(fac[field_i] * Ku_bar / Ku[field_i]);
     if(!Geometry::procID()) cout << field_i << " velocity scale: " << context->u_scale[field_i] << endl;
   }
 }
 
-void base_profile(Context* context, AuxField* ux, real_t scale, AuxField* uBar) {
+void base_profile(Context* context, AuxField* uz, real_t scale, AuxField* uBar) {
   real_t energy;
   double Lz = Femlib::value("TWOPI / BETA");
   if(!Geometry::procID()) cout << "computing base profile for scale: " << scale << endl;
 
   *uBar = 0.0;
   if(!Geometry::procID()) {
-    for(int dof_i = 0; dof_i < context->nDofsPlane; dof_i++) {
-      uBar->plane(0)[dof_i] = scale * ux->plane(0)[dof_i];
+    for(int dof_i = 0; dof_i < context->n_mesh[2]; dof_i++) {
+      uBar->plane(0)[dof_i] = scale * uz->plane(0)[dof_i];
     }
   }
 
   // check the energies
-  *context->u0[0] = *ux;
+  *context->u0[0] = 0.0;
   *context->u0[1] = 0.0;
-  *context->u0[2] = 0.0;
-  context->u0[0]->transform(INVERSE);
-  context->fi[0]->innerProduct(context->u0, context->u0);
-  context->fi[0]->transform(FORWARD);
-  *context->fi[0] *= 0.5;
-  if(!Geometry::procID()) cout << "Ku:       " << Lz * context->fi[0]->integral(0) << endl;
+  *context->u0[2] = *uz;
+  context->u0[2]->transform(INVERSE);
+  context->fi[2]->innerProduct(context->u0, context->u0);
+  context->fi[2]->transform(FORWARD);
+  *context->fi[2] *= 0.5;
+  if(!Geometry::procID()) cout << "Ku:       " << Lz * context->fi[2]->integral(0) << endl;
 
-  *context->u0[0] = *uBar;
-  context->u0[0]->transform(INVERSE);
-  context->fi[0]->innerProduct(context->u0, context->u0);
-  context->fi[0]->transform(FORWARD);
-  *context->fi[0] *= 0.5;
-  if(!Geometry::procID()) cout << "Ku_bar:   " << Lz * context->fi[0]->integral(0) << endl;
+  *context->u0[2] = *uBar;
+  context->u0[2]->transform(INVERSE);
+  context->fi[2]->innerProduct(context->u0, context->u0);
+  context->fi[2]->transform(FORWARD);
+  *context->fi[2] *= 0.5;
+  if(!Geometry::procID()) cout << "Ku_bar:   " << Lz * context->fi[2]->integral(0) << endl;
 
-  *context->u0[0] = *ux;
-  *context->u0[0] -= *uBar;
-  context->u0[0]->transform(INVERSE);
-  context->fi[0]->innerProduct(context->u0, context->u0);
-  context->fi[0]->transform(FORWARD);
-  *context->fi[0] *= 0.5;
-  if(!Geometry::procID()) cout << "Ku_prime: " << Lz * context->fi[0]->integral(0) << endl;
-  *context->u0[0] += *uBar;
+  *context->u0[2] = *uz;
+  *context->u0[2] -= *uBar;
+  context->u0[2]->transform(INVERSE);
+  context->fi[2]->innerProduct(context->u0, context->u0);
+  context->fi[2]->transform(FORWARD);
+  *context->fi[2] *= 0.5;
+  if(!Geometry::procID()) cout << "Ku_prime: " << Lz * context->fi[2]->integral(0) << endl;
+  *context->u0[2] += *uBar;
+}
+
+void _assign_scatter_semtex(Context* context) {
+  int   nDofs_l     = Geometry::nZProc() * context->n_mesh_sum;
+  int   nDofs_g     = Geometry::nZ()     * context->n_mesh_sum;
+  int   nShifts     = (!context->travelling_wave) ? 2 : 1;
+  int   ind_i       = 0;
+  int   start       = Geometry::procID() * nDofs_l;
+  int*  inds        = new int[context->localSize];
+  IS    isl, isg;
+  Vec   vl, vg;
+
+  for(int ind_j = 0; ind_j < nDofs_l; ind_j++) {
+    inds[ind_i++] = start + ind_j;
+  }
+
+  // assign the phase shifts from the 0th processor
+  if(!Geometry::procID()) {
+    for(int ind_j = 0; ind_j < nShifts; ind_j++) {
+      inds[ind_i++] = nDofs_g + ind_j;
+    }
+  }
+
+  VecCreateSeq(MPI_COMM_SELF, context->localSize, &vl);
+  VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nDofsSlice, &vg);
+
+  ISCreateStride(MPI_COMM_SELF, context->localSize, 0, 1, &isl);
+  ISCreateGeneral(MPI_COMM_WORLD, context->localSize, inds, PETSC_COPY_VALUES, &isg);
+
+  VecScatterCreate(vg, isg, vl, isl, &context->global_to_semtex);
+  
+  VecDestroy(&vl);
+  VecDestroy(&vg);
+  ISDestroy(&isl);
+  ISDestroy(&isg);
+  delete[] inds;
 }

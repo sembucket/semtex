@@ -33,12 +33,15 @@ struct Context {
     int              iteration;
     bool             travelling_wave;
     bool             build_dx;
-    double*          coord_weights;
+    double**         coord_weights;
     int              n_mesh[3];
+    int              n_mesh_max;
+    int              n_mesh_sum;
     int**            addToVector;      // semtex field data array to unique vector index
     double           u_scale[3];
     double           c_scale;
     AuxField*        uBar;
+    double           dt0;
 };
 
 void elements_to_logical(real_t* data_els, real_t* data_log);
@@ -57,3 +60,4 @@ void _RepackX(Context* context, vector<AuxField*> fields, real_t phi, real_t tau
 void _phase_shift_z(Context* context, double phi, double sign, vector<Field*> fields);
 void base_profile(Context* context, AuxField* ux, real_t scale, AuxField* uBar);
 void velocity_scales(Context* context);
+void _assign_scatter_semtex(Context* context);
