@@ -27,7 +27,9 @@ public:
   vector<Field*>       u   ;  // Solution fields: velocities, scalar, pressure.
   vector<BoundarySys*> b   ;  // Field boundary systems.
   vector<AuxField*>    grn ;  // Stokes problem with unit forcing (for the const. mass flux formulation)
+  vector<AuxField*>    tmp ;  // Stokes problem with unit forcing (for the const. mass flux formulation)
   real_t               Qg  ;  // Volumetric flux from the Stokes problem with unit forcing
+  bool                 set_grn;
 
   int_t nField     () const { return u.size(); }
   int_t nAdvect    () const { return u.size() - 1; } // No. of advected terms.

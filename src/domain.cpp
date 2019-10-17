@@ -110,6 +110,7 @@ Domain::Domain (FEML*             F,
   // Stokes flow solution with unit forcing (for the constant mass flux formulation)
   grn.resize(4);
   grn[0] = grn[1] = grn[2] = grn[3] = NULL;
+  tmp.resize(4);
 
   VERBOSE cout << "done" << endl;
 }

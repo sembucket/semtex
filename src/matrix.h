@@ -19,8 +19,10 @@ public:
   bool match    (const real_t, const real_t, const NumberSys*,
 		 const SolverKind) const;
 
-private:
   real_t  _HelmholtzConstant;	// Same for all modes.
+
+private:
+  //real_t  _HelmholtzConstant;	// Same for all modes.
   real_t  _FourierConstant  ;	// Varies with mode number.
  
   const vector<Boundary*>& _BC;	// Internal copy of Boundary conditions.

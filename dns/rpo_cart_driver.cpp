@@ -477,7 +477,8 @@ Femlib::ivalue("N_STEP", nSteps);
   }
 
   if(!reason) { // within  fgmres
-    _build_constraints(context, context->x_delta, &context->f_phi, &context->f_tau, dummy[1]);
+    //_build_constraints(context, context->x_delta, &context->f_phi, &context->f_tau, dummy[1]);
+    _build_constraints(context, context->x_delta, &context->f_phi, &context->f_tau, Femlib::value("D_T"));
     _RepackX(context, context->fi, context->f_phi, context->f_tau, f);
     if(!Geometry::procID()) cout << "\trepacking constrain as f_phi: "   << context->f_phi << ", f_tau: "   << context->f_tau << endl;
   } else {      // outside fgmres

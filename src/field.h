@@ -48,12 +48,15 @@ public:
   static void   coupleBCs     (Field*, Field*, const int_t);
   static real_t modeConstant  (const char, const int_t, const real_t);
 
+  BoundarySys* _bsys  ;		// Boundary system information.
+
 private:
   int_t        _nbound;		// Number of boundary edges.
   int_t        _nline ;		// Length of one boundary line.
   real_t*      _sheet ;		// Wrap-around storage for data boundary.
   real_t**     _line  ;		// Single plane's worth of sheet.
-  BoundarySys* _bsys  ;		// Boundary system information.
+  //BoundarySys* _bsys  ;		// Boundary system information.
+  vector<real_t> alpha;         // time integration weights
 
   void getEssential      (const real_t*, real_t*,
 			  const vector<Boundary*>&, const NumberSys*) const;
