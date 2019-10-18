@@ -94,7 +94,7 @@ FieldForce::FieldForce (Domain* D   ,
   _classes.push_back (new DragForce           (_D, file));
   _classes.push_back (new SFDForce            (_D, file));
   _classes.push_back (new BuoyancyForce       (_D, file));
-  //_classes.push_back (new ConstMassFluxForce  (_D, file));
+  _classes.push_back (new ConstMassFluxForce  (_D, file));
 }
 
 
@@ -920,7 +920,6 @@ void BuoyancyForce::physical (AuxField*               ff ,
 }
 
 
-/*
 ConstMassFluxForce::ConstMassFluxForce (Domain* D   ,
 			                FEML*   file)
 // ---------------------------------------------------------------------------
@@ -936,16 +935,16 @@ ConstMassFluxForce::ConstMassFluxForce (Domain* D   ,
 
   _enabled = false;
   _D = D;
+  int_u_prev = 0.0;
 
-  if (file -> valueFromSection (&_Q_bar, "FORCE", "Q_BAR") && 
-      file -> valueFromSection (&_Q_v_1, "FORCE", "Q_V_1"))
+  if (file -> valueFromSection (&len, "FORCE", "CONST_MASS_FLUX_PIPE_LENGTH"))
     _enabled = true;
 
-  for (i = 0; i < NCOM; i++) {
-    _v[i] = 0.;	// -- default
-  }
-}
+  if(_enabled)
+    tmp = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), D->elmt, 'T');
 
+  if(_enabled && !Geometry::procID()) cout << "using constant mass flux: " << len << endl; 
+}
 
 void ConstMassFluxForce::fourier (AuxField*         ff ,
 		    	          const int         com,
@@ -955,17 +954,60 @@ void ConstMassFluxForce::fourier (AuxField*         ff ,
 // (in space but not in time).
 // ---------------------------------------------------------------------------
 {
-  real_t int_u;
+  real_t mff, int_dudy, int_u_curr;
+  Vector du;
+  // ff is originally being passed in from the pressure field
+  // casting is necessary so that normTraction routine may be applied
+  Field* ff_field = (Field*)ff;
 
   if (!_enabled) return;
 
-  ROOTONLY if(com==0) {
-    int_u = U[com]->integral();
-    _v[com] = (_Q_bar - int_u) / _Q_v_1;
-cout << "mass flux force [" << com << "]: " << _v[com] << endl;
+  if (com != 0) return;
 
-    ff->addToPlane(0, _v[com]);
-  }
+  *tmp = *ff_field;
+  (*ff_field = *U[0]).gradient(1);
+  du = Field::normTraction(ff_field);
+  *ff = *tmp;
+
+  int_dudy = -2.0 * du.y * Femlib::value("KINVIS") / len;
+  int_u_curr = 2.0 * U[0]->integral(0) / len;
+  mff = int_dudy;
+  //if(fabs(int_u_prev) > 1.0e-8) mff += (int_u_curr - int_u_prev) / Femlib::value("D_T");
+
+  if(!Geometry::procID()) ff -> addToPlane(0, mff);
+
+  if(_enabled && !Geometry::procID()) cout << "constant mass flux: " << mff << ",\tint du/dy: " << int_dudy << ",\tint du/dt: " << (int_u_curr - int_u_prev)/Femlib::value("D_T") << ",\tu_curr: " << int_u_curr << ",\tu_prev: " << int_u_prev << endl;
+
+  int_u_prev = int_u_curr;
+}
+/*
+void ConstMassFluxForce::physical(AuxField*         ff ,
+		    	          const int         com,
+			          vector<AuxField*> U  )
+// ---------------------------------------------------------------------------
+// Applicator.  Constant in space but not in time.
+// ---------------------------------------------------------------------------
+{
+  real_t int_dudy, int_u_curr = 0.0, int_u_prev = 0.0;
+  Vector du;
+  // ff is originally being passed in from the pressure field
+  // casting is necessary so that normTraction routine may be applied
+  Field* ff_field = (Field*)ff;
+
+  if (!_enabled) return;
+
+  if (com != 0) return;
+
+  *tmp = *ff_field;
+  (*ff_field = *U[0]).gradient(1);
+  du = Field::normTraction(ff_field);
+  *ff = *tmp;
+
+  int_dudy = -2.0 * du.y * Femlib::value("KINVIS") / len;
+  ROOTONLY int_u_curr = 2.0 * U[0]->integral(0) / len;
+  ROOTONLY int_u_prev = 2.0 * D->uxPrev->integral(0) / len;
+  *ff += int_dudy + (int_u_curr - int_u_prev) / Femlib::value("D_T");
+
+  if(_enabled && !Geometry::procID()) cout << "const mass flux: " << -2.0 * du.y * Femlib::value("KINVIS") / len << ",\taxial momentum: " << 2.0*M_PI*U[0]->integral(0) << endl; 
 }
 */
-

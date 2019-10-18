@@ -190,7 +190,6 @@ protected:
   
 };
 
-/*
 class ConstMassFluxForce : public VirtualForce
 // ---------------------------------------------------------------------------
 // , applied in Fourier space.
@@ -199,9 +198,11 @@ class ConstMassFluxForce : public VirtualForce
 public:
   ConstMassFluxForce    (Domain*, FEML*);
   void fourier          (AuxField*, const int, vector<AuxField*>);
+  //void physical         (AuxField*, const int, vector<AuxField*>);
 protected:
-  real_t                _Q_bar, _Q_v_1, _v[3];	// Force components
+  real_t                len;
+  real_t                int_u_prev;
+  AuxField*             tmp;
 };
-*/
 
 #endif
