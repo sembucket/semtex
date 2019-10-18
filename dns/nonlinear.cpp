@@ -410,6 +410,7 @@ void altSkewSymmetric (Domain*     D ,
   toggle = 1 - toggle;
 }
 
+//#define BASE_FLOW
 
 void convective (Domain*     D ,
 		 BCmgr*      B ,
@@ -452,6 +453,10 @@ void convective (Domain*     D ,
   AuxField*         tmp    = D -> u[NADV]; // -- Pressure is used for scratch.
   Field*            master = D -> u[0];	   // -- For smoothing operations.
   int_t             i, j;
+#ifdef BASE_FLOW
+  AuxField*         uBar   = D -> uBar;
+  AuxField*         duBar  = D -> duBar;
+#endif
 
   for (i = 0; i < NADV; i++) {
     Uphys[i] = D -> u[i];
@@ -488,7 +493,20 @@ void convective (Domain*     D ,
         (*tmp = *Uphys[i]) . gradient (j);
         if (i < 2) tmp -> mulY ();
         N[i] -> timesMinus (*Uphys[j], *tmp);
+#ifdef BASE_FLOW
+        // -- Base flow term, \bar{u}d(\vec{u})/dx, \bar{u} = (1 - y^2)e_x
+        if(j == 0) N[i] -> timesMinus (*uBar, *tmp);
+#endif
       }
+
+#ifdef BASE_FLOW
+      // -- Base flow term, vd(\bar{u})/dy
+      if(i == 0) {
+        duBar->mulY();
+        N[0] -> timesMinus (*Uphys[1], *duBar);
+        duBar->divY();
+      }
+#endif
 
       if (i < NCOM) {     // -- Body forces act only on momentum equations.
         FF     -> addPhysical (N[i], tmp, i, Uphys);
