@@ -271,12 +271,11 @@ void build_constraints(Context* context, Vec x_delta, double* f_phi, double* f_t
   VecDestroy(&xl);
 }
 
-void _build_constraints(Context* context, Vec x_delta, double* f_phi, double* f_tau, double dt) {
+void _build_constraints(Context* context, Vec x_delta, double* f_phi, double* f_tau) {
   int          nl          = Geometry::nZProc() * context->n_mesh_sum;
   int          plane_j, dof_j, index;
   double       k_z;
   double       f_phi_l, f_tau_l;
-  double       _dt;
   double*      rz          = new double[nl];
   double*      rt          = new double[nl];
   double*      data_r      = new double[context->n_mesh_max];
@@ -300,22 +299,16 @@ void _build_constraints(Context* context, Vec x_delta, double* f_phi, double* f_
 
     nStep = Femlib::ivalue("N_STEP");
     Femlib::ivalue("N_STEP", 1);
-    _dt = Femlib::value("D_T");
-    Femlib::value("D_T", dt);
-
     context->domain->time = 0.0;
     context->domain->step = 0;
     Femlib::value("t", 0.0);
 
-if(!Geometry::procID())cout<<"\ttime step constraints: " << dt << ", time step residual: " << _dt << ", time step integration: " << Femlib::value("D_T") << endl;
     integrate(convective, context->domain, context->bman, context->analyst, context->ff);
     Femlib::ivalue("N_STEP", nStep);
-    Femlib::value("D_T", _dt);
-if(!Geometry::procID())cout<<"\tresetting timestep: " << Femlib::value("D_T") << endl;
 
     for(int field_i = 0; field_i < 3; field_i++) {
       *context->domain->u[field_i] -= *context->u0[field_i];
-      *context->domain->u[field_i] *= 1.0 / dt;
+      *context->domain->u[field_i] *= 1.0 / Femlib::value("D_T");
     }
   } 
 
@@ -400,8 +393,6 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   if(!reason) {
     if(!Geometry::procID()) cout << "\tunpacking constraints velocity from new_x";
     _UnpackX(context, context->u0, &dummy[0], &dummy[1], x_snes);
-    nSteps = dummy[1] / context->dt0;
-    dummy[1] = dummy[1] / nSteps;
     MPI_Bcast(&dummy[1], 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
   } else {
     // write the current state vector
@@ -415,14 +406,6 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     // get the current estimate of dx
     SNESGetLastOrthoVec(snes, context->x_delta); if(!Geometry::procID()) cout << "\tusing last orthonormal vec as dx\n";
   }
-KSPGetIterationNumber(ksp, &ksp_i);
-SNESGetIterationNumber(snes, &snes_i);
-if(!ksp_i && snes_i){
-if(!Geometry::procID()) cout << "\tzeroing out x_delta...\n";
-VecZeroEntries(context->x_delta);
-}
-  if(!context->build_dx) dummy[1] = Femlib::value("D_T");
-  if(!Geometry::procID()) cout << "\tdt (constraints): " << dummy[1];
   context->build_dx = true;
 
   _UnpackX(context, context->ui, &context->phi_i, &context->tau_i, x);
@@ -441,16 +424,13 @@ VecZeroEntries(context->x_delta);
   MPI_Bcast(&context->tau_i, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
   MPI_Bcast(&context->phi_i, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-if(!context->travelling_wave) {
-nSteps = context->tau_i / context->dt0;
-dt = context->tau_i / nSteps;
-Femlib::value("D_T", dt);
-Femlib::ivalue("N_STEP", nSteps);
-} else {
-  dt = context->tau_i / Femlib::ivalue("N_STEP");
-  Femlib::value("D_T", dt);
-//  runTime = Femlib::ivalue("N_STEP") * dt;
-}
+  if(!context->travelling_wave) {
+    nSteps = context->tau_i / context->dt0;
+    dt = context->tau_i / nSteps;
+    Femlib::value("D_T", dt);
+    Femlib::ivalue("N_STEP", nSteps);
+  }
+
   if(!Geometry::procID()) {
     cout << "\trun time: " << Femlib::ivalue("N_STEP") * dt << "\tnstep: " << Femlib::ivalue("N_STEP") << "\tdt: " << Femlib::value("D_T") << endl;
     cout << scientific << "\ttau:   " << context->tau_i << "\tphi:   " << context->c_scale * context->phi_i * Femlib::value("BETA") << endl;
@@ -477,8 +457,7 @@ Femlib::ivalue("N_STEP", nSteps);
   }
 
   if(!reason) { // within  fgmres
-    //_build_constraints(context, context->x_delta, &context->f_phi, &context->f_tau, dummy[1]);
-    _build_constraints(context, context->x_delta, &context->f_phi, &context->f_tau, Femlib::value("D_T"));
+    _build_constraints(context, context->x_delta, &context->f_phi, &context->f_tau);
     _RepackX(context, context->fi, context->f_phi, context->f_tau, f);
     if(!Geometry::procID()) cout << "\trepacking constrain as f_phi: "   << context->f_phi << ", f_tau: "   << context->f_tau << endl;
   } else {      // outside fgmres
