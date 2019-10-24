@@ -474,30 +474,35 @@ void build_addToVector(Context* context, vector<Field*> fields) {
     // number of boundary nodes for this field (including bcs)
     n_bndry[fd_i] = 0;
     for(int pt_i = 0; pt_i < Geometry::nElmt() * Geometry::nExtElmt(); pt_i++) 
-      if(btog[pt_i] > n_bndry[fd_i]) 
+      if(btog[pt_i] > n_bndry[fd_i] && !bmask[pt_i]) 
         n_bndry[fd_i] = btog[pt_i];
 
+      n_bndry[fd_i]++;
+      if(!Geometry::procID())cout<<fd_i<<": num_bndry: "<<n_bndry[fd_i]<<endl;
+
     inserted = new int[n_bndry[fd_i]];
-    for(int pt_i = 0; pt_i < n_bndry[fd_i]; pt_i++) inserted[pt_i] = 0;
+    for(int pt_i = 0; pt_i < n_bndry[fd_i]; pt_i++) inserted[pt_i] = -1;
 
     index = 0;
     for(int el_i = 0; el_i < Geometry::nElmt(); el_i++) {
       for(int pt_i = 0; pt_i < np2; pt_i++) {
+        // element boundary node
         if((el_bndry = elBndryIndex(pt_i)) != -1) {
-          // element boundary node
+          // not an essential bc node
           if(!bmask[el_i*Geometry::nExtElmt() + el_bndry]) {
-            // not an essential bc node
             gid = btog[el_i*Geometry::nExtElmt() + el_bndry];
-            if(!inserted[gid]) {
-              inserted[gid] = 1;
-              context->addToVector[fd_i][el_i*np2 + pt_i] = index++;
-            } else {
+            if(inserted[gid] == -1) {
+              inserted[gid] = index;
               context->addToVector[fd_i][el_i*np2 + pt_i] = index;
+              index++;
+            } else {
+              context->addToVector[fd_i][el_i*np2 + pt_i] = inserted[gid];
             }
           }
+        // element internal node
         } else {
-          // element internal node
-          context->addToVector[fd_i][el_i*np2 + pt_i] = index++;
+          context->addToVector[fd_i][el_i*np2 + pt_i] = index;
+          index++;
         }
       }
     }
@@ -527,6 +532,7 @@ void build_coordWeights(Context* context) {
       q4 = context->domain->elmt[el_i]->GetQ4();
       for(int pt_i = 0; pt_i < np2; pt_i++) {
         index = context->addToVector[fd_i][el_i*np2+pt_i];
+        //if(index>=context->n_mesh[fd_i])cout<<Geometry::procID()<<":\tbuild_coordWeights() fd_i: "<<fd_i<<", n_mesh: "<<context->n_mesh[fd_i]<<", index: "<<index<<endl;
         context->coord_weights[fd_i][index] += q4[pt_i];
       }
     }
@@ -540,6 +546,7 @@ void elements_to_vector(Context* context, int field_i, real_t* data_els, real_t*
   for(int el_i = 0; el_i < Geometry::nElmt(); el_i++) {
     for(int pt_i = 0; pt_i < np2; pt_i++) {
       index = context->addToVector[field_i][el_i*np2+pt_i];
+      //if(!Geometry::procID() && index>=context->n_mesh[field_i])cout<<"elements_to_vector() field_i: "<<field_i<<", n_mesh: "<<context->n_mesh[field_i]<<", index: "<<index<<endl;
       if(index != -1) {
         if(fwd) data_vec[index] = data_els[el_i*np2+pt_i];
         else    data_els[el_i*np2+pt_i] = data_vec[index];
