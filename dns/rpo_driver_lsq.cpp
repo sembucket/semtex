@@ -72,6 +72,25 @@ void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 #define NSLICE 1
 #define THREE 3
 
+static PetscErrorCode RPOVecNormL2_Hookstep(void* ctx,Vec v,PetscScalar* norm) {
+  PetscInt ierr;
+  ierr = VecNorm(v, NORM_2, norm);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode RPOVecDot_Hookstep(void* ctx,Vec v1,Vec v2,PetscScalar* dot) {
+  PetscInt ierr;
+  ierr = VecDot(v1, v2, dot);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode RPOVecDiff_Hookstep(void* ctx,Vec y,Vec F,PetscScalar h) {
+  PetscInt ierr;
+  ierr = VecAXPY(y,-1.0,F);CHKERRQ(ierr);
+  ierr = VecScale(y,1.0/h);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 void __assign_scatter_semtex(Context* context) {
   int   nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
   int   nDofsCube_g = Geometry::nZ()     * context->nDofsPlane;
@@ -649,6 +668,10 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   KSPSetType(ksp, KSPFGMRES);
   SNESSetType(snes, SNESNEWTONLS);
   SNESSetFromOptions(snes);
+
+  KSPSetNorm_Hookstep(ksp,(void*)context,RPOVecNormL2_Hookstep);
+  KSPSetDot_Hookstep(ksp,(void*)context,RPOVecDot_Hookstep);
+  KSPSetDiff_Hookstep(ksp,(void*)context,RPOVecDiff_Hookstep);
 
   // setup the complex fft in the axial direction
   context->data_s = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(context->nModesX));
