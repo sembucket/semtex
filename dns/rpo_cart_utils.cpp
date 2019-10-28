@@ -465,7 +465,8 @@ void build_addToVector(Context* context, vector<Field*> fields) {
   for(int fd_i = 0; fd_i < 3; fd_i++) {
     context->addToVector[fd_i] = new int[Geometry::nElmt() * np2];
     
-    numSys = fields[fd_i]->_bsys->Nsys(0); // 0th mode
+    //numSys = fields[fd_i]->_bsys->Nsys(0); // 0th mode
+    numSys = fields[fd_i]->_bsys->Nsys(Geometry::procID() * (Geometry::nZProc()/2) * Femlib::ivalue ("BETA"));
     btog = numSys->btog();                 // boundary to global index
     bmask = numSys->bmask();               // '1' if node is an essential bc
 
@@ -478,7 +479,7 @@ void build_addToVector(Context* context, vector<Field*> fields) {
         n_bndry[fd_i] = btog[pt_i];
 
       n_bndry[fd_i]++;
-      if(!Geometry::procID())cout<<fd_i<<": num_bndry: "<<n_bndry[fd_i]<<endl;
+if(!Geometry::procID())cout<<fd_i<<": num_bndry: "<<n_bndry[fd_i]<<endl;
 
     inserted = new int[n_bndry[fd_i]];
     for(int pt_i = 0; pt_i < n_bndry[fd_i]; pt_i++) inserted[pt_i] = -1;
@@ -510,10 +511,18 @@ void build_addToVector(Context* context, vector<Field*> fields) {
     context->n_mesh[fd_i] = index;
     context->n_mesh_sum += index;
     if(index > context->n_mesh_max) context->n_mesh_max = index;
-    if(!Geometry::procID()) cout << "number of non-bc mesh dofs for field: " << fd_i << ": " << context->n_mesh[fd_i] << endl;
+    cout << Geometry::procID() << ":\tnumber of non-bc mesh dofs for field: " << fd_i << ": " << context->n_mesh[fd_i] << endl;
 
     delete[] inserted;
   }
+
+  context->n_mesh_sum_proc = new int[Geometry::nProc()];
+  context->n_mesh_sum_proc[Geometry::procID()] = context->n_mesh_sum;
+  for(int proc_i = 0; proc_i < Geometry::nProc(); proc_i++) {
+    MPI_Bcast(&context->n_mesh_sum_proc[proc_i], 1, MPI_INT, proc_i, MPI_COMM_WORLD);
+  }
+
+  cout << Geometry::procID() << ":\tn_mesh_sum: " << context->n_mesh_sum << "\t, n_mesh_max: " << context->n_mesh_max << endl;
 }
 
 // NOTE: assumes addToVector has already been built
@@ -521,10 +530,10 @@ void build_coordWeights(Context* context) {
   int index;
   int np2 = Geometry::nP() * Geometry::nP();
   const real_t* q4;
-  context->coord_weights = new double*[3];
+  context->coord_weights = new real_t*[3];
 
   for(int fd_i = 0; fd_i < 3; fd_i++) {
-    context->coord_weights[fd_i] = new double[context->n_mesh[fd_i]];
+    context->coord_weights[fd_i] = new real_t[context->n_mesh_max];
 
     for(int dof_i = 0; dof_i < context->n_mesh[fd_i]; dof_i++) context->coord_weights[fd_i][dof_i] = 0.0;
 
@@ -532,8 +541,19 @@ void build_coordWeights(Context* context) {
       q4 = context->domain->elmt[el_i]->GetQ4();
       for(int pt_i = 0; pt_i < np2; pt_i++) {
         index = context->addToVector[fd_i][el_i*np2+pt_i];
-        //if(index>=context->n_mesh[fd_i])cout<<Geometry::procID()<<":\tbuild_coordWeights() fd_i: "<<fd_i<<", n_mesh: "<<context->n_mesh[fd_i]<<", index: "<<index<<endl;
-        context->coord_weights[fd_i][index] += q4[pt_i];
+        if(index != -1) {
+          context->coord_weights[fd_i][index] += q4[pt_i];
+        }
+      }
+    }
+
+    for(int el_i = 0; el_i < Geometry::nElmt(); el_i++) {
+      for(int pt_i = 0; pt_i < np2; pt_i++) {
+        index = context->addToVector[fd_i][el_i*np2+pt_i];
+        if(index != -1 && context->coord_weights[fd_i][pt_i] < 1.0e-8) {
+          context->coord_weights[fd_i][index] = context->domain->elmt[el_i]->area() / np2;
+cout<<Geometry::procID()<<": updating coord weight, field: "<<fd_i<<", index: "<<index<<",\tnew weight: "<<context->coord_weights[fd_i][index]<<endl;
+        }
       }
     }
   }
@@ -546,7 +566,6 @@ void elements_to_vector(Context* context, int field_i, real_t* data_els, real_t*
   for(int el_i = 0; el_i < Geometry::nElmt(); el_i++) {
     for(int pt_i = 0; pt_i < np2; pt_i++) {
       index = context->addToVector[field_i][el_i*np2+pt_i];
-      //if(!Geometry::procID() && index>=context->n_mesh[field_i])cout<<"elements_to_vector() field_i: "<<field_i<<", n_mesh: "<<context->n_mesh[field_i]<<", index: "<<index<<endl;
       if(index != -1) {
         if(fwd) data_vec[index] = data_els[el_i*np2+pt_i];
         else    data_els[el_i*np2+pt_i] = data_vec[index];
@@ -756,6 +775,9 @@ void base_profile(Context* context, AuxField* uz, real_t scale, AuxField* uBar) 
   if(!Geometry::procID()) cout << "computing base profile for scale: " << scale << endl;
 
   *uBar = 0.0;
+
+  if(scale < 1.0e-8) return;
+
   if(!Geometry::procID()) {
     for(int dof_i = 0; dof_i < context->n_mesh[2]; dof_i++) {
       uBar->plane(0)[dof_i] = scale * uz->plane(0)[dof_i];
@@ -791,13 +813,21 @@ void base_profile(Context* context, AuxField* uz, real_t scale, AuxField* uBar) 
 
 void _assign_scatter_semtex(Context* context) {
   int   nDofs_l     = Geometry::nZProc() * context->n_mesh_sum;
-  int   nDofs_g     = Geometry::nZ()     * context->n_mesh_sum;
+  int   nDofs_g;//     = Geometry::nZ()     * context->n_mesh_sum;
   int   nShifts     = (!context->travelling_wave) ? 2 : 1;
   int   ind_i       = 0;
-  int   start       = Geometry::procID() * nDofs_l;
+  int   start       = 0;//       = Geometry::procID() * nDofs_l;
   int*  inds        = new int[context->localSize];
   IS    isl, isg;
   Vec   vl, vg;
+
+  if(Geometry::procID()) {
+    for(int proc_i = 0; proc_i < Geometry::procID(); proc_i++) {
+      start += Geometry::nZProc() * context->n_mesh_sum_proc[proc_i];
+    }
+  }
+  MPI_Allreduce(&context->n_mesh_sum, &nDofs_g, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  nDofs_g *= Geometry::nZProc();
 
   for(int ind_j = 0; ind_j < nDofs_l; ind_j++) {
     inds[ind_i++] = start + ind_j;

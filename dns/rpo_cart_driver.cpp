@@ -446,6 +446,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 #ifdef TESTING
   if(!reason) context->domain->dump();
 #endif
+  context->domain->update_bcs = true;
 
   _phase_shift_z(context, context->c_scale * context->phi_i * Femlib::value("BETA"), -1.0, context->domain->u);
 
@@ -459,7 +460,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   if(!reason) { // within  fgmres
     _build_constraints(context, context->x_delta, &context->f_phi, &context->f_tau);
     _RepackX(context, context->fi, context->f_phi, context->f_tau, f);
-    if(!Geometry::procID()) cout << "\trepacking constrain as f_phi: "   << context->f_phi << ", f_tau: "   << context->f_tau << endl;
+    if(!Geometry::procID()) cout << "\trepacking constraints as f_phi: "   << context->f_phi << ", f_tau: "   << context->f_tau << endl;
   } else {      // outside fgmres
     _RepackX(context, context->fi, zero, zero, f); if(!Geometry::procID()) cout << "\trepacking with zero constraints " << zero << endl;
   }
@@ -505,13 +506,14 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   // add dofs for phi and tau for each time slice
   build_addToVector(context, context->domain->u);
   context->nDofsPlane = context->n_mesh[0];
-  context->nDofsSlice = Geometry::nZ() * context->n_mesh_sum + 1;
-  if(!Femlib::ivalue("TRAV_WAVE")) context->nDofsSlice++;
+  //context->nDofsSlice = Geometry::nZ() * context->n_mesh_sum + 1;
+  //if(!Femlib::ivalue("TRAV_WAVE")) context->nDofsSlice++;
   context->localSize  = Geometry::nZProc() * context->n_mesh_sum;
   if(!Geometry::procID()) {
     context->localSize++;
     if(!Femlib::ivalue("TRAV_WAVE")) context->localSize++;
   }
+  MPI_Allreduce(&context->localSize, &context->nDofsSlice, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   
   // assign the coordinate weights
   build_coordWeights(context);

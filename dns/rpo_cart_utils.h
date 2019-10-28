@@ -33,10 +33,11 @@ struct Context {
     int              iteration;
     bool             travelling_wave;
     bool             build_dx;
-    double**         coord_weights;
+    real_t**         coord_weights;
     int              n_mesh[3];
     int              n_mesh_max;
     int              n_mesh_sum;
+    int*             n_mesh_sum_proc;
     int**            addToVector;      // semtex field data array to unique vector index
     double           u_scale[3];
     double           c_scale;
