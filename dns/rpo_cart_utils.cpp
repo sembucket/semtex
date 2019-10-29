@@ -478,8 +478,8 @@ void build_addToVector(Context* context, vector<Field*> fields) {
       if(btog[pt_i] > n_bndry[fd_i] && !bmask[pt_i]) 
         n_bndry[fd_i] = btog[pt_i];
 
-      n_bndry[fd_i]++;
-if(!Geometry::procID())cout<<fd_i<<": num_bndry: "<<n_bndry[fd_i]<<endl;
+    n_bndry[fd_i]++;
+    if(!Geometry::procID())cout<<fd_i<<": num_bndry: "<<n_bndry[fd_i]<<endl;
 
     inserted = new int[n_bndry[fd_i]];
     for(int pt_i = 0; pt_i < n_bndry[fd_i]; pt_i++) inserted[pt_i] = -1;
@@ -550,8 +550,8 @@ void build_coordWeights(Context* context) {
     for(int el_i = 0; el_i < Geometry::nElmt(); el_i++) {
       for(int pt_i = 0; pt_i < np2; pt_i++) {
         index = context->addToVector[fd_i][el_i*np2+pt_i];
-        if(index != -1 && context->coord_weights[fd_i][pt_i] < 1.0e-8) {
-          context->coord_weights[fd_i][index] = context->domain->elmt[el_i]->area() / np2;
+        if(index != -1 && context->coord_weights[fd_i][index] < 1.0e-10) {
+          context->coord_weights[fd_i][index] += context->domain->elmt[el_i]->area() / np2;
 cout<<Geometry::procID()<<": updating coord weight, field: "<<fd_i<<", index: "<<index<<",\tnew weight: "<<context->coord_weights[fd_i][index]<<endl;
         }
       }
