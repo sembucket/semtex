@@ -208,7 +208,9 @@ void build_constraints(Context* context, Vec x_delta, double* f_phi, double* f_t
     context->domain->step = 0;
     Femlib::value("t", 0.0);
 
+    if(Geometry::cylindrical()) AuxField::couple(context->domain->u[1], context->domain->u[2], INVERSE);
     integrate(convective, context->domain, context->bman, context->analyst, context->ff);
+    if(Geometry::cylindrical()) AuxField::couple(context->domain->u[1], context->domain->u[2], FORWARD);
     Femlib::ivalue("N_STEP", nStep);
 
     for(int field_i = 0; field_i < 3; field_i++) {
@@ -303,7 +305,9 @@ void _build_constraints(Context* context, Vec x_delta, double* f_phi, double* f_
     context->domain->step = 0;
     Femlib::value("t", 0.0);
 
+    if(Geometry::cylindrical()) AuxField::couple(context->domain->u[1], context->domain->u[2], INVERSE);
     integrate(convective, context->domain, context->bman, context->analyst, context->ff);
+    if(Geometry::cylindrical()) AuxField::couple(context->domain->u[1], context->domain->u[2], FORWARD);
     Femlib::ivalue("N_STEP", nStep);
 
     for(int field_i = 0; field_i < 3; field_i++) {
@@ -439,6 +443,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   // don't want to call the dns analysis, use custom integrate routine instead
   //delete context->analyst;
   //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
+  if(Geometry::cylindrical()) AuxField::couple(context->domain->u[1], context->domain->u[2], INVERSE);
 #ifdef TESTING
   if(!reason) context->domain->dump();
 #endif
@@ -446,6 +451,7 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 #ifdef TESTING
   if(!reason) context->domain->dump();
 #endif
+  if(Geometry::cylindrical()) AuxField::couple(context->domain->u[1], context->domain->u[2], FORWARD);
   context->domain->update_bcs = true;
 
   _phase_shift_z(context, context->c_scale * context->phi_i * Femlib::value("BETA"), -1.0, context->domain->u);
@@ -623,7 +629,9 @@ int main (int argc, char** argv) {
   analyst = new DNSAnalyser (domain, bman, file);
   domain -> restart ();
   //ROOTONLY domain -> report ();
-  
+ 
+  if(Geometry::cylindrical()) AuxField::couple(domain->u[1], domain->u[2], FORWARD);
+ 
   // load in the time slices
   ui.resize(3);
   fi.resize(3);
@@ -638,6 +646,8 @@ int main (int argc, char** argv) {
 
   // solve the newton-rapheson problem
   rpo_solve(mesh, elmt, bman, file, domain, analyst, FF, ui, fi, u0, session);
+
+  if(Geometry::cylindrical()) AuxField::couple(domain->u[1], domain->u[2], INVERSE);
 
   domain->dump();
 
