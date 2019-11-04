@@ -271,6 +271,7 @@ void build_tangents(Context* context, Vec T_theta, Vec T_phi, Vec T_tau) {
   int          plane_j, mode_j;
   int          pt_j, el_j;
   double       k_x, k_z;
+  double       norm_theta, norm_phi, norm_tau;
   double*      data_r      = new double[context->nDofsPlane];
   double*      data_i      = new double[context->nDofsPlane];
   PetscScalar  *thetaArray, *phiArray, *tauArray;
@@ -382,6 +383,13 @@ void build_tangents(Context* context, Vec T_theta, Vec T_phi, Vec T_tau) {
     VecScatterBegin(context->global_to_semtex, tau_l, T_tau,   INSERT_VALUES, SCATTER_REVERSE);
     VecScatterEnd(  context->global_to_semtex, tau_l, T_tau,   INSERT_VALUES, SCATTER_REVERSE);
   }
+
+  VecNorm(T_theta,NORM_2,&norm_theta);
+  VecNorm(T_phi,  NORM_2,&norm_phi  );
+  if(!context->travelling_wave)VecNorm(T_tau  ,NORM_2,&norm_tau  );
+  if(!Geometry::procID())cout<<"|T_theta|: "<<norm_theta<<endl;
+  if(!Geometry::procID())cout<<"|T_phi|:   "<<norm_phi  <<endl;
+  if(!Geometry::procID() && !context->travelling_wave)cout<<"|T_tau|: "<<norm_tau<<endl;
 
   delete[] data_r;
   delete[] data_i;
@@ -683,6 +691,9 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nDofsSlice, &T_theta);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nDofsSlice, &T_phi  );
   if(!context->travelling_wave) VecCreateMPI(MPI_COMM_WORLD, context->localSize, context->nDofsSlice, &T_tau);
+  *context->u0[0] = *context->ui[0];
+  *context->u0[1] = *context->ui[1];
+  *context->u0[2] = *context->ui[2];
   build_tangents(context, T_theta, T_phi, T_tau);
   nShifts = (context->travelling_wave) ? 2 : 3;
   KSPSetTangentVecs_Hookstep(ksp, nShifts, T_theta, T_phi, T_tau);
