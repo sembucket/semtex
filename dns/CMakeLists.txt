@@ -36,6 +36,15 @@ target_sources(rpo_test PRIVATE
   #"${CMAKE_CURRENT_LIST_DIR}/rpo_sem_to_fourier_test.cpp"
 )
 
+target_sources(rpo_eig PRIVATE
+  "${CMAKE_CURRENT_LIST_DIR}/dnsanalysis.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/fieldforce.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/integrate.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/nonlinear.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/rpo_utils.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/rpo_eig.cpp"
+)
+
 #target_sources(dmd PRIVATE
 #  "${CMAKE_CURRENT_LIST_DIR}/dnsanalysis.cpp"
 #  "${CMAKE_CURRENT_LIST_DIR}/fieldforce.cpp"
