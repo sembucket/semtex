@@ -66,7 +66,6 @@ void integrate (void (*)(Domain*, BCmgr*, AuxField**, AuxField**, FieldForce*),
 		Domain*, BCmgr*, DNSAnalyser*, FieldForce*);
 
 #define TESTING
-#define X_FOURIER
 
 #define NFIELD 3
 #define NSLICE 1
@@ -77,7 +76,7 @@ static PetscErrorCode RPOVecNormL2_Hookstep(void* ctx,Vec v,PetscScalar* norm) {
   Context* context = (Context*)ctx;
   PetscInt nDofsCube_l = Geometry::nZProc() * context->nDofsPlane;
   PetscInt ind_i;
-  double norm_orig, norm_sq, norm_l_sq = 0.0;
+  double norm_sq, norm_l_sq = 0.0;
   PetscScalar* vArray;
   Vec vl;
 
@@ -104,9 +103,6 @@ static PetscErrorCode RPOVecNormL2_Hookstep(void* ctx,Vec v,PetscScalar* norm) {
   norm_sq = 0.0;
   MPI_Allreduce(&norm_l_sq, &norm_sq, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   *norm = sqrt(norm_sq);
-
-  VecNorm(v,NORM_2,&norm_orig);
-  if(!Geometry::procID())printf("\tSNES TR - modified norm - |x|: %g, |x_orig|: %g\n",*norm,norm_orig);
 
   VecDestroy(&vl);
 
@@ -205,6 +201,8 @@ bool OmitAxis(int field_i, int pt_y, int plane_i) {
   return false;
 }
 
+#define SCALE_CONSTRAINTS 1
+
 void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f_phi, double* f_tau) {
   int          elOrd       = Geometry::nP() - 1;
   int          nNodesX     = context->nElsX * elOrd;
@@ -216,6 +214,8 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
   int          pt_j, el_j;
   double       k_x, k_z;
   double       f_theta_l, f_phi_l, f_tau_l;
+  double       dt_dns, dt_con;
+  double       scale       = 1.0;
   double*      rx          = new double[nl];
   double*      rz          = new double[nl];
   double*      rt          = new double[nl];
@@ -257,7 +257,7 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
     AuxField::couple(context->domain->u[1], context->domain->u[2], FORWARD);
     for(int field_i = 0; field_i < context->nField; field_i++) {
       *context->domain->u[field_i] -= *context->u0[field_i];
-      *context->domain->u[field_i] *= 1.0 / Femlib::value("D_T");
+      *context->domain->u[field_i] *= ( 1.0 / Femlib::value("D_T") );
     } 
     Femlib::ivalue("N_STEP", nStep);
   }
@@ -274,12 +274,16 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
 
           k_x = (2.0 * M_PI / (context->xmax /*-XMIN*/)) * (mode_j);
 
+#ifdef SCALE_CONSTRAINTS
+          scale = GetScale(context, field_i, plane_i, mode_i, node_j);
+#endif
+
           index = LocalIndex(context, field_i, plane_i+0, mode_i, node_j);
-          rx[index] = -k_x * data_i[node_j * nModesX + mode_i];
+          rx[index] = -k_x * data_i[node_j * nModesX + mode_i] * scale;
           if(OmitAxis(field_i, node_j, plane_j)) rx[index] = 0.0;
 
           index = LocalIndex(context, field_i, plane_i+1, mode_i, node_j);
-          rx[index] = +k_x * data_r[node_j * nModesX + mode_i];
+          rx[index] = +k_x * data_r[node_j * nModesX + mode_i] * scale;
           if(OmitAxis(field_i, node_j, plane_j)) rx[index] = 0.0;
           // remove nyquist frequency
           if(Geometry::procID() == 0 && plane_i == 0 && mode_j == 0) rx[index] = 0.0; // 170919
@@ -293,11 +297,15 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
       for(int dof_i = 0; dof_i < context->nElsY * elOrd * nModesX; dof_i++) {
         k_z = 1.0 * (plane_j / 2);
 
+#ifdef SCALE_CONSTRAINTS
+        scale = GetScale(context, field_i, plane_i, dof_i%nModesX, dof_i/nModesX);
+#endif
+
         index = LocalIndex(context, field_i, plane_i+0, dof_i%nModesX, dof_i/nModesX);
-        rz[index] = -k_z * data_i[dof_i];
+        rz[index] = -k_z * data_i[dof_i] * scale;
         if(OmitAxis(field_i, dof_i%nModesX, plane_j)) rz[index] = 0.0;
         index = LocalIndex(context, field_i, plane_i+1, dof_i%nModesX, dof_i/nModesX);
-        rz[index] = +k_z * data_r[dof_i];
+        rz[index] = +k_z * data_r[dof_i] * scale;
         if(OmitAxis(field_i, dof_i%nModesX, plane_j)) rz[index] = 0.0;
         // remove nyquist frequency
         if(Geometry::procID() == 0 && plane_i == 0 && mode_j == 0) rz[index] = 0.0; // 170919
@@ -310,12 +318,16 @@ void build_constraints(Context* context, Vec x_delta, double* f_theta, double* f
         SEM_to_Fourier(plane_i, context, context->domain->u[field_i], data_r, data_i);
 
         for(int dof_i = 0; dof_i < context->nDofsPlane; dof_i++) {
+#ifdef SCALE_CONSTRAINTS
+          scale = GetScale(context, field_i, plane_i, dof_i%nModesX, dof_i/nModesX);
+#endif
+
           index = LocalIndex(context, field_i, plane_i+0, dof_i%nModesX, dof_i/nModesX);
-          rt[index] = data_r[dof_i];
+          rt[index] = data_r[dof_i] * scale;
           if(OmitAxis(field_i, dof_i%nModesX, plane_j)) rt[index] = 0.0;
 
           index = LocalIndex(context, field_i, plane_i+1, dof_i%nModesX, dof_i/nModesX);
-          rt[index] = data_i[dof_i];
+          rt[index] = data_i[dof_i] * scale;
           if(OmitAxis(field_i, dof_i%nModesX, plane_j)) rt[index] = 0.0;
           // remove nyquist frequency
           if(Geometry::procID() == 0 && plane_i == 0 && dof_i%nModesX == 0) rt[index] = 0.0; // 170919
@@ -360,8 +372,8 @@ PetscErrorCode _snes_jacobian(SNES snes, Vec x, Mat J, Mat P, void* ctx) {
 PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   Context* context = (Context*)ctx;
   real_t dt;
-  int field_i;
-  double f_norm, x_norm, dx_norm, runTime, dummy[3], zero = 0.0;
+  int field_i, nStep;
+  double f_norm, x_norm, dx_norm, dummy[3], zero = 0.0;
   char filename[100];
   PetscViewer viewer;
   Vec x_snes;
@@ -382,6 +394,12 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
     // get the current estimate of dx
     if(context->build_dx) SNESGetLastOrthoVec(snes, context->x_delta);
     //if(context->build_dx) KSPBuildSolution(ksp, context->x_delta, NULL); if(!Geometry::procID())cout<<"\tusing ksp solution as dx\n";
+
+    build_constraints(context, context->x_delta, &context->f_theta, &context->f_phi, &context->f_tau);
+
+    if(!Geometry::procID()) cout << "\trepacking constraints as f_theta: " << context->f_theta 
+                                                          << ", f_phi: "   << context->f_phi 
+                                                          << ", f_tau: "   << context->f_tau << endl;
   } else {
     // write the current state vector
     sprintf(filename, "x_curr_%.4u.vec", context->iteration);
@@ -414,41 +432,36 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
 
   dt = context->tau_i[0] / Femlib::ivalue("N_STEP");
   Femlib::value("D_T", dt);
-  runTime = Femlib::ivalue("N_STEP") * dt;
+  //nStep = context->tau_i[0] / context->dt0;
+  //dt = context->tau_i[0] / nStep;
+  //Femlib::ivalue("N_STEP", nStep);
+  //Femlib::value("D_T", dt);
 
   if(!Geometry::procID()) {
-    cout << "\trun time: " << runTime << "\tnstep: " << Femlib::ivalue("N_STEP") << "\tdt: " << Femlib::value("D_T") << endl;
+    cout << "\trun time: " << Femlib::ivalue("N_STEP") * Femlib::value("D_T") << "\tnstep: " << Femlib::ivalue("N_STEP") << "\tdt: " << Femlib::value("D_T") << endl;
     cout << scientific << "\ttau:   " << context->tau_i[0] 
-                       << "\ttheta: " << context->c_scale * context->theta_i[0] * (2.0*M_PI/context->xmax)
-                       << "\tphi:   " << context->c_scale * context->phi_i[0] << endl;
+                       << "\ttheta: " << /*context->c_scale */ context->theta_i[0] * (2.0*M_PI/context->xmax)
+                       << "\tphi:   " << /*context->c_scale */ context->phi_i[0] << endl;
   }
 
+  AuxField::couple(context->domain->u[1], context->domain->u[2], INVERSE);
 #ifdef TESTING
-  if(!reason) {
-    AuxField::couple(context->domain->u[1], context->domain->u[2], INVERSE);
-    context->domain->dump();
-    AuxField::couple(context->domain->u[1], context->domain->u[2], FORWARD);
-  }
+  if(!reason) context->domain->dump();
 #endif
   // don't want to call the dns analysis, use custom integrate routine instead
   //delete context->analyst;
   //context->analyst = new DNSAnalyser (context->domain, context->bman, context->file);
-  AuxField::couple(context->domain->u[1], context->domain->u[2], INVERSE);
   integrate(convective, context->domain, context->bman, context->analyst, context->ff);
-  AuxField::couple(context->domain->u[1], context->domain->u[2], FORWARD);
 #ifdef TESTING
-  if(!reason) {
-    AuxField::couple(context->domain->u[1], context->domain->u[2], INVERSE);
-    context->domain->dump();
-    AuxField::couple(context->domain->u[1], context->domain->u[2], FORWARD);
-  }
+  if(!reason) context->domain->dump();
 #endif
+  AuxField::couple(context->domain->u[1], context->domain->u[2], FORWARD);
 
   // phase shift in theta (axial direction)
-  phase_shift_x(context, context->c_scale * context->theta_i[0] * (2.0 * M_PI / context->xmax), -1.0, context->domain->u);
+  phase_shift_x(context, /*context->c_scale */ context->theta_i[0] * (2.0 * M_PI / context->xmax), -1.0, context->domain->u);
   // phase shift in phi (azimuthal direction)
 #ifndef RM_2FOLD_SYM
-  phase_shift_z(context, context->c_scale * context->phi_i[0], -1.0, context->domain->u);
+  phase_shift_z(context, /*context->c_scale */ context->phi_i[0], -1.0, context->domain->u);
 #endif
 
   // set the residual vector
@@ -459,19 +472,21 @@ PetscErrorCode _snes_function(SNES snes, Vec x, Vec f, void* ctx) {
   }
 
   if(!reason) { // within  fgmres
+/*
     build_constraints(context, context->x_delta, &context->f_theta, &context->f_phi, &context->f_tau);
 
     if(!Geometry::procID()) cout << "\trepacking constraints as f_theta: " << context->f_theta 
                                                           << ", f_phi: "   << context->f_phi 
                                                           << ", f_tau: "   << context->f_tau << endl;
+*/
     RepackX(context, context->fi, &context->f_theta, &context->f_phi, &context->f_tau, f, false);
   } else {      // outside fgmres
     RepackX(context, context->fi, &zero, &zero, &zero, f, false);
     if(!Geometry::procID())cout<<"\trepacking with zero constraints "<<zero<<endl;
   }
 
-  VecNorm(x, NORM_2, &x_norm);
-  VecNorm(f, NORM_2, &f_norm);
+  RPOVecNormL2_Hookstep(context, x, &x_norm);
+  RPOVecNormL2_Hookstep(context, f, &f_norm);
   context->iteration++;
   if(!Geometry::procID()) cout << "\t" << context->iteration << ":\tevaluating function, |x|: " << x_norm << "\t|f|: " << f_norm << endl;
 
@@ -513,11 +528,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   context->fi       = fi;
   context->u0       = u0;
   context->build_PC = true;
-#ifdef X_FOURIER
   context->x_fourier = true;
-#else
-  context->x_fourier = false;
-#endif
   context->travelling_wave = Femlib::ivalue("TRAV_WAVE");
   context->build_dx = false;
   context->nElsX    = Femlib::ivalue("NELS_X");
@@ -538,6 +549,12 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
     context->theta_i[slice_i] = 0.0;
     context->phi_i[slice_i]   = 0.0;
     context->tau_i[slice_i]   = Femlib::ivalue("N_STEP") * Femlib::value("D_T");
+  }
+  context->dt0 = Femlib::value("D_T");
+
+  if(!context->travelling_wave && !Femlib::ivalue("ITERATIVE")) {
+    if(!Geometry::procID()) cout << "ERROR: solver type must be iterative for rpo configuration!!\n";
+    abort();
   }
 
   // setup the fourier mapping data
@@ -607,36 +624,17 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   }
   if(!Geometry::procID())printf("\tdy_sum: %g\n",dy_sum);
 
-  // set the velocity scales
-  //context->u_scale[0] = 4.8721670664372931; context->u_scale[1] = 37.842234715773266; context->u_scale[2] = 42.182138079742955;
-  //context->u_scale[0] = 0.30937660; context->u_scale[1] = 5.7519965; context->u_scale[2] = 3.7164474;
-  context->u_scale[0] = Femlib::value("U_SCALE");
-  context->u_scale[1] = Femlib::value("V_SCALE");
-  context->u_scale[2] = Femlib::value("W_SCALE");
-  //context->c_scale    = Femlib::value("C_SCALE");
-  if(!Geometry::procID()) printf("u scales: %g, %g, %g\n", context->u_scale[0], context->u_scale[1], context->u_scale[2]);
-
   // add dofs for theta and tau for each time slice
-#ifdef X_FOURIER
   context->nDofsPlane = context->nModesX*context->nElsY*elOrd;
-#else
-  context->nDofsPlane = context->nElsX*elOrd*context->nElsY*elOrd;
-#endif
-
   context->nDofsSlice = context->nField * Geometry::nZ() * context->nDofsPlane + 1; // add azimuthal phase shift dof
-
-#ifdef X_FOURIER
   context->nDofsSlice++; // add axial phase shift dof
-#endif
 
   if(!context->travelling_wave) context->nDofsSlice++; // add temporal phase shift dof
 
   context->localSize  = NSLICE * NFIELD * Geometry::nZProc() * context->nDofsPlane;
 
   if(!Geometry::procID()) context->localSize += NSLICE; // azimuthal phase shift dof
-#ifdef X_FOURIER
   if(!Geometry::procID()) context->localSize += NSLICE; // axial phase shift dof
-#endif
   if(!context->travelling_wave && !Geometry::procID()) context->localSize += NSLICE; // temporal phase shift dof
 
 #ifdef RM_2FOLD_SYM
@@ -645,16 +643,6 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
 #endif
 
   context->uBar = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, 'p');
-/*
-  for(int pl_i = 0; pl_i < Geometry::nZProc(); pl_i++) {
-    for(int el_i = 0; el_i < elmt.size(); el_i++) {
-      for(int pt_i = 0; pt_i < np2; pt_i++) {
-        context->uBar->plane(pl_i)[el_i*np2+pt_i] = 0.89*(1.0 - elmt[el_i]->_ymesh[pt_i]*elmt[el_i]->_ymesh[pt_i]);
-      }
-    }
-  }
-  context->uBar->transform(FORWARD);
-*/
 
   assign_scatter_semtex(context);
   VecCreateMPI(MPI_COMM_WORLD, context->localSize, NSLICE * context->nDofsSlice, &x);
@@ -687,14 +675,16 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   context->trans_fwd = fftw_plan_dft_1d(context->nModesX, context->data_s, context->data_f, FFTW_FORWARD,  FFTW_ESTIMATE);
   context->trans_bck = fftw_plan_dft_1d(context->nModesX, context->data_f, context->data_s, FFTW_BACKWARD, FFTW_ESTIMATE);
 
-  //base_profile(context, context->domain->u[0], 1.0-1.0e-5, context->uBar);
-  base_profile(context, context->domain->u[0], 0.95, context->uBar);
+  base_profile(context, context->domain->u[0], Femlib::value("BASE_PROFILE_SCALE"), context->uBar);
   *context->ui[0] -= *context->uBar;
   velocity_scales(context);
   *context->ui[0] += *context->uBar;
 
+  // dummy initial value
+  context->c_scale = 1.0;
   RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x, true);
-  VecNorm(x, NORM_2, &norm);
+  RPOVecNormL2_Hookstep(context, x, &norm);
+  cout.precision(12);
   if(!Geometry::procID()) cout << "|x_0|: " << norm << endl;
   if(norm < 1.0e-4) {
     if(!Geometry::procID()) cout << "ERROR: initial state vector norm is SMALL! "
@@ -702,17 +692,11 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
     abort();
   }
   VecZeroEntries(context->x_delta);
-/*
-  // set the shift scale
-#ifdef RM_2FOLD_SYM
-  context->c_scale = context->tau_i[0] / norm;
-  context->c_scale *= 21.0;
-#else
-  context->c_scale = 5179.3037;
-#endif
-*/
+
   context->c_scale = context->tau_i[0] / norm;
   if(!Geometry::procID()) printf("c scale: %g\n", context->c_scale);
+  // repack the vector with the updated c_scale
+  RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x, true);
 
   PetscObjectTypeCompare((PetscObject)ksp, KSPFGMRES, &is_fgmres);
   if(!is_fgmres) {
@@ -806,33 +790,11 @@ int main (int argc, char** argv) {
 
     *ui[field_i] = *domain->u[field_i];
   }
-/*
-  delete file_i;
-  delete domain;
-
-  // allocate the temporary fields
-  sprintf(session_i, "%s", session);
-  file_i = new FEML(session_i);
-  domain = new Domain(file_i, elmt, bman);
-  domain->restart();
-*/
 
   // solve the newton-rapheson problem
   rpo_solve(mesh, elmt, bman, file, domain, analyst, FF, ui, fi, u0, session);
-/*
-  delete file_i;
-  delete domain;
 
-  // dump the output
-  sprintf(session_i, "%s", session);
-  file_i = new FEML(session_i);
-  domain = new Domain(file_i, elmt, bman);
-  for(int field_i = 0; field_i < THREE; field_i++) {
-    *domain->u[field_i] = *ui[field_i];
-  }
-*/
   AuxField::couple(domain->u[1], domain->u[2], INVERSE);
-
   domain->dump();
   delete file_i;
   delete domain;

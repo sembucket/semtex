@@ -56,7 +56,7 @@ private:
   real_t*      _sheet ;		// Wrap-around storage for data boundary.
   real_t**     _line  ;		// Single plane's worth of sheet.
   //BoundarySys* _bsys  ;		// Boundary system information.
-  vector<real_t> alpha;         // time integration weights
+  vector<real_t> dt_alpha;      // time integration weights
 
   void getEssential      (const real_t*, real_t*,
 			  const vector<Boundary*>&, const NumberSys*) const;

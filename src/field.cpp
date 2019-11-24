@@ -165,8 +165,7 @@ Field::Field (BoundarySys*      B,
 
   this -> bTransform (FORWARD);
 
-//  alpha.resize(Integration::OrderMax + 1);
-//  Integration::StifflyStable (Femlib::ivalue("N_TIME"), &alpha[0]);
+  dt_alpha.resize(Integration::OrderMax + 1);
 }
 
 
@@ -676,9 +675,10 @@ Field& Field::solve (AuxField*             f  ,
     real_t*                  bc      = _line      [k];
 
     // DRL: over-ride the helmholtz constant (allows for variable time steps)
-//    if(_name == 'u' || _name == 'v' || _name == 'w') {
-//      lambda2 = alpha[0] / Femlib::value("D_T") / Femlib::value("KINVIS");
-//    }
+    Integration::StifflyStable (Femlib::ivalue("N_TIME"), &dt_alpha[0]);
+    if(_name == 'u' || _name == 'v' || _name == 'w') {
+      lambda2 = dt_alpha[0] / Femlib::value("D_T * KINVIS");
+    }
 
     switch (M -> _method) {
 

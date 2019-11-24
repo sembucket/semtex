@@ -405,11 +405,12 @@ void UnpackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
   if(!Geometry::procID()) {
     index = THREE * nDofsCube_l;
 
-    theta[0] = xArray[index++];
-    phi[0]   = xArray[index++];
-    if(!context->travelling_wave) {
-      tau[0] = xArray[index++];
-    }
+    //theta[0] = xArray[index++];
+    //phi[0]   = xArray[index++];
+    //if(!context->travelling_wave) tau[0] = xArray[index++];
+    theta[0]                             = (add_ubar) ? xArray[index++] * context->c_scale : xArray[index++];
+    phi[0]                               = (add_ubar) ? xArray[index++] * context->c_scale : xArray[index++];
+    if(!context->travelling_wave) tau[0] = (add_ubar) ? xArray[index++] * context->c_scale : xArray[index++];
   }
 
   VecRestoreArrayRead(xl, &xArray);
@@ -482,11 +483,12 @@ void RepackX(Context* context, vector<AuxField*> fields, real_t* theta, real_t* 
   if(!Geometry::procID()) {
     index = THREE * nDofsCube_l;
 
-    xArray[index++]   = theta[0];
-    xArray[index++]   = phi[0];
-    if(!context->travelling_wave) {
-      xArray[index++] = tau[0];
-    }
+    //xArray[index++]   = theta[0];
+    //xArray[index++]   = phi[0];
+    //if(!context->travelling_wave) xArray[index++] = tau[0];
+    xArray[index++]                               = (rmv_ubar) ? theta[0] / context->c_scale : theta[0];
+    xArray[index++]                               = (rmv_ubar) ? phi[0]   / context->c_scale : phi[0];
+    if(!context->travelling_wave) xArray[index++] = (rmv_ubar) ? tau[0]   / context->c_scale : tau[0];
   }
 
   VecRestoreArray(xl, &xArray);

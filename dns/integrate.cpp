@@ -309,7 +309,9 @@ void integrate (void (*advection) (Domain*    ,
       AuxField::couple (D -> u[1], D -> u[2], FORWARD);
     }
 
+    if(D->step == 1) Femlib::ivalue("N_TIME", 1);
     for (i = 0; i < NADV; i++) Solve (D, i, Uf[0][i], MMS[i]);
+    if(D->step == 1) Femlib::ivalue("N_TIME", NORD);
     if (C3D)
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 
