@@ -42,7 +42,7 @@ struct Context {
     double           u_scale[3];
     double           c_scale;
     AuxField*        uBar;
-    double           dt0;
+    double           beta;
 };
 
 void elements_to_logical(real_t* data_els, real_t* data_log);
@@ -56,8 +56,9 @@ void build_addToVector(Context* contex, vector<Field*> fields);
 void build_coordWeights(Context* context);
 void elements_to_vector(Context* context, int field_i, real_t* data_els, real_t* data_vec, bool fwd);
 int LocalIndex(Context* context, int field_i, int plane_i, int point_i);
-void _UnpackX(Context* context, vector<AuxField*> fields, real_t* phi, real_t* tau, Vec x);
-void _RepackX(Context* context, vector<AuxField*> fields, real_t phi, real_t tau, Vec x);
+double GetScale(Context* context, int field_i, int mode_i, int mesh_i);
+void _UnpackX(Context* context, vector<AuxField*> fields, real_t* phi, real_t* tau, Vec x, bool use_scale);
+void _RepackX(Context* context, vector<AuxField*> fields, real_t phi, real_t tau, Vec x, bool use_scale);
 void _phase_shift_z(Context* context, double phi, double sign, vector<Field*> fields);
 void base_profile(Context* context, AuxField* ux, real_t scale, AuxField* uBar);
 void velocity_scales(Context* context);

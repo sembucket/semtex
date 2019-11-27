@@ -552,7 +552,6 @@ void build_coordWeights(Context* context) {
         index = context->addToVector[fd_i][el_i*np2+pt_i];
         if(index != -1 && context->coord_weights[fd_i][index] < 1.0e-10) {
           context->coord_weights[fd_i][index] += context->domain->elmt[el_i]->area() / np2;
-cout<<Geometry::procID()<<": updating coord weight, field: "<<fd_i<<", index: "<<index<<",\tnew weight: "<<context->coord_weights[fd_i][index]<<endl;
         }
       }
     }
@@ -575,12 +574,6 @@ void elements_to_vector(Context* context, int field_i, real_t* data_els, real_t*
 }
 
 int LocalIndex(Context* context, int field_i, int plane_i, int point_i) {
-/*
-  int shift_1 = (plane_i/2) * 3 * 2 * context->nDofsPlane;
-  int shift_2 =  point_i    * 3 * 2;
-
-  return shift_1 + shift_2 + 2*field_i + plane_i%2;
-*/
   int index = 0;
 
   for(int shift_i = 0; shift_i < field_i; shift_i++) index += Geometry::nZProc() * context->n_mesh[shift_i];
@@ -589,9 +582,16 @@ int LocalIndex(Context* context, int field_i, int plane_i, int point_i) {
   return index;
 }
 
-void _UnpackX(Context* context, vector<AuxField*> fields, real_t* phi, real_t* tau, Vec x) {
-  int elOrd = Geometry::nP() - 1;
-  int ii, kk, ll, fd_i, index;
+double GetScale(Context* context, int field_i, int mode_i, int node_i) {
+  int mode_k = ( Geometry::procID() * Geometry::nZProc() + mode_i ) / 2;
+  double scale = 2.0/(2.0 + context->beta * fabs(mode_k)) * context->coord_weights[field_i][node_i];
+
+  scale *= context->u_scale[field_i];
+  return scale;
+}
+
+void _UnpackX(Context* context, vector<AuxField*> fields, real_t* phi, real_t* tau, Vec x, bool use_scale) {
+  int ii, kk, fd_i, index;
   const PetscScalar *xArray;
   double scale;
   real_t* data_u = new double[context->n_mesh_max];
@@ -603,14 +603,11 @@ void _UnpackX(Context* context, vector<AuxField*> fields, real_t* phi, real_t* t
 
   VecGetArrayRead(xl, &xArray);
   for(kk = 0; kk < Geometry::nZProc(); kk++) {
-    ll = ( Geometry::procID() * Geometry::nZProc() + kk ) / 2;
-
     for(fd_i = 0; fd_i < 3; fd_i++) {
       for(ii = 0; ii < context->n_mesh_max; ii++) data_u[ii] = 0.0;
 
       for(ii = 0; ii < context->n_mesh[fd_i]; ii++) {
-        scale  = 2.0/(2.0 + fabs(ll)) * context->coord_weights[fd_i][ii];
-        scale *= context->u_scale[fd_i];
+        scale = GetScale(context, fd_i, kk, ii);
 
         index = LocalIndex(context, fd_i, kk, ii);
         data_u[ii] = xArray[index] / scale;
@@ -624,42 +621,38 @@ void _UnpackX(Context* context, vector<AuxField*> fields, real_t* phi, real_t* t
   if(!Geometry::procID()) {
     index = Geometry::nZProc() * context->n_mesh_sum;
 
-    *phi = xArray[index++];
-    if(!context->travelling_wave) *tau = xArray[index++];
+    *phi                               = (use_scale) ? xArray[index++] * context->c_scale : xArray[index++];
+    if(!context->travelling_wave) *tau = (use_scale) ? xArray[index++] * context->c_scale : xArray[index++];
   }
   VecRestoreArrayRead(xl, &xArray);
 
-  *fields[2] += *context->uBar;
+  if(use_scale) *fields[2] += *context->uBar;
 
   VecDestroy(&xl);
   delete[] data_u;
 }
 
-void _RepackX(Context* context, vector<AuxField*> fields, real_t phi, real_t tau, Vec x) {
-  int elOrd = Geometry::nP() - 1;
-  int ii, kk, ll, fd_i, index;
+void _RepackX(Context* context, vector<AuxField*> fields, real_t phi, real_t tau, Vec x, bool use_scale) {
+  int ii, kk, fd_i, index;
   PetscScalar *xArray;
   double scale;
   real_t* data_u = new real_t[context->n_mesh_max];
   Vec xl;
 
-  *fields[2] -= *context->uBar;
+  if(use_scale) *fields[2] -= *context->uBar;
 
   VecCreateSeq(MPI_COMM_SELF, context->localSize, &xl);
   VecZeroEntries(xl);
   VecGetArray(xl, &xArray);
 
   for(kk = 0; kk < Geometry::nZProc(); kk++) {
-    ll = ( Geometry::procID() * Geometry::nZProc() + kk ) / 2;
-
     for(fd_i = 0; fd_i < 3; fd_i++) {
       for(ii = 0; ii < context->n_mesh_max; ii++) data_u[ii] = 0.0;
 
       elements_to_vector(context, fd_i, fields[fd_i]->plane(kk), data_u, true);
 
       for(ii = 0; ii < context->n_mesh[fd_i]; ii++) {
-        scale  = 2.0/(2.0 + fabs(ll)) * context->coord_weights[fd_i][ii];
-        scale *= context->u_scale[fd_i];
+        scale = GetScale(context, fd_i, kk, ii);
 
         index = LocalIndex(context, fd_i, kk, ii);
         xArray[index] = data_u[ii] * scale;
@@ -671,15 +664,15 @@ void _RepackX(Context* context, vector<AuxField*> fields, real_t phi, real_t tau
   if(!Geometry::procID()) {
     index = Geometry::nZProc() * context->n_mesh_sum;
 
-    xArray[index++] = phi;
-    if(!context->travelling_wave) xArray[index++] = tau;
+    xArray[index++]                               = (use_scale) ? phi / context->c_scale : phi;
+    if(!context->travelling_wave) xArray[index++] = (use_scale) ? tau / context->c_scale : tau;
   }
   VecRestoreArray(xl, &xArray);
 
   VecScatterBegin(context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
   VecScatterEnd(  context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
 
-  *fields[2] += *context->uBar;
+  if(use_scale) *fields[2] += *context->uBar;
 
   VecDestroy(&xl);
   delete[] data_u;
