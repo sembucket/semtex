@@ -246,35 +246,6 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   context->u_scale[2] = Femlib::value("W_SCALE");
   if(!Geometry::procID()) printf("u scales: %g, %g, %g\n", context->u_scale[0], context->u_scale[1], context->u_scale[2]);
 
-  context->rdr = Int_rdr(context);
-  for(int ii = 0; ii < context->nElsY*elOrd; ii++) context->rdr[ii] = 0.0;
-  for(int el_y = 0; el_y < context->nElsY; el_y++) {
-    double ir[99];
-    double is[99];
-    double dr[99];
-    double ds[99];
-    double drg;
-    double rad;
-
-    el_i = el_y*context->nElsX;
-    dy = fabs(elmt[el_i]->_ymesh[elOrd*(elOrd+1)] - elmt[el_i]->_ymesh[0]);
-
-    for(int qp_i = 0; qp_i <= elOrd; qp_i++) {
-      Femlib::interpolation (ir,is,dr,ds,elOrd+1,GLJ,0.0,0.0,elOrd+1,GLJ,0.0,0.0,qx[0],qx[qp_i]);
-      pt_y = el_y*elOrd + qp_i;
-      if(pt_y == context->nElsY*elOrd) continue;
-
-      //drg = 0.0;
-      //for(int qp_j = 0; qp_j <= elOrd; qp_j++) drg += context->rad_coords[el_y*elOrd+qp_j]*ds[qp_j];
-      drg = 1.0/(elmt[el_i]->_dsdy[qp_i*(elOrd+1)]);
-
-      //context->rdr[pt_y] += 0.5*dy*wx[qp_i]*context->rad_coords[pt_y]*drg;
-      rad = 0.5*(context->rad_coords[pt_y] + context->rad_coords[pt_y+1]);
-      context->rdr[pt_y] += 0.5 * dy * wx[qp_i] * rad * drg;
-    }
-  }
-  if(!Geometry::procID()) {for(int ii = 0; ii < context->nElsY*elOrd; ii++)cout << "\t" << context->rdr[ii]; cout << endl;}
-
   // add dofs for theta and tau for each time slice
   context->nSlice     = NSLICE;
   context->nField     = NFIELD;
@@ -304,7 +275,7 @@ if(!Geometry::procID())cout<<"....done.           \n";
   context->trans_fwd = fftw_plan_dft_1d(context->nModesX, context->data_s, context->data_f, FFTW_FORWARD,  FFTW_ESTIMATE);
   context->trans_bck = fftw_plan_dft_1d(context->nModesX, context->data_f, context->data_s, FFTW_BACKWARD, FFTW_ESTIMATE);
 
-  RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
+  //RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
   VecNorm(x, NORM_2, &norm);
   if(!Geometry::procID()) cout << "|x_0|: " << norm << endl;
 /*
@@ -317,7 +288,7 @@ if(!Geometry::procID())cout<<"....done.           \n";
 
   RepackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 */
-  UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
+  //UnpackX(context, context->ui, context->theta_i, context->phi_i, context->tau_i, x);
 
   VecDestroy(&x);
   VecDestroy(&xl);

@@ -76,6 +76,103 @@ static void   project   (const Domain*, AuxField**, AuxField**);
 static Msys** preSolve  (const Domain*);
 static void   Solve     (Domain*, const int_t, AuxField*, Msys*);
 
+bool alloc_diagnostics = true;
+static AuxField*** Vij;
+static AuxField** vort;
+static AuxField* enst;
+
+void diagnostics(Domain* domain) {
+  double prod, diss;
+  Vector du;
+  ofstream file;
+  vector<AuxField*> vort_vec;
+
+  // allocate if not already done
+  if(alloc_diagnostics) {
+    alloc_diagnostics = false;
+
+    Vij = new AuxField**[static_cast<size_t>(3)];
+
+    for(int ii = 0; ii < 3; ii++) {
+      Vij[ii] = new AuxField*[static_cast<size_t>(3)];
+      for(int jj = 0; jj < 3; jj++) {
+        Vij[ii][jj] = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
+      }
+    }
+
+    vort = new AuxField*[static_cast<size_t>(3)];
+    for(int ii = 0; ii < 3; ii++) {
+      vort[ii] = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
+    }
+
+    enst = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
+  }
+
+  // energy production, compute as: I = \int_{V} DIV(pu) dV
+  *enst  = *domain->u[1];
+  *enst *= *domain->u[3];
+  enst->divY();
+  for(int ii = 0; ii < 3; ii++) {
+    *vort[ii]  = *domain->u[ii];
+    *vort[ii] *= *domain->u[3];
+    vort[ii]->gradient(ii); // assume fields are already in fourier space, so theta gradient is ok
+    if(ii == 2) vort[ii]->divY();
+    *enst += *vort[ii];
+  }
+  prod = enst->integral(); // assume we are already in fourier space
+
+  // energy dissipation, compute as: D = \int_{V} [v^2 + w^2 - 2 w dv/\theta + 2 v dwd/theta]/y^2 + |GRAD u|^2 + |GRAD v|^2 + |GRAD w|^2 dV
+  // first do the |GRAD U|^2, U = {u,v,w} terms
+  *enst = 0.0;
+  for(int ii = 0; ii < 3; ii++) {
+    for(int jj = 0; jj < 3; jj++) {
+      *Vij[ii][jj] = *domain->u[ii];
+      Vij[ii][jj]->gradient(jj);
+      if(jj == 2) Vij[ii][jj]->divY();
+      vort_vec[jj] = Vij[ii][jj];
+    }
+    *vort[0] = 0.0;
+    vort[0]->innerProduct(vort_vec, vort_vec);
+    *enst += *vort[0];
+  }
+
+  // now do the [.]/y^2 terms
+  *vort[0]  = *domain->u[1];
+  *vort[0] *= *domain->u[1];
+  vort[0]->divY();
+  vort[0]->divY();
+  *enst += *vort[0];
+
+  *vort[0]  = *domain->u[2];
+  *vort[0] *= *domain->u[2];
+  vort[0]->divY();
+  vort[0]->divY();
+  *enst += *vort[0];
+
+  *vort[0]  = *domain->u[1];
+  vort[0]->gradient(2);
+  *vort[0] *= *domain->u[2];
+  vort[0]->divY();
+  vort[0]->divY();
+  *vort[0] *= 2.0;
+  *enst -= *vort[0];
+
+  *vort[0]  = *domain->u[2];
+  vort[0]->gradient(2);
+  *vort[0] *= *domain->u[1];
+  vort[0]->divY();
+  vort[0]->divY();
+  *vort[0] *= 2.0;
+  *enst += *vort[0];
+
+  diss = enst->integral(); // assume we are already in fourier space
+
+  if(!Geometry::procID()) {
+    file.open("production_dissipation.txt", ios::app);
+    file.precision(12);
+    file << domain->step << "\t" << prod << "\t" << diss << "\n";
+  }
+}
 
 void integrate (void (*advection) (Domain*    , 
                                    BCmgr*     ,
