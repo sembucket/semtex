@@ -76,58 +76,61 @@ static void   project   (const Domain*, AuxField**, AuxField**);
 static Msys** preSolve  (const Domain*);
 static void   Solve     (Domain*, const int_t, AuxField*, Msys*);
 
+#define ID_DIAGNOSTIC 1
+
+#ifdef ID_DIAGNOSTIC
 bool alloc_diagnostics = true;
-static AuxField*** Vij;
-static AuxField** vort;
-static AuxField* enst;
+AuxField** vort;
+AuxField* enst;
+AuxField* pres;
 
 void diagnostics(Domain* domain) {
   double prod, diss;
-  Vector du;
   ofstream file;
-  vector<AuxField*> vort_vec;
 
   // allocate if not already done
   if(alloc_diagnostics) {
     alloc_diagnostics = false;
-
-    Vij = new AuxField**[static_cast<size_t>(3)];
-
-    for(int ii = 0; ii < 3; ii++) {
-      Vij[ii] = new AuxField*[static_cast<size_t>(3)];
-      for(int jj = 0; jj < 3; jj++) {
-        Vij[ii][jj] = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
-      }
-    }
-
     vort = new AuxField*[static_cast<size_t>(3)];
     for(int ii = 0; ii < 3; ii++) {
       vort[ii] = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
     }
-
     enst = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
+    pres = new AuxField(new real_t[Geometry::nTotal()], Geometry::nZProc(), domain->elmt);
+    return;
   }
 
-  // energy production, compute as: I = \int_{V} DIV(pu) dV
-  *enst  = *domain->u[1];
-  *enst *= *domain->u[3];
-  enst->divY();
+  // pressure field was stomped on by the fieldforce, copy back from temporary variable
+  *domain->u[3] = *pres;
+  // transform state into physical space in order to perform pointwise multiplications
+  for(int ii = 0; ii < 4; ii++) domain->u[ii]->transform(INVERSE);
+
+  // energy production, compute as: I = \int_{V} u.GRAD p dV
+  *enst = 0.0;
   for(int ii = 0; ii < 3; ii++) {
-    *vort[ii]  = *domain->u[ii];
-    *vort[ii] *= *domain->u[3];
-    vort[ii]->gradient(ii); // assume fields are already in fourier space, so theta gradient is ok
+    *vort[ii] = *pres;
+    if(ii == 2) vort[ii]->transform(FORWARD);
+    vort[ii]->gradient(ii);
+    if(ii == 2) vort[ii]->transform(INVERSE);
     if(ii == 2) vort[ii]->divY();
+    // include the constant pressure gradient forcing
+    if(ii == 0) *vort[ii] += 4.0*Femlib::value("KINVIS");
+    *vort[ii] *= *domain->u[ii];
     *enst += *vort[ii];
   }
-  prod = enst->integral(); // assume we are already in fourier space
+  enst->transform(FORWARD);
+  prod = enst->integral() / Femlib::value("KINVIS");
 
   // energy dissipation, compute as: D = \int_{V} [v^2 + w^2 - 2 w dv/\theta + 2 v dwd/theta]/y^2 + |GRAD u|^2 + |GRAD v|^2 + |GRAD w|^2 dV
   // first do the |GRAD U|^2, U = {u,v,w} terms
   *enst = 0.0;
+/*
   for(int ii = 0; ii < 3; ii++) {
     for(int jj = 0; jj < 3; jj++) {
       *Vij[ii][jj] = *domain->u[ii];
+      if(jj == 2) Vij[ii][jj]->transform(FORWARD);
       Vij[ii][jj]->gradient(jj);
+      if(jj == 2) Vij[ii][jj]->transform(INVERSE);
       if(jj == 2) Vij[ii][jj]->divY();
       vort_vec[jj] = Vij[ii][jj];
     }
@@ -150,7 +153,9 @@ void diagnostics(Domain* domain) {
   *enst += *vort[0];
 
   *vort[0]  = *domain->u[1];
+  vort[0]->transform(FORWARD);
   vort[0]->gradient(2);
+  vort[0]->transform(INVERSE);
   *vort[0] *= *domain->u[2];
   vort[0]->divY();
   vort[0]->divY();
@@ -158,21 +163,82 @@ void diagnostics(Domain* domain) {
   *enst -= *vort[0];
 
   *vort[0]  = *domain->u[2];
+  vort[0]->transform(FORWARD);
   vort[0]->gradient(2);
+  vort[0]->transform(INVERSE);
   *vort[0] *= *domain->u[1];
   vort[0]->divY();
   vort[0]->divY();
   *vort[0] *= 2.0;
   *enst += *vort[0];
+*/
+  for(int ii = 0; ii < 3; ii++) {
+    for(int jj = 0; jj < 3; jj++) {
+      if(jj == ii) continue;
 
-  diss = enst->integral(); // assume we are already in fourier space
+      *vort[0] = *domain->u[ii];
+      if(jj == 2) vort[0]->transform(FORWARD);
+      vort[0]->gradient(jj);
+      if(jj == 2) vort[0]->transform(INVERSE);
+      if(jj == 2) vort[0]->divY();
+
+      *vort[0] *= *vort[0];
+      *enst += *vort[0];
+    }
+
+    int jj = (ii+1)%3;
+    int kk = (ii+2)%3;
+
+    *vort[0] = *domain->u[jj];
+    *vort[1] = *domain->u[kk];
+
+    if(kk == 2) vort[0]->transform(FORWARD);
+    vort[0]->gradient(kk);
+    if(kk == 2) vort[0]->transform(INVERSE);
+    if(kk == 2) vort[0]->divY();
+
+    if(jj == 2) vort[1]->transform(FORWARD);
+    vort[0]->gradient(jj);
+    if(jj == 2) vort[1]->transform(INVERSE);
+    if(jj == 2) vort[1]->divY();
+
+    *vort[0] *= *vort[1];
+    *vort[0] *= 2.0;
+    *enst -= *vort[0];
+  }
+
+  *vort[0] = *domain->u[2];
+  vort[0]->gradient(1);
+  vort[0]->divY();
+  *vort[0] *= *domain->u[2];
+  *vort[0] *= 2.0;
+  *enst += *vort[0];
+
+  *vort[0] = *domain->u[1];
+  vort[0]->transform(FORWARD);
+  vort[0]->gradient(2);
+  vort[0]->transform(INVERSE);
+  vort[0]->divY();
+  *vort[0] *= *domain->u[2];
+  vort[0]->divY();
+  *vort[0] *= 2.0;
+  *enst -= *vort[0];
+
+  // integeate in fourier space
+  enst->transform(FORWARD);
+  diss = enst->integral();
 
   if(!Geometry::procID()) {
     file.open("production_dissipation.txt", ios::app);
     file.precision(12);
     file << domain->step << "\t" << prod << "\t" << diss << "\n";
+    file.close();
   }
+
+  // transform state back into fourier space
+  for(int ii = 0; ii < 4; ii++) domain->u[ii]->transform(FORWARD);
 }
+#endif
 
 void integrate (void (*advection) (Domain*    , 
                                    BCmgr*     ,
@@ -348,6 +414,11 @@ void integrate (void (*advection) (Domain*    ,
   }
 
   // -- The following timestepping loop implements equations (15--18) in [5].
+
+#ifdef ID_DIAGNOSTIC
+  // setup only
+  diagnostics(D);
+#endif
   
   while (D -> step < nStep) {
 
@@ -380,6 +451,11 @@ void integrate (void (*advection) (Domain*    ,
     rollm     (Uf, NORD, NADV);
     setPForce (const_cast<const AuxField**>(Us[0]), Uf[0]);
     Solve     (D, NADV,  Uf[0][0], MMS[NADV]);
+
+#ifdef ID_DIAGNOSTIC
+    // copy over before this gets stomped on by the fieldforce
+    *pres = *D->u[NADV];
+#endif
 
     // -- Correct velocities for pressure.
 
@@ -417,8 +493,6 @@ void integrate (void (*advection) (Domain*    ,
       real_t L_x       = Femlib::value("XMAX");
       real_t _refQ     = Femlib::value("Q_BAR");
       real_t getQ, dP;
-
-      
 /*
       getQ  = 2.0 * M_PI * D->u[0]->integral(0);
       getQ /= (M_PI * 1.0 * 1.0 * L_x);
@@ -448,6 +522,10 @@ void integrate (void (*advection) (Domain*    ,
     // -- Process results of this step.
     
     //A -> analyse (Us[0], Uf[0]);
+#ifdef ID_DIAGNOSTIC
+    diagnostics(D);
+#endif
+
   }
 }
 
