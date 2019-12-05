@@ -74,3 +74,4 @@ void phase_shift_z(Context* context, double phi,   double sign, vector<Field*> f
 void velocity_scales(Context* context);
 void base_profile(Context* context, AuxField* ux, real_t scale, AuxField* uBar);
 int LocalIndex(Context* context, int field_i, int plane_i, int point_x, int point_y);
+double GetScale(Context* context, int field_i, int plane_i, int point_x, int point_y);

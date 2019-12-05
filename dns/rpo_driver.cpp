@@ -550,7 +550,6 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
     context->phi_i[slice_i]   = 0.0;
     context->tau_i[slice_i]   = Femlib::ivalue("N_STEP") * Femlib::value("D_T");
   }
-  context->dt0 = Femlib::value("D_T");
 
   if(!context->travelling_wave && !Femlib::ivalue("ITERATIVE")) {
     if(!Geometry::procID()) cout << "ERROR: solver type must be iterative for rpo configuration!!\n";

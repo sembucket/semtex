@@ -76,7 +76,7 @@ static void   project   (const Domain*, AuxField**, AuxField**);
 static Msys** preSolve  (const Domain*);
 static void   Solve     (Domain*, const int_t, AuxField*, Msys*);
 
-#define ID_DIAGNOSTIC 1
+//#define ID_DIAGNOSTIC 1
 
 #ifdef ID_DIAGNOSTIC
 bool alloc_diagnostics = true;
