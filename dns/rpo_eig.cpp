@@ -313,6 +313,14 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   context->nModesX = nNodesX;
   context->xmax    = Femlib::value("XMAX");
   if(!Geometry::procID())cout<<"NELS_X: "<<context->nElsX<<", NELS_Y: "<<context->nElsY<<", XMAX: "<<context->xmax<<endl;
+  context->theta_i = new real_t[1];
+  context->phi_i   = new real_t[1];
+  context->tau_i   = new real_t[1];
+  context->theta_i[0] = Femlib::value("SHIFT_THETA") / (2.0*M_PI/context->xmax);
+  context->phi_i[0]   = Femlib::value("SHIFT_PHI");
+  context->tau_i[0]   = Femlib::value("D_T") * Femlib::ivalue("N_STEP");
+  if(!Geometry::procID()) cout << "shift theta: " << context->theta_i[0]*(2.0*M_PI/context->xmax)
+                               << ", shift phi: " << context->phi_i[0] << ", shift tau: " << context->tau_i[0] << endl;
 
   // setup the fourier mapping data
   context->el = new int_t[context->nElsX*elOrd*context->nElsY*elOrd];
@@ -384,7 +392,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   // add dofs for theta and tau for each time slice
   context->nDofsPlane = context->nModesX*context->nElsY*elOrd;
   context->localSize  = THREE * Geometry::nZProc() * context->nDofsPlane;
-  MPI_Allreduce(&context->localSize, &context->nDofsSlice, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&context->localSize, &context->nDofsSlice, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
   // setup the complex fft in the axial direction
   context->data_s = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(context->nModesX));
@@ -392,7 +400,7 @@ void rpo_solve(Mesh* mesh, vector<Element*> elmt, BCmgr* bman, FEML* file, Domai
   context->trans_fwd = fftw_plan_dft_1d(context->nModesX, context->data_s, context->data_f, FFTW_FORWARD,  FFTW_ESTIMATE);
   context->trans_bck = fftw_plan_dft_1d(context->nModesX, context->data_f, context->data_s, FFTW_BACKWARD, FFTW_ESTIMATE);
 
-  context->uBar = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, 'p');
+  context->uBar = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), elmt, 'b');
   base_profile(context, context->domain->u[0], Femlib::value("BASE_PROFILE_SCALE"), context->uBar);
   *context->ui[0] -= *context->uBar;
   velocity_scales(context);
