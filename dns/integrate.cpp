@@ -85,7 +85,8 @@ AuxField* enst;
 AuxField* pres;
 
 void diagnostics(Domain* domain) {
-  double prod, diss;
+  double prod, diss, int_dudy;
+  Vector du;
   ofstream file;
 
   // allocate if not already done
@@ -101,9 +102,9 @@ void diagnostics(Domain* domain) {
   }
 
   // pressure field was stomped on by the fieldforce, copy back from temporary variable
-  *domain->u[3] = *pres;
+  pres->transform(INVERSE);
   // transform state into physical space in order to perform pointwise multiplications
-  for(int ii = 0; ii < 4; ii++) domain->u[ii]->transform(INVERSE);
+  for(int ii = 0; ii < 3; ii++) domain->u[ii]->transform(INVERSE);
 
   // energy production, compute as: I = \int_{V} u.GRAD p dV
   *enst = 0.0;
@@ -113,8 +114,20 @@ void diagnostics(Domain* domain) {
     vort[ii]->gradient(ii);
     if(ii == 2) vort[ii]->transform(INVERSE);
     if(ii == 2) vort[ii]->divY();
-    // include the constant pressure gradient forcing
-    if(ii == 0) *vort[ii] += 4.0*Femlib::value("KINVIS");
+
+    // constant pressure gradient forcing
+    //if(ii == 0) *vort[ii] += 4.0*Femlib::value("KINVIS");
+    // constant mass flux forcing
+    if(ii == 0) {
+      *domain->u[3] = *domain->u[0];
+      domain->u[3]->transform(FORWARD);
+      domain->u[3]->gradient(1);
+      du = Field::normTraction(domain->u[3]);
+      int_dudy = -2.0 * du.y * Femlib::value("KINVIS") / Femlib::value("XMAX");
+      MPI_Bcast(&int_dudy, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+      *vort[ii] += int_dudy;
+    }
+
     *vort[ii] *= *domain->u[ii];
     *enst += *vort[ii];
   }
@@ -124,54 +137,7 @@ void diagnostics(Domain* domain) {
   // energy dissipation, compute as: D = \int_{V} [v^2 + w^2 - 2 w dv/\theta + 2 v dwd/theta]/y^2 + |GRAD u|^2 + |GRAD v|^2 + |GRAD w|^2 dV
   // first do the |GRAD U|^2, U = {u,v,w} terms
   *enst = 0.0;
-/*
-  for(int ii = 0; ii < 3; ii++) {
-    for(int jj = 0; jj < 3; jj++) {
-      *Vij[ii][jj] = *domain->u[ii];
-      if(jj == 2) Vij[ii][jj]->transform(FORWARD);
-      Vij[ii][jj]->gradient(jj);
-      if(jj == 2) Vij[ii][jj]->transform(INVERSE);
-      if(jj == 2) Vij[ii][jj]->divY();
-      vort_vec[jj] = Vij[ii][jj];
-    }
-    *vort[0] = 0.0;
-    vort[0]->innerProduct(vort_vec, vort_vec);
-    *enst += *vort[0];
-  }
 
-  // now do the [.]/y^2 terms
-  *vort[0]  = *domain->u[1];
-  *vort[0] *= *domain->u[1];
-  vort[0]->divY();
-  vort[0]->divY();
-  *enst += *vort[0];
-
-  *vort[0]  = *domain->u[2];
-  *vort[0] *= *domain->u[2];
-  vort[0]->divY();
-  vort[0]->divY();
-  *enst += *vort[0];
-
-  *vort[0]  = *domain->u[1];
-  vort[0]->transform(FORWARD);
-  vort[0]->gradient(2);
-  vort[0]->transform(INVERSE);
-  *vort[0] *= *domain->u[2];
-  vort[0]->divY();
-  vort[0]->divY();
-  *vort[0] *= 2.0;
-  *enst -= *vort[0];
-
-  *vort[0]  = *domain->u[2];
-  vort[0]->transform(FORWARD);
-  vort[0]->gradient(2);
-  vort[0]->transform(INVERSE);
-  *vort[0] *= *domain->u[1];
-  vort[0]->divY();
-  vort[0]->divY();
-  *vort[0] *= 2.0;
-  *enst += *vort[0];
-*/
   for(int ii = 0; ii < 3; ii++) {
     for(int jj = 0; jj < 3; jj++) {
       if(jj == ii) continue;
@@ -228,15 +194,17 @@ void diagnostics(Domain* domain) {
   enst->transform(FORWARD);
   diss = enst->integral();
 
+  // transform state back into fourier space
+  for(int ii = 0; ii < 3; ii++) domain->u[ii]->transform(FORWARD);
+  pres->transform(FORWARD);
+  *domain->u[3] = *pres;
+
   if(!Geometry::procID()) {
     file.open("production_dissipation.txt", ios::app);
     file.precision(12);
     file << domain->step << "\t" << prod << "\t" << diss << "\n";
     file.close();
   }
-
-  // transform state back into fourier space
-  for(int ii = 0; ii < 4; ii++) domain->u[ii]->transform(FORWARD);
 }
 #endif
 
@@ -483,8 +451,10 @@ void integrate (void (*advection) (Domain*    ,
     }
 
     if(D->step == 1) Femlib::ivalue("N_TIME", 1);
+    if(D->step == 2) Femlib::ivalue("N_TIME", 2);
     for (i = 0; i < NADV; i++) Solve (D, i, Uf[0][i], MMS[i]);
     if(D->step == 1) Femlib::ivalue("N_TIME", NORD);
+    if(D->step == 2) Femlib::ivalue("N_TIME", NORD);
     if (C3D)
       AuxField::couple (D -> u[1], D -> u[2], INVERSE);
 

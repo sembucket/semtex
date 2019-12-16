@@ -68,8 +68,7 @@ static void preprocess (const char*, FEML*&, Mesh*&, vector<Element*>&,
 #define YMAX 1.0
 #define NSLICE 1
 
-void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domain* domain, DNSAnalyser* analyst)
-{
+void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domain* domain, DNSAnalyser* analyst) {
   Context* context = new Context;
   int elOrd = Geometry::nP() - 1;
   int nNodesX = Femlib::ivalue("NELS_X")*elOrd;
@@ -85,10 +84,13 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   ifstream file;
   double value;
   string line;
+  Vector du;
   char filename[100];
   PetscScalar* xArray;
   Vec x, xl;
   PetscViewer viewer;
+  int np2 = Geometry::nP() * Geometry::nP();
+  AuxField* uBar;
 
   if(!Geometry::procID()) cout << "time step: " << Femlib::value("D_T") << endl;
 
@@ -181,6 +183,11 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
     }
     dy_sum += dy;
   }
+if(!Geometry::procID()){
+cout << "radial coords:\n";
+for(int pt_i=0; pt_i<context->nElsY*elOrd; pt_i++)cout<<context->rad_coords[pt_i]<<", ";
+cout << "\n";
+}
 
   // add dofs for theta and tau for each time slice
   context->nSlice     = NSLICE;
@@ -211,55 +218,84 @@ void rpo_solve(int nSlice, Mesh* mesh, vector<Element*> elmt, BCmgr* bman, Domai
   }
 
   // load from files (one for each proc)
-  {
-    VecZeroEntries(xl);
-    VecGetArray(xl, &xArray);
-    sprintf(filename, "u.%.3d.rpo", Geometry::procID());
-    cout << "loading file: " << filename << endl;
-    file.open(filename);
-    ii = 0;
-    while (std::getline(file, line)) {
-      stringstream ss(line);
-      ss >> value;
-      xArray[ii++] = value;
-    }
-    file.close();
-
-    for(int field_i = 0; field_i < 3; field_i++) {
-      for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
-        for(int point_y = 0; point_y < context->nElsY*elOrd; point_y++) {
-          for(int point_x = 0; point_x < context->nModesX; point_x++) {
-            mode_l = (point_x <= context->nModesX/2) ? point_x : point_x - context->nModesX; // fftw ordering of complex data
-
-            ii = LocalIndex(context, field_i, plane_i+0, point_x, point_y);
-            data_r[point_y*context->nModesX+point_x] = xArray[ii];
-            // divergence free: mean component of radial velocity is 0
-            // note that we are in \tilde{} variables, and the nyquist frequency is also 0
-            if(field_i  > 0 && Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) data_r[point_y*context->nModesX+point_x] = 0.0;
-
-            ii = LocalIndex(context, field_i, plane_i+1, point_x, point_y);
-            data_i[point_y*context->nModesX+point_x] = xArray[ii];
-            // don't include the nyquist frequency
-            if(field_i == 0 && Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) data_i[point_y*context->nModesX+point_x] = 0.0;
-          }
-        }
-
-        Fourier_to_SEM(plane_i, context, domain->u[field_i], data_r, data_i, field_i);
-      }
-    }
-    VecRestoreArray(xl, &xArray);
-
-    VecScatterBegin(context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
-    VecScatterEnd(  context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
+  VecZeroEntries(xl);
+  VecGetArray(xl, &xArray);
+  sprintf(filename, "u.%.3d.rpo", Geometry::procID());
+  cout << "loading file: " << filename << endl;
+  file.open(filename);
+  ii = 0;
+  while (std::getline(file, line)) {
+    stringstream ss(line);
+    ss >> value;
+    xArray[ii++] = value;
   }
+  file.close();
+
+  for(int field_i = 0; field_i < 3; field_i++) {
+    for(int plane_i = 0; plane_i < Geometry::nZProc(); plane_i += 2) {
+      for(int point_y = 0; point_y < context->nElsY*elOrd; point_y++) {
+        for(int point_x = 0; point_x < context->nModesX; point_x++) {
+          mode_l = (point_x <= context->nModesX/2) ? point_x : point_x - context->nModesX; // fftw ordering of complex data
+
+          ii = LocalIndex(context, field_i, plane_i+0, point_x, point_y);
+          data_r[point_y*context->nModesX+point_x] = xArray[ii];
+          // divergence free: mean component of radial velocity is 0
+          // note that we are in \tilde{} variables, and the nyquist frequency is also 0
+          if(field_i  > 0 && Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) data_r[point_y*context->nModesX+point_x] = 0.0;
+
+if(field_i==0 && !Geometry::procID() && !plane_i && !mode_l) cout << data_r[point_y*context->nModesX+point_x] << ", ";
+
+          ii = LocalIndex(context, field_i, plane_i+1, point_x, point_y);
+          data_i[point_y*context->nModesX+point_x] = xArray[ii];
+          // don't include the nyquist frequency
+          if(field_i == 0 && Geometry::procID() == 0 && plane_i == 0 && mode_l == 0) data_i[point_y*context->nModesX+point_x] = 0.0;
+        }
+      }
+
+      Fourier_to_SEM(plane_i, context, domain->u[field_i], data_r, data_i, field_i);
+    }
+  }
+  VecRestoreArray(xl, &xArray);
+
+  if(!Geometry::procID())cout<<"\n";
+  VecNorm(xl,NORM_2,&norm);
+  cout << Geometry::procID() << "\t" << norm << endl;
+
+  VecScatterBegin(context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
+  VecScatterEnd(  context->global_to_semtex, xl, x, INSERT_VALUES, SCATTER_REVERSE);
+
   sprintf(filename, "x_curr_%.4u.vec", 1);
   PetscViewerBinaryOpen(MPI_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
   VecView(x, viewer);
   PetscViewerDestroy(&viewer);
 
+  for(int field_i = 0; field_i < 3; field_i++) {
+    *domain->u[3] = *domain->u[field_i];
+    domain->u[3]->gradient(1);
+    du = Field::normTraction(domain->u[3]);
+    if(!Geometry::procID() && !field_i) cout << "dudy:      " << du.y/Femlib::value("XMAX") << endl;
+    domain->u[3]->transform(INVERSE);
+    *domain->u[3] *= *domain->u[3];
+    domain->u[3]->transform(FORWARD);
+    norm = domain->u[3]->integral();
+
+    if(!Geometry::procID()) cout << field_i << " integral: " << norm << endl;
+  }
+
+  // add in the base flow
+  uBar = new AuxField(new real_t[(size_t)Geometry::nTotProc()], Geometry::nZProc(), domain->elmt, 'b');
+  for(int pl_i = 0; pl_i < Geometry::nZProc(); pl_i++) {
+    for(int el_i = 0; el_i < domain->elmt.size(); el_i++) {
+      for(int pt_i = 0; pt_i < np2; pt_i++) {
+        uBar->plane(pl_i)[el_i*np2+pt_i] = (1.0 - domain->elmt[el_i]->_ymesh[pt_i]*domain->elmt[el_i]->_ymesh[pt_i]);
+      }
+    }
+  }
+  uBar->transform(FORWARD);
+  *domain->u[0] += *uBar;
+
   if(!Geometry::procID()) cout << "dumping fields...\n";
   domain->dump();
-  if(!Geometry::procID()) cout << "...done.\n";
 
   VecDestroy(&x);
   VecDestroy(&xl);
